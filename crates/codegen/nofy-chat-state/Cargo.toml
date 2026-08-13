@@ -1,0 +1,30 @@
+[package]
+license = "Apache-2.0"
+name = "nofy-chat-state"
+version = "0.1.0"
+edition.workspace = true
+description = "Actor-based chat state management for xAI agents"
+
+[features]
+default-bazel = []
+
+[dependencies]
+indexmap = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+strum = { workspace = true }
+tokio = { workspace = true, features = ["sync", "rt", "macros"] }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+nofy-compaction = { path = "../../common/nofy-compaction" }
+nofy-sampling-types = { path = "../nofy-sampling-types" }
+nofy-session-journal = { path = "../../common/nofy-session-journal" }
+nofy-token-estimation = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+
+[lints]
+workspace = true
