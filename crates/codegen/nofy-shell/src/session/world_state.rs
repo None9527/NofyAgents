@@ -214,6 +214,47 @@ pub(crate) struct WorkspaceChange {
     pub at: chrono::DateTime<chrono::Utc>,
 }
 
+/// Actor-level state slice for partitions whose sources live above the
+/// tool context (goal tracker, todo list, subagent coordinator). The
+/// injection point collects these into plain snapshots so the projector
+/// stays decoupled from actor types and trivially testable.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct WorldStateExtras {
+    pub goal: Option<GoalSnapshot>,
+    pub todos: Vec<TodoSnapshot>,
+    pub subagents: Vec<SubagentSnapshot>,
+}
+
+/// Snapshot of the goal tracker's active orchestration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct GoalSnapshot {
+    pub goal_id: String,
+    pub objective: String,
+    pub status: String,
+    pub phase: String,
+    pub current_subagent_id: Option<String>,
+    pub current_subagent_role: Option<String>,
+}
+
+/// Snapshot of one todo item (pending work).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct TodoSnapshot {
+    pub content: String,
+    pub status: String,
+}
+
+/// Snapshot of one active subagent worker.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct SubagentSnapshot {
+    pub id: String,
+    pub agent_type: String,
+    pub description: String,
+    pub elapsed_ms: u64,
+}
+
+/// Cap on pending-work entries projected from the todo list.
+const MAX_TODO_ENTRIES: usize = 20;
+
 /// Project the workspace partition from agent writes and external edits.
 ///
 /// Both lists are capped at [`MAX_WORKSPACE_ENTRIES`] most recent entries;
@@ -280,6 +321,223 @@ pub(crate) fn project_git_dirty_partition(snapshot: &GitDirtySnapshot) -> Vec<Wo
         .collect()
 }
 
+/// Project the task partition: active goal, pending work, completion
+/// evidence. Goal and todos are observed runtime state; the completion
+/// evidence entry carries the D1 verification verdict so the frame can
+/// answer "is the work verified?" without re-reading the journal.
+pub(crate) fn project_task_partition(
+    extras: &WorldStateExtras,
+    verification: Option<nofy_session_journal::VerificationState>,
+) -> Vec<WorldStateEntry> {
+    let at = now_ms();
+    let mut entries = Vec::new();
+    if let Some(goal) = &extras.goal {
+        entries.push(
+            WorldStateEntry::new(
+                Partition::Task,
+                goal.goal_id.clone(),
+                "active_goal",
+                serde_json::json!({
+                    "objective": goal.objective,
+                    "status": goal.status,
+                    "phase": goal.phase,
+                }),
+                Authority::Observed,
+                "goal-tracker",
+            )
+            .with_freshness(Freshness::at(at)),
+        );
+    }
+    for (index, todo) in extras.todos.iter().take(MAX_TODO_ENTRIES).enumerate() {
+        // Open work only: completed/cancelled items are history, not
+        // current reality.
+        if matches!(todo.status.as_str(), "completed" | "cancelled") {
+            continue;
+        }
+        entries.push(
+            WorldStateEntry::new(
+                Partition::Task,
+                format!("todo-{}", index + 1),
+                "pending_work",
+                serde_json::json!({
+                    "content": todo.content,
+                    "status": todo.status,
+                }),
+                Authority::Observed,
+                "todo-list",
+            )
+            .with_freshness(Freshness::at(at)),
+        );
+    }
+    if let Some(state) = verification {
+        use nofy_session_journal::VerificationState;
+        let (verdict, value) = match state {
+            VerificationState::NoMutations => ("no_mutations", serde_json::json!({})),
+            VerificationState::Verified {
+                last_mutation_seq,
+                verification_seq,
+            } => (
+                "verified",
+                serde_json::json!({
+                    "last_mutation_seq": last_mutation_seq,
+                    "verification_seq": verification_seq,
+                }),
+            ),
+            VerificationState::Unverified { last_mutation_seq } => (
+                "unverified",
+                serde_json::json!({ "last_mutation_seq": last_mutation_seq }),
+            ),
+        };
+        entries.push(
+            WorldStateEntry::new(
+                Partition::Task,
+                "changes",
+                "completion_evidence",
+                value,
+                // The verdict is computed from journal events — observed
+                // facts, even when the verdict itself is "unverified".
+                Authority::Observed,
+                "runtime-journal-gauge",
+            )
+            .with_status(match state {
+                VerificationState::Unverified { .. } => EntryStatus::Inferred,
+                _ => EntryStatus::Observed,
+            })
+            .with_freshness(Freshness::at(at))
+            .with_evidence(vec![format!("verdict:{verdict}")]),
+        );
+    }
+    entries
+}
+
+/// Project the agent partition: active subagent workers and the goal's
+/// current assignment. Both are observed coordinator state.
+pub(crate) fn project_agent_partition(extras: &WorldStateExtras) -> Vec<WorldStateEntry> {
+    let at = now_ms();
+    let mut entries = Vec::new();
+    for worker in &extras.subagents {
+        entries.push(
+            WorldStateEntry::new(
+                Partition::Agent,
+                worker.id.clone(),
+                "active_worker",
+                serde_json::json!({
+                    "type": worker.agent_type,
+                    "description": worker.description,
+                    "elapsed_ms": worker.elapsed_ms,
+                }),
+                Authority::Observed,
+                "subagent-coordinator",
+            )
+            .with_freshness(Freshness::at(at)),
+        );
+    }
+    if let Some(goal) = &extras.goal
+        && let Some(subagent_id) = &goal.current_subagent_id
+    {
+        entries.push(
+            WorldStateEntry::new(
+                Partition::Agent,
+                subagent_id.clone(),
+                "assignment",
+                serde_json::json!({
+                    "goal_id": goal.goal_id,
+                    "role": goal.current_subagent_role,
+                }),
+                Authority::Observed,
+                "goal-tracker",
+            )
+            .with_freshness(Freshness::at(at)),
+        );
+    }
+    entries
+}
+
+/// Project the knowledge partition from what the runtime knows with
+/// evidence: resume-reconciliation findings (known facts about the
+/// previous segment) and the verification watermarks (evidence
+/// references). Conflicts are projected separately by
+/// [`project_knowledge_conflicts`] once the full state exists.
+pub(crate) fn project_knowledge_partition(
+    reconciliation: Option<&nofy_session_journal::ReconciliationReport>,
+    verification: Option<nofy_session_journal::VerificationState>,
+) -> Vec<WorldStateEntry> {
+    let at = now_ms();
+    let mut entries = Vec::new();
+    if let Some(report) = reconciliation {
+        entries.push(
+            WorldStateEntry::new(
+                Partition::Knowledge,
+                "resume-reconciliation",
+                "known_fact",
+                serde_json::json!({
+                    "open_total": report.open_total,
+                    "unknown_outcome": report.unknown_outcome,
+                    "possibly_running": report.possibly_running,
+                }),
+                // Classification from the journal alone — inferred until
+                // re-observed.
+                Authority::Inferred,
+                "resume-reconciliation",
+            )
+            .with_evidence(vec![report.summary_line()])
+            .with_freshness(Freshness::at(at)),
+        );
+    }
+    if let Some(state) = verification {
+        use nofy_session_journal::VerificationState;
+        let value = match state {
+            VerificationState::NoMutations => serde_json::json!({}),
+            VerificationState::Verified {
+                last_mutation_seq,
+                verification_seq,
+            } => serde_json::json!({
+                "last_mutation_seq": last_mutation_seq,
+                "verification_seq": verification_seq,
+            }),
+            VerificationState::Unverified { last_mutation_seq } => {
+                serde_json::json!({ "last_mutation_seq": last_mutation_seq })
+            }
+        };
+        entries.push(
+            WorldStateEntry::new(
+                Partition::Knowledge,
+                "verification",
+                "evidence",
+                value,
+                Authority::Observed,
+                "runtime-journal-gauge",
+            )
+            .with_freshness(Freshness::at(at)),
+        );
+    }
+    entries
+}
+
+/// Project the conflicts slice of the knowledge partition from a built
+/// state's shadowed challengers — weaker claims that lost an authority
+/// upsert. Called after all partitions are assembled.
+pub(crate) fn project_knowledge_conflicts(state: &WorldState) -> Vec<WorldStateEntry> {
+    let at = now_ms();
+    state
+        .shadow_entries()
+        .iter()
+        .map(|shadow| {
+            WorldStateEntry::new(
+                Partition::Knowledge,
+                shadow.subject.clone(),
+                "conflict",
+                shadow.value.clone(),
+                shadow.authority,
+                shadow.source.clone(),
+            )
+            .with_freshness(Freshness::at(at))
+            .with_status(EntryStatus::Conflicted)
+            .with_evidence(vec![format!("shadowed_entry:{}", shadow.id)])
+        })
+        .collect()
+}
+
 /// Project the governance partition from the convergence budget state.
 ///
 /// `base_limit` is `None` until the turn loop pins it at the first
@@ -331,13 +589,15 @@ pub(crate) fn project_governance_partition(
 /// Assemble the full projection from live session sources.
 ///
 /// Cheap by construction: every input is an in-memory read (atomics,
-/// mutexes, one hunk-tracker round trip). Safe to call at turn
-/// boundaries.
+/// mutexes, one hunk-tracker round trip) plus the caller-collected
+/// actor-state snapshots in `extras`. Safe to call at turn boundaries.
 pub(crate) async fn build_world_state(
     tool_context: &ToolContext,
     runtime_journal: &RuntimeJournalHandle,
+    extras: WorldStateExtras,
 ) -> WorldState {
     let mut state = WorldState::new();
+    let verification = runtime_journal.verification_state();
 
     // Execution: live gauge + resume reconciliation findings.
     for entry in project_execution_partition(
@@ -394,6 +654,29 @@ pub(crate) async fn build_world_state(
     let extensions_used = *tool_context.convergence_extensions_used.lock().unwrap();
     let turns_used = *tool_context.prompt_index.lock().await;
     for entry in project_governance_partition(base_limit, extensions_used, turns_used) {
+        state.upsert(entry);
+    }
+
+    // Task: goal, pending work, completion evidence.
+    for entry in project_task_partition(&extras, verification) {
+        state.upsert(entry);
+    }
+
+    // Agent: active subagent workers + goal assignment.
+    for entry in project_agent_partition(&extras) {
+        state.upsert(entry);
+    }
+
+    // Knowledge: reconciliation facts + verification evidence.
+    for entry in project_knowledge_partition(
+        runtime_journal.reconciliation_report().as_deref(),
+        verification,
+    ) {
+        state.upsert(entry);
+    }
+    // Conflicts need the assembled state (shadowed challengers), so they
+    // are projected last.
+    for entry in project_knowledge_conflicts(&state) {
         state.upsert(entry);
     }
 
@@ -543,6 +826,82 @@ pub(crate) fn render_world_state_frame(state: &WorldState) -> String {
         if !parts.is_empty() {
             lines.push(format!("governance: turn budget — {}", parts.join(", ")));
         }
+    }
+
+    // Task: goal, pending work, completion evidence.
+    let task = state.partition_entries(Partition::Task);
+    if !task.is_empty() {
+        let mut parts: Vec<String> = Vec::new();
+        for entry in &task {
+            match entry.predicate.as_str() {
+                "active_goal" => {
+                    let objective = entry
+                        .value
+                        .get("objective")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("(unknown)");
+                    let status = entry
+                        .value
+                        .get("status")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    parts.push(format!("goal: {objective} [{status}]"));
+                }
+                "completion_evidence" => {
+                    let verdict = entry
+                        .evidence
+                        .first()
+                        .and_then(|e| e.strip_prefix("verdict:"))
+                        .unwrap_or("unknown");
+                    parts.push(format!("completion evidence: {verdict}"));
+                }
+                _ => {}
+            }
+        }
+        let pending = task.iter().filter(|e| e.predicate == "pending_work").count();
+        if pending > 0 {
+            parts.push(format!("{pending} pending work item(s)"));
+        }
+        if !parts.is_empty() {
+            lines.push(format!("task: {}", parts.join("; ")));
+        }
+    }
+
+    // Agent: active workers.
+    let agent = state.partition_entries(Partition::Agent);
+    if !agent.is_empty() {
+        let workers: Vec<String> = agent
+            .iter()
+            .filter(|e| e.predicate == "active_worker")
+            .take(5)
+            .map(|e| {
+                let agent_type = e
+                    .value
+                    .get("type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+                format!("{agent_type} ({})", short_id(&e.subject))
+            })
+            .collect();
+        let assignments = agent.iter().filter(|e| e.predicate == "assignment").count();
+        let mut parts: Vec<String> = Vec::new();
+        if !workers.is_empty() {
+            parts.push(format!("active workers: {}", workers.join(", ")));
+        }
+        if assignments > 0 {
+            parts.push(format!("{assignments} goal assignment(s)"));
+        }
+        if !parts.is_empty() {
+            lines.push(format!("agent: {}", parts.join("; ")));
+        }
+    }
+
+    // Knowledge: conflicts only surface in the frame when they exist —
+    // facts and evidence back the other lines already.
+    let knowledge = state.partition_entries(Partition::Knowledge);
+    let conflicts = knowledge.iter().filter(|e| e.predicate == "conflict").count();
+    if conflicts > 0 {
+        lines.push(format!("knowledge: {conflicts} unresolved authority conflict(s)"));
     }
 
     if lines.is_empty() {
@@ -856,6 +1215,178 @@ mod tests {
             cached_git_dirty_snapshot(tmp.path()).await.is_none(),
             "a non-git directory has no dirty state to observe"
         );
+    }
+
+    fn extras_fixture() -> WorldStateExtras {
+        WorldStateExtras {
+            goal: Some(GoalSnapshot {
+                goal_id: "g1".into(),
+                objective: "refactor the parser".into(),
+                status: "Active".into(),
+                phase: "Executing".into(),
+                current_subagent_id: Some("sub-1".into()),
+                current_subagent_role: Some("worker".into()),
+            }),
+            todos: vec![
+                TodoSnapshot {
+                    content: "write tests".into(),
+                    status: "pending".into(),
+                },
+                TodoSnapshot {
+                    content: "old item".into(),
+                    status: "completed".into(),
+                },
+                TodoSnapshot {
+                    content: "fix bug".into(),
+                    status: "in_progress".into(),
+                },
+            ],
+            subagents: vec![SubagentSnapshot {
+                id: "sub-1".into(),
+                agent_type: "general-purpose".into(),
+                description: "refactoring".into(),
+                elapsed_ms: 12_000,
+            }],
+        }
+    }
+
+    #[test]
+    fn task_partition_projects_goal_open_todos_and_evidence() {
+        use nofy_session_journal::VerificationState;
+        let extras = extras_fixture();
+        let entries = project_task_partition(
+            &extras,
+            Some(VerificationState::Unverified {
+                last_mutation_seq: 7,
+            }),
+        );
+        let goal = entries.iter().find(|e| e.predicate == "active_goal").unwrap();
+        assert_eq!(goal.subject, "g1");
+        assert_eq!(goal.value["objective"], "refactor the parser");
+        assert_eq!(goal.authority, Authority::Observed);
+
+        // The completed todo is history, not current reality.
+        let pending: Vec<_> = entries
+            .iter()
+            .filter(|e| e.predicate == "pending_work")
+            .collect();
+        assert_eq!(pending.len(), 2);
+        let contents: Vec<&str> = pending
+            .iter()
+            .map(|e| e.value["content"].as_str().unwrap())
+            .collect();
+        assert!(contents.contains(&"write tests"));
+        assert!(contents.contains(&"fix bug"));
+
+        let evidence = entries
+            .iter()
+            .find(|e| e.predicate == "completion_evidence")
+            .unwrap();
+        assert_eq!(evidence.value["last_mutation_seq"], 7);
+        assert_eq!(evidence.status, EntryStatus::Inferred);
+        assert_eq!(evidence.evidence, vec!["verdict:unverified"]);
+    }
+
+    #[test]
+    fn task_partition_without_journal_observation_has_no_evidence_entry() {
+        let extras = extras_fixture();
+        let entries = project_task_partition(&extras, None);
+        assert!(
+            entries.iter().all(|e| e.predicate != "completion_evidence"),
+            "no observation means no evidence entry — never a fabricated verdict"
+        );
+    }
+
+    #[test]
+    fn agent_partition_projects_workers_and_assignment() {
+        let extras = extras_fixture();
+        let entries = project_agent_partition(&extras);
+        let worker = entries.iter().find(|e| e.predicate == "active_worker").unwrap();
+        assert_eq!(worker.subject, "sub-1");
+        assert_eq!(worker.value["type"], "general-purpose");
+        assert_eq!(worker.value["elapsed_ms"], 12_000);
+        assert_eq!(worker.source, "subagent-coordinator");
+
+        let assignment = entries.iter().find(|e| e.predicate == "assignment").unwrap();
+        assert_eq!(assignment.subject, "sub-1");
+        assert_eq!(assignment.value["goal_id"], "g1");
+        assert_eq!(assignment.value["role"], "worker");
+    }
+
+    #[test]
+    fn knowledge_partition_projects_facts_evidence_and_conflicts() {
+        use nofy_session_journal::{IntentClass, ReconciledIntent, VerificationState};
+        let report = ReconciliationReport {
+            open_total: 1,
+            read_only: 0,
+            unknown_outcome: 1,
+            possibly_running: 0,
+            intents: vec![ReconciledIntent {
+                intent_id: "i1".into(),
+                seq: 5,
+                tool: None,
+                class: IntentClass::SideEffectUnknown,
+            }],
+        };
+        let entries = project_knowledge_partition(
+            Some(&report),
+            Some(VerificationState::Verified {
+                last_mutation_seq: 3,
+                verification_seq: 6,
+            }),
+        );
+        let fact = entries.iter().find(|e| e.predicate == "known_fact").unwrap();
+        assert_eq!(fact.authority, Authority::Inferred);
+        assert_eq!(fact.value["unknown_outcome"], 1);
+        let evidence = entries.iter().find(|e| e.predicate == "evidence").unwrap();
+        assert_eq!(evidence.value["verification_seq"], 6);
+
+        // Conflicts come from shadowed challengers of a built state.
+        let mut state = WorldState::new();
+        state.upsert(WorldStateEntry::new(
+            Partition::Workspace,
+            "/a.rs",
+            "modified",
+            json!(true),
+            Authority::Observed,
+            "test",
+        ));
+        let challenger = WorldStateEntry::new(
+            Partition::Workspace,
+            "/a.rs",
+            "modified",
+            json!(false),
+            Authority::Inferred,
+            "test",
+        );
+        state.upsert(challenger);
+        let conflicts = project_knowledge_conflicts(&state);
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0].predicate, "conflict");
+        assert_eq!(conflicts[0].status, EntryStatus::Conflicted);
+        assert_eq!(conflicts[0].value, json!(false));
+    }
+
+    #[test]
+    fn frame_renders_task_agent_and_conflict_lines() {
+        let mut state = WorldState::new();
+        let extras = extras_fixture();
+        for entry in project_task_partition(&extras, None) {
+            state.upsert(entry);
+        }
+        for entry in project_agent_partition(&extras) {
+            state.upsert(entry);
+        }
+        for entry in project_knowledge_conflicts(&state) {
+            state.upsert(entry);
+        }
+        let frame = render_world_state_frame(&state);
+        assert!(frame.contains("task: goal: refactor the parser [Active]"));
+        assert!(frame.contains("2 pending work item(s)"));
+        assert!(frame.contains("agent: active workers: general-purpose (sub-1)"));
+        assert!(frame.contains("1 goal assignment(s)"));
+        // No conflicts in this state → no knowledge line.
+        assert!(!frame.contains("knowledge:"));
     }
 
     #[test]

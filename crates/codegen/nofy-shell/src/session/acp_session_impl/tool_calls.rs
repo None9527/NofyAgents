@@ -3561,6 +3561,71 @@ impl SessionActor {
         );
     }
 
+    /// Collect the actor-level state slice for WorldState partitions
+    /// whose sources live above the tool context (RTAgent Phase C):
+    /// goal orchestration, todo list, active subagents. Every read is
+    /// best-effort — a missing source just leaves its partition empty.
+    async fn collect_world_state_extras(&self) -> crate::session::world_state::WorldStateExtras {
+        use crate::session::world_state::{
+            GoalSnapshot, SubagentSnapshot, TodoSnapshot, WorldStateExtras,
+        };
+        let goal = self
+            .goal_tracker
+            .lock()
+            .snapshot()
+            .map(|orchestration| GoalSnapshot {
+                goal_id: orchestration.goal_id.clone(),
+                objective: orchestration.objective.clone(),
+                status: serde_json::to_value(orchestration.status)
+                    .ok()
+                    .and_then(|v| v.as_str().map(str::to_string))
+                    .unwrap_or_else(|| format!("{:?}", orchestration.status)),
+                phase: serde_json::to_value(orchestration.phase)
+                    .ok()
+                    .and_then(|v| v.as_str().map(str::to_string))
+                    .unwrap_or_else(|| format!("{:?}", orchestration.phase)),
+                current_subagent_id: orchestration.current_subagent_id.clone(),
+                current_subagent_role: orchestration.current_subagent_role.clone(),
+            });
+        let todos = {
+            let bridge = self.agent.borrow().tool_bridge().clone();
+            let resources = bridge.shared_resources().await;
+            let res = resources.lock().await;
+            res.get::<nofy_tools::types::resources::State<
+                nofy_tools::implementations::nofy_build::todo::TodoState,
+            >>()
+            .map(|todo_state| {
+                todo_state
+                    .todo_items()
+                    .map(|item| TodoSnapshot {
+                        content: item.content.clone(),
+                        status: serde_json::to_value(item.status)
+                            .ok()
+                            .and_then(|v| v.as_str().map(str::to_string))
+                            .unwrap_or_else(|| format!("{:?}", item.status)),
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default()
+        };
+        let subagents = self
+            .list_active_subagents()
+            .await
+            .into_iter()
+            .map(|worker| SubagentSnapshot {
+                id: worker.subagent_id,
+                agent_type: worker.subagent_type,
+                description: worker.description,
+                elapsed_ms: worker.elapsed_ms,
+            })
+            .collect();
+        WorldStateExtras {
+            goal,
+            todos,
+            subagents,
+        }
+    }
+
     /// Inject the current WorldState frame before the next model request
     /// (RTAgent Phase C2).
     ///
@@ -3577,9 +3642,11 @@ impl SessionActor {
         if !crate::session::world_state::is_world_state_enabled() {
             return;
         }
+        let extras = self.collect_world_state_extras().await;
         let state = crate::session::world_state::build_world_state(
             &self.tool_context,
             &self.runtime_journal,
+            extras,
         )
         .await;
         let frame = crate::session::world_state::render_world_state_frame(&state);
