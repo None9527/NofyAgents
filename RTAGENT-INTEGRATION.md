@@ -3,7 +3,7 @@
 > 来源：`/home/none/RTAgent-SDK`（Go runtime SDK，v0.0.1）+ 已合并进本仓库的 Rust 移植
 > 目的：梳理设计宪法，并给出让它在本项目 runtime 中**实际产生作用**的接线方案
 >
-> **状态：A→B→C→D 四阶段全部落地**（A resume 对账 `d964695`；B 收敛放权 `0a8476a`/`d2963db`；C WorldState 分区+每轮帧注入+gix dirty 扫描 `e42097d`/`d388290`/`50ad571`/`ae33da6`；D 预算连续性+证据化验证门 `ded82c1`/`8cd33b3`）。全部默认关闭、env 门控灰度：`NOFY_RUNTIME_JOURNAL`、`NOFY_CONVERGENCE_GOVERNOR`、`NOFY_WORLD_STATE`、`NOFY_VERIFICATION_GATE`。
+> **状态：A→B→C→D 四阶段全部落地，WorldState 六分区全部接入**（A resume 对账 `d964695`；B 收敛放权 `0a8476a`/`d2963db`；C WorldState 分区+每轮帧注入+gix dirty 扫描+六分区补齐 `e42097d`/`d388290`/`50ad571`/`ae33da6`/`1e10702`；D 预算连续性+证据化验证门 `ded82c1`/`8cd33b3`）。全部默认关闭、env 门控灰度：`NOFY_RUNTIME_JOURNAL`、`NOFY_CONVERGENCE_GOVERNOR`、`NOFY_WORLD_STATE`、`NOFY_VERIFICATION_GATE`。
 
 ---
 
@@ -121,10 +121,13 @@ Checkpoint 不是消息备份，是 **continuation contract**：run_id、journal
 
 ### Phase C：WorldState 分区化（从快照到世界模型）
 
-**C1. WorldState 分区结构**，先做三个有现成数据源的分区（实现方式：`nofy-session-journal::world_state` 独立强类型层 + shell 侧投影器从活动数据源构建，`SessionRuntimeSnapshot` 保持纯 journal 投影不掺现实观察）：
+**C1. WorldState 分区结构**，六个分区全部接入活动数据源（实现方式：`nofy-session-journal::world_state` 独立强类型层 + shell 侧投影器从活动数据源构建，`SessionRuntimeSnapshot` 保持纯 journal 投影不掺现实观察）：
 - `workspace` 分区：数据源 = `nofy-gix-status`（git 变更）+ bash 工具的测试/构建输出 → `changed_resources` / `verification_results`
 - `execution` 分区：数据源 = 现有 open_intents + 后台任务（monitor/task 工具）→ `active_tools` / `background_jobs`
 - `governance` 分区：数据源 = 现有预算/权限系统 → `budgets` / `permissions`
+- `task` 分区：数据源 = goal tracker（active_goal）+ todo 列表（pending_work）+ D1 验证判定（completion_evidence）
+- `agent` 分区：数据源 = subagent coordinator（active_worker）+ goal 指派（assignment）
+- `knowledge` 分区：数据源 = resume 对账报告（known_fact）+ 验证水位（evidence）+ authority 冲突影子条目（conflict）
 - 每个 entry 带 authority（observed/inferred）+ freshness（observed_at）——从第一天就按 SDK §6.1 契约建，后补代价大
 
 **C2. Context Builder：每轮注入 WorldState 帧**
@@ -143,7 +146,7 @@ Checkpoint 不是消息备份，是 **continuation contract**：run_id、journal
 |---|---|---|---|---|
 | A | `NOFY_RUNTIME_JOURNAL`（已有）+ resume 对账随 journal 开关 | off | 先内部 dogfood | **A1/A2 已实现**（`d964695`）：reconcile 模块分类开放意图，重开 journal 时提交 reconciliation.completed，需要关注时向恢复后的会话注入 system-reminder；孤儿结果随报告暴露（A2 告警接入待做） |
 | B | `NOFY_CONVERGENCE`（已有）+ 放权子开关 | off | evals A/B 通过后放权 | **B 阶段完成**：B1（`0a8476a`）边界 Extend 提高有效上限继续执行；B2（`d2963db`）连续 5 轮无新变更且无在途意图时 NoProgress 早停，由 journal writer 的活动意图实时表提供"无在途"证据，journal 未启用时不放权（观察缺失≠空闲） |
-| C | `NOFY_WORLD_STATE` | off | 分区逐个启用 | **C 阶段完成**：C1a（`e42097d`）`world_state` 类型层（六分区、§6.1 entry 契约、§6.2 authority 治理 upsert、§6.3 认知状态）；C1b（`d388290`）三分区投影器接活动数据源（execution=open-intent 实时表+resume 对账现实声明、workspace=agent 写入台账+外部编辑 hunks、governance=收敛预算态）；C2（`50ad571`）每轮帧注入（与 external-edit reconciliation 同接线点，变更检测去重，journal 记录 reminder.injected）；C1c（`ae33da6`）gix dirty 扫描入 workspace 分区（30s TTL 缓存按 git root 键控、spawn_blocking + nofy-gix-status 线程预算、200 路径上限、Authority::External，扫描失败投影为空而非"干净"） |
+| C | `NOFY_WORLD_STATE` | off | 分区逐个启用 | **C 阶段完成（六分区全部接入）**：C1a（`e42097d`）`world_state` 类型层（六分区、§6.1 entry 契约、§6.2 authority 治理 upsert、§6.3 认知状态）；C1b（`d388290`）三分区投影器接活动数据源（execution/workspace/governance）；C2（`50ad571`）每轮帧注入（变更检测去重，journal 记录 reminder.injected）；C1c（`ae33da6`）gix dirty 扫描入 workspace 分区（30s TTL 缓存、线程预算、Authority::External）；C3（`1e10702`）补齐 task（goal/todo/完成证据）、agent（活动 subagent/指派）、knowledge（对账事实/验证证据/authority 冲突）三分区——六分区全部有活动数据源 |
 | D | journal 常开即生效（D2）/ `NOFY_VERIFICATION_GATE`（D1） | off | 场景化验收 | **D 阶段完成**：D2（`ded82c1`）resume 从 journal 的 budget.updated 历史恢复 base_limit + 已用扩展数（extend 决策补偿 +1），以 decision=restored 重记（幂等），spawn 播种收敛计数器——重开会话不再绕过预算；D1（`8cd33b3`）验证证据门——journal 维护变更/验证水位（resume 播种），最后一次文件编辑后无成功验证运行时按变更波次注入一次提醒，观察而非阻断 |
 
 ---
