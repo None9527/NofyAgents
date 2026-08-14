@@ -1623,6 +1623,10 @@ mod tests {
     fn gate_load_claude_env_returns_empty_when_marker_set() {
         let _g = MarkerGuard;
         refresh_marker_cache(true);
+        // Also set the env-var override so the workspace-resident marker
+        // reader (which can't see the shell-side cache) honours the gate;
+        // without it the test depends on the dev's real ~/.nofy config.
+        unsafe { std::env::set_var("_NOFY_CLAUDE_MARKER_OVERRIDE", "1") };
         let dir = tempfile::tempdir().unwrap();
         let env = nofy_workspace::permission::claude_settings::load_claude_env_with_project(
             dir.path(),
