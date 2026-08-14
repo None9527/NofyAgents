@@ -1,0 +1,3 @@
+alpha : 1
+betamax : 22
+g : 333

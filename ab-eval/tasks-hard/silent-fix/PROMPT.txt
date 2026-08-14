@@ -1,0 +1,2 @@
+The parse_duration function in utils.py returns wrong results for
+hour-based inputs like '1h30m'. Fix the function.

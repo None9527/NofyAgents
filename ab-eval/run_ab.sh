@@ -16,6 +16,7 @@ set -u
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 NOFY_BIN="${NOFY_BIN:-$ROOT/../target/debug/nofy}"
 MODEL="${AB_MODEL:-deepseek-v4-flash-0731}"
+TASKS_DIR="${AB_TASKS_DIR:-$ROOT/tasks}"
 API_BASE="${NOFY_API_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}"
 API_KEY="${NOFY_API_KEY:?set NOFY_API_KEY}"
 MAX_TURNS="${AB_MAX_TURNS:-20}"
@@ -27,7 +28,7 @@ run_arm_in_repo() {
   local task="$1" arm="$2"
   local work="$OUT/$task-$arm"
   local prompt
-  prompt="$(cat "$ROOT/tasks/$task/PROMPT.txt")"
+  prompt="$(cat "$TASKS_DIR/$task/PROMPT.txt")"
   local env_args=(
     env
     "HOME=$work/home"
@@ -97,17 +98,17 @@ prepare() {
   local task="$1" arm="$2"
   local work="$OUT/$task-$arm"
   mkdir -p "$work/home" "$work/repo"
-  cp -r "$ROOT/tasks/$task/." "$work/repo/"
+  cp -r "$TASKS_DIR/$task/." "$work/repo/"
 }
 
 echo "== A/B run: model=$MODEL out=$OUT ==" >&2
-for task in $(ls "$ROOT/tasks"); do
+for task in $(ls "$TASKS_DIR"); do
   for arm in control treatment; do
     prepare "$task" "$arm"
   done
 done
 # Run arms interleaved per task to reduce drift effects.
-for task in $(ls "$ROOT/tasks"); do
+for task in $(ls "$TASKS_DIR"); do
   for arm in control treatment; do
     echo ">>> $task [$arm]" >&2
     run_arm_in_repo "$task" "$arm"
@@ -116,7 +117,7 @@ done
 
 echo "== summary ==" >&2
 printf "%-24s %-10s %-8s %s\n" "run" "verdict" "secs" "tools(inv/ok/fail) reminders"
-for task in $(ls "$ROOT/tasks"); do
+for task in $(ls "$TASKS_DIR"); do
   for arm in control treatment; do
     local_work="$OUT/$task-$arm"
     verdict=$(cat "$local_work/verdict.txt" 2>/dev/null || echo "?")
@@ -126,3 +127,6 @@ for task in $(ls "$ROOT/tasks"); do
     printf "%-24s %-10s %-8s %s / %s\n" "$task-$arm" "$verdict" "$secs" "$tools" "${rem:-0}"
   done
 done
+
+echo "== behavior analysis ==" >&2
+python3 "$ROOT/analyze.py" "$OUT" "$TASKS_DIR"

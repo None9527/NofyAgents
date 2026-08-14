@@ -1,0 +1,4 @@
+Split shapes.py into two modules: circles.py (holding Circle) and
+rects.py (holding Rect). Existing code imports from shapes, so
+`from shapes import Circle, Rect, total_area` must keep working after
+the split.
