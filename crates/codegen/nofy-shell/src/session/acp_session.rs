@@ -1121,7 +1121,30 @@ impl SessionActor {
         category: Option<crate::session::events::CancellationCategory>,
         context: Option<serde_json::Value>,
     ) {
-        self.events.emit_turn_ended(outcome, category, context);
+        self.events
+            .emit_turn_ended(outcome, category, context.clone());
+        // Runtime journal: close the turn so a resume can tell "turn
+        // finished" apart from "process died mid-turn" (the open-intent
+        // reconciliation depends on this boundary).
+        use crate::session::events::TurnOutcomeLabel;
+        use nofy_session_journal::EventKind;
+        let kind = match outcome {
+            TurnOutcomeLabel::Completed => EventKind::TurnCompleted,
+            TurnOutcomeLabel::Cancelled => EventKind::TurnCancelled,
+            TurnOutcomeLabel::Error => EventKind::TurnFailed,
+        };
+        let mut payload = serde_json::Map::new();
+        if let Some(category) = category {
+            payload.insert(
+                "cancellation_category".to_string(),
+                serde_json::to_value(category).unwrap_or(serde_json::Value::Null),
+            );
+        }
+        if let Some(context) = context {
+            payload.insert("context".to_string(), context);
+        }
+        self.runtime_journal
+            .emit(kind, serde_json::Value::Object(payload));
     }
     /// Current model ID for OTLP span attributes. Reads from chat_state_handle
     /// so it always reflects the latest model override — no stale cached field.

@@ -2336,6 +2336,17 @@ impl SessionActor {
                 self.send_available_commands_update().await;
             }
             turn_span_totals.record(&tracing::Span::current(), &response);
+            // Runtime journal: pair with model.requested — usage and stop
+            // reason per model response (noop unless NOFY_RUNTIME_JOURNAL).
+            self.runtime_journal.emit(
+                nofy_session_journal::EventKind::ModelResponded,
+                serde_json::json!({
+                    "stop_reason": response.stop_reason.as_ref().map(|r| r.as_str()),
+                    "tool_calls": response.tool_calls().len(),
+                    "prompt_tokens": response.usage.as_ref().map(|u| u.prompt_tokens),
+                    "completion_tokens": response.usage.as_ref().map(|u| u.completion_tokens),
+                }),
+            );
             let _ = self.compaction.auto_compact_suppressed.compare_exchange(
                 crate::session::compaction_config::SUPPRESS_UNTIL_SUCCESS,
                 crate::session::compaction_config::SUPPRESS_NONE,

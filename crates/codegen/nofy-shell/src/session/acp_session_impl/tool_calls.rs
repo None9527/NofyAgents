@@ -1314,23 +1314,41 @@ impl SessionActor {
             };
             let manager_event = resolution.event;
             let decision = resolution.decision;
-            self.events.permission_resolved(
-                &call.function.name,
-                match &decision {
-                    Decision::Allow | Decision::Ask => {
-                        nofy_file_utils::events::types::PermissionDecision::Allow
+            let permission_label = match &decision {
+                Decision::Allow | Decision::Ask => {
+                    nofy_file_utils::events::types::PermissionDecision::Allow
+                }
+                Decision::Reject(_) | Decision::PolicyDeny(_) => {
+                    nofy_file_utils::events::types::PermissionDecision::Deny
+                }
+                Decision::Cancelled => {
+                    nofy_file_utils::events::types::PermissionDecision::Cancelled
+                }
+                Decision::FollowupMessage(_) => {
+                    nofy_file_utils::events::types::PermissionDecision::Followup
+                }
+            };
+            self.events
+                .permission_resolved(&call.function.name, permission_label, perm_start);
+            // Runtime journal: governance partition source — every
+            // permission resolution is durable evidence (noop unless
+            // NOFY_RUNTIME_JOURNAL).
+            self.runtime_journal.emit(
+                match permission_label {
+                    nofy_file_utils::events::types::PermissionDecision::Allow
+                    | nofy_file_utils::events::types::PermissionDecision::Followup => {
+                        nofy_session_journal::EventKind::PermissionGranted
                     }
-                    Decision::Reject(_) | Decision::PolicyDeny(_) => {
-                        nofy_file_utils::events::types::PermissionDecision::Deny
-                    }
-                    Decision::Cancelled => {
-                        nofy_file_utils::events::types::PermissionDecision::Cancelled
-                    }
-                    Decision::FollowupMessage(_) => {
-                        nofy_file_utils::events::types::PermissionDecision::Followup
+                    nofy_file_utils::events::types::PermissionDecision::Deny
+                    | nofy_file_utils::events::types::PermissionDecision::Cancelled => {
+                        nofy_session_journal::EventKind::PermissionDenied
                     }
                 },
-                perm_start,
+                serde_json::json!({
+                    "tool": call.function.name,
+                    "decision": format!("{permission_label:?}").to_ascii_lowercase(),
+                    "yolo": self.permissions.is_yolo_mode(),
+                }),
             );
             let shell_wait_ms = perm_start.elapsed().as_millis() as u64;
             let decision_outcome = crate::session::telemetry::permission_outcome(&decision);
