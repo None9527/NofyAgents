@@ -70,26 +70,35 @@ const NO_SEQ: u64 = u64::MAX;
 pub(crate) fn classify_tool(tool: &str) -> nofy_session_journal::IntentClass {
     use nofy_session_journal::IntentClass;
     match tool {
-        "read_file" | "grep" | "list_dir" | "search_tool" | "web_search" | "web_fetch"
-        | "get_task_output" | "ask_user_question" | "enter_plan_mode" | "exit_plan_mode"
-        | "todo_write" | "update_goal" | "lsp" | "skills" => IntentClass::ReadOnly,
-        // Registered tool ids: the bash tool is `run_terminal_cmd`.
-        "run_terminal_cmd" | "task" | "monitor" => IntentClass::PossiblyRunning,
+        "read_file" | "hashline_read" | "grep" | "hashline_grep" | "list_dir" | "glob"
+        | "search_tool" | "web_search" | "web_fetch" | "get_task_output" | "task_output"
+        | "ask_user_question" | "enter_plan_mode" | "exit_plan_mode" | "todo_write" | "todo"
+        | "update_goal" | "lsp" | "skills" | "read" => IntentClass::ReadOnly,
+        // Execute-kind tools across naming schemes: `run_terminal_command`
+        // is the canonical wire name (claude_alias Bash), `run_terminal_cmd`
+        // the nofy_build registry id, `bash` the opencode id.
+        "run_terminal_command" | "run_terminal_cmd" | "bash" | "task" | "monitor" => {
+            IntentClass::PossiblyRunning
+        }
         _ => IntentClass::SideEffectUnknown,
     }
 }
 
 /// D1 evidence classifiers: which tool invocations mutate external
-/// reality, and which successes verify the work. A successful
-/// `run_terminal_cmd` run (tests/build — the registered id of the bash
-/// tool) after the last edit is the verification signal;
-/// `search_replace` is the file-editing tool.
+/// reality, and which successes verify the work. Names cover the naming
+/// schemes the model may call tools by (canonical wire names per
+/// `claude_alias`, nofy_build registry ids, opencode ids): a successful
+/// Execute-kind run (tests/build) after the last edit is the
+/// verification signal; Edit/Write-kind tools are the mutations.
 pub(crate) fn is_mutation_tool(tool: &str) -> bool {
-    matches!(tool, "search_replace")
+    matches!(
+        tool,
+        "search_replace" | "hashline_edit" | "write" | "edit"
+    )
 }
 
 pub(crate) fn is_verification_tool(tool: &str) -> bool {
-    tool == "run_terminal_cmd"
+    matches!(tool, "run_terminal_command" | "run_terminal_cmd" | "bash")
 }
 
 /// Message to the journal writer task.
