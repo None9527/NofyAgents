@@ -124,18 +124,22 @@ async fn test_agent_from_config(
         subagent: None,
         parent_scheduler_handle: None,
         skills: vec![],
-        // Unique per actor: resources persistence derives
-        // `resources_state.json` from this path's parent, so a shared
-        // location lets one run's persisted state leak into every later
-        // test process (e.g. a persisted ReportedTaskCompletions breaks
-        // the auto-wake suppression assertions).
+        // Unique per actor, in a directory that is never created:
+        // resources persistence derives `resources_state.json` from this
+        // path's PARENT and does not create missing parents on write, so
+        // a unique nonexistent directory keeps every actor's persisted
+        // state from leaking into a shared location (a persisted
+        // ReportedTaskCompletions in /tmp broke the auto-wake suppression
+        // assertions).
         state_path: {
             static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-            std::env::temp_dir().join(format!(
-                "nofy-test-tool-state-{}-{}.json",
-                std::process::id(),
-                SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-            ))
+            std::env::temp_dir()
+                .join(format!(
+                    "nofy-test-state-{}-{}",
+                    std::process::id(),
+                    SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                ))
+                .join("tool_state.json")
         },
         memory_backend: None,
         web_search_config: Default::default(),
