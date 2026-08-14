@@ -35,8 +35,18 @@ def transcript_tools(chat_history: Path):
     return seq
 
 
+def pick_transcript(run_dir: Path):
+    """The parent session's transcript; subagent sessions also live under
+    the run's HOME, so take the largest transcript (the parent owns the
+    full turn)."""
+    candidates = list(run_dir.glob("home/**/chat_history.jsonl"))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda p: p.stat().st_size)
+
+
 def analyze_run(run_dir: Path, task_src: Path):
-    chat = next(run_dir.glob("home/**/chat_history.jsonl"), None)
+    chat = pick_transcript(run_dir)
     tools = transcript_tools(chat) if chat else []
     last_mutation = max(
         (i for i, t in enumerate(tools) if t in MUTATION_TOOLS), default=None
