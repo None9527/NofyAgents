@@ -71,23 +71,25 @@ pub(crate) fn classify_tool(tool: &str) -> nofy_session_journal::IntentClass {
     use nofy_session_journal::IntentClass;
     match tool {
         "read_file" | "grep" | "list_dir" | "search_tool" | "web_search" | "web_fetch"
-        | "task_output" | "ask_user_question" | "enter_plan_mode" | "exit_plan_mode"
-        | "todo" | "update_goal" | "lsp" | "skills" => IntentClass::ReadOnly,
-        "bash" | "task" | "monitor" => IntentClass::PossiblyRunning,
+        | "get_task_output" | "ask_user_question" | "enter_plan_mode" | "exit_plan_mode"
+        | "todo_write" | "update_goal" | "lsp" | "skills" => IntentClass::ReadOnly,
+        // Registered tool ids: the bash tool is `run_terminal_cmd`.
+        "run_terminal_cmd" | "task" | "monitor" => IntentClass::PossiblyRunning,
         _ => IntentClass::SideEffectUnknown,
     }
 }
 
 /// D1 evidence classifiers: which tool invocations mutate external
-/// reality, and which successes verify the work. A successful `bash`
-/// run (tests/build) after the last edit is the verification signal;
+/// reality, and which successes verify the work. A successful
+/// `run_terminal_cmd` run (tests/build — the registered id of the bash
+/// tool) after the last edit is the verification signal;
 /// `search_replace` is the file-editing tool.
 pub(crate) fn is_mutation_tool(tool: &str) -> bool {
     matches!(tool, "search_replace")
 }
 
 pub(crate) fn is_verification_tool(tool: &str) -> bool {
-    tool == "bash"
+    tool == "run_terminal_cmd"
 }
 
 /// Message to the journal writer task.
@@ -739,7 +741,7 @@ mod tests {
         let handle = RuntimeJournalHandle::spawn(dir.path(), "sess-crash".to_string());
         handle.emit(
             EventKind::ToolInvoked,
-            serde_json::json!({"intent_id": "i1", "tool": "bash"}),
+            serde_json::json!({"intent_id": "i1", "tool": "run_terminal_cmd"}),
         );
         wait_for_events(&path, 2).await;
         drop(handle); // unclean stop: no session.ended committed
@@ -752,7 +754,9 @@ mod tests {
         assert_eq!(report.possibly_running, 1);
         assert!(report.needs_attention());
         assert!(
-            report.summary_line().contains("bash(possibly still running)"),
+            report
+                .summary_line()
+                .contains("run_terminal_cmd(possibly still running)"),
             "summary: {}",
             report.summary_line()
         );
@@ -851,11 +855,11 @@ mod tests {
         // A successful bash run after the edit answers it.
         handle.emit(
             EventKind::ToolInvoked,
-            serde_json::json!({"intent_id": "v1", "tool": "bash"}),
+            serde_json::json!({"intent_id": "v1", "tool": "run_terminal_cmd"}),
         );
         handle.emit(
             EventKind::ToolSucceeded,
-            serde_json::json!({"intent_id": "v1", "tool": "bash"}),
+            serde_json::json!({"intent_id": "v1", "tool": "run_terminal_cmd"}),
         );
         wait_for_events(&path, 4).await;
         assert_eq!(
@@ -873,11 +877,11 @@ mod tests {
         );
         handle.emit(
             EventKind::ToolInvoked,
-            serde_json::json!({"intent_id": "v2", "tool": "bash"}),
+            serde_json::json!({"intent_id": "v2", "tool": "run_terminal_cmd"}),
         );
         handle.emit(
             EventKind::ToolFailed,
-            serde_json::json!({"intent_id": "v2", "tool": "bash"}),
+            serde_json::json!({"intent_id": "v2", "tool": "run_terminal_cmd"}),
         );
         wait_for_events(&path, 7).await;
         assert_eq!(
@@ -937,7 +941,7 @@ mod tests {
 
         handle.emit(
             EventKind::ToolInvoked,
-            serde_json::json!({"intent_id": "a", "tool": "bash"}),
+            serde_json::json!({"intent_id": "a", "tool": "run_terminal_cmd"}),
         );
         handle.emit(
             EventKind::ToolInvoked,
