@@ -1,0 +1,3 @@
+Rename the function `fetch_data` to `load_data` everywhere in this
+project (all files that define or call it). After renaming, run
+`python3 main.py` to verify the program still works.

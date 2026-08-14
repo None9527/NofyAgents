@@ -1,0 +1,2 @@
+Fix the bug in calc.py so that the tests in test_calc.py pass.
+Run the tests to verify your fix before finishing.
