@@ -10,6 +10,8 @@
 > **Stage 2 实机 A/B 已通过**（harness `9e5fbca`，dashscope deepseek-v4-flash-0731）：三任务×双臂全 PASS，treatment 臂现场演示完整证据链（mutation→unverified+提醒→模型跑验证→帧内判定翻转 verified）。过程中又抓到并修复两个真实 bug：`2f26ccb` dashscope 流式 tool-call 空串 id/name 覆盖合并（不修则所有 BYOK 工具调用失败）、`b7d840d` 分类器需覆盖 wire 名/registry ID/opencode ID 三套命名（不修则验证判定永不翻转）。诚实结论：该模型在简单与困难任务上均触顶，完成率无差异。
 >
 > **Stage 2b 优势度量（qwen3.6-27b，困难任务×3 轮）**：出现首个可测量的行为差异——**变更后验证率 treatment 12/12（100%）vs control 10/12（83%）**。control 的两次跳过都发生在 silent-fix（prompt 不提测试、考验自主验证的任务），treatment 被验证提醒拉住、每次都跑测试。功能正确率双臂持平（12/12，含一次 checker 误判已修 `b4c8f8e`）。结论：强模型已内化验证纪律、机制对其只是兜底；模型越弱、任务越长，提醒的价值越大。
+>
+> **契合度审计（`e69abb5`）**：系统性核查门控/接线/一致性/边界四维。补上三个声明了但从未发射的事件（turn 结束事件——resume 对账的边界依赖；ModelResponded——与 ModelRequested 配对；权限决策——governance 分区数据源）。确认干净：四个门控各单读取点且默认关闭、subagent 会话走同一 spawn 路径各有独立 journal、noop 句柄语义"无观察≠零"、Checkpoint 事件保留未用（D2 用预算连续性替代）。
 
 ---
 
