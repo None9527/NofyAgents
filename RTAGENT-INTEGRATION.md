@@ -5,7 +5,9 @@
 >
 > **状态：A→B→C→D 四阶段全部落地，WorldState 六分区全部接入**（A resume 对账 `d964695`；B 收敛放权 `0a8476a`/`d2963db`；C WorldState 分区+每轮帧注入+gix dirty 扫描+六分区补齐 `e42097d`/`d388290`/`50ad571`/`ae33da6`/`1e10702`；D 预算连续性+证据化验证门 `ded82c1`/`8cd33b3`）。全部默认关闭、env 门控灰度：`NOFY_RUNTIME_JOURNAL`、`NOFY_CONVERGENCE_GOVERNOR`、`NOFY_WORLD_STATE`、`NOFY_VERIFICATION_GATE`。
 >
-> **Stage 1 端到端验证已通过**（`ba4771c`）：真实 SessionActor + 脚本化模型跑完整 turn（read→edit→verify→answer），断言 journal 事件链、帧注入、验证提醒、判定翻转全部真实发生。过程中抓到并修复真实 bug：分类器工具名与注册 ID 不匹配（`915d977`，bash 实为 run_terminal_cmd——不修则验证门生产环境永远失效）。Stage 2（真实模型 A/B 优势度量）待 BYOK 端点后执行。
+> **Stage 1 端到端验证已通过**（`ba4771c`）：真实 SessionActor + 脚本化模型跑完整 turn（read→edit→verify→answer），断言 journal 事件链、帧注入、验证提醒、判定翻转全部真实发生。过程中抓到并修复真实 bug：分类器工具名与注册 ID 不匹配（`915d977`，bash 实为 run_terminal_cmd——不修则验证门生产环境永远失效）。
+>
+> **Stage 2 实机 A/B 已通过**（harness `9e5fbca`，dashscope deepseek-v4-flash-0731）：三任务×双臂全 PASS，treatment 臂现场演示完整证据链（mutation→unverified+提醒→模型跑验证→帧内判定翻转 verified）。过程中又抓到并修复两个真实 bug：`2f26ccb` dashscope 流式 tool-call 空串 id/name 覆盖合并（不修则所有 BYOK 工具调用失败）、`b7d840d` 分类器需覆盖 wire 名/registry ID/opencode ID 三套命名（不修则验证判定永不翻转）。诚实结论：本批任务对该模型偏易（天花板效应），完成率无差异；优势度量需更难任务+更多样本。
 
 ---
 
