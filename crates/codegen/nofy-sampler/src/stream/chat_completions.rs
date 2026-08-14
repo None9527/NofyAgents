@@ -205,12 +205,16 @@ pub fn stream_chat_completions<'a>(
                     let mut name_for_event: Option<String> = None;
                     let mut args_for_event: Option<String> = None;
 
-                    if let Some(id) = tc_delta.id {
+                    // OpenAI omits id/name on continuation chunks; some
+                    // compatible backends (e.g. dashscope) instead send
+                    // them as empty strings. Treat empty as absent so the
+                    // first chunk's values survive the merge.
+                    if let Some(id) = tc_delta.id.filter(|s| !s.is_empty()) {
                         entry.0 = id.clone();
                         id_for_event = Some(id);
                     }
                     if let Some(func) = tc_delta.function {
-                        if let Some(name) = func.name {
+                        if let Some(name) = func.name.filter(|s| !s.is_empty()) {
                             entry.1 = name.clone();
                             name_for_event = Some(name);
                         }
@@ -362,6 +366,61 @@ mod tests {
             out.push(ev);
         }
         out
+    }
+
+    fn tool_call_chunk(
+        index: u32,
+        id: Option<&str>,
+        name: Option<&str>,
+        args: Option<&str>,
+    ) -> ChatCompletionChunk {
+        make_chunk(vec![ChatChunkDelta {
+            role: Some(Role::Assistant),
+            content: None,
+            reasoning_content: None,
+            tool_calls: vec![ChunkToolCallDelta {
+                index,
+                id: id.map(str::to_string),
+                kind: None,
+                function: Some(ToolCallFunctionDelta {
+                    name: name.map(str::to_string),
+                    arguments: args.map(str::to_string),
+                }),
+            }],
+            tool_call_id: None,
+        }])
+    }
+
+    /// Regression: dashscope-style backends send `id: ""` and `name: ""`
+    /// (present but empty) on continuation chunks instead of omitting
+    /// them like OpenAI. The merge must keep the first chunk's id/name.
+    #[tokio::test]
+    async fn tool_call_merge_survives_empty_id_and_name_continuation_chunks() {
+        let chunks: Vec<Result<ChatCompletionChunk, SamplingError>> = vec![
+            Ok(tool_call_chunk(0, Some("call_1"), Some("read_file"), Some(""))),
+            Ok(tool_call_chunk(0, Some(""), Some(""), Some("{\"target_file\": "))),
+            Ok(tool_call_chunk(0, Some(""), Some(""), Some("\"calc.py\"}"))),
+            Ok(final_chunk(FinishReason::ToolCalls)),
+        ];
+        let raw = stream::iter(chunks).boxed();
+        let events = collect(stream_chat_completions(
+            raw,
+            None,
+            rid(),
+            Duration::from_secs(60),
+        ))
+        .await;
+        match events.last().expect("completed") {
+            SamplingEvent::Completed { response, .. } => {
+                let calls = response.tool_calls();
+                assert_eq!(calls.len(), 1);
+                let tc = &calls[0];
+                assert_eq!(tc.id.as_ref(), "call_1");
+                assert_eq!(tc.name, "read_file");
+                assert_eq!(tc.arguments.as_ref(), "{\"target_file\": \"calc.py\"}");
+            }
+            other => panic!("expected Completed, got {other:?}"),
+        }
     }
 
     #[tokio::test]
