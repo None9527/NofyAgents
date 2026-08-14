@@ -4,6 +4,8 @@
 > 目的：梳理设计宪法，并给出让它在本项目 runtime 中**实际产生作用**的接线方案
 >
 > **状态：A→B→C→D 四阶段全部落地，WorldState 六分区全部接入**（A resume 对账 `d964695`；B 收敛放权 `0a8476a`/`d2963db`；C WorldState 分区+每轮帧注入+gix dirty 扫描+六分区补齐 `e42097d`/`d388290`/`50ad571`/`ae33da6`/`1e10702`；D 预算连续性+证据化验证门 `ded82c1`/`8cd33b3`）。全部默认关闭、env 门控灰度：`NOFY_RUNTIME_JOURNAL`、`NOFY_CONVERGENCE_GOVERNOR`、`NOFY_WORLD_STATE`、`NOFY_VERIFICATION_GATE`。
+>
+> **Stage 1 端到端验证已通过**（`ba4771c`）：真实 SessionActor + 脚本化模型跑完整 turn（read→edit→verify→answer），断言 journal 事件链、帧注入、验证提醒、判定翻转全部真实发生。过程中抓到并修复真实 bug：分类器工具名与注册 ID 不匹配（`915d977`，bash 实为 run_terminal_cmd——不修则验证门生产环境永远失效）。Stage 2（真实模型 A/B 优势度量）待 BYOK 端点后执行。
 
 ---
 
