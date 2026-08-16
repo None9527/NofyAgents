@@ -312,7 +312,7 @@ mod tests {
     }
     #[test]
     fn test_is_cli_chat_proxy_url_rejects_public_api() {
-        assert!(!is_cli_chat_proxy_url("https://api.x.ai/v1"));
+        assert!(!is_cli_chat_proxy_url(nofy_env::PROD_XAI_API_BASE_URL));
     }
     #[test]
     fn test_is_cli_chat_proxy_url_rejects_spoofed_hostname() {
@@ -328,7 +328,7 @@ mod tests {
     }
     #[test]
     fn test_is_xai_api_url() {
-        assert!(is_xai_api_url("https://api.x.ai/v1"));
+        assert!(is_xai_api_url(nofy_env::PROD_XAI_API_BASE_URL));
         assert!(is_xai_api_url("https://api.x.ai/v1/chat/completions"));
         assert!(is_xai_api_url("https://x.ai"));
         assert!(is_xai_api_url(
@@ -347,7 +347,7 @@ mod tests {
     }
     #[test]
     fn test_is_xai_api_bearer_url() {
-        assert!(is_xai_api_bearer_url("https://api.x.ai/v1"));
+        assert!(is_xai_api_bearer_url(nofy_env::PROD_XAI_API_BASE_URL));
         assert!(!is_xai_api_bearer_url("http://api.x.ai/v1"));
         assert!(!is_xai_api_bearer_url("http://localhost:11434/v1"));
         {

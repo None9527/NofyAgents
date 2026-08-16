@@ -62,6 +62,7 @@ fn spawn_agent_process(
 #[derive(Default)]
 struct TextCapture {
     chunks: std::sync::Mutex<Vec<String>>,
+    event_ids: std::sync::Mutex<Vec<String>>,
     notification_count: AtomicU32,
 }
 
@@ -96,6 +97,15 @@ impl acp::Client for TestAcpClient {
         self.capture
             .notification_count
             .fetch_add(1, Ordering::SeqCst);
+        // Capture `_meta.eventId` so reconnect tests can use a seen event as
+        // the cursor for delta replay.
+        if let Some(meta) = args.meta.as_ref() {
+            if let Ok(v) = serde_json::to_value(meta) {
+                if let Some(id) = v.get("eventId").and_then(|i| i.as_str()) {
+                    self.capture.event_ids.lock().unwrap().push(id.to_string());
+                }
+            }
+        }
 
         if let acp::SessionUpdate::AgentMessageChunk(acp::ContentChunk { content, .. }) =
             args.update
@@ -277,6 +287,11 @@ impl NofyStdioClient {
             .await
     }
 
+    /// `_meta.eventId`s of captured notifications, in receive order.
+    pub fn captured_event_ids(&self) -> Vec<String> {
+        self.capture.event_ids.lock().unwrap().clone()
+    }
+
     pub fn captured_text(&self) -> String {
         self.capture.chunks.lock().unwrap().join("")
     }
@@ -390,6 +405,40 @@ impl NofyStdioClient {
         .unwrap_or_else(|_| panic!("prompt timed out\nstderr:\n{}", self.stderr()));
         Self::log_timing("prompt", started);
         r
+    }
+
+    /// Spawn against an EXISTING NOFY_HOME (reconnect scenarios): the sandbox
+    /// keeps its own tempdirs but the state root is pinned to `home`.
+    pub async fn spawn_with_home(server: &MockInferenceServer, cwd: &Path, home: &Path) -> Self {
+        let mut sandbox = TestSandbox::new();
+        sandbox.set_env("NOFY_HOME", home.to_str().expect("home utf8"));
+        Self::spawn_with_sandbox_env_and_args(server, cwd, sandbox, &[], &[]).await
+    }
+
+    /// `session/load` with a reconnect cursor (`_meta.cursor`): the server
+    /// replays only events after the cursor, or falls back to full replay
+    /// when the cursor is not found.
+    pub async fn load_session_with_cursor(
+        &self,
+        session_id: &acp::SessionId,
+        cwd: &Path,
+        cursor: &str,
+    ) -> acp::LoadSessionResponse {
+        tokio::time::timeout(
+            scaled(Duration::from_secs(60)),
+            self.conn.load_session(
+                acp::LoadSessionRequest::new(session_id.clone(), cwd.to_path_buf())
+                    .mcp_servers(vec![])
+                    .meta(
+                        serde_json::json!({ "cursor": cursor })
+                            .as_object()
+                            .cloned(),
+                    ),
+            ),
+        )
+        .await
+        .unwrap_or_else(|_| panic!("session/load(cursor) timed out\nstderr:\n{}", self.stderr()))
+        .expect("session/load(cursor) failed")
     }
 
     pub async fn load_session_with_timeout(

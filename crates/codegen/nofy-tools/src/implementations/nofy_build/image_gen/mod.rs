@@ -506,7 +506,7 @@ mod tests {
     fn per_tool_gates_are_independent() {
         let cfg = ImageGenConfig::Enabled {
             api_key: "k".into(),
-            base_url: "https://api.x.ai/v1".into(),
+            base_url: nofy_env::PROD_XAI_API_BASE_URL.into(),
             extra_headers: indexmap::IndexMap::new(),
             image_gen_enabled: false,
             image_edit_enabled: true,
@@ -526,7 +526,7 @@ mod tests {
     fn stamp_session_id_header_sets_and_preserves() {
         let mk = |headers: indexmap::IndexMap<String, String>| ImageGenConfig::Enabled {
             api_key: "k".into(),
-            base_url: "https://api.x.ai/v1".into(),
+            base_url: nofy_env::PROD_XAI_API_BASE_URL.into(),
             extra_headers: headers,
             image_gen_enabled: true,
             image_edit_enabled: true,
@@ -564,7 +564,7 @@ mod tests {
     fn client_selects_model_from_override() {
         let mk = |model_override: Option<&str>| ImageGenConfig::Enabled {
             api_key: "k".into(),
-            base_url: "https://api.x.ai/v1".into(),
+            base_url: nofy_env::PROD_XAI_API_BASE_URL.into(),
             extra_headers: indexmap::IndexMap::new(),
             image_gen_enabled: true,
             image_edit_enabled: true,
@@ -595,7 +595,7 @@ mod tests {
     fn client_selects_edit_model_from_override() {
         let mk = |edit_model_override: Option<&str>| ImageGenConfig::Enabled {
             api_key: "k".into(),
-            base_url: "https://api.x.ai/v1".into(),
+            base_url: nofy_env::PROD_XAI_API_BASE_URL.into(),
             extra_headers: indexmap::IndexMap::new(),
             image_gen_enabled: true,
             image_edit_enabled: true,
@@ -648,7 +648,7 @@ mod tests {
         // before any other resource (e.g. SessionFolder) is required.
         let cfg = ImageGenConfig::Enabled {
             api_key: "k".into(),
-            base_url: "https://api.x.ai/v1".into(),
+            base_url: nofy_env::PROD_XAI_API_BASE_URL.into(),
             extra_headers: indexmap::IndexMap::new(),
             image_gen_enabled: true,
             image_edit_enabled: true,

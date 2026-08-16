@@ -1312,7 +1312,7 @@ mod tests {
         let session: nofy_tools::types::SharedApiKeyProvider = Arc::new(PanicKey);
 
         let scoped = EndpointScopedCredentials::for_endpoint(
-            "https://api.x.ai/v1",
+            nofy_env::PROD_XAI_API_BASE_URL,
             |_| true,
             None,
             Some(session),
@@ -1364,7 +1364,7 @@ mod tests {
         let auth: Arc<dyn nofy_auth::AuthCredentialProvider> = Arc::new(StubAuth);
         let api_key: nofy_tools::types::SharedApiKeyProvider = Arc::new(PanicKey);
         let scoped = EndpointScopedCredentials::for_endpoint(
-            "https://api.x.ai/v1",
+            nofy_env::PROD_XAI_API_BASE_URL,
             |_| true,
             Some(auth),
             Some(api_key),
@@ -1376,7 +1376,7 @@ mod tests {
             ..Default::default()
         };
         let provider =
-            build_embedding_provider(Some(&config), &scoped, None, "https://api.x.ai/v1").await;
+            build_embedding_provider(Some(&config), &scoped, None, nofy_env::PROD_XAI_API_BASE_URL).await;
         assert!(
             provider.is_some(),
             "trusted endpoint must build a provider from the session credential"
@@ -1402,7 +1402,7 @@ mod tests {
         assert!(denied.is_empty(), "untrusted endpoint drops the credential");
 
         let scoped = EndpointScopedCredentials::for_endpoint(
-            "https://api.x.ai/v1",
+            nofy_env::PROD_XAI_API_BASE_URL,
             |_| true,
             None,
             Some(key()),

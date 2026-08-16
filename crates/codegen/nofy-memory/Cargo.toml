@@ -10,6 +10,7 @@ edition.workspace = true
 test-support = []
 
 [dependencies]
+nofy-env = { workspace = true }
 anyhow = { workspace = true }
 arc-swap = { workspace = true }
 async-trait = { workspace = true }

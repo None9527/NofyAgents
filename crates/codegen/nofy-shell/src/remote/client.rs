@@ -1497,9 +1497,9 @@ mod tests {
             "owned_by": "nofy",
             "context_window": 131072
         });
-        let result = parse_remote_model_value(&value, "https://api.x.ai/v1").unwrap();
+        let result = parse_remote_model_value(&value, nofy_env::PROD_XAI_API_BASE_URL).unwrap();
         assert_eq!(result.model, "grok-3");
-        assert_eq!(result.base_url, "https://api.x.ai/v1");
+        assert_eq!(result.base_url, nofy_env::PROD_XAI_API_BASE_URL);
         assert_eq!(result.name.as_deref(), Some("grok-3"));
     }
     #[test]
@@ -1924,7 +1924,7 @@ mod tests {
     fn list_url_derived_from_base_url() {
         let ep = endpoints(
             "https://proxy.grok.com/v1",
-            Some("https://api.x.ai/v1"),
+            Some(nofy_env::PROD_XAI_API_BASE_URL),
             None,
         );
         assert_eq!(ep.resolve_models_list_url(), "https://api.x.ai/v1/models");

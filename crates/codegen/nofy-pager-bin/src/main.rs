@@ -280,7 +280,6 @@ async fn run_workspace_mgmt(args: WorkspaceMgmtArgs) -> Result<()> {
 /// The TUI has its own signal handler (`app::signal_handler`) that does the
 /// full crossterm teardown.
 fn shutdown_and_flush_telemetry(exit_code: i32) -> ! {
-    nofy_telemetry::sentry::flush_on_shutdown();
     nofy_telemetry::otel_layer::shutdown_otel();
     nofy_telemetry::debug_log::flush();
     std::process::exit(exit_code);
@@ -863,12 +862,6 @@ fn main() {
         );
         std::process::exit(2);
     }
-    let _sentry_guard = nofy_telemetry::sentry::init(nofy_telemetry::sentry::Config {
-        client: "nofy-pager",
-        client_version: PAGER_CLIENT_VERSION,
-        release: env!("VERSION_WITH_COMMIT"),
-        disabled: nofy_shell::agent::config::is_error_reporting_disabled_sync(),
-    });
     nofy_pager::docs::extract_user_guide_docs(&nofy_shell::util::nofy_home::nofy_home());
     nofy_crash_handler::install_terminal_restore_only();
     if nofy_shell::util::config::load_crash_handler_enabled_sync() {
@@ -911,7 +904,6 @@ fn main() {
     if let Err(e) = result {
         nofy_tty_utils::restore_native_stderr();
         eprintln!("Error: {e:#}");
-        drop(_sentry_guard);
         std::process::exit(1);
     }
 }
@@ -983,6 +975,16 @@ async fn async_main(args: PagerArgs) -> Result<()> {
     let update_config = build_update_config();
     if let Some(command) = args.command.take() {
         match command {
+            Command::Daemon => {
+                // Per-host control plane: state lives under NOFY_HOME so the
+                // registry walks the same session tree the shells index.
+                init_tracing_simple("daemon");
+                let cfg = nofy_daemon::daemon::DaemonConfig {
+                    state_dir: nofy_shell::util::nofy_home::nofy_home(),
+                };
+                let code = nofy_daemon::daemon::run(cfg);
+                std::process::exit(code);
+            }
             Command::Version { json } => {
                 if json {
                     let payload = serde_json::json!({
@@ -1355,7 +1357,15 @@ fn should_check_for_updates(no_auto_update_flag: bool) -> bool {
     if no_auto_update_flag {
         return false;
     }
-    !std::env::var_os("NOFY_DISABLE_AUTOUPDATER")
+    if std::env::var_os("NOFY_DISABLE_AUTOUPDATER")
+        .is_some_and(|v| env_flag_enabled(&v.to_string_lossy()))
+    {
+        return false;
+    }
+    // Sanitized build: the vendor updater phones home, so it is opt-in
+    // (zero outbound by default). Explicitly enable with
+    // NOFY_ENABLE_AUTOUPDATER=1 against a configured update server.
+    std::env::var_os("NOFY_ENABLE_AUTOUPDATER")
         .is_some_and(|v| env_flag_enabled(&v.to_string_lossy()))
 }
 /// Gate for the stdio agent's background auto-update: only the direct stdio

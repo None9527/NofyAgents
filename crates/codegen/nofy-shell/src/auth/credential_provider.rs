@@ -661,7 +661,7 @@ mod tests {
             );
         }
         let resolved = embedding_session_credentials(
-            "https://api.x.ai/v1",
+            nofy_env::PROD_XAI_API_BASE_URL,
             Some(&mgr),
             Some(api_key_provider),
         );

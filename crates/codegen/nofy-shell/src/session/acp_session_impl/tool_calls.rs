@@ -250,6 +250,25 @@ pub(super) fn plan_mode_edit_gate(
         _ => PlanEditGate::Allow,
     }
 }
+
+impl SessionActor {
+    /// The permission mode this session is currently operating under,
+    /// derived from live state: yolo and auto are manager flags; an active
+    /// plan tracker means plan semantics; otherwise the default ask chain.
+    /// Consumed by the FR5.9 mode_permissions matrix gate.
+    pub(super) fn active_permission_mode(&self) -> nofy_agent::config::PermissionMode {
+        use nofy_agent::config::PermissionMode;
+        if self.permissions.is_yolo_mode() {
+            PermissionMode::BypassPermissions
+        } else if self.permissions.is_auto_mode() {
+            PermissionMode::Auto
+        } else if self.plan_mode.lock().is_active() {
+            PermissionMode::Plan
+        } else {
+            PermissionMode::Default
+        }
+    }
+}
 /// Typed view of an `exit_plan_mode` approval decision. The wire type
 /// (`ExitPlanModeExtResponse`) carries `outcome` as a string; both the mid-turn
 /// intercept and the resume re-park match on this enum instead. Unknown /
@@ -1206,6 +1225,35 @@ impl SessionActor {
             .in_scope(|| {});
         }
         if !plan_file_auto_approve {
+            // FR5.9 mode_permissions matrix (NG-F5): mode-level capability
+            // denials are fail-closed and decided before the permission
+            // chain; actions the active mode does not deny flow on.
+            let active_mode = self.active_permission_mode();
+            if let Some(reason) =
+                crate::session::mode_permissions::mode_denial(&active_mode, &access_kind)
+            {
+                tracing::info_span!(
+                    "tool.decision",
+                    tool_name = %call.function.name,
+                    tool_use_id = %call.id,
+                    decision = "deny",
+                    source = "mode_permissions",
+                    wait_ms = 0_i64,
+                )
+                .in_scope(|| {});
+                self.runtime_journal.emit(
+                    nofy_session_journal::EventKind::PermissionDenied,
+                    serde_json::json!({
+                        "tool": call.function.name,
+                        "decision": "deny",
+                        "source": "mode_permissions",
+                        "mode": format!("{active_mode:?}"),
+                    }),
+                );
+                self.handle_tool_not_executed(&call.id, &tool_call_id, reason)
+                    .await?;
+                return Ok(Err(ToolLoop::Continue));
+            }
             let (perm_title, perm_kind, perm_raw_input) = tool_call_display
                 .as_ref()
                 .map(|(t, k, r)| (Some(t.clone()), Some(*k), Some(r.clone())))

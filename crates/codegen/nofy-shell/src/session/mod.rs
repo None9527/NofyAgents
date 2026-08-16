@@ -341,6 +341,7 @@ pub(crate) mod normalize_cache;
 pub mod persistence;
 pub use nofy_shared::placeholder_images;
 pub mod plan_mode;
+pub(crate) mod mode_permissions;
 pub mod prompt_history;
 pub mod prompt_parser;
 pub(crate) mod prompt_timing;

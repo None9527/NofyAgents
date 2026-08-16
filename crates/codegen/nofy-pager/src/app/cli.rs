@@ -9,6 +9,10 @@ use std::path::PathBuf;
 pub enum Command {
     /// Run Nofy without the interactive UI
     Agent(Box<AgentArgs>),
+    /// Run the per-host daemon (control plane on
+    /// `$NOFY_HOME/daemon/control.sock`); shells register as providers via
+    /// `NOFY_DAEMON_SOCK`.
+    Daemon,
     /// Show the configuration Nofy discovers for this directory
     Inspect {
         /// Emit machine-readable JSON output.

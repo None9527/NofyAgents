@@ -1143,6 +1143,19 @@ impl SessionActor {
         self: &Arc<Self>,
         request: ConversationRequest,
     ) -> Result<SamplerTurnOutcome, acp::Error> {
+        // DS-#8 fail-closed checkpoint: the journal prefix must be durable
+        // before the request is initiated (no stream, not even a first
+        // chunk, when it is not). Noop when the runtime journal is off.
+        if let Err(reason) =
+            crate::session::runtime_journal::request_initiation_gate(&self.runtime_journal).await
+        {
+            nofy_telemetry::unified_log::error(
+                "DS8_REQUEST_BLOCKED",
+                Some(self.session_info.id.0.as_ref()),
+                Some(serde_json::json!({ "reason": reason })),
+            );
+            return Err(acp::Error::internal_error().data(reason));
+        }
         self.prepare_sampler_for_turn().await;
         let stream_drained_rx = {
             let (tx, rx) = tokio::sync::oneshot::channel();

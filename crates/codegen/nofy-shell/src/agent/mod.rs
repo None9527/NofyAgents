@@ -1,4 +1,6 @@
 pub mod activity;
+pub mod pack_join;
+pub mod provider_host;
 pub mod app;
 pub mod auth_method;
 pub mod chat_modes;

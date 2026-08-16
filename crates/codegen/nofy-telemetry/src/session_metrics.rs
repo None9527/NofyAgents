@@ -121,7 +121,7 @@ mod tests {
 
     use super::TraceUploadReason;
 
-    /// The `nofy-shell-doom_loop_recovery` Mixpanel event's name and
+    /// The `nofy-shell-doom_loop_recovery` product event's name and
     /// property keys are dashboard contracts — pin them.
     #[test]
     fn doom_loop_recovery_event_shape_is_stable() {

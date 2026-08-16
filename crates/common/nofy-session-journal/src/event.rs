@@ -95,6 +95,36 @@ pub enum EventKind {
 }
 
 impl EventKind {
+    /// The complete closed vocabulary, for drift gates (the control-plane
+    /// schema crate asserts against this list; adding a kind is a wire
+    /// change and must update consumers deliberately).
+    pub const ALL: [EventKind; 24] = [
+        EventKind::SessionStarted,
+        EventKind::SessionEnded,
+        EventKind::SessionResumed,
+        EventKind::TurnStarted,
+        EventKind::TurnCompleted,
+        EventKind::TurnFailed,
+        EventKind::TurnCancelled,
+        EventKind::ModelRequested,
+        EventKind::ModelResponded,
+        EventKind::ToolInvoked,
+        EventKind::ToolSucceeded,
+        EventKind::ToolFailed,
+        EventKind::PermissionRequested,
+        EventKind::PermissionGranted,
+        EventKind::PermissionDenied,
+        EventKind::CompactionTriggered,
+        EventKind::Compacted,
+        EventKind::ReminderInjected,
+        EventKind::HistoryMessageAppended,
+        EventKind::HistoryReplaced,
+        EventKind::CheckpointCreated,
+        EventKind::CheckpointConsumed,
+        EventKind::BudgetUpdated,
+        EventKind::ReconciliationCompleted,
+    ];
+
     /// Session boundary events (`session.*`). These delimit journal
     /// segments; everything else is an execution event.
     pub fn is_session_lifecycle(self) -> bool {

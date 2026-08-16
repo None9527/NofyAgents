@@ -132,6 +132,10 @@ pub async fn run_stdio_agent(
     memory_config: Option<crate::config::MemoryConfig>,
 ) -> anyhow::Result<()> {
     register_fs_watch_runtime();
+    // Daemon provider loop (NOFY_DAEMON_SOCK-gated, default off): when the
+    // gate is set this runtime registers as the daemon's execution provider
+    // and serves search + dispatched tasks on the control socket.
+    let _provider_host = crate::agent::provider_host::spawn_provider_host(agent_config.clone());
     // A stdio agent is a protocol child speaking over pipes inherited from
     // whoever spawned it (nofy-desktop, IDE clients, the agent SDKs, a parent
     // agent's subagent harness) — it is useless without that parent. stdin

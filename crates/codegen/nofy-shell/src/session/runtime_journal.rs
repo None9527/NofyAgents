@@ -58,6 +58,32 @@ pub(crate) fn is_verification_gate_enabled() -> bool {
         .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
 }
 
+/// DS-#8 fail-closed checkpoint at request initiation: a model request is
+/// not initiated unless the journal prefix is durable. An inactive journal
+/// (the default — `NOFY_RUNTIME_JOURNAL` off) has no logged prefix and
+/// passes; an active journal whose prefix cannot be made durable BLOCKS the
+/// request (observably — the caller surfaces the reason and never opens
+/// the stream).
+pub(crate) async fn request_initiation_gate(
+    handle: &RuntimeJournalHandle,
+) -> Result<(), String> {
+    if !handle.is_active() {
+        return Ok(());
+    }
+    match handle.durable_barrier().await {
+        Ok(_seq) => Ok(()),
+        Err(reason) => {
+            tracing::error!(
+                %reason,
+                "DS-#8 checkpoint: journal prefix not durable; request not initiated"
+            );
+            Err(format!(
+                "request not initiated: journal prefix not durable ({reason})"
+            ))
+        }
+    }
+}
+
 /// Sentinel for "no such seq recorded" in the verification watermarks.
 const NO_SEQ: u64 = u64::MAX;
 
@@ -106,6 +132,12 @@ enum RuntimeJournalMsg {
     Append {
         kind: EventKind,
         payload: serde_json::Value,
+    },
+    /// Durability barrier (DS-#8): answered after every message queued
+    /// before it has been processed, with the last durable seq or the
+    /// first append failure seen so far.
+    Barrier {
+        reply: oneshot::Sender<Result<u64, String>>,
     },
     /// Flush-and-close: commit `session.ended` (clean shutdown) and stop.
     End,
@@ -353,8 +385,20 @@ impl RuntimeJournalHandle {
         let writer_mutation = last_mutation_seq.clone();
         let writer_verification = last_verification_seq.clone();
         tokio::spawn(async move {
+            // DS-#8 state: the last durable seq and the first append
+            // failure. A barrier answers with the failure once one exists —
+            // the request gate is fail-closed from then on.
+            let mut last_seq: u64 = journal.last_seq().unwrap_or(0);
+            let mut first_failure: Option<String> = None;
             while let Some(msg) = rx.recv().await {
                 match msg {
+                    RuntimeJournalMsg::Barrier { reply } => {
+                        let outcome = match &first_failure {
+                            Some(reason) => Err(reason.clone()),
+                            None => Ok(last_seq),
+                        };
+                        let _ = reply.send(outcome);
+                    }
                     RuntimeJournalMsg::Append { kind, payload } => {
                         match kind {
                             EventKind::ToolInvoked => {
@@ -374,6 +418,7 @@ impl RuntimeJournalHandle {
                         }
                         match journal.append(kind, session_id.clone(), payload) {
                             Ok(event) => {
+                                last_seq = event.seq;
                                 // D1 watermarks: a mutation reopens the
                                 // question; a verification success answers
                                 // everything before it.
@@ -400,6 +445,9 @@ impl RuntimeJournalHandle {
                                 }
                             }
                             Err(error) => {
+                                if first_failure.is_none() {
+                                    first_failure = Some(error.to_string());
+                                }
                                 tracing::warn!(
                                     %error,
                                     kind = %kind,
@@ -441,6 +489,25 @@ impl RuntimeJournalHandle {
     pub(crate) fn emit(&self, kind: EventKind, payload: serde_json::Value) {
         if let Some(tx) = &self.tx {
             let _ = tx.send(RuntimeJournalMsg::Append { kind, payload });
+        }
+    }
+
+    /// Durability barrier (DS-#8): resolves once every event queued before
+    /// this call is committed to disk. `Ok(seq)` is the last durable seq;
+    /// `Err` means the prefix is NOT durable (an append failed or the
+    /// writer is gone) — callers must fail closed. Noop handles have no
+    /// prefix to make durable and resolve immediately.
+    pub(crate) async fn durable_barrier(&self) -> Result<u64, String> {
+        let Some(tx) = &self.tx else {
+            return Ok(0);
+        };
+        let (reply, rx) = oneshot::channel();
+        if tx.send(RuntimeJournalMsg::Barrier { reply }).is_err() {
+            return Err("journal writer task is gone".to_string());
+        }
+        match rx.await {
+            Ok(outcome) => outcome,
+            Err(_) => Err("journal writer dropped the barrier reply".to_string()),
         }
     }
 
@@ -990,6 +1057,73 @@ mod tests {
         .unwrap();
         let handle = RuntimeJournalHandle::spawn(dir.path(), "sess-3".to_string());
         assert!(!handle.is_active(), "corrupt journal must degrade to noop");
+    }
+
+    /// DS-#8 healthy path: with a durable prefix the barrier resolves and
+    /// the request-initiation gate passes (the request proceeds).
+    #[tokio::test]
+    async fn ds8_healthy_prefix_passes_gate_and_is_durable() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(RUNTIME_EVENTS_FILE);
+        let handle = RuntimeJournalHandle::spawn(dir.path(), "sess-ds8-ok".to_string());
+        handle.emit(EventKind::TurnStarted, serde_json::Value::Null);
+
+        let seq = handle.durable_barrier().await.expect("healthy barrier");
+        assert!(seq >= 1, "open event + turn.started are durable");
+        let journal = SessionJournal::load(path).unwrap();
+        assert!(journal.len() >= 2, "prefix reached disk before the gate");
+
+        // The production seam: gate passes → the caller initiates.
+        let mut initiated = false;
+        if request_initiation_gate(&handle).await.is_ok() {
+            initiated = true;
+        }
+        assert!(initiated, "durable prefix must not block initiation");
+        handle.end();
+    }
+
+    /// DS-#8 fault injection: when an append fails the prefix is NOT
+    /// durable, the barrier reports the failure, and the gate blocks the
+    /// request — it is never initiated (fail-closed, observably).
+    #[tokio::test]
+    async fn ds8_non_durable_prefix_blocks_initiation() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(RUNTIME_EVENTS_FILE);
+        let handle = RuntimeJournalHandle::spawn(dir.path(), "sess-ds8-bad".to_string());
+        wait_for_events(&path, 1).await;
+
+        // Fault injection: replace the journal file with a directory so
+        // every subsequent append fails inside the real writer task.
+        std::fs::remove_file(&path).unwrap();
+        std::fs::create_dir_all(&path).unwrap();
+        handle.emit(EventKind::TurnStarted, serde_json::Value::Null);
+
+        let err = handle
+            .durable_barrier()
+            .await
+            .expect_err("a failed append must make the barrier fail closed");
+        assert!(!err.is_empty());
+
+        // The production seam: gate blocks → the request is not initiated.
+        let mut initiated = false;
+        let gate = request_initiation_gate(&handle).await;
+        if gate.is_ok() {
+            initiated = true;
+        }
+        assert!(!initiated, "non-durable prefix must block initiation");
+        assert!(
+            gate.unwrap_err().contains("not initiated"),
+            "the block must be observable in the reason"
+        );
+    }
+
+    /// DS-#8 default path: an inactive journal (NOFY_RUNTIME_JOURNAL off →
+    /// noop handle) has no logged prefix and never blocks.
+    #[tokio::test]
+    async fn ds8_inactive_journal_never_blocks() {
+        let handle = RuntimeJournalHandle::noop();
+        assert!(request_initiation_gate(&handle).await.is_ok());
+        assert_eq!(handle.durable_barrier().await, Ok(0));
     }
 
     #[test]

@@ -32,7 +32,6 @@ async fn manual_auth_posts_to_events_endpoint_as_nofy_shell_manual_auth() {
         TelemetryConfig {
             events_url: Some(url),
             events_api_key: Some("test-key".into()),
-            mixpanel_enabled: false,
             ..TelemetryConfig::default()
         },
         TelemetryMode::Enabled,

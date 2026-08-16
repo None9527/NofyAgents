@@ -6,6 +6,7 @@ edition.workspace = true
 description = "Voice dictation (streaming STT) for Nofy Build CLI"
 
 [dependencies]
+nofy-env = { workspace = true }
 anyhow = { workspace = true }
 futures-util = { workspace = true }
 # Used by the standalone `voice-probe` bin to install the process-level crypto

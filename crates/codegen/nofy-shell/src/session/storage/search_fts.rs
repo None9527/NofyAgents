@@ -28,7 +28,7 @@ use super::search_recovery;
 /// Bump when making breaking schema changes that require dropping and
 /// recreating tables, or to force a rebuild of stale index content
 /// (v3 → v4: messages with JSON escapes were silently dropped at indexing).
-const SCHEMA_VERSION: &str = "4";
+const SCHEMA_VERSION: &str = "5";
 
 /// Lease stamp for the in-flight bootstrap claim, stored as
 /// `"{unix_secs}:{owner_token}"`; `CAST` reads the numeric prefix, and the
@@ -190,6 +190,10 @@ impl SessionSearchIndex {
                 DROP TRIGGER IF EXISTS session_docs_ai;
                 DROP TRIGGER IF EXISTS session_docs_ad;
                 DROP TRIGGER IF EXISTS session_docs_au;
+                DROP TRIGGER IF EXISTS session_docs_tri_ai;
+                DROP TRIGGER IF EXISTS session_docs_tri_ad;
+                DROP TRIGGER IF EXISTS session_docs_tri_au;
+                DROP TABLE IF EXISTS session_docs_fts_tri;
                 DROP TABLE IF EXISTS session_docs_fts;
                 DROP TABLE IF EXISTS session_docs;
                 ",
@@ -248,6 +252,36 @@ impl SessionSearchIndex {
                 INSERT INTO session_docs_fts(session_docs_fts, rowid, title, content)
                 VALUES ('delete', old.rowid, old.title, old.content);
                 INSERT INTO session_docs_fts(rowid, title, content)
+                VALUES (new.rowid, new.title, new.content);
+            END;
+
+            -- CJK substring index: unicode61 glues CJK runs into single tokens,
+            -- so Chinese text is unsearchable on the main index. The trigram
+            -- tokenizer (SQLite >= 3.34; bundled is >= 3.50) matches substrings
+            -- of >= 3 chars, which covers CJK queries. ASCII queries keep the
+            -- stemmed unicode61 path (query routing in `query`).
+            CREATE VIRTUAL TABLE IF NOT EXISTS session_docs_fts_tri USING fts5(
+                title,
+                content,
+                content='session_docs',
+                content_rowid='rowid',
+                tokenize='trigram'
+            );
+
+            CREATE TRIGGER IF NOT EXISTS session_docs_tri_ai AFTER INSERT ON session_docs BEGIN
+                INSERT INTO session_docs_fts_tri(rowid, title, content)
+                VALUES (new.rowid, new.title, new.content);
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS session_docs_tri_ad AFTER DELETE ON session_docs BEGIN
+                INSERT INTO session_docs_fts_tri(session_docs_fts_tri, rowid, title, content)
+                VALUES ('delete', old.rowid, old.title, old.content);
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS session_docs_tri_au AFTER UPDATE ON session_docs BEGIN
+                INSERT INTO session_docs_fts_tri(session_docs_fts_tri, rowid, title, content)
+                VALUES ('delete', old.rowid, old.title, old.content);
+                INSERT INTO session_docs_fts_tri(rowid, title, content)
                 VALUES (new.rowid, new.title, new.content);
             END;
             ",
@@ -501,6 +535,19 @@ impl SessionSearchIndex {
             }
         }
 
+        // CJK queries route to the trigram index: unicode61 cannot segment CJK
+        // runs, so the main index never matches Chinese substrings.
+        if let Some(tri_query) = Self::cjk_trigram_query(query) {
+            return self.run_match_query_on(
+                "session_docs_fts_tri",
+                &tri_query,
+                cwd,
+                limit,
+                offset,
+                include_content,
+            );
+        }
+
         let Some((and_query, or_query)) = Self::build_match_queries(query) else {
             return Ok(QueryResult {
                 results: Vec::new(),
@@ -516,6 +563,20 @@ impl SessionSearchIndex {
             return self.run_match_query(&or_query, cwd, limit, offset, include_content);
         }
         Ok(result)
+    }
+
+    /// A trigram MATCH phrase for CJK-bearing queries, or None when the query
+    /// has no CJK or is too short for trigram matching (< 3 chars after trim).
+    fn cjk_trigram_query(query: &str) -> Option<String> {
+        let trimmed = query.trim();
+        let has_cjk = trimmed
+            .chars()
+            .any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c) || ('\u{3400}'..='\u{4dbf}').contains(&c));
+        if !has_cjk || trimmed.chars().count() < 3 {
+            return None;
+        }
+        // FTS5 string literal escaping: double the quotes.
+        Some(format!("\"{}\"", trimmed.replace('"', "\"\"")))
     }
 
     /// Substring match on `session_docs.session_id` (not in the FTS table).
@@ -582,20 +643,41 @@ impl SessionSearchIndex {
         offset: usize,
         include_content: bool,
     ) -> Result<QueryResult, rusqlite::Error> {
+        self.run_match_query_on(
+            "session_docs_fts",
+            match_query,
+            cwd,
+            limit,
+            offset,
+            include_content,
+        )
+    }
+
+    fn run_match_query_on(
+        &self,
+        fts_table: &str,
+        match_query: &str,
+        cwd: Option<&str>,
+        limit: usize,
+        offset: usize,
+        include_content: bool,
+    ) -> Result<QueryResult, rusqlite::Error> {
         let total: i64 = self.db.query_row(
-            "SELECT COUNT(*)
-             FROM session_docs_fts
-             JOIN session_docs d ON d.rowid = session_docs_fts.rowid
-             WHERE session_docs_fts MATCH ?1
-               AND (?2 IS NULL OR d.cwd = ?2)",
+            &format!(
+                "SELECT COUNT(*)
+                 FROM {fts_table}
+                 JOIN session_docs d ON d.rowid = {fts_table}.rowid
+                 WHERE {fts_table} MATCH ?1
+                   AND (?2 IS NULL OR d.cwd = ?2)"
+            ),
             params![match_query, cwd],
             |row| row.get(0),
         )?;
 
         let snippet_expr = if include_content {
-            "snippet(session_docs_fts, 1, '[', ']', ' … ', 18)"
+            format!("snippet({fts_table}, 1, '[', ']', ' … ', 18)")
         } else {
-            "NULL"
+            "NULL".to_string()
         };
 
         // BM25 weights: title=10.0, content=1.0
@@ -605,13 +687,13 @@ impl SessionSearchIndex {
                d.cwd,
                d.title,
                d.updated_at,
-               bm25(session_docs_fts, 10.0, 1.0) AS rank,
+               bm25({fts_table}, 10.0, 1.0) AS rank,
                {snippet_expr} AS snippet,
-               highlight(session_docs_fts, 0, '\x01', '\x02') AS hl_title,
-               highlight(session_docs_fts, 1, '\x01', '\x02') AS hl_content
-             FROM session_docs_fts
-             JOIN session_docs d ON d.rowid = session_docs_fts.rowid
-             WHERE session_docs_fts MATCH ?1
+               highlight({fts_table}, 0, '\x01', '\x02') AS hl_title,
+               highlight({fts_table}, 1, '\x01', '\x02') AS hl_content
+             FROM {fts_table}
+             JOIN session_docs d ON d.rowid = {fts_table}.rowid
+             WHERE {fts_table} MATCH ?1
                AND (?2 IS NULL OR d.cwd = ?2)
              ORDER BY rank ASC, d.updated_at DESC, d.session_id ASC
              LIMIT ?3 OFFSET ?4"
@@ -1528,5 +1610,56 @@ mod tests {
         let qr = index.query("…", None, 10, 0, false).unwrap();
         assert!(qr.results.is_empty());
         assert_eq!(qr.total_estimate, Some(0));
+    }
+
+    #[test]
+    fn test_cjk_substring_search_via_trigram_index() {
+        let tmp = TempDir::new().unwrap();
+        let index = open(&tmp);
+        index
+            .upsert_doc(&test_doc("s1", "会话标题", "今天讨论了文件管家的设计与崩溃恢复"))
+            .unwrap();
+
+        // unicode61 cannot segment this; the trigram index must match it as a
+        // substring.
+        let qr = index.query("文件管家", None, 10, 0, true).unwrap();
+        assert_eq!(qr.results.len(), 1, "CJK substring must hit: {:?}", qr.results);
+        assert_eq!(qr.results[0].session_id, "s1");
+
+        // Title CJK also searchable.
+        let qr = index.query("会话标题", None, 10, 0, false).unwrap();
+        assert_eq!(qr.results.len(), 1);
+
+        // Non-matching CJK substring stays empty.
+        let qr = index.query("不存在的子串", None, 10, 0, false).unwrap();
+        assert!(qr.results.is_empty());
+    }
+
+    #[test]
+    fn test_short_cjk_uses_prefix_fallback() {
+        let tmp = TempDir::new().unwrap();
+        let index = open(&tmp);
+        index
+            .upsert_doc(&test_doc("s1", "标题", "文件管家内容"))
+            .unwrap();
+        // Two CJK chars are below the trigram minimum, so the query takes the
+        // unicode61 raw-phrase fallback; its prefix form (`文件*`) matches the
+        // unsegmented doc token `文件管家内容`. Pin this useful behavior.
+        let qr = index.query("文件", None, 10, 0, false).unwrap();
+        assert_eq!(qr.results.len(), 1, "short CJK prefix fallback: {:?}", qr.results);
+        // A short CJK query that is NOT a prefix of any token stays empty.
+        let qr = index.query("管家", None, 10, 0, false).unwrap();
+        assert!(qr.results.is_empty(), "non-prefix short CJK must not match");
+    }
+
+    #[test]
+    fn test_ascii_path_unaffected_by_trigram_addition() {
+        let tmp = TempDir::new().unwrap();
+        let index = open(&tmp);
+        index
+            .upsert_doc(&test_doc("s1", "Session picker", "the session picker opens"))
+            .unwrap();
+        let qr = index.query("picker", None, 10, 0, false).unwrap();
+        assert_eq!(qr.results.len(), 1, "ascii stemmed path must still work");
     }
 }

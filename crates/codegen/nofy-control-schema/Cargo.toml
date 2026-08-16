@@ -1,0 +1,14 @@
+[package]
+license = "Apache-2.0"
+name = "nofy-control-schema"
+version = "0.1.0"
+edition.workspace = true
+description = "Control-plane vocabulary for the Nofy daemon: re-exports the journal event stream as the streaming unit, defines control methods and error codes. Schema-first: surfaces (TUI/Web/IM bridges) codegen against this crate; drift gates live here."
+
+[dependencies]
+nofy-session-journal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

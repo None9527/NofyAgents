@@ -19,6 +19,7 @@ default-bazel = [
 ]
 
 [dependencies]
+nofy-env = { workspace = true }
 dunce = { workspace = true }
 tonic-prost = { workspace = true, optional = true }
 agent-client-protocol = { workspace = true }
@@ -146,6 +147,9 @@ nofy-extra-ca = { workspace = true }
 nofy-sampler = { path = "../nofy-sampler" }
 nofy-sqlite-journal = { workspace = true }
 nofy-session-journal = { workspace = true }
+nofy-control-schema = { workspace = true }
+nofy-daemon = { workspace = true }
+nofy-channel = { workspace = true }
 nofy-token-estimation = { workspace = true }
 nofy-sampling-types = { path = "../nofy-sampling-types" }
 nofy-tools = { path = "../nofy-tools" }

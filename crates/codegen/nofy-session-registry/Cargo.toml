@@ -1,0 +1,16 @@
+[package]
+license = "Apache-2.0"
+name = "nofy-session-registry"
+version = "0.1.0"
+edition.workspace = true
+description = "Cross-process session index for the Nofy daemon: reads the on-disk session tree directly (no shell dependency), providing list/lookup for the control plane and foreign-session views."
+
+[dependencies]
+serde = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,4 +1,4 @@
-//! Telemetry engine for Nofy Build sessions: product events + Mixpanel emission +
+//! Telemetry engine for Nofy Build sessions: product events (opt-in exporters) +
 //! Sentry error reporting + OpenTelemetry tracing + structured unified log.
 //!
 //! Extracted from `nofy-file-utils` per review feedback so telemetry has
@@ -25,7 +25,6 @@ pub(crate) mod otlp_http;
 pub mod prompt_timing;
 pub(crate) mod redact_common;
 pub mod sampling_log;
-pub mod sentry;
 pub mod session_ctx;
 pub mod session_metrics;
 pub mod startup;

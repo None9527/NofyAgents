@@ -63,7 +63,7 @@ mod tests {
     fn test_config_enabled() {
         let config = WebSearchConfig::Enabled {
             api_key: "test-key".to_string(),
-            base_url: "https://api.x.ai/v1".to_string(),
+            base_url: nofy_env::PROD_XAI_API_BASE_URL.to_string(),
             model: "test-web-search-model".to_string(),
             extra_headers: IndexMap::new(),
             alpha_test_key: None,
@@ -77,7 +77,7 @@ mod tests {
         headers.insert("X-Custom".to_string(), "value".to_string());
         let config = WebSearchConfig::Enabled {
             api_key: "secret-key-12345".to_string(),
-            base_url: "https://api.x.ai/v1".to_string(),
+            base_url: nofy_env::PROD_XAI_API_BASE_URL.to_string(),
             model: "test-web-search-model".to_string(),
             extra_headers: headers,
             alpha_test_key: Some("alpha-secret".to_string()),
@@ -92,7 +92,7 @@ mod tests {
                 alpha_test_key,
             } => {
                 assert_eq!(api_key, "***REDACTED***");
-                assert_eq!(base_url, "https://api.x.ai/v1");
+                assert_eq!(base_url, nofy_env::PROD_XAI_API_BASE_URL);
                 assert_eq!(model, "test-web-search-model");
                 assert_eq!(extra_headers.get("X-Custom").unwrap(), "value");
                 assert!(alpha_test_key.is_none());
@@ -105,7 +105,7 @@ mod tests {
     fn test_config_serde_roundtrip() {
         let config = WebSearchConfig::Enabled {
             api_key: "key".to_string(),
-            base_url: "https://api.x.ai/v1".to_string(),
+            base_url: nofy_env::PROD_XAI_API_BASE_URL.to_string(),
             model: "test-web-search-model".to_string(),
             extra_headers: IndexMap::new(),
             alpha_test_key: None,

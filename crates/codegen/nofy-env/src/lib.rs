@@ -30,6 +30,12 @@ pub const PROD_CLI_CHAT_PROXY_BASE_URL: &str = PRODUCTION_ENDPOINTS.cli_chat_pro
 pub const PROD_ASSET_SERVER_URL: &str = PRODUCTION_ENDPOINTS.asset_server_url;
 pub const PROD_RELAY_WS_URL: &str = PRODUCTION_ENDPOINTS.relay_ws_url;
 pub const PROD_GATEWAY_WS_URL: &str = PRODUCTION_ENDPOINTS.gateway_ws_url;
+/// Default base URL of the xAI model endpoint (provider default; overridable
+/// via `NOFY_API_BASE_URL` / `[endpoints] xai_api_base_url`). Single source of
+/// truth for the literal previously repeated across crates.
+pub const PROD_XAI_API_BASE_URL: &str = "https://api.x.ai/v1";
+/// Origin form of the xAI model endpoint (no `/v1` suffix).
+pub const PROD_XAI_API_ORIGIN: &str = "https://api.x.ai";
 pub const PROD_WS_ORIGIN: &str = PRODUCTION_ENDPOINTS.ws_origin;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NofyBuildEnvironment {

@@ -24,6 +24,10 @@ members = [
     "crates/codegen/nofy-config",
     "crates/codegen/nofy-config-types",
     "crates/codegen/nofy-env",
+    "crates/codegen/nofy-daemon",
+    "crates/codegen/nofy-channel",
+    "crates/codegen/nofy-control-schema",
+    "crates/codegen/nofy-session-registry",
     "crates/codegen/nofy-extra-ca",
     "crates/codegen/nofy-hooks",
     "crates/codegen/nofy-http",
@@ -61,7 +65,6 @@ members = [
     "crates/codegen/nofy-workspace-types",
     "crates/codegen/nofy-hooks-plugins-types",
     "crates/codegen/nofy-hunk-tracker",
-    "crates/codegen/nofy-mixpanel",
     "crates/codegen/nofy-prompt-queue",
     "crates/codegen/nofy-ratatui-inline",
     "crates/codegen/nofy-ratatui-textarea",
@@ -302,6 +305,10 @@ nofy-auth = { path = "crates/codegen/nofy-auth" }
 nofy-config = { path = "crates/codegen/nofy-config" }
 nofy-config-types = { path = "crates/codegen/nofy-config-types" }
 nofy-env = { path = "crates/codegen/nofy-env" }
+nofy-daemon = { path = "crates/codegen/nofy-daemon" }
+nofy-channel = { path = "crates/codegen/nofy-channel" }
+nofy-control-schema = { path = "crates/codegen/nofy-control-schema" }
+nofy-session-registry = { path = "crates/codegen/nofy-session-registry" }
 nofy-extra-ca = { path = "crates/codegen/nofy-extra-ca" }
 nofy-http = { path = "crates/codegen/nofy-http" }
 nofy-markdown = { path = "crates/codegen/nofy-markdown" }
@@ -325,7 +332,6 @@ nofy-workspace = { path = "crates/codegen/nofy-workspace" }
 nofy-workspace-types = { path = "crates/codegen/nofy-workspace-types" }
 nofy-hooks-plugins-types = { path = "crates/codegen/nofy-hooks-plugins-types" }
 nofy-interjection-core = { path = "crates/common/nofy-interjection-core" }
-nofy-mixpanel = { path = "crates/codegen/nofy-mixpanel" }
 nofy-prompt-queue = { path = "crates/codegen/nofy-prompt-queue" }
 nofy-proto-build = { path = "crates/build/nofy-proto-build" }
 nofy-ratatui-inline = { path = "crates/codegen/nofy-ratatui-inline" }

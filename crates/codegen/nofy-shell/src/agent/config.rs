@@ -48,7 +48,7 @@ pub(crate) fn default_agent_type() -> String {
 /// Default base URL for the cli chat proxy.
 pub const CLI_CHAT_PROXY_BASE_URL_DEFAULT: &str = "https://cli-chat-proxy.grok.com/v1";
 /// Default base URL for the public xAI API.
-pub const XAI_API_BASE_URL_DEFAULT: &str = "https://api.x.ai/v1";
+pub const XAI_API_BASE_URL_DEFAULT: &str = nofy_env::PROD_XAI_API_BASE_URL;
 /// One or more environment variable names that may hold a model API key.
 ///
 /// Serde `untagged`: accepts a string or an array in TOML/JSON.
@@ -3849,7 +3849,7 @@ pub struct ModelEntryConfig {
     pub id: Option<String>,
     /// The routing slug sent in API requests.
     pub model: String,
-    /// The base URL of the model. e.g. "https://api.x.ai/v1"
+    /// The base URL of the model. e.g. nofy_env::PROD_XAI_API_BASE_URL
     pub base_url: String,
     /// Human-readable display name of the model.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -5273,6 +5273,25 @@ fn resolve_hidden_default_web_search_sampling_config(
         None,
     )
 }
+/// Sampling config for daemon-dispatched provider tasks (FR10/FR11 shell
+/// side): the bundled default catalog supplies the endpoint/auth shape, the
+/// model id comes from `NOFY_DEFAULT_MODEL` or the persisted default. No
+/// session token is involved — BYOK env keys and the endpoint config are
+/// the only credential sources, matching the zero-outbound default.
+pub(crate) fn provider_task_sampling_config(cfg: &Config) -> SamplerConfig {
+    let model_id = std::env::var("NOFY_DEFAULT_MODEL")
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| crate::session::persistence::default_model_id().0.to_string());
+    let entries = default_model_entries(&cfg.endpoints);
+    let entry = entries
+        .get(&model_id)
+        .cloned()
+        .unwrap_or_else(|| ModelEntry::fallback(&model_id, &cfg.endpoints));
+    let credentials = resolve_credentials_enforced(&entry, None, false);
+    sampling_config_for_model(&entry, credentials, None, None, None, None)
+}
+
 pub(crate) fn resolve_web_search_sampling_config(
     model_id: &str,
     models: &IndexMap<String, ModelEntry>,
@@ -5609,7 +5628,7 @@ reasoning_effort = "low"
     #[test]
     fn inject_url_derived_headers_skips_proxy_headers_for_external_url() {
         let mut headers = IndexMap::new();
-        inject_url_derived_headers(&mut headers, None, "https://api.x.ai/v1");
+        inject_url_derived_headers(&mut headers, None, nofy_env::PROD_XAI_API_BASE_URL);
         assert!(headers.get("X-NOFY-Token-Auth").is_none());
         assert!(headers.get("x-authenticateresponse").is_none());
     }
@@ -6169,7 +6188,7 @@ reasoning_effort = "low"
             "ws-model".to_string(),
             test_model_entry(
                 "ws-model",
-                "https://api.x.ai/v1",
+                nofy_env::PROD_XAI_API_BASE_URL,
                 Some("first-party-key"),
                 None,
                 None,
@@ -6858,15 +6877,15 @@ reasoning_effort = "low"
     #[test]
     fn enforce_disable_api_key_auth_blocks_first_party_only() {
         use nofy_chat_state::AuthType;
-        let mut creds = api_key_creds("https://api.x.ai/v1");
+        let mut creds = api_key_creds(nofy_env::PROD_XAI_API_BASE_URL);
         enforce_disable_api_key_auth(&mut creds, false, Some("session-jwt"));
         assert_eq!(creds.auth_type, AuthType::ApiKey);
         assert_eq!(creds.api_key.as_deref(), Some("nofy-secret"));
-        let mut creds = api_key_creds("https://api.x.ai/v1");
+        let mut creds = api_key_creds(nofy_env::PROD_XAI_API_BASE_URL);
         enforce_disable_api_key_auth(&mut creds, true, Some("session-jwt"));
         assert_eq!(creds.auth_type, AuthType::SessionToken);
         assert_eq!(creds.api_key.as_deref(), Some("session-jwt"));
-        let mut creds = api_key_creds("https://api.x.ai/v1");
+        let mut creds = api_key_creds(nofy_env::PROD_XAI_API_BASE_URL);
         enforce_disable_api_key_auth(&mut creds, true, None);
         assert_eq!(creds.auth_type, AuthType::SessionToken);
         assert_eq!(creds.api_key, None);
@@ -6876,7 +6895,7 @@ reasoning_effort = "low"
         assert_eq!(creds.api_key.as_deref(), Some("nofy-secret"));
         let mut creds = ResolvedCredentials {
             auth_type: AuthType::SessionToken,
-            ..api_key_creds("https://api.x.ai/v1")
+            ..api_key_creds(nofy_env::PROD_XAI_API_BASE_URL)
         };
         enforce_disable_api_key_auth(&mut creds, true, Some("session-jwt"));
         assert_eq!(creds.auth_type, AuthType::SessionToken);
@@ -6892,7 +6911,7 @@ reasoning_effort = "low"
         use nofy_chat_state::AuthType;
         let entry = test_model_entry(
             "m",
-            "https://api.x.ai/v1",
+            nofy_env::PROD_XAI_API_BASE_URL,
             Some("nofy-model-key"),
             None,
             None,
@@ -7005,7 +7024,7 @@ reasoning_effort = "low"
             byok_from_lookup(&ModelLookup::Loaded(Some(&byok))),
             ModelByok::Byok,
         );
-        let session = test_model_entry("m", "https://api.x.ai/v1", None, None, None);
+        let session = test_model_entry("m", nofy_env::PROD_XAI_API_BASE_URL, None, None, None);
         assert_eq!(
             byok_from_lookup(&ModelLookup::Loaded(Some(&session))),
             ModelByok::NotByok,
@@ -7271,7 +7290,7 @@ reasoning_effort = "low"
     }
     #[test]
     fn sampling_config_context_window_from_entry_or_default() {
-        let model = test_model_entry("any-model", "https://api.x.ai/v1", None, None, None);
+        let model = test_model_entry("any-model", nofy_env::PROD_XAI_API_BASE_URL, None, None, None);
         let config = sampling_config_for_model(
             &model,
             resolve_credentials(&model, None),
@@ -7281,7 +7300,7 @@ reasoning_effort = "low"
             None,
         );
         assert_eq!(config.context_window, 200_000);
-        let mut model = test_model_entry("any-model", "https://api.x.ai/v1", None, None, None);
+        let mut model = test_model_entry("any-model", nofy_env::PROD_XAI_API_BASE_URL, None, None, None);
         model.info.context_window = NonZeroU64::new(256_000).unwrap();
         let config = sampling_config_for_model(
             &model,
@@ -8119,8 +8138,6 @@ reasoning_effort = "low"
             [telemetry]
             events_url     = "https://custom.example.com/events"
             events_api_key = "custom-key"
-            mixpanel_token = "custom-token"
-            mixpanel_enabled = false
             "#,
         )
         .unwrap();
@@ -8130,11 +8147,6 @@ reasoning_effort = "low"
             Some("https://custom.example.com/events")
         );
         assert_eq!(cfg.telemetry.events_api_key.as_deref(), Some("custom-key"));
-        assert_eq!(
-            cfg.telemetry.mixpanel_token.as_deref(),
-            Some("custom-token")
-        );
-        assert!(!cfg.telemetry.mixpanel_enabled);
     }
     /// Empty/whitespace values must become `None`, not reach the HTTP client as empty strings.
     #[test]
@@ -8144,14 +8156,12 @@ reasoning_effort = "low"
             [telemetry]
             events_url     = ""
             events_api_key = "  "
-            mixpanel_token = "\t"
             "#,
         )
         .unwrap();
         let cfg = Config::new_from_toml_cfg(&raw).expect("should parse");
         assert!(cfg.telemetry.events_url.is_none());
         assert!(cfg.telemetry.events_api_key.is_none());
-        assert!(cfg.telemetry.mixpanel_token.is_none());
     }
     #[test]
     fn telemetry_partial_override_retains_defaults() {
@@ -8169,8 +8179,6 @@ reasoning_effort = "low"
         );
         let defaults = TelemetryConfig::default();
         assert_eq!(cfg.telemetry.events_api_key, defaults.events_api_key);
-        assert_eq!(cfg.telemetry.mixpanel_token, defaults.mixpanel_token);
-        assert_eq!(cfg.telemetry.mixpanel_enabled, defaults.mixpanel_enabled);
     }
     #[test]
     fn auth_alias_maps_to_nofy_com_config() {
@@ -8470,7 +8478,7 @@ reasoning_effort = "low"
         let sampling = resolve_sampling(model, None);
         assert_eq!(sampling.api_key.as_deref(), Some("nofy-external-key"));
         assert_eq!(
-            sampling.base_url, "https://api.x.ai/v1",
+            sampling.base_url, nofy_env::PROD_XAI_API_BASE_URL,
             "external API key should route to api.x.ai via api_base_url"
         );
         unsafe { std::env::remove_var("NOFY_API_KEY") };
@@ -8534,7 +8542,7 @@ reasoning_effort = "low"
             "https://proxy.api/v1",
             None,
             None,
-            Some("https://api.x.ai/v1"),
+            Some(nofy_env::PROD_XAI_API_BASE_URL),
         );
         let sampling = resolve_sampling(&model_no_key, Some("session-key"));
         assert_eq!(
@@ -8553,7 +8561,7 @@ reasoning_effort = "low"
             "env key should be used when no session and no model credentials"
         );
         assert_eq!(
-            sampling.base_url, "https://api.x.ai/v1",
+            sampling.base_url, nofy_env::PROD_XAI_API_BASE_URL,
             "env key should route to api_base_url"
         );
         unsafe { std::env::remove_var("NOFY_API_KEY") };
@@ -8642,7 +8650,7 @@ reasoning_effort = "low"
                 "https://cli-chat-proxy.grok.com/v1",
                 None,
                 None,
-                Some("https://api.x.ai/v1"),
+                Some(nofy_env::PROD_XAI_API_BASE_URL),
             ),
         );
         models.insert(

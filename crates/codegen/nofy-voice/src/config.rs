@@ -35,7 +35,7 @@ pub struct VoiceConfig {
 impl Default for VoiceConfig {
     fn default() -> Self {
         Self {
-            api_base: "https://api.x.ai".into(),
+            api_base: nofy_env::PROD_XAI_API_ORIGIN.into(),
             stt_ws_path: "/v1/stt".into(),
             language: "en".into(),
             sample_rate: DEFAULT_SAMPLE_RATE,
@@ -267,7 +267,7 @@ language = "es"
         )
         .unwrap();
         let cfg = VoiceConfig::from_config_table(&table, None);
-        assert_eq!(cfg.api_base, "https://api.x.ai");
+        assert_eq!(cfg.api_base, nofy_env::PROD_XAI_API_ORIGIN);
         assert_eq!(cfg.language, "es");
         assert_eq!(cfg.stt_ws_url().unwrap(), "wss://api.x.ai/v1/stt");
     }

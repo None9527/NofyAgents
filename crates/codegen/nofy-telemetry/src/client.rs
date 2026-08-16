@@ -1,4 +1,4 @@
-//! Core telemetry tracking — product events + Mixpanel.
+//! Core telemetry tracking — product events (opt-in external exporters only).
 //!
 //! All calls route through [`track`]. Precedence: env > config > remote config > default.
 //!
@@ -6,11 +6,10 @@
 //! injected via [`init`]/[`init_if_needed`] so this crate avoids depending on
 //! shell's `User-Agent` builder (which couples to the `permission` module).
 
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Mutex, OnceLock};
 
 use chrono::{Local, SecondsFormat};
 use serde_json::json;
-use nofy_mixpanel::Mixpanel;
 
 use crate::config::{TelemetryConfig, TelemetryMode, deployment_id_from_key};
 use crate::http::OriginClientInfo;
@@ -34,22 +33,11 @@ fn event_value(event_name: &str) -> &str {
     event_name
 }
 
-/// Product-analytics `$insert_id`: unique per emit, ≤36 bytes, `[A-Za-z0-9-]`.
-///
-/// Do not put the event name in this field. The analytics sink truncates to 36
-/// chars and rejects most other characters; a name-prefixed id either collapses
-/// to a constant (long names → per-user same-second dedup) or is dropped and
-/// regenerated (shorter names with `:`). A bare UUID always validates.
-fn product_analytics_insert_id() -> String {
-    uuid::Uuid::new_v4().simple().to_string()
-}
-
 #[derive(Clone)]
 pub struct TelemetryClient {
     mode: TelemetryMode,
     events_url: Option<String>,
     events_api_key: Option<String>,
-    mixpanel: Option<Arc<Mixpanel>>,
     user_id: Option<String>,
     team_id: Option<String>,
     deployment_id: Option<String>,
@@ -68,7 +56,6 @@ impl std::fmt::Debug for TelemetryClient {
                 "events_api_key",
                 &self.events_api_key.as_ref().map(|_| "***"),
             )
-            .field("mixpanel", &self.mixpanel.as_ref().map(|_| "configured"))
             .finish()
     }
 }
@@ -85,14 +72,6 @@ impl TelemetryClient {
         subscription_tier: Option<String>,
         http_client: reqwest::Client,
     ) -> Self {
-        let mixpanel = if config.mixpanel_enabled {
-            config
-                .mixpanel_token
-                .as_ref()
-                .map(|token| Arc::new(Mixpanel::new(token.as_str())))
-        } else {
-            None
-        };
         let deployment_id = deployment_key
             .filter(|s| !s.is_empty())
             .map(|k| deployment_id_from_key(&k));
@@ -105,7 +84,6 @@ impl TelemetryClient {
             mode,
             events_url: config.events_url,
             events_api_key: config.events_api_key,
-            mixpanel,
             user_id,
             team_id,
             deployment_id,
@@ -119,7 +97,7 @@ impl TelemetryClient {
 }
 
 /// Normalize a subscription tier string to a consistent lowercase_underscore
-/// format for Mixpanel. Handles both CCP display names ("SuperNofy Heavy")
+/// format for event metadata. Handles both CCP display names ("SuperNofy Heavy")
 /// and JWT-derived keys ("supernofy_heavy").
 fn normalize_tier(tier: &str) -> String {
     match tier {
@@ -131,7 +109,7 @@ fn normalize_tier(tier: &str) -> String {
         "X Premium" | "x_premium" => "x_premium",
         "X Basic" | "x_basic" => "x_basic",
         "Free" | "free" => "free",
-        // Team / console API keys — dedicated Mixpanel segment, not free.
+        // Team / console API keys — dedicated segment, not free.
         "API Key" | "api_key" => "api_key",
         other => return other.to_ascii_lowercase().replace(' ', "_"),
     }
@@ -179,7 +157,8 @@ impl UserContext {
     }
 }
 
-/// Core telemetry emitter. Routes to product events + Mixpanel.
+/// Core telemetry emitter. Routes to the configured product-events endpoint
+/// (opt-in; unset by default).
 pub async fn track(event_name: &str, request_id: &str, ctx: &UserContext, mut metadata: Metadata) {
     let lock = TELEMETRY_CLIENT.get_or_init(|| Mutex::new(None));
     let client = {
@@ -243,79 +222,14 @@ pub async fn track(event_name: &str, request_id: &str, ctx: &UserContext, mut me
             .send()
             .await;
     }
-
-    // Mixpanel path
-    if let Some(ref mixpanel) = client.mixpanel {
-        let time_secs = chrono::Utc::now().timestamp();
-        let insert_id = product_analytics_insert_id();
-
-        // Convert serde_json::Map to HashMap for mixpanel
-        let mut props: std::collections::HashMap<String, serde_json::Value> =
-            metadata.into_iter().collect();
-        props.insert("distinct_id".into(), json!(user_id));
-        props.insert("time".into(), json!(time_secs));
-        props.insert("$insert_id".into(), json!(insert_id));
-        props.insert("app_name".into(), json!("Nofy Code"));
-        props.insert("user_type".into(), json!("LoggedIn"));
-        props.insert("country".into(), json!(ctx.country));
-        props.insert("language".into(), json!(ctx.language));
-        props.insert("locale".into(), json!("English"));
-
-        let _ = mixpanel.track(event_name, Some(props)).await;
-    }
 }
 
-/// Sync the user's Mixpanel profile once per init. Fire-and-forget.
+/// Profile-sync hook kept for call-site compatibility.
 ///
-/// Only runs in [`TelemetryMode::Enabled`]. SessionMetrics mode may emit
-/// lifecycle events via [`track`], but must not write Mixpanel people
-/// profiles (`engage`).
-pub fn sync_profile() {
-    let lock = TELEMETRY_CLIENT.get_or_init(|| Mutex::new(None));
-    let client = {
-        let guard = lock.lock().unwrap_or_else(|err| err.into_inner());
-        match guard.clone() {
-            Some(c) => c,
-            None => return,
-        }
-    };
-
-    // The single profile-sync gate: reads the installed client's mode, so every
-    // caller (and any init race) resolves against what was actually installed.
-    if !client.mode.is_enabled() {
-        return;
-    }
-
-    let Some(mixpanel) = client.mixpanel.clone() else {
-        return;
-    };
-
-    let agent_id = crate::id::agent_id();
-    let user_id = client.user_id.as_deref().unwrap_or(&agent_id).to_owned();
-
-    tokio::spawn(async move {
-        let mut props = std::collections::HashMap::new();
-        props.insert("agent_id".into(), json!(agent_id));
-        props.insert("shell_version".into(), json!(client.shell_version));
-        props.insert("app_name".into(), json!("Nofy Code"));
-        if let Some(ref client_type) = client.client_type {
-            props.insert("client_type".into(), json!(client_type));
-        }
-        if let Some(ref client_version) = client.client_version {
-            props.insert("client_version".into(), json!(client_version));
-        }
-        if let Some(ref deployment_id) = client.deployment_id {
-            props.insert("deployment_id".into(), json!(deployment_id));
-        }
-        if let Some(ref team_id) = client.team_id {
-            props.insert("team_id".into(), json!(team_id));
-        }
-        if let Some(ref subscription_tier) = client.subscription_tier {
-            props.insert("subscription_tier".into(), json!(subscription_tier));
-        }
-        let _ = mixpanel.engage(&user_id, props).await;
-    });
-}
+/// The proprietary analytics profile sink was removed with the sanitization
+/// milestone; external observability is opt-in via the OTEL/OTLP exporter
+/// config, which needs no per-user profile engage. No-op by design.
+pub fn sync_profile() {}
 
 /// Initialize telemetry client. Safe to call multiple times.
 ///
@@ -417,8 +331,8 @@ mod tests {
         assert_eq!(event_value("nofy-workspace-turn"), "turn");
     }
 
-    /// SessionMetrics must not attempt Mixpanel profile engage — sync_profile
-    /// is a no-op unless mode is fully Enabled.
+    /// SessionMetrics must not attempt any profile engage — sync_profile is a
+    /// sanitization no-op (the proprietary analytics sink was removed).
     #[test]
     fn sync_profile_is_noop_in_session_metrics_mode() {
         // No tokio runtime here BY DESIGN: if the gate wrongly falls through,
@@ -438,11 +352,9 @@ mod tests {
         }
         let _clear = ClearClient;
 
-        // Mixpanel configured, but no events endpoint: the global must never
-        // carry a live funnel out of this test.
+        // No events endpoint: the global must never carry a live funnel out of
+        // this test.
         let cfg = TelemetryConfig {
-            mixpanel_enabled: true,
-            mixpanel_token: Some("test-token".into()),
             events_url: None,
             events_api_key: None,
             ..TelemetryConfig::default()
@@ -492,7 +404,7 @@ mod tests {
         }
     }
 
-    /// Mixpanel `subscription_tier` must be a stable snake_case key. Free
+    /// `subscription_tier` must be a stable snake_case key. Free
     /// users arrive as CCP display `"Free"` or JWT-fallback `"free"`; both
     /// must land as `"free"` (not omitted / not `"Free"`).
     #[test]
@@ -508,7 +420,7 @@ mod tests {
         assert_eq!(normalize_tier("SuperNofy Lite"), "supernofy_lite");
         assert_eq!(normalize_tier("SuperNofy Plus"), "supernofy_plus");
         assert_eq!(normalize_tier("supernofy_plus"), "supernofy_plus");
-        // API key is a dedicated Mixpanel segment — never free.
+        // API key is a dedicated segment — never free.
         assert_eq!(normalize_tier("API Key"), "api_key");
         assert_eq!(normalize_tier("api_key"), "api_key");
     }

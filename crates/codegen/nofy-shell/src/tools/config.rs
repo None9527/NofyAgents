@@ -212,7 +212,7 @@ impl ShellToolsetConfig {
     pub fn new(base: Option<Self>, sampling_config: Option<SamplerConfig>) -> Self {
         let default_base = SamplerConfig {
             api_key: None,
-            base_url: "https://api.x.ai/v1".to_string(),
+            base_url: nofy_env::PROD_XAI_API_BASE_URL.to_string(),
             model: String::new(),
             max_completion_tokens: None,
             temperature: None,

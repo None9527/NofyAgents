@@ -236,7 +236,7 @@ mod tests {
     #[test]
     fn joins_api_key_path_onto_base() {
         assert_eq!(
-            api_key_info_url("https://api.x.ai/v1"),
+            api_key_info_url(nofy_env::PROD_XAI_API_BASE_URL),
             "https://api.x.ai/v1/api-key"
         );
         assert_eq!(
