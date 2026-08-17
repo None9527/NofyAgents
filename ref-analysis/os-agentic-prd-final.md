@@ -449,6 +449,8 @@ pack=收敛 subagent 的分发单元(persona+skills+mcp+policy);standing mount=�
 
 **队列**:① 逐文件覆盖率移植;**设计队列**:空。(DS-#8 fail-closed 门、FR5 策略矩阵转译、provider 循环宿主已落地,见 §11 表。)
 
+**P1 施工计划已立项**:`ref-analysis/p1-construction-plan.md`(批次 E–J;§7 P1 行与 FR 表优先级列的差异校准、P0 遗留去向、决策项 D-1/D-2 见其 §0;待施工)。
+
 ## 附录 C:变更史
 
-v1(产品草图)→ v2(源码级,六深抽;纠正 Leader/协议/状态三认知;补 §3.10 套件、§3.11 任务管理、§3.12 文件管家)→ PRD-1.0(需求编号化+AC+NFR+非目标+里程碑)→ PRD-1.1(施工状态回写;search provider 代理清零 NOT_READY)→ **PRD-1.2(队列②+设计队列清零:provider 循环宿主、DS-#8 fail-closed 门、FR5 策略矩阵落地;搜索应答增 `sessions` 命中身份,棘轮二次行使)**。
+v1(产品草图)→ v2(源码级,六深抽;纠正 Leader/协议/状态三认知;补 §3.10 套件、§3.11 任务管理、§3.12 文件管家)→ PRD-1.0(需求编号化+AC+NFR+非目标+里程碑)→ PRD-1.1(施工状态回写;search provider 代理清零 NOT_READY)→ **PRD-1.2(队列②+设计队列清零:provider 循环宿主、DS-#8 fail-closed 门、FR5 策略矩阵落地;搜索应答增 `sessions` 命中身份,棘轮二次行使)**→ **PRD-1.3(P1 施工计划立项:`p1-construction-plan.md` 批次 E–J;§0 校准 §7 行与 FR 表差异并收编漏列 P1 项;§11 加指针;需求正文未动)**。
