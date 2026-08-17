@@ -451,7 +451,7 @@ pack=收敛 subagent 的分发单元(persona+skills+mcp+policy);standing mount=�
 
 **队列**:① 逐文件覆盖率移植;**设计队列**:空。(DS-#8 fail-closed 门、FR5 策略矩阵转译、provider 循环宿主已落地,见 §11 表。)
 
-**P1 施工已启动**:`ref-analysis/p1-construction-plan.md`(批次 E–J;§7 P1 行与 FR 表优先级列的差异校准、P0 遗留去向见其 §0)。**E0 裁定闭环**(P0 遗留五区逐项结论+证据,见 `p1-dev-log.md`);**E1 闭环**:新 crate `nofy-scheduler`——event-sourced schedule 纯 fold+fork 感知+撕尾容忍+日一 LOC 棘轮(FR3.1/DS-#1 状态核,未接 daemon);双跑 9/9 绿、daemon 回归 65/65 绿。**D-1/D-2 经第一性原理裁定闭环**(保留 AC 依赖项、无依赖项推迟 P2 前置队列,见计划 §0 裁定节与 §7 结算注记)。下一步 E2(FR3.2 latest-only 追赶)。
+**P1 施工已启动**:`ref-analysis/p1-construction-plan.md`(批次 E–J;§7 P1 行与 FR 表优先级列的差异校准、P0 遗留去向见其 §0)。**E0 裁定闭环**(P0 遗留五区逐项结论+证据,见 `p1-dev-log.md`);**E1 闭环**:新 crate `nofy-scheduler`——event-sourced schedule 纯 fold+fork 感知+撕尾容忍+日一 LOC 棘轮(FR3.1/DS-#1 状态核,未接 daemon);双跑 9/9 绿、daemon 回归 65/65 绿。**D-1/D-2 经第一性原理裁定闭环**(保留 AC 依赖项、无依赖项推迟 P2 前置队列,见计划 §0 裁定节与 §7 结算注记)。**E2 闭环**:catch-up 策略(FR3.2)——`Dropped` 审计事件+`catch_up_events` 固定速率 latest-only 纯提案(积压不补发、只发最新一次、rate 限速排空),6 新用例+棘轮二次行使(429→628),双跑 15/15 绿。下一步 E3(FR3.3 真 idle 通道)。
 
 ## 附录 C:变更史
 

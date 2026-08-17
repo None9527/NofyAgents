@@ -52,3 +52,15 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - **D-2 = 两案均不取,按依赖切割**。保留(P1 验收命题依赖):FR12.11/12.12/12.14/12.15(AC-12 加粗条款)、FR2.6/2.7(AC-2/AC-5)、FR6.4–6.7(FR11.4/FR10.5 机制本体)、FR2.9(FR14.3 前置)、FR6.1(FR3.7 活体判定)、FR9.6(工程闸门)。推迟 P2 前置队列(P1 无命题依赖):FR13.1、FR4.5、FR1.12–1.15、FR2.8/2.10/2.11、FR6.2/6.3、FR9.7/9.8。
 - 批次净变化:E 去 E11、E10 收窄至 FR6.1;F3 去 FR2.11;G 去 G10、G11 按命题定义;H 去 H0/H9;J 去 J9。合计估算 ≈8–9 周(vs PRD 6 周,差额=AC-12/AC-2/AC-5/AC-14 通过成本,如实记录)。
 - 回写:计划 §0 裁定节+批次行+P2 前置队列;PRD §7 结算注记+§11+附录 C(PRD-1.5)。FR 条目优先级列未动(结算只动 §7 行解释,不改需求本体)。
+
+## 2026-08-17 · E2 catch-up 策略(已执行)
+
+- 影响分析:GitNexus MCP 不可用,按 grep 先例记录——`rg nofy-scheduler` 全库枚举**外部依赖方为零**,改动面=nofy-scheduler crate 内(E1 出厂 `ScheduleEvent` 加一变体,无外部消费方)。
+- 实现(FR3.2/DS-#2,fixed-rate latest-only):
+  - 新事件 `Dropped { id, dues }`:追赶丢弃的审计事件——陈旧过期义务**不补发**,丢弃留痕;fold 臂幂等且 fail-closed(未知 id/dues 为 no-op)。
+  - `catch_up_events(&state, now, rate) -> Vec<ScheduleEvent>` 纯策略提案:每 schedule 只发**最新**过期义务一次、其余过期义务随 `Dropped` 丢弃(不风暴);`rate` 限速——每 tick 至多 `rate` 个 schedule 追赶,大积压按固定速率排空;BTreeMap 序=确定性(id 升序);返回空=已追赶完毕;rate 钳 ≥1。
+  - 引擎形状(后续 E 步消费):提案→append 日志→fold,崩溃重启从头 fold 仍同态(catch-up 本身崩溃安全)。
+- 测试(6 新,全部驱动出厂函数):积压三欠=只发最新一次+丢弃审计;五积压 rate=2 按 2/2/1 确定性排空+重放一致;未来义务不动;无过期=noop;Dropped 幂等+fail-closed;完整引擎循环(提案→入日志→从头 fold)追赶后重放同态、 firing 序列=[20,30] 最新优先。
+- 棘轮二次行使:429→628,抬升附评审理由(`tests/ratchet.rs` 注释),先红后绿验证门禁有效。
+- 验证:`cargo test -p nofy-scheduler` 双跑 14+1 全绿且一致。零外部依赖方、零新外呼。
+- **E2 闭环。下一步 = E3(FR3.3 真 idle 通道:runMaintenance 第三相位+wake 闩)。**

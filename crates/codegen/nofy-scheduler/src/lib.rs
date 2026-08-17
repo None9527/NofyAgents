@@ -10,10 +10,10 @@
 //! schedule *definitions* but drops every pending firing obligation — a
 //! forked child never inherits fire obligations it did not arm.
 //!
-//! Batch-E scope note: this crate is the state core + log codec only.
-//! Catch-up policy (FR3.2), the idle channel (FR3.3) and the cron engine
-//! (FR3.4+) are later steps that consume this fold; nothing here talks to
-//! the daemon or the control plane.
+//! Batch-E scope note: this crate is the state core + log codec + the
+//! catch-up policy ([`catch_up_events`], FR3.2). The idle channel (FR3.3)
+//! and the cron engine (FR3.4+) are later steps that consume this fold;
+//! nothing here talks to the daemon or the control plane.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -39,6 +39,10 @@ pub enum ScheduleEvent {
     /// Discharge the obligation `(id, due)`: it fired. Idempotent —
     /// firing an obligation that is not pending is a no-op.
     Fired { id: String, due: u64 },
+    /// Catch-up audit event (FR3.2): stale overdue dues were dropped by
+    /// the latest-only policy WITHOUT firing. Idempotent — dropping dues
+    /// that are not pending is a no-op.
+    Dropped { id: String, dues: Vec<u64> },
     /// Self-disable a schedule (later produced by the cron watchdog,
     /// FR3.4). Pending obligations are dropped; later `Armed` events are
     /// ignored until an explicit re-`Added`.
@@ -132,6 +136,18 @@ pub fn apply(state: &mut ScheduleState, event: &ScheduleEvent) {
                 }
             }
         }
+        ScheduleEvent::Dropped { id, dues } => {
+            if let Some(pending_dues) = state.pending.get_mut(id) {
+                for due in dues {
+                    if let Ok(pos) = pending_dues.binary_search(due) {
+                        pending_dues.remove(pos);
+                    }
+                }
+                if pending_dues.is_empty() {
+                    state.pending.remove(id);
+                }
+            }
+        }
         ScheduleEvent::Disabled { id, reason } => {
             if let Some(entry) = state.schedules.get_mut(id) {
                 entry.disabled_reason = Some(reason.clone());
@@ -155,6 +171,48 @@ pub fn fold(events: &[ScheduleEvent]) -> ScheduleState {
         apply(&mut state, event);
     }
     state
+}
+
+/// Catch-up policy (FR3.2 / DS-#2): fixed-rate latest-only.
+///
+/// After an offline stretch, overdue obligations are NOT replayed one by
+/// one — no catch-up storm. Per schedule, only the LATEST overdue due
+/// fires; every older overdue due is dropped with a [`ScheduleEvent::Dropped`]
+/// audit event. Emission is paced: at most `rate` schedules catch up per
+/// tick, so a large backlog drains at a fixed rate instead of firing all
+/// at once. Ticks are deterministic: schedules are visited in id order.
+///
+/// Pure event proposal: appending the returned events to the log and
+/// folding reproduces the post-catch-up state. An empty result means the
+/// state is fully caught up for `now`. `rate` is clamped to at least 1.
+pub fn catch_up_events(state: &ScheduleState, now: u64, rate: usize) -> Vec<ScheduleEvent> {
+    let rate = rate.max(1);
+    let mut events = Vec::new();
+    let mut caught = 0;
+    for (id, dues) in &state.pending {
+        if caught >= rate {
+            break;
+        }
+        // `dues` is sorted ascending; count the overdue prefix.
+        let overdue_count = dues.partition_point(|due| *due <= now);
+        if overdue_count == 0 {
+            continue;
+        }
+        let overdue = &dues[..overdue_count];
+        let latest = *overdue.last().expect("non-empty overdue prefix");
+        events.push(ScheduleEvent::Fired {
+            id: id.clone(),
+            due: latest,
+        });
+        if overdue.len() > 1 {
+            events.push(ScheduleEvent::Dropped {
+                id: id.clone(),
+                dues: overdue[..overdue.len() - 1].to_vec(),
+            });
+        }
+        caught += 1;
+    }
+    events
 }
 
 /// Serialize events as one JSON object per line.
@@ -255,6 +313,16 @@ mod tests {
             id: id.into(),
             due,
         }
+    }
+
+    /// Apply a proposed event batch to a state — the log-append+fold path
+    /// that the engine will take, reproduced for tests.
+    fn apply_all(state: &ScheduleState, events: &[ScheduleEvent]) -> ScheduleState {
+        let mut next = state.clone();
+        for event in events {
+            apply(&mut next, event);
+        }
+        next
     }
 
     /// A realistic mixed log: adds, arms, fires, a disable, a removal.
@@ -425,5 +493,136 @@ mod tests {
         let state = reopened.state().unwrap();
         assert_eq!(state.pending_count(), 0);
         assert!(state.is_live("nightly"));
+    }
+
+    // ---- E2: catch-up policy (FR3.2 / DS-#2) ----
+
+    #[test]
+    fn catch_up_backlog_collapses_to_latest_only() {
+        // Three dues pass while offline; on return only the latest fires,
+        // the stale two are dropped with an audit event — no replay storm.
+        let state = fold(&[added("a"), armed("a", 10), armed("a", 20), armed("a", 30)]);
+        let events = catch_up_events(&state, 100, 8);
+        assert_eq!(
+            events,
+            vec![
+                fired("a", 30),
+                ScheduleEvent::Dropped {
+                    id: "a".into(),
+                    dues: vec![10, 20],
+                },
+            ]
+        );
+        let after = apply_all(&state, &events);
+        assert_eq!(after.pending_count(), 0);
+        // Exactly one fire for three missed dues.
+        assert_eq!(
+            events.iter().filter(|e| matches!(e, ScheduleEvent::Fired { .. })).count(),
+            1
+        );
+    }
+
+    #[test]
+    fn catch_up_fixed_rate_pacing_drains_deterministically() {
+        // Five schedules with backlog, rate 2: ticks fire 2/2/1, in id
+        // order, latest-only per schedule.
+        let mut log = Vec::new();
+        for id in ["a", "b", "c", "d", "e"] {
+            log.push(added(id));
+            log.push(armed(id, 1));
+            log.push(armed(id, 2));
+        }
+        let state = fold(&log);
+
+        let tick1 = catch_up_events(&state, 100, 2);
+        let s1 = apply_all(&state, &tick1);
+        let tick2 = catch_up_events(&s1, 100, 2);
+        let s2 = apply_all(&s1, &tick2);
+        let tick3 = catch_up_events(&s2, 100, 2);
+        let s3 = apply_all(&s2, &tick3);
+        let tick4 = catch_up_events(&s3, 100, 2);
+
+        let fired_ids = |events: &[ScheduleEvent]| -> Vec<(String, u64)> {
+            events
+                .iter()
+                .filter_map(|e| match e {
+                    ScheduleEvent::Fired { id, due } => Some((id.clone(), *due)),
+                    _ => None,
+                })
+                .collect()
+        };
+        assert_eq!(fired_ids(&tick1), vec![("a".into(), 2), ("b".into(), 2)]);
+        assert_eq!(fired_ids(&tick2), vec![("c".into(), 2), ("d".into(), 2)]);
+        assert_eq!(fired_ids(&tick3), vec![("e".into(), 2)]);
+        assert!(tick4.is_empty(), "drained state must produce no events");
+        assert_eq!(s3.pending_count(), 0);
+
+        // Determinism: replaying the same ticks from the same state gives
+        // the identical sequences.
+        assert_eq!(catch_up_events(&state, 100, 2), tick1);
+        assert_eq!(catch_up_events(&apply_all(&state, &tick1), 100, 2), tick2);
+    }
+
+    #[test]
+    fn catch_up_leaves_future_obligations_pending() {
+        let state = fold(&[added("a"), armed("a", 10), armed("a", 500)]);
+        let events = catch_up_events(&state, 100, 8);
+        let after = apply_all(&state, &events);
+        // Overdue due 10 fired (latest overdue = 10, no drop), 500 waits.
+        assert_eq!(events, vec![fired("a", 10)]);
+        assert_eq!(after.pending.get("a").map(Vec::as_slice), Some(&[500][..]));
+    }
+
+    #[test]
+    fn catch_up_without_overdue_is_noop() {
+        let state = fold(&[added("a"), armed("a", 500)]);
+        assert!(catch_up_events(&state, 100, 8).is_empty());
+        assert!(catch_up_events(&ScheduleState::default(), 100, 8).is_empty());
+    }
+
+    #[test]
+    fn dropped_event_is_idempotent_and_fail_closed() {
+        let drop = ScheduleEvent::Dropped {
+            id: "a".into(),
+            dues: vec![10, 20],
+        };
+        // Applying the same drop twice changes nothing the second time.
+        let once = fold(&[added("a"), armed("a", 10), armed("a", 20), drop.clone()]);
+        let twice = fold(&[added("a"), armed("a", 10), armed("a", 20), drop.clone(), drop]);
+        assert_eq!(once, twice);
+        assert_eq!(once.pending_count(), 0);
+        // Dropping for an unknown id or unknown dues is a no-op.
+        let unknown = fold(&[ScheduleEvent::Dropped {
+            id: "ghost".into(),
+            dues: vec![1],
+        }]);
+        assert_eq!(unknown, ScheduleState::default());
+    }
+
+    #[test]
+    fn catch_up_survives_replay_through_the_log() {
+        // The full engine loop shape: propose events, append to the log,
+        // fold from scratch — crash-safe catch-up.
+        let mut log = vec![added("a"), armed("a", 10), armed("a", 20), added("b"), armed("b", 30)];
+        let mut state = fold(&log);
+        loop {
+            let events = catch_up_events(&state, 100, 1);
+            if events.is_empty() {
+                break;
+            }
+            log.extend(events.iter().cloned());
+            state = fold(&log); // fold from scratch, as after a crash
+        }
+        assert_eq!(state.pending_count(), 0);
+        // Log replay from zero reproduces the caught-up state exactly.
+        assert_eq!(fold(&log), state);
+        let fires: Vec<u64> = log
+            .iter()
+            .filter_map(|e| match e {
+                ScheduleEvent::Fired { due, .. } => Some(*due),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(fires, vec![20, 30], "latest-only per schedule, id order");
     }
 }

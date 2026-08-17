@@ -23,7 +23,10 @@ fn loc(dir: &Path) -> usize {
 #[test]
 fn scheduler_loc_ratchet_only_shrinks() {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let cap = 429; // day-one cap (E1 event-sourced core + fold tests)
+    // Cap raises are deliberate reviewed changes:
+    // - 429→628: E2 catch-up policy (FR3.2) — `Dropped` audit event +
+    //   `catch_up_events` fixed-rate latest-only proposal + 6 policy tests.
+    let cap = 628; // day-one cap (E1 event-sourced core + fold tests)
     let got = loc(&src);
     assert!(
         got <= cap,

@@ -203,4 +203,12 @@ E0(0.5d,✓) → E1(✓) → E2-E10(~1.5w) → F(2w) → G(~1.5w) → H(1w) → 
 - **E1 闭环**:新 crate `crates/codegen/nofy-scheduler`(workspace 成员,仅依赖 serde/serde_json):`ScheduleEvent` 六变体 + `fold`/`apply` 纯函数(fork 感知在 fold 内:Forked 保留定义、清空 pending;fail-closed:无活定义不挂账;幂等:重复 arm/fire 不重复挂账)+ `parse_log` 撕尾截断 + `LogStore` 薄盘层;`tests/ratchet.rs` 日一 cap=429。
 - 验证:`cargo test -p nofy-scheduler` 双跑 8+1 全绿且一致;`cargo test -p nofy-daemon` 回归 64+1 全绿;`cargo check --workspace` 零错误。零既有符号改动(纯新增),零新外呼。
 - 偏离记录:GitNexus MCP 本会话不可用,影响分析按纯新增事实记录(P0 先例同款)。
-- **下一步 = E2**(FR3.2 fixed-rate latest-only 追赶:在 fold 之上定义追赶策略,离线归来只发最新一次)。
+
+### E2 施工记录(已执行,2026-08-17)
+
+- 影响分析:grep 全库枚举 `nofy-scheduler` 外部依赖方=零;改动面=crate 内(`ScheduleEvent` 加 `Dropped` 变体+`catch_up_events`)。GitNexus MCP 不可用,按先例记录。
+- 实现(FR3.2/DS-#2):`Dropped` 审计事件(陈旧过期义务不补发、丢弃留痕,fold 臂幂等+fail-closed);`catch_up_events(&state, now, rate)` 纯策略提案——每 schedule 只发最新过期义务一次、其余随 Dropped 丢弃(不风暴),`rate` 限速按固定速率排空,BTreeMap 序确定性,返回空=追赶完毕;引擎形状=提案→append→fold,追赶本身崩溃安全。
+- 测试:6 新用例(积压三欠=1 发+丢弃审计、五积压 rate=2 按 2/2/1 确定性排空、未来义务不动、无过期 noop、Dropped 幂等、完整引擎循环重放同态)。
+- 棘轮二次行使:429→628(附评审理由,先红后绿)。
+- 验证:`cargo test -p nofy-scheduler` 双跑 14+1 全绿且一致。
+- **下一步 = E3**(FR3.3 真 idle 通道:runMaintenance 第三相位+wake 闩)。
