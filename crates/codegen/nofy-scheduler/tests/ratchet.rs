@@ -32,7 +32,11 @@ fn scheduler_loc_ratchet_only_shrinks() {
     // - 1083→1661: E5 cron grammar (grammar.rs strict 5-field parse +
     //   next-fire) + runfiles.rs heartbeat/success double files +
     //   lock.rs cross-process flock + delivery.rs HOME delivery.
-    let cap = 1661; // day-one cap (E1 event-sourced core + fold tests)
+    // - 1661→2314: E6 one-shot timers (timer.rs clamped+monotonic
+    //   revalidation) + E7 jobs↔session fence (fence.rs dual-channel) +
+    //   E8 fs-trigger policy (fstrigger.rs debounce/budget/self-refusal)
+    //   + E9 heartbeat projection (heartbeat.rs self-check + notepad).
+    let cap = 2314; // day-one cap (E1 event-sourced core + fold tests)
     let got = loc(&src);
     assert!(
         got <= cap,

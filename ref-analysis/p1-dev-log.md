@@ -84,3 +84,13 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮四次行使:1083→1661(附评审理由)。
 - 验证:`cargo test -p nofy-scheduler` 双跑 43+1 全绿且一致。
 - **E5 闭环。下一步 = E6(FR3.6 一次性定时器 clamped+重校墙钟)。**
+
+## 2026-08-17 · E6–E9 定时器/栅栏/fs 触发/心跳投影(已执行)
+
+- **E6(FR3.6/DS-#3)**`timer.rs`:一次性定时器锚定**单调钟**——到期判定只认单调经过,墙钟时刻仅由单调余量**推导**;`arm` 钳位(过去目标→MIN_DELAY 1s,荒远目标→MAX_DELAY 1 年);`revalidate` 重校:墙钟前跳不提前触发、后跳不搁浅;`fire` 一生一次。6 用例。
+- **E7(FR3.7/DS-#5)**`fence.rs`:jobs↔session 栅栏——活跃会话的投递被 HOLD;idle 不自动放行,**controller 闸门**显式 `release`(按会话 FIFO);每次成功投递双通道记录(direct+ledger),`reconcile` 验证账本可恢复 direct。4 用例。
+- **E8(FR3.8/HM-F21)**`fstrigger.rs`:fs 事件→任务绑定三策——**拒自毁**(self_generated 事件直接拒,不耗预算不开窗)、**防抖**(每 path 每窗一次触发)、**预算**(滚动窗内触发上限,过期回补);决策枚举 Triggered/Debounced/BudgetExhausted/RefusedSelf;同序列确定性。5 用例。
+- **E9(FR3.9/OC-F10)**`heartbeat.rs`:心跳自检投影——gap > interval×factor 记 missed,最大 gap 留观,乱序/重复 seq 防御性忽略;scratch 便签同日志承载(NoteSet/NoteClear,last-write-wins),重启不丢;全前缀重放一致。5 用例。
+- 棘轮五次行使:1661→2314(附评审理由)。
+- 验证:`cargo test -p nofy-scheduler` 双跑 63+1 全绿且一致。
+- **E6–E9 闭环。下一步 = E10(FR6.1 进程注册表)+ E12(FR9.6 workspace 棘轮)。**

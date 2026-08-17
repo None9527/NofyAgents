@@ -10,11 +10,13 @@
 //! schedule *definitions* but drops every pending firing obligation — a
 //! forked child never inherits fire obligations it did not arm.
 //!
-//! Batch-E scope note: this crate is the state core + log codec, the
-//! catch-up policy ([`catch_up_events`], FR3.2), the cron engine policy
-//! ([`cron`], FR3.4) and the true-idle channel machine ([`maintenance`],
-//! FR3.3). Later batch-E steps add the grammar/timer/fence/trigger
-//! policies; nothing here talks to the daemon or the control plane.
+//! Batch-E scope note: this crate is the state core + log codec plus the
+//! batch-E policy set — catch-up ([`catch_up_events`], FR3.2), cron
+//! engine ([`cron`], FR3.4), true-idle channel ([`maintenance`], FR3.3),
+//! cron grammar ([`grammar`], FR3.5), one-shot timers ([`timer`], FR3.6),
+//! the jobs↔session fence ([`fence`], FR3.7), the fs-trigger policy
+//! ([`fstrigger`], FR3.8) and the heartbeat projection ([`heartbeat`],
+//! FR3.9). Nothing here talks to the daemon or the control plane.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -25,10 +27,14 @@ use serde::{Deserialize, Serialize};
 
 pub mod cron;
 pub mod delivery;
+pub mod fence;
+pub mod fstrigger;
 pub mod grammar;
+pub mod heartbeat;
 pub mod lock;
 pub mod maintenance;
 pub mod runfiles;
+pub mod timer;
 
 /// One append-only event in the schedule log.
 ///
