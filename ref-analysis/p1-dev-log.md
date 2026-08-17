@@ -171,3 +171,22 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 验证:memorycore 双跑 35+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。
 - **AC-4 对账**:被取代 run 无法提交过期转录(P0 journal 回归)✓;checkpoint 失败=请求不发起(P0 DS-#8)✓;curator 不删任何条目(H2 类型级)✓;会中记忆写入不改 prompt(H1 冻结快照)✓。
 - **批次 H 闭环。下一步 = 批次 I(文件管家执行面)。**
+
+## 2026-08-17 · 批次 I 文件管家执行面(已执行,I1–I10 全闭环)
+
+- 新 crate `crates/codegen/nofy-stewardcore`(46 用例+1 棘轮,日一 cap=1493;steward 逻辑半仍在 daemon,本 crate=执行面策略核):
+  - **I1** `roots.rs`(FR12.1):roots 空默认 opt-in;两档——IndexOnly **结构性产不出写操作**、Manage;最长前缀分类;根外 escalate。5 用例。
+  - **I2** `fsindex.rs`(FR12.2):metadata+CJK 字符级检索;**idle 门控重建(仅 Maintenance 相位,消费 E3 语义)**;watch 预算耗尽=降级扫描模式(粘滞,不失败——P0 inotify 耗尽现场教训)。4 用例。
+  - **I3** `fspolicy.rs`(FR12.3):**结构化 FS_SANDBOX_DENIED**(码表:OutsideRoot/IndexOnlyRoot/ConfinementBreach),允许同样留痕。4 用例。
+  - **I4** `activity.rs`(FR12.4):file-activity 图,steward 一等 actor,hunk 合流→`external_since_steward` 归因(外部对账识别 steward 后编辑)。5 用例。
+  - **I5** `privacy.rs`(FR12.5):forget=检索不可命中(AC-12);redaction 遮蔽密钥形态(幂等);本地=结构属性(crate 无网络面)。4 用例。
+  - **I6** `revalidate.rs`(FR12.9):索引=提示不是事实——Fresh/Drifted/Gone,仅 Fresh 放行,陈旧索引永不驱动盲写。5 用例。
+  - **I7** `lease.rs`(FR12.11):租约表 TTL+心跳,leased=steward 只读禁管理(加载期拒),过期=无租约,清扫。5 用例。
+  - **I8** `zoning.rs`(FR12.12):三区分域,**重叠取更严**,无主地=最严。4 用例。
+  - **I9** `tombstone.rs`(FR12.14):变更 manifest+转发墓碑(链式解析、环有界)+`undo --batch`=逆操作反序(可回放)。5 用例。
+  - **I10** `trust.rs`(FR12.15):清理禁区(leased/gitignored/N 天内触碰=禁,**不确定必 Ask**)+新根前三批强制 dry-run+按根信任爬坡。5 用例。
+- 审计驱动移除:stewardcore 未用 serde/serde_json(knip 纪律)。
+- 棘轮:workspace 预算 1,536,711→1,538,240(附理由)。
+- 验证:stewardcore 双跑 46+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。
+- **AC-12 对账(九句)**:未选根=零索引零外呼(I1 空表)✓;index-only 产不出写(I1+I3)✓;forget 后检索不可命中(I5)✓;批整理可回放可撤销(I9 undo)✓;租约命中加载期即拒(I7)✓;重叠区取更严(I8)✓;墓碑解析陈旧引用(I9)✓;新根前三批强制 dry-run(I10)✓;steward 改动被 hunk 对账识别归因(I4)✓。
+- **批次 I 闭环。下一步 = 批次 J(敏捷面×Web)。**
