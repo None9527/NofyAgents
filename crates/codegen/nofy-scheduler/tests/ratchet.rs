@@ -26,7 +26,10 @@ fn scheduler_loc_ratchet_only_shrinks() {
     // Cap raises are deliberate reviewed changes:
     // - 429→628: E2 catch-up policy (FR3.2) — `Dropped` audit event +
     //   `catch_up_events` fixed-rate latest-only proposal + 6 policy tests.
-    let cap = 628; // day-one cap (E1 event-sourced core + fold tests)
+    // - 628→1083: E3 true-idle channel (FR3.3, maintenance.rs phase
+    //   machine + wake latch) + E4 cron engine policy (FR3.4, cron.rs
+    //   repair/watchdog/backoff/self-disable + run-lifecycle events).
+    let cap = 1083; // day-one cap (E1 event-sourced core + fold tests)
     let got = loc(&src);
     assert!(
         got <= cap,

@@ -10,10 +10,11 @@
 //! schedule *definitions* but drops every pending firing obligation — a
 //! forked child never inherits fire obligations it did not arm.
 //!
-//! Batch-E scope note: this crate is the state core + log codec + the
-//! catch-up policy ([`catch_up_events`], FR3.2). The idle channel (FR3.3)
-//! and the cron engine (FR3.4+) are later steps that consume this fold;
-//! nothing here talks to the daemon or the control plane.
+//! Batch-E scope note: this crate is the state core + log codec, the
+//! catch-up policy ([`catch_up_events`], FR3.2), the cron engine policy
+//! ([`cron`], FR3.4) and the true-idle channel machine ([`maintenance`],
+//! FR3.3). Later batch-E steps add the grammar/timer/fence/trigger
+//! policies; nothing here talks to the daemon or the control plane.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -21,6 +22,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+
+pub mod cron;
+pub mod maintenance;
 
 /// One append-only event in the schedule log.
 ///
@@ -43,6 +47,15 @@ pub enum ScheduleEvent {
     /// the latest-only policy WITHOUT firing. Idempotent — dropping dues
     /// that are not pending is a no-op.
     Dropped { id: String, dues: Vec<u64> },
+    /// Run lifecycle (FR3.4): a run of schedule `id` started at time `at`.
+    /// Ignored (fail-closed) when `id` has no live definition.
+    RunStarted { id: String, run_id: u64, at: u64 },
+    /// The run completed successfully; consecutive failures reset. A
+    /// result for a run_id that is not in flight is ignored (stale/replay).
+    RunSucceeded { id: String, run_id: u64 },
+    /// The run failed; consecutive failures increase. Same run_id gate as
+    /// [`Self::RunSucceeded`].
+    RunFailed { id: String, run_id: u64 },
     /// Self-disable a schedule (later produced by the cron watchdog,
     /// FR3.4). Pending obligations are dropped; later `Armed` events are
     /// ignored until an explicit re-`Added`.
@@ -72,6 +85,12 @@ pub struct ScheduleState {
     pub schedules: BTreeMap<String, ScheduleEntry>,
     /// Armed-but-not-fired obligations per schedule id, dues ascending.
     pub pending: BTreeMap<String, Vec<u64>>,
+    /// In-flight runs: id -> (run_id, started_at). A crash leaves these
+    /// behind; boot-time repair (FR3.4) marks them failed.
+    pub inflight: BTreeMap<String, (u64, u64)>,
+    /// Consecutive failures per schedule; reset by success. Drives backoff
+    /// and self-disable (FR3.4).
+    pub consecutive_failures: BTreeMap<String, u64>,
 }
 
 impl Default for ScheduleState {
@@ -80,6 +99,8 @@ impl Default for ScheduleState {
             generation: 0,
             schedules: BTreeMap::new(),
             pending: BTreeMap::new(),
+            inflight: BTreeMap::new(),
+            consecutive_failures: BTreeMap::new(),
         }
     }
 }
@@ -147,6 +168,25 @@ pub fn apply(state: &mut ScheduleState, event: &ScheduleEvent) {
                     state.pending.remove(id);
                 }
             }
+        }
+        ScheduleEvent::RunStarted { id, run_id, at } => {
+            // Fail-closed: runs require a live definition.
+            if state.is_live(id) {
+                state.inflight.insert(id.clone(), (*run_id, *at));
+            }
+        }
+        ScheduleEvent::RunSucceeded { id, run_id } => {
+            // run_id gate: stale/replayed results cannot corrupt state.
+            if state.inflight.get(id).map(|(rid, _)| *rid) == Some(*run_id) {
+                state.inflight.remove(id);
+            }
+            state.consecutive_failures.remove(id);
+        }
+        ScheduleEvent::RunFailed { id, run_id } => {
+            if state.inflight.get(id).map(|(rid, _)| *rid) == Some(*run_id) {
+                state.inflight.remove(id);
+            }
+            *state.consecutive_failures.entry(id.clone()).or_insert(0) += 1;
         }
         ScheduleEvent::Disabled { id, reason } => {
             if let Some(entry) = state.schedules.get_mut(id) {
