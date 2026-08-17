@@ -119,3 +119,20 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 
 **AC-3 五句全过**。注:调度器与 daemon/控制面的接线不在批次 E 范围(计划 Non-goal),cron 引擎以独立 crate 交付;接线随批次 F 的 workflow 路由一并推进。
 批次 E 累计:scheduler 70 单测+1 棘轮,六次棘轮行使(429→2579),E11 经第一性原理裁定推迟 P2 前置。
+
+## 2026-08-17 · 批次 F 任务编排×pack 两形态(已执行,F1–F9 全闭环)
+
+- 影响分析:新 crate 纯新增;消费 `nofy-daemon` 的 `orchestra.rs`/`pack.rs`(只读消费,未改其一行);GitNexus MCP 不可用,按先例记录。
+- 新 crate `crates/codegen/nofy-orchestra`(编排**执行半**;daemon 保留计划半,防 god-object):
+  - **F1** `project.rs`:`.nofy/project.toml` 发现+`.nofy/packs/<id>.toml` 解析;装载即 fail-loud——缺 manifest/缺 pack 文件/DS-P4 host-plane 泄漏/pack id 与文件名不符/DAG 非法,全在装载期拒绝。6 用例。
+  - **F2** `goal.rs`(FR11.2+FR4.9 同源 DS-#6/#7):验收=logged goal state 的纯 fold——executor 只能 CLAIM,verifier  ACCEPT/REJECT;claim 无验收=仍 missing;单步拒绝=整任务失败(all-or-nothing);验收不靠模型自述。7 用例。
+  - **F3** `replay.rs`:编排事件日志(Dispatched/Settled/EscalationResolved)+确定性 fold 回放;**测试直接驱动出厂 `OrchRun`** 脚本化场景(顺/重试+升级允许/升级拒绝中止),fold 与真 OrchRun 逐字段等价(succeeded/dead/running/aborted)——日志不是平行真相,是同一真相重推;撕尾=前缀回放。5 用例。**期间真 bug 1 个**:未知任务 Settled 泄漏入 succeeded(fail-closed 漏判),测试红→修复→绿。
+  - **F4** `barrier.rs`(FR11.4+FR5.8):fan-in 恰一次触发(乱序齐套、重复 settle 不重发、all_ok 汇总);at-least-once 投递账本(dispatch/claim/ack,outstanding=重投候选,丢失=可检测属性)。6 用例。
+  - **F5** `mount.rs`(FR10.3/DS-P1):standing mount 每 scope 一次(同集幂等/异集冲突 fail-loud);session join+父系 lineage 继承(subagent 不自行 mount);未挂载 scope join=fail-closed。4 用例。
+  - **F6** `persona.rs`(FR10.4/DS-P3):模板变量**默认遮蔽**——仅 allowlist 内变量可渲染,其余 `[masked]`;allowlisted 但未知同样遮蔽;畸形占位符字面透传(无模板注入)。6 用例。
+  - **F7** `delegation.rs`(FR10.5/DS-P5):委托行=一行 provider 的专家召唤;空 provider/空 goal/自召唤拒绝;roster 全量解析 all-or-nothing;召唤上下文只带 persona 不带策略(DS-P4)。4 用例。
+  - **F8** `compile.rs`(FR10.6):一份 manifest 两个编译目标(会话级 join/subagent 级召唤),共享核心同源;host-plane 所有权**构造级强制**——两个目标类型无 sandbox/approval/persistence 字段。3 用例。
+  - **F9** `caps.rs`(FR6.4–6.7):SubagentCapabilities 位+运行时只能收窄(扩权可检测);委托深度只增(等深/更浅=环,拒);fork 只取 completed-turn prefix(尾随 open turn 丢弃)。FR6.4 auto-wake=barrier Fired;FR6.5 provider 公共件按 E1 `provider_host` 实况审计收口。5 用例。
+- 棘轮:orchestra 日一 cap=1706;workspace 预算 1,532,282→1,534,026(新 crate 入总量,附评审理由)。
+- 验证:`cargo test -p nofy-orchestra` 双跑 46+1 全绿且一致;daemon 棘轮 3/3;`cargo check --workspace` 零错误。
+- **批次 F 闭环(F1–F9)。下一步 = 批次 G(审批治理补全)。**

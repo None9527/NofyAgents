@@ -7131,6 +7131,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "nofy-orchestra"
+version = "0.1.0"
+dependencies = [
+ "nofy-daemon",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml",
+]
+
+[[package]]
 name = "nofy-pager"
 version = "0.2.121"
 dependencies = [
