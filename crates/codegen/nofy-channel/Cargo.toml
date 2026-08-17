@@ -8,10 +8,8 @@ description = "Control-plane transport abstraction for the Nofy daemon: length-p
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
-tracing = { workspace = true }
 
 [dev-dependencies]
-tempfile = { workspace = true }
 
 [lints]
 workspace = true

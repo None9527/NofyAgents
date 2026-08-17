@@ -15,7 +15,6 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["sync", "rt", "time", "macros"] }
 tokio-util = { workspace = true }
 tracing = { workspace = true }
-nofy-file-utils = { path = "../nofy-file-utils", optional = true }
 nofy-http = { workspace = true }
 nofy-shell-base = { workspace = true }
 nofy-version = { workspace = true }

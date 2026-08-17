@@ -21,7 +21,6 @@ dirs = "6"
 parking_lot = { workspace = true }
 git2 = { version = "0.20", default-features = false, features = ["vendored-libgit2"] }
 ignore = { workspace = true }
-md5 = { workspace = true }
 regex = { workspace = true }
 rusqlite = { version = "0.37", features = ["bundled"] }
 serde = { workspace = true }
@@ -66,8 +65,6 @@ chrono = { workspace = true }
 tree-sitter = "0.25.10"
 tree-sitter-bash = "0.25"
 url = { workspace = true }
-nofy-env = { workspace = true }
-humantime-serde = { workspace = true }
 prometheus = { workspace = true }
 glob = "0.3"
 nofy-sandbox = { path = "../nofy-sandbox", default-features = false }
@@ -91,8 +88,6 @@ tokio-util = { workspace = true, features = ["rt"] }
 urlencoding = "2"
 nofy-fast-worktree = { path = "../nofy-fast-worktree", features = ["metadata"] }
 # tonic: Status/Code mapping for deploy errors in workspace_ops.
-tonic = { workspace = true }
-sha1 = { workspace = true, optional = true }
 zip = { workspace = true, optional = true }
 
 nofy-fsnotify = { path = "../nofy-fsnotify" }
@@ -102,7 +97,6 @@ tracing-subscriber = { workspace = true }
 fastrace = { workspace = true, features = ["enable"] }
 nofy-tracing = { workspace = true }
 rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }
-tokio-tungstenite = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 tempfile = { workspace = true }
 zstd = { workspace = true }
 wait-timeout = { workspace = true }
@@ -141,7 +135,6 @@ tempfile = { workspace = true }
 tokio = { workspace = true, features = ["test-util"] }
 nofy-test-utils = { path = "../../common/nofy-test-utils" }
 # Decode tar.gz archives produced by workspace upload helpers in tests.
-flate2 = { workspace = true }
 tar = { workspace = true }
 
 [package.metadata.cargo-shear]

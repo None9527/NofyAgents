@@ -36,7 +36,9 @@ fn scheduler_loc_ratchet_only_shrinks() {
     //   revalidation) + E7 jobs↔session fence (fence.rs dual-channel) +
     //   E8 fs-trigger policy (fstrigger.rs debounce/budget/self-refusal)
     //   + E9 heartbeat projection (heartbeat.rs self-check + notepad).
-    let cap = 2314; // day-one cap (E1 event-sourced core + fold tests)
+    // - 2314→2579: E10 process registry (registry.rs rolling buffer +
+    //   checkpoint recovery + watch fuse).
+    let cap = 2579; // day-one cap (E1 event-sourced core + fold tests)
     let got = loc(&src);
     assert!(
         got <= cap,

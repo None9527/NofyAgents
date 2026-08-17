@@ -94,3 +94,15 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮五次行使:1661→2314(附评审理由)。
 - 验证:`cargo test -p nofy-scheduler` 双跑 63+1 全绿且一致。
 - **E6–E9 闭环。下一步 = E10(FR6.1 进程注册表)+ E12(FR9.6 workspace 棘轮)。**
+
+## 2026-08-17 · E10 进程注册表 + E12 workspace 预算与依赖审计(已执行)
+
+- **E10(FR6.1/HM-F15)**`registry.rs`:三保证——**滚动缓冲**(容量上限,最旧先逐,同身份再登记=原位刷新);**检查点恢复**(jsonl 序列化,撕尾容忍,深检查点按滚动语义只留最新);**watch 熔断**(失败计数达阈值即熔断且**不静默自愈**,仅显式 reset 可清——P0 发现 inotify 耗尽的现场教训);PID 身份=(pid,starttime) 防复用,同 daemon 孤儿清扫纪律。7 用例。
+- **E12(FR9.6/OC-F28)**`nofy-daemon/tests/ratchet.rs` 扩展(tests-only,不触 daemon 行为代码):
+  - `workspace_loc_budget_only_shrinks`:87 成员 src+tests+benches+examples 总行数预算,cap=1,532,282(E12 落点实况),升=刻意评审。
+  - `workspace_dependency_audit_no_unused_manifest_deps`:knip 等价——每个 manifest 依赖必须在 src/tests/benches/examples/**build.rs** 中有词边界引用;豁免账本 11 条全附理由(playground feature 门控×2、proto 代码生成×5、vestigial optional×3、包名≠lib 名×1)。
+  - **审计驱动真移除 32 个未用依赖**(12 crate):nofy-file-utils 3、nofy-channel 2、nofy-session-registry 1、nofy-env 2、nofy-pager 1(rustls)、nofy-pager-bin 1、nofy-shell-session-support 1、nofy-telemetry 2、nofy-test-support 3、nofy-tools 3、nofy-workspace 7、nofy-shell 6(kanal/webbrowser/gcloud-storage/zstd/dashmap/rsa);另 flate2/sha2 自 nofy-tools [dependencies] **移正**至 [build-dependencies](build.rs 真消费,原位置本就错误)。
+  - 移除逐项经词边界+features `dep:`+下游 feature 引用+大小写不敏感四重核查;每个受影响 crate `cargo check` 零错误;`cargo check --workspace` 零错误。
+- 棘轮六次行使:scheduler 2314→2579(registry.rs)。
+- 验证:`cargo test -p nofy-scheduler` 双跑 70+1 全绿且一致;`cargo test -p nofy-daemon` 64+3 全绿;workspace check 零错误。期间修复:预算 cap 两次校准(度量时序)、审计补扫 build.rs(nofy-tools build 依赖误删后编译报错暴露,移正修复)。
+- **E10+E12 闭环 ⇒ 批次 E 全部闭环(E0–E10,E11 经裁定推迟)。下一步 = 批次 E 出口对账(AC-3)+ 批次 F。**

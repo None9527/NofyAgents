@@ -30,7 +30,6 @@ nofy-version = { workspace = true }
 nofy-telemetry = { workspace = true }
 nofy-workspace = { workspace = true }
 nofy-crash-handler = { path = "../nofy-crash-handler" }
-nofy-acp-lib = { workspace = true }
 
 # Async runtime + misc.
 tokio = { workspace = true, features = [

@@ -33,6 +33,7 @@ pub mod grammar;
 pub mod heartbeat;
 pub mod lock;
 pub mod maintenance;
+pub mod registry;
 pub mod runfiles;
 pub mod timer;
 

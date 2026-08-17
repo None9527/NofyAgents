@@ -7,7 +7,6 @@ description = "Cross-process session index for the Nofy daemon: reads the on-dis
 
 [dependencies]
 serde = { workspace = true }
-tracing = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

@@ -178,12 +178,6 @@ nofy-test-support = { workspace = true, features = [] }
 # spec mirroring the shell's, NOT `workspace = true`: the workspace pin enables
 # aws-lc-rs, under which `rustls::crypto::ring` does not exist. Dev-only — the
 # production lib deliberately dropped rustls (moved to nofy-pager-bin).
-rustls = { version = "0.23", default-features = false, features = [
-    "ring",
-    "logging",
-    "std",
-    "tls12",
-] }
 
 [[bench]]
 name = "render"
