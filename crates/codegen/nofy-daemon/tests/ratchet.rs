@@ -64,7 +64,9 @@ fn workspace_loc_budget_only_shrinks() {
     // Cap raises are deliberate reviewed changes:
     // - 1_532_282→1_534_023: new crate nofy-orchestra (batch F execution
     //   half) joined the workspace.
-    let cap = 1_534_026; // budget at E12 landing (87 members, src+tests+benches+examples)
+    // - 1_534_026→1_535_478: new crate nofy-governance (batch G cores) +
+    //   nofy-orchestra ledger_gov (G4).
+    let cap = 1_535_478; // budget at E12 landing (87 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

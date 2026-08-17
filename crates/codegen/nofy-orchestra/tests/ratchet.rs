@@ -25,7 +25,10 @@ fn orchestra_loc_ratchet_only_shrinks() {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     // Day-one cap: batch F execution half (project/goal/replay/barrier/
     // mount/persona/delegation/compile/caps) + their tests.
-    let cap = 1706;
+    // Cap raises are deliberate reviewed changes:
+    // - 1706→1845: G4 ledger governance projection (ledger_gov.rs:
+    //   event-journal replay + audit + dead-letter policy).
+    let cap = 1845;
     let got = loc(&src);
     assert!(
         got <= cap,

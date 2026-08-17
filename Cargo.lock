@@ -6927,6 +6927,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "nofy-governance"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "nofy-control-schema",
+ "nofy-daemon",
+ "nofy-orchestra",
+ "ring",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "nofy-hooks"
 version = "0.1.0"
 dependencies = [

@@ -26,6 +26,7 @@ pub mod caps;
 pub mod compile;
 pub mod delegation;
 pub mod goal;
+pub mod ledger_gov;
 pub mod mount;
 pub mod persona;
 pub mod project;

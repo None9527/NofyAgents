@@ -136,3 +136,21 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮:orchestra 日一 cap=1706;workspace 预算 1,532,282→1,534,026(新 crate 入总量,附评审理由)。
 - 验证:`cargo test -p nofy-orchestra` 双跑 46+1 全绿且一致;daemon 棘轮 3/3;`cargo check --workspace` 零错误。
 - **批次 F 闭环(F1–F9)。下一步 = 批次 G(审批治理补全)。**
+
+## 2026-08-17 · 批次 G 审批治理补全(已执行,G1–G9+G11 闭环,G10 经裁定推迟)
+
+- 新 crate `crates/codegen/nofy-governance`(治理纯策略核,41 用例+1 棘轮,日一 cap=1274):
+  - **G1** `yolo.rs`(FR5.5):YOLO 冻结——进入 YOLO 即冻结,冻结态热升级一律拒(拒绝计数即留痕),降级永不阻(去升级不锁死);会话身份任务局部化,跨任务冒用拒。4 用例。
+  - **G2** `lifeguard.rs`(FR5.6):自毁型命令分类器——清库形(rm -rf //~/mkfs/dd/fork bomb)、杀祖先链、删自身二进制,装载前拒;保守设计:未知形态流入正常审批链(与 E8 拒自毁同源语义)。5 用例。
+  - **G3** `turnlease.rs`(FR5.7):轮次租约——同会话跨表面串行,第二表面获取被拒(拒绝=审计),TTL 过期放行,仅持有者可释放,过期清扫。5 用例。
+  - **G4** `ledger_gov.rs`(FR5.8,落 nofy-orchestra):投递账本治理投影——事件日志化+确定性回放+审计导出+死信策略(超重投上限=死信,**可见不静默丢**,「投递丢失=0」可审计)。4 用例。orchestra 棘轮 1706→1845。
+  - **G5** `envelope.rs`(FR5.10):注入抗性固定信封——payload 内分隔符中和(=====→-----),良构不变量可机检(BEGIN/END 恰一且有序),嵌套信封保持扁平,畸形可检。5 用例。
+  - **G6** `presets.rs`(FR5.11):permission-presets intent 事件+write-through——Applied 无匹配 Intent=忽略(无未记账意图则无效果),中断变更(有 Intent 无 Applied)可检。5 用例。
+  - **G7** `cas.rs`(FR5.12):配置写 CAS——并发写恰一胜,败者得 Stale{current} 重试路径;盘上版本锚,锚损坏=不可信态(从 0 恢复),原子 rename。4 用例。
+  - **G8** `preauth.rs`(FR5.13):pre-auth 硬化——每 peer 开放连接预算(尽即拒)+尝试洪水守卫(窗内限额,滚窗恢复),拒绝计数可观测。4 用例。
+  - **G9** `identity.rs`(FR2.6/2.7):设备身份=Ed25519 公钥 blake3 派生(真 ring 密钥,篡改/错钥全拒);challenge=nonce+时间戳签名验证;caps 授权=声明∩请求(运行时只收窄)。4 用例。
+  - **G11** `gateway.rs`(D-1 里程碑「webhook 批高危」,按命题定义):非 TUI 审批证明单元——webhook 应答经**真 daemon ApprovalBroker** 完成一次高危批准(deny/allow 两路均驱动真 broker 的 register/wait/respond/settle);未知意图拒;账本损坏=fail-closed 拒(CorruptDeny)。HTTP 传输面=P2 FR13.3 本分,此处证命题。5 用例。
+- 棘轮:workspace 预算 1,534,026→1,535,478(governance 入总量+G4,附理由)。
+- 验证:governance 双跑 41+1、orchestra 双跑 50+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。期间修复 1 处测试语义(preauth 预算用例误触洪水守卫,改窗口滚动后断言纯净)。
+- **AC-5 对账**:审批存储损坏=拒绝(G7 锚损坏+G11 CorruptDeny)✓;四路径收敛单一可审计事件流(G6 intent 日志+G4 账本日志+G11 审计字段)✓;危险模式不可热升级(G1 冻结)✓;webhook 完成一次高危批准 fail-closed(G11 真 broker)✓;DNS rebinding 测试归 J7(FR5.4 Web 栅栏)。
+- **批次 G 闭环。下一步 = 批次 H(记忆扩展)。**
