@@ -106,3 +106,16 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮六次行使:scheduler 2314→2579(registry.rs)。
 - 验证:`cargo test -p nofy-scheduler` 双跑 70+1 全绿且一致;`cargo test -p nofy-daemon` 64+3 全绿;workspace check 零错误。期间修复:预算 cap 两次校准(度量时序)、审计补扫 build.rs(nofy-tools build 依赖误删后编译报错暴露,移正修复)。
 - **E10+E12 闭环 ⇒ 批次 E 全部闭环(E0–E10,E11 经裁定推迟)。下一步 = 批次 E 出口对账(AC-3)+ 批次 F。**
+
+### 批次 E 出口对账(AC-3 逐句)
+
+| AC-3 条款 | 机制 | 证据(测试) |
+|---|---|---|
+| 无客户端在线时 cron 照常执行 | 引擎=日志纯 fold+策略提案,全程无客户端概念;LogStore 盘上持久,重启重放同态 | `log_store_roundtrip_with_torn_tail`、`engine_loop_catch_up_plus_repair_replays_from_scratch` |
+| 错过窗口按策略追赶且不风暴 | latest-only(每 schedule 积压塌缩为 1 发+Dropped 审计)+fixed-rate 限速排空 | `catch_up_backlog_collapses_to_latest_only`、`catch_up_fixed_rate_pacing_drains_deterministically` |
+| 连续失败自禁用留痕 | RunFailed 记账→阈值触发 Disabled 事件,reason=「N consecutive failures」入日志即留痕 | `three_crashes_then_self_disable_with_trail` |
+| 自毁型调度被拒 | fs 触发拒 self_generated(不耗预算不开窗)+fail-closed 挂账(无活定义/已禁用不挂) | `self_generated_events_are_refused`、`armed_without_definition_is_ignored_fail_closed` |
+| fs 事件可触发任务且防抖生效 | FsTriggerPolicy:每 path 每窗一触发+滚动预算 | `debounce_absorbs_bursts_into_one_trigger`、`budget_caps_triggers_per_window_and_refills` |
+
+**AC-3 五句全过**。注:调度器与 daemon/控制面的接线不在批次 E 范围(计划 Non-goal),cron 引擎以独立 crate 交付;接线随批次 F 的 workflow 路由一并推进。
+批次 E 累计:scheduler 70 单测+1 棘轮,六次棘轮行使(429→2579),E11 经第一性原理裁定推迟 P2 前置。
