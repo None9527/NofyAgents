@@ -6,6 +6,8 @@ edition.workspace = true
 description = "Event-sourced schedule state for Nofy: a pure fold over an append-only log, fork-aware (FR3.1 / DS-#1)."
 
 [dependencies]
+chrono = { workspace = true }
+fs2 = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 

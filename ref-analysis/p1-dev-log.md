@@ -73,3 +73,14 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮三次行使:628→1083(附评审理由)。
 - 验证:`cargo test -p nofy-scheduler` 双跑 28+1 全绿且一致。期间修复 1 处测试断言推导错误(interruptions 计数,事件序列手工重追踪后更正)。
 - **E3+E4 闭环。下一步 = E5(FR3.5 cron 文法+心跳/成功双文件+跨进程 flock+HOME 投递)。**
+
+## 2026-08-17 · E5 cron 文法+双文件+flock+HOME 投递(已执行)
+
+- **cron 文法**(`grammar.rs`):严格 5 字段解析(`*`/`N`/`A-B`/`*/S`/`A-B/S`/`N/S` Vixie 语义,逗号表),范围校验(minute 0-59/hour 0-23/dom 1-31/month 1-12/dow 0-6),13 种非法式全拒;dom/dow 双限=任一命中(标准 cron 规则);`next_after` 纯函数(月跳过+日扫描+日内时刻,~5 年上限,无时钟访问,引擎供 now)。用例:季度刻/工作日环绕(周五→周一)/闰日 2026→2028-02-29/dom-dow 任一/不可能式(2 月 30 日)=None/严格 after+确定性。
+- **心跳/成功双文件**(`runfiles.rs`):`{id}.heartbeat`(任意结果)与 `{id}.success`(仅成功)分离——外部 watchdog 可辨「卡死(心跳新/成功旧)」与「调度器死(心跳旧)」;原子写(temp+rename);`safe_stem` 消毒 id,`../evil` 落回目录内。
+- **跨进程 flock**(`lock.rs`):`ScheduleLock::acquire` 独占 flock,二次获取=None(退避不双发),holder 死则内核释锁;Drop 显式 unlock。
+- **HOME 投递**(`delivery.rs`):`~/.nofy/scheduler/deliveries/{id}-{run_id}.json`,原子写,id 消毒,list 升序。
+- 依赖:chrono/fs2(workspace 既有)。期间修复:1 处测试 Option 包裹、1 处 safe_stem 期望值下划线计数。
+- 棘轮四次行使:1083→1661(附评审理由)。
+- 验证:`cargo test -p nofy-scheduler` 双跑 43+1 全绿且一致。
+- **E5 闭环。下一步 = E6(FR3.6 一次性定时器 clamped+重校墙钟)。**

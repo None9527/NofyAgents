@@ -29,7 +29,10 @@ fn scheduler_loc_ratchet_only_shrinks() {
     // - 628→1083: E3 true-idle channel (FR3.3, maintenance.rs phase
     //   machine + wake latch) + E4 cron engine policy (FR3.4, cron.rs
     //   repair/watchdog/backoff/self-disable + run-lifecycle events).
-    let cap = 1083; // day-one cap (E1 event-sourced core + fold tests)
+    // - 1083→1661: E5 cron grammar (grammar.rs strict 5-field parse +
+    //   next-fire) + runfiles.rs heartbeat/success double files +
+    //   lock.rs cross-process flock + delivery.rs HOME delivery.
+    let cap = 1661; // day-one cap (E1 event-sourced core + fold tests)
     let got = loc(&src);
     assert!(
         got <= cap,

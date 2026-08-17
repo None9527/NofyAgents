@@ -24,7 +24,11 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 pub mod cron;
+pub mod delivery;
+pub mod grammar;
+pub mod lock;
 pub mod maintenance;
+pub mod runfiles;
 
 /// One append-only event in the schedule log.
 ///
