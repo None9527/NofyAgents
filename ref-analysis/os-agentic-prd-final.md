@@ -382,6 +382,8 @@ nofy-daemon  per-host 单实例(lock-file 选举);宿主 registry/scheduler/appr
 | P2 多表面生态 | 6w | FR13.3/13.4;FR4.13;FR3.10;FR2.9/2.10;FR8.4-8.6;FR10.8/10.9;FR11.5-11.8;FR12.6-12.8 | 第三方零核心改动接表面;任务 DAG+批审批;file-steward 上线 |
 | P3 持续 | — | FR6.10;FR6.8;FR12.10;realm 隔离评估 | 执行世界谱系 |
 
+> **P1 行结算(PRD-1.5,第一性原理裁定,详见 `p1-construction-plan.md` §0)**:FR 表漏列 P1 项按「是否被 P1 验收命题依赖」切割——**保留** FR12.11–15/FR2.6–2.7/FR6.4–6.7/FR2.9/FR6.1/FR9.6(AC-12/AC-2/AC-5/AC-14 通过成本);**推迟 P2 前置队列** FR13.1/FR4.5/FR1.12–1.15/FR2.8/2.10/2.11/FR6.2–6.3/FR9.7–9.8(P1 无命题依赖)。里程碑「webhook 批高危」按命题定义为「非 TUI 审批证明单元」(G11),全表面仍 P2。P1 估算 ≈8–9 周,差额如实记录。
+
 ---
 
 ## 8. 风险与对策
@@ -449,8 +451,8 @@ pack=收敛 subagent 的分发单元(persona+skills+mcp+policy);standing mount=�
 
 **队列**:① 逐文件覆盖率移植;**设计队列**:空。(DS-#8 fail-closed 门、FR5 策略矩阵转译、provider 循环宿主已落地,见 §11 表。)
 
-**P1 施工已启动**:`ref-analysis/p1-construction-plan.md`(批次 E–J;§7 P1 行与 FR 表优先级列的差异校准、P0 遗留去向、决策项 D-1/D-2 见其 §0)。**E0 裁定闭环**(P0 遗留五区逐项结论+证据,见 `p1-dev-log.md`);**E1 闭环**:新 crate `nofy-scheduler`——event-sourced schedule 纯 fold+fork 感知+撕尾容忍+日一 LOC 棘轮(FR3.1/DS-#1 状态核,未接 daemon);双跑 9/9 绿、daemon 回归 65/65 绿。下一步 E2(FR3.2 latest-only 追赶)。
+**P1 施工已启动**:`ref-analysis/p1-construction-plan.md`(批次 E–J;§7 P1 行与 FR 表优先级列的差异校准、P0 遗留去向见其 §0)。**E0 裁定闭环**(P0 遗留五区逐项结论+证据,见 `p1-dev-log.md`);**E1 闭环**:新 crate `nofy-scheduler`——event-sourced schedule 纯 fold+fork 感知+撕尾容忍+日一 LOC 棘轮(FR3.1/DS-#1 状态核,未接 daemon);双跑 9/9 绿、daemon 回归 65/65 绿。**D-1/D-2 经第一性原理裁定闭环**(保留 AC 依赖项、无依赖项推迟 P2 前置队列,见计划 §0 裁定节与 §7 结算注记)。下一步 E2(FR3.2 latest-only 追赶)。
 
 ## 附录 C:变更史
 
-v1(产品草图)→ v2(源码级,六深抽;纠正 Leader/协议/状态三认知;补 §3.10 套件、§3.11 任务管理、§3.12 文件管家)→ PRD-1.0(需求编号化+AC+NFR+非目标+里程碑)→ PRD-1.1(施工状态回写;search provider 代理清零 NOT_READY)→ **PRD-1.2(队列②+设计队列清零:provider 循环宿主、DS-#8 fail-closed 门、FR5 策略矩阵落地;搜索应答增 `sessions` 命中身份,棘轮二次行使)**→ **PRD-1.3(P1 施工计划立项:`p1-construction-plan.md` 批次 E–J;§0 校准 §7 行与 FR 表差异并收编漏列 P1 项;§11 加指针;需求正文未动)**→ **PRD-1.4(P1 开工:E0 裁定闭环+`nofy-scheduler` 状态核落地;§11 更新;需求正文未动)**。
+v1(产品草图)→ v2(源码级,六深抽;纠正 Leader/协议/状态三认知;补 §3.10 套件、§3.11 任务管理、§3.12 文件管家)→ PRD-1.0(需求编号化+AC+NFR+非目标+里程碑)→ PRD-1.1(施工状态回写;search provider 代理清零 NOT_READY)→ **PRD-1.2(队列②+设计队列清零:provider 循环宿主、DS-#8 fail-closed 门、FR5 策略矩阵落地;搜索应答增 `sessions` 命中身份,棘轮二次行使)**→ **PRD-1.3(P1 施工计划立项:`p1-construction-plan.md` 批次 E–J;§0 校准 §7 行与 FR 表差异并收编漏列 P1 项;§11 加指针;需求正文未动)**→ **PRD-1.4(P1 开工:E0 裁定闭环+`nofy-scheduler` 状态核落地;§11 更新;需求正文未动)**→ **PRD-1.5(D-1/D-2 第一性原理裁定:P1 行结算——保留 AC 依赖项、推迟无依赖项至 P2 前置队列;§7 加结算注记;FR 条目优先级未动)**。
