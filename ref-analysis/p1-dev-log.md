@@ -16,3 +16,30 @@
 - 待决策(不阻塞 E0/E1):**D-1** 是否拉入最小 webhook 审批面(P1 里程碑「webhook 批高危」与 FR13.3/FR11.8 的 P2 标记冲突);**D-2** 范围膨胀后接受 9–11 周延期,还是把 §7 未列项推入 P2。
 - PRD 回写:§11 队列加 P1 计划指针;附录 C 记 PRD-1.3。需求正文未动。
 - 下一步:E0 裁定(只读半天)→ E1 `nofy-scheduler` event-sourced 骨架(计划 §9)。
+
+## 2026-08-17 · E0 裁定备忘(只读,无代码改动)
+
+P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存文件,行号为核实时所见):
+
+| 项 | 结论 | 证据 |
+|---|---|---|
+| FR2.3 幂等键+原子准入(OC-F19) | **未做** | 控制面 TaskSubmit 无客户端幂等键、重放即重新准入(`crates/codegen/nofy-daemon/src/daemon.rs:253` 处理器);全库 186 个 `idempoten` 命中均为无关局部注释/测试(如 `nofy-markdown/src/streaming.rs:2250` 渲染幂等),控制面四 crate 内仅 `crates/common/nofy-session-journal/src/continuity.rs:150` 一个测试名命中,非准入机制 |
+| FR2.4 steering 三检查点(OC-F17) | **部分** | 进程内 interjection 机制齐套:`crates/common/nofy-interjection-core/`(buffer/format/drain)+ 消费点:工具批边界 `crates/codegen/nofy-shell/src/session/acp_session_impl/tool_calls.rs:424`、循环检查点 `turn.rs:2039/2519/2531`、长工具内等待 `tool_calls.rs:626`;但为进程内会话语义,非经控制面路由的 steering 协议,「转录提交等待」检查点未独立成型 |
+| FR2.5 ACP 双向映射桥(MAP-§3.2) | **已做** | `crates/codegen/nofy-acp-lib/src/`(channel/gateway/message/normalize 等)+ `crates/codegen/nofy-shell/src/session/acp_session_impl/`(30+ 文件)+ `acp_session_tests/`(47 个测试文件);ACP 表面原生驱动 MvpAgent 且不改其本体(`crates/codegen/nofy-shell/src/agent/server.rs` 头注:MvpAgent 实例跨连接复用) |
+| FR4.5 工具结果三档注入+spill(NG-F12) | **部分** | spill 形态仅 web_fetch 一家:`crates/codegen/nofy-tools/src/implementations/nofy_build/web_fetch/overflow.rs`(bounded inline preview+session artifact+recovery footer);工具输出有 size cap+truncated 标志(`crates/common/nofy-tool-runtime/src/notification.rs:33-49`);通用 tool 分发层无三档注入 |
+| FR6.1 进程注册表(HM-F15) | **部分** | daemon 已有 children 登记(`children.jsonl`)+PID/starttime 活体判定+启动期轮转清扫(`crates/codegen/nofy-daemon/src/proc.rs`,看板记 3 用例);缺滚动缓冲、活进程检查点恢复、watch 熔断 |
+| FR13.1 表面迁控制面客户端(MAP) | **未做** | TUI/headless/serve 均进程内跑 agent(`crates/codegen/nofy-pager-bin/src/main.rs:317/475`、`crates/codegen/nofy-shell/src/agent/server.rs`);控制面唯一触点为 P0 所立 `nofy daemon` 子命令(`main.rs:978`);表面未迁 |
+| FR5.4 /api 浏览器信任栅栏(DS-#22) | **未做** | serve 表面在(`crates/codegen/nofy-shell/src/agent/server.rs`,488 行,axum WebSocket),全文零 Origin/Host/sec-fetch-site 检查;四层栅栏缺位 |
+
+**去向确认**(与计划 §0 一致):FR4.5→H0、FR5.4→J7、FR6.1→E10、FR13.1→J9;FR2.3→G 批(控制面准入),FR2.4→G/F 批(控制面 steering 协议化),FR2.5 闭环只留回归。
+
+## 2026-08-17 · E1 `nofy-scheduler` event-sourced 骨架(已执行)
+
+- 影响分析:纯新增,零既有符号改动。GitNexus MCP 本会话不可用(search_tool 无结果),按 P0 先例记为偏离;grep 核实唯一既有文件改动 = 根 `Cargo.toml` members 增一行。`nofy-scheduler` 仅依赖 serde/serde_json,不被任何 crate 依赖,既有 crate 依赖图零变化。
+- 新 crate `crates/codegen/nofy-scheduler/`(workspace 成员):
+  - `src/lib.rs`(429 行):`ScheduleEvent` 六变体(Added/Removed/Armed/Fired/Disabled/Forked);`fold`/`apply` 纯函数——状态=日志纯 fold,同日志必同状态;fork 感知在 fold 内:Forked 保留定义、清空 pending、generation 只由 Forked 变更(DS-#1 语义);fail-closed:无活定义的 Armed 被忽略;幂等:重复 arm/fire、同 due 不重复挂账;撕尾容忍:`parse_log` 自首个不可解析行截断(单写者 append,尾部之后必为垃圾,同 session-journal 纪律);`LogStore` 薄盘层(append+flush+sync_data,缺文件=空日志,撕尾截断不报错)。
+  - `tests/ratchet.rs`:日一 LOC 棘轮 cap=429,模式同 `nofy-daemon/tests/ratchet.rs`(只降不升,升=刻意评审)。
+- 测试(全部驱动出厂函数、自空态起):8 单元——空 fold、replay 全前缀切分一致(崩溃于任一 append 边界重放必同态)、fork 不继承义务+fork 后 arm 正常+父前缀保留义务、退化 fork 忽略、无定义 arm fail-closed+re-add 重启用、重复 arm/fire 幂等、撕尾截断(内存与磁盘两路)、LogStore 盘上往返;1 棘轮。
+- 验证:`cargo test -p nofy-scheduler` 双跑 8+1 全绿且两次一致(证据 `{scratch}/scheduler-tests-1.log`、`scheduler-tests-2.log`);`cargo test -p nofy-daemon` 回归 64+1 全绿(`regression.log`);`cargo check --workspace`(`check.log`)。
+- 零外呼/零行为变化:crate 无网络依赖;既有 crate 无改动。
+- **E0+E1 闭环。下一步 = E2(FR3.2 fixed-rate latest-only 追赶),属后续目标。**

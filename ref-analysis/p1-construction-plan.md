@@ -172,3 +172,11 @@ E0 裁定(0.5d) → E(2w) → F(2w) → G(1.5w) → H(1.5w) → I(2w) → J(2w)
 **E0 裁定(只读,半天)→ E1 `nofy-scheduler` event-sourced 骨架**。
 
 理由:E1(FR3.1,DS-#1)语义明确(状态=日志纯 fold),零设计争议;新 crate 直接模板化 `nofy-daemon`(棘轮/测试夹具/built-binary e2e 模式全可复用);事件总线是 P1 最长依赖链(I2 等消费),早开工进度价值最高;不触现有热路径,回归面小。
+
+### E0/E1 施工记录(已执行,2026-08-17)
+
+- **E0 裁定闭环**:五区结论——FR2.3 未做(TaskSubmit 无幂等键)、FR2.4 部分(进程内 interjection 齐套,控制面 steering 协议未立)、FR2.5 已做(ACP 原生表面+47 测试文件)、FR4.5 部分(spill 仅 web_fetch 一家)、FR6.1 部分(children 登记+启动清扫在,滚动缓冲/检查点恢复/watch 熔断缺)、FR13.1 未做(表面均进程内跑 agent)、FR5.4 未做(serve 在,零 Origin/Host 检查)。证据路径全录于 `p1-dev-log.md` E0 备忘。
+- **E1 闭环**:新 crate `crates/codegen/nofy-scheduler`(workspace 成员,仅依赖 serde/serde_json):`ScheduleEvent` 六变体 + `fold`/`apply` 纯函数(fork 感知在 fold 内:Forked 保留定义、清空 pending;fail-closed:无活定义不挂账;幂等:重复 arm/fire 不重复挂账)+ `parse_log` 撕尾截断 + `LogStore` 薄盘层;`tests/ratchet.rs` 日一 cap=429。
+- 验证:`cargo test -p nofy-scheduler` 双跑 8+1 全绿且一致;`cargo test -p nofy-daemon` 回归 64+1 全绿;`cargo check --workspace` 零错误。零既有符号改动(纯新增),零新外呼。
+- 偏离记录:GitNexus MCP 本会话不可用,影响分析按纯新增事实记录(P0 先例同款)。
+- **下一步 = E2**(FR3.2 fixed-rate latest-only 追赶:在 fold 之上定义追赶策略,离线归来只发最新一次)。

@@ -449,8 +449,8 @@ pack=收敛 subagent 的分发单元(persona+skills+mcp+policy);standing mount=�
 
 **队列**:① 逐文件覆盖率移植;**设计队列**:空。(DS-#8 fail-closed 门、FR5 策略矩阵转译、provider 循环宿主已落地,见 §11 表。)
 
-**P1 施工计划已立项**:`ref-analysis/p1-construction-plan.md`(批次 E–J;§7 P1 行与 FR 表优先级列的差异校准、P0 遗留去向、决策项 D-1/D-2 见其 §0;待施工)。
+**P1 施工已启动**:`ref-analysis/p1-construction-plan.md`(批次 E–J;§7 P1 行与 FR 表优先级列的差异校准、P0 遗留去向、决策项 D-1/D-2 见其 §0)。**E0 裁定闭环**(P0 遗留五区逐项结论+证据,见 `p1-dev-log.md`);**E1 闭环**:新 crate `nofy-scheduler`——event-sourced schedule 纯 fold+fork 感知+撕尾容忍+日一 LOC 棘轮(FR3.1/DS-#1 状态核,未接 daemon);双跑 9/9 绿、daemon 回归 65/65 绿。下一步 E2(FR3.2 latest-only 追赶)。
 
 ## 附录 C:变更史
 
-v1(产品草图)→ v2(源码级,六深抽;纠正 Leader/协议/状态三认知;补 §3.10 套件、§3.11 任务管理、§3.12 文件管家)→ PRD-1.0(需求编号化+AC+NFR+非目标+里程碑)→ PRD-1.1(施工状态回写;search provider 代理清零 NOT_READY)→ **PRD-1.2(队列②+设计队列清零:provider 循环宿主、DS-#8 fail-closed 门、FR5 策略矩阵落地;搜索应答增 `sessions` 命中身份,棘轮二次行使)**→ **PRD-1.3(P1 施工计划立项:`p1-construction-plan.md` 批次 E–J;§0 校准 §7 行与 FR 表差异并收编漏列 P1 项;§11 加指针;需求正文未动)**。
+v1(产品草图)→ v2(源码级,六深抽;纠正 Leader/协议/状态三认知;补 §3.10 套件、§3.11 任务管理、§3.12 文件管家)→ PRD-1.0(需求编号化+AC+NFR+非目标+里程碑)→ PRD-1.1(施工状态回写;search provider 代理清零 NOT_READY)→ **PRD-1.2(队列②+设计队列清零:provider 循环宿主、DS-#8 fail-closed 门、FR5 策略矩阵落地;搜索应答增 `sessions` 命中身份,棘轮二次行使)**→ **PRD-1.3(P1 施工计划立项:`p1-construction-plan.md` 批次 E–J;§0 校准 §7 行与 FR 表差异并收编漏列 P1 项;§11 加指针;需求正文未动)**→ **PRD-1.4(P1 开工:E0 裁定闭环+`nofy-scheduler` 状态核落地;§11 更新;需求正文未动)**。

@@ -28,6 +28,7 @@ members = [
     "crates/codegen/nofy-channel",
     "crates/codegen/nofy-control-schema",
     "crates/codegen/nofy-session-registry",
+    "crates/codegen/nofy-scheduler",
     "crates/codegen/nofy-extra-ca",
     "crates/codegen/nofy-hooks",
     "crates/codegen/nofy-http",
