@@ -154,3 +154,20 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 验证:governance 双跑 41+1、orchestra 双跑 50+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。期间修复 1 处测试语义(preauth 预算用例误触洪水守卫,改窗口滚动后断言纯净)。
 - **AC-5 对账**:审批存储损坏=拒绝(G7 锚损坏+G11 CorruptDeny)✓;四路径收敛单一可审计事件流(G6 intent 日志+G4 账本日志+G11 审计字段)✓;危险模式不可热升级(G1 冻结)✓;webhook 完成一次高危批准 fail-closed(G11 真 broker)✓;DNS rebinding 测试归 J7(FR5.4 Web 栅栏)。
 - **批次 G 闭环。下一步 = 批次 H(记忆扩展)。**
+
+## 2026-08-17 · 批次 H 记忆扩展(已执行,H1–H3/H5–H8 闭环,H4=F2 只回归,H0 经裁定推迟)
+
+- 新 crate `crates/codegen/nofy-memorycore`(35 用例+1 棘轮,日一 cap=1198):
+  - **H1** `snapshot.rs`(FR4.6):FrozenSnapshot 深拷贝冻结——**会中 live 写不改 prompt**(AC-4 末句机制本体);promptware 扫描(指令覆盖/角色劫持/角色伪装/信封逃逸四类签名,大小写归一)。6 用例。
+  - **H2** `curator.rs`(FR4.7):Curator 硬不变量——只碰自创、**CuratorOp 类型无 Delete 变体(不变量 2 类型级编码)**、pinned 豁免、archived 终态、每次尝试全留痕。5 用例。
+  - **H3** `forkrev.rs`(FR4.8):ForkView 写时复制(overlay 不落 base,merge 唯一回路)+cache-aware replay(hash 未变=复用零重算,变了才重算)。4 用例。
+  - **H5** `projstore.rs`(FR4.10/DS-#23/#24):ProjectionValueStore higher-seq-wins,init/apply/view,乱序施加收敛、重放幂等。5 用例。
+  - **H6** `auditstore.rs`(FR4.11/OC-F12):审计记录**无 content 字段(形态级 metadata-only)**、salted blake3 假名(稳定可关联/无盐不可逆/跨库不可链)、retention forget 可验证。5 用例。
+  - **H7** `compact.rs`(FR4.12/NG-F9):七维加权评分(recency/frequency/size/relevance/redundancy/density/depth)+密度切割+**深度守卫(压缩必终止)**。5 用例。
+  - **H8** `modelops.rs`(FR7.7–7.9):generations 原子快照+lease+retention 收割(FR7.7);路由链 stale-while-revalidate(fresh→stale+revalidate→fail-closed,FR7.8);OAuth 双检锁——**8 线程竞态恰一次底层刷新**(真 Mutex/Condvar,FR7.9)。5 用例。
+- **真 bug 2 个,测试驱动捕获**:① TokenCell 死锁——刷新器持锁调 do_refresh 后重入非再入 Mutex 自锁(测试挂死 ~100min,杀进程定位,刷新期释锁修复);② promptware 扫描器大写签名漏检(frame-escape),签名小写化修复。
+- 审计驱动移除:nofy-memorycore 未用 tempfile dev-dep(knip 纪律)。
+- 棘轮:workspace 预算 1,535,478→1,536,711(附理由)。
+- 验证:memorycore 双跑 35+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。
+- **AC-4 对账**:被取代 run 无法提交过期转录(P0 journal 回归)✓;checkpoint 失败=请求不发起(P0 DS-#8)✓;curator 不删任何条目(H2 类型级)✓;会中记忆写入不改 prompt(H1 冻结快照)✓。
+- **批次 H 闭环。下一步 = 批次 I(文件管家执行面)。**

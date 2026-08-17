@@ -31,6 +31,7 @@ members = [
     "crates/codegen/nofy-scheduler",
     "crates/codegen/nofy-orchestra",
     "crates/codegen/nofy-governance",
+    "crates/codegen/nofy-memorycore",
     "crates/codegen/nofy-extra-ca",
     "crates/codegen/nofy-hooks",
     "crates/codegen/nofy-http",
@@ -311,6 +312,7 @@ nofy-env = { path = "crates/codegen/nofy-env" }
 nofy-daemon = { path = "crates/codegen/nofy-daemon" }
 nofy-orchestra = { path = "crates/codegen/nofy-orchestra" }
 nofy-governance = { path = "crates/codegen/nofy-governance" }
+nofy-memorycore = { path = "crates/codegen/nofy-memorycore" }
 nofy-channel = { path = "crates/codegen/nofy-channel" }
 nofy-control-schema = { path = "crates/codegen/nofy-control-schema" }
 nofy-session-registry = { path = "crates/codegen/nofy-session-registry" }
