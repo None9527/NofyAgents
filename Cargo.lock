@@ -6541,6 +6541,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "nofy-agility"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "nofy-announcements"
 version = "0.1.0"
 dependencies = [

@@ -190,3 +190,31 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 验证:stewardcore 双跑 46+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。
 - **AC-12 对账(九句)**:未选根=零索引零外呼(I1 空表)✓;index-only 产不出写(I1+I3)✓;forget 后检索不可命中(I5)✓;批整理可回放可撤销(I9 undo)✓;租约命中加载期即拒(I7)✓;重叠区取更严(I8)✓;墓碑解析陈旧引用(I9)✓;新根前三批强制 dry-run(I10)✓;steward 改动被 hunk 对账识别归因(I4)✓。
 - **批次 I 闭环。下一步 = 批次 J(敏捷面×Web)。**
+
+## 2026-08-17 · 批次 J 敏捷面×Web(已执行,J1–J8+J10 全闭环,J9 经裁定推迟)
+
+- 新 crate `crates/codegen/nofy-agility`(41 用例+1 棘轮,日一 cap=1326):
+  - **J1** `scriptsandbox.rs`(FR14.6):沙箱**构造级永不 in-proc**——模块只能产出 SpawnSpec(进程边界),无进程内执行 API 可调用;fail-closed(无 profile/运行时不支持/零限额=无界,全拒);env 清洗、egress 默认关。5 用例。
+  - **J2** `scriptrunner.rs`(FR14.1):script pack=运行时声明(python 版本/requirements、ts packages)+entry;校验(空 id/entry、entry 逃逸拒);plan_run=受信渠道懒安装依赖+沙箱 spawn;结构化 RunResult(exit/stdout/stderr/truncated)。5 用例。
+  - **J3** `protocol.rs`(FR14.2):扩展点全协议化(JSON-RPC stdio/HTTP+JSON Schema);**InProc=硬违规**(审计可命名);schema 缺失/非法同样标记。4 用例。
+  - **J4** `sdk.rs`(FR2.9+FR14.3):schema-first codegen——方法 schema 确定性生成 Python/TS 客户端 stub;conformance 套件(握手/未知方法/畸形帧)为合格标准,传输无关(Java 子进程经通用协议同样可过)。4 用例。
+  - **J5** `hotreload.rs`(FR14.4):generation 交换热重载——先验后换,版本回退=拒(旧版站立,永不半交换);**核心更新走 supervisor 退出码契约**,不做原地换。4 用例。
+  - **J6** `supplychain.rs`(FR8.1–8.3):准入=最小发布年龄+trust verdict fail-closed(未知/恶意/过年轻全拒);注册表 generation 失效+override 安全闸(仅显式旗标);hooks 桥 detach drain 600s+耐久配对+**钩子崩溃永不阻塞主管线**。5 用例。
+  - **J7** `trustfence.rs`(FR5.4/DS-#22):四层栅栏——①Host 规范化+allowlist(**DNS rebinding 防御**,rebind host 非白名单即拒);②Sec-Fetch-Site(cross-site 拒);③Origin 必须匹配 Host;④X-Forwarded-Host 不一致=代理混淆拒。每层命名拒绝,整体 fail-closed。7 用例。
+  - **J8** `websurface.rs`(FR13.2):Web=控制面客户端——**先栅栏后投影**,拒绝=零投影;一份会话真相四表面同构投影。3 用例。
+  - **J10** `staging.rs`(FR14.5):预演区+三次法则——≥3 个**不同**场景(去重)才可晋升 Rust 核心,晋升台账拒不合格。4 用例。
+- 审计驱动移除:nofy-agility 未用 serde(knip 纪律)。
+- 棘轮:workspace 预算 1,538,240→1,539,601(附理由)。
+- 验证:agility 双跑 41+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。期间修复:Rust 2024 保留字 `gen` 冲突(重命名)。
+- **AC-14 对账**:Python script pack 零 Rust 改动上线(J2 pack=纯 manifest+脚本,机制级;五分钟为运营属性)✓;Java 子进程经通用协议过 conformance(J4 传输无关套件)✓;脚本崩溃不拖 daemon(J1 进程边界+J6 钩子崩溃隔离)✓;pack 热重载不重启(J5 generation 交换)✓。
+- **AC-8 对账**:第三方按 manifest 零核心改动接入(J2+J3)✓;钩子崩溃不拖主管线(J6)✓。**AC-13 首句**:四表面同一会话真相(J8 同构投影)✓。**AC-5 DNS rebinding**:J7 层 1 用例 ✓。
+- **批次 J 闭环 ⇒ P1 六批次全部闭环。**
+
+## 2026-08-17 · P1 总体收口
+
+- **里程碑对账(§7 P1 四项)**:合盖任务继续(E–J 连续施工,编排/provider 合盖在 F)✓;webhook 批高危(G11 真 broker fail-closed)✓;pack 两形态召唤(F5–F8)✓;project manifest 单任务跑通(F1 manifest+F2 goal 验收+F3 确定性回放)✓;Python script pack 五分钟上线零 Rust 改动(J1/J2/J10 机制级)✓。
+- **P1 新增测试总量**:scheduler 70+1、orchestra 50+1、governance 41+1、memorycore 35+1、stewardcore 46+1、agility 41+1,六新 crate 全双跑一致绿;daemon 回归 64+3 绿;workspace check 零错误;workspace 行数预算+依赖审计(E12)持续看门。
+- **真 bug 账本(测试驱动捕获)**:replay 未知任务泄漏入 succeeded(F3)、TokenCell 双检锁死锁(H8)、promptware 大写签名漏检(H1)、preauth 用例触洪水守卫语义(G8)、Rust 2024 `gen` 保留字(J6)——全部修复后绿。
+- **纪律账本**:棘轮行使 11 次(scheduler 6 次 429→2579、orchestra/governance/memorycore/stewardcore/agility 各日一、workspace 预算 5 次 1,524,996→1,539,601),每次抬升附评审理由;knip 审计驱动移除未用依赖 40 个(E12 32 个+批次内 8 个);每批次 AC 逐句对账。
+- **推迟项(P2 前置队列,裁定在案)**:E11(FR1.14/1.15)、G10(FR9.8)、H0(FR4.5)、J9(FR13.1)及 §0 裁定节所列其余。
+- **接线说明**:六新 crate 均为纯策略核+薄盘层,与 daemon/shell 的接线(调度器接入控制面、pack 装配热路径消费、Web serve 传输面)属 P2 集成批次——P1 交付的是可独立验证的机制本体,符合计划「零件层先行」纪律(P0 同款)。

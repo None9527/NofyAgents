@@ -69,7 +69,9 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_535_478→1_536_711: new crate nofy-memorycore (batch H cores).
     // - 1_536_711→1_538_240: new crate nofy-stewardcore (batch I
     //   execution-surface cores).
-    let cap = 1_538_240; // budget at E12 landing (87 members, src+tests+benches+examples)
+    // - 1_538_240→1_539_601: new crate nofy-agility (batch J agility
+    //   cores).
+    let cap = 1_539_601; // budget at E12 landing (87 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

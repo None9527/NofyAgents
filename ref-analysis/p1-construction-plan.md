@@ -211,4 +211,18 @@ E0(0.5d,✓) → E1(✓) → E2-E10(~1.5w) → F(2w) → G(~1.5w) → H(1w) → 
 - 测试:6 新用例(积压三欠=1 发+丢弃审计、五积压 rate=2 按 2/2/1 确定性排空、未来义务不动、无过期 noop、Dropped 幂等、完整引擎循环重放同态)。
 - 棘轮二次行使:429→628(附评审理由,先红后绿)。
 - 验证:`cargo test -p nofy-scheduler` 双跑 14+1 全绿且一致。
-- **下一步 = E3**(FR3.3 真 idle 通道:runMaintenance 第三相位+wake 闩)。
+
+### E3–J 施工记录(已执行,2026-08-17,详见 `p1-dev-log.md`)
+
+批次 E 余件(E3–E9)→ 批次 F → G → H → I → J 连续施工,全部闭环:
+
+| 批次 | 交付 | 测试 | AC 对账 |
+|---|---|---|---|
+| E 余件 | scheduler 补全:idle 三相、cron 引擎、文法+双文件+flock+投递、定时器、栅栏、fs 触发、心跳投影、进程注册表、workspace 预算+审计 | 70+1 双跑绿 | AC-3 五句 ✓ |
+| F | 新 crate `nofy-orchestra`:project.toml、goal 验收 fold、编排回放(直驱 OrchRun 等价)、barrier+账本、mount/join、persona 遮蔽、委托召唤、pack 双目标、caps/fork | 50+1 双跑绿 | AC-10/AC-11 ✓ |
+| G | 新 crate `nofy-governance`:YOLO 冻结、自毁拒、轮次租约、信封、preset intent、CAS、pre-auth、Ed25519 身份、**G11 非 TUI 审批证明单元(真 broker)** | 41+1 双跑绿 | AC-5 ✓(D-1 里程碑) |
+| H | 新 crate `nofy-memorycore`:冻结快照、Curator 类型级不变量、fork 隔离、higher-seq-wins、metadata-only 审计、七维 compact、generations/SWR/OAuth 双检锁 | 35+1 双跑绿 | AC-4 ✓ |
+| I | 新 crate `nofy-stewardcore`:roots 两档、fs-index idle 门控、结构化拒绝、activity 归因、forget/redact、再验证、租约、分域、墓碑 undo、禁区+爬坡 | 46+1 双跑绿 | AC-12 九句 ✓ |
+| J | 新 crate `nofy-agility`:沙箱永不 in-proc、script pack、协议化审计、codegen+conformance、热重载、供应链 fail-closed、四层信任栅栏、Web 投影、三次法则 | 41+1 双跑绿 | AC-14/AC-8/AC-13 首句 ✓ |
+
+**P1 施工完成**(2026-08-17):里程碑四项达成;推迟项入 P2 前置队列;接线属 P2 集成批次。

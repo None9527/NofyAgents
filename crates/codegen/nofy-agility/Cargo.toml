@@ -1,0 +1,12 @@
+[package]
+license = "Apache-2.0"
+name = "nofy-agility"
+version = "0.1.0"
+edition.workspace = true
+description = "Agility-surface cores for Nofy (FR14, FR13.2, FR5.4, FR8.1-8.3): script sandbox+runner, protocolization audit, SDK codegen+conformance, hot reload, supply-chain gate, hooks bridge, browser trust fence, web surface gate, staging rule-of-three."
+
+[dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
