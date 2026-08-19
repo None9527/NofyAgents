@@ -113,7 +113,10 @@ fn workspace_loc_budget_only_shrinks() {
     //   daemon journal/scheduler store wiring + wire tests).
     // - 1_547_740→1_548_074: batch S run store (atomic plan persistence +
     //   resume through the core replay fold + wire tests).
-    let cap = 1_548_074; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_548_074→1_548_092: batch T glue extraction — run lifecycle moved
+    //   daemon.rs → runlife.rs (re-export shim + module header + test
+    //   imports net +18; daemon.rs itself shrinks 1820→1578).
+    let cap = 1_548_098; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -277,8 +280,11 @@ fn control_plane_loc_ratchet_only_shrinks() {
     // - daemon 4364→4693: batch S run store — atomic plan persistence +
     //   resume_run through the core replay fold (full run resumption);
     //   glue + wire tests. Glue trend continues; extraction is queued.
+    // - daemon 4693→4711: batch T glue extraction — DaemonRun/DaemonStores/
+    //   submit_run/resume_run moved to runlife.rs behind a re-export shim;
+    //   daemon.rs shrinks 1820→1578, net +18 is shim/header/test imports.
     let caps = [
-        ("nofy-daemon", 4693),
+        ("nofy-daemon", 4711),
         ("nofy-channel", 544),
         ("nofy-control-schema", 312),
         ("nofy-session-registry", 132),

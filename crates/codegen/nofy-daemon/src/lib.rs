@@ -23,6 +23,7 @@ pub mod pack;
 pub mod proc;
 pub mod provider;
 pub mod recovery;
+pub mod runlife;
 pub mod runstore;
 pub mod scheduler;
 pub mod search_proxy;

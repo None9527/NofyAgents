@@ -459,3 +459,15 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮:daemon 控制面 4,364→4,693(胶趋势继续在案,抽取已排队);workspace 1,547,740→1,548,074。
 - 验证:daemon 75→80 双跑绿且一致;棘轮 5/5;workspace check 零错误。
 - **批次 S 闭环。崩溃续跑端到端成立:计划+进度双持久,重建走核回放。在案:接线胶抽取、shell 深接缝专项。**
+
+## 批次 T:接线胶抽取第一步(run 生命周期出 daemon.rs)
+
+目标:daemon 控制面总量自 Q0 的 2,968 涨到 4,693(超 P0 基线 3,707),其中 daemon.rs 单文件 1,820 行,胶趋势必须开始逆转。本批抽「run 生命周期」这一内聚块:一个 run 是什么、submit 如何建、重启如何重建。
+
+- **impact 前置**:`submit_run` HIGH(d=1 四个调用方全在包内:serve_connection/resume_run/provider 测试/submit 测试)、`DaemonStores` LOW、包外 API 面经 grep 核实仅 `daemon::{run,DaemonConfig}`(pager-bin)/`provider::*`(shell)/`approval::ApprovalBroker`(governance dev)——搬移不破包外路径。
+- **新文件 `src/runlife.rs`**(259 行):DaemonRun(+attach_journal/record_event/re_dispatch)、DaemonStores、submit_run、resume_run 及两个纯单测(submit 建 P2 DAG+arm 日志、环 manifest fail-loud)整体迁入;`next_seq` 私有性跨文件不可达,以 `pub(crate) journal_next_seq` 暴露给 wire 层,record_event 降为 pub(crate)。
+- **daemon.rs 留 re-export shim**:`pub use crate::runlife::{resume_run, submit_run, DaemonRun, DaemonStores};` 保全部既有路径(与 Q0 packcore/orchestra 同一缓解模式);四个 wire 层 `next_seq()` 调用点改 `journal_next_seq()`;搬走后未用的 `use crate::orchestra::OrchRun` 清除。
+- **wire 级持久化测试留原处**:journal_reconciles/persists、full_run_resumes、completed_run_clears 四个测试经 serve_connection 走帧,是集成测试不是 runlife 单测,不迁。
+- 效果:daemon.rs 1,820→1,578(−242);净增 18 行=shim+模块头+测试导入。棘轮:daemon 控制面 4,693→4,711、workspace 1,548,074→1,548,098(各 +18,阶梯注记在案)。
+- 验证:daemon 80 lib+5 棘轮双跑绿且一致;workspace check 零错误。
+- **批次 T 第一步闭环。胶趋势首次逆转(daemon.rs 单文件 −242)。在案:serve_connection(~330 行)为下一最大胶块,shell 深接缝专项。**
