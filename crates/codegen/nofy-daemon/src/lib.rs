@@ -23,6 +23,7 @@ pub mod pack;
 pub mod proc;
 pub mod provider;
 pub mod recovery;
+pub mod scheduler;
 pub mod search_proxy;
 pub mod steward;
 pub mod sd_notify;

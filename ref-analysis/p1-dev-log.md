@@ -388,3 +388,14 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮:daemon 控制面 3,322→3,645(胶+4 wire 测试,策略在核;注:daemon 已回升接近 P0 原尺寸,胶积累趋势自 Q4 起需盯);workspace 1,546,554→1,546,885。
 - 验证:daemon 57→61 双跑绿且一致;棘轮 5/5;workspace check 零错误。
 - **批次 Q3 闭环。下一步 = 批次 Q4(scheduler 接线)。**
+
+## 批次 Q4:scheduler 接线(调度服务,default-off)
+
+> daemon 此前无任何调度路径;Q4 = 新增 `scheduler.rs` 服务模块消费 nofy-scheduler 核。impact 面=纯新增模块,无既有符号改动。
+
+- **SchedulerService**(daemon/scheduler.rs):default-off 构造(不开 enable 则一切变更/产出入口拒绝或空产);策略全委托核——add_schedule 过 `grammar::parse` 文法门(坏 spec 不入日志)、状态走 `apply` fold、catch_up 委托 `catch_up_events`(FR3.2 限速)、watchdog 委托 `cron::self_disable_events`(FR3.4 留痕)、session fence 直通 `SessionFence`(FR3.7 hold/release 双通道)。
+- 事件日志随服务持有(render/parse/LogStore 的文件层属后续集成件,此处内存日志)。
+- 新测试 5 个:default-off 全拒且日志零入;文法门拒坏 spec 于日志外;catch-up 经核策略点燃过期义务并清零 pending;watchdog 三连败自禁用;fence 为活跃会话 hold、控制门 release。
+- 棘轮:daemon 控制面 3,645→3,872(**已超 P0 原尺寸 3,707——胶积累趋势坐实,棘轮注释在案:后续批次应考虑抽出接线胶**);workspace 1,546,885→1,547,119。
+- 验证:daemon 61→66 双跑绿且一致;棘轮 5/5;workspace check 零错误。
+- **批次 Q4 闭环。下一步 = 批次 Q5(shell 侧 seam)。**

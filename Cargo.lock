@@ -6810,6 +6810,7 @@ dependencies = [
  "nofy-governance",
  "nofy-orchestra",
  "nofy-packcore",
+ "nofy-scheduler",
  "nofy-session-journal",
  "nofy-session-registry",
  "nofy-stewardcore",

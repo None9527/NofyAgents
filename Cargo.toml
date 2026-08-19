@@ -324,6 +324,7 @@ nofy-agility = { path = "crates/codegen/nofy-agility" }
 nofy-surfaces = { path = "crates/codegen/nofy-surfaces" }
 nofy-marketplace = { path = "crates/codegen/nofy-marketplace" }
 nofy-packcore = { path = "crates/codegen/nofy-packcore" }
+nofy-scheduler = { path = "crates/codegen/nofy-scheduler" }
 nofy-runtimecore = { path = "crates/codegen/nofy-runtimecore" }
 nofy-channel = { path = "crates/codegen/nofy-channel" }
 nofy-control-schema = { path = "crates/codegen/nofy-control-schema" }
