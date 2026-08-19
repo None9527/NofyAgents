@@ -13,6 +13,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 nofy-channel = { workspace = true }
 nofy-control-schema = { workspace = true }
+nofy-orchestra = { workspace = true }
+nofy-packcore = { workspace = true }
 nofy-session-registry = { workspace = true }
 nofy-session-journal = { workspace = true }
 tracing = { workspace = true }

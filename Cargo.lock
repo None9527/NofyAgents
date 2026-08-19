@@ -6807,6 +6807,8 @@ dependencies = [
  "libc",
  "nofy-channel",
  "nofy-control-schema",
+ "nofy-orchestra",
+ "nofy-packcore",
  "nofy-session-journal",
  "nofy-session-registry",
  "serde",
@@ -7056,7 +7058,7 @@ name = "nofy-marketplace"
 version = "0.1.0"
 dependencies = [
  "blake3",
- "nofy-daemon",
+ "nofy-packcore",
  "serde_json",
 ]
 
@@ -7173,11 +7175,19 @@ dependencies = [
 name = "nofy-orchestra"
 version = "0.1.0"
 dependencies = [
- "nofy-daemon",
+ "nofy-packcore",
  "serde",
  "serde_json",
  "tempfile",
  "toml",
+]
+
+[[package]]
+name = "nofy-packcore"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

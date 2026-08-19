@@ -7,7 +7,7 @@ description = "Marketplace and pack ecosystem cores for Nofy (FR10.8/10.9, FR8.4
 
 [dependencies]
 blake3 = { workspace = true }
-nofy-daemon = { workspace = true }
+nofy-packcore = { workspace = true }
 serde_json = { workspace = true }
 
 [lints]

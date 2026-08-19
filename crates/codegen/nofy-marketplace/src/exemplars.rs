@@ -5,7 +5,7 @@
 //! same gate third-party packs face (`parse_pack` + `compose_packs`). A
 //! built-in that would fail a third-party submission is a bug.
 
-use nofy_daemon::pack::{PackManifest, Realm, ServiceDecl, compose_packs, parse_pack};
+use nofy_packcore::{PackManifest, Realm, ServiceDecl, compose_packs, parse_pack};
 
 /// The built-in file steward pack (mirrors the daemon's built-in, held to
 /// the third-party gate here).

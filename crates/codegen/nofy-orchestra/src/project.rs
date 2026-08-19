@@ -10,8 +10,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use nofy_daemon::orchestra::{ManifestError, ProjectManifest};
-use nofy_daemon::pack::{PackError, PackManifest, parse_pack};
+use crate::orchestra::{ManifestError, ProjectManifest};
+use nofy_packcore::{PackError, PackManifest, parse_pack};
 
 /// The conventional manifest path under a project root.
 pub fn project_manifest_path(root: &Path) -> PathBuf {

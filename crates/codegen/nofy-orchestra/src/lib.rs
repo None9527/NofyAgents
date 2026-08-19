@@ -1,11 +1,15 @@
 //! Orchestration execution half (PRD FR11/FR10, batch F).
 //!
-//! `nofy-daemon` owns the orchestration *plan* half (manifest schema, DAG
-//! validation, batch scheduling — `orchestra.rs`) and the pack boundary
-//! invariants (`pack.rs`). This crate is the *execution* half: everything
-//! between "the manifest validated" and "the tasks settled", kept as pure
+//! Since integration batch Q0b this crate ALSO owns the orchestration
+//! *plan* half (manifest schema, DAG validation, batch scheduling —
+//! [`orchestra`], moved verbatim from `nofy-daemon`; the daemon keeps a
+//! re-export shim). Pack boundary invariants live in `nofy-packcore`
+//! (Q0a). This crate is the execution half: everything between "the
+//! manifest validated" and "the tasks settled", kept as pure
 //! event-sourced logic with thin file layers:
 //!
+//! - [`orchestra`] — plan half: manifest parse/validate, DAG scheduling,
+//!   `OrchRun` run state (FR11, moved from the daemon at Q0b);
 //! - [`project`] — `.nofy/project.toml` discovery + pack resolution (FR11.1);
 //! - [`goal`] — goal acceptance as a fold over logged state, never the
 //!   model's self-report (FR11.2 + FR4.9, DS-#6/#7);
@@ -30,6 +34,7 @@ pub mod delegation;
 pub mod goal;
 pub mod ledger_gov;
 pub mod mount;
+pub mod orchestra;
 pub mod periodic;
 pub mod persona;
 pub mod project;

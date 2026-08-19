@@ -3,14 +3,14 @@
 //! An orchestration run's progress is journaled as append-only events;
 //! folding the journal reproduces the run state exactly, so a daemon
 //! crash mid-run loses nothing: reload manifest, replay journal, resume.
-//! The fold mirrors the daemon's real [`nofy_daemon::orchestra::OrchRun`]
+//! The fold mirrors the daemon's real [`crate::orchestra::OrchRun`]
 //! semantics (retry budgets, on_fail, transitive skips), and the tests
 //! cross-check both against the same scripted scenarios — the journal is
 //! not a parallel truth, it is the SAME truth re-derived.
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use nofy_daemon::orchestra::{OnFail, ProjectManifest};
+use crate::orchestra::{OnFail, ProjectManifest};
 use serde::{Deserialize, Serialize};
 
 /// One orchestration event. `Dispatched` covers both first dispatch and
@@ -134,7 +134,7 @@ pub fn parse_journal(text: &str) -> Vec<OrchEvent> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nofy_daemon::orchestra::{OrchRun, SettleOutcome};
+    use crate::orchestra::{OrchRun, SettleOutcome};
 
     const MANIFEST: &str = r#"
 packs = ["p"]

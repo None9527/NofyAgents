@@ -13,7 +13,7 @@
 
 use std::collections::BTreeMap;
 
-use nofy_daemon::pack::{PackError, PackManifest, Realm, compose_packs};
+use nofy_packcore::{PackError, PackManifest, Realm, compose_packs};
 
 /// The isolation evaluation report.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,7 +78,7 @@ pub fn audit_realms(packs: &[PackManifest]) -> Result<RealmAudit, PackError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nofy_daemon::pack::ServiceDecl;
+    use nofy_packcore::ServiceDecl;
 
     fn pack(id: &str, services: &[&str]) -> PackManifest {
         PackManifest {

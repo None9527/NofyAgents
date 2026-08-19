@@ -94,7 +94,11 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_545_571→1_546_130: batch P (runtimecore execworld FR6.10;
     //   stewardcore osbridge FR12.10; marketplace realmcheck realm
     //   isolation evaluation).
-    let cap = 1_546_130; // budget at E12 landing (89 members, src+tests+benches+examples)
+    // - 1_546_130→1_546_172: integration Q0a (pack.rs moved verbatim to
+    //   new crate nofy-packcore; daemon re-export shim; net +ratchet).
+    // - 1_546_172→1_546_190: integration Q0b+Q0c (orchestra.rs moved
+    //   verbatim into nofy-orchestra; governance→daemon dev-dep).
+    let cap = 1_546_190; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -229,8 +233,12 @@ fn control_plane_loc_ratchet_only_shrinks() {
     //   loop integration) + its wire-level test.
     // - schema 277→312: additive `sessions` field on SearchResult/Search +
     //   the additive-wire drift gate.
+    // - daemon 3707→3430: integration Q0a — pack.rs moved verbatim into
+    //   nofy-packcore, daemon keeps a re-export shim (daemon only shrinks).
+    // - daemon 3430→2968: integration Q0b — orchestra.rs moved verbatim
+    //   into nofy-orchestra, daemon keeps a re-export shim.
     let caps = [
-        ("nofy-daemon", 3707),
+        ("nofy-daemon", 2968),
         ("nofy-channel", 544),
         ("nofy-control-schema", 312),
         ("nofy-session-registry", 132),

@@ -335,3 +335,19 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - §7 P3 行四项结算:FR6.10(execworld)✓、FR6.8(O3 已兑现)✓、FR12.10(osbridge 评估门)✓、realm 隔离评估(realmcheck)✓。里程碑「执行世界谱系」达成。
 - P3=机会项,无 AC 命题;非目标维持(22 渠道本体/pi harness v4 整体/PiServer 9 命令 schema/原生 app 不入范围)。
 - **PRD §7 路线图四行(P0–P3)至此全部闭环**:P0 地基(A–D)、P1 批次 E–J、P2 批次 K–O、P3 批次 P。十策略核 529 单测+14 棘轮件,workspace 预算 1,546,130。
+
+# 集成施工日志(批次 Q)
+
+> 计划:`ref-analysis/integration-plan.md`(摸底+Q0–Q5 批次结构+纪律)。
+
+## 批次 Q0:解环(接线前置)
+
+> `gitnexus_impact` 先行:PackManifest=HIGH(d=1 六处,全在核内,受影响执行流 0)、OrchRun=LOW;缓解=整模块搬迁+再导出 shim,d=1 调用方零源码改动。
+
+- **Q0a pack 下沉**:新 crate `nofy-packcore`(工作区第 90 成员)——daemon `pack.rs`(283 行含 5 测试)**逐字搬迁**为 packcore lib.rs;daemon pack.rs 变 6 行再导出 shim;orchestra/marketplace 的 7 处 `nofy_daemon::pack` 改 `nofy_packcore`;marketplace 自此不依赖 daemon。
+- **Q0b 编排类型归属**:daemon `orchestra.rs`(469 行含 7 测试,纯 std+serde+toml 自包含)**逐字搬迁**为 nofy-orchestra 的 `orchestra` 模块;核内 project/replay 的 `nofy_daemon::orchestra` 改 `crate::orchestra`;orchestra 核移除 daemon 依赖;daemon orchestra.rs 变再导出 shim。
+- **Q0c**:governance→daemon 降为 dev-dependency(仅 gateway 测试用 ApprovalBroker)。
+- **测试守恒验证**:daemon 64→59(Q0a,pack 5 测试迁出)→52(Q0b,orchestra 7 测试迁出);packcore 5、orchestra 71→78;六 crate 双跑全绿且一致;daemon 棘轮 5/5;knip 审计过;workspace check 零错误。
+- **棘轮**:packcore 日一 283;orchestra 2,682→3,156;daemon 控制面 3,707→3,430→**2,968**(只瘦不胖,OC-F28 兑现);workspace 1,546,130→1,546,190。
+- **依赖 DAG 现状**:daemon → {packcore, orchestra};核 → packcore;无环。Q1–Q4 可直接接线。
+- **批次 Q0 闭环。下一步 = 批次 Q1(governance 接线)。**

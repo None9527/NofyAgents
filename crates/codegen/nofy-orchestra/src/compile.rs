@@ -12,7 +12,7 @@
 //! compiled pack can never carry them, even if a malformed manifest
 //! somehow slipped past `parse_pack`.
 
-use nofy_daemon::pack::{PackManifest, SubagentRef};
+use nofy_packcore::{PackManifest, SubagentRef};
 
 /// Session-level compile target (会话级).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,7 +58,7 @@ pub fn compile_subagent(pack: &PackManifest) -> SubagentComposition {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nofy_daemon::pack::McpRef;
+    use nofy_packcore::McpRef;
 
     fn pack() -> PackManifest {
         PackManifest {

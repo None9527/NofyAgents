@@ -6,7 +6,7 @@ edition.workspace = true
 description = "Orchestration execution half for Nofy (FR11/FR10): project loading, goal acceptance, deterministic replay, barrier+ledger, mount/join, persona rendering, pack compile targets."
 
 [dependencies]
-nofy-daemon = { workspace = true }
+nofy-packcore = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }

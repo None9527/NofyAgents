@@ -1,0 +1,13 @@
+[package]
+license = "Apache-2.0"
+name = "nofy-packcore"
+version = "0.1.0"
+edition.workspace = true
+description = "Expert-pack composition boundaries for Nofy (FR10, DS-P2/DS-P4): pack manifests, plane-ownership validation, isolated realm composition. Shared base under daemon and policy cores (integration batch Q0a)."
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

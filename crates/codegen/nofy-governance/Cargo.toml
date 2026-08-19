@@ -8,13 +8,16 @@ description = "Approval governance primitives for Nofy (FR5.5-5.13, FR2.6/2.7): 
 [dependencies]
 blake3 = { workspace = true }
 nofy-control-schema = { workspace = true }
-nofy-daemon = { workspace = true }
 nofy-orchestra = { workspace = true }
 ring = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
+# Q0c: ApprovalBroker is only exercised by gateway tests (G11 proof unit);
+# keeping this a dev-dep lets the daemon depend on governance (Q1 wiring)
+# without a cycle.
+nofy-daemon = { workspace = true }
 tempfile = { workspace = true }
 
 [lints]

@@ -6,7 +6,7 @@
 //! spec the provider host will dispatch — nothing more: the summoner's
 //! composition travels as context, the expert's own pack defines the rest.
 
-use nofy_daemon::pack::{PackManifest, SubagentRef};
+use nofy_packcore::{PackManifest, SubagentRef};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DelegationError {

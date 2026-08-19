@@ -31,7 +31,9 @@ fn orchestra_loc_ratchet_only_shrinks() {
     // - 1845→2682: batch K task engineering (taskjournal.rs task.*
     //   family + invariants, dag.rs per-task on_fail, periodic.rs
     //   scheduler×pack bridge, batchapproval.rs one-Ask ledger).
-    let cap = 2682;
+    // - 2682→3156: integration Q0b — daemon orchestra.rs (plan half:
+    //   manifest/DAG/OrchRun) moved verbatim into this crate.
+    let cap = 3156;
     let got = loc(&src);
     assert!(
         got <= cap,
