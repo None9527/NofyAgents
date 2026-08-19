@@ -23,7 +23,9 @@ fn surfaces_loc_ratchet_only_shrinks() {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     // Day-one cap: batch L surface cores (webhook/im/lineage/migration)
     // + their tests.
-    let cap = 689;
+    // - 689→815: batch O5 interruption.rs (turn-interruption recoverable
+    //   transcripts; FR2.8).
+    let cap = 815;
     let got = loc(&src);
     assert!(
         got <= cap,

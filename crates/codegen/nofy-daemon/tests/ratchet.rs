@@ -86,7 +86,12 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_544_102→1_545_033: new crate nofy-runtimecore (batch O3
     //   runtime cores: persistence/unitgen/coldstart/envsnapshot/
     //   cwdmark/workerroute/bootcheck).
-    let cap = 1_545_033; // budget at E12 landing (89 members, src+tests+benches+examples)
+    // - 1_545_033→1_545_295: batch O4 seal system (memorycore seal.rs
+    //   trajectory head/tail + sealed registry; FR9.9/FR9.10 ratchet
+    //   tests in this file).
+    // - 1_545_295→1_545_571: batch O5 queue redemption (surfaces
+    //   interruption FR2.8; governance hubgate FR2.11).
+    let cap = 1_545_571; // budget at E12 landing (89 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -235,4 +240,101 @@ fn control_plane_loc_ratchet_only_shrinks() {
              Shrink it, or raise the cap deliberately in tests/ratchet.rs."
         );
     }
+}
+
+/// Sealed-test protection (FR9.9 test half, HM-F30): invariant tests
+/// listed here are SEALED — deleting or renaming one turns this test
+/// red. Removing a seal is a deliberate reviewed edit (the policy half,
+/// unseal-with-reason, lives in `nofy-memorycore::seal`).
+#[test]
+fn sealed_tests_still_present() {
+    let base = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    // (crate, file, sealed test name, reason)
+    const SEALED: &[(&str, &str, &str, &str)] = &[
+        (
+            "nofy-governance",
+            "gateway.rs",
+            "webhook_answer_completes_high_risk_approval_through_real_broker",
+            "G11 non-TUI approval proof unit (D-1 milestone)",
+        ),
+        (
+            "nofy-daemon",
+            "steward.rs",
+            "confined_batch_validates_and_becomes_one_task",
+            "steward batch = single approval unit, trash-only",
+        ),
+        (
+            "nofy-orchestra",
+            "batchapproval.rs",
+            "undecided_at_deadline_are_denied_fail_closed",
+            "batch approval fail-closed invariant (FR11.8)",
+        ),
+        (
+            "nofy-stewardcore",
+            "lease.rs",
+            "leased_file_is_steward_read_only",
+            "lease-hit management refused at load (AC-12)",
+        ),
+    ];
+    let mut missing: Vec<String> = Vec::new();
+    for (crate_name, file, test_name, reason) in SEALED {
+        let path = base.join(crate_name).join("src").join(file);
+        let text = fs::read_to_string(&path).unwrap_or_default();
+        let needle = format!("fn {test_name}(");
+        if !text.contains(&needle) {
+            missing.push(format!("{crate_name}/{file}: {test_name} ({reason})"));
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "sealed invariant tests are missing (unsealing is a deliberate \
+         reviewed edit, never a silent deletion):\n{}",
+        missing.join("\n")
+    );
+}
+
+/// Dead-code detector (FR9.10, DS): per-file wiring audit. A src file
+/// that no `mod` declaration reaches can never execute — zero coverage
+/// by construction. Every top-level src/*.rs of the policy-core family
+/// (except lib.rs/main.rs) must be declared in lib.rs.
+#[test]
+fn every_policy_core_src_file_is_wired() {
+    let base = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    const FAMILY: &[&str] = &[
+        "nofy-scheduler",
+        "nofy-orchestra",
+        "nofy-governance",
+        "nofy-memorycore",
+        "nofy-stewardcore",
+        "nofy-agility",
+        "nofy-surfaces",
+        "nofy-marketplace",
+        "nofy-runtimecore",
+    ];
+    let mut dead: Vec<String> = Vec::new();
+    for crate_name in FAMILY {
+        let src = base.join(crate_name).join("src");
+        let lib_text = fs::read_to_string(src.join("lib.rs")).unwrap_or_default();
+        let Ok(entries) = fs::read_dir(&src) else { continue };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("rs") {
+                continue;
+            }
+            let stem = path.file_stem().unwrap().to_string_lossy().to_string();
+            if stem == "lib" || stem == "main" {
+                continue;
+            }
+            let decl = format!("mod {stem};");
+            if !lib_text.contains(&decl) {
+                dead.push(format!("{crate_name}/src/{stem}.rs"));
+            }
+        }
+    }
+    assert!(
+        dead.is_empty(),
+        "unwired src files (dead code: no mod declaration reaches them, \
+         so they can never run — wire them or delete them):\n{}",
+        dead.join("\n")
+    );
 }

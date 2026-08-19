@@ -275,3 +275,16 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 验证:stewardcore 双跑 70+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。
 - **里程碑「file-steward 上线」达成**(FR12 全族落地:P1 地基 12.1–12.5/12.9/12.11/12.12/12.14/12.15 + 本批 12.6–12.8/12.13)。
 - **批次 N 闭环。下一步 = 批次 O(P2 前置队列+余件)。**
+
+## 批次 O:P2 前置队列 + 余件
+
+- **O1 memorycore 补件**(35→50):`injection.rs` 工具结果三档注入 inline/summary/spill,边界包含式,任何档不丢内容(spill 只注引用,FR4.5);`dreaming.rs` 三相蒸馏 collect→distill→commit 不可跳相/重排,commit 必出 preimage,rollback 恰为 apply 之逆(FR4.13);`compleases.rs` 跨进程压缩租约——单一活压缩器、同持有者重入不算接管、过期接管计数留痕、过期后续租 fail-closed(FR9.7)。
+- **O2 governance 补件**(41→56):`classifier.rs` 安全分类器三策略骨架(Conservative/Balanced/Permissive),结构化输出必附理由,不变量=高危与不确定在任何策略下必 Ask(FR5.14);`selfmod.rs` 自改 per-package 人批——拒通配批(`*`/`all`)、批 A 不授 B、未决不放行(FR5.15);`guards.rs` guard 双件=重复调用第 N 次连续提醒(异调用重置)+作用域独立超时(FR9.8)。
+- **O3 新 crate `nofy-runtimecore`**(30+1 双跑绿,工作区第 89 成员):`persistence.rs` 三原则审计(lane/operation/deferred 任一 volatile 即点名违规)+persistence_uncertain 永不静默升格、必复核(FR1.12/1.13);`unitgen.rs` launchd/systemd 单元确定性渲染,标签元字符注入拒绝(FR1.14);`coldstart.rs` help/version 快路径构造级零组件加载(FR1.15);`envsnapshot.rs` 环境快照 staged→publish 原子发布,换行/控制字节拒绝而非转义(FR6.2);`cwdmark.rs` cwd 带内序列标记+输出限流 spill(FR6.3);`workerroute.rs` 宿主请求构造级出会话+worker env 白名单擦洗+grace 强杀阶梯+配对账本暴露未配对启动(FR6.8/6.9);`bootcheck.rs` BOOT 自检清单任一失败阻断、降级不阻断、空清单即失败(FR1.16)。
+- **O4 密封体系**(FR9.9/9.10):memorycore `seal.rs`(50→55)——trajectory 头尾保护(压缩可摘中段,首末条必须原样存活,伪造条目拒绝)+密封测试注册表(解封必须附理由并留痕);daemon 棘轮 3→5 测试——`sealed_tests_still_present` 密封四条不变量测试(G11 证明单元/steward 批=单审批/fail-closed 批审批/租约加载期拒,静默删除即红)+`every_policy_core_src_file_is_wired` 逐文件接线审计=死码探测器(无 mod 声明可达的 src 文件永不可能执行,接线或删除)。
+- **O5 前置队列兑现**(FR2.8/FR2.11):surfaces `interruption.rs`(20→25)——turn 中断可恢复转录:检查点落在段边界,恢复恰为前缀,中断后噪声不泄漏,缺口 fail-loud;governance `hubgate.rs`(56→61)——Hub 降级为工具传输,workspace.* 无 daemon 授权 grant 不转发,grant 单次使用防重放、方法必须匹配。
+- 期间修复:dreaming 相位模型缺陷(未 collect 即 distill 应报 EmptyCollect);mgmt/suggestions 两处测试断言误述;selfmod/mgmt 临时值生命周期 2 处。
+- 棘轮:memorycore 1,198→1,948;governance 1,274→1,905;surfaces 689→815;runtimecore 日一 894;workspace 1,543,018→1,545,571;daemon 棘轮 3→5 测试。
+- 验证:全部 crate 双跑绿且一致;daemon 棘轮 5/5;workspace check 零错误。
+- **P2 前置队列清空**:FR13.1(L)、FR4.5(O1)、FR1.12–1.16(O3)、FR2.8/2.10/2.11(L/O5)、FR6.2/6.3(O3)、FR9.7/9.8(O1/O2)、FR9.9/9.10(O4)全部落地。
+- **批次 O 闭环。下一步 = P2 收口。**

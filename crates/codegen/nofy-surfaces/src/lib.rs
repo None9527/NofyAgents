@@ -13,8 +13,14 @@
 //!   marks (FR2.10);
 //! - [`migration`] — surfaces become control-plane CLIENTS: one session
 //!   truth, surfaces hold references (FR13.1).
+//!
+//! Batch O adds:
+//!
+//! - [`interruption`] — turn-interruption recoverable transcripts
+//!   (FR2.8).
 
 pub mod im;
+pub mod interruption;
 pub mod lineage;
 pub mod migration;
 pub mod webhook;

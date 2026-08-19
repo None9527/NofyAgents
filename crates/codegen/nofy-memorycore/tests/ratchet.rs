@@ -25,7 +25,9 @@ fn memorycore_loc_ratchet_only_shrinks() {
     // auditstore/compact/modelops) + their tests.
     // - 1198→1788: batch O memory supplements (injection/dreaming/
     //   compleases + tests; FR4.5/FR4.13/FR9.7).
-    let cap = 1788;
+    // - 1788→1948: batch O4 seal.rs (trajectory head/tail guards +
+    //   sealed-test registry; FR9.9).
+    let cap = 1948;
     let got = loc(&src);
     assert!(
         got <= cap,

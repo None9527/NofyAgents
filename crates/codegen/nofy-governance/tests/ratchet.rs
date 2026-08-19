@@ -26,7 +26,9 @@ fn governance_loc_ratchet_only_shrinks() {
     // envelope/presets/cas/preauth/identity/gateway) + their tests.
     // - 1274→1761: batch O governance supplements (classifier/selfmod/
     //   guards + tests; FR5.14/FR5.15/FR9.8).
-    let cap = 1761;
+    // - 1761→1905: batch O5 hubgate.rs (Hub demoted to tool transport;
+    //   FR2.11).
+    let cap = 1905;
     let got = loc(&src);
     assert!(
         got <= cap,

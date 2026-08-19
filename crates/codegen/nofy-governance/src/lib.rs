@@ -18,13 +18,16 @@
 //! - [`classifier`] — safety classifier three-policy skeleton, approval
 //!   prompts only (FR5.14);
 //! - [`selfmod`] — self-modification per-package human approval (FR5.15);
-//! - [`guards`] — repetition reminder + scoped timeouts (FR9.8).
+//! - [`guards`] — repetition reminder + scoped timeouts (FR9.8);
+//! - [`hubgate`] — Hub demoted to tool transport; workspace.* forwards
+//!   only with a daemon grant (FR2.11).
 
 pub mod cas;
 pub mod classifier;
 pub mod envelope;
 pub mod gateway;
 pub mod guards;
+pub mod hubgate;
 pub mod identity;
 pub mod lifeguard;
 pub mod preauth;
