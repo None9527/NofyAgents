@@ -23,7 +23,9 @@ fn memorycore_loc_ratchet_only_shrinks() {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     // Day-one cap: batch H cores (snapshot/curator/forkrev/projstore/
     // auditstore/compact/modelops) + their tests.
-    let cap = 1198;
+    // - 1198→1788: batch O memory supplements (injection/dreaming/
+    //   compleases + tests; FR4.5/FR4.13/FR9.7).
+    let cap = 1788;
     let got = loc(&src);
     assert!(
         got <= cap,

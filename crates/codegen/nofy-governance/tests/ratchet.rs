@@ -24,7 +24,9 @@ fn governance_loc_ratchet_only_shrinks() {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     // Day-one cap: batch G governance cores (yolo/lifeguard/turnlease/
     // envelope/presets/cas/preauth/identity/gateway) + their tests.
-    let cap = 1274;
+    // - 1274→1761: batch O governance supplements (classifier/selfmod/
+    //   guards + tests; FR5.14/FR5.15/FR9.8).
+    let cap = 1761;
     let got = loc(&src);
     assert!(
         got <= cap,

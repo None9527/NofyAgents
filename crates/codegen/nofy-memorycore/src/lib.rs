@@ -18,11 +18,21 @@
 //! - [`modelops`] — generation snapshots/leases (FR7.7),
 //!   stale-while-revalidate routing (FR7.8), OAuth double-checked refresh
 //!   (FR7.9).
+//!
+//! Batch O adds:
+//!
+//! - [`injection`] — tool-result injection tiers + spill (FR4.5);
+//! - [`dreaming`] — three-phase distillation + rollback preimages
+//!   (FR4.13);
+//! - [`compleases`] — cross-process compaction leases (FR9.7).
 
 pub mod auditstore;
 pub mod compact;
+pub mod compleases;
 pub mod curator;
+pub mod dreaming;
 pub mod forkrev;
+pub mod injection;
 pub mod modelops;
 pub mod projstore;
 pub mod snapshot;
