@@ -30,6 +30,7 @@ pub mod search_proxy;
 pub mod steward;
 pub mod surfaces;
 pub mod sd_notify;
+pub mod wire;
 
 use std::fs;
 use std::io::Write;

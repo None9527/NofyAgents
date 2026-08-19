@@ -469,5 +469,7 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - **daemon.rs 留 re-export shim**:`pub use crate::runlife::{resume_run, submit_run, DaemonRun, DaemonStores};` 保全部既有路径(与 Q0 packcore/orchestra 同一缓解模式);四个 wire 层 `next_seq()` 调用点改 `journal_next_seq()`;搬走后未用的 `use crate::orchestra::OrchRun` 清除。
 - **wire 级持久化测试留原处**:journal_reconciles/persists、full_run_resumes、completed_run_clears 四个测试经 serve_connection 走帧,是集成测试不是 runlife 单测,不迁。
 - 效果:daemon.rs 1,820→1,578(−242);净增 18 行=shim+模块头+测试导入。棘轮:daemon 控制面 4,693→4,711、workspace 1,548,074→1,548,098(各 +18,阶梯注记在案)。
+- **第二步(wire 层出 daemon.rs)**:`serve_connection`(~325 行方法分派)+`stream_session`+socket 助手(parent_pids/peer_pid/secs_now,后两者 run() 的 accept 循环也用,升 pub(crate) 反向引用)+15 个走帧测试与帧助手,整体迁入新文件 `src/wire.rs`(1,374 行);daemon.rs 留 `pub use crate::wire::serve_connection;` shim。preflight 测试属启动装配,留 daemon.rs。搬移中捕获并修复一处脚本引入的多余闭括号(测试即时暴露)。
+- 合计效果:daemon.rs 1,820→232(−1,588,只剩启动装配 preflight/run+常量),wire/runlife 两文件接住全部接线;净增 47 行=双 shim+双模块头+导入。棘轮:daemon 控制面 4,693→4,740、workspace 1,548,074→1,548,133(阶梯注记在案)。
 - 验证:daemon 80 lib+5 棘轮双跑绿且一致;workspace check 零错误。
-- **批次 T 第一步闭环。胶趋势首次逆转(daemon.rs 单文件 −242)。在案:serve_connection(~330 行)为下一最大胶块,shell 深接缝专项。**
+- **批次 T 闭环。胶趋势逆转到位:daemon.rs 单文件 1,820→232,控制面四文件结构(启动装配/run 生命周期/wire 协议/持久存储)各就各位。在案:shell 深接缝专项。**

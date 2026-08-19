@@ -116,7 +116,10 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_548_074→1_548_092: batch T glue extraction — run lifecycle moved
     //   daemon.rs → runlife.rs (re-export shim + module header + test
     //   imports net +18; daemon.rs itself shrinks 1820→1578).
-    let cap = 1_548_098; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_548_098→1_548_133: batch T step 2 — serve_connection/stream_session
+    //   + wire tests moved daemon.rs → wire.rs (net +29 headers/shims;
+    //   daemon.rs shrinks 1578→232).
+    let cap = 1_548_133; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -283,8 +286,11 @@ fn control_plane_loc_ratchet_only_shrinks() {
     // - daemon 4693→4711: batch T glue extraction — DaemonRun/DaemonStores/
     //   submit_run/resume_run moved to runlife.rs behind a re-export shim;
     //   daemon.rs shrinks 1820→1578, net +18 is shim/header/test imports.
+    // - daemon 4711→4740: batch T step 2 — serve_connection/stream_session
+    //   + socket helpers + the 15 wire tests moved to wire.rs behind a
+    //   re-export shim; daemon.rs shrinks 1578→232 (boot assembly only).
     let caps = [
-        ("nofy-daemon", 4711),
+        ("nofy-daemon", 4740),
         ("nofy-channel", 544),
         ("nofy-control-schema", 312),
         ("nofy-session-registry", 132),
