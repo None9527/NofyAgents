@@ -205,6 +205,55 @@ pub fn submit_run(
     ))
 }
 
+/// Rebuild the run after a restart (S wiring): the PLAN reloads from the
+/// run store, PROGRESS replays from the durable task journal through the
+/// core replay fold (FR11.3) — same journal = same state, deterministically.
+/// Returns `None` when nothing is stored (fresh boot).
+pub fn resume_run(stores: &DaemonStores) -> Result<Option<DaemonRun>, String> {
+    let Some(stored) = stores.runs.load().map_err(|e| format!("run store: {e}"))? else {
+        return Ok(None);
+    };
+    let (mut dr, _) = submit_run(&stored.manifest_toml, &stored.packs)?;
+    let events = stores
+        .journal
+        .read_events()
+        .map_err(|e| format!("task journal: {e}"))?;
+    // Map the task.* journal onto the replay engine's event vocabulary:
+    // claimed = dispatched, settled/resolved carry over; armed/escalated
+    // have no replay counterpart (armed precedes dispatch; escalation is
+    // implied by a failed settle under the manifest policy).
+    let orch_events: Vec<nofy_orchestra::replay::OrchEvent> = events
+        .iter()
+        .filter_map(|event| match event {
+            nofy_orchestra::taskjournal::TaskEvent::Claimed { task, .. } => {
+                Some(nofy_orchestra::replay::OrchEvent::Dispatched { task: task.clone() })
+            }
+            nofy_orchestra::taskjournal::TaskEvent::Settled { task, ok, .. } => {
+                Some(nofy_orchestra::replay::OrchEvent::Settled { task: task.clone(), ok: *ok })
+            }
+            nofy_orchestra::taskjournal::TaskEvent::EscalationResolved { task, allow, .. } => {
+                Some(nofy_orchestra::replay::OrchEvent::EscalationResolved {
+                    task: task.clone(),
+                    allow: *allow,
+                })
+            }
+            _ => None,
+        })
+        .collect();
+    let replay = nofy_orchestra::replay::fold_orch(&dr.orch.manifest, &orch_events);
+    dr.orch.succeeded = replay.succeeded;
+    dr.orch.dead = replay.dead;
+    dr.orch.aborted = replay.aborted;
+    // Unfinished work — in flight, or awaiting an escalation decision —
+    // re-arms as running so the provider re-drives it.
+    dr.orch.running = replay.running;
+    for task in replay.escalated {
+        dr.orch.running.insert(task);
+    }
+    dr.journal = events; // the disk log is the journal truth
+    Ok(Some(dr))
+}
+
 /// Attach streaming: disk delta replay first (disk is truth), then live
 /// fan-out. Subscribe BEFORE reading disk and dedup by seq so events pushed
 /// during the read cannot fall into the gap.
@@ -279,6 +328,15 @@ fn stream_session<R: Read, W: Write>(
 /// Approval requests BLOCK this connection's thread until a surface answers
 /// on its own connection (or [`DEFAULT_APPROVAL_TIMEOUT`]); `run` therefore
 /// spawns one thread per connection.
+/// Durable stores the control plane wires into a run (R2/S wiring).
+#[derive(Debug, Clone)]
+pub struct DaemonStores {
+    /// task.* journal sink (R2).
+    pub journal: nofy_orchestra::taskjournal::TaskLogStore,
+    /// run plan store (S).
+    pub runs: crate::runstore::RunStore,
+}
+
 pub fn serve_connection<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
@@ -287,9 +345,9 @@ pub fn serve_connection<R: Read, W: Write>(
     bus: &LiveBus,
     search: &SearchProxy,
     run: &std::sync::Arc<std::sync::Mutex<Option<DaemonRun>>>,
-    // Durable task-journal sink (R2 wiring): `None` keeps runs
-    // in-memory only (test/legacy behavior).
-    journal_store: Option<&nofy_orchestra::taskjournal::TaskLogStore>,
+    // Durable stores (R2/S wiring): `None` keeps runs in-memory only
+    // (test/legacy behavior).
+    stores: Option<&DaemonStores>,
 ) -> Result<(), FrameError> {
     // First frame must be Hello; anything else is a protocol violation.
     let Some(hello_bytes) = read_frame_from(reader)? else {
@@ -343,19 +401,24 @@ pub fn serve_connection<R: Read, W: Write>(
             Ok(ControlMethod::TaskSubmit { manifest, packs }) => {
                 match submit_run(&manifest, &packs) {
                     Ok((mut dr, total)) => {
-                        // R2 wiring: attach the durable journal sink and
-                        // flush the Armed events to disk before the run
-                        // becomes visible.
-                        if let Some(store) = journal_store {
-                            if let Err(e) = dr.attach_journal(store.clone()) {
-                                serde_json::to_value(ControlError::new(
-                                    ControlErrorCode::Internal,
-                                    format!("task journal attach failed: {e}"),
-                                ))?
-                            } else {
-                                *run.lock().unwrap() = Some(dr);
-                                serde_json::to_value(ControlResponse::ProjectAccepted { total })?
+                        // R2/S wiring: persist the PLAN and attach the
+                        // durable journal before the run becomes visible.
+                        let mut failed: Option<String> = None;
+                        if let Some(stores) = stores {
+                            if let Err(e) = stores.runs.save(&crate::runstore::StoredRun {
+                                manifest_toml: manifest.clone(),
+                                packs: packs.clone(),
+                            }) {
+                                failed = Some(format!("run store save failed: {e}"));
+                            } else if let Err(e) = dr.attach_journal(stores.journal.clone()) {
+                                failed = Some(format!("task journal attach failed: {e}"));
                             }
+                        }
+                        if let Some(msg) = failed {
+                            serde_json::to_value(ControlError::new(
+                                ControlErrorCode::Internal,
+                                msg,
+                            ))?
                         } else {
                             *run.lock().unwrap() = Some(dr);
                             serde_json::to_value(ControlResponse::ProjectAccepted { total })?
@@ -478,6 +541,21 @@ pub fn serve_connection<R: Read, W: Write>(
                                     allow,
                                 },
                             );
+                        }
+                    }
+                }
+                // S wiring: a finished run releases the stored plan; the
+                // journal stays as the audit trail.
+                if let Some(stores) = stores {
+                    let done = run
+                        .lock()
+                        .unwrap()
+                        .as_ref()
+                        .map(|r| r.orch.is_done())
+                        .unwrap_or(false);
+                    if done {
+                        if let Err(e) = stores.runs.clear() {
+                            tracing::error!(?e, "run store clear failed");
                         }
                     }
                 }
@@ -673,18 +751,24 @@ pub fn run(cfg: DaemonConfig) -> i32 {
     let preauth = std::sync::Arc::new(std::sync::Mutex::new(
         nofy_governance::preauth::PreAuthGuard::new(8, 32, 60),
     ));
-    // R2 wiring: durable task journal + boot-time crash reconciliation
-    // (AC-11). A leftover journal names the tasks that were armed/claimed
-    // but never settled when the previous daemon died.
-    let journal_store =
-        nofy_orchestra::taskjournal::TaskLogStore::open(daemon_dir.join("task_journal.jsonl"));
-    match journal_store.re_dispatch() {
-        Ok(list) if !list.is_empty() => {
-            tracing::warn!(tasks = ?list, "crash reconciliation: tasks to re-dispatch");
+    // R2/S wiring: durable stores + boot-time run resumption (AC-11).
+    // The plan reloads from the run store, progress replays from the
+    // journal; a leftover run re-arms its unfinished tasks.
+    let stores = DaemonStores {
+        journal: nofy_orchestra::taskjournal::TaskLogStore::open(
+            daemon_dir.join("task_journal.jsonl"),
+        ),
+        runs: crate::runstore::RunStore::open(daemon_dir.join("run_store.json")),
+    };
+    match resume_run(&stores) {
+        Ok(Some(dr)) => {
+            let to_redispatch = dr.re_dispatch();
+            tracing::warn!(tasks = ?to_redispatch, "crash reconciliation: run resumed from disk");
+            *run.lock().unwrap() = Some(dr);
         }
-        Ok(_) => {}
+        Ok(None) => {}
         Err(e) => {
-            tracing::error!(?e, "task journal unreadable at boot; starting fresh");
+            tracing::error!(error = %e, "run resumption failed; starting fresh");
         }
     }
 
@@ -725,7 +809,7 @@ pub fn run(cfg: DaemonConfig) -> i32 {
                 let search = search.clone();
                 let run = run.clone();
                 let preauth_thread = preauth.clone();
-                let journal_thread = journal_store.clone();
+                let stores_thread = stores.clone();
                 std::thread::spawn(move || {
                     let registry = Registry::at(registry_root);
                     if let Err(e) = serve_connection(
@@ -736,7 +820,7 @@ pub fn run(cfg: DaemonConfig) -> i32 {
                         &bus,
                         &search,
                         &run,
-                        Some(&journal_thread),
+                        Some(&stores_thread),
                     ) {
                         tracing::warn!(?e, "control connection ended with frame error");
                     }
@@ -1288,8 +1372,12 @@ goal = "second"
         // R2 wiring (AC-11): with a durable store attached, the journal
         // survives a "crash" — reconciliation reads straight from disk.
         let dir = tempfile::tempdir().unwrap();
-        let store =
-            nofy_orchestra::taskjournal::TaskLogStore::open(dir.path().join("task_journal.jsonl"));
+        let stores = DaemonStores {
+            journal: nofy_orchestra::taskjournal::TaskLogStore::open(
+                dir.path().join("task_journal.jsonl"),
+            ),
+            runs: crate::runstore::RunStore::open(dir.path().join("run_store.json")),
+        };
         let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
         let manifest = r#"
 packs = ["p"]
@@ -1330,7 +1418,7 @@ goal = "second"
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &run,
-                Some(&store),
+                Some(&stores),
             )
             .unwrap();
         }
@@ -1345,6 +1433,124 @@ goal = "second"
             vec!["t2".to_string()],
             "disk reconciliation names the unfinished task"
         );
+    }
+
+    #[test]
+    fn full_run_resumes_from_disk_after_restart() {
+        // S wiring: plan + progress both survive; resume rebuilds the run
+        // through the core replay fold — t1 settled, t2 re-armed.
+        let dir = tempfile::tempdir().unwrap();
+        let stores = DaemonStores {
+            journal: nofy_orchestra::taskjournal::TaskLogStore::open(
+                dir.path().join("task_journal.jsonl"),
+            ),
+            runs: crate::runstore::RunStore::open(dir.path().join("run_store.json")),
+        };
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let manifest = r#"
+packs = ["p"]
+
+[[task]]
+id = "t1"
+pack = "p"
+goal = "first"
+
+[[task]]
+id = "t2"
+pack = "p"
+goal = "second"
+"#;
+        let mut input = Vec::new();
+        write_frame(&mut input, &hello_frame()).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![] }),
+        )
+        .unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true }),
+        )
+        .unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
+        {
+            let mut r = std::io::Cursor::new(input);
+            let mut out = Vec::new();
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &ApprovalBroker::new(),
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &run,
+                Some(&stores),
+            )
+            .unwrap();
+        }
+        // "Restart": all in-memory state is gone; resume from disk.
+        drop(run);
+        let resumed = resume_run(&stores).unwrap().expect("stored run must resume");
+        assert!(resumed.orch.succeeded.contains("t1"), "settled work stays settled");
+        assert!(resumed.orch.running.contains("t2"), "in-flight work re-arms");
+        assert_eq!(resumed.re_dispatch(), vec!["t2".to_string()]);
+        assert!(!resumed.orch.is_done());
+        // A completed run clears the plan store; this one crashed mid-run,
+        // so the plan is still there.
+        assert!(stores.runs.load().unwrap().is_some());
+    }
+
+    #[test]
+    fn completed_run_clears_the_plan_store() {
+        // S wiring: when the last task settles, the stored plan is
+        // released (the journal remains as the audit trail).
+        let dir = tempfile::tempdir().unwrap();
+        let stores = DaemonStores {
+            journal: nofy_orchestra::taskjournal::TaskLogStore::open(
+                dir.path().join("task_journal.jsonl"),
+            ),
+            runs: crate::runstore::RunStore::open(dir.path().join("run_store.json")),
+        };
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let manifest = r#"
+packs = ["p"]
+
+[[task]]
+id = "t1"
+pack = "p"
+goal = "only"
+"#;
+        let mut input = Vec::new();
+        write_frame(&mut input, &hello_frame()).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![] }),
+        )
+        .unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true }),
+        )
+        .unwrap();
+        {
+            let mut r = std::io::Cursor::new(input);
+            let mut out = Vec::new();
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &ApprovalBroker::new(),
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &run,
+                Some(&stores),
+            )
+            .unwrap();
+        }
+        assert!(stores.runs.load().unwrap().is_none(), "finished run releases the plan");
+        assert!(resume_run(&stores).unwrap().is_none(), "nothing left to resume");
     }
 
     #[test]

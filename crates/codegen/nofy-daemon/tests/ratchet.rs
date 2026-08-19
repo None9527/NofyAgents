@@ -111,7 +111,9 @@ fn workspace_loc_budget_only_shrinks() {
     //   seam over nofy-surfaces; policy stays in the core).
     // - 1_547_401→1_547_740: batch R durability (orchestra TaskLogStore;
     //   daemon journal/scheduler store wiring + wire tests).
-    let cap = 1_547_740; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_547_740→1_548_074: batch S run store (atomic plan persistence +
+    //   resume through the core replay fold + wire tests).
+    let cap = 1_548_074; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -272,8 +274,11 @@ fn control_plane_loc_ratchet_only_shrinks() {
     // - daemon 4149→4364: batch R2/R3 durability wiring — task journal
     //   attaches a TaskLogStore (crash reconciliation from disk, AC-11),
     //   scheduler service attaches the core LogStore; glue + wire tests.
+    // - daemon 4364→4693: batch S run store — atomic plan persistence +
+    //   resume_run through the core replay fold (full run resumption);
+    //   glue + wire tests. Glue trend continues; extraction is queued.
     let caps = [
-        ("nofy-daemon", 4364),
+        ("nofy-daemon", 4693),
         ("nofy-channel", 544),
         ("nofy-control-schema", 312),
         ("nofy-session-registry", 132),

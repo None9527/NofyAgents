@@ -446,3 +446,16 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮:orchestra 3,156→3,272;scheduler 2,786→2,787(+1 派生);daemon 控制面 4,149→4,364(胶+测试);workspace 1,547,401→1,547,740。
 - 验证:daemon 72→75、orchestra 78→80、scheduler 75,全部双跑绿且一致;棘轮 5/5;workspace check 零错误。
 - **批次 R 闭环。在案:manifest 持久化(完整 run 跨重启续跑的最后一环)、接线胶抽取、shell 深接缝专项。**
+
+## 批次 S:manifest 持久化(完整 run 跨重启续跑)
+
+> R 落了进度(PROGRESS),S 落计划(PLAN)——两者合起来,崩溃后完整续跑才成立。状态重建不重新发明:复用核的 `fold_orch`(FR11.3 确定性回放)。
+
+- **runstore.rs**(daemon 新模块):`StoredRun{manifest_toml, packs}` + `RunStore`——save 原子写(tmp+sync+rename,崩溃中途绝不撕文件)、load 缺失=None/损坏=报错(计划小而珍贵,静默丢弃等于假装干净启动)、clear 幂等。
+- **daemon 接线**:`DaemonStores{journal, runs}` 聚合两件持久层,serve_connection 参数由 journal_store 升级为 stores;TaskSubmit 先存计划再挂日志,然后 run 才可见;TaskResult 侦测 is_done 即 clear 计划(日志留作审计)。
+- **resume_run**:计划从 RunStore 重载 → submit_run 重建 → 日志从盘上读 → TaskEvent 映射 OrchEvent(Claimed→Dispatched、Settled/EscalationResolved 直通;Armed/Escalated 无回放对应,后者由失败结算+manifest 策略隐含)→ `fold_orch` 折叠 → succeeded/dead/aborted 落 OrchRun,未尽事宜(in-flight+等待升级裁决)重新入 running 由 provider 再驱动;journal 以盘上日志为真相。
+- **run() 装配**:启动即开双件存储并 resume_run,残留 run 恢复并点名待重派任务。
+- 新测试 5 个:runstore 往返/原子写无 tmp 残留/损坏 plan fail-loud;全链路崩溃续跑(t1 已结算保持、t2 重入 running、re_dispatch 恰点名、中途崩溃计划仍在);完成 run 清计划且无可恢复。
+- 棘轮:daemon 控制面 4,364→4,693(胶趋势继续在案,抽取已排队);workspace 1,547,740→1,548,074。
+- 验证:daemon 75→80 双跑绿且一致;棘轮 5/5;workspace check 零错误。
+- **批次 S 闭环。崩溃续跑端到端成立:计划+进度双持久,重建走核回放。在案:接线胶抽取、shell 深接缝专项。**
