@@ -18,6 +18,10 @@ type PendingSlot = Arc<(Mutex<Option<ApprovalDecision>>, Condvar)>;
 #[derive(Debug, Default)]
 pub struct ApprovalBroker {
     pending: Mutex<HashMap<String, PendingSlot>>,
+    /// Enveloped request summaries, registered with the request and
+    /// dropped at settle (Q1 wiring: surfaces read framed text, never
+    /// raw provider input — FR5.10).
+    summaries: Mutex<HashMap<String, String>>,
 }
 
 impl ApprovalBroker {
@@ -27,7 +31,8 @@ impl ApprovalBroker {
 
     /// Register a pending request. Returns false if the intent is already
     /// pending (duplicate request = protocol error, caller rejects).
-    pub fn register(&self, intent_id: &str, _summary: &str) -> bool {
+    /// `summary` is stored for surfaces (callers pass the enveloped text).
+    pub fn register(&self, intent_id: &str, summary: &str) -> bool {
         let mut map = self.pending.lock().unwrap();
         if map.contains_key(intent_id) {
             return false;
@@ -36,7 +41,17 @@ impl ApprovalBroker {
             intent_id.to_string(),
             Arc::new((Mutex::new(None), Condvar::new())),
         );
+        drop(map);
+        self.summaries
+            .lock()
+            .unwrap()
+            .insert(intent_id.to_string(), summary.to_string());
         true
+    }
+
+    /// The enveloped summary for a pending intent (surfaces only).
+    pub fn summary(&self, intent_id: &str) -> Option<String> {
+        self.summaries.lock().unwrap().get(intent_id).cloned()
     }
 
     /// Block until a surface responds or the deadline passes.
@@ -87,6 +102,7 @@ impl ApprovalBroker {
     /// Drop the entry once the requester has consumed its outcome.
     pub fn settle(&self, intent_id: &str) {
         self.pending.lock().unwrap().remove(intent_id);
+        self.summaries.lock().unwrap().remove(intent_id);
     }
 
     pub fn pending_count(&self) -> usize {

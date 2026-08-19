@@ -6807,6 +6807,7 @@ dependencies = [
  "libc",
  "nofy-channel",
  "nofy-control-schema",
+ "nofy-governance",
  "nofy-orchestra",
  "nofy-packcore",
  "nofy-session-journal",

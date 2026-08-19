@@ -351,3 +351,16 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - **棘轮**:packcore 日一 283;orchestra 2,682→3,156;daemon 控制面 3,707→3,430→**2,968**(只瘦不胖,OC-F28 兑现);workspace 1,546,130→1,546,190。
 - **依赖 DAG 现状**:daemon → {packcore, orchestra};核 → packcore;无环。Q1–Q4 可直接接线。
 - **批次 Q0 闭环。下一步 = 批次 Q1(governance 接线)。**
+
+## 批次 Q1:governance 接线(控制面审批边界)
+
+> `gitnexus_impact(serve_connection)`=MEDIUM(d=1 十处:9 测试+run 装配+provider 接缝;受影响执行流 0)。出口标准=d=1 测试全绿。
+
+- **lifeguard 边界拒**(FR5.6):`ApprovalRequest` 进 broker **之前**过 `lifeguard::classify`(SelfContext=自身二进制路径+父进程链,`/proc/self/stat` 解析)——自毁形请求在控制边界即拒(AUTH_DENIED),不获得任何表面往返。
+- **envelope 信封化**(FR5.10):broker `register` 不再丢弃 summary——存入的是 `frame_untrusted("approval-request", …)` 信封文本;新增 `summary()` 供表面读取,`settle` 同步清除。供应商输入永远是数据,不是指令。
+- **preauth 连接预算**(FR5.13):`run()` accept 循环在**起线程之前**过 `PreAuthGuard(8/32/60)`——peer 身份=SO_PEERCRED pid;预算尽/洪水即丢 socket;连接线程结束时 `close_connect` 归还额度。
+- 新测试 2 个(驱动真 serve_connection):自毁请求边界拒(不留 pending)、登记 summary 为良构信封且 unwrap 恰为原文、settle 后清除。
+- 期间修复:accept 循环闭包括号 1 处;错误帧字段为 `detail` 非 `message`(断言修正)。
+- 棘轮:daemon 控制面 2,968→3,164(接线胶,策略仍在核内,理由在案);workspace 1,546,190→1,546,391。
+- 验证:daemon 54+5 双跑绿且一致(52→54);workspace check 零错误。
+- **批次 Q1 闭环。下一步 = 批次 Q2(steward 接线)。**
