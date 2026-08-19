@@ -97,3 +97,30 @@ spawn 环境在 acp_session_impl/spawn.rs、nofy-env 只是端点预设;nofy-htt
 | cwd 带内标记 | session cwd 变更路径 | runtimecore cwdmark | 定位 cwd 变更事件源 |
 
 每处均需独立 impact 分析+专项测试设计;列为集成后续工作,不属本计划批次。
+
+**§4 补记(批次 T 后,调度器实例化裁定)**:daemon `run()` 不实例化
+`SchedulerService`——控制协议(`nofy-control-schema::ControlMethod`)尚无
+任何调度方法,实例化一个永远 default-off 且无启用路径的服务=死接线/测试
+表演。调度器的 daemon 级实例化与「调度控制协议批次」(schema 方法+wire
+分派+shell 客户端)一并落地;服务层持久化(R3 recover)已就绪待接。
+
+**§4 补记(cwd 接缝摸底结论,批次 T 后)**:cwd 变更的**生产事件源不存
+在**——基础设施全部就绪但无触发者:
+- 载体:`ConversationItem::working_directory_switch(content, generation)`
+  = 合成 user 项(`SyntheticReason::WorkingDirectorySwitch` +
+  `cwd_generation`,nofy-sampling-types/src/conversation.rs:164/1040);
+- 账本:chat-state actor 严格追加(`AppendWorkingDirectorySwitchAndAck`,
+  generation 匹配=恰一次,actor/mod.rs:130、persistence.rs:155-182);
+- 迁移:session relocation 全套(`RelocationRequest{source_cwd,
+  target_cwd, cwd_generation, pending_reminder}`、stage/commit/rollback、
+  summary.json 暂存 `PendingCwdSwitchReminder{cwd_generation,previous_cwd,
+  destination_cwd,content,destination_project_instructions}`、启动恢复
+  `recover_session_relocations_in`,storage/relocation/mod.rs +
+  session/persistence.rs:2988)。
+- 全 workspace grep:`RelocationRequest` 构造与
+  `append_working_directory_switch_and_ack` 调用**仅见于测试**。
+**裁定**:cwdmark 接线阻塞于 shell 侧功能本身(触发 relocation 的用户
+动作,如 /move 或 cwd 变更检测)。触发者落地时接线点已确定:reminder
+`content` 以 `cwdmark::render_mark(CwdMark{seq: cwd_generation, path:
+destination_cwd})` 构造,stale 判定走 `is_stale`——策略归核,不再另做
+设计。强行先接=测试表演,不做。
