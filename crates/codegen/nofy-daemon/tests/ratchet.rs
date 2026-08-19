@@ -75,7 +75,10 @@ fn workspace_loc_budget_only_shrinks() {
     //   taskjournal/dag/periodic/batchapproval + nofy-scheduler eventbus).
     // - 1_540_652→1_541_376: new crate nofy-surfaces (batch L surface
     //   cores: webhook/im/lineage/migration).
-    let cap = 1_541_376; // budget at E12 landing (87 members, src+tests+benches+examples)
+    // - 1_541_376→1_542_086: new crate nofy-marketplace (batch M
+    //   marketplace cores: discovery/exemplars/pluginmanifest/docker/
+    //   channeladapter).
+    let cap = 1_542_089; // budget at E12 landing (88 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

@@ -248,3 +248,16 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 验证:surfaces 双跑 20+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。
 - **AC-13 对账**:四表面同一会话真相(L4 一致性不变量+J8 同构投影)✓;IM 可批准(L2 卡片+应答→审批路径)✓。
 - **批次 L 闭环。下一步 = 批次 M(市场与 pack)。**
+
+## 批次 M:市场与 pack(FR10.8/10.9 + FR8.4–8.6)
+
+- 新 crate `nofy-marketplace`(第 8 个策略核,工作区第 88 成员):
+  - `discovery.rs`(FR10.8):PackMetadata 创作门(空字段/语义化版本 fail-loud)+blake3 校验和验证;市场索引按 (id,version) 注册(创作门+重复拒绝)、按 id+description 子串发现。
+  - `exemplars.rs`(FR10.9):内置 `file-steward` + 示范 `code-review` pack;纪律=内置不特例化——逐一过 `parse_pack`+`compose_packs` 第三方同一道门,服务一律 Isolated(DS-P2),不携宿主面键(DS-P4)。
+  - `pluginmanifest.rs`(FR8.4):插件 manifest 验证(空字段/能力非空/artifact `..` 与绝对路径逃逸拒绝);IsolationZone.admit=已声明且在界内,双条件缺一拒。
+  - `docker.rs`(FR8.5):Docker 插件 build-arg 白名单子集;all-or-nothing——一个未声明或空名,整批请求拒绝。
+  - `channeladapter.rs`(FR8.6):通道适配器契约(入站归一/出站格式化/ack 语义至少一次或至多一次);注册拒绝空 id、no-op 契约(两向皆无=占位)、重复 id。槽位开放但不建通道本体。
+- 测试:21 单测+1 棘轮,双跑全绿且一致。
+- 棘轮:marketplace 日一 677;workspace 1,541,376→1,542,089(附理由)。
+- 验证:daemon 棘轮 3/3;`cargo check --workspace` 零错误。
+- **批次 M 闭环。下一步 = 批次 N(file-steward 上线)。**

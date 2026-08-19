@@ -35,6 +35,7 @@ members = [
     "crates/codegen/nofy-stewardcore",
     "crates/codegen/nofy-agility",
     "crates/codegen/nofy-surfaces",
+    "crates/codegen/nofy-marketplace",
     "crates/codegen/nofy-extra-ca",
     "crates/codegen/nofy-hooks",
     "crates/codegen/nofy-http",
@@ -319,6 +320,7 @@ nofy-memorycore = { path = "crates/codegen/nofy-memorycore" }
 nofy-stewardcore = { path = "crates/codegen/nofy-stewardcore" }
 nofy-agility = { path = "crates/codegen/nofy-agility" }
 nofy-surfaces = { path = "crates/codegen/nofy-surfaces" }
+nofy-marketplace = { path = "crates/codegen/nofy-marketplace" }
 nofy-channel = { path = "crates/codegen/nofy-channel" }
 nofy-control-schema = { path = "crates/codegen/nofy-control-schema" }
 nofy-session-registry = { path = "crates/codegen/nofy-session-registry" }

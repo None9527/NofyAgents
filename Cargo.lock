@@ -7052,6 +7052,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "nofy-marketplace"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "nofy-daemon",
+ "serde_json",
+]
+
+[[package]]
 name = "nofy-mcp"
 version = "0.1.0"
 dependencies = [
