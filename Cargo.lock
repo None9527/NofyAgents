@@ -6814,6 +6814,7 @@ dependencies = [
  "nofy-session-journal",
  "nofy-session-registry",
  "nofy-stewardcore",
+ "nofy-surfaces",
  "serde",
  "serde_json",
  "tempfile",

@@ -26,6 +26,7 @@ pub mod recovery;
 pub mod scheduler;
 pub mod search_proxy;
 pub mod steward;
+pub mod surfaces;
 pub mod sd_notify;
 
 use std::fs;

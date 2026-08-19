@@ -107,7 +107,9 @@ fn workspace_loc_budget_only_shrinks() {
     //   nofy-orchestra).
     // - 1_546_885→1_547_119: integration Q4 scheduler service
     //   (default-off seam over nofy-scheduler; policy stays in the core).
-    let cap = 1_547_119; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_547_119→1_547_401: integration Q5a surface gateway (webhook/IM
+    //   seam over nofy-surfaces; policy stays in the core).
+    let cap = 1_547_401; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -262,8 +264,11 @@ fn control_plane_loc_ratchet_only_shrinks() {
     //   nofy-scheduler; POLICY stays in the core. Glue trend note: the
     //   daemon now exceeds its P0 size — wiring glue accumulates and a
     //   later batch should extract it.
+    // - daemon 3872→4149: integration Q5a surface gateway — webhook
+    //   three gates + IM card/reply delegating to nofy-surfaces;
+    //   POLICY stays in the core.
     let caps = [
-        ("nofy-daemon", 3872),
+        ("nofy-daemon", 4149),
         ("nofy-channel", 544),
         ("nofy-control-schema", 312),
         ("nofy-session-registry", 132),

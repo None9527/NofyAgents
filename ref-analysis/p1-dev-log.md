@@ -399,3 +399,24 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮:daemon 控制面 3,645→3,872(**已超 P0 原尺寸 3,707——胶积累趋势坐实,棘轮注释在案:后续批次应考虑抽出接线胶**);workspace 1,546,885→1,547,119。
 - 验证:daemon 61→66 双跑绿且一致;棘轮 5/5;workspace check 零错误。
 - **批次 Q4 闭环。下一步 = 批次 Q5(shell 侧 seam)。**
+
+## 批次 Q5:表面网关 + shell 深接缝裁定
+
+> 摸底事实:shell 深层机制各有成熟自架构(SessionActor compaction 跨多文件消费 nofy-chat-state、task_completed_frame 是 ACP 帧预算≠上下文注入、nofy-env 只是端点预设、nofy-http 是客户端件)。强行硬接=高风险或测试表演。**第一性原理裁定**:Q5 切两片——能诚实接线处接线,深接缝识别在案专项跟进。
+
+- **Q5a daemon 表面网关**(surfaces.rs,FR13.3/13.4 运行时路径):
+  - webhook 入站:三道门(签名/信封/去重,委托 `WebhookSurface::receive`)→ `route_payload` 仅审批应答进 broker,超范围拒——表面只应答审批,不执行;
+  - IM 出站/入站:`format_approval_card` 渲染批 Ask 卡片;应答 normalize(去 @提及)→parse(按号/全批)→broker 决策;
+  - 新测试 6 个:webhook 审批应答完整往返(等待方见 AllowOnce)、坏签名/重复/未知端点各拒于 broker 之前、超范围负载不达 broker、IM 卡片渲染+按号决策、approve all 全决、非决策/坏序号拒。
+- **Q5b shell 深接缝图**(integration-plan.md §4):五处接缝精确识别(compaction↔compact/seal、工具结果注入↔injection、spawn 环境↔envsnapshot/workerroute、启动体检↔bootcheck、cwd 标记↔cwdmark),各需独立 impact+专项设计,列为集成后续工作。
+- 棘轮:daemon 控制面 3,872→4,149(胶继续积累,趋势在案);workspace 1,547,119→1,547,401。
+- 验证:daemon 66→72 双跑绿且一致;棘轮 5/5;workspace check 零错误。
+- **批次 Q5 闭环。集成批次 Q0–Q5 全部闭环。**
+
+## 集成阶段收口(Q0–Q5 结算)
+
+- **依赖 DAG**:daemon → {packcore, orchestra, governance, stewardcore, scheduler, surfaces};核 → packcore;governance→daemon 仅 dev(测试)。无环。
+- **接线总账**:Q0 解环(pack/orchestra 逐字下沉,daemon 3,707→2,968);Q1 governance 边界(lifeguard/envelope/preauth);Q2 steward 委托(roots/lease/mgmt);Q3 orchestra 委托(DAG/task.*/批审批账本);Q4 scheduler 服务(default-off);Q5a 表面网关(webhook/IM)。daemon 测试 52→72,全部双跑绿。
+- **纪律兑现**:每批 impact 先行(Q0 PackManifest HIGH→shim 缓解并预警、Q3 medium 影响流如实记录)、detect_changes 每提交前执行、策略始终在核内、密封测试与死码探测器持续把关。
+- **在案事项**:① daemon 胶积累(4,149>P0 3,707),后续应抽接线胶为独立模块;② shell 五处深接缝专项跟进(§4 图);③ scheduler 文件层(LogStore 持久化)、orchestra 回放文件层属后续集成件。
+- **集成阶段闭环。**

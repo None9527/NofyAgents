@@ -20,6 +20,7 @@ nofy-scheduler = { workspace = true }
 nofy-session-registry = { workspace = true }
 nofy-session-journal = { workspace = true }
 nofy-stewardcore = { workspace = true }
+nofy-surfaces = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]

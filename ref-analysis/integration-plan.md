@@ -72,3 +72,28 @@
   `gitnexus_impact` 报爆半径后再动;再导出层保证 d=1 调用方零改动。
 
 **计划立。下一步 = 批次 Q0(解环)→ Q1。**
+
+## §4 批次 Q5 裁定(2026-08-19,第一性原理)
+
+**摸底事实**:shell 深层机制各有成熟自架构——compaction 是 SessionActor
+方法块(跨 acp_session.rs/compaction.rs/helpers,消费 nofy-chat-state)、
+task_completed_frame 是 ACP 帧预算(与上下文注入是**范畴不同**的两件事)、
+spawn 环境在 acp_session_impl/spawn.rs、nofy-env 只是端点预设;nofy-http
+是客户端件,无 webhook 服务端接缝。强行把核塞进深层机制=高风险或测试
+表演,两者皆违反既定纪律。
+
+**裁定**:Q5 切两片——
+- **Q5a(已执行)**:daemon 表面网关 `surfaces.rs`——webhook 三道门→
+  审批应答进 broker、IM 卡片出/应答解析进 broker(FR13.3/13.4 运行时
+  路径,与 Q1–Q4 同款薄接缝,6 测试驱动真代码)。
+- **Q5b(本节)**:shell 深接缝**识别在案、专项跟进**,不在本批硬接:
+
+| seam | shell 位置 | 核 | 接线所需 |
+|---|---|---|---|
+| 压缩七维+头尾保护 | session/compaction.rs + helpers/session_compact | memorycore compact/seal | 在 build_compacted_history/CompactionOutcome 处加头尾保留与密度策略钩子;需 SessionActor 专项设计 |
+| 工具结果三档注入 | agent/handlers→会话历史构建(非 task_completed_frame) | memorycore injection | 先追踪结果入上下文的真实路径,再定阈值接线点 |
+| spawn 环境快照+擦洗 | session/acp_session_impl/spawn.rs | runtimecore envsnapshot/workerroute | 环境捕获处接 staged→publish 原子发布+白名单擦洗 |
+| 启动体检 | agent/init.rs 启动路径 | runtimecore bootcheck | 清单化启动检查,失败阻断/降级语义 |
+| cwd 带内标记 | session cwd 变更路径 | runtimecore cwdmark | 定位 cwd 变更事件源 |
+
+每处均需独立 impact 分析+专项测试设计;列为集成后续工作,不属本计划批次。
