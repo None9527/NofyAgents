@@ -33,7 +33,9 @@ fn orchestra_loc_ratchet_only_shrinks() {
     //   scheduler×pack bridge, batchapproval.rs one-Ask ledger).
     // - 2682→3156: integration Q0b — daemon orchestra.rs (plan half:
     //   manifest/DAG/OrchRun) moved verbatim into this crate.
-    let cap = 3156;
+    // - 3156→3272: batch R1 — TaskEvent serde + TaskLogStore (durable
+    //   task.* journal, AC-11 crash reconciliation from disk).
+    let cap = 3272;
     let got = loc(&src);
     assert!(
         got <= cap,

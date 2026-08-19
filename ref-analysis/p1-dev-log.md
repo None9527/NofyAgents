@@ -420,3 +420,29 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - **纪律兑现**:每批 impact 先行(Q0 PackManifest HIGH→shim 缓解并预警、Q3 medium 影响流如实记录)、detect_changes 每提交前执行、策略始终在核内、密封测试与死码探测器持续把关。
 - **在案事项**:① daemon 胶积累(4,149>P0 3,707),后续应抽接线胶为独立模块;② shell 五处深接缝专项跟进(§4 图);③ scheduler 文件层(LogStore 持久化)、orchestra 回放文件层属后续集成件。
 - **集成阶段闭环。**
+
+# 集成后续·批次 R:持久化层(AC-11 真正成立)
+
+> 动机:Q3 的 task.* 对账只在内存——崩溃即失忆,AC-11「崩溃后 task.* 对账续跑」要真正成立,日志必须先落盘。价值排序首位。
+
+## R1 任务日志持久化(nofy-orchestra)
+
+- `TaskEvent` 加 serde 派生;新增 `parse_log`(撕尾截断不报错)与 `TaskLogStore`(append+sync_data/fold-on-read,与 scheduler LogStore 同款纪律)。
+- `re_dispatch()` 直读磁盘:崩溃对账不依赖任何内存状态。
+- 新测试 2 个:落盘往返+崩溃后重开对账恰点名、撕尾截断。impact(TaskEvent)=LOW。
+
+## R2 daemon 任务日志接线
+
+- `DaemonRun` 持 `Option<TaskLogStore>`:`attach_journal` 先冲刷存量事件,`record_event` 统一内存+磁盘双写(磁盘失败 tracing::error 大声留痕、不崩运行)。
+- `serve_connection` 增 `journal_store` 参数(21 处调用点机械更新,测试全 None=旧行为);TaskSubmit 时挂载;`run()` 启动即开 `<state_dir>/daemon/task_journal.jsonl` 并做启动对账(残留日志点名待重派任务)。
+- 新测试 1 个:wire 提交+派发后模拟崩溃,drop 全部内存,重开磁盘对账恰点名 t2(5 条日志稠密)。
+
+## R3 scheduler 服务持久化
+
+- `SchedulerService` 持 `Option<LogStore>`:`attach_store` 冲刷存量、`persist` 覆盖 catch_up/watchdog 批量路径;`recover(store)` 从磁盘折叠恢复——**非空日志即证明崩溃前已启用**(事件只能经启用路径进入),恢复即启用;空/缺失日志=default-off 新服务。
+- 核侧 `LogStore` 补 Debug/Clone/PartialEq/Eq 派生(PathBuf 包装,天然可派生,+1 行)。
+- 新测试 2 个:崩溃恢复状态完整且启用态复原、空日志恢复为 default-off。
+
+- 棘轮:orchestra 3,156→3,272;scheduler 2,786→2,787(+1 派生);daemon 控制面 4,149→4,364(胶+测试);workspace 1,547,401→1,547,740。
+- 验证:daemon 72→75、orchestra 78→80、scheduler 75,全部双跑绿且一致;棘轮 5/5;workspace check 零错误。
+- **批次 R 闭环。在案:manifest 持久化(完整 run 跨重启续跑的最后一环)、接线胶抽取、shell 深接缝专项。**

@@ -40,7 +40,7 @@ fn scheduler_loc_ratchet_only_shrinks() {
     //   checkpoint recovery + watch fuse).
     // - 2579→2786: K5 system-event bus (eventbus.rs topics + presence +
     //   wake routing with latch, FR3.10).
-    let cap = 2786; // day-one cap (E1 event-sourced core + fold tests)
+    let cap = 2787; // day-one cap (E1) +1: R3 LogStore derives (daemon wiring needs Clone/Eq)
     let got = loc(&src);
     assert!(
         got <= cap,

@@ -9,7 +9,7 @@
 //! thin glue that records the event log and delegates.
 
 use nofy_scheduler::fence::{Delivery, SessionFence, SubmitOutcome};
-use nofy_scheduler::{ScheduleEvent, ScheduleState};
+use nofy_scheduler::{LogStore, ScheduleEvent, ScheduleState};
 
 /// The daemon-side scheduling service.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,6 +18,8 @@ pub struct SchedulerService {
     events: Vec<ScheduleEvent>,
     state: ScheduleState,
     fence: SessionFence,
+    /// Durable log sink (R3 wiring): None = in-memory only.
+    store: Option<LogStore>,
 }
 
 impl Default for SchedulerService {
@@ -34,7 +36,30 @@ impl SchedulerService {
             events: Vec::new(),
             state: ScheduleState::default(),
             fence: SessionFence::default(),
+            store: None,
         }
+    }
+
+    /// Attach the durable sink (R3): existing in-memory events are
+    /// flushed to disk first, later events append to both.
+    pub fn attach_store(&mut self, store: LogStore) -> std::io::Result<()> {
+        for event in &self.events {
+            store.append(event)?;
+        }
+        self.store = Some(store);
+        Ok(())
+    }
+
+    /// Recover a service from the durable store (R3): fold the on-disk
+    /// log. A non-empty log PROVES the service was enabled before the
+    /// crash (events only enter through enabled paths), so recovery
+    /// restores the enabled state; an empty/missing log yields a fresh
+    /// default-off service.
+    pub fn recover(store: LogStore) -> std::io::Result<Self> {
+        let events = store.read_events()?;
+        let state = nofy_scheduler::fold(&events);
+        let enabled = !events.is_empty();
+        Ok(Self { enabled, events, state, fence: SessionFence::default(), store: Some(store) })
     }
 
     pub fn enabled(&self) -> bool {
@@ -47,8 +72,18 @@ impl SchedulerService {
     }
 
     fn apply_and_record(&mut self, event: ScheduleEvent) {
+        self.persist(&event);
         nofy_scheduler::apply(&mut self.state, &event);
         self.events.push(event);
+    }
+
+    /// Disk append only (for events produced in batches by the core).
+    fn persist(&self, event: &ScheduleEvent) {
+        if let Some(store) = &self.store {
+            if let Err(e) = store.append(event) {
+                tracing::error!(?e, "schedule log append failed; durability degraded");
+            }
+        }
     }
 
     /// Add (or re-enable) a schedule. Cron specs are validated by the
@@ -104,6 +139,7 @@ impl SchedulerService {
         }
         let events = nofy_scheduler::catch_up_events(&self.state, now, rate);
         for event in &events {
+            self.persist(event);
             nofy_scheduler::apply(&mut self.state, event);
         }
         self.events.extend(events.clone());
@@ -118,6 +154,7 @@ impl SchedulerService {
         }
         let events = nofy_scheduler::cron::self_disable_events(&self.state, threshold);
         for event in &events {
+            self.persist(event);
             nofy_scheduler::apply(&mut self.state, event);
         }
         self.events.extend(events.clone());
@@ -222,5 +259,35 @@ mod tests {
         svc.session_idle("sess-1");
         let released = svc.release("sess-1");
         assert_eq!(released, vec![Delivery { job_id: 1, session: "sess-1".into() }]);
+    }
+
+    #[test]
+    fn durable_store_survives_restart_and_restores_enabled_state() {
+        // R3: schedules armed before a crash come back from disk, and a
+        // non-empty log proves the service was enabled.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("schedule.jsonl");
+        {
+            let mut svc = SchedulerService::new();
+            svc.enable();
+            svc.add_schedule("j1", "* * * * *").unwrap();
+            svc.arm("j1", 10).unwrap();
+            svc.attach_store(LogStore::open(&path)).unwrap();
+            svc.arm("j1", 20).unwrap();
+        }
+        // "Crash": everything in memory is gone. Recover from disk.
+        let recovered = SchedulerService::recover(LogStore::open(&path)).unwrap();
+        assert!(recovered.enabled(), "a non-empty log proves prior enablement");
+        assert!(recovered.is_live("j1"));
+        assert_eq!(recovered.pending_count(), 2, "both armed dues survived");
+        assert_eq!(recovered.event_count(), 3);
+    }
+
+    #[test]
+    fn recovery_from_empty_log_is_default_off() {
+        let dir = tempfile::tempdir().unwrap();
+        let svc = SchedulerService::recover(LogStore::open(dir.path().join("missing.jsonl"))).unwrap();
+        assert!(!svc.enabled(), "no history = default-off");
+        assert_eq!(svc.event_count(), 0);
     }
 }

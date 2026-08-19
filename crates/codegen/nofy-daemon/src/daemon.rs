@@ -53,12 +53,39 @@ pub struct DaemonRun {
     /// `task.*` journal events (FR11.5, Q3 wiring): dense-seq lifecycle
     /// log; the fold reconciles after a crash.
     pub journal: Vec<nofy_orchestra::taskjournal::TaskEvent>,
+    /// Durable journal sink (R2 wiring): None = in-memory only.
+    journal_store: Option<nofy_orchestra::taskjournal::TaskLogStore>,
 }
 
 impl DaemonRun {
     /// Next dense journal seq.
     fn next_seq(&self) -> u64 {
         self.journal.last().map(|e| e.seq()).unwrap_or(0) + 1
+    }
+
+    /// Attach the durable sink (R2): existing in-memory events are
+    /// flushed to disk first, later events append to both.
+    pub fn attach_journal(
+        &mut self,
+        store: nofy_orchestra::taskjournal::TaskLogStore,
+    ) -> std::io::Result<()> {
+        for event in &self.journal {
+            store.append(event)?;
+        }
+        self.journal_store = Some(store);
+        Ok(())
+    }
+
+    /// Record one lifecycle event: in-memory journal + durable sink. A
+    /// disk failure is logged loud (durability degraded), never silent,
+    /// and never crashes the run.
+    fn record_event(&mut self, event: nofy_orchestra::taskjournal::TaskEvent) {
+        if let Some(store) = &self.journal_store {
+            if let Err(e) = store.append(&event) {
+                tracing::error!(?e, "task journal append failed; durability degraded");
+            }
+        }
+        self.journal.push(event);
     }
 
     /// Crash reconciliation (AC-11, Q3 wiring): tasks armed/claimed but
@@ -172,6 +199,7 @@ pub fn submit_run(
             packs: pack_map,
             dag,
             journal,
+            journal_store: None,
         },
         total,
     ))
@@ -259,6 +287,9 @@ pub fn serve_connection<R: Read, W: Write>(
     bus: &LiveBus,
     search: &SearchProxy,
     run: &std::sync::Arc<std::sync::Mutex<Option<DaemonRun>>>,
+    // Durable task-journal sink (R2 wiring): `None` keeps runs
+    // in-memory only (test/legacy behavior).
+    journal_store: Option<&nofy_orchestra::taskjournal::TaskLogStore>,
 ) -> Result<(), FrameError> {
     // First frame must be Hello; anything else is a protocol violation.
     let Some(hello_bytes) = read_frame_from(reader)? else {
@@ -311,9 +342,24 @@ pub fn serve_connection<R: Read, W: Write>(
             }
             Ok(ControlMethod::TaskSubmit { manifest, packs }) => {
                 match submit_run(&manifest, &packs) {
-                    Ok((dr, total)) => {
-                        *run.lock().unwrap() = Some(dr);
-                        serde_json::to_value(ControlResponse::ProjectAccepted { total })?
+                    Ok((mut dr, total)) => {
+                        // R2 wiring: attach the durable journal sink and
+                        // flush the Armed events to disk before the run
+                        // becomes visible.
+                        if let Some(store) = journal_store {
+                            if let Err(e) = dr.attach_journal(store.clone()) {
+                                serde_json::to_value(ControlError::new(
+                                    ControlErrorCode::Internal,
+                                    format!("task journal attach failed: {e}"),
+                                ))?
+                            } else {
+                                *run.lock().unwrap() = Some(dr);
+                                serde_json::to_value(ControlResponse::ProjectAccepted { total })?
+                            }
+                        } else {
+                            *run.lock().unwrap() = Some(dr);
+                            serde_json::to_value(ControlResponse::ProjectAccepted { total })?
+                        }
                     }
                     Err(msg) => serde_json::to_value(ControlError::new(
                         ControlErrorCode::Internal,
@@ -329,7 +375,7 @@ pub fn serve_connection<R: Read, W: Write>(
                         // task leaves the daemon.
                         if let Some(r) = guard.as_mut() {
                             let seq = r.next_seq();
-                            r.journal.push(nofy_orchestra::taskjournal::TaskEvent::Claimed {
+                            r.record_event(nofy_orchestra::taskjournal::TaskEvent::Claimed {
                                 seq,
                                 task: t.id.clone(),
                                 claimant: "provider".into(),
@@ -368,7 +414,7 @@ pub fn serve_connection<R: Read, W: Write>(
                 if let Some(r) = run.lock().unwrap().as_mut() {
                     if r.journal.iter().any(|e| e.task() == task_id) {
                         let seq = r.next_seq();
-                        r.journal.push(nofy_orchestra::taskjournal::TaskEvent::Settled {
+                        r.record_event(nofy_orchestra::taskjournal::TaskEvent::Settled {
                             seq,
                             task: task_id.clone(),
                             ok: succeeded,
@@ -382,7 +428,7 @@ pub fn serve_connection<R: Read, W: Write>(
                     // Q3 wiring (FR11.5): journal the escalation.
                     if let Some(r) = run.lock().unwrap().as_mut() {
                         let seq = r.next_seq();
-                        r.journal.push(nofy_orchestra::taskjournal::TaskEvent::Escalated {
+                        r.record_event(nofy_orchestra::taskjournal::TaskEvent::Escalated {
                             seq,
                             task: id.clone(),
                             reason: summary.clone(),
@@ -425,7 +471,7 @@ pub fn serve_connection<R: Read, W: Write>(
                         if let Some(r) = run.lock().unwrap().as_mut() {
                             r.orch.resolve_escalation(&id, allow);
                             let seq = r.next_seq();
-                            r.journal.push(
+                            r.record_event(
                                 nofy_orchestra::taskjournal::TaskEvent::EscalationResolved {
                                     seq,
                                     task: id.clone(),
@@ -627,6 +673,20 @@ pub fn run(cfg: DaemonConfig) -> i32 {
     let preauth = std::sync::Arc::new(std::sync::Mutex::new(
         nofy_governance::preauth::PreAuthGuard::new(8, 32, 60),
     ));
+    // R2 wiring: durable task journal + boot-time crash reconciliation
+    // (AC-11). A leftover journal names the tasks that were armed/claimed
+    // but never settled when the previous daemon died.
+    let journal_store =
+        nofy_orchestra::taskjournal::TaskLogStore::open(daemon_dir.join("task_journal.jsonl"));
+    match journal_store.re_dispatch() {
+        Ok(list) if !list.is_empty() => {
+            tracing::warn!(tasks = ?list, "crash reconciliation: tasks to re-dispatch");
+        }
+        Ok(_) => {}
+        Err(e) => {
+            tracing::error!(?e, "task journal unreadable at boot; starting fresh");
+        }
+    }
 
     loop {
         if wedge.load(std::sync::atomic::Ordering::SeqCst) {
@@ -665,11 +725,19 @@ pub fn run(cfg: DaemonConfig) -> i32 {
                 let search = search.clone();
                 let run = run.clone();
                 let preauth_thread = preauth.clone();
+                let journal_thread = journal_store.clone();
                 std::thread::spawn(move || {
                     let registry = Registry::at(registry_root);
-                    if let Err(e) =
-                        serve_connection(&mut reader, &mut writer, &registry, &broker, &bus, &search, &run)
-                    {
+                    if let Err(e) = serve_connection(
+                        &mut reader,
+                        &mut writer,
+                        &registry,
+                        &broker,
+                        &bus,
+                        &search,
+                        &run,
+                        Some(&journal_thread),
+                    ) {
                         tracing::warn!(?e, "control connection ended with frame error");
                     }
                     // Release the peer's budget slot on disconnect.
@@ -736,7 +804,7 @@ mod tests {
 
         let mut reader = std::io::Cursor::new(wire_in);
         let mut writer = Vec::new();
-        serve_connection(&mut reader, &mut writer, &registry, &ApprovalBroker::new(), &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>))).unwrap();
+        serve_connection(&mut reader, &mut writer, &registry, &ApprovalBroker::new(), &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)), None).unwrap();
 
         // Parse the response frames back out.
         let mut rr = std::io::Cursor::new(writer);
@@ -764,7 +832,7 @@ mod tests {
         write_frame(&mut wire_in, &serde_json::to_vec(&hello).unwrap()).unwrap();
         let mut reader = std::io::Cursor::new(wire_in);
         let mut writer = Vec::new();
-        serve_connection(&mut reader, &mut writer, &registry, &ApprovalBroker::new(), &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>))).unwrap();
+        serve_connection(&mut reader, &mut writer, &registry, &ApprovalBroker::new(), &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)), None).unwrap();
         let mut rr = std::io::Cursor::new(writer);
         let ack: HelloAck =
             serde_json::from_slice(&read_frame_from(&mut rr).unwrap().unwrap()).unwrap();
@@ -793,7 +861,7 @@ mod tests {
             let registry = Registry::at(&tmp_path);
             let mut r = std::io::Cursor::new(provider_in);
             let mut out = Vec::new();
-            serve_connection(&mut r, &mut out, &registry, &shared2, &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>))).unwrap();
+            serve_connection(&mut r, &mut out, &registry, &shared2, &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)), None).unwrap();
             out
         });
 
@@ -813,7 +881,7 @@ mod tests {
             let registry = Registry::at(tmp.path());
             let mut r = std::io::Cursor::new(surface_in);
             let mut surface_out = Vec::new();
-            serve_connection(&mut r, &mut surface_out, &registry, &shared, &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>))).unwrap();
+            serve_connection(&mut r, &mut surface_out, &registry, &shared, &LiveBus::new(), &SearchProxy::new(), &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)), None).unwrap();
         }
 
         let out = provider_thread.join().unwrap();
@@ -852,6 +920,7 @@ mod tests {
             &LiveBus::new(),
             &SearchProxy::new(),
             &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
         )
         .unwrap();
         let mut rr = std::io::Cursor::new(out);
@@ -892,6 +961,7 @@ mod tests {
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                None,
             )
             .unwrap();
             out
@@ -945,6 +1015,7 @@ mod tests {
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &run,
+                None,
             )
             .unwrap();
         }
@@ -983,6 +1054,7 @@ mod tests {
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &run,
+                None,
             )
             .unwrap();
         }
@@ -1038,6 +1110,7 @@ needs = ["t1"]
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &run,
+                None,
             )
             .unwrap();
         }
@@ -1077,6 +1150,7 @@ needs = ["t1"]
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &run,
+                None,
             )
             .unwrap();
         }
@@ -1197,6 +1271,7 @@ goal = "second"
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &run,
+                None,
             )
             .unwrap();
         }
@@ -1206,6 +1281,70 @@ goal = "second"
         // The journal is dense and complete: 2 armed + 1 claimed + 1
         // settled + 1 claimed.
         assert_eq!(dr.journal.len(), 5);
+    }
+
+    #[test]
+    fn journal_persists_to_disk_and_recovers_after_crash() {
+        // R2 wiring (AC-11): with a durable store attached, the journal
+        // survives a "crash" — reconciliation reads straight from disk.
+        let dir = tempfile::tempdir().unwrap();
+        let store =
+            nofy_orchestra::taskjournal::TaskLogStore::open(dir.path().join("task_journal.jsonl"));
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let manifest = r#"
+packs = ["p"]
+
+[[task]]
+id = "t1"
+pack = "p"
+goal = "first"
+
+[[task]]
+id = "t2"
+pack = "p"
+goal = "second"
+"#;
+        let mut input = Vec::new();
+        write_frame(&mut input, &hello_frame()).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![] }),
+        )
+        .unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true }),
+        )
+        .unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
+        // No TaskResult for t2: the daemon "crashes".
+        {
+            let mut r = std::io::Cursor::new(input);
+            let mut out = Vec::new();
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &ApprovalBroker::new(),
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &run,
+                Some(&store),
+            )
+            .unwrap();
+        }
+        // "Crash": drop ALL in-memory state.
+        drop(run);
+        // Recovery reads straight from disk: t2 was claimed, never settled.
+        let reopened =
+            nofy_orchestra::taskjournal::TaskLogStore::open(dir.path().join("task_journal.jsonl"));
+        assert_eq!(reopened.read_events().unwrap().len(), 5, "2 armed + claimed + settled + claimed");
+        assert_eq!(
+            reopened.re_dispatch().unwrap(),
+            vec!["t2".to_string()],
+            "disk reconciliation names the unfinished task"
+        );
     }
 
     #[test]
@@ -1250,6 +1389,7 @@ goal = "risky"
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &run2,
+                None,
             )
             .unwrap();
             out
@@ -1277,6 +1417,7 @@ goal = "risky"
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &run,
+                None,
             )
             .unwrap();
         }
@@ -1320,6 +1461,7 @@ goal = "risky"
                 &LiveBus::new(),
                 &search2,
                 &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                None,
             )
             .unwrap();
             out
@@ -1341,6 +1483,7 @@ goal = "risky"
                 &LiveBus::new(),
                 &shared_search,
                 &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                None,
             )
             .unwrap();
         }
@@ -1375,6 +1518,7 @@ goal = "risky"
                 &LiveBus::new(),
                 &shared_search,
                 &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                None,
             )
             .unwrap();
         }

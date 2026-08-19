@@ -302,6 +302,7 @@ pub fn parse_log(text: &str) -> Vec<ScheduleEvent> {
 ///
 /// Deliberately dumb — durability guarantees belong to the caller's
 /// policy; this layer only appends with `sync_data` and reads back.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LogStore {
     path: PathBuf,
 }

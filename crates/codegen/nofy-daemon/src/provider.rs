@@ -195,6 +195,7 @@ mod tests {
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &run,
+                None,
             );
         })
     }
@@ -217,6 +218,7 @@ mod tests {
                 &LiveBus::new(),
                 &SearchProxy::new(),
                 &run,
+                None,
             );
         });
         let mut client = ProviderClient::connect(&sock, "shell-9").unwrap();
@@ -263,6 +265,7 @@ mod tests {
                 &LiveBus::new(),
                 &search2,
                 &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                None,
             )
             .unwrap();
             out
@@ -284,6 +287,7 @@ mod tests {
                 &LiveBus::new(),
                 &search,
                 &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                None,
             )
         });
         let mut provider = ProviderClient::register(client_end, "shell-s").unwrap();
