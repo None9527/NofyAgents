@@ -100,7 +100,9 @@ fn workspace_loc_budget_only_shrinks() {
     //   verbatim into nofy-orchestra; governance→daemon dev-dep).
     // - 1_546_190→1_546_391: integration Q1 governance wiring (boundary
     //   glue + two wire tests; policy stays in the core).
-    let cap = 1_546_391; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_546_391→1_546_554: integration Q2 steward wiring (delegation
+    //   glue + three wire tests; policy stays in nofy-stewardcore).
+    let cap = 1_546_554; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -242,8 +244,11 @@ fn control_plane_loc_ratchet_only_shrinks() {
     // - daemon 2968→3164: integration Q1 governance wiring — boundary glue
     //   only (lifeguard refusal + enveloped summaries + pre-auth budget);
     //   the POLICY stays in nofy-governance, the daemon only calls it.
+    // - daemon 3164→3322: integration Q2 steward wiring — delegation glue
+    //   (root classification + lease gate + two-phase intent all delegate
+    //   to nofy-stewardcore); the POLICY stays in the core.
     let caps = [
-        ("nofy-daemon", 3164),
+        ("nofy-daemon", 3322),
         ("nofy-channel", 544),
         ("nofy-control-schema", 312),
         ("nofy-session-registry", 132),

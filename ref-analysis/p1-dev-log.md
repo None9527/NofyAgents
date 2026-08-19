@@ -364,3 +364,15 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮:daemon 控制面 2,968→3,164(接线胶,策略仍在核内,理由在案);workspace 1,546,190→1,546,391。
 - 验证:daemon 54+5 双跑绿且一致(52→54);workspace check 零错误。
 - **批次 Q1 闭环。下一步 = 批次 Q2(steward 接线)。**
+
+## 批次 Q2:steward 接线(stewardcore 委托)
+
+> `gitnexus_impact(SuggestionBatch)`=LOW(d=1 仅测试助手,受影响执行流 0)。密封测试 `confined_batch_validates_and_becomes_one_task` 签名保持不变。
+
+- **root 分类委托**(FR12.1):`validate()` 不再内联 `starts_with`——构建 `RootTable`(批根=Manage 档)逐路径过 `roots::classify`;根界判定以核为准(R3 裁定)。
+- **租约加载期门**(AC-12):新增 `gate(leases, now)`——任一触碰路径在活租约下即拒整批并点名持有者,先于一切执行规划。
+- **两阶段 intent 委托**(FR12.6):`to_intent()` 映射 StewardOp→mgmt::MgmtOp(Dedupe→keep+duplicates、Trash→Cleanup);`commit_two_phase(batch_id, leases, now, at)` = 加载期 `validate_intent`(根表+租约表)→ `commit_intent`,产出 manifest 记录+回滚快照。trash-over-delete 构造级保持。
+- 新测试 3 个:租约门点名持有者、两阶段提交全量降级 Trash+rollback 恰为 Restore 逆序、租约批提交拒(IntentError::LeaseHit)。
+- 棘轮:daemon 控制面 3,164→3,322(委托胶,策略在核);workspace 1,546,391→1,546,554。
+- 验证:daemon 54→57 双跑绿且一致(密封测试在列);棘轮 5/5;workspace check 零错误。
+- **批次 Q2 闭环。下一步 = 批次 Q3(orchestra 接线)。**

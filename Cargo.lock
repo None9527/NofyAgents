@@ -6812,6 +6812,7 @@ dependencies = [
  "nofy-packcore",
  "nofy-session-journal",
  "nofy-session-registry",
+ "nofy-stewardcore",
  "serde",
  "serde_json",
  "tempfile",

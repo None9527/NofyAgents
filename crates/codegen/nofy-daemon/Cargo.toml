@@ -18,6 +18,7 @@ nofy-orchestra = { workspace = true }
 nofy-packcore = { workspace = true }
 nofy-session-registry = { workspace = true }
 nofy-session-journal = { workspace = true }
+nofy-stewardcore = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
