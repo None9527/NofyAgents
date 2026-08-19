@@ -7834,6 +7834,9 @@ dependencies = [
 [[package]]
 name = "nofy-stewardcore"
 version = "0.1.0"
+dependencies = [
+ "nofy-orchestra",
+]
 
 [[package]]
 name = "nofy-subagent-resolution"

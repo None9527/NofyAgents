@@ -22,14 +22,29 @@
 //!   (FR12.14);
 //! - [`trust`] — cleanup forbidden zones + dry-run trial + trust ramp
 //!   (FR12.15).
+//!
+//! Batch N (file-steward launch) adds:
+//!
+//! - [`mgmt`] — management tool surface: trash-over-delete + two-phase
+//!   intent + rollback snapshots (FR12.6);
+//! - [`extract`] — content extraction pipeline, embeddings default-off
+//!   (FR12.7);
+//! - [`suggestions`] — cleanup suggestion DAG → FR11 orchestration →
+//!   batch approval (FR12.8);
+//! - [`handoff`] — leased-root handoff via steering, steward degrades to
+//!   advisor on project ground (FR12.13).
 
 pub mod activity;
+pub mod extract;
 pub mod fsindex;
 pub mod fspolicy;
+pub mod handoff;
 pub mod lease;
+pub mod mgmt;
 pub mod privacy;
 pub mod revalidate;
 pub mod roots;
+pub mod suggestions;
 pub mod tombstone;
 pub mod trust;
 pub mod zoning;

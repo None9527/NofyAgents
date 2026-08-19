@@ -78,7 +78,9 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_541_376→1_542_086: new crate nofy-marketplace (batch M
     //   marketplace cores: discovery/exemplars/pluginmanifest/docker/
     //   channeladapter).
-    let cap = 1_542_089; // budget at E12 landing (88 members, src+tests+benches+examples)
+    // - 1_542_089→1_543_018: batch N file-steward launch (stewardcore
+    //   mgmt/extract/suggestions/handoff; FR12.6-12.8/12.13).
+    let cap = 1_543_018; // budget at E12 landing (88 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

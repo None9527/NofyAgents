@@ -261,3 +261,17 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮:marketplace 日一 677;workspace 1,541,376→1,542,089(附理由)。
 - 验证:daemon 棘轮 3/3;`cargo check --workspace` 零错误。
 - **批次 M 闭环。下一步 = 批次 N(file-steward 上线)。**
+
+## 批次 N:file-steward 上线(FR12.6–12.8 + FR12.13)
+
+- `nofy-stewardcore` 扩四模块(批次 I 地基之上,46→70 测试):
+  - `mgmt.rs`(FR12.6):管理工具面 move/rename/tag/dedupe/cleanup。构造级三保证——`MgmtOp` 无 Delete 变体(trash-over-delete,dedupe/cleanup 一律降级为 Trash 落 `/.trash/<batch>/`);两阶段 intent(加载期整批验证:根界内/租约命中即拒并点名持有者/目标碰撞/退化操作,任何违规拒整批);回滚快照由 manifest 记录派生(复用 tombstone::undo_batch),不经记忆。
+  - `extract.rs`(FR12.7):内容提取管线 pdf/docx/图——元数据先行,文本段仅 pdf/docx/纯文本,图=元数据(+可选 embeddings);embeddings 默认关(`ExtractionPolicy::default()` 永不出现 embeddings 段),段不隐含任何出站调用;记录不能声称管线未规划的 embedding。
+  - `suggestions.rs`(FR12.8):整理建议 → 真 FR11 编排 → 批审批,无平行再实现——禁区判定(trust::CleanupVerdict)构造期过滤(Forbidden 出局并传递闭包依赖者,Ask 留下=批审批即呈现);幸存者编译为真 `orchestra::Dag`(fail-loud,per-task on_fail=Escalate 破坏性操作不静默重试)与同一份 `ApprovalBatch`(一次 Ask 全条目)。测试驱动真 dispatch_batch/ask/decide_item/expire_undecided。
+  - `handoff.rs`(FR12.13):越界 handoff——租约命中即移交持有会话(信封只含目标会话所需,无旁路执行变体,构造级不存在绕过车道),租约优先于分区;项目地盘(含重叠)无租约时 steward 降级建议者;无主地拒绝。
+- 依赖:stewardcore → nofy-orchestra(策略核间真接线,无环)。
+- 期间修复:测试临时值生命周期 1 处;两处断言错误(Tag 无 manifest 记录、DAG 就绪集需先结算前批)——均为测试作者对已落地语义的误述,非实现 bug。
+- 棘轮:stewardcore 1,493→2,418;workspace 1,542,089→1,543,018(附理由)。
+- 验证:stewardcore 双跑 70+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。
+- **里程碑「file-steward 上线」达成**(FR12 全族落地:P1 地基 12.1–12.5/12.9/12.11/12.12/12.14/12.15 + 本批 12.6–12.8/12.13)。
+- **批次 N 闭环。下一步 = 批次 O(P2 前置队列+余件)。**

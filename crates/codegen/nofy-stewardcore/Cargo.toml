@@ -3,9 +3,10 @@ license = "Apache-2.0"
 name = "nofy-stewardcore"
 version = "0.1.0"
 edition.workspace = true
-description = "File steward execution-surface cores for Nofy (FR12.1-12.5/12.9/12.11/12.12/12.14/12.15): roots opt-in, fs-index, policy events, file-activity graph, privacy quartet, revalidation, lease table, zoning, tombstones+undo, forbidden zones + trust ramp."
+description = "File steward execution-surface cores for Nofy (FR12.1-12.9/12.11-12.15): roots opt-in, fs-index, policy events, file-activity graph, privacy quartet, revalidation, lease table, zoning, tombstones+undo, forbidden zones + trust ramp, management tool surface, content extraction, cleanup suggestion DAG, out-of-ground handoff."
 
 [dependencies]
+nofy-orchestra = { workspace = true }
 
 [lints]
 workspace = true

@@ -24,7 +24,9 @@ fn stewardcore_loc_ratchet_only_shrinks() {
     // Day-one cap: batch I execution-surface cores (roots/fsindex/
     // fspolicy/activity/privacy/revalidate/lease/zoning/tombstone/trust)
     // + their tests.
-    let cap = 1493;
+    // - 1493→2418: batch N file-steward launch (mgmt/extract/suggestions/
+    //   handoff + tests; FR12.6-12.8/12.13).
+    let cap = 2418;
     let got = loc(&src);
     assert!(
         got <= cap,
