@@ -7845,6 +7845,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "nofy-surfaces"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "nofy-governance",
+ "nofy-orchestra",
+]
+
+[[package]]
 name = "nofy-system-power"
 version = "0.1.0"
 dependencies = [

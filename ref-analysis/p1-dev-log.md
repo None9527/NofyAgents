@@ -235,3 +235,16 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮:orchestra 1845→2682、scheduler 2579→2786、workspace 1,539,601→1,540,652(均附理由)。
 - 验证:orchestra 双跑 71+1、scheduler 双跑 75+1 全绿;daemon 棘轮 3/3;workspace check 零错误。
 - **批次 K 闭环(P2 里程碑「任务 DAG+批审批」达成)。下一步 = 批次 L(多表面生态)。**
+
+## 2026-08-17 · 批次 L 多表面生态(已执行,L1–L4 全闭环)
+
+- 新 crate `crates/codegen/nofy-surfaces`(20 用例+1 棘轮,日一 cap=689):
+  - **L1** `webhook.rs`(FR13.3 全表面):入站投递三道门——签名(keyed BLAKE3,密钥自 secret 派生,任意长度安全)、信封良构(复用治理帧纪律)、去重账本(at-least-once 发送方不可双发);路由面**只收审批应答**(approve/deny <intent>),其余拒收。5 用例。
+  - **L2** `im.rs`(FR13.4):IM 契约——审批卡片渲染(编号行+高危提示)、消息规范化(去 @mention)、应答解析(approve/deny <n>/all);**契约通道无关**(Feishu/Telegram 同文法)。5 用例。
+  - **L3** `lineage.rs`(FR2.10):会话谱系表——Root/Fork/Subagent/Compact 四源,**代际严格链**(子=父+1、父必先存、根=0)、链上溯、后代判定。6 用例。
+  - **L4** `migration.rs`(FR13.1,P2 前置兑现):表面迁移——Legacy→Migrating→Migrated 状态机;**表面持引用不持状态(形态级不变量)**;truth_consistent:同会话两表面两版本=真相破裂。4 用例。
+- 期间修复:Rust 2024 `gen` 保留字(lineage 测试助手)。
+- 棘轮:surfaces 日一 689;workspace 1,540,652→1,541,376(附理由)。
+- 验证:surfaces 双跑 20+1 全绿且一致;daemon 棘轮 3/3;workspace check 零错误。
+- **AC-13 对账**:四表面同一会话真相(L4 一致性不变量+J8 同构投影)✓;IM 可批准(L2 卡片+应答→审批路径)✓。
+- **批次 L 闭环。下一步 = 批次 M(市场与 pack)。**
