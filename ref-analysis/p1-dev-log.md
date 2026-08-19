@@ -376,3 +376,15 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮:daemon 控制面 3,164→3,322(委托胶,策略在核);workspace 1,546,391→1,546,554。
 - 验证:daemon 54→57 双跑绿且一致(密封测试在列);棘轮 5/5;workspace check 零错误。
 - **批次 Q2 闭环。下一步 = 批次 Q3(orchestra 接线)。**
+
+## 批次 Q3:orchestra 接线(submit_run 委托核)
+
+> `gitnexus_impact(submit_run)`=LOW 总体,但影响 `run` 执行流(4 步)——加性接线,既有拒绝语义不放松。
+
+- **P2 DAG 引擎入 submit**(FR11.6):manifest 验证后编译 `nofy_orchestra::dag::Dag`(fail-loud),per-task on_fail 映射=retry>0→Retry{n},否则 manifest 级 Escalate/Skip;Dag 存入 DaemonRun 成为依赖形状的结构权威。
+- **task.* 日志上运行时**(FR11.5):DaemonRun 持 journal——submit 即 Armed 全量(崩溃自第一刻可对账)、TaskPoll 派发记 Claimed、TaskResult 记 Settled(仅已知任务,未知 id 不入账,F3 教训)、escalation 记 Escalated/EscalationResolved;`re_dispatch()`=fold 后 claimed/armed 未结算清单(AC-11 崩溃对账续跑)。
+- **escalation 过批审批账本**(FR11.8):表面应答不再裸判 AllowOnce——构 ApprovalBatch(单条)→init_ledger→decide_item/expire_undecided(超时未决=fail-closed 拒)→batch_outcome 定 allow;broker 仍为传输,账本为裁决簿记。
+- 新测试 4 个:DAG 编译+on_fail 映射+journal 全量 Armed;环 manifest 接线后仍 fail-loud;模拟崩溃 re_dispatch 恰点名 t2(日志稠密 5 条);escalation 经账本入账且 EscalationResolved{allow:true} 落日志、无残留对账。
+- 棘轮:daemon 控制面 3,322→3,645(胶+4 wire 测试,策略在核;注:daemon 已回升接近 P0 原尺寸,胶积累趋势自 Q4 起需盯);workspace 1,546,554→1,546,885。
+- 验证:daemon 57→61 双跑绿且一致;棘轮 5/5;workspace check 零错误。
+- **批次 Q3 闭环。下一步 = 批次 Q4(scheduler 接线)。**

@@ -47,6 +47,27 @@ pub const DEFAULT_APPROVAL_TIMEOUT: Duration = Duration::from_secs(300);
 pub struct DaemonRun {
     pub orch: crate::orchestra::OrchRun,
     pub packs: std::collections::BTreeMap<String, crate::pack::PackManifest>,
+    /// P2 DAG engine (FR11.6, Q3 wiring): structural authority over the
+    /// dependency shape, built fail-loud at submit.
+    pub dag: nofy_orchestra::dag::Dag,
+    /// `task.*` journal events (FR11.5, Q3 wiring): dense-seq lifecycle
+    /// log; the fold reconciles after a crash.
+    pub journal: Vec<nofy_orchestra::taskjournal::TaskEvent>,
+}
+
+impl DaemonRun {
+    /// Next dense journal seq.
+    fn next_seq(&self) -> u64 {
+        self.journal.last().map(|e| e.seq()).unwrap_or(0) + 1
+    }
+
+    /// Crash reconciliation (AC-11, Q3 wiring): tasks armed/claimed but
+    /// never settled must be re-dispatched.
+    pub fn re_dispatch(&self) -> Vec<String> {
+        nofy_orchestra::taskjournal::re_dispatch_list(&nofy_orchestra::taskjournal::fold_tasks(
+            &self.journal,
+        ))
+    }
 }
 
 pub struct DaemonConfig {
@@ -109,10 +130,48 @@ pub fn submit_run(
         }
     }
     let total = m.task.len() as u32;
+
+    // Q3 wiring (FR11.6): build the P2 DAG engine's view of the same
+    // dependency shape, fail-loud. Per-task on_fail comes from the
+    // manifest's per-task `retry` budget: retry>0 = Retry, else the
+    // manifest-level on_fail (Escalate/Skip).
+    let dag_tasks: Vec<nofy_orchestra::dag::DagTask> = m
+        .task
+        .iter()
+        .map(|t| nofy_orchestra::dag::DagTask {
+            id: t.id.clone(),
+            needs: t.needs.clone(),
+            on_fail: if t.retry > 0 {
+                nofy_orchestra::dag::OnFailPolicy::Retry { attempts: t.retry }
+            } else {
+                match m.on_fail {
+                    crate::orchestra::OnFail::Escalate => nofy_orchestra::dag::OnFailPolicy::Escalate,
+                    crate::orchestra::OnFail::Skip => nofy_orchestra::dag::OnFailPolicy::Skip,
+                }
+            },
+        })
+        .collect();
+    let dag = nofy_orchestra::dag::Dag::build(dag_tasks).map_err(|e| format!("dag: {e:?}"))?;
+
+    // Q3 wiring (FR11.5): arm every task in the journal at submit so a
+    // crash before any dispatch still reconciles the full run.
+    let journal: Vec<nofy_orchestra::taskjournal::TaskEvent> = m
+        .task
+        .iter()
+        .enumerate()
+        .map(|(i, t)| nofy_orchestra::taskjournal::TaskEvent::Armed {
+            seq: (i + 1) as u64,
+            task: t.id.clone(),
+            run: "submit".into(),
+        })
+        .collect();
+
     Ok((
         DaemonRun {
             orch: crate::orchestra::OrchRun::new(m),
             packs: pack_map,
+            dag,
+            journal,
         },
         total,
     ))
@@ -266,6 +325,16 @@ pub fn serve_connection<R: Read, W: Write>(
                 let mut guard = run.lock().unwrap();
                 match guard.as_mut().and_then(|r| r.orch.dispatch_next()) {
                     Some(t) => {
+                        // Q3 wiring (FR11.5): journal the claim before the
+                        // task leaves the daemon.
+                        if let Some(r) = guard.as_mut() {
+                            let seq = r.next_seq();
+                            r.journal.push(nofy_orchestra::taskjournal::TaskEvent::Claimed {
+                                seq,
+                                task: t.id.clone(),
+                                claimant: "provider".into(),
+                            });
+                        }
                         let (persona, skills) = guard
                             .as_ref()
                             .and_then(|r| r.packs.get(&t.pack))
@@ -294,17 +363,75 @@ pub fn serve_connection<R: Read, W: Write>(
                         .map(|r| r.orch.settle(&task_id, succeeded))
                         .unwrap_or(SettleOutcome::Done)
                 };
+                // Q3 wiring (FR11.5): journal the settle for KNOWN tasks
+                // only (unknown ids never enter the journal).
+                if let Some(r) = run.lock().unwrap().as_mut() {
+                    if r.journal.iter().any(|e| e.task() == task_id) {
+                        let seq = r.next_seq();
+                        r.journal.push(nofy_orchestra::taskjournal::TaskEvent::Settled {
+                            seq,
+                            task: task_id.clone(),
+                            ok: succeeded,
+                        });
+                    }
+                }
                 if let SettleOutcome::Escalate(id) = outcome {
                     // Cross-surface decision: allow = skip dependents and
                     // continue; deny = abort the run.
                     let summary = format!("task {id} failed; allow skip-and-continue?");
+                    // Q3 wiring (FR11.5): journal the escalation.
+                    if let Some(r) = run.lock().unwrap().as_mut() {
+                        let seq = r.next_seq();
+                        r.journal.push(nofy_orchestra::taskjournal::TaskEvent::Escalated {
+                            seq,
+                            task: id.clone(),
+                            reason: summary.clone(),
+                        });
+                    }
                     if broker.register(&id, &summary) {
                         let decision = broker.wait(&id, DEFAULT_APPROVAL_TIMEOUT);
                         broker.settle(&id);
-                        let allow = decision
-                            == Some(nofy_control_schema::methods::ApprovalDecision::AllowOnce);
+                        // Q3 wiring (FR11.8): the decision is booked through
+                        // the batch-approval ledger — an undecided item at
+                        // the deadline is DENIED (fail-closed), never
+                        // defaulted to allow.
+                        let batch = nofy_orchestra::batchapproval::ApprovalBatch {
+                            batch_id: format!("escalation-{id}"),
+                            items: vec![nofy_orchestra::batchapproval::BatchItem {
+                                id: id.clone(),
+                                summary: summary.clone(),
+                                high_risk: true,
+                            }],
+                        };
+                        let mut ledger = nofy_orchestra::batchapproval::init_ledger(&batch);
+                        match decision {
+                            Some(d) => {
+                                let item =
+                                    if d == nofy_control_schema::methods::ApprovalDecision::AllowOnce {
+                                        nofy_orchestra::batchapproval::ItemDecision::Approved
+                                    } else {
+                                        nofy_orchestra::batchapproval::ItemDecision::Denied
+                                    };
+                                nofy_orchestra::batchapproval::decide_item(&mut ledger, &id, item);
+                            }
+                            None => {
+                                nofy_orchestra::batchapproval::expire_undecided(&mut ledger);
+                            }
+                        }
+                        let allow = matches!(
+                            nofy_orchestra::batchapproval::batch_outcome(&ledger),
+                            nofy_orchestra::batchapproval::BatchOutcome::AllApproved
+                        );
                         if let Some(r) = run.lock().unwrap().as_mut() {
                             r.orch.resolve_escalation(&id, allow);
+                            let seq = r.next_seq();
+                            r.journal.push(
+                                nofy_orchestra::taskjournal::TaskEvent::EscalationResolved {
+                                    seq,
+                                    task: id.clone(),
+                                    allow,
+                                },
+                            );
                         }
                     }
                 }
@@ -968,6 +1095,202 @@ needs = ["t1"]
             serde_json::from_slice(&read_frame_from(&mut pr).unwrap().unwrap()).unwrap();
         assert_eq!(end["kind"], "no_pending", "run complete");
         assert!(run.lock().unwrap().as_ref().unwrap().orch.is_done());
+    }
+
+    #[test]
+    fn submit_builds_p2_dag_and_arms_the_journal() {
+        // Q3 wiring: submit compiles the manifest through the P2 DAG
+        // engine (fail-loud) and arms every task in the task journal.
+        let manifest = r#"
+packs = ["p"]
+
+[[task]]
+id = "t1"
+pack = "p"
+goal = "first"
+retry = 2
+
+[[task]]
+id = "t2"
+pack = "p"
+goal = "second"
+needs = ["t1"]
+"#;
+        let (dr, total) = submit_run(manifest, &[]).unwrap();
+        assert_eq!(total, 2);
+        assert_eq!(dr.dag.tasks.len(), 2, "P2 DAG engine owns the dependency shape");
+        // Per-task on_fail mapping: retry=2 → Retry{2}; retry=0 + default
+        // on_fail=escalate → Escalate.
+        let t1 = dr.dag.tasks.iter().find(|t| t.id == "t1").unwrap();
+        assert_eq!(t1.on_fail, nofy_orchestra::dag::OnFailPolicy::Retry { attempts: 2 });
+        let t2 = dr.dag.tasks.iter().find(|t| t.id == "t2").unwrap();
+        assert_eq!(t2.on_fail, nofy_orchestra::dag::OnFailPolicy::Escalate);
+        // Journal armed at submit: everything is reconcilable from the
+        // very first instant.
+        assert_eq!(dr.journal.len(), 2);
+        assert_eq!(dr.re_dispatch(), vec!["t1".to_string(), "t2".to_string()]);
+    }
+
+    #[test]
+    fn cyclic_manifest_still_fails_loud_under_wiring() {
+        // Cycle refusal may fire in the manifest validator or the DAG
+        // engine — either way submit must refuse, never accept.
+        let manifest = r#"
+packs = ["p"]
+
+[[task]]
+id = "a"
+pack = "p"
+goal = "x"
+needs = ["b"]
+
+[[task]]
+id = "b"
+pack = "p"
+goal = "y"
+needs = ["a"]
+"#;
+        assert!(submit_run(manifest, &[]).is_err());
+    }
+
+    #[test]
+    fn journal_reconciles_a_crashed_run() {
+        // Q3 wiring (AC-11): t1 settles ok; t2 is dispatched and the
+        // "process crashes" (no TaskResult) — reconciliation must name t2.
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let manifest = r#"
+packs = ["p"]
+
+[[task]]
+id = "t1"
+pack = "p"
+goal = "first"
+
+[[task]]
+id = "t2"
+pack = "p"
+goal = "second"
+"#;
+        let mut input = Vec::new();
+        write_frame(&mut input, &hello_frame()).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![] }),
+        )
+        .unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true }),
+        )
+        .unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
+        // No TaskResult for t2: the connection simply ends (crash).
+        {
+            let mut r = std::io::Cursor::new(input);
+            let mut out = Vec::new();
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &ApprovalBroker::new(),
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &run,
+            )
+            .unwrap();
+        }
+        let guard = run.lock().unwrap();
+        let dr = guard.as_ref().unwrap();
+        assert_eq!(dr.re_dispatch(), vec!["t2".to_string()], "claimed-but-unsettled must resume");
+        // The journal is dense and complete: 2 armed + 1 claimed + 1
+        // settled + 1 claimed.
+        assert_eq!(dr.journal.len(), 5);
+    }
+
+    #[test]
+    fn escalation_decision_books_through_the_batch_ledger() {
+        // Q3 wiring (FR11.8 + FR11.5): a failed task escalates; the
+        // surface answer is booked through the batch-approval ledger and
+        // the resolution lands in the journal.
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let shared = std::sync::Arc::new(ApprovalBroker::new());
+        let manifest = r#"
+packs = ["p"]
+
+[[task]]
+id = "t1"
+pack = "p"
+goal = "risky"
+"#;
+        // Provider connection: submit, poll, then report FAILURE — the
+        // TaskResult handler blocks on the escalation round-trip.
+        let mut provider_in = Vec::new();
+        write_frame(&mut provider_in, &hello_frame()).unwrap();
+        write_frame(
+            &mut provider_in,
+            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![] }),
+        )
+        .unwrap();
+        write_frame(&mut provider_in, &method_frame(&ControlMethod::TaskPoll)).unwrap();
+        write_frame(
+            &mut provider_in,
+            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: false }),
+        )
+        .unwrap();
+        let (run2, shared2) = (run.clone(), shared.clone());
+        let provider_thread = std::thread::spawn(move || {
+            let mut r = std::io::Cursor::new(provider_in);
+            let mut out = Vec::new();
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &shared2,
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &run2,
+            )
+            .unwrap();
+            out
+        });
+        // Surface connection allows the skip-and-continue.
+        std::thread::sleep(Duration::from_millis(100));
+        let mut surface_in = Vec::new();
+        write_frame(&mut surface_in, &hello_frame()).unwrap();
+        write_frame(
+            &mut surface_in,
+            &method_frame(&ControlMethod::ApprovalRespond {
+                intent_id: "t1".into(),
+                decision: nofy_control_schema::methods::ApprovalDecision::AllowOnce,
+            }),
+        )
+        .unwrap();
+        {
+            let mut r = std::io::Cursor::new(surface_in);
+            let mut out = Vec::new();
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &shared,
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &run,
+            )
+            .unwrap();
+        }
+        let _ = provider_thread.join().unwrap();
+        let guard = run.lock().unwrap();
+        let dr = guard.as_ref().unwrap();
+        // Journal: armed, claimed, settled(fail), escalated, resolved(allow).
+        use nofy_orchestra::taskjournal::TaskEvent;
+        assert!(dr.journal.iter().any(|e| matches!(e, TaskEvent::Escalated { task, .. } if task == "t1")));
+        assert!(dr.journal.iter().any(|e| matches!(
+            e,
+            TaskEvent::EscalationResolved { task, allow: true, .. } if task == "t1"
+        )));
+        assert!(dr.re_dispatch().is_empty(), "resolved escalation leaves nothing to resume");
     }
 
     #[test]
