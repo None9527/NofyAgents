@@ -288,3 +288,32 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 验证:全部 crate 双跑绿且一致;daemon 棘轮 5/5;workspace check 零错误。
 - **P2 前置队列清空**:FR13.1(L)、FR4.5(O1)、FR1.12–1.16(O3)、FR2.8/2.10/2.11(L/O5)、FR6.2/6.3(O3)、FR9.7/9.8(O1/O2)、FR9.9/9.10(O4)全部落地。
 - **批次 O 闭环。下一步 = P2 收口。**
+
+## P2 收口(批次 K–O 结算)
+
+**里程碑对账(PRD §7 P2 行)**:
+
+| 里程碑 | 状态 | 证据 |
+|---|---|---|
+| 任务 DAG+批审批 | ✅ 达成(批次 K) | orchestra dag(per-task on_fail+并行批)+batchapproval(一次 Ask 逐条账本 fail-closed)+taskjournal 崩溃对账 |
+| 第三方零核心改动接表面 | ✅ 达成(批次 L+M) | webhook/IM 走核心信封与审批;pack/插件/适配器全过核心同一道门(parse_pack/compose_packs/manifest 验证/适配器契约),内置 exemplar 不特例化 |
+| file-steward 上线 | ✅ 达成(批次 N) | FR12 全族落地:P1 地基(12.1–12.5/12.9/12.11/12.12/12.14/12.15)+N 批(12.6–12.8/12.13) |
+
+**AC 对账(P2 条款)**:
+
+- **AC-8**(两句):「第三方按 manifest 零核心改动接入」= M 批 pluginmanifest 验证+隔离区准入+exemplar 过第三方同一道门,核心无一处为第三方开特例;「钩子崩溃不拖主管线」= J6(P1 已证)。✅
+- **AC-11**(四句):manifest 编译为 workflow run(F 批双编译目标);验收不靠自述=goal 纯 fold(F);崩溃后 task.* 对账续跑=K 批 re_dispatch_list(稠密 seq 缺口=截断,终态终结);escalate 走 FR5 跨表面审批=K 批 OnFailPolicy::Escalate+batchapproval 链。✅
+- **AC-12**(九句):未选根零索引零外呼/only-index 产不出写/forget 不可命中/批整理可回放撤销/租约加载期即拒/重叠取严/墓碑解析陈旧引用/新根前三批 dry-run/外部对账归因——I 批九句全过,N 批 mgmt 加载期 LeaseHit 加固。✅
+- **AC-13**(两句):四表面同一会话真相(L 批 migration 一致性不变量+J8 同构投影);IM 可批准(L 批卡片+应答→审批路径)。✅
+
+**P2 前置队列结算(第一性原理裁定推迟项,全部兑现)**:FR13.1(L)、FR4.5(O1)、FR1.12–1.16(O3)、FR2.8(O5)/FR2.10(L)/FR2.11(O5)、FR6.2/6.3(O3)、FR9.7(O1)/FR9.8(O2)/FR9.9/9.10(O4)。队列清空,无遗留。
+
+**工程量结算(P2 段)**:
+
+- 新 crate 三枚:nofy-surfaces(L)、nofy-marketplace(M)、nofy-runtimecore(O3);扩展四枚:orchestra/scheduler(K)、stewardcore(N)、memorycore/governance(O)。策略核共十枚。
+- 测试:513 单测+14 棘轮/集成件,全绿双跑一致;daemon 棘轮 3→5 测试(密封测试+死码探测器)。
+- 棘轮行使:surfaces 日一 689→815、marketplace 日一 677、runtimecore 日一 894、orchestra 2,682、scheduler 2,786、stewardcore 1,493→2,418、memorycore 1,198→1,948、governance 1,274→1,905、agility 1,326;workspace 1,540,652→1,545,571(每次抬升附理由)。
+- 纪律保持:零新增出站(embeddings 默认关、段不隐含出站);default-off;fail-loud/fail-closed 一以贯之;纯策略核先行,daemon/shell 接线仍属后续集成批次。
+- 真 bug 由测试捕获:dreaming 相位模型缺陷(未 collect 即 distill 的错误归类)——构造期修正。
+
+**P2 闭环。下一步 = P3(§7 末行:FR 表 P3 项)。**
