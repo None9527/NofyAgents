@@ -23,7 +23,8 @@ fn marketplace_loc_ratchet_only_shrinks() {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     // Day-one cap: batch M marketplace cores (discovery/exemplars/
     // pluginmanifest/docker/channeladapter) + their tests.
-    let cap = 677;
+    // - 677→825: batch P realmcheck.rs (realm isolation evaluation).
+    let cap = 825;
     let got = loc(&src);
     assert!(
         got <= cap,

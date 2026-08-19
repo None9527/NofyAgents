@@ -16,11 +16,17 @@
 //! - [`workerroute`] — host-request routing out of the session +
 //!   scrubbed-env workers with grace kill and pair ledger (FR6.8/6.9);
 //! - [`bootcheck`] — BOOT self-check session (FR1.16).
+//!
+//! Batch P adds:
+//!
+//! - [`execworld`] — execution worlds: local/docker/ssh, default-off,
+//!   capability narrowing (FR6.10).
 
 pub mod bootcheck;
 pub mod coldstart;
 pub mod cwdmark;
 pub mod envsnapshot;
+pub mod execworld;
 pub mod persistence;
 pub mod unitgen;
 pub mod workerroute;

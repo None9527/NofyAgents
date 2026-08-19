@@ -26,7 +26,9 @@ fn stewardcore_loc_ratchet_only_shrinks() {
     // + their tests.
     // - 1493→2418: batch N file-steward launch (mgmt/extract/suggestions/
     //   handoff + tests; FR12.6-12.8/12.13).
-    let cap = 2418;
+    // - 2418→2587: batch P osbridge.rs (Spotlight/Everything provider
+    //   evaluation gate; FR12.10).
+    let cap = 2587;
     let got = loc(&src);
     assert!(
         got <= cap,

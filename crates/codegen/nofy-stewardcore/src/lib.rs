@@ -33,6 +33,11 @@
 //!   batch approval (FR12.8);
 //! - [`handoff`] — leased-root handoff via steering, steward degrades to
 //!   advisor on project ground (FR12.13).
+//!
+//! Batch P adds:
+//!
+//! - [`osbridge`] — OS integration bridges (Spotlight/Everything) as
+//!   search providers: the evaluation gate (FR12.10).
 
 pub mod activity;
 pub mod extract;
@@ -41,6 +46,7 @@ pub mod fspolicy;
 pub mod handoff;
 pub mod lease;
 pub mod mgmt;
+pub mod osbridge;
 pub mod privacy;
 pub mod revalidate;
 pub mod roots;

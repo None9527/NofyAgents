@@ -317,3 +317,21 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 真 bug 由测试捕获:dreaming 相位模型缺陷(未 collect 即 distill 的错误归类)——构造期修正。
 
 **P2 闭环。下一步 = P3(§7 末行:FR 表 P3 项)。**
+
+## 批次 P:P3 执行世界谱系(FR6.10 + FR12.10 + realm 隔离评估)
+
+> 环境变更:GitNexus MCP 于本批次前接入(用户级 `~/.grok/config.toml`,doctor 全绿 11 工具,索引刷新至 HEAD),CLAUDE.md 要求的提交前 `detect_changes` 自本批起实际执行。
+
+- `nofy-runtimecore` 扩 `execworld.rs`(30→36,FR6.10):执行世界=工具效果落点。default-off——新注册表只有 local 世界,docker/ssh 须显式注册(image/host 空值拒绝、id 去重);路由未知世界 fail-closed;能力只收窄——基线可注入(宿主可先天收窄),任何世界超出基线任一轴即拒(CapabilityWidening)。
+- `nofy-stewardcore` 扩 `osbridge.rs`(70→75,FR12.10):Spotlight/Everything 桥作 provider 的评估门。四条不可协商:只读(不得变更文件系统)、仅提示(命中必须按 FR12.9 落盘再验证)、default-off(采纳不自启用)、本地 IPC(零新增出站);任一缺失=Reject 并列明全部理由;采纳产物状态恒为 Off。
+- `nofy-marketplace` 扩 `realmcheck.rs`(21→26,realm 隔离评估):驱动真 `compose_packs`/`RealmMap` 评估隔离姿态——每 pack 一 realm(realm 数==pack 数)、服务声明一律 Isolated、跨 realm 同名合法但评估报告使其可见(DS-P2:碰撞只存在于 realm 内);exemplar packs 过审计。
+- **FR6.8 结算**:§7 P3 行复列 FR6.8,已于批次 O3(workerroute.rs)兑现,不重复落地。
+- 棘轮:runtimecore 894→1,128;marketplace 677→825;stewardcore 2,418→2,587;workspace 1,545,571→1,546,130(附理由)。
+- 验证:三 crate 双跑绿且一致(36/26/75);daemon 棘轮 5/5;workspace check 零错误;`gitnexus_detect_changes(scope=all)`:51 符号/7 文件/风险 low/受影响执行流 0,与预期一致。
+- **P3 里程碑「执行世界谱系」达成。批次 P 闭环。**
+
+## P3 收口(批次 P 结算)
+
+- §7 P3 行四项结算:FR6.10(execworld)✓、FR6.8(O3 已兑现)✓、FR12.10(osbridge 评估门)✓、realm 隔离评估(realmcheck)✓。里程碑「执行世界谱系」达成。
+- P3=机会项,无 AC 命题;非目标维持(22 渠道本体/pi harness v4 整体/PiServer 9 命令 schema/原生 app 不入范围)。
+- **PRD §7 路线图四行(P0–P3)至此全部闭环**:P0 地基(A–D)、P1 批次 E–J、P2 批次 K–O、P3 批次 P。十策略核 529 单测+14 棘轮件,workspace 预算 1,546,130。

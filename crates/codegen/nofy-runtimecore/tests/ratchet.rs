@@ -24,7 +24,9 @@ fn runtimecore_loc_ratchet_only_shrinks() {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     // Day-one cap: batch O3 runtime cores (persistence/unitgen/
     // coldstart/envsnapshot/cwdmark/workerroute/bootcheck) + tests.
-    let cap = 894;
+    // - 894→1128: batch P execworld.rs (docker/ssh execution worlds;
+    //   FR6.10).
+    let cap = 1128;
     let got = loc(&src);
     assert!(
         got <= cap,

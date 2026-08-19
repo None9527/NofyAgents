@@ -91,7 +91,10 @@ fn workspace_loc_budget_only_shrinks() {
     //   tests in this file).
     // - 1_545_295→1_545_571: batch O5 queue redemption (surfaces
     //   interruption FR2.8; governance hubgate FR2.11).
-    let cap = 1_545_571; // budget at E12 landing (89 members, src+tests+benches+examples)
+    // - 1_545_571→1_546_130: batch P (runtimecore execworld FR6.10;
+    //   stewardcore osbridge FR12.10; marketplace realmcheck realm
+    //   isolation evaluation).
+    let cap = 1_546_130; // budget at E12 landing (89 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

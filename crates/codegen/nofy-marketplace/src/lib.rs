@@ -10,9 +10,15 @@
 //! - [`docker`] — docker build-arg plugin subsets (FR8.5);
 //! - [`channeladapter`] — the channel adapter contract: an extension
 //!   SLOT, not 22 channels (FR8.6).
+//!
+//! Batch P adds:
+//!
+//! - [`realmcheck`] — realm isolation evaluation, driving the real
+//!   `compose_packs`/`RealmMap` (P3 执行世界谱系).
 
 pub mod channeladapter;
 pub mod discovery;
 pub mod docker;
 pub mod exemplars;
 pub mod pluginmanifest;
+pub mod realmcheck;
