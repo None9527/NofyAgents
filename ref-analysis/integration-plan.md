@@ -124,3 +124,13 @@ spawn 环境在 acp_session_impl/spawn.rs、nofy-env 只是端点预设;nofy-htt
 `content` 以 `cwdmark::render_mark(CwdMark{seq: cwd_generation, path:
 destination_cwd})` 构造,stale 判定走 `is_stale`——策略归核,不再另做
 设计。强行先接=测试表演,不做。
+**深度摸底补证(explore 子代理,107 次工具调用)**:①渲染侧——switch 项
+是合成 user 消息,`content` **逐字**入 prompt(Chat Completions/Responses
+两条转换链均不特殊处理),shell 内不存在任何格式串;全仓库唯一此类格式
+串即核 `cwdmark::render_mark`,接线点唯一且确定。②generation 由调用方
+供给,权威计数器=Summary.cwd_generation,relocation 校验 `+1` 单调,存储
+强制非零。③缺失触发者恰两处:relocation 发起者、handle append 调用者
+(斜杠命令表无 /cd 类命令,ACP 无 setCwd 方法)。④其余 cwd 变化路径均非
+会话权威 cwd:terminal 每次执行 cwd、warm shell ShellState.cwd 漂移、
+fork 新会话新 cwd(transform_conversation_cwd 文本改写)、子代理 cwd 解
+析——不构成 cwdmark 接线面。
