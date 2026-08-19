@@ -83,7 +83,10 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_543_018→1_544_102: batch O1+O2 supplements (memorycore
     //   injection/dreaming/compleases; governance classifier/selfmod/
     //   guards).
-    let cap = 1_544_102; // budget at E12 landing (88 members, src+tests+benches+examples)
+    // - 1_544_102→1_545_033: new crate nofy-runtimecore (batch O3
+    //   runtime cores: persistence/unitgen/coldstart/envsnapshot/
+    //   cwdmark/workerroute/bootcheck).
+    let cap = 1_545_033; // budget at E12 landing (89 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
