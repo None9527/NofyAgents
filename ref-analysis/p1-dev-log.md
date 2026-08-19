@@ -218,3 +218,20 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - **纪律账本**:棘轮行使 11 次(scheduler 6 次 429→2579、orchestra/governance/memorycore/stewardcore/agility 各日一、workspace 预算 5 次 1,524,996→1,539,601),每次抬升附评审理由;knip 审计驱动移除未用依赖 40 个(E12 32 个+批次内 8 个);每批次 AC 逐句对账。
 - **推迟项(P2 前置队列,裁定在案)**:E11(FR1.14/1.15)、G10(FR9.8)、H0(FR4.5)、J9(FR13.1)及 §0 裁定节所列其余。
 - **接线说明**:六新 crate 均为纯策略核+薄盘层,与 daemon/shell 的接线(调度器接入控制面、pack 装配热路径消费、Web serve 传输面)属 P2 集成批次——P1 交付的是可独立验证的机制本体,符合计划「零件层先行」纪律(P0 同款)。
+
+---
+
+# P2 施工日志(批次 K–O)
+
+## 2026-08-17 · 批次 K 任务工程(已执行,K1–K5 全闭环)
+
+- 范围:FR11.5–11.8 + FR3.10(P2 里程碑「任务 DAG+批审批」本体)。落点:nofy-orchestra 扩四模块 + nofy-scheduler 扩事件总线。
+- **K1** `taskjournal.rs`(FR11.5):task.* 事件族(Armed/Claimed/Settled/Escalated/EscalationResolved)+日志不变量——**稠密 seq(gap=损坏,截断)**、**终态终结**(SettledOk/ResolvedAllow/ResolvedDeny;SettledFailed 非终态:失败后升级/重试合法)、崩溃对账(claimed 未 settled=重派清单,AC-11)。5 用例。
+- **K2** `dag.rs`(FR11.6):完整 DAG——**per-task on_fail**(Retry{n} 预算尽→escalate/Escalate/Skip)、并行批派发(cap+id 序确定性)、传递跳过差集、装载 fail-loud(重复/悬空/环)。5 用例。
+- **K3** `periodic.rs`(FR11.7):scheduler×pack 桥——schedule 触发→run 启动;**不堆积**:前 run 活跃则跳过并计数留痕;manifest 缺失拒启动;schedule 相互独立。5 用例。
+- **K4** `batchapproval.rs`(FR11.8):**一次 Ask 覆盖 N 项**(聚合行+高危计数)+逐条账本;未知项拒、Pending 非决策、**截止未决=拒(fail-closed)**、聚合态 AllApproved/Partial/AnyDenied/Incomplete。6 用例。
+- **K5** `eventbus.rs`(FR3.10,落 scheduler):topic 总线(扇出/退订/投递审计)+presence 表(上下线发 PresenceChanged)+**wake 路由**:在线表面可达,无表面=**闩存**,下次 presence 排空,永不丢。5 用例。
+- 期间修复 2 处:终态集合语义矛盾(失败后升级被终态门误杀——SettledFailed 移出终态)、presence 测试断言(deliveries=订阅者投递,需先订阅)。
+- 棘轮:orchestra 1845→2682、scheduler 2579→2786、workspace 1,539,601→1,540,652(均附理由)。
+- 验证:orchestra 双跑 71+1、scheduler 双跑 75+1 全绿;daemon 棘轮 3/3;workspace check 零错误。
+- **批次 K 闭环(P2 里程碑「任务 DAG+批审批」达成)。下一步 = 批次 L(多表面生态)。**

@@ -22,12 +22,16 @@
 //!   takes only the completed-turn prefix (FR6.4–6.7).
 
 pub mod barrier;
+pub mod batchapproval;
 pub mod caps;
 pub mod compile;
+pub mod dag;
 pub mod delegation;
 pub mod goal;
 pub mod ledger_gov;
 pub mod mount;
+pub mod periodic;
 pub mod persona;
 pub mod project;
 pub mod replay;
+pub mod taskjournal;

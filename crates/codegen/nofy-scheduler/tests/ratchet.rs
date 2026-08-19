@@ -38,7 +38,9 @@ fn scheduler_loc_ratchet_only_shrinks() {
     //   + E9 heartbeat projection (heartbeat.rs self-check + notepad).
     // - 2314→2579: E10 process registry (registry.rs rolling buffer +
     //   checkpoint recovery + watch fuse).
-    let cap = 2579; // day-one cap (E1 event-sourced core + fold tests)
+    // - 2579→2786: K5 system-event bus (eventbus.rs topics + presence +
+    //   wake routing with latch, FR3.10).
+    let cap = 2786; // day-one cap (E1 event-sourced core + fold tests)
     let got = loc(&src);
     assert!(
         got <= cap,

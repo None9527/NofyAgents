@@ -71,7 +71,9 @@ fn workspace_loc_budget_only_shrinks() {
     //   execution-surface cores).
     // - 1_538_240→1_539_601: new crate nofy-agility (batch J agility
     //   cores).
-    let cap = 1_539_601; // budget at E12 landing (87 members, src+tests+benches+examples)
+    // - 1_539_601→1_540_649: batch K task engineering (nofy-orchestra
+    //   taskjournal/dag/periodic/batchapproval + nofy-scheduler eventbus).
+    let cap = 1_540_652; // budget at E12 landing (87 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

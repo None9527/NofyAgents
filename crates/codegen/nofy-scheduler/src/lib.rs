@@ -15,8 +15,10 @@
 //! engine ([`cron`], FR3.4), true-idle channel ([`maintenance`], FR3.3),
 //! cron grammar ([`grammar`], FR3.5), one-shot timers ([`timer`], FR3.6),
 //! the jobs↔session fence ([`fence`], FR3.7), the fs-trigger policy
-//! ([`fstrigger`], FR3.8) and the heartbeat projection ([`heartbeat`],
-//! FR3.9). Nothing here talks to the daemon or the control plane.
+//! ([`fstrigger`], FR3.8), the heartbeat projection ([`heartbeat`],
+//! FR3.9) and the system-event bus with presence + wake routing
+//! ([`eventbus`], FR3.10). Nothing here talks to the daemon or the
+//! control plane.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -27,6 +29,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod cron;
 pub mod delivery;
+pub mod eventbus;
 pub mod fence;
 pub mod fstrigger;
 pub mod grammar;

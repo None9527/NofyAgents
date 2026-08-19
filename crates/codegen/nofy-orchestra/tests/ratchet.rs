@@ -28,7 +28,10 @@ fn orchestra_loc_ratchet_only_shrinks() {
     // Cap raises are deliberate reviewed changes:
     // - 1706→1845: G4 ledger governance projection (ledger_gov.rs:
     //   event-journal replay + audit + dead-letter policy).
-    let cap = 1845;
+    // - 1845→2682: batch K task engineering (taskjournal.rs task.*
+    //   family + invariants, dag.rs per-task on_fail, periodic.rs
+    //   scheduler×pack bridge, batchapproval.rs one-Ask ledger).
+    let cap = 2682;
     let got = loc(&src);
     assert!(
         got <= cap,
