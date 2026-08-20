@@ -138,3 +138,13 @@ fork 新会话新 cwd(transform_conversation_cwd 文本改写)、子代理 cwd �
 `Summary.prompt_display_cwd` 纯展示覆写(改提示词显示的 Workspace
 Path,不碰 info.cwd);compaction 按 generation 选项目指令(0→AGENTS.md
 提醒,否则 destination_project_instructions)——均非权威 cwd 变化。
+
+**§4 补记(spawn 环境接缝摸底,批次 V 后)**:shell 环境流非单点,共四
+条:①会话 spawn 再执行门(CHILD_ENV,spawn.rs:103-121);②工具上下文
+session_env=envrc 受信加载(tool_context.rs:268);③agent 启动环境
+=claude settings+envrc+color 环境(agent_ops.rs:3562-3579);④子代理
+spawn 继承 session_env(handle_request.rs:658)。核侧件已就绪
+(envsnapshot staged→publish+dump/parse_dump 注入安全、workerroute
+scrub_env 白名单+route 车道+PairLedger)。**裁定**:接线须先指定唯一
+权威捕获点与擦洗点(候选:③为捕获、④为擦洗),属专项设计批次;多
+头并接=语义混乱,不做。启动体检(批次 V)已落地,本接缝顺位第一。
