@@ -55,13 +55,14 @@ mod drift_gates {
     fn search_sessions_field_is_additive_and_roundtrips() {
         let legacy = r#"{"method":"search_result","request_id":"r1","hits":2}"#;
         let m: methods::ControlMethod = serde_json::from_str(legacy).expect("legacy frame parses");
-        match m {
-            methods::ControlMethod::SearchResult { hits, sessions, .. } => {
-                assert_eq!(hits, 2);
-                assert!(sessions.is_empty(), "absent field defaults to empty");
-            }
-            other => panic!("unexpected method: {other:?}"),
-        }
+        assert!(
+            matches!(
+                &m,
+                methods::ControlMethod::SearchResult { hits: 2, sessions, .. }
+                    if sessions.is_empty()
+            ),
+            "legacy frame deserializes as SearchResult with empty sessions: {m:?}"
+        );
 
         let resp = methods::ControlResponse::Search {
             hits: 1,

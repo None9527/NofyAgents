@@ -24,7 +24,8 @@ fn agility_loc_ratchet_only_shrinks() {
     // Day-one cap: batch J agility cores (scriptsandbox/scriptrunner/
     // protocol/sdk/hotreload/supplychain/trustfence/websurface/staging)
     // + their tests.
-    let cap = 1326;
+    // - 1326→1345: coverage-gate — tests for uncovered branches.
+    let cap = 1345;
     let got = loc(&src);
     assert!(
         got <= cap,

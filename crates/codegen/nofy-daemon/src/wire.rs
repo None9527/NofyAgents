@@ -1596,4 +1596,803 @@ goal = "risky"
         drop(client);
         streamer.join().unwrap().unwrap();
     }
+
+    fn ev(session: &str, seq: u64) -> nofy_control_schema::Event {
+        nofy_control_schema::Event {
+            seq,
+            kind: nofy_control_schema::EventKind::TurnStarted,
+            session_id: session.into(),
+            at_ms: 1,
+            payload: serde_json::Value::Null,
+        }
+    }
+
+    /// Serve one EOF-terminated in-memory connection and return the response
+    /// frames after the HelloAck.
+    fn serve_in_memory(
+        registry: &Registry,
+        methods: &[ControlMethod],
+        broker: &ApprovalBroker,
+        bus: &LiveBus,
+        search: &SearchProxy,
+        run: &std::sync::Arc<std::sync::Mutex<Option<DaemonRun>>>,
+        stores: Option<&DaemonStores>,
+    ) -> Vec<serde_json::Value> {
+        let mut input = Vec::new();
+        write_frame(&mut input, &hello_frame()).unwrap();
+        for m in methods {
+            write_frame(&mut input, &method_frame(m)).unwrap();
+        }
+        let mut r = std::io::Cursor::new(input);
+        let mut out = Vec::new();
+        serve_connection(&mut r, &mut out, registry, broker, bus, search, run, stores).unwrap();
+        response_frames(out)
+    }
+
+    fn plain_stores(dir: &std::path::Path) -> DaemonStores {
+        DaemonStores {
+            journal: nofy_orchestra::taskjournal::TaskLogStore::open(
+                dir.join("task_journal.jsonl"),
+            ),
+            runs: crate::runstore::RunStore::open(dir.join("run_store.json")),
+            scheduler: std::sync::Arc::new(std::sync::Mutex::new(
+                crate::scheduler::SchedulerService::new(),
+            )),
+        }
+    }
+
+    #[test]
+    fn empty_input_is_a_clean_hangup() {
+        let tmp = tempfile::tempdir().unwrap();
+        let registry = Registry::at(tmp.path());
+        let mut r = std::io::Cursor::new(Vec::new());
+        let mut out = Vec::new();
+        serve_connection(
+            &mut r,
+            &mut out,
+            &registry,
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        )
+        .unwrap();
+        assert!(out.is_empty(), "a peer that hangs up before Hello gets nothing");
+    }
+
+    #[test]
+    fn first_frame_must_be_a_hello() {
+        let tmp = tempfile::tempdir().unwrap();
+        let registry = Registry::at(tmp.path());
+        let mut input = Vec::new();
+        write_frame(&mut input, b"{\"method\":\"ping\"}").unwrap();
+        let mut r = std::io::Cursor::new(input);
+        let mut out = Vec::new();
+        let err = serve_connection(
+            &mut r,
+            &mut out,
+            &registry,
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        )
+        .unwrap_err();
+        assert!(
+            format!("{err}").contains("not a Hello"),
+            "protocol violation is named: {err}"
+        );
+    }
+
+    #[test]
+    fn session_list_honors_the_limit() {
+        let tmp = tempfile::tempdir().unwrap();
+        for s in ["s1", "s2"] {
+            let dir = tmp.path().join("sessions/cw1").join(s);
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("chat_history.jsonl"), "{}").unwrap();
+        }
+        let registry = Registry::at(tmp.path());
+        let frames = serve_in_memory(
+            &registry,
+            &[ControlMethod::SessionList {
+                cwd: None,
+                limit: Some(1),
+            }],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        );
+        assert_eq!(frames[0]["count"], 1, "limit truncates the listing");
+    }
+
+    #[test]
+    fn session_attach_over_the_wire_reaches_streaming() {
+        use std::os::unix::net::UnixStream;
+        // SessionAttach travels serve_connection into stream_session; an
+        // unknown session has no disk delta, and client hangup ends the
+        // stream cleanly.
+        let tmp = tempfile::tempdir().unwrap();
+        let registry = Registry::at(tmp.path());
+        let bus = LiveBus::new();
+        let (client, server) = UnixStream::pair().unwrap();
+        let streamer = std::thread::spawn(move || {
+            let mut reader = server.try_clone().unwrap();
+            let mut writer = server;
+            serve_connection(
+                &mut reader,
+                &mut writer,
+                &registry,
+                &ApprovalBroker::new(),
+                &bus,
+                &SearchProxy::new(),
+                &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                None,
+            )
+        });
+        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        let mut writer = &client;
+        write_frame(&mut writer, &hello_frame()).unwrap();
+        write_frame(
+            &mut writer,
+            &method_frame(&ControlMethod::SessionAttach {
+                session_id: "ghost".into(),
+                cursor: None,
+            }),
+        )
+        .unwrap();
+        let mut reader = std::io::BufReader::new(&client);
+        let ack = read_frame_from(&mut reader).unwrap().unwrap();
+        assert!(serde_json::from_slice::<HelloAck>(&ack)
+            .map(|a| matches!(a, HelloAck::Accepted { .. }))
+            .unwrap_or(false));
+        drop(reader);
+        drop(writer);
+        drop(client); // hangup: the next heartbeat write fails, stream ends
+        streamer.join().unwrap().unwrap();
+    }
+
+    #[test]
+    fn attach_without_cursor_replays_full_journal_and_skips_torn_lines() {
+        use std::os::unix::net::UnixStream;
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("sessions/cw1/s1");
+        std::fs::create_dir_all(&dir).unwrap();
+        let journal = format!(
+            "{}\nnot json — torn tail\n{}\n",
+            serde_json::json!({"seq":0,"kind":"turn.started","session_id":"s1","at_ms":1,"payload":null}),
+            serde_json::json!({"seq":1,"kind":"turn.started","session_id":"s1","at_ms":1,"payload":null}),
+        );
+        std::fs::write(dir.join("runtime_events.jsonl"), journal).unwrap();
+        let registry = Registry::at(tmp.path());
+        let bus = LiveBus::new();
+
+        let (client, server) = UnixStream::pair().unwrap();
+        let bus2 = bus.clone();
+        let streamer = std::thread::spawn(move || {
+            let mut w = &server;
+            let mut r = &server;
+            stream_session(&mut r, &mut w, &registry, &bus2, "s1", None)
+        });
+        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        let mut reader = std::io::BufReader::new(&client);
+        // No cursor: the WHOLE journal replays; the torn line is skipped.
+        let f1 = read_frame_from(&mut reader).unwrap().unwrap();
+        let f2 = read_frame_from(&mut reader).unwrap().unwrap();
+        let v1: serde_json::Value = serde_json::from_slice(&f1).unwrap();
+        let v2: serde_json::Value = serde_json::from_slice(&f2).unwrap();
+        assert_eq!(v1["event"]["seq"], 0);
+        assert_eq!(v2["event"]["seq"], 1);
+        drop(reader);
+        drop(client);
+        streamer.join().unwrap().unwrap();
+    }
+
+    #[test]
+    fn attach_with_missing_journal_still_goes_live() {
+        use std::os::unix::net::UnixStream;
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("sessions/cw1/s1");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("chat_history.jsonl"), "{}").unwrap();
+        let registry = Registry::at(tmp.path());
+        let bus = LiveBus::new();
+
+        let (client, server) = UnixStream::pair().unwrap();
+        let bus2 = bus.clone();
+        let streamer = std::thread::spawn(move || {
+            let mut w = &server;
+            let mut r = &server;
+            stream_session(&mut r, &mut w, &registry, &bus2, "s1", None)
+        });
+        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        let mut reader = std::io::BufReader::new(&client);
+        std::thread::sleep(Duration::from_millis(50)); // let it subscribe
+        bus.publish(ev("s1", 5));
+        let f = read_frame_from(&mut reader).unwrap().unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&f).unwrap();
+        assert_eq!(v["event"]["seq"], 5, "live events flow with no disk delta");
+        drop(reader);
+        drop(client);
+        streamer.join().unwrap().unwrap();
+    }
+
+    #[test]
+    fn attach_dedups_live_events_already_replayed() {
+        use std::os::unix::net::UnixStream;
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("sessions/cw1/s1");
+        std::fs::create_dir_all(&dir).unwrap();
+        let lines: Vec<String> = (0..3)
+            .map(|i| {
+                serde_json::json!({
+                    "seq": i,
+                    "kind": "turn.started",
+                    "session_id": "s1",
+                    "at_ms": 1,
+                    "payload": null
+                })
+                .to_string()
+            })
+            .collect();
+        std::fs::write(dir.join("runtime_events.jsonl"), lines.join("\n")).unwrap();
+        let registry = Registry::at(tmp.path());
+        let bus = LiveBus::new();
+
+        let (client, server) = UnixStream::pair().unwrap();
+        let bus2 = bus.clone();
+        let streamer = std::thread::spawn(move || {
+            let mut w = &server;
+            let mut r = &server;
+            stream_session(&mut r, &mut w, &registry, &bus2, "s1", None)
+        });
+        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        let mut reader = std::io::BufReader::new(&client);
+        for expected in 0..3u64 {
+            let f = read_frame_from(&mut reader).unwrap().unwrap();
+            let v: serde_json::Value = serde_json::from_slice(&f).unwrap();
+            assert_eq!(v["event"]["seq"], expected);
+        }
+        // A duplicate of the replay tail is dropped; the next seq passes.
+        bus.publish(ev("s1", 2));
+        bus.publish(ev("s1", 3));
+        let f = read_frame_from(&mut reader).unwrap().unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&f).unwrap();
+        assert_eq!(v["event"]["seq"], 3, "the duplicate never reaches the client");
+        drop(reader);
+        drop(client);
+        streamer.join().unwrap().unwrap();
+    }
+
+    #[test]
+    fn attach_live_write_failure_unsubscribes_cleanly() {
+        use std::os::unix::net::UnixStream;
+        let tmp = tempfile::tempdir().unwrap();
+        let registry = Registry::at(tmp.path());
+        let bus = LiveBus::new();
+        let (client, server) = UnixStream::pair().unwrap();
+        let bus2 = bus.clone();
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let mut w = &server;
+            let mut r = &server;
+            let res = stream_session(&mut r, &mut w, &registry, &bus2, "s1", None);
+            let _ = done_tx.send(res.is_ok());
+        });
+        drop(client); // hang up before anything is written
+        // Publish until one event lands AFTER the subscription exists; its
+        // write to the dead socket ends the stream via the live-failure path.
+        let mut ended = false;
+        for seq in 0..100u64 {
+            if done_rx.try_recv().is_ok() {
+                ended = true;
+                break;
+            }
+            bus.publish(ev("s1", seq));
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(ended, "the streamer must end on the failed live write");
+    }
+
+    #[test]
+    fn attach_heartbeat_keeps_an_idle_connection() {
+        use std::os::unix::net::UnixStream;
+        let tmp = tempfile::tempdir().unwrap();
+        let registry = Registry::at(tmp.path());
+        let bus = LiveBus::new();
+        let (client, server) = UnixStream::pair().unwrap();
+        let bus2 = bus.clone();
+        let streamer = std::thread::spawn(move || {
+            let mut w = &server;
+            let mut r = &server;
+            stream_session(&mut r, &mut w, &registry, &bus2, "s1", None)
+        });
+        client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        let mut reader = std::io::BufReader::new(&client);
+        // Idle past one heartbeat tick: a Pong probe arrives.
+        let f = read_frame_from(&mut reader).unwrap().unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&f).unwrap();
+        assert_eq!(v["kind"], "pong", "idle ticks heartbeat a Pong");
+        drop(reader);
+        drop(client);
+        streamer.join().unwrap().unwrap();
+    }
+
+    #[test]
+    fn attach_ends_when_the_subscription_is_dropped() {
+        let tmp = tempfile::tempdir().unwrap();
+        let registry = Registry::at(tmp.path());
+        let bus = LiveBus::new();
+        // Occupy sub id 1 so the streamer's subscription is id 2.
+        let (_probe_id, _probe_rx) = bus.subscribe("s1");
+        let (done_tx, done_rx) = std::sync::mpsc::channel::<()>();
+        let bus2 = bus.clone();
+        std::thread::spawn(move || {
+            let mut r = std::io::empty();
+            let mut w = Vec::new();
+            stream_session(&mut r, &mut w, &registry, &bus2, "s1", None).unwrap();
+            let _ = done_tx.send(());
+        });
+        // Drop the streamer's sender as soon as it exists: the receiver
+        // observes Disconnected and the stream ends cleanly.
+        loop {
+            if done_rx.try_recv().is_ok() {
+                break;
+            }
+            bus.unsubscribe("s1", 2);
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+
+    #[test]
+    fn task_submit_run_store_failure_fails_loud() {
+        // The run-store path occupied by a directory: save fails, and the
+        // refusal travels the wire as a structured Internal error.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("run_store.json")).unwrap();
+        let stores = plain_stores(dir.path());
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[ControlMethod::TaskSubmit {
+                manifest: manifest.into(),
+                packs: vec![],
+            }],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            Some(&stores),
+        );
+        assert_eq!(frames[0]["code"], "INTERNAL");
+        assert!(frames[0]["detail"]
+            .as_str()
+            .unwrap()
+            .contains("run store save failed"));
+    }
+
+    #[test]
+    fn task_submit_journal_attach_failure_fails_loud() {
+        // The journal path occupied by a directory: the plan saves, but the
+        // journal attach fails — the run must NOT become visible.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("task_journal.jsonl")).unwrap();
+        let stores = plain_stores(dir.path());
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[ControlMethod::TaskSubmit {
+                manifest: manifest.into(),
+                packs: vec![],
+            }],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &run,
+            Some(&stores),
+        );
+        assert_eq!(frames[0]["code"], "INTERNAL");
+        assert!(frames[0]["detail"]
+            .as_str()
+            .unwrap()
+            .contains("task journal attach failed"));
+        assert!(run.lock().unwrap().is_none(), "a failed attach never installs the run");
+    }
+
+    #[test]
+    fn task_result_for_unknown_task_is_noted_without_journal() {
+        // Unknown task ids settle as no-op Done and NEVER enter the journal.
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[
+                ControlMethod::TaskSubmit {
+                    manifest: manifest.into(),
+                    packs: vec![],
+                },
+                ControlMethod::TaskResult {
+                    task_id: "ghost".into(),
+                    succeeded: true,
+                },
+            ],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &run,
+            None,
+        );
+        assert_eq!(frames[0]["kind"], "project_accepted");
+        assert_eq!(frames[1]["kind"], "task_noted");
+        let journal_len = run.lock().unwrap().as_ref().unwrap().journal.len();
+        assert_eq!(journal_len, 1, "only the submit-time Armed event; ghost never enters");
+    }
+
+    #[test]
+    fn escalation_denied_aborts_the_run() {
+        // The surface DENIES the skip-and-continue: the ledger books Denied,
+        // the resolution lands allow=false, and the run aborts.
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let shared = std::sync::Arc::new(ApprovalBroker::new());
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"risky\"\n";
+        let mut provider_in = Vec::new();
+        write_frame(&mut provider_in, &hello_frame()).unwrap();
+        write_frame(
+            &mut provider_in,
+            &method_frame(&ControlMethod::TaskSubmit {
+                manifest: manifest.into(),
+                packs: vec![],
+            }),
+        )
+        .unwrap();
+        write_frame(&mut provider_in, &method_frame(&ControlMethod::TaskPoll)).unwrap();
+        write_frame(
+            &mut provider_in,
+            &method_frame(&ControlMethod::TaskResult {
+                task_id: "t1".into(),
+                succeeded: false,
+            }),
+        )
+        .unwrap();
+        let (run2, shared2) = (run.clone(), shared.clone());
+        let provider_thread = std::thread::spawn(move || {
+            let mut r = std::io::Cursor::new(provider_in);
+            let mut out = Vec::new();
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &shared2,
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &run2,
+                None,
+            )
+            .unwrap();
+        });
+        std::thread::sleep(Duration::from_millis(100));
+        let mut surface_in = Vec::new();
+        write_frame(&mut surface_in, &hello_frame()).unwrap();
+        write_frame(
+            &mut surface_in,
+            &method_frame(&ControlMethod::ApprovalRespond {
+                intent_id: "t1".into(),
+                decision: nofy_control_schema::methods::ApprovalDecision::Deny,
+            }),
+        )
+        .unwrap();
+        {
+            let mut r = std::io::Cursor::new(surface_in);
+            let mut out = Vec::new();
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &shared,
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &run,
+                None,
+            )
+            .unwrap();
+        }
+        provider_thread.join().unwrap();
+        let guard = run.lock().unwrap();
+        let dr = guard.as_ref().unwrap();
+        use nofy_orchestra::taskjournal::TaskEvent;
+        assert!(dr.journal.iter().any(|e| matches!(
+            e,
+            TaskEvent::EscalationResolved { task, allow: false, .. } if task == "t1"
+        )));
+        assert!(dr.orch.is_done(), "a denied escalation aborts the run");
+    }
+
+    #[test]
+    fn escalation_skips_round_trip_when_intent_already_pending() {
+        // A duplicate escalation intent cannot register: the round-trip is
+        // skipped (never blocked twice), the escalation stays unresolved.
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let broker = std::sync::Arc::new(ApprovalBroker::new());
+        assert!(broker.register("t1", "pre-existing intent"));
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"risky\"\n";
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[
+                ControlMethod::TaskSubmit {
+                    manifest: manifest.into(),
+                    packs: vec![],
+                },
+                ControlMethod::TaskPoll,
+                ControlMethod::TaskResult {
+                    task_id: "t1".into(),
+                    succeeded: false,
+                },
+            ],
+            &broker,
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &run,
+            None,
+        );
+        assert_eq!(frames[2]["kind"], "task_noted", "no round-trip, the settle is noted");
+        let guard = run.lock().unwrap();
+        let dr = guard.as_ref().unwrap();
+        use nofy_orchestra::taskjournal::TaskEvent;
+        assert!(dr.journal.iter().any(|e| matches!(e, TaskEvent::Escalated { task, .. } if task == "t1")));
+        assert!(
+            !dr.journal.iter().any(|e| matches!(e, TaskEvent::EscalationResolved { .. })),
+            "a skipped round-trip resolves nothing"
+        );
+        assert!(!dr.orch.is_done());
+    }
+
+    #[test]
+    fn run_store_clear_failure_is_logged_not_fatal() {
+        // The plan store becomes undeletable mid-run: the clear failure is
+        // logged, the client still gets its TaskNoted, the plan survives.
+        let dir = tempfile::tempdir().unwrap();
+        let stores = plain_stores(dir.path());
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"only\"\n";
+        let submitted = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[ControlMethod::TaskSubmit {
+                manifest: manifest.into(),
+                packs: vec![],
+            }],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &run,
+            Some(&stores),
+        );
+        assert_eq!(submitted[0]["kind"], "project_accepted");
+        // Make the state dir read-only: the finishing clear() cannot unlink.
+        let mut perms = std::fs::metadata(dir.path()).unwrap().permissions();
+        perms.set_readonly(true);
+        std::fs::set_permissions(dir.path(), perms).unwrap();
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[
+                ControlMethod::TaskPoll,
+                ControlMethod::TaskResult {
+                    task_id: "t1".into(),
+                    succeeded: true,
+                },
+            ],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &run,
+            Some(&stores),
+        );
+        // Restore permissions before asserting (tempdir cleanup needs them).
+        let mut perms = std::fs::metadata(dir.path()).unwrap().permissions();
+        perms.set_readonly(false);
+        std::fs::set_permissions(dir.path(), perms).unwrap();
+        assert_eq!(frames[1]["kind"], "task_noted", "the settle ack is not held hostage");
+        assert!(
+            stores.runs.load().unwrap().is_some(),
+            "the undeletable plan survives the failed clear"
+        );
+    }
+
+    #[test]
+    fn task_result_without_any_run_is_noted() {
+        // A TaskResult before any TaskSubmit: no run exists, the settle is a
+        // no-op Done and the journal block is skipped entirely.
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[ControlMethod::TaskResult {
+                task_id: "ghost".into(),
+                succeeded: true,
+            }],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        );
+        assert_eq!(frames[0]["kind"], "task_noted");
+    }
+
+    #[test]
+    fn search_result_for_unknown_job_is_refused() {
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[ControlMethod::SearchResult {
+                request_id: "ghost".into(),
+                hits: 1,
+                sessions: vec![],
+            }],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        );
+        assert_eq!(frames[0]["code"], "INTERNAL");
+        assert!(frames[0]["detail"]
+            .as_str()
+            .unwrap()
+            .contains("unknown or late search result"));
+    }
+
+    #[test]
+    fn session_event_push_fans_out_and_pongs() {
+        let bus = LiveBus::new();
+        let (sub_id, rx) = bus.subscribe("s1");
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[ControlMethod::SessionEventPush { event: ev("s1", 7) }],
+            &ApprovalBroker::new(),
+            &bus,
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        );
+        assert_eq!(frames[0]["kind"], "pong");
+        assert_eq!(rx.try_recv().unwrap().seq, 7, "the push reached the live bus");
+        bus.unsubscribe("s1", sub_id);
+    }
+
+    #[test]
+    fn approval_request_duplicate_intent_is_refused() {
+        let broker = ApprovalBroker::new();
+        assert!(broker.register("dup1", "already pending"));
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[ControlMethod::ApprovalRequest {
+                intent_id: "dup1".into(),
+                summary: "please list the files".into(),
+            }],
+            &broker,
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        );
+        assert_eq!(frames[0]["code"], "INTERNAL");
+        assert!(frames[0]["detail"]
+            .as_str()
+            .unwrap()
+            .contains("duplicate approval intent"));
+    }
+
+    #[test]
+    fn approval_respond_unknown_intent_is_refused() {
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[ControlMethod::ApprovalRespond {
+                intent_id: "ghost".into(),
+                decision: nofy_control_schema::methods::ApprovalDecision::Deny,
+            }],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        );
+        assert_eq!(frames[0]["code"], "INTERNAL");
+        assert!(frames[0]["detail"]
+            .as_str()
+            .unwrap()
+            .contains("unknown or settled approval intent"));
+    }
+
+    #[test]
+    fn schedule_methods_without_stores_are_refused_or_empty() {
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[
+                ControlMethod::ScheduleEnable,
+                ControlMethod::ScheduleAdd {
+                    id: "j1".into(),
+                    cron_spec: "* * * * *".into(),
+                },
+                ControlMethod::ScheduleRemove { id: "j1".into() },
+                ControlMethod::ScheduleList,
+            ],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        );
+        for frame in &frames[0..3] {
+            assert_eq!(frame["code"], "INTERNAL");
+            assert!(frame["detail"]
+                .as_str()
+                .unwrap()
+                .contains("scheduler store not attached"));
+        }
+        assert_eq!(frames[3]["kind"], "schedule_listed");
+        assert_eq!(frames[3]["entries"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn schedule_remove_disabled_refusal_over_wire() {
+        let dir = tempfile::tempdir().unwrap();
+        let stores = scheduler_stores(dir.path());
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[ControlMethod::ScheduleRemove { id: "j1".into() }],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            Some(&stores),
+        );
+        assert_eq!(frames[0]["code"], "INTERNAL");
+        assert!(frames[0]["detail"]
+            .as_str()
+            .unwrap()
+            .contains("schedule remove refused"));
+    }
+
+    #[test]
+    fn bad_method_frame_is_a_structured_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let registry = Registry::at(tmp.path());
+        let mut input = Vec::new();
+        write_frame(&mut input, &hello_frame()).unwrap();
+        write_frame(&mut input, b"{\"nope\":true}").unwrap();
+        let mut r = std::io::Cursor::new(input);
+        let mut out = Vec::new();
+        serve_connection(
+            &mut r,
+            &mut out,
+            &registry,
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        )
+        .unwrap();
+        let frames = response_frames(out);
+        assert_eq!(frames[0]["code"], "INTERNAL");
+        assert!(frames[0]["detail"].as_str().unwrap().contains("bad method frame"));
+    }
+
+    #[test]
+    fn socket_helpers_peer_pid_parent_pids_secs_now() {
+        use std::os::unix::net::UnixStream;
+        // SO_PEERCRED on a socket pair names our own pid.
+        let (a, _b) = UnixStream::pair().unwrap();
+        assert_eq!(peer_pid(&a), Some(std::process::id()));
+        // The daemon's parent chain is non-empty on any hosted process.
+        assert!(!parent_pids().is_empty());
+        // Wall-clock seconds track the system clock.
+        let sys = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        assert!(secs_now().abs_diff(sys) <= 1);
+    }
 }

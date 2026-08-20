@@ -126,52 +126,58 @@ mod tests {
         // Attacker rebinds their domain to our address: Host is not
         // allowlisted.
         let headers = same_origin("attacker.example");
-        match check(&headers, &allowed()) {
-            FenceVerdict::Refused { layer, reason } => {
-                assert_eq!(layer, 1);
-                assert!(reason.contains("rebinding"));
-            }
-            other => panic!("expected layer-1 refusal, got {other:?}"),
-        }
+        assert!(matches!(
+            check(&headers, &allowed()),
+            FenceVerdict::Refused { layer: 1, reason } if reason.contains("rebinding")
+        ));
     }
 
     #[test]
     fn cross_site_fetch_refused_at_layer_2() {
         let mut headers = same_origin("localhost");
         headers.sec_fetch_site = Some("cross-site".into());
-        match check(&headers, &allowed()) {
-            FenceVerdict::Refused { layer, .. } => assert_eq!(layer, 2),
-            other => panic!("expected layer-2 refusal, got {other:?}"),
-        }
+        assert!(matches!(
+            check(&headers, &allowed()),
+            FenceVerdict::Refused { layer: 2, .. }
+        ));
     }
 
     #[test]
     fn mismatched_origin_refused_at_layer_3() {
         let mut headers = same_origin("localhost");
         headers.origin = Some("http://evil.example".into());
-        match check(&headers, &allowed()) {
-            FenceVerdict::Refused { layer, .. } => assert_eq!(layer, 3),
-            other => panic!("expected layer-3 refusal, got {other:?}"),
-        }
+        assert!(matches!(
+            check(&headers, &allowed()),
+            FenceVerdict::Refused { layer: 3, .. }
+        ));
     }
 
     #[test]
     fn proxy_confusion_refused_at_layer_4() {
         let mut headers = same_origin("localhost");
         headers.forwarded_host = Some("other-host".into());
-        match check(&headers, &allowed()) {
-            FenceVerdict::Refused { layer, .. } => assert_eq!(layer, 4),
-            other => panic!("expected layer-4 refusal, got {other:?}"),
-        }
+        assert!(matches!(
+            check(&headers, &allowed()),
+            FenceVerdict::Refused { layer: 4, .. }
+        ));
+    }
+
+    #[test]
+    fn matching_forwarded_host_passes_layer_4() {
+        // A proxy forwarding the same host (here with port spelling) is
+        // consistent, not confused: normalization makes it match.
+        let mut headers = same_origin("localhost");
+        headers.forwarded_host = Some("LOCALHOST:8080".into());
+        assert_eq!(check(&headers, &allowed()), FenceVerdict::Allowed);
     }
 
     #[test]
     fn missing_host_refused() {
         let headers = RequestHeaders::default();
-        match check(&headers, &allowed()) {
-            FenceVerdict::Refused { layer, .. } => assert_eq!(layer, 1),
-            other => panic!("expected refusal, got {other:?}"),
-        }
+        assert!(matches!(
+            check(&headers, &allowed()),
+            FenceVerdict::Refused { layer: 1, .. }
+        ));
     }
 
     #[test]

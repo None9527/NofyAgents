@@ -133,4 +133,18 @@ mod tests {
         let parsed = parse_dump(&dump(&snap).unwrap()).unwrap();
         assert_eq!(parsed, snap);
     }
+
+    #[test]
+    fn parse_dump_skips_blank_lines() {
+        let parsed = parse_dump("A=1\n\nB=2").unwrap();
+        assert_eq!(parsed.vars.len(), 2);
+    }
+
+    #[test]
+    fn parse_dump_refuses_bad_lines() {
+        // A line without '=' fails loud at the split point.
+        assert!(matches!(parse_dump("NOEQUALS"), Err(DumpError::BadKey(_))));
+        // A key with spaces is no identifier.
+        assert_eq!(parse_dump("NOT A KEY=1"), Err(DumpError::BadKey("NOT A KEY".into())));
+    }
 }

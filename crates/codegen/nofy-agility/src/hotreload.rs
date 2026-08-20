@@ -91,10 +91,10 @@ mod tests {
     fn regressing_version_rejected_old_stands() {
         let current = state();
         let stale = ArtifactVersions { packs: 1, skills: 3, hooks: 1, scripts: 4 };
-        match reload(&current, stale) {
-            ReloadOutcome::Rejected { reason } => assert!(reason.contains("packs")),
-            other => panic!("expected rejection, got {other:?}"),
-        }
+        assert!(matches!(
+            reload(&current, stale),
+            ReloadOutcome::Rejected { reason } if reason.contains("packs")
+        ));
     }
 
     #[test]

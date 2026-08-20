@@ -126,17 +126,11 @@ mod tests {
 
         // A webhook answer arrives (outside the TUI) and is routed.
         let webhook = answer("rm-prod-db", false); // ops says NO
-        match process_answer(&ledger, &webhook) {
-            GatewayOutcome::Routed { allow } => {
-                let decision = if allow {
-                    ApprovalDecision::AllowOnce
-                } else {
-                    ApprovalDecision::Deny
-                };
-                assert!(broker.respond("rm-prod-db", decision));
-            }
-            other => panic!("expected Routed, got {other:?}"),
-        }
+        assert_eq!(
+            process_answer(&ledger, &webhook),
+            GatewayOutcome::Routed { allow: false }
+        );
+        assert!(broker.respond("rm-prod-db", ApprovalDecision::Deny));
         assert_eq!(waiter.join().unwrap(), Some(ApprovalDecision::Deny));
         assert_eq!(broker.pending_count(), 0);
     }
@@ -150,12 +144,11 @@ mod tests {
         let waiter = std::thread::spawn(move || waiter_broker.wait("deploy", Duration::from_secs(5)));
 
         let webhook = answer("deploy", true);
-        match process_answer(&ledger, &webhook) {
-            GatewayOutcome::Routed { allow: true } => {
-                broker.respond("deploy", ApprovalDecision::AllowOnce);
-            }
-            other => panic!("expected Routed allow, got {other:?}"),
-        }
+        assert_eq!(
+            process_answer(&ledger, &webhook),
+            GatewayOutcome::Routed { allow: true }
+        );
+        broker.respond("deploy", ApprovalDecision::AllowOnce);
         assert_eq!(waiter.join().unwrap(), Some(ApprovalDecision::AllowOnce));
     }
 
@@ -189,5 +182,13 @@ mod tests {
         let requests = vec![request("a", true), request("b", false)];
         let text = render_ledger(&requests);
         assert_eq!(load_ledger(&text), Ok(requests));
+    }
+
+    #[test]
+    fn blank_ledger_lines_are_skipped() {
+        // 空行/纯空白行不是损坏:跳过,不拒绝加载。
+        let mut text = render_ledger(&[request("a", true)]);
+        text.push_str("\n   \n");
+        assert_eq!(load_ledger(&text), Ok(vec![request("a", true)]));
     }
 }

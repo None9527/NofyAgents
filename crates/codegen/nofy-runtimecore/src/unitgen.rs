@@ -139,6 +139,23 @@ mod tests {
     }
 
     #[test]
+    fn empty_label_and_working_dir_refused() {
+        let mut s = spec();
+        s.label = "  ".into();
+        assert_eq!(launchd_plist(&s), Err(UnitError::EmptyField("label")));
+        let mut s = spec();
+        s.working_dir = "".into();
+        assert_eq!(systemd_unit(&s), Err(UnitError::EmptyField("working_dir")));
+    }
+
+    #[test]
+    fn relative_bin_path_refused() {
+        let mut s = spec();
+        s.bin_path = "bin/nofy".into();
+        assert_eq!(launchd_plist(&s), Err(UnitError::NotAbsolute("bin_path")));
+    }
+
+    #[test]
     fn relative_paths_refused() {
         let mut s = spec();
         s.working_dir = "relative/dir".into();

@@ -25,7 +25,8 @@ fn surfaces_loc_ratchet_only_shrinks() {
     // + their tests.
     // - 689→815: batch O5 interruption.rs (turn-interruption recoverable
     //   transcripts; FR2.8).
-    let cap = 815;
+    // - 815→857: coverage-gate — tests for uncovered branches.
+    let cap = 857;
     let got = loc(&src);
     assert!(
         got <= cap,

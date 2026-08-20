@@ -184,12 +184,16 @@ mod tests {
         assert_eq!(payload.pid, std::process::id());
         assert!(payload.starttime > 0, "starttime must be readable on Linux");
 
-        match SingleInstanceLock::acquire(dir.path()) {
-            Err(LockError::AlreadyRunning { holder }) => {
-                assert_eq!(holder.expect("holder payload").pid, std::process::id());
-            }
-            other => panic!("expected AlreadyRunning, got {:?}", other.map(|_| ())),
-        }
+        let second = SingleInstanceLock::acquire(dir.path());
+        let Err(LockError::AlreadyRunning { holder }) = second else { panic!("expected AlreadyRunning, got {:?}", second.map(|_| ())) };
+        assert_eq!(holder.expect("holder payload").pid, std::process::id());
+    }
+
+    #[test]
+    fn io_errors_lift_into_lock_error() {
+        let err: LockError = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "denied")
+            .into();
+        assert!(matches!(err, LockError::Io(e) if e.kind() == std::io::ErrorKind::PermissionDenied));
     }
 
     #[test]

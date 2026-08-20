@@ -120,13 +120,11 @@ mod tests {
 
         let disables = self_disable_events(&state, 3);
         assert_eq!(disables.len(), 1);
-        match &disables[0] {
-            ScheduleEvent::Disabled { id, reason } => {
-                assert_eq!(id, "flaky");
-                assert!(reason.contains("3"), "reason must carry the count: {reason}");
-            }
-            other => panic!("expected Disabled, got {other:?}"),
-        }
+        // The disable reason must carry the failure count.
+        assert!(matches!(
+            &disables[0],
+            ScheduleEvent::Disabled { id, reason } if id == "flaky" && reason.contains("3")
+        ));
         let after = apply_all(&state, &disables);
         assert!(!after.is_live("flaky"));
         // Already disabled: no re-disable.
@@ -177,12 +175,10 @@ mod tests {
         let state = fold(&[added("a"), started("a", 1, 100), added("b"), started("b", 2, 900)]);
         let events = watchdog_events(&state, 1000, 300);
         assert_eq!(events.len(), 1, "only the run older than the timeout");
-        match &events[0] {
-            ScheduleEvent::RunFailed { id, run_id } => {
-                assert_eq!((id.as_str(), *run_id), ("a", 1));
-            }
-            other => panic!("expected RunFailed, got {other:?}"),
-        }
+        assert!(matches!(
+            &events[0],
+            ScheduleEvent::RunFailed { id, run_id } if id == "a" && *run_id == 1
+        ));
         let after = apply_all(&state, &events);
         assert_eq!(after.inflight.len(), 1);
         assert!(after.inflight.contains_key("b"));

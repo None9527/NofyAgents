@@ -129,8 +129,13 @@ mod tests {
         let mut table = LeaseTable::default();
         table.declare("s1", &paths(&["/a"]), 100, 10);
         table.declare("s2", &paths(&["/b"]), 100, 1000);
+        assert!(!table.is_empty());
         assert_eq!(table.sweep(200), 1);
         assert_eq!(table.len(), 1);
+        assert!(!table.is_empty());
+        // 全部过期后:清空。
+        assert_eq!(table.sweep(2000), 1);
+        assert!(table.is_empty());
     }
 
     #[test]

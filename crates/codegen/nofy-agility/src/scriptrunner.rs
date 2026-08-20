@@ -150,6 +150,19 @@ mod tests {
     }
 
     #[test]
+    fn ts_pack_plans_with_npm_deps() {
+        let pack = ScriptPack {
+            id: "hello-ts".into(),
+            runtime: Runtime::Ts { packages: vec!["left-pad".into()] },
+            entry: "run.ts".into(),
+        };
+        let plan = plan_run(&pack, "/packs/hello-ts", Some(&profile())).unwrap();
+        assert_eq!(plan.install_deps, vec!["left-pad".to_string()]);
+        assert_eq!(plan.spawn.script_path, "/packs/hello-ts/run.ts");
+        assert_eq!(plan.spawn.interpreter, "node");
+    }
+
+    #[test]
     fn entry_escape_rejected() {
         let mut evil = pack();
         evil.entry = "../escape.py".into();

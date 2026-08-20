@@ -76,21 +76,19 @@ mod tests {
 
     #[test]
     fn same_major_accepted() {
-        match negotiate(&hello(1, 7)) {
-            HelloAck::Accepted { version, .. } => assert_eq!(version, ProtocolVersion::CURRENT),
-            other => panic!("expected Accepted, got {other:?}"),
-        }
+        assert!(matches!(
+            negotiate(&hello(1, 7)),
+            HelloAck::Accepted { version, .. } if version == ProtocolVersion::CURRENT
+        ));
     }
 
     #[test]
     fn different_major_rejected_structured() {
-        match negotiate(&hello(2, 0)) {
-            HelloAck::VersionMismatch { daemon, client } => {
-                assert_eq!(daemon, ProtocolVersion::CURRENT);
-                assert_eq!(client.major, 2);
-            }
-            other => panic!("expected VersionMismatch, got {other:?}"),
-        }
+        assert!(matches!(
+            negotiate(&hello(2, 0)),
+            HelloAck::VersionMismatch { daemon, client }
+                if daemon == ProtocolVersion::CURRENT && client.major == 2
+        ));
     }
 
     #[test]

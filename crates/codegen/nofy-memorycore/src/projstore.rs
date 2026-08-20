@@ -111,4 +111,12 @@ mod tests {
         assert_eq!(store.view("missing"), None);
         assert_eq!(store.len(), 2);
     }
+
+    #[test]
+    fn is_empty_tracks_application() {
+        let mut store = ProjectionValueStore::init();
+        assert!(store.is_empty());
+        store.apply("k", 1, "v");
+        assert!(!store.is_empty());
+    }
 }

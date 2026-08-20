@@ -40,7 +40,11 @@ fn scheduler_loc_ratchet_only_shrinks() {
     //   checkpoint recovery + watch fuse).
     // - 2579→2786: K5 system-event bus (eventbus.rs topics + presence +
     //   wake routing with latch, FR3.10).
-    let cap = 2787; // day-one cap (E1) +1: R3 LogStore derives (daemon wiring needs Clone/Eq)
+    // - 2787→2886: coverage-gate — tests for uncovered branches.
+    // - 2886→2942: coverage-gate — remaining scheduler gaps (fence is_active,
+    //   eventbus drain, delivery list error arms, parse_log blank lines,
+    //   LogStore read-error propagation).
+    let cap = 2942;
     let got = loc(&src);
     assert!(
         got <= cap,

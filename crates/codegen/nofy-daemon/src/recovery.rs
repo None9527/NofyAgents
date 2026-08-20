@@ -158,4 +158,21 @@ mod tests {
             RecoveryDecision::Resume
         );
     }
+
+    #[test]
+    fn missing_ledger_file_is_fresh() {
+        // No forensics.jsonl on disk: first boot on this host.
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(decide(dir.path()), RecoveryDecision::Fresh);
+    }
+
+    #[test]
+    fn unknown_entry_kinds_are_ignored() {
+        // Foreign/legacy entries never count toward the streak.
+        assert_eq!(d(&["weird"]), RecoveryDecision::Fresh);
+        assert_eq!(
+            d(&["startup", "unclean_death_detected", "mystery"]),
+            RecoveryDecision::Resume
+        );
+    }
 }

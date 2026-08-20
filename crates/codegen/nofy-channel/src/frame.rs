@@ -168,10 +168,10 @@ mod tests {
         let mut wire = Vec::new();
         wire.extend_from_slice(&(MAX_FRAME_BYTES + 1).to_be_bytes());
         let mut fr = FrameReader::new(Cursor::new(wire));
-        match fr.read_frame() {
-            Err(FrameError::Oversized { len }) => assert_eq!(len, MAX_FRAME_BYTES + 1),
-            other => panic!("expected Oversized, got {other:?}"),
-        }
+        assert!(matches!(
+            fr.read_frame(),
+            Err(FrameError::Oversized { len }) if len == MAX_FRAME_BYTES + 1
+        ));
     }
 
     #[test]
@@ -191,5 +191,70 @@ mod tests {
         let mut fr = FrameReader::new(Cursor::new(wire));
         let payload = fr.read_frame().unwrap().unwrap();
         assert!(decode_json(&payload).is_err());
+    }
+
+    #[test]
+    fn display_renders_both_variants() {
+        let oversized = FrameError::Oversized {
+            len: MAX_FRAME_BYTES + 1,
+        };
+        assert_eq!(
+            oversized.to_string(),
+            format!(
+                "frame length {} exceeds cap {MAX_FRAME_BYTES}",
+                MAX_FRAME_BYTES + 1
+            )
+        );
+        let wrapped = FrameError::Io(io::Error::new(io::ErrorKind::Other, "boom"));
+        assert_eq!(wrapped.to_string(), "io: boom");
+    }
+
+    #[test]
+    fn write_frame_refuses_payload_above_cap() {
+        let payload = vec![0u8; MAX_FRAME_BYTES as usize + 1];
+        let mut wire = Vec::new();
+        let err = write_frame(&mut wire, &payload).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
+        assert!(wire.is_empty(), "refusal writes nothing");
+    }
+
+    #[test]
+    fn write_frame_refuses_payload_beyond_u32_len() {
+        // The u32 length guard fires only above u32::MAX bytes. A zero vec of
+        // that size is lazily allocated and never written here, so it costs
+        // virtual address space, not 4 GiB of resident RAM; write_frame reads
+        // only the length before refusing.
+        let payload = vec![0u8; u32::MAX as usize + 1];
+        let mut wire = Vec::new();
+        let err = write_frame(&mut wire, &payload).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
+        assert!(wire.is_empty(), "refusal writes nothing");
+    }
+
+    #[test]
+    fn clean_eof_on_empty_cursor_is_none() {
+        let mut fr = FrameReader::new(Cursor::new(Vec::new()));
+        assert!(fr.read_frame().unwrap().is_none(), "no bytes = clean EOF");
+    }
+
+    #[test]
+    fn read_frame_from_one_shot_helper() {
+        let mut wire = Vec::new();
+        write_frame(&mut wire, b"{\"ok\":true}").unwrap();
+        let mut r = Cursor::new(wire);
+        let payload = read_frame_from(&mut r).unwrap().unwrap();
+        assert_eq!(decode_json(&payload).unwrap()["ok"], true);
+        assert!(read_frame_from(&mut r).unwrap().is_none(), "clean EOF");
+    }
+
+    #[test]
+    fn serde_json_error_converts_to_invalid_data() {
+        let json_err = serde_json::from_slice::<serde_json::Value>(b"{oops").unwrap_err();
+        let fe = FrameError::from(json_err);
+        assert!(matches!(
+            &fe,
+            FrameError::Io(e) if e.kind() == io::ErrorKind::InvalidData
+        ));
+        assert!(fe.to_string().contains("json:"), "source error named");
     }
 }

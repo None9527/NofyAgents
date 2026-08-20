@@ -290,4 +290,64 @@ goal = "g3"
         );
         assert_eq!(state, ReplayState::default());
     }
+
+    #[test]
+    fn settled_task_is_never_re_dispatched_in_replay() {
+        let manifest = manifest();
+        let state = fold_orch(
+            &manifest,
+            &[
+                OrchEvent::Dispatched { task: "solo".into() },
+                OrchEvent::Settled { task: "solo".into(), ok: true },
+                OrchEvent::Dispatched { task: "solo".into() },
+            ],
+        );
+        assert_eq!(
+            state.dispatch_order,
+            vec!["solo".to_string()],
+            "re-dispatch of a settled task is dropped"
+        );
+        assert!(state.running.is_empty());
+    }
+
+    #[test]
+    fn skip_policy_fold_marks_exhausted_failure_dead() {
+        // on_fail=skip: budget-exhausted failure lands in dead, never escalated.
+        let manifest =
+            ProjectManifest::from_toml(&MANIFEST.replace("escalate", "skip")).unwrap();
+        let state = fold_orch(
+            &manifest,
+            &[
+                OrchEvent::Dispatched { task: "flaky".into() },
+                OrchEvent::Settled { task: "flaky".into(), ok: false },
+                OrchEvent::Dispatched { task: "flaky".into() },
+                OrchEvent::Settled { task: "flaky".into(), ok: false },
+            ],
+        );
+        assert!(state.dead.contains("flaky"));
+        assert!(state.escalated.is_empty(), "skip policy never escalates");
+        assert!(state.dead.contains("after"), "transitive skip follows dead");
+    }
+
+    #[test]
+    fn escalation_resolution_for_unescalated_task_is_ignored() {
+        let manifest = manifest();
+        // Resolution without a prior escalation: fail-closed ignore.
+        let state = fold_orch(
+            &manifest,
+            &[OrchEvent::EscalationResolved { task: "flaky".into(), allow: true }],
+        );
+        assert_eq!(state, ReplayState::default());
+    }
+
+    #[test]
+    fn journal_parse_skips_blank_lines() {
+        let events = vec![
+            OrchEvent::Dispatched { task: "solo".into() },
+            OrchEvent::Settled { task: "solo".into(), ok: true },
+        ];
+        // Blank lines mixed into the journal are skipped, not fatal.
+        let with_blanks = render_journal(&events).replace('\n', "\n\n");
+        assert_eq!(parse_journal(&with_blanks), events);
+    }
 }

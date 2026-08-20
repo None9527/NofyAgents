@@ -115,6 +115,16 @@ mod tests {
     }
 
     #[test]
+    fn is_active_tracks_the_session_set() {
+        let mut fence = SessionFence::default();
+        assert!(!fence.is_active("s"), "fresh fence holds nothing active");
+        fence.session_active("s");
+        assert!(fence.is_active("s"));
+        fence.session_idle("s");
+        assert!(!fence.is_active("s"), "idle clears the active mark");
+    }
+
+    #[test]
     fn active_session_holds_idle_session_delivers() {
         let mut fence = SessionFence::default();
         fence.session_active("busy");

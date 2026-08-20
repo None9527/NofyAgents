@@ -197,6 +197,22 @@ mod tests {
     }
 
     #[test]
+    fn phases_only_move_forward() {
+        let mut run = run();
+        run.distill(vec![Distilled { id: "d1".into(), replaces: vec!["c1".into()], content: "x".into() }])
+            .unwrap();
+        // distill 之后阶段已前进:collect 与二次 distill 都被拒。
+        assert!(matches!(
+            run.collect(vec![Candidate { id: "c9".into(), content: "late".into() }]),
+            Err(DreamError::BadPhase { .. })
+        ));
+        assert!(matches!(
+            run.distill(vec![Distilled { id: "d2".into(), replaces: vec!["c2".into()], content: "y".into() }]),
+            Err(DreamError::BadPhase { .. })
+        ));
+    }
+
+    #[test]
     fn commit_emits_the_full_preimage() {
         let mut run = run();
         run.distill(vec![Distilled {

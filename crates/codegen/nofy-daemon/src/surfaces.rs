@@ -273,4 +273,72 @@ mod tests {
         );
         assert_eq!(broker.pending_count(), 1, "nothing was decided");
     }
+
+    #[test]
+    fn im_deny_reply_decides_through_the_broker() {
+        let broker = ApprovalBroker::new();
+        assert!(broker.register("a", "x"));
+        let mut gw = SurfaceGateway::new();
+        let pending = vec!["a".to_string()];
+        let outcome = gw.im_reply(ImKind::Telegram, "chat", "deny 1", &pending, &broker);
+        assert_eq!(outcome, GatewayOutcome::Answered { intent_id: "a".into() });
+        assert_eq!(
+            broker.wait("a", std::time::Duration::from_millis(50)),
+            Some(ApprovalDecision::Deny)
+        );
+    }
+
+    #[test]
+    fn pending_is_mapped_to_deny_defensively() {
+        // The parser never yields Pending; the mapping is fail-closed anyway.
+        assert_eq!(decision_to_broker(ItemDecision::Pending), ApprovalDecision::Deny);
+    }
+
+    #[test]
+    fn webhook_answer_for_unknown_intent_is_rejected_audibly() {
+        let broker = ApprovalBroker::new();
+        let mut gw = SurfaceGateway::new();
+        gw.register_endpoint("ep1", "shhh");
+        let outcome =
+            gw.receive_webhook("ep1", &delivery("shhh", "d1", "approve ghost"), &broker);
+        assert_eq!(
+            outcome,
+            GatewayOutcome::Rejected {
+                reason: "unknown or settled intent ghost".into()
+            }
+        );
+    }
+
+    #[test]
+    fn malformed_envelope_is_refused_by_the_gate() {
+        // Signature valid over a body that is not an envelope: the envelope
+        // gate refuses after the signature gate passes.
+        let broker = ApprovalBroker::new();
+        let mut gw = SurfaceGateway::new();
+        gw.register_endpoint("ep1", "shhh");
+        let body = "garbage, not an envelope".to_string();
+        let delivery = WebhookDelivery {
+            delivery_id: "d1".into(),
+            signature: sign_body("shhh", &body),
+            body,
+        };
+        assert_eq!(
+            gw.receive_webhook("ep1", &delivery, &broker),
+            GatewayOutcome::Rejected { reason: "malformed envelope".into() }
+        );
+    }
+
+    #[test]
+    fn im_reply_for_unknown_intent_is_rejected_audibly() {
+        let broker = ApprovalBroker::new();
+        let mut gw = SurfaceGateway::new();
+        let pending = vec!["ghost".to_string()];
+        let outcome = gw.im_reply(ImKind::Feishu, "chat", "approve 1", &pending, &broker);
+        assert_eq!(
+            outcome,
+            GatewayOutcome::Rejected {
+                reason: "unknown or settled intent ghost".into()
+            }
+        );
+    }
 }

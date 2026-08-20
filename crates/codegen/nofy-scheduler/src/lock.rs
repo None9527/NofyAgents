@@ -76,4 +76,75 @@ mod tests {
         assert!(lock.is_some());
         assert!(nested.exists());
     }
+
+    #[test]
+    fn parentless_path_surfaces_the_open_error() {
+        // A path with no parent skips create_dir_all; open("") fails.
+        let err = ScheduleLock::acquire("")
+            .err()
+            .expect("parentless path cannot open");
+        assert_eq!(err.kind(), io::ErrorKind::NotFound);
+    }
+
+    #[test]
+    fn parent_creation_failure_propagates() {
+        let dir = tempfile::tempdir().unwrap();
+        let blocker = dir.path().join("blocker");
+        std::fs::write(&blocker, "x").unwrap();
+        // Parent path occupied by a regular file: create_dir_all fails.
+        assert!(ScheduleLock::acquire(blocker.join("schedule.lock")).is_err());
+    }
+
+    #[test]
+    fn path_accessor_returns_the_lock_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let lock_path = dir.path().join("schedule.lock");
+        let lock = ScheduleLock::acquire(&lock_path)
+            .unwrap()
+            .expect("free lock acquires");
+        assert_eq!(lock.path(), lock_path);
+    }
+
+    #[test]
+    fn every_path_type_walks_the_full_happy_path() {
+        let dir = tempfile::tempdir().unwrap();
+        // Owned PathBuf and borrowed &str instantiations both acquire.
+        let owned = dir.path().join("owned.lock");
+        let lock = ScheduleLock::acquire(owned.clone())
+            .unwrap()
+            .expect("free lock acquires");
+        assert_eq!(lock.path(), owned);
+        drop(lock);
+        let borrowed: &str = owned.to_str().unwrap();
+        assert!(ScheduleLock::acquire(borrowed).unwrap().is_some());
+    }
+
+    #[test]
+    fn every_path_type_sees_each_reachable_error_branch() {
+        let dir = tempfile::tempdir().unwrap();
+        let blocker = dir.path().join("blocker");
+        std::fs::write(&blocker, "x").unwrap();
+        // Owned PathBuf: open failure (parentless), create_dir_all failure.
+        assert!(ScheduleLock::acquire(PathBuf::from("")).is_err());
+        assert!(ScheduleLock::acquire(blocker.join("schedule.lock")).is_err());
+        // Borrowed &PathBuf: same two failure shapes.
+        let empty = PathBuf::new();
+        assert!(ScheduleLock::acquire(&empty).is_err());
+        let blocked_ref = blocker.join("schedule.lock");
+        assert!(ScheduleLock::acquire(&blocked_ref).is_err());
+        // Borrowed &str: create_dir_all failure.
+        let blocked_path = blocker.join("schedule.lock");
+        let blocked: &str = blocked_path.to_str().unwrap();
+        assert!(ScheduleLock::acquire(blocked).is_err());
+        // Refusal while held, once per path type.
+        let held_path = dir.path().join("held.lock");
+        let held = ScheduleLock::acquire(held_path.clone())
+            .unwrap()
+            .expect("free lock acquires");
+        assert!(ScheduleLock::acquire(held_path.clone()).unwrap().is_none());
+        assert!(ScheduleLock::acquire(&held_path).unwrap().is_none());
+        let held_str: &str = held_path.to_str().unwrap();
+        assert!(ScheduleLock::acquire(held_str).unwrap().is_none());
+        drop(held);
+    }
 }

@@ -328,6 +328,30 @@ mod tests {
     }
 
     #[test]
+    fn legal_intent_passes_load_validation() {
+        // 全部合法:根内、无租约、无碰撞——加载期放行。
+        let leases = LeaseTable::default();
+        let mut existing = BTreeSet::new();
+        existing.insert("/media/src.txt".to_string());
+        let intent = MgmtIntent {
+            batch_id: "b-ok".into(),
+            ops: vec![
+                MgmtOp::Move { from: "/media/src.txt".into(), to: "/media/dst.txt".into() },
+                MgmtOp::Tag { path: "/media/dst.txt".into(), tag: "sorted".into() },
+                MgmtOp::Dedupe {
+                    keep: "/media/img-1.jpg".into(),
+                    duplicates: vec!["/media/img-2.jpg".into()],
+                },
+                MgmtOp::Cleanup { path: "/media/junk".into() },
+            ],
+        };
+        assert_eq!(
+            validate_intent(&intent, &ctx(&roots(), &leases, &existing)),
+            Ok(())
+        );
+    }
+
+    #[test]
     fn commit_lowers_every_destructive_op_to_trash() {
         let intent = MgmtIntent {
             batch_id: "b9".into(),
@@ -345,18 +369,39 @@ mod tests {
         // No op deleted anything: move + two trashes, all reversible
         // (tags are metadata-only and carry no manifest record).
         assert_eq!(committed.records.len(), 3);
-        let trashes: Vec<_> = committed
+        let trash_paths: Vec<&str> = committed
             .records
             .iter()
-            .filter(|r| matches!(r.op, ChangeOp::Trash { .. }))
+            .filter_map(|r| match &r.op {
+                ChangeOp::Trash { trash_path, .. } => Some(trash_path.as_str()),
+                _ => None,
+            })
             .collect();
-        assert_eq!(trashes.len(), 2, "dedupe dup + cleanup both lower to trash");
-        for t in &trashes {
-            if let ChangeOp::Trash { trash_path, .. } = &t.op {
-                assert!(trash_path.starts_with("/.trash/b9/"), "trash stays under the trash root");
-            }
-        }
+        assert_eq!(trash_paths.len(), 2, "dedupe dup + cleanup both lower to trash");
+        assert!(
+            trash_paths.iter().all(|p| p.starts_with("/.trash/b9/")),
+            "trash stays under the trash root"
+        );
         assert_eq!(committed.tags, vec![("/media/b".to_string(), "sorted".to_string())]);
+    }
+
+    #[test]
+    fn rename_commits_to_the_manifest_and_rolls_back() {
+        let intent = MgmtIntent {
+            batch_id: "b-r".into(),
+            ops: vec![MgmtOp::Rename { from: "/media/old.txt".into(), to: "/media/new.txt".into() }],
+        };
+        let committed = commit_intent(&intent, 300);
+        assert_eq!(committed.records.len(), 1);
+        assert_eq!(
+            committed.records[0].op,
+            ChangeOp::Rename { from: "/media/old.txt".into(), to: "/media/new.txt".into() }
+        );
+        // Rename 的逆操作与 Move 同形:新名 → 旧名。
+        assert_eq!(
+            rollback(&committed.snapshot),
+            &[InverseOp::MoveBack { from: "/media/new.txt".into(), to: "/media/old.txt".into() }]
+        );
     }
 
     #[test]

@@ -27,7 +27,8 @@ fn memorycore_loc_ratchet_only_shrinks() {
     //   compleases + tests; FR4.5/FR4.13/FR9.7).
     // - 1788→1948: batch O4 seal.rs (trajectory head/tail guards +
     //   sealed-test registry; FR9.9).
-    let cap = 1948;
+    // - 1948→2025: coverage-gate — tests for uncovered branches.
+    let cap = 2025;
     let got = loc(&src);
     assert!(
         got <= cap,

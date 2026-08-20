@@ -123,4 +123,29 @@ mod tests {
         let proxy = SearchProxy::new();
         assert!(!proxy.result("ghost", (1, Vec::new())));
     }
+
+    #[test]
+    fn zero_deadline_is_an_immediate_timeout() {
+        let proxy = SearchProxy::new();
+        assert_eq!(proxy.request("x", Duration::ZERO), None);
+        // The job stays queued for a late provider (its answer will be
+        // dropped as unknown); polling drains it.
+        assert!(proxy.poll().is_some());
+        assert_eq!(proxy.pending_count(), 0);
+    }
+
+    #[test]
+    fn second_answer_for_the_same_job_is_dropped() {
+        let proxy = std::sync::Arc::new(SearchProxy::new());
+        let p2 = proxy.clone();
+        let waiter = std::thread::spawn(move || p2.request("q", Duration::from_secs(5)));
+        std::thread::sleep(Duration::from_millis(50));
+        let (id, _) = proxy.poll().expect("job queued");
+        assert!(proxy.result(&id, (1, vec!["s1".into()])));
+        assert!(
+            !proxy.result(&id, (9, vec!["late".into()])),
+            "an already-answered job must not be answered twice"
+        );
+        assert_eq!(waiter.join().unwrap(), Some((1, vec!["s1".into()])));
+    }
 }

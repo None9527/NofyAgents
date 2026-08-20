@@ -165,4 +165,20 @@ mod tests {
         assert_eq!(audit.refused.len(), 2, "refusals are the audit trail");
         assert!(audit.allowed.is_empty());
     }
+
+    #[test]
+    fn mismatched_entry_id_is_refused() {
+        let mut entry = entry(true, false);
+        let mut audit = CuratorAudit::default();
+        // 操作指向的 id 与条目不符:拒绝,条目不动,且记录在案。
+        assert_eq!(
+            apply_curator(&CuratorOp::Archive { id: "ghost".into() }, &mut entry, &mut audit),
+            CuratorVerdict::Refused { reason: "entry mismatch".into() }
+        );
+        assert!(!entry.archived);
+        assert_eq!(
+            audit.refused,
+            vec![("ghost".to_string(), "entry mismatch".to_string())]
+        );
+    }
 }

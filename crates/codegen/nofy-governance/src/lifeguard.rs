@@ -132,4 +132,15 @@ mod tests {
             GuardVerdict::Refused { .. }
         ));
     }
+
+    #[test]
+    fn unknown_own_binary_skips_the_binary_guard() {
+        let ctx = SelfContext { own_binary: None, ancestor_pids: vec![100] };
+        // 自身二进制未知时二进制守卫不参与判定;其余守卫照常生效。
+        assert_eq!(classify("rm /usr/local/bin/nofy", &ctx), GuardVerdict::Safe);
+        assert!(matches!(
+            classify("kill -9 100", &ctx),
+            GuardVerdict::Refused { .. }
+        ));
+    }
 }

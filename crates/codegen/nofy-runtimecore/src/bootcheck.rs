@@ -94,13 +94,14 @@ mod tests {
         let mut checks = healthy();
         checks[1] = (CheckItem::PersistenceWritable, CheckResult::Failed);
         checks[3] = (CheckItem::SessionStoreReadable, CheckResult::Failed);
-        match verdict(&checks) {
-            BootVerdict::Blocked { failed } => {
-                assert_eq!(failed.len(), 2, "every failed item drives diagnosis");
-                assert!(failed.contains(&CheckItem::PersistenceWritable));
-            }
-            other => panic!("failures must block, got {other:?}"),
-        }
+        assert!(
+            matches!(
+                verdict(&checks),
+                BootVerdict::Blocked { failed }
+                    if failed.len() == 2 && failed.contains(&CheckItem::PersistenceWritable)
+            ),
+            "every failed item drives diagnosis"
+        );
     }
 
     #[test]

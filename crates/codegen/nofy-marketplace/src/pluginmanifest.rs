@@ -110,6 +110,16 @@ mod tests {
     }
 
     #[test]
+    fn empty_id_or_version_refused() {
+        let mut no_id = manifest();
+        no_id.id = "  ".into();
+        assert_eq!(validate_manifest(&no_id), Err(ManifestError::EmptyField("id".into())));
+        let mut no_version = manifest();
+        no_version.version = "".into();
+        assert_eq!(validate_manifest(&no_version), Err(ManifestError::EmptyField("version".into())));
+    }
+
+    #[test]
     fn declared_artifacts_admit() {
         let mut zone = IsolationZone::default();
         zone.admit(&manifest(), "bin/linter").unwrap();

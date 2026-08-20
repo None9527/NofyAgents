@@ -94,12 +94,13 @@ mod tests {
     #[test]
     fn fire_starts_a_run() {
         let mut bridge = bridge();
-        match bridge.on_fire("nightly", true) {
-            Some(PeriodicOutcome::Started { run_id }) => {
-                assert!(run_id.starts_with("proj/nightly.toml-"));
-            }
-            other => panic!("expected Started, got {other:?}"),
-        }
+        // run_id is deterministic: manifest_ref + run counter.
+        assert_eq!(
+            bridge.on_fire("nightly", true),
+            Some(PeriodicOutcome::Started {
+                run_id: "proj/nightly.toml-0".into()
+            })
+        );
         assert!(bridge.active_run("nightly").is_some());
     }
 

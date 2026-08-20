@@ -243,4 +243,56 @@ mod tests {
             "second daemon must refuse, never restart-loop"
         );
     }
+
+    #[test]
+    fn preflight_escalates_on_stuck_loop_signature() {
+        // Three consecutive non-clean deaths in the ledger: preflight must
+        // refuse auto-resume with CONFIG, never restart-loop a wedged daemon.
+        let tmp = tempfile::tempdir().unwrap();
+        let daemon_dir = tmp.path().join("daemon");
+        std::fs::create_dir_all(&daemon_dir).unwrap();
+        let mut ledger_text = String::new();
+        for _ in 0..3 {
+            ledger_text.push_str("{\"kind\":\"startup\",\"pid\":111}\n");
+            ledger_text.push_str(
+                "{\"kind\":\"unclean_death_detected\",\"dead_pid\":111,\"dead_kind\":\"startup\"}\n",
+            );
+        }
+        std::fs::write(daemon_dir.join("forensics.jsonl"), ledger_text).unwrap();
+        let cfg = DaemonConfig {
+            state_dir: tmp.path().to_path_buf(),
+        };
+        assert_eq!(
+            preflight(&cfg).err(),
+            Some(exit_codes::CONFIG),
+            "stuck-loop signature must refuse auto-resume"
+        );
+    }
+
+    #[test]
+    fn preflight_sweeps_orphans_vouched_by_dead_predecessor() {
+        // A live process vouched for in the previous run's children registry
+        // is swept at boot (TERM), and the boot proceeds.
+        let tmp = tempfile::tempdir().unwrap();
+        let daemon_dir = tmp.path().join("daemon");
+        std::fs::create_dir_all(&daemon_dir).unwrap();
+        let mut orphan = std::process::Command::new("sleep").arg("30").spawn().unwrap();
+        let pid = orphan.id();
+        let entry = serde_json::json!({
+            "pid": pid,
+            "starttime": crate::proc::proc_starttime(pid).unwrap(),
+            "label": "provider",
+        });
+        std::fs::write(
+            daemon_dir.join(crate::proc::CHILDREN_FILE),
+            format!("{entry}\n"),
+        )
+        .unwrap();
+        let cfg = DaemonConfig {
+            state_dir: tmp.path().to_path_buf(),
+        };
+        let (_lock, _ledger) = preflight(&cfg).expect("boot with orphan sweep ok");
+        let status = orphan.wait().unwrap();
+        assert!(!status.success(), "the vouched orphan was swept at boot");
+    }
 }

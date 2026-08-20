@@ -119,4 +119,22 @@ mod tests {
         let store = RunStore::open(&path);
         assert!(store.load().is_err(), "a torn plan must surface, never vanish");
     }
+
+    #[test]
+    fn path_accessor_exposes_the_store_location() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("run.json");
+        let store = RunStore::open(&path);
+        assert_eq!(store.path(), path.as_path());
+    }
+
+    #[test]
+    fn load_and_clear_fail_loud_on_directory_paths() {
+        // A directory where the plan file belongs: both reads and deletes
+        // fail with a real io error (never NotFound), so they surface.
+        let dir = tempfile::tempdir().unwrap();
+        let store = RunStore::open(dir.path());
+        assert!(store.load().is_err());
+        assert!(store.clear().is_err());
+    }
 }

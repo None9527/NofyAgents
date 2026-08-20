@@ -94,6 +94,12 @@ pub mod pressure {
         }
 
         #[test]
+        fn some_line_without_avg10_is_none() {
+            // Fields present but no avg10= among them.
+            assert_eq!(parse_some_avg10("some avg60=1.10 total=42"), None);
+        }
+
+        #[test]
         fn sample_file_reads_psi_and_absent_is_none() {
             let dir = tempfile::tempdir().unwrap();
             let psi = dir.path().join("memory.pressure");
@@ -166,6 +172,20 @@ mod tests {
         assert_eq!(reg.coldest(), Some(&"b"));
         reg.remove(&"b");
         assert_eq!(reg.coldest(), Some(&"a"));
+    }
+
+    #[test]
+    fn lru_len_and_is_empty_track_residency() {
+        let mut reg = LruRegistry::new();
+        assert!(reg.is_empty());
+        assert_eq!(reg.len(), 0);
+        reg.touch("a");
+        assert!(!reg.is_empty());
+        assert_eq!(reg.len(), 1);
+        reg.touch("b");
+        assert_eq!(reg.len(), 2);
+        reg.remove(&"a");
+        assert_eq!(reg.len(), 1);
     }
 
     #[test]

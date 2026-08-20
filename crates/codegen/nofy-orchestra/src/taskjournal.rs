@@ -318,4 +318,33 @@ mod tests {
         assert_eq!(events.len(), 2, "torn tail is truncated, not an error");
         assert_eq!(store.re_dispatch().unwrap(), vec!["t1".to_string()]);
     }
+
+    #[test]
+    fn parse_log_skips_blank_lines() {
+        // Blank lines mixed into the log are skipped, not a torn tail.
+        let text = format!(
+            "{}\n\n{}\n",
+            serde_json::to_string(&armed(1, "t")).unwrap(),
+            serde_json::to_string(&claimed(2, "t")).unwrap()
+        );
+        assert_eq!(parse_log(&text), vec![armed(1, "t"), claimed(2, "t")]);
+    }
+
+    #[test]
+    fn path_accessor_returns_the_store_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("task.jsonl");
+        let store = TaskLogStore::open(&path);
+        assert_eq!(store.path(), path.as_path());
+    }
+
+    #[test]
+    fn read_errors_other_than_missing_propagate() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("task.jsonl");
+        // Log slot occupied by a DIRECTORY: read fails, not NotFound.
+        std::fs::create_dir_all(&path).unwrap();
+        let store = TaskLogStore::open(&path);
+        assert!(store.read_events().is_err());
+    }
 }

@@ -28,7 +28,8 @@ fn stewardcore_loc_ratchet_only_shrinks() {
     //   handoff + tests; FR12.6-12.8/12.13).
     // - 2418→2587: batch P osbridge.rs (Spotlight/Everything provider
     //   evaluation gate; FR12.10).
-    let cap = 2587;
+    // - 2587→2672: coverage-gate — tests for uncovered branches.
+    let cap = 2672;
     let got = loc(&src);
     assert!(
         got <= cap,

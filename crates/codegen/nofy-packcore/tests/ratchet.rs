@@ -22,7 +22,9 @@ fn loc(dir: &Path) -> usize {
 fn packcore_loc_ratchet_only_shrinks() {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     // Day-one cap: pack.rs moved verbatim from nofy-daemon (Q0a).
-    let cap = 283;
+    // - 283→318: coverage-gate landing — two error branches (malformed
+    //   manifest, realm-map collision) gained the tests the gate demanded.
+    let cap = 318;
     let got = loc(&src);
     assert!(
         got <= cap,

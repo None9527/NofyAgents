@@ -112,6 +112,20 @@ mod tests {
     }
 
     #[test]
+    fn gapped_prefix_is_refused_not_healed() {
+        // A hand-built non-dense prefix: recovery must fail loud instead
+        // of silently healing the gap.
+        let t = TurnTranscript {
+            segments: vec![
+                Segment { seq: 0, body: "a".into() },
+                Segment { seq: 2, body: "b".into() },
+            ],
+            checkpoint: Some(2),
+        };
+        assert_eq!(t.recover(), Err(TranscriptError::Gap { expected: 1, got: 2 }));
+    }
+
+    #[test]
     fn interrupt_at_zero_is_a_valid_empty_recovery() {
         let mut t = TurnTranscript::default();
         t.interrupt();

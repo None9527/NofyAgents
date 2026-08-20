@@ -89,16 +89,16 @@ mod tests {
 
     #[test]
     fn denials_are_structured() {
-        let event = check(FsOp::Trash, "/docs/a.md", &table());
-        match event {
-            FsPolicyEvent::Denied { code, op, path, reason } => {
-                assert_eq!(code, FsDenyCode::IndexOnlyRoot);
-                assert_eq!(op, FsOp::Trash);
-                assert_eq!(path, "/docs/a.md");
-                assert!(reason.contains("index-only"));
+        // 拒绝是结构化事件:code/op/path/reason 全量相等,可机械审计。
+        assert_eq!(
+            check(FsOp::Trash, "/docs/a.md", &table()),
+            FsPolicyEvent::Denied {
+                code: FsDenyCode::IndexOnlyRoot,
+                op: FsOp::Trash,
+                path: "/docs/a.md".into(),
+                reason: "root /docs is index-only".into(),
             }
-            _ => panic!("expected structured denial"),
-        }
+        );
     }
 
     #[test]

@@ -173,4 +173,14 @@ mod tests {
         assert!(verify_checksum(&meta, artifact));
         assert!(!verify_checksum(&meta, b"tampered"));
     }
+
+    #[test]
+    fn get_and_is_empty_track_the_index() {
+        let mut index = MarketIndex::default();
+        assert!(index.is_empty());
+        index.register(meta("reviewer", "1.0.0")).unwrap();
+        assert!(!index.is_empty());
+        assert_eq!(index.get("reviewer", "1.0.0").unwrap().version, "1.0.0");
+        assert!(index.get("reviewer", "9.9.9").is_none());
+    }
 }

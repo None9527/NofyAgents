@@ -142,11 +142,13 @@ mod tests {
         );
         child.kill().unwrap();
         let _ = child.wait();
-        assert!(proc_starttime(pid).is_none() || !proc_is(&ChildEntry {
+        let gone = proc_starttime(pid).is_none();
+        let not_ours = !proc_is(&ChildEntry {
             pid,
             starttime: real,
-            label: "t".into()
-        }));
+            label: "t".into(),
+        });
+        assert!(gone || not_ours);
     }
 
     #[test]
@@ -184,5 +186,69 @@ mod tests {
             "dead entries must not be swept (no kill on reused pids)"
         );
         let _ = st;
+    }
+
+    #[test]
+    fn sweep_skips_torn_journal_lines() {
+        // A torn tail in the prev registry is tolerated: garbage lines are
+        // skipped, never an error.
+        let dir = tempfile::tempdir().unwrap();
+        let reg = ChildrenRegistry::at(dir.path());
+        std::fs::create_dir_all(dir.path()).unwrap();
+        std::fs::write(
+            dir.path().join(CHILDREN_PREV_FILE),
+            "{ not json at all\n",
+        )
+        .unwrap();
+        let swept = reg.sweep_prev();
+        assert!(swept.is_empty(), "torn lines carry no sweepable entry");
+    }
+
+    #[test]
+    fn sweep_escalates_to_kill_when_term_is_ignored() {
+        // A child that traps SIGTERM survives the grace window and must be
+        // escalated to SIGKILL.
+        let dir = tempfile::tempdir().unwrap();
+        let reg = ChildrenRegistry::at(dir.path());
+        let mut stubborn = std::process::Command::new("sh")
+            .arg("-c")
+            .arg("trap '' TERM; sleep 30")
+            .spawn()
+            .unwrap();
+        let pid = stubborn.id();
+        reg.register(pid, "stubborn").unwrap();
+        reg.rotate().unwrap();
+        let swept = reg.sweep_prev();
+        assert_eq!(swept.len(), 1);
+        assert_eq!(swept[0].pid, pid);
+        let status = stubborn.wait().unwrap();
+        assert!(!status.success(), "TERM-ignoring orphan dies to the escalation");
+    }
+
+    #[test]
+    fn sweep_skips_kill_when_term_already_reaped() {
+        // An orphaned grandchild dies to TERM and is reaped by init within
+        // the grace window: the post-grace check sees it gone and the KILL
+        // escalation is skipped.
+        let dir = tempfile::tempdir().unwrap();
+        let reg = ChildrenRegistry::at(dir.path());
+        let mut launcher = std::process::Command::new("sh")
+            .arg("-c")
+            // The grandchild must not inherit the stdout pipe (its write
+            // end would keep the launcher's output open past its own exit).
+            .arg("sh -c 'sleep 30' >/dev/null 2>&1 & echo $!")
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut out = String::new();
+        use std::io::Read;
+        launcher.stdout.as_mut().unwrap().read_to_string(&mut out).unwrap();
+        let _ = launcher.wait(); // reap the launcher; the grandchild orphans
+        let pid: u32 = out.trim().parse().unwrap();
+        reg.register(pid, "orphan").unwrap();
+        reg.rotate().unwrap();
+        let swept = reg.sweep_prev();
+        assert_eq!(swept.len(), 1);
+        assert_eq!(swept[0].pid, pid);
     }
 }

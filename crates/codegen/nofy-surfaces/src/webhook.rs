@@ -120,15 +120,15 @@ mod tests {
     fn signed_delivery_is_accepted_and_routed() {
         let mut surface = WebhookSurface::default();
         let delivery = signed_delivery("d1", "approve rm-prod-db", &endpoint().secret);
-        match surface.receive(&endpoint(), &delivery) {
-            DeliveryVerdict::Accepted { payload } => {
-                assert_eq!(route_payload(&payload), RouteOutcome::ApprovalAnswer {
-                    intent_id: "rm-prod-db".into(),
-                    allow: true,
-                });
-            }
-            other => panic!("expected Accepted, got {other:?}"),
-        }
+        assert!(matches!(
+            surface.receive(&endpoint(), &delivery),
+            DeliveryVerdict::Accepted { payload }
+                if route_payload(&payload)
+                    == RouteOutcome::ApprovalAnswer {
+                        intent_id: "rm-prod-db".into(),
+                        allow: true,
+                    }
+        ));
     }
 
     #[test]

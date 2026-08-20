@@ -28,7 +28,8 @@ fn governance_loc_ratchet_only_shrinks() {
     //   guards + tests; FR5.14/FR5.15/FR9.8).
     // - 1761→1905: batch O5 hubgate.rs (Hub demoted to tool transport;
     //   FR2.11).
-    let cap = 1905;
+    // - 1905→1952: coverage-gate — tests for uncovered branches.
+    let cap = 1952;
     let got = loc(&src);
     assert!(
         got <= cap,

@@ -76,4 +76,29 @@ mod tests {
         assert!(path.starts_with(delivery_dir(home.path())), "must not escape");
         assert_eq!(path.file_name().unwrap().to_string_lossy(), "___evil-1.json");
     }
+
+    #[test]
+    fn list_skips_unparseable_names_and_surfaces_errors() {
+        // A matching prefix with a non-numeric run part is skipped, not
+        // fatal; a non-.json name under the prefix is skipped too.
+        let home = tempfile::tempdir().unwrap();
+        deliver(home.path(), "nightly", 2, "{}").unwrap();
+        let dir = delivery_dir(home.path());
+        fs::write(dir.join("nightly-notanumber.json"), "{}").unwrap();
+        fs::write(dir.join("nightly-5.tmp"), "{}").unwrap();
+        assert_eq!(list(home.path(), "nightly").unwrap(), vec![2]);
+
+        // A missing delivery dir is an empty result (NotFound is not an error).
+        let fresh = tempfile::tempdir().unwrap();
+        assert_eq!(list(fresh.path(), "nightly").unwrap(), Vec::<u64>::new());
+
+        // Read errors other than NotFound propagate.
+        use std::os::unix::fs::PermissionsExt;
+        let locked = tempfile::tempdir().unwrap();
+        deliver(locked.path(), "nightly", 1, "{}").unwrap();
+        let dir = delivery_dir(locked.path());
+        fs::set_permissions(&dir, PermissionsExt::from_mode(0o000)).unwrap();
+        assert!(list(locked.path(), "nightly").is_err());
+        fs::set_permissions(&dir, PermissionsExt::from_mode(0o755)).unwrap();
+    }
 }

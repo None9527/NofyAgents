@@ -113,24 +113,28 @@ mod tests {
     #[test]
     fn write_capable_bridges_are_rejected() {
         let props = BridgeProperties { read_only: false, ..compliant() };
-        match evaluate_candidate(OsBridge::Spotlight, &props) {
-            BridgeVerdict::Reject { reasons, .. } => {
-                assert!(reasons.iter().any(|r| r.contains("mutate")));
+        assert_eq!(
+            evaluate_candidate(OsBridge::Spotlight, &props),
+            BridgeVerdict::Reject {
+                bridge: OsBridge::Spotlight,
+                reasons: vec!["bridge can mutate the filesystem".to_string()],
             }
-            BridgeVerdict::Adopt { .. } => panic!("a write-capable bridge must never adopt"),
-        }
+        );
         assert!(adopt(OsBridge::Spotlight, &props).is_err());
     }
 
     #[test]
     fn hint_skipping_bridges_are_rejected() {
         let props = BridgeProperties { results_are_hints: false, ..compliant() };
-        match evaluate_candidate(OsBridge::Everything, &props) {
-            BridgeVerdict::Reject { reasons, .. } => {
-                assert!(reasons.iter().any(|r| r.contains("revalidation")));
+        assert_eq!(
+            evaluate_candidate(OsBridge::Everything, &props),
+            BridgeVerdict::Reject {
+                bridge: OsBridge::Everything,
+                reasons: vec![
+                    "bridge hits would skip disk revalidation (FR12.9)".to_string()
+                ],
             }
-            _ => panic!("FR12.9 must carry through bridges"),
-        }
+        );
     }
 
     #[test]
@@ -155,9 +159,17 @@ mod tests {
             requires_opt_in: false,
             local_ipc_only: false,
         };
-        match evaluate_candidate(OsBridge::Spotlight, &props) {
-            BridgeVerdict::Reject { reasons, .. } => assert_eq!(reasons.len(), 4),
-            _ => panic!("all-four-miss must reject"),
-        }
+        assert_eq!(
+            evaluate_candidate(OsBridge::Spotlight, &props),
+            BridgeVerdict::Reject {
+                bridge: OsBridge::Spotlight,
+                reasons: vec![
+                    "bridge can mutate the filesystem".to_string(),
+                    "bridge hits would skip disk revalidation (FR12.9)".to_string(),
+                    "bridge would enable itself (default-off violated)".to_string(),
+                    "bridge introduces new outbound".to_string(),
+                ],
+            }
+        );
     }
 }

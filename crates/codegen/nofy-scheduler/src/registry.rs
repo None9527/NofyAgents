@@ -261,4 +261,14 @@ mod tests {
         assert!(recovered.is_registered(4, 400));
         assert!(!recovered.is_registered(1, 100));
     }
+
+    #[test]
+    fn recovery_skips_blank_lines() {
+        let mut registry = ProcessRegistry::new(8, 3);
+        registry.register(entry(1, 100, "a"));
+        registry.register(entry(2, 200, "b"));
+        // Blank lines mixed into the checkpoint are skipped, not fatal.
+        let with_blanks = format!("\n{}\n", registry.checkpoint().trim_end());
+        assert_eq!(ProcessRegistry::recover(&with_blanks, 8, 3), registry);
+    }
 }

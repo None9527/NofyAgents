@@ -107,6 +107,14 @@ mod tests {
     }
 
     #[test]
+    fn default_watchdog_config_matches_the_documented_thresholds() {
+        let cfg = WatchdogConfig::default();
+        assert_eq!(cfg.sample_interval, Duration::from_secs(5));
+        assert_eq!(cfg.lag_threshold, Duration::from_secs(30));
+        assert_eq!(cfg.misses_before_wedge, 3);
+    }
+
+    #[test]
     fn watchdog_trips_on_stalled_loop() {
         let h = EventLoopHealth::new();
         // Let the beat go stale, then run a tight watchdog.

@@ -372,6 +372,51 @@ needs = ["x"]
     }
 
     #[test]
+    fn duplicate_task_ids_fail_loud() {
+        let dup = MANIFEST.replace("id = \"docs\"", "id = \"review\"");
+        assert_eq!(
+            ProjectManifest::from_toml(&dup),
+            Err(ManifestError::DuplicateTask("review".into()))
+        );
+    }
+
+    #[test]
+    fn malformed_manifest_toml_fails_loud() {
+        // Unparseable TOML surfaces as the malformed-manifest marker.
+        assert_eq!(
+            ProjectManifest::from_toml("= not toml ["),
+            Err(ManifestError::Cycle(vec!["<malformed manifest>".into()]))
+        );
+    }
+
+    #[test]
+    fn cycle_behind_a_ready_task_is_reported_with_members() {
+        // A cycle coexisting with an independent task: topo_order keeps the
+        // ready task, the remainder is named as the cycle.
+        let bad = r#"
+packs = ["a"]
+[[task]]
+id = "free"
+pack = "a"
+goal = "g"
+[[task]]
+id = "x"
+pack = "a"
+goal = "g"
+needs = ["y"]
+[[task]]
+id = "y"
+pack = "a"
+goal = "g"
+needs = ["x"]
+"#;
+        assert_eq!(
+            ProjectManifest::from_toml(bad),
+            Err(ManifestError::Cycle(vec!["x".into(), "y".into()]))
+        );
+    }
+
+    #[test]
     fn batches_respect_parallel_and_deps() {
         let m = ProjectManifest::from_toml(MANIFEST).unwrap();
         let (s, f) = (BTreeSet::new(), BTreeSet::new());
@@ -465,5 +510,26 @@ needs = ["flaky"]
         }
         assert!(run.is_done());
         assert_eq!(run.succeeded.len(), 3);
+    }
+
+    #[test]
+    fn settle_unknown_task_is_a_noop_done() {
+        let m = ProjectManifest::from_toml(MANIFEST).unwrap();
+        let mut run = OrchRun::new(m);
+        // Never-dispatched id: no spec to consult, plain Done, no panic.
+        assert_eq!(run.settle("ghost", false), SettleOutcome::Done);
+        assert!(run.succeeded.is_empty());
+        assert!(run.dead.is_empty());
+    }
+
+    #[test]
+    fn skip_policy_kills_failed_task_without_escalation() {
+        // MANIFEST carries on_fail=skip and the default retry budget 0:
+        // first failure exhausts the budget and the task dies outright.
+        let m = ProjectManifest::from_toml(MANIFEST).unwrap();
+        let mut run = OrchRun::new(m);
+        let t = run.dispatch_next().expect("first batch is ready");
+        assert_eq!(run.settle(&t.id, false), SettleOutcome::Done);
+        assert!(run.dead.contains(&t.id), "skip policy = dead, never escalated");
     }
 }

@@ -260,4 +260,172 @@ needs = ["a"]
 "#;
         assert!(submit_run(manifest, &[]).is_err());
     }
+
+    #[test]
+    fn submit_rejects_task_referencing_undeclared_pack() {
+        // The manifest itself names pack q (core validation passes), but no
+        // pack manifest for q is provided: the daemon-side coverage check
+        // refuses fail-loud.
+        let manifest =
+            "packs = [\"p\", \"q\"]\n\n[[task]]\nid = \"t1\"\npack = \"q\"\ngoal = \"g\"\n";
+        let pack = serde_json::json!({"id": "p", "persona": "x"});
+        let Err(err) = submit_run(manifest, &[pack]) else { panic!("task referencing an undeclared pack must be refused") };
+        assert!(
+            err.contains("undeclared pack"),
+            "pack coverage is checked fail-loud: {err}"
+        );
+    }
+
+    #[test]
+    fn record_event_degrades_loud_on_disk_failure() {
+        // A failing durable sink never crashes the run: the event stays in
+        // the in-memory journal, durability degrades loud (log line).
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("task_journal.jsonl")).unwrap();
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
+        let (mut dr, _) = submit_run(manifest, &[]).unwrap();
+        dr.journal_store = Some(nofy_orchestra::taskjournal::TaskLogStore::open(
+            dir.path().join("task_journal.jsonl"),
+        ));
+        let before = dr.journal.len();
+        dr.record_event(nofy_orchestra::taskjournal::TaskEvent::Claimed {
+            seq: dr.journal_next_seq(),
+            task: "t1".into(),
+            claimant: "provider".into(),
+        });
+        assert_eq!(dr.journal.len(), before + 1, "the run keeps its journal");
+    }
+
+    fn stores_at(dir: &std::path::Path) -> DaemonStores {
+        DaemonStores {
+            journal: nofy_orchestra::taskjournal::TaskLogStore::open(
+                dir.join("task_journal.jsonl"),
+            ),
+            runs: crate::runstore::RunStore::open(dir.join("run_store.json")),
+            scheduler: std::sync::Arc::new(std::sync::Mutex::new(
+                crate::scheduler::SchedulerService::new(),
+            )),
+        }
+    }
+
+    const ONE_TASK: &str =
+        "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
+
+    #[test]
+    fn resume_replays_a_resolved_escalation_to_completion() {
+        // The journal carries the escalation all the way to an ALLOWED
+        // resolution: resume replays it into a finished run.
+        use nofy_orchestra::taskjournal::TaskEvent;
+        let dir = tempfile::tempdir().unwrap();
+        let stores = stores_at(dir.path());
+        stores
+            .runs
+            .save(&crate::runstore::StoredRun {
+                manifest_toml: ONE_TASK.into(),
+                packs: vec![],
+            })
+            .unwrap();
+        for event in [
+            TaskEvent::Armed { seq: 1, task: "t1".into(), run: "submit".into() },
+            TaskEvent::Claimed { seq: 2, task: "t1".into(), claimant: "provider".into() },
+            TaskEvent::Settled { seq: 3, task: "t1".into(), ok: false },
+            TaskEvent::Escalated { seq: 4, task: "t1".into(), reason: "failed".into() },
+            TaskEvent::EscalationResolved { seq: 5, task: "t1".into(), allow: true },
+        ] {
+            stores.journal.append(&event).unwrap();
+        }
+        let dr = resume_run(&stores).unwrap().expect("stored run resumes");
+        assert_eq!(dr.journal.len(), 5, "the disk log is the journal truth");
+        assert!(dr.re_dispatch().is_empty(), "a resolved escalation leaves nothing to resume");
+        assert!(dr.orch.is_done(), "allowed skip-and-continue completes the run");
+    }
+
+    #[test]
+    fn resume_rearms_an_unresolved_escalation() {
+        // The journal ends at Escalated: the task re-arms as running so the
+        // provider re-drives it after the restart.
+        use nofy_orchestra::taskjournal::TaskEvent;
+        let dir = tempfile::tempdir().unwrap();
+        let stores = stores_at(dir.path());
+        stores
+            .runs
+            .save(&crate::runstore::StoredRun {
+                manifest_toml: ONE_TASK.into(),
+                packs: vec![],
+            })
+            .unwrap();
+        for event in [
+            TaskEvent::Armed { seq: 1, task: "t1".into(), run: "submit".into() },
+            TaskEvent::Claimed { seq: 2, task: "t1".into(), claimant: "provider".into() },
+            TaskEvent::Settled { seq: 3, task: "t1".into(), ok: false },
+            TaskEvent::Escalated { seq: 4, task: "t1".into(), reason: "failed".into() },
+        ] {
+            stores.journal.append(&event).unwrap();
+        }
+        let dr = resume_run(&stores).unwrap().expect("stored run resumes");
+        assert!(dr.orch.running.contains("t1"), "awaiting-decision work re-arms");
+        assert!(
+            dr.re_dispatch().is_empty(),
+            "an escalated task awaits a decision, not a blind re-dispatch"
+        );
+    }
+
+    #[test]
+    fn submit_rejects_packs_that_collide_in_composition() {
+        // Two services with the same name inside one pack: composition
+        // refuses fail-loud before any run exists.
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
+        let pack = serde_json::json!({
+            "id": "p",
+            "persona": "x",
+            "services": [{"name": "s"}, {"name": "s"}],
+        });
+        let Err(err) = submit_run(manifest, &[pack]) else { panic!("a realm collision must refuse the submit") };
+        assert!(err.contains("compose"), "the composition failure is named: {err}");
+    }
+
+    #[test]
+    fn resume_fails_loud_on_corrupt_plan_store() {
+        let dir = tempfile::tempdir().unwrap();
+        let stores = stores_at(dir.path());
+        std::fs::write(dir.path().join("run_store.json"), "{ torn").unwrap();
+        let Err(err) = resume_run(&stores) else { panic!("a torn plan store must refuse the resume") };
+        assert!(err.contains("run store"), "the store failure is named: {err}");
+    }
+
+    #[test]
+    fn resume_fails_loud_on_rejected_manifest() {
+        // A stored plan that no longer validates (cyclic) must refuse the
+        // resume, never drop to a silent fresh boot.
+        let dir = tempfile::tempdir().unwrap();
+        let stores = stores_at(dir.path());
+        let cyclic = "packs = [\"p\"]\n\n[[task]]\nid = \"a\"\npack = \"p\"\ngoal = \"x\"\nneeds = [\"b\"]\n\n[[task]]\nid = \"b\"\npack = \"p\"\ngoal = \"y\"\nneeds = [\"a\"]\n";
+        stores
+            .runs
+            .save(&crate::runstore::StoredRun {
+                manifest_toml: cyclic.into(),
+                packs: vec![],
+            })
+            .unwrap();
+        assert!(resume_run(&stores).is_err());
+    }
+
+    #[test]
+    fn resume_fails_loud_on_unreadable_journal() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut stores = stores_at(dir.path());
+        stores
+            .runs
+            .save(&crate::runstore::StoredRun {
+                manifest_toml: ONE_TASK.into(),
+                packs: vec![],
+            })
+            .unwrap();
+        // The journal path occupied by a directory: read fails loud.
+        std::fs::create_dir_all(dir.path().join("task_journal.jsonl")).unwrap();
+        stores.journal =
+            nofy_orchestra::taskjournal::TaskLogStore::open(dir.path().join("task_journal.jsonl"));
+        let Err(err) = resume_run(&stores) else { panic!("an unreadable journal must refuse the resume") };
+        assert!(err.contains("task journal"), "the journal failure is named: {err}");
+    }
 }

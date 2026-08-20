@@ -107,6 +107,12 @@ mod tests {
     }
 
     #[test]
+    fn empty_original_is_vacuously_valid() {
+        // 空轨迹没有头尾可保护:压缩结果平凡通过。
+        assert_eq!(verify_compaction(&[], &[]), Ok(()));
+    }
+
+    #[test]
     fn middle_may_compact_head_tail_must_survive() {
         let original = trajectory();
         // Keep head + one middle summary survivor + tail.

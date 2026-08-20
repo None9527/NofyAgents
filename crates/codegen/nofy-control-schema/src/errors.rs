@@ -83,4 +83,24 @@ mod tests {
             assert_eq!(serde_json::from_str::<ControlErrorCode>(&s).unwrap(), c);
         }
     }
+
+    #[test]
+    fn as_str_matches_serde_wire_name_for_every_code() {
+        // Two spellings of ONE wire vocabulary — the manual as_str table and
+        // the serde SCREAMING_SNAKE_CASE derive — must never drift apart.
+        for c in [
+            ControlErrorCode::FsNotFound,
+            ControlErrorCode::SessionNotFound,
+            ControlErrorCode::CursorStale,
+            ControlErrorCode::VersionMismatch,
+            ControlErrorCode::AuthDenied,
+            ControlErrorCode::NotReady,
+            ControlErrorCode::ApprovalTimeout,
+            ControlErrorCode::SearchTimeout,
+            ControlErrorCode::Internal,
+        ] {
+            let wire = serde_json::to_value(c).unwrap();
+            assert_eq!(wire.as_str().unwrap(), c.as_str());
+        }
+    }
 }

@@ -24,7 +24,8 @@ fn marketplace_loc_ratchet_only_shrinks() {
     // Day-one cap: batch M marketplace cores (discovery/exemplars/
     // pluginmanifest/docker/channeladapter) + their tests.
     // - 677→825: batch P realmcheck.rs (realm isolation evaluation).
-    let cap = 825;
+    // - 825→845: coverage-gate — tests for uncovered branches.
+    let cap = 845;
     let got = loc(&src);
     assert!(
         got <= cap,

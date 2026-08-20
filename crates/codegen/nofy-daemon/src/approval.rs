@@ -141,6 +141,13 @@ mod tests {
     }
 
     #[test]
+    fn zero_deadline_is_an_immediate_timeout() {
+        let broker = ApprovalBroker::new();
+        broker.register("iz", "x");
+        assert_eq!(broker.wait("iz", Duration::ZERO), None);
+    }
+
+    #[test]
     fn late_or_unknown_respond_dropped() {
         let broker = ApprovalBroker::new();
         assert!(!broker.respond("ghost", ApprovalDecision::Deny));
@@ -149,6 +156,24 @@ mod tests {
         assert!(
             !broker.respond("i3", ApprovalDecision::AllowOnce),
             "second answer must not resurrect"
+        );
+    }
+
+    #[test]
+    fn wait_on_unknown_intent_is_none() {
+        let broker = ApprovalBroker::new();
+        assert_eq!(broker.wait("ghost", Duration::from_millis(10)), None);
+    }
+
+    #[test]
+    fn answer_lodged_before_wait_is_returned_immediately() {
+        let broker = ApprovalBroker::new();
+        broker.register("i4", "x");
+        assert!(broker.respond("i4", ApprovalDecision::Deny));
+        assert_eq!(
+            broker.wait("i4", Duration::from_secs(5)),
+            Some(ApprovalDecision::Deny),
+            "an answer already lodged must not block"
         );
     }
 }

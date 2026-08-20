@@ -201,4 +201,32 @@ mod tests {
             .unwrap();
         assert_eq!(table.chain("s1-compacted"), vec!["s1-compacted".to_string(), "s1".into()]);
     }
+
+    #[test]
+    fn get_returns_registered_entries_only() {
+        let mut table = LineageTable::default();
+        table.register(entry("root", 0, SessionOrigin::Root)).unwrap();
+        assert_eq!(table.get("root").unwrap().generation, 0);
+        assert!(table.get("ghost").is_none());
+    }
+
+    #[test]
+    fn chain_guard_survives_a_forced_cycle() {
+        // register() refuses cycles (parents must exist first), so force
+        // one through the private map to prove the guard itself holds.
+        let mut table = LineageTable::default();
+        table.entries.insert("a".into(), entry("a", 1, SessionOrigin::Fork { parent: "b".into() }));
+        table.entries.insert("b".into(), entry("b", 1, SessionOrigin::Fork { parent: "a".into() }));
+        assert_eq!(table.chain("a"), vec!["a".to_string(), "b".into()]);
+    }
+
+    #[test]
+    fn len_and_is_empty_track_registrations() {
+        let mut table = LineageTable::default();
+        assert!(table.is_empty());
+        assert_eq!(table.len(), 0);
+        table.register(entry("root", 0, SessionOrigin::Root)).unwrap();
+        assert!(!table.is_empty());
+        assert_eq!(table.len(), 1);
+    }
 }

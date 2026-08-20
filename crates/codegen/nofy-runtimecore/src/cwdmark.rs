@@ -71,12 +71,13 @@ mod tests {
 
     #[test]
     fn throttle_spills_over_budget_with_reference() {
-        match throttle("out-2", 101, 100) {
-            Throttle::Spill { reference } => {
-                assert!(reference.contains("out-2"));
-                assert!(reference.contains("101 bytes"));
-            }
-            Throttle::Inline => panic!("over-budget output must spill"),
-        }
+        assert!(
+            matches!(
+                throttle("out-2", 101, 100),
+                Throttle::Spill { reference }
+                    if reference.contains("out-2") && reference.contains("101 bytes")
+            ),
+            "over-budget output must spill"
+        );
     }
 }

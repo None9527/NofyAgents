@@ -190,6 +190,24 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
 
+    // 探针用 fn item(而非闭包):所有调用共享同一 F 类型,get_or_refresh
+    // 只有单一实例化,每条路径都由同一实例化覆盖。
+    static OAUTH_REFRESHES: AtomicUsize = AtomicUsize::new(0);
+
+    fn oauth_refresh() -> (String, u64) {
+        OAUTH_REFRESHES.fetch_add(1, Ordering::SeqCst);
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        ("token-v2".to_string(), 200)
+    }
+
+    static PROBE_REFRESHES: AtomicUsize = AtomicUsize::new(0);
+
+    fn probe_refresh() -> (String, u64) {
+        PROBE_REFRESHES.fetch_add(1, Ordering::SeqCst);
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        ("probed".to_string(), 100)
+    }
+
     #[test]
     fn generation_snapshot_is_atomic_and_leased() {
         let mut store = GenerationStore::new(1000);
@@ -231,38 +249,44 @@ mod tests {
     #[test]
     fn oauth_double_check_refreshes_exactly_once() {
         let cell = Arc::new(TokenCell::new());
-        let refreshes = Arc::new(AtomicUsize::new(0));
         let mut handles = Vec::new();
         for _ in 0..8 {
             let cell = cell.clone();
-            let refreshes = refreshes.clone();
-            handles.push(std::thread::spawn(move || {
-                cell.get_or_refresh(100, || {
-                    refreshes.fetch_add(1, Ordering::SeqCst);
-                    std::thread::sleep(std::time::Duration::from_millis(20));
-                    ("token-v2".to_string(), 200)
-                })
-            }));
+            handles.push(std::thread::spawn(move || cell.get_or_refresh(100, oauth_refresh)));
         }
         let tokens: Vec<String> = handles.into_iter().map(|h| h.join().unwrap()).collect();
         assert!(tokens.iter().all(|t| t == "token-v2"));
-        assert_eq!(refreshes.load(Ordering::SeqCst), 1, "exactly one underlying refresh");
+        assert_eq!(OAUTH_REFRESHES.load(Ordering::SeqCst), 1, "exactly one underlying refresh");
+        // 过期后再取:同一探针类型也走「过期 → 再刷新」分支。
+        let again = cell.get_or_refresh(250, oauth_refresh);
+        assert_eq!(again, "token-v2");
+        assert_eq!(OAUTH_REFRESHES.load(Ordering::SeqCst), 2);
     }
 
     #[test]
     fn valid_token_is_served_without_refresh() {
-        let cell = TokenCell::new();
-        let first = cell.get_or_refresh(0, || ("t1".into(), 100));
-        assert_eq!(first, "t1");
-        let refreshes = AtomicUsize::new(0);
-        let second = cell.get_or_refresh(50, || {
-            refreshes.fetch_add(1, Ordering::SeqCst);
-            ("t2".into(), 200)
-        });
-        assert_eq!(second, "t1", "still valid: no refresh");
-        assert_eq!(refreshes.load(Ordering::SeqCst), 0);
+        let cell = Arc::new(TokenCell::new());
+        // 首次调用即过期:probe 走完整刷新路径。
+        let first = cell.get_or_refresh(0, probe_refresh);
+        assert_eq!(first, "probed");
+        assert_eq!(PROBE_REFRESHES.load(Ordering::SeqCst), 1);
+        // 未过期:probe 不得再次运行。
+        let second = cell.get_or_refresh(50, probe_refresh);
+        assert_eq!(second, "probed", "still valid: no refresh");
+        assert_eq!(PROBE_REFRESHES.load(Ordering::SeqCst), 1);
         // Expired → refresh.
-        let third = cell.get_or_refresh(150, || ("t3".into(), 300));
-        assert_eq!(third, "t3");
+        let third = cell.get_or_refresh(150, probe_refresh);
+        assert_eq!(third, "probed");
+        assert_eq!(PROBE_REFRESHES.load(Ordering::SeqCst), 2);
+        // 并发同型调用:该探针类型也走到 wait 分支(一个在刷新,其余等待);
+        // 唤醒后仍然过期,每个调用各刷新一次。
+        let mut handles = Vec::new();
+        for _ in 0..4 {
+            let cell = cell.clone();
+            handles.push(std::thread::spawn(move || cell.get_or_refresh(300, probe_refresh)));
+        }
+        let tokens: Vec<String> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+        assert!(tokens.iter().all(|t| t == "probed"));
+        assert_eq!(PROBE_REFRESHES.load(Ordering::SeqCst), 6);
     }
 }

@@ -129,4 +129,12 @@ mod tests {
         assert!(!timer.fire(), "one-shot means exactly once");
         assert!(!timer.is_due(100), "fired timer is never due again");
     }
+
+    #[test]
+    fn anchor_wall_tracks_the_last_revalidation() {
+        let mut timer = arm("t", 1000, 2000);
+        assert_eq!(timer.anchor_wall(), 1000);
+        timer.revalidate(10, 4600);
+        assert_eq!(timer.anchor_wall(), 4600, "re-anchor moves the wall base");
+    }
 }

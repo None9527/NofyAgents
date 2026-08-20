@@ -129,4 +129,17 @@ mod tests {
         assert!(dir.join(HISTORY_FILE).exists());
         assert!(reg.session_dir("absent").is_none());
     }
+
+    #[test]
+    fn stray_file_where_a_cwd_dir_should_be_is_skipped() {
+        let tmp = tempfile::tempdir().unwrap();
+        seed(tmp.path(), "cw1", "s1", 5);
+        // A stray file where a cwd directory is expected: unreadable as a
+        // directory, skipped — never a crash, never a phantom session.
+        fs::write(tmp.path().join("sessions").join("stray"), "x").unwrap();
+        let reg = Registry::at(tmp.path());
+        let all = reg.list();
+        assert_eq!(all.len(), 1, "stray non-directory entry skipped");
+        assert_eq!(all[0].session_id, "s1");
+    }
 }

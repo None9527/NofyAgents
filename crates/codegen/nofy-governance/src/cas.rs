@@ -144,4 +144,39 @@ mod tests {
         store.write(0, "line1\nline2").unwrap();
         assert_eq!(store.read().unwrap().unwrap().value, "line1\nline2");
     }
+
+    #[test]
+    fn io_errors_surface_not_swallowed() {
+        let dir = tempfile::tempdir().unwrap();
+        // 路径指向目录:read_to_string 报非 NotFound 的 IO 错误,必须原样上浮。
+        let store = CasStore::open(dir.path());
+        assert!(store.read().is_err());
+        // 同路径下 write:read 失败 → CasError::Io,不得静默。
+        assert!(matches!(store.write(0, "x"), Err(CasError::Io(_))));
+    }
+
+    #[test]
+    fn write_stage_io_errors_surface_not_swallowed() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config");
+        // tmp 路径是目录:fs::write(tmp) 失败 → CasError::Io。
+        std::fs::create_dir(dir.path().join("config.tmp")).unwrap();
+        let store = CasStore::open(&path);
+        assert!(matches!(store.write(0, "x"), Err(CasError::Io(_))));
+    }
+
+    #[test]
+    fn write_rename_io_error_surfaces() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config");
+        let tmp = dir.path().join("config.tmp");
+        // tmp 已存在且可写,但目录不可写:fs::write 成功,rename 报 EACCES。
+        std::fs::write(&tmp, "stale").unwrap();
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o555)).unwrap();
+        let store = CasStore::open(&path);
+        assert!(matches!(store.write(0, "x"), Err(CasError::Io(_))));
+        // 恢复权限,让 tempdir 可以清理。
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
 }

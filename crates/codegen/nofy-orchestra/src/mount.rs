@@ -166,4 +166,34 @@ mod tests {
         // Unknown parent fails closed.
         assert_eq!(table.join_under("orphan", "ghost"), JoinOutcome::UnknownScope);
     }
+
+    #[test]
+    fn join_under_is_idempotent_for_the_same_child() {
+        let mut table = MountTable::default();
+        table.mount("proj", &packs(&["a"]));
+        table.join("parent-session", "proj");
+        assert_eq!(table.join_under("subagent-1", "parent-session"), JoinOutcome::Joined);
+        // Re-joining the same child is an idempotent no-op.
+        assert_eq!(
+            table.join_under("subagent-1", "parent-session"),
+            JoinOutcome::AlreadyJoined
+        );
+    }
+
+    #[test]
+    fn scope_of_fuses_on_cyclic_lineage() {
+        // Defense branch: cyclic parent pointers must terminate the walk.
+        // The public API cannot build this state (join_under requires a
+        // resolvable scope and always records a join first), so construct
+        // the internal state directly.
+        let mut parents = BTreeMap::new();
+        parents.insert("a".to_string(), "b".to_string());
+        parents.insert("b".to_string(), "a".to_string());
+        let table = MountTable {
+            mounts: BTreeMap::new(),
+            joins: BTreeMap::new(),
+            parents,
+        };
+        assert_eq!(table.scope_of("a"), None, "cycle fuse blows instead of looping");
+    }
 }

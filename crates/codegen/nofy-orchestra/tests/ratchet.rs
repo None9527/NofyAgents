@@ -35,7 +35,8 @@ fn orchestra_loc_ratchet_only_shrinks() {
     //   manifest/DAG/OrchRun) moved verbatim into this crate.
     // - 3156→3272: batch R1 — TaskEvent serde + TaskLogStore (durable
     //   task.* journal, AC-11 crash reconciliation from disk).
-    let cap = 3272;
+    // - 3272→3515: coverage-gate — tests for uncovered branches.
+    let cap = 3515;
     let got = loc(&src);
     assert!(
         got <= cap,

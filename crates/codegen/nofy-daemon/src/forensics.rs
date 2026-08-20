@@ -48,8 +48,18 @@ impl ForensicsLedger {
 
     fn last_entry(&self) -> Option<Value> {
         let f = fs::File::open(&self.path).ok()?;
-        let last = BufReader::new(f).lines().last()?.ok()?;
-        serde_json::from_str(&last).ok()
+        // Manual walk, not `lines().last()`: a PERSISTENT read error makes
+        // `lines()` yield `Some(Err)` forever, and `last()` would never
+        // terminate (hangs the boot path). Stop at the first error and use
+        // the last line read successfully — torn-tail tolerance.
+        let mut last_line: Option<String> = None;
+        for line in BufReader::new(f).lines() {
+            match line {
+                Ok(l) => last_line = Some(l),
+                Err(_) => break,
+            }
+        }
+        serde_json::from_str(&last_line?).ok()
     }
 
     /// Record this run's startup and classify the previous run.
@@ -133,5 +143,34 @@ mod tests {
         }
         let ledger = ForensicsLedger::open(dir.path()).unwrap();
         assert!(!ledger.record_startup().unwrap());
+    }
+
+    #[test]
+    fn append_failure_surfaces_as_error() {
+        // The ledger path is a symlink whose target cannot be created
+        // (read-only target directory): the append fails, and the error
+        // propagates — disk trouble is never silent.
+        let dir = tempfile::tempdir().unwrap();
+        let ro = dir.path().join("ro");
+        std::fs::create_dir(&ro).unwrap();
+        let mut perms = std::fs::metadata(&ro).unwrap().permissions();
+        perms.set_readonly(true);
+        std::fs::set_permissions(&ro, perms).unwrap();
+        std::os::unix::fs::symlink(ro.join("missing.jsonl"), dir.path().join(FILE_NAME))
+            .unwrap();
+        let ledger = ForensicsLedger::open(dir.path()).unwrap();
+        assert!(ledger.record_startup().is_err());
+    }
+
+    #[test]
+    fn directory_at_ledger_path_fails_loud_not_forever() {
+        // Regression: a directory at the ledger path makes reads error
+        // persistently; last_entry must STOP at the first error (torn-tail
+        // tolerance), never loop forever on the boot path. The startup then
+        // fails loud at append — the test completing is the liveness proof.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join(FILE_NAME)).unwrap();
+        let ledger = ForensicsLedger::open(dir.path()).unwrap();
+        assert!(ledger.record_startup().is_err());
     }
 }

@@ -92,10 +92,19 @@ mod tests {
         assert!(child.has(Caps::READ));
         // Widening is detectable and must be rejected by callers.
         let widened = Caps(child.0 | Caps::APPROVE);
-        assert!(!widened.narrow(Caps::WRITE).is_narrowing_of(child.narrow(Caps::WRITE))
-            || widened.is_narrowing_of(parent));
+        assert!(!widened.narrow(Caps::WRITE).is_narrowing_of(child.narrow(Caps::WRITE)));
+        assert!(widened.is_narrowing_of(parent), "widened stays inside the host grant");
         let smuggled = Caps(child.0 | (1 << 10));
         assert!(!smuggled.is_narrowing_of(parent), "extra bits are not a narrowing");
+    }
+
+    #[test]
+    fn empty_caps_carry_no_abilities() {
+        let empty = Caps::empty();
+        assert!(!empty.has(Caps::READ));
+        assert!(!empty.has(Caps::APPROVE));
+        assert!(empty.is_narrowing_of(Caps::full()), "empty is the narrowest grant");
+        assert_eq!(Caps::full().narrow(u16::MAX), empty, "full narrowed to nothing = empty");
     }
 
     #[test]
@@ -137,5 +146,17 @@ mod tests {
         let turns = vec![Turn { state: TurnState::Open, payload: () }];
         assert!(fork_completed_prefix(&turns).is_empty());
         assert!(fork_completed_prefix::<()>(&[]).is_empty());
+    }
+
+    #[test]
+    fn fork_prefix_arms_hold_for_every_payload_type() {
+        // Both match arms must hold in every generic instantiation, not
+        // only in the one a single test happens to instantiate.
+        let open_str = [Turn { state: TurnState::Open, payload: "x" }];
+        assert!(fork_completed_prefix(&open_str).is_empty());
+        let open_int = [Turn { state: TurnState::Open, payload: 7 }];
+        assert!(fork_completed_prefix(&open_int).is_empty());
+        let done_unit = [Turn { state: TurnState::Completed, payload: () }];
+        assert_eq!(fork_completed_prefix(&done_unit).len(), 1);
     }
 }

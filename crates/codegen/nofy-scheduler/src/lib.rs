@@ -550,6 +550,24 @@ mod tests {
         assert!(state.is_live("nightly"));
     }
 
+    #[test]
+    fn parse_log_skips_blank_lines() {
+        // Blank lines (e.g. hand-edited logs) are skipped, not a torn tail.
+        let mut text = render_log(&[added("a")]);
+        text.push_str("\n\n   \n");
+        text.push_str(&render_log(&[armed("a", 1)]));
+        assert_eq!(parse_log(&text), vec![added("a"), armed("a", 1)]);
+    }
+
+    #[test]
+    fn read_errors_other_than_missing_propagate() {
+        // A directory in the log's slot is unreadable — that is NOT a
+        // missing log; the error must surface, not masquerade as empty.
+        let dir = tempfile::tempdir().unwrap();
+        let store = LogStore::open(dir.path().to_path_buf());
+        assert!(store.read_events().is_err());
+    }
+
     // ---- E2: catch-up policy (FR3.2 / DS-#2) ----
 
     #[test]

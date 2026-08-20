@@ -91,11 +91,10 @@ mod tests {
     #[test]
     fn fast_path_responses_are_nonempty() {
         for arg in ["--help", "--version"] {
-            if let BootPlan::FastPath { response } = classify(Some(arg)) {
-                assert!(!response.is_empty());
-            } else {
-                panic!("{arg} must be a fast path");
-            }
+            assert!(
+                matches!(classify(Some(arg)), BootPlan::FastPath { response } if !response.is_empty()),
+                "{arg} must answer from the fast path"
+            );
         }
     }
 }

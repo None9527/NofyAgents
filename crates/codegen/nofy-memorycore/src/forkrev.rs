@@ -105,6 +105,15 @@ mod tests {
     }
 
     #[test]
+    fn reads_fall_through_to_base_when_overlay_misses() {
+        let base = base();
+        let fork = ForkView::fork(&base);
+        // overlay 未命中 → 回落 base;base 也没有 → None。
+        assert_eq!(fork.get("doc1"), Some("original"));
+        assert_eq!(fork.get("ghost"), None);
+    }
+
+    #[test]
     fn merge_is_the_only_path_back() {
         let mut base = base();
         let mut fork = ForkView::fork(&base);
@@ -121,23 +130,21 @@ mod tests {
             ReviewInput { doc_id: "b".into(), content_hash: "h2".into() },
         ];
         let calls = std::cell::Cell::new(0);
-        let (outcomes, hits) = replay(&inputs, &mut cache, |input| {
+        let compute = |input: &ReviewInput| {
             calls.set(calls.get() + 1);
             format!("review-of-{}", input.doc_id)
-        });
+        };
+        let (outcomes, hits) = replay(&inputs, &mut cache, &compute);
         assert_eq!(outcomes.len(), 2);
         assert_eq!(hits, 0, "cold cache computes everything");
         assert_eq!(calls.get(), 2);
 
-        // Same hashes: full cache reuse, zero recomputation.
-        let calls2 = std::cell::Cell::new(0);
-        let (outcomes2, hits2) = replay(&inputs, &mut cache, |_| {
-            calls2.set(calls2.get() + 1);
-            "should not run".into()
-        });
+        // Same hashes: full cache reuse, zero recomputation (the counter
+        // must stay where the cold pass left it).
+        let (outcomes2, hits2) = replay(&inputs, &mut cache, &compute);
         assert_eq!(outcomes2, outcomes);
         assert_eq!(hits2, 2);
-        assert_eq!(calls2.get(), 0);
+        assert_eq!(calls.get(), 2, "warm replay adds zero recomputation");
     }
 
     #[test]

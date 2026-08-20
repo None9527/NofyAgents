@@ -304,4 +304,34 @@ mod tests {
         assert!(!svc.enabled(), "no history = default-off");
         assert_eq!(svc.event_count(), 0);
     }
+
+    #[test]
+    fn default_is_a_fresh_disabled_service() {
+        let svc = SchedulerService::default();
+        assert_eq!(svc, SchedulerService::new());
+        assert!(!svc.enabled());
+    }
+
+    #[test]
+    fn remove_and_run_failed_refuse_while_disabled() {
+        let mut svc = SchedulerService::new();
+        assert!(svc.remove_schedule("j1").is_err());
+        assert!(svc.run_failed("j1", 1).is_err());
+        assert_eq!(svc.event_count(), 0, "refusals never enter the log");
+    }
+
+    #[test]
+    fn disk_failure_degrades_durability_not_service() {
+        // The durable sink's path occupied by a directory: appends fail,
+        // the service degrades loud (log line) and keeps working in memory.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("schedule.jsonl")).unwrap();
+        let mut svc = SchedulerService::new();
+        svc.attach_store(LogStore::open(dir.path().join("schedule.jsonl")))
+            .unwrap();
+        svc.enable();
+        svc.add_schedule("j1", "* * * * *").unwrap();
+        assert_eq!(svc.event_count(), 1, "the event stays in memory");
+        assert!(svc.is_live("j1"));
+    }
 }

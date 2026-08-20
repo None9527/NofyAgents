@@ -150,6 +150,16 @@ mod tests {
     }
 
     #[test]
+    fn upsert_replaces_the_same_path_in_place() {
+        let mut index = FsIndex::default();
+        index.upsert(entry("/a", "old text"));
+        index.upsert(entry("/a", "new text"));
+        assert_eq!(index.len(), 1, "same path replaces, never duplicates");
+        assert_eq!(index.search("new"), vec!["/a".to_string()]);
+        assert!(index.search("old").is_empty());
+    }
+
+    #[test]
     fn rebuild_only_in_maintenance_phase() {
         let mut index = FsIndex::default();
         let mut pending = vec![WatchEvent {

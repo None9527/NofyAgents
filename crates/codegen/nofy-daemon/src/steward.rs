@@ -287,4 +287,24 @@ mod tests {
             Err(mgmt::IntentError::LeaseHit { .. })
         ));
     }
+
+    #[test]
+    fn move_batches_commit_through_the_intent_model() {
+        // Move ops map onto the stewardcore Move intent and commit with a
+        // rollback snapshot, same as the trash-lowering ops.
+        let b = batch(
+            "/home/u/Downloads",
+            vec![StewardOp::Move {
+                from: "/home/u/Downloads/a".into(),
+                to: "/home/u/Downloads/sorted/a".into(),
+            }],
+        );
+        b.validate().unwrap();
+        let committed = b
+            .commit_two_phase("steward-mv", &LeaseTable::default(), 100, 200)
+            .unwrap();
+        assert_eq!(committed.records.len(), 1);
+        let inverses = nofy_stewardcore::mgmt::rollback(&committed.snapshot);
+        assert_eq!(inverses.len(), 1, "the move is rollback-able");
+    }
 }

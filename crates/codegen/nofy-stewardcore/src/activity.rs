@@ -144,4 +144,17 @@ mod tests {
         let graph = ActivityGraph::default();
         assert!(graph.confluence("/missing").is_none());
     }
+
+    #[test]
+    fn history_and_paths_are_observable() {
+        let mut graph = ActivityGraph::default();
+        graph.record(write("/a", FileActor::Steward, 10));
+        graph.record(write("/b", FileActor::External, 20));
+        // history:按记录顺序返回该文件全部事件;未知路径为空。
+        assert_eq!(graph.history("/a").len(), 1);
+        assert_eq!(graph.history("/a")[0].at, 10);
+        assert!(graph.history("/missing").is_empty());
+        // paths:全部被记录过的文件。
+        assert_eq!(graph.paths(), vec!["/a".to_string(), "/b".to_string()]);
+    }
 }

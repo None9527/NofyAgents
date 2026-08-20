@@ -122,4 +122,14 @@ mod tests {
             .collect();
         assert!(leftovers.is_empty());
     }
+
+    #[test]
+    fn read_errors_other_than_missing_propagate() {
+        let dir = tempfile::tempdir().unwrap();
+        let files = RunFiles::new(dir.path());
+        // File slot occupied by a DIRECTORY: read fails, not NotFound.
+        fs::create_dir_all(dir.path().join("nightly.heartbeat")).unwrap();
+        let err = files.read_heartbeat("nightly").unwrap_err();
+        assert_ne!(err.kind(), io::ErrorKind::NotFound);
+    }
 }

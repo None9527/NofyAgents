@@ -153,4 +153,218 @@ mod tests {
         let err = ControlClient::connect(dir.path()).unwrap_err();
         assert!(err.contains("connect"), "failure names the stage: {err}");
     }
+
+    #[test]
+    fn connect_completes_handshake_against_a_live_socket() {
+        // A listener at the state-dir convention: connect runs the full
+        // handshake and lands a working call channel.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("daemon")).unwrap();
+        let listener =
+            std::os::unix::net::UnixListener::bind(dir.path().join(CONTROL_SOCKET_RELATIVE))
+                .unwrap();
+        let server = std::thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            let mut reader = stream.try_clone().unwrap();
+            let mut writer = stream;
+            let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+            serve_connection(
+                &mut reader,
+                &mut writer,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &ApprovalBroker::new(),
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &run,
+                None,
+            )
+        });
+        let mut client = ControlClient::connect(dir.path()).unwrap();
+        let pong = client.call(&ControlMethod::Ping).unwrap();
+        assert_eq!(pong["kind"], "pong");
+        drop(client);
+        server.join().unwrap().unwrap();
+    }
+
+    #[test]
+    fn server_close_during_handshake_is_named() {
+        // The server reads our Hello, then dies before acking.
+        let (client_side, server_side) = UnixStream::pair().unwrap();
+        let server = std::thread::spawn(move || {
+            let mut s = server_side;
+            let _ = read_frame_from(&mut s).unwrap(); // consume the Hello
+            drop(s); // close without an ack
+        });
+        let err = ControlClient::from_stream(client_side).unwrap_err();
+        assert!(
+            err.contains("closed the connection during handshake"),
+            "failure names the stage: {err}"
+        );
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn refused_handshake_is_reported() {
+        // The server answers with a VersionMismatch ack.
+        let (client_side, server_side) = UnixStream::pair().unwrap();
+        let server = std::thread::spawn(move || {
+            let mut s = server_side;
+            let _ = read_frame_from(&mut s).unwrap(); // consume the Hello
+            let ack = HelloAck::VersionMismatch {
+                daemon: ProtocolVersion::CURRENT,
+                client: ProtocolVersion { major: 9, minor: 0 },
+            };
+            write_frame(&mut s, &serde_json::to_vec(&ack).unwrap()).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        });
+        let err = ControlClient::from_stream(client_side).unwrap_err();
+        assert!(err.contains("handshake refused"), "refusal surfaces: {err}");
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn server_close_during_call_is_named() {
+        // Handshake completes; the server dies after reading the request,
+        // never answering.
+        let (client_side, server_side) = UnixStream::pair().unwrap();
+        let server = std::thread::spawn(move || {
+            let mut s = server_side;
+            let _ = read_frame_from(&mut s).unwrap(); // Hello
+            let ack = HelloAck::Accepted {
+                version: ProtocolVersion::CURRENT,
+                resume_supported: true,
+            };
+            write_frame(&mut s, &serde_json::to_vec(&ack).unwrap()).unwrap();
+            let _ = read_frame_from(&mut s).unwrap(); // the call frame
+            drop(s); // close without a response
+        });
+        let mut client = ControlClient::from_stream(client_side).unwrap();
+        let err = client.call(&ControlMethod::Ping).unwrap_err();
+        assert!(
+            err.contains("daemon closed the connection"),
+            "failure names the stage: {err}"
+        );
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn oversized_handshake_frame_is_a_read_failure() {
+        // The server answers with a frame length beyond the cap: the read
+        // fails loud (never allocates), surfacing as a hello-read error.
+        let (client_side, server_side) = UnixStream::pair().unwrap();
+        let server = std::thread::spawn(move || {
+            let mut s = server_side;
+            let _ = read_frame_from(&mut s).unwrap(); // consume the Hello
+            let oversized = (nofy_channel::frame::MAX_FRAME_BYTES + 1).to_be_bytes();
+            use std::io::Write;
+            s.write_all(&oversized).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        });
+        let err = ControlClient::from_stream(client_side).unwrap_err();
+        assert!(err.contains("hello read"), "failure names the stage: {err}");
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn malformed_ack_frame_is_named() {
+        // The server answers with bytes that are not a HelloAck.
+        let (client_side, server_side) = UnixStream::pair().unwrap();
+        let server = std::thread::spawn(move || {
+            let mut s = server_side;
+            let _ = read_frame_from(&mut s).unwrap(); // consume the Hello
+            write_frame(&mut s, b"{\"kind\":\"nonsense\"}").unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        });
+        let err = ControlClient::from_stream(client_side).unwrap_err();
+        assert!(err.contains("hello ack"), "failure names the stage: {err}");
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn oversized_response_frame_is_a_read_failure() {
+        // Handshake completes; the answer to the call is an oversized frame.
+        let (client_side, server_side) = UnixStream::pair().unwrap();
+        let server = std::thread::spawn(move || {
+            let mut s = server_side;
+            let _ = read_frame_from(&mut s).unwrap(); // Hello
+            let ack = HelloAck::Accepted {
+                version: ProtocolVersion::CURRENT,
+                resume_supported: true,
+            };
+            write_frame(&mut s, &serde_json::to_vec(&ack).unwrap()).unwrap();
+            let _ = read_frame_from(&mut s).unwrap(); // the call frame
+            let oversized = (nofy_channel::frame::MAX_FRAME_BYTES + 1).to_be_bytes();
+            use std::io::Write;
+            s.write_all(&oversized).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        });
+        let mut client = ControlClient::from_stream(client_side).unwrap();
+        let err = client.call(&ControlMethod::Ping).unwrap_err();
+        assert!(err.contains("read"), "failure names the stage: {err}");
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn malformed_response_frame_is_named() {
+        // Handshake completes; the answer to the call is not valid JSON.
+        let (client_side, server_side) = UnixStream::pair().unwrap();
+        let server = std::thread::spawn(move || {
+            let mut s = server_side;
+            let _ = read_frame_from(&mut s).unwrap(); // Hello
+            let ack = HelloAck::Accepted {
+                version: ProtocolVersion::CURRENT,
+                resume_supported: true,
+            };
+            write_frame(&mut s, &serde_json::to_vec(&ack).unwrap()).unwrap();
+            let _ = read_frame_from(&mut s).unwrap(); // the call frame
+            write_frame(&mut s, b"{ not json").unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        });
+        let mut client = ControlClient::from_stream(client_side).unwrap();
+        let err = client.call(&ControlMethod::Ping).unwrap_err();
+        assert!(err.contains("response"), "failure names the stage: {err}");
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn write_failure_during_handshake_is_named() {
+        // The server closes before reading anything: the Hello write hits a
+        // broken pipe.
+        let (client_side, server_side) = UnixStream::pair().unwrap();
+        let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+        let server = std::thread::spawn(move || {
+            drop(server_side); // close without reading
+            let _ = ready_tx.send(());
+        });
+        ready_rx.recv().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let err = ControlClient::from_stream(client_side).unwrap_err();
+        assert!(err.contains("hello write"), "failure names the stage: {err}");
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn write_failure_during_call_is_named() {
+        // Handshake completes; the server closes before the call frame is
+        // written.
+        let (client_side, server_side) = UnixStream::pair().unwrap();
+        let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+        let server = std::thread::spawn(move || {
+            let mut s = server_side;
+            let _ = read_frame_from(&mut s).unwrap(); // Hello
+            let ack = HelloAck::Accepted {
+                version: ProtocolVersion::CURRENT,
+                resume_supported: true,
+            };
+            write_frame(&mut s, &serde_json::to_vec(&ack).unwrap()).unwrap();
+            drop(s); // close right after the ack
+            let _ = ready_tx.send(());
+        });
+        let mut client = ControlClient::from_stream(client_side).unwrap();
+        ready_rx.recv().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let err = client.call(&ControlMethod::Ping).unwrap_err();
+        assert!(err.contains("write"), "failure names the stage: {err}");
+        server.join().unwrap();
+    }
 }

@@ -181,13 +181,13 @@ persona = "You write reports."
             "id = \"writer\"\npersona = \"p\"\nsandbox_policy = \"strict\"\n",
         )
         .unwrap();
-        match load_project(dir.path()) {
-            Err(ProjectError::Pack { id, error: PackError::HostPlaneLeak { key } }) => {
-                assert_eq!(id, "writer");
-                assert_eq!(key, "sandbox_policy");
-            }
-            other => panic!("expected host-plane leak, got {other:?}"),
-        }
+        assert_eq!(
+            load_project(dir.path()),
+            Err(ProjectError::Pack {
+                id: "writer".into(),
+                error: PackError::HostPlaneLeak { key: "sandbox_policy".into() },
+            })
+        );
     }
 
     #[test]
@@ -221,5 +221,41 @@ persona = "You write reports."
             load_project(dir.path()),
             Err(ProjectError::Manifest(ManifestError::DanglingNeed { .. }))
         ));
+    }
+
+    #[test]
+    fn unreadable_manifest_is_io_error_not_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        fixture(dir.path());
+        // Manifest slot occupied by a DIRECTORY: read fails, not NotFound.
+        let manifest = project_manifest_path(dir.path());
+        fs::remove_file(&manifest).unwrap();
+        fs::create_dir_all(&manifest).unwrap();
+        assert!(matches!(load_project(dir.path()), Err(ProjectError::Io(_))));
+    }
+
+    #[test]
+    fn unreadable_pack_is_io_error_not_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        fixture(dir.path());
+        // Pack slot occupied by a DIRECTORY: Io, not MissingPack.
+        let pack_path = packs_dir(dir.path()).join("writer.toml");
+        fs::remove_file(&pack_path).unwrap();
+        fs::create_dir_all(&pack_path).unwrap();
+        assert!(matches!(load_project(dir.path()), Err(ProjectError::Io(_))));
+    }
+
+    #[test]
+    fn malformed_pack_toml_fails_at_load() {
+        let dir = tempfile::tempdir().unwrap();
+        fixture(dir.path());
+        fs::write(packs_dir(dir.path()).join("writer.toml"), "= not toml [").unwrap();
+        assert_eq!(
+            load_project(dir.path()),
+            Err(ProjectError::Pack {
+                id: "writer".into(),
+                error: PackError::HostPlaneLeak { key: "<malformed pack toml>".into() },
+            })
+        );
     }
 }

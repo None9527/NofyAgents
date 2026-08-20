@@ -131,7 +131,17 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_548_747→1_549_042: batch Z scheduler client — daemon control_client
     //   (framed request/response + socket tests), pager schedule_cmd CLI
     //   surface, Command::Schedule dispatch in pager-bin.
-    let cap = 1_549_042; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_549_042→1_549_082: coverage-gate landing — packcore gained the two
+    //   error-branch tests the gate demanded (283→318 + ratchet note).
+    // - 1_549_082→1_549_703: coverage-gate branch-test batch — nofy-channel
+    //   544→609, nofy-control-schema 367→387, nofy-session-registry 132→145,
+    //   plus sibling agents' concurrent coverage-gate test additions.
+    // - 1_549_703→1_551_888: coverage-gate — daemon per-file gap closure
+    //   (daemon src 5154→7120: tests for uncovered branches) plus sibling
+    //   agents' concurrent coverage-gate test additions.
+    // - 1_551_888→1_551_912: coverage-gate — forensics last_entry infinite-loop
+    //   fix + directory regression test (daemon 7120→7140).
+    let cap = 1_551_912; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -307,11 +317,19 @@ fn control_plane_loc_ratchet_only_shrinks() {
     //   ScheduleNoted/ScheduleListed responses, additive drift gate.
     // - daemon 4997→5154: batch Z control_client — framed request/response
     //   client over the control UDS + two socket tests (schedule roundtrip).
+    // - nofy-channel 544→609: coverage-gate — tests for uncovered branches.
+    // - nofy-control-schema 367→387: coverage-gate — tests for uncovered branches.
+    // - nofy-control-schema 387→388: coverage-gate — final line of the sibling
+    //   schema batch landed after its cap was set (measured, closing the gate).
+    // - nofy-session-registry 132→145: coverage-gate — tests for uncovered branches.
+    // - daemon 5154→7120: coverage-gate — tests for uncovered branches.
+    // - daemon 7120→7140: coverage-gate — forensics last_entry infinite-loop
+    //   fix (bounded torn-tail walk) + its directory regression test.
     let caps = [
-        ("nofy-daemon", 5154),
-        ("nofy-channel", 544),
-        ("nofy-control-schema", 367),
-        ("nofy-session-registry", 132),
+        ("nofy-daemon", 7140),
+        ("nofy-channel", 609),
+        ("nofy-control-schema", 388),
+        ("nofy-session-registry", 145),
     ];
     for (name, cap) in caps {
         let got = loc(&base.join(name).join("src"));

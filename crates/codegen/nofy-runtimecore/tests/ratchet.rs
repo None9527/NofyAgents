@@ -26,7 +26,8 @@ fn runtimecore_loc_ratchet_only_shrinks() {
     // coldstart/envsnapshot/cwdmark/workerroute/bootcheck) + tests.
     // - 894→1128: batch P execworld.rs (docker/ssh execution worlds;
     //   FR6.10).
-    let cap = 1128;
+    // - 1128→1160: coverage-gate — tests for uncovered branches.
+    let cap = 1160;
     let got = loc(&src);
     assert!(
         got <= cap,

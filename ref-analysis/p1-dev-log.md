@@ -535,3 +535,20 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 验证:daemon 84 lib(80+2 客户端)+5 棘轮双跑绿、schedule_cmd 1/1、pager-bin check 零错误、workspace check 零错误。
 - 棘轮:daemon 控制面 4,997→5,154、workspace 1,548,747→1,549,042(阶梯注记在案)。
 - **批次 Z 闭环 ⇒ 集成后续全部闭环**:调度链路端到端(核策略 E1→服务 Q4→持久化 R3→协议 U→客户端 Z);五处深接缝全部裁定(V/W 接线、cwd/X/Y 在案);PRD §7 路线图+集成+持久化+胶抽取+深接缝,全线收口。**在案:无新增欠账。**
+
+## 收尾批:PRD 最后欠账清零(覆盖门 + §10 销账)
+
+### 逐文件覆盖门(FR9 工程可信 P0 遗留①,llvm-cov 政策件)
+- **`scripts/coverage_gate.sh`**:门内 14 个新组件 crate(AC-9「所有新组件」)逐文件行覆盖 100%,缺口=补测试或豁免表列名带理由(DS 纪律原样移植);豁免表文件级列名,理由逐条。
+- **首次运行即抓真缺口**:packcore 两条错误分支(malformed manifest、realm-map 冲突)补真测试通过(零豁免,棘轮 283→318)。
+- **五组并行补缺(子代理×5)+自补**:新增测试约 170 个——scheduler/orchestra、governance/memorycore/stewardcore、agility/surfaces/marketplace/runtimecore、channel/control-schema/session-registry、daemon(101 个,84→184 lib 测试,provider run_loop 首次全单测化);测试内不可达 panic 臂统一改写为同强度 `assert!(matches!)` 或全等 assert(无一削弱)。
+- **豁免表 15 条在案**:构造级死码(orchestra Partial 臂/replay 隐式 None/scheduler grammar 双防御臂/recovery 死臂/runlife Dag 环臂)、OS 故障注入缝(flock EWOULDBLOCK 之外、forensics 二次 append、lib.rs inode 竞态)、宿主依赖臂(/proc 解析、SO_PEERCRED、sd_notify unbound)、300s 墙钟臂、Serialize 永不失败错误臂、daemon run() 启动循环(built-binary e2e lane 覆盖)、marketplace exemplars 自证臂。
+- **真 bug 捕获并修复**:forensics `last_entry` 用 `lines().last()` 在持续读错误(如目录占位)下**死循环卡启动路径**——改为有界行走(首错即停、撕尾容忍)+目录回归测试(测试完成即活性证明)。impact HIGH(启动链)已报告。
+- 技术发现在案:llvm lcov LF/LH 对泛型函数误算(llvm/llvm-project#119299,DA 记录为准)、陈旧 profraw 污染合并计数、assert! 格式化参数仅失败时求值(产生新不可达行)。
+- 棘轮:daemon 5,154→7,140、workspace 1,549,042→1,551,912,各核上限随补测试阶梯上调(注记在案)。
+- 终态:**14/14 crate 过门**(9 个零豁免直通,5 个带列名豁免)。
+
+### PRD §10 待核实清单销账(7/7)
+逐项对现状代码核实(file:line 证据):Leader 不恢复(sanitized 设计移除,steering 走 daemon 控制 socket)、session_registry_client 半禁用(agent 侧恒 None,pager 三处遗留门控外呼面在案)、convergence governor 已接(env 门控默认关)、evals 重建在 EVAL 标记 e2e+ab-eval A/B 台架、schema 载体=serde JSON 长度前缀帧(protobuf 仅 tools API)、dream.rs 外呼=BYOK 会话端点无账号端点、activity×journal 分层不重叠。PRD §10 已回写销账。
+
+- **收尾批闭环 ⇒ PRD 欠账清零**:FR9 覆盖政策件落地、§10 全部销账;PRD 需求本体(FR+AC+里程碑)+工程政策件全线闭环,剩余仅为运营度量(北极星,发布后可测)与 shell 功能面前提(非 PRD 欠账,接线点在案)。**无新增欠账。**

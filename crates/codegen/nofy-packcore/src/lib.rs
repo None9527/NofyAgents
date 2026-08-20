@@ -254,6 +254,41 @@ mod tests {
     }
 
     #[test]
+    fn malformed_manifest_fails_loud_not_silent() {
+        // A payload that cannot deserialize is a load-time refusal with the
+        // malformed marker — never a panic, never a silent default.
+        assert_eq!(
+            parse_pack(&json!("not a manifest")),
+            Err(PackError::HostPlaneLeak {
+                key: "<malformed manifest>".into()
+            })
+        );
+        assert_eq!(
+            parse_pack(&json!({"id": "x", "services": "wrong type"})),
+            Err(PackError::HostPlaneLeak {
+                key: "<malformed manifest>".into()
+            })
+        );
+    }
+
+    #[test]
+    fn same_id_twice_collides_at_the_realm_map() {
+        // Two packs claiming the same id publish into the SAME realm; the
+        // realm map itself refuses the duplicate service (the per-pack
+        // `seen` set cannot catch cross-pack duplicates).
+        let a: PackManifest = parse_pack(&pack("same", &["svc"])).unwrap();
+        let b: PackManifest = parse_pack(&pack("same", &["svc"])).unwrap();
+        assert!(
+            matches!(
+                compose_packs(&[a, b]),
+                Err(PackError::RealmCollision { pack, service })
+                    if pack == "same" && service == "svc"
+            ),
+            "duplicate id + service must collide inside the realm map"
+        );
+    }
+
+    #[test]
     fn same_name_across_packs_composes_isolated() {
         let a: PackManifest = parse_pack(&pack("a", &["indexer"])).unwrap();
         let b: PackManifest = parse_pack(&pack("b", &["indexer"])).unwrap();
