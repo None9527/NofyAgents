@@ -159,3 +159,25 @@ spawn)经深读**否决**——FR6.9 的擦洗对象是**出会话 worker 进程
 获点半边**:③处 staged→publish 原子捕获+注入安全持久化
 (nofy_home/env_snapshot),并解锁 bootcheck 的 EnvSnapshotPresent 检查
 项;擦洗半边在案,待真正的 worker 进程生成路径出现再接。
+
+**§4 补记(批次 X 裁定:工具结果三档注入,2026-08-20,87 次调用深
+摸)**:FR4.5 的运行时纪律**已被 shell 现有机制实质覆盖**,无诚实接
+线点,裁定不接:
+- 尺寸纪律在字节源头:terminal 30KB 尾部保留(local_terminal.rs)、
+  MCP 20KB 上限(mcp_truncate.rs)、子代理完成输出封顶
+  (coordinator_state.rs cap_completion_output)、任务完成帧收缩
+  (task_completed_frame.rs shrink_record)等 14 处在案;
+- 尺寸纪律在上下文装配:请求时裁剪(nofy-chat-state
+  request_builder:>50% 上下文占用触发,>4000 字符软裁=头 1500+尾
+  1500+标记,≥10 轮龄硬清=占位符)、compaction 丢弃/占位、图片字节
+  预算 50MB、413 反应式剥图;
+- 「绝不静默丢弃」构造级保证成立:裁剪皆留标记/占位,**盘上是真相**
+  (全文按 tool_call_id 存于 chat_history.jsonl,引用可解析);
+- 核 API 的两个前提在 shell 均不存在:Summary 档需通用摘要器(只有
+  逐工具 concise 输出,无通用件)、Spill 档需带外体存储(盘上日志已
+  承担此角色,但请求装配在 nofy-chat-state 基础件内,与既有裁剪策略
+  同址必冲突)。
+**裁定**:强行接线=重复既有策略或发明新基础设施,两者皆表演。接线点
+已确定:通用摘要器或带外 spill 存储出现之日,档判定委托
+`memorycore::injection::{select_tier, inject}`;14 处机制清单为证存
+档。FR4.5 核策略(batch O)在案,运行时纪律实质满足。

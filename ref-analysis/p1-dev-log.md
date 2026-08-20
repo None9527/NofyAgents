@@ -508,3 +508,13 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - **bootcheck 解锁**:EnvSnapshotPresent 入清单——缺失=Degraded(全新启动从不阻塞)、存在但核解析失败=Failed、可解析=Ok;清单 3→4 项,测试 5→6(健康/全新语义更新+损坏快照阻塞新测试)。
 - 验证:bootcheck 6/6、env_capture 3/3 双跑绿;workspace check 零错误。
 - **批次 W 捕获半边闭环。FR6.2 原子捕获+注入安全持久化上运行时,bootcheck 四项清单完整度再进一步。在案:擦洗半边(待 worker 进程路径)、工具结果注入、压缩七维、调度器 shell 客户端。**
+
+## 批次 X:工具结果三档注入——裁定闭环(不接线,实质覆盖)
+
+87 次调用深摸结论:FR4.5 运行时纪律已被 shell 现有机制实质覆盖,无诚实接线点。
+
+- **发射侧无尺寸帽**(storage/mod.rs emit_tool_result、tool_calls.rs 活路径皆逐字),尺寸纪律在**字节源头**(14 处机制:terminal 30KB 尾保、MCP 20KB、子代理完成封顶、完成帧收缩……)与**上下文装配**(chat-state request_builder 请求时裁剪:>50% 占用触发,软裁头 1500+尾 1500+标记,≥10 轮硬清占位;compaction 丢弃/占位;图片 50MB 预算;413 剥图)。
+- 「绝不静默丢弃」成立:裁剪皆留标记/占位,盘上是真相(全文按 tool_call_id 存 chat_history.jsonl,引用可解析)。
+- 核 API 两前提缺失:Summary 档需通用摘要器(shell 只有逐工具 concise 输出)、Spill 需带外体存储(盘上日志已承担,但请求装配在 nofy-chat-state 基础件内,与既有裁剪同址必冲突)。
+- **裁定**:强行接线=重复既有策略或发明基础设施,皆表演。接线点确定:通用摘要器或带外 spill 存储出现之日,档判定委托 `memorycore::injection::{select_tier, inject}`。
+- **批次 X 裁定闭环(零代码改动,证据存档 integration-plan §4)。在案:压缩七维(批次 Y)、调度器 shell 客户端(批次 Z)。**
