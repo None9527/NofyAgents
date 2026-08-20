@@ -12,7 +12,7 @@
 1. **PRD 需求域(FR1–FR14)**:每一组测试验证的是 PRD 里哪条需求、哪条验收标准(AC)。
 2. **工程分层**:策略核(门内 14 crate)/ 宿主运行时(shell/tools/pager)/ 公共件(common)/ 第三方(third_party)。
 
-基准口径:全部数字来自一次完整的 workspace 测试运行(规范入口,剥离 SSH 环境变量),非历史日志拼凑。
+基准口径:§1–§8 数字来自一次完整的 workspace 测试运行(规范入口,剥离 SSH 环境变量),非历史日志拼凑;§9 为真实模型端点上的端到端验证(真二进制 × 真推理)。
 
 ## 1. 总体基准数字
 
@@ -228,3 +228,22 @@
 - 测试数 ≠ 需求覆盖度的唯一证据:AC 对账的权威记录在 PRD §11 看板与 `p1-dev-log.md`,本报告是它的可执行口径投影。
 
 **生产侧跟进项(非测试欠账,记录在 dev-log)**:安装脚本品牌、CLI_BASE_URL、paste 注入缝、CACHE_EPOCH 作用域收窄。
+
+## 9. 真实测试(真模型基准,2026-08-21)
+
+> §1–§8 是代码级测试(mock 模型)。本节是**真实推理端点**上的端到端验证:真二进制 × 真模型 × 真工具循环。
+
+**被测对象**:`target/debug/nofy`(本次构建)+ DashScope OpenAI 兼容端点 `https://dashscope.aliyuncs.com/compatible-mode/v1` + 模型 `deepseek-v4-flash-0731`(推理模型,输出含 `reasoning_content`)。
+
+**接入方式(BYOK,FR7.6 路径)**:`~/.nofy/config.toml` 增 `[model.deepseek-v4-flash]`——`base_url` 指兼容端点、`api_backend = "chat_completions"`、`env_key = "DASHSCOPE_FLASH_KEY"`(key 只走环境变量,不落盘、不进报告)。`nofy models` 确认条目生效:「Model 'deepseek-v4-flash' is using its own API key」。
+
+| 测试 | 内容 | 结果 |
+|---|---|---|
+| T1 基础问答 | headless `-p` 模式,17×23 | ✅ 答 391,正确 |
+| T2 工具循环 | 创建 numbers.txt(1–10)→ 算平方和 → 写 result.txt → 回报 | ✅ 两文件实际落盘且内容正确,平方和 385 正确(多轮工具分发全通) |
+| T3 中文+读文件+代码生成 | 读 README.md、写 fib.py、报 F(20) | ✅ 读取正确(`hello nofy`);生成的 fib.py 经**独立导入验证** F(20)=6765 正确;中文流畅 |
+| T4 会话持久化 | 三次运行后查 `~/.nofy/sessions` | ✅ 三个会话入全局索引(FR4.3 真运行验证) |
+
+**结论**:PRD 的 BYOK/控制面/工具分发/会话持久化链路在**真实模型**上端到端工作;代码测试(mock)与真实测试(本节)互为补充——前者保回归,后者证集成。
+
+**口径边界**:单模型、debug 二进制、每类 1 例的小样本冒烟,不构成模型质量评测;推理模型的 reasoning token 消耗未计入任何预算测量。
