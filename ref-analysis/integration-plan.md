@@ -130,7 +130,11 @@ destination_cwd})` 构造,stale 判定走 `is_stale`——策略归核,不再另
 串即核 `cwdmark::render_mark`,接线点唯一且确定。②generation 由调用方
 供给,权威计数器=Summary.cwd_generation,relocation 校验 `+1` 单调,存储
 强制非零。③缺失触发者恰两处:relocation 发起者、handle append 调用者
-(斜杠命令表无 /cd 类命令,ACP 无 setCwd 方法)。④其余 cwd 变化路径均非
+(shell 斜杠命令表无 /cd 类命令,ACP 无 setCwd 方法;pager 侧 /cd
+仅仪表盘级——决定新会话孵化地,不切换活动会话 cwd)。④其余 cwd 变化路径均非
 会话权威 cwd:terminal 每次执行 cwd、warm shell ShellState.cwd 漂移、
 fork 新会话新 cwd(transform_conversation_cwd 文本改写)、子代理 cwd 解
-析——不构成 cwdmark 接线面。
+析——不构成 cwdmark 接线面。⑤二发报告补正:另有
+`Summary.prompt_display_cwd` 纯展示覆写(改提示词显示的 Workspace
+Path,不碰 info.cwd);compaction 按 generation 选项目指令(0→AGENTS.md
+提醒,否则 destination_project_instructions)——均非权威 cwd 变化。

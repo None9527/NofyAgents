@@ -3,6 +3,7 @@ pub mod pack_join;
 pub mod provider_host;
 pub mod app;
 pub mod auth_method;
+pub mod bootcheck;
 pub mod chat_modes;
 pub mod config;
 pub(crate) mod config_model_override_parse;

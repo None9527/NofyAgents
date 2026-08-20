@@ -7718,6 +7718,7 @@ dependencies = [
  "nofy-paths",
  "nofy-plugin-marketplace",
  "nofy-prompt-queue",
+ "nofy-runtimecore",
  "nofy-sampler",
  "nofy-sampling-types",
  "nofy-sandbox",

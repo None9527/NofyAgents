@@ -460,6 +460,17 @@ pub async fn run_agent_server(
     config: ServerConfig,
     agent_config: AgentConfig,
 ) -> anyhow::Result<()> {
+    // V wiring (FR1.16): startup health check — a blocked verdict refuses
+    // to bind anything; degraded warns but proceeds.
+    match crate::agent::bootcheck::boot_gate(&crate::util::nofy_home::nofy_home()) {
+        nofy_runtimecore::bootcheck::BootVerdict::Blocked { failed } => {
+            anyhow::bail!("boot blocked by health check: failed items {failed:?}")
+        }
+        nofy_runtimecore::bootcheck::BootVerdict::GoDegraded { degraded } => {
+            tracing::warn!(?degraded, "boot degraded by health check");
+        }
+        nofy_runtimecore::bootcheck::BootVerdict::Go => {}
+    }
     let state = Arc::new(ServerState {
         agent_config,
         secret: config.secret,

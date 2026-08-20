@@ -132,6 +132,17 @@ pub async fn run_stdio_agent(
     memory_config: Option<crate::config::MemoryConfig>,
 ) -> anyhow::Result<()> {
     register_fs_watch_runtime();
+    // V wiring (FR1.16): startup health check — a blocked verdict refuses
+    // to serve anything; degraded warns but proceeds.
+    match crate::agent::bootcheck::boot_gate(&nofy_home::nofy_home()) {
+        nofy_runtimecore::bootcheck::BootVerdict::Blocked { failed } => {
+            anyhow::bail!("boot blocked by health check: failed items {failed:?}")
+        }
+        nofy_runtimecore::bootcheck::BootVerdict::GoDegraded { degraded } => {
+            tracing::warn!(?degraded, "boot degraded by health check");
+        }
+        nofy_runtimecore::bootcheck::BootVerdict::Go => {}
+    }
     // Daemon provider loop (NOFY_DAEMON_SOCK-gated, default off): when the
     // gate is set this runtime registers as the daemon's execution provider
     // and serves search + dispatched tasks on the control socket.

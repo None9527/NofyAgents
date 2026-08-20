@@ -122,7 +122,10 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_548_133→1_548_452: batch U scheduler control protocol — schema
     //   Schedule* methods/entries (+55), daemon wire dispatch + recover at
     //   boot + two wire tests (+257).
-    let cap = 1_548_452; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_548_452→1_548_607: batch V shell boot health check — nofy-shell
+    //   agent/bootcheck.rs (checklist mapping + 5 tests) + boot gates in
+    //   the two live agent entrypoints (FR1.16).
+    let cap = 1_548_607; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

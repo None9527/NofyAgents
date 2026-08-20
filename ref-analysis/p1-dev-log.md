@@ -485,3 +485,15 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 棘轮:schema 312→367、daemon 控制面 4,740→4,997、workspace 1,548,133→1,548,452(阶梯注记在案)。
 - 验证:schema 8/8、daemon 82 lib+5 棘轮双跑绿;workspace check 零错误。
 - **批次 U 闭环。调度持久化链路 R3→U 完整:boot 即 recover、协议可管理、default-off 语义出行。在案:shell 深接缝四处、调度器 shell 客户端。**
+
+## 批次 V:bootcheck 接线(shell 启动体检清单化,FR1.16)
+
+接缝摸底:shell 生产入口仅 `run_stdio_agent` 与 `run_agent_server`(run_headless/run_leader 在 sanitized build 已禁用);状态根=nofy_home()(nofy_config,OnceLock+$NOFY_HOME)。
+
+- **impact 前置**:两入口均 HIGH,d=1 调用方同为 pager-bin `run_agent_command`(agent 启动链 main→async_main→run_agent_command)——这正是启动体检的目标位置;签名未变,行为变化即功能本身。已向用户报告。
+- **新文件 `agent/bootcheck.rs`**:策略(CheckItem/CheckResult/BootVerdict/verdict)全在 nofy-runtimecore::bootcheck 核,本模块只做 shell 真实状态→清单映射:PersistenceWritable(探针文件写+删)、SessionStoreReadable(**缺 sessions 目录=全新启动不算失败**,存在但不可读=Failed)、ClockMonotonic(双 Instant 不回退)。无检查对象项不凑数:RuntimeReachable(sanitized build 无廉价探针)、EnvSnapshotPresent(spawn 环境接缝未落地)在案待其接缝落地再入清单——空清单是失败,凑数是表演。
+- **接线**:两入口顶部 boot_gate(nofy_home())——Blocked 即 `anyhow::bail` fail-loud 拒绝服务,GoDegraded 警告继续,Go 直行。
+- 测试 5 个:健康目录通过、全新目录(无 sessions)通过、只读 home 阻塞(点名 PersistenceWritable)、sessions 0o000 阻塞(点名 SessionStoreReadable,测后复权)、清单顺序=契约。
+- nofy-shell 新增 nofy-runtimecore 依赖(workspace)。
+- 验证:bootcheck 5/5 双跑绿;workspace check 零错误。
+- **批次 V 闭环。shell 深接缝第三处(启动体检)落地:清单化、fail-loud、策略归核。在案:余三处(工具结果注入/spawn 环境/压缩七维)、调度器 shell 客户端。**
