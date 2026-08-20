@@ -525,3 +525,13 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - **头尾 seal**:核 `verify_compaction` 是子集式轨迹模型(幸存条目皆原件),shell 压缩是摘要式(中段→新摘要项=seal 语义下的合法伪造),直接校验必报 ForgedEntry;且 shell 已构造级保护头尾(system+近段保留、fingerprint_prefix 侦测头部编辑、孤儿清洗)。唯一子集式路径 fit_conversation_to_budget 是应急预算拟合(故意丢最旧轮),seal 语义同样冲突。
 - **裁定**:接线=发明语义度量或扭曲任一侧策略,皆表演。FR4.12/F4.9 核策略(batch H)在案,shell 压缩纪律实质满足头尾保护意图。
 - **批次 Y 裁定闭环(零代码改动)。**至此五处深接缝全部裁定完毕:V 接线(启动体检)、W 捕获半边接线(spawn 环境)、cwd/X/Y 裁定在案(阻塞于 shell 功能缺失或实质覆盖)。集成后续仅剩调度器 shell 客户端(批次 Z)。
+
+## 批次 Z:调度器客户端(批次 U 协议的消费端,集成收口)
+
+- **impact 前置**:pager-bin `async_main` LOW(d=1 仅 main)。
+- **新文件 `nofy-daemon/src/control_client.rs`**:同步控制面客户端——`connect`(state_dir/daemon/control.sock+Hello 握手 fail-loud)、`from_stream`(测试接缝)、`call`(一请求一响应,原始 Value 出行)、`is_error`(code 字段判结构化错误);测试 2:真 socket pair 上 default-off 拒绝→启用→加→列表全链路、连接失败点名阶段。
+- **新文件 `nofy-pager/src/schedule_cmd.rs`**:`nofy schedule {enable,add,remove,list[--json]}` CLI 面——调用、结构化错误转 anyhow 出声、列表表格/JSON 渲染;测试 1(渲染形状契约)。
+- **CLI 装配**:cli.rs `Command::Schedule` 变体、pager-bin 分发臂(state_dir=nofy_home,与 Daemon 同款约定);nofy-pager 增 nofy-daemon/nofy-control-schema 依赖(pager→daemon 经 nofy-shell 本已传递可达,无新 DAG 边)。
+- 验证:daemon 84 lib(80+2 客户端)+5 棘轮双跑绿、schedule_cmd 1/1、pager-bin check 零错误、workspace check 零错误。
+- 棘轮:daemon 控制面 4,997→5,154、workspace 1,548,747→1,549,042(阶梯注记在案)。
+- **批次 Z 闭环 ⇒ 集成后续全部闭环**:调度链路端到端(核策略 E1→服务 Q4→持久化 R3→协议 U→客户端 Z);五处深接缝全部裁定(V/W 接线、cwd/X/Y 在案);PRD §7 路线图+集成+持久化+胶抽取+深接缝,全线收口。**在案:无新增欠账。**

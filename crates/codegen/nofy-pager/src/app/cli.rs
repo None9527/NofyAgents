@@ -56,6 +56,8 @@ pub enum Command {
     Memory(crate::memory_cmd::MemoryArgs),
     /// List available models and exit
     Models,
+    /// Manage the daemon's schedules (control socket; default-off until `enable`)
+    Schedule(crate::schedule_cmd::ScheduleArgs),
     /// List, search, or restore sessions
     Sessions(crate::sessions_cmd::SessionsArgs),
     /// Fetch and install managed configuration

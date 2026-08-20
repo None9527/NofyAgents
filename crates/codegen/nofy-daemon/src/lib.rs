@@ -13,6 +13,7 @@
 //! `fs2`+`tracing` so the lock stays usable from the earliest boot phase.
 
 pub mod approval;
+pub mod control_client;
 pub mod daemon;
 pub mod eviction;
 pub mod live;

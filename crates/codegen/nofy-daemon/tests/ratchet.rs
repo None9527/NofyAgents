@@ -128,7 +128,10 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_548_607→1_548_747: batch W env capture half — session/env_capture.rs
     //   (staged→publish + atomic inject-safe persist, FR6.2), capture wiring
     //   at session spawn, bootcheck EnvSnapshotPresent item (checklist 3→4).
-    let cap = 1_548_747; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_548_747→1_549_042: batch Z scheduler client — daemon control_client
+    //   (framed request/response + socket tests), pager schedule_cmd CLI
+    //   surface, Command::Schedule dispatch in pager-bin.
+    let cap = 1_549_042; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -302,8 +305,10 @@ fn control_plane_loc_ratchet_only_shrinks() {
     //   wire dispatch, snapshot projection, recover-at-boot, two wire tests.
     // - schema 312→367: batch U — Schedule* methods, ScheduleEntryInfo,
     //   ScheduleNoted/ScheduleListed responses, additive drift gate.
+    // - daemon 4997→5154: batch Z control_client — framed request/response
+    //   client over the control UDS + two socket tests (schedule roundtrip).
     let caps = [
-        ("nofy-daemon", 4997),
+        ("nofy-daemon", 5154),
         ("nofy-channel", 544),
         ("nofy-control-schema", 367),
         ("nofy-session-registry", 132),

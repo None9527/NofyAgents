@@ -985,6 +985,13 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                 let code = nofy_daemon::daemon::run(cfg);
                 std::process::exit(code);
             }
+            Command::Schedule(schedule_args) => {
+                // Z wiring: schedule management speaks the control socket to
+                // the daemon under the same NOFY_HOME the daemon serves.
+                let state_dir = nofy_shell::util::nofy_home::nofy_home();
+                nofy_pager::schedule_cmd::run(&schedule_args, &state_dir)?;
+                return Ok(());
+            }
             Command::Version { json } => {
                 if json {
                     let payload = serde_json::json!({

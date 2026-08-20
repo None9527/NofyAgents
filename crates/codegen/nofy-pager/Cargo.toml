@@ -8,6 +8,8 @@ authors = ["xAI"]
 [dependencies]
 # TTY safety — detach subprocesses from the controlling terminal
 dunce = { workspace = true }
+nofy-control-schema = { workspace = true }
+nofy-daemon = { workspace = true }
 nofy-tty-utils = { workspace = true }
 nofy-version = { workspace = true }
 
