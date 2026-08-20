@@ -1687,14 +1687,16 @@
 
         let mut pw = PromptWidget::new();
         let mut models = crate::acp::model_state::ModelState::default();
-        let model_id = agent_client_protocol::ModelId::new(Arc::from("grok-4.5"));
+        // 改名遗留修正:参数补全按显示名(match_text)匹配,查询前缀必须对应
+        // 改名后的显示名 "Nofy 4.5"(原 "gr" 对应旧名,匹配不到任何模型)。
+        let model_id = agent_client_protocol::ModelId::new(Arc::from("nofy-4.5"));
         models.available.insert(
             model_id.clone(),
             agent_client_protocol::ModelInfo::new(model_id, "Nofy 4.5".to_string()),
         );
 
-        // Type "/model gr" and position cursor at end (in args).
-        pw.textarea.insert_str("/model gr");
+        // Type "/model nof" and position cursor at end (in args).
+        pw.textarea.insert_str("/model nof");
         pw.refresh_slash(&models);
 
         let snap = pw.slash_snapshot();

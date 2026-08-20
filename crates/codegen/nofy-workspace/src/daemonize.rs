@@ -813,6 +813,24 @@ mod tests {
         false
     }
 
+    /// Wait (bounded) until the child's `exec` completes — until then
+    /// `/proc/<pid>/cmdline` still carries the pre-exec image and the
+    /// takeover's name-match kill gate declines it. Under CPU load the
+    /// fork→exec window becomes observable (same `/proc` lag documented on
+    /// `predecessor_target_pins_verifies_and_signals`), so tests that need
+    /// the kill gate to MATCH must wait for exec before invoking takeover.
+    #[cfg(target_os = "linux")]
+    fn wait_until_execed(child: &Child, fragment: &str) {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while Instant::now() < deadline {
+            if process_name_matches(child.id(), fragment) {
+                return;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        panic!("child never completed exec (fragment {fragment:?})");
+    }
+
     #[cfg(target_os = "linux")]
     #[test]
     fn take_over_declines_non_matching_holder() {
@@ -852,6 +870,8 @@ mod tests {
         let _holder = PidFile::acquire(&path).unwrap().unwrap();
         let mut child = spawn_predecessor();
         let child_pid = child.id();
+        // The kill gate must match here; wait out the fork→exec window first.
+        wait_until_execed(&child, "sleep");
         fs::write(&path, child_pid.to_string()).unwrap();
 
         let taken =
@@ -938,6 +958,8 @@ mod tests {
 
         let holder = PidFile::acquire(&path).unwrap().unwrap();
         let mut child = spawn_predecessor();
+        // The kill gate must match here; wait out the fork→exec window first.
+        wait_until_execed(&child, "sleep");
         fs::write(&path, child.id().to_string()).unwrap();
 
         // Release the lock shortly after the takeover starts waiting,

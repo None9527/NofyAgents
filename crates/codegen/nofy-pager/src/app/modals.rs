@@ -3073,21 +3073,29 @@ mod command_palette_vim_input_tests {
             (has_cursor, text)
         };
 
-        let (focused_cursor, _) = render_palette_search_row(true);
-        assert!(
-            focused_cursor,
-            "command palette search bar should render a cursor when search_active",
-        );
-
+        let (focused_cursor, focused_text) = render_palette_search_row(true);
         let (unfocused_cursor, unfocused_text) = render_palette_search_row(false);
+        // 结构焦点信号不依赖色彩:NO_COLOR 下光标反色(bg == text_primary)
+        // 塌缩为 Reset,无法从 buffer 区分;占位符的有无在任何环境都可断言。
         assert!(
-            !unfocused_cursor,
-            "command palette search bar must not render a cursor when not search_active",
+            !focused_text.contains("/ to search"),
+            "focused command palette must not show the placeholder, got {focused_text:?}",
         );
         assert!(
             unfocused_text.contains("/ to search"),
             "unfocused command palette should show the `/ to search` placeholder, got {unfocused_text:?}",
         );
+        // 反色光标断言仅在调色板真能画出它时成立(NO_COLOR 全 Reset 时跳过)。
+        if crate::theme::Theme::current().text_primary != ratatui::style::Color::Reset {
+            assert!(
+                focused_cursor,
+                "command palette search bar should render a cursor when search_active",
+            );
+            assert!(
+                !unfocused_cursor,
+                "command palette search bar must not render a cursor when not search_active",
+            );
+        }
     }
 }
 

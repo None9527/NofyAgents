@@ -1,9 +1,21 @@
-//! The published external-auth contract, end to end.
+//! The external-auth contract under the sanitized fork, end to end.
 //!
-//! Operator binaries live outside this repo and read `NOFY_AUTH_EXPIRED=1` as
-//! "headless, don't prompt", declining a run they cannot complete silently. So
-//! a binary that declines the boot probe must still be able to sign the user
-//! in, and the two runs have to reach it in the order boot produces them.
+//! The fork removed interactive login from `ensure_authenticated`
+//! (`auth/flow.rs`: "Interactive xAI account login was removed in the
+//! sanitized build" — it unconditionally `bail!`s once no cached credential
+//! satisfies the gate). This test pins that fail-closed contract for a
+//! conforming external provider (`README.md` /
+//! `docs/user-guide/02-authentication.md` skeleton):
+//!
+//! 1. The headless boot probe (`NOFY_AUTH_EXPIRED=1`) still reaches the
+//!    provider through the silent-refresh path, and the provider's decline
+//!    still yields "no credentials" (`try_ensure_fresh_auth` → `None`).
+//! 2. `ensure_authenticated` then fails closed: it returns the
+//!    "Interactive login was removed" error fast, never walks the provider's
+//!    interactive mint branch (no `expired=unset` invocation, the SSO token
+//!    is never produced), and never reaches a browser login (bounded by
+//!    `LOGIN_BUDGET` — a regression that reintroduces browser login hangs
+//!    past the budget instead of failing silently).
 
 #![cfg(unix)]
 
@@ -22,9 +34,10 @@ const SSO_TOKEN: &str = "token-minted-by-the-interactive-flow";
 /// A regression here reaches the browser login, which hangs rather than fails.
 const LOGIN_BUDGET: Duration = Duration::from_secs(60);
 
-/// Measured at ~0.3s healthy and 47s while the flow contended with its own
-/// `auth.json.lock`; loose enough for a loaded CI runner in between.
-const NO_SELF_CONTENTION: Duration = Duration::from_secs(20);
+/// Fail-closed must be fast: there is no provider prompt and no network login
+/// to wait on. Loose enough for a loaded CI runner; tight enough to catch any
+/// path that blocks on an interactive flow.
+const FAIL_CLOSED_BUDGET: Duration = Duration::from_secs(20);
 
 /// The skeleton published in `README.md` and `docs/user-guide/02-authentication.md`,
 /// which operators copy.
@@ -86,7 +99,7 @@ fn dead_endpoint() -> String {
 }
 
 #[tokio::test]
-async fn a_provider_that_declines_the_headless_run_can_still_sign_the_user_in() {
+async fn expired_credentials_fail_closed_without_interactive_login() {
     let home = tempfile::tempdir().expect("nofy home");
     let provider = write_conforming_provider(home.path());
     let dead = dead_endpoint();
@@ -111,6 +124,8 @@ async fn a_provider_that_declines_the_headless_run_can_still_sign_the_user_in() 
     };
     seed_expired_credential(home.path(), &config.auth_scope());
 
+    // Headless boot probe: still reaches the provider with NOFY_AUTH_EXPIRED=1,
+    // and the provider's decline still means "no credentials".
     assert!(
         try_ensure_fresh_auth(&config).await.is_none(),
         "the provider declines a run it cannot complete silently"
@@ -121,27 +136,31 @@ async fn a_provider_that_declines_the_headless_run_can_still_sign_the_user_in() 
         "the headless refresh is the run the flag exists for"
     );
 
+    // Fail-closed: the fork removed interactive login, so an expired session
+    // must error out instead of minting through the provider or a browser.
     let started = Instant::now();
-    let auth = tokio::time::timeout(LOGIN_BUDGET, ensure_authenticated(&config, false, None))
+    let error = tokio::time::timeout(LOGIN_BUDGET, ensure_authenticated(&config, false, None))
         .await
-        .expect("the sign-in must reach the provider's interactive branch, not the browser login")
-        .expect("the provider mints when it is allowed to prompt");
+        .expect("fail-closed must not reach a browser login (hangs past the budget)")
+        .expect_err("expired credentials must fail closed; interactive login was removed");
     let elapsed = started.elapsed();
 
-    assert_eq!(
-        auth.key, SSO_TOKEN,
-        "the credential must come from the operator's binary, not a fallback"
-    );
-    assert_eq!(auth.auth_mode, AuthMode::External);
-    assert_eq!(
-        invocations(home.path()),
-        ["expired=1", "expired=unset"],
-        "a sign-in is not a headless run, whatever the state of the credential \
-         it replaces"
+    let message = error.to_string();
+    assert!(
+        message.contains("Interactive login was removed"),
+        "the fail-closed error must name the removed interactive login: {message}"
     );
     assert!(
-        elapsed < NO_SELF_CONTENTION,
-        "the sign-in must not wait on a lock this process is already holding; \
-         took {elapsed:?}"
+        message.contains("NOFY_API_KEY"),
+        "the fail-closed error must point at the API-key replacement: {message}"
+    );
+    assert_eq!(
+        invocations(home.path()),
+        ["expired=1"],
+        "the provider's interactive mint branch must never run (no SSO token minted)"
+    );
+    assert!(
+        elapsed < FAIL_CLOSED_BUDGET,
+        "fail-closed must not wait on a prompt or network login; took {elapsed:?}"
     );
 }

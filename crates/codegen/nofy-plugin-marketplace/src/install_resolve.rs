@@ -342,7 +342,8 @@ mod tests {
     #[test]
     fn slugify_lowercases_and_hyphenates_spaces() {
         assert_eq!(slugify("Local Dev"), "local-dev");
-        assert_eq!(slugify("xAI Official"), "nofy-official");
+        // Contract is lowercase + hyphenation only; "xAI" slugifies to "xai".
+        assert_eq!(slugify("xAI Official"), "xai-official");
     }
 
     #[test]

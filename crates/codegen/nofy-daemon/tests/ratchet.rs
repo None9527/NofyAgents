@@ -141,7 +141,18 @@ fn workspace_loc_budget_only_shrinks() {
     //   agents' concurrent coverage-gate test additions.
     // - 1_551_888→1_551_912: coverage-gate — forensics last_entry infinite-loop
     //   fix + directory regression test (daemon 7120→7140).
-    let cap = 1_551_912; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_551_912→1_551_917: nofy-memory rename-collateral test fix — the
+    //   endpoint_scoped_credentials host-casing assert literal restored to the
+    //   real scoped endpoint (API.X.AI); +2 guard comments, +3 ladder lines.
+    // - 1_551_917→1_552_403: legacy-suite recovery batch — fork-point-red
+    //   tests restored across pager/update/workspace/tools/shell/harness
+    //   (rename literals, fork-semantics rewrites, HOME hermetic sealing,
+    //   16MB-stack turn-test pattern, allexport E2BIG regression test).
+    // - 1_552_403→1_552_464: recovery-batch tail — session-scan raced-NotFound
+    //   fix in load_candidates + concurrent-churn regression test.
+    // - 1_552_464→1_552_504: bootstrap single-flight hardening — marker-at-start
+    //   raced-peer adoption + EPOCH_TEST_LOCK test isolation.
+    let cap = 1_552_503; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

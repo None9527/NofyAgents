@@ -120,8 +120,8 @@ where
     let method = init
         .auth_methods
         .iter()
-        .find(|m| &*m.id().0 == "nofy.api_key")
-        .expect("nofy.api_key auth method not advertised");
+        .find(|m| &*m.id().0 == nofy_shell::agent::auth_method::NOFY_API_KEY_METHOD_ID)
+        .expect("api_key auth method not advertised");
     tokio::time::timeout(
         RPC_TIMEOUT,
         client_conn.authenticate(

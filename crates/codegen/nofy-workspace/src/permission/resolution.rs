@@ -1675,6 +1675,12 @@ mod tests {
     /// - settings.local.json before settings.json within each directory
     #[test]
     fn discovery_priority_order() {
+        // Isolate HOME so a host/CI `~/.claude` can't shadow which files the
+        // ordering assertions see (concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let cwd = tmp.path();
 
@@ -1712,6 +1718,12 @@ mod tests {
     /// but load returns None for each.
     #[test]
     fn discovery_with_no_settings_files() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the load
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let cwd = tmp.path();
 
@@ -1759,6 +1771,12 @@ mod tests {
 
     #[test]
     fn default_mode_accept_edits_produces_allow_edit_rule() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();
@@ -1782,6 +1800,12 @@ mod tests {
 
     #[test]
     fn default_mode_accept_edits_no_permissions_still_produces_rule() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();
@@ -1802,6 +1826,12 @@ mod tests {
 
     #[test]
     fn claude_only_returns_claude_settings_source() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();
@@ -1822,6 +1852,12 @@ mod tests {
 
     #[test]
     fn no_claude_settings_returns_none() {
+        // Isolate HOME so a host/CI `~/.claude` file doesn't make resolution
+        // return Some (paths merge global + project; env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         assert!(
             resolve_claude_settings_inner(tmp.path(), true, None, UserDefaultModeLoad::Apply)
@@ -1831,6 +1867,12 @@ mod tests {
 
     #[test]
     fn default_mode_accept_edits_explicit_deny_takes_priority() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();
@@ -1935,11 +1977,12 @@ mod tests {
     fn load_claude_env_merges_with_precedence() {
         // NOFY_HOME-isolate so the claude-import marker reads clean (an imported
         // dev machine would otherwise early-return an empty map and fail these
-        // asserts); the project tier overrides any real `~/.claude`, so the
-        // per-key assertions hold without isolating HOME.
+        // asserts); HOME-isolate so a host/CI `~/.claude` env can't bleed into
+        // the merge (concurrent env tests race without the lock).
         let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let home = tempfile::tempdir().unwrap();
         let _home_guard = EnvVarGuard::set("NOFY_HOME", home.path());
+        let _real_home_guard = EnvVarGuard::set("HOME", home.path());
         let _marker_guard = EnvVarGuard::unset("_NOFY_CLAUDE_MARKER_OVERRIDE");
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
@@ -1985,11 +2028,13 @@ mod tests {
         // The repo-tree `.claude/settings.json` env is injected into every spawned
         // subprocess (BASH_ENV / GIT_SSH_COMMAND / …), so an untrusted folder must
         // drop it. Isolate NOFY_HOME so the claude-import marker reads clean (an
-        // imported dev machine would otherwise early-return an empty map); the
-        // unique key keeps it independent of the host's real `~/.claude`.
+        // imported dev machine would otherwise early-return an empty map), and
+        // HOME so a host/CI `~/.claude` env can't bleed into the merge
+        // (concurrent env tests race without the lock).
         let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let home = tempfile::tempdir().unwrap();
         let _home_guard = EnvVarGuard::set("NOFY_HOME", home.path());
+        let _real_home_guard = EnvVarGuard::set("HOME", home.path());
         let _marker_guard = EnvVarGuard::unset("_NOFY_CLAUDE_MARKER_OVERRIDE");
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
@@ -2669,6 +2714,12 @@ mod tests {
 
     #[test]
     fn merge_permissions_across_project_and_global_settings() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the merge
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let cwd = tmp.path();
 
@@ -2725,6 +2776,12 @@ mod tests {
 
     #[test]
     fn merge_deny_from_project_with_allow_from_parent() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the merge
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let repo_dir = tmp.path().join("repo");
         std::fs::create_dir_all(repo_dir.join(".git")).unwrap();
@@ -2773,6 +2830,13 @@ mod tests {
 
     #[test]
     fn default_mode_from_specific_file_wins() {
+        // Isolate HOME so host/CI `~/.claude` rules/mode don't bleed into the
+        // synthetic-rule count (paths merge global + project; concurrent env
+        // tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let repo_dir = tmp.path().join("repo");
         std::fs::create_dir_all(repo_dir.join(".git")).unwrap();
@@ -2819,6 +2883,13 @@ mod tests {
 
     #[test]
     fn default_mode_inherited_from_parent_when_not_set() {
+        // Isolate HOME so a host/CI `~/.claude` defaultMode can't add a second
+        // synthetic rule to the count (paths merge global + project; concurrent
+        // env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let repo_dir = tmp.path().join("repo");
         std::fs::create_dir_all(repo_dir.join(".git")).unwrap();
@@ -3049,6 +3120,12 @@ allow = ["Bash(evil *)"]
 
     #[test]
     fn bypass_permissions_produces_catch_all_allow() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();
@@ -3077,6 +3154,12 @@ allow = ["Bash(evil *)"]
 
     #[test]
     fn bypass_permissions_with_explicit_deny_still_has_deny() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();
@@ -3100,6 +3183,12 @@ allow = ["Bash(evil *)"]
 
     #[test]
     fn bypass_permissions_overrides_accept_edits_cross_file() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let repo_dir = tmp.path().join("repo");
         std::fs::create_dir_all(repo_dir.join(".git")).unwrap();
@@ -3171,6 +3260,12 @@ allow = ["Bash(evil *)"]
     /// recorded as a skip for inspect.
     #[test]
     fn bypass_permissions_blocked_by_policy_pin() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();
@@ -3200,6 +3295,12 @@ allow = ["Bash(evil *)"]
     /// keeps provenance and reaches inspect instead of an early `None`.
     #[test]
     fn bypass_permissions_blocked_pin_only_file_still_resolves() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();
@@ -3227,6 +3328,12 @@ allow = ["Bash(evil *)"]
     /// keeps its synthetic Allow Edit rule.
     #[test]
     fn accept_edits_unaffected_by_policy_pin() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();
@@ -3847,6 +3954,13 @@ allow = ["Bash(evil *)"]
     /// All permission rule strings fail to parse → skip-only resolution must not panic.
     #[test]
     fn skip_only_invalid_permissions_resolves_without_panic() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the
+        // empty-rules assertion (paths merge global + project; concurrent env
+        // tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();
@@ -3890,6 +4004,13 @@ allow = ["Bash(evil *)"]
 
     #[test]
     fn unrecognized_project_mode_claims_scope_over_global_accept_edits() {
+        // Isolate HOME so a host/CI `~/.claude` defaultMode/rules can't
+        // contribute a synthetic rule the assertions forbid (paths merge global
+        // + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path().join("repo");
         let sub = repo.join("pkg");
@@ -4150,6 +4271,12 @@ allow = ["Bash(evil *)"]
 
     #[test]
     fn default_mode_known_values_no_warnings() {
+        // Isolate HOME so host/CI `~/.claude` rules don't bleed into the count
+        // (paths merge global + project; concurrent env tests race without the lock).
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = EnvVarGuard::set("HOME", home.path());
+
         let tmp = tempfile::tempdir().unwrap();
         let claude_dir = tmp.path().join(".claude");
         std::fs::create_dir_all(&claude_dir).unwrap();

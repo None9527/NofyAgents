@@ -87,11 +87,20 @@ dump_bash_state() {
   _emit_encoded() {
     local content="$1"
     local var_name="$2"
+    # Under allexport (set -a) these locals are marked for export; a single
+    # exported variable over 128KB (MAX_ARG_STRLEN) makes the base64 execve
+    # fail E2BIG and aborts the whole dump. Strip the mark after assignment
+    # (assigning first would re-mark under set -a).
+    builtin declare +x content var_name 2>/dev/null || true
     if [[ -n "$content" ]]; then
       builtin printf 'nofy_snap_%s=$(command base64 -d <<'"'"'NOFY_SNAP_EOF_%s'"'"'\n' "$var_name" "$var_name"
       command base64 <<<"$content" | command tr -d '\n'
       builtin printf '\nNOFY_SNAP_EOF_%s\n' "$var_name"
       builtin printf ')\n'
+      # The replay runs under the replayed options — including allexport —
+      # so the snapshot var itself would be exported to every later execve
+      # (a >128KB FUNCTIONS snapshot ⇒ E2BIG). Unmark it before the eval.
+      builtin printf 'builtin declare +x nofy_snap_%s 2>/dev/null || true\n' "$var_name"
       builtin printf 'eval "$nofy_snap_%s"\n' "$var_name"
     fi
   }
@@ -100,27 +109,39 @@ dump_bash_state() {
 
   _emit "$PWD"
 
+  # Every snapshot local is un-exported right after its assignment for the
+  # same MAX_ARG_STRLEN reason (see _emit_encoded).
   local env_vars
   env_vars=$(builtin export -p 2>/dev/null | command grep -viE '_proxy=|NOFY_SANDBOX|NOFY_AGENT=|SUDO_ASKPASS|NOFY_ASKPASS|ELECTRON_RUN_AS_NODE|SSH_AUTH_SOCK|DBUS_SESSION_BUS_ADDRESS|XDG_RUNTIME_DIR|WAYLAND_DISPLAY|GPG_TTY' || true)
+  builtin declare +x env_vars 2>/dev/null || true
   _emit_encoded "$env_vars" "ENV_VARS_B64"
-
-  # errexit/pipefail here are this function's own `set -euo pipefail` (set is
-  # shell-global in bash); replaying them would abort later user commands.
-  local posix_opts
-  posix_opts=$(builtin shopt -po 2>/dev/null | command grep -vE '^set [-+]o (nounset|errexit|pipefail)$' || true)
-  _emit_encoded "$posix_opts" "POSIX_OPTS_B64"
 
   local bash_opts
   bash_opts=$(builtin shopt -p 2>/dev/null || true)
+  builtin declare +x bash_opts 2>/dev/null || true
   _emit_encoded "$bash_opts" "BASH_OPTS_B64"
 
   local all_functions
   all_functions=$(builtin declare -f 2>/dev/null || true)
+  builtin declare +x all_functions 2>/dev/null || true
   _emit_encoded "$all_functions" "FUNCTIONS_B64"
 
   local aliases
   aliases=$(builtin alias -p 2>/dev/null || true)
+  builtin declare +x aliases 2>/dev/null || true
   _emit_encoded "$aliases" "ALIASES_B64"
+
+  # POSIX options replay LAST: allexport auto-exports function definitions,
+  # so re-enabling it before the FUNCTIONS replay would put every replayed
+  # function into envp (BASH_FUNC_*%%) — a single >128KB function then makes
+  # the next execve fail E2BIG. Explicitly exported functions are already
+  # restored by the `declare -fx` lines inside ENV_VARS_B64. (The grep drops
+  # nounset/errexit/pipefail: they are this dump function's own options — set
+  # is shell-global in bash — and replaying them would abort user commands.)
+  local posix_opts
+  posix_opts=$(builtin shopt -po 2>/dev/null | command grep -vE '^set [-+]o (nounset|errexit|pipefail)$' || true)
+  builtin declare +x posix_opts 2>/dev/null || true
+  _emit_encoded "$posix_opts" "POSIX_OPTS_B64"
 
   _emit "# end of bash state dump"
   _emit "__NOFY_BASH_STATE_END__"
@@ -143,11 +164,16 @@ function dump_zsh_state() {
   _emit_encoded() {
     local content="$1"
     local var_name="$2"
+    # Same MAX_ARG_STRLEN guard as the bash variant: under ALLEXPORT these
+    # locals would be exported to the base64 execve.
+    builtin typeset +x content var_name 2>/dev/null || true
     if [[ -n "$content" ]]; then
       builtin printf 'nofy_snap_%s=$(command base64 -d <<'"'"'NOFY_SNAP_EOF_%s'"'"'\n' "$var_name" "$var_name"
       command base64 <<<"$content" | command tr -d '\n'
       builtin printf '\nNOFY_SNAP_EOF_%s\n' "$var_name"
       builtin printf ')\n'
+      # Same allexport replay guard as the bash variant.
+      builtin printf 'builtin typeset +x nofy_snap_%s 2>/dev/null || true\n' "$var_name"
       builtin printf 'eval "$nofy_snap_%s"\n' "$var_name"
     fi
   }
@@ -158,22 +184,27 @@ function dump_zsh_state() {
 
   local env_vars
   env_vars=$(builtin typeset -xp 2>/dev/null | command grep -viE '_proxy=|NOFY_SANDBOX|NOFY_AGENT=|SUDO_ASKPASS|NOFY_ASKPASS|ELECTRON_RUN_AS_NODE|SSH_AUTH_SOCK|DBUS_SESSION_BUS_ADDRESS|XDG_RUNTIME_DIR|WAYLAND_DISPLAY|GPG_TTY' || true)
+  builtin typeset +x env_vars 2>/dev/null || true
   _emit_encoded "$env_vars" "ENV_VARS_B64"
-
-  # errreturn/pipefail here are this function's own `emulate -L` options
-  # (setopt lists them while inside); replaying them would abort later user
-  # commands.
-  local zsh_opts
-  zsh_opts=$(setopt 2>/dev/null | command grep -vE '^(nounset|errexit|errreturn|pipefail)$' | command awk '{printf "builtin setopt %s 2>/dev/null || true\n", $0}' || true)
-  _emit_encoded "$zsh_opts" "ZSH_OPTS_B64"
 
   local all_functions
   all_functions=$(builtin typeset -f 2>/dev/null || true)
+  builtin typeset +x all_functions 2>/dev/null || true
   _emit_encoded "$all_functions" "FUNCTIONS_B64"
 
   local aliases
   aliases=$({ builtin alias -L; builtin alias -gL; builtin alias -sL } 2>/dev/null || true)
+  builtin typeset +x aliases 2>/dev/null || true
   _emit_encoded "$aliases" "ALIASES_B64"
+
+  # Options replay LAST, same rationale as the bash variant (allexport must
+  # not be re-enabled before definitions replay). The grep drops this dump
+  # function's own `emulate -L` options (nounset/errexit/errreturn/pipefail);
+  # replaying them would abort later user commands.
+  local zsh_opts
+  zsh_opts=$(setopt 2>/dev/null | command grep -vE '^(nounset|errexit|errreturn|pipefail)$' | command awk '{printf "builtin setopt %s 2>/dev/null || true\n", $0}' || true)
+  builtin typeset +x zsh_opts 2>/dev/null || true
+  _emit_encoded "$zsh_opts" "ZSH_OPTS_B64"
 
   _emit "# end of zsh state dump"
   _emit "__NOFY_ZSH_STATE_END__"
@@ -724,6 +755,27 @@ pub async fn read_dump_from_pipe(fd: OwnedFd) -> std::io::Result<String> {
 mod tests {
     use super::*;
 
+    /// Serializes tests that temporarily repoint `$HOME`: the process env is
+    /// shared with every concurrently spawned shell, and a peer test's login
+    /// shell must not read (or dump) the tempdir's rc files mid-flight.
+    static HOME_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// RAII restore for `$HOME` under [`HOME_TEST_LOCK`]. Declare it AFTER the
+    /// lock guard so it drops FIRST — the env restore then runs before the lock
+    /// releases, so no peer test observes the temporary value.
+    struct HomeGuard {
+        prev: Option<std::ffi::OsString>,
+    }
+
+    impl Drop for HomeGuard {
+        fn drop(&mut self) {
+            match self.prev.take() {
+                Some(prev) => unsafe { std::env::set_var("HOME", prev) },
+                None => unsafe { std::env::remove_var("HOME") },
+            }
+        }
+    }
+
     #[test]
     fn shell_env_overrides_marks_agent_terminal() {
         let env = shell_env_overrides();
@@ -1178,33 +1230,117 @@ mod tests {
     /// after the model runs `set -a`), the wrapper's `__nofy_user_cmd` temp
     /// variable must not leak into child-process environments or persist into
     /// subsequent commands via the state dump.
-    #[tokio::test]
-    async fn test_user_cmd_var_not_exported_under_allexport_bash() {
+    /// Sync + `block_on` so `HOME_TEST_LOCK` is not held across `.await`
+    /// (clippy `await_holding_lock`).
+    #[test]
+    fn test_user_cmd_var_not_exported_under_allexport_bash() {
         if !bash_available() {
             return;
         }
-        let cwd = std::env::current_dir().unwrap();
-        let mut state = ShellState::init(ShellKind::Bash, &cwd, None).await.unwrap();
+        // Hermetic `$HOME`: `ShellState::init` runs an interactive LOGIN bash
+        // that sources the host's rc files. A large host function set replayed
+        // under allexport makes the post-command state dump fail with E2BIG —
+        // the dump's `local content` var inherits the export attribute from
+        // allexport, and the `command base64` exec carrying a >128KB env
+        // string is rejected (exit 126) — orthogonal to the leak pinned here.
+        // An empty tempdir HOME keeps the login state minimal and stable
+        // (`/etc/profile` still contributes, but stays well under the limit).
+        let _lock = HOME_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = HomeGuard {
+            prev: std::env::var_os("HOME"),
+        };
+        unsafe { std::env::set_var("HOME", home.path()) };
 
-        // Turn on allexport; the option is captured by the dump and replayed
-        // into every subsequent command's shell.
-        let (code, _) = run_command(&mut state, "set -a").await;
-        assert_eq!(code, 0);
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("test runtime");
+        rt.block_on(async {
+            let cwd = std::env::current_dir().unwrap();
+            let mut state = ShellState::init(ShellKind::Bash, &cwd, None).await.unwrap();
 
-        // This command's wrapper assigns __nofy_user_cmd under allexport.
-        // printenv only sees exported vars — it must not see the temp var
-        // (neither from this command's own assignment nor re-exported from a
-        // previous command's state dump).
-        let (code, stdout) = run_command(
-            &mut state,
-            "printenv __nofy_user_cmd >/dev/null 2>&1 && echo LEAKED_TO_ENV || echo ENV_CLEAN",
-        )
-        .await;
-        assert_eq!(code, 0);
-        assert!(
-            stdout.contains("ENV_CLEAN") && !stdout.contains("LEAKED_TO_ENV"),
-            "temp var must not be exported to child processes under allexport, got: {stdout:?}"
-        );
+            // Turn on allexport; the option is captured by the dump and replayed
+            // into every subsequent command's shell.
+            let (code, _) = run_command(&mut state, "set -a").await;
+            assert_eq!(code, 0);
+
+            // This command's wrapper assigns __nofy_user_cmd under allexport.
+            // printenv only sees exported vars — it must not see the temp var
+            // (neither from this command's own assignment nor re-exported from a
+            // previous command's state dump).
+            let (code, stdout) = run_command(
+                &mut state,
+                "printenv __nofy_user_cmd >/dev/null 2>&1 && echo LEAKED_TO_ENV || echo ENV_CLEAN",
+            )
+            .await;
+            assert_eq!(code, 0);
+            assert!(
+                stdout.contains("ENV_CLEAN") && !stdout.contains("LEAKED_TO_ENV"),
+                "temp var must not be exported to child processes under allexport, got: {stdout:?}"
+            );
+        });
+    }
+
+    /// Regression: under allexport the state dump's snapshot locals must not
+    /// be exported. A function set over 128KB (MAX_ARG_STRLEN) made the
+    /// dump's `command base64` execve fail E2BIG and every wrapper exit 126
+    /// once `set -a` was on. The dump now strips the export attribute
+    /// (`declare +x`) from each snapshot local after assignment.
+    /// Sync + `block_on` so `HOME_TEST_LOCK` is not held across `.await`
+    /// (clippy `await_holding_lock`).
+    #[test]
+    fn test_state_dump_survives_allexport_with_large_function_set_bash() {
+        if !bash_available() {
+            return;
+        }
+        // Hermetic `$HOME`: `ShellState::init` runs an interactive LOGIN bash
+        // that sources the host's rc files. A single >128KB host function
+        // (e.g. a CLI completion) gets auto-exported when the snapshot replay
+        // re-enables allexport and poisons every later execve with E2BIG —
+        // host noise, not the mechanism pinned here (the 60 bigfn below
+        // provide the >128KB function set deterministically).
+        let _lock = HOME_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = tempfile::tempdir().unwrap();
+        let _home_guard = HomeGuard {
+            prev: std::env::var_os("HOME"),
+        };
+        unsafe { std::env::set_var("HOME", home.path()) };
+
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("test runtime");
+        rt.block_on(async {
+            // ~240KB of function definitions, sourced into the session shell so
+            // the captured `declare -f` snapshot passes MAX_ARG_STRLEN. The
+            // commands themselves stay small (they travel through argv).
+            let dir = tempfile::tempdir().unwrap();
+            let body = "x".repeat(4_000);
+            let mut script = String::new();
+            for i in 0..60 {
+                script.push_str(&format!("bigfn{i}() {{ : \"{body}\"; }}\n"));
+            }
+            let fns = dir.path().join("big_fns.sh");
+            std::fs::write(&fns, &script).unwrap();
+
+            let cwd = std::env::current_dir().unwrap();
+            let mut state = ShellState::init(ShellKind::Bash, &cwd, None).await.unwrap();
+
+            let (code, _) = run_command(&mut state, &format!("source {}", fns.display())).await;
+            assert_eq!(code, 0, "sourcing the large function set must succeed");
+
+            let (code, _) = run_command(&mut state, "set -a").await;
+            assert_eq!(code, 0);
+
+            // Pre-fix this wrapper exited 126 (dump E2BIG under `set -e`).
+            let (code, stdout) = run_command(&mut state, "echo DUMP_SURVIVED").await;
+            assert_eq!(
+                code, 0,
+                "state dump must survive allexport with a >128KB function set"
+            );
+            assert!(stdout.contains("DUMP_SURVIVED"), "got: {stdout:?}");
+        });
     }
 
     /// Same as the bash variant: zsh's `source`/`.` also inherits the caller's

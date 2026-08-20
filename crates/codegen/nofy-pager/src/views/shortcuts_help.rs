@@ -3361,7 +3361,9 @@ mod tests {
 
     #[test]
     fn build_entries_surfaces_interject_ctrl_i_fallback() {
-        let registry = ActionRegistry::defaults();
+        // defaults() 的键位随宿主终端变化:VS Code 系把 interject 改绑 Ctrl+L
+        // 且无 alt;Ctrl+i 回退属于非 VS Code 键位,固定后再断言。
+        let registry = ActionRegistry::non_vscode_for_test();
         let entries = build_entries(&all_contexts(), &registry, true);
         // Action label is compact "send now" wording (interject under the hood).
         assert_cheatsheet_row_has_key(&entries, "send now", "Ctrl+i");

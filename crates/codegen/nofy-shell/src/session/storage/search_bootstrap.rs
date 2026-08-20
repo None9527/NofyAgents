@@ -176,6 +176,13 @@ async fn bootstrap_with_lease_inner(
     let db_path = search_db_path(root_dir);
     let token = ClaimToken::new();
     let started = Instant::now();
+    // Marker PRESENCE at gate start (not timing), launch path only (rechecks
+    // run per search and never use it): a marker already present is stale
+    // leftover from an earlier session that a launch must reindex over (it
+    // owes pruning and skipped retries); one that only APPEARS after this
+    // point was written by a racing peer.
+    let marker_at_start = role != BootstrapRole::Recheck
+        && has_completed_bootstrap_marker(root_dir).await == Some(true);
     let peer_wait = match role {
         BootstrapRole::Launch => timing.peer_wait,
         BootstrapRole::Recheck => Duration::ZERO,
@@ -193,14 +200,21 @@ async fn bootstrap_with_lease_inner(
         }
 
         if claim_bootstrap_lease(&db_path, &token, timing.lease).await? {
-            // Only a launch's first claim ignores an existing marker (the
-            // launch owes pruning and skipped retries); everyone else
-            // adopts any completed marker.
+            // Only a launch's first claim ignores an EXISTING marker (the
+            // launch owes pruning and skipped retries); everyone else adopts
+            // any completed marker. A first claim also adopts a marker that
+            // APPEARED since gate start — that is a racing peer that finished
+            // while we waited for the lease, and reindexing again would be a
+            // double rebuild. Presence (not wall-clock age) makes the decision
+            // robust to task-scheduling delay.
             let first_launch_claim = role != BootstrapRole::Recheck && !peer_seen;
-            if !first_launch_claim && has_completed_bootstrap_marker(root_dir).await == Some(true) {
+            let marker_now = has_completed_bootstrap_marker(root_dir).await == Some(true);
+            let raced_peer_completed = first_launch_claim && marker_now && !marker_at_start;
+            if (!first_launch_claim && marker_now) || raced_peer_completed {
                 release_bootstrap_claim(&db_path, &token).await;
                 tracing::info!(
                     waited_ms = started.elapsed().as_millis() as u64,
+                    raced = raced_peer_completed,
                     "adopted a peer's completed session search bootstrap"
                 );
                 return Ok(BootstrapOutcome::Done);

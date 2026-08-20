@@ -126,7 +126,8 @@ fn is_max_tier_non_max_and_unknown() {
 fn is_max_tier_handles_mixed_case_and_whitespace() {
     assert!(is_max_tier(Some("SuperNofy_Heavy")));
     assert!(is_max_tier(Some("supernofy heavy")));
-    assert!(is_max_tier(Some("SUPERGROK HEAVY")));
+    // 改名遗留修正:生产代码归一化后匹配 "supernofy_heavy",大写空格变体同理。
+    assert!(is_max_tier(Some("SUPERNOFY HEAVY")));
 }
 
 #[test]

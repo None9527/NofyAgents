@@ -204,9 +204,8 @@ fn voice_ctrl_space_release_leaves_toggle_recording_running() {
     );
 }
 
-/// A free-tier user hitting the voice keybinding gets the SuperNofy upsell
-/// instead of a doomed voice session — the keybinding bypasses the slash
-/// registry, so this dispatcher is the enforcement point.
+/// fork 移除 tier 限制:免费用户按 voice 键位走正常 voice 路径,
+/// 不再被层级门控拦截,也不弹 SuperNofy upsell。
 #[test]
 fn voice_keybinding_on_restricted_tier_opens_upsell() {
     if !nofy_voice::AUDIO_SUPPORTED {
@@ -214,19 +213,16 @@ fn voice_keybinding_on_restricted_tier_opens_upsell() {
     }
     let mut app = test_app_with_agent();
     app.voice_mode_enabled = true;
-    // Personal login without a subscription tier ⇒ free tier ⇒ voice restricted.
+    // Personal login without a subscription tier — the fork no longer
+    // classifies any tier as voice-restricted.
     app.apply_auth_meta(&nofy_shell::auth::AuthMeta::default());
-    assert!(app.is_voice_tier_restricted());
+    assert!(!app.is_voice_tier_restricted());
 
     dispatch(Action::EnableVoiceMode, &mut app);
 
     assert!(
-        app.agents.get(&AgentId(0)).unwrap().question_view.is_some(),
-        "restricted-tier voice keybinding must open the SuperNofy upsell"
-    );
-    assert!(
-        !app.voice_listening(),
-        "voice must not start on a restricted tier"
+        app.agents.get(&AgentId(0)).unwrap().question_view.is_none(),
+        "fork removed the tier gate: voice keybinding must not open the upsell"
     );
 }
 

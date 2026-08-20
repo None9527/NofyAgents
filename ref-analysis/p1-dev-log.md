@@ -552,3 +552,37 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 逐项对现状代码核实(file:line 证据):Leader 不恢复(sanitized 设计移除,steering 走 daemon 控制 socket)、session_registry_client 半禁用(agent 侧恒 None,pager 三处遗留门控外呼面在案)、convergence governor 已接(env 门控默认关)、evals 重建在 EVAL 标记 e2e+ab-eval A/B 台架、schema 载体=serde JSON 长度前缀帧(protobuf 仅 tools API)、dream.rs 外呼=BYOK 会话端点无账号端点、activity×journal 分层不重叠。PRD §10 已回写销账。
 
 - **收尾批闭环 ⇒ PRD 欠账清零**:FR9 覆盖政策件落地、§10 全部销账;PRD 需求本体(FR+AC+里程碑)+工程政策件全线闭环,剩余仅为运营度量(北极星,发布后可测)与 shell 功能面前提(非 PRD 欠账,接线点在案)。**无新增欠账。**
+
+## 收尾后复核:门外的改名遗留失败(nofy-memory)
+
+- **触发**:「按期望完成了么」之问 → 全 workspace 复核(收尾批最终验证只覆盖 14 门内 crate,此为盲区)。
+- **发现**:`nofy-memory` lib 套件 1 败——`backend::tests::endpoint_scoped_credentials_trust_gate_and_url_match` 在「host casing normalizes」断言 panic。确定性复现,非 flaky。
+- **根因**:初始改名提交 f06f1a0 的遗留——常量 `PROD_XAI_API_BASE_URL` 保留真端点 `https://api.x.ai/v1`,同一测试的字面量却被改成 `https://API.nofy/v1`;`approved_for` 是解析后 URL 全等比较,宿主不同恒 false。**该测试在本分支从未绿过**,且不在 14 门内 crate 之列,覆盖门与历批验证均未触及。
+- **修复**:字面量恢复为真端点的大写宿主形态 `https://API.X.AI/v1`(断言语义=同一端点宿主大小写归一);加 2 行注释防再改名。impact LOW(测试函数,0 调用方)。常量是产品真实外呼端点,绝不可反向改。
+- **验证**:nofy-memory 290/290 双跑绿;workspace 预算棘轮 1,551,912→1,551,917(+2 守卫注释+3 梯注释)双跑绿。
+- **教训在案**:覆盖门按 AC-9 圈定「所有新组件」,门外的既有 crate 靠全 workspace 复核兜底;「完成」断言以全量复核为准,不以门内通过为准。
+
+## 门外恢复批:fork 点遗留红测试全数清零(全 workspace 复验触发)
+
+### 触发与归因
+- 「按期望完成了么」之问 → 全 workspace 复验(收尾批验证只覆盖 14 门内 crate,门外是盲区;首次全量输出被管道截断曾误报「1 个失败」,已纠正)。发现 19 目标约 106 个失败,分布 pager/update/workspace/tools/shell/harness/marketplace/minimal/memory 九个门外 crate。
+- **fork 点实验钉死归因**:/tmp/forkpoint worktree 于 f06f1a0 跑同一批套件——16 目标/99 测试同败;harness 自 fork 构造性坏(bin 名引用旧名);nofy-memory 字面量 fork 提交即在。**全部失败先于 PRD 工作存在**。唯一例外:nofy-shell --lib 栈溢出 fork 点不存在 → bisect 6 步定位到我们自己的提交 1e10702(WorldState C3,turn future 增大)→ 我们负责修复。
+
+### 修复(按根因类)
+1. **改名遗留字面量**:slugify 期望值、accounts.nofy→accounts.x.ai、update 全家族 grok-*→nofy-(生产命名 nofy-{version}-{platform})、API.nofy→API.X.AI、acp_harness "nofy.api_key"→生产常量 NOFY_API_KEY_METHOD_ID、"SUPERGROK HEAVY"→"SUPERNOFY HEAVY"、welcome toast URL、prompt_widget 补全查询。
+2. **fork 削功能 → fork 语义重写**(断言强度不降):tier 簇 9 项(is_restricted_tier 恒 false,改断 fork 真实行为+禁用机制自体完好验证)、external_auth(改钉 fail-closed 契约:错误文案+交互分支零调用+20s 护栏)、heap_profile 4 项(静态 token≠活 token 等值断言,端到端钉住静态凭据上传)。
+3. **不封闭测试 → HOME 密封**:workspace permission 15+8 项(crate 既有 ENV_TEST_LOCK+tempdir 惯例,断言一字未动;含单跑稳定失败的第 16 个受害者 skip_only_invalid_permissions_resolves_without_panic)、tools allexport 测试。
+4. **环境依赖 → 测试内封闭/规范入口**:teal 簇 NO_COLOR 塌缩(pin_theme,色彩断言以可区分性门控、结构断言无条件)、ctrl_q 簇 TERM_PROGRAM=vscode 改绑(pin_non_vscode_registry)、paste 簇 17 项(生产在 SSH 环境禁用 drop 分类器,terminal_context 为进程级 write-once OnceLock 无测试注入点)→ **scripts/test.sh 规范测试入口**(剥离 SSH 变量,paste 88/88 绿)。
+5. **栈溢出**(我们的回归):tool_calls.rs Box::pin 收缩 turn future(生产侧严格改进)+ 两个 auth_retry_budget 测试套既有 16MB 栈线程惯例(disk_full_tests 同款)+ .cargo/config.toml RUST_MIN_STACK=16MB 底(对齐生产 8MB 会话线程现实)。
+6. **真生产 bug(恢复批捕获,已修)**:dump 脚本 allexport E2BIG——宿主函数集 >128KB 时 set -a 后每条命令的状态 dump 退 126。三层修复:dump 局部量赋值后 declare +x 去导出、重放快照变量生成 declare +x、**POSIX_OPTS 重排至重放末尾**(allexport 会自动导出函数定义,先恢复选项会使重放的函数进 envp)。反证验证:旧顺序外部命令 id「参数列表过长」退 126,新顺序 0。回归测试 test_state_dump_survives_allexport_with_large_function_set_bash(240KB 函数集+set -a)在案。
+7. **harness/bin 名**:pager-pty-harness env.rs 三处 nofy-pager→nofy(12 个 e2e 全绿,tmux 格经核实不需 tmux 二进制)。
+8. **真生产 bug(恢复批捕获,已修)·会话扫描竞态**:load_candidates 在 read_dir 与 file_type 之间条目消失(并发删会话)时硬错,全量跑中 remote_miss 簇偶发受害。按代码库既有政策(most_recent_cwd_skips_raced_not_found:NotFound 跳过、其余传播)扩展至扫描五处窗口;并发 churn 回归测试 load_candidates_tolerates_entries_vanishing_mid_scan 在案。
+9. **真生产 bug(恢复批捕获,已修)·bootstrap single-flight 双重建**:并发 Launch 门若首个 claim 落在 peer 完成释放之后,按「首次 claim 忽略 marker」设计会二次 reindex(全量跑偶发 2/2 重建)。修复:门启动记录 marker 在场性(presence,不靠墙钟),首次 claim 时「启动时不在场而现在在场」=竞态 peer 完成→adopt;陈旧 marker(启动时在场)语义原样保留(pruning 义务不变)。impact MEDIUM(5 直接调用方:2 生产 wrapper+3 测试)已报告。
+10. **测试隔离修复·全局 CACHE_EPOCH 串扰**:插桩定位(EPOCHMON before=0 after=1)——heal 测试按设计 bump 进程级 epoch,并发运行时被 bootstrap 测试的 `epoch.changed()` 误读为「自己的索引中途被 heal」→ marker 被抑制 → 假失败。串行 5/5 绿/并发即败坐实。修复:EPOCH_TEST_LOCK 将 bump-epoch 测试与 marker 断言测试串行(锁在 runtime 构建前获取,不跨 await)。修复后模块并发 10/10、nofy-shell 全 lib 5542/0 三连绿。
+
+### 生产侧跟进项(记录在案,未动生产)
+install.sh/install-enterprise.sh/install.ps1/install-enterprise.ps1 未随 fork 改名(68/65 处 grok 引用,test_install_sh 现断言 fork 真实行为)、version.rs CLI_BASE_URL_PRIMARY="https://nofy/cli" 非法 URL(静默回落 GCS,与 install.sh 的 x.ai/cli 不一致)、tier 削功能遗留死代码、nofy-pager-render terminal 上下文无测试注入点(paste 簇结构性缺口,现经规范入口覆盖)、CACHE_EPOCH 进程级全局(测试已用锁隔离,生产侧可考虑按 DB 作用域化)。
+
+### 验证
+- 分域双绿:nofy-pager 8276/0(规范入口)、nofy-update lib+9 集成全绿、workspace 1688、tools 2921、minimal 82、marketplace 145、shell --lib 5541/0+集成全绿、harness 96+全部 e2e、memory 290。
+- 棘轮:workspace 预算 1,551,917→1,552,403(阶梯注记在案),5/5 双绿。

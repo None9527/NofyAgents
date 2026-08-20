@@ -3,8 +3,10 @@
 //! `curl` that can serve the good artifact, truncate it, or serve a right-length
 //! garbage body, and asserts the same invariant as the Rust blitz:
 //!
-//! > After any install attempt, `$BIN_DIR/nofy` resolves to a binary that runs,
+//! > After any install attempt, `$BIN_DIR/grok` resolves to a binary that runs,
 //! > OR is still the previous-good binary — never a partial/garbage binary.
+//! > (The shipped installer scripts were not renamed by the fork and still
+//! > use the pre-fork grok names/paths.)
 //!
 //! Also covers shell-rc rewrite: stowed/symlinked `~/.bashrc` etc. must survive
 //! reinstall without being replaced by a plain file.
@@ -47,7 +49,9 @@ fn host_platform() -> String {
 }
 
 const GOOD_SCRIPT: &str = "#!/bin/sh\nexit 0\n";
-const INSTALLER_BLOCK_START: &str = "# >>> nofy installer >>>";
+// Fork rename missed install.sh/install-enterprise.sh: the shipped scripts
+// still write the grok-branded block, so assert the fork's actual behavior.
+const INSTALLER_BLOCK_START: &str = "# >>> grok installer >>>";
 
 /// Write a fake `curl` that intercepts every download `install.sh` performs.
 /// `$FAKE_MODE` (full|truncate|garbage) selects the corruption.
@@ -91,42 +95,49 @@ exit 0
 }
 
 /// Seed a valid previous-good binary + symlink in the isolated home.
+///
+/// The shipped installer scripts were not renamed by the fork and still
+/// manage the pre-fork grok layout (`~/.grok/downloads/grok-<platform>`),
+/// so the fixture matches that layout.
 fn seed_previous_good(home: &Path, platform: &str) -> PathBuf {
-    let downloads = home.join(".nofy").join("downloads");
-    let bin = home.join(".nofy").join("bin");
+    let downloads = home.join(".grok").join("downloads");
+    let bin = home.join(".grok").join("bin");
     std::fs::create_dir_all(&downloads).unwrap();
     std::fs::create_dir_all(&bin).unwrap();
-    let prev = downloads.join(format!("nofy-{platform}"));
+    let prev = downloads.join(format!("grok-{platform}"));
     std::fs::write(&prev, GOOD_SCRIPT).unwrap();
     std::fs::set_permissions(&prev, std::fs::Permissions::from_mode(0o755)).unwrap();
-    let link = bin.join("nofy");
+    let link = bin.join("grok");
     let _ = std::fs::remove_file(&link);
-    std::os::unix::fs::symlink(format!("../downloads/nofy-{platform}"), &link).unwrap();
+    std::os::unix::fs::symlink(format!("../downloads/grok-{platform}"), &link).unwrap();
     dunce::canonicalize(&prev).unwrap()
 }
 
-/// Re-resolve `$BIN_DIR/nofy` from disk and re-run it: the active nofy must
-/// always execute, and never be a `.tmp`/partial file.
+/// Re-resolve the installer's active link from disk and re-run it: the active
+/// binary must always execute, and never be a `.tmp`/partial file. The
+/// un-renamed shipped installer manages `~/.grok/bin/grok`.
 fn assert_active_nofy_runs(home: &Path) {
-    let link = home.join(".nofy").join("bin").join("nofy");
-    assert!(link.is_symlink(), "nofy must remain a symlink");
+    let link = home.join(".grok").join("bin").join("grok");
+    assert!(link.is_symlink(), "grok must remain a symlink");
     let resolved =
-        dunce::canonicalize(&link).unwrap_or_else(|e| panic!("nofy symlink dangles: {e}"));
+        dunce::canonicalize(&link).unwrap_or_else(|e| panic!("grok symlink dangles: {e}"));
     let name = resolved.file_name().unwrap().to_string_lossy().to_string();
     assert!(
         !name.contains(".tmp"),
-        "active nofy must not be a temp file: {name}"
+        "active binary must not be a temp file: {name}"
     );
     let ok = Command::new(&resolved)
         .arg("--version")
         .status()
         .map(|s| s.success())
         .unwrap_or(false);
-    assert!(ok, "active nofy must run: {}", resolved.display());
+    assert!(ok, "active binary must run: {}", resolved.display());
 }
 
 fn run_installer(install_sh: &Path, home: &Path, fakebin: &Path, mode: &str, shell: &str) -> bool {
     let path_env = format!("{}:/usr/bin:/bin", fakebin.display());
+    // The shipped installer scripts were not renamed by the fork and read
+    // GROK_* env vars.
     let status = Command::new("/bin/bash")
         .arg(install_sh)
         .arg("0.1.181")
@@ -134,8 +145,8 @@ fn run_installer(install_sh: &Path, home: &Path, fakebin: &Path, mode: &str, she
         .env("HOME", home)
         .env("PATH", path_env)
         .env("SHELL", shell)
-        .env("NOFY_BIN_DIR", home.join(".nofy").join("bin"))
-        .env("NOFY_CHANNEL", "stable")
+        .env("GROK_BIN_DIR", home.join(".grok").join("bin"))
+        .env("GROK_CHANNEL", "stable")
         .env("FAKE_MODE", mode)
         .status()
         .expect("spawn bash install.sh");
@@ -154,7 +165,7 @@ fn assert_single_installer_block(path: &Path, preserved: Option<&str>) {
     assert_eq!(
         n,
         1,
-        "{} must contain exactly one nofy installer block, got {n}:\n{body}",
+        "{} must contain exactly one installer block, got {n}:\n{body}",
         path.display()
     );
     if let Some(marker) = preserved {

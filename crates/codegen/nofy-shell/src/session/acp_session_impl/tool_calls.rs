@@ -3708,7 +3708,11 @@ impl SessionActor {
         if !crate::session::world_state::is_world_state_enabled() {
             return;
         }
-        let extras = self.collect_world_state_extras().await;
+        // Boxed: the extras future's state machine (goal/todo/subagent
+        // snapshots with several lock awaits) lives inline in the turn
+        // future otherwise — it pushed the turn future past libtest's 2MB
+        // test-thread stack (stack overflow in auth_retry_budget_tests).
+        let extras = Box::pin(self.collect_world_state_extras()).await;
         let state = crate::session::world_state::build_world_state(
             &self.tool_context,
             &self.runtime_journal,

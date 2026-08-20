@@ -24,7 +24,7 @@
 //!   same-instant race is accepted as rare; these tests pin the property
 //!   that makes it acceptable — concurrent installs (same or *different*
 //!   versions) never corrupt the active binary. Before the per-attempt
-//!   temp-name fix, every `0.1.x` download shared one `grok-0.1.tmp`
+//!   temp-name fix, every `0.1.x` download shared one `nofy-0.1.tmp`
 //!   (`with_extension("tmp")` eats everything after the last dot), so racer
 //!   A could atomically rename racer B's half-written file into place.
 
@@ -346,7 +346,7 @@ async fn disk_probe_rejects_dangling_symlink() {
 
     std::fs::remove_file(
         home.join("downloads")
-            .join(format!("grok-0.2.7-{platform}")),
+            .join(format!("nofy-0.2.7-{platform}")),
     )
     .unwrap();
 
@@ -374,7 +374,7 @@ async fn ensure_latest_repairs_dangling_symlink_by_downloading() {
     fake_managed_install("0.2.7");
     std::fs::remove_file(
         home.join("downloads")
-            .join(format!("grok-0.2.7-{platform}")),
+            .join(format!("nofy-0.2.7-{platform}")),
     )
     .unwrap();
     let cfg = make_update_config("stable");
@@ -398,7 +398,7 @@ async fn ensure_latest_repairs_dangling_symlink_by_downloading() {
 // Race integrity: the accepted same-instant race must stay harmless. Two (or
 // three) installers running concurrently — even for DIFFERENT versions —
 // must never leave a corrupt active binary. Pre-fix, all 0.1.x downloads
-// shared one `grok-0.1.tmp`, so a concurrent racer could atomically rename a
+// shared one `nofy-0.1.tmp`, so a concurrent racer could atomically rename a
 // half-written file into place.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -463,7 +463,7 @@ async fn concurrent_different_version_installs_do_not_corrupt_each_other() {
     let server = ArtifactServer::start(artifact.clone());
     server.set_slow(true);
 
-    // Pre-fix, BOTH of these wrote to downloads/grok-0.1.tmp concurrently
+    // Pre-fix, BOTH of these wrote to downloads/nofy-0.1.tmp concurrently
     // (with_extension("tmp") truncates at the last dot), so one racer could
     // rename the other's partial file into its own versioned path.
     let results = run_concurrent_installs(&server, &["0.1.181", "0.1.182"]).await;
@@ -495,7 +495,7 @@ async fn concurrent_different_version_installs_do_not_corrupt_each_other() {
 
     // No stray shared temp file left behind (the pre-fix collision name).
     assert!(
-        !home.join("downloads").join("grok-0.1.tmp").exists(),
+        !home.join("downloads").join("nofy-0.1.tmp").exists(),
         "the pre-fix shared temp name must not exist"
     );
 }

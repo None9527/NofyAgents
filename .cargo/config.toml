@@ -79,3 +79,8 @@ AARCH64_APPLE_DARWIN_JEMALLOC_SYS_WITH_LG_PAGE = "14"
 AARCH64_UNKNOWN_LINUX_GNU_JEMALLOC_SYS_WITH_LG_PAGE = "16"
 AARCH64_UNKNOWN_LINUX_MUSL_JEMALLOC_SYS_WITH_LG_PAGE = "16"
 AARCH64_UNKNOWN_LINUX_MUSL_JEMALLOC_SYS_WITH_BACKGROUND_THREADS = "0"
+# SessionActor turn futures overflow libtest's default 2MB test-thread stack
+# in debug builds (see disk_full_tests::block_on_session and the 8MB
+# SESSION_THREAD_STACK_SIZE production session thread). Raise the floor for
+# cargo-spawned test threads so `cargo test` does not abort mid-suite.
+RUST_MIN_STACK = "16777216"

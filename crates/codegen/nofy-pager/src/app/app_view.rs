@@ -7450,9 +7450,11 @@ pub(crate) mod tests {
             ..Default::default()
         });
         assert!(!app.is_api_key_auth);
-        assert!(!app.voice_mode_enabled);
+        // fork 移除 tier 限制:离开 API-key 认证不再按 tier 强制重置 voice,
+        // 也不再产生受限命令(voice_mode_enabled 保持 API-key 阶段的开启状态)。
+        assert!(app.voice_mode_enabled);
         assert!(app.usage_visible);
-        assert!(!app.tier_restricted_commands.is_empty());
+        assert!(app.tier_restricted_commands.is_empty());
     }
     fn expected_tier_restricted_commands() -> Vec<String> {
         TIER_RESTRICTED_COMMANDS
@@ -7502,18 +7504,25 @@ pub(crate) mod tests {
     }
     #[test]
     fn apply_auth_meta_restricts_usage_for_free_tier() {
+        // fork 移除 tier 限制:Free tier 不再产生受限命令,命令保持可用,
+        // usage 保持可见;受限清单目录本身仍在(非空),只是不再被应用。
         let mut app = test_app();
         advertise_media_tools(&mut app);
         app.apply_auth_meta(&nofy_shell::auth::AuthMeta::default());
-        assert_eq!(
-            app.tier_restricted_commands,
-            expected_tier_restricted_commands()
-        );
-        assert_tier_restricted_commands_absent(&app);
+        assert!(!expected_tier_restricted_commands().is_empty());
+        assert!(app.tier_restricted_commands.is_empty());
+        assert_tier_restricted_commands_present(&app);
         assert!(app.usage_visible);
+        // Deny-list machinery itself is intact: applying the catalog directly
+        // still denies the commands — the fork just never populates it from
+        // tier state.
+        app.welcome_prompt
+            .set_restricted_commands(&expected_tier_restricted_commands());
+        assert_tier_restricted_commands_absent(&app);
     }
     #[test]
     fn apply_auth_meta_restricts_usage_for_x_basic_tier() {
+        // fork 移除 tier 限制:X Basic tier 同样不再产生受限命令。
         let mut app = test_app();
         advertise_media_tools(&mut app);
         let meta = nofy_shell::auth::AuthMeta {
@@ -7521,14 +7530,13 @@ pub(crate) mod tests {
             ..Default::default()
         };
         app.apply_auth_meta(&meta);
-        assert_eq!(
-            app.tier_restricted_commands,
-            expected_tier_restricted_commands()
-        );
-        assert_tier_restricted_commands_absent(&app);
+        assert!(app.tier_restricted_commands.is_empty());
+        assert_tier_restricted_commands_present(&app);
     }
     #[test]
     fn apply_auth_meta_lifts_restrictions_for_paid_tiers_and_teams() {
+        // fork 移除 tier 限制:付费/团队/免费场景一致,受限列表恒为空,
+        // 受限命令始终可用。
         let mut app = test_app();
         advertise_media_tools(&mut app);
         let meta = nofy_shell::auth::AuthMeta {
@@ -7541,7 +7549,7 @@ pub(crate) mod tests {
         let mut app = test_app();
         advertise_media_tools(&mut app);
         app.apply_auth_meta(&nofy_shell::auth::AuthMeta::default());
-        assert!(!app.tier_restricted_commands.is_empty());
+        assert!(app.tier_restricted_commands.is_empty());
         app.subscription_tier = Some("SuperNofy".into());
         app.apply_tier_restrictions();
         assert!(app.tier_restricted_commands.is_empty());
@@ -7557,11 +7565,12 @@ pub(crate) mod tests {
     }
     #[test]
     fn is_restricted_tier_classification() {
-        assert!(is_restricted_tier(None));
-        assert!(is_restricted_tier(Some("")));
-        assert!(is_restricted_tier(Some("Free")));
-        assert!(is_restricted_tier(Some("X Basic")));
-        assert!(is_restricted_tier(Some("x_basic")));
+        // fork 移除 tier 限制:is_restricted_tier 对任何输入恒返回 false。
+        assert!(!is_restricted_tier(None));
+        assert!(!is_restricted_tier(Some("")));
+        assert!(!is_restricted_tier(Some("Free")));
+        assert!(!is_restricted_tier(Some("X Basic")));
+        assert!(!is_restricted_tier(Some("x_basic")));
         assert!(!is_restricted_tier(Some("SuperNofy")));
         assert!(!is_restricted_tier(Some("SuperNofy Heavy")));
         assert!(!is_restricted_tier(Some("X Premium")));
@@ -7574,9 +7583,10 @@ pub(crate) mod tests {
     }
     #[test]
     fn is_voice_tier_restricted_tracks_tier() {
+        // fork 移除 tier 限制:voice 不再因订阅层级受限,任何 tier 恒为 false。
         let mut app = test_app();
         app.apply_auth_meta(&nofy_shell::auth::AuthMeta::default());
-        assert!(app.is_voice_tier_restricted());
+        assert!(!app.is_voice_tier_restricted());
         let mut app = test_app();
         let meta = nofy_shell::auth::AuthMeta {
             subscription_tier: Some("SuperNofy".into()),
@@ -7619,6 +7629,9 @@ pub(crate) mod tests {
     #[test]
     fn welcome_ctrl_q_requires_confirmation() {
         let mut app = test_app();
+        // defaults() 的键位随宿主终端变化(VS Code 系把 Quit 改绑 Ctrl+D);
+        // 本测试验证 Ctrl+Q 语义,固定非 VS Code 键位。
+        pin_non_vscode_registry(&mut app);
         let outcome = app.handle_input(&key_event(KeyCode::Char('q'), KeyModifiers::CONTROL));
         assert!(matches!(outcome, InputOutcome::Changed));
         let pending = app
@@ -8417,6 +8430,9 @@ pub(crate) mod tests {
     #[test]
     fn ctrl_q_sets_pending_action() {
         let mut app = test_app_with_agent();
+        // Pin non-VS Code bindings: defaults() rebinds Quit to Ctrl+D on the
+        // VS Code family, which would swallow this Ctrl+Q chord.
+        pin_non_vscode_registry(&mut app);
         let outcome = app.handle_input(&ctrl_q());
         assert!(matches!(outcome, InputOutcome::Changed));
         assert!(app.pending_action.is_some());
@@ -8425,6 +8441,7 @@ pub(crate) mod tests {
     #[test]
     fn ctrl_q_double_press_quits() {
         let mut app = test_app_with_agent();
+        pin_non_vscode_registry(&mut app);
         let _ = app.handle_input(&ctrl_q());
         assert!(app.pending_action.is_some());
         let outcome = app.handle_input(&ctrl_q());
@@ -8435,6 +8452,7 @@ pub(crate) mod tests {
     fn different_key_clears_pending() {
         crate::appearance::cache::set_simple_mode(false);
         let mut app = test_app_with_agent();
+        pin_non_vscode_registry(&mut app);
         if let ActiveView::Agent(id) = app.active_view
             && let Some(agent) = app.agents.get_mut(&id)
         {
@@ -10602,6 +10620,7 @@ pub(crate) mod tests {
     #[test]
     fn ctrl_q_on_dashboard_arms_quit() {
         let mut app = test_app();
+        pin_non_vscode_registry(&mut app);
         app.active_view = ActiveView::AgentDashboard;
         app.dashboard = Some(crate::views::dashboard::DashboardState::new());
         let outcome = app.handle_input(&key_event(KeyCode::Char('q'), KeyModifiers::CONTROL));

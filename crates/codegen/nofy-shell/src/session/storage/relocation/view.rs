@@ -145,24 +145,40 @@ fn load_candidates(sessions_root: &Path) -> Result<(SessionCandidates, SessionCa
     let mut all = SessionCandidates::new();
     let mut persisted = SessionCandidates::new();
     for cwd_entry in entries {
-        let cwd_entry =
-            cwd_entry.map_err(|error| super::fs::io_error("read", sessions_root, error))?;
+        // Entries that vanish mid-scan (concurrent session deletion) are a
+        // normal race in a live sessions root — skip them, same policy as
+        // most_recent_cwd_skips_raced_not_found. Real I/O errors propagate.
+        let cwd_entry = match cwd_entry {
+            Ok(entry) => entry,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(super::fs::io_error("read", sessions_root, error)),
+        };
         let cwd_path = cwd_entry.path();
-        let cwd_type = cwd_entry
-            .file_type()
-            .map_err(|error| super::fs::io_error("inspect", &cwd_path, error))?;
+        let cwd_type = match cwd_entry.file_type() {
+            Ok(file_type) => file_type,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(super::fs::io_error("inspect", &cwd_path, error)),
+        };
         if !cwd_type.is_dir() || cwd_type.is_symlink() {
             continue;
         }
-        for session_entry in fs::read_dir(&cwd_path)
-            .map_err(|error| super::fs::io_error("read", &cwd_path, error))?
-        {
-            let session_entry =
-                session_entry.map_err(|error| super::fs::io_error("read", &cwd_path, error))?;
+        let session_entries = match fs::read_dir(&cwd_path) {
+            Ok(session_entries) => session_entries,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(super::fs::io_error("read", &cwd_path, error)),
+        };
+        for session_entry in session_entries {
+            let session_entry = match session_entry {
+                Ok(entry) => entry,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(error) => return Err(super::fs::io_error("read", &cwd_path, error)),
+            };
             let path = session_entry.path();
-            let file_type = session_entry
-                .file_type()
-                .map_err(|error| super::fs::io_error("inspect", &path, error))?;
+            let file_type = match session_entry.file_type() {
+                Ok(file_type) => file_type,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(error) => return Err(super::fs::io_error("inspect", &path, error)),
+            };
             let Some(id) = session_entry.file_name().to_str().map(str::to_owned) else {
                 continue;
             };
@@ -206,4 +222,46 @@ fn load_journals(nofy_home: &Path) -> Result<HashMap<String, RelocationJournal>>
         journals.insert(session_id.to_owned(), journal::read(nofy_home, session_id)?);
     }
     Ok(journals)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    /// Entries vanishing mid-scan (a concurrent process deleting session
+    /// directories) must not fail the scan — same raced-NotFound policy as
+    /// `most_recent_cwd_skips_raced_not_found`. Pre-fix, the read_dir/file_type
+    /// window turned the race into a hard error that aborted session
+    /// resolution under parallel session churn.
+    #[test]
+    fn load_candidates_tolerates_entries_vanishing_mid_scan() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("sessions");
+        fs::create_dir_all(&root).unwrap();
+
+        let stop = Arc::new(AtomicBool::new(false));
+        let churner = {
+            let stop = stop.clone();
+            let root = root.clone();
+            std::thread::spawn(move || {
+                let mut i = 0u64;
+                while !stop.load(Ordering::Relaxed) {
+                    let session_dir = root.join(format!("cwd-{i}")).join(format!("sess-{i}"));
+                    let _ = fs::create_dir_all(&session_dir);
+                    let _ = fs::write(session_dir.join("summary.json"), "{}");
+                    let _ = fs::remove_dir_all(root.join(format!("cwd-{i}")));
+                    i += 1;
+                }
+            })
+        };
+
+        for _ in 0..200 {
+            load_candidates(&root).expect("scan must tolerate entries vanishing mid-scan");
+        }
+
+        stop.store(true, Ordering::Relaxed);
+        churner.join().unwrap();
+    }
 }

@@ -72,15 +72,17 @@
         assert!(app.tier_restricted_commands.is_empty());
         assert!(app.voice_mode_enabled);
 
-        // Later personal Free stamp must not keep API-key bypass or force-on voice.
+        // Later personal Free stamp must not keep the API-key bypass.
+        // fork 移除 tier 限制:Free stamp 不再产生受限命令,也不再按 tier
+        // 强制重置 voice(生产注释:sanitized build 离开 API-key 不重置 voice)。
         assert!(handle_ext_notification(
             &tier_settings_update("Free"),
             &mut app
         ));
         assert!(!app.is_api_key_auth);
         assert!(app.usage_visible);
-        assert!(!app.tier_restricted_commands.is_empty());
-        assert!(!app.voice_mode_enabled);
+        assert!(app.tier_restricted_commands.is_empty());
+        assert!(app.voice_mode_enabled);
 
         // Paid tier after API Key must not force voice off (omit voice field).
         let mut app = make_app_with_agent("sess-paid-keep-voice");

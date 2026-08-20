@@ -695,24 +695,39 @@ mod tests {
 
     #[test]
     fn mid_text_multiple_tokens_each_teal() {
+        // 固定主题:pin_theme 锁定 NofyNight,渲染(Theme::current())与断言同一主题。
+        let _theme_guard = crate::theme::cache::pin_theme();
         let text = "run /commit then /review please";
         let block = UserPromptBlock::with_skill_tokens(text, vec![4..11, 17..24]);
         let lines = block.wrap_prompt_lines(80, None, true, false);
         assert_eq!(lines.len(), 1);
 
         let theme = Theme::current();
-        let teal: Vec<&str> = lines[0]
+        // 结构断言不依赖色彩:NO_COLOR 下所有前景色 quantize 为 Reset,
+        // teal 与正文不可区分,色彩区分仅在调色板可区分时断言。
+        let body: Vec<&str> = lines[0]
             .content
             .spans
             .iter()
-            .filter(|s| s.style.fg == Some(theme.accent_skill))
+            .skip(1)
             .map(|s| s.content.as_ref())
             .collect();
-        assert_eq!(teal, vec!["/commit", "/review"]);
+        assert_eq!(body, vec!["run ", "/commit", " then ", "/review", " please"]);
+        if theme.accent_skill != theme.text_primary {
+            let teal: Vec<&str> = lines[0]
+                .content
+                .spans
+                .iter()
+                .filter(|s| s.style.fg == Some(theme.accent_skill))
+                .map(|s| s.content.as_ref())
+                .collect();
+            assert_eq!(teal, vec!["/commit", "/review"]);
+        }
     }
 
     #[test]
     fn mid_text_token_on_second_logical_line() {
+        let _theme_guard = crate::theme::cache::pin_theme();
         let text = "first line\nthen /model here";
         // "/model" starts after "first line\nthen " = 16 bytes.
         let block = UserPromptBlock::with_skill_tokens(text, vec![16..22]);
@@ -720,21 +735,25 @@ mod tests {
         assert_eq!(lines.len(), 2);
 
         let theme = Theme::current();
-        let line0 = &lines[0].content.spans;
-        assert!(
-            line0.iter().all(|s| s.style.fg != Some(theme.accent_skill)),
-            "line 0 has no token"
-        );
         let line1 = &lines[1].content.spans;
         assert_eq!(line1[1].content.as_ref(), "then ");
-        assert_eq!(line1[1].style.fg, Some(theme.text_primary));
         assert_eq!(line1[2].content.as_ref(), "/model");
-        assert_eq!(line1[2].style.fg, Some(theme.accent_skill));
         assert_eq!(line1[3].content.as_ref(), " here");
+        // NO_COLOR 下前景色全部塌缩为 Reset,色彩断言仅在可区分时成立。
+        if theme.accent_skill != theme.text_primary {
+            let line0 = &lines[0].content.spans;
+            assert!(
+                line0.iter().all(|s| s.style.fg != Some(theme.accent_skill)),
+                "line 0 has no token"
+            );
+            assert_eq!(line1[1].style.fg, Some(theme.text_primary));
+            assert_eq!(line1[2].style.fg, Some(theme.accent_skill));
+        }
     }
 
     #[test]
     fn invalid_token_ranges_are_dropped() {
+        let _theme_guard = crate::theme::cache::pin_theme();
         let text = "héllo /model now"; // 'é' is 2 bytes: "/model" = 7..13
         let block = UserPromptBlock::with_skill_tokens(
             text,
@@ -750,14 +769,24 @@ mod tests {
 
         let lines = block.wrap_prompt_lines(80, None, true, false);
         let theme = Theme::current();
-        let teal: Vec<&str> = lines[0]
+        let body: Vec<&str> = lines[0]
             .content
             .spans
             .iter()
-            .filter(|s| s.style.fg == Some(theme.accent_skill))
+            .skip(1)
             .map(|s| s.content.as_ref())
             .collect();
-        assert_eq!(teal, vec!["/model"]);
+        assert_eq!(body, vec!["héllo ", "/model", " now"]);
+        if theme.accent_skill != theme.text_primary {
+            let teal: Vec<&str> = lines[0]
+                .content
+                .spans
+                .iter()
+                .filter(|s| s.style.fg == Some(theme.accent_skill))
+                .map(|s| s.content.as_ref())
+                .collect();
+            assert_eq!(teal, vec!["/model"]);
+        }
     }
 
     #[test]
@@ -785,6 +814,7 @@ mod tests {
         // "/pr-workflow" (bytes 8..20) is wider than the content width, so it
         // straddles the last visible row and the hidden continuation; the
         // truncating re-wrap must keep the visible head teal.
+        let _theme_guard = crate::theme::cache::pin_theme();
         let text = "one\ntwo\n/pr-workflow tail";
         let block = UserPromptBlock::with_skill_tokens(text, vec![8..20]);
         let lines = block.wrap_prompt_lines(8, Some(3), false, false);
@@ -792,18 +822,29 @@ mod tests {
 
         let theme = Theme::current();
         let last = &lines[2].content;
-        assert!(line_text(last).ends_with(" \u{2026}"));
-        let teal = teal_text(last, &theme);
+        let visible = line_text(last);
+        assert!(visible.ends_with(" \u{2026}"));
+        // 结构断言:NO_COLOR 下色彩塌缩为 Reset,可见头部只能按文本验证
+        // (省略号前的内容必须是 token 的前缀)。
+        let head = visible.trim_end_matches(" \u{2026}");
         assert!(
-            !teal.is_empty() && "/pr-workflow".starts_with(&teal),
-            "visible head of the straddling token must stay teal, got {teal:?}"
+            !head.is_empty() && "/pr-workflow".starts_with(head),
+            "visible head of the straddling token must survive truncation, got {head:?}"
         );
+        if theme.accent_skill != theme.text_primary {
+            let teal = teal_text(last, &theme);
+            assert!(
+                !teal.is_empty() && "/pr-workflow".starts_with(&teal),
+                "visible head of the straddling token must stay teal, got {teal:?}"
+            );
+        }
     }
 
     #[test]
     fn collapsed_truncation_keeps_teal_on_token_within_last_line() {
         // "/do-it" (bytes 8..14) fits fully on the truncated last line even at
         // the ellipsis-reduced width, so it must survive whole and teal.
+        let _theme_guard = crate::theme::cache::pin_theme();
         let text = "one\ntwo\n/do-it more words here";
         let block = UserPromptBlock::with_skill_tokens(text, vec![8..14]);
         let lines = block.wrap_prompt_lines(20, Some(3), false, false);
@@ -811,37 +852,59 @@ mod tests {
 
         let theme = Theme::current();
         let last = &lines[2].content;
-        assert!(line_text(last).ends_with(" \u{2026}"));
-        assert_eq!(teal_text(last, &theme), "/do-it");
-        let body: String = last
-            .spans
-            .iter()
-            .filter(|s| s.style.fg == Some(theme.text_primary))
-            .map(|s| s.content.as_ref())
-            .collect();
-        assert!(body.contains("more"), "args stay body-styled, got {body:?}");
+        let visible = line_text(last);
+        assert!(visible.ends_with(" \u{2026}"));
+        // 结构断言:token 完整保留、参数仍在同一行(NO_COLOR 下不可按色彩区分)。
+        assert!(visible.contains("/do-it"), "token must survive whole: {visible:?}");
+        assert!(visible.contains("more"), "args must stay on the line: {visible:?}");
+        if theme.accent_skill != theme.text_primary {
+            assert_eq!(teal_text(last, &theme), "/do-it");
+            let body: String = last
+                .spans
+                .iter()
+                .filter(|s| s.style.fg == Some(theme.text_primary))
+                .map(|s| s.content.as_ref())
+                .collect();
+            assert!(body.contains("more"), "args stay body-styled, got {body:?}");
+        }
     }
 
     #[test]
     fn narrow_wrap_keeps_teal_on_both_rows_of_split_token() {
         // Expanded (no max_lines): the 12-wide token cannot fit at width 8, so
         // the wrapper splits it mid-token; every piece must stay teal.
+        let _theme_guard = crate::theme::cache::pin_theme();
         let text = "aa /pr-workflow zz";
         let block = UserPromptBlock::with_skill_tokens(text, vec![3..15]);
         let lines = block.wrap_prompt_lines(8, None, false, false);
         assert!(lines.len() >= 2);
 
         let theme = Theme::current();
-        let teal_by_line: Vec<String> = lines
-            .iter()
-            .map(|l| teal_text(&l.content, &theme))
-            .collect();
-        let lines_with_teal = teal_by_line.iter().filter(|t| !t.is_empty()).count();
+        // 结构断言:软换行不丢字符,拼接后 token 完整;且任何单行都装不下整个
+        // 12 宽 token(即它必然跨行)。NO_COLOR 下色彩塌缩,只能按文本验证。
+        let joined: String = lines.iter().map(|l| line_text(&l.content)).collect();
         assert!(
-            lines_with_teal >= 2,
-            "split token must stay teal on every row: {teal_by_line:?}"
+            joined.contains("/pr-workflow"),
+            "soft wrap must preserve the whole token: {joined:?}"
         );
-        assert_eq!(teal_by_line.concat(), "/pr-workflow");
+        assert!(
+            lines
+                .iter()
+                .all(|l| !line_text(&l.content).contains("/pr-workflow")),
+            "no single row may hold the whole 12-wide token at width 8: {joined:?}"
+        );
+        if theme.accent_skill != theme.text_primary {
+            let teal_by_line: Vec<String> = lines
+                .iter()
+                .map(|l| teal_text(&l.content, &theme))
+                .collect();
+            let lines_with_teal = teal_by_line.iter().filter(|t| !t.is_empty()).count();
+            assert!(
+                lines_with_teal >= 2,
+                "split token must stay teal on every row: {teal_by_line:?}"
+            );
+            assert_eq!(teal_by_line.concat(), "/pr-workflow");
+        }
     }
 
     #[test]

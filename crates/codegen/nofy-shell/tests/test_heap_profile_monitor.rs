@@ -1,8 +1,13 @@
 //! Integration tests: jemalloc heap-profile monitor against mock
 //! `/v1/settings` + `/v1/storage` (nofy-test-support).
 //!
-//! Fake hooks inject controllable `stats.resident` crossings. Real
-//! `gcs::upload_file` proxy uploads hit the mock storage endpoint.
+//! Fake hooks inject controllable `stats.resident` crossings. Uploads hit the
+//! mock storage endpoint under the fork's static-credential contract: the
+//! refresh-aware `WithAuth` adapter was removed from `upload_pair`
+//! (`heap_profile/monitor.rs` ignores `handles.auth_manager`), so the bearer
+//! on the wire is exactly `UploadMethod::Proxy.user_token`
+//! (`StaticNofyAuth::apply`) — never the live AuthManager token seeded into
+//! auth.json, which these tests keep deliberately distinct to prove it.
 //!
 //! ```bash
 //! cargo test -p nofy-shell --test test_heap_profile_monitor
@@ -29,8 +34,15 @@ use nofy_version::TEST_VERSION_ENV;
 const SID: &str = "11111111-1111-4111-8111-111111111111";
 const TEST_VERSION: &str = "9.9.9-heaptest";
 const DUMP_PAYLOAD: u64 = 4096;
-const AUTH_TOKEN: &str = "heap-profile-test-bearer";
-const AUTH_BEARER: &str = "Bearer heap-profile-test-bearer";
+/// Live token seeded into auth.json: the fork's upload path must ignore it
+/// (`upload_pair` ignores `handles.auth_manager`), so it is deliberately
+/// distinct from `STATIC_TOKEN` — equality with `STATIC_BEARER` on the wire
+/// also proves the live token was not consulted.
+const AUTH_TOKEN: &str = "heap-profile-live-bearer";
+/// Static credential carried by `UploadMethod::Proxy.user_token`; the fork's
+/// upload contract puts exactly this on the wire via `StaticNofyAuth::apply`.
+const STATIC_TOKEN: &str = "heap-profile-static-bearer";
+const STATIC_BEARER: &str = "Bearer heap-profile-static-bearer";
 
 static HOOKS_INIT: Once = Once::new();
 static FAKE_ALLOCATED: AtomicU64 = AtomicU64::new(1_000);
@@ -138,7 +150,9 @@ fn proxy_handles(server: &MockInferenceServer, auth: Arc<AuthManager>) -> HeapPr
         Some("gs://mock-bucket".to_owned()),
         UploadMethod::Proxy {
             proxy_base_url: server.url(),
-            user_token: String::new(),
+            // The fork's upload path sends this static credential verbatim
+            // (`StaticNofyAuth::apply`); the live AuthManager is ignored.
+            user_token: STATIC_TOKEN.to_owned(),
             deployment_key: None,
             alpha_test_key: None,
         },
@@ -171,12 +185,17 @@ fn assert_jemalloc_object_pair(sid: &str, version: &str, heap: &str, meta: &str)
     assert_eq!(meta, expected_meta);
 }
 
+/// Fork contract: `upload_pair` ignores `handles.auth_manager` (the
+/// refresh-aware `WithAuth` adapter was removed), so every upload must carry
+/// the static `UploadMethod::Proxy` credential — and, since `STATIC_TOKEN`
+/// differs from the auth.json token, must NOT carry the live one.
 fn assert_storage_auth(uploads: &[nofy_test_support::mock_server::StorageUpload]) {
     for u in uploads {
         assert_eq!(
             u.authorization.as_deref(),
-            Some(AUTH_BEARER),
-            "storage upload {:?} missing live AuthManager bearer",
+            Some(STATIC_BEARER),
+            "storage upload {:?} must carry the static Proxy credential, \
+             not the live AuthManager token",
             u.path
         );
     }

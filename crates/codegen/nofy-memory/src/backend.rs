@@ -1408,8 +1408,10 @@ mod tests {
             Some(key()),
         );
         assert!(!scoped.is_empty(), "trusted endpoint keeps the credential");
+        // Host casing of the SCOPED endpoint normalizes (api.x.ai, not a
+        // rebranded literal — PROD_XAI_API_BASE_URL is the real endpoint).
         assert!(
-            scoped.approved_for("https://API.nofy/v1"),
+            scoped.approved_for("https://API.X.AI/v1"),
             "host casing normalizes"
         );
         assert!(

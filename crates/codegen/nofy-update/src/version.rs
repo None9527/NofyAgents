@@ -590,18 +590,19 @@ mod tests {
     #[test]
     fn test_version_from_versioned_binary_name() {
         let cases: &[(&str, Option<&str>)] = &[
-            ("grok-0.2.46-darwin-arm64", Some("0.2.46")),
-            ("grok-0.1.220-linux-x86_64", Some("0.1.220")),
-            ("grok-0.2.5-windows-x86_64.exe", Some("0.2.5")),
+            ("nofy-0.2.46-darwin-arm64", Some("0.2.46")),
+            ("nofy-0.1.220-linux-x86_64", Some("0.1.220")),
+            ("nofy-0.2.5-windows-x86_64.exe", Some("0.2.5")),
             // Pre-releases must round-trip whole — truncating to "0.1.220"
             // would make an alpha install masquerade as the release and
             // mask alpha → stable updates.
-            ("grok-0.1.220-alpha.4-linux-x86_64", Some("0.1.220-alpha.4")),
-            ("grok-0.1.220-alpha.4", Some("0.1.220-alpha.4")), // npm layout
+            ("nofy-0.1.220-alpha.4-linux-x86_64", Some("0.1.220-alpha.4")),
+            ("nofy-0.1.220-alpha.4", Some("0.1.220-alpha.4")), // npm layout
             ("nofy-pager-0.1.5-darwin-arm64", None),           // "pager" is not a version
             ("nofy-garbage-darwin-arm64", None),               // unparseable version
-            ("grok-0.2.46", Some("0.2.46")),                   // no platform suffix
+            ("nofy-0.2.46", Some("0.2.46")),                   // no platform suffix
             ("other-0.2.46-darwin-arm64", None),               // wrong prefix
+            ("grok-0.2.46-darwin-arm64", None),                // legacy name is not parsed
             ("nofy-latest", None),                             // symlink alias, not a version
             ("nofy", None),                                    // bare name
             ("", None),

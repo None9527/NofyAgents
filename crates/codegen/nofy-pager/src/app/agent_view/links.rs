@@ -1238,6 +1238,11 @@ mod link_click_tests {
     /// A modifier+click preserves a filesystem target through app activation
     /// (Ctrl on Linux/Windows; macOS polls CoreGraphics so the Down step isn't
     /// reproducible in a unit test).
+    ///
+    /// The app-side handler only runs on terminals WITHOUT native link hover;
+    /// VS Code family terminals own link interaction natively
+    /// (`native_link_hover`), so the app must NOT arm its own click there.
+    /// Both branches assert the production behaviour for the ambient terminal.
     #[test]
     #[cfg(not(target_os = "macos"))]
     fn modifier_click_on_file_link_opens_via_our_handler() {
@@ -1256,6 +1261,15 @@ mod link_click_tests {
         let mut down = mouse_down(15, 5);
         down.modifiers = crossterm::event::KeyModifiers::CONTROL;
         assert!(matches!(agent.handle_mouse(&down), InputOutcome::Changed));
+        if super::super::has_native_link_hover() {
+            // VS Code family: the terminal handles link clicks natively, so
+            // the app-side handler must stay disarmed (no pending click).
+            assert!(
+                agent.pending_link_click.is_none(),
+                "native-hover terminals must not arm the app-side link click"
+            );
+            return;
+        }
         match agent.handle_mouse(&mouse_up(15, 5)) {
             InputOutcome::Action(Action::OpenLink(target)) => {
                 assert_eq!(

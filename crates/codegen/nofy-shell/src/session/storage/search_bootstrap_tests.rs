@@ -34,28 +34,43 @@ fn read_marker(db_path: &Path) -> Option<String> {
     with_search_index(db_path, |index| index.get_meta(META_KEY_LAST_BOOTSTRAP)).unwrap()
 }
 
-#[tokio::test]
-async fn test_claimant_reindexes_even_when_marker_exists() {
-    let tmp = tempfile::TempDir::new().unwrap();
-    let db_path = search_db_path(tmp.path());
-    stamp_marker(&db_path, "123");
+/// `CACHE_EPOCH` is process-global: `test_shared_index_reopens_after_epoch_change`
+/// bumps it by design (a heal), and a concurrent bootstrap test observes the
+/// bump as "the index was healed mid-bootstrap" — its completion marker is
+/// withheld and its assertions fail. Serialize the epoch-bumping test with the
+/// marker-asserting tests. The guard is held for whole tests (lock acquired
+/// before the runtime is built), so no lock is held across an await.
+static EPOCH_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
-    let storage = JsonlStorageAdapter::with_root(tmp.path().to_path_buf());
-    bootstrap_with_lease_inner(
-        tmp.path(),
-        &storage,
-        &Arc::new(BootstrapProgress::default()),
-        &TEST_TIMING,
-        BootstrapRole::Launch,
-    )
-    .await
-    .unwrap();
+#[test]
+fn test_claimant_reindexes_even_when_marker_exists() {
+    let _epoch_guard = EPOCH_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("test runtime");
+    rt.block_on(async {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let db_path = search_db_path(tmp.path());
+        stamp_marker(&db_path, "123");
 
-    // The reindex rewrote the marker and released the claim.
-    assert_ne!(read_marker(&db_path).as_deref(), Some("123"));
-    let claim =
-        with_search_index(&db_path, |index| index.get_meta(META_KEY_BOOTSTRAP_CLAIM)).unwrap();
-    assert_eq!(claim, None);
+        let storage = JsonlStorageAdapter::with_root(tmp.path().to_path_buf());
+        bootstrap_with_lease_inner(
+            tmp.path(),
+            &storage,
+            &Arc::new(BootstrapProgress::default()),
+            &TEST_TIMING,
+            BootstrapRole::Launch,
+        )
+        .await
+        .unwrap();
+
+        // The reindex rewrote the marker and released the claim.
+        assert_ne!(read_marker(&db_path).as_deref(), Some("123"));
+        let claim = with_search_index(&db_path, |index| index.get_meta(META_KEY_BOOTSTRAP_CLAIM))
+            .unwrap();
+        assert_eq!(claim, None);
+    });
 }
 
 #[tokio::test]
@@ -190,6 +205,7 @@ async fn test_waiter_gives_up_after_peer_wait() {
 
 #[test]
 fn test_shared_index_reopens_after_epoch_change() {
+    let _epoch_guard = EPOCH_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let tmp = tempfile::TempDir::new().unwrap();
     let db_path = search_db_path(tmp.path());
     let shared = SharedIndex::new();
@@ -237,8 +253,15 @@ fn test_clear_last_bootstrap_at() {
     assert_eq!(try_read_last_bootstrap_at(&db_path).unwrap(), None);
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn test_concurrent_gates_single_flight() {
+#[test]
+fn test_concurrent_gates_single_flight() {
+    let _epoch_guard = EPOCH_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
+        .enable_all()
+        .build()
+        .expect("test runtime");
+    rt.block_on(async {
     let tmp = tempfile::TempDir::new().unwrap();
     let root = tmp.path().to_path_buf();
     let storage = JsonlStorageAdapter::with_root(root.clone());
@@ -313,4 +336,5 @@ async fn test_concurrent_gates_single_flight() {
         progress_a.total.load(Ordering::Relaxed),
         progress_b.total.load(Ordering::Relaxed),
     );
+    });
 }

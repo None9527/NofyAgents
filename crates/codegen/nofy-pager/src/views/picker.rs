@@ -3415,21 +3415,29 @@ mod tests {
             (has_cursor, text)
         };
 
-        let (focused_cursor, _) = render_search_row(true);
-        assert!(
-            focused_cursor,
-            "focused search bar (search_active) should render a cursor",
-        );
-
+        let (focused_cursor, focused_text) = render_search_row(true);
         let (unfocused_cursor, unfocused_text) = render_search_row(false);
+        // 结构焦点信号不依赖色彩:NO_COLOR 下光标反色(bg == text_primary)
+        // 塌缩为 Reset,无法从 buffer 区分;占位符的有无在任何环境都可断言。
         assert!(
-            !unfocused_cursor,
-            "unfocused search bar must not render a cursor",
+            !focused_text.contains("/ to search"),
+            "focused search bar must not show the placeholder, got {focused_text:?}",
         );
         assert!(
             unfocused_text.contains("/ to search"),
             "unfocused search bar should show the `/ to search` placeholder, got {unfocused_text:?}",
         );
+        // 反色光标断言仅在调色板真能画出它时成立(NO_COLOR 全 Reset 时跳过)。
+        if theme.text_primary != ratatui::style::Color::Reset {
+            assert!(
+                focused_cursor,
+                "focused search bar (search_active) should render a cursor",
+            );
+            assert!(
+                !unfocused_cursor,
+                "unfocused search bar must not render a cursor",
+            );
+        }
     }
 
     #[test]
