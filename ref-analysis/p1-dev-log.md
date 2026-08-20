@@ -473,3 +473,15 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 合计效果:daemon.rs 1,820→232(−1,588,只剩启动装配 preflight/run+常量),wire/runlife 两文件接住全部接线;净增 47 行=双 shim+双模块头+导入。棘轮:daemon 控制面 4,693→4,740、workspace 1,548,074→1,548,133(阶梯注记在案)。
 - 验证:daemon 80 lib+5 棘轮双跑绿且一致;workspace check 零错误。
 - **批次 T 闭环。胶趋势逆转到位:daemon.rs 单文件 1,820→232,控制面四文件结构(启动装配/run 生命周期/wire 协议/持久存储)各就各位。在案:shell 深接缝专项。**
+
+## 批次 U:调度控制协议(SchedulerService 入 run(),R3 链路闭环)
+
+背景:Q4 建了 SchedulerService 薄接缝、R3 建了 recover(非空日志证明启用态),但 daemon `run()` 从未实例化它,控制协议也无调度方法——§4 补记裁定与「调度控制协议批次」并批,本批落地。
+
+- **impact 前置**:ControlMethod LOW(0 upstream,附加变体)、ControlResponse 经 grep 核实全 workspace 无穷尽匹配(shell `join_from_dispatch`/provider_host 均带通配臂,编译兜底)、serve_connection 批次 R 已评 MEDIUM(调用方全在包内)。
+- **schema(+55 行)**:`ControlMethod::{ScheduleEnable, ScheduleAdd{id,cron_spec}, ScheduleRemove{id}, ScheduleList}`(tagged snake_case 附加)、`ControlResponse::{ScheduleNoted, ScheduleListed{entries}}`、`ScheduleEntryInfo{id,spec,disabled_reason,pending}`(disabled_reason/pending 附加默认);漂移门新测试:tagged 形态+条目往返+旧 peer 缺附加字段可解析。
+- **daemon 接线(+257 行)**:`SchedulerService::snapshot()` 纯投影核状态(schedules+pending,策略仍在核);`DaemonStores` 增 `scheduler: Arc<Mutex<SchedulerService>>`(跨连接共享);wire 分派四方法——enable/add/remove/list,disabled 拒绝与文法拒绝以结构化 `INTERNAL` 错误出行,绝不静默 no-op;`run()` 启动 `SchedulerService::recover(schedule.jsonl)`,损坏日志降级为全新 default-off 并 error 出声(调度永不静默复活)。
+- 新走帧测试 2 个:default-off 拒绝→显式启用→合法 spec 收、非法 spec 拒(文法门在日志前)、列表投影、移除清表;重启续接——重启后免再启用直接列表(非空日志证明启用态,R3 语义走帧验证)。
+- 棘轮:schema 312→367、daemon 控制面 4,740→4,997、workspace 1,548,133→1,548,452(阶梯注记在案)。
+- 验证:schema 8/8、daemon 82 lib+5 棘轮双跑绿;workspace check 零错误。
+- **批次 U 闭环。调度持久化链路 R3→U 完整:boot 即 recover、协议可管理、default-off 语义出行。在案:shell 深接缝四处、调度器 shell 客户端。**

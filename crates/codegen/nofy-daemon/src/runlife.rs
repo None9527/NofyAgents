@@ -63,13 +63,17 @@ impl DaemonRun {
     }
 }
 
-/// Durable stores the control plane wires into a run (R2/S wiring).
+/// Durable stores the control plane wires into a run (R2/S wiring), plus
+/// the daemon-level scheduler service (batch U: recovered from its durable
+/// log at boot; a non-empty log proves prior enablement).
 #[derive(Debug, Clone)]
 pub struct DaemonStores {
     /// task.* journal sink (R2).
     pub journal: nofy_orchestra::taskjournal::TaskLogStore,
     /// run plan store (S).
     pub runs: crate::runstore::RunStore,
+    /// scheduling service shared across connections (U).
+    pub scheduler: std::sync::Arc<std::sync::Mutex<crate::scheduler::SchedulerService>>,
 }
 
 /// Validate a submitted plan+packs (FR10): orchestration DAG, pack plane

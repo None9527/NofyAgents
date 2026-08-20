@@ -184,6 +184,20 @@ impl SchedulerService {
         self.state.pending_count()
     }
 
+    /// Project the live schedule table for the control surface (batch U):
+    /// (id, spec, disable reason, pending obligations). Pure projection of
+    /// core state — the fold stays the only authority.
+    pub fn snapshot(&self) -> Vec<(String, String, Option<String>, usize)> {
+        self.state
+            .schedules
+            .iter()
+            .map(|(id, entry)| {
+                let pending = self.state.pending.get(id).map(Vec::len).unwrap_or(0);
+                (id.clone(), entry.spec.clone(), entry.disabled_reason.clone(), pending)
+            })
+            .collect()
+    }
+
     pub fn is_live(&self, id: &str) -> bool {
         self.state.is_live(id)
     }

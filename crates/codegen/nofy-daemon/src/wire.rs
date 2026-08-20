@@ -407,6 +407,68 @@ pub fn serve_connection<R: Read, W: Write>(
                     ))?
                 }
             }
+            // Scheduling (batch U): every mutation delegates to the core
+            // policy through SchedulerService; disabled-by-default refusals
+            // surface as structured errors, never silent no-ops.
+            Ok(ControlMethod::ScheduleEnable) => {
+                if let Some(stores) = stores {
+                    stores.scheduler.lock().unwrap().enable();
+                    serde_json::to_value(ControlResponse::ScheduleNoted)?
+                } else {
+                    serde_json::to_value(ControlError::new(
+                        ControlErrorCode::Internal,
+                        "scheduler store not attached",
+                    ))?
+                }
+            }
+            Ok(ControlMethod::ScheduleAdd { id, cron_spec }) => {
+                match stores.as_ref().map(|s| s.scheduler.lock().unwrap().add_schedule(&id, &cron_spec)) {
+                    Some(Ok(())) => serde_json::to_value(ControlResponse::ScheduleNoted)?,
+                    Some(Err(msg)) => serde_json::to_value(ControlError::new(
+                        ControlErrorCode::Internal,
+                        format!("schedule add refused: {msg}"),
+                    ))?,
+                    None => serde_json::to_value(ControlError::new(
+                        ControlErrorCode::Internal,
+                        "scheduler store not attached",
+                    ))?,
+                }
+            }
+            Ok(ControlMethod::ScheduleRemove { id }) => {
+                match stores.as_ref().map(|s| s.scheduler.lock().unwrap().remove_schedule(&id)) {
+                    Some(Ok(())) => serde_json::to_value(ControlResponse::ScheduleNoted)?,
+                    Some(Err(msg)) => serde_json::to_value(ControlError::new(
+                        ControlErrorCode::Internal,
+                        format!("schedule remove refused: {msg}"),
+                    ))?,
+                    None => serde_json::to_value(ControlError::new(
+                        ControlErrorCode::Internal,
+                        "scheduler store not attached",
+                    ))?,
+                }
+            }
+            Ok(ControlMethod::ScheduleList) => {
+                if let Some(stores) = stores {
+                    let entries = stores
+                        .scheduler
+                        .lock()
+                        .unwrap()
+                        .snapshot()
+                        .into_iter()
+                        .map(|(id, spec, disabled_reason, pending)| {
+                            nofy_control_schema::methods::ScheduleEntryInfo {
+                                id,
+                                spec,
+                                disabled_reason,
+                                pending: pending as u32,
+                            }
+                        })
+                        .collect();
+                    serde_json::to_value(ControlResponse::ScheduleListed { entries })?
+                } else {
+                    serde_json::to_value(ControlResponse::ScheduleListed { entries: Vec::new() })?
+                }
+            }
             Err(e) => serde_json::to_value(ControlError::new(
                 ControlErrorCode::Internal,
                 format!("bad method frame: {e}"),
@@ -945,6 +1007,9 @@ goal = "second"
                 dir.path().join("task_journal.jsonl"),
             ),
             runs: crate::runstore::RunStore::open(dir.path().join("run_store.json")),
+            scheduler: std::sync::Arc::new(std::sync::Mutex::new(
+                crate::scheduler::SchedulerService::new(),
+            )),
         };
         let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
         let manifest = r#"
@@ -1013,6 +1078,9 @@ goal = "second"
                 dir.path().join("task_journal.jsonl"),
             ),
             runs: crate::runstore::RunStore::open(dir.path().join("run_store.json")),
+            scheduler: std::sync::Arc::new(std::sync::Mutex::new(
+                crate::scheduler::SchedulerService::new(),
+            )),
         };
         let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
         let manifest = r#"
@@ -1079,6 +1147,9 @@ goal = "second"
                 dir.path().join("task_journal.jsonl"),
             ),
             runs: crate::runstore::RunStore::open(dir.path().join("run_store.json")),
+            scheduler: std::sync::Arc::new(std::sync::Mutex::new(
+                crate::scheduler::SchedulerService::new(),
+            )),
         };
         let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
         let manifest = r#"
@@ -1119,6 +1190,160 @@ goal = "only"
         }
         assert!(stores.runs.load().unwrap().is_none(), "finished run releases the plan");
         assert!(resume_run(&stores).unwrap().is_none(), "nothing left to resume");
+    }
+
+    /// Drain every framed response after the HelloAck.
+    fn response_frames(out: Vec<u8>) -> Vec<serde_json::Value> {
+        let mut r = std::io::Cursor::new(out);
+        let mut frames = Vec::new();
+        while let Ok(Some(bytes)) = read_frame_from(&mut r) {
+            frames.push(serde_json::from_slice(&bytes).unwrap());
+        }
+        frames.remove(0); // the HelloAck
+        frames
+    }
+
+    fn scheduler_stores(dir: &std::path::Path) -> DaemonStores {
+        DaemonStores {
+            journal: nofy_orchestra::taskjournal::TaskLogStore::open(
+                dir.join("task_journal.jsonl"),
+            ),
+            runs: crate::runstore::RunStore::open(dir.join("run_store.json")),
+            // Same construction as run(): recover from the durable log.
+            scheduler: std::sync::Arc::new(std::sync::Mutex::new(
+                crate::scheduler::SchedulerService::recover(nofy_scheduler::LogStore::open(
+                    dir.join("schedule.jsonl"),
+                ))
+                .unwrap(),
+            )),
+        }
+    }
+
+    #[test]
+    fn schedule_methods_are_default_off_and_opt_in_over_wire() {
+        // U wiring: scheduling refuses until a client deliberately enables
+        // it; the grammar gate and the table projection travel the wire.
+        let dir = tempfile::tempdir().unwrap();
+        let stores = scheduler_stores(dir.path());
+        let mut input = Vec::new();
+        write_frame(&mut input, &hello_frame()).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::ScheduleAdd {
+                id: "j1".into(),
+                cron_spec: "* * * * *".into(),
+            }),
+        )
+        .unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::ScheduleEnable)).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::ScheduleAdd {
+                id: "j1".into(),
+                cron_spec: "* * * * *".into(),
+            }),
+        )
+        .unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::ScheduleAdd {
+                id: "bad".into(),
+                cron_spec: "not a cron".into(),
+            }),
+        )
+        .unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::ScheduleList)).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::ScheduleRemove { id: "j1".into() }),
+        )
+        .unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::ScheduleList)).unwrap();
+        let mut out = Vec::new();
+        {
+            let mut r = std::io::Cursor::new(input);
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &ApprovalBroker::new(),
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                Some(&stores),
+            )
+            .unwrap();
+        }
+        let frames = response_frames(out);
+        assert_eq!(frames[0]["code"], "INTERNAL", "default-off refusal is structured");
+        assert!(frames[0]["detail"].as_str().unwrap().contains("disabled"));
+        assert_eq!(frames[1]["kind"], "schedule_noted", "enable is a deliberate act");
+        assert_eq!(frames[2]["kind"], "schedule_noted", "valid spec accepted after enable");
+        assert_eq!(frames[3]["code"], "INTERNAL", "grammar gate refuses before the log");
+        assert_eq!(frames[4]["kind"], "schedule_listed");
+        assert_eq!(frames[4]["entries"][0]["id"], "j1");
+        assert_eq!(frames[4]["entries"][0]["spec"], "* * * * *");
+        assert_eq!(frames[5]["kind"], "schedule_noted");
+        assert_eq!(frames[6]["entries"].as_array().unwrap().len(), 0, "removed schedule leaves the table");
+    }
+
+    #[test]
+    fn schedule_state_survives_restart_through_recover() {
+        // U wiring (R3 semantics): the durable log proves prior enablement —
+        // after a "restart" the schedule lists without re-enabling.
+        let dir = tempfile::tempdir().unwrap();
+        let mut input = Vec::new();
+        write_frame(&mut input, &hello_frame()).unwrap();
+        write_frame(&mut input, &method_frame(&ControlMethod::ScheduleEnable)).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::ScheduleAdd {
+                id: "nightly".into(),
+                cron_spec: "0 3 * * *".into(),
+            }),
+        )
+        .unwrap();
+        {
+            let stores = scheduler_stores(dir.path());
+            let mut r = std::io::Cursor::new(input);
+            let mut out = Vec::new();
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &ApprovalBroker::new(),
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                Some(&stores),
+            )
+            .unwrap();
+        }
+        // "Restart": fresh stores from the same durable log.
+        let stores = scheduler_stores(dir.path());
+        assert!(stores.scheduler.lock().unwrap().enabled(), "non-empty log proves enablement");
+        let mut input2 = Vec::new();
+        write_frame(&mut input2, &hello_frame()).unwrap();
+        write_frame(&mut input2, &method_frame(&ControlMethod::ScheduleList)).unwrap();
+        let mut out = Vec::new();
+        {
+            let mut r = std::io::Cursor::new(input2);
+            serve_connection(
+                &mut r,
+                &mut out,
+                &Registry::at(tempfile::tempdir().unwrap().path()),
+                &ApprovalBroker::new(),
+                &LiveBus::new(),
+                &SearchProxy::new(),
+                &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+                Some(&stores),
+            )
+            .unwrap();
+        }
+        let frames = response_frames(out);
+        assert_eq!(frames[0]["kind"], "schedule_listed", "listing works without re-enabling");
+        assert_eq!(frames[0]["entries"][0]["id"], "nightly");
+        assert_eq!(frames[0]["entries"][0]["spec"], "0 3 * * *");
     }
 
     #[test]

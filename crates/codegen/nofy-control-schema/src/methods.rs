@@ -68,6 +68,29 @@ pub enum ControlMethod {
         #[serde(default)]
         sessions: Vec<String>,
     },
+    /// Scheduling (batch U, FR3 seam): explicit opt-in — a fresh daemon
+    /// schedules NOTHING until a client deliberately enables it.
+    ScheduleEnable,
+    /// Add (or re-enable) a schedule; the cron spec is grammar-checked
+    /// fail-loud by the scheduler core.
+    ScheduleAdd { id: String, cron_spec: String },
+    /// Remove a schedule and every pending obligation for it.
+    ScheduleRemove { id: String },
+    /// Project the live schedule table.
+    ScheduleList,
+}
+
+/// One row of [`ControlResponse::ScheduleListed`] (batch U).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ScheduleEntryInfo {
+    pub id: String,
+    pub spec: String,
+    /// `Some(reason)` when the schedule is self-disabled (audit trail).
+    #[serde(default)]
+    pub disabled_reason: Option<String>,
+    /// Armed-but-not-fired obligations for this schedule.
+    #[serde(default)]
+    pub pending: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -121,6 +144,10 @@ pub enum ControlResponse {
     /// Provider-side outcome: a surface decided (or the broker timed out —
     /// in which case the method frame is a ControlError instead).
     ApprovalResolved { decision: ApprovalDecision },
+    /// Scheduling ack (batch U): enable/add/remove recorded.
+    ScheduleNoted,
+    /// Scheduling projection (batch U): the live schedule table.
+    ScheduleListed { entries: Vec<ScheduleEntryInfo> },
 }
 
 #[cfg(test)]

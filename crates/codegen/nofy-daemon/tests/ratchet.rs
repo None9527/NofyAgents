@@ -119,7 +119,10 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_548_098→1_548_133: batch T step 2 — serve_connection/stream_session
     //   + wire tests moved daemon.rs → wire.rs (net +29 headers/shims;
     //   daemon.rs shrinks 1578→232).
-    let cap = 1_548_133; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_548_133→1_548_452: batch U scheduler control protocol — schema
+    //   Schedule* methods/entries (+55), daemon wire dispatch + recover at
+    //   boot + two wire tests (+257).
+    let cap = 1_548_452; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -289,10 +292,14 @@ fn control_plane_loc_ratchet_only_shrinks() {
     // - daemon 4711→4740: batch T step 2 — serve_connection/stream_session
     //   + socket helpers + the 15 wire tests moved to wire.rs behind a
     //   re-export shim; daemon.rs shrinks 1578→232 (boot assembly only).
+    // - daemon 4740→4997: batch U scheduler control protocol — Schedule*
+    //   wire dispatch, snapshot projection, recover-at-boot, two wire tests.
+    // - schema 312→367: batch U — Schedule* methods, ScheduleEntryInfo,
+    //   ScheduleNoted/ScheduleListed responses, additive drift gate.
     let caps = [
-        ("nofy-daemon", 4740),
+        ("nofy-daemon", 4997),
         ("nofy-channel", 544),
-        ("nofy-control-schema", 312),
+        ("nofy-control-schema", 367),
         ("nofy-session-registry", 132),
     ];
     for (name, cap) in caps {

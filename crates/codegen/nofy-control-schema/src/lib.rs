@@ -71,4 +71,32 @@ mod drift_gates {
             serde_json::from_str(&serde_json::to_string(&resp).unwrap()).unwrap();
         assert_eq!(back, resp);
     }
+
+    /// The schedule methods are additive wire vocabulary: tagged snake_case,
+    /// and the listing's entry fields roundtrip with additive defaults.
+    #[test]
+    fn schedule_methods_are_tagged_and_entries_roundtrip() {
+        let add = serde_json::to_value(methods::ControlMethod::ScheduleAdd {
+            id: "nightly".into(),
+            cron_spec: "0 3 * * *".into(),
+        })
+        .unwrap();
+        assert_eq!(add["method"], "schedule_add");
+        let listed = methods::ControlResponse::ScheduleListed {
+            entries: vec![methods::ScheduleEntryInfo {
+                id: "nightly".into(),
+                spec: "0 3 * * *".into(),
+                disabled_reason: None,
+                pending: 1,
+            }],
+        };
+        let back: methods::ControlResponse =
+            serde_json::from_str(&serde_json::to_string(&listed).unwrap()).unwrap();
+        assert_eq!(back, listed);
+        // An entry from an older peer without the additive fields parses.
+        let legacy = r#"{"id":"x","spec":"* * * * *"}"#;
+        let e: methods::ScheduleEntryInfo = serde_json::from_str(legacy).unwrap();
+        assert_eq!(e.disabled_reason, None);
+        assert_eq!(e.pending, 0);
+    }
 }

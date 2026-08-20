@@ -121,11 +121,25 @@ pub fn run(cfg: DaemonConfig) -> i32 {
     // R2/S wiring: durable stores + boot-time run resumption (AC-11).
     // The plan reloads from the run store, progress replays from the
     // journal; a leftover run re-arms its unfinished tasks.
+    // U wiring: the scheduler service recovers from its durable log; a
+    // non-empty log proves prior enablement (R3 semantics). A corrupt log
+    // degrades to a fresh default-off service, loud — scheduling never
+    // silently resurrects.
+    let scheduler = match crate::scheduler::SchedulerService::recover(
+        nofy_scheduler::LogStore::open(daemon_dir.join("schedule.jsonl")),
+    ) {
+        Ok(svc) => svc,
+        Err(e) => {
+            tracing::error!(?e, "schedule log recovery failed; starting default-off");
+            crate::scheduler::SchedulerService::new()
+        }
+    };
     let stores = DaemonStores {
         journal: nofy_orchestra::taskjournal::TaskLogStore::open(
             daemon_dir.join("task_journal.jsonl"),
         ),
         runs: crate::runstore::RunStore::open(daemon_dir.join("run_store.json")),
+        scheduler: std::sync::Arc::new(std::sync::Mutex::new(scheduler)),
     };
     match resume_run(&stores) {
         Ok(Some(dr)) => {
