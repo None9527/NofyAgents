@@ -4,11 +4,13 @@
 //! `nofy_runtimecore::bootcheck`; this module maps the shell's real state
 //! onto the checklist.
 //!
-//! Items deliberately NOT checked yet (no real subject to verify):
-//! - `RuntimeReachable` — the sanitized build has no cheap runtime probe;
-//! - `EnvSnapshotPresent` — the spawn-env seam has not landed.
-//! They join the checklist when their seams do; a checklist that checked
-//! nothing would prove nothing, and padding it would be theater.
+//! `EnvSnapshotPresent` checks the session-env snapshot persisted by
+//! `crate::session::env_capture` (batch W): missing = nothing captured
+//! yet (Degraded, never blocks a fresh boot); present-but-corrupt =
+//! Failed. One item remains deliberately unchecked (no real subject):
+//! `RuntimeReachable` — the sanitized build has no cheap runtime probe.
+//! A checklist that checked nothing would prove nothing, and padding it
+//! would be theater.
 
 use nofy_runtimecore::bootcheck::{verdict, BootVerdict, CheckItem, CheckResult};
 use std::path::Path;
@@ -35,6 +37,21 @@ fn check_session_store_readable(home: &Path) -> CheckResult {
     }
 }
 
+/// EnvSnapshotPresent (W wiring): a MISSING snapshot means nothing was
+/// captured yet — Degraded, never a fresh-boot blocker. A present file
+/// must reparse through the core dump; corruption is Failed.
+fn check_env_snapshot_present(home: &Path) -> CheckResult {
+    let path = home.join(crate::session::env_capture::SNAPSHOT_FILE_NAME);
+    match std::fs::read_to_string(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => CheckResult::Degraded,
+        Err(_) => CheckResult::Failed,
+        Ok(text) => match nofy_runtimecore::envsnapshot::parse_dump(&text) {
+            Ok(_) => CheckResult::Ok,
+            Err(_) => CheckResult::Failed,
+        },
+    }
+}
+
 /// ClockMonotonic: two instants must never go backwards.
 fn check_clock_monotonic() -> CheckResult {
     let a = std::time::Instant::now();
@@ -52,6 +69,7 @@ pub fn run_checks(home: &Path) -> Vec<(CheckItem, CheckResult)> {
     vec![
         (CheckItem::PersistenceWritable, check_persistence_writable(home)),
         (CheckItem::SessionStoreReadable, check_session_store_readable(home)),
+        (CheckItem::EnvSnapshotPresent, check_env_snapshot_present(home)),
         (CheckItem::ClockMonotonic, check_clock_monotonic()),
     ]
 }
@@ -65,18 +83,40 @@ pub fn boot_gate(home: &Path) -> BootVerdict {
 mod tests {
     use super::*;
 
+    fn write_valid_snapshot(home: &std::path::Path) {
+        std::fs::write(home.join("env_snapshot"), "A=1\nPATH=/bin\n").unwrap();
+    }
+
     #[test]
     fn healthy_home_passes_the_gate() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(dir.path().join("sessions")).unwrap();
+        write_valid_snapshot(dir.path());
         assert_eq!(boot_gate(dir.path()), BootVerdict::Go);
     }
 
     #[test]
-    fn fresh_home_without_sessions_is_not_a_failure() {
-        // A missing sessions dir is first boot, not corruption.
+    fn fresh_home_is_degraded_never_blocked() {
+        // A missing sessions dir is first boot, not corruption; a missing
+        // snapshot means nothing was captured yet — degraded, not failed.
         let dir = tempfile::tempdir().unwrap();
-        assert_eq!(boot_gate(dir.path()), BootVerdict::Go);
+        assert_eq!(
+            boot_gate(dir.path()),
+            BootVerdict::GoDegraded { degraded: vec![CheckItem::EnvSnapshotPresent] },
+            "a fresh boot warns, never blocks"
+        );
+    }
+
+    #[test]
+    fn corrupt_snapshot_blocks_boot() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("env_snapshot"), "NOT A VALID DUMP LINE\n").unwrap();
+        let verdict = boot_gate(dir.path());
+        assert_eq!(
+            verdict,
+            BootVerdict::Blocked { failed: vec![CheckItem::EnvSnapshotPresent] },
+            "a snapshot that fails the core parse is an integrity violation"
+        );
     }
 
     #[test]
@@ -121,6 +161,7 @@ mod tests {
             vec![
                 CheckItem::PersistenceWritable,
                 CheckItem::SessionStoreReadable,
+                CheckItem::EnvSnapshotPresent,
                 CheckItem::ClockMonotonic,
             ],
             "the checklist is the contract; items never silently drop"

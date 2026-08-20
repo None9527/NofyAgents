@@ -125,7 +125,10 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_548_452→1_548_607: batch V shell boot health check — nofy-shell
     //   agent/bootcheck.rs (checklist mapping + 5 tests) + boot gates in
     //   the two live agent entrypoints (FR1.16).
-    let cap = 1_548_607; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_548_607→1_548_747: batch W env capture half — session/env_capture.rs
+    //   (staged→publish + atomic inject-safe persist, FR6.2), capture wiring
+    //   at session spawn, bootcheck EnvSnapshotPresent item (checklist 3→4).
+    let cap = 1_548_747; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

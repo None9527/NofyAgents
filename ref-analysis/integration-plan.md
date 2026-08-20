@@ -148,3 +148,14 @@ spawn 继承 session_env(handle_request.rs:658)。核侧件已就绪
 scrub_env 白名单+route 车道+PairLedger)。**裁定**:接线须先指定唯一
 权威捕获点与擦洗点(候选:③为捕获、④为擦洗),属专项设计批次;多
 头并接=语义混乱,不做。启动体检(批次 V)已落地,本接缝顺位第一。
+
+**§4 补记(批次 W 摸底深化,2026-08-20)**:擦洗点候选④(子代理
+spawn)经深读**否决**——FR6.9 的擦洗对象是**出会话 worker 进程**,
+而子代理是**子会话**(同一 agent 的委托延伸,完整继承项目环境是设计
+而非漏洞;按固定白名单擦洗会剥夺其合法项目环境=功能回归)。全 shell
+摸底:workflow host 为进程内 tokio 任务(host_service.rs SpawnAgent
+仍走子代理机制),**不存在任何出会话 worker 进程生成路径**——擦洗点
+与 cwd 触发者同型:基础设施就绪、对象缺失。**批次 W 执行面收窄为捕
+获点半边**:③处 staged→publish 原子捕获+注入安全持久化
+(nofy_home/env_snapshot),并解锁 bootcheck 的 EnvSnapshotPresent 检查
+项;擦洗半边在案,待真正的 worker 进程生成路径出现再接。

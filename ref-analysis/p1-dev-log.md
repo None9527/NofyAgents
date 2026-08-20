@@ -497,3 +497,14 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - nofy-shell 新增 nofy-runtimecore 依赖(workspace)。
 - 验证:bootcheck 5/5 双跑绿;workspace check 零错误。
 - **批次 V 闭环。shell 深接缝第三处(启动体检)落地:清单化、fail-loud、策略归核。在案:余三处(工具结果注入/spawn 环境/压缩七维)、调度器 shell 客户端。**
+
+## 批次 W:spawn 环境接缝——捕获点半边落地(FR6.2)
+
+摸底深化:**擦洗点候选(子代理 spawn)经深读否决**——FR6.9 擦洗对象是出会话 worker 进程,子代理是子会话(完整继承项目环境是设计);全 shell 无出会话 worker 进程生成路径(workflow host 为进程内 tokio 任务、SpawnAgent 走子代理机制),擦洗半边与 cwd 触发者同型:基础设施就绪、对象缺失,在案不接。执行面收窄为捕获点半边。
+
+- **impact 前置**:触点 `spawn_and_register_session` LOW(d=1 为 new_session_inner/attach_session 会话装配路径,签名不变)。
+- **新文件 `session/env_capture.rs`**:`capture`(HashMap→StagedSnapshot→publish,整表一次落地)+`persist`(核 dump 注入安全拒绝→InvalidData 出声;tmp+sync+rename 原子写);测试 3:整表发布、原子往返无 tmp 残留、注入值拒持久化且绝不落盘。
+- **接线**:agent_ops.rs 会话环境汇合后(claude settings+envrc+color)即捕获并持久至 `nofy_home/env_snapshot`;dump 拒绝=持久化降级出声,绝不阻塞会话(活环境走内存不走 dump)。
+- **bootcheck 解锁**:EnvSnapshotPresent 入清单——缺失=Degraded(全新启动从不阻塞)、存在但核解析失败=Failed、可解析=Ok;清单 3→4 项,测试 5→6(健康/全新语义更新+损坏快照阻塞新测试)。
+- 验证:bootcheck 6/6、env_capture 3/3 双跑绿;workspace check 零错误。
+- **批次 W 捕获半边闭环。FR6.2 原子捕获+注入安全持久化上运行时,bootcheck 四项清单完整度再进一步。在案:擦洗半边(待 worker 进程路径)、工具结果注入、压缩七维、调度器 shell 客户端。**

@@ -3578,6 +3578,17 @@ impl MvpAgent {
         } else {
             session_env.extend(crate::terminal::color_env());
         }
+        // W wiring (FR6.2): capture the merged session env through the
+        // core snapshot (staged→publish) and persist it atomically; a
+        // dump refusal (injection vector) degrades loud, never blocks
+        // the session — the live env travels in memory.
+        let env_snapshot = crate::session::env_capture::capture(&session_env);
+        if let Err(e) = crate::session::env_capture::persist(
+            &env_snapshot,
+            &crate::util::nofy_home::nofy_home().join(crate::session::env_capture::SNAPSHOT_FILE_NAME),
+        ) {
+            tracing::error!(?e, "env snapshot persistence failed; durability degraded");
+        }
         let mut tool_ctx = ToolContext::with_preloaded_env(
                 cwd.clone(),
                 Some(self.gateway.clone()),

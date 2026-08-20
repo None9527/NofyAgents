@@ -303,6 +303,7 @@ pub(crate) struct RegistryConfig {
     pub alpha_test_key: Option<String>,
 }
 pub mod acp_conversion;
+pub mod env_capture;
 pub(crate) mod acp_mcp;
 pub(crate) mod acp_session;
 pub(crate) mod agent_rebuild;
