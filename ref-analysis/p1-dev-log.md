@@ -518,3 +518,10 @@ P0 遗留五区逐项核实,结论+证据路径如下(证据均为仓库现存�
 - 核 API 两前提缺失:Summary 档需通用摘要器(shell 只有逐工具 concise 输出)、Spill 需带外体存储(盘上日志已承担,但请求装配在 nofy-chat-state 基础件内,与既有裁剪同址必冲突)。
 - **裁定**:强行接线=重复既有策略或发明基础设施,皆表演。接线点确定:通用摘要器或带外 spill 存储出现之日,档判定委托 `memorycore::injection::{select_tier, inject}`。
 - **批次 X 裁定闭环(零代码改动,证据存档 integration-plan §4)。在案:压缩七维(批次 Y)、调度器 shell 客户端(批次 Z)。**
+
+## 批次 Y:压缩七维+头尾保护——裁定闭环(不接线,语义不兼容)
+
+- **七维 compact**:核按条目七维打分分区,接线前提是为会话条目产出七维度量——relevance/redundancy/density 是语义评估,shell 无此生产者;shell 现有压缩决策(轮龄+模型驱动两遍摘要)自成成熟策略。发明度量=新策略,超出接线范畴。
+- **头尾 seal**:核 `verify_compaction` 是子集式轨迹模型(幸存条目皆原件),shell 压缩是摘要式(中段→新摘要项=seal 语义下的合法伪造),直接校验必报 ForgedEntry;且 shell 已构造级保护头尾(system+近段保留、fingerprint_prefix 侦测头部编辑、孤儿清洗)。唯一子集式路径 fit_conversation_to_budget 是应急预算拟合(故意丢最旧轮),seal 语义同样冲突。
+- **裁定**:接线=发明语义度量或扭曲任一侧策略,皆表演。FR4.12/F4.9 核策略(batch H)在案,shell 压缩纪律实质满足头尾保护意图。
+- **批次 Y 裁定闭环(零代码改动)。**至此五处深接缝全部裁定完毕:V 接线(启动体检)、W 捕获半边接线(spawn 环境)、cwd/X/Y 裁定在案(阻塞于 shell 功能缺失或实质覆盖)。集成后续仅剩调度器 shell 客户端(批次 Z)。

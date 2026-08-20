@@ -181,3 +181,23 @@ spawn)经深读**否决**——FR6.9 的擦洗对象是**出会话 worker 进程
 已确定:通用摘要器或带外 spill 存储出现之日,档判定委托
 `memorycore::injection::{select_tier, inject}`;14 处机制清单为证存
 档。FR4.5 核策略(batch O)在案,运行时纪律实质满足。
+
+**§4 补记(批次 Y 裁定:压缩七维+头尾保护,2026-08-20)**:两件核策略
+与 shell 压缩模型**语义不兼容**,无诚实接线点,裁定不接:
+- **七维 compact**:核按条目七维打分(recency/frequency/size/
+  relevance/redundancy/density/depth)分区 keep/summarize/
+  depth_guarded——接线前提是 shell 为会话条目产出七维度量,而
+  relevance/redundancy/density 是语义评估,shell 无此生产者(现有
+  压缩决策是轮龄+模型驱动两遍摘要,自成成熟策略)。发明度量=新策
+  略,超出接线范畴;
+- **头尾 seal**:核 `verify_compaction` 是**子集式**轨迹模型(头尾
+  逐字存活、幸存条目皆原件);shell 压缩是**摘要式**(中段→新摘要
+  项,摘要在 seal 语义下即合法伪造),直接校验必报 ForgedEntry。
+  且 shell 已构造级保护头尾:build_compacted_history 保 system+近
+  段、fingerprint_prefix 侦测头部编辑、孤儿 ToolResult 清洗;
+- 唯一子集式路径 fit_conversation_to_budget 是应急预算拟合(丢最旧
+  轮恰是故意丢头),seal 在此处语义同样冲突。
+**裁定**:接线=发明语义度量或扭曲任一侧策略,皆表演。FR4.12/F4.9 核
+策略(batch H)在案;shell 压缩纪律(两遍摘要+预算阶梯+指纹保护)实
+质满足头尾保护意图。五处深接缝至此全部裁定完毕:V 接线、W 捕获半边
+接线、cwd/X/Y 裁定在案。
