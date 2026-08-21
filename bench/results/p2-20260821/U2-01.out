@@ -1,0 +1,9 @@
+这是一个小型 Python 计算器工具库(用于基准测试),提供了一些基础数学函数:
+
+- `add(a, b)` — 加法
+- `mean(values)` — 平均值(空列表会抛 `ValueError`)
+- `sum_squares(values)` — 平方和
+- `clamp(x, lo, hi)` — 区间裁剪
+- `sqrt_safe(x)` — 平方根,注释标注了一个未处理负数输入的 BUG(测试期望对负数返回 `None`,但当前实现会抛出 `math` 域错误)
+
+项目结构很简单:源码在 `src/calc.py`,对应的测试在 `tests/test_calc.py`,由 `pytest` 驱动,`README.md` 约定了 4 空格缩进和中文提交信息。

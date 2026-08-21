@@ -1,0 +1,8 @@
+Done. Added an `identity(x)` function to `src/calc.py` that returns its argument unchanged:
+
+```python
+def identity(x):
+    return x
+```
+
+I placed it at the top of the module, before `add`. All 9 tests pass (`pytest -q` → `9 passed`).

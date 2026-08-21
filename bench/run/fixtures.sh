@@ -30,16 +30,6 @@ def sum_squares(values):
     return total
 
 
-def clamp(x, lo, hi):
-    if lo > hi:
-        raise ValueError("lo > hi")
-    if x < lo:
-        return lo
-    if x > hi:
-        return hi
-    return x
-
-
 def sqrt_safe(x):
     # BUG: does not guard negative input; math domain error leaks raw.
     import math

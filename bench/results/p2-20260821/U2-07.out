@@ -1,0 +1,18 @@
+Changes look clear. Per the project rules, I need to run `pytest -q` before committing:
+
+All 9 tests pass. Now staging the source changes (excluding `__pycache__` caches) and committing`__pycache__` isn't gitignored, but I'll leave those cache directories untracked and commit only the source changesGit identity isn't configured. Let me check how previous commits were authored to match conventions:
+
+Previous commits use `bench <bench@local>`. I'll set that as the local identity and commit:
+
+已提交到 git。
+
+**提交 `a8b446e`** — *Fix sqrt_safe for negative inputs and rename mean to average*
+
+- `src/calc.py`：`sqrt_safe` 对负数返回 `None`（不再泄露 math domain error）；`mean` 更名为 `average`
+- `tests/test_calc.py`：相应更新测试名，并为 `clamp` 补充了边界、越界及 `lo > hi` 报错等测试
+- 提交前已运行 `pytest -q`，9 个测试全部通过
+
+另外两点说明：
+
+- 仓库未配置 git 身份，我按历史提交的作者（`bench <bench@local>`）设置了**仓库级别**（`--local`）的身份配置，仅对该仓库生效。
+- `src/__pycache__/` 和 `tests/__pycache__/` 是未跟踪的 Python 缓存目录，未包含在提交中。如果想彻底忽略它们，可以加一条 `.gitignore` 规则（例如 `__pycache__/`），需要的话告诉我。

@@ -13,6 +13,10 @@ source bench/run/lib.sh
 
 fresh_env() {
   pkill -x nofy 2>/dev/null || true
+  # 清上一轮残留的 provider 包装(bash -c 'sleep infinity | nofy agent stdio');
+  # 经脚本文件执行以免 pkill -f 自匹配
+  printf 'pkill -f "sleep infinity" 2>/dev/null || true\n' > /tmp/bench_cleanup.sh
+  bash /tmp/bench_cleanup.sh || true
   sleep 1
   rm -rf "$BENCH_ROOT"
   mkdir -p "$BENCH_ROOT/home"
@@ -34,6 +38,31 @@ EOF
 printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > /dev/null  # header written after env prep
 
 case $DIM in
+  u2)
+    fresh_env
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    source bench/run/u2.sh
+    ;;
+  u3)
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    source bench/run/u3.sh
+    ;;
+  u4)
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    source bench/run/u4.sh
+    ;;
+  p2)
+    fresh_env
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    ensure_daemon
+    source bench/run/u2.sh
+    source bench/run/u3.sh
+    source bench/run/u4.sh
+    ;;
   u1)
     fresh_env
     mkdir -p "$RESULTS"
@@ -74,3 +103,15 @@ esac
 python3 bench/run/report.py "$RESULTS" > "$RESULTS/report.md" 2>/dev/null || true
 echo "RESULTS_DIR=$RESULTS"
 cat "$RESULTS/results.tsv"
+
+# 诊断:脚本退出后谁还握着 stdout 管道(曾致整轮尾部挂起 55 分钟)
+pipe_ref=$(readlink /proc/$$/fd/1 2>/dev/null || true)
+case $pipe_ref in
+  pipe:*)
+    for p in $(pgrep -x nofy 2>/dev/null || true) $(pgrep -f "sleep infinity" 2>/dev/null || true); do
+      if ls -l "/proc/$p/fd" 2>/dev/null | grep -qF "$pipe_ref"; then
+        echo "HOLDS_PIPE pid=$p cmd=$(tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null)"
+      fi
+    done
+    ;;
+esac

@@ -1,0 +1,11 @@
+项目里目前没有依赖声明文件。最通用的做法是新建一个 `requirements.txt`,把 `requests` 登记进去。
+
+按项目规则,运行测试验证:
+
+已完成。项目原本没有依赖声明文件,我新建了 `requirements.txt` 并登记了 `requests`:
+
+```txt
+requests
+```
+
+测试验证通过(`9 passed`)。
