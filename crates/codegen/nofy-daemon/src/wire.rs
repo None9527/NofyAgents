@@ -154,8 +154,12 @@ pub fn serve_connection<R: Read, W: Write>(
                     ))?,
                 }
             }
-            Ok(ControlMethod::TaskSubmit { manifest, packs }) => {
-                match submit_run(&manifest, &packs) {
+            Ok(ControlMethod::TaskSubmit {
+                manifest,
+                packs,
+                cwd,
+            }) => {
+                match submit_run(&manifest, &packs, cwd.clone()) {
                     Ok((mut dr, total)) => {
                         // R2/S wiring: persist the PLAN and attach the
                         // durable journal before the run becomes visible.
@@ -164,6 +168,7 @@ pub fn serve_connection<R: Read, W: Write>(
                             if let Err(e) = stores.runs.save(&crate::runstore::StoredRun {
                                 manifest_toml: manifest.clone(),
                                 packs: packs.clone(),
+                                cwd: cwd.clone(),
                             }) {
                                 failed = Some(format!("run store save failed: {e}"));
                             } else if let Err(e) = dr.attach_journal(stores.journal.clone()) {
@@ -205,13 +210,15 @@ pub fn serve_connection<R: Read, W: Write>(
                             .and_then(|r| r.packs.get(&t.pack))
                             .map(|p| (Some(p.persona.clone()), p.skills.clone()))
                             .unwrap_or((None, Vec::new()));
+                        // W-2: the run's project binding rides every dispatch.
+                        let cwd = guard.as_ref().and_then(|r| r.cwd.clone());
                         serde_json::to_value(ControlResponse::TaskDispatch {
                             task_id: t.id,
                             pack: t.pack,
                             goal: t.goal,
                             persona,
                             skills,
-                            cwd: None,
+                            cwd,
                         })?
                     }
                     None => {
@@ -937,6 +944,7 @@ mod tests {
             &method_frame(&ControlMethod::TaskSubmit {
                 manifest: manifest.into(),
                 packs: vec![leaky],
+                cwd: None,
             }),
         )
         .unwrap();
@@ -975,6 +983,7 @@ mod tests {
             &method_frame(&ControlMethod::TaskSubmit {
                 manifest: manifest.into(),
                 packs: vec![clean],
+                cwd: None,
             }),
         )
         .unwrap();
@@ -1032,6 +1041,7 @@ needs = ["t1"]
             &method_frame(&ControlMethod::TaskSubmit {
                 manifest: manifest.into(),
                 packs: vec![],
+                cwd: None,
             }),
         )
         .unwrap();
@@ -1110,6 +1120,62 @@ needs = ["t1"]
     }
 
     #[test]
+    fn submit_cwd_rides_every_dispatch_w2() {
+        // W-2: a run submitted with a project binding dispatches every
+        // task with that cwd.
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[
+                ControlMethod::TaskSubmit {
+                    manifest: manifest.into(),
+                    packs: vec![],
+                    cwd: Some(dir.path().to_string_lossy().into_owned()),
+                },
+                ControlMethod::TaskPoll,
+            ],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &run,
+            None,
+        );
+        assert_eq!(frames[0]["kind"], "project_accepted");
+        assert_eq!(frames[1]["kind"], "task_dispatch");
+        assert_eq!(
+            frames[1]["cwd"].as_str().unwrap(),
+            dir.path().to_string_lossy(),
+            "the project binding rides the dispatch"
+        );
+    }
+
+    #[test]
+    fn submit_cwd_must_exist_w2() {
+        // W-2: routing fails loud at submit, never at dispatch.
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[ControlMethod::TaskSubmit {
+                manifest: manifest.into(),
+                packs: vec![],
+                cwd: Some("/nonexistent-w2-probe".into()),
+            }],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        );
+        assert_eq!(frames[0]["code"], "INTERNAL");
+        assert!(frames[0]["detail"]
+            .as_str()
+            .unwrap()
+            .contains("not a directory"));
+    }
+
+    #[test]
     fn journal_reconciles_a_crashed_run() {
         // Q3 wiring (AC-11): t1 settles ok; t2 is dispatched and the
         // "process crashes" (no TaskResult) — reconciliation must name t2.
@@ -1131,7 +1197,7 @@ goal = "second"
         write_frame(&mut input, &hello_frame()).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![] }),
+            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![], cwd: None }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -1200,7 +1266,7 @@ goal = "second"
         write_frame(&mut input, &hello_frame()).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![] }),
+            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![], cwd: None }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -1274,7 +1340,7 @@ goal = "second"
         write_frame(&mut input, &hello_frame()).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![] }),
+            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![], cwd: None }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -1341,7 +1407,7 @@ goal = "only"
         write_frame(&mut input, &hello_frame()).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![] }),
+            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![], cwd: None }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -1559,7 +1625,7 @@ goal = "risky"
         write_frame(&mut provider_in, &hello_frame()).unwrap();
         write_frame(
             &mut provider_in,
-            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![] }),
+            &method_frame(&ControlMethod::TaskSubmit { manifest: manifest.into(), packs: vec![], cwd: None }),
         )
         .unwrap();
         write_frame(&mut provider_in, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -2156,6 +2222,7 @@ goal = "risky"
             &[ControlMethod::TaskSubmit {
                 manifest: manifest.into(),
                 packs: vec![],
+                cwd: None,
             }],
             &ApprovalBroker::new(),
             &LiveBus::new(),
@@ -2184,6 +2251,7 @@ goal = "risky"
             &[ControlMethod::TaskSubmit {
                 manifest: manifest.into(),
                 packs: vec![],
+                cwd: None,
             }],
             &ApprovalBroker::new(),
             &LiveBus::new(),
@@ -2210,6 +2278,7 @@ goal = "risky"
                 ControlMethod::TaskSubmit {
                     manifest: manifest.into(),
                     packs: vec![],
+                    cwd: None,
                 },
                 ControlMethod::TaskResult {
                     task_id: "ghost".into(),
@@ -2243,6 +2312,7 @@ goal = "risky"
             &method_frame(&ControlMethod::TaskSubmit {
                 manifest: manifest.into(),
                 packs: vec![],
+                cwd: None,
             }),
         )
         .unwrap();
@@ -2323,6 +2393,7 @@ goal = "risky"
                 ControlMethod::TaskSubmit {
                     manifest: manifest.into(),
                     packs: vec![],
+                    cwd: None,
                 },
                 ControlMethod::TaskPoll,
                 ControlMethod::TaskResult {
@@ -2362,6 +2433,7 @@ goal = "risky"
             &[ControlMethod::TaskSubmit {
                 manifest: manifest.into(),
                 packs: vec![],
+                cwd: None,
             }],
             &ApprovalBroker::new(),
             &LiveBus::new(),

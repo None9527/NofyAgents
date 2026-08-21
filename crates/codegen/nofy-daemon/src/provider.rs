@@ -327,7 +327,7 @@ mod tests {
     fn provider_pulls_executes_reports() {
         // Pre-load a one-task run on the daemon side.
         let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
-        let (dr, _) = crate::daemon::submit_run(manifest, &[]).unwrap();
+        let (dr, _) = crate::daemon::submit_run(manifest, &[], None).unwrap();
         let run = std::sync::Arc::new(std::sync::Mutex::new(Some(dr)));
 
         let (client_end, server_end) = UnixStream::pair().unwrap();

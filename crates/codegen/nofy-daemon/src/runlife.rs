@@ -8,6 +8,9 @@
 pub struct DaemonRun {
     pub orch: crate::orchestra::OrchRun,
     pub packs: std::collections::BTreeMap<String, crate::pack::PackManifest>,
+    /// Project routing (W-2): working directory every dispatched task is
+    /// bound to; `None` leaves the provider in its own cwd.
+    pub cwd: Option<String>,
     /// P2 DAG engine (FR11.6, Q3 wiring): structural authority over the
     /// dependency shape, built fail-loud at submit.
     pub dag: nofy_orchestra::dag::Dag,
@@ -103,7 +106,15 @@ pub struct DaemonStores {
 pub fn submit_run(
     manifest: &str,
     packs: &[serde_json::Value],
+    cwd: Option<String>,
 ) -> Result<(DaemonRun, u32), String> {
+    // W-2: a bound directory must exist — routing fails loud at submit,
+    // never at dispatch.
+    if let Some(dir) = &cwd {
+        if !std::path::Path::new(dir).is_dir() {
+            return Err(format!("task submit cwd '{dir}' is not a directory"));
+        }
+    }
     let m = crate::orchestra::ProjectManifest::from_toml(manifest)
         .map_err(|e| format!("orchestration: {e:?}"))?;
     let mut pack_map = std::collections::BTreeMap::new();
@@ -164,6 +175,7 @@ pub fn submit_run(
         DaemonRun {
             orch: crate::orchestra::OrchRun::new(m),
             packs: pack_map,
+            cwd,
             dag,
             journal,
             journal_store: None,
@@ -180,7 +192,7 @@ pub fn resume_run(stores: &DaemonStores) -> Result<Option<DaemonRun>, String> {
     let Some(stored) = stores.runs.load().map_err(|e| format!("run store: {e}"))? else {
         return Ok(None);
     };
-    let (mut dr, _) = submit_run(&stored.manifest_toml, &stored.packs)?;
+    let (mut dr, _) = submit_run(&stored.manifest_toml, &stored.packs, stored.cwd.clone())?;
     let events = stores
         .journal
         .read_events()
@@ -247,7 +259,7 @@ pack = "p"
 goal = "second"
 needs = ["t1"]
 "#;
-        let (dr, total) = submit_run(manifest, &[]).unwrap();
+        let (dr, total) = submit_run(manifest, &[], None).unwrap();
         assert_eq!(total, 2);
         assert_eq!(dr.dag.tasks.len(), 2, "P2 DAG engine owns the dependency shape");
         // Per-task on_fail mapping: retry=2 → Retry{2}; retry=0 + default
@@ -281,7 +293,7 @@ pack = "p"
 goal = "y"
 needs = ["a"]
 "#;
-        assert!(submit_run(manifest, &[]).is_err());
+        assert!(submit_run(manifest, &[], None).is_err());
     }
 
     #[test]
@@ -292,7 +304,7 @@ needs = ["a"]
         let manifest =
             "packs = [\"p\", \"q\"]\n\n[[task]]\nid = \"t1\"\npack = \"q\"\ngoal = \"g\"\n";
         let pack = serde_json::json!({"id": "p", "persona": "x"});
-        let Err(err) = submit_run(manifest, &[pack]) else { panic!("task referencing an undeclared pack must be refused") };
+        let Err(err) = submit_run(manifest, &[pack], None) else { panic!("task referencing an undeclared pack must be refused") };
         assert!(
             err.contains("undeclared pack"),
             "pack coverage is checked fail-loud: {err}"
@@ -306,7 +318,7 @@ needs = ["a"]
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(dir.path().join("task_journal.jsonl")).unwrap();
         let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
-        let (mut dr, _) = submit_run(manifest, &[]).unwrap();
+        let (mut dr, _) = submit_run(manifest, &[], None).unwrap();
         dr.journal_store = Some(nofy_orchestra::taskjournal::TaskLogStore::open(
             dir.path().join("task_journal.jsonl"),
         ));
@@ -349,6 +361,7 @@ needs = ["a"]
             .save(&crate::runstore::StoredRun {
                 manifest_toml: ONE_TASK.into(),
                 packs: vec![],
+                cwd: None,
             })
             .unwrap();
         for event in [
@@ -378,6 +391,7 @@ needs = ["a"]
             .save(&crate::runstore::StoredRun {
                 manifest_toml: ONE_TASK.into(),
                 packs: vec![],
+                cwd: None,
             })
             .unwrap();
         for event in [
@@ -406,7 +420,7 @@ needs = ["a"]
             "persona": "x",
             "services": [{"name": "s"}, {"name": "s"}],
         });
-        let Err(err) = submit_run(manifest, &[pack]) else { panic!("a realm collision must refuse the submit") };
+        let Err(err) = submit_run(manifest, &[pack], None) else { panic!("a realm collision must refuse the submit") };
         assert!(err.contains("compose"), "the composition failure is named: {err}");
     }
 
@@ -431,6 +445,7 @@ needs = ["a"]
             .save(&crate::runstore::StoredRun {
                 manifest_toml: cyclic.into(),
                 packs: vec![],
+                cwd: None,
             })
             .unwrap();
         assert!(resume_run(&stores).is_err());
@@ -445,6 +460,7 @@ needs = ["a"]
             .save(&crate::runstore::StoredRun {
                 manifest_toml: ONE_TASK.into(),
                 packs: vec![],
+                cwd: None,
             })
             .unwrap();
         // The journal path occupied by a directory: read fails loud.
@@ -466,7 +482,7 @@ needs = ["a"]
         let stores = stores_at(dir.path());
 
         // Run A: full lifecycle, settles.
-        let (mut dr_a, _) = submit_run(ONE_TASK, &[]).unwrap();
+        let (mut dr_a, _) = submit_run(ONE_TASK, &[], None).unwrap();
         dr_a.attach_journal(stores.journal.clone()).unwrap();
         dr_a.record_event(TaskEvent::Claimed {
             seq: dr_a.journal_next_seq(),
@@ -485,9 +501,10 @@ needs = ["a"]
             .save(&crate::runstore::StoredRun {
                 manifest_toml: ONE_TASK.replace("t1", "t2"),
                 packs: vec![],
+                cwd: None,
             })
             .unwrap();
-        let (mut dr_b, _) = submit_run(&ONE_TASK.replace("t1", "t2"), &[]).unwrap();
+        let (mut dr_b, _) = submit_run(&ONE_TASK.replace("t1", "t2"), &[], None).unwrap();
         dr_b.attach_journal(stores.journal.clone()).unwrap();
         drop(dr_b); // crash
 

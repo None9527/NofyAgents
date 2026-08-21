@@ -51,6 +51,11 @@ pub enum ControlMethod {
         manifest: String,
         #[serde(default)]
         packs: Vec<serde_json::Value>,
+        /// Project routing (W-2): the working directory every task of the
+        /// run is bound to. Additive — absent on older peers deserializes
+        /// as None.
+        #[serde(default)]
+        cwd: Option<String>,
     },
     /// Provider-side: pull the next ready task of the active run.
     TaskPoll,

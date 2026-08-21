@@ -182,7 +182,12 @@ fn workspace_loc_budget_only_shrinks() {
     //   dispatch via TaskPoll + settle via TaskResult with state-root
     //   deliveries, schedule add --goal/--cwd/--once CLI payload, and
     //   the scheduler-core ratchet raise for the fold payload.
-    let cap = 1_554_443; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_554_443→1_554_753: W-1/2/3 — provider tool loop (delegated
+    //   runs act through tools, up to 24 turns) + goal-acceptance judge
+    //   (settle verifies the goal against the tool trail, fail-closed)
+    //   + project routing (TaskSubmit cwd rides every dispatch, submit
+    //   defaults to the caller's directory).
+    let cap = 1_554_753; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -380,10 +385,14 @@ fn control_plane_loc_ratchet_only_shrinks() {
     //   output, TaskDispatch cwd, ScheduleEntryInfo goal/once + tests.
     // - registry 145→150: root() accessor so W-5 deliveries bind to the
     //   daemon state root.
+    // - daemon 7993→8086: W-2 project routing — TaskSubmit/StoredRun/
+    //   DaemonRun carry cwd, fail-loud at submit, every dispatch rides
+    //   the binding + two wire tests.
+    // - schema 454→459: W-2 additive TaskSubmit cwd.
     let caps = [
-        ("nofy-daemon", 7993),
+        ("nofy-daemon", 8086),
         ("nofy-channel", 609),
-        ("nofy-control-schema", 454),
+        ("nofy-control-schema", 459),
         ("nofy-session-registry", 150),
     ];
     for (name, cap) in caps {

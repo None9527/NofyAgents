@@ -221,28 +221,206 @@ async fn run_provider_task(
 
     let sampler_config = crate::agent::config::provider_task_sampling_config(agent_config);
     let client = nofy_sampler::SamplingClient::new(sampler_config)?;
+    let tools: Vec<nofy_sampling_types::ToolSpec> = agent
+        .tool_bridge()
+        .tool_definitions()
+        .await
+        .into_iter()
+        .map(nofy_sampling_types::ToolSpec::from)
+        .collect();
+    let mut items = vec![
+        nofy_sampling_types::ConversationItem::system(agent.system_prompt().to_string()),
+        nofy_sampling_types::ConversationItem::user(goal.to_string()),
+    ];
+    // W-1: delegated work rides a real tool loop, not one text answer —
+    // the model acts (reads/writes/runs) until it stops calling tools.
+    let mut tool_activity: Vec<String> = Vec::new();
+    let mut final_text: Option<String> = None;
+    for _turn in 0..MAX_TOOL_TURNS {
+        let request = nofy_sampling_types::ConversationRequest {
+            items: items.clone(),
+            tools: tools.clone(),
+            model: None,
+            x_nofy_conv_id: Some(format!("provider-{}", join.task_id)),
+            x_nofy_req_id: Some(format!("provider-{}", join.task_id)),
+            ..Default::default()
+        };
+        let response = client.conversation_collect(request).await?;
+        let Some(assistant) = response.items.iter().find_map(|item| match item {
+            nofy_sampling_types::ConversationItem::Assistant(a) => Some(a.clone()),
+            _ => None,
+        }) else {
+            anyhow::bail!("provider task got no assistant turn");
+        };
+        if assistant.tool_calls.is_empty() {
+            final_text = Some(assistant.content.to_string());
+            break;
+        }
+        items.push(nofy_sampling_types::ConversationItem::Assistant(assistant.clone()));
+        for call in &assistant.tool_calls {
+            let params: serde_json::Value =
+                serde_json::from_str(&call.arguments).unwrap_or_else(|_| serde_json::json!({}));
+            let result = agent
+                .tool_bridge()
+                .call(&call.name, params, &call.id)
+                .await;
+            let text = match &result {
+                Ok(run) => run.prompt_text.clone(),
+                Err(e) => format!("tool error: {e}"),
+            };
+            tool_activity.push(format!(
+                "{}({}) -> {}",
+                call.name,
+                truncate_for_log(&call.arguments),
+                truncate_for_log(&text),
+            ));
+            items.push(nofy_sampling_types::ConversationItem::tool_result(
+                call.id.to_string(),
+                text,
+            ));
+        }
+    }
+    let Some(final_text) = final_text else {
+        anyhow::bail!("provider task still calling tools after {MAX_TOOL_TURNS} turns");
+    };
+    // W-3: acceptance is goal verification, not non-empty output. A judge
+    // pass reads the goal against what actually happened (tool trail +
+    // final answer) and settles the task accordingly.
+    let verdict = judge_goal_achieved(&client, goal, &final_text, &tool_activity).await?;
+    anyhow::ensure!(
+        verdict.achieved,
+        "goal not achieved: {}",
+        truncate_for_log(&verdict.reason)
+    );
+    Ok(final_text)
+}
+
+/// Tool-loop turn budget for one delegated run.
+const MAX_TOOL_TURNS: usize = 24;
+
+/// Log-safe one-line summary of a tool argument/result payload.
+fn truncate_for_log(text: &str) -> String {
+    let flat: String = text.chars().take(160).collect::<String>().replace('\n', " ");
+    if text.chars().count() > 160 {
+        format!("{flat}…")
+    } else {
+        flat
+    }
+}
+
+/// W-3 acceptance judge: one extra inference over the finished run
+/// decides whether the GOAL was actually achieved. The judge sees the
+/// tool trail (what was done) plus the final answer — evidence, not
+/// claims. Fail-closed: an unreadable verdict settles the task as failed.
+async fn judge_goal_achieved(
+    client: &nofy_sampler::SamplingClient,
+    goal: &str,
+    final_text: &str,
+    tool_activity: &[String],
+) -> anyhow::Result<Verdict> {
+    let trail = if tool_activity.is_empty() {
+        "(none — the run performed no tool calls)".to_string()
+    } else {
+        tool_activity
+            .iter()
+            .rev()
+            .take(40)
+            .cloned()
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let prompt = format!(
+        "You are an acceptance judge. A delegated task had this goal:\n\n\
+         <goal>\n{goal}\n</goal>\n\n\
+         The run performed {} tool call(s). The trail (name(args) -> result \
+         summary, oldest first):\n\n\
+         <tool_trail>\n{trail}\n</tool_trail>\n\n\
+         Final answer from the run:\n\n\
+         <final_answer>\n{final_text}\n</final_answer>\n\n\
+         Decide ONLY from this evidence whether the goal was genuinely \
+         achieved. A claim of success with no supporting work, or a goal \
+         that could not be satisfied (missing inputs, impossible request), \
+         is NOT achieved. Reply with exactly one line: `VERDICT: ACHIEVED` \
+         or `VERDICT: NOT_ACHIEVED`, then one short reason line.",
+        tool_activity.len()
+    );
     let request = nofy_sampling_types::ConversationRequest {
-        items: vec![
-            nofy_sampling_types::ConversationItem::system(agent.system_prompt().to_string()),
-            nofy_sampling_types::ConversationItem::user(goal.to_string()),
-        ],
+        items: vec![nofy_sampling_types::ConversationItem::user(prompt)],
         model: None,
-        x_nofy_conv_id: Some(format!("provider-{}", join.task_id)),
-        x_nofy_req_id: Some(format!("provider-{}", join.task_id)),
         ..Default::default()
     };
     let response = client.conversation_collect(request).await?;
-    anyhow::ensure!(
-        !response.items.is_empty(),
-        "provider task got an empty model response"
-    );
     let text: Vec<String> = response
         .items
         .iter()
         .map(|item| item.text_content())
         .filter(|t| !t.is_empty())
         .collect();
-    Ok(text.join("\n"))
+    let answer = text.join("\n");
+    Ok(parse_verdict(&answer))
+}
+
+/// One acceptance verdict.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Verdict {
+    achieved: bool,
+    reason: String,
+}
+
+/// Parse the judge's reply; anything unreadable is fail-closed NOT_ACHIEVED.
+fn parse_verdict(answer: &str) -> Verdict {
+    let verdict_line = answer
+        .lines()
+        .find(|line| line.trim().to_uppercase().starts_with("VERDICT:"));
+    match verdict_line {
+        Some(line) if line.to_uppercase().contains("ACHIEVED")
+            && !line.to_uppercase().contains("NOT_ACHIEVED") =>
+        {
+            Verdict {
+                achieved: true,
+                reason: reason_after(answer, line),
+            }
+        }
+        Some(line) => Verdict {
+            achieved: false,
+            reason: reason_after(answer, line),
+        },
+        None => Verdict {
+            achieved: false,
+            reason: format!("unreadable judge reply: {}", truncate_for_log(answer)),
+        },
+    }
+}
+
+/// The reason text: the rest of the verdict line plus any following lines.
+fn reason_after(answer: &str, verdict_line: &str) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if let Some(rest) = verdict_line.splitn(2, ':').nth(1) {
+        let rest = rest.trim();
+        // A bare "ACHIEVED"/"NOT_ACHIEVED" token carries no reason.
+        if !rest.is_empty() && !rest.eq_ignore_ascii_case("ACHIEVED")
+            && !rest.eq_ignore_ascii_case("NOT_ACHIEVED")
+        {
+            parts.push(rest.to_string());
+        }
+    }
+    let mut after = answer
+        .lines()
+        .skip_while(|line| line.trim() != verdict_line.trim())
+        .skip(1);
+    if let Some(next) = after.next() {
+        if !next.trim().is_empty() {
+            parts.push(next.trim().to_string());
+        }
+    }
+    if parts.is_empty() {
+        "no reason given".to_string()
+    } else {
+        parts.join(" ")
+    }
 }
 
 #[cfg(test)]
@@ -316,6 +494,38 @@ mod tests {
         .await
         .expect("delegation must not hang");
         assert_eq!(outcome, (0, Vec::new()), "an empty root yields zero hits");
+    }
+
+    #[test]
+    fn verdict_parse_is_strict_and_fail_closed() {
+        // W-3: the judge reply grammar is one VERDICT line; anything else
+        // settles the task as failed.
+        let ok = parse_verdict("VERDICT: ACHIEVED\nfile written and verified");
+        assert!(ok.achieved);
+        assert_eq!(ok.reason, "file written and verified");
+
+        let not = parse_verdict("VERDICT: NOT_ACHIEVED\ntarget file does not exist");
+        assert!(!not.achieved);
+        assert_eq!(not.reason, "target file does not exist");
+
+        // Bare verdict token: reason falls back to the placeholder.
+        let bare = parse_verdict("VERDICT: ACHIEVED");
+        assert!(bare.achieved);
+        assert_eq!(bare.reason, "no reason given");
+
+        // Unreadable replies fail closed.
+        assert!(!parse_verdict("all done!").achieved);
+        assert!(!parse_verdict("").achieved);
+        // "ACHIEVED" inside a NOT_ACHIEVED line must not flip the verdict.
+        assert!(!parse_verdict("VERDICT: NOT_ACHIEVED").achieved);
+    }
+
+    #[test]
+    fn truncate_for_log_flattens_and_clips() {
+        assert_eq!(truncate_for_log("a\nb"), "a b");
+        let long = "x".repeat(400);
+        let clipped = truncate_for_log(&long);
+        assert!(clipped.chars().count() <= 161 && clipped.ends_with('…'));
     }
 
     #[test]

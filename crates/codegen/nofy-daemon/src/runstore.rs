@@ -17,6 +17,9 @@ use std::path::{Path, PathBuf};
 pub struct StoredRun {
     pub manifest_toml: String,
     pub packs: Vec<serde_json::Value>,
+    /// Project routing (W-2): survives crash resumption with the plan.
+    #[serde(default)]
+    pub cwd: Option<String>,
 }
 
 /// Thin on-disk layer for the current run plan.
@@ -81,6 +84,7 @@ mod tests {
         StoredRun {
             manifest_toml: "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n".into(),
             packs: vec![serde_json::json!({"id": "p", "persona": "x"})],
+            cwd: None,
         }
     }
 

@@ -248,6 +248,7 @@ async fn provider_loop_search_and_dispatch_e2e() {
             let accepted = surface.call(&ControlMethod::TaskSubmit {
                 manifest,
                 packs: vec![pack],
+                cwd: None,
             });
             assert_eq!(accepted["kind"], "project_accepted", "{accepted}");
             assert_eq!(accepted["total"], 1);

@@ -20,6 +20,10 @@ pub enum TaskCommand {
     Submit {
         /// Path to the manifest TOML file.
         manifest: std::path::PathBuf,
+        /// Project routing (W-2): working directory every task of the run
+        /// is bound to. Defaults to the directory you submit from.
+        #[arg(long)]
+        cwd: Option<std::path::PathBuf>,
     },
     /// List every journaled task with its lifecycle state.
     List {
@@ -47,12 +51,19 @@ pub fn run(args: &TaskArgs, state_dir: &std::path::Path) -> Result<()> {
     let mut client = nofy_daemon::control_client::ControlClient::connect(state_dir)
         .map_err(|e| anyhow::anyhow!("daemon control socket: {e}"))?;
     let method = match &args.command {
-        TaskCommand::Submit { manifest } => {
+        TaskCommand::Submit { manifest, cwd } => {
             let text = std::fs::read_to_string(manifest)
                 .map_err(|e| anyhow::anyhow!("read manifest {}: {e}", manifest.display()))?;
+            // Default binding: the directory the submit happens in — a
+            // delegated task belongs to the project it was asked from.
+            let cwd = match cwd {
+                Some(dir) => Some(dir.clone()),
+                None => std::env::current_dir().ok(),
+            };
             ControlMethod::TaskSubmit {
                 manifest: text,
                 packs: Vec::new(),
+                cwd: cwd.map(|p| p.to_string_lossy().into_owned()),
             }
         }
         TaskCommand::List { .. } | TaskCommand::Status { .. } => ControlMethod::TaskList,
