@@ -74,8 +74,11 @@ check_not_contains() { # <outfile> <pattern>
 ensure_daemon() {
   if [ ! -S "$SOCK" ] || ! $CTL "$SOCK" ping >/dev/null 2>&1; then
     rm -f "$SOCK"
-    NOFY_HOME=$BENCH_ROOT/home nohup "$NOFY_BIN" daemon --debug-file "$BENCH_ROOT/daemon.log" \
-      > "$BENCH_ROOT/daemon.out" 2>&1 &
+    # setsid + 全 fd 重定向:子进程不得继承 harness 的管道/终端,
+    # 否则 run.sh 退出被悬挂(曾致整轮挂起)。
+    NOFY_HOME=$BENCH_ROOT/home setsid nohup "$NOFY_BIN" daemon \
+      --debug-file "$BENCH_ROOT/daemon.log" \
+      </dev/null > "$BENCH_ROOT/daemon.out" 2>&1 &
     for _ in $(seq 1 30); do
       [ -S "$SOCK" ] && $CTL "$SOCK" ping >/dev/null 2>&1 && return 0
       sleep 1
@@ -89,9 +92,11 @@ ensure_provider() { # $1 = project dir to run in
   local proj=$1
   local alive=0
   if [ -f "$BENCH_ROOT/provider.pid" ] && grep -q "$proj" "$BENCH_ROOT/provider.cwd" 2>/dev/null; then
-    # liveness = the recorded provider pid is a running agent-stdio process
+    # liveness = the recorded provider pid is a running agent-stdio wrapper
+    # AND a nofy binary is actually alive (the wrapper outlives a dead nofy).
     local pid; pid=$(cat "$BENCH_ROOT/provider.pid" 2>/dev/null)
-    if [ -n "$pid" ] && tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q "agent stdio"; then
+    if [ -n "$pid" ] && tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q "agent stdio" \
+       && pgrep -x nofy >/dev/null 2>&1; then
       alive=1
     fi
   fi
@@ -103,8 +108,8 @@ ensure_provider() { # $1 = project dir to run in
   sleep 1
   : > "$BENCH_ROOT/provider.log"
   ( cd "$proj" && NOFY_HOME=$BENCH_ROOT/home NOFY_DAEMON_SOCK=$SOCK \
-      nohup bash -c "sleep infinity | $NOFY_BIN agent stdio --debug-file $BENCH_ROOT/provider.log" \
-      > "$BENCH_ROOT/provider.out" 2>&1 &
+      setsid nohup bash -c "sleep infinity | $NOFY_BIN agent stdio --debug-file $BENCH_ROOT/provider.log" \
+      </dev/null > "$BENCH_ROOT/provider.out" 2>&1 &
     echo $! > "$BENCH_ROOT/provider.pid" )
   echo "$proj" > "$BENCH_ROOT/provider.cwd"
   for _ in $(seq 1 40); do

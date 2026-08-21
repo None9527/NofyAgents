@@ -34,6 +34,13 @@ EOF
 printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > /dev/null  # header written after env prep
 
 case $DIM in
+  u1)
+    fresh_env
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    ensure_daemon
+    source bench/run/u1.sh
+    ;;
   d5)
     fresh_env
     mkdir -p "$RESULTS"

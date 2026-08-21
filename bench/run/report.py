@@ -24,7 +24,7 @@ def attr_label(a):
         return f"接线缺口({a})"
     return ATTR.get(a, a)
 
-print("# P1 三入口基准结果\n")
+print("# 用户旅程基准结果(v2)\n")
 total = len(rows)
 np = sum(1 for r in rows if r["status"] == "pass")
 npar = sum(1 for r in rows if r["status"] == "partial")

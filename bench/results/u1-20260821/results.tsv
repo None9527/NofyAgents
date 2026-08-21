@@ -1,0 +1,11 @@
+id	status	attr	secs	title	note
+U1-01	pass	-	0	配好模型就能用:nofy models 列出且自带 key	models 列出 bench 且标注自带 key
+U1-02	pass	-	4	换模型只改 config 一处,会话实际模型随之变	config 改一处,会话实际模型由 deepseek-v4-flash-0731 → deepseek-v4-flash
+U1-03	pass	-	0	空 config 首启有引导,不静默失败	无配置时给出登录/配 key 引导
+U1-04	pass	-	1	坏 key 给清晰鉴权错误,不挂死	坏 key 得到清晰鉴权错误
+U1-05	pass	-	7	单配置门:headless 与 provider 都用同一份 config 的模型	headless 与 provider 均用 config 的 deepseek-v4-flash-0731(单配置门通过)
+U1-06	pass	-	2	config 的上下文窗设定被会话尊重	带 context_window=4096 的会话正常起(设定被读取)
+U1-07	pass	-	3	config 权限模式(plan)下不改文件	plan 模式下未落盘文件(权限偏好生效)
+U1-08	pass	-	2	只写必要段,其余走默认	最小配置可用,缺省字段不报错
+U1-09	pass	-	0	坏 TOML 启动报错有定位,不崩	坏 TOML 得到指向配置的错误
+U1-10	pass	-	2	env_key 引用,配置文件无明文 key	key 经 env_key 引用不落盘,功能正常
