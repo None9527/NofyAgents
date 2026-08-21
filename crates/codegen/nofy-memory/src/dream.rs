@@ -166,7 +166,36 @@ pub(crate) fn is_scaffold_template(content: &str) -> bool {
         "Add any cross-project preferences here",
     ];
     let trimmed = content.trim();
-    trimmed.len() < SCAFFOLD_MAX_LEN && MARKERS.iter().any(|marker| trimmed.contains(marker))
+    if trimmed.len() >= SCAFFOLD_MAX_LEN || !MARKERS.iter().any(|marker| trimmed.contains(marker))
+    {
+        return false;
+    }
+    // Scaffold only when nothing substantive exists beyond the template
+    // shape (headings, HTML comments, the template's own blockquote). A
+    // user-added entry — e.g. a "- preference" line under the marker
+    // comment — makes the file real content (W-11: short MEMORY.md files
+    // with one entry were dropped from search wholesale).
+    let mut rest = trimmed;
+    let mut without_comments = String::with_capacity(trimmed.len());
+    while let Some(start) = rest.find("<!--") {
+        without_comments.push_str(&rest[..start]);
+        match rest[start + "<!--".len()..].find("-->") {
+            Some(end) => {
+                let after = start + "<!--".len() + end + "-->".len();
+                rest = &rest[after..];
+            }
+            None => {
+                without_comments.push_str(rest);
+                rest = "";
+                break;
+            }
+        }
+    }
+    without_comments.push_str(rest);
+    without_comments.lines().all(|line| {
+        let t = line.trim();
+        t.is_empty() || t.starts_with('#') || t.starts_with('>')
+    })
 }
 
 /// Build the user message for the dream model call from session log contents.
@@ -1342,6 +1371,23 @@ mod tests {
     }
 
     #[test]
+    fn scaffold_global_template_with_user_entry_is_not_scaffold() {
+        // W-11 regression: a short MEMORY.md that is mostly template but has
+        // one real user entry must stay searchable — only pure templates are
+        // scaffolding.
+        let content = "# Global Memory\n\n\
+             > This file is automatically managed by Nofy's memory system.\n\
+             > You can also edit it manually — changes will be indexed on next session.\n\n\
+             ## Preferences\n\n\
+             <!-- Add any cross-project preferences here -->\n\n\
+             - 最喜欢的茶:碧螺春\n";
+        assert!(
+            !is_scaffold_template(content),
+            "template + user entry must not be classified as scaffold"
+        );
+    }
+
+    #[test]
     fn scaffold_rejects_real_content() {
         assert!(!is_scaffold_template(
             "## Decisions\n\nWe chose Rust.\n\n## Architecture\n\nEvent-driven.",
@@ -1350,13 +1396,16 @@ mod tests {
 
     #[test]
     fn scaffold_boundary_499_bytes_is_scaffold() {
-        let marker = "Add project-specific knowledge here";
-        let pad_len = 499 - marker.len();
-        let content = format!("{}{}", "x".repeat(pad_len), marker);
-        assert_eq!(content.trim().len(), 499);
+        let marker = "<!-- Add project-specific knowledge here -->";
+        // Scaffold-shaped padding only (blockquote lines), so the length
+        // boundary is what decides.
+        let pad = "> pad line\n".repeat(35);
+        let content = format!("# Project Memory\n\n{pad}{marker}");
+        let trimmed_len = content.trim().len();
+        assert!(trimmed_len < 500, "fixture must stay under the cap, got {trimmed_len}");
         assert!(
             is_scaffold_template(&content),
-            "499-byte content with marker must be classified as scaffold"
+            "sub-500-byte scaffold-shaped content with marker must be classified as scaffold"
         );
     }
 

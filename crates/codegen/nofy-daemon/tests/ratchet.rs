@@ -165,7 +165,14 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_552_985→1_552_994: W-8 sessions --all — list/search gain a
     //   global scope flag (cwd filter dropped); local FTS + merge lanes
     //   already supported cwd=None, only the CLI surface was missing.
-    let cap = 1_552_997; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_552_997→1_553_140: W-11 memory BYOK — CJK substring fallback
+    //   (instr scan) in memory FTS so Chinese entries are searchable
+    //   without embeddings, + memory_search description gains the
+    //   MEMORY.md write-path guidance.
+    // - 1_553_141→1_553_202: W-11 root cause — is_scaffold_template no
+    //   longer drops short MEMORY.md files that contain real user entries
+    //   (template + one line was filtered wholesale, silencing recall).
+    let cap = 1_553_202; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

@@ -1168,8 +1168,10 @@ mod tests {
     }
 
     /// The scaffold-marker branch is scoped to evergreen sources: a short
-    /// non-evergreen chunk that merely quotes a marker phrase must be kept,
-    /// while the same text on an evergreen source is filtered.
+    /// non-evergreen chunk that merely quotes a marker phrase must be kept.
+    /// Since W-11, evergreen text quoting a marker inside a real sentence is
+    /// likewise kept — only pure template shapes (headings/comments/
+    /// blockquotes only) are filtered.
     #[test]
     fn test_is_content_free_marker_branch_scoped_to_evergreen() {
         // A short session note that happens to quote a scaffold marker phrase.
@@ -1180,8 +1182,15 @@ mod tests {
             "non-evergreen chunk quoting a marker phrase must NOT be filtered"
         );
         assert!(
-            is_content_free(quotes_marker, "global"),
-            "the same short text on an evergreen source is treated as scaffold"
+            !is_content_free(quotes_marker, "global"),
+            "evergreen chunk with a real sentence quoting a marker must NOT be filtered"
+        );
+        // Pure template shape on an evergreen source is still filtered.
+        let pure_template =
+            "# Global Memory\n\n## Preferences\n\n<!-- Add any cross-project preferences here -->\n";
+        assert!(
+            is_content_free(pure_template, "global"),
+            "pure scaffold template on an evergreen source is filtered"
         );
     }
 

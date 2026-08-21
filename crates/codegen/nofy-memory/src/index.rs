@@ -408,21 +408,62 @@ impl MemoryIndex {
     pub fn search_fts(&self, query: &str, limit: usize) -> Result<Vec<FtsResult>, rusqlite::Error> {
         let keywords = super::query_expansion::extract_keywords(query);
         let fts_query = keywords.join(" OR ");
-        if fts_query.is_empty() {
-            return Ok(vec![]);
+        let mut results = if fts_query.is_empty() {
+            Vec::new()
+        } else {
+            let mut stmt = self.db.prepare(
+                "SELECT rowid, rank FROM chunks_fts WHERE chunks_fts MATCH ?1 \
+                 ORDER BY rank LIMIT ?2",
+            )?;
+            let rows = stmt
+                .query_map(params![fts_query, limit], |row| {
+                    Ok((row.get::<_, i64>(0)?, row.get::<_, f64>(1)?))
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            self.resolve_fts_rowids(rows)?
+        };
+
+        // W-11: CJK substring fallback. unicode61 indexes CJK runs as single
+        // tokens, so sub-run queries never MATCH; without embeddings (BYOK)
+        // that left Chinese memory entries unsearchable. Memory corpora are
+        // small, so an instr() scan over chunk text is cheap.
+        let probes = super::query_expansion::cjk_probes(query);
+        if !probes.is_empty() {
+            let mut seen: std::collections::HashSet<i64> =
+                results.iter().map(|r| r.rowid).collect();
+            let mut stmt =
+                self.db
+                    .prepare("SELECT rowid FROM chunks WHERE instr(text, ?1) > 0 LIMIT ?2")?;
+            for probe in probes {
+                let rowids = stmt
+                    .query_map(params![probe, limit], |row| row.get::<_, i64>(0))?
+                    .collect::<Result<Vec<_>, _>>()?;
+                for rowid in rowids {
+                    if seen.insert(rowid) {
+                        results.push(FtsResult {
+                            chunk_id: String::new(),
+                            rowid,
+                            rank: 0.0,
+                        });
+                    }
+                }
+            }
+            // chunk_ids for fallback rows are resolved lazily below.
+            for r in results.iter_mut() {
+                if r.chunk_id.is_empty()
+                    && let Ok(id) = self.db.query_row(
+                        "SELECT id FROM chunks WHERE rowid = ?1",
+                        params![r.rowid],
+                        |row| row.get::<_, String>(0),
+                    )
+                {
+                    r.chunk_id = id;
+                }
+            }
+            results.retain(|r| !r.chunk_id.is_empty());
+            results.truncate(limit);
         }
-
-        let mut stmt = self.db.prepare(
-            "SELECT rowid, rank FROM chunks_fts WHERE chunks_fts MATCH ?1 \
-             ORDER BY rank LIMIT ?2",
-        )?;
-        let rows = stmt
-            .query_map(params![fts_query, limit], |row| {
-                Ok((row.get::<_, i64>(0)?, row.get::<_, f64>(1)?))
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
-
-        self.resolve_fts_rowids(rows)
+        Ok(results)
     }
 
     fn resolve_fts_rowids(&self, rows: Vec<(i64, f64)>) -> Result<Vec<FtsResult>, rusqlite::Error> {
@@ -924,6 +965,35 @@ mod tests {
 
         let results = idx.search_fts("haskell monads", 10).unwrap();
         assert!(results.is_empty(), "FTS should not find unrelated query");
+    }
+
+    #[test]
+    fn test_fts_search_cjk_substring_fallback() {
+        // W-11: unicode61 indexes CJK runs as single tokens, so a sub-run
+        // query (single char / partial word) never MATCHes. The instr()
+        // fallback must restore recall for Chinese memory entries.
+        let tmp = TempDir::new().unwrap();
+        let mut idx = test_index(&tmp);
+
+        let file_path = tmp.path().join("memory.md");
+        std::fs::write(&file_path, "## Preferences\n\n- 最喜欢的茶:碧螺春\n").unwrap();
+        idx.reindex_file(&file_path, "global").unwrap();
+
+        // Single-char sub-run query.
+        let results = idx.search_fts("茶", 10).unwrap();
+        assert!(!results.is_empty(), "single CJK char should match via fallback");
+
+        // Whole-run query.
+        let results = idx.search_fts("碧螺春", 10).unwrap();
+        assert!(!results.is_empty(), "whole CJK run should match");
+
+        // Mixed-language query.
+        let results = idx.search_fts("favorite tea 碧螺春", 10).unwrap();
+        assert!(!results.is_empty(), "mixed query should match");
+
+        // Unrelated CJK stays empty.
+        let results = idx.search_fts("火车", 10).unwrap();
+        assert!(results.is_empty(), "unrelated CJK should not match");
     }
 
     #[test]

@@ -178,6 +178,41 @@ pub fn extract_keywords(query: &str) -> Vec<String> {
         .collect()
 }
 
+/// True for CJK Unified Ideographs (basic + extension A).
+pub fn is_cjk(c: char) -> bool {
+    ('\u{4e00}'..='\u{9fff}').contains(&c) || ('\u{3400}'..='\u{4dbf}').contains(&c)
+}
+
+/// Substring probes for CJK fallback search (W-11).
+///
+/// unicode61 indexes a CJK run as one indivisible token, so sub-run queries
+/// (a single character like 茶, or a partial word) never MATCH. Returns whole
+/// CJK runs first (most selective), then each distinct CJK character, deduped
+/// and capped so a long query cannot fan out into many scans.
+pub fn cjk_probes(query: &str) -> Vec<String> {
+    const MAX_PROBES: usize = 12;
+    let mut probes: Vec<String> = Vec::new();
+    let mut run = String::new();
+    for c in query.chars() {
+        if is_cjk(c) {
+            run.push(c);
+        } else if !run.is_empty() {
+            probes.push(std::mem::take(&mut run));
+        }
+    }
+    if !run.is_empty() {
+        probes.push(run);
+    }
+    let mut seen: HashSet<char> = probes.iter().flat_map(|p| p.chars()).collect();
+    for c in query.chars() {
+        if is_cjk(c) && seen.insert(c) {
+            probes.push(c.to_string());
+        }
+    }
+    probes.truncate(MAX_PROBES);
+    probes
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -275,5 +310,35 @@ mod tests {
             extract_keywords("show me that database migration we talked about"),
             vec!["database", "migration", "talked"]
         );
+    }
+
+    #[test]
+    fn cjk_probes_whole_run_then_chars() {
+        let probes = cjk_probes("碧螺春");
+        assert_eq!(probes, vec!["碧螺春"]);
+    }
+
+    #[test]
+    fn cjk_probes_single_char() {
+        let probes = cjk_probes("茶");
+        assert_eq!(probes, vec!["茶"]);
+    }
+
+    #[test]
+    fn cjk_probes_mixed_query_dedupes_run_chars() {
+        let probes = cjk_probes("favorite tea 碧螺春 preferences");
+        // Whole run first; its chars are not re-added individually.
+        assert_eq!(probes, vec!["碧螺春"]);
+    }
+
+    #[test]
+    fn cjk_probes_multiple_runs_and_gap_chars() {
+        let probes = cjk_probes("记住 口令 闲庭花开");
+        assert_eq!(probes, vec!["记住", "口令", "闲庭花开"]);
+    }
+
+    #[test]
+    fn cjk_probes_empty_for_non_cjk() {
+        assert!(cjk_probes("hello world").is_empty());
     }
 }
