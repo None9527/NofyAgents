@@ -38,7 +38,13 @@ fn orchestra_loc_ratchet_only_shrinks() {
     // - 3272→3515: coverage-gate — tests for uncovered branches.
     // - 3515→3533: W-6 fix — TaskEvent::offset_seq (cross-run dense-seq
     //   continuity for crash reconciliation).
-    let cap = 3533;
+    // - 3533→3649: W-7 delegation verbs — TaskEvent::Cancelled (terminal)
+    //   + OrchRun::cancel with dependent skips, idempotent loud rejection
+    //   and late-result immunity (+ tests).
+    // - 3649→3687: W-4 skip audit — TaskEvent::Skipped (terminal) so
+    //   transitively-skipped dependents are journaled, never stranded
+    //   armed; resolve_escalation(allow) materializes skips immediately.
+    let cap = 3687;
     let got = loc(&src);
     assert!(
         got <= cap,

@@ -34,6 +34,10 @@ pub enum ControlMethod {
         intent_id: String,
         decision: ApprovalDecision,
     },
+    /// Project every pending approval intent (W-4 batch entry: surfaces
+    /// discover what awaits a decision before answering, one by one or
+    /// all at once).
+    ApprovalList,
     /// Liveness probe; answered with [`ControlResponse::Pong`].
     Ping,
     /// A resident runtime (the shell) registers as event provider for the
@@ -141,6 +145,15 @@ pub struct TaskInfo {
     pub run: Option<String>,
 }
 
+/// One row of [`ControlResponse::ApprovalsListed`] (W-4).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PendingApproval {
+    pub intent_id: String,
+    /// Enveloped summary (FR5.10): framed untrusted text, safe to show.
+    #[serde(default)]
+    pub summary: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ApprovalDecision {
@@ -196,6 +209,9 @@ pub enum ControlResponse {
     /// Provider-side outcome: a surface decided (or the broker timed out —
     /// in which case the method frame is a ControlError instead).
     ApprovalResolved { decision: ApprovalDecision },
+    /// Approval projection (W-4): every pending intent with its enveloped
+    /// summary — the discovery half of the batch-approval entry.
+    ApprovalsListed { pending: Vec<PendingApproval> },
     /// Scheduling ack (batch U): enable/add/remove recorded.
     ScheduleNoted,
     /// Scheduling projection (batch U): the live schedule table.

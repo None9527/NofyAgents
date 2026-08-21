@@ -379,6 +379,11 @@ pub fn serve_connection<R: Read, W: Write>(
                                     allow,
                                 },
                             );
+                            if allow {
+                                // W-4 audit: skip-and-continue moves the
+                                // dependents to dead — journal each skip.
+                                journal_skips(r, "skipped: dependency failed (escalation allowed)");
+                            }
                         }
                     }
                 }
@@ -489,6 +494,17 @@ pub fn serve_connection<R: Read, W: Write>(
                         format!("unknown or settled approval intent {intent_id}"),
                     ))?
                 }
+            }
+            Ok(ControlMethod::ApprovalList) => {
+                // W-4 batch entry: discover what awaits a decision.
+                let pending = broker
+                    .pending_intents()
+                    .into_iter()
+                    .map(|(intent_id, summary)| {
+                        nofy_control_schema::methods::PendingApproval { intent_id, summary }
+                    })
+                    .collect();
+                serde_json::to_value(ControlResponse::ApprovalsListed { pending })?
             }
             // Scheduling (batch U): every mutation delegates to the core
             // policy through SchedulerService; disabled-by-default refusals
@@ -606,6 +622,7 @@ pub fn serve_connection<R: Read, W: Write>(
                             TaskState::ResolvedAllow => "resolved_allow",
                             TaskState::ResolvedDeny => "resolved_deny",
                             TaskState::Cancelled => "cancelled",
+                            TaskState::Skipped => "skipped",
                         };
                         nofy_control_schema::methods::TaskInfo {
                             run: run_ids.remove(&id),
@@ -630,6 +647,9 @@ pub fn serve_connection<R: Read, W: Write>(
                             task: task_id.clone(),
                             reason: "user cancelled".into(),
                         });
+                        // W-4 audit: transitively skipped dependents are
+                        // journaled too — a skip is terminal, never silent.
+                        journal_skips(r, "skipped: dependency cancelled");
                         serde_json::to_value(ControlResponse::TaskCancelled { task_id })?
                     }
                     Some(_) => serde_json::to_value(ControlError::new(
@@ -697,6 +717,35 @@ pub(crate) fn secs_now() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0)
+}
+
+/// W-4 audit: tasks the orchestrator moved to dead via SKIP (dependents
+/// of a failed-allowed or cancelled task) get a terminal `Skipped` event
+/// — the journal never leaves them armed forever, and `task list` shows
+/// the real state. Idempotent: already-terminal tasks are untouched.
+fn journal_skips(r: &mut DaemonRun, reason: &str) {
+    let fold = nofy_orchestra::taskjournal::fold_tasks(&r.journal);
+    let skipped: Vec<String> = r
+        .orch
+        .dead
+        .iter()
+        .filter(|id| {
+            !fold
+                .states
+                .get(*id)
+                .copied()
+                .is_some_and(|s| s.is_terminal())
+        })
+        .cloned()
+        .collect();
+    for task in skipped {
+        let seq = r.journal_next_seq();
+        r.record_event(nofy_orchestra::taskjournal::TaskEvent::Skipped {
+            seq,
+            task,
+            reason: reason.to_string(),
+        });
+    }
 }
 
 /// Run the daemon until the listener dies or a wedge is detected.
@@ -2747,6 +2796,47 @@ goal = "risky"
         .unwrap_err();
         let msg = format!("{err:?}");
         assert!(msg.contains("malformed schedule task id"), "{msg}");
+    }
+
+    #[test]
+    fn approval_list_and_batch_respond_over_wire_w4() {
+        // W-4: pending intents are discoverable (list), answerable one by
+        // one (respond), and each answer shrinks the pending projection.
+        let broker = ApprovalBroker::new();
+        broker.register("esc-1", "task t1 failed; allow skip-and-continue?");
+        broker.register("esc-2", "task t2 failed; allow skip-and-continue?");
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[
+                ControlMethod::ApprovalList,
+                ControlMethod::ApprovalRespond {
+                    intent_id: "esc-1".into(),
+                    decision: nofy_control_schema::methods::ApprovalDecision::AllowOnce,
+                },
+                ControlMethod::ApprovalList,
+            ],
+            &broker,
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            None,
+        );
+        assert_eq!(frames[0]["kind"], "approvals_listed");
+        let pending = frames[0]["pending"].as_array().unwrap();
+        assert_eq!(pending.len(), 2, "both intents are discoverable");
+        assert_eq!(pending[0]["intent_id"], "esc-1", "deterministic id order");
+        assert!(
+            pending[0]["summary"].as_str().unwrap().contains("esc-1")
+                || pending[0]["summary"].as_str().unwrap().contains("t1"),
+            "the enveloped summary rides the projection"
+        );
+        assert_eq!(frames[1]["kind"], "approval_noted");
+        assert_eq!(
+            frames[2]["pending"].as_array().unwrap().len(),
+            1,
+            "a responded intent leaves the pending set"
+        );
+        assert_eq!(frames[2]["pending"][0]["intent_id"], "esc-2");
     }
 
     #[test]

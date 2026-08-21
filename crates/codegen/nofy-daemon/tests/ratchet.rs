@@ -187,7 +187,15 @@ fn workspace_loc_budget_only_shrinks() {
     //   (settle verifies the goal against the tool trail, fail-closed)
     //   + project routing (TaskSubmit cwd rides every dispatch, submit
     //   defaults to the caller's directory).
-    let cap = 1_554_753; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_554_753→1_555_092: W-4 batch-approval control-plane entry —
+    //   broker pending-intent projection (undecided only, id-ordered),
+    //   ApprovalList wire method + ApprovalsListed response, and the
+    //   `nofy approval list/decide/decide-all` user verbs.
+    // - 1_555_092→1_555_186: W-4 skip audit tail — TaskEvent::Skipped
+    //   (terminal) in the orchestra journal core, skips materialize at
+    //   escalation resolution, and the daemon journals every transitive
+    //   skip on allow/cancel.
+    let cap = 1_555_186; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -389,10 +397,19 @@ fn control_plane_loc_ratchet_only_shrinks() {
     //   DaemonRun carry cwd, fail-loud at submit, every dispatch rides
     //   the binding + two wire tests.
     // - schema 454→459: W-2 additive TaskSubmit cwd.
+    // - daemon 8086→8189: W-4 batch-approval entry — broker
+    //   pending_intents projection (undecided only) + ApprovalList wire
+    //   dispatch + wire/broker tests.
+    // - schema 459→475: W-4 ApprovalList method + ApprovalsListed/
+    //   PendingApproval response shapes.
+    // - daemon 8189→8227: W-4 skip audit — journal_skips records a
+    //   terminal Skipped event for transitively-skipped dependents on
+    //   escalation-allow and cancel (the journal never strands them
+    //   armed); TaskList projects the skipped state.
     let caps = [
-        ("nofy-daemon", 8086),
+        ("nofy-daemon", 8227),
         ("nofy-channel", 609),
-        ("nofy-control-schema", 459),
+        ("nofy-control-schema", 475),
         ("nofy-session-registry", 150),
     ];
     for (name, cap) in caps {

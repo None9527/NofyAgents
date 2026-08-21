@@ -999,6 +999,13 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                 nofy_pager::task_cmd::run(&task_args, &state_dir)?;
                 return Ok(());
             }
+            Command::Approval(approval_args) => {
+                // W-4 wiring: the batch-approval entry speaks the control
+                // socket to the daemon under the same NOFY_HOME.
+                let state_dir = nofy_shell::util::nofy_home::nofy_home();
+                nofy_pager::approval_cmd::run(&approval_args, &state_dir)?;
+                return Ok(());
+            }
             Command::Version { json } => {
                 if json {
                     let payload = serde_json::json!({

@@ -108,6 +108,32 @@ impl ApprovalBroker {
     pub fn pending_count(&self) -> usize {
         self.pending.lock().unwrap().len()
     }
+
+    /// Projection for surfaces (W-4): every STILL-UNDECIDED intent with
+    /// its enveloped summary, deterministic id order. Answered-but-not-
+    /// yet-settled intents are excluded — they await no decision. Without
+    /// this the control plane could ANSWER approvals but never DISCOVER
+    /// them.
+    pub fn pending_intents(&self) -> Vec<(String, String)> {
+        let undecided: Vec<String> = self
+            .pending
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|(_, slot)| slot.0.lock().unwrap().is_none())
+            .map(|(id, _)| id.clone())
+            .collect();
+        let summaries = self.summaries.lock().unwrap();
+        let mut rows: Vec<(String, String)> = undecided
+            .into_iter()
+            .map(|id| {
+                let summary = summaries.get(&id).cloned().unwrap_or_default();
+                (id, summary)
+            })
+            .collect();
+        rows.sort_by(|a, b| a.0.cmp(&b.0));
+        rows
+    }
 }
 
 #[cfg(test)]
@@ -174,6 +200,31 @@ mod tests {
             broker.wait("i4", Duration::from_secs(5)),
             Some(ApprovalDecision::Deny),
             "an answer already lodged must not block"
+        );
+    }
+
+    #[test]
+    fn pending_intents_project_discoverable_and_ordered_w4() {
+        // W-4: surfaces discover what awaits a decision — id-ordered,
+        // summaries attached, settled intents gone.
+        let broker = ApprovalBroker::new();
+        assert!(broker.pending_intents().is_empty());
+        broker.register("zeta", "last");
+        broker.register("alpha", "first");
+        let rows = broker.pending_intents();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].0, "alpha", "deterministic id order");
+        assert_eq!(rows[0].1, "first");
+        assert_eq!(rows[1].0, "zeta");
+        broker.settle("alpha");
+        let rows = broker.pending_intents();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].0, "zeta");
+        // Answered (but not yet settled) intents await no decision.
+        assert!(broker.respond("zeta", ApprovalDecision::Deny));
+        assert!(
+            broker.pending_intents().is_empty(),
+            "a responded intent is no longer discoverable"
         );
     }
 }

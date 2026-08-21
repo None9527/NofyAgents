@@ -23,6 +23,9 @@ pub enum TaskEvent {
     EscalationResolved { seq: u64, task: String, allow: bool },
     /// User cancelled the task (W-7 `nofy task cancel`). Terminal.
     Cancelled { seq: u64, task: String, reason: String },
+    /// Transitively skipped: a dependency failed-and-was-allowed or was
+    /// cancelled (W-4 audit: skips are journaled, never silent). Terminal.
+    Skipped { seq: u64, task: String, reason: String },
 }
 
 impl TaskEvent {
@@ -33,7 +36,8 @@ impl TaskEvent {
             | TaskEvent::Settled { seq, .. }
             | TaskEvent::Escalated { seq, .. }
             | TaskEvent::EscalationResolved { seq, .. }
-            | TaskEvent::Cancelled { seq, .. } => *seq,
+            | TaskEvent::Cancelled { seq, .. }
+            | TaskEvent::Skipped { seq, .. } => *seq,
         }
     }
 
@@ -44,7 +48,8 @@ impl TaskEvent {
             | TaskEvent::Settled { task, .. }
             | TaskEvent::Escalated { task, .. }
             | TaskEvent::EscalationResolved { task, .. }
-            | TaskEvent::Cancelled { task, .. } => task,
+            | TaskEvent::Cancelled { task, .. }
+            | TaskEvent::Skipped { task, .. } => task,
         }
     }
 
@@ -63,7 +68,8 @@ impl TaskEvent {
             | TaskEvent::Settled { seq, .. }
             | TaskEvent::Escalated { seq, .. }
             | TaskEvent::EscalationResolved { seq, .. }
-            | TaskEvent::Cancelled { seq, .. } => *seq += by,
+            | TaskEvent::Cancelled { seq, .. }
+            | TaskEvent::Skipped { seq, .. } => *seq += by,
         }
     }
 }
@@ -82,6 +88,9 @@ pub enum TaskState {
     ResolvedDeny,
     /// User cancelled (W-7).
     Cancelled,
+    /// Transitively skipped because a dependency failed-and-was-allowed
+    /// or was cancelled (W-4 audit).
+    Skipped,
 }
 
 impl TaskState {
@@ -90,7 +99,11 @@ impl TaskState {
     pub fn is_terminal(&self) -> bool {
         matches!(
             self,
-            TaskState::SettledOk | TaskState::ResolvedAllow | TaskState::ResolvedDeny | TaskState::Cancelled
+            TaskState::SettledOk
+                | TaskState::ResolvedAllow
+                | TaskState::ResolvedDeny
+                | TaskState::Cancelled
+                | TaskState::Skipped
         )
     }
 }
@@ -131,6 +144,7 @@ pub fn fold_tasks(events: &[TaskEvent]) -> TaskJournal {
             TaskEvent::EscalationResolved { allow: true, .. } => TaskState::ResolvedAllow,
             TaskEvent::EscalationResolved { allow: false, .. } => TaskState::ResolvedDeny,
             TaskEvent::Cancelled { .. } => TaskState::Cancelled,
+            TaskEvent::Skipped { .. } => TaskState::Skipped,
         };
         journal.states.insert(task, next);
         journal.last_seq = seq;
@@ -405,5 +419,30 @@ mod tests {
     fn cancelled_roundtrips_through_the_log() {
         let text = format!("{}\n", serde_json::to_string(&cancelled(1, "t")).unwrap());
         assert_eq!(parse_log(&text), vec![cancelled(1, "t")]);
+    }
+
+    fn skipped(seq: u64, task: &str) -> TaskEvent {
+        TaskEvent::Skipped {
+            seq,
+            task: task.to_string(),
+            reason: "skipped: dependency failed (escalation allowed)".to_string(),
+        }
+    }
+
+    #[test]
+    fn skip_is_terminal_and_blocks_late_events_w4() {
+        // W-4: a skipped dependent reaches a terminal state; a late claim
+        // is dropped by the terminal gate, and the skip never re-dispatches.
+        let events = vec![armed(1, "d"), skipped(2, "d"), claimed(3, "d")];
+        let journal = fold_tasks(&events);
+        assert_eq!(journal.states.get("d"), Some(&TaskState::Skipped));
+        assert_eq!(journal.terminal_violations, 1);
+        assert!(!re_dispatch_list(&journal).contains(&"d".to_string()));
+    }
+
+    #[test]
+    fn skipped_roundtrips_through_the_log_w4() {
+        let text = format!("{}\n", serde_json::to_string(&skipped(1, "d")).unwrap());
+        assert_eq!(parse_log(&text), vec![skipped(1, "d")]);
     }
 }

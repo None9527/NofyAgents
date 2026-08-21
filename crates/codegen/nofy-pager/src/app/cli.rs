@@ -62,6 +62,8 @@ pub enum Command {
     Sessions(crate::sessions_cmd::SessionsArgs),
     /// Delegate tasks to the daemon and inspect them (control socket)
     Task(crate::task_cmd::TaskArgs),
+    /// List and decide pending approvals (control socket, W-4)
+    Approval(crate::approval_cmd::ApprovalArgs),
     /// Fetch and install managed configuration
     Setup {
         /// Print the fetched configuration as JSON instead of installing it;

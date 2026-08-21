@@ -306,6 +306,10 @@ impl OrchRun {
         self.running.remove(task_id);
         if allow {
             self.dead.insert(task_id.to_string());
+            // W-4: skips materialize at resolution, not lazily at the
+            // next dispatch — the run must be able to complete (and the
+            // daemon journals the skips) without another provider poll.
+            self.apply_skips();
         } else {
             self.aborted = true;
         }
