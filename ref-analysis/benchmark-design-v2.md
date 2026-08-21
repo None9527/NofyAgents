@@ -250,14 +250,14 @@
 
 | 编号 | 缺口 | 证据(首现) | 状态 |
 |---|---|---|---|
-| W-1 | provider 单次推理无工具循环:委派任务只产生一段文字回复,不落地产物,用户无可验收之物 | P1 D7 / P2' U4-01、U4-02 | 未修 |
-| W-2 | 派发无项目路由:任务不绑定工作目录/项目;调度项同样无项目/目录绑定 | P1 D7 / P3' U6-07 | 未修 |
-| W-3 | 验收=非空响应而非目标核对:不可能任务、谎报任务同样结算 ok=true | P2' U4-04、U4-05 | 未修 |
-| W-4 | 批量审批无控制面入口 | P1 D7 | 未修 |
+| W-1 | provider 单次推理无工具循环:委派任务只产生一段文字回复,不落地产物,用户无可验收之物 | P1 D7 / P2' U4-01、U4-02 | **已修**(provider 任务带最多 24 轮工具循环,经 ToolBridge 真实执行;实盘产物落盘验证;提交 `e245271`) |
+| W-2 | 派发无项目路由:任务不绑定工作目录/项目;调度项同样无项目/目录绑定 | P1 D7 / P3' U6-07 | **已修**(TaskSubmit/调度项携带 cwd,dispatch 全程携带,submit 默认绑定提交目录且不存在当场拒;实盘验证 AGENTS.md 随绑定生效;提交 `e245271`) |
+| W-3 | 验收=非空响应而非目标核对:不可能任务、谎报任务同样结算 ok=true | P2' U4-04、U4-05 | **已修**(完成后 judge 依工具痕迹+最终答复核对目标,ACHIEVED/NOT_ACHIEVED 结算,不可读 fail-closed;实盘不可能任务结算失败;提交 `e245271`) |
+| W-4 | 批量审批无控制面入口 | P1 D7 | **已修**(`nofy approval list/decide/decide-all` 用户动词 + ApprovalList 控制面方法;升级放行/取消的连带 skip 以 Skipped 终态事件入账;提交 `86dd44e`) |
 | W-5 | 调度触发桥整体缺失:`schedule` 管理面(enable/add/remove/list)存在且 fail-loud,但调度项仅 id+cron 无任务载荷、daemon 无时钟线程从不触发、无一次性概念、重启无追赶(recover 只重放日志未接 startup_repair)、连败自禁用核心算法未接线;default-off 在注册处双重强制(未 enable 连 add 都拒) | P1 D7 / P3' U6-01/02/03/04/08 | **已修**(daemon 时钟线程 schedclock:catch-up 触发+cron arm+卡死看门狗;add 带 --goal/--cwd/--once;触发经 TaskPoll 派发、TaskResult 结算并落 delivery 文件;启动 startup_repair;连败 3 次自禁用) |
 | W-6 | 崩溃重启后 armed 任务丢失(journal seq 跨 run 重置) | P1 D7-08 | **已修**(`TaskEvent::offset_seq` + `adopt_journal_store`) |
 | W-7 | 委派无任何用户动词:无 submit/status/list/cancel,只能经控制面 socket 驱动;且第二 run 静默顶掉第一 run(无并行) | P2' U4-06/07/08/10 | **已修**(`nofy task submit/list/status/cancel` 用户动词 + TaskList/TaskCancel 控制面方法 + Cancelled 终态幂等;提交 `b07d4c2`) |
 | W-8 | `sessions search/list` 只查远端且要求登录,不读本地会话库:BYOK 离线模式下历史检索/列表不可用 | P2' U3-06、U3-08 / P3' U5-02 | **已修**(`--all` 全局作用域标志,本地 FTS+合并通道;提交 `3d8b78b`) |
-| W-9 | 文件管家面缺失:删除为物理删除无垃圾桶/撤销;无『新纳管目录』表面(memory 动词仅 clear);无编辑租约 | P4' U7-07、U9-05、U9-06 | 未修 |
+| W-9 | 文件管家面缺失:删除为物理删除无垃圾桶/撤销;无『新纳管目录』表面(memory 动词仅 clear);无编辑租约 | P4' U7-07、U9-05、U9-06 | **部分已修**(垃圾桶/撤销面已落地:`delete_file` 工具移入回收站 + `nofy trash list/restore/add/empty` 动词,实盘验证可恢复;提交 `bc2605e`;『新纳管目录』表面与编辑租约表面仍缺) |
 | W-10 | 传输层失败静默挂起:HTTP 客户端无连接/请求超时,不可达端点/垃圾响应均零输出挂死;HTTP 层错误(401/429)体验良好 | P4' U8-03、U10-04、U10-05 | **已修**(retry_state 通知解码为 Lifecycle 每次尝试可见;缺 env key 给出 BYOK 指引;提交 `a545c1d`) |
 | W-11 | 记忆 BYOK 不可用:脚手架模板误杀真实短条目、CJK 整段分词查不到子串、模型无写入路径指引 | P3' 记忆诊断 | **已修**(is_scaffold_template 重写 + CJK instr 兜底 + memory_search 描述加写入指引;提交 `94ac6f1`) |
