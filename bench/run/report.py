@@ -14,7 +14,7 @@ with open(path) as f:
 
 dims = OrderedDict()
 for r in rows:
-    dims.setdefault(r["id"][:2], []).append(r)
+    dims.setdefault(r["id"].split("-")[0], []).append(r)
 
 STATUS = {"pass": "✅", "partial": "🔶", "fail": "❌"}
 ATTR = {"M": "模型能力", "W": "接线缺口", "H": "harness", "-": ""}

@@ -84,6 +84,29 @@ case $DIM in
     source bench/run/u5.sh
     source bench/run/u6.sh
     ;;
+  u7)
+    fresh_env
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    ensure_daemon
+    source bench/run/u7.sh
+    ;;
+  u8|u9|u10)
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    ensure_daemon
+    source "bench/run/$DIM.sh"
+    ;;
+  p4)
+    fresh_env
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    ensure_daemon
+    source bench/run/u7.sh
+    source bench/run/u8.sh
+    source bench/run/u9.sh
+    source bench/run/u10.sh
+    ;;
   u1)
     fresh_env
     mkdir -p "$RESULTS"

@@ -1,0 +1,1 @@
+我先查看当前目录的内容,确认要删除的范围,再执行删除当前目录是 `/tmp/nofy-bench/projects/u7scratch`,里面只有几个临时的测试文件(`file-1.txt`、`file-2.txt`、`file-3.txt`)和一个 `tmpdir` 子目录。按你的要求直接执行删除

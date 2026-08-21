@@ -257,4 +257,6 @@
 | W-5 | 调度触发桥整体缺失:`schedule` 管理面(enable/add/remove/list)存在且 fail-loud,但调度项仅 id+cron 无任务载荷、daemon 无时钟线程从不触发、无一次性概念、重启无追赶(recover 只重放日志未接 startup_repair)、连败自禁用核心算法未接线;default-off 在注册处双重强制(未 enable 连 add 都拒) | P1 D7 / P3' U6-01/02/03/04/08 | 未修 |
 | W-6 | 崩溃重启后 armed 任务丢失(journal seq 跨 run 重置) | P1 D7-08 | **已修**(`TaskEvent::offset_seq` + `adopt_journal_store`) |
 | W-7 | 委派无任何用户动词:无 submit/status/list/cancel,只能经控制面 socket 驱动;且第二 run 静默顶掉第一 run(无并行) | P2' U4-06/07/08/10 | 未修 |
-| W-8 | `sessions search/list` 只查远端且要求登录,不读本地会话库:BYOK 离线模式下历史检索/列表不可用 | P2' U3-06、U3-08 | 未修 |
+| W-8 | `sessions search/list` 只查远端且要求登录,不读本地会话库:BYOK 离线模式下历史检索/列表不可用 | P2' U3-06、U3-08 / P3' U5-02 | 未修 |
+| W-9 | 文件管家面缺失:删除为物理删除无垃圾桶/撤销;无『新纳管目录』表面(memory 动词仅 clear);无编辑租约 | P4' U7-07、U9-05、U9-06 | 未修 |
+| W-10 | 传输层失败静默挂起:HTTP 客户端无连接/请求超时,不可达端点/垃圾响应均零输出挂死;HTTP 层错误(401/429)体验良好 | P4' U8-03、U10-04、U10-05 | 未修 |
