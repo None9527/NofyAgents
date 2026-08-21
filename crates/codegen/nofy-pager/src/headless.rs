@@ -460,19 +460,71 @@ fn auth_required_message(interactive: bool) -> String {
     }
 }
 
+/// When the resolved model entry expects its API key from environment
+/// variables but none of them are set, return a targeted message naming the
+/// missing variable(s) — instead of the generic login guidance, which would
+/// misdirect a BYOK user whose only mistake is an unexported variable.
+fn missing_env_key_hint(raw_config: &toml::Value, model_override: Option<&str>) -> Option<String> {
+    let models_table = raw_config.get("model")?.as_table()?;
+    let default_id = raw_config
+        .get("models")
+        .and_then(|m| m.get("default"))
+        .and_then(|v| v.as_str());
+    let id = model_override.filter(|s| !s.is_empty()).or(default_id)?;
+    let entry = models_table.get(id)?;
+    // An inline api_key satisfies auth without any env lookup.
+    if entry
+        .get("api_key")
+        .and_then(|v| v.as_str())
+        .is_some_and(|s| !s.trim().is_empty())
+    {
+        return None;
+    }
+    let env_keys: Vec<String> = match entry.get("env_key") {
+        Some(toml::Value::String(s)) => vec![s.clone()],
+        Some(toml::Value::Array(arr)) => arr
+            .iter()
+            .filter_map(|v| v.as_str().map(String::from))
+            .collect(),
+        _ => return None,
+    };
+    if env_keys.is_empty() {
+        return None;
+    }
+    if env_keys
+        .iter()
+        .any(|k| std::env::var(k).is_ok_and(|v| !v.trim().is_empty()))
+    {
+        return None;
+    }
+    Some(format!(
+        "Model '{id}' expects its API key from environment variable{} {}, but none {} set. \
+         Export the variable, or add `api_key` to the [model.{id}] section of your config.toml.",
+        if env_keys.len() > 1 { "s" } else { "" },
+        env_keys.join(", "),
+        if env_keys.len() > 1 { "are" } else { "is" },
+    ))
+}
+
 /// Authenticate via the agent's `defaultAuthMethodId`, failing closed when none is available.
-/// Returns whether the selected method is API-key auth.
+/// Returns whether the selected method is API-key auth. `env_key_hint`, when
+/// present, replaces the generic login message: the user configured a BYOK
+/// model whose env var is unset, and login guidance would misdirect them.
 async fn authenticate(
     acp_tx: &AcpAgentTx,
     auths: &[acp::AuthMethod],
     default_auth_method_id: Option<&acp::AuthMethodId>,
+    env_key_hint: Option<&str>,
 ) -> anyhow::Result<bool> {
     let method_id = crate::acp::select_eager_auth_method(auths, default_auth_method_id)
         .ok_or_else(|| {
             use std::io::IsTerminal;
             let interactive = std::io::stdin().is_terminal()
                 && !nofy_shell::util::clipboard::is_remote_session();
-            anyhow::anyhow!("{}", auth_required_message(interactive))
+            match env_key_hint {
+                Some(hint) => anyhow::anyhow!("{hint}"),
+                None => anyhow::anyhow!("{}", auth_required_message(interactive)),
+            }
         })?;
     let kind = AuthMethodKind::from_id(&method_id);
     // Prefer non-interactive methods only; interactive login is not usable headless.
@@ -480,7 +532,10 @@ async fn authenticate(
         use std::io::IsTerminal;
         let interactive =
             std::io::stdin().is_terminal() && !nofy_shell::util::clipboard::is_remote_session();
-        anyhow::bail!("{}", auth_required_message(interactive));
+        match env_key_hint {
+            Some(hint) => anyhow::bail!("{hint}"),
+            None => anyhow::bail!("{}", auth_required_message(interactive)),
+        }
     }
     let is_api_key_auth = kind.is_api_key();
     let _resp: acp::AuthenticateResponse = acp_send(
@@ -904,10 +959,12 @@ pub async fn run_single_turn(
     let t_auth = Instant::now();
     nofy_telemetry::startup::enter(crate::acp::StartupPhase::EagerAuth);
     let default_auth_method_id = crate::acp::parse_default_auth_method_id(init_resp.meta.as_ref());
+    let env_key_hint = missing_env_key_hint(&raw_config, options.model.as_deref());
     let is_api_key_auth = match authenticate(
         &acp_tx,
         &init_resp.auth_methods,
         default_auth_method_id.as_ref(),
+        env_key_hint.as_deref(),
     )
     .await
     {

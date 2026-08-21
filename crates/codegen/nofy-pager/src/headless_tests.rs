@@ -561,3 +561,79 @@ fn headless_runtime_ctx_carries_cli_flags_single_channel() {
     assert!(!ctx.cli_experimental_memory);
     assert!(ctx.disable_web_search);
 }
+
+#[test]
+fn missing_env_key_hint_names_unset_variable() {
+    let cfg: toml::Value = toml::from_str(
+        r#"
+[models]
+default = "bench"
+
+[model.bench]
+model = "some-model"
+env_key = "NOFY_TEST_UNSET_VAR_XYZ_42"
+"#,
+    )
+    .unwrap();
+    let hint = super::missing_env_key_hint(&cfg, None).expect("hint expected");
+    assert!(hint.contains("NOFY_TEST_UNSET_VAR_XYZ_42"), "hint={hint}");
+    assert!(hint.contains("bench"), "hint={hint}");
+    assert!(hint.contains("api_key"), "hint={hint}");
+}
+
+#[test]
+fn missing_env_key_hint_none_when_inline_api_key() {
+    let cfg: toml::Value = toml::from_str(
+        r#"
+[models]
+default = "bench"
+
+[model.bench]
+model = "some-model"
+api_key = "sk-inline"
+env_key = "NOFY_TEST_UNSET_VAR_XYZ_42"
+"#,
+    )
+    .unwrap();
+    assert_eq!(super::missing_env_key_hint(&cfg, None), None);
+}
+
+#[test]
+fn missing_env_key_hint_none_when_variable_set() {
+    // PATH is set in every environment the test suite runs in.
+    let cfg: toml::Value = toml::from_str(
+        r#"
+[models]
+default = "bench"
+
+[model.bench]
+model = "some-model"
+env_key = "PATH"
+"#,
+    )
+    .unwrap();
+    assert_eq!(super::missing_env_key_hint(&cfg, None), None);
+}
+
+#[test]
+fn missing_env_key_hint_honors_model_override() {
+    let cfg: toml::Value = toml::from_str(
+        r#"
+[models]
+default = "bench"
+
+[model.bench]
+model = "some-model"
+api_key = "sk-inline"
+
+[model.other]
+model = "some-model"
+env_key = "NOFY_TEST_UNSET_VAR_XYZ_42"
+"#,
+    )
+    .unwrap();
+    // Default entry has an inline key — no hint; -m other selects the env_key entry.
+    assert_eq!(super::missing_env_key_hint(&cfg, None), None);
+    let hint = super::missing_env_key_hint(&cfg, Some("other")).expect("hint expected");
+    assert!(hint.contains("other"), "hint={hint}");
+}

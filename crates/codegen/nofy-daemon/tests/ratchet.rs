@@ -158,7 +158,11 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_552_540→1_552_728: P1 bench gap fixes — headless memory/web-search
     //   flags wired single-channel (D6-08) + W-6 crash reconciliation:
     //   cross-run dense-seq offset (offset_seq) + post-resume journal adoption.
-    let cap = 1_552_728; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_552_728→1_552_985: W-10 headless retry visibility — retry_state
+    //   notifications decoded to Lifecycle + plain/streaming lines (retries
+    //   were silent), and missing-env_key hint replacing the generic
+    //   "Not signed in" for BYOK models whose env var is unset.
+    let cap = 1_552_985; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

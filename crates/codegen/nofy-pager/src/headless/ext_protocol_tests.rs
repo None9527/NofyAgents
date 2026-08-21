@@ -271,6 +271,56 @@ fn headless_reasoning_completed_parses_signature() {
 }
 
 #[test]
+fn headless_retry_state_retrying_decodes_to_lifecycle() {
+    let notif = make_ext_notif(
+        "nofy/session_notification",
+        serde_json::json!({
+            "sessionUpdate": "retry_state",
+            "type": "retrying",
+            "attempt": 2,
+            "max_retries": 15,
+            "reason": "connection failed",
+        }),
+    );
+    let ExtEvent::Lifecycle(l) = handle_ext_notification(&notif) else {
+        panic!("expected Lifecycle event");
+    };
+    // W-10 regression: the user-visible line names the reason and progress.
+    let msg = l.plain_message();
+    let Lifecycle::Retrying { attempt, max_retries, reason } = l else {
+        panic!("expected Retrying");
+    };
+    assert_eq!(attempt, 2);
+    assert_eq!(max_retries, 15);
+    assert_eq!(reason, "connection failed");
+    assert!(msg.contains("connection failed"), "msg={msg}");
+    assert!(msg.contains("2/15"), "msg={msg}");
+}
+
+#[test]
+fn headless_retry_state_exhausted_decodes_to_lifecycle() {
+    let notif = make_ext_notif(
+        "nofy/session_notification",
+        serde_json::json!({
+            "sessionUpdate": "retry_state",
+            "type": "exhausted",
+            "attempts": 15,
+            "reason": "timeout",
+            "is_rate_limited": true,
+        }),
+    );
+    let ExtEvent::Lifecycle(l) = handle_ext_notification(&notif) else {
+        panic!("expected Lifecycle event");
+    };
+    let Lifecycle::RetryExhausted { attempts, reason, is_rate_limited } = l else {
+        panic!("expected RetryExhausted");
+    };
+    assert_eq!(attempts, 15);
+    assert_eq!(reason, "timeout");
+    assert!(is_rate_limited);
+}
+
+#[test]
 fn headless_undecodable_known_background_task_errors_not_silent() {
     let notif = make_ext_notif(
         "nofy/task_backgrounded",

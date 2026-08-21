@@ -208,6 +208,22 @@ fn decode_session_notification(method: &str, params: &str) -> ExtEvent {
             #[serde(default)]
             signature: Option<String>,
         },
+        /// Shell `SessionUpdate::RetryState`: inner `RetryState` fields are
+        /// flattened into the tagged envelope (wire uses snake_case fields).
+        RetryState {
+            #[serde(rename = "type", default)]
+            state_type: String,
+            #[serde(default)]
+            attempt: u32,
+            #[serde(default)]
+            attempts: u32,
+            #[serde(default)]
+            max_retries: u32,
+            #[serde(default)]
+            reason: Option<String>,
+            #[serde(default)]
+            is_rate_limited: bool,
+        },
         ResponseCompleted {
             #[serde(default)]
             message_id: Option<String>,
@@ -278,6 +294,29 @@ fn decode_session_notification(method: &str, params: &str) -> ExtEvent {
         })),
         NofyUpdate::ReasoningCompleted { signature } => {
             ExtEvent::Stream(Box::new(StreamEvent::ReasoningCompleted { signature }))
+        }
+        NofyUpdate::RetryState {
+            state_type,
+            attempt,
+            attempts,
+            max_retries,
+            reason,
+            is_rate_limited,
+        } => {
+            let reason = reason.unwrap_or_default();
+            if state_type == "exhausted" {
+                ExtEvent::Lifecycle(Lifecycle::RetryExhausted {
+                    attempts,
+                    reason,
+                    is_rate_limited,
+                })
+            } else {
+                ExtEvent::Lifecycle(Lifecycle::Retrying {
+                    attempt,
+                    max_retries,
+                    reason,
+                })
+            }
         }
         NofyUpdate::ResponseCompleted {
             message_id,
