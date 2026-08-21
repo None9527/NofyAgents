@@ -5274,16 +5274,25 @@ fn resolve_hidden_default_web_search_sampling_config(
     )
 }
 /// Sampling config for daemon-dispatched provider tasks (FR10/FR11 shell
-/// side): the bundled default catalog supplies the endpoint/auth shape, the
-/// model id comes from `NOFY_DEFAULT_MODEL` or the persisted default. No
-/// session token is involved — BYOK env keys and the endpoint config are
-/// the only credential sources, matching the zero-outbound default.
+/// side). One channel with sessions: the model resolves through the same
+/// config-first list (`[model.*]` overrides > built-in catalog), and the
+/// model id is `[models].default` first, then `NOFY_DEFAULT_MODEL` (compat
+/// seam), then the persisted product default. No session token is involved
+/// — BYOK env keys and the endpoint config are the only credential sources,
+/// matching the zero-outbound default.
 pub(crate) fn provider_task_sampling_config(cfg: &Config) -> SamplerConfig {
-    let model_id = std::env::var("NOFY_DEFAULT_MODEL")
-        .ok()
+    let model_id = cfg
+        .models
+        .default
+        .clone()
         .filter(|v| !v.trim().is_empty())
+        .or_else(|| {
+            std::env::var("NOFY_DEFAULT_MODEL")
+                .ok()
+                .filter(|v| !v.trim().is_empty())
+        })
         .unwrap_or_else(|| crate::session::persistence::default_model_id().0.to_string());
-    let entries = default_model_entries(&cfg.endpoints);
+    let entries = resolve_model_list(cfg, None);
     let entry = entries
         .get(&model_id)
         .cloned()
@@ -6450,6 +6459,31 @@ reasoning_effort = "low"
             resolve_credentials(&resolved["m"], Some("session-jwt")).api_key,
             None,
             "a prefetched custom base_url must fail closed, not leak the session token",
+        );
+    }
+    #[test]
+    fn provider_task_sampling_config_resolves_through_config_channel() {
+        // One channel with sessions: a dispatched provider task resolves its
+        // model through config.toml ([models].default + [model.*]), not a
+        // separate env-only path.
+        let mut cfg = Config::default();
+        cfg.models.default = Some("bench-model".to_string());
+        cfg.config_models.insert(
+            "bench-model".to_string(),
+            ConfigModelOverride {
+                model: Some("deepseek-v4-flash-0731".to_string()),
+                base_url: Some("https://byok.example/v1".to_string()),
+                api_key: Some("sk-byok".to_string()),
+                ..Default::default()
+            },
+        );
+        let sc = provider_task_sampling_config(&cfg);
+        assert_eq!(sc.base_url, "https://byok.example/v1");
+        assert_eq!(sc.model, "deepseek-v4-flash-0731");
+        assert_eq!(
+            sc.api_key.as_deref(),
+            Some("sk-byok"),
+            "the config model's own key must ride the dispatched task",
         );
     }
     fn test_model_entry(

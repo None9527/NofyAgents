@@ -152,7 +152,10 @@ fn workspace_loc_budget_only_shrinks() {
     //   fix in load_candidates + concurrent-churn regression test.
     // - 1_552_464→1_552_504: bootstrap single-flight hardening — marker-at-start
     //   raced-peer adoption + EPOCH_TEST_LOCK test isolation.
-    let cap = 1_552_503; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_552_503→1_552_537: provider task model channel unified with sessions —
+    //   provider_task_sampling_config resolves through config.toml [model.*]
+    //   (single BYOK channel) + regression test.
+    let cap = 1_552_540; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
