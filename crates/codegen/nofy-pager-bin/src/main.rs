@@ -992,6 +992,13 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                 nofy_pager::schedule_cmd::run(&schedule_args, &state_dir)?;
                 return Ok(());
             }
+            Command::Task(task_args) => {
+                // W-7 wiring: delegation verbs speak the control socket to
+                // the daemon under the same NOFY_HOME the daemon serves.
+                let state_dir = nofy_shell::util::nofy_home::nofy_home();
+                nofy_pager::task_cmd::run(&task_args, &state_dir)?;
+                return Ok(());
+            }
             Command::Version { json } => {
                 if json {
                     let payload = serde_json::json!({

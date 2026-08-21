@@ -50,6 +50,7 @@ pub mod scrollback;
 pub mod search;
 pub mod schedule_cmd;
 pub mod sessions_cmd;
+pub mod task_cmd;
 pub mod settings;
 pub mod share_cmd;
 pub mod slash;

@@ -78,6 +78,13 @@ pub enum ControlMethod {
     ScheduleRemove { id: String },
     /// Project the live schedule table.
     ScheduleList,
+    /// Project the task journal: every journaled task with its lifecycle
+    /// state (W-7 user verb — delegation results queryable, not just
+    /// readable off the raw log).
+    TaskList,
+    /// Cancel a pending/running task (W-7 user verb). Terminal: dependents
+    /// skip, late provider results are ignored.
+    TaskCancel { task_id: String },
 }
 
 /// One row of [`ControlResponse::ScheduleListed`] (batch U).
@@ -91,6 +98,18 @@ pub struct ScheduleEntryInfo {
     /// Armed-but-not-fired obligations for this schedule.
     #[serde(default)]
     pub pending: u32,
+}
+
+/// One row of [`ControlResponse::TaskListed`] (W-7).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TaskInfo {
+    pub id: String,
+    /// Lifecycle state token: armed / claimed / settled_ok / settled_failed /
+    /// escalated / resolved_allow / resolved_deny / cancelled.
+    pub state: String,
+    /// Run id from the task's Armed event, when journaled.
+    #[serde(default)]
+    pub run: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -148,6 +167,10 @@ pub enum ControlResponse {
     ScheduleNoted,
     /// Scheduling projection (batch U): the live schedule table.
     ScheduleListed { entries: Vec<ScheduleEntryInfo> },
+    /// Task journal projection (W-7): every journaled task + state.
+    TaskListed { tasks: Vec<TaskInfo> },
+    /// Task cancel ack (W-7).
+    TaskCancelled { task_id: String },
 }
 
 #[cfg(test)]

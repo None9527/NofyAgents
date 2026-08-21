@@ -272,6 +272,12 @@ impl OrchRun {
 
     /// Record a provider outcome.
     pub fn settle(&mut self, task_id: &str, ok: bool) -> SettleOutcome {
+        // W-7: a cancelled task is terminal — a late provider result must
+        // not resurrect it into `succeeded`.
+        if self.dead.contains(task_id) {
+            self.running.remove(task_id);
+            return SettleOutcome::Done;
+        }
         self.running.remove(task_id);
         if ok {
             self.succeeded.insert(task_id.to_string());
@@ -303,6 +309,23 @@ impl OrchRun {
         } else {
             self.aborted = true;
         }
+    }
+
+    /// W-7 `nofy task cancel`: kill a pending/running task and transitively
+    /// skip its dependents. Returns false when the task is unknown or
+    /// already terminal (succeeded/dead — nothing to cancel). A late
+    /// provider result for a cancelled task is ignored by [`Self::settle`].
+    pub fn cancel(&mut self, task_id: &str) -> bool {
+        if self.spec(task_id).is_none()
+            || self.succeeded.contains(task_id)
+            || self.dead.contains(task_id)
+        {
+            return false;
+        }
+        self.running.remove(task_id);
+        self.dead.insert(task_id.to_string());
+        self.apply_skips();
+        true
     }
 }
 
@@ -531,5 +554,52 @@ needs = ["flaky"]
         let t = run.dispatch_next().expect("first batch is ready");
         assert_eq!(run.settle(&t.id, false), SettleOutcome::Done);
         assert!(run.dead.contains(&t.id), "skip policy = dead, never escalated");
+    }
+
+    #[test]
+    fn cancel_kills_task_and_skips_dependents() {
+        // W-7: cancelling `review` must transitively skip `sec`
+        // (needs=["review"]) while leaving independent `docs` runnable.
+        let m = ProjectManifest::from_toml(MANIFEST).unwrap();
+        let mut run = OrchRun::new(m);
+        assert!(run.cancel("review"));
+        assert!(run.dead.contains("review"));
+        assert!(run.dead.contains("sec"), "dependent must be skipped");
+        let next = run.dispatch_next().expect("docs is independent");
+        assert_eq!(next.id, "docs");
+        assert!(run.dispatch_next().is_none(), "sec stays dead");
+    }
+
+    #[test]
+    fn cancel_unknown_or_succeeded_is_rejected() {
+        let m = ProjectManifest::from_toml(MANIFEST).unwrap();
+        let mut run = OrchRun::new(m);
+        assert!(!run.cancel("ghost"), "unknown task");
+        let t = run.dispatch_next().unwrap();
+        run.settle(&t.id.clone(), true);
+        assert!(!run.cancel(&t.id), "already settled task");
+    }
+
+    #[test]
+    fn cancel_is_idempotent_loud() {
+        // Second cancel of the same task must report false (fail-loud at
+        // the CLI), never journal a duplicate terminal event.
+        let m = ProjectManifest::from_toml(MANIFEST).unwrap();
+        let mut run = OrchRun::new(m);
+        assert!(run.cancel("review"));
+        assert!(!run.cancel("review"), "already cancelled");
+        assert!(!run.cancel("sec"), "transitively skipped = already dead");
+    }
+
+    #[test]
+    fn late_result_for_cancelled_task_is_ignored() {
+        let m = ProjectManifest::from_toml(MANIFEST).unwrap();
+        let mut run = OrchRun::new(m);
+        let t = run.dispatch_next().unwrap();
+        assert!(run.cancel(&t.id));
+        // Provider finishes late and reports success — must not resurrect.
+        assert_eq!(run.settle(&t.id, true), SettleOutcome::Done);
+        assert!(!run.succeeded.contains(&t.id));
+        assert!(run.dead.contains(&t.id));
     }
 }

@@ -469,6 +469,80 @@ pub fn serve_connection<R: Read, W: Write>(
                     serde_json::to_value(ControlResponse::ScheduleListed { entries: Vec::new() })?
                 }
             }
+            Ok(ControlMethod::TaskList) => {
+                // W-7: project the task journal for user verbs (`nofy task
+                // list/status`). Disk is truth: prefer the durable store,
+                // fall back to the live run's in-memory journal.
+                let events = stores
+                    .map(|s| s.journal.read_events().unwrap_or_default())
+                    .filter(|events| !events.is_empty())
+                    .unwrap_or_else(|| {
+                        run.lock()
+                            .unwrap()
+                            .as_ref()
+                            .map(|r| r.journal.clone())
+                            .unwrap_or_default()
+                    });
+                let journal = nofy_orchestra::taskjournal::fold_tasks(&events);
+                let mut run_ids: std::collections::BTreeMap<String, String> =
+                    std::collections::BTreeMap::new();
+                for ev in &events {
+                    if let nofy_orchestra::taskjournal::TaskEvent::Armed { task, run: run_id, .. } =
+                        ev
+                    {
+                        run_ids.entry(task.clone()).or_insert_with(|| run_id.clone());
+                    }
+                }
+                let tasks = journal
+                    .states
+                    .into_iter()
+                    .map(|(id, state)| {
+                        use nofy_orchestra::taskjournal::TaskState;
+                        let state = match state {
+                            TaskState::Armed => "armed",
+                            TaskState::Claimed => "claimed",
+                            TaskState::SettledOk => "settled_ok",
+                            TaskState::SettledFailed => "settled_failed",
+                            TaskState::Escalated => "escalated",
+                            TaskState::ResolvedAllow => "resolved_allow",
+                            TaskState::ResolvedDeny => "resolved_deny",
+                            TaskState::Cancelled => "cancelled",
+                        };
+                        nofy_control_schema::methods::TaskInfo {
+                            run: run_ids.remove(&id),
+                            state: state.to_string(),
+                            id,
+                        }
+                    })
+                    .collect();
+                serde_json::to_value(ControlResponse::TaskListed { tasks })?
+            }
+            Ok(ControlMethod::TaskCancel { task_id }) => {
+                // W-7: cancel is terminal — the orchestrator marks the task
+                // dead (dependents skip) and the journal records it so the
+                // cancel survives restarts and late provider results.
+                let mut guard = run.lock().unwrap();
+                let cancelled = guard.as_mut().is_some_and(|r| r.orch.cancel(&task_id));
+                match guard.as_mut() {
+                    Some(r) if cancelled => {
+                        let seq = r.journal_next_seq();
+                        r.record_event(nofy_orchestra::taskjournal::TaskEvent::Cancelled {
+                            seq,
+                            task: task_id.clone(),
+                            reason: "user cancelled".into(),
+                        });
+                        serde_json::to_value(ControlResponse::TaskCancelled { task_id })?
+                    }
+                    Some(_) => serde_json::to_value(ControlError::new(
+                        ControlErrorCode::Internal,
+                        format!("task '{task_id}' not found or already settled"),
+                    ))?,
+                    None => serde_json::to_value(ControlError::new(
+                        ControlErrorCode::Internal,
+                        "no active run to cancel tasks in",
+                    ))?,
+                }
+            }
             Err(e) => serde_json::to_value(ControlError::new(
                 ControlErrorCode::Internal,
                 format!("bad method frame: {e}"),

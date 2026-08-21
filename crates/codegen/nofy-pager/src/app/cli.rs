@@ -60,6 +60,8 @@ pub enum Command {
     Schedule(crate::schedule_cmd::ScheduleArgs),
     /// List, search, or restore sessions
     Sessions(crate::sessions_cmd::SessionsArgs),
+    /// Delegate tasks to the daemon and inspect them (control socket)
+    Task(crate::task_cmd::TaskArgs),
     /// Fetch and install managed configuration
     Setup {
         /// Print the fetched configuration as JSON instead of installing it;

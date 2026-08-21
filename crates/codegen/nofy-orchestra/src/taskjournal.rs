@@ -21,6 +21,8 @@ pub enum TaskEvent {
     Settled { seq: u64, task: String, ok: bool },
     Escalated { seq: u64, task: String, reason: String },
     EscalationResolved { seq: u64, task: String, allow: bool },
+    /// User cancelled the task (W-7 `nofy task cancel`). Terminal.
+    Cancelled { seq: u64, task: String, reason: String },
 }
 
 impl TaskEvent {
@@ -30,7 +32,8 @@ impl TaskEvent {
             | TaskEvent::Claimed { seq, .. }
             | TaskEvent::Settled { seq, .. }
             | TaskEvent::Escalated { seq, .. }
-            | TaskEvent::EscalationResolved { seq, .. } => *seq,
+            | TaskEvent::EscalationResolved { seq, .. }
+            | TaskEvent::Cancelled { seq, .. } => *seq,
         }
     }
 
@@ -40,7 +43,8 @@ impl TaskEvent {
             | TaskEvent::Claimed { task, .. }
             | TaskEvent::Settled { task, .. }
             | TaskEvent::Escalated { task, .. }
-            | TaskEvent::EscalationResolved { task, .. } => task,
+            | TaskEvent::EscalationResolved { task, .. }
+            | TaskEvent::Cancelled { task, .. } => task,
         }
     }
 
@@ -58,7 +62,8 @@ impl TaskEvent {
             | TaskEvent::Claimed { seq, .. }
             | TaskEvent::Settled { seq, .. }
             | TaskEvent::Escalated { seq, .. }
-            | TaskEvent::EscalationResolved { seq, .. } => *seq += by,
+            | TaskEvent::EscalationResolved { seq, .. }
+            | TaskEvent::Cancelled { seq, .. } => *seq += by,
         }
     }
 }
@@ -75,13 +80,18 @@ pub enum TaskState {
     ResolvedAllow,
     /// Escalation resolved: denied = abort signal for the caller.
     ResolvedDeny,
+    /// User cancelled (W-7).
+    Cancelled,
 }
 
 impl TaskState {
     /// Terminal = nothing may follow. A FAILED settle is not terminal:
     /// escalation (or a retry re-claim) legitimately follows failure.
     pub fn is_terminal(&self) -> bool {
-        matches!(self, TaskState::SettledOk | TaskState::ResolvedAllow | TaskState::ResolvedDeny)
+        matches!(
+            self,
+            TaskState::SettledOk | TaskState::ResolvedAllow | TaskState::ResolvedDeny | TaskState::Cancelled
+        )
     }
 }
 
@@ -120,6 +130,7 @@ pub fn fold_tasks(events: &[TaskEvent]) -> TaskJournal {
             TaskEvent::Escalated { .. } => TaskState::Escalated,
             TaskEvent::EscalationResolved { allow: true, .. } => TaskState::ResolvedAllow,
             TaskEvent::EscalationResolved { allow: false, .. } => TaskState::ResolvedDeny,
+            TaskEvent::Cancelled { .. } => TaskState::Cancelled,
         };
         journal.states.insert(task, next);
         journal.last_seq = seq;
@@ -364,5 +375,35 @@ mod tests {
         std::fs::create_dir_all(&path).unwrap();
         let store = TaskLogStore::open(&path);
         assert!(store.read_events().is_err());
+    }
+
+    fn cancelled(seq: u64, task: &str) -> TaskEvent {
+        TaskEvent::Cancelled {
+            seq,
+            task: task.to_string(),
+            reason: "user cancelled".to_string(),
+        }
+    }
+
+    #[test]
+    fn cancel_is_terminal_and_blocks_late_events() {
+        // W-7: a cancelled task reaches a terminal state; a late settle is
+        // dropped by the terminal gate (counted as a violation).
+        let events = vec![
+            armed(1, "t"),
+            claimed(2, "t"),
+            cancelled(3, "t"),
+            settled(4, "t", true),
+        ];
+        let journal = fold_tasks(&events);
+        assert_eq!(journal.states.get("t"), Some(&TaskState::Cancelled));
+        assert_eq!(journal.terminal_violations, 1);
+        assert!(!re_dispatch_list(&journal).contains(&"t".to_string()));
+    }
+
+    #[test]
+    fn cancelled_roundtrips_through_the_log() {
+        let text = format!("{}\n", serde_json::to_string(&cancelled(1, "t")).unwrap());
+        assert_eq!(parse_log(&text), vec![cancelled(1, "t")]);
     }
 }

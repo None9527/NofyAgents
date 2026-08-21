@@ -172,7 +172,12 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_553_141→1_553_202: W-11 root cause — is_scaffold_template no
     //   longer drops short MEMORY.md files that contain real user entries
     //   (template + one line was filtered wholesale, silencing recall).
-    let cap = 1_553_202; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_553_202→1_553_586: W-7 delegation user verbs — `nofy task
+    //   submit/list/status/cancel` over the control socket; TaskList/
+    //   TaskCancel methods + TaskListed/TaskCancelled responses;
+    //   TaskEvent::Cancelled (terminal) + orch.cancel with dependent
+    //   skips, idempotent loud rejection, and late-result immunity.
+    let cap = 1_553_588; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
