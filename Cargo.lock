@@ -7242,6 +7242,7 @@ dependencies = [
  "nofy-ratatui-textarea",
  "nofy-sandbox",
  "nofy-shell",
+ "nofy-stewardcore",
  "nofy-telemetry",
  "nofy-test-support",
  "nofy-token-estimation",
@@ -7858,6 +7859,9 @@ name = "nofy-stewardcore"
 version = "0.1.0"
 dependencies = [
  "nofy-orchestra",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -8063,6 +8067,7 @@ dependencies = [
  "nofy-file-utils",
  "nofy-interjection-core",
  "nofy-sandbox",
+ "nofy-stewardcore",
  "nofy-test-support",
  "nofy-test-utils",
  "nofy-token-estimation",

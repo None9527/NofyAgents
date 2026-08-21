@@ -17,6 +17,7 @@ async-openai = { workspace = true }
 nofy-tty-utils = { workspace = true }
 nofy-auth = { workspace = true }
 nofy-config = { path = "../nofy-config" }
+nofy-stewardcore = { workspace = true }
 nofy-extra-ca = { workspace = true }
 nofy-tools-api = { path = "../nofy-tools-api" }
 nofy-version = { workspace = true }

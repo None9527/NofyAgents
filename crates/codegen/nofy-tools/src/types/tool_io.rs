@@ -94,6 +94,7 @@ pub enum ToolInput {
     SchedulerCreate(crate::implementations::nofy_build::scheduler::create::SchedulerCreateInput),
     SchedulerDelete(crate::implementations::nofy_build::scheduler::delete::SchedulerDeleteInput),
     SchedulerList(crate::implementations::nofy_build::scheduler::list::SchedulerListInput),
+    FileTrashDelete(crate::implementations::nofy_build::file_trash::FileTrashDeleteInput),
     UpdateGoal(UpdateGoalInput),
     Workflow(crate::implementations::nofy_build::workflow::WorkflowToolInput),
     /// Dynamic input for runtime-registered tools (MCP, etc.)

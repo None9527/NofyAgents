@@ -52,5 +52,6 @@ pub mod revalidate;
 pub mod roots;
 pub mod suggestions;
 pub mod tombstone;
+pub mod trash;
 pub mod trust;
 pub mod zoning;

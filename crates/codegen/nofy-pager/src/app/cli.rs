@@ -64,6 +64,8 @@ pub enum Command {
     Task(crate::task_cmd::TaskArgs),
     /// List and decide pending approvals (control socket, W-4)
     Approval(crate::approval_cmd::ApprovalArgs),
+    /// Recoverable deletions: list, restore, add, empty (W-9)
+    Trash(crate::trash_cmd::TrashArgs),
     /// Fetch and install managed configuration
     Setup {
         /// Print the fetched configuration as JSON instead of installing it;

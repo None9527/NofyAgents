@@ -7,6 +7,11 @@ description = "File steward execution-surface cores for Nofy (FR12.1-12.9/12.11-
 
 [dependencies]
 nofy-orchestra = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

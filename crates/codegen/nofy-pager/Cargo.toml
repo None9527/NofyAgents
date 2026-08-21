@@ -10,6 +10,7 @@ authors = ["xAI"]
 dunce = { workspace = true }
 nofy-control-schema = { workspace = true }
 nofy-daemon = { workspace = true }
+nofy-stewardcore = { workspace = true }
 nofy-tty-utils = { workspace = true }
 nofy-version = { workspace = true }
 

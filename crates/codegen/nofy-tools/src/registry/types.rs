@@ -712,6 +712,7 @@ impl ToolRegistryBuilder {
         b.register::<nofy_build::SchedulerCreateTool>();
         b.register::<nofy_build::SchedulerDeleteTool>();
         b.register::<nofy_build::SchedulerListTool>();
+        b.register::<nofy_build::FileTrashDeleteTool>();
         b.register::<codex::apply_patch::ApplyPatchTool>();
         b.register::<codex::list_dir::CodexListDirTool>();
         b.register::<codex::grep_files::CodexGrepFilesTool>();

@@ -646,6 +646,7 @@ pub enum ToolOutput {
     SchedulerCreate(crate::implementations::nofy_build::scheduler::create::SchedulerCreateOutput),
     SchedulerDelete(crate::implementations::nofy_build::scheduler::delete::SchedulerDeleteOutput),
     SchedulerList(crate::implementations::nofy_build::scheduler::list::SchedulerListOutput),
+    FileTrashDelete(crate::implementations::nofy_build::file_trash::FileTrashDeleteOutput),
     UpdateGoal(crate::implementations::nofy_build::update_goal::UpdateGoalOutput),
     Workflow(crate::implementations::nofy_build::workflow::WorkflowToolOutput),
     /// Dynamic output for runtime-registered tools (MCP, test tools, etc.)
@@ -693,6 +694,7 @@ impl ToolOutput {
                 TodoWriteOutput::DuplicateId(_) | TodoWriteOutput::InvalidArgument(_),
             ) => true,
             ToolOutput::GrepSearch(g) => g.exit_code > 1,
+            ToolOutput::FileTrashDelete(t) => !t.success,
             _ => false,
         }
     }
@@ -994,6 +996,7 @@ impl ToolOutput {
                     serde_json::to_string_pretty(&o.tasks).unwrap_or_default()
                 }
             }
+            ToolOutput::FileTrashDelete(o) => o.message.clone(),
             ToolOutput::UpdateGoal(o) => o.summary.clone(),
             ToolOutput::Workflow(o) => o.message.clone(),
             ToolOutput::Dynamic(v) => serde_json::to_string_pretty(&v.value).unwrap_or_default(),

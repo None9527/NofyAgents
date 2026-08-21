@@ -763,6 +763,11 @@ impl AgentBuilder {
                     .tools
                     .push((&nofy_tools::implementations::opencode::OpenCodeWriteTool).into());
             }
+            // W-9: recoverable deletion is a default capability — every
+            // default agent can move files to the trash instead of rm.
+            tool_config
+                .tools
+                .push((&nofy_tools::implementations::nofy_build::FileTrashDeleteTool).into());
             ensure_plan_mode_tools(&mut tool_config);
         }
         if self.memory_backend.is_none() {

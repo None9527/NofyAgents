@@ -1006,6 +1006,13 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                 nofy_pager::approval_cmd::run(&approval_args, &state_dir)?;
                 return Ok(());
             }
+            Command::Trash(trash_args) => {
+                // W-9 wiring: the trash lives on disk under NOFY_HOME —
+                // no daemon round-trip needed.
+                let state_dir = nofy_shell::util::nofy_home::nofy_home();
+                nofy_pager::trash_cmd::run(&trash_args, &state_dir)?;
+                return Ok(());
+            }
             Command::Version { json } => {
                 if json {
                     let payload = serde_json::json!({
