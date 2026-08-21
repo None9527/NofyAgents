@@ -43,6 +43,24 @@ impl TaskEvent {
             | TaskEvent::EscalationResolved { task, .. } => task,
         }
     }
+
+    /// Shift this event's seq by `by`. The durable log is shared across
+    /// runs, and reconciliation folds the WHOLE log under the dense-seq
+    /// invariant — so a run attaching to a non-empty store must continue
+    /// the global sequence, never restart at 1 (a restart truncates the
+    /// fold and hides every later event from crash reconciliation).
+    pub fn offset_seq(&mut self, by: u64) {
+        if by == 0 {
+            return;
+        }
+        match self {
+            TaskEvent::Armed { seq, .. }
+            | TaskEvent::Claimed { seq, .. }
+            | TaskEvent::Settled { seq, .. }
+            | TaskEvent::Escalated { seq, .. }
+            | TaskEvent::EscalationResolved { seq, .. } => *seq += by,
+        }
+    }
 }
 
 /// Lifecycle state of one task.

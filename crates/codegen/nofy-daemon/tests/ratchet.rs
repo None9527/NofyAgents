@@ -155,7 +155,10 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_552_503→1_552_537: provider task model channel unified with sessions —
     //   provider_task_sampling_config resolves through config.toml [model.*]
     //   (single BYOK channel) + regression test.
-    let cap = 1_552_540; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_552_540→1_552_728: P1 bench gap fixes — headless memory/web-search
+    //   flags wired single-channel (D6-08) + W-6 crash reconciliation:
+    //   cross-run dense-seq offset (offset_seq) + post-resume journal adoption.
+    let cap = 1_552_728; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -339,8 +342,11 @@ fn control_plane_loc_ratchet_only_shrinks() {
     // - daemon 5154→7120: coverage-gate — tests for uncovered branches.
     // - daemon 7120→7140: coverage-gate — forensics last_entry infinite-loop
     //   fix (bounded torn-tail walk) + its directory regression test.
+    // - daemon 7140→7221: W-6 crash reconciliation fix — attach_journal
+    //   cross-run dense-seq offset + adopt_journal_store post-resume
+    //   durability + second-run reconciliation regression test.
     let caps = [
-        ("nofy-daemon", 7140),
+        ("nofy-daemon", 7221),
         ("nofy-channel", 609),
         ("nofy-control-schema", 388),
         ("nofy-session-registry", 145),

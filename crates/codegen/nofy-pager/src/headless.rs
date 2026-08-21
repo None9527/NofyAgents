@@ -66,6 +66,11 @@ pub struct HeadlessOptions {
     pub cli_tools: Option<String>,
     pub cli_disallowed_tools: Option<String>,
     pub disable_web_search: bool,
+    /// `--experimental-memory`: cross-session memory (one channel with the
+    /// TUI/ACP surfaces — headless must not silently drop the flag).
+    pub experimental_memory: bool,
+    /// `--no-memory`: force memory off.
+    pub no_memory: bool,
     pub allow_rules: Vec<String>,
     pub deny_rules: Vec<String>,
     pub max_turns: Option<u32>,
@@ -743,6 +748,30 @@ fn headless_materialize_ctx(
     }
 }
 
+/// Build the runtime-resolution context for a headless run. Extracted so the
+/// flag wiring is unit-testable: headless must carry the memory/web-search
+/// CLI flags into resolution exactly like the interactive surfaces do, never
+/// hardcode them away (regression: `--experimental-memory` was dropped here).
+pub(crate) fn headless_runtime_resolution_ctx<'a>(
+    options: &HeadlessOptions,
+    raw_config: &'a toml::Value,
+) -> nofy_shell::agent::config::RuntimeResolutionContext<'a> {
+    nofy_shell::agent::config::RuntimeResolutionContext {
+        raw_config,
+        remote_settings: None,
+        is_headless: true,
+        cli_subagents: None,
+        cli_web_search_model: None,
+        cli_session_summary_model: None,
+        cli_experimental_memory: options.experimental_memory,
+        cli_no_memory: options.no_memory,
+        disable_web_search: options.disable_web_search,
+        todo_gate: false,
+        laziness_debug_log: None,
+        storage_mode: None,
+    }
+}
+
 /// Run a headless single-turn prompt: spawn the agent, drive the ACP lifecycle, stream to stdout.
 pub async fn run_single_turn(
     prompt: HeadlessPrompt,
@@ -784,20 +813,10 @@ pub async fn run_single_turn(
         agent_config.default_model_override = Some(model.clone());
     }
 
-    agent_config.resolve_runtime_fields(&nofy_shell::agent::config::RuntimeResolutionContext {
-        raw_config: &raw_config,
-        remote_settings: None,
-        is_headless: true,
-        cli_subagents: None,
-        cli_web_search_model: None,
-        cli_session_summary_model: None,
-        cli_experimental_memory: false,
-        cli_no_memory: false,
-        disable_web_search: options.disable_web_search,
-        todo_gate: false,
-        laziness_debug_log: None,
-        storage_mode: None,
-    });
+    agent_config.resolve_runtime_fields(&headless_runtime_resolution_ctx(
+        &options,
+        &raw_config,
+    ));
 
     agent_config.mode = nofy_shell::agent::config::AgentMode::Headless;
     agent_config.default_yolo_mode = options.yolo;

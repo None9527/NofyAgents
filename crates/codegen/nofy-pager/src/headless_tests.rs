@@ -501,3 +501,63 @@ fn parse_json_schema_rejects_non_objects_and_invalid_json() {
             .contains("invalid JSON")
     );
 }
+
+/// Single-channel regression (bench D6-08): the headless entry must carry the
+/// memory/web-search CLI flags into runtime resolution exactly like the
+/// interactive surfaces — never hardcode them away.
+#[test]
+fn headless_runtime_ctx_carries_cli_flags_single_channel() {
+    fn opts(
+        experimental_memory: bool,
+        no_memory: bool,
+        disable_web_search: bool,
+    ) -> super::HeadlessOptions {
+        super::HeadlessOptions {
+            session_id: None,
+            resume: None,
+            resume_title_pinned: false,
+            cwd: None,
+            yolo: false,
+            trust: false,
+            output_format: super::OutputFormat::Plain,
+            include_partial_messages: false,
+            json_schema: None,
+            model: None,
+            rules: None,
+            system_prompt_override: None,
+            continue_last_session: false,
+            fork_session: false,
+            worktree: None,
+            restore_code: false,
+            agent: None,
+            agents_json: None,
+            cli_tools: None,
+            cli_disallowed_tools: None,
+            disable_web_search,
+            experimental_memory,
+            no_memory,
+            allow_rules: vec![],
+            deny_rules: vec![],
+            max_turns: None,
+            permission_mode_flag: None,
+            reasoning_effort: None,
+            wait_for_background: true,
+            background_wait_timeout: std::time::Duration::from_secs(1),
+        }
+    }
+    let raw = toml::Value::Table(Default::default());
+    let ctx = super::headless_runtime_resolution_ctx(&opts(true, false, false), &raw);
+    assert!(
+        ctx.cli_experimental_memory,
+        "--experimental-memory must reach resolution from headless"
+    );
+    assert!(!ctx.cli_no_memory);
+    assert!(ctx.is_headless);
+    let ctx = super::headless_runtime_resolution_ctx(&opts(false, true, true), &raw);
+    assert!(
+        ctx.cli_no_memory,
+        "--no-memory must reach resolution from headless"
+    );
+    assert!(!ctx.cli_experimental_memory);
+    assert!(ctx.disable_web_search);
+}

@@ -25,16 +25,31 @@ impl DaemonRun {
     }
 
     /// Attach the durable sink (R2): existing in-memory events are
-    /// flushed to disk first, later events append to both.
+    /// flushed to disk first, later events append to both. The store is
+    /// shared across runs, so this run's seqs are offset to continue the
+    /// global dense sequence — restarting at 1 would truncate the fold
+    /// and hide later runs from crash reconciliation (W-6).
     pub fn attach_journal(
         &mut self,
         store: nofy_orchestra::taskjournal::TaskLogStore,
     ) -> std::io::Result<()> {
+        let offset = store.read_events()?.last().map(|e| e.seq()).unwrap_or(0);
+        for event in &mut self.journal {
+            event.offset_seq(offset);
+        }
         for event in &self.journal {
             store.append(event)?;
         }
         self.journal_store = Some(store);
         Ok(())
+    }
+
+    /// Adopt the durable sink WITHOUT flushing (resume path): the
+    /// in-memory journal already mirrors the disk log, so only the sink
+    /// handle is attached — post-resume events must persist too, or a
+    /// second crash loses everything reconciled so far (W-6).
+    pub fn adopt_journal_store(&mut self, store: nofy_orchestra::taskjournal::TaskLogStore) {
+        self.journal_store = Some(store);
     }
 
     /// Record one lifecycle event: in-memory journal + durable sink. A
@@ -198,6 +213,9 @@ pub fn resume_run(stores: &DaemonStores) -> Result<Option<DaemonRun>, String> {
         dr.orch.running.insert(task);
     }
     dr.journal = events; // the disk log is the journal truth
+    // W-6: post-resume events must persist as well — adopt the sink
+    // without re-flushing the log it already mirrors.
+    dr.adopt_journal_store(stores.journal.clone());
     Ok(Some(dr))
 }
 
@@ -427,5 +445,68 @@ needs = ["a"]
             nofy_orchestra::taskjournal::TaskLogStore::open(dir.path().join("task_journal.jsonl"));
         let Err(err) = resume_run(&stores) else { panic!("an unreadable journal must refuse the resume") };
         assert!(err.contains("task journal"), "the journal failure is named: {err}");
+    }
+
+    #[test]
+    fn second_run_arms_survive_crash_reconciliation_w6() {
+        // W-6 regression: the durable log is shared across runs and the
+        // fold demands globally dense seqs. A second run's events must be
+        // offset to continue the sequence — restarting at 1 truncates the
+        // fold and hides the second run's armed task from reconciliation.
+        use nofy_orchestra::taskjournal::TaskEvent;
+        let dir = tempfile::tempdir().unwrap();
+        let stores = stores_at(dir.path());
+
+        // Run A: full lifecycle, settles.
+        let (mut dr_a, _) = submit_run(ONE_TASK, &[]).unwrap();
+        dr_a.attach_journal(stores.journal.clone()).unwrap();
+        dr_a.record_event(TaskEvent::Claimed {
+            seq: dr_a.journal_next_seq(),
+            task: "t1".into(),
+            claimant: "provider".into(),
+        });
+        dr_a.record_event(TaskEvent::Settled {
+            seq: dr_a.journal_next_seq(),
+            task: "t1".into(),
+            ok: true,
+        });
+
+        // Run B: submits and arms, crashes before any claim.
+        stores
+            .runs
+            .save(&crate::runstore::StoredRun {
+                manifest_toml: ONE_TASK.replace("t1", "t2"),
+                packs: vec![],
+            })
+            .unwrap();
+        let (mut dr_b, _) = submit_run(&ONE_TASK.replace("t1", "t2"), &[]).unwrap();
+        dr_b.attach_journal(stores.journal.clone()).unwrap();
+        drop(dr_b); // crash
+
+        // Restart: reconciliation must see run B's armed task.
+        let stores = stores_at(dir.path());
+        let dr = resume_run(&stores).unwrap().expect("the leftover run resumes");
+        assert_eq!(
+            dr.re_dispatch(),
+            vec!["t2".to_string()],
+            "the second run's armed task must survive reconciliation \
+             (dense seqs continue across runs)",
+        );
+
+        // Second half of W-6: post-resume events persist — a second crash
+        // must not lose what reconciliation re-drove.
+        let mut dr = dr;
+        dr.record_event(TaskEvent::Claimed {
+            seq: dr.journal_next_seq(),
+            task: "t2".into(),
+            claimant: "provider".into(),
+        });
+        let stores = stores_at(dir.path());
+        let dr2 = resume_run(&stores).unwrap().expect("resume after the second crash");
+        assert_eq!(
+            dr2.re_dispatch(),
+            vec!["t2".to_string()],
+            "claimed-but-unsettled after resume stays reconcilable",
+        );
     }
 }

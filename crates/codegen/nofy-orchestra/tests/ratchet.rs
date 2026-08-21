@@ -36,7 +36,9 @@ fn orchestra_loc_ratchet_only_shrinks() {
     // - 3156→3272: batch R1 — TaskEvent serde + TaskLogStore (durable
     //   task.* journal, AC-11 crash reconciliation from disk).
     // - 3272→3515: coverage-gate — tests for uncovered branches.
-    let cap = 3515;
+    // - 3515→3533: W-6 fix — TaskEvent::offset_seq (cross-run dense-seq
+    //   continuity for crash reconciliation).
+    let cap = 3533;
     let got = loc(&src);
     assert!(
         got <= cap,

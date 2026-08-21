@@ -65,3 +65,17 @@
 - **D7-07** 周期编排:schedule 触发可观测:条目在表;触发→任务桥无控制面可观测证据(W-5 在案)
 - **D7-08** 崩溃续跑:任务在途杀 daemon,重启对账续跑:计划/journal 耐久+run 恢复+对账留痕均成立;但 armed 未认领任务重启后永不重派(provider 在世轮询仍卡死)——新发现 W-6:AC-11 对账对 Armed 态不完整
 - **D7-09** steward:全局控制面入口盘点:steward 策略核已接线(daemon validate),全局控制面无 steward 动词(W-5 在案)
+
+---
+
+## 修复增补(2026-08-21 下午)
+
+P1 暴露的缺口当日修复两项,均真链路复验:
+
+| 缺口 | 修复 | 验证 |
+|---|---|---|
+| 模型双线(provider 绕过 config) | `provider_task_sampling_config` 改走 `resolve_model_list`(config 单一来源),`[models].default` > `NOFY_DEFAULT_MODEL`(兼容缝)> 产品默认 | 回归测试 + 真链路:纯 config 通道调用 deepseek-v4-flash-0731,journal ok=true(fca6425) |
+| D6-08 headless 记忆旗标丢弃 | `HeadlessOptions` 增 `experimental_memory`/`no_memory`,`headless_runtime_resolution_ctx` 提取为可测内核函数,旗标与 TUI/ACP 同通道 | 回归测试 + 真链路:headless `--experimental-memory` 下记忆系统正常 bootstrap(memory 目录+FTS 索引创建) |
+| W-6 崩溃对账 Armed 态卡死 | 根因=跨 run 共享 journal 的稠密 seq 在每 run 从 1 重启处断折(fold 截断)。修复:`TaskEvent::offset_seq` 使 attach 时续接全局 seq;`adopt_journal_store` 使 resume 后事件也耐久 | 回归测试(双崩溃场景)+ 真链路:kill -9 → 重启 `tasks=["w6crash"]` 重派 → Claimed(seq5)→Settled ok=true(seq6) |
+
+**D7-08 判定 partial→pass。** 仍在案:W-1(provider 无工具循环)/ W-2(派发无项目路由)/ W-3(验收非 goal fold)/ W-4(批审批无控制面入口)/ W-5(周期桥与 steward 无全局动词);D6-08 任务级残余为模型工具使用(M)。

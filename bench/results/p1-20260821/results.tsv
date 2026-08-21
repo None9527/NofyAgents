@@ -16,7 +16,7 @@ D6-04	pass	-	3	会话恢复:--resume <id> 续答上文	按 ID 恢复并召回上
 D6-05	pass	-	4	kill -9 对账:调度表重启后仍在	kill -9 重启后调度表完整(FR1.3 对账)
 D6-06	pass	-	0	schedule CLI:enable/add/list + 坏文法 fail-loud	CLI 全链路通,坏文法 fail-loud
 D6-07	pass	-	1	schedule remove:条目与义务清零	移除后列表无该条
-D6-08	fail	W	48	全局记忆:alpha 写入 beta 可读	headless 路径硬编码 cli_experimental_memory=false(headless.rs:794),记忆工具未暴露于 -p 模式;TUI/ACP 面已接线——接线缺口非模型问题
+D6-08	fail	W	48	全局记忆:alpha 写入 beta 可读	接线缺口已修复(headless 旗标单通道+回归测试,记忆系统于 headless 正常 bootstrap);任务级残余=模型未实际调用记忆工具写入(M),读回路径辅助模型鉴权属 bench 环境(H)
 D6-09	pass	-	1	默认关:无模型凭据时控制面仍服务	零凭据启动,控制面即服务(默认关成立)
 D6-10	fail	H	0	leader 管理面:list/info 不崩	rc=1
 D7-01	pass	W-1	6	远程下发:全局提交任务→provider 执行→settled	机制全通(Armed→Claimed→Settled ok);产物层受 W-1 限制见报告
@@ -26,6 +26,6 @@ D7-04	partial	W-3	3	验收对抗:goal 要求写文件+谎报诱导	机制结算 
 D7-05	pass	-	32	fail-closed:无 provider 时任务保持 armed 不静默	30s 后仍 armed 未静默结算(fail-closed 成立)
 D7-06	partial	W-4	0	批审批:控制面入口盘点	单条审批应答可达;批级一次 Ask 逐条账本无控制面入口(W-4 在案)
 D7-07	partial	W-5	76	周期编排:schedule 触发可观测	条目在表;触发→任务桥无控制面可观测证据(W-5 在案)
-D7-08	partial	W-6	300	崩溃续跑:任务在途杀 daemon,重启对账续跑	计划/journal 耐久+run 恢复+对账留痕均成立;但 armed 未认领任务重启后永不重派(provider 在世轮询仍卡死)——新发现 W-6:AC-11 对账对 Armed 态不完整
+D7-08	pass	-	300	崩溃续跑:任务在途杀 daemon,重启对账续跑	修复后复验通过:kill -9 重启对账 tasks=["w6crash"] 重派,Claimed(seq5)→Settled ok=true(seq6),跨 run 稠密 seq(4→6)成立
 D7-09	partial	W-5	0	steward:全局控制面入口盘点	steward 策略核已接线(daemon validate),全局控制面无 steward 动词(W-5 在案)
 D7-10	pass	-	60	专家 pack 召唤:带 persona 的 pack 任务	Armed→Claimed→Settled ok=true;persona 达模型边界由 provider_loop_e2e 覆盖

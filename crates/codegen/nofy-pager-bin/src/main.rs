@@ -1232,6 +1232,8 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                 cli_tools: args.cli_tools.clone(),
                 cli_disallowed_tools: args.cli_disallowed_tools.clone(),
                 disable_web_search: args.disable_web_search,
+                experimental_memory: args.experimental_memory,
+                no_memory: args.no_memory,
                 allow_rules: args.allow_rules.clone(),
                 deny_rules: args.deny_rules.clone(),
                 max_turns: args.max_turns,
