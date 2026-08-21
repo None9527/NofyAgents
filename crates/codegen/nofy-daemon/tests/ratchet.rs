@@ -162,7 +162,10 @@ fn workspace_loc_budget_only_shrinks() {
     //   notifications decoded to Lifecycle + plain/streaming lines (retries
     //   were silent), and missing-env_key hint replacing the generic
     //   "Not signed in" for BYOK models whose env var is unset.
-    let cap = 1_552_985; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_552_985→1_552_994: W-8 sessions --all — list/search gain a
+    //   global scope flag (cwd filter dropped); local FTS + merge lanes
+    //   already supported cwd=None, only the CLI surface was missing.
+    let cap = 1_552_997; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

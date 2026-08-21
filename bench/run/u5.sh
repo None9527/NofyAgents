@@ -44,7 +44,7 @@ fi
 
 # ---------- U5-02 全局看得全 ----------
 task_start U5-02 "全局看得全:列所有项目会话且归属正确"
-( cd "$N" && timeout 90 "$NOFY" sessions list > "$RESULTS/U5-02.out" 2>&1 ) || true
+( cd "$N" && timeout 90 "$NOFY" sessions list --all > "$RESULTS/U5-02.out" 2>&1 ) || true
 if grep -qa "alpha" "$RESULTS/U5-02.out" && grep -qa "beta" "$RESULTS/U5-02.out"; then
   record pass - "两项目会话都在"
 else

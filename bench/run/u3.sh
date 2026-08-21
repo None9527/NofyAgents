@@ -92,7 +92,7 @@ fi
 
 # ---------- U3-06 中文找历史 ----------
 task_start U3-06 "全局中文检索命中播种会话"
-timeout 90 "$NOFY" sessions search "青瓷茶盏" > "$RESULTS/U3-06.out" 2>&1 || true
+timeout 90 "$NOFY" sessions search --all "青瓷茶盏" > "$RESULTS/U3-06.out" 2>&1 || true
 if grep -qaE "beta|青瓷" "$RESULTS/U3-06.out" && ! grep -qa "Total: 0" "$RESULTS/U3-06.out"; then
   record pass - "中文检索命中"
 else
@@ -101,7 +101,7 @@ fi
 
 # ---------- U3-07 负例零命中 ----------
 task_start U3-07 "负例检索零命中"
-timeout 90 "$NOFY" sessions search "不存在词zzzxyz" > "$RESULTS/U3-07.out" 2>&1 || true
+timeout 90 "$NOFY" sessions search --all "不存在词zzzxyz" > "$RESULTS/U3-07.out" 2>&1 || true
 if grep -qa "Total: 0" "$RESULTS/U3-07.out" || ! grep -qaE "alpha|beta" "$RESULTS/U3-07.out"; then
   record pass - "负例零命中"
 else
@@ -110,7 +110,7 @@ fi
 
 # ---------- U3-08 知道在哪干过活 ----------
 task_start U3-08 "会话列表含项目归属"
-timeout 90 "$NOFY" sessions list > "$RESULTS/U3-08.out" 2>&1 || true
+timeout 90 "$NOFY" sessions list --all > "$RESULTS/U3-08.out" 2>&1 || true
 if grep -qa "alpha" "$RESULTS/U3-08.out" && grep -qa "beta" "$RESULTS/U3-08.out"; then
   record pass - "列表覆盖两项目会话"
 else

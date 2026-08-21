@@ -17,6 +17,9 @@ enum SessionsCommand {
         /// Maximum number of sessions to show
         #[arg(short = 'n', long, default_value = "20")]
         limit: usize,
+        /// Show sessions from all projects, not just the current directory
+        #[arg(long)]
+        all: bool,
     },
     /// Search sessions by keyword
     Search {
@@ -25,6 +28,9 @@ enum SessionsCommand {
         /// Maximum number of sessions to show
         #[arg(short = 'n', long, default_value = "20")]
         limit: usize,
+        /// Search sessions from all projects, not just the current directory
+        #[arg(long)]
+        all: bool,
     },
     /// Permanently delete a session from history
     Delete {
@@ -58,10 +64,13 @@ pub async fn run(args: SessionsArgs, agent_config: &AgentConfig) -> Result<()> {
     let cwd = std::env::current_dir().unwrap_or_else(|_| ".".into());
 
     match args.command {
-        SessionsCommand::List { limit } => {
+        SessionsCommand::List { limit, all } => {
+            // W-8: sessions live per-project; `--all` drops the cwd filter so
+            // the global assistant can see every project's sessions at once.
+            let cwd_filter = if all { None } else { cwd.to_str() };
             let sessions = nofy_shell::session::merge::fetch_merged(
                 Some(&client),
-                cwd.to_str(),
+                cwd_filter,
                 nofy_shell::session::merge::CwdScope::WithSiblings,
                 None,
                 limit,
@@ -69,14 +78,14 @@ pub async fn run(args: SessionsArgs, agent_config: &AgentConfig) -> Result<()> {
             .await;
             print_sessions_grouped(&sessions);
         }
-        SessionsCommand::Search { query, limit } => {
+        SessionsCommand::Search { query, limit, all } => {
             use std::collections::HashSet;
             use nofy_shell::session::merge::REMOTE_TIMEOUT;
             use nofy_shell::session::storage::search::{SessionSearchRequest, execute_search};
 
             let req = SessionSearchRequest {
                 query,
-                cwd: Some(cwd.to_string_lossy().to_string()),
+                cwd: if all { None } else { Some(cwd.to_string_lossy().to_string()) },
                 limit,
                 offset: 0,
                 include_content: true,
