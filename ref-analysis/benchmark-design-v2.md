@@ -251,10 +251,10 @@
 | 编号 | 缺口 | 证据(首现) | 状态 |
 |---|---|---|---|
 | W-1 | provider 单次推理无工具循环:委派任务只产生一段文字回复,不落地产物,用户无可验收之物 | P1 D7 / P2' U4-01、U4-02 | 未修 |
-| W-2 | 派发无项目路由:任务不绑定工作目录/项目 | P1 D7 | 未修 |
+| W-2 | 派发无项目路由:任务不绑定工作目录/项目;调度项同样无项目/目录绑定 | P1 D7 / P3' U6-07 | 未修 |
 | W-3 | 验收=非空响应而非目标核对:不可能任务、谎报任务同样结算 ok=true | P2' U4-04、U4-05 | 未修 |
 | W-4 | 批量审批无控制面入口 | P1 D7 | 未修 |
-| W-5 | 周期任务/steward 无全局动词 | P1 D7 | 未修 |
+| W-5 | 调度触发桥整体缺失:`schedule` 管理面(enable/add/remove/list)存在且 fail-loud,但调度项仅 id+cron 无任务载荷、daemon 无时钟线程从不触发、无一次性概念、重启无追赶(recover 只重放日志未接 startup_repair)、连败自禁用核心算法未接线;default-off 在注册处双重强制(未 enable 连 add 都拒) | P1 D7 / P3' U6-01/02/03/04/08 | 未修 |
 | W-6 | 崩溃重启后 armed 任务丢失(journal seq 跨 run 重置) | P1 D7-08 | **已修**(`TaskEvent::offset_seq` + `adopt_journal_store`) |
 | W-7 | 委派无任何用户动词:无 submit/status/list/cancel,只能经控制面 socket 驱动;且第二 run 静默顶掉第一 run(无并行) | P2' U4-06/07/08/10 | 未修 |
 | W-8 | `sessions search/list` 只查远端且要求登录,不读本地会话库:BYOK 离线模式下历史检索/列表不可用 | P2' U3-06、U3-08 | 未修 |

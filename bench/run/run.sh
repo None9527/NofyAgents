@@ -63,6 +63,27 @@ case $DIM in
     source bench/run/u3.sh
     source bench/run/u4.sh
     ;;
+  u5)
+    fresh_env
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    ensure_daemon
+    source bench/run/u5.sh
+    ;;
+  u6)
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    ensure_daemon
+    source bench/run/u6.sh
+    ;;
+  p3)
+    fresh_env
+    mkdir -p "$RESULTS"
+    printf 'id\tstatus\tattr\tsecs\ttitle\tnote\n' > "$RESULTS/results.tsv"
+    ensure_daemon
+    source bench/run/u5.sh
+    source bench/run/u6.sh
+    ;;
   u1)
     fresh_env
     mkdir -p "$RESULTS"

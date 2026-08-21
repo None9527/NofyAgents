@@ -1,0 +1,32 @@
+项目规则已明确:改完代码必须跑 `pytest -q` 验证,不要删除已有测试;代码约定是 4 空格缩进。先看一下 git 状态,确认是否需要提交(README 要求提交信息用中文)。
+
+是 git 仓库。现在给 `src/calc.py` 添加 `triple(x)`,并补充一个对应测试(遵循项目"每个函数都有测试"的风格,不删除已有测试)。
+
+按照项目规则运行测试验证:
+
+`test_triple` 通过了,但有个失败:`test_sqrt_safe_negative` —— 这是 `sqrt_safe` 里已标注的 `# BUG`(负输入未防护),与我的改动无关。先确认这是改动前就存在的问题:
+
+确认了:改动前的代码就是 `3 passed, 1 failed`(`sqrt_safe` 的已知 bug 导致),我的改动没有引入新失败。重新确认文件内容无误改动都在,缩进为 4 空格,风格与现有函数一致。README 要求提交信息用中文,按约定提交本次改动(只提交 `src/calc.py` 和 `tests/test_calc.py`,不动其他未跟踪文件):
+
+提交失败——仓库没有配置作者身份。看一下原有提交用的身份,沿用同款本地配置完成。改动已提交到 `master`(提交 `14c4714`,中文提交信息):
+
+## 改动内容
+
+**`src/calc.py`** — 新增 `triple(x)` 函数,返回输入值的三倍:
+```python
+def triple(x):
+    return x * 3
+```
+
+**`tests/test_calc.py`** — 新增对应测试 `test_triple`(已有测试均未删除)。
+
+## 遵守的项目规则
+
+- ✅ 修改后用 `pytest -q` 验证
+- ✅ 未删除任何已有测试
+- ✅ 4 空格缩进,风格与现有函数一致
+- ✅ 提交信息使用中文(README 约定);仓库原本未配置 git 身份,我设置了本地身份 `alpha-dev <alpha-dev@example.com>` 完成提交
+
+## 测试结果说明
+
+`pytest -q` 结果为 **4 passed, 1 failed**。失败项 `test_sqrt_safe_negative` 是**改动前就存在**的问题:`sqrt_safe` 里有注释标注的 `# BUG: does not guard negative input`,负输入会直接抛 `ValueError` 而非按测试期望返回 `None`。我用 `git stash` 对改动前的代码跑过同样测试,确认是同样的失败,与本次改动无关,故未擅自修这个超出任务范围的 bug(如需修复请告诉我)。

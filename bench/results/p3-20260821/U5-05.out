@@ -1,0 +1,11 @@
+两个项目都有未提交的改动，但情况不同：
+
+**alpha**（`/tmp/nofy-bench/projects/alpha`）
+- 只有**未跟踪文件**：`global-task.txt`、`note-a.txt`
+- 没有已修改的已跟踪文件，也没有已暂存的改动
+
+**beta**（`/tmp/nofy-bench/projects/beta`）
+- 有**已修改的已跟踪文件**：`scripts/backup.sh`（尚未暂存）
+- 另有未跟踪文件：`note-b.txt`
+
+如果按"对仓库内容的真实改动"来衡量，**beta 的改动更实质性**——它修改了已被 Git 跟踪的 `scripts/backup.sh`；alpha 则只有新增的未跟踪文件。两者都未提交任何内容。

@@ -1,0 +1,1 @@
+这是一个用于基准测试的小型 Python 计算器库(`alpha`),提供 `add`、`triple`、`mean`、`sum_squares`、`sqrt_safe` 等基础数学函数。

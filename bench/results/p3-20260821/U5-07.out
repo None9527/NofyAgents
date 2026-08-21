@@ -1,0 +1,7 @@
+我来查看这三个项目的 git 历史与文件变化情况gamma 不是 git 仓库，我再看看各项目的具体文件内容与变更细节三个项目的情况如下:
+
+**alpha**(`/tmp/nofy-bench/projects/alpha`)— 一个 Python 计算器小库,git 中仅有一次"初始提交"(2026-08-21)。当前有未提交的新文件 `global-task.txt`(内容 `U501-OK`)和 `note-a.txt`(内容 `U504-A`),均未纳入版本控制。
+
+**beta**(`/tmp/nofy-bench/projects/beta`)— git 同样只有一次"初始提交"。最近活动是修改了 `scripts/backup.sh`(追加了一行 `# dirty-probe` 注释,尚未提交),并新增了未跟踪的 `note-b.txt`(内容 `U504-B`)。
+
+**gamma**(`/tmp/nofy-bench/projects/gamma`)— 不是 git 仓库,只是一个普通目录,没有任何版本历史。目录里有大量会议纪要(`纪要-1`~`纪要-8` 及副本)、笔记(`note-1`~`note-10` 及副本)和一个 50MB 的 `big-archive.bin`;最新改动是新增/修改了 `docs-readme.md`(内容恰好是关于 alpha 项目的文档)。
