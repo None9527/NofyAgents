@@ -177,7 +177,12 @@ fn workspace_loc_budget_only_shrinks() {
     //   TaskCancel methods + TaskListed/TaskCancelled responses;
     //   TaskEvent::Cancelled (terminal) + orch.cancel with dependent
     //   skips, idempotent loud rejection, and late-result immunity.
-    let cap = 1_553_588; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_553_588→1_554_443: W-5 schedule trigger bridge — daemon clock
+    //   thread (catch-up fire + cron arm + wedge watchdog), fired runs
+    //   dispatch via TaskPoll + settle via TaskResult with state-root
+    //   deliveries, schedule add --goal/--cwd/--once CLI payload, and
+    //   the scheduler-core ratchet raise for the fold payload.
+    let cap = 1_554_443; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -364,11 +369,22 @@ fn control_plane_loc_ratchet_only_shrinks() {
     // - daemon 7140→7221: W-6 crash reconciliation fix — attach_journal
     //   cross-run dense-seq offset + adopt_journal_store post-resume
     //   durability + second-run reconciliation regression test.
+    // - daemon 7221→7993: W-7 delegation verbs (TaskList/TaskCancel wire
+    //   dispatch + journal projection) + W-5 schedule trigger bridge:
+    //   schedclock.rs clock thread (catch-up fire + cron arm + wedge
+    //   watchdog), scheduler fire/start_run/run_succeeded/repair glue,
+    //   sched_runs queue behind TaskPoll, TaskResult sched routing with
+    //   state-root deliveries, 3 wire tests + clock/service tests.
+    // - schema 388→454: W-7 TaskList/TaskCancel + TaskListed/TaskCancelled;
+    //   W-5 additive payload — ScheduleAdd goal/cwd/once, TaskResult
+    //   output, TaskDispatch cwd, ScheduleEntryInfo goal/once + tests.
+    // - registry 145→150: root() accessor so W-5 deliveries bind to the
+    //   daemon state root.
     let caps = [
-        ("nofy-daemon", 7221),
+        ("nofy-daemon", 7993),
         ("nofy-channel", 609),
-        ("nofy-control-schema", 388),
-        ("nofy-session-registry", 145),
+        ("nofy-control-schema", 454),
+        ("nofy-session-registry", 150),
     ];
     for (name, cap) in caps {
         let got = loc(&base.join(name).join("src"));

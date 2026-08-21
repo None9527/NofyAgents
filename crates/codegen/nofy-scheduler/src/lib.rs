@@ -48,7 +48,18 @@ pub mod timer;
 pub enum ScheduleEvent {
     /// Register (or re-register) a schedule definition. Re-adding a
     /// disabled id is an explicit re-enable: the disable mark is cleared.
-    Added { id: String, spec: String },
+    /// `goal`/`cwd` carry the run payload (W-5: a schedule without a goal
+    /// has nothing to run); `once` self-disables after the first success.
+    Added {
+        id: String,
+        spec: String,
+        #[serde(default)]
+        goal: Option<String>,
+        #[serde(default)]
+        cwd: Option<String>,
+        #[serde(default)]
+        once: bool,
+    },
     /// Remove a schedule definition and every pending obligation for it.
     Removed { id: String },
     /// Arm a firing obligation for `id` at logical time `due`. Ignored
@@ -88,6 +99,14 @@ pub struct ScheduleEntry {
     pub spec: String,
     /// `Some(reason)` when the schedule is self-disabled.
     pub disabled_reason: Option<String>,
+    /// Run payload (W-5): what a fired run does, and where.
+    #[serde(default)]
+    pub goal: Option<String>,
+    #[serde(default)]
+    pub cwd: Option<String>,
+    /// One-shot: self-disable after the first successful run.
+    #[serde(default)]
+    pub once: bool,
 }
 
 /// The derived schedule state — always a function of the log.
@@ -136,13 +155,16 @@ impl ScheduleState {
 /// Apply one event to the state — the fold's single-event step.
 pub fn apply(state: &mut ScheduleState, event: &ScheduleEvent) {
     match event {
-        ScheduleEvent::Added { id, spec } => {
+        ScheduleEvent::Added { id, spec, goal, cwd, once } => {
             // Explicit (re-)registration: fresh definition, disable cleared.
             state.schedules.insert(
                 id.clone(),
                 ScheduleEntry {
                     spec: spec.clone(),
                     disabled_reason: None,
+                    goal: goal.clone(),
+                    cwd: cwd.clone(),
+                    once: *once,
                 },
             );
         }
@@ -353,6 +375,9 @@ mod tests {
         ScheduleEvent::Added {
             id: id.into(),
             spec: format!("cron:{id}"),
+            goal: None,
+            cwd: None,
+            once: false,
         }
     }
 

@@ -72,6 +72,9 @@ mod tests {
         ScheduleEvent::Added {
             id: id.into(),
             spec: format!("cron:{id}"),
+            goal: None,
+            cwd: None,
+            once: false,
         }
     }
 

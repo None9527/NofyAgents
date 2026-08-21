@@ -26,6 +26,7 @@ pub mod provider;
 pub mod recovery;
 pub mod runlife;
 pub mod runstore;
+pub mod schedclock;
 pub mod scheduler;
 pub mod search_proxy;
 pub mod steward;

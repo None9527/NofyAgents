@@ -24,6 +24,16 @@ pub enum ScheduleCommand {
         id: String,
         /// Cron expression (five fields).
         cron_spec: String,
+        /// What each fired run executes (required: a schedule without a
+        /// goal has nothing to run).
+        #[arg(long)]
+        goal: String,
+        /// Working directory the fired runs are bound to.
+        #[arg(long)]
+        cwd: Option<String>,
+        /// One-shot: self-disable after the first successful run.
+        #[arg(long)]
+        once: bool,
     },
     /// Remove a schedule and every pending obligation for it.
     Remove {
@@ -44,9 +54,18 @@ pub fn run(args: &ScheduleArgs, state_dir: &std::path::Path) -> Result<()> {
         .map_err(|e| anyhow::anyhow!("daemon control socket: {e}"))?;
     let method = match &args.command {
         ScheduleCommand::Enable => ControlMethod::ScheduleEnable,
-        ScheduleCommand::Add { id, cron_spec } => ControlMethod::ScheduleAdd {
+        ScheduleCommand::Add {
+            id,
+            cron_spec,
+            goal,
+            cwd,
+            once,
+        } => ControlMethod::ScheduleAdd {
             id: id.clone(),
             cron_spec: cron_spec.clone(),
+            goal: Some(goal.clone()),
+            cwd: cwd.clone(),
+            once: *once,
         },
         ScheduleCommand::Remove { id } => ControlMethod::ScheduleRemove { id: id.clone() },
         ScheduleCommand::List { .. } => ControlMethod::ScheduleList,
@@ -84,17 +103,28 @@ fn render_list(response: &serde_json::Value, json: bool) {
         println!("(no schedules)");
         return;
     }
-    println!("{:<24} {:<16} {:>8}  {}", "ID", "SPEC", "PENDING", "STATE");
+    println!(
+        "{:<24} {:<16} {:>8}  {:<24}  {}",
+        "ID", "SPEC", "PENDING", "GOAL", "STATE"
+    );
     for entry in entries {
         let state = match entry["disabled_reason"].as_str() {
             Some(reason) => format!("disabled ({reason})"),
+            None if entry["once"].as_bool().unwrap_or(false) => "live (once)".to_string(),
             None => "live".to_string(),
         };
+        let goal = entry["goal"].as_str().unwrap_or("-").to_string();
+        let goal = if goal.chars().count() > 24 {
+            goal.chars().take(23).chain(['…']).collect()
+        } else {
+            goal
+        };
         println!(
-            "{:<24} {:<16} {:>8}  {}",
+            "{:<24} {:<16} {:>8}  {:<24}  {}",
             entry["id"].as_str().unwrap_or("?"),
             entry["spec"].as_str().unwrap_or("?"),
             entry["pending"].as_u64().unwrap_or(0),
+            goal,
             state
         );
     }

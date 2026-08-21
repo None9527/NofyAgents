@@ -111,6 +111,9 @@ mod tests {
             scheduler: std::sync::Arc::new(std::sync::Mutex::new(
                 crate::scheduler::SchedulerService::new(),
             )),
+            sched_runs: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::VecDeque::new(),
+            )),
         }
     }
 
@@ -125,6 +128,9 @@ mod tests {
             .call(&ControlMethod::ScheduleAdd {
                 id: "j1".into(),
                 cron_spec: "* * * * *".into(),
+                goal: None,
+                cwd: None,
+                once: false,
             })
             .unwrap();
         assert!(is_error(&refused), "default-off refusal reaches the client");
@@ -136,6 +142,9 @@ mod tests {
             .call(&ControlMethod::ScheduleAdd {
                 id: "j1".into(),
                 cron_spec: "0 3 * * *".into(),
+                goal: None,
+                cwd: None,
+                once: false,
             })
             .unwrap();
         assert_eq!(ack["kind"], "schedule_noted");

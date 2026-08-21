@@ -36,6 +36,11 @@ impl Registry {
         Self { root: root.into() }
     }
 
+    /// The NOFY_HOME state root this registry walks.
+    pub fn root(&self) -> &std::path::Path {
+        &self.root
+    }
+
     fn sessions_dir(&self) -> PathBuf {
         self.root.join("sessions")
     }

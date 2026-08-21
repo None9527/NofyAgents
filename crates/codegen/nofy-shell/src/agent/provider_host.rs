@@ -102,8 +102,8 @@ fn serve_loop(
                         continue;
                     }
                 };
-                let ok = rt.block_on(execute_dispatch(&dispatch, agent_config));
-                client.report(&task_id, ok)?;
+                let (ok, output) = rt.block_on(execute_dispatch(&dispatch, agent_config));
+                client.report(&task_id, ok, output.as_deref())?;
             }
             None => std::thread::sleep(nofy_daemon::provider::POLL_IDLE),
         }
@@ -161,41 +161,56 @@ pub(crate) fn search_answer_from_response(
 }
 
 /// Dispatch execution seam: pack join → agent assembly → one inference
-/// call carrying the assembled system prompt. Returns the task outcome.
+/// call carrying the assembled system prompt. Returns the task outcome
+/// plus the model's response text (W-5: schedule deliveries persist it).
 async fn execute_dispatch(
     dispatch: &nofy_control_schema::methods::ControlResponse,
     agent_config: &AgentConfig,
-) -> bool {
+) -> (bool, Option<String>) {
     use nofy_control_schema::methods::ControlResponse;
-    let (join, goal) = match dispatch {
-        ControlResponse::TaskDispatch { goal, .. } => {
+    let (join, goal, cwd) = match dispatch {
+        ControlResponse::TaskDispatch { goal, cwd, .. } => {
             let Some(join) = pack_join::join_from_dispatch(dispatch) else {
-                return false;
+                return (false, None);
             };
-            (join, goal.clone())
+            (join, goal.clone(), cwd.clone())
         }
-        _ => return false,
+        _ => return (false, None),
     };
-    match run_provider_task(&join, &goal, agent_config).await {
-        Ok(()) => {
+    match run_provider_task(&join, &goal, cwd.as_deref(), agent_config).await {
+        Ok(output) => {
             tracing::info!(task_id = %join.task_id, pack = %join.pack_id, "provider task completed");
-            true
+            (true, Some(output))
         }
         Err(error) => {
             tracing::warn!(task_id = %join.task_id, %error, "provider task failed");
-            false
+            (false, None)
         }
     }
 }
 
 /// Assemble the dispatched agent (pack persona/skills, DS-P3 shadowing)
 /// and ride one real inference call with the rendered system prompt.
+/// `cwd` binds the run's working directory when the dispatch carries one
+/// (W-5 schedule payload); a missing/invalid binding fails loud. Returns
+/// the model's response text.
 async fn run_provider_task(
     join: &PackJoin,
     goal: &str,
+    cwd: Option<&str>,
     agent_config: &AgentConfig,
-) -> anyhow::Result<()> {
-    let cwd = std::env::current_dir()?;
+) -> anyhow::Result<String> {
+    let cwd = match cwd {
+        Some(dir) => {
+            let path = PathBuf::from(dir);
+            anyhow::ensure!(
+                path.is_dir(),
+                "dispatch cwd '{dir}' is not a directory"
+            );
+            path
+        }
+        None => std::env::current_dir()?,
+    };
     let builder = nofy_agent::AgentBuilder::new(
         cwd,
         Arc::new(nofy_tools::computer::local::LocalTerminalBackend::new()),
@@ -221,7 +236,13 @@ async fn run_provider_task(
         !response.items.is_empty(),
         "provider task got an empty model response"
     );
-    Ok(())
+    let text: Vec<String> = response
+        .items
+        .iter()
+        .map(|item| item.text_content())
+        .filter(|t| !t.is_empty())
+        .collect();
+    Ok(text.join("\n"))
 }
 
 #[cfg(test)]

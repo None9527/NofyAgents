@@ -125,7 +125,7 @@ pub fn run(cfg: DaemonConfig) -> i32 {
     // non-empty log proves prior enablement (R3 semantics). A corrupt log
     // degrades to a fresh default-off service, loud — scheduling never
     // silently resurrects.
-    let scheduler = match crate::scheduler::SchedulerService::recover(
+    let mut scheduler = match crate::scheduler::SchedulerService::recover(
         nofy_scheduler::LogStore::open(daemon_dir.join("schedule.jsonl")),
     ) {
         Ok(svc) => svc,
@@ -134,12 +134,16 @@ pub fn run(cfg: DaemonConfig) -> i32 {
             crate::scheduler::SchedulerService::new()
         }
     };
+    // W-5 boot: in-flight runs from the previous life are lies — repair
+    // them failed so backoff/self-disable accounting stays honest.
+    scheduler.repair_inflight();
     let stores = DaemonStores {
         journal: nofy_orchestra::taskjournal::TaskLogStore::open(
             daemon_dir.join("task_journal.jsonl"),
         ),
         runs: crate::runstore::RunStore::open(daemon_dir.join("run_store.json")),
         scheduler: std::sync::Arc::new(std::sync::Mutex::new(scheduler)),
+        sched_runs: std::sync::Arc::new(std::sync::Mutex::new(std::collections::VecDeque::new())),
     };
     match resume_run(&stores) {
         Ok(Some(dr)) => {
@@ -152,6 +156,10 @@ pub fn run(cfg: DaemonConfig) -> i32 {
             tracing::error!(error = %e, "run resumption failed; starting fresh");
         }
     }
+    // W-5 trigger bridge: the clock that fires dues and arms next ones.
+    // Default-off semantics live in the service; the clock is a no-op
+    // until scheduling is enabled.
+    let _sched_clock = crate::schedclock::spawn(stores.clone());
 
     loop {
         if wedge.load(std::sync::atomic::Ordering::SeqCst) {

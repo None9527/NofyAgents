@@ -80,15 +80,21 @@ mod drift_gates {
         let add = serde_json::to_value(methods::ControlMethod::ScheduleAdd {
             id: "nightly".into(),
             cron_spec: "0 3 * * *".into(),
+            goal: Some("water the plants".into()),
+            cwd: None,
+            once: false,
         })
         .unwrap();
         assert_eq!(add["method"], "schedule_add");
+        assert_eq!(add["goal"], "water the plants");
         let listed = methods::ControlResponse::ScheduleListed {
             entries: vec![methods::ScheduleEntryInfo {
                 id: "nightly".into(),
                 spec: "0 3 * * *".into(),
                 disabled_reason: None,
                 pending: 1,
+                goal: Some("water the plants".into()),
+                once: false,
             }],
         };
         let back: methods::ControlResponse =
@@ -99,5 +105,14 @@ mod drift_gates {
         let e: methods::ScheduleEntryInfo = serde_json::from_str(legacy).unwrap();
         assert_eq!(e.disabled_reason, None);
         assert_eq!(e.pending, 0);
+        assert_eq!(e.goal, None);
+        assert!(!e.once);
+        // A ScheduleAdd from an older peer without the payload parses.
+        let legacy_add = r#"{"method":"schedule_add","id":"x","cron_spec":"* * * * *"}"#;
+        let m: methods::ControlMethod = serde_json::from_str(legacy_add).unwrap();
+        assert!(matches!(
+            m,
+            methods::ControlMethod::ScheduleAdd { goal: None, once: false, .. }
+        ));
     }
 }

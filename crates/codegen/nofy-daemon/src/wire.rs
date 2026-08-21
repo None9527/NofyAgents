@@ -211,15 +211,90 @@ pub fn serve_connection<R: Read, W: Write>(
                             goal: t.goal,
                             persona,
                             skills,
+                            cwd: None,
                         })?
                     }
-                    None => serde_json::to_value(ControlResponse::NoPending)?,
+                    None => {
+                        // W-5 trigger bridge: no run task ready — hand the
+                        // provider the next fired schedule run instead.
+                        drop(guard);
+                        match stores
+                            .as_ref()
+                            .and_then(|s| s.sched_runs.lock().unwrap().pop_front())
+                        {
+                            Some((sched_id, run_id, goal, cwd)) => {
+                                serde_json::to_value(ControlResponse::TaskDispatch {
+                                    task_id: format!("sched:{sched_id}:{run_id}"),
+                                    pack: "scheduler".into(),
+                                    goal,
+                                    persona: None,
+                                    skills: Vec::new(),
+                                    cwd,
+                                })?
+                            }
+                            None => serde_json::to_value(ControlResponse::NoPending)?,
+                        }
+                    }
                 }
             }
             Ok(ControlMethod::TaskResult {
                 task_id,
                 succeeded,
+                output,
             }) => {
+                // W-5 trigger bridge: schedule runs settle through the
+                // scheduler service, not the run orchestra. Task ids are
+                // `sched:<id>:<run_id>`; anything malformed fails loud.
+                if let Some(rest) = task_id.strip_prefix("sched:") {
+                    let (sched_id, run_str) = rest.rsplit_once(':').ok_or_else(|| {
+                        FrameError::Io(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            format!("malformed schedule task id: {task_id}"),
+                        ))
+                    })?;
+                    let run_id: u64 = run_str.parse().map_err(|_| {
+                        FrameError::Io(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            format!("malformed schedule run id: {task_id}"),
+                        ))
+                    })?;
+                    if let Some(stores) = stores {
+                        let settle = {
+                            let mut svc = stores.scheduler.lock().unwrap();
+                            if succeeded {
+                                svc.run_succeeded(sched_id, run_id)
+                            } else {
+                                svc.run_failed(sched_id, run_id)
+                            }
+                        };
+                        if let Err(msg) = settle {
+                            tracing::warn!(task = %task_id, error = %msg, "schedule settle refused");
+                        } else if succeeded {
+                            // HOME delivery (FR3.5): the result lands as a
+                            // file under the state root; a write failure
+                            // degrades loud, never fatal.
+                            let payload = serde_json::json!({
+                                "schedule": sched_id,
+                                "run_id": run_id,
+                                "ok": true,
+                                "output": output,
+                            });
+                            let dir = registry
+                                .root()
+                                .join("scheduler")
+                                .join("deliveries");
+                            if let Err(e) = nofy_scheduler::delivery::deliver_to(
+                                &dir,
+                                sched_id,
+                                run_id,
+                                &payload.to_string(),
+                            ) {
+                                tracing::warn!(?e, "schedule delivery failed");
+                            }
+                        }
+                    }
+                    serde_json::to_value(ControlResponse::TaskNoted)?
+                } else {
                 use crate::orchestra::SettleOutcome;
                 let outcome = {
                     let mut guard = run.lock().unwrap();
@@ -316,6 +391,7 @@ pub fn serve_connection<R: Read, W: Write>(
                     }
                 }
                 serde_json::to_value(ControlResponse::TaskNoted)?
+                }
             }
             Ok(ControlMethod::SearchPoll) => match search.poll() {
                 Some((request_id, q)) => {
@@ -421,8 +497,22 @@ pub fn serve_connection<R: Read, W: Write>(
                     ))?
                 }
             }
-            Ok(ControlMethod::ScheduleAdd { id, cron_spec }) => {
-                match stores.as_ref().map(|s| s.scheduler.lock().unwrap().add_schedule(&id, &cron_spec)) {
+            Ok(ControlMethod::ScheduleAdd {
+                id,
+                cron_spec,
+                goal,
+                cwd,
+                once,
+            }) => {
+                match stores.as_ref().map(|s| {
+                    s.scheduler.lock().unwrap().add_schedule(
+                        &id,
+                        &cron_spec,
+                        goal.as_deref(),
+                        cwd.as_deref(),
+                        once,
+                    )
+                }) {
                     Some(Ok(())) => serde_json::to_value(ControlResponse::ScheduleNoted)?,
                     Some(Err(msg)) => serde_json::to_value(ControlError::new(
                         ControlErrorCode::Internal,
@@ -455,12 +545,14 @@ pub fn serve_connection<R: Read, W: Write>(
                         .unwrap()
                         .snapshot()
                         .into_iter()
-                        .map(|(id, spec, disabled_reason, pending)| {
+                        .map(|(id, spec, disabled_reason, pending, goal, once)| {
                             nofy_control_schema::methods::ScheduleEntryInfo {
                                 id,
                                 spec,
                                 disabled_reason,
                                 pending: pending as u32,
+                                goal,
+                                once,
                             }
                         })
                         .collect();
@@ -973,11 +1065,13 @@ needs = ["t1"]
             ControlMethod::TaskResult {
                 task_id: "t1".into(),
                 succeeded: true,
+                output: None,
             },
             ControlMethod::TaskPoll,
             ControlMethod::TaskResult {
                 task_id: "t2".into(),
                 succeeded: true,
+                output: None,
             },
             ControlMethod::TaskPoll,
         ] {
@@ -1043,7 +1137,7 @@ goal = "second"
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true }),
+            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true, output: None }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -1084,6 +1178,9 @@ goal = "second"
             scheduler: std::sync::Arc::new(std::sync::Mutex::new(
                 crate::scheduler::SchedulerService::new(),
             )),
+            sched_runs: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::VecDeque::new(),
+            )),
         };
         let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
         let manifest = r#"
@@ -1109,7 +1206,7 @@ goal = "second"
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true }),
+            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true, output: None }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -1155,6 +1252,9 @@ goal = "second"
             scheduler: std::sync::Arc::new(std::sync::Mutex::new(
                 crate::scheduler::SchedulerService::new(),
             )),
+            sched_runs: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::VecDeque::new(),
+            )),
         };
         let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
         let manifest = r#"
@@ -1180,7 +1280,7 @@ goal = "second"
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true }),
+            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true, output: None }),
         )
         .unwrap();
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
@@ -1224,6 +1324,9 @@ goal = "second"
             scheduler: std::sync::Arc::new(std::sync::Mutex::new(
                 crate::scheduler::SchedulerService::new(),
             )),
+            sched_runs: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::VecDeque::new(),
+            )),
         };
         let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
         let manifest = r#"
@@ -1244,7 +1347,7 @@ goal = "only"
         write_frame(&mut input, &method_frame(&ControlMethod::TaskPoll)).unwrap();
         write_frame(
             &mut input,
-            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true }),
+            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: true, output: None }),
         )
         .unwrap();
         {
@@ -1290,6 +1393,9 @@ goal = "only"
                 ))
                 .unwrap(),
             )),
+            sched_runs: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::VecDeque::new(),
+            )),
         }
     }
 
@@ -1306,6 +1412,9 @@ goal = "only"
             &method_frame(&ControlMethod::ScheduleAdd {
                 id: "j1".into(),
                 cron_spec: "* * * * *".into(),
+                goal: None,
+                cwd: None,
+                once: false,
             }),
         )
         .unwrap();
@@ -1315,6 +1424,9 @@ goal = "only"
             &method_frame(&ControlMethod::ScheduleAdd {
                 id: "j1".into(),
                 cron_spec: "* * * * *".into(),
+                goal: None,
+                cwd: None,
+                once: false,
             }),
         )
         .unwrap();
@@ -1323,6 +1435,9 @@ goal = "only"
             &method_frame(&ControlMethod::ScheduleAdd {
                 id: "bad".into(),
                 cron_spec: "not a cron".into(),
+                goal: None,
+                cwd: None,
+                once: false,
             }),
         )
         .unwrap();
@@ -1374,6 +1489,9 @@ goal = "only"
             &method_frame(&ControlMethod::ScheduleAdd {
                 id: "nightly".into(),
                 cron_spec: "0 3 * * *".into(),
+                goal: None,
+                cwd: None,
+                once: false,
             }),
         )
         .unwrap();
@@ -1447,7 +1565,7 @@ goal = "risky"
         write_frame(&mut provider_in, &method_frame(&ControlMethod::TaskPoll)).unwrap();
         write_frame(
             &mut provider_in,
-            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: false }),
+            &method_frame(&ControlMethod::TaskResult { task_id: "t1".into(), succeeded: false, output: None }),
         )
         .unwrap();
         let (run2, shared2) = (run.clone(), shared.clone());
@@ -1711,6 +1829,9 @@ goal = "risky"
             runs: crate::runstore::RunStore::open(dir.join("run_store.json")),
             scheduler: std::sync::Arc::new(std::sync::Mutex::new(
                 crate::scheduler::SchedulerService::new(),
+            )),
+            sched_runs: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::VecDeque::new(),
             )),
         }
     }
@@ -2093,6 +2214,7 @@ goal = "risky"
                 ControlMethod::TaskResult {
                     task_id: "ghost".into(),
                     succeeded: true,
+                    output: None,
                 },
             ],
             &ApprovalBroker::new(),
@@ -2130,6 +2252,7 @@ goal = "risky"
             &method_frame(&ControlMethod::TaskResult {
                 task_id: "t1".into(),
                 succeeded: false,
+                output: None,
             }),
         )
         .unwrap();
@@ -2205,6 +2328,7 @@ goal = "risky"
                 ControlMethod::TaskResult {
                     task_id: "t1".into(),
                     succeeded: false,
+                    output: None,
                 },
             ],
             &broker,
@@ -2257,6 +2381,7 @@ goal = "risky"
                 ControlMethod::TaskResult {
                     task_id: "t1".into(),
                     succeeded: true,
+                    output: None,
                 },
             ],
             &ApprovalBroker::new(),
@@ -2285,6 +2410,7 @@ goal = "risky"
             &[ControlMethod::TaskResult {
                 task_id: "ghost".into(),
                 succeeded: true,
+                output: None,
             }],
             &ApprovalBroker::new(),
             &LiveBus::new(),
@@ -2388,6 +2514,9 @@ goal = "risky"
                 ControlMethod::ScheduleAdd {
                     id: "j1".into(),
                     cron_spec: "* * * * *".into(),
+                    goal: None,
+                    cwd: None,
+                    once: false,
                 },
                 ControlMethod::ScheduleRemove { id: "j1".into() },
                 ControlMethod::ScheduleList,
@@ -2427,6 +2556,125 @@ goal = "risky"
             .as_str()
             .unwrap()
             .contains("schedule remove refused"));
+    }
+
+    #[test]
+    fn schedule_trigger_bridge_dispatches_and_settles_over_wire() {
+        // W-5: a fired schedule run leaves via TaskPoll as
+        // sched:<id>:<run_id> and settles via TaskResult — a success
+        // lands a delivery file under the state root.
+        let dir = tempfile::tempdir().unwrap();
+        let stores = scheduler_stores(dir.path());
+        {
+            let mut svc = stores.scheduler.lock().unwrap();
+            svc.enable();
+            svc.add_schedule("j1", "* * * * *", Some("water plants"), None, false)
+                .unwrap();
+            svc.arm("j1", crate::wire::secs_now() - 5).unwrap();
+        }
+        let fired = crate::schedclock::tick(&stores);
+        assert_eq!(fired.len(), 1, "the overdue due fires into the queue");
+        let task_id = format!("sched:j1:{}", fired[0].1);
+        let frames = serve_in_memory(
+            &Registry::at(dir.path()),
+            &[
+                ControlMethod::TaskPoll,
+                ControlMethod::TaskResult {
+                    task_id: task_id.clone(),
+                    succeeded: true,
+                    output: Some("done".into()),
+                },
+            ],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            Some(&stores),
+        );
+        assert_eq!(frames[0]["kind"], "task_dispatch");
+        assert_eq!(frames[0]["task_id"], task_id);
+        assert_eq!(frames[0]["pack"], "scheduler");
+        assert_eq!(frames[0]["goal"], "water plants");
+        assert_eq!(frames[1]["kind"], "task_noted");
+        // Settled: the run is no longer in flight.
+        assert!(!stores.scheduler.lock().unwrap().live_with_payload()[0].5);
+        // Delivered: the result file landed under the state root, output
+        // riding along.
+        let delivered = dir.path().join("scheduler/deliveries");
+        let files: Vec<_> = std::fs::read_dir(&delivered).unwrap().collect();
+        assert_eq!(files.len(), 1);
+        let body = std::fs::read_to_string(files[0].as_ref().unwrap().path()).unwrap();
+        assert!(body.contains("done"), "the provider output rides the delivery");
+    }
+
+    #[test]
+    fn failed_schedule_run_records_no_delivery() {
+        // W-5: a failed run settles through run_failed (strike counted)
+        // and never writes a delivery file.
+        let dir = tempfile::tempdir().unwrap();
+        let stores = scheduler_stores(dir.path());
+        {
+            let mut svc = stores.scheduler.lock().unwrap();
+            svc.enable();
+            svc.add_schedule("j1", "* * * * *", Some("goal"), None, false)
+                .unwrap();
+            svc.arm("j1", crate::wire::secs_now() - 5).unwrap();
+        }
+        let fired = crate::schedclock::tick(&stores);
+        let task_id = format!("sched:j1:{}", fired[0].1);
+        let frames = serve_in_memory(
+            &Registry::at(dir.path()),
+            &[ControlMethod::TaskResult {
+                task_id,
+                succeeded: false,
+                output: None,
+            }],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            Some(&stores),
+        );
+        assert_eq!(frames[0]["kind"], "task_noted");
+        assert!(!stores.scheduler.lock().unwrap().live_with_payload()[0].5);
+        assert!(
+            std::fs::read_dir(dir.path().join("scheduler/deliveries")).is_err(),
+            "a failed run delivers nothing"
+        );
+    }
+
+    #[test]
+    fn malformed_schedule_task_id_fails_loud() {
+        // W-5: a sched-prefixed id that does not parse ends the
+        // connection with a named frame error — never a silent drop.
+        let dir = tempfile::tempdir().unwrap();
+        let stores = scheduler_stores(dir.path());
+        let mut input = Vec::new();
+        write_frame(&mut input, &hello_frame()).unwrap();
+        write_frame(
+            &mut input,
+            &method_frame(&ControlMethod::TaskResult {
+                task_id: "sched:onlyone".into(),
+                succeeded: true,
+                output: None,
+            }),
+        )
+        .unwrap();
+        let mut r = std::io::Cursor::new(input);
+        let mut out = Vec::new();
+        let err = serve_connection(
+            &mut r,
+            &mut out,
+            &Registry::at(dir.path()),
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>)),
+            Some(&stores),
+        )
+        .unwrap_err();
+        let msg = format!("{err:?}");
+        assert!(msg.contains("malformed schedule task id"), "{msg}");
     }
 
     #[test]

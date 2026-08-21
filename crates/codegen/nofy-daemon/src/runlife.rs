@@ -89,6 +89,11 @@ pub struct DaemonStores {
     pub runs: crate::runstore::RunStore,
     /// scheduling service shared across connections (U).
     pub scheduler: std::sync::Arc<std::sync::Mutex<crate::scheduler::SchedulerService>>,
+    /// W-5 trigger bridge: fired schedule runs awaiting provider pickup
+    /// via TaskPoll. Entry = (schedule id, run id, goal, cwd).
+    pub sched_runs: std::sync::Arc<
+        std::sync::Mutex<std::collections::VecDeque<(String, u64, String, Option<String>)>>,
+    >,
 }
 
 /// Validate a submitted plan+packs (FR10): orchestration DAG, pack plane
@@ -322,6 +327,9 @@ needs = ["a"]
             runs: crate::runstore::RunStore::open(dir.join("run_store.json")),
             scheduler: std::sync::Arc::new(std::sync::Mutex::new(
                 crate::scheduler::SchedulerService::new(),
+            )),
+            sched_runs: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::VecDeque::new(),
             )),
         }
     }

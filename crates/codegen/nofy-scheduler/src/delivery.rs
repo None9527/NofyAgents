@@ -14,16 +14,22 @@ pub fn delivery_dir(home: &Path) -> PathBuf {
     home.join(".nofy").join("scheduler").join("deliveries")
 }
 
-/// Deliver one run result. Returns the written path. Atomic-shaped:
-/// temp file + rename, so readers never observe a half-written result.
-pub fn deliver(home: &Path, id: &str, run_id: u64, payload: &str) -> io::Result<PathBuf> {
-    let dir = delivery_dir(home);
-    fs::create_dir_all(&dir)?;
+/// Deliver one run result into an explicit directory (W-5: the daemon
+/// binds deliveries to its state root). Returns the written path.
+/// Atomic-shaped: temp file + rename, so readers never observe a
+/// half-written result.
+pub fn deliver_to(dir: &Path, id: &str, run_id: u64, payload: &str) -> io::Result<PathBuf> {
+    fs::create_dir_all(dir)?;
     let final_path = dir.join(format!("{}-{run_id}.json", safe_stem(id)));
     let tmp = final_path.with_extension("tmp");
     fs::write(&tmp, payload)?;
     fs::rename(&tmp, &final_path)?;
     Ok(final_path)
+}
+
+/// Deliver one run result under a Nofy home (`~/.nofy/...`).
+pub fn deliver(home: &Path, id: &str, run_id: u64, payload: &str) -> io::Result<PathBuf> {
+    deliver_to(&delivery_dir(home), id, run_id, payload)
 }
 
 /// List delivered results for one schedule, run ids ascending.

@@ -54,8 +54,15 @@ pub enum ControlMethod {
     },
     /// Provider-side: pull the next ready task of the active run.
     TaskPoll,
-    /// Provider-side: report a task outcome.
-    TaskResult { task_id: String, succeeded: bool },
+    /// Provider-side: report a task outcome. `output` (additive; absent on
+    /// older peers deserializes as None) carries the settled text so
+    /// schedule deliveries can persist the result (W-5).
+    TaskResult {
+        task_id: String,
+        succeeded: bool,
+        #[serde(default)]
+        output: Option<String>,
+    },
     /// Provider-side: long-poll for a search job the daemon is holding on
     /// behalf of a blocked client connection.
     SearchPoll,
@@ -72,8 +79,20 @@ pub enum ControlMethod {
     /// schedules NOTHING until a client deliberately enables it.
     ScheduleEnable,
     /// Add (or re-enable) a schedule; the cron spec is grammar-checked
-    /// fail-loud by the scheduler core.
-    ScheduleAdd { id: String, cron_spec: String },
+    /// fail-loud by the scheduler core. W-5 payload: `goal` is what each
+    /// fired run executes, `cwd` binds its working directory, `once`
+    /// self-disables after the first successful run. All additive for
+    /// older peers.
+    ScheduleAdd {
+        id: String,
+        cron_spec: String,
+        #[serde(default)]
+        goal: Option<String>,
+        #[serde(default)]
+        cwd: Option<String>,
+        #[serde(default)]
+        once: bool,
+    },
     /// Remove a schedule and every pending obligation for it.
     ScheduleRemove { id: String },
     /// Project the live schedule table.
@@ -98,6 +117,11 @@ pub struct ScheduleEntryInfo {
     /// Armed-but-not-fired obligations for this schedule.
     #[serde(default)]
     pub pending: u32,
+    /// Run payload (W-5; additive for older peers).
+    #[serde(default)]
+    pub goal: Option<String>,
+    #[serde(default)]
+    pub once: bool,
 }
 
 /// One row of [`ControlResponse::TaskListed`] (W-7).
@@ -151,6 +175,10 @@ pub enum ControlResponse {
         persona: Option<String>,
         #[serde(default)]
         skills: Vec<String>,
+        /// Working directory the run is bound to (W-5 schedule payload;
+        /// additive — absent on older peers deserializes as None).
+        #[serde(default)]
+        cwd: Option<String>,
     },
     /// Provider-side: result recorded.
     TaskNoted,

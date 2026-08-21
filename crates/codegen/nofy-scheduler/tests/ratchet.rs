@@ -44,7 +44,10 @@ fn scheduler_loc_ratchet_only_shrinks() {
     // - 2886→2942: coverage-gate — remaining scheduler gaps (fence is_active,
     //   eventbus drain, delivery list error arms, parse_log blank lines,
     //   LogStore read-error propagation).
-    let cap = 2942;
+    // - 2942→2976: W-5 trigger-bridge payload — Added/ScheduleEntry carry
+    //   goal/cwd/once through the fold; delivery gains deliver_to for an
+    //   explicit directory (daemon binds deliveries to its state root).
+    let cap = 2976;
     let got = loc(&src);
     assert!(
         got <= cap,

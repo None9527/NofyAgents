@@ -66,6 +66,7 @@ mod tests {
             goal: "organize".into(),
             persona: Some("You are the file steward.".into()),
             skills: vec!["find".into(), "cleanup".into()],
+            cwd: None,
         }
     }
 

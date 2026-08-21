@@ -92,12 +92,20 @@ impl<S: Read + Write> ProviderClient<S> {
         })
     }
 
-    pub fn report(&mut self, task_id: &str, succeeded: bool) -> Result<(), FrameError> {
+    /// Report a task outcome. `output` carries the settled text (W-5:
+    /// schedule deliveries persist it); `None` keeps the older shape.
+    pub fn report(
+        &mut self,
+        task_id: &str,
+        succeeded: bool,
+        output: Option<&str>,
+    ) -> Result<(), FrameError> {
         write_frame(
             &mut self.stream,
             &serde_json::to_vec(&ControlMethod::TaskResult {
                 task_id: task_id.to_string(),
                 succeeded,
+                output: output.map(String::from),
             })?,
         )?;
         // Drain the TaskNoted ack so the frame stream stays aligned.
@@ -162,7 +170,7 @@ impl<S: Read + Write> ProviderClient<S> {
                 Some(dispatch) => {
                     let ok = on_task(&dispatch);
                     if let ControlResponse::TaskDispatch { task_id, .. } = &dispatch {
-                        self.report(task_id, ok)?;
+                        self.report(task_id, ok, None)?;
                     }
                 }
                 None => std::thread::sleep(POLL_IDLE),
@@ -332,7 +340,7 @@ mod tests {
         let ControlResponse::TaskDispatch { task_id, .. } = &dispatch else { panic!("unexpected dispatch: {dispatch:?}") };
         let task_id = task_id.clone();
         assert_eq!(task_id, "t1");
-        provider.report(&task_id, true).unwrap();
+        provider.report(&task_id, true, None).unwrap();
         assert!(
             provider.poll_once().unwrap().is_none(),
             "run complete: NoPending"
@@ -535,7 +543,7 @@ mod tests {
         let mut client = ProviderClient {
             stream: torn_input(),
         };
-        let err = client.report("t1", true).unwrap_err();
+        let err = client.report("t1", true, None).unwrap_err();
         assert!(matches!(err, FrameError::Io(e) if e.kind() == std::io::ErrorKind::UnexpectedEof));
     }
 
@@ -583,7 +591,7 @@ mod tests {
         let mut client = ProviderClient {
             stream: ScriptedStream::failing_after(0),
         };
-        assert!(client.report("t1", true).is_err());
+        assert!(client.report("t1", true, None).is_err());
     }
 
     #[test]
@@ -651,6 +659,7 @@ mod tests {
             goal: "g".into(),
             persona: None,
             skills: vec![],
+            cwd: None,
         })
         .unwrap();
         let mut client = registered_client(&[dispatch]);
@@ -697,6 +706,7 @@ mod tests {
             goal: "g".into(),
             persona: None,
             skills: vec![],
+            cwd: None,
         })
         .unwrap();
         let noted = serde_json::to_vec(&ControlResponse::TaskNoted).unwrap();
