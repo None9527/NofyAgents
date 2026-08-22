@@ -66,6 +66,10 @@ pub enum Command {
     Approval(crate::approval_cmd::ApprovalArgs),
     /// Recoverable deletions: list, restore, add, empty (W-9)
     Trash(crate::trash_cmd::TrashArgs),
+    /// Ask how the daemon lived and died (crash forensics, U8-09)
+    Forensics(crate::forensics_cmd::ForensicsArgs),
+    /// File leases: leased files are steward-read-only (FR12.11, U9-06)
+    Lease(crate::lease_cmd::LeaseArgs),
     /// Fetch and install managed configuration
     Setup {
         /// Print the fetched configuration as JSON instead of installing it;

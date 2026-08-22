@@ -1013,6 +1013,20 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                 nofy_pager::trash_cmd::run(&trash_args, &state_dir)?;
                 return Ok(());
             }
+            Command::Forensics(forensics_args) => {
+                // U8-09 wiring: the ledger lives on disk under NOFY_HOME —
+                // no daemon round-trip needed.
+                let state_dir = nofy_shell::util::nofy_home::nofy_home();
+                nofy_pager::forensics_cmd::run(&forensics_args, &state_dir)?;
+                return Ok(());
+            }
+            Command::Lease(lease_args) => {
+                // U9-06 wiring: the lease table lives on disk under
+                // NOFY_HOME — no daemon round-trip needed.
+                let state_dir = nofy_shell::util::nofy_home::nofy_home();
+                nofy_pager::lease_cmd::run(&lease_args, &state_dir)?;
+                return Ok(());
+            }
             Command::Version { json } => {
                 if json {
                     let payload = serde_json::json!({

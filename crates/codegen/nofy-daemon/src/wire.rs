@@ -159,6 +159,31 @@ pub fn serve_connection<R: Read, W: Write>(
                 packs,
                 cwd,
             }) => {
+                // U4-06: a second submit must never SILENTLY replace a
+                // run that still has unsettled work — refuse loud and
+                // name the remedy. A finished run is replaced normally.
+                let blocked = run
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .filter(|r| !r.orch.is_done())
+                    .map(|r| {
+                        r.orch
+                            .manifest
+                            .task
+                            .len()
+                            .saturating_sub(r.orch.settled_count())
+                    });
+                if let Some(outstanding) = blocked {
+                    serde_json::to_value(ControlError::new(
+                        ControlErrorCode::Internal,
+                        format!(
+                            "a delegated run is still active ({outstanding} task(s) unsettled); \
+                             wait for it to finish, or cancel its tasks with `nofy task cancel`, \
+                             before submitting a new run"
+                        ),
+                    ))?
+                } else {
                 match submit_run(&manifest, &packs, cwd.clone()) {
                     Ok((mut dr, total)) => {
                         // R2/S wiring: persist the PLAN and attach the
@@ -189,6 +214,7 @@ pub fn serve_connection<R: Read, W: Write>(
                         ControlErrorCode::Internal,
                         format!("manifest rejected: {msg}"),
                     ))?,
+                }
                 }
             }
             Ok(ControlMethod::TaskPoll) => {
@@ -1222,6 +1248,58 @@ needs = ["t1"]
             .as_str()
             .unwrap()
             .contains("not a directory"));
+    }
+
+    #[test]
+    fn second_submit_while_active_refuses_loud_u406() {
+        // U4-06: a run with unsettled tasks is never silently replaced —
+        // the second submit is refused with a named remedy; once the run
+        // settles, the next submit is accepted again.
+        let run = std::sync::Arc::new(std::sync::Mutex::new(None::<DaemonRun>));
+        let manifest = "packs = [\"p\"]\n\n[[task]]\nid = \"t1\"\npack = \"p\"\ngoal = \"g\"\n";
+        let frames = serve_in_memory(
+            &Registry::at(tempfile::tempdir().unwrap().path()),
+            &[
+                ControlMethod::TaskSubmit {
+                    manifest: manifest.into(),
+                    packs: vec![],
+                    cwd: None,
+                },
+                ControlMethod::TaskSubmit {
+                    manifest: manifest.into(),
+                    packs: vec![],
+                    cwd: None,
+                },
+                ControlMethod::TaskPoll,
+                ControlMethod::TaskResult {
+                    task_id: "t1".into(),
+                    succeeded: true,
+                    output: None,
+                },
+                ControlMethod::TaskSubmit {
+                    manifest: manifest.into(),
+                    packs: vec![],
+                    cwd: None,
+                },
+            ],
+            &ApprovalBroker::new(),
+            &LiveBus::new(),
+            &SearchProxy::new(),
+            &run,
+            None,
+        );
+        assert_eq!(frames[0]["kind"], "project_accepted");
+        assert_eq!(frames[1]["code"], "INTERNAL", "the second submit refuses");
+        let detail = frames[1]["detail"].as_str().unwrap();
+        assert!(detail.contains("still active"), "{detail}");
+        assert!(detail.contains("nofy task cancel"), "the remedy is named: {detail}");
+        assert_eq!(frames[2]["kind"], "task_dispatch", "the first run keeps dispatching");
+        assert_eq!(frames[3]["kind"], "task_noted");
+        assert_eq!(
+            frames[4]["kind"],
+            "project_accepted",
+            "after the run settles, a new submit is accepted"
+        );
     }
 
     #[test]

@@ -44,7 +44,9 @@ fn orchestra_loc_ratchet_only_shrinks() {
     // - 3649→3687: W-4 skip audit — TaskEvent::Skipped (terminal) so
     //   transitively-skipped dependents are journaled, never stranded
     //   armed; resolve_escalation(allow) materializes skips immediately.
-    let cap = 3687;
+    // - 3687→3693: U4-06 — settled_count() so the daemon can refuse a
+    //   new submit while a run still has unsettled tasks.
+    let cap = 3693;
     let got = loc(&src);
     assert!(
         got <= cap,

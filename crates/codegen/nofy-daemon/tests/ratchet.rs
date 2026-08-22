@@ -200,7 +200,11 @@ fn workspace_loc_budget_only_shrinks() {
     //   deliberate empty), the agent `delete_file` tool registered by
     //   default, `nofy trash list/restore/add/empty` verbs, and the
     //   stewardcore ratchet raise (2672→3077).
-    let cap = 1_555_988; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_555_988→1_556_752: first-round benchmark gap tail — U4-06
+    //   fail-loud TaskSubmit, U8-09 `nofy forensics` query verb,
+    //   U9-05 `nofy memory add-dir/dirs/remove-dir` managed roots
+    //   (read-only default), U9-06 `nofy lease` file-lease surface.
+    let cap = 1_556_752; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
@@ -411,8 +415,12 @@ fn control_plane_loc_ratchet_only_shrinks() {
     //   terminal Skipped event for transitively-skipped dependents on
     //   escalation-allow and cancel (the journal never strands them
     //   armed); TaskList projects the skipped state.
+    // - daemon 8227→8334: U4-06 fail-loud — TaskSubmit refuses while a
+    //   delegated run still has unsettled tasks (names `nofy task
+    //   cancel`), and forensics entries() exposes the ledger for the
+    //   U8-09 query verb.
     let caps = [
-        ("nofy-daemon", 8227),
+        ("nofy-daemon", 8334),
         ("nofy-channel", 609),
         ("nofy-control-schema", 475),
         ("nofy-session-registry", 150),

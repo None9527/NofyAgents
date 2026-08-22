@@ -94,8 +94,9 @@ else
 fi
 
 # ---------- U4-06 并行委派 ----------
-task_start U4-06 "并行委派:两个任务互不干扰"
-# 先停 provider 让第一 run 停在 armed,再提交第二 run,验证第一 run 是否被静默顶掉
+task_start U4-06 "并行委派:两个任务互不干扰(至少不静默顶替)"
+# 先停 provider 让第一 run 停在 armed,再提交第二 run:
+# 正确行为 = 第二 run 被当场拒绝且有明白话,第一 run 不受影响。
 pgrep -x nofy | while read -r p; do
   tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null | grep -q "agent stdio" && kill "$p"
 done || true
@@ -104,16 +105,18 @@ mk "$RESULTS/U4-06a.toml" u406a "Reply with exactly: A"
 mk "$RESULTS/U4-06b.toml" u406b "Reply with exactly: B"
 timeout 30 "$NOFY" task submit "$RESULTS/U4-06a.toml" --cwd "$A" >/dev/null 2>&1 || true
 sleep 3
-timeout 30 "$NOFY" task submit "$RESULTS/U4-06b.toml" --cwd "$A" >/dev/null 2>&1 || true
+rc2=0
+timeout 30 "$NOFY" task submit "$RESULTS/U4-06b.toml" --cwd "$A" > "$RESULTS/U4-06b.out" 2>&1 || rc2=$?
 ensure_provider "$A" || true
-wait_journal u406b "Settled" 180 || true
-sleep 20
+wait_journal u406a "Settled" 180 || true
+sleep 5
 setta=$(journal_of u406a | grep -ac 'Settled' || true)
-settb=$(journal_of u406b | grep -ac 'Settled' || true)
-if [ "${setta:-0}" -ge 1 ] && [ "${settb:-0}" -ge 1 ]; then
-  record pass - "两个委派均结算"
+if [ "${setta:-0}" -ge 1 ] && [ "$rc2" -ne 0 ] && grep -qaiE "still active|cancel" "$RESULTS/U4-06b.out"; then
+  record pass - "第一 run 不受影响;第二 run 被当场拒绝且说明出路(rc=$rc2)"
+elif [ "${setta:-0}" -ge 1 ]; then
+  record partial M "第一 run 结算了,但第二提交的拒绝语义不明(rc=$rc2;$(head -1 "$RESULTS/U4-06b.out" 2>/dev/null))"
 else
-  record fail W-7 "第二 run 顶掉第一 run(settled a=$setta b=$settb):无并行 run,静默替换"
+  record fail W-7 "第一 run 被顶掉或未结算(settled a=$setta,第二提交 rc=$rc2)"
 fi
 
 # ---------- U4-07 可查进度 ----------

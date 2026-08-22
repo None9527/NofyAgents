@@ -242,6 +242,11 @@ impl OrchRun {
         self.aborted || self.succeeded.len() + self.dead.len() == self.manifest.task.len()
     }
 
+    /// Tasks that reached a terminal state (succeeded or dead/skipped).
+    pub fn settled_count(&self) -> usize {
+        self.succeeded.len() + self.dead.len()
+    }
+
     fn spec(&self, id: &str) -> Option<&TaskSpec> {
         self.manifest.task.iter().find(|t| t.id == id)
     }

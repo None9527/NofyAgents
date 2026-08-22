@@ -103,6 +103,27 @@ impl ForensicsLedger {
     pub fn path(&self) -> &Path {
         &self.path
     }
+
+    /// All ledger entries in order (U8-09: crash forensics queryable,
+    /// not just readable off the raw file). A torn tail truncates the
+    /// read, never errors — same discipline as the other append-only
+    /// logs. A missing ledger is an empty history.
+    pub fn entries(&self) -> Vec<serde_json::Value> {
+        let Ok(text) = fs::read_to_string(&self.path) else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        for line in text.lines() {
+            if line.trim().is_empty() {
+                continue;
+            }
+            match serde_json::from_str::<serde_json::Value>(line) {
+                Ok(v) => out.push(v),
+                Err(_) => break,
+            }
+        }
+        out
+    }
 }
 
 #[cfg(test)]
