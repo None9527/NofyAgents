@@ -256,25 +256,6 @@ pub async fn set_hunk_tracker_mode(value: String) -> Result<()> {
     update_config(|cfg| cfg.ui.hunk_tracker_mode = Some(value)).await
 }
 
-/// Persist `[ui].voice_capture_mode` via `update_config`. Value is one of the
-/// canonical strings `toggle` | `hold`.
-pub async fn set_voice_capture_mode(value: String) -> Result<()> {
-    update_config(|cfg| cfg.ui.voice_capture_mode = Some(value)).await
-}
-
-/// Persist `[ui].voice_stt_language` via `update_config`. Value is a canonical
-/// language code from the settings catalog (`en`, `es`, …) or `auto` (system
-/// locale, falling back to English).
-pub async fn set_voice_stt_language(value: String) -> Result<()> {
-    update_config(|cfg| cfg.ui.voice_stt_language = Some(value)).await
-}
-
-/// Persist `[ui].voice_keybind_enabled` via `update_config`. When `false` the
-/// Ctrl+Space / F8 voice chord is ignored (`/voice` still works).
-pub async fn set_voice_keybind_enabled(value: bool) -> Result<()> {
-    update_config(|cfg| cfg.ui.voice_keybind_enabled = Some(value)).await
-}
-
 /// Persist `[ui].default_selected_permission` via `update_config`. Value is
 /// one of the canonical strings from `DEFAULT_SELECTED_PERMISSION_CHOICES`
 /// (`default` | `allow_once` | `allow_always` | `reject`); `default` is the

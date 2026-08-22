@@ -8,7 +8,7 @@
 use std::time::Duration;
 
 use anyhow::Context as _;
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 use tokio::task::JoinSet;
 use tokio::time::{Instant, sleep_until};
 
@@ -22,7 +22,7 @@ use nofy_acp_lib::acp_send;
 
 use super::actions::{Action, Effect, TaskResult};
 use super::app_view::{
-    ActiveView, AppView, AuthState, InputOutcome, PasteProvenance, TrustState, VoiceState,
+    ActiveView, AppView, AuthState, InputOutcome, PasteProvenance, TrustState,
 };
 use super::{PagerArgs, PagerTerminal, acp_handler, dispatch, effects};
 
@@ -892,7 +892,6 @@ pub(crate) async fn run(
                 .privacy_banner_acked
         });
     app.plugin_cta_enabled = nofy_config::env_bool("NOFY_PLUGIN_CTA").unwrap_or(false);
-    // Voice is applied after auth_meta so API-key detection is accurate.
     app.session_picker_grouped = std::env::var("NOFY_SESSION_PICKER_GROUPED")
         .ok()
         .and_then(|v| match v.as_str() {
@@ -1007,14 +1006,6 @@ pub(crate) async fn run(
         }
     }
 
-    // After auth so API-key + managed policy resolve correctly.
-    let voice_mode_enabled = crate::app::resolve_voice_mode_live();
-    if !voice_mode_enabled {
-        app.voice_reset();
-        app.voice_ui_active = false;
-    }
-    app.apply_voice_mode_enabled(voice_mode_enabled);
-
     // Re-impose the startup gate through the chokepoint: cached auth meta is
     // possibly stale, so a consumer session's gate is deferred for live
     // verification before first paint.
@@ -1053,23 +1044,7 @@ pub(crate) async fn run(
         app.notification_service = crate::notifications::NotificationService::new(
             crate::notifications::load_notification_config(raw),
         );
-        if let Some(table) = raw.as_table() {
-            // Voice inherits the same resolved endpoints base as chat
-            // (config > NOFY_API_BASE_URL env > default).
-            let endpoints_base =
-                nofy_shell::agent::config::EndpointsConfig::from_config_value(raw)
-                    .xai_api_base_url;
-            app.voice_config =
-                nofy_voice::VoiceConfig::from_config_table(table, Some(&endpoints_base));
-        }
     }
-    // Stamp request-identity headers so the STT handshake attributes voice usage
-    // to nofy-cli server-side (mirrors the sampler). Done after
-    // `from_config_table` — which yields a fresh config with these
-    // `#[serde(skip)]` fields defaulted to empty — and unconditionally, so they
-    // apply even when there is no `[voice]` table (or no config at all).
-    app.voice_config.client_identifier = crate::client_identity::HEADLESS_CLIENT_TYPE.to_string();
-    app.voice_config.user_agent = crate::client_identity::client_user_agent();
 
     app.zdr_access_enabled = nofy_shell::util::config::resolve_zdr_access_enabled(
         requirements.as_ref(),
@@ -1292,22 +1267,6 @@ pub(crate) async fn run(
     // Seed `/auto` feature-gate visibility from the resolved gate (so `/auto`
     // is offered on the welcome prompt when available).
     app.sync_permission_mode_slash_gate();
-    // Settings UI language (`[ui].voice_stt_language`) overrides `[voice].language`
-    // when set. Store the preference (including client-only `auto`); the voice
-    // crate resolves the wire code at STT connect. When unset, keep whatever
-    // `from_config_table` loaded (default `en`, or an explicit `[voice].language`).
-    // Must run after `load_initial_ui_config()` hydrates `current_ui` from disk.
-    if let Some(ref pref) = app.current_ui.voice_stt_language {
-        app.voice_config.language =
-            crate::settings::canonical_voice_stt_language(Some(pref)).to_string();
-    }
-    // Seed the Voice shortcut gate's process-global mirror for key-routing and
-    // view code without an `AppView`; the chord intercept reads `current_ui`
-    // live and the settings setter updates both.
-    crate::app::VOICE_KEYBIND_ENABLED.store(
-        app.current_ui.voice_keybind_enabled.unwrap_or(true),
-        std::sync::atomic::Ordering::Release,
-    );
     // Resolve the per-tip contextual hints now that `current_ui` is hydrated and
     // propagate the prompt-relevant tips to any agents built at startup. New
     // agents adopt the gates at creation; settings toggles re-apply at runtime.
@@ -1454,15 +1413,6 @@ pub(crate) async fn run(
     let mut tasks: JoinSet<TaskResult> = JoinSet::new();
     let (progress_tx, mut progress_rx) =
         tokio::sync::mpsc::unbounded_channel::<effects::RestoreProgressMsg>();
-
-    // Voice STT pipeline is started lazily on first successful `/voice` (see
-    // `VoiceState::ColdStart`), not at launch — avoids background work for users
-    // who never enable voice mode. `AUDIO_SUPPORTED` reflects whether mic
-    // capture is compiled in: true for production CLI builds on macOS/Windows
-    // (cpal) and Linux (subprocess recorder), false for Bazel builds (no
-    // capture in the test sandbox).
-    let mut voice_rx = None::<tokio::sync::mpsc::Receiver<nofy_voice::VoiceEvent>>;
-    let voice_auth_factory = connection.auth_manager.clone();
 
     // Animation tick: only scheduled when there are running entries.
     let mut tick_interval = tick_interval;
@@ -1802,60 +1752,6 @@ pub(crate) async fn run(
             &mut suspend_wait_reports,
         )?;
 
-        // Lazy voice pipeline: only after `/voice` or Ctrl+Space while gates
-        // allow. Consume the queued cold-start, carrying its hold-ownership and
-        // bound target forward into the live recording it spawns.
-        if let VoiceState::ColdStart { hold, target } = app.voice_state {
-            if app.voice_cmd_tx.is_none() && app.voice_can_start_pipeline() {
-                let voice_auth = crate::voice::build_voice_auth(voice_auth_factory.clone());
-                let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel(32);
-                let (event_tx, event_rx) = tokio::sync::mpsc::channel(128);
-                let voice_config = app.voice_config.clone();
-                tokio::spawn(nofy_voice::run_voice_pipeline(
-                    voice_config,
-                    voice_auth.clone(),
-                    cmd_rx,
-                    event_tx,
-                ));
-                app.voice_auth = Some(voice_auth);
-                app.voice_cmd_tx = Some(cmd_tx);
-                voice_rx = Some(event_rx);
-                tracing::info!("voice pipeline started (/voice or Ctrl+Space)");
-                // The spawn is async, so begin capture now the pipeline is live
-                // — but only if the user is still on a surface that can receive
-                // dictation (an agent prompt or the dashboard dispatch input).
-                // This runs at loop-top before any new input, so the surface
-                // normally can't have changed since the keypress; the else-arm
-                // is defensive cleanup so voice mode can't stay armed without
-                // capture ever starting.
-                if matches!(
-                    app.active_view,
-                    ActiveView::Agent(_) | ActiveView::AgentDashboard
-                ) {
-                    app.voice_begin_recording(target, hold);
-                } else {
-                    app.voice_state = VoiceState::Idle;
-                    app.voice_ui_active = false;
-                }
-            } else if app.voice_cmd_tx.is_none() {
-                app.voice_state = VoiceState::Idle;
-                app.voice_ui_active = false;
-                app.show_toast("Voice could not start. Restart Nofy.");
-            } else {
-                // Defensive: a queued start with the pipeline already up (which
-                // shouldn't occur) — drop it so we don't re-enter every tick.
-                app.voice_state = VoiceState::Idle;
-            }
-            // The lazy spawn runs at loop-top, after the key/slash arm already
-            // drew (with capture still off). Render now so the recording banner
-            // appears immediately instead of waiting for the next input or
-            // network event to wake the select! loop.
-            presenter.request_presentation(&mut app, terminal, false);
-        }
-
-        // Stop voice if the user has left the recording session (see method).
-        app.enforce_voice_session_bound();
-
         // Keep the /gboom keyboard layer in sync with whether the game is
         // open, so WASD emit releases while it runs and the layer is popped
         // on every close path (Esc, game-over dismiss, session switch).
@@ -2013,8 +1909,7 @@ pub(crate) async fn run(
             }
 
             // Biased order: cancellation/quit, writer acks/failures, ACP,
-            // task/progress results, updates, input, and render/poll timers all
-            // precede the deliberately-last voice STT arm (see its note below).
+            // task/progress results, updates, input, and render/poll timers.
 
             // Gated on empty terminal input: a token firehose keeps this arm
             // ready at every biased poll, so without the gate buffered
@@ -2681,53 +2576,6 @@ pub(crate) async fn run(
 
                 presenter.request(false);
             }
-
-            // Voice STT — DELIBERATELY THE LAST (lowest-priority) arm. In a
-            // biased select, an arm that is ready on most iterations masks every
-            // arm below it. A hot mic (toggle capture stays open across pauses)
-            // streams interim transcripts at ~5–20 Hz and can backlog the 128-slot
-            // channel during a burst, so `voice_rx` is effectively always-ready.
-            // Keeping it last guarantees it can never starve cancellation, the ACP
-            // stream, task/progress completions, keyboard input, or the render/
-            // animation/poll timers — voice is only serviced when nothing else is
-            // pending. Draw throttle uses min_draw_interval.
-            ev = async {
-                match voice_rx.as_mut() {
-                    Some(rx) => rx.recv().await,
-                    None => std::future::pending().await,
-                }
-            } => {
-                match ev {
-                    Some(ev) => {
-                        let needs_draw = crate::voice::handle_voice_event(&mut app, ev);
-                        if needs_draw {
-                            schedule_tick(&mut animation_tick_at, &app, tick_interval);
-                            let now = Instant::now();
-                            if presenter.request_throttled(now, min_draw_interval) {
-                                app.update_notifications();
-                            }
-                        }
-                        if !app.pending_effects.is_empty() {
-                            let effs = std::mem::take(&mut app.pending_effects);
-                            if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
-                                break;
-                            }
-                        }
-                    }
-                    // Closed channel: revert to pending() (avoid hot-loop on None).
-                    None => {
-                        voice_rx = None;
-                        let was_listening = app.voice_listening();
-                        app.voice_cmd_tx = None;
-                        // Pipeline is gone: drop any session/interim entirely.
-                        app.voice_reset();
-                        if was_listening {
-                            app.show_toast("Voice stopped unexpectedly. Try again.");
-                        }
-                        presenter.request(false);
-                    }
-                }
-            }
         }
 
         presenter.present_if_dirty(&mut app, terminal);
@@ -3103,47 +2951,6 @@ async fn drain_and_process(
             }
             _ => {}
         }
-        // Voice capture chord (Ctrl+Space or F8), handled here before normal
-        // routing so the release reaches us and the key never lands as text.
-        // Hold-to-talk where releases are reported (press records, release
-        // stops), else tap toggle. A release is only ours when a hold session
-        // owns it, so a bare Space release (Ctrl lifted first) stops
-        // hold-to-talk without eating every Space release during normal typing.
-        // `[ui].voice_keybind_enabled` (read live, like `voice_capture_mode`)
-        // silences chord presses without touching `/voice` — see
-        // `voice_chord_claims_event` for the exact press/release/hold gating.
-        if let Event::Key(ke) = ev
-            && app.voice_mode_enabled
-            && nofy_voice::AUDIO_SUPPORTED
-            && is_voice_chord(ke)
-            && voice_chord_claims_event(
-                ke.kind,
-                app.current_ui.voice_keybind_enabled.unwrap_or(true),
-                app.voice_hold_owned(),
-            )
-        {
-            // Hold-to-talk only when selected AND the terminal reports key
-            // releases (Kitty protocol); otherwise fall back to a tap toggle.
-            let hold_mode = crate::settings::canonical_voice_capture_mode(
-                app.current_ui.voice_capture_mode.as_deref(),
-            ) == "hold";
-            let action = voice_chord_action(
-                hold_mode,
-                crate::app::kitty_releases_reported(),
-                ke.kind,
-                app.voice_listening(),
-                app.voice_hold_owned(),
-            );
-            if let Some(action) = action {
-                let effs = dispatch::dispatch(action, app);
-                if process_effects(effs, tasks, app, progress_tx) {
-                    return true;
-                }
-                needs_draw = true;
-                had_non_resize_change = true;
-            }
-            return false;
-        }
         let is_resize = matches!(ev, Event::Resize(_, _));
         match app.handle_input_at_with_paste_provenance(
             ev,
@@ -3343,64 +3150,6 @@ fn is_pasteable_key_event(ev: &Event) -> bool {
     }
 }
 
-/// Map a voice-chord key event to its action (pure, so it's unit-testable).
-///
-/// Hold mode is press-to-record / release-to-stop, but only a hold-*owned*
-/// session stops on release; a `/voice`/toggle session (not hold-owned) has no
-/// release of its own, so a press toggles it off. Elsewhere it's a tap toggle.
-fn voice_chord_action(
-    hold_mode: bool,
-    releases_reported: bool,
-    kind: KeyEventKind,
-    listening: bool,
-    hold_owned: bool,
-) -> Option<crate::app::actions::Action> {
-    use crate::app::actions::Action;
-    if hold_mode && releases_reported {
-        match kind {
-            KeyEventKind::Press if !listening => Some(Action::EnableVoiceMode),
-            KeyEventKind::Press if !hold_owned => Some(Action::VoiceToggle),
-            KeyEventKind::Release => Some(Action::VoiceStop),
-            _ => None, // repeat while a hold is held, or press of a hold-owned session
-        }
-    } else if kind == KeyEventKind::Press {
-        Some(Action::VoiceToggle)
-    } else {
-        None
-    }
-}
-
-/// Whether the event-loop intercept claims a voice-chord key event (pure for
-/// unit tests).
-///
-/// An active hold session owns its chord events end-to-end regardless of the
-/// Voice shortcut setting — its release only ever stops capture, so flipping
-/// the setting off mid-hold must not orphan it and wedge the mic open.
-/// Outside a hold, a bare release is never ours (normal typing) and a press
-/// honors the setting; an unclaimed press falls through to normal routing,
-/// where `ActionId::VoiceToggle` resolution is gated on the same setting.
-fn voice_chord_claims_event(kind: KeyEventKind, keybind_enabled: bool, hold_owned: bool) -> bool {
-    if hold_owned {
-        return true;
-    }
-    kind != KeyEventKind::Release && keybind_enabled
-}
-
-/// The voice-capture chord: **Ctrl+Space** or **F8**. A press needs the exact
-/// chord (matching the registry, so Shift+F8 / Ctrl+Alt+Space don't fire); a
-/// release matches the key alone (Space/F8), since on Kitty the Ctrl release can
-/// precede Space and drop the CONTROL bit. Callers gate release handling on an
-/// owning hold session, so a stray bare release is a no-op.
-fn is_voice_chord(ke: &KeyEvent) -> bool {
-    match ke.kind {
-        KeyEventKind::Release => matches!(ke.code, KeyCode::Char(' ') | KeyCode::F(8)),
-        _ => {
-            (ke.code == KeyCode::Char(' ') && ke.modifiers == KeyModifiers::CONTROL)
-                || (ke.code == KeyCode::F(8) && ke.modifiers.is_empty())
-        }
-    }
-}
-
 /// Coalesce runs of rapid key events into synthetic `Event::Paste`
 /// events. On terminals without bracketed paste, pasted text arrives
 /// as individual key events; Enter keys mid-run would otherwise
@@ -3441,12 +3190,11 @@ fn coalesce_rapid_keys(events: Vec<TimedInputEvent>) -> Vec<TimedInputEvent> {
     }
 
     // Remove Release events — handlers ignore them and they'd break run
-    // detection. Exception: voice-chord releases (needed for hold-to-talk).
+    // detection.
     let events: Vec<TimedInputEvent> = events
         .into_iter()
         .filter(|ev| {
-            !matches!(&ev.event, Event::Key(ke)
-                if ke.kind == KeyEventKind::Release && !is_voice_chord(ke))
+            !matches!(&ev.event, Event::Key(ke) if ke.kind == KeyEventKind::Release)
         })
         .collect();
 
@@ -3918,107 +3666,6 @@ mod tests {
             },
         );
         assert!(tty_suspend_armed(&app));
-    }
-
-    // ── is_voice_chord ───────────────────────────────────────────────────
-
-    #[test]
-    fn is_voice_chord_press_exact_release_keycode() {
-        use KeyEventKind::{Press, Release};
-        let hit = |code, mods, kind| {
-            is_voice_chord(&KeyEvent {
-                code,
-                modifiers: mods,
-                kind,
-                state: KeyEventState::NONE,
-            })
-        };
-        let (sp, f8, ctrl, none) = (
-            KeyCode::Char(' '),
-            KeyCode::F(8),
-            KeyModifiers::CONTROL,
-            KeyModifiers::NONE,
-        );
-        // Press: exact chord only — stray mods / bare Space don't fire (Thread 4).
-        assert!(hit(sp, ctrl, Press) && hit(f8, none, Press));
-        assert!(!hit(sp, ctrl | KeyModifiers::ALT, Press));
-        assert!(!hit(f8, KeyModifiers::SHIFT, Press) && !hit(sp, none, Press));
-        // Release: key alone — a bare Space release (Ctrl lifted first) matches so
-        // hold-to-talk can still stop (Thread 3); non-chord keys don't.
-        assert!(hit(sp, none, Release) && hit(f8, none, Release));
-        assert!(!hit(KeyCode::Char('a'), none, Release));
-    }
-
-    // ── voice_chord_action ───────────────────────────────────────────────
-
-    #[test]
-    fn voice_chord_action_cases() {
-        use crate::app::actions::Action;
-        // (hold_mode, releases_reported, kind, listening, hold_owned) -> action
-        // tag, with the toggle-stop case being a past regression.
-        let press = KeyEventKind::Press;
-        let release = KeyEventKind::Release;
-        let tag = |a: Option<Action>| match a {
-            Some(Action::EnableVoiceMode) => "start",
-            Some(Action::VoiceStop) => "stop",
-            Some(Action::VoiceToggle) => "toggle",
-            None => "none",
-            _ => "other",
-        };
-        let cases = [
-            // hold + releases: press idle starts; release stops; press on a
-            // hold-owned session waits; press on a non-hold (/voice/toggle)
-            // session toggles off.
-            ((true, true, press, false, false), "start"),
-            ((true, true, release, true, true), "stop"),
-            ((true, true, press, true, true), "none"),
-            ((true, true, press, true, false), "toggle"),
-            // Non-hold (toggle mode or no reported releases): press toggles,
-            // release noops.
-            ((false, false, press, false, false), "toggle"),
-            ((false, false, release, true, false), "none"),
-            ((true, false, release, true, false), "none"),
-        ];
-        for ((hold, releases, kind, listening, owned), want) in cases {
-            assert_eq!(
-                tag(voice_chord_action(hold, releases, kind, listening, owned)),
-                want,
-                "voice_chord_action({hold},{releases},{kind:?},{listening},{owned})"
-            );
-        }
-    }
-
-    /// Hold-owned events are claimed even with the setting off (a dropped
-    /// release would wedge the mic open — past regression); otherwise presses
-    /// honor the setting and bare releases are never claimed.
-    #[test]
-    fn voice_chord_claims_event_cases() {
-        let press = KeyEventKind::Press;
-        let repeat = KeyEventKind::Repeat;
-        let release = KeyEventKind::Release;
-        // (kind, keybind_enabled, hold_owned) -> claimed
-        let cases = [
-            // Hold-owned: everything claimed, setting on or off.
-            ((release, false, true), true),
-            ((release, true, true), true),
-            ((press, false, true), true),
-            ((repeat, false, true), true),
-            // No hold: press/repeat follow the setting.
-            ((press, true, false), true),
-            ((press, false, false), false),
-            ((repeat, true, false), true),
-            ((repeat, false, false), false),
-            // No hold: a bare release is never ours (normal typing).
-            ((release, true, false), false),
-            ((release, false, false), false),
-        ];
-        for ((kind, enabled, owned), want) in cases {
-            assert_eq!(
-                voice_chord_claims_event(kind, enabled, owned),
-                want,
-                "voice_chord_claims_event({kind:?},{enabled},{owned})"
-            );
-        }
     }
 
     // ── plan_reconnect_load ──────────────────────────────────────────────

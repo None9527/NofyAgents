@@ -721,12 +721,6 @@ pub struct DashboardState {
     /// when the dialog opens; consumed on confirm. Mirrors the `attach` flag of
     /// the non-worktree dispatch path.
     pub pending_worktree_attach: bool,
-    /// Mirror of `AppView::voice_listening`, synced each frame so the dispatch
-    /// box can show a record badge + stream the interim transcript while voice
-    /// dictation targets the dashboard's new-agent input.
-    pub voice_listening: bool,
-    /// Mirror of `AppView::voice_interim` — the live partial transcript.
-    pub voice_interim: Option<String>,
     /// Surface-local compose mode for dispatch + peek (not persisted; not
     /// shared with agent sessions). `/multiline` or Ctrl+M.
     pub multiline_mode: bool,
@@ -1410,8 +1404,6 @@ impl DashboardState {
             worktree_dialog: None,
             pending_worktree_prompt: None,
             pending_worktree_attach: false,
-            voice_listening: false,
-            voice_interim: None,
             multiline_mode: false,
             // Fresh dashboard with no rows seeded → the `[+ New
             // Agent]` button is the default cursor target. Open
@@ -1452,11 +1444,6 @@ impl DashboardState {
     pub(crate) fn set_recap_visible(&mut self, visible: bool) {
         self.dispatch.set_recap_visible(visible);
         self.peek_reply.set_recap_visible(visible);
-    }
-
-    pub(crate) fn set_voice_visible(&mut self, visible: bool) {
-        self.dispatch.set_voice_visible(visible);
-        self.peek_reply.set_voice_visible(visible);
     }
 
     /// Gate `/auto` on both dashboard prompt registries (dispatch + peek
@@ -4631,8 +4618,6 @@ fn dashboard_action_for_id(
         | ActionId::ShortcutsHelp
         | ActionId::OpenSettings
         | ActionId::OpenDashboard
-        | ActionId::EnableVoiceMode
-        | ActionId::VoiceToggle
         // Overlay actions are intercepted at the AppView level
         // before they reach the dashboard's own input loop; they
         // can never arrive here.
@@ -7113,7 +7098,7 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 80, 10));
         let _ = state
             .dispatch
-            .draw(&mut buf, rect, None, &style, None, None);
+            .draw(&mut buf, rect, None, &style, None);
         for (kind, column) in [
             (MouseEventKind::Down(MouseButton::Left), 4),
             (MouseEventKind::Drag(MouseButton::Left), 12),

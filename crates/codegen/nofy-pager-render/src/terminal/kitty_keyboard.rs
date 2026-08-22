@@ -20,8 +20,6 @@
 //!
 //! What losing `REPORT_EVENT_TYPES` costs an affected session:
 //!
-//! - Voice hold-to-talk degrades to a tap toggle (`voice_chord_action`; the
-//!   `voice_capture_mode` setting hides its `hold` choice).
 //! - `is_link_modifier_for_key`'s non-macOS Ctrl-release case (`nofy-pager`
 //!   `src/app/agent_view/mod.rs`) never fires, so link-hover clears on the next
 //!   non-Ctrl key instead of when Ctrl lifts.

@@ -1,7 +1,7 @@
 //! In-TUI `/doctor` report formatting.
 
 use super::{
-    DataControlFact, DiagnosticReport, FindingDisposition, NewlineFact, RuntimeFact, VoiceFacts,
+    DataControlFact, DiagnosticReport, FindingDisposition, NewlineFact, RuntimeFact,
 };
 use crate::clipboard::{ClipboardDelivery, NativeClipboardPreflight};
 use crate::host::{DisplayServer, HostOs};
@@ -122,18 +122,6 @@ pub fn format_doctor(report: &DiagnosticReport) -> String {
         ClipboardDelivery::Failed => "unavailable",
     };
     out.push_str(&format!("  status       {status}\n"));
-
-    if let Some(voice) = &facts.voice {
-        out.push_str("\nVoice\n");
-        match voice {
-            VoiceFacts::Device { name, detail } => {
-                out.push_str(&format!("  microphone   {name} ({detail})\n"));
-            }
-            VoiceFacts::Missing { .. } => {
-                out.push_str("  microphone   none detected\n");
-            }
-        }
-    }
 
     format_findings(report, &mut out);
     out

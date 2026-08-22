@@ -84,23 +84,6 @@ pub struct UiConfig {
     /// it). `off` disables hunk tracking entirely.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hunk_tracker_mode: Option<String>,
-    /// Voice capture chord behavior: `toggle` or `hold` (hold-to-talk; needs a
-    /// Kitty-protocol terminal, else falls back to toggle). Written by the
-    /// settings modal; unset defaults to `hold`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub voice_capture_mode: Option<String>,
-    /// Speech-to-text language preference for voice dictation. A Nofy STT
-    /// catalog code (`en`, `es`, `ja`, … — see xAI STT supported languages) or
-    /// `auto` (system locale, resolved at connect). Written by the settings
-    /// modal; unset leaves `[voice].language` / default `en`. When set, overrides
-    /// `[voice].language` for the session.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub voice_stt_language: Option<String>,
-    /// Whether the Ctrl+Space / F8 voice-dictation shortcut is active. Written
-    /// by the settings modal; unset defaults to `true` (shortcut on). When
-    /// `false` the chord is ignored — `/voice` still starts dictation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub voice_keybind_enabled: Option<bool>,
     /// When `true`, registers `Ctrl+R` (while scrollback is focused) to toggle
     /// terminal mouse reporting (mouse capture) so users can hand selection back
     /// to the terminal for native click-drag copy/paste. Opt-in only; unset/false
@@ -271,9 +254,6 @@ impl Default for UiConfig {
             vim_mode: None,
             render_mermaid: None,
             hunk_tracker_mode: None,
-            voice_capture_mode: None,
-            voice_stt_language: None,
-            voice_keybind_enabled: None,
             mouse_reporting_toggle: None,
             remember_tool_approvals: None,
             cancel_subagents_on_turn_cancel: None,

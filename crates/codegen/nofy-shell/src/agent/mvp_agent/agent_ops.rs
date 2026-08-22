@@ -149,7 +149,7 @@ impl MvpAgent {
     pub(super) fn set_auth_method(&self, id: acp::AuthMethodId) {
         self.auth_method_id.store(Some(std::sync::Arc::new(id)));
     }
-    /// Publish model-owned credentials for voice/tools static fallthrough.
+    /// Publish model-owned credentials for tools static fallthrough.
     /// Only [`ModelEntry::own_credential`] — not `sampling_config.api_key` (may be a session JWT).
     pub(crate) fn sync_process_static_api_key(&self, preferred_model_id: Option<&str>) {
         if self.cfg.borrow().nofy_com_config.api_key_auth_disabled() {

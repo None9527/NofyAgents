@@ -478,7 +478,6 @@ impl acp::Agent for MvpAgent {
                     // away-recap poll and the manual `/recap` on this so a
                     // disabled feature produces zero `nofy/recap` traffic.
                     "sessionRecap": self.cfg.borrow().is_session_recap_enabled(),
-                    "voiceMode": self.cfg.borrow().is_voice_mode_enabled(),
                 })
                         .as_object()
                         .cloned()

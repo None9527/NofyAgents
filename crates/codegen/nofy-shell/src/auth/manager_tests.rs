@@ -3641,7 +3641,7 @@ async fn shared_api_key_provider_resolves_live_bearer() {
     );
 }
 
-/// No OAuth session → env or auth.json `nofy::api_key` for voice/tools.
+/// No OAuth session → env or auth.json `nofy::api_key` for tools.
 #[tokio::test]
 #[serial_test::serial]
 async fn shared_api_key_provider_static_fallthrough() {

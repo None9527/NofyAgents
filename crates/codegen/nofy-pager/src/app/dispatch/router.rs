@@ -85,8 +85,7 @@ use super::settings::setters::{
     set_multiline_mode, set_page_flip_on_send, set_prompt_suggestions, set_remember_tool_approvals,
     set_render_mermaid, set_respect_manual_folds, set_screen_mode, set_scroll_lines,
     set_scroll_mode, set_scroll_speed, set_show_thinking_blocks, set_show_tips, set_simple_mode,
-    set_theme, set_timeline, set_timestamps, set_vim_mode, set_voice_capture_mode,
-    set_voice_keybind_enabled, set_voice_stt_language,
+    set_theme, set_timeline, set_timestamps, set_vim_mode,
 };
 use super::settings::ui::{
     dispatch_confirm_reset_setting, dispatch_open_command_palette, dispatch_open_howto_guides,
@@ -111,7 +110,6 @@ use super::turn::{
     dispatch_cancel_scheduled_task, dispatch_cancel_turn, dispatch_cancel_turn_choice,
     dispatch_demote_to_background, dispatch_kill_bg_task, dispatch_kill_subagent,
 };
-use super::voice::{dispatch_enable_voice_mode, dispatch_voice_stop, dispatch_voice_toggle};
 use crate::app::actions::{Action, Effect};
 use crate::app::agent_view::ActivePane;
 use crate::app::app_view::{ActiveView, AppView, AuthState};
@@ -149,9 +147,6 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
     app.reconcile_foreign_resume_launch();
     let effects = match action {
         Action::Quit | Action::QuitConfirmed => {
-            if let Some(tx) = &app.voice_cmd_tx {
-                let _ = tx.try_send(nofy_voice::VoiceCommand::Shutdown);
-            }
             let mut effects = unregister_all_active_sessions(app);
             effects.push(Effect::Quit);
             effects
@@ -384,9 +379,6 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
         Action::SendPromptNow { text, images } => {
             super::interject::dispatch_send_prompt_now(app, text, images)
         }
-        Action::EnableVoiceMode => dispatch_enable_voice_mode(app, true),
-        Action::VoiceToggle => dispatch_voice_toggle(app),
-        Action::VoiceStop => dispatch_voice_stop(app),
         Action::SendBashCommand(cmd) => dispatch_send_bash_command(app, cmd),
         Action::ShowUndoTip => dispatch_show_undo_tip(app),
         Action::ShowPlanNudge => dispatch_show_plan_nudge(app),
@@ -1053,9 +1045,6 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
         Action::SetDefaultSelectedPermission(s) => set_default_selected_permission(app, s),
         Action::SetHunkTrackerMode(s) => set_hunk_tracker_mode(app, s),
         Action::SetScreenMode(s) => set_screen_mode(app, s),
-        Action::SetVoiceKeybindEnabled(v) => set_voice_keybind_enabled(app, v),
-        Action::SetVoiceCaptureMode(s) => set_voice_capture_mode(app, s),
-        Action::SetVoiceSttLanguage(s) => set_voice_stt_language(app, s),
         Action::ToggleTimestamps => dispatch_toggle_timestamps(app),
         Action::SetYoloMode(v) => set_yolo_mode(app, v),
         Action::SetPermissionMode(kind) => set_permission_mode(app, kind),

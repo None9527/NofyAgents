@@ -990,7 +990,6 @@ fn apply_requirements_inner(
     pin_feature!(web_fetch);
     pin_feature!(ask_user_question);
     pin_feature!(write_file);
-    pin_feature!(voice_mode);
     if let Some(val) = req_bool(req, "telemetry", "trace_upload") {
         config.requirements.trace_upload.pin(val, source.clone());
         if config.telemetry.trace_upload != Some(val) {

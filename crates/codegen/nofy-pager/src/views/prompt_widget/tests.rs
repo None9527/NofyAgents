@@ -1099,19 +1099,19 @@
             ..PromptStyle::default()
         };
         let first_escape = first
-            .draw(&mut buf, area, Some(overlay), &style, None, None)
+            .draw(&mut buf, area, Some(overlay), &style, None)
             .post_flush_escapes
             .expect("first preview");
         assert!(first_escape.as_str().contains("a=t"));
         let _ = first_escape.commit();
         let second_escape = second
-            .draw(&mut buf, area, Some(overlay), &style, None, None)
+            .draw(&mut buf, area, Some(overlay), &style, None)
             .post_flush_escapes
             .expect("second preview");
         assert!(second_escape.as_str().contains("a=t"));
         let _ = second_escape.commit();
         let first_again = first
-            .draw(&mut buf, area, Some(overlay), &style, None, None)
+            .draw(&mut buf, area, Some(overlay), &style, None)
             .post_flush_escapes
             .expect("first preview again");
         assert!(first_again.as_str().contains("a=t"));
@@ -1409,30 +1409,6 @@
     fn prompt_style_overlay_has_no_prefix_override() {
         let style = PromptStyle::overlay();
         assert!(style.prefix_override.is_none());
-    }
-
-    // ── Voice interim wrapping ───────────────────────────────────────
-
-    #[test]
-    fn wrap_voice_interim_wraps_on_word_boundaries() {
-        let lines = wrap_voice_interim("the quick brown fox", 10, 5);
-        assert_eq!(lines, vec!["the quick", "brown fox"]);
-    }
-
-    #[test]
-    fn wrap_voice_interim_truncates_with_ellipsis_when_overflowing_rows() {
-        let lines = wrap_voice_interim("one two three four five six", 5, 2);
-        assert_eq!(lines.len(), 2);
-        assert!(
-            lines.last().unwrap().ends_with('\u{2026}'),
-            "last visible line should be ellipsized: {lines:?}"
-        );
-    }
-
-    #[test]
-    fn wrap_voice_interim_handles_zero_bounds() {
-        assert!(wrap_voice_interim("hello", 0, 3).is_empty());
-        assert!(wrap_voice_interim("hello", 10, 0).is_empty());
     }
 
     // ── Slash state integration tests ───────────────────────────────
@@ -3837,7 +3813,7 @@
 
         let area = Rect::new(0, 0, 40, 1);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         // "hello" occupies x=0..5, ghost " world" at x=5..11
         assert_eq!(buf_text_at(&buf, 5, 11, 0), " world");
@@ -3859,7 +3835,7 @@
 
         let area = Rect::new(0, 0, 40, 1);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         // No ghost text should appear anywhere after the typed text.
         assert_eq!(buf_text_at(&buf, 5, 10, 0).trim(), "");
@@ -3878,7 +3854,7 @@
 
         let area = Rect::new(0, 0, 40, 1);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         assert_eq!(buf_text_at(&buf, 5, 10, 0).trim(), "");
     }
@@ -3900,7 +3876,7 @@
 
         let area = Rect::new(0, 0, 40, 1);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         // The slash inline ghost may paint cells here, but our shell
         // suggestion "GHOST" must not appear.
@@ -3920,7 +3896,7 @@
         // Width 12: "hello" takes 5, leaving 7 columns for ghost.
         let area = Rect::new(0, 0, 12, 1);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         // truncate_str(" world and more stuff", 7) -> " world…"
         let ghost = buf_text_at(&buf, 5, 12, 0);
@@ -3938,7 +3914,7 @@
 
         let area = Rect::new(0, 0, 40, 1);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &style, None, None);
+        pw.draw(&mut buf, area, None, &style, None);
 
         // Unfocused -> cursor_pos is None -> ghost text skipped.
         assert_eq!(buf_text_at(&buf, 5, 11, 0).trim(), "");
@@ -3953,7 +3929,7 @@
 
         let area = Rect::new(0, 0, 10, 2);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         // Cursor at end of "bb" on row 1 -> ghost "cc" at (2, 1).
         assert_eq!(buf_text_at(&buf, 2, 4, 1), "cc");
@@ -3968,7 +3944,7 @@
 
         let area = Rect::new(0, 0, 10, 1);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         // All 10 columns used by text — ghost has 0 avail, nothing rendered.
         assert_eq!(buf_text_at(&buf, 0, 10, 0), "abcdefghij");
@@ -3982,7 +3958,7 @@
 
         let area = Rect::new(0, 0, 20, 1);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         // "hi" at x=0..2, ghost "→ok" at x=2..
         let ghost = buf_text_at(&buf, 2, 5, 0);
@@ -3998,7 +3974,7 @@
 
         let area = Rect::new(0, 0, 40, 1);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         assert_eq!(buf_text_at(&buf, 5, 10, 0).trim(), "");
     }
@@ -4432,7 +4408,7 @@
 
         let area = Rect::new(0, 0, 40, 3); // 3 rows tall
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         // Ghost "del" should appear on row 1 (line 2).
         let ghost_row1 = buf_text_at(&buf, 3, 6, 1);
@@ -4459,7 +4435,7 @@
 
         let area = Rect::new(0, 0, 40, 3);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &ghost_test_style(), None, None);
+        pw.draw(&mut buf, area, None, &ghost_test_style(), None);
 
         // Verify the token text rendered on row 1 (line 2) at the correct position,
         // regardless of color support in the test environment.
@@ -4506,7 +4482,7 @@
         let mut pw = PromptWidget::new();
         let area = Rect::new(0, 0, width, 4);
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, style, None, None);
+        pw.draw(&mut buf, area, None, style, None);
         buf
     }
 
@@ -4604,7 +4580,7 @@
             "inline surfaces are panels"
         );
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &inline, None, None);
+        pw.draw(&mut buf, area, None, &inline, None);
         assert!(
             !any_cell_with_bg(&buf, theme.paste_bg),
             "chip cells must be repainted to the panel background"
@@ -4619,7 +4595,7 @@
             ..PromptStyle::inline(panel)
         };
         let mut buf = Buffer::empty(area);
-        pw.draw(&mut buf, area, None, &no_remap, None, None);
+        pw.draw(&mut buf, area, None, &no_remap, None);
         assert!(
             any_cell_with_bg(&buf, theme.paste_bg),
             "without the remap the chip keeps its own background"

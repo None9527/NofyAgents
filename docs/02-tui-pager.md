@@ -105,7 +105,6 @@ src/
 ├── headless.rs             # 无头模式
 ├── notifications.rs        # 通知
 ├── tool_usage.rs           # 工具使用展示
-├── voice.rs                # 语音输入
 ├── minimal_api.rs          # Minimal 模式 facade
 ├── minimal_hook.rs         # Minimal 模式 IoC 缝合
 ├── search.rs               # 搜索
@@ -184,7 +183,6 @@ event_loop.rs
 - **AgentView 集合** — 支持多个并行 agent tab
 - **AuthState** — 认证状态
 - **TrustState** — 文件夹信任状态
-- **VoiceState** — 语音输入状态
 - **ActiveView** — 当前活跃视图
 - **模态/覆盖层** — 模态对话框状态
 

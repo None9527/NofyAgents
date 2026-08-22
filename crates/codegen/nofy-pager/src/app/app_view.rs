@@ -270,88 +270,6 @@ fn reconnect_success_hides_mismatch(current: Option<&str>, incoming: &str) -> bo
     current.is_some_and(crate::acp::is_version_mismatch_banner)
         && (incoming.starts_with("Reconnected.") || incoming.starts_with("Session restored."))
 }
-/// Which prompt box in-flight voice dictation appends its finalized text to.
-/// Captured when recording **starts** so a trailing STT final still lands where
-/// the user was dictating, even if they navigate away — or toggle a dashboard
-/// row's peek panel — mid-utterance.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VoiceTarget {
-    /// A live agent session's prompt box.
-    Agent(AgentId),
-    /// The dashboard's new-agent dispatch input (no row peek was open at start).
-    DashboardDispatch,
-    /// The dashboard's peek reply input, bound to the agent whose peek was open
-    /// at start. The id pins the row: selecting a different row mid-utterance
-    /// stops capture (the reply widget is shared and clears on row change), so a
-    /// final can't land on the wrong agent's reply.
-    DashboardPeekReply(AgentId),
-}
-/// The voice-dictation lifecycle. Exactly one state holds at a time, so the
-/// "is the mic live / is a start queued / does a Ctrl+Space hold own it / which
-/// box receives finals" facts can never disagree (they once lived as separate
-/// booleans and repeatedly drifted apart). All transitions go through the
-/// `AppView::voice_*` methods.
-///
-/// `hold` marks a session begun by a Ctrl+Space hold-press: its matching
-/// Ctrl+Space release ends it (and only it), while `/voice` / toggle sessions
-/// leave `hold` false so a Ctrl+Space release can't touch them. `target` is the
-/// prompt box bound at
-/// **start**, so a trailing final lands where the user was dictating. `interim`
-/// (the live partial transcript) lives inside the recording states so it can't
-/// linger as a stale overlay once dictation ends.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub enum VoiceState {
-    /// No dictation in flight.
-    #[default]
-    Idle,
-    /// A start was requested before the lazy pipeline existed; the event loop
-    /// spawns it once and then opens the mic.
-    ColdStart { hold: bool, target: VoiceTarget },
-    /// Mic is open and streaming audio to STT.
-    Recording {
-        hold: bool,
-        target: VoiceTarget,
-        interim: Option<String>,
-    },
-    /// Capture was explicitly stopped (Esc / Ctrl+Space / [stop] / Ctrl+Space
-    /// release), but the target — and the last interim — are kept so a trailing
-    /// STT final still lands without the overlay flickering in the meantime.
-    Stopping {
-        target: VoiceTarget,
-        interim: Option<String>,
-    },
-}
-impl VoiceState {
-    /// Mic is live (the `Recording` state).
-    pub fn listening(&self) -> bool {
-        matches!(self, Self::Recording { .. })
-    }
-    /// A start is queued for the lazy pipeline (the `ColdStart` state).
-    pub fn pending_cold_start(&self) -> bool {
-        matches!(self, Self::ColdStart { .. })
-    }
-    /// The prompt box that owns this session's dictation, if any.
-    pub fn target(&self) -> Option<VoiceTarget> {
-        match self {
-            Self::ColdStart { target, .. }
-            | Self::Recording { target, .. }
-            | Self::Stopping { target, .. } => Some(*target),
-            Self::Idle => None,
-        }
-    }
-    /// The live partial transcript shown in the prompt overlay, if any.
-    pub fn interim(&self) -> Option<&str> {
-        match self {
-            Self::Recording { interim, .. } | Self::Stopping { interim, .. } => interim.as_deref(),
-            _ => None,
-        }
-    }
-    /// Whether a hold-press owns the current session (so its key release ends
-    /// it). `/voice` and toggle-style starts leave this false.
-    pub(crate) fn hold(&self) -> bool {
-        matches!(self, Self::ColdStart { hold, .. } | Self::Recording { hold, .. } if *hold)
-    }
-}
 /// Entry from the session list wire: welcome/resume pickers and non-leader
 /// dashboard roster fallback (`session_picker_entry_to_roster`).
 #[derive(Debug, Clone)]
@@ -554,9 +472,8 @@ fn parse_esc_ttl(raw: Option<String>) -> Duration {
 /// Current set:
 /// - `usage` — coding credit / billing UI (alias: `/cost`)
 ///
-/// Sanitized build: the media/voice entries went with the xAI surface; the
-/// deny-list machinery stays intact but is never populated from tier state
-/// (`is_restricted_tier` is always false).
+/// Sanitized build: the deny-list machinery stays intact but is never
+/// populated from tier state (`is_restricted_tier` is always false).
 pub(crate) const TIER_RESTRICTED_COMMANDS: &[&str] = &["usage"];
 /// Whether a subscription-tier display name is a tier with restricted
 /// commands. Subscription tiers belonged to the xAI account system; the
@@ -1172,27 +1089,6 @@ pub struct AppView {
     /// NOTE: new event consumers that bypass `AppView::handle_input`
     /// will not get rescued modifiers unless also normalizing.
     pub(crate) keyboard_normalizer: KeyboardNormalizer,
-    /// Voice gate (GA default on at startup resolution). When false — remote
-    /// kill switch or `NOFY_VOICE_MODE=0` — the STT pipeline is not started and
-    /// session voice mode cannot turn on. Unit tests leave this false until
-    /// they call [`Self::apply_voice_mode_enabled`].
-    pub voice_mode_enabled: bool,
-    /// Session UI mode from `/voice` (this CLI process only — not in config.toml).
-    /// When true and the pipeline is up, the in-prompt dictation overlay can show
-    /// and capture may start. Cleared on exit or when the remote flag turns off.
-    pub voice_ui_active: bool,
-    /// Optional `[voice]` overrides from config (`api_base`, `language`, …).
-    pub voice_config: nofy_voice::VoiceConfig,
-    /// Auth for STT (OAuth session via shell `AuthManager`, or `NOFY_API_KEY`).
-    /// `None` until the pipeline is first started (lazy on `/voice`).
-    pub voice_auth: Option<nofy_voice::SharedVoiceAuth>,
-    /// Commands into the voice pipeline (start/stop capture — toggle, not hold).
-    pub voice_cmd_tx: Option<tokio::sync::mpsc::Sender<nofy_voice::VoiceCommand>>,
-    /// The dictation lifecycle (idle / queued / recording / stopping), including
-    /// the live interim transcript. One state at a time, so inconsistent
-    /// combinations are unrepresentable; production mutates it only through the
-    /// `AppView::voice_*` transition methods.
-    pub voice_state: VoiceState,
 }
 /// Reshow window elapsed? None/0 = never. Unparseable ack fails open (show).
 fn privacy_banner_reshow_elapsed(acked_at: &str, reshow_days: Option<u64>) -> bool {
@@ -1294,7 +1190,6 @@ impl AppView {
             );
         }
         self.subscription_tier = meta.subscription_tier.clone();
-        let was_api_key = self.is_api_key_auth;
         self.is_api_key_auth = meta.auth_mode.as_deref().is_some_and(is_api_key_label)
             || meta
                 .subscription_tier
@@ -1304,13 +1199,6 @@ impl AppView {
             meta.team_name.is_none() && !self.is_api_key_auth && !self.has_external_auth_provider;
         self.sync_billing_surface_to_agents();
         self.apply_tier_restrictions();
-        if self.is_api_key_auth {
-            self.ensure_voice_for_api_key();
-        } else if was_api_key && is_restricted_tier(self.subscription_tier.as_deref()) {
-            self.voice_reset();
-            self.voice_ui_active = false;
-            self.apply_voice_mode_enabled(false);
-        }
         if let Some(show) = meta.show_resolved_model {
             self.show_resolved_model = show;
         }
@@ -1343,16 +1231,6 @@ impl AppView {
             dash.peek_reply
                 .slash_controller
                 .set_usage_command_visible(usage_cmd);
-        }
-    }
-    /// Force voice on for API-key sessions when only a remote rule left it off.
-    /// Requirement / env / config pins still win.
-    pub(crate) fn ensure_voice_for_api_key(&mut self) {
-        if !self.is_api_key_auth || self.voice_mode_enabled {
-            return;
-        }
-        if crate::app::resolve_voice_mode_live() {
-            self.apply_voice_mode_enabled(true);
         }
     }
     /// Create a new AppView with the given ACP connection details.
@@ -1574,12 +1452,6 @@ impl AppView {
             dashboard_return: None,
             dashboard_persisted: None,
             keyboard_normalizer: KeyboardNormalizer::from_terminal_context(),
-            voice_mode_enabled: false,
-            voice_ui_active: false,
-            voice_config: nofy_voice::VoiceConfig::default(),
-            voice_auth: None,
-            voice_cmd_tx: None,
-            voice_state: VoiceState::Idle,
         }
     }
     /// Seed `deferred_model_switch` from CLI `-m`. The CLI effort token is
@@ -1594,51 +1466,11 @@ impl AppView {
             prev_model_id: None,
         })
     }
-    /// Voice capture is armed: the in-prompt dictation overlay can show and
-    /// Ctrl+Space can start capture.
-    ///
-    /// Requires the voice gate, session `/voice` mode, and a live pipeline.
-    /// Stopping capture remains allowed when the kill switch flips mid-record
-    /// (see `dispatch_voice_toggle`).
-    pub fn voice_available(&self) -> bool {
-        self.voice_mode_enabled && self.voice_ui_active && self.voice_cmd_tx.is_some()
-    }
-    /// Whether launch may spawn the background STT pipeline (independent of
-    /// `/voice`). Gated on the voice gate + a build that compiled in audio
-    /// capture. Free-tier upsell is separate ([`Self::is_voice_tier_restricted`]).
-    pub fn voice_can_start_pipeline(&self) -> bool {
-        self.voice_mode_enabled && nofy_voice::AUDIO_SUPPORTED
-    }
-    /// Sync voice availability into slash surfaces, cheatsheet, and settings.
-    /// Mirrors `apply_session_recap_available` for `/recap`.
-    pub fn apply_voice_mode_enabled(&mut self, enabled: bool) {
-        self.voice_mode_enabled = enabled;
-        crate::app::VOICE_MODE_ENABLED.store(enabled, std::sync::atomic::Ordering::Release);
-        for agent in self.agents.values_mut() {
-            agent.set_voice_mode_available(enabled);
-            match agent.active_modal.as_mut() {
-                Some(crate::views::modal::ActiveModal::Settings { state }) => {
-                    state.rebuild_rows();
-                }
-                Some(crate::views::modal::ActiveModal::ResetSettingsConfirm {
-                    settings_state,
-                    ..
-                }) => {
-                    settings_state.rebuild_rows();
-                }
-                _ => {}
-            }
-        }
-        self.welcome_prompt.set_voice_visible(enabled);
-        if let Some(dashboard) = self.dashboard.as_mut() {
-            dashboard.set_voice_visible(enabled);
-        }
-    }
     /// Sync the auto permission-mode feature gate into every slash surface.
     /// `/auto` is hard-hidden when `self.auto_mode_gate` is off; otherwise both
-    /// `/always-approve` and `/auto` stay offered as true toggles. Mirrors
-    /// [`Self::apply_voice_mode_enabled`]. Call after gate flips, startup,
-    /// reconnect, and session create/switch (so new agents inherit the gate).
+    /// `/always-approve` and `/auto` stay offered as true toggles. Call after
+    /// gate flips, startup, reconnect, and session create/switch (so new agents
+    /// inherit the gate).
     pub fn sync_permission_mode_slash_gate(&mut self) {
         let available = self.auto_mode_gate;
         for agent in self.agents.values_mut() {
@@ -1652,7 +1484,7 @@ impl AppView {
     /// Recompute the tier-restricted slash commands from the current auth
     /// state and sync the deny list into every slash surface (welcome
     /// prompt, all agents, dashboard) so restricted commands hide/show in
-    /// lockstep. Mirrors [`Self::apply_voice_mode_enabled`].
+    /// lockstep.
     ///
     /// Called from [`Self::apply_auth_meta`] (startup / login) and from the
     /// `nofy/settings/update` handler when the subscription tier changes, so
@@ -1678,15 +1510,6 @@ impl AppView {
             dashboard.set_restricted_commands(&names);
         }
         self.tier_restricted_commands = names;
-    }
-    /// Whether voice mode is withheld for the current subscription tier
-    /// (free / X Basic personal accounts). Derived from the computed
-    /// [`Self::tier_restricted_commands`] deny list so it stays in lockstep
-    /// with the slash-command gate. Used to gate the Ctrl+Space / F8 voice
-    /// keybinding, which bypasses the slash registry entirely (see
-    /// [`crate::app::dispatch::voice`]).
-    pub fn is_voice_tier_restricted(&self) -> bool {
-        self.tier_restricted_commands.iter().any(|c| c == "voice")
     }
     /// Draw-time expiry can flip the live-announcement predicate between
     /// pushes; resync the slash gate only when it diverges from the stored
@@ -1718,165 +1541,6 @@ impl AppView {
             }
         }
     }
-    /// Mic is live (the [`VoiceState::Recording`] state).
-    pub fn voice_listening(&self) -> bool {
-        self.voice_state.listening()
-    }
-    /// Whether the in-flight session is owned by a hold-press (so its key
-    /// release ends it). `/voice` and toggle-style starts leave this false.
-    pub fn voice_hold_owned(&self) -> bool {
-        self.voice_state.hold()
-    }
-    /// The prompt box that owns in-flight dictation, if any.
-    pub fn voice_recording_target(&self) -> Option<VoiceTarget> {
-        self.voice_state.target()
-    }
-    /// The live partial transcript shown in the prompt overlay, if any.
-    pub fn voice_interim(&self) -> Option<&str> {
-        self.voice_state.interim()
-    }
-    /// Best-effort one-shot command into the voice pipeline (no-op if it isn't up).
-    fn voice_send(&self, cmd: nofy_voice::VoiceCommand) {
-        if let Some(tx) = &self.voice_cmd_tx
-            && tx.try_send(cmd).is_err()
-        {
-            tracing::trace!("voice command dropped: pipeline channel full or closed");
-        }
-    }
-    /// Open the mic now (pipeline already up) and enter [`VoiceState::Recording`]
-    /// bound to `target`. `hold` marks a Ctrl+Space hold-press start.
-    pub(crate) fn voice_begin_recording(&mut self, target: VoiceTarget, hold: bool) {
-        self.voice_send(nofy_voice::VoiceCommand::PttPress);
-        self.voice_state = VoiceState::Recording {
-            hold,
-            target,
-            interim: None,
-        };
-    }
-    /// Set the live interim transcript. No-op unless recording, so a late event
-    /// after a stop can't repopulate the overlay.
-    pub(crate) fn voice_set_interim(&mut self, text: String) -> bool {
-        if let VoiceState::Recording { interim, .. } = &mut self.voice_state {
-            *interim = Some(text);
-            true
-        } else {
-            false
-        }
-    }
-    /// Clear the interim in place, keeping the current state. Called when a final
-    /// commits (or yields empty) so the overlay drops the partial without a
-    /// teardown.
-    pub(crate) fn voice_clear_interim(&mut self) {
-        match &mut self.voice_state {
-            VoiceState::Recording { interim, .. } | VoiceState::Stopping { interim, .. } => {
-                *interim = None;
-            }
-            VoiceState::Idle | VoiceState::ColdStart { .. } => {}
-        }
-    }
-    /// Explicit stop (Esc / Ctrl+Space / `[stop]`): release the mic but keep
-    /// the target and last interim so a trailing STT final still lands. Always
-    /// allowed — never leaves a hot mic. No-op unless recording.
-    pub(crate) fn voice_stop_keeping_final(&mut self) {
-        let VoiceState::Recording {
-            target, interim, ..
-        } = &mut self.voice_state
-        else {
-            return;
-        };
-        let target = *target;
-        let interim = interim.take();
-        self.voice_send(nofy_voice::VoiceCommand::PttRelease);
-        self.voice_state = VoiceState::Stopping { target, interim };
-    }
-    /// Hard teardown (submit / error / kill-switch / navigate-away): release the
-    /// mic and forget the session — no trailing final, no queued start.
-    pub(crate) fn voice_reset(&mut self) {
-        if self.voice_state.listening() {
-            self.voice_send(nofy_voice::VoiceCommand::PttRelease);
-        }
-        self.voice_state = VoiceState::Idle;
-    }
-    /// Ctrl+Space hold release: end only a session a Ctrl+Space hold started —
-    /// cancel a queued hold cold-start, or stop a live hold recording (keeping
-    /// its trailing final). A `/voice` / toggle session (`hold` false) is left
-    /// untouched, so a Ctrl+Space release can neither cancel nor stop it.
-    pub(crate) fn voice_hold_release(&mut self) {
-        match self.voice_state {
-            VoiceState::ColdStart { hold: true, .. } => self.voice_reset(),
-            VoiceState::Recording { hold: true, .. } => self.voice_stop_keeping_final(),
-            _ => {}
-        }
-    }
-    /// Whether the active view still owns the bound dictation `target` — i.e. the
-    /// box dictation started in is the one currently on screen and selected. The
-    /// target is bound at capture start; on the dashboard that means dispatch
-    /// requires no peek open, a peek reply requires the *same* top-level row still
-    /// peeked (the shared reply widget clears on row change), and any open
-    /// attached-agent popup (which occludes the dashboard inputs) disqualifies it.
-    /// `false` when no dictation is bound.
-    fn voice_target_on_active_surface(&self) -> bool {
-        let Some(target) = self.voice_recording_target() else {
-            return false;
-        };
-        if matches!(self.active_view, ActiveView::AgentDashboard)
-            && self
-                .dashboard
-                .as_ref()
-                .is_some_and(|d| d.attached_agent.is_some())
-        {
-            return false;
-        }
-        let peeked_top_level = self
-            .dashboard
-            .as_ref()
-            .and_then(|d| match d.peek.as_ref()?.row {
-                crate::views::dashboard::DashboardRowId::TopLevel(id) => Some(id),
-                _ => None,
-            });
-        match (self.active_view, target) {
-            (ActiveView::Agent(active), VoiceTarget::Agent(rec)) => active == rec,
-            (ActiveView::AgentDashboard, VoiceTarget::DashboardDispatch) => {
-                self.dashboard.as_ref().is_none_or(|d| d.peek.is_none())
-            }
-            (ActiveView::AgentDashboard, VoiceTarget::DashboardPeekReply(rec)) => {
-                peeked_top_level == Some(rec)
-            }
-            _ => false,
-        }
-    }
-    /// Auto-release the mic if the user navigates away from the box that started
-    /// recording (another agent / dashboard popup / a changed peek row). Keeps
-    /// stop controls and the recording session aligned. Event-loop each tick;
-    /// no-op unless recording.
-    pub fn enforce_voice_session_bound(&mut self) {
-        if !self.voice_state.listening() || self.voice_target_on_active_surface() {
-            return;
-        }
-        self.voice_reset();
-    }
-    /// Esc handling shared by the agent and dashboard surfaces: while voice is
-    /// active, Esc aborts it (and consumes the key) rather than falling into the
-    /// surface's own Esc behaviour. Gated on voice state only (not the remote
-    /// flag) so Esc can always abort. `None` means Esc isn't ours — the caller
-    /// continues its normal routing.
-    fn voice_esc_outcome(
-        &mut self,
-        key_event: Option<&crossterm::event::KeyEvent>,
-    ) -> Option<InputOutcome> {
-        let key = key_event?;
-        if key.code != KeyCode::Esc || !key.modifiers.is_empty() {
-            return None;
-        }
-        if self.voice_listening() {
-            Some(InputOutcome::Action(Action::VoiceToggle))
-        } else if self.voice_state.pending_cold_start() {
-            self.voice_reset();
-            Some(InputOutcome::Changed)
-        } else {
-            None
-        }
-    }
     /// App-level Esc owners that consume the key BEFORE any agent input
     /// routing — the render-boundary decision handed to the agent hint path
     /// (`AgentView::draw` → `esc_would_cancel_turn`) so a hint bar rendered
@@ -1884,12 +1548,10 @@ impl AppView {
     ///
     /// Mirrors `handle_input`'s intercepts, in their order: the focused dev
     /// tracing pane (step 1a consumes all non-global keys), the cloud modal
-    /// (step 1d), the import-Claude modal (agent-arm intercept),
-    /// [`Self::voice_esc_outcome`] — listening OR pending cold-start, the
-    /// handler's actual condition, not the render-only recording flag — and
-    /// the dashboard's attached-agent popup (dashboard-arm intercept). Keep
-    /// this list in lockstep with those intercepts when adding a top-level
-    /// Esc owner.
+    /// (step 1d), the import-Claude modal (agent-arm intercept), and the
+    /// dashboard's attached-agent popup (dashboard-arm intercept). Keep this
+    /// list in lockstep with those intercepts when adding a top-level Esc
+    /// owner.
     pub(crate) fn esc_owned_before_agent(&self) -> bool {
         if matches!(self.active_view, ActiveView::AgentDashboard)
             && self
@@ -1901,29 +1563,6 @@ impl AppView {
             return true;
         }
         self.import_claude_modal.is_some()
-            || self.voice_listening()
-            || self.voice_state.pending_cold_start()
-    }
-    /// Commit interim on real send keys only (not multiline bare Enter).
-    fn maybe_commit_voice_interim_before_submit_key(&mut self, key: &crossterm::event::KeyEvent) {
-        if self.registry.matches_id(ActionId::InterjectPrompt, key) {
-            let _ = crate::voice::commit_interim_into_prompt(self);
-            return;
-        }
-        let multiline = match self.active_view {
-            ActiveView::Agent(id) => self.agents.get(&id).is_some_and(|a| a.multiline_mode),
-            ActiveView::AgentDashboard => self.dashboard.as_ref().is_some_and(|d| d.multiline_mode),
-            _ => false,
-        };
-        let is_send = if multiline {
-            crate::input::is_mod_enter(key)
-        } else {
-            matches!(key.code, KeyCode::Enter)
-                || self.registry.matches_id(ActionId::SendPrompt, key)
-        };
-        if is_send {
-            let _ = crate::voice::commit_interim_into_prompt(self);
-        }
     }
     /// The active agent's view, when an agent tab is focused.
     ///
@@ -2701,14 +2340,6 @@ impl AppView {
                     }
                     return InputOutcome::Unchanged;
                 }
-                if let Some(outcome) = self.voice_esc_outcome(key_event) {
-                    return outcome;
-                }
-                if let Event::Key(key) = ev
-                    && key.kind != KeyEventKind::Release
-                {
-                    self.maybe_commit_voice_interim_before_submit_key(key);
-                }
                 if self.screen_mode.is_minimal()
                     && let Event::Key(key) = ev
                     && key.kind != KeyEventKind::Release
@@ -2752,14 +2383,6 @@ impl AppView {
                 }
             }
             ActiveView::AgentDashboard => {
-                if let Some(outcome) = self.voice_esc_outcome(key_event) {
-                    return outcome;
-                }
-                if let Event::Key(key) = ev
-                    && key.kind != KeyEventKind::Release
-                {
-                    self.maybe_commit_voice_interim_before_submit_key(key);
-                }
                 let attached_raw = self.dashboard.as_ref().and_then(|d| d.attached_agent);
                 let attached = attached_raw.filter(|id| self.agents.contains_key(id));
                 if attached_raw.is_some()
@@ -2998,12 +2621,6 @@ impl AppView {
                 git_ref: None,
             },
             ActionId::OpenDashboard => Action::OpenDashboard,
-            ActionId::VoiceToggle => {
-                if !self.current_ui.voice_keybind_enabled.unwrap_or(true) {
-                    return InputOutcome::Unchanged;
-                }
-                Action::VoiceToggle
-            }
             _ => return InputOutcome::Unchanged,
         };
         if def.requires_confirmation {
@@ -4377,12 +3994,6 @@ impl AppView {
         let zdr_blocked_for_draw = self.is_zdr_blocked();
         let has_access = self.has_access();
         let privacy_banner = self.privacy_banner_should_show();
-        let voice_available = self.voice_available();
-        let voice_on_surface = self.voice_target_on_active_surface();
-        let voice_listening = voice_on_surface && self.voice_listening();
-        let voice_interim = voice_on_surface
-            .then(|| self.voice_interim().map(str::to_owned))
-            .flatten();
         let esc_owned_before_agent = self.esc_owned_before_agent();
         let scroll_debug_panel = self.scroll_debug_panel();
         let dev_fps_rows = self.dev_fps_rows();
@@ -4799,9 +4410,6 @@ impl AppView {
                                 overlay_can_cycle,
                                 link_spans,
                                 AppRenderParams {
-                                    voice_available,
-                                    voice_listening,
-                                    voice_interim: voice_interim.as_deref(),
                                     esc_owned_before_agent,
                                 },
                             );
@@ -4847,8 +4455,6 @@ impl AppView {
                     }
                     ActiveView::AgentDashboard => {
                         if let Some(dashboard) = self.dashboard.as_mut() {
-                            dashboard.voice_listening = voice_listening;
-                            dashboard.voice_interim = voice_interim.clone();
                             if let Some(id) = dashboard.attached_agent
                                 && !agents.contains_key(&id)
                             {
@@ -5628,9 +5234,6 @@ impl AppView {
         if self.deferred_notification.is_some() {
             return TickDemand::Fast;
         }
-        if self.voice_listening() {
-            return TickDemand::Fast;
-        }
         if self.session_picker_content_loading {
             return TickDemand::Fast;
         }
@@ -6110,12 +5713,6 @@ pub(crate) mod tests {
             dashboard_return: None,
             dashboard_persisted: None,
             keyboard_normalizer: KeyboardNormalizer::from_terminal_context(),
-            voice_mode_enabled: false,
-            voice_ui_active: false,
-            voice_config: nofy_voice::VoiceConfig::default(),
-            voice_auth: None,
-            voice_cmd_tx: None,
-            voice_state: VoiceState::Idle,
         }
     }
     pub(crate) fn test_app_with_agent() -> AppView {
@@ -7389,10 +6986,9 @@ pub(crate) mod tests {
         assert!(app.usage_visible);
     }
     #[test]
-    fn apply_auth_meta_api_key_enables_voice_and_skips_tier_gate() {
+    fn apply_auth_meta_api_key_skips_tier_gate() {
         let mut app = test_app();
         advertise_media_tools(&mut app);
-        assert!(!app.voice_mode_enabled);
         app.apply_auth_meta(&nofy_shell::auth::AuthMeta {
             auth_mode: Some("ApiKey".into()),
             subscription_tier: Some("API Key".into()),
@@ -7402,15 +6998,12 @@ pub(crate) mod tests {
         assert!(!app.usage_visible);
         assert!(app.tier_restricted_commands.is_empty());
         assert_tier_restricted_commands_present(&app);
-        assert!(!app.is_voice_tier_restricted());
-        assert!(app.voice_mode_enabled);
         let mut app = test_app();
         app.apply_auth_meta(&nofy_shell::auth::AuthMeta {
             subscription_tier: Some("api_key".into()),
             ..Default::default()
         });
         assert!(app.is_api_key_auth);
-        assert!(app.voice_mode_enabled);
         assert!(app.tier_restricted_commands.is_empty());
         app.apply_auth_meta(&nofy_shell::auth::AuthMeta {
             auth_mode: Some("Oidc".into()),
@@ -7418,9 +7011,7 @@ pub(crate) mod tests {
             ..Default::default()
         });
         assert!(!app.is_api_key_auth);
-        // fork 移除 tier 限制:离开 API-key 认证不再按 tier 强制重置 voice,
-        // 也不再产生受限命令(voice_mode_enabled 保持 API-key 阶段的开启状态)。
-        assert!(app.voice_mode_enabled);
+        // fork 移除 tier 限制:离开 API-key 认证不再产生受限命令。
         assert!(app.usage_visible);
         assert!(app.tier_restricted_commands.is_empty());
     }
@@ -7430,9 +7021,8 @@ pub(crate) mod tests {
             .map(|n| (*n).to_string())
             .collect()
     }
-    /// Sanitized build: the media/voice commands are gone, so there is
-    /// nothing left to advertise; the helper stays as a no-op so the tier
-    /// tests keep their shape.
+    /// Sanitized build: nothing is left to advertise; the helper stays as a
+    /// no-op so the tier tests keep their shape.
     fn advertise_media_tools(_app: &mut AppView) {}
     fn assert_tier_restricted_commands_absent(app: &AppView) {
         let reg = app.welcome_prompt.slash_controller.registry();
@@ -7527,20 +7117,6 @@ pub(crate) mod tests {
         assert!(!is_restricted_tier(Some("X Premium")));
         assert!(!is_restricted_tier(Some("X Premium+")));
         assert!(!is_restricted_tier(Some("SomeFutureTier")));
-    }
-    #[test]
-    fn is_voice_tier_restricted_tracks_tier() {
-        // fork 移除 tier 限制:voice 不再因订阅层级受限,任何 tier 恒为 false。
-        let mut app = test_app();
-        app.apply_auth_meta(&nofy_shell::auth::AuthMeta::default());
-        assert!(!app.is_voice_tier_restricted());
-        let mut app = test_app();
-        let meta = nofy_shell::auth::AuthMeta {
-            subscription_tier: Some("SuperNofy".into()),
-            ..Default::default()
-        };
-        app.apply_auth_meta(&meta);
-        assert!(!app.is_voice_tier_restricted());
     }
     #[test]
     fn apply_auth_meta_clears_gate_on_subscription() {
@@ -8754,19 +8330,6 @@ pub(crate) mod tests {
     #[test]
     fn esc_owned_before_agent_covers_app_level_owners() {
         let mut app = test_app_with_agent();
-        assert!(!app.esc_owned_before_agent());
-        app.voice_state = VoiceState::Recording {
-            hold: false,
-            target: VoiceTarget::DashboardDispatch,
-            interim: None,
-        };
-        assert!(app.esc_owned_before_agent(), "listening owns Esc");
-        app.voice_state = VoiceState::ColdStart {
-            hold: false,
-            target: VoiceTarget::DashboardDispatch,
-        };
-        assert!(app.esc_owned_before_agent(), "pending cold-start owns Esc");
-        app.voice_state = VoiceState::Idle;
         assert!(!app.esc_owned_before_agent());
         app.import_claude_modal = Some(
             crate::views::import_claude_modal::ImportClaudeModalState::new(
@@ -10575,145 +10138,6 @@ pub(crate) mod tests {
         assert!(
             app.pending_action.is_some(),
             "Ctrl+Q on the dashboard must arm a pending quit confirmation"
-        );
-    }
-    /// Ctrl+Space on the dashboard resolves to `VoiceToggle` via the global
-    /// `When::Always` fallthrough — the dispatch input ignores the chord, so it
-    /// falls through to `handle_global_action`. (The event loop intercepts
-    /// Ctrl+Space before this for hold-to-talk/toggle when voice is enabled;
-    /// this registry route is the cheatsheet/command-palette fallback.)
-    #[test]
-    fn ctrl_space_on_dashboard_routes_to_voice_toggle() {
-        let mut app = test_app();
-        pin_non_vscode_registry(&mut app);
-        app.active_view = ActiveView::AgentDashboard;
-        app.dashboard = Some(crate::views::dashboard::DashboardState::new());
-        let outcome = app.handle_input(&key_event(KeyCode::Char(' '), KeyModifiers::CONTROL));
-        assert!(
-            matches!(outcome, InputOutcome::Action(Action::VoiceToggle)),
-            "Ctrl+Space on the dashboard must route to VoiceToggle, got {outcome:?}"
-        );
-    }
-    /// With `[ui].voice_keybind_enabled = false` the global fallthrough must
-    /// swallow the chord — otherwise Ctrl+Space would still start dictation via
-    /// the registry route whenever the event-loop intercept skips it.
-    #[test]
-    fn ctrl_space_on_dashboard_ignored_when_keybind_disabled() {
-        let mut app = test_app();
-        pin_non_vscode_registry(&mut app);
-        app.active_view = ActiveView::AgentDashboard;
-        app.dashboard = Some(crate::views::dashboard::DashboardState::new());
-        app.current_ui.voice_keybind_enabled = Some(false);
-        let outcome = app.handle_input(&key_event(KeyCode::Char(' '), KeyModifiers::CONTROL));
-        assert!(
-            !matches!(outcome, InputOutcome::Action(Action::VoiceToggle)),
-            "Ctrl+Space must be inert with the voice shortcut disabled, got {outcome:?}"
-        );
-    }
-    /// Esc while voice is recording on the dashboard must STOP voice (route to
-    /// `VoiceToggle`) rather than fall into the dashboard's Esc cascade
-    /// (clear filter / unfocus / deselect / exit).
-    #[test]
-    fn esc_on_dashboard_while_listening_stops_voice() {
-        let mut app = test_app();
-        pin_non_vscode_registry(&mut app);
-        app.active_view = ActiveView::AgentDashboard;
-        app.dashboard = Some(crate::views::dashboard::DashboardState::new());
-        app.voice_state = VoiceState::Recording {
-            hold: false,
-            target: VoiceTarget::DashboardDispatch,
-            interim: None,
-        };
-        let outcome = app.handle_input(&key_event(KeyCode::Esc, KeyModifiers::NONE));
-        assert!(
-            matches!(outcome, InputOutcome::Action(Action::VoiceToggle)),
-            "Esc while recording on the dashboard must stop voice, got {outcome:?}"
-        );
-    }
-    /// Esc on the dashboard while NOT recording must keep its normal cascade
-    /// behaviour (here: not a `VoiceToggle`).
-    #[test]
-    fn esc_on_dashboard_not_listening_does_not_toggle_voice() {
-        let mut app = test_app();
-        pin_non_vscode_registry(&mut app);
-        app.active_view = ActiveView::AgentDashboard;
-        app.dashboard = Some(crate::views::dashboard::DashboardState::new());
-        app.voice_state = VoiceState::Idle;
-        let outcome = app.handle_input(&key_event(KeyCode::Esc, KeyModifiers::NONE));
-        assert!(
-            !matches!(outcome, InputOutcome::Action(Action::VoiceToggle)),
-            "Esc must not toggle voice when not recording, got {outcome:?}"
-        );
-    }
-    /// Esc with a voice cold-start still queued (pipeline spawning, mic not yet
-    /// open) must cancel it so the event loop doesn't open the mic after the user
-    /// backed out — even though `voice_listening` is still false.
-    #[test]
-    fn esc_cancels_pending_voice_cold_start() {
-        let mut app = test_app();
-        pin_non_vscode_registry(&mut app);
-        app.active_view = ActiveView::AgentDashboard;
-        app.dashboard = Some(crate::views::dashboard::DashboardState::new());
-        app.voice_state = VoiceState::ColdStart {
-            hold: false,
-            target: VoiceTarget::DashboardDispatch,
-        };
-        let outcome = app.handle_input(&key_event(KeyCode::Esc, KeyModifiers::NONE));
-        assert!(matches!(outcome, InputOutcome::Changed));
-        assert!(
-            !app.voice_state.pending_cold_start(),
-            "Esc must cancel the queued cold-start"
-        );
-        assert!(
-            app.voice_recording_target().is_none(),
-            "target dropped on cancel"
-        );
-    }
-    /// The dictation overlay must only render on the surface that owns the bound
-    /// target. After an explicit stop the interim is kept (`Stopping`) for a
-    /// trailing final, so navigating away must not flash it on the wrong box.
-    #[test]
-    fn voice_overlay_bound_to_target_surface() {
-        let id = super::super::agent::AgentId(0);
-        let mut app = test_app();
-        app.voice_state = VoiceState::Stopping {
-            target: VoiceTarget::Agent(id),
-            interim: Some("partial".into()),
-        };
-        app.active_view = ActiveView::Agent(id);
-        assert!(
-            app.voice_target_on_active_surface(),
-            "overlay shows on the agent that owns the dictation"
-        );
-        app.active_view = ActiveView::AgentDashboard;
-        assert!(
-            !app.voice_target_on_active_surface(),
-            "overlay hidden once the user navigates off the target surface"
-        );
-    }
-    /// Entering a session from the dashboard sets `active_view = Agent(id)` but
-    /// leaves `attached_agent = Some(id)` as a return breadcrumb. The agent is
-    /// fullscreen, so dictation into its prompt must stay on-surface and the
-    /// bind-enforcer must not auto-stop it. Regression: recording bar missing
-    /// after clicking into a session. (Popup-over-dashboard suppression is
-    /// covered by `dispatch::tests::voice_suppressed_while_dashboard_popup_open`.)
-    #[test]
-    fn voice_target_on_agent_entered_from_dashboard() {
-        let id = super::super::agent::AgentId(0);
-        let mut app = test_app();
-        app.voice_state = VoiceState::Recording {
-            hold: false,
-            target: VoiceTarget::Agent(id),
-            interim: None,
-        };
-        app.active_view = ActiveView::Agent(id);
-        app.dashboard = Some(crate::views::dashboard::DashboardState::new());
-        app.dashboard.as_mut().unwrap().attached_agent = Some(id);
-        assert!(app.voice_target_on_active_surface());
-        app.enforce_voice_session_bound();
-        assert!(
-            app.voice_listening(),
-            "entering a session from the dashboard must not auto-stop the mic"
         );
     }
     /// Attach a popup overlay onto a freshly-built `test_app_with_agent`

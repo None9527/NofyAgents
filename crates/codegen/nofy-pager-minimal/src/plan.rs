@@ -225,7 +225,7 @@ pub fn render(
         buf.set_style(row, Style::default().bg(theme.bg_visual));
         return agent
             .prompt
-            .draw(buf, row, None, &style, None, None)
+            .draw(buf, row, None, &style, None)
             .cursor_pos;
     }
     None

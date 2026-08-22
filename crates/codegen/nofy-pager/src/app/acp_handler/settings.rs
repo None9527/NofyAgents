@@ -96,9 +96,6 @@ pub(super) fn handle_settings_update(notif: &acp::ExtNotification, app: &mut App
         apply_soft_default_permission_mode(app, root.as_ref().and_then(|r| r.get("ui")));
     }
 
-    // Voice re-resolves from the local policy on every update.
-    app.ensure_voice_for_api_key();
-
     // Load config layers once for the group_tool_verbs + collapsed_edit_blocks
     // resolution. Loaded unconditionally: the UI flags re-resolve on every
     // update (see below), and updates are rare (post-auth refresh, `/new`),

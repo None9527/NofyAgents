@@ -218,7 +218,6 @@ impl AgentView {
             hit_announcement_cta: Default::default(),
             privacy_banner: Default::default(),
             hit_upgrade_cta: Default::default(),
-            hit_voice_stop_button: Default::default(),
             hit_scrollbar: Default::default(),
             scrollbar_dragging: false,
             dropdown_items_area: None,
@@ -1097,11 +1096,6 @@ impl AgentView {
     /// Show or hide the `/recap` slash command in this agent's registry.
     pub fn set_session_recap_available(&mut self, available: bool) {
         self.prompt.set_recap_visible(available);
-    }
-    /// Show or hide the `/voice` slash command in this agent's registry,
-    /// gated on the runtime voice gate (GA default on; kill switch may hide).
-    pub fn set_voice_mode_available(&mut self, available: bool) {
-        self.prompt.set_voice_visible(available);
     }
 }
 /// Inputs for [`honest_turn_elapsed`]: the turn span and pause total measured

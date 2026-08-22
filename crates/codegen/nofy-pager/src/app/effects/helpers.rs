@@ -1332,30 +1332,6 @@ pub(crate) async fn persist_setting(
                 .await
                 .map_err(|e| e.to_string())
         }
-        "voice_keybind_enabled" => {
-            let SettingValue::Bool(b) = value else {
-                return Err(kind_mismatch("voice_keybind_enabled", "Bool", &value));
-            };
-            nofy_shell::util::config::set_voice_keybind_enabled(b)
-                .await
-                .map_err(|e| e.to_string())
-        }
-        "voice_capture_mode" => {
-            let SettingValue::Enum(s) = value else {
-                return Err(kind_mismatch("voice_capture_mode", "Enum", &value));
-            };
-            nofy_shell::util::config::set_voice_capture_mode(s.to_string())
-                .await
-                .map_err(|e| e.to_string())
-        }
-        "voice_stt_language" => {
-            let SettingValue::Enum(s) = value else {
-                return Err(kind_mismatch("voice_stt_language", "Enum", &value));
-            };
-            nofy_shell::util::config::set_voice_stt_language(s.to_string())
-                .await
-                .map_err(|e| e.to_string())
-        }
         "max_thoughts_width" => {
             let SettingValue::Int(i) = value else {
                 return Err(kind_mismatch("max_thoughts_width", "Int", &value));

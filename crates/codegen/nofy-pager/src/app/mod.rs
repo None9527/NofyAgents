@@ -46,7 +46,7 @@ pub(crate) mod screen_mode_relaunch;
 pub mod signal_handler;
 mod turn_completion;
 mod xt_filter;
-pub(crate) use crate::terminal::{kitty_flags_pushed, kitty_releases_reported};
+pub(crate) use crate::terminal::kitty_flags_pushed;
 pub use cli::{
     AgentArgs, AgentCmd, Command, HeadlessArgs, LeaderArgs, LeaderMgmtArgs, LeaderMgmtCommand,
     LeaderTargetArgs, OutputFormat, PagerArgs, ServeArgs, WrapArgs,
@@ -167,73 +167,6 @@ pub(crate) static MOUSE_REPORTING_TOGGLE_ENABLED: AtomicBool = AtomicBool::new(f
 /// [`MOUSE_REPORTING_TOGGLE_ENABLED`]). Set once at startup from layered config.
 pub(crate) fn mouse_reporting_toggle_enabled() -> bool {
     MOUSE_REPORTING_TOGGLE_ENABLED.load(Ordering::Acquire)
-}
-/// Process-global voice gate for view code without an `AppView`.
-/// Written only by [`crate::app::app_view::AppView::apply_voice_mode_enabled`].
-pub(crate) static VOICE_MODE_ENABLED: AtomicBool = AtomicBool::new(false);
-pub(crate) fn voice_mode_enabled() -> bool {
-    VOICE_MODE_ENABLED.load(Ordering::Acquire)
-}
-/// Test helper for the process-global voice gate.
-pub fn set_voice_mode_enabled_for_test(on: bool) {
-    VOICE_MODE_ENABLED.store(on, Ordering::Release);
-}
-/// Process-global gate for the Ctrl+Space / F8 voice chord, for key-routing
-/// and view code without an `AppView` (`resolve_action`, the cheatsheet).
-/// Default ON. Seeded at startup from `[ui].voice_keybind_enabled` and
-/// updated live by the settings setter; unlike [`VOICE_MODE_ENABLED`] it only
-/// silences the keybinding — `/voice` and the other voice surfaces stay up.
-pub(crate) static VOICE_KEYBIND_ENABLED: AtomicBool = AtomicBool::new(true);
-pub(crate) fn voice_keybind_enabled() -> bool {
-    VOICE_KEYBIND_ENABLED.load(Ordering::Acquire)
-}
-/// Test helper for the process-global voice-keybind gate.
-pub fn set_voice_keybind_enabled_for_test(on: bool) {
-    VOICE_KEYBIND_ENABLED.store(on, Ordering::Release);
-}
-/// `[features] voice_mode` from merged `requirements.toml`.
-pub(crate) fn voice_mode_requirement_pin() -> Option<bool> {
-    nofy_config::load_merged_requirements().and_then(|req| {
-        req.get("features")
-            .and_then(|f| f.get("voice_mode"))
-            .and_then(|v| v.as_bool())
-    })
-}
-/// `[features] voice_mode` from effective config (user + managed).
-pub(crate) fn voice_mode_config_value() -> Option<bool> {
-    nofy_shell::config::load_effective_config()
-        .ok()
-        .and_then(|cfg| {
-            cfg.get("features")
-                .and_then(|f| f.get("voice_mode"))
-                .and_then(|v| v.as_bool())
-        })
-}
-/// Resolve voice availability.
-///
-/// Precedence: requirements > `NOFY_VOICE_MODE` > config/managed
-/// `[features] voice_mode` > default on.
-pub(crate) fn resolve_voice_mode_enabled(requirement: Option<bool>, config: Option<bool>) -> bool {
-    use nofy_shell::agent::config::BoolFlag;
-    BoolFlag::env("NOFY_VOICE_MODE")
-        .requirement(requirement)
-        .config(config)
-        .default(true)
-        .resolve()
-        .value
-}
-/// Resolve from live policy + env.
-pub(crate) fn resolve_voice_mode_live() -> bool {
-    resolve_voice_mode_enabled(voice_mode_requirement_pin(), voice_mode_config_value())
-}
-#[cfg(test)]
-mod voice_gate_tests {
-    use super::resolve_voice_mode_enabled;
-    #[test]
-    fn policy_false_disables_voice() {
-        assert!(!resolve_voice_mode_enabled(Some(false), Some(true)));
-        assert!(!resolve_voice_mode_enabled(None, Some(false)));
-    }
 }
 /// Sticky banner shown while mouse reporting is off, telling the user how to
 /// turn it back on. The advertised invocation depends on focus: `Ctrl+R` only

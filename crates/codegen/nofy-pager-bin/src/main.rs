@@ -775,9 +775,6 @@ fn main() {
     if let Some(code) = nofy_pager::app::mermaid_worker::maybe_run_render_subprocess() {
         std::process::exit(code);
     }
-    if let Some(code) = nofy_pager::voice::maybe_run_capture_subprocess() {
-        std::process::exit(code);
-    }
     let args = PagerArgs::parse_cli();
     if dispatch_version_if_requested(&args) || dispatch_doctor_if_requested(&args) {
         return;

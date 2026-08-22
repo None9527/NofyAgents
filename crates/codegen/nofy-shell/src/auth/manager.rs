@@ -182,7 +182,7 @@ pub struct AuthManager {
     disk_state: RwLock<Option<DiskAuthState>>,
     /// See [`Self::cached_disk_api_key`].
     static_key_cache: parking_lot::Mutex<Option<StaticKeyCacheEntry>>,
-    /// Model `api_key` / resolved `env_key` for voice/tools without a session.
+    /// Model `api_key` / resolved `env_key` for tools without a session.
     /// Not a session token (those live on `inner`). Prefers over disk; env wins.
     process_static_api_key: parking_lot::RwLock<Option<String>>,
     sleep_gate: SleepGate,
@@ -2561,7 +2561,7 @@ pub(crate) fn compute_proactive_sleep(this: &AuthManager) -> StdDuration {
     }
 }
 
-/// Tools + pager voice bearer. Static: env → process model key → disk.
+/// Tools bearer. Static: env → process model key → disk.
 /// Kill-switch / `preferred_method = oidc` block static keys.
 pub(crate) struct SharedAuthKeyProvider(pub Arc<AuthManager>);
 
@@ -2684,7 +2684,7 @@ fn non_empty_key(key: Option<String>) -> Option<String> {
     key.map(|k| k.trim().to_string()).filter(|k| !k.is_empty())
 }
 
-/// Per-request bearer for out-of-crate consumers (e.g. pager voice).
+/// Per-request bearer for out-of-crate consumers.
 pub fn shared_api_key_provider(
     auth_manager: Arc<AuthManager>,
 ) -> nofy_tools::types::SharedApiKeyProvider {

@@ -16,7 +16,6 @@ mod status;
 mod task_result;
 mod transcript;
 mod turn;
-mod voice;
 use super::billing::{
     CreditLimitUpsellMode, credit_limit_upsell_mode, is_max_tier, open_credit_limit_upsell,
     open_free_usage_upsell,
@@ -59,8 +58,7 @@ use crate::app::actions::{Action, Effect, SubagentKillOutcome, SwitchModelError,
 use crate::app::agent::{AgentId, AgentSession, AgentState};
 use crate::app::agent_view::{ActivePane, AgentView, PromptMode};
 use crate::app::app_view::{
-    ActiveView, AppView, AuthMode, AuthState, TrustState, VoiceState, VoiceTarget,
-    WelcomeAnnouncementState,
+    ActiveView, AppView, AuthMode, AuthState, TrustState, WelcomeAnnouncementState,
 };
 use crate::scrollback::block::RenderBlock;
 use crate::scrollback::blocks::{SessionEvent, ToolCallBlock};
@@ -281,12 +279,6 @@ fn test_app() -> AppView {
         dashboard_persisted: None,
         keyboard_normalizer: crate::input::KeyboardNormalizer::from_terminal_context(),
         has_claude_import: false,
-        voice_mode_enabled: false,
-        voice_ui_active: false,
-        voice_config: nofy_voice::VoiceConfig::default(),
-        voice_auth: None,
-        voice_cmd_tx: None,
-        voice_state: VoiceState::Idle,
     }
 }
 /// Build a default `AgentSession` for

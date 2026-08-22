@@ -167,40 +167,8 @@ fn external_prompt_editor_refuses_elements_with_visible_message() {
     assert_eq!(app.agents[&id].prompt.images.len(), 1);
 }
 #[test]
-fn external_prompt_editor_refuses_voice_and_pending_paste_with_visible_messages() {
+fn external_prompt_editor_refuses_pending_paste_with_visible_message() {
     use crate::app::agent_view::AgentDeferredSend;
-    use crate::app::app_view::{VoiceState, VoiceTarget};
-    for voice_state in [
-        VoiceState::ColdStart {
-            hold: false,
-            target: VoiceTarget::Agent(AgentId(0)),
-        },
-        VoiceState::Recording {
-            hold: false,
-            target: VoiceTarget::Agent(AgentId(0)),
-            interim: Some("partial".to_owned()),
-        },
-        VoiceState::Stopping {
-            target: VoiceTarget::Agent(AgentId(0)),
-            interim: Some("partial".to_owned()),
-        },
-    ] {
-        let mut app = test_app_with_agent();
-        let id = AgentId(0);
-        app.screen_mode = crate::app::ScreenMode::Minimal;
-        app.voice_state = voice_state;
-        app.agents.get_mut(&id).unwrap().prompt.set_text("draft");
-        let _ = dispatch(Action::EditPromptExternal, &mut app);
-        assert!(app.pending_editor.is_none());
-        assert_eq!(app.agents[&id].prompt.text(), "draft");
-        assert!(
-            app.agents[&id]
-                .scrollback
-                .iter_entries()
-                .any(|(_, entry)| entry.block.searchable_text().as_deref()
-                    == Some(crate::app::external_editor::VOICE_MESSAGE))
-        );
-    }
     for (probes, deferred_send) in [
         (1, None),
         (1, Some(AgentDeferredSend::SendPrompt)),

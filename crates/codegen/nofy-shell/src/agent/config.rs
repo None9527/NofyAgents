@@ -279,7 +279,6 @@ impl EndpointsConfig {
     }
     /// Layer the `[endpoints]` table from `config` over the env/default base.
     /// No field is derived from another — defaulting is done by the resolvers.
-    /// `pub`: the pager resolves the voice STT base through this same path.
     pub fn from_config_value(config: &toml::Value) -> Self {
         let default = Self::default();
         let external_otel_master_switch = default.external_otel_master_switch;
@@ -605,8 +604,6 @@ pub struct Requirements {
     pub web_fetch: Constrained<bool>,
     pub ask_user_question: Constrained<bool>,
     pub write_file: Constrained<bool>,
-    /// Voice dictation (STT). Pin via requirements/managed `[features] voice_mode`.
-    pub voice_mode: Constrained<bool>,
     pub sandbox_auto_allow_bash: Constrained<bool>,
     pub sandbox_profile: Constrained<String>,
     pub respect_gitignore: Constrained<bool>,
@@ -2219,9 +2216,6 @@ impl Config {
     pub(crate) fn is_turn_summary_enabled(&self) -> bool {
         self.resolve_turn_summary().value
     }
-    pub(crate) fn is_voice_mode_enabled(&self) -> bool {
-        self.resolve_voice_mode().value
-    }
     /// Two-pass (prefire) compaction gate. Default OFF (opt-in) — enable via
     /// the `[features] two_pass_compaction` config.toml key or
     /// `NOFY_TWO_PASS_COMPACTION` env.
@@ -2356,17 +2350,6 @@ impl Config {
     pub(crate) fn resolve_turn_summary(&self) -> Resolved<bool> {
         BoolFlag::env("NOFY_TURN_SUMMARY")
             .config(self.features.turn_summary)
-            .default(true)
-            .resolve()
-    }
-    /// Voice dictation gate. Default on.
-    ///
-    /// Precedence: requirements > `NOFY_VOICE_MODE` > config/managed
-    /// `[features] voice_mode` > default true.
-    pub(crate) fn resolve_voice_mode(&self) -> Resolved<bool> {
-        BoolFlag::env("NOFY_VOICE_MODE")
-            .requirement(self.requirements.voice_mode.pinned())
-            .config(self.features.voice_mode)
             .default(true)
             .resolve()
     }
@@ -4075,10 +4058,6 @@ pub struct Features {
     /// `None` = defer to env / default (`true`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub turn_summary: Option<bool>,
-    /// Voice dictation (STT). `None` = env / default on.
-    /// Set `false` in requirements or managed config to force off.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub voice_mode: Option<bool>,
     /// Two-pass (prefire) compaction: speculatively summarize the history
     /// prefix in the background, then summarize NOTE₁ + recent tail at
     /// compaction. `None` = defer to env / default (`false`).

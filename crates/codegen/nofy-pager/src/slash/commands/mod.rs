@@ -66,7 +66,6 @@ pub mod tutorial;
 pub mod usage;
 pub mod view_plan;
 pub mod vim_mode;
-pub mod voice;
 pub mod workflows;
 use super::command::SlashCommand;
 use std::sync::Arc;
@@ -697,15 +696,6 @@ mod tests {
         assert!(reg.get("recap").is_some());
         reg.set_recap_visible(false);
         assert!(reg.get("recap").is_none());
-    }
-    #[test]
-    fn voice_absent_from_registry_in_sanitized_build() {
-        // The voice surface depended on the vendor STT backend; the command
-        // is no longer registered, revealed or not.
-        let mut reg = CommandRegistry::new(builtin_commands());
-        assert!(reg.get("voice").is_none());
-        reg.set_voice_visible(true);
-        assert!(reg.get("voice").is_none());
     }
     /// Every pager builtin trigger key must appear in the shell's
     /// `PAGER_COMMAND_KEYS`. Add new names there when adding a pager builtin.

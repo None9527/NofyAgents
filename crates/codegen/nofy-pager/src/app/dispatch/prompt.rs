@@ -13,7 +13,6 @@ use super::queue::{
     maybe_drain_queue, note_peek_page_flip, push_server_queue_echo, retire_optimistic_echo,
 };
 use super::router::dispatch;
-use super::voice::{merge_prompt_with_voice_interim, voice_stop_on_submit};
 use crate::app::actions::{Action, DoctorFixTarget, Effect};
 use crate::app::agent::{AgentCommand, AgentId, AgentState};
 use crate::app::agent_view::AgentView;
@@ -62,7 +61,7 @@ pub(super) fn collect_live_doctor_report_for_terminal(
     terminal: &crate::terminal::TerminalContext,
 ) -> Option<crate::diagnostics::DiagnosticReport> {
     let agent = app.agents.get(&agent_id)?;
-    let mut report = crate::slash::commands::doctor::DoctorCommand::report_for_terminal(
+    let report = crate::slash::commands::doctor::DoctorCommand::report_for_terminal(
         terminal,
         app.screen_mode,
         crate::diagnostics::TuiRuntimeRequest {
@@ -72,9 +71,6 @@ pub(super) fn collect_live_doctor_report_for_terminal(
             notification_condition: app.notification_service.config().condition,
         },
     );
-    if crate::app::voice_mode_enabled() {
-        crate::diagnostics::apply_voice_probe(&mut report, true);
-    }
     Some(report)
 }
 
@@ -429,13 +425,6 @@ pub(super) fn dispatch_send_prompt_inner(
     // the common funnel so every submit path is covered, before any early-return
     // guard below.
     app.pending_action = None;
-    // Promote interim + hard-reset; merge only when consuming the composer.
-    let interim = voice_stop_on_submit(app);
-    let text = if consume_input {
-        merge_prompt_with_voice_interim(text, interim)
-    } else {
-        text
-    };
 
     if app.reconnect_pending {
         app.show_toast("Reconnecting, please wait...");
@@ -456,7 +445,6 @@ pub(super) fn dispatch_send_prompt_inner(
     // Set when a plain prompt is queued while a turn is running (local path);
     // shown after the agent borrow ends so we can re-enter via the tip helper.
     let mut tip_send_now_after_queue = false;
-    let voice_stt_language_from_app = app.voice_config.language.clone();
     let scheduler_background_loops_seed = app.scheduler_background_loops_seed;
     let login_method_id_from_app = app.login_method_id.as_ref().map(|id| id.0.to_string());
     let leader_mode = app.leader_mode;
@@ -557,7 +545,6 @@ pub(super) fn dispatch_send_prompt_inner(
                     respect_manual_folds: respect_manual_folds_from_app,
                     auto_mode_gate: auto_mode_gate_from_app,
                     ask_user_question_timeout_enabled: ask_user_question_timeout_enabled_from_app,
-                    voice_stt_language: voice_stt_language_from_app,
                     // This session's own value (what its fires will actually
                     // do), seed only until the session response lands.
                     scheduler_background_loops: agent

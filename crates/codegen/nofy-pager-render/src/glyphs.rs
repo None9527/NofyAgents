@@ -31,22 +31,6 @@ pub fn prompt_arrow() -> &'static str {
 /// Display width of [`prompt_arrow`] in columns.
 pub const PROMPT_ARROW_WIDTH: u16 = 2;
 
-/// Record indicator glyph shown above the prompt while voice capture is
-/// active — a dot inside a ring. Two states swapped on the pulse cadence:
-/// FISHEYE (`◉`, filled center) on the bright half and BULLSEYE (`◎`, open
-/// center) on the dim half, which together with a smooth color fade reads
-/// like a studio recording light. ASCII fallback (`*`/`o`) on legacy
-/// ConHost. Always 1 column wide.
-pub fn record_dot(filled: bool) -> &'static str {
-    if is_legacy_windows_console() {
-        if filled { "*" } else { "o" }
-    } else if filled {
-        "\u{25C9}"
-    } else {
-        "\u{25CE}"
-    }
-}
-
 /// `"❙"` normally, `"|"` on legacy ConHost. Always 1 column wide.
 pub fn collapsed_accent() -> &'static str {
     if is_legacy_windows_console() {
@@ -584,16 +568,6 @@ mod tests {
     fn prompt_arrow_variants_are_two_columns() {
         assert_eq!("\u{276F} ".width(), PROMPT_ARROW_WIDTH as usize);
         assert_eq!("> ".width(), PROMPT_ARROW_WIDTH as usize);
-    }
-
-    // Both record-dot states must be exactly 1 column so the "Recording"
-    // label position is stable as the indicator pulses.
-    #[test]
-    fn record_dot_states_are_one_column() {
-        assert_eq!(record_dot(true).width(), 1);
-        assert_eq!(record_dot(false).width(), 1);
-        assert_eq!("\u{25C9}".width(), 1); // ◉ FISHEYE
-        assert_eq!("\u{25CE}".width(), 1); // ◎ BULLSEYE
     }
 
     #[test]

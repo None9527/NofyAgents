@@ -244,9 +244,6 @@ impl AgentView {
                 {
                     return InputOutcome::Action(Action::SubmitFollowUp(text));
                 }
-                if self.hit_voice_stop_button.contains(mouse.column, mouse.row) {
-                    return InputOutcome::Action(Action::VoiceToggle);
-                }
                 if self.hit_upgrade_cta.contains(mouse.column, mouse.row)
                     && !self.pos_occluded(mouse.column, mouse.row)
                 {
@@ -1140,9 +1137,6 @@ impl AgentView {
                     .plugin_cta
                     .hit_dismiss
                     .update_hover(mouse.column, mouse.row);
-                changed |= self
-                    .hit_voice_stop_button
-                    .update_hover(mouse.column, mouse.row);
                 changed |= self.hit_bg_status.update_hover(mouse.column, mouse.row);
                 changed |= self.hit_goal_status.update_hover(mouse.column, mouse.row);
                 changed |= self.hit_bg_close.update_hover(mouse.column, mouse.row);
@@ -1706,7 +1700,7 @@ mod tests {
             vpad_top: 0,
             ..Default::default()
         };
-        agent.prompt.draw(&mut buf, area, None, &style, None, None);
+        agent.prompt.draw(&mut buf, area, None, &style, None);
         let ta = agent.prompt.textarea_area();
         let click = MouseEvent {
             kind: MouseEventKind::Down(MouseButton::Left),

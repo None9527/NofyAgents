@@ -110,7 +110,6 @@ grok-build/
 │   │   ├── xai-grok-markdown/       # 流式 Markdown 渲染
 │   │   ├── xai-grok-markdown-core/  # Markdown 核心解析
 │   │   ├── xai-grok-mermaid/        # Mermaid 图表渲染
-│   │   ├── xai-grok-voice/          # 语音输入
 │   │   ├── xai-grok-update/         # 自更新机制
 │   │   ├── xai-grok-paths/          # 路径管理
 │   │   ├── xai-grok-env/            # 环境变量
