@@ -84,9 +84,12 @@ ensure_daemon() {
       sleep 1
     done
     # 卡死循环保护拒绝自恢复(连续非干净死亡≥3):本 harness 故意
-    # kill -9 制造了该状态,清取证账本重置计数后重试一次。
+    # kill -9 制造了该状态,归档取证账本(不删,保留操作员证据)
+    # 重置计数后重试一次。
     if grep -aq "stuck-loop signature" "$BENCH_ROOT/daemon.out" 2>/dev/null; then
-      rm -f "$BENCH_ROOT/home/daemon/forensics.jsonl" "$SOCK"
+      mv -f "$BENCH_ROOT/home/daemon/forensics.jsonl" \
+        "$BENCH_ROOT/home/daemon/forensics.jsonl.wedge-archive" 2>/dev/null || true
+      rm -f "$SOCK"
       NOFY_HOME=$BENCH_ROOT/home setsid nohup "$NOFY_BIN" daemon \
         --debug-file "$BENCH_ROOT/daemon.log" \
         </dev/null > "$BENCH_ROOT/daemon.out" 2>&1 &

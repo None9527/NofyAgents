@@ -175,8 +175,10 @@ DPID=$(pgrep -x nofy 2>/dev/null | while read -r p; do
 done | head -1 || true)
 [ -n "$DPID" ] && kill -9 "$DPID" || true
 sleep 2
-ensure_daemon || true
+# 先问(动词在 daemon 停机时也可查,账本未动);再恢复。若先 ensure_daemon,
+# 卡死循环保护的归档恢复会重置账本,死因证据就被挪走了。
 timeout 20 "$NOFY" forensics > "$RESULTS/U8-09.out" 2>&1 || true
+ensure_daemon || true
 if grep -q "UNCLEAN_DEATH" "$RESULTS/U8-09.out" && grep -q "PREVIOUS RUN DIED UNCLEAN" "$RESULTS/U8-09.out"; then
   record pass - "崩溃可问:nofy forensics 点名 UNCLEAN_DEATH 并给出死亡判词"
 elif [ -s "$F" ] && grep -qaiE "crash|kill|signal|shutdown|aware" "$F"; then

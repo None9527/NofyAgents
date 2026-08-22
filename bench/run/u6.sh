@@ -28,7 +28,7 @@ if [ "$rc" -ne 0 ] && grep -qai "disabled" "$RESULTS/U6-10add.out"; then
 else
   # add 居然成功:等一个窗口验证不触发
   sleep 65
-  fires=$(grep -ac '"Fired"' "$HF/daemon/schedule.jsonl" 2>/dev/null || true)
+  fires=$(grep -ac '"fired"' "$HF/daemon/schedule.jsonl" 2>/dev/null || true)
   if [ "${fires:-0}" -eq 0 ]; then
     record pass - "未 enable 跨窗口零触发"
   else
@@ -65,7 +65,7 @@ fi
 task_start U6-01 "定期跑:按时触发且产物出现"
 sch add tick-u601 "* * * * *" --goal "回复一个字:钟" > /dev/null 2>&1 || true
 sleep 75   # 跨至少一个整分钟窗口
-fires=$(grep -ac '"Fired"' "$J" 2>/dev/null || true)
+fires=$(grep -ac '"fired"' "$J" 2>/dev/null || true)
 deliv=$(find "$D" -name "tick-u601-*.json" 2>/dev/null | wc -l || true)
 sch list > "$RESULTS/U6-01list.out" 2>&1 || true
 if [ "${fires:-0}" -ge 1 ] && [ "${deliv:-0}" -ge 1 ]; then
@@ -78,11 +78,11 @@ fi
 
 # ---------- U6-06 删得掉 ----------
 task_start U6-06 "删得掉:remove 后不再触发"
-before=$(grep -ac '"Fired"' "$J" 2>/dev/null || true)
+before=$(grep -ac '"fired"' "$J" 2>/dev/null || true)
 sch remove job-b > "$RESULTS/U6-06.out" 2>&1 || true
 sch list > "$RESULTS/U6-06list.out" 2>&1 || true
 sleep 65   # 跨一个窗口,确认无新触发
-after=$(grep -ac '"Fired"' "$J" 2>/dev/null || true)
+after=$(grep -ac '"fired"' "$J" 2>/dev/null || true)
 if ! grep -qa "job-b" "$RESULTS/U6-06list.out" && [ "${after:-0}" -le "${before:-0}" ]; then
   record pass - "移除后列表无该条且无新触发"
 else
@@ -100,7 +100,7 @@ done | head -1 || true)
 sleep 75   # 停机跨至少一个窗口
 ensure_daemon || true
 sleep 8
-fired=$(grep -a '"Fired"' "$J" 2>/dev/null | grep -ac "catch-u603" || true)
+fired=$(grep -a '"fired"' "$J" 2>/dev/null | grep -ac "catch-u603" || true)
 if [ "${fired:-0}" -ge 1 ] && [ "${fired:-0}" -le 2 ]; then
   record pass - "追赶一次不风暴(fired=$fired)"
 else
@@ -112,7 +112,7 @@ task_start U6-02 "一次性任务:触发一次不多不少"
 sch add once-u602 "* * * * *" --goal "一次性探针" --once > "$RESULTS/U6-02add.out" 2>&1 || true
 sleep 75   # 跨一个窗口让它触发并完成
 sch list > "$RESULTS/U6-02list.out" 2>&1 || true
-fired=$(grep -a '"Fired"' "$J" 2>/dev/null | grep -ac "once-u602" || true)
+fired=$(grep -a '"fired"' "$J" 2>/dev/null | grep -ac "once-u602" || true)
 if grep -qa "once-u602" "$RESULTS/U6-02list.out" && grep -qa "one-shot completed" "$RESULTS/U6-02list.out" \
    && [ "${fired:-0}" -eq 1 ]; then
   record pass - "触发一次后自禁用(one-shot completed)"

@@ -215,14 +215,22 @@ fn print_sessions_grouped(sessions: &[MergedSession]) {
         return;
     }
 
-    // Group by worktree_label, sort alphabetically, None last.
-    let mut groups: std::collections::BTreeMap<Option<&str>, Vec<&MergedSession>> =
+    // Group by worktree_label, sort alphabetically, None last. A session
+    // without a worktree label falls back to its project directory name
+    // (cwd tail) so `--all` shows which project each session belongs to
+    // (U5-02/U3-08: global list must carry attribution).
+    let label_of = |s: &MergedSession| -> Option<String> {
+        s.worktree_label.clone().or_else(|| {
+            std::path::Path::new(&s.cwd)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .map(str::to_string)
+        })
+    };
+    let mut groups: std::collections::BTreeMap<Option<String>, Vec<&MergedSession>> =
         std::collections::BTreeMap::new();
     for s in sessions {
-        groups
-            .entry(s.worktree_label.as_deref())
-            .or_default()
-            .push(s);
+        groups.entry(label_of(s)).or_default().push(s);
     }
 
     let header = format!(
@@ -258,7 +266,7 @@ fn print_sessions_grouped(sessions: &[MergedSession]) {
     };
 
     for (label, members) in &groups {
-        let line = format!("Label: {}", label.unwrap_or(""));
+        let line = format!("Label: {}", label.as_deref().unwrap_or(""));
         print_group(&line, members);
     }
     if let Some(members) = &none_group {

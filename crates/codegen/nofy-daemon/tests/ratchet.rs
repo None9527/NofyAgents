@@ -204,7 +204,10 @@ fn workspace_loc_budget_only_shrinks() {
     //   fail-loud TaskSubmit, U8-09 `nofy forensics` query verb,
     //   U9-05 `nofy memory add-dir/dirs/remove-dir` managed roots
     //   (read-only default), U9-06 `nofy lease` file-lease surface.
-    let cap = 1_556_752; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_556_752→1_556_764: W-8 attribution tail — `sessions list`
+    //   groups by project dir name when no worktree label, so the
+    //   global --all view carries project attribution (U5-02/U3-08).
+    let cap = 1_556_764; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
