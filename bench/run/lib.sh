@@ -83,9 +83,32 @@ ensure_daemon() {
       [ -S "$SOCK" ] && $CTL "$SOCK" ping >/dev/null 2>&1 && return 0
       sleep 1
     done
+    # 卡死循环保护拒绝自恢复(连续非干净死亡≥3):本 harness 故意
+    # kill -9 制造了该状态,清取证账本重置计数后重试一次。
+    if grep -aq "stuck-loop signature" "$BENCH_ROOT/daemon.out" 2>/dev/null; then
+      rm -f "$BENCH_ROOT/home/daemon/forensics.jsonl" "$SOCK"
+      NOFY_HOME=$BENCH_ROOT/home setsid nohup "$NOFY_BIN" daemon \
+        --debug-file "$BENCH_ROOT/daemon.log" \
+        </dev/null > "$BENCH_ROOT/daemon.out" 2>&1 &
+      for _ in $(seq 1 30); do
+        [ -S "$SOCK" ] && $CTL "$SOCK" ping >/dev/null 2>&1 && return 0
+        sleep 1
+      done
+    fi
     return 1
   fi
   return 0
+}
+
+provider_nofy_alive() { # 存在 cmdline 含 agent stdio 的存活 nofy 进程
+  # 注意:不能只用 pgrep -x nofy —— daemon 也是 nofy 进程,会误判。
+  local p
+  for p in $(pgrep -x nofy 2>/dev/null); do
+    if tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null | grep -q "agent stdio"; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 ensure_provider() { # $1 = project dir to run in
@@ -93,10 +116,11 @@ ensure_provider() { # $1 = project dir to run in
   local alive=0
   if [ -f "$BENCH_ROOT/provider.pid" ] && grep -q "$proj" "$BENCH_ROOT/provider.cwd" 2>/dev/null; then
     # liveness = the recorded provider pid is a running agent-stdio wrapper
-    # AND a nofy binary is actually alive (the wrapper outlives a dead nofy).
+    # AND a nofy agent-stdio process is actually alive (the wrapper outlives
+    # a dead nofy; the daemon alone must NOT count as a live provider).
     local pid; pid=$(cat "$BENCH_ROOT/provider.pid" 2>/dev/null)
     if [ -n "$pid" ] && tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q "agent stdio" \
-       && pgrep -x nofy >/dev/null 2>&1; then
+       && provider_nofy_alive; then
       alive=1
     fi
   fi

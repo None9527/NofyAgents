@@ -49,7 +49,7 @@ fi
 task_start U8-02 "重启不丢:kill -9 后日程仍在"
 ensure_daemon || true   # U8-01 的 pkill 会连带杀掉 daemon
 timeout 30 "$NOFY" schedule enable > /dev/null 2>&1 || true
-timeout 30 "$NOFY" schedule add u802-probe "*/10 * * * *" > /dev/null 2>&1 || true
+timeout 30 "$NOFY" schedule add u802-probe "*/10 * * * *" --goal "Say PROBE." > /dev/null 2>&1 || true
 DPID=$(pgrep -x nofy 2>/dev/null | while read -r p; do
   tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null | grep -q "daemon --debug-file $BENCH_ROOT/daemon.log" && echo "$p"
 done | head -1 || true)

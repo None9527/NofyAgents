@@ -4,6 +4,7 @@
 # provider 带工具循环(最多 24 轮)产出真实产物;验收由目标核对(judge)结算,
 # 非空响应不再等于成功;submit 默认绑定提交目录,--cwd 显式路由。
 set -u
+NOFY=/home/none/grok-build/target/debug/nofy
 A=$BENCH_ROOT/projects/alpha
 J=$BENCH_ROOT/home/daemon/task_journal.jsonl
 
@@ -160,7 +161,7 @@ fi
 task_start U4-10 "取消:有停止任务的动词"
 rc=0
 timeout 20 "$NOFY" task cancel u4-no-such-task > "$RESULTS/U4-10.out" 2>&1 || rc=$?
-if grep -qa "cancel" "$RESULTS/U4-10.out" && [ "$rc" -ne 0 ]; then
+if [ "$rc" -ne 0 ] && grep -qaE "not found|already settled|refused" "$RESULTS/U4-10.out"; then
   record pass - "cancel 动词存在且对无此任务 fail-loud(rc=$rc)"
 elif grep -qa "cancel" "$RESULTS/U4-10.out"; then
   record pass - "cancel 动词存在"
