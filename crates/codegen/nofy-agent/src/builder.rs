@@ -88,6 +88,8 @@ pub struct AgentBuilder {
     memory_backend: Option<Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>>,
     session_recall_backend:
         Option<Arc<dyn nofy_tools::types::session_recall::SessionRecallProvider>>,
+    forensics_backend: Option<Arc<dyn nofy_tools::types::forensics::ForensicsProvider>>,
+    delegation_backend: Option<Arc<dyn nofy_tools::types::delegation::DelegationProvider>>,
     web_search_config: nofy_tools::implementations::web_search::WebSearchConfig,
     /// When true, web search and X search are sent as native server-side
     /// tools for execution by the agentic sampler, instead of being
@@ -233,6 +235,8 @@ impl AgentBuilder {
             state_path: None,
             memory_backend: None,
             session_recall_backend: None,
+            forensics_backend: None,
+            delegation_backend: None,
             web_search_config: Default::default(),
             backend_search: false,
             web_fetch_config: Default::default(),
@@ -418,6 +422,32 @@ impl AgentBuilder {
         backend: Arc<dyn nofy_tools::types::session_recall::SessionRecallProvider>,
     ) -> Self {
         self.session_recall_backend = Some(backend);
+        self
+    }
+
+    /// Set a crash-forensics backend so the agent can autonomously answer
+    /// "why did it die" questions (`daemon_forensics` tool).
+    ///
+    /// When set, the `daemon_forensics` tool is registered and can access
+    /// the backend. When `None` (default), the tool is not registered.
+    pub fn with_forensics_backend(
+        mut self,
+        backend: Arc<dyn nofy_tools::types::forensics::ForensicsProvider>,
+    ) -> Self {
+        self.forensics_backend = Some(backend);
+        self
+    }
+
+    /// Set a delegation backend so the agent can autonomously hand goals to
+    /// background daemon runs (`delegate_task` / `delegation_status`).
+    ///
+    /// When set, the delegation tools are registered and can access the
+    /// backend. When `None` (default), the tools are not registered.
+    pub fn with_delegation_backend(
+        mut self,
+        backend: Arc<dyn nofy_tools::types::delegation::DelegationProvider>,
+    ) -> Self {
+        self.delegation_backend = Some(backend);
         self
     }
     /// Set a custom filesystem backend for the ToolBridge.
@@ -742,6 +772,19 @@ impl AgentBuilder {
                 tool_config
                     .tools
                     .push((&nofy_tools::implementations::session_recall::SessionRecallTool).into());
+            }
+            if self.forensics_backend.is_some() {
+                tool_config
+                    .tools
+                    .push((&nofy_tools::implementations::forensics::ForensicsTool).into());
+            }
+            if self.delegation_backend.is_some() {
+                tool_config
+                    .tools
+                    .push((&nofy_tools::implementations::delegation::DelegateTaskTool).into());
+                tool_config
+                    .tools
+                    .push((&nofy_tools::implementations::delegation::DelegationStatusTool).into());
             }
             if self.web_search_config.is_enabled() {
                 use nofy_tools::implementations::nofy_build;
@@ -1068,6 +1111,8 @@ impl AgentBuilder {
                 state_path,
                 memory_backend: self.memory_backend,
                 session_recall: self.session_recall_backend.clone(),
+                forensics: self.forensics_backend.clone(),
+                delegation: self.delegation_backend.clone(),
                 web_search_config: self.web_search_config,
                 web_fetch_config: self.web_fetch_config,
                 lsp: self.lsp,

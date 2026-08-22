@@ -32,6 +32,8 @@ use crate::implementations::nofy_build::web_search::WebSearchInput;
 use crate::implementations::lsp::LspToolInput;
 use crate::implementations::memory::types::{MemoryGetInput, MemorySearchInput};
 use crate::implementations::session_recall::SessionRecallInput;
+use crate::implementations::forensics::ForensicsInput;
+use crate::implementations::delegation::{DelegateTaskInput, DelegationStatusInput};
 use crate::implementations::opencode::write::WriteInput;
 use crate::implementations::search_tool::SearchToolInput;
 use crate::implementations::skills::skill::SkillInput;
@@ -86,6 +88,9 @@ pub enum ToolInput {
     MemorySearch(MemorySearchInput),
     MemoryGet(MemoryGetInput),
     SessionRecall(SessionRecallInput),
+    Forensics(ForensicsInput),
+    DelegateTask(DelegateTaskInput),
+    DelegationStatus(DelegationStatusInput),
     SearchTool(SearchToolInput),
     UseTool(UseToolInput),
     EnterPlanMode(EnterPlanModeInput),

@@ -264,6 +264,15 @@ pub struct SessionContext {
     /// sessions (global awareness). When `None`, the tool returns
     /// "not available".
     pub session_recall: Option<Arc<dyn crate::types::session_recall::SessionRecallProvider>>,
+    /// Optional crash-forensics backend. When `Some`, injected into
+    /// `Resources` so the `daemon_forensics` tool can read the daemon's
+    /// life/death ledger. When `None`, the tool returns "not available".
+    pub forensics: Option<Arc<dyn crate::types::forensics::ForensicsProvider>>,
+    /// Optional delegation backend. When `Some`, injected into `Resources`
+    /// so the `delegate_task` / `delegation_status` tools can drive the
+    /// daemon's delegated runs. When `None`, the tools return
+    /// "not available".
+    pub delegation: Option<Arc<dyn crate::types::delegation::DelegationProvider>>,
     /// Optional web search configuration. When `Enabled`, a `WebSearchClient`
     /// is created and injected into `Resources` so the `web_search` tool can
     /// call the Responses API. When `Disabled` (default), the tool returns a
@@ -733,6 +742,9 @@ impl ToolRegistryBuilder {
         b.register::<crate::implementations::memory::search_tool::MemorySearchImpl>();
         b.register::<crate::implementations::memory::get_tool::MemoryGetImpl>();
         b.register::<crate::implementations::session_recall::SessionRecallTool>();
+        b.register::<crate::implementations::forensics::ForensicsTool>();
+        b.register::<crate::implementations::delegation::DelegateTaskTool>();
+        b.register::<crate::implementations::delegation::DelegationStatusTool>();
         b.register::<crate::implementations::search_tool::SearchTool>();
         b.register_with_params::<
                 crate::implementations::use_tool::UseTool,
@@ -1038,6 +1050,12 @@ impl ToolRegistryBuilder {
         }
         if let Some(session_recall) = ctx.session_recall {
             resources.insert(crate::types::session_recall::SessionRecallAccess(session_recall));
+        }
+        if let Some(forensics) = ctx.forensics {
+            resources.insert(crate::types::forensics::ForensicsAccess(forensics));
+        }
+        if let Some(delegation) = ctx.delegation {
+            resources.insert(crate::types::delegation::DelegationAccess(delegation));
         }
         if let Some(auth_provider) = ctx.auth_provider.clone() {
             resources.insert(auth_provider);
@@ -2174,6 +2192,8 @@ mod tests {
             state_path: tmp.path().join("state.json"),
             memory_backend: None,
             session_recall: None,
+            forensics: None,
+            delegation: None,
             web_search_config: crate::implementations::web_search::WebSearchConfig::default(),
             web_fetch_config:
                 crate::implementations::nofy_build::web_fetch::WebFetchConfig::default(),

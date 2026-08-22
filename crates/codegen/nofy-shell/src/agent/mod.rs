@@ -1,4 +1,5 @@
 pub mod activity;
+pub mod daemon_backends;
 pub mod pack_join;
 pub mod provider_host;
 pub mod app;

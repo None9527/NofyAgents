@@ -16,6 +16,8 @@ pub mod resources;
 pub mod schema;
 pub mod session_mode;
 pub mod session_recall;
+pub mod forensics;
+pub mod delegation;
 pub mod skill_discovery_tracker;
 pub mod template_renderer;
 pub mod tool;

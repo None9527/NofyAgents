@@ -211,7 +211,12 @@ fn workspace_loc_budget_only_shrinks() {
     //   agent tool (cross-session raw recall) bound via the
     //   SessionRecallProvider injection pattern (tools/agent/shell), so the
     //   agent autonomously brings other conversations' context in.
-    let cap = 1_557_021; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_557_021→1_557_840: daemon-plane awareness on the same seam —
+    //   `daemon_forensics` (crash ledger as an answer, works daemon-down)
+    //   and `delegate_task`/`delegation_status` (autonomous delegation over
+    //   the control socket, U4-06 refusals verbatim), via ForensicsProvider
+    //   + DelegationProvider injection (tools/agent/shell).
+    let cap = 1_557_840; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));

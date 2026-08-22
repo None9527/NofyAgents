@@ -142,6 +142,9 @@ async fn test_agent_from_config(
                 .join("tool_state.json")
         },
         memory_backend: None,
+        session_recall: None,
+        forensics: None,
+        delegation: None,
         web_search_config: Default::default(),
         web_fetch_config: Default::default(),
         lsp: None,

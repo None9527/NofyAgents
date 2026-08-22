@@ -296,6 +296,15 @@ impl AgentRebuildSpec {
         builder = builder.with_session_recall_backend(std::sync::Arc::new(
             crate::session::recall::ShellSessionRecall,
         ));
+        // Daemon-plane awareness: forensics reads a plain ledger file (works
+        // with the daemon down); delegation talks to the control socket and
+        // fails loud with a remedy when the daemon is not running.
+        builder = builder.with_forensics_backend(std::sync::Arc::new(
+            crate::agent::daemon_backends::ShellForensics,
+        ));
+        builder = builder.with_delegation_backend(std::sync::Arc::new(
+            crate::agent::daemon_backends::ShellDelegation,
+        ));
         if let Some(lsp) = lsp.clone() {
             builder = builder.with_lsp(lsp);
         }
