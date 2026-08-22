@@ -176,10 +176,13 @@ done | head -1 || true)
 [ -n "$DPID" ] && kill -9 "$DPID" || true
 sleep 2
 ensure_daemon || true
-if [ -s "$F" ] && grep -qaiE "crash|kill|signal|shutdown|aware" "$F"; then
-  record partial W-7 "forensics.jsonl 有崩溃取证记录,但仅原始日志无查询动词(可读非可问)"
+timeout 20 "$NOFY" forensics > "$RESULTS/U8-09.out" 2>&1 || true
+if grep -q "UNCLEAN_DEATH" "$RESULTS/U8-09.out" && grep -q "PREVIOUS RUN DIED UNCLEAN" "$RESULTS/U8-09.out"; then
+  record pass - "崩溃可问:nofy forensics 点名 UNCLEAN_DEATH 并给出死亡判词"
+elif [ -s "$F" ] && grep -qaiE "crash|kill|signal|shutdown|aware" "$F"; then
+  record partial W-12 "forensics.jsonl 有崩溃取证记录,但查询动词未给出死因"
 elif [ -s "$F" ]; then
-  record partial W-7 "forensics.jsonl 存在但内容无明确死因词"
+  record partial W-12 "forensics.jsonl 存在但内容无明确死因词"
 else
   record fail M "无取证文件"
 fi

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # U9 文件与知识 — 10 tasks(v2)。
-# 记忆面 = --experimental-memory + nofy memory clear;管家面(steward/索引/租约)
-# 经探测无用户动词者如实记缺口。
+# 记忆面 = --experimental-memory + nofy memory clear/add-dir/dirs;
+# 管家面 = nofy trash(可恢复删除)+ nofy lease(编辑租约,FR12.11)。
 set -u
 NOFY=/home/none/grok-build/target/debug/nofy
 A=$BENCH_ROOT/projects/alpha
@@ -71,18 +71,32 @@ fi
 
 # ---------- U9-05 新根只读 ----------
 task_start U9-05 "新根只读:新纳管目录默认不动文件"
-if timeout 20 "$NOFY" memory --help > "$RESULTS/U9-05.out" 2>&1 && grep -qaiE "add|root|index|folder|dir" "$RESULTS/U9-05.out"; then
-  record pass - "存在纳管目录表面"
+U905DIR=$BENCH_ROOT/projects/u9managed
+rm -rf "$U905DIR" && mkdir -p "$U905DIR" && printf 'keep\n' > "$U905DIR/note.md"
+u905_before=$(find "$U905DIR" -type f | wc -l)
+timeout 20 "$NOFY" memory add-dir "$U905DIR" > "$RESULTS/U9-05.out" 2>&1
+rc_add=$?
+timeout 20 "$NOFY" memory dirs > "$RESULTS/U9-05.dirs" 2>&1
+u905_after=$(find "$U905DIR" -type f | wc -l)
+if [ "$rc_add" = 0 ] && grep -q "read-only" "$RESULTS/U9-05.out" \
+   && grep -q "$U905DIR" "$RESULTS/U9-05.dirs" && [ "$u905_before" = "$u905_after" ]; then
+  record pass - "纳管回环成立:新根默认 read-only,文件零改动($u905_before)"
 else
-  record partial W-9 "无『新纳管文件夹』用户表面(memory 动词仅 clear):index-only 纳管不可用"
+  record partial W-9 "纳管面不完整:rc=$rc_add,文件 $u905_before→$u905_after"
 fi
+timeout 20 "$NOFY" memory remove-dir "$U905DIR" >/dev/null 2>&1 || true
 
 # ---------- U9-06 不碰我在改的 ----------
 task_start U9-06 "不碰我在改的:编辑中文件有租约保护"
-if timeout 20 "$NOFY" --help > "$RESULTS/U9-06.out" 2>&1 && grep -qaiE "\blease\b|\block\b" "$RESULTS/U9-06.out"; then
-  record pass - "存在租约表面"
+printf 'in flight\n' > "$G/editing-lease.txt"
+timeout 20 "$NOFY" lease declare --session u906 --ttl 300 "$G/editing-lease.txt" > "$RESULTS/U9-06.out" 2>&1
+rc_d=$?
+timeout 20 "$NOFY" lease list > "$RESULTS/U9-06.list" 2>&1
+timeout 20 "$NOFY" lease release "$G/editing-lease.txt" >/dev/null 2>&1 || true
+if [ "$rc_d" = 0 ] && grep -q "u906" "$RESULTS/U9-06.list" && grep -q "steward-read-only" "$RESULTS/U9-06.out"; then
+  record pass - "租约回环成立:declare/list/release,存活期内 steward 只读"
 else
-  record partial W-9 "无租约/锁定用户表面:『不碰我正在编辑的文件』无机制"
+  record partial W-9 "租约面不完整:rc=$rc_d"
 fi
 
 # ---------- U9-07 大堆不卡 ----------
