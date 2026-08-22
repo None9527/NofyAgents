@@ -214,7 +214,6 @@ impl MvpAgent {
             acp::Error::invalid_params().data("initialize must be called before new_session")
         })?;
         self.seed_client_config_auth_if_available();
-        self.spawn_settings_reapply();
         let SessionWorkspace {
             cwd,
             remote_settings,

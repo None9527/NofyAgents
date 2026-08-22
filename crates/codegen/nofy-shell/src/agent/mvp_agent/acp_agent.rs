@@ -49,14 +49,9 @@ impl acp::Agent for MvpAgent {
             nofy_telemetry::startup::clear();
         }
         self.start_subagent_coordinator();
-        if self.cfg.borrow().remote_settings.is_none() {
-            self.spawn_settings_reapply();
-        }
         let (auto_gc_policy, run_auto_gc) = {
             let cfg = self.cfg.borrow();
-            let has_remote = cfg.remote_settings.is_some();
-            let run = has_remote || !crate::util::config::resolve_remote_fetch_enabled();
-            (cfg.resolve_worktree_auto_gc(), run)
+            (cfg.resolve_worktree_auto_gc(), true)
         };
         if !run_auto_gc {
             tracing::debug!(
@@ -441,7 +436,6 @@ impl acp::Agent for MvpAgent {
                 agent_ref.get().emit_announcements(AnnouncementsPushMode::SeedNewClient);
             });
         }
-        self.spawn_announcements_refresh();
         self.spawn_heap_profile_monitor();
         let init_model_state = if crate::agent::chat_modes::process_chat_mode_enabled() {
             self.chat_modes.model_state().await
@@ -691,7 +685,6 @@ impl acp::Agent for MvpAgent {
                         .await;
                 }
                 self.maybe_sync_bundle_in_background(false);
-                let auth_for_settings = auth.clone();
                 {
                     let mut sampling_config = self.sampling_config.borrow_mut();
                     sampling_config.api_key = Some(auth.key);
@@ -713,7 +706,6 @@ impl acp::Agent for MvpAgent {
                     auth_method: "cached_token".to_string(),
                     user_id: uid,
                 });
-                self.spawn_post_auth_settings(auth_for_settings);
                 Ok(self.auth_response_with_meta())
             }
             auth_method::NOFY_COM_METHOD_ID | auth_method::OIDC_METHOD_ID => {

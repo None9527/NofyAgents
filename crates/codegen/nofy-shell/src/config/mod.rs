@@ -875,29 +875,12 @@ pub struct ToolsConfig {
     /// When `true`, all tools (including `read_file`) filter gitignored
     /// files. When `false` (default), each tool picks its own default.
     pub respect_gitignore: bool,
-    /// Drop tools whose xAI API requires server-side artifact storage
-    /// (currently just `video_gen`). Intended for ZDR-bound teams via
-    /// `~/.nofy/managed_config.toml`. Defaults to `false`.
-    pub disable_zdr_incompatible_tools: bool,
-    /// Optional S3 bucket config for ZDR video output. When present (and
-    /// valid), video tools presign an upload URL and pass it to the API so
-    /// the generated video lands in a team-owned bucket instead of being
-    /// downloaded locally. Only effective when `disable_zdr_incompatible_tools`
-    /// is `true`. Populated from `[tools.zdr_video_output_s3]` in config.
-    pub zdr_video_output_s3:
-        Option<nofy_tools::implementations::nofy_build::video_gen::ZdrVideoOutputS3Config>,
 }
 impl ToolsConfig {
     /// Resolve the final tools config, in priority order:
-    /// 1. Env vars `NOFY_RESPECT_GITIGNORE` and
-    ///    `NOFY_DISABLE_ZDR_INCOMPATIBLE_TOOLS` (`0`/`false` off,
-    ///    `1`/`true` on).
+    /// 1. Env var `NOFY_RESPECT_GITIGNORE` (`0`/`false` off, `1`/`true` on).
     /// 2. `[tools]` block from the merged effective config.
-    /// 3. Defaults (both `false`).
-    ///
-    /// Fields are read individually so a malformed
-    /// `[tools.zdr_video_output_s3]` cannot wipe `disable_zdr_incompatible_tools`
-    /// (or any other tools flag) via whole-table deserialize failure.
+    /// 3. Default (`false`).
     pub fn resolve(config: &toml::Value) -> Self {
         let tools = config.get("tools");
         let mut result = Self {
@@ -905,33 +888,6 @@ impl ToolsConfig {
                 .and_then(|t| t.get("respect_gitignore"))
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false),
-            disable_zdr_incompatible_tools: tools
-                .and_then(|t| t.get("disable_zdr_incompatible_tools"))
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false),
-            zdr_video_output_s3: tools
-                .and_then(|t| t.get("zdr_video_output_s3"))
-                .and_then(|s3_val| match s3_val
-                    .clone()
-                    .try_into::<
-                        nofy_tools::implementations::nofy_build::video_gen::ZdrVideoOutputS3Config,
-                    >()
-                {
-                    Ok(cfg) if cfg.is_valid() => Some(cfg),
-                    Ok(_) => {
-                        tracing::warn!(
-                                "tools.zdr_video_output_s3 is present but incomplete; ignoring ZDR video output config"
-                            );
-                        None
-                    }
-                    Err(e) => {
-                        tracing::warn!(
-                                error = %e,
-                                "tools.zdr_video_output_s3 failed to parse; ignoring ZDR video output config"
-                            );
-                        None
-                    }
-                }),
         };
         match std::env::var("NOFY_RESPECT_GITIGNORE").as_deref() {
             Ok("0") | Ok("false") => {
@@ -939,15 +895,6 @@ impl ToolsConfig {
             }
             Ok("1") | Ok("true") => {
                 result.respect_gitignore = true;
-            }
-            _ => {}
-        }
-        match std::env::var("NOFY_DISABLE_ZDR_INCOMPATIBLE_TOOLS").as_deref() {
-            Ok("0") | Ok("false") => {
-                result.disable_zdr_incompatible_tools = false;
-            }
-            Ok("1") | Ok("true") => {
-                result.disable_zdr_incompatible_tools = true;
             }
             _ => {}
         }
@@ -1234,24 +1181,12 @@ fn apply_requirements_inner(
             push("features.telemetry", format!("{mode}"));
         }
     }
-    macro_rules! pin_requirement_only {
-        ($name:ident) => {
-            if let Some(val) = req_bool(req, "features", stringify!($name)) {
-                config.requirements.$name.pin(val, source.clone());
-                push(concat!("features.", stringify!($name)), format!("{val}"));
-            }
-        };
-    }
     pin_feature!(feedback);
     pin_feature!(lsp_tools);
     pin_feature!(web_fetch);
     pin_feature!(ask_user_question);
-    pin_feature!(image_gen);
-    pin_requirement_only!(image_edit);
-    pin_feature!(video_gen);
     pin_feature!(write_file);
     pin_feature!(voice_mode);
-    pin_requirement_only!(remote_fetch);
     if let Some(val) = req_bool(req, "telemetry", "trace_upload") {
         config.requirements.trace_upload.pin(val, source.clone());
         if config.telemetry.trace_upload != Some(val) {

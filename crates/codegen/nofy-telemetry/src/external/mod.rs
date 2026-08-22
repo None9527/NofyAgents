@@ -34,7 +34,6 @@ pub mod truncate;
 
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, OnceLock};
-use std::time::Duration;
 
 use opentelemetry::logs::LoggerProvider as _;
 use opentelemetry::metrics::MeterProvider as _;
@@ -67,18 +66,6 @@ impl IdentityAttrs {
     }
 }
 
-/// Remote-settings policy for the external stream. **Restrictive-only by
-/// construction**: there is deliberately no enable direction (remote settings
-/// are fetched per-run and never persisted, so a remote "enable" could never
-/// reach init).
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ExternalOtelRemotePolicy {
-    /// Remote-policy force-disable: flush, then drop subsequent emissions in-process.
-    pub force_disable: bool,
-    /// Force the content gates off regardless of local env/config.
-    pub lock_content_gates: bool,
-}
-
 /// The handle owning both providers. Never global; reached only through the
 /// [`EXTERNAL`] registry.
 pub struct ExternalTelemetry {
@@ -86,8 +73,7 @@ pub struct ExternalTelemetry {
     meter_provider: Option<SdkMeterProvider>,
     logger: Option<SdkLogger>,
     instruments: Option<emit::Instruments>,
-    /// Emission gate; cleared by the remote force-disable. The single
-    /// authority for "emitting right now".
+    /// Emission gate; the single authority for "emitting right now".
     active: AtomicBool,
     /// Content gates; may only TIGHTEN post-init.
     gates: redact::SharedGates,
@@ -220,106 +206,17 @@ fn active_handle() -> Option<Arc<ExternalTelemetry>> {
     handle().filter(|ext| ext.active.load(Ordering::Relaxed))
 }
 
-/// Fail-closed OTEL gate. Defaults open; the leader closes it before init and
-/// re-opens it when settings resolve.
-///
-/// Opening is the synchronizing event: `OtelGate::apply_and_open` applies the
-/// remote force-disable (`active = false`) and then opens here, so an emitter
-/// whose `Acquire` read observes the `Release` open also observes
-/// `active = false`; the emit-path `active` load can therefore stay `Relaxed`.
-/// The window-expiry open has no such pairing and relies on eventual
-/// visibility, acceptable because the policy is tighten-only.
-static SETTINGS_RESOLVED: AtomicBool = AtomicBool::new(true);
-
-const DEFAULT_SETTINGS_GATE_MAX_WAIT: Duration = Duration::from_secs(30);
-
-static SETTINGS_GATE_MAX_WAIT_MS: AtomicU64 =
-    AtomicU64::new(DEFAULT_SETTINGS_GATE_MAX_WAIT.as_millis() as u64);
-
-static GATE_CLOSED_AT_MS: AtomicU64 = AtomicU64::new(0);
-
-fn process_uptime_ms() -> u64 {
-    static START: OnceLock<std::time::Instant> = OnceLock::new();
-    u64::try_from(
-        START
-            .get_or_init(std::time::Instant::now)
-            .elapsed()
-            .as_millis(),
-    )
-    .unwrap_or(u64::MAX)
-}
-
-/// Set the bound on the fail-closed window.
-pub fn set_settings_gate_max_wait(max_wait: Duration) {
-    SETTINGS_GATE_MAX_WAIT_MS.store(
-        u64::try_from(max_wait.as_millis()).unwrap_or(u64::MAX),
-        Ordering::Relaxed,
-    );
-}
-
-/// The current bound on the fail-closed window.
-pub fn settings_gate_max_wait() -> Duration {
-    Duration::from_millis(SETTINGS_GATE_MAX_WAIT_MS.load(Ordering::Relaxed))
-}
-
-/// Close the gate (leader preinit + account switch).
-pub fn suppress_external_otel_until_settings() {
-    GATE_CLOSED_AT_MS.store(process_uptime_ms(), Ordering::Relaxed);
-    // `Release`: a reader that observes the close must also observe the
-    // timestamp published just above, or it would measure this window from an
-    // earlier close and open immediately.
-    SETTINGS_RESOLVED.store(false, Ordering::Release);
-}
-
-/// Open the gate. `Release` publishes the force-disable applied just before it.
-pub fn mark_external_otel_settings_resolved() {
-    if !SETTINGS_RESOLVED.swap(true, Ordering::Release) {
-        tracing::debug!("external otel: settings resolved, emission gate opened");
-    }
-}
-
-/// Read the gate. `Acquire` pairs with the `Release` open (and with the
-/// `Release` close that publishes the window start).
-#[inline]
-pub fn is_settings_gate_open() -> bool {
-    SETTINGS_RESOLVED.load(Ordering::Acquire) || settings_gate_window_expired()
-}
-
-#[cold]
-fn settings_gate_window_expired() -> bool {
-    let waited = process_uptime_ms().saturating_sub(GATE_CLOSED_AT_MS.load(Ordering::Relaxed));
-    if waited < SETTINGS_GATE_MAX_WAIT_MS.load(Ordering::Relaxed) {
-        return false;
-    }
-    static LOGGED: std::sync::Once = std::sync::Once::new();
-    LOGGED.call_once(|| {
-        tracing::warn!(
-            waited_ms = waited,
-            "external otel: no fleet policy arrived within the bounded window; \
-             emitting under local configuration (a policy that arrives later still applies)"
-        );
-    });
-    true
-}
-
 /// Cheap check used by the fan-out hook and the split-sink call sites:
-/// registry present AND the runtime emission gate set AND the settings gate
-/// open. A stale `true` read only costs a wasted mapping, never an export
-/// ([`emit`] re-checks).
+/// registry present AND the runtime emission gate set. A stale `true` read
+/// only costs a wasted mapping, never an export ([`emit`] re-checks).
 pub fn is_active() -> bool {
-    is_settings_gate_open()
-        && matches!(EXTERNAL.get(), Some(Some(ext)) if ext.active.load(Ordering::Relaxed))
+    matches!(EXTERNAL.get(), Some(Some(ext)) if ext.active.load(Ordering::Relaxed))
 }
 
 /// Map and emit one typed telemetry event. No-op unless the stream is active
 /// and the event has an `external = …` mapping. Synchronous and cheap (the
 /// batch processor queues; nothing blocks on I/O).
 pub fn emit<T: crate::events::TelemetryEvent>(data: &T) {
-    // Fail-closed: suppress until the leader confirms the remote policy; open by
-    // default for everyone else.
-    if !is_settings_gate_open() {
-        return;
-    }
     let Some(ext) = active_handle() else {
         return;
     };
@@ -354,38 +251,6 @@ pub(crate) fn set_identity_on(ext: &ExternalTelemetry, attrs: IdentityAttrs) {
             source: meta.source.to_owned(),
         });
     });
-}
-
-/// Apply remote policy when `RemoteSettings` arrive (post-auth, alongside
-/// [`set_identity`]). **TIGHTEN-ONLY**: may clear `active` (remote-policy
-/// force-disable, flushes then drops subsequent emissions) and may force content gates
-/// off; it can never enable a stream that env/config left off, and never
-/// loosens gates mid-run.
-pub fn apply_remote_policy(policy: ExternalOtelRemotePolicy) {
-    let Some(ext) = handle() else {
-        return;
-    };
-    apply_remote_policy_on(&ext, policy);
-}
-
-pub(crate) fn apply_remote_policy_on(ext: &ExternalTelemetry, policy: ExternalOtelRemotePolicy) {
-    if policy.lock_content_gates {
-        let mut gates = ext.gates.write();
-        if gates.log_user_prompts || gates.log_tool_details {
-            *gates = ContentGates::default();
-            drop(gates);
-            crate::session_ctx::log_session_event(crate::events::ExternalOtelRemotePolicyApplied {
-                action: "gates_locked".to_owned(),
-            });
-        }
-    }
-    if policy.force_disable && ext.active.swap(false, Ordering::Relaxed) {
-        flush_on(ext);
-        crate::session_ctx::log_session_event(crate::events::ExternalOtelRemotePolicyApplied {
-            action: "force_disable".to_owned(),
-        });
-        tracing::debug!("external otel: force-disabled by remote policy");
-    }
 }
 
 /// Flush both providers (logout path: called *before* credentials are

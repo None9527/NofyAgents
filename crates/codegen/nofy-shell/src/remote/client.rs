@@ -14,31 +14,6 @@ pub fn share_url(permission_id: &str) -> String {
         std::env::var("NOFY_CODE_WEB_URL").unwrap_or_else(|_| NOFY_CODE_WEB_URL.to_string());
     format!("{}/build/share/{}", web_url, permission_id)
 }
-fn add_cli_chat_proxy_headers_blocking(
-    builder: reqwest::blocking::RequestBuilder,
-    auth: &NofyAuth,
-    alpha_test_key: Option<&str>,
-    url: &str,
-) -> reqwest::blocking::RequestBuilder {
-    let mut builder = builder
-        .header("Authorization", format!("Bearer {}", &auth.key))
-        .header("X-NOFY-Token-Auth", NofyComConfig::default().token_header)
-        .header("x-userid", &auth.user_id)
-        .header("x-nofy-client-version", nofy_version::VERSION);
-    if let Some(email) = &auth.email {
-        builder = builder.header("x-email", email);
-    }
-    let _ = (alpha_test_key, url);
-    builder
-        .header(
-            "x-nofy-client-identifier",
-            crate::http::process_client_identifier(),
-        )
-        .header(
-            crate::http::CLIENT_MODE_HEADER,
-            crate::http::process_client_mode(),
-        )
-}
 async fn parse_json_response<T: serde::de::DeserializeOwned>(
     response: reqwest::Response,
 ) -> Result<T, BackendError> {
@@ -544,105 +519,6 @@ impl BackendClient {
         Ok(())
     }
 }
-/// Outcome of a blocking settings fetch. Distinguishes the three cases the
-/// external-OTEL gate cares about (see [`crate::agent::mvp_agent`]).
-#[derive(Debug)]
-#[must_use]
-#[non_exhaustive]
-pub enum SettingsFetch {
-    /// Settings fetched and parsed; carries the policy that resolves the gate.
-    /// Boxed because `RemoteSettings` is large and the other variants are unit-sized.
-    Fetched(Box<crate::util::config::RemoteSettings>),
-    /// Credential unambiguously rejected (401): the remote policy will never reach
-    /// this leader, so the gate may open without waiting.
-    Rejected,
-    /// Transient/ambiguous (network, 5xx exhausted, 403/429/other 4xx, unparseable
-    /// 2xx): outcome unknown. Leave the gate closed (fail-closed), retry later.
-    Retry,
-}
-impl SettingsFetch {
-    /// For callers that only want the settings and treat every failure alike.
-    pub fn into_option(self) -> Option<crate::util::config::RemoteSettings> {
-        match self {
-            SettingsFetch::Fetched(s) => Some(*s),
-            SettingsFetch::Rejected | SettingsFetch::Retry => None,
-        }
-    }
-}
-/// Blocking settings fetch; makes up to
-/// [`crate::http::SETTINGS_FETCH_MAX_ATTEMPTS`] attempts on transient failures.
-pub fn fetch_settings_blocking(
-    cli_chat_proxy_base_url: &str,
-    auth: &NofyAuth,
-    alpha_test_key: Option<&str>,
-) -> SettingsFetch {
-    fetch_settings_blocking_with_attempts(
-        cli_chat_proxy_base_url,
-        auth,
-        alpha_test_key,
-        crate::http::SETTINGS_FETCH_MAX_ATTEMPTS,
-    )
-}
-/// Settings-fetch core with a caller-chosen attempt budget. Private so the
-/// attempt count stays out of the public API; tests use it to skip retry
-/// backoff on the transient-failure paths.
-fn fetch_settings_blocking_with_attempts(
-    cli_chat_proxy_base_url: &str,
-    auth: &NofyAuth,
-    alpha_test_key: Option<&str>,
-    max_attempts: u32,
-) -> SettingsFetch {
-    let client = crate::http::shared_startup_blocking_client();
-    let url = format!("{cli_chat_proxy_base_url}/settings");
-    let max_attempts = max_attempts.max(1);
-    for attempt in 0u32..max_attempts {
-        if attempt > 0 {
-            std::thread::sleep(std::time::Duration::from_millis(500 * u64::from(attempt)));
-        }
-        let request =
-            add_cli_chat_proxy_headers_blocking(client.get(&url), auth, alpha_test_key, &url);
-        match request.send() {
-            Ok(resp) if resp.status().is_success() => match resp.json() {
-                Ok(settings) => {
-                    tracing::debug!("Fetched remote settings from cli-chat-proxy");
-                    return SettingsFetch::Fetched(Box::new(settings));
-                }
-                Err(e) => {
-                    tracing::warn!(attempt, "Failed to parse settings response: {e}");
-                    return SettingsFetch::Retry;
-                }
-            },
-            Ok(resp) if resp.status().is_server_error() => {
-                tracing::warn!(
-                    attempt,
-                    status = resp.status().as_u16(),
-                    "Settings fetch server error, retrying"
-                );
-                continue;
-            }
-            Ok(resp) if resp.status() == reqwest::StatusCode::UNAUTHORIZED => {
-                tracing::warn!(
-                    status = resp.status().as_u16(),
-                    "Settings fetch rejected (401)"
-                );
-                return SettingsFetch::Rejected;
-            }
-            Ok(resp) => {
-                tracing::warn!(
-                    status = resp.status().as_u16(),
-                    "Settings fetch failed (non-2xx)"
-                );
-                return SettingsFetch::Retry;
-            }
-            Err(e) => {
-                tracing::warn!(attempt, "Settings fetch network error: {e}");
-                continue;
-            }
-        }
-    }
-    tracing::error!(max_attempts, "Settings fetch failed");
-    SettingsFetch::Retry
-}
 #[derive(Deserialize)]
 struct LoginConfigResponse {
     /// Tri-state: `Some` forces a transport; `None`/absent → client default.
@@ -704,48 +580,17 @@ pub(crate) const DEFAULT_CONTEXT_WINDOW: u64 = 256_000;
 struct ModelsResponse {
     data: Vec<serde_json::Value>,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum EndpointAuth {
-    ApiKey,
-    Session,
-}
-struct ListModelsEndpoint {
-    url: String,
-    auth: EndpointAuth,
-}
-/// The `/v1/models` URL [`fetch_models_blocking`] hits for this
-/// endpoints/auth shape. Doubles as the models disk-cache origin key: cached
-/// entries embed absolute `base_url`s from the backend that served them, so a
-/// catalog fetched from one backend (env override, another deployment, a
-/// test's mock server) must be a cache miss for any other backend.
+/// The `/v1/models` URL [`fetch_models_blocking`] hits. Doubles as the models
+/// disk-cache origin key: cached entries embed absolute `base_url`s from the
+/// backend that served them, so a catalog fetched from one backend (env
+/// override, another deployment, a test's mock server) must be a cache miss
+/// for any other backend. Fetching itself is gated on a custom endpoint
+/// being configured (see `catalog_fetch_allowed`).
 pub(crate) fn models_list_url(
     endpoints: &crate::agent::config::EndpointsConfig,
-    fetch_auth: crate::agent::models::ModelFetchAuth,
+    _fetch_auth: crate::agent::models::ModelFetchAuth,
 ) -> String {
-    ListModelsEndpoint::from_endpoints(endpoints, fetch_auth).url
-}
-impl ListModelsEndpoint {
-    fn from_endpoints(
-        endpoints: &crate::agent::config::EndpointsConfig,
-        fetch_auth: crate::agent::models::ModelFetchAuth,
-    ) -> Self {
-        if endpoints.has_custom_endpoint() {
-            Self {
-                url: endpoints.resolve_models_list_url(),
-                auth: EndpointAuth::ApiKey,
-            }
-        } else if fetch_auth == crate::agent::models::ModelFetchAuth::ApiKey {
-            Self {
-                url: format!("{}/models", endpoints.xai_api_base_url),
-                auth: EndpointAuth::ApiKey,
-            }
-        } else {
-            Self {
-                url: endpoints.resolve_models_list_url(),
-                auth: EndpointAuth::Session,
-            }
-        }
-    }
+    endpoints.resolve_models_list_url()
 }
 /// Fetch models from an OpenAI-compatible `/v1/models` endpoint.
 /// Fetch result: model entries + optional etag from response.
@@ -756,45 +601,23 @@ pub struct FetchModelsResult {
 pub(crate) fn fetch_models_blocking(
     endpoints: &crate::agent::config::EndpointsConfig,
     auth: Option<&NofyAuth>,
-    fetch_auth: crate::agent::models::ModelFetchAuth,
+    _fetch_auth: crate::agent::models::ModelFetchAuth,
 ) -> Result<FetchModelsResult, BackendError> {
     let client = crate::http::shared_startup_blocking_client();
-    let source = ListModelsEndpoint::from_endpoints(endpoints, fetch_auth);
+    let url = endpoints.resolve_models_list_url();
     let inference_base_url = endpoints.resolve_inference_base_url();
-    tracing::info!("Fetching models from {}", source.url);
-    let mut request = client.get(&source.url);
-    match source.auth {
-        EndpointAuth::ApiKey => {
-            let api_key = crate::agent::auth_method::read_xai_api_key_env()
-                .or_else(|_| {
-                    auth.map(|a| a.key.clone())
-                        .ok_or(std::env::VarError::NotPresent)
-                })
-                .map_err(|_| {
-                    BackendError::Auth(
-                        "No API key for custom models endpoint. Set NOFY_API_KEY.".into(),
-                    )
-                })?;
-            request = request.header("Authorization", format!("Bearer {}", api_key));
-        }
-        EndpointAuth::Session => {
-            let auth = auth.ok_or_else(|| {
-                BackendError::Auth("No auth credentials for cli-chat-proxy".into())
-            })?;
-            request = request
-                .header("Authorization", format!("Bearer {}", &auth.key))
-                .header("X-NOFY-Token-Auth", "nofy-nofy-cli")
-                .header("x-userid", &auth.user_id)
-                .header("x-nofy-client-version", nofy_version::VERSION)
-                .header(
-                    crate::http::CLIENT_MODE_HEADER,
-                    crate::http::process_client_mode(),
-                );
-            if let Some(email) = &auth.email {
-                request = request.header("x-email", email);
-            }
-        }
-    }
+    tracing::info!("Fetching models from {}", url);
+    let api_key = crate::agent::auth_method::read_xai_api_key_env()
+        .or_else(|_| {
+            auth.map(|a| a.key.clone())
+                .ok_or(std::env::VarError::NotPresent)
+        })
+        .map_err(|_| {
+            BackendError::Auth("No API key for custom models endpoint. Set NOFY_API_KEY.".into())
+        })?;
+    let request = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", api_key));
     let response = request.send()?;
     if !response.status().is_success() {
         let status = response.status().as_u16();
@@ -811,7 +634,7 @@ pub(crate) fn fetch_models_blocking(
     tracing::info!(
         "Fetched {} models from {}",
         models_response.data.len(),
-        source.url
+        url
     );
     let mut models = Vec::with_capacity(models_response.data.len());
     for (idx, value) in models_response.data.into_iter().enumerate() {
@@ -1214,54 +1037,6 @@ mod tests {
         assert_eq!(h.authorization, None, "must not send Authorization");
         assert_eq!(h.user_id, None, "must not send x-userid");
         assert_eq!(h.email, None, "must not send x-email");
-    }
-    /// Mock cli-chat-proxy serving `GET /settings` with a fixed status + body.
-    async fn start_settings_server(
-        status: StatusCode,
-        body: String,
-    ) -> (String, tokio::task::JoinHandle<()>) {
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let base = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
-        let app = Router::new().route(
-            "/settings",
-            get(move || {
-                let body = body.clone();
-                async move { (status, body) }
-            }),
-        );
-        let handle = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
-        (base, handle)
-    }
-    /// `fetch_settings_blocking` maps each HTTP outcome to the [`SettingsFetch`]
-    /// variant the external-OTEL gate relies on; 401 is the only outcome that
-    /// yields `Rejected`, everything else non-2xx fails closed as `Retry`.
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn settings_fetch_maps_status_to_outcome() {
-        let auth = NofyAuth::test_default();
-        let cases: [(StatusCode, &str, &str); 6] = [
-            (StatusCode::OK, "{}", "Fetched"),
-            (StatusCode::UNAUTHORIZED, "{}", "Rejected"),
-            (StatusCode::FORBIDDEN, "{}", "Retry"),
-            (StatusCode::TOO_MANY_REQUESTS, "{}", "Retry"),
-            (StatusCode::INTERNAL_SERVER_ERROR, "{}", "Retry"),
-            (StatusCode::OK, "not json", "Retry"),
-        ];
-        for (status, body, expected) in cases {
-            let (base, server) = start_settings_server(status, body.to_string()).await;
-            let a = auth.clone();
-            let outcome = tokio::task::spawn_blocking(move || {
-                fetch_settings_blocking_with_attempts(&base, &a, None, 1)
-            })
-            .await
-            .unwrap();
-            server.abort();
-            let got = match outcome {
-                SettingsFetch::Fetched(_) => "Fetched",
-                SettingsFetch::Rejected => "Rejected",
-                SettingsFetch::Retry => "Retry",
-            };
-            assert_eq!(got, expected, "status {status}, body {body:?}");
-        }
     }
     #[derive(Debug, Default, Clone)]
     struct SeenHeaders {
@@ -1942,12 +1717,11 @@ mod tests {
         );
     }
     /// INVARIANT: the `/models` fetch URL + auth scheme match the auth mode —
-    /// Session/Deployment → cli-chat-proxy (Session auth), never the inference host;
-    /// ApiKey → `xai_api_base_url` (ApiKey, public default when unset); a custom
-    /// models endpoint → that URL verbatim.
+    /// The models list URL is always the user-configured (custom) endpoint's
+    /// URL; vendor catalog endpoints were removed with the xAI backend.
     #[test]
     #[serial_test::serial]
-    fn models_fetch_endpoint_matches_auth_mode() {
+    fn models_fetch_endpoint_is_the_custom_endpoint() {
         use crate::agent::config::EndpointsConfig;
         use crate::agent::models::ModelFetchAuth;
         for k in [
@@ -1957,27 +1731,6 @@ mod tests {
         ] {
             unsafe { std::env::remove_var(k) };
         }
-        let cfg = EndpointsConfig::from_config_value(
-            &toml::from_str(
-                r#"[endpoints]
-                xai_api_base_url = "https://inference.acme-corp.example/nofy/v1""#,
-            )
-            .unwrap(),
-        );
-        let session = ListModelsEndpoint::from_endpoints(&cfg, ModelFetchAuth::Session);
-        assert_eq!(session.url, "https://cli-chat-proxy.grok.com/v1/models");
-        assert_eq!(session.auth, EndpointAuth::Session);
-        let deployment = ListModelsEndpoint::from_endpoints(&cfg, ModelFetchAuth::Deployment);
-        assert_eq!(deployment.url, "https://cli-chat-proxy.grok.com/v1/models");
-        assert_eq!(deployment.auth, EndpointAuth::Session);
-        let api = ListModelsEndpoint::from_endpoints(&cfg, ModelFetchAuth::ApiKey);
-        assert_eq!(api.url, "https://inference.acme-corp.example/nofy/v1/models");
-        assert_eq!(api.auth, EndpointAuth::ApiKey);
-        let default = EndpointsConfig::from_config_value(&toml::Value::Table(Default::default()));
-        assert_eq!(
-            ListModelsEndpoint::from_endpoints(&default, ModelFetchAuth::ApiKey).url,
-            "https://api.x.ai/v1/models"
-        );
         let custom = EndpointsConfig::from_config_value(
             &toml::from_str(
                 r#"[endpoints]
@@ -1985,9 +1738,10 @@ mod tests {
             )
             .unwrap(),
         );
-        let ep = ListModelsEndpoint::from_endpoints(&custom, ModelFetchAuth::Session);
-        assert_eq!(ep.url, "https://models.acme.com/v1/models");
-        assert_eq!(ep.auth, EndpointAuth::ApiKey);
+        assert_eq!(
+            super::models_list_url(&custom, ModelFetchAuth::CustomEndpoint),
+            "https://models.acme.com/v1/models"
+        );
     }
     /// REGRESSION: `nofy setup` must send the deployment key to
     /// the proxy, never the inference endpoint.

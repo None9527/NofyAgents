@@ -2022,28 +2022,23 @@ fn model_overrides_prompt_suggestion_blank_values_are_unset() {
         },
     );
 }
-/// Lock shared by every test that touches the env vars read by
-/// `ToolsConfig::resolve`, so tests across both fields can't race.
+/// Lock shared by every test that touches the env var read by
+/// `ToolsConfig::resolve`, so tests can't race.
 static TOOLS_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-/// Set both `ToolsConfig` env vars for the duration of `f`, then
+/// Set the `ToolsConfig` env var for the duration of `f`, then
 /// restore. `None` clears the var.
 fn with_tools_env<T>(
     respect_gitignore: Option<&str>,
-    disable_zdr: Option<&str>,
     f: impl FnOnce() -> T,
 ) -> T {
     let _guard = TOOLS_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    with_env_var_opt(
-        "NOFY_RESPECT_GITIGNORE",
-        respect_gitignore,
-        || with_env_var_opt("NOFY_DISABLE_ZDR_INCOMPATIBLE_TOOLS", disable_zdr, f),
-    )
+    with_env_var_opt("NOFY_RESPECT_GITIGNORE", respect_gitignore, f)
 }
 fn without_nofy_respect_gitignore<T>(f: impl FnOnce() -> T) -> T {
-    with_tools_env(None, None, f)
+    with_tools_env(None, f)
 }
 fn with_nofy_respect_gitignore<T>(value: &str, f: impl FnOnce() -> T) -> T {
-    with_tools_env(Some(value), None, f)
+    with_tools_env(Some(value), f)
 }
 #[test]
 fn tools_config_default_disabled() {
@@ -2101,87 +2096,6 @@ fn tools_config_env_false_overrides_toml_true() {
             );
         },
     );
-}
-#[test]
-fn zdr_incompatible_tools_env_overrides_toml_false() {
-    with_tools_env(
-        None,
-        Some("true"),
-        || {
-            let config: toml::Value = toml::from_str(
-                    "[tools]\ndisable_zdr_incompatible_tools = false",
-                )
-                .unwrap();
-            let tc = ToolsConfig::resolve(&config);
-            assert!(tc.disable_zdr_incompatible_tools, "env must override TOML");
-        },
-    );
-}
-#[test]
-fn zdr_video_output_s3_deserializes_from_tools_block() {
-    let config: toml::Value = toml::from_str(
-            r#"
-            [tools]
-            disable_zdr_incompatible_tools = true
-
-            [tools.zdr_video_output_s3]
-            bucket = "team-videos"
-            endpoint = "https://s3.example.com"
-            region = "us-east-1"
-
-            [tools.zdr_video_output_s3.read_write]
-            access_key_id = "AKIA..."
-            secret_access_key = "secret"
-            "#,
-        )
-        .unwrap();
-    let tc = ToolsConfig::resolve(&config);
-    let s3 = tc.zdr_video_output_s3.expect("zdr_video_output_s3 should deserialize");
-    assert_eq!(s3.bucket, "team-videos");
-    assert!(s3.is_valid());
-}
-#[test]
-fn incomplete_zdr_video_output_s3_is_ignored() {
-    without_nofy_respect_gitignore(|| {
-        let config: toml::Value = toml::from_str(
-                r#"
-                [tools]
-                disable_zdr_incompatible_tools = true
-
-                [tools.zdr_video_output_s3]
-                bucket = "team-videos"
-                "#,
-            )
-            .unwrap();
-        let tc = ToolsConfig::resolve(&config);
-        assert!(tc.zdr_video_output_s3.is_none());
-        assert!(
-                tc.disable_zdr_incompatible_tools,
-                "incomplete zdr_video_output_s3 must not drop disable_zdr_incompatible_tools"
-            );
-    });
-}
-#[test]
-fn malformed_zdr_video_output_s3_preserves_zdr_flag() {
-    without_nofy_respect_gitignore(|| {
-        let config: toml::Value = toml::from_str(
-                r#"
-                [tools]
-                disable_zdr_incompatible_tools = true
-                respect_gitignore = true
-
-                [tools.zdr_video_output_s3]
-                bucket = "team-videos"
-                endpoint = "https://s3.example.com"
-                region = "us-east-1"
-                "#,
-            )
-            .unwrap();
-        let tc = ToolsConfig::resolve(&config);
-        assert!(tc.zdr_video_output_s3.is_none());
-        assert!(tc.disable_zdr_incompatible_tools);
-        assert!(tc.respect_gitignore);
-    });
 }
 #[test]
 fn roles_parse_from_toml() {
@@ -3175,7 +3089,7 @@ fn apply_requirements_value_overrides_user_settings() {
     let mut cfg = crate::agent::config::Config::new_from_toml_cfg(&raw_config).unwrap();
     cfg.default_yolo_mode = true;
     let requirements: toml::Value = toml::from_str(
-            "[cli]\nauto_update = false\nchannel = \"stable\"\n\n[features]\ntelemetry = false\nfeedback = false\nlsp_tools = false\nweb_fetch = false\nwrite_file = false\nremote_fetch = false\n\n[telemetry]\ntrace_upload = false\n\n[ui]\nyolo = false\n\n[models]\ndefault = \"managed-model\"\nweb_search = \"managed-ws-model\"\n\n[endpoints]\ncli_chat_proxy_base_url = \"https://managed-proxy.example/v1\"\nxai_api_base_url = \"https://managed-api.example/v1\"\nmodels_base_url = \"https://managed-models.example/v1\"\nmodels_list_url = \"https://managed-models.example/v1/models\"\ndeployment_key = \"enterprise-deploy-key-should-not-log\"\ntrace_upload_endpoint_url = \"https://s3.custom.example.com\"\ntrace_upload_credentials = '{\"aws_access_key_id\":\"AKTEST\",\"aws_secret_access_key\":\"secret\"}'\n",
+            "[cli]\nauto_update = false\nchannel = \"stable\"\n\n[features]\ntelemetry = false\nfeedback = false\nlsp_tools = false\nweb_fetch = false\nwrite_file = false\n\n[telemetry]\ntrace_upload = false\n\n[ui]\nyolo = false\n\n[models]\ndefault = \"managed-model\"\nweb_search = \"managed-ws-model\"\n\n[endpoints]\ncli_chat_proxy_base_url = \"https://managed-proxy.example/v1\"\nxai_api_base_url = \"https://managed-api.example/v1\"\nmodels_base_url = \"https://managed-models.example/v1\"\nmodels_list_url = \"https://managed-models.example/v1/models\"\ndeployment_key = \"enterprise-deploy-key-should-not-log\"\ntrace_upload_endpoint_url = \"https://s3.custom.example.com\"\ntrace_upload_credentials = '{\"aws_access_key_id\":\"AKTEST\",\"aws_secret_access_key\":\"secret\"}'\n",
         )
         .unwrap();
     let source = RequirementSource::Requirements {
@@ -3190,12 +3104,6 @@ fn apply_requirements_value_overrides_user_settings() {
     assert_eq!(Some(false), cfg.features.lsp_tools);
     assert_eq!(Some(false), cfg.features.web_fetch);
     assert_eq!(Some(false), cfg.features.write_file);
-    assert_eq!(Some(false), cfg.requirements.remote_fetch.pinned());
-    assert!(
-            enforced
-                .iter()
-                .any(|e| e.path == "features.remote_fetch" && e.value == "false")
-        );
     assert_eq!(Some(false), cfg.telemetry.trace_upload);
     assert_eq!(Some(false), cfg.cli.auto_update);
     assert!(!cfg.ui.yolo);

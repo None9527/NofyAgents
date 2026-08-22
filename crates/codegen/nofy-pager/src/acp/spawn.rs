@@ -192,10 +192,6 @@ pub async fn spawn_nofy_shell(
     // re-login). No-op where the OS listener is unavailable.
     auth_manager.start_system_power_listener();
 
-    // Both embedded-agent paths (`--no-leader` and leader fallback) converge
-    // here, so the agent's external-OTEL gate is applied exactly once, before boot.
-    nofy_shell::agent::app::apply_otel_config(&auth_manager, &agent_config.nofy_com_config);
-
     // Best-effort refresh of managed policy before bootstrap reads it (repairs a
     // wrong-identity/missing cache). Never errors — the OS-protected system/MDM
     // layers still apply, and every network step inside is bounded

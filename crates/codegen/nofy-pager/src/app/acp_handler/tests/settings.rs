@@ -584,44 +584,6 @@
         assert!(!app.show_resolved_model, "other settings fields still apply");
     }
 
-    /// Temporary client kill switch: remote `sharing_enabled: true` must not
-    /// re-enable share UI. Agents stay off and `/share` stays menu-hidden
-    /// (typed `/share` still dispatches for the disable message).
-    #[test]
-    fn settings_update_sharing_enabled_true_stays_forced_off() {
-        let mut app = make_app_with_agent("sess-share-kill");
-        app.sharing_enabled = true;
-        for agent in app.agents.values_mut() {
-            agent.set_sharing_enabled(true);
-        }
-
-        let notif = acp::ExtNotification::new(
-            "nofy/settings/update",
-            serde_json::value::to_raw_value(&serde_json::json!({
-                "sharing_enabled": true,
-            }))
-            .unwrap()
-            .into(),
-        );
-        let _ = handle_ext_notification(&notif, &mut app);
-
-        assert!(
-            !app.sharing_enabled,
-            "remote true must not lift the temporary kill switch"
-        );
-        for agent in app.agents.values() {
-            assert!(!agent.sharing_enabled);
-            let reg = agent.prompt.slash_controller.registry();
-            assert!(
-                reg.get("share").is_none(),
-                "/share stays out of the completion menu"
-            );
-            assert!(
-                reg.get_for_dispatch("share").is_some(),
-                "typed /share still resolves so the disable path can run"
-            );
-        }
-    }
 
     /// User-owned mode must not re-arm default_yolo or rewrite UI from remote.
     #[test]

@@ -4185,42 +4185,12 @@ pub(crate) fn execute(
                 });
         }
         Effect::RefreshGate => {
+            // Remote settings fetching was removed with the xAI backend; the
+            // gate machinery consumes this as a definitive no-settings answer.
             tasks
                 .spawn(async move {
-                    let settings = tokio::task::spawn_blocking(|| {
-                            if !nofy_shell::util::config::resolve_remote_fetch_enabled() {
-                                return None;
-                            }
-                            let nofy_home = nofy_shell::util::nofy_home::nofy_home();
-                            let store = nofy_shell::auth::read_auth_json(
-                                    &nofy_home.join("auth.json"),
-                                )
-                                .ok()?;
-                            let scope = nofy_shell::auth::NofyComConfig::default()
-                                .auth_scope();
-                            let auth = nofy_shell::auth::lookup_auth(
-                                &store,
-                                &scope,
-                            )?;
-                            let proxy_base = std::env::var(
-                                    "NOFY_CLI_CHAT_PROXY_BASE_URL",
-                                )
-                                .unwrap_or_else(|_| {
-                                    nofy_shell::agent::config::CLI_CHAT_PROXY_BASE_URL_DEFAULT
-                                        .to_owned()
-                                });
-                            nofy_shell::remote::fetch_settings_blocking(
-                                    &proxy_base,
-                                    &auth,
-                                    None,
-                                )
-                                .into_option()
-                        })
-                        .await
-                        .ok()
-                        .flatten();
                     TaskResult::GateRefreshed {
-                        settings,
+                        settings: None,
                     }
                 });
         }

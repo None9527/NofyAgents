@@ -33,37 +33,11 @@ pub(crate) fn prefetch_models_blocking(
         endpoints,
         auth,
         fetch_auth,
-        crate::util::config::resolve_remote_fetch_enabled(),
+        crate::agent::models::catalog_fetch_allowed(endpoints),
     )
 }
 
-/// Blocking models + `/v1/settings` prefetch pair, shared by the early
-pub(crate) fn prefetch_models_and_settings_blocking(
-    endpoints: &config::EndpointsConfig,
-    auth: Option<&NofyAuth>,
-    fetch_auth: ModelFetchAuth,
-) -> (
-    Option<IndexMap<String, ModelEntry>>,
-    Option<crate::util::config::RemoteSettings>,
-) {
-    let remote_fetch_enabled = crate::util::config::resolve_remote_fetch_enabled();
-    let models = prefetch_models_blocking_gated(endpoints, auth, fetch_auth, remote_fetch_enabled);
-    let settings = match auth {
-        Some(auth) if remote_fetch_enabled => {
-            let _timer = crate::instrumentation_timer!("startup.early_settings_fetch");
-            crate::remote::fetch_settings_blocking(
-                &endpoints.proxy_url(),
-                auth,
-                endpoints.alpha_test_key.as_deref(),
-            )
-            .into_option()
-        }
-        _ => None,
-    };
-    (models, settings)
-}
-
-/// `remote_fetch_enabled` is a parameter so the pair helper above resolves the knob once for both halves.
+/// `remote_fetch_enabled` is a parameter so callers resolve the knob once.
 fn prefetch_models_blocking_gated(
     endpoints: &config::EndpointsConfig,
     auth: Option<&NofyAuth>,
@@ -106,10 +80,9 @@ fn prefetch_models_blocking_gated(
     }
 }
 
-/// Startup prefetch result: models + remote settings.
+/// Startup prefetch result: the model catalog.
 pub struct EarlyPrefetchResult {
     pub models: Option<IndexMap<String, ModelEntry>>,
-    pub settings: Option<crate::util::config::RemoteSettings>,
 }
 
 /// Handle for a startup prefetch thread.
@@ -134,21 +107,14 @@ fn resolve_startup_endpoints() -> config::EndpointsConfig {
 pub(crate) fn resolve_prefetch_env_from_parts(
     auth: Option<NofyAuth>,
     endpoints: config::EndpointsConfig,
-    remote_fetch_enabled: bool,
+    fetch_allowed: bool,
 ) -> Option<PrefetchEnv> {
-    if !remote_fetch_enabled {
-        tracing::info!("startup model/settings prefetch skipped: remote_fetch disabled");
+    if !fetch_allowed {
+        tracing::info!("startup model prefetch skipped: no custom models endpoint");
         return None;
     }
 
     let model_fetch_auth = ModelFetchAuth::resolve(&endpoints, auth.is_some());
-
-    if auth.is_none()
-        && !endpoints.has_custom_endpoint()
-        && model_fetch_auth == ModelFetchAuth::Session
-    {
-        return None;
-    }
 
     Some(PrefetchEnv {
         auth,
@@ -157,51 +123,21 @@ pub(crate) fn resolve_prefetch_env_from_parts(
     })
 }
 
-/// Start model + settings prefetch on a background thread using pre-resolved auth.
+/// Start the model-catalog prefetch on a background thread using pre-resolved auth.
 pub fn start_early_prefetch_with_auth(auth: Option<NofyAuth>) -> Option<EarlyPrefetchHandle> {
-    start_early_prefetch_with_auth_gated(auth, true)
-}
-
-/// `sync_managed = false` skips the managed-config sync, so a remote kill-switch
-/// can apply on cold start before the fail-closed managed-policy gate without an
-/// online sync healing a tampered on-disk policy first.
-fn start_early_prefetch_with_auth_gated(
-    auth: Option<NofyAuth>,
-    sync_managed: bool,
-) -> Option<EarlyPrefetchHandle> {
     let _timer = crate::instrumentation_timer!("startup.early_prefetch_launch");
     let endpoints = resolve_startup_endpoints();
-    if sync_managed {
-        spawn_managed_config_sync_if_stale(&endpoints);
-    }
-    let env = resolve_prefetch_env_from_parts(
-        auth,
-        endpoints,
-        crate::util::config::resolve_remote_fetch_enabled(),
-    )?;
+    spawn_managed_config_sync_if_stale(&endpoints);
+    let fetch_allowed = crate::agent::models::catalog_fetch_allowed(&endpoints);
+    let env = resolve_prefetch_env_from_parts(auth, endpoints, fetch_allowed)?;
     Some(spawn_prefetch_thread(env))
 }
 
-/// Start model + settings prefetch on a background thread.
+/// Start the model-catalog prefetch on a background thread.
 pub fn start_early_prefetch(nofy_com_config: Option<NofyComConfig>) -> Option<EarlyPrefetchHandle> {
-    start_early_prefetch_impl(nofy_com_config, true)
-}
-
-/// Prefetch models + remote settings only — no managed-config sync. Used before
-/// the managed-policy gate (see `start_early_prefetch_with_auth_gated`).
-pub fn start_early_prefetch_settings_only(
-    nofy_com_config: Option<NofyComConfig>,
-) -> Option<EarlyPrefetchHandle> {
-    start_early_prefetch_impl(nofy_com_config, false)
-}
-
-fn start_early_prefetch_impl(
-    nofy_com_config: Option<NofyComConfig>,
-    sync_managed: bool,
-) -> Option<EarlyPrefetchHandle> {
     let nofy_home = crate::util::nofy_home::nofy_home();
     let auth = AuthManager::new(&nofy_home, nofy_com_config.unwrap_or_default()).current();
-    start_early_prefetch_with_auth_gated(auth, sync_managed)
+    start_early_prefetch_with_auth(auth)
 }
 
 fn spawn_prefetch_thread(env: PrefetchEnv) -> EarlyPrefetchHandle {
@@ -209,12 +145,12 @@ fn spawn_prefetch_thread(env: PrefetchEnv) -> EarlyPrefetchHandle {
         let mut timer = crate::instrumentation_timer!("startup.early_prefetch");
         let proxy_endpoint = env.endpoints.proxy_url();
         timer.with_field("endpoint", proxy_endpoint.as_str());
-        let (models, settings) = prefetch_models_and_settings_blocking(
+        let models = prefetch_models_blocking(
             &env.endpoints,
             env.auth.as_ref(),
             env.model_fetch_auth,
         );
-        EarlyPrefetchResult { models, settings }
+        EarlyPrefetchResult { models }
     })
 }
 

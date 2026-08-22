@@ -8,8 +8,7 @@
 //!   (gates loosen *which fields* export, never the secret scrub),
 //! - identity attributes ride every record and metric once set,
 //! - `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative` and
-//!   `OTEL_METRICS_INCLUDE_VERSION=1` take effect on the wire,
-//! - the remote fleet kill switch stops emission in-process.
+//!   `OTEL_METRICS_INCLUDE_VERSION=1` take effect on the wire.
 //!
 //! Single sequential `#[test]` because the `EXTERNAL` registry is a
 //! process-global `OnceLock`, so each init-config scenario is its own test
@@ -18,7 +17,7 @@
 mod otlp_collector;
 
 use otlp_collector as col;
-use nofy_telemetry::external::{self, ExternalOtelRemotePolicy, IdentityAttrs};
+use nofy_telemetry::external::{self, IdentityAttrs};
 
 // Secret shapes — MUST be scrubbed everywhere, even inside gated content.
 const SECRET_KEY: &str = "sk-LEAKaaaaaaaaaaaaaaaa1234567890";
@@ -253,32 +252,6 @@ fn external_stream_gates_on_end_to_end() {
     assert!(
         !raw.contains("sk-LEAKmodel"),
         "secret model shape reached the wire"
-    );
-
-    // ── Remote fleet kill switch stops emission in-process ──────────────
-    external::flush();
-    col::wait_until(std::time::Duration::from_millis(500), || false);
-    let logs_before = collected.logs_len();
-    external::apply_remote_policy(ExternalOtelRemotePolicy {
-        force_disable: true,
-        lock_content_gates: false,
-    });
-    assert!(
-        !external::is_active(),
-        "kill switch must clear the emission gate"
-    );
-    nofy_telemetry::log_event(nofy_telemetry::events::PromptSubmitted {
-        prompt_length: 1,
-        model_id: "grok-4".into(),
-        client_identifier: None,
-        screen_mode: None,
-        prompt_text: Some("post-kill".into()),
-    });
-    std::thread::sleep(std::time::Duration::from_millis(400));
-    assert_eq!(
-        collected.logs_len(),
-        logs_before,
-        "no exports after the remote kill switch"
     );
 
     external::shutdown();

@@ -500,28 +500,21 @@ fn print_leader_disabled_by_sandbox(profile: &str, w: &mut impl Write) {
          managed requirement) to use the leader."
     );
 }
-/// Join early prefetch to get remote settings (with timeout).
-///
-/// Remote settings come from the product settings API and contain `leader_mode`,
-/// announcements, etc.  Waits up to 2 s for the background thread.
-pub fn join_early_prefetch(
-    handle: Option<nofy_shell::agent::models::EarlyPrefetchHandle>,
-) -> Option<nofy_shell::util::config::RemoteSettings> {
-    let handle = handle?;
+/// Wait (bounded) for the startup model-catalog prefetch so its disk-cache
+/// write can land before the agent's `ModelsManager` loads the cache.
+pub fn join_early_prefetch(handle: Option<nofy_shell::agent::models::EarlyPrefetchHandle>) {
+    let Some(handle) = handle else {
+        return;
+    };
     if handle.is_finished() {
-        return match handle.join() {
-            Ok(r) => r.settings,
-            Err(_) => None,
-        };
+        let _ = handle.join();
+        return;
     }
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         let _ = tx.send(handle.join());
     });
-    match rx.recv_timeout(std::time::Duration::from_secs(2)) {
-        Ok(Ok(r)) => r.settings,
-        _ => None,
-    }
+    let _ = rx.recv_timeout(std::time::Duration::from_secs(2));
 }
 /// First non-blank of CLI > env > config (precedence + blank-skip). `None` →
 /// nothing set; `acp::initialize` canonicalizes and applies the default.
@@ -636,7 +629,8 @@ pub async fn run(
     if let Ok(cwd) = std::env::current_dir() {
         crate::git_info::populate_from_cwd_async(cwd);
     }
-    let remote_settings = join_early_prefetch(early_prefetch);
+    join_early_prefetch(early_prefetch);
+    let remote_settings: Option<nofy_shell::util::config::RemoteSettings> = None;
     nofy_shell::util::config::cache_remote_auto_mode(
         remote_settings.as_ref().and_then(|s| s.auto_mode.clone()),
     );

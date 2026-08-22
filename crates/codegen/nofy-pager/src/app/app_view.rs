@@ -553,13 +553,11 @@ fn parse_esc_ttl(raw: Option<String>) -> Duration {
 ///
 /// Current set:
 /// - `usage` — coding credit / billing UI (alias: `/cost`)
-/// - `imagine` — image generation entry point
-/// - `imagine-video` — video generation entry point
-/// - `voice` — voice dictation entry point (the Ctrl+Space / F8 keybinding is
-///   gated separately in [`crate::app::dispatch::voice`], since it bypasses the
-///   slash registry)
-pub(crate) const TIER_RESTRICTED_COMMANDS: &[&str] =
-    &["usage", "imagine", "imagine-video", "voice"];
+///
+/// Sanitized build: the media/voice entries went with the xAI surface; the
+/// deny-list machinery stays intact but is never populated from tier state
+/// (`is_restricted_tier` is always false).
+pub(crate) const TIER_RESTRICTED_COMMANDS: &[&str] = &["usage"];
 /// Whether a subscription-tier display name is a tier with restricted
 /// commands. Subscription tiers belonged to the xAI account system; the
 /// sanitized build never restricts commands by tier.
@@ -7462,27 +7460,10 @@ pub(crate) mod tests {
             .map(|n| (*n).to_string())
             .collect()
     }
-    /// Make every tier-restricted command visible on the welcome prompt so the
-    /// present/absent assertions exercise the deny list, not incidental
-    /// fail-closed hiding:
-    /// - `/imagine`, `/imagine-video` are `required_tools()`-gated, so advertise
-    ///   their tools (otherwise the registry fail-closes them).
-    /// - `/voice` is fail-closed hidden until the remote flag turns it on, so
-    ///   reveal it via the registry directly. (We drive the prompt's registry
-    ///   rather than `apply_voice_mode_enabled`, which also flips a process-global
-    ///   atomic and would leak across parallel tests.)
-    fn advertise_media_tools(app: &mut AppView) {
-        app.welcome_prompt
-            .slash_controller
-            .registry_mut()
-            .set_available_tools(
-                ["image_gen", "image_to_video"]
-                    .into_iter()
-                    .map(str::to_string)
-                    .collect(),
-            );
-        app.welcome_prompt.set_voice_visible(true);
-    }
+    /// Sanitized build: the media/voice commands are gone, so there is
+    /// nothing left to advertise; the helper stays as a no-op so the tier
+    /// tests keep their shape.
+    fn advertise_media_tools(_app: &mut AppView) {}
     fn assert_tier_restricted_commands_absent(app: &AppView) {
         let reg = app.welcome_prompt.slash_controller.registry();
         for name in TIER_RESTRICTED_COMMANDS {
@@ -7576,10 +7557,6 @@ pub(crate) mod tests {
         assert!(!is_restricted_tier(Some("X Premium")));
         assert!(!is_restricted_tier(Some("X Premium+")));
         assert!(!is_restricted_tier(Some("SomeFutureTier")));
-    }
-    #[test]
-    fn voice_included_in_tier_restricted_commands() {
-        assert!(TIER_RESTRICTED_COMMANDS.contains(&"voice"));
     }
     #[test]
     fn is_voice_tier_restricted_tracks_tier() {

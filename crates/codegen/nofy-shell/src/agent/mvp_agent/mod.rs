@@ -587,16 +587,6 @@ fn announcements_push_payload(
     };
     push.then_some(current)
 }
-/// Override with `NOFY_ANNOUNCEMENTS_REFRESH_INTERVAL_SECS`. Clamped to
-/// >= 1s: `tokio::time::interval` panics on a zero period.
-fn announcements_refresh_interval() -> std::time::Duration {
-    if let Ok(s) = std::env::var("NOFY_ANNOUNCEMENTS_REFRESH_INTERVAL_SECS")
-        && let Ok(secs) = s.parse::<u64>()
-    {
-        return std::time::Duration::from_secs(secs.max(1));
-    }
-    std::time::Duration::from_secs(5 * 60)
-}
 /// Reason why a client is not eligible to use codebase indexing.
 ///
 /// Returned by [`MvpAgent::code_nav_eligibility`] when one of the policy
@@ -722,8 +712,6 @@ pub struct MvpAgent {
     /// Authoritative post-construction — `Config.storage_mode` is only the
     /// boot seed.
     storage_mode: std::cell::Cell<StorageMode>,
-    /// External-OTEL emission gate; see [`crate::agent::otel_gate`].
-    otel_gate: crate::agent::otel_gate::OtelGate,
     /// Default YOLO mode - when true, sessions start with auto-approve enabled.
     /// Per-session YOLO tracking lives in SessionHandle.yolo_mode.
     default_yolo_mode: bool,
@@ -857,13 +845,6 @@ pub struct MvpAgent {
     /// once (on the first `spawn_and_register_session`). See
     /// `ensure_session_supervisor`.
     supervisor_started: std::cell::Cell<bool>,
-    /// Dedup guard for `spawn_settings_reapply`; at most one task in flight.
-    /// `Rc` so the drop-guard owns a clone without dereferencing the agent.
-    settings_reapply_in_flight: std::rc::Rc<std::cell::Cell<bool>>,
-    /// Separate dedup guard for `spawn_post_auth_settings`, so an in-flight
-    /// reapply can't coalesce away a freshly authenticated identity's gate and
-    /// settings resolution.
-    post_auth_settings_in_flight: std::rc::Rc<std::cell::Cell<bool>>,
     /// Last value handed out by `next_announcements_gen` (single-threaded
     /// LocalSet, so a plain `Cell` suffices). LEADER-SAFE(shared): one
     /// agent-wide push stream.
@@ -874,10 +855,6 @@ pub struct MvpAgent {
     /// without touching this, so their changes still get pushed on the next
     /// gate call. LEADER-SAFE(shared): one agent-wide push stream.
     last_emitted_announcements: RefCell<Vec<nofy_announcements::RemoteAnnouncement>>,
-    /// Idempotency guard: the periodic announcements refresh task is spawned
-    /// at most once (on the first `initialize`). See
-    /// `spawn_announcements_refresh`.
-    announcements_refresh_started: std::cell::Cell<bool>,
     /// Threshold jemalloc heap-profile monitor (agent process only).
     heap_profile_monitor: RefCell<crate::heap_profile::HeapProfileMonitor>,
     /// Idempotency guard for the heap-profile poll / kill-switch loop.
@@ -899,14 +876,6 @@ pub struct MvpAgent {
     /// actually spawned. Asserts `ensure_session_supervisor` is idempotent.
     #[cfg(test)]
     supervisor_spawn_count: std::cell::Cell<usize>,
-    /// Test-only: counts `spawn_settings_reapply` tasks spawned past the
-    /// in-flight guard.
-    #[cfg(test)]
-    settings_reapply_spawn_count: std::cell::Cell<usize>,
-    /// Test-only: counts `spawn_post_auth_settings` tasks spawned past its
-    /// own guard.
-    #[cfg(test)]
-    post_auth_settings_spawn_count: std::cell::Cell<usize>,
 }
 /// Spawn a thread to warm the shared async HTTP client (`OnceLock`-cached).
 /// Loading TLS root certs is ~95ms; doing it here avoids a cold-start hit
@@ -1136,53 +1105,6 @@ impl AuthRequestMeta {
             })
             .unwrap_or_default()
     }
-}
-/// Inject standard proxy headers into an `extra_headers` map.
-///
-/// Every authenticated request to cli-chat-proxy (web search, image gen, and
-/// any future tools that go through the proxy) must carry these headers.
-/// Centralising them here means new tool code paths only need one call instead
-/// of remembering which headers the proxy expects.
-///
-/// Headers injected:
-///  - `x-nofy-client-version` -- required by the proxy's version-gate check.
-///    Uses `client_version` when provided, otherwise falls back to cli-chat-proxy
-///    compile-time `CARGO_PKG_VERSION`.
-///  - `X-NOFY-Token-Auth` / `x-authenticateresponse` -- required by the
-///    cli-chat-proxy auth middleware when the `base_url` is a known proxy URL.
-///  - optional extra access header -- only set when the corresponding key is
-///    `Some` *and* the `base_url` points at a matching non-production host
-///    (requires the optional non-production feature).
-///
-/// Existing entries are never overwritten so callers can pre-set a value.
-fn inject_proxy_headers(
-    headers: &mut indexmap::IndexMap<String, String>,
-    client_version: Option<&str>,
-    alpha_test_key: Option<&str>,
-    base_url: &str,
-) {
-    headers
-        .entry("x-nofy-client-version".to_string())
-        .or_insert_with(|| {
-            client_version
-                .map(String::from)
-                .unwrap_or_else(|| nofy_version::VERSION.to_string())
-        });
-    headers
-        .entry("x-nofy-client-identifier".to_string())
-        .or_insert_with(crate::http::process_client_identifier);
-    if crate::util::is_cli_chat_proxy_url(base_url) {
-        headers
-            .entry("X-NOFY-Token-Auth".to_string())
-            .or_insert_with(|| "nofy-nofy-cli".to_string());
-        headers
-            .entry("x-authenticateresponse".to_string())
-            .or_insert_with(|| "authenticate-response".to_string());
-        headers
-            .entry(crate::http::CLIENT_MODE_HEADER.to_string())
-            .or_insert_with(|| crate::http::process_client_mode().to_string());
-    }
-    let _ = (alpha_test_key, base_url);
 }
 fn resolve_inference_idle_timeout_secs(
     models: &indexmap::IndexMap<String, crate::agent::config::ModelEntry>,
@@ -1651,25 +1573,6 @@ impl MvpAgent {
                     .unwrap_or_default()
             });
         AuthenticateResponse::new().meta(meta)
-    }
-    /// Fetch remote settings after authentication when early prefetch had none.
-    /// Notifies the pager so soft-default permission_mode applies post-login.
-    pub(super) async fn maybe_fetch_post_auth_settings(&self) {
-        if self.cfg.borrow().remote_settings.is_some() {
-            return;
-        }
-        if !crate::util::config::resolve_remote_fetch_enabled() {
-            return;
-        }
-        let Some(auth) = self.auth_manager.current() else {
-            return;
-        };
-        let Some(settings) = self.fetch_settings_resolving_gate(&auth).await else {
-            return;
-        };
-        tracing::info!("post-auth remote_settings fetch succeeded");
-        self.install_remote_settings(settings);
-        self.spawn_auto_worktree_gc();
     }
     /// Resolve current auto-GC policy and run it on the blocking pool.
     pub(super) fn spawn_auto_worktree_gc(&self) {

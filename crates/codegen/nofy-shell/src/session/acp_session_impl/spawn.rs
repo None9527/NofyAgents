@@ -271,8 +271,6 @@ pub(crate) async fn spawn_session_actor(
     max_retries: Option<u32>,
     web_search_sampling_config: Option<nofy_sampler::SamplerConfig>,
     web_fetch_config: nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig,
-    image_gen_config: nofy_tools::implementations::nofy_build::image_gen::ImageGenConfig,
-    video_gen_config: nofy_tools::implementations::nofy_build::video_gen::VideoGenConfig,
     app_builder_deployer_config: nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig,
     write_file_enabled: bool,
     goal_enabled: bool,
@@ -499,7 +497,9 @@ pub(crate) async fn spawn_session_actor(
             nofy_tools::implementations::WebSearchConfig::Disabled
         }
     } else {
-        tracing::warn!("web_search disabled: configured model could not be resolved");
+        // Sanitized build: the local web_search client is intentionally not
+        // resolved (xAI Responses-API pipeline); disable quietly.
+        tracing::debug!("web_search disabled: sanitized build does not resolve a search backend");
         nofy_tools::implementations::WebSearchConfig::Disabled
     };
     let embed_base_url = sampling_config.base_url.clone();
@@ -979,8 +979,6 @@ pub(crate) async fn spawn_session_actor(
         web_search_config: web_search_config.clone(),
         backend_search: backend_tools_enabled,
         web_fetch_config: web_fetch_config.clone(),
-        image_gen_config: image_gen_config.clone(),
-        video_gen_config: video_gen_config.clone(),
         app_builder_deployer_config: app_builder_deployer_config.clone(),
         write_file_enabled,
         subagents_enabled,
@@ -2272,8 +2270,6 @@ pub(crate) async fn spawn_session_on_thread(
     max_retries: Option<u32>,
     web_search_sampling_config: Option<nofy_sampler::SamplerConfig>,
     web_fetch_config: nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig,
-    image_gen_config: nofy_tools::implementations::nofy_build::image_gen::ImageGenConfig,
-    video_gen_config: nofy_tools::implementations::nofy_build::video_gen::VideoGenConfig,
     app_builder_deployer_config: nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig,
     write_file_enabled: bool,
     goal_enabled: bool,
@@ -2447,8 +2443,6 @@ pub(crate) async fn spawn_session_on_thread(
                         max_retries,
                         web_search_sampling_config,
                         web_fetch_config,
-                        image_gen_config,
-                        video_gen_config,
                         app_builder_deployer_config,
                         write_file_enabled,
                         goal_enabled,

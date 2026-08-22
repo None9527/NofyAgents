@@ -230,7 +230,7 @@ pub(super) fn open_free_usage_upsell(agent: &mut AgentView, auth_method: Option<
 }
 
 /// Open the SuperNofy upsell for a tier-restricted slash command
-/// (`/usage`, `/imagine`, …). Returns whether the modal opened (`false`
+/// (`/usage`, …). Returns whether the modal opened (`false`
 /// when another question modal is already up) so the caller can decide
 /// whether to consume the input that triggered it.
 pub(super) fn open_restricted_command_upsell(

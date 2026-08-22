@@ -410,7 +410,7 @@ fn build_server_provider(client: OtelClientInfo, config: OtelLayerConfig) -> Sdk
             .with_attributes(resource_attrs)
             .build(),
     );
-    if config.exporter.enabled {
+    if config.exporter.enabled && !config.exporter.traces_url.is_empty() {
         let traces_url = config.exporter.traces_url;
         let mut static_headers = std::collections::HashMap::new();
         static_headers.insert(

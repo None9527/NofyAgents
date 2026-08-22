@@ -261,10 +261,6 @@ fn env_flag_enabled(value: &str) -> bool {
         "" | "0" | "false" | "off" | "no"
     )
 }
-/// Blocking fetch of remote settings via the startup prefetch path.
-fn fetch_remote_settings() -> Option<nofy_shell::util::config::RemoteSettings> {
-    join_early_prefetch(nofy_shell::agent::models::start_early_prefetch(None))
-}
 /// `nofy workspace` exposure ran through the shared leader's control channel;
 /// both were removed in the sanitized build.
 async fn run_workspace_mgmt(args: WorkspaceMgmtArgs) -> Result<()> {
@@ -312,12 +308,6 @@ async fn run_agent_command(
             }
         }
     });
-    if matches!(
-        agent_args.mode,
-        Some(AgentCmd::Leader(_) | AgentCmd::Stdio | AgentCmd::Headless(_) | AgentCmd::Serve(_))
-    ) {
-        nofy_shell::agent::app::suppress_otel();
-    }
     init_tracing_simple("agent");
     let _otel_guard = nofy_telemetry::otel_layer::otel_guard();
     nofy_telemetry::instrumentation::install_panic_hook();
@@ -352,7 +342,8 @@ async fn run_agent_command(
             .ok();
         }
     }
-    let remote_settings = join_early_prefetch(early_prefetch);
+    join_early_prefetch(early_prefetch);
+    let remote_settings: Option<nofy_shell::util::config::RemoteSettings> = None;
     nofy_shell::util::config::set_remote_campaigns_from_settings(remote_settings.as_ref());
     let raw_config = nofy_shell::config::load_effective_config()
         .map_err(|e| anyhow::anyhow!("Failed to load config: {}", e))?;

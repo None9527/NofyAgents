@@ -46,12 +46,15 @@ async fn catalog_retry_recovers_after_endpoint_returns() {
     let calls = Arc::new(AtomicUsize::new(0));
     let tmp = std::env::temp_dir().join("nofy-test-catalog-retry");
     let auth_manager = Arc::new(AuthManager::new(&tmp, NofyComConfig::default()));
+    // Catalog fetching is gated on a user-configured models endpoint.
+    let mut cfg = config::Config::default();
+    cfg.endpoints.models_base_url = Some("http://custom-models.example/v1".to_string());
     let mgr = ModelsManagerBuilder::new(
         None,
         IndexMap::new(),
         acp::ModelId::new("default"),
         auth_manager,
-        config::Config::default(),
+        cfg,
     )
     .endpoint(Arc::new(RecoveringEndpoint {
         calls: calls.clone(),
@@ -139,61 +142,6 @@ async fn offline_strategy_serves_cache_without_fetching() {
         "grok-4.5",
         "first real catalog from the disk cache must resolve the configured default",
     );
-}
-
-#[tokio::test]
-async fn auth_refresh_watcher_refetches_on_notify() {
-    use std::sync::atomic::{AtomicUsize, Ordering};
-
-    struct NotifyEndpoint {
-        calls: Arc<AtomicUsize>,
-        catalog: IndexMap<String, ModelEntry>,
-    }
-    impl ModelsEndpoint for NotifyEndpoint {
-        fn fetch_models(
-            &self,
-            _endpoints: config::EndpointsConfig,
-            _auth: Option<NofyAuth>,
-            _fetch_auth: ModelFetchAuth,
-        ) -> ModelsFetchFuture {
-            self.calls.fetch_add(1, Ordering::SeqCst);
-            let catalog = self.catalog.clone();
-            Box::pin(async move { Some(catalog) })
-        }
-    }
-
-    let calls = Arc::new(AtomicUsize::new(0));
-    let tmp = std::env::temp_dir().join("nofy-test-auth-refresh-watcher");
-    let auth_manager = Arc::new(AuthManager::new(&tmp, NofyComConfig::default()));
-    let mgr = ModelsManagerBuilder::new(
-        None,
-        IndexMap::new(),
-        acp::ModelId::new("default"),
-        auth_manager,
-        config::Config::default(),
-    )
-    .endpoint(Arc::new(NotifyEndpoint {
-        calls: calls.clone(),
-        catalog: make_prefetched(&["grok-4"]),
-    }))
-    .build();
-    assert!(!mgr.has_fetched_real_catalog());
-
-    let notify = Arc::new(tokio::sync::Notify::new());
-    mgr.start_auth_refresh_watcher(notify.clone());
-    notify.notify_one();
-
-    let mut updated = false;
-    for _ in 0..200 {
-        if mgr.has_fetched_real_catalog() {
-            updated = true;
-            break;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-    }
-    assert!(updated, "watcher did not re-fetch the catalog on notify");
-    assert!(mgr.models().contains_key("grok-4"));
-    assert!(calls.load(Ordering::SeqCst) >= 1);
 }
 
 #[tokio::test(start_paused = true)]
@@ -1556,17 +1504,20 @@ fn prefetch_env_none_when_remote_fetch_disabled_despite_credentials() {
 
 #[test]
 #[serial]
-fn prefetch_env_resolves_when_remote_fetch_enabled() {
+fn prefetch_env_resolves_for_a_custom_endpoint() {
     let _unset = EnvGuard::unset("NOFY_API_KEY");
-    let _unset_legacy = EnvGuard::unset("NOFY_API_KEY");
-    let endpoints = config::EndpointsConfig {
-        deployment_key: Some("deploy-key".to_owned()),
+    let custom = config::EndpointsConfig {
+        models_base_url: Some("https://custom.example.com".to_owned()),
         ..config::EndpointsConfig::default()
     };
-    assert!(resolve_prefetch_env_from_parts(None, endpoints, true).is_some());
     assert!(
-        resolve_prefetch_env_from_parts(None, config::EndpointsConfig::default(), true).is_none(),
-        "no credentials and no custom endpoint must stay a no-prefetch launch",
+        crate::agent::models::catalog_fetch_allowed(&custom),
+        "a user-configured models endpoint allows the prefetch"
+    );
+    assert!(resolve_prefetch_env_from_parts(None, custom, true).is_some());
+    assert!(
+        !crate::agent::models::catalog_fetch_allowed(&config::EndpointsConfig::default()),
+        "without a custom endpoint there is no catalog source to fetch"
     );
 }
 

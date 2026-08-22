@@ -469,8 +469,6 @@ pub const PAGER_COMMAND_KEYS: &[&str] = &[
     "hooks-trust",
     "hooks-untrust",
     "howto",
-    "imagine",
-    "imagine-video",
     "import-claude",
     "jump",
     "login",
@@ -2239,11 +2237,11 @@ mod tests {
     }
     #[test]
     fn build_tools_meta_serialises_tool_names() {
-        let names = vec!["scheduler_create".to_string(), "image_gen".to_string()];
+        let names = vec!["scheduler_create".to_string(), "session_recall".to_string()];
         let v = build_tools_meta(&names);
         assert_eq!(
             serde_json::Value::Object(v),
-            serde_json::json!({"tools": ["scheduler_create", "image_gen"]})
+            serde_json::json!({"tools": ["scheduler_create", "session_recall"]})
         );
     }
     #[test]

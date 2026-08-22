@@ -180,9 +180,6 @@ pub fn workspace_nofy_build_toolset() -> ToolServerConfig {
     tools.push((&nofy_build::ExitPlanModeTool).into());
     tools.push((&nofy_build::AskUserQuestionTool).into());
     tools.push((&nofy_build::WebSearchTool).into());
-    tools.push((&nofy_build::ImageGenTool).into());
-    tools.push((&nofy_build::ImageToVideoTool).into());
-    tools.push((&nofy_build::ReferenceToVideoTool).into());
     tools.push((&nofy_build::WebFetchTool).into());
     tools.push((&memory::search_tool::MemorySearchImpl).into());
     tools.push((&memory::get_tool::MemoryGetImpl).into());
@@ -462,10 +459,6 @@ fn orchestrator_toolset() -> ToolServerConfig {
             // Web tools
             (&nofy_build::WebSearchTool).into(),
             (&nofy_build::WebFetchTool).into(),
-            // Imagine
-            (&nofy_build::ImageGenTool).into(),
-            (&nofy_build::ImageToVideoTool).into(),
-            (&nofy_build::ReferenceToVideoTool).into(),
             // Memory
             (&memory::MemorySearchImpl).into(),
             (&memory::MemoryGetImpl).into(),
@@ -770,7 +763,7 @@ pub struct AgentDefinition {
     pub agents_md: bool,
     /// When true (the default), the AgentBuilder layers session-level optional
     /// tools on top of the agent's declared `tool_config`: memory_search/get,
-    /// web_search, web_fetch, lsp, image_gen, video_gen, OpenCode write
+    /// web_search, web_fetch, lsp, OpenCode write
     /// fallback, and the plan-mode tools.
     ///
     /// Set this to `false` for harnesses that need an exact, minimal toolset

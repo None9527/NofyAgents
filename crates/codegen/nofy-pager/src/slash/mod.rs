@@ -1756,8 +1756,8 @@ mod tests {
         let mut ctrl = SlashController::with_builtins(std::path::PathBuf::from("."));
         let meta = serde_json::json!({
             "scope": "plugin",
-            "path": "/plugins/acme/skills/login/SKILL.md",
-            "bareName": "login",
+            "path": "/plugins/acme/skills/usage/SKILL.md",
+            "bareName": "usage",
             "pluginName": "acme",
         })
         .as_object()
@@ -1765,26 +1765,26 @@ mod tests {
         .unwrap();
         ctrl.registry_mut()
             .set_acp_commands(&[agent_client_protocol::AvailableCommand::new(
-                "acme:login".to_string(),
-                "Acme account login".to_string(),
+                "acme:usage".to_string(),
+                "Acme usage report".to_string(),
             )
             .meta(meta)]);
 
         let state = SlashState::default();
         let models = ModelState::default();
-        ctrl.refresh(&state, "/login", 6, &models);
+        ctrl.refresh(&state, "/usage", 6, &models);
         let snapshot = state.snapshot();
-        let login = snapshot
+        let builtin = snapshot
             .matches
             .iter()
-            .find(|row| row.display == "/login")
-            .expect("builtin /login");
-        assert_eq!(login.provenance, Some(CommandProvenance::Builtin));
-        assert!(!login.description.contains("built-in"));
+            .find(|row| row.display == "/usage")
+            .expect("builtin /usage");
+        assert_eq!(builtin.provenance, Some(CommandProvenance::Builtin));
+        assert!(!builtin.description.contains("built-in"));
         let skill = snapshot
             .matches
             .iter()
-            .find(|row| row.display == "/acme:login")
+            .find(|row| row.display == "/acme:usage")
             .expect("qualified skill");
         assert_eq!(
             skill.provenance,
@@ -1792,19 +1792,19 @@ mod tests {
                 source: "acme".to_string()
             })
         );
-        assert_eq!(skill.description, "Acme account login");
-        assert!(ctrl.registry().get("login").is_some_and(|c| !c.is_skill()));
+        assert_eq!(skill.description, "Acme usage report");
+        assert!(ctrl.registry().get("usage").is_some_and(|c| !c.is_skill()));
         assert!(
             ctrl.registry()
-                .get("acme:login")
+                .get("acme:usage")
                 .is_some_and(|c| c.is_skill())
         );
 
-        ctrl.refresh(&state, "/acme:login", 11, &models);
+        ctrl.refresh(&state, "/acme:usage", 11, &models);
         let snapshot = state.snapshot();
         assert_eq!(
             snapshot.selection().map(|row| row.display.as_str()),
-            Some("/acme:login"),
+            Some("/acme:usage"),
             "exact qualified query should select the skill"
         );
     }
@@ -3100,19 +3100,19 @@ mod tests {
         let state = SlashState::default();
         let models = ModelState::default();
 
-        let text = "hi /imagine\n\n  /execute-plan";
-        let cursor = text.find("/imagine").unwrap() + "/imagine".len();
+        let text = "hi /delete\n\n  /execute-plan";
+        let cursor = text.find("/delete").unwrap() + "/delete".len();
         ctrl.refresh(&state, text, cursor, &models);
         let snapshot = state.snapshot();
         assert!(
             snapshot.cursor_in_command,
-            "cursor at end of /imagine must stay in command mode for Tab"
+            "cursor at end of /delete must stay in command mode for Tab"
         );
         assert_eq!(snapshot.args_range, None);
         assert_eq!(
             snapshot.command_range,
-            Some(3..11),
-            "Tab must target /imagine, not the later /execute-plan token"
+            Some(3..10),
+            "Tab must target /delete, not the later /execute-plan token"
         );
     }
 

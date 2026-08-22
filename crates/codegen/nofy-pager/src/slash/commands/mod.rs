@@ -31,8 +31,6 @@ pub mod gboom;
 pub mod help;
 pub mod history;
 pub mod home;
-pub mod imagine;
-pub mod imagine_video;
 pub mod import_claude;
 pub mod jump;
 pub mod login;
@@ -108,13 +106,11 @@ pub fn builtin_commands() -> Vec<Arc<dyn SlashCommand>> {
         Arc::new(plugin::PluginsCommand),
         Arc::new(plugin::MarketplaceCommand),
         Arc::new(plugin::SkillsCommand),
-        Arc::new(share::ShareCommand),
         Arc::new(session_info::SessionInfoCommand),
         Arc::new(rename::RenameCommand),
         Arc::new(dashboard::DashboardCommand),
         Arc::new(cd::CdCommand),
         Arc::new(theme::ThemeCommand),
-        Arc::new(feedback::FeedbackCommand),
         Arc::new(announcements::AnnouncementsCommand),
         Arc::new(remember::RememberCommand),
         Arc::new(plan::PlanCommand),
@@ -125,10 +121,7 @@ pub fn builtin_commands() -> Vec<Arc<dyn SlashCommand>> {
         Arc::new(btw::BtwCommand),
         Arc::new(recap::RecapCommand),
         Arc::new(doctor::DoctorCommand),
-        Arc::new(voice::VoiceCommand),
         Arc::new(loop_cmd::LoopCommand),
-        Arc::new(imagine::ImagineCommand),
-        Arc::new(imagine_video::ImagineVideoCommand),
         Arc::new(timestamps::TimestampsCommand),
         Arc::new(timeline::TimelineCommand),
         Arc::new(toggle_mouse_reporting::ToggleMouseReportingCommand),
@@ -136,13 +129,10 @@ pub fn builtin_commands() -> Vec<Arc<dyn SlashCommand>> {
         Arc::new(privacy::PrivacyCommand),
         Arc::new(rewind::RewindCommand),
         Arc::new(jump::JumpCommand),
-        Arc::new(login::LoginCommand),
-        Arc::new(logout::LogoutCommand),
         Arc::new(import_claude::ImportClaudeCommand),
         Arc::new(usage::UsageCommand),
         Arc::new(queue::QueueCommand),
         Arc::new(tasks::TasksCommand),
-        Arc::new(release_notes::ReleaseNotesCommand),
         Arc::new(tutorial::TutorialCommand),
         Arc::new(config_agents::ConfigAgentsCommand),
         Arc::new(personas::PersonasCommand),
@@ -510,7 +500,10 @@ mod tests {
         usage::UsageCommand.run(&mut ctx, args)
     }
     #[test]
-    fn usage_consumer_show_and_manage() {
+    fn usage_show_only_sanitized() {
+        // Sanitized build: the consumer billing surface (`manage`) was
+        // removed with the vendor account system — only local session
+        // usage remains.
         assert!(matches!(
             run_usage("", true),
             CommandResult::Action(Action::ShowUsage)
@@ -519,45 +512,29 @@ mod tests {
             run_usage("show", true),
             CommandResult::Action(Action::ShowUsage)
         ));
-        assert!(matches!(
-            run_usage("  manage  ", true),
-            CommandResult::Action(Action::ManageBilling)
-        ));
+        assert!(matches!(run_usage("  manage  ", true), CommandResult::Error(_)));
         assert!(matches!(run_usage("delete", true), CommandResult::Error(_)));
     }
     #[test]
-    fn usage_non_consumer_is_bare_only() {
+    fn usage_hidden_without_visibility() {
         assert!(matches!(
-            run_usage("", false),
-            CommandResult::Action(Action::ShowUsage)
-        ));
-        assert!(matches!(
-            run_usage("manage", false),
+            run_usage_gated("", false, false),
             CommandResult::Error(_)
         ));
-        assert!(matches!(run_usage("show", false), CommandResult::Error(_)));
+        assert!(matches!(
+            run_usage_gated("", true, true),
+            CommandResult::Action(Action::ShowUsage)
+        ));
     }
     #[test]
-    fn usage_takes_args_only_for_consumer() {
-        let models = ModelState::default();
-        let mut ctx = crate::slash::command::AppCtx {
-            models: &models,
-            cwd: std::path::Path::new("."),
-            has_session_announcements: false,
-            billing_surface_visible: true,
-            usage_command_visible: true,
-            workflows_available: true,
-            screen_mode: crate::app::ScreenMode::Fullscreen,
-        };
-        let cmd = usage::UsageCommand;
-        assert!(cmd.takes_args_now(&ctx));
-        ctx.billing_surface_visible = false;
-        assert!(!cmd.takes_args_now(&ctx));
+    fn usage_takes_no_args() {
+        // No `manage`/`show` completion chain anymore: bare command only.
+        assert!(!usage::UsageCommand.takes_args());
     }
     #[test]
-    fn usage_suggest_args_consumer_only() {
+    fn usage_suggests_no_args() {
         let models = ModelState::default();
-        let mut ctx = crate::slash::command::AppCtx {
+        let ctx = crate::slash::command::AppCtx {
             models: &models,
             cwd: std::path::Path::new("."),
             has_session_announcements: false,
@@ -566,12 +543,7 @@ mod tests {
             workflows_available: false,
             screen_mode: crate::app::ScreenMode::Fullscreen,
         };
-        let items = usage::UsageCommand.suggest_args(&ctx, "").unwrap();
-        assert_eq!(
-            items.iter().map(|i| i.display.as_str()).collect::<Vec<_>>(),
-            ["show", "manage"]
-        );
-        ctx.billing_surface_visible = false;
+        // Sanitized build: no show/manage completion — bare command only.
         assert!(usage::UsageCommand.suggest_args(&ctx, "").is_none());
     }
     #[test]
@@ -727,15 +699,12 @@ mod tests {
         assert!(reg.get("recap").is_none());
     }
     #[test]
-    fn voice_hidden_by_default_in_registry_until_revealed() {
+    fn voice_absent_from_registry_in_sanitized_build() {
+        // The voice surface depended on the vendor STT backend; the command
+        // is no longer registered, revealed or not.
         let mut reg = CommandRegistry::new(builtin_commands());
-        assert!(
-            reg.get("voice").is_none(),
-            "/voice must be fail-closed until set_voice_visible(true)"
-        );
+        assert!(reg.get("voice").is_none());
         reg.set_voice_visible(true);
-        assert!(reg.get("voice").is_some());
-        reg.set_voice_visible(false);
         assert!(reg.get("voice").is_none());
     }
     /// Every pager builtin trigger key must appear in the shell's

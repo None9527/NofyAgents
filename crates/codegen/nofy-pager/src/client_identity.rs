@@ -6,7 +6,7 @@ pub const PAGER_CLIENT_VERSION: &str = nofy_version::VERSION;
 /// `User-Agent` for pager-owned direct-to-`api.x.ai` clients (voice STT).
 ///
 /// Matches the sampler's `nofy-shell/<version> (os; arch)` shape so server-side
-/// dashboards bucket voice traffic alongside chat / imagine requests.
+/// dashboards bucket voice traffic alongside chat requests.
 pub fn client_user_agent() -> String {
     format!(
         "{}/{} ({}; {})",

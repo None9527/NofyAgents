@@ -1714,13 +1714,6 @@ pub struct ExternalOtelConfigured {
     pub source: String,
 }
 
-/// Remote (fleet) policy applied to the external stream mid-run.
-#[derive(Serialize)]
-pub struct ExternalOtelRemotePolicyApplied {
-    /// `force_disable` | `gates_locked`.
-    pub action: String,
-}
-
 /// Export-health counters for the external stream, emitted on the internal
 /// pipeline at shutdown (never externally — avoid feedback loops).
 #[derive(Serialize)]
@@ -2073,10 +2066,6 @@ telemetry_event!(
     external = crate::external::schema::map_internal_error
 );
 telemetry_event!(ExternalOtelConfigured, "external_otel_configured");
-telemetry_event!(
-    ExternalOtelRemotePolicyApplied,
-    "external_otel_remote_policy_applied"
-);
 telemetry_event!(ExternalOtelExportHealth, "external_otel_export_health");
 
 // Session lifecycle (structs in session_metrics)

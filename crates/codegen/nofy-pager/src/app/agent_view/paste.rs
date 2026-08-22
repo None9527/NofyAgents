@@ -447,7 +447,20 @@ pub(super) mod paste_key_tests {
     use crate::clipboard::ImageData;
     use crate::scrollback::state::ScrollbackState;
     use crate::views::prompt_widget::KIND_PASTE;
+    /// Paste unit tests assume a local (non-SSH) terminal: over SSH the
+    /// dropped-paths handler is skipped because pasted paths refer to the
+    /// user's local machine. Developer sessions often run over SSH, so pin
+    /// the process-wide context instead of inheriting the host's env.
+    fn force_local_terminal_context() {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| {
+            let mut ctx = crate::terminal::standalone_terminal_context();
+            ctx.is_ssh = false;
+            crate::terminal::set_terminal_context_override(ctx);
+        });
+    }
     fn make_agent() -> AgentView {
+        force_local_terminal_context();
         let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         AgentView::new(
             AgentSession {

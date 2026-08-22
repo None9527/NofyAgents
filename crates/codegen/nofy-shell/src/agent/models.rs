@@ -20,6 +20,13 @@ use nofy_sampling_types::{ReasoningEffort, ReasoningEffortOption};
 
 // ── Auth method for model fetching ──────────────────────────────────────────
 
+/// Model-catalog fetch gate: only a user-configured (custom) models endpoint
+/// is ever fetched; the vendor catalog endpoint was removed with the xAI
+/// backend.
+pub(crate) fn catalog_fetch_allowed(endpoints: &config::EndpointsConfig) -> bool {
+    endpoints.has_custom_endpoint()
+}
+
 /// Credential for `/v1/models` fetching.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ModelFetchAuth {
@@ -606,7 +613,7 @@ impl ModelsManager {
             return;
         }
 
-        let remote_fetch_enabled = crate::util::config::resolve_remote_fetch_enabled();
+        let remote_fetch_enabled = catalog_fetch_allowed(&config.endpoints);
         self.fetch_and_apply_inner(remote_fetch_enabled).await;
 
         let needs_bundled_fallback = {
@@ -710,7 +717,8 @@ impl ModelsManager {
 
     /// [`Self::spawn_catalog_retry`] with an injectable backoff (fast in tests).
     fn spawn_catalog_retry_with_backoff(&self, backoff: crate::tools::retry::BackoffConfig) {
-        if !crate::util::config::resolve_remote_fetch_enabled() {
+        if !catalog_fetch_allowed(&self.inner.cfg.read().endpoints) {
+            tracing::debug!("model catalog retry skipped: no custom models endpoint");
             return;
         }
         if self
@@ -788,66 +796,6 @@ impl ModelsManager {
             return;
         }
         self.spawn_catalog_retry();
-    }
-
-    /// Refresh the model catalog on every auth token refresh.
-    pub fn start_auth_refresh_watcher(&self, notify: Arc<tokio::sync::Notify>) {
-        let mgr = self.clone();
-        let had_catalog_at_start = self.inner.catalog.read().has_fetched_real_catalog;
-        nofy_telemetry::unified_log::info(
-            "model catalog: auth refresh watcher started",
-            None,
-            Some(serde_json::json!({
-                "had_real_catalog": had_catalog_at_start,
-                "model_count": self.available().len(),
-            })),
-        );
-        tokio::spawn(async move {
-            loop {
-                notify.notified().await;
-                if !crate::util::config::resolve_remote_fetch_enabled() {
-                    tracing::debug!(
-                        "model catalog: auth refresh watcher skipped (remote_fetch disabled)"
-                    );
-                    continue;
-                }
-                let had_catalog = mgr.inner.catalog.read().has_fetched_real_catalog;
-                let old_count = mgr.available().len();
-                nofy_telemetry::unified_log::info(
-                    "model catalog: auth refresh watcher triggered",
-                    None,
-                    Some(serde_json::json!({
-                        "had_real_catalog": had_catalog,
-                        "model_count_before": old_count,
-                    })),
-                );
-                mgr.fetch_and_apply().await;
-                let has_catalog = mgr.inner.catalog.read().has_fetched_real_catalog;
-                let new_count = mgr.available().len();
-                if has_catalog {
-                    if !had_catalog || new_count != old_count {
-                        nofy_telemetry::unified_log::info(
-                            "model catalog: auth refresh watcher updated catalog",
-                            None,
-                            Some(serde_json::json!({
-                                "model_count_before": old_count,
-                                "model_count_after": new_count,
-                                "was_recovery": !had_catalog,
-                            })),
-                        );
-                    }
-                    mgr.notify_models_updated();
-                } else {
-                    nofy_telemetry::unified_log::warn(
-                        "model catalog: auth refresh watcher fetch failed",
-                        None,
-                        Some(serde_json::json!({
-                            "model_count": old_count,
-                        })),
-                    );
-                }
-            }
-        });
     }
 
     /// Wipe in-memory state so a previous identity's catalog doesn't leak.
@@ -947,7 +895,7 @@ impl ModelsManager {
     fn spawn_fetch(&self, new_etag: Option<String>) {
         self.spawn_fetch_inner(
             new_etag,
-            crate::util::config::resolve_remote_fetch_enabled(),
+            catalog_fetch_allowed(&self.inner.cfg.read().endpoints),
         );
     }
 
@@ -1015,7 +963,7 @@ impl ModelsManager {
     }
 
     async fn fetch_and_apply(&self) {
-        self.fetch_and_apply_inner(crate::util::config::resolve_remote_fetch_enabled())
+        self.fetch_and_apply_inner(catalog_fetch_allowed(&self.inner.cfg.read().endpoints))
             .await
     }
 
@@ -1189,8 +1137,7 @@ pub(crate) use cache::*;
 pub(crate) use endpoint::*;
 pub(crate) use fetch::*;
 pub use fetch::{
-    EarlyPrefetchHandle, EarlyPrefetchResult, start_early_prefetch,
-    start_early_prefetch_settings_only, start_early_prefetch_with_auth,
+    EarlyPrefetchHandle, EarlyPrefetchResult, start_early_prefetch, start_early_prefetch_with_auth,
 };
 pub(crate) use resolution::*;
 

@@ -240,15 +240,12 @@ pub async fn run_stdio_agent(
             // Proactive token refresh; runs until process exit.
             auth_manager.start_proactive_refresh(tokio_util::sync::CancellationToken::new());
             // Pause refreshes across system sleep so an OIDC refresh can't straddle a
-            // suspend (which can revoke the refresh token and force re-login).
-            // `nofy agent stdio` is a local/interactive entrypoint (spawned by
-            // nofy-desktop), so it needs the gate like the leader and pager paths;
+            // suspend (which can revoke the refresh token and force re-login);
             // no-op where the OS listener is unavailable.
             auth_manager.start_system_power_listener();
 
             // Restore managed policy right before bootstrap reads it (no stale window after prefetch).
             crate::managed_config::ensure_managed_policy_present(&auth_manager).await;
-            apply_otel_config(&auth_manager, &agent_config.nofy_com_config);
             let handle_io = spawn_agent_local(
                 agent_config,
                 auth_manager,
@@ -285,30 +282,6 @@ pub async fn run_headless(
     )
 }
 
-/// Close the external-OTEL gate before telemetry init; see
-/// [`crate::agent::otel_gate`].
-pub fn suppress_otel() {
-    crate::agent::otel_gate::suppress();
-}
-
-/// Startup external-OTEL gate for an in-process (embedded) agent. Mirrors the
-/// leader startup gate so the pager process is fail-closed by construction at
-/// the agent boundary.
-pub fn apply_otel_config(auth_manager: &AuthManager, nofy_com_config: &NofyComConfig) {
-    suppress_otel();
-    // Session presence is disk-based (valid or expired), not refresh success: an
-    // expired session the refresher will renew still has a remote policy, so it
-    // must keep the gate closed.
-    let has_session = auth_manager.current().is_some() || auth_manager.read_disk_auth().is_some();
-    if crate::agent::otel_gate::should_open_at_startup(crate::agent::otel_gate::StartupGate {
-        channel: crate::agent::otel_gate::resolved_policy_channel(),
-        has_session,
-        session_pending: crate::agent::otel_gate::is_session_pending(has_session, nofy_com_config),
-    }) {
-        crate::agent::otel_gate::open_at_startup();
-    }
-}
-
 /// Leader mode was removed in the sanitized build (it depended on the
 /// nofy.com relay and xAI account login). The signature is kept minimal and
 /// always bails; use `agent stdio` (ACP) instead.
@@ -336,76 +309,6 @@ mod tests {
     use std::sync::atomic::AtomicU32;
     use tokio::sync::watch;
     use tokio_util::sync::CancellationToken;
-
-    /// The embedded startup gate (every pager `--no-leader` / fallback path) must be
-    /// fail-closed by construction: a session user stays closed until the agent
-    /// resolves settings, even when an env API key is also present (the key must
-    /// not bypass the session's remote policy).
-    #[test]
-    #[serial_test::serial]
-    fn embedded_otel_gate_keeps_a_session_user_fail_closed() {
-        use crate::agent::auth_method::NOFY_API_KEY_ENV_VAR;
-        use nofy_telemetry::external::{
-            is_settings_gate_open, mark_external_otel_settings_resolved,
-        };
-
-        unsafe fn set_or_clear(key: &str, value: Option<std::ffi::OsString>) {
-            match value {
-                Some(v) => unsafe { std::env::set_var(key, v) },
-                None => unsafe { std::env::remove_var(key) },
-            }
-        }
-
-        /// Restores the api-key env and reopens the gate on drop so no state leaks.
-        struct Restore {
-            key: Option<std::ffi::OsString>,
-            proxy: Option<std::ffi::OsString>,
-        }
-        impl Drop for Restore {
-            fn drop(&mut self) {
-                // SAFETY: serialized by `#[serial]`.
-                unsafe {
-                    set_or_clear(NOFY_API_KEY_ENV_VAR, self.key.take());
-                    set_or_clear(PROXY_ENV_VAR, self.proxy.take());
-                }
-                mark_external_otel_settings_resolved();
-            }
-        }
-
-        const PROXY_ENV_VAR: &str = "NOFY_CLI_CHAT_PROXY_BASE_URL";
-        let _restore = Restore {
-            key: std::env::var_os(NOFY_API_KEY_ENV_VAR),
-            proxy: std::env::var_os(PROXY_ENV_VAR),
-        };
-        let cfg = NofyComConfig::default();
-
-        // SAFETY: serialized by `#[serial]`.
-        unsafe {
-            std::env::set_var(NOFY_API_KEY_ENV_VAR, "test-key");
-            std::env::remove_var(PROXY_ENV_VAR);
-        }
-
-        let session = NofyAuth {
-            // Far-future expiry so `current()` accepts it regardless of clock skew
-            // or a leaked `NOFY_AUTH_EARLY_INVALIDATION_SECS` buffer; the gate reads
-            // session presence via `current()`, which filters expired tokens.
-            expires_at: chrono::DateTime::from_timestamp(9_999_999_999, 0),
-            auth_mode: AuthMode::Oidc,
-            oidc_issuer: Some(crate::auth::NOFY_OAUTH2_ISSUER.to_string()),
-            ..NofyAuth::test_default()
-        };
-        let with_session = {
-            let dir = tempfile::tempdir().unwrap();
-            let am = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-            am.hot_swap(session);
-            am
-        };
-        apply_otel_config(&with_session, &cfg);
-        assert!(
-            !is_settings_gate_open(),
-            "a session user must boot fail-closed even with an env key set"
-        );
-    }
 
     #[test]
     fn internal_reload_request_line_carries_id_params_and_newline() {

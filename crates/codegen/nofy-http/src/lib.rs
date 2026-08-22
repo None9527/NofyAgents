@@ -42,21 +42,6 @@ pub const STARTUP_AUTH_TIMEOUT: std::time::Duration = std::time::Duration::from_
 /// `STARTUP_FETCH_TIMEOUT` so the two tune independently; on timeout the caller
 /// proceeds with cached or no credentials and re-auths later.
 pub const STARTUP_AUTH_REFRESH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
-/// Outer bound on a single settings-reapply task, which drives up to
-/// `SETTINGS_FETCH_MAX_ATTEMPTS` fetches.
-pub const SETTINGS_REAPPLY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
-/// Attempt budget for the background settings fetch; bounds proxy load while
-/// still covering a brief blip.
-pub const SETTINGS_FETCH_MAX_ATTEMPTS: u32 = 3;
-// A `401` self-heal may add one more bounded fetch beyond this cap; that fetch
-// is cut off fail-closed and retried later, so the cap only needs to cover the
-// common path.
-const _: () = assert!(
-    SETTINGS_REAPPLY_TIMEOUT.as_millis()
-        > STARTUP_FETCH_TIMEOUT.as_millis() * (1 + SETTINGS_FETCH_MAX_ATTEMPTS as u128),
-    "SETTINGS_REAPPLY_TIMEOUT must exceed STARTUP_FETCH_TIMEOUT * (1 + MAX_ATTEMPTS)"
-);
-
 /// Lower bound for a client's leader-connect timeout: a slow-but-valid boot
 /// (bounded startup auth plus the rest of leader startup and the connect
 /// handshake) must never be aborted. The pager bounds its connect by this value,

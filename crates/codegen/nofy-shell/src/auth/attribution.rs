@@ -129,7 +129,7 @@ impl ShellAttribution {
     /// Tool-side counterpart of [`Self::new`]: returns
     /// `Arc<dyn nofy_tools::Auth401AttributionCallback>` for the
     /// `with_attribution_callback(...)` builder on each tool HTTP
-    /// client (`ImageGenClient`, `VideoGenClient`, `WebSearchClient`).
+    /// client (`WebSearchClient`).
     /// The two callbacks share the same underlying impl and emit the
     /// same `auth_401_attribution` event format -- only the trait
     /// signature differs (`SamplingConsumer` vs. `ToolConsumer`).
@@ -158,20 +158,13 @@ impl Auth401AttributionCallback for ShellAttribution {
     }
 }
 
-/// Tool-side hook: each tool client (image_gen, video_gen, web_search)
+/// Tool-side hook: each tool client (web_search)
 /// in `nofy-tools` emits a 401 attribution event through this
 /// trait when its HTTP request returns UNAUTHORIZED. Same shape as
 /// the sampler-side impl above; routes to the same pair of sinks.
-///
-/// `ToolConsumer::VideoGenStart` and `VideoGenPoll` collapse to the
-/// same [`ConsumerKind::VideoGen`] with different op strings so the
-/// gate query can break down video-gen 401s by phase.
 impl ToolAuth401AttributionCallback for ShellAttribution {
     fn record_401(&self, consumer: ToolConsumer, sent_bearer_suffix: Option<&str>) {
         let (kind, op) = match consumer {
-            ToolConsumer::ImageGen => (ConsumerKind::ImageGen, ""),
-            ToolConsumer::VideoGenStart => (ConsumerKind::VideoGen, "start"),
-            ToolConsumer::VideoGenPoll => (ConsumerKind::VideoGen, "poll"),
             ToolConsumer::WebSearch => (ConsumerKind::WebSearch, ""),
         };
         record_consumer_401(
@@ -206,15 +199,6 @@ pub(crate) enum ConsumerKind {
     /// No per-op discriminator -- the consumer string is just
     /// `"IdleResumeModelRefresh"`.
     IdleResumeModelRefresh,
-    /// `nofy_tools::ToolConsumer::ImageGen` -- Imagine API
-    /// (`POST /images/generations`). No per-op discriminator;
-    /// consumer string is just `"ImageGen"`.
-    ImageGen,
-    /// `nofy_tools::ToolConsumer::VideoGenStart` and
-    /// `VideoGenPoll` -- Video Generation API. The op string is
-    /// `"start"` (`POST /videos/generations`) or `"poll"`
-    /// (`GET /videos/{request_id}`).
-    VideoGen,
     /// `nofy_tools::ToolConsumer::WebSearch` -- web search via
     /// `POST /responses` with a `WebSearch` tool. No per-op
     /// discriminator; consumer string is just `"WebSearch"`.
@@ -230,8 +214,6 @@ impl ConsumerKind {
             Self::FeedbackClient => "FeedbackClient",
             Self::SessionRegistryClient => "SessionRegistryClient",
             Self::IdleResumeModelRefresh => "IdleResumeModelRefresh",
-            Self::ImageGen => "ImageGen",
-            Self::VideoGen => "VideoGen",
             Self::WebSearch => "WebSearch",
         }
     }
@@ -239,12 +221,12 @@ impl ConsumerKind {
     /// `true` for variants that take a per-operation discriminator
     /// appended as `<prefix>.<op>`. `false` for variants whose
     /// `consumer` string is just the prefix
-    /// (`IdleResumeModelRefresh`, `ImageGen`, `WebSearch` -- each is
+    /// (`IdleResumeModelRefresh`, `WebSearch` -- each is
     /// a single endpoint with no sub-operation).
     fn takes_op(self) -> bool {
         !matches!(
             self,
-            Self::IdleResumeModelRefresh | Self::ImageGen | Self::WebSearch
+            Self::IdleResumeModelRefresh | Self::WebSearch
         )
     }
 }
@@ -701,10 +683,6 @@ mod tests {
                 "ignored",
                 "IdleResumeModelRefresh",
             ),
-            (ConsumerKind::ImageGen, "", "ImageGen"),
-            (ConsumerKind::ImageGen, "ignored", "ImageGen"),
-            (ConsumerKind::VideoGen, "start", "VideoGen.start"),
-            (ConsumerKind::VideoGen, "poll", "VideoGen.poll"),
             (ConsumerKind::WebSearch, "", "WebSearch"),
             (ConsumerKind::WebSearch, "ignored", "WebSearch"),
         ];
@@ -747,9 +725,6 @@ mod tests {
             ShellAttribution::new_tool_callback(am_arc.clone(), Some("sid-tool".into()));
 
         let cases = [
-            (ToolConsumer::ImageGen, "ImageGen"),
-            (ToolConsumer::VideoGenStart, "VideoGen.start"),
-            (ToolConsumer::VideoGenPoll, "VideoGen.poll"),
             (ToolConsumer::WebSearch, "WebSearch"),
         ];
 

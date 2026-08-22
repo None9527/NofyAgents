@@ -626,12 +626,31 @@ impl TerminalContext {
 
 static TERMINAL_CONTEXT: OnceLock<TerminalContext> = OnceLock::new();
 
+/// Test-only override slot: unit tests run inside whatever terminal the
+/// developer's session provides (e.g. over SSH), so environment-derived
+/// facts like `is_ssh` must not leak into behavior assertions.
+#[cfg(feature = "test-support")]
+static TERMINAL_CONTEXT_OVERRIDE: std::sync::RwLock<Option<&'static TerminalContext>> =
+    std::sync::RwLock::new(None);
+
+/// Force the process-wide terminal context for tests (leaks one small
+/// allocation per call; intended to be called once behind a `Once`).
+#[cfg(feature = "test-support")]
+pub fn set_terminal_context_override(ctx: TerminalContext) {
+    let leaked: &'static TerminalContext = Box::leak(Box::new(ctx));
+    *TERMINAL_CONTEXT_OVERRIDE.write().unwrap() = Some(leaked);
+}
+
 /// Returns the cached terminal context for the current process.
 ///
 /// This is the preferred entry point for new code that needs multiplexer
 /// or Byobu information. The context is computed once at first access from
 /// process environment variables.
 pub fn terminal_context() -> &'static TerminalContext {
+    #[cfg(feature = "test-support")]
+    if let Some(ctx) = *TERMINAL_CONTEXT_OVERRIDE.read().unwrap() {
+        return ctx;
+    }
     TERMINAL_CONTEXT.get_or_init(detect_terminal_context)
 }
 

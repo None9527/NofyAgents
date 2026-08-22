@@ -174,10 +174,6 @@ pub(crate) struct SubagentSpawnContext {
     pub web_search_sampling_config: Option<nofy_sampler::SamplerConfig>,
     /// Resolved config for web fetch.
     pub web_fetch_config: nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig,
-    /// Image generation config (parent-inherited).
-    pub image_gen_config: nofy_tools::implementations::nofy_build::image_gen::ImageGenConfig,
-    /// Resolved config for video generation.
-    pub video_gen_config: nofy_tools::implementations::nofy_build::video_gen::VideoGenConfig,
     /// Resolved config for the deploy service.
     pub app_builder_deployer_config:
         nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig,

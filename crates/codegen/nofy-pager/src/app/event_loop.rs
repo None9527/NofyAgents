@@ -1105,7 +1105,7 @@ pub(crate) async fn run(
         }
     }
     // Stamp request-identity headers so the STT handshake attributes voice usage
-    // to nofy-cli server-side (mirrors sampler / imagine). Done after
+    // to nofy-cli server-side (mirrors the sampler). Done after
     // `from_config_table` — which yields a fresh config with these
     // `#[serde(skip)]` fields defaulted to empty — and unconditionally, so they
     // apply even when there is no `[voice]` table (or no config at all).

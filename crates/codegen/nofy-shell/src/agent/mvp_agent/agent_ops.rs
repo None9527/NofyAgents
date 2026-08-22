@@ -1466,421 +1466,6 @@ impl MvpAgent {
     pub(crate) fn deployment_key(&self) -> Option<String> {
         self.cfg.borrow().endpoints.deployment_key.clone()
     }
-    /// Apply settings side effects + push `nofy/settings/update` to clients.
-    /// Shared tail for every settings-arrival site.
-    pub(super) fn on_remote_settings_changed(&self) {
-        crate::agent::config::apply_remote_settings_side_effects(
-            self.cfg.borrow().remote_settings.as_ref(),
-        );
-        self.reapply_storage_mode();
-        self.reapply_official_marketplace();
-        {
-            let cfg_snapshot = self.cfg.borrow().clone();
-            if self.session_registry.resident_count() == 0 {
-                self.models_manager.apply_config_reselecting_default(cfg_snapshot);
-            } else {
-                self.models_manager.apply_config(cfg_snapshot);
-            }
-        }
-        self.emit_settings_update_notification();
-        self.emit_announcements(AnnouncementsPushMode::IfChanged);
-        self.reconfigure_heap_profile_monitor();
-    }
-    /// Re-evaluates the official-marketplace auto-register gate now that
-    /// remote settings exist. `init_process` ran the same gate at boot without
-    /// them, so a settings-targeted (not env-set) team would otherwise never
-    /// register. Idempotent: a no-op once installed.
-    fn reapply_official_marketplace(&self) {
-        if self.cfg.borrow().resolve_official_marketplace_auto_register().value {
-            crate::extensions::marketplace::ensure_official_marketplace_source(
-                &crate::util::nofy_home::nofy_home(),
-            );
-        }
-    }
-    /// Upgrade storage mode from newly-arrived remote settings. Mirrors the
-    /// `resolve_config` gate: only upgrades from `Local`, writeback needs nofy auth.
-    fn reapply_storage_mode(&self) {
-        if self.storage_mode.get() != StorageMode::Local {
-            return;
-        }
-        let resolved_mode = {
-            let cfg = self.cfg.borrow();
-            if cfg.mode == crate::agent::config::AgentMode::Generic {
-                return;
-            }
-            let has_xai_auth = self
-                .auth_manager
-                .current_or_expired()
-                .is_some_and(|a| a.is_xai_auth());
-            StorageMode::from_remote_gated(cfg.remote_settings.as_ref(), has_xai_auth)
-        };
-        if resolved_mode == self.storage_mode.get() {
-            return;
-        }
-        tracing::info!(?resolved_mode, "storage mode upgraded from remote settings");
-        self.storage_mode.set(resolved_mode);
-        if resolved_mode == StorageMode::Writeback {
-            self.session_registry
-                .for_each_resident(|_, handle| {
-                    let _ = handle
-                        .persistence_tx
-                        .send(crate::session::persistence::PersistenceMsg::UpgradeToWriteback {
-                            auth_manager: self.auth_manager.clone(),
-                        });
-                });
-        }
-    }
-    /// Run the blocking `/settings` fetch for `auth` off the runtime thread.
-    async fn fetch_settings(
-        &self,
-        auth: &crate::auth::NofyAuth,
-    ) -> crate::remote::SettingsFetch {
-        let (base_url, alpha) = {
-            let cfg = self.cfg.borrow();
-            (cfg.endpoints.proxy_url(), cfg.endpoints.alpha_test_key.clone())
-        };
-        let auth = auth.clone();
-        match tokio::task::spawn_blocking(move || crate::remote::fetch_settings_blocking(
-                &base_url,
-                &auth,
-                alpha.as_deref(),
-            ))
-            .await
-        {
-            Ok(outcome) => outcome,
-            Err(e) => {
-                tracing::warn!(error = %e, "settings fetch task panicked");
-                crate::remote::SettingsFetch::Retry
-            }
-        }
-    }
-    /// Fetch remote settings for `auth` and drive the external-OTEL gate from
-    /// the outcome. Re-closes the gate first only on an account switch, then
-    /// hands the outcome to [`OtelGate::resolve`], which returns the settings
-    /// only on a successful fetch for the still-live identity. Single seam for
-    /// both post-auth callers.
-    ///
-    /// [`OtelGate::resolve`]: crate::agent::otel_gate::OtelGate::resolve
-    pub(super) async fn fetch_settings_resolving_gate(
-        &self,
-        auth: &crate::auth::NofyAuth,
-    ) -> Option<crate::util::config::RemoteSettings> {
-        let identity = auth.user_id.clone();
-        let channel = {
-            let proxy_url = self.cfg.borrow().endpoints.proxy_url();
-            crate::agent::otel_gate::policy_channel_for(&proxy_url)
-        };
-        self.otel_gate.rearm_on_switch(&identity, channel);
-        let outcome = self.fetch_settings_self_healing_401(auth).await;
-        let live = self.auth_manager.current_or_expired().map(|a| a.user_id);
-        self.otel_gate.resolve(&identity, outcome, live.as_deref())
-    }
-    /// Fetch settings; on a `401` try one self-healing [`AuthManager::auth`]
-    /// refresh and re-fetch if it yields a *different* token (recovers a 401
-    /// from a token that expired mid-fetch). The refresh is bounded by
-    /// `STARTUP_AUTH_REFRESH_TIMEOUT` so a wedged IdP can't hang the caller; on
-    /// timeout or error the original `Rejected` stands.
-    async fn fetch_settings_self_healing_401(
-        &self,
-        auth: &crate::auth::NofyAuth,
-    ) -> crate::remote::SettingsFetch {
-        let outcome = self.fetch_settings(auth).await;
-        if matches!(outcome, crate::remote::SettingsFetch::Rejected)
-            && let Ok(Ok(fresh)) = tokio::time::timeout(
-                    crate::http::STARTUP_AUTH_REFRESH_TIMEOUT,
-                    self.auth_manager.auth(),
-                )
-                .await && fresh.key != auth.key
-        {
-            return self.fetch_settings(&fresh).await;
-        }
-        outcome
-    }
-    /// Writes remote settings into `cfg` along with the fields derived from
-    /// them, so no derived field drifts between post-fetch callers.
-    pub(super) fn store_remote_settings(
-        &self,
-        settings: crate::util::config::RemoteSettings,
-    ) {
-        let mut cfg = self.cfg.borrow_mut();
-        cfg.remote_settings = Some(settings);
-        crate::util::config::sync_campaign_fields(&mut cfg);
-        if let Some(v) = cfg
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.path_not_found_hints)
-        {
-            cfg.path_not_found_hints = v;
-        }
-    }
-    /// Stores settings and fans out side effects via
-    /// [`Self::on_remote_settings_changed`]. Shared tail for callers that do
-    /// not also re-init the telemetry client (those use
-    /// [`Self::refresh_remote_settings`]).
-    pub(super) fn install_remote_settings(
-        &self,
-        settings: crate::util::config::RemoteSettings,
-    ) {
-        self.store_remote_settings(settings);
-        self.on_remote_settings_changed();
-    }
-    /// Re-fetch remote settings, re-init the telemetry client, apply side
-    /// effects, and push `nofy/settings/update` to clients. Called from both
-    /// auth handlers (first install + reauth/account switch).
-    ///
-    /// Agent-level fields materialised at startup (`worktree_type`,
-    /// `restore_code`) are NOT re-resolved here; that requires a
-    /// broader refactor of the init path.
-    pub(super) async fn refresh_remote_settings(&self, auth: &crate::auth::NofyAuth) {
-        if !crate::util::config::resolve_remote_fetch_enabled() {
-            tracing::debug!("post-auth settings refresh skipped: remote_fetch disabled");
-            return;
-        }
-        let is_xai = auth.is_xai_auth();
-        let user_id = auth.user_id.clone();
-        let team_id = auth.team_id.clone();
-        let remote_was_absent = self.cfg.borrow().remote_settings.is_none();
-        let Some(settings) = self.fetch_settings_resolving_gate(auth).await else {
-            return;
-        };
-        tracing::info!("post-auth settings refreshed");
-        self.store_remote_settings(settings);
-        let (
-            telemetry_config,
-            telemetry_mode,
-            nofy_user_id,
-            nofy_team_id,
-            deployment_key,
-            subscription_tier,
-        ) = {
-            let cfg = self.cfg.borrow();
-            crate::util::config::cache_remote_mcp_startup_timeout_secs(
-                cfg.remote_settings.as_ref().and_then(|s| s.mcp_startup_timeout_secs),
-            );
-            let telemetry_mode = cfg.resolve_telemetry_mode();
-            let trace_upload = cfg.resolve_trace_upload();
-            tracing::info!(
-                telemetry = %telemetry_mode,
-                trace_upload = %trace_upload,
-                "post-auth data capture config re-resolved",
-            );
-            let nofy_user_id = is_xai.then(|| user_id.clone());
-            let nofy_team_id = is_xai.then(|| team_id.clone()).flatten();
-            let telemetry_config = cfg.telemetry.clone();
-            let deployment_key = cfg.endpoints.deployment_key.clone();
-            let subscription_tier_display = cfg
-                .remote_settings
-                .as_ref()
-                .and_then(|rs| rs.subscription_tier_display.clone());
-            (
-                telemetry_config,
-                telemetry_mode.value,
-                nofy_user_id,
-                nofy_team_id,
-                deployment_key,
-                subscription_tier_display,
-            )
-        };
-        let subscription_tier = resolve_subscription_tier_for_telemetry(subscription_tier);
-        nofy_telemetry::client::init(
-            telemetry_config,
-            telemetry_mode,
-            nofy_user_id,
-            nofy_team_id,
-            deployment_key,
-            self.origin_client_info_from_meta(None),
-            nofy_version::VERSION.to_owned(),
-            subscription_tier,
-            crate::http::shared_client(),
-        );
-        crate::auth::credential_provider::sync_external_otel_identity();
-        self.on_remote_settings_changed();
-        if remote_was_absent {
-            self.spawn_auto_worktree_gc();
-        }
-    }
-    /// Refresh remote settings settings and re-resolve eagerly-resolved config fields.
-    ///
-    /// Called on `/new` session creation so feature flags reflect the latest
-    /// remote settings state without requiring a TUI restart. Extends
-    /// [`refresh_remote_settings`] by also re-running [`resolve_runtime_fields`]
-    /// with the fresh settings.
-    ///
-    /// In-flight sessions are unaffected — they snapshot config at creation.
-    pub(super) async fn refresh_settings_and_reapply(
-        &self,
-        auth: &crate::auth::NofyAuth,
-    ) {
-        self.refresh_remote_settings(auth).await;
-        {
-            let mut cfg = self.cfg.borrow_mut();
-            crate::util::config::sync_campaign_fields(&mut cfg);
-            let raw_config = crate::config::load_effective_config()
-                .unwrap_or_else(|e| {
-                    tracing::warn!(error = %e, "config reload failed during settings refresh");
-                    toml::Value::Table(toml::map::Map::new())
-                });
-            cfg.re_resolve_runtime_fields(&raw_config);
-        }
-        self.emit_settings_update_notification();
-        self.emit_announcements(AnnouncementsPushMode::Force);
-        self.reconfigure_heap_profile_monitor();
-    }
-    /// Spawns a background task coalesced on `in_flight`: a request while one
-    /// is in flight is dropped. The task is bounded by
-    /// `SETTINGS_REAPPLY_TIMEOUT`. Returns whether a task was spawned.
-    fn spawn_coalesced_settings_task(
-        &self,
-        in_flight: &std::rc::Rc<std::cell::Cell<bool>>,
-        task: impl std::future::Future<Output = ()> + 'static,
-    ) -> bool {
-        if in_flight.replace(true) {
-            return false;
-        }
-        let in_flight = in_flight.clone();
-        tokio::task::spawn_local(async move {
-            struct ClearOnDrop(std::rc::Rc<std::cell::Cell<bool>>);
-            impl Drop for ClearOnDrop {
-                fn drop(&mut self) {
-                    self.0.set(false);
-                }
-            }
-            let _clear = ClearOnDrop(in_flight);
-            let _ = tokio::time::timeout(crate::http::SETTINGS_REAPPLY_TIMEOUT, task)
-                .await;
-        });
-        true
-    }
-    /// Fire-and-forget remote settings refresh for new sessions (at most one
-    /// in flight).
-    pub(super) fn spawn_settings_reapply(&self) {
-        let agent_ref = LocalRef::new(self);
-        let auth_manager = self.auth_manager.clone();
-        let _spawned = self
-            .spawn_coalesced_settings_task(
-                &self.settings_reapply_in_flight,
-                async move {
-                    let auth_result = tokio::time::timeout(
-                            crate::http::STARTUP_FETCH_TIMEOUT,
-                            auth_manager.auth(),
-                        )
-                        .await;
-                    if let Ok(Ok(auth)) = auth_result {
-                        let agent = agent_ref.get();
-                        if agent.post_auth_settings_in_flight.get() {
-                            return;
-                        }
-                        agent.refresh_settings_and_reapply(&auth).await;
-                    }
-                },
-            );
-        #[cfg(test)]
-        if _spawned {
-            self.settings_reapply_spawn_count
-                .set(self.settings_reapply_spawn_count.get() + 1);
-        }
-    }
-    /// Resolve post-auth remote settings in the background so a slow or hung
-    /// `/settings` can't gate `authenticate` (and thus the client's first draw).
-    /// The external-OTEL gate stays fail-closed until this resolves; the result
-    /// reaches clients via `nofy/settings/update`. Its own guard keeps an
-    /// in-flight reapply from coalescing away the authenticated identity.
-    pub(super) fn spawn_post_auth_settings(&self, auth: crate::auth::NofyAuth) {
-        let agent_ref = LocalRef::new(self);
-        let _spawned = self
-            .spawn_coalesced_settings_task(
-                &self.post_auth_settings_in_flight,
-                async move {
-                    let agent = agent_ref.get();
-                    agent.refresh_remote_settings(&auth).await;
-                    agent.maybe_fetch_post_auth_settings().await;
-                },
-            );
-        #[cfg(test)]
-        if _spawned {
-            self.post_auth_settings_spawn_count
-                .set(self.post_auth_settings_spawn_count.get() + 1);
-        }
-    }
-    /// Spawn the periodic remote-settings poll that pushes mid-session
-    /// announcement changes to connected clients. Idempotent; plain loop (no
-    /// cancellation) like `ensure_session_supervisor` — the LocalSet drop at
-    /// process exit ends it. Skipped under `cfg!(test)` like the
-    /// managed-config sync (PTY e2e runs the real binary and is unaffected).
-    pub(super) fn spawn_announcements_refresh(&self) {
-        if cfg!(test) || self.announcements_refresh_started.replace(true) {
-            return;
-        }
-        let agent_ref = LocalRef::new(self);
-        tokio::task::spawn_local(async move {
-            let mut interval = tokio::time::interval(announcements_refresh_interval());
-            interval.tick().await;
-            loop {
-                interval.tick().await;
-                let result = futures::FutureExt::catch_unwind(
-                        std::panic::AssertUnwindSafe(
-                            agent_ref.get().poll_announcements_refresh_once(),
-                        ),
-                    )
-                    .await;
-                if result.is_err() {
-                    tracing::error!("announcements refresh tick panicked; continuing");
-                }
-            }
-        });
-    }
-    /// One poll cycle. With no settings baseline, first population is
-    /// delegated to the sanctioned fill-if-missing path (which emits on
-    /// success); otherwise refresh the stored announcements best-effort, then
-    /// run the emit gate — even when the fetch was skipped or failed, so a
-    /// pure expiry crossing still clears client banners on time.
-    async fn poll_announcements_refresh_once(&self) {
-        if self.cfg.borrow().remote_settings.is_none() {
-            self.maybe_fetch_post_auth_settings().await;
-            return;
-        }
-        self.fetch_and_store_polled_announcements().await;
-        self.emit_announcements(AnnouncementsPushMode::IfChanged);
-    }
-    /// Fetch half of a poll cycle: fresh settings from the proxy, then the
-    /// announcements-only apply. Every failure path is a silent skip — the
-    /// next tick retries.
-    async fn fetch_and_store_polled_announcements(&self) {
-        let Ok(auth) = self.auth_manager.auth().await else {
-            tracing::debug!("announcements refresh skipped: not authenticated");
-            return;
-        };
-        let pre_fetch = self
-            .cfg
-            .borrow()
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.announcements.clone());
-        let Some(settings) = self.fetch_remote_settings(auth).await else {
-            tracing::debug!("announcements refresh skipped: settings fetch failed");
-            return;
-        };
-        self.apply_polled_announcements(settings, pre_fetch);
-    }
-    /// Store the polled announcements unless another writer (full refresh /
-    /// paywall unblock) landed mid-fetch — then this fetch is stale and the
-    /// next tick reconciles. Emission is `emit_announcements`'s job, not
-    /// this store's.
-    pub(super) fn apply_polled_announcements(
-        &self,
-        fresh: crate::util::config::RemoteSettings,
-        pre_fetch: Option<Vec<nofy_announcements::RemoteAnnouncement>>,
-    ) {
-        let mut cfg = self.cfg.borrow_mut();
-        let Some(stored) = cfg.remote_settings.as_mut() else {
-            return;
-        };
-        if stored.announcements != pre_fetch {
-            tracing::debug!("announcements poll apply skipped: settings changed mid-fetch");
-            return;
-        }
-        stored.announcements = fresh.announcements;
-    }
     /// The single announcements push gate — every `remote_settings` writer
     /// funnels through here. Emits `nofy/announcements/update` and advances
     /// the last-emitted baseline per [`announcements_push_payload`] (`mode`
@@ -1938,37 +1523,6 @@ impl MvpAgent {
         let next = now_secs.max(self.announcements_gen.get() + 1);
         self.announcements_gen.set(next);
         next
-    }
-    /// Shared fetch half of every settings refresh: endpoint fields from a
-    /// scoped `cfg` borrow, `fetch_settings_blocking` off-executor (it already
-    /// retries transient errors internally), failures normalized to `None`.
-    /// Callers own their miss logging; the apply halves deliberately stay
-    /// separate (full reapply vs announcements-only).
-    pub(super) async fn fetch_remote_settings(
-        &self,
-        auth: crate::auth::NofyAuth,
-    ) -> Option<crate::util::config::RemoteSettings> {
-        if !crate::util::config::resolve_remote_fetch_enabled() {
-            tracing::debug!("settings fetch skipped: remote_fetch disabled");
-            return None;
-        }
-        let (base_url, alpha_test_key) = {
-            let cfg = self.cfg.borrow();
-            (cfg.endpoints.proxy_url(), cfg.endpoints.alpha_test_key.clone())
-        };
-        match tokio::task::spawn_blocking(move || crate::remote::fetch_settings_blocking(
-                &base_url,
-                &auth,
-                alpha_test_key.as_deref(),
-            ))
-            .await
-        {
-            Ok(outcome) => outcome.into_option(),
-            Err(e) => {
-                tracing::warn!(error = %e, "settings fetch task panicked");
-                None
-            }
-        }
     }
     pub(super) async fn send_model_auto_switched(
         &self,
@@ -2156,49 +1710,6 @@ impl MvpAgent {
         );
         (id.clone(), new_config)
     }
-    /// Build image generation config.
-    ///
-    /// Both BYOK and session (OAuth) users go direct to `xai_api_base_url`.
-    /// `sampling_config.api_key` carries the OAuth bearer for session users (the
-    /// `api_key_provider` refreshes it per request), so IC authenticates and
-    /// meters Imagine usage per-user.
-    pub(super) fn prepare_image_gen_config(
-        &self,
-    ) -> nofy_tools::implementations::nofy_build::image_gen::ImageGenConfig {
-        use nofy_tools::implementations::nofy_build::image_gen::ImageGenConfig;
-        let sampling_config = self.sampling_config.borrow();
-        let Some(ref api_key) = sampling_config.api_key else {
-            return ImageGenConfig::Disabled;
-        };
-        // Subscription tier gating belonged to the xAI account system; the
-        // capability is never restricted in the sanitized build.
-        let tier_restricted = false;
-        let cfg = self.cfg.borrow();
-        let base_url = cfg.endpoints.xai_api_base_url.clone();
-        let version = cfg
-            .client_version
-            .clone()
-            .unwrap_or_else(|| nofy_version::VERSION.to_string());
-        let alpha_test_key = cfg.endpoints.alpha_test_key.clone();
-        let mut headers = indexmap::IndexMap::new();
-        headers.insert("user-agent".to_string(), format!("nofy-nofy-build/{version}"));
-        inject_proxy_headers(
-            &mut headers,
-            cfg.client_version.as_deref(),
-            alpha_test_key.as_deref(),
-            &base_url,
-        );
-        ImageGenConfig::Enabled {
-            api_key: api_key.clone(),
-            base_url,
-            extra_headers: headers,
-            image_gen_enabled: cfg.resolve_image_gen().value,
-            image_edit_enabled: cfg.resolve_image_edit().value,
-            model_override: cfg.resolve_image_gen_model_override(),
-            edit_model_override: cfg.resolve_image_edit_model_override(),
-            tier_restricted,
-        }
-    }
     /// Build deploy-service config. The tool talks directly to the deployer service.
     pub(super) fn prepare_app_builder_deployer_config(
         &self,
@@ -2206,74 +1717,12 @@ impl MvpAgent {
         use nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig;
         AppBuilderDeployerConfig::Disabled
     }
-    /// Build video generation config. Video tools call the xAI API directly.
-    pub(super) fn prepare_video_gen_config(
-        &self,
-    ) -> nofy_tools::implementations::nofy_build::video_gen::VideoGenConfig {
-        use nofy_tools::implementations::nofy_build::video_gen::VideoGenConfig;
-        let cfg = self.cfg.borrow();
-        if !cfg.resolve_video_gen().value {
-            return VideoGenConfig::Disabled;
-        }
-        let Some(api_key) = self.sampling_config.borrow().api_key.clone() else {
-            return VideoGenConfig::Disabled;
-        };
-        // Subscription tier gating belonged to the xAI account system; the
-        // capability is never restricted in the sanitized build.
-        let tier_restricted = false;
-        let zdr_video_output_s3 = cfg
-            .disable_zdr_incompatible_tools
-            .then(|| cfg.zdr_video_output_s3.clone())
-            .flatten()
-            .filter(|s3| s3.is_valid());
-        if cfg.disable_zdr_incompatible_tools && zdr_video_output_s3.is_none() {
-            tracing::info!("video_gen disabled by tools.disable_zdr_incompatible_tools");
-            return VideoGenConfig::Disabled;
-        }
-        let base_url = cfg.endpoints.xai_api_base_url.clone();
-        let version = cfg
-            .client_version
-            .clone()
-            .unwrap_or_else(|| nofy_version::VERSION.to_string());
-        let alpha_test_key = cfg.endpoints.alpha_test_key.clone();
-        let mut headers = indexmap::IndexMap::new();
-        headers.insert("user-agent".to_string(), format!("nofy-nofy-build/{version}"));
-        inject_proxy_headers(
-            &mut headers,
-            cfg.client_version.as_deref(),
-            alpha_test_key.as_deref(),
-            &base_url,
-        );
-        VideoGenConfig::Enabled {
-            api_key,
-            base_url,
-            extra_headers: headers,
-            zdr_video_output_s3: zdr_video_output_s3.map(Box::new),
-            tier_restricted,
-        }
-    }
+    /// Sanitized build: the local web_search client speaks the xAI/OpenAI
+    /// Responses API with server-side search tools, which OpenAI-compatible
+    /// BYOK backends do not serve; resolving it would only route the user's
+    /// key at an unsupported endpoint. `None` keeps the tool unregistered.
     pub(super) fn prepare_web_search_sampling_config(&self) -> Option<SamplingConfig> {
-        let model_id = self.cfg.borrow().web_search_model.clone();
-        let models = self.models_manager.models();
-        let session = self.current_or_buffered_auth();
-        let alpha_test_key = self.cfg.borrow().endpoints.alpha_test_key.clone();
-        let client_version = self.cfg.borrow().client_version.clone();
-        let mut cfg = config::resolve_web_search_sampling_config(
-            &model_id,
-            &models,
-            session.as_ref().map(|a| a.key.as_str()),
-            self.cfg.borrow().nofy_com_config.api_key_auth_disabled(),
-            alpha_test_key.clone(),
-            client_version,
-            &self.cfg.borrow().endpoints,
-        )?;
-        inject_proxy_headers(
-            &mut cfg.extra_headers,
-            cfg.client_version.as_deref(),
-            alpha_test_key.as_deref(),
-            &cfg.base_url,
-        );
-        Some(cfg)
+        None
     }
     /// Returns `Err` with a user-facing message on invalid config; the caller at
     /// the process boundary prints it and exits.
@@ -2406,7 +1855,6 @@ impl MvpAgent {
                 RefCell::new(std::collections::HashSet::new()),
             ),
             storage_mode: std::cell::Cell::new(storage_mode),
-            otel_gate: crate::agent::otel_gate::OtelGate::default(),
             default_yolo_mode,
             default_auto_mode,
             memory_config: None,
@@ -2446,11 +1894,8 @@ impl MvpAgent {
                 RefCell::new(std::collections::HashSet::new()),
             ),
             supervisor_started: std::cell::Cell::new(false),
-            settings_reapply_in_flight: std::rc::Rc::new(std::cell::Cell::new(false)),
-            post_auth_settings_in_flight: std::rc::Rc::new(std::cell::Cell::new(false)),
             announcements_gen: std::cell::Cell::new(0),
             last_emitted_announcements: RefCell::new(Vec::new()),
-            announcements_refresh_started: std::cell::Cell::new(false),
             heap_profile_monitor: RefCell::new(
                 crate::heap_profile::HeapProfileMonitor::new(),
             ),
@@ -2461,10 +1906,6 @@ impl MvpAgent {
             roster_delta_spy: RefCell::new(Vec::new()),
             #[cfg(test)]
             supervisor_spawn_count: std::cell::Cell::new(0),
-            #[cfg(test)]
-            settings_reapply_spawn_count: std::cell::Cell::new(0),
-            #[cfg(test)]
-            post_auth_settings_spawn_count: std::cell::Cell::new(0),
         };
         instance
             .auth_manager
@@ -3846,8 +3287,6 @@ impl MvpAgent {
             .and_then(|entry| entry.info.max_retries);
         let origin_client = self.origin_client_info_from_meta(init.meta.as_ref());
         let web_search_sampling_config = self.prepare_web_search_sampling_config();
-        let image_gen_config = self.prepare_image_gen_config();
-        let video_gen_config = self.prepare_video_gen_config();
         let app_builder_deployer_config = self.prepare_app_builder_deployer_config();
         let web_fetch_config = self.prepare_web_fetch_config();
         let write_file_enabled = self.cfg.borrow().resolve_write_file().value;
@@ -4089,8 +3528,6 @@ impl MvpAgent {
                     model_max_retries,
                     web_search_sampling_config,
                     web_fetch_config,
-                    image_gen_config,
-                    video_gen_config,
                     app_builder_deployer_config,
                     write_file_enabled,
                     goal_enabled,
