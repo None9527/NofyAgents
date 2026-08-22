@@ -98,12 +98,11 @@ impl MvpAgent {
         &self,
         session_id: &acp::SessionId,
         cwd: &std::path::Path,
-        remote: Option<&crate::util::config::RemoteSettings>,
     ) {
         if !self.interactive_trust_client.get() {
             return;
         }
-        if !folder_trust::prompt_warranted(cwd, remote) {
+        if !folder_trust::prompt_warranted(cwd) {
             return;
         }
         let key = nofy_workspace::trust::workspace_key(cwd);
@@ -152,7 +151,6 @@ impl MvpAgent {
         let can_fetch_managed = self.can_fetch_managed_mcps();
         let proxy_url = self.cfg.borrow().endpoints.proxy_url();
         let compat = self.cfg.borrow().compat_resolved;
-        let remote = remote.cloned();
         let cwd = cwd.to_path_buf();
         let workspace = key.display().to_string();
         let config_kinds = folder_trust::detected_config_kinds(&cwd);
@@ -249,7 +247,7 @@ impl MvpAgent {
             // Persist the grant, then flip the cached untrusted verdict to trusted
             // (the `Some(false)` arm of `resolve_and_record` re-reads the store).
             folder_trust::grant_folder_trust(&cwd);
-            folder_trust::resolve_and_record(&cwd, remote.as_ref(), false);
+            folder_trust::resolve_and_record(&cwd, false);
 
             reload_project_servers_after_grant(ReloadAfterGrant {
                 gateway: &gateway,

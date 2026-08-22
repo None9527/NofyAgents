@@ -14,7 +14,6 @@ pub enum ConfigSource {
     ManagedConfig,
     UserConfig,
     Config,
-    Remote,
     Default,
 }
 
@@ -36,14 +35,13 @@ impl<T: std::fmt::Display> std::fmt::Display for Resolved<T> {
         write!(f, "{} ({})", self.value, self.source)
     }
 }
-/// Resolve a boolean feature flag: requirement > cli > env > config > managed > feature flag > default.
+/// Resolve a boolean feature flag: requirement > cli > env > config > managed > default.
 pub struct BoolFlag<'a> {
     requirement: Option<bool>,
     cli: Option<bool>,
     env_var: &'a str,
     config: Option<bool>,
     managed: Option<bool>,
-    feature_flag: Option<bool>,
     default: bool,
 }
 
@@ -55,7 +53,6 @@ impl<'a> BoolFlag<'a> {
             env_var,
             config: None,
             managed: None,
-            feature_flag: None,
             default: false,
         }
     }
@@ -76,10 +73,6 @@ impl<'a> BoolFlag<'a> {
         self.managed = v;
         self
     }
-    pub fn feature_flag(mut self, v: Option<bool>) -> Self {
-        self.feature_flag = v;
-        self
-    }
     pub fn default(mut self, v: bool) -> Self {
         self.default = v;
         self
@@ -92,7 +85,6 @@ impl<'a> BoolFlag<'a> {
             self.env_var,
             self.config,
             self.managed,
-            self.feature_flag,
             self.default,
         )
     }
@@ -104,7 +96,6 @@ fn resolve_bool_flag(
     env_var: &str,
     config_val: Option<bool>,
     managed_val: Option<bool>,
-    feature_flag_val: Option<bool>,
     default: bool,
 ) -> Resolved<bool> {
     if let Some(val) = requirement {
@@ -121,9 +112,6 @@ fn resolve_bool_flag(
     }
     if let Some(val) = managed_val {
         return Resolved::new(val, ConfigSource::ManagedConfig);
-    }
-    if let Some(val) = feature_flag_val {
-        return Resolved::new(val, ConfigSource::Remote);
     }
     Resolved::new(default, ConfigSource::Default)
 }

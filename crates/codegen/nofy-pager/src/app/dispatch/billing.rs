@@ -346,7 +346,6 @@ pub(super) fn handle_billing_fetched(
     agent_id: AgentId,
     balance: Option<crate::views::credit_bar::CreditBalance>,
     silent: bool,
-    subscription_tier: Option<String>,
     autotopup: crate::views::credit_bar::AutoTopupFetch,
 ) -> Vec<Effect> {
     // Parse/transport failures route to `BillingError`, so a `None`
@@ -362,9 +361,6 @@ pub(super) fn handle_billing_fetched(
         .as_ref()
         .map(|b| b.usage_pct >= 99.0)
         .unwrap_or(false);
-    if let Some(tier) = subscription_tier {
-        app.subscription_tier = Some(tier);
-    }
     // Render the `/usage` summary from the now-current cached rule.
     let summary_topup = app.auto_topup.clone();
     if let Some(agent) = app.agents.get_mut(&agent_id) {
@@ -385,23 +381,6 @@ pub(super) fn handle_billing_fetched(
         }
     }
     vec![]
-}
-
-pub(super) fn handle_gate_refreshed(
-    app: &mut AppView,
-    settings: Option<nofy_shell::util::config::RemoteSettings>,
-) -> Vec<Effect> {
-    let Some(rs) = settings else {
-        return vec![];
-    };
-    app.usage_billing_redirect_url = rs.usage_billing_redirect_url.clone();
-    if let Some(secs) = rs.subscription_watch_interval_secs {
-        app.subscription_watch_interval_secs = Some(secs);
-    }
-    match AppView::gate_from_settings(&rs) {
-        Some(gate) => app.impose_gate(gate),
-        None => app.lift_gate(),
-    }
 }
 
 /// `nofy/auth/check_subscription` completed. Meta is authoritative

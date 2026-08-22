@@ -957,7 +957,6 @@ auto_update = true
         );
     }
     mod resolve_auto_compact {
-        use super::super::super::RemoteSettings;
         use super::super::super::resolve::{
             DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT, ENV_AUTO_COMPACT_THRESHOLD_PERCENT,
             resolve_auto_compact_threshold_percent,
@@ -970,11 +969,7 @@ auto_update = true
         static ENV_LOCK: Mutex<()> = Mutex::new(());
         /// Build a `Config` populated with optional per-source values for the
         /// `TEST_MODEL`. Any `None` argument means "that source is unset".
-        fn make_cfg(
-            user_session: Option<u8>,
-            user_per_model: Option<u8>,
-            gb_global: Option<u8>,
-        ) -> Config {
+        fn make_cfg(user_session: Option<u8>, user_per_model: Option<u8>) -> Config {
             let mut cfg = Config::default();
             cfg.session.auto_compact_threshold_percent = user_session;
             if let Some(v) = user_per_model {
@@ -986,23 +981,17 @@ auto_update = true
                     },
                 );
             }
-            if let Some(v) = gb_global {
-                cfg.remote_settings = Some(RemoteSettings {
-                    auto_compact_threshold_percent: Some(v),
-                    ..RemoteSettings::default()
-                });
-            }
             cfg
         }
-        /// ModelInfo populated with the GB per-model value (or none).
-        fn model_info(gb_per_model: Option<u8>) -> ModelInfo {
+        /// ModelInfo populated with the catalog per-model value (or none).
+        fn model_info(catalog_per_model: Option<u8>) -> ModelInfo {
             let mut info = ModelInfo::fallback(TEST_MODEL);
-            info.auto_compact_threshold_percent = gb_per_model;
+            info.auto_compact_threshold_percent = catalog_per_model;
             info
         }
         /// Run the resolver against the assembled inputs.
-        fn resolve(cfg: &Config, gb_per_model: Option<u8>) -> u8 {
-            let info = model_info(gb_per_model);
+        fn resolve(cfg: &Config, catalog_per_model: Option<u8>) -> u8 {
+            let info = model_info(catalog_per_model);
             resolve_auto_compact_threshold_percent(cfg, TEST_MODEL, Some(&info))
         }
         /// RAII guard that swaps the env var for the duration of a test and
@@ -1041,106 +1030,88 @@ auto_update = true
         #[test]
         fn all_unset_returns_default_85() {
             let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(None, None, None);
+            let cfg = make_cfg(None, None);
             assert_eq!(resolve(&cfg, None), DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT);
         }
         #[test]
         fn all_unset_no_model_info_returns_default_85() {
             let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(None, None, None);
+            let cfg = make_cfg(None, None);
             assert_eq!(
                 resolve_auto_compact_threshold_percent(&cfg, TEST_MODEL, None),
                 DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT
             );
         }
         #[test]
-        fn gb_global_only() {
+        fn catalog_per_model_only() {
             let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(None, None, Some(40));
-            assert_eq!(resolve(&cfg, None), 40);
-        }
-        #[test]
-        fn gb_per_model_beats_gb_global() {
-            let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(None, None, Some(40));
+            let cfg = make_cfg(None, None);
             assert_eq!(resolve(&cfg, Some(90)), 90);
         }
         #[test]
-        fn user_session_beats_gb_per_model() {
+        fn user_session_beats_catalog_per_model() {
             let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(Some(75), None, None);
+            let cfg = make_cfg(Some(75), None);
             assert_eq!(resolve(&cfg, Some(90)), 75);
-        }
-        #[test]
-        fn user_session_beats_gb_global() {
-            let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(Some(75), None, Some(40));
-            assert_eq!(resolve(&cfg, None), 75);
         }
         #[test]
         fn user_per_model_beats_user_session() {
             let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(Some(75), Some(70), None);
+            let cfg = make_cfg(Some(75), Some(70));
             assert_eq!(resolve(&cfg, None), 70);
         }
         #[test]
-        fn user_per_model_beats_gb_per_model() {
+        fn user_per_model_beats_catalog_per_model() {
             let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(None, Some(70), None);
+            let cfg = make_cfg(None, Some(70));
             assert_eq!(resolve(&cfg, Some(90)), 70);
-        }
-        #[test]
-        fn user_per_model_beats_gb_global() {
-            let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(None, Some(70), Some(40));
-            assert_eq!(resolve(&cfg, None), 70);
         }
         #[test]
         fn user_per_model_beats_everything_below_env() {
             let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(Some(75), Some(70), Some(40));
+            let cfg = make_cfg(Some(75), Some(70));
             assert_eq!(resolve(&cfg, Some(90)), 70);
         }
         #[test]
         fn env_beats_user_per_model() {
             let _g = EnvVarGuard::set("50");
-            let cfg = make_cfg(Some(75), Some(70), Some(40));
+            let cfg = make_cfg(Some(75), Some(70));
             assert_eq!(resolve(&cfg, Some(90)), 50);
         }
         #[test]
         fn env_at_lower_bound_is_honored() {
             let _g = EnvVarGuard::set("0");
-            let cfg = make_cfg(Some(75), None, None);
+            let cfg = make_cfg(Some(75), None);
             assert_eq!(resolve(&cfg, None), 0);
         }
         #[test]
         fn env_at_upper_bound_is_honored() {
             let _g = EnvVarGuard::set("100");
-            let cfg = make_cfg(Some(75), None, None);
+            let cfg = make_cfg(Some(75), None);
             assert_eq!(resolve(&cfg, None), 100);
         }
         #[test]
         fn env_out_of_range_high_falls_through() {
             let _g = EnvVarGuard::set("101");
-            let cfg = make_cfg(Some(75), None, None);
+            let cfg = make_cfg(Some(75), None);
             assert_eq!(resolve(&cfg, None), 75);
         }
         #[test]
         fn env_out_of_range_negative_falls_through() {
             let _g = EnvVarGuard::set("-1");
-            let cfg = make_cfg(Some(75), None, None);
+            let cfg = make_cfg(Some(75), None);
             assert_eq!(resolve(&cfg, None), 75);
         }
         #[test]
         fn env_unparseable_falls_through() {
             let _g = EnvVarGuard::set("not-a-number");
-            let cfg = make_cfg(Some(75), None, None);
+            let cfg = make_cfg(Some(75), None);
             assert_eq!(resolve(&cfg, None), 75);
         }
         #[test]
         fn env_empty_falls_through_to_default() {
             let _g = EnvVarGuard::set("");
-            let cfg = make_cfg(None, None, None);
+            let cfg = make_cfg(None, None);
             assert_eq!(resolve(&cfg, None), DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT);
         }
         #[test]
@@ -1172,22 +1143,13 @@ auto_update = true
             assert_eq!(resolve(&cfg, None), 75);
         }
         #[test]
-        fn missing_model_info_falls_through_to_gb_global() {
+        fn missing_model_info_falls_through_to_default() {
             let _g = EnvVarGuard::unset();
-            let cfg = make_cfg(None, None, Some(40));
+            let cfg = make_cfg(None, None);
             assert_eq!(
                 resolve_auto_compact_threshold_percent(&cfg, TEST_MODEL, None),
-                40
+                DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT
             );
-        }
-        #[test]
-        fn no_remote_settings_falls_through_to_default() {
-            let _g = EnvVarGuard::unset();
-            let cfg = Config {
-                remote_settings: None,
-                ..Config::default()
-            };
-            assert_eq!(resolve(&cfg, None), DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT);
         }
         #[test]
         fn apply_does_not_merge_auto_compact_threshold_percent_into_model_info() {
@@ -1203,7 +1165,7 @@ auto_update = true
                 merged.info.auto_compact_threshold_percent, None,
                 "ConfigModelOverride::apply must NOT merge `auto_compact_threshold_percent` \
                  into ModelInfo — the resolver depends on the field staying empty so \
-                 user-per-model and GB-per-model remain distinguishable tiers"
+                 user-per-model and catalog-per-model remain distinguishable tiers"
             );
         }
     }

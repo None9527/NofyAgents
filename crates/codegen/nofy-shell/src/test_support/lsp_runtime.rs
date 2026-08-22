@@ -90,7 +90,6 @@ pub(crate) fn ctx_with_toggle(toggle: HashMap<String, bool>) -> SubagentSpawnCon
         subagent_toggle: toggle,
         disable_web_search: false,
         todo_gate: false,
-        remote_settings: None,
         laziness_debug_log: None,
         backend_tools_enabled: true,
         respect_gitignore: false,

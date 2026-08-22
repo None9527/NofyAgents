@@ -17,18 +17,12 @@
 use super::actions::Effect;
 use super::app_view::{AppView, AuthState};
 
-/// Default watch cadence. Overridable via the remote settings
-/// `nofy_build_settings.subscription_watch_interval_secs` field.
+/// Default watch cadence.
 pub(crate) const SUBSCRIPTION_WATCH_INTERVAL: std::time::Duration =
     std::time::Duration::from_secs(60);
 
-/// Floor for the server-supplied cadence: a fat-fingered remote settings value
-/// must not turn the fleet into a hot-poller. `0` means "disabled" and is
-/// special-cased before this clamp.
-pub(crate) const SUBSCRIPTION_WATCH_MIN_INTERVAL_SECS: u64 = 30;
-
 /// Floor for the `NOFY_SUBSCRIPTION_WATCH_INTERVAL_SECS` env override
-/// (test seam / power user — deliberately below the server floor).
+/// (test seam / power user).
 const SUBSCRIPTION_WATCH_ENV_MIN_SECS: u64 = 1;
 
 /// Cap on the spacing between watch/focus-triggered checks.
@@ -61,8 +55,7 @@ impl AppView {
     }
 
     /// Effective watch cadence; `None` = disabled. Precedence: env override
-    /// (`0` disables), server override (`0` disables, floor-clamped),
-    /// default.
+    /// (`0` disables), default.
     pub fn subscription_watch_interval(&self) -> Option<std::time::Duration> {
         if let Ok(v) = std::env::var("NOFY_SUBSCRIPTION_WATCH_INTERVAL_SECS")
             && let Ok(secs) = v.trim().parse::<u64>()
@@ -74,13 +67,7 @@ impl AppView {
                 )),
             };
         }
-        match self.subscription_watch_interval_secs {
-            Some(0) => None,
-            Some(secs) => Some(std::time::Duration::from_secs(
-                secs.max(SUBSCRIPTION_WATCH_MIN_INTERVAL_SECS),
-            )),
-            None => Some(SUBSCRIPTION_WATCH_INTERVAL),
-        }
+        Some(SUBSCRIPTION_WATCH_INTERVAL)
     }
 
     /// Whether the watch (and the refocus check) should run: enabled,
@@ -303,32 +290,24 @@ mod tests {
     }
 
     #[test]
-    fn subscription_watch_interval_override_clamp_and_disable() {
-        let mut app = test_app();
+    fn subscription_watch_interval_env_override_clamp_and_disable() {
+        let app = test_app();
+        // Unparseable value falls through to the default cadence.
+        let _unset =
+            crate::test_util::EnvVarGuard::set("NOFY_SUBSCRIPTION_WATCH_INTERVAL_SECS", "");
         assert_eq!(
             app.subscription_watch_interval(),
             Some(SUBSCRIPTION_WATCH_INTERVAL)
         );
-        app.subscription_watch_interval_secs = Some(120);
+        let _guard =
+            crate::test_util::EnvVarGuard::set("NOFY_SUBSCRIPTION_WATCH_INTERVAL_SECS", "120");
         assert_eq!(
             app.subscription_watch_interval(),
             Some(std::time::Duration::from_secs(120))
         );
-        app.subscription_watch_interval_secs = Some(1);
-        assert_eq!(
-            app.subscription_watch_interval(),
-            Some(std::time::Duration::from_secs(
-                SUBSCRIPTION_WATCH_MIN_INTERVAL_SECS
-            )),
-            "sub-floor values are clamped"
-        );
-        app.subscription_watch_interval_secs = Some(0);
+        let _guard =
+            crate::test_util::EnvVarGuard::set("NOFY_SUBSCRIPTION_WATCH_INTERVAL_SECS", "0");
         assert_eq!(app.subscription_watch_interval(), None);
-        app.subscription_tier = Some("Free".into());
-        assert!(
-            !app.subscription_watch_wanted(),
-            "interval 0 must disable the watch even on the free tier"
-        );
     }
 
     #[test]

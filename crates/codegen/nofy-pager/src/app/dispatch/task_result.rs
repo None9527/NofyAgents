@@ -6,7 +6,7 @@ use super::auth::{
 use super::billing::{
     PAYWALL_AUTO_CHECK_TIMEOUT, apply_auto_topup, handle_billing_fetched,
     handle_check_subscription_complete, handle_credit_limit_recheck_complete,
-    handle_gate_refreshed, handle_gate_verify_timeout,
+    handle_gate_verify_timeout,
 };
 use super::cta::{
     handle_cta_plugin_install_done, handle_cta_plugin_reload_done,
@@ -307,9 +307,8 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             agent_id,
             balance,
             silent,
-            subscription_tier,
             autotopup,
-        } => handle_billing_fetched(app, agent_id, balance, silent, subscription_tier, autotopup),
+        } => handle_billing_fetched(app, agent_id, balance, silent, autotopup),
         TaskResult::BillingError {
             agent_id,
             error,
@@ -329,7 +328,6 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             apply_auto_topup(&mut app.auto_topup, &autotopup);
             vec![]
         }
-        TaskResult::GateRefreshed { settings } => handle_gate_refreshed(app, settings),
         TaskResult::SessionLoaded {
             agent_id,
             session_id,

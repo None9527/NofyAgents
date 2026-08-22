@@ -518,7 +518,6 @@ impl EndpointsConfig {
             None,
             "NOFY_TELEMETRY_GCS_BUCKET",
             self.trace_upload_bucket.as_deref(),
-            None,
         )
     }
     /// `models_list_url` > `{models_base_url}/models` > `{proxy_base_url}/models`.
@@ -618,9 +617,8 @@ pub struct Requirements {
 /// to [`Config::resolve_runtime_fields`].
 pub struct RuntimeResolutionContext<'a> {
     pub raw_config: &'a toml::Value,
-    pub remote_settings: Option<&'a crate::util::config::RemoteSettings>,
     pub is_headless: bool,
-    /// `Some(true)` = CLI explicitly enabled, `None` = defer to config/env/remote.
+    /// `Some(true)` = CLI explicitly enabled, `None` = defer to config/env.
     pub cli_subagents: Option<bool>,
     pub cli_web_search_model: Option<&'a str>,
     pub cli_session_summary_model: Option<&'a str>,
@@ -637,7 +635,7 @@ pub struct RuntimeResolutionContext<'a> {
     /// per-model gate / nudge cap) and writes a JSONL line per fire.
     /// Observation-only. Session-scoped — not persisted.
     pub laziness_debug_log: Option<&'a std::path::Path>,
-    /// CLI `--storage-mode` override. `None` = defer to env/remote/default.
+    /// CLI `--storage-mode` override. `None` = defer to env/default.
     pub storage_mode: Option<&'a str>,
 }
 /// First-party credential env vars scrubbed from a BYOK auth-provider helper's
@@ -669,98 +667,56 @@ pub(crate) fn env_string(name: &str) -> Option<String> {
     }
 }
 pub use nofy_config::env_bool;
-/// Compaction-mode precedence (env > config > remote settings > default, with
-/// unrecognized values at each source falling through). `remote` sits just
-/// above the default, mirroring `feature_flag` in `resolve_bool_flag`. Pure so
-/// it's unit-testable without mutating process env.
+/// Compaction-mode precedence (env > config > default, with unrecognized
+/// values at each source falling through). Pure so it's unit-testable without
+/// mutating process env.
 fn resolve_compaction_mode_from(
     env: Option<&str>,
     config: Option<&str>,
-    remote: Option<&str>,
 ) -> nofy_chat_state::CompactionMode {
     use nofy_chat_state::CompactionMode;
     env.and_then(CompactionMode::parse)
         .or_else(|| config.and_then(CompactionMode::parse))
-        .or_else(|| remote.and_then(CompactionMode::parse))
         .unwrap_or_default()
 }
-/// Compaction-detail precedence (env > config > remote settings > default). Pure.
+/// Compaction-detail precedence (env > config > default). Pure.
 /// Controls the per-turn verbatim detail in `segments` mode (default `verbose`).
 fn resolve_compaction_detail_from(
     env: Option<&str>,
     config: Option<&str>,
-    remote: Option<&str>,
 ) -> nofy_chat_state::CompactionDetail {
     use nofy_chat_state::CompactionDetail;
     env.and_then(CompactionDetail::parse)
         .or_else(|| config.and_then(CompactionDetail::parse))
-        .or_else(|| remote.and_then(CompactionDetail::parse))
         .unwrap_or_default()
 }
-/// Resolve a single vendor-compat cell: env > `[compat]` TOML > remote settings
-/// remote flag > default ON.
-fn resolve_compat_cell(
-    env: &str,
-    cfg: Option<bool>,
-    remote: Option<bool>,
-    default: bool,
-) -> Resolved<bool> {
-    resolve_compat_cell_with_env(nofy_config::env_bool(env), cfg, remote, default)
+/// Resolve a single vendor-compat cell: env > `[compat]` TOML > default ON.
+fn resolve_compat_cell(env: &str, cfg: Option<bool>, default: bool) -> Resolved<bool> {
+    resolve_compat_cell_with_env(nofy_config::env_bool(env), cfg, default)
 }
+
 pub(crate) fn resolve_compat_cell_with_env(
     env: Option<bool>,
     cfg: Option<bool>,
-    remote: Option<bool>,
     default: bool,
 ) -> Resolved<bool> {
     if let Some(value) = env {
         Resolved::new(value, ConfigSource::Env)
     } else if let Some(value) = cfg {
         Resolved::new(value, ConfigSource::Config)
-    } else if let Some(value) = remote {
-        Resolved::new(value, ConfigSource::Remote)
     } else {
         Resolved::new(default, ConfigSource::Default)
     }
 }
-fn remote_compat_value(
-    remote: Option<&crate::util::config::RemoteSettings>,
-    key: Option<CompatRemoteKey>,
-) -> Option<bool> {
-    let remote = remote?;
-    match key? {
-        CompatRemoteKey::CursorSkills => remote.cursor_skills_enabled,
-        CompatRemoteKey::CursorRules => remote.cursor_rules_enabled,
-        CompatRemoteKey::CursorAgents => remote.cursor_agents_enabled,
-        CompatRemoteKey::CursorMcps => remote.cursor_mcps_enabled,
-        CompatRemoteKey::CursorHooks => remote.cursor_hooks_enabled,
-        CompatRemoteKey::CursorSessions => remote.cursor_sessions_enabled,
-        CompatRemoteKey::ClaudeSkills => remote.claude_skills_enabled,
-        CompatRemoteKey::ClaudeRules => remote.claude_rules_enabled,
-        CompatRemoteKey::ClaudeAgents => remote.claude_agents_enabled,
-        CompatRemoteKey::ClaudeMcps => remote.claude_mcps_enabled,
-        CompatRemoteKey::ClaudeHooks => remote.claude_hooks_enabled,
-        CompatRemoteKey::ClaudeSessions => remote.claude_sessions_enabled,
-        CompatRemoteKey::CodexSessions => remote.codex_sessions_enabled,
-    }
-}
-/// Resolve vendor compatibility cells from TOML and remote settings.
-fn resolve_compat_config(
-    config: &CompatConfigToml,
-    remote: Option<&crate::util::config::RemoteSettings>,
-) -> CompatConfig {
+
+/// Resolve vendor compatibility cells from TOML.
+fn resolve_compat_config(config: &CompatConfigToml) -> CompatConfig {
     let defaults = CompatConfig::default();
     let mut resolved = defaults;
     for cell in COMPAT_CELLS {
         resolved.set(
             cell,
-            resolve_compat_cell(
-                cell.env_var(),
-                config.value(cell),
-                remote_compat_value(remote, cell.remote_key()),
-                defaults.value(cell),
-            )
-            .value,
+            resolve_compat_cell(cell.env_var(), config.value(cell), defaults.value(cell)).value,
         );
     }
     resolved
@@ -792,10 +748,7 @@ pub(crate) fn compat_config_cell(
         .ok_or(CompatConfigCellError::Malformed)
 }
 /// Resolve only picker-facing session cells from raw config independently.
-pub fn resolve_compat_sessions_from_raw(
-    raw_config: Result<&toml::Value, ()>,
-    remote: Option<&crate::util::config::RemoteSettings>,
-) -> CompatConfig {
+pub fn resolve_compat_sessions_from_raw(raw_config: Result<&toml::Value, ()>) -> CompatConfig {
     let mut config = CompatConfigToml::default();
     for cell in COMPAT_CELLS
         .into_iter()
@@ -818,14 +771,13 @@ pub fn resolve_compat_sessions_from_raw(
             CompatVendor::Codex => config.codex.sessions = value,
         }
     }
-    resolve_compat_config(&config, remote)
+    resolve_compat_config(&config)
 }
-/// Resolve a string setting: cli > env > config > feature flag. `None` if no source provides a value.
+/// Resolve a string setting: cli > env > config. `None` if no source provides a value.
 pub(crate) fn resolve_string_flag(
     cli_arg: Option<&str>,
     env_var: &str,
     config_val: Option<&str>,
-    feature_flag_val: Option<&str>,
 ) -> Option<Resolved<String>> {
     if let Some(val) = cli_arg.filter(|s| !s.is_empty()) {
         return Some(Resolved::new(val.to_owned(), ConfigSource::Cli));
@@ -836,19 +788,14 @@ pub(crate) fn resolve_string_flag(
     if let Some(val) = config_val.filter(|s| !s.is_empty()) {
         return Some(Resolved::new(val.to_owned(), ConfigSource::Config));
     }
-    if let Some(val) = feature_flag_val.filter(|s| !s.is_empty()) {
-        return Some(Resolved::new(val.to_owned(), ConfigSource::Remote));
-    }
     None
 }
 /// Resolve `enabled` for section-based configs (memory, subagents, etc.).
-/// Feature flag only applies when the TOML section is absent.
 pub(crate) fn resolve_enabled(
     cli_flag: Option<bool>,
     env_var: &str,
     config_enabled: bool,
     has_local_section: bool,
-    feature_flag_val: Option<bool>,
     default: bool,
 ) -> Resolved<bool> {
     let config_val = if has_local_section {
@@ -859,7 +806,6 @@ pub(crate) fn resolve_enabled(
     BoolFlag::env(env_var)
         .cli(cli_flag)
         .config(config_val)
-        .feature_flag(feature_flag_val)
         .default(default)
         .resolve()
 }
@@ -1040,8 +986,8 @@ pub struct ModelsConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub image_description: Option<String>,
     /// Model pin for next-prompt suggestions (tab-autocomplete ghost text).
-    /// Unset = remote pin, then the client hint / built-in `nofy-build-0.1`
-    /// default with the catalog guard; see `ModelOverrideConfig::resolve`.
+    /// Unset = the client hint / built-in `nofy-build-0.1` default with the
+    /// catalog guard; see `ModelOverrideConfig::resolve`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prompt_suggestion: Option<String>,
     /// Restricts which models are user-selectable for normal chat (picker,
@@ -1173,7 +1119,7 @@ impl SandboxSettingsConfig {
         if let Some(val) = requirement {
             return Resolved::new(val.to_owned(), ConfigSource::Requirement);
         }
-        resolve_string_flag(cli_arg, "NOFY_SANDBOX", self.profile.as_deref(), None)
+        resolve_string_flag(cli_arg, "NOFY_SANDBOX", self.profile.as_deref())
             .unwrap_or_else(|| Resolved::new("off".to_owned(), ConfigSource::Default))
     }
     /// Resolve auto_allow_bash: requirement > env > config > default (false).
@@ -1233,35 +1179,22 @@ pub struct SuggestionsConfig {
     pub debounce_ms: Option<u64>,
 }
 impl SuggestionsConfig {
-    pub fn resolve_enabled(
-        &self,
-        remote: Option<&crate::util::config::RemoteSettings>,
-    ) -> Resolved<bool> {
+    pub fn resolve_enabled(&self) -> Resolved<bool> {
         BoolFlag::env("NOFY_SUGGESTIONS")
             .config(self.enabled)
-            .feature_flag(remote.and_then(|r| r.suggestions_enabled))
             .default(false)
             .resolve()
     }
-    pub fn resolve_ai_enabled(
-        &self,
-        remote: Option<&crate::util::config::RemoteSettings>,
-    ) -> Resolved<bool> {
+    pub fn resolve_ai_enabled(&self) -> Resolved<bool> {
         BoolFlag::env("NOFY_SUGGESTIONS_AI")
             .config(self.ai_enabled)
-            .feature_flag(remote.and_then(|r| r.suggestions_ai_enabled))
             .default(false)
             .resolve()
     }
     pub fn resolve_ai_model(&self) -> String {
-        resolve_string_flag(
-            None,
-            "NOFY_SUGGESTIONS_AI_MODEL",
-            self.ai_model.as_deref(),
-            None,
-        )
-        .map(|r| r.value)
-        .unwrap_or_else(|| "nofy-build".to_owned())
+        resolve_string_flag(None, "NOFY_SUGGESTIONS_AI_MODEL", self.ai_model.as_deref())
+            .map(|r| r.value)
+            .unwrap_or_else(|| "nofy-build".to_owned())
     }
 }
 /// `[storage]` section from config.toml.
@@ -1328,9 +1261,8 @@ pub struct Config {
     pub goal: GoalConfig,
     #[serde(default)]
     pub workflows: WorkflowsConfig,
-    /// `[doom_loop_recovery]` section: the shared settings struct — ONE type
-    /// serves this TOML table and the remote remote settings `doom_loop_recovery`
-    /// object. See [`crate::util::config::DoomLoopRecoverySettings`].
+    /// `[doom_loop_recovery]` section. See
+    /// [`crate::util::config::DoomLoopRecoverySettings`].
     #[serde(default)]
     pub doom_loop_recovery: crate::util::config::DoomLoopRecoverySettings,
     /// `[worktree]` section (currently `[worktree.auto_gc]` only).
@@ -1483,7 +1415,7 @@ pub struct Config {
     #[serde(skip)]
     pub cli_no_memory: bool,
     /// Original CLI `--subagents` tri-state, preserved for re-resolution
-    /// when remote settings settings are refreshed on /new.
+    /// on `/new`.
     #[serde(skip)]
     pub cli_subagents: Option<bool>,
     /// Resolved memory configuration. `None` when memory is disabled.
@@ -1501,10 +1433,6 @@ pub struct Config {
     /// Determines behavior like relay sync enablement (only enabled in TUI mode).
     #[serde(skip)]
     pub mode: AgentMode,
-    /// Remote settings fetched from cli-chat-proxy at startup.
-    /// Used for upload limits (replaces on-demand /v1/storage/limits fetch).
-    #[serde(skip)]
-    pub remote_settings: Option<crate::util::config::RemoteSettings>,
     #[serde(skip)]
     pub cli_agents: Vec<nofy_agent::config::AgentDefinition>,
     #[serde(skip)]
@@ -1550,7 +1478,7 @@ pub struct Config {
     /// Whether the runtime turn-end TodoGate is force-enabled via the
     /// `--todo-gate` CLI flag. Session-scoped — not persisted. When
     /// true, flips the runtime policy's `enabled` bit on regardless of
-    /// remote settings or the built-in default (which is `false`).
+    /// the built-in default (which is `false`).
     /// The gate runs only while a `/goal` is active (goal reminders
     /// inject `<task_completion_discipline>`); global built-in templates
     /// do not activate it.
@@ -1573,14 +1501,14 @@ pub struct Config {
     pub respect_gitignore: bool,
     /// Whether to enrich path-not-found errors with CWD reminders,
     /// "dropped repo folder" correction, and similar-name suggestions.
-    /// Default `false`. Enabled via remote settings.
+    /// Default `false`.
     /// Serialized to `config.json` on GCS so traces can distinguish
     /// which sessions had path-not-found hints active.
     #[serde(default)]
     pub path_not_found_hints: bool,
     /// Whether to fetch managed MCP configs from the managed connectors service at startup.
     /// Resolved by [`crate::config::ManagedMcpsConfig::resolve`]: env var >
-    /// config.toml > remote settings > default (off in headless, on in interactive).
+    /// config.toml > default (off in headless, on in interactive).
     #[serde(skip)]
     pub managed_mcps_enabled: bool,
     #[serde(skip)]
@@ -1590,10 +1518,9 @@ pub struct Config {
     /// for the idle-gated notification drain.
     #[serde(skip)]
     pub auto_wake_enabled: bool,
-    /// Resolved vendor-compat config (env → `[compat]` TOML → feature flag →
-    /// default ON), built from `compat` + `remote_settings` in
-    /// `resolve_runtime_fields`. Threaded into skills / rules / AGENTS.md
-    /// discovery.
+    /// Resolved vendor-compat config (env → `[compat]` TOML → default ON),
+    /// built from `compat` in `resolve_runtime_fields`. Threaded into
+    /// skills / rules / AGENTS.md discovery.
     #[serde(skip)]
     pub compat_resolved: CompatConfig,
     /// Enforced requirement pins from `requirements.toml`.
@@ -1609,8 +1536,8 @@ pub struct Config {
     /// Image describe model (`nofy-build` default via `ModelOverrideConfig::resolve`).
     #[serde(skip)]
     pub image_description_model: Option<String>,
-    /// Next-prompt suggestion model pin (`env > [models] prompt_suggestion >
-    /// remote`), consumed catalog-guarded by `handle_suggest_prompt`; see
+    /// Next-prompt suggestion model pin (`env > [models] prompt_suggestion`),
+    /// consumed catalog-guarded by `handle_suggest_prompt`; see
     /// `ModelOverrideConfig::resolve`.
     #[serde(skip)]
     pub prompt_suggest_model_pin: crate::config::PromptSuggestModelPin,
@@ -1722,9 +1649,9 @@ pub struct SessionConfig {
     ///
     /// `None` means "user didn't set it"; the resolver in
     /// `crate::util::config::resolve_auto_compact_threshold_percent` falls
-    /// through to remote tiers and ultimately the hardcoded default 85.
+    /// through to the model catalog and ultimately the hardcoded default 85.
     /// Read this field via the resolver — not directly — to honor the full
-    /// precedence chain (env, per-model, remote, default).
+    /// precedence chain (env, per-model, catalog, default).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auto_compact_threshold_percent: Option<u8>,
     /// Whether to load environment variables from .envrc files.
@@ -1820,7 +1747,7 @@ impl Default for Config {
             suggestions: SuggestionsConfig::default(),
             marketplace: MarketplaceConfig::default(),
             diagnostics: DiagnosticsConfig::default(),
-            storage_mode: StorageMode::resolve(None, None),
+            storage_mode: StorageMode::resolve(None),
             default_model_override: None,
             reasoning_effort_override: None,
             web_search_model_override: None,
@@ -1830,7 +1757,6 @@ impl Default for Config {
             agent_profile_path: None,
             client_version: Some(nofy_version::VERSION.to_string()),
             mode: AgentMode::default(),
-            remote_settings: None,
             cli_agents: Vec::new(),
             cli_agent_overrides: CliAgentOverrides::default(),
             subagents_enabled: true,
@@ -2128,8 +2054,7 @@ impl Config {
         if config.client_version.is_none() {
             config.client_version = Self::default().client_version;
         }
-        let model_overrides =
-            crate::config::ModelOverrideConfig::resolve(None, None, raw_config, None);
+        let model_overrides = crate::config::ModelOverrideConfig::resolve(None, None, raw_config);
         config.web_search_model = model_overrides.web_search;
         config.session_summary_model = model_overrides.session_summary;
         config.image_description_model = model_overrides.image_description;
@@ -2144,42 +2069,30 @@ impl Config {
     /// per cwd after that cwd's authoritative folder-trust resolve.
     pub(crate) fn resolve_subagents(&mut self, cli_flag: bool, raw_config: &toml::Value) {
         let sa = crate::config::SubagentsConfig::resolve(cli_flag, raw_config);
-        let remote_settings = self.remote_settings.clone();
-        self.resolve_subagent_limits(&sa, remote_settings.as_ref());
+        self.resolve_subagent_limits(&sa);
         self.subagents_enabled = sa.enabled;
         self.subagent_model_overrides = sa.models;
         self.subagent_toggle = sa.toggle;
         self.subagent_roles = sa.roles;
         self.subagent_personas = sa.personas;
         let env = std::env::var(crate::config::SubagentsConfig::ENV_MAX_DEPTH).ok();
-        let remote = self
-            .remote_settings
-            .as_ref()
-            .and_then(|r| r.subagents_max_depth);
         self.subagents_max_depth =
-            crate::config::SubagentsConfig::resolve_max_depth(env.as_deref(), sa.max_depth, remote);
+            crate::config::SubagentsConfig::resolve_max_depth(env.as_deref(), sa.max_depth);
     }
-    fn resolve_subagent_limits(
-        &mut self,
-        sa: &crate::config::SubagentsConfig,
-        remote: Option<&crate::util::config::RemoteSettings>,
-    ) {
+    fn resolve_subagent_limits(&mut self, sa: &crate::config::SubagentsConfig) {
         use crate::config::SubagentsConfig;
         let env = |name: &str| std::env::var(name).ok();
         self.subagents_max_concurrent = SubagentsConfig::resolve_max_concurrent(
             env(SubagentsConfig::ENV_MAX_CONCURRENT).as_deref(),
             sa.max_concurrent,
-            remote.and_then(|r| r.subagents_max_concurrent),
         );
         self.subagents_limit_behavior = SubagentsConfig::resolve_limit_behavior(
             env(SubagentsConfig::ENV_LIMIT_BEHAVIOR).as_deref(),
             sa.limit_behavior.as_deref(),
-            remote.and_then(|r| r.subagents_limit_behavior.as_deref()),
         );
         self.workflow_max_concurrent_agents = SubagentsConfig::resolve_workflow_max_concurrent(
             env(SubagentsConfig::ENV_WORKFLOW_MAX_CONCURRENT).as_deref(),
             sa.workflow_max_concurrent,
-            remote.and_then(|r| r.workflow_max_concurrent_agents),
         );
     }
     /// Resolve all `#[serde(skip)]` runtime fields that have resolver functions.
@@ -2193,7 +2106,6 @@ impl Config {
     /// - memory_config via `MemoryConfig::resolve`
     /// - disable_web_search (CLI flag ORed with config.toml)
     /// - storage_mode via `StorageMode::resolve`
-    /// - path_not_found_hints from remote_settings
     ///
     /// Note: `worktree_type` is resolved directly in `MvpAgent::new` via
     /// `resolve_worktree_type` since it's an agent-level field, not a Config field.
@@ -2209,9 +2121,8 @@ impl Config {
             .get("subagents")
             .and_then(|s| s.get("max_depth"))
             .and_then(|v| v.as_integer());
-        let remote = ctx.remote_settings.and_then(|r| r.subagents_max_depth);
         self.subagents_max_depth =
-            crate::config::SubagentsConfig::resolve_max_depth(env.as_deref(), toml_max, remote);
+            crate::config::SubagentsConfig::resolve_max_depth(env.as_deref(), toml_max);
         let subagents_toml = crate::config::SubagentsConfig {
             max_concurrent: ctx
                 .raw_config
@@ -2231,24 +2142,19 @@ impl Config {
                 .and_then(|v| v.as_integer()),
             ..Default::default()
         };
-        self.resolve_subagent_limits(&subagents_toml, ctx.remote_settings);
+        self.resolve_subagent_limits(&subagents_toml);
         let tools = crate::config::ToolsConfig::resolve(ctx.raw_config);
         self.respect_gitignore = match self.requirements.respect_gitignore.pinned() {
             Some(pinned) => pinned,
             None => tools.respect_gitignore,
         };
-        let mcps = crate::config::ManagedMcpsConfig::resolve(
-            ctx.raw_config,
-            ctx.remote_settings,
-            ctx.is_headless,
-        );
+        let mcps = crate::config::ManagedMcpsConfig::resolve(ctx.raw_config, ctx.is_headless);
         self.managed_mcps_enabled = mcps.enabled;
         self.managed_mcp_gateway_tools_enabled = mcps.gateway_tools_enabled;
         let models = crate::config::ModelOverrideConfig::resolve(
             ctx.cli_web_search_model,
             ctx.cli_session_summary_model,
             ctx.raw_config,
-            ctx.remote_settings,
         );
         self.web_search_model = models.web_search;
         self.session_summary_model = models.session_summary;
@@ -2260,24 +2166,18 @@ impl Config {
             ctx.cli_experimental_memory,
             ctx.cli_no_memory,
             ctx.raw_config,
-            ctx.remote_settings,
         );
         self.memory_config = if mem.enabled { Some(mem) } else { None };
         self.disable_web_search = self.disable_web_search || ctx.disable_web_search;
         self.todo_gate = ctx.todo_gate;
         self.laziness_debug_log = ctx.laziness_debug_log.map(std::path::Path::to_path_buf);
-        self.storage_mode =
-            crate::config::StorageMode::resolve(ctx.storage_mode, ctx.remote_settings);
-        if let Some(v) = ctx.remote_settings.and_then(|s| s.path_not_found_hints) {
-            self.path_not_found_hints = v;
-        }
+        self.storage_mode = crate::config::StorageMode::resolve(ctx.storage_mode);
         self.auto_wake_enabled = BoolFlag::env("NOFY_AUTO_WAKE")
             .config(self.features.auto_wake)
-            .feature_flag(ctx.remote_settings.and_then(|r| r.auto_wake_enabled))
             .default(true)
             .resolve()
             .value;
-        self.compat_resolved = resolve_compat_config(&self.compat, ctx.remote_settings);
+        self.compat_resolved = resolve_compat_config(&self.compat);
     }
     /// Re-resolve eagerly-resolved runtime fields using the current `Config`
     /// state and fresh `raw_config`. Builds a [`RuntimeResolutionContext`] from
@@ -2285,13 +2185,11 @@ impl Config {
     ///
     /// Integration test coverage: `tests/test_settings_refresh.rs`.
     pub(crate) fn re_resolve_runtime_fields(&mut self, raw_config: &toml::Value) {
-        let remote_settings = self.remote_settings.clone();
         let cli_web_search_model = self.web_search_model_override.clone();
         let cli_session_summary_model = self.session_summary_model_override.clone();
         let laziness_debug_log = self.laziness_debug_log.clone();
         let ctx = RuntimeResolutionContext {
             raw_config,
-            remote_settings: remote_settings.as_ref(),
             is_headless: self.mode == AgentMode::Headless,
             cli_subagents: self.cli_subagents,
             cli_web_search_model: cli_web_search_model.as_deref(),
@@ -2304,7 +2202,6 @@ impl Config {
             storage_mode: None,
         };
         self.resolve_runtime_fields(&ctx);
-        crate::util::config::set_remote_campaigns_from_settings(self.remote_settings.as_ref());
     }
     /// If the TOML contains `[auth]`, copy its contents under `[nofy_com_config]`.
     /// `[nofy_com_config]` takes precedence if both are present (explicit wins).
@@ -2354,8 +2251,8 @@ impl Config {
         self.resolve_voice_mode().value
     }
     /// Two-pass (prefire) compaction gate. Default OFF (opt-in) — enable via
-    /// remote settings `two_pass_compaction_enabled`, the `[features] two_pass_compaction`
-    /// config.toml key, or `NOFY_TWO_PASS_COMPACTION` env.
+    /// the `[features] two_pass_compaction` config.toml key or
+    /// `NOFY_TWO_PASS_COMPACTION` env.
     pub(crate) fn is_two_pass_compaction_enabled(&self) -> bool {
         self.resolve_two_pass_compaction().value
     }
@@ -2369,16 +2266,6 @@ impl Config {
         if let Some(mode) = self.features.telemetry {
             return Resolved::new(mode, ConfigSource::Config);
         }
-        if let Some(rs) = self.remote_settings.as_ref() {
-            if let Some(mode_str) = rs.telemetry_mode.as_deref()
-                && let Some(mode) = TelemetryMode::parse(mode_str)
-            {
-                return Resolved::new(mode, ConfigSource::Remote);
-            }
-            if let Some(val) = rs.telemetry_enabled {
-                return Resolved::new(TelemetryMode::from(val), ConfigSource::Remote);
-            }
-        }
         Resolved::new(TelemetryMode::Disabled, ConfigSource::Default)
     }
     /// Trace upload was removed in the sanitized build; the config fields
@@ -2388,54 +2275,40 @@ impl Config {
     pub(crate) fn resolve_trace_upload(&self) -> Resolved<bool> {
         Resolved::new(false, ConfigSource::Default)
     }
-    /// Resolve jemalloc heap-profile config from stored remote settings + gates.
+    /// Resolve jemalloc heap-profile config from gates (no remote tier).
     pub fn resolve_jemalloc_heap_profile(
         &self,
         data_collection_disabled: bool,
     ) -> crate::heap_profile::JemallocHeapProfileConfig {
-        let rs = self.remote_settings.as_ref();
         crate::heap_profile::resolve_jemalloc_heap_profile(
-            rs.and_then(|s| s.jemalloc_heap_profile_enabled),
-            rs.and_then(|s| s.jemalloc_heap_profile_thresholds_bytes.as_deref()),
-            rs.and_then(|s| s.jemalloc_heap_profile_poll_interval_secs),
+            None,
+            None,
+            None,
             data_collection_disabled,
             self.resolve_trace_upload().value,
             crate::heap_profile::prof_available(),
         )
     }
     pub(crate) fn resolve_feedback(&self) -> Resolved<bool> {
-        let ff = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.feedback_enabled);
         BoolFlag::env("NOFY_FEEDBACK_ENABLED")
             .requirement(self.requirements.feedback.pinned())
             .config(self.features.feedback)
-            .feature_flag(ff)
             .default(true)
             .resolve()
     }
     pub(crate) fn resolve_two_pass_compaction(&self) -> Resolved<bool> {
-        let ff = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.two_pass_compaction_enabled);
         BoolFlag::env("NOFY_TWO_PASS_COMPACTION")
             .config(self.features.two_pass_compaction)
-            .feature_flag(ff)
             .default(false)
             .resolve()
     }
     /// Server-side doom-loop check policy (the `x-nofy-doom-loop-check`
     /// header, trigger parsing, and confident-signal resampling, all
-    /// applied by the sampler). Merged
-    /// PER-FIELD across the `[doom_loop_recovery]` TOML table and the
-    /// remote settings `doom_loop_recovery` object (a partial remote object only
-    /// overrides the fields it sets). Gate precedence: env
-    /// `NOFY_DOOM_LOOP_RECOVERY` > TOML `enabled` > remote `enabled` >
+    /// applied by the sampler). Gate precedence: env
+    /// `NOFY_DOOM_LOOP_RECOVERY` > `[doom_loop_recovery]` TOML `enabled` >
     /// default ON — each layer's `false` is an independent kill switch, and
     /// `None` IS the off state, so disabled has exactly one spelling.
-    /// Tunables have no env layer (TOML > remote > default) and are clamped
+    /// Tunables have no env layer (TOML > default) and are clamped
     /// to their documented ranges. Returns the composite runtime policy
     /// rather than `Resolved` because each knob resolves from its own
     /// source (the `resolve_reminder_policy` pattern).
@@ -2443,13 +2316,8 @@ impl Config {
         &self,
     ) -> Option<nofy_sampling_types::DoomLoopRecoveryPolicy> {
         use nofy_sampling_types::DoomLoopRecoveryPolicy as Policy;
-        let remote = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.doom_loop_recovery.as_ref());
         let enabled = BoolFlag::env("NOFY_DOOM_LOOP_RECOVERY")
             .config(self.doom_loop_recovery.enabled)
-            .feature_flag(remote.and_then(|s| s.enabled))
             .default(true)
             .resolve()
             .value;
@@ -2457,195 +2325,123 @@ impl Config {
             max_threshold: self
                 .doom_loop_recovery
                 .max_threshold
-                .or(remote.and_then(|s| s.max_threshold))
                 .map_or(Policy::DEFAULT_MAX_THRESHOLD, Policy::clamp_max_threshold),
             max_retries: self
                 .doom_loop_recovery
                 .max_retries
-                .or(remote.and_then(|s| s.max_retries))
                 .map_or(Policy::DEFAULT_MAX_RETRIES, Policy::clamp_max_retries),
         })
     }
     /// Automatic worktree GC policy. Precedence: env kill/dry-run >
-    /// `[worktree.auto_gc]` TOML > remote `worktree_auto_gc` > defaults.
+    /// `[worktree.auto_gc]` TOML > defaults.
     /// Platform age-expiry (non-Linux dead-only) is enforced inside
     /// `nofy_fast_worktree::maybe_auto_gc`, not here.
     pub(crate) fn resolve_worktree_auto_gc(&self) -> nofy_fast_worktree::ResolvedWorktreeAutoGc {
-        crate::util::config::resolve_worktree_auto_gc_from_settings(
-            Some(&self.worktree.auto_gc),
-            self.remote_settings
-                .as_ref()
-                .and_then(|s| s.worktree_auto_gc.as_ref()),
-        )
+        crate::util::config::resolve_worktree_auto_gc_from_settings(Some(&self.worktree.auto_gc))
     }
-    /// Gate first-run auto-registration of the official xAI marketplace source.
-    /// Precedence: env `NOFY_OFFICIAL_MARKETPLACE_AUTO_REGISTER` > remote settings >
-    /// default off (so only remote settings-targeted teams get it pre-public). No
-    /// managed `.requirement` pin: `marketplace_allowlist` already gates sources.
+    /// Gate first-run auto-registration of the official marketplace source.
+    /// Precedence: env `NOFY_OFFICIAL_MARKETPLACE_AUTO_REGISTER` > default off.
+    /// No managed `.requirement` pin: `marketplace_allowlist` already gates
+    /// sources.
     pub(crate) fn resolve_official_marketplace_auto_register(&self) -> Resolved<bool> {
-        let ff = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.official_marketplace_auto_register);
         BoolFlag::env("NOFY_OFFICIAL_MARKETPLACE_AUTO_REGISTER")
-            .feature_flag(ff)
             .default(false)
             .resolve()
     }
     pub(crate) fn resolve_lsp_tools(&self) -> Resolved<bool> {
-        let ff = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.lsp_tools_enabled);
         BoolFlag::env("NOFY_LSP_TOOLS")
             .requirement(self.requirements.lsp_tools.pinned())
             .config(self.features.lsp_tools)
-            .feature_flag(ff)
             .resolve()
     }
     pub(crate) fn resolve_web_fetch(&self) -> Resolved<bool> {
-        let ff = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.web_fetch_enabled);
         BoolFlag::env("NOFY_WEB_FETCH")
             .requirement(self.requirements.web_fetch.pinned())
             .config(self.features.web_fetch)
-            .feature_flag(ff)
             .resolve()
     }
-    /// `ask_user_question` tool gate; default ON. remote settings
-    /// `ask_user_question_enabled: false` (or `[features]` / env) is a remote
-    /// kill-switch. The `_meta.askUserQuestion` override (`--no-ask-user`) is
-    /// applied at the spawn site and outranks this resolver.
+    /// `ask_user_question` tool gate; default ON. `[features]` / env are the
+    /// kill-switches. The `_meta.askUserQuestion` override (`--no-ask-user`)
+    /// is applied at the spawn site and outranks this resolver.
     pub(crate) fn resolve_ask_user_question(&self) -> Resolved<bool> {
-        let ff = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.ask_user_question_enabled);
         BoolFlag::env("NOFY_ASK_USER_QUESTION")
             .requirement(self.requirements.ask_user_question.pinned())
             .config(self.features.ask_user_question)
-            .feature_flag(ff)
             .default(true)
             .resolve()
     }
     /// Session recap gate (the `/recap` command + automatic return-from-away
-    /// recap). Default ON — disable via remote settings `session_recap`, the
-    /// `[features] session_recap` config.toml key, or `NOFY_SESSION_RECAP` env.
+    /// recap). Default ON — disable via the `[features] session_recap`
+    /// config.toml key or `NOFY_SESSION_RECAP` env.
     pub(crate) fn resolve_session_recap(&self) -> Resolved<bool> {
-        let ff = self.remote_settings.as_ref().and_then(|s| s.session_recap);
         BoolFlag::env("NOFY_SESSION_RECAP")
             .config(self.features.session_recap)
-            .feature_flag(ff)
             .default(true)
             .resolve()
     }
-    /// Per-turn dashboard summary gate. Default ON — disable via remote
-    /// settings `turn_summary`, the `[features] turn_summary` config.toml key,
-    /// or `NOFY_TURN_SUMMARY` env.
+    /// Per-turn dashboard summary gate. Default ON — disable via the
+    /// `[features] turn_summary` config.toml key or `NOFY_TURN_SUMMARY` env.
     pub(crate) fn resolve_turn_summary(&self) -> Resolved<bool> {
-        let ff = self.remote_settings.as_ref().and_then(|s| s.turn_summary);
         BoolFlag::env("NOFY_TURN_SUMMARY")
             .config(self.features.turn_summary)
-            .feature_flag(ff)
             .default(true)
             .resolve()
     }
     /// Voice dictation gate. Default on.
     ///
     /// Precedence: requirements > `NOFY_VOICE_MODE` > config/managed
-    /// `[features] voice_mode` > remote `voice_mode_enabled` > default true.
-    /// The pager may force API-key sessions on when only remote is off.
+    /// `[features] voice_mode` > default true.
     pub(crate) fn resolve_voice_mode(&self) -> Resolved<bool> {
-        let ff = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.voice_mode_enabled);
         BoolFlag::env("NOFY_VOICE_MODE")
             .requirement(self.requirements.voice_mode.pinned())
             .config(self.features.voice_mode)
-            .feature_flag(ff)
             .default(true)
             .resolve()
     }
-    /// Goal mode (`/goal`) master switch. Default ON: deployments that can't
-    /// reach cli-chat-proxy `/v1/settings` (custom `models_base_url`, external
-    /// `auth_provider_command`, air-gapped proxies) never receive the
-    /// remote settings `goal_enabled` flag, so the default must not carve them out.
+    /// Goal mode (`/goal`) master switch. Default ON.
     pub(crate) fn resolve_goal(&self) -> Resolved<bool> {
-        let ff = self.remote_settings.as_ref().and_then(|s| s.goal_enabled);
-        if ff == Some(false) {
-            return Resolved::new(false, ConfigSource::Remote);
-        }
         BoolFlag::env("NOFY_GOAL")
             .config(self.goal.enabled)
-            .feature_flag(ff)
             .default(true)
             .resolve()
     }
     /// Background workflows (`workflow` tool, `.nofy/workflows/*.rhai`,
-    /// `/deep-research`, host-owned `/goal` driver). Default ON: deployments
-    /// that never receive remote settings still get workflows; `Some(false)`
-    /// remote / config / env remains a kill-switch.
+    /// `/deep-research`, host-owned `/goal` driver). Default ON; config / env
+    /// `false` remains a kill-switch.
     pub(crate) fn resolve_workflows(&self) -> Resolved<bool> {
-        let ff = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.workflows_enabled);
-        if ff == Some(false) {
-            return Resolved::new(false, ConfigSource::Remote);
-        }
         BoolFlag::env("NOFY_WORKFLOWS")
             .config(self.workflows.enabled)
-            .feature_flag(ff)
             .default(true)
             .resolve()
     }
     /// Classifier, planner, and summary all default to goal mode itself: when
-    /// `/goal` is on they are on unless config/env/remote says otherwise.
+    /// `/goal` is on they are on unless config/env says otherwise.
     /// `goal_enabled` is the session's already-resolved master switch (the same
     /// value the actor stores), passed in so a sub-role default can never
     /// disagree with whether `/goal` is on.
     pub(crate) fn resolve_goal_classifier_enabled(&self, goal_enabled: bool) -> Resolved<bool> {
         BoolFlag::env("NOFY_GOAL_CLASSIFIER")
             .config(self.goal.classifier_enabled)
-            .feature_flag(
-                self.remote_settings
-                    .as_ref()
-                    .and_then(|s| s.goal_classifier_enabled),
-            )
             .default(goal_enabled)
             .resolve()
     }
     pub(crate) fn resolve_goal_planner_enabled(&self, goal_enabled: bool) -> Resolved<bool> {
         BoolFlag::env("NOFY_GOAL_PLANNER")
             .config(self.goal.planner_enabled)
-            .feature_flag(
-                self.remote_settings
-                    .as_ref()
-                    .and_then(|s| s.goal_planner_enabled),
-            )
             .default(goal_enabled)
             .resolve()
     }
     pub(crate) fn resolve_goal_summary_enabled(&self, goal_enabled: bool) -> Resolved<bool> {
         BoolFlag::env("NOFY_GOAL_SUMMARY")
             .config(self.goal.summary_enabled)
-            .feature_flag(
-                self.remote_settings
-                    .as_ref()
-                    .and_then(|s| s.goal_summary_enabled),
-            )
             .default(goal_enabled)
             .resolve()
     }
-    /// Goal count resolver: env(parse) > config > remote > default, then clamp.
+    /// Goal count resolver: env(parse) > config > default, then clamp.
     /// An unparseable env value falls through to the next source.
     fn resolve_goal_u32(
         env_var: &str,
         config: Option<u32>,
-        remote: Option<u32>,
         default: u32,
         clamp: impl Fn(u32) -> u32,
     ) -> Resolved<u32> {
@@ -2656,9 +2452,6 @@ impl Config {
         }
         if let Some(v) = config {
             return Resolved::new(clamp(v), ConfigSource::Config);
-        }
-        if let Some(v) = remote {
-            return Resolved::new(clamp(v), ConfigSource::Remote);
         }
         Resolved::new(default, ConfigSource::Default)
     }
@@ -2671,9 +2464,6 @@ impl Config {
         Self::resolve_goal_u32(
             "NOFY_GOAL_VERIFIER_N",
             self.goal.verifier_count,
-            self.remote_settings
-                .as_ref()
-                .and_then(|s| s.goal_verifier_count),
             GOAL_VERIFIER_SKEPTIC_COUNT,
             |v| v.clamp(GOAL_VERIFIER_SKEPTIC_MIN, GOAL_VERIFIER_SKEPTIC_MAX),
         )
@@ -2687,9 +2477,6 @@ impl Config {
         Self::resolve_goal_u32(
             "NOFY_GOAL_CLASSIFIER_MAX",
             self.goal.classifier_max_runs,
-            self.remote_settings
-                .as_ref()
-                .and_then(|s| s.goal_classifier_max_runs),
             GOAL_CLASSIFIER_MAX_RUNS_DEFAULT,
             |v| v.max(GOAL_CLASSIFIER_MAX_RUNS_MIN),
         )
@@ -2701,19 +2488,15 @@ impl Config {
         Self::resolve_goal_u32(
             "NOFY_GOAL_STRATEGIST_EVERY",
             self.goal.strategist_every,
-            self.remote_settings
-                .as_ref()
-                .and_then(|s| s.goal_strategist_every),
             (classifier_max_runs / 2).max(1),
             |v| v.max(1),
         )
     }
-    /// Re-verify escalation threshold; floored at 1. No remote layer.
+    /// Re-verify escalation threshold; floored at 1.
     pub(crate) fn resolve_goal_reverify_after(&self) -> Resolved<u32> {
         Self::resolve_goal_u32(
             "NOFY_GOAL_REVERIFY_AFTER",
             self.goal.reverify_after,
-            None,
             crate::session::acp_session::GOAL_REVERIFY_AFTER_DEFAULT,
             |v| v.max(1),
         )
@@ -2728,12 +2511,11 @@ impl Config {
     }
     /// Shared single-pair resolution. Precedence: kill-switch ⇒
     /// `InheritCurrent`/`Config` > `config_pair` ⇒ `Explicit`/`Config` >
-    /// `remote_pair` ⇒ `Explicit`/`Remote` > `InheritCurrent`/`Default`. The
-    /// chosen pair is cloned only on its branch.
+    /// `InheritCurrent`/`Default`. The chosen pair is cloned only on its
+    /// branch.
     fn resolve_single_role_model(
         use_current_only: bool,
         config_pair: Option<&crate::util::config::GoalRoleModel>,
-        remote_pair: Option<&crate::util::config::GoalRoleModel>,
     ) -> Resolved<GoalRoleModelChoice> {
         if use_current_only {
             return Resolved::new(GoalRoleModelChoice::InheritCurrent, ConfigSource::Config);
@@ -2744,15 +2526,9 @@ impl Config {
                 ConfigSource::Config,
             );
         }
-        match remote_pair {
-            Some(pair) => Resolved::new(
-                GoalRoleModelChoice::Explicit(pair.clone()),
-                ConfigSource::Remote,
-            ),
-            None => Resolved::new(GoalRoleModelChoice::InheritCurrent, ConfigSource::Default),
-        }
+        Resolved::new(GoalRoleModelChoice::InheritCurrent, ConfigSource::Default)
     }
-    /// Planner role model: `[goal]` config then remote. No env layer (only the
+    /// Planner role model: `[goal]` config. No env layer (only the
     /// kill-switch reads env).
     ///
     /// An `Explicit` pair is applied as `runtime_overrides.model`, resolved before
@@ -2762,26 +2538,14 @@ impl Config {
         &self,
         use_current_only: bool,
     ) -> Resolved<GoalRoleModelChoice> {
-        Self::resolve_single_role_model(
-            use_current_only,
-            self.goal.planner_model.as_ref(),
-            self.remote_settings
-                .as_ref()
-                .and_then(|s| s.goal_planner_model.as_ref()),
-        )
+        Self::resolve_single_role_model(use_current_only, self.goal.planner_model.as_ref())
     }
     /// Strategist role model; same precedence as [`Self::resolve_goal_planner_model`].
     pub(crate) fn resolve_goal_strategist_model(
         &self,
         use_current_only: bool,
     ) -> Resolved<GoalRoleModelChoice> {
-        Self::resolve_single_role_model(
-            use_current_only,
-            self.goal.strategist_model.as_ref(),
-            self.remote_settings
-                .as_ref()
-                .and_then(|s| s.goal_strategist_model.as_ref()),
-        )
+        Self::resolve_single_role_model(use_current_only, self.goal.strategist_model.as_ref())
     }
     /// Skeptic pool; same precedence as [`Self::resolve_goal_planner_model`] but
     /// over a pool. Pool order is preserved for the round-robin expansion in
@@ -2793,33 +2557,22 @@ impl Config {
         if use_current_only {
             return Resolved::new(Vec::new(), ConfigSource::Config);
         }
-        let to_choices = |pool: &[crate::util::config::GoalRoleModel]| {
-            pool.iter()
+        if !self.goal.skeptic_models.is_empty() {
+            let choices = self
+                .goal
+                .skeptic_models
+                .iter()
                 .cloned()
                 .map(GoalRoleModelChoice::Explicit)
-                .collect::<Vec<_>>()
-        };
-        if !self.goal.skeptic_models.is_empty() {
-            return Resolved::new(to_choices(&self.goal.skeptic_models), ConfigSource::Config);
+                .collect::<Vec<_>>();
+            return Resolved::new(choices, ConfigSource::Config);
         }
-        match self
-            .remote_settings
-            .as_ref()
-            .map(|s| s.goal_skeptic_models.as_slice())
-        {
-            Some(pool) if !pool.is_empty() => Resolved::new(to_choices(pool), ConfigSource::Remote),
-            _ => Resolved::new(Vec::new(), ConfigSource::Default),
-        }
+        Resolved::new(Vec::new(), ConfigSource::Default)
     }
     pub(crate) fn resolve_write_file(&self) -> Resolved<bool> {
-        let ff = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.write_file_enabled);
         BoolFlag::env("NOFY_WRITE_FILE")
             .requirement(self.requirements.write_file.pinned())
             .config(self.features.write_file)
-            .feature_flag(ff)
             .default(true)
             .resolve()
     }
@@ -2832,28 +2585,20 @@ impl Config {
             .default(false)
             .resolve()
     }
-    /// Resolve the mode (env `NOFY_COMPACTION_MODE` > config > remote settings >
-    /// default, unrecognized falling through) and, for `Segments`, attach the
+    /// Resolve the mode (env `NOFY_COMPACTION_MODE` > config > default,
+    /// unrecognized falling through) and, for `Segments`, attach the
     /// separately-resolved detail level.
     pub(crate) fn resolve_compaction_mode(&self) -> nofy_chat_state::CompactionMode {
         resolve_compaction_mode_from(
             env_string("NOFY_COMPACTION_MODE").as_deref(),
             self.features.compaction_mode.as_deref(),
-            self.remote_settings
-                .as_ref()
-                .and_then(|r| r.compaction_mode.as_deref()),
         )
         .with_segment_detail(self.resolve_compaction_detail())
     }
-    /// Resolve verbatim-input flag: env `NOFY_COMPACTION_VERBATIM_INPUT` > config > remote settings > default `true`.
+    /// Resolve verbatim-input flag: env `NOFY_COMPACTION_VERBATIM_INPUT` > config > default `true`.
     pub(crate) fn resolve_compaction_verbatim_input(&self) -> bool {
         BoolFlag::env("NOFY_COMPACTION_VERBATIM_INPUT")
             .config(self.features.compaction_verbatim_input)
-            .feature_flag(
-                self.remote_settings
-                    .as_ref()
-                    .and_then(|r| r.compaction_verbatim_input),
-            )
             .default(true)
             .resolve()
             .value
@@ -2864,32 +2609,20 @@ impl Config {
         crate::util::config::resolve_compaction_tool_choice_from(
             env_string(crate::util::config::ENV_COMPACTION_TOOL_CHOICE).as_deref(),
             self.features.compaction_tool_choice.as_deref(),
-            self.remote_settings
-                .as_ref()
-                .and_then(|r| r.compaction_tool_choice.as_deref()),
         )
     }
     /// Precedence: env `NOFY_COMPACTION_DETAIL`, then config
-    /// `features.compaction_detail`, then remote settings
-    /// `remote_settings.compaction_detail`, then default (`verbose`). Drives the
+    /// `features.compaction_detail`, then default (`verbose`). Drives the
     /// `segments` verbatim detail level.
     fn resolve_compaction_detail(&self) -> nofy_chat_state::CompactionDetail {
         resolve_compaction_detail_from(
             env_string("NOFY_COMPACTION_DETAIL").as_deref(),
             self.features.compaction_detail.as_deref(),
-            self.remote_settings
-                .as_ref()
-                .and_then(|r| r.compaction_detail.as_deref()),
         )
     }
     pub(crate) fn resolve_cancel_rewind(&self) -> Resolved<bool> {
-        let ff = self
-            .remote_settings
-            .as_ref()
-            .and_then(|s| s.cancel_rewind_enabled);
         BoolFlag::env("NOFY_CANCEL_REWIND")
             .config(self.features.cancel_rewind)
-            .feature_flag(ff)
             .default(true)
             .resolve()
     }
@@ -2906,11 +2639,11 @@ impl Config {
             .resolve()
     }
 }
-/// Canonical resolver for `mcp.liveness_watchers`. Stacks the full
-/// 7-step `BoolFlag` precedence:
+/// Canonical resolver for `mcp.liveness_watchers`. Stacks the
+/// `BoolFlag` precedence:
 ///
-/// `requirement > cli > env (NOFY_MCP_LIVENESS_WATCHERS) > config >
-/// managed > feature_flag > default (true)`.
+/// `requirement > env (NOFY_MCP_LIVENESS_WATCHERS) > config >
+/// managed > default (true)`.
 ///
 /// `util::config::resolve_mcp_liveness_watchers` delegates here so the
 /// precedence is single-sourced.
@@ -2920,25 +2653,21 @@ impl Config {
 /// during the rollout.
 pub(crate) fn resolve_mcp_liveness_watchers(
     requirement: Option<bool>,
-    cli: Option<bool>,
     config: Option<bool>,
     managed: Option<bool>,
-    feature_flag: Option<bool>,
 ) -> Resolved<bool> {
     BoolFlag::env("NOFY_MCP_LIVENESS_WATCHERS")
         .requirement(requirement)
-        .cli(cli)
         .config(config)
         .managed(managed)
-        .feature_flag(feature_flag)
         .default(true)
         .resolve()
 }
-/// Canonical resolver for `mcp.auto_restart`. Stacks the full 7-step
+/// Canonical resolver for `mcp.auto_restart`. Stacks the
 /// `BoolFlag` precedence:
 ///
-/// `requirement > cli > env (NOFY_MCP_AUTO_RESTART) > config >
-/// managed > feature_flag > default (true)`.
+/// `requirement > env (NOFY_MCP_AUTO_RESTART) > config >
+/// managed > default (true)`.
 ///
 /// Mirrors [`resolve_mcp_liveness_watchers`]. Both
 /// `util::config::resolve_mcp_auto_restart` delegates here so the
@@ -2948,26 +2677,21 @@ pub(crate) fn resolve_mcp_liveness_watchers(
 /// `[features] mcp_auto_restart`, or `requirements.toml`.
 pub(crate) fn resolve_mcp_auto_restart(
     requirement: Option<bool>,
-    cli: Option<bool>,
     config: Option<bool>,
     managed: Option<bool>,
-    feature_flag: Option<bool>,
 ) -> Resolved<bool> {
     BoolFlag::env("NOFY_MCP_AUTO_RESTART")
         .requirement(requirement)
-        .cli(cli)
         .config(config)
         .managed(managed)
-        .feature_flag(feature_flag)
         .default(true)
         .resolve()
 }
 /// Canonical resolver for `mcp.push_server_status`. Stacks the same
-/// 7-step `BoolFlag` precedence as
-/// [`resolve_mcp_liveness_watchers`]:
+/// `BoolFlag` precedence as [`resolve_mcp_liveness_watchers`]:
 ///
-/// `requirement > cli > env (NOFY_MCP_PUSH_SERVER_STATUS) > config >
-/// managed > feature_flag > default (true)`.
+/// `requirement > env (NOFY_MCP_PUSH_SERVER_STATUS) > config >
+/// managed > default (true)`.
 ///
 /// `util::config::resolve_mcp_push_server_status` delegates here so
 /// the precedence is single-sourced.
@@ -2977,26 +2701,21 @@ pub(crate) fn resolve_mcp_auto_restart(
 /// flag existing primarily as a kill switch.
 pub fn resolve_mcp_push_server_status(
     requirement: Option<bool>,
-    cli: Option<bool>,
     config: Option<bool>,
     managed: Option<bool>,
-    feature_flag: Option<bool>,
 ) -> Resolved<bool> {
     BoolFlag::env("NOFY_MCP_PUSH_SERVER_STATUS")
         .requirement(requirement)
-        .cli(cli)
         .config(config)
         .managed(managed)
-        .feature_flag(feature_flag)
         .default(true)
         .resolve()
 }
 /// Canonical resolver for `mcp.recursive_config_watch`. Stacks the
-/// same 7-step `BoolFlag` precedence as
-/// [`resolve_mcp_liveness_watchers`]:
+/// same `BoolFlag` precedence as [`resolve_mcp_liveness_watchers`]:
 ///
-/// `requirement > cli > env (NOFY_MCP_RECURSIVE_CONFIG_WATCH) >
-/// config > managed > feature_flag > default (true)`.
+/// `requirement > env (NOFY_MCP_RECURSIVE_CONFIG_WATCH) >
+/// config > managed > default (true)`.
 ///
 /// `util::config::resolve_mcp_recursive_config_watch` delegates here
 /// so the precedence is single-sourced.
@@ -3016,17 +2735,13 @@ pub fn resolve_mcp_push_server_status(
 /// follows the rollout-gate naming convention.
 pub(crate) fn resolve_mcp_recursive_config_watch(
     requirement: Option<bool>,
-    cli: Option<bool>,
     config: Option<bool>,
     managed: Option<bool>,
-    feature_flag: Option<bool>,
 ) -> Resolved<bool> {
     BoolFlag::env("NOFY_MCP_RECURSIVE_CONFIG_WATCH")
         .requirement(requirement)
-        .cli(cli)
         .config(config)
         .managed(managed)
-        .feature_flag(feature_flag)
         .default(true)
         .resolve()
 }
@@ -3124,8 +2839,9 @@ pub(crate) fn is_telemetry_disabled_sync() -> bool {
         .resolve()
 }
 /// Like [`is_telemetry_disabled_sync`] but only `true` when telemetry is
-/// *explicitly* off; absence is not disabled (`.default(true)`) so remote-only
-/// enablement still builds the OTLP exporter (the runtime gate then governs it).
+/// *explicitly* off; absence is not disabled (`.default(true)`) so an
+/// elsewhere-enabled telemetry still builds the OTLP exporter (the runtime
+/// gate then governs it).
 pub(crate) fn is_telemetry_explicitly_disabled_sync() -> bool {
     !SyncBoolFlag::new(telemetry_enabled_from_toml)
         .disable_env("DISABLE_TELEMETRY")
@@ -3208,8 +2924,7 @@ pub(crate) fn external_otel_master_switch_from(
     table_enabled(effective_config).unwrap_or(false)
 }
 /// Resolve the external OTEL stream configuration at process startup
-/// (env + local config only — remote settings are not yet available when
-/// tracing init runs).
+/// (env + local config only).
 ///
 /// Layering follows `resolve_telemetry_mode`: **requirement > env > config >
 /// default**, where the `[telemetry]` `otel_*` keys from the
@@ -3288,40 +3003,6 @@ pub(crate) fn resolve_external_otel_config_with(
     resolved.client = client;
     resolved.internal_pipeline_consumed_otel_vars = internal_pipeline_consumed_otel_vars;
     Some(resolved)
-}
-/// Seed free-function remote caches after writing `Config.remote_settings`.
-///
-/// Called from `init.rs` at boot and from the agent when backgrounded settings
-/// arrive later, so every side effect here must be idempotent and safe to
-/// re-apply.
-pub fn apply_remote_settings_side_effects(settings: Option<&crate::util::config::RemoteSettings>) {
-    if let Some(s) = settings {
-        let origin_trusted = crate::util::is_prod_cli_chat_proxy_url(
-            &EndpointsConfig::from_effective_config().proxy_url(),
-        );
-        nofy_config::signed_policy::apply_remote_managed_config_signature_verification(
-            s.managed_config_signature_verification,
-            origin_trusted,
-        );
-    }
-    crate::util::config::cache_remote_mcp_startup_timeout_secs(
-        settings.and_then(|s| s.mcp_startup_timeout_secs),
-    );
-    crate::util::config::cache_remote_max_mcp_output_bytes(
-        settings.and_then(|s| s.max_mcp_output_bytes),
-    );
-    crate::util::config::cache_remote_auto_mode(settings.and_then(|s| s.auto_mode.clone()));
-    crate::util::config::cache_remote_remember_tool_approvals(
-        settings.and_then(|s| s.remember_tool_approvals),
-    );
-    crate::util::config::cache_remote_crash_handler_enabled(
-        settings.and_then(|s| s.crash_handler_enabled),
-    );
-    let image_normalize_cache_enabled = settings
-        .and_then(|r| r.image_normalize_cache_enabled)
-        .unwrap_or(false);
-    crate::session::normalize_cache::NormalizeCache::global()
-        .set_enabled(image_normalize_cache_enabled);
 }
 /// Read `env.<key>` from Claude-compat `managed_settings.json`. `Some(true)`
 /// indicates a force-off signal from a Mac-MDM-style admin policy.
@@ -3740,7 +3421,7 @@ pub struct ModelEntryConfig {
     /// usage exceeds this percentage of `context_window`, the conversation
     /// is summarized. Resolver precedence:
     /// requirements > env > user (per-model > global) > managed (per-model > global)
-    /// > remote per-model (this field) > remote global > 85.
+    /// > catalog per-model (this field) > 85.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auto_compact_threshold_percent: Option<u8>,
     /// Per-model system-prompt identity label (not UI `name`).
@@ -4135,8 +3816,8 @@ impl ModelInfo {
     /// Derive the legacy effort gate/default from `reasoning_efforts` so the
     /// shell's internal reads (support gate, wire default, session modes) treat
     /// a menu-only model as supported. The single derive site; `to_acp_model_info`
-    /// then just reads these fields. Idempotent (the remote/CCP path already sets
-    /// them); the empty-list path leaves both legacy fields untouched.
+    /// then just reads these fields. Idempotent; the empty-list path leaves both
+    /// legacy fields untouched.
     fn derive_reasoning_effort_fields(&mut self) {
         if self.reasoning_efforts.is_empty() {
             return;
@@ -4287,7 +3968,7 @@ impl CodebaseIndexingSetting {
 }
 /// Optional role pair that drops a malformed value to `None` (with a warn)
 /// instead of failing the whole config parse — one typo must not wipe the
-/// config. Mirrors the remote tolerance in `util::config::remote`.
+/// config.
 fn de_tolerant_goal_role_model<'de, D>(
     deserializer: D,
 ) -> Result<Option<crate::util::config::GoalRoleModel>, D::Error>
@@ -4325,9 +4006,8 @@ where
         _ => Vec::new(),
     })
 }
-/// `[goal]` section: the canonical home for `/goal` configuration. Field names
-/// mirror the remote `goal_*` keys with the prefix dropped, so config and remote
-/// stay 1:1. Per-key precedence is env > this config > remote > default.
+/// `[goal]` section: the canonical home for `/goal` configuration.
+/// Per-key precedence is env > this config > default.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GoalConfig {
@@ -4374,19 +4054,16 @@ pub struct WorkflowsConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
 }
-/// `[auto_mode]` section: server-side configuration for Auto permission mode.
-/// ONE struct serves both the local `[auto_mode]` TOML table and the remote
-/// remote settings `auto_mode` JSON object (coerced via `serde_json::from_value`), so
-/// the two stay 1:1. All fields are plain scalars/enums, so they deserialize
-/// cleanly from both formats (no custom tolerant deser needed). Unset fields stay
+/// `[auto_mode]` section: configuration for Auto permission mode.
+/// All fields are plain scalars/enums. Unset fields stay
 /// `None` here; the wire fn applies the built-in defaults once auto mode is
 /// enabled (current model, `low` effort if the model supports it, `just_command`
-/// prompt). Precedence: local config > remote > those built-in defaults.
+/// prompt). Precedence: local config > those built-in defaults.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AutoModeConfig {
     /// The Auto-mode gate. Lowest-precedence layer of the gate chain (env and
-    /// local `[auto_mode] enabled` config win over this remote value).
+    /// local `[auto_mode] enabled` config win).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
     /// How much context the classifier prompt includes. `None` ⇒ the wire fn's
@@ -4411,7 +4088,7 @@ pub struct Features {
     /// when set, the agent may ask permission for tool executions
     #[serde(default)]
     pub support_permission: bool,
-    /// `None` = defer to remote settings / default (off).
+    /// `None` = default (off).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub telemetry: Option<TelemetryMode>,
     /// Codebase graph indexing for go-to-definition/references.
@@ -4420,13 +4097,11 @@ pub struct Features {
     #[serde(default)]
     pub codebase_indexing: CodebaseIndexingSetting,
     /// Show a blocking warning when Nofy starts outside a Git repository.
-    /// Default: false. Used as the local fallback when the `non_git_warning` remote settings
-    /// flag in `nofy_build_settings` is absent. When the remote flag is present it takes
-    /// precedence — `Some(false)` from remote settings overrides `true` here.
+    /// Default: false.
     #[serde(default)]
     pub non_git_warning: bool,
     /// Feedback system (heuristic popups + `/feedback` slash command).
-    /// `None` = defer to remote settings / default (false).
+    /// `None` = default (false).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub feedback: Option<bool>,
     /// Managed config fetching (managed_config.toml + requirements.toml).
@@ -4435,39 +4110,39 @@ pub struct Features {
     pub managed_config: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lsp_tools: Option<bool>,
-    /// Web fetch tool. `None` = defer to remote settings / env / default (false).
+    /// Web fetch tool. `None` = defer to env / default (false).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub web_fetch: Option<bool>,
-    /// Ask-user-question tool. `None` = defer to remote settings / env / default (true).
+    /// Ask-user-question tool. `None` = defer to env / default (true).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ask_user_question: Option<bool>,
     /// Session recap (`/recap` + automatic return-from-away recap).
-    /// `None` = defer to remote settings / env / default (`true`).
+    /// `None` = defer to env / default (`true`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub session_recap: Option<bool>,
     /// Per-turn dashboard summary generated at turn end.
-    /// `None` = defer to remote settings / env / default (`true`).
+    /// `None` = defer to env / default (`true`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub turn_summary: Option<bool>,
-    /// Voice dictation (STT). `None` = env / remote / default on.
+    /// Voice dictation (STT). `None` = env / default on.
     /// Set `false` in requirements or managed config to force off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub voice_mode: Option<bool>,
     /// Two-pass (prefire) compaction: speculatively summarize the history
     /// prefix in the background, then summarize NOTE₁ + recent tail at
-    /// compaction. `None` = defer to remote settings / env / default (`false`).
+    /// compaction. `None` = defer to env / default (`false`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub two_pass_compaction: Option<bool>,
-    /// Write file tool. `None` = defer to remote settings / env / default (true).
+    /// Write file tool. `None` = defer to env / default (true).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub write_file: Option<bool>,
     /// Cancel-rewind: Ctrl+C before first activity restores the prompt.
-    /// `None` = defer to remote settings / env / default (true).
+    /// `None` = defer to env / default (true).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cancel_rewind: Option<bool>,
     /// Auto-wake: immediately inject a synthetic prompt when a background
     /// task or subagent completes, instead of waiting for the idle drain.
-    /// `None` = defer to remote settings / env / default (true).
+    /// `None` = defer to env / default (true).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auto_wake: Option<bool>,
     /// Backend-executed tools (web_search, x_search run server-side).
@@ -4483,7 +4158,7 @@ pub struct Features {
     /// env (`NOFY_COMPACTION_DETAIL`). The `segments` verbatim detail level.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compaction_detail: Option<String>,
-    /// Feed the summarizer the verbatim conversation instead of the lossy rewrite; `None` = defer to env/remote settings/default (true).
+    /// Feed the summarizer the verbatim conversation instead of the lossy rewrite; `None` = defer to env/default (true).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compaction_verbatim_input: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -4491,7 +4166,7 @@ pub struct Features {
     /// Snapshot a completed subagent's isolated worktree into a durable git ref
     /// and delete its directory (resume rehydrates from the ref). This is the
     /// per-deployment rollout lever (set in managed_config.toml `[features]`).
-    /// `None` = defer to remote settings / default (false).
+    /// `None` = default (false).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subagent_worktree_snapshot: Option<bool>,
     /// Per-`Ready`-client transport-liveness pollers + the
@@ -5299,8 +4974,8 @@ mod tests {
             assert_eq!(definition.inject_default_tools, expected_injection);
         }
     }
-    /// `AutoModeConfig` parses identically from a local `[auto_mode]` TOML table
-    /// and an equivalent remote settings JSON object (serde is format-agnostic). The
+    /// `AutoModeConfig` parses identically from a `[auto_mode]` TOML table
+    /// and an equivalent JSON object (serde is format-agnostic). The
     /// lean shape is all scalars/enums, so no custom tolerant deser is needed.
     #[test]
     fn auto_mode_config_parses_from_toml_and_json_equivalently() {
@@ -5530,7 +5205,6 @@ reasoning_effort = "low"
         fn ctx(raw: &toml::Value, disable_web_search: bool) -> RuntimeResolutionContext<'_> {
             RuntimeResolutionContext {
                 raw_config: raw,
-                remote_settings: None,
                 is_headless: true,
                 cli_subagents: None,
                 cli_web_search_model: None,
@@ -7033,41 +6707,34 @@ reasoning_effort = "low"
         assert_eq!(cfg.session.auto_compact_threshold_percent, Some(75));
     }
     #[test]
-    fn compaction_mode_precedence_env_over_config_over_remote_over_default() {
+    fn compaction_mode_precedence_env_over_config_over_default() {
         use nofy_chat_state::CompactionMode;
         assert_eq!(
-            resolve_compaction_mode_from(Some("transcript"), Some("segments"), Some("summary")),
+            resolve_compaction_mode_from(Some("transcript"), Some("segments")),
             CompactionMode::Transcript
         );
         assert_eq!(
-            resolve_compaction_mode_from(None, Some("segments"), Some("summary")),
+            resolve_compaction_mode_from(None, Some("segments")),
             CompactionMode::Segments(nofy_chat_state::CompactionDetail::default())
         );
         assert_eq!(
-            resolve_compaction_mode_from(None, None, Some("segments")),
-            CompactionMode::Segments(nofy_chat_state::CompactionDetail::default())
-        );
-        assert_eq!(
-            resolve_compaction_mode_from(Some("garbage"), None, Some("segments")),
-            CompactionMode::Segments(nofy_chat_state::CompactionDetail::default())
-        );
-        assert_eq!(
-            resolve_compaction_mode_from(None, None, None),
+            resolve_compaction_mode_from(Some("garbage"), None),
             CompactionMode::Summary
         );
+        assert_eq!(resolve_compaction_mode_from(None, None), CompactionMode::Summary);
     }
-    /// Detail shares the env>config>remote>default combinator that the mode
-    /// test exercises; the detail-specific facts are remote settings routing and the
-    /// `Verbose` default (with unrecognized values falling through).
+    /// Detail shares the env>config>default combinator that the mode
+    /// test exercises; the detail-specific fact is the `Verbose` default
+    /// (with unrecognized values falling through).
     #[test]
-    fn compaction_detail_resolves_remote_settings_and_verbose_default() {
+    fn compaction_detail_resolves_verbose_default() {
         use nofy_chat_state::CompactionDetail;
         assert_eq!(
-            resolve_compaction_detail_from(None, None, Some("minimal")),
+            resolve_compaction_detail_from(None, Some("minimal")),
             CompactionDetail::Minimal
         );
         assert_eq!(
-            resolve_compaction_detail_from(Some("garbage"), None, None),
+            resolve_compaction_detail_from(Some("garbage"), None),
             CompactionDetail::Verbose
         );
     }
@@ -8255,19 +7922,17 @@ reasoning_effort = "low"
     #[test]
     fn config_models_default_is_not_overwritten_by_default_models_json() {
         let config_default = Some("custom-byok-model");
-        let remote_settings_default = Some("remote-settings-model");
         let resolved = resolve_string_flag(
             None,
             "NOFY_DEFAULT_MODEL_TEST_NONEXISTENT",
             config_default,
-            remote_settings_default,
         );
         let resolved = resolved.expect("should resolve to a value");
         assert_eq!(resolved.value, "custom-byok-model");
         assert_eq!(
             resolved.source,
             ConfigSource::Config,
-            "[models] default from config.toml must beat remote settings and compiled-in defaults"
+            "[models] default from config.toml must beat compiled-in defaults"
         );
     }
     #[test]
@@ -8782,26 +8447,8 @@ reasoning_effort = "low"
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var("NOFY_SESSION_RECAP") };
     }
-    #[test]
-    #[serial]
-    fn resolve_session_recap_remote_off_overrides_default() {
-        unsafe { std::env::remove_var("NOFY_SESSION_RECAP") };
-        let cfg = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                session_recap: Some(false),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let r = cfg.resolve_session_recap();
-        assert!(
-            !r.value,
-            "remote settings/remote false must kill-switch default on"
-        );
-        assert_eq!(r.source, ConfigSource::Remote);
-    }
-    /// Precedence: env > config.toml > remote settings > default(true). One
-    /// test covers the full ladder (the `resolve_two_pass_compaction` pattern).
+    /// Precedence: env > config.toml > default(true). One test covers the
+    /// full ladder (the `resolve_two_pass_compaction` pattern).
     #[test]
     #[serial]
     fn resolve_turn_summary_precedence() {
@@ -8809,34 +8456,24 @@ reasoning_effort = "low"
         let r = Config::default().resolve_turn_summary();
         assert!(r.value, "turn_summary defaults on");
         assert_eq!(r.source, ConfigSource::Default);
-        let remote_off = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
+        let config_off = Config {
+            features: Features {
                 turn_summary: Some(false),
                 ..Default::default()
-            }),
+            },
             ..Default::default()
         };
-        let r = remote_off.resolve_turn_summary();
-        assert!(!r.value, "remote false must kill-switch default on");
-        assert_eq!(r.source, ConfigSource::Remote);
-        let config_over_remote = Config {
-            features: Features {
-                turn_summary: Some(true),
-                ..Default::default()
-            },
-            ..remote_off
-        };
-        let r = config_over_remote.resolve_turn_summary();
-        assert!(r.value, "config.toml beats remote kill-switch");
+        let r = config_off.resolve_turn_summary();
+        assert!(!r.value, "config.toml kill-switch");
         assert_eq!(r.source, ConfigSource::Config);
         unsafe { std::env::set_var("NOFY_TURN_SUMMARY", "0") };
-        let r = config_over_remote.resolve_turn_summary();
-        assert!(!r.value, "env wins over config + remote");
+        let r = config_off.resolve_turn_summary();
+        assert!(!r.value, "env wins over config");
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var("NOFY_TURN_SUMMARY") };
     }
-    /// Precedence: env > config.toml > remote settings > default(false). One test
-    /// covers the full ladder so we do not maintain a matrix of flag cases.
+    /// Precedence: env > config.toml > default(false). One test covers the
+    /// full ladder so we do not maintain a matrix of flag cases.
     #[test]
     #[serial]
     fn resolve_two_pass_compaction_precedence() {
@@ -8845,41 +8482,25 @@ reasoning_effort = "low"
         let r = default_cfg.resolve_two_pass_compaction();
         assert!(!r.value, "default is opt-in off");
         assert_eq!(r.source, ConfigSource::Default);
-        let remote_on = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                two_pass_compaction_enabled: Some(true),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let r = remote_on.resolve_two_pass_compaction();
-        assert!(r.value);
-        assert_eq!(r.source, ConfigSource::Remote);
-        let config_over_remote = Config {
+        let config_on = Config {
             features: Features {
                 two_pass_compaction: Some(true),
                 ..Default::default()
             },
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                two_pass_compaction_enabled: Some(false),
-                ..Default::default()
-            }),
             ..Default::default()
         };
-        let r = config_over_remote.resolve_two_pass_compaction();
+        let r = config_on.resolve_two_pass_compaction();
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Config);
         unsafe { std::env::set_var("NOFY_TWO_PASS_COMPACTION", "0") };
-        let r = config_over_remote.resolve_two_pass_compaction();
-        assert!(!r.value, "env wins over config + remote");
+        let r = config_on.resolve_two_pass_compaction();
+        assert!(!r.value, "env wins over config");
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var("NOFY_TWO_PASS_COMPACTION") };
     }
-    /// Gate precedence: env > `[doom_loop_recovery]` > remote settings >
-    /// default(ON), with the remote layer merged PER-FIELD from the nested
-    /// `doom_loop_recovery` object and each layer's `false` an independent
-    /// kill switch. One test covers the full ladder (the
-    /// `resolve_two_pass_compaction_precedence` pattern).
+    /// Gate precedence: env > `[doom_loop_recovery]` > default(ON), with each
+    /// layer's `false` an independent kill switch. One test covers the full
+    /// ladder (the `resolve_two_pass_compaction_precedence` pattern).
     #[test]
     #[serial]
     fn resolve_doom_loop_recovery_precedence() {
@@ -8902,80 +8523,29 @@ reasoning_effort = "low"
             toml_off.resolve_doom_loop_recovery().is_none(),
             "TOML kill switch"
         );
-        let remote_off = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                doom_loop_recovery: Some(DoomLoopRecoverySettings {
-                    enabled: Some(false),
-                    ..Default::default()
-                }),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        assert!(
-            remote_off.resolve_doom_loop_recovery().is_none(),
-            "remote settings kill switch"
-        );
         unsafe { std::env::set_var("NOFY_DOOM_LOOP_RECOVERY", "0") };
         assert!(
             default_cfg.resolve_doom_loop_recovery().is_none(),
             "env kill switch"
         );
         unsafe { std::env::remove_var("NOFY_DOOM_LOOP_RECOVERY") };
-        let remote_on = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                doom_loop_recovery: Some(DoomLoopRecoverySettings {
-                    enabled: Some(true),
-                    max_threshold: Some(16),
-                    max_retries: Some(1),
-                }),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let p = remote_on.resolve_doom_loop_recovery().expect("remote on");
-        assert_eq!(p.max_threshold, 16);
-        assert_eq!(p.max_retries, 1);
-        let partial_remote = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                doom_loop_recovery: Some(DoomLoopRecoverySettings {
-                    max_threshold: Some(16),
-                    ..Default::default()
-                }),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let p = partial_remote
-            .resolve_doom_loop_recovery()
-            .expect("default-on gate despite remote object omitting enabled");
-        assert_eq!(p.max_threshold, 16, "remote tunable applies");
-        assert_eq!(p.max_retries, 2, "unset field falls to the default");
-        let config_over_remote = Config {
+        let toml_tuned = Config {
             doom_loop_recovery: DoomLoopRecoverySettings {
                 enabled: Some(true),
                 max_threshold: Some(4),
                 max_retries: Some(3),
             },
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                doom_loop_recovery: Some(DoomLoopRecoverySettings {
-                    enabled: Some(false),
-                    max_threshold: Some(16),
-                    max_retries: Some(1),
-                }),
-                ..Default::default()
-            }),
             ..Default::default()
         };
-        let p = config_over_remote
+        let p = toml_tuned
             .resolve_doom_loop_recovery()
-            .expect("config on beats remote kill-switch");
+            .expect("TOML tunables apply");
         assert_eq!(p.max_threshold, 4);
         assert_eq!(p.max_retries, 3);
         unsafe { std::env::set_var("NOFY_DOOM_LOOP_RECOVERY", "0") };
         assert!(
-            config_over_remote.resolve_doom_loop_recovery().is_none(),
-            "env wins over config + remote"
+            toml_tuned.resolve_doom_loop_recovery().is_none(),
+            "env wins over config"
         );
         unsafe { std::env::remove_var("NOFY_DOOM_LOOP_RECOVERY") };
     }
@@ -9076,10 +8646,6 @@ reasoning_effort = "low"
         unsafe { std::env::set_var("NOFY_FEEDBACK_ENABLED", "true") };
         let mut cfg = Config::default();
         cfg.features.feedback = Some(false);
-        cfg.remote_settings = Some(crate::util::config::RemoteSettings {
-            feedback_enabled: Some(false),
-            ..Default::default()
-        });
         let r = cfg.resolve_feedback();
         assert_eq!(r.source, ConfigSource::Env);
         assert!(r.value);
@@ -9087,31 +8653,12 @@ reasoning_effort = "low"
     }
     #[test]
     #[serial]
-    fn resolve_feedback_config_overrides_remote_settings() {
+    fn resolve_feedback_config_sets_value() {
         unsafe { std::env::remove_var("NOFY_FEEDBACK_ENABLED") };
         let mut cfg = Config::default();
         cfg.features.feedback = Some(true);
-        cfg.remote_settings = Some(crate::util::config::RemoteSettings {
-            feedback_enabled: Some(false),
-            ..Default::default()
-        });
         let r = cfg.resolve_feedback();
         assert_eq!(r.source, ConfigSource::Config);
-        assert!(r.value);
-    }
-    #[test]
-    #[serial]
-    fn resolve_feedback_remote_settings_used_when_no_local() {
-        unsafe { std::env::remove_var("NOFY_FEEDBACK_ENABLED") };
-        let cfg = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                feedback_enabled: Some(true),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let r = cfg.resolve_feedback();
-        assert_eq!(r.source, ConfigSource::Remote);
         assert!(r.value);
     }
     #[test]
@@ -9125,7 +8672,7 @@ reasoning_effort = "low"
     }
     #[test]
     #[serial]
-    fn resolve_goal_env_overrides_config_without_remote_kill_switch() {
+    fn resolve_goal_env_overrides_config() {
         unsafe { std::env::set_var("NOFY_GOAL", "1") };
         let mut cfg = Config::default();
         cfg.goal.enabled = Some(false);
@@ -9136,53 +8683,6 @@ reasoning_effort = "low"
     }
     #[test]
     #[serial]
-    fn resolve_goal_remote_false_kills_local_opt_in() {
-        unsafe { std::env::set_var("NOFY_GOAL", "1") };
-        let mut cfg = Config::default();
-        cfg.goal.enabled = Some(true);
-        cfg.remote_settings = Some(crate::util::config::RemoteSettings {
-            goal_enabled: Some(false),
-            ..Default::default()
-        });
-        let r = cfg.resolve_goal();
-        assert_eq!(r.source, ConfigSource::Remote);
-        assert!(!r.value);
-        unsafe { std::env::remove_var("NOFY_GOAL") };
-    }
-    #[test]
-    #[serial]
-    fn resolve_goal_remote_settings_used_when_no_local() {
-        unsafe { std::env::remove_var("NOFY_GOAL") };
-        let cfg = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                goal_enabled: Some(true),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let r = cfg.resolve_goal();
-        assert_eq!(r.source, ConfigSource::Remote);
-        assert!(r.value);
-    }
-    /// The remote settings `goal_enabled: false` kill-switch must still win over
-    /// the default-on fallback.
-    #[test]
-    #[serial]
-    fn resolve_goal_remote_settings_kill_switch_overrides_default_on() {
-        unsafe { std::env::remove_var("NOFY_GOAL") };
-        let cfg = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                goal_enabled: Some(false),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let r = cfg.resolve_goal();
-        assert_eq!(r.source, ConfigSource::Remote);
-        assert!(!r.value);
-    }
-    #[test]
-    #[serial]
     fn background_workflows_default_on_without_affecting_goal() {
         unsafe { std::env::remove_var("NOFY_WORKFLOWS") };
         let cfg = Config::default();
@@ -9190,36 +8690,6 @@ reasoning_effort = "low"
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Default);
         assert!(cfg.resolve_goal().value);
-    }
-    #[test]
-    #[serial]
-    fn resolve_workflows_remote_settings_enables() {
-        unsafe { std::env::remove_var("NOFY_WORKFLOWS") };
-        let cfg = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                workflows_enabled: Some(true),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let r = cfg.resolve_workflows();
-        assert_eq!(r.source, ConfigSource::Remote);
-        assert!(r.value);
-    }
-    #[test]
-    #[serial]
-    fn resolve_workflows_remote_false_kills_local_opt_in() {
-        unsafe { std::env::set_var("NOFY_WORKFLOWS", "1") };
-        let mut cfg = Config::default();
-        cfg.workflows.enabled = Some(true);
-        cfg.remote_settings = Some(crate::util::config::RemoteSettings {
-            workflows_enabled: Some(false),
-            ..Default::default()
-        });
-        let r = cfg.resolve_workflows();
-        assert_eq!(r.source, ConfigSource::Remote);
-        assert!(!r.value);
-        unsafe { std::env::remove_var("NOFY_WORKFLOWS") };
     }
     #[test]
     #[serial]
@@ -9245,30 +8715,10 @@ reasoning_effort = "low"
     }
     #[test]
     #[serial]
-    fn resolve_ask_user_question_remote_settings_enables() {
-        unsafe { std::env::remove_var("NOFY_ASK_USER_QUESTION") };
-        let cfg = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                ask_user_question_enabled: Some(true),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let r = cfg.resolve_ask_user_question();
-        assert_eq!(r.source, ConfigSource::Remote);
-        assert!(r.value);
-    }
-    #[test]
-    #[serial]
-    fn resolve_ask_user_question_env_overrides_remote_settings() {
+    fn resolve_ask_user_question_env_overrides_config() {
         unsafe { std::env::set_var("NOFY_ASK_USER_QUESTION", "1") };
-        let cfg = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                ask_user_question_enabled: Some(false),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
+        let mut cfg = Config::default();
+        cfg.features.ask_user_question = Some(false);
         let r = cfg.resolve_ask_user_question();
         assert_eq!(r.source, ConfigSource::Env);
         assert!(r.value);
@@ -9276,34 +8726,13 @@ reasoning_effort = "low"
     }
     #[test]
     #[serial]
-    fn resolve_ask_user_question_config_overrides_remote_settings() {
+    fn resolve_ask_user_question_config_sets_value() {
         unsafe { std::env::remove_var("NOFY_ASK_USER_QUESTION") };
         let mut cfg = Config::default();
         cfg.features.ask_user_question = Some(true);
-        cfg.remote_settings = Some(crate::util::config::RemoteSettings {
-            ask_user_question_enabled: Some(false),
-            ..Default::default()
-        });
         let r = cfg.resolve_ask_user_question();
         assert_eq!(r.source, ConfigSource::Config);
         assert!(r.value);
-    }
-    /// remote settings `ask_user_question_enabled: false` is a kill-switch: it must
-    /// win over the default-on fallback.
-    #[test]
-    #[serial]
-    fn resolve_ask_user_question_remote_settings_kill_switch_overrides_default_on() {
-        unsafe { std::env::remove_var("NOFY_ASK_USER_QUESTION") };
-        let cfg = Config {
-            remote_settings: Some(crate::util::config::RemoteSettings {
-                ask_user_question_enabled: Some(false),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let r = cfg.resolve_ask_user_question();
-        assert_eq!(r.source, ConfigSource::Remote);
-        assert!(!r.value);
     }
     /// Clear every env var the goal/companion resolvers read so tests
     /// start from a known baseline regardless of run order.
@@ -9328,47 +8757,9 @@ reasoning_effort = "low"
             ..Default::default()
         }
     }
-    fn cfg_with_goal_and_remote(goal: bool, remote: crate::util::config::RemoteSettings) -> Config {
-        Config {
-            goal: GoalConfig {
-                enabled: Some(goal),
-                ..Default::default()
-            },
-            remote_settings: Some(remote),
-            ..Default::default()
-        }
-    }
-    fn remote_classifier(v: bool) -> crate::util::config::RemoteSettings {
-        crate::util::config::RemoteSettings {
-            goal_classifier_enabled: Some(v),
-            ..Default::default()
-        }
-    }
-    fn remote_planner(v: bool) -> crate::util::config::RemoteSettings {
-        crate::util::config::RemoteSettings {
-            goal_planner_enabled: Some(v),
-            ..Default::default()
-        }
-    }
-    fn remote_summary(v: bool) -> crate::util::config::RemoteSettings {
-        crate::util::config::RemoteSettings {
-            goal_summary_enabled: Some(v),
-            ..Default::default()
-        }
-    }
     fn cfg_with_goal_config(goal: GoalConfig) -> Config {
         Config {
             goal,
-            ..Default::default()
-        }
-    }
-    fn cfg_with_goal_config_and_remote(
-        goal: GoalConfig,
-        remote: crate::util::config::RemoteSettings,
-    ) -> Config {
-        Config {
-            goal,
-            remote_settings: Some(remote),
             ..Default::default()
         }
     }
@@ -9388,30 +8779,14 @@ reasoning_effort = "low"
     }
     #[test]
     #[serial]
-    fn resolve_goal_classifier_remote_forces_either_way() {
-        clear_goal_envs();
-        let off = cfg_with_goal_and_remote(true, remote_classifier(false))
-            .resolve_goal_classifier_enabled(true);
-        assert!(!off.value);
-        assert_eq!(off.source, ConfigSource::Remote);
-        let on = cfg_with_goal_and_remote(false, remote_classifier(true))
-            .resolve_goal_classifier_enabled(false);
-        assert!(on.value);
-        assert_eq!(on.source, ConfigSource::Remote);
-        clear_goal_envs();
-    }
-    #[test]
-    #[serial]
-    fn resolve_goal_classifier_env_overrides_default_and_remote() {
+    fn resolve_goal_classifier_env_overrides_default() {
         clear_goal_envs();
         unsafe { std::env::set_var("NOFY_GOAL_CLASSIFIER", "0") };
-        let r = cfg_with_goal_and_remote(true, remote_classifier(true))
-            .resolve_goal_classifier_enabled(true);
+        let r = cfg_with_goal(true).resolve_goal_classifier_enabled(true);
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::set_var("NOFY_GOAL_CLASSIFIER", "1") };
-        let r = cfg_with_goal_and_remote(false, remote_classifier(false))
-            .resolve_goal_classifier_enabled(false);
+        let r = cfg_with_goal(false).resolve_goal_classifier_enabled(false);
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Env);
         clear_goal_envs();
@@ -9432,30 +8807,14 @@ reasoning_effort = "low"
     }
     #[test]
     #[serial]
-    fn resolve_goal_planner_remote_forces_either_way() {
-        clear_goal_envs();
-        let off = cfg_with_goal_and_remote(true, remote_planner(false))
-            .resolve_goal_planner_enabled(true);
-        assert!(!off.value);
-        assert_eq!(off.source, ConfigSource::Remote);
-        let on = cfg_with_goal_and_remote(false, remote_planner(true))
-            .resolve_goal_planner_enabled(false);
-        assert!(on.value);
-        assert_eq!(on.source, ConfigSource::Remote);
-        clear_goal_envs();
-    }
-    #[test]
-    #[serial]
-    fn resolve_goal_planner_env_overrides_default_and_remote() {
+    fn resolve_goal_planner_env_overrides_default() {
         clear_goal_envs();
         unsafe { std::env::set_var("NOFY_GOAL_PLANNER", "0") };
-        let r =
-            cfg_with_goal_and_remote(true, remote_planner(true)).resolve_goal_planner_enabled(true);
+        let r = cfg_with_goal(true).resolve_goal_planner_enabled(true);
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::set_var("NOFY_GOAL_PLANNER", "1") };
-        let r = cfg_with_goal_and_remote(false, remote_planner(false))
-            .resolve_goal_planner_enabled(false);
+        let r = cfg_with_goal(false).resolve_goal_planner_enabled(false);
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Env);
         clear_goal_envs();
@@ -9476,25 +8835,10 @@ reasoning_effort = "low"
     }
     #[test]
     #[serial]
-    fn resolve_goal_summary_remote_forces_either_way() {
-        clear_goal_envs();
-        let off = cfg_with_goal_and_remote(true, remote_summary(false))
-            .resolve_goal_summary_enabled(true);
-        assert!(!off.value);
-        assert_eq!(off.source, ConfigSource::Remote);
-        let on = cfg_with_goal_and_remote(false, remote_summary(true))
-            .resolve_goal_summary_enabled(false);
-        assert!(on.value);
-        assert_eq!(on.source, ConfigSource::Remote);
-        clear_goal_envs();
-    }
-    #[test]
-    #[serial]
-    fn resolve_goal_summary_env_overrides_default_and_remote() {
+    fn resolve_goal_summary_env_overrides_default() {
         clear_goal_envs();
         unsafe { std::env::set_var("NOFY_GOAL_SUMMARY", "0") };
-        let r =
-            cfg_with_goal_and_remote(true, remote_summary(true)).resolve_goal_summary_enabled(true);
+        let r = cfg_with_goal(true).resolve_goal_summary_enabled(true);
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Env);
         clear_goal_envs();
@@ -9524,22 +8868,6 @@ reasoning_effort = "low"
         .resolve_goal_classifier_enabled(false);
         assert_eq!(r.source, ConfigSource::Env);
         assert!(!r.value);
-        clear_goal_envs();
-    }
-    #[test]
-    #[serial]
-    fn resolve_goal_classifier_config_beats_remote() {
-        clear_goal_envs();
-        let r = cfg_with_goal_config_and_remote(
-            GoalConfig {
-                classifier_enabled: Some(true),
-                ..Default::default()
-            },
-            remote_classifier(false),
-        )
-        .resolve_goal_classifier_enabled(false);
-        assert_eq!(r.source, ConfigSource::Config);
-        assert!(r.value);
         clear_goal_envs();
     }
     #[test]
@@ -9585,22 +8913,6 @@ reasoning_effort = "low"
     }
     #[test]
     #[serial]
-    fn resolve_goal_planner_config_beats_remote() {
-        clear_goal_envs();
-        let r = cfg_with_goal_config_and_remote(
-            GoalConfig {
-                planner_enabled: Some(true),
-                ..Default::default()
-            },
-            remote_planner(false),
-        )
-        .resolve_goal_planner_enabled(false);
-        assert_eq!(r.source, ConfigSource::Config);
-        assert!(r.value);
-        clear_goal_envs();
-    }
-    #[test]
-    #[serial]
     fn resolve_goal_planner_config_beats_default() {
         clear_goal_envs();
         let r = cfg_with_goal_config(GoalConfig {
@@ -9638,22 +8950,6 @@ reasoning_effort = "low"
         .resolve_goal_summary_enabled(false);
         assert_eq!(r.source, ConfigSource::Env);
         assert!(!r.value);
-        clear_goal_envs();
-    }
-    #[test]
-    #[serial]
-    fn resolve_goal_summary_config_beats_remote() {
-        clear_goal_envs();
-        let r = cfg_with_goal_config_and_remote(
-            GoalConfig {
-                summary_enabled: Some(true),
-                ..Default::default()
-            },
-            remote_summary(false),
-        )
-        .resolve_goal_summary_enabled(false);
-        assert_eq!(r.source, ConfigSource::Config);
-        assert!(r.value);
         clear_goal_envs();
     }
     #[test]
@@ -9761,51 +9057,22 @@ reverify_after = 6
         assert_eq!(r.source, ConfigSource::Env);
         clear_goal_model_env();
     }
-    fn remote_planner_model(
-        p: crate::util::config::GoalRoleModel,
-    ) -> crate::util::config::RemoteSettings {
-        crate::util::config::RemoteSettings {
-            goal_planner_model: Some(p),
-            ..Default::default()
-        }
-    }
-    fn remote_strategist_model(
-        p: crate::util::config::GoalRoleModel,
-    ) -> crate::util::config::RemoteSettings {
-        crate::util::config::RemoteSettings {
-            goal_strategist_model: Some(p),
-            ..Default::default()
-        }
-    }
     #[test]
     fn resolve_goal_planner_model_kill_switch_inherits() {
-        let cfg = cfg_with_goal_config_and_remote(
-            GoalConfig::default(),
-            remote_planner_model(planner_pair()),
-        );
+        let cfg = cfg_with_goal_config(GoalConfig {
+            planner_model: Some(planner_pair()),
+            ..Default::default()
+        });
         let r = cfg.resolve_goal_planner_model(true);
         assert_eq!(r.value, GoalRoleModelChoice::InheritCurrent);
         assert_eq!(r.source, ConfigSource::Config);
     }
     #[test]
-    fn resolve_goal_planner_model_remote_pair_explicit() {
-        let cfg = cfg_with_goal_config_and_remote(
-            GoalConfig::default(),
-            remote_planner_model(planner_pair()),
-        );
-        let r = cfg.resolve_goal_planner_model(false);
-        assert_eq!(r.value, GoalRoleModelChoice::Explicit(planner_pair()));
-        assert_eq!(r.source, ConfigSource::Remote);
-    }
-    #[test]
-    fn resolve_goal_planner_model_config_overrides_remote() {
-        let cfg = cfg_with_goal_config_and_remote(
-            GoalConfig {
-                planner_model: Some(planner_pair()),
-                ..Default::default()
-            },
-            remote_planner_model(strategist_pair()),
-        );
+    fn resolve_goal_planner_model_config_pair_explicit() {
+        let cfg = cfg_with_goal_config(GoalConfig {
+            planner_model: Some(planner_pair()),
+            ..Default::default()
+        });
         let r = cfg.resolve_goal_planner_model(false);
         assert_eq!(r.value, GoalRoleModelChoice::Explicit(planner_pair()));
         assert_eq!(r.source, ConfigSource::Config);
@@ -9817,34 +9084,11 @@ reverify_after = 6
         assert_eq!(r.source, ConfigSource::Default);
     }
     #[test]
-    fn resolve_goal_planner_model_remote_present_but_field_absent_inherits() {
-        let cfg = cfg_with_goal_config_and_remote(
-            GoalConfig::default(),
-            remote_strategist_model(strategist_pair()),
-        );
-        let r = cfg.resolve_goal_planner_model(false);
-        assert_eq!(r.value, GoalRoleModelChoice::InheritCurrent);
-        assert_eq!(r.source, ConfigSource::Default);
-    }
-    #[test]
-    fn resolve_goal_strategist_model_remote_pair_explicit() {
-        let cfg = cfg_with_goal_config_and_remote(
-            GoalConfig::default(),
-            remote_strategist_model(strategist_pair()),
-        );
-        let r = cfg.resolve_goal_strategist_model(false);
-        assert_eq!(r.value, GoalRoleModelChoice::Explicit(strategist_pair()));
-        assert_eq!(r.source, ConfigSource::Remote);
-    }
-    #[test]
-    fn resolve_goal_strategist_model_config_overrides_remote() {
-        let cfg = cfg_with_goal_config_and_remote(
-            GoalConfig {
-                strategist_model: Some(strategist_pair()),
-                ..Default::default()
-            },
-            remote_strategist_model(planner_pair()),
-        );
+    fn resolve_goal_strategist_model_config_pair_explicit() {
+        let cfg = cfg_with_goal_config(GoalConfig {
+            strategist_model: Some(strategist_pair()),
+            ..Default::default()
+        });
         let r = cfg.resolve_goal_strategist_model(false);
         assert_eq!(r.value, GoalRoleModelChoice::Explicit(strategist_pair()));
         assert_eq!(r.source, ConfigSource::Config);
@@ -9860,35 +9104,11 @@ reverify_after = 6
         assert_eq!(r.source, ConfigSource::Config);
     }
     #[test]
-    fn resolve_goal_skeptic_models_remote_pool_explicit() {
-        let remote = crate::util::config::RemoteSettings {
-            goal_skeptic_models: vec![planner_pair(), strategist_pair()],
+    fn resolve_goal_skeptic_models_config_pool_explicit() {
+        let cfg = cfg_with_goal_config(GoalConfig {
+            skeptic_models: vec![planner_pair(), strategist_pair()],
             ..Default::default()
-        };
-        let r = cfg_with_goal_config_and_remote(GoalConfig::default(), remote)
-            .resolve_goal_skeptic_models(false);
-        assert_eq!(
-            r.value,
-            vec![
-                GoalRoleModelChoice::Explicit(planner_pair()),
-                GoalRoleModelChoice::Explicit(strategist_pair()),
-            ]
-        );
-        assert_eq!(r.source, ConfigSource::Remote);
-    }
-    #[test]
-    fn resolve_goal_skeptic_models_config_pool_overrides_remote_pool() {
-        let remote = crate::util::config::RemoteSettings {
-            goal_skeptic_models: vec![strategist_pair(), strategist_pair()],
-            ..Default::default()
-        };
-        let cfg = cfg_with_goal_config_and_remote(
-            GoalConfig {
-                skeptic_models: vec![planner_pair(), strategist_pair()],
-                ..Default::default()
-            },
-            remote,
-        );
+        });
         let r = cfg.resolve_goal_skeptic_models(false);
         assert_eq!(
             r.value,
@@ -9979,7 +9199,7 @@ agent_type = "cursor"
         assert_eq!(cfg.goal.skeptic_models[1].model, "nofy-composer-2.5-fast");
     }
     /// Acceptance test: a full managed-config `[goal]` block resolves end-to-end,
-    /// every value sourced from config (not remote/default).
+    /// every value sourced from config (not defaults).
     #[test]
     #[serial]
     fn full_goal_managed_config_resolves_end_to_end() {
@@ -10829,38 +10049,12 @@ agent_type = "cursor"
             }
         }
     }
-    fn remote_settings_with(
-        key: CompatRemoteKey,
-        value: bool,
-    ) -> crate::util::config::RemoteSettings {
-        let mut remote = crate::util::config::RemoteSettings::default();
-        match key {
-            CompatRemoteKey::CursorSkills => remote.cursor_skills_enabled = Some(value),
-            CompatRemoteKey::CursorRules => remote.cursor_rules_enabled = Some(value),
-            CompatRemoteKey::CursorAgents => remote.cursor_agents_enabled = Some(value),
-            CompatRemoteKey::CursorMcps => remote.cursor_mcps_enabled = Some(value),
-            CompatRemoteKey::CursorHooks => remote.cursor_hooks_enabled = Some(value),
-            CompatRemoteKey::CursorSessions => {
-                remote.cursor_sessions_enabled = Some(value);
-            }
-            CompatRemoteKey::ClaudeSkills => remote.claude_skills_enabled = Some(value),
-            CompatRemoteKey::ClaudeRules => remote.claude_rules_enabled = Some(value),
-            CompatRemoteKey::ClaudeAgents => remote.claude_agents_enabled = Some(value),
-            CompatRemoteKey::ClaudeMcps => remote.claude_mcps_enabled = Some(value),
-            CompatRemoteKey::ClaudeHooks => remote.claude_hooks_enabled = Some(value),
-            CompatRemoteKey::ClaudeSessions => {
-                remote.claude_sessions_enabled = Some(value);
-            }
-            CompatRemoteKey::CodexSessions => remote.codex_sessions_enabled = Some(value),
-        }
-        remote
-    }
     #[test]
     #[serial]
     fn resolve_compat_defaults_match_registry() {
         let _env = isolate_compat_env();
         assert_eq!(
-            resolve_compat_config(&CompatConfigToml::default(), None),
+            resolve_compat_config(&CompatConfigToml::default()),
             CompatConfig::default()
         );
     }
@@ -10874,7 +10068,7 @@ agent_type = "cursor"
             (CompatVendor::Codex, "codex"),
         ] {
             let config = parse_compat(&format!("[compat.{section}]\nsessions = false"));
-            assert_session_one_disabled(resolve_compat_config(&config, None), vendor);
+            assert_session_one_disabled(resolve_compat_config(&config), vendor);
         }
     }
     #[test]
@@ -10892,7 +10086,7 @@ hooks = "unrelated malformed field"
 "#,
         )
         .unwrap();
-        let resolved = resolve_compat_sessions_from_raw(Ok(&raw), None);
+        let resolved = resolve_compat_sessions_from_raw(Ok(&raw));
         assert!(!resolved.cursor.sessions);
         assert!(!resolved.claude.sessions);
         assert!(resolved.codex.sessions);
@@ -10911,14 +10105,10 @@ sessions = true
 "#,
         )
         .unwrap();
-        let remote = crate::util::config::RemoteSettings {
-            codex_sessions_enabled: Some(false),
-            ..Default::default()
-        };
-        let resolved = resolve_compat_sessions_from_raw(Ok(&raw), Some(&remote));
+        let resolved = resolve_compat_sessions_from_raw(Ok(&raw));
         assert!(!resolved.cursor.sessions);
         assert!(resolved.claude.sessions);
-        assert!(!resolved.codex.sessions);
+        assert!(resolved.codex.sessions);
     }
     #[test]
     fn compat_config_cell_is_tolerant_and_fail_closed_per_cell() {
@@ -10963,7 +10153,7 @@ hooks = true
     #[serial]
     fn resolve_raw_compat_sessions_load_failure_fails_closed() {
         let _env = isolate_compat_env();
-        let resolved = resolve_compat_sessions_from_raw(Err(()), None);
+        let resolved = resolve_compat_sessions_from_raw(Err(()));
         assert!(!resolved.cursor.sessions);
         assert!(!resolved.claude.sessions);
         assert!(!resolved.codex.sessions);
@@ -10973,51 +10163,20 @@ hooks = true
     fn resolve_raw_compat_sessions_load_failure_allows_env_override() {
         let _env = isolate_compat_env();
         let _codex = EnvGuard::set("NOFY_CODEX_SESSIONS_ENABLED", "true");
-        let resolved = resolve_compat_sessions_from_raw(Err(()), None);
+        let resolved = resolve_compat_sessions_from_raw(Err(()));
         assert!(!resolved.cursor.sessions);
         assert!(!resolved.claude.sessions);
         assert!(resolved.codex.sessions);
     }
     #[test]
     #[serial]
-    fn resolve_raw_compat_sessions_valid_empty_uses_remote_and_defaults() {
+    fn resolve_raw_compat_sessions_valid_empty_uses_defaults() {
         let _env = isolate_compat_env();
         let raw = toml::Value::Table(Default::default());
-        let remote = crate::util::config::RemoteSettings {
-            claude_sessions_enabled: Some(false),
-            ..Default::default()
-        };
-        let resolved = resolve_compat_sessions_from_raw(Ok(&raw), Some(&remote));
+        let resolved = resolve_compat_sessions_from_raw(Ok(&raw));
         assert!(resolved.cursor.sessions);
-        assert!(!resolved.claude.sessions);
+        assert!(resolved.claude.sessions);
         assert!(resolved.codex.sessions);
-    }
-    #[test]
-    #[serial]
-    fn remote_keys_are_one_hot_and_false_overrides_default() {
-        let _env = isolate_compat_env();
-        for key in COMPAT_CELLS
-            .into_iter()
-            .filter_map(|cell| cell.remote_key())
-        {
-            let remote = remote_settings_with(key, false);
-            for cell in COMPAT_CELLS {
-                assert_eq!(
-                    remote_compat_value(Some(&remote), cell.remote_key()),
-                    (cell.remote_key() == Some(key)).then_some(false),
-                    "{key:?} mapped to {}.{}",
-                    cell.vendor().as_str(),
-                    cell.surface().as_str()
-                );
-            }
-        }
-        let remote = remote_settings_with(CompatRemoteKey::CursorSkills, false);
-        assert!(CompatConfig::default().cursor.skills);
-        assert!(
-            !resolve_compat_config(&CompatConfigToml::default(), Some(&remote))
-                .cursor
-                .skills
-        );
     }
     #[test]
     #[serial]
@@ -11030,7 +10189,7 @@ hooks = true
         ] {
             let _disabled = EnvGuard::set(env_var, "false");
             assert_session_one_disabled(
-                resolve_compat_config(&CompatConfigToml::default(), None),
+                resolve_compat_config(&CompatConfigToml::default()),
                 vendor,
             );
         }
@@ -11040,19 +10199,18 @@ hooks = true
     fn resolve_compat_precedence_and_reserved_codex_hook() {
         let _env = isolate_compat_env();
         let config =
-            parse_compat("[compat.cursor]\nsessions = false\n[compat.codex]\nhooks = false");
-        let remote = crate::util::config::RemoteSettings {
-            cursor_sessions_enabled: Some(true),
-            ..Default::default()
-        };
-        let resolved = resolve_compat_config(&config, Some(&remote));
+            parse_compat("[compat.cursor]
+sessions = false
+[compat.codex]
+hooks = false");
+        let resolved = resolve_compat_config(&config);
         assert!(!resolved.cursor.sessions);
         assert!(!resolved.codex.hooks);
         assert!(resolved.cursor.hooks);
         assert!(resolved.claude.hooks);
         let _session = EnvGuard::set("NOFY_CURSOR_SESSIONS_ENABLED", "true");
         let _hook = EnvGuard::set("NOFY_CODEX_HOOKS_ENABLED", "true");
-        let resolved = resolve_compat_config(&config, Some(&remote));
+        let resolved = resolve_compat_config(&config);
         assert!(resolved.cursor.sessions);
         assert!(resolved.codex.hooks);
     }
@@ -11062,18 +10220,14 @@ hooks = true
         let _env = isolate_compat_env();
         let _cursor = EnvGuard::set("NOFY_CURSOR_SESSIONS_ENABLED", "false");
         let raw: toml::Value =
-            toml::from_str("[compat.cursor]\nsessions = true\n[compat.claude]\nsessions = false")
+            toml::from_str("[compat.cursor]
+sessions = true
+[compat.claude]
+sessions = false")
                 .unwrap();
-        let remote = crate::util::config::RemoteSettings {
-            cursor_sessions_enabled: Some(true),
-            claude_sessions_enabled: Some(true),
-            codex_sessions_enabled: Some(false),
-            ..Default::default()
-        };
         let mut config = Config::new_from_toml_cfg(&raw).unwrap();
         config.resolve_runtime_fields(&RuntimeResolutionContext {
             raw_config: &raw,
-            remote_settings: Some(&remote),
             is_headless: false,
             cli_subagents: None,
             cli_web_search_model: None,
@@ -11087,7 +10241,7 @@ hooks = true
         });
         assert!(!config.compat_resolved.cursor.sessions);
         assert!(!config.compat_resolved.claude.sessions);
-        assert!(!config.compat_resolved.codex.sessions);
+        assert!(config.compat_resolved.codex.sessions);
     }
     #[test]
     #[serial]
@@ -11098,7 +10252,6 @@ hooks = true
         let mut cfg = Config::new_from_toml_cfg(&raw).unwrap();
         cfg.resolve_runtime_fields(&RuntimeResolutionContext {
             raw_config: &raw,
-            remote_settings: None,
             is_headless: false,
             cli_subagents: None,
             cli_web_search_model: None,
@@ -11133,7 +10286,6 @@ hooks = true
         let mut cfg = Config::new_from_toml_cfg(&raw).unwrap();
         cfg.resolve_runtime_fields(&RuntimeResolutionContext {
             raw_config: &raw,
-            remote_settings: None,
             is_headless: true,
             cli_subagents: None,
             cli_web_search_model: None,
@@ -11153,40 +10305,12 @@ hooks = true
     }
     #[test]
     #[serial]
-    fn resolve_runtime_fields_managed_gateway_tools_from_remote() {
-        clear_runtime_env_vars();
-        clear_managed_mcp_env_vars();
-        let raw = empty_config();
-        let remote = crate::util::config::RemoteSettings {
-            managed_mcp_gateway_tools_enabled: Some(true),
-            ..Default::default()
-        };
-        let mut cfg = Config::new_from_toml_cfg(&raw).unwrap();
-        cfg.resolve_runtime_fields(&RuntimeResolutionContext {
-            raw_config: &raw,
-            remote_settings: Some(&remote),
-            is_headless: false,
-            cli_subagents: None,
-            cli_web_search_model: None,
-            cli_session_summary_model: None,
-            cli_experimental_memory: false,
-            cli_no_memory: false,
-            disable_web_search: false,
-            todo_gate: false,
-            laziness_debug_log: None,
-            storage_mode: None,
-        });
-        assert!(cfg.managed_mcp_gateway_tools_enabled);
-    }
-    #[test]
-    #[serial]
     fn resolve_runtime_fields_subagents_from_config() {
         clear_runtime_env_vars();
         let raw: toml::Value = toml::from_str("[subagents]\nenabled = true").unwrap();
         let mut cfg = Config::new_from_toml_cfg(&raw).unwrap();
         cfg.resolve_runtime_fields(&RuntimeResolutionContext {
             raw_config: &raw,
-            remote_settings: None,
             is_headless: false,
             cli_subagents: None,
             cli_web_search_model: None,
@@ -11208,7 +10332,6 @@ hooks = true
         let mut cfg = Config::new_from_toml_cfg(&raw).unwrap();
         cfg.resolve_runtime_fields(&RuntimeResolutionContext {
             raw_config: &raw,
-            remote_settings: None,
             is_headless: false,
             cli_subagents: Some(true),
             cli_web_search_model: None,
@@ -11231,7 +10354,6 @@ hooks = true
         let mut cfg = Config::new_from_toml_cfg(&raw).unwrap();
         cfg.resolve_runtime_fields(&RuntimeResolutionContext {
             raw_config: &raw,
-            remote_settings: None,
             is_headless: false,
             cli_subagents: None,
             cli_web_search_model: None,
@@ -11254,7 +10376,6 @@ hooks = true
         let mut cfg = Config::new_from_toml_cfg(&raw).unwrap();
         cfg.resolve_runtime_fields(&RuntimeResolutionContext {
             raw_config: &raw,
-            remote_settings: None,
             is_headless: false,
             cli_subagents: None,
             cli_web_search_model: Some("custom-ws"),
@@ -11271,39 +10392,12 @@ hooks = true
     }
     #[test]
     #[serial]
-    fn resolve_runtime_fields_path_hints_from_remote() {
-        clear_runtime_env_vars();
-        let raw = empty_config();
-        let remote = crate::util::config::RemoteSettings {
-            path_not_found_hints: Some(true),
-            ..Default::default()
-        };
-        let mut cfg = Config::new_from_toml_cfg(&raw).unwrap();
-        cfg.resolve_runtime_fields(&RuntimeResolutionContext {
-            raw_config: &raw,
-            remote_settings: Some(&remote),
-            is_headless: false,
-            cli_subagents: None,
-            cli_web_search_model: None,
-            cli_session_summary_model: None,
-            cli_experimental_memory: false,
-            cli_no_memory: false,
-            disable_web_search: false,
-            todo_gate: false,
-            laziness_debug_log: None,
-            storage_mode: None,
-        });
-        assert!(cfg.path_not_found_hints);
-    }
-    #[test]
-    #[serial]
     fn resolve_runtime_fields_idempotent() {
         clear_runtime_env_vars();
         let raw: toml::Value = toml::from_str("[subagents]\nenabled = true").unwrap();
         let mut cfg = Config::new_from_toml_cfg(&raw).unwrap();
         let ctx = RuntimeResolutionContext {
             raw_config: &raw,
-            remote_settings: None,
             is_headless: false,
             cli_subagents: None,
             cli_web_search_model: None,
@@ -12032,7 +11126,7 @@ default = "grok-4.5"
     #[serial]
     fn mcp_liveness_watchers_default_is_true() {
         unsafe { std::env::remove_var("NOFY_MCP_LIVENESS_WATCHERS") };
-        let r = resolve_mcp_liveness_watchers(None, None, None, None, None);
+        let r = resolve_mcp_liveness_watchers(None, None, None);
         assert!(r.value, "default-on by spec");
         assert_eq!(r.source, ConfigSource::Default);
     }
@@ -12040,65 +11134,41 @@ default = "grok-4.5"
     #[serial]
     fn mcp_liveness_watchers_requirement_wins_over_everything() {
         unsafe { std::env::set_var("NOFY_MCP_LIVENESS_WATCHERS", "true") };
-        let r = resolve_mcp_liveness_watchers(
-            Some(false),
-            Some(true),
-            Some(true),
-            Some(true),
-            Some(true),
-        );
+        let r = resolve_mcp_liveness_watchers(Some(false), Some(true), Some(true));
         unsafe { std::env::remove_var("NOFY_MCP_LIVENESS_WATCHERS") };
         assert!(!r.value, "requirement overrides every other layer");
         assert_eq!(r.source, ConfigSource::Requirement);
     }
     #[test]
     #[serial]
-    fn mcp_liveness_watchers_cli_wins_over_env_and_below() {
-        unsafe { std::env::set_var("NOFY_MCP_LIVENESS_WATCHERS", "true") };
-        let r =
-            resolve_mcp_liveness_watchers(None, Some(false), Some(true), Some(true), Some(true));
-        unsafe { std::env::remove_var("NOFY_MCP_LIVENESS_WATCHERS") };
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::Cli);
-    }
-    #[test]
-    #[serial]
     fn mcp_liveness_watchers_env_wins_over_config_and_below() {
         unsafe { std::env::set_var("NOFY_MCP_LIVENESS_WATCHERS", "false") };
-        let r = resolve_mcp_liveness_watchers(None, None, Some(true), Some(true), Some(true));
+        let r = resolve_mcp_liveness_watchers(None, Some(true), Some(true));
         unsafe { std::env::remove_var("NOFY_MCP_LIVENESS_WATCHERS") };
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Env);
     }
     #[test]
     #[serial]
-    fn mcp_liveness_watchers_config_wins_over_managed_and_feature_flag() {
+    fn mcp_liveness_watchers_config_wins_over_managed() {
         unsafe { std::env::remove_var("NOFY_MCP_LIVENESS_WATCHERS") };
-        let r = resolve_mcp_liveness_watchers(None, None, Some(false), Some(true), Some(true));
+        let r = resolve_mcp_liveness_watchers(None, Some(false), Some(true));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Config);
     }
     #[test]
     #[serial]
-    fn mcp_liveness_watchers_managed_wins_over_feature_flag() {
+    fn mcp_liveness_watchers_managed_applies() {
         unsafe { std::env::remove_var("NOFY_MCP_LIVENESS_WATCHERS") };
-        let r = resolve_mcp_liveness_watchers(None, None, None, Some(false), Some(true));
+        let r = resolve_mcp_liveness_watchers(None, None, Some(false));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::ManagedConfig);
     }
     #[test]
     #[serial]
-    fn mcp_liveness_watchers_feature_flag_used_when_no_higher_layer() {
-        unsafe { std::env::remove_var("NOFY_MCP_LIVENESS_WATCHERS") };
-        let r = resolve_mcp_liveness_watchers(None, None, None, None, Some(false));
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::Remote);
-    }
-    #[test]
-    #[serial]
     fn mcp_auto_restart_default_is_true() {
         unsafe { std::env::remove_var("NOFY_MCP_AUTO_RESTART") };
-        let r = resolve_mcp_auto_restart(None, None, None, None, None);
+        let r = resolve_mcp_auto_restart(None, None, None);
         assert!(r.value, "recovery is on by default");
         assert_eq!(r.source, ConfigSource::Default);
     }
@@ -12106,13 +11176,7 @@ default = "grok-4.5"
     #[serial]
     fn mcp_auto_restart_requirement_wins_over_everything() {
         unsafe { std::env::set_var("NOFY_MCP_AUTO_RESTART", "false") };
-        let r = resolve_mcp_auto_restart(
-            Some(true),
-            Some(false),
-            Some(false),
-            Some(false),
-            Some(false),
-        );
+        let r = resolve_mcp_auto_restart(Some(true), Some(false), Some(false));
         unsafe { std::env::remove_var("NOFY_MCP_AUTO_RESTART") };
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Requirement);
@@ -12121,7 +11185,7 @@ default = "grok-4.5"
     #[serial]
     fn mcp_auto_restart_env_wins_over_config_and_below() {
         unsafe { std::env::set_var("NOFY_MCP_AUTO_RESTART", "true") };
-        let r = resolve_mcp_auto_restart(None, None, Some(false), Some(false), Some(false));
+        let r = resolve_mcp_auto_restart(None, Some(false), Some(false));
         unsafe { std::env::remove_var("NOFY_MCP_AUTO_RESTART") };
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Env);
@@ -12130,7 +11194,7 @@ default = "grok-4.5"
     #[serial]
     fn mcp_push_server_status_default_is_true() {
         unsafe { std::env::remove_var("NOFY_MCP_PUSH_SERVER_STATUS") };
-        let r = resolve_mcp_push_server_status(None, None, None, None, None);
+        let r = resolve_mcp_push_server_status(None, None, None);
         assert!(r.value, "default-on by spec");
         assert_eq!(r.source, ConfigSource::Default);
     }
@@ -12138,65 +11202,41 @@ default = "grok-4.5"
     #[serial]
     fn mcp_push_server_status_requirement_wins_over_everything() {
         unsafe { std::env::set_var("NOFY_MCP_PUSH_SERVER_STATUS", "true") };
-        let r = resolve_mcp_push_server_status(
-            Some(false),
-            Some(true),
-            Some(true),
-            Some(true),
-            Some(true),
-        );
+        let r = resolve_mcp_push_server_status(Some(false), Some(true), Some(true));
         unsafe { std::env::remove_var("NOFY_MCP_PUSH_SERVER_STATUS") };
         assert!(!r.value, "requirement overrides every other layer");
         assert_eq!(r.source, ConfigSource::Requirement);
     }
     #[test]
     #[serial]
-    fn mcp_push_server_status_cli_wins_over_env_and_below() {
-        unsafe { std::env::set_var("NOFY_MCP_PUSH_SERVER_STATUS", "true") };
-        let r =
-            resolve_mcp_push_server_status(None, Some(false), Some(true), Some(true), Some(true));
-        unsafe { std::env::remove_var("NOFY_MCP_PUSH_SERVER_STATUS") };
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::Cli);
-    }
-    #[test]
-    #[serial]
     fn mcp_push_server_status_env_wins_over_config_and_below() {
         unsafe { std::env::set_var("NOFY_MCP_PUSH_SERVER_STATUS", "false") };
-        let r = resolve_mcp_push_server_status(None, None, Some(true), Some(true), Some(true));
+        let r = resolve_mcp_push_server_status(None, Some(true), Some(true));
         unsafe { std::env::remove_var("NOFY_MCP_PUSH_SERVER_STATUS") };
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Env);
     }
     #[test]
     #[serial]
-    fn mcp_push_server_status_config_wins_over_managed_and_feature_flag() {
+    fn mcp_push_server_status_config_wins_over_managed() {
         unsafe { std::env::remove_var("NOFY_MCP_PUSH_SERVER_STATUS") };
-        let r = resolve_mcp_push_server_status(None, None, Some(false), Some(true), Some(true));
+        let r = resolve_mcp_push_server_status(None, Some(false), Some(true));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Config);
     }
     #[test]
     #[serial]
-    fn mcp_push_server_status_managed_wins_over_feature_flag() {
+    fn mcp_push_server_status_managed_applies() {
         unsafe { std::env::remove_var("NOFY_MCP_PUSH_SERVER_STATUS") };
-        let r = resolve_mcp_push_server_status(None, None, None, Some(false), Some(true));
+        let r = resolve_mcp_push_server_status(None, None, Some(false));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::ManagedConfig);
     }
     #[test]
     #[serial]
-    fn mcp_push_server_status_feature_flag_used_when_no_higher_layer() {
-        unsafe { std::env::remove_var("NOFY_MCP_PUSH_SERVER_STATUS") };
-        let r = resolve_mcp_push_server_status(None, None, None, None, Some(false));
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::Remote);
-    }
-    #[test]
-    #[serial]
     fn mcp_recursive_config_watch_default_is_true() {
         unsafe { std::env::remove_var("NOFY_MCP_RECURSIVE_CONFIG_WATCH") };
-        let r = resolve_mcp_recursive_config_watch(None, None, None, None, None);
+        let r = resolve_mcp_recursive_config_watch(None, None, None);
         assert!(r.value, "default-on by spec");
         assert_eq!(r.source, ConfigSource::Default);
     }
@@ -12204,140 +11244,34 @@ default = "grok-4.5"
     #[serial]
     fn mcp_recursive_config_watch_requirement_wins_over_everything() {
         unsafe { std::env::set_var("NOFY_MCP_RECURSIVE_CONFIG_WATCH", "true") };
-        let r = resolve_mcp_recursive_config_watch(
-            Some(false),
-            Some(true),
-            Some(true),
-            Some(true),
-            Some(true),
-        );
+        let r = resolve_mcp_recursive_config_watch(Some(false), Some(true), Some(true));
         unsafe { std::env::remove_var("NOFY_MCP_RECURSIVE_CONFIG_WATCH") };
         assert!(!r.value, "requirement overrides every other layer");
         assert_eq!(r.source, ConfigSource::Requirement);
     }
     #[test]
     #[serial]
-    fn mcp_recursive_config_watch_cli_wins_over_env_and_below() {
-        unsafe { std::env::set_var("NOFY_MCP_RECURSIVE_CONFIG_WATCH", "true") };
-        let r = resolve_mcp_recursive_config_watch(
-            None,
-            Some(false),
-            Some(true),
-            Some(true),
-            Some(true),
-        );
-        unsafe { std::env::remove_var("NOFY_MCP_RECURSIVE_CONFIG_WATCH") };
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::Cli);
-    }
-    #[test]
-    #[serial]
     fn mcp_recursive_config_watch_env_wins_over_config_and_below() {
         unsafe { std::env::set_var("NOFY_MCP_RECURSIVE_CONFIG_WATCH", "false") };
-        let r = resolve_mcp_recursive_config_watch(None, None, Some(true), Some(true), Some(true));
+        let r = resolve_mcp_recursive_config_watch(None, Some(true), Some(true));
         unsafe { std::env::remove_var("NOFY_MCP_RECURSIVE_CONFIG_WATCH") };
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Env);
     }
     #[test]
     #[serial]
-    fn mcp_recursive_config_watch_config_wins_over_managed_and_feature_flag() {
+    fn mcp_recursive_config_watch_config_wins_over_managed() {
         unsafe { std::env::remove_var("NOFY_MCP_RECURSIVE_CONFIG_WATCH") };
-        let r = resolve_mcp_recursive_config_watch(None, None, Some(false), Some(true), Some(true));
+        let r = resolve_mcp_recursive_config_watch(None, Some(false), Some(true));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Config);
     }
     #[test]
     #[serial]
-    fn mcp_recursive_config_watch_managed_wins_over_feature_flag() {
+    fn mcp_recursive_config_watch_managed_applies() {
         unsafe { std::env::remove_var("NOFY_MCP_RECURSIVE_CONFIG_WATCH") };
-        let r = resolve_mcp_recursive_config_watch(None, None, None, Some(false), Some(true));
+        let r = resolve_mcp_recursive_config_watch(None, None, Some(false));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::ManagedConfig);
-    }
-    #[test]
-    #[serial]
-    fn mcp_recursive_config_watch_feature_flag_used_when_no_higher_layer() {
-        unsafe { std::env::remove_var("NOFY_MCP_RECURSIVE_CONFIG_WATCH") };
-        let r = resolve_mcp_recursive_config_watch(None, None, None, None, Some(false));
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::Remote);
-    }
-    #[test]
-    #[serial_test::serial(remote_sig_disarm)]
-    fn remote_settings_disarm_managed_config_signatures() {
-        nofy_config::signed_policy::apply_remote_managed_config_signature_verification(
-            Some(true),
-            true,
-        );
-        assert!(nofy_config::signed_policy::verification_active());
-        let settings = crate::util::config::RemoteSettings {
-            managed_config_signature_verification: Some(false),
-            ..Default::default()
-        };
-        apply_remote_settings_side_effects(Some(&settings));
-        assert!(!nofy_config::signed_policy::verification_active());
-        let settings = crate::util::config::RemoteSettings {
-            managed_config_signature_verification: Some(true),
-            ..Default::default()
-        };
-        apply_remote_settings_side_effects(Some(&settings));
-        assert!(nofy_config::signed_policy::verification_active());
-        nofy_config::signed_policy::apply_remote_managed_config_signature_verification(
-            Some(false),
-            true,
-        );
-        apply_remote_settings_side_effects(None);
-        assert!(!nofy_config::signed_policy::verification_active());
-        nofy_config::signed_policy::apply_remote_managed_config_signature_verification(
-            Some(true),
-            true,
-        );
-        assert!(nofy_config::signed_policy::verification_active());
-    }
-    /// Keyed path: prod proxy origin can disarm; env override cannot.
-    #[test]
-    #[serial_test::serial(remote_sig_disarm)]
-    fn remote_settings_disarm_requires_prod_proxy_when_keys_embedded() {
-        nofy_config::signed_policy::apply_remote_managed_config_signature_verification(
-            Some(true),
-            true,
-        );
-        assert!(nofy_config::signed_policy::verification_active());
-        let settings = crate::util::config::RemoteSettings {
-            managed_config_signature_verification: Some(false),
-            ..Default::default()
-        };
-        unsafe {
-            std::env::remove_var("NOFY_CLI_CHAT_PROXY_BASE_URL");
-        }
-        apply_remote_settings_side_effects(Some(&settings));
-        assert!(
-            !nofy_config::signed_policy::verification_active(),
-            "prod proxy origin must allow disarm when keys are embedded"
-        );
-        nofy_config::signed_policy::apply_remote_managed_config_signature_verification(
-            Some(true),
-            true,
-        );
-        assert!(nofy_config::signed_policy::verification_active());
-        unsafe {
-            std::env::set_var(
-                "NOFY_CLI_CHAT_PROXY_BASE_URL",
-                "https://attacker.example/v1",
-            );
-        }
-        apply_remote_settings_side_effects(Some(&settings));
-        assert!(
-            nofy_config::signed_policy::verification_active(),
-            "env-overridden proxy must not be able to disarm keyed verification"
-        );
-        unsafe {
-            std::env::remove_var("NOFY_CLI_CHAT_PROXY_BASE_URL");
-        }
-        nofy_config::signed_policy::apply_remote_managed_config_signature_verification(
-            Some(true),
-            true,
-        );
     }
 }

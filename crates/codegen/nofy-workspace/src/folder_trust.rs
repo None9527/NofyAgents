@@ -28,7 +28,7 @@ use std::io::IsTerminal;
 use std::path::Path;
 
 use toml::Value as TomlValue;
-use nofy_config_types::{BoolFlag, RemoteSettings};
+use nofy_config_types::BoolFlag;
 
 use crate::trust::{TrustStore, workspace_key};
 
@@ -145,21 +145,20 @@ fn is_local_build() -> bool {
 /// Resolve whether the folder-trust gate is enabled.
 ///
 /// On a local/dev build (no `NOFY_VERSION` release stamp) the feature is OFF
-/// regardless of env/config/remote — a self-built nofy auto-trusts (never
+/// regardless of env/config — a self-built nofy auto-trusts (never
 /// prompts, never gates repo-local MCP/LSP). Folder-trust applies only to
 /// shipped, release-stamped binaries.
 ///
 /// On a release-stamped build, normal precedence (via `BoolFlag`):
 /// env `NOFY_FOLDER_TRUST` > `[folder_trust] enabled` (user) > managed >
-/// remote `folder_trust_enabled` > default **true** (on by default; the remote
-/// `folder_trust_enabled` kill-switch or a `[folder_trust] enabled = false`
+/// default **true** (on by default; a `[folder_trust] enabled = false`
 /// opt-out turns it back off).
-pub fn feature_enabled(remote: Option<&RemoteSettings>) -> bool {
-    feature_enabled_for_build(remote, is_local_build())
+pub fn feature_enabled() -> bool {
+    feature_enabled_for_build(is_local_build())
 }
 
 /// `feature_enabled` with the local-build flag fed in so both arms are unit-testable.
-fn feature_enabled_for_build(remote: Option<&RemoteSettings>, is_local_build: bool) -> bool {
+fn feature_enabled_for_build(is_local_build: bool) -> bool {
     // Local/dev builds never gate (auto-trust): folder-trust applies only to
     // shipped, release-stamped binaries. Even an explicit NOFY_FOLDER_TRUST/config
     // opt-in is ignored here so a self-built nofy never prompts.
@@ -174,7 +173,6 @@ fn feature_enabled_for_build(remote: Option<&RemoteSettings>, is_local_build: bo
     BoolFlag::env("NOFY_FOLDER_TRUST")
         .config(from_toml(user.as_ref()))
         .managed(from_toml(managed.as_ref()))
-        .feature_flag(remote.and_then(|r| r.folder_trust_enabled))
         .default(true)
         .resolve()
         .value
@@ -934,52 +932,22 @@ mod tests {
     }
 
     #[test]
-    fn local_build_ignores_remote_rollout() {
-        // A local/dev build never gates (auto-trust): even a remote rollout enable
-        // is ignored, so the feature stays off and resolves Trusted with repo
-        // configs present + interactive. (Env/config isolated to unset so the
-        // remote flag is unambiguously the only enable being dropped here.)
+    fn local_build_never_gates() {
+        // A local/dev build never gates (auto-trust): the feature stays off and
+        // resolves Trusted with repo configs present + interactive. (Env/config
+        // isolated to unset so no opt-in can interfere.)
         let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let home = tempfile::tempdir().unwrap();
         let _home = EnvVarGuard::set("NOFY_HOME", home.path());
         let _flag = EnvVarGuard::unset("NOFY_FOLDER_TRUST");
 
-        let remote = RemoteSettings {
-            folder_trust_enabled: Some(true),
-            ..Default::default()
-        };
-        let feature = feature_enabled_for_build(Some(&remote), true);
+        let feature = feature_enabled_for_build(true);
         assert!(!feature);
         let i = DecideInputs {
             is_interactive: true,
             ..inputs()
         };
         assert_eq!(decide(feature, &i), TrustOutcome::Trusted);
-    }
-
-    #[test]
-    fn release_build_keeps_gate_when_enabled() {
-        // A release-stamped build (is_local_build=false) honors the remote enable,
-        // keeping today's gate. Isolate config so neither on-disk user/managed
-        // config nor an ambient env flag can override it: empty NOFY_HOME (no
-        // config.toml/managed_config.toml) + NOFY_FOLDER_TRUST unset. nextest's
-        // process-per-test makes nofy_home()'s OnceLock pick up the temp dir.
-        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        let home = tempfile::tempdir().unwrap();
-        let _home = EnvVarGuard::set("NOFY_HOME", home.path());
-        let _flag = EnvVarGuard::unset("NOFY_FOLDER_TRUST");
-
-        let remote = RemoteSettings {
-            folder_trust_enabled: Some(true),
-            ..Default::default()
-        };
-        let feature = feature_enabled_for_build(Some(&remote), false);
-        assert!(feature);
-        let i = DecideInputs {
-            is_interactive: true,
-            ..inputs()
-        };
-        assert_eq!(decide(feature, &i), TrustOutcome::Prompt);
     }
 
     #[test]
@@ -992,12 +960,12 @@ mod tests {
         let _home = EnvVarGuard::set("NOFY_HOME", home.path());
         let _flag = EnvVarGuard::set("NOFY_FOLDER_TRUST", Path::new("1"));
 
-        assert!(!feature_enabled_for_build(None, true));
+        assert!(!feature_enabled_for_build(true));
     }
 
     #[test]
     fn release_build_defaults_on() {
-        // A release-stamped build with no env/config/managed/remote signal defaults
+        // A release-stamped build with no env/config/managed signal defaults
         // the feature ON. Empty NOFY_HOME (no config.toml/managed config) +
         // NOFY_FOLDER_TRUST unset so only the default applies.
         let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
@@ -1005,7 +973,7 @@ mod tests {
         let _home = EnvVarGuard::set("NOFY_HOME", home.path());
         let _flag = EnvVarGuard::unset("NOFY_FOLDER_TRUST");
 
-        assert!(feature_enabled_for_build(None, false));
+        assert!(feature_enabled_for_build(false));
     }
 
     #[test]

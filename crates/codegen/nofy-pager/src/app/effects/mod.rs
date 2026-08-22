@@ -4168,7 +4168,6 @@ pub(crate) fn execute(
                             };
                         }
                     };
-                    let subscription_tier = billing.subscription_tier;
                     let balance = billing.config.map(credit_balance_from_config);
                     let autotopup = if has_prepaid_credits(balance.as_ref()) {
                         fetch_auto_topup_info(&tx).await
@@ -4179,18 +4178,7 @@ pub(crate) fn execute(
                         agent_id,
                         balance,
                         silent,
-                        subscription_tier,
                         autotopup,
-                    }
-                });
-        }
-        Effect::RefreshGate => {
-            // Remote settings fetching was removed with the xAI backend; the
-            // gate machinery consumes this as a definitive no-settings answer.
-            tasks
-                .spawn(async move {
-                    TaskResult::GateRefreshed {
-                        settings: None,
                     }
                 });
         }

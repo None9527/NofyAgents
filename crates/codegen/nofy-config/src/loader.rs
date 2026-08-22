@@ -481,15 +481,11 @@ impl ConfigLayers {
     }
 
     /// Campaign source slices in priority order (first id wins):
-    /// requirements > remote > user > managed > system_managed. Single source of
+    /// requirements > user > managed > system_managed. Single source of
     /// truth for the precedence; both this crate and the shell resolver consume it.
-    pub fn campaign_source_slices<'a>(
-        &'a self,
-        remote_campaigns: &'a [crate::campaigns::CampaignEntry],
-    ) -> [&'a [crate::campaigns::CampaignEntry]; 5] {
+    pub fn campaign_source_slices(&self) -> [&[crate::campaigns::CampaignEntry]; 4] {
         [
             &self.campaigns.requirements,
-            remote_campaigns,
             &self.campaigns.user,
             &self.campaigns.managed,
             &self.campaigns.system_managed,
@@ -502,15 +498,12 @@ impl ConfigLayers {
     pub fn resolve_campaigns(
         &self,
         base: &toml::Value,
-        remote_campaigns: &[crate::campaigns::CampaignEntry],
         dismissed_ids: &std::collections::HashSet<String>,
     ) -> Vec<crate::campaigns::CampaignEntry> {
         if campaigns_application_disabled(base) {
             return Vec::new();
         }
-        let merged = crate::campaigns::merge_campaign_entries(
-            &self.campaign_source_slices(remote_campaigns),
-        );
+        let merged = crate::campaigns::merge_campaign_entries(&self.campaign_source_slices());
         crate::campaigns::filter_active_campaigns(merged, dismissed_ids)
     }
 
@@ -542,25 +535,24 @@ impl ConfigLayers {
         self.reapply_requirements(merged);
     }
 
-    /// Layer merge + disk/remote campaign overlay, honoring the kill switch. The
-    /// shell's `load_effective_config` is the remote/override-aware path; this is
+    /// Layer merge + disk campaign overlay, honoring the kill switch. The
+    /// shell's `load_effective_config` is the override-aware path; this is
     /// used by `effective_config_disk_only` and tests.
     pub fn effective_config_with_campaigns(
         &self,
-        remote_campaigns: &[crate::campaigns::CampaignEntry],
         dismissed_ids: &std::collections::HashSet<String>,
     ) -> toml::Value {
         let mut merged = self.effective_config_base();
-        let active = self.resolve_campaigns(&merged, remote_campaigns, dismissed_ids);
+        let active = self.resolve_campaigns(&merged, dismissed_ids);
         self.apply_campaign_overrides(&mut merged, &active);
         merged
     }
 
-    /// Disk campaigns + on-disk dismiss (`campaigns_state.json`); **no remote, no
-    /// env override**. Named to make the divergence from the shell's remote-aware
+    /// Disk campaigns + on-disk dismiss (`campaigns_state.json`); **no env
+    /// override**. Named to make the divergence from the shell's
     /// `load_effective_config` explicit at every call site.
     pub fn effective_config_disk_only(&self) -> toml::Value {
-        self.effective_config_with_campaigns(&[], &load_dismissed_ids_from_home())
+        self.effective_config_with_campaigns(&load_dismissed_ids_from_home())
     }
 
     pub fn has_managed(&self) -> bool {
@@ -590,11 +582,11 @@ pub fn campaigns_application_disabled(base_effective: &toml::Value) -> bool {
         == Some(false)
 }
 
-/// Disk layers only (no remote, no env override). Prefer the shell loader
-/// (`nofy_shell::util::config::load_effective_config`) when remote campaigns
-/// or `NOFY_CAMPAIGNS_OVERRIDE` must be honored. The name mirrors the
-/// [`ConfigLayers::effective_config_disk_only`] method so the divergence from the
-/// remote-aware loader is un-ignorable at every call site.
+/// Disk layers only (no env override). Prefer the shell loader
+/// (`nofy_shell::util::config::load_effective_config`) when
+/// `NOFY_CAMPAIGNS_OVERRIDE` must be honored. The name mirrors the
+/// [`ConfigLayers::effective_config_disk_only`] method so the divergence from
+/// the override-aware loader is un-ignorable at every call site.
 pub fn load_effective_config_disk_only() -> std::io::Result<toml::Value> {
     Ok(ConfigLayers::load()?.effective_config_disk_only())
 }

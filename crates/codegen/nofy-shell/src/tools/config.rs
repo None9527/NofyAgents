@@ -33,7 +33,7 @@ pub struct BashToolConfig {
     /// (auto-bg only at model/default timeout).
     pub foreground_block_budget_ms: Option<u64>,
     /// Whether to allow a background `&` operator in foreground commands
-    /// (default: `true`). Resolution: config.toml (this) > remote settings > `true`.
+    /// (default: `true`). Resolution: config.toml (this) > `true`.
     pub allow_background_operator: Option<bool>,
     pub login_shell_capture: Option<bool>,
 }
@@ -41,14 +41,8 @@ pub struct BashToolConfig {
 impl BashToolConfig {
     /// Build the JSON params map for the bash tool.
     ///
-    /// `remote_auto_bg` is the remote settings fallback for `auto_background_on_timeout`
-    /// and `remote_allow_background_operator` for `allow_background_operator`.
-    /// Resolution: local config.toml > remote fallback > `true`.
-    pub(crate) fn to_bash_params_json(
-        &self,
-        remote_auto_bg: Option<bool>,
-        remote_allow_background_operator: Option<bool>,
-    ) -> serde_json::Map<String, serde_json::Value> {
+    /// Resolution: local config.toml > `true`.
+    pub(crate) fn to_bash_params_json(&self) -> serde_json::Map<String, serde_json::Value> {
         let mut map = serde_json::Map::new();
         if let Some(t) = self.timeout_secs {
             map.insert("timeout_secs".into(), t.into());
@@ -64,18 +58,12 @@ impl BashToolConfig {
         if let Some(ref p) = self.cmd_prefix {
             map.insert("cmd_prefix".into(), p.clone().into());
         }
-        let auto_bg = self
-            .auto_background_on_timeout
-            .or(remote_auto_bg)
-            .unwrap_or(true);
+        let auto_bg = self.auto_background_on_timeout.unwrap_or(true);
         map.insert("auto_background_on_timeout".into(), auto_bg.into());
         if let Some(ms) = self.foreground_block_budget_ms {
             map.insert("foreground_block_budget_ms".into(), ms.into());
         }
-        let allow_bg_op = self
-            .allow_background_operator
-            .or(remote_allow_background_operator)
-            .unwrap_or(true);
+        let allow_bg_op = self.allow_background_operator.unwrap_or(true);
         map.insert("allow_background_operator".into(), allow_bg_op.into());
         map
     }
@@ -87,7 +75,7 @@ impl BashToolConfig {
 /// Consumed out-of-band by
 /// `crate::util::config::resolve_ask_user_question_params_from_disk`, which
 /// reads the raw config layers so the documented precedence (requirements >
-/// env > user > managed > remote) holds — this struct exists so the keys are
+/// env > user > managed) holds — this struct exists so the keys are
 /// recognized in `config.toml` and round-trip through `AgentConfig`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -105,11 +93,11 @@ pub struct AskUserQuestionToolConfig {
 #[serde(default)]
 pub struct WebFetchToolConfig {
     /// Egress proxy endpoint. When set, all HTTP requests are routed through
-    /// this URL. Resolution: TOML > `NOFY_WEB_FETCH_PROXY` env > remote settings > None.
+    /// this URL. Resolution: TOML > `NOFY_WEB_FETCH_PROXY` env > None.
     pub proxy_endpoint: Option<String>,
     /// Domains the tool is allowed to fetch. When set, overrides the built-in
     /// default allowlist. An explicit empty list blocks all fetches.
-    /// Resolution: TOML > remote settings > built-in defaults.
+    /// Resolution: TOML > built-in defaults.
     pub allowed_domains: Option<Vec<String>>,
     /// Allow fetches to explicit loopback hosts only (`localhost` / `127.0.0.0/8`
     /// / `::1`). Private and metadata ranges stay blocked. Default off.
@@ -118,15 +106,12 @@ pub struct WebFetchToolConfig {
 }
 
 impl WebFetchToolConfig {
-    /// Resolve `WebFetchParams` by merging TOML > env > remote settings layers.
+    /// Resolve `WebFetchParams` by merging TOML > env layers.
     ///
-    /// `remote_proxy` and `remote_domains` are the remote settings fallback values
-    /// from `RemoteSettings`. `context_window` comes from the session's
-    /// SamplingConfig (model-provided).
+    /// `context_window` comes from the session's SamplingConfig
+    /// (model-provided).
     pub(crate) fn resolve_params(
         &self,
-        remote_proxy: Option<&str>,
-        remote_domains: Option<&[String]>,
         context_window_tokens: Option<u64>,
     ) -> nofy_tools::implementations::nofy_build::web_fetch::WebFetchParams {
         use crate::agent::config::env_string;
@@ -135,14 +120,9 @@ impl WebFetchToolConfig {
             .proxy_endpoint
             .as_ref()
             .cloned()
-            .or_else(|| env_string("NOFY_WEB_FETCH_PROXY"))
-            .or_else(|| remote_proxy.map(|s| s.to_owned()));
+            .or_else(|| env_string("NOFY_WEB_FETCH_PROXY"));
 
-        let allowed_domains = self
-            .allowed_domains
-            .as_ref()
-            .cloned()
-            .or_else(|| remote_domains.map(|d| d.to_vec()));
+        let allowed_domains = self.allowed_domains.as_ref().cloned();
 
         let allow_local = self
             .allow_local
@@ -263,20 +243,8 @@ impl ShellToolsetConfig {
         toolset
     }
 
-    /// Resolve the effective file toolset. Local config takes precedence;
-    /// remote `/v1/settings` is used as fallback when local is the default.
-    pub(crate) fn resolve_file_toolset(
-        &self,
-        remote: Option<&crate::util::config::RemoteSettings>,
-    ) -> FileToolset {
-        if self.file_toolset != FileToolset::Standard {
-            return self.file_toolset;
-        }
-        if let Some(remote) = remote
-            && remote.file_toolset.as_deref() == Some("hashline")
-        {
-            return FileToolset::Hashline;
-        }
+    /// Resolve the effective file toolset from local config.
+    pub(crate) fn resolve_file_toolset(&self) -> FileToolset {
         self.file_toolset
     }
 }
@@ -523,35 +491,21 @@ mod tests {
         assert_eq!(hashline, FileToolset::Hashline);
     }
 
-    // -- resolve_file_toolset precedence tests ---
+    // -- resolve_file_toolset tests ---
 
     #[test]
-    fn resolve_local_hashline_wins_over_remote() {
+    fn resolve_local_hashline() {
         let cfg = ShellToolsetConfig {
             file_toolset: FileToolset::Hashline,
             ..ShellToolsetConfig::default()
         };
-        // Local says hashline — remote is irrelevant.
-        assert_eq!(cfg.resolve_file_toolset(None), FileToolset::Hashline,);
+        assert_eq!(cfg.resolve_file_toolset(), FileToolset::Hashline,);
     }
 
     #[test]
-    fn resolve_remote_used_when_local_default() {
-        let cfg = ShellToolsetConfig::default(); // Standard (default)
-        let remote = crate::util::config::RemoteSettings {
-            file_toolset: Some("hashline".to_owned()),
-            ..Default::default()
-        };
-        assert_eq!(
-            cfg.resolve_file_toolset(Some(&remote)),
-            FileToolset::Hashline,
-        );
-    }
-
-    #[test]
-    fn resolve_default_when_no_remote() {
+    fn resolve_file_toolset_defaults_to_standard() {
         let cfg = ShellToolsetConfig::default();
-        assert_eq!(cfg.resolve_file_toolset(None), FileToolset::Standard,);
+        assert_eq!(cfg.resolve_file_toolset(), FileToolset::Standard,);
     }
 
     #[test]
@@ -579,17 +533,13 @@ mod tests {
     // -- resolve_params precedence tests ---
 
     #[test]
-    fn resolve_params_toml_wins_over_remote() {
+    fn resolve_params_toml_values_used() {
         let local = WebFetchToolConfig {
             proxy_endpoint: Some("https://toml-proxy.example.com".to_owned()),
             allowed_domains: Some(vec!["toml.example.com".to_owned()]),
             allow_local: Some(true),
         };
-        let params = local.resolve_params(
-            Some("https://remote-proxy.example.com"),
-            Some(&["remote.example.com".to_owned()]),
-            None,
-        );
+        let params = local.resolve_params(None);
         assert_eq!(
             params.proxy_endpoint.as_deref(),
             Some("https://toml-proxy.example.com")
@@ -603,28 +553,9 @@ mod tests {
     }
 
     #[test]
-    fn resolve_params_remote_used_when_toml_absent() {
-        let local = WebFetchToolConfig::default();
-        let params = local.resolve_params(
-            Some("https://remote-proxy.example.com"),
-            Some(&["remote.example.com".to_owned()]),
-            None,
-        );
-        assert_eq!(
-            params.proxy_endpoint.as_deref(),
-            Some("https://remote-proxy.example.com")
-        );
-        assert_eq!(
-            params.allowed_domains,
-            Some(vec!["remote.example.com".to_owned()])
-        );
-        assert!(!params.allow_local());
-    }
-
-    #[test]
     fn resolve_params_defaults_when_nothing_set() {
         let local = WebFetchToolConfig::default();
-        let params = local.resolve_params(None, None, None);
+        let params = local.resolve_params(None);
         assert!(params.proxy_endpoint.is_none());
         assert!(params.allowed_domains.is_none());
         assert!(!params.allow_local());
@@ -637,11 +568,11 @@ mod tests {
             allowed_domains: Some(vec![]),
             allow_local: None,
         };
-        let params = local.resolve_params(None, Some(&["remote.example.com".to_owned()]), None);
+        let params = local.resolve_params(None);
         assert_eq!(params.allowed_domains, Some(vec![]));
     }
 
-    // -- to_bash_params_json allow_background_operator precedence (local > remote > true) --
+    // -- to_bash_params_json allow_background_operator precedence (local > true) --
 
     fn allow_bg_op(map: &serde_json::Map<String, serde_json::Value>) -> Option<bool> {
         map.get("allow_background_operator")
@@ -649,33 +580,18 @@ mod tests {
     }
 
     #[test]
-    fn allow_background_operator_local_wins_over_remote() {
+    fn allow_background_operator_local_wins() {
         let local = BashToolConfig {
             allow_background_operator: Some(false),
             ..BashToolConfig::default()
         };
-        assert_eq!(
-            allow_bg_op(&local.to_bash_params_json(None, Some(true))),
-            Some(false)
-        );
-    }
-
-    #[test]
-    fn allow_background_operator_remote_used_when_local_absent() {
-        let local = BashToolConfig::default();
-        assert_eq!(
-            allow_bg_op(&local.to_bash_params_json(None, Some(false))),
-            Some(false)
-        );
+        assert_eq!(allow_bg_op(&local.to_bash_params_json()), Some(false));
     }
 
     #[test]
     fn allow_background_operator_defaults_true_when_unset() {
         let local = BashToolConfig::default();
-        assert_eq!(
-            allow_bg_op(&local.to_bash_params_json(None, None)),
-            Some(true)
-        );
+        assert_eq!(allow_bg_op(&local.to_bash_params_json()), Some(true));
     }
 
     // -- max_timeout_secs: production sets the 10h foreground ceiling explicitly
@@ -689,7 +605,7 @@ mod tests {
     fn max_timeout_secs_defaults_to_production_10h() {
         let local = BashToolConfig::default();
         assert_eq!(
-            max_timeout(&local.to_bash_params_json(None, None)),
+            max_timeout(&local.to_bash_params_json()),
             Some(PRODUCTION_MAX_TIMEOUT_SECS),
             "production nofy-build must set the 10h foreground ceiling"
         );
@@ -701,10 +617,7 @@ mod tests {
             max_timeout_secs: Some(300.0),
             ..BashToolConfig::default()
         };
-        assert_eq!(
-            max_timeout(&local.to_bash_params_json(None, None)),
-            Some(300.0),
-        );
+        assert_eq!(max_timeout(&local.to_bash_params_json()), Some(300.0),);
     }
 
     // -- foreground_block_budget_ms: only emitted when set (server defaults to 15s) --
@@ -718,7 +631,7 @@ mod tests {
     fn foreground_block_budget_ms_omitted_by_default() {
         let local = BashToolConfig::default();
         assert!(
-            fg_budget(&local.to_bash_params_json(None, None)).is_none(),
+            fg_budget(&local.to_bash_params_json()).is_none(),
             "unset budget must not be sent (server keeps 15s default)"
         );
     }
@@ -729,14 +642,11 @@ mod tests {
             foreground_block_budget_ms: Some(0),
             ..BashToolConfig::default()
         };
-        assert_eq!(fg_budget(&local.to_bash_params_json(None, None)), Some(0),);
+        assert_eq!(fg_budget(&local.to_bash_params_json()), Some(0),);
         let local = BashToolConfig {
             foreground_block_budget_ms: Some(30_000),
             ..BashToolConfig::default()
         };
-        assert_eq!(
-            fg_budget(&local.to_bash_params_json(None, None)),
-            Some(30_000),
-        );
+        assert_eq!(fg_budget(&local.to_bash_params_json()), Some(30_000),);
     }
 }

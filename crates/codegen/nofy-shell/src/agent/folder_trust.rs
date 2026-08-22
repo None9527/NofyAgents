@@ -49,7 +49,7 @@ use nofy_workspace::folder_trust::{
 };
 
 use crate::session::managed_mcp::mcp_server_name;
-use crate::util::config::{MCP_SCOPE_PROJECT, RemoteSettings};
+use crate::util::config::MCP_SCOPE_PROJECT;
 
 // NOTE: this folder-trust store (`~/.nofy/trusted_folders.toml`) is SEPARATE
 // from the pre-existing per-plugin trust store
@@ -117,9 +117,7 @@ pub(crate) fn revoke_folder_trust(cwd: &Path) -> bool {
 ///
 /// The cache is consulted BEFORE delegating so a recorded `Some(false)` is
 /// reconciled even on an inert build, where [`resolve_and_record`] would short-
-/// circuit to allow before reaching the cache. `remote = None`: durable
-/// feature-off / kill-switch verdicts are already cached by the launch/session
-/// resolve that ran with the real RemoteSettings.
+/// circuit to allow before reaching the cache.
 ///
 /// `DECISIONS` uses `parking_lot::Mutex` (no poisoning), so this gate cannot
 /// fail OPEN on a poisoned lock.
@@ -142,7 +140,7 @@ pub(crate) fn project_scope_allowed(cwd: &Path) -> bool {
         }
         // Unrecorded: re-resolve fail-closed (no-configs / trusted / feature-off /
         // inert allow; untrusted + configs deny).
-        None => resolve_and_record(cwd, None, false),
+        None => resolve_and_record(cwd, false),
     }
 }
 
@@ -154,11 +152,11 @@ pub(crate) fn project_scope_allowed(cwd: &Path) -> bool {
 /// false under the ACP stdio transport. Mirrors the [`decide`] precedence so it
 /// cannot drift from the gate: feature-off (kill-switch / opt-out) / store-trusted
 /// / no-configs all collapse to a non-`Prompt` verdict and return false.
-pub(crate) fn prompt_warranted(cwd: &Path, remote: Option<&RemoteSettings>) -> bool {
+pub(crate) fn prompt_warranted(cwd: &Path) -> bool {
     let key = workspace_key(cwd);
     matches!(
         decide(
-            feature_enabled(remote),
+            feature_enabled(),
             &decide_inputs_with_interactive(cwd, &key, true),
         ),
         TrustOutcome::Prompt
@@ -231,11 +229,7 @@ pub(crate) fn record_for_test(cwd: &Path, allowed: bool) {
 /// whose cwd differs from the launch dir, `nofy mcp doctor`) passes `false`, so
 /// an unresolved interactive-but-untrusted workspace resolves **fail-closed**
 /// (untrusted, no prompt) — only the launch dir is ever prompted for.
-pub(crate) fn resolve_and_record(
-    cwd: &Path,
-    remote: Option<&RemoteSettings>,
-    allow_prompt: bool,
-) -> bool {
+pub(crate) fn resolve_and_record(cwd: &Path, allow_prompt: bool) -> bool {
     // Local/dev builds are fully inert: project scope is always allowed, so skip
     // the `trusted_folders.toml` read entirely.
     if folder_trust_inert() {
@@ -245,7 +239,7 @@ pub(crate) fn resolve_and_record(
     resolve_and_record_inner(
         &key,
         || TrustStore::load().is_trusted(&key),
-        || compute(cwd, &key, remote, allow_prompt),
+        || compute(cwd, &key, allow_prompt),
     )
 }
 
@@ -269,14 +263,14 @@ pub(crate) fn resolve_and_record(
 /// no-configs case (config added post-startup via git pull / agent write is
 /// caught). The init-time dedup belongs to the one-shot caller (a `OnceCell` on
 /// `MvpAgent`), NOT to any new shared-cache entry.
-pub(crate) fn resolve_launch_dir_trust(cwd: &Path, remote: Option<&RemoteSettings>) -> bool {
+pub(crate) fn resolve_launch_dir_trust(cwd: &Path) -> bool {
     // Local/dev builds are fully inert: project scope is always allowed, skipping
     // the store read + repo scan entirely.
     if folder_trust_inert() {
         return true;
     }
     let key = workspace_key(cwd);
-    let feature = feature_enabled(remote);
+    let feature = feature_enabled();
     let inputs = decide_inputs(cwd, &key);
     // Re-read the store for the cached-untrusted reconciliation EXACTLY as
     // resolve_and_record does (so a `--trust` granted after a parallel resolve
@@ -343,13 +337,8 @@ fn resolve_and_record_inner(
 /// persist anyway. Store-trusted, feature-off, and an accepted prompt are
 /// durable; an untrusted verdict is recorded so a later `--trust` grant can
 /// reconcile it (see [`resolve_and_record_inner`]).
-fn compute(
-    cwd: &Path,
-    key: &Path,
-    remote: Option<&RemoteSettings>,
-    allow_prompt: bool,
-) -> (bool, bool) {
-    let feature = feature_enabled(remote);
+fn compute(cwd: &Path, key: &Path, allow_prompt: bool) -> (bool, bool) {
+    let feature = feature_enabled();
     let inputs = decide_inputs(cwd, key);
     compute_from_inputs(&inputs, feature, key, allow_prompt)
 }
@@ -711,14 +700,14 @@ mod tests {
 
         // Untrusted: the gate verdict is false => the call site skips loading.
         assert!(
-            !resolve_and_record(tmp.path(), None, false),
+            !resolve_and_record(tmp.path(), false),
             "untrusted `.envrc` clone must gate the load"
         );
 
         // Store-trust the folder => the verdict reconciles to true and the loader runs.
         let mut store = TrustStore::load();
         store.set_trusted(&workspace_key(tmp.path())).unwrap();
-        assert!(resolve_and_record(tmp.path(), None, false));
+        assert!(resolve_and_record(tmp.path(), false));
         let env = nofy_workspace::envrc::load_envrc_or_empty(tmp.path());
         assert_eq!(
             env.get("GATED_ENVRC"),
@@ -751,9 +740,9 @@ mod tests {
         .unwrap();
 
         // Untrusted: verdict false => the repo-tree env is dropped.
-        assert!(!resolve_and_record(tmp.path(), None, false));
+        assert!(!resolve_and_record(tmp.path(), false));
         let untrusted =
-            load_claude_env_with_project(tmp.path(), resolve_and_record(tmp.path(), None, false));
+            load_claude_env_with_project(tmp.path(), resolve_and_record(tmp.path(), false));
         assert!(
             !untrusted.contains_key("REPO_TREE_ENV_GATED"),
             "untrusted folder must drop repo-tree .claude env"
@@ -762,9 +751,9 @@ mod tests {
         // Store-trust => verdict reconciles to true => repo-tree env merged.
         let mut store = TrustStore::load();
         store.set_trusted(&workspace_key(tmp.path())).unwrap();
-        assert!(resolve_and_record(tmp.path(), None, false));
+        assert!(resolve_and_record(tmp.path(), false));
         let trusted =
-            load_claude_env_with_project(tmp.path(), resolve_and_record(tmp.path(), None, false));
+            load_claude_env_with_project(tmp.path(), resolve_and_record(tmp.path(), false));
         assert_eq!(
             trusted.get("REPO_TREE_ENV_GATED"),
             Some(&"1".to_string()),
@@ -801,9 +790,9 @@ mod tests {
             repo_configs_present(&subdir),
             "subdir .claude/settings.json must be detected"
         );
-        assert!(!resolve_and_record(&subdir, None, false));
+        assert!(!resolve_and_record(&subdir, false));
         let untrusted =
-            load_claude_env_with_project(&subdir, resolve_and_record(&subdir, None, false));
+            load_claude_env_with_project(&subdir, resolve_and_record(&subdir, false));
         assert!(
             !untrusted.contains_key("SUBDIR_REPO_ENV_GATED"),
             "untrusted subdir folder must drop its repo-tree .claude env"
@@ -812,9 +801,9 @@ mod tests {
         // Granting trust re-enables it (proves the env file is real/loadable).
         let mut store = TrustStore::load();
         store.set_trusted(&workspace_key(&subdir)).unwrap();
-        assert!(resolve_and_record(&subdir, None, false));
+        assert!(resolve_and_record(&subdir, false));
         let trusted =
-            load_claude_env_with_project(&subdir, resolve_and_record(&subdir, None, false));
+            load_claude_env_with_project(&subdir, resolve_and_record(&subdir, false));
         assert_eq!(
             trusted.get("SUBDIR_REPO_ENV_GATED"),
             Some(&"1".to_string()),
@@ -866,7 +855,7 @@ mod tests {
         // => the project agent's inline hooks are appended.
         let mut store = TrustStore::load();
         store.set_trusted(&workspace_key(tmp.path())).unwrap();
-        resolve_and_record(tmp.path(), None, false);
+        resolve_and_record(tmp.path(), false);
         assert!(
             allowed(def.scope),
             "trusted project agent inline hooks must be appended"
@@ -1007,46 +996,6 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn kill_switch_allows_untrusted_repo_after_authoritative_resolve() {
-        // Regression (chat/load-path kill-switch): an untrusted folder WITH repo
-        // configs under a remote kill-switch (folder_trust_enabled = Some(false))
-        // must resolve ALLOWED. The session spawn path resolves once with the real
-        // RemoteSettings before any gate read, so the gate cache-hits that verdict.
-        // NOFY_HOME-isolated (empty store); NOFY_FOLDER_TRUST unset so the kill-switch
-        // is the only signal.
-        let _sim = simulate_release_build();
-        let home = tempfile::tempdir().unwrap();
-        let _env = EnvGuard::set("NOFY_HOME", home.path());
-        let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
-        let remote = RemoteSettings {
-            folder_trust_enabled: Some(false),
-            ..Default::default()
-        };
-
-        let tmp = repo_tmp();
-        std::fs::create_dir_all(tmp.path().join(".nofy").join("hooks")).unwrap();
-        assert!(
-            resolve_and_record(tmp.path(), Some(&remote), false),
-            "kill-switch (feature off) must resolve trusted even with repo configs"
-        );
-        assert!(
-            project_scope_allowed(tmp.path()),
-            "gate must allow a kill-switched folder once the authoritative resolve ran"
-        );
-
-        // Contrast: a cold `remote = None` gate read (no prior authoritative resolve)
-        // misses the kill-switch and denies the same scenario — the exact gap the
-        // up-front spawn resolve closes for chat/load sessions.
-        let cold = repo_tmp();
-        std::fs::create_dir_all(cold.path().join(".nofy").join("hooks")).unwrap();
-        assert!(
-            !project_scope_allowed(cold.path()),
-            "cold remote=None gate read denies a kill-switched folder (regression contrast)"
-        );
-    }
-
-    #[test]
-    #[serial_test::serial]
     fn build_for_cwd_with_trust_verdict_gates_active_project_plugin() {
         let _sim = simulate_release_build();
         // Pins the SHELL plugin wiring end-to-end: the call-site expression
@@ -1086,7 +1035,7 @@ mod tests {
             tmp.path(),
             &cfg,
             &[],
-            resolve_and_record(tmp.path(), None, false),
+            resolve_and_record(tmp.path(), false),
         );
         assert!(
             !active_has(untrusted),
@@ -1099,7 +1048,7 @@ mod tests {
             tmp.path(),
             &cfg,
             &[],
-            resolve_and_record(tmp.path(), None, false),
+            resolve_and_record(tmp.path(), false),
         );
         assert!(
             active_has(trusted),
@@ -1139,7 +1088,7 @@ mod tests {
         };
 
         // Untrusted: verdict false => discovery omits the project hook.
-        let untrusted = resolve_and_record(tmp.path(), None, false);
+        let untrusted = resolve_and_record(tmp.path(), false);
         assert!(!untrusted, "untrusted repo must resolve the gate false");
         // Mirror the production startup/reload path via the single load entry point.
         let git_root = nofy_workspace::session::git::find_git_root_from_path(tmp.path()).ok();
@@ -1155,7 +1104,7 @@ mod tests {
 
         // Grant trust, re-resolve => discovery loads the project hook.
         grant_folder_trust(tmp.path());
-        let trusted = resolve_and_record(tmp.path(), None, false);
+        let trusted = resolve_and_record(tmp.path(), false);
         assert!(trusted, "granted repo must resolve the gate true");
         let (reg, _errs) = crate::util::hooks::discover_hooks(
             git_root.as_deref(),
@@ -1466,7 +1415,7 @@ mod tests {
         let tmp = repo_tmp();
 
         // Empty repo: nothing to gate => allowed, but left UNRECORDED (provisional).
-        assert!(resolve_and_record(tmp.path(), None, false));
+        assert!(resolve_and_record(tmp.path(), false));
         assert!(
             DECISIONS.lock().get(&workspace_key(tmp.path())).is_none(),
             "provisional no-configs allow must not be cached as a durable grant"
@@ -1478,7 +1427,7 @@ mod tests {
         // The next resolve re-checks `repo_configs_present` (no stale grant to
         // ride) => headless untrusted, so the newly-added hooks are now gated.
         assert!(
-            !resolve_and_record(tmp.path(), None, false),
+            !resolve_and_record(tmp.path(), false),
             "configs that appear after the first resolve must be re-checked and gated"
         );
         assert!(!project_scope_allowed(tmp.path()));
@@ -1491,7 +1440,7 @@ mod tests {
     #[serial_test::serial]
     fn resolve_launch_dir_trust_matches_resolve_and_record() {
         // `resolve_launch_dir_trust` derives the launch-dir verdict from one
-        // gather, so it must agree with `resolve_and_record(cwd, None, false)` and
+        // gather, so it must agree with `resolve_and_record(cwd, false)` and
         // must leave the provisional no-configs grant UNCACHED (the TOCTOU
         // contract on the shared path). Force the gate on via env (highest
         // precedence) so the test does not depend on the host config; isolate
@@ -1504,19 +1453,19 @@ mod tests {
 
         // (a) No configs => provisional Trusted, NOT cached by the shared path.
         let empty = repo_tmp();
-        let lt = resolve_launch_dir_trust(empty.path(), None);
+        let lt = resolve_launch_dir_trust(empty.path());
         assert!(
             DECISIONS.lock().get(&workspace_key(empty.path())).is_none(),
             "provisional no-configs allow must not be cached by resolve_launch_dir_trust"
         );
-        assert_eq!(lt, resolve_and_record(empty.path(), None, false));
+        assert_eq!(lt, resolve_and_record(empty.path(), false));
         assert!(lt, "no-configs launch dir must be allowed");
 
         // (b) Configs present + untrusted (empty store, headless) => false.
         let untrusted = repo_tmp();
         std::fs::create_dir_all(untrusted.path().join(".nofy").join("hooks")).unwrap();
-        let lt = resolve_launch_dir_trust(untrusted.path(), None);
-        assert_eq!(lt, resolve_and_record(untrusted.path(), None, false));
+        let lt = resolve_launch_dir_trust(untrusted.path());
+        assert_eq!(lt, resolve_and_record(untrusted.path(), false));
         assert!(!lt, "untrusted configs launch dir must be denied");
 
         // (c) Configs present + store-trusted => true.
@@ -1524,8 +1473,8 @@ mod tests {
         std::fs::create_dir_all(trusted.path().join(".nofy").join("hooks")).unwrap();
         let mut store = TrustStore::load();
         store.set_trusted(&workspace_key(trusted.path())).unwrap();
-        let lt = resolve_launch_dir_trust(trusted.path(), None);
-        assert_eq!(lt, resolve_and_record(trusted.path(), None, false));
+        let lt = resolve_launch_dir_trust(trusted.path());
+        assert_eq!(lt, resolve_and_record(trusted.path(), false));
         assert!(lt, "store-trusted launch dir must be allowed");
     }
 
@@ -1560,7 +1509,7 @@ mod tests {
             "local build: inert gate must auto-trust an untrusted repo that has configs"
         );
         assert!(
-            resolve_launch_dir_trust(tmp.path(), None),
+            resolve_launch_dir_trust(tmp.path()),
             "local build: launch-dir verdict must be trusted"
         );
 
@@ -1577,45 +1526,36 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn prompt_warranted_true_for_untrusted_repo_with_configs() {
-        // Feature on (via remote), untrusted (empty store), repo configs present
-        // => the GUI prompt is warranted. NOFY_HOME-isolated so the store starts
-        // empty; `#[serial]` because NOFY_HOME is process-global.
+        // Feature on (release build default), untrusted (empty store), repo
+        // configs present => the GUI prompt is warranted. NOFY_HOME-isolated so
+        // the store starts empty; `#[serial]` because NOFY_HOME is process-global.
         let home = tempfile::tempdir().unwrap();
         let _env = EnvGuard::set("NOFY_HOME", home.path());
         let tmp = repo_tmp();
         std::fs::write(tmp.path().join(".mcp.json"), "{}").unwrap();
         // Simulate a release-stamped build so the inert local-build gate is off
-        // and the remote `folder_trust_enabled` flag actually engages.
-        // NOFY_FOLDER_TRUST unset: env outranks the remote flag, so an ambient
-        // opt-out would otherwise false-fail the Prompt assertion.
+        // and the default-on feature flag actually engages.
+        // NOFY_FOLDER_TRUST unset so an ambient opt-out would not false-fail
+        // the Prompt assertion.
         let _sim = EnvGuard::set(nofy_version::TEST_VERSION_ENV, "0.0.0-sim");
         let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
-        let remote = RemoteSettings {
-            folder_trust_enabled: Some(true),
-            ..Default::default()
-        };
-        assert!(prompt_warranted(tmp.path(), Some(&remote)));
+        assert!(prompt_warranted(tmp.path()));
     }
 
     #[test]
     #[serial_test::serial]
     fn prompt_warranted_false_when_feature_disabled() {
-        // The remote kill-switch (folder_trust_enabled = Some(false)) disables the
-        // feature even on a release-stamped build, so no prompt is warranted even
-        // with repo configs present. Simulate a release build so the inert
-        // local-build path is not what's under test; NOFY_HOME-isolated and
-        // NOFY_FOLDER_TRUST unset so the kill-switch is the only signal.
+        // An env opt-out (NOFY_FOLDER_TRUST=0) disables the feature even on a
+        // release-stamped build, so no prompt is warranted even with repo
+        // configs present. Simulate a release build so the inert local-build
+        // path is not what's under test; NOFY_HOME-isolated.
         let home = tempfile::tempdir().unwrap();
         let _env = EnvGuard::set("NOFY_HOME", home.path());
-        let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
+        let _flag = EnvGuard::set("NOFY_FOLDER_TRUST", "0");
         let _sim = simulate_release_build();
         let tmp = repo_tmp();
         std::fs::write(tmp.path().join(".mcp.json"), "{}").unwrap();
-        let remote = RemoteSettings {
-            folder_trust_enabled: Some(false),
-            ..Default::default()
-        };
-        assert!(!prompt_warranted(tmp.path(), Some(&remote)));
+        assert!(!prompt_warranted(tmp.path()));
     }
 
     #[test]
@@ -1628,11 +1568,7 @@ mod tests {
         std::fs::write(tmp.path().join(".mcp.json"), "{}").unwrap();
         let mut store = TrustStore::load();
         store.set_trusted(&workspace_key(tmp.path())).unwrap();
-        let remote = RemoteSettings {
-            folder_trust_enabled: Some(true),
-            ..Default::default()
-        };
-        assert!(!prompt_warranted(tmp.path(), Some(&remote)));
+        assert!(!prompt_warranted(tmp.path()));
     }
 
     #[test]
@@ -1642,11 +1578,7 @@ mod tests {
         let home = tempfile::tempdir().unwrap();
         let _env = EnvGuard::set("NOFY_HOME", home.path());
         let tmp = repo_tmp();
-        let remote = RemoteSettings {
-            folder_trust_enabled: Some(true),
-            ..Default::default()
-        };
-        assert!(!prompt_warranted(tmp.path(), Some(&remote)));
+        assert!(!prompt_warranted(tmp.path()));
     }
 
     #[test]

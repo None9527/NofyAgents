@@ -327,12 +327,7 @@ impl MvpAgent {
         let inference_idle_timeout_secs = {
             let per_model = config::find_model_by_id(&available_models, parent_model_id.0.as_ref())
                 .and_then(|e| e.info.inference_idle_timeout_secs);
-            let cfg = self.cfg.borrow();
-            let remote = cfg
-                .remote_settings
-                .as_ref()
-                .and_then(|s| s.inference_idle_timeout_secs);
-            per_model.or(remote).unwrap_or(600).max(10)
+            per_model.unwrap_or(600).max(10)
         };
         let parent_hook_registry = parent_handle.as_ref().and_then(|h| h.hook_registry.clone());
         let parent_max_turns = parent_handle.as_ref().and_then(|h| h.max_turns);
@@ -417,7 +412,6 @@ impl MvpAgent {
             subagent_personas,
             disable_web_search: self.cfg.borrow().disable_web_search,
             todo_gate: self.cfg.borrow().todo_gate,
-            remote_settings: self.cfg.borrow().remote_settings.clone(),
             laziness_debug_log: self.cfg.borrow().laziness_debug_log.clone(),
             backend_tools_enabled: self.cfg.borrow().resolve_backend_tools().value,
             respect_gitignore: self.cfg.borrow().respect_gitignore,
@@ -426,9 +420,7 @@ impl MvpAgent {
             models_manager: self.models_manager.clone(),
             file_tool_overrides: {
                 let cfg = self.cfg.borrow();
-                let effective = cfg
-                    .toolset
-                    .resolve_file_toolset(cfg.remote_settings.as_ref());
+                let effective = cfg.toolset.resolve_file_toolset();
                 if effective != crate::tools::FileToolset::Standard {
                     effective.tool_configs(&cfg.toolset.hashline).ok()
                 } else {

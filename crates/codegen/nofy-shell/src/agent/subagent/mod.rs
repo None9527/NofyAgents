@@ -68,11 +68,9 @@ pub(crate) struct AutoCompactThresholdTiers {
     /// spawn time so user per-model overrides for the subagent's model are
     /// honored (not just the parent's).
     pub user_per_model: std::collections::HashMap<String, u8>,
-    /// `cfg.remote_settings.auto_compact_threshold_percent` (GB global).
-    pub remote_global: Option<u8>,
 }
 impl AutoCompactThresholdTiers {
-    /// Slice the parent's `Config` into the four tier inputs we'll resolve
+    /// Slice the parent's `Config` into the tier inputs we'll resolve
     /// against later. Only fields relevant to the auto-compact threshold
     /// are captured; the parent's `Config` is not held by reference.
     pub(crate) fn capture(cfg: &crate::agent::config::Config) -> Self {
@@ -84,10 +82,6 @@ impl AutoCompactThresholdTiers {
         Self {
             user_session: cfg.session.auto_compact_threshold_percent,
             user_per_model,
-            remote_global: cfg
-                .remote_settings
-                .as_ref()
-                .and_then(|r| r.auto_compact_threshold_percent),
         }
     }
 }
@@ -217,9 +211,6 @@ pub(crate) struct SubagentSpawnContext {
     /// Whether the runtime turn-end TodoGate is force-enabled via
     /// `--todo-gate`. Inherited from the parent session.
     pub todo_gate: bool,
-    /// Remote settings snapshot from the parent session. Used to resolve
-    /// `ReminderPolicy.todo_gate` (CLI > remote > default) for the subagent.
-    pub remote_settings: Option<crate::util::config::RemoteSettings>,
     /// Inherited `--laziness-debug-log <path>` from the parent session.
     /// Subagent classifier fires append to the same log file. `None`
     /// when the parent did not enable debug mode.
@@ -315,15 +306,15 @@ impl SubagentSpawnContext {
     /// Resolve `auto_compact_threshold_percent` for the subagent's actual
     /// model id (the one selected by `resolve_subagent_sampling_config`,
     /// not the parent's). Walks the same precedence as the main session's
-    /// resolver: env > user [model.<id>] > user [session] > GB per-model
-    /// > GB global > 85.
+    /// resolver: env > user [model.<id>] > user [session] > catalog
+    /// per-model > 85.
     ///
-    /// The GB per-model tier is read from `available_models` (the same
-    /// catalog used to pick the subagent's `SamplerConfig`); user TOML and
-    /// GB global tiers are sourced from the parent's snapshot captured at
-    /// spawn-context build time.
+    /// The catalog per-model tier is read from `available_models` (the same
+    /// catalog used to pick the subagent's `SamplerConfig`); user TOML tiers
+    /// are sourced from the parent's snapshot captured at spawn-context build
+    /// time.
     pub(crate) fn resolve_auto_compact_threshold_percent(&self, subagent_model_id: &str) -> u8 {
-        let gb_per_model =
+        let catalog_per_model =
             crate::agent::config::find_model_by_id(&self.available_models, subagent_model_id)
                 .and_then(|e| e.info.auto_compact_threshold_percent);
         crate::util::config::resolve_auto_compact_threshold_percent_from_tiers(
@@ -332,8 +323,7 @@ impl SubagentSpawnContext {
                 .get(subagent_model_id)
                 .copied(),
             self.auto_compact_threshold_tiers.user_session,
-            gb_per_model,
-            self.auto_compact_threshold_tiers.remote_global,
+            catalog_per_model,
         )
     }
     /// Bind a spawned subagent by the parent session's `--tools`/
@@ -343,18 +333,13 @@ impl SubagentSpawnContext {
             cfg.cli_agent_overrides.apply_to_subagent_definition(def);
         }
     }
-    /// Subagent verbatim-input flag, mirroring `Config::resolve_compaction_verbatim_input` (env > config > remote settings > default `true`).
+    /// Subagent verbatim-input flag, mirroring `Config::resolve_compaction_verbatim_input` (env > config > default `true`).
     pub(crate) fn resolve_compaction_verbatim_input(&self) -> bool {
         crate::agent::config::BoolFlag::env("NOFY_COMPACTION_VERBATIM_INPUT")
             .config(
                 self.agent_config
                     .as_ref()
                     .and_then(|c| c.features.compaction_verbatim_input),
-            )
-            .feature_flag(
-                self.remote_settings
-                    .as_ref()
-                    .and_then(|r| r.compaction_verbatim_input),
             )
             .default(true)
             .resolve()
@@ -369,14 +354,11 @@ impl SubagentSpawnContext {
             self.agent_config
                 .as_ref()
                 .and_then(|c| c.features.compaction_tool_choice.as_deref()),
-            self.remote_settings
-                .as_ref()
-                .and_then(|r| r.compaction_tool_choice.as_deref()),
         )
     }
     /// Whether a completed subagent's worktree is snapshotted into a durable ref
     /// and its directory deleted. Resolution mirrors the other subagent gates
-    /// (env > config > remote settings > default). Default `false` so it ships dark;
+    /// (env > config > default). Default `false` so it ships dark;
     /// `managed_config.toml` `[features] subagent_worktree_snapshot` is the
     /// per-deployment rollout lever.
     pub(crate) fn resolve_subagent_worktree_snapshot_enabled(&self) -> bool {
@@ -386,26 +368,19 @@ impl SubagentSpawnContext {
                     .as_ref()
                     .and_then(|c| c.features.subagent_worktree_snapshot),
             )
-            .feature_flag(
-                self.remote_settings
-                    .as_ref()
-                    .and_then(|r| r.subagent_worktree_snapshot_enabled),
-            )
             .default(false)
             .resolve()
             .value
     }
     /// Per-tool params for the child's spawn. The ask_user_question timeout is
     /// session-level config, so it is resolved from the same tiers as the
-    /// parent (requirements/env/user/managed from disk; remote from the
-    /// parent's snapshot) and follows the session into subagents. Bash stays
-    /// on tool defaults, as before that knob existed.
+    /// parent (requirements/env/user/managed from disk) and follows the
+    /// session into subagents. Bash stays on tool defaults, as before that
+    /// knob existed.
     pub(crate) fn resolve_tool_params_json(
         &self,
     ) -> crate::session::agent_rebuild::ResolvedToolParamsJson {
-        let params = crate::util::config::resolve_ask_user_question_params_from_disk(
-            self.remote_settings.as_ref(),
-        );
+        let params = crate::util::config::resolve_ask_user_question_params_from_disk();
         crate::session::agent_rebuild::ResolvedToolParamsJson {
             bash: None,
             ask_user_question: match serde_json::to_value(params) {

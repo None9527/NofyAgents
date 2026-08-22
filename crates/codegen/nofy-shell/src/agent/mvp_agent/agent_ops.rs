@@ -383,13 +383,7 @@ impl MvpAgent {
     fn prime_launch_dir_trust(&self) -> (&std::path::Path, bool) {
         let trust = *self
             .launch_dir_trust
-            .get_or_init(|| {
-                let remote_settings = self.cfg.borrow().remote_settings.clone();
-                folder_trust::resolve_launch_dir_trust(
-                    &self.launch_cwd,
-                    remote_settings.as_ref(),
-                )
-            });
+            .get_or_init(|| folder_trust::resolve_launch_dir_trust(&self.launch_cwd));
         (&self.launch_cwd, trust)
     }
     /// Resolve folder trust and load launch-dir MCP configs after `initialize`
@@ -398,7 +392,6 @@ impl MvpAgent {
     pub(super) fn spawn_initialize_launch_mcp_setup(&self, fetch_managed_mcps: bool) {
         let cwd = self.launch_cwd.clone();
         let compat = self.cfg.borrow().compat_resolved;
-        let remote_settings = self.cfg.borrow().remote_settings.clone();
         let gateway = self.gateway.clone();
         let agent_mcp_state = self.agent_mcp_state.clone();
         let managed_mcp_cache = self.managed_mcp_cache.clone();
@@ -407,11 +400,7 @@ impl MvpAgent {
         tokio::task::spawn_local(async move {
             let local_mcp_servers = match tokio::task::spawn_blocking(move || {
                     let local = crate::util::config::load_mcp_servers(&cwd, &compat);
-                    folder_trust::resolve_and_record(
-                        &cwd,
-                        remote_settings.as_ref(),
-                        false,
-                    );
+                    folder_trust::resolve_and_record(&cwd, false);
                     folder_trust::filter_untrusted_project_mcp(&cwd, local)
                 })
                 .await
@@ -594,12 +583,7 @@ impl MvpAgent {
                 }) else {
                 return;
             };
-            let subscription_tier = resolve_subscription_tier_for_telemetry(
-                cfg
-                    .remote_settings
-                    .as_ref()
-                    .and_then(|rs| rs.subscription_tier_display.clone()),
-            );
+            let subscription_tier = None;
             let (user_id, team_id) = if auth.is_xai_auth() {
                 (Some(auth.user_id), auth.team_id)
             } else {
@@ -1466,21 +1450,29 @@ impl MvpAgent {
     pub(crate) fn deployment_key(&self) -> Option<String> {
         self.cfg.borrow().endpoints.deployment_key.clone()
     }
-    /// The single announcements push gate — every `remote_settings` writer
-    /// funnels through here. Emits `nofy/announcements/update` and advances
-    /// the last-emitted baseline per [`announcements_push_payload`] (`mode`
-    /// decides when an unchanged list still pushes), but only once the
+    /// The single announcements push gate. Emits `nofy/announcements/update`
+    /// and advances the last-emitted baseline per [`announcements_push_payload`]
+    /// (`mode` decides when an unchanged list still pushes), but only once the
     /// gateway accepts the send — a failed enqueue leaves the baseline
-    /// untouched so the next gate call re-diffs and re-pushes.
+    /// untouched so the next gate call re-diffs and re-pushes. The list is
+    /// resolved from the local config layers (requirements/user/managed TOML +
+    /// `NOFY_ANNOUNCEMENTS_OVERRIDE`).
     ///
     /// Synchronous by design: the decide→send→advance sequence cannot
     /// interleave with another gate call on the LocalSet.
     pub(super) fn emit_announcements(&self, mode: AnnouncementsPushMode) {
         let payload_list = {
-            let cfg = self.cfg.borrow();
             let last = self.last_emitted_announcements.borrow();
+            let requirements = crate::config::load_merged_requirements();
+            let user = crate::config::load_from_disk().ok();
+            let managed = crate::config::load_managed_config().ok();
+            let resolved = crate::util::config::resolve_announcements(
+                requirements.as_ref(),
+                user.as_ref(),
+                managed.as_ref(),
+            );
             announcements_push_payload(
-                cfg.remote_settings.as_ref().and_then(|s| s.announcements.as_deref()),
+                Some(&resolved),
                 &last,
                 chrono::Utc::now(),
                 mode,
@@ -1742,11 +1734,11 @@ impl MvpAgent {
     /// Prepare the web fetch configuration based on feature flags.
     ///
     /// Enabled gate: `disable_web_search` kill-switch > `NOFY_WEB_FETCH` env >
-    /// remote settings `web_fetch_enabled` > default (false).
+    /// default (false).
     ///
-    /// Params resolution (TOML > env > remote settings > default):
-    /// - `proxy_endpoint`: `[toolset.web_fetch] proxy_endpoint` > `NOFY_WEB_FETCH_PROXY` > remote settings > None
-    /// - `allowed_domains`: `[toolset.web_fetch] allowed_domains` > remote settings > built-in defaults
+    /// Params resolution (TOML > env > default):
+    /// - `proxy_endpoint`: `[toolset.web_fetch] proxy_endpoint` > `NOFY_WEB_FETCH_PROXY` > None
+    /// - `allowed_domains`: `[toolset.web_fetch] allowed_domains` > built-in defaults
     /// - `allow_local`: `[toolset.web_fetch] allow_local` > `NOFY_WEB_FETCH_ALLOW_LOCAL` > false
     pub(super) fn prepare_web_fetch_config(
         &self,
@@ -1756,20 +1748,12 @@ impl MvpAgent {
         if cfg.disable_web_search {
             return WebFetchConfig::Disabled;
         }
-        let remote = cfg.remote_settings.as_ref();
         let enabled = cfg.resolve_web_fetch();
         if !enabled.value {
             return WebFetchConfig::Disabled;
         }
         let context_window = Some(self.sampling_config.borrow().context_window);
-        let params = cfg
-            .toolset
-            .web_fetch
-            .resolve_params(
-                remote.and_then(|s| s.web_fetch_proxy.as_deref()),
-                remote.and_then(|s| s.web_fetch_allowed_domains.as_deref()),
-                context_window,
-            );
+        let params = cfg.toolset.web_fetch.resolve_params(context_window);
         if params.allowed_domains.as_ref().is_some_and(Vec::is_empty) {
             tracing::info!("web_fetch disabled: allowed_domains is explicitly empty");
             return WebFetchConfig::Disabled;
@@ -1801,14 +1785,8 @@ impl MvpAgent {
         let config_root = crate::config::load_effective_config().ok();
         let empty_config = toml::Value::Table(toml::map::Map::new());
         let raw = config_root.as_ref().unwrap_or(&empty_config);
-        let (worktree_type, wt_source) = crate::util::config::resolve_worktree_type(
-            raw,
-            cfg.remote_settings.as_ref(),
-        );
-        let restore_code = crate::util::config::resolve_restore_code(
-            raw,
-            cfg.remote_settings.as_ref(),
-        );
+        let (worktree_type, wt_source) = crate::util::config::resolve_worktree_type(raw);
+        let restore_code = crate::util::config::resolve_restore_code(raw);
         let session_registry_local = crate::util::config::session_registry_local_override(
             config_root.as_ref(),
         );
@@ -2834,12 +2812,7 @@ impl MvpAgent {
         } = spec;
         let _timer = crate::instrumentation_timer!("session.spawn_and_register");
         reject_direct_hub_cloud_meta(session_meta)?;
-        let spawn_remote_settings = self.cfg.borrow().remote_settings.clone();
-        folder_trust::resolve_and_record(
-            cwd.as_path(),
-            spawn_remote_settings.as_ref(),
-            false,
-        );
+        folder_trust::resolve_and_record(cwd.as_path(), false);
         let use_acp_fs = client_fs_read && client_fs_write;
         let fs_notify_config = init
             .client_capabilities
@@ -2954,17 +2927,11 @@ impl MvpAgent {
             None => (nofy_hunk_tracker::HunkTrackerHandle::noop(), None),
         };
         let has_xai_auth = self.auth_manager.current().is_some_and(|a| a.is_xai_auth());
-        let loc_tracking_enabled = hunk_tracking_enabled && has_xai_auth
-            && (self
-                .cfg
-                .borrow()
-                .remote_settings
-                .as_ref()
-                .and_then(|s| s.loc_tracking)
-                .unwrap_or(false)
-                || std::env::var("NOFY_LOC_TRACKING")
-                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                    .unwrap_or(false));
+        let loc_tracking_enabled = hunk_tracking_enabled
+            && has_xai_auth
+            && std::env::var("NOFY_LOC_TRACKING")
+                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                .unwrap_or(false);
         let (feedback_resolved, feedback_flags) = {
             let cfg = self.cfg.borrow();
             let resolved = cfg.resolve_feedback();
@@ -3193,9 +3160,7 @@ impl MvpAgent {
         };
         {
             let cfg = self.cfg.borrow();
-            let effective = cfg
-                .toolset
-                .resolve_file_toolset(cfg.remote_settings.as_ref());
+            let effective = cfg.toolset.resolve_file_toolset();
             if effective != crate::tools::FileToolset::Standard {
                 let file_tools = effective
                     .tool_configs(&cfg.toolset.hashline)
@@ -3272,12 +3237,7 @@ impl MvpAgent {
         }
         let inference_idle_timeout_secs = {
             let models = self.models_manager.models();
-            let cfg = self.cfg.borrow();
-            resolve_inference_idle_timeout_secs(
-                &models,
-                &sampling_config.model,
-                cfg.remote_settings.as_ref(),
-            )
+            resolve_inference_idle_timeout_secs(&models, &sampling_config.model)
         };
         let model_max_retries = self
             .models_manager
@@ -3305,7 +3265,6 @@ impl MvpAgent {
         let client_hooks = crate::extensions::hooks::parse_client_hooks(session_meta);
         let disable_web_search = self.cfg.borrow().disable_web_search;
         let todo_gate = self.cfg.borrow().todo_gate;
-        let remote_settings_for_spawn = self.cfg.borrow().remote_settings.clone();
         let laziness_debug_log_for_spawn = self.cfg.borrow().laziness_debug_log.clone();
         let respect_gitignore = self.cfg.borrow().respect_gitignore;
         let path_not_found_hints = self.cfg.borrow().path_not_found_hints;
@@ -3314,23 +3273,10 @@ impl MvpAgent {
         let auth_manager = Some(self.auth_manager.clone());
         let bash_params_json = {
             let cfg = self.cfg.borrow();
-            let remote_auto_bg = cfg
-                .remote_settings
-                .as_ref()
-                .and_then(|r| r.auto_background_on_timeout);
-            let remote_allow_background_operator = cfg
-                .remote_settings
-                .as_ref()
-                .and_then(|r| r.allow_background_operator);
-            cfg.toolset
-                .bash
-                .to_bash_params_json(remote_auto_bg, remote_allow_background_operator)
+            cfg.toolset.bash.to_bash_params_json()
         };
         let ask_user_question_params_json = {
-            let cfg = self.cfg.borrow();
-            let params = crate::util::config::resolve_ask_user_question_params_from_disk(
-                cfg.remote_settings.as_ref(),
-            );
+            let params = crate::util::config::resolve_ask_user_question_params_from_disk();
             match serde_json::to_value(params) {
                 Ok(serde_json::Value::Object(map)) => Some(map),
                 _ => None,
@@ -3580,7 +3526,6 @@ impl MvpAgent {
                         cfg.cli_agent_overrides.permission_rules.clone()
                     },
                     todo_gate,
-                    remote_settings_for_spawn,
                     laziness_debug_log_for_spawn,
                     None,
                     None,

@@ -15,7 +15,6 @@ use toml::Value as TomlValue;
 /// | env          | `NOFY_MCP_LIVENESS_WATCHERS` (handled by `BoolFlag::env`)       |
 /// | config       | `[features] mcp_liveness_watchers` in `~/.nofy/config.toml`     |
 /// | managed      | `[features] mcp_liveness_watchers` in `managed_config.toml`     |
-/// | feature_flag | (none yet — remote settings plumbing TBD)                            |
 /// | default      | `true`                                                          |
 ///
 /// Returns the resolved boolean (the `Resolved::source` is discarded
@@ -30,10 +29,8 @@ pub(crate) fn resolve_mcp_liveness_watchers(
     }
     crate::agent::config::resolve_mcp_liveness_watchers(
         from_toml(requirements),
-        /* cli          */ None,
         from_toml(user),
         from_toml(managed),
-        /* feature_flag */ None,
     )
     .value
 }
@@ -53,7 +50,6 @@ pub(crate) fn resolve_mcp_liveness_watchers(
 /// | env          | `NOFY_MCP_AUTO_RESTART` (handled by `BoolFlag::env`)            |
 /// | config       | `[features] mcp_auto_restart` in `~/.nofy/config.toml`          |
 /// | managed      | `[features] mcp_auto_restart` in `managed_config.toml`          |
-/// | feature_flag | (none yet — remote settings plumbing TBD)                            |
 /// | default      | `true`                                                          |
 ///
 /// Returns the resolved boolean (the `Resolved::source` is discarded
@@ -68,10 +64,8 @@ pub(crate) fn resolve_mcp_auto_restart(
     }
     crate::agent::config::resolve_mcp_auto_restart(
         from_toml(requirements),
-        /* cli          */ None,
         from_toml(user),
         from_toml(managed),
-        /* feature_flag */ None,
     )
     .value
 }
@@ -91,7 +85,6 @@ pub(crate) fn resolve_mcp_auto_restart(
 /// | env          | `NOFY_MCP_PUSH_SERVER_STATUS` (handled by `BoolFlag::env`)      |
 /// | config       | `[features] mcp_push_server_status` in `~/.nofy/config.toml`    |
 /// | managed      | `[features] mcp_push_server_status` in `managed_config.toml`    |
-/// | feature_flag | (none yet — remote settings plumbing TBD)                            |
 /// | default      | `true`                                                          |
 ///
 /// Returns the resolved boolean.
@@ -105,10 +98,8 @@ pub fn resolve_mcp_push_server_status(
     }
     crate::agent::config::resolve_mcp_push_server_status(
         from_toml(requirements),
-        /* cli          */ None,
         from_toml(user),
         from_toml(managed),
-        /* feature_flag */ None,
     )
     .value
 }
@@ -130,7 +121,6 @@ pub fn resolve_mcp_push_server_status(
 /// | env          | `NOFY_MCP_RECURSIVE_CONFIG_WATCH` (handled by `BoolFlag::env`)      |
 /// | config       | `[features] mcp_recursive_config_watch` in `~/.nofy/config.toml`    |
 /// | managed      | `[features] mcp_recursive_config_watch` in `managed_config.toml`    |
-/// | feature_flag | (none yet — remote settings plumbing TBD)                                |
 /// | default      | `true`                                                              |
 ///
 /// Returns the resolved boolean (the `Resolved::source` is discarded
@@ -148,10 +138,8 @@ pub(crate) fn resolve_mcp_recursive_config_watch(
     }
     crate::agent::config::resolve_mcp_recursive_config_watch(
         from_toml(requirements),
-        /* cli          */ None,
         from_toml(user),
         from_toml(managed),
-        /* feature_flag */ None,
     )
     .value
 }
@@ -166,38 +154,10 @@ const ENV_MCP_TIMEOUT_MS: &str = "MCP_TIMEOUT";
 /// Env override for the MCP startup timeout, in seconds (nofy-native).
 const ENV_MCP_STARTUP_TIMEOUT_SECS: &str = "NOFY_MCP_STARTUP_TIMEOUT_SECS";
 
-/// Cached remote settings `mcp_startup_timeout_secs` (`0` = unset). MCP servers start
-/// from free functions with no handle to the live `RemoteSettings`, so the
-/// remote tier is cached here when settings are applied.
-static REMOTE_MCP_STARTUP_TIMEOUT_SECS: std::sync::atomic::AtomicU64 =
-    std::sync::atomic::AtomicU64::new(0);
-
-/// Record the remote settings `mcp_startup_timeout_secs` for the free-function
-/// resolver. Call wherever `RemoteSettings` is applied. `0` is treated as unset.
-pub(crate) fn cache_remote_mcp_startup_timeout_secs(value: Option<u64>) {
-    REMOTE_MCP_STARTUP_TIMEOUT_SECS.store(value.unwrap_or(0), std::sync::atomic::Ordering::Relaxed);
-}
-
-fn cached_remote_mcp_startup_timeout_secs() -> Option<u64> {
-    match REMOTE_MCP_STARTUP_TIMEOUT_SECS.load(std::sync::atomic::Ordering::Relaxed) {
-        0 => None,
-        secs => Some(secs),
-    }
-}
-
-/// Global default MCP startup-handshake timeout (seconds), applying the cached
-/// remote tier. Global fallback only — a per-server
+/// Global default MCP startup-handshake timeout (seconds). Global fallback — a per-server
 /// `startup_timeout_sec` / `_meta.startupTimeoutMs` still wins (see
 /// `session::mcp_servers`).
 pub(crate) fn resolved_mcp_startup_timeout_secs() -> u64 {
-    resolve_mcp_startup_timeout_secs(cached_remote_mcp_startup_timeout_secs())
-}
-
-/// Resolve the global MCP startup-handshake timeout (seconds). Precedence:
-/// requirements.toml `[mcp].startup_timeout_sec` > env (`MCP_TIMEOUT` ms /
-/// `NOFY_MCP_STARTUP_TIMEOUT_SECS` secs) > effective `config.toml [mcp]` >
-/// remote settings `remote` > [`DEFAULT_MCP_STARTUP_TIMEOUT_SECS`].
-pub(crate) fn resolve_mcp_startup_timeout_secs(remote: Option<u64>) -> u64 {
     fn extract(v: &toml::Value) -> Option<u64> {
         v.get("mcp")?
             .get("startup_timeout_sec")?
@@ -216,7 +176,6 @@ pub(crate) fn resolve_mcp_startup_timeout_secs(remote: Option<u64>) -> u64 {
         requirements,
         mcp_startup_timeout_from_env(),
         config,
-        remote,
     )
 }
 
@@ -236,18 +195,16 @@ fn mcp_startup_timeout_from_env() -> Option<u64> {
         .filter(|n| *n > 0)
 }
 
-/// Pure precedence for [`resolve_mcp_startup_timeout_secs`] (tiers injected so it
-/// is unit-testable without touching env/disk).
+/// Pure precedence for [`resolved_mcp_startup_timeout_secs`] (tiers injected so
+/// it is unit-testable without touching env/disk).
 fn resolve_mcp_startup_timeout_precedence(
     requirements: Option<u64>,
     env: Option<u64>,
     config: Option<u64>,
-    remote: Option<u64>,
 ) -> u64 {
     requirements
         .or(env)
         .or(config)
-        .or(remote)
         .unwrap_or(DEFAULT_MCP_STARTUP_TIMEOUT_SECS)
 }
 
@@ -256,33 +213,27 @@ mod mcp_startup_timeout_tests {
     use super::{DEFAULT_MCP_STARTUP_TIMEOUT_SECS, resolve_mcp_startup_timeout_precedence as r};
 
     #[test]
-    fn precedence_requirements_env_config_remote_default() {
-        assert_eq!(r(None, None, None, None), DEFAULT_MCP_STARTUP_TIMEOUT_SECS);
-        assert_eq!(r(Some(5), Some(6), Some(7), Some(8)), 5); // requirements highest
-        assert_eq!(r(None, Some(6), Some(7), Some(8)), 6); // env
-        assert_eq!(r(None, None, Some(7), Some(8)), 7); // config
-        assert_eq!(r(None, None, None, Some(8)), 8); // remote
+    fn precedence_requirements_env_config_default() {
+        assert_eq!(r(None, None, None), DEFAULT_MCP_STARTUP_TIMEOUT_SECS);
+        assert_eq!(r(Some(5), Some(6), Some(7)), 5); // requirements highest
+        assert_eq!(r(None, Some(6), Some(7)), 6); // env
+        assert_eq!(r(None, None, Some(7)), 7); // config
     }
 }
 
 // ── MCP max output bytes (inline tool-result cap) ───────────────────────────
 //
 // Full multi-tier resolve lives only here (shell can read config/requirements).
-// Tools holds a single effective atomic: we resolve once on apply and push the
-// result via `set_mcp_max_output_bytes` so free-function truncation sees it.
+// Tools holds a single effective atomic: we resolve once at startup and push
+// the result via `set_mcp_max_output_bytes` so free-function truncation sees it.
 
 /// Default MCP tool-result inline cap (bytes).
 pub const DEFAULT_MAX_MCP_OUTPUT_BYTES: usize = nofy_tools::MCP_MAX_OUTPUT_BYTES;
 
-/// Resolve the full stack for `remote` and seed the tools-crate effective limit.
-///
-/// Call wherever `RemoteSettings` is applied (same sites as
-/// [`cache_remote_mcp_startup_timeout_secs`]). Unlike that helper — which only
-/// caches the remote tier for a free-function resolver still living in shell —
-/// this pushes the *fully resolved* value into tools (tools cannot re-read
-/// config/requirements on every use).
-pub(crate) fn cache_remote_max_mcp_output_bytes(remote: Option<u64>) {
-    nofy_tools::set_mcp_max_output_bytes(resolve_max_mcp_output_bytes(remote));
+/// Resolve the full stack and seed the tools-crate effective limit at startup
+/// (tools cannot re-read config/requirements on every use).
+pub(crate) fn seed_mcp_max_output_bytes() {
+    nofy_tools::set_mcp_max_output_bytes(resolve_max_mcp_output_bytes());
 }
 
 /// Extract `[mcp] max_output_bytes` from one TOML root. Positive integers only.
@@ -302,12 +253,8 @@ fn max_mcp_output_bytes_from_toml(v: &toml::Value) -> Option<usize> {
 ///   2. env `NOFY_MAX_MCP_OUTPUT_BYTES` / `MAX_MCP_OUTPUT_BYTES`
 ///      (Nofy-native wins when both set)
 ///   3. effective `config.toml [mcp] max_output_bytes`
-///   4. remote settings `RemoteSettings.max_mcp_output_bytes`
-///   5. [`DEFAULT_MAX_MCP_OUTPUT_BYTES`] (20_000)
-pub(crate) fn resolve_max_mcp_output_bytes(remote: Option<u64>) -> usize {
-    let remote_usize = remote
-        .and_then(|n| usize::try_from(n).ok())
-        .filter(|n| *n > 0);
+///   4. [`DEFAULT_MAX_MCP_OUTPUT_BYTES`] (20_000)
+pub(crate) fn resolve_max_mcp_output_bytes() -> usize {
     let requirements = crate::config::load_merged_requirements()
         .as_ref()
         .and_then(max_mcp_output_bytes_from_toml);
@@ -320,7 +267,6 @@ pub(crate) fn resolve_max_mcp_output_bytes(remote: Option<u64>) -> usize {
         nofy_tools::mcp_max_output_bytes_from_env(),
         None, // project tier needs a cwd — see resolve_max_mcp_output_bytes_for_cwd
         config,
-        remote_usize,
     )
 }
 
@@ -352,11 +298,11 @@ fn project_max_mcp_output_bytes(cwd: &std::path::Path) -> Option<usize> {
 /// The caller seeds `Some` values into the session's `TruncationCfg` resource
 /// (consulted by MCP truncation *before* the process-global atomic). Returning
 /// `None` when any higher- or lower-priority tier would win keeps the atomic
-/// authoritative for those — including live remote settings refresh — so sessions
-/// without a repo-level value behave exactly as before.
+/// authoritative for those, so sessions without a repo-level value behave
+/// exactly as before.
 ///
 /// The project tier only wins when requirements and env are absent (it sits
-/// above user config / remote settings / default), so `Some` here is simply
+/// above user config / default), so `Some` here is simply
 /// "requirements and env unset, project value present".
 pub(crate) fn resolve_max_mcp_output_bytes_for_cwd(cwd: &std::path::Path) -> Option<usize> {
     let requirements = crate::config::load_merged_requirements()
@@ -371,19 +317,17 @@ pub(crate) fn resolve_max_mcp_output_bytes_for_cwd(cwd: &std::path::Path) -> Opt
 /// Pure precedence for [`resolve_max_mcp_output_bytes`] (tiers injected so it is
 /// unit-testable without env/disk).
 ///
-/// `requirements` > `env` > `project` > `config` > `remote` > default.
+/// `requirements` > `env` > `project` > `config` > default.
 pub(crate) fn resolve_max_mcp_output_bytes_precedence(
     requirements: Option<usize>,
     env: Option<usize>,
     project: Option<usize>,
     config: Option<usize>,
-    remote: Option<usize>,
 ) -> usize {
     requirements
         .or(env)
         .or(project)
         .or(config)
-        .or(remote)
         .unwrap_or(DEFAULT_MAX_MCP_OUTPUT_BYTES)
 }
 
@@ -395,16 +339,12 @@ mod max_mcp_output_bytes_tests {
     };
 
     #[test]
-    fn precedence_requirements_env_project_config_remote_default() {
-        assert_eq!(
-            r(None, None, None, None, None),
-            DEFAULT_MAX_MCP_OUTPUT_BYTES
-        );
-        assert_eq!(r(Some(1), Some(2), Some(9), Some(3), Some(4)), 1); // requirements highest
-        assert_eq!(r(None, Some(2), Some(9), Some(3), Some(4)), 2); // env beats project
-        assert_eq!(r(None, None, Some(9), Some(3), Some(4)), 9); // project beats user config
-        assert_eq!(r(None, None, None, Some(3), Some(4)), 3); // user config beats remote
-        assert_eq!(r(None, None, None, None, Some(4)), 4); // remote beats default
+    fn precedence_requirements_env_project_config_default() {
+        assert_eq!(r(None, None, None, None), DEFAULT_MAX_MCP_OUTPUT_BYTES);
+        assert_eq!(r(Some(1), Some(2), Some(9), Some(3)), 1); // requirements highest
+        assert_eq!(r(None, Some(2), Some(9), Some(3)), 2); // env beats project
+        assert_eq!(r(None, None, Some(9), Some(3)), 9); // project beats user config
+        assert_eq!(r(None, None, None, Some(3)), 3); // user config beats default
     }
 
     #[test]

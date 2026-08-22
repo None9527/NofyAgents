@@ -1,4 +1,4 @@
-//! `[[campaigns]]` overlays. Priority (first id wins): requirements > remote >
+//! `[[campaigns]]` overlays. Priority (first id wins): requirements >
 //! user > managed > system_managed. Applied after layer merge.
 
 use serde::{Deserialize, Serialize};
@@ -22,8 +22,8 @@ pub struct CampaignEntry {
     pub patch: toml::Table,
 }
 
-/// Disk campaigns grouped by source layer. Merged with the remote layer (by
-/// priority, first id wins) in [`crate::loader::ConfigLayers::resolve_campaigns`].
+/// Disk campaigns grouped by source layer. Merged by priority (first id wins)
+/// in [`crate::loader::ConfigLayers::resolve_campaigns`].
 #[derive(Debug, Clone, Default)]
 pub struct CampaignOverrides {
     pub requirements: Vec<CampaignEntry>,
@@ -166,11 +166,11 @@ mod tests {
             id: "same".into(),
             patch: models_default_patch("from-req"),
         }];
-        let remote = [CampaignEntry {
+        let user = [CampaignEntry {
             id: "same".into(),
-            patch: models_default_patch("from-remote"),
+            patch: models_default_patch("from-user"),
         }];
-        let merged = merge_campaign_entries(&[&req, &remote]);
+        let merged = merge_campaign_entries(&[&req, &user]);
         assert_eq!(merged.len(), 1);
         assert_eq!(
             merged[0].patch["models"]["default"].as_str(),
@@ -262,7 +262,7 @@ mod tests {
             patch: models_default_patch("campaign"),
         }];
         let effective =
-            layers.effective_config_with_campaigns(&[], &std::collections::HashSet::new());
+            layers.effective_config_with_campaigns(&std::collections::HashSet::new());
         assert_eq!(
             effective["models"]["default"].as_str(),
             Some("pinned"),
@@ -284,11 +284,11 @@ mod tests {
         }];
 
         let none = std::collections::HashSet::new();
-        let active = layers.effective_config_with_campaigns(&[], &none);
+        let active = layers.effective_config_with_campaigns(&none);
         assert_eq!(active["models"]["default"].as_str(), Some("new"));
 
         let dismissed: std::collections::HashSet<_> = ["c1".into()].into_iter().collect();
-        let off = layers.effective_config_with_campaigns(&[], &dismissed);
+        let off = layers.effective_config_with_campaigns(&dismissed);
         assert_eq!(off["models"]["default"].as_str(), Some("user-old"));
     }
 }

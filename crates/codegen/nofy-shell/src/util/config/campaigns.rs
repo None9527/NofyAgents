@@ -1,11 +1,10 @@
-//! Campaign dismiss state, remote cache, and effective-config overlay.
+//! Campaign dismiss state and effective-config overlay.
 //!
 //! Design, invariants, and the "adding a second governed field" recipe are
 //! documented alongside this module.
 
 use std::collections::HashSet;
 use std::path::Path;
-use std::sync::RwLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use nofy_config::campaigns::{
@@ -16,7 +15,7 @@ use nofy_config::{
     CampaignsState, ConfigLayers, campaigns_state_path, load_dismissed_ids_from_home,
     user_nofy_home,
 };
-use nofy_config_types::{CampaignOverride, RemoteSettings};
+use nofy_config_types::CampaignOverride;
 
 /// FIFO cap on persisted dismissed ids; evicting the oldest can re-nudge for a
 /// still-live campaign after a user dismisses more than this over the CLI's life.
@@ -24,31 +23,6 @@ const MAX_DISMISSED_IDS: usize = 32;
 
 static DISMISS_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 static DISMISS_TMP_NONCE: AtomicU64 = AtomicU64::new(0);
-
-static REMOTE_CAMPAIGN_CACHE: RwLock<Vec<CampaignEntry>> = RwLock::new(Vec::new());
-
-/// Seed the process-global remote campaign cache. A `None` settings value (e.g.
-/// a failed fetch) is a no-op so it can't clobber a previously-seeded cache;
-/// `Some` with zero campaigns legitimately clears it (campaigns withdrawn).
-pub fn set_remote_campaigns_from_settings(remote: Option<&RemoteSettings>) {
-    let Some(remote) = remote else {
-        return;
-    };
-    set_remote_campaigns(remote_campaigns_from_settings(Some(remote)));
-}
-
-fn set_remote_campaigns(entries: Vec<CampaignEntry>) {
-    if let Ok(mut g) = REMOTE_CAMPAIGN_CACHE.write() {
-        *g = entries;
-    }
-}
-
-fn cached_remote_campaigns() -> Vec<CampaignEntry> {
-    REMOTE_CAMPAIGN_CACHE
-        .read()
-        .map(|g| g.clone())
-        .unwrap_or_default()
-}
 
 /// Fail-open dismissed campaign ids from `campaigns_state.json`.
 pub(crate) fn load_dismissed_ids() -> HashSet<String> {
@@ -128,7 +102,7 @@ pub(crate) fn campaigns_override() -> Option<Vec<CampaignEntry>> {
     match serde_json::from_str::<Vec<CampaignOverride>>(&json) {
         Ok(list) => Some(
             list.into_iter()
-                .filter_map(remote_campaign_to_entry)
+                .filter_map(campaign_override_to_entry)
                 .collect(),
         ),
         Err(e) => {
@@ -138,7 +112,7 @@ pub(crate) fn campaigns_override() -> Option<Vec<CampaignEntry>> {
     }
 }
 
-fn remote_campaign_to_entry(c: CampaignOverride) -> Option<CampaignEntry> {
+fn campaign_override_to_entry(c: CampaignOverride) -> Option<CampaignEntry> {
     let id = c.id.as_deref()?.trim();
     if id.is_empty() {
         return None;
@@ -150,7 +124,7 @@ fn remote_campaign_to_entry(c: CampaignOverride) -> Option<CampaignEntry> {
         Ok(toml::Value::Table(t)) => t,
         Ok(_) => return None,
         Err(e) => {
-            tracing::warn!(error = %e, %id, "campaigns: invalid remote patch; ignoring");
+            tracing::warn!(error = %e, %id, "campaigns: invalid override patch; ignoring");
             return None;
         }
     };
@@ -160,79 +134,61 @@ fn remote_campaign_to_entry(c: CampaignOverride) -> Option<CampaignEntry> {
     Some(CampaignEntry { id, patch })
 }
 
-pub fn remote_campaigns_from_settings(remote: Option<&RemoteSettings>) -> Vec<CampaignEntry> {
-    remote
-        .map(|rs| {
-            rs.campaigns
-                .iter()
-                .cloned()
-                .filter_map(remote_campaign_to_entry)
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
 /// The single campaign-resolution path: `NOFY_CAMPAIGNS_OVERRIDE` (replaces all
-/// sources and beats the kill switch) → kill switch → layer+remote merge →
-/// dismiss. `base` is the pre-campaign effective config, used only for the
-/// kill-switch check.
+/// sources and beats the kill switch) → kill switch → layer merge → dismiss.
+/// `base` is the pre-campaign effective config, used only for the kill-switch
+/// check.
 pub(crate) fn resolve_active_campaigns_from_layers(
     layers: &ConfigLayers,
     base: &toml::Value,
-    remote_entries: &[CampaignEntry],
     dismissed: &HashSet<String>,
 ) -> Vec<CampaignEntry> {
     if let Some(over) = campaigns_override() {
         return filter_active_campaigns(over, dismissed);
     }
-    layers.resolve_campaigns(base, remote_entries, dismissed)
+    layers.resolve_campaigns(base, dismissed)
 }
 
 /// Campaigns eligible for dismissal when the user persists a choice (loads
-/// layers + remote cache + dismiss state).
+/// layers + dismiss state).
 ///
 /// Unlike the apply path this deliberately **ignores the kill switch**:
 /// dismissing a suppressed campaign is harmless, while skipping the dismissal
 /// lets a later re-enabled campaign override a choice the user already made
-/// ("user pick wins, forever"). A layer-load failure likewise falls back to
-/// the remote cache instead of failing closed — remote campaigns still get
-/// dismissed on that path, though disk-layer campaigns can be missed until
-/// the transient failure clears (they re-dismiss on the next pick).
+/// ("user pick wins, forever"). A layer-load failure resolves to no campaigns:
+/// disk-layer campaigns can be missed until the transient failure clears
+/// (they re-dismiss on the next pick).
 fn resolve_dismissable_campaigns() -> Vec<CampaignEntry> {
     let dismissed = load_dismissed_ids();
     if let Some(over) = campaigns_override() {
         return filter_active_campaigns(over, &dismissed);
     }
-    let remote_entries = cached_remote_campaigns();
     match ConfigLayers::load() {
         Ok(layers) => filter_active_campaigns(
-            merge_campaign_entries(&layers.campaign_source_slices(&remote_entries)),
+            merge_campaign_entries(&layers.campaign_source_slices()),
             &dismissed,
         ),
         Err(e) => {
-            tracing::warn!(error = %e, "campaigns: layer load failed; dismiss bookkeeping using remote cache only");
-            filter_active_campaigns(remote_entries, &dismissed)
+            tracing::warn!(error = %e, "campaigns: layer load failed; dismiss bookkeeping found no campaigns");
+            Vec::new()
         }
     }
 }
 
-/// Effective config with remote/override-aware campaign overlay
+/// Effective config with override-aware campaign overlay
 /// (base → resolve [override/kill/merge/dismiss] → apply), one `ConfigLayers::load`.
 pub fn load_effective_config() -> std::io::Result<toml::Value> {
     let layers = ConfigLayers::load()?;
     let dismissed = load_dismissed_ids();
-    let remote = cached_remote_campaigns();
     let mut effective = layers.effective_config_base();
-    let active = resolve_active_campaigns_from_layers(&layers, &effective, &remote, &dismissed);
+    let active = resolve_active_campaigns_from_layers(&layers, &effective, &dismissed);
     layers.apply_campaign_overrides(&mut effective, &active);
     Ok(effective)
 }
 
-/// Effective config with **disk campaigns only** — no remote cache, no
-/// `NOFY_CAMPAIGNS_OVERRIDE`. For one-shot CLI entrypoints that never fetch
-/// remote settings: calling [`load_effective_config`] there would silently
-/// resolve against a never-seeded cache, so the divergence is named instead
-/// of implied (mirrors `ConfigLayers::effective_config_disk_only`).
+/// Effective config with **disk campaigns only** — no
+/// `NOFY_CAMPAIGNS_OVERRIDE`. For one-shot CLI entrypoints where the env
+/// override must not apply (mirrors `ConfigLayers::effective_config_disk_only`).
 pub fn load_effective_config_disk_only() -> std::io::Result<toml::Value> {
     Ok(ConfigLayers::load()?.effective_config_disk_only())
 }
@@ -246,34 +202,32 @@ pub struct CampaignModelsDefault {
     pub pre_campaign: Option<String>,
 }
 
-/// Resolve [`CampaignModelsDefault`] fresh from the config layers, the remote
-/// campaign cache, and the on-disk dismiss state.
+/// Resolve [`CampaignModelsDefault`] fresh from the config layers and the
+/// on-disk dismiss state.
 ///
 /// `None` unless an active (non-dismissed, kill-switch-respecting,
 /// requirements-losing) campaign changes the effective `models.default`.
-/// Session creation uses this to apply a campaign to `/new` even when remote
-/// settings arrived only after boot: the `ModelsManager`'s `current_model_id`
-/// was resolved pre-campaign, and a campaign-only flip deliberately never
-/// re-targets it (see `ModelsManager::apply_config`), so `/new` re-evaluates
-/// here instead.
+/// Session creation uses this to apply a campaign to `/new`: the
+/// `ModelsManager`'s `current_model_id` was resolved pre-campaign, and a
+/// campaign-only flip deliberately never re-targets it (see
+/// `ModelsManager::apply_config`), so `/new` re-evaluates here instead.
 ///
 /// Reading the dismiss state fresh makes a `/model` pick win instantly:
 /// [`persist_user_choice`] records the dismissal before the config write, so
 /// the very next `/new` resolves campaign-free.
 pub fn campaign_driven_models_default() -> Option<CampaignModelsDefault> {
     let layers = ConfigLayers::load().ok()?;
-    campaign_driven_models_default_from(&layers, &cached_remote_campaigns(), &load_dismissed_ids())
+    campaign_driven_models_default_from(&layers, &load_dismissed_ids())
 }
 
 /// Env-free resolution core of [`campaign_driven_models_default`] (unit-testable
-/// without touching `NOFY_HOME` / the process-global cache).
+/// without touching `NOFY_HOME`).
 fn campaign_driven_models_default_from(
     layers: &ConfigLayers,
-    remote: &[CampaignEntry],
     dismissed: &HashSet<String>,
 ) -> Option<CampaignModelsDefault> {
     let base = layers.effective_config_base();
-    let active = resolve_active_campaigns_from_layers(layers, &base, remote, dismissed);
+    let active = resolve_active_campaigns_from_layers(layers, &base, dismissed);
     if active.is_empty() {
         return None;
     }
@@ -377,15 +331,9 @@ fn apply_campaign_fields(
     }
 }
 
-/// Seed the remote cache, set every [`CAMPAIGN_FIELDS`] entry (value + flag +
-/// recovery) from the campaign overlay, then re-apply requirements so admin pins win.
+/// Set every [`CAMPAIGN_FIELDS`] entry (value + flag + recovery) from the
+/// campaign overlay, then re-apply requirements so admin pins win.
 pub fn sync_campaign_fields(cfg: &mut crate::agent::config::Config) {
-    let remote = remote_campaigns_from_settings(cfg.remote_settings.as_ref());
-    // Seed the process-global cache from the parse we already did (skip on `None`
-    // so a failed fetch can't clobber a previously-seeded cache).
-    if cfg.remote_settings.is_some() {
-        set_remote_campaigns(remote.clone());
-    }
     let Ok(layers) = ConfigLayers::load() else {
         // Fail closed like the apply path: leave the field values as loaded but
         // clear the campaign-driven flags/recovery so they can't go stale (a
@@ -399,7 +347,7 @@ pub fn sync_campaign_fields(cfg: &mut crate::agent::config::Config) {
     };
     let dismissed = load_dismissed_ids();
     let base = layers.effective_config_base();
-    let active = resolve_active_campaigns_from_layers(&layers, &base, &remote, &dismissed);
+    let active = resolve_active_campaigns_from_layers(&layers, &base, &dismissed);
     let mut effective = base.clone();
     layers.apply_campaign_overrides(&mut effective, &active);
     apply_campaign_fields(cfg, &base, &effective, &active);
@@ -493,7 +441,7 @@ mod tests {
                 "NOFY_CAMPAIGNS_OVERRIDE",
                 r#"[{"id":"c","models":{"default":"m"}}]"#,
             );
-            let active = resolve_active_campaigns_from_layers(&layers, &base, &[], &HashSet::new());
+            let active = resolve_active_campaigns_from_layers(&layers, &base, &HashSet::new());
             assert_eq!(active.len(), 1, "override must apply despite kill switch");
             assert_eq!(active[0].id, "c");
             assert_eq!(active[0].patch["models"]["default"].as_str(), Some("m"));
@@ -501,7 +449,7 @@ mod tests {
 
         // Same disabled base, override now unset → kill switch suppresses all.
         let _env = EnvGuard::unset("NOFY_CAMPAIGNS_OVERRIDE");
-        let active = resolve_active_campaigns_from_layers(&layers, &base, &[], &HashSet::new());
+        let active = resolve_active_campaigns_from_layers(&layers, &base, &HashSet::new());
         assert!(
             active.is_empty(),
             "kill switch wins when override is absent"
@@ -510,7 +458,7 @@ mod tests {
 
     /// Invalid `NOFY_CAMPAIGNS_OVERRIDE` JSON fails toward *no campaigns*: the
     /// var's intent is "replace campaigns with exactly this", so a typo must not
-    /// silently re-enable the layer/remote campaigns it was meant to replace.
+    /// silently re-enable the layer campaigns it was meant to replace.
     #[test]
     #[serial]
     fn invalid_override_json_suppresses_all_campaigns() {
@@ -521,70 +469,36 @@ mod tests {
             id: "from-layer".into(),
             patch: models_default_patch("layer-model"),
         }];
-        let remote = vec![CampaignEntry {
-            id: "from-remote".into(),
-            patch: models_default_patch("remote-model"),
-        }];
         let base = toml::Value::Table(Default::default());
 
-        let active = resolve_active_campaigns_from_layers(&layers, &base, &remote, &HashSet::new());
+        let active = resolve_active_campaigns_from_layers(&layers, &base, &HashSet::new());
         assert!(
             active.is_empty(),
             "an invalid override must suppress all campaigns, not fall back to real sources"
         );
     }
 
-    /// Dismiss bookkeeping deliberately ignores the kill switch: a model pick
-    /// made while `NOFY_CAMPAIGNS=0` must still record the dismissal, or a
-    /// later re-enabled campaign would override the user's explicit choice.
-    #[test]
-    #[serial]
-    fn dismiss_resolution_ignores_kill_switch() {
-        let _over = EnvGuard::unset("NOFY_CAMPAIGNS_OVERRIDE");
-        let _kill = EnvGuard::set("NOFY_CAMPAIGNS", "0");
-
-        let mut patch = serde_json::Map::new();
-        patch.insert("models".into(), serde_json::json!({ "default": "m" }));
-        let rs = RemoteSettings {
-            campaigns: vec![CampaignOverride {
-                id: Some("dismiss-during-kill-switch".into()),
-                patch,
-            }],
-            ..Default::default()
-        };
-        set_remote_campaigns_from_settings(Some(&rs));
-
-        let resolved = resolve_dismissable_campaigns();
-        // Clear the process-global cache before asserting so a failure can't
-        // leak state into sibling tests.
-        set_remote_campaigns_from_settings(Some(&RemoteSettings::default()));
-        assert!(
-            resolved
-                .iter()
-                .any(|c| c.id == "dismiss-during-kill-switch"),
-            "kill switch must not hide a campaign from dismiss bookkeeping"
-        );
-    }
-
-    /// `campaign_driven_models_default_from` tracks remote entries and
+    /// `campaign_driven_models_default_from` tracks layer campaigns and
     /// dismissals: `Some` while the campaign is active, `None` the instant its
     /// dismissal lands, so a `/new` right after a `/model` pick never re-nudges.
     #[test]
     #[serial]
-    fn campaign_driven_models_default_tracks_remote_and_dismissals() {
+    fn campaign_driven_models_default_tracks_campaigns_and_dismissals() {
         let _over = EnvGuard::unset("NOFY_CAMPAIGNS_OVERRIDE");
         let _kill = EnvGuard::unset("NOFY_CAMPAIGNS");
 
-        let layers = ConfigLayers {
-            user: toml::from_str("[models]\ndefault = \"config-model\"\n").unwrap(),
+        let mut layers = ConfigLayers {
+            user: toml::from_str("[models]
+default = \"config-model\"
+").unwrap(),
             ..Default::default()
         };
-        let remote = vec![CampaignEntry {
+        layers.campaigns.user = vec![CampaignEntry {
             id: "t-models-nudge".into(),
             patch: models_default_patch("campaign-model"),
         }];
 
-        let nudge = campaign_driven_models_default_from(&layers, &remote, &HashSet::new())
+        let nudge = campaign_driven_models_default_from(&layers, &HashSet::new())
             .expect("active campaign drives the default");
         assert_eq!(nudge.value, "campaign-model");
         assert_eq!(nudge.pre_campaign.as_deref(), Some("config-model"));
@@ -593,7 +507,7 @@ mod tests {
         // nudge for the very next resolution.
         let dismissed: HashSet<String> = ["t-models-nudge".to_string()].into_iter().collect();
         assert!(
-            campaign_driven_models_default_from(&layers, &remote, &dismissed).is_none(),
+            campaign_driven_models_default_from(&layers, &dismissed).is_none(),
             "a dismissed campaign must not nudge"
         );
 
@@ -601,15 +515,17 @@ mod tests {
         // campaign-driven.
         let mut pinned = layers.clone();
         pinned.user_requirements =
-            Some(toml::from_str("[models]\ndefault = \"config-model\"\n").unwrap());
+            Some(toml::from_str("[models]
+default = \"config-model\"
+").unwrap());
         assert!(
-            campaign_driven_models_default_from(&pinned, &remote, &HashSet::new()).is_none(),
+            campaign_driven_models_default_from(&pinned, &HashSet::new()).is_none(),
             "a requirements-pinned default must not report campaign-driven"
         );
     }
 
     /// `NOFY_CAMPAIGNS_OVERRIDE="[]"` replaces all sources with nothing — even
-    /// layer + remote campaigns resolve to empty.
+    /// layer campaigns resolve to empty.
     #[test]
     #[serial]
     fn override_empty_means_none() {
@@ -620,13 +536,9 @@ mod tests {
             id: "from-layer".into(),
             patch: models_default_patch("layer-model"),
         }];
-        let remote = vec![CampaignEntry {
-            id: "from-remote".into(),
-            patch: models_default_patch("remote-model"),
-        }];
         let base = toml::Value::Table(Default::default());
 
-        let active = resolve_active_campaigns_from_layers(&layers, &base, &remote, &HashSet::new());
+        let active = resolve_active_campaigns_from_layers(&layers, &base, &HashSet::new());
         assert!(
             active.is_empty(),
             "empty override replaces all sources, yielding no campaigns"
@@ -688,36 +600,6 @@ mod tests {
         assert_eq!(cfg.models.pre_campaign_default, None);
     }
 
-    /// Fix: in leader mode the pager seeds the remote-campaign cache so the
-    /// dismiss path (which runs in the pager process) can see remote campaigns.
-    /// Verify a seeded remote campaign round-trips into the dismiss-id set.
-    #[test]
-    #[serial]
-    fn seeded_remote_campaign_is_visible_to_dismiss() {
-        let _env = EnvGuard::unset("NOFY_CAMPAIGNS_OVERRIDE");
-        let mut patch = serde_json::Map::new();
-        patch.insert("models".into(), serde_json::json!({ "default": "m" }));
-        let rs = RemoteSettings {
-            campaigns: vec![CampaignOverride {
-                id: Some("remote-1".into()),
-                patch,
-            }],
-            ..Default::default()
-        };
-        set_remote_campaigns_from_settings(Some(&rs));
-        let cached = cached_remote_campaigns();
-        assert!(cached.iter().any(|c| c.id == "remote-1"));
-
-        let path: &[PatchPath] = &[&["models", "default"]];
-        assert_eq!(
-            ids_touching_paths(&cached, path),
-            vec!["remote-1".to_string()]
-        );
-
-        // Clear the process-global cache so other tests aren't affected.
-        set_remote_campaigns_from_settings(Some(&RemoteSettings::default()));
-    }
-
     /// An override-supplied campaign whose id is already dismissed is dropped.
     #[test]
     #[serial]
@@ -729,7 +611,7 @@ mod tests {
         let layers = ConfigLayers::default();
         let base = toml::Value::Table(Default::default());
         let dismissed: HashSet<String> = ["seen".to_owned()].into_iter().collect();
-        let active = resolve_active_campaigns_from_layers(&layers, &base, &[], &dismissed);
+        let active = resolve_active_campaigns_from_layers(&layers, &base, &dismissed);
         assert!(active.is_empty(), "a dismissed id must not re-apply");
     }
 
@@ -757,24 +639,24 @@ mod tests {
         assert!(!set.contains("new-id"), "oldest ids evicted past the cap");
     }
 
-    /// A remote campaign's flattened JSON patch becomes a full TOML patch (any
-    /// field), and an id-less entry is dropped.
+    /// An override campaign's flattened JSON patch becomes a full TOML patch
+    /// (any field), and an id-less entry is dropped.
     #[test]
-    fn remote_campaign_to_entry_builds_full_patch() {
+    fn campaign_override_to_entry_builds_full_patch() {
         let mut patch = serde_json::Map::new();
         patch.insert(
             "models".into(),
-            serde_json::json!({ "default": "remote-model" }),
+            serde_json::json!({ "default": "override-model" }),
         );
         patch.insert("features".into(), serde_json::json!({ "web_fetch": true }));
-        let entry = remote_campaign_to_entry(CampaignOverride {
+        let entry = campaign_override_to_entry(CampaignOverride {
             id: Some("r1".into()),
             patch,
         })
         .expect("entry with id + patch survives");
         assert_eq!(
             entry.patch["models"]["default"].as_str(),
-            Some("remote-model")
+            Some("override-model")
         );
         assert_eq!(entry.patch["features"]["web_fetch"].as_bool(), Some(true));
 
@@ -786,10 +668,10 @@ mod tests {
                 p
             },
         };
-        assert!(remote_campaign_to_entry(no_id).is_none());
+        assert!(campaign_override_to_entry(no_id).is_none());
     }
 
-    /// The remote JSON shape accepts `campaign_id` as an alias for `id`, matching
+    /// The override JSON shape accepts `campaign_id` as an alias for `id`, matching
     /// the TOML `CampaignMeta` contract so the two sides can't drift. The id key
     /// (either spelling) must be *consumed*, never leak into the flattened patch —
     /// a leaked key would deep-merge junk into every effective config.
@@ -800,7 +682,7 @@ mod tests {
             r#"[{"id":"r1","models":{"default":"m"}}]"#,
         ] {
             let list: Vec<CampaignOverride> = serde_json::from_str(raw).unwrap();
-            let entry = remote_campaign_to_entry(list.into_iter().next().unwrap())
+            let entry = campaign_override_to_entry(list.into_iter().next().unwrap())
                 .expect("entry with id survives");
             assert_eq!(entry.id, "r1");
             assert!(

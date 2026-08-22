@@ -1,4 +1,3 @@
-use crate::util::config::RemoteSettings;
 use toml::Value as TomlValue;
 
 /// Env override for showing agent thinking blocks in the TUI.
@@ -8,7 +7,7 @@ pub const ENV_SHOW_THINKING_BLOCKS: &str = "NOFY_SHOW_THINKING_BLOCKS";
 static SHOW_THINKING_BLOCKS_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// Shared precedence core for `[ui]` bool flags: requirement > env >
-/// `[ui].<ui_key>` config > managed > remote (already extracted) > `default`.
+/// `[ui].<ui_key>` config > managed > `default`.
 fn resolve_ui_bool(
     env_var: &str,
     ui_key: &str,
@@ -16,7 +15,6 @@ fn resolve_ui_bool(
     requirements: Option<&TomlValue>,
     user: Option<&TomlValue>,
     managed: Option<&TomlValue>,
-    remote_value: Option<bool>,
 ) -> crate::agent::config::Resolved<bool> {
     use crate::agent::config::BoolFlag;
     let from_toml =
@@ -25,7 +23,6 @@ fn resolve_ui_bool(
         .requirement(from_toml(requirements))
         .config(from_toml(user))
         .managed(from_toml(managed))
-        .feature_flag(remote_value)
         .default(default)
         .resolve()
 }
@@ -33,12 +30,11 @@ fn resolve_ui_bool(
 /// Resolve whether the TUI should show agent thinking/reasoning blocks.
 ///
 /// Precedence: requirements > env (`NOFY_SHOW_THINKING_BLOCKS`) >
-/// `[ui] show_thinking_blocks` > managed > remote settings > default `true`.
+/// `[ui] show_thinking_blocks` > managed > default `true`.
 pub fn resolve_show_thinking_blocks(
     requirements: Option<&TomlValue>,
     user: Option<&TomlValue>,
     managed: Option<&TomlValue>,
-    remote: Option<&RemoteSettings>,
 ) -> crate::agent::config::Resolved<bool> {
     resolve_ui_bool(
         ENV_SHOW_THINKING_BLOCKS,
@@ -47,7 +43,6 @@ pub fn resolve_show_thinking_blocks(
         requirements,
         user,
         managed,
-        remote.and_then(|r| r.show_thinking_blocks),
     )
 }
 
@@ -61,13 +56,11 @@ static GROUP_TOOL_VERBS_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new((
 /// calls (reads/searches/lists) into one transcript row.
 ///
 /// Precedence: requirements > env (`NOFY_GROUP_TOOL_VERBS`) >
-/// `[ui] group_tool_verbs` > managed > remote settings > default `true`
-/// (remote `Some(false)` is the kill switch).
+/// `[ui] group_tool_verbs` > managed > default `true`.
 pub fn resolve_group_tool_verbs(
     requirements: Option<&TomlValue>,
     user: Option<&TomlValue>,
     managed: Option<&TomlValue>,
-    remote: Option<&RemoteSettings>,
 ) -> crate::agent::config::Resolved<bool> {
     resolve_ui_bool(
         ENV_GROUP_TOOL_VERBS,
@@ -76,7 +69,6 @@ pub fn resolve_group_tool_verbs(
         requirements,
         user,
         managed,
-        remote.and_then(|r| r.group_tool_verbs),
     )
 }
 
@@ -90,13 +82,11 @@ static COLLAPSED_EDIT_BLOCKS_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::
 /// `+N/-M` diffstat summary by default (expand for the diff).
 ///
 /// Precedence: requirements > env (`NOFY_COLLAPSED_EDIT_BLOCKS`) >
-/// `[ui] collapsed_edit_blocks` > managed > remote (GrowthBook) > default
-/// `false` (rollout flag: off keeps the legacy expanded-diff view).
+/// `[ui] collapsed_edit_blocks` > managed > default `false`.
 pub fn resolve_collapsed_edit_blocks(
     requirements: Option<&TomlValue>,
     user: Option<&TomlValue>,
     managed: Option<&TomlValue>,
-    remote: Option<&RemoteSettings>,
 ) -> crate::agent::config::Resolved<bool> {
     resolve_ui_bool(
         ENV_COLLAPSED_EDIT_BLOCKS,
@@ -105,7 +95,6 @@ pub fn resolve_collapsed_edit_blocks(
         requirements,
         user,
         managed,
-        remote.and_then(|r| r.collapsed_edit_blocks),
     )
 }
 
@@ -171,6 +160,7 @@ mod tests {
     }
 }
 
+
 #[cfg(test)]
 mod show_thinking_blocks_tests {
     use super::*;
@@ -188,17 +178,10 @@ mod show_thinking_blocks_tests {
         toml::from_str(&format!("[ui]\nshow_thinking_blocks = {v}\n")).unwrap()
     }
 
-    fn remote(v: Option<bool>) -> RemoteSettings {
-        RemoteSettings {
-            show_thinking_blocks: v,
-            ..RemoteSettings::default()
-        }
-    }
-
     #[test]
     fn defaults_on_when_nothing_set() {
         let _g = guard();
-        let r = resolve_show_thinking_blocks(None, None, None, None);
+        let r = resolve_show_thinking_blocks(None, None, None);
         assert!(r.value, "thinking blocks must default ON");
         assert_eq!(r.source, ConfigSource::Default);
     }
@@ -207,27 +190,24 @@ mod show_thinking_blocks_tests {
     fn each_layer_can_turn_it_off() {
         let _g = guard();
         let off = toml_ui(false);
-        let r = resolve_show_thinking_blocks(Some(&off), None, None, None);
+        let r = resolve_show_thinking_blocks(Some(&off), None, None);
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Requirement);
-        let r = resolve_show_thinking_blocks(None, Some(&off), None, None);
+        let r = resolve_show_thinking_blocks(None, Some(&off), None);
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Config);
-        let r = resolve_show_thinking_blocks(None, None, Some(&off), None);
+        let r = resolve_show_thinking_blocks(None, None, Some(&off));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::ManagedConfig);
-        let r = resolve_show_thinking_blocks(None, None, None, Some(&remote(Some(false))));
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::Remote);
     }
 
     #[test]
-    fn env_overrides_config_and_remote() {
+    fn env_overrides_config() {
         let _g = guard();
         unsafe { std::env::set_var(ENV_SHOW_THINKING_BLOCKS, "0") };
         let on = toml_ui(true);
-        let r = resolve_show_thinking_blocks(None, Some(&on), None, Some(&remote(Some(true))));
-        assert!(!r.value, "env must override config + remote");
+        let r = resolve_show_thinking_blocks(None, Some(&on), None);
+        assert!(!r.value, "env must override config");
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var(ENV_SHOW_THINKING_BLOCKS) };
     }
@@ -237,24 +217,20 @@ mod show_thinking_blocks_tests {
         let _g = guard();
         unsafe { std::env::set_var(ENV_SHOW_THINKING_BLOCKS, "0") };
         let on = toml_ui(true);
-        let r = resolve_show_thinking_blocks(Some(&on), None, None, None);
+        let r = resolve_show_thinking_blocks(Some(&on), None, None);
         assert!(r.value, "requirement must beat env");
         assert_eq!(r.source, ConfigSource::Requirement);
         unsafe { std::env::remove_var(ENV_SHOW_THINKING_BLOCKS) };
     }
 
     #[test]
-    fn config_beats_managed_beats_remote() {
+    fn config_beats_managed() {
         let _g = guard();
         let off = toml_ui(false);
         let on = toml_ui(true);
-        let r =
-            resolve_show_thinking_blocks(None, Some(&off), Some(&on), Some(&remote(Some(true))));
+        let r = resolve_show_thinking_blocks(None, Some(&off), Some(&on));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Config);
-        let r = resolve_show_thinking_blocks(None, None, Some(&off), Some(&remote(Some(true))));
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::ManagedConfig);
     }
 }
 
@@ -275,17 +251,10 @@ mod group_tool_verbs_tests {
         toml::from_str(&format!("[ui]\ngroup_tool_verbs = {v}\n")).unwrap()
     }
 
-    fn remote(v: Option<bool>) -> RemoteSettings {
-        RemoteSettings {
-            group_tool_verbs: v,
-            ..RemoteSettings::default()
-        }
-    }
-
     #[test]
     fn defaults_on_when_nothing_set() {
         let _g = guard();
-        let r = resolve_group_tool_verbs(None, None, None, None);
+        let r = resolve_group_tool_verbs(None, None, None);
         assert!(r.value, "tool-verb grouping must default ON");
         assert_eq!(r.source, ConfigSource::Default);
     }
@@ -294,32 +263,29 @@ mod group_tool_verbs_tests {
     fn each_layer_can_turn_it_off() {
         let _g = guard();
         let off = toml_ui(false);
-        let r = resolve_group_tool_verbs(Some(&off), None, None, None);
+        let r = resolve_group_tool_verbs(Some(&off), None, None);
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Requirement);
         unsafe { std::env::set_var(ENV_GROUP_TOOL_VERBS, "0") };
-        let r = resolve_group_tool_verbs(None, None, None, None);
+        let r = resolve_group_tool_verbs(None, None, None);
         assert!(!r.value, "env disable must beat the true default");
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var(ENV_GROUP_TOOL_VERBS) };
-        let r = resolve_group_tool_verbs(None, Some(&off), None, None);
+        let r = resolve_group_tool_verbs(None, Some(&off), None);
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Config);
-        let r = resolve_group_tool_verbs(None, None, Some(&off), None);
+        let r = resolve_group_tool_verbs(None, None, Some(&off));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::ManagedConfig);
-        let r = resolve_group_tool_verbs(None, None, None, Some(&remote(Some(false))));
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::Remote);
     }
 
     #[test]
-    fn env_overrides_config_and_remote() {
+    fn env_overrides_config() {
         let _g = guard();
         unsafe { std::env::set_var(ENV_GROUP_TOOL_VERBS, "0") };
         let on = toml_ui(true);
-        let r = resolve_group_tool_verbs(None, Some(&on), None, Some(&remote(Some(true))));
-        assert!(!r.value, "env must override config + remote");
+        let r = resolve_group_tool_verbs(None, Some(&on), None);
+        assert!(!r.value, "env must override config");
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var(ENV_GROUP_TOOL_VERBS) };
     }
@@ -329,23 +295,20 @@ mod group_tool_verbs_tests {
         let _g = guard();
         unsafe { std::env::set_var(ENV_GROUP_TOOL_VERBS, "0") };
         let on = toml_ui(true);
-        let r = resolve_group_tool_verbs(Some(&on), None, None, None);
+        let r = resolve_group_tool_verbs(Some(&on), None, None);
         assert!(r.value, "requirement must beat env");
         assert_eq!(r.source, ConfigSource::Requirement);
         unsafe { std::env::remove_var(ENV_GROUP_TOOL_VERBS) };
     }
 
     #[test]
-    fn config_beats_managed_beats_remote() {
+    fn config_beats_managed() {
         let _g = guard();
         let off = toml_ui(false);
         let on = toml_ui(true);
-        let r = resolve_group_tool_verbs(None, Some(&off), Some(&on), Some(&remote(Some(true))));
+        let r = resolve_group_tool_verbs(None, Some(&off), Some(&on));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Config);
-        let r = resolve_group_tool_verbs(None, None, Some(&off), Some(&remote(Some(true))));
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::ManagedConfig);
     }
 }
 
@@ -366,17 +329,10 @@ mod collapsed_edit_blocks_tests {
         toml::from_str(&format!("[ui]\ncollapsed_edit_blocks = {v}\n")).unwrap()
     }
 
-    fn remote(v: Option<bool>) -> RemoteSettings {
-        RemoteSettings {
-            collapsed_edit_blocks: v,
-            ..RemoteSettings::default()
-        }
-    }
-
     #[test]
     fn defaults_off_when_nothing_set() {
         let _g = guard();
-        let r = resolve_collapsed_edit_blocks(None, None, None, None);
+        let r = resolve_collapsed_edit_blocks(None, None, None);
         assert!(!r.value, "collapsed edit blocks must default OFF");
         assert_eq!(r.source, ConfigSource::Default);
     }
@@ -385,32 +341,29 @@ mod collapsed_edit_blocks_tests {
     fn each_layer_can_turn_it_on() {
         let _g = guard();
         let on = toml_ui(true);
-        let r = resolve_collapsed_edit_blocks(Some(&on), None, None, None);
+        let r = resolve_collapsed_edit_blocks(Some(&on), None, None);
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Requirement);
         unsafe { std::env::set_var(ENV_COLLAPSED_EDIT_BLOCKS, "1") };
-        let r = resolve_collapsed_edit_blocks(None, None, None, None);
+        let r = resolve_collapsed_edit_blocks(None, None, None);
         assert!(r.value, "env enable must beat the false default");
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var(ENV_COLLAPSED_EDIT_BLOCKS) };
-        let r = resolve_collapsed_edit_blocks(None, Some(&on), None, None);
+        let r = resolve_collapsed_edit_blocks(None, Some(&on), None);
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Config);
-        let r = resolve_collapsed_edit_blocks(None, None, Some(&on), None);
+        let r = resolve_collapsed_edit_blocks(None, None, Some(&on));
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::ManagedConfig);
-        let r = resolve_collapsed_edit_blocks(None, None, None, Some(&remote(Some(true))));
-        assert!(r.value);
-        assert_eq!(r.source, ConfigSource::Remote);
     }
 
     #[test]
-    fn env_overrides_config_and_remote() {
+    fn env_overrides_config() {
         let _g = guard();
         unsafe { std::env::set_var(ENV_COLLAPSED_EDIT_BLOCKS, "0") };
         let on = toml_ui(true);
-        let r = resolve_collapsed_edit_blocks(None, Some(&on), None, Some(&remote(Some(true))));
-        assert!(!r.value, "env must override config + remote");
+        let r = resolve_collapsed_edit_blocks(None, Some(&on), None);
+        assert!(!r.value, "env must override config");
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var(ENV_COLLAPSED_EDIT_BLOCKS) };
     }
@@ -420,23 +373,19 @@ mod collapsed_edit_blocks_tests {
         let _g = guard();
         unsafe { std::env::set_var(ENV_COLLAPSED_EDIT_BLOCKS, "1") };
         let off = toml_ui(false);
-        let r = resolve_collapsed_edit_blocks(Some(&off), None, None, None);
+        let r = resolve_collapsed_edit_blocks(Some(&off), None, None);
         assert!(!r.value, "requirement must beat env");
         assert_eq!(r.source, ConfigSource::Requirement);
         unsafe { std::env::remove_var(ENV_COLLAPSED_EDIT_BLOCKS) };
     }
 
     #[test]
-    fn config_beats_managed_beats_remote() {
+    fn config_beats_managed() {
         let _g = guard();
         let off = toml_ui(false);
         let on = toml_ui(true);
-        let r =
-            resolve_collapsed_edit_blocks(None, Some(&on), Some(&off), Some(&remote(Some(false))));
+        let r = resolve_collapsed_edit_blocks(None, Some(&on), Some(&off));
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Config);
-        let r = resolve_collapsed_edit_blocks(None, None, Some(&on), Some(&remote(Some(false))));
-        assert!(r.value);
-        assert_eq!(r.source, ConfigSource::ManagedConfig);
     }
 }

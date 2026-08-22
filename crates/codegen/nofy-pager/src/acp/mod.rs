@@ -138,8 +138,6 @@ pub struct ConnectFlags {
     pub fs_write: bool,
     /// Installer field for config.toml.
     pub installer: Option<String>,
-    /// Remote settings from early prefetch (used for memory config resolution).
-    pub remote_settings: Option<nofy_shell::util::config::RemoteSettings>,
     /// Override the entire system prompt.
     pub system_prompt_override: Option<String>,
     /// Extra rules appended to the system prompt (from `--rules`).
@@ -166,7 +164,6 @@ pub async fn connect(cancel: &CancellationToken, flags: ConnectFlags) -> Result<
 
     agent_config.resolve_runtime_fields(&nofy_shell::agent::config::RuntimeResolutionContext {
         raw_config: &raw_config,
-        remote_settings: flags.remote_settings.as_ref(),
         is_headless: false,
         cli_subagents: Some(flags.subagents),
         cli_web_search_model: None,

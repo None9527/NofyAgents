@@ -18,7 +18,7 @@ pub const META_LAST_AUTO_REBUILD_AT: &str = "last_auto_rebuild_at";
 pub const ENV_AUTO_GC: &str = "NOFY_WORKTREE_AUTO_GC";
 /// `1` / `true` / `on` forces age-count without delete.
 pub const ENV_AUTO_GC_DRY_RUN: &str = "NOFY_WORKTREE_AUTO_GC_DRY_RUN";
-/// Default max age in seconds (overrides TOML/remote when set and parseable).
+/// Default max age in seconds (overrides TOML when set and parseable).
 pub const ENV_AUTO_GC_MAX_AGE: &str = "NOFY_WORKTREE_AUTO_GC_MAX_AGE";
 /// `1` / `true` / `on` enables optional discovery rebuild + stale git prune.
 pub const ENV_AUTO_GC_REBUILD: &str = "NOFY_WORKTREE_AUTO_GC_REBUILD";
@@ -48,7 +48,7 @@ pub fn age_expiry_allowed(scan_platform: bool, dry_run: bool) -> bool {
     scan_platform || dry_run
 }
 
-/// One local/remote config layer (`max_age_by_kind`: `Some(secs)` or `None`=never).
+/// One config layer (`max_age_by_kind`: `Some(secs)` or `None`=never).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct WorktreeAutoGcLayer {
     pub enabled: Option<bool>,
@@ -63,7 +63,7 @@ pub struct WorktreeAutoGcLayer {
     pub rebuild_min_interval_secs: Option<u64>,
 }
 
-/// Policy after env / TOML / remote merge.
+/// Policy after env / TOML merge.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ResolvedWorktreeAutoGc {
     pub enabled: bool,
@@ -95,7 +95,7 @@ impl Default for ResolvedWorktreeAutoGc {
 impl ResolvedWorktreeAutoGc {
     /// Defaults plus env kill / dry-run / max-age only.
     pub fn from_env_only() -> Self {
-        resolve_worktree_auto_gc_from_layers(None, None)
+        resolve_worktree_auto_gc_from_layers(None)
     }
 }
 
@@ -103,17 +103,11 @@ fn clamp_kind_age(secs: Option<u64>) -> Option<i64> {
     secs.map(clamp_max_age_secs)
 }
 
-/// Merge kind maps: product default Manual=never, then remote, then local.
+/// Merge kind maps: product default Manual=never, then local.
 fn merge_max_age_by_kind(
     local: Option<&BTreeMap<WorktreeKind, Option<u64>>>,
-    remote: Option<&BTreeMap<WorktreeKind, Option<u64>>>,
 ) -> BTreeMap<WorktreeKind, Option<i64>> {
     let mut map = default_max_age_by_kind();
-    if let Some(r) = remote {
-        for (&k, &v) in r {
-            map.insert(k, clamp_kind_age(v));
-        }
-    }
     if let Some(l) = local {
         for (&k, &v) in l {
             map.insert(k, clamp_kind_age(v));
@@ -122,59 +116,45 @@ fn merge_max_age_by_kind(
     map
 }
 
-/// Precedence: env > local > remote > defaults (with numeric clamps).
+/// Precedence: env > local > defaults (with numeric clamps).
 pub fn resolve_worktree_auto_gc_from_layers(
     local: Option<&WorktreeAutoGcLayer>,
-    remote: Option<&WorktreeAutoGcLayer>,
 ) -> ResolvedWorktreeAutoGc {
     let enabled = if env_auto_gc_disabled() {
         false
     } else {
-        local
-            .and_then(|s| s.enabled)
-            .or(remote.and_then(|s| s.enabled))
-            .unwrap_or(true)
+        local.and_then(|s| s.enabled).unwrap_or(true)
     };
 
     let max_age_secs = env_auto_gc_max_age()
         .or(local.and_then(|s| s.max_age_secs))
-        .or(remote.and_then(|s| s.max_age_secs))
         .map(clamp_max_age_secs)
         .unwrap_or(DEFAULT_MAX_AGE_SECS);
 
     let min_interval_secs = local
         .and_then(|s| s.min_interval_secs)
-        .or(remote.and_then(|s| s.min_interval_secs))
         .map(clamp_min_interval_secs)
         .unwrap_or(DEFAULT_MIN_INTERVAL_SECS);
 
     let dry_run = if env_auto_gc_dry_run() {
         true
     } else {
-        local
-            .and_then(|s| s.dry_run)
-            .or(remote.and_then(|s| s.dry_run))
-            .unwrap_or(false)
+        local.and_then(|s| s.dry_run).unwrap_or(false)
     };
 
     let include_orphan_snapshots = local
         .and_then(|s| s.include_orphan_snapshots)
-        .or(remote.and_then(|s| s.include_orphan_snapshots))
         .unwrap_or(cfg!(target_os = "linux"));
 
     // Env REBUILD=1 forces on; config cannot disable over env.
     let include_rebuild = if env_auto_gc_rebuild() {
         true
     } else {
-        local
-            .and_then(|s| s.include_rebuild)
-            .or(remote.and_then(|s| s.include_rebuild))
-            .unwrap_or(false)
+        local.and_then(|s| s.include_rebuild).unwrap_or(false)
     };
 
     let rebuild_min_interval_secs = local
         .and_then(|s| s.rebuild_min_interval_secs)
-        .or(remote.and_then(|s| s.rebuild_min_interval_secs))
         .map(clamp_min_interval_secs)
         .unwrap_or(DEFAULT_REBUILD_MIN_INTERVAL_SECS);
 
@@ -184,10 +164,7 @@ pub fn resolve_worktree_auto_gc_from_layers(
         min_interval_secs,
         dry_run,
         include_orphan_snapshots,
-        max_age_by_kind: merge_max_age_by_kind(
-            local.map(|s| &s.max_age_by_kind),
-            remote.map(|s| &s.max_age_by_kind),
-        ),
+        max_age_by_kind: merge_max_age_by_kind(local.map(|s| &s.max_age_by_kind)),
         include_rebuild,
         rebuild_min_interval_secs,
     }
@@ -687,7 +664,7 @@ fn run_orphan_cleaners(
     }
 }
 
-/// Env + built-in defaults only (no TOML/remote).
+/// Env + built-in defaults only (no TOML).
 pub fn maybe_auto_gc_default() -> Result<AutoGcReport> {
     let db = WorktreeDb::open_default()?;
     let opts = AutoGcOptions::from_resolved(ResolvedWorktreeAutoGc::from_env_only());
@@ -1430,90 +1407,73 @@ mod tests {
             enabled: Some(false),
             ..Default::default()
         };
-        let remote_on = WorktreeAutoGcLayer {
-            enabled: Some(true),
-            max_age_secs: Some(1),
-            min_interval_secs: Some(1),
-            dry_run: Some(false),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc_from_layers(Some(&local_off), Some(&remote_on));
-        assert!(!p.enabled, "local enabled=false beats remote true");
-        assert_eq!(p.max_age_secs, MAX_AGE_SECS_MIN, "remote TTL still clamped");
+        let p = resolve_worktree_auto_gc_from_layers(Some(&local_off));
+        assert!(!p.enabled, "local enabled=false disables");
         assert_eq!(p.max_age_by_kind.get(&WorktreeKind::Manual), Some(&None));
 
+        let local_ttl = WorktreeAutoGcLayer {
+            max_age_secs: Some(1),
+            ..Default::default()
+        };
+        let p = resolve_worktree_auto_gc_from_layers(Some(&local_ttl));
+        assert_eq!(p.max_age_secs, MAX_AGE_SECS_MIN, "local TTL clamped");
+
         unsafe { std::env::set_var(ENV_AUTO_GC, "0") };
-        let p = resolve_worktree_auto_gc_from_layers(
-            Some(&WorktreeAutoGcLayer {
-                enabled: Some(true),
-                ..Default::default()
-            }),
-            None,
-        );
+        let p = resolve_worktree_auto_gc_from_layers(Some(&WorktreeAutoGcLayer {
+            enabled: Some(true),
+            ..Default::default()
+        }));
         assert!(!p.enabled, "env kill wins");
         clear_auto_gc_env();
 
         unsafe { std::env::set_var(ENV_AUTO_GC_DRY_RUN, "1") };
-        let p = resolve_worktree_auto_gc_from_layers(
-            Some(&WorktreeAutoGcLayer {
-                dry_run: Some(false),
-                ..Default::default()
-            }),
-            Some(&WorktreeAutoGcLayer {
-                dry_run: Some(false),
-                ..Default::default()
-            }),
-        );
-        assert!(p.dry_run, "env dry-run wins over local/remote false");
+        let p = resolve_worktree_auto_gc_from_layers(Some(&WorktreeAutoGcLayer {
+            dry_run: Some(false),
+            ..Default::default()
+        }));
+        assert!(p.dry_run, "env dry-run wins over local false");
         clear_auto_gc_env();
     }
 
     #[test]
-    fn resolve_kind_map_local_wins_over_remote_and_clamps() {
+    fn resolve_kind_map_local_sets_and_clamps() {
         let _g = env_guard();
         clear_auto_gc_env();
-        let remote = WorktreeAutoGcLayer {
+        let local = WorktreeAutoGcLayer {
             max_age_by_kind: BTreeMap::from([
-                (WorktreeKind::Subagent, Some(1)), // clamps to MIN
+                (WorktreeKind::Subagent, Some(7200)),
                 (WorktreeKind::Manual, Some(86400)),
                 (WorktreeKind::Pool, Some(172800)),
             ]),
             ..Default::default()
         };
-        let local = WorktreeAutoGcLayer {
-            max_age_by_kind: BTreeMap::from([
-                (WorktreeKind::Subagent, Some(7200)),
-                // local omits manual → remote's manual expire stays
-            ]),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc_from_layers(Some(&local), Some(&remote));
+        let p = resolve_worktree_auto_gc_from_layers(Some(&local));
         assert_eq!(
             p.max_age_by_kind.get(&WorktreeKind::Subagent),
             Some(&Some(7200)),
-            "local kind TTL wins"
+            "local kind TTL applies"
         );
         assert_eq!(
             p.max_age_by_kind.get(&WorktreeKind::Manual),
             Some(&Some(86400)),
-            "remote can make manual expire when local omits"
+            "local can make manual expire"
         );
         assert_eq!(
             p.max_age_by_kind.get(&WorktreeKind::Pool),
             Some(&Some(172800))
         );
 
-        // Local can restore manual never.
+        // Local can keep manual never.
         let local_never = WorktreeAutoGcLayer {
             max_age_by_kind: BTreeMap::from([(WorktreeKind::Manual, None)]),
             ..Default::default()
         };
-        let p = resolve_worktree_auto_gc_from_layers(Some(&local_never), Some(&remote));
+        let p = resolve_worktree_auto_gc_from_layers(Some(&local_never));
         assert_eq!(p.max_age_by_kind.get(&WorktreeKind::Manual), Some(&None));
     }
 
     #[test]
-    fn resolve_env_max_age_wins_over_local_and_remote() {
+    fn resolve_env_max_age_wins_over_local() {
         let _g = env_guard();
         clear_auto_gc_env();
         unsafe { std::env::set_var(ENV_AUTO_GC_MAX_AGE, "7200") };
@@ -1521,16 +1481,12 @@ mod tests {
             max_age_secs: Some(86400),
             ..Default::default()
         };
-        let remote = WorktreeAutoGcLayer {
-            max_age_secs: Some(3600),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc_from_layers(Some(&local), Some(&remote));
+        let p = resolve_worktree_auto_gc_from_layers(Some(&local));
         assert_eq!(p.max_age_secs, 7200, "env MAX_AGE wins");
         clear_auto_gc_env();
 
         unsafe { std::env::set_var(ENV_AUTO_GC_MAX_AGE, "not-a-number") };
-        let p = resolve_worktree_auto_gc_from_layers(Some(&local), None);
+        let p = resolve_worktree_auto_gc_from_layers(Some(&local));
         assert_eq!(
             p.max_age_secs, 86400,
             "invalid env max age falls through to local"
@@ -1572,7 +1528,7 @@ mod tests {
             ..Default::default()
         };
         unsafe { std::env::set_var(ENV_AUTO_GC_REBUILD, "1") };
-        let p = resolve_worktree_auto_gc_from_layers(Some(&local_off), None);
+        let p = resolve_worktree_auto_gc_from_layers(Some(&local_off));
         assert!(p.include_rebuild, "env REBUILD=1 wins over local false");
         clear_auto_gc_env();
     }
@@ -1586,7 +1542,7 @@ mod tests {
             rebuild_min_interval_secs: Some(120),
             ..Default::default()
         };
-        let p = resolve_worktree_auto_gc_from_layers(Some(&local), None);
+        let p = resolve_worktree_auto_gc_from_layers(Some(&local));
         assert!(p.include_rebuild);
         assert_eq!(p.rebuild_min_interval_secs, 120);
     }

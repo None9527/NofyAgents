@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use toml::Value as TomlValue;
 use nofy_shell::util::config::{
-    DISPLAY_REFRESH_DEFAULT_CADENCE_MS, MotionCadence, RemoteSettings, resolve_display_refresh,
+    DISPLAY_REFRESH_DEFAULT_CADENCE_MS, MotionCadence, resolve_display_refresh,
     resolve_motion_cadence,
 };
 
@@ -69,9 +69,8 @@ pub fn start(
     requirements: Option<&TomlValue>,
     user: Option<&TomlValue>,
     managed: Option<&TomlValue>,
-    remote: Option<&RemoteSettings>,
 ) -> MotionClocks {
-    let policy = resolve_display_refresh(requirements, user, managed, remote);
+    let policy = resolve_display_refresh(requirements, user, managed);
     let default_cadence_ms = DISPLAY_REFRESH_DEFAULT_CADENCE_MS;
     let (min_draw_env_set, min_draw_env_ms) =
         cadence_ms_from_env("NOFY_MIN_DRAW_MS", default_cadence_ms);

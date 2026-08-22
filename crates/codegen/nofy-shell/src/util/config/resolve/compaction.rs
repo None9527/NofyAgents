@@ -25,11 +25,9 @@ pub(crate) const ENV_COMPACTION_TOOL_CHOICE: &str = "NOFY_COMPACTION_TOOL_CHOICE
 pub(crate) fn resolve_compaction_tool_choice_from(
     env: Option<&str>,
     config: Option<&str>,
-    remote: Option<&str>,
 ) -> CompactionToolChoice {
     env.and_then(|s| s.parse().ok())
         .or_else(|| config.and_then(|s| s.parse().ok()))
-        .or_else(|| remote.and_then(|s| s.parse().ok()))
         .unwrap_or_default()
 }
 
@@ -39,9 +37,9 @@ pub(crate) const ENV_AUTO_COMPACT_THRESHOLD_PERCENT: &str = "NOFY_AUTO_COMPACT_T
 
 /// Resolve auto-compact threshold percent (0-100) for the given model.
 ///
-/// Two scopes (per-model and global) across two tiers (user TOML and
-/// remote settings). User-tier always wins over remote; within a tier, per-model
-/// wins over global. Env var sits on top as a per-process override.
+/// Two scopes (per-model and global) across the user TOML tier and the model
+/// catalog. User-tier always wins; within a tier, per-model wins over global.
+/// Env var sits on top as a per-process override.
 ///
 /// Precedence (highest first):
 ///   1. env `NOFY_AUTO_COMPACT_THRESHOLD_PERCENT`
@@ -50,16 +48,11 @@ pub(crate) const ENV_AUTO_COMPACT_THRESHOLD_PERCENT: &str = "NOFY_AUTO_COMPACT_T
 ///      managed `[model.<id>]` sections)
 ///   3. user TOML `[session].auto_compact_threshold_percent`
 ///      (read from `cfg.session.auto_compact_threshold_percent: Option<u8>`)
-///   4. remote settings per-model `ModelInfo.auto_compact_threshold_percent`
-///      (populated from `nofy_build_models[i].auto_compact_threshold_percent`;
-///      intentionally NOT collapsed via `ConfigModelOverride::apply` so the
-///      user-vs-GB per-model distinction is preserved)
-///   5. remote settings global `RemoteSettings.auto_compact_threshold_percent`
-///      (populated from `nofy_build_settings.auto_compact_threshold_percent`)
-///   6. default `DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT` (85)
+///   4. model catalog per-model `ModelInfo.auto_compact_threshold_percent`
+///   5. default `DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT` (85)
 ///
 /// Values outside `0..=100` from the env var are ignored with a debug log and
-/// the resolver falls through to the next tier. TOML/remote fields are typed
+/// the resolver falls through to the next tier. TOML fields are typed
 /// `u8` and so naturally constrained.
 pub(crate) fn resolve_auto_compact_threshold_percent(
     cfg: &crate::agent::config::Config,
@@ -72,9 +65,6 @@ pub(crate) fn resolve_auto_compact_threshold_percent(
             .and_then(|m| m.auto_compact_threshold_percent),
         cfg.session.auto_compact_threshold_percent,
         model.and_then(|m| m.auto_compact_threshold_percent),
-        cfg.remote_settings
-            .as_ref()
-            .and_then(|r| r.auto_compact_threshold_percent),
     )
 }
 
@@ -85,13 +75,12 @@ pub(crate) fn resolve_auto_compact_threshold_percent(
 /// explicitly and the per-model lookup uses the SUBAGENT's resolved model id,
 /// not the parent's).
 ///
-/// Precedence: env > `user_per_model` > `user_global` > `gb_per_model`
-/// > `gb_global` > `DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT`.
+/// Precedence: env > `user_per_model` > `user_global` > `catalog_per_model`
+/// > `DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT`.
 pub(crate) fn resolve_auto_compact_threshold_percent_from_tiers(
     user_per_model: Option<u8>,
     user_global: Option<u8>,
-    gb_per_model: Option<u8>,
-    gb_global: Option<u8>,
+    catalog_per_model: Option<u8>,
 ) -> u8 {
     fn clamp_env(raw: i64) -> Option<u8> {
         if (0..=100).contains(&raw) {
@@ -115,8 +104,7 @@ pub(crate) fn resolve_auto_compact_threshold_percent_from_tiers(
     from_env()
         .or(user_per_model)
         .or(user_global)
-        .or(gb_per_model)
-        .or(gb_global)
+        .or(catalog_per_model)
         .unwrap_or(DEFAULT_AUTO_COMPACT_THRESHOLD_PERCENT)
 }
 
@@ -134,20 +122,16 @@ const COMPACTION_WALL_CLOCK_BUDGET_WARN_SECS: u64 = 120;
 const ENV_COMPACTION_WALL_CLOCK_BUDGET_SECS: &str = "NOFY_COMPACTION_WALL_CLOCK_SECS";
 
 /// Resolve the per-compaction wall-clock budget (seconds). Precedence: env
-/// `NOFY_COMPACTION_WALL_CLOCK_SECS` > remote settings global
-/// `RemoteSettings.compaction_wall_clock_budget_secs` >
-/// [`DEFAULT_COMPACTION_WALL_CLOCK_BUDGET_SECS`] (a per-model `ModelInfo` tier
-/// would slot in ahead of the global one).
+/// `NOFY_COMPACTION_WALL_CLOCK_SECS` >
+/// [`DEFAULT_COMPACTION_WALL_CLOCK_BUDGET_SECS`].
 ///
 /// `0` **disables** it. Low values are warned, not clamped — any "safe" clamp
 /// (e.g. 30s) would itself cut legit compactions, trading one silent failure for
 /// another; ops own the value.
-pub(crate) fn resolve_compaction_wall_clock_budget_secs(gb_global: Option<u64>) -> u64 {
-    let from_env = std::env::var(ENV_COMPACTION_WALL_CLOCK_BUDGET_SECS)
+pub(crate) fn resolve_compaction_wall_clock_budget_secs() -> u64 {
+    let resolved = std::env::var(ENV_COMPACTION_WALL_CLOCK_BUDGET_SECS)
         .ok()
-        .and_then(|s| s.trim().parse::<u64>().ok());
-    let resolved = from_env
-        .or(gb_global)
+        .and_then(|s| s.trim().parse::<u64>().ok())
         .unwrap_or(DEFAULT_COMPACTION_WALL_CLOCK_BUDGET_SECS);
     if resolved > 0 && resolved < COMPACTION_WALL_CLOCK_BUDGET_WARN_SECS {
         tracing::warn!(
@@ -165,11 +149,8 @@ mod compaction_wall_clock_budget_tests {
 
     // Assumes NOFY_COMPACTION_WALL_CLOCK_SECS is unset in the test env.
     #[test]
-    fn default_global_disable_and_no_clamp() {
-        assert_eq!(resolve(None), 300); // client default
-        assert_eq!(resolve(Some(450)), 450); // server global wins
-        assert_eq!(resolve(Some(0)), 0); // 0 explicitly disables (no clamp)
-        assert_eq!(resolve(Some(5)), 5); // low values pass through (warned, not clamped)
+    fn default_when_unset() {
+        assert_eq!(resolve(), 300); // client default
     }
 }
 
@@ -179,21 +160,17 @@ mod compaction_tool_choice_tests {
 
     #[test]
     fn default_is_auto() {
-        assert_eq!(resolve(None, None, None), CompactionToolChoice::Auto);
+        assert_eq!(resolve(None, None), CompactionToolChoice::Auto);
     }
 
     #[test]
-    fn precedence_env_over_config_over_remote() {
+    fn precedence_env_over_config() {
         assert_eq!(
-            resolve(Some("none"), Some("auto"), Some("auto")),
+            resolve(Some("none"), Some("auto")),
             CompactionToolChoice::None
         );
         assert_eq!(
-            resolve(None, Some("none"), Some("auto")),
-            CompactionToolChoice::None
-        );
-        assert_eq!(
-            resolve(None, None, Some("none")),
+            resolve(None, Some("none")),
             CompactionToolChoice::None
         );
     }
@@ -201,11 +178,11 @@ mod compaction_tool_choice_tests {
     #[test]
     fn garbage_falls_through() {
         assert_eq!(
-            resolve(Some("garbage"), None, Some("none")),
-            CompactionToolChoice::None
+            resolve(Some("garbage"), None),
+            CompactionToolChoice::Auto
         );
         assert_eq!(
-            resolve(Some("garbage"), Some("also-bad"), None),
+            resolve(Some("garbage"), Some("also-bad")),
             CompactionToolChoice::Auto
         );
     }

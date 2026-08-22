@@ -16,8 +16,7 @@ mod worktree;
 pub use announcements::*;
 pub use campaigns::{
     CampaignModelsDefault, campaign_driven_models_default, load_effective_config,
-    load_effective_config_disk_only, persist_models_default, remote_campaigns_from_settings,
-    set_remote_campaigns_from_settings, sync_campaign_fields,
+    load_effective_config_disk_only, persist_models_default, sync_campaign_fields,
 };
 pub use hints::*;
 pub use load::*;
@@ -25,13 +24,11 @@ pub use mcp::*;
 pub(crate) use mcp_reenable::reenableable_disabled_stubs;
 pub use permissions::*;
 pub use persist::*;
-// `remote` extracted to the `nofy-config-types` crate (dependency inversion);
-// re-exported so `crate::util::config::{RemoteSettings, GoalRoleModel}` keep working.
 pub use resolve::*;
 pub use settings_writes::*;
 pub use tips::*;
 pub use worktree::*;
 pub use nofy_config_types::{
-    CampaignOverride, ContextualHintsRemote, DisplayRefreshSettings, DoomLoopRecoverySettings,
-    GoalRoleModel, RemoteSettings, WorktreeAutoGcSettings, WorktreeKindMaxAge,
+    CampaignOverride, DisplayRefreshSettings, DoomLoopRecoverySettings, GoalRoleModel,
+    WorktreeAutoGcSettings, WorktreeKindMaxAge,
 };

@@ -89,8 +89,7 @@ pub struct BillingConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prepaid_balance: Option<Cent>,
     /// Whether this user is on unified usage billing (shared weekly/monthly
-    /// pool). From `NofyCreditsConfig.is_unified_billing_user`, which billing
-    /// sets from remote settings `unified_consumer_billing_enabled`. `None` when
+    /// pool). From `NofyCreditsConfig.is_unified_billing_user`. `None` when
     /// absent (legacy `GetNofyBuildBillingConfig` shape or older servers).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_unified_billing_user: Option<bool>,
@@ -108,15 +107,6 @@ pub struct BillingConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BillingConfigResponse {
     pub config: Option<BillingConfig>,
-    /// Whether on-demand credit usage is enabled. When `false`, the pager
-    /// should hide on-demand controls. Populated from `RemoteSettings`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub on_demand_enabled: Option<bool>,
-    /// User-friendly subscription tier name (e.g. "SuperNofy Heavy").
-    /// Populated from `RemoteSettings` so the pager can update its cached
-    /// tier on every billing fetch without an extra request.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub subscription_tier: Option<String>,
 }
 
 /// Auto top-up configuration (from GetAutoTopupRule).

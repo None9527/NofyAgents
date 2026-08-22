@@ -124,7 +124,7 @@ fn with_nofy_memory<T>(value: &str, f: impl FnOnce() -> T) -> T {
 fn memory_config_default_disabled() {
     without_nofy_memory(|| {
         let config = toml::Value::Table(toml::map::Map::new());
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert!(!mem.enabled);
     });
 }
@@ -132,7 +132,7 @@ fn memory_config_default_disabled() {
 fn memory_config_cli_flag_enables() {
     without_nofy_memory(|| {
         let config = toml::Value::Table(toml::map::Map::new());
-        let mem = MemoryConfig::resolve(true, false, &config, None);
+        let mem = MemoryConfig::resolve(true, false, &config);
         assert!(mem.enabled);
     });
 }
@@ -140,7 +140,7 @@ fn memory_config_cli_flag_enables() {
 fn memory_config_from_toml() {
     without_nofy_memory(|| {
         let config: toml::Value = toml::from_str("[memory]\nenabled = true").unwrap();
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert!(mem.enabled);
     });
 }
@@ -148,7 +148,7 @@ fn memory_config_from_toml() {
 fn memory_config_toml_disabled() {
     without_nofy_memory(|| {
         let config: toml::Value = toml::from_str("[memory]\nenabled = false").unwrap();
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert!(!mem.enabled);
     });
 }
@@ -158,7 +158,7 @@ fn memory_config_env_var_enables() {
         "1",
         || {
             let config = toml::Value::Table(toml::map::Map::new());
-            let mem = MemoryConfig::resolve(false, false, &config, None);
+            let mem = MemoryConfig::resolve(false, false, &config);
             assert!(mem.enabled);
         },
     );
@@ -169,7 +169,7 @@ fn memory_config_env_var_true_enables() {
         "true",
         || {
             let config = toml::Value::Table(toml::map::Map::new());
-            let mem = MemoryConfig::resolve(false, false, &config, None);
+            let mem = MemoryConfig::resolve(false, false, &config);
             assert!(mem.enabled);
         },
     );
@@ -180,7 +180,7 @@ fn memory_config_env_var_zero_does_not_enable() {
         "0",
         || {
             let config = toml::Value::Table(toml::map::Map::new());
-            let mem = MemoryConfig::resolve(false, false, &config, None);
+            let mem = MemoryConfig::resolve(false, false, &config);
             assert!(!mem.enabled, "NOFY_MEMORY=0 should not enable memory");
         },
     );
@@ -191,7 +191,7 @@ fn memory_config_env_var_false_does_not_enable() {
         "false",
         || {
             let config = toml::Value::Table(toml::map::Map::new());
-            let mem = MemoryConfig::resolve(false, false, &config, None);
+            let mem = MemoryConfig::resolve(false, false, &config);
             assert!(!mem.enabled, "NOFY_MEMORY=false should not enable memory");
         },
     );
@@ -200,7 +200,7 @@ fn memory_config_env_var_false_does_not_enable() {
 fn memory_config_cli_overrides_toml_disabled() {
     without_nofy_memory(|| {
         let config: toml::Value = toml::from_str("[memory]\nenabled = false").unwrap();
-        let mem = MemoryConfig::resolve(true, false, &config, None);
+        let mem = MemoryConfig::resolve(true, false, &config);
         assert!(mem.enabled, "CLI flag should override config file");
     });
 }
@@ -211,7 +211,7 @@ fn memory_config_env_zero_force_disables_toml_enabled() {
         || {
             let config: toml::Value = toml::from_str("[memory]\nenabled = true")
                 .unwrap();
-            let mem = MemoryConfig::resolve(false, false, &config, None);
+            let mem = MemoryConfig::resolve(false, false, &config);
             assert!(
                 !mem.enabled,
                 "NOFY_MEMORY=0 should force-disable even when TOML enables memory"
@@ -226,7 +226,7 @@ fn memory_config_env_false_force_disables_toml_enabled() {
         || {
             let config: toml::Value = toml::from_str("[memory]\nenabled = true")
                 .unwrap();
-            let mem = MemoryConfig::resolve(false, false, &config, None);
+            let mem = MemoryConfig::resolve(false, false, &config);
             assert!(
                 !mem.enabled,
                 "NOFY_MEMORY=false should force-disable even when TOML enables memory"
@@ -240,7 +240,7 @@ fn memory_config_cli_flag_overrides_env_disable() {
         "0",
         || {
             let config = toml::Value::Table(toml::map::Map::new());
-            let mem = MemoryConfig::resolve(true, false, &config, None);
+            let mem = MemoryConfig::resolve(true, false, &config);
             assert!(
                 mem.enabled,
                 "CLI --experimental-memory should override NOFY_MEMORY=0"
@@ -255,7 +255,7 @@ fn memory_config_no_memory_overrides_all() {
         || {
             let config: toml::Value = toml::from_str("[memory]\nenabled = true")
                 .unwrap();
-            let mem = MemoryConfig::resolve(true, true, &config, None);
+            let mem = MemoryConfig::resolve(true, true, &config);
             assert!(
                 !mem.enabled,
                 "--no-memory should override --experimental-memory, NOFY_MEMORY=1, and TOML enabled=true"
@@ -267,7 +267,7 @@ fn memory_config_no_memory_overrides_all() {
 fn memory_config_no_memory_alone_disables() {
     without_nofy_memory(|| {
         let config = toml::Value::Table(toml::map::Map::new());
-        let mem = MemoryConfig::resolve(false, true, &config, None);
+        let mem = MemoryConfig::resolve(false, true, &config);
         assert!(!mem.enabled, "--no-memory alone should disable");
     });
 }
@@ -277,7 +277,7 @@ fn memory_config_no_memory_overrides_env_enable() {
         "1",
         || {
             let config = toml::Value::Table(toml::map::Map::new());
-            let mem = MemoryConfig::resolve(false, true, &config, None);
+            let mem = MemoryConfig::resolve(false, true, &config);
             assert!(!mem.enabled, "--no-memory should override NOFY_MEMORY=1");
         },
     );
@@ -286,7 +286,7 @@ fn memory_config_no_memory_overrides_env_enable() {
 fn memory_config_no_memory_overrides_toml_enabled() {
     without_nofy_memory(|| {
         let config: toml::Value = toml::from_str("[memory]\nenabled = true").unwrap();
-        let mem = MemoryConfig::resolve(false, true, &config, None);
+        let mem = MemoryConfig::resolve(false, true, &config);
         assert!(
                 !mem.enabled,
                 "--no-memory should override TOML enabled=true"
@@ -294,25 +294,10 @@ fn memory_config_no_memory_overrides_toml_enabled() {
     });
 }
 #[test]
-fn memory_config_no_memory_overrides_remote_enabled() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let remote = crate::util::config::RemoteSettings {
-            memory_enabled: Some(true),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, true, &config, Some(&remote));
-        assert!(
-                !mem.enabled,
-                "--no-memory should override remote memory_enabled=true"
-            );
-    });
-}
-#[test]
 fn memory_config_defaults_are_correct() {
     without_nofy_memory(|| {
         let config = toml::Value::Table(toml::map::Map::new());
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert_eq!(mem.index.max_chunk_chars, 1600);
         assert_eq!(mem.index.chunk_overlap_chars, 320);
         assert_eq!(mem.embedding.provider, "api");
@@ -362,7 +347,7 @@ fn memory_config_watcher_debounce_ms_in_toml_is_silently_ignored() {
     without_nofy_memory(|| {
         let toml_str = "[memory.watcher]\nenabled = true\ndebounce_ms = 2000\n";
         let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert!(mem.watcher.enabled);
         assert_eq!(mem.watcher.stale_claim_secs, 60);
     });
@@ -423,7 +408,7 @@ soft_trim_tail = 3000
 hard_clear_age_turns = 20
 "#;
         let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert!(mem.enabled);
         assert_eq!(mem.index.max_chunk_chars, 2000);
         assert_eq!(mem.index.chunk_overlap_chars, 400);
@@ -463,7 +448,7 @@ enabled = true
 max_chunk_chars = 3200
 "#;
         let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert!(mem.enabled);
         assert_eq!(mem.index.max_chunk_chars, 3200);
         assert_eq!(mem.index.chunk_overlap_chars, 320);
@@ -474,187 +459,10 @@ max_chunk_chars = 3200
     });
 }
 #[test]
-fn memory_config_remote_settings_enable() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let remote = crate::util::config::RemoteSettings {
-            memory_enabled: Some(true),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(
-                mem.enabled,
-                "remote memory_enabled=true should enable memory"
-            );
-    });
-}
-#[test]
-fn memory_config_remote_settings_pruning() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let remote = crate::util::config::RemoteSettings {
-            pruning_enabled: Some(true),
-            pruning_keep_last_n_turns: Some(5),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(mem.pruning.enabled);
-        assert_eq!(mem.pruning.keep_last_n_turns, 5);
-    });
-}
-#[test]
-fn memory_config_remote_settings_initial_injection() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let remote = crate::util::config::RemoteSettings {
-            memory_initial_injection_enabled: Some(false),
-            memory_initial_injection_min_score: Some(0.77),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(!mem.initial_injection.enabled);
-        assert_eq!(mem.initial_injection.min_score, Some(0.77));
-    });
-}
-#[test]
-fn memory_config_local_initial_injection_overrides_remote() {
-    without_nofy_memory(|| {
-        let toml_str = r#"
-[memory.initial_injection]
-enabled = true
-min_score = 0.25
-"#;
-        let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let remote = crate::util::config::RemoteSettings {
-            memory_initial_injection_enabled: Some(false),
-            memory_initial_injection_min_score: Some(0.77),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(mem.initial_injection.enabled);
-        assert_eq!(mem.initial_injection.min_score, Some(0.25));
-    });
-}
-#[test]
-fn memory_config_local_disabled_blocks_remote_enable() {
-    without_nofy_memory(|| {
-        let config: toml::Value = toml::from_str("[memory]\nenabled = false").unwrap();
-        let remote = crate::util::config::RemoteSettings {
-            memory_enabled: Some(true),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(
-                !mem.enabled,
-                "local [memory] enabled=false should block remote enable"
-            );
-    });
-}
-#[test]
-fn memory_config_local_overrides_remote() {
-    without_nofy_memory(|| {
-        let toml_str = r#"
-[memory.search]
-max_results = 20
-"#;
-        let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let remote = crate::util::config::RemoteSettings {
-            memory_search_max_results: Some(5),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert_eq!(
-                mem.search.max_results, 20,
-                "local config should override remote"
-            );
-    });
-}
-#[test]
-fn memory_config_remote_none_is_noop() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let mem_without = MemoryConfig::resolve(false, false, &config, None);
-        let mem_with_empty = MemoryConfig::resolve(
-            false,
-            false,
-            &config,
-            Some(&crate::util::config::RemoteSettings::default()),
-        );
-        assert_eq!(
-                mem_without.search.max_results,
-                mem_with_empty.search.max_results
-            );
-        assert_eq!(mem_without.enabled, mem_with_empty.enabled);
-    });
-}
-#[test]
-fn flush_semantic_dedup_threshold_from_remote_when_no_local_flush() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let remote = crate::util::config::RemoteSettings {
-            flush_semantic_dedup_threshold: Some(0.85),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert_eq!(
-                mem.flush.semantic_dedup_threshold,
-                Some(0.85),
-                "remote threshold should apply when no local flush config"
-            );
-    });
-}
-#[test]
-fn flush_semantic_dedup_threshold_clamped_from_remote() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let remote = crate::util::config::RemoteSettings {
-            flush_semantic_dedup_threshold: Some(1.5),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert_eq!(
-                mem.flush.semantic_dedup_threshold,
-                Some(1.0),
-                "remote threshold above 1.0 should be clamped"
-            );
-        let remote_neg = crate::util::config::RemoteSettings {
-            flush_semantic_dedup_threshold: Some(-0.5),
-            ..Default::default()
-        };
-        let mem_neg = MemoryConfig::resolve(false, false, &config, Some(&remote_neg));
-        assert_eq!(
-                mem_neg.flush.semantic_dedup_threshold,
-                Some(0.0),
-                "remote threshold below 0.0 should be clamped"
-            );
-    });
-}
-#[test]
-fn flush_semantic_dedup_threshold_local_blocks_remote() {
-    without_nofy_memory(|| {
-        let toml_str = r#"
-[compaction.memory_flush]
-enabled = true
-semantic_dedup_threshold = 0.88
-"#;
-        let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let remote = crate::util::config::RemoteSettings {
-            flush_semantic_dedup_threshold: Some(0.70),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert_eq!(
-                mem.flush.semantic_dedup_threshold,
-                Some(0.88),
-                "local flush config should block remote override"
-            );
-    });
-}
-#[test]
 fn flush_semantic_dedup_threshold_defaults_to_none() {
     without_nofy_memory(|| {
         let config = toml::Value::Table(toml::map::Map::new());
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert_eq!(
                 mem.flush.semantic_dedup_threshold, None,
                 "threshold should default to None (fallback to compiled-in constant)"
@@ -665,7 +473,7 @@ fn flush_semantic_dedup_threshold_defaults_to_none() {
 fn memory_dream_config_defaults() {
     without_nofy_memory(|| {
         let config = toml::Value::Table(toml::map::Map::new());
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert!(mem.dream.enabled);
         assert_eq!(mem.dream.min_hours, 4);
         assert_eq!(mem.dream.min_sessions, 3);
@@ -685,54 +493,12 @@ stale_lock_secs = 1800
 check_interval_secs = 600
 "#;
         let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert!(mem.dream.enabled);
         assert_eq!(mem.dream.min_hours, 12);
         assert_eq!(mem.dream.min_sessions, 3);
         assert_eq!(mem.dream.stale_lock_secs, 1800);
         assert_eq!(mem.dream.check_interval_secs, Some(600));
-    });
-}
-#[test]
-fn memory_dream_config_remote_override_when_toml_absent() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let remote = crate::util::config::RemoteSettings {
-            dream_enabled: Some(true),
-            dream_min_hours: Some(48),
-            dream_min_sessions: Some(10),
-            dream_check_interval_secs: Some(900),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(mem.dream.enabled);
-        assert_eq!(mem.dream.min_hours, 48);
-        assert_eq!(mem.dream.min_sessions, 10);
-        assert_eq!(mem.dream.stale_lock_secs, 3600);
-        assert_eq!(mem.dream.check_interval_secs, Some(900));
-    });
-}
-#[test]
-fn memory_dream_config_remote_ignored_when_toml_present() {
-    without_nofy_memory(|| {
-        let toml_str = r#"
-[memory.dream]
-enabled = false
-min_hours = 6
-"#;
-        let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let remote = crate::util::config::RemoteSettings {
-            dream_enabled: Some(true),
-            dream_min_hours: Some(48),
-            dream_min_sessions: Some(10),
-            dream_check_interval_secs: Some(300),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(!mem.dream.enabled, "local TOML should win over remote");
-        assert_eq!(mem.dream.min_hours, 6);
-        assert_eq!(mem.dream.min_sessions, 3);
-        assert_eq!(mem.dream.check_interval_secs, None);
     });
 }
 #[test]
@@ -891,7 +657,7 @@ enabled = true
 lambda = 2.0
 "#;
         let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert!(mem.search.mmr.enabled);
         assert!(
                 (mem.search.mmr.lambda - 1.0).abs() < f64::EPSILON,
@@ -912,80 +678,12 @@ enabled = true
 lambda = -0.5
 "#;
         let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let mem = MemoryConfig::resolve(false, false, &config, None);
+        let mem = MemoryConfig::resolve(false, false, &config);
         assert!(mem.search.mmr.enabled);
         assert!(
                 mem.search.mmr.lambda.abs() < f64::EPSILON,
                 "lambda=-0.5 should clamp to 0.0, got {}",
                 mem.search.mmr.lambda
-            );
-    });
-}
-#[test]
-fn memory_config_remote_temporal_decay() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let remote = crate::util::config::RemoteSettings {
-            memory_temporal_decay_enabled: Some(false),
-            memory_temporal_decay_half_life_days: Some(14.0),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(!mem.search.temporal_decay.enabled);
-        assert!((mem.search.temporal_decay.half_life_days - 14.0).abs() < f64::EPSILON);
-    });
-}
-#[test]
-fn memory_config_remote_mmr() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let remote = crate::util::config::RemoteSettings {
-            memory_mmr_enabled: Some(true),
-            memory_mmr_lambda: Some(0.5),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(mem.search.mmr.enabled);
-        assert!((mem.search.mmr.lambda - 0.5).abs() < f64::EPSILON);
-    });
-}
-#[test]
-fn memory_config_remote_mmr_lambda_clamped() {
-    without_nofy_memory(|| {
-        let config = toml::Value::Table(toml::map::Map::new());
-        let remote = crate::util::config::RemoteSettings {
-            memory_mmr_lambda: Some(5.0),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(
-                (mem.search.mmr.lambda - 1.0).abs() < f64::EPSILON,
-                "remote mmr_lambda=5.0 should be clamped to 1.0"
-            );
-    });
-}
-#[test]
-fn memory_config_local_search_blocks_remote_temporal_decay_and_mmr() {
-    without_nofy_memory(|| {
-        let toml_str = r#"
-[memory.search]
-max_results = 8
-"#;
-        let config: toml::Value = toml::from_str(toml_str).unwrap();
-        let remote = crate::util::config::RemoteSettings {
-            memory_temporal_decay_enabled: Some(false),
-            memory_mmr_enabled: Some(true),
-            memory_mmr_lambda: Some(0.3),
-            ..Default::default()
-        };
-        let mem = MemoryConfig::resolve(false, false, &config, Some(&remote));
-        assert!(
-                mem.search.temporal_decay.enabled,
-                "local search section should block remote temporal_decay override"
-            );
-        assert!(
-                !mem.search.mmr.enabled,
-                "local search section should block remote mmr override"
             );
     });
 }
@@ -1012,50 +710,42 @@ fn subagents_config_default_enabled() {
 #[test]
 fn subagents_max_depth_defaults_to_one() {
     assert_eq!(
-            SubagentsConfig::resolve_max_depth(None, None, None),
+            SubagentsConfig::resolve_max_depth(None, None),
             SubagentsConfig::DEFAULT_MAX_DEPTH
         );
     assert_eq!(SubagentsConfig::DEFAULT_MAX_DEPTH, 1);
 }
 #[test]
-fn subagents_max_depth_env_beats_toml_and_remote() {
+fn subagents_max_depth_env_beats_toml() {
     assert_eq!(
-            SubagentsConfig::resolve_max_depth(Some("3"), Some(2), Some(4)),
+            SubagentsConfig::resolve_max_depth(Some("3"), Some(2)),
             3
         );
 }
 #[test]
-fn subagents_max_depth_toml_beats_remote() {
+fn subagents_max_depth_toml_applies() {
     assert_eq!(
-            SubagentsConfig::resolve_max_depth(None, Some(2), Some(4)),
+            SubagentsConfig::resolve_max_depth(None, Some(2)),
             2
         );
-}
-#[test]
-fn subagents_max_depth_remote_used_when_local_absent() {
-    assert_eq!(SubagentsConfig::resolve_max_depth(None, None, Some(5)), 5);
 }
 #[test]
 fn subagents_max_depth_clamps_below_one_to_one() {
     assert_eq!(SubagentsConfig::clamp_max_depth(-3, "test"), 1);
     assert_eq!(SubagentsConfig::clamp_max_depth(0, "test"), 1);
     assert_eq!(
-            SubagentsConfig::resolve_max_depth(Some("-2"), None, None),
+            SubagentsConfig::resolve_max_depth(Some("-2"), None),
             1
         );
     assert_eq!(
-            SubagentsConfig::resolve_max_depth(None, Some(0), Some(3)),
-            1
-        );
-    assert_eq!(
-            SubagentsConfig::resolve_max_depth(None, None, Some(0)),
+            SubagentsConfig::resolve_max_depth(None, Some(0)),
             1
         );
 }
 #[test]
 fn subagents_max_depth_invalid_env_falls_through() {
     assert_eq!(
-            SubagentsConfig::resolve_max_depth(Some("not-a-number"), Some(2), None),
+            SubagentsConfig::resolve_max_depth(Some("not-a-number"), Some(2)),
             2
         );
 }
@@ -1069,36 +759,34 @@ fn subagents_config_parses_max_depth_from_toml() {
     });
 }
 #[test]
-fn subagent_limit_counts_resolve_env_over_toml_over_remote_over_default() {
+fn subagent_limit_counts_resolve_env_over_toml_over_default() {
     use nofy_tools::implementations::nofy_build::task::admission;
     let resolve = SubagentsConfig::resolve_max_concurrent;
-    assert_eq!(resolve(Some("3"), Some(2), Some(4)), 3);
-    assert_eq!(resolve(None, Some(2), Some(4)), 2);
-    assert_eq!(resolve(None, None, Some(5)), 5);
-    assert_eq!(resolve(None, None, None), admission::DEFAULT_MAX_CONCURRENT);
-    assert_eq!(resolve(Some("-2"), Some(2), None), 2);
-    assert_eq!(resolve(None, Some(0), Some(3)), 1);
+    assert_eq!(resolve(Some("3"), Some(2)), 3);
+    assert_eq!(resolve(None, Some(2)), 2);
+    assert_eq!(resolve(None, None), admission::DEFAULT_MAX_CONCURRENT);
+    assert_eq!(resolve(Some("-2"), Some(2)), 2);
+    assert_eq!(resolve(None, Some(0)), 1);
     assert_eq!(
-            SubagentsConfig::resolve_workflow_max_concurrent(None, None, None),
+            SubagentsConfig::resolve_workflow_max_concurrent(None, None),
             crate::session::workflow::host_service::DEFAULT_WORKFLOW_MAX_CONCURRENT_AGENTS
         );
 }
 #[test]
-fn subagent_limit_behavior_resolves_env_over_toml_over_remote_over_queue() {
+fn subagent_limit_behavior_resolves_env_over_toml_over_queue() {
     use nofy_tools::implementations::nofy_build::task::admission::LimitBehavior;
     let resolve = SubagentsConfig::resolve_limit_behavior;
     assert_eq!(
-            resolve(Some("fail"), Some("queue"), Some("queue")),
+            resolve(Some("fail"), Some("queue")),
             LimitBehavior::Fail
         );
-    assert_eq!(resolve(None, Some("FAIL"), Some("queue")), LimitBehavior::Fail);
-    assert_eq!(resolve(None, None, Some("fail")), LimitBehavior::Fail);
-    assert_eq!(resolve(None, None, None), LimitBehavior::Queue);
+    assert_eq!(resolve(None, Some("FAIL")), LimitBehavior::Fail);
+    assert_eq!(resolve(None, None), LimitBehavior::Queue);
     assert_eq!(
-            resolve(Some("sometimes"), Some("fail"), None),
+            resolve(Some("sometimes"), Some("fail")),
             LimitBehavior::Fail
         );
-    assert_eq!(resolve(None, Some("sometimes"), None), LimitBehavior::Queue);
+    assert_eq!(resolve(None, Some("sometimes")), LimitBehavior::Queue);
 }
 #[test]
 fn subagents_config_parses_limits_from_toml() {
@@ -1124,7 +812,7 @@ fn subagents_config_parses_negative_max_depth_without_dropping_section() {
         assert!(sa.enabled);
         assert_eq!(sa.max_depth, Some(-1));
         assert_eq!(
-                SubagentsConfig::resolve_max_depth(None, sa.max_depth, None),
+                SubagentsConfig::resolve_max_depth(None, sa.max_depth),
                 1
             );
     });
@@ -1190,20 +878,6 @@ fn subagents_config_env_var_disables_default() {
             );
         },
     );
-}
-/// A `subagents_enabled` key served by an old cli-chat-proxy must parse
-/// as an unknown key and have no effect on resolution.
-#[test]
-fn subagents_config_remote_settings_key_is_ignored() {
-    without_nofy_subagents(|| {
-        let _settings: crate::util::config::RemoteSettings = serde_json::from_str(
-                r#"{"subagents_enabled": false}"#,
-            )
-            .expect("unknown subagents_enabled key must not break parsing");
-        let config = toml::Value::Table(toml::map::Map::new());
-        let sa = SubagentsConfig::resolve(false, &config);
-        assert!(sa.enabled);
-    });
 }
 #[test]
 fn subagents_config_cli_flag_overrides_env_var() {
@@ -1384,7 +1058,7 @@ fn managed_mcps_interactive_default_enabled() {
         None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ManagedMcpsConfig::resolve(&empty, None, false);
+            let cfg = ManagedMcpsConfig::resolve(&empty, false);
             assert!(cfg.enabled);
         },
     );
@@ -1397,7 +1071,7 @@ fn managed_mcps_headless_default_disabled() {
         None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ManagedMcpsConfig::resolve(&empty, None, true);
+            let cfg = ManagedMcpsConfig::resolve(&empty, true);
             assert!(!cfg.enabled);
         },
     );
@@ -1410,7 +1084,7 @@ fn managed_mcp_gateway_tools_default_disabled() {
         None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ManagedMcpsConfig::resolve(&empty, None, false);
+            let cfg = ManagedMcpsConfig::resolve(&empty, false);
             assert!(!cfg.gateway_tools_enabled);
         },
     );
@@ -1429,11 +1103,7 @@ fn managed_mcp_gateway_tools_require_managed_master() {
                 "#,
                 )
                 .unwrap();
-            let remote = crate::util::config::RemoteSettings {
-                managed_mcps_enabled: Some(false),
-                ..Default::default()
-            };
-            let cfg = ManagedMcpsConfig::resolve(&config, Some(&remote), true);
+            let cfg = ManagedMcpsConfig::resolve(&config, true);
             assert!(!cfg.enabled);
             assert!(!cfg.gateway_tools_enabled);
         },
@@ -1441,51 +1111,26 @@ fn managed_mcp_gateway_tools_require_managed_master() {
 }
 #[test]
 #[serial_test::serial]
-fn managed_mcp_gateway_tools_remote_enabled() {
-    with_managed_mcp_env(
-        None,
-        None,
-        || {
-            let empty = toml::Value::Table(toml::map::Map::new());
-            let remote = crate::util::config::RemoteSettings {
-                managed_mcp_gateway_tools_enabled: Some(true),
-                ..Default::default()
-            };
-            let cfg = ManagedMcpsConfig::resolve(&empty, Some(&remote), false);
-            assert!(cfg.gateway_tools_enabled);
-        },
-    );
-}
-#[test]
-#[serial_test::serial]
-fn managed_mcp_gateway_tools_env_overrides_remote() {
+fn managed_mcp_gateway_tools_env_disables() {
     with_managed_mcp_env(
         None,
         Some("0"),
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let remote = crate::util::config::RemoteSettings {
-                managed_mcp_gateway_tools_enabled: Some(true),
-                ..Default::default()
-            };
-            let cfg = ManagedMcpsConfig::resolve(&empty, Some(&remote), false);
+            let cfg = ManagedMcpsConfig::resolve(&empty, false);
             assert!(!cfg.gateway_tools_enabled);
         },
     );
 }
 #[test]
 #[serial_test::serial]
-fn managed_mcp_gateway_tools_env_on_overrides_remote_off() {
+fn managed_mcp_gateway_tools_env_enables() {
     with_managed_mcp_env(
         None,
         Some("1"),
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let remote = crate::util::config::RemoteSettings {
-                managed_mcp_gateway_tools_enabled: Some(false),
-                ..Default::default()
-            };
-            let cfg = ManagedMcpsConfig::resolve(&empty, Some(&remote), false);
+            let cfg = ManagedMcpsConfig::resolve(&empty, false);
             assert!(cfg.gateway_tools_enabled);
         },
     );
@@ -1505,7 +1150,7 @@ fn managed_mcp_gateway_tools_enabled_with_managed_master() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ManagedMcpsConfig::resolve(&config, None, false);
+            let cfg = ManagedMcpsConfig::resolve(&config, false);
             assert!(cfg.enabled);
             assert!(cfg.gateway_tools_enabled);
         },
@@ -1543,33 +1188,6 @@ fn with_model_overrides_env<T>(
     with_model_overrides_env_full(ws, ss, id, None, f)
 }
 #[test]
-fn model_overrides_remote_settings_blocked_by_local_config() {
-    with_model_overrides_env(
-        None,
-        None,
-        None,
-        || {
-            let config: toml::Value = toml::from_str(
-                    r#"
-                [models]
-                web_search = "local-ws"
-                "#,
-                )
-                .unwrap();
-            let remote = crate::util::config::RemoteSettings {
-                web_search_model: Some("remote-ws".to_owned()),
-                session_summary_model: Some("remote-ss".to_owned()),
-                image_description_model: Some("remote-id".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, Some(&remote));
-            assert_eq!(cfg.web_search, "local-ws");
-            assert_eq!(cfg.session_summary, Some("remote-ss".to_owned()));
-            assert_eq!(cfg.image_description, Some("remote-id".to_owned()));
-        },
-    );
-}
-#[test]
 fn model_overrides_cli_overrides_everything() {
     with_model_overrides_env(
         Some("env-ws"),
@@ -1586,55 +1204,9 @@ fn model_overrides_cli_overrides_everything() {
             let cfg = ModelOverrideConfig::resolve(
                 Some("cli-ws"),
                 Some("cli-ss"),
-                &config,
-                None,
-            );
+                &config);
             assert_eq!(cfg.web_search, "cli-ws");
             assert_eq!(cfg.session_summary, Some("cli-ss".to_owned()));
-        },
-    );
-}
-#[test]
-fn model_overrides_remote_settings_applies_without_local_config() {
-    with_model_overrides_env(
-        None,
-        None,
-        None,
-        || {
-            let empty = toml::Value::Table(toml::map::Map::new());
-            let remote = crate::util::config::RemoteSettings {
-                web_search_model: Some("remote-ws".to_owned()),
-                session_summary_model: Some("remote-ss".to_owned()),
-                image_description_model: Some("remote-id".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty, Some(&remote));
-            assert_eq!(cfg.web_search, "remote-ws");
-            assert_eq!(cfg.session_summary, Some("remote-ss".to_owned()));
-            assert_eq!(cfg.image_description, Some("remote-id".to_owned()));
-        },
-    );
-}
-#[test]
-fn model_overrides_local_image_description_wins_over_remote() {
-    with_model_overrides_env(
-        None,
-        None,
-        None,
-        || {
-            let config: toml::Value = toml::from_str(
-                    r#"
-                [models]
-                image_description = "local-id"
-                "#,
-                )
-                .unwrap();
-            let remote = crate::util::config::RemoteSettings {
-                image_description_model: Some("remote-id".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, Some(&remote));
-            assert_eq!(cfg.image_description, Some("local-id".to_owned()));
         },
     );
 }
@@ -1646,7 +1218,7 @@ fn model_overrides_default_image_description_is_nofy_build() {
         None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty, None);
+            let cfg = ModelOverrideConfig::resolve(None, None, &empty);
             assert_eq!(
                 cfg.image_description,
                 Some(crate::models::default_image_description_model().to_owned())
@@ -1662,7 +1234,7 @@ fn model_overrides_default_session_summary_is_nofy_build() {
         None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty, None);
+            let cfg = ModelOverrideConfig::resolve(None, None, &empty);
             assert_eq!(
                 cfg.session_summary,
                 Some(crate::models::default_session_summary_model().to_owned())
@@ -1671,41 +1243,14 @@ fn model_overrides_default_session_summary_is_nofy_build() {
     );
 }
 #[test]
-fn model_overrides_local_session_summary_wins_over_remote() {
-    with_model_overrides_env(
-        None,
-        None,
-        None,
-        || {
-            let config: toml::Value = toml::from_str(
-                    r#"
-                [models]
-                session_summary = "local-ss"
-                "#,
-                )
-                .unwrap();
-            let remote = crate::util::config::RemoteSettings {
-                session_summary_model: Some("remote-ss".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, Some(&remote));
-            assert_eq!(cfg.session_summary, Some("local-ss".to_owned()));
-        },
-    );
-}
-#[test]
-fn model_overrides_env_session_summary_overrides_remote() {
+fn model_overrides_env_session_summary_applies() {
     with_model_overrides_env(
         None,
         Some("env-ss"),
         None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let remote = crate::util::config::RemoteSettings {
-                session_summary_model: Some("remote-ss".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty, Some(&remote));
+            let cfg = ModelOverrideConfig::resolve(None, None, &empty);
             assert_eq!(cfg.session_summary, Some("env-ss".to_owned()));
         },
     );
@@ -1724,7 +1269,7 @@ fn model_overrides_env_session_summary_overrides_local() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, None);
+            let cfg = ModelOverrideConfig::resolve(None, None, &config);
             assert_eq!(cfg.session_summary, Some("env-ss".to_owned()));
         },
     );
@@ -1743,27 +1288,7 @@ fn model_overrides_empty_session_summary_toml_uses_default() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, None);
-            assert_eq!(
-                cfg.session_summary,
-                Some(crate::models::default_session_summary_model().to_owned())
-            );
-        },
-    );
-}
-#[test]
-fn model_overrides_empty_session_summary_remote_uses_default() {
-    with_model_overrides_env(
-        None,
-        None,
-        None,
-        || {
-            let empty = toml::Value::Table(toml::map::Map::new());
-            let remote = crate::util::config::RemoteSettings {
-                session_summary_model: Some("   ".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty, Some(&remote));
+            let cfg = ModelOverrideConfig::resolve(None, None, &config);
             assert_eq!(
                 cfg.session_summary,
                 Some(crate::models::default_session_summary_model().to_owned())
@@ -1785,16 +1310,7 @@ fn model_overrides_cli_session_summary_overrides_everything() {
                 "#,
                 )
                 .unwrap();
-            let remote = crate::util::config::RemoteSettings {
-                session_summary_model: Some("remote-ss".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(
-                None,
-                Some("cli-ss"),
-                &config,
-                Some(&remote),
-            );
+            let cfg = ModelOverrideConfig::resolve(None, Some("cli-ss"), &config);
             assert_eq!(cfg.session_summary, Some("cli-ss".to_owned()));
         },
     );
@@ -1807,7 +1323,7 @@ fn model_overrides_empty_cli_session_summary_uses_default() {
         None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ModelOverrideConfig::resolve(None, Some(""), &empty, None);
+            let cfg = ModelOverrideConfig::resolve(None, Some(""), &empty);
             assert_eq!(
                 cfg.session_summary,
                 Some(crate::models::default_session_summary_model().to_owned())
@@ -1816,18 +1332,14 @@ fn model_overrides_empty_cli_session_summary_uses_default() {
     );
 }
 #[test]
-fn model_overrides_env_image_description_overrides_remote() {
+fn model_overrides_env_image_description_applies() {
     with_model_overrides_env(
         None,
         None,
         Some("env-id"),
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let remote = crate::util::config::RemoteSettings {
-                image_description_model: Some("remote-id".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty, Some(&remote));
+            let cfg = ModelOverrideConfig::resolve(None, None, &empty);
             assert_eq!(cfg.image_description, Some("env-id".to_owned()));
         },
     );
@@ -1846,7 +1358,7 @@ fn model_overrides_env_image_description_overrides_local() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, None);
+            let cfg = ModelOverrideConfig::resolve(None, None, &config);
             assert_eq!(cfg.image_description, Some("env-id".to_owned()));
         },
     );
@@ -1865,27 +1377,7 @@ fn model_overrides_empty_image_description_toml_uses_default() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, None);
-            assert_eq!(
-                cfg.image_description,
-                Some(crate::models::default_image_description_model().to_owned())
-            );
-        },
-    );
-}
-#[test]
-fn model_overrides_empty_image_description_remote_uses_default() {
-    with_model_overrides_env(
-        None,
-        None,
-        None,
-        || {
-            let empty = toml::Value::Table(toml::map::Map::new());
-            let remote = crate::util::config::RemoteSettings {
-                image_description_model: Some("   ".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty, Some(&remote));
+            let cfg = ModelOverrideConfig::resolve(None, None, &config);
             assert_eq!(
                 cfg.image_description,
                 Some(crate::models::default_image_description_model().to_owned())
@@ -1901,13 +1393,13 @@ fn model_overrides_prompt_suggestion_unpinned_by_default() {
         None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty, None);
+            let cfg = ModelOverrideConfig::resolve(None, None, &empty);
             assert_eq!(cfg.prompt_suggestion, PromptSuggestModelPin::Unpinned);
         },
     );
 }
 #[test]
-fn model_overrides_prompt_suggestion_local_wins_over_remote() {
+fn model_overrides_prompt_suggestion_local_pins() {
     with_model_overrides_env(
         None,
         None,
@@ -1920,11 +1412,7 @@ fn model_overrides_prompt_suggestion_local_wins_over_remote() {
                 "#,
                 )
                 .unwrap();
-            let remote = crate::util::config::RemoteSettings {
-                prompt_suggestion_model: Some("remote-ps".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, Some(&remote));
+            let cfg = ModelOverrideConfig::resolve(None, None, &config);
             assert_eq!(
                 cfg.prompt_suggestion,
                 PromptSuggestModelPin::Pinned("local-ps".to_owned())
@@ -1933,27 +1421,7 @@ fn model_overrides_prompt_suggestion_local_wins_over_remote() {
     );
 }
 #[test]
-fn model_overrides_prompt_suggestion_remote_applies_without_local() {
-    with_model_overrides_env(
-        None,
-        None,
-        None,
-        || {
-            let empty = toml::Value::Table(toml::map::Map::new());
-            let remote = crate::util::config::RemoteSettings {
-                prompt_suggestion_model: Some("remote-ps".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty, Some(&remote));
-            assert_eq!(
-                cfg.prompt_suggestion,
-                PromptSuggestModelPin::Pinned("remote-ps".to_owned())
-            );
-        },
-    );
-}
-#[test]
-fn model_overrides_prompt_suggestion_env_wins_over_local_and_remote() {
+fn model_overrides_prompt_suggestion_env_wins_over_local() {
     with_model_overrides_env_full(
         None,
         None,
@@ -1967,11 +1435,7 @@ fn model_overrides_prompt_suggestion_env_wins_over_local_and_remote() {
                 "#,
                 )
                 .unwrap();
-            let remote = crate::util::config::RemoteSettings {
-                prompt_suggestion_model: Some("remote-ps".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, Some(&remote));
+            let cfg = ModelOverrideConfig::resolve(None, None, &config);
             assert_eq!(
                 cfg.prompt_suggestion,
                 PromptSuggestModelPin::Env("env-ps".to_owned())
@@ -1994,7 +1458,7 @@ fn model_overrides_prompt_suggestion_blank_values_are_unset() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, None);
+            let cfg = ModelOverrideConfig::resolve(None, None, &config);
             assert_eq!(
                 cfg.prompt_suggestion,
                 PromptSuggestModelPin::Pinned("local-ps".to_owned())
@@ -2013,11 +1477,7 @@ fn model_overrides_prompt_suggestion_blank_values_are_unset() {
                 "#,
                 )
                 .unwrap();
-            let remote = crate::util::config::RemoteSettings {
-                prompt_suggestion_model: Some("  ".to_owned()),
-                ..Default::default()
-            };
-            let cfg = ModelOverrideConfig::resolve(None, None, &config, Some(&remote));
+            let cfg = ModelOverrideConfig::resolve(None, None, &config);
             assert_eq!(cfg.prompt_suggestion, PromptSuggestModelPin::Unpinned);
         },
     );
@@ -3575,7 +3035,7 @@ fn discover_plugins_excludes_untrusted_configpath_plugin_end_to_end() {
             "untrusted folder must EXCLUDE the ConfigPath plugin from discovery"
         );
     crate::agent::folder_trust::grant_folder_trust(cwd);
-    crate::agent::folder_trust::resolve_and_record(cwd, None, false);
+    crate::agent::folder_trust::resolve_and_record(cwd, false);
     let trusted_dc = resolve_effective_plugins_config(cwd).to_discovery_config();
     let trusted_verdict = crate::agent::folder_trust::project_scope_allowed(cwd);
     assert!(trusted_verdict, "a store-granted repo must resolve trusted");
@@ -3592,67 +3052,25 @@ fn discover_plugins_excludes_untrusted_configpath_plugin_end_to_end() {
             "trusted folder must DISCOVER the merged ConfigPath plugin"
         );
 }
-/// Kill-switch ordering regression: `resolve_effective_plugins_config` reads
-/// the folder-trust gate internally, so its call sites (commands/list, plugin
-/// fan-out, reload) resolve with the REAL RemoteSettings first. A cold key
-/// under an org kill-switch must end up allowed — if the plugins-config read
-/// ran first, the gate's remote-less backstop would record a durable
-/// kill-switch-blind deny that `resolve_and_record_inner`'s `Some(false)`
-/// arm (store-only reconcile) could never lift. NOFY_HOME-isolated (empty
-/// store); NOFY_FOLDER_TRUST unset so the kill-switch is the only signal.
-#[test]
-#[serial_test::serial]
-fn kill_switched_cold_cwd_stays_allowed_through_plugins_config_read() {
-    use nofy_test_support::EnvGuard;
-    let home = tempfile::tempdir().unwrap();
-    let _env = EnvGuard::set("NOFY_HOME", home.path());
-    let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
-    let _sim = simulate_release_build();
-    let repo = tempfile::tempdir().unwrap();
-    git2::Repository::init(repo.path()).unwrap();
-    let nofy = repo.path().join(".nofy");
-    std::fs::create_dir_all(&nofy).unwrap();
-    std::fs::write(nofy.join("config.toml"), "[plugins]\npaths = [\"./proj-plugin\"]\n")
-        .unwrap();
-    let cwd = repo.path();
-    let remote = crate::util::config::RemoteSettings {
-        folder_trust_enabled: Some(false),
-        ..Default::default()
-    };
-    assert!(
-            crate::agent::folder_trust::resolve_and_record(cwd, Some(&remote), false),
-            "kill-switch must resolve the cold key trusted"
-        );
-    let cfg = resolve_effective_plugins_config(cwd);
-    assert!(
-            cfg.paths.contains(&"./proj-plugin".to_string()),
-            "kill-switched folder counts trusted, so the project path must merge"
-        );
-    assert!(
-            crate::agent::folder_trust::project_scope_allowed(cwd),
-            "gate must still allow the kill-switched folder after the config read"
-        );
-}
-/// Writeback requires nofy.com auth: remote may advertise it, but a non-nofy
+/// Writeback requires nofy.com auth: even when selected via env, a non-nofy
 /// credential is downgraded to `Local`.
 #[test]
 #[serial_test::serial]
-fn from_remote_gated_requires_xai_auth_for_writeback() {
-    let _env = crate::env::EnvVarGuard::remove("NOFY_STORAGE_MODE");
-    let writeback = crate::util::config::RemoteSettings {
-        writeback_enabled: Some(true),
-        ..Default::default()
-    };
+fn resolve_env_gated_requires_xai_auth_for_writeback() {
+    {
+        let _env = crate::env::EnvVarGuard::set("NOFY_STORAGE_MODE", "writeback");
+        assert_eq!(
+            StorageMode::resolve_env_gated(true),
+            StorageMode::Writeback
+        );
+        assert_eq!(
+            StorageMode::resolve_env_gated(false),
+            StorageMode::Local,
+        );
+    }
+    let _local = crate::env::EnvVarGuard::remove("NOFY_STORAGE_MODE");
     assert_eq!(
-        StorageMode::from_remote_gated(Some(&writeback), true),
-        StorageMode::Writeback
-    );
-    assert_eq!(
-        StorageMode::from_remote_gated(Some(&writeback), false),
-        StorageMode::Local,
-    );
-    assert_eq!(
-        StorageMode::from_remote_gated(None, true),
+        StorageMode::resolve_env_gated(true),
         StorageMode::Local
     );
 }

@@ -1073,7 +1073,6 @@ pub(crate) async fn run_shell_child(
         ctx.workspace_ops.clone(),
         vec![],
         ctx.todo_gate,
-        std::mem::take(&mut ctx.remote_settings),
         std::mem::take(&mut ctx.laziness_debug_log),
         ctx.parent_terminal_backend.clone(),
         if request.owner.is_workflow() {

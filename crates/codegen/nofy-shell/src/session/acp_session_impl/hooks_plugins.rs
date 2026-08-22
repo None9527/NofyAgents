@@ -634,7 +634,7 @@ impl SessionActor {
         // Reconcile folder-trust so a mid-session /hooks-trust (or --trust) grant
         // is honored on reload, then gate project hook sources on the verdict.
         let cwd = std::path::Path::new(&self.session_info.cwd);
-        let is_trusted = crate::agent::folder_trust::resolve_and_record(cwd, None, false);
+        let is_trusted = crate::agent::folder_trust::resolve_and_record(cwd, false);
         // Single load entry point so all vendors (compat and native) and custom
         // hook-paths are handled consistently with the session-startup sites.
         let (mut registry, errors) = crate::util::hooks::discover_hooks(
@@ -742,7 +742,7 @@ impl SessionActor {
         // site's own resolve. Pure verdict: the session-start hook load already
         // printed the folder-untrusted notice, so don't print a second.
         let project_trusted =
-            crate::agent::folder_trust::resolve_and_record(session_cwd, None, false);
+            crate::agent::folder_trust::resolve_and_record(session_cwd, false);
 
         let t0 = std::time::Instant::now();
         // Resolve effective [plugins] config (global + ancestor project
@@ -893,7 +893,7 @@ impl SessionActor {
                     let git_root =
                         nofy_workspace::session::git::find_git_root_from_path(session_cwd).ok();
                     let is_trusted =
-                        crate::agent::folder_trust::resolve_and_record(session_cwd, None, false);
+                        crate::agent::folder_trust::resolve_and_record(session_cwd, false);
                     let (mut new_reg, _errs) = crate::util::hooks::discover_hooks(
                         git_root.as_deref(),
                         &self.rebuild_spec.compat,

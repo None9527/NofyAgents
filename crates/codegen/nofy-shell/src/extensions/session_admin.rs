@@ -578,15 +578,14 @@ fn handle_reload_models(agent: &MvpAgent) -> ExtResult {
         .map_err(|e| acp::Error::internal_error().data(e))?;
 
     // Merge TOML-derived model fields into the agent's in-memory config so
-    // runtime-only fields (#[serde(skip)]: remote_settings, endpoints, CLI
-    // flags) are preserved. Only model-related TOML fields are refreshed.
+    // runtime-only fields (#[serde(skip)]: endpoints, CLI flags) are preserved.
+    // Only model-related TOML fields are refreshed.
     {
         let agent_config = agent.cfg.borrow();
         let overrides = crate::config::ModelOverrideConfig::resolve(
             agent_config.web_search_model_override.as_deref(),
             agent_config.session_summary_model_override.as_deref(),
             &disk_config,
-            agent_config.remote_settings.as_ref(),
         );
         drop(agent_config);
         let mut agent_config = agent.cfg.borrow_mut();
@@ -655,12 +654,10 @@ async fn handle_plugins_reload(agent: &MvpAgent) -> ExtResult {
     plugins.merge_claude_enabled_plugins(session_cwd.as_deref());
     let disk_cfg = plugins.to_discovery_config();
     // Folder-trust gates repo-local project plugins (hooks/MCP). Resolve and
-    // record the verdict for this cwd (honoring the real remote), then gate
-    // plugins on it.
-    let project_trusted = session_cwd.as_deref().is_some_and(|c| {
-        let remote_settings = agent.cfg.borrow().remote_settings.clone();
-        crate::agent::folder_trust::resolve_and_record(c, remote_settings.as_ref(), false)
-    });
+    // record the verdict for this cwd, then gate plugins on it.
+    let project_trusted = session_cwd
+        .as_deref()
+        .is_some_and(|c| crate::agent::folder_trust::resolve_and_record(c, false));
     // Explicit desktop `nofy/plugins/reload`: force a full local-install re-copy.
     agent
         .plugin_registry_handle()
@@ -729,14 +726,9 @@ async fn handle_commands_list(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtRe
         let cwd = Path::new(cwd_str);
 
         // Folder-trust gates repo-local project plugins (hooks/MCP). Resolve and
-        // record the verdict for this cwd (honoring the real remote) BEFORE the
-        // plugins-config read below: that read gates its project-paths merge on
-        // the recorded verdict, and a cold cwd (client-supplied, no session
-        // resolve yet) must not first take the gate's remote-less backstop —
-        // that would record a kill-switch-blind deny no later resolve can lift.
-        let remote_settings = agent.cfg.borrow().remote_settings.clone();
-        let project_trusted =
-            crate::agent::folder_trust::resolve_and_record(cwd, remote_settings.as_ref(), false);
+        // record the verdict for this cwd BEFORE the plugins-config read below:
+        // that read gates its project-paths merge on the recorded verdict.
+        let project_trusted = crate::agent::folder_trust::resolve_and_record(cwd, false);
 
         // Effective [plugins] config (global + ancestor project configs +
         // vendor compat merge), shared with reload_plugins_impl and the eager

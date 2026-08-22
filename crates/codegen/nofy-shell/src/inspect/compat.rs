@@ -96,7 +96,6 @@ pub struct ExternalCompatEntry {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExternalCompatReport {
-    pub remote_settings_loaded: bool,
     pub cells: Vec<ExternalCompatEntry>,
 }
 
@@ -137,10 +136,7 @@ pub(super) fn resolve_inspect_compat_with_env(
         })
         .collect();
 
-    ExternalCompatReport {
-        remote_settings_loaded: false,
-        cells,
-    }
+    ExternalCompatReport { cells }
 }
 
 fn resolve_compat_entry(
@@ -153,7 +149,7 @@ fn resolve_compat_entry(
         Ok(value) => (value, false),
         Err(_) => (Some(false), true),
     };
-    let resolved = crate::agent::config::resolve_compat_cell_with_env(env, config, None, default);
+    let resolved = crate::agent::config::resolve_compat_cell_with_env(env, config, default);
     let source = if env.is_some() {
         CompatSource::Env
     } else if config.is_some() {
@@ -195,11 +191,10 @@ mod tests {
     }
 
     #[test]
-    fn empty_config_reports_defaults_and_remote_not_loaded() {
+    fn empty_config_reports_defaults() {
         let effective_config = toml::Value::Table(toml::map::Map::new());
         let report = resolve_without_env(Ok(&effective_config));
 
-        assert!(!report.remote_settings_loaded);
         assert_eq!(report.cells.len(), 13);
         assert!(
             report
@@ -219,8 +214,6 @@ mod tests {
         let session = entry(&report, "codex", "sessions");
         assert_eq!(session.enabled, CompatConfig::default().codex.sessions);
         assert_eq!(session.source, CompatSource::Default);
-        let json = serde_json::to_value(&report).unwrap();
-        assert_eq!(json["remoteSettingsLoaded"], false);
         assert_eq!(
             serde_json::to_value(session).unwrap(),
             serde_json::json!({

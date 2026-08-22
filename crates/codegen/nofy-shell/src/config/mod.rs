@@ -12,7 +12,7 @@ pub use nofy_config_types::{
 /// Parsed from the `[memory]` section of `~/.nofy/config.toml` or
 /// `.nofy/config.toml`. Disabled by default; enabled via
 /// `--experimental-memory` CLI flag or `NOFY_MEMORY=1` env var.
-/// Force-disabled via `NOFY_MEMORY=0` (overrides TOML and remote settings).
+/// Force-disabled via `NOFY_MEMORY=0` (overrides TOML).
 ///
 /// All sub-configs are pre-populated with production-ready defaults so that
 /// later PRs (indexing, search, flush, pruning) can read them without any
@@ -64,18 +64,7 @@ impl MemoryConfig {
     /// 2. CLI flag `--experimental-memory` (enables, but overridden by --no-memory)
     /// 3. `NOFY_MEMORY` env var: `1`/`true` enables, `0`/`false` force-disables
     /// 4. Config file `[memory]` / `[compaction]` sections
-    /// 5. Remote settings from `/v1/settings`
-    ///
-    /// Remote settings only override fields when the corresponding local
-    /// config section is absent. Section-level granularity: if `[memory.search]`
-    /// exists in TOML, all search fields come from TOML; if absent, remote
-    /// search settings apply.
-    pub fn resolve(
-        experimental_memory: bool,
-        no_memory: bool,
-        config: &toml::Value,
-        remote: Option<&crate::util::config::RemoteSettings>,
-    ) -> Self {
+    pub fn resolve(experimental_memory: bool, no_memory: bool, config: &toml::Value) -> Self {
         let mut result: Self = config
             .get("memory")
             .and_then(|v| v.clone().try_into().ok())
@@ -92,108 +81,6 @@ impl MemoryConfig {
                 result.pruning = p;
             }
         }
-        if let Some(remote) = remote {
-            let has_local_search = config.get("memory").and_then(|m| m.get("search")).is_some();
-            if !has_local_search {
-                if let Some(v) = remote.memory_search_max_results {
-                    result.search.max_results = v as usize;
-                }
-                if let Some(v) = remote.memory_search_min_score {
-                    result.search.min_score = v;
-                }
-                if let Some(v) = remote.memory_temporal_decay_enabled {
-                    result.search.temporal_decay.enabled = v;
-                }
-                if let Some(v) = remote.memory_temporal_decay_half_life_days {
-                    result.search.temporal_decay.half_life_days = v;
-                }
-                if let Some(v) = remote.memory_mmr_enabled {
-                    result.search.mmr.enabled = v;
-                }
-                if let Some(v) = remote.memory_mmr_lambda {
-                    result.search.mmr.lambda = v.clamp(0.0, 1.0);
-                }
-            }
-            let has_local_initial_injection = config
-                .get("memory")
-                .and_then(|m| m.get("initial_injection"))
-                .is_some();
-            if !has_local_initial_injection {
-                if let Some(v) = remote.memory_initial_injection_enabled {
-                    result.initial_injection.enabled = v;
-                }
-                if let Some(v) = remote.memory_initial_injection_min_score {
-                    result.initial_injection.min_score = Some(v);
-                }
-            }
-            let has_local_embedding = config
-                .get("memory")
-                .and_then(|m| m.get("embedding"))
-                .is_some();
-            if !has_local_embedding {
-                if let Some(ref v) = remote.memory_embedding_model {
-                    result.embedding.model = Some(v.clone());
-                }
-                if let Some(v) = remote.memory_embedding_dimensions {
-                    result.embedding.dimensions = v as usize;
-                }
-            }
-            let has_local_pruning = config
-                .get("compaction")
-                .and_then(|c| c.get("pruning"))
-                .is_some();
-            if !has_local_pruning {
-                if let Some(v) = remote.pruning_enabled {
-                    result.pruning.enabled = v;
-                }
-                if let Some(v) = remote.pruning_keep_last_n_turns {
-                    result.pruning.keep_last_n_turns = v as usize;
-                }
-                if let Some(v) = remote.pruning_soft_trim_threshold {
-                    result.pruning.soft_trim_threshold = v as usize;
-                }
-            }
-            let has_local_flush = config
-                .get("compaction")
-                .and_then(|c| c.get("memory_flush"))
-                .is_some();
-            if !has_local_flush {
-                if let Some(v) = remote.flush_enabled {
-                    result.flush.enabled = v;
-                }
-                if let Some(v) = remote.flush_soft_threshold_tokens {
-                    result.flush.soft_threshold_tokens = v;
-                }
-                if let Some(v) = remote.flush_idle_timeout_secs {
-                    result.flush.idle_timeout_secs = Some(v);
-                }
-                if let Some(v) = remote.flush_semantic_dedup_threshold {
-                    result.flush.semantic_dedup_threshold = Some(v.clamp(0.0, 1.0));
-                }
-            }
-            let has_local_watcher = config
-                .get("memory")
-                .and_then(|m| m.get("watcher"))
-                .is_some();
-            if !has_local_watcher && let Some(v) = remote.memory_watcher_enabled {
-                result.watcher.enabled = v;
-            }
-            let has_local_dream = config.get("memory").and_then(|m| m.get("dream")).is_some();
-            if !has_local_dream {
-                if let Some(v) = remote.dream_enabled {
-                    result.dream.enabled = v;
-                }
-                if let Some(v) = remote.dream_min_hours {
-                    result.dream.min_hours = v;
-                }
-                if let Some(v) = remote.dream_min_sessions {
-                    result.dream.min_sessions = v;
-                }
-                if let Some(v) = remote.dream_check_interval_secs {
-                    result.dream.check_interval_secs = Some(v);
-                }
-            }
-        }
         let resolved = crate::agent::config::resolve_enabled(
             if experimental_memory {
                 Some(true)
@@ -203,7 +90,6 @@ impl MemoryConfig {
             "NOFY_MEMORY",
             result.enabled,
             config.get("memory").is_some(),
-            remote.and_then(|r| r.memory_enabled),
             false,
         );
         result.enabled = resolved.value;
@@ -463,16 +349,12 @@ impl SubagentsConfig {
             raw as u32
         }
     }
-    /// Precedence: env > TOML > remote > [`Self::DEFAULT_MAX_DEPTH`].
+    /// Precedence: env > TOML > [`Self::DEFAULT_MAX_DEPTH`].
     ///
     /// Depth 0 is the top-level session; a child is parent+1. Spawn is rejected
     /// when `depth >= max`. So `max = 1` allows only top-level spawns; nested
     /// spawns from a first-level subagent need `max >= 2`.
-    pub(crate) fn resolve_max_depth(
-        env: Option<&str>,
-        config: Option<i64>,
-        remote: Option<u32>,
-    ) -> u32 {
+    pub(crate) fn resolve_max_depth(env: Option<&str>, config: Option<i64>) -> u32 {
         if let Some(raw) = env {
             match raw.trim().parse::<i64>() {
                 Ok(v) => return Self::clamp_max_depth(v, "env"),
@@ -486,9 +368,6 @@ impl SubagentsConfig {
         }
         if let Some(v) = config {
             return Self::clamp_max_depth(v, "config");
-        }
-        if let Some(v) = remote {
-            return Self::clamp_max_depth(i64::from(v), "remote");
         }
         Self::DEFAULT_MAX_DEPTH
     }
@@ -504,12 +383,11 @@ impl SubagentsConfig {
             usize::try_from(value).unwrap_or(usize::MAX)
         }
     }
-    /// Precedence: env > TOML > remote > default; invalid layers warn and fall through.
+    /// Precedence: env > TOML > default; invalid layers warn and fall through.
     fn resolve_count(
         env_name: &str,
         env: Option<&str>,
         config: Option<i64>,
-        remote: Option<u32>,
         default: usize,
     ) -> usize {
         if let Some(value) = env {
@@ -527,44 +405,33 @@ impl SubagentsConfig {
         if let Some(v) = config {
             return Self::clamp_count(v, "config", env_name);
         }
-        if let Some(v) = remote {
-            return Self::clamp_count(i64::from(v), "remote", env_name);
-        }
         default
     }
-    pub(crate) fn resolve_max_concurrent(
-        env: Option<&str>,
-        config: Option<i64>,
-        remote: Option<u32>,
-    ) -> usize {
+    pub(crate) fn resolve_max_concurrent(env: Option<&str>, config: Option<i64>) -> usize {
         Self::resolve_count(
             Self::ENV_MAX_CONCURRENT,
             env,
             config,
-            remote,
             nofy_tools::implementations::nofy_build::task::admission::DEFAULT_MAX_CONCURRENT,
         )
     }
     pub(crate) fn resolve_workflow_max_concurrent(
         env: Option<&str>,
         config: Option<i64>,
-        remote: Option<u32>,
     ) -> usize {
         Self::resolve_count(
             Self::ENV_WORKFLOW_MAX_CONCURRENT,
             env,
             config,
-            remote,
             crate::session::workflow::host_service::DEFAULT_WORKFLOW_MAX_CONCURRENT_AGENTS,
         )
     }
     pub(crate) fn resolve_limit_behavior(
         env: Option<&str>,
         config: Option<&str>,
-        remote: Option<&str>,
     ) -> nofy_tools::implementations::nofy_build::task::admission::LimitBehavior {
         use nofy_tools::implementations::nofy_build::task::admission::LimitBehavior;
-        for (source, value) in [("env", env), ("config", config), ("remote", remote)] {
+        for (source, value) in [("env", env), ("config", config)] {
             let Some(value) = value else { continue };
             if value.eq_ignore_ascii_case("fail") {
                 return LimitBehavior::Fail;
@@ -586,9 +453,8 @@ impl SubagentsConfig {
     /// 3. Config file `[subagents]` section
     /// 4. Default (enabled)
     ///
-    /// `enabled` is deliberately not remotely gated — only explicit local
-    /// intent (CLI flag, `NOFY_SUBAGENTS`, `[subagents] enabled`) changes
-    /// the default.
+    /// `enabled` changes only via explicit local intent (CLI flag,
+    /// `NOFY_SUBAGENTS`, `[subagents] enabled`).
     ///
     /// Project files are excluded from this trust-independent base; Task
     /// boundaries overlay them using the parent cwd's authoritative trust verdict.
@@ -616,7 +482,6 @@ impl SubagentsConfig {
             "NOFY_SUBAGENTS",
             result.enabled,
             config.get("subagents").is_some(),
-            None,
             true,
         );
         result.enabled = resolved.value;
@@ -673,12 +538,8 @@ impl Default for ManagedMcpsConfig {
     }
 }
 impl ManagedMcpsConfig {
-    /// Priority: env var > TOML > remote > default (enabled interactive, disabled headless).
-    pub fn resolve(
-        config: &toml::Value,
-        remote: Option<&crate::util::config::RemoteSettings>,
-        is_headless: bool,
-    ) -> Self {
+    /// Priority: env var > TOML > default (enabled interactive, disabled headless).
+    pub fn resolve(config: &toml::Value, is_headless: bool) -> Self {
         let mut result: Self = config
             .get("managed_mcps")
             .and_then(|v| v.clone().try_into().ok())
@@ -693,7 +554,6 @@ impl ManagedMcpsConfig {
             "NOFY_MANAGED_MCPS_ENABLED",
             result.enabled,
             has_local_enabled,
-            remote.and_then(|r| r.managed_mcps_enabled),
             !is_headless,
         );
         result.enabled = resolved.value;
@@ -704,7 +564,6 @@ impl ManagedMcpsConfig {
             "NOFY_MANAGED_MCP_GATEWAY_TOOLS_ENABLED",
             result.gateway_tools_enabled,
             has_local_gateway_tools,
-            remote.and_then(|r| r.managed_mcp_gateway_tools_enabled),
             false,
         );
         result.gateway_tools_enabled = result.enabled && gateway_resolved.value;
@@ -718,7 +577,7 @@ pub(crate) struct ModelOverrideConfig {
     pub web_search: String,
     /// `None` = current model.
     pub session_summary: Option<String>,
-    /// Compiled default (`nofy-build`) when unset locally, remotely, and via env.
+    /// Compiled default (`nofy-build`) when unset locally and via env.
     pub image_description: Option<String>,
     /// Next-prompt suggestion model pin. Unlike the other overrides this does
     /// NOT fill a compiled default — see [`PromptSuggestModelPin`].
@@ -736,8 +595,7 @@ impl Default for ModelOverrideConfig {
     }
 }
 /// Resolved model pin for the next-prompt suggestion call (tab-autocomplete
-/// ghost text), `env > config.toml > remote` — see
-/// [`ModelOverrideConfig::resolve`].
+/// ghost text), `env > config.toml` — see [`ModelOverrideConfig::resolve`].
 ///
 /// Unlike the other auxiliary overrides this does not collapse to a plain
 /// model string: the consumer (`handle_suggest_prompt`) must distinguish
@@ -755,8 +613,7 @@ pub enum PromptSuggestModelPin {
     /// `NOFY_PROMPT_SUGGESTIONS_MODEL` — used verbatim, bypasses the
     /// catalog guard.
     Env(String),
-    /// `[models] prompt_suggestion` in config.toml, or the remote
-    /// `prompt_suggestion_model` (remote settings) — catalog-guarded.
+    /// `[models] prompt_suggestion` in config.toml — catalog-guarded.
     Pinned(String),
     /// No explicit pin: the client hint, then the built-in default apply
     /// (both catalog-guarded).
@@ -775,7 +632,7 @@ fn non_empty_model_override(value: Option<&str>) -> Option<String> {
     })
 }
 impl ModelOverrideConfig {
-    /// CLI flag > env var > config.toml > remote settings > compiled default.
+    /// CLI flag > env var > config.toml > compiled default.
     /// `image_description` and `session_summary` always resolve to `Some(_)`
     /// (default `nofy-build`), never the session model.
     /// `prompt_suggestion` resolves to a [`PromptSuggestModelPin`] instead of
@@ -785,7 +642,6 @@ impl ModelOverrideConfig {
         cli_web_search_model: Option<&str>,
         cli_session_summary_model: Option<&str>,
         config: &toml::Value,
-        remote: Option<&crate::util::config::RemoteSettings>,
     ) -> Self {
         let models_table = config.get("models");
         let parsed_models: crate::agent::config::ModelsConfig = models_table
@@ -801,31 +657,6 @@ impl ModelOverrideConfig {
                 .map(PromptSuggestModelPin::Pinned)
                 .unwrap_or_default(),
         };
-        let has_local_ws = models_table.and_then(|m| m.get("web_search")).is_some();
-        let has_local_ss = models_table
-            .and_then(|m| m.get("session_summary"))
-            .is_some();
-        let has_local_id = models_table
-            .and_then(|m| m.get("image_description"))
-            .is_some();
-        if let Some(remote) = remote {
-            if !has_local_ws && let Some(ref v) = remote.web_search_model {
-                result.web_search = v.clone();
-            }
-            if !has_local_ss {
-                result.session_summary =
-                    non_empty_model_override(remote.session_summary_model.as_deref());
-            }
-            if !has_local_id {
-                result.image_description =
-                    non_empty_model_override(remote.image_description_model.as_deref());
-            }
-            if result.prompt_suggestion == PromptSuggestModelPin::Unpinned
-                && let Some(v) = non_empty_model_override(remote.prompt_suggestion_model.as_deref())
-            {
-                result.prompt_suggestion = PromptSuggestModelPin::Pinned(v);
-            }
-        }
         if let Ok(v) = std::env::var("NOFY_WEB_SEARCH_MODEL") {
             let v = v.trim();
             if !v.is_empty() {
@@ -911,11 +742,8 @@ pub enum StorageMode {
     Writeback,
 }
 impl StorageMode {
-    /// Resolve from all sources: CLI > env var > remote settings > default (Local).
-    pub fn resolve(
-        cli_override: Option<&str>,
-        remote: Option<&crate::util::config::RemoteSettings>,
-    ) -> Self {
+    /// Resolve from all sources: CLI > env var > default (Local).
+    pub fn resolve(cli_override: Option<&str>) -> Self {
         if let Some(mode) = cli_override {
             match mode {
                 "writeback" => return Self::Writeback,
@@ -930,22 +758,13 @@ impl StorageMode {
             Ok("local") => return Self::Local,
             _ => {}
         }
-        if let Some(remote) = remote
-            && remote.writeback_enabled == Some(true)
-        {
-            return Self::Writeback;
-        }
         Self::Local
     }
-    /// Resolve from remote settings, enforcing the rule that `Writeback`
-    /// requires nofy.com auth (it syncs to nofy-code-backend). This is the
-    /// single home for that gate, used at boot ([`crate::agent::init`]) and by
-    /// the post-readiness self-heal (`MvpAgent::reapply_storage_mode`).
-    pub(crate) fn from_remote_gated(
-        remote: Option<&crate::util::config::RemoteSettings>,
-        has_xai_auth: bool,
-    ) -> Self {
-        match Self::resolve(None, remote) {
+    /// Env-only resolve enforcing the rule that `Writeback` requires nofy.com
+    /// auth (it syncs to nofy-code-backend). This is the single home for that
+    /// gate, used at boot ([`crate::agent::init`]).
+    pub(crate) fn resolve_env_gated(has_xai_auth: bool) -> Self {
+        match Self::resolve(None) {
             Self::Writeback if !has_xai_auth => Self::Local,
             mode => mode,
         }
@@ -1013,10 +832,10 @@ fn walk_toml(
 /// The `[skills]` table from an effective config, shared by the reload
 /// dispatch and `nofy inspect`.
 pub(crate) use crate::config::reloader::parse_skills_config;
-/// Effective config: layers + campaign overlay (remote cache + `NOFY_CAMPAIGNS_OVERRIDE`).
+/// Effective config: layers + campaign overlay (`NOFY_CAMPAIGNS_OVERRIDE`).
 pub use crate::util::config::load_effective_config;
-/// Effective config with disk campaigns only — for one-shot entrypoints that
-/// never fetch remote settings (avoids resolving against a never-seeded cache).
+/// Effective config with disk campaigns only — for one-shot entrypoints where
+/// `NOFY_CAMPAIGNS_OVERRIDE` must not apply.
 pub use crate::util::config::load_effective_config_disk_only;
 /// Where a requirement or permission rule was loaded from.
 #[derive(Debug, Clone, PartialEq, Eq)]

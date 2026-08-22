@@ -23,13 +23,11 @@ pub fn bootstrap(
     auth_manager: &Arc<AuthManager>,
     prefetched: Option<IndexMap<String, ModelEntry>>,
 ) -> Result<(AgentConfig, ModelsManager), String> {
-    // Remote kill-switch before the gate (settings-only prefetch — no managed-config
-    // sync, so a live server cannot heal a tampered policy before fail-closed).
     nofy_telemetry::startup::enter(nofy_telemetry::startup::StartupPhase::Bootstrap);
     let mut cfg = cfg.clone();
     {
-        let _timer = crate::instrumentation_timer!("startup.bootstrap.remote_settings");
-        ensure_remote_settings_side_effects(&mut cfg);
+        let _timer = crate::instrumentation_timer!("startup.bootstrap.seed_config_caches");
+        crate::util::config::seed_mcp_max_output_bytes();
     }
     crate::managed_config::managed_policy_gate()?;
     let cfg = {
@@ -63,15 +61,7 @@ pub(crate) fn exit_on_config_error<T>(e: String) -> T {
     std::process::exit(1);
 }
 
-/// Apply process-global remote side effects (signature kill-switch and caches)
-/// for whatever `remote_settings` the client pre-supplied, if any. Safe to
-/// call more than once.
-fn ensure_remote_settings_side_effects(cfg: &mut AgentConfig) {
-    crate::agent::config::apply_remote_settings_side_effects(cfg.remote_settings.as_ref());
-}
-
-/// Config transform: apply managed settings, fetch remote settings,
-/// resolve storage mode.
+/// Config transform: apply managed settings, resolve storage mode.
 fn resolve_config(cfg: &AgentConfig, auth_manager: &AuthManager) -> AgentConfig {
     let mut cfg = cfg.clone();
 
@@ -96,29 +86,19 @@ fn resolve_config(cfg: &AgentConfig, auth_manager: &AuthManager) -> AgentConfig 
         tracing::info!(field = %e.path, value = %e.value, source = %e.source, "policy override");
     }
 
-    // Idempotent: bootstrap may already have fetched + applied side effects for the gate.
-    // Full prefetch (with managed-config sync when stale) is allowed after the gate.
-    ensure_remote_settings_side_effects(&mut cfg);
     crate::util::config::sync_campaign_fields(&mut cfg);
 
-    // env var > remote settings > Local. Skip remote settings for Generic (nofy -p, subagents).
+    // env var > Local. Skip the env gate for Generic (nofy -p, subagents).
     let has_xai_auth = auth_manager.current().is_some_and(|a| a.is_xai_auth());
     if cfg.storage_mode == StorageMode::Local
         && cfg.mode != crate::agent::config::AgentMode::Generic
     {
-        cfg.storage_mode =
-            StorageMode::from_remote_gated(cfg.remote_settings.as_ref(), has_xai_auth);
+        cfg.storage_mode = StorageMode::resolve_env_gated(has_xai_auth);
     }
     // A CLI/env-set Writeback still requires nofy.com auth.
     if cfg.storage_mode == StorageMode::Writeback && !has_xai_auth {
         tracing::info!("Writeback is disabled: requires auth with nofy.com");
         cfg.storage_mode = StorageMode::Local;
-    }
-
-    if let Some(rs) = cfg.remote_settings.as_ref()
-        && let Some(v) = rs.path_not_found_hints
-    {
-        cfg.path_not_found_hints = v;
     }
 
     cfg
@@ -149,9 +129,6 @@ fn init_process(cfg: &AgentConfig, auth_manager: &AuthManager) {
 
         crate::extensions::marketplace::purge_default_skills_installs(&nofy_home);
 
-        // At boot remote_settings may still be None (fetches are backgrounded),
-        // so only an env opt-in fires here; the gate is re-evaluated once
-        // settings arrive (see `MvpAgent::reapply_official_marketplace`).
         if cfg.resolve_official_marketplace_auto_register().value {
             crate::extensions::marketplace::ensure_official_marketplace_source(&nofy_home);
         }
@@ -191,12 +168,7 @@ pub fn update_telemetry_config(config: &AgentConfig, auth_manager: &AuthManager)
     let nofy_auth = auth_manager.current().filter(|a| a.is_xai_auth());
     let user_id = nofy_auth.as_ref().map(|a| a.user_id.clone());
     let team_id = nofy_auth.as_ref().and_then(|a| a.team_id.clone());
-    let subscription_tier = super::mvp_agent::resolve_subscription_tier_for_telemetry(
-        config
-            .remote_settings
-            .as_ref()
-            .and_then(|rs| rs.subscription_tier_display.clone()),
-    );
+    let subscription_tier = None;
     nofy_telemetry::client::init(
         config.telemetry.clone(),
         config.resolve_telemetry_mode().value,

@@ -286,52 +286,10 @@ pub(super) fn follow_ups_ext_with_prompt(
         std::sync::Arc::from(serde_json::value::to_raw_value(&params).unwrap()),
     )
 }
-pub(super) fn voice_settings_update(enabled: bool) -> acp::ExtNotification {
+pub(super) fn blank_settings_update() -> acp::ExtNotification {
     acp::ExtNotification::new(
         "nofy/settings/update",
-        std::sync::Arc::from(
-            serde_json::value::to_raw_value(
-                    &serde_json::json!({ "voice_mode_enabled": enabled }),
-                )
-                .unwrap(),
-        ),
-    )
-}
-pub(super) fn tier_settings_update(tier: &str) -> acp::ExtNotification {
-    acp::ExtNotification::new(
-        "nofy/settings/update",
-        std::sync::Arc::from(
-            serde_json::value::to_raw_value(
-                    &serde_json::json!({
-                    "subscription_tier_display": tier
-                }),
-                )
-                .unwrap(),
-        ),
-    )
-}
-pub(super) fn group_tool_verbs_settings_update(
-    value: Option<bool>,
-) -> acp::ExtNotification {
-    let params = match value {
-        Some(v) => serde_json::json!({ "group_tool_verbs": v }),
-        None => serde_json::json!({}),
-    };
-    acp::ExtNotification::new(
-        "nofy/settings/update",
-        std::sync::Arc::from(serde_json::value::to_raw_value(&params).unwrap()),
-    )
-}
-pub(super) fn collapsed_edit_blocks_settings_update(
-    value: Option<bool>,
-) -> acp::ExtNotification {
-    let params = match value {
-        Some(v) => serde_json::json!({ "collapsed_edit_blocks": v }),
-        None => serde_json::json!({}),
-    };
-    acp::ExtNotification::new(
-        "nofy/settings/update",
-        std::sync::Arc::from(serde_json::value::to_raw_value(&params).unwrap()),
+        std::sync::Arc::from(serde_json::value::to_raw_value(&serde_json::json!({})).unwrap()),
     )
 }
 pub(super) fn subagent_ext_replay(

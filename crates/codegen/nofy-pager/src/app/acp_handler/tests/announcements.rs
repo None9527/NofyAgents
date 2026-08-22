@@ -78,14 +78,7 @@
             .into_iter()
             .collect();
 
-        apply_announcements_update(
-            &mut app,
-            1,
-            &[critical_announcement("live")],
-            None,
-            None,
-            None,
-        );
+        apply_announcements_update(&mut app, 1, &[critical_announcement("live")]);
 
         assert_eq!(app.announcements_last_gen, 1);
         let expected: std::collections::BTreeSet<String> =
@@ -112,25 +105,11 @@
     #[test]
     fn announcements_update_new_critical_id_rearms_hidden_banner() {
         let mut app = make_app_with_agent("sess-ann");
-        apply_announcements_update(
-            &mut app,
-            1,
-            &[critical_announcement("outage-a")],
-            None,
-            None,
-            None,
-        );
+        apply_announcements_update(&mut app, 1, &[critical_announcement("outage-a")]);
         app.hidden_announcement_ids.insert("outage-a".to_string());
         assert_eq!(shown_banner_id(&app), None);
 
-        apply_announcements_update(
-            &mut app,
-            2,
-            &[critical_announcement("outage-b")],
-            None,
-            None,
-            None,
-        );
+        apply_announcements_update(&mut app, 2, &[critical_announcement("outage-b")]);
 
         assert_eq!(app.announcements_last_gen, 2);
         assert_eq!(
@@ -142,31 +121,21 @@
         assert!(app.hidden_announcement_ids.is_empty());
     }
 
-    /// A push must not drop config-layer announcements, and prune must not
-    /// erase their persisted hide keys — they re-resolve every launch and a
-    /// dropped key would re-show a critical the user already hid.
+    /// A push replaces the list, but prune must not erase the hide key of an
+    /// announcement that is still present — a dropped key would re-show a
+    /// critical the user already hid.
     #[test]
-    fn announcements_update_remerges_config_layers_and_keeps_their_hide_keys() {
+    fn announcements_update_keeps_hide_keys_of_present_announcements() {
         let mut app = make_app_with_agent("sess-ann");
-        let user_cfg: toml::Value = toml::from_str(
-            r#"
-            [[announcements]]
-            id = "cfg-crit"
-            title = "Config outage"
-            message = "from user config"
-            severity = "critical"
-            "#,
-        )
-        .unwrap();
         app.hidden_announcement_ids = ["cfg-crit".to_string()].into_iter().collect();
 
         apply_announcements_update(
             &mut app,
             1,
-            &[critical_announcement("live")],
-            None,
-            Some(&user_cfg),
-            None,
+            &[
+                critical_announcement("live"),
+                critical_announcement("cfg-crit"),
+            ],
         );
 
         assert_eq!(app.announcements_last_gen, 1);
@@ -175,14 +144,10 @@
             .iter()
             .filter_map(|a| a.id.as_deref())
             .collect();
-        assert_eq!(
-            ids,
-            ["live", "cfg-crit"],
-            "config-layer announcement must survive the push (remote > user order)"
-        );
+        assert_eq!(ids, ["live", "cfg-crit"], "pushed list lands as resolved");
         assert!(
             app.hidden_announcement_ids.contains("cfg-crit"),
-            "config-layer hide key must survive prune"
+            "hide key of a present announcement must survive prune"
         );
         assert!(
             !app.pending_effects
@@ -194,7 +159,7 @@
         assert_eq!(
             shown_banner_id(&app).as_deref(),
             Some("live"),
-            "pushed critical shows; the hidden config-layer one stays skipped"
+            "pushed critical shows; the hidden one stays skipped"
         );
     }
 
@@ -212,14 +177,7 @@
             "gate starts closed"
         );
 
-        apply_announcements_update(
-            &mut app,
-            1,
-            &[critical_announcement("outage-a")],
-            None,
-            None,
-            None,
-        );
+        apply_announcements_update(&mut app, 1, &[critical_announcement("outage-a")]);
 
         let agent = &app.agents[&AgentId(0)];
         assert!(

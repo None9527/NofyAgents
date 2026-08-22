@@ -49,20 +49,9 @@ impl acp::Agent for MvpAgent {
             nofy_telemetry::startup::clear();
         }
         self.start_subagent_coordinator();
-        let (auto_gc_policy, run_auto_gc) = {
-            let cfg = self.cfg.borrow();
-            (cfg.resolve_worktree_auto_gc(), true)
-        };
-        if !run_auto_gc {
-            tracing::debug!(
-                "auto worktree gc deferred until remote_settings are available"
-            );
-        }
+        let auto_gc_policy = self.cfg.borrow().resolve_worktree_auto_gc();
         tokio::task::spawn_blocking(move || {
             crate::session::worktree_pool::cleanup_stale_pool_worktrees(None);
-            if !run_auto_gc {
-                return;
-            }
             let opts = nofy_fast_worktree::AutoGcOptions::from_resolved(auto_gc_policy);
             if let Err(e) = nofy_fast_worktree::WorktreeDb::open_default()
                 .and_then(|db| nofy_fast_worktree::maybe_auto_gc(&db, &opts))

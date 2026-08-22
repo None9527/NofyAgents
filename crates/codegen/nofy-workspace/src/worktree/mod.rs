@@ -2452,13 +2452,11 @@ pub fn worktree_auto_gc_layer_from_settings(
     }
 }
 
-/// Env + `$NOFY_HOME/config.toml` only — **`remote=None` is intentional**.
+/// Env + `$NOFY_HOME/config.toml` only.
 ///
-/// Workspace handle startup has no remote-settings blob (unlike shell agent
-/// init, which resolves env > TOML > remote). Remote `worktree_auto_gc`
-/// kill-switch / staged rollout therefore does not apply on pure-workspace
-/// processes; use `NOFY_WORKTREE_AUTO_GC=0` / `NOFY_WORKTREE_AUTO_GC_DRY_RUN=1`
-/// or local TOML until remote is plumbed into `make_workspace_handle`.
+/// Workspace handle startup resolves env > TOML; use
+/// `NOFY_WORKTREE_AUTO_GC=0` / `NOFY_WORKTREE_AUTO_GC_DRY_RUN=1` or local
+/// TOML to control auto-GC here.
 fn resolve_worktree_auto_gc_local() -> nofy_fast_worktree::ResolvedWorktreeAutoGc {
     use nofy_config_types::WorktreeAutoGcSettings;
 
@@ -2478,8 +2476,7 @@ fn resolve_worktree_auto_gc_local() -> nofy_fast_worktree::ResolvedWorktreeAutoG
         None
     };
     let layer = local.as_ref().map(worktree_auto_gc_layer_from_settings);
-    // remote=None: see doc comment on this function.
-    resolve_worktree_auto_gc_from_layers(layer.as_ref(), None)
+    resolve_worktree_auto_gc_from_layers(layer.as_ref())
 }
 
 /// Sync auto-GC for handle startup (caller must `spawn_blocking`).

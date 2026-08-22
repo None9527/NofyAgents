@@ -106,7 +106,7 @@ fn discover_servers(cwd: &Path) -> (Vec<ConfigSourceStatus>, Vec<DiscoveredServe
     // gating) so the doctor report shows an untrusted folder's project plugin
     // MCP as blocked; no session resolve has run for a one-shot doctor. Resolve
     // and record the verdict, then gate plugins on it.
-    let project_trusted = crate::agent::folder_trust::resolve_and_record(cwd, None, false);
+    let project_trusted = crate::agent::folder_trust::resolve_and_record(cwd, false);
     let discovered_plugins = nofy_agent::plugins::discover_plugins(
         Some(cwd),
         &plugin_config,
@@ -546,14 +546,9 @@ pub async fn run_doctor(cwd: &Path, name_filter: Option<&str>) -> DoctorReport {
     // (`check_server_start`), so in an untrusted clone it would spawn the repo's
     // project-scoped servers. Resolve the doctor cwd once (no prompt), then skip
     // (do not start) any project-scoped server when untrusted. Reuses the same
-    // name primitive as the session/agent-pool gates.
-    //
-    // `remote = None` is intentional: standalone `nofy mcp doctor` has no loaded
-    // `RemoteSettings`, so a remote-only org `folder_trust_enabled = false`
-    // opt-out isn't seen here — gating conservatively (treating the feature as
-    // enabled) is the deliberate fail-secure direction. Local env/user/managed
-    // config disable is still honored by `feature_enabled`.
-    crate::agent::folder_trust::resolve_and_record(cwd, None, false);
+    // name primitive as the session/agent-pool gates. Env/user/managed config
+    // opt-out is honored by `feature_enabled`.
+    crate::agent::folder_trust::resolve_and_record(cwd, false);
     let untrusted_project: std::collections::HashSet<String> =
         if crate::agent::folder_trust::project_scope_allowed(cwd) {
             std::collections::HashSet::new()

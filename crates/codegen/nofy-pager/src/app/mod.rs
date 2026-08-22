@@ -212,59 +212,27 @@ pub(crate) fn voice_mode_config_value() -> Option<bool> {
 /// Resolve voice availability.
 ///
 /// Precedence: requirements > `NOFY_VOICE_MODE` > config/managed
-/// `[features] voice_mode` > remote `voice_mode_enabled` > default on.
-///
-/// When `is_api_key` and the only off-source is remote, force on. Requirement /
-/// env / config `false` still wins.
-pub(crate) fn resolve_voice_mode_enabled(
-    requirement: Option<bool>,
-    config: Option<bool>,
-    remote: Option<bool>,
-    is_api_key: bool,
-) -> bool {
-    use nofy_shell::agent::config::{BoolFlag, ConfigSource};
-    let resolved = BoolFlag::env("NOFY_VOICE_MODE")
+/// `[features] voice_mode` > default on.
+pub(crate) fn resolve_voice_mode_enabled(requirement: Option<bool>, config: Option<bool>) -> bool {
+    use nofy_shell::agent::config::BoolFlag;
+    BoolFlag::env("NOFY_VOICE_MODE")
         .requirement(requirement)
         .config(config)
-        .feature_flag(remote)
         .default(true)
-        .resolve();
-    if resolved.value {
-        return true;
-    }
-    is_api_key && resolved.source == ConfigSource::Remote
+        .resolve()
+        .value
 }
-/// Resolve from live policy + env + remote + API-key state.
-pub(crate) fn resolve_voice_mode_live(remote: Option<bool>, is_api_key: bool) -> bool {
-    resolve_voice_mode_enabled(
-        voice_mode_requirement_pin(),
-        voice_mode_config_value(),
-        remote,
-        is_api_key,
-    )
+/// Resolve from live policy + env.
+pub(crate) fn resolve_voice_mode_live() -> bool {
+    resolve_voice_mode_enabled(voice_mode_requirement_pin(), voice_mode_config_value())
 }
 #[cfg(test)]
 mod voice_gate_tests {
     use super::resolve_voice_mode_enabled;
     #[test]
-    fn api_key_force_on_over_remote_kill_only() {
-        assert!(resolve_voice_mode_enabled(None, None, Some(false), true));
-        assert!(!resolve_voice_mode_enabled(None, None, Some(false), false));
-    }
-    #[test]
-    fn policy_false_outranks_api_key_force_on() {
-        assert!(!resolve_voice_mode_enabled(
-            Some(false),
-            Some(true),
-            Some(true),
-            true
-        ));
-        assert!(!resolve_voice_mode_enabled(
-            None,
-            Some(false),
-            Some(false),
-            true
-        ));
+    fn policy_false_disables_voice() {
+        assert!(!resolve_voice_mode_enabled(Some(false), Some(true)));
+        assert!(!resolve_voice_mode_enabled(None, Some(false)));
     }
 }
 /// Sticky banner shown while mouse reporting is off, telling the user how to
@@ -395,16 +363,14 @@ pub(crate) struct ExitSummary {
 /// `requested_confinement` then vetoes leader use when `Some` (in-process tools
 /// stay under the OS sandbox) without reclaiming a shared leader on its own.
 ///
-/// `policy_disable_reason` is `Some("config"|"remote")` only when leader mode is
-/// *definitively* off by policy (local `use_leader = false`, or remote
-/// `leader_mode` fetched as `false`). Unknown remote state (`None` / prefetch
-/// timeout), the default, `--no-leader`, and ineligibility are `None` — never
-/// reclaim a leader on an unknown signal.
+/// `policy_disable_reason` is `Some("config")` only when leader mode is
+/// *definitively* off by policy (local `use_leader = false`). The default,
+/// `--no-leader`, and ineligibility are `None` — never reclaim a leader on an
+/// unknown signal.
 pub fn resolve_leader_mode<'p>(
     leader_flag: bool,
     no_leader_flag: bool,
     raw_config: &toml::Value,
-    _remote_settings: Option<&nofy_shell::util::config::RemoteSettings>,
     eligible: bool,
     requested_confinement: Option<&'p str>,
 ) -> LeaderMode<'p> {
@@ -420,10 +386,6 @@ pub fn resolve_leader_mode<'p>(
         }
         if let Some(v) = config::use_leader_from_toml_opt(raw_config) {
             break 'policy (v, (!v).then_some("config"));
-        }
-        #[cfg(feature = "release-dist")]
-        if let Some(remote_val) = _remote_settings.and_then(|s| s.leader_mode) {
-            break 'policy (remote_val, (!remote_val).then_some("remote"));
         }
         (false, None)
     };
@@ -459,7 +421,6 @@ pub fn resolve_use_leader(
     leader_flag: bool,
     no_leader_flag: bool,
     raw_config: &toml::Value,
-    remote_settings: Option<&nofy_shell::util::config::RemoteSettings>,
     eligible: bool,
     requested_confinement: Option<&str>,
 ) -> (bool, Option<&'static str>) {
@@ -467,7 +428,6 @@ pub fn resolve_use_leader(
         leader_flag,
         no_leader_flag,
         raw_config,
-        remote_settings,
         eligible,
         requested_confinement,
     );
@@ -630,11 +590,6 @@ pub async fn run(
         crate::git_info::populate_from_cwd_async(cwd);
     }
     join_early_prefetch(early_prefetch);
-    let remote_settings: Option<nofy_shell::util::config::RemoteSettings> = None;
-    nofy_shell::util::config::cache_remote_auto_mode(
-        remote_settings.as_ref().and_then(|s| s.auto_mode.clone()),
-    );
-    nofy_shell::util::config::set_remote_campaigns_from_settings(remote_settings.as_ref());
     let raw_config = nofy_shell::config::load_effective_config()
         .map_err(|e| anyhow::anyhow!("Failed to load config: {e}"))?;
     let prefetch_elapsed = startup_start.elapsed();
@@ -647,7 +602,6 @@ pub async fn run(
         args.leader,
         args.no_leader,
         &raw_config,
-        remote_settings.as_ref(),
         true,
         requested_confinement,
     );
@@ -765,18 +719,13 @@ pub async fn run(
         env_hunk_tracker_mode.as_deref(),
         config_hunk_tracker_mode,
     );
-    let remote_permission_mode = remote_settings
-        .as_ref()
-        .and_then(|s| s.permission_mode.as_deref());
     let launch_yolo = nofy_shell::util::config::effective_yolo_for_launch(
         args.yolo,
         args.permission_mode_flag.as_deref(),
-        remote_permission_mode,
     );
     let launch_auto = nofy_shell::util::config::effective_auto_for_launch(
         args.yolo,
         args.permission_mode_flag.as_deref(),
-        remote_permission_mode,
     );
     let connect_flags = crate::acp::ConnectFlags {
         subagents: !args.no_subagents,
@@ -792,7 +741,6 @@ pub async fn run(
         fs_read: args.fs_read,
         fs_write: args.fs_write,
         installer: args.installer.clone(),
-        remote_settings: remote_settings.clone(),
         system_prompt_override: args.system_prompt_override.clone(),
         rules: args.rules.clone(),
         reasoning_effort_override: args
@@ -973,7 +921,6 @@ pub async fn run(
         &mut config_watcher,
         &effective_args,
         session_cwd,
-        remote_settings,
         term_state,
         materialized,
         bg_update_rx,
@@ -1808,49 +1755,49 @@ mod tests {
     #[test]
     fn no_leader_flag_wins_over_leader_flag_and_config() {
         let cfg = config_with_leader(true);
-        let (use_leader, reason) = resolve_use_leader(true, true, &cfg, None, true, None);
+        let (use_leader, reason) = resolve_use_leader(true, true, &cfg, true, None);
         assert!(!use_leader);
         assert_eq!(reason, None);
     }
     #[test]
     fn leader_flag_enables() {
         let (use_leader, reason) =
-            resolve_use_leader(true, false, &empty_config(), None, true, None);
+            resolve_use_leader(true, false, &empty_config(), true, None);
         assert!(use_leader);
         assert_eq!(reason, None);
     }
     #[test]
     fn not_eligible_returns_false() {
         let cfg = config_with_leader(true);
-        let (use_leader, reason) = resolve_use_leader(false, false, &cfg, None, false, None);
+        let (use_leader, reason) = resolve_use_leader(false, false, &cfg, false, None);
         assert!(!use_leader);
         assert_eq!(reason, None);
     }
     #[test]
     fn config_toml_enables() {
         let cfg = config_with_leader(true);
-        let (use_leader, reason) = resolve_use_leader(false, false, &cfg, None, true, None);
+        let (use_leader, reason) = resolve_use_leader(false, false, &cfg, true, None);
         assert!(use_leader);
         assert_eq!(reason, None);
     }
     #[test]
     fn config_toml_disables() {
         let cfg = config_with_leader(false);
-        let (use_leader, reason) = resolve_use_leader(false, false, &cfg, None, true, None);
+        let (use_leader, reason) = resolve_use_leader(false, false, &cfg, true, None);
         assert!(!use_leader);
         assert_eq!(reason, Some("config"));
     }
     #[test]
     fn default_is_false() {
         let (use_leader, reason) =
-            resolve_use_leader(false, false, &empty_config(), None, true, None);
+            resolve_use_leader(false, false, &empty_config(), true, None);
         assert!(!use_leader);
         assert_eq!(reason, None);
     }
     #[test]
     fn cli_flag_overrides_config() {
         let cfg = config_with_leader(false);
-        let (use_leader, reason) = resolve_use_leader(true, false, &cfg, None, true, None);
+        let (use_leader, reason) = resolve_use_leader(true, false, &cfg, true, None);
         assert!(use_leader);
         assert_eq!(reason, None);
     }
@@ -1858,7 +1805,7 @@ mod tests {
     fn sandbox_confinement_refuses_leader_even_with_leader_flag_and_config_on() {
         let cfg = config_with_leader(true);
         let (use_leader, reason) =
-            resolve_use_leader(true, false, &cfg, None, true, Some("strict"));
+            resolve_use_leader(true, false, &cfg, true, Some("strict"));
         assert!(!use_leader);
         assert_eq!(reason, None);
     }
@@ -1874,7 +1821,7 @@ mod tests {
             ("--leader", true, &empty_config()),
             ("--leader over config off", true, &off),
         ] {
-            let resolved = resolve_leader_mode(leader_flag, false, cfg, None, true, sandbox);
+            let resolved = resolve_leader_mode(leader_flag, false, cfg, true, sandbox);
             assert!(!resolved.use_leader, "{label}: leader must be vetoed");
             assert_eq!(
                 resolved.disabled_by_confinement,
@@ -1883,7 +1830,7 @@ mod tests {
             );
         }
         for (label, cfg, expect_leader) in [("leader on", &on, true), ("leader off", &off, false)] {
-            let resolved = resolve_leader_mode(false, false, cfg, None, true, None);
+            let resolved = resolve_leader_mode(false, false, cfg, true, None);
             assert_eq!(resolved.use_leader, expect_leader, "{label}");
             assert_eq!(resolved.disabled_by_confinement, None, "{label}");
         }
@@ -1894,7 +1841,7 @@ mod tests {
             ("ineligible mode with config on", false, false, &on, false),
         ] {
             let resolved =
-                resolve_leader_mode(leader_flag, no_leader_flag, cfg, None, eligible, sandbox);
+                resolve_leader_mode(leader_flag, no_leader_flag, cfg, eligible, sandbox);
             assert!(!resolved.use_leader, "{label}");
             assert_eq!(
                 resolved.disabled_by_confinement, None,
@@ -1926,7 +1873,7 @@ mod tests {
     fn sandbox_confinement_preserves_config_off_reclaim_reason() {
         let cfg = config_with_leader(false);
         let (use_leader, reason) =
-            resolve_use_leader(false, false, &cfg, None, true, Some("strict"));
+            resolve_use_leader(false, false, &cfg, true, Some("strict"));
         assert!(!use_leader);
         assert_eq!(reason, Some("config"));
     }
@@ -1960,7 +1907,7 @@ mod tests {
     #[test]
     fn no_leader_flag_overrides_config_for_tui_fallback() {
         let cfg = config_with_leader(true);
-        let (use_leader, reason) = resolve_use_leader(false, true, &cfg, None, true, None);
+        let (use_leader, reason) = resolve_use_leader(false, true, &cfg, true, None);
         assert!(!use_leader);
         assert_eq!(reason, None);
     }
@@ -1977,61 +1924,6 @@ mod tests {
         let args = try_parse_pager(&["nofy-pager", "--no-leader", "agent"]).unwrap();
         assert!(args.no_leader);
         assert!(matches!(args.command, Some(Command::Agent(_))));
-    }
-    #[test]
-    fn remote_settings_none_falls_through_to_default() {
-        let (use_leader, reason) =
-            resolve_use_leader(false, false, &empty_config(), None, true, None);
-        assert!(!use_leader);
-        assert_eq!(reason, None);
-    }
-    #[cfg(feature = "release-dist")]
-    #[test]
-    fn remote_settings_leader_mode_true_enables_leader() {
-        let rs = nofy_shell::util::config::RemoteSettings {
-            leader_mode: Some(true),
-            ..Default::default()
-        };
-        let (use_leader, reason) =
-            resolve_use_leader(false, false, &empty_config(), Some(&rs), true, None);
-        assert!(use_leader);
-        assert_eq!(reason, None);
-    }
-    #[cfg(feature = "release-dist")]
-    #[test]
-    fn remote_settings_leader_mode_false_disables_leader() {
-        let rs = nofy_shell::util::config::RemoteSettings {
-            leader_mode: Some(false),
-            ..Default::default()
-        };
-        let (use_leader, reason) =
-            resolve_use_leader(false, false, &empty_config(), Some(&rs), true, None);
-        assert!(!use_leader);
-        assert_eq!(reason, Some("remote"));
-    }
-    #[cfg(feature = "release-dist")]
-    #[test]
-    fn remote_settings_unknown_leader_mode_is_not_policy_disable() {
-        let rs = nofy_shell::util::config::RemoteSettings {
-            leader_mode: None,
-            ..Default::default()
-        };
-        let (use_leader, reason) =
-            resolve_use_leader(false, false, &empty_config(), Some(&rs), true, None);
-        assert!(!use_leader);
-        assert_eq!(reason, None);
-    }
-    #[cfg(feature = "release-dist")]
-    #[test]
-    fn config_toml_overrides_remote_settings() {
-        let rs = nofy_shell::util::config::RemoteSettings {
-            leader_mode: Some(true),
-            ..Default::default()
-        };
-        let cfg = config_with_leader(false);
-        let (use_leader, reason) = resolve_use_leader(false, false, &cfg, Some(&rs), true, None);
-        assert!(!use_leader);
-        assert_eq!(reason, Some("config"));
     }
     #[test]
     fn cli_resume_parses_session_id() {

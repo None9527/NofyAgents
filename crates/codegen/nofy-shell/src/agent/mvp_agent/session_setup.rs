@@ -125,7 +125,6 @@ struct ReplayRouting<'a> {
 /// The workspace a session runs in, with its MCP servers already merged.
 struct SessionWorkspace {
     cwd: AbsPathBuf,
-    remote_settings: Option<crate::util::config::RemoteSettings>,
     initial_client_mcp_servers: Vec<acp::McpServer>,
     mcp_servers: Vec<acp::McpServer>,
     managed_mcp_expires_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -174,14 +173,12 @@ impl MvpAgent {
     ) -> Result<SessionWorkspace, acp::Error> {
         let cwd = AbsPathBuf::new(cwd.to_path_buf())
             .map_err(|e| acp::Error::invalid_params().data(e.to_string()))?;
-        let remote_settings = self.cfg.borrow().remote_settings.clone();
-        folder_trust::resolve_and_record(cwd.as_path(), remote_settings.as_ref(), false);
+        folder_trust::resolve_and_record(cwd.as_path(), false);
         let (initial_client_mcp_servers, mcp_servers, managed_mcp_expires_at) = self
             .resolve_mcp_servers(client_mcp_servers, cwd.as_path())
             .await;
         Ok(SessionWorkspace {
             cwd,
-            remote_settings,
             initial_client_mcp_servers,
             mcp_servers,
             managed_mcp_expires_at,
@@ -216,7 +213,6 @@ impl MvpAgent {
         self.seed_client_config_auth_if_available();
         let SessionWorkspace {
             cwd,
-            remote_settings,
             initial_client_mcp_servers,
             mcp_servers,
             managed_mcp_expires_at,
@@ -483,11 +479,7 @@ impl MvpAgent {
         if local_workspace_intent_present(arguments.meta.as_ref()) {
             self.mark_local_workspace_bound(session_id.clone());
         }
-        self.maybe_spawn_interactive_trust_prompt(
-            &session_id,
-            cwd.as_path(),
-            remote_settings.as_ref(),
-        );
+        self.maybe_spawn_interactive_trust_prompt(&session_id, cwd.as_path());
         let bridge_attach = BridgeAttach::NotAttached;
         let product_analytics = self.product_analytics_enabled();
         if product_analytics || nofy_telemetry::external::is_active() {
@@ -562,13 +554,8 @@ impl MvpAgent {
             };
         let (show_non_git_warning, feedback_enabled) = {
             let cfg = self.cfg.borrow();
-            let show_non_git_warning = !is_git_repo
-                && !discovery_failed
-                && cfg
-                    .remote_settings
-                    .as_ref()
-                    .and_then(|s| s.non_git_warning)
-                    .unwrap_or(cfg.features.non_git_warning);
+            let show_non_git_warning =
+                !is_git_repo && !discovery_failed && cfg.features.non_git_warning;
             let feedback_enabled = cfg.is_feedback_enabled();
             (show_non_git_warning, feedback_enabled)
         };
@@ -661,7 +648,6 @@ impl MvpAgent {
         let policy = AttachPolicy::resolve(op, request_meta.as_ref(), self.restore_code);
         let SessionWorkspace {
             cwd,
-            remote_settings,
             initial_client_mcp_servers,
             mcp_servers,
             managed_mcp_expires_at,
@@ -910,11 +896,7 @@ impl MvpAgent {
             session_yolo_mode,
             session_auto_mode,
         );
-        self.maybe_spawn_interactive_trust_prompt(
-            &session_id,
-            cwd.as_path(),
-            remote_settings.as_ref(),
-        );
+        self.maybe_spawn_interactive_trust_prompt(&session_id, cwd.as_path());
         self.heal_orphaned_subagents(&session_id, &unfinished_subagents)
             .await;
         self.restore_persisted_model(&session_id, &summary).await;

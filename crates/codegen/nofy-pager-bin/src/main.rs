@@ -32,7 +32,7 @@ use std::num::NonZeroUsize;
 use tokio_util::sync::CancellationToken;
 use nofy_pager::app::{
     AgentCmd, Command, HeadlessArgs, LeaderMgmtArgs, LeaderMgmtCommand, LeaderMode,
-    LeaderTargetArgs, PagerArgs, join_early_prefetch, resolve_leader_mode, resolve_use_leader,
+    LeaderTargetArgs, PagerArgs, join_early_prefetch, resolve_leader_mode,
     warn_leader_disabled_by_sandbox,
 };
 use nofy_pager::app::{WorkspaceMgmtArgs, WorkspaceMgmtCommand, WorkspaceStartArgs};
@@ -215,44 +215,6 @@ async fn run_leader_mgmt(args: LeaderMgmtArgs) -> Result<()> {
          there is no shared leader process to manage"
     )
 }
-/// Env override for the `nofy workspace` gate: any truthy value enables the
-/// command locally, a falsy one disables it — bypassing the remote settings flag.
-const WORKSPACE_COMMAND_ENV: &str = "NOFY_WORKSPACE_COMMAND";
-/// Resolution of the `nofy workspace` gate. `Unknown` is kept separate from
-/// `Disabled` so we don't tell the user the flag is off when the settings were
-/// simply never read (both fail closed, but `Unknown` earns an honest message).
-#[derive(Debug, PartialEq, Eq)]
-enum WorkspaceGate {
-    Enabled,
-    Disabled,
-    Unknown,
-}
-/// The `NOFY_WORKSPACE_COMMAND` override, if set (`Some(true)`/`Some(false)`);
-/// `None` defers to the remote settings flag.
-fn workspace_command_env_override() -> Option<bool> {
-    std::env::var(WORKSPACE_COMMAND_ENV)
-        .ok()
-        .map(|v| env_flag_enabled(&v))
-}
-/// Resolve the gate. Precedence: env override > remote `Some(true)` >
-/// loaded-but-off (`Disabled`) > settings-not-loaded (`Unknown`).
-fn workspace_command_gate(
-    env_override: Option<bool>,
-    remote_settings: Option<&nofy_shell::util::config::RemoteSettings>,
-) -> WorkspaceGate {
-    if let Some(enabled) = env_override {
-        return if enabled {
-            WorkspaceGate::Enabled
-        } else {
-            WorkspaceGate::Disabled
-        };
-    }
-    match remote_settings {
-        Some(rs) if rs.workspace_command_enabled.unwrap_or(false) => WorkspaceGate::Enabled,
-        Some(_) => WorkspaceGate::Disabled,
-        None => WorkspaceGate::Unknown,
-    }
-}
 /// Truthy parse for nofy on/off env vars: everything enables except the common
 /// falsy spellings (`0`, `false`, `off`, `no`, empty).
 fn env_flag_enabled(value: &str) -> bool {
@@ -343,8 +305,6 @@ async fn run_agent_command(
         }
     }
     join_early_prefetch(early_prefetch);
-    let remote_settings: Option<nofy_shell::util::config::RemoteSettings> = None;
-    nofy_shell::util::config::set_remote_campaigns_from_settings(remote_settings.as_ref());
     let raw_config = nofy_shell::config::load_effective_config()
         .map_err(|e| anyhow::anyhow!("Failed to load config: {}", e))?;
     let mut agent_config = AgentConfig::new_from_toml_cfg(&raw_config)
@@ -357,7 +317,6 @@ async fn run_agent_command(
     let launch_yolo = nofy_shell::util::config::effective_yolo_for_launch(
         agent_args.yolo,
         permission_mode_flag.as_deref(),
-        None,
     );
     if let Some(warning) = launch_yolo.blocked_warning {
         eprintln!("nofy: {warning}");
@@ -366,7 +325,6 @@ async fn run_agent_command(
     agent_config.default_auto_mode = nofy_shell::util::config::effective_auto_for_launch(
         agent_args.yolo,
         permission_mode_flag.as_deref(),
-        None,
     );
     agent_config.agent_profile_path = agent_args
         .agent_profile
@@ -379,10 +337,8 @@ async fn run_agent_command(
         agent_config.plugins.cli_plugin_dirs = agent_args.canonical_plugin_dirs();
     }
     apply_agent_endpoint_args(&agent_args, &mut agent_config);
-    agent_config.remote_settings = remote_settings.clone();
     agent_config.resolve_runtime_fields(&nofy_shell::agent::config::RuntimeResolutionContext {
         raw_config: &raw_config,
-        remote_settings: remote_settings.as_ref(),
         is_headless: !is_leader,
         cli_subagents: None,
         cli_web_search_model: None,
@@ -408,7 +364,6 @@ async fn run_agent_command(
         agent_args.leader,
         agent_args.no_leader,
         &raw_config,
-        remote_settings.as_ref(),
         leader_eligible,
         requested_confinement,
     );
@@ -1218,7 +1173,6 @@ async fn async_main(args: PagerArgs) -> Result<()> {
         let launch_yolo = nofy_shell::util::config::effective_yolo_for_launch(
             args.yolo,
             args.permission_mode_flag.as_deref(),
-            None,
         );
         if let Some(warning) = launch_yolo.blocked_warning {
             eprintln!("nofy: {warning}");
@@ -1859,51 +1813,6 @@ mod tests {
             std::env::var("NOFY_OPEN_DASHBOARD_AT_STARTUP").is_err(),
             "failure path must not flag the startup hook",
         );
-    }
-    #[test]
-    fn workspace_command_gate_resolution() {
-        use nofy_shell::util::config::RemoteSettings;
-        let on = RemoteSettings {
-            workspace_command_enabled: Some(true),
-            ..RemoteSettings::default()
-        };
-        let off = RemoteSettings::default();
-        assert_eq!(
-            workspace_command_gate(None, Some(&on)),
-            WorkspaceGate::Enabled
-        );
-        assert_eq!(
-            workspace_command_gate(None, Some(&off)),
-            WorkspaceGate::Disabled
-        );
-        assert_eq!(workspace_command_gate(None, None), WorkspaceGate::Unknown);
-        assert_eq!(
-            workspace_command_gate(Some(true), Some(&off)),
-            WorkspaceGate::Enabled
-        );
-        assert_eq!(
-            workspace_command_gate(Some(true), None),
-            WorkspaceGate::Enabled
-        );
-        assert_eq!(
-            workspace_command_gate(Some(false), Some(&on)),
-            WorkspaceGate::Disabled
-        );
-        assert_eq!(
-            workspace_command_gate(Some(false), None),
-            WorkspaceGate::Disabled
-        );
-    }
-    #[serial_test::serial(NOFY_WORKSPACE_COMMAND)]
-    #[test]
-    fn workspace_command_env_override_parsing() {
-        unsafe { std::env::remove_var("NOFY_WORKSPACE_COMMAND") };
-        assert_eq!(workspace_command_env_override(), None);
-        unsafe { std::env::set_var("NOFY_WORKSPACE_COMMAND", "1") };
-        assert_eq!(workspace_command_env_override(), Some(true));
-        unsafe { std::env::set_var("NOFY_WORKSPACE_COMMAND", "off") };
-        assert_eq!(workspace_command_env_override(), Some(false));
-        unsafe { std::env::remove_var("NOFY_WORKSPACE_COMMAND") };
     }
     fn multi_thread_runtime() -> tokio::runtime::Runtime {
         tokio::runtime::Builder::new_multi_thread()

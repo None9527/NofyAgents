@@ -8,7 +8,7 @@
 //! the [`GoalClassifierSpawner`] trait so tests can inject deterministic
 //! responses; production uses [`ChannelSpawner`]. The struct / trait /
 //! constant names retain the `classifier` prefix to keep the env /
-//! remote / config wire contract stable across the rewire.
+//! config wire contract stable across the rewire.
 
 #![allow(dead_code)]
 
@@ -37,15 +37,15 @@ use nofy_tools::implementations::nofy_build::task::types::{
 /// early-exit ([`crate::session::goal_tracker::GOAL_CLASSIFIER_STALL_THRESHOLD`])
 /// is the primary, cheaper stop for stuck loops, so this cap is a
 /// runaway-cost backstop. There is no upper ceiling — override via
-/// `NOFY_GOAL_CLASSIFIER_MAX` or remote `goal_classifier_max_runs` to
+/// `NOFY_GOAL_CLASSIFIER_MAX` or `[goal] classifier_max_runs` to
 /// raise it arbitrarily (only the `GOAL_CLASSIFIER_MAX_RUNS_MIN` floor
 /// is enforced).
 pub(crate) const GOAL_CLASSIFIER_MAX_RUNS_DEFAULT: u32 = 10;
 
-/// Floor for `NOFY_GOAL_CLASSIFIER_MAX` / remote `goal_classifier_max_runs`.
+/// Floor for `NOFY_GOAL_CLASSIFIER_MAX` / `[goal] classifier_max_runs`.
 /// Floor 1 keeps the gate live (0 would disable rejection entirely).
 /// There is deliberately no upper ceiling so the cap can be raised
-/// arbitrarily via remote/env.
+/// arbitrarily via env/config.
 pub(crate) const GOAL_CLASSIFIER_MAX_RUNS_MIN: u32 = 1;
 
 /// Maximum size of the embedded diff in bytes. Past this the diff is
@@ -102,15 +102,15 @@ const GOAL_VERIFIER_PROMPT_TEMPLATE: &str = include_str!("templates/goal_verifie
 
 /// Default number of adversarial skeptics spawned per verification
 /// attempt. Override via `NOFY_GOAL_VERIFIER_N` (clamped 1..=5) or the
-/// remote `goal_verifier_count` setting. Default 3 yields a genuine
+/// `[goal] verifier_count` setting. Default 3 yields a genuine
 /// majority vote (`⌈3/2⌉ = 2` not-refuted to pass): a lone outlier in
 /// either direction — one rubber-stamp or one false-refute — cannot
 /// decide the outcome, unlike N=2 where a 1-1 tie survives and a single
 /// lenient skeptic passes what a single strict one refutes.
 pub(crate) const GOAL_VERIFIER_SKEPTIC_COUNT: u32 = 3;
 
-/// Lower/upper bounds for `NOFY_GOAL_VERIFIER_N` / remote
-/// `goal_verifier_count`. Five is the practical ceiling — any more is
+/// Lower/upper bounds for `NOFY_GOAL_VERIFIER_N` / `[goal] verifier_count`.
+/// Five is the practical ceiling — any more is
 /// pointless cost and saturates the subagent coordinator.
 pub(crate) const GOAL_VERIFIER_SKEPTIC_MIN: u32 = 1;
 pub(crate) const GOAL_VERIFIER_SKEPTIC_MAX: u32 = 5;
@@ -123,7 +123,7 @@ pub(crate) const GOAL_VERIFIER_SKEPTIC_MAX: u32 = 5;
 /// rewritten, so skeptic-0 always keeps `pool[0]` across resume AND
 /// cold-fallback, and a later `n` bump only appends new indices (continuing
 /// the round-robin, clamped by the caller). An empty `pool` keeps `existing`
-/// unchanged (a frozen assignment survives a remote-cleared pool); empty
+/// unchanged (a frozen assignment survives a cleared pool); empty
 /// `existing` + empty `pool` ⇒ empty (all skeptics inherit the current
 /// model). `n` is the CLAMPED skeptic count — identical to the value used at
 /// the fan-out site — so the assignment never desyncs from the spawned
@@ -1874,7 +1874,7 @@ pub(crate) struct VerificationStageInputs<'a> {
     /// orchestration), so the verifier prompt only claims it exists when true.
     pub scratch_dir_ready: bool,
     pub skeptic_count: u32,
-    /// Effective per-goal classifier cap (resolved env > remote > default), so
+    /// Effective per-goal classifier cap (resolved env > config > default), so
     /// `GoalClassifierFired` reports the real cap, not the default constant.
     pub max_runs: u32,
     /// Child session id of skeptic 0 from the goal's previous attempt, if
@@ -4640,7 +4640,7 @@ mod tests {
     #[test]
     fn expand_assignment_never_shrinks_and_keeps_frozen_when_pool_cleared() {
         let frozen = vec![pair("a"), pair("b"), pair("a")];
-        // Pool cleared remotely mid-goal: keep the frozen assignment (resume
+        // Pool cleared mid-goal: keep the frozen assignment (resume
         // stability beats a newly-empty pool).
         assert_eq!(
             expand_skeptic_assignment(&frozen, &[], 5),
@@ -5954,45 +5954,33 @@ mod tests {
 
     use crate::agent::config::ConfigSource;
 
-    /// `[goal] verifier_count` + remote `goal_verifier_count` as a `Config`.
-    fn cfg_verifier(config: Option<u32>, remote: Option<u32>) -> crate::agent::config::Config {
+    /// `[goal] verifier_count` as a `Config`.
+    fn cfg_verifier(config: Option<u32>) -> crate::agent::config::Config {
         crate::agent::config::Config {
             goal: crate::agent::config::GoalConfig {
                 verifier_count: config,
                 ..Default::default()
             },
-            remote_settings: remote.map(|v| crate::util::config::RemoteSettings {
-                goal_verifier_count: Some(v),
-                ..Default::default()
-            }),
             ..Default::default()
         }
     }
 
-    fn cfg_max_runs(config: Option<u32>, remote: Option<u32>) -> crate::agent::config::Config {
+    fn cfg_max_runs(config: Option<u32>) -> crate::agent::config::Config {
         crate::agent::config::Config {
             goal: crate::agent::config::GoalConfig {
                 classifier_max_runs: config,
                 ..Default::default()
             },
-            remote_settings: remote.map(|v| crate::util::config::RemoteSettings {
-                goal_classifier_max_runs: Some(v),
-                ..Default::default()
-            }),
             ..Default::default()
         }
     }
 
-    fn cfg_strategist(config: Option<u32>, remote: Option<u32>) -> crate::agent::config::Config {
+    fn cfg_strategist(config: Option<u32>) -> crate::agent::config::Config {
         crate::agent::config::Config {
             goal: crate::agent::config::GoalConfig {
                 strategist_every: config,
                 ..Default::default()
             },
-            remote_settings: remote.map(|v| crate::util::config::RemoteSettings {
-                goal_strategist_every: Some(v),
-                ..Default::default()
-            }),
             ..Default::default()
         }
     }
@@ -6002,17 +5990,17 @@ mod tests {
     fn resolve_goal_verifier_count_env_clamps() {
         unsafe { std::env::set_var("NOFY_GOAL_VERIFIER_N", "0") };
         assert_eq!(
-            cfg_verifier(None, None).resolve_goal_verifier_count().value,
+            cfg_verifier(None).resolve_goal_verifier_count().value,
             GOAL_VERIFIER_SKEPTIC_MIN
         );
         unsafe { std::env::set_var("NOFY_GOAL_VERIFIER_N", "99") };
         assert_eq!(
-            cfg_verifier(None, None).resolve_goal_verifier_count().value,
+            cfg_verifier(None).resolve_goal_verifier_count().value,
             GOAL_VERIFIER_SKEPTIC_MAX
         );
         unsafe { std::env::set_var("NOFY_GOAL_VERIFIER_N", "garbage") };
         assert_eq!(
-            cfg_verifier(None, None).resolve_goal_verifier_count().value,
+            cfg_verifier(None).resolve_goal_verifier_count().value,
             GOAL_VERIFIER_SKEPTIC_COUNT,
             "invalid env falls through to the default"
         );
@@ -6026,7 +6014,7 @@ mod tests {
         // Literal 3 (not the const) so a regression that flips the production
         // default fails LOUDLY here, where a `== CONST` tautology would pass.
         assert_eq!(
-            cfg_verifier(None, None).resolve_goal_verifier_count().value,
+            cfg_verifier(None).resolve_goal_verifier_count().value,
             3
         );
     }
@@ -6042,32 +6030,25 @@ mod tests {
     #[serial]
     fn resolve_goal_verifier_count_precedence_and_clamp() {
         unsafe { std::env::remove_var("NOFY_GOAL_VERIFIER_N") };
-        // config > remote.
-        let r = cfg_verifier(Some(4), Some(2)).resolve_goal_verifier_count();
+        // config applies.
+        let r = cfg_verifier(Some(4)).resolve_goal_verifier_count();
         assert_eq!(r.value, 4);
         assert_eq!(r.source, ConfigSource::Config);
-        // remote when no config.
-        assert_eq!(
-            cfg_verifier(None, Some(4))
-                .resolve_goal_verifier_count()
-                .value,
-            4
-        );
         // env > config.
         unsafe { std::env::set_var("NOFY_GOAL_VERIFIER_N", "2") };
-        let r = cfg_verifier(Some(4), None).resolve_goal_verifier_count();
+        let r = cfg_verifier(Some(4)).resolve_goal_verifier_count();
         assert_eq!(r.value, 2);
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var("NOFY_GOAL_VERIFIER_N") };
         // config is clamped to [MIN, MAX].
         assert_eq!(
-            cfg_verifier(Some(99), None)
+            cfg_verifier(Some(99))
                 .resolve_goal_verifier_count()
                 .value,
             GOAL_VERIFIER_SKEPTIC_MAX
         );
         assert_eq!(
-            cfg_verifier(Some(0), None)
+            cfg_verifier(Some(0))
                 .resolve_goal_verifier_count()
                 .value,
             GOAL_VERIFIER_SKEPTIC_MIN
@@ -6079,14 +6060,14 @@ mod tests {
     fn resolve_goal_classifier_max_runs_env_clamps_and_no_ceiling() {
         unsafe { std::env::set_var("NOFY_GOAL_CLASSIFIER_MAX", "0") };
         assert_eq!(
-            cfg_max_runs(None, None)
+            cfg_max_runs(None)
                 .resolve_goal_classifier_max_runs()
                 .value,
             GOAL_CLASSIFIER_MAX_RUNS_MIN
         );
         unsafe { std::env::set_var("NOFY_GOAL_CLASSIFIER_MAX", "999") };
         assert_eq!(
-            cfg_max_runs(None, None)
+            cfg_max_runs(None)
                 .resolve_goal_classifier_max_runs()
                 .value,
             999,
@@ -6094,7 +6075,7 @@ mod tests {
         );
         unsafe { std::env::set_var("NOFY_GOAL_CLASSIFIER_MAX", "garbage") };
         assert_eq!(
-            cfg_max_runs(None, None)
+            cfg_max_runs(None)
                 .resolve_goal_classifier_max_runs()
                 .value,
             GOAL_CLASSIFIER_MAX_RUNS_DEFAULT
@@ -6108,7 +6089,7 @@ mod tests {
         unsafe { std::env::remove_var("NOFY_GOAL_CLASSIFIER_MAX") };
         // Literal 10 so a regression flipping the production default fails here.
         assert_eq!(
-            cfg_max_runs(None, None)
+            cfg_max_runs(None)
                 .resolve_goal_classifier_max_runs()
                 .value,
             10
@@ -6119,25 +6100,18 @@ mod tests {
     #[serial]
     fn resolve_goal_classifier_max_runs_precedence_and_floor() {
         unsafe { std::env::remove_var("NOFY_GOAL_CLASSIFIER_MAX") };
-        // config > remote.
-        let r = cfg_max_runs(Some(6), Some(8)).resolve_goal_classifier_max_runs();
+        // config applies.
+        let r = cfg_max_runs(Some(6)).resolve_goal_classifier_max_runs();
         assert_eq!(r.value, 6);
         assert_eq!(r.source, ConfigSource::Config);
-        // remote when no config.
-        assert_eq!(
-            cfg_max_runs(None, Some(6))
-                .resolve_goal_classifier_max_runs()
-                .value,
-            6
-        );
         // env > config.
         unsafe { std::env::set_var("NOFY_GOAL_CLASSIFIER_MAX", "4") };
-        let r = cfg_max_runs(Some(6), None).resolve_goal_classifier_max_runs();
+        let r = cfg_max_runs(Some(6)).resolve_goal_classifier_max_runs();
         assert_eq!(r.value, 4);
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var("NOFY_GOAL_CLASSIFIER_MAX") };
         // config floored at MIN.
-        let r = cfg_max_runs(Some(0), None).resolve_goal_classifier_max_runs();
+        let r = cfg_max_runs(Some(0)).resolve_goal_classifier_max_runs();
         assert_eq!(r.value, GOAL_CLASSIFIER_MAX_RUNS_MIN);
         assert_eq!(r.source, ConfigSource::Config);
     }
@@ -6150,14 +6124,14 @@ mod tests {
         unsafe { std::env::remove_var("NOFY_GOAL_STRATEGIST_EVERY") };
         // Default N = max(1, cap / 2).
         assert_eq!(
-            cfg_strategist(None, None)
+            cfg_strategist(None)
                 .resolve_goal_strategist_every(10)
                 .value,
             5
         );
         for cap in [1, 2, 3] {
             assert_eq!(
-                cfg_strategist(None, None)
+                cfg_strategist(None)
                     .resolve_goal_strategist_every(cap)
                     .value,
                 1,
@@ -6169,40 +6143,27 @@ mod tests {
     #[test]
     #[serial]
     fn resolve_strategist_every_precedence_and_floor() {
-        // config > remote.
-        let r = cfg_strategist(Some(3), Some(4)).resolve_goal_strategist_every(10);
+        // config applies.
+        let r = cfg_strategist(Some(3)).resolve_goal_strategist_every(10);
         assert_eq!(r.value, 3);
         assert_eq!(r.source, ConfigSource::Config);
-        // remote when no config.
-        assert_eq!(
-            cfg_strategist(None, Some(4))
-                .resolve_goal_strategist_every(10)
-                .value,
-            4
-        );
-        // env > config + remote.
+        // env > config.
         unsafe { std::env::set_var("NOFY_GOAL_STRATEGIST_EVERY", "7") };
-        let r = cfg_strategist(Some(3), Some(4)).resolve_goal_strategist_every(10);
+        let r = cfg_strategist(Some(3)).resolve_goal_strategist_every(10);
         assert_eq!(r.value, 7);
         assert_eq!(r.source, ConfigSource::Env);
         // invalid env falls through to the default (cap/2).
         unsafe { std::env::set_var("NOFY_GOAL_STRATEGIST_EVERY", "not-a-number") };
         assert_eq!(
-            cfg_strategist(None, None)
+            cfg_strategist(None)
                 .resolve_goal_strategist_every(10)
                 .value,
             5
         );
         unsafe { std::env::remove_var("NOFY_GOAL_STRATEGIST_EVERY") };
-        // 0 from config/remote floors to 1 (the `every > 0` trigger guard).
+        // 0 from config floors to 1 (the `every > 0` trigger guard).
         assert_eq!(
-            cfg_strategist(Some(0), None)
-                .resolve_goal_strategist_every(10)
-                .value,
-            1
-        );
-        assert_eq!(
-            cfg_strategist(None, Some(0))
+            cfg_strategist(Some(0))
                 .resolve_goal_strategist_every(10)
                 .value,
             1

@@ -681,7 +681,7 @@ pub struct AppView {
     /// while session share links are temporarily disabled in clients.
     pub sharing_enabled: bool,
     /// Whether the plugin marketplace CTA is enabled. Env `NOFY_PLUGIN_CTA`
-    /// overrides `RemoteSettings.plugin_cta` (remote settings); defaults to `false`.
+    /// overrides; defaults to `false`.
     pub plugin_cta_enabled: bool,
     /// Consumer billing surface (credit fetches / warnings). False for team
     /// and API-key auth. `/usage` itself stays available for session token/cost
@@ -985,11 +985,8 @@ pub struct AppView {
     /// Resolved per-tip gates for the contextual ephemeral hints (undo tip,
     /// plan nudge, clipboard-image tip, send-now tip). Default all ON; resolved
     /// at startup and on settings toggles from `NOFY_CONTEXTUAL_HINTS` (master)
-    /// > `[ui.contextual_hints]` user config > remote tier > default.
+    /// > `[ui.contextual_hints]` user config > default.
     pub contextual_hints: nofy_shell::util::config::ResolvedContextualHints,
-    /// Remote tier for the contextual hints, kept so a settings toggle can
-    /// re-resolve the untouched tips against the same remote defaults.
-    pub remote_contextual_hints: Option<nofy_shell::util::config::ContextualHintsRemote>,
     /// Per-key seen counts that gate seen-capped ephemeral tips; the single
     /// copy of this state. Passed to `show_ephemeral_tip`, which increments the
     /// matching key in place. In-memory only and per-session — never persisted
@@ -1100,14 +1097,9 @@ pub struct AppView {
     /// from the effective TOML merge like `show_tips`. `None` = unset in TOML
     /// (default `true`); toggles write the user layer.
     pub ask_user_question_timeout_enabled: Option<bool>,
-    /// Whether ZDR users are allowed to use the product.
-    /// Server-controlled via RemoteSettings (remote settings). Default `false` (blocked) during beta.
+    /// Whether ZDR users are allowed to use the product. Resolved from the
+    /// config layers; default `false` (blocked) during beta.
     pub zdr_access_enabled: bool,
-    /// When set, `/usage` shows a link to this URL instead of fetching billing
-    /// data from the backend. Server-controlled via RemoteSettings (remote settings
-    /// `nofy_build_usage_redirect_url`, targeted at personal-team users).
-    /// `None` (default) fetches usage from the backend.
-    pub usage_billing_redirect_url: Option<String>,
     pub access_gate_shown_logged: bool,
     /// (hide-key, surface) pairs whose `AnnouncementCtaShown` impression was
     /// already logged — once per pager process, cleared on logout. Keyed by
@@ -1124,8 +1116,6 @@ pub struct AppView {
     /// Debounce stamp for watch/focus subscription checks (see
     /// [`super::subscription`]).
     pub last_subscription_check_at: Option<std::time::Instant>,
-    /// Server override (seconds) for the subscription-watch cadence.
-    pub subscription_watch_interval_secs: Option<u64>,
     /// A stale-source gate held out of `gate` while a live check verifies
     /// it (see [`super::subscription`]).
     pub pending_gate_verification: Option<nofy_shell::auth::GateInfo>,
@@ -1284,20 +1274,6 @@ impl AppView {
     pub fn session_startup_allowed(&self) -> bool {
         matches!(self.auth_state, AuthState::Done) && matches!(self.trust_state, TrustState::Done)
     }
-    /// Extract `GateInfo` from `RemoteSettings`.
-    pub fn gate_from_settings(
-        rs: &nofy_shell::util::config::RemoteSettings,
-    ) -> Option<nofy_shell::auth::GateInfo> {
-        let msg = rs.gate_message.as_ref()?;
-        if msg.is_empty() {
-            return None;
-        }
-        Some(nofy_shell::auth::GateInfo {
-            message: msg.clone(),
-            url: rs.gate_url.clone(),
-            label: rs.gate_label.clone(),
-        })
-    }
     /// Apply typed auth metadata from the shell.
     pub fn apply_auth_meta(&mut self, meta: &nofy_shell::auth::AuthMeta) {
         self.pending_gate_verification = None;
@@ -1375,7 +1351,7 @@ impl AppView {
         if !self.is_api_key_auth || self.voice_mode_enabled {
             return;
         }
-        if crate::app::resolve_voice_mode_live(None, false) {
+        if crate::app::resolve_voice_mode_live() {
             self.apply_voice_mode_enabled(true);
         }
     }
@@ -1514,7 +1490,6 @@ impl AppView {
             mouse_captured: true,
             new_worktree_dialog: None,
             contextual_hints: Default::default(),
-            remote_contextual_hints: None,
             tip_seen_counts: Default::default(),
             last_known_terminal_rows: 0,
             small_screen_tip_evaluated: false,
@@ -1554,14 +1529,12 @@ impl AppView {
             auto_update: None,
             ask_user_question_timeout_enabled: None,
             zdr_access_enabled: false,
-            usage_billing_redirect_url: None,
             access_gate_shown_logged: false,
             announcement_cta_impressions_logged: Default::default(),
             gate: None,
             subscription_tier: None,
             paywall_check_started: None,
             last_subscription_check_at: None,
-            subscription_watch_interval_secs: None,
             pending_gate_verification: None,
             gate_verify_gen: 0,
             reconnect_pending: false,
@@ -5986,7 +5959,6 @@ pub(crate) mod tests {
             mouse_captured: true,
             new_worktree_dialog: None,
             contextual_hints: Default::default(),
-            remote_contextual_hints: None,
             tip_seen_counts: Default::default(),
             last_known_terminal_rows: 0,
             small_screen_tip_evaluated: false,
@@ -6026,14 +5998,12 @@ pub(crate) mod tests {
             auto_update: None,
             ask_user_question_timeout_enabled: None,
             zdr_access_enabled: false,
-            usage_billing_redirect_url: None,
             access_gate_shown_logged: false,
             announcement_cta_impressions_logged: Default::default(),
             gate: None,
             subscription_tier: None,
             paywall_check_started: None,
             last_subscription_check_at: None,
-            subscription_watch_interval_secs: None,
             pending_gate_verification: None,
             gate_verify_gen: 0,
             bundle_state: BundleState::default(),

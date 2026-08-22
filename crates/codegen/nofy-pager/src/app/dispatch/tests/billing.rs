@@ -47,14 +47,12 @@ fn dispatch_billing(
     app: &mut AppView,
     balance: Option<crate::views::credit_bar::CreditBalance>,
     silent: bool,
-    subscription_tier: Option<String>,
 ) {
     dispatch(
         Action::TaskComplete(TaskResult::BillingFetched {
             agent_id: AgentId(0),
             balance,
             silent,
-            subscription_tier,
             autotopup: crate::views::credit_bar::AutoTopupFetch::Unchanged,
         }),
         app,
@@ -626,24 +624,6 @@ fn session_usage_complete_no_billing_when_surface_hidden() {
 }
 
 #[test]
-fn session_usage_complete_redirect_after_session_block() {
-    let mut app = test_app_with_agent();
-    app.usage_billing_redirect_url = Some("https://billing.example.com/me".into());
-    // Dispatch defers the redirect until after the session block.
-    let before = agent_scrollback_len(&app);
-    assert!(is_session_usage_fetch(&dispatch(
-        Action::ShowUsage,
-        &mut app
-    )));
-    assert_eq!(agent_scrollback_len(&app), before);
-
-    let effects = complete_session_usage(&mut app, "test-session", Default::default());
-    assert!(effects.is_empty());
-    assert_eq!(agent_scrollback_len(&app), before + 2);
-    assert!(last_system_text(&app, AgentId(0)).contains("https://billing.example.com/me"));
-}
-
-#[test]
 fn session_usage_complete_drops_stale_session() {
     let mut app = test_app_with_agent();
     let before = agent_scrollback_len(&app);
@@ -686,23 +666,16 @@ fn session_usage_failed_drops_stale_session() {
 #[test]
 fn billing_fetched_updates_app_credit_balance() {
     let mut app = test_app_with_agent();
-    dispatch_billing(&mut app, Some(test_bal(42.0)), true, None);
+    dispatch_billing(&mut app, Some(test_bal(42.0)), true);
     assert!(app.credit_balance.is_some());
     assert_eq!(app.credit_balance.as_ref().unwrap().usage_pct, 42.0);
-}
-
-#[test]
-fn billing_fetched_updates_subscription_tier() {
-    let mut app = test_app_with_agent();
-    dispatch_billing(&mut app, None, true, Some("supernofy_heavy".into()));
-    assert_eq!(app.subscription_tier.as_deref(), Some("supernofy_heavy"));
 }
 
 #[test]
 fn billing_fetched_silent_does_not_push_scrollback() {
     let mut app = test_app_with_agent();
     let before = agent_scrollback_len(&app);
-    dispatch_billing(&mut app, Some(test_bal(50.0)), true, None);
+    dispatch_billing(&mut app, Some(test_bal(50.0)), true);
     assert_eq!(
         agent_scrollback_len(&app),
         before,
@@ -721,7 +694,7 @@ fn billing_fetched_non_silent_pushes_scrollback_message() {
         period_end_display: Some("Jul 1, 00:00".into()),
         ..test_bal(75.5)
     };
-    dispatch_billing(&mut app, Some(bal), false, None);
+    dispatch_billing(&mut app, Some(bal), false);
     assert_eq!(
         agent_scrollback_len(&app),
         before + 1,
@@ -733,7 +706,7 @@ fn billing_fetched_non_silent_pushes_scrollback_message() {
 fn billing_fetched_none_balance_shows_no_data_message() {
     let mut app = test_app_with_agent();
     let before = agent_scrollback_len(&app);
-    dispatch_billing(&mut app, None, false, None);
+    dispatch_billing(&mut app, None, false);
     assert_eq!(agent_scrollback_len(&app), before + 1);
 }
 
@@ -741,12 +714,12 @@ fn billing_fetched_none_balance_shows_no_data_message() {
 fn billing_fetched_none_balance_clears_cached() {
     let mut app = test_app_with_agent();
     // Seed a known balance + polling, as a prior successful fetch would.
-    dispatch_billing(&mut app, Some(test_bal(80.0)), true, None);
+    dispatch_billing(&mut app, Some(test_bal(80.0)), true);
     app.billing_poll_wanted = true;
     // A response carrying no billing config clears the cached balance and
     // polling so the status bar agrees with the "No billing data" message
     // (parse/transport failures route to BillingError, not here).
-    dispatch_billing(&mut app, None, false, None);
+    dispatch_billing(&mut app, None, false);
     assert!(
         app.credit_balance.is_none(),
         "None balance should clear the cached credit balance"
@@ -761,7 +734,7 @@ fn billing_fetched_none_balance_clears_cached() {
 fn billing_fetched_high_usage_enables_poll() {
     let mut app = test_app_with_agent();
     assert!(!app.billing_poll_wanted);
-    dispatch_billing(&mut app, Some(test_bal(99.5)), true, None);
+    dispatch_billing(&mut app, Some(test_bal(99.5)), true);
     assert!(
         app.billing_poll_wanted,
         "usage >= 99% should enable billing polling"
@@ -772,7 +745,7 @@ fn billing_fetched_high_usage_enables_poll() {
 fn billing_fetched_low_usage_disables_poll() {
     let mut app = test_app_with_agent();
     app.billing_poll_wanted = true;
-    dispatch_billing(&mut app, Some(test_bal(50.0)), true, None);
+    dispatch_billing(&mut app, Some(test_bal(50.0)), true);
     assert!(
         !app.billing_poll_wanted,
         "usage < 99% should disable billing polling"
@@ -790,7 +763,7 @@ fn billing_fetched_propagates_balance_to_agent() {
         period_end_display: Some("Aug 15, 00:00".into()),
         ..test_bal(88.0)
     };
-    dispatch_billing(&mut app, Some(bal), true, None);
+    dispatch_billing(&mut app, Some(bal), true);
     let agent_bal = app
         .agents
         .get(&AgentId(0))
@@ -822,7 +795,6 @@ fn billing_fetched_stores_autotopup_on_app_and_agent() {
             agent_id: AgentId(0),
             balance: Some(bal),
             silent: true,
-            subscription_tier: None,
             autotopup: crate::views::credit_bar::AutoTopupFetch::Resolved(autotopup),
         }),
         &mut app,
@@ -851,7 +823,6 @@ fn billing_fetched_unchanged_autotopup_keeps_cached_rule() {
             agent_id: AgentId(0),
             balance: Some(bal()),
             silent: true,
-            subscription_tier: None,
             autotopup: resolved,
         }),
         &mut app,
@@ -862,7 +833,6 @@ fn billing_fetched_unchanged_autotopup_keeps_cached_rule() {
             agent_id: AgentId(0),
             balance: Some(bal()),
             silent: true,
-            subscription_tier: None,
             autotopup: crate::views::credit_bar::AutoTopupFetch::Unchanged,
         }),
         &mut app,
@@ -884,7 +854,6 @@ fn billing_fetched_cleared_autotopup_resets_cache() {
                 ..test_bal(100.0)
             }),
             silent: true,
-            subscription_tier: None,
             autotopup: crate::views::credit_bar::AutoTopupFetch::Resolved(
                 crate::views::credit_bar::AutoTopupInfo {
                     enabled: true,
@@ -902,7 +871,6 @@ fn billing_fetched_cleared_autotopup_resets_cache() {
             agent_id: AgentId(0),
             balance: Some(test_bal(50.0)),
             silent: true,
-            subscription_tier: None,
             autotopup: crate::views::credit_bar::AutoTopupFetch::Cleared,
         }),
         &mut app,

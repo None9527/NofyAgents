@@ -1764,7 +1764,7 @@ fn load_cli_plugin_registry(cwd: &std::path::Path) -> nofy_agent::plugins::Plugi
             .unwrap_or_default();
     plugins_cfg.merge_claude_enabled_plugins(Some(cwd));
     let mut plugin_config = plugins_cfg.to_discovery_config();
-    let project_trusted = crate::agent::folder_trust::resolve_and_record(cwd, None, false);
+    let project_trusted = crate::agent::folder_trust::resolve_and_record(cwd, false);
     let discovered = nofy_agent::plugins::discover_plugins(
         Some(cwd),
         &plugin_config,

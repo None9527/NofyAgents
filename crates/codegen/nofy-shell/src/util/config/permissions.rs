@@ -70,20 +70,14 @@ pub fn permission_mode_from_ui_if_set(ui: &TomlValue) -> Option<PermissionMode> 
     Some(PermissionMode::Ask)
 }
 
-/// Pure resolver: effective TOML `[ui]` permission keys (if any) >
-/// remote `permission_mode` > `Ask`. CLI is applied above this by the launch
-/// helpers. Managed/requirements TOML already deep-merge into effective config.
-pub fn resolve_permission_mode(
-    effective_ui: Option<&TomlValue>,
-    remote_permission_mode: Option<&str>,
-) -> PermissionMode {
+/// Pure resolver: effective TOML `[ui]` permission keys (if any) > `Ask`.
+/// CLI is applied above this by the launch helpers. Managed/requirements TOML
+/// already deep-merge into effective config.
+pub fn resolve_permission_mode(effective_ui: Option<&TomlValue>) -> PermissionMode {
     if let Some(ui) = effective_ui
         && let Some(mode) = permission_mode_from_ui_if_set(ui)
     {
         return mode;
-    }
-    if let Some(mode_str) = remote_permission_mode {
-        return parse_permission_mode_canonical(mode_str);
     }
     PermissionMode::Ask
 }
@@ -99,15 +93,12 @@ pub fn clamped_display_permission_mode(mode: PermissionMode) -> &'static str {
     }
 }
 
-/// Displayed mode for a non-CLI resolution (effective TOML > remote > Ask),
-/// clamped per [`clamped_display_permission_mode`]. A persisted `"default"`
-/// keeps its distinct spelling (own settings option; enforcement equals Ask):
-/// only the `permission_mode` key can spell it and that key has top
-/// precedence, so the raw check before canonicalization is sufficient.
-pub fn resolved_display_permission_mode(
-    effective_ui: Option<&TomlValue>,
-    remote_permission_mode: Option<&str>,
-) -> &'static str {
+/// Displayed mode for a non-CLI resolution (effective TOML > Ask), clamped
+/// per [`clamped_display_permission_mode`]. A persisted `"default"` keeps its
+/// distinct spelling (own settings option; enforcement equals Ask): only the
+/// `permission_mode` key can spell it and that key has top precedence, so the
+/// raw check before canonicalization is sufficient.
+pub fn resolved_display_permission_mode(effective_ui: Option<&TomlValue>) -> &'static str {
     let toml_spelling = effective_ui
         .and_then(|ui| ui.as_table())
         .and_then(|t| t.get("permission_mode"))
@@ -115,13 +106,12 @@ pub fn resolved_display_permission_mode(
     if toml_spelling == Some("default") {
         return "default";
     }
-    let mode = resolve_permission_mode(effective_ui, remote_permission_mode);
+    let mode = resolve_permission_mode(effective_ui);
     clamped_display_permission_mode(mode)
 }
 
-/// Load selected permission mode for launch (effective TOML + explicit remote).
+/// Load selected permission mode for launch (effective TOML).
 ///
-/// TOML `[ui]` keys win over remote; remote only when no TOML permission key.
 /// Missing/unknown → Ask. Config load failure → Ask.
 ///
 /// Accepts (TOML):
@@ -131,13 +121,13 @@ pub fn resolved_display_permission_mode(
 ///   permission_mode = "default"         (maps to Ask at runtime)
 ///   approval_mode = "always-approve"   (legacy)
 ///   yolo = true                        (legacy)
-pub fn load_permission_mode(remote_permission_mode: Option<&str>) -> PermissionMode {
+pub fn load_permission_mode() -> PermissionMode {
     let root: TomlValue = match crate::config::load_effective_config() {
         Ok(r) => r,
         Err(_) => return PermissionMode::Ask,
     };
     let ui = root.as_table().and_then(|t| t.get("ui"));
-    resolve_permission_mode(ui, remote_permission_mode)
+    resolve_permission_mode(ui)
 }
 
 /// Result of [`effective_yolo_for_launch`].
@@ -153,15 +143,11 @@ pub struct EffectiveYolo {
 
 /// Effective client-side yolo for the launch: CLI `--permission-mode`/`--yolo`
 /// beat `[ui] permission_mode`, and the policy pin force-disables either.
-///
-/// `remote_permission_mode` is the soft-default when no TOML permission key is
-/// set; pass `None` when remote settings are unavailable.
 pub fn effective_yolo_for_launch(
     cli_always_approve: bool,
     cli_permission_mode: Option<&str>,
-    remote_permission_mode: Option<&str>,
 ) -> EffectiveYolo {
-    let config_yolo = load_permission_mode(remote_permission_mode).is_always_approve();
+    let config_yolo = load_permission_mode().is_always_approve();
     resolve_launch_yolo(
         resolve_effective_yolo(cli_always_approve, cli_permission_mode, config_yolo),
         yolo_disabled_by_policy(),
@@ -171,12 +157,9 @@ pub fn effective_yolo_for_launch(
 /// Whether this launch should start in **auto** permission mode (LLM/heuristic
 /// classifier — not always-approve). CLI `--permission-mode auto` beats config.
 /// Mutually exclusive with effective yolo (yolo / `--yolo` wins if both requested).
-///
-/// `remote_permission_mode` same contract as [`effective_yolo_for_launch`].
 pub fn effective_auto_for_launch(
     cli_always_approve: bool,
     cli_permission_mode: Option<&str>,
-    remote_permission_mode: Option<&str>,
 ) -> bool {
     // Feature gate (default ON): when the auto permission-mode feature is
     // disabled, Auto is inert — never launch into it regardless of CLI/config,
@@ -188,11 +171,7 @@ pub fn effective_auto_for_launch(
     if cli_always_approve && cli_permission_mode.is_none() {
         return false;
     }
-    let yolo = effective_yolo_for_launch(
-        cli_always_approve,
-        cli_permission_mode,
-        remote_permission_mode,
-    );
+    let yolo = effective_yolo_for_launch(cli_always_approve, cli_permission_mode);
     if yolo.yolo {
         return false;
     }
@@ -203,7 +182,7 @@ pub fn effective_auto_for_launch(
     if let Some(mode) = cli_permission_mode {
         return mode == "auto";
     }
-    load_permission_mode(remote_permission_mode).is_auto()
+    load_permission_mode().is_auto()
 }
 
 /// Whether a session should activate the **auto** permission mode: the feature
@@ -275,49 +254,29 @@ mod tests {
 
     #[test]
     fn resolve_permission_mode_none_is_ask() {
-        assert_eq!(resolve_permission_mode(None, None), PermissionMode::Ask);
+        assert_eq!(resolve_permission_mode(None), PermissionMode::Ask);
     }
 
     #[test]
-    fn resolve_permission_mode_remote_only() {
-        assert_eq!(
-            resolve_permission_mode(None, Some("auto")),
-            PermissionMode::Auto,
-        );
-        assert_eq!(
-            resolve_permission_mode(None, Some("always-approve")),
-            PermissionMode::AlwaysApprove,
-        );
-        assert_eq!(
-            resolve_permission_mode(None, Some("ask")),
-            PermissionMode::Ask,
-        );
-        assert_eq!(
-            resolve_permission_mode(None, Some("default")),
-            PermissionMode::Ask,
-        );
-    }
-
-    #[test]
-    fn resolve_permission_mode_toml_wins_over_remote() {
+    fn resolve_permission_mode_toml() {
         let root: TomlValue = toml::from_str("[ui]\npermission_mode = \"ask\"\n").unwrap();
         assert_eq!(
-            resolve_permission_mode(Some(root.get("ui").unwrap()), Some("always-approve")),
+            resolve_permission_mode(Some(root.get("ui").unwrap())),
             PermissionMode::Ask,
         );
         let yolo: TomlValue = toml::from_str("[ui]\nyolo = true\n").unwrap();
         assert_eq!(
-            resolve_permission_mode(Some(yolo.get("ui").unwrap()), Some("ask")),
+            resolve_permission_mode(Some(yolo.get("ui").unwrap())),
             PermissionMode::AlwaysApprove,
         );
         let yolo_off: TomlValue = toml::from_str("[ui]\nyolo = false\n").unwrap();
         assert_eq!(
-            resolve_permission_mode(Some(yolo_off.get("ui").unwrap()), Some("always-approve")),
+            resolve_permission_mode(Some(yolo_off.get("ui").unwrap())),
             PermissionMode::Ask,
         );
         let approval: TomlValue = toml::from_str("[ui]\napproval_mode = \"ask\"\n").unwrap();
         assert_eq!(
-            resolve_permission_mode(Some(approval.get("ui").unwrap()), Some("auto")),
+            resolve_permission_mode(Some(approval.get("ui").unwrap())),
             PermissionMode::Ask,
         );
     }
@@ -338,15 +297,6 @@ mod tests {
             permission_mode_from_ui_if_set(yolo_off.get("ui").unwrap()),
             Some(PermissionMode::Ask),
         );
-    }
-
-    #[test]
-    fn resolve_permission_mode_unknown_remote_is_ask() {
-        assert_eq!(
-            resolve_permission_mode(None, Some("garbage")),
-            PermissionMode::Ask,
-        );
-        assert_eq!(resolve_permission_mode(None, Some("")), PermissionMode::Ask);
     }
 
     #[test]
@@ -444,7 +394,7 @@ mod tests {
         for (toml_str, expected_mode, expected_canonical) in cases {
             let root: TomlValue = toml::from_str(toml_str).unwrap();
             let ui = root.get("ui").expect("test config defines [ui]");
-            let mode = resolve_permission_mode(Some(ui), None);
+            let mode = resolve_permission_mode(Some(ui));
             assert_eq!(mode, *expected_mode, "config {toml_str:?}");
             assert_eq!(
                 permission_mode_canonical_str(mode),
@@ -454,7 +404,7 @@ mod tests {
         }
         // A non-table [ui] value resolves to Ask (defensive).
         assert_eq!(
-            resolve_permission_mode(Some(&TomlValue::String("nope".into())), None),
+            resolve_permission_mode(Some(&TomlValue::String("nope".into()))),
             PermissionMode::Ask,
         );
     }
@@ -568,27 +518,8 @@ mod tests {
         // comparing the wrapper to `yolo_disabled_by_policy()` (the same
         // predicate prod calls) would be self-referential — it passes even if
         // the wrapper dropped the pin — so it's intentionally omitted.
-        assert!(!effective_yolo_for_launch(false, Some("plan"), None).yolo);
-        assert!(!effective_yolo_for_launch(false, Some("dontAsk"), None).yolo);
-    }
-
-    /// CLI beats remote in both directions. The dangerous row (remote
-    /// always-approve must never override an explicit CLI ask) is
-    /// deterministic on any host; the positive row is skipped under a host
-    /// requirements pin (pin composition is proven separately by
-    /// `resolve_launch_yolo_policy_pin_neutralizes_requested_bypass`).
-    #[test]
-    fn effective_yolo_for_launch_cli_beats_remote() {
-        assert!(
-            !effective_yolo_for_launch(false, Some("ask"), Some("always-approve")).yolo,
-            "remote always-approve must not override CLI --permission-mode ask"
-        );
-        if yolo_disabled_by_policy().is_none() {
-            assert!(
-                effective_yolo_for_launch(true, None, Some("ask")).yolo,
-                "remote ask must not override CLI --yolo"
-            );
-        }
+        assert!(!effective_yolo_for_launch(false, Some("plan")).yolo);
+        assert!(!effective_yolo_for_launch(false, Some("dontAsk")).yolo);
     }
 
     /// Display clamp: modes that lost enforcement (policy-pinned
@@ -606,12 +537,11 @@ mod tests {
         let default_ui: TomlValue =
             toml::from_str("[ui]\npermission_mode = \"default\"\n").unwrap();
         assert_eq!(
-            resolved_display_permission_mode(default_ui.get("ui"), Some("always-approve")),
+            resolved_display_permission_mode(default_ui.get("ui")),
             "default",
             "persisted 'default' must not collapse onto 'ask' for display"
         );
-        assert_eq!(resolved_display_permission_mode(None, Some("auto")), "ask");
-        assert_eq!(resolved_display_permission_mode(None, None), "ask");
+        assert_eq!(resolved_display_permission_mode(None), "ask");
     }
 
     #[test]
@@ -622,17 +552,13 @@ mod tests {
             .lock()
             .unwrap_or_else(|p| p.into_inner());
         unsafe { std::env::set_var("NOFY_AUTO_PERMISSION_MODE", "1") };
-        assert!(effective_auto_for_launch(false, Some("auto"), None));
+        assert!(effective_auto_for_launch(false, Some("auto")));
         assert!(
-            !effective_auto_for_launch(true, Some("auto"), None),
+            !effective_auto_for_launch(true, Some("auto")),
             "--yolo beats auto"
         );
-        assert!(!effective_auto_for_launch(
-            false,
-            Some("always-approve"),
-            None
-        ));
-        assert!(!effective_auto_for_launch(false, Some("ask"), None));
+        assert!(!effective_auto_for_launch(false, Some("always-approve")));
+        assert!(!effective_auto_for_launch(false, Some("ask")));
         unsafe { std::env::remove_var("NOFY_AUTO_PERMISSION_MODE") };
     }
 
@@ -670,11 +596,11 @@ mod tests {
             .unwrap_or_else(|p| p.into_inner());
         unsafe { std::env::set_var("NOFY_AUTO_PERMISSION_MODE", "0") };
         assert!(
-            !effective_auto_for_launch(false, Some("auto"), None),
+            !effective_auto_for_launch(false, Some("auto")),
             "gate OFF: explicit --permission-mode auto must not activate auto"
         );
         assert!(
-            !effective_auto_for_launch(false, None, None),
+            !effective_auto_for_launch(false, None),
             "gate OFF: config-driven auto must not activate auto"
         );
         unsafe { std::env::remove_var("NOFY_AUTO_PERMISSION_MODE") };

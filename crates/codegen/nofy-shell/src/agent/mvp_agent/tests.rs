@@ -27,18 +27,6 @@ fn auth_with_mode(mode: crate::auth::AuthMode, key: &str) -> crate::auth::NofyAu
         oidc_client_id: None,
     }
 }
-#[test]
-fn resolve_subscription_tier_uses_display_only() {
-    assert_eq!(
-        resolve_subscription_tier_for_telemetry(Some("Free".into())).as_deref(),
-        Some("Free")
-    );
-    assert_eq!(
-        resolve_subscription_tier_for_telemetry(Some("  ".into())).as_deref(),
-        None
-    );
-    assert_eq!(resolve_subscription_tier_for_telemetry(None).as_deref(), None);
-}
 mod hunk_tracking_mode {
     use super::super::{plan_hunk_tracking, resolve_hunk_tracking_mode};
     use nofy_hunk_tracker::TrackingMode;
@@ -672,7 +660,7 @@ async fn file_toolset_override_e2e_to_finalized_toolset() {
         file_toolset: FileToolset::Hashline,
         ..ShellToolsetConfig::default()
     };
-    let effective = toolset_config.resolve_file_toolset(None);
+    let effective = toolset_config.resolve_file_toolset();
     let file_tools = effective
         .tool_configs(&toolset_config.hashline)
         .expect("default hashline config should validate");
@@ -1985,27 +1973,6 @@ fn orphaned_tasks_filters_rewind_dead_branches() {
         !ids.contains("t-dead"),
         "task in dead branch should be filtered"
     );
-}
-#[test]
-fn allow_access_from_remote_settings() {
-    let json = serde_json::json!({ "allow_access": true });
-    let rs: crate::util::config::RemoteSettings = serde_json::from_value(json).unwrap();
-    assert_eq!(rs.allow_access, Some(true));
-    let json = serde_json::json!({ "allow_access": false });
-    let rs: crate::util::config::RemoteSettings = serde_json::from_value(json).unwrap();
-    assert_eq!(rs.allow_access, Some(false));
-    let json = serde_json::json!({});
-    let rs: crate::util::config::RemoteSettings = serde_json::from_value(json).unwrap();
-    assert_eq!(rs.allow_access, None);
-}
-#[test]
-fn on_demand_enabled_from_remote_settings() {
-    let json = serde_json::json!({ "on_demand_enabled": false });
-    let rs: crate::util::config::RemoteSettings = serde_json::from_value(json).unwrap();
-    assert_eq!(rs.on_demand_enabled, Some(false));
-    let json = serde_json::json!({});
-    let rs: crate::util::config::RemoteSettings = serde_json::from_value(json).unwrap();
-    assert_eq!(rs.on_demand_enabled, None);
 }
 /// Regression for a 401 sequence seen in production. After a long idle
 /// window, the auth manager may have no
@@ -3784,12 +3751,6 @@ fn write_project_subagent_definitions(cwd: &std::path::Path) {
     )
     .unwrap();
 }
-fn folder_trust_on() -> crate::util::config::RemoteSettings {
-    crate::util::config::RemoteSettings {
-        folder_trust_enabled: Some(true),
-        ..Default::default()
-    }
-}
 #[test]
 #[serial_test::serial]
 fn subagent_spawn_context_reloads_project_definitions_after_trust_changes() {
@@ -3871,11 +3832,7 @@ fn project_roles_personas_gated_via_resolve_and_record_chain() {
         let (mut handle, _tx, _cmd_rx) = make_live_session_handle(&sid, None);
         handle.info.cwd = repo.path().display().to_string();
         agent.insert_resident(&sid, handle);
-        let allowed = crate::agent::folder_trust::resolve_and_record(
-            repo.path(),
-            Some(&folder_trust_on()),
-            false,
-        );
+        let allowed = crate::agent::folder_trust::resolve_and_record(repo.path(), false);
         assert!(
             !allowed,
             "roles/personas markers alone must resolve untrusted without a grant"
@@ -3894,11 +3851,7 @@ fn project_roles_personas_gated_via_resolve_and_record_chain() {
             "untrusted: project persona must stay out of spawn context"
         );
         crate::agent::folder_trust::grant_folder_trust(repo.path());
-        let allowed = crate::agent::folder_trust::resolve_and_record(
-            repo.path(),
-            Some(&folder_trust_on()),
-            false,
-        );
+        let allowed = crate::agent::folder_trust::resolve_and_record(repo.path(), false);
         assert!(allowed, "store-granted folder must resolve trusted");
         let trusted = agent.build_subagent_spawn_context(sid.0.as_ref());
         assert_eq!(
@@ -3946,11 +3899,10 @@ fn interactive_trust_prompt_grant_reloads_project_mcp() {
     let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
     let repo = repo_with_project_mcp_server();
     let repo_path = repo.path().to_path_buf();
-    let remote = folder_trust_on();
     run_local_for_bridge_test(|| async {
         let (agent, mut gw_rx) = build_agent_with_gateway_rx();
         agent.interactive_trust_client.set(true);
-        crate::agent::folder_trust::resolve_and_record(&repo_path, Some(&remote), false);
+        crate::agent::folder_trust::resolve_and_record(&repo_path, false);
         assert!(
             !crate::agent::folder_trust::project_scope_allowed(&repo_path),
             "untrusted-with-configs workspace must gate project scope before the grant"
@@ -3959,7 +3911,7 @@ fn interactive_trust_prompt_grant_reloads_project_mcp() {
         let (mut handle, _tx, mut cmd_rx) = make_live_session_handle(&sid, None);
         handle.info.cwd = repo_path.to_string_lossy().to_string();
         agent.insert_resident(&sid, handle);
-        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         let params = answer_folder_trust_request(&mut gw_rx, "trust").await;
         assert!(
             params["configKinds"]
@@ -4025,16 +3977,15 @@ fn interactive_trust_prompt_reject_keeps_gated() {
     let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
     let repo = repo_with_project_mcp_server();
     let repo_path = repo.path().to_path_buf();
-    let remote = folder_trust_on();
     run_local_for_bridge_test(|| async {
         let (agent, mut gw_rx) = build_agent_with_gateway_rx();
         agent.interactive_trust_client.set(true);
-        crate::agent::folder_trust::resolve_and_record(&repo_path, Some(&remote), false);
+        crate::agent::folder_trust::resolve_and_record(&repo_path, false);
         let sid = acp::SessionId::new("sess-reject");
         let (mut handle, _tx, mut cmd_rx) = make_live_session_handle(&sid, None);
         handle.info.cwd = repo_path.to_string_lossy().to_string();
         agent.insert_resident(&sid, handle);
-        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         let _ = answer_folder_trust_request(&mut gw_rx, "reject").await;
         assert!(
             tokio::time::timeout(std::time::Duration::from_millis(300), cmd_rx.recv())
@@ -4059,13 +4010,9 @@ fn interactive_trust_prompt_dormant_when_feature_off() {
     let home = tempfile::tempdir().unwrap();
     let _env = EnvGuard::set("NOFY_HOME", home.path());
     let _sim = EnvGuard::set(nofy_version::TEST_VERSION_ENV, "0.0-sim");
-    let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
+    let _flag = EnvGuard::set("NOFY_FOLDER_TRUST", "0");
     let repo = repo_with_project_mcp_server();
     let repo_path = repo.path().to_path_buf();
-    let remote = crate::util::config::RemoteSettings {
-        folder_trust_enabled: Some(false),
-        ..Default::default()
-    };
     run_local_for_bridge_test(|| async {
         let (agent, mut gw_rx) = build_agent_with_gateway_rx();
         agent.interactive_trust_client.set(true);
@@ -4073,7 +4020,7 @@ fn interactive_trust_prompt_dormant_when_feature_off() {
         let (mut handle, _tx, _cmd_rx) = make_live_session_handle(&sid, None);
         handle.info.cwd = repo_path.to_string_lossy().to_string();
         agent.insert_resident(&sid, handle);
-        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         assert!(
             tokio::time::timeout(std::time::Duration::from_millis(300), gw_rx.recv())
                 .await
@@ -4092,7 +4039,6 @@ fn interactive_trust_prompt_no_request_without_capability() {
     let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
     let repo = repo_with_project_mcp_server();
     let repo_path = repo.path().to_path_buf();
-    let remote = folder_trust_on();
     run_local_for_bridge_test(|| async {
         let (agent, mut gw_rx) = build_agent_with_gateway_rx();
         assert!(!agent.interactive_trust_client.get());
@@ -4100,7 +4046,7 @@ fn interactive_trust_prompt_no_request_without_capability() {
         let (mut handle, _tx, _cmd_rx) = make_live_session_handle(&sid, None);
         handle.info.cwd = repo_path.to_string_lossy().to_string();
         agent.insert_resident(&sid, handle);
-        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         assert!(
             tokio::time::timeout(std::time::Duration::from_millis(300), gw_rx.recv())
                 .await
@@ -4120,16 +4066,15 @@ fn interactive_trust_prompt_client_error_fails_closed() {
     let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
     let repo = repo_with_project_mcp_server();
     let repo_path = repo.path().to_path_buf();
-    let remote = folder_trust_on();
     run_local_for_bridge_test(|| async {
         let (agent, mut gw_rx) = build_agent_with_gateway_rx();
         agent.interactive_trust_client.set(true);
-        crate::agent::folder_trust::resolve_and_record(&repo_path, Some(&remote), false);
+        crate::agent::folder_trust::resolve_and_record(&repo_path, false);
         let sid = acp::SessionId::new("sess-err");
         let (mut handle, _tx, mut cmd_rx) = make_live_session_handle(&sid, None);
         handle.info.cwd = repo_path.to_string_lossy().to_string();
         agent.insert_resident(&sid, handle);
-        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         let msg = tokio::time::timeout(std::time::Duration::from_secs(2), gw_rx.recv())
             .await
             .expect("trust request must be sent")
@@ -4161,22 +4106,21 @@ fn interactive_trust_prompt_dedups_same_workspace() {
     let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
     let repo = repo_with_project_mcp_server();
     let repo_path = repo.path().to_path_buf();
-    let remote = folder_trust_on();
     run_local_for_bridge_test(|| async {
         let (agent, mut gw_rx) = build_agent_with_gateway_rx();
         agent.interactive_trust_client.set(true);
-        crate::agent::folder_trust::resolve_and_record(&repo_path, Some(&remote), false);
+        crate::agent::folder_trust::resolve_and_record(&repo_path, false);
         let sid = acp::SessionId::new("sess-dedup");
         let (mut handle, _tx, _cmd_rx) = make_live_session_handle(&sid, None);
         handle.info.cwd = repo_path.to_string_lossy().to_string();
         agent.insert_resident(&sid, handle);
-        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         let first = tokio::time::timeout(std::time::Duration::from_secs(2), gw_rx.recv()).await;
         assert!(
             matches!(first, Ok(Some(nofy_acp_lib::AcpClientMessage::ExtMethod(_)))),
             "first prompt for an untrusted workspace must emit a request"
         );
-        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         assert!(
             tokio::time::timeout(std::time::Duration::from_millis(300), gw_rx.recv())
                 .await
@@ -4245,11 +4189,10 @@ fn interactive_trust_prompt_reloads_all_same_workspace_sessions() {
     .unwrap();
     let other = repo_with_project_mcp_server();
     let other_path = other.path().to_path_buf();
-    let remote = folder_trust_on();
     run_local_for_bridge_test(|| async {
         let (agent, mut gw_rx) = build_agent_with_gateway_rx();
         agent.interactive_trust_client.set(true);
-        crate::agent::folder_trust::resolve_and_record(&root, Some(&remote), false);
+        crate::agent::folder_trust::resolve_and_record(&root, false);
         let sid_root = acp::SessionId::new("sess-root");
         let (mut h_root, _t1, mut rx_root) = make_live_session_handle(&sid_root, None);
         h_root.info.cwd = root.to_string_lossy().to_string();
@@ -4262,7 +4205,7 @@ fn interactive_trust_prompt_reloads_all_same_workspace_sessions() {
         let (mut h_other, _t3, mut rx_other) = make_live_session_handle(&sid_other, None);
         h_other.info.cwd = other_path.to_string_lossy().to_string();
         agent.insert_resident(&sid_other, h_other);
-        agent.maybe_spawn_interactive_trust_prompt(&sid_root, &root, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid_root, &root);
         let _ = answer_folder_trust_request(&mut gw_rx, "trust").await;
         let root_cmds = drain_reload_commands(&mut rx_root).await;
         assert!(
@@ -4298,16 +4241,15 @@ fn interactive_trust_prompt_reprompts_after_untrust() {
     let _flag = EnvGuard::unset("NOFY_FOLDER_TRUST");
     let repo = repo_with_project_mcp_server();
     let repo_path = repo.path().to_path_buf();
-    let remote = folder_trust_on();
     run_local_for_bridge_test(|| async {
         let (agent, mut gw_rx) = build_agent_with_gateway_rx();
         agent.interactive_trust_client.set(true);
-        crate::agent::folder_trust::resolve_and_record(&repo_path, Some(&remote), false);
+        crate::agent::folder_trust::resolve_and_record(&repo_path, false);
         let sid = acp::SessionId::new("sess-reprompt");
         let (mut handle, _tx, _cmd_rx) = make_live_session_handle(&sid, None);
         handle.info.cwd = repo_path.to_string_lossy().to_string();
         agent.insert_resident(&sid, handle);
-        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         assert!(
             matches!(
                 tokio::time::timeout(std::time::Duration::from_secs(2), gw_rx.recv()).await,
@@ -4315,7 +4257,7 @@ fn interactive_trust_prompt_reprompts_after_untrust() {
             ),
             "first prompt must emit a request"
         );
-        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         assert!(
             tokio::time::timeout(std::time::Duration::from_millis(200), gw_rx.recv())
                 .await
@@ -4327,7 +4269,7 @@ fn interactive_trust_prompt_reprompts_after_untrust() {
             agent.execute_hooks_action(&sid, HooksAction::Untrust),
         )
         .await;
-        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path, Some(&remote));
+        agent.maybe_spawn_interactive_trust_prompt(&sid, &repo_path);
         assert!(
             matches!(
                 tokio::time::timeout(std::time::Duration::from_secs(2), gw_rx.recv()).await,
@@ -4342,16 +4284,6 @@ fn ann(id: &str) -> nofy_announcements::RemoteAnnouncement {
         id: Some(id.to_string()),
         message: Some(format!("{id}-msg")),
         severity: Some("critical".to_string()),
-        ..Default::default()
-    }
-}
-/// `RemoteSettings` with only `announcements` set (callers add sentinel
-/// fields as needed).
-fn settings_with(
-    announcements: Option<Vec<nofy_announcements::RemoteAnnouncement>>,
-) -> crate::util::config::RemoteSettings {
-    crate::util::config::RemoteSettings {
-        announcements,
         ..Default::default()
     }
 }
@@ -4541,11 +4473,17 @@ fn announcements_push_gate_emits_on_expiry_crossing() {
 }
 /// End-to-end through the shared gate: every emission advances the baseline
 /// and carries a strictly larger gen; unchanged state is silent unless
-/// seeding a new client.
+/// seeding a new client. Announcements are injected via the
+/// `NOFY_ANNOUNCEMENTS_OVERRIDE` env escape hatch (the local-layer source).
 #[tokio::test]
+#[serial_test::serial]
 async fn emit_announcements_gate_emits_updates_baseline_and_bumps_gen() {
+    use nofy_test_support::EnvGuard;
     let (agent, mut rx) = build_agent_with_gateway_rx();
-    agent.cfg.borrow_mut().remote_settings = Some(settings_with(Some(vec![ann("a")])));
+    let _override = EnvGuard::set(
+        "NOFY_ANNOUNCEMENTS_OVERRIDE",
+        serde_json::to_string(&vec![ann("a")]).unwrap(),
+    );
     let recv_gen =
         |rx: &mut tokio::sync::mpsc::UnboundedReceiver<nofy_acp_lib::AcpClientMessage>| {
             let msg = rx.try_recv().expect("expected an announcements push");
@@ -4570,7 +4508,7 @@ async fn emit_announcements_gate_emits_updates_baseline_and_bumps_gen() {
         seed_gen > first_gen,
         "gen must strictly increase: {first_gen} -> {seed_gen}"
     );
-    agent.cfg.borrow_mut().remote_settings = Some(settings_with(None));
+    let _clear = EnvGuard::set("NOFY_ANNOUNCEMENTS_OVERRIDE", "[]");
     agent.emit_announcements(AnnouncementsPushMode::IfChanged);
     let clear_gen = recv_gen(&mut rx);
     assert!(clear_gen > seed_gen);
@@ -4590,9 +4528,14 @@ async fn emit_announcements_gate_emits_updates_baseline_and_bumps_gen() {
 /// baseline; the next gate call then re-diffs and re-pushes the same list
 /// (the poll's natural retry, no dedicated retry machinery).
 #[tokio::test]
+#[serial_test::serial]
 async fn emit_announcements_gate_keeps_baseline_on_failed_send_and_retries() {
+    use nofy_test_support::EnvGuard;
     let (mut agent, rx) = build_agent_with_gateway_rx();
-    agent.cfg.borrow_mut().remote_settings = Some(settings_with(Some(vec![ann("a")])));
+    let _override = EnvGuard::set(
+        "NOFY_ANNOUNCEMENTS_OVERRIDE",
+        serde_json::to_string(&vec![ann("a")]).unwrap(),
+    );
     drop(rx);
     agent.emit_announcements(AnnouncementsPushMode::IfChanged);
     assert!(
@@ -4719,12 +4662,14 @@ mod direct_hub_cloud_removed {
         assert_eq!(from_legacy.url.as_deref(), Some("wss://hub.example/ws"));
     }
 }
-mod soft_default_settings_emit {
+mod settings_update_emit {
     use super::*;
     #[tokio::test]
-    async fn emit_settings_update_carries_permission_mode_from_cfg() {
+    #[serial_test::serial]
+    async fn emit_settings_update_carries_locally_resolved_settings() {
         use crate::agent::config::Config as AgentConfig;
         use crate::auth::{AuthManager, NofyComConfig};
+        use nofy_test_support::EnvGuard;
         let local = tokio::task::LocalSet::new();
         local
             .run_until(async {
@@ -4735,21 +4680,11 @@ mod soft_default_settings_emit {
                 ));
                 let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
                 let gateway = GatewaySender::new(tx);
-                let cfg = AgentConfig {
-                    remote_settings: Some(crate::util::config::RemoteSettings {
-                        permission_mode: Some("always-approve".into()),
-                        slash_command_tags: Some(
-                            [("workflows".to_string(), "new".to_string())]
-                                .into_iter()
-                                .collect(),
-                        ),
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                };
+                let cfg = AgentConfig::default();
+                let _tags =
+                    EnvGuard::set("NOFY_SLASH_COMMAND_TAGS", r#"{"workflows":"new"}"#);
                 let agent =
                     MvpAgent::new(gateway, &cfg, auth_manager, None).expect("valid test config");
-                agent.cfg.borrow_mut().remote_settings = cfg.remote_settings.clone();
                 agent.emit_settings_update_notification();
                 let msg = rx.try_recv().expect("settings/update must be emitted");
                 let nofy_acp_lib::AcpClientMessage::ExtNotification(args) = msg else {
@@ -4759,17 +4694,20 @@ mod soft_default_settings_emit {
                 let params: serde_json::Value =
                     serde_json::from_str(args.request.params.get()).expect("parse params");
                 assert_eq!(
-                    params.get("permission_mode").and_then(|v| v.as_str()),
-                    Some("always-approve"),
-                    "post-auth emit must carry remote permission_mode for first session"
-                );
-                assert_eq!(
                     params
                         .get("slash_command_tags")
                         .and_then(|v| v.get("workflows"))
                         .and_then(|v| v.as_str()),
                     Some("new"),
-                    "post-auth emit must carry remote slash_command_tags"
+                    "emit must carry locally resolved slash_command_tags"
+                );
+                assert!(
+                    params.get("auto_permission_mode_enabled").is_some(),
+                    "emit must carry the locally resolved auto-permission gate"
+                );
+                assert!(
+                    params.get("tips").is_some(),
+                    "emit must carry locally resolved tips"
                 );
                 let _ = args.response_tx.send(Ok(()));
             })

@@ -1,4 +1,3 @@
-use crate::util::config::RemoteSettings;
 use toml::Value as TomlValue;
 use nofy_tools::implementations::nofy_build::ask_user_question;
 
@@ -91,7 +90,7 @@ fn login_shell_capture_from_toml(v: Option<&TomlValue>) -> Option<bool> {
         .as_bool()
 }
 
-pub(crate) fn resolve_login_shell_capture(remote: Option<bool>) -> bool {
+pub(crate) fn resolve_login_shell_capture() -> bool {
     let requirements = crate::config::load_merged_requirements();
     let layers = match crate::config::ConfigLayers::load() {
         Ok(l) => Some(l),
@@ -105,7 +104,6 @@ pub(crate) fn resolve_login_shell_capture(remote: Option<bool>) -> bool {
         layers.as_ref().map(|l| &l.user),
         layers.as_ref().map(|l| &l.managed),
         layers.as_ref().map(|l| &l.system_managed),
-        remote,
     )
 }
 
@@ -114,7 +112,6 @@ fn resolve_login_shell_capture_tiers(
     user: Option<&TomlValue>,
     managed: Option<&TomlValue>,
     system_managed: Option<&TomlValue>,
-    remote: Option<bool>,
 ) -> bool {
     use crate::agent::config::BoolFlag;
     BoolFlag::env(ENV_LOGIN_SHELL_CAPTURE)
@@ -124,7 +121,6 @@ fn resolve_login_shell_capture_tiers(
             login_shell_capture_from_toml(managed)
                 .or_else(|| login_shell_capture_from_toml(system_managed)),
         )
-        .feature_flag(remote)
         .default(true)
         .resolve()
         .value
@@ -152,47 +148,31 @@ mod login_shell_capture_tests {
     #[test]
     fn defaults_on() {
         let _g = guard();
-        assert!(resolve_login_shell_capture_tiers(
-            None, None, None, None, None
-        ));
+        assert!(resolve_login_shell_capture_tiers(None, None, None, None));
     }
 
     #[test]
-    fn remote_flag_can_disable() {
-        let _g = guard();
-        assert!(!resolve_login_shell_capture_tiers(
-            None,
-            None,
-            None,
-            None,
-            Some(false)
-        ));
-    }
-
-    #[test]
-    fn user_config_beats_remote() {
+    fn user_config_sets_value() {
         let _g = guard();
         assert!(resolve_login_shell_capture_tiers(
             None,
             Some(&cfg(true)),
             None,
-            None,
-            Some(false)
+            None
         ));
         assert!(!resolve_login_shell_capture_tiers(
             None,
             Some(&cfg(false)),
             None,
-            None,
-            Some(true)
+            None
         ));
     }
 
     #[test]
-    fn env_beats_config_and_remote() {
+    fn env_beats_config() {
         let _g = guard();
         unsafe { std::env::set_var(ENV_LOGIN_SHELL_CAPTURE, "0") };
-        let off = resolve_login_shell_capture_tiers(None, Some(&cfg(true)), None, None, Some(true));
+        let off = resolve_login_shell_capture_tiers(None, Some(&cfg(true)), None, None);
         unsafe { std::env::remove_var(ENV_LOGIN_SHELL_CAPTURE) };
         assert!(!off);
     }
@@ -201,13 +181,8 @@ mod login_shell_capture_tests {
     fn requirements_win_outright() {
         let _g = guard();
         unsafe { std::env::set_var(ENV_LOGIN_SHELL_CAPTURE, "1") };
-        let off = resolve_login_shell_capture_tiers(
-            Some(&cfg(false)),
-            Some(&cfg(true)),
-            None,
-            None,
-            Some(true),
-        );
+        let off =
+            resolve_login_shell_capture_tiers(Some(&cfg(false)), Some(&cfg(true)), None, None);
         unsafe { std::env::remove_var(ENV_LOGIN_SHELL_CAPTURE) };
         assert!(!off);
     }
@@ -222,9 +197,9 @@ fn scheduler_background_loops_from_toml(v: Option<&TomlValue>) -> Option<bool> {
 /// Resolve whether scheduled task fires run in background loop subagents.
 ///
 /// Precedence: requirements > env (`NOFY_SCHEDULER_BACKGROUND_LOOPS`) > user
-/// `config.toml` `[scheduler] background_loops` > managed layers > remote
-/// settings > default `true`.
-pub fn resolve_scheduler_background_loops(remote: Option<bool>) -> bool {
+/// `config.toml` `[scheduler] background_loops` > managed layers > default
+/// `true`.
+pub fn resolve_scheduler_background_loops() -> bool {
     let requirements = crate::config::load_merged_requirements();
     let layers = match crate::config::ConfigLayers::load() {
         Ok(l) => Some(l),
@@ -238,7 +213,6 @@ pub fn resolve_scheduler_background_loops(remote: Option<bool>) -> bool {
         layers.as_ref().map(|l| &l.user),
         layers.as_ref().map(|l| &l.managed),
         layers.as_ref().map(|l| &l.system_managed),
-        remote,
     )
 }
 
@@ -247,7 +221,6 @@ fn resolve_scheduler_background_loops_tiers(
     user: Option<&TomlValue>,
     managed: Option<&TomlValue>,
     system_managed: Option<&TomlValue>,
-    remote: Option<bool>,
 ) -> bool {
     use crate::agent::config::BoolFlag;
     BoolFlag::env(ENV_SCHEDULER_BACKGROUND_LOOPS)
@@ -257,7 +230,6 @@ fn resolve_scheduler_background_loops_tiers(
             scheduler_background_loops_from_toml(managed)
                 .or_else(|| scheduler_background_loops_from_toml(system_managed)),
         )
-        .feature_flag(remote)
         .default(true)
         .resolve()
         .value
@@ -282,53 +254,31 @@ mod scheduler_background_loops_tests {
     #[test]
     fn defaults_on() {
         let _g = guard();
-        assert!(resolve_scheduler_background_loops_tiers(
-            None, None, None, None, None
-        ));
+        assert!(resolve_scheduler_background_loops_tiers(None, None, None, None));
     }
 
     #[test]
-    fn remote_flag_can_disable() {
-        let _g = guard();
-        assert!(!resolve_scheduler_background_loops_tiers(
-            None,
-            None,
-            None,
-            None,
-            Some(false)
-        ));
-    }
-
-    #[test]
-    fn user_config_beats_remote() {
+    fn user_config_sets_value() {
         let _g = guard();
         assert!(resolve_scheduler_background_loops_tiers(
             None,
             Some(&cfg(true)),
             None,
-            None,
-            Some(false)
+            None
         ));
         assert!(!resolve_scheduler_background_loops_tiers(
             None,
             Some(&cfg(false)),
             None,
-            None,
-            Some(true)
+            None
         ));
     }
 
     #[test]
-    fn env_beats_config_and_remote() {
+    fn env_beats_config() {
         let _g = guard();
         unsafe { std::env::set_var(ENV_SCHEDULER_BACKGROUND_LOOPS, "0") };
-        let off = resolve_scheduler_background_loops_tiers(
-            None,
-            Some(&cfg(true)),
-            None,
-            None,
-            Some(true),
-        );
+        let off = resolve_scheduler_background_loops_tiers(None, Some(&cfg(true)), None, None);
         unsafe { std::env::remove_var(ENV_SCHEDULER_BACKGROUND_LOOPS) };
         assert!(!off);
     }
@@ -342,7 +292,6 @@ mod scheduler_background_loops_tests {
             Some(&cfg(true)),
             None,
             None,
-            Some(true),
         );
         unsafe { std::env::remove_var(ENV_SCHEDULER_BACKGROUND_LOOPS) };
         assert!(!off);
@@ -386,8 +335,7 @@ fn ask_user_question_timeout_secs_from_toml(v: Option<&TomlValue>) -> Option<u64
 /// Precedence: requirements > env (`NOFY_ASK_USER_QUESTION_TIMEOUT_ENABLED`)
 /// > user `config.toml` > managed (user-level `managed_config.toml` over the
 /// system-managed layer, matching `effective_config()`'s merge order) >
-/// remote settings > default `true`. Returns [`Resolved`] so callers can
-/// log the winning source.
+/// default `true`. Returns [`Resolved`] so callers can log the winning source.
 ///
 /// [`Resolved`]: crate::agent::config::Resolved
 fn resolve_ask_user_question_timeout_enabled(
@@ -395,7 +343,6 @@ fn resolve_ask_user_question_timeout_enabled(
     user: Option<&TomlValue>,
     managed: Option<&TomlValue>,
     system_managed: Option<&TomlValue>,
-    remote: Option<bool>,
 ) -> crate::agent::config::Resolved<bool> {
     use crate::agent::config::BoolFlag;
     BoolFlag::env(ENV_ASK_USER_QUESTION_TIMEOUT_ENABLED)
@@ -405,26 +352,23 @@ fn resolve_ask_user_question_timeout_enabled(
             ask_user_question_timeout_enabled_from_toml(managed)
                 .or_else(|| ask_user_question_timeout_enabled_from_toml(system_managed)),
         )
-        .feature_flag(remote)
         .default(ask_user_question::DEFAULT_ASK_USER_QUESTION_TIMEOUT_ENABLED)
         .resolve()
 }
 
 /// Pure precedence for [`resolve_ask_user_question_timeout_secs`] (tiers
 /// injected so it is unit-testable without env/disk): requirements > env >
-/// config > managed > remote > default (the tool's 30-minute `RESPONSE_TIMEOUT`).
+/// config > managed > default (the tool's 30-minute `RESPONSE_TIMEOUT`).
 fn resolve_ask_user_question_timeout_secs_from_tiers(
     requirement: Option<u64>,
     env: Option<u64>,
     config: Option<u64>,
     managed: Option<u64>,
-    remote: Option<u64>,
 ) -> u64 {
     requirement
         .or(env)
         .or(config)
         .or(managed)
-        .or(remote)
         .unwrap_or(
             nofy_tools::implementations::nofy_build::ask_user_question::RESPONSE_TIMEOUT
                 .as_secs(),
@@ -436,13 +380,12 @@ fn resolve_ask_user_question_timeout_secs_from_tiers(
 /// Precedence: requirements > env (`NOFY_ASK_USER_QUESTION_TIMEOUT_SECS`,
 /// parsed by the tools crate's canonical parser) > user `config.toml` >
 /// managed (user-level over system-managed, matching `effective_config()`) >
-/// remote settings > default 1800 (30 minutes).
+/// default 1800 (30 minutes).
 fn resolve_ask_user_question_timeout_secs(
     requirements: Option<&TomlValue>,
     user: Option<&TomlValue>,
     managed: Option<&TomlValue>,
     system_managed: Option<&TomlValue>,
-    remote: Option<u64>,
 ) -> u64 {
     resolve_ask_user_question_timeout_secs_from_tiers(
         ask_user_question_timeout_secs_from_toml(requirements),
@@ -450,8 +393,6 @@ fn resolve_ask_user_question_timeout_secs(
         ask_user_question_timeout_secs_from_toml(user),
         ask_user_question_timeout_secs_from_toml(managed)
             .or_else(|| ask_user_question_timeout_secs_from_toml(system_managed)),
-        // remote settings `0` is treated as unset, mirroring the TOML validation.
-        remote.filter(|secs| *secs > 0),
     )
 }
 
@@ -460,11 +401,10 @@ fn resolve_ask_user_question_timeout_secs(
 ///
 /// Reads the raw requirements / user / managed / system-managed layers from
 /// disk (raw layers, not the effective merge, so a managed-only value stays
-/// below env in the precedence); `remote` is the live remote tier. Both
-/// fields resolve to concrete values, so the tool's legacy env fallback only
-/// runs for consumers that skip this resolver.
+/// below env in the precedence). Both fields resolve to concrete values, so
+/// the tool's legacy env fallback only runs for consumers that skip this
+/// resolver.
 pub(crate) fn resolve_ask_user_question_params_from_disk(
-    remote: Option<&RemoteSettings>,
 ) -> nofy_tools::implementations::nofy_build::ask_user_question::AskUserQuestionParams {
     let requirements = crate::config::load_merged_requirements();
     let layers = match crate::config::ConfigLayers::load() {
@@ -484,7 +424,6 @@ pub(crate) fn resolve_ask_user_question_params_from_disk(
                 user,
                 managed,
                 system_managed,
-                remote.and_then(|r| r.ask_user_question_timeout_enabled),
             )
             .value,
         ),
@@ -493,7 +432,6 @@ pub(crate) fn resolve_ask_user_question_params_from_disk(
             user,
             managed,
             system_managed,
-            remote.and_then(|r| r.ask_user_question_timeout_secs),
         )),
     }
 }
@@ -522,58 +460,30 @@ mod ask_user_question_timeout_tests {
     fn timeout_enabled_tier_precedence() {
         let _g = guard();
         // Default ON when nothing is set.
-        let r = resolve_ask_user_question_timeout_enabled(None, None, None, None, None);
+        let r = resolve_ask_user_question_timeout_enabled(None, None, None, None);
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Default);
-        // requirements(false) beat user(true) and remote(true).
+        // requirements(false) beat user(true).
         let off = toml_ask("timeout_enabled = false");
         let on = toml_ask("timeout_enabled = true");
-        let r = resolve_ask_user_question_timeout_enabled(
-            Some(&off),
-            Some(&on),
-            None,
-            None,
-            Some(true),
-        );
+        let r = resolve_ask_user_question_timeout_enabled(Some(&off), Some(&on), None, None);
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Requirement);
-        // user(false) beats managed(true) and remote(true).
-        let r = resolve_ask_user_question_timeout_enabled(
-            None,
-            Some(&off),
-            Some(&on),
-            None,
-            Some(true),
-        );
+        // user(false) beats managed(true).
+        let r = resolve_ask_user_question_timeout_enabled(None, Some(&off), Some(&on), None);
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Config);
-        // managed(false) beats system-managed(true) and remote(true).
-        let r = resolve_ask_user_question_timeout_enabled(
-            None,
-            None,
-            Some(&off),
-            Some(&on),
-            Some(true),
-        );
+        // managed(false) beats system-managed(true).
+        let r = resolve_ask_user_question_timeout_enabled(None, None, Some(&off), Some(&on));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::ManagedConfig);
-        // A system-managed-only value lands: beats remote, loses to user.
-        let r = resolve_ask_user_question_timeout_enabled(None, None, None, Some(&off), Some(true));
+        // A system-managed-only value lands: loses to user.
+        let r = resolve_ask_user_question_timeout_enabled(None, None, None, Some(&off));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::ManagedConfig);
-        let r = resolve_ask_user_question_timeout_enabled(
-            None,
-            Some(&on),
-            None,
-            Some(&off),
-            Some(false),
-        );
+        let r = resolve_ask_user_question_timeout_enabled(None, Some(&on), None, Some(&off));
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Config);
-        // remote alone is honored.
-        let r = resolve_ask_user_question_timeout_enabled(None, None, None, None, Some(false));
-        assert!(!r.value);
-        assert_eq!(r.source, ConfigSource::Remote);
     }
 
     #[test]
@@ -581,12 +491,11 @@ mod ask_user_question_timeout_tests {
         let d = nofy_tools::implementations::nofy_build::ask_user_question::RESPONSE_TIMEOUT
             .as_secs();
         let r = resolve_ask_user_question_timeout_secs_from_tiers;
-        assert_eq!(r(None, None, None, None, None), d);
-        assert_eq!(r(Some(1), Some(2), Some(3), Some(4), Some(5)), 1); // requirements highest
-        assert_eq!(r(None, Some(2), Some(3), Some(4), Some(5)), 2); // env
-        assert_eq!(r(None, None, Some(3), Some(4), Some(5)), 3); // user config
-        assert_eq!(r(None, None, None, Some(4), Some(5)), 4); // managed
-        assert_eq!(r(None, None, None, None, Some(5)), 5); // remote
+        assert_eq!(r(None, None, None, None), d);
+        assert_eq!(r(Some(1), Some(2), Some(3), Some(4)), 1); // requirements highest
+        assert_eq!(r(None, Some(2), Some(3), Some(4)), 2); // env
+        assert_eq!(r(None, None, Some(3), Some(4)), 3); // user config
+        assert_eq!(r(None, None, None, Some(4)), 4); // managed
     }
 
     #[test]
@@ -594,44 +503,27 @@ mod ask_user_question_timeout_tests {
         let _g = guard();
         let d = nofy_tools::implementations::nofy_build::ask_user_question::RESPONSE_TIMEOUT
             .as_secs();
-        // user 0 and managed negative are dropped; remote fills the gap.
+        // user 0 and managed negative are dropped → default.
         let zero = toml_ask("timeout_secs = 0");
         let negative = toml_ask("timeout_secs = -5");
         assert_eq!(
-            resolve_ask_user_question_timeout_secs(
-                None,
-                Some(&zero),
-                Some(&negative),
-                None,
-                Some(45)
-            ),
-            45
-        );
-        // remote 0 is unset too → default.
-        assert_eq!(
-            resolve_ask_user_question_timeout_secs(None, Some(&zero), None, None, Some(0)),
+            resolve_ask_user_question_timeout_secs(None, Some(&zero), Some(&negative), None),
             d
         );
-        // A valid user layer wins over remote.
+        // A valid user layer wins.
         let user = toml_ask("timeout_secs = 30");
         assert_eq!(
-            resolve_ask_user_question_timeout_secs(None, Some(&user), None, None, Some(45)),
+            resolve_ask_user_question_timeout_secs(None, Some(&user), None, None),
             30
         );
-        // A system-managed-only value lands: beats remote, loses to user.
+        // A system-managed-only value lands: loses to user.
         let sys = toml_ask("timeout_secs = 90");
         assert_eq!(
-            resolve_ask_user_question_timeout_secs(None, None, None, Some(&sys), Some(45)),
+            resolve_ask_user_question_timeout_secs(None, None, None, Some(&sys)),
             90
         );
         assert_eq!(
-            resolve_ask_user_question_timeout_secs(
-                None,
-                Some(&user),
-                Some(&zero),
-                Some(&sys),
-                None
-            ),
+            resolve_ask_user_question_timeout_secs(None, Some(&user), Some(&zero), Some(&sys)),
             30
         );
     }

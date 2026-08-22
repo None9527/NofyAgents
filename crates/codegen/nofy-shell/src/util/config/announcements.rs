@@ -1,6 +1,6 @@
 use toml::Value as TomlValue;
 
-/// Announcement entry received from cli-chat-proxy `/v1/settings`.
+/// Announcement entry shape shared by the config-layer `announcements` arrays.
 /// Re-exported from `nofy-announcements` for backward compatibility.
 pub use nofy_announcements::RemoteAnnouncement;
 
@@ -49,13 +49,12 @@ pub(crate) fn announcements_override() -> Option<Vec<RemoteAnnouncement>> {
 
 /// Resolve announcements from pre-loaded config layers.
 ///
-/// Priority: requirements > remote > user config > managed config.
+/// Priority: requirements > user config > managed config.
 /// `NOFY_ANNOUNCEMENTS_OVERRIDE` env var overrides everything (dev-only escape hatch).
 pub fn resolve_announcements(
     requirements: Option<&TomlValue>,
     user: Option<&TomlValue>,
     managed: Option<&TomlValue>,
-    remote: Option<&[RemoteAnnouncement]>,
 ) -> Vec<RemoteAnnouncement> {
     if let Some(list) = announcements_override() {
         return list;
@@ -66,7 +65,6 @@ pub fn resolve_announcements(
         .unwrap_or_default();
     let usr = user.map(announcements_from_toml).unwrap_or_default();
     let mgd = managed.map(announcements_from_toml).unwrap_or_default();
-    let remote_slice = remote.unwrap_or_default();
 
-    merge_announcements(&[&req, remote_slice, &usr, &mgd])
+    merge_announcements(&[&req, &usr, &mgd])
 }

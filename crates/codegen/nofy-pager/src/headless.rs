@@ -813,7 +813,6 @@ pub(crate) fn headless_runtime_resolution_ctx<'a>(
 ) -> nofy_shell::agent::config::RuntimeResolutionContext<'a> {
     nofy_shell::agent::config::RuntimeResolutionContext {
         raw_config,
-        remote_settings: None,
         is_headless: true,
         cli_subagents: None,
         cli_web_search_model: None,
@@ -878,7 +877,6 @@ pub async fn run_single_turn(
     agent_config.default_auto_mode = nofy_shell::util::config::effective_auto_for_launch(
         options.yolo,
         options.permission_mode_flag.as_deref(),
-        None,
     );
 
     apply_agent_flag(&options.agent, &mut agent_config);

@@ -101,15 +101,6 @@ pub(crate) fn reject_direct_hub_cloud_meta(
 }
 /// Marks a notification's meta field with `isReplay: true` for replayed session updates.
 /// If `persist_data` is provided, it will be included in the meta under `nofy/persist`.
-/// Resolve the `subscription_tier` label for telemetry/AuthMeta.
-///
-/// Only the remote-settings display string is used. JWT tier claims and
-/// auth-mode inference belonged to the xAI account system and are gone.
-pub(crate) fn resolve_subscription_tier_for_telemetry(
-    display: Option<String>,
-) -> Option<String> {
-    display.filter(|s| !s.trim().is_empty())
-}
 /// ACP `_meta` key for chat+local workspace intent (pager stamps on chat create).
 #[cfg(feature = "local-workspace")]
 const LOCAL_WORKSPACE_META_KEY: &str = "nofy/local_workspace";
@@ -507,38 +498,15 @@ pub(crate) fn build_prompt_response_meta(
     serde_json::to_value(meta).expect("PromptResponseMeta is always serializable")
 }
 /// Typed payload for the `nofy/settings/update` notification sent to pager
-/// clients after remote settings settings are refreshed on `/new`.
+/// clients on `/new` so mid-session local config edits are refreshed.
 ///
 /// Keeping this as a `#[derive(Serialize)]` struct gives compile-time
 /// contract safety between the shell and the pager deserializer.
 #[derive(serde::Serialize)]
 struct SettingsUpdateNotification {
-    show_resolved_model: Option<bool>,
-    sharing_enabled: Option<bool>,
-    privacy_notice_rollout: Option<bool>,
-    privacy_banner_reshow_days: Option<u64>,
-    session_picker_grouped: Option<bool>,
-    tips: Option<Vec<String>>,
-    slash_command_tags: Option<std::collections::BTreeMap<String, String>>,
-    announcements: Option<Vec<nofy_announcements::RemoteAnnouncement>>,
-    /// Remote campaigns snapshot for the client's process-global campaign
-    /// cache. `Some` whenever settings exist (empty means campaigns were
-    /// withdrawn); `None` when the agent has no settings yet, which clients
-    /// treat as "leave the cache alone". In leader mode this push is the only
-    /// seam that seeds the TUI process, so a `/model` pick can record a remote
-    /// campaign's dismissal even when the TUI's own startup prefetch missed.
-    campaigns: Option<Vec<crate::util::config::CampaignOverride>>,
-    gate_message: Option<String>,
-    gate_url: Option<String>,
-    gate_label: Option<String>,
-    allow_access: Option<bool>,
-    subscription_tier_display: Option<String>,
-    auto_permission_mode_enabled: Option<bool>,
-    /// Soft-default permission mode for the pager (post-auth / `/new` refresh).
-    permission_mode: Option<String>,
-    group_tool_verbs: Option<bool>,
-    collapsed_edit_blocks: Option<bool>,
-    subscription_watch_interval_secs: Option<u64>,
+    tips: Vec<String>,
+    slash_command_tags: std::collections::BTreeMap<String, String>,
+    auto_permission_mode_enabled: bool,
 }
 /// When the announcements push gate emits despite an unchanged visible list.
 #[derive(Clone, Copy, Debug)]
@@ -851,9 +819,9 @@ pub struct MvpAgent {
     announcements_gen: std::cell::Cell<u64>,
     /// Announcements list last actually emitted via `nofy/announcements/update`
     /// (expiry-filtered), the diff baseline for `emit_announcements`.
-    /// Owned by the emit gate — full-settings refreshes move `remote_settings`
-    /// without touching this, so their changes still get pushed on the next
-    /// gate call. LEADER-SAFE(shared): one agent-wide push stream.
+    /// Owned by the emit gate — config-layer changes are re-resolved on each
+    /// gate call and diffed against this baseline. LEADER-SAFE(shared): one
+    /// agent-wide push stream.
     last_emitted_announcements: RefCell<Vec<nofy_announcements::RemoteAnnouncement>>,
     /// Threshold jemalloc heap-profile monitor (agent process only).
     heap_profile_monitor: RefCell<crate::heap_profile::HeapProfileMonitor>,
@@ -1109,14 +1077,12 @@ impl AuthRequestMeta {
 fn resolve_inference_idle_timeout_secs(
     models: &indexmap::IndexMap<String, crate::agent::config::ModelEntry>,
     model: &str,
-    remote_settings: Option<&crate::util::config::RemoteSettings>,
 ) -> u64 {
     let per_model = models
         .get(model)
         .or_else(|| models.values().find(|entry| entry.info.model == model))
         .and_then(|entry| entry.info.inference_idle_timeout_secs);
-    let remote = remote_settings.and_then(|s| s.inference_idle_timeout_secs);
-    per_model.or(remote).unwrap_or(600).max(10)
+    per_model.unwrap_or(600).max(10)
 }
 /// Parse the client-advertised `nofy/hunkTracker.mode` string. Case-insensitive
 /// and trimmed. Absent/blank/`off`/`disabled` => `None`; unknown => `AllDirty`.
@@ -1544,13 +1510,6 @@ impl MvpAgent {
         result
     }
     pub(crate) fn auth_response_with_meta(&self) -> AuthenticateResponse {
-        let (show_resolved_model, subscription_tier) = {
-            let cfg = self.cfg.borrow();
-            let rs = cfg.remote_settings.as_ref();
-            let subscription_tier = rs.and_then(|s| s.subscription_tier_display.clone());
-            (rs.and_then(|s| s.show_resolved_model), subscription_tier)
-        };
-        let subscription_tier = resolve_subscription_tier_for_telemetry(subscription_tier);
         let meta = self
             .auth_manager
             .current()
@@ -1563,9 +1522,9 @@ impl MvpAgent {
                     is_zdr: auth.is_zdr_team(),
                     team_role: auth.team_role.clone(),
                     coding_data_retention_opt_out: auth.coding_data_retention_opt_out,
-                    show_resolved_model,
+                    show_resolved_model: None,
                     gate: None,
-                    subscription_tier,
+                    subscription_tier: None,
                 };
                 serde_json::to_value(auth_meta)
                     .ok()
@@ -1586,36 +1545,27 @@ impl MvpAgent {
             }
         });
     }
-    /// Fire-and-forget `nofy/settings/update` from the current remote snapshot.
+    /// Fire-and-forget `nofy/settings/update` from locally resolved settings.
     pub(super) fn emit_settings_update_notification(&self) {
         let payload = {
-            let cfg = self.cfg.borrow();
-            let rs = cfg.remote_settings.as_ref();
+            let requirements = crate::config::load_merged_requirements();
+            let user = crate::config::load_from_disk().ok();
+            let managed = crate::config::load_managed_config().ok();
+            let tips = crate::util::config::resolve_tips(
+                requirements.as_ref(),
+                user.as_ref(),
+                managed.as_ref(),
+            );
+            let empty = toml::Value::Table(toml::map::Map::new());
+            let effective = crate::config::load_effective_config().unwrap_or(empty);
+            let slash_command_tags = crate::util::config::resolve_slash_command_tags(&effective)
+                .into_iter()
+                .collect();
             SettingsUpdateNotification {
-                show_resolved_model: rs.and_then(|s| s.show_resolved_model),
-                sharing_enabled: rs.and_then(|s| s.sharing_enabled),
-                privacy_notice_rollout: rs.and_then(|s| s.privacy_notice_rollout),
-                privacy_banner_reshow_days: rs
-                    .and_then(|s| s.privacy_banner_reshow_days),
-                session_picker_grouped: rs.and_then(|s| s.session_picker_grouped),
-                tips: rs.and_then(|s| s.tips.clone()),
-                slash_command_tags: rs.and_then(|s| s.slash_command_tags.clone()),
-                announcements: rs.and_then(|s| s.announcements.clone()),
-                campaigns: rs.map(|s| s.campaigns.clone()),
-                gate_message: rs.and_then(|s| s.gate_message.clone()),
-                gate_url: rs.and_then(|s| s.gate_url.clone()),
-                gate_label: rs.and_then(|s| s.gate_label.clone()),
-                allow_access: rs.and_then(|s| s.allow_access),
-                subscription_tier_display: rs
-                    .and_then(|s| s.subscription_tier_display.clone()),
-                auto_permission_mode_enabled: crate::util::config::remote_auto_mode_enabled(
-                    rs,
-                ),
-                permission_mode: rs.and_then(|s| s.permission_mode.clone()),
-                group_tool_verbs: rs.and_then(|s| s.group_tool_verbs),
-                collapsed_edit_blocks: rs.and_then(|s| s.collapsed_edit_blocks),
-                subscription_watch_interval_secs: rs
-                    .and_then(|s| s.subscription_watch_interval_secs),
+                tips,
+                slash_command_tags,
+                auto_permission_mode_enabled:
+                    crate::util::config::auto_permission_mode_enabled_from_disk(),
             }
         };
         if let Ok(params) = serde_json::value::to_raw_value(&payload) {
@@ -1668,13 +1618,8 @@ impl MvpAgent {
                 });
             targets
         };
-        let remote_settings = self.cfg.borrow().remote_settings.clone();
         for (cwd, cmd_tx) in targets {
-            let project_trusted = folder_trust::resolve_and_record(
-                cwd.as_path(),
-                remote_settings.as_ref(),
-                false,
-            );
+            let project_trusted = folder_trust::resolve_and_record(cwd.as_path(), false);
             let disk_cfg = crate::config::resolve_effective_plugins_config(cwd.as_path())
                 .to_discovery_config();
             let registry = self

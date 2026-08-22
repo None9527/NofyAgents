@@ -321,9 +321,8 @@ async fn build_report(cwd: &Path) -> InspectReport {
     // Route through the live folder-trust gate rather than a raw store read; no
     // session resolve has run for a one-shot `inspect`. The single verdict drives
     // the top-level flag and gates the hooks, plugins, and MCP/LSP listings so
-    // they reflect runtime gating. `remote = None`: env/user/managed opt-out is
-    // honored, but a remote kill-switch is not consulted on this report-only path.
-    crate::agent::folder_trust::resolve_and_record(cwd, None, false);
+    // they reflect runtime gating.
+    crate::agent::folder_trust::resolve_and_record(cwd, false);
     let project_trusted = crate::agent::folder_trust::project_scope_allowed(cwd);
 
     let trust_store = nofy_agent::plugins::TrustStore::load();
@@ -1024,9 +1023,8 @@ fn list_lsp_servers(
 
     // Folder-trust gate (display-only): inspect never spawns servers, but mark the
     // repo-local (project-scoped) entries a session would skip in an untrusted
-    // clone so the listing matches the live gate. `remote = None` mirrors
-    // `nofy mcp doctor` (no loaded RemoteSettings in a standalone command).
-    crate::agent::folder_trust::resolve_and_record(cwd, None, false);
+    // clone so the listing matches the live gate.
+    crate::agent::folder_trust::resolve_and_record(cwd, false);
     let project_allowed = crate::agent::folder_trust::project_scope_allowed(cwd);
 
     servers
@@ -1624,11 +1622,6 @@ mod tests {
 
         assert!(human.contains("skills     on   (default)"), "{human}");
         assert!(human.contains("rules      OFF  (config)"), "{human}");
-        assert!(
-            !human.contains("Defaults shown; remote may override."),
-            "{human}"
-        );
-        assert!(!human.contains("resolved at session start"), "{human}");
         assert!(!human.contains("unresolved"), "{human}");
         assert!(!human.contains("?"), "{human}");
     }
@@ -1672,7 +1665,6 @@ mod tests {
             source: CompatSource::Config,
         };
         let report = ExternalCompatReport {
-            remote_settings_loaded: false,
             cells: vec![
                 cell("cursor", "rules", false),
                 cell("cursor", "agents", true),

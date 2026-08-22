@@ -6762,7 +6762,6 @@ version = "0.1.0"
 dependencies = [
  "agent-client-protocol",
  "indexmap",
- "nofy-announcements",
  "nofy-config",
  "nofy-mcp",
  "serde",

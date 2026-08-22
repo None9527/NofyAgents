@@ -3,25 +3,14 @@ use super::{
     date_rollover_reminder, laziness_injection_active, resolve_reminder_policy, todo_gate_active,
 };
 use crate::session::persistence::PersistenceMsg;
-use crate::util::config::RemoteSettings;
 use nofy_agent::AgentDefinition;
 use nofy_agent::prompt::context::{PromptAudience, TemplateOverride};
 use nofy_agent::system_reminder::{
     DEFAULT_TODO_GATE_MAX_FIRES, ReminderPolicy, TodoGateConfig,
 };
-/// Helper: a `RemoteSettings` whose only non-default fields are the
-/// TodoGate knobs we want to vary. Mirrors `Default::default()` for
-/// everything else so the test stays robust to unrelated additions.
-fn remote_with_todo_gate(enabled: Option<bool>, cap: Option<u32>) -> RemoteSettings {
-    RemoteSettings {
-        todo_gate_enabled: enabled,
-        todo_gate_max_fires_per_prompt: cap,
-        ..RemoteSettings::default()
-    }
-}
 #[test]
-fn remote_none_preserves_built_in_defaults() {
-    let policy = resolve_reminder_policy(None, false);
+fn todo_gate_off_preserves_built_in_defaults() {
+    let policy = resolve_reminder_policy(false);
     assert_eq!(
         policy.todo_gate,
         TodoGateConfig {
@@ -33,21 +22,8 @@ fn remote_none_preserves_built_in_defaults() {
     assert!(policy.todo_nudge.enabled);
 }
 #[test]
-fn remote_disable_matches_default_path() {
-    let remote = remote_with_todo_gate(Some(false), None);
-    let policy = resolve_reminder_policy(Some(&remote), false);
-    assert_eq!(
-        policy.todo_gate,
-        TodoGateConfig {
-            enabled: false,
-            max_fires_per_prompt: DEFAULT_TODO_GATE_MAX_FIRES,
-        },
-    );
-}
-#[test]
-fn remote_enable_true_overrides_default() {
-    let remote = remote_with_todo_gate(Some(true), None);
-    let policy = resolve_reminder_policy(Some(&remote), false);
+fn cli_todo_gate_enables_gate() {
+    let policy = resolve_reminder_policy(true);
     assert_eq!(
         policy.todo_gate,
         TodoGateConfig {
@@ -55,66 +31,6 @@ fn remote_enable_true_overrides_default() {
             max_fires_per_prompt: DEFAULT_TODO_GATE_MAX_FIRES,
         },
     );
-}
-#[test]
-fn remote_cap_override_applies_without_enabling_gate() {
-    let remote = remote_with_todo_gate(None, Some(5));
-    let policy = resolve_reminder_policy(Some(&remote), false);
-    assert_eq!(
-        policy.todo_gate,
-        TodoGateConfig {
-            enabled: false,
-            max_fires_per_prompt: 5,
-        },
-    );
-}
-#[test]
-fn cli_todo_gate_overrides_remote_enable_false() {
-    let remote = remote_with_todo_gate(Some(false), Some(7));
-    let policy = resolve_reminder_policy(Some(&remote), true);
-    assert_eq!(
-        policy.todo_gate,
-        TodoGateConfig {
-            enabled: true,
-            // Cap stays whatever remote said; CLI only flips `enabled`.
-            max_fires_per_prompt: 7,
-        },
-    );
-}
-#[test]
-fn remote_settings_deserializes_without_todo_gate_fields() {
-    let legacy_json = "{}";
-    let settings: RemoteSettings = serde_json::from_str(legacy_json).unwrap();
-    assert_eq!(settings.todo_gate_enabled, None);
-    assert_eq!(settings.todo_gate_max_fires_per_prompt, None);
-    let policy = resolve_reminder_policy(Some(&settings), false);
-    assert_eq!(
-        policy.todo_gate,
-        TodoGateConfig {
-            enabled: false,
-            max_fires_per_prompt: DEFAULT_TODO_GATE_MAX_FIRES,
-        },
-    );
-}
-#[test]
-fn remote_settings_accepts_explicit_null_todo_gate_fields() {
-    let json = r#"{
-            "todo_gate_enabled": null,
-            "todo_gate_max_fires_per_prompt": null
-        }"#;
-    let settings: RemoteSettings = serde_json::from_str(json).unwrap();
-    assert_eq!(settings.todo_gate_enabled, None);
-    assert_eq!(settings.todo_gate_max_fires_per_prompt, None);
-}
-#[test]
-fn remote_settings_preserves_false_and_zero_todo_gate_fields() {
-    let json = r#"{
-            "todo_gate_enabled": false,
-            "todo_gate_max_fires_per_prompt": 0
-        }"#;
-    let settings: RemoteSettings = serde_json::from_str(json).unwrap();
-    assert_eq!(settings.todo_gate_enabled, Some(false));
-    assert_eq!(settings.todo_gate_max_fires_per_prompt, Some(0));
 }
 fn def_with_template(tpl: TemplateOverride) -> AgentDefinition {
     let mut def = AgentDefinition::default_nofy_build();

@@ -1,141 +1,6 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
     use super::*;
 
-    #[test]
-    fn voice_kill_switch_clears_pending_spawn() {
-        // A `/voice` queued a lazy spawn; then the remote flag turns off. The
-        // teardown must drop the queued spawn so the event loop won't consume it
-        // and surface a misleading "could not start" toast.
-        let mut app = make_app_with_agent("sess-1");
-        app.voice_mode_enabled = true;
-        app.voice_ui_active = true;
-        app.voice_state = crate::app::app_view::VoiceState::ColdStart {
-            hold: false,
-            target: crate::app::app_view::VoiceTarget::DashboardDispatch,
-        };
-
-        let affected = handle_ext_notification(&voice_settings_update(false), &mut app);
-
-        assert!(affected);
-        assert!(!app.voice_mode_enabled);
-        assert!(
-            !app.voice_ui_active,
-            "remote kill switch disarms voice mode"
-        );
-        assert!(
-            !app.voice_state.pending_cold_start(),
-            "queued lazy spawn must be dropped"
-        );
-    }
-
-    #[test]
-    fn settings_api_key_keeps_voice_despite_remote_false() {
-        // Remote false alone must not disable an already API-key session.
-        let mut app = make_app_with_agent("sess-api-key");
-        app.is_api_key_auth = true;
-        app.apply_voice_mode_enabled(true);
-        app.voice_ui_active = true;
-        assert!(handle_ext_notification(
-            &voice_settings_update(false),
-            &mut app
-        ));
-        assert!(app.voice_mode_enabled);
-        assert!(app.voice_ui_active);
-
-        // Same update can stamp API Key while remote settings sends voice false.
-        let mut app = make_app_with_agent("sess-combined");
-        let notif = acp::ExtNotification::new(
-            "nofy/settings/update",
-            std::sync::Arc::from(
-                serde_json::value::to_raw_value(&serde_json::json!({
-                    "voice_mode_enabled": false,
-                    "subscription_tier_display": "API Key"
-                }))
-                .unwrap(),
-            ),
-        );
-        assert!(handle_ext_notification(&notif, &mut app));
-        assert!(app.is_api_key_auth);
-        assert!(app.voice_mode_enabled);
-        assert!(app.tier_restricted_commands.is_empty());
-    }
-
-    #[test]
-    fn settings_non_api_key_tier_clears_stale_api_key_flag() {
-        let mut app = make_app_with_agent("sess-stale-key");
-        assert!(handle_ext_notification(
-            &tier_settings_update("API Key"),
-            &mut app
-        ));
-        assert!(app.is_api_key_auth);
-        assert!(!app.usage_visible);
-        assert!(app.tier_restricted_commands.is_empty());
-        assert!(app.voice_mode_enabled);
-
-        // Later personal Free stamp must not keep the API-key bypass.
-        // fork 移除 tier 限制:Free stamp 不再产生受限命令,也不再按 tier
-        // 强制重置 voice(生产注释:sanitized build 离开 API-key 不重置 voice)。
-        assert!(handle_ext_notification(
-            &tier_settings_update("Free"),
-            &mut app
-        ));
-        assert!(!app.is_api_key_auth);
-        assert!(app.usage_visible);
-        assert!(app.tier_restricted_commands.is_empty());
-        assert!(app.voice_mode_enabled);
-
-        // Paid tier after API Key must not force voice off (omit voice field).
-        let mut app = make_app_with_agent("sess-paid-keep-voice");
-        assert!(handle_ext_notification(
-            &tier_settings_update("API Key"),
-            &mut app
-        ));
-        assert!(app.voice_mode_enabled);
-        assert!(handle_ext_notification(
-            &tier_settings_update("SuperNofy"),
-            &mut app
-        ));
-        assert!(!app.is_api_key_auth);
-        assert!(app.voice_mode_enabled);
-        assert!(app.tier_restricted_commands.is_empty());
-    }
-
-    #[test]
-    fn voice_remote_true_re_enables_after_kill_switch() {
-        let mut app = make_app_with_agent("sess-1");
-        app.apply_voice_mode_enabled(false);
-        assert!(!app.voice_mode_enabled);
-
-        let affected = handle_ext_notification(&voice_settings_update(true), &mut app);
-
-        assert!(affected);
-        assert!(
-            app.voice_mode_enabled,
-            "remote true lifts the kill switch (env unset)"
-        );
-    }
-
-    #[test]
-    fn voice_settings_update_omitted_leaves_gate_unchanged() {
-        // Unrelated settings push must not flip the gate (default-on stays on;
-        // kill-switch stays off until an explicit true/false).
-        let mut app = make_app_with_agent("sess-1");
-        app.apply_voice_mode_enabled(true);
-        let omit = acp::ExtNotification::new(
-            "nofy/settings/update",
-            std::sync::Arc::from(
-                serde_json::value::to_raw_value(&serde_json::json!({ "sharing_enabled": true }))
-                    .unwrap(),
-            ),
-        );
-        let _ = handle_ext_notification(&omit, &mut app);
-        assert!(app.voice_mode_enabled);
-
-        app.apply_voice_mode_enabled(false);
-        let _ = handle_ext_notification(&omit, &mut app);
-        assert!(!app.voice_mode_enabled);
-    }
-
     /// Build an `nofy/settings/update` carrying only the scheduler flag.
     fn scheduler_background_loops_update(value: bool) -> acp::ExtNotification {
         acp::ExtNotification::new(
@@ -265,123 +130,81 @@
     }
 
     #[test]
-    fn settings_update_clearing_group_tool_verbs_reverts_to_default() {
-        // Expected values come from the same chain the handler resolves, so the
-        // test holds regardless of host config/env (a local `[ui]` or env
-        // override legitimately beats the remote tier on both legs).
+    fn settings_update_re_resolves_group_tool_verbs_from_local_layers() {
+        // The expected value comes from the same chain the handler resolves,
+        // so the test holds regardless of host config/env.
         let requirements = nofy_shell::config::load_merged_requirements();
         let user_config = nofy_shell::config::load_from_disk().ok();
         let managed_config = nofy_shell::config::load_managed_config().ok();
-        let resolve = |remote_val: Option<bool>| {
-            let remote = nofy_shell::util::config::RemoteSettings {
-                group_tool_verbs: remote_val,
-                ..Default::default()
-            };
-            nofy_shell::util::config::resolve_group_tool_verbs(
-                requirements.as_ref(),
-                user_config.as_ref(),
-                managed_config.as_ref(),
-                Some(&remote),
-            )
-            .value
-        };
-        let expect_on = resolve(Some(true));
-        let expect_cleared = resolve(None);
+        let expected = nofy_shell::util::config::resolve_group_tool_verbs(
+            requirements.as_ref(),
+            user_config.as_ref(),
+            managed_config.as_ref(),
+        )
+        .value;
         let mut app = make_app_with_agent("sess-1");
 
-        // Remote enable arrives (redundant with the on-default, still latched).
-        assert!(handle_ext_notification(
-            &group_tool_verbs_settings_update(Some(true)),
-            &mut app
-        ));
+        // Seed the cache opposite to the expected outcome so only a real
+        // re-resolve can pass.
+        crate::appearance::cache::set_group_tool_verbs(!expected);
+        assert!(handle_ext_notification(&blank_settings_update(), &mut app));
         assert_eq!(
             crate::appearance::cache::load_group_tool_verbs(),
-            expect_on,
-            "remote Some(true) must re-resolve into the cache"
-        );
-
-        // remote settings clears the remote tier (field absent → None). Seed the
-        // cache opposite to the expected outcome — the latched remote enable —
-        // so only a real re-resolve can pass; the update must revert it to the
-        // local/default resolution instead of skipping the field. An old
-        // payload without the field takes this same path.
-        crate::appearance::cache::set_group_tool_verbs(!expect_cleared);
-        assert!(handle_ext_notification(
-            &group_tool_verbs_settings_update(None),
-            &mut app
-        ));
-        assert_eq!(
-            crate::appearance::cache::load_group_tool_verbs(),
-            expect_cleared,
-            "cleared remote tier must re-resolve the full chain, not stay latched"
+            expected,
+            "a settings push must re-resolve the local chain into the cache"
         );
         // Restore default (on) for other tests that share the process cache.
         crate::appearance::cache::set_group_tool_verbs(true);
     }
 
     #[test]
-    fn settings_update_clearing_collapsed_edit_blocks_reverts_to_default() {
-        // Expected values come from the same chain the handler resolves, so the
-        // test holds regardless of host config/env (a local `[ui]` or env
-        // override legitimately beats the remote tier on both legs).
+    fn settings_update_re_resolves_collapsed_edit_blocks_from_local_layers() {
+        // The expected value comes from the same chain the handler resolves,
+        // so the test holds regardless of host config/env.
         let requirements = nofy_shell::config::load_merged_requirements();
         let user_config = nofy_shell::config::load_from_disk().ok();
         let managed_config = nofy_shell::config::load_managed_config().ok();
-        let resolve = |remote_val: Option<bool>| {
-            let remote = nofy_shell::util::config::RemoteSettings {
-                collapsed_edit_blocks: remote_val,
-                ..Default::default()
-            };
-            nofy_shell::util::config::resolve_collapsed_edit_blocks(
-                requirements.as_ref(),
-                user_config.as_ref(),
-                managed_config.as_ref(),
-                Some(&remote),
-            )
-            .value
-        };
-        let expect_on = resolve(Some(true));
-        let expect_cleared = resolve(None);
+        let expected = nofy_shell::util::config::resolve_collapsed_edit_blocks(
+            requirements.as_ref(),
+            user_config.as_ref(),
+            managed_config.as_ref(),
+        )
+        .value;
         let mut app = make_app_with_agent("sess-1");
 
-        // remote settings enable arrives (the team rollout path).
-        assert!(handle_ext_notification(
-            &collapsed_edit_blocks_settings_update(Some(true)),
-            &mut app
-        ));
+        // Seed the cache opposite to the expected outcome so only a real
+        // re-resolve can pass.
+        crate::appearance::cache::set_collapsed_edit_blocks(!expected);
+        assert!(handle_ext_notification(&blank_settings_update(), &mut app));
         assert_eq!(
             crate::appearance::cache::load_collapsed_edit_blocks(),
-            expect_on,
-            "remote Some(true) must re-resolve into the cache"
-        );
-
-        // remote settings clears the remote tier (field absent → None). Seed the
-        // cache opposite to the expected outcome — the latched remote enable —
-        // so only a real re-resolve can pass; the update must revert it to the
-        // local/default resolution instead of skipping the field. An old
-        // payload without the field takes this same path.
-        crate::appearance::cache::set_collapsed_edit_blocks(!expect_cleared);
-        assert!(handle_ext_notification(
-            &collapsed_edit_blocks_settings_update(None),
-            &mut app
-        ));
-        assert_eq!(
-            crate::appearance::cache::load_collapsed_edit_blocks(),
-            expect_cleared,
-            "cleared remote tier must re-resolve the full chain, not stay latched"
+            expected,
+            "a settings push must re-resolve the local chain into the cache"
         );
         // Restore default (off) for other tests that share the process cache.
         crate::appearance::cache::set_collapsed_edit_blocks(false);
     }
 
-    /// A remote collapsed_edit_blocks flip re-materializes on-default Edit
-    /// rows in the live transcript (the same policy the settings toggle
-    /// applies via `apply_collapsed_edit_blocks_flip`).
+    /// A collapsed_edit_blocks flip re-materializes on-default Edit rows in
+    /// the live transcript (the same policy the settings toggle applies via
+    /// `apply_collapsed_edit_blocks_flip`).
     #[test]
     fn settings_update_collapsed_edit_blocks_flip_refolds_live_edits() {
         use crate::scrollback::types::DisplayMode;
 
-        crate::appearance::cache::set_collapsed_edit_blocks(false);
+        let requirements = nofy_shell::config::load_merged_requirements();
+        let user_config = nofy_shell::config::load_from_disk().ok();
+        let managed_config = nofy_shell::config::load_managed_config().ok();
+        let expected = nofy_shell::util::config::resolve_collapsed_edit_blocks(
+            requirements.as_ref(),
+            user_config.as_ref(),
+            managed_config.as_ref(),
+        )
+        .value;
+
+        // Seed the cache opposite to the local resolution so the push is a
+        // real flip on every host.
+        crate::appearance::cache::set_collapsed_edit_blocks(!expected);
         let mut app = make_app_with_agent("sess-1");
         let id = {
             let sb = &mut app.agents.get_mut(&AgentId(0)).unwrap().scrollback;
@@ -393,24 +216,15 @@
         };
         assert_eq!(
             app.agents[&AgentId(0)].scrollback.get_by_id(id).unwrap().display_mode,
-            DisplayMode::Expanded,
-            "flag off materializes expanded"
+            if expected { DisplayMode::Expanded } else { DisplayMode::Collapsed },
+            "the pre-push cache value materializes the row"
         );
 
-        assert!(handle_ext_notification(
-            &collapsed_edit_blocks_settings_update(Some(true)),
-            &mut app
-        ));
-        if !crate::appearance::cache::load_collapsed_edit_blocks() {
-            // A host-level env/config override outranked the remote value, so
-            // no real flip occurred and the re-fold didn't run — nothing to
-            // assert on this machine (CI runs with clean layers).
-            return;
-        }
+        assert!(handle_ext_notification(&blank_settings_update(), &mut app));
         assert_eq!(
             app.agents[&AgentId(0)].scrollback.get_by_id(id).unwrap().display_mode,
-            DisplayMode::Collapsed,
-            "remote enable must collapse the on-default Edit row"
+            if expected { DisplayMode::Collapsed } else { DisplayMode::Expanded },
+            "the flip must re-materialize the Edit row from the local resolution"
         );
         // Restore default (off) for other tests that share the process cache.
         crate::appearance::cache::set_collapsed_edit_blocks(false);
@@ -418,7 +232,7 @@
 
     /// The live-refresh flip mirrors `set_group_tool_verbs_inner`'s stale
     /// group-expansion cleanup: a previously expanded verb slot must not
-    /// survive a remote flip as an expanded header.
+    /// survive a flip as an expanded header.
     #[test]
     fn settings_update_flip_resets_stale_group_expansion() {
         crate::appearance::cache::set_group_tool_verbs(true);
@@ -439,14 +253,10 @@
             assert!(info.group_collapse_header, "expanded verb slot armed");
         }
 
-        assert!(handle_ext_notification(
-            &group_tool_verbs_settings_update(Some(false)),
-            &mut app
-        ));
+        assert!(handle_ext_notification(&blank_settings_update(), &mut app));
         if crate::appearance::cache::load_group_tool_verbs() {
-            // A host-level env/config override outranked the remote value, so
-            // no real flip occurred and the cleanup path didn't run — nothing
-            // to assert on this machine (CI runs with clean layers).
+            // The local layers resolve on, so no flip occurred and the cleanup
+            // path didn't run — nothing to assert on this machine.
             return;
         }
         let sb = &mut app.agents.get_mut(&AgentId(0)).unwrap().scrollback;
@@ -454,7 +264,7 @@
         let info = sb.get_cached_entry_layouts().unwrap()[0];
         assert!(
             !info.group_collapse_header,
-            "remote flip must drop the stale expansion"
+            "the flip must drop the stale expansion"
         );
         assert!(
             sb.get_cached_entry_height(1).unwrap_or(0) > 0,
@@ -556,8 +366,8 @@
     }
 
     /// The settings path must not touch announcements: the shell already emits
-    /// gen-ordered `nofy/announcements/update` for every settings writer, and a
-    /// gen-less apply here could clobber a newer push.
+    /// gen-ordered `nofy/announcements/update` for every announcements change,
+    /// and a gen-less apply here could clobber a newer push.
     #[test]
     fn settings_update_ignores_announcements_payload() {
         let mut app = make_app_with_agent("sess-ann");
@@ -567,7 +377,6 @@
         let notif = acp::ExtNotification::new(
             "nofy/settings/update",
             serde_json::value::to_raw_value(&serde_json::json!({
-                "show_resolved_model": false,
                 "announcements": [critical_announcement("from-settings")],
             }))
             .unwrap()
@@ -581,36 +390,27 @@
             "settings/update must not replace the pushed announcements"
         );
         assert_eq!(app.announcements_last_gen, 7, "watermark untouched");
-        assert!(!app.show_resolved_model, "other settings fields still apply");
     }
 
 
-    /// User-owned mode must not re-arm default_yolo or rewrite UI from remote.
+    /// User-owned mode must not re-arm default_yolo or rewrite UI on a push.
     #[test]
-    fn permission_mode_user_claim_blocks_default_yolo_rearm() {
+    fn permission_mode_user_claim_blocks_soft_default_rearm() {
         let mut app = make_app_with_agent("sess-user-claim");
         app.auto_mode_gate = true;
         app.permission_mode_from_soft_default = false;
         app.current_ui.permission_mode = Some("ask".into());
         app.default_yolo = false;
 
-        let apply_yolo = acp::ExtNotification::new(
-            "nofy/settings/update",
-            serde_json::value::to_raw_value(&serde_json::json!({
-                "permission_mode": "always-approve",
-            }))
-            .unwrap()
-            .into(),
-        );
-        let _ = handle_ext_notification(&apply_yolo, &mut app);
+        let _ = handle_ext_notification(&blank_settings_update(), &mut app);
         assert!(
             !app.default_yolo,
-            "user-claimed mode must not re-arm default_yolo from remote always-approve"
+            "user-claimed mode must not re-arm default_yolo on a settings push"
         );
         assert_eq!(
             app.current_ui.permission_mode.as_deref(),
             Some("ask"),
-            "user-claimed UI must not be rewritten by remote soft-default"
+            "user-claimed UI must not be rewritten by the soft-default rearm"
         );
         assert!(
             !app.permission_mode_from_soft_default,
@@ -618,44 +418,12 @@
         );
     }
 
-    #[test]
-    fn permission_mode_omitted_does_not_clear_soft_default() {
-        let mut app = make_app_with_agent("sess-omit-pm");
-        app.permission_mode_from_soft_default = true;
-        app.current_ui.permission_mode = Some("auto".into());
-        app.default_yolo = false;
-        app.auto_mode_gate = true;
-
-        let unrelated = acp::ExtNotification::new(
-            "nofy/settings/update",
-            serde_json::value::to_raw_value(&serde_json::json!({
-                "show_resolved_model": true,
-            }))
-            .unwrap()
-            .into(),
-        );
-        let _ = handle_ext_notification(&unrelated, &mut app);
-        assert_eq!(
-            app.current_ui.permission_mode.as_deref(),
-            Some("auto"),
-            "omitted permission_mode must not clear soft-applied UI mode"
-        );
-        assert!(
-            app.permission_mode_from_soft_default,
-            "origin must stay SoftDefault when field is omitted"
-        );
-        assert!(
-            !app.default_yolo,
-            "omitted permission_mode must not recompute default_yolo"
-        );
-    }
-
-    /// Positive wiring: a permission_mode-bearing push with the latch held
-    /// must reach the applier through the real handler. The handler's ambient
-    /// effective-config read decides WHICH mode wins (exact outcomes are
-    /// pinned on the applier with injected TOML), so this asserts the
-    /// applier's host-independent signature instead: the non-canonical
-    /// sentinel display is rewritten to a canonical mode, latch preserved.
+    /// Positive wiring: a push with the latch held must reach the applier
+    /// through the real handler. The handler's ambient effective-config read
+    /// decides WHICH mode wins (exact outcomes are pinned on the applier with
+    /// injected TOML), so this asserts the applier's host-independent
+    /// signature instead: the non-canonical sentinel display is rewritten to
+    /// a canonical mode, latch preserved.
     #[test]
     fn permission_mode_soft_default_push_reaches_applier() {
         let mut app = make_app_with_agent("sess-wire-pm");
@@ -664,15 +432,7 @@
         // Outside the applier's output alphabet — only the applier rewrites it.
         app.current_ui.permission_mode = Some("sentinel-not-a-mode".into());
 
-        let push = acp::ExtNotification::new(
-            "nofy/settings/update",
-            serde_json::value::to_raw_value(&serde_json::json!({
-                "permission_mode": "always-approve",
-            }))
-            .unwrap()
-            .into(),
-        );
-        let _ = handle_ext_notification(&push, &mut app);
+        let _ = handle_ext_notification(&blank_settings_update(), &mut app);
         let display = app
             .current_ui
             .permission_mode
@@ -688,23 +448,25 @@
         );
     }
 
+    /// `[ui] permission_mode` TOML value for the applier tests.
+    fn ui_with_permission_mode(mode: &str) -> toml::Value {
+        toml::from_str(&format!("[ui]\npermission_mode = \"{mode}\"\n")).unwrap()
+    }
+
     /// Soft-origin recompute with injected TOML (deterministic — no host
-    /// config): remote always-approve arms default_yolo + UI, keeps the soft
-    /// latch, and persists nothing.
+    /// config): a `[ui] permission_mode = "always-approve"` arms
+    /// default_yolo + UI, keeps the soft latch, and persists nothing.
     #[test]
-    fn permission_mode_soft_default_applies_remote_always_approve() {
+    fn permission_mode_soft_default_applies_toml_always_approve() {
         let mut app = make_app_with_agent("sess-pm");
         app.auto_mode_gate = true;
         app.permission_mode_from_soft_default = true;
         app.current_ui.permission_mode = None;
         app.default_yolo = false;
 
-        super::super::settings::apply_soft_default_permission_mode(
-            &mut app,
-            None,
-            Some("always-approve"),
-        );
-        assert!(app.default_yolo, "remote always-approve must arm default_yolo");
+        let ui = ui_with_permission_mode("always-approve");
+        super::super::settings::apply_soft_default_permission_mode(&mut app, ui.get("ui"));
+        assert!(app.default_yolo, "TOML always-approve must arm default_yolo");
         assert_eq!(
             app.current_ui.permission_mode.as_deref(),
             Some("always-approve"),
@@ -719,18 +481,17 @@
         );
     }
 
-    /// Explicit `null` recomputes with remote=None (unlike field omission):
-    /// with no TOML permission key the soft always-approve drops back to Ask.
+    /// No `[ui]` permission key: the soft default falls back to Ask.
     #[test]
-    fn permission_mode_explicit_null_clears_soft_always_approve() {
+    fn permission_mode_soft_default_without_toml_falls_back_to_ask() {
         let mut app = make_app_with_agent("sess-null-pm");
         app.auto_mode_gate = true;
         app.permission_mode_from_soft_default = true;
         app.current_ui.permission_mode = Some("always-approve".into());
         app.default_yolo = true;
 
-        super::super::settings::apply_soft_default_permission_mode(&mut app, None, None);
-        assert!(!app.default_yolo, "remote null must disarm a soft always-approve");
+        super::super::settings::apply_soft_default_permission_mode(&mut app, None);
+        assert!(!app.default_yolo, "no TOML key must disarm a soft always-approve");
         assert_eq!(app.current_ui.permission_mode.as_deref(), Some("ask"));
         assert!(app.permission_mode_from_soft_default);
         assert!(
@@ -746,18 +507,16 @@
         app.permission_mode_from_soft_default = true;
         app.yolo_policy_block = Some("pinned");
         app.default_yolo = false;
-        super::super::settings::apply_soft_default_permission_mode(
-            &mut app,
-            None,
-            Some("always-approve"),
-        );
-        assert!(!app.default_yolo, "policy pin must block a remote always-approve");
+        let ui = ui_with_permission_mode("always-approve");
+        super::super::settings::apply_soft_default_permission_mode(&mut app, ui.get("ui"));
+        assert!(!app.default_yolo, "policy pin must block a TOML always-approve");
         assert_eq!(app.current_ui.permission_mode.as_deref(), Some("ask"));
 
         let mut app = make_app_with_agent("sess-gate-pm");
         app.permission_mode_from_soft_default = true;
         app.auto_mode_gate = false;
-        super::super::settings::apply_soft_default_permission_mode(&mut app, None, Some("auto"));
+        let ui = ui_with_permission_mode("auto");
+        super::super::settings::apply_soft_default_permission_mode(&mut app, ui.get("ui"));
         assert!(!app.default_yolo);
         assert_eq!(
             app.current_ui.permission_mode.as_deref(),

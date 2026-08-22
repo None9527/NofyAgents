@@ -539,37 +539,23 @@ fn snapshot_ref_write_promotes_nonterminal_status_to_terminal() {
         );
     assert_eq!("completed", reread.status);
 }
-/// Gate defaults OFF: no config, no remote → snapshotting disabled, so the
-/// completion path keeps the worktree preserved (no production change).
+/// Gate defaults OFF: no config → snapshotting disabled, so the completion
+/// path keeps the worktree preserved (no production change).
 #[test]
 fn subagent_worktree_snapshot_gate_defaults_off() {
     let ctx = ctx_with_toggle(std::collections::HashMap::new());
     assert!(!ctx.resolve_subagent_worktree_snapshot_enabled());
 }
-/// Remote remote settings value enables the gate when no local override exists.
+/// Local config disables the gate.
 #[test]
-fn subagent_worktree_snapshot_gate_remote_enables() {
-    let mut ctx = ctx_with_toggle(std::collections::HashMap::new());
-    ctx.remote_settings = Some(crate::util::config::RemoteSettings {
-        subagent_worktree_snapshot_enabled: Some(true),
-        ..Default::default()
-    });
-    assert!(ctx.resolve_subagent_worktree_snapshot_enabled());
-}
-/// Local config wins over remote (kill-switch parity with the other gates).
-#[test]
-fn subagent_worktree_snapshot_gate_local_overrides_remote() {
+fn subagent_worktree_snapshot_gate_local_disables() {
     let mut config = crate::agent::config::Config::default();
     config.features.subagent_worktree_snapshot = Some(false);
     let mut ctx = ctx_with_toggle(std::collections::HashMap::new());
     ctx.agent_config = Some(config);
-    ctx.remote_settings = Some(crate::util::config::RemoteSettings {
-        subagent_worktree_snapshot_enabled: Some(true),
-        ..Default::default()
-    });
     assert!(
             !ctx.resolve_subagent_worktree_snapshot_enabled(),
-            "local [features] subagent_worktree_snapshot=false must override remote enable"
+            "local [features] subagent_worktree_snapshot=false must disable the gate"
         );
 }
 /// Local config alone enables the gate (the per-deployment rollout lever).

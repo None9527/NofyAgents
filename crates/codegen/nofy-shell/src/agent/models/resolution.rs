@@ -51,7 +51,8 @@ pub(crate) fn is_campaign_only_flip(
             .is_some_and(|p| campaign_defaults.contains(p))
 }
 
-/// Pick the default model: CLI > env > config > remote-settings hint, falling
+/// Pick the default model: CLI > env > config, falling back to the first
+/// auth-visible selectable entry.
 pub(crate) fn resolve_default_model(
     cfg: &config::Config,
     catalog: &IndexMap<String, ModelEntry>,
@@ -67,9 +68,6 @@ pub(crate) fn resolve_default_model(
         cfg.default_model_override.as_deref(),
         "NOFY_DEFAULT_MODEL",
         cfg.models.default.as_deref(),
-        cfg.remote_settings
-            .as_ref()
-            .and_then(|rs| rs.default_model.as_deref()),
     );
 
     let first_or_fallback = || -> (String, ModelEntry) {
@@ -105,23 +103,10 @@ pub(crate) fn resolve_default_model(
             if let Some((key, entry)) = found {
                 (key.clone(), entry.clone(), pref.source)
             } else {
-                let is_explicit = matches!(
-                    pref.source,
-                    config::ConfigSource::Cli
-                        | config::ConfigSource::Env
-                        | config::ConfigSource::Config
+                tracing::warn!(
+                    model_id = %pref.value, source = %pref.source,
+                    "preferred model not in available models, falling back"
                 );
-                if is_explicit {
-                    tracing::warn!(
-                        model_id = %pref.value, source = %pref.source,
-                        "preferred model not in available models, falling back"
-                    );
-                } else {
-                    tracing::debug!(
-                        model_id = %pref.value, source = %pref.source,
-                        "remote default_model not in available models, skipping"
-                    );
-                }
                 let campaign_pref_missing = cfg.models.default_is_campaign_driven
                     && matches!(pref.source, config::ConfigSource::Config);
                 if campaign_pref_missing

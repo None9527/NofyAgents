@@ -188,19 +188,16 @@ fn reconnect_restore_outcome(
 ///
 /// `TrustOutcome::Prompt` (interactive + untrusted + repo configs present)
 /// becomes `TrustState::Pending` (show the question); everything else becomes
-/// `TrustState::Done`. The feature-off fast path (kill-switch / opt-out /
-/// local build) short-circuits before any I/O.
-fn seed_trust_state(
-    app: &mut AppView,
-    remote: Option<&nofy_shell::util::config::RemoteSettings>,
-) {
+/// `TrustState::Done`. The feature-off fast path (opt-out / local build)
+/// short-circuits before any I/O.
+fn seed_trust_state(app: &mut AppView) {
     use std::io::IsTerminal;
     use nofy_workspace::folder_trust::{
         TrustOutcome, decide, decide_inputs_with_interactive, feature_enabled,
     };
     use nofy_workspace::trust::workspace_key;
 
-    let feature = feature_enabled(remote);
+    let feature = feature_enabled();
     if !feature {
         app.trust_state = TrustState::Done;
         return;
@@ -734,7 +731,6 @@ pub(crate) async fn run(
     config_watcher: &mut ConfigWatcher,
     args: &PagerArgs,
     session_cwd: Option<std::path::PathBuf>,
-    remote_settings: Option<nofy_shell::util::config::RemoteSettings>,
     term_state: TerminalState,
     materialized: crate::app::session_startup::MaterializedStartup,
     bg_update_rx: Option<
@@ -786,13 +782,9 @@ pub(crate) async fn run(
     } else if term_state.relaunched_into_fullscreen && !app.screen_mode.is_minimal() {
         app.screen_mode_switch_hint = Some("Switched to fullscreen mode · /minimal to go back");
     }
-    let remote_permission_mode = remote_settings
-        .as_ref()
-        .and_then(|s| s.permission_mode.as_deref());
     let launch_yolo = nofy_shell::util::config::effective_yolo_for_launch(
         args.yolo,
         args.permission_mode_flag.as_deref(),
-        remote_permission_mode,
     );
     app.default_yolo = launch_yolo.yolo;
     // Gated launch-auto (CLI `--permission-mode auto` or config). Hoisted so it can
@@ -800,7 +792,6 @@ pub(crate) async fn run(
     let launch_auto = nofy_shell::util::config::effective_auto_for_launch(
         args.yolo,
         args.permission_mode_flag.as_deref(),
-        remote_permission_mode,
     );
     if launch_auto {
         app.current_ui.permission_mode = Some("auto".into());
@@ -885,26 +876,13 @@ pub(crate) async fn run(
         .map(agent_client_protocol::ModelId::new);
     app.cli_effort_token = args.reasoning_effort.clone();
     app.auth_use_oauth = args.oauth;
-    app.show_resolved_model = remote_settings
-        .as_ref()
-        .and_then(|s| s.show_resolved_model)
-        .unwrap_or(true);
+    app.show_resolved_model = true;
     app.sharing_enabled = false;
-    app.privacy_notice_rollout = nofy_config::env_bool("NOFY_PRIVACY_NOTICE_ROLLOUT")
-        .or_else(|| {
-            remote_settings
-                .as_ref()
-                .and_then(|s| s.privacy_notice_rollout)
-        })
-        .unwrap_or(false);
+    app.privacy_notice_rollout =
+        nofy_config::env_bool("NOFY_PRIVACY_NOTICE_ROLLOUT").unwrap_or(false);
     app.privacy_banner_reshow_days = std::env::var("NOFY_PRIVACY_BANNER_RESHOW_DAYS")
         .ok()
-        .and_then(|v| v.trim().parse().ok())
-        .or_else(|| {
-            remote_settings
-                .as_ref()
-                .and_then(|s| s.privacy_banner_reshow_days)
-        });
+        .and_then(|v| v.trim().parse().ok());
     // Local dismiss timestamp for the coding-data privacy banner.
     app.privacy_banner_acked = nofy_shell::config::load_from_disk()
         .ok()
@@ -913,9 +891,7 @@ pub(crate) async fn run(
                 .privacy
                 .privacy_banner_acked
         });
-    app.plugin_cta_enabled = nofy_config::env_bool("NOFY_PLUGIN_CTA")
-        .or_else(|| remote_settings.as_ref().and_then(|s| s.plugin_cta))
-        .unwrap_or(false);
+    app.plugin_cta_enabled = nofy_config::env_bool("NOFY_PLUGIN_CTA").unwrap_or(false);
     // Voice is applied after auth_meta so API-key detection is accurate.
     app.session_picker_grouped = std::env::var("NOFY_SESSION_PICKER_GROUPED")
         .ok()
@@ -928,11 +904,6 @@ pub(crate) async fn run(
             nofy_shell::config::load_effective_config()
                 .ok()
                 .and_then(|cfg| cfg.get("cli")?.get("session_picker_grouped")?.as_bool())
-        })
-        .or_else(|| {
-            remote_settings
-                .as_ref()
-                .and_then(|s| s.session_picker_grouped)
         })
         .unwrap_or(true);
     app.cancel_rewind_enabled = connection.cancel_rewind_enabled;
@@ -1037,27 +1008,16 @@ pub(crate) async fn run(
     }
 
     // After auth so API-key + managed policy resolve correctly.
-    let voice_mode_enabled = crate::app::resolve_voice_mode_live(
-        remote_settings.as_ref().and_then(|s| s.voice_mode_enabled),
-        app.is_api_key_auth,
-    );
+    let voice_mode_enabled = crate::app::resolve_voice_mode_live();
     if !voice_mode_enabled {
         app.voice_reset();
         app.voice_ui_active = false;
     }
     app.apply_voice_mode_enabled(voice_mode_enabled);
 
-    // Fallback: prefetch may have gate info the shell's AuthMeta missed.
-    // Errs on the side of blocking if stale.
-    if app.gate.is_none()
-        && let Some(rs) = remote_settings.as_ref()
-    {
-        app.gate = AppView::gate_from_settings(rs);
-    }
-
-    // Re-impose the startup gate through the chokepoint: cached auth meta
-    // and the settings prefetch are both possibly stale, so a consumer
-    // session's gate is deferred for live verification before first paint.
+    // Re-impose the startup gate through the chokepoint: cached auth meta is
+    // possibly stale, so a consumer session's gate is deferred for live
+    // verification before first paint.
     if let Some(gate) = app.gate.take() {
         post_render_effects.extend(app.impose_gate(gate));
     }
@@ -1080,7 +1040,6 @@ pub(crate) async fn run(
     };
     let compat = nofy_shell::agent::config::resolve_compat_sessions_from_raw(
         effective_config.as_ref().ok_or(()),
-        remote_settings.as_ref(),
     );
     app.foreign_session_compat =
         nofy_workspace::foreign_sessions::EnabledForeignSessionSources {
@@ -1116,20 +1075,14 @@ pub(crate) async fn run(
         requirements.as_ref(),
         user_config.as_ref(),
         managed_config.as_ref(),
-        remote_settings.as_ref(),
     );
 
-    app.subscription_watch_interval_secs = remote_settings
-        .as_ref()
-        .and_then(|rs| rs.subscription_watch_interval_secs);
-
-    // Full layered resolve (env/requirements/remote may beat plain `[ui]`).
+    // Full layered resolve (env/requirements may beat plain `[ui]`).
     crate::appearance::cache::set_show_thinking_blocks(
         nofy_shell::util::config::resolve_show_thinking_blocks(
             requirements.as_ref(),
             user_config.as_ref(),
             managed_config.as_ref(),
-            remote_settings.as_ref(),
         )
         .value,
     );
@@ -1138,7 +1091,6 @@ pub(crate) async fn run(
             requirements.as_ref(),
             user_config.as_ref(),
             managed_config.as_ref(),
-            remote_settings.as_ref(),
         )
         .value,
     );
@@ -1147,7 +1099,6 @@ pub(crate) async fn run(
             requirements.as_ref(),
             user_config.as_ref(),
             managed_config.as_ref(),
-            remote_settings.as_ref(),
         )
         .value,
     );
@@ -1158,15 +1109,7 @@ pub(crate) async fn run(
     // landed yet; both need an answer now, and this is the same resolver the
     // shell runs at spawn, so the seed agrees with the flag as it stands today.
     app.scheduler_background_loops_seed =
-        nofy_shell::util::config::resolve_scheduler_background_loops(
-            remote_settings
-                .as_ref()
-                .and_then(|s| s.scheduler_background_loops),
-        );
-
-    app.usage_billing_redirect_url = remote_settings
-        .as_ref()
-        .and_then(|s| s.usage_billing_redirect_url.clone());
+        nofy_shell::util::config::resolve_scheduler_background_loops();
 
     if app.is_access_blocked() {
         app.welcome_prompt_focused = false;
@@ -1177,14 +1120,10 @@ pub(crate) async fn run(
             resolve_announcements, resolve_slash_command_tags, resolve_tips,
         };
 
-        let remote_announcements = remote_settings
-            .as_ref()
-            .and_then(|s| s.announcements.as_deref());
         let announcements = resolve_announcements(
             requirements.as_ref(),
             user_config.as_ref(),
             managed_config.as_ref(),
-            remote_announcements,
         );
         app.active_announcements = nofy_announcements::filter_expired(announcements);
         if !app.active_announcements.is_empty() {
@@ -1194,12 +1133,10 @@ pub(crate) async fn run(
         }
         app.sync_session_announcement_slash_gate();
 
-        let remote_tips = remote_settings.as_ref().and_then(|s| s.tips.as_deref());
         app.tips = resolve_tips(
             requirements.as_ref(),
             user_config.as_ref(),
             managed_config.as_ref(),
-            remote_tips,
         );
 
         if !app.tips.is_empty() {
@@ -1207,14 +1144,11 @@ pub(crate) async fn run(
             app.tip = nofy_shell::util::tips::pick_and_advance(&app.tips, &nofy_home);
         }
 
-        // Slash-command dropdown tags: remote base, local [slash_command_tags]
-        // wins per key. Mutate the shared map in place so every adopter sees it.
-        let remote_slash_tags = remote_settings
-            .as_ref()
-            .and_then(|s| s.slash_command_tags.as_ref());
+        // Slash-command dropdown tags from local [slash_command_tags] + env.
+        // Mutate the shared map in place so every adopter sees it.
         let empty_toml = toml::Value::Table(Default::default());
         let tags_config = effective_config.as_ref().unwrap_or(&empty_toml);
-        *app.command_tags.borrow_mut() = resolve_slash_command_tags(tags_config, remote_slash_tags);
+        *app.command_tags.borrow_mut() = resolve_slash_command_tags(tags_config);
     }
 
     let hints = nofy_shell::util::config::resolve_hints(
@@ -1223,12 +1157,6 @@ pub(crate) async fn run(
         user_config.as_ref(),
         managed_config.as_ref(),
     );
-    // Per-tip contextual hints resolve from `[ui.contextual_hints]` (loaded into
-    // `app.current_ui` further below) + the remote tier; the resolve + prompt
-    // propagation happen after `current_ui` is hydrated.
-    app.remote_contextual_hints = remote_settings
-        .as_ref()
-        .and_then(|s| s.contextual_hints.clone());
     app.new_session_worktree_mode = hints.new_session_worktree_mode.into();
     app.fork_worktree_mode = hints.fork_worktree_mode.into();
     // Ephemeral-tip seen counts are intentionally NOT hydrated: the cap is
@@ -1242,7 +1170,6 @@ pub(crate) async fn run(
         requirements.as_ref(),
         user_config.as_ref(),
         managed_config.as_ref(),
-        remote_settings.as_ref(),
     );
     let min_draw_interval = motion.min_draw_interval;
     let scroll_cadence = motion.scroll_cadence;
@@ -1345,10 +1272,8 @@ pub(crate) async fn run(
     let page_flip_on_send = crate::appearance::cache::load_page_flip_on_send();
     app.current_ui.page_flip_on_send = Some(page_flip_on_send);
     // Disk load replaces `current_ui`. Assign one policy-clamped resolved
-    // launch mode unconditionally (CLI > TOML > remote > Ask) so disk Auto
-    // cannot win over `--permission-mode ask`, and a policy-clamped remote
-    // AlwaysApprove cannot leave the UI claiming AlwaysApprove while
-    // enforcement is Ask.
+    // launch mode unconditionally (CLI > TOML > Ask) so disk Auto
+    // cannot win over `--permission-mode ask`.
     let display_mode: &'static str = if launch_auto {
         "auto"
     } else if launch_yolo.yolo {
@@ -1360,10 +1285,7 @@ pub(crate) async fn run(
             nofy_shell::util::config::parse_permission_mode_canonical(cli),
         )
     } else {
-        nofy_shell::util::config::resolved_display_permission_mode(
-            launch_effective_ui.as_ref(),
-            remote_permission_mode,
-        )
+        nofy_shell::util::config::resolved_display_permission_mode(launch_effective_ui.as_ref())
     };
     app.current_ui.permission_mode = Some(display_mode.to_string());
     super::dispatch::downgrade_displayed_auto_if_gated(&mut app);
@@ -1389,10 +1311,8 @@ pub(crate) async fn run(
     // Resolve the per-tip contextual hints now that `current_ui` is hydrated and
     // propagate the prompt-relevant tips to any agents built at startup. New
     // agents adopt the gates at creation; settings toggles re-apply at runtime.
-    let resolved_hints = nofy_shell::util::config::resolve_contextual_hints(
-        &app.current_ui.contextual_hints,
-        app.remote_contextual_hints.as_ref(),
-    );
+    let resolved_hints =
+        nofy_shell::util::config::resolve_contextual_hints(&app.current_ui.contextual_hints);
     app.apply_contextual_hints(resolved_hints);
 
     // Opt-in mouse-reporting toggle shortcut (Ctrl+R on scrollback). Off unless
@@ -1556,9 +1476,6 @@ pub(crate) async fn run(
     const BILLING_POLL_INTERVAL: Duration = Duration::from_secs(30);
     let mut billing_poll_at: Option<Instant> = None;
 
-    const GATE_POLL_INTERVAL: Duration = Duration::from_secs(30);
-    let mut gate_poll_at: Option<Instant> = None;
-
     // Free→paid subscription watch (see `app::subscription`).
     let mut subscription_watch_at: Option<Instant> = if app.subscription_watch_wanted() {
         app.subscription_watch_interval()
@@ -1586,7 +1503,7 @@ pub(crate) async fn run(
     // session is created (no repo-local MCP/LSP/hooks/plugins have loaded yet).
     // Feature-off (kill-switch / opt-out / local build) resolves `Trusted`, so
     // this stays `TrustState::Done`.
-    seed_trust_state(&mut app, remote_settings.as_ref());
+    seed_trust_state(&mut app);
 
     let mut presenter = Presenter::new();
     // A timed-out handoff stays queued but cannot synchronously retry until
@@ -1616,9 +1533,6 @@ pub(crate) async fn run(
         let effs = vec![super::actions::Effect::FetchChangelog];
         if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
             return Ok(make_run_result(&app));
-        }
-        if !app.has_access() {
-            gate_poll_at = Some(Instant::now() + GATE_POLL_INTERVAL);
         }
     }
 
@@ -2050,13 +1964,6 @@ pub(crate) async fn run(
             }
         };
 
-        let gate_poll = async {
-            match gate_poll_at {
-                Some(at) => sleep_until(at).await,
-                None => std::future::pending().await,
-            }
-        };
-
         let subscription_watch = async {
             match subscription_watch_at {
                 Some(at) => sleep_until(at).await,
@@ -2174,11 +2081,6 @@ pub(crate) async fn run(
                             billing_poll_at = Some(Instant::now() + BILLING_POLL_INTERVAL);
                         } else if !app.billing_poll_wanted {
                             billing_poll_at = None;
-                        }
-                        if !app.has_access() && gate_poll_at.is_none() {
-                            gate_poll_at = Some(Instant::now() + GATE_POLL_INTERVAL);
-                        } else if app.has_access() {
-                            gate_poll_at = None;
                         }
 
                         presenter.request(false);
@@ -2352,17 +2254,6 @@ pub(crate) async fn run(
                 }
                 if app.billing_poll_wanted {
                     billing_poll_at = Some(Instant::now() + BILLING_POLL_INTERVAL);
-                }
-            }
-
-            _ = gate_poll => {
-                gate_poll_at = None;
-                let effs = vec![Effect::RefreshGate];
-                if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
-                    break;
-                }
-                if !app.has_access() {
-                    gate_poll_at = Some(Instant::now() + GATE_POLL_INTERVAL);
                 }
             }
 

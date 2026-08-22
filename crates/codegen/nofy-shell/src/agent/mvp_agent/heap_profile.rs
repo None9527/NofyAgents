@@ -1,8 +1,6 @@
 //! Heap-profile monitor wiring for [`MvpAgent`].
 //!
 //! Full-reapply sites call [`MvpAgent::reconfigure_heap_profile_monitor`].
-//! K12 scoped kill-switch reconfigures only jemalloc fields (no wholesale
-//! `remote_settings` rewrite, no `re_resolve_runtime_fields` / telemetry re-init).
 
 use super::*;
 
@@ -98,47 +96,4 @@ impl MvpAgent {
             .finish_tick(threshold, outcome);
     }
 
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn cfg_with_remote(rs: crate::util::config::RemoteSettings) -> AgentConfig {
-        AgentConfig {
-            remote_settings: Some(rs),
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn full_reapply_reads_stored_remote_jemalloc_fields() {
-        let thresholds = vec![100u64, 200];
-        let cfg = cfg_with_remote(crate::util::config::RemoteSettings {
-            jemalloc_heap_profile_enabled: Some(true),
-            jemalloc_heap_profile_thresholds_bytes: Some(thresholds.clone()),
-            jemalloc_heap_profile_poll_interval_secs: Some(45),
-            trace_upload_enabled: Some(true),
-            telemetry_mode: Some("all".into()),
-            ..Default::default()
-        });
-
-        let full = cfg.resolve_jemalloc_heap_profile(false);
-        // Without installed hooks, prof_available is false → disabled.
-        assert!(!full.enabled);
-        assert_eq!(full.poll_interval, std::time::Duration::from_secs(45));
-        assert_eq!(full.thresholds, vec![100, 200]);
-
-        let free = crate::heap_profile::resolve_jemalloc_heap_profile(
-            Some(true),
-            Some(&thresholds),
-            Some(45),
-            false,
-            true,
-            true,
-        );
-        assert!(free.enabled);
-        assert_eq!(free.thresholds, vec![100, 200]);
-        assert_eq!(free.poll_interval, std::time::Duration::from_secs(45));
-    }
 }

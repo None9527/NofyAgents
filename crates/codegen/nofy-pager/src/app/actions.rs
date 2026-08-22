@@ -2083,8 +2083,6 @@ pub enum Effect {
         agent_id: AgentId,
         session_id: acp::SessionId,
     },
-    /// Re-fetch remote settings to check subscription gate.
-    RefreshGate,
     /// Spawn a debounce sleep task for shell suggestions. `agent_id` rides
     /// to the expiry so the fetch is built from the arming agent, not
     /// whatever view is active when the timer fires.
@@ -2796,8 +2794,6 @@ pub enum TaskResult {
         balance: Option<crate::views::credit_bar::CreditBalance>,
         /// When true, update `credit_balance` silently (no scrollback message).
         silent: bool,
-        /// Subscription tier piggybacked from remote settings.
-        subscription_tier: Option<String>,
         /// Auto top-up rule fetch result; `Unchanged` keeps any cached rule.
         autotopup: crate::views::credit_bar::AutoTopupFetch,
     },
@@ -2805,9 +2801,6 @@ pub enum TaskResult {
     AppBillingFetched {
         balance: Option<crate::views::credit_bar::CreditBalance>,
         autotopup: crate::views::credit_bar::AutoTopupFetch,
-    },
-    GateRefreshed {
-        settings: Option<nofy_shell::util::config::RemoteSettings>,
     },
     /// Billing fetch failed with an error message.
     BillingError {

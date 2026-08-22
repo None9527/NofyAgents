@@ -465,7 +465,6 @@ pub fn resolve_deployment_key() -> Option<String> {
         None,
         "NOFY_DEPLOYMENT_KEY",
         config_val.as_deref(),
-        None,
     )
     .map(|r| r.value)
 }

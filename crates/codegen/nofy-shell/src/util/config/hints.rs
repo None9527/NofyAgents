@@ -1,4 +1,3 @@
-use super::ContextualHintsRemote;
 use crate::agent::config::ContextualHints;
 use toml::Value as TomlValue;
 use toml::map::Map as TomlMap;
@@ -110,30 +109,25 @@ impl Default for ResolvedContextualHints {
 
 /// Resolve the per-tip contextual-hint gates. Per tip the precedence is:
 /// env master `NOFY_CONTEXTUAL_HINTS` (all-on/off) > user config
-/// `[ui.contextual_hints].X` > remote settings `contextual_hints.X` >
-/// default ON. User-explicit beats the remote tier (which only sets the
-/// default / soft-disables); the env master is a global kill/force switch.
-pub fn resolve_contextual_hints(
-    ui: &ContextualHints,
-    remote: Option<&ContextualHintsRemote>,
-) -> ResolvedContextualHints {
+/// `[ui.contextual_hints].X` > default ON. The env master is a global
+/// kill/force switch.
+pub fn resolve_contextual_hints(ui: &ContextualHints) -> ResolvedContextualHints {
     use crate::agent::config::BoolFlag;
-    let resolve_tip = |user: Option<bool>, feature_flag: Option<bool>| -> bool {
+    let resolve_tip = |user: Option<bool>| -> bool {
         BoolFlag::env("NOFY_CONTEXTUAL_HINTS")
             .config(user)
-            .feature_flag(feature_flag)
             .default(true)
             .resolve()
             .value
     };
     ResolvedContextualHints {
-        undo: resolve_tip(ui.undo, remote.and_then(|r| r.undo)),
-        plan_mode: resolve_tip(ui.plan_mode, remote.and_then(|r| r.plan_mode)),
-        image_input: resolve_tip(ui.image_input, remote.and_then(|r| r.image_input)),
-        send_now: resolve_tip(ui.send_now, remote.and_then(|r| r.send_now)),
-        small_screen: resolve_tip(ui.small_screen, remote.and_then(|r| r.small_screen)),
-        word_select: resolve_tip(ui.word_select, remote.and_then(|r| r.word_select)),
-        ssh_wrap: resolve_tip(ui.ssh_wrap, remote.and_then(|r| r.ssh_wrap)),
+        undo: resolve_tip(ui.undo),
+        plan_mode: resolve_tip(ui.plan_mode),
+        image_input: resolve_tip(ui.image_input),
+        send_now: resolve_tip(ui.send_now),
+        small_screen: resolve_tip(ui.small_screen),
+        word_select: resolve_tip(ui.word_select),
+        ssh_wrap: resolve_tip(ui.ssh_wrap),
     }
 }
 
@@ -220,28 +214,10 @@ mod tests {
         g
     }
 
-    fn remote(
-        undo: Option<bool>,
-        plan_mode: Option<bool>,
-        image_input: Option<bool>,
-        send_now: Option<bool>,
-        word_select: Option<bool>,
-    ) -> ContextualHintsRemote {
-        ContextualHintsRemote {
-            undo,
-            plan_mode,
-            image_input,
-            send_now,
-            small_screen: None,
-            word_select,
-            ssh_wrap: None,
-        }
-    }
-
     #[test]
     fn contextual_hints_default_on_when_absent() {
         let _g = contextual_hints_guard();
-        let resolved = resolve_contextual_hints(&ContextualHints::default(), None);
+        let resolved = resolve_contextual_hints(&ContextualHints::default());
         assert!(resolved.undo, "undo defaults ON");
         assert!(resolved.plan_mode, "plan_mode defaults ON");
         assert!(resolved.image_input, "image_input defaults ON");
@@ -259,7 +235,7 @@ mod tests {
             undo: Some(false),
             ..ContextualHints::default()
         };
-        let resolved = resolve_contextual_hints(&ui, None);
+        let resolved = resolve_contextual_hints(&ui);
         assert!(!resolved.undo);
         assert!(resolved.plan_mode);
         assert!(resolved.image_input);
@@ -270,45 +246,10 @@ mod tests {
     }
 
     #[test]
-    fn contextual_hints_remote_tier_controls_default_per_tip() {
-        let _g = contextual_hints_guard();
-        // Remote disables plan_mode + ssh_wrap; absent tips fall through to
-        // default ON. Setting two distinct fields also catches a cross-wired
-        // resolver line (reading one remote field into another's gate).
-        let r = ContextualHintsRemote {
-            ssh_wrap: Some(false),
-            ..remote(None, Some(false), None, None, None)
-        };
-        let resolved = resolve_contextual_hints(&ContextualHints::default(), Some(&r));
-        assert!(resolved.undo, "absent remote tip → default ON");
-        assert!(!resolved.plan_mode, "remote `false` soft-disables");
-        assert!(resolved.image_input);
-        assert!(resolved.send_now);
-        assert!(resolved.word_select);
-        assert!(!resolved.ssh_wrap, "remote `false` soft-disables ssh_wrap");
-    }
-
-    #[test]
-    fn contextual_hints_config_true_overrides_remote_disable() {
-        let _g = contextual_hints_guard();
-        // Explicit user opt-in beats a remote `false` (the disable tier).
-        let ui = ContextualHints {
-            image_input: Some(true),
-            ..ContextualHints::default()
-        };
-        let r = remote(None, None, Some(false), None, None);
-        let resolved = resolve_contextual_hints(&ui, Some(&r));
-        assert!(
-            resolved.image_input,
-            "user `true` must override a remote `false` (disable)"
-        );
-    }
-
-    #[test]
     fn contextual_hints_env_master_forces_all_on() {
         let _g = contextual_hints_guard();
         unsafe { std::env::set_var(ENV_CONTEXTUAL_HINTS, "1") };
-        // User + remote both disable every tip; the env master forces all on.
+        // User config disables every tip; the env master forces all on.
         let ui = ContextualHints {
             undo: Some(false),
             plan_mode: Some(false),
@@ -318,14 +259,7 @@ mod tests {
             word_select: Some(false),
             ssh_wrap: Some(false),
         };
-        let r = remote(
-            Some(false),
-            Some(false),
-            Some(false),
-            Some(false),
-            Some(false),
-        );
-        let resolved = resolve_contextual_hints(&ui, Some(&r));
+        let resolved = resolve_contextual_hints(&ui);
         assert!(
             resolved.undo
                 && resolved.plan_mode
@@ -342,7 +276,7 @@ mod tests {
     fn contextual_hints_env_master_zero_forces_all_off() {
         let _g = contextual_hints_guard();
         unsafe { std::env::set_var(ENV_CONTEXTUAL_HINTS, "0") };
-        // User + remote both enable; the env master forces all off (global kill).
+        // User config enables every tip; the env master forces all off (global kill).
         let ui = ContextualHints {
             undo: Some(true),
             plan_mode: Some(true),
@@ -352,8 +286,7 @@ mod tests {
             word_select: Some(true),
             ssh_wrap: Some(true),
         };
-        let r = remote(Some(true), Some(true), Some(true), Some(true), Some(true));
-        let resolved = resolve_contextual_hints(&ui, Some(&r));
+        let resolved = resolve_contextual_hints(&ui);
         assert!(
             !resolved.undo
                 && !resolved.plan_mode

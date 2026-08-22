@@ -130,24 +130,13 @@ pub(super) fn build_todo_gate_reminder(pending: &[&str], unbacked_in_progress: &
 }
 /// Resolve the runtime `ReminderPolicy` from the resolved inputs.
 ///
-/// Precedence: CLI `--todo-gate` > remote `/settings` > built-in default
-/// (which is disabled). Extracted from `spawn_session_actor` so the
-/// precedence rules are unit-testable. Named `resolve_*` to match the
-/// sibling precedence helpers in `crate::util::config`
-/// (`resolve_zdr_access_enabled`, `resolve_restore_code`, …).
-pub(crate) fn resolve_reminder_policy(
-    remote: Option<&crate::util::config::RemoteSettings>,
-    todo_gate: bool,
-) -> nofy_agent::ReminderPolicy {
+/// Precedence: CLI `--todo-gate` > built-in default (which is disabled).
+/// Extracted from `spawn_session_actor` so the precedence rules are
+/// unit-testable. Named `resolve_*` to match the sibling precedence helpers in
+/// `crate::util::config` (`resolve_zdr_access_enabled`, `resolve_restore_code`,
+/// …).
+pub(crate) fn resolve_reminder_policy(todo_gate: bool) -> nofy_agent::ReminderPolicy {
     let mut policy = nofy_agent::ReminderPolicy::default();
-    if let Some(remote) = remote {
-        if let Some(enabled) = remote.todo_gate_enabled {
-            policy.todo_gate.enabled = enabled;
-        }
-        if let Some(cap) = remote.todo_gate_max_fires_per_prompt {
-            policy.todo_gate.max_fires_per_prompt = cap;
-        }
-    }
     if todo_gate {
         policy.todo_gate.enabled = true;
     }

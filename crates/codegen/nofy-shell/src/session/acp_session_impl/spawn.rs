@@ -301,7 +301,6 @@ pub(crate) async fn spawn_session_actor(
     workspace_ops: nofy_workspace::WorkspaceOps,
     cli_permission_rules: Vec<nofy_workspace::permission::types::PermissionRule>,
     todo_gate: bool,
-    remote_settings: Option<crate::util::config::RemoteSettings>,
     laziness_debug_log: Option<std::path::PathBuf>,
     parent_terminal_backend: Option<
         std::sync::Arc<dyn nofy_tools::computer::types::TerminalBackend>,
@@ -734,9 +733,7 @@ pub(crate) async fn spawn_session_actor(
                 ))
             }
             TerminalBackendKind::LocalNonPersistent => {
-                let login_shell_capture = crate::util::config::resolve_login_shell_capture(
-                    remote_settings.as_ref().and_then(|r| r.login_shell_capture),
-                );
+                let login_shell_capture = crate::util::config::resolve_login_shell_capture();
                 std::sync::Arc::new(LocalTerminalBackend::new_local_with_login_shell_capture(
                     resolve_search_shadows(),
                     login_shell_capture,
@@ -770,14 +767,10 @@ pub(crate) async fn spawn_session_actor(
         auto_compact_threshold_percent: auto_compact_threshold_percent as u32,
         compact_model: None,
         memory_flush_enabled: memory_config.as_ref().is_some_and(|mc| mc.flush.enabled),
-        wall_clock_budget_secs: crate::util::config::resolve_compaction_wall_clock_budget_secs(
-            remote_settings
-                .as_ref()
-                .and_then(|r| r.compaction_wall_clock_budget_secs),
-        ),
+        wall_clock_budget_secs: crate::util::config::resolve_compaction_wall_clock_budget_secs(),
         two_pass_enabled,
     };
-    let reminder_policy = resolve_reminder_policy(remote_settings.as_ref(), todo_gate);
+    let reminder_policy = resolve_reminder_policy(todo_gate);
     let (user_question_tx, user_question_rx) = tokio::sync::mpsc::unbounded_channel::<
         nofy_tools::implementations::nofy_build::ask_user_question::types::UserQuestionRequest,
     >();
@@ -921,11 +914,7 @@ pub(crate) async fn spawn_session_actor(
     let context_window_tokens = context_window_override
         .map(|c| c.get())
         .unwrap_or(sampling_config.context_window);
-    let scheduler_background_loops = crate::util::config::resolve_scheduler_background_loops(
-        remote_settings
-            .as_ref()
-            .and_then(|r| r.scheduler_background_loops),
-    );
+    let scheduler_background_loops = crate::util::config::resolve_scheduler_background_loops();
     let managed_gateway_tool_client = auth_manager.as_ref().map(|am| {
         nofy_tools::types::resources::ManagedGatewayToolClient(Arc::new(
             ShellManagedGatewayToolClient {
@@ -1296,11 +1285,8 @@ pub(crate) async fn spawn_session_actor(
             Some(override_reg)
         } else {
             let cwd_path = std::path::Path::new(&session_info.cwd);
-            let project_trusted = crate::agent::folder_trust::resolve_and_record(
-                cwd_path,
-                remote_settings.as_ref(),
-                false,
-            );
+            let project_trusted =
+                crate::agent::folder_trust::resolve_and_record(cwd_path, false);
             let git_root = nofy_workspace::session::git::find_git_root_from_path(cwd_path).ok();
             let (registry, errors) = crate::util::hooks::discover_hooks(
                 git_root.as_deref(),
@@ -1555,11 +1541,10 @@ pub(crate) async fn spawn_session_actor(
             .unwrap_or_else(|_| nofy_tool_protocol::SessionId::new("unknown").expect("valid"));
         nofy_computer_hub_sdk::ObservabilityBridge::new(None, sid)
     };
-    let mut effective_config = crate::config::load_effective_config()
+    let effective_config = crate::config::load_effective_config()
         .ok()
         .and_then(|raw| crate::agent::config::Config::new_from_toml_cfg(&raw).ok())
         .unwrap_or_default();
-    effective_config.remote_settings = remote_settings.clone();
     let goal_classifier_max_runs = effective_config.resolve_goal_classifier_max_runs().value;
     let goal_strategist_every = effective_config
         .resolve_goal_strategist_every(goal_classifier_max_runs)
@@ -2301,7 +2286,6 @@ pub(crate) async fn spawn_session_on_thread(
     workspace_ops: nofy_workspace::WorkspaceOps,
     cli_permission_rules: Vec<nofy_workspace::permission::types::PermissionRule>,
     todo_gate: bool,
-    remote_settings: Option<crate::util::config::RemoteSettings>,
     laziness_debug_log: Option<std::path::PathBuf>,
     parent_terminal_backend: Option<
         std::sync::Arc<dyn nofy_tools::computer::types::TerminalBackend>,
@@ -2473,7 +2457,6 @@ pub(crate) async fn spawn_session_on_thread(
                         workspace_ops,
                         cli_permission_rules,
                         todo_gate,
-                        remote_settings,
                         laziness_debug_log,
                         parent_terminal_backend,
                         parent_scheduler_handle,

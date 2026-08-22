@@ -1,4 +1,3 @@
-use super::RemoteSettings;
 use serde::{Deserialize, Serialize};
 use toml::Value as TomlValue;
 use nofy_fast_worktree::CreationMode;
@@ -73,23 +72,12 @@ pub(crate) fn worktree_type_from_toml(root: &TomlValue) -> WorktreeType {
     worktree_type_from_toml_opt(root).unwrap_or_default()
 }
 
-/// Resolve worktree type: local config > remote settings > default (`Linked`).
+/// Resolve worktree type: local config > default (`Linked`).
 ///
-/// Returns the resolved type and its provenance (`"local"`, `"remote"`, or `"default"`).
-pub(crate) fn resolve_worktree_type(
-    raw_config: &TomlValue,
-    remote: Option<&RemoteSettings>,
-) -> (WorktreeType, &'static str) {
+/// Returns the resolved type and its provenance (`"local"` or `"default"`).
+pub(crate) fn resolve_worktree_type(raw_config: &TomlValue) -> (WorktreeType, &'static str) {
     if let Some(wt) = worktree_type_from_toml_opt(raw_config) {
         return (wt, "local");
-    }
-    if let Some(s) = remote.and_then(|r| r.worktree_type.as_deref()) {
-        match s.parse::<WorktreeType>() {
-            Ok(wt) => return (wt, "remote"),
-            Err(()) => {
-                tracing::warn!("Invalid remote worktree_type: {s}, using default");
-            }
-        }
     }
     (WorktreeType::default(), "default")
 }
@@ -110,15 +98,10 @@ pub(crate) fn restore_code_from_toml(root: &TomlValue) -> Option<bool> {
         .and_then(|v| v.as_bool())
 }
 
-/// Resolve restore_code: local config > remote settings > default (`false`).
+/// Resolve restore_code: local config > default (`false`).
 /// Used when the client omits `restoreCode` on the wire.
-pub(crate) fn resolve_restore_code(
-    raw_config: &TomlValue,
-    remote: Option<&RemoteSettings>,
-) -> bool {
-    restore_code_from_toml(raw_config)
-        .or(remote.and_then(|r| r.restore_code))
-        .unwrap_or(false)
+pub(crate) fn resolve_restore_code(raw_config: &TomlValue) -> bool {
+    restore_code_from_toml(raw_config).unwrap_or(false)
 }
 
 /// Parse `[worktree.auto_gc]` (per-field tolerant via [`WorktreeAutoGcSettings`]).
@@ -130,36 +113,26 @@ pub fn worktree_auto_gc_from_toml(root: &TomlValue) -> super::WorktreeAutoGcSett
         .unwrap_or_default()
 }
 
-/// Resolve: env > local TOML > remote > defaults (clamped). Platform age policy
+/// Resolve: env > local TOML > defaults (clamped). Platform age policy
 /// is applied later in `maybe_auto_gc`.
 pub fn resolve_worktree_auto_gc(
     raw_config: &TomlValue,
-    remote: Option<&RemoteSettings>,
 ) -> nofy_fast_worktree::ResolvedWorktreeAutoGc {
     let local = worktree_auto_gc_from_toml(raw_config);
-    resolve_worktree_auto_gc_from_settings(
-        Some(&local),
-        remote.and_then(|r| r.worktree_auto_gc.as_ref()),
-    )
+    resolve_worktree_auto_gc_from_settings(Some(&local))
 }
 
 /// Same layering with already-parsed settings.
 pub(crate) fn resolve_worktree_auto_gc_from_settings(
     local: Option<&super::WorktreeAutoGcSettings>,
-    remote: Option<&super::WorktreeAutoGcSettings>,
 ) -> nofy_fast_worktree::ResolvedWorktreeAutoGc {
     use nofy_workspace::worktree::worktree_auto_gc_layer_from_settings;
     let local_layer = local.map(worktree_auto_gc_layer_from_settings);
-    let remote_layer = remote.map(worktree_auto_gc_layer_from_settings);
-    nofy_fast_worktree::resolve_worktree_auto_gc_from_layers(
-        local_layer.as_ref(),
-        remote_layer.as_ref(),
-    )
+    nofy_fast_worktree::resolve_worktree_auto_gc_from_layers(local_layer.as_ref())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::RemoteSettings;
     use super::*;
     use toml::Value as TomlValue;
 
@@ -264,62 +237,16 @@ worktree_type = "invalid"
     }
 
     #[test]
-    fn test_resolve_worktree_type_local_wins_over_remote() {
+    fn test_resolve_worktree_type_local() {
         let root: TomlValue = toml::from_str("[cli]\nworktree_type = \"git\"").unwrap();
-        let remote = RemoteSettings {
-            worktree_type: Some("standalone".to_owned()),
-            ..Default::default()
-        };
-        assert_eq!(
-            resolve_worktree_type(&root, Some(&remote)),
-            (WorktreeType::Git, "local")
-        );
-    }
-
-    #[test]
-    fn test_resolve_worktree_type_remote_fallback() {
-        let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
-        let remote = RemoteSettings {
-            worktree_type: Some("standalone".to_owned()),
-            ..Default::default()
-        };
-        assert_eq!(
-            resolve_worktree_type(&root, Some(&remote)),
-            (WorktreeType::Standalone, "remote")
-        );
+        assert_eq!(resolve_worktree_type(&root), (WorktreeType::Git, "local"));
     }
 
     #[test]
     fn test_resolve_worktree_type_default_when_no_config() {
         let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
         assert_eq!(
-            resolve_worktree_type(&root, None),
-            (WorktreeType::Linked, "default")
-        );
-    }
-
-    #[test]
-    fn test_resolve_worktree_type_invalid_remote_falls_back_to_default() {
-        let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
-        let remote = RemoteSettings {
-            worktree_type: Some("bogus".to_owned()),
-            ..Default::default()
-        };
-        assert_eq!(
-            resolve_worktree_type(&root, Some(&remote)),
-            (WorktreeType::Linked, "default")
-        );
-    }
-
-    #[test]
-    fn test_resolve_worktree_type_remote_none_field() {
-        let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
-        let remote = RemoteSettings {
-            worktree_type: None,
-            ..Default::default()
-        };
-        assert_eq!(
-            resolve_worktree_type(&root, Some(&remote)),
+            resolve_worktree_type(&root),
             (WorktreeType::Linked, "default")
         );
     }
@@ -357,54 +284,19 @@ worktree_type = "invalid"
     }
 
     #[test]
-    fn test_resolve_restore_code_local_wins_over_remote() {
+    fn test_resolve_restore_code_local() {
         let root: TomlValue = toml::from_str("[cli]\nrestore_code = true").unwrap();
-        let remote = RemoteSettings {
-            restore_code: Some(false),
-            ..Default::default()
-        };
-        assert!(resolve_restore_code(&root, Some(&remote)));
-    }
-
-    #[test]
-    fn test_resolve_restore_code_remote_fallback() {
-        let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
-        let remote = RemoteSettings {
-            restore_code: Some(true),
-            ..Default::default()
-        };
-        assert!(resolve_restore_code(&root, Some(&remote)));
+        assert!(resolve_restore_code(&root));
     }
 
     #[test]
     fn test_resolve_restore_code_default_false() {
         let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
-        assert!(!resolve_restore_code(&root, None));
-    }
-
-    #[test]
-    fn test_resolve_restore_code_remote_none_falls_to_default() {
-        let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
-        let remote = RemoteSettings {
-            restore_code: None,
-            ..Default::default()
-        };
-        assert!(!resolve_restore_code(&root, Some(&remote)));
-    }
-
-    #[test]
-    fn test_resolve_restore_code_local_false_overrides_remote_true() {
-        let root: TomlValue = toml::from_str("[cli]\nrestore_code = false").unwrap();
-        let remote = RemoteSettings {
-            restore_code: Some(true),
-            ..Default::default()
-        };
-        assert!(!resolve_restore_code(&root, Some(&remote)));
+        assert!(!resolve_restore_code(&root));
     }
 
     // === worktree auto_gc resolve tests ===
 
-    use crate::util::config::WorktreeAutoGcSettings;
     use serial_test::serial;
 
     fn clear_auto_gc_env() {
@@ -421,7 +313,7 @@ worktree_type = "invalid"
     fn resolve_worktree_auto_gc_defaults_enabled() {
         clear_auto_gc_env();
         let root: TomlValue = toml::from_str("").unwrap();
-        let p = resolve_worktree_auto_gc(&root, None);
+        let p = resolve_worktree_auto_gc(&root);
         assert!(p.enabled);
         assert_eq!(p.max_age_secs, nofy_fast_worktree::DEFAULT_MAX_AGE_SECS);
         assert_eq!(
@@ -447,7 +339,7 @@ worktree_type = "invalid"
         clear_auto_gc_env();
         unsafe { std::env::set_var(nofy_fast_worktree::ENV_AUTO_GC_REBUILD, "1") };
         let root: TomlValue = toml::from_str("").unwrap();
-        let p = resolve_worktree_auto_gc(&root, None);
+        let p = resolve_worktree_auto_gc(&root);
         assert!(p.include_rebuild, "env REBUILD=1 enables rebuild");
         clear_auto_gc_env();
 
@@ -459,14 +351,14 @@ worktree_type = "invalid"
             "#,
         )
         .unwrap();
-        let p = resolve_worktree_auto_gc(&root, None);
+        let p = resolve_worktree_auto_gc(&root);
         assert!(p.include_rebuild);
         assert_eq!(p.rebuild_min_interval_secs, 120);
     }
 
     #[test]
     #[serial]
-    fn resolve_worktree_auto_gc_env_disabled_wins_over_remote_and_local() {
+    fn resolve_worktree_auto_gc_env_disabled_wins_over_local() {
         clear_auto_gc_env();
         unsafe { std::env::set_var(nofy_fast_worktree::ENV_AUTO_GC, "0") };
         let root: TomlValue = toml::from_str(
@@ -476,37 +368,14 @@ worktree_type = "invalid"
             "#,
         )
         .unwrap();
-        let remote = RemoteSettings {
-            worktree_auto_gc: Some(WorktreeAutoGcSettings {
-                enabled: Some(true),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc(&root, Some(&remote));
-        assert!(!p.enabled, "env kill must win over remote/local enabled");
+        let p = resolve_worktree_auto_gc(&root);
+        assert!(!p.enabled, "env kill must win over local enabled");
         clear_auto_gc_env();
     }
 
     #[test]
     #[serial]
-    fn resolve_worktree_auto_gc_remote_enabled_false_disables() {
-        clear_auto_gc_env();
-        let root: TomlValue = toml::from_str("").unwrap();
-        let remote = RemoteSettings {
-            worktree_auto_gc: Some(WorktreeAutoGcSettings {
-                enabled: Some(false),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc(&root, Some(&remote));
-        assert!(!p.enabled);
-    }
-
-    #[test]
-    #[serial]
-    fn resolve_worktree_auto_gc_local_wins_over_remote_ttl_and_env_dry_run_wins() {
+    fn resolve_worktree_auto_gc_local_ttl_and_env_dry_run_wins() {
         clear_auto_gc_env();
         unsafe { std::env::set_var(nofy_fast_worktree::ENV_AUTO_GC_DRY_RUN, "1") };
         let root: TomlValue = toml::from_str(
@@ -518,70 +387,16 @@ worktree_type = "invalid"
             "#,
         )
         .unwrap();
-        let remote = RemoteSettings {
-            worktree_auto_gc: Some(WorktreeAutoGcSettings {
-                max_age_secs: Some(86400),
-                min_interval_secs: Some(3600),
-                dry_run: Some(false),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc(&root, Some(&remote));
-        assert_eq!(p.max_age_secs, 7200, "local TOML wins over remote TTL");
-        assert_eq!(p.min_interval_secs, 120, "local interval wins");
-        assert!(
-            p.dry_run,
-            "env dry-run wins over remote/local dry_run=false"
-        );
+        let p = resolve_worktree_auto_gc(&root);
+        assert_eq!(p.max_age_secs, 7200, "local TOML TTL applies");
+        assert_eq!(p.min_interval_secs, 120, "local interval applies");
+        assert!(p.dry_run, "env dry-run wins over local dry_run=false");
         clear_auto_gc_env();
     }
 
     #[test]
     #[serial]
-    fn resolve_worktree_auto_gc_remote_ttl_clamped() {
-        clear_auto_gc_env();
-        let root: TomlValue = toml::from_str("").unwrap();
-        let remote = RemoteSettings {
-            worktree_auto_gc: Some(WorktreeAutoGcSettings {
-                max_age_secs: Some(1),
-                min_interval_secs: Some(1),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc(&root, Some(&remote));
-        assert_eq!(p.max_age_secs, nofy_fast_worktree::MAX_AGE_SECS_MIN);
-        assert_eq!(
-            p.min_interval_secs,
-            nofy_fast_worktree::MIN_INTERVAL_SECS_MIN
-        );
-    }
-
-    #[test]
-    #[serial]
-    fn resolve_worktree_auto_gc_partial_remote_falls_through() {
-        clear_auto_gc_env();
-        let root: TomlValue = toml::from_str("").unwrap();
-        let remote = RemoteSettings {
-            worktree_auto_gc: Some(WorktreeAutoGcSettings {
-                enabled: Some(true),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc(&root, Some(&remote));
-        assert!(p.enabled);
-        assert_eq!(p.max_age_secs, nofy_fast_worktree::DEFAULT_MAX_AGE_SECS);
-        assert_eq!(
-            p.min_interval_secs,
-            nofy_fast_worktree::DEFAULT_MIN_INTERVAL_SECS
-        );
-    }
-
-    #[test]
-    #[serial]
-    fn resolve_worktree_auto_gc_local_enabled_false_over_remote_true() {
+    fn resolve_worktree_auto_gc_local_enabled_false_disables() {
         clear_auto_gc_env();
         let root: TomlValue = toml::from_str(
             r#"
@@ -590,37 +405,8 @@ worktree_type = "invalid"
             "#,
         )
         .unwrap();
-        let remote = RemoteSettings {
-            worktree_auto_gc: Some(WorktreeAutoGcSettings {
-                enabled: Some(true),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc(&root, Some(&remote));
-        assert!(!p.enabled, "local enabled=false must beat remote true");
-    }
-
-    #[test]
-    #[serial]
-    fn resolve_worktree_auto_gc_local_dry_run_over_remote() {
-        clear_auto_gc_env();
-        let root: TomlValue = toml::from_str(
-            r#"
-            [worktree.auto_gc]
-            dry_run = true
-            "#,
-        )
-        .unwrap();
-        let remote = RemoteSettings {
-            worktree_auto_gc: Some(WorktreeAutoGcSettings {
-                dry_run: Some(false),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc(&root, Some(&remote));
-        assert!(p.dry_run, "local dry_run must beat remote false");
+        let p = resolve_worktree_auto_gc(&root);
+        assert!(!p.enabled, "local enabled=false disables");
     }
 
     #[test]
@@ -635,7 +421,7 @@ worktree_type = "invalid"
             "#,
         )
         .unwrap();
-        let p = resolve_worktree_auto_gc(&root, None);
+        let p = resolve_worktree_auto_gc(&root);
         assert_eq!(p.max_age_secs, nofy_fast_worktree::MAX_AGE_SECS_MAX);
         assert_eq!(
             p.min_interval_secs,
@@ -659,7 +445,7 @@ worktree_type = "invalid"
         let s = worktree_auto_gc_from_toml(&root);
         assert_eq!(s.enabled, Some(false));
         assert_eq!(s.max_age_secs, None);
-        let p = resolve_worktree_auto_gc(&root, None);
+        let p = resolve_worktree_auto_gc(&root);
         assert!(!p.enabled);
     }
 
@@ -668,7 +454,7 @@ worktree_type = "invalid"
     fn resolve_worktree_auto_gc_defaults_manual_never() {
         clear_auto_gc_env();
         let root: TomlValue = toml::from_str("").unwrap();
-        let p = resolve_worktree_auto_gc(&root, None);
+        let p = resolve_worktree_auto_gc(&root);
         assert_eq!(
             p.max_age_by_kind
                 .get(&nofy_fast_worktree::WorktreeKind::Manual),
@@ -684,56 +470,33 @@ worktree_type = "invalid"
 
     #[test]
     #[serial]
-    fn resolve_worktree_auto_gc_kind_map_local_wins_over_remote() {
+    fn resolve_worktree_auto_gc_kind_map_local() {
         clear_auto_gc_env();
         let root: TomlValue = toml::from_str(
             r#"
             [worktree.auto_gc.max_age_by_kind]
             subagent = 7200
             manual = "never"
+            pool = 172800
             "#,
         )
         .unwrap();
-        let remote = RemoteSettings {
-            worktree_auto_gc: Some(WorktreeAutoGcSettings {
-                max_age_by_kind: Some(
-                    [
-                        (
-                            "subagent".into(),
-                            crate::util::config::WorktreeKindMaxAge::Secs(86400),
-                        ),
-                        (
-                            "manual".into(),
-                            crate::util::config::WorktreeKindMaxAge::Secs(3600),
-                        ),
-                        (
-                            "pool".into(),
-                            crate::util::config::WorktreeKindMaxAge::Secs(172800),
-                        ),
-                    ]
-                    .into_iter()
-                    .collect(),
-                ),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let p = resolve_worktree_auto_gc(&root, Some(&remote));
+        let p = resolve_worktree_auto_gc(&root);
         use nofy_fast_worktree::WorktreeKind;
         assert_eq!(
             p.max_age_by_kind.get(&WorktreeKind::Subagent),
             Some(&Some(7200)),
-            "local kind TTL wins"
+            "local kind TTL applies"
         );
         assert_eq!(
             p.max_age_by_kind.get(&WorktreeKind::Manual),
             Some(&None),
-            "local manual=never wins over remote expire"
+            "local manual=never applies"
         );
         assert_eq!(
             p.max_age_by_kind.get(&WorktreeKind::Pool),
             Some(&Some(172800)),
-            "remote-only kind entry kept"
+            "local kind entry kept"
         );
     }
 
@@ -749,7 +512,7 @@ worktree_type = "invalid"
             "#,
         )
         .unwrap();
-        let p = resolve_worktree_auto_gc(&root, None);
+        let p = resolve_worktree_auto_gc(&root);
         assert_eq!(p.max_age_secs, 7200, "env MAX_AGE wins over TOML");
         clear_auto_gc_env();
     }
@@ -778,7 +541,7 @@ worktree_type = "invalid"
             map.get("manual"),
             Some(&crate::util::config::WorktreeKindMaxAge::Never)
         );
-        let p = resolve_worktree_auto_gc(&root, None);
+        let p = resolve_worktree_auto_gc(&root);
         assert_eq!(
             p.max_age_by_kind
                 .get(&nofy_fast_worktree::WorktreeKind::Subagent),
