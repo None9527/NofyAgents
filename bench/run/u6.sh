@@ -7,6 +7,7 @@
 set -u
 NOFY=/home/none/grok-build/target/debug/nofy
 H=$BENCH_ROOT/home
+A=$BENCH_ROOT/projects/alpha
 J=$H/daemon/schedule.jsonl
 D=$H/scheduler/deliveries
 export NOFY_HOME=$H
@@ -38,6 +39,9 @@ fi
 
 # 主 home:先 enable(产品要求 enable 先于 add)
 sch enable > "$RESULTS/U6-enable.out" 2>&1 || true
+# 触发桥经 TaskPoll→provider:无 provider 时 fired 无执行者,
+# delivery/结算/自禁用都不可测。p3 独立环境须自起 provider。
+ensure_provider "$A" || true
 
 # ---------- U6-09 坏语法当场拒 ----------
 task_start U6-09 "坏语法当场拒:fail-loud 不静默收下"
@@ -64,7 +68,11 @@ fi
 # ---------- U6-01 定期跑 ----------
 task_start U6-01 "定期跑:按时触发且产物出现"
 sch add tick-u601 "* * * * *" --goal "回复一个字:钟" > /dev/null 2>&1 || true
-sleep 75   # 跨至少一个整分钟窗口
+# 轮询等 delivery(模型结算延迟不定,固定 sleep 会假阴性;复现脚本同款)。
+for _ in $(seq 1 75); do
+  [ -n "$(find "$D" -name 'tick-u601-*.json' 2>/dev/null | head -1)" ] && break
+  sleep 2
+done
 fires=$(grep -ac '"fired"' "$J" 2>/dev/null || true)
 deliv=$(find "$D" -name "tick-u601-*.json" 2>/dev/null | wc -l || true)
 sch list > "$RESULTS/U6-01list.out" 2>&1 || true
@@ -78,11 +86,12 @@ fi
 
 # ---------- U6-06 删得掉 ----------
 task_start U6-06 "删得掉:remove 后不再触发"
-before=$(grep -ac '"fired"' "$J" 2>/dev/null || true)
+# 只数 job-b 自己的 fired:其它日程(tick-u601)正常工作也会涨全局计数。
+before=$(grep -a '"fired"' "$J" 2>/dev/null | grep -ac "job-b" || true)
 sch remove job-b > "$RESULTS/U6-06.out" 2>&1 || true
 sch list > "$RESULTS/U6-06list.out" 2>&1 || true
 sleep 65   # 跨一个窗口,确认无新触发
-after=$(grep -ac '"fired"' "$J" 2>/dev/null || true)
+after=$(grep -a '"fired"' "$J" 2>/dev/null | grep -ac "job-b" || true)
 if ! grep -qa "job-b" "$RESULTS/U6-06list.out" && [ "${after:-0}" -le "${before:-0}" ]; then
   record pass - "移除后列表无该条且无新触发"
 else
@@ -110,7 +119,12 @@ fi
 # ---------- U6-02 一次性 ----------
 task_start U6-02 "一次性任务:触发一次不多不少"
 sch add once-u602 "* * * * *" --goal "一次性探针" --once > "$RESULTS/U6-02add.out" 2>&1 || true
-sleep 75   # 跨一个窗口让它触发并完成
+# 轮询等自禁用登记(one-shot completed),吸收模型结算延迟
+# (首批派发可能撞上 provider 初始化,要等下一个窗口)。
+for _ in $(seq 1 120); do
+  sch list 2>/dev/null | grep -qa "one-shot completed" && break
+  sleep 2
+done
 sch list > "$RESULTS/U6-02list.out" 2>&1 || true
 fired=$(grep -a '"fired"' "$J" 2>/dev/null | grep -ac "once-u602" || true)
 if grep -qa "once-u602" "$RESULTS/U6-02list.out" && grep -qa "one-shot completed" "$RESULTS/U6-02list.out" \
@@ -126,7 +140,12 @@ fi
 task_start U6-04 "连败自禁用:连败 3 次后停且原因可查"
 # 无 provider 可达的 goal 运行必败:绑定一个不存在的 cwd,dispatch 当场失败。
 sch add flaky-u604 "* * * * *" --goal "必败探针" --cwd "/nonexistent-u604" > "$RESULTS/U6-04add.out" 2>&1 || true
-sleep 200  # 三个整分钟窗口
+# 三个整分钟窗口的连败 + 自禁用登记;轮询吸收边界相位与
+# in-flight 串行(上一 run 未结算前下一 due 不派发)。
+for _ in $(seq 1 210); do
+  sch list 2>/dev/null | grep -qaE "disabled \(.*failures" && break
+  sleep 2
+done
 sch list > "$RESULTS/U6-04list.out" 2>&1 || true
 if grep -qa "flaky-u604" "$RESULTS/U6-04list.out" && grep -qaE "disabled \(.*failures" "$RESULTS/U6-04list.out"; then
   record pass - "连败后自禁用且原因可查"

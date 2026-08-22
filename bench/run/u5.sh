@@ -43,6 +43,9 @@ else
 fi
 
 # ---------- U5-02 全局看得全 ----------
+# 前置播种:p3 独立环境里 alpha/beta 尚无会话,列表要有得列。
+( cd "$A" && timeout 60 "$NOFY" -p "只回复:alpha-seed" --yolo > "$RESULTS/U5-02seed-a.out" 2>&1 ) || true
+( cd "$B" && timeout 60 "$NOFY" -p "只回复:beta-seed" --yolo > "$RESULTS/U5-02seed-b.out" 2>&1 ) || true
 task_start U5-02 "全局看得全:列所有项目会话且归属正确"
 ( cd "$N" && timeout 90 "$NOFY" sessions list --all > "$RESULTS/U5-02.out" 2>&1 ) || true
 if grep -qa "alpha" "$RESULTS/U5-02.out" && grep -qa "beta" "$RESULTS/U5-02.out"; then
