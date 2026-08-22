@@ -109,7 +109,7 @@ and execute. Use them aggressively and liberally \u{2014} spawn subagents early 
 - Reading files for quick context (${{ tools.by_kind.read }}, ${{ tools.by_kind.search }}, ${{ tools.by_kind.list }})
 - Running quick terminal commands for orientation (${{ tools.by_kind.execute }})
 - Invoking skills and MCP tools (${{ tools.by_kind.skill }}, ${{ tools.by_kind.search_tool }}, ${{ tools.by_kind.use_tool }})
-- Web research (${{ tools.by_kind.web_search }}, ${{ tools.by_kind.web_fetch }})
+- Web research (${{ tools.by_kind.web_fetch }})
 - Asking the user questions (${{ tools.by_kind.ask_user }})
 - Managing task lists and tracking progress (${{ tools.by_kind.plan }})
 - Reviewing subagent results and synthesizing responses for the user
@@ -179,7 +179,6 @@ pub fn workspace_nofy_build_toolset() -> ToolServerConfig {
     tools.push((&nofy_build::EnterPlanModeTool).into());
     tools.push((&nofy_build::ExitPlanModeTool).into());
     tools.push((&nofy_build::AskUserQuestionTool).into());
-    tools.push((&nofy_build::WebSearchTool).into());
     tools.push((&nofy_build::WebFetchTool).into());
     tools.push((&memory::search_tool::MemorySearchImpl).into());
     tools.push((&memory::get_tool::MemoryGetImpl).into());
@@ -320,7 +319,6 @@ pub fn nofy_build_hashline_toolset(
         task_output_tool_config(),
         wait_tasks_tool_config(),
         task_tool_config(),
-        (&nofy_build::WebSearchTool).into(),
         (&nofy_build::SchedulerCreateTool).into(),
         (&nofy_build::SchedulerDeleteTool).into(),
         (&nofy_build::SchedulerListTool).into(),
@@ -457,7 +455,6 @@ fn orchestrator_toolset() -> ToolServerConfig {
             (&nofy_build::SchedulerListTool).into(),
             (&nofy_build::MonitorTool).into(),
             // Web tools
-            (&nofy_build::WebSearchTool).into(),
             (&nofy_build::WebFetchTool).into(),
             // Memory
             (&memory::MemorySearchImpl).into(),
@@ -763,7 +760,7 @@ pub struct AgentDefinition {
     pub agents_md: bool,
     /// When true (the default), the AgentBuilder layers session-level optional
     /// tools on top of the agent's declared `tool_config`: memory_search/get,
-    /// web_search, web_fetch, lsp, OpenCode write
+    /// web_fetch, lsp, OpenCode write
     /// fallback, and the plan-mode tools.
     ///
     /// Set this to `false` for harnesses that need an exact, minimal toolset
@@ -804,8 +801,6 @@ pub struct AgentDefinition {
     /// specific tool before the turn ends.
     #[serde(default)]
     pub completion_requirement: Option<CompletionRequirement>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tool_overrides: Option<nofy_sampling_types::ToolOverrides>,
     /// Subagent types this agent can spawn (derived by builder from `tools`).
     /// `None` = unrestricted, `Some([t1])` = restricted, `Some([])` = blocked.
     #[serde(skip)]
@@ -1394,19 +1389,6 @@ impl AgentDefinition {
             .as_deref()
             .is_none_or(|a| tool_id_matches(a, id))
     }
-    /// Whether a hosted/server-side tool `id` survives the agent's own
-    /// `disallowed_tools`/`tools` and the session clamp. Hosted tools aren't in
-    /// `tool_config`, so they're gated by name here — and strictly (no
-    /// compat-name mapping or unresolved-entry fallback like the function path).
-    pub(crate) fn hosted_tool_allowed(&self, id: &str) -> bool {
-        if tool_id_matches(&self.disallowed_tools, id) {
-            return false;
-        }
-        if !self.tools.is_empty() && !tool_id_matches(&self.tools, id) {
-            return false;
-        }
-        self.session_tools_allowed(id)
-    }
     /// Replace the file-operation tools (read/edit/search) in the tool config
     /// with the given set. Used by the shell layer to swap from standard to
     /// hashline toolset based on `config.toml` / remote settings.
@@ -1503,7 +1485,6 @@ impl AgentDefinition {
             session_tools_denylist: None,
             model: ModelOverride::Inherit,
             completion_requirement: None,
-            tool_overrides: None,
             prompt_body: None,
             system_prompt: TemplateOverride::None,
             source_path: None,
@@ -2426,7 +2407,7 @@ description: Test default tool config
             )
             .unwrap();
         original.tools = vec!["read_file".to_string(), "grep".to_string()];
-        original.disallowed_tools = vec!["web_search".to_string()];
+        original.disallowed_tools = vec!["web_fetch".to_string()];
         let json = original.to_json_value();
         let recovered = AgentDefinition::from_json(&json).unwrap();
         assert_eq!(recovered.name, "test-agent");
@@ -2434,7 +2415,7 @@ description: Test default tool config
         assert_eq!(recovered.prompt_body.as_deref(), Some("You are a helper."));
         assert_eq!(recovered.permission_mode, PermissionMode::DontAsk);
         assert_eq!(recovered.tools, vec!["read_file", "grep"]);
-        assert_eq!(recovered.disallowed_tools, vec!["web_search"]);
+        assert_eq!(recovered.disallowed_tools, vec!["web_fetch"]);
     }
     #[test]
     fn test_model_override_default_is_inherit() {

@@ -146,7 +146,6 @@ The operations below are treated as read-only and run without prompting, in ever
 - `read_file`
 - `list_dir`
 - `grep` (content search)
-- `web_search`
 - `todo_write`
 - `get_command_or_subagent_output` / `wait_commands_or_subagents` / `kill_command_or_subagent` (subagent control)
 - Invoking skills
@@ -360,7 +359,7 @@ Path patterns are globs matched against the tool path after lexical normalizatio
 
 ### Tool Names
 
-Recognized tool names: `Bash`, `Read`, `Edit` (and `Write`), `Grep` (and `Glob`), `MCPTool`, `WebFetch`, `WebSearch`. A bare `*` rule matches every tool. Globs are not supported in the tool-name position.
+Recognized tool names: `Bash`, `Read`, `Edit` (and `Write`), `Grep` (and `Glob`), `MCPTool`, `WebFetch`. A bare `*` rule matches every tool. Globs are not supported in the tool-name position.
 
 Rules naming an unrecognized tool (for example `Agent(model:opus)`) are skipped with a warning rather than failing the load.
 

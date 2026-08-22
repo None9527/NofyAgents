@@ -1242,7 +1242,6 @@ impl SessionActor {
                     completion_kind,
                     structured_output,
                     usage,
-                    tool_overrides: None,
                 })
             }
             Err(e) => Err(crate::sampling::error::attach_prompt_usage(e, usage)),
@@ -2074,11 +2073,6 @@ impl SessionActor {
                     return Err(self.surface_compact_auth_failure(e).await);
                 }
             }
-            let backend_search_active = self.backend_search_active();
-            tracing::debug!(
-                backend_search_active,
-                "backend_search: turn tool resolution"
-            );
             let mut effective_tools: Vec<ToolSpec> =
                 if let Some(ref override_tools) = self.forked_tool_override {
                     override_tools.clone()
@@ -2130,7 +2124,6 @@ impl SessionActor {
             if structured_output_native {
                 request.json_schema = json_schema.clone();
             }
-            request.hosted_tools = self.hosted_tools_for_turn();
             request.max_output_tokens = self
                 .tool_context
                 .clamp_task_model_request(request.max_output_tokens)

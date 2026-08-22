@@ -65,7 +65,6 @@ pub struct HeadlessOptions {
     pub agents_json: Option<String>,
     pub cli_tools: Option<String>,
     pub cli_disallowed_tools: Option<String>,
-    pub disable_web_search: bool,
     /// `--experimental-memory`: cross-session memory (one channel with the
     /// TUI/ACP surfaces — headless must not silently drop the flag).
     pub experimental_memory: bool,
@@ -815,11 +814,9 @@ pub(crate) fn headless_runtime_resolution_ctx<'a>(
         raw_config,
         is_headless: true,
         cli_subagents: None,
-        cli_web_search_model: None,
         cli_session_summary_model: None,
         cli_experimental_memory: options.experimental_memory,
         cli_no_memory: options.no_memory,
-        disable_web_search: options.disable_web_search,
         todo_gate: false,
         laziness_debug_log: None,
         storage_mode: None,

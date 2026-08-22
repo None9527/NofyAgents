@@ -73,39 +73,21 @@ pub(super) fn compaction_artifact_read(
 
 /// Map a backend-hosted tool name to a user-facing title, ACP ToolKind,
 /// and `raw_input` JSON for display in the pager's tool call UI.
-///
-/// The `raw_input` carries metadata that the pager's `tool_call_to_block()`
-/// uses to select the correct renderer (e.g., `variant: "WebSearch"` picks
-/// the `WebSearchToolCallBlock` instead of the grep `SearchToolCallBlock`).
 pub(super) fn backend_tool_display(name: &str) -> (String, acp::ToolKind, serde_json::Value) {
-    match name {
-        "web_search" => (
-            "Web search:".to_string(),
-            acp::ToolKind::Search,
-            serde_json::json!({"variant": "WebSearch", "backend": true}),
-        ),
-        "x_search" => (
-            "X search:".to_string(),
-            acp::ToolKind::Search,
-            serde_json::json!({"variant": "XSearch", "backend": true}),
-        ),
-        n => (
-            n.to_string(),
-            acp::ToolKind::Other,
-            serde_json::json!({"backend": true}),
-        ),
-    }
+    (
+        name.to_string(),
+        acp::ToolKind::Other,
+        serde_json::json!({"backend": true}),
+    )
 }
 
 /// Map a completed backend (server-side) tool call's payload to the ACP terminal
 /// status the shell should emit. The backend reports each call's real
-/// success/failure in the serialized payload's top-level `status` field (e.g. a
-/// `web_search_call`'s `WebSearchToolCallStatus`, which includes `failed`); a
+/// success/failure in the serialized payload's top-level `status` field; a
 /// `"failed"` status becomes [`acp::ToolCallStatus::Failed`] so downstream
-/// consumers — notably the headless `streaming-messages-json`
-/// `web_search_tool_result_error` branch — see the real failure instead of a
-/// blanket `Completed`. Any other or absent status stays `Completed`
-/// (behavior-preserving for the success path).
+/// consumers see the real failure instead of a blanket `Completed`. Any other
+/// or absent status stays `Completed` (behavior-preserving for the success
+/// path).
 pub(super) fn backend_tool_call_status(result: Option<&serde_json::Value>) -> acp::ToolCallStatus {
     let failed = result
         .and_then(|r| r.get("status"))
@@ -440,34 +422,32 @@ mod tests {
     use super::*;
     use nofy_sampling_types::rs;
 
-    fn web_search_payload(status: rs::WebSearchToolCallStatus) -> serde_json::Value {
-        // The exact serialized `web_search_call` payload the sampler forwards on
-        // `BackendToolCallCompleted` (via `serde_json::to_value(ws)`).
-        serde_json::to_value(rs::WebSearchToolCall {
-            action: rs::WebSearchToolCallAction::Search(rs::WebSearchActionSearch {
-                query: "rust async runtime".to_string(),
-                sources: None,
-            }),
-            id: "ws1".to_string(),
+    fn code_interpreter_payload(status: rs::CodeInterpreterToolCallStatus) -> serde_json::Value {
+        // The exact serialized `code_interpreter_call` payload the sampler
+        // forwards on `BackendToolCallCompleted` (via `serde_json::to_value`).
+        serde_json::to_value(rs::CodeInterpreterToolCall {
+            code: Some("print(1)".to_string()),
+            container_id: "cont1".to_string(),
+            id: "ci1".to_string(),
+            outputs: None,
             status,
         })
-        .expect("serialize web_search_call payload")
+        .expect("serialize code_interpreter_call payload")
     }
 
-    /// A backend-reported web-search failure must map to ACP `Failed` (so the
-    /// headless `web_search_tool_result_error` branch becomes reachable in
-    /// production), while a completed call — or an absent payload — stays
-    /// `Completed`. Exercises the real payload shape, not a hand-built status.
+    /// A backend-reported failure must map to ACP `Failed`, while a completed
+    /// call — or an absent payload — stays `Completed`. Exercises the real
+    /// payload shape, not a hand-built status.
     #[test]
-    fn backend_failed_web_search_maps_to_failed_status() {
-        let failed = web_search_payload(rs::WebSearchToolCallStatus::Failed);
+    fn backend_failed_tool_call_maps_to_failed_status() {
+        let failed = code_interpreter_payload(rs::CodeInterpreterToolCallStatus::Failed);
         assert_eq!(failed["status"], "failed", "wire field name is `status`");
         assert_eq!(
             backend_tool_call_status(Some(&failed)),
             acp::ToolCallStatus::Failed
         );
 
-        let completed = web_search_payload(rs::WebSearchToolCallStatus::Completed);
+        let completed = code_interpreter_payload(rs::CodeInterpreterToolCallStatus::Completed);
         assert_eq!(
             backend_tool_call_status(Some(&completed)),
             acp::ToolCallStatus::Completed

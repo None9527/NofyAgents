@@ -269,7 +269,6 @@ pub(crate) async fn spawn_session_actor(
     session_client_identifier: Option<String>,
     inference_idle_timeout_secs: u64,
     max_retries: Option<u32>,
-    web_search_sampling_config: Option<nofy_sampler::SamplerConfig>,
     web_fetch_config: nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig,
     app_builder_deployer_config: nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig,
     write_file_enabled: bool,
@@ -286,8 +285,6 @@ pub(crate) async fn spawn_session_actor(
     prompt_audience: nofy_agent::prompt::context::PromptAudience,
     role_instructions: Option<String>,
     persona_instructions: Option<String>,
-    disable_web_search: bool,
-    backend_tools_enabled: bool,
     respect_gitignore: bool,
     path_not_found_hints: bool,
     tool_params_json: crate::session::agent_rebuild::ResolvedToolParamsJson,
@@ -480,27 +477,6 @@ pub(crate) async fn spawn_session_actor(
             (0, Vec::new(), Vec::new())
         };
     let primary_model_id = sampling_config.model.clone();
-    let web_search_config = if disable_web_search {
-        nofy_tools::implementations::WebSearchConfig::Disabled
-    } else if let Some(cfg) = web_search_sampling_config {
-        if let Some(api_key) = cfg.api_key {
-            nofy_tools::implementations::WebSearchConfig::Enabled {
-                api_key,
-                base_url: cfg.base_url,
-                model: cfg.model,
-                extra_headers: cfg.extra_headers,
-                alpha_test_key: credentials.alpha_test_key.clone(),
-            }
-        } else {
-            tracing::warn!("web_search disabled: resolved config has no API key");
-            nofy_tools::implementations::WebSearchConfig::Disabled
-        }
-    } else {
-        // Sanitized build: the local web_search client is intentionally not
-        // resolved (xAI Responses-API pipeline); disable quietly.
-        tracing::debug!("web_search disabled: sanitized build does not resolve a search backend");
-        nofy_tools::implementations::WebSearchConfig::Disabled
-    };
     let embed_base_url = sampling_config.base_url.clone();
     let embed_api_key = sampling_config.api_key.clone();
     let session_pruning_config: crate::config::PruningConfig = memory_config.as_ref().map_or_else(
@@ -774,12 +750,6 @@ pub(crate) async fn spawn_session_actor(
     let (user_question_tx, user_question_rx) = tokio::sync::mpsc::unbounded_channel::<
         nofy_tools::implementations::nofy_build::ask_user_question::types::UserQuestionRequest,
     >();
-    let attribution_callback_for_spec = auth_manager.as_ref().map(|am| {
-        crate::auth::attribution::ShellAttribution::new_tool_callback(
-            am.clone(),
-            Some(session_info.id.0.to_string()),
-        )
-    });
     let memory_storage_for_session = memory_config.as_ref().filter(|mc| mc.enabled).map(|mc| {
         if mc.flat_memory_root
             && let Some(ref root) = mc.root_dir_override
@@ -965,8 +935,6 @@ pub(crate) async fn spawn_session_actor(
             .as_ref()
             .map(|s| s.workspace_memory_file().to_string_lossy().into_owned()),
         memory_backend: memory_backend_for_spec,
-        web_search_config: web_search_config.clone(),
-        backend_search: backend_tools_enabled,
         web_fetch_config: web_fetch_config.clone(),
         app_builder_deployer_config: app_builder_deployer_config.clone(),
         write_file_enabled,
@@ -985,7 +953,6 @@ pub(crate) async fn spawn_session_actor(
         lsp: tool_context.lsp.clone(),
         plugin_registry: plugin_registry.clone(),
         api_key_provider: api_key_provider.clone(),
-        attribution_callback: attribution_callback_for_spec,
         tool_params_json: tool_params_json.clone(),
         subagent_event_tx: tool_context.subagent_event_tx.clone(),
         monitor_event_buffer: tool_context.monitor_event_buffer.clone(),
@@ -1574,9 +1541,6 @@ pub(crate) async fn spawn_session_actor(
         }
     };
     let doom_loop_recovery = effective_config.resolve_doom_loop_recovery();
-    let resolved_tool_overrides: std::sync::Arc<
-        arc_swap::ArcSwapOption<nofy_sampling_types::ToolOverrides>,
-    > = std::sync::Arc::new(arc_swap::ArcSwapOption::empty());
     let session = Arc::new_cyclic(|weak: &std::sync::Weak<SessionActor>| SessionActor {
         session_info: session_info.clone(),
         auth_method_id,
@@ -1603,9 +1567,6 @@ pub(crate) async fn spawn_session_actor(
         current_prompt_id: current_prompt_id.clone(),
         pending_interactions: pending_interactions.clone(),
         telemetry_enabled,
-        supports_backend_search: std::cell::Cell::new(sampling_config.supports_backend_search),
-        tool_overrides: std::cell::RefCell::new(None),
-        resolved_tool_overrides: resolved_tool_overrides.clone(),
         compactions_remaining: std::cell::Cell::new(sampling_config.compactions_remaining),
         compaction_at_tokens: std::cell::Cell::new(sampling_config.compaction_at_tokens),
         doom_loop_recovery,
@@ -1807,7 +1768,6 @@ pub(crate) async fn spawn_session_actor(
             finished_marginal,
         );
     }
-    session.emit_resolved_tool_overrides();
     {
         let drainer_session = session.clone();
         let mut sampler_event_rx = sampler_event_rx;
@@ -2120,7 +2080,6 @@ pub(crate) async fn spawn_session_actor(
             pending_interactions,
             info: session_info,
             max_turns,
-            resolved_tool_overrides,
             hunk_tracker_handle,
             chat_state_handle: chat_state_handle_for_handle,
             signals_handle,
@@ -2253,7 +2212,6 @@ pub(crate) async fn spawn_session_on_thread(
     session_client_identifier: Option<String>,
     inference_idle_timeout_secs: u64,
     max_retries: Option<u32>,
-    web_search_sampling_config: Option<nofy_sampler::SamplerConfig>,
     web_fetch_config: nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig,
     app_builder_deployer_config: nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig,
     write_file_enabled: bool,
@@ -2270,8 +2228,6 @@ pub(crate) async fn spawn_session_on_thread(
     prompt_audience: nofy_agent::prompt::context::PromptAudience,
     role_instructions: Option<String>,
     persona_instructions: Option<String>,
-    disable_web_search: bool,
-    backend_tools_enabled: bool,
     respect_gitignore: bool,
     path_not_found_hints: bool,
     tool_params_json: crate::session::agent_rebuild::ResolvedToolParamsJson,
@@ -2425,7 +2381,6 @@ pub(crate) async fn spawn_session_on_thread(
                         session_client_identifier,
                         inference_idle_timeout_secs,
                         max_retries,
-                        web_search_sampling_config,
                         web_fetch_config,
                         app_builder_deployer_config,
                         write_file_enabled,
@@ -2442,8 +2397,6 @@ pub(crate) async fn spawn_session_on_thread(
                         prompt_audience,
                         role_instructions,
                         persona_instructions,
-                        disable_web_search,
-                        backend_tools_enabled,
                         respect_gitignore,
                         path_not_found_hints,
                         tool_params_json,

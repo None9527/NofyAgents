@@ -113,8 +113,6 @@ pub(crate) struct SubagentSpawnContext {
     pub auth: Option<crate::auth::NofyAuth>,
     pub parent_cwd: PathBuf,
     pub parent_session_id: String,
-    /// The parent's cutoff at spawn, applied to the child's first turn. `None` if unset.
-    pub inherited_tool_overrides: Option<nofy_sampling_types::ToolOverrides>,
     pub yolo_mode: bool,
     pub subagent_event_tx: mpsc::UnboundedSender<SubagentEvent>,
     pub parent_depth: u32,
@@ -164,8 +162,6 @@ pub(crate) struct SubagentSpawnContext {
     /// Parent's memory config — shared so the child can access the same
     /// cross-session memory store.
     pub memory_config: Option<crate::config::MemoryConfig>,
-    /// Resolved sampling config for web_search.
-    pub web_search_sampling_config: Option<nofy_sampler::SamplerConfig>,
     /// Resolved config for web fetch.
     pub web_fetch_config: nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig,
     /// Resolved config for the deploy service.
@@ -205,9 +201,6 @@ pub(crate) struct SubagentSpawnContext {
     /// Per-subagent enable/disable toggles from config.toml `[subagents.toggle]`.
     /// Omitted agents default to enabled (`true`).
     pub subagent_toggle: std::collections::HashMap<String, bool>,
-    /// Whether web search is force-disabled via `--disable-web-search`.
-    /// Inherited from the parent session.
-    pub disable_web_search: bool,
     /// Whether the runtime turn-end TodoGate is force-enabled via
     /// `--todo-gate`. Inherited from the parent session.
     pub todo_gate: bool,
@@ -215,7 +208,6 @@ pub(crate) struct SubagentSpawnContext {
     /// Subagent classifier fires append to the same log file. `None`
     /// when the parent did not enable debug mode.
     pub laziness_debug_log: Option<std::path::PathBuf>,
-    pub backend_tools_enabled: bool,
     /// Whether tools should respect `.gitignore` patterns.
     /// Inherited from the parent session.
     pub respect_gitignore: bool,
@@ -756,9 +748,6 @@ async fn read_parent_sampling_config(
                 } else {
                     inherited_bearer_resolver(ctx, &cfg.model, &inherited_base_url)
                 },
-                supports_backend_search: ctx
-                    .models_manager
-                    .model_supports_backend_search(ctx.model_id.0.as_ref()),
                 compactions_remaining: ctx
                     .models_manager
                     .model_compactions_remaining(ctx.model_id.0.as_ref()),
@@ -806,9 +795,6 @@ async fn read_parent_sampling_config(
     } else {
         inherited_bearer_resolver(ctx, &fallback.model, &fallback.base_url)
     };
-    fallback.supports_backend_search = ctx
-        .models_manager
-        .model_supports_backend_search(ctx.model_id.0.as_ref());
     fallback.compactions_remaining = ctx
         .models_manager
         .model_compactions_remaining(ctx.model_id.0.as_ref());
@@ -1876,7 +1862,6 @@ fn inject_subagent_completed_prompt(
             json_schema: None,
             send_now: false,
             admission: None,
-            tool_overrides_update: None,
             respond_to,
             persist_ack: None,
             parsed_prompt_tx: None,

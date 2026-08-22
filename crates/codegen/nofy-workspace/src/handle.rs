@@ -3919,7 +3919,7 @@ pub async fn connect_local_workspace(
         .unwrap_or_else(|_| "https://cli-chat-proxy.grok.com/v1".to_string());
     let data_collection_disabled =
         std::env::var("NOFY_WORKSPACE_DATA_COLLECTION_DISABLED").as_deref() != Ok("false");
-    let mut factory = WorkspaceSessionContextFactory::with_auth(auth.clone(), api_base_url.clone());
+    let mut factory = WorkspaceSessionContextFactory::with_auth(auth.clone());
     if crate::session::tool_config::tool_state_enabled() {
         factory = factory.with_tool_state_home(workspace_home.clone());
     }

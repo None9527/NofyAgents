@@ -250,7 +250,6 @@ async fn run_agent_command(
     permission_mode_flag: Option<String>,
     trust: bool,
     no_auto_update: bool,
-    disable_web_search: bool,
     update_config: &UpdateConfig,
 ) -> Result<()> {
     let _signal_flush = tokio::spawn(async {
@@ -341,11 +340,9 @@ async fn run_agent_command(
         raw_config: &raw_config,
         is_headless: !is_leader,
         cli_subagents: None,
-        cli_web_search_model: None,
         cli_session_summary_model: None,
         cli_experimental_memory: false,
         cli_no_memory: false,
-        disable_web_search,
         todo_gate: false,
         laziness_debug_log: None,
         storage_mode: None,
@@ -1006,7 +1003,6 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                     args.permission_mode_flag.clone(),
                     args.trust,
                     args.no_auto_update,
-                    args.disable_web_search,
                     &update_config,
                 )
                 .await;
@@ -1211,7 +1207,6 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                 agents_json: args.agents_json.clone(),
                 cli_tools: args.cli_tools.clone(),
                 cli_disallowed_tools: args.cli_disallowed_tools.clone(),
-                disable_web_search: args.disable_web_search,
                 experimental_memory: args.experimental_memory,
                 no_memory: args.no_memory,
                 allow_rules: args.allow_rules.clone(),

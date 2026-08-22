@@ -10,9 +10,7 @@ mod responses;
 
 pub use chat_completions::{conversation_item_to_chat_message, conversation_to_chat_messages};
 pub use messages::build_messages_request;
-pub use responses::{
-    extra_tool_entries, patch_reasoning_text_types, response_to_conversation_items,
-};
+pub use responses::{patch_reasoning_text_types, response_to_conversation_items};
 
 use std::sync::Arc;
 
@@ -53,7 +51,6 @@ fn sanitize_tool_arguments(id: &str, name: &str, arguments: Arc<str>) -> Arc<str
 use serde::{Deserialize, Serialize};
 
 use crate::rs;
-use crate::tool_overrides::{ToolOverrides, WebSearchOptions, XSearchOptions, drop_empty};
 use crate::types::{
     ChatCompletionRequest, ChatContentBlock, ChatRequestMessage, ChatResponseMessage, FinishReason,
     ImageUrl, MessageContent, Role, ToolCallRequest, ToolChoice, ToolDefinition, TraceContext,
@@ -77,12 +74,12 @@ pub enum ConversationItem {
     /// Tool/function result
     ToolResult(ToolResultItem),
     /// A tool call executed server-side by the backend agentic sampler
-    /// (e.g. web search, X search, code interpreter). These are NOT
+    /// (e.g. code interpreter). These are NOT
     /// executed by the client — the server already ran them and fed
     /// results into the model's context. Stored so they can be:
     /// 1. Persisted to chat_history.jsonl for session replay/fork
     /// 2. Sent back to the Responses API as input items for context continuity
-    /// 3. Rendered by the pager (search queries, sources, etc.)
+    /// 3. Rendered by the pager
     BackendToolCall(BackendToolCallItem),
     /// A reasoning item from the Responses API, stored as a sibling of the
     /// assistant message so that:
@@ -94,7 +91,7 @@ pub enum ConversationItem {
     ///    turns, which is what lets the server-side prefix KV-cache hit.
     ///
     /// Wraps `rs::ReasoningItem` directly (symmetric with `BackendToolCall`
-    /// wrapping `rs::WebSearchToolCall` etc.) so no field is dropped on the
+    /// wrapping `rs::CodeInterpreterToolCall`) so no field is dropped on the
     /// way through.
     Reasoning(rs::ReasoningItem),
 }
@@ -336,14 +333,11 @@ pub struct BackendToolCallItem {
 
 impl BackendToolCallItem {
     /// The backend-tool-call id (the `id` field on the underlying
-    /// `rs::WebSearchToolCall` / `rs::CustomToolCall` /
     /// `rs::CodeInterpreterToolCall`). Used by the legacy-session
     /// upgrader to dedupe against the same call when it also appears
     /// inside a sibling assistant's `raw_output` array.
     pub fn id(&self) -> &str {
         match &self.kind {
-            BackendToolKind::WebSearch(ws) => ws.id.as_str(),
-            BackendToolKind::XSearch(ct) => ct.id.as_str(),
             BackendToolKind::CodeInterpreter(ci) => ci.id.as_str(),
         }
     }
@@ -351,22 +345,6 @@ impl BackendToolCallItem {
     /// Human-readable summary for token estimation and text extraction.
     pub fn text_summary(&self) -> String {
         match &self.kind {
-            BackendToolKind::WebSearch(ws) => {
-                let action_desc = match &ws.action {
-                    rs::WebSearchToolCallAction::Search(s) => format!("search: {}", s.query),
-                    rs::WebSearchToolCallAction::OpenPage(o) => {
-                        format!("open: {}", o.url.as_deref().unwrap_or("?"))
-                    }
-                    rs::WebSearchToolCallAction::Find(f)
-                    | rs::WebSearchToolCallAction::FindInPage(f) => {
-                        format!("find \"{}\" in {}", f.pattern, f.url)
-                    }
-                };
-                format!("[backend web_search] {action_desc}")
-            }
-            BackendToolKind::XSearch(ct) => {
-                format!("[backend x_search] {}({})", ct.name, ct.input)
-            }
             BackendToolKind::CodeInterpreter(ci) => {
                 let code_preview = ci
                     .code
@@ -392,10 +370,6 @@ impl BackendToolCallItem {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "tool_type", rename_all = "snake_case")]
 pub enum BackendToolKind {
-    /// Server-side web search (query + sources).
-    WebSearch(rs::WebSearchToolCall),
-    /// Server-side X/Twitter search (keyword, semantic, user, thread).
-    XSearch(rs::CustomToolCall),
     /// Server-side code interpreter execution.
     CodeInterpreter(rs::CodeInterpreterToolCall),
 }
@@ -525,54 +499,6 @@ pub struct ToolSpec {
     pub parameters: serde_json::Value,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum HostedTool {
-    WebSearch { options: Option<WebSearchOptions> },
-    XSearch { options: Option<XSearchOptions> },
-}
-
-impl HostedTool {
-    pub fn wire_name(&self) -> &'static str {
-        match self {
-            HostedTool::WebSearch { .. } => "web_search",
-            HostedTool::XSearch { .. } => "x_search",
-        }
-    }
-}
-
-/// Resolve `overrides` onto the hosted tools in place so the serialized request matches the returned
-/// echo. Empty options normalize to absent (via `drop_empty`), so a stray `{}` never clears a seeded
-/// bound. Returns the applied overrides.
-pub fn apply_tool_overrides(
-    tools: &mut [HostedTool],
-    overrides: Option<&ToolOverrides>,
-) -> ToolOverrides {
-    let mut applied = ToolOverrides::default();
-    for tool in tools.iter_mut() {
-        match tool {
-            HostedTool::XSearch { options } => {
-                if let Some(x) = drop_empty(
-                    overrides.and_then(|o| o.x_search.clone()),
-                    XSearchOptions::is_empty,
-                ) {
-                    *options = Some(x);
-                }
-                applied.x_search = drop_empty(options.clone(), XSearchOptions::is_empty);
-            }
-            HostedTool::WebSearch { options } => {
-                if let Some(w) = drop_empty(
-                    overrides.and_then(|o| o.web_search.clone()),
-                    WebSearchOptions::is_empty,
-                ) {
-                    *options = Some(w);
-                }
-                applied.web_search = drop_empty(options.clone(), WebSearchOptions::is_empty);
-            }
-        }
-    }
-    applied
-}
-
 impl From<ToolDefinition> for ToolSpec {
     fn from(td: ToolDefinition) -> Self {
         Self {
@@ -594,9 +520,6 @@ pub struct ConversationRequest {
     pub items: Vec<ConversationItem>,
     /// Available tools (client-side, sent as Function definitions)
     pub tools: Vec<ToolSpec>,
-    /// Backend-hosted tools (sent as native Responses API tool types).
-    /// These are executed server-side by the agentic sampler during inference.
-    pub hosted_tools: Vec<HostedTool>,
     /// Tool choice behavior
     pub tool_choice: Option<ConversationToolChoice>,
     /// Model to use (if not using client default)
@@ -1536,7 +1459,7 @@ pub fn upgrade_legacy_reasoning(
         return siblings;
     }
 
-    // Path A — v1 with `raw_output` (backend-search era). Expand each entry
+    // Path A — v1 with `raw_output`. Expand each entry
     // as `rs::OutputItem` and lift Reasoning / backend-tool items to
     // siblings. `Message` / `FunctionCall` are already on the assistant
     // row (content / tool_calls), so skip them.
@@ -1548,18 +1471,6 @@ pub fn upgrade_legacy_reasoning(
             match item {
                 rs::OutputItem::Reasoning(r) => {
                     siblings.push(ConversationItem::Reasoning(r));
-                }
-                rs::OutputItem::WebSearchCall(ws) if sibling_btc_ids_seen.insert(ws.id.clone()) => {
-                    siblings.push(ConversationItem::BackendToolCall(BackendToolCallItem {
-                        kind: BackendToolKind::WebSearch(ws),
-                    }));
-                }
-                rs::OutputItem::CustomToolCall(ct)
-                    if sibling_btc_ids_seen.insert(ct.id.clone()) =>
-                {
-                    siblings.push(ConversationItem::BackendToolCall(BackendToolCallItem {
-                        kind: BackendToolKind::XSearch(ct),
-                    }));
                 }
                 rs::OutputItem::CodeInterpreterCall(ci)
                     if sibling_btc_ids_seen.insert(ci.id.clone()) =>
@@ -2363,7 +2274,6 @@ mod messages_tests;
 mod tests {
     use super::test_support::*;
     use super::*;
-    use crate::tool_overrides::*;
     use assert_matches::assert_matches;
 
     /// Keeps `forwards_prompt_cache_key()` honest against each mapping: a key that never reaches the wire looks like a 0% cache hit, not a bug.
@@ -2467,125 +2377,6 @@ mod tests {
         let mut sys = ConversationItem::system("sp");
         sys.set_prior_turn_interrupt(PriorTurnInterrupt::MidTurnAbort);
         assert_matches!(sys, ConversationItem::System(_));
-    }
-
-    #[test]
-    fn tool_overrides_update_apply_merges_tristate() {
-        let x = XSearchOptions {
-            date_bound: Some(SearchDateBound::new(None, Some("2024-03-15".into())).unwrap()),
-        };
-        let w = WebSearchOptions {
-            allowed_domains: Some(vec!["x.com".into()]),
-        };
-
-        // set: an object sets that tool's options.
-        let base = ToolOverridesUpdate {
-            x_search: Some(Some(x.clone())),
-            web_search: None,
-        }
-        .apply(None);
-        assert_eq!(
-            base.as_ref().and_then(|o| o.x_search.clone()),
-            Some(x.clone())
-        );
-
-        // leave: an absent field keeps the base's entry; a set field updates only itself.
-        let merged = ToolOverridesUpdate {
-            x_search: None,
-            web_search: Some(Some(w.clone())),
-        }
-        .apply(base.clone());
-        assert_eq!(merged.as_ref().and_then(|o| o.x_search.clone()), Some(x));
-        assert_eq!(merged.and_then(|o| o.web_search), Some(w));
-
-        // clear: `null` clears just that tool; clearing the last remaining tool
-        // empties the override to `None`.
-        let cleared = ToolOverridesUpdate {
-            x_search: Some(None),
-            web_search: None,
-        }
-        .apply(base);
-        assert!(cleared.is_none());
-    }
-
-    #[test]
-    fn empty_per_turn_override_never_clears_a_seeded_cutoff() {
-        use serde_json::json;
-        // A stray empty `{}` carries no instruction, so a definition-seeded cutoff must survive it
-        // (only an explicit bound changes the window; `null` reverts to the seed).
-        let update = ToolOverridesUpdate::parse(&json!({"xSearch": {}}))
-            .unwrap()
-            .apply(None);
-        let mut tools = vec![HostedTool::XSearch {
-            options: Some(XSearchOptions {
-                date_bound: Some(SearchDateBound::new(None, Some("2024-01-01".into())).unwrap()),
-            }),
-        }];
-        let applied = apply_tool_overrides(&mut tools, update.as_ref());
-        assert_eq!(
-            applied
-                .x_search
-                .and_then(|x| x.date_bound)
-                .and_then(|b| b.to_date().map(str::to_owned)),
-            Some("2024-01-01".to_string()),
-            "an empty override must not widen a seeded cutoff"
-        );
-
-        let mut tools = vec![HostedTool::XSearch {
-            options: Some(XSearchOptions {
-                date_bound: Some(SearchDateBound::new(None, Some("2024-01-01".into())).unwrap()),
-            }),
-        }];
-        let direct = ToolOverrides::parse(&json!({"xSearch": {}})).unwrap();
-        let applied = apply_tool_overrides(&mut tools, Some(&direct));
-        assert_eq!(
-            applied
-                .x_search
-                .and_then(|x| x.date_bound)
-                .and_then(|b| b.to_date().map(str::to_owned)),
-            Some("2024-01-01".to_string()),
-            "an empty override leaves the seeded bound, which stays attested"
-        );
-    }
-
-    #[test]
-    fn search_date_bound_validation() {
-        // Non-canonical dates: unpadded is NotZeroPadded; a five-digit year and year 0 (below the
-        // minimum year 1) are InvalidDate; a valid padded window is accepted.
-        assert!(matches!(
-            SearchDateBound::new(Some("2024-3-5".into()), None),
-            Err(SearchDateBoundError::NotZeroPadded { .. })
-        ));
-        assert!(matches!(
-            SearchDateBound::new(Some("10000-01-01".into()), None),
-            Err(SearchDateBoundError::InvalidDate { .. })
-        ));
-        assert!(matches!(
-            SearchDateBound::new(Some("0000-01-01".into()), None),
-            Err(SearchDateBoundError::InvalidDate { .. })
-        ));
-        assert!(SearchDateBound::new(Some("0001-01-01".into()), Some("0099-12-31".into())).is_ok());
-
-        // Inverted window is rejected with the typed error; equal and ordered windows are accepted.
-        assert!(matches!(
-            SearchDateBound::new(Some("2024-03-15".into()), Some("2024-01-01".into())),
-            Err(SearchDateBoundError::InvertedWindow { .. })
-        ));
-        assert!(SearchDateBound::new(Some("2024-01-01".into()), Some("2024-01-01".into())).is_ok());
-        assert!(SearchDateBound::new(Some("2024-01-01".into()), Some("2024-01-02".into())).is_ok());
-
-        // The rejection also holds through parse and the composed aggregate wire type, so a client
-        // cannot smuggle an inverted window past the outer types.
-        let inverted = serde_json::json!({"fromDate": "2024-03-15", "toDate": "2024-01-01"});
-        let err = SearchDateBound::parse(&inverted)
-            .expect_err("inverted window must fail parse")
-            .to_string();
-        assert!(err.contains("on or before"), "unhelpful error: {err}");
-        assert!(
-            ToolOverridesUpdate::parse(&serde_json::json!({"xSearch": {"dateBound": &inverted}}))
-                .is_err(),
-            "inverted window must fail through the aggregate wire type"
-        );
     }
 
     #[test]
@@ -5027,14 +4818,13 @@ mod tests {
                 status: Some(rs::OutputStatus::Completed),
             })
         };
-        let make_ws = |suffix: &str, query: &str| {
-            rs::OutputItem::WebSearchCall(rs::WebSearchToolCall {
-                id: format!("ws_resp123_{suffix}"),
-                status: rs::WebSearchToolCallStatus::Completed,
-                action: rs::WebSearchToolCallAction::Search(rs::WebSearchActionSearch {
-                    query: query.to_string(),
-                    sources: Some(vec![]),
-                }),
+        let make_ci = |suffix: &str, code: &str| {
+            rs::OutputItem::CodeInterpreterCall(rs::CodeInterpreterToolCall {
+                id: format!("ci_resp123_{suffix}"),
+                container_id: format!("cont_{suffix}"),
+                code: Some(code.to_string()),
+                outputs: None,
+                status: rs::CodeInterpreterToolCallStatus::Completed,
             })
         };
 
@@ -5053,13 +4843,13 @@ mod tests {
             model: "nofy-build".to_string(),
             object: "response".to_string(),
             output: vec![
-                make_reasoning("a", "thinking pre-search", None),
-                make_ws("5", "capybara facts"),
-                make_ws("6", "wombat habitat"),
+                make_reasoning("a", "thinking pre-tool", None),
+                make_ci("5", "print('capybara facts')"),
+                make_ci("6", "print('wombat habitat')"),
                 make_tco("5"),
                 make_tco("6"),
                 make_reasoning("b", "follow-up thinking", None),
-                make_ws("7", "platypus venom"),
+                make_ci("7", "print('platypus venom')"),
                 make_tco("7"),
             ],
             parallel_tool_calls: None,
@@ -5177,23 +4967,23 @@ mod tests {
     #[test]
     fn conversation_to_chat_messages_folds_reasoning_across_backend_tool_call() {
         // The canonical post-tool-call ordering is
-        // `[..., Reasoning, BackendToolCall, Assistant]` (e.g. a web_search
-        // turn). The BackendToolCall is emitted as its own synthetic assistant
-        // message, but it must NOT drop the pending reasoning: the reasoning
-        // belongs to the same turn and folds onto the following assistant's
-        // `reasoning_content`, matching the Responses API path
+        // `[..., Reasoning, BackendToolCall, Assistant]` (e.g. a
+        // code-interpreter turn). The BackendToolCall is emitted as its own
+        // synthetic assistant message, but it must NOT drop the pending
+        // reasoning: the reasoning belongs to the same turn and folds onto
+        // the following assistant's `reasoning_content`, matching the
+        // Responses API path
         // (`build_responses_input_preserves_multi_turn_ordering`).
         let items = vec![
             ConversationItem::user("hi"),
-            reasoning_sibling("r1", "thinking before search", None),
+            reasoning_sibling("r1", "thinking before tool", None),
             ConversationItem::BackendToolCall(BackendToolCallItem {
-                kind: BackendToolKind::WebSearch(rs::WebSearchToolCall {
-                    id: "ws_1".to_string(),
-                    status: rs::WebSearchToolCallStatus::Completed,
-                    action: rs::WebSearchToolCallAction::Search(rs::WebSearchActionSearch {
-                        query: "capybaras".to_string(),
-                        sources: Some(vec![]),
-                    }),
+                kind: BackendToolKind::CodeInterpreter(rs::CodeInterpreterToolCall {
+                    id: "ci_1".to_string(),
+                    container_id: "cont_1".to_string(),
+                    code: Some("print('capybaras')".to_string()),
+                    outputs: None,
+                    status: rs::CodeInterpreterToolCallStatus::Completed,
                 }),
             }),
             ConversationItem::assistant("answer"),
@@ -5208,7 +4998,7 @@ mod tests {
         assert_eq!(msgs[1].role, Role::Assistant);
         assert_eq!(
             msgs[1].text_content(),
-            "[backend web_search] search: capybaras"
+            "[backend code_interpreter] print('capybaras')"
         );
         assert_eq!(
             msgs[1].reasoning_content.as_deref(),
@@ -5221,7 +5011,7 @@ mod tests {
         assert_eq!(msgs[2].text_content(), "answer");
         assert_eq!(
             msgs[2].reasoning_content.as_deref(),
-            Some("thinking before search"),
+            Some("thinking before tool"),
             "reasoning preceding a BackendToolCall folds onto the following \
              assistant rather than being dropped"
         );
@@ -5233,20 +5023,22 @@ mod tests {
         // has no Chat Completions equivalent, so it is emitted as a synthetic
         // assistant message carrying its human-readable `text_summary()`.
         let item = ConversationItem::BackendToolCall(BackendToolCallItem {
-            kind: BackendToolKind::WebSearch(rs::WebSearchToolCall {
-                id: "ws_1".to_string(),
-                status: rs::WebSearchToolCallStatus::Completed,
-                action: rs::WebSearchToolCallAction::Search(rs::WebSearchActionSearch {
-                    query: "capybaras".to_string(),
-                    sources: Some(vec![]),
-                }),
+            kind: BackendToolKind::CodeInterpreter(rs::CodeInterpreterToolCall {
+                id: "ci_1".to_string(),
+                container_id: "cont_1".to_string(),
+                code: Some("print('capybaras')".to_string()),
+                outputs: None,
+                status: rs::CodeInterpreterToolCallStatus::Completed,
             }),
         });
 
         let msg = conversation_item_to_chat_message(item);
 
         assert_eq!(msg.role, Role::Assistant);
-        assert_eq!(msg.text_content(), "[backend web_search] search: capybaras");
+        assert_eq!(
+            msg.text_content(),
+            "[backend code_interpreter] print('capybaras')"
+        );
         assert!(
             msg.tool_calls.is_empty(),
             "synthetic assistant carries no tool calls"
@@ -5261,7 +5053,7 @@ mod tests {
     // Three legacy on-disk shapes that the on-read upgrader must lift to
     // sibling Reasoning / BackendToolCall items:
     //
-    //   1. v1 assistant with `raw_output: Vec<OutputItem>` (backend-search era)
+    //   1. v1 assistant with `raw_output: Vec<OutputItem>`
     //   2. v1 assistant with singular `reasoning: ReasoningContent`
     //      (earlier nofy-build / chat-completions written as v1)
     //   3. v0 `ChatRequestMessage` with top-level `reasoning_content`
@@ -5277,9 +5069,9 @@ mod tests {
         // earlier shape.
         let raw = serde_json::json!({
             "type": "assistant",
-            "content": "Web search results for cats and dogs...",
+            "content": "Results for cats and dogs...",
             "reasoning": {
-                "text": "The web search results for cats and dogs are mostly about",
+                "text": "The results for cats and dogs are mostly about",
                 "encrypted": "bIfXFNBiP8EI8F7pkKC1tgbYjvVuIctMAlCUGMii",
                 "id": "rs_00000000-0000-4000-8000-000000000001"
             },
@@ -5297,7 +5089,7 @@ mod tests {
         let rs::SummaryPart::SummaryText(s) = &r.summary[0];
         assert_eq!(
             s.text,
-            "The web search results for cats and dogs are mostly about"
+            "The results for cats and dogs are mostly about"
         );
         assert_eq!(
             r.encrypted_content.as_deref(),
@@ -5307,25 +5099,24 @@ mod tests {
 
     #[test]
     fn upgrade_legacy_reasoning_raw_output_expands_parallel_tco_blobs() {
-        // backend-search-era shape: raw_output preserves the full ordered
-        // Vec<OutputItem>. The N parallel `tco_*` reasoning items round-
-        // trip as N sibling Reasoning items — the structural fix the
-        // refactor is built around.
+        // raw_output preserves the full ordered Vec<OutputItem>. The N
+        // parallel `tco_*` reasoning items round-trip as N sibling Reasoning
+        // items — the structural fix the refactor is built around.
         let raw = serde_json::json!({
             "type": "assistant",
-            "content": "I searched two things in parallel.",
+            "content": "I ran two snippets in parallel.",
             "tool_calls": [],
             "raw_output": [
                 {"type":"reasoning","id":"tco_1","summary":[],"encrypted_content":"enc1"},
-                {"type":"web_search_call","id":"ws_1","status":"completed",
-                 "action":{"type":"search","query":"q1","sources":[]}},
+                {"type":"code_interpreter_call","id":"ci_1","container_id":"cont_1",
+                 "status":"completed","code":"print(1)"},
                 {"type":"reasoning","id":"tco_2","summary":[],"encrypted_content":"enc2"},
-                {"type":"web_search_call","id":"ws_2","status":"completed",
-                 "action":{"type":"search","query":"q2","sources":[]}},
+                {"type":"code_interpreter_call","id":"ci_2","container_id":"cont_2",
+                 "status":"completed","code":"print(2)"},
                 {"type":"reasoning","id":"rs_main",
                  "summary":[{"type":"summary_text","text":"final synthesis"}]},
                 {"type":"message","id":"msg_1","status":"completed","role":"assistant",
-                 "content":[{"type":"output_text","text":"I searched two things in parallel.",
+                 "content":[{"type":"output_text","text":"I ran two snippets in parallel.",
                              "annotations":[]}]}
             ]
         });
@@ -5357,11 +5148,11 @@ mod tests {
                 _ => None,
             })
             .collect();
-        assert_eq!(btc_ids, vec!["ws_1", "ws_2"]);
+        assert_eq!(btc_ids, vec!["ci_1", "ci_2"]);
 
-        // Both web-search ids registered for downstream dedup.
-        assert!(seen.contains("ws_1"));
-        assert!(seen.contains("ws_2"));
+        // Both backend-tool ids registered for downstream dedup.
+        assert!(seen.contains("ci_1"));
+        assert!(seen.contains("ci_2"));
     }
 
     #[test]
@@ -5371,16 +5162,16 @@ mod tests {
         // following assistant's raw_output. The upgrader must not emit
         // a duplicate.
         let mut seen = std::collections::HashSet::new();
-        seen.insert("ws_already_a_sibling".to_string());
+        seen.insert("ci_already_a_sibling".to_string());
 
         let raw = serde_json::json!({
             "type": "assistant",
             "content": "",
             "raw_output": [
-                {"type":"web_search_call","id":"ws_already_a_sibling","status":"completed",
-                 "action":{"type":"search","query":"x","sources":[]}},
-                {"type":"web_search_call","id":"ws_new","status":"completed",
-                 "action":{"type":"search","query":"y","sources":[]}}
+                {"type":"code_interpreter_call","id":"ci_already_a_sibling",
+                 "container_id":"cont_a","status":"completed","code":"print(1)"},
+                {"type":"code_interpreter_call","id":"ci_new",
+                 "container_id":"cont_b","status":"completed","code":"print(2)"}
             ]
         });
         let siblings = upgrade_legacy_reasoning(&raw, &mut seen);
@@ -5393,7 +5184,7 @@ mod tests {
             .collect();
         assert_eq!(
             btc_ids,
-            vec!["ws_new"],
+            vec!["ci_new"],
             "the already-sibling call is skipped; only the new one is emitted"
         );
     }

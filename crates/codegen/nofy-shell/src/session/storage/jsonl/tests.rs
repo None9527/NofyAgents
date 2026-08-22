@@ -1674,7 +1674,7 @@ fn load_lines(lines: &[&str]) -> Vec<ConversationItem> {
     std::fs::write(&chat_path, lines.join("\n") + "\n").unwrap();
     adapter.read_chat_history_sync(chat_path, CHAT_FORMAT_VERSION).unwrap()
 }
-/// Real-shape legacy fixture from a web-search session.
+/// Real-shape legacy fixture from a code-interpreter session.
 /// The assistant carries `reasoning: { text, encrypted, id }` inline —
 /// the legacy nofy-build / Opus / chat-completions shape.
 /// BackendToolCall sits as its own sibling line (it was already a
@@ -1685,7 +1685,7 @@ fn read_chat_history_upgrades_legacy_singular_reasoning_to_sibling() {
         &[
             r#"{"type":"system","content":"You are helpful."}"#,
             r#"{"type":"user","content":[{"type":"text","text":"cats and dogs"}]}"#,
-            r#"{"type":"backend_tool_call","kind":{"tool_type":"web_search","id":"ws_legacy_1","status":"completed","action":{"type":"search","query":"cats and dogs","sources":[]}}}"#,
+            r#"{"type":"backend_tool_call","kind":{"tool_type":"code_interpreter","id":"ci_legacy_1","container_id":"cont_l","status":"completed","code":"print(1)"}}"#,
             r#"{"type":"assistant","content":"results...","reasoning":{"text":"the results are about cats","encrypted":"enc-blob","id":"rs_legacy"},"model_id":"nofy-build"}"#,
         ],
     );
@@ -1713,9 +1713,9 @@ fn read_chat_history_upgrades_raw_output_parallel_tco_reasoning() {
     let lines = [
         r#"{"type":"system","content":"sys"}"#,
         r#"{"type":"user","content":[{"type":"text","text":"q"}]}"#,
-        r#"{"type":"backend_tool_call","kind":{"tool_type":"web_search","id":"ws_1","status":"completed","action":{"type":"search","query":"q1","sources":[]}}}"#,
-        r#"{"type":"backend_tool_call","kind":{"tool_type":"web_search","id":"ws_2","status":"completed","action":{"type":"search","query":"q2","sources":[]}}}"#,
-        r#"{"type":"assistant","content":"answer","tool_calls":[],"raw_output":[{"type":"reasoning","id":"tco_1","summary":[],"encrypted_content":"e1"},{"type":"web_search_call","id":"ws_1","status":"completed","action":{"type":"search","query":"q1","sources":[]}},{"type":"reasoning","id":"tco_2","summary":[],"encrypted_content":"e2"},{"type":"web_search_call","id":"ws_2","status":"completed","action":{"type":"search","query":"q2","sources":[]}},{"type":"reasoning","id":"rs_main","summary":[{"type":"summary_text","text":"final"}]},{"type":"message","id":"m1","status":"completed","role":"assistant","content":[{"type":"output_text","text":"answer","annotations":[]}]}]}"#,
+        r#"{"type":"backend_tool_call","kind":{"tool_type":"code_interpreter","id":"ci_1","container_id":"cont_1","status":"completed","code":"print(1)"}}"#,
+        r#"{"type":"backend_tool_call","kind":{"tool_type":"code_interpreter","id":"ci_2","container_id":"cont_2","status":"completed","code":"print(2)"}}"#,
+        r#"{"type":"assistant","content":"answer","tool_calls":[],"raw_output":[{"type":"reasoning","id":"tco_1","summary":[],"encrypted_content":"e1"},{"type":"code_interpreter_call","id":"ci_1","container_id":"cont_1","status":"completed","code":"print(1)"},{"type":"reasoning","id":"tco_2","summary":[],"encrypted_content":"e2"},{"type":"code_interpreter_call","id":"ci_2","container_id":"cont_2","status":"completed","code":"print(2)"},{"type":"reasoning","id":"rs_main","summary":[{"type":"summary_text","text":"final"}]},{"type":"message","id":"m1","status":"completed","role":"assistant","content":[{"type":"output_text","text":"answer","annotations":[]}]}]}"#,
     ];
     let items = load_lines(&lines);
     let kinds: Vec<&'static str> = items
@@ -1771,11 +1771,11 @@ fn read_chat_history_handles_hybrid_legacy_and_post_pr_lines() {
         &[
             r#"{"type":"system","content":"sys"}"#,
             r#"{"type":"user","content":[{"type":"text","text":"q1"}]}"#,
-            r#"{"type":"backend_tool_call","kind":{"tool_type":"web_search","id":"ws_legacy_1","status":"completed","action":{"type":"search","query":"q1","sources":[]}}}"#,
+            r#"{"type":"backend_tool_call","kind":{"tool_type":"code_interpreter","id":"ci_legacy_1","container_id":"cont_l","status":"completed","code":"print(1)"}}"#,
             r#"{"type":"assistant","content":"a1","reasoning":{"text":"legacy thinking","encrypted":"enc","id":"rs_legacy"},"model_id":"nofy-build"}"#,
             r#"{"type":"user","content":[{"type":"text","text":"q2"}]}"#,
             r#"{"type":"reasoning","id":"rs_postpr","summary":[{"type":"summary_text","text":"new thinking"}]}"#,
-            r#"{"type":"backend_tool_call","kind":{"tool_type":"web_search","id":"ws_postpr","status":"completed","action":{"type":"search","query":"q2","sources":[]}}}"#,
+            r#"{"type":"backend_tool_call","kind":{"tool_type":"code_interpreter","id":"ci_postpr","container_id":"cont_p","status":"completed","code":"print(2)"}}"#,
             r#"{"type":"assistant","content":"a2","model_id":"nofy-build"}"#,
         ],
     );
@@ -1796,7 +1796,7 @@ fn read_chat_history_handles_hybrid_legacy_and_post_pr_lines() {
                 // Turn 1 (legacy lifted)
                 "system",
                 "user",
-                "backend_tool_call", // ws_legacy_1 (passthrough sibling row)
+                "backend_tool_call", // ci_legacy_1 (passthrough sibling row)
                 "reasoning",         // reconstructed from assistant.reasoning
                 "assistant",         // legacy assistant with legacy fields stripped
                 // Turn 2 (post-PR passthrough)
@@ -1823,7 +1823,7 @@ fn read_chat_history_handles_hybrid_legacy_and_post_pr_lines() {
             _ => None,
         })
         .collect();
-    assert_eq!(btc_ids, vec!["ws_legacy_1", "ws_postpr"]);
+    assert_eq!(btc_ids, vec!["ci_legacy_1", "ci_postpr"]);
     let ConversationItem::Assistant(legacy_assistant) = &items[4] else {
         panic!("expected legacy assistant at index 4");
     };

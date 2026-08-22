@@ -355,9 +355,6 @@ impl MvpAgent {
                 &parent_cwd,
                 project_trusted,
             );
-        let inherited_tool_overrides = parent_handle
-            .as_ref()
-            .and_then(|ps| ps.resolved_tool_overrides.load_full().map(|o| (*o).clone()));
         Some(crate::agent::subagent::SubagentSpawnContext {
             lsp: parent_lsp,
             process_scope: parent_process_scope,
@@ -376,7 +373,6 @@ impl MvpAgent {
             auth: self.current_or_buffered_auth(),
             parent_cwd: parent_cwd.clone(),
             parent_session_id: parent_session_id.to_string(),
-            inherited_tool_overrides,
             yolo_mode,
             subagent_event_tx: self.subagent_event_tx.clone(),
             parent_depth,
@@ -391,7 +387,6 @@ impl MvpAgent {
             terminal,
             session_env,
             memory_config: self.memory_config.clone(),
-            web_search_sampling_config: self.prepare_web_search_sampling_config(),
             web_fetch_config: self.prepare_web_fetch_config(),
             app_builder_deployer_config: self.prepare_app_builder_deployer_config(),
             write_file_enabled: self.cfg.borrow().resolve_write_file().value,
@@ -410,10 +405,8 @@ impl MvpAgent {
             subagent_toggle,
             subagent_roles,
             subagent_personas,
-            disable_web_search: self.cfg.borrow().disable_web_search,
             todo_gate: self.cfg.borrow().todo_gate,
             laziness_debug_log: self.cfg.borrow().laziness_debug_log.clone(),
-            backend_tools_enabled: self.cfg.borrow().resolve_backend_tools().value,
             respect_gitignore: self.cfg.borrow().respect_gitignore,
             path_not_found_hints: self.cfg.borrow().path_not_found_hints,
             plugin_registry: self.plugin_registry_handle.snapshot(),

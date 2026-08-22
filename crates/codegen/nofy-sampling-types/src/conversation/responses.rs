@@ -50,18 +50,6 @@ pub fn response_to_conversation_items(response: rs::Response) -> Vec<Conversatio
             }
             // Already run server-side; kept so later turns replay the same
             // context.
-            rs::OutputItem::WebSearchCall(ws) => {
-                backend_tool_count += 1;
-                items.push(ConversationItem::BackendToolCall(BackendToolCallItem {
-                    kind: BackendToolKind::WebSearch(ws),
-                }));
-            }
-            rs::OutputItem::CustomToolCall(ct) => {
-                backend_tool_count += 1;
-                items.push(ConversationItem::BackendToolCall(BackendToolCallItem {
-                    kind: BackendToolKind::XSearch(ct),
-                }));
-            }
             rs::OutputItem::CodeInterpreterCall(ci) => {
                 backend_tool_count += 1;
                 items.push(ConversationItem::BackendToolCall(BackendToolCallItem {
@@ -274,12 +262,6 @@ fn conversation_item_to_input_items(item: &ConversationItem) -> Vec<rs::InputIte
         }
         ConversationItem::BackendToolCall(b) => {
             vec![match &b.kind {
-                BackendToolKind::WebSearch(ws) => {
-                    rs::InputItem::Item(rs::Item::WebSearchCall(ws.clone()))
-                }
-                BackendToolKind::XSearch(ct) => {
-                    rs::InputItem::Item(rs::Item::CustomToolCall(ct.clone()))
-                }
                 BackendToolKind::CodeInterpreter(ci) => {
                     rs::InputItem::Item(rs::Item::CodeInterpreterCall(ci.clone()))
                 }
@@ -312,22 +294,10 @@ fn content_parts_to_easy_input_content(parts: &[ContentPart]) -> rs::EasyInputCo
     rs::EasyInputContent::ContentList(items)
 }
 
-/// Client function tools plus backend-hosted tools. On a name collision the
-/// hosted tool wins, because sending both is rejected as a duplicate.
+/// Client function tools.
 fn build_responses_tools(req: &ConversationRequest) -> Vec<rs::Tool> {
-    let mut tools: Vec<rs::Tool> = req
-        .tools
+    req.tools
         .iter()
-        .filter(|t| {
-            let collides = req.hosted_tools.iter().any(|h| h.wire_name() == t.name);
-            if collides {
-                tracing::warn!(
-                    tool = %t.name,
-                    "dropping function tool that collides with a backend-hosted tool"
-                );
-            }
-            !collides
-        })
         .map(|t| {
             rs::Tool::Function(rs::FunctionTool {
                 name: t.name.clone(),
@@ -336,48 +306,5 @@ fn build_responses_tools(req: &ConversationRequest) -> Vec<rs::Tool> {
                 strict: None,
             })
         })
-        .collect();
-
-    for hosted in &req.hosted_tools {
-        match hosted {
-            HostedTool::WebSearch { options } => {
-                // An empty allowlist is unbounded, so it emits no filter.
-                let filters = options
-                    .as_ref()
-                    .and_then(|o| o.allowed_domains.as_deref())
-                    .filter(|domains| !domains.is_empty())
-                    .map(|domains| rs::WebSearchToolFilters {
-                        allowed_domains: Some(domains.to_vec()),
-                    });
-                tools.push(rs::Tool::WebSearch(rs::WebSearchTool {
-                    filters,
-                    ..Default::default()
-                }));
-            }
-            // XSearch is xAI-specific — not in async_openai's rs::Tool enum.
-            // Injected as raw JSON by the sampler client after serialization.
-            HostedTool::XSearch { .. } => {}
-        }
-    }
-
-    tools
-}
-
-/// Hosted tools with no `rs::Tool` variant. The sampler client splices these
-/// into the serialized `tools` array.
-pub fn extra_tool_entries(hosted_tools: &[HostedTool]) -> Vec<serde_json::Value> {
-    let mut entries = Vec::new();
-    for tool in hosted_tools {
-        match tool {
-            // WebSearch ships natively (rs::Tool::WebSearch), so no JSON entry here.
-            HostedTool::WebSearch { .. } => {}
-            HostedTool::XSearch { options } => {
-                entries.push(match options {
-                    Some(o) => o.to_tool_entry(),
-                    None => XSearchOptions::default().to_tool_entry(),
-                });
-            }
-        }
-    }
-    entries
+        .collect()
 }

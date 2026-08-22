@@ -95,7 +95,6 @@ fn test_config(base_url: String, model: &str) -> SamplerConfig {
         client_version: None,
         attribution_callback: None,
         bearer_resolver: None,
-        supports_backend_search: false,
         compactions_remaining: None,
         compaction_at_tokens: None,
         doom_loop_recovery: None,

@@ -59,13 +59,11 @@ async fn tool_bridge_routes_writes_through_injected_fs() {
         session_recall: None,
         forensics: None,
         delegation: None,
-        web_search_config: Default::default(),
         web_fetch_config: Default::default(),
         lsp: None,
         app_builder_deployer_config: Default::default(),
         api_key_provider: None,
         auth_provider: None,
-        attribution_callback: None,
         system_reminder_tag: nofy_tools::reminders::DEFAULT_REMINDER_TAG,
     };
     let bridge = crate::tools::bridge::ToolBridge::finalize_builder(builder, config, ctx)

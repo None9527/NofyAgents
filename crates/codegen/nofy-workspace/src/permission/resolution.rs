@@ -4317,13 +4317,6 @@ allow = ["Bash(evil *)"]
     }
 
     #[test]
-    fn parse_web_search_tool_prefix() {
-        let rule = parse_permission_rule("WebSearch(query)", RuleAction::Allow).unwrap();
-        assert_eq!(rule.tool, ToolFilter::WebSearch);
-        assert_eq!(rule.pattern, Some("query".to_string()));
-    }
-
-    #[test]
     fn notebook_tools_warn_and_skip_like_enter_worktree() {
         for rule in [
             "NotebookEdit",
@@ -4444,13 +4437,6 @@ allow = ["Bash(evil *)"]
     fn parse_bare_glob_tool_name() {
         let rule = parse_permission_rule("Glob", RuleAction::Allow).unwrap();
         assert_eq!(rule.tool, ToolFilter::Grep);
-        assert!(rule.pattern.is_none());
-    }
-
-    #[test]
-    fn parse_bare_web_search_tool_name() {
-        let rule = parse_permission_rule("WebSearch", RuleAction::Allow).unwrap();
-        assert_eq!(rule.tool, ToolFilter::WebSearch);
         assert!(rule.pattern.is_none());
     }
 

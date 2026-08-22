@@ -432,7 +432,6 @@ async fn handle_notification(
                         traceparent: nofy_file_utils::trace_context::current_traceparent(),
                         json_schema: None,
                         send_now: false,
-                        tool_overrides_update: None,
                         admission: Some(crate::session::commands::TaskWakeAdmission {
                             respond_to: admission_tx,
                             fallback: crate::session::commands::TaskWakeFallback {
@@ -1211,7 +1210,6 @@ mod tests {
             completion_kind: crate::session::commands::PromptCompletionKind::RemovedFromQueue,
             structured_output: None,
             usage: None,
-            tool_overrides: None,
         }));
         assert!(matches!(
             cmd_rx.try_recv(),

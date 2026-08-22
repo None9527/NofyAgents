@@ -90,11 +90,6 @@ pub struct AgentBuilder {
         Option<Arc<dyn nofy_tools::types::session_recall::SessionRecallProvider>>,
     forensics_backend: Option<Arc<dyn nofy_tools::types::forensics::ForensicsProvider>>,
     delegation_backend: Option<Arc<dyn nofy_tools::types::delegation::DelegationProvider>>,
-    web_search_config: nofy_tools::implementations::web_search::WebSearchConfig,
-    /// When true, web search and X search are sent as native server-side
-    /// tools for execution by the agentic sampler, instead of being
-    /// registered as local Function tools.
-    backend_search: bool,
     web_fetch_config: nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig,
     lsp: Option<std::sync::Arc<dyn nofy_tools::implementations::lsp::LspBackend>>,
     app_builder_deployer_config:
@@ -115,7 +110,6 @@ pub struct AgentBuilder {
     plugin_registry: Option<std::sync::Arc<crate::plugins::PluginRegistry>>,
     context_window_tokens: Option<u64>,
     api_key_provider: Option<nofy_tools::types::SharedApiKeyProvider>,
-    attribution_callback: Option<nofy_tools::SharedAttributionCallback>,
     /// Session-scoped MCP tool-result inline cap (bytes). When `Some`, seeded
     /// into the toolset's `TruncationCfg` resource after finalize, where the
     /// MCP truncation path consults it before the process-global cap. The
@@ -235,8 +229,6 @@ impl AgentBuilder {
             session_recall_backend: None,
             forensics_backend: None,
             delegation_backend: None,
-            web_search_config: Default::default(),
-            backend_search: false,
             web_fetch_config: Default::default(),
             lsp: None,
             app_builder_deployer_config: Default::default(),
@@ -253,7 +245,6 @@ impl AgentBuilder {
             plugin_registry: None,
             context_window_tokens: None,
             api_key_provider: None,
-            attribution_callback: None,
             mcp_max_output_bytes: None,
             system_reminder_tag: nofy_tools::reminders::DEFAULT_REMINDER_TAG,
             persisted_announced_skill_names: None,
@@ -468,27 +459,6 @@ impl AgentBuilder {
         self.parent_scheduler_handle = Some(handle);
         self
     }
-    /// Set the web search configuration.
-    ///
-    /// When `Enabled`, a `WebSearchClient` is created and injected into
-    /// the ToolBridge's resources so the `web_search` tool can call the
-    /// Responses API. When `Disabled` (default), the tool returns a
-    /// graceful error if invoked.
-    pub fn with_web_search_config(
-        mut self,
-        config: nofy_tools::implementations::web_search::WebSearchConfig,
-    ) -> Self {
-        self.web_search_config = config;
-        self
-    }
-    /// When true, web search and X search are sent as native server-side
-    /// tools for execution by the agentic sampler, instead of being
-    /// registered as local Function tools. Per-model gating is applied
-    /// at request time, not here.
-    pub fn with_backend_search(mut self, enabled: bool) -> Self {
-        self.backend_search = enabled;
-        self
-    }
     /// Set the web fetch configuration.
     ///
     /// When `Enabled`, the `web_fetch` tool is registered and a `WebFetchClient`
@@ -523,21 +493,6 @@ impl AgentBuilder {
         provider: nofy_tools::types::SharedApiKeyProvider,
     ) -> Self {
         self.api_key_provider = Some(provider);
-        self
-    }
-    /// Set the 401-attribution callback for tool HTTP clients
-    /// (`web_search`). When set, a 401
-    /// from that tool emits an `auth_401_attribution`
-    /// event with `consumer` of `"WebSearch"`. Callers should pass the
-    /// same `ShellAttribution` instance they wire into
-    /// `nofy_sampler::SamplerConfig::attribution_callback` so
-    /// all 401s share the same `AuthManager` reference and land in
-    /// the same Axiom dataset.
-    pub fn with_attribution_callback(
-        mut self,
-        callback: nofy_tools::SharedAttributionCallback,
-    ) -> Self {
-        self.attribution_callback = Some(callback);
         self
     }
     /// Override the system-reminder tag name used in tool result text.
@@ -753,10 +708,6 @@ impl AgentBuilder {
                 tool_config
                     .tools
                     .push((&nofy_tools::implementations::delegation::DelegationStatusTool).into());
-            }
-            if self.web_search_config.is_enabled() {
-                use nofy_tools::implementations::nofy_build;
-                tool_config.tools.push((&nofy_build::WebSearchTool).into());
             }
             if self.web_fetch_config.is_enabled() {
                 use nofy_tools::implementations::nofy_build;
@@ -1039,8 +990,6 @@ impl AgentBuilder {
                 }
             }
         }
-        let use_backend_search = self.backend_search;
-        let web_search_enabled = self.web_search_config.is_enabled();
         let tool_bridge = ToolBridge::finalize_builder(
             tool_bridge_builder,
             tool_config,
@@ -1063,13 +1012,11 @@ impl AgentBuilder {
                 session_recall: self.session_recall_backend.clone(),
                 forensics: self.forensics_backend.clone(),
                 delegation: self.delegation_backend.clone(),
-                web_search_config: self.web_search_config,
                 web_fetch_config: self.web_fetch_config,
                 lsp: self.lsp,
                 app_builder_deployer_config: self.app_builder_deployer_config,
                 api_key_provider: self.api_key_provider,
                 auth_provider: None,
-                attribution_callback: self.attribution_callback,
                 system_reminder_tag: self.system_reminder_tag,
             },
         )
@@ -1207,19 +1154,6 @@ impl AgentBuilder {
         {
             definition.description = rendered;
         }
-        let mut hosted_tools = Vec::new();
-        if use_backend_search {
-            if web_search_enabled && definition.hosted_tool_allowed("web_search") {
-                hosted_tools.push(nofy_sampling_types::HostedTool::WebSearch { options: None });
-            }
-            if definition.hosted_tool_allowed("x_search") {
-                hosted_tools.push(nofy_sampling_types::HostedTool::XSearch { options: None });
-            }
-            nofy_sampling_types::apply_tool_overrides(
-                &mut hosted_tools,
-                definition.tool_overrides.as_ref(),
-            );
-        }
         #[allow(clippy::arc_with_non_send_sync)]
         let tool_bridge = Arc::new(tool_bridge);
         Ok(Agent::new(
@@ -1229,8 +1163,6 @@ impl AgentBuilder {
             tool_bridge,
             self.reminder_policy,
             self.compaction_policy,
-            hosted_tools,
-            use_backend_search,
         ))
     }
 }
@@ -1270,7 +1202,6 @@ const SUBAGENT_TOOL_NAMING: nofy_tool_types::SubagentToolNaming<'static> =
         edit: "${{ tools.by_kind.edit }}",
         list: "${{ tools.by_kind.list }}",
         search: "${{ tools.by_kind.search }}",
-        web_search: "${{ tools.by_kind.web_search }}",
         plan: "${{ tools.by_kind.plan }}",
     };
 /// Return the tool-access fragment for a built-in subagent type, sourced from the
@@ -1946,23 +1877,6 @@ mod tests {
         def.session_tools_denylist = Some(vec!["read_file".into()]);
         assert!(!def.session_tools_allowed("read_file"));
     }
-    #[test]
-    fn hosted_tool_gating() {
-        let base = crate::config::AgentDefinition::general_purpose;
-        assert!(base().hosted_tool_allowed("web_search"));
-        assert!(base().hosted_tool_allowed("x_search"));
-        let mut d = base();
-        d.disallowed_tools = vec!["x_search".into()];
-        assert!(!d.hosted_tool_allowed("x_search"));
-        assert!(d.hosted_tool_allowed("web_search"));
-        let mut d = base();
-        d.tools = vec!["read_file".into()];
-        assert!(!d.hosted_tool_allowed("web_search"));
-        assert!(!d.hosted_tool_allowed("x_search"));
-        let mut d = base();
-        d.session_tools_allowlist = Some(vec!["read_file".into()]);
-        assert!(!d.hosted_tool_allowed("web_search"));
-    }
     const AGENT_TOOLS_BASE: &[&str] = &["read_file", "run_terminal_cmd"];
     #[tokio::test]
     async fn agent_type_restricted_to_listed_types() {
@@ -2226,7 +2140,6 @@ mod tests {
             "read_file".into(),
             "grep".into(),
             "list_dir".into(),
-            "web_search".into(),
             "web_fetch".into(),
         ];
         let agent = build_with_tools(tools, vec![]).await;
@@ -2236,7 +2149,7 @@ mod tests {
             .iter()
             .map(|d| d.function.name.clone())
             .collect();
-        for absent in ["web_search", "web_fetch"] {
+        for absent in ["web_fetch"] {
             assert!(!names.contains(&absent.to_string()), "got: {names:?}");
         }
         for kept in ["read_file", "grep", "list_dir"] {
@@ -2250,14 +2163,12 @@ mod tests {
     async fn requested_enabled_web_tools_survive_allowlist() {
         use nofy_tools::computer::local::LocalTerminalBackend;
         use nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig;
-        use nofy_tools::implementations::web_search::WebSearchConfig;
         use nofy_tools::notification::ToolNotificationHandle;
         let mut definition = crate::config::AgentDefinition::default_nofy_build();
         definition.tools = vec![
             "read_file".into(),
             "grep".into(),
             "list_dir".into(),
-            "web_search".into(),
             "web_fetch".into(),
         ];
         let agent = AgentBuilder::new(
@@ -2266,13 +2177,6 @@ mod tests {
             ToolNotificationHandle::noop(),
         )
         .from_definition(definition)
-        .with_web_search_config(WebSearchConfig::Enabled {
-            api_key: "test-key".into(),
-            base_url: nofy_env::PROD_XAI_API_BASE_URL.into(),
-            model: "test-web-search-model".into(),
-            extra_headers: Default::default(),
-            alpha_test_key: None,
-        })
         .with_web_fetch_config(WebFetchConfig::Enabled {
             params: Default::default(),
         })
@@ -2285,7 +2189,7 @@ mod tests {
             .iter()
             .map(|d| d.function.name.clone())
             .collect();
-        for kept in ["read_file", "grep", "list_dir", "web_search", "web_fetch"] {
+        for kept in ["read_file", "grep", "list_dir", "web_fetch"] {
             assert!(names.contains(&kept.to_string()), "got: {names:?}");
         }
         for excluded in ["run_terminal_command", "search_replace"] {
@@ -2381,141 +2285,6 @@ mod tests {
         assert!(
             !names.contains(&"search_replace".to_string()),
             "no full-toolset fallback — Edit must be excluded; got: {names:?}"
-        );
-    }
-    async fn build_with_web_search(
-        web_search_enabled: bool,
-        backend_search_enabled: bool,
-        disallowed_tools: &[&str],
-        tool_overrides: Option<nofy_sampling_types::ToolOverrides>,
-    ) -> crate::agent::Agent {
-        use nofy_tools::computer::local::LocalTerminalBackend;
-        use nofy_tools::implementations::web_search::WebSearchConfig;
-        use nofy_tools::notification::ToolNotificationHandle;
-        let web_search_config = if web_search_enabled {
-            WebSearchConfig::Enabled {
-                api_key: "test-key".into(),
-                base_url: nofy_env::PROD_XAI_API_BASE_URL.into(),
-                model: "test-web-search-model".into(),
-                extra_headers: Default::default(),
-                alpha_test_key: None,
-            }
-        } else {
-            WebSearchConfig::Disabled
-        };
-        let mut def = crate::config::AgentDefinition::default_nofy_build();
-        def.disallowed_tools = disallowed_tools.iter().map(|s| s.to_string()).collect();
-        def.tool_overrides = tool_overrides;
-        AgentBuilder::new(
-            std::env::temp_dir(),
-            Arc::new(LocalTerminalBackend::new()),
-            ToolNotificationHandle::noop(),
-        )
-        .from_definition(def)
-        .with_web_search_config(web_search_config)
-        .with_backend_search(backend_search_enabled)
-        .build()
-        .await
-        .expect("agent should build for backend-search test case")
-    }
-    #[tokio::test]
-    async fn disallowed_web_search_strips_function_and_hosted_tools() {
-        let agent = build_with_web_search(true, true, &["web_search"], None).await;
-        let hosted = agent.hosted_tools();
-        assert!(
-            !hosted
-                .iter()
-                .any(|t| matches!(t, nofy_sampling_types::HostedTool::WebSearch { .. })),
-            "hosted WebSearch must be removed when web_search is disallowed, got: {hosted:?}"
-        );
-        assert!(
-            hosted
-                .iter()
-                .any(|t| matches!(t, nofy_sampling_types::HostedTool::XSearch { .. })),
-            "XSearch must remain when only web_search is disallowed, got: {hosted:?}"
-        );
-        let has_web_search_fn = agent
-            .tool_definitions()
-            .await
-            .iter()
-            .any(|td| short_tool_name(&td.function.name) == "web_search");
-        assert!(
-            !has_web_search_fn,
-            "function web_search tool must be removed when disallowed"
-        );
-    }
-    /// Regression: with backend search + web search both enabled, both
-    /// hosted tools appear and `backend_search_enabled()` is true.
-    #[tokio::test]
-    async fn hosted_tools_populated_when_backend_search_and_web_search_enabled() {
-        let agent = build_with_web_search(true, true, &[], None).await;
-        assert!(agent.backend_search_enabled());
-        let hosted = agent.hosted_tools();
-        assert!(
-            hosted
-                .iter()
-                .any(|t| matches!(t, nofy_sampling_types::HostedTool::WebSearch { .. })),
-            "expected WebSearch hosted tool, got: {hosted:?}"
-        );
-        assert!(
-            hosted
-                .iter()
-                .any(|t| matches!(t, nofy_sampling_types::HostedTool::XSearch { .. })),
-            "expected XSearch hosted tool, got: {hosted:?}"
-        );
-    }
-    /// XSearch is added unconditionally when backend search is on;
-    /// WebSearch requires the web-search config.
-    #[tokio::test]
-    async fn hosted_tools_only_xsearch_when_web_search_disabled() {
-        let agent = build_with_web_search(false, true, &[], None).await;
-        let hosted = agent.hosted_tools();
-        assert!(
-            !hosted
-                .iter()
-                .any(|t| matches!(t, nofy_sampling_types::HostedTool::WebSearch { .. })),
-            "WebSearch must NOT appear when web_search is disabled, got: {hosted:?}"
-        );
-        assert!(
-            hosted
-                .iter()
-                .any(|t| matches!(t, nofy_sampling_types::HostedTool::XSearch { .. })),
-            "expected XSearch hosted tool, got: {hosted:?}"
-        );
-    }
-    /// Backend search off: gate bool false and no hosted tools, regardless
-    /// of web-search config.
-    #[tokio::test]
-    async fn hosted_tools_empty_when_backend_search_disabled() {
-        let agent = build_with_web_search(true, false, &[], None).await;
-        assert!(!agent.backend_search_enabled());
-        assert!(agent.hosted_tools().is_empty());
-    }
-    #[tokio::test]
-    async fn hosted_tools_bake_definition_tool_overrides_into_options() {
-        let x_search = nofy_sampling_types::XSearchOptions {
-            date_bound: Some(
-                nofy_sampling_types::SearchDateBound::new(None, Some("2024-03-15".into()))
-                    .unwrap(),
-            ),
-        };
-        let agent = build_with_web_search(
-            true,
-            true,
-            &[],
-            Some(nofy_sampling_types::ToolOverrides {
-                x_search: Some(x_search.clone()),
-                web_search: None,
-            }),
-        )
-        .await;
-        assert!(
-            agent
-                .hosted_tools()
-                .contains(&nofy_sampling_types::HostedTool::XSearch {
-                    options: Some(x_search),
-                }),
-            "definition tool_overrides must be applied to HostedTool options"
         );
     }
 }

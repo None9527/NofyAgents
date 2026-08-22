@@ -54,7 +54,6 @@ use nofy_tools::implementations::nofy_build::monitor::types::MonitorEventBuffer;
 use nofy_tools::implementations::nofy_build::task::types::{SubagentEvent, TaskModelValidator};
 use nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig;
 use nofy_tools::implementations::lsp::LspBackend;
-use nofy_tools::implementations::web_search::WebSearchConfig;
 use nofy_tools::notification::ToolNotificationHandle;
 use nofy_tools::types::SharedApiKeyProvider;
 use nofy_tools::types::compat::CompatConfig;
@@ -89,8 +88,6 @@ pub(crate) struct AgentRebuildSpec {
     pub memory_global_path: Option<String>,
     pub memory_workspace_path: Option<String>,
     pub memory_backend: Option<Arc<dyn MemoryBackend>>,
-    pub web_search_config: WebSearchConfig,
-    pub backend_search: bool,
     pub web_fetch_config: WebFetchConfig,
     pub app_builder_deployer_config: AppBuilderDeployerConfig,
     pub write_file_enabled: bool,
@@ -111,7 +108,6 @@ pub(crate) struct AgentRebuildSpec {
     pub lsp: Option<Arc<dyn LspBackend>>,
     pub plugin_registry: Option<Arc<nofy_agent::plugins::PluginRegistry>>,
     pub api_key_provider: Option<SharedApiKeyProvider>,
-    pub attribution_callback: Option<nofy_tools::SharedAttributionCallback>,
     pub tool_params_json: ResolvedToolParamsJson,
     pub subagent_event_tx: Option<UnboundedSender<SubagentEvent>>,
     pub monitor_event_buffer: Option<MonitorEventBuffer>,
@@ -190,8 +186,6 @@ impl AgentRebuildSpec {
             memory_global_path,
             memory_workspace_path,
             memory_backend,
-            web_search_config,
-            backend_search,
             web_fetch_config,
             app_builder_deployer_config,
             write_file_enabled,
@@ -210,7 +204,6 @@ impl AgentRebuildSpec {
             lsp,
             plugin_registry,
             api_key_provider,
-            attribution_callback,
             tool_params_json,
             subagent_event_tx,
             monitor_event_buffer,
@@ -247,8 +240,6 @@ impl AgentRebuildSpec {
         .with_system_prompt_label(system_prompt_label.clone())
         .with_session_env(session_env.clone())
         .with_state_path(bridge_state_path.clone())
-        .with_web_search_config(web_search_config.clone())
-        .with_backend_search(*backend_search)
         .with_app_builder_deployer_config(app_builder_deployer_config.clone())
         .with_web_fetch_config(web_fetch_config.clone())
         .with_write_file_enabled(*write_file_enabled)
@@ -305,9 +296,6 @@ impl AgentRebuildSpec {
         }
         if let Some(api_key_provider) = api_key_provider.clone() {
             builder = builder.with_api_key_provider(api_key_provider);
-        }
-        if let Some(attribution_callback) = attribution_callback.clone() {
-            builder = builder.with_attribution_callback(attribution_callback);
         }
         if let Some(bash_params_json) = tool_params_json.bash.clone() {
             builder = builder.with_bash_params(bash_params_json);
@@ -426,8 +414,6 @@ pub(crate) fn test_rebuild_spec_default() -> Arc<AgentRebuildSpec> {
         memory_global_path: None,
         memory_workspace_path: None,
         memory_backend: None,
-        web_search_config: WebSearchConfig::default(),
-        backend_search: false,
         web_fetch_config: WebFetchConfig::Disabled,
         app_builder_deployer_config: AppBuilderDeployerConfig::default(),
         write_file_enabled: true,
@@ -446,7 +432,6 @@ pub(crate) fn test_rebuild_spec_default() -> Arc<AgentRebuildSpec> {
         lsp: None,
         plugin_registry: None,
         api_key_provider: None,
-        attribution_callback: None,
         tool_params_json: ResolvedToolParamsJson::default(),
         subagent_event_tx: None,
         monitor_event_buffer: None,

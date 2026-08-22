@@ -1287,9 +1287,6 @@ impl SessionActor {
                 nofy_workspace::permission::AccessKind::WebFetch(u) => {
                     (nofy_telemetry::events::AccessKind::Web, u.clone())
                 }
-                nofy_workspace::permission::AccessKind::WebSearch(q) => {
-                    (nofy_telemetry::events::AccessKind::Web, q.clone())
-                }
             };
             let subagent_session_id = if self.startup_hints.is_subagent {
                 Some(self.session_id_string())
@@ -1616,7 +1613,6 @@ impl SessionActor {
                         | ToolKind::List
                         | ToolKind::MemorySearch
                         | ToolKind::MemoryGet
-                        | ToolKind::WebSearch
                         | ToolKind::WebFetch
                         | ToolKind::EnterPlan
                         | ToolKind::ExitPlan
@@ -1893,12 +1889,6 @@ impl SessionActor {
                 Vec::new(),
             ),
             ToolInput::Grep(gs) => (gs.pattern.clone(), acp::ToolKind::Search, vec![], vec![]),
-            ToolInput::WebSearch(ws) => (
-                format!("Web search: \"{}\"", ws.query),
-                acp::ToolKind::Search,
-                vec![],
-                vec![],
-            ),
             ToolInput::MCPTool(mcp_tool) => (
                 mcp_tool.tool_name.to_owned(),
                 acp::ToolKind::Other,

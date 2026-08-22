@@ -4521,7 +4521,7 @@ async fn prefix_stable_after_tool_result_pruning() {
     }
 }
 
-/// `BackendToolCall` items (web search) must serialize stably across
+/// `BackendToolCall` items must serialize stably across
 /// turns. Once emitted, a backend tool call sits at a fixed position
 /// in the conversation list and the wire input.
 #[tokio::test]
@@ -4530,7 +4530,7 @@ async fn prefix_stable_with_backend_tool_calls() {
 
     let h = TestHarness::with_conversation(vec![
         ConversationItem::system("sys"),
-        ConversationItem::user("search for capybaras"),
+        ConversationItem::user("run the capybara snippet"),
     ]);
 
     let req1 = h
@@ -4540,16 +4540,15 @@ async fn prefix_stable_with_backend_tool_calls() {
         .unwrap();
 
     h.handle
-        .push_assistant_response(ConversationItem::assistant("Found info about capybaras"));
+        .push_assistant_response(ConversationItem::assistant("Ran the capybara snippet"));
     h.handle
         .push_tool_result(ConversationItem::BackendToolCall(BackendToolCallItem {
-            kind: BackendToolKind::WebSearch(rs::WebSearchToolCall {
-                id: "ws_capybara".to_string(),
-                status: rs::WebSearchToolCallStatus::Completed,
-                action: rs::WebSearchToolCallAction::Search(rs::WebSearchActionSearch {
-                    query: "capybara facts".to_string(),
-                    sources: Some(vec![]),
-                }),
+            kind: BackendToolKind::CodeInterpreter(rs::CodeInterpreterToolCall {
+                id: "ci_capybara".to_string(),
+                container_id: "cont_capybara".to_string(),
+                code: Some("print('capybara facts')".to_string()),
+                outputs: None,
+                status: rs::CodeInterpreterToolCallStatus::Completed,
             }),
         }));
     h.handle

@@ -15,12 +15,11 @@ pub mod delegation;
 pub mod skills;
 pub mod task_output;
 pub mod use_tool;
-pub mod web_search;
 pub use nofy_build::bash::{BashError, BashToolInput};
 pub use nofy_build::{
     AskUserQuestionTool, BashTool, EnterPlanModeTool, ExitPlanModeTool, GrepTool, KillTaskTool,
     ListDirTool, ReadFileTool, SearchReplaceTool, TaskOutputTool, TaskTool, TodoWriteTool,
-    WaitTasksTool, WebFetchTool, WebSearchTool,
+    WaitTasksTool, WebFetchTool,
 };
 pub use memory::{MemoryGetImpl, MemorySearchImpl};
 pub use opencode::{
@@ -29,4 +28,3 @@ pub use opencode::{
 };
 pub use search_tool::SearchTool;
 pub use use_tool::{UseTool, UseToolInput};
-pub use web_search::WebSearchConfig;

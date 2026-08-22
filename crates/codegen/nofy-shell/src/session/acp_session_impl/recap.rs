@@ -64,8 +64,7 @@ impl SessionActor {
         // /btw fires mid-turn, so the snapshot may end with an assistant message whose tool_calls have no matching ToolResult yet.
         crate::session::helpers::session_recap::pop_trailing_tool_run(&mut items);
 
-        let (instruction, tool_specs, hosted_tools) =
-            self.side_question_prompt_and_tools(question).await;
+        let (instruction, tool_specs) = self.side_question_prompt_and_tools(question).await;
         items.push(instruction);
 
         let sampling_config = self.chat_state_handle.get_sampling_config().await;
@@ -92,7 +91,6 @@ impl SessionActor {
         let base_request = self.parent_cached_request(AuxCall {
             items,
             tools: tool_specs,
-            hosted_tools,
             model: model.clone(),
             reasoning_effort,
             backend: sampling_client.api_backend(),
@@ -142,11 +140,7 @@ impl SessionActor {
     async fn side_question_prompt_and_tools(
         &self,
         question: &str,
-    ) -> (
-        ConversationItem,
-        Vec<ToolSpec>,
-        Vec<nofy_sampling_types::HostedTool>,
-    ) {
+    ) -> (ConversationItem, Vec<ToolSpec>) {
         let tag = self.reminder_wrapper_tag();
         let instruction = ConversationItem::user(format!(
             "<{tag}>This is a side question from the user. \
@@ -166,9 +160,9 @@ impl SessionActor {
              Simply answer the question with the information you have.</{tag}>\n\n\
              {question}"
         ));
-        // Same tools as the main turn: they serialize into the cached prefix, and a side question must not search past the active cutoff.
+        // Same tools as the main turn: they serialize into the cached prefix.
         let tool_specs = self.turn_base_tool_specs(&self.prepare_tool_definitions().await);
-        (instruction, tool_specs, self.hosted_tools_for_turn())
+        (instruction, tool_specs)
     }
 
     /// Generate a session recap and broadcast it via

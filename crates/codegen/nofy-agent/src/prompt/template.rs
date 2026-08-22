@@ -108,7 +108,6 @@ mod tests {
                 "get_command_or_subagent_output",
             ),
             (ToolKind::KillTaskAction, "kill_command_or_subagent"),
-            (ToolKind::WebSearch, "web_search"),
         ]
         .into_iter()
         .map(|(k, v)| (k, v.to_string()))
@@ -514,11 +513,12 @@ mod tests {
         );
     }
 
-    // ── Web search disabled ─────────────────────────────────────────
+    // ── Minimal toolset rendering ───────────────────────────────────
 
     #[test]
-    fn test_web_search_disabled_renders_without_crash() {
-        // No Fetch tool
+    fn test_minimal_toolset_renders_without_crash() {
+        // Minimal tool map: the base template must render without crash
+        // when optional tools are absent.
         let tools: HashMap<ToolKind, String> = [
             (ToolKind::Read, "read_file".to_string()),
             (ToolKind::Plan, "todo_write".to_string()),

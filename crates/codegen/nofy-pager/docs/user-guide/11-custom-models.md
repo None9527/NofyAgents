@@ -309,34 +309,6 @@ When you set `models_base_url`, Grok uses API key auth (`Authorization: Bearer`)
 
 ---
 
-## Web Search Model
-
-The `web_search` tool uses a separate model. Configure it with:
-
-```toml
-[models]
-web_search = "grok-4.5"
-```
-
-Or via environment variable:
-
-```bash
-export GROK_WEB_SEARCH_MODEL="grok-4.5"
-```
-
-If you point web search at a custom model, you also need a `[model.*]` entry so Grok can reach it. Server-side ("backend") web search runs only when the model sets `supports_backend_search = true` (and the build enables backend search); it does not depend on `api_backend`:
-
-```toml
-[models]
-web_search = "my-custom-model"
-
-[model.my-custom-model]
-model = "my-custom-model"
-supports_backend_search = true
-```
-
----
-
 ## Using Custom Models
 
 ```bash

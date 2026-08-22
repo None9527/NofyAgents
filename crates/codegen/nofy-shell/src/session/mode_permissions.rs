@@ -64,8 +64,9 @@ pub enum ActionClass {
 /// treated as Execute (arbitrary side effects are not knowable here).
 pub fn access_class(access: &AccessKind) -> ActionClass {
     match access {
-        AccessKind::Read(_) | AccessKind::Grep { .. } | AccessKind::WebFetch(_)
-        | AccessKind::WebSearch(_) => ActionClass::Read,
+        AccessKind::Read(_) | AccessKind::Grep { .. } | AccessKind::WebFetch(_) => {
+            ActionClass::Read
+        }
         AccessKind::Edit(_) => ActionClass::Write,
         AccessKind::Bash(_) | AccessKind::MCPTool { .. } => ActionClass::Execute,
     }
@@ -175,10 +176,6 @@ mod tests {
                 path: Some("src".into()),
                 glob: None,
             }),
-            ActionClass::Read
-        );
-        assert_eq!(
-            access_class(&AccessKind::WebSearch("q".into())),
             ActionClass::Read
         );
         assert_eq!(access_class(&edit("f")), ActionClass::Write);

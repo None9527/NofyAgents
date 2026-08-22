@@ -139,7 +139,7 @@ Grok has built-in tools for:
 | `grep` | Regex search across your codebase (powered by ripgrep) |
 | `list_dir` | List directory contents |
 | `run_terminal_command` | Execute shell commands |
-| `web_search` / `web_fetch` | Search the web and fetch URLs |
+| `web_fetch` | Fetch URLs |
 | `todo_write` | Create and manage task lists |
 | `spawn_subagent` | Spawn parallel subagent sessions |
 | `memory_search` | Search cross-session memory |

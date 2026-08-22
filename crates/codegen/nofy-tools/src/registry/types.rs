@@ -273,11 +273,6 @@ pub struct SessionContext {
     /// daemon's delegated runs. When `None`, the tools return
     /// "not available".
     pub delegation: Option<Arc<dyn crate::types::delegation::DelegationProvider>>,
-    /// Optional web search configuration. When `Enabled`, a `WebSearchClient`
-    /// is created and injected into `Resources` so the `web_search` tool can
-    /// call the Responses API. When `Disabled` (default), the tool returns a
-    /// graceful error if invoked.
-    pub web_search_config: crate::implementations::web_search::WebSearchConfig,
     /// Optional web fetch configuration. When `Enabled`, a `WebFetchClient`
     /// is created and injected into `Resources` so the `web_fetch` tool can
     /// fetch URLs. When `Disabled` (default), the tool is not registered.
@@ -302,12 +297,6 @@ pub struct SessionContext {
     /// Not to be confused with the api_key_provider, which is a legacy
     /// provider used by the shell's auth manager.
     pub auth_provider: Option<nofy_computer_hub_sdk::SharedAuthProvider>,
-    /// Optional 401-attribution callback for tool HTTP clients. When
-    /// set, a 401 from `web_search`
-    /// emits an `auth_401_attribution` event via this hook. Hosts can
-    /// wire this to the same attribution sink used for inference-side
-    /// 401s so tool and chat auth failures share one telemetry path.
-    pub attribution_callback: Option<crate::SharedAttributionCallback>,
     /// Tag name for `<system-reminder>` wrappers in tool result text.
     /// Defaults to [`crate::reminders::DEFAULT_REMINDER_TAG`] (hyphen).
     /// Hosts that expect a different tag name may override this.
@@ -699,7 +688,6 @@ impl ToolRegistryBuilder {
         b.register::<nofy_build::GetTerminalCommandOutputTool>();
         b.register::<nofy_build::WaitTasksTool>();
         b.register::<nofy_build::TaskTool>();
-        b.register::<nofy_build::WebSearchTool>();
         b.register_with_params::<nofy_build::WebFetchTool, nofy_build::web_fetch::WebFetchParams>();
         b.register::<nofy_build::LspTool>();
         b.register::<nofy_build::EnterPlanModeTool>();
@@ -1045,13 +1033,6 @@ impl ToolRegistryBuilder {
         }
         if let Some(auth_provider) = ctx.auth_provider.clone() {
             resources.insert(auth_provider);
-        }
-        if let Ok(client) = crate::implementations::web_search::client::WebSearchClient::new(
-            &ctx.web_search_config,
-            ctx.api_key_provider.clone(),
-        ) {
-            let client = client.with_attribution_callback(ctx.attribution_callback.clone());
-            resources.insert(client);
         }
         if let Some(lsp) = ctx.lsp {
             resources.insert(lsp);
@@ -2146,7 +2127,6 @@ mod tests {
             session_recall: None,
             forensics: None,
             delegation: None,
-            web_search_config: crate::implementations::web_search::WebSearchConfig::default(),
             web_fetch_config:
                 crate::implementations::nofy_build::web_fetch::WebFetchConfig::default(),
             lsp: None,
@@ -2154,7 +2134,6 @@ mod tests {
                 crate::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig::default(),
             api_key_provider: None,
             auth_provider: None,
-            attribution_callback: None,
             system_reminder_tag: crate::reminders::DEFAULT_REMINDER_TAG,
         }
     }
@@ -2314,7 +2293,6 @@ mod tests {
                 "exit_plan_mode",
                 "todo_write",
                 "task",
-                "web_search",
                 "web_fetch",
                 "lsp",
                 "monitor",
@@ -4263,15 +4241,6 @@ mod tests {
                 },
                 ToolConfig {
                     id: "NofyBuild:grep".to_string(),
-                    params: None,
-                    name_override: None,
-                    params_name_overrides: None,
-                    description_override: None,
-                    behavior_version: None,
-                    kind: None,
-                },
-                ToolConfig {
-                    id: "NofyBuild:web_search".to_string(),
                     params: None,
                     name_override: None,
                     params_name_overrides: None,

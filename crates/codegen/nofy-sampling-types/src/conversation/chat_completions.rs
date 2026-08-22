@@ -298,7 +298,6 @@ impl From<ConversationRequest> for ChatCompletionRequest {
             user: None,
             tools,
             tool_choice,
-            search_parameters: None,
             response_format,
             reasoning_effort: req.reasoning_effort,
             x_nofy_conv_id: req.x_nofy_conv_id,

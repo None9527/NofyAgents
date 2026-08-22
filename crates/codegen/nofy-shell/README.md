@@ -603,7 +603,6 @@ Tool names correspond to the internal tool IDs shown below. For quick reference:
 | read_file      | `read_file`                                   |
 | search_replace | `search_replace`                              |
 | list_dir       | `list_dir`                                    |
-| web_search     | `web_search`                                  |
 | web_fetch      | `web_fetch`                                   |
 | todo_write     | `todo_write`                                  |
 | task           | `task`                                        |
@@ -613,7 +612,7 @@ Tool names correspond to the internal tool IDs shown below. For quick reference:
 grok -p "Explain this codebase" --tools "read_file,grep,list_dir"
 
 # Remove web access and file editing
-grok -p "Review this code" --disallowed-tools "web_search,web_fetch,search_replace"
+grok -p "Review this code" --disallowed-tools "web_fetch,search_replace"
 
 # Remove shell access
 grok -p "Review this code" --disallowed-tools "run_terminal_cmd"
@@ -1339,7 +1338,6 @@ auto_update = true                     # check for updates on launch
 
 [models]
 default = "grok-4.5"                   # model used for new sessions
-web_search = "grok-4.5"                # model used by the web_search tool
 
 [ui]
 max_thoughts_width = 120               # max column width for reasoning display
@@ -1850,23 +1848,6 @@ api_key = "sk-custom"
 2. Prefetched models from remote `/v1/models`
 3. Hardcoded defaults — lowest priority
 
-**Web search model:** Set `[models] web_search`, `GROK_WEB_SEARCH_MODEL`, or `--web-search-model` to point the `web_search` tool at a different model. The target endpoint must support the Responses API and web search.
-
-> **Overriding with a custom model:** Setting `[models] web_search` alone is not
-> enough if the model isn't already in the catalog (built-in defaults or
-> `grok models` output). You also need a `[model.*]` entry so Grok knows
-> how to reach it. Without both, web search is silently disabled.
->
-> ```toml
-> [models]
-> web_search = "my-custom-model"       # 1. tell web search which model to use
->
-> [model.my-custom-model]              # 2. tell Grok how to reach it
-> model = "my-custom-model"
-> api_backend = "responses"            # required — web search uses the Responses API
-> # base_url, api_key, env_key optional — defaults to cli-chat-proxy
-> ```
-
 ### Examples
 
 **OpenAI-compatible endpoint:**
@@ -2351,7 +2332,6 @@ Grok includes these tools by default:
 | `grep_search`    | Search with regex patterns (ripgrep)                           |
 | `list_dir`       | List directory contents                                        |
 | `bash`           | Execute shell commands                                         |
-| `web_search`     | Search the web for up-to-date information                      |
 | `web_fetch`      | Fetch a specific URL and return its content as markdown        |
 | `todo_write`     | Create and manage task lists                                   |
 | `task`           | Launch subagent sessions (requires `--subagents`)              |
@@ -2376,7 +2356,6 @@ tools:
   - grep_search
   - list_dir
 disallowedTools:
-  - web_search
   - Agent(explore)
 ---
 ```

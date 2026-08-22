@@ -368,26 +368,9 @@ pub(crate) fn stream_responses_tracked<'a>(
                 // sampler. We emit progress events so the shell/pager
                 // can show status to the user.
 
-                // Web search
-                ResponseStreamEvent::ResponseWebSearchCallInProgress(ev) => {
-                    yield SamplingEvent::BackendToolCallStarted {
-                        request_id: request_id.clone(),
-                        call_id: ev.item_id.clone(),
-                        name: "web_search".to_string(),
-                    };
-                }
-                // Completed/Searching carry no data — the real payload
-                // arrives via ResponseOutputItemDone(WebSearchCall) below.
-                ResponseStreamEvent::ResponseWebSearchCallCompleted(_)
-                | ResponseStreamEvent::ResponseWebSearchCallSearching(_) => {}
-
-                // Code interpreter (server-side, like web/x search). Surface it
-                // the same way x_search is: a generic backend tool call that the
-                // shell renders as a client `tool_use` + `user` `tool_result`
-                // split (nofy has no HostedTool::CodeInterpreter, so these events
-                // are latent under the current hosted-tool set). The started
-                // event fires on InProgress; the full payload (code + outputs)
-                // rides ResponseOutputItemDone(CodeInterpreterCall) below.
+                // Code interpreter (server-side). The started event fires
+                // on InProgress; the full payload (code + outputs) rides
+                // ResponseOutputItemDone(CodeInterpreterCall) below.
                 ResponseStreamEvent::ResponseCodeInterpreterCallInProgress(ev) => {
                     yield SamplingEvent::BackendToolCallStarted {
                         request_id: request_id.clone(),
@@ -401,37 +384,11 @@ pub(crate) fn stream_responses_tracked<'a>(
                 | ResponseStreamEvent::ResponseCodeInterpreterCallCompleted(_) => {}
 
                 // OutputItemDone carries the full result for backend tools.
-                // For WebSearchCall this includes the query and source URLs.
-                // For CustomToolCall this includes x_search results.
                 ResponseStreamEvent::ResponseOutputItemDone(done_event) => {
                     match &done_event.item {
-                        rs::OutputItem::WebSearchCall(ws) => {
-                            let result = serde_json::to_value(ws).ok();
-                            yield SamplingEvent::BackendToolCallCompleted {
-                                request_id: request_id.clone(),
-                                call_id: ws.id.clone(),
-                                name: "web_search".to_string(),
-                                result,
-                            };
-                        }
-                        // X search results arrive as CustomToolCall with
-                        // names like x_keyword_search, x_semantic_search, etc.
-                        // Use "x_search" consistently (matching the Started event);
-                        // the specific sub-type is in the serialized result payload
-                        // and extracted by the pager from raw_output.name.
-                        rs::OutputItem::CustomToolCall(ct) => {
-                            let result = serde_json::to_value(ct).ok();
-                            yield SamplingEvent::BackendToolCallCompleted {
-                                request_id: request_id.clone(),
-                                call_id: ct.id.clone(),
-                                name: "x_search".to_string(),
-                                result,
-                            };
-                        }
                         // Code interpreter: the full call (code + outputs) rides
-                        // the done item. Surfaced under the shared "code_interpreter"
-                        // name (matching the Started event); the shell renders it via
-                        // the client `tool_use` + `user` `tool_result` split.
+                        // the done item. The shell renders it via the client
+                        // `tool_use` + `user` `tool_result` split.
                         rs::OutputItem::CodeInterpreterCall(ci) => {
                             let result = serde_json::to_value(ci).ok();
                             yield SamplingEvent::BackendToolCallCompleted {
@@ -443,16 +400,6 @@ pub(crate) fn stream_responses_tracked<'a>(
                         }
                         _ => {}
                     }
-                }
-
-                // CustomToolCallInputDelta is x_search in-progress streaming.
-                // Emit a started event on first delta per item_id.
-                ResponseStreamEvent::ResponseCustomToolCallInputDone(ev) => {
-                    yield SamplingEvent::BackendToolCallStarted {
-                        request_id: request_id.clone(),
-                        call_id: ev.item_id.clone(),
-                        name: "x_search".to_string(),
-                    };
                 }
 
                 // All other events (intermediate progress, annotations,
@@ -875,13 +822,14 @@ mod tests {
             });
         assert!(responses_event_may_have_output(&refusal));
 
-        let backend_progress = rs::ResponseStreamEvent::ResponseWebSearchCallSearching(
-            rs_types::ResponseWebSearchCallSearchingEvent {
-                sequence_number: 2,
-                output_index: 0,
-                item_id: "search-1".into(),
-            },
-        );
+        let backend_progress =
+            rs::ResponseStreamEvent::ResponseCodeInterpreterCallInProgress(
+                rs_types::ResponseCodeInterpreterCallInProgressEvent {
+                    sequence_number: 2,
+                    output_index: 0,
+                    item_id: "ci-1".into(),
+                },
+            );
         assert!(responses_event_may_have_output(&backend_progress));
     }
 
@@ -912,8 +860,8 @@ mod tests {
 
     /// A server-side code-interpreter run surfaces as a generic backend tool
     /// call (started on InProgress, completed on OutputItemDone) named
-    /// "code_interpreter" — the same shape as x_search — so it is no longer
-    /// silently dropped from the event stream.
+    /// "code_interpreter", so it is not silently dropped from the event
+    /// stream.
     #[tokio::test]
     async fn code_interpreter_forwards_backend_tool_call() {
         let in_progress = rs::ResponseStreamEvent::ResponseCodeInterpreterCallInProgress(

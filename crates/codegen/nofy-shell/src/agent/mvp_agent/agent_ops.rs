@@ -1709,13 +1709,6 @@ impl MvpAgent {
         use nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig;
         AppBuilderDeployerConfig::Disabled
     }
-    /// Sanitized build: the local web_search client speaks the xAI/OpenAI
-    /// Responses API with server-side search tools, which OpenAI-compatible
-    /// BYOK backends do not serve; resolving it would only route the user's
-    /// key at an unsupported endpoint. `None` keeps the tool unregistered.
-    pub(super) fn prepare_web_search_sampling_config(&self) -> Option<SamplingConfig> {
-        None
-    }
     /// Returns `Err` with a user-facing message on invalid config; the caller at
     /// the process boundary prints it and exits.
     pub fn new(
@@ -1733,8 +1726,8 @@ impl MvpAgent {
     }
     /// Prepare the web fetch configuration based on feature flags.
     ///
-    /// Enabled gate: `disable_web_search` kill-switch > `NOFY_WEB_FETCH` env >
-    /// default (false).
+    /// Enabled gate: `NOFY_WEB_FETCH` env / `[features] web_fetch` /
+    /// requirements pin (default false).
     ///
     /// Params resolution (TOML > env > default):
     /// - `proxy_endpoint`: `[toolset.web_fetch] proxy_endpoint` > `NOFY_WEB_FETCH_PROXY` > None
@@ -1745,9 +1738,6 @@ impl MvpAgent {
     ) -> nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig {
         use nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig;
         let cfg = self.cfg.borrow();
-        if cfg.disable_web_search {
-            return WebFetchConfig::Disabled;
-        }
         let enabled = cfg.resolve_web_fetch();
         if !enabled.value {
             return WebFetchConfig::Disabled;
@@ -3246,7 +3236,6 @@ impl MvpAgent {
             .find(|entry| entry.info.model == sampling_config.model)
             .and_then(|entry| entry.info.max_retries);
         let origin_client = self.origin_client_info_from_meta(init.meta.as_ref());
-        let web_search_sampling_config = self.prepare_web_search_sampling_config();
         let app_builder_deployer_config = self.prepare_app_builder_deployer_config();
         let web_fetch_config = self.prepare_web_fetch_config();
         let write_file_enabled = self.cfg.borrow().resolve_write_file().value;
@@ -3263,7 +3252,6 @@ impl MvpAgent {
             )
             .unwrap_or_else(|| self.cfg.borrow().resolve_ask_user_question().value);
         let client_hooks = crate::extensions::hooks::parse_client_hooks(session_meta);
-        let disable_web_search = self.cfg.borrow().disable_web_search;
         let todo_gate = self.cfg.borrow().todo_gate;
         let laziness_debug_log_for_spawn = self.cfg.borrow().laziness_debug_log.clone();
         let respect_gitignore = self.cfg.borrow().respect_gitignore;
@@ -3285,10 +3273,6 @@ impl MvpAgent {
         let tool_params_json = crate::session::agent_rebuild::ResolvedToolParamsJson {
             bash: Some(bash_params_json),
             ask_user_question: ask_user_question_params_json,
-        };
-        let backend_tools_enabled = {
-            let cfg = self.cfg.borrow();
-            cfg.resolve_backend_tools().value
         };
         let managed_mcp_proxy_url = self.cfg.borrow().endpoints.proxy_url();
         let init_meta = self
@@ -3472,7 +3456,6 @@ impl MvpAgent {
                     origin_client.as_ref().map(|o| o.product.clone()),
                     inference_idle_timeout_secs,
                     model_max_retries,
-                    web_search_sampling_config,
                     web_fetch_config,
                     app_builder_deployer_config,
                     write_file_enabled,
@@ -3489,8 +3472,6 @@ impl MvpAgent {
                     nofy_agent::prompt::context::PromptAudience::Primary,
                     None,
                     None,
-                    disable_web_search,
-                    backend_tools_enabled,
                     respect_gitignore,
                     path_not_found_hints,
                     tool_params_json,

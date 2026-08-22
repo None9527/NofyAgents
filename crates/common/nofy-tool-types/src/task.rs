@@ -803,8 +803,6 @@ pub struct SubagentToolNaming<'a> {
     pub list: &'a str,
     /// Code-search tool (kind `search`).
     pub search: &'a str,
-    /// Web-search tool (kind `web_search`).
-    pub web_search: &'a str,
     /// Planning tool (kind `plan`).
     pub plan: &'a str,
 }
@@ -820,7 +818,6 @@ impl SubagentToolNaming<'_> {
             "edit" => self.edit,
             "list" => self.list,
             "search" => self.search,
-            "web_search" => self.web_search,
             "plan" => self.plan,
             _ => return None,
         })
@@ -959,7 +956,7 @@ pub const GENERAL_PURPOSE_SUBAGENT: BuiltinSubagent = BuiltinSubagent {
     description: "General purpose agent for multi-step tasks.",
     tools_template: "Has access to: \
          ${{ tools.by_kind.execute }}, ${{ tools.by_kind.read }}, ${{ tools.by_kind.edit }}, \
-         ${{ tools.by_kind.list }}, ${{ tools.by_kind.search }}, ${{ tools.by_kind.web_search }}, \
+         ${{ tools.by_kind.list }}, ${{ tools.by_kind.search }}, \
          and ${{ tools.by_kind.plan }}.",
     prompt_template: GENERAL_PURPOSE_PROMPT,
 };
@@ -980,7 +977,7 @@ pub const PLAN_SUBAGENT: BuiltinSubagent = BuiltinSubagent {
     description: "Software architect for planning implementation strategies.",
     tools_template: "Read-only \u{2014} has access to: \
          ${{ tools.by_kind.read }}, ${{ tools.by_kind.list }}, ${{ tools.by_kind.search }}, \
-         ${{ tools.by_kind.web_search }}, and ${{ tools.by_kind.plan }}. \
+         and ${{ tools.by_kind.plan }}. \
          File editing and command execution are not available.",
     prompt_template: PLAN_PROMPT,
 };
@@ -1522,7 +1519,6 @@ mod tests {
             ("edit", "search_replace"),
             ("list", "list_dir"),
             ("search", "grep"),
-            ("web_search", "web_search"),
             ("plan", "todo_write"),
         ]
         .iter()
@@ -1561,7 +1557,6 @@ mod tests {
             edit: "edit",
             list: "list",
             search: "search",
-            web_search: "web_search",
             plan: "plan",
         }
     }
@@ -1571,11 +1566,11 @@ mod tests {
         // Bare-kind naming reproduces the placeholder kinds verbatim.
         assert_eq!(
             GENERAL_PURPOSE_SUBAGENT.render_tools(&plain_tool_naming()),
-            "Has access to: execute, read, edit, list, search, web_search, and plan."
+            "Has access to: execute, read, edit, list, search, and plan."
         );
         assert_eq!(
             PLAN_SUBAGENT.render_tools(&plain_tool_naming()),
-            "Read-only \u{2014} has access to: read, list, search, web_search, and plan. \
+            "Read-only \u{2014} has access to: read, list, search, and plan. \
              File editing and command execution are not available."
         );
 
@@ -1586,7 +1581,6 @@ mod tests {
             edit: "search_replace",
             list: "list_dir",
             search: "grep",
-            web_search: "web_search",
             plan: "todo_write",
         };
         assert_eq!(

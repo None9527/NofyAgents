@@ -97,7 +97,7 @@ pub(crate) fn classify_tool(tool: &str) -> nofy_session_journal::IntentClass {
     use nofy_session_journal::IntentClass;
     match tool {
         "read_file" | "hashline_read" | "grep" | "hashline_grep" | "list_dir" | "glob"
-        | "search_tool" | "web_search" | "web_fetch" | "get_task_output" | "task_output"
+        | "search_tool" | "web_fetch" | "get_task_output" | "task_output"
         | "ask_user_question" | "enter_plan_mode" | "exit_plan_mode" | "todo_write" | "todo"
         | "update_goal" | "lsp" | "skills" | "read" => IntentClass::ReadOnly,
         // Execute-kind tools across naming schemes: `run_terminal_command`

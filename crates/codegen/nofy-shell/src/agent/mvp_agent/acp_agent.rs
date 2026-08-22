@@ -5,25 +5,6 @@
 use super::*;
 use crate::auth::SilentRefresh;
 use crate::extensions::session_admin::InternalMethod;
-/// Which `x_search` sub-tools enforce the date cutoff, sent in `initialize`. `x_user_search` and
-/// `x_thread_fetch` are `false`: they don't honor it yet.
-#[derive(serde::Serialize)]
-struct ToolOverridesCapability {
-    x_keyword_search: bool,
-    x_semantic_search: bool,
-    x_user_search: bool,
-    x_thread_fetch: bool,
-}
-const TOOL_OVERRIDES_CAPABILITY: ToolOverridesCapability = ToolOverridesCapability {
-    x_keyword_search: true,
-    x_semantic_search: true,
-    x_user_search: false,
-    x_thread_fetch: false,
-};
-fn tool_overrides_capability() -> serde_json::Value {
-    serde_json::to_value(TOOL_OVERRIDES_CAPABILITY)
-        .expect("ToolOverridesCapability is always serializable")
-}
 #[async_trait::async_trait(?Send)]
 impl acp::Agent for MvpAgent {
     /// In the meta, we provide
@@ -454,9 +435,6 @@ impl acp::Agent for MvpAgent {
                         "blockingEvents": crate::extensions::hooks::ADVERTISED_BLOCKING_EVENTS,
                         "decisions": crate::extensions::hooks::ADVERTISED_DECISIONS,
                         "stopSignals": crate::extensions::hooks::ADVERTISED_STOP_SIGNALS,
-                    },
-                    "nofy/capabilities": {
-                        "toolOverrides": tool_overrides_capability(),
                     },
                 })
                                 .as_object()
@@ -953,24 +931,6 @@ impl acp::Agent for MvpAgent {
                     .data("outputSchema must be a JSON object describing a JSON Schema"),
             );
         }
-        let tool_overrides_update = match arguments
-            .meta
-            .as_ref()
-            .and_then(|m| m.get("toolOverrides"))
-        {
-            None => None,
-            Some(value) => {
-                match nofy_sampling_types::ToolOverridesUpdate::parse(value) {
-                    Ok(update) => Some(update),
-                    Err(reason) => {
-                        return Err(
-                            acp::Error::invalid_params()
-                                .data(format!("toolOverrides: {reason}")),
-                        );
-                    }
-                }
-            }
-        };
         handle
             .cmd_tx
             .send(SessionCommand::Prompt {
@@ -984,7 +944,6 @@ impl acp::Agent for MvpAgent {
                 json_schema,
                 send_now,
                 admission: None,
-                tool_overrides_update,
                 respond_to: tx,
                 persist_ack: None,
                 parsed_prompt_tx,
@@ -1007,10 +966,6 @@ impl acp::Agent for MvpAgent {
             .chat_state_handle
             .get_last_turn_usage()
             .await;
-        let applied_tool_overrides = stop_result
-            .as_ref()
-            .ok()
-            .and_then(|ok| ok.tool_overrides.clone());
         if matches!(
             stop_result,
             Ok(crate::session::commands::PromptTurnOk {
@@ -1031,7 +986,6 @@ impl acp::Agent for MvpAgent {
                                 cancellation_category: None,
                                 cancel_trigger: None,
                                 structured_output: None,
-                                tool_overrides: applied_tool_overrides.clone(),
                             })
                             .as_object()
                             .cloned(),
@@ -1119,7 +1073,6 @@ impl acp::Agent for MvpAgent {
                     completion_kind,
                     structured_output,
                     usage: prompt_usage,
-                    tool_overrides: _,
                 } = turn_ok;
                 // Permission events only fed the removed trace-upload pipeline;
                 // keep draining so the per-session buffer cannot grow unbounded.
@@ -1151,7 +1104,6 @@ impl acp::Agent for MvpAgent {
                                     cancellation_category,
                                     cancel_trigger,
                                     structured_output,
-                                    tool_overrides: applied_tool_overrides,
                                 })
                                 .as_object()
                                 .cloned(),
@@ -1810,21 +1762,5 @@ impl acp::Agent for MvpAgent {
             );
         }
         Ok(())
-    }
-}
-#[cfg(test)]
-mod tool_overrides_capability_tests {
-    use super::tool_overrides_capability;
-    #[test]
-    fn capability_wire_shape_is_pinned() {
-        assert_eq!(
-            tool_overrides_capability(),
-            serde_json::json!({
-                "x_keyword_search": true,
-                "x_semantic_search": true,
-                "x_user_search": false,
-                "x_thread_fetch": false,
-            }),
-        );
     }
 }

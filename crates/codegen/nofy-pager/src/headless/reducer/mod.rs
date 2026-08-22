@@ -83,8 +83,6 @@ pub(crate) struct ToolCallEvent {
     raw_input: Value,
     content: Value,
     locations: Value,
-    /// True for Nofy's backend `web_search`, which folds inline instead of the client split.
-    backend_web_search: bool,
 }
 
 pub(crate) struct ToolCallUpdateEvent {
@@ -188,8 +186,8 @@ fn json_array_or_empty<T: serde::Serialize>(value: &T) -> Value {
 
 /// Canonical model-facing tool name from the `nofy/tool` `_meta` envelope, else
 /// the display title, else kind, else `"tool"`. The shell stamps the wire name
-/// (`bash`, `x_search`, `read_file`) under `nofy/tool.name`; without this the
-/// name falls through to the human title (`Execute ...`, `X search:`).
+/// (`bash`, `read_file`) under `nofy/tool.name`; without this the name falls
+/// through to the human title (`Execute ...`).
 fn tool_name_from(meta: Option<&proto::Meta>, title: &str, kind: Option<&str>) -> String {
     if let Some(meta) = meta
         && let Some(name) = meta
@@ -209,16 +207,6 @@ fn tool_name_from(meta: Option<&proto::Meta>, title: &str, kind: Option<&str>) -
         return kind.to_string();
     }
     "tool".to_string()
-}
-
-/// True iff `tc` is Nofy's backend `web_search` (`_meta.backend` and `raw_input.variant == "WebSearch"`).
-fn is_backend_web_search(meta: Option<&proto::Meta>, raw_input: &Value) -> bool {
-    let backend = meta
-        .and_then(|m| m.get("backend"))
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-    let is_web_search = raw_input.get("variant").and_then(Value::as_str) == Some("WebSearch");
-    backend && is_web_search
 }
 
 /// Canonical tool kind from the `nofy/tool` `_meta` envelope, else the ACP
@@ -242,7 +230,6 @@ pub(crate) fn tool_call_event(tc: &proto::ToolCall) -> ToolCallEvent {
     let tool_kind = tool_kind_from(tc.meta.as_ref(), tc.kind);
     let tool_name = tool_name_from(tc.meta.as_ref(), &tc.title, tool_kind.as_deref());
     let raw_input = tc.raw_input.clone().unwrap_or(Value::Null);
-    let backend_web_search = is_backend_web_search(tc.meta.as_ref(), &raw_input);
     ToolCallEvent {
         tool_call_id: tc.tool_call_id.0.to_string(),
         title: tc.title.clone(),
@@ -252,7 +239,6 @@ pub(crate) fn tool_call_event(tc: &proto::ToolCall) -> ToolCallEvent {
         raw_input,
         content: json_array_or_empty(&tc.content),
         locations: json_array_or_empty(&tc.locations),
-        backend_web_search,
     }
 }
 

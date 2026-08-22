@@ -2,7 +2,6 @@
 
 use super::test_support::*;
 use super::*;
-use crate::tool_overrides::*;
 use assert_matches::assert_matches;
 
 #[test]
@@ -25,104 +24,10 @@ fn test_conversation_request_to_responses_api() {
 }
 
 #[test]
-fn function_tool_colliding_with_hosted_web_search_is_dropped() {
-    let mut req =
-        ConversationRequest::from_items(vec![ConversationItem::user("hi")]).with_tools(vec![
-            ToolSpec {
-                name: "web_search".to_string(),
-                description: Some("local web search".to_string()),
-                parameters: serde_json::json!({"type": "object"}),
-            },
-            ToolSpec {
-                name: "read_file".to_string(),
-                description: None,
-                parameters: serde_json::json!({"type": "object"}),
-            },
-        ]);
-    req.hosted_tools = vec![HostedTool::WebSearch { options: None }];
-
-    let responses_req: rs::CreateResponse = (&req).into();
-    let tools = responses_req.tools.expect("tools should be set");
-
-    let web_search_count = tools
-        .iter()
-        .filter(|t| matches!(t, rs::Tool::WebSearch(_)))
-        .count();
-    assert_eq!(
-        web_search_count, 1,
-        "exactly one typed web_search: {tools:?}"
-    );
-    let function_names: Vec<&str> = tools
-        .iter()
-        .filter_map(|t| match t {
-            rs::Tool::Function(f) => Some(f.name.as_str()),
-            _ => None,
-        })
-        .collect();
-    assert_eq!(
-        function_names,
-        vec!["read_file"],
-        "colliding function tool must be dropped"
-    );
-}
-
-#[test]
-fn function_tool_colliding_with_hosted_x_search_is_dropped() {
-    let mut req =
-        ConversationRequest::from_items(vec![ConversationItem::user("hi")]).with_tools(vec![
-            ToolSpec {
-                name: "x_search".to_string(),
-                description: None,
-                parameters: serde_json::json!({"type": "object"}),
-            },
-        ]);
-    req.hosted_tools = vec![HostedTool::XSearch { options: None }];
-
-    let responses_req: rs::CreateResponse = (&req).into();
-    let tools = responses_req.tools.unwrap_or_default();
-    assert!(tools.is_empty(), "expected no tools, got: {tools:?}");
-    let entries = extra_tool_entries(&req.hosted_tools);
-    assert_eq!(entries, vec![serde_json::json!({"type": "x_search"})]);
-}
-
-#[test]
-fn x_search_serializes_to_the_tool_entry() {
-    // A full bound reaches the flat snake_case entry; an empty or `None` bound emits the bare entry.
-    let dated = extra_tool_entries(&[HostedTool::XSearch {
-        options: Some(XSearchOptions {
-            date_bound: Some(
-                SearchDateBound::new(Some("2024-01-01".into()), Some("2024-03-15".into())).unwrap(),
-            ),
-        }),
-    }]);
-    assert_eq!(
-        dated,
-        vec![serde_json::json!({
-            "type": "x_search",
-            "from_date": "2024-01-01",
-            "to_date": "2024-03-15",
-        })]
-    );
-    let bare = vec![serde_json::json!({"type": "x_search"})];
-    assert_eq!(
-        extra_tool_entries(&[HostedTool::XSearch {
-            options: Some(XSearchOptions {
-                date_bound: Some(SearchDateBound::new(None, None).unwrap()),
-            }),
-        }]),
-        bare
-    );
-    assert_eq!(
-        extra_tool_entries(&[HostedTool::XSearch { options: None }]),
-        bare
-    );
-}
-
-#[test]
-fn function_web_search_kept_when_no_hosted_tools() {
+fn function_tools_survive_conversion() {
     let req = ConversationRequest::from_items(vec![ConversationItem::user("hi")]).with_tools(vec![
         ToolSpec {
-            name: "web_search".to_string(),
+            name: "read_file".to_string(),
             description: None,
             parameters: serde_json::json!({"type": "object"}),
         },
@@ -137,7 +42,7 @@ fn function_web_search_kept_when_no_hosted_tools() {
             _ => None,
         })
         .collect();
-    assert_eq!(function_names, vec!["web_search"]);
+    assert_eq!(function_names, vec!["read_file"]);
 }
 
 #[test]
@@ -1567,55 +1472,53 @@ fn build_responses_input_multi_turn_reasoning_ordering() {
 
 #[test]
 fn backend_tool_call_position_stable() {
-    let ws_a = ConversationItem::BackendToolCall(BackendToolCallItem {
-        kind: BackendToolKind::WebSearch(rs::WebSearchToolCall {
-            id: "ws_a".to_string(),
-            status: rs::WebSearchToolCallStatus::Completed,
-            action: rs::WebSearchToolCallAction::Search(rs::WebSearchActionSearch {
-                query: "alpha".to_string(),
-                sources: Some(vec![]),
-            }),
+    let ci_a = ConversationItem::BackendToolCall(BackendToolCallItem {
+        kind: BackendToolKind::CodeInterpreter(rs::CodeInterpreterToolCall {
+            id: "ci_a".to_string(),
+            container_id: "cont_a".to_string(),
+            code: Some("print('alpha')".to_string()),
+            outputs: None,
+            status: rs::CodeInterpreterToolCallStatus::Completed,
         }),
     });
-    let ws_b = ConversationItem::BackendToolCall(BackendToolCallItem {
-        kind: BackendToolKind::WebSearch(rs::WebSearchToolCall {
-            id: "ws_b".to_string(),
-            status: rs::WebSearchToolCallStatus::Completed,
-            action: rs::WebSearchToolCallAction::Search(rs::WebSearchActionSearch {
-                query: "beta".to_string(),
-                sources: Some(vec![]),
-            }),
+    let ci_b = ConversationItem::BackendToolCall(BackendToolCallItem {
+        kind: BackendToolKind::CodeInterpreter(rs::CodeInterpreterToolCall {
+            id: "ci_b".to_string(),
+            container_id: "cont_b".to_string(),
+            code: Some("print('beta')".to_string()),
+            outputs: None,
+            status: rs::CodeInterpreterToolCallStatus::Completed,
         }),
     });
 
     let req = ConversationRequest::from_items(vec![
         ConversationItem::user("u1"),
         reasoning_sibling("r1", "think a", Some("enc_a")),
-        ws_a,
+        ci_a,
         ConversationItem::assistant("a1"),
         ConversationItem::user("u2"),
-        ws_b,
+        ci_b,
         ConversationItem::assistant("a2"),
     ]);
 
     let input = input_items_json(&req);
-    let ws_items: Vec<&serde_json::Value> = input
+    let ci_items: Vec<&serde_json::Value> = input
         .iter()
-        .filter(|v| v.get("type").and_then(|t| t.as_str()) == Some("web_search_call"))
+        .filter(|v| v.get("type").and_then(|t| t.as_str()) == Some("code_interpreter_call"))
         .collect();
 
     // Both backend tool calls must survive serialization.
     assert_eq!(
-        ws_items.len(),
+        ci_items.len(),
         2,
-        "both web_search_call items must survive; got: {:?}",
+        "both code_interpreter_call items must survive; got: {:?}",
         summarise_input(&input)
     );
-    let ids: Vec<&str> = ws_items
+    let ids: Vec<&str> = ci_items
         .iter()
         .filter_map(|v| v.get("id").and_then(|i| i.as_str()))
         .collect();
-    assert_eq!(ids, vec!["ws_a", "ws_b"], "ordering preserved");
+    assert_eq!(ids, vec!["ci_a", "ci_b"], "ordering preserved");
 }
 
 #[test]

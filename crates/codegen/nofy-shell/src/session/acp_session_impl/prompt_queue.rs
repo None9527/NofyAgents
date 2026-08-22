@@ -20,7 +20,6 @@ pub(crate) struct QueueInputRequest {
     pub(crate) json_schema: Option<serde_json::Value>,
     pub(crate) send_now: bool,
     pub(crate) task_wake_fallback: Option<TaskWakeFallback>,
-    pub(crate) tool_overrides_update: Option<nofy_sampling_types::ToolOverridesUpdate>,
     pub(crate) respond_to: oneshot::Sender<PromptTurnResult>,
     pub(crate) persist_ack: Option<oneshot::Sender<()>>,
     pub(crate) parsed_prompt_tx: Option<oneshot::Sender<ParsedPromptInfo>>,
@@ -44,7 +43,6 @@ impl QueueInputRequest {
             json_schema: None,
             send_now: false,
             task_wake_fallback: None,
-            tool_overrides_update: None,
             respond_to,
             persist_ack: None,
             parsed_prompt_tx: None,
@@ -70,7 +68,6 @@ impl SessionActor {
             json_schema,
             send_now,
             task_wake_fallback,
-            tool_overrides_update,
             respond_to,
             persist_ack,
             parsed_prompt_tx,
@@ -201,7 +198,6 @@ impl SessionActor {
             json_schema,
             origin,
             task_wake_fallback,
-            tool_overrides_update,
             respond_to,
             persist_ack,
             parsed_prompt_tx,
@@ -485,7 +481,7 @@ impl SessionActor {
 
     /// Resolve a removed prompt's pending RPC with `Ok(RemovedFromQueue)` before dropping it. A
     /// dropped sender would look like the running turn failing; the `Ok` lets the client discard it.
-    /// It never ran, so token count is `0` and there is no `tool_overrides` echo.
+    /// It never ran, so token count is `0`.
     pub(super) fn respond_removed_prompt(respond_to: oneshot::Sender<PromptTurnResult>) {
         let _ = respond_to.send(Ok(PromptTurnOk {
             stop_reason: acp::StopReason::Cancelled,
@@ -494,7 +490,6 @@ impl SessionActor {
             completion_kind: PromptCompletionKind::RemovedFromQueue,
             structured_output: None,
             usage: None,
-            tool_overrides: None,
         }));
     }
 
@@ -839,11 +834,7 @@ impl SessionActor {
             .unwrap_or("");
         nofy_prompt_queue::CombineGate {
             id: item.prompt_id.as_str(),
-            // A row with its own override can't merge into another turn (that would drop its bound).
-            is_plain_prompt: is_plain_prompt
-                && has_text
-                && !non_text_non_image
-                && item.tool_overrides_update.is_none(),
+            is_plain_prompt: is_plain_prompt && has_text && !non_text_non_image,
             is_synthetic: item.origin.is_synthetic(),
             is_expanded_skill,
             is_bash,

@@ -421,18 +421,6 @@ pub struct BackgroundTaskStarted {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pid: Option<u32>,
 }
-#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
-pub struct WebSearchOutput {
-    pub query: String,
-    pub content: String,
-    pub citations: Vec<String>,
-    pub allowed_domains: Option<Vec<String>>,
-    /// When set, `to_prompt_format()` returns this text directly instead of
-    /// wrapping `content` with the default header. Used by the compat adapter
-    /// to produce the exact `Title: / Content: / ---` schema.
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub pre_formatted: Option<String>,
-}
 #[derive(Debug, Clone)]
 pub struct WebFetchSourceArtifact {
     /// Session artifact containing the complete converted response.
@@ -560,7 +548,6 @@ pub enum ToolOutput {
     ListDir(ListDirOutput),
     SearchReplace(SearchReplaceOutput),
     Todo(TodoWriteOutput),
-    WebSearch(WebSearchOutput),
     WebFetch(WebFetchOutput),
     MCP(MCPOutput),
     TaskOutput(TaskOutputOutput),
@@ -697,16 +684,6 @@ impl ToolOutput {
                 TodoWriteOutput::DuplicateId(msg) => msg.to_owned(),
                 TodoWriteOutput::InvalidArgument(msg) => msg.to_owned(),
             },
-            ToolOutput::WebSearch(web_search_output) => {
-                if let Some(ref pre) = web_search_output.pre_formatted {
-                    pre.clone()
-                } else {
-                    format!(
-                        "Web search results for: \"{}\"\n\n{}",
-                        web_search_output.query, web_search_output.content
-                    )
-                }
-            }
             ToolOutput::WebFetch(o) => o.to_prompt_format(),
             ToolOutput::MCP(mcp_output) => match &mcp_output.output {
                 MCPOutputDetails::Error(error) => {
@@ -1209,7 +1186,6 @@ impl nofy_tool_runtime::ToolOutput for ReadFileOutput {}
 impl nofy_tool_runtime::ToolOutput for ListDirOutput {}
 impl nofy_tool_runtime::ToolOutput for SearchReplaceOutput {}
 impl nofy_tool_runtime::ToolOutput for TodoWriteOutput {}
-impl nofy_tool_runtime::ToolOutput for WebSearchOutput {}
 impl nofy_tool_runtime::ToolOutput for WebFetchOutput {}
 impl nofy_tool_runtime::ToolOutput for SkillOutput {}
 impl nofy_tool_runtime::ToolOutput for ApplyPatchOutput {}

@@ -51,7 +51,6 @@ use std::sync::Arc;
 
 use serde_json::Value as JsonValue;
 use nofy_sampler::{Auth401AttributionCallback, SamplingConsumer};
-use nofy_tools::{Auth401AttributionCallback as ToolAuth401AttributionCallback, ToolConsumer};
 
 use crate::auth::{AuthManager, TOKEN_TTL};
 use nofy_auth::bearer_suffix;
@@ -125,23 +124,6 @@ impl ShellAttribution {
             session_id,
         })
     }
-
-    /// Tool-side counterpart of [`Self::new`]: returns
-    /// `Arc<dyn nofy_tools::Auth401AttributionCallback>` for the
-    /// `with_attribution_callback(...)` builder on each tool HTTP
-    /// client (`WebSearchClient`).
-    /// The two callbacks share the same underlying impl and emit the
-    /// same `auth_401_attribution` event format -- only the trait
-    /// signature differs (`SamplingConsumer` vs. `ToolConsumer`).
-    pub(crate) fn new_tool_callback(
-        auth_manager: Arc<AuthManager>,
-        session_id: Option<String>,
-    ) -> Arc<dyn ToolAuth401AttributionCallback> {
-        Arc::new(Self {
-            auth_manager,
-            session_id,
-        })
-    }
 }
 
 impl Auth401AttributionCallback for ShellAttribution {
@@ -153,25 +135,6 @@ impl Auth401AttributionCallback for ShellAttribution {
             self.session_id.as_deref(),
             ConsumerKind::OaiCompatClient,
             consumer.as_endpoint(),
-            sent_bearer_suffix,
-        );
-    }
-}
-
-/// Tool-side hook: each tool client (web_search)
-/// in `nofy-tools` emits a 401 attribution event through this
-/// trait when its HTTP request returns UNAUTHORIZED. Same shape as
-/// the sampler-side impl above; routes to the same pair of sinks.
-impl ToolAuth401AttributionCallback for ShellAttribution {
-    fn record_401(&self, consumer: ToolConsumer, sent_bearer_suffix: Option<&str>) {
-        let (kind, op) = match consumer {
-            ToolConsumer::WebSearch => (ConsumerKind::WebSearch, ""),
-        };
-        record_consumer_401(
-            self.auth_manager.as_ref(),
-            self.session_id.as_deref(),
-            kind,
-            op,
             sent_bearer_suffix,
         );
     }
@@ -199,10 +162,6 @@ pub(crate) enum ConsumerKind {
     /// No per-op discriminator -- the consumer string is just
     /// `"IdleResumeModelRefresh"`.
     IdleResumeModelRefresh,
-    /// `nofy_tools::ToolConsumer::WebSearch` -- web search via
-    /// `POST /responses` with a `WebSearch` tool. No per-op
-    /// discriminator; consumer string is just `"WebSearch"`.
-    WebSearch,
 }
 
 impl ConsumerKind {
@@ -214,20 +173,16 @@ impl ConsumerKind {
             Self::FeedbackClient => "FeedbackClient",
             Self::SessionRegistryClient => "SessionRegistryClient",
             Self::IdleResumeModelRefresh => "IdleResumeModelRefresh",
-            Self::WebSearch => "WebSearch",
         }
     }
 
     /// `true` for variants that take a per-operation discriminator
     /// appended as `<prefix>.<op>`. `false` for variants whose
     /// `consumer` string is just the prefix
-    /// (`IdleResumeModelRefresh`, `WebSearch` -- each is
-    /// a single endpoint with no sub-operation).
+    /// (`IdleResumeModelRefresh` -- a single endpoint with no
+    /// sub-operation).
     fn takes_op(self) -> bool {
-        !matches!(
-            self,
-            Self::IdleResumeModelRefresh | Self::WebSearch
-        )
+        !matches!(self, Self::IdleResumeModelRefresh)
     }
 }
 
@@ -658,8 +613,8 @@ mod tests {
 
     /// `format_consumer` matrix:
     ///   - generic ops append "." + op (`OaiCompatClient.foo`)
-    ///   - IdleResumeModelRefresh and tool variants drop the op
-    ///     (their consumer string has no sub-op axis).
+    ///   - IdleResumeModelRefresh drops the op
+    ///     (its consumer string has no sub-op axis).
     #[test]
     fn format_consumer_matrix() {
         let cases: &[(ConsumerKind, &str, &str)] = &[
@@ -683,8 +638,6 @@ mod tests {
                 "ignored",
                 "IdleResumeModelRefresh",
             ),
-            (ConsumerKind::WebSearch, "", "WebSearch"),
-            (ConsumerKind::WebSearch, "ignored", "WebSearch"),
         ];
         for (kind, op, expected) in cases {
             assert_eq!(
@@ -708,42 +661,6 @@ mod tests {
             format_consumer(ConsumerKind::StorageClient, "upload_file"),
             "StorageClient.upload_file"
         );
-    }
-
-    /// `ShellAttribution` implements `nofy_tools::Auth401AttributionCallback`
-    /// by routing each `ToolConsumer` variant to the right
-    /// `(ConsumerKind, op)` pair, which formats to the expected
-    /// `consumer` string in the emitted payload.
-    #[test]
-    #[serial_test::serial(attribution_emit_count)]
-    fn shell_attribution_tool_impl_routes_to_correct_consumer_strings() {
-        reset_test_emit_count();
-        let (_dir, am) = empty_auth_manager();
-        am.hot_swap(fresh_auth("bearer-1234567890"));
-        let am_arc = Arc::new(am);
-        let cb: Arc<dyn ToolAuth401AttributionCallback> =
-            ShellAttribution::new_tool_callback(am_arc.clone(), Some("sid-tool".into()));
-
-        let cases = [
-            (ToolConsumer::WebSearch, "WebSearch"),
-        ];
-
-        for (consumer, expected_consumer_str) in cases {
-            cb.record_401(consumer, Some("bearer-1234567890"));
-            let payload = compute_attribution_payload(
-                am_arc.as_ref(),
-                expected_consumer_str,
-                Some("bearer-1234567890"),
-            );
-            assert_eq!(
-                payload_field(&payload, "consumer"),
-                expected_consumer_str,
-                "ToolConsumer::{consumer:?} should render as {expected_consumer_str:?}",
-            );
-        }
-
-        // Each variant bumped the global counter exactly once.
-        assert_eq!(test_emit_count() as usize, cases.len());
     }
 
     /// Capture `tracing::Span` `on_new_span` callbacks into a

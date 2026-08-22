@@ -215,7 +215,6 @@ promptMode: extend                     promptMode: full
 | `${{ tools.skill }}` | Resolved name for `skill` |
 | `${{ tools.get_task_output }}` | Resolved name for `get_task_output` |
 | `${{ tools.kill_task }}` | Resolved name for `kill_task` |
-| `${{ tools.web_search }}` | Resolved name for `web_search` |
 | `${{ os_name }}` | Operating system (e.g. `"macos"`, `"linux"`) |
 | `${{ shell_path }}` | Shell path (e.g. `"/bin/zsh"`) |
 | `${{ working_directory }}` | Workspace path |

@@ -8,7 +8,7 @@ use crate::ext::Extensions;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ToolDescription {
-    /// Tool name (e.g. "web_search", "read_file") that is called by
+    /// Tool name (e.g. "read_file") that is called by
     /// the model.
     pub name: String,
 

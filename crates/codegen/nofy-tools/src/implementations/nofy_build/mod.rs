@@ -29,7 +29,6 @@ pub mod task_output;
 pub mod todo;
 pub mod update_goal;
 pub mod web_fetch;
-pub mod web_search;
 pub mod workflow;
 pub use ask_user_question::AskUserQuestionTool;
 pub use bash::BashTool;
@@ -55,5 +54,4 @@ pub use task_output::{GetTerminalCommandOutputTool, TaskOutputTool, WaitTasksToo
 pub use todo::TodoWriteTool;
 pub use update_goal::{UPDATE_GOAL_TOOL_NAME, UpdateGoalTool};
 pub use web_fetch::{WebFetchClient, WebFetchConfig, WebFetchParams, WebFetchTool};
-pub use web_search::WebSearchTool;
 pub use workflow::{WORKFLOW_TOOL_NAME, WorkflowTool};

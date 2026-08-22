@@ -611,7 +611,6 @@ pub(crate) const BUILTIN_TOOL_NAMES: &[&str] = &[
     "todo_write",
     "task",
     "spawn_subagent",
-    "web_search",
     "web_fetch",
     "lsp",
     "image_gen",

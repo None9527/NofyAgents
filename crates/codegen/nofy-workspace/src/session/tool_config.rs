@@ -304,9 +304,8 @@ fn ensure_session_dir(root: &std::path::Path, session_id: &str) -> (PathBuf, std
 pub(crate) use crate::ENV_TEST_LOCK as TOOL_STATE_ENV_LOCK;
 /// [`SessionContextFactory`] for workspace server sessions.
 ///
-/// When constructed with an [`AuthProvider`] and API base URL, the web
-/// search tool is enabled using the provider's current OAuth token.
-/// Without auth, it defaults to `Disabled`.
+/// When constructed with an [`AuthProvider`], tools that need service
+/// auth receive the provider via `SessionContext::auth_provider`.
 ///
 /// When [`with_tool_state_home`](Self::with_tool_state_home) is set, each
 /// session's [`SessionContext::state_path`] is rooted at
@@ -325,7 +324,6 @@ pub(crate) use crate::ENV_TEST_LOCK as TOOL_STATE_ENV_LOCK;
 /// [`LocalTerminalBackend`]: nofy_tools::computer::local::LocalTerminalBackend
 pub struct WorkspaceSessionContextFactory {
     auth: Option<nofy_computer_hub_sdk::SharedAuthProvider>,
-    api_base_url: Option<String>,
     /// Resolved `$NOFY_WORKSPACE_HOME` when tool-state persistence is enabled;
     /// `None` disables it. Resolved once by the caller so the factory performs
     /// no per-build env reads.
@@ -340,15 +338,13 @@ impl WorkspaceSessionContextFactory {
     pub fn new() -> Self {
         Self {
             auth: None,
-            api_base_url: None,
             tool_state_home: None,
         }
     }
     /// Factory with auth — gen tools use the provider's live token.
-    pub fn with_auth(auth: nofy_computer_hub_sdk::SharedAuthProvider, api_base_url: String) -> Self {
+    pub fn with_auth(auth: nofy_computer_hub_sdk::SharedAuthProvider) -> Self {
         Self {
             auth: Some(auth),
-            api_base_url: Some(api_base_url),
             tool_state_home: None,
         }
     }
@@ -405,38 +401,10 @@ impl SessionContextFactory for WorkspaceSessionContextFactory {
         backend: Arc<dyn nofy_tools::computer::types::TerminalBackend>,
     ) -> nofy_tools::registry::types::SessionContext {
         use nofy_tools::implementations::nofy_build::deploy_app::AppBuilderDeployerConfig;
-        use nofy_tools::implementations::web_search::WebSearchConfig;
         let fs = Arc::new(nofy_tools::computer::local::LocalFs)
             as Arc<dyn nofy_tools::computer::types::AsyncFileSystem>;
         let notification_handle = nofy_tools::notification::ToolNotificationHandle::noop();
-        let (web_search_config, app_builder_deployer_config) =
-            if let (Some(auth), Some(url)) = (&self.auth, &self.api_base_url) {
-                let cred = auth.current();
-                match cred {
-                    nofy_computer_hub_sdk::AuthCredential::Bearer { token, .. } => {
-                        let headers = build_proxy_headers(url);
-                        (
-                            WebSearchConfig::Enabled {
-                                api_key: token,
-                                base_url: url.clone(),
-                                model: default_web_search_model(),
-                                extra_headers: headers,
-                                alpha_test_key: None,
-                            },
-                            AppBuilderDeployerConfig::default(),
-                        )
-                    }
-                    _ => (
-                        WebSearchConfig::default(),
-                        AppBuilderDeployerConfig::default(),
-                    ),
-                }
-            } else {
-                (
-                    WebSearchConfig::default(),
-                    AppBuilderDeployerConfig::default(),
-                )
-            };
+        let app_builder_deployer_config = AppBuilderDeployerConfig::default();
         nofy_tools::registry::types::SessionContext {
             backend,
             fs,
@@ -453,13 +421,11 @@ impl SessionContextFactory for WorkspaceSessionContextFactory {
             session_recall: None,
             forensics: None,
             delegation: None,
-            web_search_config,
             web_fetch_config: build_web_fetch_config(),
             lsp: None,
             app_builder_deployer_config,
             api_key_provider: None,
             auth_provider: self.auth.clone(),
-            attribution_callback: None,
             system_reminder_tag: nofy_tools::reminders::DEFAULT_REMINDER_TAG,
         }
     }
@@ -477,29 +443,6 @@ impl SessionContextFactory for WorkspaceSessionContextFactory {
         IDS.clone()
     }
 }
-/// Build extra headers for API calls routed through the chat proxy.
-/// Mirrors the shell's `inject_proxy_headers` logic.
-fn build_proxy_headers(base_url: &str) -> indexmap::IndexMap<String, String> {
-    let mut headers = indexmap::IndexMap::new();
-    let version = nofy_version::VERSION;
-    headers.insert(
-        "user-agent".to_string(),
-        format!("nofy-workspace/{version}"),
-    );
-    headers.insert("x-nofy-client-version".to_string(), version.to_string());
-    headers.insert(
-        "x-nofy-client-identifier".to_string(),
-        std::env::var("NOFY_CLIENT_NAME").unwrap_or_else(|_| "nofy-shell".to_string()),
-    );
-    if base_url.contains("cli-chat-proxy") || base_url.contains("chat-proxy") {
-        headers.insert("X-NOFY-Token-Auth".to_string(), "nofy-nofy-cli".to_string());
-        headers.insert(
-            "x-authenticateresponse".to_string(),
-            "authenticate-response".to_string(),
-        );
-    }
-    headers
-}
 /// Build web fetch config. Enabled with default params unless
 /// `NOFY_DISABLE_WEB_FETCH=1` is set.
 fn build_web_fetch_config() -> nofy_tools::implementations::nofy_build::web_fetch::WebFetchConfig
@@ -516,9 +459,6 @@ fn build_web_fetch_config() -> nofy_tools::implementations::nofy_build::web_fetc
         params.allow_local = Some(true);
     }
     WebFetchConfig::Enabled { params }
-}
-fn default_web_search_model() -> String {
-    std::env::var("NOFY_WEB_SEARCH_MODEL").unwrap_or_else(|_| "grok-4.5".to_string())
 }
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support {
@@ -578,13 +518,11 @@ pub mod test_support {
                 session_recall: None,
             forensics: None,
             delegation: None,
-                web_search_config: Default::default(),
                 web_fetch_config: Default::default(),
                 lsp: None,
                 app_builder_deployer_config: Default::default(),
                 api_key_provider: None,
                 auth_provider: None,
-                attribution_callback: None,
                 system_reminder_tag: nofy_tools::reminders::DEFAULT_REMINDER_TAG,
             }
         }

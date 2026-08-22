@@ -99,6 +99,10 @@ Round 1 的"恒 Disabled 桩"方案被用户否决:**完全剔除所有 xAI 依�
     `ListModelsEndpoint` vendor 臂与 Session 头、auth-refresh watcher——已删。
   - 内部 OTLP:vendor proxy 回退在早前消毒中已去除,本批同步修正过时断言。
   - `resolve_remote_fetch_enabled` 及 `features.remote_fetch` 配置链整体移除。
-- **Stage 2**:`RemoteSettings` 类型 + remote 策略层整体删除(~290 引用)。
+- **Stage 2(remote 策略层,已提交 d40ad0e)**:`RemoteSettings` 类型、
+  `ContextualHintsRemote`、`BoolFlag.feature_flag` 层、`ConfigSource::Remote`、
+  全部 `resolve_*` 远端层、`cache_remote_*` 缓存、ACP remote 传递、
+  付费墙 gate 机制(remote 是其唯一策略源)——整体物理删除,85 文件净删
+  ~7600 行;公告/活动/提示的本地配置层解析保留。
 - **Batch B/C/D/E/F**:web/x 搜索、voice、xAI 登录流、计费/付费墙、
   剩余后台外联(分享/feedback/bundle/更新器)——依次物理删除。

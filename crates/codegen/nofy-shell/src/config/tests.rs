@@ -1157,7 +1157,6 @@ fn managed_mcp_gateway_tools_enabled_with_managed_master() {
     );
 }
 fn with_model_overrides_env_full<T>(
-    ws: Option<&str>,
     ss: Option<&str>,
     id: Option<&str>,
     ps: Option<&str>,
@@ -1166,59 +1165,30 @@ fn with_model_overrides_env_full<T>(
     static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let _guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     with_env_var_opt(
-        "NOFY_WEB_SEARCH_MODEL",
-        ws,
+        "NOFY_SESSION_SUMMARY_MODEL",
+        ss,
         || with_env_var_opt(
-            "NOFY_SESSION_SUMMARY_MODEL",
-            ss,
-            || with_env_var_opt(
-                "NOFY_IMAGE_DESCRIPTION_MODEL",
-                id,
-                || with_env_var_opt("NOFY_PROMPT_SUGGESTIONS_MODEL", ps, f),
-            ),
+            "NOFY_IMAGE_DESCRIPTION_MODEL",
+            id,
+            || with_env_var_opt("NOFY_PROMPT_SUGGESTIONS_MODEL", ps, f),
         ),
     )
 }
 fn with_model_overrides_env<T>(
-    ws: Option<&str>,
     ss: Option<&str>,
     id: Option<&str>,
     f: impl FnOnce() -> T,
 ) -> T {
-    with_model_overrides_env_full(ws, ss, id, None, f)
-}
-#[test]
-fn model_overrides_cli_overrides_everything() {
-    with_model_overrides_env(
-        Some("env-ws"),
-        Some("env-ss"),
-        None,
-        || {
-            let config: toml::Value = toml::from_str(
-                    r#"
-                [models]
-                web_search = "local-ws"
-                "#,
-                )
-                .unwrap();
-            let cfg = ModelOverrideConfig::resolve(
-                Some("cli-ws"),
-                Some("cli-ss"),
-                &config);
-            assert_eq!(cfg.web_search, "cli-ws");
-            assert_eq!(cfg.session_summary, Some("cli-ss".to_owned()));
-        },
-    );
+    with_model_overrides_env_full(ss, id, None, f)
 }
 #[test]
 fn model_overrides_default_image_description_is_nofy_build() {
     with_model_overrides_env(
         None,
         None,
-        None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty);
+            let cfg = ModelOverrideConfig::resolve(None, &empty);
             assert_eq!(
                 cfg.image_description,
                 Some(crate::models::default_image_description_model().to_owned())
@@ -1231,10 +1201,9 @@ fn model_overrides_default_session_summary_is_nofy_build() {
     with_model_overrides_env(
         None,
         None,
-        None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty);
+            let cfg = ModelOverrideConfig::resolve(None, &empty);
             assert_eq!(
                 cfg.session_summary,
                 Some(crate::models::default_session_summary_model().to_owned())
@@ -1245,12 +1214,11 @@ fn model_overrides_default_session_summary_is_nofy_build() {
 #[test]
 fn model_overrides_env_session_summary_applies() {
     with_model_overrides_env(
-        None,
         Some("env-ss"),
         None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty);
+            let cfg = ModelOverrideConfig::resolve(None, &empty);
             assert_eq!(cfg.session_summary, Some("env-ss".to_owned()));
         },
     );
@@ -1258,7 +1226,6 @@ fn model_overrides_env_session_summary_applies() {
 #[test]
 fn model_overrides_env_session_summary_overrides_local() {
     with_model_overrides_env(
-        None,
         Some("env-ss"),
         None,
         || {
@@ -1269,7 +1236,7 @@ fn model_overrides_env_session_summary_overrides_local() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config);
+            let cfg = ModelOverrideConfig::resolve(None, &config);
             assert_eq!(cfg.session_summary, Some("env-ss".to_owned()));
         },
     );
@@ -1277,7 +1244,6 @@ fn model_overrides_env_session_summary_overrides_local() {
 #[test]
 fn model_overrides_empty_session_summary_toml_uses_default() {
     with_model_overrides_env(
-        None,
         None,
         None,
         || {
@@ -1288,7 +1254,7 @@ fn model_overrides_empty_session_summary_toml_uses_default() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config);
+            let cfg = ModelOverrideConfig::resolve(None, &config);
             assert_eq!(
                 cfg.session_summary,
                 Some(crate::models::default_session_summary_model().to_owned())
@@ -1299,7 +1265,6 @@ fn model_overrides_empty_session_summary_toml_uses_default() {
 #[test]
 fn model_overrides_cli_session_summary_overrides_everything() {
     with_model_overrides_env(
-        None,
         Some("env-ss"),
         None,
         || {
@@ -1310,7 +1275,7 @@ fn model_overrides_cli_session_summary_overrides_everything() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, Some("cli-ss"), &config);
+            let cfg = ModelOverrideConfig::resolve(Some("cli-ss"), &config);
             assert_eq!(cfg.session_summary, Some("cli-ss".to_owned()));
         },
     );
@@ -1320,10 +1285,9 @@ fn model_overrides_empty_cli_session_summary_uses_default() {
     with_model_overrides_env(
         None,
         None,
-        None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ModelOverrideConfig::resolve(None, Some(""), &empty);
+            let cfg = ModelOverrideConfig::resolve(Some(""), &empty);
             assert_eq!(
                 cfg.session_summary,
                 Some(crate::models::default_session_summary_model().to_owned())
@@ -1335,11 +1299,10 @@ fn model_overrides_empty_cli_session_summary_uses_default() {
 fn model_overrides_env_image_description_applies() {
     with_model_overrides_env(
         None,
-        None,
         Some("env-id"),
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty);
+            let cfg = ModelOverrideConfig::resolve(None, &empty);
             assert_eq!(cfg.image_description, Some("env-id".to_owned()));
         },
     );
@@ -1347,7 +1310,6 @@ fn model_overrides_env_image_description_applies() {
 #[test]
 fn model_overrides_env_image_description_overrides_local() {
     with_model_overrides_env(
-        None,
         None,
         Some("env-id"),
         || {
@@ -1358,7 +1320,7 @@ fn model_overrides_env_image_description_overrides_local() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config);
+            let cfg = ModelOverrideConfig::resolve(None, &config);
             assert_eq!(cfg.image_description, Some("env-id".to_owned()));
         },
     );
@@ -1366,7 +1328,6 @@ fn model_overrides_env_image_description_overrides_local() {
 #[test]
 fn model_overrides_empty_image_description_toml_uses_default() {
     with_model_overrides_env(
-        None,
         None,
         None,
         || {
@@ -1377,7 +1338,7 @@ fn model_overrides_empty_image_description_toml_uses_default() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config);
+            let cfg = ModelOverrideConfig::resolve(None, &config);
             assert_eq!(
                 cfg.image_description,
                 Some(crate::models::default_image_description_model().to_owned())
@@ -1390,10 +1351,9 @@ fn model_overrides_prompt_suggestion_unpinned_by_default() {
     with_model_overrides_env(
         None,
         None,
-        None,
         || {
             let empty = toml::Value::Table(toml::map::Map::new());
-            let cfg = ModelOverrideConfig::resolve(None, None, &empty);
+            let cfg = ModelOverrideConfig::resolve(None, &empty);
             assert_eq!(cfg.prompt_suggestion, PromptSuggestModelPin::Unpinned);
         },
     );
@@ -1401,7 +1361,6 @@ fn model_overrides_prompt_suggestion_unpinned_by_default() {
 #[test]
 fn model_overrides_prompt_suggestion_local_pins() {
     with_model_overrides_env(
-        None,
         None,
         None,
         || {
@@ -1412,7 +1371,7 @@ fn model_overrides_prompt_suggestion_local_pins() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config);
+            let cfg = ModelOverrideConfig::resolve(None, &config);
             assert_eq!(
                 cfg.prompt_suggestion,
                 PromptSuggestModelPin::Pinned("local-ps".to_owned())
@@ -1425,7 +1384,6 @@ fn model_overrides_prompt_suggestion_env_wins_over_local() {
     with_model_overrides_env_full(
         None,
         None,
-        None,
         Some("env-ps"),
         || {
             let config: toml::Value = toml::from_str(
@@ -1435,7 +1393,7 @@ fn model_overrides_prompt_suggestion_env_wins_over_local() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config);
+            let cfg = ModelOverrideConfig::resolve(None, &config);
             assert_eq!(
                 cfg.prompt_suggestion,
                 PromptSuggestModelPin::Env("env-ps".to_owned())
@@ -1448,7 +1406,6 @@ fn model_overrides_prompt_suggestion_blank_values_are_unset() {
     with_model_overrides_env_full(
         None,
         None,
-        None,
         Some("  "),
         || {
             let config: toml::Value = toml::from_str(
@@ -1458,7 +1415,7 @@ fn model_overrides_prompt_suggestion_blank_values_are_unset() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config);
+            let cfg = ModelOverrideConfig::resolve(None, &config);
             assert_eq!(
                 cfg.prompt_suggestion,
                 PromptSuggestModelPin::Pinned("local-ps".to_owned())
@@ -1466,7 +1423,6 @@ fn model_overrides_prompt_suggestion_blank_values_are_unset() {
         },
     );
     with_model_overrides_env(
-        None,
         None,
         None,
         || {
@@ -1477,7 +1433,7 @@ fn model_overrides_prompt_suggestion_blank_values_are_unset() {
                 "#,
                 )
                 .unwrap();
-            let cfg = ModelOverrideConfig::resolve(None, None, &config);
+            let cfg = ModelOverrideConfig::resolve(None, &config);
             assert_eq!(cfg.prompt_suggestion, PromptSuggestModelPin::Unpinned);
         },
     );
@@ -2543,13 +2499,13 @@ fn config_layers_system_managed_lowest_priority() {
 #[test]
 fn apply_requirements_value_overrides_user_settings() {
     let raw_config: toml::Value = toml::from_str(
-            "[cli]\nauto_update = true\nchannel = \"beta\"\n\n[features]\ntelemetry = true\nfeedback = true\nlsp_tools = true\nweb_fetch = true\nwrite_file = true\n\n[telemetry]\ntrace_upload = true\n\n[ui]\nyolo = true\n\n[models]\ndefault = \"user-model\"\nweb_search = \"user-ws-model\"\n\n[endpoints]\ncli_chat_proxy_base_url = \"https://user-proxy.example/v1\"\nxai_api_base_url = \"https://user-api.example/v1\"\nmodels_base_url = \"https://user-models.example/v1\"\nmodels_list_url = \"https://user-models.example/v1/models\"\n",
+            "[cli]\nauto_update = true\nchannel = \"beta\"\n\n[features]\ntelemetry = true\nfeedback = true\nlsp_tools = true\nweb_fetch = true\nwrite_file = true\n\n[telemetry]\ntrace_upload = true\n\n[ui]\nyolo = true\n\n[models]\ndefault = \"user-model\"\n\n[endpoints]\ncli_chat_proxy_base_url = \"https://user-proxy.example/v1\"\nxai_api_base_url = \"https://user-api.example/v1\"\nmodels_base_url = \"https://user-models.example/v1\"\nmodels_list_url = \"https://user-models.example/v1/models\"\n",
         )
         .unwrap();
     let mut cfg = crate::agent::config::Config::new_from_toml_cfg(&raw_config).unwrap();
     cfg.default_yolo_mode = true;
     let requirements: toml::Value = toml::from_str(
-            "[cli]\nauto_update = false\nchannel = \"stable\"\n\n[features]\ntelemetry = false\nfeedback = false\nlsp_tools = false\nweb_fetch = false\nwrite_file = false\n\n[telemetry]\ntrace_upload = false\n\n[ui]\nyolo = false\n\n[models]\ndefault = \"managed-model\"\nweb_search = \"managed-ws-model\"\n\n[endpoints]\ncli_chat_proxy_base_url = \"https://managed-proxy.example/v1\"\nxai_api_base_url = \"https://managed-api.example/v1\"\nmodels_base_url = \"https://managed-models.example/v1\"\nmodels_list_url = \"https://managed-models.example/v1/models\"\ndeployment_key = \"enterprise-deploy-key-should-not-log\"\ntrace_upload_endpoint_url = \"https://s3.custom.example.com\"\ntrace_upload_credentials = '{\"aws_access_key_id\":\"AKTEST\",\"aws_secret_access_key\":\"secret\"}'\n",
+            "[cli]\nauto_update = false\nchannel = \"stable\"\n\n[features]\ntelemetry = false\nfeedback = false\nlsp_tools = false\nweb_fetch = false\nwrite_file = false\n\n[telemetry]\ntrace_upload = false\n\n[ui]\nyolo = false\n\n[models]\ndefault = \"managed-model\"\n\n[endpoints]\ncli_chat_proxy_base_url = \"https://managed-proxy.example/v1\"\nxai_api_base_url = \"https://managed-api.example/v1\"\nmodels_base_url = \"https://managed-models.example/v1\"\nmodels_list_url = \"https://managed-models.example/v1/models\"\ndeployment_key = \"enterprise-deploy-key-should-not-log\"\ntrace_upload_endpoint_url = \"https://s3.custom.example.com\"\ntrace_upload_credentials = '{\"aws_access_key_id\":\"AKTEST\",\"aws_secret_access_key\":\"secret\"}'\n",
         )
         .unwrap();
     let source = RequirementSource::Requirements {
@@ -2569,7 +2525,6 @@ fn apply_requirements_value_overrides_user_settings() {
     assert!(!cfg.ui.yolo);
     assert!(!cfg.default_yolo_mode);
     assert_eq!(Some("managed-model"), cfg.models.default.as_deref());
-    assert_eq!(Some("managed-ws-model"), cfg.models.web_search.as_deref());
     assert_eq!(Some("stable"), cfg.cli.channel.as_deref());
     assert_eq!(
             Some("https://managed-proxy.example/v1"),

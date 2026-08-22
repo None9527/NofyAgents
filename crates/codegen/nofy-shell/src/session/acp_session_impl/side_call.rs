@@ -27,7 +27,6 @@ pub(crate) fn log_prompt_cache_hit(
 pub(crate) struct AuxCall {
     pub(crate) items: Vec<ConversationItem>,
     pub(crate) tools: Vec<ToolSpec>,
-    pub(crate) hosted_tools: Vec<nofy_sampling_types::HostedTool>,
     pub(crate) model: String,
     /// Must match the main turn's, or the prompt differs before the conversation history even starts.
     pub(crate) reasoning_effort: Option<nofy_sampling_types::ReasoningEffort>,
@@ -63,7 +62,6 @@ impl SessionActor {
         ConversationRequest {
             items: call.items,
             tools: call.tools,
-            hosted_tools: call.hosted_tools,
             model: Some(call.model),
             temperature: None,
             // Effort changes the prompt ahead of the conversation history, so dropping it here would share no prefix with the main turn.
@@ -106,8 +104,8 @@ impl SessionActor {
     }
 
     /// Build the cache-aligned request for a recap-style side-call via
-    /// [`Self::parent_cached_request`]: main-turn tool + hosted-tool specs and
-    /// matching reasoning effort so the prompt-cache prefix stays warm.
+    /// [`Self::parent_cached_request`]: main-turn tool specs and matching
+    /// reasoning effort so the prompt-cache prefix stays warm.
     ///
     /// Leaves BOTH temperature and max_output_tokens unset: the
     /// cli-chat-proxy layer may inject a `thinking` budget for
@@ -125,13 +123,9 @@ impl SessionActor {
     ) -> ConversationRequest {
         let tool_defs = self.prepare_tool_definitions().await;
         let tools = self.turn_base_tool_specs(&tool_defs);
-        // Mirror the main turn's hosted tools (overrides folded in) so a
-        // side-call can't search past the active cutoff.
-        let hosted_tools = self.hosted_tools_for_turn();
         self.parent_cached_request(AuxCall {
             items,
             tools,
-            hosted_tools,
             model: setup.model.clone(),
             reasoning_effort: setup.reasoning_effort,
             backend: setup.client.api_backend(),

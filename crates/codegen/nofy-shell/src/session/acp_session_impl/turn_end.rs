@@ -186,10 +186,6 @@ impl SessionActor {
         prompt_id: String,
         result: PromptTurnResult,
     ) -> bool {
-        let result = result.map(|mut ok| {
-            ok.tool_overrides = self.effective_tool_overrides();
-            ok
-        });
         let became_idle = {
             let mut current_prompt_id = self
                 .current_prompt_id

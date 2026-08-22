@@ -81,13 +81,7 @@ impl NofyRequestHeaders<'_> {
 /// so we only handle that form. HTTP-dates silently return `None` and
 /// the caller falls back to exponential backoff.
 /// Capped at 120s to prevent absurdly long sleeps from a misbehaving upstream.
-/// Deserialize a Responses API SSE event, with a fallback for xAI-specific
-/// tool types (e.g., `x_search`) that `async_openai` can't parse.
-///
-/// The API echoes the request's `tools` array in `ResponseCompleted` and
-/// `ResponseCreated` events. If we sent `{"type": "x_search"}`, the response
-/// includes it, and `rs::Tool` deserialization fails. On failure, we strip
-/// unrecognized tools from the raw JSON and retry.
+/// Deserialize a Responses API SSE event.
 ///
 /// On `response.completed` / `response.incomplete`, this also rewrites
 /// `response.usage.total_tokens` in place to the live context length
@@ -100,34 +94,14 @@ impl NofyRequestHeaders<'_> {
 /// the API doesn't emit `context_details` (older deployments) `total_tokens`
 /// passes through unchanged.
 fn deserialize_response_event(data: &str) -> Result<rs::ResponseStreamEvent> {
-    let mut event = match serde_json::from_str::<rs::ResponseStreamEvent>(data) {
-        Ok(event) => event,
-        Err(first_err) => {
-            // Try sanitizing: parse as Value, strip unknown tools, retry.
-            if let Ok(mut value) = serde_json::from_str::<serde_json::Value>(data) {
-                // Strip tools that async_openai's rs::Tool can't deserialize
-                // (e.g., xAI-specific "x_search"). Instead of maintaining a
-                // hardcoded allowlist, try deserializing each tool entry —
-                // if it fails, drop it.
-                if let Some(tools) = value
-                    .pointer_mut("/response/tools")
-                    .and_then(|v| v.as_array_mut())
-                {
-                    tools.retain(|t| serde_json::from_value::<rs::Tool>(t.clone()).is_ok());
-                }
-                if let Ok(mut event) = serde_json::from_value::<rs::ResponseStreamEvent>(value) {
-                    apply_terminal_event_overrides(&mut event, data);
-                    return Ok(event);
-                }
-            }
-            tracing::error!(
-                error = %first_err,
-                raw_data = %data,
-                "Failed to deserialize ResponseStreamEvent from stream"
-            );
-            return Err(SamplingError::Serialization(first_err));
-        }
-    };
+    let mut event = serde_json::from_str::<rs::ResponseStreamEvent>(data).map_err(|e| {
+        tracing::error!(
+            error = %e,
+            raw_data = %data,
+            "Failed to deserialize ResponseStreamEvent from stream"
+        );
+        SamplingError::Serialization(e)
+    })?;
     apply_terminal_event_overrides(&mut event, data);
     Ok(event)
 }
@@ -139,8 +113,8 @@ fn deserialize_response_event(data: &str) -> Result<rs::ResponseStreamEvent> {
 ///
 /// `total_tokens` drives the CLI's `/context` bar, the auto-compact
 /// threshold, and `meta.totalTokens` on persisted sessions. Under
-/// server-side multi-turn loops (e.g. `web_search`, `x_search`) the
-/// wire's cumulative total inflates as the loop runs; `context_details`
+/// server-side multi-turn loops the wire's cumulative total inflates as
+/// the loop runs; `context_details`
 /// reports the final turn's prompt + output tokens — the real live
 /// context the model is sitting in. Billing fields
 /// (`input_tokens`, `output_tokens`, `input_tokens_details.cached_tokens`,
@@ -1338,7 +1312,6 @@ impl SamplingClient {
             deployment_id: request.x_nofy_deployment_id.as_deref(),
             user_id: request.x_nofy_user_id.as_deref(),
         };
-        let extra_tool_entries = std::mem::take(&mut request.extra_tool_entries);
         let mut request_body = serde_json::to_value(&request.inner).map_err(|e| {
             tracing::error!("Failed to serialize responses request: {}", e);
             SamplingError::Serialization(e)
@@ -1346,15 +1319,6 @@ impl SamplingClient {
         // Inject xAI-specific fields not in async-openai's CreateResponse type.
         if self.defaults.stream_tool_calls {
             request_body["stream_tool_calls"] = serde_json::json!(true);
-        }
-        // Inject xAI-specific tools (e.g., x_search) that can't be expressed
-        // via async_openai's rs::Tool enum.
-        if !extra_tool_entries.is_empty() {
-            if let Some(tools) = request_body.get_mut("tools").and_then(|v| v.as_array_mut()) {
-                tools.extend(extra_tool_entries);
-            } else {
-                request_body["tools"] = serde_json::Value::Array(extra_tool_entries);
-            }
         }
         nofy_sampling_types::patch_reasoning_text_types(&mut request_body);
         // Fresh per attempt so signals never leak across retries; `None`
@@ -1909,10 +1873,6 @@ impl SamplingClient {
         let x_nofy_turn_idx = request.x_nofy_turn_idx.clone();
         let x_nofy_agent_id = request.x_nofy_agent_id.clone();
 
-        // Collect xAI-specific tools that can't be expressed via rs::Tool
-        // (e.g., x_search). These are injected as raw JSON after serialization.
-        let extra_tools = nofy_sampling_types::extra_tool_entries(&request.hosted_tools);
-
         let responses_request: rs::CreateResponse = (&request).into();
 
         let mut wrapper = CreateResponseWrapper::new(responses_request);
@@ -1921,7 +1881,6 @@ impl SamplingClient {
         wrapper.x_nofy_session_id = x_nofy_session_id;
         wrapper.x_nofy_turn_idx = x_nofy_turn_idx;
         wrapper.x_nofy_agent_id = x_nofy_agent_id;
-        wrapper.extra_tool_entries = extra_tools;
 
         if let Some(trace) = trace {
             wrapper.trace = Some(trace);
@@ -2147,7 +2106,6 @@ mod tests {
             client_version: None,
             attribution_callback: None,
             bearer_resolver: None,
-            supports_backend_search: false,
             compactions_remaining: None,
             compaction_at_tokens: None,
             doom_loop_recovery: None,
@@ -2171,7 +2129,6 @@ mod tests {
             user: None,
             tools: None,
             tool_choice: None,
-            search_parameters: None,
             response_format: None,
             reasoning_effort: None,
             x_nofy_conv_id: None,

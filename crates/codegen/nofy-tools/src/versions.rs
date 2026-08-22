@@ -546,14 +546,14 @@ mod tests {
 
     #[test]
     fn unmanaged_tool_returns_none() {
-        let v = resolve_version("current", "NofyBuild:web_search", None).unwrap();
+        let v = resolve_version("current", "NofyBuild:web_fetch", None).unwrap();
         assert_eq!(v, None);
     }
 
     #[test]
     fn override_on_unmanaged_tool_errors() {
         let err =
-            resolve_version("current", "NofyBuild:web_search", Some("legacy-0.4.10")).unwrap_err();
+            resolve_version("current", "NofyBuild:web_fetch", Some("legacy-0.4.10")).unwrap_err();
         assert!(err.contains("unmanaged tool"));
     }
 
@@ -673,7 +673,7 @@ mod tests {
 
     #[test]
     fn resolve_with_warnings_unmanaged_returns_none_no_warnings() {
-        let res = resolve_version_with_warnings("current", "NofyBuild:web_search", None).unwrap();
+        let res = resolve_version_with_warnings("current", "NofyBuild:web_fetch", None).unwrap();
         assert_eq!(res.contract_version, None);
         assert!(res.warnings.is_empty());
     }

@@ -9,36 +9,6 @@ pub(super) const RESUME_REFUSES_CHAT: &str =
     "session/resume is not supported for chat sessions; use session/load";
 pub(super) const RESUME_REFUSES_EXTRA_DIRS: &str =
     "session/resume does not support additionalDirectories";
-async fn read_applied_tool_overrides(
-    cmd_tx: &tokio::sync::mpsc::UnboundedSender<SessionCommand>,
-) -> Option<nofy_sampling_types::ToolOverrides> {
-    let (tx, rx) = tokio::sync::oneshot::channel();
-    if cmd_tx
-        .send(SessionCommand::GetToolOverrides { respond_to: tx })
-        .is_err()
-    {
-        tracing::warn!("tool-overrides echo: session actor command channel closed");
-        return None;
-    }
-    match rx.await {
-        Ok(overrides) => overrides,
-        Err(_) => {
-            tracing::warn!("tool-overrides echo: session actor dropped the response channel");
-            None
-        }
-    }
-}
-fn insert_applied_tool_overrides(
-    meta: &mut serde_json::Map<String, serde_json::Value>,
-    echo: Option<&nofy_sampling_types::ToolOverrides>,
-) {
-    if let Some(overrides) = echo {
-        meta.insert(
-            "toolOverrides".to_string(),
-            serde_json::to_value(overrides).expect("ToolOverrides is always serializable"),
-        );
-    }
-}
 /// Per-client capabilities for one session. Leader mode injects these per
 /// request, so they belong to the request rather than to the agent.
 struct ClientCaps {
@@ -572,16 +542,6 @@ impl MvpAgent {
         } else {
             self.model_state(Some(&session_id))
         };
-        let applied_tool_overrides = match self.session_handle_waiting_for_load(&session_id).await {
-            Some(handle) => read_applied_tool_overrides(&handle.cmd_tx).await,
-            None => {
-                tracing::warn!(
-                    session_id = %session_id.0,
-                    "session/new toolOverrides echo: session handle not found"
-                );
-                None
-            }
-        };
         let mut meta = serde_json::json!({
             "currentWorkingDirectory": cwd.as_str().to_owned(),
             "codebaseIndexed": indexed_roots,
@@ -598,7 +558,6 @@ impl MvpAgent {
                 None,
                 &models,
             );
-            insert_applied_tool_overrides(obj, applied_tool_overrides.as_ref());
         }
         #[cfg(all(feature = "local-workspace", unix))]
         local_ws_reap_guard.disarm();
@@ -1359,22 +1318,6 @@ impl MvpAgent {
             summary.display_title_opt(),
             &model_state,
         );
-        let applied_tool_overrides = {
-            let cmd_tx = self
-                .resident_handle(&session_id)
-                .map(|handle| handle.cmd_tx.clone());
-            match cmd_tx {
-                Some(cmd_tx) => read_applied_tool_overrides(&cmd_tx).await,
-                None => {
-                    tracing::warn!(
-                        session_id = %session_id.0,
-                        "session/load toolOverrides echo: session handle not found"
-                    );
-                    None
-                }
-            }
-        };
-        insert_applied_tool_overrides(&mut response_meta_map, applied_tool_overrides.as_ref());
         let response_meta = serde_json::Value::Object(response_meta_map);
         (model_state, response_meta)
     }

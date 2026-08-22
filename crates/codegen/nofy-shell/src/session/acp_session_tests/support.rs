@@ -23,22 +23,6 @@ pub(crate) fn noop_observability_bridge() -> nofy_computer_hub_sdk::Observabilit
 pub(crate) async fn test_agent_default() -> nofy_agent::Agent {
     test_agent_with_tools(vec![]).await
 }
-#[cfg(test)]
-pub(crate) async fn test_agent_backend_search(
-    hosted_tools: Vec<nofy_sampling_types::HostedTool>,
-) -> nofy_agent::Agent {
-    let base = test_agent_default().await;
-    nofy_agent::Agent::new(
-        base.definition().clone(),
-        nofy_agent::PromptContext::default(),
-        String::new(),
-        base.tool_bridge().clone(),
-        nofy_agent::ReminderPolicy::default(),
-        nofy_agent::CompactionPolicy::default(),
-        hosted_tools,
-        true,
-    )
-}
 /// Like [`test_agent_default`] but registers the `update_goal` tool so
 /// `command_availability().goal` is satisfied and `/goal …` slash commands
 /// resolve to their builtins when a turn is driven through `handle_prompt`.
@@ -145,13 +129,11 @@ async fn test_agent_from_config(
         session_recall: None,
         forensics: None,
         delegation: None,
-        web_search_config: Default::default(),
         web_fetch_config: Default::default(),
         lsp: None,
         app_builder_deployer_config: Default::default(),
         api_key_provider: None,
         auth_provider: None,
-        attribution_callback: None,
         system_reminder_tag: nofy_tools::reminders::DEFAULT_REMINDER_TAG,
     };
     let tool_bridge = crate::tools::bridge::ToolBridge::finalize_builder(builder, config, ctx)
@@ -166,8 +148,6 @@ async fn test_agent_from_config(
         tool_bridge,
         nofy_agent::ReminderPolicy::default(),
         nofy_agent::CompactionPolicy::default(),
-        vec![],
-        false,
     )
 }
 #[cfg(test)]
@@ -301,9 +281,6 @@ pub(crate) async fn create_test_actor_with_terminal(
             std::collections::HashMap::new(),
         )),
         telemetry_enabled: false,
-        supports_backend_search: std::cell::Cell::new(false),
-        tool_overrides: std::cell::RefCell::new(None),
-        resolved_tool_overrides: std::sync::Arc::new(arc_swap::ArcSwapOption::empty()),
         compactions_remaining: std::cell::Cell::new(None),
         compaction_at_tokens: std::cell::Cell::new(None),
         doom_loop_recovery: None,
@@ -506,7 +483,6 @@ pub(crate) fn user_item_with_rx(
         json_schema: None,
         origin: crate::session::PromptOrigin::User,
         task_wake_fallback: None,
-        tool_overrides_update: None,
         respond_to,
         persist_ack: None,
         parsed_prompt_tx: None,
@@ -546,7 +522,6 @@ pub(crate) fn input_with_origin_rx(
         json_schema: None,
         origin,
         task_wake_fallback: None,
-        tool_overrides_update: None,
         respond_to,
         persist_ack: None,
         parsed_prompt_tx: None,

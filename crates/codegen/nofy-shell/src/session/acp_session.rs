@@ -217,7 +217,6 @@ pub(crate) struct InputItem {
     /// Consumed by an interactive stop if it removes the wake before the
     /// turn starts.
     pub(crate) task_wake_fallback: Option<TaskWakeFallback>,
-    pub(crate) tool_overrides_update: Option<nofy_sampling_types::ToolOverridesUpdate>,
     pub(crate) respond_to: oneshot::Sender<PromptTurnResult>,
     /// Fired after the user message is in chat history and a persistence flush
     /// barrier has completed (see `SessionCommand::Prompt::persist_ack`).
@@ -668,12 +667,6 @@ pub(crate) struct SessionActor {
     /// Gates product analytics, not trace uploads. Resolved at spawn as
     /// `is_telemetry_enabled() && !is_zdr()` — ZDR teams always have this false.
     pub(crate) telemetry_enabled: bool,
-    pub(crate) supports_backend_search: std::cell::Cell<bool>,
-    /// Per-turn override, set at promotion. Not persisted; a reload reverts to the definition seed.
-    pub(crate) tool_overrides: std::cell::RefCell<Option<nofy_sampling_types::ToolOverrides>>,
-    /// Configured cutoff a subagent inherits, read off the `SessionHandle` without an actor round-trip.
-    pub(crate) resolved_tool_overrides:
-        std::sync::Arc<arc_swap::ArcSwapOption<nofy_sampling_types::ToolOverrides>>,
     pub(crate) compactions_remaining:
         std::cell::Cell<Option<nofy_sampling_types::CompactionsRemaining>>,
     pub(crate) compaction_at_tokens:
@@ -1931,9 +1924,6 @@ mod turn_end_guard_tests;
 #[cfg(test)]
 #[path = "acp_session_tests/wait_for_mcp_prefix_tests.rs"]
 mod wait_for_mcp_prefix_tests;
-#[cfg(test)]
-#[path = "acp_session_tests/web_search_e2e_tests.rs"]
-mod web_search_e2e_tests;
 #[cfg(test)]
 mod managed_gateway_tool_tests {
     use super::*;
