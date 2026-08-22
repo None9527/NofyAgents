@@ -86,6 +86,8 @@ pub struct AgentBuilder {
     session_env: Option<Arc<HashMap<String, String>>>,
     state_path: Option<PathBuf>,
     memory_backend: Option<Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>>,
+    session_recall_backend:
+        Option<Arc<dyn nofy_tools::types::session_recall::SessionRecallProvider>>,
     web_search_config: nofy_tools::implementations::web_search::WebSearchConfig,
     /// When true, web search and X search are sent as native server-side
     /// tools for execution by the agentic sampler, instead of being
@@ -230,6 +232,7 @@ impl AgentBuilder {
             session_env: None,
             state_path: None,
             memory_backend: None,
+            session_recall_backend: None,
             web_search_config: Default::default(),
             backend_search: false,
             web_fetch_config: Default::default(),
@@ -403,6 +406,18 @@ impl AgentBuilder {
         backend: Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>,
     ) -> Self {
         self.memory_backend = Some(backend);
+        self
+    }
+    /// Set a cross-session recall backend so the agent can autonomously
+    /// search the user's other sessions (`session_recall` tool).
+    ///
+    /// When set, the `session_recall` tool is registered and can access the
+    /// backend. When `None` (default), the tool is not registered.
+    pub fn with_session_recall_backend(
+        mut self,
+        backend: Arc<dyn nofy_tools::types::session_recall::SessionRecallProvider>,
+    ) -> Self {
+        self.session_recall_backend = Some(backend);
         self
     }
     /// Set a custom filesystem backend for the ToolBridge.
@@ -722,6 +737,11 @@ impl AgentBuilder {
                 tool_config
                     .tools
                     .push((&memory::get_tool::MemoryGetImpl).into());
+            }
+            if self.session_recall_backend.is_some() {
+                tool_config
+                    .tools
+                    .push((&nofy_tools::implementations::session_recall::SessionRecallTool).into());
             }
             if self.web_search_config.is_enabled() {
                 use nofy_tools::implementations::nofy_build;
@@ -1047,6 +1067,7 @@ impl AgentBuilder {
                 skills: skill_info.clone(),
                 state_path,
                 memory_backend: self.memory_backend,
+                session_recall: self.session_recall_backend.clone(),
                 web_search_config: self.web_search_config,
                 web_fetch_config: self.web_fetch_config,
                 lsp: self.lsp,

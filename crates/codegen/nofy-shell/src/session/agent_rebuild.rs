@@ -291,6 +291,11 @@ impl AgentRebuildSpec {
         if let Some(memory_backend) = memory_backend.clone() {
             builder = builder.with_memory_backend(memory_backend);
         }
+        // Cross-session recall is always available (local index, no auth) so
+        // the agent can autonomously bring in other conversations' context.
+        builder = builder.with_session_recall_backend(std::sync::Arc::new(
+            crate::session::recall::ShellSessionRecall,
+        ));
         if let Some(lsp) = lsp.clone() {
             builder = builder.with_lsp(lsp);
         }

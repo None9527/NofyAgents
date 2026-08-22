@@ -691,6 +691,7 @@ async fn file_toolset_override_e2e_to_finalized_toolset() {
         skills: vec![],
         state_path: tmp.path().join("state.json"),
         memory_backend: None,
+        session_recall: None,
         web_search_config: nofy_tools::implementations::web_search::WebSearchConfig::default(),
         web_fetch_config: Default::default(),
         lsp: None,

@@ -15,6 +15,7 @@ pub mod requirements;
 pub mod resources;
 pub mod schema;
 pub mod session_mode;
+pub mod session_recall;
 pub mod skill_discovery_tracker;
 pub mod template_renderer;
 pub mod tool;

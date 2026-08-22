@@ -340,6 +340,7 @@ pub mod mcp_servers;
 pub mod memory;
 pub(crate) mod normalize_cache;
 pub mod persistence;
+pub mod recall;
 pub use nofy_shared::placeholder_images;
 pub mod plan_mode;
 pub(crate) mod mode_permissions;

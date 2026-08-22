@@ -259,6 +259,11 @@ pub struct SessionContext {
     /// When `Some`, injected into `Resources` so `memory_search` / `memory_get`
     /// tools can access it. When `None`, the tools return "not enabled".
     pub memory_backend: Option<Arc<dyn crate::types::memory_backend::MemoryBackend>>,
+    /// Optional cross-session recall backend. When `Some`, injected into
+    /// `Resources` so the `session_recall` tool can search the user's other
+    /// sessions (global awareness). When `None`, the tool returns
+    /// "not available".
+    pub session_recall: Option<Arc<dyn crate::types::session_recall::SessionRecallProvider>>,
     /// Optional web search configuration. When `Enabled`, a `WebSearchClient`
     /// is created and injected into `Resources` so the `web_search` tool can
     /// call the Responses API. When `Disabled` (default), the tool returns a
@@ -727,6 +732,7 @@ impl ToolRegistryBuilder {
         b.register::<opencode::OpenCodeSkillTool>();
         b.register::<crate::implementations::memory::search_tool::MemorySearchImpl>();
         b.register::<crate::implementations::memory::get_tool::MemoryGetImpl>();
+        b.register::<crate::implementations::session_recall::SessionRecallTool>();
         b.register::<crate::implementations::search_tool::SearchTool>();
         b.register_with_params::<
                 crate::implementations::use_tool::UseTool,
@@ -1029,6 +1035,9 @@ impl ToolRegistryBuilder {
         }
         if let Some(memory_backend) = ctx.memory_backend {
             resources.insert(memory_backend);
+        }
+        if let Some(session_recall) = ctx.session_recall {
+            resources.insert(crate::types::session_recall::SessionRecallAccess(session_recall));
         }
         if let Some(auth_provider) = ctx.auth_provider.clone() {
             resources.insert(auth_provider);
@@ -2164,6 +2173,7 @@ mod tests {
             skills: vec![],
             state_path: tmp.path().join("state.json"),
             memory_backend: None,
+            session_recall: None,
             web_search_config: crate::implementations::web_search::WebSearchConfig::default(),
             web_fetch_config:
                 crate::implementations::nofy_build::web_fetch::WebFetchConfig::default(),

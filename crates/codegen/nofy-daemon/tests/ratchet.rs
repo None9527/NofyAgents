@@ -207,7 +207,11 @@ fn workspace_loc_budget_only_shrinks() {
     // - 1_556_752→1_556_764: W-8 attribution tail — `sessions list`
     //   groups by project dir name when no worktree label, so the
     //   global --all view carries project attribution (U5-02/U3-08).
-    let cap = 1_556_764; // budget at E12 landing (90 members, src+tests+benches+examples)
+    // - 1_556_764→1_557_021: global-awareness kernel seam — `session_recall`
+    //   agent tool (cross-session raw recall) bound via the
+    //   SessionRecallProvider injection pattern (tools/agent/shell), so the
+    //   agent autonomously brings other conversations' context in.
+    let cap = 1_557_021; // budget at E12 landing (90 members, src+tests+benches+examples)
     let mut total = 0;
     for member in workspace_members(&root) {
         total += loc_tree(&root.join(&member));
