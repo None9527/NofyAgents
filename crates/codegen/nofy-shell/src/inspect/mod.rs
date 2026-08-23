@@ -13,6 +13,7 @@ use compat::{
 };
 
 use std::collections::HashMap;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -274,13 +275,20 @@ pub(crate) struct ConfigLayer {
 pub async fn inspect(cwd: &Path, json: bool) -> anyhow::Result<()> {
     let report = build_report(cwd).await;
 
-    if json {
-        println!("{}", serde_json::to_string_pretty(&report)?);
-    } else {
-        print_human(&report);
-    }
+    write_inspect(&report, json, &mut std::io::stdout().lock())
+}
 
-    Ok(())
+/// Write the report. A closed stdout (`nofy inspect | head`) is a clean stop.
+fn write_inspect(report: &InspectReport, json: bool, out: &mut impl Write) -> anyhow::Result<()> {
+    let written = if json {
+        writeln!(out, "{}", serde_json::to_string_pretty(report)?)
+    } else {
+        print_human(report, out)
+    };
+    match written {
+        Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => Ok(()),
+        other => other.map_err(Into::into),
+    }
 }
 
 async fn build_report(cwd: &Path) -> InspectReport {
@@ -1175,15 +1183,21 @@ fn requirements_layer_contributes(
     })
 }
 
-fn print_section<T>(title: &str, items: &[T], format_item: impl Fn(&T) -> String) {
-    println!();
-    println!("  {} ({})", title, items.len());
+fn print_section<T>(
+    title: &str,
+    items: &[T],
+    format_item: impl Fn(&T) -> String,
+    out: &mut impl Write,
+) -> std::io::Result<()> {
+    writeln!(out)?;
+    writeln!(out, "  {} ({})", title, items.len())?;
     if items.is_empty() {
-        println!("  {TREE} (none)");
+        writeln!(out, "  {TREE} (none)")?;
     }
     for item in items {
-        println!("  {TREE} {}", format_item(item));
+        writeln!(out, "  {TREE} {}", format_item(item))?;
     }
+    Ok(())
 }
 
 /// Print items in a two-column layout: name on the left, source label on the right.
@@ -1192,18 +1206,20 @@ fn print_columns<T>(
     items: &[T],
     name: impl Fn(&T) -> String,
     label: impl Fn(&T) -> String,
-) {
-    println!();
-    println!("  {} ({})", title, items.len());
+    out: &mut impl Write,
+) -> std::io::Result<()> {
+    writeln!(out)?;
+    writeln!(out, "  {} ({})", title, items.len())?;
     if items.is_empty() {
-        println!("  {TREE} (none)");
-        return;
+        writeln!(out, "  {TREE} (none)")?;
+        return Ok(());
     }
     let names: Vec<String> = items.iter().map(&name).collect();
     let pad = names.iter().map(|n| n.len()).max().unwrap_or(0).min(50);
     for (item, n) in items.iter().zip(&names) {
-        println!("  {TREE} {:<pad$}  {}", n, label(item));
+        writeln!(out, "  {TREE} {:<pad$}  {}", n, label(item))?;
     }
+    Ok(())
 }
 
 /// Human label for an enforced setting. Uses product vocabulary, not the
@@ -1291,18 +1307,19 @@ fn render_harness_compatibility(report: &ExternalCompatReport) -> String {
     out
 }
 
-fn print_human(r: &InspectReport) {
-    println!();
-    println!("  Environment");
-    println!("  {TREE} Version: {}", r.nofy_version);
-    println!("  {TREE} CWD: {}", r.cwd);
+fn print_human(r: &InspectReport, out: &mut impl Write) -> std::io::Result<()> {
+    writeln!(out)?;
+    writeln!(out, "  Environment")?;
+    writeln!(out, "  {TREE} Version: {}", r.nofy_version)?;
+    writeln!(out, "  {TREE} CWD: {}", r.cwd)?;
     if let Some(ref root) = r.project_root {
-        println!("  {TREE} Git root: {}", root);
+        writeln!(out, "  {TREE} Git root: {}", root)?;
     }
-    println!(
+    writeln!(
+        out,
         "  {TREE} Project trusted: {}",
         if r.project_trusted { "yes" } else { "no" }
-    );
+    )?;
 
     print_section("Project Instructions", &r.project_instructions, |f| {
         let status = disabled_compat_tags(f.disabled, f.compatibility_status);
@@ -1314,10 +1331,10 @@ fn print_human(r: &InspectReport) {
             vendor_tag(&f.vendor),
             status,
         )
-    });
+    }, out)?;
 
-    println!();
-    println!("  Permissions");
+    writeln!(out)?;
+    writeln!(out, "  Permissions")?;
     if r.permissions.managed_settings_exists
         && let Some(ref p) = r.permissions.managed_settings_path
     {
@@ -1326,45 +1343,48 @@ fn print_human(r: &InspectReport) {
         } else {
             "not loaded"
         };
-        println!("  {TREE} Managed settings: {p} ({status})");
+        writeln!(out, "  {TREE} Managed settings: {p} ({status})")?;
     }
     if r.permissions.sources.is_empty() {
-        println!("  {TREE} Source: (none)");
+        writeln!(out, "  {TREE} Source: (none)")?;
     } else {
         for src in &r.permissions.sources {
-            println!("  {TREE} Source: {src}");
+            writeln!(out, "  {TREE} Source: {src}")?;
         }
     }
-    println!(
+    writeln!(
+        out,
         "  {TREE} {} loaded, {} skipped",
         r.permissions.loaded,
         r.permissions.skipped.len()
-    );
+    )?;
     for s in &r.permissions.skipped {
-        println!("    {TREE} {} -- {}", s.rule, s.reason);
+        writeln!(out, "    {TREE} {} -- {}", s.rule, s.reason)?;
     }
     if !r.permissions.enforced.is_empty() {
-        println!("  {TREE} Enforced by policy");
+        writeln!(out, "  {TREE} Enforced by policy")?;
         for e in &r.permissions.enforced {
-            println!("    {TREE} {} ({})", enforced_label(e), e.source);
+            writeln!(out, "    {TREE} {} ({})", enforced_label(e), e.source)?;
         }
     }
     if !r.permissions.mcp_server_allowlist.is_empty() {
-        println!(
+        writeln!(
+            out,
             "  {TREE} MCP server allowlist ({} patterns)",
             r.permissions.mcp_server_allowlist.len()
-        );
+        )?;
         for pat in &r.permissions.mcp_server_allowlist {
-            println!("    {TREE} {}", pat);
+            writeln!(out, "    {TREE} {}", pat)?;
         }
     }
     if !r.permissions.marketplace_allowlist.is_empty() {
-        println!(
+        writeln!(
+            out,
             "  {TREE} Marketplace allowlist ({} sources)",
             r.permissions.marketplace_allowlist.len()
-        );
+        )?;
         for url in &r.permissions.marketplace_allowlist {
-            println!("    {TREE} {}", url);
+            writeln!(out, "    {TREE} {}", url)?;
         }
     }
 
@@ -1391,14 +1411,16 @@ fn print_human(r: &InspectReport) {
                 collision,
             )
         },
-    );
+        out,
+    )?;
 
     print_columns(
         "Agents",
         &r.agents,
         |a| a.name.clone(),
         |a| a.source.display_label(),
-    );
+        out,
+    )?;
 
     print_columns(
         "Plugins",
@@ -1427,19 +1449,20 @@ fn print_human(r: &InspectReport) {
                 parts.join(", ")
             }
         },
-    );
+        out,
+    )?;
 
     print_section("Marketplaces", &r.marketplaces, |m| {
         format!(
             "{} ({}, {} enabled plugins)",
             m.name, m.path, m.enabled_plugins
         )
-    });
+    }, out)?;
 
     if r.mcp_servers.is_empty() {
-        println!();
-        println!("  MCP Servers (0)");
-        println!("  {TREE} (none) \u{2014} see `nofy mcp add --help`");
+        writeln!(out)?;
+        writeln!(out, "  MCP Servers (0)")?;
+        writeln!(out, "  {TREE} (none) \u{2014} see `nofy mcp add --help`")?;
     } else {
         print_columns(
             "MCP Servers",
@@ -1460,7 +1483,8 @@ fn print_human(r: &InspectReport) {
                     status,
                 )
             },
-        );
+            out,
+        )?;
     }
 
     print_columns(
@@ -1471,7 +1495,8 @@ fn print_human(r: &InspectReport) {
             let untrusted = if l.untrusted { " [untrusted]" } else { "" };
             format!("{}{}", l.source.display_label(), untrusted)
         },
-    );
+        out,
+    )?;
 
     print_columns(
         "Hooks",
@@ -1493,10 +1518,11 @@ fn print_human(r: &InspectReport) {
                 status,
             )
         },
-    );
+        out,
+    )?;
 
-    println!();
-    println!("  Config Sources");
+    writeln!(out)?;
+    writeln!(out, "  Config Sources")?;
     // User is always emitted (with (none) when absent) for the primary user config.
     if let Some(user_l) = r.config_sources.layers.iter().find(|l| l.role == "user") {
         let tag = match user_l.note.as_deref() {
@@ -1504,9 +1530,9 @@ fn print_human(r: &InspectReport) {
             Some("parse error") => " (parse error)",
             _ => "",
         };
-        println!("  {TREE} User: {}{}", user_l.path, tag);
+        writeln!(out, "  {TREE} User: {}{}", user_l.path, tag)?;
     } else {
-        println!("  {TREE} User: (none)");
+        writeln!(out, "  {TREE} User: (none)")?;
     }
     for layer in &r.config_sources.layers {
         if layer.role == "user" {
@@ -1526,16 +1552,17 @@ fn print_human(r: &InspectReport) {
             "project" => "Project",
             other => other,
         };
-        println!("  {TREE} {}: {}{}", label, layer.path, tag);
+        writeln!(out, "  {TREE} {}: {}{}", label, layer.path, tag)?;
     }
     if !r.config_sources.layers.iter().any(|l| l.role == "project") {
-        println!("  {TREE} Project: (none)");
+        writeln!(out, "  {TREE} Project: (none)")?;
     }
 
-    print!("{}", render_config_warnings(&r.config_warnings));
-    print!("{}", render_mcp_config_problems(&r.mcp_config_problems));
+    write!(out, "{}", render_config_warnings(&r.config_warnings))?;
+    write!(out, "{}", render_mcp_config_problems(&r.mcp_config_problems))?;
 
-    print!("{}", render_harness_compatibility(&r.external_compat));
+    write!(out, "{}", render_harness_compatibility(&r.external_compat))?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1543,6 +1570,85 @@ mod tests {
     use super::*;
     use nofy_agent::prompt::skills::{SkillInfo, SkillsConfig};
     use nofy_tools::implementations::skills::types::SkillScope;
+
+    /// A writer that fails after `remaining` bytes with a configurable kind —
+    /// stands in for a reader that closed the pipe mid-report.
+    struct FailAfter {
+        remaining: usize,
+        kind: std::io::ErrorKind,
+    }
+
+    impl Write for FailAfter {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            if self.remaining == 0 {
+                return Err(std::io::Error::new(self.kind, "closed"));
+            }
+            let n = buf.len().min(self.remaining);
+            self.remaining -= n;
+            Ok(n)
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    fn empty_report() -> InspectReport {
+        InspectReport {
+            nofy_version: "test".into(),
+            cwd: "/tmp".into(),
+            project_root: None,
+            project_trusted: true,
+            project_instructions: vec![],
+            permissions: PermissionsReport {
+                sources: vec![],
+                loaded: 0,
+                skipped: vec![],
+                mcp_server_allowlist: vec![],
+                marketplace_allowlist: vec![],
+                managed_settings_path: None,
+                managed_settings_exists: false,
+                managed_settings_active: false,
+                enforced: vec![],
+            },
+            hooks: vec![],
+            skills: vec![],
+            agents: vec![],
+            plugins: vec![],
+            marketplaces: vec![],
+            mcp_servers: vec![],
+            lsp_servers: vec![],
+            config_sources: ConfigSources { layers: vec![] },
+            external_compat: ExternalCompatReport { cells: vec![] },
+            config_warnings: vec![],
+            mcp_config_problems: vec![],
+        }
+    }
+
+    /// `nofy inspect | head` closes the pipe mid-report — a clean stop, not an
+    /// error (the reader got what it asked for).
+    #[test]
+    fn write_inspect_treats_broken_pipe_as_success() {
+        let report = empty_report();
+        for json in [false, true] {
+            let mut out = FailAfter {
+                remaining: 8,
+                kind: std::io::ErrorKind::BrokenPipe,
+            };
+            write_inspect(&report, json, &mut out).expect("broken pipe is a clean stop");
+        }
+    }
+
+    #[test]
+    fn write_inspect_surfaces_other_io_errors() {
+        let report = empty_report();
+        let mut out = FailAfter {
+            remaining: 0,
+            kind: std::io::ErrorKind::PermissionDenied,
+        };
+        write_inspect(&report, false, &mut out)
+            .expect_err("non-broken-pipe IO errors must surface");
+    }
 
     #[test]
     fn harness_compatibility_human_output_stays_compact() {
