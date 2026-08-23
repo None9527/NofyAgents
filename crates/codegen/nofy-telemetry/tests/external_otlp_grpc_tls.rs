@@ -78,7 +78,6 @@ fn external_stream_grpc_over_tls_end_to_end() {
         agents_md_dir_names: vec![],
         memory_enabled: false,
         is_git_repo: true,
-        auto_update: None,
     });
 
     nofy_telemetry::external::flush();

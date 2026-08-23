@@ -2071,8 +2071,8 @@ mod tests {
     fn render_short_area_at_buffer_bottom_does_not_panic() {
         // Regression: a squeezed permission overlay (0-2 rows) at the bottom of
         // a short terminal wrote the provenance/title rows one past the buffer
-        // -> ratatui "index outside of buffer" panic (reported via /feedback as
-        // index (5, 10) in a 147x10 terminal).
+        // -> ratatui "index outside of buffer" panic (index (5, 10) in a
+        // 147x10 terminal).
         let theme = Theme::current();
         for buf_h in [10u16, 12, 24] {
             for area_h in 0u16..=5 {

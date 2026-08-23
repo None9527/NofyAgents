@@ -659,13 +659,6 @@ pub enum SessionCommand {
     },
     Cancel(CancelOptions),
     Shutdown(ShutdownKind),
-    /// Force-trigger a feedback request notification for local client testing.
-    /// Bypasses all heuristics, sampling, and cooldown checks.
-    TriggerTestFeedback {
-        tier: crate::session::feedback::FeedbackTier,
-        mode: crate::session::feedback::FeedbackMode,
-        respond_to: oneshot::Sender<anyhow::Result<acp::ExtResponse>>,
-    },
     AdvertiseCommands,
     GetWorkflowCatalogState {
         respond_to: oneshot::Sender<(bool, bool)>,

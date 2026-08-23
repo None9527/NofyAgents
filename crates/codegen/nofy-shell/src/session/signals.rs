@@ -1,8 +1,8 @@
-//! Session signals tracking for feedback heuristics.
+//! Session signals tracking.
 //!
-//! This module tracks session-level signals that inform feedback request decisions.
-//! Signals are collected locally in the agent and periodically synced to the
-//! backend for analytics / telemetry persistence.
+//! This module tracks session-level signals (turn/tool counts, latency,
+//! doom-loop recovery, PR events) consumed by subagent result stats,
+//! telemetry events, and the persisted turn-end snapshot.
 //!
 //! Uses a channel-based actor pattern to avoid locks:
 //! - `SessionSignalsHandle` is a cheap, cloneable sender for reporting signals
@@ -216,12 +216,9 @@ pub struct SessionSignalsDelta {
     pub prs_created_this_turn: Vec<PrCreatedSignal>,
 }
 
-/// Session signals that inform feedback request heuristics.
-///
-/// These signals are tracked locally in the agent and periodically synced
-/// to the backend for analytics / telemetry persistence.
-///
-/// Field names are aligned with the backend analytics schema for session signals.
+/// Session-level signals tracked locally in the agent (turn/tool counts,
+/// latency, doom-loop recovery, PR events). Consumed by subagent result
+/// stats, telemetry events, and the persisted turn-end snapshot.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(default, rename_all = "camelCase")]
 pub struct SessionSignals {
@@ -568,10 +565,7 @@ pub enum SignalEvent {
 
     // === Turn Delta Events ===
     /// Take a turn-end snapshot and compute delta from previous turn end.
-    /// Returns the delta snapshot for sending to the backend.
     TakeTurnEndSnapshot(oneshot::Sender<TurnDeltaSnapshot>),
-    /// Get tool outcomes from the last completed turn (for feedback notifications).
-    GetLastTurnToolOutcomes(oneshot::Sender<Vec<ToolOutcome>>),
 
     /// Bare echo/printf command executed via the bash tool.
     RecordBareEcho,
@@ -949,19 +943,6 @@ impl SessionSignalsHandle {
         rx.await.ok()
     }
 
-    /// Tool outcomes from the last completed turn (preserved across turn resets).
-    pub(crate) async fn last_turn_tool_outcomes(&self) -> Vec<ToolOutcome> {
-        let (tx, rx) = oneshot::channel();
-        if self
-            .tx
-            .send(SignalEvent::GetLastTurnToolOutcomes(tx))
-            .is_err()
-        {
-            return Vec::new();
-        }
-        rx.await.unwrap_or_default()
-    }
-
     /// Check if sync should be performed and mark as synced.
     ///
     /// Returns true if sync should be performed (enough time has passed).
@@ -1068,8 +1049,6 @@ pub struct SessionSignalsActor {
     /// PRs created during the current turn.
     /// Reset after each `TakeTurnEndSnapshot`.
     prs_created_this_turn: Vec<PrCreatedSignal>,
-    /// Preserved across turn resets for feedback notifications.
-    last_completed_turn_tool_outcomes: Vec<ToolOutcome>,
 
     // === LOC Attribution state ===
     /// Distinct files touched by agent (for dedup)
@@ -1158,7 +1137,6 @@ impl SessionSignalsActor {
             turn_response_tokens: None,
             turn_thinking_tokens: None,
             prs_created_this_turn: Vec::new(),
-            last_completed_turn_tool_outcomes: Vec::new(),
             agent_files_set: HashSet::new(),
             human_files_set: HashSet::new(),
         };
@@ -1558,8 +1536,6 @@ impl SessionSignalsActor {
                             })
                             .collect();
                     outcomes.sort_by(|a, b| a.tool_name.cmp(&b.tool_name));
-                    // Preserve a copy for feedback notifications (survives turn reset)
-                    self.last_completed_turn_tool_outcomes = outcomes.clone();
                     delta.tool_outcomes_this_turn = outcomes;
 
                     let snapshot = TurnDeltaSnapshot {
@@ -1577,9 +1553,6 @@ impl SessionSignalsActor {
                     self.previous_turn_snapshot = Some(self.signals.clone());
 
                     let _ = respond_to.send(snapshot);
-                }
-                SignalEvent::GetLastTurnToolOutcomes(respond_to) => {
-                    let _ = respond_to.send(self.last_completed_turn_tool_outcomes.clone());
                 }
 
                 // === Control Events ===

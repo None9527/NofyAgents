@@ -752,9 +752,6 @@ fn make_test_handle(
         mcp_servers: vec![],
         initial_client_mcp_servers: vec![],
         display_cwd: None,
-        feedback_manager: std::sync::Arc::new(
-            crate::session::feedback_manager::FeedbackManager::local_only("test"),
-        ),
         tool_context: crate::tools::ToolContext::new_local_context(
             nofy_paths::AbsPathBuf::new(std::path::PathBuf::from("/tmp")).unwrap(),
             std::sync::Arc::new(nofy_workspace::file_system::LocalFs::new(

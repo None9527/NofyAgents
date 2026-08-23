@@ -1140,7 +1140,7 @@ impl acp::Agent for MvpAgent {
                 )
             }
             "nofy/interject" => crate::extensions::interject::handle(self, &args).await,
-            "nofy/btw" => crate::extensions::feedback::handle(self, &args).await,
+            "nofy/btw" => crate::extensions::btw::handle(self, &args).await,
             "nofy/recap" => crate::extensions::recap::handle(self, &args).await,
             "nofy/privacy/setCodingDataRetention" => {
                 crate::extensions::privacy::handle(self, &args).await

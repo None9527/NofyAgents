@@ -177,19 +177,6 @@ mod tests {
         );
     }
 
-    /// The version has to reach the feedback card; its source has no field on
-    /// the wire type to reach it through.
-    #[test]
-    fn feedback_info_carries_the_version() {
-        let present =
-            build_terminal_context_from_env(&env_from(&[("VTE_VERSION", "7402")])).feedback_info();
-        assert_eq!(present.term_version.as_deref(), Some("7402"));
-
-        let absent = build_terminal_context_from_env(&env_from(&[("TERM", "xterm-256color")]))
-            .feedback_info();
-        assert_eq!(absent.term_version, None);
-    }
-
     #[test]
     fn term_program_version_wins_when_term_program_names_the_brand() {
         let (version, source) = resolved(&[

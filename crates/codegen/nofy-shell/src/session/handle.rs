@@ -93,8 +93,6 @@ pub struct SessionHandle {
     /// in API responses to this path so the client UI shows the original
     /// project path, not the worktree path.
     pub display_cwd: Option<String>,
-    /// Feedback manager for periodic signal sync.
-    pub feedback_manager: std::sync::Arc<crate::session::feedback_manager::FeedbackManager>,
     /// Session context captured at spawn time so callers can inherit shared runtime state.
     pub tool_context: crate::tools::ToolContext,
     /// The model this session was created with (or switched to via setModel).

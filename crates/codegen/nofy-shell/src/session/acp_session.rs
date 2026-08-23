@@ -26,7 +26,6 @@ use crate::sampling::{
     SyntheticReason, ToolSpec, conversation_truncate_for_prompt,
 };
 use crate::session::ClientFsConfig;
-use crate::session::feedback_manager::{FeedbackManager, FeedbackManagerConfig};
 use crate::session::fs_watch::{self, git_head_dedup_key};
 use crate::session::info::Info as SessionInfo;
 use crate::session::mcp_servers::McpInitStrategy;
@@ -730,10 +729,8 @@ pub(crate) struct SessionActor {
     pub(crate) client_identifier: Option<String>,
     /// Origin client for User-Agent on sampling requests.
     pub(crate) origin_client: Option<crate::http::OriginClientInfo>,
-    /// Feedback manager for signal tracking and feedback request heuristics
-    pub(crate) feedback_manager: Arc<FeedbackManager>,
-    /// Cancellation token for the feedback sync loop (None if no feedback client)
-    pub(crate) sync_loop_cancel: Option<tokio_util::sync::CancellationToken>,
+    /// Handle to the session signals actor (turn/tool/latency counters).
+    pub(crate) signals_handle: SessionSignalsHandle,
     /// The fully-built Agent: owns the ToolBridge, system prompt, policies,
     /// and the AgentDefinition. Replaces the old `tool_bridge` + `agent_definition` fields.
     /// Wrapped in `RefCell` for mid-session mutation (skill refresh, prompt regen).
@@ -1099,7 +1096,7 @@ pub(crate) struct SessionActor {
 impl SessionActor {
     /// Get the signals handle for tracking session events.
     fn signals_handle(&self) -> SessionSignalsHandle {
-        self.feedback_manager.signals_handle()
+        self.signals_handle.clone()
     }
     fn emit_event(&self, event: crate::session::events::Event) {
         self.events.emit(event);
@@ -1280,11 +1277,6 @@ impl SessionActor {
         if let Err(e) = crate::session::replay_events::flush_replay_actor(&self.event_tx).await {
             tracing::warn!(?e, "flush_replay_actor failed");
         }
-    }
-    /// Send a feedback request notification to the client.
-    async fn send_feedback_notification(&self, request: crate::session::feedback::FeedbackRequest) {
-        self.send_xai_notification(NofySessionUpdate::FeedbackRequest(request.into()))
-            .await;
     }
 }
 impl SessionActor {

@@ -198,7 +198,7 @@ pub struct TestSandboxBuilder {
 }
 
 impl TestSandboxBuilder {
-    /// Wire nofy API, models, feedback, trace, conversation, and web traffic to
+    /// Wire nofy API, models, trace, conversation, and web traffic to
     /// a loopback mock endpoint and install the fake CI API key.
     pub fn mock_url(mut self, url: impl Into<String>) -> Self {
         self.mock_url = Some(url.into());
@@ -283,7 +283,6 @@ fn apply_mock_url(env: &mut BTreeMap<OsString, OsString>, url: String) {
         "NOFY_CLI_CHAT_PROXY_BASE_URL",
         "NOFY_API_BASE_URL",
         "NOFY_MODELS_BASE_URL",
-        "NOFY_FEEDBACK_BASE_URL",
         "NOFY_TRACE_UPLOAD_URL",
         "NOFY_MANAGED_CONFIG_URL",
         "NOFY_CODE_WEB_URL",
@@ -335,12 +334,10 @@ fn baseline_env_from_parent(
     for (key, value) in [
         ("NOFY_TELEMETRY_ENABLED", "false"),
         ("NOFY_TELEMETRY_TRACE_UPLOAD", "false"),
-        ("NOFY_FEEDBACK_ENABLED", "false"),
         ("NOFY_TRACE_UPLOAD", "false"),
         ("NOFY_INSTRUMENTATION", "disabled"),
         ("OTEL_SDK_DISABLED", "true"),
         ("DISABLE_TELEMETRY", "1"),
-        ("DISABLE_FEEDBACK_COMMAND", "1"),
         ("NOFY_DISABLE_AUTOUPDATER", "1"),
         ("NOFY_PROMPT_SUGGESTIONS", "false"),
         // Post-turn summary side-calls would add unscripted requests to the

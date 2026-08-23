@@ -520,12 +520,9 @@ impl MvpAgent {
                     (None, false, true)
                 }
             };
-        let (show_non_git_warning, feedback_enabled) = {
+        let show_non_git_warning = {
             let cfg = self.cfg.borrow();
-            let show_non_git_warning =
-                !is_git_repo && !discovery_failed && cfg.features.non_git_warning;
-            let feedback_enabled = cfg.is_feedback_enabled();
-            (show_non_git_warning, feedback_enabled)
+            !is_git_repo && !discovery_failed && cfg.features.non_git_warning
         };
         nofy_telemetry::unified_log::info(
             "session created",
@@ -546,7 +543,6 @@ impl MvpAgent {
             "isGitRepo": is_git_repo,
             "gitRoot": git_root,
             "showNonGitWarning": show_non_git_warning,
-            "feedbackEnabled": feedback_enabled,
         });
         if let Some(obj) = meta.as_object_mut() {
             self.insert_session_config_meta(

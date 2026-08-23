@@ -160,9 +160,6 @@ pub struct EndpointsConfig {
     /// Env: `NOFY_MODELS_LIST_URL`. Overrides the default `{base}/models` list URL.
     #[serde(alias = "models_endpoint", skip_serializing_if = "Option::is_none")]
     pub models_list_url: Option<String>,
-    /// Env: `NOFY_FEEDBACK_BASE_URL`. Where feedback submissions go.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub feedback_base_url: Option<String>,
     /// Env: `NOFY_TRACE_UPLOAD_URL`. Where trace uploads go.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trace_upload_url: Option<String>,
@@ -305,11 +302,6 @@ impl EndpointsConfig {
         self.models_base_url
             .clone()
             .unwrap_or_else(|| self.proxy_url())
-    }
-    /// Feedback endpoint — an auxiliary service, so it defaults to the
-    /// cli-chat-proxy, never `xai_api_base_url`.
-    pub(crate) fn resolve_feedback_base_url(&self) -> String {
-        blank_as_unset(&self.feedback_base_url).unwrap_or_else(|| self.proxy_url())
     }
     /// Trace upload endpoint — an auxiliary service, so it defaults to the
     /// cli-chat-proxy, never `xai_api_base_url`.
@@ -536,7 +528,6 @@ impl Default for EndpointsConfig {
             alpha_test_key: None,
             models_base_url: env_string("NOFY_MODELS_BASE_URL"),
             models_list_url: env_string("NOFY_MODELS_LIST_URL"),
-            feedback_base_url: env_string("NOFY_FEEDBACK_BASE_URL"),
             trace_upload_url: env_string("NOFY_TRACE_UPLOAD_URL"),
             trace_upload_bucket: env_string("NOFY_TRACE_UPLOAD_BUCKET"),
             trace_upload_region: env_string("NOFY_TRACE_UPLOAD_REGION"),
@@ -595,7 +586,6 @@ impl<T: Clone> Constrained<T> {
 pub struct Requirements {
     pub telemetry: Constrained<TelemetryMode>,
     pub trace_upload: Constrained<bool>,
-    pub feedback: Constrained<bool>,
     pub lsp_tools: Constrained<bool>,
     pub web_fetch: Constrained<bool>,
     pub ask_user_question: Constrained<bool>,
@@ -869,33 +859,6 @@ impl PluginsConfig {
             enabled: self.enabled.clone(),
         }
     }
-}
-/// Feedback submission configuration (`[feedback]` in config.toml).
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-#[serde(default)]
-pub struct FeedbackConfig {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user: Option<FeedbackUserConfig>,
-}
-/// Self-reported feedback author identity (never used for authorization).
-/// Merged only from trusted config tiers, so a cloned repo can't inject the
-/// `command` escape hatch.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(default)]
-pub struct FeedbackUserConfig {
-    /// Sources tried in order for the name. `os_user` yields the OS user name;
-    /// any other entry is a literal (`$VAR` expanded at load).
-    pub name: Vec<String>,
-    /// Sources tried in order for the email. `git_email` yields the global git
-    /// email; any other entry is a literal (`$VAR` expanded at load) needing `@`.
-    pub email: Vec<String>,
-    /// Fallback domain for `<name>@<domain>` when no `email` source resolves.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub email_domain: Option<String>,
-    /// Optional `sh -c` script printing `{"name","email"}` JSON; its fields win
-    /// over the lists above, with per-field fallback. Trusted config tiers only.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub command: Option<String>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -1277,9 +1240,6 @@ pub struct Config {
     /// Plugin system configuration.
     #[serde(default)]
     pub plugins: PluginsConfig,
-    /// Feedback submission configuration.
-    #[serde(default)]
-    pub feedback: FeedbackConfig,
     /// Filesystem path overrides (`[paths]` in config.toml).
     #[serde(default)]
     pub paths: PathsConfig,
@@ -1666,7 +1626,6 @@ impl Default for Config {
             skills: SkillsConfig::default(),
             compat: CompatConfigToml::default(),
             plugins: PluginsConfig::default(),
-            feedback: FeedbackConfig::default(),
             paths: PathsConfig::default(),
             cli: CliConfig::default(),
             models: ModelsConfig::default(),
@@ -2164,9 +2123,6 @@ impl Config {
     pub fn is_trace_upload_enabled(&self) -> bool {
         self.resolve_trace_upload().value
     }
-    pub(crate) fn is_feedback_enabled(&self) -> bool {
-        self.resolve_feedback().value
-    }
     pub(crate) fn is_session_recap_enabled(&self) -> bool {
         self.resolve_session_recap().value
     }
@@ -2211,13 +2167,6 @@ impl Config {
             self.resolve_trace_upload().value,
             crate::heap_profile::prof_available(),
         )
-    }
-    pub(crate) fn resolve_feedback(&self) -> Resolved<bool> {
-        BoolFlag::env("NOFY_FEEDBACK_ENABLED")
-            .requirement(self.requirements.feedback.pinned())
-            .config(self.features.feedback)
-            .default(true)
-            .resolve()
     }
     pub(crate) fn resolve_two_pass_compaction(&self) -> Resolved<bool> {
         BoolFlag::env("NOFY_TWO_PASS_COMPACTION")
@@ -3979,10 +3928,6 @@ pub struct Features {
     /// Default: false.
     #[serde(default)]
     pub non_git_warning: bool,
-    /// Feedback system (heuristic popups + `/feedback` slash command).
-    /// `None` = default (false).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub feedback: Option<bool>,
     /// Managed config fetching (managed_config.toml + requirements.toml).
     /// `None` = defer to env / default (true).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -7638,7 +7583,6 @@ reasoning_effort = "low"
         for k in [
             "NOFY_CLI_CHAT_PROXY_BASE_URL",
             "NOFY_API_BASE_URL",
-            "NOFY_FEEDBACK_BASE_URL",
             "NOFY_TRACE_UPLOAD_URL",
             "NOFY_MANAGED_CONFIG_URL",
             "NOFY_MODELS_BASE_URL",
@@ -7674,7 +7618,6 @@ reasoning_effort = "low"
             cfg.resolve_managed_config_url(),
             format!("{proxy}/deployment/config")
         );
-        assert_eq!(cfg.resolve_feedback_base_url(), proxy);
         assert_eq!(cfg.resolve_trace_upload_url(), proxy);
         // Sanitized build: the internal OTLP endpoint has no derived default
         // (the old proxy fallback was the vendor firehose).
@@ -7685,7 +7628,6 @@ reasoning_effort = "low"
             managed_config_url: Some(
                 "https://control.enterprise.example/deployment/config".to_string(),
             ),
-            feedback_base_url: Some("https://feedback.enterprise.example".to_string()),
             trace_upload_url: Some("https://trace.enterprise.example".to_string()),
             ..Default::default()
         };
@@ -7699,10 +7641,6 @@ reasoning_effort = "low"
         assert_eq!(
             overridden.resolve_managed_config_url(),
             "https://control.enterprise.example/deployment/config"
-        );
-        assert_eq!(
-            overridden.resolve_feedback_base_url(),
-            "https://feedback.enterprise.example"
         );
         assert_eq!(
             overridden.resolve_trace_upload_url(),
@@ -7794,16 +7732,6 @@ reasoning_effort = "low"
             model_override.base_url.is_none(),
             "base_url should be None when user didn't set it"
         );
-    }
-    #[test]
-    #[serial]
-    fn resolve_feedback_defaults_to_true_when_unset() {
-        unsafe { std::env::remove_var("NOFY_FEEDBACK_ENABLED") };
-        unsafe { std::env::remove_var("NOFY_TELEMETRY_ENABLED") };
-        let cfg = Config::default();
-        let r = cfg.resolve_feedback();
-        assert!(r.value, "feedback should be true by default");
-        assert_eq!(r.source, ConfigSource::Default);
     }
     #[test]
     #[serial]
@@ -8031,27 +7959,6 @@ reasoning_effort = "low"
         let p = cfg.resolve_doom_loop_recovery().expect("enabled");
         assert_eq!(p.max_threshold, 2);
         assert_eq!(p.max_retries, 0, "0 retries is valid (observe-only)");
-    }
-    #[test]
-    #[serial]
-    fn resolve_feedback_env_overrides_all() {
-        unsafe { std::env::set_var("NOFY_FEEDBACK_ENABLED", "true") };
-        let mut cfg = Config::default();
-        cfg.features.feedback = Some(false);
-        let r = cfg.resolve_feedback();
-        assert_eq!(r.source, ConfigSource::Env);
-        assert!(r.value);
-        unsafe { std::env::remove_var("NOFY_FEEDBACK_ENABLED") };
-    }
-    #[test]
-    #[serial]
-    fn resolve_feedback_config_sets_value() {
-        unsafe { std::env::remove_var("NOFY_FEEDBACK_ENABLED") };
-        let mut cfg = Config::default();
-        cfg.features.feedback = Some(true);
-        let r = cfg.resolve_feedback();
-        assert_eq!(r.source, ConfigSource::Config);
-        assert!(r.value);
     }
     #[test]
     #[serial]
@@ -8745,7 +8652,7 @@ agent_type = "cursor"
             [cli]
             show_tips = false
             [features]
-            feedback = true
+            lsp_tools = true
             [endpoints]
             deployment_key = "test"
             management_api_key = "mgmt-key"
@@ -8776,11 +8683,6 @@ agent_type = "cursor"
             enabled = true
             [harness]
             block_for_upload = true
-            [feedback.user]
-            name = ["os_user"]
-            email = ["git_email", "team@example.com"]
-            email_domain = "example.com"
-            command = "/opt/bin/nofy-identity"
             [repo_changes_dedup]
             enabled = false
             [worktree_pool]

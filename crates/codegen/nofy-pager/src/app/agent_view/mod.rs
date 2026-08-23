@@ -1190,7 +1190,7 @@ pub struct AgentView {
     pub(crate) toast: Option<(String, u8)>,
     /// Single-slot ephemeral tip shown in the banner rect above the prompt.
     /// Unlike `toast`, survives typing; cleared by TTL, any prompt-box
-    /// submit (prompt/interject/bash/feedback/remember), or explicit clear.
+    /// submit (prompt/interject/bash/remember), or explicit clear.
     /// Show via `show_ephemeral_tip` (renderability-gated), never `.show()`.
     pub(crate) ephemeral_tip: crate::tips::EphemeralTipState,
     /// Prompt text snapshot taken when the word-select tip was shown. Any
@@ -1697,9 +1697,6 @@ fn translate_local_submit(
             InputOutcome::Action(Action::DeleteCurrentSessionAnswered {
                 confirmed: *idx == 0,
             })
-        }
-        LocalQuestionKind::Feedback => {
-            unreachable!("feedback submits through submit_feedback_pane, which returns first")
         }
     }
 }

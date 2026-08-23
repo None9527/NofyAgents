@@ -85,7 +85,6 @@ fn external_stream_gates_on_end_to_end() {
         agents_md_dir_names: vec![],
         memory_enabled: false,
         is_git_repo: true,
-        auto_update: None,
     });
     nofy_telemetry::log_event(nofy_telemetry::events::PromptSubmitted {
         prompt_length: 100,

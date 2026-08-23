@@ -112,7 +112,7 @@ fn send_query() {
         QUERY_SENT.store(true, Ordering::Relaxed);
     } else {
         // Brand-Unknown TTY whose query can't reach the terminal is a
-        // feedback-triage signal worth tracing.
+        // diagnostic signal worth tracing.
         tracing::debug!("XTVERSION probe skipped: query write failed or output is not a TTY");
         let _ = XTVERSION.set(ProbeResult::Skipped);
     }

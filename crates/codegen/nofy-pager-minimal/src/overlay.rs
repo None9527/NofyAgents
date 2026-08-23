@@ -42,8 +42,8 @@ use nofy_pager::appearance::LayoutConfig;
 use nofy_pager::minimal_api;
 use nofy_pager::render::SafeBuf as _;
 use nofy_pager::theme::Theme;
-use nofy_pager::views::prompt_widget::{PromptBg, PromptInfo, PromptStyle, PromptWidget};
-use nofy_pager::views::question_view::{feedback_input, inline_text_width};
+use nofy_pager::views::prompt_widget::{PromptBg, PromptStyle, PromptWidget};
+use nofy_pager::views::question_view::inline_text_width;
 
 /// Which prompt-anchored dropdown is currently shown.
 ///
@@ -222,8 +222,8 @@ fn compute_target(app: &mut AppView, term_h: u16, width: u16) -> u16 {
     // Committed appearance (timestamps off) so the measured tail height matches
     // exactly what `draw_tail` renders.
     let commit_app = super::commit::committed_appearance(&app.appearance);
-    // Theme + prompt style: built after the agent is known so bash/feedback/
-    // remember chrome matches `draw_live` (same `prompt_style` inputs).
+    // Theme + prompt style: built after the agent is known so bash/remember
+    // chrome matches `draw_live` (same `prompt_style` inputs).
     // Minimal is flush-left (W-38): prompt-replacing modals span the live
     // region's full width (no outer horizontal padding), so measure their
     // height at that same width — it must match `live::draw_live`'s
@@ -494,7 +494,7 @@ pub fn modal_height(modal: Modal, agent: &mut AgentView, screen_h: u16, content_
                 qv.focus == nofy_pager::views::question_view::QuestionFocus::InputMode
             });
             let editor_extra = if input_mode {
-                question_editor_h(
+                freeform_editor_h(
                     agent,
                     content_w as u16,
                     question_editor_cap(screen_h),
@@ -666,7 +666,7 @@ fn render_question(
         .map(|qv| qv.focus == QuestionFocus::InputMode)
         .unwrap_or(false);
     let input_h: u16 = if input_mode {
-        question_editor_h(
+        freeform_editor_h(
             agent,
             area.width,
             question_editor_cap(screen_h).min(area.height.saturating_sub(1).max(1)),
@@ -710,10 +710,6 @@ fn render_question(
             theme,
             true,
         );
-    }
-
-    if input_mode && is_feedback_pane(agent) {
-        return render_feedback_editor(buf, area, agent, theme, input_h);
     }
 
     if input_mode {
@@ -777,95 +773,10 @@ fn render_question(
     None
 }
 
-/// Whether the open question pane is the bare `/feedback` report box.
-fn is_feedback_pane(agent: &AgentView) -> bool {
-    minimal_api::question_view(agent).is_some_and(|qv| qv.is_feedback())
-}
-
-/// The bare `/feedback` report box, painted over the bottom `input_h` rows of the question card.
-fn render_feedback_editor(
-    buf: &mut Buffer,
-    area: Rect,
-    agent: &mut AgentView,
-    theme: &Theme,
-    input_h: u16,
-) -> Option<(u16, u16)> {
-    // The box lives inside `area`: the inline viewport can be shorter than the height request, and drawing past it indexes outside the frame.
-    let box_h = input_h.min(area.height);
-    if box_h == 0 {
-        return None;
-    }
-    let input_area = Rect {
-        x: area.x + 3,
-        y: area.y + area.height.saturating_sub(box_h),
-        width: feedback_input::width(area.width),
-        height: box_h,
-    };
-
-    // Carry the card's surface and accent bar down the report rows.
-    buf.set_style(
-        Rect {
-            x: area.x,
-            y: input_area.y,
-            width: area.width,
-            height: box_h,
-        },
-        Style::default().bg(theme.bg_light),
-    );
-    for y in input_area.y..input_area.y.saturating_add(box_h) {
-        if let Some(cell) = buf.cell_mut((area.x, y)) {
-            cell.set_symbol(nofy_pager::glyphs::accent_bar());
-            cell.set_style(Style::default().fg(theme.accent_user).bg(theme.bg_light));
-        }
-    }
-
-    // Drop the outline when the box is too squeezed for it, so the text stays visible.
-    let outlined = box_h >= feedback_input::MIN_HEIGHT;
-    let style = if outlined {
-        feedback_input::style(theme)
-    } else {
-        feedback_input::flat_style(theme)
-    };
-    agent
-        .prompt
-        .draw(
-            buf,
-            input_area,
-            None,
-            &style,
-            outlined.then_some(&PromptInfo::default()),
-        )
-        .cursor_pos
-}
-
 /// Height cap for the inline question editor — the full TUI's policy
 /// (`agent_view/render.rs`, `inline_prompt_max`).
 fn question_editor_cap(screen_h: u16) -> u16 {
     ((screen_h as u32) / 3).clamp(3, 15) as u16
-}
-
-/// Desired height of the inline question editor (InputMode), bounded by `cap`.
-fn question_editor_h(agent: &AgentView, area_w: u16, cap: u16, theme: &Theme) -> u16 {
-    if is_feedback_pane(agent) {
-        feedback_editor_h(agent, area_w, cap, theme)
-    } else {
-        freeform_editor_h(agent, area_w, cap, theme)
-    }
-}
-
-/// The bare `/feedback` report box: its rules plus at least one text row, growing with the report.
-/// Unlike the full TUI it reserves no rows up front, because `cap` is all the room the inline viewport has.
-fn feedback_editor_h(agent: &AgentView, area_w: u16, cap: u16, theme: &Theme) -> u16 {
-    let min_h = feedback_input::MIN_HEIGHT.min(cap.max(1));
-    agent
-        .prompt
-        .desired_height(
-            feedback_input::width(area_w),
-            &feedback_input::style(theme),
-            true,
-            cap.max(min_h),
-        )
-        .max(min_h)
 }
 
 /// The one-line freeform answer row, growing with what the user types.
@@ -896,7 +807,6 @@ fn inline_input_style(theme: &Theme) -> PromptStyle {
         accent_color_override: None,
         border_color_override: None,
         prefix_override: None,
-        placeholder_when_focused: false,
         placeholder_override: None,
         show_accent_line: false,
         show_borders: false,

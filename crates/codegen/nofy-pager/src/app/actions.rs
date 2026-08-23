@@ -646,10 +646,6 @@ pub enum Action {
     /// to config.toml). `/plan <desc>` uses `EnterPlanMode` instead
     /// because it also starts a turn.
     SetPlanMode(PlanModeKind),
-    /// Open the freeform feedback bottom pane (bare `/feedback`).
-    OpenFeedbackPane,
-    /// Submit feedback text (inline `/feedback <text>` or pane submit).
-    SendFeedback(String),
     /// Enter remember mode (visual prompt change, not a send).
     EnterRememberMode,
     /// Send a remember note from # mode. Routes through LLM rewrite when a
@@ -1826,12 +1822,6 @@ pub enum Effect {
     FetchBundleStatus,
     /// Fetch a bundled entry's raw content via `nofy/bundle/entry/get`.
     FetchCatalogEntry { kind: String, name: String },
-    /// Send feedback about the current session (fire-and-forget POST).
-    SendFeedback {
-        agent_id: AgentId,
-        session_id: acp::SessionId,
-        feedback_text: String,
-    },
     /// Save a remember note to global MEMORY.md (async file write).
     SaveMemoryNote {
         agent_id: AgentId,
@@ -2478,15 +2468,6 @@ pub enum TaskResult {
     SessionUsageFailed {
         agent_id: AgentId,
         session_id: acp::SessionId,
-        error: String,
-    },
-    /// Feedback submitted successfully (fire-and-forget).
-    FeedbackComplete {
-        agent_id: AgentId,
-    },
-    /// Feedback submission failed. The shell already persisted the report locally, so only the error is surfaced.
-    FeedbackFailed {
-        agent_id: AgentId,
         error: String,
     },
     /// Memory note saved to global MEMORY.md.

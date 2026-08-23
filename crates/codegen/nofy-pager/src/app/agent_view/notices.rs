@@ -64,7 +64,7 @@ impl AgentView {
         // nudge are mutually exclusive on a single keypress, so one
         // `Option<Action>` suffices. The plan nudge is suppressed when already
         // in plan mode (the optimistic read), while the turn is busy, or in a
-        // special prompt input mode (bash/feedback/remember).
+        // special prompt input mode (bash/remember).
         if self.prompt.take_undo_tip_fire() {
             return Some(Action::ShowUndoTip);
         }

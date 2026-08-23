@@ -80,7 +80,6 @@ pub(crate) fn handle_ask_user_question(
                 LocalQuestionKind::AgentTypeMismatch { .. } => "model switch",
                 LocalQuestionKind::DoctorFix { .. } => "/doctor fix",
                 LocalQuestionKind::DeleteCurrentSession => "/delete",
-                LocalQuestionKind::Feedback => "/feedback",
             };
             let message = if matches!(kind, LocalQuestionKind::DoctorFix { .. }) {
                 "/doctor fix was cancelled because another question opened.".to_owned()

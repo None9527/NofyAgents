@@ -36,7 +36,6 @@ async fn embedded_mode_boots_without_hanging_on_blocked_backend() {
         ("NOFY_CLI_CHAT_PROXY_BASE_URL", base.as_str()),
         ("NOFY_API_BASE_URL", base.as_str()),
         ("NOFY_TELEMETRY_ENABLED", "false"),
-        ("NOFY_FEEDBACK_ENABLED", "false"),
         ("NOFY_TRACE_UPLOAD", "false"),
     ];
 

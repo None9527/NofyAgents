@@ -139,21 +139,21 @@ Each update names its type, so a client can render distinct panels for reasoning
 
 ## Extension methods
 
-Beyond the base ACP protocol, Grok defines extension methods under the `x.ai/` prefix for SpaceXAI-specific functionality. These cover:
+Beyond the base ACP protocol, Grok defines extension methods under the `nofy/` prefix. These cover:
 
-| Category                   | Prefix               | Examples                                         |
-| -------------------------- | -------------------- | ------------------------------------------------ |
-| **Filesystem**             | `x.ai/fs/*`          | `list`, `exists`, `read_file`, `write_file`      |
-| **Git**                    | `x.ai/git/*`         | `status`, `stage`, `commit`, `diffs`, `discard`  |
-| **Git Worktree**           | `x.ai/git/worktree/*`| `create`, `remove`, `apply`, `list`, `gc`        |
-| **Search**                 | `x.ai/search/*`      | `fuzzy/open`, `fuzzy/change`, `content`          |
-| **Terminal**               | `x.ai/terminal/*`    | `create`, `kill`, `output`, `wait_for_exit`      |
-| **Session Management**     | `x.ai/session/*`     | `fork`, `resolve_local_for_worktree_resume`      |
-| **Conversation & History** | `x.ai/*`             | `prompt_history`, `rewind/*`, `compact_conversation` |
-| **Authentication**         | `x.ai/auth/*`        | `get_url`, `submit_code`                         |
-| **Feedback & Telemetry**   | `x.ai/*`             | `feedback`, `telemetry/*`                        |
+| Category                   | Prefix                | Examples                                         |
+| -------------------------- | --------------------- | ------------------------------------------------ |
+| **Filesystem**             | `nofy/fs/*`           | `list`, `exists`, `read_file`, `write_file`      |
+| **Git**                    | `nofy/git/*`          | `status`, `stage`, `commit`, `diffs`, `discard`  |
+| **Git Worktree**           | `nofy/git/worktree/*` | `create`, `remove`, `apply`, `list`, `gc`        |
+| **Search**                 | `nofy/search/*`       | `fuzzy/open`, `fuzzy/change`, `content`          |
+| **Terminal**               | `nofy/terminal/*`     | `create`, `kill`, `output`, `wait_for_exit`      |
+| **Session Management**     | `nofy/session/*`      | `fork`, `resolve_local_for_worktree_resume`      |
+| **Conversation & History** | `nofy/*`              | `prompt_history`, `rewind/*`, `compact_conversation` |
+| **Memory & Notes**         | `nofy/memory/*`       | `save_note`, `rewrite`                           |
+| **Side Questions**         | `nofy/btw`            | aside answered without interrupting the turn     |
 
-The tables here show representative methods in each category. The `x.ai/*` set is SpaceXAI-specific and may expand across releases, so treat it as non-exhaustive and discover the available methods from the agent's `initialize` response.
+The tables here show representative methods in each category. Treat the set as non-exhaustive and discover the available methods from the agent's `initialize` response.
 
 ### Notifications (agent to client)
 
@@ -161,13 +161,13 @@ The agent sends push notifications to clients for real-time updates:
 
 | Notification               | Description                          |
 | -------------------------- | ------------------------------------ |
-| `x.ai/search/fuzzy/status` | Fuzzy search results update          |
-| `x.ai/git/worktree/status` | Worktree creation progress           |
-| `x.ai/fs_notify`           | Filesystem change notification       |
-| `x.ai/fs/index`            | Full file index update               |
-| `x.ai/fs/index/delta`      | Incremental file index update        |
-| `x.ai/session_notification`| Session-specific updates (diff review, retry state, auto-compact) |
-| `x.ai/session/update`      | Session update (tool calls, content) |
+| `nofy/search/fuzzy/status` | Fuzzy search results update          |
+| `nofy/git/worktree/status` | Worktree creation progress           |
+| `nofy/fs_notify`           | Filesystem change notification       |
+| `nofy/fs/index`            | Full file index update               |
+| `nofy/fs/index/delta`      | Incremental file index update        |
+| `nofy/session_notification`| Session-specific updates (diff review, retry state, auto-compact) |
+| `session/update`           | Session update (tool calls, content) |
 
 ---
 

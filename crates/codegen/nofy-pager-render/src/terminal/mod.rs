@@ -591,37 +591,6 @@ impl TerminalContext {
             clipboard_data_control: crate::clipboard::wayland_data_control_label().to_owned(),
         }
     }
-
-    /// Extract terminal info for feedback submissions.
-    pub fn feedback_info(&self) -> nofy_shared::session::FeedbackTerminalInfo {
-        use nofy_shared::session::FeedbackTerminalInfo;
-        // XTVERSION self-report lets feedback triage identify the terminal
-        // even when env detection failed (e.g. over SSH).
-        let brand = match xtversion::detected() {
-            Some(v) if self.brand == TerminalName::Unknown => format!("Unknown (XTVERSION: {v})"),
-            _ => self.brand.to_string(),
-        };
-        // Raw and unlabeled by design: no provenance, and no rewrite of DA2's
-        // library version into an Alacritty release number.
-        let (term_version, _source) = self.term_version();
-        FeedbackTerminalInfo {
-            brand,
-            multiplexer: self.multiplexer.to_string(),
-            is_ssh: self.is_ssh,
-            is_byobu: self.is_byobu(),
-            term_var: self.term_var_or_na().to_owned(),
-            term_version: (!term_version.is_empty()).then_some(term_version),
-            tmux_version: if self.is_tmux_backed() {
-                self.tmux_version.clone()
-            } else {
-                None
-            },
-            hyperlink_osc8_support: Some(self.hyperlink_capabilities().osc8.to_string()),
-            clipboard_route: Some(crate::clipboard::clipboard_route().to_string()),
-            clipboard_native_tool: Some(nofy_shared::clipboard::native_tool_name().to_owned()),
-            display_server: Some(crate::host::DisplayServer::current().to_string()),
-        }
-    }
 }
 
 static TERMINAL_CONTEXT: OnceLock<TerminalContext> = OnceLock::new();

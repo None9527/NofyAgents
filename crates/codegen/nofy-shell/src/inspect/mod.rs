@@ -122,7 +122,7 @@ pub(crate) struct PermissionsReport {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct EnforcedPolicy {
-    /// Stable key: "alwaysApprove" | "telemetry" | "feedback".
+    /// Stable key: "alwaysApprove" | "telemetry".
     pub setting: String,
     /// The enforced value.
     pub enabled: bool,
@@ -580,7 +580,6 @@ async fn list_permissions(cwd: &Path, project_trusted: bool) -> PermissionsRepor
         for (flag, setting) in [
             (ms.features.disable_yolo, "alwaysApprove"),
             (ms.features.disable_telemetry, "telemetry"),
-            (ms.features.disable_feedback, "feedback"),
         ] {
             if flag == Some(true) {
                 enforced.push(EnforcedPolicy {
@@ -1213,7 +1212,6 @@ fn enforced_label(p: &EnforcedPolicy) -> String {
     let name = match p.setting.as_str() {
         "alwaysApprove" => "Permissions mode: always-approve",
         "telemetry" => "Telemetry",
-        "feedback" => "Feedback",
         other => other,
     };
     let state = if p.enabled { "enabled" } else { "disabled" };

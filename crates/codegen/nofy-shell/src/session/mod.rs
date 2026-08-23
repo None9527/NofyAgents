@@ -19,9 +19,6 @@ pub use self::persistence::{
     session_exists_for_cwd,
 };
 pub use self::result::{Empty, ExtMethodResult};
-pub use prod_mc_cli_chat_proxy_types::feedback_types::{
-    ClientType, FeedbackTerminalInfo, RatingType,
-};
 pub use nofy_fsnotify::{FsConfig, FsEvent, FsEventKind, FsEventSource, FsNotifyError, GitMetaKind};
 /// `false` twin: this template is not compiled into this build, so no
 /// template matches. Keeps ungated call sites compiling in both
@@ -295,8 +292,6 @@ pub(crate) mod acp_session;
 pub(crate) mod agent_rebuild;
 pub(crate) mod chat_persistence;
 pub(crate) mod events;
-pub mod feedback;
-pub mod feedback_manager;
 pub mod file_system;
 pub mod fork;
 pub(crate) mod fs_watch;

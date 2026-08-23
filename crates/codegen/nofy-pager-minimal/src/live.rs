@@ -64,9 +64,9 @@ fn paintable_btw_area(frame_area: Rect, area: Rect) -> Option<Rect> {
 /// Shared with [`super::overlay::sync_viewport`] so viewport sizing measures the
 /// prompt's height exactly as the live region will draw it.
 ///
-/// `input_mode` wires special composer modes (bash `! `, feedback `~ `,
-/// remember `# `) the same way the full TUI does — without this, `!` on an
-/// empty prompt would flip mode invisibly (key consumed, default `❯` remains).
+/// `input_mode` wires special composer modes (bash `! `, remember `# `) the
+/// same way the full TUI does — without this, `!` on an empty prompt would
+/// flip mode invisibly (key consumed, default `❯` remains).
 pub(super) fn prompt_style(
     appearance: &nofy_pager::appearance::AppearanceConfig,
     input_mode: nofy_pager::app::agent_view::PromptInputMode,
@@ -85,7 +85,6 @@ pub(super) fn prompt_style(
         accent_color_override: input_mode.accent_color(theme),
         border_color_override: None,
         prefix_override: input_mode.prefix_override(theme),
-        placeholder_when_focused: false,
         placeholder_override: input_mode.placeholder_override(multiline),
         show_accent_line: false,
         show_borders: false,

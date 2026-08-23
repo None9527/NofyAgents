@@ -254,7 +254,7 @@ grok sessions list --limit 50
 grok sessions search "rate limit"
 ```
 
-`grok sessions list` shows sessions for the current working directory, grouped by worktree label. Each row lists the session ID, the creation and update dates, the source status, and the summary. `grok sessions search` combines a local SQLite index with remote results.
+`grok sessions list` shows sessions for the current working directory, grouped by worktree label. Each row lists the session ID, the creation and update dates, the source status, and the summary. `grok sessions search` queries the local SQLite index.
 
 ---
 

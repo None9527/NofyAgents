@@ -127,9 +127,24 @@ Round 1 的"恒 Disabled 桩"方案被用户否决:**完全剔除所有 xAI 依�
   ~28900 行。遗留:pager feedback 面板机械结构与 shell FeedbackManager
   子系统(启发式/信号/REST 客户端,提交链已断但代码仍在树中)——
   归入 Batch G 连根拔除。
-- **Batch G(feedback 子系统,执行中)**:pager 死链
+- **Batch G(feedback 子系统,已提交)**:pager 死链
   (Action::OpenFeedbackPane/SendFeedback、Effect::SendFeedback、
-  TaskResult::Feedback*、feedback 面板渲染/交互/测试)、shell
-  feedback_client.rs/feedback.rs/feedback_manager.rs/signals.rs、
-  FeedbackManagerConfig 管线、prod feedback_types wire 类型、
-  pager-render feedback_info——整体物理删除。
+  TaskResult::Feedback*、feedback 面板渲染/交互/测试、2 个 pty e2e)、
+  shell feedback_client.rs(1221)/feedback.rs(1106)/feedback_manager.rs(1680)/
+  user_identity.rs(934)、prod feedback_types.rs(2037)、pager-render
+  feedback_info、Features.feedback/FeedbackConfig/NOFY_FEEDBACK_* 配置链、
+  disable_feedback managed 开关全链——91 文件净删 ~9200 行。
+  连带:extensions/feedback.rs→btw.rs(nofy/btw 保留)、
+  probabilistic_sample(唯一用户已删)、placeholder_when_focused 字段。
+  SessionSignals 探明有非 feedback 消费者(subagent 结果快照、
+  PrCreated 遥测、doom-loop 计数、resume 连续性)——保留 signals.rs
+  仅剔其中 feedback 死链。测试:shell 5081、pager 7881、
+  pager-render 1054、agent/workspace/tools 全绿。
+  同批修复 Batch F 遗留:nofy-telemetry 4 个 external_otlp 测试
+  引用已删 auto_update 字段;文档面(用户指南 24 篇 + 2 个 README)
+  清理浏览器登录/OIDC/设备码/XAI_API_KEY/grok update/x.ai 命名空间等
+  全部陈旧引用,改写为 BYOK 现状。
+- **Batch H(收官候选)**:隐私设置面(coding_data_sharing/ZDR/
+  TeamManaged 锁、/privacy、SetCodingDataSharing 全链)、
+  heap-profile 监控死链(upload handles 恒 None)、trace_upload
+  死配置键——待评估启动。

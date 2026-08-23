@@ -238,10 +238,6 @@ pub(crate) async fn spawn_session_actor(
     codebase_indexes: std::sync::Arc<parking_lot::Mutex<CodebaseIndexManager>>,
     code_nav_enabled: bool,
     fs_watch_caps: fs_watch::FsWatchCapabilities,
-    feedback_proxy_url: Option<String>,
-    feedback_user_token: Option<String>,
-    feedback_alpha_test_key: Option<String>,
-    deployment_key: Option<String>,
     client_terminal_capable: bool,
     client_fs_capable: bool,
     gateway_enabled: std::sync::Arc<std::sync::atomic::AtomicBool>,
@@ -257,8 +253,6 @@ pub(crate) async fn spawn_session_actor(
     persisted_workflow_runs: Vec<crate::session::workflow::store::RestoredWorkflowRun>,
     persisted_announcement_state: Option<crate::session::announcement_state::AnnouncementState>,
     memory_config: Option<crate::config::MemoryConfig>,
-    loc_tracking_enabled: bool,
-    feedback_flags: crate::session::feedback_manager::FeedbackFlags,
     managed_mcp_handle: crate::session::managed_mcp::ManagedMcpStateHandle,
     managed_mcp_expires_at: Option<chrono::DateTime<chrono::Utc>>,
     managed_mcp_proxy_base_url: String,
@@ -1139,55 +1133,7 @@ pub(crate) async fn spawn_session_actor(
             "injected resume reconciliation reminder"
         );
     }
-    let feedback_client = feedback_proxy_url.map(|base_url| {
-        let mut client =
-            crate::agent::feedback_client::FeedbackClient::new(base_url, feedback_user_token)
-                .with_alpha_test_key(feedback_alpha_test_key)
-                .with_deployment_key(deployment_key);
-        if let Some(am) = auth_manager.as_ref() {
-            client = client.with_auth_manager(am.clone());
-        }
-        client
-    });
-    let has_feedback_client = feedback_client.is_some();
-    tracing::info!(
-        session_id = %session_info.id.0,
-        has_feedback_client = has_feedback_client,
-        "Creating feedback manager"
-    );
-    let feedback_client_type = match client_type {
-        ClientType::NofyTUI => prod_mc_cli_chat_proxy_types::feedback_types::ClientType::Tui,
-        ClientType::NofyWeb => prod_mc_cli_chat_proxy_types::feedback_types::ClientType::Web,
-        ClientType::Nebula => prod_mc_cli_chat_proxy_types::feedback_types::ClientType::Nebula,
-        ClientType::Extension => {
-            prod_mc_cli_chat_proxy_types::feedback_types::ClientType::Extension
-        }
-        ClientType::Generic => prod_mc_cli_chat_proxy_types::feedback_types::ClientType::Agent,
-        ClientType::Desktop => prod_mc_cli_chat_proxy_types::feedback_types::ClientType::Desktop,
-        ClientType::NofyPager => prod_mc_cli_chat_proxy_types::feedback_types::ClientType::Tui,
-    };
-    let user_cfg = feedback_flags.user;
-    let feedback_config = FeedbackManagerConfig {
-        feedback_enabled: feedback_flags.enabled,
-        telemetry_enabled,
-        client_type: feedback_client_type,
-        loc_tracking_enabled,
-        user: user_cfg.clone(),
-        ..Default::default()
-    };
-    if feedback_flags.enabled
-        && let Some(user_cfg) = user_cfg
-    {
-        tokio::spawn(async move {
-            let _ = crate::util::user_identity::cached_identity(Some(&user_cfg)).await;
-        });
-    }
-    let feedback_manager = Arc::new(FeedbackManager::new(
-        session_info.id.0.to_string(),
-        feedback_client,
-        feedback_config,
-    ));
-    let signals_handle = feedback_manager.signals_handle();
+    let signals_handle = crate::session::signals::spawn_signals_actor();
     if let Some(persisted) = persisted_signals {
         signals_handle.restore_signals(persisted);
     } else {
@@ -1201,11 +1147,6 @@ pub(crate) async fn spawn_session_actor(
     }
     signals_handle.set_primary_model(&primary_model_id);
     signals_handle.set_tracing_config(inference_idle_timeout_secs);
-    let sync_loop_cancel = if has_feedback_client {
-        Some(tokio_util::sync::CancellationToken::new())
-    } else {
-        None
-    };
     let force_compact = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let resolved_workspace_root = nofy_workspace::session::git::find_git_root_from_path(
         std::path::Path::new(&session_info.cwd),
@@ -1637,8 +1578,7 @@ pub(crate) async fn spawn_session_actor(
         buffering_settings,
         client_identifier: session_client_identifier.clone(),
         origin_client: origin_client.clone(),
-        feedback_manager: feedback_manager.clone(),
-        sync_loop_cancel: sync_loop_cancel.clone(),
+        signals_handle: signals_handle.clone(),
         agent: std::cell::RefCell::new(agent),
         last_reported_branch: Arc::new(Mutex::new(None)),
         git_head_enabled: fs_watch_caps.git_head,
@@ -1923,21 +1863,6 @@ pub(crate) async fn spawn_session_actor(
             }
         });
     }
-    if let Some(cancel) = sync_loop_cancel {
-        tracing::info!(
-            session_id = %session_info.id.0,
-            "Spawning feedback sync loop"
-        );
-        let fm = feedback_manager.clone();
-        tokio::spawn(async move {
-            fm.run_sync_loop(cancel).await;
-        });
-    } else {
-        tracing::debug!(
-            session_id = %session_info.id.0,
-            "No feedback client available, skipping sync loop"
-        );
-    }
     {
         use agent_client_protocol::Client as _;
         use nofy_tools::implementations::nofy_build::ask_user_question::{
@@ -2079,7 +2004,6 @@ pub(crate) async fn spawn_session_actor(
             mcp_servers,
             initial_client_mcp_servers,
             display_cwd: None,
-            feedback_manager: feedback_manager.clone(),
             tool_context: tool_context_for_handle,
             model_id: session_model_id,
             scheduler_background_loops,
@@ -2173,10 +2097,6 @@ pub(crate) async fn spawn_session_on_thread(
     codebase_indexes: std::sync::Arc<parking_lot::Mutex<CodebaseIndexManager>>,
     code_nav_enabled: bool,
     fs_watch_caps: fs_watch::FsWatchCapabilities,
-    feedback_proxy_url: Option<String>,
-    feedback_user_token: Option<String>,
-    feedback_alpha_test_key: Option<String>,
-    deployment_key: Option<String>,
     client_terminal_capable: bool,
     client_fs_capable: bool,
     gateway_enabled: std::sync::Arc<std::sync::atomic::AtomicBool>,
@@ -2192,8 +2112,6 @@ pub(crate) async fn spawn_session_on_thread(
     persisted_workflow_runs: Vec<crate::session::workflow::store::RestoredWorkflowRun>,
     persisted_announcement_state: Option<crate::session::announcement_state::AnnouncementState>,
     memory_config: Option<crate::config::MemoryConfig>,
-    loc_tracking_enabled: bool,
-    feedback_flags: crate::session::feedback_manager::FeedbackFlags,
     managed_mcp_handle: crate::session::managed_mcp::ManagedMcpStateHandle,
     managed_mcp_expires_at: Option<chrono::DateTime<chrono::Utc>>,
     managed_mcp_proxy_base_url: String,
@@ -2341,10 +2259,6 @@ pub(crate) async fn spawn_session_on_thread(
                         codebase_indexes,
                         code_nav_enabled,
                         fs_watch_caps,
-                        feedback_proxy_url,
-                        feedback_user_token,
-                        feedback_alpha_test_key,
-                        deployment_key,
                         client_terminal_capable,
                         client_fs_capable,
                         gateway_enabled,
@@ -2360,8 +2274,6 @@ pub(crate) async fn spawn_session_on_thread(
                         persisted_workflow_runs,
                         persisted_announcement_state,
                         memory_config,
-                        loc_tracking_enabled,
-                        feedback_flags,
                         managed_mcp_handle,
                         managed_mcp_expires_at,
                         managed_mcp_proxy_base_url,

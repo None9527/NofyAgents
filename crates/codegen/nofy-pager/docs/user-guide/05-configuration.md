@@ -9,7 +9,7 @@ Grok reads settings from config files, environment variables, and CLI flags. Thi
 Settings resolve highest-priority first:
 
 1. **CLI flags** (e.g. `--yolo`, `--model`, `--sandbox`)
-2. **Environment variables** (e.g. `XAI_API_KEY`, `GROK_MEMORY`)
+2. **Environment variables** (e.g. `NOFY_API_KEY`, `GROK_MEMORY`)
 3. **config.toml** (`~/.grok/config.toml`)
 4. **Managed / requirements config** (files your org may deploy, e.g. `managed_config.toml` / `requirements.toml`)
 5. **Built-in defaults**
@@ -23,9 +23,6 @@ Location: `~/.grok/config.toml`. If the file is missing, Grok uses its built-in 
 ### General settings
 
 ```toml
-[cli]
-auto_update = true                     # check for updates on launch
-
 [models]
 default = "grok-4.5"                   # model used for new sessions
 
@@ -61,7 +58,6 @@ screen_mode = "fullscreen"             # default render mode: "fullscreen" | "mi
 
 [features]
 telemetry = false                      # anonymous usage telemetry
-feedback = true                        # feedback system (default: true)
 lsp_tools = false                      # expose the lsp tool
 codebase_indexing = true               # code graph indexing (default: true)
 two_pass_compaction = false            # prefire two-pass compaction (default: false, opt-in)
@@ -179,7 +175,7 @@ timeout_secs = 1800                    # seconds to wait when enabled (default: 
 
 [toolset.web_fetch]
 proxy_endpoint = "https://proxy.example.com"   # egress proxy URL
-allowed_domains = ["docs.rs", "x.ai"]          # override the built-in allowlist
+allowed_domains = ["docs.rs", "example.com"]   # override the built-in allowlist
 allow_local = false                            # true = allow localhost / 127.0.0.0/8 / ::1 only
 ```
 
@@ -215,7 +211,7 @@ base_url = "https://api.example.com/v1"  # OpenAI-compatible endpoint
 name = "Display Name"                 # shown in model picker
 description = "Model description"      # optional
 api_key = "sk-..."                    # API key for this provider
-env_key = "XAI_API_KEY"               # env var(s) holding the API key; string or array (first set, non-empty wins)
+env_key = "MY_PROVIDER_KEY"           # env var(s) holding the API key; string or array (first set, non-empty wins)
 temperature = 0.7                     # sampling temperature (0.0-2.0)
 top_p = 0.95                          # nucleus sampling parameter
 max_completion_tokens = 8192          # max tokens per response
@@ -224,7 +220,7 @@ query_params = { api-version = "2026-07-22" } # query params appended to every r
 env_http_headers = { "X-Tenant" = "TENANT_TOKEN" }    # request headers from env vars, resolved at client build
 ```
 
-Credential resolution: `api_key` > `env_key` > signed-in session token > `XAI_API_KEY`. See [Custom Models](11-custom-models.md#request-query-parameters) for `query_params` and `env_http_headers`, and [Sandbox Mode](18-sandbox.md#shell-environment-policy) for `[shell_environment_policy]`, which restricts the environment variables tool subprocesses inherit.
+Credential resolution: `api_key` > `env_key` > `NOFY_API_KEY` > session token from an external auth provider. See [Custom Models](11-custom-models.md#request-query-parameters) for `query_params` and `env_http_headers`, and [Sandbox Mode](18-sandbox.md#shell-environment-policy) for `[shell_environment_policy]`, which restricts the environment variables tool subprocesses inherit.
 
 To override a built-in model, use its name as the section key and set only the fields you need:
 
@@ -512,49 +508,11 @@ otel_log_user_prompts = false                             # content gate (admins
 otel_log_tool_details = false                             # content gate (admins can pin via requirements)
 ```
 
-### Version pinning
-
-Control which versions the CLI may auto-update to and which versions may run. Set
-these in `[cli]`, or in a managed layer for fleet-wide policy. Each has an
-environment override that can only tighten the bound, for CI and testing.
-
-> **Changed:** `minimum_version` no longer blocks startup. It is now a soft
-> anti-downgrade floor for the updater. For a hard floor that prevents old
-> versions from starting, use `required_minimum_version`.
-
-```toml
-[cli]
-minimum_version = "0.2.109"          # updater won't downgrade below this
-maximum_version = "0.2.180"          # updater won't install above this
-required_minimum_version = "0.2.100" # refuse to start below this
-required_maximum_version = "0.2.200" # refuse to start above this
-```
-
-- `minimum_version` (`GROK_MINIMUM_VERSION`) is a soft anti-downgrade floor. The
-  updater skips a target below it and keeps the current version. It never blocks
-  startup.
-- `maximum_version` (`GROK_MAXIMUM_VERSION`) is a soft ceiling. The updater caps
-  its target at it and never installs above it.
-- `required_minimum_version` (`GROK_REQUIRED_MINIMUM_VERSION`) and
-  `required_maximum_version` (`GROK_REQUIRED_MAXIMUM_VERSION`) are hard bounds. If
-  the running version is outside the range, the CLI exits at startup and instructs
-  the user to install an approved version. `grok update` and `grok --version` keep
-  working so an out-of-range install can recover.
-- Bounds resolve across config layers by tightening only: a floor takes the
-  highest value and a ceiling the lowest, so a managed bound can't be loosened,
-  and a user or environment bound can't cancel a managed hard bound. An invalid
-  value is ignored so a bad policy can't block startup.
-- An explicit `grok update --version X` is allowed above the ceiling, to recover
-  from a too-new install, and rejected below the hard floor.
-
 ### Enterprise deployment
 
 A complete config for enterprise use:
 
 ```toml
-[cli]
-auto_update = false
-
 [auth]
 auth_provider_command = "/usr/local/bin/my-company-auth-provider"
 auth_provider_label = "Acme Corp"
@@ -699,9 +657,9 @@ The key ones. See the README for the complete list.
 
 | Variable | Description |
 |----------|-------------|
-| `XAI_API_KEY` | API key from console.x.ai |
+| `NOFY_API_KEY` | Fallback API key when a model sets neither `api_key` nor `env_key` |
 | `GROK_AUTH_PROVIDER_COMMAND` | External auth binary path |
-| `GROK_AUTH_PROVIDER_LABEL` | Display name on TUI login screen |
+| `GROK_AUTH_PROVIDER_LABEL` | Display name for the external auth provider |
 | `GROK_AUTH_TOKEN_TTL` | Token lifetime in seconds |
 | `GROK_AUTH_EARLY_INVALIDATION_SECS` | Seconds before expiry to refresh (default: 300) |
 | `GROK_OIDC_ISSUER` | OIDC issuer URL |
@@ -747,7 +705,6 @@ The key ones. See the README for the complete list.
 | `GROK_TELEMETRY_TRACE_UPLOAD` | Enable/disable session trace upload |
 | `GROK_TELEMETRY_MIXPANEL_ENABLED` | Enable/disable Mixpanel specifically |
 | `GROK_EXTERNAL_OTEL` | External OTEL to your collector (see [24-monitoring-usage.md](24-monitoring-usage.md)) |
-| `GROK_FEEDBACK_ENABLED` | Enable/disable feedback system |
 | `GROK_DEPLOYMENT_KEY` | Management API key for enterprise |
 
 ---

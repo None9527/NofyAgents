@@ -173,8 +173,6 @@ pub struct PromptStyle {
     /// Override the placeholder text shown when the textarea is empty (e.g. remember mode).
     /// When `Some(text)`, uses this instead of the default `"Build anything"`.
     pub placeholder_override: Option<&'static str>,
-    /// The main composer hides the empty-textarea placeholder on focus; the feedback box keeps it visible.
-    pub placeholder_when_focused: bool,
     /// Compact mode (currently unused for info_block sizing).
     pub compact: bool,
     /// Show the accent line (`┃`) on the left edge of the chrome.
@@ -235,7 +233,6 @@ impl Default for PromptStyle {
             accent_color_override: None,
             border_color_override: None,
             prefix_override: None,
-            placeholder_when_focused: false,
             placeholder_override: None,
             compact: false,
             show_accent_line: false,
@@ -270,7 +267,6 @@ impl PromptStyle {
             accent_color_override: None,
             border_color_override: None,
             prefix_override: None,
-            placeholder_when_focused: false,
             placeholder_override: None,
             compact: false,
             show_accent_line: false,
@@ -3075,11 +3071,8 @@ impl PromptWidget {
             (snap.active, snap.inline_ghost.is_some())
         };
 
-        // Placeholder text when empty (unfocused, or opted in while focused).
-        if self.textarea.text().is_empty()
-            && ta_area.width > 0
-            && (!style.focused || style.placeholder_when_focused)
-        {
+        // Placeholder text when empty (unfocused only).
+        if self.textarea.text().is_empty() && ta_area.width > 0 && !style.focused {
             let placeholder = style.placeholder_override.unwrap_or("Build anything");
             // `set_string` clips at the buffer edge, not at the textarea, so a placeholder longer than the box would paint over its border.
             let truncated =

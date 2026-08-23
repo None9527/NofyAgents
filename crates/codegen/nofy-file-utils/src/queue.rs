@@ -1395,9 +1395,6 @@ impl UploadQueue {
         &self.stats
     }
     /// Get a shared reference to the stats Arc for cross-component sharing.
-    ///
-    /// Used to pass the stats to the feedback manager's periodic signal sync,
-    /// which snapshots upload queue metrics into the session signals.
     pub fn stats_arc(&self) -> Arc<UploadQueueStats> {
         self.stats.clone()
     }

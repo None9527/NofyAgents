@@ -41,7 +41,6 @@ Grok processes the prompt, runs any necessary tools, and prints the result to st
 | `--prompt-json <JSON>`  | Prompt as JSON content blocks                         |
 | `--prompt-file <PATH>`  | Prompt from a file                                    |
 | `--verbatim`            | Send prompt exactly as given                          |
-| `--no-auto-update`      | Disable update checks for this session                |
 | `--sandbox <PROFILE>`   | Sandbox profile for filesystem/network access         |
 
 > **Note:** `--tools`, `--disallowed-tools`, `--max-turns`, and `--agents` are headless-only flags. If used in the interactive TUI, a warning is printed and the flag is ignored. `--reasoning-effort`/`--effort`, `--permission-mode`, `--allow`, and `--deny` work in both modes. For more flags (agents and worktrees), see [Additional Headless Flags](#additional-headless-flags).
@@ -211,7 +210,7 @@ failures may also include frozen spend fields when usage was recorded:
 
 ### streaming-json
 
-Newline-delimited JSON, one `type`-tagged object per line, derived from the agent's ACP session updates. Leaf field names (`toolCallId`, `kind`, `rawInput`, `rawOutput`) follow ACP; `toolName` and the `usage` line are xAI additions. Consume it by switching on `type`.
+Newline-delimited JSON, one `type`-tagged object per line, derived from the agent's ACP session updates. Leaf field names (`toolCallId`, `kind`, `rawInput`, `rawOutput`) follow ACP; `toolName` and the `usage` line are local additions. Consume it by switching on `type`.
 
 ```json
 {"type":"thought","data":"Analyzing the directory structure..."}
@@ -250,7 +249,7 @@ Grok may also emit `max_turns_reached` and `auto_compact_*` events; treat the li
 
 Newline-delimited JSON in the Messages API `stream-json` wire format. The data-bearing surface matches the Messages shape exactly. This includes the `assistant`/`user` message bodies, `usage`, `tool_use`/`tool_result`, inline web search, `stop_reason`, and the `--include-partial-messages` event framing. A consumer that reconstructs messages, reads spend, or detects errors works without changes.
 
-The `system`/`init` and terminal `result` lines carry metadata. Grok emits the fields it has real data for and omits pure-placeholder fields it cannot fill, rather than zero-filling them. As a result, those two lines may not pass strict `init`/`result` schema validation. The individual fields are listed below. Read the fidelity notes before treating any one field as authoritative. For a clean xAI-native stream with no placeholder shape, use `streaming-json`.
+The `system`/`init` and terminal `result` lines carry metadata. Grok emits the fields it has real data for and omits pure-placeholder fields it cannot fill, rather than zero-filling them. As a result, those two lines may not pass strict `init`/`result` schema validation. The individual fields are listed below. Read the fidelity notes before treating any one field as authoritative. For a clean native stream with no placeholder shape, use `streaming-json`.
 
 The stream opens with a `system`/`init` line, then `assistant` messages whose `message.content[]` holds `text`, `thinking`, and `tool_use` blocks, `user` messages carrying `tool_result` blocks, and a terminal `result`:
 
@@ -538,15 +537,15 @@ Key environment variables that affect headless mode:
 
 | Variable                        | Description                                                   |
 | ------------------------------- | ------------------------------------------------------------- |
-| `XAI_API_KEY`        | API key for authentication (required when no browser login)   |
+| `NOFY_API_KEY`       | Fallback API key when a model sets neither `api_key` nor `env_key` |
 | `GROK_HOME`                    | Override config directory (default: `~/.grok`)                |
 | `GROK_LOG_FILE`                | Path to a log file (used verbatim as the path; works in headless and TUI, honors `RUST_LOG`) |
 | `RUST_LOG`                     | Log level filter (e.g. `debug`). Headless logs to stderr.     |
 
-For CI environments without browser access, set `XAI_API_KEY` with an API key from [console.x.ai](https://console.x.ai):
+For CI environments, supply the key for your configured endpoint:
 
 ```bash
-export XAI_API_KEY="xai-..."
+export NOFY_API_KEY="sk-..."
 grok -p "Run the test suite" --yolo
 ```
 
@@ -567,12 +566,11 @@ grok -p "Run the test suite" --yolo
 
 For headless use, authenticate with one of:
 
-- **`XAI_API_KEY`**: simplest for CI. See [Environment Variables](#environment-variables-for-headless) above.
-- **`grok login --device-auth`** (or `--device-code`): no browser needed on the target machine.
-  See [Authentication > Device Code Flow](02-authentication.md#device-code-flow).
-- **`grok login`**: browser-based OAuth2 on machines with a GUI.
+- **`NOFY_API_KEY`** (or per-model `api_key` / `env_key`): simplest for CI. See [Environment Variables](#environment-variables-for-headless) above.
+- **External auth provider** (`auth_provider_command`): a binary that mints
+  tokens on demand — see [Authentication](02-authentication.md#external-auth-provider).
 
-If you've previously logged in, cached credentials are used automatically.
+Cached provider credentials in `auth.json` are reused and refreshed automatically.
 
 ---
 
@@ -604,8 +602,7 @@ Grok stores data in `~/.grok` (override with `GROK_HOME`; see [Environment Varia
 | Path                     | Contents                              |
 | ------------------------ | ------------------------------------- |
 | `config.toml`            | User configuration                    |
-| `auth.json`              | Cached OAuth2/API credentials         |
-| `version.json`           | Version cache for update checks       |
+| `auth.json`              | Cached external-provider credentials  |
 | `sessions/`              | Session transcripts (SQLite)          |
 | `memory/`                | Cross-session memory store            |
 | `logs/`                  | Internal log files (for example `unified.jsonl`) |
@@ -620,40 +617,19 @@ Grok stores data in `~/.grok` (override with `GROK_HOME`; see [Environment Varia
 
 For containers or CI, mount `~/.grok` read-only:
 
-- Pre-populate `auth.json` or use `XAI_API_KEY`
+- Supply the key via `NOFY_API_KEY` or `api_key` in `config.toml`
 - Session persistence fails silently (ephemeral)
-- Update checks log a warning and skip
 
 ```bash
-export XAI_API_KEY="xai-..."
-export GROK_DISABLE_AUTOUPDATER=1
-grok -p "..." --no-auto-update
+export NOFY_API_KEY="sk-..."
+grok -p "..."
 ```
-
----
-
-## Update Check Suppression
-
-| Method                          | Scope     |
-| ------------------------------- | --------- |
-| `--no-auto-update`              | Session   |
-| `GROK_DISABLE_AUTOUPDATER=1`    | Process   |
-| Non-TTY stderr (auto-detected)  | Automatic |
-| `[cli] auto_update = false`     | Persistent|
-
-`GROK_DISABLE_AUTOUPDATER` set to a falsy value (`0`, `false`, `off`, `no`, or empty, any
-case) counts as not set. The agent SDKs
-inject `GROK_DISABLE_AUTOUPDATER=1` for the non-leader agents they spawn (a falsy value in
-the SDK's isolation env keeps updates on), and the stdio agent skips its background update
-unless it runs from the managed install (`$GROK_HOME/bin/grok`).
-
-Update messages go to **stderr**. Stdout stays clean for `--output-format json`. See also [Environment Variables for Headless](#environment-variables-for-headless).
 
 ---
 
 ## Additional Headless Flags
 
-These flags supplement the [Command-Line Options](#command-line-options) table above. Flags already listed there (`--prompt-json`, `--prompt-file`, `--verbatim`, `--sandbox`, `--no-auto-update`) are not repeated here.
+These flags supplement the [Command-Line Options](#command-line-options) table above. Flags already listed there (`--prompt-json`, `--prompt-file`, `--verbatim`, `--sandbox`) are not repeated here.
 
 | Flag                          | Description                                       |
 | ----------------------------- | ------------------------------------------------- |

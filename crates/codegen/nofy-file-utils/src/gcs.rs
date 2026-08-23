@@ -87,9 +87,8 @@ pub trait StorageConfig {
     /// `reqwest::Client::new()` (used by bins/tests). Production callers
     /// should return shell's tuned `shared_upload_client()` -- HTTP/2
     /// keep-alive + aggressive connection pool eviction. The trace upload
-    /// queue, feedback uploads, share uploads, and subagent metadata
-    /// uploads all rely on this tuning to avoid stale-connection retries
-    /// during backoff loops.
+    /// queue, share uploads, and subagent metadata uploads all rely on
+    /// this tuning to avoid stale-connection retries during backoff loops.
     fn proxy_http_client(&self) -> Option<reqwest::Client> {
         None
     }

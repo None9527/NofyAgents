@@ -898,14 +898,6 @@ fn apply_managed_settings_features_inner(
             source: source.clone(),
         });
     }
-    if features.disable_feedback == Some(true) {
-        config.features.feedback = Some(false);
-        enforced.push(EnforcedField {
-            path: "features.feedback",
-            value: "false (DISABLE_FEEDBACK_COMMAND)".to_string(),
-            source: source.clone(),
-        });
-    }
     enforced
 }
 /// Clamp `AgentConfig` fields per `requirements.toml`. No-op if absent.
@@ -985,7 +977,6 @@ fn apply_requirements_inner(
             push("features.telemetry", format!("{mode}"));
         }
     }
-    pin_feature!(feedback);
     pin_feature!(lsp_tools);
     pin_feature!(web_fetch);
     pin_feature!(ask_user_question);
@@ -1084,11 +1075,6 @@ fn apply_requirements_inner(
         "endpoints",
         "trace_upload_url",
         config.endpoints.trace_upload_url
-    );
-    enforce_str!(
-        "endpoints",
-        "feedback_base_url",
-        config.endpoints.feedback_base_url
     );
     enforce_str!(
         "endpoints",

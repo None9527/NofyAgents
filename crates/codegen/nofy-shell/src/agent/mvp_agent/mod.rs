@@ -53,7 +53,6 @@ use tokio::sync::oneshot;
 use nofy_acp_lib::AcpAgentGatewaySender as GatewaySender;
 use crate::agent::auth_method;
 use crate::agent::config::{self, Config as AgentConfig, ModelEntry, resolve_credentials};
-use crate::agent::feedback_client::FeedbackClient;
 use crate::agent::folder_trust;
 use crate::agent::models::{resolve_catalog_key, selectable_catalog_key_for_persisted};
 use crate::agent::session_config;

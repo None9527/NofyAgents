@@ -369,8 +369,7 @@ impl CommandAvailability {
             BuiltinGate::WorkflowManagement => self.workflows || self.workflow_management,
         }
     }
-    /// Test helper: every gate satisfied (matches the legacy "feedback only"
-    /// fixture but enables every newly-gated command too).
+    /// Test helper: every gate satisfied.
     #[cfg(test)]
     pub(crate) fn all_enabled() -> Self {
         Self {

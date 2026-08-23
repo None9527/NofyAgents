@@ -121,8 +121,7 @@ pub struct PermissionResolution {
     pub event: Option<PermissionEvent>,
 }
 /// Identifies the type of client connecting to the agent.
-/// Used to determine which permission UI features to enable
-/// and which feedback/experiment client type to report.
+/// Used to determine which permission UI features to enable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum ClientType {
     /// Generic client - show simple permission options with full command text
@@ -178,17 +177,6 @@ impl ClientType {
             Some("nofy-desktop") => Self::Desktop,
             Some("nofy-pager") => Self::NofyPager,
             _ => Self::Generic,
-        }
-    }
-    /// Label for feedback reporting and experiment filtering.
-    pub fn feedback_label(&self) -> &'static str {
-        match self {
-            Self::NofyTUI | Self::NofyPager => "tui",
-            Self::NofyWeb => "web",
-            Self::Nebula => "nebula",
-            Self::Extension => "extension",
-            Self::Generic => "agent",
-            Self::Desktop => "desktop",
         }
     }
 }

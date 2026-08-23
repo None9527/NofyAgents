@@ -1767,15 +1767,12 @@ impl SessionActor {
         }
     }
     /// Shared turn-completion bookkeeping (plan cleanup, signals snapshot +
-    /// persistence, BigQuery turn delta, feedback prompt). Runs identically for
-    /// the native and StructuredOutput-tool completion paths. Returns the
-    /// turn-end snapshot for `TurnOutcome::Completed`.
+    /// persistence). Runs identically for the native and StructuredOutput-tool
+    /// completion paths. Returns the turn-end snapshot for
+    /// `TurnOutcome::Completed`.
     async fn finalize_turn_bookkeeping(
         &self,
-        req_id: &str,
-        conv_turn_start: std::time::Instant,
         turn_span_totals: &TurnSpanTotals,
-        model_fingerprint: Option<String>,
     ) -> Option<TurnDeltaSnapshot> {
         self.emit_turn_end_plan_cleanup().await;
         self.signals_handle().record_turn_complete();
@@ -1797,22 +1794,6 @@ impl SessionActor {
                 .notifications
                 .persistence_tx
                 .send(PersistenceMsg::Signals(snap.current.clone()));
-        }
-        self.feedback_manager
-            .send_turn_delta_with_snapshot(
-                snapshot.clone(),
-                Some(req_id.to_string()),
-                Some(conv_turn_start.elapsed().as_millis() as i64),
-                Some("completed".to_string()),
-                model_fingerprint,
-            )
-            .await;
-        if let Some(request) = self
-            .feedback_manager
-            .maybe_request_feedback(Some(req_id.to_string()))
-            .await
-        {
-            self.send_feedback_notification(request).await;
         }
         snapshot
     }
@@ -1914,7 +1895,6 @@ impl SessionActor {
         let mut todo_gate_fires: u32 = 0;
         let mut auth_retry_schedule = AuthRetrySchedule::new();
         let mut turn_span_totals = TurnSpanTotals::default();
-        let mut model_fingerprint: Option<String> = None;
         let mut structured_output_retries: u32 = 0;
         let structured_output_validator = json_schema.as_ref().map(|schema| {
             jsonschema::validator_for(schema).map_err(|e| format!("invalid output schema: {e}"))
@@ -1974,12 +1954,7 @@ impl SessionActor {
                     },
                 );
                 let snapshot = self
-                    .finalize_turn_bookkeeping(
-                        req_id,
-                        conv_turn_start,
-                        &turn_span_totals,
-                        model_fingerprint.clone(),
-                    )
+                    .finalize_turn_bookkeeping(&turn_span_totals)
                     .await;
                 return Ok(TurnOutcome::StationarityEnded {
                     snapshot: Box::new(snapshot),
@@ -2365,12 +2340,6 @@ impl SessionActor {
             }
             let mut tool_calls = response.tool_calls().to_vec();
             metrics_drop_guard.record_model_response(tool_calls.len());
-            if let Some(fp) = response
-                .assistant()
-                .and_then(|a| a.model_fingerprint.clone())
-            {
-                model_fingerprint = Some(fp);
-            }
             let fallback_text = response.fallback_text();
             let stop_reason = response.stop_reason;
             let response_is_empty = response.is_empty();
@@ -2482,12 +2451,7 @@ impl SessionActor {
                     continue;
                 }
                 let snapshot = self
-                    .finalize_turn_bookkeeping(
-                        req_id,
-                        conv_turn_start,
-                        &turn_span_totals,
-                        model_fingerprint.clone(),
-                    )
+                    .finalize_turn_bookkeeping(&turn_span_totals)
                     .await;
                 if self.drain_pending_interjections().await {
                     tracing::info!(
@@ -2524,12 +2488,7 @@ impl SessionActor {
                     StructuredOutputStep::Complete(validated) => {
                         turn_tools_called.push(STRUCTURED_OUTPUT_TOOL.to_string());
                         let snapshot = self
-                            .finalize_turn_bookkeeping(
-                                req_id,
-                                conv_turn_start,
-                                &turn_span_totals,
-                                model_fingerprint.clone(),
-                            )
+                            .finalize_turn_bookkeeping(&turn_span_totals)
                             .await;
                         return Ok(TurnOutcome::Completed {
                             snapshot: Box::new(snapshot),

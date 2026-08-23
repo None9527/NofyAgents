@@ -312,7 +312,6 @@ fn expired_external_credential_fails_closed_and_mid_session_401_names_the_provid
             std::env::remove_var(&name);
         }
         std::env::set_var("NOFY_TELEMETRY_ENABLED", "false");
-        std::env::set_var("NOFY_FEEDBACK_ENABLED", "false");
         std::env::set_var("NOFY_TRACE_UPLOAD", "false");
     }
 

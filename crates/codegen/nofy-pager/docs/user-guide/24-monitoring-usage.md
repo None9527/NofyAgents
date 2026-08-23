@@ -233,7 +233,7 @@ Three independent fail-closed mechanisms guard the wire format:
 
 Never exported: bash command text, error message bodies, prompt text
 (without the gate), file paths (without the gate), `api_key.id`, machine
-fingerprints, email addresses, subscription tier.
+fingerprints, email addresses.
 
 ## Example collector config
 

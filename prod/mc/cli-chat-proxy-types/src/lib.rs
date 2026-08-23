@@ -5,7 +5,6 @@
 
 pub mod client_metrics_types;
 pub mod deployment_config_types;
-pub mod feedback_types;
 pub mod metadata_types;
 mod sandbox_types;
 pub mod serde_helpers;
@@ -16,7 +15,6 @@ pub mod team_managed_config_types;
 
 pub use client_metrics_types::*;
 pub use deployment_config_types::*;
-pub use feedback_types::*;
 pub use metadata_types::*;
 pub use sandbox_types::*;
 pub use session_types::*;

@@ -561,7 +561,6 @@ mod rss {
             std::env::set_var("NOFY_API_BASE_URL", server.url());
             std::env::set_var("NOFY_API_KEY", "test-key-for-ci");
             std::env::set_var("NOFY_TELEMETRY_ENABLED", "false");
-            std::env::set_var("NOFY_FEEDBACK_ENABLED", "false");
             std::env::set_var("NOFY_TRACE_UPLOAD", "false");
         }
 

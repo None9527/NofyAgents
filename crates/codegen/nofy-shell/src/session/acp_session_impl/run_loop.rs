@@ -57,17 +57,9 @@ async fn fire_session_end_hooks(session: &SessionActor, reason: &str) {
     }
     session.dispatch_session_end_stop(reason).await;
 }
-/// Cancel the feedback sync loop, drain/sync under exit budgets, persist
-/// background-task state, and drop scratch. Owns the single final signal sync
-/// via [`FeedbackManager::shutdown`] — the sync loop cancel arm does not sync.
-///
-/// `FeedbackManager::shutdown` short-circuits force_sync/drain when telemetry
-/// is off or the session is empty with nothing pending (empty open→exit).
-async fn finish_session_exit_feedback(session: &SessionActor) {
-    if let Some(cancel) = &session.sync_loop_cancel {
-        cancel.cancel();
-    }
-    session.feedback_manager.shutdown(None).await;
+/// Stop the signals actor, persist background-task state, and drop scratch.
+async fn finish_session_exit_signals(session: &SessionActor) {
+    session.signals_handle().shutdown();
     if !session.startup_hints.is_subagent {
         session.persist_background_task_manifest().await;
     }
@@ -451,11 +443,10 @@ pub(super) async fn run_session(
                 }
                 maybe_completion = completion_rx.recv() => {
                     let Some((prompt_id, result)) = maybe_completion else {
-                        // Completion channel closed: full feedback teardown so
-                        // final signal sync + upload drain still run (cancel
-                        // alone no longer force-syncs — shutdown owns that).
+                        // Completion channel closed: run the exit teardown
+                        // (signals actor shutdown + manifest persistence).
                         shutdown_workflows(&session).await;
-                        finish_session_exit_feedback(&session).await;
+                        finish_session_exit_signals(&session).await;
                         return;
                     };
                     // Flush any buffered turn deltas before `handle_completion`
@@ -562,7 +553,7 @@ pub(super) async fn run_session(
                             }
                         }
                         shutdown_workflows(&session).await;
-                        finish_session_exit_feedback(&session).await;
+                        finish_session_exit_signals(&session).await;
                         return;
                     };
 
@@ -1759,16 +1750,6 @@ pub(super) async fn run_session(
                         SessionCommand::RefreshMcpSearchIndex => {
                             session.refresh_mcp_snapshot_and_schedule_reminder().await;
                         }
-                        SessionCommand::TriggerTestFeedback { tier, mode, respond_to } => {
-                            let s = session.clone();
-                            tokio::task::spawn_local(async move {
-                                let request = s.feedback_manager.force_feedback_request(tier, mode).await;
-                                let notification = crate::extensions::notification::FeedbackRequestNotification::from(request.clone());
-                                s.send_feedback_notification(request).await;
-                                let resp = ExtMethodResult::success(notification).to_ext_response();
-                                let _ = respond_to.send(resp);
-                            });
-                        }
                         SessionCommand::AdvertiseCommands => {
                             session.send_available_commands_update().await;
                         }
@@ -2085,7 +2066,7 @@ pub(super) async fn run_session(
                             session
                                 .run_session_end_memory_pipeline("session summary saved")
                                 .await;
-                            finish_session_exit_feedback(&session).await;
+                            finish_session_exit_signals(&session).await;
                             return;
                         }
                     }

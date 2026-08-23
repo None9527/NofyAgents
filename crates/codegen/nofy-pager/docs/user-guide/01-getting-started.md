@@ -8,42 +8,19 @@ You can use it interactively as a full-screen TUI, run it headlessly for scripti
 
 ## Installation
 
-Install the latest stable release (macOS, Linux, or Windows via Git Bash):
+Build from source with Rust (stable toolchain):
 
 ```bash
-curl -fsSL https://x.ai/cli/install.sh | bash
+cargo build --release -p nofy-pager-bin
+install -D target/release/nofy ~/.local/bin/nofy
 ```
 
-Install a specific version:
-
-```bash
-curl -fsSL https://x.ai/cli/install.sh | bash -s 0.1.42
-```
-
-On **Windows (PowerShell)**, use the native PowerShell installer:
-
-```powershell
-irm https://x.ai/cli/install.ps1 | iex
-```
-
-Install a specific version:
-
-```powershell
-$env:GROK_VERSION="0.1.42"; irm https://x.ai/cli/install.ps1 | iex
-```
-
-The PowerShell installer automatically adds `%USERPROFILE%\.grok\bin` to your User PATH. Alternatively, install via [Git for Windows](https://gitforwindows.org/) (Git Bash) or MSYS2 using the bash script above. WSL users get the Linux binary automatically.
+Make sure `~/.local/bin` is on your `PATH`.
 
 Verify the installation:
 
 ```bash
 grok --version
-```
-
-Update to the latest version at any time:
-
-```bash
-grok update
 ```
 
 ---
@@ -56,16 +33,28 @@ Start Grok by running:
 grok
 ```
 
-On first launch, Grok opens your browser to authenticate with grok.com. After you sign in, Grok stores your credentials in `~/.grok/auth.json`, where they persist across sessions. Grok refreshes your credentials automatically and prompts you to sign in again when they can no longer be renewed.
+This build uses your own API key (BYOK). Before the first launch, point the
+CLI at your OpenAI-compatible endpoint in `~/.grok/config.toml`:
 
-If you prefer API key authentication (e.g., for CI/CD or environments without a browser), set the `XAI_API_KEY` environment variable instead:
+```toml
+[models]
+default = "my-endpoint"
+
+[model.my-endpoint]
+model = "model-id-on-the-provider"
+base_url = "https://your-endpoint.example.com/v1"
+env_key = "YOUR_KEY_ENV_VAR"
+```
+
+Then export the key and start:
 
 ```bash
-export XAI_API_KEY="xai-..."
+export YOUR_KEY_ENV_VAR="sk-..."
 grok
 ```
 
-See [Authentication](02-authentication.md) for the full set of auth options including OIDC, external auth providers, and device code flow.
+See [Authentication](02-authentication.md) for the full set of auth options,
+including external auth providers for headless environments.
 
 ---
 

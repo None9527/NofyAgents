@@ -96,7 +96,6 @@ async fn expired_credentials_fail_closed_without_interactive_mint() {
         std::env::set_var("NOFY_API_BASE_URL", &dead);
         std::env::remove_var("NOFY_API_KEY");
         std::env::set_var("NOFY_TELEMETRY_ENABLED", "false");
-        std::env::set_var("NOFY_FEEDBACK_ENABLED", "false");
         std::env::set_var("NOFY_TRACE_UPLOAD", "false");
     }
 

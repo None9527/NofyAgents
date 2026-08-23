@@ -751,7 +751,6 @@ fn parse_managed_settings_json(json: &serde_json::Value, path: &Path) -> Managed
     let env = json.get("env");
     let features = ManagedSettingsFeatures {
         disable_telemetry: json_env_flag(env, "DISABLE_TELEMETRY"),
-        disable_feedback: json_env_flag(env, "DISABLE_FEEDBACK_COMMAND"),
         disable_yolo: parse_disable_bypass_permissions(json),
         source_path: Some(path.to_path_buf()),
     };
@@ -919,7 +918,6 @@ fn read_managed_settings_json(path: &Path) -> Option<serde_json::Value> {
 #[derive(Debug, Default)]
 pub struct ManagedSettingsFeatures {
     pub disable_telemetry: Option<bool>,
-    pub disable_feedback: Option<bool>,
     pub disable_yolo: Option<bool>,
     pub source_path: Option<std::path::PathBuf>,
 }
@@ -2163,8 +2161,7 @@ mod tests {
     fn parse_managed_settings_json_end_to_end() {
         let json = serde_json::json!({
             "env": {
-                "DISABLE_TELEMETRY": 1,
-                "DISABLE_FEEDBACK_COMMAND": 1
+                "DISABLE_TELEMETRY": 1
             },
             "permissions": {
                 "disableBypassPermissionsMode": "disable",
@@ -2182,7 +2179,6 @@ mod tests {
         let ms = parse_managed_settings_json(&json, path);
 
         assert_eq!(ms.features.disable_telemetry, Some(true));
-        assert_eq!(ms.features.disable_feedback, Some(true));
         assert_eq!(ms.features.disable_yolo, Some(true));
 
         assert!(ms.mcp_allowlist.is_restricted());

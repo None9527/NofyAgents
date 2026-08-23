@@ -33,7 +33,7 @@ pub(super) fn dispatch_interject(
 
     // Submitting an interjection retires any edit-contextual ephemeral tip —
     // even when there is no active session, matching the prompt/bash/
-    // feedback/remember paths.
+    // remember paths.
     agent.ephemeral_tip.clear_on_submit();
 
     let Some(session_id) = agent.session.session_id.clone() else {

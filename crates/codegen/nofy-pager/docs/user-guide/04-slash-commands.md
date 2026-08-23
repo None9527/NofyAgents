@@ -2,7 +2,7 @@
 
 Type `/` in the prompt to open the command menu. It fuzzy-matches as you type, and picking a command runs it immediately.
 
-Commands come from two places: **shell builtins**, handled by the agent backend (xai-grok-shell), and **pager builtins**, handled by the pager frontend (xai-grok-pager). Both show up in the same menu, and any enabled skill with `user-invocable: true` appears there too. If a skill reuses a built-in name such as `login`, the built-in keeps `/login` and the skill stays available as `/plugin-name:login` — the menu badges both so the collision is visible.
+Commands come from two places: **shell builtins**, handled by the agent backend (xai-grok-shell), and **pager builtins**, handled by the pager frontend (xai-grok-pager). Both show up in the same menu, and any enabled skill with `user-invocable: true` appears there too. If a skill reuses a built-in name such as `compact`, the built-in keeps `/compact` and the skill stays available as `/plugin-name:compact` — the menu badges both so the collision is visible.
 
 Every command below lists its aliases where it has them. A few commands only appear when a feature or session state enables them; those cases are called out inline. The menu is also filtered by render mode — see [`/minimal` and `/fullscreen`](#minimal-and-fullscreen).
 
@@ -228,26 +228,6 @@ Open the extensions modal on the Skills tab to view installed skills.
 
 ---
 
-## Media Generation
-
-### `/imagine <description>`
-
-Generate an image from a text description.
-
-```
-/imagine a golden sunset over a calm ocean with silhouetted palm trees
-```
-
-### `/imagine-video <description>`
-
-Generate a video from a text (or image) description. It plans shots, generates source images, and animates them with `image_to_video`.
-
-```
-/imagine-video a cat playing piano in a jazz club
-```
-
----
-
 ## Scheduling
 
 ### `/loop [interval] <prompt>`
@@ -319,15 +299,6 @@ Open the live workflows **run** dashboard — active and retained runs, not a ca
 
 Switch the color theme. Alias: `/t`.
 
-### `/feedback [message]`
-
-Report an issue or send feedback. A message sends immediately. With none, a pane opens for a longer report: `Enter` sends, `Esc` discards.
-
-```
-/feedback
-/feedback Something isn't working correctly
-```
-
 ### `/btw`
 
 Send an aside to the agent without interrupting the current task. In minimal mode (`--minimal`), the answer shows up in a dismissible panel above the prompt: `Esc` dismisses it, a finished answer is saved into native scrollback, and a late reply to an already-dismissed panel is dropped. The side question and its answer aren't part of the main turn.
@@ -344,22 +315,16 @@ Open the MCP servers management modal.
 
 Check the current session for terminal, clipboard, color, input, notification, and sandbox issues. Doctor shows what it found and how to resolve each issue. Run `/doctor fix` to list available automatic fixes; other findings include manual steps. `/terminal-setup`, `/terminal-check`, and `/terminal-info` remain aliases.
 
-### `/release-notes`
-
-View release notes for the current version. Alias: `/changelog`.
-
 ### `/docs`
 
-Browse the built-in How-to Guides, open the online Build docs, or jump straight to a guide by title. Aliases: `/howto`, `/guides`.
+Browse the built-in How-to Guides, or jump straight to a guide by title. Aliases: `/howto`, `/guides`.
 
 ```
 /docs
-/docs web
 /docs Getting Started
 ```
 
 - Bare `/docs` (or `/docs how-to`) opens the How-to Guides picker.
-- `/docs web` opens https://docs.x.ai/build/overview in your browser.
 - `/docs <title>` opens a specific guide by case-insensitive title match.
 
 ### `/tutorial`
@@ -392,23 +357,14 @@ Create, edit, and delete personas. A subagent can apply a persona to shape how i
 
 ---
 
-## Account and Billing
-
-### `/login`
-
-Log in or re-authenticate without leaving the session.
-
-### `/logout`
-
-Log out and return to the login screen.
+## Usage
 
 ### `/usage`
 
-View credit usage or manage billing. Alias: `/cost`.
+View local session usage (tokens/cost for the current session). Alias: `/cost`.
 
 ```
 /usage
-/usage manage
 ```
 
 ### `/privacy`
@@ -420,7 +376,7 @@ Open Settings on **Coding data, retention, and training**, where you choose
 /privacy
 ```
 
-This setting doesn't touch `[features] telemetry`, `trace_upload`, or your external OTEL settings — see [Monitoring Usage](24-monitoring-usage.md#related-settings). On team accounts only a team admin can change it, and admins can also enable or disable Zero Data Retention for the team ([how to enable ZDR](https://docs.x.ai/developers/faq/security#how-to-enable-zdr)). When the choice isn't yours to make, the row says so — `ZDR` or `· Admin Managed` — instead of opening the chooser.
+This setting doesn't touch `[features] telemetry` or your external OTEL settings — see [Monitoring Usage](24-monitoring-usage.md#related-settings).
 
 ---
 

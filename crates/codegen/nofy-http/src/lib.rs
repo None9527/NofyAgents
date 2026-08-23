@@ -6,7 +6,7 @@
 //! public and cached, the last crate-internal and built on demand):
 //!
 //! - `shared_client`: a `OnceLock`-cached async client for general
-//!   use (telemetry, feedback, settings, etc.).
+//!   use (telemetry, settings, etc.).
 //! - `shared_upload_client`: a `OnceLock`-cached client for GCS
 //!   uploads with aggressive connection pool eviction.
 //! - `shared_startup_blocking_client`: a blocking client for the early

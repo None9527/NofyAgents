@@ -30,7 +30,7 @@ use crate::render::wrapping::word_wrap_lines_with_joiners;
 use crate::syntax::get_syntect;
 use crate::theme::Theme;
 use crate::theme::md_style;
-use crate::views::prompt_widget::{PromptBg, PromptStyle, StashedPrompt};
+use crate::views::prompt_widget::StashedPrompt;
 
 /// Maximum description lines shown in the question chrome before truncation.
 const DEFAULT_MAX_CHROME_DESC_LINES: u16 = 5;
@@ -118,8 +118,6 @@ pub enum LocalQuestionKind {
         plan: Box<crate::diagnostics::FixPlan>,
     },
     DeleteCurrentSession,
-    /// Modal opened by bare `/feedback` (no inline text). Freeform-only; submit sends [`crate::app::actions::Action::SendFeedback`].
-    Feedback,
 }
 
 // ── State ──────────────────────────────────────────────────────────────
@@ -812,18 +810,6 @@ impl QuestionViewState {
         option.preview.as_deref()
     }
 
-    /// The bare `/feedback` report pane. Having no options to navigate, it keeps input focus for its whole life and answers Esc by dismissing.
-    pub fn is_feedback(&self) -> bool {
-        matches!(self.local_kind, Some(LocalQuestionKind::Feedback))
-    }
-
-    pub fn feedback_report(&self) -> String {
-        self.per_question_freeform
-            .first()
-            .map(|s| s.trim().to_string())
-            .unwrap_or_default()
-    }
-
     /// Labels of the selected options for a given question.
     pub fn selected_labels(&self, question_idx: usize) -> Vec<String> {
         let Some(sel) = self.selections.get(question_idx) else {
@@ -1156,50 +1142,6 @@ pub const QUESTION_VIEW_HPAD: u16 = 5;
 ///   Single: `X (●) ` = 1 + 1 + 3 + 1 = 6
 pub fn option_prefix_w(_question: &Question) -> usize {
     6 // both multi and single use 3-char markers now
-}
-
-/// Report area of the bare `/feedback` card: a multi-line box standing in for the option rows, shared by the full TUI and minimal renderers.
-/// `draw` needs a blank [`crate::views::prompt_widget::PromptInfo`] to put the bottom rule in place.
-pub mod feedback_input {
-    use super::{PromptBg, PromptStyle, QUESTION_VIEW_HPAD, Theme};
-
-    /// Rows at rest: top rule, five text rows, bottom rule. The box grows with the report up to the caller's cap.
-    pub const HEIGHT: u16 = 7;
-
-    /// Rows of that height spent on the outline rather than text.
-    pub const CHROME_H: u16 = 2;
-
-    /// Smallest box that can still carry its outline: the two rules plus one row of text. Below this the renderers drop to [`flat_style`].
-    pub const MIN_HEIGHT: u16 = CHROME_H + 1;
-
-    /// Shown while the box is empty, including while it has focus.
-    pub const PLACEHOLDER: &str = "Please provide as much detail as possible.";
-
-    /// The card's content column, so the box lines up under the label.
-    pub fn width(area_width: u16) -> u16 {
-        area_width.saturating_sub(QUESTION_VIEW_HPAD)
-    }
-
-    pub fn style(theme: &Theme) -> PromptStyle {
-        PromptStyle {
-            // Sits on the card, so it takes the card's surface rather than the composer's, and pads symmetrically inside its own rules.
-            bg: PromptBg::Panel(theme.bg_light),
-            chrome_pad_right: 2,
-            placeholder_when_focused: true,
-            placeholder_override: Some(PLACEHOLDER),
-            ..PromptStyle::default()
-        }
-    }
-
-    /// Unoutlined variant for a panel too short to spare the two rows the rules cost.
-    pub fn flat_style(theme: &Theme) -> PromptStyle {
-        PromptStyle {
-            vpad_top: 0,
-            chrome: false,
-            show_borders: false,
-            ..style(theme)
-        }
-    }
 }
 
 /// Width available for inline prompt text given the full area width.
@@ -2770,8 +2712,8 @@ mod tests {
 
     #[test]
     fn chrome_height_option_less_question_drops_the_label_gap() {
-        // Nothing under the label to separate it from, so the gap goes: vpad(1) + label(1) + gap(1) = 3. This is the bare `/feedback` card.
-        let q = make_question("How can we improve Nofy Build?", &[], false);
+        // Nothing under the label to separate it from, so the gap goes: vpad(1) + label(1) + gap(1) = 3.
+        let q = make_question("A question with no options", &[], false);
         assert_eq!(
             chrome_height(
                 &q,

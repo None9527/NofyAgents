@@ -540,20 +540,6 @@ impl MvpAgent {
             );
         }
     }
-    /// Extract feedback credentials when proxy credentials are available.
-    ///
-    /// Returns `(base_url, user_token, optional_extra_access_key, deployment_key)`.
-    /// Used by both [`feedback_client`] and session spawning to avoid
-    /// duplicating the credential assembly logic.
-    #[allow(clippy::type_complexity)]
-    fn feedback_credentials(
-        &self,
-    ) -> Option<(String, Option<String>, Option<String>, Option<String>)> {
-        // Feedback signal syncing went to the xAI cli-chat-proxy backend.
-        // Disabled in the sanitized build; local signal tracking continues
-        // via the feedback manager's client-less mode.
-        None
-    }
     pub(super) fn ensure_telemetry_client(&self) {
         crate::auth::credential_provider::sync_external_otel_identity();
         let cfg = self.cfg.borrow();
@@ -577,17 +563,6 @@ impl MvpAgent {
                 crate::http::shared_client(),
             );
         }
-    }
-    /// Build a `FeedbackClient` with resolved feedback URL and credentials.
-    pub(crate) fn feedback_client(&self) -> Option<FeedbackClient> {
-        let (base_url, user_token, alpha_test_key, deployment_key) = self
-            .feedback_credentials()?;
-        Some(
-            FeedbackClient::new(base_url, user_token)
-                .with_alpha_test_key(alpha_test_key)
-                .with_deployment_key(deployment_key)
-                .with_auth_manager(self.auth_manager.clone()),
-        )
     }
     /// Build a `RegistryConfig` if the feature is enabled (for passing to persistence actor).
     pub(super) fn build_registry_config(
@@ -2848,16 +2823,6 @@ impl MvpAgent {
         // the gate never opens.
         let _ = hunk_tracking_enabled;
         let loc_tracking_enabled = false;
-        let (feedback_resolved, feedback_flags) = {
-            let cfg = self.cfg.borrow();
-            let resolved = cfg.resolve_feedback();
-            let flags = crate::session::feedback_manager::FeedbackFlags {
-                enabled: resolved.value,
-                user: cfg.feedback.user.clone(),
-            };
-            (resolved, flags)
-        };
-        tracing::info!(feedback = %feedback_resolved, "resolved feedback feature flag");
         let loc_aggregate_rx = match hunk_event_rx {
             Some((hunk_event_rx, loc_cancel)) if loc_tracking_enabled => {
                 let (loc_agg_tx, loc_agg_rx) = tokio::sync::mpsc::unbounded_channel();
@@ -2983,22 +2948,6 @@ impl MvpAgent {
         let two_pass_enabled = self.cfg.borrow().is_two_pass_compaction_enabled();
         let client_type = *self.client_type.borrow();
         let buffering_settings = self.buffering_settings.borrow().clone();
-        let (
-            feedback_proxy_url,
-            feedback_user_token,
-            feedback_alpha_test_key,
-            deployment_key,
-        ) = if let Some((url, token, alpha, deploy)) = self.feedback_credentials() {
-            (Some(url), token, alpha, deploy)
-        } else {
-            (None, None, None, None)
-        };
-        tracing::info!(
-            session_id = %session_info.id.0,
-            feedback_url = ?feedback_proxy_url,
-            authenticated = feedback_user_token.is_some(),
-            "Initializing feedback manager for session"
-        );
         let skills = self.cfg.borrow().skills.clone();
         let compat = self.cfg.borrow().compat_resolved;
         let acp_agent_profile = parse_agent_profile_from_meta(session_meta);
@@ -3350,10 +3299,6 @@ impl MvpAgent {
                     self.codebase_indexes.clone(),
                     client_code_nav_enabled,
                     fs_watch_caps,
-                    feedback_proxy_url,
-                    feedback_user_token,
-                    feedback_alpha_test_key,
-                    deployment_key,
                     client_terminal,
                     client_fs_read && client_fs_write,
                     gateway_enabled,
@@ -3369,8 +3314,6 @@ impl MvpAgent {
                     persisted_workflow_runs,
                     persisted_announcement_state,
                     self.memory_config.clone(),
-                    loc_tracking_enabled,
-                    feedback_flags,
                     self.managed_mcp_cache.clone(),
                     managed_mcp_expires_at,
                     managed_mcp_proxy_url,

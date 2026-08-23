@@ -23,7 +23,7 @@ impl AgentView {
             == super::PromptInputMode::Normal
             && matches!(self.prompt_mode, super::PromptMode::Normal)
             // A card's inline editor borrows the composer to answer a question, and a guess at the next prompt to the model is not an
-            // answer. In the `/feedback` box it would also paint over the detail placeholder.
+            // answer.
             && self.question_view.is_none()
             && !self.session.state.is_busy();
     }
@@ -620,8 +620,7 @@ impl AgentView {
 mod prompt_suggestion_gate_tests {
     use super::test_fixtures::make_agent;
 
-    /// A card's inline editor borrows the composer, so the next-prompt ghost must not paint into it. The `/feedback` box relies on this
-    /// for its placeholder; the old `~` mode got it from `PromptInputMode::Feedback`, which no longer exists.
+    /// A card's inline editor borrows the composer, so the next-prompt ghost must not paint into it.
     #[test]
     fn an_open_question_card_closes_the_suggestion_gate() {
         use crate::views::prompt_widget::StashedPrompt;

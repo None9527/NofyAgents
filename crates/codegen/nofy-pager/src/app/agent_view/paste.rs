@@ -1334,7 +1334,7 @@ pub(super) mod paste_key_tests {
         );
     }
     /// Plan-nudge gates: already in plan mode (optimistic read), a busy turn,
-    /// or a special (bash/feedback/remember) input mode each suppress it.
+    /// or a special (bash/remember) input mode each suppress it.
     #[test]
     fn plan_nudge_suppressed_by_state_gates() {
         let mut agent = make_agent();

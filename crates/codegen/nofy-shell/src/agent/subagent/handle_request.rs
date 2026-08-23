@@ -982,10 +982,6 @@ pub(crate) async fn run_shell_child(
         )),
         false,
         subagent_fs_watch,
-        None,
-        None,
-        None,
-        None,
         false,
         false,
         std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
@@ -1022,8 +1018,6 @@ pub(crate) async fn run_shell_child(
         } else {
             ctx.memory_config.clone()
         },
-        false,
-        Default::default(),
         ctx.managed_mcp_state.clone(),
         None,
         ctx.managed_mcp_proxy_base_url.clone(),

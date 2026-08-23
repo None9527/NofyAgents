@@ -5,35 +5,6 @@ pub mod tips;
 pub mod uname;
 pub use nofy_shared::clipboard;
 pub use nofy_shared::stderr::{stderr_lock, with_locked_stderr};
-/// Generate a pseudo-random f64 in [0.0, 1.0).
-///
-/// Uses `RandomState::new()` which is OS-seeded (via `getrandom`) on each
-/// instantiation, producing a unique hasher state per call. A fixed sentinel
-/// is hashed to extract the random bits — the entropy comes entirely from
-/// the OS-seeded `RandomState`, not from any clock source.
-///
-/// # Precision
-/// The result uses all 53 bits of `f64` mantissa for a uniform distribution
-/// over `[0.0, 1.0)`. We shift the 64-bit hash right by 11 bits to get a
-/// 53-bit integer, then divide by `2^53`. This avoids the subtle bias that
-/// occurs when casting a full `u64` to `f64` (which has only 52 bits of
-/// mantissa, causing multiple `u64` values to map to the same `f64` for
-/// values > 2^52).
-///
-/// Not cryptographically secure — suitable for sampling and feature
-/// rollouts, not for security-sensitive randomness.
-pub fn random_f64() -> f64 {
-    use std::collections::hash_map::RandomState;
-    use std::hash::{BuildHasher, Hasher};
-    let random_state = RandomState::new();
-    let mut hasher = random_state.build_hasher();
-    hasher.write_u64(0x517cc1b727220a95);
-    (hasher.finish() >> 11) as f64 / (1u64 << 53) as f64
-}
-/// Probabilistic sampling. Returns `true` with probability `rate` (0.0–1.0).
-pub fn probabilistic_sample(rate: f64) -> bool {
-    random_f64() < rate
-}
 fn matches_trusted_base_url(candidate: &str, trusted_base: &str) -> bool {
     let Ok(candidate) = reqwest::Url::parse(candidate) else {
         return false;

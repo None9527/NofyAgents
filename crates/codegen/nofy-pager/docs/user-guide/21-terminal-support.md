@@ -218,26 +218,6 @@ If Grok stops receiving mouse input, re-enable mouse reporting in the terminal:
 - **Apple Terminal**: **View → Allow Mouse Reporting** (`Cmd+R`).
 - **iTerm2**: **Settings → Profiles → Terminal → Enable mouse reporting**.
 
-### Voice dictation records nothing
-
-After about 10 seconds without a transcript, Grok stops capture and shows
-**“No speech was detected. Voice stopped.”** with microphone fix steps. On macOS,
-a denied microphone grant can look the same as silence because permission belongs
-to the terminal hosting Grok. Open **System Settings → Privacy & Security →
-Microphone**, enable the terminal, and restart it. If access is already on, check
-the input device and level under **System Settings → Sound → Input** and try
-again.
-
-Run `grok doctor`, or run `/doctor` while voice mode is on. The **Voice** section
-shows the microphone Grok would use. If no input device is available, Doctor
-shows `voice.no-input-device` and the next steps. Doctor cannot detect denied
-macOS microphone access passively when macOS supplies silence.
-
-On macOS, each dictation uses a short-lived capture helper process so the audio
-stack's memory is released when capture ends. If the helper itself may be the
-problem, set `GROK_VOICE_CAPTURE=inprocess` to use the in-process fallback for
-comparison.
-
 ### Byobu with GNU screen
 
 Byobu on GNU screen has limited support. `/doctor` reports
@@ -247,4 +227,5 @@ Byobu on GNU screen has limited support. `/doctor` reports
 
 ## Still Stuck?
 
-Run `/feedback` to report it.
+Run `/doctor` and work through its findings, or review the logs under
+`~/.grok/logs`.
