@@ -317,16 +317,16 @@ impl ShellState {
             ShellKind::Zsh => vec!["-o", "extendedglob", "-ilc", &script],
         };
 
-        // stderr is intentionally discarded (Stdio::null) — we never read it,
+        // stderr is intentionally discarded (null_stdio) — we never read it,
         // and piping it would risk a deadlock if the user's rc files write >64KB
         // to stderr (fills the pipe buffer, child blocks on write, parent blocks
         // on stdout read).
         let mut cmd = tokio::process::Command::new(shell.binary_path());
         cmd.args(&args)
             .current_dir(cwd)
-            .stdin(Stdio::null())
+            .stdin(crate::util::null_stdio())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
+            .stderr(crate::util::null_stdio())
             .kill_on_drop(true);
         crate::util::detach_command(&mut cmd);
         // Apply the policy before the `export -p` snapshot so the replayed state

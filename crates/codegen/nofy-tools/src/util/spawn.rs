@@ -6,5 +6,6 @@
 //! API for backward compatibility.
 
 pub use nofy_tty_utils::{
-    ProcessGroup, ProcessScope, detach_command, global_process_scope, new_process_group,
+    ProcessGroup, ProcessScope, detach_command, detach_search_command, global_process_scope,
+    new_process_group, null_stdio,
 };

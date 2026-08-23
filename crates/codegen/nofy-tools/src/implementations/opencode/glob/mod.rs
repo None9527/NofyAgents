@@ -181,8 +181,7 @@ impl nofy_tool_runtime::Tool for GlobTool {
             .arg(&search_dir)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
-        crate::util::detach_command(&mut cmd);
-        cmd.stdin(Stdio::null());
+        crate::util::detach_search_command(&mut cmd);
 
         #[allow(clippy::disallowed_methods)] // search helper, waited on below
         let mut child = match cmd.spawn() {
