@@ -221,41 +221,6 @@ pub async fn connect_via_leader(
     )
 }
 
-/// Warn about flags that only take effect in direct-spawn mode.
-///
-/// In leader mode the agent is already running; these per-agent settings
-/// cannot be changed after the fact.
-fn warn_unsupported_leader_flags(flags: &ConnectFlags) {
-    // eprintln rather than tracing::warn because this runs before pager
-    // TUI tracing is initialised — tracing output would be silently dropped.
-    for flag in unsupported_leader_flags(flags) {
-        eprintln!(
-            "warning: {flag} has no effect in leader mode \
-             (agent config is set at leader startup)"
-        );
-    }
-}
-
-fn unsupported_leader_flags(flags: &ConnectFlags) -> Vec<&'static str> {
-    let mut out = Vec::new();
-    if flags.experimental_memory {
-        out.push("--experimental-memory");
-    }
-    if flags.no_memory {
-        out.push("--no-memory");
-    }
-    if flags.storage_mode.is_some() {
-        out.push("--storage-mode");
-    }
-    if flags.subagents {
-        out.push("--subagents");
-    }
-    if !flags.permission_rules.is_empty() {
-        out.push("--allow/--deny permission rules");
-    }
-    out
-}
-
 /// Write config.toml fields based on CLI flags.
 fn apply_config_writes(flags: &ConnectFlags) {
     // Use toml_edit to preserve existing config structure
@@ -582,40 +547,6 @@ mod tests {
         assert!(!parse_session_recap_available(meta.as_object()));
     }
 
-
-    #[test]
-    fn unsupported_leader_flags_empty_when_none_set() {
-        let flags = ConnectFlags::default();
-        assert!(unsupported_leader_flags(&flags).is_empty());
-    }
-
-    #[test]
-    fn unsupported_leader_flags_detects_all() {
-        let flags = ConnectFlags {
-            experimental_memory: true,
-            no_memory: true,
-            storage_mode: Some("writeback".into()),
-            subagents: true,
-            ..Default::default()
-        };
-        let detected = unsupported_leader_flags(&flags);
-        assert_eq!(detected.len(), 4);
-        assert!(detected.contains(&"--experimental-memory"));
-        assert!(detected.contains(&"--no-memory"));
-        assert!(detected.contains(&"--storage-mode"));
-        assert!(detected.contains(&"--subagents"));
-    }
-
-    #[test]
-    fn unsupported_leader_flags_ignores_supported() {
-        let flags = ConnectFlags {
-            terminal: true,
-            fs_read: true,
-            fs_write: true,
-            ..Default::default()
-        };
-        assert!(unsupported_leader_flags(&flags).is_empty());
-    }
 
     #[test]
     fn build_initialize_meta_includes_rules_when_set() {

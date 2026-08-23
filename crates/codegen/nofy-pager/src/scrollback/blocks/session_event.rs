@@ -895,18 +895,18 @@ mod tests {
     #[test]
     fn compaction_failed_curated_error_is_appended() {
         let event = SessionEvent::CompactionFailed {
-            error: "out of credits or over your spending limit. Add credits and retry.".into(),
+            error: "the summary request timed out. Try again.".into(),
         };
         assert_eq!(
             event.message(),
-            "Compaction failed: out of credits or over your spending limit. Add credits and retry."
+            "Compaction failed: the summary request timed out. Try again."
         );
     }
 
     #[test]
     fn compaction_failed_has_warning_accent() {
         let block = SessionEventBlock::new(SessionEvent::CompactionFailed {
-            error: "out of credits or over your spending limit. Add credits and retry.".into(),
+            error: "the summary request timed out. Try again.".into(),
         });
         let theme = Theme::current();
         assert_eq!(

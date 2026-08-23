@@ -415,7 +415,7 @@ impl CompactionScope {
 
 /// Auto-compaction suppressed after a deterministic failure so the turn loop stops
 /// re-firing a doomed compaction. Fires once per transition into the suppressed
-/// state; `reason` is a fixed classification: `credit_block | size | auth | schema | other`.
+/// state; `reason` is a fixed classification: `size | auth | schema | other`.
 #[derive(Serialize)]
 pub struct AutoCompactSuppressed {
     pub reason: &'static str,
@@ -1287,39 +1287,8 @@ pub struct PlanSubmit {
     pub action: String,
 }
 
-// ---------------------------------------------------------------------------
-// SuperNofy upsell
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum SuperNofyUpsell {
-    WelcomeScreen,
-    RateLimitError,
-    /// Free-usage-exhausted paywall modal (free-tier 429 with the
-    /// `subscription:free-usage-exhausted` well-known error code).
-    FreeUsagePaywall,
-    /// Upsell modal shown when a tier-restricted slash command
-    /// (`/usage`, `/imagine`, …) is invoked on the free / X Basic tiers.
-    RestrictedCommand,
-}
-
-#[derive(Serialize)]
-pub struct SuperNofyUpsellShown {
-    pub source: SuperNofyUpsell,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth_method: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct SuperNofyUpsellClicked {
-    pub source: SuperNofyUpsell,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth_method: Option<String>,
-}
-
 /// Which surface a promo announcement's upgrade CTA was activated from.
-/// Modeled on [`SuperNofyUpsell`]; lets the funnel attribute the click to the
+/// Lets the funnel attribute the click to the
 /// welcome hero vs the in-session header vs the banner vs the dashboard, and
 /// distinguish keyboard (`Ctrl+O`) activations from pointer/OSC 8 ones.
 /// Ord/Eq exist for the pager's per-(announcement, surface) impression latch.
@@ -1360,7 +1329,6 @@ pub struct AnnouncementCtaClicked {
 #[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CodingDataConsentSource {
-    PrivacyBanner,
     Settings,
 }
 
@@ -1656,73 +1624,6 @@ pub struct ExternalOtelExportHealth {
     pub export_successes: u64,
 }
 
-// ---------------------------------------------------------------------------
-// Credit limit
-// ---------------------------------------------------------------------------
-
-/// 403 "run out of credits" — billing exhaustion (not request throttling).
-#[derive(Serialize)]
-pub struct CreditLimitHit {
-    pub model_id: String,
-}
-
-#[derive(Serialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
-pub enum CreditLimitUpsellSurface {
-    /// Q&A modal with "Upgrade tier" + "Pay as you go" options (non-max-tier).
-    QuestionModal,
-    /// Inline scrollback card with PAYG link (max-tier / Heavy users).
-    InlineCard,
-}
-
-/// Credit-limit upsell displayed to the user.
-#[derive(Serialize)]
-pub struct CreditLimitUpsellShown {
-    pub surface: CreditLimitUpsellSurface,
-    pub max_tier: bool,
-    pub pay_as_you_go: bool,
-    /// User is on unified usage billing (buy-credits wording). When false,
-    /// legacy on-demand / PAYG wording was used.
-    #[serde(default)]
-    pub unified_billing: bool,
-}
-
-#[derive(Debug, Serialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
-pub enum CreditLimitChoice {
-    UpgradeTier,
-    /// Covers both "Pay as you go" (enable) and "Increase limit" (raise cap).
-    PayAsYouGo,
-    /// Unified-billing / credits-pool users: purchase prepaid credits.
-    PurchaseCredits,
-}
-
-/// User clicked an option in the credit-limit upsell.
-#[derive(Serialize)]
-pub struct CreditLimitUpsellClicked {
-    pub surface: CreditLimitUpsellSurface,
-    pub choice: CreditLimitChoice,
-}
-
-// ---------------------------------------------------------------------------
-// Subscription conversion
-// ---------------------------------------------------------------------------
-
-/// Emitted when a previously access-gated user re-authenticates and the gate
-/// is lifted — i.e. they subscribed (externally on nofy.com) and came back.
-/// This is the actual conversion signal for SuperNofy Heavy subscriptions
-/// attributed to Nofy Build: the user saw the gate in Nofy Build, went and
-/// paid, then returned with access.
-#[derive(Serialize)]
-pub struct SubscriptionActivated {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth_method: Option<String>,
-    /// Whether the subscribe CTA was shown in this session before the gate
-    /// was lifted (`access_gate_shown_logged`). When `true`, the conversion
-    /// is strongly attributable to Nofy Build's upsell surface.
-    pub upsell_shown_this_session: bool,
-}
-
 /// Why auth recovery could not refresh the credential, forcing the user to
 /// manually re-authenticate. Mapped from shell's `AuthError`; only terminal
 /// failures map — transient ones don't emit (recovery retries).
@@ -1951,8 +1852,6 @@ telemetry_event!(
 );
 telemetry_event!(PagerSlashCommand, "pager_slash_command");
 telemetry_event!(PlanSubmit, "plan_submit");
-telemetry_event!(SuperNofyUpsellShown, "supernofy_upsell_shown");
-telemetry_event!(SuperNofyUpsellClicked, "supernofy_upsell_clicked");
 telemetry_event!(AnnouncementCtaShown, "announcement_cta_shown");
 telemetry_event!(AnnouncementCtaClicked, "announcement_cta_clicked");
 telemetry_event!(CodingDataConsentSelected, "coding_data_consent_selected");
@@ -1973,10 +1872,6 @@ telemetry_event!(
     "rate_limit_hit",
     external = crate::external::schema::map_rate_limit_hit
 );
-telemetry_event!(CreditLimitHit, "credit_limit_hit");
-telemetry_event!(CreditLimitUpsellShown, "credit_limit_upsell_shown");
-telemetry_event!(CreditLimitUpsellClicked, "credit_limit_upsell_clicked");
-telemetry_event!(SubscriptionActivated, "subscription_activated");
 telemetry_event!(
     ApiError,
     "api_error",

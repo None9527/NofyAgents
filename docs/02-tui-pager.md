@@ -86,7 +86,6 @@ src/
 │   ├── session_startup.rs  # 会话启动
 │   ├── status_blocks.rs    # 状态栏
 │   ├── subagent.rs         # 子代理管理
-│   ├── subscription.rs     # 订阅
 │   └── turn_completion.rs  # 轮次完成
 ├── acp/                    # ACP 集成
 │   ├── leader_bridge.rs    # Leader 桥接

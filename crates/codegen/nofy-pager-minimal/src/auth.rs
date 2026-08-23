@@ -35,20 +35,18 @@ pub(super) enum MinimalAuthHint {
 /// Map the app's auth + trust state to what the no-agent live region should show.
 ///
 /// Mirrors the welcome screen's gate order: trust is only offered after auth is
-/// `Done`, when the user has access and is not ZDR-blocked (those gates already
-/// block sessions, and the input interceptor only answers trust under the same
-/// conditions).
+/// `Done` and the user is not ZDR-blocked (that gate already blocks sessions,
+/// and the input interceptor only answers trust under the same condition).
 pub(super) fn minimal_auth_hint(
     auth: &AuthState,
     trust: &TrustState,
-    has_access: bool,
     is_zdr_blocked: bool,
 ) -> MinimalAuthHint {
     match auth {
         AuthState::Pending { error: Some(err) } => MinimalAuthHint::Failed(err.clone()),
         // Auth is still resolving — brief transient.
         AuthState::Pending { error: None } => MinimalAuthHint::Starting,
-        AuthState::Done if has_access && !is_zdr_blocked => {
+        AuthState::Done if !is_zdr_blocked => {
             if let TrustState::Pending { workspace } = trust {
                 MinimalAuthHint::TrustFolder {
                     workspace: workspace.clone(),
@@ -269,7 +267,7 @@ mod tests {
         let trust_done = TrustState::Done;
 
         assert!(matches!(
-            minimal_auth_hint(&AuthState::Done, &trust_done, true, false),
+            minimal_auth_hint(&AuthState::Done, &trust_done, false),
             MinimalAuthHint::Starting
         ));
         assert!(matches!(
@@ -278,7 +276,6 @@ mod tests {
                     error: Some("nope".into())
                 },
                 &trust_done,
-                true,
                 false
             ),
             MinimalAuthHint::Failed(_)
@@ -290,27 +287,23 @@ mod tests {
         let trust = TrustState::Pending {
             workspace: PathBuf::from("/tmp/untrusted-repo"),
         };
-        match minimal_auth_hint(&AuthState::Done, &trust, true, false) {
+        match minimal_auth_hint(&AuthState::Done, &trust, false) {
             MinimalAuthHint::TrustFolder { workspace } => {
                 assert_eq!(workspace, PathBuf::from("/tmp/untrusted-repo"));
             }
             _ => panic!("expected TrustFolder"),
         }
 
-        // Access / ZDR gates suppress the trust question (matches welcome +
+        // The ZDR gate suppresses the trust question (matches welcome +
         // the input interceptor).
         assert!(matches!(
-            minimal_auth_hint(&AuthState::Done, &trust, false, false),
-            MinimalAuthHint::Starting
-        ));
-        assert!(matches!(
-            minimal_auth_hint(&AuthState::Done, &trust, true, true),
+            minimal_auth_hint(&AuthState::Done, &trust, true),
             MinimalAuthHint::Starting
         ));
 
         // Trust is not offered while auth is still resolving.
         assert!(matches!(
-            minimal_auth_hint(&AuthState::Pending { error: None }, &trust, true, false),
+            minimal_auth_hint(&AuthState::Pending { error: None }, &trust, false),
             MinimalAuthHint::Starting
         ));
     }

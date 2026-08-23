@@ -261,10 +261,10 @@ mod tests {
             Some("overloaded_error"),
         ),
         (
-            "type_tagged_billing",
-            r#"{"type":"error","error":{"type":"billing_error","message":"Your credit balance is too low"}}"#,
-            "Your credit balance is too low",
-            Some("billing_error"),
+            "type_tagged_quota",
+            r#"{"type":"error","error":{"type":"quota_error","message":"Your quota is exhausted"}}"#,
+            "Your quota is exhausted",
+            Some("quota_error"),
         ),
         (
             "openrouter_integer_code",
@@ -328,9 +328,9 @@ mod tests {
         ),
         (
             "wke_marker",
-            r#"{"code":429,"error":"You ran out of credits. [WKE=personal-team-blocked:spending-limit]"}"#,
-            "You ran out of credits",
-            Some("personal-team-blocked:spending-limit"),
+            r#"{"code":429,"error":"User exceeds storage. [WKE=file:storage-exhausted]"}"#,
+            "User exceeds storage",
+            Some("file:storage-exhausted"),
         ),
         (
             "detail_only",

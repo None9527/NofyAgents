@@ -462,7 +462,6 @@ impl AgentView {
         let thinking_label = self.scrollback.thinking_fold_label();
         let selected_is_user_prompt = selected_entry.is_some_and(|e| e.block.is_user_prompt());
         let selected_is_agent_message = selected_entry.is_some_and(|e| e.block.is_agent_message());
-        let selected_is_credit_limit = selected_entry.is_some_and(|e| e.block.is_credit_limit());
         let mut hints = agent::build_hints(
             self.active_pane,
             self.parked_card()
@@ -492,7 +491,6 @@ impl AgentView {
             !self.visible_queue_is_empty(),
             selected_is_user_prompt,
             selected_is_agent_message,
-            selected_is_credit_limit,
             crate::terminal::terminal_context().shift_enter_unavailable(),
             self.scrollback_search.as_ref(),
         );
@@ -873,8 +871,6 @@ impl AgentView {
             height: banner_height,
             announcements: banner_announcements,
             hidden_ids: hidden_announcement_ids,
-            privacy_banner,
-            mouse_pos,
             tip,
         } = banner;
         self.session_banner_active = crate::views::announcements::first_session_announcement(
@@ -882,7 +878,6 @@ impl AgentView {
             hidden_announcement_ids,
         )
         .is_some();
-        self.privacy_banner.active = privacy_banner;
         self.pinned_upgrade_cta_live =
             crate::views::announcements::promo_cta(banner_announcements, hidden_announcement_ids)
                 .is_some_and(|(owner, _, _)| !crate::views::announcements::is_dismissible(owner));
@@ -930,7 +925,6 @@ impl AgentView {
             self.hit_announcement_hide.clear();
             self.hit_announcement_cta.clear();
             self.hit_upgrade_cta.clear();
-            self.privacy_banner.clear_hits();
             return self.draw_subagent_fullscreen(
                 &child_sid.clone(),
                 area,
@@ -1038,11 +1032,6 @@ impl AgentView {
             } else {
                 banner_height
             }
-        } else {
-            banner_height
-        };
-        let banner_height = if privacy_banner {
-            banner_height.max(crate::views::privacy_banner::height(inner_width))
         } else {
             banner_height
         };
@@ -1304,7 +1293,6 @@ impl AgentView {
         let btw_height =
             crate::views::btw_overlay::btw_panel_height(self.btw_state.as_ref(), inner_width);
         let cta_height = match &self.plugin_cta.phase {
-            _ if privacy_banner => 0,
             CtaPhase::Hidden => 0,
             CtaPhase::Matched { .. } if self.prompt.text().trim().is_empty() => 0,
             _ => 1,
@@ -1560,7 +1548,6 @@ impl AgentView {
         self.hit_bg_status.rect = areas.get("bg_tasks").copied();
         self.hit_goal_status.rect = areas.get("goal").copied();
         self.hit_context.rect = areas.get("context").copied();
-        self.hit_credits.rect = areas.get("credits").copied();
         self.hit_plan_button.rect = areas.get("plan").copied();
         self.hit_queue_badge.rect = areas.get("queue").copied();
         self.hit_badge.rect = areas.get("badge").copied();
@@ -2260,28 +2247,7 @@ impl AgentView {
             self.hit_watching_cue.clear();
             self.hit_plan_approval_status.clear();
         }
-        let privacy_banner_owns_slot =
-            privacy_banner && layout.banner.height >= crate::views::privacy_banner::MIN_HEIGHT;
-        if !privacy_banner_owns_slot {
-            self.privacy_banner.clear_hits();
-        }
-        if privacy_banner_owns_slot {
-            self.hit_announcement_hide.clear();
-            self.hit_announcement_cta.clear();
-            let rects = crate::views::privacy_banner::render(layout.banner, buf, &theme, mouse_pos);
-            self.privacy_banner
-                .hit_opt_in
-                .set_unless_dropdown(Some(rects.opt_in), dropdown_open);
-            self.privacy_banner
-                .hit_opt_out
-                .set_unless_dropdown(Some(rects.opt_out), dropdown_open);
-            self.privacy_banner
-                .hit_terms
-                .set_unless_dropdown(Some(rects.terms), dropdown_open);
-            self.privacy_banner
-                .hit_policy
-                .set_unless_dropdown(Some(rects.policy), dropdown_open);
-        } else if let Some((ref msg, remaining)) = self.mode_switch_banner {
+        if let Some((ref msg, remaining)) = self.mode_switch_banner {
             self.hit_announcement_hide.clear();
             self.hit_announcement_cta.clear();
             if layout.banner.height > 0 && layout.banner.width > 4 {
@@ -2416,17 +2382,6 @@ impl AgentView {
         }
         let mode_flags: &[PromptFlag] = &mode_flags_vec;
         let multiline = self.multiline_mode;
-        let warning = self.credit_balance.as_ref().and_then(|bal| {
-            crate::views::credit_bar::usage_warning_for_session(
-                bal,
-                self.auto_topup.as_ref(),
-                self.billing_surface_visible,
-                self.chat_kind,
-            )
-        });
-        let usage_warning_text: Option<String> = warning.as_ref().map(|(t, _)| t.clone());
-        let usage_warning = usage_warning_text.as_deref();
-        let usage_warning_critical = warning.is_some_and(|(_, critical)| critical);
         let model_label = match self.session.models.reasoning_effort {
             Some(eff) => format!("{model_id} ({eff})"),
             None => model_id,
@@ -2436,8 +2391,6 @@ impl AgentView {
                 model_name: &model_label,
                 flags: mode_flags,
                 multiline,
-                usage_warning,
-                usage_warning_critical,
             },
             PromptMode::EditingQueued { id, .. } => {
                 let pos = self.session.queue_position(*id).map(|i| i + 1).unwrap_or(1);
@@ -2446,8 +2399,6 @@ impl AgentView {
                     model_name: &editing_label,
                     flags: mode_flags,
                     multiline,
-                    usage_warning,
-                    usage_warning_critical,
                 }
             }
         };
@@ -2456,8 +2407,6 @@ impl AgentView {
                 model_name: label,
                 flags: &[],
                 multiline: false,
-                usage_warning,
-                usage_warning_critical,
             }
         } else {
             info

@@ -29,10 +29,8 @@ async fn campaign_leader_mode_remote_dismiss_on_model_pick() {
     .await
     .expect("start content with two models");
 
-    // Serve the campaign from the settings endpoint (restating `allow_access`,
-    // which the preset otherwise provides).
+    // Serve the campaign from the settings endpoint.
     content.server().set_settings(json!({
-        "allow_access": true,
         "campaigns": [
             { "id": CAMPAIGN_ID, "models": { "default": CAMPAIGN_MODEL } }
         ]

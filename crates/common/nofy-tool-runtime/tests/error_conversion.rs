@@ -163,8 +163,8 @@ fn execution_uses_detail_as_message() {
 
 #[test]
 fn custom_round_trips_code_message_details() {
-    let err = ToolError::custom("billing_overflow", "quota exhausted")
-        .with_details(json!({"code": "billing_overflow", "limit": 1000}));
+    let err = ToolError::custom("quota_overflow", "quota exhausted")
+        .with_details(json!({"code": "quota_overflow", "limit": 1000}));
     let wire: ToolErrorWire = err.into();
     match wire {
         ToolErrorWire::Custom {
@@ -172,7 +172,7 @@ fn custom_round_trips_code_message_details() {
             message,
             details,
         } => {
-            assert_eq!(subcode, "billing_overflow");
+            assert_eq!(subcode, "quota_overflow");
             assert_eq!(message, "quota exhausted");
             assert!(details.is_some());
         }

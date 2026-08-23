@@ -562,7 +562,6 @@ impl MvpAgent {
             let Some(auth) = self.auth_manager.current() else {
                 return;
             };
-            let subscription_tier = None;
             let (user_id, team_id) = match auth.auth_mode {
                 crate::auth::AuthMode::External => (Some(auth.user_id), auth.team_id),
                 crate::auth::AuthMode::ApiKey => (None, auth.team_id),
@@ -575,7 +574,6 @@ impl MvpAgent {
                 cfg.endpoints.deployment_key.clone(),
                 self.origin_client_info_from_meta(None),
                 nofy_version::VERSION.to_owned(),
-                subscription_tier,
                 crate::http::shared_client(),
             );
         }

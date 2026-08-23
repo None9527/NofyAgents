@@ -109,6 +109,11 @@ Round 1 的"恒 Disabled 桩"方案被用户否决:**完全剔除所有 xAI 依�
   `[models] web_search`、CLI 旗标、pager 渲染线——整体删除;web_fetch 保留。
 - **Batch C(voice,已提交 d974c1e)**:nofy-voice crate(wss://api.x.ai/v1/stt)
   与 pager/shell 全部 voice 面(状态机/键绑定/设置/诊断)——整体删除。
-- **Batch D(xAI 登录流)**:交互登录/设备流/OIDC/欢迎屏登录态——删除中;
-  BYOK api_key 认证链保留。
-- **Batch E/F**:计费/付费墙、剩余后台外联(分享/feedback/bundle/更新器)。
+- **Batch D(xAI 登录流,已提交 ef18a31)**:/login /logout、OIDC/设备流、
+  auth.x.ai/accounts.x.ai 常量、欢迎屏登录界面与 ZDR 阻断屏、
+  `--force-login`、`is_xai_auth()` 全删;AuthMode 精简为
+  {External, ApiKey};BYOK api_key/auth_provider 链完整保留;
+  无 key 界面改为 API-key 配置指引。127 文件净删 ~10500 行。
+- **Batch E(计费/付费墙)**:订阅 tier/credits/SuperNofy 推销/
+  CheckSubscription——删除中。
+- **Batch F**:剩余后台外联(分享/feedback/bundle/更新器)。

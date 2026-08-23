@@ -33,30 +33,6 @@ pub enum ToolErrorKind {
     Cancelled,
     /// Rate limit exceeded.
     RateLimited,
-    /// The caller's usage pool / billing balance is exhausted (out
-    /// of credits). Payment-required-shaped; distinct from
-    /// `RateLimited` so the surface can show "out of credits"
-    /// rather than "try again later".
-    UsagePoolExhausted,
-    /// The caller hit a usage limit with no balance verdict behind it
-    /// (the balance gate was skipped/dormant and the non-billable
-    /// allowance ran out). Payment-required-shaped, but distinct from
-    /// `UsagePoolExhausted` (an explicit out-of-balance verdict) so the
-    /// surface can show a "usage limit reached" message.
-    UsageLimitReached,
-    /// The billing global rate limiter shed this request (transient
-    /// load shed). Distinct from `RateLimited` (per-user / per-message
-    /// quota) so the surface can render a billing-specific
-    /// "try again later" with a retry hint; the `retry_after_secs`
-    /// hint, when known, rides in `ToolError::details`. Named to match
-    /// the chat surface's `global_rate_limit` typed error.
-    GlobalRateLimit,
-    /// The caller hit their per-user concurrency cap (too many media
-    /// generations already in flight). Transient — retry once one
-    /// finishes. Distinct from `GlobalRateLimit` (a shared-backend load
-    /// shed) so the surface can tailor a "too many in progress" message.
-    /// Named to match the chat surface's `concurrency_limit` typed error.
-    ConcurrencyLimit,
     /// Upstream service unavailable.
     ServiceUnavailable,
     /// Network-level failure.
@@ -85,10 +61,6 @@ impl ToolErrorKind {
             Self::Timeout => "timeout",
             Self::Cancelled => "cancelled",
             Self::RateLimited => "rate_limited",
-            Self::UsagePoolExhausted => "usage_pool_exhausted",
-            Self::UsageLimitReached => "usage_limit_reached",
-            Self::GlobalRateLimit => "global_rate_limit",
-            Self::ConcurrencyLimit => "concurrency_limit",
             Self::ServiceUnavailable => "service_unavailable",
             Self::NetworkError => "network_error",
             Self::Execution => "execution",
@@ -213,22 +185,6 @@ impl ToolError {
         Self::new(ToolErrorKind::RateLimited, detail)
     }
 
-    pub fn usage_pool_exhausted(detail: impl Into<String>) -> Self {
-        Self::new(ToolErrorKind::UsagePoolExhausted, detail)
-    }
-
-    pub fn usage_limit_reached(detail: impl Into<String>) -> Self {
-        Self::new(ToolErrorKind::UsageLimitReached, detail)
-    }
-
-    pub fn global_rate_limit(detail: impl Into<String>) -> Self {
-        Self::new(ToolErrorKind::GlobalRateLimit, detail)
-    }
-
-    pub fn concurrency_limit(detail: impl Into<String>) -> Self {
-        Self::new(ToolErrorKind::ConcurrencyLimit, detail)
-    }
-
     pub fn service_unavailable(detail: impl Into<String>) -> Self {
         Self::new(ToolErrorKind::ServiceUnavailable, detail)
     }
@@ -348,26 +304,6 @@ impl From<ToolError> for ToolErrorWire {
                 message: err.detail,
                 details: custom_details_with_code(err.details, "rate_limited"),
             },
-            ToolErrorKind::UsagePoolExhausted => Self::Custom {
-                subcode: "usage_pool_exhausted".to_owned(),
-                message: err.detail,
-                details: custom_details_with_code(err.details, "usage_pool_exhausted"),
-            },
-            ToolErrorKind::UsageLimitReached => Self::Custom {
-                subcode: "usage_limit_reached".to_owned(),
-                message: err.detail,
-                details: custom_details_with_code(err.details, "usage_limit_reached"),
-            },
-            ToolErrorKind::GlobalRateLimit => Self::Custom {
-                subcode: "global_rate_limit".to_owned(),
-                message: err.detail,
-                details: custom_details_with_code(err.details, "global_rate_limit"),
-            },
-            ToolErrorKind::ConcurrencyLimit => Self::Custom {
-                subcode: "concurrency_limit".to_owned(),
-                message: err.detail,
-                details: custom_details_with_code(err.details, "concurrency_limit"),
-            },
             ToolErrorKind::ServiceUnavailable => Self::Custom {
                 subcode: "service_unavailable".to_owned(),
                 message: err.detail,
@@ -480,52 +416,32 @@ mod wire_bridge_tests {
     }
 
     #[test]
-    fn rate_limit_and_usage_kinds_merge_subcode_uniformly() {
-        // Same property as service_unavailable, applied to every
-        // Custom-mapped kind: object details without a `code` key gain the
+    fn rate_limit_kind_merges_subcode_uniformly() {
+        // Same property as service_unavailable, applied to the Custom-mapped
+        // rate-limit kind: object details without a `code` key gain the
         // subcode, so decode-side recognizers keying on `details.code` can
         // still classify the error.
-        let cases: [(ToolError, &str); 5] = [
-            (ToolError::rate_limited("slow down"), "rate_limited"),
-            (
-                ToolError::usage_pool_exhausted("pool empty"),
-                "usage_pool_exhausted",
-            ),
-            (
-                ToolError::usage_limit_reached("limit hit"),
-                "usage_limit_reached",
-            ),
-            (
-                ToolError::global_rate_limit("global limit"),
-                "global_rate_limit",
-            ),
-            (
-                ToolError::concurrency_limit("too many in flight"),
-                "concurrency_limit",
-            ),
-        ];
-        for (err, subcode) in cases {
-            let err = err.with_details(serde_json::json!({ "retry_after_ms": 250 }));
-            let ToolErrorWire::Custom {
-                subcode: got,
-                details,
-                ..
-            } = ToolErrorWire::from(err)
-            else {
-                panic!("expected Custom for {subcode}");
-            };
-            assert_eq!(got, subcode);
-            let details = details.expect("details preserved");
-            assert_eq!(
-                details.get("code").and_then(|v| v.as_str()),
-                Some(subcode),
-                "subcode merged for {subcode}",
-            );
-            assert_eq!(
-                details.get("retry_after_ms").and_then(|v| v.as_u64()),
-                Some(250),
-            );
-        }
+        let err = ToolError::rate_limited("slow down")
+            .with_details(serde_json::json!({ "retry_after_ms": 250 }));
+        let ToolErrorWire::Custom {
+            subcode: got,
+            details,
+            ..
+        } = ToolErrorWire::from(err)
+        else {
+            panic!("expected Custom for rate_limited");
+        };
+        assert_eq!(got, "rate_limited");
+        let details = details.expect("details preserved");
+        assert_eq!(
+            details.get("code").and_then(|v| v.as_str()),
+            Some("rate_limited"),
+            "subcode merged for rate_limited",
+        );
+        assert_eq!(
+            details.get("retry_after_ms").and_then(|v| v.as_u64()),
+            Some(250),
+        );
     }
 
     #[test]

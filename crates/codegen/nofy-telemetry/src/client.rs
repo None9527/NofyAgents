@@ -44,7 +44,6 @@ pub struct TelemetryClient {
     shell_version: String,
     client_type: Option<String>,
     client_version: Option<String>,
-    subscription_tier: Option<String>,
     http_client: reqwest::Client,
 }
 
@@ -69,7 +68,6 @@ impl TelemetryClient {
         deployment_key: Option<String>,
         origin_client: Option<OriginClientInfo>,
         shell_version: String,
-        subscription_tier: Option<String>,
         http_client: reqwest::Client,
     ) -> Self {
         let deployment_id = deployment_key
@@ -90,30 +88,9 @@ impl TelemetryClient {
             shell_version,
             client_type,
             client_version,
-            subscription_tier: subscription_tier.map(|t| normalize_tier(&t)),
             http_client,
         }
     }
-}
-
-/// Normalize a subscription tier string to a consistent lowercase_underscore
-/// format for event metadata. Handles both CCP display names ("SuperNofy Heavy")
-/// and JWT-derived keys ("supernofy_heavy").
-fn normalize_tier(tier: &str) -> String {
-    match tier {
-        "SuperNofy Heavy" | "supernofy_heavy" => "supernofy_heavy",
-        "SuperNofy Plus" | "supernofy_plus" => "supernofy_plus",
-        "SuperNofy" | "supernofy" => "supernofy",
-        "SuperNofy Lite" | "supernofy_lite" => "supernofy_lite",
-        "X Premium+" | "x_premium_plus" => "x_premium_plus",
-        "X Premium" | "x_premium" => "x_premium",
-        "X Basic" | "x_basic" => "x_basic",
-        "Free" | "free" => "free",
-        // Team / console API keys — dedicated segment, not free.
-        "API Key" | "api_key" => "api_key",
-        other => return other.to_ascii_lowercase().replace(' ', "_"),
-    }
-    .to_string()
 }
 
 static TELEMETRY_CLIENT: OnceLock<Mutex<Option<TelemetryClient>>> = OnceLock::new();
@@ -185,9 +162,6 @@ pub async fn track(event_name: &str, request_id: &str, ctx: &UserContext, mut me
     if let Some(ref client_version) = client.client_version {
         metadata.insert("client_version".into(), json!(client_version));
     }
-    if let Some(ref subscription_tier) = client.subscription_tier {
-        metadata.insert("subscription_tier".into(), json!(subscription_tier));
-    }
 
     // Product events path
     if let (Some(url), Some(api_key)) = (&client.events_url, &client.events_api_key) {
@@ -250,7 +224,6 @@ pub fn init(
     deployment_key: Option<String>,
     origin_client: Option<OriginClientInfo>,
     shell_version: String,
-    subscription_tier: Option<String>,
     http_client: reqwest::Client,
 ) {
     let lock = TELEMETRY_CLIENT.get_or_init(|| Mutex::new(None));
@@ -266,7 +239,6 @@ pub fn init(
             deployment_key,
             origin_client,
             shell_version,
-            subscription_tier,
             http_client,
         ))
     };
@@ -285,7 +257,6 @@ pub fn init_if_needed(
     deployment_key: Option<String>,
     origin_client: Option<OriginClientInfo>,
     shell_version: String,
-    subscription_tier: Option<String>,
     http_client: reqwest::Client,
 ) {
     if mode.is_disabled() {
@@ -302,7 +273,6 @@ pub fn init_if_needed(
             deployment_key,
             origin_client,
             shell_version,
-            subscription_tier,
             http_client,
         ));
         drop(guard);
@@ -367,7 +337,6 @@ mod tests {
             None,
             None,
             "0.0.0-test".into(),
-            None,
             reqwest::Client::new(),
         );
         // Explicit call must no-op too (init already invoked it once).
@@ -402,27 +371,6 @@ mod tests {
             let name = format!("{}my_event", origin.event_prefix());
             assert_eq!(event_value(&name), "my_event");
         }
-    }
-
-    /// `subscription_tier` must be a stable snake_case key. Free
-    /// users arrive as CCP display `"Free"` or JWT-fallback `"free"`; both
-    /// must land as `"free"` (not omitted / not `"Free"`).
-    #[test]
-    fn normalize_tier_maps_display_and_claim_names() {
-        assert_eq!(normalize_tier("Free"), "free");
-        assert_eq!(normalize_tier("free"), "free");
-        assert_eq!(normalize_tier("SuperNofy"), "supernofy");
-        assert_eq!(normalize_tier("SuperNofy Heavy"), "supernofy_heavy");
-        assert_eq!(normalize_tier("supernofy_heavy"), "supernofy_heavy");
-        assert_eq!(normalize_tier("X Basic"), "x_basic");
-        assert_eq!(normalize_tier("X Premium+"), "x_premium_plus");
-        assert_eq!(normalize_tier("X Premium"), "x_premium");
-        assert_eq!(normalize_tier("SuperNofy Lite"), "supernofy_lite");
-        assert_eq!(normalize_tier("SuperNofy Plus"), "supernofy_plus");
-        assert_eq!(normalize_tier("supernofy_plus"), "supernofy_plus");
-        // API key is a dedicated segment — never free.
-        assert_eq!(normalize_tier("API Key"), "api_key");
-        assert_eq!(normalize_tier("api_key"), "api_key");
     }
 
     /// `event_value`'s first-match-wins over `EmitterOrigin::ALL` is only

@@ -877,19 +877,6 @@ pub(crate) async fn run(
     app.cli_effort_token = args.reasoning_effort.clone();
     app.show_resolved_model = true;
     app.sharing_enabled = false;
-    app.privacy_notice_rollout =
-        nofy_config::env_bool("NOFY_PRIVACY_NOTICE_ROLLOUT").unwrap_or(false);
-    app.privacy_banner_reshow_days = std::env::var("NOFY_PRIVACY_BANNER_RESHOW_DAYS")
-        .ok()
-        .and_then(|v| v.trim().parse().ok());
-    // Local dismiss timestamp for the coding-data privacy banner.
-    app.privacy_banner_acked = nofy_shell::config::load_from_disk()
-        .ok()
-        .and_then(|root| {
-            nofy_shell::util::config::load_config_from_toml(&root)
-                .privacy
-                .privacy_banner_acked
-        });
     app.plugin_cta_enabled = nofy_config::env_bool("NOFY_PLUGIN_CTA").unwrap_or(false);
     app.session_picker_grouped = std::env::var("NOFY_SESSION_PICKER_GROUPED")
         .ok()
@@ -920,11 +907,6 @@ pub(crate) async fn run(
             ),
         };
     }
-    let mut post_render_effects = vec![];
-
-    app.has_external_auth_provider =
-        crate::slash::commands::usage::detect_external_auth_provider(&app.auth_methods);
-
     if let Some(meta) = connection.auth_meta.as_ref() {
         match serde_json::from_value::<nofy_shell::auth::AuthMeta>(meta.clone()) {
             Ok(auth_meta) => app.apply_auth_meta(&auth_meta),
@@ -935,19 +917,6 @@ pub(crate) async fn run(
         app.is_api_key_auth = app.auth_methods.iter().any(|m| {
             m.id().0.as_ref() == nofy_shell::agent::auth_method::NOFY_API_KEY_METHOD_ID
         });
-        // No AuthMeta on this path — API keys / external auth have no
-        // consumer billing surface. External auth also hides `/usage`.
-        if app.is_api_key_auth || app.has_external_auth_provider {
-            app.usage_visible = false;
-            app.sync_billing_surface_to_agents();
-        }
-    }
-
-    // Re-impose the startup gate through the chokepoint: cached auth meta is
-    // possibly stale, so a consumer session's gate is deferred for live
-    // verification before first paint.
-    if let Some(gate) = app.gate.take() {
-        post_render_effects.extend(app.impose_gate(gate));
     }
 
     // Load persisted per-ID hidden state
@@ -1360,17 +1329,6 @@ pub(crate) async fn run(
     // iteration so it is popped on every close path.
     let mut gboom_keyboard_pushed = false;
 
-    const BILLING_POLL_INTERVAL: Duration = Duration::from_secs(30);
-    let mut billing_poll_at: Option<Instant> = None;
-
-    // Free→paid subscription watch (see `app::subscription`).
-    let mut subscription_watch_at: Option<Instant> = if app.subscription_watch_wanted() {
-        app.subscription_watch_interval()
-            .map(|iv| Instant::now() + iv)
-    } else {
-        None
-    };
-
     // Leader-mode roster poll (FleetView dashboard). Only fires while the
     // dashboard is open AND we're connected via a leader. Armed to fire
     // immediately at loop start so an already-open dashboard refreshes
@@ -1408,25 +1366,12 @@ pub(crate) async fn run(
         if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
             return Ok(make_run_result(&app));
         }
-        // Fetch billing early so the welcome screen can show a credit warning.
-        if app.usage_visible {
-            let effs = vec![super::actions::Effect::FetchAppBilling];
-            if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
-                return Ok(make_run_result(&app));
-            }
-        }
         // Fetch changelog off the render path so the welcome screen
         // can display bullets and /release-notes uses the cached result.
         let effs = vec![super::actions::Effect::FetchChangelog];
         if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
             return Ok(make_run_result(&app));
         }
-    }
-
-    if !post_render_effects.is_empty()
-        && process_effects(post_render_effects, &mut tasks, &mut app, &progress_tx)
-    {
-        return Ok(make_run_result(&app));
     }
 
     // Session startup from pre-materialized CLI intent.
@@ -1721,15 +1666,6 @@ pub(crate) async fn run(
             roster_poll_at = Some(Instant::now());
         }
 
-        // (Re-)arm the subscription watch on the dormant→wanted transition
-        // and after each fired tick.
-        if subscription_watch_at.is_none()
-            && app.subscription_watch_wanted()
-            && let Some(iv) = app.subscription_watch_interval()
-        {
-            subscription_watch_at = Some(Instant::now() + iv);
-        }
-
         // Future that sleeps until the next animation tick, or waits forever if none.
         let animation_tick = async {
             match animation_tick_at {
@@ -1785,20 +1721,6 @@ pub(crate) async fn run(
         };
         let suspend_retry = async move {
             match suspend_retry_at {
-                Some(at) => sleep_until(at).await,
-                None => std::future::pending().await,
-            }
-        };
-
-        let billing_poll = async {
-            match billing_poll_at {
-                Some(at) => sleep_until(at).await,
-                None => std::future::pending().await,
-            }
-        };
-
-        let subscription_watch = async {
-            match subscription_watch_at {
                 Some(at) => sleep_until(at).await,
                 None => std::future::pending().await,
             }
@@ -1907,13 +1829,6 @@ pub(crate) async fn run(
                         }
                         schedule_tick(&mut animation_tick_at, &app, tick_interval);
                         resize_debounce_at = None;
-
-                        // Schedule/clear poll timers.
-                        if app.billing_poll_wanted && billing_poll_at.is_none() {
-                            billing_poll_at = Some(Instant::now() + BILLING_POLL_INTERVAL);
-                        } else if !app.billing_poll_wanted {
-                            billing_poll_at = None;
-                        }
 
                         presenter.request(false);
                     }
@@ -2071,30 +1986,6 @@ pub(crate) async fn run(
                 // Keep ticking as long as there are running animations
                 // or pending actions waiting to expire.
                 schedule_tick(&mut animation_tick_at, &app, tick_interval);
-            }
-
-            _ = billing_poll => {
-                billing_poll_at = None;
-                if let ActiveView::Agent(id) = app.active_view {
-                    let effs = vec![Effect::FetchBilling {
-                        agent_id: id,
-                        silent: true,
-                    }];
-                    if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
-                        break;
-                    }
-                }
-                if app.billing_poll_wanted {
-                    billing_poll_at = Some(Instant::now() + BILLING_POLL_INTERVAL);
-                }
-            }
-
-            _ = subscription_watch => {
-                subscription_watch_at = None;
-                let effs = app.fire_subscription_check("watch");
-                if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
-                    break;
-                }
             }
 
             _ = roster_poll => {
@@ -2819,12 +2710,6 @@ async fn drain_and_process(
                     && crate::clipboard::clipboard_image_probe_supported()
                 {
                     crate::clipboard::prewarm_image_probe();
-                }
-                // The user may have just subscribed in the browser and
-                // tabbed back.
-                let effs = app.fire_subscription_check("focus");
-                if process_effects(effs, tasks, app, progress_tx) {
-                    return true;
                 }
                 // Restore Prompt on refocus: needs-input overlay always, else idle non-vim.
                 match app.active_view {

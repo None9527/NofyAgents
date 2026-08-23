@@ -1,10 +1,5 @@
 //! Async task-result application: routes task results into state.
 use super::auth::{handle_mcp_auth_trigger_done, handle_mcp_setup_submit_done};
-use super::billing::{
-    PAYWALL_AUTO_CHECK_TIMEOUT, apply_auto_topup, handle_billing_fetched,
-    handle_check_subscription_complete, handle_credit_limit_recheck_complete,
-    handle_gate_verify_timeout,
-};
 use super::cta::{
     handle_cta_plugin_install_done, handle_cta_plugin_reload_done,
     handle_plugin_cta_catalog_loaded, handle_plugin_cta_debounce_expired,
@@ -299,31 +294,6 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
         } => handle_fork_session_ready(app, agent_id, new_session_id, cwd, parent_session_id),
         TaskResult::ForkSessionFailed { agent_id, error } => {
             handle_fork_session_failed(app, agent_id, error)
-        }
-        TaskResult::BillingFetched {
-            agent_id,
-            balance,
-            silent,
-            autotopup,
-        } => handle_billing_fetched(app, agent_id, balance, silent, autotopup),
-        TaskResult::BillingError {
-            agent_id,
-            error,
-            silent,
-        } => {
-            if !silent && let Some(agent) = app.agents.get_mut(&agent_id) {
-                agent.scrollback.push_block(RenderBlock::System(
-                    crate::scrollback::blocks::SystemMessageBlock::new(format!(
-                        "Billing error: {error}"
-                    )),
-                ));
-            }
-            vec![]
-        }
-        TaskResult::AppBillingFetched { balance, autotopup } => {
-            app.credit_balance = balance;
-            apply_auto_topup(&mut app.auto_topup, &autotopup);
-            vec![]
         }
         TaskResult::SessionLoaded {
             agent_id,
@@ -1159,26 +1129,6 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
                 super::super::acp_handler::refresh_workflow_run_capabilities(agent);
             }
             vec![]
-        }
-        TaskResult::PaywallCheckTick => {
-            let timed_out = app
-                .paywall_check_started
-                .is_some_and(|t| t.elapsed() >= PAYWALL_AUTO_CHECK_TIMEOUT);
-            if !app.has_access() && !timed_out {
-                vec![
-                    Effect::CheckSubscription { verify: None },
-                    Effect::SchedulePaywallCheck,
-                ]
-            } else {
-                vec![]
-            }
-        }
-        TaskResult::CheckSubscriptionComplete { verify, meta } => {
-            handle_check_subscription_complete(app, verify, meta)
-        }
-        TaskResult::GateVerifyTimeout { generation } => handle_gate_verify_timeout(app, generation),
-        TaskResult::CreditLimitRecheckComplete { agent_id, meta } => {
-            handle_credit_limit_recheck_complete(app, agent_id, meta)
         }
         TaskResult::DeepSearchResults { results, seq } => {
             handle_deep_search_results(app, results, seq)

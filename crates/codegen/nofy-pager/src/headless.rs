@@ -1309,7 +1309,6 @@ pub async fn run_single_turn(
                 let detail = err.data.as_ref().and_then(error_detail_from_data);
                 crate::app::sanitize_user_error(&format_rate_limited_user_message(
                     detail.as_deref(),
-                    is_api_key_auth,
                 ))
             } else {
                 err.to_string()

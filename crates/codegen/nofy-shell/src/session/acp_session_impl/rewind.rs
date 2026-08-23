@@ -451,20 +451,12 @@ impl SessionActor {
             }
 
             // Conversation shrank — clear budget-based (size/schema) and stale
-            // per-turn suppression so compaction can run against the smaller context.
-            // Account-state suppression (credit/auth → SUPPRESS_UNTIL_SUCCESS) isn't
-            // budget-related, so it persists until a successful model call.
-            if self
-                .compaction
-                .auto_compact_suppressed
-                .load(std::sync::atomic::Ordering::Relaxed)
-                != crate::session::compaction_config::SUPPRESS_UNTIL_SUCCESS
-            {
-                self.compaction.auto_compact_suppressed.store(
-                    crate::session::compaction_config::SUPPRESS_NONE,
-                    std::sync::atomic::Ordering::Relaxed,
-                );
-            }
+            // per-turn suppression so compaction can run against the smaller
+            // context.
+            self.compaction.auto_compact_suppressed.store(
+                crate::session::compaction_config::SUPPRESS_NONE,
+                std::sync::atomic::Ordering::Relaxed,
+            );
 
             // Append a RewindMarker to updates.jsonl so the replay pipeline can
             // handle timeline branching (updates.jsonl is append-only).

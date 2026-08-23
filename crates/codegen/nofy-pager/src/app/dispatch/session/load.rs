@@ -183,8 +183,6 @@ fn dispatch_load_session_ungated(
             restore_degree: None,
             rate_limited: false,
             model_incompatible: false,
-            credit_limit_blocked: false,
-            free_usage_blocked: false,
             available_commands: app.bootstrap_acp_commands.clone(),
             available_commands_generation: 1,
             available_tools: None,
@@ -221,13 +219,15 @@ fn dispatch_load_session_ungated(
         agent_mut.turn_started_at = Some(std::time::Instant::now());
     }
     agent_mut.apply_app_scoped_gates(
+
         app.sharing_enabled,
-        app.usage_visible,
-        !app.has_external_auth_provider,
+
         app.chat_mode,
+
         app.screen_mode,
+
         &app.active_announcements,
-        &app.tier_restricted_commands,
+
     );
     agent_mut.chat_kind = chat_kind || app.chat_mode;
     #[cfg(feature = "local-workspace")]
@@ -257,7 +257,6 @@ fn dispatch_load_session_ungated(
         agent_mut.workspace_mode = mode;
         agent_mut.workspace_mode_cli_locked = cli_locked;
     }
-    agent_mut.apply_credit_balance(app.credit_balance.clone(), app.auto_topup.clone());
     agent_mut
         .prompt
         .slash_controller
@@ -948,8 +947,6 @@ pub(in crate::app::dispatch) fn dispatch_load_session_with_restore(
             restore_degree: None,
             rate_limited: false,
             model_incompatible: false,
-            credit_limit_blocked: false,
-            free_usage_blocked: false,
             available_commands: app.bootstrap_acp_commands.clone(),
             available_commands_generation: 1,
             available_tools: None,
@@ -979,13 +976,15 @@ pub(in crate::app::dispatch) fn dispatch_load_session_with_restore(
             .set_contextual_hints(app.contextual_hints.undo, app.contextual_hints.plan_mode);
         agent.set_session_recap_available(app.session_recap_available);
         agent.apply_app_scoped_gates(
+
             app.sharing_enabled,
-            app.usage_visible,
-            !app.has_external_auth_provider,
+
             app.chat_mode,
+
             app.screen_mode,
+
             &app.active_announcements,
-            &app.tier_restricted_commands,
+
         );
         agent.chat_kind = app.chat_mode;
         #[cfg(feature = "local-workspace")]
@@ -1009,7 +1008,6 @@ pub(in crate::app::dispatch) fn dispatch_load_session_with_restore(
             agent.workspace_mode = mode;
             agent.workspace_mode_cli_locked = cli_locked;
         }
-        agent.apply_credit_balance(app.credit_balance.clone(), app.auto_topup.clone());
         agent
             .prompt
             .slash_controller
@@ -1134,10 +1132,6 @@ pub(in crate::app::dispatch) fn handle_session_loaded(
                 session_id: hydrate_sid.clone(),
             });
         }
-        effects.push(Effect::FetchBilling {
-            agent_id,
-            silent: true,
-        });
         if let Some(switch) = deferred {
             agent.session.model_switch_pending = true;
             effects.push(Effect::SwitchModel {
@@ -1322,7 +1316,6 @@ pub(in crate::app::dispatch) fn handle_session_restored(
             agent.workspace_mode = mode;
             agent.workspace_mode_cli_locked = cli_locked;
         }
-        agent.apply_credit_balance(app.credit_balance.clone(), app.auto_topup.clone());
         agent.scrollback.push_block(RenderBlock::system(format!(
             "Session restored. Loading {local_session_id}..."
         )));

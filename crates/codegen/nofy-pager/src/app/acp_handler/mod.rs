@@ -74,8 +74,6 @@ use subagent_activity::{subagent_activity_label, sync_subagent_activity};
 
 use workflow_ingest::ingest_workflow_update;
 
-#[cfg(test)]
-pub(crate) use session_notification::apply_session_event_for_test;
 use session_notification::{
     advance_reconnect_cursor, confirm_context_used, detect_plan_mode_change,
     drop_unexpected_replay, handle_session_notification,

@@ -1,7 +1,6 @@
 //! Shared URL-opening and scheme validation utilities.
 //!
-//! Extracted from the `OpenSupernofyUrl` dispatch handler so that any
-//! code path (keyboard navigation, mouse click, action dispatch) can
+//! Any code path (keyboard navigation, mouse click, action dispatch) can
 //! open a link safely without duplicating platform-specific logic.
 
 use std::collections::HashMap;
@@ -98,8 +97,8 @@ pub fn open_url(url: &str) -> bool {
     }
 
     // Skip the doomed spawn on headless Linux VMs (no DISPLAY / Wayland)
-    // so billing Upgrade / Buy-credits clicks can fall back to showing the
-    // URL instead of silently no-op'ing.
+    // so callers can fall back to showing the URL instead of silently
+    // no-op'ing.
     if !browser_open_likely_available() {
         tracing::info!("skipping browser open: no display server / BROWSER");
         return false;
@@ -301,28 +300,6 @@ pub fn try_open_url(url: &str, filter: SchemeFilter) -> OpenUrlResult {
     }
 }
 
-/// Ensure `url` carries the given query parameter, returning the rewritten URL.
-///
-/// If the URL already contains a parameter with that name, its value is left
-/// untouched (the caller upstream may have intentionally set one). On parse
-/// failure, the original string is returned unchanged so this is safe to apply
-/// to opener input from untrusted sources.
-///
-/// Used by the SuperNofy upsell flow to attribute clicks to `referrer=nofy-build`,
-/// matching the OAuth consent screen and nofy/cli marketing links regardless of
-/// what the remote settings `gate_url` value happens to be.
-pub fn ensure_query_param(url: &str, key: &str, value: &str) -> String {
-    let Ok(mut parsed) = url::Url::parse(url) else {
-        return url.to_string();
-    };
-    let already_present = parsed.query_pairs().any(|(k, _)| k == key);
-    if already_present {
-        return parsed.to_string();
-    }
-    parsed.query_pairs_mut().append_pair(key, value);
-    parsed.to_string()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -475,55 +452,6 @@ mod tests {
     }
 
     #[test]
-    fn ensure_query_param_appends_when_missing() {
-        let out = ensure_query_param("https://nofy.com/supernofy", "referrer", "nofy-build");
-        assert_eq!(out, "https://nofy.com/supernofy?referrer=nofy-build");
-    }
-
-    #[test]
-    fn ensure_query_param_preserves_existing_value() {
-        let out = ensure_query_param(
-            "https://nofy.com/supernofy?referrer=other",
-            "referrer",
-            "nofy-build",
-        );
-        assert_eq!(out, "https://nofy.com/supernofy?referrer=other");
-    }
-
-    #[test]
-    fn ensure_query_param_keeps_other_query_pairs() {
-        let out = ensure_query_param(
-            "https://nofy.com/supernofy?heavy=1",
-            "referrer",
-            "nofy-build",
-        );
-        assert_eq!(
-            out,
-            "https://nofy.com/supernofy?heavy=1&referrer=nofy-build"
-        );
-    }
-
-    #[test]
-    fn ensure_query_param_preserves_fragment() {
-        // The current remote settings value uses a hash fragment for client-side
-        // routing (`nofy.com/#supernofy`); we still want the referrer attached.
-        let out = ensure_query_param("https://nofy.com/#supernofy", "referrer", "nofy-build");
-        assert_eq!(out, "https://nofy.com/?referrer=nofy-build#supernofy");
-    }
-
-    #[test]
-    fn ensure_query_param_returns_unchanged_on_parse_failure() {
-        let out = ensure_query_param("not a url", "referrer", "nofy-build");
-        assert_eq!(out, "not a url");
-    }
-
-    #[test]
-    fn ensure_query_param_url_encodes_value() {
-        let out = ensure_query_param("https://nofy.com/supernofy", "referrer", "nofy build");
-        assert_eq!(out, "https://nofy.com/supernofy?referrer=nofy+build");
-    }
-
-    #[test]
     fn fallback_scheme_case_insensitive() {
         // Uppercase scheme that url::Url::parse rejects triggers fallback path;
         // the fallback must lowercase before matching SchemeFilter.
@@ -585,7 +513,7 @@ mod tests {
 
     #[test]
     fn browser_unavailable_message_includes_full_url() {
-        let url = "https://nofy.com/supernofy?referrer=nofy-build";
+        let url = "https://example.com/docs?referrer=nofy-build";
         assert_eq!(
             browser_unavailable_message(url),
             format!("{BROWSER_UNAVAILABLE_NOTICE}:\n{url}")
@@ -594,7 +522,7 @@ mod tests {
 
     #[test]
     fn browser_unavailable_line_is_url_first_single_line() {
-        let url = "https://nofy.com/supernofy?referrer=nofy-build";
+        let url = "https://example.com/docs?referrer=nofy-build";
         let plain = browser_unavailable_line(url, false);
         assert!(plain.starts_with(url), "{plain}");
         assert!(!plain.contains('\n'), "{plain}");

@@ -441,24 +441,6 @@ fn parse_esc_ttl(raw: Option<String>) -> Duration {
         .map(|ms| Duration::from_millis(ms.min(ESC_DOUBLE_PRESS_TEST_MS)))
         .unwrap_or(PendingAction::ESC_DOUBLE_PRESS_TTL)
 }
-/// Slash commands unavailable on the free and X Basic subscription tiers.
-///
-/// To restrict another command for these tiers, add its canonical name
-/// (no leading `/`) here — matching covers aliases automatically via
-/// [`crate::slash::registry::CommandRegistry::set_restricted_commands`].
-///
-/// Current set:
-/// - `usage` — coding credit / billing UI (alias: `/cost`)
-///
-/// Sanitized build: the deny-list machinery stays intact but is never
-/// populated from tier state (`is_restricted_tier` is always false).
-pub(crate) const TIER_RESTRICTED_COMMANDS: &[&str] = &["usage"];
-/// Whether a subscription-tier display name is a tier with restricted
-/// commands. Subscription tiers belonged to the xAI account system; the
-/// sanitized build never restricts commands by tier.
-fn is_restricted_tier(_tier: Option<&str>) -> bool {
-    false
-}
 /// True for API-key labels from shell/CCP: `"ApiKey"`, `"API Key"`, `"api_key"`.
 pub(crate) fn is_api_key_label(s: &str) -> bool {
     s.trim().to_ascii_lowercase().replace([' ', '_', '-'], "") == "apikey"
@@ -571,19 +553,6 @@ pub struct AppView {
     /// Whether the plugin marketplace CTA is enabled. Env `NOFY_PLUGIN_CTA`
     /// overrides; defaults to `false`.
     pub plugin_cta_enabled: bool,
-    /// Consumer billing surface (credit fetches / warnings). False for team
-    /// and API-key auth. `/usage` itself stays available for session token/cost
-    /// unless [`Self::has_external_auth_provider`].
-    pub usage_visible: bool,
-    /// External `auth_provider_command` deployment.
-    /// No nofy.com billing session exists; `/usage` and credit UI stay off.
-    pub has_external_auth_provider: bool,
-    /// Slash commands denied for the current subscription tier
-    /// ([`TIER_RESTRICTED_COMMANDS`] when the user is on the free / X Basic
-    /// tier, empty otherwise). Recomputed by [`Self::apply_tier_restrictions`]
-    /// and fanned out to every slash registry (welcome prompt, agents,
-    /// dashboard); deny wins over all other visibility gates.
-    pub tier_restricted_commands: Vec<String>,
     /// Whether the pager is connected via a leader (leader mode). The Agent
     /// Dashboard entry points (`/dashboard`, `Ctrl+\`, `nofy dashboard`, the
     /// startup hook) are only meaningful when a leader is coordinating a
@@ -591,13 +560,6 @@ pub struct AppView {
     /// `event_loop::run` from `connection.leader_status_rx.is_some()`;
     /// defaults to `false` (non-leader, dashboard hidden).
     pub leader_mode: bool,
-    /// App-level credit balance used to show the usage warning on the
-    /// welcome screen before any agent session exists.
-    pub credit_balance: Option<crate::views::credit_bar::CreditBalance>,
-    /// App-level auto top-up rule paired with `credit_balance` for the warning.
-    pub auto_topup: Option<crate::views::credit_bar::AutoTopupInfo>,
-    /// Periodic billing poll requested (credits >= 99%).
-    pub billing_poll_wanted: bool,
     /// Leader-mode session roster (FleetView dashboard). Populated from
     /// `nofy/sessions/list` polls and `nofy/sessions/changed` broadcasts.
     /// Empty in non-leader mode, which naturally gates roster rendering.
@@ -726,17 +688,9 @@ pub struct AppView {
     /// Per-visit announcement UI state on the welcome screen (expansion, hover,
     /// overflow flag, hit-rect).
     pub welcome_announcement: WelcomeAnnouncementState,
-    /// Hit-test rect for the "[Refresh]" button on the paywall tier line.
-    pub welcome_refresh_rect: Option<ratatui::layout::Rect>,
-    /// Hit-test rect for the gate URL link on the paywall CTA.
-    pub welcome_gate_url_rect: Option<ratatui::layout::Rect>,
     /// Hit-test rect for the welcome hero upgrade CTA `[label]` button
     /// (click → `AnnouncementsOpenCta(Welcome)`).
     pub welcome_upgrade_cta_rect: Option<ratatui::layout::Rect>,
-    pub welcome_privacy_banner_opt_in_rect: Option<ratatui::layout::Rect>,
-    pub welcome_privacy_banner_opt_out_rect: Option<ratatui::layout::Rect>,
-    pub welcome_privacy_banner_terms_rect: Option<ratatui::layout::Rect>,
-    pub welcome_privacy_banner_policy_rect: Option<ratatui::layout::Rect>,
     /// Hit-test rects for the welcome workspace-mode picker.
     #[cfg(feature = "local-workspace")]
     pub welcome_workspace_mode_rects: crate::views::welcome::WorkspaceModeHitRects,
@@ -745,8 +699,6 @@ pub struct AppView {
     pub welcome_on_workspace_mode: bool,
     /// Transient welcome toast: (message, wall-clock expiry).
     pub welcome_toast: Option<(String, std::time::Instant)>,
-    /// Sticky hover flag for the privacy banner buttons (redraw on enter/leave).
-    pub welcome_on_privacy_banner: bool,
     /// Sticky hover flag for the welcome upgrade CTA (redraw on enter/leave).
     pub welcome_on_upgrade_cta: bool,
     /// Hit-test rect for the clickable changelog info block (opens release notes).
@@ -935,14 +887,6 @@ pub struct AppView {
     pub team_role: Option<String>,
     /// Whether the user has opted out of coding data retention.
     pub coding_data_retention_opt_out: bool,
-    /// Remote settings `privacy_notice_rollout` (cohort on for this user).
-    pub privacy_notice_rollout: bool,
-    /// Remote `privacy_banner_reshow_days`. None/0 = never re-show after ack.
-    pub privacy_banner_reshow_days: Option<u64>,
-    /// Local `[privacy].privacy_banner_acked` (RFC 3339 UTC).
-    pub privacy_banner_acked: Option<String>,
-    /// Accept awaits ACP success before ack.
-    pub privacy_banner_opt_in_inflight: bool,
     /// Newest `SetCodingDataSharing` write. Bumped per dispatch and echoed
     /// on the `TaskResult`, so an older write's late reply — whose
     /// `rollback_to_opted_in` was captured before the newer one — cannot
@@ -959,27 +903,12 @@ pub struct AppView {
     /// Whether ZDR users are allowed to use the product. Resolved from the
     /// config layers; default `false` (blocked) during beta.
     pub zdr_access_enabled: bool,
-    pub access_gate_shown_logged: bool,
     /// (hide-key, surface) pairs whose `AnnouncementCtaShown` impression was
     /// already logged — once per pager process, cleared on logout. Keyed by
     /// `announcement_hide_key` (stable even for id-less items, unlike the
     /// event's `id`).
     pub announcement_cta_impressions_logged:
         std::collections::BTreeSet<(String, nofy_telemetry::events::AnnouncementCtaSurface)>,
-    /// Access gate from `nofy_build_access_gate`. `Some` = blocked.
-    pub gate: Option<nofy_shell::auth::GateInfo>,
-    /// User-friendly subscription tier name (e.g. "SuperNofy", "Free").
-    pub subscription_tier: Option<String>,
-    /// When the pager started auto-checking subscriptions (for 10-min timeout).
-    pub paywall_check_started: Option<std::time::Instant>,
-    /// Debounce stamp for watch/focus subscription checks (see
-    /// [`super::subscription`]).
-    pub last_subscription_check_at: Option<std::time::Instant>,
-    /// A stale-source gate held out of `gate` while a live check verifies
-    /// it (see [`super::subscription`]).
-    pub pending_gate_verification: Option<nofy_shell::auth::GateInfo>,
-    /// Generation stamp of the current gate verification.
-    pub gate_verify_gen: u64,
     /// Whether a leader reconnect is in progress (blocks prompt submission).
     pub reconnect_pending: bool,
     /// Structured startup warnings collected from the terminal diagnostics
@@ -1032,31 +961,13 @@ pub struct AppView {
     /// will not get rescued modifiers unless also normalizing.
     pub(crate) keyboard_normalizer: KeyboardNormalizer,
 }
-/// Reshow window elapsed? None/0 = never. Unparseable ack fails open (show).
-fn privacy_banner_reshow_elapsed(acked_at: &str, reshow_days: Option<u64>) -> bool {
-    let Some(days) = reshow_days.filter(|d| *d > 0) else {
-        return false;
-    };
-    let Ok(acked) = chrono::DateTime::parse_from_rfc3339(acked_at) else {
-        return true;
-    };
-    let acked_utc = acked.with_timezone(&chrono::Utc);
-    let Some(next) = acked_utc.checked_add_signed(chrono::Duration::days(days as i64)) else {
-        return false;
-    };
-    chrono::Utc::now() >= next
-}
 impl AppView {
     pub fn is_zdr_blocked(&self) -> bool {
         self.is_zdr && !self.zdr_access_enabled
     }
-    /// User is not gated (no gate from remote settings or subscription fallback).
-    pub fn has_access(&self) -> bool {
-        self.gate.is_none()
-    }
-    /// True when the user should not see the prompt (gate, subscription, or ZDR).
+    /// True when the user should not see the prompt (ZDR-blocked).
     pub fn is_access_blocked(&self) -> bool {
-        !self.has_access() || self.is_zdr_blocked()
+        self.is_zdr_blocked()
     }
     /// Coding-data preference is team-admin-owned for non-admin members.
     pub fn is_team_non_admin(&self) -> bool {
@@ -1077,34 +988,6 @@ impl AppView {
             None
         }
     }
-    /// Welcome privacy banner visibility gates.
-    pub fn privacy_banner_should_show(&self) -> bool {
-        if self.screen_mode.is_minimal() {
-            return false;
-        }
-        if !self.privacy_notice_rollout {
-            return false;
-        }
-        if self.is_zdr || self.is_team_non_admin() {
-            return false;
-        }
-        if !self.coding_data_retention_opt_out {
-            return false;
-        }
-        if !matches!(self.auth_state, AuthState::Done)
-            || !self.has_access()
-            || self.is_zdr_blocked()
-            || !matches!(self.trust_state, TrustState::Done)
-        {
-            return false;
-        }
-        match self.privacy_banner_acked.as_deref() {
-            None => true,
-            Some(acked_at) => {
-                privacy_banner_reshow_elapsed(acked_at, self.privacy_banner_reshow_days)
-            }
-        }
-    }
     /// Whether deferred session-startup actions may run: both auth AND folder
     /// trust must be resolved. Mirrors the auth gate at the session-creating
     /// startup sites; trust is gated AFTER auth so a pending trust question
@@ -1114,65 +997,14 @@ impl AppView {
     }
     /// Apply typed auth metadata from the shell.
     pub fn apply_auth_meta(&mut self, meta: &nofy_shell::auth::AuthMeta) {
-        self.pending_gate_verification = None;
-        let was_gated = self.gate.is_some();
         self.team_id = meta.team_id.clone();
         self.team_name = meta.team_name.clone();
         self.is_zdr = meta.is_zdr;
         self.team_role = meta.team_role.clone();
         self.coding_data_retention_opt_out = meta.coding_data_retention_opt_out;
-        self.gate = meta.gate.clone();
-        if was_gated && self.gate.is_none() {
-            self.paywall_check_started = None;
-            nofy_telemetry::session_ctx::log_event(
-                nofy_telemetry::events::SubscriptionActivated {
-                    auth_method: None,
-                    upsell_shown_this_session: self.access_gate_shown_logged,
-                },
-            );
-        }
-        self.subscription_tier = meta.subscription_tier.clone();
-        self.is_api_key_auth = meta.auth_mode.as_deref().is_some_and(is_api_key_label)
-            || meta
-                .subscription_tier
-                .as_deref()
-                .is_some_and(is_api_key_label);
-        self.usage_visible =
-            meta.team_name.is_none() && !self.is_api_key_auth && !self.has_external_auth_provider;
-        self.sync_billing_surface_to_agents();
-        self.apply_tier_restrictions();
+        self.is_api_key_auth = meta.auth_mode.as_deref().is_some_and(is_api_key_label);
         if let Some(show) = meta.show_resolved_model {
             self.show_resolved_model = show;
-        }
-    }
-    /// Mirror billing + `/usage` gates onto every slash surface (agents,
-    /// welcome, dashboard dispatch / peek-reply).
-    pub(crate) fn sync_billing_surface_to_agents(&mut self) {
-        let billing = self.usage_visible;
-        let usage_cmd = !self.has_external_auth_provider;
-        for agent in self.agents.values_mut() {
-            agent.set_billing_surface_visible(billing);
-            agent.set_usage_command_visible(usage_cmd);
-        }
-        self.welcome_prompt
-            .slash_controller
-            .set_billing_surface_visible(billing);
-        self.welcome_prompt
-            .slash_controller
-            .set_usage_command_visible(usage_cmd);
-        if let Some(dash) = self.dashboard.as_mut() {
-            dash.dispatch
-                .slash_controller
-                .set_billing_surface_visible(billing);
-            dash.dispatch
-                .slash_controller
-                .set_usage_command_visible(usage_cmd);
-            dash.peek_reply
-                .slash_controller
-                .set_billing_surface_visible(billing);
-            dash.peek_reply
-                .slash_controller
-                .set_usage_command_visible(usage_cmd);
         }
     }
     /// Create a new AppView with the given ACP connection details.
@@ -1243,19 +1075,12 @@ impl AppView {
             welcome_prompt_rect: None,
             welcome_on_changelog_cta: false,
             welcome_announcement: WelcomeAnnouncementState::default(),
-            welcome_refresh_rect: None,
-            welcome_gate_url_rect: None,
             welcome_upgrade_cta_rect: None,
-            welcome_privacy_banner_opt_in_rect: None,
-            welcome_privacy_banner_opt_out_rect: None,
-            welcome_privacy_banner_terms_rect: None,
-            welcome_privacy_banner_policy_rect: None,
             #[cfg(feature = "local-workspace")]
             welcome_workspace_mode_rects: Default::default(),
             #[cfg(feature = "local-workspace")]
             welcome_on_workspace_mode: false,
             welcome_toast: None,
-            welcome_on_privacy_banner: false,
             welcome_on_upgrade_cta: false,
             welcome_changelog_cta_rect: None,
             session_picker_entries: None,
@@ -1325,23 +1150,12 @@ impl AppView {
             is_zdr: false,
             team_role: None,
             coding_data_retention_opt_out: true,
-            privacy_notice_rollout: false,
-            privacy_banner_reshow_days: None,
-            privacy_banner_acked: None,
-            privacy_banner_opt_in_inflight: false,
             coding_data_write_seq: 0,
             show_tips: None,
             auto_update: None,
             ask_user_question_timeout_enabled: None,
             zdr_access_enabled: false,
-            access_gate_shown_logged: false,
             announcement_cta_impressions_logged: Default::default(),
-            gate: None,
-            subscription_tier: None,
-            paywall_check_started: None,
-            last_subscription_check_at: None,
-            pending_gate_verification: None,
-            gate_verify_gen: 0,
             reconnect_pending: false,
             startup_warnings: Vec::new(),
             is_api_key_auth: false,
@@ -1357,13 +1171,7 @@ impl AppView {
             show_resolved_model: true,
             sharing_enabled: false,
             plugin_cta_enabled: false,
-            usage_visible: true,
-            has_external_auth_provider: false,
-            tier_restricted_commands: Vec::new(),
             leader_mode: false,
-            credit_balance: None,
-            auto_topup: None,
-            billing_poll_wanted: false,
             leader_roster: Vec::new(),
             dashboard_local_sessions: Vec::new(),
             dashboard_sessions_loading: false,
@@ -1407,36 +1215,6 @@ impl AppView {
         if let Some(dashboard) = self.dashboard.as_mut() {
             dashboard.set_auto_mode_available(available);
         }
-    }
-    /// Recompute the tier-restricted slash commands from the current auth
-    /// state and sync the deny list into every slash surface (welcome
-    /// prompt, all agents, dashboard) so restricted commands hide/show in
-    /// lockstep.
-    ///
-    /// Called from [`Self::apply_auth_meta`] (startup auth) and from the
-    /// `nofy/settings/update` handler when the subscription tier changes, so
-    /// a mid-session upgrade lifts the restrictions without a restart.
-    pub fn apply_tier_restrictions(&mut self) {
-        let restricted = self.team_name.is_none()
-            && !self.is_api_key_auth
-            && !self.has_external_auth_provider
-            && is_restricted_tier(self.subscription_tier.as_deref());
-        let names: Vec<String> = if restricted {
-            TIER_RESTRICTED_COMMANDS
-                .iter()
-                .map(|n| (*n).to_string())
-                .collect()
-        } else {
-            Vec::new()
-        };
-        for agent in self.agents.values_mut() {
-            agent.set_restricted_commands(&names);
-        }
-        self.welcome_prompt.set_restricted_commands(&names);
-        if let Some(dashboard) = self.dashboard.as_mut() {
-            dashboard.set_restricted_commands(&names);
-        }
-        self.tier_restricted_commands = names;
     }
     /// Draw-time expiry can flip the live-announcement predicate between
     /// pushes; resync the slash gate only when it diverges from the stored
@@ -2005,7 +1783,6 @@ impl AppView {
             return InputOutcome::Changed;
         }
         let zdr_blocked = self.is_zdr_blocked();
-        let has_access = self.has_access();
         let welcome_pinned_upgrade_cta = crate::views::announcements::promo_cta(
             &self.active_announcements,
             &self.hidden_announcement_ids,
@@ -2040,14 +1817,7 @@ impl AppView {
                         },
                     prompt_rect: self.welcome_prompt_rect.as_ref(),
                     import_banner_rect: self.welcome_import_banner_rect.as_ref(),
-                    refresh_rect: self.welcome_refresh_rect.as_ref(),
-                    gate_url_rect: self.welcome_gate_url_rect.as_ref(),
                     upgrade_cta_rect: self.welcome_upgrade_cta_rect.as_ref(),
-                    privacy_banner_opt_in_rect: self.welcome_privacy_banner_opt_in_rect.as_ref(),
-                    privacy_banner_opt_out_rect: self.welcome_privacy_banner_opt_out_rect.as_ref(),
-                    privacy_banner_terms_rect: self.welcome_privacy_banner_terms_rect.as_ref(),
-                    privacy_banner_policy_rect: self.welcome_privacy_banner_policy_rect.as_ref(),
-                    on_privacy_banner: &mut self.welcome_on_privacy_banner,
                     on_upgrade_cta: &mut self.welcome_on_upgrade_cta,
                     upgrade_cta_keyboard: welcome_pinned_upgrade_cta,
                     changelog_cta_rect: self.welcome_changelog_cta_rect.as_ref(),
@@ -2056,7 +1826,6 @@ impl AppView {
                     announcement_rect: self.welcome_announcement.rect.as_ref(),
                     on_announcement_cta: &mut self.welcome_announcement.on_cta,
                     announcement_expanded: &mut self.welcome_announcement.expanded,
-                    has_access,
                     is_zdr_blocked: zdr_blocked,
                     sp_entries: &mut self.session_picker_entries,
                     sp_loading,
@@ -2621,18 +2390,9 @@ struct WelcomeInputCtx<'a> {
     menu_count: usize,
     prompt_rect: Option<&'a ratatui::layout::Rect>,
     import_banner_rect: Option<&'a ratatui::layout::Rect>,
-    refresh_rect: Option<&'a ratatui::layout::Rect>,
-    gate_url_rect: Option<&'a ratatui::layout::Rect>,
     /// Hit-test rect for the welcome hero upgrade CTA `[label]` button
     /// (click → open the promo url).
     upgrade_cta_rect: Option<&'a ratatui::layout::Rect>,
-    privacy_banner_opt_in_rect: Option<&'a ratatui::layout::Rect>,
-    privacy_banner_opt_out_rect: Option<&'a ratatui::layout::Rect>,
-    privacy_banner_terms_rect: Option<&'a ratatui::layout::Rect>,
-    privacy_banner_policy_rect: Option<&'a ratatui::layout::Rect>,
-    /// Sticky hover flag for the privacy banner buttons (redraw on
-    /// enter/leave/crossing so they brighten/dim).
-    on_privacy_banner: &'a mut bool,
     /// Sticky hover flag for the upgrade CTA (redraw on enter/leave so the
     /// button brightens/dims).
     on_upgrade_cta: &'a mut bool,
@@ -2651,7 +2411,6 @@ struct WelcomeInputCtx<'a> {
     on_announcement_cta: &'a mut bool,
     /// Whether the long announcement is currently expanded inline.
     announcement_expanded: &'a mut bool,
-    has_access: bool,
     is_zdr_blocked: bool,
     sp_entries: &'a mut Option<Vec<SessionPickerEntry>>,
     /// Mirrors the render's `session_picker_loading` param: the spinner-only
@@ -2796,7 +2555,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
         }
     }
     if matches!(ctx.auth_state, AuthState::Done)
-        && ctx.has_access
         && !ctx.is_zdr_blocked
         && matches!(ctx.trust_state, TrustState::Pending { .. })
     {
@@ -2840,7 +2598,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
     #[cfg(feature = "local-workspace")]
     if *ctx.workspace_mode_ack_pending
         && matches!(ctx.auth_state, AuthState::Done)
-        && ctx.has_access
         && !ctx.is_zdr_blocked
     {
         if let Event::Key(key) = ev {
@@ -2876,7 +2633,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
     #[cfg(feature = "local-workspace")]
     if crate::views::welcome::workspace_mode::picker_interactive(
         ctx.chat_mode,
-        ctx.has_access,
         matches!(ctx.auth_state, AuthState::Done),
         ctx.is_zdr_blocked,
         ctx.session_picker_open,
@@ -3166,14 +2922,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
         if ctx.is_zdr_blocked && matches!(ctx.auth_state, AuthState::Done) {
             return InputOutcome::Unchanged;
         }
-        if !ctx.has_access && matches!(ctx.auth_state, AuthState::Done) {
-            return handle_menu_shortcuts(
-                key,
-                ctx.menu_index,
-                &['g', 'q'],
-                dispatch_access_gate_menu_action,
-            );
-        }
         if matches!(ctx.auth_state, AuthState::Done)
             && key!(Enter).matches(key)
             && key.modifiers.is_empty()
@@ -3268,7 +3016,7 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
     if let Event::Paste(_) = ev {
         match ctx.auth_state {
             AuthState::Done => {
-                if !ctx.has_access || ctx.is_zdr_blocked {
+                if ctx.is_zdr_blocked {
                     return InputOutcome::Unchanged;
                 }
                 return InputOutcome::ActionThenForward(Action::NewSession);
@@ -3292,9 +3040,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
                         if matches!(ctx.auth_state, AuthState::Pending { .. }) {
                             return dispatch_pending_menu_action(i);
                         }
-                        if !ctx.has_access {
-                            return dispatch_access_gate_menu_action(i);
-                        }
                         if ctx.has_claude_import
                             && i == 0
                             && mouse.column >= rect.x + rect.width.saturating_sub(4)
@@ -3310,45 +3055,11 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
                         );
                     }
                 }
-                if let Some(rect) = ctx.refresh_rect
-                    && rect.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
-                {
-                    return InputOutcome::Action(Action::CheckSubscription);
-                }
-                if let Some(rect) = ctx.gate_url_rect
-                    && rect.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
-                {
-                    return InputOutcome::Action(Action::OpenSupernofyUrl);
-                }
                 if let Some(rect) = ctx.upgrade_cta_rect
                     && rect.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
                 {
                     return InputOutcome::Action(Action::AnnouncementsOpenCta(
                         nofy_telemetry::events::AnnouncementCtaSurface::Welcome,
-                    ));
-                }
-                if let Some(rect) = ctx.privacy_banner_opt_in_rect
-                    && rect.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
-                {
-                    return InputOutcome::Action(Action::PrivacyBannerOptIn);
-                }
-                if let Some(rect) = ctx.privacy_banner_opt_out_rect
-                    && rect.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
-                {
-                    return InputOutcome::Action(Action::PrivacyBannerOptOut);
-                }
-                if let Some(rect) = ctx.privacy_banner_terms_rect
-                    && rect.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
-                {
-                    return InputOutcome::Action(Action::OpenUrl(
-                        crate::views::privacy_banner::PRIVACY_BANNER_TERMS_URL.to_string(),
-                    ));
-                }
-                if let Some(rect) = ctx.privacy_banner_policy_rect
-                    && rect.contains(ratatui::layout::Position::new(mouse.column, mouse.row))
-                {
-                    return InputOutcome::Action(Action::OpenUrl(
-                        crate::views::privacy_banner::PRIVACY_BANNER_POLICY_URL.to_string(),
                     ));
                 }
                 if let Some(rect) = ctx.changelog_cta_rect
@@ -3431,22 +3142,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
                         return InputOutcome::Changed;
                     }
                 }
-                let over_banner = ctx
-                    .privacy_banner_opt_in_rect
-                    .is_some_and(|r| r.contains(pos))
-                    || ctx
-                        .privacy_banner_opt_out_rect
-                        .is_some_and(|r| r.contains(pos))
-                    || ctx
-                        .privacy_banner_terms_rect
-                        .is_some_and(|r| r.contains(pos))
-                    || ctx
-                        .privacy_banner_policy_rect
-                        .is_some_and(|r| r.contains(pos));
-                if over_banner || *ctx.on_privacy_banner {
-                    *ctx.on_privacy_banner = over_banner;
-                    return InputOutcome::Changed;
-                }
                 let over_ann = (ctx.announcement_truncated || *ctx.announcement_expanded)
                     && ctx.announcement_rect.is_some_and(|r| r.contains(pos));
                 if over_ann != *ctx.on_announcement_cta {
@@ -3460,32 +3155,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
     InputOutcome::Unchanged
 }
 /// Handle Up/Down arrow key cycling through a menu of `count` items.
-fn is_quit_signal(key: &crossterm::event::KeyEvent) -> bool {
-    key!('c', CONTROL).matches(key) || key!('d', CONTROL).matches(key)
-}
-/// `shortcuts[i]` triggers `menu_dispatch(i)`.
-fn handle_menu_shortcuts(
-    key: &crossterm::event::KeyEvent,
-    menu_index: &mut Option<usize>,
-    shortcuts: &[char],
-    menu_dispatch: fn(usize) -> InputOutcome,
-) -> InputOutcome {
-    if is_quit_signal(key) {
-        return InputOutcome::Action(Action::Quit);
-    }
-    for (i, &ch) in shortcuts.iter().enumerate() {
-        if key.code == KeyCode::Char(ch) {
-            return menu_dispatch(i);
-        }
-    }
-    if key!(Enter).matches(key) {
-        return menu_dispatch(menu_index.unwrap_or(0));
-    }
-    if let Some(outcome) = handle_menu_nav(key, menu_index, shortcuts.len()) {
-        return outcome;
-    }
-    InputOutcome::Unchanged
-}
 fn handle_menu_nav(
     key: &crossterm::event::KeyEvent,
     index: &mut Option<usize>,
@@ -3514,15 +3183,6 @@ fn handle_menu_nav(
 fn dispatch_pending_menu_action(index: usize) -> InputOutcome {
     match index {
         0 => InputOutcome::Action(Action::Quit),
-        _ => InputOutcome::Unchanged,
-    }
-}
-/// Menu actions when user is access-gated: 0 = Subscribe CTA, 1 = Quit.
-/// "Refresh" (ctrl-r) is handled as a direct key shortcut, not a menu item.
-fn dispatch_access_gate_menu_action(index: usize) -> InputOutcome {
-    match index {
-        0 => InputOutcome::Action(Action::OpenSupernofyUrl),
-        1 => InputOutcome::Action(Action::Quit),
         _ => InputOutcome::Unchanged,
     }
 }
@@ -3754,19 +3414,11 @@ impl AppView {
                 layout_cfg.eff_outer_vpad(compact),
             )
         };
-        let has_access = self.has_access();
-        let privacy_banner = self.privacy_banner_should_show();
         let esc_owned_before_agent = self.esc_owned_before_agent();
         let scroll_debug_panel = self.scroll_debug_panel();
         let dev_fps_rows = self.dev_fps_rows();
         let fps_overlay = self.fps_hud.overlay(dev_fps_rows);
         let foreign_resume_hint = self.foreign_resume_hint().cloned();
-        let privacy_banner_agent = self.privacy_banner_should_show()
-            && !crate::views::announcements::has_critical_session_announcement(
-                &self.active_announcements,
-                &self.hidden_announcement_ids,
-            );
-        let agent_mouse_pos = self.last_mouse_pos;
         let Self {
             active_view,
             agents,
@@ -3867,7 +3519,6 @@ impl AppView {
                             flags: &flags_vec,
                             selected: self.welcome_menu_index,
                             team_name: self.team_name.as_deref(),
-                            has_access,
                             has_claude_import: self.has_claude_import,
                             mouse_pos: self.last_mouse_pos,
                             session_picker: self.session_picker_entries.as_deref(),
@@ -3891,23 +3542,17 @@ impl AppView {
                                 .session_picker_entries_query
                                 .as_deref(),
                             welcome_tick: self.welcome_tick,
-                            gate: self.gate.as_ref(),
-                            subscription_tier: self.subscription_tier.as_deref(),
                             session_picker_grouped: self.session_picker_grouped,
                             session_picker_source_filter: self.session_picker_source_filter,
                             session_picker_pending_delete: self
                                 .session_picker_pending_delete
                                 .is_some(),
                             chat_mode: self.chat_mode,
-                            credit_balance: self.credit_balance.as_ref(),
-                            auto_topup: self.auto_topup.as_ref(),
-                            usage_visible: self.usage_visible,
                             is_api_key_auth: self.is_api_key_auth,
                             changelog_bullets: &self.changelog_bullets,
                             changelog_has_full_notes: self.changelog_markdown.is_some(),
                             welcome_announcement_expanded: self.welcome_announcement.expanded,
                             upgrade_cta: hero_cta.map(|(_owner, label, _)| label),
-                            privacy_banner,
                             #[cfg(feature = "local-workspace")]
                             workspace_mode: self.welcome_workspace_mode,
                             #[cfg(feature = "local-workspace")]
@@ -3926,14 +3571,7 @@ impl AppView {
                         self.welcome_show_changelog_action = result.changelog_action_present;
                         self.welcome_prompt_rect = result.prompt_rect;
                         self.welcome_import_banner_rect = result.import_banner_rect;
-                        self.welcome_refresh_rect = result.refresh_rect;
-                        self.welcome_gate_url_rect = result.gate_url_rect;
                         self.welcome_upgrade_cta_rect = result.upgrade_cta_rect;
-                        self.welcome_privacy_banner_opt_in_rect = result.privacy_banner_opt_in_rect;
-                        self.welcome_privacy_banner_opt_out_rect =
-                            result.privacy_banner_opt_out_rect;
-                        self.welcome_privacy_banner_terms_rect = result.privacy_banner_terms_rect;
-                        self.welcome_privacy_banner_policy_rect = result.privacy_banner_policy_rect;
                         #[cfg(feature = "local-workspace")]
                         {
                             self.welcome_workspace_mode_rects = result.workspace_mode_rects;
@@ -3987,16 +3625,6 @@ impl AppView {
                                 cached_lines,
                                 compact,
                                 &theme,
-                            );
-                        }
-                        if !has_access && !self.access_gate_shown_logged {
-                            self.access_gate_shown_logged = true;
-                            nofy_telemetry::session_ctx::log_event(
-                                nofy_telemetry::events::SuperNofyUpsellShown {
-                                    source:
-                                        nofy_telemetry::events::SuperNofyUpsell::WelcomeScreen,
-                                    auth_method: None,
-                                },
                             );
                         }
                         if let Some(tutorial) = self.tutorial.as_mut() {
@@ -4092,13 +3720,9 @@ impl AppView {
                                     &self.active_announcements,
                                     &self.hidden_announcement_ids,
                                 );
-                            let privacy_banner = privacy_banner_agent;
-                            let show_session_tip =
-                                !privacy_banner && self.tip.is_some() && agent.should_show_tip();
+                            let show_session_tip = self.tip.is_some() && agent.should_show_tip();
                             let has_mode_banner = agent.mode_switch_banner.is_some();
-                            let banner_height = if privacy_banner {
-                                crate::views::privacy_banner::MIN_HEIGHT
-                            } else if has_mode_banner {
+                            let banner_height = if has_mode_banner {
                                 1
                             } else if announcement_banner_h > 0 {
                                 announcement_banner_h
@@ -4118,8 +3742,6 @@ impl AppView {
                                     height: banner_height,
                                     announcements: &self.active_announcements,
                                     hidden_ids: &self.hidden_announcement_ids,
-                                    privacy_banner,
-                                    mouse_pos: agent_mouse_pos,
                                     tip: if show_session_tip {
                                         self.tip.as_deref()
                                     } else {
@@ -5303,23 +4925,12 @@ pub(crate) mod tests {
             is_zdr: false,
             team_role: None,
             coding_data_retention_opt_out: true,
-            privacy_notice_rollout: false,
-            privacy_banner_reshow_days: None,
-            privacy_banner_acked: None,
-            privacy_banner_opt_in_inflight: false,
             coding_data_write_seq: 0,
             show_tips: None,
             auto_update: None,
             ask_user_question_timeout_enabled: None,
             zdr_access_enabled: false,
-            access_gate_shown_logged: false,
             announcement_cta_impressions_logged: Default::default(),
-            gate: None,
-            subscription_tier: None,
-            paywall_check_started: None,
-            last_subscription_check_at: None,
-            pending_gate_verification: None,
-            gate_verify_gen: 0,
             bundle_state: BundleState::default(),
             scroll_debug_hud: crate::views::scroll_debug_hud::ScrollDebugHud::new(),
             fps_hud: crate::views::fps_hud::FpsHud::new(),
@@ -5342,19 +4953,12 @@ pub(crate) mod tests {
             welcome_prompt_rect: None,
             welcome_on_changelog_cta: false,
             welcome_announcement: WelcomeAnnouncementState::default(),
-            welcome_refresh_rect: None,
-            welcome_gate_url_rect: None,
             welcome_upgrade_cta_rect: None,
-            welcome_privacy_banner_opt_in_rect: None,
-            welcome_privacy_banner_opt_out_rect: None,
-            welcome_privacy_banner_terms_rect: None,
-            welcome_privacy_banner_policy_rect: None,
             #[cfg(feature = "local-workspace")]
             welcome_workspace_mode_rects: Default::default(),
             #[cfg(feature = "local-workspace")]
             welcome_on_workspace_mode: false,
             welcome_toast: None,
-            welcome_on_privacy_banner: false,
             welcome_on_upgrade_cta: false,
             welcome_changelog_cta_rect: None,
             session_picker_entries: None,
@@ -5397,13 +5001,7 @@ pub(crate) mod tests {
             show_resolved_model: true,
             sharing_enabled: false,
             plugin_cta_enabled: false,
-            usage_visible: true,
-            has_external_auth_provider: false,
-            tier_restricted_commands: Vec::new(),
             leader_mode: true,
-            credit_balance: None,
-            auto_topup: None,
-            billing_poll_wanted: false,
             leader_roster: Vec::new(),
             dashboard_local_sessions: Vec::new(),
             dashboard_sessions_loading: false,
@@ -5445,8 +5043,6 @@ pub(crate) mod tests {
                 restore_degree: None,
                 rate_limited: false,
                 model_incompatible: false,
-                credit_limit_blocked: false,
-                free_usage_blocked: false,
                 available_commands: Vec::new(),
                 available_commands_generation: 0,
                 available_tools: None,
@@ -5638,8 +5234,6 @@ pub(crate) mod tests {
             restore_degree: None,
             rate_limited: false,
             model_incompatible: false,
-            credit_limit_blocked: false,
-            free_usage_blocked: false,
             available_commands: Vec::new(),
             available_commands_generation: 0,
             available_tools: None,
@@ -6639,221 +6233,6 @@ pub(crate) mod tests {
         agent.note_terminal_size((120, 50));
         assert!(agent.show_ephemeral_tip(tip(), &mut counts));
         assert_eq!(counts.get("t_seen"), Some(&2));
-    }
-    #[test]
-    fn external_auth_provider_keeps_billing_off_after_auth_meta() {
-        let mut app = test_app();
-        app.has_external_auth_provider = true;
-        app.usage_visible = false;
-        app.apply_auth_meta(&nofy_shell::auth::AuthMeta::default());
-        assert!(!app.usage_visible);
-        assert!(app.tier_restricted_commands.is_empty());
-        assert!(
-            !app.welcome_prompt
-                .slash_controller
-                .registry()
-                .is_restricted("usage")
-        );
-        assert!(!app.welcome_prompt.slash_controller.usage_command_visible());
-    }
-    #[test]
-    fn apply_auth_meta_disables_billing_surface_for_team_users() {
-        let mut app = test_app();
-        assert!(app.usage_visible);
-        let meta = nofy_shell::auth::AuthMeta {
-            team_id: Some("team-uuid".into()),
-            team_name: Some("Acme Corp".into()),
-            ..Default::default()
-        };
-        app.apply_auth_meta(&meta);
-        assert!(!app.usage_visible);
-        assert_eq!(app.team_id.as_deref(), Some("team-uuid"));
-        assert!(
-            !app.welcome_prompt
-                .slash_controller
-                .billing_surface_visible()
-        );
-    }
-    #[test]
-    fn apply_auth_meta_enables_billing_surface_for_personal_users() {
-        let mut app = test_app();
-        app.usage_visible = false;
-        let meta = nofy_shell::auth::AuthMeta::default();
-        app.apply_auth_meta(&meta);
-        assert!(app.usage_visible);
-    }
-    #[test]
-    fn apply_auth_meta_clears_api_key_flag_and_restores_billing_on_personal_login() {
-        let mut app = test_app();
-        app.is_api_key_auth = true;
-        app.usage_visible = false;
-        app.apply_auth_meta(&nofy_shell::auth::AuthMeta::default());
-        assert!(!app.is_api_key_auth);
-        assert!(app.usage_visible);
-    }
-    #[test]
-    fn apply_auth_meta_api_key_skips_tier_gate() {
-        let mut app = test_app();
-        advertise_media_tools(&mut app);
-        app.apply_auth_meta(&nofy_shell::auth::AuthMeta {
-            auth_mode: Some("ApiKey".into()),
-            subscription_tier: Some("API Key".into()),
-            ..Default::default()
-        });
-        assert!(app.is_api_key_auth);
-        assert!(!app.usage_visible);
-        assert!(app.tier_restricted_commands.is_empty());
-        assert_tier_restricted_commands_present(&app);
-        let mut app = test_app();
-        app.apply_auth_meta(&nofy_shell::auth::AuthMeta {
-            subscription_tier: Some("api_key".into()),
-            ..Default::default()
-        });
-        assert!(app.is_api_key_auth);
-        assert!(app.tier_restricted_commands.is_empty());
-        app.apply_auth_meta(&nofy_shell::auth::AuthMeta {
-            auth_mode: Some("Oidc".into()),
-            subscription_tier: Some("Free".into()),
-            ..Default::default()
-        });
-        assert!(!app.is_api_key_auth);
-        // fork 移除 tier 限制:离开 API-key 认证不再产生受限命令。
-        assert!(app.usage_visible);
-        assert!(app.tier_restricted_commands.is_empty());
-    }
-    fn expected_tier_restricted_commands() -> Vec<String> {
-        TIER_RESTRICTED_COMMANDS
-            .iter()
-            .map(|n| (*n).to_string())
-            .collect()
-    }
-    /// Sanitized build: nothing is left to advertise; the helper stays as a
-    /// no-op so the tier tests keep their shape.
-    fn advertise_media_tools(_app: &mut AppView) {}
-    fn assert_tier_restricted_commands_absent(app: &AppView) {
-        let reg = app.welcome_prompt.slash_controller.registry();
-        for name in TIER_RESTRICTED_COMMANDS {
-            assert!(
-                reg.get(name).is_none(),
-                "/{name} must be denied on a restricted tier"
-            );
-        }
-        assert!(reg.get("cost").is_none(), "/cost alias must be denied");
-    }
-    fn assert_tier_restricted_commands_present(app: &AppView) {
-        let reg = app.welcome_prompt.slash_controller.registry();
-        for name in TIER_RESTRICTED_COMMANDS {
-            assert!(
-                reg.get(name).is_some(),
-                "/{name} must be available when not tier-restricted (tools advertised)"
-            );
-        }
-    }
-    #[test]
-    fn apply_auth_meta_restricts_usage_for_free_tier() {
-        // fork 移除 tier 限制:Free tier 不再产生受限命令,命令保持可用,
-        // usage 保持可见;受限清单目录本身仍在(非空),只是不再被应用。
-        let mut app = test_app();
-        advertise_media_tools(&mut app);
-        app.apply_auth_meta(&nofy_shell::auth::AuthMeta::default());
-        assert!(!expected_tier_restricted_commands().is_empty());
-        assert!(app.tier_restricted_commands.is_empty());
-        assert_tier_restricted_commands_present(&app);
-        assert!(app.usage_visible);
-        // Deny-list machinery itself is intact: applying the catalog directly
-        // still denies the commands — the fork just never populates it from
-        // tier state.
-        app.welcome_prompt
-            .set_restricted_commands(&expected_tier_restricted_commands());
-        assert_tier_restricted_commands_absent(&app);
-    }
-    #[test]
-    fn apply_auth_meta_restricts_usage_for_x_basic_tier() {
-        // fork 移除 tier 限制:X Basic tier 同样不再产生受限命令。
-        let mut app = test_app();
-        advertise_media_tools(&mut app);
-        let meta = nofy_shell::auth::AuthMeta {
-            subscription_tier: Some("X Basic".into()),
-            ..Default::default()
-        };
-        app.apply_auth_meta(&meta);
-        assert!(app.tier_restricted_commands.is_empty());
-        assert_tier_restricted_commands_present(&app);
-    }
-    #[test]
-    fn apply_auth_meta_lifts_restrictions_for_paid_tiers_and_teams() {
-        // fork 移除 tier 限制:付费/团队/免费场景一致,受限列表恒为空,
-        // 受限命令始终可用。
-        let mut app = test_app();
-        advertise_media_tools(&mut app);
-        let meta = nofy_shell::auth::AuthMeta {
-            subscription_tier: Some("SuperNofy".into()),
-            ..Default::default()
-        };
-        app.apply_auth_meta(&meta);
-        assert!(app.tier_restricted_commands.is_empty());
-        assert_tier_restricted_commands_present(&app);
-        let mut app = test_app();
-        advertise_media_tools(&mut app);
-        app.apply_auth_meta(&nofy_shell::auth::AuthMeta::default());
-        assert!(app.tier_restricted_commands.is_empty());
-        app.subscription_tier = Some("SuperNofy".into());
-        app.apply_tier_restrictions();
-        assert!(app.tier_restricted_commands.is_empty());
-        assert_tier_restricted_commands_present(&app);
-        let mut app = test_app();
-        let meta = nofy_shell::auth::AuthMeta {
-            team_id: Some("team-uuid".into()),
-            team_name: Some("Acme Corp".into()),
-            ..Default::default()
-        };
-        app.apply_auth_meta(&meta);
-        assert!(app.tier_restricted_commands.is_empty());
-    }
-    #[test]
-    fn is_restricted_tier_classification() {
-        // fork 移除 tier 限制:is_restricted_tier 对任何输入恒返回 false。
-        assert!(!is_restricted_tier(None));
-        assert!(!is_restricted_tier(Some("")));
-        assert!(!is_restricted_tier(Some("Free")));
-        assert!(!is_restricted_tier(Some("X Basic")));
-        assert!(!is_restricted_tier(Some("x_basic")));
-        assert!(!is_restricted_tier(Some("SuperNofy")));
-        assert!(!is_restricted_tier(Some("SuperNofy Heavy")));
-        assert!(!is_restricted_tier(Some("X Premium")));
-        assert!(!is_restricted_tier(Some("X Premium+")));
-        assert!(!is_restricted_tier(Some("SomeFutureTier")));
-    }
-    #[test]
-    fn apply_auth_meta_clears_gate_on_subscription() {
-        let mut app = test_app();
-        app.gate = Some(nofy_shell::auth::GateInfo {
-            message: "Subscribe to use Nofy Build".into(),
-            url: Some("https://nofy.com/supernofy?referrer=nofy-build".into()),
-            label: None,
-        });
-        assert!(app.is_access_blocked());
-        let meta = nofy_shell::auth::AuthMeta::default();
-        app.apply_auth_meta(&meta);
-        assert!(app.gate.is_none());
-        assert!(app.has_access());
-    }
-    #[test]
-    fn apply_auth_meta_gate_unchanged_when_still_gated() {
-        let mut app = test_app();
-        let gate = nofy_shell::auth::GateInfo {
-            message: "Subscribe".into(),
-            url: None,
-            label: None,
-        };
-        app.gate = Some(gate.clone());
-        let meta = nofy_shell::auth::AuthMeta {
-            gate: Some(gate),
-            ..Default::default()
-        };
-        app.apply_auth_meta(&meta);
-        assert!(app.gate.is_some());
-        assert!(app.is_access_blocked());
     }
     #[test]
     fn welcome_ctrl_q_requires_confirmation() {
@@ -9433,31 +8812,6 @@ pub(crate) mod tests {
             app.last_scroll_pos.is_none(),
             "scroll events must be ignored while a scroll-blocking modal is open",
         );
-    }
-    #[test]
-    fn welcome_privacy_banner_hover_triggers_redraw() {
-        let mut app = test_app();
-        app.active_view = ActiveView::Welcome;
-        app.welcome_privacy_banner_opt_in_rect = Some(ratatui::layout::Rect::new(50, 10, 8, 1));
-        app.welcome_privacy_banner_opt_out_rect = Some(ratatui::layout::Rect::new(25, 10, 24, 1));
-        app.welcome_privacy_banner_terms_rect = Some(ratatui::layout::Rect::new(7, 11, 5, 1));
-        app.welcome_privacy_banner_policy_rect = Some(ratatui::layout::Rect::new(17, 11, 14, 1));
-        let over = left_mouse(MouseEventKind::Moved, 52, 10);
-        assert!(matches!(app.handle_input(&over), InputOutcome::Changed));
-        assert!(app.welcome_on_privacy_banner);
-        let cross = left_mouse(MouseEventKind::Moved, 30, 10);
-        assert!(matches!(app.handle_input(&cross), InputOutcome::Changed));
-        assert!(app.welcome_on_privacy_banner);
-        let over_legal = left_mouse(MouseEventKind::Moved, 10, 11);
-        assert!(matches!(
-            app.handle_input(&over_legal),
-            InputOutcome::Changed
-        ));
-        assert!(app.welcome_on_privacy_banner);
-        let leave = left_mouse(MouseEventKind::Moved, 5, 5);
-        assert!(matches!(app.handle_input(&leave), InputOutcome::Changed));
-        assert!(!app.welcome_on_privacy_banner);
-        assert!(matches!(app.handle_input(&leave), InputOutcome::Unchanged));
     }
     #[test]
     fn welcome_doc_viewer_is_scroll_blocking_and_wheel_scrolls_content() {

@@ -18,60 +18,20 @@ use agent_client_protocol as acp;
 /// stop reason with no detail.
 pub const RATE_LIMITED_ERROR_CODE: i32 = -32003;
 
-/// OAuth / session rate-limit copy (personal plan upgrade path).
-pub const RATE_LIMITED_USER_MESSAGE_OAUTH: &str =
-    "You\u{2019}ve hit the rate limit for your plan. Upgrade your account or try again later.";
-
-/// API key / team rate-limit copy. Personal nofy.com upgrades do not raise API
-/// team limits; admins purchase credits or a higher spend-based tier.
-/// See https://docs.x.ai/developers/rate-limits#rate-limit-tiers
-pub const RATE_LIMITED_USER_MESSAGE_API_KEY: &str = "You\u{2019}ve hit your team\u{2019}s API rate limit. Ask a team admin to purchase more credits for higher limits, or try again later. See https://docs.x.ai/developers/rate-limits#rate-limit-tiers";
-
-/// Well-known free-usage exhaustion code CCP returns on HTTP 429.
-/// Matches `prod_util_well_known_errors::SUBSCRIPTION_FREE_USAGE_EXHAUSTED`.
-/// sampling-types' `parse_error_bytes` prepends the flat `code` to the
-/// flattened message, so this reaches clients embedded in error detail.
-pub const FREE_USAGE_EXHAUSTED_ERROR_CODE: &str = "subscription:free-usage-exhausted";
-
-/// User-facing free-usage exhaustion copy (paywall). Deliberately promises no
-/// reset duration — the quota window is backend-config-driven.
-pub const FREE_USAGE_USER_MESSAGE: &str = "You\u{2019}ve reached your free Nofy Build usage limit for now. Get SuperNofy for much higher limits, or try again later: https://nofy.com/supernofy?referrer=nofy-build";
-
-/// Whether flattened server detail is free-usage-quota exhaustion (paywall),
-/// not transient throttling. Sniffs the well-known code embedded by
-/// `parse_error_bytes`.
-pub fn is_free_usage_exhausted_error(detail: &str) -> bool {
-    detail.contains(FREE_USAGE_EXHAUSTED_ERROR_CODE)
-}
+/// User-facing fallback for an ACP -32003 rate-limit error when the server
+/// sent no detail.
+pub const RATE_LIMITED_USER_MESSAGE: &str = "Rate limited. Try again later.";
 
 /// User-facing text for an ACP -32003 rate-limit error.
 ///
-/// Free-usage code first (consumer-only; intentional before API-key rewrite).
-/// API-key + personal SuperNofy upsell → team credits copy. Else the body
-/// after stripping `API error (status …):` (SamplingError Display prefix).
-/// Empty → OAuth vs API-key fallback. Callers that show this in UI should
-/// still run their usual sanitizer (scrub/cap).
-pub fn format_rate_limited_user_message(
-    server_detail: Option<&str>,
-    is_api_key_auth: bool,
-) -> String {
-    // Free-usage sniff works on the prefixed wire string (`contains` the code).
-    if server_detail.is_some_and(is_free_usage_exhausted_error) {
-        return FREE_USAGE_USER_MESSAGE.to_string();
-    }
+/// The body after stripping `API error (status …):` (SamplingError Display
+/// prefix); empty → [`RATE_LIMITED_USER_MESSAGE`]. Callers that show this in
+/// UI should still run their usual sanitizer (scrub/cap).
+pub fn format_rate_limited_user_message(server_detail: Option<&str>) -> String {
     if let Some(detail) = server_detail.map(str::trim).filter(|s| !s.is_empty()) {
-        let detail = strip_sampling_api_error_prefix(detail);
-        if is_api_key_auth && pushes_consumer_subscription_upsell(detail) {
-            return RATE_LIMITED_USER_MESSAGE_API_KEY.to_string();
-        }
-        return detail.to_string();
+        return strip_sampling_api_error_prefix(detail).to_string();
     }
-    if is_api_key_auth {
-        RATE_LIMITED_USER_MESSAGE_API_KEY
-    } else {
-        RATE_LIMITED_USER_MESSAGE_OAUTH
-    }
-    .to_string()
+    RATE_LIMITED_USER_MESSAGE.to_string()
 }
 
 /// Drop `SamplingError::Api`'s Display prefix so users see the IC body, not
@@ -85,15 +45,6 @@ fn strip_sampling_api_error_prefix(detail: &str) -> &str {
         return rest[idx + SEP.len()..].trim();
     }
     detail.trim()
-}
-
-/// IC sometimes reuses OAuth free-tier upsell copy on 429s ("upgrade to a Nofy
-/// subscription" / nofy.com/supernofy). That is wrong for API-key / team auth:
-/// higher limits come from credits and spend-based rate-limit tiers, not a
-/// personal SuperNofy plan.
-fn pushes_consumer_subscription_upsell(detail: &str) -> bool {
-    let d = detail.to_ascii_lowercase();
-    d.contains("nofy.com/supernofy") || d.contains("upgrade to a nofy subscription")
 }
 
 /// User-facing copy for capacity/overload failures (stream `overloaded_error`,
@@ -126,26 +77,11 @@ pub(crate) fn map_sampling_err_to_acp(err: SamplingError) -> acp::Error {
             StatusCode::UNAUTHORIZED => acp::Error::auth_required().data(message),
             // 403 Forbidden is NOT an auth error — the request was
             // authenticated, but the action is not permitted (content-safety
-            // blocks, ZDR-gated operations, remote-settings-blocked users).
-            // Surfacing the proxy's message via internal_error keeps the
+            // blocks, provider policy denials).
+            // Surfacing the provider's message via internal_error keeps the
             // explanation visible to the user without triggering the client's
             // re-auth flow on -32000.
-            StatusCode::FORBIDDEN => {
-                let message = if message.contains("requires a Nofy subscription")
-                    && crate::agent::auth_method::has_xai_api_key_env()
-                {
-                    format!(
-                        "{message}\n\nYou have an API key set (NOFY_API_KEY). \
-                         Your cached OAuth session is being used instead. \
-                         To use your API key, run `nofy logout` or type /logout in the TUI."
-                    )
-                } else {
-                    message
-                };
-                // 403 is content-safety, never auth: on this setup path it stays
-                // `internal_error` → `server_error`.
-                acp::Error::internal_error().data(message)
-            }
+            StatusCode::FORBIDDEN => acp::Error::internal_error().data(message),
             StatusCode::BAD_REQUEST => acp::Error::invalid_params().data(message),
             StatusCode::NOT_FOUND => acp::Error::resource_not_found(None).data(message),
             StatusCode::PAYLOAD_TOO_LARGE => acp::Error::invalid_params().data(message),
@@ -365,7 +301,7 @@ mod tests {
             num_turns: 1,
             usage_is_incomplete: false,
         };
-        let free = "subscription:free-usage-exhausted quota hit";
+        let free = "rate limit quota hit";
         let err = attach_prompt_usage(
             acp::Error::new(RATE_LIMITED_ERROR_CODE, "Rate limited").data(free),
             Some(usage),
@@ -378,7 +314,7 @@ mod tests {
                     .or_else(|| d.get("message").and_then(|m| m.as_str()))
             })
             .unwrap_or("");
-        assert!(msg.contains("subscription:free-usage-exhausted"));
+        assert!(msg.contains("rate limit quota hit"));
         assert!(prompt_usage_from_error(&err).is_some());
         assert!(!err.data.as_ref().unwrap().is_string());
     }
@@ -393,23 +329,15 @@ mod tests {
     }
 
     #[test]
-    fn rate_limited_fallback_oauth_vs_api_key() {
+    fn rate_limited_empty_detail_uses_fallback() {
         assert_eq!(
-            format_rate_limited_user_message(None, false),
-            RATE_LIMITED_USER_MESSAGE_OAUTH
+            format_rate_limited_user_message(None),
+            RATE_LIMITED_USER_MESSAGE
         );
         assert_eq!(
-            format_rate_limited_user_message(None, true),
-            RATE_LIMITED_USER_MESSAGE_API_KEY
+            format_rate_limited_user_message(Some("   ")),
+            RATE_LIMITED_USER_MESSAGE
         );
-        assert!(RATE_LIMITED_USER_MESSAGE_OAUTH.contains("Upgrade your account"));
-        assert!(RATE_LIMITED_USER_MESSAGE_API_KEY.contains("team"));
-        assert!(RATE_LIMITED_USER_MESSAGE_API_KEY.contains("credits"));
-        assert!(
-            RATE_LIMITED_USER_MESSAGE_API_KEY
-                .contains("https://docs.x.ai/developers/rate-limits#rate-limit-tiers")
-        );
-        assert!(!RATE_LIMITED_USER_MESSAGE_API_KEY.contains("Upgrade your account"));
     }
 
     #[test]
@@ -417,34 +345,10 @@ mod tests {
         let body = "The service is temporarily at capacity. Please retry your request shortly.";
         // Production detail is SamplingError::Api Display (prefixed).
         let wire = format!("API error (status 429 Too Many Requests): {body}");
-        assert_eq!(format_rate_limited_user_message(Some(&wire), false), body);
-        assert_eq!(format_rate_limited_user_message(Some(&wire), true), body);
-
-        // Team console rate-limit copy has no personal SuperNofy upsell — surface as-is.
-        let team = "resource-exhausted: Too many requests for team abc. See https://console.nofy/team/default/rate-limits.";
-        let team_wire = format!("API error (status 429 Too Many Requests): {team}");
+        assert_eq!(format_rate_limited_user_message(Some(&wire)), body);
         assert_eq!(
-            format_rate_limited_user_message(Some(&team_wire), true),
-            team
-        );
-        assert_eq!(
-            format_rate_limited_user_message(Some("slow down"), false),
+            format_rate_limited_user_message(Some("slow down")),
             "slow down"
-        );
-    }
-
-    #[test]
-    fn format_rate_limited_api_key_rewrites_consumer_subscription_upsell() {
-        let body = "Some resource has been exhausted: You are sending requests too quickly. \
-             Please slow down, or upgrade to a Nofy subscription for higher limits: \
-             https://nofy.com/supernofy";
-        let wire = format!("API error (status 429 Too Many Requests): {body}");
-        // OAuth keeps the IC body (personal plan upgrade is correct).
-        assert_eq!(format_rate_limited_user_message(Some(&wire), false), body);
-        // API key must not push nofy.com SuperNofy — team credits / rate-limit tiers.
-        assert_eq!(
-            format_rate_limited_user_message(Some(&wire), true),
-            RATE_LIMITED_USER_MESSAGE_API_KEY
         );
     }
 
@@ -452,57 +356,8 @@ mod tests {
     fn format_rate_limited_strips_api_error_display_prefix() {
         let body = "The service is temporarily at capacity.";
         let wire = format!("API error (status 429 Too Many Requests): {body}");
-        assert_eq!(format_rate_limited_user_message(Some(&wire), false), body);
-        assert!(!format_rate_limited_user_message(Some(&wire), false).contains("API error"));
-    }
-
-    #[test]
-    fn is_free_usage_exhausted_error_sniffs_well_known_code() {
-        assert!(is_free_usage_exhausted_error(
-            "subscription:free-usage-exhausted: You have used all your free usage."
-        ));
-        assert!(is_free_usage_exhausted_error(
-            "API error (status 429): subscription:free-usage-exhausted quota hit"
-        ));
-        assert!(!is_free_usage_exhausted_error("throttled"));
-        assert!(!is_free_usage_exhausted_error(
-            "The service is temporarily at capacity."
-        ));
-    }
-
-    #[test]
-    fn format_rate_limited_free_usage_uses_paywall_copy() {
-        let wire = "API error (status 429 Too Many Requests): \
-            subscription:free-usage-exhausted: You have used all your free usage.";
-        assert_eq!(
-            format_rate_limited_user_message(Some(wire), false),
-            FREE_USAGE_USER_MESSAGE
-        );
-        // Free-usage code is consumer-only; still wins for API-key callers.
-        assert_eq!(
-            format_rate_limited_user_message(Some(wire), true),
-            FREE_USAGE_USER_MESSAGE
-        );
-    }
-
-    #[test]
-    fn format_rate_limited_empty_detail_uses_auth_aware_fallback() {
-        assert_eq!(
-            format_rate_limited_user_message(None, false),
-            RATE_LIMITED_USER_MESSAGE_OAUTH
-        );
-        assert_eq!(
-            format_rate_limited_user_message(Some(""), false),
-            RATE_LIMITED_USER_MESSAGE_OAUTH
-        );
-        assert_eq!(
-            format_rate_limited_user_message(None, true),
-            RATE_LIMITED_USER_MESSAGE_API_KEY
-        );
-        assert_eq!(
-            format_rate_limited_user_message(Some("   "), true),
-            RATE_LIMITED_USER_MESSAGE_API_KEY
-        );
+        assert_eq!(format_rate_limited_user_message(Some(&wire)), body);
+        assert!(!format_rate_limited_user_message(Some(&wire)).contains("API error"));
     }
 
     #[test]
@@ -615,12 +470,10 @@ mod tests {
     }
 
     /// Regression test: 403 Forbidden must NOT map to auth_required.
-    /// The cli-chat-proxy returns 403 for policy denials that are unrelated to
-    /// the caller's credentials (content-safety blocks like
-    /// SAFETY_CHECK_TYPE_DATA_LEAKAGE, ZDR-gated operations, remote settings
-    /// blocks). Mapping these to auth_required causes the desktop app to
-    /// tear down the session and kick off silent re-auth on -32000, and
-    /// can race with invalid_grant_threshold to wipe auth.json.
+    /// Providers return 403 for policy denials that are unrelated to the
+    /// caller's credentials (e.g. content-safety blocks). Mapping these to
+    /// auth_required would tear down the session and kick off a spurious
+    /// re-auth on -32000.
     #[test]
     fn forbidden_does_not_map_to_auth_required() {
         let err = SamplingError::Api {
@@ -645,103 +498,6 @@ mod tests {
                     .into()
             ))
         );
-    }
-
-    /// Helper: run a closure with NOFY_API_KEY temporarily set (or cleared).
-    /// Cleans up even if the closure panics.
-    fn with_api_key_env<F: FnOnce()>(key: Option<&str>, f: F) {
-        let prev = std::env::var("NOFY_API_KEY").ok();
-        let prev_legacy = std::env::var("NOFY_API_KEY").ok();
-        // SAFETY: serial_test ensures no concurrent env mutation.
-        unsafe {
-            std::env::remove_var("NOFY_API_KEY");
-            std::env::remove_var("NOFY_API_KEY");
-            if let Some(k) = key {
-                std::env::set_var("NOFY_API_KEY", k);
-            }
-        }
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
-        // Restore original state.
-        unsafe {
-            std::env::remove_var("NOFY_API_KEY");
-            std::env::remove_var("NOFY_API_KEY");
-            if let Some(v) = prev {
-                std::env::set_var("NOFY_API_KEY", v);
-            }
-            if let Some(v) = prev_legacy {
-                std::env::set_var("NOFY_API_KEY", v);
-            }
-        }
-        if let Err(e) = result {
-            std::panic::resume_unwind(e);
-        }
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn forbidden_subscription_error_includes_api_key_hint_when_env_set() {
-        with_api_key_env(Some("nofy-test"), || {
-            let err = SamplingError::Api {
-                status: StatusCode::FORBIDDEN,
-                message: "The model 'nofy-build' requires a Nofy subscription.".into(),
-                model_metadata: None,
-                retry_after_secs: None,
-                should_retry: None,
-            };
-            let acp_err = map_sampling_err_to_acp(err);
-            let data = acp_err.data.unwrap();
-            let msg = data.as_str().unwrap();
-            assert!(
-                msg.contains("nofy logout"),
-                "should suggest nofy logout when API key is available: {msg}"
-            );
-            assert!(
-                msg.contains("/logout"),
-                "should mention /logout TUI command: {msg}"
-            );
-        });
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn forbidden_subscription_error_no_hint_without_api_key() {
-        with_api_key_env(None, || {
-            let err = SamplingError::Api {
-                status: StatusCode::FORBIDDEN,
-                message: "The model 'nofy-build' requires a Nofy subscription.".into(),
-                model_metadata: None,
-                retry_after_secs: None,
-                should_retry: None,
-            };
-            let acp_err = map_sampling_err_to_acp(err);
-            let data = acp_err.data.unwrap();
-            let msg = data.as_str().unwrap();
-            assert!(
-                !msg.contains("nofy logout"),
-                "should NOT suggest logout when no API key is available: {msg}"
-            );
-        });
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn forbidden_non_subscription_error_no_hint() {
-        with_api_key_env(Some("nofy-test"), || {
-            let err = SamplingError::Api {
-                status: StatusCode::FORBIDDEN,
-                message: "Content violates usage guidelines.".into(),
-                model_metadata: None,
-                retry_after_secs: None,
-                should_retry: None,
-            };
-            let acp_err = map_sampling_err_to_acp(err);
-            let data = acp_err.data.unwrap();
-            let msg = data.as_str().unwrap();
-            assert!(
-                !msg.contains("nofy logout"),
-                "should NOT suggest logout for non-subscription 403: {msg}"
-            );
-        });
     }
 
     #[test]

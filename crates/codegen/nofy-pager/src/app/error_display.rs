@@ -731,12 +731,12 @@ mod tests {
 
     #[test]
     fn recovers_status_from_own_banner_text() {
-        // PromptResponse race fallbacks (401 re-auth, 402 credit limit) sniff
-        // the already-formatted error text when the http_status field is
+        // PromptResponse race fallbacks (e.g. 401 re-auth) sniff the
+        // already-formatted error text when the http_status field is
         // absent — our own headlines must parse.
         assert_eq!(
-            parse_http_status("Request failed (402) \u{2014} usage balance exhausted"),
-            Some(402)
+            parse_http_status("Request denied (403) \u{2014} Access to the endpoint is denied"),
+            Some(403)
         );
         assert_eq!(
             parse_http_status("Server error (500) \u{2014} Something went wrong on our side."),

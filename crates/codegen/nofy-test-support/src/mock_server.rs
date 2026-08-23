@@ -247,7 +247,6 @@ pub struct MockInferenceServer {
     storage: Arc<StorageState>,
     /// When set, `/v1/models` and `/v1/settings` never respond.
     hang: Arc<std::sync::atomic::AtomicBool>,
-    user_tier: Arc<std::sync::RwLock<Option<String>>>,
 }
 
 impl MockInferenceServer {
@@ -284,7 +283,6 @@ impl MockInferenceServer {
         let chunk_delay = Arc::new(std::sync::RwLock::new(None::<Duration>));
         let storage = Arc::new(StorageState::default());
         let hang = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let user_tier = Arc::new(std::sync::RwLock::new(None::<String>));
         let app = Self::build_router(
             log.clone(),
             shared_models.clone(),
@@ -296,7 +294,6 @@ impl MockInferenceServer {
             chunk_delay.clone(),
             storage.clone(),
             hang.clone(),
-            user_tier.clone(),
         );
 
         let listener = TcpListener::bind("127.0.0.1:0")
@@ -336,7 +333,6 @@ impl MockInferenceServer {
             chunk_delay,
             storage,
             hang,
-            user_tier,
         })
     }
 
@@ -392,21 +388,9 @@ impl MockInferenceServer {
         *guard = Some(value);
     }
 
-    /// The smallest settings payload that opens the subscription gate. Without
-    /// it a client sits on the upsell screen.
-    pub fn preset_allow_access(&self) {
-        self.set_settings(json!({ "allow_access": true }));
-    }
-
     /// Stand in for a black-holed backend.
     pub fn set_hang(&self, hang: bool) {
         self.hang.store(hang, std::sync::atomic::Ordering::Release);
-    }
-
-    /// The `subscriptionTier` on `GET /v1/user`. `None`, the default, omits the
-    /// field, which the shell reads as the free tier.
-    pub fn set_user_subscription_tier(&self, tier: Option<&str>) {
-        *self.user_tier.write().unwrap() = tier.map(str::to_owned);
     }
 
     /// Defaults to `"end_turn"`.
@@ -636,7 +620,6 @@ impl MockInferenceServer {
         chunk_delay: Arc<std::sync::RwLock<Option<Duration>>>,
         storage: Arc<StorageState>,
         hang: Arc<std::sync::atomic::AtomicBool>,
-        user_tier: Arc<std::sync::RwLock<Option<String>>>,
     ) -> Router {
         let hang_models = hang.clone();
         let hang_settings = hang;
@@ -971,23 +954,17 @@ impl MockInferenceServer {
                 get(
                     move |axum::extract::RawQuery(query): axum::extract::RawQuery| {
                         let log = log.clone();
-                        let user_tier = user_tier.clone();
                         async move {
-                            // Log the query string so a test can count
-                            // `?include=subscription` on its own.
+                            // Log the query string so a test can inspect it.
                             let path = match query {
                                 Some(q) if !q.is_empty() => format!("/v1/user?{q}"),
                                 _ => "/v1/user".to_owned(),
                             };
                             log.record("GET", &path, None, None, Vec::new());
-                            let tier = user_tier.read().unwrap().clone();
-                            let mut body = json!({
+                            let body = json!({
                                 "userId": "mock-user",
                                 "email": "mock-user@test.invalid",
                             });
-                            if let Some(t) = tier {
-                                body["subscriptionTier"] = json!(t);
-                            }
                             Json(body).into_response()
                         }
                     },
@@ -1693,12 +1670,6 @@ mod tests {
         assert_eq!(resp.status(), 200);
         let body: Value = resp.json().await.unwrap();
         assert_eq!(body, json!({ "tips": ["t1"] }));
-
-        server.preset_allow_access();
-        let resp = reqwest::get(&url).await.unwrap();
-        assert_eq!(resp.status(), 200);
-        let body: Value = resp.json().await.unwrap();
-        assert_eq!(body, json!({ "allow_access": true }));
     }
 
     #[tokio::test]

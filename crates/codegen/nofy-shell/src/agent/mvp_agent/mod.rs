@@ -1448,8 +1448,6 @@ impl MvpAgent {
                     team_role: auth.team_role.clone(),
                     coding_data_retention_opt_out: auth.coding_data_retention_opt_out,
                     show_resolved_model: None,
-                    gate: None,
-                    subscription_tier: None,
                 };
                 serde_json::to_value(auth_meta)
                     .ok()

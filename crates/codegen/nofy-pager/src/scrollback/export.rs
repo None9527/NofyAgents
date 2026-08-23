@@ -16,7 +16,7 @@ use super::{RenderBlock, ToolCallBlock};
 /// - `## Tools` section with one-line summaries for every tool call kind
 ///
 /// Consecutive assistant messages are coalesced under a single header.
-/// Thinking / system / subagent / credit / etc. blocks are skipped.
+/// Thinking / system / subagent / etc. blocks are skipped.
 ///
 /// This function is pure and easily unit-testable with synthetic blocks (including `Stub`).
 pub fn render_blocks_to_markdown<'a>(blocks: impl IntoIterator<Item = &'a RenderBlock>) -> String {
@@ -60,7 +60,7 @@ pub fn render_blocks_to_markdown<'a>(blocks: impl IntoIterator<Item = &'a Render
                 last_was_agent = false;
             }
             // Skip all non-conversation chrome: Thinking, System, SessionEvent, BgTask,
-            // Subagent, Btw, CreditLimit, Stub, etc. Thinking blocks are
+            // Subagent, Btw, Stub, etc. Thinking blocks are
             // treated as intra-Assistant glue (no new header).
             _ => {}
         }

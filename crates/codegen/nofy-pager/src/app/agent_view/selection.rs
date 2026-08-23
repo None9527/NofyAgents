@@ -998,9 +998,6 @@ impl AgentView {
                 .entry(idx)
                 .is_some_and(|e| e.block.is_plan_mode_tool());
 
-        // Credit-limit URL click is handled upstream (before this method)
-        // so only the URL line is clickable, not the whole block.
-
         // Double-click on bg-task / subagent blocks (matched above) opens a
         // viewer instead of folding.
         match click_count {

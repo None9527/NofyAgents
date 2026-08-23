@@ -20,7 +20,7 @@
             percentage: 85,
             reason: "threshold".into(),
         };
-        assert!(apply_session_event(&update, &mut session, &mut scrollback, false));
+        assert!(apply_session_event(&update, &mut session, &mut scrollback));
         assert!(
             session.in_flight_prompt.is_none(),
             "compaction start implies server activity — cancel must not rewind prompt"
@@ -51,7 +51,7 @@
             let update = NofySessionUpdate::AutoCompactFailed {
                 error: error.into(),
             };
-            assert!(apply_session_event(&update, &mut session, &mut scrollback, false));
+            assert!(apply_session_event(&update, &mut session, &mut scrollback));
             assert_eq!(
                 session.compact_held_prompt.as_ref().map(|p| p.text.as_str()),
                 Some("retry after login"),
@@ -74,7 +74,7 @@
         let update = NofySessionUpdate::ImageDropped {
             notes: notes.clone(),
         };
-        let changed = apply_session_event(&update, &mut session, &mut scrollback, false);
+        let changed = apply_session_event(&update, &mut session, &mut scrollback);
         assert!(changed);
         assert_eq!(scrollback.len(), before + 1);
         let entry = scrollback.entries_mut().last().expect("entry pushed");
@@ -141,7 +141,7 @@
             max_retries: 3,
             reason: "rate limited".into(),
         };
-        apply_retry_state(&retry, &mut session, &mut scrollback, false);
+        apply_retry_state(&retry, &mut session, &mut scrollback);
         assert!(
             session.in_flight_prompt.is_none(),
             "RetryState bypasses session/update in_flight hook"
@@ -161,7 +161,7 @@
                 is_rate_limited: true,
             },
             &mut session,
-            &mut scrollback, false);
+            &mut scrollback);
         assert!(
             session.rate_limited,
             "rate_limited flag must be set when is_rate_limited is true"
@@ -169,8 +169,8 @@
     }
 
     #[test]
-    fn retry_exhausted_rate_limited_empty_reason_uses_oauth_fallback() {
-        use nofy_shell::sampling::error::RATE_LIMITED_USER_MESSAGE_OAUTH;
+    fn retry_exhausted_rate_limited_empty_reason_uses_fallback() {
+        use nofy_shell::sampling::error::RATE_LIMITED_USER_MESSAGE;
 
         let empty = RetryState::Exhausted {
             attempts: 3,
@@ -180,10 +180,10 @@
 
         let mut session = make_session(Some("s1"));
         let mut scrollback = ScrollbackState::new();
-        apply_retry_state(&empty, &mut session, &mut scrollback, false);
+        apply_retry_state(&empty, &mut session, &mut scrollback);
         match last_session_event(&scrollback) {
             Some(SessionEvent::RetryFailed { error, .. }) => {
-                assert_eq!(error, RATE_LIMITED_USER_MESSAGE_OAUTH);
+                assert_eq!(error, RATE_LIMITED_USER_MESSAGE);
             }
             other => panic!("expected empty-rate-limit RetryFailed, got {other:?}"),
         }
@@ -203,39 +203,13 @@
 
         let mut session = make_session(Some("s1"));
         let mut scrollback = ScrollbackState::new();
-        apply_retry_state(&exhausted, &mut session, &mut scrollback, false);
+        apply_retry_state(&exhausted, &mut session, &mut scrollback);
         match last_session_event(&scrollback) {
             Some(SessionEvent::RetryFailed { error, .. }) => {
                 assert_eq!(error, body);
                 assert!(!error.contains("API error (status"));
             }
             other => panic!("expected detail RetryFailed, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn retry_exhausted_api_key_rewrites_consumer_subscription_upsell() {
-        use nofy_shell::sampling::error::RATE_LIMITED_USER_MESSAGE_API_KEY;
-
-        let rpm = RetryState::Exhausted {
-            attempts: 2,
-            reason: "API error (status 429 Too Many Requests): \
-                     Some resource has been exhausted: You are sending requests too quickly. \
-                     Please slow down, or upgrade to a Nofy subscription for higher limits: \
-                     https://nofy.com/supernofy"
-                .into(),
-            is_rate_limited: true,
-        };
-
-        let mut session = make_session(Some("s1"));
-        let mut scrollback = ScrollbackState::new();
-        apply_retry_state(&rpm, &mut session, &mut scrollback, true);
-        match last_session_event(&scrollback) {
-            Some(SessionEvent::RetryFailed { error, .. }) => {
-                assert_eq!(error, RATE_LIMITED_USER_MESSAGE_API_KEY);
-                assert!(!error.contains("nofy.com/supernofy"));
-            }
-            other => panic!("expected API-key rate-limit RetryFailed, got {other:?}"),
         }
     }
 
@@ -251,168 +225,15 @@
                 is_rate_limited: false,
             },
             &mut session,
-            &mut scrollback, false);
+            &mut scrollback);
         assert!(
             !session.rate_limited,
             "rate_limited flag must not be set when is_rate_limited is false"
         );
     }
 
-    /// A rate-limit exhaustion whose flattened reason carries the
-    /// free-usage code sets both flags and pushes NO generic block (the
-    /// driver shows the paywall modal on PromptResponse; viewers keep no
-    /// marker).
     #[test]
-    fn retry_exhausted_free_usage_sets_paywall_flag_without_marker() {
-        let mut session = make_session(Some("s1"));
-        let mut scrollback = ScrollbackState::new();
-        session.in_flight_prompt = Some(InFlightPrompt {
-            text: "try me again".into(),
-            images: Vec::new(),
-            scrollback_entry: EntryId::new(2),
-            combined_scrollback_entries: Vec::new(),
-            chip_elements: Vec::new(),
-        });
-
-        apply_retry_state(
-            &RetryState::Exhausted {
-                attempts: 0,
-                reason: "API error (status 429 Too Many Requests): \
-                         subscription:free-usage-exhausted: You have used all your free usage."
-                    .into(),
-                is_rate_limited: true,
-            },
-            &mut session,
-            &mut scrollback, false);
-        assert!(
-            session.rate_limited,
-            "free-usage keeps rate_limited (TurnFailed/toast suppression)"
-        );
-        assert!(session.free_usage_blocked);
-        assert_eq!(
-            scrollback.len(),
-            0,
-            "no RetryFailed marker — the paywall modal shows instead"
-        );
-        assert!(
-            session.in_flight_prompt.is_none(),
-            "free-usage exhaustion clears in_flight_prompt like other failures"
-        );
-    }
-
-    #[test]
-    fn apply_retry_state_disk_full_pushes_session_event() {
-        use nofy_shell::extensions::notification::{
-            DISK_FULL_ERROR_TYPE, DISK_FULL_USER_MESSAGE,
-        };
-        let mut session = make_session(Some("s1"));
-        let mut scrollback = ScrollbackState::new();
-        apply_retry_state(
-            &RetryState::Failed {
-                error_type: DISK_FULL_ERROR_TYPE.into(),
-                message: DISK_FULL_USER_MESSAGE.into(),
-            },
-            &mut session,
-            &mut scrollback,
-            false,
-        );
-        match scrollback.last().map(|e| &e.block) {
-            Some(RenderBlock::SessionEvent(ev)) => {
-                assert!(matches!(ev.event, SessionEvent::DiskFull));
-                assert_eq!(ev.event.message(), DISK_FULL_USER_MESSAGE);
-            }
-            other => panic!("expected DiskFull session event, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn apply_retry_state_credit_limit_exhausted_preserves_in_flight_prompt() {
-        let mut session = make_session(Some("s1"));
-        let mut scrollback = ScrollbackState::new();
-        session.in_flight_prompt = Some(InFlightPrompt {
-            text: "stash me".into(),
-            images: Vec::new(),
-            scrollback_entry: EntryId::new(2),
-            combined_scrollback_entries: Vec::new(),
-            chip_elements: Vec::new(),
-        });
-        apply_retry_state(
-            &RetryState::Exhausted {
-                attempts: 3,
-                reason: "status 403: run out of credits".into(),
-                is_rate_limited: false,
-            },
-            &mut session,
-            &mut scrollback, false);
-        assert!(
-            session.credit_limit_blocked,
-            "credit_limit_blocked must be set for credit-limit 403"
-        );
-        assert!(
-            session.in_flight_prompt.is_some(),
-            "in_flight_prompt must be preserved so PromptResponse handler can stash it"
-        );
-        assert_eq!(session.in_flight_prompt.unwrap().text, "stash me");
-    }
-
-    #[test]
-    fn apply_retry_state_credit_limit_failed_preserves_in_flight_prompt() {
-        let mut session = make_session(Some("s1"));
-        let mut scrollback = ScrollbackState::new();
-        session.in_flight_prompt = Some(InFlightPrompt {
-            text: "stash me too".into(),
-            images: Vec::new(),
-            scrollback_entry: EntryId::new(3),
-            combined_scrollback_entries: Vec::new(),
-            chip_elements: Vec::new(),
-        });
-        apply_retry_state(
-            &RetryState::Failed {
-                error_type: "api".into(),
-                message: "status 403: run out of credits".into(),
-            },
-            &mut session,
-            &mut scrollback, false);
-        assert!(
-            session.credit_limit_blocked,
-            "credit_limit_blocked must be set for credit-limit 403"
-        );
-        assert!(
-            session.in_flight_prompt.is_some(),
-            "in_flight_prompt must be preserved so PromptResponse handler can stash it"
-        );
-        assert_eq!(session.in_flight_prompt.unwrap().text, "stash me too");
-    }
-
-    #[test]
-    fn apply_retry_state_pool_402_sets_credit_limit_blocked() {
-        let mut session = make_session(Some("s1"));
-        let mut scrollback = ScrollbackState::new();
-        session.in_flight_prompt = Some(InFlightPrompt {
-            text: "pool blocked".into(),
-            images: Vec::new(),
-            scrollback_entry: EntryId::new(5),
-            combined_scrollback_entries: Vec::new(),
-            chip_elements: Vec::new(),
-        });
-        apply_retry_state(
-            &RetryState::Failed {
-                error_type: "api".into(),
-                message:
-                    "API error (status 402 Payment Required): Nofy Build usage balance exhausted"
-                        .into(),
-            },
-            &mut session,
-            &mut scrollback, false);
-        assert!(
-            session.credit_limit_blocked,
-            "credit_limit_blocked must be set for pool 402 balance exhausted"
-        );
-        assert!(session.in_flight_prompt.is_some());
-    }
-
-    #[test]
-    fn apply_retry_state_non_credit_limit_failed_clears_in_flight_prompt() {
+    fn apply_retry_state_failed_clears_in_flight_prompt() {
         let mut session = make_session(Some("s1"));
         let mut scrollback = ScrollbackState::new();
         session.in_flight_prompt = Some(InFlightPrompt {
@@ -428,14 +249,11 @@
                 message: "internal server error".into(),
             },
             &mut session,
-            &mut scrollback, false);
-        assert!(
-            !session.credit_limit_blocked,
-            "credit_limit_blocked must NOT be set for non-credit-limit errors"
+            &mut scrollback,
         );
         assert!(
             session.in_flight_prompt.is_none(),
-            "in_flight_prompt must be cleared for non-credit-limit errors"
+            "in_flight_prompt must be cleared for failed retries"
         );
     }
 
@@ -476,7 +294,7 @@
                     .into(),
             },
             &mut session,
-            &mut scrollback, false);
+            &mut scrollback);
         assert!(
             matches!(
                 last_session_event(&scrollback),
@@ -484,7 +302,6 @@
             ),
             "auth 401 must surface the actionable re-auth prompt"
         );
-        assert!(!session.credit_limit_blocked);
     }
 
     /// A recoverable auth failure preserves `in_flight_prompt` so the
@@ -506,7 +323,7 @@
                 message: "Unauthorized (401) from https://proxy/v1/messages".into(),
             },
             &mut session,
-            &mut scrollback, false);
+            &mut scrollback);
         assert!(
             session.in_flight_prompt.is_some(),
             "in_flight_prompt must be preserved on a recoverable auth failure"
@@ -527,7 +344,7 @@
                     .into(),
             },
             &mut session,
-            &mut scrollback, false);
+            &mut scrollback);
         assert!(matches!(
             last_session_event(&scrollback),
             Some(SessionEvent::ReAuthRequired)
@@ -547,7 +364,7 @@
                 message: r#"API error (status 500 Internal Server Error): {"error":"upstream exploded"}"#.into(),
             },
             &mut session,
-            &mut scrollback, false);
+            &mut scrollback);
         match last_session_event(&scrollback) {
             Some(SessionEvent::RequestFailed {
                 status,
@@ -577,7 +394,6 @@
             },
             &mut session,
             &mut scrollback,
-            false,
         );
         match last_session_event(&scrollback) {
             Some(SessionEvent::RequestFailed {
@@ -607,7 +423,7 @@
                     .into(),
             },
             &mut session,
-            &mut scrollback, false);
+            &mut scrollback);
         assert!(
             matches!(
                 last_session_event(&scrollback),
@@ -632,7 +448,6 @@
             },
             &mut session,
             &mut scrollback,
-            false,
         );
         assert!(
             matches!(
@@ -658,7 +473,7 @@
                 message: "the prompt is too long for this model's context window".into(),
             },
             &mut session,
-            &mut scrollback, false);
+            &mut scrollback);
         assert!(
             matches!(
                 last_session_event(&scrollback),
@@ -679,7 +494,7 @@
             elapsed_ms: Some(500),
             summary_preview: None,
         };
-        assert!(apply_session_event(&update, &mut session, &mut scrollback, false));
+        assert!(apply_session_event(&update, &mut session, &mut scrollback));
         assert_eq!(
             scrollback.len(),
             0,
@@ -716,7 +531,7 @@
             elapsed_ms: Some(500),
             summary_preview: None,
         };
-        assert!(apply_session_event(&update, &mut session, &mut scrollback, false));
+        assert!(apply_session_event(&update, &mut session, &mut scrollback));
         session.finish_turn(&mut scrollback,
         );
         match last_session_event(&scrollback) {
@@ -741,7 +556,7 @@
             elapsed_ms: Some(500),
             summary_preview: None,
         };
-        assert!(apply_session_event(&update, &mut session, &mut scrollback, false));
+        assert!(apply_session_event(&update, &mut session, &mut scrollback));
         match last_session_event(&scrollback) {
             Some(SessionEvent::CompactionCompleted { tokens_after, .. }) => {
                 assert_eq!(
@@ -769,7 +584,7 @@
         assert!(apply_session_event(
             &update,
             &mut agent.session,
-            &mut agent.scrollback, false));
+            &mut agent.scrollback));
 
         refresh_context_used(&mut agent, 66_000);
         confirm_context_used(&mut agent, 43_000);
@@ -798,7 +613,7 @@
         let mut session = make_session(Some("s1"));
         let mut scrollback = ScrollbackState::new();
         let update = NofySessionUpdate::MemoryFlushStarted;
-        assert!(!apply_session_event(&update, &mut session, &mut scrollback, false));
+        assert!(!apply_session_event(&update, &mut session, &mut scrollback));
     }
 
     // ── handle_child_session_notification ──────────────────────────────
@@ -821,7 +636,7 @@
             elapsed_ms: Some(300),
             summary_preview: None,
         };
-        let changed = handle_child_session_notification(update, child_sid, &mut agent, false);
+        let changed = handle_child_session_notification(update, child_sid, &mut agent);
         assert!(changed);
 
         let info = agent.subagent_sessions.get(child_sid).unwrap();
@@ -861,7 +676,7 @@
             percentage: 72,
             reason: "threshold".into(),
         };
-        let _ = handle_child_session_notification(update, child_sid, &mut agent, false);
+        let _ = handle_child_session_notification(update, child_sid, &mut agent);
 
         let child_view = agent.subagent_views.get(child_sid).unwrap();
         assert_eq!(
@@ -880,7 +695,7 @@
             percentage: 85,
             reason: "threshold".into(),
         };
-        let changed = handle_child_session_notification(update, "unknown-child", &mut agent, false);
+        let changed = handle_child_session_notification(update, "unknown-child", &mut agent);
         assert!(!changed);
     }
 
@@ -899,7 +714,7 @@
             elapsed_ms: Some(300),
             summary_preview: None,
         };
-        let changed = handle_child_session_notification(update, child_sid, &mut agent, false);
+        let changed = handle_child_session_notification(update, child_sid, &mut agent);
         // No child_view means nothing visible changed — must not trigger redraw.
         assert!(!changed);
         // SubagentInfo should still be updated (data correctness).
@@ -912,7 +727,7 @@
     fn child_unknown_event_returns_false() {
         let mut agent = make_agent(Some("root-sess"));
         let update = NofySessionUpdate::MemoryFlushStarted;
-        let changed = handle_child_session_notification(update, "child-1", &mut agent, false);
+        let changed = handle_child_session_notification(update, "child-1", &mut agent);
         assert!(!changed);
     }
 
@@ -931,7 +746,7 @@
                 message: "incompatible history".into(),
             },
             &mut session,
-            &mut scrollback, false);
+            &mut scrollback);
         assert!(
             session.model_incompatible,
             "encrypted_content_mismatch should set model_incompatible flag"
@@ -950,7 +765,7 @@
                 message: "bad request".into(),
             },
             &mut session,
-            &mut scrollback, false);
+            &mut scrollback);
         assert!(
             !session.model_incompatible,
             "non-encrypted_content error types must not set model_incompatible"

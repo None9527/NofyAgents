@@ -32,7 +32,7 @@ mod meta;
 pub use error::{AuthError, RefreshTokenError, RefreshTokenFailedReason};
 pub use manager::{AuthManager, shared_api_key_provider};
 pub(crate) use manager::{AuthRemedy, SilentRefresh};
-pub use meta::{AuthMeta, GateInfo};
+pub use meta::AuthMeta;
 pub use model::{AuthMode, NofyAuth, lookup_auth};
 pub(crate) use model::{TOKEN_TTL, UserInfo, default_coding_data_retention_opt_out, is_expired};
 pub(crate) use refresh::DiagnosticUploader;

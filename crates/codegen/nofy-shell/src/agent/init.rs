@@ -156,20 +156,16 @@ fn init_process(cfg: &AgentConfig, auth_manager: &AuthManager) {
                  session artifacts will be uploaded, analytics events will not"
             );
         }
-        update_telemetry_config(cfg, auth_manager);
+        update_telemetry_config(cfg);
         // Emitted here: the event needs the client update_telemetry_config installs.
         nofy_telemetry::session_ctx::log_event(limits.into_event());
     });
 }
 
-/// Apply current telemetry config + auth identity. Tears down the client
-/// when telemetry is disabled, so it's safe to call repeatedly.
-pub fn update_telemetry_config(config: &AgentConfig, auth_manager: &AuthManager) {
-    // Telemetry identity came from the removed xAI account system.
-    let _ = auth_manager;
+/// Apply current telemetry config. Safe to call repeatedly.
+pub fn update_telemetry_config(config: &AgentConfig) {
     let user_id: Option<String> = None;
     let team_id: Option<String> = None;
-    let subscription_tier = None;
     nofy_telemetry::client::init(
         config.telemetry.clone(),
         config.resolve_telemetry_mode().value,
@@ -178,7 +174,6 @@ pub fn update_telemetry_config(config: &AgentConfig, auth_manager: &AuthManager)
         config.endpoints.deployment_key.clone(),
         crate::http::origin_client_info_from_env(),
         nofy_version::VERSION.to_owned(),
-        subscription_tier,
         crate::http::shared_client(),
     );
 }

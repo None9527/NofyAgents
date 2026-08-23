@@ -136,42 +136,6 @@ impl AgentView {
                     self.cancel_trigger_hint = Some(crate::app::actions::CancelTrigger::Mouse);
                     return InputOutcome::Action(Action::CancelTurn);
                 }
-                if self
-                    .privacy_banner
-                    .hit_opt_in
-                    .contains(mouse.column, mouse.row)
-                    && !self.pos_occluded(mouse.column, mouse.row)
-                {
-                    return InputOutcome::Action(Action::PrivacyBannerOptIn);
-                }
-                if self
-                    .privacy_banner
-                    .hit_opt_out
-                    .contains(mouse.column, mouse.row)
-                    && !self.pos_occluded(mouse.column, mouse.row)
-                {
-                    return InputOutcome::Action(Action::PrivacyBannerOptOut);
-                }
-                if self
-                    .privacy_banner
-                    .hit_terms
-                    .contains(mouse.column, mouse.row)
-                    && !self.pos_occluded(mouse.column, mouse.row)
-                {
-                    return InputOutcome::Action(Action::OpenUrl(
-                        crate::views::privacy_banner::PRIVACY_BANNER_TERMS_URL.to_string(),
-                    ));
-                }
-                if self
-                    .privacy_banner
-                    .hit_policy
-                    .contains(mouse.column, mouse.row)
-                    && !self.pos_occluded(mouse.column, mouse.row)
-                {
-                    return InputOutcome::Action(Action::OpenUrl(
-                        crate::views::privacy_banner::PRIVACY_BANNER_POLICY_URL.to_string(),
-                    ));
-                }
                 if self.hit_watching_cue.contains(mouse.column, mouse.row)
                     && !self.pos_occluded(mouse.column, mouse.row)
                 {
@@ -878,46 +842,6 @@ impl AgentView {
                             .scrollback
                             .entry_index_at_screen_row(click_row, self.pane_areas.scrollback);
                         if let Some(idx) = hit_idx {
-                            let credit_click = self
-                                .scrollback
-                                .entry(idx)
-                                .and_then(|entry| {
-                                    if let crate::scrollback::block::RenderBlock::CreditLimit(
-                                        ref blk,
-                                    ) = entry.block
-                                    {
-                                        use crate::scrollback::blocks::CreditLimitCardAction;
-                                        let choice = match blk.action {
-                                            CreditLimitCardAction::PurchaseCredits => {
-                                                nofy_telemetry::events::CreditLimitChoice::PurchaseCredits
-                                            }
-                                            CreditLimitCardAction::EnablePayg
-                                            | CreditLimitCardAction::IncreasePaygLimit => {
-                                                nofy_telemetry::events::CreditLimitChoice::PayAsYouGo
-                                            }
-                                        };
-                                        Some((blk.url.clone(), choice))
-                                    } else {
-                                        None
-                                    }
-                                });
-                            if let Some((url, choice)) = credit_click
-                                && let Some((area, _, _)) = self
-                                    .scrollback
-                                    .entry_screen_area(idx, self.pane_areas.scrollback)
-                            {
-                                let url_row = area.y + area.height.saturating_sub(2);
-                                if click_row >= url_row {
-                                    self.scrollback.set_selected(Some(idx));
-                                    nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::CreditLimitUpsellClicked {
-                                        surface: nofy_telemetry::events::CreditLimitUpsellSurface::InlineCard,
-                                        choice,
-                                    });
-                                    self.open_url_or_show(&url);
-                                    self.last_click = None;
-                                    return InputOutcome::Changed;
-                                }
-                            }
                             let selectable = self
                                 .scrollback
                                 .get(idx)
@@ -1076,7 +1000,6 @@ impl AgentView {
                     .set_hovered_follow_up_chip(self.follow_up_chip_at(mouse.column, mouse.row));
                 changed |= self.hit_badge.update_hover(mouse.column, mouse.row);
                 changed |= self.hit_context.update_hover(mouse.column, mouse.row);
-                changed |= self.hit_credits.update_hover(mouse.column, mouse.row);
                 changed |= self.hit_todo_close.update_hover(mouse.column, mouse.row);
                 changed |= self.hit_queue_close.update_hover(mouse.column, mouse.row);
                 changed |= self.hit_queue_badge.update_hover(mouse.column, mouse.row);
@@ -1112,22 +1035,6 @@ impl AgentView {
                     .update_hover(mouse.column, mouse.row);
                 changed |= self
                     .hit_announcement_cta
-                    .update_hover(mouse.column, mouse.row);
-                changed |= self
-                    .privacy_banner
-                    .hit_opt_in
-                    .update_hover(mouse.column, mouse.row);
-                changed |= self
-                    .privacy_banner
-                    .hit_opt_out
-                    .update_hover(mouse.column, mouse.row);
-                changed |= self
-                    .privacy_banner
-                    .hit_terms
-                    .update_hover(mouse.column, mouse.row);
-                changed |= self
-                    .privacy_banner
-                    .hit_policy
                     .update_hover(mouse.column, mouse.row);
                 changed |= self
                     .plugin_cta

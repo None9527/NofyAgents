@@ -386,8 +386,6 @@ pub(in crate::app::dispatch) fn dispatch_new_session_inner_with_id(
             restore_degree: None,
             rate_limited: false,
             model_incompatible: false,
-            credit_limit_blocked: false,
-            free_usage_blocked: false,
             available_commands: app.bootstrap_acp_commands.clone(),
             available_commands_generation: 1,
             available_tools: None,
@@ -415,15 +413,16 @@ pub(in crate::app::dispatch) fn dispatch_new_session_inner_with_id(
             .set_contextual_hints(app.contextual_hints.undo, app.contextual_hints.plan_mode);
         agent.set_session_recap_available(app.session_recap_available);
         agent.apply_app_scoped_gates(
+
             app.sharing_enabled,
-            app.usage_visible,
-            !app.has_external_auth_provider,
+
             app.chat_mode,
+
             app.screen_mode,
+
             &app.active_announcements,
-            &app.tier_restricted_commands,
+
         );
-        agent.apply_credit_balance(app.credit_balance.clone(), app.auto_topup.clone());
         agent
             .prompt
             .slash_controller
@@ -458,7 +457,6 @@ pub(in crate::app::dispatch) fn dispatch_new_session_inner_with_id(
             agent.workspace_mode = mode;
             agent.workspace_mode_cli_locked = locked;
         }
-        agent.apply_credit_balance(app.credit_balance.clone(), app.auto_topup.clone());
         agent.mcp_init_progress = Some(McpInitProgress {
             total: 0,
             connected: 0,
@@ -898,8 +896,6 @@ pub(in crate::app::dispatch) fn dispatch_new_worktree_session(
             restore_degree: None,
             rate_limited: false,
             model_incompatible: false,
-            credit_limit_blocked: false,
-            free_usage_blocked: false,
             available_commands: app.bootstrap_acp_commands.clone(),
             available_commands_generation: 1,
             available_tools: None,
@@ -939,13 +935,15 @@ pub(in crate::app::dispatch) fn dispatch_new_worktree_session(
             .set_contextual_hints(app.contextual_hints.undo, app.contextual_hints.plan_mode);
         agent.set_session_recap_available(app.session_recap_available);
         agent.apply_app_scoped_gates(
+
             app.sharing_enabled,
-            app.usage_visible,
-            !app.has_external_auth_provider,
+
             app.chat_mode,
+
             app.screen_mode,
+
             &app.active_announcements,
-            &app.tier_restricted_commands,
+
         );
         agent.chat_kind = chat_kind;
         #[cfg(feature = "local-workspace")]
@@ -968,7 +966,6 @@ pub(in crate::app::dispatch) fn dispatch_new_worktree_session(
             agent.workspace_mode = mode;
             agent.workspace_mode_cli_locked = locked;
         }
-        agent.apply_credit_balance(app.credit_balance.clone(), app.auto_topup.clone());
         agent
             .prompt
             .slash_controller
@@ -1102,10 +1099,6 @@ pub(in crate::app::dispatch) fn handle_session_created(
                 session_id: session_id_clone.clone(),
             });
         }
-        effects.push(Effect::FetchBilling {
-            agent_id,
-            silent: true,
-        });
         if let Some(switch) = deferred {
             effects.push(Effect::SwitchModel {
                 agent_id,
@@ -1205,10 +1198,6 @@ pub(in crate::app::dispatch) fn handle_worktree_session_created(
                 session_id: session_id_clone.clone(),
             });
         }
-        effects.push(Effect::FetchBilling {
-            agent_id,
-            silent: true,
-        });
         if let Some(switch) = deferred {
             effects.push(Effect::SwitchModel {
                 agent_id,

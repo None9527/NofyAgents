@@ -1324,8 +1324,6 @@ mod cancel_turn_mouse_tests {
                 restore_degree: None,
                 rate_limited: false,
                 model_incompatible: false,
-                credit_limit_blocked: false,
-                free_usage_blocked: false,
                 available_commands: Vec::new(),
                 available_commands_generation: 0,
                 available_tools: None,
@@ -1880,10 +1878,10 @@ mod permission_scope_key_tests {
 }
 #[cfg(test)]
 mod question_no_freeform_tests {
-    //! Freeform ("Other") gating for `no_freeform` question modals — e.g.
-    //! the SuperNofy upsell. Regression tests for the bug where clicking
-    //! under the last option of the upsell selected the (hidden) freeform
-    //! row and let the user type into a modal that offers no free text.
+    //! Freeform ("Other") gating for `no_freeform` question modals.
+    //! Regression tests for the bug where clicking under the last option
+    //! selected the (hidden) freeform row and let the user type into a
+    //! modal that offers no free text.
     use super::super::test_fixtures::make_agent;
     use crate::actions::ActionRegistry;
     use crate::app::agent_view::AgentView;
@@ -1897,8 +1895,8 @@ mod question_no_freeform_tests {
     use nofy_tools::implementations::nofy_build::ask_user_question::{
         Question, QuestionOption,
     };
-    /// Fixed options, single-select — shaped like the free-usage upsell.
-    fn upsell_question() -> Question {
+    /// Fixed options, single-select — no freeform row.
+    fn fixed_choice_question() -> Question {
         let opt = |label: &str, desc: &str| QuestionOption {
             label: label.into(),
             description: desc.into(),
@@ -1906,10 +1904,10 @@ mod question_no_freeform_tests {
             id: None,
         };
         Question {
-            question: "You hit your free usage limit.".into(),
+            question: "Pick a mode.".into(),
             options: vec![
-                opt("Upgrade to SuperNofy", "For everyday coding"),
-                opt("Upgrade to SuperNofy Heavy", "Highest usage limits"),
+                opt("Standard", "For everyday coding"),
+                opt("Heavy", "Highest resource limits"),
             ],
             multi_select: Some(false),
             id: None,
@@ -1917,8 +1915,8 @@ mod question_no_freeform_tests {
     }
     pub(super) fn open_question(agent: &mut AgentView, no_freeform: bool) {
         let state = QuestionViewState::new(
-            "tc-upsell".into(),
-            vec![upsell_question()],
+            "tc-fixed-choice".into(),
+            vec![fixed_choice_question()],
             StashedPrompt::default(),
         );
         agent.question_view = Some(if no_freeform {

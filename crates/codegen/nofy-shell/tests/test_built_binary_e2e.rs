@@ -193,7 +193,6 @@ async fn test_headless_session_in_non_git_dir() {
 #[ignore] // requires pre-built binary; run with --ignored
 async fn test_headless_tools_allowlist_keeps_enabled_web_tools() {
     let server = nofy_build_server().await;
-    server.preset_allow_access();
     let workdir = git_workdir();
 
     let result = run_headless_with_env(
@@ -237,7 +236,6 @@ async fn test_headless_tools_allowlist_keeps_enabled_web_tools() {
 async fn test_headless_tools_allowlist_does_not_fail_open_for_disabled_web_fetch() {
     let server = nofy_build_server().await;
     server.set_settings(serde_json::json!({
-        "allow_access": true,
         "web_fetch_enabled": false,
     }));
     let workdir = git_workdir();

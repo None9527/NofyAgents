@@ -71,31 +71,6 @@ pub(crate) fn execute(
                 tracing::warn!(error = %e, "change location: failed to set_current_dir");
             }
         }
-        Effect::CheckSubscription { verify } => {
-            let tx = acp_tx.clone();
-            tasks.spawn(async move { send_check_subscription(&tx, verify).await });
-        }
-        Effect::CreditLimitRecheck { agent_id } => {
-            let tx = acp_tx.clone();
-            tasks.spawn(async move { send_credit_limit_recheck(&tx, agent_id).await });
-        }
-        Effect::SchedulePaywallCheck => {
-            tasks
-                .spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                    TaskResult::PaywallCheckTick
-                });
-        }
-        Effect::ScheduleGateVerifyTimeout { generation } => {
-            tasks
-                .spawn(async move {
-                    tokio::time::sleep(crate::app::subscription::GATE_VERIFY_TIMEOUT)
-                        .await;
-                    TaskResult::GateVerifyTimeout {
-                        generation,
-                    }
-                });
-        }
         Effect::CreateSession {
             agent_id,
             cwd: session_cwd,
@@ -1052,7 +1027,6 @@ pub(crate) fn execute(
         } => {
             let tx = acp_tx.clone();
             let screen_mode = session_flags.screen_mode_label;
-            let is_api_key_auth = session_flags.is_api_key_auth;
             tasks
                 .spawn(async move {
                     ulog::info(
@@ -1096,7 +1070,7 @@ pub(crate) fn execute(
                     TaskResult::PromptResponse {
                         agent_id,
                         result: result
-                            .map_err(|e| format_acp_error(&e, is_api_key_auth)),
+                            .map_err(|e| format_acp_error(&e)),
                         http_status,
                         prompt_id: Some(prompt_id),
                     }
@@ -1107,7 +1081,6 @@ pub(crate) fn execute(
             let send_now = effect_is_send_now;
             let tx = acp_tx.clone();
             let screen_mode = session_flags.screen_mode_label;
-            let is_api_key_auth = session_flags.is_api_key_auth;
             tasks
                 .spawn(async move {
                     ulog::info(
@@ -1149,7 +1122,7 @@ pub(crate) fn execute(
                             agent_id,
                             session_id,
                             prompt_id,
-                            error: format_acp_error(e, is_api_key_auth),
+                            error: format_acp_error(e),
                             blocks,
                         };
                     }
@@ -1160,7 +1133,7 @@ pub(crate) fn execute(
                     TaskResult::PromptResponse {
                         agent_id,
                         result: result
-                            .map_err(|e| format_acp_error(&e, is_api_key_auth)),
+                            .map_err(|e| format_acp_error(&e)),
                         http_status,
                         prompt_id: Some(prompt_id),
                     }
@@ -1169,7 +1142,6 @@ pub(crate) fn execute(
         Effect::SendBashCommand { agent_id, session_id, command, prompt_id } => {
             let tx = acp_tx.clone();
             let screen_mode = session_flags.screen_mode_label;
-            let is_api_key_auth = session_flags.is_api_key_auth;
             tasks
                 .spawn(async move {
                     use nofy_shell::extensions::prompt_meta::PromptBlockMeta;
@@ -1222,7 +1194,7 @@ pub(crate) fn execute(
                     TaskResult::PromptResponse {
                         agent_id,
                         result: result
-                            .map_err(|e| format_acp_error(&e, is_api_key_auth)),
+                            .map_err(|e| format_acp_error(&e)),
                         http_status,
                         prompt_id: Some(prompt_id),
                     }
@@ -1462,7 +1434,6 @@ pub(crate) fn execute(
         } => {
             let tx = acp_tx.clone();
             let screen_mode = session_flags.screen_mode_label;
-            let is_api_key_auth = session_flags.is_api_key_auth;
             tasks
                 .spawn(async move {
                     let mode_req = acp::SetSessionModeRequest::new(
@@ -1493,7 +1464,7 @@ pub(crate) fn execute(
                     TaskResult::PromptResponse {
                         agent_id,
                         result: result
-                            .map_err(|e| format_acp_error(&e, is_api_key_auth)),
+                            .map_err(|e| format_acp_error(&e)),
                         http_status,
                         prompt_id: Some(prompt_id),
                     }
@@ -1913,19 +1884,6 @@ pub(crate) fn execute(
                     TaskResult::AnnouncementsHiddenPersisted {
                         result: Ok(()),
                     }
-                });
-        }
-        Effect::PersistPrivacyBannerAcked { acked_at } => {
-            tasks
-                .spawn(async move {
-                    if let Err(e) = nofy_shell::util::config::set_privacy_banner_acked(
-                            acked_at,
-                        )
-                        .await
-                    {
-                        tracing::warn!(error = %e, "failed to persist privacy_banner_acked");
-                    }
-                    TaskResult::CancelComplete
                 });
         }
         Effect::PersistMemoryFullscreen { fullscreen } => {
@@ -2901,7 +2859,6 @@ pub(crate) fn execute(
         }
         Effect::ToggleMcpServer { agent_id, session_id, server_name, enabled } => {
             let tx = acp_tx.clone();
-            let is_api_key_auth = session_flags.is_api_key_auth;
             tasks
                 .spawn(async move {
                     let params = serde_json::json!({
@@ -2917,7 +2874,7 @@ pub(crate) fn execute(
                     );
                     let result = match acp_send(req, &tx).await {
                         Ok(_) => Ok(()),
-                        Err(e) => Err(format_acp_error(&e, is_api_key_auth)),
+                        Err(e) => Err(format_acp_error(&e)),
                     };
                     TaskResult::McpToggleDone {
                         agent_id,
@@ -3434,7 +3391,6 @@ pub(crate) fn execute(
         }
         Effect::SendBtw { agent_id, session_id, question, minimal_request_id } => {
             let tx = acp_tx.clone();
-            let is_api_key_auth = session_flags.is_api_key_auth;
             tasks
                 .spawn(async move {
                     let request = acp::ExtRequest::new(
@@ -3469,7 +3425,7 @@ pub(crate) fn execute(
                         Err(e) => {
                             TaskResult::BtwResponse {
                                 agent_id,
-                                result: Err(format_acp_error(&e, is_api_key_auth)),
+                                result: Err(format_acp_error(&e)),
                                 minimal_request_id,
                             }
                         }
@@ -3993,115 +3949,6 @@ pub(crate) fn execute(
                         title,
                         last_turn_summary,
                         last_turn_summary_gen,
-                    }
-                });
-        }
-        Effect::FetchBilling { agent_id, silent } => {
-            let tx = acp_tx.clone();
-            tasks
-                .spawn(async move {
-                    use nofy_shell::extensions::billing::BillingConfigResponse;
-                    let req = acp::ExtRequest::new(
-                        "nofy/billing",
-                        serde_json::value::to_raw_value(&serde_json::json!({}))
-                            .expect("serialize billing params")
-                            .into(),
-                    );
-                    let parsed = match acp_send(req, &tx).await {
-                        Ok(resp) => {
-                            let wrapper: serde_json::Value = serde_json::from_str(
-                                    resp.0.get(),
-                                )
-                                .unwrap_or_default();
-                            let result = wrapper.get("result").unwrap_or(&wrapper);
-                            serde_json::from_value::<
-                                BillingConfigResponse,
-                            >(result.clone())
-                        }
-                        Err(e) => {
-                            return TaskResult::BillingError {
-                                agent_id,
-                                error: sanitize_user_error(&format!("{e}")),
-                                silent,
-                            };
-                        }
-                    };
-                    let billing = match parsed {
-                        Ok(billing) => billing,
-                        Err(e) => {
-                            return TaskResult::BillingError {
-                                agent_id,
-                                error: format!("Parse error: {e}"),
-                                silent,
-                            };
-                        }
-                    };
-                    let balance = billing.config.map(credit_balance_from_config);
-                    let autotopup = if has_prepaid_credits(balance.as_ref()) {
-                        fetch_auto_topup_info(&tx).await
-                    } else {
-                        crate::views::credit_bar::AutoTopupFetch::Cleared
-                    };
-                    TaskResult::BillingFetched {
-                        agent_id,
-                        balance,
-                        silent,
-                        autotopup,
-                    }
-                });
-        }
-        Effect::FetchAppBilling => {
-            let tx = acp_tx.clone();
-            tasks
-                .spawn(async move {
-                    use nofy_shell::extensions::billing::BillingConfigResponse;
-                    let req = acp::ExtRequest::new(
-                        "nofy/billing",
-                        serde_json::value::to_raw_value(&serde_json::json!({}))
-                            .expect("serialize billing params")
-                            .into(),
-                    );
-                    match acp_send(req, &tx).await {
-                        Ok(resp) => {
-                            let wrapper: serde_json::Value = serde_json::from_str(
-                                    resp.0.get(),
-                                )
-                                .unwrap_or_default();
-                            let result = wrapper.get("result").unwrap_or(&wrapper);
-                            match serde_json::from_value::<
-                                BillingConfigResponse,
-                            >(result.clone()) {
-                                Ok(billing) => {
-                                    let balance = billing
-                                        .config
-                                        .map(|c| crate::views::credit_bar::CreditBalance {
-                                            period_end_display: None,
-                                            ..credit_balance_from_config(c)
-                                        });
-                                    let autotopup = if has_prepaid_credits(balance.as_ref()) {
-                                        fetch_auto_topup_info(&tx).await
-                                    } else {
-                                        crate::views::credit_bar::AutoTopupFetch::Cleared
-                                    };
-                                    TaskResult::AppBillingFetched {
-                                        balance,
-                                        autotopup,
-                                    }
-                                }
-                                Err(_) => {
-                                    TaskResult::AppBillingFetched {
-                                        balance: None,
-                                        autotopup: crate::views::credit_bar::AutoTopupFetch::Unchanged,
-                                    }
-                                }
-                            }
-                        }
-                        Err(_) => {
-                            TaskResult::AppBillingFetched {
-                                balance: None,
-                                autotopup: crate::views::credit_bar::AutoTopupFetch::Unchanged,
-                            }
-                        }
                     }
                 });
         }

@@ -61,10 +61,6 @@ pub enum Action {
     DeleteCurrentSessionAnswered {
         confirmed: bool,
     },
-    /// Open nofy.com in the browser for SuperNofy subscription upsell.
-    OpenSupernofyUrl,
-    /// Re-check subscription status via the shell's `nofy/auth/check_subscription`.
-    CheckSubscription,
     /// Open an arbitrary URL in the system browser (with scheme validation).
     OpenUrl(String),
     /// Open a semantic scrollback link.
@@ -587,10 +583,6 @@ pub enum Action {
     OpenSettingsFocus {
         key: &'static str,
     },
-    /// Privacy banner `[Opt in]` (ack only after ACP success).
-    PrivacyBannerOptIn,
-    /// Privacy banner `[Opt out]` (ack now, then record the decline).
-    PrivacyBannerOptOut,
     /// Open the command palette (`/help`). The keybinding path (Ctrl+P) opens it
     /// directly in `handle_agent_action`; this lets a slash command reach the
     /// same modal through dispatch.
@@ -641,10 +633,8 @@ pub enum Action {
     },
     /// Show detailed context usage (progress bar, token breakdown, stats).
     ShowContextInfo,
-    /// `/usage` — session token/cost, plus consumer credits when visible.
+    /// `/usage` — session token/cost.
     ShowUsage,
-    /// `/usage manage` — open consumer billing (no-op if surface hidden).
-    ManageBilling,
     /// Commit a read-only list of the queued prompts as a system block
     /// (`/queue`). The surface minimal mode uses in place of the `QueuePane`.
     ShowQueue,
@@ -1548,8 +1538,6 @@ pub enum Effect {
     PersistAnnouncementsHidden {
         hidden_ids: std::collections::BTreeSet<String>,
     },
-    /// Persist `[privacy].privacy_banner_acked` (RFC 3339 dismiss time).
-    PersistPrivacyBannerAcked { acked_at: String },
     /// Persist memory modal fullscreen preference to `[hints]` in config.toml.
     PersistMemoryFullscreen { fullscreen: bool },
     /// Persist the dashboard's `[dashboard]` configuration to `~/.nofy/config.toml`.
@@ -1913,19 +1901,6 @@ pub enum Effect {
         /// interjections — the wire shape stays byte-identical to legacy.
         blocks: Option<Vec<acp::ContentBlock>>,
     },
-    /// Re-check subscription status via `nofy/auth/check_subscription`.
-    /// `verify` scopes the result to a deferred-gate verification (see
-    /// [`crate::app::subscription`]); `None` for generic checks.
-    CheckSubscription { verify: Option<u64> },
-    /// One-shot subscription re-check triggered by a credit-limit 403.
-    /// If the tier changed, the stashed prompt is retried instead of
-    /// showing the upsell modal.
-    CreditLimitRecheck { agent_id: AgentId },
-    /// Schedule a 5s timer that fires `TaskResult::PaywallCheckTick`.
-    SchedulePaywallCheck,
-    /// Schedule `TaskResult::GateVerifyTimeout { generation }` after
-    /// [`crate::app::subscription::GATE_VERIFY_TIMEOUT`].
-    ScheduleGateVerifyTimeout { generation: u64 },
     /// Register the current session in the active-sessions crash-recovery
     /// registry (`~/.nofy/active_sessions.json`).
     RegisterActiveSession {
@@ -2002,14 +1977,6 @@ pub enum Effect {
         session_id: acp::SessionId,
         target_prompt_index: usize,
     },
-    /// Fetch billing/credit usage from the agent's `nofy/billing` extension.
-    /// When `silent` is true the result updates `credit_balance` without
-    /// pushing a system message into scrollback (used for automatic refreshes
-    /// on session init and after each turn).
-    FetchBilling { agent_id: AgentId, silent: bool },
-    /// Fetch billing data at the app level (no agent required).
-    /// Used on startup to populate the welcome-screen credit warning.
-    FetchAppBilling,
     /// Fetch per-session token/cost via `nofy/session/usage` (auth-agnostic).
     FetchSessionUsage {
         agent_id: AgentId,
@@ -2285,8 +2252,6 @@ pub enum TaskResult {
         agent_id: AgentId,
         result: Result<acp::PromptResponse, String>,
         /// HTTP status code from the upstream API error, if available.
-        /// Used by dispatch to show targeted UI (e.g. credit-limit
-        /// upsell on 403).
         http_status: Option<u16>,
         /// The `prompt_id` the pager minted when it sent this `session/prompt`
         /// RPC. On `Ok` the agent echoes `promptId` back in PR meta, but an
@@ -2632,25 +2597,6 @@ pub enum TaskResult {
         agent_id: AgentId,
         commands: Vec<acp::AvailableCommand>,
     },
-    /// Shell responded to `nofy/auth/check_subscription`. `verify` echoes
-    /// the generation from `Effect::CheckSubscription` for deferred-gate
-    /// verifications.
-    CheckSubscriptionComplete {
-        verify: Option<u64>,
-        meta: Option<serde_json::Value>,
-    },
-    /// Result of the credit-limit subscription re-check. If the tier
-    /// changed the stashed prompt is retried; otherwise the upsell is shown.
-    CreditLimitRecheckComplete {
-        agent_id: AgentId,
-        meta: Option<serde_json::Value>,
-    },
-    /// 5s paywall check timer fired -- time to send another check.
-    PaywallCheckTick,
-    /// The deferred-gate verification window expired.
-    GateVerifyTimeout {
-        generation: u64,
-    },
     DeepSearchResults {
         results: Vec<nofy_shell::extensions::session_search::SearchSessionHit>,
         seq: u64,
@@ -2687,27 +2633,6 @@ pub enum TaskResult {
     RewindExecuteFailed {
         agent_id: AgentId,
         error: String,
-    },
-    /// Billing data fetched from the agent.
-    BillingFetched {
-        agent_id: AgentId,
-        balance: Option<crate::views::credit_bar::CreditBalance>,
-        /// When true, update `credit_balance` silently (no scrollback message).
-        silent: bool,
-        /// Auto top-up rule fetch result; `Unchanged` keeps any cached rule.
-        autotopup: crate::views::credit_bar::AutoTopupFetch,
-    },
-    /// App-level billing data (welcome screen).
-    AppBillingFetched {
-        balance: Option<crate::views::credit_bar::CreditBalance>,
-        autotopup: crate::views::credit_bar::AutoTopupFetch,
-    },
-    /// Billing fetch failed with an error message.
-    BillingError {
-        agent_id: AgentId,
-        error: String,
-        /// When true, swallow the error silently (background refresh).
-        silent: bool,
     },
     /// Debounce timer for shell suggestions expired. Routed by the arming
     /// `agent_id`, like the sibling `PluginCtaDebounceExpired`.

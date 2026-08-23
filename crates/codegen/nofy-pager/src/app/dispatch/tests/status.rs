@@ -587,205 +587,8 @@ fn set_coding_data_sharing_no_agents_still_emits_effect() {
     );
 }
 
-fn privacy_banner_ready_app() -> AppView {
-    let mut app = test_app_with_agent();
-    app.active_view = ActiveView::Welcome;
-    app.auth_state = AuthState::Done;
-    app.trust_state = TrustState::Done;
-    app.privacy_notice_rollout = true;
-    app.privacy_banner_acked = None;
-    app.privacy_banner_reshow_days = None;
-    app.privacy_banner_opt_in_inflight = false;
-    app.is_zdr = false;
-    app.team_name = None;
-    app.coding_data_retention_opt_out = true;
-    app
-}
 
-#[test]
-fn privacy_banner_should_show_respects_gates() {
-    let mut app = privacy_banner_ready_app();
-    assert!(app.privacy_banner_should_show());
-
-    app.coding_data_retention_opt_out = false;
-    assert!(!app.privacy_banner_should_show(), "already opted in");
-    app.coding_data_retention_opt_out = true;
-
-    app.is_zdr = true;
-    assert!(!app.privacy_banner_should_show(), "enterprise ZDR");
-    app.is_zdr = false;
-
-    app.privacy_banner_acked = Some("2099-01-01T00:00:00Z".into());
-    assert!(
-        !app.privacy_banner_should_show(),
-        "recently acked, no reshow"
-    );
-
-    app.privacy_banner_reshow_days = Some(30);
-    app.privacy_banner_acked = Some("2020-01-01T00:00:00Z".into());
-    assert!(
-        app.privacy_banner_should_show(),
-        "acked long ago + reshow_days"
-    );
-
-    app.privacy_notice_rollout = false;
-    assert!(!app.privacy_banner_should_show(), "rollout off");
-}
-
-/// `[Opt in]` success: ACP confirmation acks the banner.
-#[test]
-fn privacy_banner_opt_in_success_acks() {
-    let mut app = privacy_banner_ready_app();
-    let effects = dispatch(Action::PrivacyBannerOptIn, &mut app);
-    assert_eq!(effects.len(), 1);
-    assert!(matches!(
-        &effects[0],
-        Effect::SetCodingDataSharing { opted_in: true, .. }
-    ));
-    assert!(app.privacy_banner_opt_in_inflight);
-    assert!(!app.coding_data_retention_opt_out);
-    assert!(app.privacy_banner_acked.is_none());
-
-    let seq = app.coding_data_write_seq;
-    let ack_effects = dispatch(
-        Action::TaskComplete(TaskResult::CodingDataSharingUpdated {
-            agent_id: AgentId(0),
-            opted_in: true,
-            seq,
-        }),
-        &mut app,
-    );
-    assert!(!app.privacy_banner_opt_in_inflight);
-    assert!(app.privacy_banner_acked.is_some());
-    assert!(
-        ack_effects
-            .iter()
-            .any(|e| matches!(e, Effect::PersistPrivacyBannerAcked { .. })),
-        "success must persist ack: {ack_effects:?}"
-    );
-}
-
-/// `[Opt in]` failure: no ack; welcome toast carries the error.
-#[test]
-fn privacy_banner_opt_in_failure_no_ack_sets_welcome_toast() {
-    let mut app = privacy_banner_ready_app();
-    let effects = dispatch(Action::PrivacyBannerOptIn, &mut app);
-    assert_eq!(effects.len(), 1);
-    assert!(app.privacy_banner_opt_in_inflight);
-
-    let seq = app.coding_data_write_seq;
-    let fail_effects = dispatch(
-        Action::TaskComplete(TaskResult::CodingDataSharingFailed {
-            agent_id: AgentId(0),
-            error: "server error".into(),
-            rollback_to_opted_in: false,
-            seq,
-        }),
-        &mut app,
-    );
-    assert!(fail_effects.is_empty());
-    assert!(!app.privacy_banner_opt_in_inflight);
-    assert!(app.privacy_banner_acked.is_none());
-    assert!(
-        app.coding_data_retention_opt_out,
-        "rollback restores opt-out"
-    );
-    let toast = app
-        .welcome_toast
-        .as_ref()
-        .map(|(m, _)| m.as_str())
-        .unwrap_or("");
-    assert!(
-        toast.contains("coding data sharing"),
-        "welcome toast on [Opt in] failure: {toast}"
-    );
-    assert!(toast.contains("server error"), "error in toast: {toast}");
-}
-
-/// `[Opt out]` while an `[Opt in]` ACP call is inflight must be a no-op:
-/// an eager ack would survive the opt-in-failure rollback and hide the
-/// banner forever.
-#[test]
-fn privacy_banner_opt_out_noop_while_opt_in_inflight() {
-    let mut app = privacy_banner_ready_app();
-    let _ = dispatch(Action::PrivacyBannerOptIn, &mut app);
-    assert!(app.privacy_banner_opt_in_inflight);
-
-    let effects = dispatch(Action::PrivacyBannerOptOut, &mut app);
-    assert!(
-        effects.is_empty(),
-        "[Opt out] during an inflight [Opt in] must be a no-op: {effects:?}"
-    );
-    assert!(app.privacy_banner_acked.is_none(), "no ack while inflight");
-
-    let seq = app.coding_data_write_seq;
-    let _ = dispatch(
-        Action::TaskComplete(TaskResult::CodingDataSharingFailed {
-            agent_id: AgentId(0),
-            error: "server error".into(),
-            rollback_to_opted_in: false,
-            seq,
-        }),
-        &mut app,
-    );
-    assert!(
-        app.privacy_banner_should_show(),
-        "a failed [Opt in] must keep the banner even after a raced [Opt out]"
-    );
-}
-
-/// The ack must not hinge on the round trip, unlike `[Opt in]`'s.
-#[test]
-fn privacy_banner_opt_out_acks_now_and_records_decline() {
-    use crate::views::modal::ActiveModal;
-    let mut app = privacy_banner_ready_app();
-
-    let effects = dispatch(Action::PrivacyBannerOptOut, &mut app);
-
-    assert!(
-        app.privacy_banner_acked.is_some(),
-        "the ack lands on click, not on an ACP reply"
-    );
-    assert!(
-        !app.privacy_banner_should_show(),
-        "the banner is gone the moment it is dismissed"
-    );
-    assert!(
-        effects
-            .iter()
-            .any(|e| matches!(e, Effect::PersistPrivacyBannerAcked { .. })),
-        "ack must persist: {effects:?}"
-    );
-    assert!(
-        effects.iter().any(|e| matches!(
-            e,
-            Effect::SetCodingDataSharing {
-                opted_in: false,
-                rollback_to_opted_in: false,
-                ..
-            }
-        )),
-        "the decline rides the ordinary write, so its response re-anchors \
-         the mirror like every other one: {effects:?}"
-    );
-    assert!(
-        !app.privacy_banner_opt_in_inflight,
-        "a best-effort write must not arm the opt-in inflight guard, which \
-         would block [Opt in] and confuse both ACP result handlers"
-    );
-    assert!(
-        app.coding_data_retention_opt_out,
-        "declining leaves the user opted out"
-    );
-    assert!(
-        app.agents
-            .values()
-            .all(|a| !matches!(a.active_modal, Some(ActiveModal::Settings { .. }))),
-        "[Opt out] answers the question; it must not detour into settings"
-    );
-}
-
-/// A superseded reply must not touch state. `[Opt out]` fires a write, the
+/// A superseded reply must not touch state. An opt-out write fires, the
 /// user opts in from settings before it lands, and only then does the stale
 /// decline answer: its `rollback_to_opted_in: false` was captured before the
 /// opt-in existed, so applying it would flip the pager to opted-out while
@@ -793,10 +596,11 @@ fn privacy_banner_opt_out_acks_now_and_records_decline() {
 #[test]
 fn superseded_coding_data_reply_cannot_clobber_a_newer_write() {
     for stale_failed in [true, false] {
-        let mut app = privacy_banner_ready_app();
+        let mut app = test_app_with_agent();
+        app.active_view = ActiveView::Welcome;
 
-        // Write 1: the banner decline.
-        let _ = dispatch(Action::PrivacyBannerOptOut, &mut app);
+        // Write 1: the opt-out.
+        let _ = dispatch(Action::SetCodingDataSharing { opted_in: false }, &mut app);
         assert_eq!(app.coding_data_write_seq, 1);
 
         // Write 2: the user opts in from settings, and it confirms.
@@ -839,19 +643,6 @@ fn superseded_coding_data_reply_cannot_clobber_a_newer_write() {
             "stale reply must not toast — nothing the user is looking at failed"
         );
     }
-}
-
-/// A double-click (or a stale frame's hit rect) must not send a second
-/// decline.
-#[test]
-fn privacy_banner_opt_out_is_idempotent() {
-    let mut app = privacy_banner_ready_app();
-    let _ = dispatch(Action::PrivacyBannerOptOut, &mut app);
-    let again = dispatch(Action::PrivacyBannerOptOut, &mut app);
-    assert!(
-        again.is_empty(),
-        "second dismissal must be inert: {again:?}"
-    );
 }
 
 #[test]
@@ -967,7 +758,6 @@ fn show_usage_on_welcome_screen_is_noop() {
 
 #[test]
 fn show_usage_with_session_fetches_session_only() {
-    // The credit follow-up is deferred until SessionUsageComplete (see billing tests).
     let mut app = test_app_with_agent();
     let before = agent_scrollback_len(&app);
     let effects = dispatch(Action::ShowUsage, &mut app);

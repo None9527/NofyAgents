@@ -126,10 +126,9 @@ impl ContentController {
             .await
             .context("start mock inference server")?;
         // Pre-delegation parity, both load-bearing for PTY tests: settings
-        // must be 200 `{"allow_access": true}` (the shared 404-until-set
-        // default strands the pager on the upsell screen), and the response
-        // mode must be a fixed text (the shared default is echo).
-        server.preset_allow_access();
+        // must be 200 `{}` (the shared default is 404-until-set), and the
+        // response mode must be a fixed text (the shared default is echo).
+        server.set_settings(serde_json::json!({}));
         server.set_response(default_response_text());
 
         let mut sandbox = TestSandbox::builder().mock_url(server.url()).build();
@@ -359,11 +358,10 @@ mod tests {
             .expect("read direct foreground response")
     }
 
-    /// The pre-delegation mock always served 200 `{"allow_access": true}`;
-    /// the shared server defaults to 404-until-set. A 404 strands the pager
-    /// on the SuperNofy upsell screen and breaks every PTY test.
+    /// The pre-delegation mock always served 200 `{}`; the shared server
+    /// defaults to 404-until-set.
     #[tokio::test]
-    async fn settings_endpoint_allows_access_by_default() {
+    async fn settings_endpoint_responds_by_default() {
         let content = ContentController::start().await.unwrap();
 
         let resp = reqwest::get(format!("{}/settings", content.url()))
@@ -371,7 +369,7 @@ mod tests {
             .unwrap();
         assert_eq!(resp.status(), 200);
         let body: serde_json::Value = resp.json().await.unwrap();
-        assert_eq!(body, serde_json::json!({ "allow_access": true }));
+        assert_eq!(body, serde_json::json!({}));
     }
 
     /// The pre-delegation mock streamed a fixed default text to every

@@ -10,7 +10,6 @@ use super::is_project_instructions;
 use crate::remote::DEFAULT_CONTEXT_WINDOW;
 use crate::session::compaction_config::{
     AsyncCompactionCache, SUPPRESS_AUTH, SUPPRESS_NONE, SUPPRESS_STICKY, SUPPRESS_TURN,
-    SUPPRESS_UNTIL_SUCCESS,
 };
 use crate::session::helpers::CompactionStateContext;
 use crate::session::helpers::compaction_context::CompactionInputs;
@@ -440,7 +439,6 @@ pub(crate) struct AutoCompactTriggerInfo {
 /// off it) — don't rename the strings.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum SuppressReason {
-    CreditBlock,
     Size,
     Auth,
     Schema,
@@ -449,7 +447,6 @@ pub(crate) enum SuppressReason {
 impl SuppressReason {
     fn as_str(self) -> &'static str {
         match self {
-            SuppressReason::CreditBlock => "credit_block",
             SuppressReason::Size => "size",
             SuppressReason::Auth => "auth",
             SuppressReason::Schema => "schema",
@@ -458,13 +455,11 @@ impl SuppressReason {
     }
     /// Suppression scope for this reason:
     /// - `size | schema` → [`SUPPRESS_STICKY`]: cleared only on a context-budget change.
-    /// - `credit_block` → [`SUPPRESS_UNTIL_SUCCESS`]: wait for a model `200`.
     /// - `auth` → [`SUPPRESS_AUTH`]: clear on credential refresh (not 200 — over-window deadlock).
     /// - `other` → [`SUPPRESS_TURN`]: optimistic per-turn retry.
     fn suppress_state(self) -> u8 {
         match self {
             SuppressReason::Size | SuppressReason::Schema => SUPPRESS_STICKY,
-            SuppressReason::CreditBlock => SUPPRESS_UNTIL_SUCCESS,
             SuppressReason::Auth => SUPPRESS_AUTH,
             SuppressReason::Other => SUPPRESS_TURN,
         }
@@ -651,7 +646,7 @@ impl SessionActor {
     }
     /// Suppress AUTO compaction after a deterministic failure. Scope depends on
     /// the reason (see [`SuppressReason::suppress_state`]): size/schema sticky,
-    /// credit until 200, auth until credentials recover, other clears next turn.
+    /// auth until credentials recover, other clears next turn.
     /// Telemetry + one notification per transition; manual `/compact` exempt.
     async fn suppress_auto_compaction(
         &self,
@@ -685,9 +680,6 @@ impl SessionActor {
                 },
             );
             let message = match reason {
-                SuppressReason::CreditBlock => {
-                    "out of credits or over your spending limit. Add credits and retry."
-                }
                 SuppressReason::Auth => {
                     "authentication problem — restore your credentials                      (set NOFY_API_KEY or re-run your auth provider) and retry."
                 }
@@ -709,14 +701,7 @@ impl SessionActor {
     /// [`SuppressReason`] (drives telemetry + sticky-vs-per-turn scope).
     fn classify_suppress_reason(error_msg: &str) -> SuppressReason {
         let m = error_msg.to_ascii_lowercase();
-        if m.contains("spending-limit")
-            || m.contains("spending limit")
-            || m.contains("out of credits")
-            || m.contains("usage balance exhausted")
-            || m.contains("usage limit reached")
-        {
-            SuppressReason::CreditBlock
-        } else if is_context_length_error(&m) {
+        if is_context_length_error(&m) {
             SuppressReason::Size
         } else if m.contains("status 401") || m.contains("unauthorized") {
             SuppressReason::Auth
@@ -783,7 +768,7 @@ impl SessionActor {
             nofy_sampler::SamplingErrorKind::Auth,
         ))
     }
-    /// Clear [`SUPPRESS_AUTH`] on credential refresh (credit suppress waits for a 200).
+    /// Clear [`SUPPRESS_AUTH`] on credential refresh.
     pub(crate) fn clear_auth_compact_suppression(&self) {
         let _ = self.compaction.auto_compact_suppressed.compare_exchange(
             SUPPRESS_AUTH,
@@ -792,13 +777,13 @@ impl SessionActor {
             std::sync::atomic::Ordering::Relaxed,
         );
     }
-    /// Credit or auth suppress — a model switch cannot clear these.
+    /// Auth suppress — a model switch cannot clear it.
     fn is_account_state_suppressed(&self) -> bool {
         matches!(
             self.compaction
                 .auto_compact_suppressed
                 .load(std::sync::atomic::Ordering::Relaxed),
-            SUPPRESS_UNTIL_SUCCESS | SUPPRESS_AUTH
+            SUPPRESS_AUTH
         )
     }
     /// Choose the post-compaction history for a forked session: re-pin the inherited
@@ -1975,7 +1960,7 @@ impl SessionActor {
         })
     }
     /// On model change: clear sticky/other suppress and compact if the window shrank.
-    /// Leaves credit/auth suppress (a switch can't fix those) and short-circuits.
+    /// Leaves auth suppress (a switch can't fix it) and short-circuits.
     /// Auth compact failures abort the turn (same as pre-sampling/preflight).
     pub(crate) async fn maybe_compact_on_model_switch(self: &Arc<Self>) -> Result<(), acp::Error> {
         self.refresh_token_if_expired().await;
@@ -2586,13 +2571,11 @@ mod inline_auto_compact_flow_tests {
             .await;
     }
     /// Suppression gates both AUTO paths; the reset scope depends on the reason:
-    /// `other` clears next turn, `credit_block` holds until a successful model call,
-    /// `size` is sticky until a full reset (success / rewind / model switch).
+    /// `other` clears next turn, `size` is sticky until a full reset
+    /// (success / rewind / model switch).
     #[tokio::test(flavor = "current_thread")]
     async fn suppression_gates_and_reset_is_reason_scoped() {
-        use crate::session::compaction_config::{
-            SUPPRESS_NONE, SUPPRESS_TURN, SUPPRESS_UNTIL_SUCCESS,
-        };
+        use crate::session::compaction_config::{SUPPRESS_NONE, SUPPRESS_TURN};
         use std::sync::atomic::Ordering::Relaxed;
         let local = tokio::task::LocalSet::new();
         local
@@ -2611,32 +2594,6 @@ mod inline_auto_compact_flow_tests {
                 assert!(!actor.should_compact_on_error(&err).await);
                 let _ = actor.compaction.auto_compact_suppressed.compare_exchange(
                     SUPPRESS_TURN,
-                    SUPPRESS_NONE,
-                    Relaxed,
-                    Relaxed,
-                );
-                assert!(actor.check_auto_compact_needed().await.is_some());
-                actor
-                    .suppress_auto_compaction(SuppressReason::CreditBlock, 1_000, 200_000)
-                    .await;
-                assert_eq!(
-                    actor.compaction.auto_compact_suppressed.load(Relaxed),
-                    SUPPRESS_UNTIL_SUCCESS
-                );
-                assert!(actor.check_auto_compact_needed().await.is_none());
-                assert!(!actor.should_compact_on_error(&err).await);
-                let _ = actor.compaction.auto_compact_suppressed.compare_exchange(
-                    SUPPRESS_TURN,
-                    SUPPRESS_NONE,
-                    Relaxed,
-                    Relaxed,
-                );
-                assert!(
-                    actor.check_auto_compact_needed().await.is_none(),
-                    "credit-block suppression must survive the per-turn reset"
-                );
-                let _ = actor.compaction.auto_compact_suppressed.compare_exchange(
-                    SUPPRESS_UNTIL_SUCCESS,
                     SUPPRESS_NONE,
                     Relaxed,
                     Relaxed,
@@ -2666,7 +2623,7 @@ mod inline_auto_compact_flow_tests {
     }
     /// A model switch clears suppression the switch (or the fresh budget-driven
     /// trigger) can resolve — sticky size/schema and a stale per-turn `other` — so
-    /// the gates re-evaluate against the new window. Account-state credit/auth is
+    /// the gates re-evaluate against the new window. Account-state auth is
     /// covered by `model_switch_keeps_account_state_suppression`.
     #[tokio::test(flavor = "current_thread")]
     async fn model_switch_clears_sticky_suppression() {
@@ -2704,12 +2661,10 @@ mod inline_auto_compact_flow_tests {
             })
             .await;
     }
-    /// Model switch must not clear credit/auth suppress or compact under it.
+    /// Model switch must not clear auth suppress or compact under it.
     #[tokio::test(flavor = "current_thread")]
     async fn model_switch_keeps_account_state_suppression() {
-        use crate::session::compaction_config::{
-            PreviousModelInfo, SUPPRESS_AUTH, SUPPRESS_UNTIL_SUCCESS,
-        };
+        use crate::session::compaction_config::{PreviousModelInfo, SUPPRESS_AUTH};
         use std::sync::atomic::Ordering::Relaxed;
         let local = tokio::task::LocalSet::new();
         local
@@ -2719,34 +2674,31 @@ mod inline_auto_compact_flow_tests {
                 let actor = Arc::new(
                     create_test_actor(214_000, 200_000, 85, gateway_tx, persistence_tx).await,
                 );
-                for (reason, expected) in [
-                    (SuppressReason::CreditBlock, SUPPRESS_UNTIL_SUCCESS),
-                    (SuppressReason::Auth, SUPPRESS_AUTH),
-                ] {
-                    actor.suppress_auto_compaction(reason, 1_000, 200_000).await;
-                    assert_eq!(
-                        actor.compaction.auto_compact_suppressed.load(Relaxed),
-                        expected,
-                        "{reason:?} suppress state"
-                    );
-                    actor.compaction.previous_model.set(Some(PreviousModelInfo {
-                        model_slug: "old-big-model".to_string(),
-                        context_window: 400_000,
-                    }));
-                    actor
-                        .maybe_compact_on_model_switch()
-                        .await
-                        .expect("suppressed model-switch path must not abort");
-                    assert_eq!(
-                        actor.compaction.auto_compact_suppressed.load(Relaxed),
-                        expected,
-                        "model switch must NOT clear {reason:?} suppression"
-                    );
-                    actor
-                        .compaction
-                        .auto_compact_suppressed
-                        .store(crate::session::compaction_config::SUPPRESS_NONE, Relaxed);
-                }
+                let reason = SuppressReason::Auth;
+                let expected = SUPPRESS_AUTH;
+                actor.suppress_auto_compaction(reason, 1_000, 200_000).await;
+                assert_eq!(
+                    actor.compaction.auto_compact_suppressed.load(Relaxed),
+                    expected,
+                    "{reason:?} suppress state"
+                );
+                actor.compaction.previous_model.set(Some(PreviousModelInfo {
+                    model_slug: "old-big-model".to_string(),
+                    context_window: 400_000,
+                }));
+                actor
+                    .maybe_compact_on_model_switch()
+                    .await
+                    .expect("suppressed model-switch path must not abort");
+                assert_eq!(
+                    actor.compaction.auto_compact_suppressed.load(Relaxed),
+                    expected,
+                    "model switch must NOT clear {reason:?} suppression"
+                );
+                actor
+                    .compaction
+                    .auto_compact_suppressed
+                    .store(crate::session::compaction_config::SUPPRESS_NONE, Relaxed);
             })
             .await;
     }
@@ -2776,30 +2728,6 @@ mod inline_auto_compact_flow_tests {
                     SUPPRESS_NONE
                 );
                 assert!(actor.check_auto_compact_needed().await.is_some());
-            })
-            .await;
-    }
-    /// Auth recovery must not clear credit suppress.
-    #[tokio::test(flavor = "current_thread")]
-    async fn clear_auth_suppress_leaves_credit_suppress() {
-        use crate::session::compaction_config::SUPPRESS_UNTIL_SUCCESS;
-        use std::sync::atomic::Ordering::Relaxed;
-        let local = tokio::task::LocalSet::new();
-        local
-            .run_until(async {
-                let (gateway_tx, _gateway_rx) = mpsc::unbounded_channel();
-                let (persistence_tx, _persistence_rx) = mpsc::unbounded_channel();
-                let actor =
-                    create_test_actor(180_000, 200_000, 85, gateway_tx, persistence_tx).await;
-                actor
-                    .suppress_auto_compaction(SuppressReason::CreditBlock, 1_000, 200_000)
-                    .await;
-                actor.clear_auth_compact_suppression();
-                assert_eq!(
-                    actor.compaction.auto_compact_suppressed.load(Relaxed),
-                    SUPPRESS_UNTIL_SUCCESS,
-                    "credential recovery must not clear a credit-block suppress"
-                );
             })
             .await;
     }
@@ -2840,8 +2768,8 @@ mod inline_auto_compact_flow_tests {
         let auth = acp::Error::internal_error()
             .data("compact failed: API error (status 401 Unauthorized)");
         assert!(SessionActor::is_auth_compact_error(&auth));
-        let credit = acp::Error::internal_error().data("compact failed: out of credits");
-        assert!(!SessionActor::is_auth_compact_error(&credit));
+        let other = acp::Error::internal_error().data("compact failed: upstream 500");
+        assert!(!SessionActor::is_auth_compact_error(&other));
         let size = acp::Error::internal_error()
             .data("compact failed: The prompt is too long for this model's context window.");
         assert!(!SessionActor::is_auth_compact_error(&size));
@@ -2918,8 +2846,6 @@ mod inline_auto_compact_flow_tests {
                     }
                     text.expect("expected an AutoCompactFailed notification")
                 }
-                let credit = notification_for(SuppressReason::CreditBlock).await;
-                assert!(credit.contains("spending limit"), "credit_block: {credit}");
                 let auth = notification_for(SuppressReason::Auth).await;
                 assert!(auth.contains("authentication problem"), "auth: {auth}");
                 let size = notification_for(SuppressReason::Size).await;
@@ -3425,22 +3351,6 @@ mod inline_auto_compact_flow_tests {
     fn classify_suppress_reason_maps_error_text() {
         let classify = SessionActor::classify_suppress_reason;
         assert_eq!(
-            classify("caller does not have permission … spending-limit reached"),
-            SuppressReason::CreditBlock
-        );
-        assert_eq!(
-            classify("you have run out of credits"),
-            SuppressReason::CreditBlock
-        );
-        assert_eq!(
-            classify("API error (status 402 Payment Required): Nofy Build usage balance exhausted"),
-            SuppressReason::CreditBlock
-        );
-        assert_eq!(
-            classify("Nofy Build usage limit reached"),
-            SuppressReason::CreditBlock
-        );
-        assert_eq!(
             classify("This model's maximum prompt length is 500000"),
             SuppressReason::Size
         );
@@ -3469,7 +3379,6 @@ mod inline_auto_compact_flow_tests {
     /// dashboards key off these exact strings. Lock them so a rename can't break monitoring.
     #[test]
     fn suppress_reason_as_str_is_stable() {
-        assert_eq!(SuppressReason::CreditBlock.as_str(), "credit_block");
         assert_eq!(SuppressReason::Size.as_str(), "size");
         assert_eq!(SuppressReason::Auth.as_str(), "auth");
         assert_eq!(SuppressReason::Schema.as_str(), "schema");

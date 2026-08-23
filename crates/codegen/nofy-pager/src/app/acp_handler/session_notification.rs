@@ -126,7 +126,6 @@ pub(super) fn handle_session_notification(notif: &acp::ExtNotification, app: &mu
         }
         _ => {}
     }
-    let is_api_key_auth = app.is_api_key_auth;
     let matched = match find_session_match(app, &session_notif.session_id) {
         Some(m) => m,
         None => {
@@ -150,7 +149,6 @@ pub(super) fn handle_session_notification(notif: &acp::ExtNotification, app: &mu
             session_notif.update,
             child_sid,
             agent,
-            is_api_key_auth,
         );
         return changed && is_active;
     }
@@ -200,7 +198,6 @@ pub(super) fn handle_session_notification(notif: &acp::ExtNotification, app: &mu
                 update,
                 &mut agent.session,
                 &mut agent.scrollback,
-                is_api_key_auth,
             );
             if let NofySessionUpdate::AutoCompactCompleted { tokens_after, .. } = update {
                 refresh_context_used(agent, *tokens_after);
@@ -414,8 +411,6 @@ pub(super) fn handle_session_notification(notif: &acp::ExtNotification, app: &mu
                 restore_degree: None,
                 rate_limited: false,
                 model_incompatible: false,
-                credit_limit_blocked: false,
-                free_usage_blocked: false,
                 bg_tasks: std::collections::BTreeMap::new(),
                 bg_tool_call_to_task: std::collections::HashMap::new(),
                 scheduled_tasks: std::collections::HashMap::new(),
@@ -436,8 +431,6 @@ pub(super) fn handle_session_notification(notif: &acp::ExtNotification, app: &mu
             child_view.set_input_mode(InputMode::Vim);
             child_view.active_pane = crate::views::agent::ActivePane::Scrollback;
             child_view.set_sharing_enabled(agent.sharing_enabled);
-            child_view.set_billing_surface_visible(agent.billing_surface_visible);
-            child_view.set_usage_command_visible(agent.usage_command_visible);
             let dashboard_visible = agent
                 .prompt
                 .slash_controller
@@ -459,12 +452,6 @@ pub(super) fn handle_session_notification(notif: &acp::ExtNotification, app: &mu
                 .get("recap")
                 .is_some();
             child_view.set_session_recap_available(recap_visible);
-            let restricted = agent
-                .prompt
-                .slash_controller
-                .registry()
-                .restricted_commands();
-            child_view.set_restricted_commands(&restricted);
             agent.insert_subagent_view(child_session_id.clone(), Box::new(child_view));
             if !agent.session.loading_replay {
                 if let Some(child_view) = agent.subagent_views.get_mut(&child_session_id) {
@@ -1112,7 +1099,6 @@ pub(super) fn handle_child_session_notification(
     update: NofySessionUpdate,
     child_sid: &str,
     agent: &mut AgentView,
-    is_api_key_auth: bool,
 ) -> bool {
     match update {
         NofySessionUpdate::AutoCompactStarted { .. }
@@ -1130,7 +1116,6 @@ pub(super) fn handle_child_session_notification(
                     &update,
                     &mut child_view.session,
                     &mut child_view.scrollback,
-                    is_api_key_auth,
                 );
                 if let Some(tokens_after) = compact_tokens {
                     refresh_context_used(child_view, tokens_after);
@@ -1155,7 +1140,6 @@ pub(super) fn handle_child_session_notification(
                     update,
                     &mut child_view.session,
                     &mut child_view.scrollback,
-                    is_api_key_auth,
                 )
             } else {
                 false
@@ -1167,23 +1151,10 @@ pub(super) fn handle_child_session_notification(
 /// Apply a compaction or retry event to a session's activity state and scrollback.
 ///
 /// Shared between the root agent and child (subagent) notification paths.
-/// Test-only shim so dispatch-level tests can replay real notification
-/// sequences (e.g. `RetryState::Retrying` → `Exhausted`) through the
-/// production handler — the Retrying arm clears the `in_flight_prompt`
-/// rewind stash, which a fixture setting fields directly would miss.
-#[cfg(test)]
-pub(crate) fn apply_session_event_for_test(
-    update: &NofySessionUpdate,
-    session: &mut AgentSession,
-    scrollback: &mut crate::scrollback::state::ScrollbackState,
-) -> bool {
-    apply_session_event(update, session, scrollback, false)
-}
 pub(super) fn apply_session_event(
     update: &NofySessionUpdate,
     session: &mut AgentSession,
     scrollback: &mut crate::scrollback::state::ScrollbackState,
-    is_api_key_auth: bool,
 ) -> bool {
     match update {
         NofySessionUpdate::AutoCompactStarted { percentage, .. } => {
@@ -1241,7 +1212,7 @@ pub(super) fn apply_session_event(
         }
         NofySessionUpdate::RetryState(retry) => {
             tracing::debug!("Retry state: {retry:?}");
-            apply_retry_state(retry, session, scrollback, is_api_key_auth);
+            apply_retry_state(retry, session, scrollback);
             true
         }
         NofySessionUpdate::ImageDropped { notes } => {
@@ -1298,9 +1269,7 @@ pub(super) fn apply_retry_state(
     retry: &nofy_shell::extensions::notification::RetryState,
     session: &mut AgentSession,
     scrollback: &mut crate::scrollback::state::ScrollbackState,
-    is_api_key_auth: bool,
 ) {
-    let mut is_credit_limit = false;
     let mut is_reauth = false;
     use nofy_shell::extensions::notification::RetryState;
     match retry {
@@ -1335,19 +1304,12 @@ pub(super) fn apply_retry_state(
                     },
                 );
             }
-            is_credit_limit = super::super::dispatch::is_credit_limit_error(None, reason);
-            let is_free_usage = *rate_limited
-                && nofy_shell::sampling::error::is_free_usage_exhausted_error(reason);
-            if is_credit_limit {
-                session.credit_limit_blocked = true;
-            } else if is_free_usage {
-                session.free_usage_blocked = true;
-            } else if !*rate_limited && is_reauthable_failure(None, reason) {
+            if !*rate_limited && is_reauthable_failure(None, reason) {
                 is_reauth = true;
                 scrollback.push_block(RenderBlock::session_event(SessionEvent::ReAuthRequired));
             } else if *rate_limited {
                 let error = crate::app::effects::sanitize_user_error(
-                    &format_rate_limited_user_message(Some(reason.as_str()), is_api_key_auth),
+                    &format_rate_limited_user_message(Some(reason.as_str())),
                 );
                 scrollback.push_block(RenderBlock::session_event(SessionEvent::RetryFailed {
                     error,
@@ -1369,10 +1331,7 @@ pub(super) fn apply_retry_state(
             if wire == crate::app::error_display::WireErrorType::EncryptedContentMismatch {
                 session.model_incompatible = true;
             }
-            is_credit_limit = super::super::dispatch::is_credit_limit_error(None, message);
-            if is_credit_limit {
-                session.credit_limit_blocked = true;
-            } else if is_reauthable_failure(Some(error_type.as_str()), message) {
+            if is_reauthable_failure(Some(error_type.as_str()), message) {
                 is_reauth = true;
                 scrollback.push_block(RenderBlock::session_event(SessionEvent::ReAuthRequired));
             } else if wire == crate::app::error_display::WireErrorType::DiskFull {
@@ -1401,16 +1360,7 @@ pub(super) fn apply_retry_state(
             }
         }
     }
-    if is_credit_limit {
-        nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::CreditLimitHit {
-            model_id: session
-                .models
-                .current
-                .as_ref()
-                .map(|m| m.0.to_string())
-                .unwrap_or_default(),
-        });
-    } else if !is_reauth {
+    if !is_reauth {
         session.in_flight_prompt = None;
     }
 }

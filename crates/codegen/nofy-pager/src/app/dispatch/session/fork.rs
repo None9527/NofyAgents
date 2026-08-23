@@ -208,16 +208,17 @@ pub(in crate::app::dispatch) fn dispatch_fork_resolved(
             .set_contextual_hints(app.contextual_hints.undo, app.contextual_hints.plan_mode);
         agent.set_session_recap_available(app.session_recap_available);
         agent.apply_app_scoped_gates(
+
             app.sharing_enabled,
-            app.usage_visible,
-            !app.has_external_auth_provider,
+
             app.chat_mode,
+
             app.screen_mode,
+
             &app.active_announcements,
-            &app.tier_restricted_commands,
+
         );
         agent.chat_kind = parent_chat_kind;
-        agent.apply_credit_balance(app.credit_balance.clone(), app.auto_topup.clone());
         agent
             .prompt
             .slash_controller
@@ -294,8 +295,6 @@ fn build_fork_placeholder(
             restore_degree: None,
             rate_limited: false,
             model_incompatible: false,
-            credit_limit_blocked: false,
-            free_usage_blocked: false,
             available_commands: app.bootstrap_acp_commands.clone(),
             available_commands_generation: 1,
             available_tools: None,
@@ -441,7 +440,6 @@ pub(in crate::app::dispatch) fn handle_worktree_forked(
         }
         let effective_chat = conversation_entry || app.chat_mode;
         agent.chat_kind = effective_chat;
-        agent.apply_credit_balance(app.credit_balance.clone(), app.auto_topup.clone());
     } else {
         return vec![];
     }

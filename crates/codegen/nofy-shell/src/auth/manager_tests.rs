@@ -2806,7 +2806,6 @@ fn apply_user_info_enrichment_preserves_token_fields() {
         user_blocked_reason: None,
         team_blocked_reasons: None,
         coding_data_retention_opt_out: None,
-        subscription_tier: None,
     };
 
     apply_user_info_enrichment(&mut disk, user_info);
@@ -3036,17 +3035,17 @@ async fn sibling_different_rt_with_valid_at_is_treated_as_live() {
 
 /// Regression: refresh_chain(ServerRejected) must bypass the "double-check"
 /// early return when the in-memory token is still valid (not expired).
-/// Without this, a JWT that is time-valid but missing a subscription claim
-/// (post-purchase) is returned as-is and the IdP is never contacted.
+/// Without this, a JWT that is time-valid but server-rejected (e.g. stale
+/// claims) is returned as-is and the IdP is never contacted.
 #[tokio::test]
 async fn refresh_chain_server_rejected_bypasses_valid_token_double_check() {
     let dir = tempfile::tempdir().unwrap();
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
 
-    // Seed a valid (non-expired) token — simulates a JWT that is missing
-    // the subscription claim but is otherwise fine.
+    // Seed a valid (non-expired) token — simulates a JWT whose claims the
+    // server rejected but which is otherwise time-valid.
     let valid_but_rejected = NofyAuth {
-        key: "pre-subscription-jwt".into(),
+        key: "server-rejected-jwt".into(),
         auth_mode: AuthMode::External,
         refresh_token: Some("rt-original".into()),
         expires_at: Some(Utc::now() + Duration::hours(1)),
@@ -3061,7 +3060,7 @@ async fn refresh_chain_server_rejected_bypasses_valid_token_double_check() {
     }));
 
     // Confirm the token is considered valid before refresh.
-    assert_eq!(mgr.current().unwrap().key, "pre-subscription-jwt");
+    assert_eq!(mgr.current().unwrap().key, "server-rejected-jwt");
 
     // ServerRejected must force a real refresh despite the token being valid.
     let result = mgr

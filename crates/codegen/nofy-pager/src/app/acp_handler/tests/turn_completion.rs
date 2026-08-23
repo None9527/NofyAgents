@@ -492,14 +492,13 @@
     fn rate_limited_wake_during_local_turn_keeps_rate_limit_copy() {
         // The busy-wake piercing path must pass rate-limit copy through
         // untouched like `finish_wake_turn` does — the generic formatter
-        // would strip the upgrade URL and headline it "Request failed".
+        // would headline it "Request failed".
         let mut app = make_app_with_agent("sess-wake");
         {
             let agent = app.agents.get_mut(&AgentId(0)).unwrap();
             agent.session.state = AgentState::TurnRunning;
         }
-        let rate_limit_copy = "You've hit the rate limit for your plan. Upgrade your \
-                               subscription for higher limits: https://nofy.com/supernofy";
+        let rate_limit_copy = "You've hit your plan's rate limit. Try again later.";
         let payload = SessionNotification {
             session_id: acp::SessionId::new("sess-wake"),
             update: NofySessionUpdate::TurnCompleted {

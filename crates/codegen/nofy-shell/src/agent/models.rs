@@ -588,7 +588,7 @@ impl ModelsManager {
     /// Auth identity changed: invalidate disk cache and refresh the catalog.
     pub async fn on_auth_changed(&self) {
         let config = self.inner.cfg.read().clone();
-        crate::agent::init::update_telemetry_config(&config, &self.inner.auth_manager);
+        crate::agent::init::update_telemetry_config(&config);
         self.inner.cache.invalidate();
         let has_session = self.inner.auth_manager.current_or_expired().is_some();
         let fetch_auth = ModelFetchAuth::resolve(&config.endpoints, has_session);

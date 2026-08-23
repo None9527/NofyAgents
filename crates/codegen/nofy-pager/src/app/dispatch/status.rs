@@ -187,8 +187,7 @@ pub(super) fn dispatch_show_context_info(app: &mut AppView) -> Vec<Effect> {
     }]
 }
 
-/// `/usage` — session token/cost, then consumer credits when visible.
-/// Credits are chained after the session block so layout stays ordered.
+/// `/usage` — session token/cost.
 pub(super) fn dispatch_show_usage(app: &mut AppView) -> Vec<Effect> {
     let ActiveView::Agent(id) = app.active_view else {
         return vec![];
@@ -210,12 +209,12 @@ pub(super) fn dispatch_show_usage(app: &mut AppView) -> Vec<Effect> {
                     "Session usage is unavailable until the session starts.".to_string(),
                 ));
             }
-            append_consumer_billing_surface(app, id)
+            vec![]
         }
     }
 }
 
-/// Commit a session-usage block if still on `session_id`, then consumer credits.
+/// Commit a session-usage block if still on `session_id`.
 pub(super) fn commit_session_usage_block(
     app: &mut AppView,
     agent_id: AgentId,
@@ -229,34 +228,7 @@ pub(super) fn commit_session_usage_block(
         return vec![];
     }
     agent.scrollback.push_block(RenderBlock::system(text));
-    append_consumer_billing_surface(app, agent_id)
-}
-
-/// Consumer credit follow-up for `/usage` (non-silent billing fetch).
-pub(super) fn append_consumer_billing_surface(app: &mut AppView, agent_id: AgentId) -> Vec<Effect> {
-    if !app.usage_visible {
-        return vec![];
-    }
-    if !app.agents.contains_key(&agent_id) {
-        return vec![];
-    }
-    // Non-silent: the effect also pulls the auto top-up rule so the summary
-    // renders usage, prepaid credits, and auto top-up together.
-    vec![Effect::FetchBilling {
-        agent_id,
-        silent: false,
-    }]
-}
-
-/// `/usage manage` — open consumer billing. No-op when the surface is hidden.
-pub(super) fn dispatch_manage_billing(app: &mut AppView) -> Vec<Effect> {
-    if !app.usage_visible {
-        return vec![];
-    }
-    super::router::dispatch(
-        crate::app::actions::Action::OpenUrl("https://nofy.com/?_s=usage".to_string()),
-        app,
-    )
+    vec![]
 }
 
 /// Commit a one-line "update available" notice into the active agent's
@@ -374,15 +346,7 @@ pub(super) fn handle_coding_data_sharing_updated(
         opted_in,
         "ACP update confirmed; mirror re-anchored",
     );
-    let mut effects = vec![];
-    // Ack only after a successful opt-in from the banner's [Opt in].
-    if app.privacy_banner_opt_in_inflight {
-        app.privacy_banner_opt_in_inflight = false;
-        if opted_in {
-            effects.extend(ack_privacy_banner(app));
-        }
-    }
-    effects
+    vec![]
 }
 
 pub(super) fn handle_coding_data_sharing_failed(
@@ -416,66 +380,7 @@ pub(super) fn handle_coding_data_sharing_failed(
         %error,
         "ACP update failed; reverted optimistic mutation",
     );
-    // Opt-in failure: no ack; clear inflight so the banner stays.
-    app.privacy_banner_opt_in_inflight = false;
     vec![]
-}
-
-/// Stamp `[privacy].privacy_banner_acked` (in-memory + disk).
-pub(in crate::app::dispatch) fn ack_privacy_banner(app: &mut AppView) -> Vec<Effect> {
-    let acked_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-    app.privacy_banner_acked = Some(acked_at.clone());
-    vec![Effect::PersistPrivacyBannerAcked { acked_at }]
-}
-
-/// `[Opt in]`: opt in via the settings path; ack only after ACP success, so
-/// a failed round trip leaves the banner up instead of recording a change
-/// that did not happen.
-pub(in crate::app::dispatch) fn dispatch_privacy_banner_opt_in(app: &mut AppView) -> Vec<Effect> {
-    if app.privacy_banner_opt_in_inflight || !app.privacy_banner_should_show() {
-        return vec![];
-    }
-    let effects = set_coding_data_sharing(
-        app,
-        true,
-        nofy_telemetry::events::CodingDataConsentSource::PrivacyBanner,
-    );
-    // should_show guarantees opted-out + unguarded, so effects is only empty
-    // if a guard regresses; leaving inflight false keeps [Opt in] clickable.
-    app.privacy_banner_opt_in_inflight = !effects.is_empty();
-    effects
-}
-
-/// `[Opt out]`: ack locally, then record the decline.
-///
-/// The ack does NOT wait on the server, unlike `[Opt in]`'s: the user asked
-/// for no change, so gating dismissal on a round trip would only re-ask a
-/// question they answered.
-///
-/// The write is built here rather than through `set_coding_data_sharing`,
-/// whose idempotent guard would skip it — the user is already opted out,
-/// and recording that is the point. Its response re-anchors the mirror;
-/// concurrent writes to this endpoint are still unordered.
-pub(in crate::app::dispatch) fn dispatch_privacy_banner_opt_out(app: &mut AppView) -> Vec<Effect> {
-    if app.privacy_banner_opt_in_inflight || !app.privacy_banner_should_show() {
-        return vec![];
-    }
-    let previous_opted_in = !app.coding_data_retention_opt_out;
-    log_coding_data_consent_selected(
-        nofy_telemetry::events::CodingDataConsentSource::PrivacyBanner,
-        false,
-        previous_opted_in,
-    );
-    let mut effects = ack_privacy_banner(app);
-    effects.push(Effect::SetCodingDataSharing {
-        agent_id: coding_data_sharing_agent_id(app),
-        opted_in: false,
-        // Already opted out, so the revert is a no-op — and the generation
-        // guard drops it entirely if the user has opted in since.
-        rollback_to_opted_in: false,
-        seq: next_coding_data_write_seq(app),
-    });
-    effects
 }
 
 pub(super) fn handle_context_info_complete(
