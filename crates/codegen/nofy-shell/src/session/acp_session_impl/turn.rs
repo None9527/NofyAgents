@@ -2583,7 +2583,13 @@ impl SessionActor {
             } else {
                 no_new_info_streak += 1;
             }
+            // The governor governs *budgeted* runs: with a numeric max-turns
+            // limit a dead run burns host budget, so early-stop is a service.
+            // An unlimited interactive run has a human present who cancels;
+            // mutation-based no-progress would kill legitimate read-heavy
+            // turns (analysis, Q&A) that write no files.
             if no_new_info_streak >= nofy_convergence::DEFAULT_NO_PROGRESS_LIMIT
+                && self.max_turns.is_some()
                 && self.runtime_journal.open_intent_count().is_some()
             {
                 let prompt_index = *self.tool_context.prompt_index.lock().await;
