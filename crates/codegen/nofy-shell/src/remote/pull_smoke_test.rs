@@ -30,7 +30,7 @@ mod tests {
             ContentBlock, ContentChunk, SessionNotification, SessionUpdate, TextContent,
         };
 
-        let auth = load_prod_auth().expect("No auth.json — run `nofy login`");
+        let auth = load_prod_auth().expect("No auth.json — no stored credentials");
         let am = Arc::new(crate::auth::AuthManager::new(
             &crate::util::nofy_home::nofy_home(),
             crate::auth::NofyComConfig::default(),

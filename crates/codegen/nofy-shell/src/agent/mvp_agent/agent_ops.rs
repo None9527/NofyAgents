@@ -3,7 +3,6 @@
 //! Inherent [`MvpAgent`] helpers (MCP/clients/gateway, settings/models, session ops, spawn).
 //! Co-located child of `mvp_agent` (`use super::*`).
 use super::*;
-use crate::auth::PreferredAuthMethod;
 use nofy_tools::implementations::nofy_build::task::backend::SubagentBackend;
 use nofy_tty_utils::ProcessScope;
 /// `preferred` model, else catalog `current`, else first with own credentials.
@@ -22,18 +21,13 @@ struct MissingSessionCtx {
     has_session_key: bool,
     has_own_credentials: bool,
     is_session_based_auth: bool,
-    preferred: Option<PreferredAuthMethod>,
 }
 /// Warn only when a missing session is a real failure, not on API-key hosts.
 fn should_warn_missing_session(ctx: MissingSessionCtx) -> bool {
     if ctx.has_session_key || ctx.has_own_credentials {
         return false;
     }
-    match ctx.preferred {
-        Some(PreferredAuthMethod::Oidc) => true,
-        Some(PreferredAuthMethod::ApiKey) => false,
-        None => ctx.is_session_based_auth,
-    }
+    ctx.is_session_based_auth
 }
 impl MvpAgent {
     /// Announce a session's new title over ACP. ACP scopes `session/update` to
@@ -97,10 +91,9 @@ impl MvpAgent {
         let session_key = self.auth_manager.current_or_expired().map(|a| a.key.clone());
         let models = self.models_manager.models();
         let endpoints = self.models_manager.endpoints();
-        let (disable_api_key_auth, alpha_test_key, client_version) = {
+        let (alpha_test_key, client_version) = {
             let cfg = self.cfg.borrow();
             (
-                cfg.nofy_com_config.api_key_auth_disabled(),
                 cfg.endpoints.alpha_test_key.clone(),
                 cfg.client_version.clone(),
             )
@@ -110,7 +103,6 @@ impl MvpAgent {
             &models,
             &endpoints,
             session_key.as_deref(),
-            disable_api_key_auth,
             alpha_test_key,
             client_version,
         ) {
@@ -135,7 +127,6 @@ impl MvpAgent {
     }
     fn has_proxy_credentials(&self) -> bool {
         self.cfg.borrow().endpoints.deployment_key.is_some()
-            || self.auth_manager.current_or_expired().is_some_and(|a| a.is_xai_auth())
     }
     /// `true` for session-based ACP auth methods.
     fn is_session_based_auth(&self) -> bool {
@@ -152,10 +143,6 @@ impl MvpAgent {
     /// Publish model-owned credentials for tools static fallthrough.
     /// Only [`ModelEntry::own_credential`] — not `sampling_config.api_key` (may be a session JWT).
     pub(crate) fn sync_process_static_api_key(&self, preferred_model_id: Option<&str>) {
-        if self.cfg.borrow().nofy_com_config.api_key_auth_disabled() {
-            self.auth_manager.set_process_static_api_key(None);
-            return;
-        }
         let models = self.models_manager.models();
         let current = self.models_manager.current_model_id();
         self.auth_manager
@@ -184,11 +171,11 @@ impl MvpAgent {
             })
     }
     fn has_managed_mcp_auth(&self) -> bool {
-        self.auth_manager
-            .current_or_expired()
-            .is_some_and(|a| a.is_managed_mcp_eligible())
+        // Managed nofy.com connectors required the removed xAI account
+        // system, so the gate never opens.
+        false
     }
-    /// Requires feature flag AND xAI authentication (OIDC or legacy WebLogin).
+    /// Requires feature flag AND managed-connector auth.
     pub(super) fn can_fetch_managed_mcps(&self) -> bool {
         let cfg = self.cfg.borrow();
         cfg.managed_mcps_enabled && !cfg.managed_mcp_gateway_tools_enabled
@@ -278,10 +265,7 @@ impl MvpAgent {
                 .await
                 .ok()
                 .or_else(|| auth_manager.current_or_expired().map(|a| a.key));
-            if !auth_manager
-                .current_or_expired()
-                .is_some_and(|a| a.is_managed_mcp_eligible())
-            {
+            if !auth_manager.current_or_expired().is_some() {
                 cache.lock().await.disable_gateway_tools();
                 for tx in session_txs {
                     let _ = tx.send(SessionCommand::RefreshMcpSearchIndex);
@@ -575,19 +559,13 @@ impl MvpAgent {
         let cfg = self.cfg.borrow();
         let mode = cfg.resolve_telemetry_mode().value;
         if !mode.is_disabled() {
-            let Some(auth) = self
-                .auth_manager
-                .current()
-                .filter(|a| {
-                    a.is_xai_auth() || a.auth_mode == crate::auth::AuthMode::ApiKey
-                }) else {
+            let Some(auth) = self.auth_manager.current() else {
                 return;
             };
             let subscription_tier = None;
-            let (user_id, team_id) = if auth.is_xai_auth() {
-                (Some(auth.user_id), auth.team_id)
-            } else {
-                (None, auth.team_id)
+            let (user_id, team_id) = match auth.auth_mode {
+                crate::auth::AuthMode::External => (Some(auth.user_id), auth.team_id),
+                crate::auth::AuthMode::ApiKey => (None, auth.team_id),
             };
             nofy_telemetry::client::init_if_needed(
                 cfg.telemetry.clone(),
@@ -1388,52 +1366,33 @@ impl MvpAgent {
         }
     }
     /// Fall through to `nofy.api_key` if the startup probe still allows it,
-    /// else `nofy.com`. `None` when `preferred_method` is pinned.
+    /// else `None`.
     pub(super) fn cached_token_fallthrough_method_id(
         &self,
     ) -> Option<acp::AuthMethodId> {
-        let preferred = self.cfg.borrow().nofy_com_config.preferred_method;
         let id = auth_method::method_id_after_cached_token_unavailable(
             auth_method::should_advertise_xai_api_key_with_env_ok(
-                self.cfg.borrow().nofy_com_config.api_key_auth_disabled(),
                 self.models_manager.models().values(),
                 self.auth_manager.first_party_env_api_key_ok(),
             ),
-            preferred,
         )?;
         Some(acp::AuthMethodId::new(id))
     }
-    /// Shared exit for missing/expired/legacy `cached_token`: fall through with
-    /// `use_oauth` only when the target is interactive `nofy.com`. When
-    /// `preferred_method` is pinned, fail instead of falling through.
+    /// Shared exit for missing/expired `cached_token`: fall through to
+    /// `nofy.api_key` when advertiseable, else fail.
     pub(super) async fn authenticate_after_cached_token_unavailable(
         &self,
         arguments: acp::AuthenticateRequest,
     ) -> Result<AuthenticateResponse, acp::Error> {
         let Some(method_id) = self.cached_token_fallthrough_method_id() else {
-            let preferred = self.cfg.borrow().nofy_com_config.preferred_method;
-            let msg = match preferred {
-                Some(crate::auth::PreferredAuthMethod::ApiKey) => {
-                    auth_method::PREFERRED_API_KEY_UNAVAILABLE
-                }
-                _ => auth_method::PREFERRED_OIDC_UNAVAILABLE,
-            };
-            tracing::info!(%msg, "cached_token unavailable; preferred_method forbids fallthrough");
+            let msg = auth_method::PREFERRED_API_KEY_UNAVAILABLE;
+            tracing::info!(%msg, "cached_token unavailable; no API-key fallthrough");
             nofy_telemetry::unified_log::warn(
-                "auth cached_token fallthrough blocked by preferred_method",
+                "auth cached_token fallthrough unavailable",
                 None,
-                Some(
-                    serde_json::json!({
-                    "preferred_method": preferred.map(|p| format!("{p:?}")),
-                }),
-                ),
+                None,
             );
             return Err(acp::Error::auth_required().data(msg));
-        };
-        let meta = if method_id.0.as_ref() == auth_method::NOFY_COM_METHOD_ID {
-            serde_json::json!({ "use_oauth": true }).as_object().cloned()
-        } else {
-            arguments.meta
         };
         tracing::info!(fallback = %method_id.0, "cached_token fallthrough");
         nofy_telemetry::unified_log::warn(
@@ -1443,7 +1402,7 @@ impl MvpAgent {
         );
         acp::Agent::authenticate(
                 self,
-                acp::AuthenticateRequest::new(method_id).meta(meta),
+                acp::AuthenticateRequest::new(method_id).meta(arguments.meta),
             )
             .await
     }
@@ -1577,28 +1536,15 @@ impl MvpAgent {
         model: &ModelEntry,
         origin_client: Option<crate::http::OriginClientInfo>,
     ) -> SamplingConfig {
-        let preferred = self.cfg.borrow().nofy_com_config.preferred_method;
-        let prefers_oidc = preferred == Some(PreferredAuthMethod::Oidc);
         let is_session_based_auth = self.is_session_based_auth();
-        let session = match preferred {
-            Some(PreferredAuthMethod::ApiKey) => None,
-            _ if is_session_based_auth => self.auth_manager.current_or_expired(),
-            _ => None,
+        let session = if is_session_based_auth {
+            self.auth_manager.current_or_expired()
+        } else {
+            None
         };
         let has_session_key = session.is_some();
         let mut credentials = resolve_credentials(
             model,
-            session.as_ref().map(|a| a.key.as_str()),
-        );
-        if prefers_oidc && !model.has_own_credentials()
-            && credentials.auth_type == nofy_chat_state::AuthType::ApiKey
-        {
-            credentials.api_key = None;
-            credentials.auth_type = nofy_chat_state::AuthType::SessionToken;
-        }
-        crate::agent::config::enforce_disable_api_key_auth(
-            &mut credentials,
-            self.cfg.borrow().nofy_com_config.api_key_auth_disabled(),
             session.as_ref().map(|a| a.key.as_str()),
         );
         if !has_session_key && credentials.auth_type == nofy_chat_state::AuthType::ApiKey
@@ -1619,7 +1565,6 @@ impl MvpAgent {
             has_session_key,
             has_own_credentials: model.has_own_credentials(),
             is_session_based_auth,
-            preferred,
         }) {
             tracing::warn!(
                 model = model.info().model.as_str(),
@@ -1646,11 +1591,7 @@ impl MvpAgent {
             cfg.endpoints.deployment_key.as_deref(),
         );
         drop(cfg);
-        let user_id = self
-            .auth_manager
-            .current_or_expired()
-            .filter(|a| a.is_xai_auth())
-            .map(|a| a.user_id);
+        let user_id: Option<String> = None;
         let mut config = crate::agent::config::sampling_config_for_model(
             model,
             credentials,
@@ -1761,14 +1702,9 @@ impl MvpAgent {
     ) -> Self {
         models_manager.set_gateway(gateway.clone());
         let sampling_config = models_manager.sampling_config();
-        if !cfg.nofy_com_config.api_key_auth_disabled() {
-            let models = models_manager.models();
-            let current = models_manager.current_model_id();
-            auth_manager
-                .set_process_static_api_key(
-                    byok_from_models(&models, None, current.0.as_ref()),
-                );
-        }
+        let models = models_manager.models();
+        let current = models_manager.current_model_id();
+        auth_manager.set_process_static_api_key(byok_from_models(&models, None, current.0.as_ref()));
         let storage_mode = cfg.storage_mode;
         let default_yolo_mode = cfg.default_yolo_mode;
         let default_auto_mode = cfg.default_auto_mode;
@@ -1815,7 +1751,6 @@ impl MvpAgent {
             auth_method_id: crate::agent::auth_method::new_shared_auth_method_id(None),
             sampling_config: RefCell::new(sampling_config),
             auth_manager,
-            interactive_auth: Default::default(),
             client_type: RefCell::new(ClientType::default()),
             code_nav_enabled: std::cell::Cell::new(false),
             interactive_trust_client: std::cell::Cell::new(false),
@@ -2916,12 +2851,10 @@ impl MvpAgent {
             }
             None => (nofy_hunk_tracker::HunkTrackerHandle::noop(), None),
         };
-        let has_xai_auth = self.auth_manager.current().is_some_and(|a| a.is_xai_auth());
-        let loc_tracking_enabled = hunk_tracking_enabled
-            && has_xai_auth
-            && std::env::var("NOFY_LOC_TRACKING")
-                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                .unwrap_or(false);
+        // LOC tracking uploaded through the removed xAI account pipeline;
+        // the gate never opens.
+        let _ = hunk_tracking_enabled;
+        let loc_tracking_enabled = false;
         let (feedback_resolved, feedback_flags) = {
             let cfg = self.cfg.borrow();
             let resolved = cfg.resolve_feedback();

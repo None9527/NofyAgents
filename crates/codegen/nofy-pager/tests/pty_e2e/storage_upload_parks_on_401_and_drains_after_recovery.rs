@@ -16,17 +16,16 @@ async fn storage_upload_parks_on_401_and_drains_after_recovery() {
     // Storage auth outage from the start; chat endpoints stay healthy.
     content.set_storage_unauthorized(true);
 
-    // Trace uploads are gated on first-party xAI OAuth (`is_xai_auth()`:
-    // AuthMode::Oidc + xAI issuer); the harness's NOFY_API_KEY is ApiKey mode
-    // and never uploads. Seed a fake OAuth entry instead — the mock accepts
-    // any bearer, and its failing refresh_token is exactly the parked state
-    // under test.
-    seed_fake_oauth(&content, "pty-park-e2e");
+    // Trace uploads require a session credential; the harness's NOFY_API_KEY
+    // is ApiKey mode and never uploads. Seed a fake session entry instead —
+    // the mock accepts any bearer, and the storage 401 is exactly the parked
+    // state under test.
+    seed_session_credential(&content, "pty-park-e2e");
 
     // Explicit overrides win over the sandbox defaults. Disable only the fake
-    // API-key credential so seeded OAuth remains active.
+    // API-key credential so the seeded session credential remains active.
     let overrides = [
-        oauth_credential_ops()[0],
+        session_credential_ops()[0],
         EnvOp::set("NOFY_TRACE_UPLOAD", "true"),
         EnvOp::set("NOFY_TELEMETRY_TRACE_UPLOAD", "true"),
         EnvOp::set("NOFY_UPLOAD_QUEUE_AUTH_PROBE_SECS", "2"),

@@ -274,7 +274,7 @@ mod tests {
 
     /// The command-string escape hatch must spawn on the host platform. A
     /// hardcoded `sh` fails here on Windows, which silently downgraded
-    /// `auth_provider_command` to the built-in login. `echo hi` is valid in
+    /// `auth_provider_command`. `echo hi` is valid in
     /// both `sh -c` and `cmd /C`.
     #[tokio::test]
     async fn shell_c_spawns_on_this_platform() {

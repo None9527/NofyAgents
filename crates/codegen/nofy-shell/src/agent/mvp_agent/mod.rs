@@ -621,7 +621,7 @@ pub struct MvpAgent {
     /// Current auth method. LEADER-SAFE(shared): all clients share the same auth;
     /// last authenticate() call wins, which is correct (same user, same creds).
     /// Held as a shared live handle cloned into every running session so a
-    /// mid-session `authenticate` (`/login`) is observed by each session's
+    /// mid-session `authenticate` is observed by each session's
     /// per-turn auth gate without re-spawning.
     pub(crate) auth_method_id: crate::agent::auth_method::SharedAuthMethodId,
     /// Global sampling config (API key + default base_url). LEADER-SAFE(shared):
@@ -633,11 +633,6 @@ pub struct MvpAgent {
     /// nofy.com chat-product catalog (`/rest/modes`) for chat sessions; distinct
     /// from `models_manager` (the build `/v1/models` catalog).
     pub(crate) chat_modes: crate::agent::chat_modes::ChatModesManager,
-    /// Single-flight guard for interactive login (device poll / loopback
-    /// wait). Owns the active attempt's cancel token and its code/url
-    /// channels; a new `authenticate` or `nofy/auth/cancel` cancels the
-    /// prior attempt.
-    pub(crate) interactive_auth: crate::auth::single_flight::AuthSingleFlight,
     /// Client type. LEADER-SAFE(init-once): set once during `initialize` from
     /// `_meta.clientIdentifier` (injected by the IPC server in leader mode).
     ///
@@ -1031,44 +1026,6 @@ pub(crate) fn parse_json_object_env(var: &str) -> Option<serde_json::Value> {
         }
     }
 }
-#[derive(Debug, Default, serde::Deserialize)]
-struct AuthRequestMeta {
-    #[serde(default)]
-    headless: bool,
-    #[serde(default)]
-    reauth: bool,
-    /// `--oauth`: force loopback. The only transport override sent over ACP
-    /// (loopback is the default; device is opt-in via env/config).
-    #[serde(default)]
-    use_oauth: bool,
-    /// When true, skip cached tokens and force the interactive browser login
-    /// flow. Used by the `/login` slash command for mid-session re-auth.
-    /// Unlike `reauth`, this does NOT clear existing credentials — if the
-    /// user abandons the browser flow, the current session continues.
-    #[serde(default)]
-    force_interactive: bool,
-    /// Pager auth `request_seq` for this attempt. Scopes `nofy/auth/cancel`
-    /// so a delayed cancel cannot tear down a successor login.
-    #[serde(default)]
-    request_seq: Option<u64>,
-}
-impl AuthRequestMeta {
-    /// `--oauth` → force loopback; otherwise default (loopback).
-    fn login_override(&self) -> crate::auth::LoginTransportOverride {
-        if self.use_oauth {
-            crate::auth::LoginTransportOverride::ForceLoopback
-        } else {
-            crate::auth::LoginTransportOverride::None
-        }
-    }
-    fn from_json(meta: Option<&acp::Meta>) -> Self {
-        meta.cloned()
-            .and_then(|value| {
-                serde_json::from_value(serde_json::Value::Object(value)).ok()
-            })
-            .unwrap_or_default()
-    }
-}
 fn resolve_inference_idle_timeout_secs(
     models: &indexmap::IndexMap<String, crate::agent::config::ModelEntry>,
     model: &str,
@@ -1145,33 +1102,6 @@ mod session_setup;
 use session_registry::SessionRegistry;
 pub(crate) use session_lifecycle::RegistrySnapshot;
 pub(super) use super::ext_parsers;
-/// Emit the `auth.lifecycle` login span with optional user id and error
-/// category. Named `auth.lifecycle` (not `auth`) to avoid colliding with the
-/// pre-existing per-request `AuthManager::auth()` `#[instrument]` span.
-fn emit_login_span(
-    success: bool,
-    auth_method: &str,
-    user_id: Option<&str>,
-    error_category: Option<&str>,
-) {
-    let span = tracing::info_span!(
-        "auth.lifecycle",
-        action = "login",
-        success,
-        auth_method,
-        user_id = tracing::field::Empty,
-        error_category = tracing::field::Empty,
-    );
-    if let Some(uid) = user_id
-        .filter(|u| !u.is_empty() && !u.eq_ignore_ascii_case("unknown"))
-    {
-        span.record("user_id", uid);
-    }
-    if let Some(ec) = error_category {
-        span.record("error_category", ec);
-    }
-    span.in_scope(|| {});
-}
 /// Metadata captured from a replayed `task_backgrounded` entry.
 pub(crate) struct OrphanedTask {
     task_id: String,

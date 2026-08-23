@@ -17,7 +17,6 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::auth::ForceLoginTeam;
 use nofy_tools::types::config_source::ConfigSource;
 use nofy_tools::util::truncate::estimate_tokens;
 
@@ -63,7 +62,6 @@ pub(crate) struct InspectReport {
     pub project_trusted: bool,
     pub project_instructions: Vec<InstructionFile>,
     pub permissions: PermissionsReport,
-    pub login_policy: LoginPolicyReport,
     pub hooks: Vec<HookEntry>,
     pub skills: Vec<SkillEntry>,
     pub agents: Vec<AgentEntry>,
@@ -140,20 +138,6 @@ pub(crate) struct SkippedRule {
     pub reason: String,
 }
 
-/// Enterprise login-hardening policy resolved from `[nofy_com_config]`
-/// (TOML + env). Surfaced so admins can verify the deployment loaded it.
-/// The team pin is admin policy, not a secret, so it is shown verbatim.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct LoginPolicyReport {
-    /// Raw `disable_api_key_auth` knob (env `NOFY_DISABLE_API_KEY_AUTH`).
-    pub disable_api_key_auth: Option<bool>,
-    /// Configured team pin: single string, list, or null when unset.
-    pub force_login_team_uuid: Option<ForceLoginTeam>,
-    /// Resolved verdict — true when either knob forces first-party login.
-    pub api_key_auth_disabled: bool,
-}
-
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct HookEntry {
@@ -186,7 +170,7 @@ pub(crate) struct SkillEntry {
     pub disabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compatibility_status: Option<CompatEntryStatus>,
-    /// Bare name this skill lost (`login`, `commit`, …).
+    /// Bare name this skill lost (`changelog`, `commit`, …).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collides_with: Option<String>,
     /// Qualified invocation when [`Self::collides_with`] is set. Absent when
@@ -403,7 +387,6 @@ async fn build_report(cwd: &Path) -> InspectReport {
         project_trusted,
         project_instructions: instructions,
         permissions,
-        login_policy: login_policy_report(parsed_config.as_ref()),
         hooks,
         skills,
         agents,
@@ -651,20 +634,6 @@ async fn list_permissions(cwd: &Path, project_trusted: bool) -> PermissionsRepor
         managed_settings_exists,
         managed_settings_active,
         enforced,
-    }
-}
-
-/// Resolves the enterprise login-hardening knobs from the merged config
-/// (`[nofy_com_config]`, the `[auth]` alias, and env overrides) so admins can
-/// confirm the deployment's auth policy actually loaded.
-fn login_policy_report(config: Option<&crate::agent::config::Config>) -> LoginPolicyReport {
-    let nofy_com_config = config
-        .map(|c| c.nofy_com_config.clone())
-        .unwrap_or_default();
-    LoginPolicyReport {
-        api_key_auth_disabled: nofy_com_config.api_key_auth_disabled(),
-        disable_api_key_auth: nofy_com_config.disable_api_key_auth,
-        force_login_team_uuid: nofy_com_config.force_login_team_uuid,
     }
 }
 
@@ -1242,19 +1211,6 @@ fn print_columns<T>(
     }
 }
 
-/// Render the team pin for the human view: single value, comma-joined list,
-/// or an explicit empty-list marker (which fails closed at login).
-fn format_force_login_team(team: &Option<ForceLoginTeam>) -> String {
-    match team {
-        None => "(none)".to_string(),
-        Some(ForceLoginTeam::Single(s)) => s.clone(),
-        Some(ForceLoginTeam::AnyOf(list)) if list.is_empty() => {
-            "(empty -- fail closed)".to_string()
-        }
-        Some(ForceLoginTeam::AnyOf(list)) => list.join(", "),
-    }
-}
-
 /// Human label for an enforced setting. Uses product vocabulary, not the
 /// internal field names (no `ui.yolo` / `--yolo` / `permission_mode`).
 fn enforced_label(p: &EnforcedPolicy) -> String {
@@ -1417,24 +1373,6 @@ fn print_human(r: &InspectReport) {
             println!("    {TREE} {}", url);
         }
     }
-
-    println!();
-    println!("  Login Policy");
-    println!(
-        "  {TREE} disable_api_key_auth: {}",
-        match r.login_policy.disable_api_key_auth {
-            Some(v) => v.to_string(),
-            None => "(unset)".to_string(),
-        }
-    );
-    println!(
-        "  {TREE} force_login_team_uuid: {}",
-        format_force_login_team(&r.login_policy.force_login_team_uuid)
-    );
-    println!(
-        "  {TREE} api_key_auth_disabled: {}",
-        r.login_policy.api_key_auth_disabled
-    );
 
     print_columns(
         "Skills",
@@ -2047,24 +1985,24 @@ mod tests {
 
     #[test]
     fn apply_slash_collision_flags_reserved_names_and_duplicates() {
-        let mut login = skill_fixture(
-            "login",
-            "/plugins/acme/skills/login/SKILL.md",
+        let mut changelog = skill_fixture(
+            "changelog",
+            "/plugins/acme/skills/changelog/SKILL.md",
             SkillScope::Plugin,
         );
-        login.plugin_name = Some("acme".into());
+        changelog.plugin_name = Some("acme".into());
         let deploy = skill_fixture("deploy", "/tmp/deploy/SKILL.md", SkillScope::Local);
         // Gated builtins like /flush stay untagged — inspect must not invent
         // /local:flush while the live catalog may still advertise /flush.
         let flush = skill_fixture("flush", "/tmp/flush/SKILL.md", SkillScope::Local);
         let commit_local = skill_fixture("commit", "/tmp/l/commit/SKILL.md", SkillScope::Local);
         let commit_user = skill_fixture("commit", "/tmp/u/commit/SKILL.md", SkillScope::User);
-        let all = [login, deploy, flush, commit_local, commit_user];
-        let [login, deploy, flush, commit_local, commit_user] = &all;
+        let all = [changelog, deploy, flush, commit_local, commit_user];
+        let [changelog, deploy, flush, commit_local, commit_user] = &all;
 
-        let entry = collision_entry(login, &all);
-        assert_eq!(entry.collides_with.as_deref(), Some("login"));
-        assert_eq!(entry.invocable_as.as_deref(), Some("acme:login"));
+        let entry = collision_entry(changelog, &all);
+        assert_eq!(entry.collides_with.as_deref(), Some("changelog"));
+        assert_eq!(entry.invocable_as.as_deref(), Some("acme:changelog"));
 
         for skill in [deploy, flush] {
             let entry = collision_entry(skill, &all);
@@ -2081,10 +2019,10 @@ mod tests {
 
     #[test]
     fn apply_slash_collision_folds_reserved_name_case() {
-        let skill = skill_fixture("Login", "/tmp/Login/SKILL.md", SkillScope::Local);
+        let skill = skill_fixture("Changelog", "/tmp/Changelog/SKILL.md", SkillScope::Local);
         let entry = collision_entry(&skill, std::slice::from_ref(&skill));
-        assert_eq!(entry.collides_with.as_deref(), Some("Login"));
-        assert_eq!(entry.invocable_as.as_deref(), Some("local:login"));
+        assert_eq!(entry.collides_with.as_deref(), Some("Changelog"));
+        assert_eq!(entry.invocable_as.as_deref(), Some("local:changelog"));
     }
 
     #[test]

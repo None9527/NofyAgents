@@ -29,8 +29,8 @@ const MCP_OAUTH_CLIENT_NAME: &str = "Nofy";
 const CREDENTIAL_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// Overall budget for one interactive browser consent flow (waiting for the
-/// loopback callback / disk poll after opening the browser). Mirrors the main
-/// nofy.com login's 10-minute callback budget. Without a bound, an abandoned
+/// loopback callback / disk poll after opening the browser). Without a bound,
+/// an abandoned
 /// browser tab left the leader parked in its `select!` forever — holding both
 /// the in-process watch channel and the cross-process `mcp_auth_*.lock`, so
 /// every other session blocked indefinitely on the same server's auth.

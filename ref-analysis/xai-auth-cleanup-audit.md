@@ -104,5 +104,11 @@ Round 1 的"恒 Disabled 桩"方案被用户否决:**完全剔除所有 xAI 依�
   全部 `resolve_*` 远端层、`cache_remote_*` 缓存、ACP remote 传递、
   付费墙 gate 机制(remote 是其唯一策略源)——整体物理删除,85 文件净删
   ~7600 行;公告/活动/提示的本地配置层解析保留。
-- **Batch B/C/D/E/F**:web/x 搜索、voice、xAI 登录流、计费/付费墙、
-  剩余后台外联(分享/feedback/bundle/更新器)——依次物理删除。
+- **Batch B(web/x 搜索,已提交 1d6b28e)**:web_search 本地客户端(BYOK
+  key 泄漏点)、HostedTool vendor 服务端工具、tool_overrides、
+  `[models] web_search`、CLI 旗标、pager 渲染线——整体删除;web_fetch 保留。
+- **Batch C(voice,已提交 d974c1e)**:nofy-voice crate(wss://api.x.ai/v1/stt)
+  与 pager/shell 全部 voice 面(状态机/键绑定/设置/诊断)——整体删除。
+- **Batch D(xAI 登录流)**:交互登录/设备流/OIDC/欢迎屏登录态——删除中;
+  BYOK api_key 认证链保留。
+- **Batch E/F**:计费/付费墙、剩余后台外联(分享/feedback/bundle/更新器)。

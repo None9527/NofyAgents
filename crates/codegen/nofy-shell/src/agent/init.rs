@@ -89,15 +89,15 @@ fn resolve_config(cfg: &AgentConfig, auth_manager: &AuthManager) -> AgentConfig 
     crate::util::config::sync_campaign_fields(&mut cfg);
 
     // env var > Local. Skip the env gate for Generic (nofy -p, subagents).
-    let has_xai_auth = auth_manager.current().is_some_and(|a| a.is_xai_auth());
+    // The env gate and Writeback required the removed xAI account system,
+    // so neither ever enables.
     if cfg.storage_mode == StorageMode::Local
         && cfg.mode != crate::agent::config::AgentMode::Generic
     {
-        cfg.storage_mode = StorageMode::resolve_env_gated(has_xai_auth);
+        cfg.storage_mode = StorageMode::resolve_env_gated(false);
     }
-    // A CLI/env-set Writeback still requires nofy.com auth.
-    if cfg.storage_mode == StorageMode::Writeback && !has_xai_auth {
-        tracing::info!("Writeback is disabled: requires auth with nofy.com");
+    if cfg.storage_mode == StorageMode::Writeback {
+        tracing::info!("Writeback is disabled: requires the removed nofy.com account system");
         cfg.storage_mode = StorageMode::Local;
     }
 
@@ -165,9 +165,10 @@ fn init_process(cfg: &AgentConfig, auth_manager: &AuthManager) {
 /// Apply current telemetry config + auth identity. Tears down the client
 /// when telemetry is disabled, so it's safe to call repeatedly.
 pub fn update_telemetry_config(config: &AgentConfig, auth_manager: &AuthManager) {
-    let nofy_auth = auth_manager.current().filter(|a| a.is_xai_auth());
-    let user_id = nofy_auth.as_ref().map(|a| a.user_id.clone());
-    let team_id = nofy_auth.as_ref().and_then(|a| a.team_id.clone());
+    // Telemetry identity came from the removed xAI account system.
+    let _ = auth_manager;
+    let user_id: Option<String> = None;
+    let team_id: Option<String> = None;
     let subscription_tier = None;
     nofy_telemetry::client::init(
         config.telemetry.clone(),

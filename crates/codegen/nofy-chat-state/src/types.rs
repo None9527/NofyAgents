@@ -102,7 +102,7 @@ impl Default for PruningConfig {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthType {
-    /// From AuthManager (nofy login, OIDC, external binary). Refreshable.
+    /// From AuthManager (external auth provider). Refreshable.
     #[default]
     SessionToken,
     /// From user config ([model.*] api_key, env_key, NOFY_API_KEY). Not refreshable.

@@ -748,25 +748,6 @@ fn session_restored_load_never_sets_conversation_entry_bit() {
     let agent = app.agents.get(&id).expect("agent kept");
     assert!(agent.chat_kind, "agent UI bit comes from sticky --chat");
 }
-/// Completing a mid-session login restores the agent view instead of
-/// running the startup load-session flow.
-#[test]
-fn auth_complete_restores_view_after_mid_session_login() {
-    let mut app = test_app_with_agent();
-    dispatch(Action::Login, &mut app);
-    let seq = authenticating_seq(&app);
-    assert_eq!(app.active_view, ActiveView::Welcome);
-    dispatch(
-        Action::TaskComplete(TaskResult::AuthComplete {
-            request_seq: seq,
-            meta: None,
-        }),
-        &mut app,
-    );
-    assert_eq!(app.active_view, ActiveView::Agent(AgentId(0)));
-    assert_eq!(app.auth_return_view, None);
-    assert!(matches!(app.auth_state, AuthState::Done));
-}
 #[test]
 fn session_loaded_drains_pending_first_prompt_to_front() {
     let mut app = fork_test_app();

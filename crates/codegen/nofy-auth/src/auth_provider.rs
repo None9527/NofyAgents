@@ -40,7 +40,7 @@ pub trait AuthCredentialProvider: HttpAuth + Send + Sync + 'static {
     /// Return the current credential snapshot. Implementations should
     /// issue a cheap disk re-read (`AuthManager::refresh`) before
     /// snapshotting so callers see updates from sibling processes
-    /// (`nofy-desktop`, `nofy login`). The `token` field MUST mirror
+    /// (`nofy-desktop`, the authenticate flow). The `token` field MUST mirror
     /// the bearer that `HttpAuth::apply` would send on the wire so
     /// 401-attribution prefixes match the actual request.
     fn snapshot(&self) -> CredentialSnapshot;

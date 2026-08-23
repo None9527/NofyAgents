@@ -55,7 +55,7 @@ async fn campaign_leader_mode_remote_dismiss_on_model_pick() {
     // settings fetch requires `auth_manager.auth()` — in ApiKey/BYOK mode the
     // pager never requests `/v1/settings`, so a remote campaign would be
     // structurally unreachable (see `spawn_polling_session`'s doc).
-    seed_fake_oauth(&content, "pty-campaign-leader");
+    seed_session_credential(&content, "pty-campaign-leader");
     let binary = pager_binary().expect("resolve pager binary");
     let spawn = || -> PtyHarness {
         PtyHarness::spawn_with_content_env_ops(
@@ -64,7 +64,7 @@ async fn campaign_leader_mode_remote_dismiss_on_model_pick() {
             DEFAULT_COLS,
             &content,
             &["--leader", "--leader-socket", &socket],
-            &oauth_credential_ops(),
+            &session_credential_ops(),
         )
         .expect("spawn leader-mode pager")
     };

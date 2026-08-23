@@ -595,17 +595,17 @@ mod tests {
         let theme = Theme::current();
         let matches = vec![
             SuggestionRow {
-                display: "/login".into(),
-                description: "Log in or re-authenticate with your account".into(),
-                insert_text: "/login".into(),
+                display: "/compact".into(),
+                description: "Compact the conversation".into(),
+                insert_text: "/compact".into(),
                 indices: vec![],
                 tag: None,
                 provenance: Some(CommandProvenance::Builtin),
             },
             SuggestionRow {
-                display: "/acme:login".into(),
-                description: "Acme account login".into(),
-                insert_text: "/acme:login ".into(),
+                display: "/acme:deploy".into(),
+                description: "Acme deploy helper".into(),
+                insert_text: "/acme:deploy ".into(),
                 indices: vec![],
                 tag: None,
                 provenance: Some(CommandProvenance::Skill {
@@ -625,8 +625,8 @@ mod tests {
 
         let line0: String = (0..80).map(|x| buf[(x, 0)].symbol().to_string()).collect();
         let line1: String = (0..80).map(|x| buf[(x, 1)].symbol().to_string()).collect();
-        assert!(line0.contains("Log in or re-authenticate"));
-        assert!(line1.contains("Acme account login"));
+        assert!(line0.contains("Compact the conversation"));
+        assert!(line1.contains("Acme deploy helper"));
         assert!(!line0.contains(" · built-in"));
         // Flush right: the badge's last glyph sits in the final column.
         assert!(line0.ends_with("built-in"), "not right-aligned: {line0:?}");

@@ -8,7 +8,7 @@ pub(crate) use serde_json::json;
 pub(crate) use std::time::{Duration, Instant};
 pub(crate) use nofy_pager_pty_harness::{
     ContentController, LeaderCluster, MockModel, PtyHarness, inference_request_count, keys,
-    oauth_credential_ops, pager_binary, seed_fake_oauth, submit_turn, wait_for_labels_absent,
+    session_credential_ops, pager_binary, seed_session_credential, submit_turn, wait_for_labels_absent,
     wait_for_model_via_new_sessions,
 };
 

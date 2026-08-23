@@ -265,24 +265,15 @@ fn slash_new_uses_worktree_cwd() {
 }
 
 #[test]
-fn auth_complete_dispatches_deferred_worktree() {
+fn trust_resolution_dispatches_deferred_worktree() {
     let mut app = test_app();
     app.cwd_has_git_ancestor = true;
-    app.auth_state = AuthState::Authenticating {
-        request_seq: 1,
-        handle: None,
-        auth_url: None,
-        mode: AuthMode::Pending,
+    app.trust_state = TrustState::Pending {
+        workspace: PathBuf::from("/x"),
     };
     app.deferred_startup.worktree = true;
 
-    let effects = dispatch(
-        Action::TaskComplete(TaskResult::AuthComplete {
-            request_seq: 1,
-            meta: None,
-        }),
-        &mut app,
-    );
+    let effects = dispatch(Action::TrustFolder, &mut app);
 
     assert!(
         effects
@@ -293,14 +284,11 @@ fn auth_complete_dispatches_deferred_worktree() {
 }
 
 #[test]
-fn auth_complete_resume_plus_worktree_creates_worktree_with_session() {
+fn trust_resolution_resume_plus_worktree_creates_worktree_with_session() {
     let mut app = test_app();
     app.cwd_has_git_ancestor = true;
-    app.auth_state = AuthState::Authenticating {
-        request_seq: 1,
-        handle: None,
-        auth_url: None,
-        mode: AuthMode::Pending,
+    app.trust_state = TrustState::Pending {
+        workspace: PathBuf::from("/x"),
     };
     app.deferred_startup.session =
         Some(crate::app::session_startup::DeferredSessionStartup::Load {
@@ -310,13 +298,7 @@ fn auth_complete_resume_plus_worktree_creates_worktree_with_session() {
         });
     app.deferred_startup.worktree = true;
 
-    let effects = dispatch(
-        Action::TaskComplete(TaskResult::AuthComplete {
-            request_seq: 1,
-            meta: None,
-        }),
-        &mut app,
-    );
+    let effects = dispatch(Action::TrustFolder, &mut app);
 
     // --resume + --worktree: CreateWorktreeSession with the session ID.
     assert!(effects.iter().any(|e| matches!(

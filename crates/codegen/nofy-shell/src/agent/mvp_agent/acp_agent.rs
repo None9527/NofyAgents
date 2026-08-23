@@ -198,8 +198,7 @@ impl acp::Agent for MvpAgent {
             }),
             ),
         );
-        if !self.cfg.borrow().nofy_com_config.api_key_auth_disabled()
-            && auth_method::read_xai_api_key_env().is_err()
+        if auth_method::read_xai_api_key_env().is_err()
             && let Some(api_key) = crate::auth::read_api_key(
                 &crate::util::nofy_home::nofy_home(),
             )
@@ -212,29 +211,6 @@ impl acp::Agent for MvpAgent {
                 None,
             );
         }
-        let disable_api_key_auth = self
-            .cfg
-            .borrow()
-            .nofy_com_config
-            .api_key_auth_disabled();
-        {
-            let cfg = self.cfg.borrow();
-            let gc = &cfg.nofy_com_config;
-            if disable_api_key_auth || gc.force_login_team_uuid.is_some() {
-                nofy_telemetry::unified_log::info(
-                    "auth: enterprise login policy active",
-                    None,
-                    Some(
-                        serde_json::json!({
-                        "force_login_team_uuid": gc.force_login_team_uuid.as_ref().map(|t| format!("{t:?}")),
-                        "disable_api_key_auth_knob": gc.disable_api_key_auth,
-                        "api_key_auth_disabled": disable_api_key_auth,
-                    }),
-                    ),
-                );
-            }
-        }
-        let preferred_method_early = self.cfg.borrow().nofy_com_config.preferred_method;
         let xai_api_base_url = self.cfg.borrow().endpoints.xai_api_base_url.clone();
         let has_byok = self
             .models_manager
@@ -242,10 +218,8 @@ impl acp::Agent for MvpAgent {
             .values()
             .any(crate::agent::config::ModelEntry::has_own_credentials);
         let first_party_env_ok = if crate::auth::should_probe_first_party_env_key(
-            disable_api_key_auth,
             has_byok,
             auth_method::has_xai_api_key_env(),
-            preferred_method_early.is_some(),
         ) {
             crate::auth::first_party_env_key_allows_advertise(
                     &xai_api_base_url,
@@ -257,7 +231,6 @@ impl acp::Agent for MvpAgent {
         };
         self.auth_manager.set_first_party_env_api_key_ok(first_party_env_ok);
         let has_external_api_key = auth_method::should_advertise_xai_api_key_with_env_ok(
-            disable_api_key_auth,
             self.models_manager.models().values(),
             first_party_env_ok,
         );
@@ -280,60 +253,17 @@ impl acp::Agent for MvpAgent {
                 SilentRefresh::Failed(remedy) => remedy.is_self_healing(),
             };
         }
-        let (
-            login_label,
-            has_auth_provider,
-            has_enterprise_oidc,
-            enterprise_oidc_issuer,
-        ) = {
+        let has_auth_provider = {
             let cfg = self.cfg.borrow();
-            let issuer = cfg.nofy_com_config.oidc.as_ref().map(|o| o.issuer.clone());
-            (
-                cfg.nofy_com_config.auth_provider_label.clone(),
-                cfg.nofy_com_config.auth_provider_command.is_some(),
-                cfg.nofy_com_config.oidc.is_some(),
-                issuer,
-            )
+            cfg.nofy_com_config.auth_provider_command.is_some()
         };
-        if has_enterprise_oidc {
-            let issuer = enterprise_oidc_issuer
-                .as_deref()
-                .expect(
-                    "enterprise_oidc_issuer must be Some when has_enterprise_oidc is true",
-                );
-            tracing::info!(
-                issuer = %issuer,
-                "auth: advertising enterprise OIDC auth method",
-            );
-            nofy_telemetry::unified_log::info(
-                "auth: advertising enterprise OIDC auth method",
-                None,
-                Some(serde_json::json!({ "issuer": issuer })),
-            );
-        } else {
-            tracing::info!(
-                label = ?login_label,
-                has_auth_provider,
-                "auth: advertising nofy.com auth method",
-            );
-        }
-        let preferred_method = preferred_method_early;
-        let has_external_api_key = match preferred_method {
-            Some(crate::auth::PreferredAuthMethod::Oidc) => false,
-            _ => has_external_api_key,
-        };
-        let has_cached_token = match preferred_method {
-            Some(crate::auth::PreferredAuthMethod::ApiKey) => false,
-            _ => has_cached_token,
-        };
+        tracing::info!(
+            has_auth_provider,
+            "auth: advertising auth methods",
+        );
         let built = auth_method::build_auth_methods(auth_method::AuthMethodsBuildInputs {
             has_external_api_key,
             has_cached_token,
-            has_enterprise_oidc,
-            enterprise_oidc_issuer: enterprise_oidc_issuer.as_deref(),
-            login_label: login_label.as_deref(),
-            has_auth_provider_command: has_auth_provider,
-            preferred_method,
         });
         let auth_methods = built.methods;
         nofy_telemetry::unified_log::info(
@@ -345,9 +275,7 @@ impl acp::Agent for MvpAgent {
                 "HOME": std::env::var("HOME").unwrap_or_else(|_| "(unset)".into()),
                 "has_external_api_key": has_external_api_key,
                 "first_party_env_api_key_ok": first_party_env_ok,
-                "disable_api_key_auth": disable_api_key_auth,
                 "has_cached_token": has_cached_token,
-                "has_enterprise_oidc": has_enterprise_oidc,
                 "init_has_current": init_has_current,
                 "init_is_expired": init_is_expired,
                 "auth_mode": self.auth_manager.current().map(|a| format!("{:?}", a.auth_mode)),
@@ -494,39 +422,8 @@ impl acp::Agent for MvpAgent {
             None,
             Some(serde_json::json!({"method": arguments.method_id.0.as_ref()})),
         );
-        if let Some(preferred) = self.cfg.borrow().nofy_com_config.preferred_method {
-            let kind = auth_method::AuthMethodKind::from_id(&arguments.method_id);
-            let allowed = match preferred {
-                crate::auth::PreferredAuthMethod::ApiKey => kind.is_api_key(),
-                crate::auth::PreferredAuthMethod::Oidc => kind.is_session_based(),
-            };
-            if !allowed {
-                let msg = match preferred {
-                    crate::auth::PreferredAuthMethod::ApiKey => {
-                        auth_method::PREFERRED_API_KEY_UNAVAILABLE
-                    }
-                    crate::auth::PreferredAuthMethod::Oidc => {
-                        "preferred_method=oidc; API-key auth is not allowed."
-                    }
-                };
-                emit_login_span(
-                    false,
-                    arguments.method_id.0.as_ref(),
-                    None,
-                    Some("preferred_method_mismatch"),
-                );
-                return Err(acp::Error::auth_required().data(msg));
-            }
-        }
         match arguments.method_id.0.as_ref() {
             auth_method::NOFY_API_KEY_METHOD_ID => {
-                if self.cfg.borrow().nofy_com_config.api_key_auth_disabled() {
-                    emit_login_span(false, "api_key", None, Some("disabled_by_admin"));
-                    return Err(
-                        acp::Error::auth_required()
-                            .data("API-key auth is disabled by your administrator."),
-                    );
-                }
                 let mut sampling_config = self.sampling_config.borrow_mut();
                 if sampling_config.api_key.is_none() {
                     if let Ok(api_key) = auth_method::read_xai_api_key_env() {
@@ -548,7 +445,6 @@ impl acp::Agent for MvpAgent {
                         .values()
                         .any(|m| m.has_own_credentials())
                     {
-                        emit_login_span(false, "api_key", None, Some("no_credentials"));
                         return Err(
                             acp::Error::auth_required()
                                 .data(
@@ -563,32 +459,12 @@ impl acp::Agent for MvpAgent {
                 if crate::agent::chat_modes::process_chat_mode_enabled() {
                     self.chat_modes.warm_in_background();
                 }
-                emit_login_span(true, "api_key", None, None);
-                log_event(nofy_telemetry::events::Login {
-                    auth_method: "api_key".to_string(),
-                    user_id: None,
-                });
                 Ok(Default::default())
             }
             auth_method::CACHED_TOKEN_AUTH_METHOD_ID => {
-                let auth_meta = AuthRequestMeta::from_json(arguments.meta.as_ref());
-                if auth_meta.force_interactive {
-                    return self
-                        .authenticate(
-                            acp::AuthenticateRequest::new(
-                                    acp::AuthMethodId::new(auth_method::OIDC_METHOD_ID),
-                                )
-                                .meta(arguments.meta),
-                        )
-                        .await;
-                }
                 let current_auth = self.auth_manager.current();
                 let has_current = current_auth.is_some();
                 let is_expired = self.auth_manager.is_expired();
-                let is_devbox = false;
-                let is_legacy = current_auth
-                    .as_ref()
-                    .is_some_and(|a| a.auth_mode == crate::auth::AuthMode::WebLogin);
                 nofy_telemetry::unified_log::info(
                     "auth cached_token check",
                     None,
@@ -596,8 +472,6 @@ impl acp::Agent for MvpAgent {
                         serde_json::json!({
                         "has_current": has_current,
                         "is_expired": is_expired,
-                        "is_devbox": is_devbox,
-                        "is_legacy": is_legacy,
                     }),
                     ),
                 );
@@ -630,26 +504,6 @@ impl acp::Agent for MvpAgent {
                         .authenticate_after_cached_token_unavailable(arguments)
                         .await;
                 };
-                if auth.auth_mode == crate::auth::AuthMode::WebLogin {
-                    tracing::info!("auth: rejecting legacy WebLogin token");
-                    nofy_telemetry::unified_log::warn(
-                        "auth cached_token legacy rejected",
-                        None,
-                        Some(
-                            serde_json::json!({ "auth_mode": format!("{:?}", auth.auth_mode) }),
-                        ),
-                    );
-                    self.auth_manager.clear_in_memory();
-                    if let Err(e) = self
-                        .auth_manager
-                        .remove_scope(crate::auth::LEGACY_AUTH_SCOPE)
-                    {
-                        tracing::warn!(error = ?e, "auth: failed to remove legacy scope during WebLogin rejection (non-fatal)");
-                    }
-                    return self
-                        .authenticate_after_cached_token_unavailable(arguments)
-                        .await;
-                }
                 self.maybe_sync_bundle_in_background(false);
                 {
                     let mut sampling_config = self.sampling_config.borrow_mut();
@@ -666,27 +520,7 @@ impl acp::Agent for MvpAgent {
                 if crate::agent::chat_modes::process_chat_mode_enabled() {
                     self.chat_modes.warm_in_background();
                 }
-                let uid = self.auth_manager.current().map(|a| a.user_id);
-                emit_login_span(true, "cached_token", uid.as_deref(), None);
-                log_event(nofy_telemetry::events::Login {
-                    auth_method: "cached_token".to_string(),
-                    user_id: uid,
-                });
                 Ok(self.auth_response_with_meta())
-            }
-            auth_method::NOFY_COM_METHOD_ID | auth_method::OIDC_METHOD_ID => {
-                // Interactive xAI account login (nofy.com / OIDC) was removed
-                // in the sanitized build. Authenticate with the api_key method.
-                emit_login_span(
-                    false,
-                    arguments.method_id.0.as_ref(),
-                    None,
-                    Some("login_removed"),
-                );
-                Err(acp::Error::auth_required().data(
-                    "Interactive login was removed; authenticate with an API key \
-                     (NOFY_API_KEY env, config api_key/env_key, or the api_key method).",
-                ))
             }
             _ => {
                 Err(

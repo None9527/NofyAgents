@@ -875,7 +875,6 @@ pub(crate) async fn run(
         .as_deref()
         .map(agent_client_protocol::ModelId::new);
     app.cli_effort_token = args.reasoning_effort.clone();
-    app.auth_use_oauth = args.oauth;
     app.show_resolved_model = true;
     app.sharing_enabled = false;
     app.privacy_notice_rollout =
@@ -908,82 +907,20 @@ pub(crate) async fn run(
     app.cancel_rewind_enabled = connection.cancel_rewind_enabled;
     apply_session_recap_available(&mut app, connection.session_recap_available);
 
-    // Preserve auth methods so logout→re-login works without restarting.
+    // Auth methods advertised by the agent (API key / cached token).
     app.auth_methods = connection.auth_methods.clone();
 
-    // Seed auth state from ACP connection metadata.
-    // --force-login overrides: show the login screen even when credentials exist.
-    let force_login = args.force_login && !connection.auth_methods.is_empty();
-    let needs_interactive_login = connection.needs_login || force_login;
-    if needs_interactive_login {
+    // No usable credentials: the welcome screen shows API-key setup
+    // guidance instead of a prompt.
+    if connection.auth_methods.is_empty() {
         app.welcome_prompt_focused = false;
-
-        if connection.needs_login {
-            // Normal path: use the metadata from startup_auth_metadata()
-            app.login_label = connection.login_label;
-            app.login_method_id = connection.login_method_id;
-            app.auth_start_mode = match connection.auth_start_mode {
-                crate::acp::AuthStartMode::Pending => super::app_view::AuthMode::Pending,
-                crate::acp::AuthStartMode::Command => super::app_view::AuthMode::Command,
-            };
-        } else {
-            // --force-login: find the nofy.com method from the advertised list
-            let nofy_com = connection
-                .auth_methods
-                .iter()
-                .find(|m| m.id().0.as_ref() == "nofy.com");
-            if let Some(method) = nofy_com {
-                app.login_label = Some(method.name().to_string());
-                app.login_method_id = Some(method.id().clone());
-                let is_provider = method
-                    .meta()
-                    .as_ref()
-                    .and_then(|v| v.get("external_provider"))
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
-                app.auth_start_mode = if is_provider {
-                    super::app_view::AuthMode::Command
-                } else {
-                    super::app_view::AuthMode::Pending
-                };
-            } else {
-                // No nofy.com method available, use the first method as fallback
-                let first = &connection.auth_methods[0];
-                app.login_label = Some(first.name().to_string());
-                app.login_method_id = Some(first.id().clone());
-                app.auth_start_mode = super::app_view::AuthMode::Pending;
-            }
-        }
-
-        // Skip the login splash screen — auto-trigger login immediately
-        // by reusing dispatch_login. Effects are stashed and drained after
-        // the initial render so the user sees the auth UI right away.
-        // Empty auth_methods (preferred_method pin with no credentials) is
-        // fail-closed: do not invent nofy.com / auto-start OIDC.
-        tracing::info!(
-            method_id = ?app.login_method_id,
-            methods_empty = connection.auth_methods.is_empty(),
-            "auto-triggering login at startup"
-        );
+        app.auth_state = super::app_view::AuthState::Pending {
+            error: Some(
+                nofy_shell::agent::auth_method::PREFERRED_API_KEY_UNAVAILABLE.to_string(),
+            ),
+        };
     }
-    // else: auth_state defaults to Done (already authenticated eagerly)
-    // Effects stashed until after the initial render, so the user sees the
-    // welcome/auth UI right away.
-    let mut post_render_effects = if needs_interactive_login {
-        if connection.auth_methods.is_empty() {
-            // preferred_method pin unavailable — no advertised method to start.
-            app.auth_state = super::app_view::AuthState::Pending {
-                error: Some(
-                    nofy_shell::agent::auth_method::PREFERRED_API_KEY_UNAVAILABLE.to_string(),
-                ),
-            };
-            vec![]
-        } else {
-            dispatch::dispatch(Action::Login, &mut app)
-        }
-    } else {
-        vec![]
-    };
+    let mut post_render_effects = vec![];
 
     app.has_external_auth_provider =
         crate::slash::commands::usage::detect_external_auth_provider(&app.auth_methods);
@@ -1607,8 +1544,8 @@ pub(crate) async fn run(
     // already authenticated, hand it to the shared dispatcher helper (same
     // `NewSession`/`SendPrompt` path the welcome screen uses). ZDR-blocked
     // accounts cannot start a session, so drop the prompt — this mirrors the
-    // deferred post-login path, which clears the startup prompt for ZDR-blocked
-    // accounts. When not yet authenticated, stash it for `AuthComplete`.
+    // deferred startup path, which clears the startup prompt for ZDR-blocked
+    // accounts. When not yet authenticated, stash it for the startup drain.
     if let Some(initial_prompt) = args.initial_prompt() {
         if !app.session_startup_allowed() {
             app.deferred_startup.prompt = Some(initial_prompt.to_string());
@@ -1641,9 +1578,9 @@ pub(crate) async fn run(
         } else {
             // Not signed in yet — the env var is already consumed, so
             // without a stash the request would be silently dropped and
-            // the post-login flow would land on the welcome screen.
-            // Defer to the `AuthComplete` handler (mirrors
-            // the deferred session/prompt owner).
+            // the startup drain would land on the welcome screen.
+            // Defer to the startup drain (mirrors the deferred
+            // session/prompt owner).
             app.deferred_startup.open_dashboard = true;
         }
     }
@@ -3490,30 +3427,7 @@ fn process_effects(
 ) -> bool {
     let flags = session_flags_for_effects(app, &effs);
     for eff in effs {
-        let (quit, meta) = effects::execute(eff, tasks, &app.acp_tx, &app.cwd, &flags, progress_tx);
-        // Install auth abort handle if the current auth state still matches.
-        if let Some((seq, abort_handle)) = meta.auth_abort_handle
-            && let super::app_view::AuthState::Authenticating {
-                request_seq,
-                handle,
-                ..
-            } = &mut app.auth_state
-            && *request_seq == seq
-        {
-            *handle = Some(abort_handle);
-        }
-        // Install URL-poll abort handle when the seq still matches (or is the
-        // current Authenticating attempt). Aborted in `abort_prior_auth`.
-        if let Some((seq, abort_handle)) = meta.auth_url_poll_handle {
-            let still_current = matches!(
-                &app.auth_state,
-                super::app_view::AuthState::Authenticating { request_seq, .. }
-                    if *request_seq == seq
-            );
-            if still_current {
-                app.auth_url_poll_handle = Some((seq, abort_handle));
-            }
-        }
+        let quit = effects::execute(eff, tasks, &app.acp_tx, &app.cwd, &flags, progress_tx);
         if quit {
             return true;
         }

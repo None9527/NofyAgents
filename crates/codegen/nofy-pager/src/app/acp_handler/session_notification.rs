@@ -1384,9 +1384,7 @@ pub(super) fn apply_retry_state(
                     scrollback
                         .push_block(RenderBlock::session_event(SessionEvent::ContextTooLarge));
                 }
-            } else if wire == crate::app::error_display::WireErrorType::EncryptedContentMismatch
-                || wire == crate::app::error_display::WireErrorType::LegacyAuth
-            {
+            } else if wire == crate::app::error_display::WireErrorType::EncryptedContentMismatch {
                 scrollback.push_block(RenderBlock::session_event(SessionEvent::RetryFailed {
                     error: message.clone(),
                     error_type: Some(error_type.clone()),

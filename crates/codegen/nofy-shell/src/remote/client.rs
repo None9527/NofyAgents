@@ -519,61 +519,6 @@ impl BackendClient {
         Ok(())
     }
 }
-#[derive(Deserialize)]
-struct LoginConfigResponse {
-    /// Tri-state: `Some` forces a transport; `None`/absent → client default.
-    #[serde(default)]
-    device_flow: Option<bool>,
-}
-/// Fetch `nofy_build_login_device_flow` from cli-chat-proxy `GET /v1/login-config`.
-///
-/// Unauthenticated (pre-login); `x-nofy-agent-id` is the per-install bucketing key.
-/// Best-effort: any error or unset flag returns `None` so the caller keeps the
-/// loopback default. Caps at 1.5s with no retries since it's on the login path;
-/// `agent_id()` runs on the blocking pool so the fetch never stalls the executor.
-pub async fn fetch_login_device_flow(cli_chat_proxy_base_url: &str) -> Option<bool> {
-    let agent_id = tokio::task::spawn_blocking(nofy_telemetry::id::agent_id)
-        .await
-        .ok()?;
-    let client = crate::http::shared_client();
-    let url = format!("{}/login-config", cli_chat_proxy_base_url);
-    let response = client
-        .get(&url)
-        .timeout(std::time::Duration::from_millis(1500))
-        .header("x-nofy-agent-id", agent_id)
-        .header("x-nofy-client-version", nofy_version::VERSION)
-        .header(
-            "x-nofy-client-identifier",
-            crate::http::process_client_identifier(),
-        )
-        .header(
-            crate::http::CLIENT_MODE_HEADER,
-            crate::http::process_client_mode(),
-        )
-        .send()
-        .await;
-    let resp = match response {
-        Ok(resp) if resp.status().is_success() => resp,
-        Ok(resp) => {
-            tracing::debug!(status = resp.status().as_u16(), "login-config fetch failed");
-            return None;
-        }
-        Err(e) => {
-            tracing::debug!("login-config fetch error: {e}");
-            return None;
-        }
-    };
-    match resp.json::<LoginConfigResponse>().await {
-        Ok(cfg) => {
-            tracing::debug!(device_flow = ?cfg.device_flow, "Fetched remote login-config");
-            cfg.device_flow
-        }
-        Err(e) => {
-            tracing::debug!("Failed to parse login-config response: {e}");
-            None
-        }
-    }
-}
 /// Default context window (256k) when the remote endpoint doesn't provide one.
 pub(crate) const DEFAULT_CONTEXT_WINDOW: u64 = 256_000;
 #[derive(Debug, Deserialize)]
@@ -887,18 +832,6 @@ mod tests {
     };
     use std::sync::{Arc, Mutex};
     #[test]
-    fn login_config_response_parses_tristate() {
-        let parse = |s: &str| {
-            serde_json::from_str::<LoginConfigResponse>(s)
-                .unwrap()
-                .device_flow
-        };
-        assert_eq!(parse(r#"{"device_flow": true}"#), Some(true));
-        assert_eq!(parse(r#"{"device_flow": false}"#), Some(false));
-        assert_eq!(parse(r#"{"device_flow": null}"#), None);
-        assert_eq!(parse("{}"), None, "absent flag must parse as unset");
-    }
-    #[test]
     fn get_env_keys_parses_strings_and_rejects_non_strings() {
         use crate::agent::config::EnvKeys;
         let parse = |v: serde_json::Value| {
@@ -912,125 +845,6 @@ mod tests {
         );
         assert_eq!(parse(serde_json::json!(["A", 123])), None);
         assert_eq!(parse(serde_json::json!([])), None);
-    }
-    fn header_str(headers: &HeaderMap, name: &str) -> Option<String> {
-        headers
-            .get(name)
-            .and_then(|v| v.to_str().ok())
-            .map(str::to_owned)
-    }
-    #[derive(Debug, Default, Clone)]
-    struct LoginConfigHeaders {
-        authorization: Option<String>,
-        user_id: Option<String>,
-        email: Option<String>,
-        agent_id: Option<String>,
-        client_identifier: Option<String>,
-        client_version: Option<String>,
-    }
-    #[derive(Clone)]
-    struct LoginConfigServerState {
-        status_code: StatusCode,
-        body: String,
-        seen: Arc<Mutex<Vec<LoginConfigHeaders>>>,
-    }
-    /// Mock cli-chat-proxy serving `GET /v1/login-config` with a fixed status +
-    /// raw body, recording the request headers it saw.
-    async fn start_login_config_server(
-        status_code: StatusCode,
-        body: String,
-    ) -> (
-        String,
-        Arc<Mutex<Vec<LoginConfigHeaders>>>,
-        tokio::task::JoinHandle<()>,
-    ) {
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let state = LoginConfigServerState {
-            status_code,
-            body,
-            seen: seen.clone(),
-        };
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let base = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
-        let app = Router::new()
-            .route(
-                "/v1/login-config",
-                get(
-                    |State(state): State<LoginConfigServerState>, headers: HeaderMap| async move {
-                        state.seen.lock().unwrap().push(LoginConfigHeaders {
-                            authorization: header_str(&headers, "authorization"),
-                            user_id: header_str(&headers, "x-userid"),
-                            email: header_str(&headers, "x-email"),
-                            agent_id: header_str(&headers, "x-nofy-agent-id"),
-                            client_identifier: header_str(&headers, "x-nofy-client-identifier"),
-                            client_version: header_str(&headers, "x-nofy-client-version"),
-                        });
-                        (state.status_code, state.body)
-                    },
-                ),
-            )
-            .with_state(state);
-        let handle = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
-        (format!("{base}/v1"), seen, handle)
-    }
-    #[tokio::test]
-    async fn fetch_login_device_flow_parses_2xx_bodies() {
-        for (body, expected) in [
-            (r#"{"device_flow": true}"#, Some(true)),
-            (r#"{"device_flow": false}"#, Some(false)),
-            (r#"{"device_flow": null}"#, None),
-            (r#"{}"#, None),
-            (r#"{"other": 1}"#, None),
-        ] {
-            let (base, _seen, server) =
-                start_login_config_server(StatusCode::OK, body.to_string()).await;
-            let got = fetch_login_device_flow(&base).await;
-            server.abort();
-            assert_eq!(got, expected, "body {body:?}");
-        }
-    }
-    #[tokio::test]
-    async fn fetch_login_device_flow_errors_return_none() {
-        for (status, body) in [
-            (StatusCode::NOT_FOUND, r#"{"device_flow": true}"#),
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                r#"{"device_flow": true}"#,
-            ),
-            (StatusCode::OK, "not json"),
-        ] {
-            let (base, _seen, server) = start_login_config_server(status, body.to_string()).await;
-            let got = fetch_login_device_flow(&base).await;
-            server.abort();
-            assert_eq!(got, None, "status {status}, body {body:?}");
-        }
-    }
-    #[tokio::test]
-    async fn fetch_login_device_flow_sends_only_unauthenticated_headers() {
-        let (base, seen, server) =
-            start_login_config_server(StatusCode::OK, r#"{"device_flow": true}"#.to_string()).await;
-        let got = fetch_login_device_flow(&base).await;
-        server.abort();
-        assert_eq!(got, Some(true));
-        let seen = seen.lock().unwrap();
-        let h = seen
-            .last()
-            .expect("server should have received one request");
-        assert!(
-            h.agent_id.as_deref().is_some_and(|v| !v.is_empty()),
-            "must send x-nofy-agent-id (the bucketing key)"
-        );
-        assert!(
-            h.client_identifier.is_some(),
-            "must send x-nofy-client-identifier"
-        );
-        assert!(
-            h.client_version.is_some(),
-            "must send x-nofy-client-version"
-        );
-        assert_eq!(h.authorization, None, "must not send Authorization");
-        assert_eq!(h.user_id, None, "must not send x-userid");
-        assert_eq!(h.email, None, "must not send x-email");
     }
     #[derive(Debug, Default, Clone)]
     struct SeenHeaders {
@@ -1141,7 +955,7 @@ mod tests {
     fn test_auth() -> NofyAuth {
         NofyAuth {
             key: "token".to_string(),
-            auth_mode: crate::auth::AuthMode::Oidc,
+            auth_mode: crate::auth::AuthMode::External,
             create_time: chrono::Utc::now(),
             user_id: "user-1".to_string(),
             email: Some("test@example.com".to_string()),

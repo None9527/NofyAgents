@@ -29,19 +29,10 @@ fn key_suffix(t: &str) -> &str {
 /// Whether `initialize` should HTTP-probe the first-party env key.
 ///
 /// Skip (and treat as usable) when:
-/// - kill switch is on (key will not be advertised either way),
 /// - BYOK is present (advertise without probing first-party env),
-/// - no env key is set,
-/// - any `preferred_method` pin: OIDC never advertises the key; ApiKey is
-///   fail-closed so a false-negative probe empties `auth_methods` with no
-///   login method to fall back to.
-pub(crate) fn should_probe_first_party_env_key(
-    disable_api_key_auth: bool,
-    has_byok: bool,
-    has_env_key: bool,
-    preferred_method_pinned: bool,
-) -> bool {
-    !disable_api_key_auth && !has_byok && has_env_key && !preferred_method_pinned
+/// - no env key is set.
+pub(crate) fn should_probe_first_party_env_key(has_byok: bool, has_env_key: bool) -> bool {
+    !has_byok && has_env_key
 }
 
 /// Initial attempt + this many retries.
@@ -222,15 +213,11 @@ mod tests {
 
     #[test]
     fn probes_only_when_env_key_alone_would_suppress_login() {
-        // Happy path: env key present, nothing else blocking.
-        assert!(should_probe_first_party_env_key(false, false, true, false));
-        // Kill switch / BYOK / no env / any pin → skip probe (treat as usable).
-        assert!(!should_probe_first_party_env_key(true, false, true, false));
-        assert!(!should_probe_first_party_env_key(false, true, true, false));
-        assert!(!should_probe_first_party_env_key(
-            false, false, false, false
-        ));
-        assert!(!should_probe_first_party_env_key(false, false, true, true));
+        // Happy path: env key present, no BYOK.
+        assert!(should_probe_first_party_env_key(false, true));
+        // BYOK / no env → skip probe (treat as usable).
+        assert!(!should_probe_first_party_env_key(true, true));
+        assert!(!should_probe_first_party_env_key(false, false));
     }
 
     #[test]

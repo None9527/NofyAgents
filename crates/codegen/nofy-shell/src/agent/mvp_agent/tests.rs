@@ -1170,7 +1170,7 @@ async fn ext_method_routes_auth_cleared_and_refreshes_resident_sessions() {
         .run_until(async {
             let agent = build_agent_with_auth(crate::auth::NofyAuth {
                 key: "eligible".into(),
-                auth_mode: crate::auth::AuthMode::WebLogin,
+                auth_mode: crate::auth::AuthMode::External,
                 ..crate::auth::NofyAuth::test_default()
             });
             use acp::Agent as _;
@@ -1205,7 +1205,7 @@ async fn sync_fresh_managed_mcp_pushes_update() {
         .run_until(async {
             let agent = build_agent_with_auth(crate::auth::NofyAuth {
                 key: "eligible".into(),
-                auth_mode: crate::auth::AuthMode::WebLogin,
+                auth_mode: crate::auth::AuthMode::External,
                 ..crate::auth::NofyAuth::test_default()
             });
             let sid = acp::SessionId::new("sess-managed-sync");
@@ -1971,33 +1971,28 @@ fn orphaned_tasks_filters_rewind_dead_branches() {
     );
 }
 /// Regression for a 401 sequence seen in production. After a long idle
-/// window, the auth manager may have no
-/// live token by the time `session/new` runs. For session-based auth methods
-/// we MUST still report `SessionToken` so chat_state credentials retain the
-/// session-token shape and `try_refresh_session_token` will run on the next
-/// prompt instead of early-returning.
+/// window, the auth manager may have no live token by the time `session/new`
+/// runs. For the cached-token auth method we MUST still report `SessionToken`
+/// so chat_state credentials retain the session-token shape and
+/// `try_refresh_session_token` will run on the next prompt instead of
+/// early-returning.
 #[tokio::test(flavor = "current_thread")]
 async fn auth_type_session_based_no_current_returns_session_token() {
-    for method_id in [
-        crate::agent::auth_method::CACHED_TOKEN_AUTH_METHOD_ID,
-        crate::agent::auth_method::NOFY_COM_METHOD_ID,
-        crate::agent::auth_method::OIDC_METHOD_ID,
-    ] {
-        let agent = build_minimal_agent_for_tests();
-        agent.set_auth_method(acp::AuthMethodId::new(method_id));
-        assert!(
-            agent.auth_manager.current().is_none(),
-            "{method_id}: precondition: AuthManager has no current token",
-        );
-        assert_eq!(
-            agent.auth_type(),
-            nofy_chat_state::AuthType::SessionToken,
-            "{method_id}: session-based auth must report SessionToken even \
-                 without a live token -- otherwise chat_state gets locked into \
-                 auth_type = ApiKey and try_refresh_session_token will skip \
-                 every subsequent refresh attempt.",
-        );
-    }
+    let method_id = crate::agent::auth_method::CACHED_TOKEN_AUTH_METHOD_ID;
+    let agent = build_minimal_agent_for_tests();
+    agent.set_auth_method(acp::AuthMethodId::new(method_id));
+    assert!(
+        agent.auth_manager.current().is_none(),
+        "{method_id}: precondition: AuthManager has no current token",
+    );
+    assert_eq!(
+        agent.auth_type(),
+        nofy_chat_state::AuthType::SessionToken,
+        "{method_id}: session-based auth must report SessionToken even \
+             without a live token -- otherwise chat_state gets locked into \
+             auth_type = ApiKey and try_refresh_session_token will skip \
+             every subsequent refresh attempt.",
+    );
 }
 /// BYOK guard. Users with `nofy.api_key` must continue to report `ApiKey`
 /// regardless of live-token state -- BYOK sessions have nothing to refresh,
@@ -2025,7 +2020,7 @@ async fn auth_type_session_based_with_current_returns_session_token() {
     use crate::auth::NofyAuth;
     let agent = build_minimal_agent_for_tests();
     agent.set_auth_method(acp::AuthMethodId::new(
-        crate::agent::auth_method::OIDC_METHOD_ID,
+        crate::agent::auth_method::CACHED_TOKEN_AUTH_METHOD_ID,
     ));
     agent.auth_manager.hot_swap(NofyAuth::test_default());
     assert!(agent.auth_manager.current().is_some());
@@ -2057,20 +2052,6 @@ async fn auth_type_no_method_id_with_current_returns_session_token() {
     assert!(agent.auth_manager.current().is_some());
     assert_eq!(agent.auth_type(), nofy_chat_state::AuthType::SessionToken,);
 }
-/// Minimal agent whose `nofy_com_config` engages the api-key kill switch
-/// (`disable_api_key_auth = true`), mirroring a forced-IdP deployment.
-fn build_agent_with_api_key_auth_disabled() -> MvpAgent {
-    use crate::agent::config::Config as AgentConfig;
-    use crate::auth::{AuthManager, NofyComConfig};
-    let temp_dir = tempfile::tempdir().unwrap();
-    let auth_manager =
-        std::sync::Arc::new(AuthManager::new(temp_dir.path(), NofyComConfig::default()));
-    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let gateway = GatewaySender::new(tx);
-    let mut cfg = AgentConfig::default();
-    cfg.nofy_com_config.disable_api_key_auth = Some(true);
-    MvpAgent::new(gateway, &cfg, auth_manager, None).expect("valid test config")
-}
 /// Deployment-key / managed-config user: `NOFY_API_KEY` resolves and the kill
 /// switch is off, so a dead `cached_token` MUST fall through to `nofy.api_key`
 /// (no browser). This is the exact regression the fallthrough fixes.
@@ -2079,7 +2060,6 @@ fn build_agent_with_api_key_auth_disabled() -> MvpAgent {
 async fn cached_token_fallthrough_prefers_api_key_for_deployment_key() {
     use crate::agent::auth_method::{NOFY_API_KEY_ENV_VAR, NOFY_API_KEY_METHOD_ID};
     use nofy_test_support::EnvGuard;
-    let _lockdown = EnvGuard::unset("NOFY_DISABLE_API_KEY_AUTH");
     let _key = EnvGuard::set(NOFY_API_KEY_ENV_VAR, "test-deployment-key");
     let agent = build_minimal_agent_for_tests();
     assert_eq!(
@@ -2088,50 +2068,23 @@ async fn cached_token_fallthrough_prefers_api_key_for_deployment_key() {
             .as_ref()
             .map(|id| id.0.as_ref()),
         Some(NOFY_API_KEY_METHOD_ID),
-        "deployment-key user (NOFY_API_KEY set, no kill switch) must fall \
-         through to nofy.api_key on a dead cached_token -- not interactive login",
+        "deployment-key user (NOFY_API_KEY set) must fall through to \
+         nofy.api_key on a dead cached_token",
     );
 }
-/// Forced-IdP deployment: even with `NOFY_API_KEY` present, the admin kill
-/// switch keeps the fallthrough on interactive `nofy.com` (api-key auth is
-/// neither advertised nor an eligible fallthrough).
+/// No advertiseable credentials at all (no env key): there is no interactive
+/// login to fall through to, so the fallthrough is `None`.
 #[tokio::test(flavor = "current_thread")]
 #[serial_test::serial]
-async fn cached_token_fallthrough_respects_kill_switch() {
-    use crate::agent::auth_method::{NOFY_COM_METHOD_ID, NOFY_API_KEY_ENV_VAR};
+async fn cached_token_fallthrough_is_none_without_credentials() {
+    use crate::agent::auth_method::NOFY_API_KEY_ENV_VAR;
     use nofy_test_support::EnvGuard;
-    let _lockdown = EnvGuard::unset("NOFY_DISABLE_API_KEY_AUTH");
-    let _key = EnvGuard::set(NOFY_API_KEY_ENV_VAR, "test-deployment-key");
-    let agent = build_agent_with_api_key_auth_disabled();
-    assert_eq!(
-        agent
-            .cached_token_fallthrough_method_id()
-            .as_ref()
-            .map(|id| id.0.as_ref()),
-        Some(NOFY_COM_METHOD_ID),
-        "disable_api_key_auth must keep the cached_token fallthrough on \
-         interactive nofy.com so NOFY_API_KEY can't bypass forced IdP login",
-    );
-}
-/// No advertiseable credentials at all (no env key, no kill switch): the user
-/// genuinely needs to log in, so the fallthrough is interactive `nofy.com`.
-#[tokio::test(flavor = "current_thread")]
-#[serial_test::serial]
-async fn cached_token_fallthrough_falls_to_nofy_com_without_credentials() {
-    use crate::agent::auth_method::{
-        NOFY_COM_METHOD_ID, NOFY_API_KEY_ENV_VAR,
-    };
-    use nofy_test_support::EnvGuard;
-    let _lockdown = EnvGuard::unset("NOFY_DISABLE_API_KEY_AUTH");
     let _new = EnvGuard::unset(NOFY_API_KEY_ENV_VAR);
     let agent = build_minimal_agent_for_tests();
     assert_eq!(
-        agent
-            .cached_token_fallthrough_method_id()
-            .as_ref()
-            .map(|id| id.0.as_ref()),
-        Some(NOFY_COM_METHOD_ID),
-        "no API-key creds and no kill switch -> interactive nofy.com login",
+        agent.cached_token_fallthrough_method_id(),
+        None,
+        "no API-key creds -> no fallthrough method (interactive login removed)",
     );
 }
 /// Regression: `nofy/auth/info` must return profile fields even when the

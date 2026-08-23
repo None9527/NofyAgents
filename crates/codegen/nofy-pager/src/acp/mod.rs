@@ -20,7 +20,7 @@ pub use nofy_telemetry::startup::{
 use anyhow::Result;
 use tokio_util::sync::CancellationToken;
 
-use crate::client_identity::{HEADLESS_CLIENT_TYPE, PAGER_CLIENT_TYPE, PAGER_CLIENT_VERSION};
+use crate::client_identity::{PAGER_CLIENT_TYPE, PAGER_CLIENT_VERSION};
 use agent_client_protocol as acp;
 use nofy_acp_lib::{AcpAgentTx, AcpClientRx, acp_send};
 use nofy_shell::agent::auth_method::AuthMethodKind;
@@ -39,19 +39,6 @@ pub(crate) fn wait_for_exit_not_supported(context: &str) -> acp::Error {
         acp::ErrorCode::MethodNotFound.into(),
         format!("{context} does not handle WaitForTerminalExit"),
     )
-}
-
-/// Initial auth mode hint from the agent's auth method metadata.
-///
-/// Determined at startup from `AuthMethod.meta.external_provider`.
-/// Used by the welcome screen to decide whether to show a browser-opening
-/// message or a manual token paste input.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AuthStartMode {
-    /// Mode not yet known (will be resolved after AuthenticateRequest).
-    Pending,
-    /// External provider (meta.external_provider == true) — browser opens automatically.
-    Command,
 }
 
 /// Result of connecting to an agent.
@@ -78,16 +65,8 @@ pub struct AcpConnection {
     // NOTE: Startup announcements from InitializeResponse.meta are not yet supported.
     // Requires shell to include announcements in initialize metadata.
     // When available, add field: startup_announcements: Option<Vec<nofy_announcements::RemoteAnnouncement>>
-    /// Whether interactive login is required (deferred auth for `nofy.com`).
-    pub needs_login: bool,
-    /// Login button label from `AuthMethod.name` (e.g., "nofy.com", "Acme Corp").
-    pub login_label: Option<String>,
-    /// The auth method ID to use for login (copied from the first advertised method).
-    pub login_method_id: Option<acp::AuthMethodId>,
-    /// Initial auth mode hint (Command vs Pending) from method metadata.
-    pub auth_start_mode: AuthStartMode,
     /// Auth response metadata from eager authentication (cached token / API key).
-    /// Contains `team_name`, etc. `None` when interactive login is required.
+    /// Contains `team_name`, etc. `None` when no credential authenticated.
     pub auth_meta: Option<serde_json::Value>,
     /// Leader connection status. `Some` only when connected via leader.
     pub leader_status_rx: Option<tokio::sync::watch::Receiver<leader_bridge::ConnectionStatus>>,
@@ -205,22 +184,8 @@ pub async fn connect(cancel: &CancellationToken, flags: ConnectFlags) -> Result<
         session_recap_available,
     ) = initialize(&tx, &flags).await?;
 
-    // Determine whether interactive login is needed.
-    let (needs_login, login_label, login_method_id, auth_start_mode) =
-        startup_auth_metadata(&auth_methods);
-
     startup::enter(StartupPhase::EagerAuth);
-    let (needs_login, login_label, login_method_id, auth_start_mode, auth_meta) =
-        bounded_eager_auth(
-            &tx,
-            &auth_methods,
-            default_auth_method_id.as_ref(),
-            needs_login,
-            login_label,
-            login_method_id,
-            auth_start_mode,
-        )
-        .await;
+    let auth_meta = bounded_eager_auth(&tx, &auth_methods, default_auth_method_id.as_ref()).await;
 
     Ok(AcpConnection {
         tx,
@@ -231,10 +196,6 @@ pub async fn connect(cancel: &CancellationToken, flags: ConnectFlags) -> Result<
         cancel: spawned.cancel,
         agent_thread: Some(spawned.thread_handle),
         available_commands,
-        needs_login,
-        login_label,
-        login_method_id,
-        auth_start_mode,
         auth_meta,
         leader_status_rx: None,
         cancel_rewind_enabled,
@@ -455,187 +416,41 @@ pub fn parse_session_recap_available(meta: Option<&acp::Meta>) -> bool {
         .unwrap_or(false)
 }
 
-/// Determine whether interactive login is needed based on the advertised auth methods.
+
+/// Attempt eager (non-interactive) auth with an advertised method.
 ///
-/// Matches TUI startup behavior: if the first method is `nofy.com`, defer auth
-/// and show the login-aware welcome flow. Otherwise, authenticate eagerly.
-///
-/// Returns `(needs_login, login_label, login_method_id, auth_start_mode)`.
-pub fn startup_auth_metadata(
-    auth_methods: &[acp::AuthMethod],
-) -> (
-    bool,
-    Option<String>,
-    Option<acp::AuthMethodId>,
-    AuthStartMode,
-) {
-    let first_method = auth_methods.first();
-    let needs_login = first_method
-        .map(|m| AuthMethodKind::from_id(m.id()).needs_interactive_login())
-        .unwrap_or(false);
-
-    if !needs_login {
-        return (false, None, None, AuthStartMode::Pending);
-    }
-
-    let method = first_method.unwrap(); // safe: needs_login == true implies first_method.is_some()
-    let login_label = Some(method.name().to_string());
-    let login_method_id = Some(method.id().clone());
-
-    let is_provider = method
-        .meta()
-        .as_ref()
-        .and_then(|v| v.get("external_provider"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let auth_start_mode = if is_provider {
-        AuthStartMode::Command
-    } else {
-        AuthStartMode::Pending
-    };
-
-    (needs_login, login_label, login_method_id, auth_start_mode)
-}
-
-/// Find an interactive login method from the auth methods list.
-///
-/// Used when eager auth (cached_token / API key) fails and we need to fall
-/// back to the welcome screen with a working login button. Scans the list
-/// for a `nofy.com` or `oidc` method — these are the ones that can trigger
-/// a browser-based re-auth flow.
-pub fn find_interactive_login_method(
-    auth_methods: &[acp::AuthMethod],
-) -> (Option<String>, Option<acp::AuthMethodId>, AuthStartMode) {
-    let interactive = auth_methods
-        .iter()
-        .find(|m| AuthMethodKind::from_id(m.id()).needs_interactive_login());
-
-    match interactive {
-        Some(method) => {
-            let is_provider = method
-                .meta()
-                .as_ref()
-                .and_then(|v| v.get("external_provider"))
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false);
-            let mode = if is_provider {
-                AuthStartMode::Command
-            } else {
-                AuthStartMode::Pending
-            };
-            (
-                Some(method.name().to_string()),
-                Some(method.id().clone()),
-                mode,
-            )
-        }
-        None => (None, None, AuthStartMode::Pending),
-    }
-}
-
-/// Attempt eager auth; on failure fall back to the interactive login screen.
-///
-/// Errors from `authenticate` are caught so the connection still succeeds.
-/// When `nofy.api_key` was advertised, non-interactive credentials were
-/// available — do not promote to interactive auto-Login (shell owns
-/// unpinned fallthrough; a failed api_key must not open a browser). Otherwise
-/// hand the interactive method for the login screen.
-///
-/// Empty `auth_methods` (e.g. `preferred_method=api_key` with no key) is
-/// fail-closed: needs_login without an interactive method.
-///
-/// Returns `(needs_login, login_label, login_method_id, auth_start_mode, auth_meta)`.
-async fn eager_auth_or_login_fallback(
+/// Errors from `authenticate` are caught so the connection still succeeds;
+/// the pager then starts unauthenticated and guides the user to configure
+/// an API key.
+async fn eager_auth(
     tx: &AcpAgentTx,
     auth_methods: &[acp::AuthMethod],
     default_auth_method_id: Option<&acp::AuthMethodId>,
-    needs_login: bool,
-    login_label: Option<String>,
-    login_method_id: Option<acp::AuthMethodId>,
-    auth_start_mode: AuthStartMode,
-) -> (
-    bool,
-    Option<String>,
-    Option<acp::AuthMethodId>,
-    AuthStartMode,
-    Option<serde_json::Value>,
-) {
+) -> Option<serde_json::Value> {
     if auth_methods.is_empty() {
-        // preferred_method pin unavailable — fail closed, no invented method.
-        return (true, None, None, AuthStartMode::Pending, None);
+        return None;
     }
-    if needs_login {
-        return (
-            needs_login,
-            login_label,
-            login_method_id,
-            auth_start_mode,
-            None,
-        );
-    }
-    match authenticate(tx, auth_methods, default_auth_method_id).await {
-        Ok(meta) => (
-            needs_login,
-            login_label,
-            login_method_id,
-            auth_start_mode,
-            meta,
-        ),
-        Err(_) => {
-            // Non-interactive credentials were advertised; shell fallthrough
-            // already preferred them — do not auto-open browser login.
-            let has_api_key = auth_methods
-                .iter()
-                .any(|m| AuthMethodKind::from_id(m.id()) == AuthMethodKind::XaiApiKey);
-            if has_api_key {
-                return (false, login_label, login_method_id, auth_start_mode, None);
-            }
-            let (label, method_id, mode) = find_interactive_login_method(auth_methods);
-            (true, label, method_id, mode, None)
-        }
-    }
+    authenticate(tx, auth_methods, default_auth_method_id)
+        .await
+        .ok()
+        .flatten()
 }
 
-/// [`eager_auth_or_login_fallback`] bounded by `STARTUP_AUTH_REFRESH_TIMEOUT`,
-/// so a hung agent cannot gate the first draw. On timeout the inputs pass
-/// through unchanged and the agent finishes authentication in the background.
+/// [`eager_auth`] bounded by `STARTUP_AUTH_REFRESH_TIMEOUT`, so a hung agent
+/// cannot gate the first draw. On timeout the pager starts unauthenticated.
 async fn bounded_eager_auth(
     tx: &AcpAgentTx,
     auth_methods: &[acp::AuthMethod],
     default_auth_method_id: Option<&acp::AuthMethodId>,
-    needs_login: bool,
-    login_label: Option<String>,
-    login_method_id: Option<acp::AuthMethodId>,
-    auth_start_mode: AuthStartMode,
-) -> (
-    bool,
-    Option<String>,
-    Option<acp::AuthMethodId>,
-    AuthStartMode,
-    Option<serde_json::Value>,
-) {
+) -> Option<serde_json::Value> {
     match tokio::time::timeout(
         nofy_shell::http::STARTUP_AUTH_REFRESH_TIMEOUT,
-        eager_auth_or_login_fallback(
-            tx,
-            auth_methods,
-            default_auth_method_id,
-            needs_login,
-            login_label.clone(),
-            login_method_id.clone(),
-            auth_start_mode,
-        ),
+        eager_auth(tx, auth_methods, default_auth_method_id),
     )
     .await
     {
-        Ok(resolved) => resolved,
-        Err(_) => (
-            needs_login,
-            login_label,
-            login_method_id,
-            auth_start_mode,
-            None,
-        ),
+        Ok(meta) => meta,
+        Err(_) => None,
     }
 }
 
@@ -767,149 +582,6 @@ mod tests {
         assert!(!parse_session_recap_available(meta.as_object()));
     }
 
-    // ── startup_auth_metadata ──────────────────────────────────────
-
-    fn make_auth_method(id: &str, name: &str, meta: Option<serde_json::Value>) -> acp::AuthMethod {
-        let mut agent = acp::AuthMethodAgent::new(acp::AuthMethodId::new(id), name.to_string());
-        if let Some(m) = meta.and_then(|v| v.as_object().cloned()) {
-            agent = agent.meta(m);
-        }
-        acp::AuthMethod::Agent(agent)
-    }
-
-    #[test]
-    fn startup_auth_empty_methods_no_login() {
-        let (needs, label, method_id, mode) = startup_auth_metadata(&[]);
-        assert!(!needs);
-        assert!(label.is_none());
-        assert!(method_id.is_none());
-        assert_eq!(mode, AuthStartMode::Pending);
-    }
-
-    #[test]
-    fn startup_auth_nofy_com_no_provider_needs_login_pending() {
-        let methods = vec![make_auth_method("nofy.com", "nofy.com", None)];
-        let (needs, label, method_id, mode) = startup_auth_metadata(&methods);
-        assert!(needs);
-        assert_eq!(label.as_deref(), Some("nofy.com"));
-        assert_eq!(method_id.as_ref().unwrap().0.as_ref(), "nofy.com");
-        assert_eq!(mode, AuthStartMode::Pending);
-    }
-
-    #[test]
-    fn startup_auth_nofy_com_with_external_provider_command() {
-        let meta = serde_json::json!({ "external_provider": true });
-        let methods = vec![make_auth_method("nofy.com", "Acme Corp", Some(meta))];
-        let (needs, label, method_id, mode) = startup_auth_metadata(&methods);
-        assert!(needs);
-        assert_eq!(label.as_deref(), Some("Acme Corp"));
-        assert_eq!(method_id.as_ref().unwrap().0.as_ref(), "nofy.com");
-        assert_eq!(mode, AuthStartMode::Command);
-    }
-
-    #[test]
-    fn startup_auth_non_nofy_com_no_login() {
-        let methods = vec![make_auth_method("api-key", "API Key", None)];
-        let (needs, label, method_id, mode) = startup_auth_metadata(&methods);
-        assert!(!needs);
-        assert!(label.is_none());
-        assert!(method_id.is_none());
-        assert_eq!(mode, AuthStartMode::Pending);
-    }
-
-    /// CROSS-CRATE REGRESSION GUARD:
-    ///
-    /// Enterprise/BYOK configs (e.g. an enterprise `~/.nofy/config.toml` with a
-    /// `[model.*]` table containing `env_key = "ANTHROPIC_AUTH_TOKEN"`) MUST
-    /// NOT send the user to the login screen at startup.
-    ///
-    /// This test exercises the SHELL-PAGER JOIN, not just the pager half:
-    /// it calls the shell-side `build_auth_methods()` with the exact inputs
-    /// `MvpAgent::initialize()` would compute for an enterprise user, then feeds
-    /// the result into the pager's `startup_auth_metadata()`. If a future
-    /// change re-orders `build_auth_methods()` to put `nofy.api_key` anywhere
-    /// other than first (the shape of a past regression), this test fails
-    /// because `startup_auth_metadata()` returns `needs_login = true`.
-    ///
-    /// Counterpart shell-side tests
-    /// (`agent::auth_method::tests::enterprise_byok_first_method_is_xai_api_key`
-    /// and `enterprise_byok_config_does_not_require_login`) pin the same
-    /// invariant from the shell side; this test pins the cross-crate
-    /// contract that the pager actually consumes the shell's output as
-    /// expected.
-    #[test]
-    fn shell_built_auth_methods_for_byok_user_skip_login_screen() {
-        use nofy_shell::agent::auth_method::{AuthMethodsBuildInputs, build_auth_methods};
-
-        let built = build_auth_methods(AuthMethodsBuildInputs {
-            // enterprise-style: model has `env_key` set and the env var resolves,
-            // so the shell-side predicate returns true.
-            has_external_api_key: true,
-            // Realistic enterprise user: no cached session token, default `nofy.com`
-            // login (no enterprise OIDC).
-            has_cached_token: false,
-            has_enterprise_oidc: false,
-            enterprise_oidc_issuer: None,
-            login_label: None,
-            has_auth_provider_command: false,
-            preferred_method: None,
-        });
-
-        let (needs, label, method_id, mode) = startup_auth_metadata(&built.methods);
-        assert!(
-            !needs,
-            "shell built auth_methods for a BYOK user, but the pager still \
-             reports needs_login = true. Either the shell stopped putting \
-             nofy.api_key first or the pager stopped treating nofy.api_key as \
-             a no-login method.",
-        );
-        assert!(label.is_none());
-        assert!(method_id.is_none());
-        assert_eq!(mode, AuthStartMode::Pending);
-    }
-
-    /// Inverse direction: when `nofy.api_key` is NOT in the list, the pager
-    /// MUST show the login screen. We assert this with `nofy.api_key` present
-    /// LATER in the list (the shape of a past regression) and confirm the
-    /// pager still requires login -- because the pager only inspects
-    /// `auth_methods.first()`. This locks the failure mode of the regression:
-    /// if a future refactor makes the pager scan past `.first()`, this test
-    /// stops being equivalent to
-    /// `startup_auth_nofy_com_no_provider_needs_login_pending` above and
-    /// either passes or fails on a meaningful new code path.
-    #[test]
-    fn startup_auth_xai_api_key_not_first_still_requires_login() {
-        use nofy_shell::agent::auth_method::{NOFY_COM_METHOD_ID, NOFY_API_KEY_METHOD_ID};
-
-        let methods = vec![
-            make_auth_method(NOFY_COM_METHOD_ID, "Nofy", None),
-            make_auth_method(NOFY_API_KEY_METHOD_ID, "API key", None),
-        ];
-        let (needs, _, _, _) = startup_auth_metadata(&methods);
-        assert!(
-            needs,
-            "with nofy.com first, the pager must require login -- pinning \
-             the BAD-ordering failure mode (nofy.api_key not first)",
-        );
-    }
-
-    #[test]
-    fn startup_auth_method_id_is_copied_not_synthesized() {
-        let methods = vec![make_auth_method("nofy.com", "My Login", None)];
-        let (_, _, method_id, _) = startup_auth_metadata(&methods);
-        // Verify it's the exact same ID from the method, not hardcoded
-        assert_eq!(&method_id.unwrap(), methods[0].id());
-    }
-
-    #[test]
-    fn startup_auth_external_provider_false_is_pending() {
-        let meta = serde_json::json!({ "external_provider": false });
-        let methods = vec![make_auth_method("nofy.com", "nofy.com", Some(meta))];
-        let (_, _, _, mode) = startup_auth_metadata(&methods);
-        assert_eq!(mode, AuthStartMode::Pending);
-    }
-
-    // ── unsupported_leader_flags ──────────────────────────────────
 
     #[test]
     fn unsupported_leader_flags_empty_when_none_set() {

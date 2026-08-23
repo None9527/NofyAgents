@@ -641,8 +641,8 @@ pub(in crate::app::dispatch) fn finish_trust(app: &mut AppView) -> Vec<Effect> {
     }
 }
 /// Clear EVERY deferred `startup_*` action without replaying any. Used on the
-/// paths that must not run startup at all — ZDR-blocked login, and mid-session
-/// re-auth (`auth_return_view`) where a session already exists — so a stash
+/// paths that must not run startup at all — e.g. a ZDR-blocked account or a
+/// context where a session already exists — so a stash
 /// (including an incidental mid-session `Ctrl+N` that the chokepoint deferred)
 /// can never linger and fire later. Atomic counterpart to `drain_startup_actions`.
 pub(in crate::app::dispatch) fn clear_startup_actions(app: &mut AppView) {

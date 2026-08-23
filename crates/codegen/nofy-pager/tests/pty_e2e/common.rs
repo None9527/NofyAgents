@@ -7,7 +7,7 @@ pub(crate) use std::path::{Path, PathBuf};
 pub(crate) use std::time::{Duration, Instant};
 pub(crate) use nofy_pager_pty_harness::{
     AgentTurnExpectation, ContentController, EnvOp, MockModel, PtyExitPoll, PtyHarness,
-    ScriptedResponse, SseEvent, keys, oauth_credential_ops, pager_binary, seed_fake_oauth, sse,
+    ScriptedResponse, SseEvent, keys, session_credential_ops, pager_binary, seed_session_credential, sse,
     wait_for_labels_absent, wait_for_model_via_new_sessions,
 };
 
@@ -139,7 +139,7 @@ pub(crate) fn tall_response(sentinel: &str, rows: usize) -> String {
 }
 
 // ── Fake session-auth (OAuth) seeding ───────────────────────────────────
-// `seed_fake_oauth` / `oauth_credential_ops` live in
+// `seed_session_credential` / `session_credential_ops` live in
 // `nofy_pager_pty_harness::flows` (re-exported above).
 
 /// Spawn a pager with fake session (OAuth) auth and a 1s announcements poll,
@@ -160,8 +160,8 @@ pub(crate) fn spawn_polling_session_with_env(
     oauth_user: &str,
     extra_env: &[(&str, &str)],
 ) -> PtyHarness {
-    seed_fake_oauth(content, oauth_user);
-    let mut overrides = Vec::from(oauth_credential_ops());
+    seed_session_credential(content, oauth_user);
+    let mut overrides = Vec::from(session_credential_ops());
     overrides.push(EnvOp::set("NOFY_ANNOUNCEMENTS_REFRESH_INTERVAL_SECS", "1"));
     overrides.extend(extra_env.iter().map(|(key, value)| EnvOp::set(key, value)));
 

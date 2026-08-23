@@ -1,11 +1,10 @@
 //! `nofy/auth/*` and legacy `nofy/{get,set}ApiKey` extension handlers.
 //!
-//! These methods let the client read/write the API key via the agent and
-//! drive the OAuth login flow. The agent is the single source of truth for
-//! `auth.json`.
+//! These methods let the client read/write the API key via the agent.
+//! The agent is the single source of truth for `auth.json`.
 
 use agent_client_protocol as acp;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use super::{ExtResult, parse_params, to_raw_response};
 use crate::agent::MvpAgent;
@@ -17,7 +16,6 @@ pub async fn handle(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtResult {
         "nofy/auth/getBearerToken" => handle_get_bearer_token(agent).await,
         "nofy/getApiKey" => handle_get_api_key(),
         "nofy/setApiKey" => handle_set_api_key(args),
-        "nofy/auth/logout" => handle_logout(agent, args).await,
         "nofy/auth/info" => handle_info(agent),
         _ => Err(acp::Error::method_not_found()),
     }
@@ -77,34 +75,6 @@ fn handle_set_api_key(args: &acp::ExtRequest) -> ExtResult {
 }
 
 
-
-async fn handle_logout(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtResult {
-    #[derive(Deserialize)]
-    struct LogoutParams {
-        scope: Option<String>,
-    }
-
-    let params: LogoutParams = serde_json::from_str(args.params.get())
-        .map_err(|e| acp::Error::invalid_params().data(format!("invalid params: {e}")))?;
-
-    // Stop any in-flight login so it cannot write credentials back after logout.
-    agent.interactive_auth.cancel();
-
-    let result = crate::auth::perform_logout(&agent.auth_manager, params.scope.as_deref())
-        .map_err(|e| acp::Error::internal_error().data(format!("failed to logout: {e}")))?;
-    // `auth.lifecycle` (not `auth`) avoids colliding with the pre-existing
-    // per-request `AuthManager::auth()` `#[instrument]` span.
-    tracing::info_span!("auth.lifecycle", action = "logout", success = true).in_scope(|| {});
-
-    agent.models_manager.on_auth_changed().await;
-
-    to_raw_response(&serde_json::json!({
-        "ok": true,
-        "was_logged_in": result.was_logged_in,
-        "email": result.email,
-        "api_key_still_set": result.api_key_still_set,
-    }))
-}
 
 /// Returns current auth method ID, user profile fields, and team/principal
 /// metadata.

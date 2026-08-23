@@ -58,7 +58,7 @@ use crate::app::actions::{Action, Effect, SubagentKillOutcome, SwitchModelError,
 use crate::app::agent::{AgentId, AgentSession, AgentState};
 use crate::app::agent_view::{ActivePane, AgentView, PromptMode};
 use crate::app::app_view::{
-    ActiveView, AppView, AuthMode, AuthState, TrustState, WelcomeAnnouncementState,
+    ActiveView, AppView, AuthState, TrustState, WelcomeAnnouncementState,
 };
 use crate::scrollback::block::RenderBlock;
 use crate::scrollback::blocks::{SessionEvent, ToolCallBlock};
@@ -72,7 +72,6 @@ fn test_app() -> AppView {
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
     AppView {
         active_view: ActiveView::Welcome,
-        auth_return_view: None,
         agents: IndexMap::new(),
         next_agent_id: 0,
         models: ModelState::default(),
@@ -140,21 +139,12 @@ fn test_app() -> AppView {
         agent_override: None,
         bootstrap_acp_commands: Vec::new(),
         auth_methods: vec![acp::AuthMethod::Agent(acp::AuthMethodAgent::new(
-            acp::AuthMethodId::new("nofy.com"),
-            "Nofy".to_string(),
+            acp::AuthMethodId::new("api_key"),
+            "API key".to_string(),
         ))],
         auth_state: AuthState::Done,
         trust_state: TrustState::Done,
-        login_label: None,
-        login_method_id: None,
-        auth_start_mode: AuthMode::Pending,
-        auth_code_input: Default::default(),
-        next_auth_request_seq: 1,
-        auth_url_poll_handle: None,
         deferred_startup: Default::default(),
-        auth_use_oauth: false,
-        auth_clipboard_delivery: None,
-        auth_clipboard_feedback_generation: 0,
         team_id: None,
         team_name: None,
         is_zdr: false,
@@ -195,11 +185,8 @@ fn test_app() -> AppView {
         last_scroll_pos: None,
         last_cache_evict_at: None,
         welcome_prompt_rect: None,
-        welcome_auth_url_rect: None,
-        welcome_on_auth_url: false,
         welcome_on_changelog_cta: false,
         welcome_announcement: WelcomeAnnouncementState::default(),
-        welcome_auth_fallback_rect: None,
         welcome_refresh_rect: None,
         welcome_gate_url_rect: None,
         welcome_changelog_cta_rect: None,
@@ -215,8 +202,6 @@ fn test_app() -> AppView {
         welcome_toast: None,
         welcome_on_privacy_banner: false,
         welcome_on_upgrade_cta: false,
-        auth_show_raw_url: false,
-        auth_mouse_disabled: false,
         session_picker_entries: None,
         session_picker_loading: false,
         session_picker_state: crate::views::picker::PickerState::with_mode(
@@ -504,14 +489,6 @@ fn plant_local_build_session(cwd: &std::path::Path, session_id: &str) -> std::pa
     std::fs::create_dir_all(&sess_dir).expect("plant session dir");
     std::fs::write(sess_dir.join("summary.json"), b"{}").expect("plant summary");
     sess_dir
-}
-/// Extract the in-flight auth request sequence, panicking if the auth
-/// state is not `Authenticating`.
-fn authenticating_seq(app: &AppView) -> u64 {
-    match app.auth_state {
-        AuthState::Authenticating { request_seq, .. } => request_seq,
-        ref other => panic!("expected Authenticating, got {other:?}"),
-    }
 }
 /// Extract text from the last system message in an agent's scrollback.
 pub(super) fn last_system_text(app: &AppView, id: AgentId) -> String {

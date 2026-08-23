@@ -149,7 +149,7 @@ async fn run_setup_command(json: bool) {
     if !managed_config::has_principal() {
         eprintln!("No deployment key or team sign-in found.");
         eprintln!();
-        eprintln!("To install managed configuration, sign in with a team using `nofy login`,");
+        eprintln!("To install managed configuration, authenticate with a team credential via your auth provider,");
         eprintln!("or set a deployment key:");
         eprintln!();
         if cfg!(unix) {
@@ -408,12 +408,7 @@ async fn run_agent_command(
         Some(AgentCmd::Headless(a)) => {
             let mut agent_config = agent_config.clone();
             apply_headless_args_to_config(&a, &mut agent_config);
-            run_headless(
-                &agent_config,
-                agent_args.reauthenticate,
-                agent_memory_config,
-            )
-            .await
+            run_headless(&agent_config, false, agent_memory_config).await
         }
         Some(AgentCmd::Serve(a)) => {
             let mut agent_config = agent_config.clone();
@@ -443,12 +438,7 @@ async fn run_agent_command(
         None => {
             let mut agent_config = agent_config.clone();
             apply_headless_args_to_config(&agent_args.headless, &mut agent_config);
-            run_headless(
-                &agent_config,
-                agent_args.reauthenticate,
-                agent_memory_config,
-            )
-            .await
+            run_headless(&agent_config, false, agent_memory_config).await
         }
     }
 }
@@ -1115,31 +1105,6 @@ async fn async_main(args: PagerArgs) -> Result<()> {
                     &update_config,
                 )
                 .await;
-            }
-            Command::Login {
-                legacy: _,
-                oauth,
-                device_auth,
-                devbox,
-            } => {
-                init_tracing_simple("cli");
-                let _otel_guard = nofy_telemetry::otel_layer::otel_guard();
-                let config = nofy_shell::config::load_effective_config_disk_only()
-                    .map_err(|e| anyhow::anyhow!("Failed to load config: {e}"))?;
-                let config = AgentConfig::new_from_toml_cfg(&config)
-                    .map_err(|e| anyhow::anyhow!("Failed to create agent config: {e}"))?;
-                nofy_shell::auth::run_cli_login(&config, oauth, device_auth, devbox).await?;
-                println!();
-                nofy_shell::instrumentation::finalize_and_exit(0);
-            }
-            Command::Logout => {
-                init_tracing_simple("cli");
-                let config = nofy_shell::config::load_effective_config_disk_only()
-                    .map_err(|e| anyhow::anyhow!("Failed to load config: {e}"))?;
-                let config = AgentConfig::new_from_toml_cfg(&config)
-                    .map_err(|e| anyhow::anyhow!("Failed to create agent config: {e}"))?;
-                nofy_shell::auth::run_cli_logout(&config)?;
-                nofy_shell::instrumentation::finalize_and_exit(0);
             }
             Command::Wrap(ref wrap_args) => {
                 return nofy_pager::wrap_cmd::run(wrap_args);

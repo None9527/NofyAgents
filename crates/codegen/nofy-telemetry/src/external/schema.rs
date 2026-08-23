@@ -39,7 +39,6 @@ pub enum ExternalEventName {
     PluginLoaded,
     Compaction,
     Subagent,
-    Auth,
     InternalError,
     ModelSwitched,
     ContextualTip,
@@ -64,7 +63,6 @@ impl ExternalEventName {
             Self::PluginLoaded => "nofy_code.plugin_loaded",
             Self::Compaction => "nofy_code.compaction",
             Self::Subagent => "nofy_code.subagent",
-            Self::Auth => "nofy_code.auth",
             Self::InternalError => "nofy_code.internal_error",
             Self::ModelSwitched => "nofy_code.model_switched",
             Self::ContextualTip => "nofy_code.contextual_tip",
@@ -153,8 +151,6 @@ pub enum ExternalKey {
     // Subagents
     Phase,
     SubagentType,
-    // Auth
-    AuthMethod,
     // Model switching
     FromModel,
     ToModel,
@@ -229,7 +225,6 @@ impl ExternalKey {
             Self::TokensAfter => "tokens_after",
             Self::Phase => "phase",
             Self::SubagentType => "subagent_type",
-            Self::AuthMethod => "auth_method",
             Self::FromModel => "from_model",
             Self::ToModel => "to_model",
             Self::ErrorCode => "error_code",
@@ -303,7 +298,6 @@ pub(crate) const ALL_KEYS: &[ExternalKey] = &[
     ExternalKey::TokensAfter,
     ExternalKey::Phase,
     ExternalKey::SubagentType,
-    ExternalKey::AuthMethod,
     ExternalKey::FromModel,
     ExternalKey::ToModel,
     ExternalKey::ErrorCode,
@@ -1107,14 +1101,6 @@ pub fn map_subagent_completed(ev: &events::SubagentCompleted) -> Option<External
             .attr(ExternalKey::Phase, "completed")
             .attr(ExternalKey::Outcome, outcome_label(ev.outcome))
             .attr(ExternalKey::DurationMs, ev.duration_ms),
-    )
-}
-
-/// `Login` → `nofy_code.auth`.
-pub fn map_auth(ev: &events::Login) -> Option<ExternalRecord> {
-    Some(
-        ExternalRecord::event(ExternalEventName::Auth)
-            .attr(ExternalKey::AuthMethod, ev.auth_method.as_str()),
     )
 }
 

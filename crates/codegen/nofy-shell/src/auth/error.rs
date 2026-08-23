@@ -5,29 +5,20 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum AuthError {
-    #[error("Not logged in. Run `nofy login`.")]
+    #[error("Not logged in. Set NOFY_API_KEY or add api_key/env_key to ~/.nofy/config.toml.")]
     NotLoggedIn,
 
     /// Token expired and no refresh authority available.
-    #[error("Token expired. Run `nofy login` to re-authenticate.")]
+    #[error("Token expired. Check your API key configuration.")]
     TokenExpiredNoRefresh,
 
     /// Server rejected the token (401) with no recovery path.
-    #[error("Authentication rejected by server. Run `nofy login` to re-authenticate.")]
+    #[error("Authentication rejected by server. Check your API key configuration.")]
     ServerRejectedNoRecovery,
 
     /// All recovery strategies exhausted.
-    #[error("Auth recovery exhausted; re-authentication required.")]
+    #[error("Auth recovery exhausted; check your API key configuration.")]
     RecoveryExhausted,
-
-    /// A session's team principal violates the `force_login_team_uuid` pin.
-    /// `message` states which team is required vs. returned.
-    #[error("{message} Run `nofy login` to sign in with the required team.")]
-    PinnedTeamMismatch { message: String },
-
-    /// Cached API-key session rejected because API-key auth is disabled.
-    #[error("API-key auth is disabled by your administrator. Run `nofy login` to authenticate.")]
-    ApiKeyAuthDisabled,
 
     /// Outcome of a refresh-authority attempt. Recoverability (and, for
     /// permanent failures, the reason) lives in [`RefreshTokenError`].
@@ -121,15 +112,17 @@ impl RefreshTokenFailedReason {
     pub(crate) fn user_message(self) -> Cow<'static, str> {
         match self {
             Self::RefreshTokenRejected => {
-                "Your session has expired. Run `nofy login` to sign in again.".into()
+                "Your session has expired. Set NOFY_API_KEY or add api_key to ~/.nofy/config.toml."
+                    .into()
             }
             Self::ClientRejected => {
-                "Authentication is temporarily unavailable. Run `nofy login` if this persists."
+                "Authentication is temporarily unavailable. Set NOFY_API_KEY if this persists."
                     .into()
             }
             Self::ProviderInteractiveRequired => provider_login_message(None),
             Self::Other => {
-                "Authentication could not be refreshed. Run `nofy login` to sign in again.".into()
+                "Authentication could not be refreshed. Set NOFY_API_KEY or add api_key to ~/.nofy/config.toml."
+                    .into()
             }
         }
     }
@@ -140,11 +133,11 @@ pub(crate) fn provider_login_message(label: Option<&str>) -> Cow<'static, str> {
     match label {
         Some(label) => format!(
             "Your session expired and {label} could not renew it in the background. \
-             Run /login to sign in again."
+             Run the auth provider again or set NOFY_API_KEY."
         )
         .into(),
         None => "Your session expired and your sign-in helper could not renew it in the \
-                 background. Run /login to sign in again."
+                 background. Run the auth provider again or set NOFY_API_KEY."
             .into(),
     }
 }

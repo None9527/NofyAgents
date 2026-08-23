@@ -1176,18 +1176,14 @@ pub enum RetryState {
 }
 
 /// Whether a terminal retry failure is a recoverable authentication error
-/// (expired/invalid credentials, 401) that the user can fix by signing in
-/// again. Drives the actionable re-auth banner.
+/// (expired/invalid credentials, 401) that the user can fix by restoring
+/// credentials. Drives the actionable re-auth banner.
 ///
-/// `legacy_auth` is intentionally excluded: those failures carry their own
-/// detailed migration guidance (`nofy update` / `nofy logout` / `nofy login`)
-/// in the message, so we surface that verbatim instead of the generic prompt.
-///
-/// `auth_transient` is excluded for the opposite reason: the shell emits it
-/// only when the failure self-heals (see `AuthManager::requires_manual_reauth`)
-/// and the message already says it recovers on its own — no `/login` banner.
+/// `auth_transient` is excluded: the shell emits it only when the failure
+/// self-heals (see `AuthManager::requires_manual_reauth`) and the message
+/// already says it recovers on its own — no re-auth banner.
 pub fn is_reauthable_failure(error_type: Option<&str>, message: &str) -> bool {
-    if matches!(error_type, Some("legacy_auth") | Some("auth_transient")) {
+    if matches!(error_type, Some("auth_transient")) {
         return false;
     }
     error_type == Some("auth") || message.contains("Unauthorized (401)")

@@ -81,7 +81,7 @@ impl ExternalCommandRunner for AuthManager {
 
 /// The credential a refresh would send to the IdP: disk refresh-token first,
 /// then the expired in-mem bearer, then current (only on `ServerRejected`).
-/// Single source of truth shared by [`OidcRefresher::refresh`] (the attempt) and
+/// Single source of truth shared by [`ExternalBinaryRefresher::refresh`] (the attempt) and
 /// `AuthManager::attempted_verdict_key` (the verdict scope), so the two can't
 /// drift. The caller supplies the disk read: the verdict path passes a
 /// side-effect-free read, the refresher the observing one.

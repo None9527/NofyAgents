@@ -265,9 +265,8 @@ impl ModelsManager {
         auth_manager: Arc<AuthManager>,
     ) -> Result<Self, String> {
         let has_session = auth_manager.current_or_expired().is_some();
-        let is_session_auth = auth_manager
-            .current_or_expired()
-            .is_some_and(|a| a.is_session_auth());
+        // Session-only models required the removed xAI account system.
+        let is_session_auth = false;
         let fetch_auth = ModelFetchAuth::resolve(&cfg.endpoints, has_session);
         let prefetched_models = prefetched_models.or_else(|| {
             let cache = ModelsCacheManager::new();
@@ -394,11 +393,9 @@ impl ModelsManager {
     }
 
     /// Does the current credential grant access to OAuth-only models?
+    /// Session-only models required the removed xAI account system.
     fn is_session_auth(&self) -> bool {
-        self.inner
-            .auth_manager
-            .current_or_expired()
-            .is_some_and(|a| a.is_session_auth())
+        false
     }
 
     /// ACP-visible (non-hidden) projection of the catalog.

@@ -1258,7 +1258,7 @@ mod auth_refresh_tests {
             self.calls.fetch_add(1, Ordering::SeqCst);
             crate::auth::refresh::RefreshOutcome::Success(Box::new(NofyAuth {
                 key: "fresh-from-refresher".into(),
-                auth_mode: AuthMode::Oidc,
+                auth_mode: AuthMode::External,
                 create_time: Utc::now(),
                 user_id: "user-42".into(),
                 refresh_token: Some("rt-fresh".into()),
@@ -1282,7 +1282,7 @@ mod auth_refresh_tests {
         // In-memory: stale token (the one the server rejected).
         am.hot_swap(NofyAuth {
             key: "stale-rejected".into(),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             create_time: Utc::now() - Duration::hours(2),
             user_id: "user-42".into(),
             refresh_token: Some("rt-stale".into()),
@@ -1295,7 +1295,7 @@ mod auth_refresh_tests {
         // Disk: a sibling already rotated to a fresh token.
         let disk_auth = NofyAuth {
             key: "fresh-from-sibling-on-disk".into(),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             create_time: Utc::now(),
             user_id: "user-42".into(),
             refresh_token: Some("rt-fresh".into()),
@@ -1333,17 +1333,17 @@ mod auth_refresh_tests {
         );
     }
 
-    /// LegacySession -> `ServerRejectedNoRecovery` -> `false`
+    /// Unrecoverable token -> `ServerRejectedNoRecovery` -> `false`
     /// (caller stops retrying, doesn't loop on a no-op refresher).
     #[tokio::test]
     async fn try_refresh_credentials_returns_false_on_terminal_failure() {
         let dir = tempfile::tempdir().unwrap();
         let am = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
 
-        // LegacySession: no refresh_token, no recovery possible.
+        // No refresh_token and no auth provider command: no recovery possible.
         am.hot_swap(NofyAuth {
             key: "legacy-rejected".into(),
-            auth_mode: AuthMode::WebLogin,
+            auth_mode: AuthMode::External,
             create_time: Utc::now() - Duration::days(60),
             user_id: "user-42".into(),
             ..NofyAuth::test_default()
@@ -1355,8 +1355,8 @@ mod auth_refresh_tests {
         let recovered = client.try_refresh_credentials().await;
         assert!(
             !recovered,
-            "LegacySession must surface ServerRejectedNoRecovery as `false`, \
-             not loop on a refresher that can't help"
+            "an unrecoverable token must surface ServerRejectedNoRecovery as \
+             `false`, not loop on a refresher that can't help"
         );
     }
 }

@@ -45,7 +45,7 @@
             chip_elements: Vec::new(),
         });
         for error in [
-            "authentication problem — re-authenticate using /login and retry.",
+            "authentication problem — restore your credentials and retry.",
             "this conversation is too large to compact.",
         ] {
             let update = NofySessionUpdate::AutoCompactFailed {
@@ -447,14 +447,9 @@
             "Unauthorized (401) from https://proxy/v1/responses"
         ));
         assert!(is_reauthable_failure(None, "Unauthorized (401)"));
-        // legacy_auth carries its own migration guidance — excluded.
-        assert!(!is_reauthable_failure(
-            Some("legacy_auth"),
-            "Unauthorized (401) ... deprecated authentication method"
-        ));
         // auth_transient = the shell says the failure self-heals (refreshable
         // credential, no sticky verdict — e.g. post-wake network gap). Even
-        // with a 401 in the message, the `/login` banner must not fire.
+        // with a 401 in the message, the re-auth banner must not fire.
         assert!(!is_reauthable_failure(
             Some("auth_transient"),
             "Unauthorized (401)\n\nAuthentication is temporarily unavailable"
@@ -539,26 +534,6 @@
         ));
     }
 
-    /// Legacy WebLogin auth keeps its verbose message (with `nofy logout` /
-    /// `nofy login` guidance), not the generic re-auth prompt.
-    #[test]
-    fn apply_retry_state_legacy_auth_keeps_detailed_message() {
-        let mut session = make_session(Some("s1"));
-        let mut scrollback = ScrollbackState::new();
-        apply_retry_state(
-            &RetryState::Failed {
-                error_type: "legacy_auth".into(),
-                message: "Unauthorized (401) ... deprecated authentication method (WebLogin) ... \
-                          run `nofy logout` then `nofy login`"
-                    .into(),
-            },
-            &mut session,
-            &mut scrollback, false);
-        assert!(matches!(
-            last_session_event(&scrollback),
-            Some(SessionEvent::RetryFailed { .. })
-        ));
-    }
 
     /// Non-auth terminal failures render the formatted RequestFailed banner
     /// (same visual treatment as 401 re-auth), not a raw RetryFailed dump.

@@ -169,7 +169,7 @@ pub fn clear_orphan() {
 }
 
 /// Best-effort cross-process lock serializing apply/remove of the managed-config
-/// files (TUI tick vs `nofy login` vs prefetch). `None` on contention — the
+/// files (TUI tick vs authenticate vs prefetch). `None` on contention — the
 /// caller skips and retries next cycle.
 fn try_lock_managed_config(home: &std::path::Path) -> Option<std::fs::File> {
     use fs2::FileExt;
@@ -795,7 +795,7 @@ pub enum ManagedConfigSync {
     Failed,
 }
 
-/// Post-login hook for `nofy login` and the ACP/TUI authenticate flow: clear any
+/// Post-auth hook for the ACP/TUI authenticate flow: clear any
 /// orphaned files, then fetch the new principal's config immediately rather than
 /// waiting for the background tick. `authenticated` pins the just-logged-in
 /// principal (`None` = on-disk team). Latency-bounded by [`SyncBudget::Login`];

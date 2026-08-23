@@ -50,7 +50,6 @@ use enrichment::apply_user_info_enrichment;
 
 #[cfg(test)]
 use super::model::AuthStore;
-use super::model::LEGACY_SCOPE;
 
 /// Why a token refresh is being requested.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -149,7 +148,7 @@ pub struct AuthManager {
     proxy_base_url: String,
     refresher: RwLock<Option<Arc<dyn TokenRefresher>>>,
     /// Idempotency guard for `configure_refresher` so double-calls
-    /// don't reset internal state (e.g. `OidcRefresher::upload_in_flight`).
+    /// don't reset internal state (e.g. a refresher's in-flight upload).
     refresher_configured: std::sync::atomic::AtomicBool,
     /// Idempotency guard for `start_proactive_refresh` so we don't
     /// spawn competing refresh loops on the same Arc.
@@ -220,11 +219,6 @@ pub struct AuthManager {
     /// without a real macOS dark wake. `None` = consult the OS.
     #[cfg(test)]
     dark_wake_override: parking_lot::Mutex<Option<bool>>,
-    /// Test-only override for [`AuthManager::is_devbox_environment`]. CI runs in
-    /// K8s pods where the real check is `true`, which would otherwise let
-    /// `DevboxRecovery` adopt a seeded valid token; `Some(_)` pins the result.
-    #[cfg(test)]
-    devbox_override: parking_lot::Mutex<Option<bool>>,
 }
 
 /// Discriminated outcome of a disk read, for transition logging.
@@ -237,7 +231,7 @@ pub(crate) enum DiskAuthState {
     /// auth.json does not exist.
     FileMissing,
     /// auth.json readable but has no usable entry for this scope
-    /// (scope removed, or only a skipped legacy WebLogin entry).
+    /// (scope removed, or only an unusable entry).
     EntryMissing,
     /// auth.json exists but could not be read (corrupt JSON, permission
     /// or I/O error).
@@ -330,27 +324,6 @@ impl AuthManager {
         let (auth, auth_read_detail, initial_disk_state) = match read_auth_json(&path) {
             Ok(map) => {
                 let found = lookup_auth(&map, &scope);
-                // If lookup_auth skipped a legacy WebLogin token, remove the
-                // stale scope entry from auth.json so it is not re-evaluated
-                // on every launch.
-                if found.is_none()
-                    && map
-                        .get(LEGACY_SCOPE)
-                        .is_some_and(|a| a.auth_mode == AuthMode::WebLogin)
-                {
-                    // Best-effort cleanup under advisory lock (consistent with
-                    // other auth.json writers). Non-blocking: if the lock is
-                    // held by a concurrent process, skip — retried next launch.
-                    if let Some(_lock) = lock::try_lock_auth_file_nonblocking(&path) {
-                        let mut cleaned = map.clone();
-                        cleaned.remove(LEGACY_SCOPE);
-                        let _ = write_auth_json(&path, &cleaned);
-                        tracing::debug!("auth: removed stale WebLogin scope from auth.json");
-                        // lock released on drop
-                    } else {
-                        tracing::debug!("auth: skipped WebLogin cleanup (lock unavailable)");
-                    }
-                }
                 let detail = serde_json::json!({
                     "read": "ok",
                     "resolved_path": path.display().to_string(),
@@ -397,9 +370,6 @@ impl AuthManager {
             proxy_base_url,
             Some(initial_disk_state),
         );
-        // Clear a wrong-team session left on disk before the pin was deployed,
-        // so the first launch forces a compliant login.
-        manager.enforce_pin_on_loaded_token();
         manager
     }
 
@@ -446,8 +416,6 @@ impl AuthManager {
             dark_wake_defer_since: parking_lot::RwLock::new(None),
             #[cfg(test)]
             dark_wake_override: parking_lot::Mutex::new(None),
-            #[cfg(test)]
-            devbox_override: parking_lot::Mutex::new(None),
         }
     }
 
@@ -461,17 +429,6 @@ impl AuthManager {
     pub(crate) fn set_first_party_env_api_key_ok(&self, ok: bool) {
         self.first_party_env_api_key_ok
             .store(ok, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    /// Clear the disk-loaded token if it violates the team pin (startup only;
-    /// the read/dispense gates cover everything cached afterwards).
-    fn enforce_pin_on_loaded_token(&self) {
-        let loaded = self.inner.read().clone();
-        if let Some(auth) = loaded
-            && let Some(e) = self.cached_token_policy_error(&auth)
-        {
-            self.reject_and_clear(&e);
-        }
     }
 
     /// Override the proxy base URL (precedence over env var).
@@ -585,16 +542,12 @@ impl AuthManager {
                 // of the same broken refresh_token.
                 DiskAuthState::Ok => {
                     *self.inner.write() = auth;
-                    // A re-read (e.g. relay reconnect) can adopt a wrong-team
-                    // token a sibling wrote; clear it here, mirroring `new()`.
-                    self.enforce_pin_on_loaded_token();
                     return;
                 }
                 // File readable, our scope genuinely absent: the trustworthy
                 // logout / scope-removed signal.
                 DiskAuthState::EntryMissing => {
                     self.drop_in_memory_credentials("scope absent on readable auth.json");
-                    self.enforce_pin_on_loaded_token();
                     return;
                 }
                 // Disk anomaly: a transient (e.g. wake-time ENOENT) heals on a
@@ -635,7 +588,6 @@ impl AuthManager {
                 "disk anomaly; no live refresh token to retain (missing RT or permanent failure)",
             );
         }
-        self.enforce_pin_on_loaded_token();
     }
 
     /// Drop the in-memory credentials, loudly. Logs the discard (with `reason`)
@@ -671,72 +623,13 @@ impl AuthManager {
     // | "have credentials at all?"   | `is_expired()` |
     // | bypass memory, read disk     | `read_disk_auth()` |
 
-    // ── Login-policy enforcement (force_login_team_uuid) ──────────────
-    //
-    // The team pin is enforced wherever the manager hands out a session token,
-    // not only on fresh login: sync reads (`current`/`expired_auth`) hide a
-    // violating token; the async gates (`auth`, recovery) and `new()` also
-    // clear `auth.json` to force a compliant re-login.
-
-    /// `Some(error)` when a `force_login_team_uuid` pin is set and the token's
-    /// team principal isn't allowed; `None` when compliant or unpinned.
-    ///
-    /// Reads the principal from the token's own (unverified) JWT claim —
-    /// fail-fast defense-in-depth, not the security boundary (the server is
-    /// authoritative). An API-key session is rejected under the kill switch,
-    /// else allowed.
-    pub(crate) fn cached_token_policy_error(&self, auth: &NofyAuth) -> Option<AuthError> {
-        if auth.auth_mode == AuthMode::ApiKey {
-            // Else enforce_disable_api_key_auth swaps the key for itself (no-op).
-            return self
-                .nofy_com_config
-                .api_key_auth_disabled()
-                .then_some(AuthError::ApiKeyAuthDisabled);
-        }
-        // Login-principal pinning belonged to the xAI OIDC login and was
-        // removed; non-API-key cached tokens pass the policy check.
-        None
-    }
-
-    /// Log and clear a policy-violating session (disk + memory) so the next
-    /// launch forces a fresh, compliant login.
-    pub(crate) fn reject_and_clear(&self, error: &AuthError) {
-        let policy = match error {
-            AuthError::PinnedTeamMismatch { .. } => "team_pin",
-            AuthError::ApiKeyAuthDisabled => "api_key_disabled",
-            _ => "login_policy",
-        };
-        nofy_telemetry::unified_log::warn(
-            "auth: cached session rejected by login policy; clearing",
-            None,
-            Some(serde_json::json!({ "policy": policy, "reason": error.to_string() })),
-        );
-        if let Err(e) = self.clear() {
-            tracing::warn!(error = %e, "auth: failed to clear policy-violating session");
-        }
-    }
-
-    /// Hide a cached token rejected by the login policy. No clear here (keeps
-    /// the sync read path lock-free); `auth()`/recovery/`new()` do the clearing.
-    fn vet_cached(&self, auth: NofyAuth) -> Option<NofyAuth> {
-        match self.cached_token_policy_error(&auth) {
-            None => Some(auth),
-            Some(e) => {
-                tracing::debug!(error = %e, "auth: hiding cached session rejected by login policy");
-                None
-            }
-        }
-    }
-
     /// Cached in-memory token if outside the early-invalidation buffer.
     pub(crate) fn current(&self) -> Option<NofyAuth> {
-        let auth = self
-            .inner
+        self.inner
             .read()
             .as_ref()
             .filter(|a| !self.is_token_expired(a))
-            .cloned()?;
-        self.vet_cached(auth)
+            .cloned()
     }
 
     /// Closure-scoped write. Sync return type prevents `.await` while
@@ -772,13 +665,11 @@ impl AuthManager {
     /// ignoring the early-invalidation buffer. For sync callers that cannot
     /// refresh and must not demote a still-accepted token.
     pub(crate) fn current_wire_valid(&self) -> Option<NofyAuth> {
-        let auth = self
-            .inner
+        self.inner
             .read()
             .as_ref()
             .filter(|a| !self.is_token_hard_expired(a))
-            .cloned()?;
-        self.vet_cached(auth)
+            .cloned()
     }
 
     /// `true` when data collection must be suppressed — the team has ZDR or
@@ -806,18 +697,16 @@ impl AuthManager {
 
     /// Expired in-memory entry (for its `refresh_token`).
     pub(crate) fn expired_auth(&self) -> Option<NofyAuth> {
-        let auth = self
-            .inner
+        self.inner
             .read()
             .as_ref()
             .filter(|a| self.is_token_expired(a))
-            .cloned()?;
-        self.vet_cached(auth)
+            .cloned()
     }
 
     /// Expiry policy: `expires_at - early_invalidation` if present;
     /// `External` with `auth_token_ttl` -> `create_time + ttl`;
-    /// fallback `create_time + 30d` (WebLogin-style).
+    /// fallback `create_time + 30d`.
     fn is_token_expired(&self, auth: &NofyAuth) -> bool {
         self.token_expired_with_buffer(auth, early_invalidation())
     }
@@ -1302,7 +1191,7 @@ impl AuthManager {
     /// Set up refresh capability. Call once per `Arc<AuthManager>` at
     /// startup; subsequent calls are no-op via an atomic guard (so
     /// per-session call sites don't reset refresher-internal state
-    /// like `OidcRefresher::upload_in_flight`). Returns `true` if
+    /// like a refresher's in-flight upload). Returns `true` if
     /// this call installed the refresher.
     pub fn configure_refresher(
         self: &Arc<Self>,
@@ -1365,21 +1254,13 @@ impl AuthManager {
     /// and rejected here, never handed to a consumer.
     #[tracing::instrument(skip(self), fields(token_type = tracing::field::Empty))]
     pub async fn auth(self: &Arc<Self>) -> Result<NofyAuth, AuthError> {
-        let auth = self.auth_dispatch().await?;
-        if let Some(e) = self.cached_token_policy_error(&auth) {
-            self.reject_and_clear(&e);
-            return Err(e);
-        }
-        Ok(auth)
+        self.auth_dispatch().await
     }
 
     async fn auth_dispatch(self: &Arc<Self>) -> Result<NofyAuth, AuthError> {
         // Snapshot inner ONCE for dispatch atomicity (closes a TOCTOU
         // where a concurrent `clear()` raced `token_type()` + `inner.read()`).
         let snapshot: Option<NofyAuth> = self.with_inner_read(|inner| inner.cloned());
-        // Kept alongside `snapshot`, which the grace arm below consumes: the
-        // devbox arms still need to name the credential they gave up on.
-        let snapshot_key: Option<String> = snapshot.as_ref().map(|a| a.key.clone());
         let token_type = TokenType::from_auth(snapshot.as_ref());
         tracing::Span::current().record("token_type", tracing::field::debug(token_type));
 
@@ -1408,14 +1289,6 @@ impl AuthManager {
             ) {
                 return Ok(refreshed);
             }
-            // On devboxes, try minting fresh credentials before giving up.
-            // preferred_method=api_key forbids automatic OIDC mint.
-            if !self.nofy_com_config.blocks_automatic_oidc()
-                && self.is_devbox_environment()
-                && let Ok(auth) = self.try_devbox_recovery(snapshot_key.as_deref()).await
-            {
-                return Ok(auth);
-            }
             return Err(err);
         }
 
@@ -1427,7 +1300,7 @@ impl AuthManager {
                 // ApiKey loaded — surface NotLoggedIn) or the cached
                 // api_key has aged past the 30-day TTL (surface
                 // TokenExpiredNoRefresh so downstream consumers see
-                // the same view as the UI's login screen, instead of
+                // the same view as the UI, instead of
                 // cloning the stale key and hitting 401 right after.
                 if snapshot.is_some() {
                     Err(AuthError::TokenExpiredNoRefresh)
@@ -1435,18 +1308,7 @@ impl AuthManager {
                     Err(AuthError::NotLoggedIn)
                 }
             }
-            TokenType::LegacySession => {
-                // Deliberate side effect: re-read auth.json under the
-                // assumption that a sibling process (`nofy login` from
-                // another shell, the desktop app, etc.) may have refreshed
-                // the on-disk credentials. `pick_up_sibling_token` only
-                // mutates inner when the disk holds a *different valid*
-                // token, so the common cache-hit case is a single read.
-                // Documented at module level under "Lock ordering".
-                self.pick_up_sibling_token();
-                self.current().ok_or(AuthError::TokenExpiredNoRefresh)
-            }
-            TokenType::OidcSession | TokenType::ExternalBinary => {
+            TokenType::ExternalBinary => {
                 match self
                     .refresh_chain(token_type, RefreshReason::PreRequest)
                     .await
@@ -1479,70 +1341,8 @@ impl AuthManager {
             }
         };
 
-        // Devbox last-resort recovery: if all normal auth/refresh paths
-        // failed and we're on a devbox, try minting fresh credentials via
-        // the remote devbox login helper. Purges existing auth.json and writes only
-        // the new OIDC entry so we start from a clean state.
-        // preferred_method=api_key forbids automatic OIDC mint.
-        if result.is_err()
-            && !self.nofy_com_config.blocks_automatic_oidc()
-            && self.is_devbox_environment()
-            && let Ok(auth) = self.try_devbox_recovery(snapshot_key.as_deref()).await
-        {
-            return Ok(auth);
-        }
-
         result
     }
-
-    /// Whether we're running inside a devbox environment. Wraps the free function
-    /// so tests can pin it per-instance (CI may run in a container where it is `true`).
-    pub(crate) fn is_devbox_environment(&self) -> bool {
-        #[cfg(test)]
-        if let Some(forced) = *self.devbox_override.lock() {
-            return forced;
-        }
-        // Devbox was an xAI-internal environment; removed with the account system.
-        false
-    }
-
-    /// Force [`Self::is_devbox_environment`] in tests.
-    #[cfg(test)]
-    pub(crate) fn set_devbox_env_for_test(&self, is_devbox: bool) {
-        *self.devbox_override.lock() = Some(is_devbox);
-    }
-
-    /// Last-resort devbox auth recovery: purge existing auth.json entirely
-    /// and mint fresh OIDC credentials via the remote devbox login helper.
-    /// Only callable on devboxes (where the local service-account token is
-    /// available).
-    ///
-    /// Fail-closed under `preferred_method=api_key` (no automatic OIDC mint),
-    /// including direct callers such as sampler 401 recovery.
-    ///
-    /// `unusable` is the credential the caller has already established cannot
-    /// work — the bearer the server rejected, or the snapshot that failed to
-    /// refresh. It is what makes the wait-on-the-lock double-check below mean
-    /// "somebody else fixed this" instead of "the dead token is still here".
-    pub(crate) async fn try_devbox_recovery(
-        self: &Arc<Self>,
-        unusable: Option<&str>,
-    ) -> Result<NofyAuth, AuthError> {
-        let _guard = self.refresh_lock.lock().await;
-
-        // Another task may have recovered while we waited. Only a credential
-        // that is not the caller's `unusable` one counts.
-        if let Some(auth) = self
-            .current()
-            .filter(|auth| unusable != Some(auth.key.as_str()))
-        {
-            return Ok(auth);
-        }
-
-        // Devbox re-mint belonged to the xAI account system and was removed.
-        Err(AuthError::NotLoggedIn)
-    }
-
 
     /// Return the current valid token string, or an error.
     pub(crate) async fn get_valid_token(self: &Arc<Self>) -> Result<String, AuthError> {
@@ -2111,7 +1911,7 @@ impl AuthManager {
     /// for the TTL to elapse across sleep. Without it, a recoverable failure
     /// cached just before the lid closes (e.g. a transient escalation while
     /// the network was already down) would keep short-circuiting `auth()` —
-    /// surfacing "run /login" — for up to 5 *awake* minutes after wake, even
+    /// surfacing a manual re-auth — for up to 5 *awake* minutes after wake, even
     /// though the blip is long over. A genuine revocation simply re-caches on
     /// the next refresh attempt, so expiring "early" costs one IdP roundtrip.
     pub(crate) fn permanent_failure(&self) -> Option<AuthError> {
@@ -2146,13 +1946,13 @@ impl AuthManager {
         self.permanent_failure().is_some()
     }
 
-    /// Whether the only way back is a manual `/login`: a sticky IdP
+    /// Whether the only way back is a manual re-auth: a sticky IdP
     /// rejection of the refresh token, or no refresh authority/refreshable
     /// credential at all. `false` for anything that self-heals (transient
     /// failures, recoverable verdicts). A *live state* query ("can a future
     /// refresh succeed?"), deliberately separate from
     /// `recovery::manual_auth_reason` (which buckets a terminal error
-    /// *value* for the KPI). Drives the "`/login` banner vs self-healing"
+    /// *value* for the KPI). Drives the "re-auth banner vs self-healing"
     /// decision.
     pub(crate) fn requires_manual_reauth(&self) -> bool {
         use crate::auth::error::RefreshTokenError;
@@ -2244,7 +2044,7 @@ impl AuthManager {
         source: crate::auth::recovery::RecoverySource,
     ) -> bool {
         /// Bounded refresh attempts for non-permanent failures. Kept strictly
-        /// below OidcRefresher's consecutive-transient escalation threshold so
+        /// below the refresher's consecutive-transient escalation threshold so
         /// one 401 recovery cannot alone escalate a network blip to permanent
         /// `Other`.
         const MAX_TRANSIENT_ATTEMPTS: u32 = 2;
@@ -2562,14 +2362,10 @@ pub(crate) fn compute_proactive_sleep(this: &AuthManager) -> StdDuration {
 }
 
 /// Tools bearer. Static: env → process model key → disk.
-/// Kill-switch / `preferred_method = oidc` block static keys.
 pub(crate) struct SharedAuthKeyProvider(pub Arc<AuthManager>);
 
 impl nofy_tools::types::ApiKeyProvider for SharedAuthKeyProvider {
     fn current_api_key(&self) -> Option<String> {
-        if prefers_static_api_key(&self.0) {
-            return resolve_static_api_key(&self.0);
-        }
         // Wire-valid session > static key > expired session (last resort).
         // Hard expiry, not the refresh buffer: sync cannot refresh, so a
         // buffered-but-valid token must still beat static.
@@ -2585,9 +2381,6 @@ impl nofy_tools::types::ApiKeyProvider for SharedAuthKeyProvider {
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<String>> + Send + '_>> {
         let am = self.0.clone();
         Box::pin(async move {
-            if prefers_static_api_key(&am) {
-                return resolve_static_api_key(&am);
-            }
             am.get_valid_token()
                 .await
                 .ok()
@@ -2596,24 +2389,8 @@ impl nofy_tools::types::ApiKeyProvider for SharedAuthKeyProvider {
     }
 }
 
-fn prefers_static_api_key(am: &AuthManager) -> bool {
-    matches!(
-        am.nofy_com_config.preferred_method,
-        Some(super::config::PreferredAuthMethod::ApiKey)
-    )
-}
-
-/// Env → process model key → disk. Off under kill-switch / oidc pin.
+/// Env → process model key → disk.
 fn resolve_static_api_key(am: &AuthManager) -> Option<String> {
-    if am.nofy_com_config.api_key_auth_disabled() {
-        return None;
-    }
-    if matches!(
-        am.nofy_com_config.preferred_method,
-        Some(super::config::PreferredAuthMethod::Oidc)
-    ) {
-        return None;
-    }
     non_empty_key(crate::agent::auth_method::read_xai_api_key_env().ok())
         .or_else(|| non_empty_key(am.process_static_api_key.read().clone()))
         .or_else(|| am.cached_disk_api_key())

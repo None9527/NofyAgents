@@ -269,66 +269,6 @@ fn doctor_apply_success_only_renders_resolution_instructions() {
 }
 
 #[test]
-fn stale_auth_copy_timeout_does_not_clear_newer_feedback() {
-    let mut app = test_app();
-    app.auth_state = AuthState::Authenticating {
-        request_seq: 1,
-        handle: None,
-        auth_url: Some("https://nofy.com/auth".to_owned()),
-        mode: AuthMode::Command,
-    };
-
-    let first_effects = crate::app::dispatch::router::dispatch_copy_auth_url(&mut app, |_| {
-        crate::clipboard::ClipboardDelivery::Failed
-    });
-    let [
-        Effect::ScheduleClearAuthCopyFeedback {
-            generation: first_generation,
-        },
-    ] = first_effects.as_slice()
-    else {
-        panic!("first copy must schedule feedback clear");
-    };
-
-    let second_effects = crate::app::dispatch::router::dispatch_copy_auth_url(&mut app, |_| {
-        crate::clipboard::ClipboardDelivery::Confirmed
-    });
-    let [
-        Effect::ScheduleClearAuthCopyFeedback {
-            generation: second_generation,
-        },
-    ] = second_effects.as_slice()
-    else {
-        panic!("second copy must schedule feedback clear");
-    };
-    assert_ne!(first_generation, second_generation);
-    assert_eq!(
-        app.auth_clipboard_delivery,
-        Some(crate::clipboard::ClipboardDelivery::Confirmed)
-    );
-
-    dispatch_task_result(
-        TaskResult::AuthCopyFeedbackTimeout {
-            generation: *first_generation,
-        },
-        &mut app,
-    );
-    assert_eq!(
-        app.auth_clipboard_delivery,
-        Some(crate::clipboard::ClipboardDelivery::Confirmed),
-        "the first copy's stale timeout must preserve the second feedback"
-    );
-
-    dispatch_task_result(
-        TaskResult::AuthCopyFeedbackTimeout {
-            generation: *second_generation,
-        },
-        &mut app,
-    );
-    assert_eq!(app.auth_clipboard_delivery, None);
-}
-
-#[test]
 fn stale_workflows_result_does_not_repaint_replaced_session_modal() {
     let mut app = test_app_with_agent();
     app.agents.get_mut(&AgentId(0)).unwrap().extensions_modal =
@@ -2278,18 +2218,6 @@ fn verified_gate_via_check_complete_starts_paywall_chain() {
     );
 }
 
-/// Logout clears any deferred gate and the check debounce.
-#[test]
-fn logout_clears_pending_gate_verification() {
-    let mut app = test_app();
-    let _effs = app.impose_gate(test_gate());
-
-    dispatch_task_result(TaskResult::LogoutComplete, &mut app);
-
-    assert!(app.pending_gate_verification.is_none());
-    assert!(app.last_subscription_check_at.is_none());
-}
-
 /// `apply_setting_rollback` on a known key reverts the in-memory
 /// cache without emitting any new effects.
 #[test]
@@ -2418,7 +2346,7 @@ fn rollback_to_always_approve_blocked_by_policy_pin() {
 /// A degraded conversations lane surfaces an actionable notice instead of
 /// the misleading "No sessions found" toast.
 #[test]
-fn session_list_partial_no_oauth_surfaces_login_hint() {
+fn session_list_partial_no_oauth_surfaces_notice() {
     let mut app = test_app_with_agent();
     open_session_picker_with(&mut app, vec![]);
     let _ = dispatch(
@@ -2432,8 +2360,8 @@ fn session_list_partial_no_oauth_surfaces_login_hint() {
         &mut app,
     );
     assert!(
-        read_toast(&app).contains("/login"),
-        "no_oauth must point at /login"
+        read_toast(&app).contains("no session credential"),
+        "no_oauth must explain the missing session credential"
     );
 }
 

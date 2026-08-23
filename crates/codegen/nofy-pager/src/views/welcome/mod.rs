@@ -10,11 +10,9 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Flex, Layout, Position, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Padding, Paragraph, Widget, Wrap};
-use unicode_segmentation::UnicodeSegmentation;
-use unicode_width::UnicodeWidthStr;
+use ratatui::widgets::{Paragraph, Widget};
 
-use crate::app::app_view::{AuthMode, AuthState, SessionPickerEntry, TrustState};
+use crate::app::app_view::{AuthState, SessionPickerEntry, TrustState};
 use crate::startup::StartupWarning;
 use crate::theme::Theme;
 use crate::views::prompt_widget::{PromptFlag, PromptInfo, PromptWidget};
@@ -43,24 +41,6 @@ pub use workspace_mode::{
 /// quit is `Ctrl+D` (canonical: [`TerminalName::is_vscode_family`]).
 fn welcome_in_vscode_family() -> bool {
     crate::terminal::terminal_context().brand.is_vscode_family()
-}
-
-/// Build the quit hint spans used in Authenticating sub-screens.
-fn quit_hint_spans(theme: &Theme) -> Vec<Span<'static>> {
-    let key = if welcome_in_vscode_family() {
-        "ctrl+d"
-    } else {
-        "ctrl+q"
-    };
-    vec![
-        Span::styled(
-            key,
-            Style::default()
-                .fg(theme.accent_user)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::styled("  quit", Style::default().fg(theme.gray)),
-    ]
 }
 
 /// Style for a clickable welcome block: bright primary while `hovered`, else
@@ -106,10 +86,6 @@ pub struct WelcomeRenderResult {
     pub import_banner_rect: Option<Rect>,
     /// Hit areas from the session picker (for mouse hit-testing).
     pub session_picker_hit_areas: Option<crate::views::picker::PickerHitAreas>,
-    /// Hit-test rect for the auth copy line (click-to-copy during Authenticating).
-    pub auth_url_rect: Option<Rect>,
-    /// Hit-test rect for the "show full URL" fallback link.
-    pub auth_fallback_rect: Option<Rect>,
     /// Hit-test rect for the "[Refresh]" button on the paywall tier line.
     pub refresh_rect: Option<Rect>,
     /// Hit-test rect for the gate URL link (click to open in browser).
@@ -223,7 +199,7 @@ impl WelcomeLayout {
 
     /// Compute the welcome screen layout, forced to the stacked variant.
     ///
-    /// The blocked screens (login, ZDR gate) render through
+    /// The blocked screen (no-credentials API-key guidance) renders through
     /// `render_welcome_blocked`, which only paints the stacked `logo`/`menu`
     /// rects (and never an announcement). The hero-box layout zeroes those, so
     /// the blocked path must stay stacked regardless of terminal size.
@@ -602,11 +578,6 @@ pub struct WelcomeRenderParams<'a> {
     /// Folder-trust state. When `Pending` (auth done, access granted), the
     /// welcome screen renders the trust question instead of the normal prompt.
     pub trust_state: &'a TrustState,
-    pub login_label: Option<&'a str>,
-    pub auth_code_input: &'a str,
-    pub auth_code_cursor_byte: usize,
-    pub clipboard_delivery: Option<crate::clipboard::ClipboardDelivery>,
-    pub show_raw_url: bool,
     pub announcement: Option<&'a nofy_announcements::RemoteAnnouncement>,
     pub tip: Option<&'a str>,
     pub model_name: &'a str,
@@ -616,7 +587,6 @@ pub struct WelcomeRenderParams<'a> {
     pub has_access: bool,
     pub has_claude_import: bool,
     pub mouse_pos: Option<(u16, u16)>,
-    pub is_zdr_blocked: bool,
     pub session_picker: Option<&'a [SessionPickerEntry]>,
     pub session_picker_loading: bool,
     pub compact: bool,
@@ -712,24 +682,22 @@ pub fn render_welcome(
 
     let mut result = match params.auth_state {
         AuthState::Pending { error } => {
-            let label = params.login_label.unwrap_or("nofy.com");
-            let login_text = format!("Login with {}", label);
-            let menu = [("l", login_text.as_str()), ("q", "Quit")];
-            let msg = error.as_deref().map(|e| (e, theme.accent_error));
-            let info = PromptInfo {
-                model_name: params.model_name,
-                flags: params.flags,
-                multiline: false,
-                usage_warning: None,
-                usage_warning_critical: false,
+            // No usable credentials: guide the user to configure an API key.
+            let menu = [("q", "Quit")];
+            let msg = match error.as_deref() {
+                Some(e) => (e, theme.accent_error),
+                None => (
+                    "No API key configured. Set NOFY_API_KEY or add api_key/env_key to ~/.nofy/config.toml.",
+                    theme.gray_bright,
+                ),
             };
             let (menu_rects, post_flush_escapes) = render_welcome_blocked(
                 content_area,
                 buf,
-                msg,
+                Some(msg),
                 &menu,
                 params.selected,
-                Some((prompt, &info)),
+                None,
                 h_margin,
                 params.compact,
             );
@@ -740,53 +708,12 @@ pub fn render_welcome(
                 ..Default::default()
             }
         }
-        AuthState::Authenticating { auth_url, mode, .. } => {
-            let llc = logo_line_count(content_area.height);
-            let (url_rect, fallback_rect) = render_welcome_authenticating(
-                content_area,
-                buf,
-                &theme,
-                llc,
-                auth_url.as_deref(),
-                *mode,
-                params.auth_code_input,
-                params.auth_code_cursor_byte,
-                params.clipboard_delivery,
-                params.show_raw_url,
-            );
-            WelcomeRenderResult {
-                auth_url_rect: url_rect,
-                auth_fallback_rect: fallback_rect,
-                ..Default::default()
-            }
-        }
-        AuthState::Done if params.is_zdr_blocked => {
-            let menu = [("l", "Switch account"), ("q", "Quit")];
-            let (menu_rects, post_flush_escapes) = render_welcome_blocked(
-                content_area,
-                buf,
-                Some((
-                    "Nofy Build is not yet available for this account.",
-                    theme.gray_bright,
-                )),
-                &menu,
-                params.selected,
-                None,
-                h_margin,
-                params.compact,
-            );
-            WelcomeRenderResult {
-                post_flush_escapes,
-                menu_rects,
-                ..Default::default()
-            }
-        }
         // Folder-trust question: shown after auth, before any session is
         // created, when the cwd has untrusted repo-local config. Mirrors the
-        // Pending login screen. Skipped under ZDR/access gates (the ZDR arm
-        // above and the !has_access arm below) since those already block
-        // sessions. The `if let` destructure makes the `Pending`-only render
-        // structurally exhaustive (no `unreachable!`).
+        // Pending screen. Skipped under the access gate (the !has_access arm
+        // below) since that already blocks sessions. The `if let` destructure
+        // makes the `Pending`-only render structurally exhaustive (no
+        // `unreachable!`).
         AuthState::Done if params.has_access => {
             if let TrustState::Pending { workspace } = params.trust_state {
                 render_welcome_trust(
@@ -828,7 +755,7 @@ pub fn render_welcome(
 
 /// Render a blocked welcome screen: logo + optional message + menu + version.
 ///
-/// Used for both the login screen (Pending) and the ZDR gate. The layout is:
+/// Used for the no-credentials screen (Pending). The layout is:
 ///   Logo
 ///   {message}
 ///   Menu items
@@ -992,519 +919,6 @@ fn render_welcome_trust(
     }
 }
 
-/// Header text shared by Loopback and Command auth modes.
-const AUTH_HEADER: &str = "A browser window will open for authentication.";
-/// Header text for the device-flow auth mode.
-const DEVICE_AUTH_HEADER: &str = "Approve in your browser to finish signing in.";
-/// Caption beneath the device code.
-const DEVICE_CODE_CAPTION: &str = "Make sure your browser shows this code.";
-
-/// Extract `user_code` from a device verification URL (`None` if absent or
-/// malformed). Shown on-screen so the user can confirm it matches the browser
-/// before approving (anti-phishing).
-fn extract_user_code(url: &str) -> Option<&str> {
-    let code = url
-        .split('?')
-        .nth(1)?
-        .split('&')
-        .find_map(|kv| kv.strip_prefix("user_code="))?;
-    let valid = !code.is_empty() && code.chars().all(|c| c.is_ascii_alphanumeric() || c == '-');
-    valid.then_some(code)
-}
-/// Clickable copy prompt shared by Loopback and Command auth modes.
-const AUTH_COPY_PREFIX: &str = "If it doesn't open, click ";
-const AUTH_COPY_HERE: &str = "here";
-const AUTH_COPY_SUFFIX: &str = " to copy.";
-
-/// Build the "click here to copy" line with "here" underlined in accent color.
-fn auth_copy_line(theme: &Theme) -> Line<'static> {
-    Line::from(vec![
-        Span::styled(AUTH_COPY_PREFIX, Style::default().fg(theme.gray_bright)),
-        Span::styled(
-            AUTH_COPY_HERE,
-            Style::default()
-                .fg(theme.accent_user)
-                .add_modifier(Modifier::UNDERLINED),
-        ),
-        Span::styled(AUTH_COPY_SUFFIX, Style::default().fg(theme.gray_bright)),
-    ])
-    .alignment(Alignment::Center)
-}
-
-/// Number of physical rows the header + blank occupy before the copy line.
-fn auth_copy_preceding_rows(header: &str, inner_width: u16) -> u16 {
-    let header_rows = (header.len() as u16).div_ceil(inner_width);
-    header_rows + 1 // header + blank
-}
-
-/// Number of physical rows the copy line occupies when wrapped.
-fn auth_copy_line_rows(inner_width: u16) -> u16 {
-    let copy_len = AUTH_COPY_PREFIX.len() + AUTH_COPY_HERE.len() + AUTH_COPY_SUFFIX.len();
-    (copy_len as u16).div_ceil(inner_width)
-}
-
-const AUTH_FALLBACK_TEXT: &str = "Copying not working? Click here to show full URL.";
-
-/// Build the fallback "show full URL" link line.
-fn auth_fallback_line(theme: &Theme) -> Line<'static> {
-    Line::from(Span::styled(
-        AUTH_FALLBACK_TEXT,
-        Style::default()
-            .fg(theme.gray)
-            .add_modifier(Modifier::UNDERLINED),
-    ))
-    .alignment(Alignment::Center)
-}
-
-/// Push the shared copy-prompt block, stable feedback slot, and raw-URL fallback.
-fn push_auth_copy_block(
-    lines: &mut Vec<Line<'static>>,
-    theme: &Theme,
-    clipboard_delivery: Option<crate::clipboard::ClipboardDelivery>,
-) {
-    lines.push(Line::default());
-    lines.push(auth_copy_line(theme));
-    lines.push(Line::default());
-    lines.push(match clipboard_delivery {
-        Some(crate::clipboard::ClipboardDelivery::Confirmed) => {
-            Line::from(Span::styled("copied!", Style::default().fg(theme.gray)))
-                .alignment(Alignment::Center)
-        }
-        Some(crate::clipboard::ClipboardDelivery::Unverified) => Line::from(Span::styled(
-            "copy sent—verify paste",
-            Style::default().fg(theme.gray),
-        ))
-        .alignment(Alignment::Center),
-        Some(crate::clipboard::ClipboardDelivery::Failed) => {
-            Line::from(Span::styled("copy failed", Style::default().fg(theme.gray)))
-                .alignment(Alignment::Center)
-        }
-        None => Line::default(),
-    });
-    lines.push(Line::default());
-    lines.push(auth_fallback_line(theme));
-}
-
-/// Rows occupied by [`push_auth_copy_block`].
-fn auth_copy_block_rows(inner_width: u16) -> u16 {
-    auth_copy_line_rows(inner_width) + 5
-}
-
-/// Click hit-rects for the copy line and fallback link. `header`'s wrapped row
-/// count sets the copy line's vertical offset.
-fn auth_hit_rects(
-    msg_area: Rect,
-    h_pad: u16,
-    inner_width: u16,
-    header: &str,
-    preceding_extra: u16,
-) -> (Option<Rect>, Option<Rect>) {
-    let preceding = auth_copy_preceding_rows(header, inner_width) + preceding_extra;
-    let copy_rows = auth_copy_line_rows(inner_width);
-    let copy_rect = Rect {
-        x: msg_area.x + h_pad,
-        y: msg_area.y + preceding,
-        width: inner_width,
-        height: copy_rows,
-    };
-    // fallback line is after: copy_rows + blank + copied_slot + blank
-    let fallback_y = msg_area.y + preceding + copy_rows + 3;
-    let fb_rect = Rect {
-        x: msg_area.x + h_pad,
-        y: fallback_y,
-        width: inner_width,
-        height: 1,
-    };
-    (Some(copy_rect), Some(fb_rect))
-}
-
-/// Render the "raw URL" mode: shows the full URL with mouse capture disabled
-/// so the user can select and copy it natively.
-fn render_raw_url_mode(
-    content_area: Rect,
-    buf: &mut Buffer,
-    theme: &Theme,
-    top_pad: u16,
-    logo_line_count: u16,
-    auth_url: Option<&str>,
-) -> (Option<Rect>, Option<Rect>) {
-    // Use full terminal width for the URL so the terminal wraps it
-    // naturally without inserting spaces (important for copy-paste).
-    let full_width = content_area.width.max(1);
-    let url_lines = auth_url
-        .map(|u| (u.len() as u16).div_ceil(full_width))
-        .unwrap_or(0);
-    let msg_height = 1 + 1 + url_lines; // hint + blank + URL
-    let [_, logo_area, _, msg_area, _, hint_area, _] = Layout::vertical([
-        Constraint::Length(top_pad),
-        Constraint::Length(logo_line_count),
-        Constraint::Length(2),
-        Constraint::Length(msg_height),
-        Constraint::Min(1),
-        Constraint::Length(1),
-        Constraint::Min(0),
-    ])
-    .areas(content_area);
-
-    render_logo(logo_area, buf, theme, content_area.height);
-
-    // Render hint above the URL.
-    let hint = Line::from(Span::styled(
-        "Select the URL below with your mouse and copy manually.",
-        Style::default().fg(theme.gray),
-    ))
-    .alignment(Alignment::Center);
-    Paragraph::new(hint).render(
-        Rect {
-            height: 1,
-            ..msg_area
-        },
-        buf,
-    );
-
-    // Write the URL directly to the buffer character-by-character so the
-    // terminal wraps naturally at the screen edge. Ratatui's Paragraph
-    // wrap inserts spaces at break points which corrupts the URL on copy.
-    //
-    // When the URL fits on a single line, center it to match the rest of the
-    // screen. When it's longer, keep it flush-left at the full terminal width
-    // so the natural wrap preserves copy-paste (centering a wrapped URL would
-    // inject leading spaces into the selection).
-    if let Some(url) = auth_url {
-        let url_style = Style::default().fg(theme.accent_user);
-        let url_y = msg_area.y + 2; // after hint + blank
-        // Control characters are skipped below to prevent terminal escape
-        // injection, so measure the URL without them.
-        let url_len = url.chars().filter(|c| !c.is_control()).count() as u16;
-        let x_offset = if url_len <= full_width {
-            (full_width - url_len) / 2
-        } else {
-            0
-        };
-        let buf_area = buf.area();
-        let buf_max_col = buf_area.x + buf_area.width;
-        let buf_max_row = buf_area.y + buf_area.height;
-        for (i, ch) in url.chars().filter(|c| !c.is_control()).enumerate() {
-            let col = msg_area.x + x_offset + (i as u16) % full_width;
-            let row = url_y + (i as u16) / full_width;
-            if row >= msg_area.y + msg_area.height {
-                break;
-            }
-            // Guard against OOB access during resize races.
-            if col >= buf_max_col || row >= buf_max_row {
-                continue;
-            }
-            buf[(col, row)].set_char(ch).set_style(url_style);
-        }
-    }
-
-    let hint_spans = vec![
-        Span::styled(
-            "ctrl+q",
-            Style::default()
-                .fg(theme.accent_user)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::styled("  go back", Style::default().fg(theme.gray)),
-    ];
-    let hints = Line::from(hint_spans).alignment(Alignment::Center);
-    Paragraph::new(hints).render(hint_area, buf);
-
-    (None, None) // no click rects — mouse capture is disabled
-}
-
-/// Which "browser opened, now waiting" arm to render; owns the header,
-/// waiting caption, and (for `Device`) the device-code derivation.
-#[derive(Clone, Copy)]
-enum BrowserStatusKind {
-    /// External auth provider opened its own browser.
-    Command,
-    /// RFC 8628 device flow — also shows the device code.
-    Device,
-}
-
-/// Render a "browser opened, now waiting" auth arm (Command + Device).
-///
-/// Shared status layout: logo, then a centered block of header, optional device
-/// code + caption, optional copy/fallback links (when there's a URL), and the
-/// waiting caption; finally quit hints.
-#[allow(clippy::too_many_arguments)]
-fn render_browser_status_arm(
-    content_area: Rect,
-    buf: &mut Buffer,
-    theme: &Theme,
-    top_pad: u16,
-    logo_line_count: u16,
-    auth_url: Option<&str>,
-    show_raw_url: bool,
-    clipboard_delivery: Option<crate::clipboard::ClipboardDelivery>,
-    kind: BrowserStatusKind,
-) -> (Option<Rect>, Option<Rect>) {
-    let h_pad: u16 = content_area.width / 6;
-    let inner_width = content_area.width.saturating_sub(h_pad * 2).max(1);
-
-    if show_raw_url {
-        return render_raw_url_mode(content_area, buf, theme, top_pad, logo_line_count, auth_url);
-    }
-
-    // Device also parses the user code from the verification URL.
-    let (header, waiting_text, user_code) = match kind {
-        BrowserStatusKind::Command => (AUTH_HEADER, "Waiting for login to complete...", None),
-        BrowserStatusKind::Device => (
-            DEVICE_AUTH_HEADER,
-            "Waiting for approval...",
-            auth_url.and_then(extract_user_code),
-        ),
-    };
-
-    let header_rows = (header.len() as u16).div_ceil(inner_width);
-    let code_extra = if user_code.is_some() {
-        let caption_rows = (DEVICE_CODE_CAPTION.len() as u16).div_ceil(inner_width);
-        1 + 1 + 1 + caption_rows // blank + code + blank + caption
-    } else {
-        0
-    };
-    let copy_extra = if auth_url.is_some() {
-        auth_copy_block_rows(inner_width)
-    } else {
-        0
-    };
-    let msg_height = header_rows + code_extra + copy_extra + 1 + 1; // blank + waiting
-
-    let [_, logo_area, _, msg_area, _, hint_area, _] = Layout::vertical([
-        Constraint::Length(top_pad),
-        Constraint::Length(logo_line_count),
-        Constraint::Length(2),          // gap
-        Constraint::Length(msg_height), // status message
-        Constraint::Min(1),             // gap
-        Constraint::Length(1),          // hints
-        Constraint::Min(0),
-    ])
-    .areas(content_area);
-
-    render_logo(logo_area, buf, theme, content_area.height);
-
-    let mut lines: Vec<Line> = vec![
-        Line::from(Span::styled(header, Style::default().fg(theme.gray_bright)))
-            .alignment(Alignment::Center),
-    ];
-    if let Some(code) = user_code {
-        lines.push(Line::default());
-        lines.push(
-            Line::from(Span::styled(
-                code.to_owned(),
-                Style::default()
-                    .fg(theme.text_primary)
-                    .add_modifier(Modifier::BOLD),
-            ))
-            .alignment(Alignment::Center),
-        );
-        lines.push(Line::default());
-        lines.push(
-            Line::from(Span::styled(
-                DEVICE_CODE_CAPTION,
-                Style::default().fg(theme.gray),
-            ))
-            .alignment(Alignment::Center),
-        );
-    }
-    if auth_url.is_some() {
-        push_auth_copy_block(&mut lines, theme, clipboard_delivery);
-    }
-    lines.push(Line::default());
-    lines.push(
-        Line::from(Span::styled(waiting_text, Style::default().fg(theme.gray)))
-            .alignment(Alignment::Center),
-    );
-    Paragraph::new(lines)
-        .wrap(Wrap { trim: false })
-        .block(Block::default().padding(Padding::horizontal(h_pad)))
-        .render(msg_area, buf);
-
-    let (click_rect, fallback_rect) = if auth_url.is_some() {
-        auth_hit_rects(msg_area, h_pad, inner_width, header, code_extra)
-    } else {
-        (None, None)
-    };
-
-    let hints = Line::from(quit_hint_spans(theme)).alignment(Alignment::Center);
-    Paragraph::new(hints).render(hint_area, buf);
-
-    (click_rect, fallback_rect)
-}
-
-/// Render the welcome screen during authentication (Authenticating state).
-#[allow(clippy::too_many_arguments)]
-fn render_welcome_authenticating(
-    content_area: Rect,
-    buf: &mut Buffer,
-    theme: &Theme,
-    logo_line_count: u16,
-    auth_url: Option<&str>,
-    mode: AuthMode,
-    auth_code_input: &str,
-    auth_code_cursor_byte: usize,
-    clipboard_delivery: Option<crate::clipboard::ClipboardDelivery>,
-    show_raw_url: bool,
-) -> (Option<Rect>, Option<Rect>) {
-    let top_pad = content_area.height.saturating_sub(logo_line_count) / 10;
-
-    match mode {
-        AuthMode::Loopback => {
-            // Manual token paste: show copy prompt + input box
-            let h_pad: u16 = content_area.width / 6;
-            let inner_width = content_area.width.saturating_sub(h_pad * 2).max(1);
-
-            if show_raw_url {
-                return render_raw_url_mode(
-                    content_area,
-                    buf,
-                    theme,
-                    top_pad,
-                    logo_line_count,
-                    auth_url,
-                );
-            }
-
-            let msg_height = if auth_url.is_some() {
-                let header_rows = (AUTH_HEADER.len() as u16).div_ceil(inner_width);
-                header_rows + auth_copy_block_rows(inner_width)
-            } else {
-                1u16
-            };
-            let [_, logo_area, _, msg_area, _, prompt_area, _, hint_area, _] = Layout::vertical([
-                Constraint::Length(top_pad),
-                Constraint::Length(logo_line_count),
-                Constraint::Length(1),          // gap
-                Constraint::Length(msg_height), // instruction + copy prompt
-                Constraint::Min(1),             // gap
-                Constraint::Length(5),          // prompt box
-                Constraint::Length(1),          // gap
-                Constraint::Length(1),          // hints
-                Constraint::Min(0),
-            ])
-            .areas(content_area);
-
-            render_logo(logo_area, buf, theme, content_area.height);
-
-            // Instruction text
-            let mut lines: Vec<Line> = Vec::new();
-            if auth_url.is_some() {
-                lines.push(
-                    Line::from(Span::styled(
-                        AUTH_HEADER,
-                        Style::default().fg(theme.gray_bright),
-                    ))
-                    .alignment(Alignment::Center),
-                );
-                push_auth_copy_block(&mut lines, theme, clipboard_delivery);
-            } else {
-                lines.push(
-                    Line::from(Span::styled(
-                        "Waiting for auth URL...",
-                        Style::default().fg(theme.gray),
-                    ))
-                    .alignment(Alignment::Center),
-                );
-            }
-            Paragraph::new(lines)
-                .wrap(Wrap { trim: false })
-                .block(Block::default().padding(Padding::horizontal(h_pad)))
-                .render(msg_area, buf);
-
-            let (click_rect, fallback_rect) = if auth_url.is_some() {
-                auth_hit_rects(msg_area, h_pad, inner_width, AUTH_HEADER, 0)
-            } else {
-                (None, None)
-            };
-
-            // Prompt box with token input
-            let prompt_width = content_area.width;
-            let [_, prompt_centered, _] = Layout::horizontal([
-                Constraint::Min(0),
-                Constraint::Length(prompt_width),
-                Constraint::Min(0),
-            ])
-            .flex(Flex::Center)
-            .areas(prompt_area);
-            render_auth_input_box(
-                prompt_centered,
-                buf,
-                theme,
-                auth_code_input,
-                auth_code_cursor_byte,
-            );
-
-            // Hints
-            let mut hint_spans = vec![
-                Span::styled(
-                    "enter",
-                    Style::default()
-                        .fg(theme.accent_user)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled("  submit    ", Style::default().fg(theme.gray)),
-            ];
-            hint_spans.extend(quit_hint_spans(theme));
-            let hints = Line::from(hint_spans).alignment(Alignment::Center);
-            Paragraph::new(hints).render(hint_area, buf);
-
-            (click_rect, fallback_rect)
-        }
-
-        AuthMode::Command => render_browser_status_arm(
-            content_area,
-            buf,
-            theme,
-            top_pad,
-            logo_line_count,
-            auth_url,
-            show_raw_url,
-            clipboard_delivery,
-            BrowserStatusKind::Command,
-        ),
-
-        AuthMode::Device => render_browser_status_arm(
-            content_area,
-            buf,
-            theme,
-            top_pad,
-            logo_line_count,
-            auth_url,
-            show_raw_url,
-            clipboard_delivery,
-            BrowserStatusKind::Device,
-        ),
-
-        AuthMode::Pending => {
-            // Connecting: status text
-            let [_, logo_area, _, msg_area, _, hint_area, _] = Layout::vertical([
-                Constraint::Length(top_pad),
-                Constraint::Length(logo_line_count),
-                Constraint::Length(2),
-                Constraint::Length(2),
-                Constraint::Min(1),
-                Constraint::Length(1),
-                Constraint::Min(0),
-            ])
-            .areas(content_area);
-
-            render_logo(logo_area, buf, theme, content_area.height);
-
-            let msg = Line::from(Span::styled(
-                "Connecting...",
-                Style::default().fg(theme.gray_bright),
-            ))
-            .alignment(Alignment::Center);
-            Paragraph::new(msg).render(msg_area, buf);
-
-            let hints = Line::from(quit_hint_spans(theme)).alignment(Alignment::Center);
-            Paragraph::new(hints).render(hint_area, buf);
-
-            (None, None)
-        }
-    }
-}
 
 /// Shrink a rect by `inset` columns on the left and right (clamped at 0).
 fn inset_horizontal(rect: Rect, inset: u16) -> Rect {
@@ -1678,9 +1092,8 @@ fn render_welcome_done(
         .and_then(|g| g.label.as_deref())
         .unwrap_or("Upgrade Subscription");
     let in_vscode_family = welcome_in_vscode_family();
-    let (key_g, key_l, key_q) = (
+    let (key_g, key_q) = (
         "ctrl+g",
-        "ctrl+l",
         if in_vscode_family { "ctrl+d" } else { "ctrl+q" },
     );
 
@@ -1731,7 +1144,7 @@ fn render_welcome_done(
     let gate_menu;
     let owned_menu;
     let menu_items: &[(&str, &str)] = if !p.has_access {
-        gate_menu = [(key_g, cta), (key_l, "Logout"), (key_q, "Quit")];
+        gate_menu = [(key_g, cta), (key_q, "Quit")];
         &gate_menu
     } else {
         let (key_w, key_s, key_q, key_i_with_x) = (
@@ -2235,8 +1648,6 @@ fn render_welcome_done(
         },
         session_picker_hit_areas: picker_close_button,
         import_banner_rect,
-        auth_url_rect: None,
-        auth_fallback_rect: None,
         refresh_rect: refresh_hit_rect,
         gate_url_rect: gate_url_hit_rect,
         changelog_action_present: show_changelog_action,
@@ -2543,52 +1954,6 @@ pub(crate) fn render_session_picker(
     )
 }
 
-/// Render the auth token input box (loopback mode).
-fn render_auth_input_box(
-    area: Rect,
-    buf: &mut Buffer,
-    theme: &Theme,
-    input: &str,
-    cursor_byte: usize,
-) {
-    let prompt_block = Block::default()
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme.accent_user))
-        .padding(Padding {
-            left: 2,
-            right: 1,
-            top: 0,
-            bottom: 0,
-        });
-    let inner = prompt_block.inner(area);
-    prompt_block.render(area, buf);
-
-    if inner.height > 0 && inner.width > 2 {
-        let prompt = crate::glyphs::prompt_arrow();
-        let prompt_width = prompt.width() as u16;
-        let input_width = inner.width.saturating_sub(prompt_width);
-        let (display, cursor_column) =
-            masked_auth_token_view(input, cursor_byte, input_width as usize);
-
-        let style = if input.is_empty() {
-            Style::default().fg(theme.gray_dim)
-        } else {
-            Style::default().fg(theme.accent_user)
-        };
-
-        let line = Line::from(vec![
-            Span::styled(prompt, Style::default().fg(theme.accent_user)),
-            Span::styled(display, style),
-        ]);
-        buf.set_line(inner.x, inner.y, &line, inner.width);
-        if input_width > 0 {
-            let cursor_x = inner.x + prompt_width + cursor_column as u16;
-            if let Some(cell) = buf.cell_mut((cursor_x, inner.y)) {
-                cell.set_style(Style::default().fg(theme.bg_base).bg(theme.text_primary));
-            }
-        }
-    }
-}
 
 /// Render one startup warning centered in the given area.
 ///
@@ -2635,49 +2000,6 @@ fn render_startup_warnings(
     None
 }
 
-fn auth_token_grapheme_visible(index: usize, total: usize) -> bool {
-    total <= 8 || index + 4 >= total
-}
-
-struct MaskedAuthToken {
-    display: String,
-    cursor_byte: usize,
-}
-
-fn build_masked_auth_token(input: &str, cursor_byte: usize) -> MaskedAuthToken {
-    let graphemes: Vec<(usize, &str)> = input.grapheme_indices(true).collect();
-    let total = graphemes.len();
-    let mut display = String::new();
-    let mut mapped_cursor = None;
-    for (index, (byte, grapheme)) in graphemes.into_iter().enumerate() {
-        if byte == cursor_byte {
-            mapped_cursor = Some(display.len());
-        }
-        if auth_token_grapheme_visible(index, total) {
-            display.push_str(grapheme);
-        } else {
-            display.push('\u{2022}');
-        }
-    }
-    MaskedAuthToken {
-        cursor_byte: mapped_cursor.unwrap_or(display.len()),
-        display,
-    }
-}
-
-fn masked_auth_token_view(input: &str, cursor_byte: usize, width: usize) -> (String, usize) {
-    if input.is_empty() {
-        return ("Paste your token here...".to_string(), 0);
-    }
-    let masked = build_masked_auth_token(input, cursor_byte);
-    let buffer =
-        nofy_ratatui_textarea::EditBuffer::from_parts(masked.display.as_str(), masked.cursor_byte);
-    let viewport = buffer.single_line_viewport(width);
-    (
-        masked.display[viewport.visible_byte_range].to_owned(),
-        viewport.cursor_display_column,
-    )
-}
 
 #[cfg(test)]
 mod tests {
@@ -2725,100 +2047,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn auth_copy_feedback_covers_delivery_states() {
-        let theme = Theme::current();
-        for (delivery, expected) in [
-            (crate::clipboard::ClipboardDelivery::Confirmed, "copied!"),
-            (
-                crate::clipboard::ClipboardDelivery::Unverified,
-                "copy sent—verify paste",
-            ),
-            (crate::clipboard::ClipboardDelivery::Failed, "copy failed"),
-        ] {
-            let mut lines = Vec::new();
-            push_auth_copy_block(&mut lines, &theme, Some(delivery));
-            let feedback = lines[3]
-                .spans
-                .iter()
-                .map(|span| span.content.as_ref())
-                .collect::<String>();
-            assert_eq!(feedback, expected);
-        }
-    }
-
-    #[test]
-    fn masked_auth_token_preserves_reveal_policy() {
-        assert_eq!(
-            masked_auth_token_view("", 0, 24),
-            ("Paste your token here...".to_string(), 0)
-        );
-        assert_eq!(build_masked_auth_token("12345678", 8).display, "12345678");
-        assert_eq!(build_masked_auth_token("123456789", 9).display, "•••••6789");
-
-        let input = "abcdefghMIDDLEwxyz";
-        let masked = build_masked_auth_token(input, input.len()).display;
-        assert!(masked.starts_with("••••"));
-        assert!(masked.ends_with("wxyz"));
-        assert!(!masked.contains("MIDDLE"));
-        assert!(masked.contains("\u{2022}"));
-
-        let input = "测试令牌一二三四五六七八九十";
-        let masked = build_masked_auth_token(input, input.len()).display;
-        assert!(masked.starts_with("••••"));
-        assert!(masked.contains("\u{2022}"));
-    }
-
-    #[test]
-    fn masked_auth_mapping_handles_zero_width_combining_and_zwj_middle() {
-        let prefix = "abcdefgh";
-        let hidden = "\u{200b}e\u{301}👩🏽\u{200d}💻MID";
-        let suffix = "wxyz";
-        let token = format!("{prefix}{hidden}{suffix}");
-        let before = prefix.len();
-        let inside = prefix.len() + "\u{200b}e\u{301}".len();
-        let after = prefix.len() + hidden.len();
-        let expected = format!("{}{}", "\u{2022}".repeat(14), suffix);
-
-        let before_masked = build_masked_auth_token(&token, before);
-        let inside_masked = build_masked_auth_token(&token, inside);
-        let after_masked = build_masked_auth_token(&token, after);
-        assert_eq!(before_masked.display, expected);
-        assert_eq!(inside_masked.display, expected);
-        assert_eq!(after_masked.display, expected);
-        assert_eq!(before_masked.cursor_byte, "\u{2022}".len() * 8);
-        assert_eq!(inside_masked.cursor_byte, "\u{2022}".len() * 10);
-        assert_eq!(after_masked.cursor_byte, "\u{2022}".len() * 14);
-
-        for width in [1, 2, 5] {
-            for cursor in [before, inside, after] {
-                let (view, cursor_column) = masked_auth_token_view(&token, cursor, width);
-                assert!(view.width() <= width);
-                assert!(cursor_column < width);
-                assert!(!view.contains('\u{200b}'));
-                assert!(!view.contains("e\u{301}"));
-                assert!(!view.contains("👩🏽\u{200d}💻"));
-                assert!(!view.contains("MID"));
-            }
-        }
-
-        let wide_prefix = "中bcdefgh";
-        let wide_token = format!("{wide_prefix}HIDDEN{suffix}");
-        let (_, cursor_column) = masked_auth_token_view(&wide_token, wide_prefix.len(), 40);
-        assert_eq!(cursor_column, wide_prefix.graphemes(true).count());
-    }
-
-    #[test]
-    fn masked_auth_render_keeps_narrow_caret_visible() {
-        let token = "abcdefghSECRET-MIDDLEwxyz";
-        let cursor = "abcdefghSECRET".len();
-        let area = Rect::new(0, 0, 9, 3);
-        let theme = Theme::current();
-        let mut buffer = Buffer::empty(area);
-        render_auth_input_box(area, &mut buffer, &theme, token, cursor);
-        assert!((0..area.width).any(|x| buffer[(x, 1)].bg == theme.text_primary));
-    }
-
     fn make_entry(id: &str, summary: &str, repo_name: &str) -> SessionPickerEntry {
         SessionPickerEntry {
             id: id.into(),
@@ -2848,11 +2076,6 @@ mod tests {
             prompt_focus: WelcomePromptFocus::Unfocused,
             auth_state,
             trust_state,
-            login_label: None,
-            auth_code_input: "",
-            auth_code_cursor_byte: 0,
-            clipboard_delivery: None,
-            show_raw_url: false,
             announcement: None,
             tip: None,
             model_name: "test",
@@ -2862,7 +2085,6 @@ mod tests {
             has_access: true,
             has_claude_import: false,
             mouse_pos: None,
-            is_zdr_blocked: false,
             session_picker,
             session_picker_loading: false,
             compact: false,
@@ -2981,29 +2203,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn authenticating_welcome_returns_paired_overlay_clear() {
-        let _guard = crate::terminal::image::set_protocol_for_test(
-            crate::terminal::image::GraphicsProtocol::Kitty,
-        );
-        crate::terminal::overlay::reset_owner();
-        seed_static_owner(81);
-        let auth_state = AuthState::Authenticating {
-            request_seq: 1,
-            handle: None,
-            auth_url: None,
-            mode: AuthMode::Command,
-        };
-        let trust_state = TrustState::Done;
-        let params = render_params(&auth_state, &trust_state, None);
-        let area = Rect::new(0, 0, 100, 40);
-        let mut buf = Buffer::empty(area);
-        let mut prompt = PromptWidget::new();
-        let mut picker = PickerState::default();
-
-        let result = render_welcome(area, &mut buf, &params, &mut prompt, &mut picker);
-        assert_promptless_clear(result, 81);
-    }
 
     #[test]
     fn picker_welcome_returns_paired_overlay_clear() {
@@ -3606,7 +2805,7 @@ mod tests {
 
     #[test]
     fn blocked_layout_stays_stacked_on_wide_terminal() {
-        // The login / ZDR screens render through render_welcome_blocked, which
+        // The blocked screen renders through render_welcome_blocked, which
         // only paints the stacked logo/menu rects. compute_stacked must never
         // hand them a hero-box layout (which zeroes those rects), even on a
         // wide, tall terminal where the normal path picks the hero box.
@@ -3628,11 +2827,11 @@ mod tests {
         assert!(!blocked.has_hero_box());
         assert!(
             blocked.logo.height > 0,
-            "logo must be painted on the login screen"
+            "logo must be painted on the blocked screen"
         );
         assert!(
             blocked.menu.height > 0,
-            "menu must be painted on the login screen"
+            "menu must be painted on the blocked screen"
         );
     }
 
@@ -3824,238 +3023,6 @@ mod tests {
             out.push('\n');
         }
         out
-    }
-
-    #[test]
-    fn extract_user_code_parses_verification_url() {
-        assert_eq!(
-            extract_user_code("https://accounts.x.ai/oauth2/device?user_code=ABCD-EFGH"),
-            Some("ABCD-EFGH"),
-        );
-        // Trailing params after the code are ignored.
-        assert_eq!(
-            extract_user_code("https://nofy/oauth2/device?user_code=WXYZ-1234&foo=bar"),
-            Some("WXYZ-1234"),
-        );
-        // A param whose name merely ends in `user_code` must not be matched.
-        assert_eq!(
-            extract_user_code("https://nofy/d?foo_user_code=BAD&user_code=GOOD"),
-            Some("GOOD"),
-        );
-        // No code param, empty code, and unexpected characters all yield None.
-        assert_eq!(extract_user_code("https://nofy/oauth2/device"), None);
-        assert_eq!(extract_user_code("https://nofy/d?user_code="), None);
-        assert_eq!(extract_user_code("https://nofy/d?user_code=AB%20CD"), None);
-    }
-
-    #[test]
-    fn device_auth_arm_shows_url_and_no_paste_box() {
-        let area = Rect::new(0, 0, 80, 40);
-        let mut buf = Buffer::empty(area);
-        let theme = Theme::current();
-        let url = "https://accounts.x.ai/oauth2/device?user_code=ABCD-EFGH";
-
-        let (copy_rect, fallback_rect) = render_welcome_authenticating(
-            area,
-            &mut buf,
-            &theme,
-            logo_line_count(area.height),
-            Some(url),
-            AuthMode::Device,
-            "", // auth_code_input — unused in device mode
-            0,
-            None,  // clipboard_delivery
-            false, // show_raw_url
-        );
-
-        let text = buffer_text(&buf);
-        assert!(
-            text.contains("Approve in your browser"),
-            "device arm must show the approval header, got:\n{text}"
-        );
-        // Device code shown for the browser-match check (anti-phishing).
-        assert!(
-            text.contains("ABCD-EFGH"),
-            "device arm must show the device code, got:\n{text}"
-        );
-        assert!(
-            text.contains("Make sure your browser shows this code"),
-            "device arm must show the code caption, got:\n{text}"
-        );
-        // Copy affordance (click-to-copy line) is present.
-        assert!(
-            text.contains("to copy"),
-            "device arm must show the copy-URL affordance, got:\n{text}"
-        );
-        // No manual-paste affordance in device mode.
-        assert!(
-            !text.contains("Paste your token"),
-            "device arm must NOT render the token paste box, got:\n{text}"
-        );
-        // Copy + fallback links are clickable.
-        assert!(
-            copy_rect.is_some(),
-            "device arm must expose a copy hit-rect"
-        );
-        assert!(
-            fallback_rect.is_some(),
-            "device arm must expose a show-full-URL hit-rect"
-        );
-    }
-
-    #[test]
-    fn device_auth_arm_raw_url_mode_shows_full_url() {
-        let area = Rect::new(0, 0, 80, 40);
-        let mut buf = Buffer::empty(area);
-        let theme = Theme::current();
-        let url = "https://accounts.x.ai/oauth2/device?user_code=WXYZ-1234";
-
-        render_welcome_authenticating(
-            area,
-            &mut buf,
-            &theme,
-            logo_line_count(area.height),
-            Some(url),
-            AuthMode::Device,
-            "",
-            0,
-            None,
-            true, // show_raw_url
-        );
-
-        let text = buffer_text(&buf);
-        assert!(
-            text.contains("WXYZ-1234"),
-            "raw URL mode must render the full URL including the user code, got:\n{text}"
-        );
-    }
-
-    #[test]
-    fn raw_url_mode_centers_url_that_fits_on_one_line() {
-        let area = Rect::new(0, 0, 80, 40);
-        let mut buf = Buffer::empty(area);
-        let theme = Theme::current();
-        let url = "https://accounts.x.ai/oauth2/device?user_code=WXYZ-1234";
-
-        render_welcome_authenticating(
-            area,
-            &mut buf,
-            &theme,
-            logo_line_count(area.height),
-            Some(url),
-            AuthMode::Device,
-            "",
-            0,
-            None,
-            true, // show_raw_url
-        );
-
-        let text = buffer_text(&buf);
-        let url_line = text
-            .lines()
-            .find(|l| l.contains("https://"))
-            .expect("raw URL mode must render the URL");
-        // Whole URL on one line, not wrapped.
-        assert!(url_line.contains(url), "URL must be intact: {url_line:?}");
-        // Centered: leading pad within 1 cell of trailing pad (integer split).
-        let lead = url_line.len() - url_line.trim_start().len();
-        let trail = url_line.len() - url_line.trim_end().len();
-        assert!(
-            lead > 0 && lead.abs_diff(trail) <= 1,
-            "URL must be horizontally centered, lead={lead} trail={trail}:\n{text}"
-        );
-    }
-
-    #[test]
-    fn raw_url_mode_uses_full_width_for_long_urls() {
-        let area = Rect::new(0, 0, 40, 40);
-        let mut buf = Buffer::empty(area);
-        let theme = Theme::current();
-        // 40-col terminal; URL longer than one row must wrap at the exact
-        // screen edge with no leading spaces so copy-paste stays intact.
-        let url = "https://accounts.x.ai/oauth2/device?user_code=WXYZ-1234&extra=0123456789";
-
-        render_welcome_authenticating(
-            area,
-            &mut buf,
-            &theme,
-            logo_line_count(area.height),
-            Some(url),
-            AuthMode::Device,
-            "",
-            0,
-            None,
-            true, // show_raw_url
-        );
-
-        let text = buffer_text(&buf);
-        let mut lines = text.lines();
-        let first = lines
-            .by_ref()
-            .find(|l| l.contains("https://"))
-            .expect("raw URL mode must render the URL");
-        let second = lines.next().expect("URL must wrap to a second row");
-        // First row flush against both edges (full width), remainder on the
-        // next row starting at column 0.
-        assert_eq!(
-            first,
-            &url[..40],
-            "long URL row must span the full terminal width:\n{text}"
-        );
-        assert!(
-            second.starts_with(&url[40..]),
-            "wrapped remainder must start at column 0:\n{text}"
-        );
-    }
-
-    #[test]
-    fn command_auth_arm_shows_url_and_waiting() {
-        let area = Rect::new(0, 0, 80, 40);
-        let mut buf = Buffer::empty(area);
-        let theme = Theme::current();
-        let url = "https://accounts.x.ai/oauth2/authorize?client_id=nofy";
-
-        let (copy_rect, fallback_rect) = render_welcome_authenticating(
-            area,
-            &mut buf,
-            &theme,
-            logo_line_count(area.height),
-            Some(url),
-            AuthMode::Command,
-            "", // auth_code_input — unused
-            0,
-            None,  // clipboard_delivery
-            false, // show_raw_url
-        );
-
-        let text = buffer_text(&buf);
-        assert!(
-            text.contains("A browser window will open"),
-            "command arm must show the auth header, got:\n{text}"
-        );
-        assert!(
-            text.contains("Waiting for login to complete"),
-            "command arm must show the waiting status, got:\n{text}"
-        );
-        // No device code — that's device-flow only.
-        assert!(
-            !text.contains("Make sure your browser shows this code"),
-            "command arm must NOT show the device-code caption, got:\n{text}"
-        );
-        // No manual-paste affordance in command mode.
-        assert!(
-            !text.contains("Paste your token"),
-            "command arm must NOT render the token paste box, got:\n{text}"
-        );
-        // Copy + fallback links are clickable.
-        assert!(
-            copy_rect.is_some(),
-            "command arm must expose a copy hit-rect"
-        );
-        assert!(
-            fallback_rect.is_some(),
-            "command arm must expose a show-full-URL hit-rect"
-        );
     }
 
     fn long_ann() -> nofy_announcements::RemoteAnnouncement {

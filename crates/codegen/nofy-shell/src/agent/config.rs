@@ -2,7 +2,7 @@ use crate::agent::auth_method::ModelByok;
 use crate::agent::model_providers::{
     ModelProviderConfig, auth_config_issues, model_provider_auth_name, parse_model_providers,
 };
-use crate::auth::{AuthManager, NofyComConfig, OidcAuthConfig};
+use crate::auth::{AuthManager, NofyComConfig};
 use crate::remote::DEFAULT_CONTEXT_WINDOW;
 use crate::{config::StorageMode, sampling::ApiBackend, tools::config::ShellToolsetConfig};
 use agent_client_protocol as acp;
@@ -480,10 +480,6 @@ impl EndpointsConfig {
             "trace_upload_bucket has unrecognized scheme (expected gs:// or s3://), ignoring"
         );
         None
-    }
-    /// Whether trace upload can authenticate without an interactive login.
-    pub fn has_noninteractive_upload_auth(&self) -> bool {
-        self.deployment_key.is_some() || self.resolve_direct_upload_method().is_some()
     }
     /// Direct bucket → proxy (if `auth_token` or `deployment_key`) → ambient GCS → `None`.
     pub fn resolve_upload_method(
@@ -2023,12 +2019,6 @@ impl Config {
             }
         }
         super::config_model_override_parse::log_config_warnings(&config.config_warnings);
-        if config.nofy_com_config.oidc.is_none() {
-            config.nofy_com_config.oidc = OidcAuthConfig::from_env();
-        }
-        if config.nofy_com_config.oidc.is_none() && config.nofy_com_config.oauth2.is_none() {
-            config.nofy_com_config.oauth2 = crate::auth::OAuth2ProviderConfig::from_env();
-        }
         if config.client_version.is_none() {
             config.client_version = Self::default().client_version;
         }
@@ -2175,7 +2165,7 @@ impl Config {
     /// If the TOML contains `[auth]`, copy its contents under `[nofy_com_config]`.
     /// `[nofy_com_config]` takes precedence if both are present (explicit wins).
     ///
-    /// This lets customers write the shorter `[auth.oidc]` instead of `[nofy_com_config.oidc]`.
+    /// This lets customers write the shorter `[auth]` instead of `[nofy_com_config]`.
     fn expand_auth_alias(raw_config: &toml::Value) -> toml::Value {
         let mut config = raw_config.clone();
         if let toml::Value::Table(ref mut table) = config
@@ -2569,18 +2559,6 @@ impl Config {
     pub(crate) fn resolve_cancel_rewind(&self) -> Resolved<bool> {
         BoolFlag::env("NOFY_CANCEL_REWIND")
             .config(self.features.cancel_rewind)
-            .default(true)
-            .resolve()
-    }
-    /// Resolve whether to use nofy's default OAuth2 (xAI auth.x.ai).
-    ///
-    /// Enterprise OIDC (`oidc` in config.toml) always wins — this only gates
-    /// the default xAI OAuth2 fallback when no enterprise OIDC is configured.
-    ///
-    /// Priority: `--oauth` > NOFY_OAUTH_ENABLED env > default (true = OAuth).
-    pub(crate) fn resolve_nofy_oauth(&self, cli_oidc: Option<bool>) -> Resolved<bool> {
-        BoolFlag::env("NOFY_OAUTH_ENABLED")
-            .cli(cli_oidc)
             .default(true)
             .resolve()
     }
@@ -4266,42 +4244,6 @@ pub(crate) fn resolve_credentials(
         auth_scheme,
     }
 }
-/// `disable_api_key_auth` at the credential seam: swap a first-party xAI API
-/// key for the IdP session (absent => request fails => forces login). BYOK
-/// (non-xAI `base_url`) is untouched; no-op when the switch is off.
-pub(crate) fn enforce_disable_api_key_auth(
-    creds: &mut ResolvedCredentials,
-    disable_api_key_auth: bool,
-    session_key: Option<&str>,
-) {
-    if disable_api_key_auth
-        && creds.auth_type == nofy_chat_state::AuthType::ApiKey
-        && crate::util::is_xai_api_url(&creds.base_url)
-    {
-        creds.auth_type = nofy_chat_state::AuthType::SessionToken;
-        creds.api_key = session_key.map(str::to_owned);
-        nofy_telemetry::unified_log::debug(
-            "auth: kill switch blocked a first-party API key at the credential seam",
-            None,
-            Some(serde_json::json!({
-                "replaced_with_session": session_key.is_some(),
-                "base_url": creds.base_url,
-            })),
-        );
-    }
-}
-/// Resolve credentials for an auxiliary sampling path (web search, image
-/// description) with the first-party API-key kill switch applied, so these
-/// paths honor `disable_api_key_auth` exactly like the main chat path.
-fn resolve_credentials_enforced(
-    entry: &ModelEntry,
-    session_key: Option<&str>,
-    disable_api_key_auth: bool,
-) -> ResolvedCredentials {
-    let mut credentials = resolve_credentials(entry, session_key);
-    enforce_disable_api_key_auth(&mut credentials, disable_api_key_auth, session_key);
-    credentials
-}
 pub use nofy_telemetry::config::deployment_id_from_key;
 /// Try to resolve credentials for a model by loading the effective config.
 /// Returns `None` (with a warning) if config loading, parsing, or model
@@ -4319,12 +4261,7 @@ pub(crate) fn try_resolve_model_credentials(
         .ok()?;
     let models = resolve_model_list(&cfg, None);
     let entry = find_model_by_id(&models, model_id)?;
-    let mut credentials = resolve_credentials(entry, session_key);
-    enforce_disable_api_key_auth(
-        &mut credentials,
-        cfg.nofy_com_config.api_key_auth_disabled(),
-        session_key,
-    );
+    let credentials = resolve_credentials(entry, session_key);
     Some(credentials)
 }
 /// Per-model auth facts (BYOK status + auth scheme) from one effective-config
@@ -4407,13 +4344,12 @@ pub(crate) fn resolve_aux_model_sampling_config(
     models: &IndexMap<String, ModelEntry>,
     endpoints: &EndpointsConfig,
     session_key: Option<&str>,
-    disable_api_key_auth: bool,
     alpha_test_key: Option<String>,
     client_version: Option<String>,
 ) -> Option<SamplerConfig> {
     let catalog_entry = find_model_by_id(models, model_id).cloned();
     if let Some(entry) = &catalog_entry {
-        let credentials = resolve_credentials_enforced(entry, session_key, disable_api_key_auth);
+        let credentials = resolve_credentials(entry, session_key);
         let sampler = sampling_config_for_model(
             entry,
             credentials,
@@ -4479,7 +4415,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
             auth_provider: None,
             api_base_url: None,
         };
-        let credentials = resolve_credentials_enforced(&entry, session_key, disable_api_key_auth);
+        let credentials = resolve_credentials(&entry, session_key);
         let sampler = sampling_config_for_model(
             &entry,
             credentials,
@@ -4667,7 +4603,7 @@ pub(crate) fn provider_task_sampling_config(cfg: &Config) -> SamplerConfig {
         .get(&model_id)
         .cloned()
         .unwrap_or_else(|| ModelEntry::fallback(&model_id, &cfg.endpoints));
-    let credentials = resolve_credentials_enforced(&entry, None, false);
+    let credentials = resolve_credentials(&entry, None);
     sampling_config_for_model(&entry, credentials, None, None, None, None)
 }
 
@@ -5098,7 +5034,6 @@ reasoning_effort = "low"
             &catalog,
             &endpoints,
             None,
-            false,
             None,
             None,
         )
@@ -5132,7 +5067,6 @@ reasoning_effort = "low"
                 &catalog,
                 &endpoints,
                 Some("session-jwt"),
-                false,
                 None,
                 None,
             )
@@ -5145,7 +5079,6 @@ reasoning_effort = "low"
             &catalog,
             &endpoints,
             Some("session-jwt"),
-            false,
             None,
             None,
         )
@@ -6067,75 +6000,6 @@ reasoning_effort = "low"
             auth_type: nofy_chat_state::AuthType::ApiKey,
             auth_scheme: Default::default(),
         }
-    }
-    /// `disable_api_key_auth` kill switch (Claude `forceLoginMethod` parity).
-    #[test]
-    fn enforce_disable_api_key_auth_blocks_first_party_only() {
-        use nofy_chat_state::AuthType;
-        let mut creds = api_key_creds(nofy_env::PROD_XAI_API_BASE_URL);
-        enforce_disable_api_key_auth(&mut creds, false, Some("session-jwt"));
-        assert_eq!(creds.auth_type, AuthType::ApiKey);
-        assert_eq!(creds.api_key.as_deref(), Some("nofy-secret"));
-        let mut creds = api_key_creds(nofy_env::PROD_XAI_API_BASE_URL);
-        enforce_disable_api_key_auth(&mut creds, true, Some("session-jwt"));
-        assert_eq!(creds.auth_type, AuthType::SessionToken);
-        assert_eq!(creds.api_key.as_deref(), Some("session-jwt"));
-        let mut creds = api_key_creds(nofy_env::PROD_XAI_API_BASE_URL);
-        enforce_disable_api_key_auth(&mut creds, true, None);
-        assert_eq!(creds.auth_type, AuthType::SessionToken);
-        assert_eq!(creds.api_key, None);
-        let mut creds = api_key_creds("https://api.example.com/v1");
-        enforce_disable_api_key_auth(&mut creds, true, Some("session-jwt"));
-        assert_eq!(creds.auth_type, AuthType::ApiKey);
-        assert_eq!(creds.api_key.as_deref(), Some("nofy-secret"));
-        let mut creds = ResolvedCredentials {
-            auth_type: AuthType::SessionToken,
-            ..api_key_creds(nofy_env::PROD_XAI_API_BASE_URL)
-        };
-        enforce_disable_api_key_auth(&mut creds, true, Some("session-jwt"));
-        assert_eq!(creds.auth_type, AuthType::SessionToken);
-    }
-    /// Regression for the OVERRIDE_MODEL kill-switch bypass: a first-party model
-    /// with its own api_key resolves to `ApiKey` (priority 1, beating the
-    /// session), and the kill switch — now applied inside
-    /// `try_resolve_model_credentials` — swaps it for the session token. BYOK
-    /// (non-x.ai) own keys are preserved. (`try_resolve_model_credentials`
-    /// loads global config, so this exercises its resolve + enforce core.)
-    #[test]
-    fn try_resolve_model_credentials_swaps_first_party_own_key_under_kill_switch() {
-        use nofy_chat_state::AuthType;
-        let entry = test_model_entry(
-            "m",
-            nofy_env::PROD_XAI_API_BASE_URL,
-            Some("nofy-model-key"),
-            None,
-            None,
-        );
-        let mut creds = resolve_credentials(&entry, Some("session-jwt"));
-        assert_eq!(
-            creds.auth_type,
-            AuthType::ApiKey,
-            "own key wins over session"
-        );
-        assert_eq!(creds.api_key.as_deref(), Some("nofy-model-key"));
-        enforce_disable_api_key_auth(&mut creds, true, Some("session-jwt"));
-        assert_eq!(
-            creds.auth_type,
-            AuthType::SessionToken,
-            "swapped under switch"
-        );
-        assert_eq!(creds.api_key.as_deref(), Some("session-jwt"));
-        let byok = test_model_entry(
-            "b",
-            "https://api.example.com/v1",
-            Some("sk-byok"),
-            None,
-            None,
-        );
-        let mut byok_creds = resolve_credentials(&byok, Some("session-jwt"));
-        enforce_disable_api_key_auth(&mut byok_creds, true, Some("session-jwt"));
-        assert_eq!(byok_creds.auth_type, AuthType::ApiKey);
-        assert_eq!(byok_creds.api_key.as_deref(), Some("sk-byok"));
     }
     #[test]
     fn x_api_key_auth_scheme_flows_from_config_to_sampler() {
@@ -7364,125 +7228,6 @@ reasoning_effort = "low"
         );
         let defaults = TelemetryConfig::default();
         assert_eq!(cfg.telemetry.events_api_key, defaults.events_api_key);
-    }
-    #[test]
-    fn auth_alias_maps_to_nofy_com_config() {
-        let raw: toml::Value = toml::from_str(
-            r#"
-            [auth.oidc]
-            issuer = "https://example.okta.com"
-            client_id = "test-id"
-            "#,
-        )
-        .unwrap();
-        let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
-        let oidc = cfg.nofy_com_config.oidc.expect("oidc should be set");
-        assert_eq!(oidc.issuer, "https://example.okta.com");
-        assert_eq!(oidc.client_id, "test-id");
-    }
-    #[test]
-    fn nofy_com_config_still_works() {
-        let raw: toml::Value = toml::from_str(
-            r#"
-            [nofy_com_config.oidc]
-            issuer = "https://example.okta.com"
-            client_id = "test-id"
-            "#,
-        )
-        .unwrap();
-        let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
-        let oidc = cfg.nofy_com_config.oidc.expect("oidc should be set");
-        assert_eq!(oidc.issuer, "https://example.okta.com");
-    }
-    /// `disable_api_key_auth` plumbs through the `[auth]` alias, and absent
-    /// means None (opt-in knob, zero impact by default).
-    #[test]
-    fn disable_api_key_auth_parses_from_auth_alias() {
-        let absent = Config::new_from_toml_cfg(&toml::from_str("").unwrap()).unwrap();
-        assert_eq!(absent.nofy_com_config.disable_api_key_auth, None);
-        let raw: toml::Value = toml::from_str(
-            r#"
-            [auth]
-            disable_api_key_auth = true
-            "#,
-        )
-        .unwrap();
-        let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
-        assert_eq!(cfg.nofy_com_config.disable_api_key_auth, Some(true));
-    }
-    /// `force_login_team_uuid` parses a string (pin), array (any-of), or `[]`
-    /// (fail closed); absent => None.
-    #[test]
-    fn force_login_team_uuid_parses_string_and_array() {
-        use crate::auth::ForceLoginTeam;
-        let absent = Config::new_from_toml_cfg(&toml::from_str("").unwrap()).unwrap();
-        assert_eq!(absent.nofy_com_config.force_login_team_uuid, None);
-        let raw: toml::Value = toml::from_str(
-            r#"
-            [auth]
-            force_login_team_uuid = "team-abc"
-            "#,
-        )
-        .unwrap();
-        let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
-        assert_eq!(
-            cfg.nofy_com_config.force_login_team_uuid,
-            Some(ForceLoginTeam::Single("team-abc".into())),
-        );
-        let raw: toml::Value = toml::from_str(
-            r#"
-            [nofy_com_config]
-            force_login_team_uuid = ["team-a", "team-b"]
-            "#,
-        )
-        .unwrap();
-        let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
-        assert_eq!(
-            cfg.nofy_com_config.force_login_team_uuid,
-            Some(ForceLoginTeam::AnyOf(vec![
-                "team-a".into(),
-                "team-b".into()
-            ])),
-        );
-        let raw: toml::Value = toml::from_str(
-            r#"
-            [auth]
-            force_login_team_uuid = []
-            "#,
-        )
-        .unwrap();
-        let cfg = Config::new_from_toml_cfg(&raw).expect("config should parse");
-        assert_eq!(
-            cfg.nofy_com_config.force_login_team_uuid,
-            Some(ForceLoginTeam::AnyOf(vec![])),
-        );
-    }
-    /// Pinning a team via `force_login_team_uuid` implies API-key auth is
-    /// disabled even without an explicit `disable_api_key_auth` (team
-    /// membership can't be verified from a bare API key, so it needs IdP login).
-    #[test]
-    fn force_login_team_uuid_implies_api_key_auth_disabled() {
-        use crate::auth::{ForceLoginTeam, NofyComConfig};
-        let base = NofyComConfig {
-            disable_api_key_auth: None,
-            force_login_team_uuid: None,
-            ..NofyComConfig::default()
-        };
-        assert!(!base.api_key_auth_disabled());
-        assert!(
-            NofyComConfig {
-                disable_api_key_auth: Some(true),
-                ..base.clone()
-            }
-            .api_key_auth_disabled()
-        );
-        assert!(
-            NofyComConfig {
-                force_login_team_uuid: Some(ForceLoginTeam::Single("team-x".into())),
-                ..base
-            }
-            .api_key_auth_disabled()
-        );
     }
     fn resolve_models_from_toml(
         toml_str: &str,
@@ -9084,9 +8829,6 @@ agent_type = "cursor"
             login_shell_capture = true
             [nofy_com_config]
             token_header = "test"
-            [auth.oidc]
-            issuer = "https://sso.corp.com"
-            client_id = "abc123"
             [storage]
             cleanup_ttl_days = 7
             [[marketplace.sources]]

@@ -223,9 +223,7 @@ pub(crate) async fn run_shell_child(
         request.runtime_overrides.model_override_provenance,
         resume_source.is_some(),
         &ctx.available_models,
-        ctx.auth_manager
-            .current_or_expired()
-            .is_some_and(|a| a.is_session_auth()),
+        false,
     ) {
         return child_run_output(failure_result(&request, &error), completion_data, None);
     }

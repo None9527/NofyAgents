@@ -1,43 +1,26 @@
 //! The external-auth contract under the sanitized fork, end to end.
 //!
-//! The fork removed interactive login from `ensure_authenticated`
-//! (`auth/flow.rs`: "Interactive xAI account login was removed in the
-//! sanitized build" — it unconditionally `bail!`s once no cached credential
-//! satisfies the gate). This test pins that fail-closed contract for a
+//! Interactive login does not exist in this build: `try_ensure_fresh_auth`
+//! is the only entry point, and it only ever runs the provider's silent
+//! refresh (`NOFY_AUTH_EXPIRED=1`). This test pins that contract for a
 //! conforming external provider (`README.md` /
 //! `docs/user-guide/02-authentication.md` skeleton):
 //!
-//! 1. The headless boot probe (`NOFY_AUTH_EXPIRED=1`) still reaches the
-//!    provider through the silent-refresh path, and the provider's decline
-//!    still yields "no credentials" (`try_ensure_fresh_auth` → `None`).
-//! 2. `ensure_authenticated` then fails closed: it returns the
-//!    "Interactive login was removed" error fast, never walks the provider's
-//!    interactive mint branch (no `expired=unset` invocation, the SSO token
-//!    is never produced), and never reaches a browser login (bounded by
-//!    `LOGIN_BUDGET` — a regression that reintroduces browser login hangs
-//!    past the budget instead of failing silently).
+//! The headless boot probe (`NOFY_AUTH_EXPIRED=1`) reaches the provider
+//! through the silent-refresh path, and the provider's decline yields
+//! "no credentials" (`try_ensure_fresh_auth` → `None`) without ever running
+//! the provider's interactive mint branch.
 
 #![cfg(unix)]
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
 
 use chrono::Utc;
-use nofy_shell::auth::{
-    AuthMode, NofyAuth, NofyComConfig, ensure_authenticated, try_ensure_fresh_auth,
-};
+use nofy_shell::auth::{AuthMode, NofyAuth, NofyComConfig, try_ensure_fresh_auth};
 
 const STALE_TOKEN: &str = "stale-token-the-provider-will-not-renew";
 const SSO_TOKEN: &str = "token-minted-by-the-interactive-flow";
-
-/// A regression here reaches the browser login, which hangs rather than fails.
-const LOGIN_BUDGET: Duration = Duration::from_secs(60);
-
-/// Fail-closed must be fast: there is no provider prompt and no network login
-/// to wait on. Loose enough for a loaded CI runner; tight enough to catch any
-/// path that blocks on an interactive flow.
-const FAIL_CLOSED_BUDGET: Duration = Duration::from_secs(20);
 
 /// The skeleton published in `README.md` and `docs/user-guide/02-authentication.md`,
 /// which operators copy.
@@ -99,7 +82,7 @@ fn dead_endpoint() -> String {
 }
 
 #[tokio::test]
-async fn expired_credentials_fail_closed_without_interactive_login() {
+async fn expired_credentials_fail_closed_without_interactive_mint() {
     let home = tempfile::tempdir().expect("nofy home");
     let provider = write_conforming_provider(home.path());
     let dead = dead_endpoint();
@@ -112,7 +95,6 @@ async fn expired_credentials_fail_closed_without_interactive_login() {
         std::env::set_var("NOFY_CLI_CHAT_PROXY_BASE_URL", &dead);
         std::env::set_var("NOFY_API_BASE_URL", &dead);
         std::env::remove_var("NOFY_API_KEY");
-        std::env::remove_var("NOFY_API_KEY");
         std::env::set_var("NOFY_TELEMETRY_ENABLED", "false");
         std::env::set_var("NOFY_FEEDBACK_ENABLED", "false");
         std::env::set_var("NOFY_TRACE_UPLOAD", "false");
@@ -124,8 +106,8 @@ async fn expired_credentials_fail_closed_without_interactive_login() {
     };
     seed_expired_credential(home.path(), &config.auth_scope());
 
-    // Headless boot probe: still reaches the provider with NOFY_AUTH_EXPIRED=1,
-    // and the provider's decline still means "no credentials".
+    // Headless boot probe: reaches the provider with NOFY_AUTH_EXPIRED=1,
+    // and the provider's decline means "no credentials".
     assert!(
         try_ensure_fresh_auth(&config).await.is_none(),
         "the provider declines a run it cannot complete silently"
@@ -133,34 +115,7 @@ async fn expired_credentials_fail_closed_without_interactive_login() {
     assert_eq!(
         invocations(home.path()),
         ["expired=1"],
-        "the headless refresh is the run the flag exists for"
-    );
-
-    // Fail-closed: the fork removed interactive login, so an expired session
-    // must error out instead of minting through the provider or a browser.
-    let started = Instant::now();
-    let error = tokio::time::timeout(LOGIN_BUDGET, ensure_authenticated(&config, false, None))
-        .await
-        .expect("fail-closed must not reach a browser login (hangs past the budget)")
-        .expect_err("expired credentials must fail closed; interactive login was removed");
-    let elapsed = started.elapsed();
-
-    let message = error.to_string();
-    assert!(
-        message.contains("Interactive login was removed"),
-        "the fail-closed error must name the removed interactive login: {message}"
-    );
-    assert!(
-        message.contains("NOFY_API_KEY"),
-        "the fail-closed error must point at the API-key replacement: {message}"
-    );
-    assert_eq!(
-        invocations(home.path()),
-        ["expired=1"],
-        "the provider's interactive mint branch must never run (no SSO token minted)"
-    );
-    assert!(
-        elapsed < FAIL_CLOSED_BUDGET,
-        "fail-closed must not wait on a prompt or network login; took {elapsed:?}"
+        "only the silent-refresh probe may run; the interactive mint branch \
+         must never be invoked (no SSO token minted)"
     );
 }

@@ -119,7 +119,6 @@ impl AgentView {
             cron_task_id: None,
             stashed_prompt: None,
             credit_limit_stashed_prompt: None,
-            reauth_stashed_prompt: None,
             active_modal: None,
             modal_buttons: Vec::new(),
             modal_hovered_key: None,
@@ -376,7 +375,7 @@ impl AgentView {
     /// cancellation, reconnect cleanup). Centralised so the fields cannot
     /// drift apart at the ~10 termination call sites across `dispatch.rs`
     /// and `event_loop.rs`. The wall anchor is cleared so a later turn that
-    /// reuses a prompt id (stash-and-resubmit after `/login`) can never
+    /// reuses a prompt id (a resubmitted stash) can never
     /// wall-max against a previous attempt's anchor in
     /// [`honest_turn_elapsed`].
     pub fn mark_turn_finished(&mut self) {

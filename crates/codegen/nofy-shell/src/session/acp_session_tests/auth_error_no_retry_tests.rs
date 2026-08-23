@@ -19,7 +19,7 @@ impl crate::auth::refresh::TokenRefresher for AlwaysSucceedRefresher {
         self.called.store(true, Ordering::SeqCst);
         crate::auth::refresh::RefreshOutcome::Success(Box::new(NofyAuth {
             key: "refreshed-test-token".to_string(),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             refresh_token: Some("rt-new".into()),
             expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
             ..NofyAuth::test_default()
@@ -37,7 +37,7 @@ fn auth_manager_with_refresher(
     let am = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     am.hot_swap(NofyAuth {
         key: "initial-test-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(chrono::Utc::now() - chrono::Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -126,7 +126,7 @@ fn auth_manager_with_valid_token(key: &str) -> (tempfile::TempDir, Arc<AuthManag
     let am = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     am.hot_swap(NofyAuth {
         key: key.into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -414,7 +414,7 @@ async fn pre_flight_soft_expired_transient_fail_retains_seed() {
             // Inside the early-invalidation buffer but still hard-valid.
             am.hot_swap(NofyAuth {
                 key: "buffered-test-key".into(),
-                auth_mode: AuthMode::Oidc,
+                auth_mode: AuthMode::External,
                 refresh_token: Some("rt".into()),
                 expires_at: Some(chrono::Utc::now() + chrono::Duration::seconds(30)),
                 ..NofyAuth::test_default()
@@ -473,7 +473,7 @@ async fn proactive_refresh_makes_per_turn_refresh_a_cache_hit() {
                         self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                         crate::auth::refresh::RefreshOutcome::Success(Box::new(NofyAuth {
                             key: "proactive-fresh".into(),
-                            auth_mode: AuthMode::Oidc,
+                            auth_mode: AuthMode::External,
                             refresh_token: Some("rt-new".into()),
                             expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
                             ..NofyAuth::test_default()
@@ -542,58 +542,6 @@ fn model_not_found_error() -> nofy_sampler::SamplingErrorInfo {
         }
 }
 
-/// 404 model-not-found with a legacy WebLogin token appends a
-/// "Legacy auth detected" hint to the error message.
-#[tokio::test(flavor = "current_thread")]
-async fn legacy_auth_hint_on_404_model_not_found() {
-    let local = tokio::task::LocalSet::new();
-    local
-        .run_until(async {
-            let dir = tempfile::tempdir().expect("tempdir");
-            let am = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-            am.hot_swap(NofyAuth {
-                key: "legacy-token".into(),
-                auth_mode: AuthMode::WebLogin,
-                ..NofyAuth::test_default()
-            });
-
-            let (actor, _rx) = make_actor_with_auth_manager(Some(am)).await;
-            let result = actor.handle_sampling_failure(model_not_found_error()).await;
-            let err = match result {
-                Err(e) => e,
-                Ok(_) => panic!("expected Err from handle_sampling_failure"),
-            };
-            let data = err.data.unwrap();
-            let msg = data.as_str().unwrap();
-            assert!(
-                msg.contains("deprecated authentication method"),
-                "404 with WebLogin must include deprecation message, got: {msg}"
-            );
-            assert!(
-                msg.contains("nofy update"),
-                "hint must mention `nofy update` before re-login, got: {msg}"
-            );
-            assert!(
-                msg.contains("nofy logout"),
-                "hint must mention `nofy logout`, got: {msg}"
-            );
-            assert!(
-                msg.contains("nofy login"),
-                "hint must mention `nofy login`, got: {msg}"
-            );
-            let update_at = msg.find("nofy update").expect("nofy update");
-            let logout_at = msg.find("nofy logout").expect("nofy logout");
-            assert!(
-                update_at < logout_at,
-                "update must come before logout, got: {msg}"
-            );
-            assert!(
-                msg.contains("Version:"),
-                "must show client version, got: {msg}"
-            );
-        })
-        .await;
-}
 
 /// Build a 401-shaped error that bypasses step 4b's auth recovery.
 ///
@@ -621,60 +569,10 @@ fn unauthorized_401_error() -> nofy_sampler::SamplingErrorInfo {
         }
 }
 
-/// 401 Unauthorized with a legacy WebLogin token appends a
-/// "Legacy auth detected" hint to the error message.
-#[tokio::test(flavor = "current_thread")]
-async fn legacy_auth_hint_on_401_unauthorized() {
-    let local = tokio::task::LocalSet::new();
-    local
-        .run_until(async {
-            let dir = tempfile::tempdir().expect("tempdir");
-            let am = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-            am.hot_swap(NofyAuth {
-                key: "legacy-token".into(),
-                auth_mode: AuthMode::WebLogin,
-                ..NofyAuth::test_default()
-            });
 
-            let (actor, _rx) = make_actor_with_auth_manager(Some(am)).await;
-            let result = actor
-                .handle_sampling_failure(unauthorized_401_error())
-                .await;
-            let err = match result {
-                Err(e) => e,
-                Ok(_) => panic!("expected Err from handle_sampling_failure"),
-            };
-            let data = err.data.unwrap();
-            let msg = data.as_str().unwrap();
-            assert!(
-                msg.contains("deprecated authentication method"),
-                "401 with WebLogin must include deprecation message, got: {msg}"
-            );
-            assert!(
-                msg.contains("nofy update"),
-                "hint must mention `nofy update` before re-login, got: {msg}"
-            );
-            assert!(
-                msg.contains("nofy logout"),
-                "hint must mention `nofy logout`, got: {msg}"
-            );
-            assert!(
-                msg.contains("nofy login"),
-                "hint must mention `nofy login`, got: {msg}"
-            );
-            let update_at = msg.find("nofy update").expect("nofy update");
-            let logout_at = msg.find("nofy logout").expect("nofy logout");
-            assert!(
-                update_at < logout_at,
-                "update must come before logout, got: {msg}"
-            );
-        })
-        .await;
-}
-
-/// 401 with OIDC auth must NOT append the legacy hint.
+/// 401 with session auth must NOT append a deprecation hint.
 #[tokio::test(flavor = "current_thread")]
-async fn no_legacy_hint_on_401_for_oidc_auth() {
+async fn no_deprecation_hint_on_401_for_session_auth() {
     let local = tokio::task::LocalSet::new();
     local
         .run_until(async {
@@ -682,7 +580,7 @@ async fn no_legacy_hint_on_401_for_oidc_auth() {
             let am = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
             am.hot_swap(NofyAuth {
                 key: "oidc-token".into(),
-                auth_mode: AuthMode::Oidc,
+                auth_mode: AuthMode::External,
                 refresh_token: Some("rt".into()),
                 expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
                 ..NofyAuth::test_default()
@@ -704,19 +602,19 @@ async fn no_legacy_hint_on_401_for_oidc_auth() {
                 .unwrap();
             assert!(
                 !msg.contains("deprecated authentication method"),
-                "OIDC auth must NOT trigger WebLogin deprecation on 401, got: {msg}"
+                "session auth must NOT trigger a deprecation hint on 401, got: {msg}"
             );
             assert!(
-                msg.contains("Auth:      Oidc"),
-                "OIDC 401 must show auth mode in enriched message, got: {msg}"
+                msg.contains("Auth:      External"),
+                "session auth 401 must show auth mode in enriched message, got: {msg}"
             );
         })
         .await;
 }
 
-/// 404 model-not-found with OIDC auth must NOT append the legacy hint.
+/// 404 model-not-found with session auth must NOT append a deprecation hint.
 #[tokio::test(flavor = "current_thread")]
-async fn no_legacy_hint_for_oidc_auth() {
+async fn no_deprecation_hint_for_session_auth() {
     let local = tokio::task::LocalSet::new();
     local
         .run_until(async {
@@ -724,7 +622,7 @@ async fn no_legacy_hint_for_oidc_auth() {
             let am = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
             am.hot_swap(NofyAuth {
                 key: "oidc-token".into(),
-                auth_mode: AuthMode::Oidc,
+                auth_mode: AuthMode::External,
                 refresh_token: Some("rt".into()),
                 expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
                 ..NofyAuth::test_default()
@@ -744,15 +642,15 @@ async fn no_legacy_hint_for_oidc_auth() {
                 .unwrap();
             assert!(
                 !msg.contains("deprecated authentication method"),
-                "OIDC auth must NOT trigger WebLogin deprecation, got: {msg}"
+                "session auth must NOT trigger a deprecation hint, got: {msg}"
             );
             assert!(
-                msg.contains("Auth:      Oidc"),
-                "OIDC 404 must show auth mode in enriched message, got: {msg}"
+                msg.contains("Auth:      External"),
+                "session auth 404 must show auth mode in enriched message, got: {msg}"
             );
             assert!(
                 msg.contains("Version:"),
-                "OIDC 404 must show version in enriched message, got: {msg}"
+                "session auth 404 must show version in enriched message, got: {msg}"
             );
         })
         .await;
@@ -814,44 +712,7 @@ async fn sampler_401_session_method_with_stale_api_key_auth_type_still_recovers(
             );
             assert!(
                 called.load(Ordering::SeqCst),
-                "the OIDC refresher must be invoked for a session-based method"
-            );
-        })
-        .await;
-}
-
-/// Same regression via the `oidc` method id (the other session-based variant).
-#[tokio::test(flavor = "current_thread")]
-async fn sampler_401_oidc_method_with_stale_api_key_auth_type_still_recovers() {
-    let local = tokio::task::LocalSet::new();
-    local
-        .run_until(async {
-            let called = Arc::new(AtomicBool::new(false));
-            let refresher: Arc<dyn crate::auth::refresh::TokenRefresher> =
-                Arc::new(AlwaysSucceedRefresher {
-                    called: called.clone(),
-                });
-            let (_dir, am) = auth_manager_with_refresher(refresher);
-            let (actor, _rx) = make_actor_with_method_and_credentials(
-                Some(am),
-                "oidc",
-                nofy_chat_state::AuthType::ApiKey,
-                "stale-session-jwt".to_string(),
-            )
-            .await;
-
-            let result = actor.handle_sampling_failure(auth_error()).await;
-
-            assert!(
-                matches!(
-                    result,
-                    Ok(SamplerFailureRecovery::RefreshAuthAndResubmit { .. })
-                ),
-                "oidc method must recover even when auth_type transiently reads ApiKey"
-            );
-            assert!(
-                called.load(Ordering::SeqCst),
-                "the OIDC refresher must be invoked"
+                "the session refresher must be invoked for a session-based method"
             );
         })
         .await;
@@ -944,15 +805,15 @@ async fn pre_flight_refresh_heals_session_method_with_stale_api_key_auth_type() 
 }
 
 /// End-to-end for the frozen-gate bug: a session born on `nofy.api_key` (gate
-/// inactive) must adopt a later OIDC `/login` on the SAME actor -- the shared
-/// `auth_method_id` handle is flipped in place (no re-spawn), so the next turn
-/// wires the live bearer resolver and heals the stale key.
+/// inactive) must adopt a later `cached_token` credential on the SAME actor --
+/// the shared `auth_method_id` handle is flipped in place (no re-spawn), so
+/// the next turn wires the live bearer resolver and heals the stale key.
 #[tokio::test(flavor = "current_thread")]
-async fn session_born_on_api_key_recovers_after_oidc_login_without_restart() {
+async fn session_born_on_api_key_recovers_after_cached_token_auth_without_restart() {
     let local = tokio::task::LocalSet::new();
     local
         .run_until(async {
-            let (_dir, am) = auth_manager_with_valid_token("fresh-oidc-token");
+            let (_dir, am) = auth_manager_with_valid_token("fresh-session-token");
             let (actor, _rx) = make_actor_with_method_and_credentials(
                 Some(am),
                 "api_key",
@@ -968,14 +829,16 @@ async fn session_born_on_api_key_recovers_after_oidc_login_without_restart() {
                     .await
                     .bearer_resolver
                     .is_none(),
-                "api-key session must not use the live resolver before login"
+                "api-key session must not use the live resolver before the switch"
             );
 
-            // Simulate the agent's `authenticate` publishing an OIDC method into
-            // the shared handle this running actor already holds (no re-spawn).
+            // Simulate the agent's `authenticate` publishing the session method
+            // into the shared handle this running actor already holds (no re-spawn).
             actor
                 .auth_method_id
-                .store(Some(std::sync::Arc::new(acp::AuthMethodId::new("oidc"))));
+                .store(Some(std::sync::Arc::new(acp::AuthMethodId::new(
+                    "cached_token",
+                ))));
 
             // The gate is recomputed each turn from the shared handle, so the
             // flip alone activates the live resolver on the very next turn --
@@ -998,8 +861,8 @@ async fn session_born_on_api_key_recovers_after_oidc_login_without_restart() {
                     .await
                     .api_key
                     .as_deref(),
-                Some("fresh-oidc-token"),
-                "the stale api_key must be healed with the fresh OIDC token"
+                Some("fresh-session-token"),
+                "the stale api_key must be healed with the fresh session token"
             );
         })
         .await;

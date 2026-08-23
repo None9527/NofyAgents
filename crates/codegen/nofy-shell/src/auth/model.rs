@@ -3,15 +3,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use nofy_auth::bearer_suffix;
 
-use super::is_xai_oauth2_issuer;
-
 pub(crate) const TOKEN_TTL: Duration = Duration::days(30);
 const DEFAULT_EARLY_INVALIDATION_SECS: u64 = 300; // 5 minutes
 
-/// Legacy auth.json scope key. Fallback for old devbox auth files.
-pub(super) const LEGACY_SCOPE: &str = "https://accounts.x.ai/sign-in";
-
-/// auth.json scope key for plain API key auth (desktop login, `nofy login --api-key`).
+/// auth.json scope key for plain API key auth (BYOK env/config keys).
 pub(super) const API_KEY_SCOPE: &str = "nofy::api_key";
 
 const BLOCKED_REASON_NO_LOGS: &str = "BLOCKED_REASON_NO_LOGS";
@@ -24,19 +19,13 @@ pub(crate) fn default_coding_data_retention_opt_out() -> bool {
     true
 }
 
-/// Token provenance (debugging/auth.json only -- no code branches on this).
+/// Token provenance.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthMode {
-    /// Deprecated. Kept for deserializing old auth.json files.
-    #[serde(alias = "nofy")]
-    WebLogin,
-    /// OIDC or OAuth2 interactive login via customer IdP
-    #[serde(alias = "oidc")]
-    Oidc,
-    /// External auth provider binary
+    /// External auth provider binary (`auth_provider_command`).
     External,
-    /// Plain API key (e.g. from nofy-desktop login or `nofy login --api-key`)
+    /// Plain API key (BYOK env/config key).
     ApiKey,
 }
 
@@ -95,14 +84,11 @@ pub struct NofyAuth {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<DateTime<Utc>>,
 
-    /// Issuer URL that issued this token. For OIDC credentials it drives
-    /// refresh via discovery; for external-provider credentials it is the
-    /// provider's `issuer` claim. In both modes an x.ai issuer marks the
-    /// credential first-party (`is_xai_auth`).
+    /// Issuer URL reported by the external auth provider, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub oidc_issuer: Option<String>,
 
-    /// OIDC client_id used to obtain this token (needed for refresh).
+    /// Client id reported by the external auth provider, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub oidc_client_id: Option<String>,
 }
@@ -131,34 +117,6 @@ impl NofyAuth {
         Utc::now()
             .signed_duration_since(self.create_time)
             .num_seconds()
-    }
-
-    /// `true` when the token comes from a first-party xAI account.
-    ///
-    /// The xAI account system (OIDC login against auth.x.ai, external
-    /// first-party providers) was removed in the sanitized build, so this is
-    /// never true; every xAI-only feature gate fails open to the generic path.
-    pub fn is_xai_auth(&self) -> bool {
-        false
-    }
-
-    /// `true` when this auth can access nofy.com managed MCP connectors.
-    pub fn is_managed_mcp_eligible(&self) -> bool {
-        self.is_xai_auth() || self.auth_mode == AuthMode::WebLogin
-    }
-
-    /// Whether this credential can access `supported_in_api: false` models.
-    ///
-    /// Session logins (WebLogin, OIDC — including enterprise issuers) always
-    /// qualify; external-provider credentials qualify only when first-party
-    /// (`is_xai_auth`), matching the built-in devbox login they replace.
-    /// Plain API keys never do.
-    pub(crate) fn is_session_auth(&self) -> bool {
-        match self.auth_mode {
-            AuthMode::WebLogin | AuthMode::Oidc => true,
-            AuthMode::External => self.is_xai_auth(),
-            AuthMode::ApiKey => false,
-        }
     }
 
     pub fn is_team_principal(&self) -> bool {
@@ -202,7 +160,7 @@ impl Default for NofyAuth {
     fn default() -> Self {
         Self {
             key: String::new(),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             create_time: Utc::now(),
             user_id: String::new(),
             email: None,
@@ -292,24 +250,8 @@ pub(crate) struct UserInfo {
 }
 
 /// Look up auth from the store by scope key.
-///
-/// Legacy `WebLogin` tokens (from the pre-OIDC `nofy login --legacy`
-/// flow) are skipped — they are validated via a per-request DB lookup
-/// server-side which fails at high volume.  Skipping them here forces
-/// affected users to re-authenticate via OIDC on next launch.
 pub fn lookup_auth(map: &AuthStore, scope: &str) -> Option<NofyAuth> {
-    let auth = map.get(scope).cloned().or_else(|| {
-        if scope == LEGACY_SCOPE {
-            None
-        } else {
-            map.get(LEGACY_SCOPE).cloned()
-        }
-    })?;
-    if auth.auth_mode == AuthMode::WebLogin {
-        tracing::info!("auth: ignoring legacy WebLogin token — re-authentication required");
-        return None;
-    }
-    Some(auth)
+    map.get(scope).cloned()
 }
 
 /// Early-invalidation buffer. Override with `NOFY_AUTH_EARLY_INVALIDATION_SECS`
@@ -372,64 +314,9 @@ mod tests {
     }
 
     #[test]
-    fn is_xai_auth_matrix() {
-        use crate::auth::NOFY_OAUTH2_ISSUER;
-        let with_issuer = |mode: AuthMode, issuer: Option<&str>| NofyAuth {
-            oidc_issuer: issuer.map(str::to_owned),
-            ..make_auth(mode)
-        };
-
-        // The xAI account system was removed: no credential is first-party.
-        for mode in [
-            AuthMode::Oidc,
-            AuthMode::External,
-            AuthMode::ApiKey,
-            AuthMode::WebLogin,
-        ] {
-            assert!(!with_issuer(mode.clone(), Some(NOFY_OAUTH2_ISSUER)).is_xai_auth());
-            assert!(!with_issuer(mode, None).is_xai_auth());
-        }
-    }
-
-    #[test]
-    fn is_session_auth_requires_first_party_for_external() {
-        use crate::auth::NOFY_OAUTH2_ISSUER;
-        let with_issuer = |mode: AuthMode, issuer: Option<&str>| NofyAuth {
-            oidc_issuer: issuer.map(str::to_owned),
-            ..make_auth(mode)
-        };
-
-        // Session logins qualify regardless of issuer (incl. enterprise OIDC).
-        assert!(with_issuer(AuthMode::WebLogin, None).is_session_auth());
-        assert!(with_issuer(AuthMode::Oidc, None).is_session_auth());
-        assert!(with_issuer(AuthMode::Oidc, Some("https://idp.acme.example")).is_session_auth());
-
-        // External credentials no longer qualify: first-party xAI auth is gone.
-        assert!(!with_issuer(AuthMode::External, Some(NOFY_OAUTH2_ISSUER)).is_session_auth());
-        assert!(!with_issuer(AuthMode::External, None).is_session_auth());
-
-        // Plain API keys never do.
-        assert!(!with_issuer(AuthMode::ApiKey, Some(NOFY_OAUTH2_ISSUER)).is_session_auth());
-    }
-
-    #[test]
-    fn lookup_auth_skips_weblogin_on_primary_scope() {
+    fn lookup_auth_returns_external_token() {
         let mut map = AuthStore::new();
-        map.insert("scope".into(), make_auth(AuthMode::WebLogin));
-        assert!(lookup_auth(&map, "scope").is_none());
-    }
-
-    #[test]
-    fn lookup_auth_skips_weblogin_on_legacy_fallback() {
-        let mut map = AuthStore::new();
-        map.insert(LEGACY_SCOPE.into(), make_auth(AuthMode::WebLogin));
-        assert!(lookup_auth(&map, "other-scope").is_none());
-    }
-
-    #[test]
-    fn lookup_auth_returns_oidc_token() {
-        let mut map = AuthStore::new();
-        map.insert("scope".into(), make_auth(AuthMode::Oidc));
+        map.insert("scope".into(), make_auth(AuthMode::External));
         assert!(lookup_auth(&map, "scope").is_some());
     }
 
@@ -483,7 +370,7 @@ mod tests {
     fn missing_coding_data_retention_opt_out_deserializes_opted_out() {
         let json = r#"{
             "key": "k",
-            "auth_mode": "oidc",
+            "auth_mode": "external",
             "create_time": "2020-01-01T00:00:00Z",
             "user_id": "u"
         }"#;

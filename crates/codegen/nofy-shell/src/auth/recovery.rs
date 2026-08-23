@@ -7,11 +7,9 @@
 //!    on-disk token differs from the rejected one, accept it (another
 //!    process may have refreshed).
 //! 2. **RefreshFromAuthority** — run the appropriate refresh chain
-//!    (OIDC token refresh, external binary, etc.) based on `TokenType`,
-//!    unless the live token was minted moments ago (fresh-mint guard).
-//! 3. **DevboxRecovery** — on devboxes, purge `auth.json` and mint fresh
-//!    OIDC credentials.
-//! 4. **Done** — all recovery strategies exhausted.
+//!    (external binary) based on `TokenType`, unless the live token was
+//!    minted moments ago (fresh-mint guard).
+//! 3. **Done** — all recovery strategies exhausted.
 
 use std::sync::Arc;
 
@@ -38,23 +36,15 @@ pub(crate) fn manual_auth_reason(err: &AuthError) -> Option<ManualAuthReason> {
         AuthError::ServerRejectedNoRecovery => R::NoRefreshAuthority,
         AuthError::RecoveryExhausted => R::RecoveryExhausted,
         AuthError::TokenExpiredNoRefresh => R::TokenExpiredNoRefresh,
-        AuthError::PinnedTeamMismatch { .. } => R::WrongTeam,
-        // API-key lockouts are out of scope: this KPI tracks OIDC refresh
-        // failures forcing a re-login, not an admin disabling API-key auth.
-        AuthError::ApiKeyAuthDisabled
-        | AuthError::Refresh(RefreshTokenError::Transient(_))
-        | AuthError::NotLoggedIn => {
+        AuthError::Refresh(RefreshTokenError::Transient(_)) | AuthError::NotLoggedIn => {
             return None;
         }
     })
 }
 
-/// Whether the relay should stop reconnecting on this recovery error. Its own
-/// predicate rather than reusing `manual_auth_reason`: the relay must give up on
-/// any terminal auth failure, including `ApiKeyAuthDisabled` (a kill-switched
-/// API key), which is deliberately out of the `manual_auth` KPI's scope.
+/// Whether the relay should stop reconnecting on this recovery error.
 pub(crate) fn relay_should_cancel(err: &AuthError) -> bool {
-    manual_auth_reason(err).is_some() || matches!(err, AuthError::ApiKeyAuthDisabled)
+    manual_auth_reason(err).is_some()
 }
 
 /// Fresh-mint guard window (±) for `ServerRejected` refreshes
@@ -89,8 +79,8 @@ impl RecoverySource {
 }
 
 /// Identity of the rejected credential for `manual_auth`, captured from
-/// the rejected bearer (not live `inner`) so attribution is correct even after a
-/// `WrongTeam`/cleared-credential failure.
+/// the rejected bearer (not live `inner`) so attribution is correct even after
+/// the credential is cleared.
 pub(crate) struct RejectedAuth {
     /// `user_id`, when known (empty ids collapse to `None`).
     principal: Option<String>,
@@ -151,7 +141,7 @@ impl ManualAuthTracker {
     /// Emit a terminal manual-auth event, debounced against the most-recent
     /// credential (single slot). No-op for transient failures
     /// (`manual_auth_reason` is `None`) and for API keys (a 401 there means
-    /// rotate the key, not `/login`).
+    /// rotate the key, not re-authenticate).
     pub(crate) fn record(
         &self,
         snapshot: &RejectedAuth,
@@ -209,10 +199,8 @@ impl ManualAuthTracker {
 enum RecoveryStep {
     /// Re-read auth.json from disk (file-locked).
     ReloadFromDisk,
-    /// Refresh via the authority (OIDC, external binary, etc.).
+    /// Refresh via the authority (external binary).
     RefreshFromAuthority,
-    /// On devboxes: purge auth.json and mint fresh OIDC credentials.
-    DevboxRecovery,
     /// All strategies exhausted.
     Done,
 }
@@ -224,12 +212,9 @@ pub(crate) struct UnauthorizedRecovery {
     rejected_token: String,
     /// Current step in the recovery sequence.
     step: RecoveryStep,
-    /// Error from `RefreshFromAuthority`, propagated as fallback when
-    /// devbox recovery doesn't apply.
-    authority_error: Option<AuthError>,
     /// Whether the last authority failure was transient. Kept past the
-    /// `authority_error` handoff so exhaustion preserves the
-    /// transient/permanent axis (see the `Done` arm).
+    /// authority failure so exhaustion preserves the transient/permanent
+    /// axis (see the `Done` arm).
     authority_was_transient: bool,
     /// `Some` iff this recovery is user-facing — so a terminal failure emits.
     emit: Option<ManualAuthEmit>,
@@ -252,14 +237,13 @@ impl UnauthorizedRecovery {
             auth_manager,
             rejected_token,
             step: RecoveryStep::ReloadFromDisk,
-            authority_error: None,
             authority_was_transient: false,
             emit,
         }
     }
 
     /// Attempt the next recovery step. Walks
-    /// `ReloadFromDisk -> RefreshFromAuthority -> DevboxRecovery -> Done`.
+    /// `ReloadFromDisk -> RefreshFromAuthority -> Done`.
     /// `token_type` span field is recorded lazily via
     /// `Span::is_disabled()` to avoid the lock when tracing is off.
     #[tracing::instrument(
@@ -287,20 +271,8 @@ impl UnauthorizedRecovery {
         result
     }
 
-    /// Walk the recovery steps and apply the team-pin policy gate.
+    /// Walk the recovery steps.
     async fn resolve_next(&mut self) -> Result<NofyAuth, AuthError> {
-        // Team-pin gate: 401 recovery must not resurrect a wrong-team session
-        // (disk adoption / refresh / devbox mint) for the relay to reconnect
-        // with. Clear + reject on mismatch.
-        let auth = self.next_step_loop().await?;
-        if let Some(e) = self.auth_manager.cached_token_policy_error(&auth) {
-            self.auth_manager.reject_and_clear(&e);
-            return Err(e);
-        }
-        Ok(auth)
-    }
-
-    async fn next_step_loop(&mut self) -> Result<NofyAuth, AuthError> {
         loop {
             match self.step {
                 RecoveryStep::ReloadFromDisk => {
@@ -310,32 +282,15 @@ impl UnauthorizedRecovery {
                     }
                 }
                 RecoveryStep::RefreshFromAuthority => {
-                    self.step = RecoveryStep::DevboxRecovery;
+                    self.step = RecoveryStep::Done;
                     match self.try_refresh_from_authority().await {
                         Ok(auth) => return Ok(auth),
                         Err(e) => {
                             self.authority_was_transient =
                                 matches!(e, AuthError::Refresh(RefreshTokenError::Transient(_)));
-                            self.authority_error = Some(e);
+                            return Err(e);
                         }
                     }
-                }
-                RecoveryStep::DevboxRecovery => {
-                    self.step = RecoveryStep::Done;
-                    // preferred_method=api_key forbids automatic OIDC mint.
-                    if !self.auth_manager.nofy_com_config().blocks_automatic_oidc()
-                        && self.auth_manager.is_devbox_environment()
-                        && let Ok(auth) = self
-                            .auth_manager
-                            .try_devbox_recovery(Some(&self.rejected_token))
-                            .await
-                    {
-                        return Ok(auth);
-                    }
-                    return Err(self
-                        .authority_error
-                        .take()
-                        .unwrap_or(AuthError::RecoveryExhausted));
                 }
                 RecoveryStep::Done => {
                     // Exhaustion after a *transient* authority failure stays
@@ -445,10 +400,10 @@ impl UnauthorizedRecovery {
     ///
     /// Per-variant outcome:
     ///
-    /// - **OidcSession / ExternalBinary**: full refresh chain via the
+    /// - **ExternalBinary**: full refresh chain via the
     ///   authority, unless the live token is inside the fresh-mint guard
     ///   window ([`Self::fresh_mint_guard`]).
-    /// - **LegacySession / ApiKey**: no refresh authority for these
+    /// - **ApiKey**: no refresh authority for these
     ///   types. We've already tried `ReloadFromDisk` (the previous
     ///   recovery step), so the server's 401 stands. Surface
     ///   [`AuthError::ServerRejectedNoRecovery`] -- *not*
@@ -461,7 +416,7 @@ impl UnauthorizedRecovery {
     async fn try_refresh_from_authority(&self) -> Result<NofyAuth, AuthError> {
         let tt = self.auth_manager.token_type();
         match tt {
-            TokenType::OidcSession | TokenType::ExternalBinary => {
+            TokenType::ExternalBinary => {
                 if let Some(auth) = self.fresh_mint_guard() {
                     return Ok(auth);
                 }
@@ -494,7 +449,7 @@ impl UnauthorizedRecovery {
                 }
                 result
             }
-            TokenType::LegacySession | TokenType::ApiKey => {
+            TokenType::ApiKey => {
                 nofy_telemetry::unified_log::warn(
                     "auth recovery: no refresh authority for token type",
                     None,
@@ -553,7 +508,7 @@ mod tests {
             self.calls.fetch_add(1, Ordering::SeqCst);
             RefreshOutcome::Success(Box::new(NofyAuth {
                 key: "fresh-from-authority".into(),
-                auth_mode: AuthMode::Oidc,
+                auth_mode: AuthMode::External,
                 refresh_token: Some("rt-new".into()),
                 expires_at: Some(Utc::now() + Duration::hours(1)),
                 ..NofyAuth::test_default()
@@ -597,7 +552,7 @@ mod tests {
     #[tokio::test]
     async fn dispatch_oidc_session_uses_refresh_chain() {
         let (_d, m) = mgr();
-        seed(&m, AuthMode::Oidc, Some("rt"));
+        seed(&m, AuthMode::External, Some("rt"));
         let calls = Arc::new(AtomicU32::new(0));
         m.set_refresher(Arc::new(OkRefresher {
             calls: calls.clone(),
@@ -655,7 +610,7 @@ mod tests {
     #[tokio::test]
     async fn fresh_mint_guard_skips_idp_for_freshly_minted_token() {
         let (_d, m) = mgr();
-        seed_valid(&m, AuthMode::Oidc, Duration::seconds(10));
+        seed_valid(&m, AuthMode::External, Duration::seconds(10));
         let (result, calls) = recover_with_ok_refresher(&m).await;
         assert_eq!(
             result.expect("guard returns the live token").key,
@@ -680,7 +635,7 @@ mod tests {
     async fn fresh_mint_guard_treats_small_negative_age_as_fresh() {
         // Clock stepped back slightly since mint (NTP nudge).
         let (_d, m) = mgr();
-        seed_valid(&m, AuthMode::Oidc, Duration::seconds(-60));
+        seed_valid(&m, AuthMode::External, Duration::seconds(-60));
         let (result, calls) = recover_with_ok_refresher(&m).await;
         assert_eq!(
             result.expect("guard returns the live token").key,
@@ -694,7 +649,7 @@ mod tests {
         // A large backwards clock step must not wedge recovery for the whole
         // step: outside the ±window the guard stands down.
         let (_d, m) = mgr();
-        seed_valid(&m, AuthMode::Oidc, Duration::hours(-1));
+        seed_valid(&m, AuthMode::External, Duration::hours(-1));
         let (result, calls) = recover_with_ok_refresher(&m).await;
         assert_eq!(
             result.expect("recovery should succeed").key,
@@ -706,7 +661,7 @@ mod tests {
     #[tokio::test]
     async fn fresh_mint_guard_lets_old_token_refresh() {
         let (_d, m) = mgr();
-        seed_valid(&m, AuthMode::Oidc, Duration::minutes(10));
+        seed_valid(&m, AuthMode::External, Duration::minutes(10));
         let (result, calls) = recover_with_ok_refresher(&m).await;
         assert_eq!(
             result.expect("recovery should succeed").key,
@@ -724,7 +679,7 @@ mod tests {
         // verdict is cached for it — mirrors `auth()`'s wire-valid grace arm;
         // the verdict re-applies once the guard window passes.
         let (_d, m) = mgr();
-        seed_valid(&m, AuthMode::Oidc, Duration::seconds(10));
+        seed_valid(&m, AuthMode::External, Duration::seconds(10));
         m.record_permanent_failure(
             "rejected-tok".into(),
             RefreshTokenFailedReason::RefreshTokenRejected.into(),
@@ -739,31 +694,6 @@ mod tests {
         assert_eq!(calls, 0);
     }
 
-
-    #[tokio::test]
-    async fn dispatch_legacy_session_returns_server_rejected_no_recovery() {
-        let (_d, m) = mgr();
-        // WebLogin (no refresh_token) -> LegacySession.
-        seed(&m, AuthMode::WebLogin, None);
-
-        let mut rec = m.unauthorized_recovery(rejected_cred(), RecoverySource::Background);
-        let err = rec.next().await.unwrap_err();
-        assert!(
-            matches!(err, AuthError::ServerRejectedNoRecovery),
-            "LegacySession recovery should surface ServerRejectedNoRecovery, got {err:?}",
-        );
-    }
-
-    #[tokio::test]
-    async fn dispatch_oidc_without_refresh_token_returns_server_rejected_no_recovery() {
-        // Oidc without refresh_token classifies as LegacySession.
-        let (_d, m) = mgr();
-        seed(&m, AuthMode::Oidc, None);
-
-        let mut rec = m.unauthorized_recovery(rejected_cred(), RecoverySource::Background);
-        let err = rec.next().await.unwrap_err();
-        assert!(matches!(err, AuthError::ServerRejectedNoRecovery));
-    }
 
     #[tokio::test]
     async fn dispatch_api_key_returns_server_rejected_no_recovery() {
@@ -797,13 +727,13 @@ mod tests {
     #[tokio::test]
     async fn reload_from_disk_picks_up_different_token() {
         let (dir, m) = mgr();
-        seed(&m, AuthMode::Oidc, Some("rt"));
+        seed(&m, AuthMode::External, Some("rt"));
 
         // Sibling process wrote a different valid token to disk.
         let scope = m.nofy_com_config().auth_scope();
         let fresh = NofyAuth {
             key: "fresh-from-disk".into(),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             refresh_token: Some("rt-new".into()),
             expires_at: Some(Utc::now() + Duration::hours(1)),
             ..NofyAuth::test_default()
@@ -823,13 +753,13 @@ mod tests {
     #[tokio::test]
     async fn reload_from_disk_skips_same_token_then_proceeds_to_authority() {
         let (dir, m) = mgr();
-        seed(&m, AuthMode::Oidc, Some("rt"));
+        seed(&m, AuthMode::External, Some("rt"));
 
         // Disk has the SAME token that was rejected -- skip, fall through.
         let scope = m.nofy_com_config().auth_scope();
         let same = NofyAuth {
             key: "rejected-tok".into(),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             refresh_token: Some("rt".into()),
             expires_at: Some(Utc::now() + Duration::hours(1)),
             ..NofyAuth::test_default()
@@ -861,14 +791,11 @@ mod tests {
     #[tokio::test]
     async fn next_after_done_returns_recovery_exhausted() {
         let (_d, m) = mgr();
-        seed(&m, AuthMode::Oidc, Some("rt"));
+        seed(&m, AuthMode::External, Some("rt"));
         m.set_refresher(Arc::new(OkRefresher {
             calls: Arc::new(AtomicU32::new(0)),
         }));
 
-        // Pin non-devbox so DevboxRecovery can't adopt the seeded token (CI runs
-        // in K8s pods where is_devbox_environment() is true).
-        m.set_devbox_env_for_test(false);
 
         let mut rec = m.unauthorized_recovery(rejected_cred(), RecoverySource::Background);
         let _ = rec.next().await.unwrap();
@@ -902,9 +829,8 @@ mod tests {
         }
 
         let (_d, m) = mgr();
-        seed(&m, AuthMode::Oidc, Some("rt"));
+        seed(&m, AuthMode::External, Some("rt"));
         m.set_refresher(Arc::new(TransientFailRefresher));
-        m.set_devbox_env_for_test(false);
 
         let mut rec = m.unauthorized_recovery(rejected_cred(), RecoverySource::Turn);
         // First next(): the authority's transient error propagates as-is.
@@ -944,7 +870,7 @@ mod tests {
     #[tokio::test]
     async fn refresh_authority_short_circuits_on_cached_permanent_failure() {
         let (_d, m) = mgr();
-        seed(&m, AuthMode::Oidc, Some("rt"));
+        seed(&m, AuthMode::External, Some("rt"));
         // Pre-record a permanent failure scoped to the seeded credential.
         m.record_permanent_failure(
             "rejected-tok".into(),
@@ -977,12 +903,12 @@ mod tests {
     #[tokio::test]
     async fn reload_from_disk_rejects_expired_different_token() {
         let (dir, m) = mgr();
-        seed(&m, AuthMode::Oidc, Some("rt"));
+        seed(&m, AuthMode::External, Some("rt"));
 
         let scope = m.nofy_com_config().auth_scope();
         let expired_different = NofyAuth {
             key: "different-but-expired".into(),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             refresh_token: Some("rt-new".into()),
             expires_at: Some(Utc::now() - Duration::hours(1)),
             ..NofyAuth::test_default()
@@ -1014,7 +940,7 @@ mod tests {
         let tracker = Arc::new(ManualAuthTracker::default());
         let auth = NofyAuth {
             key: "rejected".into(),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             refresh_token: Some("rt".into()),
             user_id: "user-1".into(),
             ..NofyAuth::test_default()
@@ -1040,27 +966,6 @@ mod tests {
             1,
             "concurrent records on one rejected credential must emit exactly once",
         );
-    }
-
-    // -- force_login_team_uuid pin enforced on the 401-recovery path -------
-
-    fn ensure_crypto_provider() {
-        let _ = jsonwebtoken::crypto::rust_crypto::DEFAULT_PROVIDER.install_default();
-    }
-
-    fn team_jwt(principal_id: &str) -> String {
-        ensure_crypto_provider();
-        jsonwebtoken::encode(
-            &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256),
-            &serde_json::json!({
-                "sub": "user-1",
-                "principal_type": "Team",
-                "principal_id": principal_id,
-                "exp": 9999999999u64,
-            }),
-            &jsonwebtoken::EncodingKey::from_secret(b"test-secret"),
-        )
-        .unwrap()
     }
 
 }

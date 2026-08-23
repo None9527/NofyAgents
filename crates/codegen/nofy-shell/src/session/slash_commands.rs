@@ -417,7 +417,7 @@ pub(crate) fn build_tools_meta(tool_names: &[String]) -> acp::Meta {
 }
 /// Pager-owned slash trigger keys (canonical + aliases) plus shell command
 /// names the pager never offers (`hooks-add`, `reload-plugins`, …). Burned
-/// when advertising skills so a colliding skill ships qualified (`acme:login`,
+/// when advertising skills so a colliding skill ships qualified (`acme:changelog`),
 /// `local:hooks-add`) instead of a bare name the pager will drop.
 ///
 /// Synced by pager contract tests (`pager_builtin_triggers_are_reserved_in_shell`,
@@ -471,8 +471,6 @@ pub const PAGER_COMMAND_KEYS: &[&str] = &[
     "howto",
     "import-claude",
     "jump",
-    "login",
-    "logout",
     "log",
     "loop",
     "m",
@@ -545,7 +543,7 @@ static RESERVED_SLASH_NAMES: LazyLock<HashSet<&'static str>> = LazyLock::new(|| 
 });
 /// Pager `CommandRegistry::apply_acp_commands` lowercases ACP names before
 /// reservation / dedup. Catalog keys, resolve, and inspect must fold the
-/// same way or a SKILL.md name like `Login` is advertised bare and dropped.
+/// same way or a SKILL.md name like `Changelog` is advertised bare and dropped.
 fn slash_key(name: &str) -> String {
     name.to_lowercase()
 }
@@ -1580,7 +1578,7 @@ mod tests {
             key: "tok-a".into(),
             user_id: "user-1".into(),
             team_id: Some("team-a".into()),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             create_time: chrono::Utc::now(),
             ..Default::default()
         };
@@ -1594,7 +1592,7 @@ mod tests {
             key: "tok-b".into(),
             user_id: "user-1".into(),
             team_id: Some("team-a".into()),
-            auth_mode: AuthMode::WebLogin,
+            auth_mode: AuthMode::External,
             create_time: chrono::Utc::now(),
             ..Default::default()
         };
@@ -1603,7 +1601,7 @@ mod tests {
             key: "tok-c".into(),
             user_id: "user-2".into(),
             team_id: Some("team-a".into()),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             create_time: chrono::Utc::now(),
             ..Default::default()
         };
@@ -1613,7 +1611,7 @@ mod tests {
             user_id: "user-1".into(),
             team_id: None,
             organization_id: None,
-            auth_mode: AuthMode::WebLogin,
+            auth_mode: AuthMode::External,
             create_time: chrono::Utc::now(),
             ..Default::default()
         };
@@ -1627,7 +1625,7 @@ mod tests {
             user_id: "user-1".into(),
             team_id: Some("team-a".into()),
             organization_id: Some("org-1".into()),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             create_time: chrono::Utc::now(),
             ..Default::default()
         };
@@ -1641,7 +1639,7 @@ mod tests {
             user_id: "user-1".into(),
             team_id: None,
             organization_id: None,
-            auth_mode: AuthMode::WebLogin,
+            auth_mode: AuthMode::External,
             create_time: chrono::Utc::now(),
             ..Default::default()
         };
@@ -2327,27 +2325,27 @@ mod tests {
     }
     #[test]
     fn plugin_skill_colliding_with_pager_builtin_is_advertised_qualified() {
-        let mut skill = make_scoped_skill("login", SkillScope::Plugin);
+        let mut skill = make_scoped_skill("changelog", SkillScope::Plugin);
         skill.plugin_name = Some("acme".into());
         let commands = available_commands(&[skill], all_gated(), &[]);
         assert!(
-            !commands.iter().any(|c| c.name == "login"),
-            "colliding skill must not take the bare name (pager owns /login)"
+            !commands.iter().any(|c| c.name == "changelog"),
+            "colliding skill must not take the bare name (pager owns /changelog)"
         );
         let cmd = commands
             .iter()
-            .find(|c| c.name == "acme:login")
-            .expect("plugin skill stays reachable as /acme:login");
+            .find(|c| c.name == "acme:changelog")
+            .expect("plugin skill stays reachable as /acme:changelog");
         let meta = cmd.meta.as_ref().expect("skill meta");
         assert_eq!(meta.get("scope").and_then(|v| v.as_str()), Some("plugin"));
-        assert_eq!(meta.get("bareName").and_then(|v| v.as_str()), Some("login"));
+        assert_eq!(meta.get("bareName").and_then(|v| v.as_str()), Some("changelog"));
         assert_eq!(
             meta.get("pluginName").and_then(|v| v.as_str()),
             Some("acme")
         );
         assert_eq!(
             meta.get("qualifiedName").and_then(|v| v.as_str()),
-            Some("acme:login")
+            Some("acme:changelog")
         );
     }
     #[test]
@@ -2597,11 +2595,11 @@ mod tests {
         skill
     }
     #[test]
-    fn plugin_login_skill_resolves_by_qualified_name_only() {
-        let skills = vec![make_plugin_skill("login", "acme")];
+    fn plugin_skill_resolves_by_qualified_name_only() {
+        let skills = vec![make_plugin_skill("changelog", "acme")];
         assert!(
             resolve(
-                vec![text_block("/login")],
+                vec![text_block("/changelog")],
                 &skills,
                 all_gated(),
                 SkillSlashRewrite::default(),
@@ -2610,7 +2608,7 @@ mod tests {
             .is_ok()
         );
         let outcome = resolve(
-            vec![text_block("/acme:login now")],
+            vec![text_block("/acme:changelog now")],
             &skills,
             all_gated(),
             SkillSlashRewrite::default(),
@@ -2618,14 +2616,12 @@ mod tests {
         )
         .unwrap_err();
         let skill = first_skill(outcome);
-        assert_eq!(skill.name, "acme:login");
+        assert_eq!(skill.name, "acme:changelog");
         assert_eq!(skill.args, "now");
         assert_eq!(skill.plugin_name.as_deref(), Some("acme"));
     }
     #[test]
     fn inspect_reserved_names_exclude_gated_shell_builtins() {
-        assert!(super::is_reserved_slash_name("login"));
-        assert!(super::is_reserved_slash_name("Login"));
         assert!(super::is_reserved_slash_name("delete"));
         assert!(super::is_reserved_slash_name("compact"));
         assert!(super::is_reserved_slash_name("hooks-add"));
@@ -2635,22 +2631,22 @@ mod tests {
     }
     #[test]
     fn mixed_case_pager_collision_is_advertised_qualified_lowercase() {
-        let skills = vec![make_scoped_skill("Login", SkillScope::Local)];
+        let skills = vec![make_scoped_skill("Changelog", SkillScope::Local)];
         let commands = available_commands(&skills, all_gated(), &[]);
         let names: Vec<&str> = commands.iter().map(|c| c.name.as_str()).collect();
         assert!(
-            !names.contains(&"Login") && !names.contains(&"login"),
+            !names.contains(&"Changelog") && !names.contains(&"changelog"),
             "mixed-case colliding skill must not take the bare name, got {names:?}"
         );
         let cmd = commands
             .iter()
-            .find(|c| c.name == "local:login")
+            .find(|c| c.name == "local:changelog")
             .expect("pager folds ACP names; advertised form must be lowercase qualified");
         let meta = cmd.meta.as_ref().expect("skill meta");
-        assert_eq!(meta.get("bareName").and_then(|v| v.as_str()), Some("Login"));
+        assert_eq!(meta.get("bareName").and_then(|v| v.as_str()), Some("Changelog"));
         assert_eq!(
             meta.get("qualifiedName").and_then(|v| v.as_str()),
-            Some("local:login")
+            Some("local:changelog")
         );
     }
     #[test]
@@ -2734,13 +2730,13 @@ mod tests {
     }
     #[test]
     fn mixed_case_workflow_does_not_take_reserved_name() {
-        let workflows = vec![listing("Login"), listing("Review")];
+        let workflows = vec![listing("Changelog"), listing("Review")];
         let names: Vec<String> = available_commands(&[], all_gated(), &workflows)
             .into_iter()
             .map(|c| c.name)
             .collect();
         assert!(
-            !names.iter().any(|n| n.eq_ignore_ascii_case("login")),
+            !names.iter().any(|n| n.eq_ignore_ascii_case("changelog")),
             "{names:?}"
         );
         assert!(names.iter().any(|n| n == "Review"), "{names:?}");

@@ -645,7 +645,7 @@ mod tests {
         assert!(!picker_interactive(false, true, true, false, false, false));
         assert!(
             !picker_interactive(true, true, false, false, false, false),
-            "login / authenticating must not cycle mode"
+            "unauthenticated welcome must not cycle mode"
         );
         assert!(
             !picker_interactive(true, true, true, true, false, false),

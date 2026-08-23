@@ -11,7 +11,6 @@ pub(crate) mod manager;
 mod model;
 pub(crate) mod recovery;
 pub(crate) mod refresh;
-pub(crate) mod single_flight;
 mod storage;
 mod token_output;
 pub(crate) mod token_type;
@@ -24,18 +23,10 @@ pub(crate) use auth_provider::{
 };
 #[cfg(test)]
 pub(crate) use auth_provider::{test_backdate_provider_mint, test_counting_provider};
-pub(crate) use config::LEGACY_AUTH_SCOPE;
-pub use config::{
-    ForceLoginTeam, NofyComConfig, OAuth2ProviderConfig, OidcAuthConfig, PreferredAuthMethod,
-    NOFY_OAUTH2_ISSUER, is_xai_oauth2_issuer, xai_oauth2_issuer,
-};
+pub use config::NofyComConfig;
 pub(crate) use external_auth::{parse_output, refresh_with_command};
 pub(crate) use flow::try_noninteractive_auth_no_mint;
-pub use flow::{
-    AuthUrlInfo, AuthUrlMode, LoginTransportOverride, LogoutResult, ensure_authenticated,
-    ensure_authenticated_or_noninteractive, ensure_authenticated_with_override, perform_logout,
-    run_cli_login, run_cli_logout, try_ensure_fresh_auth,
-};
+pub use flow::try_ensure_fresh_auth;
 pub use jwt::{is_jwt_expired_or_near, parse_jwt_expiration};
 mod meta;
 pub use error::{AuthError, RefreshTokenError, RefreshTokenFailedReason};
@@ -45,6 +36,4 @@ pub use meta::{AuthMeta, GateInfo};
 pub use model::{AuthMode, NofyAuth, lookup_auth};
 pub(crate) use model::{TOKEN_TTL, UserInfo, default_coding_data_retention_opt_out, is_expired};
 pub(crate) use refresh::DiagnosticUploader;
-pub use storage::{
-    clear_api_key, read_api_key, read_auth_json, read_token_by_scope, store_api_key,
-};
+pub use storage::{clear_api_key, read_api_key, read_auth_json, store_api_key};

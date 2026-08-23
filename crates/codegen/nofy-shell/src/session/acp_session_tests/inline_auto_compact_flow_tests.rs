@@ -1299,7 +1299,7 @@ async fn test_e2e_idle_resume_refreshes_model_metadata() {
                         crate::auth::NofyComConfig::default(),
                     ));
                     mgr.hot_swap(crate::auth::NofyAuth {
-                        auth_mode: crate::auth::AuthMode::Oidc,
+                        auth_mode: crate::auth::AuthMode::External,
                         refresh_token: Some("rt".into()),
                         expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
                         ..crate::auth::NofyAuth::test_default()

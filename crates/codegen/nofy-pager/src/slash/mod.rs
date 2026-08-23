@@ -2628,12 +2628,12 @@ mod tests {
     #[test]
     fn colliding_plugin_skill_appears_beside_builtin() {
         let mut ctrl = SlashController::new(
-            CommandRegistry::new(vec![Arc::new(TieCmd("login"))]),
+            CommandRegistry::new(vec![Arc::new(TieCmd("changelog"))]),
             std::path::PathBuf::from("."),
         );
         let meta = serde_json::json!({
             "scope": "plugin",
-            "path": "/plugins/acme/skills/login/SKILL.md",
+            "path": "/plugins/acme/skills/changelog/SKILL.md",
             "pluginName": "acme",
         })
         .as_object()
@@ -2641,37 +2641,37 @@ mod tests {
         .unwrap();
         ctrl.registry_mut()
             .set_acp_commands(&[agent_client_protocol::AvailableCommand::new(
-                "acme:login".to_string(),
-                "Acme SSO helper".to_string(),
+                "acme:changelog".to_string(),
+                "Acme helper".to_string(),
             )
             .meta(meta)]);
 
         let state = SlashState::default();
         let models = ModelState::default();
-        ctrl.refresh(&state, "/login", 6, &models);
+        ctrl.refresh(&state, "/changelog", "/changelog".len(), &models);
         let snap = state.snapshot();
 
         let builtin = snap
             .matches
             .iter()
-            .find(|r| r.display == "/login")
-            .expect("builtin /login stays listed");
+            .find(|r| r.display == "/changelog")
+            .expect("builtin /changelog stays listed");
         assert_eq!(builtin.provenance, Some(CommandProvenance::Builtin));
 
         let skill = snap
             .matches
             .iter()
-            .find(|r| r.display == "/acme:login")
-            .expect("colliding plugin skill listed as /acme:login");
+            .find(|r| r.display == "/acme:changelog")
+            .expect("colliding plugin skill listed as /acme:changelog");
         assert_eq!(
             skill.provenance,
             Some(CommandProvenance::Skill {
                 source: "acme".to_string()
             })
         );
-        assert_eq!(skill.description, "Acme SSO helper");
+        assert_eq!(skill.description, "Acme helper");
 
-        assert_eq!(snap.matches[0].display, "/login");
+        assert_eq!(snap.matches[0].display, "/changelog");
 
         assert!(
             !skill.indices.is_empty(),
@@ -2681,16 +2681,16 @@ mod tests {
             skill
                 .indices
                 .iter()
-                .all(|i| (*i as usize) < "/acme:login".len()),
+                .all(|i| (*i as usize) < "/acme:changelog".len()),
             "indices must land within the display text: {:?}",
             skill.indices
         );
 
-        ctrl.record_command_use("acme:login", "acme:login");
-        ctrl.refresh(&state, "/login", 6, &models);
+        ctrl.record_command_use("acme:changelog", "acme:changelog");
+        ctrl.refresh(&state, "/changelog", "/changelog".len(), &models);
         assert_eq!(
             state.snapshot().matches[0].display,
-            "/login",
+            "/changelog",
             "recently-used colliding skill must not hijack the typed builtin name"
         );
     }

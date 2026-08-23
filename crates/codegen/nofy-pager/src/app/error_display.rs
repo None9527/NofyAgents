@@ -5,14 +5,13 @@
 
 /// Wire `RetryState::Failed.error_type` values the pager understands: the
 /// shell's `SamplingErrorKind::as_str` tags plus its special-cased tags
-/// (`context_length`, `legacy_auth`, …). Unknown strings map to
+/// (`context_length`, …). Unknown strings map to
 /// [`WireErrorType::Other`] rather than being matched as raw `&str` at call
 /// sites.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum WireErrorType {
     Auth,
     AuthTransient,
-    LegacyAuth,
     ContextLength,
     EncryptedContentMismatch,
     DiskFull,
@@ -31,7 +30,6 @@ impl WireErrorType {
         match raw {
             Some("auth") => Self::Auth,
             Some("auth_transient") => Self::AuthTransient,
-            Some("legacy_auth") => Self::LegacyAuth,
             Some("context_length") => Self::ContextLength,
             Some("encrypted_content_mismatch") => Self::EncryptedContentMismatch,
             Some(s) if s == nofy_shell::extensions::notification::DISK_FULL_ERROR_TYPE => {

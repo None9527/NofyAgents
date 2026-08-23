@@ -465,7 +465,7 @@ mod tests {
     fn test_auth() -> crate::auth::NofyAuth {
         crate::auth::NofyAuth {
             key: "token".to_string(),
-            auth_mode: crate::auth::AuthMode::Oidc,
+            auth_mode: crate::auth::AuthMode::External,
             create_time: chrono::Utc::now(),
             user_id: "user-1".to_string(),
             email: Some("test@example.com".to_string()),

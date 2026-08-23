@@ -459,7 +459,7 @@ impl SuppressReason {
     /// Suppression scope for this reason:
     /// - `size | schema` → [`SUPPRESS_STICKY`]: cleared only on a context-budget change.
     /// - `credit_block` → [`SUPPRESS_UNTIL_SUCCESS`]: wait for a model `200`.
-    /// - `auth` → [`SUPPRESS_AUTH`]: clear on login/token refresh (not 200 — over-window deadlock).
+    /// - `auth` → [`SUPPRESS_AUTH`]: clear on credential refresh (not 200 — over-window deadlock).
     /// - `other` → [`SUPPRESS_TURN`]: optimistic per-turn retry.
     fn suppress_state(self) -> u8 {
         match self {
@@ -689,7 +689,7 @@ impl SessionActor {
                     "out of credits or over your spending limit. Add credits and retry."
                 }
                 SuppressReason::Auth => {
-                    "authentication problem — re-authenticate using /login and retry."
+                    "authentication problem — restore your credentials                      (set NOFY_API_KEY or re-run your auth provider) and retry."
                 }
                 SuppressReason::Size => "this conversation is too large to compact.",
                 SuppressReason::Schema => "this conversation can't be summarized.",
@@ -754,7 +754,7 @@ impl SessionActor {
             detailed
         } else {
             format!(
-                "Unauthorized (401): compaction failed — re-authenticate with /login \
+                "Unauthorized (401): compaction failed — restore your credentials \
                  and retry. ({detailed})"
             )
         };
@@ -783,7 +783,7 @@ impl SessionActor {
             nofy_sampler::SamplingErrorKind::Auth,
         ))
     }
-    /// Clear [`SUPPRESS_AUTH`] on login/token refresh (credit suppress waits for a 200).
+    /// Clear [`SUPPRESS_AUTH`] on credential refresh (credit suppress waits for a 200).
     pub(crate) fn clear_auth_compact_suppression(&self) {
         let _ = self.compaction.auto_compact_suppressed.compare_exchange(
             SUPPRESS_AUTH,
@@ -2803,7 +2803,7 @@ mod inline_auto_compact_flow_tests {
             })
             .await;
     }
-    /// After /login, clearing auth suppress must re-arm pre-sampling compact
+    /// After re-auth, clearing auth suppress must re-arm pre-sampling compact
     /// before the next sample (ordering that prepare_sampler-after-gate broke).
     #[tokio::test(flavor = "current_thread")]
     async fn clear_auth_suppress_rearms_pre_sampling_compact_gate() {
@@ -2921,7 +2921,7 @@ mod inline_auto_compact_flow_tests {
                 let credit = notification_for(SuppressReason::CreditBlock).await;
                 assert!(credit.contains("spending limit"), "credit_block: {credit}");
                 let auth = notification_for(SuppressReason::Auth).await;
-                assert!(auth.contains("/login"), "auth: {auth}");
+                assert!(auth.contains("authentication problem"), "auth: {auth}");
                 let size = notification_for(SuppressReason::Size).await;
                 assert!(size.contains("too large to compact"), "size: {size}");
                 let schema = notification_for(SuppressReason::Schema).await;
@@ -2974,7 +2974,7 @@ mod inline_auto_compact_flow_tests {
         });
         format!("http://{addr}")
     }
-    /// 401 auto-compact: SUPPRESS_AUTH + reauthable RetryState (abort for /login).
+    /// 401 auto-compact: SUPPRESS_AUTH + reauthable RetryState (abort for re-auth).
     #[tokio::test(flavor = "current_thread")]
     async fn e2e_auto_compact_401_suppresses_auth_and_surfaces_reauth() {
         use crate::extensions::notification::SessionUpdate as NofySessionUpdate;
@@ -3014,7 +3014,7 @@ mod inline_auto_compact_flow_tests {
                 assert_eq!(
                     actor.compaction.auto_compact_suppressed.load(Relaxed),
                     SUPPRESS_AUTH,
-                    "auth compact failure must use SUPPRESS_AUTH (cleared on re-login)"
+                    "auth compact failure must use SUPPRESS_AUTH (cleared on re-auth)"
                 );
                 let surfaced = actor.surface_compact_auth_failure(err).await;
                 assert_eq!(surfaced.code, acp::Error::auth_required().code);
@@ -3038,7 +3038,7 @@ mod inline_auto_compact_flow_tests {
                             }
                             NofySessionUpdate::AutoCompactFailed { error } => {
                                 assert!(
-                                    error.contains("/login") || error.contains("authentication"),
+                                    error.contains("authentication") || error.contains("credentials"),
                                     "auto-failed={error}"
                                 );
                                 saw_auto_failed = true;

@@ -47,7 +47,7 @@ async fn manual_auth_posts_to_events_endpoint_as_nofy_shell_manual_auth() {
     nofy_telemetry::log_event(ManualAuth {
         reason: ManualAuthReason::RefreshTokenRejected,
         trigger: ManualAuthSurface::Turn,
-        token_kind: AuthTokenKind::OidcSession,
+        token_kind: AuthTokenKind::ExternalBinary,
         principal: Some("user-xyz".into()),
     });
 
@@ -76,7 +76,7 @@ async fn manual_auth_posts_to_events_endpoint_as_nofy_shell_manual_auth() {
     assert_eq!(meta.get("trigger").and_then(|v| v.as_str()), Some("turn"));
     assert_eq!(
         meta.get("token_kind").and_then(|v| v.as_str()),
-        Some("oidc_session"),
+        Some("external_binary"),
     );
     assert_eq!(
         meta.get("principal").and_then(|v| v.as_str()),

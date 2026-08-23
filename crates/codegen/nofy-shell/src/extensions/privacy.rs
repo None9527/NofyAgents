@@ -29,7 +29,7 @@ async fn handle_set(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtResult {
     let auth = agent.auth_manager.auth().await.map_err(|e| {
         tracing::warn!(error = %e, "privacy: auth resolution failed");
         acp::Error::auth_required()
-            .data("Authentication required. Run `nofy login` to re-authenticate.")
+            .data("Authentication required. Set NOFY_API_KEY or add api_key to ~/.nofy/config.toml.")
     })?;
 
     let proxy_url = agent.cfg.borrow().endpoints.proxy_url();

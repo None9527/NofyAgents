@@ -1130,17 +1130,20 @@ async fn restore_session_from_remote(
     let agent_config = nofy_shell::agent::config::Config::new_from_toml_cfg(&raw_config)
         .map_err(|e| anyhow::anyhow!("Failed to create agent config: {}", e))?;
     use nofy_shell::agent::session_registry_client::SessionRegistryClient;
-    use nofy_shell::auth::{AuthManager, ensure_authenticated_or_noninteractive};
+    use nofy_shell::auth::{AuthManager, try_ensure_fresh_auth};
     use nofy_shell::session::restore::{RestoreSessionOpts, restore_session_with_storage};
     use nofy_shell::util::nofy_home::nofy_home;
     let deployment_key = agent_config.endpoints.deployment_key.clone();
-    ensure_authenticated_or_noninteractive(
-        &agent_config.nofy_com_config,
-        deployment_key.is_some(),
-        None,
-    )
-    .await
-    .map_err(|e| anyhow::anyhow!("Failed to authenticate for session restore: {}", e))?;
+    if deployment_key.is_none()
+        && try_ensure_fresh_auth(&agent_config.nofy_com_config)
+            .await
+            .is_none()
+    {
+        anyhow::bail!(
+            "Failed to authenticate for session restore: no credentials available \
+             (set NOFY_API_KEY or configure an auth provider)"
+        );
+    }
     let auth_manager = std::sync::Arc::new(AuthManager::new(
         &nofy_home(),
         agent_config.nofy_com_config.clone(),

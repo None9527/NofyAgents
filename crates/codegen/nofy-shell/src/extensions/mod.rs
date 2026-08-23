@@ -1,5 +1,4 @@
 pub mod auth;
-pub(crate) mod auth_gate;
 pub mod billing;
 pub mod bundle;
 pub(crate) mod chat_conversation_history;

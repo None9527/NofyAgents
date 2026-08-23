@@ -38,7 +38,7 @@ impl crate::auth::refresh::TokenRefresher for WakeGapRefresher {
         }
         crate::auth::refresh::RefreshOutcome::success(NofyAuth {
             key: FRESH_TOKEN.to_string(),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             refresh_token: Some("rt-new".into()),
             expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
             ..NofyAuth::test_default()
@@ -56,7 +56,7 @@ fn expired_auth_manager(
     let am = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     am.hot_swap(NofyAuth {
         key: "initial-test-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(chrono::Utc::now() - chrono::Duration::hours(1)),
         ..NofyAuth::test_default()

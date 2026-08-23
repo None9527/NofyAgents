@@ -11,8 +11,7 @@ pub(crate) struct ExternalAuthOutput {
     pub refresh_token: Option<String>,
     #[serde(default)]
     pub expires_in: Option<u64>,
-    /// An xAI issuer marks the credential as first-party
-    /// (see [`crate::auth::NofyAuth::is_xai_auth`]).
+    /// Optional issuer reported by the provider (recorded on the credential).
     #[serde(default)]
     pub issuer: Option<String>,
 }

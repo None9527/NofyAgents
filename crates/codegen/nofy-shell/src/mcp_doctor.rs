@@ -2,12 +2,10 @@
 
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
 
 use serde::Serialize;
 use nofy_tools::types::config_source::ConfigSource;
 
-use crate::auth::NofyComConfig;
 use crate::session::managed_mcp;
 use crate::session::mcp_servers;
 
@@ -269,52 +267,10 @@ fn managed_found(
     )
 }
 
-/// Discover managed `nofy_com_*` servers if the user has xAI auth on disk.
+/// Managed `nofy_com_*` connectors required the removed xAI account
+/// system, so discovery always skips.
 async fn try_discover_managed_servers() -> (ConfigSourceStatus, Vec<DiscoveredServer>) {
-    let nofy_home = nofy_tools::util::nofy_home::nofy_home();
-    let nofy_com_config = NofyComConfig::default();
-    let auth_manager = Arc::new(crate::auth::AuthManager::new(&nofy_home, nofy_com_config));
-
-    let Some(snapshot) = auth_manager.current_or_expired() else {
-        return managed_skipped("not logged in");
-    };
-    if !snapshot.is_managed_mcp_eligible() {
-        return managed_skipped(format!("{:?} auth (not xAI OIDC)", snapshot.auth_mode));
-    }
-
-    let token = match auth_manager.get_valid_token().await {
-        Ok(key) => key,
-        Err(_) => return managed_skipped("auth expired — run `nofy login`"),
-    };
-
-    let proxy_url = crate::agent::config::EndpointsConfig::from_effective_config().proxy_url();
-
-    let configs = match managed_mcp::fetch_managed_configs(&proxy_url, &token).await {
-        Ok(configs) => configs,
-        Err(e) => return managed_skipped(format!("fetch failed: {e}")),
-    };
-    if configs.is_empty() {
-        return managed_found(0, vec![]);
-    }
-
-    let mut servers: Vec<agent_client_protocol::McpServer> = vec![];
-    managed_mcp::auto_inject_managed_servers_with_disabled(
-        &mut servers,
-        &configs,
-        &Default::default(),
-    );
-    managed_mcp::inject_managed_headers(&mut servers, &configs);
-
-    let source = ConfigSource::Managed { path: None };
-    let discovered: Vec<DiscoveredServer> = servers
-        .into_iter()
-        .map(|server| DiscoveredServer {
-            server,
-            source: source.clone(),
-        })
-        .collect();
-
-    managed_found(discovered.len(), discovered)
+    managed_skipped("managed connectors require the removed xAI account system")
 }
 
 // ── Check functions ─────────────────────────────────────────────

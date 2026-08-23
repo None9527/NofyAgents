@@ -1,11 +1,12 @@
-//! Regression: an expired `auth_provider_command` credential must route the
-//! user into the provider's sign-in flow, not into a silent 401 loop.
+//! Regression: an expired `auth_provider_command` credential must fail closed
+//! after one headless probe, and a mid-session 401 must name the provider —
+//! never a silent 401 loop.
 //!
 //! The deployment under test: an operator binary mints the session credential,
 //! and it cannot mint from the headless refresh because it needs the user to
-//! complete an SSO flow. Before the fix a *stale* credential was treated better
-//! than no credential — the client skipped login, the dead bearer was accepted,
-//! and the first turn 401'd under "no need to run /login".
+//! complete an SSO flow. Interactive login does not exist in this build, so an
+//! unrenewable credential must leave the client unauthenticated (nothing
+//! advertised) instead of serving the dead bearer into a 401 loop.
 //!
 //! The mirror of phase 3 — a provider that blocks until it is killed, leaving
 //! no verdict behind — is a unit test (`auth::manager::remedy`); driving it here
@@ -121,19 +122,22 @@ impl acp::Client for QuietClient {
     }
 }
 
-/// Written under the legacy scope key, which `lookup_auth` falls back to for
-/// any configured scope.
+/// Written under the session scope key the manager actually reads.
 fn seed_credential(nofy_home: &Path, expires_at: chrono::DateTime<chrono::Utc>) {
-    let auth = json!({
-        "https://accounts.x.ai/sign-in": {
+    let scope = nofy_shell::auth::NofyComConfig::default().auth_scope();
+    let mut store = serde_json::Map::new();
+    store.insert(
+        scope,
+        json!({
             "key": STALE_TOKEN,
             "auth_mode": "external",
             "create_time": (chrono::Utc::now() - chrono::Duration::hours(9)).to_rfc3339(),
             "user_id": "user-ext-1",
             "email": "engineer@acme.example",
             "expires_at": expires_at.to_rfc3339(),
-        }
-    });
+        }),
+    );
+    let auth = serde_json::Value::Object(store);
     std::fs::create_dir_all(nofy_home).expect("create nofy home");
     std::fs::write(
         nofy_home.join("auth.json"),
@@ -264,7 +268,7 @@ fn ambient_mint_endpoints() -> Vec<String> {
 }
 
 #[test]
-fn expired_external_credential_routes_to_the_provider_login_flow() {
+fn expired_external_credential_fails_closed_and_mid_session_401_names_the_provider() {
     let _ = rustls::crypto::ring::default_provider().install_default();
 
     let mock_rt = tokio::runtime::Builder::new_multi_thread()
@@ -321,26 +325,17 @@ fn expired_external_credential_routes_to_the_provider_login_flow() {
         // Phase 1 — startup with the expired credential.
         let (_conn, init) = connect("external-auth-expired", Capture::default()).await;
         let methods = advertised(&init);
-        assert_eq!(
-            methods.first().map(|(id, _)| id.as_str()),
-            Some("nofy.com"),
-            "an expired credential the provider cannot renew must advertise the \
-             login method first, not `cached_token`; got {methods:?}"
-        );
         assert!(
-            methods.first().is_some_and(|(_, external)| *external),
-            "the login method must carry external_provider so the client runs \
-             the operator's binary instead of opening a browser; got {methods:?}"
-        );
-        assert!(
-            !methods.iter().any(|(id, _)| id == "cached_token"),
-            "the dead bearer must not be offered at all; got {methods:?}"
+            methods.is_empty(),
+            "an expired credential the provider cannot renew must advertise no \
+             auth method at all (no interactive login exists in this build); \
+             got {methods:?}"
         );
         assert_eq!(
             provider_runs(nofy_home.path()),
             1,
-            "startup owes the provider exactly one headless attempt — the escalation \
-             above must come after it, and the attempt must not be re-run per launch"
+            "startup owes the provider exactly one headless attempt, and the \
+             attempt must not be re-run per launch"
         );
 
         // Phase 2 — parity with a launch that has no credential at all.
@@ -354,8 +349,7 @@ fn expired_external_credential_routes_to_the_provider_login_flow() {
         assert_eq!(
             provider_runs(nofy_home.path()),
             1,
-            "with nothing to refresh there is no headless attempt to make; the \
-             binary runs when the client starts the login flow"
+            "with nothing to refresh there is no headless attempt to make"
         );
 
         // Phase 3 — mid-session: a credential that has not locally expired but
@@ -416,11 +410,11 @@ fn expired_external_credential_routes_to_the_provider_login_flow() {
             .expect("the turn error's message is a string")
             .to_owned();
         assert!(
-            !message.contains("no need to run /login"),
+            !message.contains("no action needed"),
             "the message must not tell the user to wait it out: {message}"
         );
         assert!(
-            message.contains(PROVIDER_LABEL) && message.contains("/login"),
+            message.contains(PROVIDER_LABEL) && message.contains("NOFY_API_KEY"),
             "the message must name the provider and the remedy: {message}"
         );
         let auth_line = message

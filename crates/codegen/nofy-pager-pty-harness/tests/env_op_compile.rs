@@ -1,6 +1,6 @@
 use std::ffi::OsStr;
 
-use nofy_pager_pty_harness::{EnvOp, oauth_credential_ops};
+use nofy_pager_pty_harness::{EnvOp, session_credential_ops};
 
 #[test]
 fn set_and_remove_operations_have_one_typed_surface() {
@@ -21,5 +21,5 @@ fn set_and_remove_operations_have_one_typed_surface() {
 
 #[test]
 fn oauth_credential_operations_remove_the_api_key() {
-    assert_eq!(oauth_credential_ops(), [EnvOp::remove("NOFY_API_KEY")],);
+    assert_eq!(session_credential_ops(), [EnvOp::remove("NOFY_API_KEY")],);
 }

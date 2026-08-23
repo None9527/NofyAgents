@@ -598,7 +598,7 @@ pub(crate) struct ModelAuthMemo {
 pub(crate) struct SessionActor {
     pub(crate) session_info: SessionInfo,
     /// Shared live handle to the current ACP auth method. Normal sessions hold a
-    /// clone of `MvpAgent::auth_method_id`, so a mid-session `/login` is picked
+    /// clone of `MvpAgent::auth_method_id`, so a mid-session `authenticate` is picked
     /// up by the per-turn auth gate without re-spawning; subagents instead get a
     /// fresh, isolated handle seeded once at spawn (frozen for their lifetime).
     /// `None` until the agent has selected a method.

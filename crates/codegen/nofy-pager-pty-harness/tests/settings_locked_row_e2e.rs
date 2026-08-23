@@ -26,8 +26,8 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use nofy_pager_pty_harness::{
-    ContentController, EnvOp, PtyHarness, keys, pager_binary, seed_fake_oauth_team_member,
-    seed_fake_oauth_zdr_team,
+    ContentController, EnvOp, PtyHarness, keys, pager_binary, seed_session_credential_team_member,
+    seed_session_credential_zdr_team,
 };
 
 const ROWS: u16 = 50;
@@ -73,7 +73,7 @@ async fn run_zdr() -> Result<()> {
     let content = ContentController::start()
         .await
         .context("start mock server")?;
-    seed_fake_oauth_zdr_team(&content, "pty-zdr-user");
+    seed_session_credential_zdr_team(&content, "pty-zdr-user");
 
     let mut pager = launch(&content).context("launch pager")?;
     assert_no_banner_on_welcome(&mut pager)?;
@@ -120,7 +120,7 @@ async fn run_team_member() -> Result<()> {
     let content = ContentController::start()
         .await
         .context("start mock server")?;
-    seed_fake_oauth_team_member(&content, "pty-team-user");
+    seed_session_credential_team_member(&content, "pty-team-user");
 
     let mut pager = launch(&content).context("launch pager")?;
     assert_no_banner_on_welcome(&mut pager)?;

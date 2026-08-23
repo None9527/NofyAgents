@@ -259,74 +259,6 @@ pub enum PluginSource {
 // Auth
 // ─────────────────────────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
-pub struct Login {
-    pub auth_method: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<String>,
-}
-
-/// The login-method picker was shown. `trigger` is "startup", "logout", or
-/// "mid_session".
-#[derive(Serialize)]
-pub struct LoginPickerShown {
-    pub trigger: String,
-}
-
-/// A login method was chosen from the picker. `method` is "nofy" or "api_key";
-/// `mode` is "device", "loopback", or "api_key".
-#[derive(Serialize)]
-pub struct LoginMethodChosen {
-    pub method: String,
-    pub mode: String,
-}
-
-/// A login flow completed successfully. `method` is "nofy" or "api_key";
-/// `mode` is the resolved auth mode; `mid_session` is true for `/login`/401
-/// re-auth (as opposed to the startup/logout flow).
-#[derive(Serialize)]
-pub struct LoginCompleted {
-    pub method: String,
-    pub mode: String,
-    pub duration_ms: u64,
-    pub mid_session: bool,
-}
-
-/// How a login attempt's HTTP request failed.
-#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum LoginFailureKind {
-    /// `is_connect`: a dead TCP connect *or* a TLS handshake killed
-    /// mid-flight. `os_error` tells them apart.
-    TransportConnect,
-    /// In-flight request cut short: reset, close, timeout, body phase.
-    TransportInterrupted,
-    /// Client-side request construction / redirect policy defect.
-    TransportPermanent,
-    Decode,
-}
-
-/// One per failed login attempt, emitted by the login funnel so a retried
-/// request can't inflate the count. Failures that never reached HTTP (user
-/// backed out, loopback bind, id_token validation) are not reported.
-#[derive(Serialize)]
-pub struct LoginFailed {
-    pub error_kind: LoginFailureKind,
-    /// OS code from the failure's cause chain (54/104 ECONNRESET, 10054 on
-    /// Windows).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub os_error: Option<i32>,
-}
-
-/// The user backed out of the login funnel. `stage` is "picker",
-/// "api_key_entry", "loopback_paste", "device_wait", "api_key_wait", or
-/// "command_wait"; `via` is "esc" or "quit".
-#[derive(Serialize)]
-pub struct LoginAbandoned {
-    pub stage: String,
-    pub via: String,
-}
-
 /// Result of persisting a user-provided API key.
 #[derive(Serialize)]
 pub struct ApiKeySaveResult {
@@ -1806,8 +1738,6 @@ pub enum ManualAuthReason {
     ProviderInteractiveRequired,
     RecoveryExhausted,
     TokenExpiredNoRefresh,
-    /// Recovered session violated the `force_login_team_uuid` pin.
-    WrongTeam,
 }
 
 /// User-facing surface where the manual re-auth was triggered. Background
@@ -1826,9 +1756,7 @@ pub enum ManualAuthSurface {
 #[derive(Serialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthTokenKind {
-    OidcSession,
     ExternalBinary,
-    LegacySession,
     ApiKey,
     None,
 }
@@ -1843,7 +1771,7 @@ pub enum AuthTokenKind {
 /// collapse; alternating credentials can re-emit), and `trigger` is whichever
 /// surface fired first, not a reliable per-surface split. `principal` is absent for
 /// unattributed lockouts (all collapse into one NULL bucket). API-key sessions
-/// are excluded (a 401 there means rotate the key, not `/login`).
+/// are excluded (a 401 there means rotate the key, not re-authenticate).
 // `Debug`/`Clone`/`PartialEq` let shell tests assert the emitted event by value
 // (a downstream crate's `cfg(test)` can't turn on `cfg_attr(test, ...)` here).
 #[derive(Serialize, Debug, Clone, PartialEq)]
@@ -1862,12 +1790,6 @@ pub struct ManualAuth {
 
 telemetry_event!(ManualAuth, "manual_auth");
 
-telemetry_event!(Login, "login", external = crate::external::schema::map_auth);
-telemetry_event!(LoginPickerShown, "login_picker_shown");
-telemetry_event!(LoginMethodChosen, "login_method_chosen");
-telemetry_event!(LoginCompleted, "login_completed");
-telemetry_event!(LoginFailed, "login_failed");
-telemetry_event!(LoginAbandoned, "login_abandoned");
 telemetry_event!(ApiKeySaveResult, "api_key_save_result");
 telemetry_event!(
     PlanModeToggled,
@@ -2197,7 +2119,7 @@ mod tests {
         let with_principal = serde_json::to_value(ManualAuth {
             reason: ManualAuthReason::RefreshTokenRejected,
             trigger: ManualAuthSurface::Turn,
-            token_kind: AuthTokenKind::OidcSession,
+            token_kind: AuthTokenKind::ExternalBinary,
             principal: Some("user-1".into()),
         })
         .unwrap();
@@ -2206,17 +2128,17 @@ mod tests {
             serde_json::json!({
                 "reason": "refresh_token_rejected",
                 "trigger": "turn",
-                "token_kind": "oidc_session",
+                "token_kind": "external_binary",
                 "principal": "user-1",
             })
         );
 
-        // `principal` is omitted (not null) when unknown. `LegacySession` is a
-        // reachable fixture (API-key sessions never emit this event).
+        // `principal` is omitted (not null) when unknown. API-key sessions
+        // never emit this event.
         let no_principal = serde_json::to_value(ManualAuth {
             reason: ManualAuthReason::NoRefreshAuthority,
             trigger: ManualAuthSurface::Relay,
-            token_kind: AuthTokenKind::LegacySession,
+            token_kind: AuthTokenKind::ExternalBinary,
             principal: None,
         })
         .unwrap();
@@ -2399,56 +2321,8 @@ mod tests {
     }
 
     #[test]
-    fn login_funnel_event_names() {
-        assert_eq!(LoginPickerShown::NAME, "login_picker_shown");
-        assert_eq!(LoginMethodChosen::NAME, "login_method_chosen");
-        assert_eq!(LoginCompleted::NAME, "login_completed");
-        assert_eq!(LoginFailed::NAME, "login_failed");
-        assert_eq!(LoginAbandoned::NAME, "login_abandoned");
+    fn api_key_save_result_event_name() {
         assert_eq!(ApiKeySaveResult::NAME, "api_key_save_result");
-    }
-
-    #[test]
-    fn login_completed_serializes_all_fields() {
-        let v = serde_json::to_value(LoginCompleted {
-            method: "nofy".into(),
-            mode: "device".into(),
-            duration_ms: 1234,
-            mid_session: false,
-        })
-        .unwrap();
-        assert_eq!(
-            v,
-            serde_json::json!({
-                "method": "nofy",
-                "mode": "device",
-                "duration_ms": 1234,
-                "mid_session": false,
-            })
-        );
-    }
-
-    #[test]
-    fn login_failed_serializes_kind_and_os_code() {
-        let v = serde_json::to_value(LoginFailed {
-            error_kind: LoginFailureKind::TransportInterrupted,
-            os_error: Some(104),
-        })
-        .unwrap();
-        assert_eq!(
-            v,
-            serde_json::json!({ "error_kind": "transport_interrupted", "os_error": 104 })
-        );
-    }
-
-    #[test]
-    fn login_failed_omits_absent_os_code() {
-        let v = serde_json::to_value(LoginFailed {
-            error_kind: LoginFailureKind::Decode,
-            os_error: None,
-        })
-        .unwrap();
-        assert_eq!(v, serde_json::json!({ "error_kind": "decode" }));
     }
 
     #[test]

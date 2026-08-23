@@ -33,8 +33,6 @@ pub mod history;
 pub mod home;
 pub mod import_claude;
 pub mod jump;
-pub mod login;
-pub mod logout;
 pub mod loop_cmd;
 pub mod mcps;
 pub mod model;

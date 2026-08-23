@@ -22,7 +22,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result, bail};
 use nofy_pager_pty_harness::{
     ContentController, EnvOp, PtyExitPoll, PtyHarness, keys, pager_binary,
-    seed_fake_oauth_coding_data_opted_out,
+    seed_session_credential_coding_data_opted_out,
 };
 
 const ROWS: u16 = 50;
@@ -58,7 +58,7 @@ async fn run_opt_out() -> Result<()> {
     let content = ContentController::start()
         .await
         .context("start mock server")?;
-    seed_fake_oauth_coding_data_opted_out(&content, "pty-privacy-user");
+    seed_session_credential_coding_data_opted_out(&content, "pty-privacy-user");
 
     let project = tempfile::tempdir().context("project dir")?;
     std::fs::create_dir_all(project.path().join(".git")).context("create .git")?;
@@ -114,7 +114,7 @@ async fn run_opt_in() -> Result<()> {
         .await
         .context("start mock server")?;
     content.set_response(format!("{ACK} done."));
-    seed_fake_oauth_coding_data_opted_out(&content, "pty-privacy-user");
+    seed_session_credential_coding_data_opted_out(&content, "pty-privacy-user");
 
     let project = tempfile::tempdir().context("project dir")?;
     std::fs::create_dir_all(project.path().join(".git")).context("create .git")?;

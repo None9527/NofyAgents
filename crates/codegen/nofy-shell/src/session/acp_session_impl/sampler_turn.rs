@@ -428,12 +428,7 @@ impl SessionActor {
             deployment_id: crate::managed_config::resolve_deployment_id(
                 crate::managed_config::resolve_deployment_key().as_deref(),
             ),
-            user_id: self
-                .auth_manager
-                .as_ref()
-                .and_then(|am| am.current_or_expired())
-                .filter(|a| a.is_xai_auth())
-                .map(|a| a.user_id),
+            user_id: None,
             origin_client: self.origin_client.clone(),
             attribution_callback: self.attribution_callback.clone(),
             bearer_resolver: if use_bearer_resolver {
@@ -590,17 +585,11 @@ impl SessionActor {
             .and_then(|am| am.current_or_expired().map(|a| a.key.clone()));
         let models = self.models_manager.models();
         let endpoints = self.models_manager.endpoints();
-        let disable_api_key_auth = self
-            .auth_manager
-            .as_ref()
-            .map(|am| am.nofy_com_config().api_key_auth_disabled())
-            .unwrap_or(false);
         crate::agent::config::resolve_aux_model_sampling_config(
             slug,
             &models,
             &endpoints,
             session_key.as_deref(),
-            disable_api_key_auth,
             creds.alpha_test_key.clone(),
             creds.client_version.clone(),
         )
@@ -964,24 +953,6 @@ impl SessionActor {
             .unwrap_or(crate::auth::AuthMode::ApiKey);
         let auth_mode_str = format!("{auth_mode:?}");
         let client_version = nofy_version::VERSION;
-        if auth_mode == crate::auth::AuthMode::WebLogin {
-            let msg = format!(
-                "{detailed_message}\n\n\
-                 You are using a deprecated authentication method (WebLogin).\n\
-                 This auth method is no longer supported and will cause errors.\n\n\
-                 To fix: run `nofy update`, then `nofy logout`, then `nofy login` to re-authenticate with OAuth2.\n\n\
-                 Version: {client_version}"
-            );
-            self.log_terminal_failure("legacy_auth", error.status_code, &msg);
-            self.send_xai_notification(NofySessionUpdate::RetryState(
-                crate::extensions::notification::RetryState::Failed {
-                    error_type: "legacy_auth".to_string(),
-                    message: msg.clone(),
-                },
-            ))
-            .await;
-            return Err(acp::Error::internal_error().data(msg));
-        }
         let is_model_404 =
             error.status_code == Some(404) && detailed_message.contains("does not exist");
         let is_auth_401 =

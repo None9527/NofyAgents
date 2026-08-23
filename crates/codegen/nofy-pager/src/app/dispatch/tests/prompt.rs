@@ -1807,7 +1807,7 @@ fn prompt_response_request_failed_banner_suppresses_turn_failed_and_toast() {
 /// PromptResponse now carries (the RetryState notification may lose the race,
 /// so no ReAuthRequired block exists yet).
 #[test]
-fn prompt_response_formatted_401_suppresses_turn_failed_and_stashes_prompt() {
+fn prompt_response_formatted_401_suppresses_turn_failed() {
     let mut app = test_app_with_agent();
     let id = AgentId(0);
     {
@@ -1842,14 +1842,6 @@ fn prompt_response_formatted_401_suppresses_turn_failed_and_stashes_prompt() {
     assert!(
         !has_turn_failed,
         "401 must suppress the redundant TurnFailed"
-    );
-    assert_eq!(
-        agent
-            .reauth_stashed_prompt
-            .as_ref()
-            .map(|p| p.text.as_str()),
-        Some("resend me"),
-        "401 must stash the prompt for auto-resubmit after /login"
     );
 }
 

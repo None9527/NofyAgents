@@ -42,7 +42,7 @@ pub enum ManagedConfigError {
     )]
     DeploymentKeyRejected,
     #[error(
-        "Your team sign-in was rejected. It may have expired or lack access. Run `nofy login` to sign in again."
+        "Your team sign-in was rejected. It may have expired or lack access. Contact your team admin."
     )]
     TeamAuthRejected,
     #[error("The server returned an unexpected error (HTTP {status}). Try again in a few minutes.")]

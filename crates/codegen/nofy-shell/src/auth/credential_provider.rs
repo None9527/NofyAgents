@@ -600,7 +600,7 @@ mod tests {
         ));
         mgr.hot_swap(NofyAuth {
             key: "stale".into(),
-            auth_mode: crate::auth::AuthMode::Oidc,
+            auth_mode: crate::auth::AuthMode::External,
             create_time: chrono::Utc::now() - ChronoDuration::hours(2),
             user_id: "u".into(),
             refresh_token: Some("rt-stale".into()),
@@ -619,7 +619,7 @@ mod tests {
                 self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                 crate::auth::refresh::RefreshOutcome::Success(Box::new(NofyAuth {
                     key: "fresh".into(),
-                    auth_mode: crate::auth::AuthMode::Oidc,
+                    auth_mode: crate::auth::AuthMode::External,
                     create_time: chrono::Utc::now(),
                     user_id: "u".into(),
                     refresh_token: Some("rt-new".into()),
@@ -789,7 +789,7 @@ mod tests {
         ));
         live_mgr.hot_swap(NofyAuth {
             key: "stale".into(),
-            auth_mode: crate::auth::AuthMode::Oidc,
+            auth_mode: crate::auth::AuthMode::External,
             create_time: chrono::Utc::now() - ChronoDuration::hours(2),
             user_id: "u".into(),
             refresh_token: Some("rt-stale".into()),
@@ -805,7 +805,7 @@ mod tests {
             ) -> crate::auth::refresh::RefreshOutcome {
                 crate::auth::refresh::RefreshOutcome::Success(Box::new(NofyAuth {
                     key: "refreshed".into(),
-                    auth_mode: crate::auth::AuthMode::Oidc,
+                    auth_mode: crate::auth::AuthMode::External,
                     create_time: chrono::Utc::now(),
                     user_id: "u".into(),
                     refresh_token: Some("rt-new".into()),

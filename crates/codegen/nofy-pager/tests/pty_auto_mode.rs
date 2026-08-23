@@ -6,9 +6,10 @@
 //! Always-Approve.
 //!
 //! Auth: seeds `HOME/.nofy/auth.json` from `NOFY_AUTH_JSON` (path) or the
-//! developer's `~/.nofy/auth.json` so the pager skips device-login when
+//! developer's `~/.nofy/auth.json` so the pager starts authenticated when
 //! credentials exist. Without auth the test records an environmental
-//! failure (login screen) and still asserts the harness API surface.
+//! failure (unauthenticated guidance screen) and still asserts the harness
+//! API surface.
 //!
 //! Run with:
 //! `cargo test -p nofy-pager --test pty_auto_mode -- --ignored --nocapture`
@@ -59,7 +60,7 @@ fn prepare_sandbox(sandbox: &mut TestSandbox, gate_on: bool) -> Vec<(String, Str
     if let Some(src) = auth_json_source() {
         let dest = nofy.join("auth.json");
         if let Err(e) = std::fs::copy(&src, &dest) {
-            eprintln!("pty_auto_mode: could not copy auth.json ({e}); login may block mode cycle");
+            eprintln!("pty_auto_mode: could not copy auth.json ({e}); the pager may start unauthenticated");
         } else {
             eprintln!(
                 "pty_auto_mode: seeded auth from {} ({} bytes)",
@@ -68,7 +69,7 @@ fn prepare_sandbox(sandbox: &mut TestSandbox, gate_on: bool) -> Vec<(String, Str
             );
         }
     } else {
-        eprintln!("pty_auto_mode: no ~/.nofy/auth.json — may hit device login");
+        eprintln!("pty_auto_mode: no ~/.nofy/auth.json — pager starts unauthenticated");
     }
 
     let home_s = home.display().to_string();
@@ -95,15 +96,13 @@ fn prepare_sandbox(sandbox: &mut TestSandbox, gate_on: bool) -> Vec<(String, Str
     env
 }
 
-fn is_login_screen(screen: &str) -> bool {
-    screen.contains("Waiting for approval")
-        || screen.contains("Approve in your browser")
-        || screen.contains("finish signing in")
+fn is_auth_blocked_screen(screen: &str) -> bool {
+    screen.contains("No API key configured")
 }
 
 /// Whether the caller expects seeded auth (CI / a deliberate e2e run). When set,
-/// hitting the login screen is a real failure (broken auth seeding), not an
-/// environmental skip — so the test hard-fails instead of passing vacuously.
+/// hitting the unauthenticated screen is a real failure (broken auth seeding),
+/// not an environmental skip — so the test hard-fails instead of passing vacuously.
 fn require_auth() -> bool {
     std::env::var("NOFY_PTY_REQUIRE_AUTH").is_ok_and(|v| v == "1" || v == "true")
 }
@@ -131,10 +130,10 @@ fn pty_shift_tab_cycles_to_auto_mode_banner() {
     // Drain startup; welcome or agent chrome.
     let _ = harness.wait_for_text(WELCOME_SCREEN_SENTINEL, WELCOME_TIMEOUT);
     let early = harness.screen_contents();
-    if is_login_screen(&early) {
+    if is_auth_blocked_screen(&early) {
         assert!(
             !require_auth(),
-            "NOFY_PTY_REQUIRE_AUTH set but pager hit the login screen — auth seeding broke"
+            "NOFY_PTY_REQUIRE_AUTH set but pager hit the unauthenticated screen — auth seeding broke"
         );
         // Auth still blocking (expired token / no network). Honest env failure:
         // the UI-ring guarantee is covered by the dispatch-level unit tests; save
@@ -143,15 +142,16 @@ fn pty_shift_tab_cycles_to_auto_mode_banner() {
             let _ = std::fs::write(&dump, &early);
         }
         eprintln!(
-            "pty_auto_mode: login/device-auth screen blocked Shift+Tab cycle \
-             (seeded auth may be expired). Screen saved; treating as env limit — \
-             see the permission_auto_mode SessionActor wire tests for coverage."
+            "pty_auto_mode: unauthenticated screen blocked the Shift+Tab cycle \
+             (seeded auth may be missing or expired). Screen saved; treating as \
+             env limit — see the permission_auto_mode SessionActor wire tests \
+             for coverage."
         );
         // Still prove we exercised PtyHarness spawn (not a no-op).
         let running = harness.is_running().expect("poll pager liveness");
         assert!(
             running || !early.is_empty(),
-            "pager must have produced output even on login screen"
+            "pager must have produced output even on the unauthenticated screen"
         );
         let _ = harness.inject_keys(b"\x11"); // ctrl+q if bound
         return;
@@ -176,8 +176,8 @@ fn pty_shift_tab_cycles_to_auto_mode_banner() {
         let _ = std::fs::write(&dump, &screen);
     }
 
-    if is_login_screen(&screen) {
-        eprintln!("pty_auto_mode: landed on login after key inject; env auth limit");
+    if is_auth_blocked_screen(&screen) {
+        eprintln!("pty_auto_mode: landed on the unauthenticated screen after key inject; env auth limit");
         return;
     }
 
@@ -216,18 +216,18 @@ fn pty_shift_tab_skips_auto_when_gate_off() {
 
     let _ = harness.wait_for_text(WELCOME_SCREEN_SENTINEL, WELCOME_TIMEOUT);
     let early = harness.screen_contents();
-    if is_login_screen(&early) {
+    if is_auth_blocked_screen(&early) {
         assert!(
             !require_auth(),
-            "NOFY_PTY_REQUIRE_AUTH set but pager hit the login screen — auth seeding broke"
+            "NOFY_PTY_REQUIRE_AUTH set but pager hit the unauthenticated screen — auth seeding broke"
         );
         eprintln!(
-            "pty_auto_mode(gate off): login/device-auth screen blocked cycle; env auth limit"
+            "pty_auto_mode(gate off): unauthenticated screen blocked the cycle; env auth limit"
         );
         let running = harness.is_running().expect("poll pager liveness");
         assert!(
             running || !early.is_empty(),
-            "pager must have produced output even on login screen"
+            "pager must have produced output even on the unauthenticated screen"
         );
         let _ = harness.inject_keys(b"\x11");
         return;
@@ -248,8 +248,8 @@ fn pty_shift_tab_skips_auto_when_gate_off() {
         // only the latest frame, so each read reflects the current mode).
         harness.update(Duration::from_secs(2));
         let s = harness.screen_contents();
-        if is_login_screen(&s) {
-            eprintln!("pty_auto_mode(gate off): landed on login after key inject; env auth limit");
+        if is_auth_blocked_screen(&s) {
+            eprintln!("pty_auto_mode(gate off): landed on the unauthenticated screen after key inject; env auth limit");
             return;
         }
         if s.contains("Switched to mode: Plan") {

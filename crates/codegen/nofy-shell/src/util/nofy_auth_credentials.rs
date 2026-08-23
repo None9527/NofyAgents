@@ -68,7 +68,7 @@ impl NofyAuthCredentials {
         if self.deployment_key.is_some() {
             "Your NOFY_DEPLOYMENT_KEY is invalid or expired. Please contact a team admin."
         } else if self.user_token.is_some() {
-            "Your auth token is invalid or expired. Run `nofy login` to re-authenticate."
+            "Your auth token is invalid or expired. Set NOFY_API_KEY or add api_key to ~/.nofy/config.toml."
         } else {
             "Not authenticated."
         }

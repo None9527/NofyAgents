@@ -446,7 +446,6 @@ pub(super) fn dispatch_send_prompt_inner(
     // shown after the agent borrow ends so we can re-enter via the tip helper.
     let mut tip_send_now_after_queue = false;
     let scheduler_background_loops_seed = app.scheduler_background_loops_seed;
-    let login_method_id_from_app = app.login_method_id.as_ref().map(|id| id.0.to_string());
     let leader_mode = app.leader_mode;
     let Some(agent) = app.agents.get_mut(&id) else {
         return vec![];
@@ -497,7 +496,7 @@ pub(super) fn dispatch_send_prompt_inner(
                 agent.prompt.set_text("");
             }
             let opened =
-                super::billing::open_restricted_command_upsell(agent, login_method_id_from_app);
+                super::billing::open_restricted_command_upsell(agent, None);
             debug_assert!(opened, "no modal was open, so the upsell must open");
         }
         return vec![];
@@ -1256,19 +1255,6 @@ pub(super) fn handle_prompt_response(
         if credit_limit_blocked {
             agent.credit_limit_stashed_prompt = agent.session.in_flight_prompt.clone();
         }
-        // Stash for AuthComplete after 401. Prefer in_flight; fall back to
-        // compact_held (cleared for cancel-rewind during auto-compact). Skip if both None.
-        if reauth_prompted {
-            let held = agent
-                .session
-                .in_flight_prompt
-                .clone()
-                .or_else(|| agent.session.compact_held_prompt.clone());
-            if let Some(prompt) = held {
-                agent.reauth_stashed_prompt = Some(prompt);
-            }
-        }
-
         // qtrace: turn end on this client. This clears current_prompt_id
         // and (briefly) returns the client to Idle — the start of the
         // leader-mode turn-end window where a freshly-sent prompt can be
@@ -1491,8 +1477,7 @@ pub(super) fn handle_prompt_response(
         // construction — viewers never receive a PromptResponse. No queue
         // drain: queued prompts would fail on the same exhausted quota.
         if free_usage_blocked {
-            let auth_method = app.login_method_id.as_ref().map(|id| id.0.to_string());
-            super::billing::open_free_usage_upsell(agent, auth_method);
+            super::billing::open_free_usage_upsell(agent, None);
             if let Some(p) = pending_adoption {
                 agent.discard_pending_adoption_updates(&p.prompt_id);
             }

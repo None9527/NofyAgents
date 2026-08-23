@@ -49,7 +49,7 @@ impl AuthRemedy {
             Self::SelfHealing => Some(
                 "Authentication is temporarily unavailable (often a network blip right \
                  after wake). Your session is still signed in and will recover \
-                 automatically — retry in a few seconds; no need to run /login."
+                 automatically — retry in a few seconds; no action needed."
                     .to_owned(),
             ),
             Self::ProviderLogin { label } => {
@@ -213,24 +213,6 @@ mod tests {
         assert_eq!(manager.auth_remedy(), AuthRemedy::SelfHealing);
     }
 
-    /// A provider command configured alongside OIDC must not capture OIDC's
-    /// own refresh path.
-    #[test]
-    fn expired_oidc_credential_with_a_refresh_token_is_self_healing() {
-        let dir = tempfile::tempdir().unwrap();
-        let manager = provider_manager(
-            dir.path(),
-            NofyAuth {
-                key: "expired-oidc".into(),
-                auth_mode: AuthMode::Oidc,
-                refresh_token: Some("rt-live".into()),
-                expires_at: Some(Utc::now() - Duration::hours(1)),
-                ..NofyAuth::test_default()
-            },
-        );
-        assert_eq!(manager.auth_remedy(), AuthRemedy::SelfHealing);
-    }
-
     /// With no provider command there is no binary to escalate to.
     #[test]
     fn expired_credential_without_a_provider_command_needs_a_manual_login() {
@@ -270,11 +252,10 @@ mod tests {
         let manager = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
         // CI runs in pods where `is_devbox_environment()` is true; a mint would
         // resolve the credential for the wrong reason.
-        manager.set_devbox_env_for_test(false);
         // A minute from real expiry: inside the 5-min buffer, still on the wire.
         manager.hot_swap(NofyAuth {
             key: "wire-valid".into(),
-            auth_mode: AuthMode::Oidc,
+            auth_mode: AuthMode::External,
             refresh_token: Some("rt-live".into()),
             expires_at: Some(Utc::now() + Duration::minutes(1)),
             ..NofyAuth::test_default()
@@ -303,20 +284,20 @@ mod tests {
         assert!(
             AuthRemedy::SelfHealing
                 .advice()
-                .is_some_and(|a| a.contains("no need to run /login"))
+                .is_some_and(|a| a.contains("no action needed"))
         );
         assert_eq!(AuthRemedy::ManualLogin.turn_error_type(), "auth");
         assert_eq!(
             AuthRemedy::ManualLogin.advice(),
             None,
-            "the client's own banner already tells the user to run /login"
+            "the client's own banner already offers the way back"
         );
         let provider = AuthRemedy::ProviderLogin {
             label: Some("Acme SSO".to_owned()),
         };
         assert_eq!(provider.turn_error_type(), "auth");
         let advice = provider.advice().expect("provider advice");
-        assert!(advice.contains("Acme SSO") && advice.contains("/login"));
-        assert!(!advice.contains("no need to run /login"));
+        assert!(advice.contains("Acme SSO") && advice.contains("NOFY_API_KEY"));
+        assert!(!advice.contains("no action needed"));
     }
 }

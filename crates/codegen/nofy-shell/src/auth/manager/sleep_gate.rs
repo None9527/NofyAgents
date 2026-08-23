@@ -58,7 +58,7 @@ pub(super) const DARK_WAKE_DEFER_MAX: StdDuration = StdDuration::from_secs(120);
 /// forced, so we use most of it — a straddled exchange can need ~15 s of
 /// awake time to complete (in-call retries included), and losing its response
 /// past the assumed ~60 s rotation grace revokes the token family (every
-/// session then demands `/login`). **Linux** logind's `InhibitDelayMaxSec`
+/// session then demands a manual re-auth). **Linux** logind's `InhibitDelayMaxSec`
 /// defaults to 5 s, so we stay under it. The hold releases the moment the
 /// in-flight count drains; a healthy round-trip is ~1 s.
 #[cfg(target_os = "macos")]

@@ -99,7 +99,7 @@ pub enum SessionEvent {
     },
     /// The server rejected the credentials (401 / auth error) and automatic
     /// recovery was exhausted. Rendered as a prominent call-to-action that
-    /// points the user at `/login` to re-authenticate, replacing the raw
+    /// points the user at re-configuring credentials, replacing the raw
     /// "Retry failed: Unauthorized (401) …" dump.
     ReAuthRequired,
     /// Terminal context overflow — ideally unreachable, since auto-compaction should
@@ -235,8 +235,8 @@ impl SessionEvent {
             } => crate::app::error_display::banner_message(headline, detail),
             SessionEvent::ReAuthRequired => {
                 "Authentication required \u{2014} your session has expired or your \
-                 credentials were rejected. Run /login to re-authenticate, then resend \
-                 your message."
+                 credentials were rejected. Set NOFY_API_KEY (or re-run your auth \
+                 provider), then resend your message."
                     .to_string()
             }
             SessionEvent::ContextTooLarge => {
@@ -791,9 +791,12 @@ mod tests {
     }
 
     #[test]
-    fn reauth_required_message_points_at_login() {
+    fn reauth_required_message_points_at_credentials() {
         let msg = SessionEvent::ReAuthRequired.message();
-        assert!(msg.contains("/login"), "must tell the user to run /login");
+        assert!(
+            msg.contains("NOFY_API_KEY"),
+            "must tell the user how to restore credentials"
+        );
         assert!(
             msg.to_lowercase().contains("authentication")
                 || msg.to_lowercase().contains("credentials"),

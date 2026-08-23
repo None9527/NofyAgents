@@ -22,9 +22,7 @@ impl AuthStatus {
     /// Banner status: env key → session → BYOK → deployment → none.
     ///
     /// Differs from sampling (`resolve_credentials`: BYOK → session → env) so a
-    /// logged-in user sees the login host. BYOK uses
-    /// [`crate::agent::auth_method::should_advertise_xai_api_key`] so
-    /// `disable_api_key_auth` is honored.
+    /// logged-in user sees the login host.
     pub fn resolve(agent_config: &AgentConfig) -> Self {
         if crate::agent::auth_method::has_xai_api_key_env() {
             return Self::ApiKey;
@@ -39,7 +37,6 @@ impl AuthStatus {
         }
         let models = crate::agent::config::resolve_model_list(agent_config, None);
         if crate::agent::auth_method::should_advertise_xai_api_key(
-            agent_config.nofy_com_config.api_key_auth_disabled(),
             models.values(),
         ) && let Some(name) = models
             .iter()
@@ -94,7 +91,6 @@ mod tests {
     use super::*;
     use crate::agent::auth_method::NOFY_API_KEY_ENV_VAR;
     use crate::agent::config::Config;
-    use crate::auth::{AuthMode, NofyAuth};
     use serial_test::serial;
     use nofy_test_support::EnvGuard;
 
@@ -102,7 +98,7 @@ mod tests {
     ///
     /// Uses `NOFY_AUTH_PATH` (not `NOFY_HOME`) so a OnceLock-cached real home
     /// with `auth.json` cannot leak into these tests.
-    fn isolate_auth_sources() -> (tempfile::TempDir, [EnvGuard; 6]) {
+    fn isolate_auth_sources() -> (tempfile::TempDir, [EnvGuard; 5]) {
         let dir = tempfile::tempdir().unwrap();
         let auth_path = dir.path().join("no-auth.json");
         let guards = [
@@ -111,7 +107,6 @@ mod tests {
             EnvGuard::set("NOFY_AUTH_PATH", auth_path.to_str().unwrap()),
             EnvGuard::unset("NOFY_DEPLOYMENT_KEY"),
             EnvGuard::unset("NOFY_WS_ORIGIN"),
-            EnvGuard::unset("NOFY_DISABLE_API_KEY_AUTH"),
         ];
         (dir, guards)
     }
@@ -148,24 +143,6 @@ mod tests {
         let (_dir, _g) = isolate_auth_sources();
         let _key = EnvGuard::set(NOFY_API_KEY_ENV_VAR, "legacy-key");
         assert_eq!(AuthStatus::resolve(&Config::default()), AuthStatus::ApiKey);
-    }
-
-    #[test]
-    #[serial]
-    fn resolve_oauth_session() {
-        let (_dir, _g) = isolate_auth_sources();
-        let token = NofyAuth {
-            key: "session-token".into(),
-            auth_mode: AuthMode::WebLogin,
-            ..NofyAuth::test_default()
-        };
-        let json = serde_json::to_string(&token).unwrap();
-        let _auth = EnvGuard::set("NOFY_AUTH", &json);
-
-        assert_eq!(
-            AuthStatus::resolve(&Config::default()),
-            AuthStatus::LoggedIn("nofy.com".to_owned())
-        );
     }
 
     #[test]
@@ -244,26 +221,6 @@ mod tests {
 
     #[test]
     #[serial]
-    fn resolve_priority_session_over_byok_and_deployment() {
-        let (_dir, _g) = isolate_auth_sources();
-        let token = NofyAuth {
-            key: "session-token".into(),
-            auth_mode: AuthMode::WebLogin,
-            ..NofyAuth::test_default()
-        };
-        let json = serde_json::to_string(&token).unwrap();
-        let _auth = EnvGuard::set("NOFY_AUTH", &json);
-
-        let dm = crate::models::default_model();
-        let cfg = config_from_toml(&byok_and_deployment_toml(dm));
-        assert_eq!(
-            AuthStatus::resolve(&cfg),
-            AuthStatus::LoggedIn("nofy.com".to_owned())
-        );
-    }
-
-    #[test]
-    #[serial]
     fn resolve_priority_byok_over_deployment() {
         let (_dir, _g) = isolate_auth_sources();
         let dm = crate::models::default_model();
@@ -272,45 +229,6 @@ mod tests {
             AuthStatus::resolve(&cfg),
             AuthStatus::ModelCredentials(dm.to_owned())
         );
-    }
-
-    #[test]
-    #[serial]
-    fn resolve_disable_api_key_auth_suppresses_byok_banner() {
-        let (_dir, _g) = isolate_auth_sources();
-        let dm = crate::models::default_model();
-        let cfg = config_from_toml(&format!(
-            r#"
-            [nofy_com_config]
-            disable_api_key_auth = true
-
-            [model."{dm}"]
-            model = "{dm}"
-            api_key = "sk-byok"
-            "#
-        ));
-        assert_eq!(AuthStatus::resolve(&cfg), AuthStatus::NotAuthenticated);
-    }
-
-    #[test]
-    #[serial]
-    fn resolve_disable_api_key_auth_falls_through_to_deployment() {
-        let (_dir, _g) = isolate_auth_sources();
-        let dm = crate::models::default_model();
-        let cfg = config_from_toml(&format!(
-            r#"
-            [nofy_com_config]
-            disable_api_key_auth = true
-
-            [endpoints]
-            deployment_key = "deploy-key"
-
-            [model."{dm}"]
-            model = "{dm}"
-            api_key = "sk-byok"
-            "#
-        ));
-        assert_eq!(AuthStatus::resolve(&cfg), AuthStatus::DeploymentKey);
     }
 
     #[test]

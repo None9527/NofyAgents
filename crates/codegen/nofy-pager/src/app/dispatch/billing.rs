@@ -513,7 +513,7 @@ pub(super) fn handle_credit_limit_recheck_complete(
 pub(super) fn dispatch_open_supernofy_url(app: &mut AppView) -> Vec<Effect> {
     log_event(SuperNofyUpsellClicked {
         source: SuperNofyUpsell::WelcomeScreen,
-        auth_method: app.login_method_id.as_ref().map(|id| id.0.to_string()),
+        auth_method: None,
     });
     let url = app
         .gate

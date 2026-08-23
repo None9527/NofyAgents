@@ -1440,7 +1440,7 @@ async fn foreign_resume_detection_runs_as_task_result() {
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
     let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut tasks = JoinSet::new();
-    let (quit, _) = execute(
+    let quit = execute(
         Effect::CanonicalizeForeignResumeCwd {
             requested_cwd: PathBuf::from("/path/that/does-not-exist"),
             launch_token: 7,
@@ -1465,7 +1465,7 @@ async fn foreign_resume_detection_runs_as_task_result() {
     }
     let canonical_cwd = dunce::canonicalize(tempfile::tempdir().unwrap().path())
         .unwrap();
-    let (quit, _) = execute(
+    let quit = execute(
         Effect::DetectForeignResumeHint {
             canonical_cwd: canonical_cwd.clone(),
             compat: nofy_workspace::foreign_sessions::EnabledForeignSessionSources::default(),
@@ -2362,11 +2362,10 @@ fn make_session_info(
 fn format_session_info_session_auth_ignores_api_key_env() {
     let info = make_session_info("auto", None, 1000, 10000);
     let text = format_session_info(&info, None, false, false, true);
-    assert!(text.contains("Auth method: OAuth"), "{text}");
+    assert!(text.contains("Auth method: session credential"), "{text}");
     assert!(!text.contains("Manage account and credits"), "{text}");
     assert!(!text.contains("Also present: NOFY_API_KEY"), "{text}");
     assert!(!text.contains("console.x.ai"), "{text}");
-    assert!(!text.contains("nofy login"), "{text}");
 }
 #[test]
 fn format_session_info_api_key_without_env() {
@@ -2375,35 +2374,26 @@ fn format_session_info_api_key_without_env() {
     assert!(text.contains("Auth method: API key\n"), "{text}");
     assert!(!text.contains("NOFY_API_KEY"), "{text}");
     assert!(!text.contains("Manage account and credits"), "{text}");
-    assert!(
-            text.contains("Run `nofy login` to use your SuperNofy subscription instead."),
-            "{text}"
-        );
     assert!(!text.contains("nofy.com"), "{text}");
 }
 #[test]
-fn format_session_info_api_key_auth_suggests_nofy_login() {
+fn format_session_info_api_key_auth_shows_env_source() {
     let info = make_session_info("auto", None, 1000, 10000);
     let text = format_session_info(&info, None, false, true, true);
     assert!(text.contains("Auth method: API key (NOFY_API_KEY)"), "{text}");
     assert!(!text.contains("Manage account and credits"), "{text}");
-    assert!(
-            text.contains("Run `nofy login` to use your SuperNofy subscription instead."),
-            "{text}"
-        );
     assert!(!text.contains("Also present: NOFY_API_KEY"), "{text}");
     assert!(!text.contains("console.x.ai"), "{text}");
     assert!(!text.contains("nofy.com"), "{text}");
 }
 #[test]
-fn format_session_info_session_only_shows_oauth() {
+fn format_session_info_session_only_shows_session_credential() {
     let info = make_session_info("auto", None, 1000, 10000);
     let text = format_session_info(&info, None, false, false, false);
-    assert!(text.contains("Auth method: OAuth"), "{text}");
+    assert!(text.contains("Auth method: session credential"), "{text}");
     assert!(!text.contains("Manage account and credits"), "{text}");
     assert!(!text.contains("Also present: NOFY_API_KEY"), "{text}");
     assert!(!text.contains("console.x.ai"), "{text}");
-    assert!(!text.contains("nofy login"), "{text}");
 }
 #[test]
 fn format_session_info_shows_conversation_id_when_present() {

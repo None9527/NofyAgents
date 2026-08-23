@@ -85,65 +85,9 @@ fn has_usable_token_covers_memory_and_disk() {
 }
 
 #[test]
-fn auth_scope_uses_oauth2_when_present() {
+fn auth_scope_is_the_session_scope() {
     let cfg = NofyComConfig::default();
-    // Default config always has oauth2 set to the xAI defaults.
-    assert_eq!(
-        cfg.auth_scope(),
-        format!(
-            "{}::{}",
-            crate::auth::config::NOFY_OAUTH2_ISSUER,
-            obfstr::obfstr!("b1a00492-073a-47ea-816f-4c329264a828"),
-        )
-    );
-}
-
-#[test]
-fn legacy_scope_fallback_reads_old_auth_json() {
-    let dir = tempfile::tempdir().unwrap();
-    let auth_path = dir.path().join("auth.json");
-
-    // Write auth.json with the legacy scope key (as `x setup` copies from
-    // a machine that was authenticated with an older nofy version).
-    let legacy_auth = make_auth(Some(Utc::now() + Duration::hours(1)), Utc::now());
-    let mut store = AuthStore::new();
-    store.insert(LEGACY_SCOPE.to_string(), legacy_auth);
-    write_auth_json(&auth_path, &store).unwrap();
-
-    // AuthManager uses the new OAuth2 scope, but should still find the
-    // token under the legacy key.
-    let cfg = NofyComConfig::default();
-    let mgr = Arc::new(AuthManager::new(dir.path(), cfg));
-    let current = mgr.current();
-    assert!(current.is_some(), "should fall back to legacy scope key");
-    assert_eq!(current.unwrap().key, "test-key");
-}
-
-#[test]
-fn new_scope_takes_precedence_over_legacy() {
-    let dir = tempfile::tempdir().unwrap();
-    let auth_path = dir.path().join("auth.json");
-
-    let legacy_auth = NofyAuth {
-        key: "legacy-key".into(),
-        ..make_auth(Some(Utc::now() + Duration::hours(1)), Utc::now())
-    };
-    let new_auth = NofyAuth {
-        key: "new-key".into(),
-        ..make_auth(Some(Utc::now() + Duration::hours(1)), Utc::now())
-    };
-
-    let cfg = NofyComConfig::default();
-    let scope = cfg.auth_scope();
-
-    let mut store = AuthStore::new();
-    store.insert(LEGACY_SCOPE.to_string(), legacy_auth);
-    store.insert(scope, new_auth);
-    write_auth_json(&auth_path, &store).unwrap();
-
-    let mgr = Arc::new(AuthManager::new(dir.path(), cfg));
-    let current = mgr.current().expect("should find auth");
-    assert_eq!(current.key, "new-key", "new scope should take precedence");
+    assert_eq!(cfg.auth_scope(), crate::auth::config::NOFY_SESSION_SCOPE);
 }
 
 // -- Near-expiry (5-minute buffer) behavior ------------------------
@@ -217,7 +161,7 @@ async fn update_preserves_other_scope_entries() {
     // Now update via auth_manager
     let new_auth = NofyAuth {
         key: "oidc-token".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         ..make_auth(Some(Utc::now() + Duration::hours(1)), Utc::now())
     };
     mgr.update(new_auth).await.unwrap();
@@ -243,7 +187,7 @@ async fn update_recovers_from_corrupt_auth_json_by_backing_up_old_file() {
 
     let new_auth = NofyAuth {
         key: "fresh-token".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("fresh-rt".into()),
         user_id: "fresh-user".into(),
         ..make_auth(Some(Utc::now() + Duration::hours(1)), Utc::now())
@@ -299,7 +243,7 @@ async fn update_preserves_team_fields_when_proxy_omits_them() {
 
     let team_auth = NofyAuth {
         key: "team-token".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         principal_type: Some("Team".into()),
         principal_id: Some("team-xyz".into()),
         team_id: Some("team-xyz".into()),
@@ -344,7 +288,7 @@ async fn update_stores_team_token_under_base_scope() {
 
     let team_auth = NofyAuth {
         key: "team-token".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         principal_type: Some("Team".into()),
         principal_id: Some("team-abc".into()),
         team_id: Some("team-abc".into()),
@@ -401,20 +345,19 @@ async fn team_login_then_personal_evicts_team_token() {
     assert_eq!(store.get(&base_scope).unwrap().key, "personal-token");
 }
 
-/// Regression test: clear() must only remove the current scope, not the
-/// legacy scope. Previously, logging in with OAuth would also delete the
-/// legacy `https://accounts.x.ai/sign-in` entry from auth.json.
+/// clear() removes only the session scope; entries stored under other
+/// scopes (e.g. model api-key scopes) survive.
 #[test]
-fn clear_does_not_remove_legacy_scope() {
+fn clear_removes_only_the_session_scope() {
     let dir = tempfile::tempdir().unwrap();
     let auth_path = dir.path().join("auth.json");
 
-    let legacy_auth = NofyAuth {
-        key: "legacy-key".into(),
+    let other_auth = NofyAuth {
+        key: "other-key".into(),
         ..make_auth(Some(Utc::now() + Duration::hours(1)), Utc::now())
     };
-    let oauth_auth = NofyAuth {
-        key: "oauth-key".into(),
+    let session_auth = NofyAuth {
+        key: "session-key".into(),
         ..make_auth(Some(Utc::now() + Duration::hours(1)), Utc::now())
     };
 
@@ -422,22 +365,21 @@ fn clear_does_not_remove_legacy_scope() {
     let scope = cfg.auth_scope();
 
     let mut store = AuthStore::new();
-    store.insert(LEGACY_SCOPE.to_string(), legacy_auth);
-    store.insert(scope, oauth_auth);
+    store.insert("other-scope".to_string(), other_auth);
+    store.insert(scope, session_auth);
     write_auth_json(&auth_path, &store).unwrap();
 
     let mgr = Arc::new(AuthManager::new(dir.path(), cfg));
-    // clear() should only remove the OAuth scope, not legacy
     mgr.clear().unwrap();
 
     let on_disk = read_auth_json(&auth_path).unwrap();
     assert!(
-        on_disk.contains_key(LEGACY_SCOPE),
-        "legacy scope should be preserved after clear()"
+        on_disk.contains_key("other-scope"),
+        "other scopes should be preserved after clear()"
     );
     assert!(
         !on_disk.contains_key(&mgr.scope),
-        "current scope should be removed after clear()"
+        "session scope should be removed after clear()"
     );
 }
 
@@ -744,7 +686,7 @@ async fn storm_cap_engages_with_empty_inner_and_dead_disk_refresh_token() {
     // refresher resolves. `inner` stays empty.
     let dead = NofyAuth {
         key: "disk-dead".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-dead".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -761,7 +703,7 @@ async fn storm_cap_engages_with_empty_inner_and_dead_disk_refresh_token() {
 
     for _ in 0..5 {
         let _ = mgr
-            .refresh_chain(TokenType::OidcSession, RefreshReason::ServerRejected)
+            .refresh_chain(TokenType::ExternalBinary, RefreshReason::ServerRejected)
             .await;
     }
     assert_eq!(
@@ -788,7 +730,7 @@ async fn verdict_not_keyed_on_in_mem_bearer() {
     // in-mem: stale bearer K_mem (expired, with RT).
     mgr.hot_swap(NofyAuth {
         key: "mem-stale".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-mem".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -797,7 +739,7 @@ async fn verdict_not_keyed_on_in_mem_bearer() {
     // refresher claims to have tried.
     let disk = NofyAuth {
         key: "disk-stale".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-disk".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -829,7 +771,7 @@ async fn verdict_not_keyed_on_in_mem_bearer() {
     }));
 
     let _ = mgr
-        .refresh_chain(TokenType::OidcSession, RefreshReason::ServerRejected)
+        .refresh_chain(TokenType::ExternalBinary, RefreshReason::ServerRejected)
         .await;
     assert_eq!(
         calls.load(Ordering::SeqCst),
@@ -845,14 +787,14 @@ async fn verdict_not_keyed_on_in_mem_bearer() {
     // the old in-mem bearer would now read absent.
     mgr.hot_swap(NofyAuth {
         key: "mem-stale-2".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-mem-2".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
     });
 
     let _ = mgr
-        .refresh_chain(TokenType::OidcSession, RefreshReason::ServerRejected)
+        .refresh_chain(TokenType::ExternalBinary, RefreshReason::ServerRejected)
         .await;
     assert_eq!(
         calls.load(Ordering::SeqCst),
@@ -876,7 +818,7 @@ async fn refresh_persist_failure_is_transient_but_swaps_in_memory() {
     // Expired in-mem bearer so the chain proceeds to the IdP (no early return).
     mgr.hot_swap(NofyAuth {
         key: "stale".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -903,7 +845,7 @@ async fn refresh_persist_failure_is_transient_but_swaps_in_memory() {
     }));
 
     let err = mgr
-        .refresh_chain(TokenType::OidcSession, RefreshReason::ServerRejected)
+        .refresh_chain(TokenType::ExternalBinary, RefreshReason::ServerRejected)
         .await
         .expect_err("persist failure must surface an error");
     assert!(
@@ -923,7 +865,7 @@ async fn auth_concurrent_refresh_deduplicates() {
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     let expired = NofyAuth {
         key: "expired-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-old".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -971,7 +913,7 @@ async fn auth_permanent_failure_stops_retries() {
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     let expired = NofyAuth {
         key: "expired-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-old".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -1017,15 +959,15 @@ async fn auth_permanent_failure_stops_retries() {
 /// auth() re-reads disk via pick_up_sibling_token and returns the
 /// sibling-written token when the in-memory token is stale.
 #[tokio::test]
-async fn auth_legacy_session_picks_up_sibling_disk_token() {
+async fn auth_expired_session_picks_up_sibling_disk_token() {
     let dir = tempfile::tempdir().unwrap();
     let cfg = NofyComConfig::default();
     let scope = cfg.auth_scope();
     let mgr = Arc::new(AuthManager::new(dir.path(), cfg));
 
     mgr.hot_swap(NofyAuth {
-        key: "stale-oidc".into(),
-        auth_mode: AuthMode::Oidc,
+        key: "stale-session".into(),
+        auth_mode: AuthMode::External,
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
     });
@@ -1033,7 +975,7 @@ async fn auth_legacy_session_picks_up_sibling_disk_token() {
     // Sibling writes a valid token to disk.
     let fresh = NofyAuth {
         key: "fresh-from-sibling".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         expires_at: Some(Utc::now() + Duration::hours(1)),
         ..NofyAuth::test_default()
     };
@@ -1052,7 +994,7 @@ async fn refresh_chain_surfaces_transient_failure() {
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     mgr.hot_swap(NofyAuth {
         key: "expired".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -1103,12 +1045,12 @@ async fn auth_returns_expired_api_key_consistently_with_current() {
     // UI / sync read path: the stale key is filtered out.
     assert!(
         mgr.current().is_none(),
-        "current() must hide the expired api_key (matches UI/login state)"
+        "current() must hide the expired api_key (matches UI state)"
     );
 
     // Async path: must NOT clone the stale key for downstream
     // consumers. Surface `TokenExpiredNoRefresh` so callers can
-    // funnel the user back through `nofy login`.
+    // funnel the user back through re-configuring credentials.
     let err = mgr.auth().await.unwrap_err();
     assert!(
         matches!(err, AuthError::TokenExpiredNoRefresh),
@@ -1157,7 +1099,7 @@ async fn proactive_refresh_backs_off_on_permanent_failure() {
     // proactive loop computes sleep_dur=0 forever.
     let expired = NofyAuth {
         key: "expired".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -1272,7 +1214,7 @@ async fn proactive_refresh_and_consumer_see_fresh_token_end_to_end() {
     // expires_at inside the 5-min buffer -> proactive fires immediately.
     mgr.hot_swap(NofyAuth {
         key: "soon-to-expire".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-original".into()),
         expires_at: Some(Utc::now() + Duration::seconds(2)),
         ..NofyAuth::test_default()
@@ -1305,7 +1247,7 @@ async fn reactive_401_recovery_produces_fresh_token_end_to_end() {
 
     mgr.hot_swap(NofyAuth {
         key: "expired-bearer".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-valid".into()),
         expires_at: Some(Utc::now() - Duration::minutes(10)),
         ..NofyAuth::test_default()
@@ -1342,7 +1284,7 @@ async fn refresh_chain_demotes_when_disk_rt_differs_even_if_at_expired() {
     // and we fall through to the refresher.
     let stale = NofyAuth {
         key: "stale-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-old".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1353,7 +1295,7 @@ async fn refresh_chain_demotes_when_disk_rt_differs_even_if_at_expired() {
 
     let sibling = NofyAuth {
         key: "sibling-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-new".into()),
         expires_at: Some(Utc::now() - Duration::minutes(30)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1397,7 +1339,7 @@ async fn refresh_chain_demotes_when_disk_rt_differs_even_if_at_expired() {
 
 /// Regression test for the multi-process logout incident.
 ///
-/// This is the shape `OidcRefresher` actually emits in production: the tried
+/// This is the shape the external refresher actually emits in production: the tried
 /// credential is **fully attributed** (`tried_key` *and* `tried_refresh_token`
 /// are `Some`). The pre-existing demotion tests all built the outcome with
 /// `tried_key = None` — the external-binary shape — so they passed while the
@@ -1417,7 +1359,7 @@ async fn refresh_chain_demotes_when_attributed_tried_rt_differs_from_disk() {
     // We hold, and spend, the predecessor RT.
     let tried = NofyAuth {
         key: "tried-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-spent".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1431,7 +1373,7 @@ async fn refresh_chain_demotes_when_attributed_tried_rt_differs_from_disk() {
     // the demotion is the only thing standing between us and a wipe.
     let sibling = NofyAuth {
         key: "sibling-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-successor".into()),
         expires_at: Some(Utc::now() - Duration::minutes(30)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1449,7 +1391,7 @@ async fn refresh_chain_demotes_when_attributed_tried_rt_differs_from_disk() {
             &self,
             _reason: crate::auth::manager::RefreshReason,
         ) -> crate::auth::refresh::RefreshOutcome {
-            // Exactly what OidcRefresher builds on a 400 invalid_grant.
+            // Exactly what the external refresher builds on a 400 invalid_grant.
             crate::auth::refresh::RefreshOutcome::permanent_for(
                 crate::auth::error::RefreshTokenFailedReason::RefreshTokenRejected,
                 &self.0,
@@ -1459,7 +1401,7 @@ async fn refresh_chain_demotes_when_attributed_tried_rt_differs_from_disk() {
     mgr.set_refresher(Arc::new(AttributedRejection(tried)));
 
     let err = mgr
-        .refresh_chain(TokenType::OidcSession, RefreshReason::PreRequest)
+        .refresh_chain(TokenType::ExternalBinary, RefreshReason::PreRequest)
         .await
         .unwrap_err();
 
@@ -1476,7 +1418,7 @@ async fn refresh_chain_demotes_when_attributed_tried_rt_differs_from_disk() {
     assert!(
         mgr.permanent_failure().is_none(),
         "demotion must not record a sticky verdict that locks out every \
-         sibling process until the user re-runs `nofy login`",
+         sibling process until the user restores credentials",
     );
 }
 
@@ -1492,7 +1434,7 @@ async fn refresh_chain_still_discards_when_attributed_tried_rt_matches_disk() {
 
     let tried = NofyAuth {
         key: "only-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-revoked".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1520,7 +1462,7 @@ async fn refresh_chain_still_discards_when_attributed_tried_rt_matches_disk() {
     mgr.set_refresher(Arc::new(AttributedRejection(tried)));
 
     let err = mgr
-        .refresh_chain(TokenType::OidcSession, RefreshReason::PreRequest)
+        .refresh_chain(TokenType::ExternalBinary, RefreshReason::PreRequest)
         .await
         .unwrap_err();
 
@@ -1546,7 +1488,7 @@ async fn permanent_rtr_clears_only_the_tried_side_when_rts_diverge() {
     // Mem: successor RT after a successful refresh whose disk write failed.
     mgr.hot_swap(NofyAuth {
         key: "mem-successor".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-new".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1556,7 +1498,7 @@ async fn permanent_rtr_clears_only_the_tried_side_when_rts_diverge() {
     // Disk: revoked predecessor RT (disk-first resolve will try this).
     let disk = NofyAuth {
         key: "disk-predecessor".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-old".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1585,7 +1527,7 @@ async fn permanent_rtr_clears_only_the_tried_side_when_rts_diverge() {
     mgr.set_refresher(Arc::new(TriedDiskRtr(calls.clone())));
 
     let err = mgr
-        .refresh_chain(TokenType::OidcSession, RefreshReason::ServerRejected)
+        .refresh_chain(TokenType::ExternalBinary, RefreshReason::ServerRejected)
         .await
         .unwrap_err();
     assert!(
@@ -1613,7 +1555,7 @@ async fn client_rejected_graces_soft_expired_access_token() {
     // Inside the early-invalidation buffer but still hard-valid.
     mgr.hot_swap(NofyAuth {
         key: "buffered-at".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() + Duration::seconds(30)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1655,7 +1597,7 @@ async fn permanent_other_retains_credentials() {
 
     let session = NofyAuth {
         key: "live-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-still-valid".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1709,7 +1651,7 @@ async fn sticky_permanent_allows_refresh_when_attempted_key_differs() {
 
     mgr.hot_swap(NofyAuth {
         key: "dead-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-dead".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -1723,7 +1665,7 @@ async fn sticky_permanent_allows_refresh_when_attempted_key_differs() {
     // Sibling writes a different key + RT (AT hard-expired, RT may still work).
     let sibling = NofyAuth {
         key: "sibling-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-sibling".into()),
         expires_at: Some(Utc::now() - Duration::minutes(30)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1752,7 +1694,7 @@ async fn sticky_permanent_allows_refresh_when_attempted_key_differs() {
             self.0.fetch_add(1, Ordering::SeqCst);
             crate::auth::refresh::RefreshOutcome::Success(Box::new(NofyAuth {
                 key: "fresh-from-sibling-rt".into(),
-                auth_mode: AuthMode::Oidc,
+                auth_mode: AuthMode::External,
                 refresh_token: Some("rt-sibling".into()),
                 expires_at: Some(Utc::now() + Duration::hours(1)),
                 ..NofyAuth::test_default()
@@ -1779,7 +1721,7 @@ async fn refresh_chain_demotes_to_transient_when_disk_rt_differs_and_at_valid() 
 
     let stale = NofyAuth {
         key: "stale-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-old".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1790,7 +1732,7 @@ async fn refresh_chain_demotes_to_transient_when_disk_rt_differs_and_at_valid() 
 
     let sibling = NofyAuth {
         key: "sibling-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-new".into()),
         expires_at: Some(Utc::now() + Duration::hours(1)),
         oidc_issuer: Some("https://issuer.example".into()),
@@ -1844,7 +1786,7 @@ async fn permanent_failure_reads_absent_after_clear_so_auth_reports_not_logged_i
     // Seed + record a permanent failure (as if invalid_grant fired).
     let session = NofyAuth {
         key: "broken-session".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-revoked".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -1860,7 +1802,7 @@ async fn permanent_failure_reads_absent_after_clear_so_auth_reports_not_logged_i
     mgr.clear().unwrap();
 
     // The diagnostic the user now sees on the next request should be
-    // "Not logged in. Run `nofy login`.", not the stale invalid_grant.
+    // "Not logged in.", not the stale invalid_grant.
     let err = mgr.auth().await.unwrap_err();
     assert!(
         matches!(err, AuthError::NotLoggedIn),
@@ -1874,7 +1816,7 @@ async fn permanent_failure_reads_absent_after_clear_so_auth_reports_not_logged_i
     // Same check for the hot_swap_clear() path.
     let session = NofyAuth {
         key: "broken-2".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-2".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -1941,24 +1883,24 @@ async fn permanent_failure_expires_on_wall_clock_across_sleep() {
 /// in config.toml, the OIDC token must still be refreshable. auth()
 /// checks TokenType (from AuthManager), not the global auth_method_id.
 #[tokio::test]
-async fn oidc_refresh_not_blocked_by_model_api_key() {
+async fn session_refresh_not_blocked_by_model_api_key() {
     let dir = tempfile::tempdir().unwrap();
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
 
-    // Expired OIDC token (user has config.toml with api_key on another model).
+    // Expired session token (user has config.toml with api_key on another model).
     let expired_oidc = NofyAuth {
         key: "expired-session-token".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("valid-rt".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
     };
     mgr.hot_swap(expired_oidc);
 
-    // TokenType is OidcSession regardless of what models exist in config.
-    assert_eq!(mgr.token_type(), TokenType::OidcSession);
+    // TokenType is ExternalBinary regardless of what models exist in config.
+    assert_eq!(mgr.token_type(), TokenType::ExternalBinary);
 
-    // auth() must attempt OIDC refresh, not short-circuit as ApiKey.
+    // auth() must attempt session refresh, not short-circuit as ApiKey.
     let call_count = Arc::new(AtomicU32::new(0));
     mgr.set_refresher(Arc::new(CountingRefresher {
         call_count: call_count.clone(),
@@ -1966,7 +1908,7 @@ async fn oidc_refresh_not_blocked_by_model_api_key() {
     }));
 
     let result = mgr.auth().await;
-    assert!(result.is_ok(), "auth() should succeed via OIDC refresh");
+    assert!(result.is_ok(), "auth() should succeed via session refresh");
     assert_eq!(result.unwrap().key, "fresh-token");
     assert_eq!(call_count.load(Ordering::SeqCst), 1);
 }
@@ -1986,7 +1928,7 @@ fn compute_proactive_sleep_permanent_failure_returns_backoff() {
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     let oidc = NofyAuth {
         key: "x".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() + Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -2003,7 +1945,7 @@ fn compute_proactive_sleep_permanent_failure_returns_backoff() {
     );
 }
 
-/// Non-refreshable types (LegacySession, ApiKey, None) -> BACKOFF_INTERVAL
+/// Non-refreshable types (ApiKey, None) -> BACKOFF_INTERVAL
 /// even when expires_at is past. This is the gate the original
 /// test failed to exercise.
 #[test]
@@ -2017,19 +1959,8 @@ fn compute_proactive_sleep_non_refreshable_returns_backoff() {
         delay: StdDuration::from_millis(0),
     }));
 
-    // (a) LegacySession (WebLogin) + Some(past) -- the canonical
-    //     scenario where the absence of the gate produces a busy-loop.
-    mgr.hot_swap(NofyAuth {
-        key: "legacy".into(),
-        auth_mode: AuthMode::WebLogin,
-        create_time: Utc::now() - Duration::hours(2),
-        expires_at: Some(Utc::now() - Duration::hours(1)),
-        ..NofyAuth::test_default()
-    });
-    assert_eq!(mgr.token_type(), TokenType::LegacySession);
-    assert_eq!(compute_proactive_sleep(&mgr), BACKOFF_INTERVAL);
-
-    // (b) ApiKey + Some(past).
+    // (a) ApiKey + Some(past) -- the canonical scenario where the absence
+    //     of the gate produces a busy-loop.
     mgr.hot_swap(NofyAuth {
         key: "api".into(),
         auth_mode: AuthMode::ApiKey,
@@ -2039,7 +1970,7 @@ fn compute_proactive_sleep_non_refreshable_returns_backoff() {
     assert_eq!(mgr.token_type(), TokenType::ApiKey);
     assert_eq!(compute_proactive_sleep(&mgr), BACKOFF_INTERVAL);
 
-    // (c) None (no credentials loaded).
+    // (b) None (no credentials loaded).
     mgr.clear_in_memory();
     assert_eq!(mgr.token_type(), TokenType::None);
     assert_eq!(compute_proactive_sleep(&mgr), BACKOFF_INTERVAL);
@@ -2060,7 +1991,7 @@ fn compute_proactive_sleep_sleep_gated_returns_backoff() {
     // the gate this returns 0 (would busy-loop).
     mgr.hot_swap(NofyAuth {
         key: "oidc".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -2096,7 +2027,7 @@ fn compute_proactive_sleep_dark_wake_returns_backoff() {
     // rather than busy-loop against that deferral.
     mgr.hot_swap(NofyAuth {
         key: "oidc".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() + Duration::minutes(2)),
         ..NofyAuth::test_default()
@@ -2118,7 +2049,7 @@ fn compute_proactive_sleep_dark_wake_returns_backoff() {
     // strand the session for a full interval.
     mgr.hot_swap(NofyAuth {
         key: "oidc".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -2138,7 +2069,7 @@ fn compute_proactive_sleep_no_refresher_returns_backoff() {
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     mgr.hot_swap(NofyAuth {
         key: "oidc".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -2181,12 +2112,12 @@ fn compute_proactive_sleep_refreshable_past_expiry_returns_floor() {
     }));
     mgr.hot_swap(NofyAuth {
         key: "oidc".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
     });
-    assert_eq!(mgr.token_type(), TokenType::OidcSession);
+    assert_eq!(mgr.token_type(), TokenType::ExternalBinary);
     assert_eq!(compute_proactive_sleep(&mgr), PROACTIVE_MIN_SLEEP);
 }
 
@@ -2205,7 +2136,7 @@ fn compute_proactive_sleep_refreshable_future_expiry_returns_delta() {
     let expires_at = Utc::now() + Duration::hours(1);
     mgr.hot_swap(NofyAuth {
         key: "oidc".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(expires_at),
         ..NofyAuth::test_default()
@@ -2354,16 +2285,11 @@ async fn permanent_failure_is_scoped_to_its_credential() {
 async fn auth_serves_wire_valid_token_despite_permanent_verdict() {
     let dir = tempfile::tempdir().unwrap();
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-    // CI runs in K8s pods where is_devbox_environment() is true; without this
-    // the past-expiry phase would mint via devbox recovery instead of
-    // surfacing the permanent error.
-    mgr.set_devbox_env_for_test(false);
-
     // Token in the 5-min buffer (1 min before real expiry): buffer-expired,
     // still valid by the IdP's clock.
     mgr.hot_swap(NofyAuth {
         key: "wire-valid".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-dead".into()),
         expires_at: Some(Utc::now() + Duration::minutes(1)),
         ..NofyAuth::test_default()
@@ -2403,7 +2329,7 @@ async fn auth_serves_wire_valid_token_despite_permanent_verdict() {
     // real expiry: the bypass no longer applies.
     mgr.hot_swap(NofyAuth {
         key: "wire-valid".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-dead".into()),
         expires_at: Some(Utc::now() - Duration::minutes(1)),
         ..NofyAuth::test_default()
@@ -2436,7 +2362,7 @@ async fn auth_returns_cached_token_when_refresh_fails_within_real_expiry() {
     // the buffer threshold but still valid by the IdP's clock.
     let in_buffer = NofyAuth {
         key: "still-valid-by-idp".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         create_time: Utc::now() - Duration::minutes(55),
         user_id: "user-42".into(),
         refresh_token: Some("rt".into()),
@@ -2853,7 +2779,7 @@ fn apply_user_info_enrichment_preserves_token_fields() {
         expires_at: Some(Utc::now() + Duration::hours(1)),
         oidc_issuer: Some("https://issuer.example".into()),
         oidc_client_id: Some("client-xyz".into()),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         create_time: Utc::now() - Duration::minutes(10),
         has_nofy_code_access: Some(true),
         user_id: "old-user".into(),
@@ -2916,7 +2842,7 @@ async fn current_api_key_async_drives_refresh_chain() {
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     mgr.hot_swap(NofyAuth {
         key: "expired-oidc".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -2949,7 +2875,7 @@ async fn update_recovers_from_empty_auth_json() {
 
     let new_auth = NofyAuth {
         key: "recovered-token".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("recovered-rt".into()),
         user_id: "recovered-user".into(),
         email: Some("user@example.com".into()),
@@ -2997,7 +2923,7 @@ async fn update_recovers_from_whitespace_only_auth_json() {
 
     let new_auth = NofyAuth {
         key: "ws-token".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         user_id: "ws-user".into(),
         ..make_auth(Some(Utc::now() + Duration::hours(1)), Utc::now())
     };
@@ -3047,7 +2973,7 @@ async fn sibling_different_rt_with_expired_at_is_still_sibling() {
     // In-memory: the original RT (revoked via rotation), AT expired.
     let original = NofyAuth {
         key: "original-at".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-original".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3057,7 +2983,7 @@ async fn sibling_different_rt_with_expired_at_is_still_sibling() {
     // Disk: the successor RT from rotation, AT also expired.
     let successor = NofyAuth {
         key: "successor-at".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-successor".into()),
         expires_at: Some(Utc::now() - Duration::minutes(30)),
         ..NofyAuth::test_default()
@@ -3082,7 +3008,7 @@ async fn sibling_different_rt_with_valid_at_is_treated_as_live() {
 
     let original = NofyAuth {
         key: "original-at".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-original".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3092,7 +3018,7 @@ async fn sibling_different_rt_with_valid_at_is_treated_as_live() {
     // Disk: valid token from sibling process.
     let sibling = NofyAuth {
         key: "sibling-at".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-sibling".into()),
         expires_at: Some(Utc::now() + Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3121,7 +3047,7 @@ async fn refresh_chain_server_rejected_bypasses_valid_token_double_check() {
     // the subscription claim but is otherwise fine.
     let valid_but_rejected = NofyAuth {
         key: "pre-subscription-jwt".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-original".into()),
         expires_at: Some(Utc::now() + Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3140,7 +3066,7 @@ async fn refresh_chain_server_rejected_bypasses_valid_token_double_check() {
     // ServerRejected must force a real refresh despite the token being valid.
     let result = mgr
         .refresh_chain(
-            crate::auth::token_type::TokenType::OidcSession,
+            crate::auth::token_type::TokenType::ExternalBinary,
             RefreshReason::ServerRejected,
         )
         .await;
@@ -3174,7 +3100,7 @@ async fn refresh_chain_server_rejected_concurrent_skips_redundant_refresh() {
     // Seed the "rejected" token that both tasks will see.
     let rejected = NofyAuth {
         key: "rejected-jwt".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-old".into()),
         expires_at: Some(Utc::now() + Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3197,11 +3123,11 @@ async fn refresh_chain_server_rejected_concurrent_skips_redundant_refresh() {
 
     let (r1, r2) = tokio::join!(
         mgr1.refresh_chain(
-            crate::auth::token_type::TokenType::OidcSession,
+            crate::auth::token_type::TokenType::ExternalBinary,
             RefreshReason::ServerRejected,
         ),
         mgr2.refresh_chain(
-            crate::auth::token_type::TokenType::OidcSession,
+            crate::auth::token_type::TokenType::ExternalBinary,
             RefreshReason::ServerRejected,
         ),
     );
@@ -3228,7 +3154,7 @@ async fn refresh_chain_pre_request_short_circuits_on_valid_token() {
 
     let valid = NofyAuth {
         key: "still-good".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() + Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3243,7 +3169,7 @@ async fn refresh_chain_pre_request_short_circuits_on_valid_token() {
 
     let result = mgr
         .refresh_chain(
-            crate::auth::token_type::TokenType::OidcSession,
+            crate::auth::token_type::TokenType::ExternalBinary,
             RefreshReason::PreRequest,
         )
         .await;
@@ -3345,7 +3271,6 @@ async fn enrich_auth_inline_unreachable_server_leaves_auth_unchanged() {
     assert!(!auth.is_data_collection_disabled());
 }
 
-// ── force_login_team_uuid spine enforcement ───────────────────────────
 //
 // Regression coverage for the cached-token bypass: the pin must hold for every
 // token the manager hands out (startup, sync reads, `auth()`), not just fresh
@@ -3353,64 +3278,6 @@ async fn enrich_auth_inline_unreachable_server_leaves_auth_unchanged() {
 
 /// `jsonwebtoken` needs a process-level CryptoProvider; tests that encode
 /// JWTs can't rely on another test having installed it first.
-fn ensure_crypto_provider() {
-    let _ = jsonwebtoken::crypto::rust_crypto::DEFAULT_PROVIDER.install_default();
-}
-
-/// A signed (HS256) access token carrying a `Team` principal, matching the
-/// shape `peek_access_token_principal` extracts in production.
-fn team_jwt(principal_id: &str) -> String {
-    ensure_crypto_provider();
-    jsonwebtoken::encode(
-        &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256),
-        &serde_json::json!({
-            "sub": "user-1",
-            "principal_type": "Team",
-            "principal_id": principal_id,
-            "exp": 9999999999u64,
-        }),
-        &jsonwebtoken::EncodingKey::from_secret(b"test-secret"),
-    )
-    .unwrap()
-}
-
-/// An access token carrying `principal_id` but NO `principal_type`.
-fn principal_id_only_jwt(principal_id: &str) -> String {
-    ensure_crypto_provider();
-    jsonwebtoken::encode(
-        &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256),
-        &serde_json::json!({
-            "sub": "user-1",
-            "principal_id": principal_id,
-            "exp": 9999999999u64,
-        }),
-        &jsonwebtoken::EncodingKey::from_secret(b"test-secret"),
-    )
-    .unwrap()
-}
-
-fn pinned_cfg(team: &str) -> NofyComConfig {
-    NofyComConfig {
-        force_login_team_uuid: Some(crate::auth::config::ForceLoginTeam::Single(
-            team.to_string(),
-        )),
-        ..NofyComConfig::default()
-    }
-}
-
-/// A valid, non-expired OIDC session whose access token carries `principal_id`.
-fn oidc_session_for_team(principal_id: &str) -> NofyAuth {
-    NofyAuth {
-        key: team_jwt(principal_id),
-        auth_mode: AuthMode::Oidc,
-        refresh_token: Some("rt".into()),
-        expires_at: Some(Utc::now() + Duration::hours(1)),
-        oidc_issuer: Some(crate::auth::config::NOFY_OAUTH2_ISSUER.to_string()),
-        oidc_client_id: Some("client".into()),
-        ..NofyAuth::test_default()
-    }
-}
-
 
 
 
@@ -3433,7 +3300,7 @@ fn force_reload_retains_live_rt_on_transient_file_missing() {
 
     let session = NofyAuth {
         key: "live-session".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("live-rt".into()),
         expires_at: Some(Utc::now() + Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3467,7 +3334,7 @@ async fn force_reload_drops_rt_when_permanent_failure_set() {
 
     let session = NofyAuth {
         key: "broken".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-revoked".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3505,7 +3372,7 @@ fn force_reload_drops_creds_on_entry_missing() {
 
     let session = NofyAuth {
         key: "live-session".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("live-rt".into()),
         expires_at: Some(Utc::now() + Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3565,35 +3432,19 @@ fn force_reload_adopts_fresh_disk_token() {
 /// A cached `AuthMode::ApiKey` session is rejected under the kill switch (here
 /// implied by a team pin), and honored when it's off.
 #[tokio::test]
-async fn cached_api_key_session_rejected_when_api_key_auth_disabled() {
-    let api_key_session = || NofyAuth {
+async fn cached_api_key_session_is_honored() {
+    let dir = tempfile::tempdir().unwrap();
+    let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
+    mgr.hot_swap(NofyAuth {
         key: "nofy-cached-key".into(),
         auth_mode: AuthMode::ApiKey,
         expires_at: Some(Utc::now() + Duration::hours(1)),
         ..NofyAuth::test_default()
-    };
-
-    // Switch ON (via a team pin, which implies api_key_auth_disabled): reject.
-    let dir = tempfile::tempdir().unwrap();
-    let mgr = Arc::new(AuthManager::new(dir.path(), pinned_cfg("team-good")));
-    mgr.hot_swap(api_key_session());
-    assert!(
-        mgr.current().is_none(),
-        "cached api-key session must be hidden under the kill switch"
-    );
-    assert!(
-        matches!(mgr.auth().await, Err(AuthError::ApiKeyAuthDisabled)),
-        "auth() must reject a cached api-key session under the kill switch"
-    );
-
-    // Switch OFF (no pin / no disable): the api-key session is honored.
-    let dir2 = tempfile::tempdir().unwrap();
-    let mgr2 = Arc::new(AuthManager::new(dir2.path(), NofyComConfig::default()));
-    mgr2.hot_swap(api_key_session());
+    });
     assert_eq!(
-        mgr2.current().map(|a| a.key),
+        mgr.current().map(|a| a.key),
         Some("nofy-cached-key".to_string()),
-        "api-key session must work normally when the switch is off"
+        "a cached api-key session must be served"
     );
 }
 
@@ -3685,77 +3536,6 @@ async fn shared_api_key_provider_static_fallthrough() {
     }
 }
 
-#[tokio::test]
-#[serial_test::serial]
-async fn shared_api_key_provider_kill_switch_blocks_static() {
-    use nofy_test_support::EnvGuard;
-
-    let _key = EnvGuard::set("NOFY_API_KEY", "blocked");
-    let dir = tempfile::tempdir().unwrap();
-    let mgr = Arc::new(AuthManager::new(
-        dir.path(),
-        NofyComConfig {
-            disable_api_key_auth: Some(true),
-            ..NofyComConfig::default()
-        },
-    ));
-    assert_eq!(
-        shared_api_key_provider(mgr).current_api_key_async().await,
-        None
-    );
-}
-
-#[tokio::test]
-#[serial_test::serial]
-async fn shared_api_key_provider_oidc_preferred_blocks_static() {
-    use nofy_test_support::EnvGuard;
-
-    let _key = EnvGuard::set("NOFY_API_KEY", "should-not-use");
-    let dir = tempfile::tempdir().unwrap();
-    let mgr = Arc::new(AuthManager::new(
-        dir.path(),
-        NofyComConfig {
-            preferred_method: Some(crate::auth::PreferredAuthMethod::Oidc),
-            ..NofyComConfig::default()
-        },
-    ));
-    assert_eq!(
-        shared_api_key_provider(mgr).current_api_key_async().await,
-        None
-    );
-}
-
-/// preferred_method=api_key: leftover session must not beat static API key.
-#[tokio::test]
-#[serial_test::serial]
-async fn shared_api_key_provider_api_key_preferred_skips_session() {
-    use nofy_test_support::EnvGuard;
-
-    let _legacy = EnvGuard::unset("NOFY_API_KEY");
-    let _key = EnvGuard::set("NOFY_API_KEY", "static-preferred");
-    let dir = tempfile::tempdir().unwrap();
-    let mgr = Arc::new(AuthManager::new(
-        dir.path(),
-        NofyComConfig {
-            preferred_method: Some(crate::auth::PreferredAuthMethod::ApiKey),
-            ..NofyComConfig::default()
-        },
-    ));
-    mgr.hot_swap(NofyAuth {
-        key: "leftover-oidc".into(),
-        expires_at: Some(Utc::now() + Duration::hours(1)),
-        create_time: Utc::now(),
-        ..NofyAuth::test_default()
-    });
-    assert_eq!(
-        shared_api_key_provider(mgr)
-            .current_api_key_async()
-            .await
-            .as_deref(),
-        Some("static-preferred")
-    );
-}
-
 /// Expired OAuth must not block static fallthrough on the sync path.
 #[tokio::test]
 #[serial_test::serial]
@@ -3768,7 +3548,7 @@ async fn shared_api_key_provider_sync_falls_through_when_session_expired() {
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     mgr.hot_swap(NofyAuth {
         key: "expired-oidc".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3800,7 +3580,7 @@ async fn shared_api_key_provider_sync_buffered_session_beats_static() {
     // Two minutes out: inside the 5-minute buffer, but accepted on the wire.
     mgr.hot_swap(NofyAuth {
         key: "buffered-oidc".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         expires_at: Some(Utc::now() + Duration::minutes(2)),
         ..NofyAuth::test_default()
@@ -3914,28 +3694,12 @@ async fn process_key_precedence() {
         provider.current_api_key_async().await.as_deref(),
         Some("disk")
     );
-
-    let dir_blocked = tempfile::tempdir().unwrap();
-    let blocked = Arc::new(AuthManager::new(
-        dir_blocked.path(),
-        NofyComConfig {
-            disable_api_key_auth: Some(true),
-            ..NofyComConfig::default()
-        },
-    ));
-    blocked.set_process_static_api_key(Some("ignored".into()));
-    assert_eq!(
-        shared_api_key_provider(blocked)
-            .current_api_key_async()
-            .await,
-        None
-    );
 }
 
-fn expired_oidc() -> NofyAuth {
+fn expired_session_token() -> NofyAuth {
     NofyAuth {
         key: "expired-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-old".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -3968,7 +3732,7 @@ impl TokenRefresher for BlockingRefresher {
 async fn sleep_gate_defers_refresh_without_calling_idp() {
     let dir = tempfile::tempdir().unwrap();
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-    mgr.hot_swap(expired_oidc());
+    mgr.hot_swap(expired_session_token());
     let call_count = Arc::new(AtomicU32::new(0));
     mgr.set_refresher(Arc::new(CountingRefresher {
         call_count: call_count.clone(),
@@ -4005,10 +3769,7 @@ async fn sleep_gate_defers_refresh_without_calling_idp() {
 async fn sleep_deferred_refresh_is_transient_no_kpi_no_verdict() {
     let dir = tempfile::tempdir().unwrap();
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-    // Pin non-devbox so a deferred refresh surfaces the transient error
-    // instead of minting via devbox recovery (CI runs in K8s pods).
-    mgr.set_devbox_env_for_test(false);
-    mgr.hot_swap(expired_oidc());
+    mgr.hot_swap(expired_session_token());
     let call_count = Arc::new(AtomicU32::new(0));
     mgr.set_refresher(Arc::new(CountingRefresher {
         call_count: call_count.clone(),
@@ -4068,7 +3829,7 @@ async fn dark_wake_defers_refresh_while_a_live_token_can_be_served() {
     // None, so `refresh_chain` proceeds) but still accepted on the wire.
     mgr.hot_swap(NofyAuth {
         key: "live-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-old".into()),
         expires_at: Some(Utc::now() + Duration::minutes(2)),
         ..NofyAuth::test_default()
@@ -4081,7 +3842,7 @@ async fn dark_wake_defers_refresh_while_a_live_token_can_be_served() {
     mgr.set_dark_wake_for_test(true);
 
     let err = mgr
-        .refresh_chain(TokenType::OidcSession, RefreshReason::PreRequest)
+        .refresh_chain(TokenType::ExternalBinary, RefreshReason::PreRequest)
         .await
         .unwrap_err();
     assert!(
@@ -4108,7 +3869,7 @@ async fn dark_wake_defers_refresh_while_a_live_token_can_be_served() {
 async fn dark_wake_does_not_defer_when_no_usable_token() {
     let dir = tempfile::tempdir().unwrap();
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-    mgr.hot_swap(expired_oidc());
+    mgr.hot_swap(expired_session_token());
     let call_count = Arc::new(AtomicU32::new(0));
     mgr.set_refresher(Arc::new(CountingRefresher {
         call_count: call_count.clone(),
@@ -4132,7 +3893,7 @@ async fn dark_wake_does_not_defer_server_rejected_recovery() {
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     mgr.hot_swap(NofyAuth {
         key: "rejected-but-unexpired".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-old".into()),
         expires_at: Some(Utc::now() + Duration::minutes(2)),
         ..NofyAuth::test_default()
@@ -4145,7 +3906,7 @@ async fn dark_wake_does_not_defer_server_rejected_recovery() {
     mgr.set_dark_wake_for_test(true);
 
     assert_eq!(
-        mgr.refresh_chain(TokenType::OidcSession, RefreshReason::ServerRejected)
+        mgr.refresh_chain(TokenType::ExternalBinary, RefreshReason::ServerRejected)
             .await
             .unwrap()
             .key,
@@ -4168,7 +3929,7 @@ async fn dark_wake_defer_forces_refresh_after_max() {
     // the thing under test — a hard-expired token is never deferred at all.
     mgr.hot_swap(NofyAuth {
         key: "live-key".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-old".into()),
         expires_at: Some(Utc::now() + Duration::minutes(2)),
         ..NofyAuth::test_default()
@@ -4295,7 +4056,7 @@ fn is_dark_wake_env_override_forces_both_states() {
 async fn sleep_gate_cleared_on_wake_allows_refresh() {
     let dir = tempfile::tempdir().unwrap();
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-    mgr.hot_swap(expired_oidc());
+    mgr.hot_swap(expired_session_token());
     let call_count = Arc::new(AtomicU32::new(0));
     mgr.set_refresher(Arc::new(CountingRefresher {
         call_count: call_count.clone(),
@@ -4379,7 +4140,7 @@ async fn sleep_gate_auto_expires_when_wall_clock_passes_during_sleep() {
 async fn sleep_gate_lets_in_flight_refresh_complete() {
     let dir = tempfile::tempdir().unwrap();
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-    mgr.hot_swap(expired_oidc());
+    mgr.hot_swap(expired_session_token());
 
     let started = Arc::new(tokio::sync::Notify::new());
     let release = Arc::new(tokio::sync::Notify::new());
@@ -4537,12 +4298,6 @@ fn manual_auth_reason_maps_terminal_and_skips_non_forcing() {
         manual_auth_reason(&AuthError::TokenExpiredNoRefresh),
         Some(R::TokenExpiredNoRefresh)
     );
-    assert_eq!(
-        manual_auth_reason(&AuthError::PinnedTeamMismatch {
-            message: String::new()
-        }),
-        Some(R::WrongTeam)
-    );
     // Before this reason existed these lockouts hid under the self-healing
     // `Other` bucket and never surfaced in the KPI at all.
     assert_eq!(
@@ -4555,15 +4310,13 @@ fn manual_auth_reason_maps_terminal_and_skips_non_forcing() {
     assert_eq!(permanent(Reason::Other), None);
     assert_eq!(manual_auth_reason(&AuthError::transient("x")), None);
     assert_eq!(manual_auth_reason(&AuthError::NotLoggedIn), None);
-    assert_eq!(manual_auth_reason(&AuthError::ApiKeyAuthDisabled), None);
 }
 
 /// Truth table for `relay_should_cancel`: the relay gives up on any terminal
-/// auth failure — including `ApiKeyAuthDisabled`, which is deliberately out of
-/// the `manual_auth` KPI's scope — and keeps reconnecting through transient
-/// blips, absent credentials, and the self-healing permanent reasons (those
-/// age out via the TTL, so cancelling on them would orphan a session that
-/// recovers minutes later).
+/// auth failure and keeps reconnecting through transient blips, absent
+/// credentials, and the self-healing permanent reasons (those age out via the
+/// TTL, so cancelling on them would orphan a session that recovers minutes
+/// later).
 #[test]
 fn relay_should_cancel_gives_up_only_on_terminal_failures() {
     use crate::auth::error::RefreshTokenFailedReason as Reason;
@@ -4576,12 +4329,6 @@ fn relay_should_cancel_gives_up_only_on_terminal_failures() {
     assert!(relay_should_cancel(&AuthError::ServerRejectedNoRecovery));
     assert!(relay_should_cancel(&AuthError::RecoveryExhausted));
     assert!(relay_should_cancel(&AuthError::TokenExpiredNoRefresh));
-    assert!(relay_should_cancel(&AuthError::PinnedTeamMismatch {
-        message: String::new()
-    }));
-    // Cancelled even though it never emits the KPI (a kill-switched API key
-    // means rotate the key, not `/login`).
-    assert!(relay_should_cancel(&AuthError::ApiKeyAuthDisabled));
     // Reconnecting would replay the same 401 until the user signs in.
     assert!(relay_should_cancel(&AuthError::permanent(
         Reason::ProviderInteractiveRequired
@@ -4607,13 +4354,13 @@ async fn manual_auth_capture_attributes_and_recorder_debounces() {
     let auth = NofyAuth {
         key: "dead-token".into(),
         user_id: "user-1".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt".into()),
         ..NofyAuth::test_default()
     };
     let snap = RejectedAuth::capture(Some(&auth));
     assert_eq!(snap.principal_for_test(), Some("user-1"));
-    assert_eq!(snap.token_kind_for_test(), AuthTokenKind::OidcSession);
+    assert_eq!(snap.token_kind_for_test(), AuthTokenKind::ExternalBinary);
 
     let rec = ManualAuthTracker::default();
     let last = || rec.last_token_for_test();
@@ -4627,9 +4374,7 @@ async fn manual_auth_capture_attributes_and_recorder_debounces() {
     assert!(id.is_some());
     rec.record(
         &snap,
-        &AuthError::PinnedTeamMismatch {
-            message: String::new(),
-        },
+        &AuthError::TokenExpiredNoRefresh,
         ManualAuthSurface::Turn,
     );
     assert_eq!(last(), id);
@@ -4658,36 +4403,41 @@ async fn manual_auth_capture_attributes_and_recorder_debounces() {
 }
 
 /// End-to-end: `next()` emits only for a user-facing, in-scope terminal failure.
-/// A credential with no refresh authority terminates with
-/// `ServerRejectedNoRecovery` without a refresher.
+/// A session credential whose refresher terminally rejects the refresh token
+/// surfaces a permanent `Refresh` error.
 #[tokio::test]
 async fn manual_auth_emits_only_for_user_facing_source() {
     use crate::auth::recovery::RecoverySource;
 
     fn mgr_with(dir: &std::path::Path, key: &str, mode: AuthMode) -> Arc<AuthManager> {
         let mgr = Arc::new(AuthManager::new(dir, NofyComConfig::default()));
-        let mut auth = make_auth(Some(Utc::now() + Duration::hours(1)), Utc::now());
+        // create_time backdated past the fresh-mint guard window.
+        let mut auth = make_auth(
+            Some(Utc::now() + Duration::hours(1)),
+            Utc::now() - Duration::hours(2),
+        );
         auth.user_id = "u1".into();
         auth.key = key.into();
         auth.auth_mode = mode;
-        auth.refresh_token = None; // Oidc-sans-refresh-token => LegacySession (in scope)
         mgr.hot_swap(auth);
-        // CI runs in K8s pods where is_devbox_environment() is true; without this
-        // DevboxRecovery would adopt the seeded valid token and recovery would
-        // return Ok instead of the terminal ServerRejectedNoRecovery.
-        mgr.set_devbox_env_for_test(false);
+        mgr.set_refresher(Arc::new(FailingRefresher {
+            call_count: Arc::new(AtomicU32::new(0)),
+        }));
         mgr
     }
 
-    // User-facing + in-scope (legacy session) records.
+    // User-facing + in-scope (terminal refresh failure) records.
     let d1 = tempfile::tempdir().unwrap();
-    let turn = mgr_with(d1.path(), "sess-turn", AuthMode::Oidc);
+    let turn = mgr_with(d1.path(), "sess-turn", AuthMode::External);
     let err = turn
         .unauthorized_recovery(turn.current_or_expired(), RecoverySource::Turn)
         .next()
         .await
         .unwrap_err();
-    assert!(matches!(err, AuthError::ServerRejectedNoRecovery));
+    assert!(matches!(
+        err,
+        AuthError::Refresh(RefreshTokenError::Permanent(_))
+    ));
     // Assert the emitted payload, not just that something fired.
     use nofy_telemetry::events::{
         AuthTokenKind, ManualAuth, ManualAuthReason, ManualAuthSurface,
@@ -4695,16 +4445,16 @@ async fn manual_auth_emits_only_for_user_facing_source() {
     assert_eq!(
         turn.manual_auth_last_emit(),
         Some(ManualAuth {
-            reason: ManualAuthReason::NoRefreshAuthority,
+            reason: ManualAuthReason::RefreshTokenRejected,
             trigger: ManualAuthSurface::Turn,
-            token_kind: AuthTokenKind::LegacySession,
+            token_kind: AuthTokenKind::ExternalBinary,
             principal: Some("u1".to_string()),
         }),
     );
 
     // Background source does not record.
     let d2 = tempfile::tempdir().unwrap();
-    let bg = mgr_with(d2.path(), "sess-bg", AuthMode::Oidc);
+    let bg = mgr_with(d2.path(), "sess-bg", AuthMode::External);
     let _ = bg
         .unauthorized_recovery(bg.current_or_expired(), RecoverySource::Background)
         .next()
@@ -4724,7 +4474,7 @@ async fn manual_auth_emits_only_for_user_facing_source() {
 // ── requires_manual_reauth: transient-vs-terminal authority ─────────
 
 /// A refreshable credential with no sticky verdict must NOT demand a manual
-/// `/login` — this is the authority the sampler consults before painting the
+/// manual re-auth — this is the authority the sampler consults before painting the
 /// pager's re-auth banner, and the post-wake network gap must classify as
 /// self-healing.
 #[tokio::test]
@@ -4733,7 +4483,7 @@ async fn requires_manual_reauth_false_for_refreshable_credential() {
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     mgr.hot_swap(NofyAuth {
         key: "expired-at".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-live".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -4752,19 +4502,19 @@ async fn requires_manual_reauth_false_for_refreshable_credential() {
     record_permanent_failure(&mgr, crate::auth::error::RefreshTokenFailedReason::Other);
     assert!(
         !mgr.requires_manual_reauth(),
-        "a recoverable Other verdict must not demand /login"
+        "a recoverable Other verdict must not demand manual re-auth"
     );
 }
 
 /// A sticky `RefreshTokenRejected` verdict (IdP revoked the RT) is fixable
-/// only by `/login`; likewise a manager with no refresh authority at all.
+/// only by manual re-auth; likewise a manager with no refresh authority at all.
 #[tokio::test]
 async fn requires_manual_reauth_true_for_sticky_verdict_and_no_refresher() {
     let dir = tempfile::tempdir().unwrap();
     let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
     mgr.hot_swap(NofyAuth {
         key: "expired-at".into(),
-        auth_mode: AuthMode::Oidc,
+        auth_mode: AuthMode::External,
         refresh_token: Some("rt-dead".into()),
         expires_at: Some(Utc::now() - Duration::hours(1)),
         ..NofyAuth::test_default()
@@ -4773,7 +4523,7 @@ async fn requires_manual_reauth_true_for_sticky_verdict_and_no_refresher() {
     // No refresher configured: nothing can silently heal the session.
     assert!(
         mgr.requires_manual_reauth(),
-        "no refresh authority must demand /login"
+        "no refresh authority must demand manual re-auth"
     );
 
     mgr.set_refresher(Arc::new(FailingRefresher {
@@ -4785,7 +4535,7 @@ async fn requires_manual_reauth_true_for_sticky_verdict_and_no_refresher() {
     );
     assert!(
         mgr.requires_manual_reauth(),
-        "a sticky RefreshTokenRejected verdict must demand /login"
+        "a sticky RefreshTokenRejected verdict must demand manual re-auth"
     );
 }
 
@@ -4864,64 +4614,4 @@ fn proactive_failure_backoff_shape() {
         huge <= BACKOFF_INTERVAL + std::time::Duration::from_secs(3),
         "backoff must cap at BACKOFF_INTERVAL (+jitter), got {huge:?}"
     );
-}
-
-// ── try_devbox_recovery: the wait-on-the-lock double-check ───────────
-
-/// Seed a credential that is locally valid but that the caller has been told
-/// the server rejects — the shape that made the double-check lie.
-fn devbox_manager(dir: &std::path::Path, key: &str) -> Arc<AuthManager> {
-    let mgr = Arc::new(AuthManager::new(dir, NofyComConfig::default()));
-    mgr.set_devbox_env_for_test(true);
-    mgr.hot_swap(NofyAuth {
-        key: key.into(),
-        auth_mode: AuthMode::External,
-        expires_at: Some(Utc::now() + Duration::hours(1)),
-        ..NofyAuth::test_default()
-    });
-    mgr
-}
-
-/// The credential the caller already knows is dead can never be the answer.
-///
-/// `try_devbox_recovery` short-circuits on whatever `current()` holds, to
-/// catch a sibling task that refreshed while we waited on `refresh_lock`.
-/// Told nothing about the rejected bearer it used to return that bearer, so
-/// on a devbox every 401 against a still-locally-valid token reported
-/// "recovered" and the turn resubmitted it until its retry budget ran out.
-#[tokio::test]
-async fn devbox_recovery_never_re_serves_the_credential_it_was_given_up_on() {
-    let dir = tempfile::tempdir().unwrap();
-    let mgr = devbox_manager(dir.path(), "rejected-but-locally-valid");
-    assert!(
-        mgr.current().is_some(),
-        "precondition: the rejected bearer is still locally valid"
-    );
-
-    // Asserted as "not this credential" rather than as an error: on a real
-    // devbox the mint can genuinely succeed, and a *different* credential is
-    // exactly the outcome we want. Everywhere else there is no mint endpoint
-    // and this is an error.
-    let outcome = mgr
-        .try_devbox_recovery(Some("rejected-but-locally-valid"))
-        .await;
-    assert!(
-        !matches!(&outcome, Ok(auth) if auth.key == "rejected-but-locally-valid"),
-        "recovery must not report success with the rejected bearer, got {outcome:?}"
-    );
-}
-
-/// The double-check still does its job: a credential that is *not* the one
-/// the caller gave up on means a sibling task refreshed, so take it and skip
-/// the mint.
-#[tokio::test]
-async fn devbox_recovery_short_circuits_on_a_credential_someone_else_landed() {
-    let dir = tempfile::tempdir().unwrap();
-    let mgr = devbox_manager(dir.path(), "landed-by-a-sibling-task");
-
-    let auth = mgr
-        .try_devbox_recovery(Some("the-bearer-the-server-rejected"))
-        .await
-        .expect("a different live credential is a recovery");
-    assert_eq!(auth.key, "landed-by-a-sibling-task");
 }

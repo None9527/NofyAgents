@@ -444,24 +444,17 @@ fn auto_respond_to_permissions(
     None
 }
 
-/// "Not signed in" error message, tailored to the session type.
-fn auth_required_message(interactive: bool) -> String {
-    if interactive {
-        "Not signed in. Run `nofy login` to authenticate \
-         (or `nofy login --device-code` if no browser is available)."
-            .to_string()
-    } else {
-        "Not signed in. To authenticate without a browser, run:\n  \
-         nofy login --device-code\n\n\
-         Alternatively, set the NOFY_API_KEY environment variable \
-         or run `nofy login` on a machine with a browser."
-            .to_string()
-    }
+/// "Not signed in" error message.
+fn auth_required_message() -> String {
+    "Not signed in. Set the NOFY_API_KEY environment variable, or add \
+     api_key/env_key to ~/.nofy/config.toml (an auth_provider_command \
+     works too)."
+        .to_string()
 }
 
 /// When the resolved model entry expects its API key from environment
 /// variables but none of them are set, return a targeted message naming the
-/// missing variable(s) — instead of the generic login guidance, which would
+/// missing variable(s) — instead of the generic auth guidance, which would
 /// misdirect a BYOK user whose only mistake is an unexported variable.
 fn missing_env_key_hint(raw_config: &toml::Value, model_override: Option<&str>) -> Option<String> {
     let models_table = raw_config.get("model")?.as_table()?;
@@ -507,8 +500,8 @@ fn missing_env_key_hint(raw_config: &toml::Value, model_override: Option<&str>) 
 
 /// Authenticate via the agent's `defaultAuthMethodId`, failing closed when none is available.
 /// Returns whether the selected method is API-key auth. `env_key_hint`, when
-/// present, replaces the generic login message: the user configured a BYOK
-/// model whose env var is unset, and login guidance would misdirect them.
+/// present, replaces the generic auth message: the user configured a BYOK
+/// model whose env var is unset, and generic guidance would misdirect them.
 async fn authenticate(
     acp_tx: &AcpAgentTx,
     auths: &[acp::AuthMethod],
@@ -516,27 +509,11 @@ async fn authenticate(
     env_key_hint: Option<&str>,
 ) -> anyhow::Result<bool> {
     let method_id = crate::acp::select_eager_auth_method(auths, default_auth_method_id)
-        .ok_or_else(|| {
-            use std::io::IsTerminal;
-            let interactive = std::io::stdin().is_terminal()
-                && !nofy_shell::util::clipboard::is_remote_session();
-            match env_key_hint {
-                Some(hint) => anyhow::anyhow!("{hint}"),
-                None => anyhow::anyhow!("{}", auth_required_message(interactive)),
-            }
+        .ok_or_else(|| match env_key_hint {
+            Some(hint) => anyhow::anyhow!("{hint}"),
+            None => anyhow::anyhow!("{}", auth_required_message()),
         })?;
-    let kind = AuthMethodKind::from_id(&method_id);
-    // Prefer non-interactive methods only; interactive login is not usable headless.
-    if kind.needs_interactive_login() {
-        use std::io::IsTerminal;
-        let interactive =
-            std::io::stdin().is_terminal() && !nofy_shell::util::clipboard::is_remote_session();
-        match env_key_hint {
-            Some(hint) => anyhow::bail!("{hint}"),
-            None => anyhow::bail!("{}", auth_required_message(interactive)),
-        }
-    }
-    let is_api_key_auth = kind.is_api_key();
+    let is_api_key_auth = AuthMethodKind::from_id(&method_id).is_api_key();
     let _resp: acp::AuthenticateResponse = acp_send(
         acp::AuthenticateRequest::new(method_id)
             .meta(serde_json::json!({"headless": true}).as_object().cloned()),
