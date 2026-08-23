@@ -57,19 +57,6 @@ pub struct FeedbackRequest {
     pub feedback_text: String,
 }
 
-/// Request to dismiss a feedback request (sent to the feedback backend).
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct FeedbackRequestDismiss {
-    pub session_id: String,
-    pub request_id: String,
-}
-
-/// Response from submitting user feedback
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct FeedbackResponse {
-    pub success: bool,
-}
-
 /// Input from client for feedback submission.
 ///
 /// This enum handles two types of feedback:
@@ -137,96 +124,7 @@ pub struct ClientFeedbackInput {
     pub terminal_info: Option<prod_mc_cli_chat_proxy_types::feedback_types::FeedbackTerminalInfo>,
 }
 
-impl ClientFeedbackInput {
-    /// Clamp rating value to valid range based on rating type.
-    ///
-    /// - thumbs: -1 to 1
-    /// - stars: 1 to 5
-    /// - nps: 0 to 10
-    fn clamp_rating_value(
-        rating_type: Option<prod_mc_cli_chat_proxy_types::feedback_types::RatingType>,
-        rating_value: Option<i32>,
-    ) -> Option<i32> {
-        use prod_mc_cli_chat_proxy_types::feedback_types::RatingType;
 
-        match (rating_type, rating_value) {
-            (Some(RatingType::Thumbs), Some(v)) => Some(v.clamp(-1, 1)),
-            (Some(RatingType::Stars), Some(v)) => Some(v.clamp(1, 5)),
-            (Some(RatingType::Nps), Some(v)) => Some(v.clamp(0, 10)),
-            // No rating type specified, pass through (will be validated by server)
-            (None, Some(v)) => Some(v),
-            (_, None) => None,
-        }
-    }
-
-    /// Convert to a FeedbackSubmission for sending to the feedback backend.
-    ///
-    /// The agent enriches the client input with:
-    /// - `model_id`: Requested model being used (from sampling config)
-    /// - `resolved_model_id`: Actual model from chat completion response
-    /// - `turn_number`: Current turn number from agent's session tracking
-    /// - `feedback_type`: Derived from rating_type and feedback_text presence
-    /// - `user_id`: Will be extracted from auth token by the backend
-    ///
-    /// Rating values are clamped to valid ranges based on rating_type.
-    pub(crate) fn to_submission(
-        &self,
-        model_id: Option<String>,
-        resolved_model_id: Option<String>,
-        model_fingerprint: Option<String>,
-        turn_number: Option<i64>,
-    ) -> prod_mc_cli_chat_proxy_types::feedback_types::FeedbackSubmission {
-        use prod_mc_cli_chat_proxy_types::feedback_types::FeedbackContent;
-
-        let clamped_rating_value = Self::clamp_rating_value(self.rating_type, self.rating_value);
-        let content = match (
-            self.rating_type,
-            clamped_rating_value,
-            self.feedback_text.clone(),
-        ) {
-            (Some(rating_type), Some(rating_value), Some(text)) => {
-                FeedbackContent::RatingWithText {
-                    rating_type,
-                    rating_value,
-                    text,
-                }
-            }
-            (Some(rating_type), Some(rating_value), None) => FeedbackContent::Rating {
-                rating_type,
-                rating_value,
-            },
-            // Fallback: any other shape becomes Text (empty string preserved).
-            (_, _, text) => FeedbackContent::Text(text.unwrap_or_default()),
-        };
-
-        let mut s = crate::session::feedback_manager::new_submission(
-            self.session_id.clone(),
-            self.client_type,
-            content,
-        );
-        s.turn_number = turn_number;
-        s.feedback_categories = self.feedback_categories.clone();
-        s.model_id = model_id;
-        s.resolved_model_id = resolved_model_id;
-        s.model_fingerprint = model_fingerprint;
-        s.context_type = self.context_type;
-        s.request_id = self.request_id.clone();
-        s.client_version = self.client_version.clone();
-        s.metadata = self.metadata.clone();
-        s.terminal_info = self.terminal_info.clone();
-        s
-    }
-
-    /// Check if this is a solicited feedback (response to a request)
-    pub(crate) fn is_solicited(&self) -> bool {
-        self.request_id.is_some()
-    }
-
-    /// Get the request_id if this is solicited feedback
-    pub fn request_id(&self) -> Option<&str> {
-        self.request_id.as_deref()
-    }
-}
 
 // ── Rollout survey ──────────────────────────────────────────────────────
 
@@ -243,55 +141,6 @@ pub(crate) struct RolloutSurveyRequest {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RolloutSurveyResponse {
     pub success: bool,
-}
-
-// ── Citations / comments ────────────────────────────────────────────────
-
-/// A reference to a range of lines in a file.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Citation {
-    pub path: String,
-    pub start_line: u32,
-    pub end_line: u32,
-    pub text: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub side: Option<String>,
-}
-
-/// Request to record an inline comment on a prompt turn.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct CommentRequest {
-    pub session_id: String,
-    /// 0-indexed prompt turn this comment is associated with
-    pub prompt_index: u32,
-    pub comment: String,
-    pub citation: Citation,
-}
-
-/// Response from recording a comment
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct CommentResponse {
-    pub comment_id: String,
-    pub recorded: bool,
-}
-
-/// Request to delete a previously recorded comment.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct CommentDeleteRequest {
-    pub session_id: String,
-    pub comment_id: String,
-}
-
-/// Response from deleting a comment
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct CommentDeleteResponse {
-    pub comment_id: String,
-    pub deleted: bool,
 }
 
 // ── Rewind ──────────────────────────────────────────────────────────────
@@ -566,24 +415,6 @@ pub struct SessionInfoResponse {
     pub data: SessionInfoData,
 }
 
-// ── Feedback context ────────────────────────────────────────────────────
-
-/// Context gathered from a session to enrich feedback notifications.
-///
-/// Uses the shared feedback wire types directly so consumers can assign
-/// fields to `FeedbackSubmission` without mapping.
-#[derive(Debug, Clone, Default)]
-pub struct FeedbackContext {
-    pub last_user_message: Option<String>,
-    pub last_assistant_message: Option<String>,
-    pub tool_outcomes: Vec<prod_mc_cli_chat_proxy_types::feedback_types::FeedbackToolOutcome>,
-    pub compaction_count: i64,
-    pub context_window_usage: u8,
-    pub context_tokens_used: u64,
-    pub context_window_tokens: u64,
-    pub session_cwd: String,
-}
-
 // ── Startup hints ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
@@ -634,10 +465,10 @@ mod tests {
     }
 
     /// Verify that the JSON payload Desktop sends (with `client_type: "desktop"`)
-    /// deserializes correctly into `ClientFeedbackInput` and round-trips through
-    /// `to_submission()` preserving `ClientType::Desktop`.
+    /// deserializes correctly into `ClientFeedbackInput` preserving
+    /// `ClientType::Desktop`.
     #[test]
-    fn desktop_client_type_deserializes_and_round_trips() {
+    fn desktop_client_type_deserializes() {
         let json = r#"{
             "session_id": "sess-1",
             "client_type": "desktop",
@@ -653,13 +484,7 @@ mod tests {
             prod_mc_cli_chat_proxy_types::feedback_types::ClientType::Desktop
         );
         assert_eq!(input.session_id, "sess-1");
-
-        let submission = input.to_submission(Some("grok-3".into()), None, None, Some(5));
-        assert_eq!(
-            submission.client_type,
-            prod_mc_cli_chat_proxy_types::feedback_types::ClientType::Desktop
-        );
-        assert_eq!(submission.client_type.to_string(), "desktop");
+        assert_eq!(input.client_type.to_string(), "desktop");
     }
 
     /// Verify that per-turn feedback can carry a `turn_number` (or its

@@ -228,11 +228,11 @@ src/
 
 ### `CanonicalToolMeta` — 规范工具身份信封
 
-附加到工具调用事件 `_meta` 的 `x.ai/tool` 键下：
+附加到工具调用事件 `_meta` 的 `nofy/tool` 键下：
 
 ```json
 {
-  "x.ai/tool": {
+  "nofy/tool": {
     "version": 1,
     "name": "read_file",
     "kind": "read",

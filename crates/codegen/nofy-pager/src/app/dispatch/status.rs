@@ -11,12 +11,6 @@ use crate::app::app_view::{ActiveView, AppView};
 use crate::notifications::{NotificationEvent, NotificationEventKind};
 use crate::scrollback::block::RenderBlock;
 
-/// Temporary kill switch: client share links are disabled.
-pub(super) fn dispatch_share_session(app: &mut AppView) -> Vec<Effect> {
-    app.show_toast("Session sharing is temporarily disabled");
-    vec![]
-}
-
 /// Show session info: fetch via nofy/session/info and display in scrollback.
 ///
 /// Produces Effect::ShowSessionInfo which spawns an async ACP ext request.
@@ -229,20 +223,6 @@ pub(super) fn commit_session_usage_block(
     }
     agent.scrollback.push_block(RenderBlock::system(text));
     vec![]
-}
-
-/// Commit a one-line "update available" notice into the active agent's
-/// scrollback. Minimal mode has no welcome screen (the full TUI's update
-/// surface), so the background update check's result is shown here instead
-/// No-op when there is no active agent.
-pub(crate) fn commit_minimal_update_notice(app: &mut AppView, latest_version: &str) {
-    if let ActiveView::Agent(id) = app.active_view
-        && let Some(agent) = app.agents.get_mut(&id)
-    {
-        agent.scrollback.push_block(RenderBlock::system(format!(
-            "Update available: v{latest_version} — restart to apply."
-        )));
-    }
 }
 
 /// `/queue` — commit a read-only list of the queued prompts as a system block.

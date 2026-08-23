@@ -316,7 +316,6 @@ fn sentinel_session_harness() -> events::SessionHarness {
         agents_md_dir_names: vec!["proj".into()],
         memory_enabled: true,
         is_git_repo: true,
-        auto_update: None,
     }
 }
 

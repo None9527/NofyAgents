@@ -955,7 +955,6 @@ pub(crate) async fn run_shell_child(
         Vec::new(),
         true,
         false,
-        None,
         persistence,
         forked_conversation,
         None,

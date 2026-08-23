@@ -70,7 +70,7 @@ use super::session::modal::dispatch_rename_session;
 use super::settings::setters::{
     clear_default_model, clear_fork_secondary_model, preview_auto_dark_theme,
     preview_auto_light_theme, preview_theme, set_ask_user_question_timeout_enabled,
-    set_auto_dark_theme, set_auto_light_theme, set_auto_update, set_collapsed_edit_blocks,
+    set_auto_dark_theme, set_auto_light_theme, set_collapsed_edit_blocks,
     set_combine_queued_prompts, set_compact_mode, set_confirm_before_rewind,
     set_contextual_hint_image_input, set_contextual_hint_plan_mode, set_contextual_hint_send_now,
     set_contextual_hint_small_screen, set_contextual_hint_ssh_wrap, set_contextual_hint_undo,
@@ -90,7 +90,6 @@ use super::settings::ui::{
 };
 use super::status::{
     dispatch_copy_session_id, dispatch_open_gboom, dispatch_open_tutorial,
-    dispatch_share_session,
     dispatch_show_context_info, dispatch_show_queue, dispatch_show_release_notes,
     dispatch_show_session_info, dispatch_show_tasks, dispatch_show_usage, set_coding_data_sharing,
 };
@@ -126,12 +125,6 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
     let effects = match action {
         Action::Quit | Action::QuitConfirmed => {
             let mut effects = unregister_all_active_sessions(app);
-            effects.push(Effect::Quit);
-            effects
-        }
-        Action::QuitForUpdate => {
-            let mut effects = unregister_all_active_sessions(app);
-            app.quit_for_update = true;
             effects.push(Effect::Quit);
             effects
         }
@@ -946,7 +939,6 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
             vec![Effect::FetchCatalogEntry { kind, name }]
         }
         Action::CycleMode => dispatch_cycle_mode(app),
-        Action::ShareSession => dispatch_share_session(app),
         Action::ShowSessionInfo => dispatch_show_session_info(app),
         Action::ShowReleaseNotes { title, content } => {
             dispatch_show_release_notes(app, title, content)
@@ -1022,7 +1014,6 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
         Action::ClearForkSecondaryModel => clear_fork_secondary_model(app),
         Action::SetMaxThoughtsWidth(v) => set_max_thoughts_width(app, v),
         Action::SetShowTips(v) => set_show_tips(app, v),
-        Action::SetAutoUpdate(v) => set_auto_update(app, v),
         Action::SetDisplayRefreshAutoCadence(v) => set_display_refresh_auto_cadence(app, v),
         Action::PreviewTheme(v) => preview_theme(app, v),
         Action::PreviewAutoDarkTheme(v) => preview_auto_dark_theme(app, v),

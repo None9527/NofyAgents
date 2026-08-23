@@ -15,11 +15,10 @@ pub use self::commands::*;
 pub use self::fork::{ForkSessionRequest, ForkSessionResponse, fork_session};
 pub use self::handle::*;
 pub use self::persistence::{
-    LocalFeedbackEntry, UserFeedbackEntry, find_local_child_for_remote, resolve_local_session,
-    resolve_local_session_any_cwd, session_exists_for_cwd,
+    find_local_child_for_remote, resolve_local_session, resolve_local_session_any_cwd,
+    session_exists_for_cwd,
 };
 pub use self::result::{Empty, ExtMethodResult};
-pub use self::share::{ShareSessionRequest, ShareSessionResponse};
 pub use prod_mc_cli_chat_proxy_types::feedback_types::{
     ClientType, FeedbackTerminalInfo, RatingType,
 };
@@ -280,19 +279,6 @@ pub(crate) struct ClientFsConfig {
     pub fs: FsConfig,
     pub mode: ClientFsMode,
 }
-/// Share session request/response types
-pub mod share {
-    /// Request to share a session via URL
-    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-    pub struct ShareSessionRequest {
-        pub session_id: String,
-    }
-    /// Response containing the shareable URL
-    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-    pub struct ShareSessionResponse {
-        pub share_url: String,
-    }
-}
 /// Proxy config for the session registry client.
 /// Shared between `acp_session` (slash commands) and `persistence` (title generation).
 #[derive(Clone)]
@@ -309,7 +295,6 @@ pub(crate) mod acp_session;
 pub(crate) mod agent_rebuild;
 pub(crate) mod chat_persistence;
 pub(crate) mod events;
-pub mod export;
 pub mod feedback;
 pub mod feedback_manager;
 pub mod file_system;

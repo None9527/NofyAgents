@@ -1855,27 +1855,6 @@ pub(crate) fn execute(
                     }
                 });
         }
-        Effect::FetchChangelog => {
-            tasks
-                .spawn(async move {
-                    let changelog = tokio::task::spawn_blocking(|| {
-                            nofy_shell::util::changelog::ChangelogManager::new()
-                                .fetch()
-                        })
-                        .await
-                        .unwrap_or_else(|e| {
-                            tracing::warn!(error = %e, "changelog fetch task failed");
-                            nofy_shell::util::changelog::Changelog {
-                                markdown: None,
-                                entries: None,
-                            }
-                        });
-                    TaskResult::ChangelogFetched {
-                        markdown: changelog.markdown,
-                        entries: changelog.entries.unwrap_or_default(),
-                    }
-                });
-        }
         Effect::PersistAnnouncementsHidden { hidden_ids } => {
             tasks
                 .spawn(async move {
@@ -2915,66 +2894,6 @@ pub(crate) fn execute(
                     TaskResult::McpToggleDone {
                         agent_id,
                         result,
-                    }
-                });
-        }
-        Effect::ShareSession { agent_id, session_id } => {
-            use nofy_shell::session::{ShareSessionRequest, ShareSessionResponse};
-            let tx = acp_tx.clone();
-            tasks
-                .spawn(async move {
-                    let request = acp::ExtRequest::new(
-                        "nofy/share_session",
-                        serde_json::value::to_raw_value(
-                                &ShareSessionRequest {
-                                    session_id: session_id.0.to_string(),
-                                },
-                            )
-                            .expect("serialize share session params")
-                            .into(),
-                    );
-                    match acp_send(request, &tx).await {
-                        Ok(resp) => {
-                            let wrapper: serde_json::Value = serde_json::from_str(
-                                    resp.0.get(),
-                                )
-                                .unwrap_or_default();
-                            if let Some(err) = wrapper.get("error") {
-                                let msg = err
-                                    .as_str()
-                                    .map(String::from)
-                                    .unwrap_or_else(|| "unknown error".to_string());
-                                return TaskResult::ShareSessionFailed {
-                                    agent_id,
-                                    error: msg,
-                                };
-                            }
-                            let inner = wrapper.get("result").unwrap_or(&wrapper);
-                            match serde_json::from_value::<
-                                ShareSessionResponse,
-                            >(inner.clone()) {
-                                Ok(share_resp) => {
-                                    TaskResult::ShareSessionComplete {
-                                        agent_id,
-                                        share_url: share_resp.share_url,
-                                    }
-                                }
-                                Err(_) => {
-                                    TaskResult::ShareSessionFailed {
-                                        agent_id,
-                                        error: "couldn't share session".to_string(),
-                                    }
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            TaskResult::ShareSessionFailed {
-                                agent_id,
-                                error: sanitize_user_error(
-                                    &format!("couldn't share session: {e}"),
-                                ),
-                            }
-                        }
                     }
                 });
         }
@@ -4197,9 +4116,7 @@ fn format_session_info(
         .filter(|id| !id.is_empty())
         .map(|id| format!("\n  Conversation ID: {id}"))
         .unwrap_or_default();
-    let version_display = nofy_version::display_version(
-        nofy_update::channel_label(),
-    );
+    let version_display = nofy_version::display_version();
     let auth_lines = format_auth_lines(is_api_key_auth, api_key_env_set);
     format!(
         "{title_line}  Shell version: {version_display}\n{auth_lines}  Session ID: {session_id}{conversation_line}\n  Working directory: {cwd}\n  Model: {model_display}{model_hash_line}{backend_line}{sandbox_line}{turn_line}\n  Context: {used} / {total} tokens ({pct}%)"

@@ -197,7 +197,7 @@ pub async fn spawn_nofy_shell(
     // layers still apply, and every network step inside is bounded
     // (SESSION_START_AUTH_DEADLINE / SyncBudget::SessionStart).
     startup::enter(StartupPhase::ManagedPolicy);
-    nofy_shell::managed_config::ensure_managed_policy_present(&auth_manager).await;
+    nofy_shell::managed_config::ensure_managed_policy_present().await;
 
     // Run the full bootstrap sequence: config resolution, process-level
     // singletons, and model catalog construction.

@@ -38,8 +38,6 @@ pub enum SwitchModelError {
 pub enum Action {
     /// Quit the application.
     Quit,
-    /// Restart the binary to pick up a downloaded update.
-    QuitForUpdate,
     /// Resume the recent foreign session offered on the launch welcome screen.
     ResumeForeignSession,
     /// Re-exec into the other screen mode (`true` = minimal).
@@ -561,9 +559,6 @@ pub enum Action {
     /// Commit the `show_tips` preference. Persisted to `[cli].show_tips`.
     /// Restart-required — tips are resolved once at startup.
     SetShowTips(bool),
-    /// Commit the `auto_update` preference. Persisted to `[cli].auto_update`.
-    /// Restart-required — auto-update check fires once at startup.
-    SetAutoUpdate(bool),
     /// Commit `[ui.display_refresh].auto_cadence_enabled`. Restart-required —
     /// cadence is pinned once at startup.
     SetDisplayRefreshAutoCadence(bool),
@@ -618,8 +613,6 @@ pub enum Action {
     TrustFolder,
     /// A spawned task completed.
     TaskComplete(TaskResult),
-    /// Share the current session via URL.
-    ShareSession,
     /// Show session info (auth, ID, cwd, model, context usage) instantly.
     ShowSessionInfo,
     /// Show release notes in a modal.
@@ -1530,10 +1523,6 @@ pub enum Effect {
         /// `SwitchModelComplete` so `IncompatibleAgent` can roll back.
         prev_model_id: Option<acp::ModelId>,
     },
-    /// Fetch changelog from CDN (both markdown + structured JSON).
-    /// Runs off the render path via `spawn_blocking`. Result is cached
-    /// on `AppView` so `/release-notes` and the welcome screen share it.
-    FetchChangelog,
     /// Persist the hidden announcement ids to disk.
     PersistAnnouncementsHidden {
         hidden_ids: std::collections::BTreeSet<String>,
@@ -1820,11 +1809,6 @@ pub enum Effect {
         server_name: String,
         tool_name: String,
         enabled: bool,
-    },
-    /// Share the current session via URL.
-    ShareSession {
-        agent_id: AgentId,
-        session_id: acp::SessionId,
     },
     /// Fetch and display session info via nofy/session/info.
     /// Auth lines are derived in the effect from SessionFlags + env (not Effect fields).
@@ -2315,11 +2299,6 @@ pub enum TaskResult {
         /// rollback on `IncompatibleAgent`.
         prev_model_id: Option<acp::ModelId>,
     },
-    /// Changelog fetched from CDN (both formats).
-    ChangelogFetched {
-        markdown: Option<String>,
-        entries: Vec<nofy_shell::util::changelog::ChangelogEntry>,
-    },
     /// Announcements hidden state persisted.
     AnnouncementsHiddenPersisted {
         result: Result<(), String>,
@@ -2432,16 +2411,6 @@ pub enum TaskResult {
     McpToggleDone {
         agent_id: AgentId,
         result: Result<(), String>,
-    },
-    /// Share session completed successfully.
-    ShareSessionComplete {
-        agent_id: AgentId,
-        share_url: String,
-    },
-    /// Share session failed.
-    ShareSessionFailed {
-        agent_id: AgentId,
-        error: String,
     },
     /// Session info fetched successfully.
     SessionInfoComplete {

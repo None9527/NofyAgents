@@ -376,8 +376,6 @@ impl MvpAgent {
                 &session_info,
                 model_id,
                 summary_client,
-                self.storage_mode.get(),
-                Some(self.auth_manager.clone()),
                 Some(self.gateway.clone()),
                 summary_model,
                 registry_title_sync,
@@ -660,18 +658,10 @@ impl MvpAgent {
         let (summary_client, summary_model) = self.build_summary_client(&load_session_sampling)?;
         let mut persistence_timer = crate::instrumentation_timer!("session.load_light");
         persistence_timer.with_field("session_id", session_id.0.as_ref());
-        let backend = if self.build_registry_config().is_some() {
-            Some(crate::remote::BackendClient::new().with_auth_manager(self.auth_manager.clone()))
-        } else {
-            None
-        };
         let registry_title_sync = self.registry_title_sync();
         let (persistence_info, persistence) = crate::session::persistence::load_light(
             &session_info,
             summary_client,
-            self.storage_mode.get(),
-            Some(self.auth_manager.clone()),
-            backend.as_ref(),
             Some(self.gateway.clone()),
             summary_model,
             registry_title_sync,

@@ -83,7 +83,6 @@ impl acp::Agent for MvpAgent {
                 );
             }
         }
-        self.maybe_sync_bundle_in_background(false);
         let mut client_type = arguments
             .meta
             .as_ref()
@@ -504,7 +503,6 @@ impl acp::Agent for MvpAgent {
                         .authenticate_after_cached_token_unavailable(arguments)
                         .await;
                 };
-                self.maybe_sync_bundle_in_background(false);
                 {
                     let mut sampling_config = self.sampling_config.borrow_mut();
                     sampling_config.api_key = Some(auth.key);
@@ -1142,9 +1140,7 @@ impl acp::Agent for MvpAgent {
                 )
             }
             "nofy/interject" => crate::extensions::interject::handle(self, &args).await,
-            "nofy/feedback" | "nofy/feedback/dismiss" | "nofy/btw" => {
-                crate::extensions::feedback::handle(self, &args).await
-            }
+            "nofy/btw" => crate::extensions::feedback::handle(self, &args).await,
             "nofy/recap" => crate::extensions::recap::handle(self, &args).await,
             "nofy/privacy/setCodingDataRetention" => {
                 crate::extensions::privacy::handle(self, &args).await
@@ -1227,9 +1223,6 @@ impl acp::Agent for MvpAgent {
                         compat,
                     )
                     .await
-            }
-            s if s.starts_with("nofy/review") => {
-                crate::extensions::feedback::handle(self, &args).await
             }
             s if s.starts_with("nofy/debug/") => {
                 crate::extensions::debug::handle(self, &args).await

@@ -1,11 +1,10 @@
-use crate::env::{PROD_RELAY_WS_URL, PROD_WS_ORIGIN};
+use crate::env::PROD_WS_ORIGIN;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct NofyComConfig {
     pub nofy_ws_origin: String,
-    pub nofy_ws_url: String,
     pub token_header: String,
     /// External auth provider command (stdout = token, stderr = user UX, exit 0 = success).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -36,8 +35,6 @@ impl Default for NofyComConfig {
         Self {
             nofy_ws_origin: std::env::var("NOFY_WS_ORIGIN")
                 .unwrap_or_else(|_| PROD_WS_ORIGIN.to_owned()),
-            nofy_ws_url: std::env::var("NOFY_WS_URL")
-                .unwrap_or_else(|_| PROD_RELAY_WS_URL.to_owned()),
             token_header: "nofy-nofy-cli".to_owned(),
             auth_provider_command: std::env::var("NOFY_AUTH_PROVIDER_COMMAND").ok(),
             auth_provider_label: std::env::var("NOFY_AUTH_PROVIDER_LABEL").ok(),

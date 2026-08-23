@@ -1212,13 +1212,6 @@ pub trait StorageAdapter: Send + Sync {
     /// (it differs for non-default storage modes, e.g. subagent/fork sessions).
     fn rewind_points_file_path(&self, info: &Info) -> Option<std::path::PathBuf>;
 
-    /// Append a feedback entry (user feedback) to feedback.jsonl
-    async fn append_feedback(
-        &self,
-        info: &Info,
-        entry: &crate::session::persistence::LocalFeedbackEntry,
-    ) -> io::Result<()>;
-
     /// Append a /btw side question entry to btw_history.jsonl
     async fn append_btw(
         &self,

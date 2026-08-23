@@ -143,9 +143,6 @@ impl JsonlStorageAdapter {
     fn rewind_points_file(&self, info: &Info) -> PathBuf {
         self.session_dir(info).join("rewind_points.jsonl")
     }
-    fn feedback_file(&self, info: &Info) -> PathBuf {
-        self.session_dir(info).join("feedback.jsonl")
-    }
     fn btw_history_file(&self, info: &Info) -> PathBuf {
         self.session_dir(info).join("btw_history.jsonl")
     }
@@ -1522,14 +1519,6 @@ impl StorageAdapter for JsonlStorageAdapter {
     }
     fn rewind_points_file_path(&self, info: &Info) -> Option<std::path::PathBuf> {
         Some(self.rewind_points_file(info))
-    }
-    async fn append_feedback(
-        &self,
-        info: &Info,
-        entry: &crate::session::persistence::LocalFeedbackEntry,
-    ) -> io::Result<()> {
-        let path = self.feedback_file(info);
-        self.append_jsonl(path, entry).await
     }
     async fn append_btw(
         &self,

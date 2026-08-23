@@ -997,7 +997,6 @@ fn apply_requirements_inner(
             push("telemetry.trace_upload", format!("{val}"));
         }
     }
-    enforce_opt!("cli", "auto_update", config.cli.auto_update);
     enforce_opt!("cli", "use_leader", config.cli.use_leader);
     enforce_opt!("cli", "show_tips", config.cli.show_tips);
     enforce_val!("memory", "enabled", config.memory.enabled);
@@ -1039,19 +1038,6 @@ fn apply_requirements_inner(
         };
     }
     enforce_str!("models", "default", config.models.default);
-    enforce_str!("cli", "channel", config.cli.channel);
-    enforce_str!("cli", "minimum_version", config.cli.minimum_version);
-    enforce_str!("cli", "maximum_version", config.cli.maximum_version);
-    enforce_str!(
-        "cli",
-        "required_minimum_version",
-        config.cli.required_minimum_version
-    );
-    enforce_str!(
-        "cli",
-        "required_maximum_version",
-        config.cli.required_maximum_version
-    );
     if let Some(val) = req_str(req, "endpoints", "xai_api_base_url")
         && config.endpoints.xai_api_base_url != val
     {

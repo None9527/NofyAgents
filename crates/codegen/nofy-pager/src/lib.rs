@@ -56,7 +56,6 @@ pub mod sessions_cmd;
 pub mod task_cmd;
 pub mod trash_cmd;
 pub mod settings;
-pub mod share_cmd;
 pub mod slash;
 pub mod startup;
 pub mod tips;

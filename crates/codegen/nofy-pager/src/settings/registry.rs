@@ -277,8 +277,6 @@ pub struct PagerLocalSnapshot {
     pub plan_mode_active: bool,
     /// `[cli].show_tips` mirror. `None` = no TOML override → default `true`.
     pub show_tips: Option<bool>,
-    /// `[cli].auto_update` mirror. `None` = no TOML override → default `true`.
-    pub auto_update: Option<bool>,
     /// Process-wide vim-mode scrollback flag. Mirrors
     /// `appearance::cache::load_vim_mode()` at snapshot time.
     pub vim_mode: bool,
@@ -314,7 +312,6 @@ impl Default for PagerLocalSnapshot {
             coding_data_sharing_lock: None,
             plan_mode_active: false,
             show_tips: None,
-            auto_update: None,
             vim_mode: false,
             // Matches the registry default and
             // `appearance::cache::SCROLL_SPEED_DEFAULT`. Bare `u8::default()`
@@ -654,7 +651,6 @@ pub fn current_value_for(
         )),
         // CLI batch: snapshot mirrors; `None` → effective default `true`.
         "show_tips" => Some(SettingValue::Bool(pager.show_tips.unwrap_or(true))),
-        "auto_update" => Some(SettingValue::Bool(pager.auto_update.unwrap_or(true))),
         // fork_secondary_model: baseline value folds to empty string. The
         // mirror persists the ModelId slug but the DynamicEnum canonicals
         // are catalog display names, so resolve via the snapshot; a stale
@@ -913,13 +909,6 @@ mod tests {
                 // Defaults pinned literally.
                 ("show_tips", SettingKind::Bool { default }) => {
                     assert!(*default, "show_tips registry default must be true");
-                }
-                ("auto_update", SettingKind::Bool { default }) => {
-                    assert!(
-                        *default,
-                        "auto_update registry default must be true \
-                         (matches auto_update.rs's `.unwrap_or(true)`)"
-                    );
                 }
                 // vim_mode: Option<bool>; None → false.
                 ("vim_mode", SettingKind::Bool { default }) => {

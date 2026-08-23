@@ -156,7 +156,7 @@ xai-workflow (Workflow 引擎)
 | `opencode` | OpenCode 兼容 | `edit`, `glob`, `grep`, `read`, `write` |
 | `mcp` | MCP 外部工具 | `server__tool` 格式 |
 
-每个工具都有 `CanonicalToolMeta` 信封（`x.ai/tool` 元数据），包含跨 harness 的规范身份信息。
+每个工具都有 `CanonicalToolMeta` 信封（`nofy/tool` 元数据），包含跨 harness 的规范身份信息。
 
 ### 6. 构建配置
 

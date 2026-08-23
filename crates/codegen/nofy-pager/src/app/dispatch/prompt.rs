@@ -437,7 +437,6 @@ pub(super) fn dispatch_send_prompt_inner(
     let coding_data_sharing_opt_out_from_app = app.coding_data_retention_opt_out;
     let coding_data_sharing_lock_from_app = app.coding_data_sharing_lock();
     let show_tips_from_app = app.show_tips;
-    let auto_update_from_app = app.auto_update;
     let respect_manual_folds_from_app = app.appearance.scrollback.scroll.respect_manual_folds;
     let auto_mode_gate_from_app = app.auto_mode_gate;
     let ask_user_question_timeout_enabled_from_app = app.ask_user_question_timeout_enabled;
@@ -503,7 +502,6 @@ pub(super) fn dispatch_send_prompt_inner(
                     // Prefer optimistic pending over confirmed active.
                     plan_mode_active: agent.plan_mode_pending.unwrap_or(agent.plan_mode_active),
                     show_tips: show_tips_from_app,
-                    auto_update: auto_update_from_app,
                     vim_mode: crate::appearance::cache::load_vim_mode(),
                     scroll_speed: crate::appearance::cache::load_scroll_speed(),
                     respect_manual_folds: respect_manual_folds_from_app,

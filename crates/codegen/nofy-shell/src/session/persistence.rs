@@ -3,13 +3,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::config::StorageMode;
-
-use crate::remote::RemoteSync;
-
 use crate::sampling::Client as OaiCompatClient;
 use crate::sampling::ConversationItem;
-use crate::session::export::ExportedMetadata;
 use nofy_workspace::session::file_state::RewindPoint;
 
 use crate::session::signals::SessionSignals;
@@ -87,196 +82,12 @@ fn default_btw_attempts() -> u32 {
     1
 }
 
-// Local feedback persistence types
-
-/// A feedback entry persisted to `~/.nofy/sessions/.../feedback.jsonl`.
-///
-/// Uses a tagged enum so different feedback types are self-describing in the
-/// JSONL file (currently only `UserFeedback`).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum LocalFeedbackEntry {
-    /// Regular user feedback (spontaneous or solicited via heuristics)
-    UserFeedback(UserFeedbackEntry),
-}
-
-/// A user feedback entry (thumbs, stars, text, or dismiss).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UserFeedbackEntry {
-    pub submitted_at: DateTime<Utc>,
-    pub session_id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub turn_number: Option<i64>,
-    /// Whether this was a response to a server-initiated FeedbackRequest
-    pub solicited: bool,
-    /// The feedback request ID (only set for solicited feedback)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub request_id: Option<String>,
-    /// True if the user dismissed the feedback request without responding
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub dismissed: bool,
-    /// The full submission payload (omitted when dismissed)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub submission: Option<prod_mc_cli_chat_proxy_types::feedback_types::FeedbackSubmission>,
-}
 
 /// Helper for `#[serde(skip_serializing_if)]` on bool fields.
 pub(crate) fn is_false(v: &bool) -> bool {
     !v
 }
 
-#[cfg(test)]
-mod feedback_tests {
-    use super::*;
-    use prod_mc_cli_chat_proxy_types::feedback_types::{
-        ClientType, FeedbackSubmission, FeedbackType, RatingType,
-    };
-
-    fn make_submission(thumbs_up: bool) -> FeedbackSubmission {
-        FeedbackSubmission {
-            session_id: "session-abc".into(),
-            user_id: None,
-            client_type: ClientType::Tui,
-            feedback_type: if thumbs_up {
-                FeedbackType::Rating
-            } else {
-                FeedbackType::RatingWithText
-            },
-            turn_number: Some(7),
-            rating_type: Some(RatingType::Thumbs),
-            rating_value: Some(if thumbs_up { 1 } else { -1 }),
-            feedback_text: if thumbs_up {
-                None
-            } else {
-                Some("could be better".into())
-            },
-            model_id: Some("grok-3-fast".into()),
-            resolved_model_id: Some("grok-4.5".into()),
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn test_user_feedback_spontaneous_roundtrip() {
-        let entry = LocalFeedbackEntry::UserFeedback(UserFeedbackEntry {
-            submitted_at: chrono::Utc::now(),
-            session_id: "session-abc".into(),
-            turn_number: Some(7),
-            solicited: false,
-            request_id: None,
-            dismissed: false,
-            submission: Some(make_submission(true)),
-        });
-
-        let json = serde_json::to_string(&entry).unwrap();
-        assert!(json.contains(r#""type":"user_feedback""#));
-        assert!(!json.contains("dismissed")); // skip_serializing_if = is_false
-        assert!(!json.contains("requestId")); // skip_serializing_if = Option::is_none
-
-        let parsed: LocalFeedbackEntry = serde_json::from_str(&json).unwrap();
-        let LocalFeedbackEntry::UserFeedback(ref uf) = parsed;
-        assert!(!uf.solicited);
-        assert!(!uf.dismissed);
-        assert!(uf.submission.is_some());
-        assert_eq!(uf.session_id, "session-abc");
-    }
-
-    #[test]
-    fn test_user_feedback_solicited_roundtrip() {
-        let entry = LocalFeedbackEntry::UserFeedback(UserFeedbackEntry {
-            submitted_at: chrono::Utc::now(),
-            session_id: "session-abc".into(),
-            turn_number: Some(14),
-            solicited: true,
-            request_id: Some("req-123".into()),
-            dismissed: false,
-            submission: Some(make_submission(false)),
-        });
-
-        let json = serde_json::to_string(&entry).unwrap();
-        assert!(json.contains(r#""requestId":"req-123""#));
-        assert!(json.contains(r#""solicited":true"#));
-
-        let parsed: LocalFeedbackEntry = serde_json::from_str(&json).unwrap();
-        let LocalFeedbackEntry::UserFeedback(ref uf) = parsed;
-        assert!(uf.solicited);
-        assert_eq!(uf.request_id.as_deref(), Some("req-123"));
-        let sub = uf.submission.as_ref().unwrap();
-        assert_eq!(sub.feedback_text.as_deref(), Some("could be better"));
-    }
-
-    #[test]
-    fn test_user_feedback_dismiss_roundtrip() {
-        let entry = LocalFeedbackEntry::UserFeedback(UserFeedbackEntry {
-            submitted_at: chrono::Utc::now(),
-            session_id: "session-abc".into(),
-            turn_number: None,
-            solicited: true,
-            request_id: Some("req-456".into()),
-            dismissed: true,
-            submission: None,
-        });
-
-        let json = serde_json::to_string(&entry).unwrap();
-        assert!(json.contains(r#""dismissed":true"#));
-        assert!(!json.contains("submission")); // skip_serializing_if = Option::is_none
-
-        let parsed: LocalFeedbackEntry = serde_json::from_str(&json).unwrap();
-        let LocalFeedbackEntry::UserFeedback(ref uf) = parsed;
-        assert!(uf.dismissed);
-        assert!(uf.submission.is_none());
-    }
-
-    #[test]
-    fn test_feedback_jsonl_multi_line_roundtrip() {
-        // Simulate multiple entries written to a JSONL file
-        let entries = vec![
-            LocalFeedbackEntry::UserFeedback(UserFeedbackEntry {
-                submitted_at: chrono::Utc::now(),
-                session_id: "s1".into(),
-                turn_number: Some(1),
-                solicited: false,
-                request_id: None,
-                dismissed: false,
-                submission: Some(make_submission(true)),
-            }),
-            LocalFeedbackEntry::UserFeedback(UserFeedbackEntry {
-                submitted_at: chrono::Utc::now(),
-                session_id: "s1".into(),
-                turn_number: None,
-                solicited: true,
-                request_id: Some("req-1".into()),
-                dismissed: true,
-                submission: None,
-            }),
-        ];
-
-        // Serialize to JSONL
-        let mut jsonl = String::new();
-        for entry in &entries {
-            let line = serde_json::to_string(entry).unwrap();
-            jsonl.push_str(&line);
-            jsonl.push('\n');
-        }
-
-        // Deserialize each line
-        let parsed: Vec<LocalFeedbackEntry> = jsonl
-            .lines()
-            .filter(|l| !l.is_empty())
-            .map(|l| serde_json::from_str(l).unwrap())
-            .collect();
-
-        assert_eq!(parsed.len(), 2);
-        assert!(matches!(parsed[0], LocalFeedbackEntry::UserFeedback(_)));
-        assert!(matches!(parsed[1], LocalFeedbackEntry::UserFeedback(_)));
-
-        // Verify the dismiss entry
-        let LocalFeedbackEntry::UserFeedback(ref uf) = parsed[1];
-        assert!(uf.dismissed);
-        assert!(uf.solicited);
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct CopiedSessionFile {
@@ -356,8 +167,6 @@ pub enum PersistenceMsg {
         respond_to: tokio::sync::oneshot::Sender<io::Result<()>>,
     },
     DeleteWorkflowRunState(String),
-    /// Persist a local feedback entry (user feedback)
-    Feedback(LocalFeedbackEntry),
     /// Persist a /btw side question entry
     Btw(BtwEntry),
     /// Persist updated HEAD commit and branch to summary.
@@ -388,11 +197,6 @@ pub enum PersistenceMsg {
     /// or clears (`None`, on conversation rewind) the previous one in
     /// `summary.json`.
     LastTurnSummary(Option<(String, String)>),
-    /// Enable remote writeback for a session created `Local` before remote
-    /// settings resolved (non-blocking startup); backfills its local history.
-    UpgradeToWriteback {
-        auth_manager: Arc<crate::auth::AuthManager>,
-    },
     Flush,
     /// Flush all pending writes, then signal the caller once the flush is complete.
     /// Unlike `Flush` (fire-and-forget), this is a **sync barrier**: the caller's
@@ -1668,10 +1472,6 @@ struct SessionPersistence {
     /// Pending ACP notification for merging consecutive text chunks
     pending_notification: Option<acp::SessionNotification>,
     rx: mpsc::UnboundedReceiver<PersistenceMsg>,
-    remote_sync: Option<RemoteSync>,
-    /// True only for sessions created this run (not resumed); gates the
-    /// writeback backfill so a resumed, already-synced session isn't re-sent.
-    created_fresh: bool,
     /// Session title generation lifecycle.
     summary: crate::session::summary::SummaryGenerator,
     registry_title_sync: Option<RegistryGeneratedTitleSync>,
@@ -1866,59 +1666,6 @@ impl SessionPersistence {
         .map_err(io::Error::other)?
     }
 
-    fn queue_acp_sync(&self, notification: acp::SessionNotification) {
-        if let Some(sync) = &self.remote_sync {
-            sync.queue(notification.clone());
-        }
-    }
-
-    /// Enable writeback for a session created `Local` before settings resolved:
-    /// build the sync and (for a fresh session) backfill its local-only history.
-    /// No-op once syncing, so a repeat upgrade is harmless.
-    async fn upgrade_to_writeback(&mut self, auth_manager: Arc<crate::auth::AuthManager>) {
-        if self.remote_sync.is_some() {
-            return;
-        }
-        // Flush the merge-pending notification so the backfill re-reads it.
-        let _ = self.flush_pending().await;
-        let persisted = match self.storage.load_session(&self.info).await {
-            Ok(persisted) => persisted,
-            Err(error) => {
-                tracing::warn!(%error, "writeback upgrade: failed to load session for backfill");
-                return;
-            }
-        };
-        let remote_sync = match init_remote_sync(
-            &persisted.summary,
-            StorageMode::Writeback,
-            Some(auth_manager),
-        ) {
-            Ok(Some(remote_sync)) => remote_sync,
-            // ZDR team, or nothing to do: leave the session local-only.
-            Ok(None) => return,
-            Err(error) => {
-                tracing::warn!(%error, "writeback upgrade: remote sync init failed");
-                return;
-            }
-        };
-        // Fresh-only backfill; see `backfill_updates_to_sync`.
-        let backfilled =
-            backfill_updates_to_sync(self.created_fresh, persisted.updates, &remote_sync);
-        if self.created_fresh {
-            tracing::info!(
-                session_id = %self.info.id,
-                backfilled,
-                "writeback enabled after settings arrival; backfilled local-only history",
-            );
-        } else {
-            tracing::info!(
-                session_id = %self.info.id,
-                "writeback enabled for resumed session; forward-only, no backfill",
-            );
-        }
-        self.remote_sync = Some(remote_sync);
-    }
-
     fn finish_pending_append(
         notification: acp::SessionNotification,
         result: Result<(), crate::session::storage::AppendUpdateError>,
@@ -1934,18 +1681,15 @@ impl SessionPersistence {
         }
     }
 
-    /// Restore uncommitted failures; sync committed records before returning errors.
+    /// Restore uncommitted failures; report committed records before returning errors.
     async fn drain_pending(&mut self) -> Result<(), crate::session::storage::AppendUpdateError> {
         if let Some(notification) = self.pending_notification.take() {
             let result = self
                 .write_update(&SessionUpdate::Acp(Box::new(notification.clone())))
                 .await;
             match Self::finish_pending_append(notification, result) {
-                PendingAppendOutcome::CommittedOk(notification) => {
-                    self.queue_acp_sync(notification);
-                }
-                PendingAppendOutcome::CommittedErr(notification, error) => {
-                    self.queue_acp_sync(notification);
+                PendingAppendOutcome::CommittedOk(_) => {}
+                PendingAppendOutcome::CommittedErr(_, error) => {
                     return Err(crate::session::storage::AppendUpdateError::Committed(error));
                 }
                 PendingAppendOutcome::NotCommittedErr(notification, error) => {
@@ -1969,18 +1713,10 @@ impl SessionPersistence {
             .append_update_durable_commit_aware(&self.info, &update)
             .await;
         self.observe_append_update(&result);
-        match (&update, &result) {
-            (SessionUpdate::Acp(notification), Ok(()))
-            | (
-                SessionUpdate::Acp(notification),
-                Err(crate::session::storage::AppendUpdateError::Committed(_)),
-            ) => self.queue_acp_sync((**notification).clone()),
-            _ => {}
-        }
         result
     }
 
-    /// Flush any pending merged ACP notification to disk and remote sync.
+    /// Flush any pending merged ACP notification to disk.
     /// A no-op drain must not clear the disk-full latch.
     async fn flush_pending(&mut self) -> io::Result<()> {
         let result = self
@@ -1989,9 +1725,6 @@ impl SessionPersistence {
             .map_err(crate::session::storage::AppendUpdateError::into_io_error);
         if let Err(error) = &result {
             tracing::warn!(%error, "failed to write pending update");
-        }
-        if let Some(sync) = &self.remote_sync {
-            sync.flush();
         }
         result
     }
@@ -2018,9 +1751,6 @@ impl SessionPersistence {
                 spawn_worktree_touch(&self.info);
             }
             match msg {
-                PersistenceMsg::UpgradeToWriteback { auth_manager } => {
-                    self.upgrade_to_writeback(auth_manager).await;
-                }
                 PersistenceMsg::Flush => {
                     let _ = self.flush_pending().await;
                 }
@@ -2038,17 +1768,15 @@ impl SessionPersistence {
                         SessionUpdate::Acp(notification) => {
                             // ACP notifications use merging to coalesce consecutive text chunks
                             if let Some(to_write) = self.maybe_merge_notification(&notification) {
-                                match self
-                                    .write_update(&SessionUpdate::Acp(Box::new(to_write.clone())))
+                                if let Err(error) = self
+                                    .write_update(&SessionUpdate::Acp(Box::new(to_write)))
                                     .await
+                                    && !matches!(
+                                        error,
+                                        crate::session::storage::AppendUpdateError::Committed(_)
+                                    )
                                 {
-                                    Ok(())
-                                    | Err(crate::session::storage::AppendUpdateError::Committed(
-                                        _,
-                                    )) => {
-                                        self.queue_acp_sync(to_write);
-                                    }
-                                    Err(error) => tracing::warn!(%error, "failed to write update"),
+                                    tracing::warn!(%error, "failed to write update");
                                 }
                             }
                         }
@@ -2123,9 +1851,6 @@ impl SessionPersistence {
                         .await
                     {
                         tracing::warn!(?e, "failed to update current model");
-                    }
-                    if let Some(sync) = &self.remote_sync {
-                        sync.set_model_id(model_id.0.to_string());
                     }
                 }
                 PersistenceMsg::PlanState(state) => {
@@ -2220,9 +1945,6 @@ impl SessionPersistence {
                                 &self.info,
                                 &title,
                             );
-                            if let Some(sync) = &self.remote_sync {
-                                sync.set_title(title.clone());
-                            }
                             if let Some(reg) = self.registry_title_sync.as_ref()
                                 && !reg.suppress_for_zdr
                             {
@@ -2325,11 +2047,6 @@ impl SessionPersistence {
                         .await
                     {
                         tracing::warn!(?e, "failed to write announcement state");
-                    }
-                }
-                PersistenceMsg::Feedback(entry) => {
-                    if let Err(e) = self.storage.append_feedback(&self.info, &entry).await {
-                        tracing::warn!(?e, "failed to write feedback entry");
                     }
                 }
                 PersistenceMsg::Btw(entry) => {
@@ -2472,95 +2189,6 @@ fn collect_session_files_recursive(base: &Path, dir: &Path, files: &mut Vec<Copi
     }
 }
 
-/// Queue a fresh session's local-only ACP history to `remote_sync` (xAI updates
-/// are never synced), returning the count. Resumed sessions are forward-only:
-/// their prior history may already be on the backend (which appends by content,
-/// no per-message id), so re-sending would duplicate.
-fn backfill_updates_to_sync(
-    created_fresh: bool,
-    updates: Vec<SessionUpdate>,
-    remote_sync: &RemoteSync,
-) -> usize {
-    if !created_fresh {
-        return 0;
-    }
-    let mut backfilled = 0usize;
-    for update in updates {
-        if let SessionUpdate::Acp(notification) = update {
-            remote_sync.queue(*notification);
-            backfilled += 1;
-        }
-    }
-    remote_sync.flush();
-    backfilled
-}
-
-fn init_remote_sync(
-    summary: &Summary,
-    storage_mode: StorageMode,
-    auth_manager: Option<Arc<crate::auth::AuthManager>>,
-) -> io::Result<Option<RemoteSync>> {
-    match storage_mode {
-        StorageMode::Local => Ok(None),
-        StorageMode::Writeback => {
-            let auth_manager = auth_manager.ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::PermissionDenied,
-                    "Writeback storage mode requires authentication. Configure a credential (NOFY_API_KEY or an auth provider) first.",
-                )
-            })?;
-            if let Some(auth) = auth_manager.current_or_expired() {
-                if auth.is_zdr_team() {
-                    tracing::debug!("ZDR team: skipping remote sync");
-                    return Ok(None);
-                }
-            } else {
-                tracing::warn!(
-                    "writeback: no auth loaded yet, ZDR check skipped (backend enforces server-side)"
-                );
-            }
-            tracing::info!("Writeback mode enabled, syncing to backend");
-            let client =
-                crate::remote::BackendClient::new().with_auth_manager(auth_manager.clone());
-            let metadata = ExportedMetadata::from_summary(summary);
-            Ok(Some(RemoteSync::new(
-                summary.info.id.to_string(),
-                metadata,
-                client,
-            )))
-        }
-    }
-}
-
-/// Pull a session from the backend if not found locally. Returns the pulled
-/// session's [`Info`] (cwd may differ from caller's on different machines),
-/// or `None` if not found or on error.
-async fn try_pull_from_remote(info: &Info, client: &crate::remote::BackendClient) -> Option<Info> {
-    // BackendClient resolves auth internally via its auth_manager.
-    client.auth_manager.as_ref()?;
-
-    tracing::info!(session_id = %info.id, "Session not found locally, trying backend");
-
-    match crate::remote::pull_session_to_local(&info.id.0, client).await {
-        Ok(crate::remote::PullResult::Hydrated(pulled_info)) => {
-            tracing::info!(
-                session_id = %info.id,
-                pulled_cwd = %pulled_info.cwd,
-                "Pulled session from backend"
-            );
-            Some(pulled_info)
-        }
-        Ok(crate::remote::PullResult::NotFound) => {
-            tracing::debug!(session_id = %info.id, "Session not found on backend either");
-            None
-        }
-        Err(e) => {
-            tracing::warn!(session_id = %info.id, error = %e, "Backend pull failed");
-            None
-        }
-    }
-}
-
 pub(crate) fn is_disk_full_io_error(e: &io::Error) -> bool {
     if e.kind() == io::ErrorKind::StorageFull {
         return true;
@@ -2664,8 +2292,6 @@ pub(crate) async fn new(
     info: &Info,
     model_id: acp::ModelId,
     sampling_client: OaiCompatClient,
-    storage_mode: StorageMode,
-    auth_manager: Option<Arc<crate::auth::AuthManager>>,
     gateway: Option<GatewaySender>,
     session_summary_model: String,
     registry_title_sync: Option<RegistryGeneratedTitleSync>,
@@ -2687,15 +2313,12 @@ pub(crate) async fn new(
 
     let info_clone = info.clone();
     let storage: Arc<dyn StorageAdapter> = Arc::from(storage);
-    let remote_sync = init_remote_sync(&summary, storage_mode, auth_manager)?;
     tokio::task::spawn(async move {
         let persistence = SessionPersistence {
             info: info_clone,
             storage: storage.clone(),
             pending_notification: None,
             rx,
-            remote_sync: remote_sync.clone(),
-            created_fresh: true,
             summary: crate::session::summary::SummaryGenerator::new(
                 crate::session::summary::SummaryConfig {
                     sampling_client,
@@ -2722,8 +2345,6 @@ pub(crate) async fn new(
 /// Unlike [`new()`], this:
 /// - Uses `JsonlStorageAdapter::with_explicit_session_dir()` to bypass
 ///   the standard `{root}/sessions/{cwd}/{id}/` path computation.
-/// - Skips remote sync (subagent sessions are not synced to cloud).
-/// - Skips relay sync (subagent sessions are not shared).
 /// - Skips gateway (lifecycle notifications are handled by the coordinator).
 pub(crate) async fn new_with_explicit_dir(
     info: &Info,
@@ -2761,8 +2382,6 @@ pub(crate) async fn new_with_explicit_dir(
             storage: storage.clone(),
             pending_notification: None,
             rx,
-            remote_sync: None,
-            created_fresh: false,
             summary: crate::session::summary::SummaryGenerator::new(
                 crate::session::summary::SummaryConfig {
                     sampling_client,
@@ -2814,25 +2433,10 @@ pub struct PersistedInfoLight {
     pub workflow_runs: Vec<crate::session::workflow::store::RestoredWorkflowRun>,
 }
 
-/// On NotFound, try pulling from backend. Returns pulled info or the original error.
-async fn pull_on_miss(
-    info: &Info,
-    client: &crate::remote::BackendClient,
-    err: io::Error,
-) -> io::Result<Info> {
-    if err.kind() != io::ErrorKind::NotFound {
-        return Err(err);
-    }
-    try_pull_from_remote(info, client).await.ok_or(err)
-}
-
 #[expect(dead_code, reason = "wired when session restore flow calls load")]
 pub(crate) async fn load(
     info: &Info,
     sampling_client: OaiCompatClient,
-    storage_mode: StorageMode,
-    auth_manager: Option<Arc<crate::auth::AuthManager>>,
-    backend: Option<&crate::remote::BackendClient>,
     gateway: Option<GatewaySender>,
     session_summary_model: String,
     registry_title_sync: Option<RegistryGeneratedTitleSync>,
@@ -2840,17 +2444,8 @@ pub(crate) async fn load(
     let root_dir = nofy_home();
     let storage: Box<dyn StorageAdapter> = Box::new(JsonlStorageAdapter::with_root(root_dir));
 
-    let (persisted, loaded_info) = match storage.load_session(info).await {
-        Ok(p) => (p, info.clone()),
-        Err(e) => match backend {
-            Some(client) => {
-                let pulled = pull_on_miss(info, client, e).await?;
-                let p = storage.load_session(&pulled).await?;
-                (p, pulled)
-            }
-            None => return Err(e),
-        },
-    };
+    let persisted = storage.load_session(info).await?;
+    let loaded_info = info.clone();
     // Touch on load too: resuming must reset the worktree's gc expiry clock.
     touch_worktree_for_session(&loaded_info).await;
 
@@ -2867,7 +2462,6 @@ pub(crate) async fn load(
     let (handle, rx, summary_tx, disk_full_tx) = actor_channel();
 
     let storage: Arc<dyn StorageAdapter> = Arc::from(storage);
-    let remote_sync = init_remote_sync(&persisted_info.summary, storage_mode, auth_manager)?;
 
     let has_title = !persisted_info.summary.display_title().is_empty();
     tokio::task::spawn(async move {
@@ -2886,8 +2480,6 @@ pub(crate) async fn load(
             storage: storage.clone(),
             pending_notification: None,
             rx,
-            remote_sync: remote_sync.clone(),
-            created_fresh: false,
             summary: summary_gen,
             registry_title_sync,
             gateway,
@@ -2906,9 +2498,6 @@ pub(crate) async fn load(
 pub(crate) async fn load_light(
     info: &Info,
     sampling_client: OaiCompatClient,
-    storage_mode: StorageMode,
-    auth_manager: Option<Arc<crate::auth::AuthManager>>,
-    backend: Option<&crate::remote::BackendClient>,
     gateway: Option<GatewaySender>,
     session_summary_model: String,
     registry_title_sync: Option<RegistryGeneratedTitleSync>,
@@ -2917,17 +2506,8 @@ pub(crate) async fn load_light(
     let storage: Box<dyn StorageAdapter> =
         Box::new(JsonlStorageAdapter::with_root(root_dir.clone()));
 
-    let (persisted, loaded_info) = match storage.load_session_without_updates(info).await {
-        Ok(p) => (p, info.clone()),
-        Err(e) => match backend {
-            Some(client) => {
-                let pulled = pull_on_miss(info, client, e).await?;
-                let p = storage.load_session_without_updates(&pulled).await?;
-                (p, pulled)
-            }
-            None => return Err(e),
-        },
-    };
+    let persisted = storage.load_session_without_updates(info).await?;
+    let loaded_info = info.clone();
     // Touch on load too: resuming must reset the worktree's gc expiry clock.
     touch_worktree_for_session(&loaded_info).await;
 
@@ -2950,7 +2530,6 @@ pub(crate) async fn load_light(
     let (handle, rx, summary_tx, disk_full_tx) = actor_channel();
 
     let storage: Arc<dyn StorageAdapter> = Arc::from(storage);
-    let remote_sync = init_remote_sync(&persisted_info.summary, storage_mode, auth_manager)?;
 
     let has_title = !persisted_info.summary.display_title().is_empty();
     tokio::task::spawn(async move {
@@ -2969,8 +2548,6 @@ pub(crate) async fn load_light(
             storage: storage.clone(),
             pending_notification: None,
             rx,
-            remote_sync: remote_sync.clone(),
-            created_fresh: false,
             summary: summary_gen,
             registry_title_sync,
             gateway,
@@ -3001,74 +2578,48 @@ pub async fn list_summaries(cwd: Option<&str>) -> io::Result<Vec<Summary>> {
 }
 
 /// Failure modes of [`delete_session_history`].
-///
-/// Kept distinct so callers can surface a precise message: a remote
-/// failure is reported separately from a local-disk failure because the
-/// remote delete runs first and aborts the whole operation (see the doc
-/// on [`delete_session_history`]).
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteSessionError {
     /// Listing local summaries (to resolve the on-disk session dir) failed.
     #[error("failed to list sessions: {0}")]
     List(#[source] io::Error),
-    /// The remote (writeback) copy could not be deleted; local bits were
-    /// left untouched so the operation can be retried.
-    #[error("failed to delete remote session data: {0}")]
-    Remote(#[source] crate::remote::client::BackendError),
     /// The local on-disk session directory could not be removed.
     #[error("failed to delete session: {0}")]
     Local(#[source] io::Error),
 }
 
-/// Where a session copy was actually removed by [`delete_session_history`].
+/// Whether a session copy was actually removed by [`delete_session_history`].
 ///
-/// Both fields are `false` when nothing existed to delete (still a
-/// success). Callers use [`Self::any_removed`] to decide between a
-/// "deleted" and a "not found" message without conflating a remote-only
-/// delete with a no-op.
+/// `false` when nothing existed to delete (still a success). Callers use
+/// [`Self::any_removed`] to decide between a "deleted" and a "not found"
+/// message.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct SessionDeletion {
     /// A local on-disk session directory was found and removed.
     pub local_removed: bool,
-    /// A remote (writeback) copy was found and removed. `false` when
-    /// `needs_remote` was not set, or the remote copy was already absent
-    /// (the backend returned `404`).
-    pub remote_removed: bool,
 }
 
 impl SessionDeletion {
-    /// `true` when a copy was removed from at least one location.
+    /// `true` when a copy was removed.
     pub fn any_removed(self) -> bool {
-        self.local_removed || self.remote_removed
+        self.local_removed
     }
 }
 
-/// Permanently delete a session's history: the remote (writeback) copy
-/// when `needs_remote`, the local on-disk session directory, and the
-/// FTS search-index entry.
+/// Permanently delete a session's history: the local on-disk session
+/// directory and the FTS search-index entry.
 ///
-/// Idempotent: a session that is missing locally (e.g. remote-only)
-/// still succeeds, and a remote `404` (copy already gone) is treated as
-/// success rather than an error. When `needs_remote` is set the remote
-/// delete runs *first* and is authoritative — only on its success (or a
-/// `404`) are the local bits removed. This ordering prevents a partial
-/// delete where the local copy is nuked but the remote copy lingers and
-/// re-appears on the next session list.
+/// Idempotent: a session that is missing locally still succeeds.
 ///
-/// Returns a [`SessionDeletion`] recording which copies (local / remote)
-/// were actually removed; both fields `false` means nothing existed
-/// (still `Ok`).
+/// Returns a [`SessionDeletion`] recording whether the local copy was
+/// actually removed; `false` means nothing existed (still `Ok`).
 pub async fn delete_session_history(
     session_id: &str,
     cwd: Option<&str>,
-    needs_remote: bool,
-    auth_manager: Arc<crate::auth::AuthManager>,
 ) -> Result<SessionDeletion, DeleteSessionError> {
     let sid = acp::SessionId::new(Arc::from(session_id));
 
-    // Resolve the local session info, scoping to cwd if provided. A
-    // remote-only session won't be found here — that's fine, the remote
-    // delete (if applicable) still runs.
+    // Resolve the local session info, scoping to cwd if provided.
     let summaries = list_summaries(cwd)
         .await
         .map_err(DeleteSessionError::List)?;
@@ -3077,24 +2628,9 @@ pub async fn delete_session_history(
         .find(|s| s.info.id == sid)
         .map(|s| s.info.clone());
 
-    // Remote delete first (authoritative for cloud history). A genuine
-    // failure aborts before any local mutation so the row does not
-    // reappear; a `404` means the copy is already gone, so deletion stays
-    // idempotent and falls through to local cleanup.
-    let remote_removed = if needs_remote {
-        let result = crate::remote::client::BackendClient::new()
-            .with_auth_manager(auth_manager)
-            .delete_session_data(session_id)
-            .await;
-        classify_remote_delete(result)?
-    } else {
-        false
-    };
-
     let Some(info) = local_info else {
         return Ok(SessionDeletion {
             local_removed: false,
-            remote_removed,
         });
     };
 
@@ -3109,91 +2645,12 @@ pub async fn delete_session_history(
 
     Ok(SessionDeletion {
         local_removed: true,
-        remote_removed,
     })
-}
-
-/// Classify a remote `delete_session_data` result, reporting whether a
-/// remote copy was actually removed: a `2xx` means a copy was deleted
-/// (`Ok(true)`), a `404` means it was already gone so deletion stays
-/// idempotent (`Ok(false)`), and any other backend error aborts the
-/// delete (`Err`) so local bits are left untouched and it can be retried.
-fn classify_remote_delete(
-    result: Result<(), crate::remote::client::BackendError>,
-) -> Result<bool, DeleteSessionError> {
-    use crate::remote::client::BackendError;
-    match result {
-        Ok(()) => Ok(true),
-        Err(BackendError::RequestFailed { status: 404, .. }) => Ok(false),
-        Err(e) => Err(DeleteSessionError::Remote(e)),
-    }
 }
 
 #[cfg(test)]
 #[path = "persistence_tests.rs"]
 mod durable_update_tests;
-
-#[cfg(test)]
-mod delete_session_history_tests {
-    use super::{DeleteSessionError, SessionDeletion, classify_remote_delete};
-    use crate::remote::client::BackendError;
-
-    #[test]
-    fn remote_ok_reports_removed() {
-        assert!(
-            classify_remote_delete(Ok(())).unwrap(),
-            "a 2xx delete must report that a remote copy was removed"
-        );
-    }
-
-    #[test]
-    fn remote_404_is_treated_as_already_deleted() {
-        let removed = classify_remote_delete(Err(BackendError::RequestFailed {
-            status: 404,
-            body: "not found".into(),
-        }))
-        .expect("a 404 means the remote copy is gone — deletion must stay idempotent");
-        assert!(
-            !removed,
-            "a 404 must report that nothing was removed remotely"
-        );
-    }
-
-    #[test]
-    fn remote_non_404_request_failure_aborts() {
-        let res = classify_remote_delete(Err(BackendError::RequestFailed {
-            status: 500,
-            body: "boom".into(),
-        }));
-        assert!(matches!(res, Err(DeleteSessionError::Remote(_))));
-    }
-
-    #[test]
-    fn remote_auth_failure_aborts() {
-        let res = classify_remote_delete(Err(BackendError::Auth("denied".into())));
-        assert!(matches!(res, Err(DeleteSessionError::Remote(_))));
-    }
-
-    #[test]
-    fn any_removed_reflects_either_location() {
-        assert!(!SessionDeletion::default().any_removed());
-        assert!(
-            SessionDeletion {
-                local_removed: true,
-                remote_removed: false,
-            }
-            .any_removed()
-        );
-        assert!(
-            SessionDeletion {
-                local_removed: false,
-                remote_removed: true,
-            }
-            .any_removed(),
-            "a remote-only delete must count as removed"
-        );
-    }
-}
 
 /// List the `limit` most recently modified session summaries across all
 /// workspaces. Uses stat-based mtime sorting to avoid reading every

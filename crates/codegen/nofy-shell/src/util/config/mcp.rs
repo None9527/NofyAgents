@@ -21,8 +21,8 @@ pub use nofy_config_types::{
 pub use nofy_config_types::{
     PatternMode, PermissionConfig, PermissionRule, RuleAction, ToolFilter,
 };
-// Relay-sync + MCP-config value types extracted; re-exported to keep paths stable.
-pub use nofy_config_types::{McpConfig, RelaySyncConfig};
+// MCP-config value type extracted; re-exported to keep paths stable.
+pub use nofy_config_types::McpConfig;
 // Worktree-pool config value type extracted; re-exported to keep paths stable.
 pub use nofy_config_types::PoolConfig;
 
@@ -1796,20 +1796,6 @@ pub fn mcp_server_defined_at(path: &std::path::Path, server_name: &str) -> bool 
         .is_some_and(|servers| servers.contains_key(server_name))
 }
 
-/// Synchronously load `[cli] npm_registry` from config.toml.
-pub fn load_npm_registry_sync() -> Option<String> {
-    let root: TomlValue = crate::config::load_effective_config().ok()?;
-    if let TomlValue::Table(table) = root
-        && let Some(TomlValue::Table(cli)) = table.get("cli")
-    {
-        cli.get("npm_registry")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
-    } else {
-        None
-    }
-}
-
 /// Synchronously load the gcs_service_account_key from the config file.
 /// This is intended for use in contexts where async is not available.
 pub(crate) fn load_gcs_service_account_key_sync() -> Option<String> {
@@ -2137,7 +2123,7 @@ use_leader = false
         // Test that missing use_leader defaults to false
         let toml_str = r#"
 [cli]
-auto_update = true
+custom_flag = true
 "#;
         let root: TomlValue = toml::from_str(toml_str).unwrap();
         assert!(!use_leader_from_toml(&root));
@@ -2183,7 +2169,7 @@ use_leader = false
     fn test_use_leader_opt_returns_none_when_absent() {
         let toml_str = r#"
 [cli]
-auto_update = true
+custom_flag = true
 "#;
         let root: TomlValue = toml::from_str(toml_str).unwrap();
         assert_eq!(use_leader_from_toml_opt(&root), None);

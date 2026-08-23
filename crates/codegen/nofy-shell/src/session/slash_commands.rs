@@ -25,13 +25,11 @@ pub(crate) struct BuiltinCommand {
 /// - `Scheduler`: `scheduler_create` is registered.
 /// - `Hooks`: a hook registry is loaded.
 /// - `Plugins`: a plugin registry is loaded.
-/// - `Feedback`: the feedback manager is enabled.
 /// - `MemoryConfigured`: memory backend params exist (may be currently
 ///   disabled). Used for `/memory` so the user can re-enable via toggle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum BuiltinGate {
     AlwaysOn,
-    Feedback,
     Memory,
     MemoryConfigured,
     /// Checks `scheduler_create` only. If any future shell-side builtin
@@ -223,16 +221,6 @@ pub(super) const BUILTIN_COMMANDS: &[BuiltinCommand] = &[
         resolve: |_args| BuiltinAction::SessionInfo,
     },
     BuiltinCommand {
-        name: "feedback",
-        description: "Send feedback about the current session",
-        argument_hint: Some("feedback text"),
-        aliases: &[],
-        gate: BuiltinGate::Feedback,
-        resolve: |args| BuiltinAction::Feedback {
-            text: args.trim().to_string(),
-        },
-    },
-    BuiltinCommand {
         name: "deep-research",
         description: "Research with bounded parallel agents, cross-check evidence, and write a cited report",
         argument_hint: Some("<query>"),
@@ -348,7 +336,6 @@ const PROMPT_COMMANDS: &[BuiltinCommand] = &[BuiltinCommand {
 /// gated builtin.
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct CommandAvailability {
-    pub feedback: bool,
     /// Memory backend is enabled AND the active toolset includes the
     /// memory read tools. `/flush` and `/dream` only make sense when the
     /// model can later read back what they wrote, so the read-side tool
@@ -372,7 +359,6 @@ impl CommandAvailability {
     pub(crate) fn allows(&self, gate: BuiltinGate) -> bool {
         match gate {
             BuiltinGate::AlwaysOn => true,
-            BuiltinGate::Feedback => self.feedback,
             BuiltinGate::Memory => self.memory,
             BuiltinGate::MemoryConfigured => self.memory_configured,
             BuiltinGate::Scheduler => self.scheduler,
@@ -388,7 +374,6 @@ impl CommandAvailability {
     #[cfg(test)]
     pub(crate) fn all_enabled() -> Self {
         Self {
-            feedback: true,
             memory: true,
             memory_configured: true,
             scheduler: true,
@@ -417,7 +402,7 @@ pub(crate) fn build_tools_meta(tool_names: &[String]) -> acp::Meta {
 }
 /// Pager-owned slash trigger keys (canonical + aliases) plus shell command
 /// names the pager never offers (`hooks-add`, `reload-plugins`, …). Burned
-/// when advertising skills so a colliding skill ships qualified (`acme:changelog`),
+/// when advertising skills so a colliding skill ships qualified (`acme:tutorial`),
 /// `local:hooks-add`) instead of a bare name the pager will drop.
 ///
 /// Synced by pager contract tests (`pager_builtin_triggers_are_reserved_in_shell`,
@@ -431,7 +416,6 @@ pub const PAGER_COMMAND_KEYS: &[&str] = &[
     "auto",
     "btw",
     "cd",
-    "changelog",
     "chat",
     "clear",
     "cloud",
@@ -452,7 +436,6 @@ pub const PAGER_COMMAND_KEYS: &[&str] = &[
     "exit",
     "expand",
     "export",
-    "feedback",
     "find",
     "fork",
     "full",
@@ -492,7 +475,6 @@ pub const PAGER_COMMAND_KEYS: &[&str] = &[
     "queue",
     "quit",
     "recap",
-    "release-notes",
     "reload-plugins",
     "remember",
     "rename",
@@ -543,7 +525,7 @@ static RESERVED_SLASH_NAMES: LazyLock<HashSet<&'static str>> = LazyLock::new(|| 
 });
 /// Pager `CommandRegistry::apply_acp_commands` lowercases ACP names before
 /// reservation / dedup. Catalog keys, resolve, and inspect must fold the
-/// same way or a SKILL.md name like `Changelog` is advertised bare and dropped.
+/// same way or a SKILL.md name like `Tutorial` is advertised bare and dropped.
 fn slash_key(name: &str) -> String {
     name.to_lowercase()
 }
@@ -1133,9 +1115,6 @@ pub(super) enum BuiltinAction {
     PluginsUpdate {
         name: Option<String>,
     },
-    Feedback {
-        text: String,
-    },
     MemoryBrowse,
     MemoryToggle {
         enabled: bool,
@@ -1182,7 +1161,6 @@ impl BuiltinAction {
             BuiltinAction::PluginsInstall { .. } => "plugins-install",
             BuiltinAction::PluginsUninstall { .. } => "plugins-uninstall",
             BuiltinAction::PluginsUpdate { .. } => "plugins-update",
-            BuiltinAction::Feedback { .. } => "feedback",
             BuiltinAction::MemoryBrowse => "memory",
             BuiltinAction::MemoryToggle { .. } => "memory",
             BuiltinAction::GoalSet { .. }
@@ -1216,7 +1194,6 @@ impl BuiltinAction {
             BuiltinAction::PluginsInstall { .. } => true,
             BuiltinAction::PluginsUninstall { .. } => true,
             BuiltinAction::PluginsUpdate { name } => name.is_some(),
-            BuiltinAction::Feedback { text } => !text.is_empty(),
             BuiltinAction::MemoryBrowse => false,
             BuiltinAction::MemoryToggle { .. } => true,
             BuiltinAction::GoalSet { .. } => true,
@@ -2057,7 +2034,6 @@ mod tests {
                 "plugins",
                 "reload-plugins",
                 "session-info",
-                "feedback",
                 "deep-research",
                 "workflow",
                 "goal",
@@ -2251,7 +2227,6 @@ mod tests {
             "flush",
             "dream",
             "memory",
-            "feedback",
             "goal",
             "hooks-list",
             "plugins",
@@ -2283,7 +2258,7 @@ mod tests {
             names.iter().any(|n| n == "goal"),
             "goal should be advertised pre-session when the flag is on, got: {names:?}",
         );
-        for forbidden in ["flush", "dream", "memory", "feedback", "plugins"] {
+        for forbidden in ["flush", "dream", "memory", "plugins"] {
             assert!(
                 !names.iter().any(|n| n == forbidden),
                 "{forbidden} should stay excluded pre-session, got: {names:?}",
@@ -2325,27 +2300,27 @@ mod tests {
     }
     #[test]
     fn plugin_skill_colliding_with_pager_builtin_is_advertised_qualified() {
-        let mut skill = make_scoped_skill("changelog", SkillScope::Plugin);
+        let mut skill = make_scoped_skill("tutorial", SkillScope::Plugin);
         skill.plugin_name = Some("acme".into());
         let commands = available_commands(&[skill], all_gated(), &[]);
         assert!(
-            !commands.iter().any(|c| c.name == "changelog"),
-            "colliding skill must not take the bare name (pager owns /changelog)"
+            !commands.iter().any(|c| c.name == "tutorial"),
+            "colliding skill must not take the bare name (pager owns /tutorial)"
         );
         let cmd = commands
             .iter()
-            .find(|c| c.name == "acme:changelog")
-            .expect("plugin skill stays reachable as /acme:changelog");
+            .find(|c| c.name == "acme:tutorial")
+            .expect("plugin skill stays reachable as /acme:tutorial");
         let meta = cmd.meta.as_ref().expect("skill meta");
         assert_eq!(meta.get("scope").and_then(|v| v.as_str()), Some("plugin"));
-        assert_eq!(meta.get("bareName").and_then(|v| v.as_str()), Some("changelog"));
+        assert_eq!(meta.get("bareName").and_then(|v| v.as_str()), Some("tutorial"));
         assert_eq!(
             meta.get("pluginName").and_then(|v| v.as_str()),
             Some("acme")
         );
         assert_eq!(
             meta.get("qualifiedName").and_then(|v| v.as_str()),
-            Some("acme:changelog")
+            Some("acme:tutorial")
         );
     }
     #[test]
@@ -2596,10 +2571,10 @@ mod tests {
     }
     #[test]
     fn plugin_skill_resolves_by_qualified_name_only() {
-        let skills = vec![make_plugin_skill("changelog", "acme")];
+        let skills = vec![make_plugin_skill("tutorial", "acme")];
         assert!(
             resolve(
-                vec![text_block("/changelog")],
+                vec![text_block("/tutorial")],
                 &skills,
                 all_gated(),
                 SkillSlashRewrite::default(),
@@ -2608,7 +2583,7 @@ mod tests {
             .is_ok()
         );
         let outcome = resolve(
-            vec![text_block("/acme:changelog now")],
+            vec![text_block("/acme:tutorial now")],
             &skills,
             all_gated(),
             SkillSlashRewrite::default(),
@@ -2616,7 +2591,7 @@ mod tests {
         )
         .unwrap_err();
         let skill = first_skill(outcome);
-        assert_eq!(skill.name, "acme:changelog");
+        assert_eq!(skill.name, "acme:tutorial");
         assert_eq!(skill.args, "now");
         assert_eq!(skill.plugin_name.as_deref(), Some("acme"));
     }
@@ -2631,22 +2606,22 @@ mod tests {
     }
     #[test]
     fn mixed_case_pager_collision_is_advertised_qualified_lowercase() {
-        let skills = vec![make_scoped_skill("Changelog", SkillScope::Local)];
+        let skills = vec![make_scoped_skill("Tutorial", SkillScope::Local)];
         let commands = available_commands(&skills, all_gated(), &[]);
         let names: Vec<&str> = commands.iter().map(|c| c.name.as_str()).collect();
         assert!(
-            !names.contains(&"Changelog") && !names.contains(&"changelog"),
+            !names.contains(&"Tutorial") && !names.contains(&"tutorial"),
             "mixed-case colliding skill must not take the bare name, got {names:?}"
         );
         let cmd = commands
             .iter()
-            .find(|c| c.name == "local:changelog")
+            .find(|c| c.name == "local:tutorial")
             .expect("pager folds ACP names; advertised form must be lowercase qualified");
         let meta = cmd.meta.as_ref().expect("skill meta");
-        assert_eq!(meta.get("bareName").and_then(|v| v.as_str()), Some("Changelog"));
+        assert_eq!(meta.get("bareName").and_then(|v| v.as_str()), Some("Tutorial"));
         assert_eq!(
             meta.get("qualifiedName").and_then(|v| v.as_str()),
-            Some("local:changelog")
+            Some("local:tutorial")
         );
     }
     #[test]
@@ -2730,13 +2705,13 @@ mod tests {
     }
     #[test]
     fn mixed_case_workflow_does_not_take_reserved_name() {
-        let workflows = vec![listing("Changelog"), listing("Review")];
+        let workflows = vec![listing("Tutorial"), listing("Review")];
         let names: Vec<String> = available_commands(&[], all_gated(), &workflows)
             .into_iter()
             .map(|c| c.name)
             .collect();
         assert!(
-            !names.iter().any(|n| n.eq_ignore_ascii_case("changelog")),
+            !names.iter().any(|n| n.eq_ignore_ascii_case("tutorial")),
             "{names:?}"
         );
         assert!(names.iter().any(|n| n == "Review"), "{names:?}");
@@ -2760,34 +2735,6 @@ mod tests {
             other => panic!("expected WorkflowLaunch, got {other:?}"),
         }
     }
-    #[test]
-    fn feedback_does_not_resolve_when_disabled() {
-        assert!(
-            resolve(
-                vec![text_block("/feedback hello")],
-                &[],
-                CommandAvailability::default(),
-                SkillSlashRewrite::default(),
-                &[],
-            )
-            .is_ok()
-        );
-    }
-    #[test]
-    fn feedback_resolves_when_enabled() {
-        let outcome = resolve(
-            vec![text_block("/feedback hello")],
-            &[],
-            all_gated(),
-            SkillSlashRewrite::default(),
-            &[],
-        )
-        .unwrap_err();
-        assert!(matches!(
-            outcome,
-            SlashCommandOutcome::Builtin(BuiltinAction::Feedback { ref text }) if text == "hello"
-        ));
-    }
     /// Collect the advertised command names for the given availability.
     fn advertised_names_with(availability: CommandAvailability) -> Vec<String> {
         available_commands(&[], availability, &[])
@@ -2807,7 +2754,6 @@ mod tests {
         for forbidden in [
             "flush",
             "dream",
-            "feedback",
             "goal",
             "loop",
             "hooks-list",

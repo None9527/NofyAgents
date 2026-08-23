@@ -1769,11 +1769,6 @@ pub(super) async fn run_session(
                                 let _ = respond_to.send(resp);
                             });
                         }
-                        SessionCommand::PersistFeedback(entry) => {
-                            let _ = session
-                                .notifications.persistence_tx
-                                .send(PersistenceMsg::Feedback(*entry));
-                        }
                         SessionCommand::AdvertiseCommands => {
                             session.send_available_commands_update().await;
                         }
@@ -1829,57 +1824,6 @@ pub(super) async fn run_session(
                                 .await;
                                 session.send_hook_execution("session_start", None, None, &results).await;
                             }
-                        }
-                        SessionCommand::GetFeedbackContext { turn_number, responds_to } => {
-                            let s = session.clone();
-                            tokio::task::spawn_local(async move {
-                                use prod_mc_cli_chat_proxy_types::feedback_types::FeedbackToolOutcome;
-
-                                // When the client provided a turn_number (per-turn
-                                // feedback on a specific assistant message in the
-                                // chat history), look up THAT turn's user/assistant
-                                // text.
-                                let turn_idx =
-                                    turn_number.and_then(|n| usize::try_from(n).ok());
-                                let (last_user_message, last_assistant_message) = match turn_idx {
-                                    Some(n) => {
-                                        let conv = s.chat_state_handle.get_conversation().await;
-                                        turn_texts_for_feedback(&conv, n)
-                                    }
-                                    None => {
-                                        tokio::join!(
-                                            s.chat_state_handle.get_last_user_query_text(),
-                                            s.chat_state_handle.get_last_assistant_text(),
-                                        )
-                                    }
-                                };
-
-                                let sh = s.signals_handle();
-                                let (signals, tool_outcomes) = tokio::join!(
-                                    sh.snapshot(),
-                                    sh.last_turn_tool_outcomes(),
-                                );
-                                let signals = signals.unwrap_or_default();
-
-                                let ctx = FeedbackContext {
-                                    last_user_message,
-                                    last_assistant_message,
-                                    tool_outcomes: tool_outcomes
-                                        .into_iter()
-                                        .map(|o| FeedbackToolOutcome {
-                                            tool_name: o.tool_name,
-                                            calls: o.successes + o.failures,
-                                            failures: o.failures,
-                                        })
-                                        .collect(),
-                                    compaction_count: signals.compaction_count as i64,
-                                    context_window_usage: signals.context_window_usage,
-                                    context_tokens_used: signals.context_tokens_used,
-                                    context_window_tokens: signals.context_window_tokens,
-                                    session_cwd: s.tool_context.cwd.as_path().to_string_lossy().to_string(),
-                                };
-                                let _ = responds_to.send(ctx);
-                            });
                         }
                         SessionCommand::GetActiveAgent { responds_to } => {
                             let agent_type = session.active_agent_type.lock().clone();
@@ -2149,39 +2093,4 @@ pub(super) async fn run_session(
         }
     }
 }
-/// Extract the user query text and assistant response text for the
-/// `turn_number`-th turn (0-based) of a conversation snapshot. Used by
-/// the `GetFeedbackContext` handler when a client supplies a `turn_number`
-/// (per-turn thumbs button on a specific assistant message).
-pub(super) fn turn_texts_for_feedback(
-    conversation: &[nofy_sampling_types::ConversationItem],
-    turn_number: usize,
-) -> (Option<String>, Option<String>) {
-    use nofy_sampling_types::ConversationItem;
-    let Some(start) = conversation
-        .iter()
-        .enumerate()
-        .filter(|(_, item)| matches!(item, ConversationItem::User(_)))
-        .nth(turn_number)
-        .map(|(i, _)| i)
-    else {
-        return (None, None);
-    };
-    let raw = conversation[start].text_content();
-    let extracted = nofy_chat_state::compaction_utils::extract_user_query(&raw);
-    let user_text = (!extracted.is_empty()).then_some(extracted);
-    let assistant_text = conversation
-        .iter()
-        .skip(start + 1)
-        .take_while(|item| !matches!(item, ConversationItem::User(_)))
-        .find_map(|item| {
-            if let ConversationItem::Assistant(a) = item
-                && !a.content.trim().is_empty()
-            {
-                Some(a.content.as_ref().to_owned())
-            } else {
-                None
-            }
-        });
-    (user_text, assistant_text)
-}
+

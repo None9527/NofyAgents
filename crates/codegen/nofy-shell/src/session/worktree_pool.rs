@@ -1820,7 +1820,7 @@ parallelism = 6
 
         let toml_str = r#"
 [cli]
-auto_update = false
+custom_flag = false
 "#;
         let root: toml::Value = toml::from_str(toml_str).unwrap();
         let config = worktree_pool_from_toml(&root);

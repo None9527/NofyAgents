@@ -127,7 +127,6 @@ pub(crate) fn resolve_prefetch_env_from_parts(
 pub fn start_early_prefetch_with_auth(auth: Option<NofyAuth>) -> Option<EarlyPrefetchHandle> {
     let _timer = crate::instrumentation_timer!("startup.early_prefetch_launch");
     let endpoints = resolve_startup_endpoints();
-    spawn_managed_config_sync_if_stale(&endpoints);
     let fetch_allowed = crate::agent::models::catalog_fetch_allowed(&endpoints);
     let env = resolve_prefetch_env_from_parts(auth, endpoints, fetch_allowed)?;
     Some(spawn_prefetch_thread(env))
@@ -152,34 +151,4 @@ fn spawn_prefetch_thread(env: PrefetchEnv) -> EarlyPrefetchHandle {
         );
         EarlyPrefetchResult { models }
     })
-}
-
-/// Best-effort, bounded managed-config sync on a detached thread, off the readiness path (syncs at launch; the interval task covers steady state).
-fn spawn_managed_config_sync_if_stale(endpoints: &config::EndpointsConfig) {
-    let should_sync = (endpoints.deployment_key.is_some()
-        || crate::managed_config::has_active_team_auth())
-        && crate::config::is_managed_config_stale_for(
-            &crate::managed_config::current_serving_identity(),
-        )
-        && crate::managed_config::is_fetch_enabled();
-    if !should_sync {
-        return;
-    }
-    std::thread::spawn(|| {
-        let Ok(rt) = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-        else {
-            return;
-        };
-        crate::managed_config::clear_orphan();
-        // tokio timer outside a runtime context panics ("no reactor running").
-        let _ = rt.block_on(async {
-            tokio::time::timeout(
-                crate::http::STARTUP_FETCH_TIMEOUT,
-                crate::managed_config::sync(),
-            )
-            .await
-        });
-    });
 }

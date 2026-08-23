@@ -57,7 +57,6 @@ const ALL_SETTINGS_EXERCISED: &[&str] = &[
     "default_selected_permission",
     "plan_mode",
     "show_tips",
-    "auto_update",
     "fork_secondary_model",
     "show_thinking_blocks",
     "prompt_suggestions",
@@ -250,9 +249,6 @@ fn assert_set_bool_action(outcome: SettingsKeyOutcome, key: &str, expected: bool
 
         ("show_tips", Action::SetShowTips(b)) => {
             assert_eq!(b, expected, "SetShowTips value differs from expected")
-        }
-        ("auto_update", Action::SetAutoUpdate(b)) => {
-            assert_eq!(b, expected, "SetAutoUpdate value differs from expected")
         }
         ("respect_manual_folds", Action::SetRespectManualFolds(b)) => {
             assert_eq!(
@@ -1826,7 +1822,6 @@ fn registry_kind_membership_through_pr_14() {
             "vim_mode",
             "remember_tool_approvals",
             "toolset.ask_user_question.timeout_enabled",
-            "auto_update",
             "show_tips",
             // Per-tip contextual-hint children (hidden from the top-level list,
             // toggled inside the group sub-sheet) are still Bool settings.
@@ -1991,7 +1986,6 @@ fn defaults_round_trip_through_registry() {
             "hunk_tracker_mode" => SettingValue::Enum("agent_only"),
             "plan_mode" => SettingValue::Enum("off"),
             "show_tips" => SettingValue::Bool(true),
-            "auto_update" => SettingValue::Bool(true),
             "fork_secondary_model" => SettingValue::String(String::new()),
             "show_thinking_blocks" => SettingValue::Bool(true),
             "prompt_suggestions" => SettingValue::Bool(true),
@@ -2072,7 +2066,6 @@ fn settings_value_payload_matches_kind() {
             | SettingsKeyOutcome::Action(Action::SetRememberToolApprovals(_))
             | SettingsKeyOutcome::Action(Action::SetAskUserQuestionTimeoutEnabled(_))
             | SettingsKeyOutcome::Action(Action::SetShowTips(_))
-            | SettingsKeyOutcome::Action(Action::SetAutoUpdate(_))
             | SettingsKeyOutcome::Action(Action::SetRespectManualFolds(_))
             | SettingsKeyOutcome::Action(Action::SetShowThinkingBlocks(_))
             | SettingsKeyOutcome::Action(Action::SetPromptSuggestions(_))
@@ -6222,7 +6215,7 @@ fn mouse_click_on_hunk_tracker_mode_indicator_opens_picker_in_one_click() {
 }
 
 // ---------------------------------------------------------------------------
-// CLI batch: show_tips, auto_update (SHELL Bool, restart_required)
+// CLI batch: show_tips (SHELL Bool, restart_required)
 // ---------------------------------------------------------------------------
 
 /// Space-toggle on `show_tips` dispatches typed setter.
@@ -6232,14 +6225,6 @@ fn pr13_space_on_show_tips_dispatches_typed_setter() {
     navigate_to(&mut s, "show_tips");
     let outcome = handle_settings_key(&mut s, &press(KeyCode::Char(' ')));
     assert_set_bool_action(outcome, "show_tips", false);
-}
-
-#[test]
-fn pr13_space_on_auto_update_dispatches_typed_setter() {
-    let mut s = make_state();
-    navigate_to(&mut s, "auto_update");
-    let outcome = handle_settings_key(&mut s, &press(KeyCode::Char(' ')));
-    assert_set_bool_action(outcome, "auto_update", false);
 }
 
 /// Value-column click on `show_tips` toggles in one click.
@@ -6257,40 +6242,11 @@ fn pr13_mouse_click_on_show_tips_indicator_toggles_in_one_click() {
     assert_set_bool_action(outcome, "show_tips", false);
 }
 
-/// Two-stage select-then-toggle on `auto_update`.
-#[test]
-fn pr13_mouse_click_on_auto_update_two_stage_select_then_toggle() {
-    let mut s = make_state();
-    synth_rects(&mut s);
-    let row_y = row_idx_for(&s, "auto_update") as u16;
-
-    // First click: select-only (the focused row was compact_mode).
-    let outcome = handle_settings_mouse(
-        &mut s,
-        MouseEventKind::Down(crossterm::event::MouseButton::Left),
-        10,
-        row_y,
-    );
-    assert!(
-        matches!(outcome, SettingsKeyOutcome::Changed),
-        "first click on a different row body should only select, got: {outcome:?}"
-    );
-
-    // Second click on the SAME row should now toggle.
-    let outcome = handle_settings_mouse(
-        &mut s,
-        MouseEventKind::Down(crossterm::event::MouseButton::Left),
-        10,
-        row_y,
-    );
-    assert_set_bool_action(outcome, "auto_update", false);
-}
-
 /// CLI-batch settings are all `restart_required: true`.
 #[test]
 fn pr13_cli_batch_all_settings_are_restart_required() {
     let reg = SettingsRegistry::defaults();
-    for key in ["show_tips", "auto_update"] {
+    for key in ["show_tips"] {
         let meta = reg
             .find(key)
             .unwrap_or_else(|| panic!("registry must contain `{key}` (PR 13)"));
@@ -6312,7 +6268,7 @@ fn pr13_cli_batch_defaults_roundtrip_via_current_value_for() {
     use nofy_pager::settings::current_value_for;
     let ui = UiConfig::default();
     let pager = PagerLocalSnapshot::default();
-    for (key, expected) in [("show_tips", true), ("auto_update", true)] {
+    for (key, expected) in [("show_tips", true)] {
         let value = current_value_for(key, &ui, &pager)
             .unwrap_or_else(|| panic!("current_value_for(`{key}`) must resolve"));
         assert_eq!(
@@ -6328,7 +6284,7 @@ fn pr13_cli_batch_defaults_roundtrip_via_current_value_for() {
 #[test]
 fn pr13_cli_batch_settings_are_discoverable_via_search() {
     let reg = SettingsRegistry::defaults();
-    let cases = [("tip", "show_tips"), ("auto-update", "auto_update")];
+    let cases = [("tip", "show_tips")];
     for (query, expected_key) in cases {
         let hits = reg.search(query);
         assert!(

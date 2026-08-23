@@ -1900,19 +1900,12 @@ fn find_agent_by_session_id_finds_inactive_agent() {
 /// Cross-setting smoke test.
 /// Verifies that the dispatcher routes each Action to the
 /// correct setter (catches a copy-paste registration bug
-/// where two setters were swapped). The original 5-setting
-/// matrix shrank to 2 after the user-feedback drop of
-/// `session_picker_grouped` / `load_envrc` / `use_leader`.
+/// where two setters were swapped).
 #[test]
 fn pr13_each_setter_writes_to_its_own_mirror() {
     let mut app = test_app_with_agent();
     assert_eq!(app.show_tips, None);
-    assert_eq!(app.auto_update, None);
     let _ = dispatch(Action::SetShowTips(false), &mut app);
-    assert_eq!(app.show_tips, Some(false));
-    assert_eq!(app.auto_update, None);
-    let _ = dispatch(Action::SetAutoUpdate(false), &mut app);
-    assert_eq!(app.auto_update, Some(false));
     assert_eq!(app.show_tips, Some(false));
 }
 /// Three-way alignment pin: the PAGER registry default must agree

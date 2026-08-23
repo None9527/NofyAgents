@@ -170,7 +170,7 @@ worktree_type = "git"
     fn test_worktree_type_default_linked() {
         let toml_str = r#"
 [cli]
-auto_update = true
+custom_flag = true
 "#;
         let root: TomlValue = toml::from_str(toml_str).unwrap();
         assert_eq!(worktree_type_from_toml(&root), WorktreeType::Linked);
@@ -220,7 +220,7 @@ worktree_type = "invalid"
 
     #[test]
     fn test_worktree_type_from_toml_opt_absent() {
-        let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
+        let root: TomlValue = toml::from_str("[cli]\ncustom_flag = true").unwrap();
         assert_eq!(worktree_type_from_toml_opt(&root), None);
     }
 
@@ -244,7 +244,7 @@ worktree_type = "invalid"
 
     #[test]
     fn test_resolve_worktree_type_default_when_no_config() {
-        let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
+        let root: TomlValue = toml::from_str("[cli]\ncustom_flag = true").unwrap();
         assert_eq!(
             resolve_worktree_type(&root),
             (WorktreeType::Linked, "default")
@@ -267,7 +267,7 @@ worktree_type = "invalid"
 
     #[test]
     fn test_restore_code_from_toml_absent() {
-        let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
+        let root: TomlValue = toml::from_str("[cli]\ncustom_flag = true").unwrap();
         assert_eq!(restore_code_from_toml(&root), None);
     }
 
@@ -291,7 +291,7 @@ worktree_type = "invalid"
 
     #[test]
     fn test_resolve_restore_code_default_false() {
-        let root: TomlValue = toml::from_str("[cli]\nauto_update = true").unwrap();
+        let root: TomlValue = toml::from_str("[cli]\ncustom_flag = true").unwrap();
         assert!(!resolve_restore_code(&root));
     }
 

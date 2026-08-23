@@ -245,7 +245,7 @@ pub async fn run_stdio_agent(
             auth_manager.start_system_power_listener();
 
             // Restore managed policy right before bootstrap reads it (no stale window after prefetch).
-            crate::managed_config::ensure_managed_policy_present(&auth_manager).await;
+            crate::managed_config::ensure_managed_policy_present().await;
             let handle_io = spawn_agent_local(
                 agent_config,
                 auth_manager,

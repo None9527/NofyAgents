@@ -31,7 +31,6 @@ use crate::session::persistence::list_summaries;
 use crate::session::storage::StorageAdapter;
 use crate::session::storage::jsonl::JsonlStorageAdapter;
 use crate::session::{ExtMethodResult, SessionCommand};
-use nofy_telemetry::id::agent_id;
 
 /// Extension methods injected into the agent, named as the agent matches them.
 ///
@@ -183,25 +182,6 @@ async fn handle_session_rename(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtR
     // Send a SessionSummaryGenerated notification so the TUI updates its title
     notify_session_title(agent, session_id, &req.title).await;
 
-    if agent.is_writeback_storage()
-        && let Some(auth) = agent.current_auth()
-        && !auth.is_zdr_team()
-    {
-        use crate::remote::client::BackendClient;
-        use crate::session::export::ExportedMetadata;
-
-        let mut metadata = ExportedMetadata::from_summary(summary);
-        metadata.title = Some(req.title.clone());
-        metadata.updated_at = Some(chrono::Utc::now().to_rfc3339());
-        if let Err(e) = BackendClient::new()
-            .with_auth_manager(agent.auth_manager.clone())
-            .save_session_data(&req.session_id, &[], Some(&metadata))
-            .await
-        {
-            tracing::warn!(?e, session_id = %req.session_id, "failed to sync renamed title to backend");
-        }
-    }
-
     // Hook 2: update session replica with summary (fire-and-forget)
     if let Some(client) = agent.session_registry_client() {
         let sid = req.session_id.to_string();
@@ -270,12 +250,6 @@ async fn handle_session_delete(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtR
 
     let session_id = acp::SessionId::new(Arc::from(req.session_id.as_str()));
 
-    // For writeback storage (non-ZDR): remote delete is authoritative for
-    // the cloud history and runs first; on failure no local bits are
-    // touched so the pager does not remove the row or toast success.
-    let needs_remote =
-        agent.is_writeback_storage() && agent.current_auth().is_some_and(|a| !a.is_zdr_team());
-
     // Tear down any live actor first (cancel turn/subagents/bg tasks,
     // process-scope kill, flush). Then wipe history so shutdown cannot
     // rewrite the session directory after delete.
@@ -283,21 +257,11 @@ async fn handle_session_delete(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtR
         agent.teardown_live_session_before_delete(&session_id).await;
     }
 
-    // Shared delete: remote-first, then local disk + FTS eviction.
+    // Shared delete: local disk + FTS eviction.
     // Mirrored by the `nofy sessions delete <id>` CLI path.
-    crate::session::persistence::delete_session_history(
-        &req.session_id,
-        req.cwd.as_deref(),
-        needs_remote,
-        agent.auth_manager.clone(),
-    )
-    .await
-    .map_err(|e| {
-        if let crate::session::persistence::DeleteSessionError::Remote(_) = &e {
-            tracing::warn!(?e, session_id = %req.session_id, "failed to delete remote session data");
-        }
-        acp::Error::internal_error().data(e.to_string())
-    })?;
+    crate::session::persistence::delete_session_history(&req.session_id, req.cwd.as_deref())
+        .await
+        .map_err(|e| acp::Error::internal_error().data(e.to_string()))?;
 
     tracing::info!(session_id = %req.session_id, "Session deleted");
 
@@ -766,8 +730,7 @@ async fn handle_session_fork(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtRes
 
     let request: ForkSessionRequest = parse_params(args)?;
 
-    let agent_id = agent_id();
-    let response = fork_session(request, &agent_id, Some(agent.auth_manager.clone()))
+    let response = fork_session(request)
         .await
         .map_err(|e| acp::Error::internal_error().data(e.to_string()))?;
 

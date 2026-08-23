@@ -60,7 +60,6 @@ pub(crate) struct TerminalState {
 /// Result of the event loop run.
 pub(crate) struct RunResult {
     pub exit_info: Option<super::ExitInfo>,
-    pub quit_for_update: bool,
     /// When set, the process should re-exec into the other screen mode after
     /// terminal restore. See `/minimal` and `/fullscreen`.
     pub relaunch: Option<super::app_view::ScreenModeRelaunch>,
@@ -718,9 +717,7 @@ fn minimal_will_open_session(term_state: &TerminalState, app: &AppView) -> bool 
 
 /// Run the main event loop until quit.
 ///
-/// Returns a [`RunResult`] with optional exit info (for the resume hint)
-/// and a flag indicating whether the caller should restart the binary
-/// to pick up a downloaded update.
+/// Returns a [`RunResult`] with optional exit info (for the resume hint).
 ///
 /// The initial theme MUST come from `term_state.initial_theme`; see
 /// [`TerminalState::initial_theme`] for why.
@@ -733,9 +730,6 @@ pub(crate) async fn run(
     session_cwd: Option<std::path::PathBuf>,
     term_state: TerminalState,
     materialized: crate::app::session_startup::MaterializedStartup,
-    bg_update_rx: Option<
-        tokio::sync::oneshot::Receiver<Option<nofy_update::auto_update::UpdateAvailable>>,
-    >,
     mut writer_event_rx: tokio::sync::mpsc::UnboundedReceiver<crate::render::draw::WriterEvent>,
 ) -> anyhow::Result<RunResult> {
     // Initialize tracing capture. The channel `rx` will be wired to a
@@ -1216,7 +1210,6 @@ pub(crate) async fn run(
     );
     let config_session_bools = load_initial_config_session_bools();
     app.show_tips = config_session_bools.show_tips;
-    app.auto_update = config_session_bools.auto_update;
     app.ask_user_question_timeout_enabled = config_session_bools.ask_user_question_timeout_enabled;
     // Prime thread-local caches so first render doesn't hit disk.
     crate::appearance::cache::prime(&app.current_ui);
@@ -1363,12 +1356,6 @@ pub(crate) async fn run(
     // status only; shell auto-syncs post-auth
     if matches!(app.auth_state, AuthState::Done) {
         let effs = dispatch::dispatch(Action::RequestBundleStatus, &mut app);
-        if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
-            return Ok(make_run_result(&app));
-        }
-        // Fetch changelog off the render path so the welcome screen
-        // can display bullets and /release-notes uses the cached result.
-        let effs = vec![super::actions::Effect::FetchChangelog];
         if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
             return Ok(make_run_result(&app));
         }
@@ -1599,10 +1586,6 @@ pub(crate) async fn run(
     // Swallows the fire-and-forget XTVERSION reply whenever it arrives;
     // armed only when the startup query is still unanswered.
     let mut xt_filter = super::xt_filter::XtversionFilter::new();
-
-    // Background update check: resolves when the spawned update task
-    // determines whether a newer version is available.
-    let mut bg_update_rx = bg_update_rx;
 
     // `app::run` publishes the resolved theme into `theme_cache::CURRENT`
     // before `init_terminal` so `apply_cursor_color()` sees it. Pin the
@@ -1853,32 +1836,6 @@ pub(crate) async fn run(
                     break;
                 }
                 presenter.request(false);
-            }
-
-            // Background update check completed.
-            result = async {
-                match bg_update_rx.as_mut() {
-                    Some(rx) => rx.await.ok().flatten(),
-                    None => std::future::pending().await,
-                }
-            } => {
-                // Consume the receiver so this arm becomes inert.
-                bg_update_rx = None;
-                if let Some(update) = result {
-                    tracing::info!(
-                        latest_version = %update.latest_version,
-                        "Background update check: newer version available"
-                    );
-                    let latest = update.latest_version;
-                    app.pending_update_version = Some(latest.clone());
-                    // The full TUI surfaces this on the welcome screen, which
-                    // minimal has none of — commit a one-line notice into
-                    // native scrollback instead (update notice).
-                    if term_state.screen_mode.is_minimal() {
-                        dispatch::commit_minimal_update_notice(&mut app, &latest);
-                    }
-                    presenter.request(false);
-                }
             }
 
             maybe_ev = input_rx.recv() => {
@@ -2432,7 +2389,6 @@ pub(crate) fn load_initial_ui_config() -> nofy_shell::agent::config::UiConfig {
 #[derive(Default)]
 struct InitialConfigSessionBools {
     show_tips: Option<bool>,
-    auto_update: Option<bool>,
     ask_user_question_timeout_enabled: Option<bool>,
 }
 
@@ -2443,7 +2399,6 @@ fn load_initial_config_session_bools() -> InitialConfigSessionBools {
     let cli_bool = |key: &str| -> Option<bool> { root.get("cli")?.get(key)?.as_bool() };
     InitialConfigSessionBools {
         show_tips: cli_bool("show_tips"),
-        auto_update: cli_bool("auto_update"),
         ask_user_question_timeout_enabled: root
             .get("toolset")
             .and_then(|t| t.get("ask_user_question"))
@@ -2558,7 +2513,6 @@ fn make_run_result(app: &AppView) -> RunResult {
     });
     RunResult {
         exit_info,
-        quit_for_update: app.quit_for_update,
         relaunch: app.relaunch.clone(),
     }
 }

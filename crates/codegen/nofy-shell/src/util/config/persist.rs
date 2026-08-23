@@ -624,7 +624,7 @@ auto_light_theme = "nofyday"
 default = "grok-3"
 
 [cli]
-auto_update = true
+custom_flag = true
 "#;
         let root: TomlValue = toml::from_str(original).unwrap();
         let mut cfg = load_config_from_toml(&root);
@@ -715,19 +715,11 @@ auto_update = true
     /// place so both serialization and merge-section tests automatically cover
     /// newly-added fields without copy-pasting assertion lists.
     const CLI_CONFIG_OPTION_FIELDS: &[&str] = &[
-        "auto_update",
-        "dismissed_version",
-        "installer",
-        "npm_registry",
-        "channel",
         "use_leader",
         "show_tips",
         "worktree_type",
         "session_registry",
-        "minimum_version",
-        "maximum_version",
-        "required_minimum_version",
-        "required_maximum_version",
+        "session_picker_grouped",
     ];
     /// Assert that every `CliConfig` `Option<T>` field NOT in `present` is
     /// absent from `table`.
@@ -744,18 +736,18 @@ auto_update = true
     #[test]
     fn cli_config_serializes_only_some_fields() {
         let c = crate::agent::config::CliConfig {
-            auto_update: Some(true),
-            channel: Some("beta".to_string()),
+            use_leader: Some(true),
+            show_tips: Some(false),
             ..Default::default()
         };
         let v = TomlValue::try_from(&c).expect("serialize CliConfig");
         if let TomlValue::Table(t) = v {
             assert_eq!(t.len(), 2);
-            assert!(t.contains_key("auto_update"));
-            assert!(t.contains_key("channel"));
-            assert_cli_option_fields_absent(&t, &["auto_update", "channel"]);
-            assert_eq!(t.get("auto_update").and_then(|x| x.as_bool()), Some(true));
-            assert_eq!(t.get("channel").and_then(|x| x.as_str()), Some("beta"));
+            assert!(t.contains_key("use_leader"));
+            assert!(t.contains_key("show_tips"));
+            assert_cli_option_fields_absent(&t, &["use_leader", "show_tips"]);
+            assert_eq!(t.get("use_leader").and_then(|x| x.as_bool()), Some(true));
+            assert_eq!(t.get("show_tips").and_then(|x| x.as_bool()), Some(false));
         } else {
             panic!("expected table from serialization");
         }
@@ -772,16 +764,19 @@ auto_update = true
         );
         table.insert("cli".into(), TomlValue::Table(cli));
         let cfg = crate::agent::config::CliConfig {
-            auto_update: Some(false),
-            dismissed_version: Some("v1.2.3".to_string()),
+            worktree_type: Some("linked".to_string()),
+            session_registry: Some(true),
             ..Default::default()
         };
         merge_section(&mut table, "cli", &cfg);
         let c = table.get("cli").unwrap().as_table().unwrap();
-        assert_eq!(c.get("auto_update").and_then(|v| v.as_bool()), Some(false));
         assert_eq!(
-            c.get("dismissed_version").and_then(|v| v.as_str()),
-            Some("v1.2.3")
+            c.get("worktree_type").and_then(|v| v.as_str()),
+            Some("linked")
+        );
+        assert_eq!(
+            c.get("session_registry").and_then(|v| v.as_bool()),
+            Some(true)
         );
         assert_eq!(c.get("use_leader").and_then(|v| v.as_bool()), Some(true));
         assert_eq!(c.get("show_tips").and_then(|v| v.as_bool()), Some(false));
@@ -792,8 +787,8 @@ auto_update = true
         assert_cli_option_fields_absent(
             c,
             &[
-                "auto_update",
-                "dismissed_version",
+                "worktree_type",
+                "session_registry",
                 "use_leader",
                 "show_tips",
             ],
@@ -879,21 +874,6 @@ auto_update = true
             c.get("session_picker_grouped").and_then(|v| v.as_bool()),
             Some(false),
             "Some(false) must round-trip to `[cli].session_picker_grouped`"
-        );
-    }
-    #[test]
-    fn merge_section_cli_auto_update_writes_under_cli_section() {
-        let mut table = TomlMap::new();
-        let cfg = crate::agent::config::CliConfig {
-            auto_update: Some(false),
-            ..Default::default()
-        };
-        merge_section(&mut table, "cli", &cfg);
-        let c = table.get("cli").unwrap().as_table().unwrap();
-        assert_eq!(
-            c.get("auto_update").and_then(|v| v.as_bool()),
-            Some(false),
-            "set_auto_update must persist Some(false) at `[cli].auto_update`"
         );
     }
     #[test]

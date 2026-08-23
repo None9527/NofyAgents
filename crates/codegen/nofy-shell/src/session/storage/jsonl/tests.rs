@@ -1034,57 +1034,6 @@ async fn test_load_prompts_only_large_session() {
         );
 }
 #[tokio::test]
-async fn test_append_feedback_creates_file_and_persists() {
-    use crate::session::persistence::{LocalFeedbackEntry, UserFeedbackEntry};
-    use prod_mc_cli_chat_proxy_types::feedback_types::{
-        ClientType, FeedbackSubmission, FeedbackType, RatingType,
-    };
-    let temp_dir = TempDir::new().unwrap();
-    let adapter = JsonlStorageAdapter::with_root(temp_dir.path().to_path_buf());
-    let info = create_test_info();
-    adapter.init_session(&info, default_model_id()).await.unwrap();
-    let user_entry = LocalFeedbackEntry::UserFeedback(UserFeedbackEntry {
-        submitted_at: chrono::Utc::now(),
-        session_id: "test-session-123".into(),
-        turn_number: Some(3),
-        solicited: false,
-        request_id: None,
-        dismissed: false,
-        submission: Some(FeedbackSubmission {
-            session_id: "test-session-123".into(),
-            client_type: ClientType::Tui,
-            feedback_type: FeedbackType::Rating,
-            turn_number: Some(3),
-            rating_type: Some(RatingType::Thumbs),
-            rating_value: Some(1),
-            model_id: Some("grok-3-fast".into()),
-            resolved_model_id: Some("grok-4.5".into()),
-            ..Default::default()
-        }),
-    });
-    adapter.append_feedback(&info, &user_entry).await.unwrap();
-    let dismiss_entry = LocalFeedbackEntry::UserFeedback(UserFeedbackEntry {
-        submitted_at: chrono::Utc::now(),
-        session_id: "test-session-123".into(),
-        turn_number: None,
-        solicited: true,
-        request_id: Some("req-dismiss-1".into()),
-        dismissed: true,
-        submission: None,
-    });
-    adapter.append_feedback(&info, &dismiss_entry).await.unwrap();
-    let feedback_path = adapter.feedback_file(&info);
-    let content = tokio::fs::read_to_string(&feedback_path).await.unwrap();
-    let lines: Vec<&str> = content.lines().collect();
-    assert_eq!(lines.len(), 2, "Expected 2 JSONL lines");
-    let parsed0: LocalFeedbackEntry = serde_json::from_str(lines[0]).unwrap();
-    assert!(matches!(parsed0, LocalFeedbackEntry::UserFeedback(_)));
-    let parsed1: LocalFeedbackEntry = serde_json::from_str(lines[1]).unwrap();
-    let LocalFeedbackEntry::UserFeedback(ref uf) = parsed1;
-    assert!(uf.dismissed);
-    assert!(uf.submission.is_none());
-}
-#[tokio::test]
 async fn summary_provenance_survives_write_read_roundtrip() {
     let tmp = TempDir::new().unwrap();
     let adapter = JsonlStorageAdapter::with_root(tmp.path().to_path_buf());

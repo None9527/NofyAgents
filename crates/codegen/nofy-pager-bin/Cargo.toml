@@ -25,7 +25,6 @@ nofy-pager-minimal = { path = "../nofy-pager-minimal" }
 nofy-shell = { workspace = true }
 # Per-host daemon (`nofy daemon` control-plane subcommand).
 nofy-daemon = { workspace = true }
-nofy-update = { path = "../nofy-update" }
 nofy-version = { workspace = true }
 nofy-telemetry = { workspace = true }
 nofy-workspace = { workspace = true }

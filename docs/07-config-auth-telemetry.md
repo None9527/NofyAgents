@@ -120,15 +120,14 @@ pub struct StaticAuthCredentialProvider { ... }
 进程启动
     │
     ▼
-检查现有凭据 ($GROK_HOME/credentials)
+检查现有凭据 (auth.json / API key)
     │
     ├── 有效凭据 → 直接使用
-    └── 无凭据/过期 → 浏览器 OAuth 流程
+    └── 无凭据/过期 → 外部认证提供方流程
         │
-        ├── 打开浏览器到 x.ai 认证页面
-        ├── 本地启动回调服务器等待授权
-        ├── 获取 OAuth token
-        └── 保存凭据到 $GROK_HOME/credentials
+        ├── 执行 auth_provider_command 获取 token
+        ├── 或读取 NOFY_API_KEY 等环境变量
+        └── 保存凭据到 auth.json
     │
     ▼
 ensure_authenticated() — 确保认证有效

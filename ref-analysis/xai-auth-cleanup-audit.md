@@ -114,6 +114,22 @@ Round 1 的"恒 Disabled 桩"方案被用户否决:**完全剔除所有 xAI 依�
   `--force-login`、`is_xai_auth()` 全删;AuthMode 精简为
   {External, ApiKey};BYOK api_key/auth_provider 链完整保留;
   无 key 界面改为 API-key 配置指引。127 文件净删 ~10500 行。
-- **Batch E(计费/付费墙)**:订阅 tier/credits/SuperNofy 推销/
-  CheckSubscription——删除中。
-- **Batch F**:剩余后台外联(分享/feedback/bundle/更新器)。
+- **Batch E(计费/付费墙,已提交 57ea7f4)**:订阅 tier/credits/
+  SuperNofy 推销/CheckSubscription/隐私横幅/订阅监视全删;
+  /usage 保留本地用量。155 文件净删 ~9500 行。
+- **Batch F(剩余后台外联,已提交)**:/feedback /share /release-notes
+  命令、nofy-update crate 与全部 changelogs、subagent bundle 拉取、
+  RemoteSync/pull/session-export、BackendClient 远端方法与 share_url/
+  NOFY_CODE_* URL、RelaySyncConfig/nofy_ws_url、sessions_cmd 远端分支、
+  feedback 云端 handler(nofy/btw 保留)、feedback.jsonl 持久化链、
+  UserFeedback 遥测事件、computer-hub shell 侧 ObservabilityBridge 引用、
+  web_fetch xAI 域名白名单项、README/文档 x.ai 链接——392 文件净删
+  ~28900 行。遗留:pager feedback 面板机械结构与 shell FeedbackManager
+  子系统(启发式/信号/REST 客户端,提交链已断但代码仍在树中)——
+  归入 Batch G 连根拔除。
+- **Batch G(feedback 子系统,执行中)**:pager 死链
+  (Action::OpenFeedbackPane/SendFeedback、Effect::SendFeedback、
+  TaskResult::Feedback*、feedback 面板渲染/交互/测试)、shell
+  feedback_client.rs/feedback.rs/feedback_manager.rs/signals.rs、
+  FeedbackManagerConfig 管线、prod feedback_types wire 类型、
+  pager-render feedback_info——整体物理删除。

@@ -119,9 +119,8 @@ fn init_process(cfg: &AgentConfig, auth_manager: &AuthManager) {
         limits.log();
 
         if !cfg!(test) {
-            // Clear a logged-out team's files before the background sync runs.
+            // Clear a logged-out team's files at startup.
             crate::managed_config::clear_orphan();
-            crate::managed_config::spawn_sync(tokio_util::sync::CancellationToken::new());
         }
 
         let nofy_home = crate::util::nofy_home::nofy_home();

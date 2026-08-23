@@ -907,16 +907,6 @@ pub struct CompactionConfig {
 #[serde(default)]
 pub struct CliConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub auto_update: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub dismissed_version: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub installer: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub npm_registry: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub channel: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub use_leader: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub show_tips: Option<bool>,
@@ -924,20 +914,6 @@ pub struct CliConfig {
     pub worktree_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_registry: Option<bool>,
-    /// Env `NOFY_MINIMUM_VERSION`. See [`crate::util::config::VersionPolicy`] for
-    /// the version-policy knobs. (Unrelated to
-    /// `version_overrides[].maximum_version`, which gates config patches.)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub minimum_version: Option<String>,
-    /// Env `NOFY_MAXIMUM_VERSION`. See [`crate::util::config::VersionPolicy`].
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub maximum_version: Option<String>,
-    /// Env `NOFY_REQUIRED_MINIMUM_VERSION`. See [`crate::util::config::VersionPolicy`].
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub required_minimum_version: Option<String>,
-    /// Env `NOFY_REQUIRED_MAXIMUM_VERSION`. See [`crate::util::config::VersionPolicy`].
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub required_maximum_version: Option<String>,
     /// Group sessions by repo in the picker and CLI listings.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_picker_grouped: Option<bool>,
@@ -1031,12 +1007,6 @@ pub struct HarnessConfig {
     pub upload_flush_timeout_secs: Option<u64>,
 }
 impl HarnessConfig {}
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-#[serde(default)]
-pub struct RelayConfig {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub enabled: Option<bool>,
-}
 /// `[hub]` section from config.toml.
 ///
 /// Optional default Computer Hub URL for **workspace provider** exposure
@@ -1319,8 +1289,6 @@ pub struct Config {
     pub models: ModelsConfig,
     #[serde(default, skip_serializing)]
     pub harness: HarnessConfig,
-    #[serde(default, skip_serializing)]
-    pub relay: RelayConfig,
     /// Computer Hub configuration (`[hub]` in config.toml).
     #[serde(default, skip_serializing)]
     pub hub: HubConfig,
@@ -1703,7 +1671,6 @@ impl Default for Config {
             cli: CliConfig::default(),
             models: ModelsConfig::default(),
             harness: HarnessConfig::default(),
-            relay: RelayConfig::default(),
             hub: HubConfig::default(),
             worktree_pool: WorktreePoolConfig::default(),
             sandbox: SandboxSettingsConfig::default(),
@@ -3587,7 +3554,7 @@ pub struct ModelInfo {
     pub id: Option<String>,
     /// The routing slug sent in API requests.
     pub model: String,
-    /// The base URL of the model (session endpoint). e.g. "https://cli-chat-proxy.grok.com/v1"
+    /// The base URL of the model (session endpoint). e.g. "https://proxy.example.com/v1"
     pub base_url: String,
     /// Human-readable name of the model. Honored by both the picker
     /// (`/model`) and `/session-info` -- when set, that's the label shown
@@ -8776,7 +8743,7 @@ agent_type = "cursor"
             r#"
             disabled_mcp_servers = ["old-server"]
             [cli]
-            auto_update = false
+            show_tips = false
             [features]
             feedback = true
             [endpoints]
@@ -8815,8 +8782,6 @@ agent_type = "cursor"
             email_domain = "example.com"
             command = "/opt/bin/nofy-identity"
             [repo_changes_dedup]
-            enabled = false
-            [relay]
             enabled = false
             [worktree_pool]
             pool_size = 4

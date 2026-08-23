@@ -45,16 +45,6 @@ pub enum Command {
     Forensics(crate::forensics_cmd::ForensicsArgs),
     /// File leases: leased files are steward-read-only (FR12.11, U9-06)
     Lease(crate::lease_cmd::LeaseArgs),
-    /// Fetch and install managed configuration
-    Setup {
-        /// Print the fetched configuration as JSON instead of installing it;
-        /// writes nothing to ~/.nofy.
-        #[arg(long)]
-        json: bool,
-    },
-    /// Share a session and print the share URL
-    #[command(hide = true)]
-    Share(crate::share_cmd::ShareArgs),
     /// Run any command with local clipboard support (OSC 52 → system clipboard).
     #[cfg_attr(not(any(unix, windows)), command(hide = true))]
     #[command(long_about = "\
@@ -79,30 +69,6 @@ See ~/.nofy/README.md for more information.
     Export(crate::export_cmd::ExportArgs),
     /// Export or upload session trace data
     Trace(crate::trace_cmd::TraceArgs),
-    /// Check for updates or install a specific version
-    Update {
-        /// Check for updates without installing.
-        #[arg(long)]
-        check: bool,
-        /// Emit machine-readable JSON output (for --check).
-        #[arg(long)]
-        json: bool,
-        /// Force re-download and install even if already up to date.
-        #[arg(long)]
-        force_reinstall: bool,
-        /// Install a specific version (e.g. 0.1.150 or 0.1.151-alpha.2).
-        #[arg(long)]
-        version: Option<String>,
-        /// Switch to the alpha release channel (faster updates, may have bugs).
-        #[arg(long, conflicts_with_all = ["stable", "enterprise"])]
-        alpha: bool,
-        /// Switch to the stable release channel (default, weekly releases).
-        #[arg(long, conflicts_with_all = ["alpha", "enterprise"])]
-        stable: bool,
-        /// Switch to the enterprise release channel.
-        #[arg(long, conflicts_with_all = ["alpha", "stable"], hide = true)]
-        enterprise: bool,
-    },
     /// Print version information
     #[command(visible_alias = "v")]
     Version {
@@ -330,8 +296,6 @@ pub enum AgentCmd {
 pub struct HeadlessArgs {
     #[arg(long = "nofy-ws-origin")]
     pub nofy_ws_origin: Option<String>,
-    #[arg(long = "nofy-ws-url")]
-    pub nofy_ws_url: Option<String>,
 }
 /// Arguments for the `agent serve` subcommand.
 #[derive(Debug, clap::Args, Clone)]
@@ -376,9 +340,6 @@ pub struct LeaderArgs {
     /// headless client appears.
     #[arg(long)]
     pub relay_on_demand: bool,
-    /// Disable periodic auto-update checks for the leader.
-    #[arg(long)]
-    pub no_auto_update: bool,
     /// All environment URL overrides (passed from follower process)
     #[command(flatten)]
     pub headless: HeadlessArgs,
@@ -709,9 +670,6 @@ pub struct PagerArgs {
     /// Enable client-side file writes.
     #[arg(long = "fs-write", hide = true)]
     pub fs_write: bool,
-    /// Disable automatic updates for this session.
-    #[arg(long = "no-auto-update", hide = true)]
-    pub no_auto_update: bool,
     /// Enable the runtime turn-end TodoGate for this session.
     ///
     /// Session-scoped (not persisted). Highest precedence —
@@ -719,9 +677,6 @@ pub struct PagerArgs {
     /// default (which is `false`).
     #[arg(long = "todo-gate", hide = true)]
     pub todo_gate: bool,
-    /// Set the installer field in config.toml.
-    #[arg(long = "installer", value_name = "VALUE", hide = true)]
-    pub installer: Option<String>,
     /// Run inline instead of using the terminal alternate screen.
     #[arg(long = "no-alt-screen")]
     pub no_alt_screen: bool,

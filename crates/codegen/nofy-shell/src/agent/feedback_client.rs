@@ -15,8 +15,8 @@ use serde::de::DeserializeOwned;
 // Import feedback wire types from cli-chat-proxy
 use prod_mc_cli_chat_proxy_types::feedback_types::{
     ClientType, CreateFeedbackRequestInput, CreateFeedbackRequestResponse,
-    FeedbackHeuristicsConfig, FeedbackRequestUpdateResponse, FeedbackResponse, FeedbackSubmission,
-    SessionEventRequest, SessionEventResponse, SessionSignalsUpdate, SessionSignalsUpdateResponse,
+    FeedbackHeuristicsConfig, SessionEventRequest, SessionEventResponse, SessionSignalsUpdate,
+    SessionSignalsUpdateResponse,
 };
 
 /// Client version header sent on every request to cli-chat-proxy for version gating.
@@ -551,37 +551,6 @@ impl FeedbackClient {
             .with_context(|| format!("Failed to parse {} response", context))
     }
 
-    async fn send_empty(&self, request: RequestBuilder, context: &'static str) -> Result<()> {
-        let request = nofy_file_utils::trace_context::inject_trace_context_into_request(request);
-        let req = request.build().context(context)?;
-        let (response, stamp) = nofy_auth::execute_with_stamp(&self.client, req)
-            .await
-            .context(context)?;
-
-        self.record_401_attribution_if_needed(&response, stamp.as_ref(), context);
-
-        if response.status() == reqwest::StatusCode::FORBIDDEN {
-            tracing::debug!("{context} rejected (403), skipping");
-            return Ok(());
-        }
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(FeedbackApiError {
-                status,
-                context,
-                body,
-            }
-            .into());
-        }
-
-        Ok(())
-    }
-
     /// Update session signals.
     /// POST /v1/sessions/{session_id}/signals
     pub async fn update_signals(
@@ -604,41 +573,6 @@ impl FeedbackClient {
         let url = format!("{}/sessions/{}/events", self.base_url, session_id);
         let request = self.post(&url).json(event);
         self.send_json(request, "Event recording").await
-    }
-
-    /// Submit feedback.
-    /// POST /v1/feedback
-    pub async fn submit_feedback(
-        &self,
-        submission: &FeedbackSubmission,
-    ) -> Result<FeedbackResponse> {
-        let url = format!("{}/feedback", self.base_url);
-        let request = self.post(&url).json(submission);
-        self.send_json(request, "Feedback submission").await
-    }
-
-    /// Complete a feedback request.
-    /// POST /v1/feedback/requests/{request_id}/complete
-    pub async fn complete_request(
-        &self,
-        request_id: &str,
-        submission: &FeedbackSubmission,
-    ) -> Result<()> {
-        let url = format!(
-            "{}/feedback/requests/{}/complete",
-            self.base_url, request_id
-        );
-        let request = self.post(&url).json(submission);
-        self.send_empty(request, "Completing feedback request")
-            .await
-    }
-
-    /// Dismiss a feedback request.
-    /// POST /v1/feedback/requests/{request_id}/dismiss
-    pub async fn dismiss_request(&self, request_id: &str) -> Result<FeedbackRequestUpdateResponse> {
-        let url = format!("{}/feedback/requests/{}/dismiss", self.base_url, request_id);
-        let request = self.post(&url);
-        self.send_json(request, "Dismissing feedback request").await
     }
 
     /// Create a new feedback request.
@@ -1061,7 +995,7 @@ mod tests {
 #[cfg(test)]
 mod forbidden_tests {
     use super::*;
-    use axum::{Router, response::IntoResponse, routing::post};
+    use axum::{Router, response::IntoResponse};
     use std::net::SocketAddr;
     use tokio::net::TcpListener;
 
@@ -1076,29 +1010,6 @@ mod forbidden_tests {
 
     fn forbidden_handler() -> impl IntoResponse {
         (axum::http::StatusCode::FORBIDDEN, "ZDR team")
-    }
-
-    #[tokio::test]
-    async fn send_empty_returns_ok_on_403() {
-        let router = Router::new().route(
-            "/v1/feedback/requests/{id}/complete",
-            post(|| async { forbidden_handler() }),
-        );
-        let (addr, _) = start_server(router).await;
-
-        let client = FeedbackClient::with_client(
-            reqwest::Client::new(),
-            format!("http://{addr}/v1"),
-            Some("tok".into()),
-        );
-        let submission: FeedbackSubmission = serde_json::from_value(serde_json::json!({
-            "sessionId": "s1",
-            "clientType": "agent",
-            "feedbackType": "rating",
-        }))
-        .unwrap();
-        let result = client.complete_request("req-1", &submission).await;
-        assert!(result.is_ok(), "403 on send_empty must return Ok");
     }
 
     #[tokio::test]
@@ -1142,58 +1053,6 @@ mod auth_refresh_tests {
             axum::serve(listener, router).await.unwrap();
         });
         (addr, handle)
-    }
-
-    /// `send_empty` must sign with the AuthManager bearer. Pre-fix
-    /// it skipped the resolve and went out unauthenticated.
-    #[tokio::test]
-    async fn send_empty_signs_request_with_active_auth() {
-        let captured = Arc::new(parking_lot::Mutex::new(None::<String>));
-        let captured_for_handler = captured.clone();
-        let router = Router::new().route(
-            "/v1/feedback/requests/{id}/complete",
-            axum::routing::post(move |headers: axum::http::HeaderMap| {
-                let captured = captured_for_handler.clone();
-                async move {
-                    if let Some(auth) = headers.get(axum::http::header::AUTHORIZATION) {
-                        *captured.lock() = Some(auth.to_str().unwrap_or("").to_owned());
-                    }
-                    axum::http::StatusCode::OK
-                }
-            }),
-        );
-        let (addr, _server) = start_server(router).await;
-
-        let dir = tempfile::tempdir().unwrap();
-        let am = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-        am.hot_swap(NofyAuth {
-            key: "fresh-from-auth-manager".into(),
-            auth_mode: AuthMode::ApiKey,
-            create_time: Utc::now(),
-            user_id: "user-42".into(),
-            expires_at: Some(Utc::now() + Duration::hours(1)),
-            ..NofyAuth::test_default()
-        });
-
-        let client = FeedbackClient::new(
-            format!("http://{addr}/v1"),
-            Some("STALE-build-time-token".into()),
-        )
-        .with_auth_manager(am.clone());
-
-        let submission: FeedbackSubmission = serde_json::from_value(serde_json::json!({
-            "sessionId": "s1",
-            "clientType": "agent",
-            "feedbackType": "rating",
-        }))
-        .unwrap();
-        client
-            .complete_request("req-1", &submission)
-            .await
-            .expect("send_empty must succeed when authenticated");
-
-        let sent = captured.lock().clone().expect("server saw the request");
-        assert_eq!(sent, "Bearer fresh-from-auth-manager");
     }
 
     /// Outgoing bearer must match `AuthManager.current()`, not the

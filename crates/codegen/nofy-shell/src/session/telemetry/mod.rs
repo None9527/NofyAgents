@@ -131,7 +131,6 @@ pub(crate) struct SessionHarnessMetrics {
     pub mcp_server_names: Vec<String>,
     pub lsp_server_names: Vec<String>,
     pub memory_enabled: bool,
-    pub auto_update: Option<bool>,
     pub cwd: String,
     /// Filled from the built agent's bridge so `into_event` doesn't re-walk the disk.
     pub skill_names: Vec<String>,
@@ -204,7 +203,6 @@ impl SessionHarnessMetrics {
             // Same signal `SessionNew` carries; recomputed here because this
             // event is built off-thread, after spawn (cheap: repo discovery).
             is_git_repo: nofy_telemetry::context::collect_git_context(&self.cwd).is_git_repo,
-            auto_update: self.auto_update,
         }
     }
 }

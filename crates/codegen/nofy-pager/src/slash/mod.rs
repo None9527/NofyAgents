@@ -2580,12 +2580,12 @@ mod tests {
     #[test]
     fn colliding_plugin_skill_appears_beside_builtin() {
         let mut ctrl = SlashController::new(
-            CommandRegistry::new(vec![Arc::new(TieCmd("changelog"))]),
+            CommandRegistry::new(vec![Arc::new(TieCmd("deploy"))]),
             std::path::PathBuf::from("."),
         );
         let meta = serde_json::json!({
             "scope": "plugin",
-            "path": "/plugins/acme/skills/changelog/SKILL.md",
+            "path": "/plugins/acme/skills/deploy/SKILL.md",
             "pluginName": "acme",
         })
         .as_object()
@@ -2593,28 +2593,28 @@ mod tests {
         .unwrap();
         ctrl.registry_mut()
             .set_acp_commands(&[agent_client_protocol::AvailableCommand::new(
-                "acme:changelog".to_string(),
+                "acme:deploy".to_string(),
                 "Acme helper".to_string(),
             )
             .meta(meta)]);
 
         let state = SlashState::default();
         let models = ModelState::default();
-        ctrl.refresh(&state, "/changelog", "/changelog".len(), &models);
+        ctrl.refresh(&state, "/deploy", "/deploy".len(), &models);
         let snap = state.snapshot();
 
         let builtin = snap
             .matches
             .iter()
-            .find(|r| r.display == "/changelog")
-            .expect("builtin /changelog stays listed");
+            .find(|r| r.display == "/deploy")
+            .expect("builtin /deploy stays listed");
         assert_eq!(builtin.provenance, Some(CommandProvenance::Builtin));
 
         let skill = snap
             .matches
             .iter()
-            .find(|r| r.display == "/acme:changelog")
-            .expect("colliding plugin skill listed as /acme:changelog");
+            .find(|r| r.display == "/acme:deploy")
+            .expect("colliding plugin skill listed as /acme:deploy");
         assert_eq!(
             skill.provenance,
             Some(CommandProvenance::Skill {
@@ -2623,7 +2623,7 @@ mod tests {
         );
         assert_eq!(skill.description, "Acme helper");
 
-        assert_eq!(snap.matches[0].display, "/changelog");
+        assert_eq!(snap.matches[0].display, "/deploy");
 
         assert!(
             !skill.indices.is_empty(),
@@ -2633,16 +2633,16 @@ mod tests {
             skill
                 .indices
                 .iter()
-                .all(|i| (*i as usize) < "/acme:changelog".len()),
+                .all(|i| (*i as usize) < "/acme:deploy".len()),
             "indices must land within the display text: {:?}",
             skill.indices
         );
 
-        ctrl.record_command_use("acme:changelog", "acme:changelog");
-        ctrl.refresh(&state, "/changelog", "/changelog".len(), &models);
+        ctrl.record_command_use("acme:deploy", "acme:deploy");
+        ctrl.refresh(&state, "/deploy", "/deploy".len(), &models);
         assert_eq!(
             state.snapshot().matches[0].display,
-            "/changelog",
+            "/deploy",
             "recently-used colliding skill must not hijack the typed builtin name"
         );
     }

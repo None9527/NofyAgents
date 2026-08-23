@@ -218,7 +218,6 @@ pub(crate) async fn spawn_session_actor(
     acp_mcp_servers: Vec<crate::session::mcp_servers::AcpServerEntry>,
     support_permission: bool,
     telemetry_enabled: bool,
-    auto_update: Option<bool>,
     persistence: PersistenceHandle,
     mut conversation: Vec<ConversationItem>,
     rewind_points_path: Option<std::path::PathBuf>,
@@ -1031,7 +1030,6 @@ pub(crate) async fn spawn_session_actor(
                 .collect(),
             lsp_server_names: tool_context.lsp_server_names.clone(),
             memory_enabled: memory_config.is_some(),
-            auto_update,
             cwd: tool_context.cwd.as_str().to_owned(),
             skill_names: agent.tool_bridge().skill_discovery_snapshot_names().await,
             compat,
@@ -1503,11 +1501,6 @@ pub(crate) async fn spawn_session_actor(
             }
         });
     }
-    let obs_bridge = {
-        let sid = nofy_tool_protocol::SessionId::new(&*session_info.id.0)
-            .unwrap_or_else(|_| nofy_tool_protocol::SessionId::new("unknown").expect("valid"));
-        nofy_computer_hub_sdk::ObservabilityBridge::new(None, sid)
-    };
     let effective_config = crate::config::load_effective_config()
         .ok()
         .and_then(|raw| crate::agent::config::Config::new_from_toml_cfg(&raw).ok())
@@ -1741,7 +1734,6 @@ pub(crate) async fn spawn_session_actor(
         events: crate::session::events::EventTracker::new(
             &crate::session::persistence::session_dir(&session_info),
         ),
-        observability_bridge: obs_bridge,
         current_turn_number: std::cell::Cell::new(0),
         last_recap_main_turn: std::cell::Cell::new(initial_last_recap_main_turn),
         recap_in_flight: std::cell::Cell::new(false),
@@ -2163,7 +2155,6 @@ pub(crate) async fn spawn_session_on_thread(
     acp_mcp_servers: Vec<crate::session::mcp_servers::AcpServerEntry>,
     support_permission: bool,
     telemetry_enabled: bool,
-    auto_update: Option<bool>,
     persistence: PersistenceHandle,
     conversation: Vec<ConversationItem>,
     rewind_points_path: Option<std::path::PathBuf>,
@@ -2330,7 +2321,6 @@ pub(crate) async fn spawn_session_on_thread(
                         acp_mcp_servers,
                         support_permission,
                         telemetry_enabled,
-                        auto_update,
                         persistence,
                         conversation,
                         rewind_points_path,

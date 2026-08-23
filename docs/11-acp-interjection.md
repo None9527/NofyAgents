@@ -28,7 +28,7 @@ Agent Client Protocol (ACP) 是一个 JSON-RPC 2.0 协议，允许外部客户�
 | `session/prompt` | Client→Server | 发送提示词 |
 | `session/update` | Server→Client | 流式更新通知 |
 | `session/notification` | Server→Client | 会话通知 |
-| `x.ai/leader_reconnected` | Server→Client | Leader 重连通知 |
+| `nofy/leader_reconnected` | Server→Client | Leader 重连通知 |
 
 ### ACP 集成模块
 
@@ -64,7 +64,7 @@ ACP Leader Bridge
     └── 接收 ACP 通知 ← Leader
         ├── session/update（流式文本/工具调用）
         ├── session/notification
-        └── x.ai/leader_reconnected
+        └── nofy/leader_reconnected
     │
     ▼
 TUI (acp_handler/) — 路由到正确的 AgentView
@@ -95,7 +95,7 @@ ACP Bridge 检测到连接断开
     ├── 2. 对每个缓存的会话重放 session/load
     │      └── 顺序执行（每个等待响应，REPLAY_RECV_TIMEOUT = 60s）
     │
-    └── 3. 发送 x.ai/leader_reconnected 通知
+    └── 3. 发送 nofy/leader_reconnected 通知
            └── 包含恢复的主会话 ID
     │
     ▼

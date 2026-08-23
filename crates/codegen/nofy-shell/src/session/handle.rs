@@ -4,7 +4,7 @@
 //! internal channel. Extracted from `acp_session.rs` to keep the actor
 //! implementation focused on behaviour.
 use super::commands::SessionCommand;
-use super::persistence::{LocalFeedbackEntry, PersistenceMsg};
+use super::persistence::PersistenceMsg;
 use agent_client_protocol as acp;
 use std::collections::{HashMap, HashSet};
 use tokio::sync::{mpsc, oneshot};
@@ -582,18 +582,5 @@ impl SessionHandle {
         let _ = self
             .cmd_tx
             .send(SessionCommand::NotifyPluginUpdates { updates });
-    }
-    /// Send a feedback entry to the persistence actor; logs on a closed channel.
-    pub(crate) fn persist_feedback(&self, entry: LocalFeedbackEntry) {
-        if self
-            .persistence_tx
-            .send(PersistenceMsg::Feedback(entry))
-            .is_err()
-        {
-            tracing::warn!(
-                session_id = %self.info.id.0,
-                "feedback persistence channel closed; entry dropped",
-            );
-        }
     }
 }

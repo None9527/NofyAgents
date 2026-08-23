@@ -759,20 +759,6 @@ pub struct MvpAgent {
     /// the first session-creating call via [`Self::ensure_plugin_registry`];
     /// this flag keeps that to a single discovery walk.
     plugin_registry_initialized: std::cell::Cell<bool>,
-    /// Single-flight guard for the proactive bundle sync background task.
-    ///
-    /// `maybe_sync_bundle_in_background` is invoked from each post-auth path
-    /// (initialize, cached-token reauth, oidc) and a rapid reconnect can fire
-    /// all three within the TTL window, giving us multiple concurrent
-    /// `tokio::task::spawn_local` tasks racing to extract the tar archive,
-    /// rewrite `manifest.json`, and prune stale files. The non-atomic
-    /// per-file write/prune semantics in `bundle::extract_bundle_archive`
-    /// make that race observable as a partially-written cache.
-    ///
-    /// We use an `Arc<AtomicBool>` so the spawned task can clear the flag
-    /// on completion without re-borrowing `&self`. `Send` is required
-    /// because the inner `sync_bundle_to_root` now uses `spawn_blocking`.
-    bundle_sync_in_flight: Arc<std::sync::atomic::AtomicBool>,
     /// Local workspace ops, built lazily via [`Self::ensure_local_workspace_ops`].
     /// The agent never opens Computer Hub as a harness/client; remote cloud
     /// sandboxes are gateway-owned (`gateway_bridge` / `computer_sessions`).
@@ -1553,77 +1539,6 @@ impl MvpAgent {
                     registry,
                 });
         }
-    }
-    /// Spawn a best-effort bundle sync. Re-fires on every call site (init,
-    /// cached_token, nofy.com/oidc); the cheap pre-checks below absorb repeats
-    /// so reconnects are cheap.
-    ///
-    /// Pre-spawn gating order (cheapest first, all synchronous):
-    /// 1. Auth gate — avoid spawning a no-op task on every init.
-    /// 2. Freshness check — skip the sender snapshot + spawn entirely on
-    ///    cache hits, which is the steady-state on every reconnect.
-    /// 3. Single-flight guard — if a previous sync is still in flight (e.g.,
-    ///    initialize + cached_token + oidc fired in quick succession before
-    ///    the first sync's tar extract finished), drop this call to avoid
-    ///    racing concurrent extracts that would interleave per-file writes
-    ///    against `~/.nofy/bundled/` and the manifest.
-    pub(crate) fn maybe_sync_bundle_in_background(&self, force: bool) {
-        use crate::extensions::bundle::{
-            BUNDLE_SYNC_TTL, bundle_cache_is_fresh, has_bundle_credentials,
-            maybe_sync_bundle_to_root,
-        };
-        use std::sync::atomic::Ordering;
-        let am = self.auth_manager.clone();
-        let deployment_key = self.deployment_key();
-        if !has_bundle_credentials(Some(&am), deployment_key.as_deref()) {
-            return;
-        }
-        let root = crate::bundle::bundled_root();
-        if !force && bundle_cache_is_fresh(&root, BUNDLE_SYNC_TTL) {
-            tracing::debug!("proactive bundle sync skipped pre-spawn: cache is fresh");
-            return;
-        }
-        let in_flight = self.bundle_sync_in_flight.clone();
-        if in_flight
-            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-            .is_err()
-        {
-            tracing::debug!("proactive bundle sync skipped: another sync is already in flight");
-            return;
-        }
-        let proxy_base_url = self.cli_chat_proxy_base_url();
-        let alpha_test_key = self.alpha_test_key();
-        let senders = self.resident_cmd_txs();
-        tokio::task::spawn_local(async move {
-            let result = maybe_sync_bundle_to_root(
-                    &root,
-                    &proxy_base_url,
-                    Some(&am),
-                    deployment_key.as_deref(),
-                    alpha_test_key.as_deref(),
-                    force,
-                    BUNDLE_SYNC_TTL,
-                )
-                .await;
-            in_flight.store(false, Ordering::Release);
-            match result {
-                Ok(Some(res)) => {
-                    tracing::info!(
-                        version = %res.version,
-                        personas = res.personas_count,
-                        roles = res.roles_count,
-                        agents = res.agents_count,
-                        skills = res.skills_count,
-                        "proactive bundle sync complete"
-                    );
-                    Self::broadcast_refresh_skill_baseline(senders);
-                }
-                Ok(None) => {}
-                Err(err) => {
-                    tracing::warn!(error = %err, "proactive bundle sync failed");
-                }
-            }
-        });
     }
 }
 /// Parse `_meta.agentProfile` as a JSON object or string name.

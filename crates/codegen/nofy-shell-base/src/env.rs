@@ -13,7 +13,7 @@
 //!   sessions created in gateway mode; otherwise local-mode (unchanged).
 pub use nofy_env::{
     NofyBuildEnvironment, PROD_ASSET_SERVER_URL, PROD_CLI_CHAT_PROXY_BASE_URL, PROD_GATEWAY_WS_URL,
-    PROD_RELAY_WS_URL, PROD_WS_ORIGIN,
+    PROD_WS_ORIGIN,
 };
 /// Public Computer Hub WebSocket URL used by the local-workspace supervisor
 /// (`workspace_server --hub-url`) when `agent_config.hub.url` is unset.

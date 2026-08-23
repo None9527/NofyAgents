@@ -664,10 +664,6 @@ impl MvpAgent {
     ) -> &nofy_agent::plugins::SharedPluginRegistryHandle {
         &self.plugin_registry_handle
     }
-    /// `true` when the agent runs in writeback storage mode.
-    pub(crate) fn is_writeback_storage(&self) -> bool {
-        matches!(self.storage_mode.get(), StorageMode::Writeback)
-    }
     /// Resolved cli-chat-proxy base for session features (via
     /// `proxy_url`). Not for the deployment-config fetch.
     pub(crate) fn cli_chat_proxy_base_url(&self) -> String {
@@ -1780,7 +1776,6 @@ impl MvpAgent {
                 crate::agent::subagent::SubagentPresentation::new(),
             ),
             monitor_event_buffer: nofy_tools::implementations::nofy_build::monitor::types::MonitorEventBuffer::default(),
-            bundle_sync_in_flight: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             workspace_ops: RefCell::new(None),
             #[cfg(all(feature = "local-workspace", unix))]
             local_workspace_supervisors: Rc::new(RefCell::new(HashMap::new())),
@@ -2986,7 +2981,6 @@ impl MvpAgent {
             .resolve_compaction_verbatim_input();
         let compaction_tool_choice = self.cfg.borrow().resolve_compaction_tool_choice();
         let two_pass_enabled = self.cfg.borrow().is_two_pass_compaction_enabled();
-        let auto_update = self.cfg.borrow().cli.auto_update;
         let client_type = *self.client_type.borrow();
         let buffering_settings = self.buffering_settings.borrow().clone();
         let (
@@ -3338,7 +3332,6 @@ impl MvpAgent {
                     acp_mcp_servers,
                     support_permission,
                     telemetry_enabled,
-                    auto_update,
                     persistence,
                     chat_history.clone(),
                     rewind_points_file_path,

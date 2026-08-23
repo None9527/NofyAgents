@@ -114,8 +114,6 @@ pub struct ConnectFlags {
     pub fs_read: bool,
     /// Filesystem write capability in ACP Initialize.
     pub fs_write: bool,
-    /// Installer field for config.toml.
-    pub installer: Option<String>,
     /// Override the entire system prompt.
     pub system_prompt_override: Option<String>,
     /// Extra rules appended to the system prompt (from `--rules`).
@@ -165,8 +163,6 @@ pub async fn connect(cancel: &CancellationToken, flags: ConnectFlags) -> Result<
     if !flags.permission_rules.is_empty() {
         agent_config.cli_agent_overrides.permission_rules = flags.permission_rules.clone();
     }
-
-    apply_config_writes(&flags);
 
     let memory_config = agent_config.memory_config.clone();
     let spawned = spawn::spawn_nofy_shell(agent_config, cancel, memory_config).await?;
@@ -219,37 +215,6 @@ pub async fn connect_via_leader(
         "leader mode was removed in the sanitized build; \
          falling back to the embedded agent"
     )
-}
-
-/// Write config.toml fields based on CLI flags.
-fn apply_config_writes(flags: &ConnectFlags) {
-    // Use toml_edit to preserve existing config structure
-    let config_path = nofy_shell::util::nofy_home::nofy_home().join("config.toml");
-    let content = std::fs::read_to_string(&config_path).unwrap_or_default();
-    let mut doc = content
-        .parse::<toml_edit::DocumentMut>()
-        .unwrap_or_default();
-
-    let mut changed = false;
-
-    if let Some(ref installer) = flags.installer {
-        let cli = doc
-            .entry("cli")
-            .or_insert_with(|| toml_edit::Item::Table(toml_edit::Table::new()));
-        if let Some(tbl) = cli.as_table_mut() {
-            tbl["installer"] = toml_edit::value(installer.as_str());
-            changed = true;
-        }
-    }
-
-    if changed {
-        if let Some(parent) = config_path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        if let Err(e) = std::fs::write(&config_path, doc.to_string()) {
-            tracing::warn!(error = %e, "failed to write config.toml");
-        }
-    }
 }
 
 /// Build the per-session `_meta` for `InitializeRequest` (TUI and leader).

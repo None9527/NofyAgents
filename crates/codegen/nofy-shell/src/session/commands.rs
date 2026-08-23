@@ -666,10 +666,6 @@ pub enum SessionCommand {
         mode: crate::session::feedback::FeedbackMode,
         respond_to: oneshot::Sender<anyhow::Result<acp::ExtResponse>>,
     },
-    /// Persist a local feedback entry via the persistence actor. This ensures
-    /// feedback.jsonl is written through the same channel as other session
-    /// files and is included in GCS CopyFile snapshots.
-    PersistFeedback(Box<crate::session::persistence::LocalFeedbackEntry>),
     AdvertiseCommands,
     GetWorkflowCatalogState {
         respond_to: oneshot::Sender<(bool, bool)>,
@@ -684,11 +680,6 @@ pub enum SessionCommand {
     DispatchSessionStartHook {
         /// "new" for brand new sessions, "load" for sessions loaded from disk.
         source: String,
-    },
-    /// Retrieve session context for enriching a feedback Slack notification.
-    GetFeedbackContext {
-        turn_number: Option<i64>,
-        responds_to: oneshot::Sender<FeedbackContext>,
     },
     /// Retrieve the session's active agent type.
     ///

@@ -4,7 +4,7 @@
 //! Bug: `update_config` used `load_effective_config()` (which merges all config
 //! layers) to populate the `Config` struct, then `save_config` wrote that merged
 //! result back to the user's `config.toml`. If `requirements.toml` contained
-//! `auto_update = false`, any unrelated config write (theme change, model
+//! `show_tips = false`, any unrelated config write (theme change, model
 //! preference, yolo toggle) would permanently poison the user's config.
 
 use std::fs;
@@ -43,34 +43,26 @@ async fn update_config_does_not_leak_requirements_into_user_config() {
 
     // --- Arrange ---
 
-    // User's config.toml: auto_update = true
-    fs::write(
-        home.join("config.toml"),
-        "[cli]\nauto_update = true\ninstaller = \"internal\"\n",
-    )
-    .unwrap();
+    // User's config.toml: show_tips = true
+    fs::write(home.join("config.toml"), "[cli]\nshow_tips = true\n").unwrap();
 
-    // Enterprise requirements.toml overrides auto_update to false
-    fs::write(
-        home.join("requirements.toml"),
-        "[cli]\nauto_update = false\n",
-    )
-    .unwrap();
+    // Enterprise requirements.toml overrides show_tips to false
+    fs::write(home.join("requirements.toml"), "[cli]\nshow_tips = false\n").unwrap();
 
-    // Sanity-check: effective config should show auto_update = false
+    // Sanity-check: effective config should show show_tips = false
     // (requirements wins over user config).
     let effective = nofy_shell::config::load_effective_config().unwrap();
     let effective_cfg = nofy_shell::util::config::load_config_from_toml(&effective);
     assert_eq!(
-        effective_cfg.cli.auto_update,
+        effective_cfg.cli.show_tips,
         Some(false),
-        "precondition: effective config should merge requirements (auto_update=false)"
+        "precondition: effective config should merge requirements (show_tips=false)"
     );
 
     // --- Act ---
     // Simulate an unrelated config write (e.g. persisting a model preference).
     nofy_shell::util::config::update_config(|cfg| {
-        cfg.models.default = Some("grok-3".to_string());
+        cfg.models.default = Some("test-model".to_string());
     })
     .await
     .expect("update_config should succeed");
@@ -82,14 +74,14 @@ async fn update_config_does_not_leak_requirements_into_user_config() {
     let user_cfg = nofy_shell::util::config::load_config_from_toml(&user_toml);
 
     assert_eq!(
-        user_cfg.cli.auto_update,
+        user_cfg.cli.show_tips,
         Some(true),
-        "BUG REPRODUCED: auto_update in user config.toml was overwritten by \
+        "BUG REPRODUCED: show_tips in user config.toml was overwritten by \
          requirements.toml value. The raw file contents:\n{raw}"
     );
 
     // Also verify the unrelated write succeeded.
-    assert_eq!(user_cfg.models.default.as_deref(), Some("grok-3"));
+    assert_eq!(user_cfg.models.default.as_deref(), Some("test-model"));
 }
 
 #[tokio::test]
@@ -98,19 +90,11 @@ async fn update_config_preserves_none_when_only_requirements_sets_value() {
     let home = test_home();
     reset_config_files(home);
 
-    // User config has no auto_update field at all
-    fs::write(
-        home.join("config.toml"),
-        "[cli]\ninstaller = \"internal\"\n",
-    )
-    .unwrap();
+    // User config has no show_tips field at all
+    fs::write(home.join("config.toml"), "[ui]\nyolo = false\n").unwrap();
 
-    // requirements.toml sets auto_update = false
-    fs::write(
-        home.join("requirements.toml"),
-        "[cli]\nauto_update = false\n",
-    )
-    .unwrap();
+    // requirements.toml sets show_tips = false
+    fs::write(home.join("requirements.toml"), "[cli]\nshow_tips = false\n").unwrap();
 
     // Write an unrelated field
     nofy_shell::util::config::update_config(|cfg| {
@@ -125,8 +109,8 @@ async fn update_config_preserves_none_when_only_requirements_sets_value() {
     let user_cfg = nofy_shell::util::config::load_config_from_toml(&user_toml);
 
     assert_eq!(
-        user_cfg.cli.auto_update, None,
-        "auto_update should remain absent in user config — requirements.toml \
+        user_cfg.cli.show_tips, None,
+        "show_tips should remain absent in user config — requirements.toml \
          value must not leak. Raw file:\n{raw}"
     );
 }
@@ -137,17 +121,13 @@ async fn update_config_does_not_leak_managed_config_values() {
     let home = test_home();
     reset_config_files(home);
 
-    // User config has no auto_update — only installer
-    fs::write(
-        home.join("config.toml"),
-        "[cli]\ninstaller = \"internal\"\n",
-    )
-    .unwrap();
+    // User config has no show_tips — only a ui field
+    fs::write(home.join("config.toml"), "[ui]\nyolo = false\n").unwrap();
 
-    // managed_config.toml sets auto_update = false and channel = "stable"
+    // managed_config.toml sets show_tips = false and worktree_type = "linked"
     fs::write(
         home.join("managed_config.toml"),
-        "[cli]\nauto_update = false\nchannel = \"stable\"\n",
+        "[cli]\nshow_tips = false\nworktree_type = \"linked\"\n",
     )
     .unwrap();
 
@@ -162,11 +142,11 @@ async fn update_config_does_not_leak_managed_config_values() {
     let user_cfg = nofy_shell::util::config::load_config_from_toml(&user_toml);
 
     assert_eq!(
-        user_cfg.cli.auto_update, None,
-        "auto_update from managed_config.toml leaked into user config. Raw:\n{raw}"
+        user_cfg.cli.show_tips, None,
+        "show_tips from managed_config.toml leaked into user config. Raw:\n{raw}"
     );
     assert_eq!(
-        user_cfg.cli.channel, None,
-        "channel from managed_config.toml leaked into user config. Raw:\n{raw}"
+        user_cfg.cli.worktree_type, None,
+        "worktree_type from managed_config.toml leaked into user config. Raw:\n{raw}"
     );
 }

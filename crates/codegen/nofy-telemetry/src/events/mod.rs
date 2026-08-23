@@ -915,8 +915,6 @@ pub struct SessionHarness {
     /// carries). Additive analytics-visible field, added for the external
     /// `session_start` event (design ‡ footnote).
     pub is_git_repo: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auto_update: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -960,17 +958,6 @@ pub struct PromptSubmitted {
     /// 60 KB and secret-scrubbed).
     #[serde(skip)]
     pub prompt_text: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct UserFeedback {
-    pub session_id: String,
-    pub has_feedback_text: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub model_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub rating_value: Option<i32>,
-    pub is_solicited: bool,
 }
 
 #[derive(Serialize)]
@@ -1803,7 +1790,6 @@ telemetry_event!(
     "prompt_submitted",
     external = crate::external::schema::map_user_prompt
 );
-telemetry_event!(UserFeedback, "user_feedback");
 telemetry_event!(RolloutSurvey, "rollout_survey");
 telemetry_event!(PrCreated, "pr_created");
 telemetry_event!(PrMerged, "pr_merged");

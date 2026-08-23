@@ -958,12 +958,8 @@ pub(crate) struct SessionActor {
     /// Centralized event tracking: event log, turn-end guard, active tool,
     /// doom loop terminate flag. All event-related state lives here.
     pub(crate) events: crate::session::events::EventTracker,
-    /// Optional hub-side session event emitter (always constructed without a
-    /// harness client in the agent; methods no-op with `None` transport).
-    pub(crate) observability_bridge: nofy_computer_hub_sdk::ObservabilityBridge,
     /// Turn number captured at the start of each turn (before prompt index
-    /// increment).  Used by `ToolCallStarted` bridge emissions so they
-    /// report the same turn number as `TurnStarted` / `TurnEnded`.
+    /// increment).
     pub(crate) current_turn_number: std::cell::Cell<u64>,
     /// Recap rate-limit watermark (`main_turns` of last finished recap; `0` = none).
     pub(crate) last_recap_main_turn: std::cell::Cell<usize>,
@@ -1212,7 +1208,6 @@ impl SessionActor {
             self.sync_goal_harness_from_tools(tool_names)
         };
         slash_commands::CommandAvailability {
-            feedback: self.feedback_manager.is_enabled(),
             memory: self.memory.is_enabled() && memory_read_registered,
             memory_configured: self.memory.backend_params.is_some(),
             scheduler: tool_names.iter().any(|n| {
@@ -1620,9 +1615,6 @@ mod fs_injection_regression_tests;
 #[path = "acp_session_tests/interjection_actor_tests.rs"]
 mod interjection_actor_tests;
 #[cfg(test)]
-#[path = "acp_session_tests/observability_bridge_mapping_tests.rs"]
-mod observability_bridge_mapping_tests;
-#[cfg(test)]
 #[path = "acp_session_tests/permission_auto_mode_tests.rs"]
 mod permission_auto_mode_tests;
 /// Resume re-park of the parked `exit_plan_mode` approval.
@@ -1876,9 +1868,6 @@ mod chat_history_integrity_tests;
 #[cfg(test)]
 #[path = "acp_session_tests/turn/disk_full_tests.rs"]
 mod disk_full_tests;
-#[cfg(test)]
-#[path = "acp_session_tests/feedback_turn_lookup_tests.rs"]
-mod feedback_turn_lookup_tests;
 #[cfg(test)]
 #[path = "acp_session_tests/idle_resume_tests.rs"]
 mod idle_resume_tests;

@@ -54,7 +54,6 @@ impl std::fmt::Display for Scope {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct InspectReport {
     pub nofy_version: String,
-    pub channel: String,
     pub cwd: String,
     pub project_root: Option<String>,
     /// Folder-trust verdict for `cwd`: when false, repo-local project hooks,
@@ -379,9 +378,6 @@ async fn build_report(cwd: &Path) -> InspectReport {
 
     InspectReport {
         nofy_version: nofy_version::VERSION.to_string(),
-        channel: crate::util::config::channel_name_from_cache()
-            .unwrap_or("unknown")
-            .to_string(),
         cwd: cwd.display().to_string(),
         project_root: git_root.map(|p| p.display().to_string()),
         project_trusted,
@@ -1300,7 +1296,7 @@ fn render_harness_compatibility(report: &ExternalCompatReport) -> String {
 fn print_human(r: &InspectReport) {
     println!();
     println!("  Environment");
-    println!("  {TREE} Version: {} [{}]", r.nofy_version, r.channel);
+    println!("  {TREE} Version: {}", r.nofy_version);
     println!("  {TREE} CWD: {}", r.cwd);
     if let Some(ref root) = r.project_root {
         println!("  {TREE} Git root: {}", root);
@@ -1986,8 +1982,8 @@ mod tests {
     #[test]
     fn apply_slash_collision_flags_reserved_names_and_duplicates() {
         let mut changelog = skill_fixture(
-            "changelog",
-            "/plugins/acme/skills/changelog/SKILL.md",
+            "tutorial",
+            "/plugins/acme/skills/tutorial/SKILL.md",
             SkillScope::Plugin,
         );
         changelog.plugin_name = Some("acme".into());
@@ -2001,8 +1997,8 @@ mod tests {
         let [changelog, deploy, flush, commit_local, commit_user] = &all;
 
         let entry = collision_entry(changelog, &all);
-        assert_eq!(entry.collides_with.as_deref(), Some("changelog"));
-        assert_eq!(entry.invocable_as.as_deref(), Some("acme:changelog"));
+        assert_eq!(entry.collides_with.as_deref(), Some("tutorial"));
+        assert_eq!(entry.invocable_as.as_deref(), Some("acme:tutorial"));
 
         for skill in [deploy, flush] {
             let entry = collision_entry(skill, &all);
@@ -2019,10 +2015,10 @@ mod tests {
 
     #[test]
     fn apply_slash_collision_folds_reserved_name_case() {
-        let skill = skill_fixture("Changelog", "/tmp/Changelog/SKILL.md", SkillScope::Local);
+        let skill = skill_fixture("Tutorial", "/tmp/Tutorial/SKILL.md", SkillScope::Local);
         let entry = collision_entry(&skill, std::slice::from_ref(&skill));
-        assert_eq!(entry.collides_with.as_deref(), Some("Changelog"));
-        assert_eq!(entry.invocable_as.as_deref(), Some("local:changelog"));
+        assert_eq!(entry.collides_with.as_deref(), Some("Tutorial"));
+        assert_eq!(entry.invocable_as.as_deref(), Some("local:tutorial"));
     }
 
     #[test]

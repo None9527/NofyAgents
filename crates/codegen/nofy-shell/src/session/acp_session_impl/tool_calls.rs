@@ -468,15 +468,6 @@ impl SessionActor {
             self.emit_event(crate::session::events::Event::ToolStarted {
                 tool_name: call.function.name.clone(),
             });
-            self.observability_bridge
-                .emit(
-                    nofy_tool_protocol::session_event::SessionEvent::ToolCallStarted {
-                        tool_call_id: call.id.clone(),
-                        tool_name: call.function.name.clone(),
-                        turn_number: self.current_turn_number.get(),
-                    },
-                )
-                .await;
             let call_name = call.function.name.clone();
             match self.prepare_tool_call(call, deferred_followups).await? {
                 Ok(prepared) => approved.push(prepared),
@@ -910,16 +901,6 @@ impl SessionActor {
                 tool_call_id: tool_call_id.clone(),
                 source: crate::session::events::ToolCompletedSource::Shell,
             });
-            self.observability_bridge
-                .emit(
-                    nofy_tool_protocol::session_event::SessionEvent::ToolCallCompleted {
-                        tool_call_id: prepared.call_id.clone(),
-                        tool_name: prepared.tool_name.clone(),
-                        duration_ms,
-                        outcome: map_tool_outcome(tool_outcome),
-                    },
-                )
-                .await;
             let (ext_file_path, ext_parameters) = if nofy_telemetry::external::is_active() {
                 let parsed: Option<serde_json::Value> =
                     serde_json::from_str(&prepared.raw_arguments).ok();

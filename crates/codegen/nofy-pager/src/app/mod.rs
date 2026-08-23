@@ -482,15 +482,7 @@ async fn bounded_connect(
 /// If a session ID is provided via `--resume` / `--load` / `--continue`, the
 /// pager skips the welcome screen and immediately loads that session (replaying
 /// its history). Sessions not found locally are restored from remote storage.
-///
-/// Returns `Ok(true)` when the user accepted a pending update. The caller
-/// should print a message telling the user to relaunch `nofy`.
-pub async fn run(
-    args: PagerArgs,
-    bg_update_rx: Option<
-        tokio::sync::oneshot::Receiver<Option<nofy_update::auto_update::UpdateAvailable>>,
-    >,
-) -> anyhow::Result<bool> {
+pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
     nofy_tty_utils::redirect_native_stderr();
     let screen_mode_override = screen_mode_relaunch::take_screen_mode_env_override();
     let cancel = CancellationToken::new();
@@ -671,7 +663,6 @@ pub async fn run(
         terminal: args.terminal,
         fs_read: args.fs_read,
         fs_write: args.fs_write,
-        installer: args.installer.clone(),
         system_prompt_override: args.system_prompt_override.clone(),
         rules: args.rules.clone(),
         reasoning_effort_override: args
@@ -854,7 +845,6 @@ pub async fn run(
         session_cwd,
         term_state,
         materialized,
-        bg_update_rx,
         writer_event_rx,
     )
     .await;
@@ -881,9 +871,6 @@ pub async fn run(
     }
     match result {
         Ok(run_result) => {
-            if run_result.quit_for_update {
-                return Ok(true);
-            }
             if let Some(relaunch) = run_result.relaunch.as_ref() {
                 if let Err(e) = screen_mode_relaunch::exec_screen_mode_relaunch(
                     &relaunch.session_id,
@@ -897,13 +884,13 @@ pub async fn run(
                         &mut io::stderr(),
                     );
                 }
-                return Ok(false);
+                return Ok(());
             }
             if let Some(info) = run_result.exit_info {
                 let width = crossterm::terminal::size().map_or(80, |(cols, _)| cols as usize);
                 print_exit_resume_hint(&info, width, &mut io::stderr());
             }
-            Ok(false)
+            Ok(())
         }
         Err(run_error) => Err(run_error),
     }
