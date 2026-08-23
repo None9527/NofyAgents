@@ -30,14 +30,15 @@ use crate::tools::tool_context::ToolContext;
 const MAX_WORKSPACE_ENTRIES: usize = 50;
 
 /// Environment-variable gate for per-turn WorldState frame injection
-/// (RTAgent Phase C2). Off by default: nothing changes for any user
-/// until opted in.
+/// (RTAgent Phase C2). On by default; set `NOFY_WORLD_STATE=0` to opt out.
 pub(crate) const WORLD_STATE_ENV: &str = "NOFY_WORLD_STATE";
 
 /// Whether WorldState frame injection is enabled for this process.
+/// On by default; set `NOFY_WORLD_STATE=0` (or `false`) to opt out.
 pub(crate) fn is_world_state_enabled() -> bool {
     std::env::var(WORLD_STATE_ENV)
-        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .map(|value| !(value == "0" || value.eq_ignore_ascii_case("false")))
+        .unwrap_or(true)
 }
 
 /// C1c: TTL for the cached git dirty scan. The world-state frame is

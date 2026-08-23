@@ -19,15 +19,15 @@
 
 use crate::item::CompactionItem;
 
-/// Environment-variable gate for fact-level compaction. Off by default:
-/// the LLM-only path stays the production behavior until the eval loop
-/// shows a win.
+/// Environment-variable gate for fact-level compaction. On by default;
+/// set `NOFY_FACT_COMPACTION=0` (or `false`) to force the LLM-only path.
 pub const FACT_COMPACTION_ENV: &str = "NOFY_FACT_COMPACTION";
 
 /// Whether fact-level compaction is enabled for this process.
 pub fn is_enabled() -> bool {
     std::env::var(FACT_COMPACTION_ENV)
-        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .map(|value| !(value == "0" || value.eq_ignore_ascii_case("false")))
+        .unwrap_or(true)
 }
 
 /// A canonical fact retained across compaction.

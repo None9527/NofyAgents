@@ -519,9 +519,9 @@ pub(crate) async fn spawn_session_actor(
     };
     let (chat_state_event_tx, chat_state_event_rx) = mpsc::unbounded_channel();
     // Runtime evolution Phase 1: the session runtime journal (append-only
-    // governance events, `runtime_events.jsonl`) is opt-in via
-    // NOFY_RUNTIME_JOURNAL; disabled by default, so the default path keeps
-    // the plain channel persistence with zero behavioral change.
+    // governance events, `runtime_events.jsonl`) is on by default; set
+    // NOFY_RUNTIME_JOURNAL=0 to opt out and keep the plain channel
+    // persistence path.
     let runtime_journal = if super::runtime_journal::is_enabled() {
         let session_dir = crate::session::persistence::session_dir(&session_info);
         super::runtime_journal::RuntimeJournalHandle::spawn(

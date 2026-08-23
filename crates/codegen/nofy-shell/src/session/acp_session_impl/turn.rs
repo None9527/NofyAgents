@@ -520,7 +520,7 @@ impl SessionActor {
         }
         let user_chunk_meta = Some(chunk_meta);
         self.chat_state_handle.increment_prompt_index();
-        // Runtime journal: turn boundary (noop unless NOFY_RUNTIME_JOURNAL).
+        // Runtime journal: turn boundary (noop if NOFY_RUNTIME_JOURNAL=0).
         self.runtime_journal.emit(
             nofy_session_journal::EventKind::TurnStarted,
             serde_json::json!({ "prompt_index": current_prompt_index }),
@@ -2279,7 +2279,7 @@ impl SessionActor {
             }
             turn_span_totals.record(&tracing::Span::current(), &response);
             // Runtime journal: pair with model.requested — usage and stop
-            // reason per model response (noop unless NOFY_RUNTIME_JOURNAL).
+            // reason per model response (noop if NOFY_RUNTIME_JOURNAL=0).
             self.runtime_journal.emit(
                 nofy_session_journal::EventKind::ModelResponded,
                 serde_json::json!({

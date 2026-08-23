@@ -174,8 +174,16 @@ fn completed_turn_flush_enospc_returns_error() {
     });
 }
 
+/// The convergence governor is opted out for this test (`#[serial]` because
+/// the gate is a process-global env var): with a `max_turns = 0` budget the
+/// governor legitimately earns an extension at the boundary and the run
+/// continues — which is correct production behavior, but would mask the
+/// cancel-vs-disk-full precedence this test asserts.
 #[test]
+#[serial_test::serial]
 fn cancelled_turn_flush_enospc_still_reports_cancellation() {
+    let _governor_off =
+        nofy_test_support::EnvGuard::set(nofy_convergence::GOVERNOR_ENV, "0");
     block_on_session(|| {
         current_thread_local(async {
             let server = MockInferenceServer::start()

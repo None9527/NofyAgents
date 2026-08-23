@@ -399,7 +399,7 @@ pub(super) async fn run_session(
                         }
                         Some(nofy_chat_state::ChatStateEvent::ProjectionAudit { audit }) => {
                             // Phase 2a: journal what the model request contains
-                            // (noop unless NOFY_RUNTIME_JOURNAL). The audit is
+                            // (noop if NOFY_RUNTIME_JOURNAL=0). The audit is
                             // structural — safe to persist verbatim.
                             session.runtime_journal.emit(
                                 nofy_session_journal::EventKind::ModelRequested,

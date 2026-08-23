@@ -37,25 +37,28 @@ use nofy_session_journal::{EventKind, SessionJournal};
 /// `chat_history.jsonl` / `updates.jsonl`.
 pub(crate) const RUNTIME_EVENTS_FILE: &str = "runtime_events.jsonl";
 
-/// Environment-variable gate for the runtime journal. Off by default:
-/// nothing changes for any user until opted in.
+/// Environment-variable gate for the runtime journal. On by default;
+/// set `NOFY_RUNTIME_JOURNAL=0` (or `false`) to opt out.
 pub(crate) const RUNTIME_JOURNAL_ENV: &str = "NOFY_RUNTIME_JOURNAL";
 
 /// Environment-variable gate for the D1 verification reminder (nudge
-/// when mutations have no recorded verification). Off by default; the
-/// journal itself must also be active for the signal to exist.
+/// when mutations have no recorded verification). On by default; set
+/// `NOFY_VERIFICATION_GATE=0` (or `false`) to opt out. The journal
+/// itself must also be active for the signal to exist.
 pub(crate) const VERIFICATION_GATE_ENV: &str = "NOFY_VERIFICATION_GATE";
 
 /// Whether the runtime journal is enabled for this process.
 pub(crate) fn is_enabled() -> bool {
     std::env::var(RUNTIME_JOURNAL_ENV)
-        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .map(|value| !(value == "0" || value.eq_ignore_ascii_case("false")))
+        .unwrap_or(true)
 }
 
 /// Whether the D1 verification reminder is enabled for this process.
 pub(crate) fn is_verification_gate_enabled() -> bool {
     std::env::var(VERIFICATION_GATE_ENV)
-        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .map(|value| !(value == "0" || value.eq_ignore_ascii_case("false")))
+        .unwrap_or(true)
 }
 
 /// DS-#8 fail-closed checkpoint at request initiation: a model request is

@@ -63,15 +63,16 @@ pub enum FinishReason {
     NoProgress,
 }
 
-/// Environment-variable gate for the convergence governor. Off by
-/// default: run budgets stay exactly as configured until the eval loop
-/// shows the governor's decisions are sound.
+/// Environment-variable gate for the convergence governor. On by
+/// default; set `NOFY_CONVERGENCE_GOVERNOR=0` (or `false`) to keep run
+/// budgets exactly as configured.
 pub const GOVERNOR_ENV: &str = "NOFY_CONVERGENCE_GOVERNOR";
 
 /// Whether the convergence governor is enabled for this process.
 pub fn is_governor_enabled() -> bool {
     std::env::var(GOVERNOR_ENV)
-        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .map(|value| !(value == "0" || value.eq_ignore_ascii_case("false")))
+        .unwrap_or(true)
 }
 
 /// Dynamic budget governor.
