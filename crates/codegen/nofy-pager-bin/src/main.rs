@@ -8,23 +8,6 @@
 #[cfg(all(feature = "jemalloc", unix))]
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
-#[cfg(all(feature = "jemalloc", feature = "release-dist", unix))]
-mod jemalloc_malloc_conf {
-    /// jemalloc looks up `extern const char *malloc_conf` — a thin pointer,
-    /// not a Rust `&[u8]` fat pointer.
-    #[repr(transparent)]
-    struct MallocConfPtr(*const u8);
-    unsafe impl Sync for MallocConfPtr {}
-    static CONF: [u8; 63] = *b"prof:true,prof_active:false,lg_prof_sample:19,prof_final:false\0";
-    #[cfg(not(any(target_os = "macos", target_os = "ios")))]
-    #[used]
-    #[unsafe(export_name = "malloc_conf")]
-    static MALLOC_CONF: MallocConfPtr = MallocConfPtr(CONF.as_ptr());
-    #[cfg(any(target_os = "macos", target_os = "ios"))]
-    #[used]
-    #[unsafe(export_name = "_rjem_malloc_conf")]
-    static MALLOC_CONF: MallocConfPtr = MallocConfPtr(CONF.as_ptr());
-}
 use anyhow::Result;
 use std::env;
 use std::net::SocketAddr;
@@ -572,48 +555,6 @@ fn jemalloc_stats_dump() -> String {
     }
     out
 }
-#[cfg(all(feature = "jemalloc", unix))]
-fn jemalloc_heap_stats() -> Option<nofy_shell::heap_profile::JemallocStats> {
-    unsafe {
-        tikv_jemalloc_ctl::raw::write(b"epoch\0", 1u64).ok()?;
-        let allocated = tikv_jemalloc_ctl::raw::read::<usize>(b"stats.allocated\0").ok()? as u64;
-        let resident = tikv_jemalloc_ctl::raw::read::<usize>(b"stats.resident\0").ok()? as u64;
-        Some(nofy_shell::heap_profile::JemallocStats {
-            allocated,
-            resident,
-        })
-    }
-}
-#[cfg(all(feature = "jemalloc", unix))]
-fn jemalloc_set_prof_active(active: bool) -> bool {
-    unsafe { tikv_jemalloc_ctl::raw::write(b"prof.active\0", active).is_ok() }
-}
-#[cfg(all(test, feature = "jemalloc", unix))]
-fn jemalloc_read_prof_active() -> Option<bool> {
-    unsafe { tikv_jemalloc_ctl::raw::read::<bool>(b"prof.active\0").ok() }
-}
-#[cfg(all(feature = "jemalloc", unix))]
-fn jemalloc_prof_available() -> bool {
-    unsafe { tikv_jemalloc_ctl::raw::read::<bool>(b"opt.prof\0").unwrap_or(false) }
-}
-#[cfg(all(feature = "jemalloc", unix))]
-fn jemalloc_dump_to_path(path: &std::path::Path) -> Result<(), String> {
-    use std::os::unix::ffi::OsStrExt;
-    if !jemalloc_prof_available() {
-        return Err("opt.prof false".into());
-    }
-    let c = std::ffi::CString::new(path.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
-    unsafe { tikv_jemalloc_ctl::raw::write(b"prof.dump\0", c.as_ptr()) }.map_err(|e| e.to_string())
-}
-#[cfg(all(feature = "jemalloc", unix))]
-fn install_heap_profile_hooks() {
-    nofy_shell::heap_profile::install(nofy_shell::heap_profile::HeapProfileHooks {
-        stats: jemalloc_heap_stats,
-        set_prof_active: jemalloc_set_prof_active,
-        dump_to_path: jemalloc_dump_to_path,
-        prof_available: jemalloc_prof_available,
-    });
-}
 fn version_text() -> String {
     format!(
         "nofy {}\n",
@@ -660,8 +601,6 @@ fn main() {
         nofy_pager::memory_trace::install_allocator_stats_provider(jemalloc_allocator_stats);
         nofy_pager::memory_trace::install_allocator_dump_provider(jemalloc_stats_dump);
     }
-    #[cfg(all(feature = "jemalloc", unix))]
-    install_heap_profile_hooks();
     nofy_pager::memory_trace::start(
         nofy_shell::util::nofy_home::nofy_home().join("memtrace"),
     );
@@ -1128,151 +1067,6 @@ mod tests {
             subcommand.command,
             Some(Command::Version { json: false })
         ));
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    struct TempHeapDump(std::path::PathBuf);
-    #[cfg(all(feature = "jemalloc", unix))]
-    impl TempHeapDump {
-        fn new(label: &str) -> Self {
-            let path = std::env::temp_dir().join(format!(
-                "nofy-jemalloc-{label}-{}-{}.heap",
-                std::process::id(),
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_nanos())
-                    .unwrap_or(0)
-            ));
-            Self(path)
-        }
-        fn path(&self) -> &std::path::Path {
-            &self.0
-        }
-        fn assert_nonempty_dump(&self) {
-            let meta = std::fs::metadata(&self.0).expect("dump file missing after prof.dump");
-            assert!(meta.len() > 0, "empty dump file");
-        }
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    impl Drop for TempHeapDump {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_file(&self.0);
-        }
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    fn require_opt_prof() -> bool {
-        if jemalloc_prof_available() {
-            return true;
-        }
-        eprintln!(
-            "skip jemalloc prof checks: opt.prof false \
-             (release-dist static conf, or MALLOC_CONF=prof:true,prof_active:false,lg_prof_sample={})",
-            nofy_shell::heap_profile::LG_PROF_SAMPLE
-        );
-        false
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    fn assert_prof_active(expected: bool) {
-        assert_eq!(jemalloc_read_prof_active(), Some(expected));
-    }
-    /// Restores process-global `prof.active` on drop (panic-safe for serial tests).
-    #[cfg(all(feature = "jemalloc", unix))]
-    struct ProfActiveGuard {
-        previous: bool,
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    impl ProfActiveGuard {
-        fn set(active: bool) -> Self {
-            let previous = jemalloc_read_prof_active().unwrap_or(false);
-            assert!(
-                jemalloc_set_prof_active(active),
-                "failed to set prof.active={active}"
-            );
-            Self { previous }
-        }
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    impl Drop for ProfActiveGuard {
-        fn drop(&mut self) {
-            let _ = jemalloc_set_prof_active(self.previous);
-        }
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    fn assert_stats_sane(stats: nofy_shell::heap_profile::JemallocStats) {
-        assert!(stats.allocated > 0, "allocated={}", stats.allocated);
-        assert!(stats.resident > 0, "resident={}", stats.resident);
-        assert!(
-            stats.resident >= stats.allocated,
-            "resident {} < allocated {}",
-            stats.resident,
-            stats.allocated
-        );
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    #[test]
-    #[serial_test::serial(jemalloc_heap_profile)]
-    fn jemalloc_stats_readable_after_epoch() {
-        assert_stats_sane(jemalloc_heap_stats().expect("stats readable"));
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    #[test]
-    #[serial_test::serial(jemalloc_heap_profile)]
-    fn jemalloc_prof_active_round_trip_and_dump() {
-        if !require_opt_prof() {
-            return;
-        }
-        assert_prof_active(false);
-        {
-            let _guard = ProfActiveGuard::set(true);
-            assert_prof_active(true);
-        }
-        assert_prof_active(false);
-        let dump = TempHeapDump::new("direct");
-        jemalloc_dump_to_path(dump.path()).expect("prof.dump");
-        dump.assert_nonempty_dump();
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    #[test]
-    #[serial_test::serial(jemalloc_heap_profile)]
-    fn jemalloc_dump_rejects_interior_nul_path() {
-        use std::ffi::OsStr;
-        use std::os::unix::ffi::OsStrExt;
-        use std::path::Path;
-        if !require_opt_prof() {
-            return;
-        }
-        let path = Path::new(OsStr::from_bytes(b"/tmp/nofy-jemalloc-\0.heap"));
-        let err = jemalloc_dump_to_path(path).expect_err("interior NUL must fail");
-        assert!(
-            err.to_ascii_lowercase().contains("nul"),
-            "unexpected error: {err}"
-        );
-    }
-    #[cfg(all(feature = "jemalloc", unix))]
-    #[test]
-    #[serial_test::serial(jemalloc_heap_profile)]
-    fn install_heap_profile_hooks_wires_shell_apis() {
-        install_heap_profile_hooks();
-        assert_stats_sane(
-            nofy_shell::heap_profile::stats().expect("shell stats after install"),
-        );
-        if !require_opt_prof() {
-            assert!(!nofy_shell::heap_profile::prof_available());
-            return;
-        }
-        assert!(nofy_shell::heap_profile::prof_available());
-        assert_prof_active(false);
-        {
-            let _guard = ProfActiveGuard::set(true);
-            assert_prof_active(true);
-            assert!(nofy_shell::heap_profile::set_prof_active(true));
-            assert_prof_active(true);
-        }
-        assert_prof_active(false);
-        assert!(nofy_shell::heap_profile::set_prof_active(false));
-        assert_prof_active(false);
-        let dump = TempHeapDump::new("shell");
-        nofy_shell::heap_profile::dump_to_path(dump.path()).expect("shell dump");
-        dump.assert_nonempty_dump();
     }
     use clap::Parser as _;
     /// `nofy dashboard` flags the startup hook without forcing leader mode —

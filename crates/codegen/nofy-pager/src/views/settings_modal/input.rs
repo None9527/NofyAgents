@@ -142,10 +142,7 @@ fn handle_picking_enum(state: &mut SettingsModalState, key: &KeyEvent) -> Settin
             // `action_for_string` already knows how to resolve via
             // `snapshot.resolve_model_name` AND treats the empty
             // canonical as a `Clear*` sentinel.
-            let close = std::mem::take(&mut state.close_on_picker_exit);
-            if !close {
-                state.transition_to_browse();
-            }
+            state.transition_to_browse();
             let kind_is_dynamic = matches!(
                 state.registry.find(setting_key).map(|m| &m.kind),
                 Some(SettingKind::DynamicEnum { .. })
@@ -158,40 +155,23 @@ fn handle_picking_enum(state: &mut SettingsModalState, key: &KeyEvent) -> Settin
                 picker_choice_at(state, setting_key, choices_idx)
                     .and_then(|c| action_for_enum_commit(setting_key, c))
             };
-            match (close, commit) {
-                (true, Some(action)) => SettingsKeyOutcome::ActionThenClose(action),
-                (true, None) => SettingsKeyOutcome::Close,
-                (false, Some(action)) => SettingsKeyOutcome::Action(action),
-                (false, None) => SettingsKeyOutcome::Changed,
+            match commit {
+                Some(action) => SettingsKeyOutcome::Action(action),
+                None => SettingsKeyOutcome::Changed,
             }
         }
         KeyCode::Esc => {
-            let close = std::mem::take(&mut state.close_on_picker_exit);
-            if !close {
-                state.transition_to_browse();
-            }
+            state.transition_to_browse();
             if let SettingValue::Enum(orig) = &original_value
                 && let Some(action) = action_for_enum(setting_key, orig)
             {
-                return if close {
-                    SettingsKeyOutcome::ActionThenClose(action)
-                } else {
-                    SettingsKeyOutcome::Action(action)
-                };
+                return SettingsKeyOutcome::Action(action);
             }
-            if close {
-                SettingsKeyOutcome::Close
-            } else {
-                SettingsKeyOutcome::Changed
-            }
+            SettingsKeyOutcome::Changed
         }
         // `d` reset: close picker, revert preview if applicable,
-        // then open the reset-confirm overlay. Consent choosers opt out of
-        // this entirely (no footer hint, no hidden shortcut) — reset stays
-        // reachable from the browse row.
-        KeyCode::Char('d')
-            if key.modifiers.is_empty() && !crate::settings::is_consent_chooser(setting_key) =>
-        {
+        // then open the reset-confirm overlay.
+        KeyCode::Char('d') if key.modifiers.is_empty() => {
             state.transition_to_browse();
             if supports_preview
                 && let SettingValue::Enum(orig) = &original_value
@@ -743,14 +723,6 @@ fn handle_browse(state: &mut SettingsModalState, key: &KeyEvent) -> SettingsKeyO
                 Some((_, meta)) if matches!(meta.kind, SettingKind::Group { .. }) => {
                     SettingsKeyOutcome::Unchanged
                 }
-                // A locked row isn't the user's to change, by `d` any more
-                // than by Enter (which `try_enter_picking_enum` refuses).
-                // The dispatch-time guard would catch it either way, but
-                // only after walking the user through a confirm dialog for
-                // a change that cannot happen.
-                Some((key, _meta)) if state.row_lock(key).is_some() => {
-                    SettingsKeyOutcome::Unchanged
-                }
                 Some((key, _meta)) => SettingsKeyOutcome::Action(Action::OpenResetConfirm { key }),
                 // Focused row is a header (or out-of-bounds) — `d`
                 // has nothing to reset. Unchanged so the user can
@@ -874,16 +846,14 @@ pub fn handle_settings_mouse(
     column: u16,
     row: u16,
 ) -> SettingsKeyOutcome {
-    // Breadcrumb is hierarchical "up": always return to Browse (never
-    // dismiss via `close_on_picker_exit`). Reuse sub-pane Esc handlers for
-    // preview revert after clearing the deep-link flag.
+    // Breadcrumb is hierarchical "up": always return to Browse. Reuse
+    // sub-pane Esc handlers for preview revert.
     if matches!(
         kind,
         MouseEventKind::Down(crossterm::event::MouseButton::Left)
     ) && let Some(rect) = state.settings_breadcrumb_rect
         && rect_contains(rect, column, row)
     {
-        state.close_on_picker_exit = false;
         let synthetic = KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE);
         match state.state.mode_kind() {
             SettingsModeKind::PickingEnum => {

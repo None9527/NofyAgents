@@ -91,15 +91,11 @@ fn handle_info(agent: &MvpAgent) -> ExtResult {
         profile_image_url: Option<String>,
         team_id: Option<String>,
         team_name: Option<String>,
-        team_role: Option<String>,
         organization_id: Option<String>,
         organization_name: Option<String>,
         organization_role: Option<String>,
         principal_type: Option<String>,
         principal_id: Option<String>,
-        user_blocked_reason: Option<String>,
-        team_blocked_reasons: Vec<String>,
-        coding_data_retention_opt_out: bool,
     }
 
     let method_id = agent
@@ -129,22 +125,10 @@ fn handle_info(agent: &MvpAgent) -> ExtResult {
         profile_image_url,
         team_id: auth.as_ref().and_then(|a| a.team_id.clone()),
         team_name: auth.as_ref().and_then(|a| a.team_name.clone()),
-        team_role: auth.as_ref().and_then(|a| a.team_role.clone()),
         organization_id: auth.as_ref().and_then(|a| a.organization_id.clone()),
         organization_name: auth.as_ref().and_then(|a| a.organization_name.clone()),
         organization_role: auth.as_ref().and_then(|a| a.organization_role.clone()),
         principal_type: auth.as_ref().and_then(|a| a.principal_type.clone()),
         principal_id: auth.as_ref().and_then(|a| a.principal_id.clone()),
-        user_blocked_reason: auth.as_ref().and_then(|a| a.user_blocked_reason.clone()),
-        team_blocked_reasons: auth
-            .as_ref()
-            .map(|a| a.team_blocked_reasons.clone())
-            .unwrap_or_default(),
-        // No credential ⇒ unknown privacy state: report opted-out (fail closed),
-        // matching `AuthManager::allows_data_collection` / NofyAuth Default.
-        coding_data_retention_opt_out: auth
-            .as_ref()
-            .map(|a| a.coding_data_retention_opt_out)
-            .unwrap_or_else(crate::auth::default_coding_data_retention_opt_out),
     })
 }

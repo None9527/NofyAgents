@@ -2,7 +2,6 @@
 //! The shared coordinator actor lives in `nofy-tools`; this module plugs
 //! its `!Send` local-session runner into `spawn_local`.
 use super::*;
-use crate::session::repo_changes::UploadMethod;
 use nofy_tools::implementations::nofy_build::task::coordinator;
 struct ShellChildRunner {
     agent_ref: LocalRef<MvpAgent>,

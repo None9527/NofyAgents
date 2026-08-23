@@ -30,7 +30,6 @@ fn test_actor(info: Info, storage: Arc<dyn StorageAdapter>) -> ActorGuard {
                     persistence_tx: tx.downgrade(),
                 },
             ),
-            registry_title_sync: None,
             gateway: None,
             disk_full_tx,
             disk_full_notified: false,

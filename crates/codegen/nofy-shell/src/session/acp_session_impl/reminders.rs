@@ -133,8 +133,7 @@ pub(super) fn build_todo_gate_reminder(pending: &[&str], unbacked_in_progress: &
 /// Precedence: CLI `--todo-gate` > built-in default (which is disabled).
 /// Extracted from `spawn_session_actor` so the precedence rules are
 /// unit-testable. Named `resolve_*` to match the sibling precedence helpers in
-/// `crate::util::config` (`resolve_zdr_access_enabled`, `resolve_restore_code`,
-/// …).
+/// `crate::util::config` (`resolve_restore_code`, …).
 pub(crate) fn resolve_reminder_policy(todo_gate: bool) -> nofy_agent::ReminderPolicy {
     let mut policy = nofy_agent::ReminderPolicy::default();
     if todo_gate {

@@ -3,9 +3,9 @@
 //! Core worktree lifecycle logic lives in [`nofy_workspace::worktree`].
 //! This module re-exports everything from there and adds session-aware
 //! functions that depend on shell-specific infrastructure (persistence,
-//! auth, registry client, storage client, session restore).
+//! session fork).
 use crate::util::config::WorktreeType as ShellWorktreeType;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::path::Path;
 use nofy_workspace::session::git::find_git_root_from_path;
 pub use nofy_workspace::worktree::*;
@@ -154,26 +154,16 @@ pub(crate) fn resolve_session_repo_wide(
     let refs: Vec<&str> = candidates.iter().map(String::as_str).collect();
     Ok(resolve_local_session_for_repo(session_id, &refs))
 }
-/// Whether remote worktree resume should fetch/apply the repository snapshot.
-pub(crate) fn remote_worktree_restores_codebase(
-    restore_code: Option<bool>,
-    restore_code_default: bool,
-) -> bool {
-    restore_code.unwrap_or(restore_code_default)
-}
 /// Orchestrate the full "resume session in worktree" flow.
 ///
-/// Shell-side orchestration: composes client ops (session persistence,
-/// auth, registry) with server ops (worktree creation, git, fetch+extract)
-/// dispatched through `WorkspaceOps`.
+/// Shell-side orchestration: resolves the session repo-wide, then composes
+/// worktree creation and session fork.
 pub(crate) async fn resume_session_in_worktree(
     req: &ResumeSessionInWorktreeRequest,
     ops: &nofy_workspace::WorkspaceOps,
     worktree_type_default: ShellWorktreeType,
     restore_code_default: bool,
-    registry_client: Option<&crate::agent::session_registry_client::SessionRegistryClient>,
 ) -> Result<ResumeSessionInWorktreeResponse> {
-    use nofy_workspace::session::git::effective_worktree_path;
     tracing::info!(
         target: WORKTREE_LOG,
         session_id = %req.session_id,
@@ -184,114 +174,25 @@ pub(crate) async fn resume_session_in_worktree(
     );
     let cwd_path = std::path::Path::new(req.source_cwd.as_str());
     let local_resolution = resolve_session_repo_wide(&req.session_id, cwd_path);
-    if let Ok(Some(resolved)) = local_resolution {
-        tracing::info!(
-            target: WORKTREE_LOG,
-            session_id = %req.session_id,
-            resolved_cwd = %resolved.cwd,
-            kind = ?resolved.resolution_kind,
-            "RESUME_LOCAL_RESOLVED: session found via repo-wide lookup"
-        );
-        return resume_local_session_in_worktree(
-            req,
-            ops,
-            &resolved.session_id,
-            &resolved.cwd,
-            worktree_type_default,
-            restore_code_default,
-            registry_client,
-        )
-        .await;
-    }
-    let client = registry_client.ok_or_else(|| {
-        anyhow::anyhow!(
-            "Session {} not found locally and session registry is not available \
-             (auth may be missing or registry is disabled)",
-            req.session_id,
-        )
-    })?;
+    let Some(resolved) = local_resolution? else {
+        anyhow::bail!("Session {} not found locally", req.session_id);
+    };
     tracing::info!(
+        target: WORKTREE_LOG,
         session_id = %req.session_id,
-        "Restoring remote session: creating worktree first to keep source clean"
+        resolved_cwd = %resolved.cwd,
+        kind = ?resolved.resolution_kind,
+        "RESUME_LOCAL_RESOLVED: session found via repo-wide lookup"
     );
-    let worktree_type = req
-        .worktree_type
-        .map(ShellWorktreeType::from)
-        .unwrap_or(worktree_type_default);
-    let wt_resp = create_worktree_for_resume(
-        &req.source_cwd,
-        req.copy_mode,
-        worktree_type,
-        req.git_ref.clone(),
+    resume_local_session_in_worktree(
+        req,
+        ops,
+        &resolved.session_id,
+        &resolved.cwd,
+        worktree_type_default,
+        restore_code_default,
     )
-    .await?;
-    let record = client
-        .get_session(&req.session_id)
-        .await
-        .context("fetching session record for remote restore")?;
-    let turn = crate::session::restore::resolve_restore_turn(&record, None);
-    let restore_code = remote_worktree_restores_codebase(req.restore_code, restore_code_default);
-    let memory_dl_future = crate::session::restore::download_to_tempfile(
-        client,
-        &req.session_id,
-        "memory.tar.gz",
-        turn,
-    );
-    let state_dl_future = async {
-        Err(anyhow::anyhow!(
-            "session-state archive restore unavailable in this build"
-        ))
-    };
-    let (memory_dl, state_dl) = {
-        let _ = restore_code;
-        tokio::join!(memory_dl_future, state_dl_future)
-    };
-    let codebase_ok = false;
-    let _memory_result =
-        crate::session::restore::apply_memory_download(memory_dl, &wt_resp.worktree_path).await;
-    let (session_state_result, local_session_id) =
-        crate::session::restore::apply_session_state_download(
-            state_dl,
-            &req.session_id,
-            &wt_resp.worktree_path,
-        )
-        .await;
-    if session_state_result.is_skipped() {
-        cleanup_worktree_on_failure(&req.source_cwd, &wt_resp.worktree_path).await;
-        anyhow::bail!(
-            "Session {} session-state archive was unavailable -- \
-             conversation history cannot be recovered. Retry in a few moments.",
-            req.session_id,
-        );
-    }
-    let worktree_root = std::path::Path::new(&wt_resp.worktree_path);
-    let source_path = std::path::Path::new(&req.source_cwd);
-    let source_git_root = wt_resp.source_git_root.as_deref().map(std::path::Path::new);
-    let effective_cwd = effective_worktree_path(worktree_root, source_path, source_git_root)
-        .to_string_lossy()
-        .to_string();
-    let restore_summary = None;
-    let restore_degree = if codebase_ok {
-        Some(nofy_workspace::session::git::RestoreDegree::Full)
-    } else {
-        None
-    };
-    Ok(ResumeSessionInWorktreeResponse {
-        session_id: local_session_id,
-        worktree_path: wt_resp.worktree_path,
-        effective_cwd,
-        remote_restored: true,
-        parent_session_id: req.session_id.clone(),
-        chat_messages_copied: session_state_result.files_copied as usize,
-        updates_copied: if session_state_result.updates_restored {
-            1
-        } else {
-            0
-        },
-        code_restored: codebase_ok,
-        restore_summary,
-        restore_degree,
-    })
+    .await
 }
 /// Local-session resume: create worktree from source, fork session into it.
 async fn resume_local_session_in_worktree(
@@ -301,7 +202,6 @@ async fn resume_local_session_in_worktree(
     resolved_source_cwd: &str,
     worktree_type_default: ShellWorktreeType,
     restore_code_default: bool,
-    registry_client: Option<&crate::agent::session_registry_client::SessionRegistryClient>,
 ) -> Result<ResumeSessionInWorktreeResponse> {
     use crate::session::fork::{ForkSessionRequest, fork_session};
     use nofy_workspace::session::git::effective_worktree_path;
@@ -336,14 +236,7 @@ async fn resume_local_session_in_worktree(
             .ok()
             .is_some_and(|root| nofy_workspace::session::git::detect_vcs_kind(&root).is_jj());
         if !is_jj {
-            if nofy_workspace::session::git::should_warn_registry_disabled(
-                is_jj,
-                registry_client.is_some(),
-            ) {
-                nofy_workspace::session::git::warn_registry_disabled_restore(
-                    resolved_session_id,
-                );
-            }
+            nofy_workspace::session::git::warn_registry_disabled_restore(resolved_session_id);
             let info = crate::session::info::Info {
                 id: agent_client_protocol::SessionId::new(resolved_session_id.to_owned()),
                 cwd: resolved_source_cwd.to_owned(),
@@ -371,13 +264,7 @@ async fn resume_local_session_in_worktree(
             let kind = if !outcome.checked_out {
                 RestoreKind::CheckoutFailed
             } else {
-                match registry_client {
-                    None => RestoreKind::RegistryOff,
-                    Some(client) => {
-                        let _ = (client, ops);
-                        RestoreKind::RegistryOff
-                    }
-                }
+                RestoreKind::RegistryOff
             };
             decision = build_worktree_restore_outcome(head_commit.as_deref(), &outcome, kind);
         }
@@ -412,127 +299,12 @@ async fn resume_local_session_in_worktree(
         session_id: fork_resp.new_session_id,
         worktree_path: wt_resp.worktree_path,
         effective_cwd,
-        remote_restored: false,
         parent_session_id: resolved_session_id.to_owned(),
         chat_messages_copied: fork_resp.chat_messages_copied,
         updates_copied: fork_resp.updates_copied,
         code_restored,
         restore_summary,
         restore_degree,
-    })
-}
-/// Orchestrate session rehydration: recreate the git worktree at the exact
-/// path and restore all session state using the original session ID.
-///
-pub(crate) async fn rehydrate_session_in_worktree(
-    req: &RehydrateSessionRequest,
-    #[allow(unused_variables)] ops: &nofy_workspace::WorkspaceOps,
-    registry_client: Option<&crate::agent::session_registry_client::SessionRegistryClient>,
-) -> Result<RehydrateSessionResponse> {
-    let worktree_path_str = req.worktree_path.as_deref().unwrap_or(&req.source_cwd);
-    let repo_root = Path::new(&req.repo_root);
-    let worktree_path = Path::new(worktree_path_str);
-    if !repo_root.exists() {
-        anyhow::bail!(
-            "Repository root '{}' does not exist. \
-             Ensure the repo is cloned before calling rehydrate.",
-            req.repo_root
-        );
-    }
-    let session_summary_exists = crate::util::nofy_home::sessions_cwd_dir(&req.source_cwd)
-        .join(&req.session_id)
-        .join("summary.json")
-        .exists();
-    if worktree_path.exists() && session_summary_exists {
-        tracing::info!(
-            session_id = %req.session_id,
-            worktree_path = %worktree_path_str,
-            "rehydrate: worktree and session state already exist, skipping"
-        );
-        return Ok(RehydrateSessionResponse {
-            session_id: req.session_id.clone(),
-            worktree_path: worktree_path_str.to_string(),
-            effective_cwd: req.source_cwd.clone(),
-            codebase_restored: false,
-            session_state_restored: false,
-            memory_restored: false,
-            warnings: vec![],
-        });
-    }
-    if !worktree_path.exists() {
-        tracing::info!(session_id = %req.session_id, %worktree_path_str, "rehydrate: creating worktree");
-        if let Some(parent) = worktree_path.parent() {
-            tokio::fs::create_dir_all(parent).await?;
-        }
-        let source = req.repo_root.clone();
-        let dest = worktree_path_str.to_string();
-        let session_id = req.session_id.clone();
-        let btrfs_delegate = btrfs_delegate_from_env();
-        tokio::task::spawn_blocking(move || {
-            use nofy_fast_worktree::{
-                CreationMode, IgnoredFilesMode, WorkingTreeMode, WorktreeBuilder,
-            };
-            let mut builder = WorktreeBuilder::new(&source, &dest)
-                .working_tree_mode(WorkingTreeMode::CleanAll)
-                .ignored_files_mode(IgnoredFilesMode::Skip)
-                .creation_mode(CreationMode::Linked)
-                .worktree_kind(nofy_fast_worktree::WorktreeKind::Fork)
-                .session_id(session_id);
-            if let Some(delegate) = btrfs_delegate {
-                builder = builder.btrfs_delegate(delegate);
-            }
-            builder.create()
-        })
-        .await
-        .map_err(|e| anyhow::anyhow!("worktree creation task failed: {e}"))??;
-    }
-    let client = registry_client.ok_or_else(|| {
-        anyhow::anyhow!(
-            "Session registry client is required for rehydration \
-             (auth may be missing or registry is disabled)"
-        )
-    })?;
-    let record = client
-        .get_session(&req.session_id)
-        .await
-        .context("fetching session record for rehydration")?;
-    let turn = crate::session::restore::resolve_restore_turn(&record, None);
-    let memory_dl_future = crate::session::restore::download_to_tempfile(
-        client,
-        &req.session_id,
-        "memory.tar.gz",
-        turn,
-    );
-    let state_dl_future = async {
-        Err(anyhow::anyhow!(
-            "session-state archive restore unavailable in this build"
-        ))
-    };
-    let (memory_dl, state_dl) = tokio::join!(memory_dl_future, state_dl_future);
-    let _ = ops;
-    let mut warnings: Vec<String> = Vec::new();
-    let codebase_restored = false;
-    let memory_result =
-        crate::session::restore::apply_memory_download(memory_dl, &req.source_cwd).await;
-    let session_state_result = crate::session::restore::apply_session_state_in_place(
-        state_dl,
-        &req.session_id,
-        &req.source_cwd,
-    )
-    .await;
-    if session_state_result.is_skipped() {
-        warnings.push(
-            "Session state archive was unavailable; conversation history not restored.".to_string(),
-        );
-    }
-    Ok(RehydrateSessionResponse {
-        session_id: req.session_id.clone(),
-        worktree_path: worktree_path_str.to_string(),
-        effective_cwd: req.source_cwd.clone(),
-        codebase_restored,
-        session_state_restored: !session_state_result.is_skipped(),
-        memory_restored: memory_result.sessions_copied > 0,
-        warnings,
     })
 }
 #[cfg(all(test, unix))]
@@ -570,7 +342,6 @@ mod tests {
             session_id: "forked-id".into(),
             worktree_path: "/wt/root".into(),
             effective_cwd: "/wt/root/sub".into(),
-            remote_restored: true,
             parent_session_id: "original-id".into(),
             chat_messages_copied: 42,
             updates_copied: 100,
@@ -584,7 +355,6 @@ mod tests {
         let deser: ResumeSessionInWorktreeResponse = serde_json::from_str(&json).unwrap();
         assert_eq!(deser.session_id, "forked-id");
         assert_eq!(deser.effective_cwd, "/wt/root/sub");
-        assert!(deser.remote_restored);
         assert_eq!(deser.parent_session_id, "original-id");
         assert_eq!(deser.chat_messages_copied, 42);
         assert_eq!(deser.updates_copied, 100);
@@ -643,7 +413,6 @@ mod tests {
             session_id: "s".into(),
             worktree_path: "w".into(),
             effective_cwd: "e".into(),
-            remote_restored: false,
             parent_session_id: "p".into(),
             chat_messages_copied: 0,
             updates_copied: 0,
@@ -669,7 +438,6 @@ mod tests {
             "sessionId": "s",
             "worktreePath": "w",
             "effectiveCwd": "e",
-            "remoteRestored": false,
             "parentSessionId": "p",
             "chatMessagesCopied": 0,
             "updatesCopied": 0,
@@ -685,7 +453,6 @@ mod tests {
             session_id: "s".into(),
             worktree_path: "w".into(),
             effective_cwd: "e".into(),
-            remote_restored: false,
             parent_session_id: "p".into(),
             chat_messages_copied: 0,
             updates_copied: 0,
@@ -697,7 +464,6 @@ mod tests {
         assert!(json.contains("sessionId"));
         assert!(json.contains("worktreePath"));
         assert!(json.contains("effectiveCwd"));
-        assert!(json.contains("remoteRestored"));
         assert!(json.contains("parentSessionId"));
         assert!(json.contains("chatMessagesCopied"));
         assert!(json.contains("updatesCopied"));
@@ -901,37 +667,26 @@ mod tests {
             LocalSessionResolutionKind::SameRepoDifferentCwd
         );
     }
-    #[test]
-    fn remote_worktree_codebase_follows_request_then_default() {
-        assert!(!remote_worktree_restores_codebase(Some(false), true));
-        assert!(!remote_worktree_restores_codebase(None, false));
-        assert!(remote_worktree_restores_codebase(None, true));
-        assert!(remote_worktree_restores_codebase(Some(true), false));
-    }
     #[tokio::test]
-    async fn resume_in_worktree_falls_through_to_remote_when_not_found_locally() {
+    async fn resume_in_worktree_fails_when_not_found_locally() {
+        let repo = tempfile::tempdir().unwrap();
+        init_git_repo(repo.path());
         let req = ResumeSessionInWorktreeRequest {
             session_id: "nonexistent-session-id".to_string(),
-            source_cwd: "/tmp/definitely-not-a-repo".to_string(),
+            source_cwd: repo.path().display().to_string(),
             copy_mode: WorktreeCopyMode::Dirty,
             worktree_type: None,
             restore_code: Some(true),
             git_ref: None,
         };
         let ops = nofy_workspace::WorkspaceOps::for_test();
-        let result = resume_session_in_worktree(
-            &req,
-            &ops,
-            ShellWorktreeType::Linked,
-            false,
-            None,
-        )
-        .await;
-        let err = result.expect_err("should fail when session not found and no registry");
+        let result =
+            resume_session_in_worktree(&req, &ops, ShellWorktreeType::Linked, false).await;
+        let err = result.expect_err("should fail when session not found locally");
         let msg = err.to_string();
         assert!(
-            msg.contains("not found locally") && msg.contains("registry"),
-            "expected registry-unavailable error, got: {msg}"
+            msg.contains("not found locally"),
+            "expected not-found error, got: {msg}"
         );
     }
     /// Test helper: Initialize a git repo at the given path

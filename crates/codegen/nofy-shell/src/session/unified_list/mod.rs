@@ -2,7 +2,6 @@ mod cursor;
 mod envelope;
 mod facets;
 mod row;
-use crate::agent::session_registry_client::SessionRegistryClient;
 pub use crate::session::merge::CwdScope;
 use agent_client_protocol as acp;
 use cursor::{CompositeCursor, Paginated, merge_and_paginate};
@@ -211,10 +210,7 @@ pub(crate) fn force_kind(req: &mut ListReq, kind: SessionKind) {
     req.meta = Some(serde_json::Value::Object(meta));
 }
 
-pub async fn build_unified_list(
-    registry_client: Option<&SessionRegistryClient>,
-    mut req: ListReq,
-) -> UnifiedListResult {
+pub async fn build_unified_list(mut req: ListReq) -> UnifiedListResult {
     if crate::agent::chat_modes::process_chat_mode_enabled() && !client_sent_kind_filter(&req) {
         force_kind_chat(&mut req);
     }
@@ -242,35 +238,21 @@ pub async fn build_unified_list(
         }
         let cwd = req.cwd.as_deref();
         if can_relax {
-            let lanes =
-                crate::session::merge::fetch_lanes(registry_client, cwd, cwd_scope, None, over)
-                    .await;
+            let lanes = crate::session::merge::fetch_lanes(cwd, cwd_scope, None).await;
             let rows = to_rows(
-                crate::session::merge::merge(
-                    lanes.remote.clone(),
-                    lanes.local,
-                    None,
-                    &lanes.repo_urls,
-                    over,
-                ),
+                crate::session::merge::merge(lanes.local, None, over),
                 reg,
             );
             LocalLane {
                 rows,
                 relax: Some(RelaxInputs {
-                    remote: lanes.remote,
                     repo_urls: lanes.repo_urls,
                 }),
             }
         } else {
-            let merged = crate::session::merge::fetch_merged(
-                registry_client,
-                cwd,
-                cwd_scope,
-                query.as_deref(),
-                over,
-            )
-            .await;
+            let merged =
+                crate::session::merge::fetch_merged(cwd, cwd_scope, query.as_deref(), over)
+                    .await;
             LocalLane {
                 rows: to_rows(merged, reg),
                 relax: None,
@@ -314,7 +296,6 @@ struct LocalLane {
 }
 
 struct RelaxInputs {
-    remote: Vec<crate::agent::session_registry_client::SessionRecord>,
     repo_urls: Vec<String>,
 }
 
@@ -387,10 +368,7 @@ fn relax_rows(
     reg: &FacetRegistry,
 ) -> Option<Vec<UnifiedRow>> {
     let scoped = crate::session::merge::filter_summaries_by_repo(all_local, &relax.repo_urls);
-    let rows = to_rows(
-        crate::session::merge::merge(relax.remote, scoped, None, &relax.repo_urls, over),
-        reg,
-    );
+    let rows = to_rows(crate::session::merge::merge(scoped, None, over), reg);
     (!lane_has_no_messages(&rows)).then_some(rows)
 }
 
@@ -767,7 +745,6 @@ mod tests {
             s
         };
         let relax = || RelaxInputs {
-            remote: Vec::new(),
             repo_urls: vec![repo_url.clone()],
         };
         let rows = relax_rows(

@@ -770,7 +770,6 @@ async fn provider_helper_env_scrubs_first_party_credentials() {
         "NOFY_AUTH_PATH",
         "NOFY_DEPLOYMENT_KEY",
         "NOFY_EXTRA_AUTH_KEY",
-        "NOFY_TRACE_UPLOAD_CREDENTIALS_FILE",
         "OTEL_EXPORTER_OTLP_HEADERS",
         "NOFY_INTERNAL_OTLP_HEADERS",
     ];

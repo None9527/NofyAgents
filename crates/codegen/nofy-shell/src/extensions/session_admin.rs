@@ -182,32 +182,6 @@ async fn handle_session_rename(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtR
     // Send a SessionSummaryGenerated notification so the TUI updates its title
     notify_session_title(agent, session_id, &req.title).await;
 
-    // Hook 2: update session replica with summary (fire-and-forget)
-    if let Some(client) = agent.session_registry_client() {
-        let sid = req.session_id.to_string();
-        let title = if agent
-            .auth_manager
-            .current_or_expired()
-            .is_some_and(|a| a.is_zdr_team())
-        {
-            None
-        } else {
-            Some(req.title.clone())
-        };
-        tokio::spawn(async move {
-            let update = crate::agent::session_registry_client::UpdateRequest {
-                summary: title,
-                first_prompt: None,
-                last_turn_number: None,
-                repo_head_at_end: None,
-                restorable_turn_number: None,
-            };
-            if let Err(e) = client.update(&sid, &update).await {
-                tracing::warn!(error = %e, "session registry summary update failed (non-fatal)");
-            }
-        });
-    }
-
     tracing::info!(session_id = %req.session_id, title = %req.title, "Session renamed");
 
     to_raw_response(&serde_json::json!({ "success": true }))

@@ -1091,7 +1091,6 @@ async fn check_marketplace_updates_dispatches_update_and_skips_failed_notificati
         }
     });
     let mut tasks = JoinSet::new();
-    let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel();
     execute(
         Effect::CheckMarketplaceUpdates {
             agent_id: AgentId(7),
@@ -1101,7 +1100,6 @@ async fn check_marketplace_updates_dispatches_update_and_skips_failed_notificati
         &tx,
         Path::new("."),
         &SessionFlags::default(),
-        &progress_tx,
     );
     let result = tasks
         .join_next()
@@ -1123,7 +1121,6 @@ async fn check_marketplace_updates_dispatches_update_and_skips_failed_notificati
 #[tokio::test]
 async fn foreign_scan_task_echoes_sequence_without_enabled_sources() {
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut tasks = JoinSet::new();
     let app_coordinator = crate::app::ForeignScanCoordinator::default();
     app_coordinator.begin_request(41);
@@ -1139,7 +1136,6 @@ async fn foreign_scan_task_echoes_sequence_without_enabled_sources() {
         &tx,
         Path::new("."),
         &SessionFlags::default(),
-        &progress_tx,
     );
     match tasks.join_next().await.expect("task").expect("no panic") {
         TaskResult::ForeignSessionsScanned { entries, seq } => {
@@ -1153,7 +1149,6 @@ async fn foreign_scan_task_echoes_sequence_without_enabled_sources() {
 #[tokio::test]
 async fn foreign_resume_detection_runs_as_task_result() {
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut tasks = JoinSet::new();
     let quit = execute(
         Effect::CanonicalizeForeignResumeCwd {
@@ -1164,7 +1159,6 @@ async fn foreign_resume_detection_runs_as_task_result() {
         &tx,
         Path::new("."),
         &SessionFlags::default(),
-        &progress_tx,
     );
     assert!(!quit);
     match tasks.join_next().await.expect("task").expect("no panic") {
@@ -1191,7 +1185,6 @@ async fn foreign_resume_detection_runs_as_task_result() {
         &tx,
         Path::new("."),
         &SessionFlags::default(),
-        &progress_tx,
     );
     assert!(!quit);
     match tasks.join_next().await.expect("task").expect("no panic") {
@@ -1247,7 +1240,6 @@ async fn fetch_session_list_pushes_query_and_echoes_seq() {
             }
         }
     });
-    let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel();
     let run = |effect: Effect| {
         let mut tasks = JoinSet::new();
         execute(
@@ -1256,7 +1248,6 @@ async fn fetch_session_list_pushes_query_and_echoes_seq() {
             &tx,
             Path::new("."),
             &SessionFlags::default(),
-            &progress_tx,
         );
         tasks
     };
@@ -1353,7 +1344,6 @@ async fn fetch_session_list_sends_kind_facet_filter() {
             }
         }
     });
-    let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut tasks = JoinSet::new();
     execute(
         Effect::FetchSessionList {
@@ -1365,7 +1355,6 @@ async fn fetch_session_list_sends_kind_facet_filter() {
         &tx,
         Path::new("."),
         &SessionFlags::default(),
-        &progress_tx,
     );
     let _ = tasks.join_next().await;
     let captured = captured.lock().unwrap();
@@ -1400,7 +1389,6 @@ async fn fetch_workflows_list_sends_session_id() {
     });
     let session_id = acp::SessionId::new(Arc::from("test-session"));
     let mut tasks = JoinSet::new();
-    let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel();
     execute(
         Effect::FetchWorkflowsList {
             agent_id: AgentId(3),
@@ -1410,7 +1398,6 @@ async fn fetch_workflows_list_sends_session_id() {
         &tx,
         Path::new("."),
         &SessionFlags::default(),
-        &progress_tx,
     );
     match tasks.join_next().await.expect("task").expect("no panic") {
         TaskResult::WorkflowsListLoaded {
@@ -1435,7 +1422,6 @@ async fn fetch_workflows_list_sends_session_id() {
 #[tokio::test]
 async fn debounce_session_search_echoes_query_and_seq() {
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut tasks = JoinSet::new();
     execute(
         Effect::DebounceSessionSearch {
@@ -1446,7 +1432,6 @@ async fn debounce_session_search_echoes_query_and_seq() {
         &tx,
         Path::new("."),
         &SessionFlags::default(),
-        &progress_tx,
     );
     match tasks.join_next().await.expect("task").expect("no panic") {
         TaskResult::SessionSearchDebounceExpired { query, seq } => {
@@ -2215,26 +2200,13 @@ fn sanitize_user_error_collapses_disk_full() {
             "couldn't create worktree: failed to get HEAD commit from source"
         );
 }
-/// Production ordering of the deferred worktree resume failure: the
-/// detail is sanitized FIRST, then composed — sanitizing the composed
-/// message would collapse a disk-full chain whole and erase the title
-/// hint for a deferred local-miss target.
+/// Production ordering of the worktree resume failure: the detail is
+/// sanitized FIRST, then composed.
 #[test]
-fn worktree_resume_failure_sanitizes_detail_before_hint() {
+fn worktree_resume_failure_sanitizes_detail_before_composing() {
     let raw = "failed to copy index: No space left on device (os error 28)";
-    let msg = worktree_resume_failure_message(
-        Some("typo title"),
-        &sanitize_user_error(raw),
-    );
-    assert_eq!(
-            msg,
-            format!(
-                "couldn't resume worktree session: No space left on device; {}",
-                crate::app::session_title_resolve::title_miss_hint("typo title")
-            )
-        );
-    let id_msg = worktree_resume_failure_message(None, &sanitize_user_error(raw));
-    assert_eq!(id_msg, "couldn't resume worktree session: No space left on device");
+    let msg = worktree_resume_failure_message(&sanitize_user_error(raw));
+    assert_eq!(msg, "couldn't resume worktree session: No space left on device");
 }
 /// A resume-picker entry converts to a **dormant** dashboard roster row
 /// (the non-leader idle source) preserving title, cwd, model, worktree

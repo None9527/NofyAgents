@@ -981,13 +981,6 @@ fn apply_requirements_inner(
     pin_feature!(web_fetch);
     pin_feature!(ask_user_question);
     pin_feature!(write_file);
-    if let Some(val) = req_bool(req, "telemetry", "trace_upload") {
-        config.requirements.trace_upload.pin(val, source.clone());
-        if config.telemetry.trace_upload != Some(val) {
-            config.telemetry.trace_upload = Some(val);
-            push("telemetry.trace_upload", format!("{val}"));
-        }
-    }
     enforce_opt!("cli", "use_leader", config.cli.use_leader);
     enforce_opt!("cli", "show_tips", config.cli.show_tips);
     enforce_val!("memory", "enabled", config.memory.enabled);
@@ -1073,11 +1066,6 @@ fn apply_requirements_inner(
     }
     enforce_str!(
         "endpoints",
-        "trace_upload_url",
-        config.endpoints.trace_upload_url
-    );
-    enforce_str!(
-        "endpoints",
         "deployment_key",
         config.endpoints.deployment_key,
         redacted
@@ -1090,32 +1078,6 @@ fn apply_requirements_inner(
         redacted
     );
 
-    enforce_str!(
-        "endpoints",
-        "trace_upload_bucket",
-        config.endpoints.trace_upload_bucket
-    );
-    enforce_str!(
-        "endpoints",
-        "trace_upload_region",
-        config.endpoints.trace_upload_region
-    );
-    enforce_str!(
-        "endpoints",
-        "trace_upload_credentials_file",
-        config.endpoints.trace_upload_credentials_file
-    );
-    enforce_str!(
-        "endpoints",
-        "trace_upload_endpoint_url",
-        config.endpoints.trace_upload_endpoint_url
-    );
-    enforce_str!(
-        "endpoints",
-        "trace_upload_credentials",
-        config.endpoints.trace_upload_credentials,
-        redacted
-    );
     if let Some(val) = req.get("features").and_then(|f| f.get("codebase_indexing")) {
         use crate::agent::config::CodebaseIndexingSetting;
         match val {

@@ -703,14 +703,10 @@ pub struct MvpAgent {
     /// LEADER-SAFE(shared): agent-level code-nav index manager, keyed by cwd,
     /// no per-client state.
     codebase_indexes: Arc<parking_lot::Mutex<CodebaseIndexManager>>,
-    /// Worktree creation type (resolved: local config > remote > default Linked).
+    /// Worktree creation type (resolved: local config > default Linked).
     pub(crate) worktree_type: crate::util::config::WorktreeType,
-    /// Restore codebase state on worktree resume (resolved: local config > remote > default false).
+    /// Restore codebase state on worktree resume (resolved: local config > default false).
     pub(crate) restore_code: bool,
-    /// Local session-registry override: `NOFY_SESSION_REGISTRY` env, else
-    /// `[cli] session_registry`.
-    /// `Some(true)` enables, `Some(false)` disables, `None` defers to remote settings.
-    session_registry_local: Option<bool>,
     /// Managed MCP configs and gateway tool catalog; lazily fetched.
     managed_mcp_cache: crate::session::managed_mcp::ManagedMcpStateHandle,
     /// Agent-level MCP server state. LEADER-SAFE(shared): MCP servers are
@@ -798,16 +794,8 @@ pub struct MvpAgent {
     /// gate call and diffed against this baseline. LEADER-SAFE(shared): one
     /// agent-wide push stream.
     last_emitted_announcements: RefCell<Vec<nofy_announcements::RemoteAnnouncement>>,
-    /// Threshold jemalloc heap-profile monitor (agent process only).
-    heap_profile_monitor: RefCell<crate::heap_profile::HeapProfileMonitor>,
-    /// Idempotency guard for the heap-profile poll / kill-switch loop.
-    heap_profile_started: std::cell::Cell<bool>,
-    /// Test-only spy recording every session id whose cloud replica was
-    /// finalized via `finalize_session_replica`. Lets the no-evict tests assert
-    /// that `finalize()` does NOT fire on a mere client disconnect (only on a
-    /// terminal/explicit close).
-    #[cfg(test)]
-    finalize_spy: RefCell<Vec<String>>,
+    /// Idempotency guard for the resource-report poll loop.
+    resource_report_started: std::cell::Cell<bool>,
     /// Test-only spy recording every terminal roster delta `(session_id,
     /// final_state)` emitted by `record_roster_delta` (reap → `DeadFailed`,
     /// explicit close → `Completed`). Lets tests observe a terminal demotion
@@ -1076,7 +1064,6 @@ impl Drop for SessionLoadGuard<'_> {
 }
 mod code_nav;
 mod folder_trust_prompt;
-mod heap_profile;
 mod resource_telemetry;
 mod session_registry;
 mod session_lifecycle;
@@ -1429,9 +1416,6 @@ impl MvpAgent {
                     auth_mode: Some(format!("{:?}", auth.auth_mode)),
                     team_id: auth.team_id.clone(),
                     team_name: auth.team_name.clone(),
-                    is_zdr: auth.is_zdr_team(),
-                    team_role: auth.team_role.clone(),
-                    coding_data_retention_opt_out: auth.coding_data_retention_opt_out,
                     show_resolved_model: None,
                 };
                 serde_json::to_value(auth_meta)

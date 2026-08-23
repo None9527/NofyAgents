@@ -471,18 +471,16 @@ pub fn mode_from_active_stamp(
 
 /// Whether keyboard/mouse should mutate the welcome selection.
 ///
-/// Same surface as ACK + render: chat mode, access, auth Done, not ZDR,
-/// not CLI-startup-locked, and history picker closed (Ctrl+E/click would
+/// Same surface as ACK + render: chat mode, auth Done, not
+/// CLI-startup-locked, and history picker closed (Ctrl+E/click would
 /// otherwise mutate with no on-screen control).
 pub fn picker_interactive(
     chat_mode: bool,
-    has_access: bool,
     auth_done: bool,
-    zdr_blocked: bool,
     session_picker_open: bool,
     startup_locked: bool,
 ) -> bool {
-    chat_mode && has_access && auth_done && !zdr_blocked && !startup_locked && !session_picker_open
+    chat_mode && auth_done && !startup_locked && !session_picker_open
 }
 
 /// Center the picker within `menu_area` the same way the menu is inset.
@@ -635,21 +633,16 @@ mod tests {
 
     #[test]
     fn picker_interactive_matrix() {
-        assert!(picker_interactive(true, true, true, false, false, false));
-        assert!(!picker_interactive(true, true, true, false, false, true));
+        assert!(picker_interactive(true, true, false, false));
+        assert!(!picker_interactive(true, true, false, true));
         assert!(
-            !picker_interactive(true, true, true, false, true, false),
+            !picker_interactive(true, true, true, false),
             "history open: Ctrl+E/click must not mutate a hidden control"
         );
-        assert!(!picker_interactive(true, false, true, false, false, false));
-        assert!(!picker_interactive(false, true, true, false, false, false));
+        assert!(!picker_interactive(false, true, false, false));
         assert!(
-            !picker_interactive(true, true, false, false, false, false),
+            !picker_interactive(true, false, false, false),
             "unauthenticated welcome must not cycle mode"
-        );
-        assert!(
-            !picker_interactive(true, true, true, true, false, false),
-            "ZDR-blocked welcome must not cycle mode"
         );
     }
 

@@ -46,7 +46,6 @@ pub async fn run(args: SessionsArgs) -> Result<()> {
             // the global assistant can see every project's sessions at once.
             let cwd_filter = if all { None } else { cwd.to_str() };
             let sessions = nofy_shell::session::merge::fetch_merged(
-                None,
                 cwd_filter,
                 nofy_shell::session::merge::CwdScope::WithSiblings,
                 None,

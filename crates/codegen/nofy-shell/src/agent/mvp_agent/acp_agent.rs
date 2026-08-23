@@ -333,7 +333,7 @@ impl acp::Agent for MvpAgent {
                 agent_ref.get().emit_announcements(AnnouncementsPushMode::SeedNewClient);
             });
         }
-        self.spawn_heap_profile_monitor();
+        self.spawn_resource_report_loop();
         let init_model_state = if crate::agent::chat_modes::process_chat_mode_enabled() {
             self.chat_modes.model_state().await
         } else {
@@ -1142,9 +1142,6 @@ impl acp::Agent for MvpAgent {
             "nofy/interject" => crate::extensions::interject::handle(self, &args).await,
             "nofy/btw" => crate::extensions::btw::handle(self, &args).await,
             "nofy/recap" => crate::extensions::recap::handle(self, &args).await,
-            "nofy/privacy/setCodingDataRetention" => {
-                crate::extensions::privacy::handle(self, &args).await
-            }
             "nofy/rollout/survey" => {
                 crate::extensions::rollout::handle(self, &args).await
             }

@@ -148,13 +148,11 @@ pub fn log_event<T: TelemetryEvent>(data: T) {
 ///
 /// Used by call sites whose internal sink is gated by a *stricter* predicate
 /// than [`log_event`]'s own `TelemetryMode::Enabled` check (the shell's
-/// `telemetry_enabled` = `Enabled && !ZDR`, or `!is_data_collection_disabled()`).
-/// Because [`log_event`] already fans out to the external sink before its
-/// internal gate, the two branches are **mutually exclusive**: routing through
-/// `log_event` when internal is enabled reaches both sinks, and calling
-/// [`crate::external::emit`] directly otherwise keeps `session.count` /
-/// `turn.count` exactly-once on every path while never sending an internal
-/// record under ZDR.
+/// `telemetry_enabled`). Because [`log_event`] already fans out to the
+/// external sink before its internal gate, the two branches are **mutually
+/// exclusive**: routing through `log_event` when internal is enabled reaches
+/// both sinks, and calling [`crate::external::emit`] directly otherwise keeps
+/// `session.count` / `turn.count` exactly-once on every path.
 pub fn log_event_dual<T: TelemetryEvent>(internal_enabled: bool, data: T) {
     if internal_enabled {
         log_event(data);
@@ -342,7 +340,7 @@ mod tests {
     /// through `EmitterOrigin::Shell`.
     #[test]
     fn shell_origin_event_name_matches_legacy_format() {
-        let suffix = "trace_upload_attempted";
+        let suffix = "session_started";
         let rerouted = format!("{}{}", EmitterOrigin::Shell.event_prefix(), suffix);
         let legacy = format!("nofy-shell-{suffix}");
         assert_eq!(rerouted, legacy);

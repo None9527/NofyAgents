@@ -39,13 +39,6 @@ impl PersistenceContentChunk {
     }
 }
 
-/// Mirrors generated titles to the session registry after local persistence succeeds.
-#[derive(Clone)]
-pub(crate) struct RegistryGeneratedTitleSync {
-    pub client: crate::agent::session_registry_client::SessionRegistryClient,
-    pub suppress_for_zdr: bool,
-}
-
 use crate::session::storage::SessionUpdate;
 use serde::{Deserialize, Serialize};
 
@@ -1474,7 +1467,6 @@ struct SessionPersistence {
     rx: mpsc::UnboundedReceiver<PersistenceMsg>,
     /// Session title generation lifecycle.
     summary: crate::session::summary::SummaryGenerator,
-    registry_title_sync: Option<RegistryGeneratedTitleSync>,
     /// Client gateway for `SessionSummaryGenerated` notifications. Used to
     /// announce an auto-generated title only once it has actually been adopted
     /// (see the `GeneratedTitle` handler), so a title rejected for racing a
@@ -1945,30 +1937,6 @@ impl SessionPersistence {
                                 &self.info,
                                 &title,
                             );
-                            if let Some(reg) = self.registry_title_sync.as_ref()
-                                && !reg.suppress_for_zdr
-                            {
-                                let client = reg.client.clone();
-                                let sid = self.info.id.to_string();
-                                let t = title;
-                                tokio::spawn(async move {
-                                    let req =
-                                        crate::agent::session_registry_client::UpdateRequest {
-                                            summary: Some(t),
-                                            first_prompt: None,
-                                            last_turn_number: None,
-                                            repo_head_at_end: None,
-                                            restorable_turn_number: None,
-                                        };
-                                    if let Err(e) = client.update(&sid, &req).await {
-                                        tracing::warn!(
-                                            error = %e,
-                                            session_id = %sid,
-                                            "session registry summary sync failed after title generation"
-                                        );
-                                    }
-                                });
-                            }
                         }
                         Ok(false) => {
                             tracing::debug!(
@@ -2294,7 +2262,6 @@ pub(crate) async fn new(
     sampling_client: OaiCompatClient,
     gateway: Option<GatewaySender>,
     session_summary_model: String,
-    registry_title_sync: Option<RegistryGeneratedTitleSync>,
 ) -> io::Result<PersistenceHandle> {
     let root_dir = nofy_home();
     let storage: Box<dyn StorageAdapter> = Box::new(JsonlStorageAdapter::with_root(root_dir));
@@ -2326,7 +2293,6 @@ pub(crate) async fn new(
                     persistence_tx: summary_tx,
                 },
             ),
-            registry_title_sync,
             gateway,
             disk_full_tx,
             disk_full_notified: false,
@@ -2389,7 +2355,6 @@ pub(crate) async fn new_with_explicit_dir(
                     persistence_tx: summary_tx,
                 },
             ),
-            registry_title_sync: None,
             gateway: None,
             disk_full_tx,
             disk_full_notified: false,
@@ -2400,19 +2365,8 @@ pub(crate) async fn new_with_explicit_dir(
     Ok(handle)
 }
 
-pub struct PersistedInfo {
-    pub summary: Summary,
-    pub chat_history: Vec<ConversationItem>,
-    /// All session updates (ACP updates and xAI extension updates) in chronological order
-    pub updates: Vec<SessionUpdate>,
-    pub plan_state: Option<TodoState>,
-    pub rewind_points: Vec<RewindPoint>,
-    /// Persisted session signals (None for old sessions without signals file)
-    pub signals: Option<SessionSignals>,
-    pub workflow_runs: Vec<crate::session::workflow::store::RestoredWorkflowRun>,
-}
-
-/// Same as PersistedInfo but without updates - for memory efficiency when streaming
+/// Loaded session state without updates in memory — updates stream from
+/// disk for memory efficiency.
 pub struct PersistedInfoLight {
     pub summary: Summary,
     pub chat_history: Vec<ConversationItem>,
@@ -2433,66 +2387,7 @@ pub struct PersistedInfoLight {
     pub workflow_runs: Vec<crate::session::workflow::store::RestoredWorkflowRun>,
 }
 
-#[expect(dead_code, reason = "wired when session restore flow calls load")]
-pub(crate) async fn load(
-    info: &Info,
-    sampling_client: OaiCompatClient,
-    gateway: Option<GatewaySender>,
-    session_summary_model: String,
-    registry_title_sync: Option<RegistryGeneratedTitleSync>,
-) -> io::Result<(PersistedInfo, PersistenceHandle)> {
-    let root_dir = nofy_home();
-    let storage: Box<dyn StorageAdapter> = Box::new(JsonlStorageAdapter::with_root(root_dir));
-
-    let persisted = storage.load_session(info).await?;
-    let loaded_info = info.clone();
-    // Touch on load too: resuming must reset the worktree's gc expiry clock.
-    touch_worktree_for_session(&loaded_info).await;
-
-    let persisted_info = PersistedInfo {
-        summary: persisted.summary,
-        chat_history: persisted.chat_history,
-        updates: persisted.updates,
-        plan_state: persisted.plan_state,
-        rewind_points: persisted.rewind_points,
-        signals: persisted.signals,
-        workflow_runs: persisted.workflow_runs,
-    };
-
-    let (handle, rx, summary_tx, disk_full_tx) = actor_channel();
-
-    let storage: Arc<dyn StorageAdapter> = Arc::from(storage);
-
-    let has_title = !persisted_info.summary.display_title().is_empty();
-    tokio::task::spawn(async move {
-        let mut summary_gen = crate::session::summary::SummaryGenerator::new(
-            crate::session::summary::SummaryConfig {
-                sampling_client,
-                model: session_summary_model,
-                persistence_tx: summary_tx,
-            },
-        );
-        if has_title {
-            summary_gen.mark_done();
-        }
-        let persistence = SessionPersistence {
-            info: loaded_info,
-            storage: storage.clone(),
-            pending_notification: None,
-            rx,
-            summary: summary_gen,
-            registry_title_sync,
-            gateway,
-            disk_full_tx,
-            disk_full_notified: false,
-        };
-        persistence.run().await;
-    });
-
-    Ok((persisted_info, handle))
-}
-
-/// Like `load`, but doesn't load updates into memory.
+/// Load a session without reading updates into memory.
 /// Instead, provides the path to the updates file for streaming reads.
 /// Use this for memory-efficient session loading when replaying updates.
 pub(crate) async fn load_light(
@@ -2500,7 +2395,6 @@ pub(crate) async fn load_light(
     sampling_client: OaiCompatClient,
     gateway: Option<GatewaySender>,
     session_summary_model: String,
-    registry_title_sync: Option<RegistryGeneratedTitleSync>,
 ) -> io::Result<(PersistedInfoLight, PersistenceHandle)> {
     let root_dir = nofy_home();
     let storage: Box<dyn StorageAdapter> =
@@ -2549,7 +2443,6 @@ pub(crate) async fn load_light(
             pending_notification: None,
             rx,
             summary: summary_gen,
-            registry_title_sync,
             gateway,
             disk_full_tx,
             disk_full_notified: false,

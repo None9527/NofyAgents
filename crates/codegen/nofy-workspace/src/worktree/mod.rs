@@ -5,10 +5,9 @@
 //! without pulling in the full shell.
 //!
 //! Session-aware operations (`resume_session_in_worktree`,
-//! `rehydrate_session_in_worktree`, `resolve_session_repo_wide`) remain in
-//! the shell because they orchestrate session lifecycle (persistence, auth,
-//! registry) which are client-side concerns. They call workspace ops for
-//! the worktree/git parts.
+//! `resolve_session_repo_wide`) remain in the shell because they orchestrate
+//! session lifecycle (persistence, auth) which are client-side concerns.
+//! They call workspace ops for the worktree/git parts.
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -2267,7 +2266,7 @@ pub async fn remove_jj_workspace(workspace_path: &str) -> Result<()> {
 }
 
 // ============================================================================
-// Resume / Rehydrate types (types only -- impl stays in shell)
+// Resume types (types only -- impl stays in shell)
 // ============================================================================
 
 /// Request to resume an existing session in a fresh worktree.
@@ -2302,7 +2301,6 @@ pub struct ResumeSessionInWorktreeResponse {
     /// Working directory inside the worktree, preserving any subdirectory
     /// offset from `source_cwd`.
     pub effective_cwd: String,
-    pub remote_restored: bool,
     pub parent_session_id: String,
     pub chat_messages_copied: usize,
     pub updates_copied: usize,
@@ -2317,38 +2315,6 @@ pub struct ResumeSessionInWorktreeResponse {
     /// restore was attempted. Serialises as `"full"` / `"head_only"`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub restore_degree: Option<crate::session::git::RestoreDegree>,
-}
-
-/// Request to rehydrate a session in a worktree, preserving the original
-/// session identity. Designed for host recovery after restart.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RehydrateSessionRequest {
-    /// Original session ID to restore (preserved as-is).
-    pub session_id: String,
-    /// The CWD the session was using.
-    pub source_cwd: String,
-    /// Path to the main git repository root.
-    pub repo_root: String,
-    /// Worktree path to recreate.
-    #[serde(default)]
-    pub worktree_path: Option<String>,
-}
-
-/// Response from `nofy/session/rehydrate`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RehydrateSessionResponse {
-    /// Same session ID as the request (identity preserved).
-    pub session_id: String,
-    /// Same worktree path as the request (recreated in place).
-    pub worktree_path: String,
-    /// Same CWD as the request.
-    pub effective_cwd: String,
-    pub codebase_restored: bool,
-    pub session_state_restored: bool,
-    pub memory_restored: bool,
-    pub warnings: Vec<String>,
 }
 
 // ============================================================================

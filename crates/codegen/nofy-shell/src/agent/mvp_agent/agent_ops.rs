@@ -564,30 +564,6 @@ impl MvpAgent {
             );
         }
     }
-    /// Build a `RegistryConfig` if the feature is enabled (for passing to persistence actor).
-    pub(super) fn build_registry_config(
-        &self,
-    ) -> Option<crate::session::RegistryConfig> {
-        // Cross-host session-replica registration went to the xAI cli-chat-proxy
-        // registry. Disabled in the sanitized build; sessions stay local.
-        None
-    }
-    /// Build a `SessionRegistryClient` if the feature is enabled.
-    /// Delegates to `build_registry_config()` for the enabled check + config.
-    pub(crate) fn session_registry_client(
-        &self,
-    ) -> Option<crate::agent::session_registry_client::SessionRegistryClient> {
-        let cfg = self.build_registry_config()?;
-        Some(
-            crate::agent::session_registry_client::SessionRegistryClient::new(
-                    cfg.base_url,
-                    cfg.user_token,
-                )
-                .with_deployment_key(cfg.deployment_key)
-                .with_alpha_test_key(cfg.alpha_test_key)
-                .with_auth(self.auth_manager.clone()),
-        )
-    }
     /// Pre-session command availability snapshot.
     ///
     /// Used by the `nofy/commands/list` ext method and the
@@ -608,17 +584,6 @@ impl MvpAgent {
             workflows: self.cfg.borrow().resolve_workflows().value,
             ..crate::session::slash_commands::CommandAvailability::default()
         }
-    }
-    /// `true` when data collection should be suppressed (team ZDR or
-    /// coding-data-retention opt-out). Delegates to
-    /// [`AuthManager::is_data_collection_disabled`].
-    pub(crate) fn is_data_collection_disabled(&self) -> bool {
-        self.auth_manager.is_data_collection_disabled()
-    }
-    /// Telemetry enabled and not ZDR. Same gate as session `telemetry_enabled`.
-    pub(crate) fn product_analytics_enabled(&self) -> bool {
-        self.cfg.borrow().is_telemetry_enabled()
-            && !self.auth_manager.current_or_expired().is_some_and(|a| a.is_zdr_team())
     }
     /// Current client type as set by the most recent `initialize()` call.
     pub(crate) fn client_type(&self) -> ClientType {
@@ -1682,9 +1647,6 @@ impl MvpAgent {
         let raw = config_root.as_ref().unwrap_or(&empty_config);
         let (worktree_type, wt_source) = crate::util::config::resolve_worktree_type(raw);
         let restore_code = crate::util::config::resolve_restore_code(raw);
-        let session_registry_local = crate::util::config::session_registry_local_override(
-            config_root.as_ref(),
-        );
         tracing::info!(
             worktree_type = ?worktree_type,
             source = wt_source,
@@ -1738,7 +1700,6 @@ impl MvpAgent {
             ),
             worktree_type,
             restore_code,
-            session_registry_local,
             managed_mcp_cache: Default::default(),
             agent_mcp_state: std::sync::Arc::new(
                 tokio::sync::Mutex::new(
@@ -1767,12 +1728,7 @@ impl MvpAgent {
             supervisor_started: std::cell::Cell::new(false),
             announcements_gen: std::cell::Cell::new(0),
             last_emitted_announcements: RefCell::new(Vec::new()),
-            heap_profile_monitor: RefCell::new(
-                crate::heap_profile::HeapProfileMonitor::new(),
-            ),
-            heap_profile_started: std::cell::Cell::new(false),
-            #[cfg(test)]
-            finalize_spy: RefCell::new(Vec::new()),
+            resource_report_started: std::cell::Cell::new(false),
             #[cfg(test)]
             roster_delta_spy: RefCell::new(Vec::new()),
             #[cfg(test)]
@@ -2906,7 +2862,7 @@ impl MvpAgent {
         tool_ctx.subagent_depth = 0;
         tool_ctx.auto_wake_enabled = self.cfg.borrow().auto_wake_enabled;
         let support_permission = self.cfg.borrow().features.support_permission;
-        let telemetry_enabled = self.product_analytics_enabled();
+        let telemetry_enabled = self.cfg.borrow().is_telemetry_enabled();
         let origin_client = self.origin_client_info_from_meta(init.meta.as_ref());
         let sampling_config = self
             .resolve_sampling_config_for_model(&session_model_id, origin_client.clone());
@@ -3387,7 +3343,6 @@ impl MvpAgent {
         tracing::debug!(session_id = %session_info.id.0, "spawn_session_on_thread complete");
         self.set_session_live_state(&session_info.id, SessionLiveState::IdleResident);
         self.ensure_session_supervisor();
-        self.heap_profile_set_session_id(&session_info.id.0);
         self.push_roster_delta_upserted(&session_info.id);
         if chat_history.is_empty() {
             let _timer = crate::instrumentation_timer!("session.system_prompt_inject");

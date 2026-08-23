@@ -478,9 +478,7 @@ Keyboard shortcuts are **not** configurable — all bindings are built in. See [
 
 These are independent knobs (see [Monitoring Usage](24-monitoring-usage.md#related-settings)):
 
-- **`[features] telemetry`** / `GROK_TELEMETRY_ENABLED` — the product-analytics master switch. `/privacy` doesn't change it.
-- **Coding data, retention, and training** — the Settings row `/privacy` opens; coding-data sharing, separate from telemetry.
-- **`[telemetry] trace_upload`** / `GROK_TELEMETRY_TRACE_UPLOAD` — session traces; follows telemetry when unset.
+- **`[features] telemetry`** / `GROK_TELEMETRY_ENABLED` — the product-analytics master switch.
 - **`[telemetry] otel_*`** / `GROK_EXTERNAL_OTEL` — external OTEL to your own collector (below).
 
 When telemetry is on, enterprises running their own collector can redirect it or turn parts off under `[telemetry]`:
@@ -490,7 +488,6 @@ When telemetry is on, enterprises running their own collector can redirect it or
 events_url = "https://telemetry.your-company.com/events"  # send events to your own collector
 events_api_key = "your-collector-token"                   # auth for your collector, if required
 mixpanel_enabled = false                                  # disable Mixpanel product analytics
-trace_upload = false                                      # disable session/trace uploads (inherits the telemetry toggle when unset)
 ```
 
 Set these only to point telemetry at your own infrastructure or to switch parts off. The built-in endpoint and credentials are managed by Grok — leave them unset to use the defaults.
@@ -702,7 +699,6 @@ The key ones. See the README for the complete list.
 | Variable | Description |
 |----------|-------------|
 | `GROK_TELEMETRY_ENABLED` | Enable/disable telemetry |
-| `GROK_TELEMETRY_TRACE_UPLOAD` | Enable/disable session trace upload |
 | `GROK_TELEMETRY_MIXPANEL_ENABLED` | Enable/disable Mixpanel specifically |
 | `GROK_EXTERNAL_OTEL` | External OTEL to your collector (see [24-monitoring-usage.md](24-monitoring-usage.md)) |
 | `GROK_DEPLOYMENT_KEY` | Management API key for enterprise |

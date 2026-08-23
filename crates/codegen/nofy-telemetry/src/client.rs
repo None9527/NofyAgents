@@ -290,8 +290,8 @@ mod tests {
     fn event_value_strips_shell_prefix() {
         assert_eq!(event_value("nofy-shell-turn"), "turn");
         assert_eq!(
-            event_value("nofy-shell-trace_upload_attempted"),
-            "trace_upload_attempted"
+            event_value("nofy-shell-session_started"),
+            "session_started"
         );
     }
 

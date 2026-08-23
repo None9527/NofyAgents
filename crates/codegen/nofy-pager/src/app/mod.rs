@@ -582,9 +582,7 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
     let intent = args
         .session_startup_intent()
         .map_err(|e| anyhow::anyhow!("{e}"))?;
-    let mut materialize_ctx = session_startup::MaterializeCtx::from_pager_args(&args);
-    materialize_ctx.restore_progress_on_stdout =
-        std::io::IsTerminal::is_terminal(&std::io::stdout());
+    let materialize_ctx = session_startup::MaterializeCtx::from_pager_args(&args);
     let materialized = session_startup::materialize_startup(materialize_ctx, intent).await?;
     if args.chat()
         && let session_startup::MaterializedStartup::Resume { session_id, .. } = &materialized

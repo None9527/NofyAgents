@@ -435,7 +435,6 @@ async fn full_session_load_e2e() {
         std::env::set_var("NOFY_API_BASE_URL", server.url());
         std::env::set_var("NOFY_API_KEY", "test-key-for-ci");
         std::env::set_var("NOFY_TELEMETRY_ENABLED", "false");
-        std::env::set_var("NOFY_TRACE_UPLOAD", "false");
     }
 
     // Install the production instrumentation layer so `instrumentation_timer!`

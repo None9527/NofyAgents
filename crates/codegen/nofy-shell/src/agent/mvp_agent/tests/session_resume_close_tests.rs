@@ -147,10 +147,6 @@ fn close_does_not_free_a_session_that_replaced_its_target() {
             agent.is_resident(&sid),
             "close must leave the session that replaced its target"
         );
-        assert!(
-            agent.finalize_spy.borrow().is_empty(),
-            "finalizing a replacement would end a live session"
-        );
     });
 }
 /// `attach_session` sweeps before it drains. The thread here is the evicted

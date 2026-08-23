@@ -1313,33 +1313,6 @@ pub struct AnnouncementCtaClicked {
     pub source: AnnouncementCtaSurface,
 }
 
-#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum CodingDataConsentSource {
-    Settings,
-}
-
-#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum CodingDataConsentChoice {
-    OptIn,
-    OptOut,
-}
-
-impl CodingDataConsentChoice {
-    pub fn from_opted_in(opted_in: bool) -> Self {
-        if opted_in { Self::OptIn } else { Self::OptOut }
-    }
-}
-
-#[derive(Serialize)]
-pub struct CodingDataConsentSelected {
-    pub source: CodingDataConsentSource,
-    pub choice: CodingDataConsentChoice,
-    pub previous_choice: CodingDataConsentChoice,
-    pub changed: bool,
-}
-
 /// Flat snapshot of the terminal environment for telemetry.
 ///
 /// Shared across pager events so terminal fields are typed once.
@@ -1840,7 +1813,6 @@ telemetry_event!(PagerSlashCommand, "pager_slash_command");
 telemetry_event!(PlanSubmit, "plan_submit");
 telemetry_event!(AnnouncementCtaShown, "announcement_cta_shown");
 telemetry_event!(AnnouncementCtaClicked, "announcement_cta_clicked");
-telemetry_event!(CodingDataConsentSelected, "coding_data_consent_selected");
 telemetry_event!(TerminalTelemetry, "terminal_context");
 telemetry_event!(DisplayRefreshProbe, "display_refresh_probe");
 telemetry_event!(BackspaceNoEffect, "backspace_no_effect");
@@ -1881,22 +1853,6 @@ telemetry_event!(
 telemetry_event!(
     crate::session_metrics::DoomLoopRecovery,
     "doom_loop_recovery"
-);
-telemetry_event!(
-    crate::session_metrics::TraceUploadAttempted,
-    "trace_upload_attempted"
-);
-telemetry_event!(
-    crate::session_metrics::TraceUploadSucceeded,
-    "trace_upload_succeeded"
-);
-telemetry_event!(
-    crate::session_metrics::TraceUploadSkipped,
-    "trace_upload_skipped"
-);
-telemetry_event!(
-    crate::session_metrics::TraceUploadFailed,
-    "trace_upload_failed"
 );
 
 // Memory subsystem (structs in memory_telemetry)
@@ -2055,30 +2011,6 @@ mod tests {
                 "key": "Ctrl+L",
                 "action": "interject_prompt",
                 "context": "prompt_focused",
-            })
-        );
-    }
-
-    #[test]
-    fn coding_data_consent_selected_name_and_shape() {
-        assert_eq!(
-            CodingDataConsentSelected::NAME,
-            "coding_data_consent_selected"
-        );
-        let event = serde_json::to_value(CodingDataConsentSelected {
-            source: CodingDataConsentSource::Settings,
-            choice: CodingDataConsentChoice::OptIn,
-            previous_choice: CodingDataConsentChoice::OptIn,
-            changed: false,
-        })
-        .unwrap();
-        assert_eq!(
-            event,
-            serde_json::json!({
-                "source": "settings",
-                "choice": "opt_in",
-                "previous_choice": "opt_in",
-                "changed": false,
             })
         );
     }

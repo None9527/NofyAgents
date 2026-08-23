@@ -422,8 +422,7 @@ mod static_nofy_auth_tests {
 }
 
 /// Default reqwest client used by `StorageClient::new`. Plain defaults --
-/// production callers should instead pass a tuned client (e.g. shell's
-/// `crate::http::shared_upload_client()`) to `with_provider`.
+/// callers may instead pass a tuned client to `with_provider`.
 fn default_upload_client() -> Client {
     Client::new()
 }
@@ -483,7 +482,7 @@ impl StorageClient {
 
     /// Creates a new StorageClient with an explicit HTTP client and credential
     /// provider. The caller controls the user-agent / connection-pool tuning of
-    /// the HTTP client (shell passes `crate::http::shared_upload_client()`).
+    /// the HTTP client.
     pub fn with_provider(
         proxy_base_url: &str,
         http_client: Client,
@@ -568,11 +567,7 @@ impl StorageClient {
     /// surface these values, making it easy to attribute 400/403 errors to
     /// specific client versions and products.
     ///
-    /// Preferred way to construct the client from the Nofy shell/pager:
-    ///   `build_storage_client_for_proxy(..., client_identifier)`
-    /// (see `nofy-shell/src/auth/credential_provider.rs`).
-    ///
-    /// Direct callers (tests, load-test binaries, etc.) can use:
+    /// Callers use:
     ///   `StorageClient::with_provider(...).with_client_identity(version, identifier)`
     pub fn with_client_identity(
         mut self,

@@ -144,7 +144,19 @@ Round 1 的"恒 Disabled 桩"方案被用户否决:**完全剔除所有 xAI 依�
   引用已删 auto_update 字段;文档面(用户指南 24 篇 + 2 个 README)
   清理浏览器登录/OIDC/设备码/XAI_API_KEY/grok update/x.ai 命名空间等
   全部陈旧引用,改写为 BYOK 现状。
-- **Batch H(收官候选)**:隐私设置面(coding_data_sharing/ZDR/
-  TeamManaged 锁、/privacy、SetCodingDataSharing 全链)、
-  heap-profile 监控死链(upload handles 恒 None)、trace_upload
-  死配置键——待评估启动。
+- **Batch H(最终债务批,已提交)**:「禁用桩 + 机械结构」全清:
+  ① session registry 子系统(SessionRegistryClient 653 行、
+  RegistryConfig、restore_stub.rs 228 行、pager 远端恢复分支、
+  ZDR 标题门、prod session_types.rs wire 类型);② 隐私/ZDR 设置面
+  (/privacy、coding_data_sharing 行与锁、SetCodingDataSharing 全链、
+  extensions/privacy.rs、auth 元数据 zdr/team_role 字段、
+  is_zdr_team/is_data_collection_disabled 谓词、OpenSettingsFocus
+  深链机制);③ heap-profile 死链(heap_profile/ 1348 行、
+  pager-bin jemalloc prof hooks、resolve_jemalloc_heap_profile);
+  ④ trace_upload 全链(config/endpoints/env/遥测事件/
+  `nofy trace` 远端分支,本地导出保留);⑤ build_storage_client_for_proxy。
+  129 文件净删 ~10350 行。测试:shell 5010、pager 7814、
+  workspace/agent/tools/pager-render/telemetry 全绿。
+  保留:--leader 拒绝面、本地恢复/导出、team_id/team_name(有真实
+  消费者)、nofy-workspace upload(活)、三个惰性端点默认常量。
+  至此全部供应商外联面物理清除完毕。

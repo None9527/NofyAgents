@@ -8,8 +8,7 @@ use super::cta::{
 use super::ctx::{find_agent_by_session_id, get_active_agent_mut};
 use super::notes::{handle_btw_response, handle_memory_note_saved};
 use super::prompt::{
-    defer_to_open_reload_window, handle_compact_complete, handle_prompt_response,
-    handle_suggestion_debounce_expired,
+    handle_compact_complete, handle_prompt_response, handle_suggestion_debounce_expired,
 };
 use super::rewind::{
     dispatch_rewind_success, handle_rewind_execute_failed, handle_rewind_points_loaded,
@@ -27,14 +26,12 @@ use super::session::lifecycle::{
 };
 use super::session::load::{
     handle_card_detail_loaded, handle_deep_search_results, handle_session_load_failed,
-    handle_session_loaded, handle_session_restore_failed, handle_session_restored,
-    handle_session_search_debounce_expired, remove_session_from_pickers,
+    handle_session_loaded, handle_session_search_debounce_expired, remove_session_from_pickers,
 };
 use super::session::modal::remove_agent_and_cleanup;
 use super::settings::ui::apply_setting_rollback;
 use super::status::{
-    commit_session_usage_block, handle_coding_data_sharing_failed,
-    handle_coding_data_sharing_updated, handle_context_info_complete, scrub_error_for_toast,
+    commit_session_usage_block, handle_context_info_complete, scrub_error_for_toast,
 };
 use super::transcript::{
     handle_hooks_list_loaded, handle_marketplace_list_loaded, handle_marketplace_updates_available,
@@ -271,7 +268,6 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             code_restored,
             restore_summary,
             restore_degree,
-            resume_session_id,
         } => handle_worktree_forked(
             app,
             agent_id,
@@ -281,7 +277,6 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             code_restored,
             restore_summary,
             restore_degree,
-            resume_session_id,
         ),
         TaskResult::WorktreeSessionFailed { agent_id, error } => {
             handle_worktree_session_failed(app, agent_id, error)
@@ -290,8 +285,7 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             agent_id,
             new_session_id,
             cwd,
-            parent_session_id,
-        } => handle_fork_session_ready(app, agent_id, new_session_id, cwd, parent_session_id),
+        } => handle_fork_session_ready(app, agent_id, new_session_id, cwd),
         TaskResult::ForkSessionFailed { agent_id, error } => {
             handle_fork_session_failed(app, agent_id, error)
         }
@@ -405,21 +399,6 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             generation,
             detail,
         } => handle_card_detail_loaded(app, source, session_id, generation, detail),
-        TaskResult::SessionRestored {
-            agent_id,
-            local_session_id,
-        } => handle_session_restored(app, agent_id, local_session_id),
-        TaskResult::SessionRestoreFailed { agent_id, error } => {
-            handle_session_restore_failed(app, agent_id, error)
-        }
-        TaskResult::SessionRestoreProgress { agent_id, message } => {
-            if let Some(agent) = app.agents.get_mut(&agent_id)
-                && !defer_to_open_reload_window(agent, agent_id, "SessionRestoreProgress")
-            {
-                agent.scrollback.push_block(RenderBlock::system(message));
-            }
-            vec![]
-        }
         TaskResult::PromptResponse {
             agent_id,
             result,
@@ -794,17 +773,6 @@ pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec
             }
             vec![]
         }
-        TaskResult::CodingDataSharingUpdated {
-            agent_id,
-            opted_in,
-            seq,
-        } => handle_coding_data_sharing_updated(app, agent_id, opted_in, seq),
-        TaskResult::CodingDataSharingFailed {
-            agent_id,
-            error,
-            rollback_to_opted_in,
-            seq,
-        } => handle_coding_data_sharing_failed(app, agent_id, error, rollback_to_opted_in, seq),
         TaskResult::RenameSessionComplete { agent_id, title } => {
             if let Some(agent) = app.agents.get_mut(&agent_id) {
                 let safe = crate::views::session_title::sanitize_display_text(&title);

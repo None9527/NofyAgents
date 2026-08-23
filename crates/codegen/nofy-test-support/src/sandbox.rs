@@ -283,7 +283,6 @@ fn apply_mock_url(env: &mut BTreeMap<OsString, OsString>, url: String) {
         "NOFY_CLI_CHAT_PROXY_BASE_URL",
         "NOFY_API_BASE_URL",
         "NOFY_MODELS_BASE_URL",
-        "NOFY_TRACE_UPLOAD_URL",
         "NOFY_MANAGED_CONFIG_URL",
         "NOFY_CODE_WEB_URL",
         "NOFY_CONVERSATIONS_BASE_URL",
@@ -333,8 +332,6 @@ fn baseline_env_from_parent(
     }
     for (key, value) in [
         ("NOFY_TELEMETRY_ENABLED", "false"),
-        ("NOFY_TELEMETRY_TRACE_UPLOAD", "false"),
-        ("NOFY_TRACE_UPLOAD", "false"),
         ("NOFY_INSTRUMENTATION", "disabled"),
         ("OTEL_SDK_DISABLED", "true"),
         ("DISABLE_TELEMETRY", "1"),
@@ -706,10 +703,6 @@ mod tests {
         assert_eq!(
             env_value(&sandbox, "NOFY_DISABLE_AUTOUPDATER").as_deref(),
             Some(OsStr::new("1"))
-        );
-        assert_eq!(
-            env_value(&sandbox, "NOFY_TELEMETRY_TRACE_UPLOAD").as_deref(),
-            Some(OsStr::new("false"))
         );
         assert_eq!(
             env_value(&sandbox, "NO_PROXY").as_deref(),

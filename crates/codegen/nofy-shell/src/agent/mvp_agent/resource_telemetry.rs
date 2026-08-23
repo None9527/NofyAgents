@@ -81,8 +81,8 @@ impl MvpAgent {
         );
     }
 
-    /// Called from the heap monitor's poll loop, which runs whether or not
-    /// profiling is on. A session that never closes reports through this.
+    /// Called from the resource-report poll loop. A session that never
+    /// closes reports through this.
     ///
     /// Every tick pays one memory read; only a tick that reports pays for the
     /// thread and descriptor counts.
@@ -92,6 +92,26 @@ impl MvpAgent {
         if due {
             self.log_resource_usage(ResourceReportTrigger::Periodic);
         }
+    }
+
+    /// Background poll (agent entrypoints only). Idempotent; skipped under
+    /// `cfg!(test)`.
+    pub(super) fn spawn_resource_report_loop(&self) {
+        if cfg!(test) || self.resource_report_started.replace(true) {
+            return;
+        }
+        let agent_ref = LocalRef::new(self);
+        tokio::task::spawn_local(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                let reported = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    agent_ref.get().report_resource_usage_if_due();
+                }));
+                if reported.is_err() {
+                    tracing::error!("resource telemetry: report tick panicked; continuing");
+                }
+            }
+        });
     }
 }
 

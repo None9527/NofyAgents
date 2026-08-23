@@ -12,12 +12,6 @@ use nofy_shell::sampling::error::{
 };
 use nofy_shell::session::ExtMethodResult;
 use nofy_shell::session::unified_list::ListScope;
-/// Typed progress message for session restore.
-/// Keeps the progress channel from accepting arbitrary `TaskResult` variants.
-pub(crate) struct RestoreProgressMsg {
-    pub agent_id: AgentId,
-    pub message: String,
-}
 pub(super) fn log_prompt_result(
     session_id: &acp::SessionId,
     result: &Result<acp::PromptResponse, acp::Error>,
@@ -112,15 +106,6 @@ pub(super) fn format_acp_error(err: &acp::Error) -> String {
             &raw,
         )
         .message()
-}
-/// Format a Duration for user-visible restore progress messages.
-pub(super) fn format_restore_elapsed(d: std::time::Duration) -> String {
-    let secs = d.as_secs();
-    if secs >= 60 {
-        format!("{}m{:02}s", secs / 60, secs % 60)
-    } else {
-        format!("{}.{:01}s", secs, d.subsec_millis() / 100)
-    }
 }
 /// CANONICAL wire parser for the worktree resume response. Any other code
 /// consuming the `codeRestored` / `restoreSummary` / `restoreDegree` shape
@@ -292,10 +277,6 @@ pub(crate) struct SessionFlags {
     /// Active auth is API key (not OAuth/session). Drives rate-limit copy in
     /// `format_acp_error`. Default `false` (OAuth copy) for tests.
     pub is_api_key_auth: bool,
-    /// Startup resume target deferred to the worktree handler after missing
-    /// local id/title resolution. Worktree failure messages append the
-    /// no-match hint only when the failing target equals this value.
-    pub resume_local_miss: Option<String>,
 }
 impl SessionFlags {
     /// Resolve the agent profile name from the flags.

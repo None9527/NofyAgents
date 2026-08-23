@@ -248,7 +248,6 @@ async fn update_preserves_team_fields_when_proxy_omits_them() {
         principal_id: Some("team-xyz".into()),
         team_id: Some("team-xyz".into()),
         team_name: None,
-        team_role: None,
         ..make_auth(Some(Utc::now() + Duration::hours(1)), Utc::now())
     };
 
@@ -380,88 +379,6 @@ fn clear_removes_only_the_session_scope() {
     assert!(
         !on_disk.contains_key(&mgr.scope),
         "session scope should be removed after clear()"
-    );
-}
-
-#[test]
-fn is_data_collection_disabled_matrix() {
-    // (team_blocked_reasons, coding_data_retention_opt_out, expected)
-    let cases: &[(&[&str], bool, bool)] = &[
-        // ZDR team alone
-        (&["BLOCKED_REASON_NO_LOGS"], false, true),
-        (&["BLOCKED_REASON_NO_LOGS_MODERATED"], false, true),
-        // Opt-out alone
-        (&[], true, true),
-        // Both
-        (&["BLOCKED_REASON_NO_LOGS"], true, true),
-        // Neither
-        (&[], false, false),
-        // Unrelated blocked reasons
-        (
-            &["BLOCKED_REASON_BILLING", "BLOCKED_REASON_SUSPENDED"],
-            false,
-            false,
-        ),
-        (&["BLOCKED_REASON_BILLING"], true, true),
-        // ZDR mixed with other reasons
-        (
-            &["BLOCKED_REASON_BILLING", "BLOCKED_REASON_NO_LOGS"],
-            false,
-            true,
-        ),
-    ];
-    for (reasons, opt_out, expected) in cases {
-        let auth = NofyAuth {
-            team_blocked_reasons: reasons.iter().map(|s| (*s).into()).collect(),
-            coding_data_retention_opt_out: *opt_out,
-            ..NofyAuth::test_default()
-        };
-        assert_eq!(
-            auth.is_data_collection_disabled(),
-            *expected,
-            "reasons={reasons:?} opt_out={opt_out} expected={expected}",
-        );
-    }
-}
-
-/// Fail-direction contract of the two `AuthManager` collection predicates:
-/// `is_data_collection_disabled` fails open on missing credentials (legacy
-/// semantics shared by telemetry/sync gates), `allows_data_collection` fails
-/// closed (nothing may leave the machine while privacy state is unknown,
-/// e.g. after a mid-session `/logout`).
-#[test]
-fn manager_collection_predicates_fail_directions() {
-    let dir = tempfile::tempdir().unwrap();
-    let mgr = Arc::new(AuthManager::new(dir.path(), NofyComConfig::default()));
-
-    // No credential: disabled=false (fail-open), allows=false (fail-closed).
-    assert!(!mgr.is_data_collection_disabled());
-    assert!(
-        !mgr.allows_data_collection(),
-        "missing credential must fail closed for collection"
-    );
-
-    // Normal user: both predicates allow collection.
-    mgr.hot_swap(NofyAuth::test_default());
-    assert!(!mgr.is_data_collection_disabled());
-    assert!(mgr.allows_data_collection());
-
-    // Opted-out user: both predicates suppress collection.
-    mgr.hot_swap(NofyAuth {
-        coding_data_retention_opt_out: true,
-        ..NofyAuth::test_default()
-    });
-    assert!(mgr.is_data_collection_disabled());
-    assert!(!mgr.allows_data_collection());
-
-    // Mid-session `/logout`: the fail-closed predicate flips back to
-    // "no collection" even after a previously permissive credential.
-    mgr.hot_swap(NofyAuth::test_default());
-    assert!(mgr.allows_data_collection(), "precondition");
-    mgr.clear_in_memory();
-    assert!(
-        !mgr.allows_data_collection(),
-        "cleared credentials must close the collection gate"
     );
 }
 
@@ -2691,7 +2608,6 @@ async fn enrichment_overlays_team_login_placeholder_user_id() {
                 "principalId": "team-xyz",
                 "teamId": "team-xyz",
                 "teamName": "Some Team",
-                "teamRole": "MEMBER",
                 "organizationId": "org-abc",
                 "organizationName": "Some Org",
                 "organizationRole": "ORGANIZATION_ROLE_MEMBER",
@@ -2746,7 +2662,6 @@ async fn enrichment_overlays_team_login_placeholder_user_id() {
     assert_eq!(enriched.first_name.as_deref(), Some("Real"));
     assert_eq!(enriched.last_name.as_deref(), Some("User"));
     assert_eq!(enriched.team_name.as_deref(), Some("Some Team"));
-    assert_eq!(enriched.team_role.as_deref(), Some("MEMBER"));
     assert_eq!(enriched.organization_id.as_deref(), Some("org-abc"));
     assert_eq!(enriched.organization_name.as_deref(), Some("Some Org"));
     assert_eq!(
@@ -2799,13 +2714,9 @@ fn apply_user_info_enrichment_preserves_token_fields() {
         principal_id: None,
         team_id: Some("new-team".into()),
         team_name: Some("New Team".into()),
-        team_role: None,
         organization_id: None,
         organization_name: None,
         organization_role: None,
-        user_blocked_reason: None,
-        team_blocked_reasons: None,
-        coding_data_retention_opt_out: None,
     };
 
     apply_user_info_enrichment(&mut disk, user_info);
@@ -3205,8 +3116,8 @@ async fn spawn_user_stub(token: &'static str, body: &'static str) -> String {
 }
 
 #[tokio::test]
-async fn enrich_auth_inline_populates_zdr_flags() {
-    let body = r#"{"userId":"u-1","teamBlockedReasons":["BLOCKED_REASON_NO_LOGS"],"codingDataRetentionOptOut":true}"#;
+async fn enrich_auth_inline_populates_user_fields() {
+    let body = r#"{"userId":"u-1","teamName":"Team One"}"#;
     let base = spawn_user_stub("tok", body).await;
     let dir = tempfile::tempdir().unwrap();
     let mgr = AuthManager::new(dir.path(), NofyComConfig::default()).with_proxy_base_url(&base);
@@ -3215,18 +3126,16 @@ async fn enrich_auth_inline_populates_zdr_flags() {
         key: "tok".into(),
         ..NofyAuth::test_default()
     };
-    assert!(!auth.is_data_collection_disabled(), "precondition");
 
     mgr.enrich_auth_inline(&mut auth).await;
-    assert!(auth.is_zdr_team(), "team_blocked_reasons must be merged");
-    assert!(auth.coding_data_retention_opt_out);
     assert_eq!(auth.user_id, "u-1");
+    assert_eq!(auth.team_name.as_deref(), Some("Team One"));
 }
 
 #[tokio::test]
 async fn enrich_auth_inline_keeps_fields_absent_from_response() {
     // `/user` omitting a field must not clear a value the login flow set.
-    let body = r#"{"userId":"u-1","teamBlockedReasons":["BLOCKED_REASON_NO_LOGS_MODERATED"]}"#;
+    let body = r#"{"userId":"u-1"}"#;
     let base = spawn_user_stub("tok", body).await;
     let dir = tempfile::tempdir().unwrap();
     let mgr = AuthManager::new(dir.path(), NofyComConfig::default()).with_proxy_base_url(&base);
@@ -3235,6 +3144,7 @@ async fn enrich_auth_inline_keeps_fields_absent_from_response() {
         key: "tok".into(),
         principal_type: Some("Team".into()),
         principal_id: Some("team-1".into()),
+        team_name: Some("kept".into()),
         ..NofyAuth::test_default()
     };
 
@@ -3242,9 +3152,9 @@ async fn enrich_auth_inline_keeps_fields_absent_from_response() {
     assert_eq!(auth.user_id, "u-1");
     assert_eq!(auth.principal_type.as_deref(), Some("Team"));
     assert_eq!(auth.principal_id.as_deref(), Some("team-1"));
-    assert!(auth.is_zdr_team());
-    assert!(
-        !auth.coding_data_retention_opt_out,
+    assert_eq!(
+        auth.team_name.as_deref(),
+        Some("kept"),
         "absent field stays unchanged"
     );
 }
@@ -3267,7 +3177,6 @@ async fn enrich_auth_inline_unreachable_server_leaves_auth_unchanged() {
     let before = auth.clone();
     mgr.enrich_auth_inline(&mut auth).await;
     assert_eq!(auth.user_id, before.user_id);
-    assert!(!auth.is_data_collection_disabled());
 }
 
 //

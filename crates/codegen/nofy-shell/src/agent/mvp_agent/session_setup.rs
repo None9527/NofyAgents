@@ -155,20 +155,6 @@ impl MvpAgent {
             mcp_meta_config_map: parse_mcp_meta_config(meta),
         })
     }
-    /// Where generated titles are pushed, suppressed for ZDR teams.
-    fn registry_title_sync(
-        &self,
-    ) -> Option<crate::session::persistence::RegistryGeneratedTitleSync> {
-        self.session_registry_client().map(|client| {
-            crate::session::persistence::RegistryGeneratedTitleSync {
-                client,
-                suppress_for_zdr: self
-                    .auth_manager
-                    .current_or_expired()
-                    .is_some_and(|a| a.is_zdr_team()),
-            }
-        })
-    }
 }
 impl MvpAgent {
     pub(super) async fn new_session_inner(
@@ -371,14 +357,12 @@ impl MvpAgent {
             crate::session::persistence::PersistenceHandle::noop()
         } else {
             let _timer = crate::instrumentation_timer!("session.persistence_init");
-            let registry_title_sync = self.registry_title_sync();
             crate::session::persistence::new(
                 &session_info,
                 model_id,
                 summary_client,
                 Some(self.gateway.clone()),
                 summary_model,
-                registry_title_sync,
             )
             .await
             .map_err(|e| crate::session::persistence::io_error_to_acp(&e))?
@@ -449,7 +433,7 @@ impl MvpAgent {
         }
         self.maybe_spawn_interactive_trust_prompt(&session_id, cwd.as_path());
         let bridge_attach = BridgeAttach::NotAttached;
-        let product_analytics = self.product_analytics_enabled();
+        let product_analytics = self.cfg.borrow().is_telemetry_enabled();
         if product_analytics || nofy_telemetry::external::is_active() {
             let sid = session_id.0.to_string();
             let ci = client_identifier.clone();
@@ -654,13 +638,11 @@ impl MvpAgent {
         let (summary_client, summary_model) = self.build_summary_client(&load_session_sampling)?;
         let mut persistence_timer = crate::instrumentation_timer!("session.load_light");
         persistence_timer.with_field("session_id", session_id.0.as_ref());
-        let registry_title_sync = self.registry_title_sync();
         let (persistence_info, persistence) = crate::session::persistence::load_light(
             &session_info,
             summary_client,
             Some(self.gateway.clone()),
             summary_model,
-            registry_title_sync,
         )
         .await
         .map_err(|e| crate::session::persistence::io_error_to_acp(&e))?;
@@ -858,7 +840,7 @@ impl MvpAgent {
                 let _ = handle.cmd_tx.send(SessionCommand::RestorePlanApproval);
             }
         }
-        if self.product_analytics_enabled() {
+        if self.cfg.borrow().is_telemetry_enabled() {
             log_event(nofy_telemetry::events::SessionLoad {
                 session_id: session_id.0.to_string(),
                 compaction_count: restored.compaction_count,
@@ -889,8 +871,7 @@ impl MvpAgent {
         summary: &crate::session::persistence::Summary,
         restore_code_requested: bool,
     ) -> Option<serde_json::Value> {
-        let registry_client_for_restore = self.session_registry_client();
-        if restore_code_requested && registry_client_for_restore.is_none() {
+        if restore_code_requested {
             nofy_workspace::session::git::warn_registry_disabled_restore(session_id.0.as_ref());
         }
         let restore_checkout_allowed =
@@ -936,13 +917,7 @@ impl MvpAgent {
             let kind = if !outcome.checked_out {
                 RestoreKind::CheckoutFailed
             } else {
-                match registry_client_for_restore {
-                    None => RestoreKind::RegistryOff,
-                    Some(registry_client) => {
-                        let _ = registry_client;
-                        RestoreKind::RegistryOff
-                    }
-                }
+                RestoreKind::RegistryOff
             };
             code_restore_info =
                 crate::agent::restore_code::build_code_restore_meta(target_sha, &outcome, kind);

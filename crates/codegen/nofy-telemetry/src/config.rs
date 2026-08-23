@@ -96,8 +96,6 @@ pub struct TelemetryConfig {
     pub enabled: Option<bool>,
     pub events_url: Option<String>,
     pub events_api_key: Option<String>,
-    /// `None` = inherit from `[features] telemetry`. `Some(false)` = disable GCS uploads only.
-    pub trace_upload: Option<bool>,
     /// External OTEL master switch (`= NOFY_EXTERNAL_OTEL`, env wins).
     pub otel_enabled: Option<bool>,
     /// External OTEL metrics exporter: `otlp` | `console` | `none`.
@@ -133,7 +131,6 @@ impl Default for TelemetryConfig {
             enabled: None,
             events_url,
             events_api_key,
-            trace_upload: None,
             otel_enabled: None,
             otel_metrics_exporter: None,
             otel_logs_exporter: None,
@@ -152,9 +149,6 @@ impl TelemetryConfig {
         }
         if let Some(value) = Self::env_override("NOFY_TELEMETRY_EVENTS_API_KEY") {
             self.events_api_key = value;
-        }
-        if let Some(value) = env_bool("NOFY_TELEMETRY_TRACE_UPLOAD") {
-            self.trace_upload = Some(value);
         }
     }
     fn normalize(&mut self) {
@@ -176,20 +170,6 @@ impl TelemetryConfig {
                 Some(trimmed.to_string())
             }
         })
-    }
-}
-/// Parse an env var as a boolean. Returns `None` if unset or unrecognized.
-///
-/// Local copy of `nofy_shell::agent::config::env_bool` so this crate
-/// stays free of a shell back-edge. Shell keeps its own copy for callers
-/// outside the telemetry config path.
-fn env_bool(name: &str) -> Option<bool> {
-    let value = std::env::var(name).ok()?;
-    match value.trim().to_ascii_lowercase().as_str() {
-        "" => None,
-        "1" | "true" | "yes" | "on" | "enabled" => Some(true),
-        "0" | "false" | "no" | "off" | "disabled" => Some(false),
-        _ => None,
     }
 }
 /// Derive a stable deployment ID (UUIDv5) from the deployment key.

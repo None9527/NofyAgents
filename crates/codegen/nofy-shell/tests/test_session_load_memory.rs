@@ -561,8 +561,7 @@ mod rss {
             std::env::set_var("NOFY_API_BASE_URL", server.url());
             std::env::set_var("NOFY_API_KEY", "test-key-for-ci");
             std::env::set_var("NOFY_TELEMETRY_ENABLED", "false");
-            std::env::set_var("NOFY_TRACE_UPLOAD", "false");
-        }
+            }
 
         let (info, dir) = synth::prepare_session(nofy_home.path(), cwd.path(), &opts).await;
         let on_disk_bytes = file_len(&dir.join("updates.jsonl"));

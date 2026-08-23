@@ -241,7 +241,6 @@ pub(super) fn apply_user_info_enrichment(disk: &mut NofyAuth, user_info: UserInf
     disk.principal_id = user_info.principal_id.or(disk.principal_id.take());
     disk.team_id = user_info.team_id.or(disk.team_id.take());
     disk.team_name = user_info.team_name.or(disk.team_name.take());
-    disk.team_role = user_info.team_role.or(disk.team_role.take());
     disk.organization_id = user_info.organization_id.or(disk.organization_id.take());
     disk.organization_name = user_info
         .organization_name
@@ -249,15 +248,6 @@ pub(super) fn apply_user_info_enrichment(disk: &mut NofyAuth, user_info: UserInf
     disk.organization_role = user_info
         .organization_role
         .or(disk.organization_role.take());
-    disk.user_blocked_reason = user_info
-        .user_blocked_reason
-        .or(disk.user_blocked_reason.take());
-    if let Some(reasons) = user_info.team_blocked_reasons {
-        disk.team_blocked_reasons = reasons;
-    }
-    if let Some(opt_out) = user_info.coding_data_retention_opt_out {
-        disk.coding_data_retention_opt_out = opt_out;
-    }
     if let Some(ref email) = user_info.email
         && !email.is_empty()
     {

@@ -394,7 +394,6 @@ pub(in crate::app::dispatch) fn handle_worktree_forked(
     code_restored: bool,
     restore_summary: Option<String>,
     restore_degree: Option<nofy_workspace::session::git::RestoreDegree>,
-    resume_session_id: Option<String>,
 ) -> Vec<Effect> {
     let session_id_str = session_id.0.to_string();
     let pending_entry = std::mem::take(&mut app.deferred_startup.pending_chat);
@@ -443,13 +442,6 @@ pub(in crate::app::dispatch) fn handle_worktree_forked(
     } else {
         return vec![];
     }
-    if let Some(resume_id) = resume_session_id.as_deref() {
-        crate::app::event_loop::retarget_suppress_code_restore(
-            app,
-            resume_id,
-            session_id_str.clone(),
-        );
-    }
     vec![Effect::LoadSession {
         agent_id,
         session_id: session_id_str,
@@ -462,7 +454,6 @@ pub(in crate::app::dispatch) fn handle_fork_session_ready(
     agent_id: AgentId,
     new_session_id: acp::SessionId,
     cwd: std::path::PathBuf,
-    parent_session_id: acp::SessionId,
 ) -> Vec<Effect> {
     let session_id_str = new_session_id.0.to_string();
     let pending_entry = std::mem::take(&mut app.deferred_startup.pending_chat);
@@ -490,11 +481,6 @@ pub(in crate::app::dispatch) fn handle_fork_session_ready(
     } else {
         return vec![];
     }
-    crate::app::event_loop::retarget_suppress_code_restore(
-        app,
-        parent_session_id.0.as_ref(),
-        session_id_str.clone(),
-    );
     vec![Effect::LoadSession {
         agent_id,
         session_id: session_id_str,

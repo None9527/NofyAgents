@@ -3,8 +3,8 @@
 //! Every 401 emit site in the shell joins the bearer the client
 //! actually sent on the wire (the `Authorization` value for OAI-compat
 //! backends, `x-api-key` for Anthropic Messages, the API proxy
-//! `Authorization` header for storage / registry /
-//! idle-resume) with the manager's in-memory token
+//! `Authorization` header for storage / idle-resume) with the manager's
+//! in-memory token
 //! ([`AuthManager::current_or_expired`] -- hard-expired tokens stay
 //! visible, since most 401s arrive exactly then). The two sinks are:
 //!
@@ -28,7 +28,7 @@
 //!                                 (negative once expired), or 0 when the
 //!                                 manager is empty>,
 //!   "consumer": "OaiCompatClient.<endpoint>" | "StorageClient.<op>"
-//!             | "SessionRegistryClient.<op>" | "IdleResumeModelRefresh",
+//!             | "IdleResumeModelRefresh",
 //!   "is_stale_snapshot": <bool; true iff a bearer was actually sent AND it
 //!                        differs from the held token -- "sent nothing"
 //!                        (fail-closed) and "held nothing" are both false>
@@ -43,7 +43,7 @@
 //! concrete impl that the shell wires into
 //! [`nofy_sampler::SamplerConfig::attribution_callback`] at every
 //! sampler-construction site. Non-sampler sites (storage /
-//! registry / idle-resume) call [`record_consumer_401`]
+//! idle-resume) call [`record_consumer_401`]
 //! directly with their `(consumer_kind, op)` pair.
 
 use std::sync::Arc;
@@ -151,9 +151,6 @@ pub(crate) enum ConsumerKind {
     OaiCompatClient,
     /// Storage upload / batch / check sites in `upload/storage_client.rs`.
     StorageClient,
-    /// Session registry register/update sites in
-    /// `agent/session_registry_client.rs`.
-    SessionRegistryClient,
     /// Idle-resume model-metadata refresh in
     /// `session/acp_session.rs::maybe_refresh_model_metadata_on_resume`.
     /// No per-op discriminator -- the consumer string is just
@@ -167,7 +164,6 @@ impl ConsumerKind {
         match self {
             Self::OaiCompatClient => "OaiCompatClient",
             Self::StorageClient => "StorageClient",
-            Self::SessionRegistryClient => "SessionRegistryClient",
             Self::IdleResumeModelRefresh => "IdleResumeModelRefresh",
         }
     }
@@ -196,9 +192,9 @@ fn format_consumer(kind: ConsumerKind, op: &str) -> String {
 /// Wraps [`record_auth_401`] with the design-doc `consumer` formatting
 /// (e.g., `"StorageClient.upload"`).
 /// All 401 emit sites in `nofy-shell` go through this helper -- the
-/// per-client `record_401_attribution` wrappers in
-/// `agent/session_registry_client.rs` and `upload/storage_client.rs`
-/// each resolve their bearer and call this with the right `(kind, op)`.
+/// per-client `record_401_attribution` wrapper in
+/// `upload/storage_client.rs` resolves its bearer and calls this with
+/// the right `(kind, op)`.
 ///
 /// `sent_bearer` may be either a full bearer (passed by the
 /// non-sampler call sites listed above, which read directly from the

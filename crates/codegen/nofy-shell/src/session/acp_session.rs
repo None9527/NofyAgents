@@ -663,8 +663,7 @@ pub(crate) struct SessionActor {
     /// read it synchronously to surface `NeedsInput`. Mutated by
     /// `PendingInteractionGuard` at each reverse-request site. Never persisted.
     pub(crate) pending_interactions: crate::session::pending_interaction::PendingInteractions,
-    /// Gates product analytics, not trace uploads. Resolved at spawn as
-    /// `is_telemetry_enabled() && !is_zdr()` — ZDR teams always have this false.
+    /// Gates product analytics. Resolved at spawn as `is_telemetry_enabled()`.
     pub(crate) telemetry_enabled: bool,
     pub(crate) compactions_remaining:
         std::cell::Cell<Option<nofy_sampling_types::CompactionsRemaining>>,

@@ -367,17 +367,6 @@ View local session usage (tokens/cost for the current session). Alias: `/cost`.
 /usage
 ```
 
-### `/privacy`
-
-Open Settings on **Coding data, retention, and training**, where you choose
-**Opt in** or **Opt out**. Takes no arguments.
-
-```
-/privacy
-```
-
-This setting doesn't touch `[features] telemetry` or your external OTEL settings — see [Monitoring Usage](24-monitoring-usage.md#related-settings).
-
 ---
 
 ## Configuration and UI

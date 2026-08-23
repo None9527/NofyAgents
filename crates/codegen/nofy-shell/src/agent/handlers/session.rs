@@ -274,8 +274,7 @@ async fn handle_session_list(
         "session/list"
     );
 
-    let registry_client = agent.session_registry_client();
-    let result = unified_list::build_unified_list(registry_client.as_ref(), req).await;
+    let result = unified_list::build_unified_list(req).await;
 
     ExtMethodResult::success(unified_list::ext_list_response(result))
         .to_ext_response()
@@ -307,8 +306,7 @@ pub(crate) async fn handle_list_sessions(
     };
     unified_list::force_kind(&mut req, unified_list::SessionKind::Build);
 
-    let registry_client = agent.session_registry_client();
-    let result = unified_list::build_unified_list(registry_client.as_ref(), req).await;
+    let result = unified_list::build_unified_list(req).await;
 
     let meta = unified_list::acp_response_meta(&result);
     // `CwdScope::Only` already dropped rows the schema cannot represent, so this

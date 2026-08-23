@@ -1,9 +1,8 @@
-//! Session status, sharing, privacy, usage, and info dispatchers.
+//! Session status, usage, and info dispatchers.
 
 use agent_client_protocol as acp;
 
 use super::ctx::get_active_agent;
-use super::settings::ui::refresh_open_settings_modals;
 use crate::app::actions::Effect;
 use crate::app::agent::AgentId;
 use crate::app::agent_view::AgentView;
@@ -32,114 +31,6 @@ pub(super) fn dispatch_show_session_info(app: &mut AppView) -> Vec<Effect> {
         agent_id: id,
         session_id,
         show_resolved_model: app.show_resolved_model,
-    }]
-}
-
-/// State-only mutation for `coding_data_sharing`. SHELL-owned.
-pub(super) fn set_coding_data_sharing_inner(app: &mut AppView, opted_in: bool) {
-    app.coding_data_retention_opt_out = !opted_in;
-}
-
-/// Agent the coding-data ACP write is attributed to. Privacy is app-level,
-/// so the id only routes the result back; `AgentId(0)` is the synthetic
-/// stand-in for the welcome screen, where the banner is reachable before a
-/// session exists.
-fn coding_data_sharing_agent_id(app: &AppView) -> AgentId {
-    match app.active_view {
-        ActiveView::Agent(id) => id,
-        _ => app.agents.keys().next().copied().unwrap_or(AgentId(0)),
-    }
-}
-
-/// Claim the next write generation. Every `SetCodingDataSharing` must take
-/// one so its reply can be matched against the newest write.
-fn next_coding_data_write_seq(app: &mut AppView) -> u64 {
-    app.coding_data_write_seq += 1;
-    app.coding_data_write_seq
-}
-
-/// Is this reply from the newest write? Writes to this endpoint run
-/// concurrently and can land out of order, so an older reply must not touch
-/// state: its `rollback_to_opted_in` predates the newer write, and applying
-/// it would silently undo whatever the user did since.
-fn is_current_coding_data_write(app: &AppView, seq: u64, agent_id: AgentId) -> bool {
-    if seq == app.coding_data_write_seq {
-        return true;
-    }
-    tracing::debug!(
-        target: "settings",
-        key = "coding_data_sharing",
-        ?agent_id,
-        seq,
-        current = app.coding_data_write_seq,
-        "dropping superseded coding-data reply",
-    );
-    false
-}
-
-fn log_coding_data_consent_selected(
-    source: nofy_telemetry::events::CodingDataConsentSource,
-    opted_in: bool,
-    previous_opted_in: bool,
-) {
-    use nofy_telemetry::events::{CodingDataConsentChoice, CodingDataConsentSelected};
-    nofy_telemetry::session_ctx::log_event(CodingDataConsentSelected {
-        source,
-        choice: CodingDataConsentChoice::from_opted_in(opted_in),
-        previous_choice: CodingDataConsentChoice::from_opted_in(previous_opted_in),
-        changed: opted_in != previous_opted_in,
-    });
-}
-
-/// Set coding-data-sharing preference. SHELL-owned, auth-metadata-backed
-/// (persists via ACP ext-request, NOT `~/.nofy/config.toml`).
-pub(super) fn set_coding_data_sharing(
-    app: &mut AppView,
-    opted_in: bool,
-    source: nofy_telemetry::events::CodingDataConsentSource,
-) -> Vec<Effect> {
-    // ── Guard 1: Enterprise ZDR ──────────────────────────────────────
-    if app.is_zdr {
-        app.show_toast("\u{2717} Cannot change: Zero Data Retention enabled");
-        return vec![];
-    }
-    // ── Guard 2: Non-admin team member ───────────────────────────────
-    if app.team_name.is_some() {
-        let is_admin = app
-            .team_role
-            .as_deref()
-            .is_some_and(|r| r.eq_ignore_ascii_case("admin"));
-        if !is_admin {
-            app.show_toast("\u{2717} Data sharing is controlled by your team admin");
-            return vec![];
-        }
-    }
-    let agent_id = coding_data_sharing_agent_id(app);
-    let prev = !app.coding_data_retention_opt_out;
-    log_coding_data_consent_selected(source, opted_in, prev);
-
-    // ── Idempotent path: skip the ACP round-trip. ────────────────────
-    if prev == opted_in {
-        return vec![];
-    }
-
-    // Optimistic mutation. Success is silent; only the refusals above and
-    // the failure handler toast.
-    set_coding_data_sharing_inner(app, opted_in);
-    refresh_open_settings_modals(app);
-
-    tracing::info!(
-        target: "settings",
-        key = "coding_data_sharing",
-        opted_in,
-        "setting changed",
-    );
-
-    vec![Effect::SetCodingDataSharing {
-        agent_id,
-        opted_in,
-        rollback_to_opted_in: prev,
-        seq: next_coding_data_write_seq(app),
     }]
 }
 
@@ -304,64 +195,6 @@ pub(super) fn notify_session_ready(
 }
 
 // TaskResult handlers.
-
-pub(super) fn handle_coding_data_sharing_updated(
-    app: &mut AppView,
-    agent_id: AgentId,
-    opted_in: bool,
-    seq: u64,
-) -> Vec<Effect> {
-    if !is_current_coding_data_write(app, seq, agent_id) {
-        return vec![];
-    }
-    // Re-anchor mirror to server-confirmed value (defense-in-depth against
-    // server reshaping the boolean). `agent_id` discarded — privacy is
-    // app-level, not per-agent.
-    set_coding_data_sharing_inner(app, opted_in);
-    refresh_open_settings_modals(app);
-    tracing::info!(
-        target: "settings",
-        key = "coding_data_sharing",
-        ?agent_id,
-        opted_in,
-        "ACP update confirmed; mirror re-anchored",
-    );
-    vec![]
-}
-
-pub(super) fn handle_coding_data_sharing_failed(
-    app: &mut AppView,
-    agent_id: AgentId,
-    error: String,
-    rollback_to_opted_in: bool,
-    seq: u64,
-) -> Vec<Effect> {
-    // A superseded failure must not revert: `rollback_to_opted_in` predates
-    // the newer write, so applying it would undo a change the user made
-    // after this one was sent. It must not toast either — nothing the user
-    // is looking at failed.
-    if !is_current_coding_data_write(app, seq, agent_id) {
-        return vec![];
-    }
-    // Revert optimistic mutation: inner → refresh → toast. `agent_id`
-    // discarded — privacy is global.
-    set_coding_data_sharing_inner(app, rollback_to_opted_in);
-    refresh_open_settings_modals(app);
-    // Scrub long/unsafe error strings before toasting.
-    let scrubbed = scrub_error_for_toast(&error);
-    app.show_toast(&format!(
-        "\u{2717} Couldn't update coding data sharing: {scrubbed}"
-    ));
-    tracing::warn!(
-        target: "settings",
-        key = "coding_data_sharing",
-        ?agent_id,
-        rollback_to_opted_in,
-        %error,
-        "ACP update failed; reverted optimistic mutation",
-    );
-    vec![]
-}
 
 pub(super) fn handle_context_info_complete(
     app: &mut AppView,

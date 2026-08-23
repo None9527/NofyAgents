@@ -254,7 +254,6 @@ impl LeaderFixture {
             .env("NOFY_CLI_CHAT_PROXY_BASE_URL", base_url)
             .env("NOFY_API_BASE_URL", base_url)
             .env("NOFY_MODELS_BASE_URL", base_url)
-            .env("NOFY_TRACE_UPLOAD_URL", base_url)
             .env("NOFY_API_KEY", "test-key-for-ci")
             .env("NOFY_LEADER_SOCKET", &socket)
             .env("RUST_LOG", "nofy_shell=debug");
@@ -639,7 +638,6 @@ impl LeaderStdioClient {
                 .env("NOFY_CLI_CHAT_PROXY_BASE_URL", base_url)
                 .env("NOFY_API_BASE_URL", base_url)
                 .env("NOFY_MODELS_BASE_URL", base_url)
-                .env("NOFY_TRACE_UPLOAD_URL", base_url)
                 .env("NOFY_API_KEY", "test-key-for-ci")
                 .env("NOFY_LEADER_SOCKET", leader_socket)
                 .env("RUST_LOG", "nofy_shell=debug"),

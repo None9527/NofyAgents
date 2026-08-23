@@ -2,7 +2,7 @@
 //!
 //! Serves the three inference endpoints (`/v1/chat/completions`,
 //! `/v1/responses`, `/v1/messages`) plus `/v1/models`, `/v1/settings`,
-//! `/v1/user`, `/v1/storage`, and `/v1/privacy/coding-data-retention`.
+//! `/v1/user`, and `/v1/storage`.
 //!
 //! The inference endpoints answer from the first source that matches: a named
 //! expectation, then the path's [`ScriptedResponse`] queue, then the active
@@ -924,32 +924,6 @@ impl MockInferenceServer {
                 }),
             )
             .route(
-                "/v1/privacy/coding-data-retention",
-                put({
-                    let log = log.clone();
-                    move |headers: HeaderMap, Json(body): Json<Value>| {
-                        let log = log.clone();
-                        async move {
-                            let auth = Self::extract_auth(&headers);
-                            log.record(
-                                "PUT",
-                                "/v1/privacy/coding-data-retention",
-                                Some(&body),
-                                auth.as_deref(),
-                                Self::headers_vec(&headers),
-                            );
-                            // Echo the received flag back like the real
-                            // cli-chat-proxy does on success.
-                            let opt_out = body
-                                .get("codingDataRetentionOptOut")
-                                .cloned()
-                                .unwrap_or(Value::Bool(false));
-                            Json(json!({ "codingDataRetentionOptOut": opt_out }))
-                        }
-                    }
-                }),
-            )
-            .route(
                 "/v1/user",
                 get(
                     move |axum::extract::RawQuery(query): axum::extract::RawQuery| {
@@ -1670,39 +1644,6 @@ mod tests {
         assert_eq!(resp.status(), 200);
         let body: Value = resp.json().await.unwrap();
         assert_eq!(body, json!({ "tips": ["t1"] }));
-    }
-
-    #[tokio::test]
-    async fn privacy_coding_data_retention_echoes_flag_and_logs() {
-        let server = MockInferenceServer::start().await.unwrap();
-        let url = format!("{}/privacy/coding-data-retention", server.url());
-
-        for flag in [false, true] {
-            let resp = reqwest::Client::new()
-                .put(&url)
-                .json(&json!({ "codingDataRetentionOptOut": flag }))
-                .send()
-                .await
-                .unwrap();
-            assert_eq!(resp.status(), 200);
-            let body: Value = resp.json().await.unwrap();
-            assert_eq!(body, json!({ "codingDataRetentionOptOut": flag }));
-        }
-
-        let entries = server.requests();
-        let puts: Vec<_> = entries
-            .iter()
-            .filter(|e| e.method == "PUT" && e.path == "/v1/privacy/coding-data-retention")
-            .collect();
-        assert_eq!(puts.len(), 2);
-        assert_eq!(
-            puts[0].body,
-            Some(json!({ "codingDataRetentionOptOut": false }))
-        );
-        assert_eq!(
-            puts[1].body,
-            Some(json!({ "codingDataRetentionOptOut": true }))
-        );
     }
 
     #[tokio::test]

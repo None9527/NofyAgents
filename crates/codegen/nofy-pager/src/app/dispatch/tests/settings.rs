@@ -684,227 +684,6 @@ fn dispatch_open_settings_opens_then_close_on_reentry() {
 /// A focused open on an agent whose settings modal is already open must
 /// reopen focused on the requested row — not toggle the modal closed.
 #[test]
-fn dispatch_open_settings_focus_reopens_when_already_open() {
-    use crate::views::modal::ActiveModal;
-    use crate::views::settings_modal::SettingsModalMode;
-    let mut app = test_app_with_agent();
-    let _ = dispatch(Action::OpenSettings, &mut app);
-    let agent = app.agents.get(&AgentId(0)).unwrap();
-    assert!(matches!(
-        agent.active_modal,
-        Some(ActiveModal::Settings { .. })
-    ));
-    let _ = dispatch(
-        Action::OpenSettingsFocus {
-            key: "coding_data_sharing",
-        },
-        &mut app,
-    );
-    let agent = app.agents.get(&AgentId(0)).unwrap();
-    let Some(ActiveModal::Settings { state }) = &agent.active_modal else {
-        panic!("focused re-entry must keep the settings modal open")
-    };
-    assert_eq!(
-        state.focused_setting().map(|(k, _)| k),
-        Some("coding_data_sharing"),
-        "focused re-entry must land on the requested row"
-    );
-    assert!(
-        matches!(state.mode(), SettingsModalMode::PickingEnum { .. }),
-        "focused re-entry must open the chooser, got {:?}",
-        state.mode()
-    );
-    assert!(
-        state.close_on_picker_exit,
-        "focused re-entry must arm close_on_picker_exit"
-    );
-}
-/// Chooser when editable, browse row when locked. The team-admin arm is the
-/// one a `team_name.is_some()` shortcut would break.
-#[test]
-fn dispatch_open_settings_focus_skips_the_chooser_only_when_locked() {
-    use crate::views::modal::ActiveModal;
-    use crate::views::settings_modal::SettingsModalMode;
-    let open_focused = |app: &mut AppView| -> SettingsModalMode {
-        let _ = dispatch(
-            Action::OpenSettingsFocus {
-                key: "coding_data_sharing",
-            },
-            app,
-        );
-        let agent = app.agents.get(&AgentId(0)).unwrap();
-        let Some(ActiveModal::Settings { state }) = &agent.active_modal else {
-            panic!("settings modal must be open")
-        };
-        assert_eq!(
-            state.focused_setting().map(|(k, _)| k),
-            Some("coding_data_sharing"),
-            "every landing focuses the row"
-        );
-        state.mode()
-    };
-    let mut app = test_app_with_agent();
-    assert!(
-        matches!(
-            open_focused(&mut app),
-            SettingsModalMode::PickingEnum { .. }
-        ),
-        "an editable setting opens its chooser"
-    );
-    let mut app = test_app_with_agent();
-    app.is_zdr = true;
-    assert!(
-        matches!(open_focused(&mut app), SettingsModalMode::Browse),
-        "ZDR must stop at the row that says so"
-    );
-    let mut app = test_app_with_agent();
-    app.team_name = Some("acme".to_string());
-    app.team_role = Some("member".to_string());
-    assert!(
-        matches!(open_focused(&mut app), SettingsModalMode::Browse),
-        "a team-managed lock must stop at the row that says so"
-    );
-    let mut app = test_app_with_agent();
-    app.team_name = Some("acme".to_string());
-    app.team_role = Some("admin".to_string());
-    assert!(
-        matches!(
-            open_focused(&mut app),
-            SettingsModalMode::PickingEnum { .. }
-        ),
-        "a team admin is not locked"
-    );
-}
-/// Focused open that enters the chooser sets `close_on_picker_exit` so Esc
-/// dismisses the modal (GB-4470). Locked landings stay in Browse with the
-/// flag clear — chrome Esc already closes.
-#[test]
-fn dispatch_open_settings_focus_sets_close_on_picker_exit_when_chooser_opens() {
-    use crate::views::modal::ActiveModal;
-    use crate::views::settings_modal::SettingsModalMode;
-    let mut app = test_app_with_agent();
-    let _ = dispatch(
-        Action::OpenSettingsFocus {
-            key: "coding_data_sharing",
-        },
-        &mut app,
-    );
-    let agent = app.agents.get(&AgentId(0)).unwrap();
-    let Some(ActiveModal::Settings { state }) = &agent.active_modal else {
-        panic!("settings modal must be open")
-    };
-    assert!(
-        matches!(state.mode(), SettingsModalMode::PickingEnum { .. }),
-        "editable focus must open the chooser"
-    );
-    assert!(
-        state.close_on_picker_exit,
-        "deep-link chooser open must set close_on_picker_exit"
-    );
-    let mut app = test_app_with_agent();
-    app.is_zdr = true;
-    let _ = dispatch(
-        Action::OpenSettingsFocus {
-            key: "coding_data_sharing",
-        },
-        &mut app,
-    );
-    let agent = app.agents.get(&AgentId(0)).unwrap();
-    let Some(ActiveModal::Settings { state }) = &agent.active_modal else {
-        panic!("settings modal must be open")
-    };
-    assert!(matches!(state.mode(), SettingsModalMode::Browse));
-    assert!(
-        !state.close_on_picker_exit,
-        "locked focus must not set close_on_picker_exit"
-    );
-}
-/// Plain OpenSettings does not arm close-on-picker-Esc.
-#[test]
-fn dispatch_open_settings_does_not_set_close_on_picker_exit() {
-    use crate::views::modal::ActiveModal;
-    let mut app = test_app_with_agent();
-    let _ = dispatch(Action::OpenSettings, &mut app);
-    let agent = app.agents.get(&AgentId(0)).unwrap();
-    let Some(ActiveModal::Settings { state }) = &agent.active_modal else {
-        panic!("settings modal must be open")
-    };
-    assert!(!state.close_on_picker_exit);
-}
-/// Full path: `/privacy`-style focus open → Esc dismisses the settings modal.
-#[test]
-fn open_settings_focus_esc_closes_settings_modal() {
-    use crate::views::modal::ActiveModal;
-    use crate::views::settings_modal::SettingsModalMode;
-    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-    let mut app = test_app_with_agent();
-    let id = AgentId(0);
-    let _ = dispatch(
-        Action::OpenSettingsFocus {
-            key: "coding_data_sharing",
-        },
-        &mut app,
-    );
-    {
-        let agent = app.agents.get(&id).unwrap();
-        let Some(ActiveModal::Settings { state }) = &agent.active_modal else {
-            panic!("settings modal must be open")
-        };
-        assert!(matches!(
-            state.mode(),
-            SettingsModalMode::PickingEnum { .. }
-        ));
-        assert!(state.close_on_picker_exit);
-    }
-    let esc = Event::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
-    let _ = app.handle_input(&esc);
-    assert!(
-        app.agents.get(&id).unwrap().active_modal.is_none(),
-        "deep-link Esc must dismiss the settings modal"
-    );
-}
-/// Full path: `/privacy`-style focus open → Enter commits and dismisses.
-#[test]
-fn open_settings_focus_enter_closes_settings_modal() {
-    use crate::app::app_view::InputOutcome;
-    use crate::views::modal::ActiveModal;
-    use crate::views::settings_modal::SettingsModalMode;
-    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-    let mut app = test_app_with_agent();
-    let id = AgentId(0);
-    let _ = dispatch(
-        Action::OpenSettingsFocus {
-            key: "coding_data_sharing",
-        },
-        &mut app,
-    );
-    {
-        let agent = app.agents.get(&id).unwrap();
-        let Some(ActiveModal::Settings { state }) = &agent.active_modal else {
-            panic!("settings modal must be open")
-        };
-        assert!(matches!(
-            state.mode(),
-            SettingsModalMode::PickingEnum { .. }
-        ));
-        assert!(state.close_on_picker_exit);
-    }
-    let enter = Event::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-    let outcome = app.handle_input(&enter);
-    assert!(
-        app.agents.get(&id).unwrap().active_modal.is_none(),
-        "deep-link Enter must dismiss the settings modal"
-    );
-    assert!(
-        matches!(
-            outcome,
-            InputOutcome::Action(Action::SetCodingDataSharing { .. })
-        ),
-        "deep-link Enter must commit SetCodingDataSharing, got {outcome:?}"
-    );
-}
-/// Browse path: OpenSettings → enter picker → Esc keeps modal open in Browse.
-#[test]
 fn open_settings_enter_picker_esc_stays_open_in_browse() {
     use crate::views::modal::ActiveModal;
     use crate::views::settings_modal::SettingsModalMode;
@@ -917,9 +696,15 @@ fn open_settings_enter_picker_esc_stays_open_in_browse() {
         let Some(ActiveModal::Settings { state }) = &mut agent.active_modal else {
             panic!("settings modal must be open")
         };
-        assert!(state.focus_key("coding_data_sharing"));
+        let idx = state
+            .rows
+            .iter()
+            .position(|r| {
+                matches!(r, crate::views::settings_modal::RowEntry::Setting { key, .. } if *key == "plan_mode")
+            })
+            .expect("plan_mode row registered");
+        assert!(state.select_at(idx));
         assert!(state.try_enter_picking_enum());
-        assert!(!state.close_on_picker_exit);
     }
     let esc = Event::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
     let _ = app.handle_input(&esc);
@@ -932,43 +717,6 @@ fn open_settings_enter_picker_esc_stays_open_in_browse() {
         "browse-path Esc must return to Browse, got {:?}",
         state.mode()
     );
-}
-/// `ActionThenClose` closes the modal and forwards the preview-revert Action
-/// through `apply_settings_outcome` (handle_input path).
-#[test]
-fn deep_link_preview_esc_closes_modal_and_forwards_revert_action() {
-    use crate::app::app_view::InputOutcome;
-    use crate::views::modal::ActiveModal;
-    use crate::views::settings_modal::SettingsModalMode;
-    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-    let mut app = test_app_with_agent();
-    let id = AgentId(0);
-    let _ = dispatch(Action::OpenSettings, &mut app);
-    {
-        let agent = app.agents.get_mut(&id).unwrap();
-        let Some(ActiveModal::Settings { state }) = &mut agent.active_modal else {
-            panic!("settings modal must be open")
-        };
-        assert!(state.focus_key("theme"));
-        assert!(state.try_enter_picking_enum());
-        state.close_on_picker_exit = true;
-        assert!(matches!(
-            state.mode(),
-            SettingsModalMode::PickingEnum { .. }
-        ));
-    }
-    let esc = Event::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
-    let outcome = app.handle_input(&esc);
-    assert!(
-        app.agents.get(&id).unwrap().active_modal.is_none(),
-        "ActionThenClose must clear active_modal"
-    );
-    match outcome {
-        InputOutcome::Action(Action::PreviewTheme(name)) => {
-            assert_eq!(name, "nofynight");
-        }
-        other => panic!("expected Action(PreviewTheme), got {other:?}"),
-    }
 }
 /// `dispatch_open_reset_confirm` moves the Settings modal state
 /// into the new `ResetSettingsConfirm` variant, preserving it
@@ -1614,9 +1362,6 @@ fn move_setting_away_from_default(app: &mut AppView, key: crate::settings::Setti
         }
         "max_thoughts_width" => {
             let _ = dispatch(Action::SetMaxThoughtsWidth(200), app);
-        }
-        "coding_data_sharing" => {
-            let _ = dispatch(Action::SetCodingDataSharing { opted_in: true }, app);
         }
         "plan_mode" => {
             let _ = dispatch(

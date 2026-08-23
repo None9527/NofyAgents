@@ -710,9 +710,7 @@ fn run_pending_suspends(
 /// post-auth via the deferred drain), so that session create owns the
 /// startup latch.
 fn minimal_will_open_session(term_state: &TerminalState, app: &AppView) -> bool {
-    term_state.screen_mode.is_minimal()
-        && matches!(app.active_view, ActiveView::Welcome)
-        && !app.is_zdr_blocked()
+    term_state.screen_mode.is_minimal() && matches!(app.active_view, ActiveView::Welcome)
 }
 
 /// Run the main event loop until quit.
@@ -946,12 +944,6 @@ pub(crate) async fn run(
         );
     }
 
-    app.zdr_access_enabled = nofy_shell::util::config::resolve_zdr_access_enabled(
-        requirements.as_ref(),
-        user_config.as_ref(),
-        managed_config.as_ref(),
-    );
-
     // Full layered resolve (env/requirements may beat plain `[ui]`).
     crate::appearance::cache::set_show_thinking_blocks(
         nofy_shell::util::config::resolve_show_thinking_blocks(
@@ -985,10 +977,6 @@ pub(crate) async fn run(
     // shell runs at spawn, so the seed agrees with the flag as it stands today.
     app.scheduler_background_loops_seed =
         nofy_shell::util::config::resolve_scheduler_background_loops();
-
-    if app.is_access_blocked() {
-        app.welcome_prompt_focused = false;
-    }
 
     {
         use nofy_shell::util::config::{
@@ -1310,9 +1298,6 @@ pub(crate) async fn run(
     let connection_cancel = connection.cancel;
     let mut leader_status_rx = connection.leader_status_rx;
     let mut tasks: JoinSet<TaskResult> = JoinSet::new();
-    let (progress_tx, mut progress_rx) =
-        tokio::sync::mpsc::unbounded_channel::<effects::RestoreProgressMsg>();
-
     // Animation tick: only scheduled when there are running entries.
     let mut tick_interval = tick_interval;
     let mut animation_tick_at: Option<Instant> = None;
@@ -1356,7 +1341,7 @@ pub(crate) async fn run(
     // status only; shell auto-syncs post-auth
     if matches!(app.auth_state, AuthState::Done) {
         let effs = dispatch::dispatch(Action::RequestBundleStatus, &mut app);
-        if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+        if process_effects(effs, &mut tasks, &mut app) {
             return Ok(make_run_result(&app));
         }
     }
@@ -1368,8 +1353,6 @@ pub(crate) async fn run(
     let startup_action = match &materialized {
         MaterializedStartup::Resume {
             session_id,
-            deferred_local_miss,
-            suppress_code_restore,
             ..
         } if args.worktree.is_some() => {
             tracing::info!(
@@ -1377,12 +1360,6 @@ pub(crate) async fn run(
                 restore_code = ?app.restore_code,
                 "RESTORE_CODE_DEBUG: worktree+resume path taken"
             );
-            // Materialization-time provenance for the worktree failure hint;
-            // the effect matches it against the exact deferred target.
-            app.resume_local_miss = deferred_local_miss.then(|| session_id.clone());
-            if *suppress_code_restore {
-                app.suppress_code_restore_once = Some(session_id.clone());
-            }
             Some(Action::NewWorktreeSession {
                 load_session_id: Some(session_id.clone()),
                 label: args.worktree.as_ref().filter(|s| !s.is_empty()).cloned(),
@@ -1391,16 +1368,12 @@ pub(crate) async fn run(
         }
         MaterializedStartup::Resume {
             session_id,
-            suppress_code_restore,
             ..
         } => {
             // CLI resume has no roster entry: `chat_kind` on LoadSession is the
             // conversation-entry bit only (false here). Process-wide `--chat`
             // still stamps kind=chat via SessionFlags.chat_mode in the load
             // effect; local Build disk rows are refused in dispatch / startup.
-            if *suppress_code_restore {
-                app.suppress_code_restore_once = Some(session_id.clone());
-            }
             Some(Action::LoadSession(
                 session_id.clone(),
                 session_cwd.clone(),
@@ -1425,12 +1398,8 @@ pub(crate) async fn run(
             parent_session_id,
             parent_cwd,
             new_session_id,
-            suppress_code_restore,
             ..
         } => {
-            if *suppress_code_restore {
-                app.suppress_code_restore_once = Some(parent_session_id.clone());
-            }
             Some(Action::StartupForkSession {
                 parent_session_id: parent_session_id.clone(),
                 parent_cwd: parent_cwd.clone().or(session_cwd.clone()),
@@ -1449,7 +1418,7 @@ pub(crate) async fn run(
 
     if let Some(action) = startup_action {
         let effs = dispatch::dispatch(action, &mut app);
-        if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+        if process_effects(effs, &mut tasks, &mut app) {
             return Ok(make_run_result(&app));
         }
         presenter.request_presentation(&mut app, terminal, false);
@@ -1463,7 +1432,7 @@ pub(crate) async fn run(
             },
             &mut app,
         );
-        if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+        if process_effects(effs, &mut tasks, &mut app) {
             return Ok(make_run_result(&app));
         }
         presenter.request_presentation(&mut app, terminal, false);
@@ -1474,24 +1443,17 @@ pub(crate) async fn run(
 
     // Initial prompt from the CLI positional (`nofy "fix the bug"`). When
     // already authenticated, hand it to the shared dispatcher helper (same
-    // `NewSession`/`SendPrompt` path the welcome screen uses). ZDR-blocked
-    // accounts cannot start a session, so drop the prompt — this mirrors the
-    // deferred startup path, which clears the startup prompt for ZDR-blocked
-    // accounts. When not yet authenticated, stash it for the startup drain.
+    // `NewSession`/`SendPrompt` path the welcome screen uses). When not yet
+    // authenticated, stash it for the startup drain.
     if let Some(initial_prompt) = args.initial_prompt() {
         if !app.session_startup_allowed() {
             app.deferred_startup.prompt = Some(initial_prompt.to_string());
-        } else if !app.is_zdr_blocked() {
+        } else {
             let effs = dispatch::dispatch_initial_prompt(&mut app, initial_prompt.to_string());
-            if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+            if process_effects(effs, &mut tasks, &mut app) {
                 return Ok(make_run_result(&app));
             }
             presenter.request_presentation(&mut app, terminal, false);
-        } else {
-            // ZDR drops the prompt; no session will latch, so latch at interactive.
-            nofy_telemetry::startup::report_total(
-                nofy_telemetry::startup::StartupOutcome::Ok,
-            );
         }
     }
 
@@ -1503,7 +1465,7 @@ pub(crate) async fn run(
         unsafe { std::env::remove_var("NOFY_OPEN_DASHBOARD_AT_STARTUP") };
         if app.session_startup_allowed() {
             let effs = dispatch::dispatch(Action::OpenDashboard, &mut app);
-            if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+            if process_effects(effs, &mut tasks, &mut app) {
                 return Ok(make_run_result(&app));
             }
             presenter.request_presentation(&mut app, terminal, false);
@@ -1520,15 +1482,15 @@ pub(crate) async fn run(
     // Minimal (scrollback-native) mode has no welcome screen: the live region
     // only renders for an Agent view. If nothing above already started a
     // session (no resume / initial prompt / worktree / dashboard), open an
-    // empty one so the user lands directly at the prompt. Unauthenticated /
-    // ZDR-blocked startup stays on Welcome, where `crate::minimal::live` shows
-    // a sign-in hint instead of a blank region.
+    // empty one so the user lands directly at the prompt. Unauthenticated
+    // startup stays on Welcome, where `crate::minimal::live` shows a sign-in
+    // hint instead of a blank region.
     if minimal_will_open_session(&term_state, &app) {
         if app.session_startup_allowed() {
             // Already authenticated + trusted: open the empty session now so the
             // user lands directly at the prompt.
             let effs = dispatch::dispatch(Action::NewSession, &mut app);
-            if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+            if process_effects(effs, &mut tasks, &mut app) {
                 return Ok(make_run_result(&app));
             }
             presenter.request_presentation(&mut app, terminal, false);
@@ -1545,7 +1507,7 @@ pub(crate) async fn run(
 
     // Startup intents are now fully classified; only an untouched welcome can nudge.
     if let Some(effect) = app.begin_foreign_resume_detection()
-        && process_effects(vec![effect], &mut tasks, &mut app, &progress_tx)
+        && process_effects(vec![effect], &mut tasks, &mut app)
     {
         return Ok(make_run_result(&app));
     }
@@ -1737,7 +1699,7 @@ pub(crate) async fn run(
             // biased order so a SIGTERM quit isn't starved by an ACP firehose.
             _ = quit_notify.notified() => {
                 let effs = dispatch::dispatch(Action::Quit, &mut app);
-                let _ = process_effects(effs, &mut tasks, &mut app, &progress_tx);
+                let _ = process_effects(effs, &mut tasks, &mut app);
                 break;
             }
 
@@ -1767,7 +1729,7 @@ pub(crate) async fn run(
                 let mut state_changed = acp_handler::handle(msg, &mut app);
                 if !app.pending_effects.is_empty() {
                     let effs = std::mem::take(&mut app.pending_effects);
-                    if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+                    if process_effects(effs, &mut tasks, &mut app) {
                         break;
                     }
                 }
@@ -1785,7 +1747,7 @@ pub(crate) async fn run(
                     state_changed |= acp_handler::handle(msg, &mut app);
                     if !app.pending_effects.is_empty() {
                         let effs = std::mem::take(&mut app.pending_effects);
-                        if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+                        if process_effects(effs, &mut tasks, &mut app) {
                             return Ok(make_run_result(&app));
                         }
                     }
@@ -1807,7 +1769,7 @@ pub(crate) async fn run(
                 match join_result {
                     Ok(result) => {
                         let effs = dispatch::dispatch(Action::TaskComplete(result), &mut app);
-                        if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+                        if process_effects(effs, &mut tasks, &mut app) {
                             break;
                         }
                         schedule_tick(&mut animation_tick_at, &app, tick_interval);
@@ -1826,24 +1788,12 @@ pub(crate) async fn run(
                 }
             }
 
-            Some(msg) = progress_rx.recv() => {
-                let result = TaskResult::SessionRestoreProgress {
-                    agent_id: msg.agent_id,
-                    message: msg.message,
-                };
-                let effs = dispatch::dispatch(Action::TaskComplete(result), &mut app);
-                if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
-                    break;
-                }
-                presenter.request(false);
-            }
-
             maybe_ev = input_rx.recv() => {
                 // Terminal events arrive via the dedicated reader thread set up
                 // near the top of this function. `None` means that thread ended.
                 let Some(ev) = maybe_ev else { break };
                 let result = drain_and_process(
-                    ev, &mut input_rx, &mut app, &mut tasks, &progress_tx,
+                    ev, &mut input_rx, &mut app, &mut tasks,
                     &mut csi_filter, &mut xt_filter,
                 ).await;
                 if result.should_quit {
@@ -1851,7 +1801,7 @@ pub(crate) async fn run(
                 }
                 if !app.pending_effects.is_empty() {
                     let effs = std::mem::take(&mut app.pending_effects);
-                    if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+                    if process_effects(effs, &mut tasks, &mut app) {
                         break;
                     }
                 }
@@ -1923,7 +1873,7 @@ pub(crate) async fn run(
                 // `needs_animation()` keeps ticks alive while either recovery
                 // is armed, so these checks cannot be starved.
                 if let Some(resends) = dispatch::reconcile_overdue_cancels(&mut app)
-                    && process_effects(resends, &mut tasks, &mut app, &progress_tx)
+                    && process_effects(resends, &mut tasks, &mut app)
                 {
                     break;
                 }
@@ -1933,7 +1883,7 @@ pub(crate) async fn run(
                 // (see `dispatch::reconcile_overdue_turn_ends`).
                 let reconciled = dispatch::reconcile_overdue_turn_ends(&mut app);
                 if let Some(effs) = reconciled {
-                    if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+                    if process_effects(effs, &mut tasks, &mut app) {
                         break;
                     }
                     presenter.request(false);
@@ -1959,7 +1909,7 @@ pub(crate) async fn run(
                     } else {
                         Effect::FetchDashboardSessions
                     };
-                    if process_effects(vec![eff], &mut tasks, &mut app, &progress_tx) {
+                    if process_effects(vec![eff], &mut tasks, &mut app) {
                         break;
                     }
                     roster_poll_at = Some(Instant::now() + ROSTER_POLL_INTERVAL);
@@ -1971,7 +1921,7 @@ pub(crate) async fn run(
             _ = recap_poll => {
                 if should_pregenerate_away_recap(&app) {
                     let effs = dispatch::dispatch(Action::SendRecap { auto: true }, &mut app);
-                    if process_effects(effs, &mut tasks, &mut app, &progress_tx) {
+                    if process_effects(effs, &mut tasks, &mut app) {
                         break;
                     }
                 }
@@ -2354,7 +2304,7 @@ pub(crate) async fn run(
                 // an unrestored session would be wrong.
                 if active_restored {
                     let drain_effects = dispatch::dispatch(Action::DrainQueue, &mut app);
-                    if process_effects(drain_effects, &mut tasks, &mut app, &progress_tx) {
+                    if process_effects(drain_effects, &mut tasks, &mut app) {
                         return Ok(make_run_result(&app));
                     }
                 }
@@ -2587,7 +2537,6 @@ async fn drain_and_process(
     input_rx: &mut tokio::sync::mpsc::UnboundedReceiver<TimedInputEvent>,
     app: &mut AppView,
     tasks: &mut JoinSet<TaskResult>,
-    progress_tx: &tokio::sync::mpsc::UnboundedSender<effects::RestoreProgressMsg>,
     csi_filter: &mut super::csi_filter::CsiFragmentFilter,
     xt_filter: &mut super::xt_filter::XtversionFilter,
 ) -> DrainResult {
@@ -2693,7 +2642,7 @@ async fn drain_and_process(
                                 crate::app::actions::Action::SendRecap { auto: true },
                                 app,
                             );
-                            if process_effects(effs, tasks, app, progress_tx) {
+                            if process_effects(effs, tasks, app) {
                                 return true;
                             }
                             needs_draw = true;
@@ -2735,7 +2684,7 @@ async fn drain_and_process(
         ) {
             InputOutcome::Action(action) => {
                 let effs = dispatch::dispatch(action, app);
-                if process_effects(effs, tasks, app, progress_tx) {
+                if process_effects(effs, tasks, app) {
                     return true;
                 }
                 needs_draw = true;
@@ -2746,7 +2695,7 @@ async fn drain_and_process(
                 // the same event through the now-active view so the input
                 // (character, paste) lands in the session's prompt.
                 let effs = dispatch::dispatch(action, app);
-                if process_effects(effs, tasks, app, progress_tx) {
+                if process_effects(effs, tasks, app) {
                     return true;
                 }
                 if let InputOutcome::Action(follow_up) = app.handle_input_at_with_paste_provenance(
@@ -2755,7 +2704,7 @@ async fn drain_and_process(
                     routed.paste_provenance,
                 ) {
                     let effs = dispatch::dispatch(follow_up, app);
-                    if process_effects(effs, tasks, app, progress_tx) {
+                    if process_effects(effs, tasks, app) {
                         return true;
                     }
                 }
@@ -2766,11 +2715,11 @@ async fn drain_and_process(
                 // Dispatch both in order; first must fully resolve
                 // before second (e.g. revert preview then open reset).
                 let effs = dispatch::dispatch(first, app);
-                if process_effects(effs, tasks, app, progress_tx) {
+                if process_effects(effs, tasks, app) {
                     return true;
                 }
                 let effs = dispatch::dispatch(second, app);
-                if process_effects(effs, tasks, app, progress_tx) {
+                if process_effects(effs, tasks, app) {
                     return true;
                 }
                 needs_draw = true;
@@ -3132,7 +3081,7 @@ fn conversation_load_in_effects(effs: &[super::actions::Effect]) -> bool {
     })
 }
 
-/// Apply history bypass (`chat_mode = false`) for load/restore/worktree-create.
+/// Apply history bypass (`chat_mode = false`) for load/worktree-create.
 #[cfg(feature = "local-workspace")]
 pub(crate) fn welcome_history_build_bypass_applies(
     effs: &[super::actions::Effect],
@@ -3142,9 +3091,7 @@ pub(crate) fn welcome_history_build_bypass_applies(
     flag && effs.iter().any(|e| {
         matches!(
             e,
-            Effect::LoadSession { .. }
-                | Effect::RestoreAndLoadSession { .. }
-                | Effect::CreateWorktreeSession { .. }
+            Effect::LoadSession { .. } | Effect::CreateWorktreeSession { .. }
         )
     })
 }
@@ -3164,45 +3111,6 @@ pub(crate) fn welcome_history_build_bypass_consume(
     })
 }
 
-/// Consume id-keyed code-restore suppression on a matching `LoadSession` or
-/// worktree resume. Leaves `app.restore_code` unchanged for other loads.
-pub(crate) fn take_load_restore_code(
-    app: &mut AppView,
-    effs: &[super::actions::Effect],
-) -> Option<bool> {
-    let Some(target) = app.suppress_code_restore_once.clone() else {
-        return app.restore_code;
-    };
-    let hit_load = effs.iter().any(|e| match e {
-        super::actions::Effect::LoadSession { session_id, .. } => session_id == &target,
-        _ => false,
-    });
-    let hit_worktree = effs.iter().any(|e| match e {
-        super::actions::Effect::CreateWorktreeSession {
-            load_session_id: Some(sid),
-            ..
-        } => sid == &target,
-        _ => false,
-    });
-    if hit_load {
-        app.suppress_code_restore_once = None;
-        return Some(false);
-    }
-    if hit_worktree {
-        // Peek only: worktree resume sends restoreCode:false, then
-        // WorktreeForked retargets suppress to the child LoadSession.
-        return Some(false);
-    }
-    app.restore_code
-}
-
-/// If one-shot suppress is armed for `from`, point it at `to`.
-pub(crate) fn retarget_suppress_code_restore(app: &mut AppView, from: &str, to: impl Into<String>) {
-    if app.suppress_code_restore_once.as_deref() == Some(from) {
-        app.suppress_code_restore_once = Some(to.into());
-    }
-}
-
 /// Shared [`SessionFlags`] builder (interactive loop + leader-cluster).
 pub(crate) fn session_flags_for_effects(
     app: &mut AppView,
@@ -3213,7 +3121,7 @@ pub(crate) fn session_flags_for_effects(
         plan_mode: app.plan_mode,
         subagents: app.subagents,
         ask_user: app.ask_user,
-        restore_code: take_load_restore_code(app, effs),
+        restore_code: app.restore_code,
         agent_override: app.agent_override.clone(),
         yolo_mode: app.default_yolo,
         auto_mode: super::dispatch::effective_auto(
@@ -3253,7 +3161,6 @@ pub(crate) fn session_flags_for_effects(
         },
         screen_mode_label: Some(app.screen_mode.meta_label()),
         is_api_key_auth: app.is_api_key_auth,
-        resume_local_miss: app.resume_local_miss.clone(),
     }
 }
 
@@ -3262,11 +3169,10 @@ fn process_effects(
     effs: Vec<super::actions::Effect>,
     tasks: &mut JoinSet<TaskResult>,
     app: &mut AppView,
-    progress_tx: &tokio::sync::mpsc::UnboundedSender<effects::RestoreProgressMsg>,
 ) -> bool {
     let flags = session_flags_for_effects(app, &effs);
     for eff in effs {
-        let quit = effects::execute(eff, tasks, &app.acp_tx, &app.cwd, &flags, progress_tx);
+        let quit = effects::execute(eff, tasks, &app.acp_tx, &app.cwd, &flags);
         if quit {
             return true;
         }
@@ -3349,62 +3255,6 @@ mod tests {
         assert!(
             flags.local_workspace.is_none(),
             "conversation load must strip local stamp"
-        );
-    }
-
-    #[test]
-    fn take_load_restore_code_is_oneshot_on_matching_session_only() {
-        use crate::app::actions::Effect;
-        use crate::app::agent::AgentId;
-        let mut app = crate::app::app_view::tests::test_app();
-        app.restore_code = None;
-        app.suppress_code_restore_once = Some("child".into());
-        let other_load = Effect::LoadSession {
-            agent_id: AgentId(0),
-            session_id: "other".into(),
-            session_cwd: None,
-            chat_kind: false,
-        };
-        assert_eq!(
-            take_load_restore_code(&mut app, std::slice::from_ref(&other_load)),
-            None
-        );
-        assert_eq!(app.suppress_code_restore_once.as_deref(), Some("child"));
-        let wt = Effect::CreateWorktreeSession {
-            agent_id: AgentId(0),
-            load_session_id: Some("child".into()),
-            label: None,
-            git_ref: None,
-            model_id: None,
-            preferred_session_id: None,
-            chat_kind: false,
-        };
-        assert_eq!(
-            take_load_restore_code(&mut app, std::slice::from_ref(&wt)),
-            Some(false)
-        );
-        assert_eq!(
-            app.suppress_code_restore_once.as_deref(),
-            Some("child"),
-            "worktree resume peeks suppress without consuming"
-        );
-
-        let load = Effect::LoadSession {
-            agent_id: AgentId(0),
-            session_id: "child".into(),
-            session_cwd: None,
-            chat_kind: false,
-        };
-        assert_eq!(
-            take_load_restore_code(&mut app, std::slice::from_ref(&load)),
-            Some(false)
-        );
-        assert!(app.suppress_code_restore_once.is_none());
-        app.restore_code = Some(true);
-        assert_eq!(
-            take_load_restore_code(&mut app, std::slice::from_ref(&load)),
-            Some(true),
-            "later loads must use app.restore_code, not sticky false"
         );
     }
 

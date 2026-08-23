@@ -631,7 +631,7 @@ pub(in crate::app::dispatch) fn dispatch_trust_folder(app: &mut AppView) -> Vec<
 /// `AuthComplete` uses, so whichever gate resolves last drains exactly once.
 pub(in crate::app::dispatch) fn finish_trust(app: &mut AppView) -> Vec<Effect> {
     app.trust_state = TrustState::Done;
-    app.welcome_prompt_focused = !app.is_access_blocked();
+    app.welcome_prompt_focused = true;
     if app.session_startup_allowed() {
         drain_startup_actions(app)
     } else {
@@ -639,8 +639,8 @@ pub(in crate::app::dispatch) fn finish_trust(app: &mut AppView) -> Vec<Effect> {
     }
 }
 /// Clear EVERY deferred `startup_*` action without replaying any. Used on the
-/// paths that must not run startup at all — e.g. a ZDR-blocked account or a
-/// context where a session already exists — so a stash
+/// paths that must not run startup at all — e.g. a context where a session
+/// already exists — so a stash
 /// (including an incidental mid-session `Ctrl+N` that the chokepoint deferred)
 /// can never linger and fire later. Atomic counterpart to `drain_startup_actions`.
 pub(in crate::app::dispatch) fn clear_startup_actions(app: &mut AppView) {

@@ -833,16 +833,6 @@ pub struct AppView {
     pub fork_worktree_mode: WorktreeMode,
     /// Restore code state on resume (`--restore-code`).
     pub restore_code: Option<bool>,
-    /// One-shot session id: matching `LoadSession` / worktree resume injects
-    /// `restore_code: false`, then this clears. Used after conversation-only
-    /// remote restore (and remote worktree without `--restore-code`) so agent
-    /// `[cli] restore_code` cannot checkout in-place. Not sticky.
-    pub suppress_code_restore_once: Option<String>,
-    /// Startup resume target that missed local id/title resolution and was
-    /// deferred to the worktree resume handler (set from materialization).
-    /// Worktree failure messages append the no-match hint only for this
-    /// exact target.
-    pub resume_local_miss: Option<String>,
     pub agent_override: Option<serde_json::Value>,
     /// ACP-advertised commands seeded into every new `AgentSession` so
     /// autocomplete has shell builtins and skills before any runtime
@@ -867,26 +857,12 @@ pub struct AppView {
     pub team_id: Option<String>,
     /// Team name from auth (displayed in the shortcuts bar).
     pub team_name: Option<String>,
-    /// Whether the user's team has enterprise Zero Data Retention enabled.
-    pub is_zdr: bool,
-    /// Team role (e.g. "Admin", "Member", "Read Only") for access-control checks.
-    pub team_role: Option<String>,
-    /// Whether the user has opted out of coding data retention.
-    pub coding_data_retention_opt_out: bool,
-    /// Newest `SetCodingDataSharing` write. Bumped per dispatch and echoed
-    /// on the `TaskResult`, so an older write's late reply — whose
-    /// `rollback_to_opted_in` was captured before the newer one — cannot
-    /// clobber the current value.
-    pub coding_data_write_seq: u64,
     /// Persisted `[cli].show_tips` mirror. `None` = no override (default `true`).
     pub show_tips: Option<bool>,
     /// Persisted `[toolset.ask_user_question].timeout_enabled` mirror, seeded
     /// from the effective TOML merge like `show_tips`. `None` = unset in TOML
     /// (default `true`); toggles write the user layer.
     pub ask_user_question_timeout_enabled: Option<bool>,
-    /// Whether ZDR users are allowed to use the product. Resolved from the
-    /// config layers; default `false` (blocked) during beta.
-    pub zdr_access_enabled: bool,
     /// (hide-key, surface) pairs whose `AnnouncementCtaShown` impression was
     /// already logged — once per pager process, cleared on logout. Keyed by
     /// `announcement_hide_key` (stable even for id-less items, unlike the
@@ -939,32 +915,6 @@ pub struct AppView {
     pub(crate) keyboard_normalizer: KeyboardNormalizer,
 }
 impl AppView {
-    pub fn is_zdr_blocked(&self) -> bool {
-        self.is_zdr && !self.zdr_access_enabled
-    }
-    /// True when the user should not see the prompt (ZDR-blocked).
-    pub fn is_access_blocked(&self) -> bool {
-        self.is_zdr_blocked()
-    }
-    /// Coding-data preference is team-admin-owned for non-admin members.
-    pub fn is_team_non_admin(&self) -> bool {
-        self.team_name.is_some()
-            && !self
-                .team_role
-                .as_deref()
-                .is_some_and(|r| r.eq_ignore_ascii_case("admin"))
-    }
-    /// Why `coding_data_sharing` is locked for this user (`None` = editable).
-    /// Mirrors the dispatch guards in `set_coding_data_sharing`.
-    pub fn coding_data_sharing_lock(&self) -> Option<crate::settings::CodingDataSharingLock> {
-        if self.is_zdr {
-            Some(crate::settings::CodingDataSharingLock::Zdr)
-        } else if self.is_team_non_admin() {
-            Some(crate::settings::CodingDataSharingLock::TeamManaged)
-        } else {
-            None
-        }
-    }
     /// Whether deferred session-startup actions may run: both auth AND folder
     /// trust must be resolved. Mirrors the auth gate at the session-creating
     /// startup sites; trust is gated AFTER auth so a pending trust question
@@ -976,9 +926,6 @@ impl AppView {
     pub fn apply_auth_meta(&mut self, meta: &nofy_shell::auth::AuthMeta) {
         self.team_id = meta.team_id.clone();
         self.team_name = meta.team_name.clone();
-        self.is_zdr = meta.is_zdr;
-        self.team_role = meta.team_role.clone();
-        self.coding_data_retention_opt_out = meta.coding_data_retention_opt_out;
         self.is_api_key_auth = meta.auth_mode.as_deref().is_some_and(is_api_key_label);
         if let Some(show) = meta.show_resolved_model {
             self.show_resolved_model = show;
@@ -1109,8 +1056,6 @@ impl AppView {
             new_session_worktree_mode: WorktreeMode::Never,
             fork_worktree_mode: WorktreeMode::Ask,
             restore_code: None,
-            suppress_code_restore_once: None,
-            resume_local_miss: None,
             agent_override: None,
             bootstrap_acp_commands,
             auth_methods: Vec::new(),
@@ -1119,13 +1064,8 @@ impl AppView {
             deferred_startup: Default::default(),
             team_id: None,
             team_name: None,
-            is_zdr: false,
-            team_role: None,
-            coding_data_retention_opt_out: true,
-            coding_data_write_seq: 0,
             show_tips: None,
             ask_user_question_timeout_enabled: None,
-            zdr_access_enabled: false,
             announcement_cta_impressions_logged: Default::default(),
             reconnect_pending: false,
             startup_warnings: Vec::new(),
@@ -1751,7 +1691,6 @@ impl AppView {
             }
             return InputOutcome::Changed;
         }
-        let zdr_blocked = self.is_zdr_blocked();
         let welcome_pinned_upgrade_cta = crate::views::announcements::promo_cta(
             &self.active_announcements,
             &self.hidden_announcement_ids,
@@ -1788,8 +1727,7 @@ impl AppView {
                     announcement_rect: self.welcome_announcement.rect.as_ref(),
                     on_announcement_cta: &mut self.welcome_announcement.on_cta,
                     announcement_expanded: &mut self.welcome_announcement.expanded,
-                    is_zdr_blocked: zdr_blocked,
-                    sp_entries: &mut self.session_picker_entries,
+                            sp_entries: &mut self.session_picker_entries,
                     sp_loading,
                     sp_state: &mut self.session_picker_state,
                     sp_content_results: &self.session_picker_content_results,
@@ -2366,7 +2304,6 @@ struct WelcomeInputCtx<'a> {
     on_announcement_cta: &'a mut bool,
     /// Whether the long announcement is currently expanded inline.
     announcement_expanded: &'a mut bool,
-    is_zdr_blocked: bool,
     sp_entries: &'a mut Option<Vec<SessionPickerEntry>>,
     /// Mirrors the render's `session_picker_loading` param: the spinner-only
     /// picker still owns input (Esc must dismiss it, not hit the hidden menu).
@@ -2505,7 +2442,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
         }
     }
     if matches!(ctx.auth_state, AuthState::Done)
-        && !ctx.is_zdr_blocked
         && matches!(ctx.trust_state, TrustState::Pending { .. })
     {
         if let Event::Key(key) = ev {
@@ -2546,10 +2482,7 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
         return InputOutcome::Unchanged;
     }
     #[cfg(feature = "local-workspace")]
-    if *ctx.workspace_mode_ack_pending
-        && matches!(ctx.auth_state, AuthState::Done)
-        && !ctx.is_zdr_blocked
-    {
+    if *ctx.workspace_mode_ack_pending && matches!(ctx.auth_state, AuthState::Done) {
         if let Event::Key(key) = ev {
             if key.kind == KeyEventKind::Release {
                 return InputOutcome::Unchanged;
@@ -2584,7 +2517,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
     if crate::views::welcome::workspace_mode::picker_interactive(
         ctx.chat_mode,
         matches!(ctx.auth_state, AuthState::Done),
-        ctx.is_zdr_blocked,
         ctx.session_picker_open,
         ctx.workspace_mode_startup_locked,
     ) {
@@ -2869,9 +2801,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
         if key.kind == KeyEventKind::Release {
             return InputOutcome::Unchanged;
         }
-        if ctx.is_zdr_blocked && matches!(ctx.auth_state, AuthState::Done) {
-            return InputOutcome::Unchanged;
-        }
         if matches!(ctx.auth_state, AuthState::Done)
             && key!(Enter).matches(key)
             && key.modifiers.is_empty()
@@ -2961,9 +2890,6 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
     if let Event::Paste(_) = ev {
         match ctx.auth_state {
             AuthState::Done => {
-                if ctx.is_zdr_blocked {
-                    return InputOutcome::Unchanged;
-                }
                 return InputOutcome::ActionThenForward(Action::NewSession);
             }
             _ => {}
@@ -4814,8 +4740,6 @@ pub(crate) mod tests {
             new_session_worktree_mode: WorktreeMode::Never,
             fork_worktree_mode: WorktreeMode::Ask,
             restore_code: None,
-            suppress_code_restore_once: None,
-            resume_local_miss: None,
             agent_override: None,
             bootstrap_acp_commands: Vec::new(),
             auth_methods: Vec::new(),
@@ -4824,13 +4748,8 @@ pub(crate) mod tests {
             deferred_startup: Default::default(),
             team_id: None,
             team_name: None,
-            is_zdr: false,
-            team_role: None,
-            coding_data_retention_opt_out: true,
-            coding_data_write_seq: 0,
             show_tips: None,
             ask_user_question_timeout_enabled: None,
-            zdr_access_enabled: false,
             announcement_cta_impressions_logged: Default::default(),
             bundle_state: BundleState::default(),
             scroll_debug_hud: crate::views::scroll_debug_hud::ScrollDebugHud::new(),
@@ -10332,25 +10251,5 @@ pub(crate) mod tests {
         );
         assert_eq!(app.session_picker_state.query(), "keep-me");
         let _ = WelcomeWorkspaceMode::Sandbox;
-    }
-    #[cfg(feature = "local-workspace")]
-    #[test]
-    fn welcome_ctrl_e_ignored_when_zdr_blocked() {
-        use crate::views::welcome::WelcomeWorkspaceMode;
-        let mut app = test_app();
-        app.chat_mode = true;
-        app.active_view = ActiveView::Welcome;
-        app.auth_state = AuthState::Done;
-        app.trust_state = TrustState::Done;
-        app.is_zdr = true;
-        app.zdr_access_enabled = false;
-        assert_eq!(app.welcome_workspace_mode, WelcomeWorkspaceMode::Sandbox);
-        let key = Event::Key(KeyEvent::new(KeyCode::Char('e'), KeyModifiers::CONTROL));
-        let _ = app.handle_input(&key);
-        assert_eq!(
-            app.welcome_workspace_mode,
-            WelcomeWorkspaceMode::Sandbox,
-            "Ctrl+E must not cycle mode on ZDR-blocked welcome"
-        );
     }
 }

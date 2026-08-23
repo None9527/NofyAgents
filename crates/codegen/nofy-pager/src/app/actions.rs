@@ -573,11 +573,6 @@ pub enum Action {
     /// Open the settings modal (F2, `/settings`, command palette).
     /// If already open, closes it instead of stacking.
     OpenSettings,
-    /// Open settings on a registry key: its chooser, or the browse row when
-    /// the setting is locked.
-    OpenSettingsFocus {
-        key: &'static str,
-    },
     /// Open the command palette (`/help`). The keybinding path (Ctrl+P) opens it
     /// directly in `handle_agent_action`; this lets a slash command reach the
     /// same modal through dispatch.
@@ -683,9 +678,6 @@ pub enum Action {
     TriggerDeepSearch,
     /// Force an immediate deep content search, skipping the debounce.
     ForceDeepSearch,
-    SetCodingDataSharing {
-        opted_in: bool,
-    },
     /// `/fork` slash command: parsed args produced by
     /// [`crate::slash::commands::fork::parse_fork_args`]. The dispatcher
     /// resolves the worktree question (via flag or the local
@@ -1435,13 +1427,6 @@ pub enum Effect {
         cwd: String,
         generation: u64,
     },
-    /// Restore a remote session from GCS then load it. Only Build rows reach
-    /// this effect: conversation rows have no GCS archive.
-    RestoreAndLoadSession {
-        agent_id: AgentId,
-        session_id: String,
-        session_cwd: String,
-    },
     /// Send a prompt to the agent.
     SendPrompt {
         agent_id: AgentId,
@@ -1885,18 +1870,6 @@ pub enum Effect {
     UnregisterActiveSession { session_id: acp::SessionId },
     /// Quit the application.
     Quit,
-    /// Toggle coding data sharing via ACP.
-    SetCodingDataSharing {
-        agent_id: AgentId,
-        opted_in: bool,
-        /// Pre-toggle value to revert to on failure.
-        rollback_to_opted_in: bool,
-        /// Write generation, echoed back on the `TaskResult`. Writes to this
-        /// endpoint are concurrent, so a result that isn't the newest must
-        /// not touch state: its `rollback_to_opted_in` was captured against
-        /// a world that has since moved on.
-        seq: u64,
-    },
     /// Rename the current session.
     RenameSession {
         agent_id: AgentId,
@@ -2087,9 +2060,6 @@ pub enum TaskResult {
         code_restored: bool,
         restore_summary: Option<String>,
         restore_degree: Option<nofy_workspace::session::git::RestoreDegree>,
-        /// Resume/parent id this worktree was created from (`load_session_id`).
-        /// Used to retarget one-shot restore-code suppress onto the child.
-        resume_session_id: Option<String>,
     },
     /// Worktree session creation failed.
     WorktreeSessionFailed {
@@ -2203,23 +2173,6 @@ pub enum TaskResult {
         session_id: String,
         generation: u64,
         detail: crate::app::app_view::CardDetail,
-    },
-    /// Remote session restored successfully — now load it. Always a Build
-    /// disk row (see [`Effect::RestoreAndLoadSession`]).
-    SessionRestored {
-        agent_id: AgentId,
-        /// The local session ID (may differ from remote ID).
-        local_session_id: String,
-    },
-    /// Remote session restore failed.
-    SessionRestoreFailed {
-        agent_id: AgentId,
-        error: String,
-    },
-    /// Incremental progress during remote session restore.
-    SessionRestoreProgress {
-        agent_id: AgentId,
-        message: String,
     },
     /// Prompt response received (turn ended).
     PromptResponse {
@@ -2413,19 +2366,6 @@ pub enum TaskResult {
         agent_id: AgentId,
         error: String,
     },
-    /// Coding data sharing preference updated.
-    CodingDataSharingUpdated {
-        agent_id: AgentId,
-        opted_in: bool,
-        seq: u64,
-    },
-    /// Coding data sharing update failed.
-    CodingDataSharingFailed {
-        agent_id: AgentId,
-        error: String,
-        rollback_to_opted_in: bool,
-        seq: u64,
-    },
     /// Session rename completed successfully.
     RenameSessionComplete {
         agent_id: AgentId,
@@ -2558,9 +2498,6 @@ pub enum TaskResult {
         agent_id: AgentId,
         new_session_id: acp::SessionId,
         cwd: std::path::PathBuf,
-        /// Parent session id the fork was taken from (for one-shot
-        /// restore-code suppress retarget).
-        parent_session_id: acp::SessionId,
     },
     /// `nofy/session/fork` failed. The placeholder agent stays in
     /// `app.agents` with no `session_id` so the user can switch away.

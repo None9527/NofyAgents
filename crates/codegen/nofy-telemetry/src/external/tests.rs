@@ -854,12 +854,10 @@ fn unmapped_events_produce_nothing() {
 #[test]
 fn workspace_only_events_have_no_external_mapping() {
     use crate::events::TelemetryEvent as _;
-    // Trace-upload lifecycle events are session-metrics/internal-only.
+    // Session-metrics lifecycle events are internal-only.
     assert!(
-        crate::session_metrics::TraceUploadAttempted {
+        crate::session_metrics::SessionStarted {
             session_id: String::new(),
-            turn_number: 0,
-            upload_method: "proxy".into(),
         }
         .external_record()
         .is_none()

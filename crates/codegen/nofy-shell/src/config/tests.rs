@@ -2298,18 +2298,13 @@ fn model_provider_honored_only_from_trusted_disk_layers() {
 }
 /// REGRESSION: the real enterprise two-file merge —
 /// `managed_config.toml` (proxy + BYO model host) layered with
-/// `requirements.toml` (deployment key + S3 trace upload) via the actual
+/// `requirements.toml` (deployment key) via the actual
 /// `ConfigLayers::effective_config()` path — must resolve the deployment-config
-/// fetch to cli-chat-proxy, never the model host, and must preserve the
-/// customer's S3 trace-upload endpoint.
+/// fetch to cli-chat-proxy, never the model host.
 #[test]
 #[serial_test::serial]
 fn enterprise_two_file_merge_routes_deployment_key_to_proxy() {
-    for k in [
-        "NOFY_MANAGED_CONFIG_URL",
-        "NOFY_CLI_CHAT_PROXY_BASE_URL",
-        "NOFY_TRACE_UPLOAD_ENDPOINT_URL",
-    ] {
+    for k in ["NOFY_MANAGED_CONFIG_URL", "NOFY_CLI_CHAT_PROXY_BASE_URL"] {
         unsafe { std::env::remove_var(k) };
     }
     let managed = toml::from_str(
@@ -2336,8 +2331,6 @@ telemetry = false
 [endpoints]
 deployment_key = "nofy-token-ENTERPRISE"
 xai_api_base_url = "https://inference.acme-corp.example/nofy/v1"
-trace_upload_bucket = "s3://acme-trace"
-trace_upload_endpoint_url = "https://s3.acme-corp.example"
 "#,
         )
         .unwrap();
@@ -2362,10 +2355,6 @@ trace_upload_endpoint_url = "https://s3.acme-corp.example"
             !cfg.endpoints
                 .resolve_managed_config_url()
                 .contains("acme-corp")
-        );
-    assert_eq!(
-            cfg.endpoints.trace_upload_endpoint_url.as_deref(),
-            Some("https://s3.acme-corp.example")
         );
     assert!(cfg.endpoints.deployment_key.is_some());
 }
@@ -2423,13 +2412,13 @@ fn config_layers_system_managed_lowest_priority() {
 #[test]
 fn apply_requirements_value_overrides_user_settings() {
     let raw_config: toml::Value = toml::from_str(
-            "[cli]\nshow_tips = true\n\n[features]\ntelemetry = true\nlsp_tools = true\nweb_fetch = true\nwrite_file = true\n\n[telemetry]\ntrace_upload = true\n\n[ui]\nyolo = true\n\n[models]\ndefault = \"user-model\"\n\n[endpoints]\ncli_chat_proxy_base_url = \"https://user-proxy.example/v1\"\nxai_api_base_url = \"https://user-api.example/v1\"\nmodels_base_url = \"https://user-models.example/v1\"\nmodels_list_url = \"https://user-models.example/v1/models\"\n",
+            "[cli]\nshow_tips = true\n\n[features]\ntelemetry = true\nlsp_tools = true\nweb_fetch = true\nwrite_file = true\n\n[ui]\nyolo = true\n\n[models]\ndefault = \"user-model\"\n\n[endpoints]\ncli_chat_proxy_base_url = \"https://user-proxy.example/v1\"\nxai_api_base_url = \"https://user-api.example/v1\"\nmodels_base_url = \"https://user-models.example/v1\"\nmodels_list_url = \"https://user-models.example/v1/models\"\n",
         )
         .unwrap();
     let mut cfg = crate::agent::config::Config::new_from_toml_cfg(&raw_config).unwrap();
     cfg.default_yolo_mode = true;
     let requirements: toml::Value = toml::from_str(
-            "[cli]\nshow_tips = false\n\n[features]\ntelemetry = false\nlsp_tools = false\nweb_fetch = false\nwrite_file = false\n\n[telemetry]\ntrace_upload = false\n\n[ui]\nyolo = false\n\n[models]\ndefault = \"managed-model\"\n\n[endpoints]\ncli_chat_proxy_base_url = \"https://managed-proxy.example/v1\"\nxai_api_base_url = \"https://managed-api.example/v1\"\nmodels_base_url = \"https://managed-models.example/v1\"\nmodels_list_url = \"https://managed-models.example/v1/models\"\ndeployment_key = \"enterprise-deploy-key-should-not-log\"\ntrace_upload_endpoint_url = \"https://s3.custom.example.com\"\ntrace_upload_credentials = '{\"aws_access_key_id\":\"AKTEST\",\"aws_secret_access_key\":\"secret\"}'\n",
+            "[cli]\nshow_tips = false\n\n[features]\ntelemetry = false\nlsp_tools = false\nweb_fetch = false\nwrite_file = false\n\n[ui]\nyolo = false\n\n[models]\ndefault = \"managed-model\"\n\n[endpoints]\ncli_chat_proxy_base_url = \"https://managed-proxy.example/v1\"\nxai_api_base_url = \"https://managed-api.example/v1\"\nmodels_base_url = \"https://managed-models.example/v1\"\nmodels_list_url = \"https://managed-models.example/v1/models\"\ndeployment_key = \"enterprise-deploy-key-should-not-log\"\n",
         )
         .unwrap();
     let source = RequirementSource::Requirements {
@@ -2443,7 +2432,6 @@ fn apply_requirements_value_overrides_user_settings() {
     assert_eq!(Some(false), cfg.features.lsp_tools);
     assert_eq!(Some(false), cfg.features.web_fetch);
     assert_eq!(Some(false), cfg.features.write_file);
-    assert_eq!(Some(false), cfg.telemetry.trace_upload);
     assert_eq!(Some(false), cfg.cli.show_tips);
     assert!(!cfg.ui.yolo);
     assert!(!cfg.default_yolo_mode);
@@ -2468,19 +2456,6 @@ fn apply_requirements_value_overrides_user_settings() {
             enforced
                 .iter()
                 .any(|e| e.path == "ui.yolo" && e.value == "--yolo blocked")
-        );
-    assert_eq!(
-            Some("https://s3.custom.example.com"),
-            cfg.endpoints.trace_upload_endpoint_url.as_deref()
-        );
-    assert!(
-            cfg.endpoints.trace_upload_credentials.is_some(),
-            "trace_upload_credentials should be set"
-        );
-    assert!(
-            enforced
-                .iter()
-                .any(|e| e.path == "endpoints.trace_upload_credentials" && e.value == "[redacted]")
         );
     assert_eq!(
             Some("enterprise-deploy-key-should-not-log"),

@@ -15,8 +15,8 @@ pub(super) use helpers::{
     parse_session_load_running_prompt_id, parse_session_scheduler_background_loops,
 };
 pub(crate) use helpers::{
-    RestoreProgressMsg, SessionFlags, is_disk_full_error,
-    persist_permission_mode_and_notify, persist_setting, sanitize_user_error,
+    SessionFlags, is_disk_full_error, persist_permission_mode_and_notify, persist_setting,
+    sanitize_user_error,
 };
 #[cfg(feature = "local-workspace")]
 pub(crate) use helpers::reject_non_fs_only_advertised_tools;
@@ -43,7 +43,6 @@ pub(crate) fn execute(
     acp_tx: &AcpAgentTx,
     cwd: &Path,
     session_flags: &SessionFlags,
-    progress_tx: &tokio::sync::mpsc::UnboundedSender<RestoreProgressMsg>,
 ) -> bool {
     let effect_is_send_now = matches!(effect, Effect::SendPromptNow { .. });
     match effect {
@@ -198,7 +197,6 @@ pub(crate) fn execute(
                     .insert("sessionId".into(), serde_json::json!(sid));
             }
             let restore_code = session_flags.restore_code;
-            let resume_local_miss = session_flags.resume_local_miss.clone();
             tracing::info!(
                 ?restore_code,
                 ?load_session_id,
@@ -208,9 +206,6 @@ pub(crate) fn execute(
             tasks
                 .spawn(async move {
                     if let Some(sid) = load_session_id {
-                        let local_miss = resume_local_miss
-                            .as_deref()
-                            .filter(|t| *t == sid);
                         let resume_started = std::time::Instant::now();
                         let wt_type = nofy_shell::util::config::worktree_type();
                         let copy_mode = if git_ref.is_some() {
@@ -256,7 +251,6 @@ pub(crate) fn execute(
                                 return TaskResult::WorktreeSessionFailed {
                                     agent_id,
                                     error: worktree_resume_failure_message(
-                                        local_miss,
                                         &sanitize_user_error(&e.to_string()),
                                     ),
                                 };
@@ -270,7 +264,6 @@ pub(crate) fn execute(
                                 return TaskResult::WorktreeSessionFailed {
                                     agent_id,
                                     error: worktree_resume_failure_message(
-                                        local_miss,
                                         &sanitize_user_error(&e.to_string()),
                                     ),
                                 };
@@ -287,7 +280,6 @@ pub(crate) fn execute(
                             return TaskResult::WorktreeSessionFailed {
                                 agent_id,
                                 error: worktree_resume_failure_message(
-                                    local_miss,
                                     &sanitize_user_error(&msg),
                                 ),
                             };
@@ -319,7 +311,6 @@ pub(crate) fn execute(
                             code_restored,
                             restore_summary,
                             restore_degree,
-                            resume_session_id: Some(sid),
                         };
                     }
                     let worktree_id = preferred_session_id
@@ -819,161 +810,6 @@ pub(crate) fn execute(
                         Err(_) => {
                             TaskResult::DashboardSessionsLoaded {
                                 sessions: vec![],
-                            }
-                        }
-                    }
-                });
-        }
-        Effect::RestoreAndLoadSession { agent_id, session_id, session_cwd: _ } => {
-            use nofy_shell::agent::session_registry_client::SessionRegistryClient;
-            use nofy_shell::session::restore::restore_session_with_storage;
-            let setup_started = std::time::Instant::now();
-            let raw_config = nofy_shell::config::load_effective_config();
-            let setup = raw_config
-                .ok()
-                .and_then(|raw| {
-                    let cfg = nofy_shell::agent::config::Config::new_from_toml_cfg(
-                            &raw,
-                        )
-                        .ok()?;
-                    let proxy_base = cfg.endpoints.proxy_url();
-                    let deployment_key = cfg.endpoints.deployment_key.clone();
-                    let alpha_test_key = cfg.endpoints.alpha_test_key.clone();
-                    let auth_manager = crate::app::session_startup::pre_acp_auth_manager(
-                        &cfg,
-                    );
-                    let registry = SessionRegistryClient::new(&proxy_base, String::new())
-                        .with_deployment_key(deployment_key.clone())
-                        .with_alpha_test_key(alpha_test_key.clone())
-                        .with_session_id(session_id.clone())
-                        .with_auth(auth_manager.clone());
-                    let storage = nofy_shell::auth::credential_provider::build_storage_client_for_proxy(
-                        &proxy_base,
-                        deployment_key,
-                        alpha_test_key,
-                        Some(auth_manager.clone()),
-                        None,
-                        Some(session_id.clone()),
-                        "nofy-pager",
-                    );
-                    Some((auth_manager, registry, storage))
-                });
-            tracing::info!(
-                elapsed_ms = setup_started.elapsed().as_millis() as u64,
-                ok = setup.is_some(),
-                "restore: auth/client setup"
-            );
-            let target_cwd = cwd.to_path_buf();
-            let ptx = progress_tx.clone();
-            tasks
-                .spawn(async move {
-                    let Some((auth_manager, registry_client, storage_client)) = setup
-                    else {
-                        return TaskResult::SessionRestoreFailed {
-                            agent_id,
-                            error: "Failed to load configuration.".into(),
-                        };
-                    };
-                    let _ = auth_manager.auth().await;
-                    let progress: Option<
-                        nofy_shell::session::restore::ProgressCallback,
-                    > = {
-                        use nofy_shell::session::restore::{PhaseStep, RestorePhase};
-                        Some(
-                            Box::new(move |event| {
-                                let msg = match (event.phase, event.step) {
-                                    (RestorePhase::Download, PhaseStep::Start) => {
-                                        Some("Downloading session archives...".to_string())
-                                    }
-                                    (RestorePhase::Download, PhaseStep::End) => {
-                                        Some(
-                                            format!(
-                                "Downloads finished ({}).",
-                                format_restore_elapsed(event.elapsed),
-                            ),
-                                        )
-                                    }
-                                    (RestorePhase::Codebase, PhaseStep::Start) => {
-                                        Some("Restoring code...".to_string())
-                                    }
-                                    (RestorePhase::Codebase, PhaseStep::End) => {
-                                        event
-                                            .detail
-                                            .as_ref()
-                                            .map(|detail| format!("Code restored ({detail})."))
-                                    }
-                                    (RestorePhase::Memory, PhaseStep::Start) => {
-                                        Some("Restoring memory...".to_string())
-                                    }
-                                    (RestorePhase::SessionState, PhaseStep::Start) => {
-                                        Some("Restoring session state...".to_string())
-                                    }
-                                    (RestorePhase::SessionState, PhaseStep::End) => {
-                                        event
-                                            .detail
-                                            .as_ref()
-                                            .map(|detail| format!("Session state restored ({detail})."))
-                                    }
-                                    (RestorePhase::Finalize, _) => {
-                                        let elapsed_secs = event.elapsed.as_secs();
-                                        let status = if event.incomplete {
-                                            "Restore incomplete"
-                                        } else {
-                                            "Restore complete"
-                                        };
-                                        if elapsed_secs >= 60 {
-                                            Some(
-                                                format!(
-                                        "{status} ({}m{:02}s).",
-                                        elapsed_secs / 60,
-                                        elapsed_secs % 60
-                                    ),
-                                            )
-                                        } else {
-                                            Some(format!("{status} ({elapsed_secs}s)."))
-                                        }
-                                    }
-                                    _ => None,
-                                };
-                                if let Some(text) = msg {
-                                    let _ = ptx
-                                        .send(RestoreProgressMsg {
-                                            agent_id,
-                                            message: text,
-                                        });
-                                }
-                            }),
-                        )
-                    };
-                    let cwd_str = target_cwd.to_string_lossy().to_string();
-                    match restore_session_with_storage(
-                            &registry_client,
-                            &storage_client,
-                            &session_id,
-                            &cwd_str,
-                            nofy_shell::session::restore::RestoreSessionOpts {
-                                turn_override: None,
-                                progress,
-                                restore_code: true,
-                            },
-                        )
-                        .await
-                    {
-                        Ok(result) => {
-                            let effective_id = if result.local_session_id.is_empty() {
-                                session_id
-                            } else {
-                                result.local_session_id
-                            };
-                            TaskResult::SessionRestored {
-                                agent_id,
-                                local_session_id: effective_id,
-                            }
-                        }
-                        Err(e) => {
-                            TaskResult::SessionRestoreFailed {
-                                agent_id,
-                                error: format!("{e:#}"),
                             }
                         }
                     }
@@ -3066,75 +2902,6 @@ pub(crate) fn execute(
                     }
                 });
         }
-        Effect::SetCodingDataSharing {
-            agent_id,
-            opted_in,
-            rollback_to_opted_in,
-            seq,
-        } => {
-            let tx = acp_tx.clone();
-            tasks
-                .spawn(async move {
-                    let request = acp::ExtRequest::new(
-                        "nofy/privacy/setCodingDataRetention",
-                        serde_json::value::to_raw_value(
-                                &serde_json::json!({ "codingDataRetentionOptOut": !opted_in }),
-                            )
-                            .expect("serialize params")
-                            .into(),
-                    );
-                    match acp_send(request, &tx).await {
-                        Ok(resp) => {
-                            let wrapper: serde_json::Value = match serde_json::from_str(
-                                resp.0.get(),
-                            ) {
-                                Ok(v) => v,
-                                Err(e) => {
-                                    return TaskResult::CodingDataSharingFailed {
-                                        agent_id,
-                                        error: format!("malformed response: {e}"),
-                                        rollback_to_opted_in,
-                                        seq,
-                                    };
-                                }
-                            };
-                            if let Some(err) = wrapper
-                                .get("error")
-                                .filter(|v| !v.is_null())
-                            {
-                                let msg = err
-                                    .as_str()
-                                    .map(String::from)
-                                    .unwrap_or_else(|| err.to_string());
-                                return TaskResult::CodingDataSharingFailed {
-                                    agent_id,
-                                    error: msg,
-                                    rollback_to_opted_in,
-                                    seq,
-                                };
-                            }
-                            let confirmed_opted_in = wrapper
-                                .get("codingDataRetentionOptOut")
-                                .and_then(|v| v.as_bool())
-                                .map(|opt_out| !opt_out)
-                                .unwrap_or(opted_in);
-                            TaskResult::CodingDataSharingUpdated {
-                                agent_id,
-                                opted_in: confirmed_opted_in,
-                                seq,
-                            }
-                        }
-                        Err(e) => {
-                            TaskResult::CodingDataSharingFailed {
-                                agent_id,
-                                error: format!("{e}"),
-                                rollback_to_opted_in,
-                                seq,
-                            }
-                        }
-                    }
-                });
-        }
         Effect::ShowContextInfo { agent_id, session_id } => {
             let tx = acp_tx.clone();
             tasks
@@ -3752,7 +3519,6 @@ pub(crate) fn execute(
                                         agent_id,
                                         new_session_id: acp::SessionId::new(sid),
                                         cwd: parent_cwd,
-                                        parent_session_id,
                                     }
                                 }
                                 None => {

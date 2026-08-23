@@ -160,24 +160,6 @@ pub struct EndpointsConfig {
     /// Env: `NOFY_MODELS_LIST_URL`. Overrides the default `{base}/models` list URL.
     #[serde(alias = "models_endpoint", skip_serializing_if = "Option::is_none")]
     pub models_list_url: Option<String>,
-    /// Env: `NOFY_TRACE_UPLOAD_URL`. Where trace uploads go.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace_upload_url: Option<String>,
-    /// Env: `NOFY_TRACE_UPLOAD_BUCKET`. Direct bucket (`gs://` or `s3://`), bypasses proxy.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace_upload_bucket: Option<String>,
-    /// Env: `NOFY_TRACE_UPLOAD_REGION`. AWS region (S3 only).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace_upload_region: Option<String>,
-    /// Env: `NOFY_TRACE_UPLOAD_CREDENTIALS_FILE`. Path to GCS SA key or AWS credentials file.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace_upload_credentials_file: Option<String>,
-    /// Inline credentials (JSON/INI). Takes precedence over `credentials_file`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace_upload_credentials: Option<String>,
-    /// Env: `NOFY_TRACE_UPLOAD_ENDPOINT_URL`. Custom S3-compatible endpoint.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace_upload_endpoint_url: Option<String>,
     /// Env: `NOFY_DEPLOYMENT_KEY`. Management API key for enterprise deployments.
     /// Sent on telemetry and service requests for deployment-level attribution.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -303,11 +285,6 @@ impl EndpointsConfig {
             .clone()
             .unwrap_or_else(|| self.proxy_url())
     }
-    /// Trace upload endpoint — an auxiliary service, so it defaults to the
-    /// cli-chat-proxy, never `xai_api_base_url`.
-    pub(crate) fn resolve_trace_upload_url(&self) -> String {
-        blank_as_unset(&self.trace_upload_url).unwrap_or_else(|| self.proxy_url())
-    }
     /// Managed deployment-config URL (`nofy setup`): explicit `managed_config_url`,
     /// else `proxy_url` + `/deployment/config`. Never `xai_api_base_url`, so the
     /// deployment key reaches the proxy, not the inference host.
@@ -415,98 +392,6 @@ impl EndpointsConfig {
         self.otel_exporter_otlp_timeout
             .map(std::time::Duration::from_millis)
     }
-    /// Resolve trace upload credentials: inline > file > `None` (ambient).
-    pub(crate) fn resolve_trace_credentials(&self) -> Option<String> {
-        if let Some(ref inline) = self.trace_upload_credentials {
-            let trimmed = inline.trim();
-            if !trimmed.is_empty() {
-                return Some(trimmed.to_owned());
-            }
-        }
-        self.trace_upload_credentials_file
-            .as_deref()
-            .and_then(|path| {
-                std::fs::read_to_string(path)
-                    .inspect_err(|e| {
-                        tracing::warn!(
-                            path = %path,
-                            error = %e,
-                            "Failed to read trace upload credentials file"
-                        );
-                    })
-                    .ok()
-            })
-    }
-    /// Resolve direct-to-bucket upload method from `trace_upload_bucket`.
-    /// Returns `None` if no bucket is configured or scheme is unrecognized.
-    pub fn resolve_direct_upload_method(
-        &self,
-    ) -> Option<crate::session::repo_changes::UploadMethod> {
-        let bucket_url = self.trace_upload_bucket.as_deref()?.trim();
-        if bucket_url.is_empty() {
-            return None;
-        }
-        if let Some(bucket_name) = bucket_url
-            .strip_prefix("s3://")
-            .map(|s| s.trim_end_matches('/'))
-        {
-            let region = self
-                .trace_upload_region
-                .clone()
-                .unwrap_or_else(|| "us-east-1".to_owned());
-            return Some(crate::session::repo_changes::UploadMethod::S3 {
-                bucket: bucket_name.to_owned(),
-                region,
-                credentials_file: None,
-                credentials_content: self.resolve_trace_credentials(),
-                endpoint_url: self.trace_upload_endpoint_url.clone(),
-            });
-        }
-        if bucket_url.starts_with("gs://") {
-            return Some(crate::session::repo_changes::UploadMethod::Direct {
-                service_account_key: self.resolve_trace_credentials(),
-            });
-        }
-        tracing::warn!(
-            bucket = %bucket_url,
-            "trace_upload_bucket has unrecognized scheme (expected gs:// or s3://), ignoring"
-        );
-        None
-    }
-    /// Direct bucket → proxy (if `auth_token` or `deployment_key`) → ambient GCS → `None`.
-    pub fn resolve_upload_method(
-        &self,
-        auth_token: Option<String>,
-    ) -> Option<crate::session::repo_changes::UploadMethod> {
-        if let Some(method) = self.resolve_direct_upload_method() {
-            return Some(method);
-        }
-        if auth_token.is_some() || self.deployment_key.is_some() {
-            return Some(crate::session::repo_changes::UploadMethod::Proxy {
-                proxy_base_url: self.resolve_trace_upload_url(),
-                user_token: auth_token.unwrap_or_default(),
-                deployment_key: self.deployment_key.clone(),
-                alpha_test_key: self.alpha_test_key.clone(),
-            });
-        }
-        let service_account_key = crate::util::config::load_gcs_service_account_key_sync();
-        if service_account_key.is_some() {
-            return Some(crate::session::repo_changes::UploadMethod::Direct {
-                service_account_key,
-            });
-        }
-        None
-    }
-    /// Resolve trace bucket URL: env > config. Trace uploads were removed in
-    /// the sanitized build, so this only survives for config compatibility;
-    /// nothing consumes it.
-    pub fn resolve_trace_bucket_url(&self) -> Option<Resolved<String>> {
-        resolve_string_flag(
-            None,
-            "NOFY_TELEMETRY_GCS_BUCKET",
-            self.trace_upload_bucket.as_deref(),
-        )
-    }
     /// `models_list_url` > `{models_base_url}/models` > `{proxy_base_url}/models`.
     pub(crate) fn resolve_models_list_url(&self) -> String {
         if let Some(ref url) = self.models_list_url {
@@ -528,12 +413,6 @@ impl Default for EndpointsConfig {
             alpha_test_key: None,
             models_base_url: env_string("NOFY_MODELS_BASE_URL"),
             models_list_url: env_string("NOFY_MODELS_LIST_URL"),
-            trace_upload_url: env_string("NOFY_TRACE_UPLOAD_URL"),
-            trace_upload_bucket: env_string("NOFY_TRACE_UPLOAD_BUCKET"),
-            trace_upload_region: env_string("NOFY_TRACE_UPLOAD_REGION"),
-            trace_upload_credentials_file: env_string("NOFY_TRACE_UPLOAD_CREDENTIALS_FILE"),
-            trace_upload_credentials: None,
-            trace_upload_endpoint_url: env_string("NOFY_TRACE_UPLOAD_ENDPOINT_URL"),
             deployment_key: env_string("NOFY_DEPLOYMENT_KEY"),
             managed_config_url: env_string("NOFY_MANAGED_CONFIG_URL"),
             otel_exporter_otlp_endpoint: env_string("OTEL_EXPORTER_OTLP_ENDPOINT"),
@@ -585,7 +464,6 @@ impl<T: Clone> Constrained<T> {
 #[derive(Debug, Clone, Default)]
 pub struct Requirements {
     pub telemetry: Constrained<TelemetryMode>,
-    pub trace_upload: Constrained<bool>,
     pub lsp_tools: Constrained<bool>,
     pub web_fetch: Constrained<bool>,
     pub ask_user_question: Constrained<bool>,
@@ -632,7 +510,6 @@ pub(crate) const FIRST_PARTY_CREDENTIAL_ENV_VARS: &[&str] = &[
     "NOFY_AUTH_PATH",
     "NOFY_DEPLOYMENT_KEY",
     "NOFY_EXTRA_AUTH_KEY",
-    "NOFY_TRACE_UPLOAD_CREDENTIALS_FILE",
     "OTEL_EXPORTER_OTLP_HEADERS",
     "NOFY_INTERNAL_OTLP_HEADERS",
 ];
@@ -1227,8 +1104,6 @@ pub struct Config {
     /// is used for all sessions (unless overridden by CLI flag or ACP meta).
     #[serde(default)]
     pub agent: AgentSelectionConfig,
-    #[serde(default)]
-    pub repo_changes_dedup: RepoChangesDedupConfig,
     /// Skills discovery configuration.
     #[serde(default)]
     pub skills: SkillsConfig,
@@ -1567,38 +1442,6 @@ pub struct SessionConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub load_envrc: Option<bool>,
 }
-/// Configuration for change-archive deduplication.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
-pub struct RepoChangesDedupConfig {
-    pub enabled: bool,
-    /// Include inline content even when references exist.
-    pub include_inline_fallback: bool,
-    /// Omit inline content larger than this (0 = no limit).
-    pub max_inline_bytes: usize,
-    /// Deduplicate untracked file content.
-    pub dedup_untracked: bool,
-    /// Deduplicate binary file blobs.
-    pub dedup_binary: bool,
-    /// Skip untracked files larger than this (0 = no limit).
-    pub untracked_max_bytes: usize,
-    /// Optional glob patterns to exclude untracked paths.
-    pub untracked_exclude_globs: Vec<String>,
-}
-impl RepoChangesDedupConfig {}
-impl Default for RepoChangesDedupConfig {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            include_inline_fallback: false,
-            max_inline_bytes: 0,
-            dedup_untracked: true,
-            dedup_binary: true,
-            untracked_max_bytes: 0,
-            untracked_exclude_globs: Vec::new(),
-        }
-    }
-}
 impl Default for Config {
     fn default() -> Self {
         let endpoints = EndpointsConfig::default();
@@ -1622,7 +1465,6 @@ impl Default for Config {
             telemetry: TelemetryConfig::default(),
             session: SessionConfig::default(),
             agent: AgentSelectionConfig::default(),
-            repo_changes_dedup: RepoChangesDedupConfig::default(),
             skills: SkillsConfig::default(),
             compat: CompatConfigToml::default(),
             plugins: PluginsConfig::default(),
@@ -2120,9 +1962,6 @@ impl Config {
     pub(crate) fn is_telemetry_enabled(&self) -> bool {
         self.resolve_telemetry_mode().value.is_enabled()
     }
-    pub fn is_trace_upload_enabled(&self) -> bool {
-        self.resolve_trace_upload().value
-    }
     pub(crate) fn is_session_recap_enabled(&self) -> bool {
         self.resolve_session_recap().value
     }
@@ -2146,27 +1985,6 @@ impl Config {
             return Resolved::new(mode, ConfigSource::Config);
         }
         Resolved::new(TelemetryMode::Disabled, ConfigSource::Default)
-    }
-    /// Trace upload was removed in the sanitized build; the config fields
-    /// (`[telemetry] trace_upload`, `[endpoints] trace_upload_*`,
-    /// `NOFY_TRACE_UPLOAD_*` env) still parse for compatibility but can never
-    /// enable anything.
-    pub(crate) fn resolve_trace_upload(&self) -> Resolved<bool> {
-        Resolved::new(false, ConfigSource::Default)
-    }
-    /// Resolve jemalloc heap-profile config from gates (no remote tier).
-    pub fn resolve_jemalloc_heap_profile(
-        &self,
-        data_collection_disabled: bool,
-    ) -> crate::heap_profile::JemallocHeapProfileConfig {
-        crate::heap_profile::resolve_jemalloc_heap_profile(
-            None,
-            None,
-            None,
-            data_collection_disabled,
-            self.resolve_trace_upload().value,
-            crate::heap_profile::prof_available(),
-        )
     }
     pub(crate) fn resolve_two_pass_compaction(&self) -> Resolved<bool> {
         BoolFlag::env("NOFY_TWO_PASS_COMPACTION")
@@ -6212,31 +6030,6 @@ reasoning_effort = "low"
         assert_eq!(cfg.session.auto_compact_threshold_percent, None);
     }
     #[test]
-    fn parses_repo_changes_dedup_config() {
-        let raw_config: toml::Value = toml::from_str(
-            r#"
-            [repo_changes_dedup]
-            enabled = false
-            include_inline_fallback = true
-            max_inline_bytes = 1024
-            dedup_untracked = false
-            dedup_binary = false
-            untracked_max_bytes = 2048
-            untracked_exclude_globs = ["*.zip", "tmp/**"]
-            "#,
-        )
-        .unwrap();
-        let cfg = Config::new_from_toml_cfg(&raw_config).expect("config should parse");
-        let dedup = cfg.repo_changes_dedup;
-        assert!(!dedup.enabled);
-        assert!(dedup.include_inline_fallback);
-        assert_eq!(dedup.max_inline_bytes, 1024);
-        assert!(!dedup.dedup_untracked);
-        assert!(!dedup.dedup_binary);
-        assert_eq!(dedup.untracked_max_bytes, 2048);
-        assert_eq!(dedup.untracked_exclude_globs, vec!["*.zip", "tmp/**"]);
-    }
-    #[test]
     fn parses_model_context_window() {
         let raw_config: toml::Value = toml::from_str(
             r#"
@@ -7583,7 +7376,6 @@ reasoning_effort = "low"
         for k in [
             "NOFY_CLI_CHAT_PROXY_BASE_URL",
             "NOFY_API_BASE_URL",
-            "NOFY_TRACE_UPLOAD_URL",
             "NOFY_MANAGED_CONFIG_URL",
             "NOFY_MODELS_BASE_URL",
             "NOFY_MODELS_LIST_URL",
@@ -7618,7 +7410,6 @@ reasoning_effort = "low"
             cfg.resolve_managed_config_url(),
             format!("{proxy}/deployment/config")
         );
-        assert_eq!(cfg.resolve_trace_upload_url(), proxy);
         // Sanitized build: the internal OTLP endpoint has no derived default
         // (the old proxy fallback was the vendor firehose).
         assert_eq!(cfg.resolve_otlp_traces_endpoint(), "");
@@ -7628,7 +7419,6 @@ reasoning_effort = "low"
             managed_config_url: Some(
                 "https://control.enterprise.example/deployment/config".to_string(),
             ),
-            trace_upload_url: Some("https://trace.enterprise.example".to_string()),
             ..Default::default()
         };
         assert_eq!(
@@ -7641,10 +7431,6 @@ reasoning_effort = "low"
         assert_eq!(
             overridden.resolve_managed_config_url(),
             "https://control.enterprise.example/deployment/config"
-        );
-        assert_eq!(
-            overridden.resolve_trace_upload_url(),
-            "https://trace.enterprise.example"
         );
     }
     /// REGRESSION: the managed-config URL never follows `xai_api_base_url`
@@ -8667,7 +8453,6 @@ agent_type = "cursor"
             auto_compact_threshold_percent = 85
             [telemetry]
             enabled = true
-            trace_upload = true
             [agent]
             name = "custom"
             [skills]
@@ -8683,8 +8468,6 @@ agent_type = "cursor"
             enabled = true
             [harness]
             block_for_upload = true
-            [repo_changes_dedup]
-            enabled = false
             [worktree_pool]
             pool_size = 4
             [managed_mcps]
@@ -8827,26 +8610,6 @@ agent_type = "cursor"
             vec!["ui.yollo".to_string()],
             "exactly the typo'd key must be flagged"
         );
-    }
-    /// Regression: a deployment key with no OAuth token must resolve to Proxy.
-    #[test]
-    fn resolve_upload_method_accepts_deployment_key_without_oauth() {
-        use crate::session::repo_changes::UploadMethod;
-        let endpoints = EndpointsConfig {
-            deployment_key: Some("enterprise-key".to_string()),
-            ..Default::default()
-        };
-        match endpoints.resolve_upload_method(None) {
-            Some(UploadMethod::Proxy {
-                deployment_key,
-                user_token,
-                ..
-            }) => {
-                assert_eq!(deployment_key.as_deref(), Some("enterprise-key"));
-                assert_eq!(user_token, "");
-            }
-            other => panic!("expected Proxy upload method, got {other:?}"),
-        }
     }
     #[test]
     fn otlp_traces_endpoint_precedence() {

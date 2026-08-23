@@ -13,13 +13,9 @@ fn auth_with_mode(mode: crate::auth::AuthMode, key: &str) -> crate::auth::NofyAu
         principal_id: None,
         team_id: None,
         team_name: None,
-        team_role: None,
         organization_id: None,
         organization_name: None,
         organization_role: None,
-        user_blocked_reason: None,
-        team_blocked_reasons: vec![],
-        coding_data_retention_opt_out: false,
         has_nofy_code_access: None,
         refresh_token: None,
         expires_at: None,
@@ -2109,107 +2105,6 @@ async fn auth_info_returns_profile_when_token_expired() {
     assert_eq!(info["email"], "user@example.com");
     assert_eq!(info["firstName"], "Test");
 }
-#[tokio::test]
-async fn data_collection_enabled_for_normal_user() {
-    let agent = build_agent_with_auth(crate::auth::NofyAuth::test_default());
-    assert!(
-        !agent.is_data_collection_disabled(),
-        "normal user must have data collection enabled"
-    );
-}
-#[tokio::test]
-async fn data_collection_disabled_for_zdr_team() {
-    let agent = build_agent_with_auth(crate::auth::NofyAuth {
-        team_blocked_reasons: vec!["BLOCKED_REASON_NO_LOGS".into()],
-        ..crate::auth::NofyAuth::test_default()
-    });
-    assert!(
-        agent.is_data_collection_disabled(),
-        "ZDR team must have data collection disabled"
-    );
-}
-#[tokio::test]
-async fn data_collection_disabled_for_zdr_moderated_team() {
-    let agent = build_agent_with_auth(crate::auth::NofyAuth {
-        team_blocked_reasons: vec!["BLOCKED_REASON_NO_LOGS_MODERATED".into()],
-        ..crate::auth::NofyAuth::test_default()
-    });
-    assert!(
-        agent.is_data_collection_disabled(),
-        "ZDR-moderated team must have data collection disabled"
-    );
-}
-#[tokio::test]
-async fn data_collection_disabled_for_opted_out_team() {
-    let agent = build_agent_with_auth(crate::auth::NofyAuth {
-        coding_data_retention_opt_out: true,
-        ..crate::auth::NofyAuth::test_default()
-    });
-    assert!(
-        agent.is_data_collection_disabled(),
-        "opted-out team must have data collection disabled"
-    );
-}
-#[tokio::test]
-async fn data_collection_disabled_for_zdr_plus_opt_out() {
-    let agent = build_agent_with_auth(crate::auth::NofyAuth {
-        team_blocked_reasons: vec!["BLOCKED_REASON_NO_LOGS".into()],
-        coding_data_retention_opt_out: true,
-        ..crate::auth::NofyAuth::test_default()
-    });
-    assert!(
-        agent.is_data_collection_disabled(),
-        "ZDR + opt-out must have data collection disabled"
-    );
-}
-#[tokio::test]
-async fn data_collection_enabled_for_non_zdr_team_with_unrelated_blocks() {
-    let agent = build_agent_with_auth(crate::auth::NofyAuth {
-        team_blocked_reasons: vec![
-            "BLOCKED_REASON_BILLING".into(),
-            "BLOCKED_REASON_SUSPENDED".into(),
-        ],
-        ..crate::auth::NofyAuth::test_default()
-    });
-    assert!(
-        !agent.is_data_collection_disabled(),
-        "non-ZDR blocked reasons must not disable data collection"
-    );
-}
-fn enable_product_telemetry(agent: &MvpAgent) {
-    agent.cfg.borrow_mut().features.telemetry = Some(crate::agent::config::TelemetryMode::Enabled);
-}
-#[tokio::test]
-async fn product_analytics_enabled_for_normal_user_with_telemetry_on() {
-    let agent = build_agent_with_auth(crate::auth::NofyAuth::test_default());
-    enable_product_telemetry(&agent);
-    assert!(agent.product_analytics_enabled());
-}
-#[tokio::test]
-async fn product_analytics_enabled_despite_coding_retention_opt_out() {
-    let agent = build_agent_with_auth(crate::auth::NofyAuth {
-        coding_data_retention_opt_out: true,
-        ..crate::auth::NofyAuth::test_default()
-    });
-    enable_product_telemetry(&agent);
-    assert!(agent.is_data_collection_disabled());
-    assert!(agent.product_analytics_enabled());
-}
-#[tokio::test]
-async fn product_analytics_disabled_for_zdr_team() {
-    let agent = build_agent_with_auth(crate::auth::NofyAuth {
-        team_blocked_reasons: vec!["BLOCKED_REASON_NO_LOGS".into()],
-        ..crate::auth::NofyAuth::test_default()
-    });
-    enable_product_telemetry(&agent);
-    assert!(!agent.product_analytics_enabled());
-}
-#[tokio::test]
-async fn product_analytics_disabled_when_telemetry_off() {
-    let agent = build_agent_with_auth(crate::auth::NofyAuth::test_default());
-    agent.cfg.borrow_mut().features.telemetry = Some(crate::agent::config::TelemetryMode::Disabled);
-    assert!(!agent.product_analytics_enabled());
-}
 /// `parse_session_kind` routes `session/load` to the gateway Chat path vs. the
 /// disk-backed Build path. Anything but an explicit `kind: "chat"` is Build.
 #[test]
@@ -3166,10 +3061,6 @@ fn disconnect_keeps_live_session_resident_without_finalize() {
             ),
             "the resident session's receiver must observe the delivered command"
         );
-        assert!(
-            agent.finalize_spy.borrow().is_empty(),
-            "finalize() must NOT fire on client disconnect"
-        );
         assert_eq!(
             agent.session_live_state_for(&sid),
             Some(SessionLiveState::Working),
@@ -3290,10 +3181,6 @@ fn disconnect_unloads_idle_session_without_finalize() {
         assert!(
             matches!(shutdown, TestSessionCommand::Shutdown(_)),
             "idle-unload must send SessionCommand::Shutdown"
-        );
-        assert!(
-            agent.finalize_spy.borrow().is_empty(),
-            "idle-unload on disconnect must NOT finalize the cloud replica"
         );
         assert_eq!(
             agent.session_live_state_for(&sid),
@@ -3452,10 +3339,6 @@ fn disconnect_mixed_batch_keeps_busy_unloads_idle() {
             ),
             "the busy session must not be sent Shutdown in a mixed batch"
         );
-        assert!(
-            agent.finalize_spy.borrow().is_empty(),
-            "neither batch outcome may finalize on a mere disconnect"
-        );
     });
 }
 /// The bounded `session_live_state` map does not grow without bound
@@ -3495,10 +3378,6 @@ fn explicit_close_finalizes_the_replica() {
         drive_close(&agent, "no-such-session")
             .await
             .expect("close of a missing session must succeed as a no-op");
-        assert!(
-            agent.finalize_spy.borrow().is_empty(),
-            "closing a missing session must NOT finalize"
-        );
         drive_close(&agent, sid.0.as_ref())
             .await
             .expect("session close must be handled");
@@ -3525,11 +3404,6 @@ fn explicit_close_finalizes_the_replica() {
             "close frees the session, so its Shutdown must cancel the running \
              turn; a graceful one would let the turn answer EndTurn as the \
              actor tears down"
-        );
-        assert_eq!(
-            agent.finalize_spy.borrow().as_slice(),
-            &[sid.0.to_string()],
-            "explicit close must finalize the cloud replica exactly once"
         );
         assert!(
             !agent.is_resident(&sid),
@@ -3599,10 +3473,6 @@ fn supervisor_reaps_panicked_resident_actor() {
                 .iter()
                 .any(|(id, st)| id == sid.0.as_ref() && *st == SessionLiveState::DeadFailed),
             "a reaped resident actor must emit a DeadFailed roster delta"
-        );
-        assert!(
-            agent.finalize_spy.borrow().is_empty(),
-            "reaping a dead actor must NOT finalize (conversation persists)"
         );
     });
 }

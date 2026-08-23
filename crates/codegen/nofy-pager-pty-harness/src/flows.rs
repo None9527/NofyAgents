@@ -71,64 +71,10 @@ pub fn inference_request_count(content: &ContentController) -> usize {
 /// `auth.json` so the shell has session auth (the harness's `NOFY_API_KEY` is
 /// ApiKey/BYOK mode and never enters the auth manager). Load-bearing details:
 /// the scope key must be the shell's session scope (`nofy::session`),
-/// `auth_mode` must be `external`, `expires_at` must be far-future so no
-/// refresh is attempted, and `coding_data_retention_opt_out` must be `false`
-/// so collection/upload-path e2es (e.g. storage park-on-401) still enqueue
-/// traces — missing that field now deserializes as opted-out via
-/// `default_coding_data_retention_opt_out()`. The mock server accepts any
-/// bearer. Pair with [`session_credential_ops`].
+/// `auth_mode` must be `external`, and `expires_at` must be far-future so no
+/// refresh is attempted. The mock server accepts any bearer. Pair with
+/// [`session_credential_ops`].
 pub fn seed_session_credential(content: &ContentController, user: &str) {
-    seed_session_credential_with_opt_out(content, user, false);
-}
-
-/// Like [`seed_session_credential`], but with
-/// `coding_data_retention_opt_out: true` — the auth-side precondition for the
-/// coding-data privacy upsell banner.
-pub fn seed_session_credential_coding_data_opted_out(content: &ContentController, user: &str) {
-    seed_session_credential_with_opt_out(content, user, true);
-}
-
-/// Like [`seed_session_credential_coding_data_opted_out`], but on a Zero Data
-/// Retention team (`team_blocked_reasons` carries `BLOCKED_REASON_NO_LOGS`,
-/// the shell's `NofyAuth::is_zdr_team` trigger) — locks the settings modal's
-/// `coding_data_sharing` row to `ZDR` and suppresses the privacy banner.
-pub fn seed_session_credential_zdr_team(content: &ContentController, user: &str) {
-    seed_session_credential_raw(
-        content,
-        user,
-        true,
-        ",\n    \"team_name\": \"PTY ZDR Team\",\n    \"team_role\": \"MEMBER\",\n    \
-         \"team_blocked_reasons\": [\"BLOCKED_REASON_NO_LOGS\"]",
-    );
-}
-
-/// Like [`seed_session_credential_coding_data_opted_out`], but as a non-admin
-/// member of a (non-ZDR) team — locks the settings modal's
-/// `coding_data_sharing` row to `Opt out · Admin Managed` and suppresses the
-/// privacy banner.
-pub fn seed_session_credential_team_member(content: &ContentController, user: &str) {
-    seed_session_credential_raw(
-        content,
-        user,
-        true,
-        ",\n    \"team_name\": \"PTY Team\",\n    \"team_role\": \"MEMBER\"",
-    );
-}
-
-fn seed_session_credential_with_opt_out(content: &ContentController, user: &str, opted_out: bool) {
-    seed_session_credential_raw(content, user, opted_out, "");
-}
-
-/// Shared auth.json template writer. `team_fields` is a raw JSON fragment
-/// spliced after `coding_data_retention_opt_out` (empty = no team; field
-/// names must match the shell's `NofyAuth` serde names in
-/// `nofy-shell/src/auth/model.rs`).
-fn seed_session_credential_raw(
-    content: &ContentController,
-    user: &str,
-    opted_out: bool,
-    team_fields: &str,
-) {
     let nofy_home = content.home().join(".nofy");
     std::fs::create_dir_all(&nofy_home).expect("create temp .nofy");
     std::fs::write(
@@ -141,8 +87,7 @@ fn seed_session_credential_raw(
     "create_time": "2026-01-01T00:00:00Z",
     "user_id": "{user}",
     "email": "{user}@test.invalid",
-    "expires_at": "2030-01-01T00:00:00Z",
-    "coding_data_retention_opt_out": {opted_out}{team_fields}
+    "expires_at": "2030-01-01T00:00:00Z"
   }}
 }}"#
         ),

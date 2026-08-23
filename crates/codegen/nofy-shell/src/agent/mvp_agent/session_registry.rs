@@ -1,5 +1,4 @@
-//! Per-session resources and the registry that owns them. Distinct from
-//! `agent::session_registry_client`, which talks to the remote registry.
+//! Per-session resources and the registry that owns them.
 use super::*;
 /// The map stays private so every caller goes through a named operation.
 #[derive(Clone, Default)]

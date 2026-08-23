@@ -68,11 +68,10 @@ impl MvpAgent {
         self.remove_session_terminal(id, SessionLiveState::Completed);
         self.drain_old_session_thread_within(id, stage_budget(deadline, DRAIN_OLD_THREAD_WAIT))
             .await;
-        self.finalize_session_replica(id);
         CloseOutcome::Closed
     }
     /// Cancel the running turn and shut the actor down; `false` when not
-    /// resident. Close finalizes the replica afterward, delete must not.
+    /// resident.
     fn hard_stop_resident(&self, id: &acp::SessionId, trigger: CancelTrigger) -> bool {
         let Some(handle) = self.resident_handle(id) else {
             return false;
@@ -96,20 +95,6 @@ impl MvpAgent {
         }
         self.remove_session_terminal(id, SessionLiveState::Completed);
         self.drain_old_session_thread(id).await;
-    }
-    /// Move the replica `active` -> `completed`. A hosting signal, not a
-    /// conversation ending: only an explicit close sends it.
-    pub(super) fn finalize_session_replica(&self, id: &acp::SessionId) {
-        #[cfg(test)]
-        self.finalize_spy.borrow_mut().push(id.0.to_string());
-        if let Some(client) = self.session_registry_client() {
-            let sid = id.0.to_string();
-            tokio::spawn(async move {
-                if let Err(e) = client.finalize(&sid).await {
-                    tracing::warn!(error = %e, "session registry finalize failed (non-fatal)");
-                }
-            });
-        }
     }
     /// Clone of the hosted handle, if any. Callers must not hold a registry
     /// borrow across an await: clone the handle out first.

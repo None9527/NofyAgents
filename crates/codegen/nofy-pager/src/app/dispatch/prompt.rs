@@ -434,8 +434,6 @@ pub(super) fn dispatch_send_prompt_inner(
         return vec![];
     };
     // Capture app-level fields before the mut-borrow on `agent`.
-    let coding_data_sharing_opt_out_from_app = app.coding_data_retention_opt_out;
-    let coding_data_sharing_lock_from_app = app.coding_data_sharing_lock();
     let show_tips_from_app = app.show_tips;
     let respect_manual_folds_from_app = app.appearance.scrollback.scroll.respect_manual_folds;
     let auto_mode_gate_from_app = app.auto_mode_gate;
@@ -497,8 +495,6 @@ pub(super) fn dispatch_send_prompt_inner(
                         .iter()
                         .map(|(id, info)| (info.name.clone(), id.clone()))
                         .collect(),
-                    coding_data_sharing_opt_out: coding_data_sharing_opt_out_from_app,
-                    coding_data_sharing_lock: coding_data_sharing_lock_from_app,
                     // Prefer optimistic pending over confirmed active.
                     plan_mode_active: agent.plan_mode_pending.unwrap_or(agent.plan_mode_active),
                     show_tips: show_tips_from_app,

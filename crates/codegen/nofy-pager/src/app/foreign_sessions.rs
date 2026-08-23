@@ -33,7 +33,6 @@ impl AppView {
             && self.agents.is_empty()
             && self.next_agent_id == 0
             && !self.chat_mode
-            && !self.is_zdr_blocked()
     }
 
     fn pristine_foreign_resume_welcome(&self) -> bool {

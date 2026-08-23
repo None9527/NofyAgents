@@ -758,7 +758,7 @@ async fn apply_headless_model_and_effort(
 }
 
 /// Startup-materialization context for headless (`-p`) runs; never chat mode.
-/// `--worktree` is ignored here: headless never creates a worktree, so remote
+/// `--worktree` is ignored here: headless never creates a worktree, so a
 /// miss must not take `DeferToWorktree`.
 fn headless_materialize_ctx(
     resume_title_pinned: bool,
@@ -766,8 +766,6 @@ fn headless_materialize_ctx(
 ) -> crate::app::session_startup::MaterializeCtx {
     crate::app::session_startup::MaterializeCtx {
         has_worktree: false,
-        allow_remote_restore:
-            crate::app::session_startup::MaterializeCtx::default_allow_remote_restore(),
         chat_mode: false,
         title_resolution: if resume_title_pinned {
             crate::app::session_startup::TitleResolution::PinnedPreSandbox
@@ -775,7 +773,6 @@ fn headless_materialize_ctx(
             crate::app::session_startup::TitleResolution::Allowed
         },
         restore_code,
-        restore_progress_on_stdout: false,
     }
 }
 
@@ -984,17 +981,7 @@ pub async fn run_single_turn(
         nofy_telemetry::startup::report_total(crate::acp::StartupOutcome::Error)
     })?;
 
-    let restore_code = match &materialized {
-        MaterializedStartup::Resume {
-            suppress_code_restore: true,
-            ..
-        }
-        | MaterializedStartup::Fork {
-            suppress_code_restore: true,
-            ..
-        } => Some(false),
-        _ => options.restore_code.then_some(true),
-    };
+    let restore_code = options.restore_code.then_some(true);
     let t_session = Instant::now();
     nofy_telemetry::startup::enter(crate::acp::StartupPhase::SessionCreate);
     let opened = match materialized {

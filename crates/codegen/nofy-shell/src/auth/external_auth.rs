@@ -24,13 +24,9 @@ pub(crate) fn parse_output(output: &std::process::Output) -> anyhow::Result<Nofy
         principal_id: None,
         team_id: None,
         team_name: None,
-        team_role: None,
         organization_id: None,
         organization_name: None,
         organization_role: None,
-        user_blocked_reason: None,
-        team_blocked_reasons: vec![],
-        coding_data_retention_opt_out: crate::auth::default_coding_data_retention_opt_out(),
         has_nofy_code_access: None,
         refresh_token: parsed.refresh_token,
         expires_at: parsed.expires_at,
@@ -145,11 +141,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn refresh_carries_zdr_flags_forward() {
+    async fn refresh_carries_profile_forward() {
         let prev = NofyAuth {
-            user_blocked_reason: Some("BLOCKED_REASON_OTHER".into()),
-            team_blocked_reasons: vec!["BLOCKED_REASON_NO_LOGS".into()],
-            coding_data_retention_opt_out: true,
             organization_id: Some("org-1".into()),
             ..NofyAuth::test_default()
         };
@@ -157,12 +150,6 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(auth.key, "fresh-token");
-        assert!(auth.is_zdr_team(), "ZDR flag must survive refresh");
-        assert!(auth.coding_data_retention_opt_out);
-        assert_eq!(
-            auth.user_blocked_reason.as_deref(),
-            Some("BLOCKED_REASON_OTHER")
-        );
         assert_eq!(auth.user_id, "test-user", "profile must survive refresh");
         assert_eq!(auth.organization_id.as_deref(), Some("org-1"));
     }

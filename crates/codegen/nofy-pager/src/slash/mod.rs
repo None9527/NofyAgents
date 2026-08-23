@@ -2356,28 +2356,28 @@ mod tests {
     #[test]
     fn smart_case_prefix_match_aligns_ghost_with_fuzzy_ranker() {
         // Nucleo Smart case: all-lowercase query is case-insensitive.
-        assert!(command_prefix_matches_smart("Privacy", "p"));
-        assert!(command_prefix_matches_smart("Privacy", "pr"));
+        assert!(command_prefix_matches_smart("Projects", "p"));
+        assert!(command_prefix_matches_smart("Projects", "pr"));
         // Any uppercase in query requires exact (case-sensitive) prefix.
-        assert!(command_prefix_matches_smart("Privacy", "P")); // "P" is exact prefix of "Privacy"
-        assert!(!command_prefix_matches_smart("privacy", "Pr"));
-        assert!(!command_prefix_matches_smart("Privacy", "PR"));
+        assert!(command_prefix_matches_smart("Projects", "P")); // "P" is exact prefix of "Projects"
+        assert!(!command_prefix_matches_smart("projects", "Pr"));
+        assert!(!command_prefix_matches_smart("Projects", "PR"));
 
         let row = SuggestionRow {
-            display: "/Privacy".to_string(),
+            display: "/Projects".to_string(),
             description: String::new(),
-            insert_text: "/Privacy ".to_string(),
+            insert_text: "/Projects ".to_string(),
             indices: Vec::new(),
             tag: None,
             provenance: None,
         };
-        // Without smart-case, starts_with("p") fails on "Privacy" and ghost disappears
+        // Without smart-case, starts_with("p") fails on "Projects" and ghost disappears
         // while the dropdown still highlights the row via CaseMatching::Smart.
         let ghost = inline_ghost_from_selected_command("p", 1..2, &row).expect(
             "lowercase query must ghost-complete a title-case command (dropdown can select it)",
         );
-        assert_eq!(ghost.full_name, "Privacy");
-        assert_eq!(ghost.text, "rivacy");
+        assert_eq!(ghost.full_name, "Projects");
+        assert_eq!(ghost.text, "rojects");
 
         // Mixed-case query that is not an exact prefix must not ghost.
         assert!(inline_ghost_from_selected_command("PR", 1..3, &row).is_none());
@@ -2424,9 +2424,9 @@ mod tests {
         // Hermetic: three names tie on fuzzy score for `/p`; MRU recency must
         // pick the winner regardless of the live builtin registry.
         let mut ctrl = tie_controller(
-            &["privacy", "personas", "plan"],
+            &["projects", "personas", "plan"],
             &[
-                ("privacy", 1_700_000_900),
+                ("projects", 1_700_000_900),
                 ("personas", 1_700_000_010),
                 ("plan", 1_700_000_050),
             ],
@@ -2438,14 +2438,14 @@ mod tests {
         let snapshot = state.snapshot();
         let top = snapshot.selection().expect("dropdown open").display.clone();
         assert_eq!(
-            top, "/privacy",
+            top, "/projects",
             "MRU should rank the most-recently-used tie winner first, got {top}"
         );
         let ghost = snapshot
             .inline_ghost
             .as_ref()
             .expect("ghost tracks selected row");
-        assert_eq!(ghost.full_name, "privacy");
+        assert_eq!(ghost.full_name, "projects");
     }
 
     /// Gate open → both `/always-approve` and `/auto` offered + dispatchable.

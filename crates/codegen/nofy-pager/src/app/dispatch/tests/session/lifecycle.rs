@@ -3124,69 +3124,6 @@ mod welcome_workspace_mode {
         set_active_local_workspace(None).unwrap();
     }
     #[test]
-    fn session_restore_failed_clears_history_bypass() {
-        set_active_local_workspace(None).unwrap();
-        let mut app = test_app_with_agent();
-        app.chat_mode = true;
-        app.welcome_history_load_as_build = true;
-        let id = AgentId(0);
-        let effects = dispatch(
-            Action::TaskComplete(TaskResult::SessionRestoreFailed {
-                agent_id: id,
-                error: "boom".into(),
-            }),
-            &mut app,
-        );
-        assert!(effects.is_empty());
-        assert!(
-            !app.welcome_history_load_as_build,
-            "failed restore must not leak bypass into the next load"
-        );
-        set_active_local_workspace(None).unwrap();
-    }
-    #[test]
-    fn restore_and_load_sets_local_workspace_indicator() {
-        set_active_local_workspace(None).unwrap();
-        let mut app = test_app();
-        app.chat_mode = true;
-        app.active_view = ActiveView::Welcome;
-        app.welcome_workspace_mode = WelcomeWorkspaceMode::Sandbox;
-        app.session_picker_entries = Some(vec![crate::app::app_view::SessionPickerEntry {
-            id: "remote-1".into(),
-            summary: "remote row".into(),
-            updated_at: chrono::Utc::now(),
-            created_at: chrono::Utc::now(),
-            cwd: "/other".into(),
-            hostname: None,
-            source: "remote".into(),
-            model_id: None,
-            num_messages: 1,
-            last_active_at: None,
-            branch: None,
-            repo_name: String::new(),
-            worktree_label: None,
-            card_detail: None,
-        }]);
-        let effects = dispatch(Action::PickSession(0), &mut app);
-        assert!(
-            effects
-                .iter()
-                .any(|e| matches!(e, Effect::RestoreAndLoadSession { .. })),
-            "remote pick must restore: {effects:?}"
-        );
-        assert!(
-            app.welcome_history_load_as_build,
-            "bypass kept until follow-up LoadSession"
-        );
-        let agent = app.agents.values().next().expect("restore placeholder");
-        assert_eq!(
-            agent.workspace_mode,
-            WelcomeWorkspaceMode::LocalWorkspace,
-            "restore placeholder must show Local indicator"
-        );
-        set_active_local_workspace(None).unwrap();
-    }
-    #[test]
     fn history_build_bypass_only_applies_to_load_session_batch() {
         use crate::app::event_loop::welcome_history_build_bypass_applies;
         assert!(!welcome_history_build_bypass_applies(&[], true));
@@ -3204,14 +3141,6 @@ mod welcome_workspace_mode {
                 session_id: "s".into(),
                 session_cwd: None,
                 chat_kind: false,
-            }],
-            true
-        ));
-        assert!(welcome_history_build_bypass_applies(
-            &[Effect::RestoreAndLoadSession {
-                agent_id: AgentId(0),
-                session_id: "s".into(),
-                session_cwd: "/tmp".into(),
             }],
             true
         ));
@@ -3241,17 +3170,6 @@ mod welcome_workspace_mode {
                 true
             ),
             "worktree-resume batch consumes bypass (single-batch create)"
-        );
-        assert!(
-            !crate::app::event_loop::welcome_history_build_bypass_consume(
-                &[Effect::RestoreAndLoadSession {
-                    agent_id: AgentId(0),
-                    session_id: "s".into(),
-                    session_cwd: "/tmp".into(),
-                }],
-                true
-            ),
-            "restore-only batch keeps bypass for follow-up LoadSession"
         );
         assert!(
             crate::app::event_loop::welcome_history_build_bypass_consume(
