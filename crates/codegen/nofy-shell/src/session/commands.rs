@@ -59,6 +59,48 @@ pub enum PromptCompletionKind {
     /// `MvpAgent::prompt`'s short-circuit and `respond_removed_prompt`.
     RemovedFromQueue,
 }
+/// `_meta.cancellationCategory` of a hook-denied cancel; the pager matches it
+/// to render the blocked-by-a-hook marker.
+pub const HOOK_DENIED_CATEGORY: &str = "HookDenied";
+/// `_meta.cancellationCategory` of a governor no-progress early stop; the
+/// pager matches it to render the unable-to-make-progress marker.
+pub const NO_PROGRESS_CATEGORY: &str = "NoProgress";
+/// `_meta.cancellationCategory` of a max-turns end; headless matches it to
+/// drive the max-turns exit code.
+pub const MAX_TURNS_REACHED_CATEGORY: &str = "max_turns_reached";
+/// `_meta.cancellationCategory` of a stationarity end.
+pub const ACTION_STATIONARITY_CATEGORY: &str = "action_stationarity";
+/// `_meta.cancellationCategory` wire string for a
+/// [`CancellationCategory`](nofy_file_utils::events::types::CancellationCategory).
+/// PascalCase names match the enum's `Debug` form so the wire never drifts
+/// from what older rails already stamped via `format!("{cat:?}")`.
+pub fn meta_category_str(
+    category: nofy_file_utils::events::types::CancellationCategory,
+) -> &'static str {
+    use nofy_file_utils::events::types::CancellationCategory;
+    match category {
+        CancellationCategory::HookDenied => HOOK_DENIED_CATEGORY,
+        CancellationCategory::NoProgress => NO_PROGRESS_CATEGORY,
+        CancellationCategory::PermissionRejected => "PermissionRejected",
+        CancellationCategory::PermissionCancelled => "PermissionCancelled",
+        CancellationCategory::MidTurnAbort => "MidTurnAbort",
+    }
+}
+impl PromptCompletionKind {
+    /// The completion's `_meta.cancellationCategory`, shared by every terminal
+    /// rail (`PromptResponse` `_meta`, legacy `prompt_complete`, durable
+    /// `TurnCompleted`) so the wires never disagree.
+    pub fn cancellation_category_meta(&self) -> Option<String> {
+        match self {
+            Self::Cancelled { category, .. } => {
+                category.map(|cat| meta_category_str(cat).to_string())
+            }
+            Self::MaxTurnsReached { .. } => Some(MAX_TURNS_REACHED_CATEGORY.to_string()),
+            Self::StationarityEnded => Some(ACTION_STATIONARITY_CATEGORY.to_string()),
+            Self::Completed | Self::Rewound | Self::RemovedFromQueue => None,
+        }
+    }
+}
 /// Successful prompt/turn payload returned to the ACP layer and trace uploaders.
 #[derive(Debug, Clone)]
 pub struct PromptTurnOk {
@@ -814,5 +856,52 @@ mod cancel_trigger_tests {
         assert!(CancelTrigger::CtrlC.is_stop_gesture());
         assert!(CancelTrigger::from_client("mouse").is_stop_gesture());
         assert!(CancelTrigger::from_client("some_future_gesture").is_stop_gesture());
+    }
+}
+#[cfg(test)]
+mod cancellation_category_meta_tests {
+    use super::PromptCompletionKind;
+    use nofy_file_utils::events::types::CancellationCategory;
+    /// Pins every `_meta.cancellationCategory` wire name: shipped clients
+    /// string-match these, so a rename is a wire break the compiler can't see.
+    #[test]
+    fn pins_every_wire_name() {
+        let cancelled = |category| PromptCompletionKind::Cancelled {
+            category,
+            context: None,
+        };
+        for (kind, expected) in [
+            (
+                cancelled(Some(CancellationCategory::HookDenied)),
+                Some("HookDenied"),
+            ),
+            (
+                cancelled(Some(CancellationCategory::NoProgress)),
+                Some("NoProgress"),
+            ),
+            (
+                cancelled(Some(CancellationCategory::MidTurnAbort)),
+                Some("MidTurnAbort"),
+            ),
+            (
+                cancelled(Some(CancellationCategory::PermissionRejected)),
+                Some("PermissionRejected"),
+            ),
+            (
+                cancelled(Some(CancellationCategory::PermissionCancelled)),
+                Some("PermissionCancelled"),
+            ),
+            (cancelled(None), None),
+            (
+                PromptCompletionKind::MaxTurnsReached { limit: 1 },
+                Some("max_turns_reached"),
+            ),
+            (PromptCompletionKind::StationarityEnded, Some("action_stationarity")),
+            (PromptCompletionKind::Completed, None),
+            (PromptCompletionKind::Rewound, None),
+            (PromptCompletionKind::RemovedFromQueue, None),
+        ] {
+            assert_eq!(kind.cancellation_category_meta().as_deref(), expected);
+        }
     }
 }

@@ -3358,6 +3358,51 @@ fn cancelled_prompt_response(id: AgentId, cancel_trigger: Option<&str>) -> Actio
     })
 }
 
+/// A cancelled `PromptResponse` stamped `_meta.cancellationCategory`
+/// (hook-denied / governor no-progress ends).
+fn cancelled_prompt_response_with_category(id: AgentId, cancellation_category: &str) -> Action {
+    let mut meta = serde_json::Map::new();
+    meta.insert(
+        "cancellationCategory".into(),
+        serde_json::Value::String(cancellation_category.into()),
+    );
+    let pr = acp::PromptResponse::new(acp::StopReason::Cancelled).meta(Some(meta));
+    Action::TaskComplete(TaskResult::PromptResponse {
+        agent_id: id,
+        result: Ok(pr),
+        http_status: None,
+        prompt_id: None,
+    })
+}
+
+/// Count "Turn blocked by a hook" markers across the agent's scrollback.
+fn count_blocked_by_hook_markers(app: &AppView, id: AgentId) -> usize {
+    let agent = &app.agents[&id];
+    (0..agent.scrollback.len())
+        .filter(|i| {
+            matches!(
+                agent.scrollback.entry(*i).map(|e| &e.block),
+                Some(RenderBlock::SessionEvent(ev))
+                    if matches!(ev.event, SessionEvent::TurnBlockedByHook { .. })
+            )
+        })
+        .count()
+}
+
+/// Count "unable to make progress" (TurnHalted) markers across the agent's scrollback.
+fn count_halted_markers(app: &AppView, id: AgentId) -> usize {
+    let agent = &app.agents[&id];
+    (0..agent.scrollback.len())
+        .filter(|i| {
+            matches!(
+                agent.scrollback.entry(*i).map(|e| &e.block),
+                Some(RenderBlock::SessionEvent(ev))
+                    if matches!(ev.event, SessionEvent::TurnHalted { .. })
+            )
+        })
+        .count()
+}
+
 /// A `_meta.cancelTrigger: "send_now"` turn end renders no cancel/completed marker.
 #[test]
 fn send_now_cancel_via_wire_meta_pushes_no_cancelled_marker() {
@@ -3399,6 +3444,67 @@ fn plain_cancel_still_pushes_cancelled_marker() {
         count_cancelled_markers(&app, id),
         1,
         "a real user cancel keeps its marker"
+    );
+}
+
+/// A hook-denied turn end (`_meta.cancellationCategory: "HookDenied"`) rides
+/// the cancelled stop reason but must render the blocked-by-hook marker,
+/// never "cancelled by user".
+#[test]
+fn hook_denied_cancel_pushes_blocked_marker_not_user_cancel() {
+    let mut app = test_app_with_agent();
+    let id = AgentId(0);
+    dispatch(Action::SendPrompt("first".into()), &mut app);
+    assert!(app.agents[&id].session.state.is_turn_running());
+
+    let _ = dispatch(
+        cancelled_prompt_response_with_category(
+            id,
+            crate::app::turn_completion::HOOK_DENIED_CATEGORY,
+        ),
+        &mut app,
+    );
+
+    assert!(app.agents[&id].session.state.is_idle());
+    assert_eq!(
+        count_blocked_by_hook_markers(&app, id),
+        1,
+        "a hook-denied end renders the blocked-by-hook marker"
+    );
+    assert_eq!(
+        count_cancelled_markers(&app, id),
+        0,
+        "a hook-denied end must not claim the user cancelled"
+    );
+}
+
+/// A governor no-progress end (`_meta.cancellationCategory: "NoProgress"`)
+/// renders the honest "unable to make progress" marker, not "cancelled by user".
+#[test]
+fn no_progress_cancel_pushes_halted_marker_not_user_cancel() {
+    let mut app = test_app_with_agent();
+    let id = AgentId(0);
+    dispatch(Action::SendPrompt("first".into()), &mut app);
+    assert!(app.agents[&id].session.state.is_turn_running());
+
+    let _ = dispatch(
+        cancelled_prompt_response_with_category(
+            id,
+            crate::app::turn_completion::NO_PROGRESS_CATEGORY,
+        ),
+        &mut app,
+    );
+
+    assert!(app.agents[&id].session.state.is_idle());
+    assert_eq!(
+        count_halted_markers(&app, id),
+        1,
+        "a no-progress end renders the unable-to-make-progress marker"
+    );
+    assert_eq!(
+        count_cancelled_markers(&app, id),
+        0,
+        "a no-progress end must not claim the user cancelled"
     );
 }
 

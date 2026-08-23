@@ -1,5 +1,13 @@
 use super::*;
 use nofy_shell::sampling::error::format_rate_limited_user_message;
+/// Read a string field off a terminal's `_meta` (defensive: the meta is an
+/// open JSON object; absent/non-string yields `None`).
+fn terminal_meta_str<'a>(
+    meta: Option<&'a serde_json::Value>,
+    key: &str,
+) -> Option<&'a str> {
+    meta.and_then(|v| v.get(key)).and_then(|v| v.as_str())
+}
 /// Stash a live stop/stop_failure batch under `stash_pid` for the turn marker
 /// to fold. `merge_same_name` merges a same-name repeat instead of standalone.
 pub(super) fn stash_live_stop_batch(
@@ -266,17 +274,21 @@ pub(super) fn handle_session_notification(notif: &acp::ExtNotification, app: &mu
                         false
                     }
                 } else {
-                    let cancel_trigger = session_notif
-                        .meta
-                        .as_ref()
-                        .and_then(|v| v.get("cancelTrigger"))
-                        .and_then(|v| v.as_str());
+                    let cancel_trigger = terminal_meta_str(
+                        session_notif.meta.as_ref(),
+                        super::super::turn_completion::CANCEL_TRIGGER_KEY,
+                    );
+                    let cancellation_category = terminal_meta_str(
+                        session_notif.meta.as_ref(),
+                        super::super::turn_completion::CANCELLATION_CATEGORY_KEY,
+                    );
                     finish_wake_turn(
                         agent,
                         &prompt_id,
                         &stop_reason,
                         agent_result.as_deref(),
                         cancel_trigger,
+                        cancellation_category,
                     );
                     true
                 }
@@ -293,19 +305,23 @@ pub(super) fn handle_session_notification(notif: &acp::ExtNotification, app: &mu
                     true
                 }
             } else {
-                let cancel_trigger = session_notif
-                    .meta
-                    .as_ref()
-                    .and_then(|v| v.get("cancelTrigger"))
-                    .and_then(|v| v.as_str());
                 terminal_outcome =
                     Some(super::super::turn_completion::finalize_turn_from_terminal(
                         agent,
                         root_session_id,
-                        Some(&prompt_id),
-                        Some(&stop_reason),
-                        agent_result.as_deref(),
-                        cancel_trigger,
+                        super::super::turn_completion::TerminalSignal {
+                            prompt_id: Some(&prompt_id),
+                            stop_reason: Some(&stop_reason),
+                            agent_result: agent_result.as_deref(),
+                            cancel_trigger: terminal_meta_str(
+                                session_notif.meta.as_ref(),
+                                super::super::turn_completion::CANCEL_TRIGGER_KEY,
+                            ),
+                            cancellation_category: terminal_meta_str(
+                                session_notif.meta.as_ref(),
+                                super::super::turn_completion::CANCELLATION_CATEGORY_KEY,
+                            ),
+                        },
                     ));
                 false
             }

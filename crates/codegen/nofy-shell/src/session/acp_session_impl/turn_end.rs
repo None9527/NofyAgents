@@ -316,8 +316,21 @@ impl SessionActor {
                     } => ctx.trigger.as_deref(),
                     _ => None,
                 });
-            self.emit_turn_completed(prompt_id, &mapped, usage, cancel_trigger)
-                .await;
+            // `cancellationCategory` on the terminal `_meta` lets re-attaching
+            // viewers finalize with the same copy as the driver (a hook-denied
+            // or governor-halted turn must not render as "cancelled by user").
+            let cancellation_category = result
+                .as_ref()
+                .ok()
+                .and_then(|ok| ok.completion_kind.cancellation_category_meta());
+            self.emit_turn_completed(
+                prompt_id,
+                &mapped,
+                usage,
+                cancel_trigger,
+                cancellation_category.as_deref(),
+            )
+            .await;
         }
         owned_completion
     }
@@ -332,19 +345,26 @@ impl SessionActor {
     ///
     /// `cancel_trigger` (when `Some`) rides the `_meta` as `cancelTrigger`;
     /// `"send_now"` marks a cancel-and-send end (marker suppressed).
+    /// `cancellation_category` (when `Some`) rides as `cancellationCategory`
+    /// (`meta_category_str`, e.g. `"HookDenied"`) so viewer rails pick
+    /// category-aware terminal copy.
     pub(super) async fn emit_turn_completed(
         &self,
         prompt_id: String,
         mapped: &std::result::Result<acp::StopReason, acp::Error>,
         usage: Option<crate::extensions::notification::PromptUsage>,
         cancel_trigger: Option<&str>,
+        cancellation_category: Option<&str>,
     ) {
         let (stop_reason, agent_result) = crate::sampling::error::prompt_complete_fields(mapped);
-        let extra_meta = cancel_trigger.map(|t| {
-            [("cancelTrigger".to_string(), serde_json::json!(t))]
-                .into_iter()
-                .collect()
-        });
+        let mut extra = serde_json::Map::new();
+        if let Some(t) = cancel_trigger {
+            extra.insert("cancelTrigger".to_string(), serde_json::json!(t));
+        }
+        if let Some(c) = cancellation_category {
+            extra.insert("cancellationCategory".to_string(), serde_json::json!(c));
+        }
+        let extra_meta = (!extra.is_empty()).then_some(extra);
         self.send_xai_notification_with_extra_meta(
             crate::session::turn_completion::build_turn_completed(
                 prompt_id,

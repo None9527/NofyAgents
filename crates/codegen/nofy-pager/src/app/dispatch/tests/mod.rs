@@ -423,6 +423,7 @@ fn arm_reconcile_with_trigger(
             stop_reason: Some(stop_reason.into()),
             agent_result: None,
             cancel_trigger: cancel_trigger.map(str::to_string),
+            cancellation_category: None,
             received_at: std::time::Instant::now() - age,
         });
 }

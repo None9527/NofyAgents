@@ -200,6 +200,64 @@
     }
 
     #[test]
+    fn live_turn_completed_hook_denied_viewer_pushes_blocked_marker() {
+        // A hook-denied turn end rides the cancelled stop reason on the durable
+        // rail; a viewer must finalize with the blocked-by-hook marker, never
+        // "cancelled by user".
+        let mut app = make_app_with_agent("sess-view");
+        app.agents.get_mut(&AgentId(0)).unwrap().attached_as_viewer = true;
+        let _ = handle(
+            make_agent_chunk_message_with_prompt("sess-view", "chunk", "pid-driver", false),
+            &mut app,
+        );
+
+        let affected = handle_ext_notification(
+            &xai_turn_completed_notif_with_cancellation_category(
+                "sess-view",
+                "pid-driver",
+                "cancelled",
+                crate::app::turn_completion::HOOK_DENIED_CATEGORY,
+            ),
+            &mut app,
+        );
+        assert!(affected);
+        let agent = app.agents.get(&AgentId(0)).unwrap();
+        assert!(agent.session.state.is_idle());
+        assert!(matches!(
+            last_session_event(&agent.scrollback),
+            Some(SessionEvent::TurnBlockedByHook { .. })
+        ));
+    }
+
+    #[test]
+    fn live_turn_completed_no_progress_viewer_pushes_halted_marker() {
+        // A governor no-progress end renders the honest marker on the viewer
+        // finalize rail too.
+        let mut app = make_app_with_agent("sess-view");
+        app.agents.get_mut(&AgentId(0)).unwrap().attached_as_viewer = true;
+        let _ = handle(
+            make_agent_chunk_message_with_prompt("sess-view", "chunk", "pid-driver", false),
+            &mut app,
+        );
+
+        let _ = handle_ext_notification(
+            &xai_turn_completed_notif_with_cancellation_category(
+                "sess-view",
+                "pid-driver",
+                "cancelled",
+                crate::app::turn_completion::NO_PROGRESS_CATEGORY,
+            ),
+            &mut app,
+        );
+        let agent = app.agents.get(&AgentId(0)).unwrap();
+        assert!(agent.session.state.is_idle());
+        assert!(matches!(
+            last_session_event(&agent.scrollback),
+            Some(SessionEvent::TurnHalted { .. })
+        ));
+    }
+
+    #[test]
     fn live_turn_completed_driver_arms_reconcile() {
         // For the driver the `PromptResponse` RPC owns the lifecycle, so a live
         // TurnCompleted for the turn it is driving arms the lost-RPC reconcile
@@ -857,6 +915,60 @@
         assert!(matches!(
             last_session_event(&agent.scrollback),
             Some(SessionEvent::TurnCancelled { .. })
+        ));
+    }
+
+    #[test]
+    fn chatty_hook_denied_wake_pushes_blocked_marker() {
+        // A hook-denied wake end rides the cancelled stop reason but must not
+        // claim the user cancelled — the wake rail picks the category marker.
+        let mut app = make_app_with_agent("sess-wake");
+        let _ = handle(
+            make_viewer_chunk_with_turn_start("sess-wake", "task-completed-bg1", 5_000),
+            &mut app,
+        );
+
+        let _ = handle_ext_notification(
+            &xai_turn_completed_notif_with_cancellation_category(
+                "sess-wake",
+                "task-completed-bg1",
+                "cancelled",
+                crate::app::turn_completion::HOOK_DENIED_CATEGORY,
+            ),
+            &mut app,
+        );
+
+        let agent = app.agents.get(&AgentId(0)).unwrap();
+        assert!(matches!(
+            last_session_event(&agent.scrollback),
+            Some(SessionEvent::TurnBlockedByHook { .. })
+        ));
+    }
+
+    #[test]
+    fn chatty_no_progress_wake_pushes_halted_marker() {
+        // A governor no-progress wake end renders the honest marker, not a
+        // user cancel.
+        let mut app = make_app_with_agent("sess-wake");
+        let _ = handle(
+            make_viewer_chunk_with_turn_start("sess-wake", "task-completed-bg1", 5_000),
+            &mut app,
+        );
+
+        let _ = handle_ext_notification(
+            &xai_turn_completed_notif_with_cancellation_category(
+                "sess-wake",
+                "task-completed-bg1",
+                "cancelled",
+                crate::app::turn_completion::NO_PROGRESS_CATEGORY,
+            ),
+            &mut app,
+        );
+
+        let agent = app.agents.get(&AgentId(0)).unwrap();
+        assert!(matches!(
+            last_session_event(&agent.scrollback),
+            Some(SessionEvent::TurnHalted { .. })
         ));
     }
 

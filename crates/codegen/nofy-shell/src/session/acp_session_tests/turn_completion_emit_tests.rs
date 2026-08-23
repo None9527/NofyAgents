@@ -280,6 +280,16 @@ async fn cancellation_persists_turn_completed_cancelled() {
                 Some("ctrl_c".to_string()),
                 "a Ctrl+C cancel stamps its trigger on the terminal meta"
             );
+            // The category rides the same meta so viewers finalize with the
+            // same copy the driver's PromptResponse carries.
+            assert_eq!(
+                turn_completed_meta(&msgs).and_then(|m| m
+                    .get("cancellationCategory")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_string)),
+                Some("MidTurnAbort".to_string()),
+                "a user cancel stamps MidTurnAbort on the terminal meta"
+            );
         })
         .await;
 }

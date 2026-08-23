@@ -883,6 +883,7 @@ pub(super) fn prompt_complete_ext_with_prompt_id(
                 prompt_id: Some(prompt_id.to_string()),
                 agent_result: None,
                 cancel_trigger: None,
+                cancellation_category: None,
                 meta: None,
             },
         )
@@ -964,6 +965,34 @@ pub(super) fn xai_turn_completed_notif_with_cancel_trigger(
             serde_json::json!({
                 "isReplay": false,
                 "cancelTrigger": cancel_trigger,
+            }),
+        ),
+    };
+    acp::ExtNotification::new(
+        "nofy/session/update",
+        std::sync::Arc::from(serde_json::value::to_raw_value(&payload).unwrap()),
+    )
+}
+/// Live `TurnCompleted` stamped with `_meta.cancellationCategory`
+/// (`"HookDenied"` / `"NoProgress"` pick category-aware markers).
+pub(super) fn xai_turn_completed_notif_with_cancellation_category(
+    session_id: &str,
+    prompt_id: &str,
+    stop_reason: &str,
+    cancellation_category: &str,
+) -> acp::ExtNotification {
+    let payload = SessionNotification {
+        session_id: acp::SessionId::new(session_id),
+        update: NofySessionUpdate::TurnCompleted {
+            prompt_id: prompt_id.into(),
+            stop_reason: stop_reason.into(),
+            agent_result: None,
+            usage: None,
+        },
+        meta: Some(
+            serde_json::json!({
+                "isReplay": false,
+                "cancellationCategory": cancellation_category,
             }),
         ),
     };

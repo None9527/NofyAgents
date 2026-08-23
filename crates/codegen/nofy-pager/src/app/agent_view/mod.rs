@@ -522,6 +522,10 @@ pub(crate) struct PendingTurnEnd {
     /// cancel-and-send whose "Turn cancelled" marker is suppressed). `None`
     /// on older shells / non-cancel ends.
     pub cancel_trigger: Option<String>,
+    /// `_meta.cancellationCategory` from the broadcast (`"HookDenied"` /
+    /// `"NoProgress"` pick category-aware markers). `None` on older shells /
+    /// plain user cancels.
+    pub cancellation_category: Option<String>,
     /// When the broadcast arrived; the reconcile fires after
     /// [`super::dispatch::TURN_END_RECONCILE_GRACE`].
     pub received_at: std::time::Instant,

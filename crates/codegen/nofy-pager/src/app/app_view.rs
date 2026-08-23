@@ -5849,6 +5849,7 @@ pub(crate) mod tests {
                 stop_reason: Some("end_turn".into()),
                 agent_result: None,
                 cancel_trigger: None,
+                cancellation_category: None,
                 received_at: std::time::Instant::now()
                     - (TURN_END_RECONCILE_GRACE + std::time::Duration::from_secs(1)),
             });

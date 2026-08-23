@@ -636,12 +636,17 @@ impl SessionActor {
             && let Some(prompt_id) = cancelled_prompt_id
         {
             // Stamp `cancelTrigger` on the terminal `_meta` so clients can tell
-            // a send-now cancel from an interactive Ctrl+C/Esc.
+            // a send-now cancel from an interactive Ctrl+C/Esc; `MidTurnAbort`
+            // matches what the prompt's RPC resolves with below so the two
+            // rails agree.
             self.emit_turn_completed(
                 prompt_id,
                 &Ok(acp::StopReason::Cancelled),
                 cancelled_usage.clone(),
                 trigger.as_ref().map(crate::session::CancelTrigger::as_str),
+                Some(crate::session::commands::meta_category_str(
+                    crate::session::events::CancellationCategory::MidTurnAbort,
+                )),
             )
             .await;
         }

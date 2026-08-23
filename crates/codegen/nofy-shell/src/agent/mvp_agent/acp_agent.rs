@@ -833,6 +833,10 @@ impl acp::Agent for MvpAgent {
                 } => ctx.trigger.clone(),
                 _ => None,
             });
+        let cancellation_category: Option<String> = stop_result
+            .as_ref()
+            .ok()
+            .and_then(|ok| ok.completion_kind.cancellation_category_meta());
         {
             let mapped = stop_result
                 .as_ref()
@@ -857,6 +861,9 @@ impl acp::Agent for MvpAgent {
             }
             if let Some(ref t) = cancel_trigger {
                 payload["cancelTrigger"] = serde_json::json!(t);
+            }
+            if let Some(ref c) = cancellation_category {
+                payload["cancellationCategory"] = serde_json::json!(c);
             }
             let params = serde_json::value::to_raw_value(&payload)
                 .expect("prompt_complete params serialization");
@@ -901,7 +908,9 @@ impl acp::Agent for MvpAgent {
                     stop_reason,
                     total_tokens,
                     turn_snapshot,
-                    completion_kind,
+                    // Category already derived from `stop_result` above, shared
+                    // with the `prompt_complete` broadcast rail.
+                    completion_kind: _,
                     structured_output,
                     usage: prompt_usage,
                 } = turn_ok;
@@ -909,19 +918,6 @@ impl acp::Agent for MvpAgent {
                 // keep draining so the per-session buffer cannot grow unbounded.
                 let _ = self.collect_permission_events(&arguments.session_id);
                 let last_turn_usage = last_turn_usage_for_meta;
-                let cancellation_category = match &completion_kind {
-                    crate::session::commands::PromptCompletionKind::Cancelled {
-                        category: Some(cat),
-                        ..
-                    } => Some(format!("{cat:?}")),
-                    crate::session::commands::PromptCompletionKind::MaxTurnsReached {
-                        ..
-                    } => Some("max_turns_reached".to_string()),
-                    crate::session::commands::PromptCompletionKind::StationarityEnded => {
-                        Some("action_stationarity".to_string())
-                    }
-                    _ => None,
-                };
                 Ok(
                     acp::PromptResponse::new(stop_reason)
                         .meta(
