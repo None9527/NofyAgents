@@ -115,7 +115,9 @@ impl BudgetGovernor {
     pub fn from_configured_limit(limit: u64) -> Self {
         let extension_step = (limit / 4).max(2);
         Self {
-            hard_cap: limit + 2 * extension_step,
+            // Saturating: an unlimited run consults with `u64::MAX`, and
+            // `limit + 2 * step` would overflow (debug panic; release wrap).
+            hard_cap: limit.saturating_add(extension_step.saturating_mul(2)),
             soft_budget: limit,
             extension_step,
             max_extensions: 2,
@@ -183,6 +185,26 @@ mod tests {
             g.decide(&s, 0),
             BudgetDecision::Finish {
                 reason: FinishReason::HardCapReached
+            }
+        );
+    }
+
+    #[test]
+    fn unlimited_run_consult_does_not_overflow() {
+        // An unlimited session consults with `u64::MAX` (no max-turns);
+        // `hard_cap = limit + 2 * step` used to overflow (debug panic,
+        // release wrap). Saturating keeps the cap absolute and decidable.
+        let g = BudgetGovernor::from_configured_limit(u64::MAX);
+        assert_eq!(g.hard_cap, u64::MAX);
+        assert_eq!(g.soft_budget, u64::MAX);
+        // A dead run still finishes on no-progress instead of spinning.
+        let mut s = signals(3);
+        s.repeated_no_new_info = DEFAULT_NO_PROGRESS_LIMIT;
+        s.open_intents = 0;
+        assert_eq!(
+            g.decide(&s, 0),
+            BudgetDecision::Finish {
+                reason: FinishReason::NoProgress
             }
         );
     }
