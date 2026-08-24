@@ -1148,10 +1148,21 @@ pub struct ShellTrueNoop {
     pub tool_name: String,
 }
 
+/// The model was nudged to break an identical-tool-call loop. Tiered because the
+/// tight-tier kinds (read/plan-style repeats that are almost never productive) stop
+/// earlier than the loose tier, so dashboards can attribute nudges by tier.
+#[derive(Serialize)]
+pub struct ActionStationarityNudge {
+    pub problematically_repeating: bool,
+    pub run_len: u32,
+    pub tool_name: String,
+}
+
 /// Harness hard-stopped a turn after identical tool thrash (silent EndTurn).
 #[derive(Serialize)]
 pub struct ActionStationarityStop {
     pub true_noop: bool,
+    pub problematically_repeating: bool,
     pub run_len: u32,
     pub tool_name: String,
 }
@@ -1781,6 +1792,7 @@ telemetry_event!(
     external = crate::external::schema::map_turn_completed
 );
 telemetry_event!(ShellTrueNoop, "shell_true_noop");
+telemetry_event!(ActionStationarityNudge, "action_stationarity_nudge");
 telemetry_event!(ActionStationarityStop, "action_stationarity_stop");
 telemetry_event!(
     ToolCallCompleted,
