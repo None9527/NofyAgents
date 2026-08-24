@@ -974,7 +974,7 @@ impl AgentView {
             },
             show_accent_line: false,
             show_borders: true,
-            title: self.display_name.clone(),
+            title: self.prompt_caption(),
             image_preview: true,
         };
         let compact = appearance.prompt.compact;

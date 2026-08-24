@@ -170,6 +170,9 @@ mod panes;
 mod paste;
 mod plan;
 mod prompt;
+mod prompt_stash;
+pub(in crate::app) use prompt_stash::prompt_history_text;
+pub use prompt_stash::{PromptStashEntry, StashCause};
 mod queue;
 mod render;
 pub use render::AppRenderParams;
@@ -725,6 +728,8 @@ pub(crate) enum AgentDeferredSend {
     SendPrompt,
     /// Ctrl+Enter — a mid-turn interjection.
     Interject,
+    /// Ctrl+S / Alt+S: set the draft aside once its image lands.
+    Stash,
 }
 pub struct AgentView {
     pub session: AgentSession,
@@ -847,6 +852,12 @@ pub struct AgentView {
     /// Stashed normal prompt state while editing a queued prompt.
     /// Restored when editing ends.
     pub stashed_prompt: Option<StashedPrompt>,
+    /// One draft set aside for later; see [`prompt_stash`].
+    pub prompt_stash: Option<PromptStashEntry>,
+    /// Set by the send that consumed the user's draft this dispatch; see `note_draft_consumed`.
+    pub(crate) draft_consumed: bool,
+    /// Drafts a newer stash pushed out of the slot. Held apart from `session.prompt_history`, which a late `PromptHistoryLoaded` replaces wholesale.
+    pub prompt_stash_evicted: Vec<String>,
     /// Currently active modal dialog (blocks all other input).
     pub active_modal: Option<ActiveModal>,
     /// Hit areas for modal buttons (from last render).
@@ -1987,6 +1998,7 @@ fn resolve_action(action_id: Option<ActionId>) -> Option<InputOutcome> {
         ActionId::ToggleYolo => return None,
         ActionId::ToggleMultiline => return None,
         ActionId::InterjectPrompt => return None,
+        ActionId::StashPrompt => return None,
         ActionId::ShortcutsHelp => return None,
         ActionId::OpenSettings => return None,
         ActionId::ToggleTodos

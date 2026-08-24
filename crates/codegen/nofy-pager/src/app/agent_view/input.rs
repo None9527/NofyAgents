@@ -1145,7 +1145,7 @@ impl AgentView {
         }
         if let Event::Key(key) = ev
             && key.kind != KeyEventKind::Release
-            && key!('s', CONTROL).matches(key)
+            && key!(F(3)).matches(key)
         {
             self.active_modal = Some(ActiveModal::SessionPicker {
                 state: crate::views::picker::PickerState::default(),

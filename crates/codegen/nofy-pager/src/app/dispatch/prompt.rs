@@ -178,11 +178,15 @@ pub(super) fn dispatch_send_prompt(app: &mut AppView, text: String) -> Vec<Effec
 /// Clear the active prompt and record non-empty text in prompt history (Esc Esc).
 pub(super) fn dispatch_clear_prompt(app: &mut AppView) -> Vec<Effect> {
     with_active_agent(app, |agent| {
-        let text = agent.prompt.text().to_string();
-        // Same move-to-front / cap as send / interject.
-        interject::record_interject_prompt_history(agent, &text);
-        // Clears chips/images via PromptWidget::set_text empty path.
-        agent.prompt.set_text("");
+        // Prefixed the way the stash entry is, or a `!` draft shows up twice in the Up browse.
+        let text = crate::app::agent_view::prompt_history_text(
+            agent.prompt.text(),
+            agent.prompt_input_mode,
+        );
+        crate::app::agent::remember_prompt(&mut agent.session.prompt_history, &text);
+
+        // Recoverable with the stash chord, but Esc-Esc is a discard: it never comes back on its own.
+        agent.stash_prompt_draft(crate::app::agent_view::StashCause::ClearedDraft);
     });
     vec![]
 }
@@ -671,6 +675,7 @@ pub(super) fn dispatch_send_prompt_inner(
             // Drain prompt images before clearing prompt state.
             drain_prompt_state_to_last_queued(agent);
             agent.prompt.set_text("");
+            agent.note_draft_consumed();
         }
     } else if !literal && crate::slash::commands::exit::is_exit_alias(trimmed) {
         if consume_input {
@@ -755,6 +760,7 @@ pub(super) fn dispatch_send_prompt_inner(
             let images = agent.prompt.drain_images();
             if consume_input {
                 agent.prompt.set_text("");
+                agent.note_draft_consumed();
             }
             // A new prompt is taking the wheel (same contract as the
             // immediate-send branch below).
@@ -780,6 +786,7 @@ pub(super) fn dispatch_send_prompt_inner(
                 // Plain prompt: no images to drain. Clear textarea + record
                 // up-arrow history (same as the local path's history insert).
                 agent.prompt.set_text("");
+                agent.note_draft_consumed();
                 let trimmed_key = text.trim().to_string();
                 if !trimmed_key.is_empty() {
                     agent
@@ -829,6 +836,7 @@ pub(super) fn dispatch_send_prompt_inner(
             // Drain prompt images before clearing prompt state.
             drain_prompt_state_to_last_queued(agent);
             agent.prompt.set_text("");
+            agent.note_draft_consumed();
         }
         // Local queue while a turn is running (e.g. images attached): tip after
         // this branch so the agent mut-borrow is released first.
@@ -939,6 +947,7 @@ pub(super) fn dispatch_send_bash_command(app: &mut AppView, command: String) -> 
         // deltas ours in the ACP gate once it becomes the running turn.
         agent.note_self_originated_prompt(&prompt_id);
         agent.prompt.set_text("");
+        agent.note_draft_consumed();
 
         let sid_str = session_id.0.to_string();
         push_server_queue_echo(app, agent_id, &sid_str, &prompt_id, &command, "bash");
@@ -957,6 +966,7 @@ pub(super) fn dispatch_send_bash_command(app: &mut AppView, command: String) -> 
 
     agent.session.enqueue_bash_command(command.clone());
     agent.prompt.set_text("");
+    agent.note_draft_consumed();
 
     let drain = maybe_drain_queue(agent);
     note_peek_page_flip(app, id, drain.page_flip_entry);

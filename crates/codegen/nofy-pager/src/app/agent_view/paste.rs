@@ -256,7 +256,12 @@ impl AgentView {
                 }
                 let images = self.prompt.drain_images();
                 self.prompt.set_text("");
+                self.note_draft_consumed();
                 Some(Action::SendPromptNow { text, images })
+            }
+            AgentDeferredSend::Stash => {
+                self.handle_stash_prompt_key();
+                None
             }
         }
     }

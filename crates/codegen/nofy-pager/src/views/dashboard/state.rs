@@ -4558,6 +4558,7 @@ fn dashboard_action_for_id(
         // flag a missing case when a new Dashboard* action is added.
         ActionId::SendPrompt
         | ActionId::InterjectPrompt
+        | ActionId::StashPrompt
         | ActionId::ScrollUp
         | ActionId::ScrollDown
         | ActionId::PageUp

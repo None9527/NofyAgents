@@ -277,6 +277,8 @@ impl AgentView {
                         let len = self.prompt.textarea.text().len();
                         self.prompt.textarea.set_cursor(len);
                         self.prompt.file_search.clear_context();
+                        // Committing the stashed draft is a pop: the slot must not keep a second copy.
+                        self.reclaim_stash_recalled_into_composer();
                     }
                     self.set_active_pane(AgentPane::Prompt, false);
                     return InputOutcome::Changed;

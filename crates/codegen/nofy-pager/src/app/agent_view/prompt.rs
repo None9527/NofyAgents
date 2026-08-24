@@ -32,29 +32,34 @@ impl AgentView {
         use crate::views::history_search::HistoryEntry;
         use std::collections::HashSet;
 
+        fn push_unique(out: &mut Vec<HistoryEntry>, seen: &mut HashSet<String>, text: String) {
+            let key = text.trim().to_string();
+            if !key.is_empty() && seen.insert(key) {
+                out.push(HistoryEntry { text });
+            }
+        }
+
         let mut seen: HashSet<String> = HashSet::new();
         let mut history = Vec::new();
+
+        if let Some(entry) = &self.prompt_stash {
+            push_unique(&mut history, &mut seen, entry.history_text());
+        }
+
+        for text in &self.prompt_stash_evicted {
+            push_unique(&mut history, &mut seen, text.clone());
+        }
 
         for i in (0..self.scrollback.len()).rev() {
             if let Some(entry) = self.scrollback.entry(i)
                 && let RenderBlock::UserPrompt(block) = &entry.block
             {
-                let key = block.text.trim().to_string();
-                if !key.is_empty() && seen.insert(key) {
-                    history.push(HistoryEntry {
-                        text: block.text.clone(),
-                    });
-                }
+                push_unique(&mut history, &mut seen, block.text.clone());
             }
         }
 
         for prompt in &self.session.prompt_history {
-            let key = prompt.trim().to_string();
-            if !key.is_empty() && seen.insert(key) {
-                history.push(HistoryEntry {
-                    text: prompt.clone(),
-                });
-            }
+            push_unique(&mut history, &mut seen, prompt.clone());
         }
 
         history
@@ -640,6 +645,7 @@ impl AgentView {
                         // Drain images BEFORE set_text("") wipes the chip elements.
                         let images = self.prompt.drain_images();
                         self.prompt.set_text("");
+                        self.note_draft_consumed();
                         return InputOutcome::Action(Action::SendPromptNow { text, images });
                     }
                     if turn_running && let Some(outcome) = self.try_send_now_queued_from_prompt() {
@@ -649,6 +655,18 @@ impl AgentView {
                 }
                 ActionId::ToggleMultiline => {
                     return InputOutcome::Action(Action::SetMultilineMode(!self.multiline_mode));
+                }
+                ActionId::StashPrompt => {
+                    let outcome = self.handle_stash_prompt_key();
+                    // A declined chord falls through like an unclaimed key.
+                    if !matches!(outcome, InputOutcome::Unchanged) {
+                        crate::actions::log_shortcut_used(
+                            key,
+                            ActionId::StashPrompt,
+                            When::PromptFocused.telemetry_name(),
+                        );
+                        return outcome;
+                    }
                 }
                 other => {
                     if let Some(outcome) = resolve_action(Some(other)) {
@@ -1013,6 +1031,8 @@ impl AgentView {
                 // Drop the recomputed `@`-completion context (same
                 // suppression as populate).
                 self.prompt.file_search.clear_context();
+                // Committing the stashed draft is a pop: the slot must not keep a second copy.
+                self.reclaim_stash_recalled_into_composer();
             } else {
                 // No results — just deactivate.
                 self.close_history_restoring_saved();
@@ -1066,6 +1086,7 @@ impl AgentView {
         // keep the populated text, and apply the key as a normal edit.
         if browse {
             self.prompt.history_search.deactivate();
+            self.reclaim_stash_recalled_into_composer();
             self.prompt.textarea.input(*key);
             // The populated text may be a slash command — refresh completion.
             self.prompt.refresh_slash(&self.session.models);

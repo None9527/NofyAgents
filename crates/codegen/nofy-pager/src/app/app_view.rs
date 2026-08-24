@@ -2816,7 +2816,7 @@ fn handle_welcome_input(ev: &Event, ctx: &mut WelcomeInputCtx<'_>) -> InputOutco
             if key!('w', CONTROL).matches(key) && ctx.cwd_has_git_ancestor {
                 return InputOutcome::Action(Action::OpenNewWorktreeDialog);
             }
-            if key!('s', CONTROL).matches(key) {
+            if key!(F(3)).matches(key) {
                 return InputOutcome::Action(Action::FetchSessionList);
             }
             if ctx.has_foreign_resume && key!('u', CONTROL).matches(key) {

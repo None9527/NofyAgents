@@ -1358,9 +1358,22 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
         Action::JumpPickerSelect(turn_idx) => dispatch_jump_picker_select(app, turn_idx),
         Action::JumpDismiss => dispatch_jump_dismiss(app),
     };
+    restore_stash_where_the_draft_was_consumed(app);
     app.reconcile_foreign_resume_launch();
     sync_sleep_inhibitor(app);
     effects
+}
+/// A send that consumed the composer restores the stashed draft, if one waits.
+fn restore_stash_where_the_draft_was_consumed(app: &mut AppView) {
+    let ActiveView::Agent(id) = app.active_view else {
+        return;
+    };
+    let Some(agent) = app.agents.get_mut(&id) else {
+        return;
+    };
+    if agent.take_draft_consumed() {
+        agent.auto_restore_stash_after_send();
+    }
 }
 pub(super) fn dispatch_action_result(
     app: &mut AppView,

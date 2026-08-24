@@ -37,6 +37,8 @@ pub enum ActionId {
     // Prompt
     SendPrompt,
     InterjectPrompt,
+    /// Stash the composer draft; on an empty composer, pop the newest stash.
+    StashPrompt,
 
     // Navigation
     ScrollUp,
