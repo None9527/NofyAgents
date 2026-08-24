@@ -260,6 +260,7 @@ fn driver_mid_active_work(agent: &AgentView) -> bool {
             | Some(crate::acp::tracker::TurnActivity::Thinking)
             | Some(crate::acp::tracker::TurnActivity::AutoCompacting)
             | Some(crate::acp::tracker::TurnActivity::Retrying { .. })
+            | Some(crate::acp::tracker::TurnActivity::WritingToolCall(_))
     )
 }
 

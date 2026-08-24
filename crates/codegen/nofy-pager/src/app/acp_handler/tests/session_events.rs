@@ -772,3 +772,120 @@
         );
     }
 
+    // ── ToolCallDeltaChunk (writing-phase spinner) ─────────────────────
+
+    #[test]
+    fn tool_call_delta_chunk_sets_writing_activity() {
+        let mut app = make_app_with_agent("sess-1");
+        app.agents.get_mut(&AgentId(0)).unwrap().session.state = AgentState::TurnRunning;
+
+        let changed = handle(
+            make_ext_session_notification(
+                "sess-1",
+                NofySessionUpdate::ToolCallDeltaChunk {
+                    tool_call_id: Some("call_1".into()),
+                    tool_index: 0,
+                    name: Some("spawn_subagent".into()),
+                    arguments_delta: None,
+                },
+            ),
+            &mut app,
+        );
+        assert!(changed, "first delta must request a redraw");
+        let agent = app.agents.get(&AgentId(0)).unwrap();
+        let Some(crate::acp::tracker::TurnActivity::WritingToolCall(writing)) = agent.session.tracker.activity() else {
+            panic!("expected WritingToolCall activity");
+        };
+        assert_eq!(writing.label(), "Writing subagent prompt…");
+    }
+
+    /// Continuation deltas for the same call report no change (no redraw).
+    #[test]
+    fn tool_call_delta_chunk_continuation_is_no_redraw() {
+        let mut app = make_app_with_agent("sess-1");
+        app.agents.get_mut(&AgentId(0)).unwrap().session.state = AgentState::TurnRunning;
+
+        let delta = |args: Option<&str>| {
+            make_ext_session_notification(
+                "sess-1",
+                NofySessionUpdate::ToolCallDeltaChunk {
+                    tool_call_id: Some("call_1".into()),
+                    tool_index: 0,
+                    name: None,
+                    arguments_delta: args.map(str::to_string),
+                },
+            )
+        };
+        assert!(handle(delta(Some("{\"path\":")), &mut app));
+        assert!(!handle(delta(Some("\"a.md\"}")), &mut app));
+    }
+
+    /// A delta-first turn still counts as first activity: the Ctrl+C rewind
+    /// stash drops.
+    #[test]
+    fn tool_call_delta_chunk_clears_in_flight_prompt() {
+        let mut app = make_app_with_agent("sess-1");
+        {
+            let agent = app.agents.get_mut(&AgentId(0)).unwrap();
+            agent.session.state = AgentState::TurnRunning;
+            agent.turn_started_at = Some(std::time::Instant::now());
+            agent.session.in_flight_prompt = Some(InFlightPrompt {
+                text: "hi".into(),
+                images: Vec::new(),
+                scrollback_entry: EntryId::new(1),
+                combined_scrollback_entries: Vec::new(),
+                chip_elements: Vec::new(),
+            });
+        }
+
+        let _ = handle(
+            make_ext_session_notification(
+                "sess-1",
+                NofySessionUpdate::ToolCallDeltaChunk {
+                    tool_call_id: Some("call_1".into()),
+                    tool_index: 0,
+                    name: Some("write".into()),
+                    arguments_delta: None,
+                },
+            ),
+            &mut app,
+        );
+        let agent = app.agents.get(&AgentId(0)).unwrap();
+        assert!(
+            agent.session.in_flight_prompt.is_none(),
+            "the first delta is activity — the rewind stash must drop"
+        );
+    }
+
+    /// Replay deltas are ignored (streaming-only state cannot replay).
+    #[test]
+    fn tool_call_delta_chunk_replay_is_ignored() {
+        let mut app = make_app_with_agent("sess-1");
+        {
+            let agent = app.agents.get_mut(&AgentId(0)).unwrap();
+            agent.session.state = AgentState::TurnRunning;
+        }
+        let payload = SessionNotification {
+            session_id: acp::SessionId::new("sess-1"),
+            update: NofySessionUpdate::ToolCallDeltaChunk {
+                tool_call_id: Some("call_1".into()),
+                tool_index: 0,
+                name: Some("write".into()),
+                arguments_delta: None,
+            },
+            meta: Some(serde_json::json!({ "isReplay": true })),
+        };
+        let raw = serde_json::value::to_raw_value(&payload).unwrap();
+        let notif = acp::ExtNotification::new("nofy/session_notification", std::sync::Arc::from(raw));
+        let changed = handle_ext_notification(&notif, &mut app);
+        assert!(!changed);
+        let agent = app.agents.get(&AgentId(0)).unwrap();
+        assert!(
+            !matches!(
+                agent.session.tracker.activity(),
+                Some(crate::acp::tracker::TurnActivity::WritingToolCall(_))
+            ),
+            "replayed deltas must not set the streaming-only writing state"
+        );
+    }
+

@@ -715,6 +715,11 @@ fn compute_activity(
             format!("Retrying (attempt {attempt})…"),
             false,
         ),
+        (AgentState::TurnRunning, Some(TurnActivity::WritingToolCall(writing))) => (
+            Style::default().fg(theme.text_secondary),
+            writing.label(),
+            false,
+        ),
         (AgentState::TurnRunning, Some(TurnActivity::Waiting(reason))) => (
             // Explicit wait reason (model / subagent / task output / tasks /
             // sleep): name what the agent is blocked on instead of a generic

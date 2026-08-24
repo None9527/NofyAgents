@@ -36,6 +36,19 @@ use nofy_tool_types::{SubagentCompletedOutput, SubagentIsolationMode, TaskToolIn
 /// Default max nesting depth when [`MaxSubagentDepth`] is not injected.
 pub const MAX_SUBAGENT_DEPTH: u32 = 1;
 
+/// Wire name of the subagent-spawn tool.
+pub const TASK_TOOL_NAME: &str = "task";
+
+/// True when `name` is a wire name of the subagent-spawn ("task") tool.
+///
+/// Accepts every spelling regardless of enabled features: names arrive over
+/// the wire from arbitrary toolsets. Spellings other than [`TASK_TOOL_NAME`]
+/// are defined downstream and pinned to this predicate by tests at their
+/// definition sites.
+pub fn is_task_tool_id(name: &str) -> bool {
+    matches!(name, TASK_TOOL_NAME | "Task" | "spawn_subagent")
+}
+
 pub fn effective_max_subagent_depth(resources: &crate::types::resources::Resources) -> u32 {
     resources
         .get::<MaxSubagentDepth>()
@@ -649,6 +662,19 @@ mod tests {
     use std::sync::Arc;
     use tokio::sync::mpsc;
     use nofy_tool_types::SubagentCapabilityMode;
+
+    /// Pins every accepted subagent-spawn spelling: pager spinner copy keys
+    /// off [`is_task_tool_id`], so a dropped spelling silently degrades the
+    /// "Writing subagent prompt…" label to the raw-name fallback.
+    #[test]
+    fn is_task_tool_id_accepts_every_spelling() {
+        assert!(is_task_tool_id(TASK_TOOL_NAME));
+        assert!(is_task_tool_id("Task"));
+        assert!(is_task_tool_id("spawn_subagent"));
+        assert!(!is_task_tool_id("task_output"));
+        assert!(!is_task_tool_id("get_task_output"));
+        assert!(!is_task_tool_id("read_file"));
+    }
 
     /// Backend whose `ValidateType` events are auto-acked with `Ok`.
     fn make_backend() -> (

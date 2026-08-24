@@ -151,6 +151,64 @@ struct BlockingWait {
     reason: WaitingReason,
     stream_start_ms: Option<i64>,
 }
+/// Deltas stream continuously during a live write — silence this long means the stream is dead.
+pub(crate) const WRITING_DELTA_STALE_AFTER: std::time::Duration =
+    std::time::Duration::from_secs(10);
+/// The model is streaming tool-call arguments (`tool_call_delta_chunk`),
+/// which reach no scrollback until the canonical `ToolCall` lands.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WritingToolCall {
+    /// `None` until a chunk carries the name (only the first per-tool one does).
+    pub tool_name: Option<String>,
+    /// 1-based position within the sample's tool calls.
+    pub ordinal: std::num::NonZeroU32,
+}
+impl WritingToolCall {
+    /// User-facing spinner label.
+    pub fn label(&self) -> String {
+        let ordinal = match self.ordinal.get() {
+            1 => String::new(),
+            n => format!(" ({n})"),
+        };
+        match self.tool_name.as_deref() {
+            Some(name) if nofy_tools::is_task_tool_id(name) => {
+                format!("Writing subagent prompt{ordinal}…")
+            }
+            Some(nofy_tools::USE_TOOL_NAME) => {
+                format!("Preparing MCP tool{ordinal}…")
+            }
+            Some(nofy_tools::SEARCH_TOOL_NAME) => {
+                format!("Searching MCP tools{ordinal}…")
+            }
+            Some(name) => {
+                use nofy_tools::types::tool::ToolKind;
+                let copy =
+                    nofy_tools::tool_taxonomy::writing_tool_kind(name).and_then(|kind| {
+                        match kind {
+                            ToolKind::Write => Some("Writing file"),
+                            ToolKind::Edit => Some("Writing edit"),
+                            ToolKind::Execute => Some("Writing command"),
+                            ToolKind::Plan => Some("Updating todo list"),
+                            ToolKind::Workflow => Some("Writing workflow"),
+                            ToolKind::AskUser => Some("Preparing question"),
+                            _ => None,
+                        }
+                    });
+                match copy {
+                    Some(copy) => format!("{copy}{ordinal}…"),
+                    None => {
+                        let name =
+                            nofy_workspace::permission::mcp_pretty_name_if_qualified(name);
+                        format!("Preparing {}{ordinal}…", clamp_activity_subject(&name))
+                    }
+                }
+            }
+            None => format!("Preparing tool call{ordinal}…"),
+        }
+    }
+}
+/// Cap on remembered per-index tool names per sample (model-driven input).
+const MAX_WRITING_TOOL_NAMES: usize = 64;
 /// `strings`-greppable marker proving a binary carries this fix (kept by `#[used]`).
 #[used]
 static PAGER_IMPL_WAIT_STATUS_MIDTURN: &str = "PAGER_IMPL_wait_status_midturn";
@@ -181,6 +239,8 @@ pub enum TurnActivity {
         /// Human-readable reason for the retry.
         reason: String,
     },
+    /// The model is streaming tool-call arguments; see [`WritingToolCall`].
+    WritingToolCall(WritingToolCall),
     /// Turn is open but nothing is streaming; `reason` says what we're waiting
     /// on. Replaces the implicit "no activity == generic Waiting…" placeholder.
     Waiting(WaitingReason),
@@ -194,6 +254,7 @@ impl TurnActivity {
             Self::ToolRunning { .. } => "tool_running",
             Self::AutoCompacting => "compacting",
             Self::Retrying { .. } => "retrying",
+            Self::WritingToolCall(_) => "writing_tool_call",
             Self::Waiting(reason) => reason.as_telemetry_label(),
         }
     }
@@ -278,9 +339,19 @@ pub struct AcpUpdateTracker {
     pending_compaction: Option<PendingCompaction>,
     /// Retry-related activity override.
     /// Set by `set_retry_activity()` from ExtNotification `RetryState::Retrying`,
-    /// auto-cleared when normal streaming data resumes (in `handle_update`)
-    /// and on `finish_turn()`.
+    /// auto-cleared when normal streaming data resumes (in `handle_update`
+    /// and `note_tool_call_arguments_delta`) and on `finish_turn()`.
     retry_activity: Option<TurnActivity>,
+    /// Set per `ToolCallDeltaChunk` (streaming-only, never persisted — cannot
+    /// replay); cleared by the canonical `ToolCall` / text / thought chunks
+    /// (not `ToolCallUpdate` — see `handle_update`) and by `finish_turn()`.
+    /// The instant is the last delta's arrival; expiry lives in the accessors
+    /// ([`Self::fresh_writing_tool_call`] / [`Self::has_stale_tool_call_write`]).
+    writing_tool_call: Option<(WritingToolCall, std::time::Instant)>,
+    /// Per-`tool_index` names so interleaved deltas restore a call's name on
+    /// switch-back; `None` marks an index observed before its name arrived
+    /// (it still ranks for ordinals). Cleared together with `writing_tool_call`.
+    writing_tool_names: HashMap<u32, Option<String>>,
     /// Pending ACP commands from the most recent `AvailableCommandsUpdate`.
     /// Consumed by the caller via `take_pending_acp_commands()`. The caller
     /// is responsible for copying to `AgentSession.available_commands` and
@@ -403,10 +474,12 @@ impl AcpUpdateTracker {
     /// 1. External overrides: Retrying, AutoCompacting (from ExtNotification)
     /// 2. Known-blocking wait (task output / wait / sleep / foreground
     ///    subagent) — outranks Thinking, ToolRunning, and Responding.
-    /// 3. Thinking (agent is in chain-of-thought)
-    /// 4. ToolRunning (a tool call is pending / executing)
-    /// 5. Responding (agent is streaming text)
-    /// 6. None (nothing in-flight; the view turns this into Waiting(Model) or
+    /// 3. WritingToolCall — outranks Thinking: the first delta means reasoning
+    ///    ended (the thinking scrollback block stays open until the `ToolCall`).
+    /// 4. Thinking (agent is in chain-of-thought)
+    /// 5. ToolRunning (a tool call is pending / executing)
+    /// 6. Responding (agent is streaming text)
+    /// 7. None (nothing in-flight; the view turns this into Waiting(Model) or
     ///    Waiting(Subagent) while a turn is running)
     ///
     /// Retry and compaction states are set externally via
@@ -424,6 +497,9 @@ impl AcpUpdateTracker {
         }
         if let Some(waiting) = self.activity_known_blocking_wait() {
             return Some(waiting);
+        }
+        if let Some(writing) = self.fresh_writing_tool_call() {
+            return Some(TurnActivity::WritingToolCall(writing.clone()));
         }
         if self.current_thinking.is_some() {
             return Some(TurnActivity::Thinking);
@@ -545,9 +621,61 @@ impl AcpUpdateTracker {
     ///
     /// Called by the ACP handler when `ExtNotification` `RetryState::Retrying`
     /// arrives. Auto-cleared when normal streaming data resumes (in
-    /// `handle_update`) and on `finish_turn()`.
+    /// `handle_update` and `note_tool_call_arguments_delta`) and on `finish_turn()`.
     pub fn set_retry_activity(&mut self, activity: Option<TurnActivity>) {
         self.retry_activity = activity;
+    }
+    /// Record a `ToolCallDeltaChunk`; returns `true` only when the visible
+    /// label changed (continuation deltas need no redraw).
+    pub fn note_tool_call_arguments_delta(&mut self, name: Option<&str>, tool_index: u32) -> bool {
+        let now = std::time::Instant::now();
+        let retry_cleared = self.retry_activity.take().is_some();
+        let expired = self.has_stale_tool_call_write();
+        if self.writing_tool_names.len() < MAX_WRITING_TOOL_NAMES
+            || self.writing_tool_names.contains_key(&tool_index)
+        {
+            let entry = self.writing_tool_names.entry(tool_index).or_insert(None);
+            if let Some(name) = name {
+                *entry = Some(name.to_string());
+            }
+        }
+        let observed_before = self
+            .writing_tool_names
+            .keys()
+            .filter(|&&i| i < tool_index)
+            .count() as u32;
+        let ordinal = std::num::NonZeroU32::new(observed_before.saturating_add(1))
+            .unwrap_or(std::num::NonZeroU32::MIN);
+        let next = WritingToolCall {
+            tool_name: self.writing_tool_names.get(&tool_index).cloned().flatten(),
+            ordinal,
+        };
+        let changed =
+            expired || self.writing_tool_call.as_ref().map(|(writing, _)| writing) != Some(&next);
+        self.writing_tool_call = Some((next, now));
+        retry_cleared || changed
+    }
+    /// The in-flight write while its deltas are fresh; a stream silent past
+    /// [`WRITING_DELTA_STALE_AFTER`] is treated as no longer writing.
+    fn fresh_writing_tool_call(&self) -> Option<&WritingToolCall> {
+        self.writing_tool_call
+            .as_ref()
+            .filter(|(_, at)| at.elapsed() < WRITING_DELTA_STALE_AFTER)
+            .map(|(writing, _)| writing)
+    }
+    /// A write whose delta stream went silent past the cutoff — positive
+    /// evidence of a dead stream (canonical output would have cleared it).
+    pub(crate) fn has_stale_tool_call_write(&self) -> bool {
+        self.writing_tool_call
+            .as_ref()
+            .is_some_and(|(_, at)| at.elapsed() >= WRITING_DELTA_STALE_AFTER)
+    }
+    /// Backdate the write's delta stamp (staleness tests).
+    #[cfg(test)]
+    pub(crate) fn backdate_last_tool_call_delta(&mut self, age: std::time::Duration) {
+        if let Some((_, at)) = &mut self.writing_tool_call {
+            *at = std::time::Instant::now() - age;
+        }
     }
     /// Take pending ACP commands, if any. Returns `None` if no update arrived
     /// since the last drain.
@@ -798,6 +926,12 @@ impl AcpUpdateTracker {
                 | acp::SessionUpdate::ToolCall(_)
                 | acp::SessionUpdate::ToolCallUpdate(_)
         );
+        // Canonical output ends the argument-streaming phase. `ToolCallUpdate`
+        // is the exception: it also fires while arguments are still streaming.
+        if is_agent_output && !matches!(&update, acp::SessionUpdate::ToolCallUpdate(_)) {
+            self.writing_tool_call = None;
+            self.writing_tool_names.clear();
+        }
         let changed = match update {
             acp::SessionUpdate::AgentMessageChunk(chunk) => {
                 self.blocking_waits.clear();
@@ -856,6 +990,8 @@ impl AcpUpdateTracker {
         self.last_stream_start_ms = None;
         self.compaction_activity = None;
         self.retry_activity = None;
+        self.writing_tool_call = None;
+        self.writing_tool_names.clear();
         self.suppressed_tools.clear();
         self.blocking_waits.clear();
         self.orphan_updates.clear();
@@ -4610,6 +4746,175 @@ mod tests {
     fn activity_none_by_default() {
         let tracker = AcpUpdateTracker::new();
         assert_eq!(tracker.activity(), None);
+    }
+    #[test]
+    fn activity_writing_tool_call_from_argument_deltas() {
+        let mut tracker = AcpUpdateTracker::new();
+        assert!(tracker.note_tool_call_arguments_delta(None, 0));
+        let Some(TurnActivity::WritingToolCall(writing)) = tracker.activity() else {
+            panic!("expected WritingToolCall activity");
+        };
+        assert_eq!(writing.label(), "Preparing tool call…");
+        assert!(tracker.note_tool_call_arguments_delta(Some("write"), 0));
+        let Some(TurnActivity::WritingToolCall(writing)) = tracker.activity() else {
+            panic!("expected WritingToolCall activity");
+        };
+        assert_eq!(writing.label(), "Writing file…");
+        assert!(!tracker.note_tool_call_arguments_delta(None, 0));
+        assert!(!tracker.note_tool_call_arguments_delta(Some("write"), 0));
+    }
+    /// First-party tools with long argument streams read as friendly phrases
+    /// (wire spellings pinned per toolset); tiny-payload read-style tools keep
+    /// the raw-name fallback.
+    #[test]
+    fn activity_writing_tool_call_labels_first_party_writing_tools() {
+        for (name, expected) in [
+            ("write", "Writing file…"),
+            ("search_replace", "Writing edit…"),
+            ("edit", "Writing edit…"),
+            ("hashline_edit", "Writing edit…"),
+            ("apply_patch", "Writing edit…"),
+            ("run_terminal_command", "Writing command…"),
+            ("run_terminal_cmd", "Writing command…"),
+            ("bash", "Writing command…"),
+            ("todo_write", "Updating todo list…"),
+            ("todowrite", "Updating todo list…"),
+            ("workflow", "Writing workflow…"),
+            ("ask_user_question", "Preparing question…"),
+            ("read_file", "Preparing read_file…"),
+        ] {
+            let mut tracker = AcpUpdateTracker::new();
+            tracker.note_tool_call_arguments_delta(Some(name), 0);
+            let Some(TurnActivity::WritingToolCall(writing)) = tracker.activity() else {
+                panic!("expected WritingToolCall activity for {name:?}");
+            };
+            assert_eq!(writing.label(), expected, "label for {name:?}");
+        }
+        let mut tracker = AcpUpdateTracker::new();
+        tracker.note_tool_call_arguments_delta(Some("search_replace"), 0);
+        tracker.note_tool_call_arguments_delta(Some("search_replace"), 1);
+        let Some(TurnActivity::WritingToolCall(writing)) = tracker.activity() else {
+            panic!("expected WritingToolCall activity");
+        };
+        assert_eq!(writing.label(), "Writing edit (2)…");
+    }
+    /// Every taxonomy-mapped spelling must have copy here: a spelling whose kind
+    /// misses the copy match would silently keep the raw-name fallback
+    /// (`Preparing <wire name>…`).
+    #[test]
+    fn activity_writing_tool_call_copy_covers_taxonomy_map() {
+        for (name, _) in nofy_tools::tool_taxonomy::WRITING_TOOL_WIRE_NAMES {
+            let mut tracker = AcpUpdateTracker::new();
+            tracker.note_tool_call_arguments_delta(Some(name), 0);
+            let Some(TurnActivity::WritingToolCall(writing)) = tracker.activity() else {
+                panic!("expected WritingToolCall activity for {name:?}");
+            };
+            assert_ne!(
+                writing.label(),
+                format!("Preparing {name}…"),
+                "taxonomy spelling {name:?} fell back to the raw-name copy"
+            );
+        }
+    }
+    #[test]
+    fn activity_writing_tool_call_task_and_mcp_dispatch_labels() {
+        let mut tracker = AcpUpdateTracker::new();
+        tracker.note_tool_call_arguments_delta(Some("spawn_subagent"), 0);
+        let Some(TurnActivity::WritingToolCall(writing)) = tracker.activity() else {
+            panic!("expected WritingToolCall activity");
+        };
+        assert_eq!(writing.label(), "Writing subagent prompt…");
+        let mut tracker = AcpUpdateTracker::new();
+        tracker.note_tool_call_arguments_delta(Some("use_tool"), 0);
+        let Some(TurnActivity::WritingToolCall(writing)) = tracker.activity() else {
+            panic!("expected WritingToolCall activity");
+        };
+        assert_eq!(writing.label(), "Preparing MCP tool…");
+        let mut tracker = AcpUpdateTracker::new();
+        tracker.note_tool_call_arguments_delta(Some("search_tool"), 0);
+        let Some(TurnActivity::WritingToolCall(writing)) = tracker.activity() else {
+            panic!("expected WritingToolCall activity");
+        };
+        assert_eq!(writing.label(), "Searching MCP tools…");
+    }
+    /// Interleaved parallel calls: ordinals follow observation order, names
+    /// restore on switch-back, and the canonical `ToolCall` clears the phase.
+    #[test]
+    fn activity_writing_tool_call_interleaved_ordinals_and_clear() {
+        let mut sb = ScrollbackState::new();
+        let label = |tracker: &AcpUpdateTracker| {
+            let Some(TurnActivity::WritingToolCall(writing)) = tracker.activity() else {
+                panic!("expected WritingToolCall activity");
+            };
+            writing.label()
+        };
+        let mut tracker = AcpUpdateTracker::new();
+        assert!(tracker.note_tool_call_arguments_delta(Some("spawn_subagent"), 0));
+        assert_eq!(label(&tracker), "Writing subagent prompt…");
+        assert!(tracker.note_tool_call_arguments_delta(Some("spawn_subagent"), 1));
+        assert_eq!(label(&tracker), "Writing subagent prompt (2)…");
+        assert!(!tracker.note_tool_call_arguments_delta(None, 1));
+        assert!(tracker.note_tool_call_arguments_delta(Some("read_file"), 2));
+        assert_eq!(label(&tracker), "Preparing read_file (3)…");
+        assert!(tracker.note_tool_call_arguments_delta(None, 3));
+        assert_eq!(label(&tracker), "Preparing tool call (4)…");
+        tracker.handle_update(
+            tool_call("t1", acp::ToolKind::Read, "read_file"),
+            &meta(),
+            &mut sb,
+        );
+        assert!(tracker.note_tool_call_arguments_delta(Some("write"), 0));
+        assert_eq!(label(&tracker), "Writing file…");
+    }
+    /// A delta stream silent past the staleness cutoff stops counting as
+    /// activity; the next delta reports a change (the label re-appears).
+    #[test]
+    fn activity_writing_tool_call_stale_stream_expires() {
+        let mut tracker = AcpUpdateTracker::new();
+        assert!(tracker.note_tool_call_arguments_delta(Some("write"), 0));
+        assert_eq!(
+            tracker.activity(),
+            Some(TurnActivity::WritingToolCall(WritingToolCall {
+                tool_name: Some("write".into()),
+                ordinal: std::num::NonZeroU32::MIN,
+            }))
+        );
+        tracker.backdate_last_tool_call_delta(WRITING_DELTA_STALE_AFTER + std::time::Duration::from_secs(1));
+        assert_eq!(tracker.activity(), None, "a silent stream is no longer writing");
+        assert!(tracker.has_stale_tool_call_write());
+        assert!(
+            tracker.note_tool_call_arguments_delta(Some("write"), 0),
+            "the first delta after expiry must report a change"
+        );
+        assert!(tracker.activity().is_some());
+    }
+    /// finish_turn clears the writing phase.
+    #[test]
+    fn activity_writing_tool_call_cleared_by_finish_turn() {
+        let mut sb = ScrollbackState::new();
+        let mut tracker = AcpUpdateTracker::new();
+        tracker.note_tool_call_arguments_delta(Some("write"), 0);
+        assert!(matches!(
+            tracker.activity(),
+            Some(TurnActivity::WritingToolCall(_))
+        ));
+        tracker.finish_turn(&mut sb);
+        assert_eq!(tracker.activity(), None);
+    }
+    /// Argument streaming outranks Thinking: the first delta means reasoning
+    /// ended, even though the thinking block stays open until the `ToolCall`.
+    #[test]
+    fn activity_writing_tool_call_outranks_thinking() {
+        crate::appearance::cache::set_show_thinking_blocks(true);
+        let mut sb = ScrollbackState::new();
+        let mut tracker = AcpUpdateTracker::new();
+        tracker.handle_update(thought_chunk("hmm..."), &meta(), &mut sb);
+        assert_eq!(tracker.activity(), Some(TurnActivity::Thinking));
+        tracker.note_tool_call_arguments_delta(Some("write"), 0);
+        assert!(matches!(
+            tracker.activity(),
+            Some(TurnActivity::WritingToolCall(_))
+        ));
     }
     #[test]
     fn activity_thinking_when_thought_chunks_arrive() {

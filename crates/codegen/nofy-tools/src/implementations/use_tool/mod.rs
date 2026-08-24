@@ -7,6 +7,9 @@ use crate::types::output::{MCPOutput, ToolOutput};
 use crate::types::tool::{ToolKind, ToolNamespace};
 use crate::util::mcp_truncate::{McpTruncateContext, truncate_tool_output};
 
+/// Wire name of the MCP meta-dispatch tool.
+pub const USE_TOOL_NAME: &str = "use_tool";
+
 /// Input for the `use_tool` meta-dispatch tool.
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct UseToolInput {

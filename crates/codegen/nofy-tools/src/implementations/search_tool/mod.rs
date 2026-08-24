@@ -8,6 +8,9 @@ use crate::types::output::{SearchToolOutput, ToolOutput};
 use crate::types::tool::{ToolKind, ToolNamespace};
 use crate::types::tool_index::ToolIndex;
 
+/// Wire name of the MCP tool-discovery tool.
+pub const SEARCH_TOOL_NAME: &str = "search_tool";
+
 /// Maximum length for MCP tool/server descriptions. Matches the common
 /// `MAX_MCP_DESCRIPTION_LENGTH` constant. Descriptions exceeding this are truncated.
 pub const MAX_MCP_DESCRIPTION_LENGTH: usize = 2048;

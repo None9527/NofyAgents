@@ -28,6 +28,42 @@ pub const TOOL_META_KEY: &str = "nofy/tool";
 /// Version of the canonical tool `_meta` contract. Bump on any breaking change
 /// to keys or value shapes so consumers can adapt.
 pub const TOOL_META_VERSION: u32 = 1;
+/// First-party tool wire names whose argument streams are long enough for a
+/// writing-phase spinner label to be visible (file bodies, edit strings,
+/// shell scripts, prompts), paired with their [`ToolKind`].
+///
+/// Public so clients can pin that every entry gets non-fallback display copy
+/// — a spelling added here without client copy would otherwise silently keep
+/// the raw-name fallback.
+pub const WRITING_TOOL_WIRE_NAMES: &[(&str, ToolKind)] = &[
+    ("write", ToolKind::Write),
+    ("search_replace", ToolKind::Edit),
+    ("edit", ToolKind::Edit),
+    ("hashline_edit", ToolKind::Edit),
+    ("apply_patch", ToolKind::Edit),
+    ("run_terminal_command", ToolKind::Execute),
+    ("run_terminal_cmd", ToolKind::Execute),
+    ("bash", ToolKind::Execute),
+    ("todo_write", ToolKind::Plan),
+    ("todowrite", ToolKind::Plan),
+    ("workflow", ToolKind::Workflow),
+    ("ask_user_question", ToolKind::AskUser),
+];
+/// [`ToolKind`] of a wire name in [`WRITING_TOOL_WIRE_NAMES`].
+///
+/// Keyed by wire name because that is all a client has while
+/// `tool_call_delta_chunk`s stream. Best-effort by design: wire names are
+/// client-renameable, so unknown names return `None` and callers fall back
+/// to showing the raw name. Not a general name→kind resolver — read-style tools
+/// with tiny argument payloads are deliberately absent, as are the MCP
+/// dispatch tools (`use_tool`/`search_tool`), which clients special-case by
+/// name constant.
+pub fn writing_tool_kind(wire_name: &str) -> Option<ToolKind> {
+    WRITING_TOOL_WIRE_NAMES
+        .iter()
+        .find(|(name, _)| *name == wire_name)
+        .map(|&(_, kind)| kind)
+}
 impl ToolKind {
     /// Unified, harness-independent display label for this semantic kind. A pure
     /// function of the kind, so equivalent tools across toolsets share it
@@ -251,6 +287,29 @@ mod tests {
         assert!(!ToolKind::Edit.is_read_only());
         assert!(!ToolKind::Execute.is_read_only());
         assert!(!ToolKind::Delete.is_read_only());
+    }
+    /// Pins the writing-phase wire-name → kind map: pager spinner copy is
+    /// keyed off these, so a rename here is a display break the compiler
+    /// can't see. Read-style tools must stay absent (tiny argument payloads).
+    #[test]
+    fn writing_tool_kind_pins_the_wire_map() {
+        assert_eq!(writing_tool_kind("write"), Some(ToolKind::Write));
+        assert_eq!(writing_tool_kind("search_replace"), Some(ToolKind::Edit));
+        assert_eq!(writing_tool_kind("edit"), Some(ToolKind::Edit));
+        assert_eq!(writing_tool_kind("hashline_edit"), Some(ToolKind::Edit));
+        assert_eq!(writing_tool_kind("apply_patch"), Some(ToolKind::Edit));
+        assert_eq!(writing_tool_kind("run_terminal_command"), Some(ToolKind::Execute));
+        assert_eq!(writing_tool_kind("run_terminal_cmd"), Some(ToolKind::Execute));
+        assert_eq!(writing_tool_kind("bash"), Some(ToolKind::Execute));
+        assert_eq!(writing_tool_kind("todo_write"), Some(ToolKind::Plan));
+        assert_eq!(writing_tool_kind("todowrite"), Some(ToolKind::Plan));
+        assert_eq!(writing_tool_kind("workflow"), Some(ToolKind::Workflow));
+        assert_eq!(writing_tool_kind("ask_user_question"), Some(ToolKind::AskUser));
+        // Read-style and unknown names fall back to None.
+        assert_eq!(writing_tool_kind("read_file"), None);
+        assert_eq!(writing_tool_kind("grep"), None);
+        assert_eq!(writing_tool_kind("use_tool"), None);
+        assert_eq!(writing_tool_kind("some_mcp_tool"), None);
     }
     #[test]
     fn namespace_round_trips_snake_case_with_pascal_aliases() {
