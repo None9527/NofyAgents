@@ -1398,6 +1398,7 @@ pub(crate) async fn spawn_session_actor(
                     objective,
                     args,
                     agent_budget: input.agent_budget,
+                    effort: None,
                     resume_run_id: input.resume_from_run_id.clone(),
                 };
                 let launch_outcome = {

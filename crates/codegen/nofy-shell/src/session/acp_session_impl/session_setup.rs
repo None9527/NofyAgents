@@ -85,11 +85,27 @@ impl SessionActor {
                         == Some(nofy_sampling_types::SyntheticReason::SystemReminder)
             )
         });
-        let effects = bridge.apply_pending_skill_update().await?;
-        if let Some(item) = self.wrap_skill_reminder(&effects) {
-            conversation.push(item);
+        let effects = bridge.apply_pending_skill_update().await;
+        let skill_text = effects.as_ref().and_then(|update| {
+            if is_cursor
+                && update.kind
+                    == nofy_tools::types::skill_discovery_tracker::SkillUpdateKind::BaselineChange
+            {
+                None
+            } else {
+                update.system_reminder.as_deref()
+            }
+        });
+        if let Some(body) = crate::session::workflow::listing::merge_listing_sections(
+            skill_text,
+            self.workflow_listing_for_prompt().as_deref(),
+        ) {
+            let tag = self.reminder_wrapper_tag();
+            conversation.push(ConversationItem::system_reminder(format!(
+                "<{tag}>\n{body}\n</{tag}>"
+            )));
         }
-        Some(effects)
+        effects
     }
     pub(super) async fn build_prefix_background(&self) -> String {
         let start = std::time::Instant::now();
@@ -654,6 +670,9 @@ impl SessionActor {
                 &listing.text,
                 listing.skill_count,
             ));
+        }
+        if let Some((listing, count)) = self.workflow_listing_snapshot() {
+            rows.push(TokenUsageCategory::workflows_listing(&listing, count));
         }
         if let Some(announcement) = self.mcp_announcement_snapshot().await {
             rows.push(TokenUsageCategory::mcp_servers(

@@ -190,6 +190,16 @@ impl TokenUsageCategory {
         }
     }
 
+    /// Row for the workflows listing. `text` is the canonical render from
+    /// `workflow::listing::format_workflow_listing`.
+    pub fn workflows_listing(text: &str, workflow_count: usize) -> Self {
+        Self {
+            label: "Workflows".to_string(),
+            tokens: nofy_token_estimation::estimate_tokens(text),
+            detail: Some(count_detail(workflow_count as u64, "workflow")),
+        }
+    }
+
     /// Row for the MCP server announcement. `text` is the full reminder
     /// body for the current server set.
     pub fn mcp_servers(text: &str, server_count: usize) -> Self {

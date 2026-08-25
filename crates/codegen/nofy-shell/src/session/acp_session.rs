@@ -98,6 +98,8 @@ mod tool_layer_images;
 mod turn;
 #[path = "acp_session_impl/workflow.rs"]
 mod workflow_run;
+#[path = "acp_session_impl/named_workflow_args.rs"]
+mod named_workflow_args;
 use tool_layer_images::*;
 #[path = "acp_session_impl/auth_retry.rs"]
 mod auth_retry;
