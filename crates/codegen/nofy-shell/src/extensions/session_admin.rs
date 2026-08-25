@@ -141,9 +141,19 @@ async fn handle_session_rename(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtR
         title: String,
         #[serde(default)]
         cwd: Option<String>,
+        /// `/rename --auto`: clear the manual pin instead of setting a title.
+        #[serde(default)]
+        reset_to_auto: bool,
     }
 
     let mut req: RenameRequest = parse_params(args)?;
+    if req.reset_to_auto {
+        if !req.title.trim().is_empty() {
+            return Err(acp::Error::invalid_request()
+                .data("title must be empty when resetToAuto is set"));
+        }
+        return reset_session_title_to_auto(agent, &req.session_id, req.cwd.as_deref()).await;
+    }
     // Manual titles must be non-blank: `Summary.title_is_manual` binds to a
     // real `generated_title`, so reject whitespace-only input at the boundary.
     req.title = req.title.trim().to_string();
@@ -176,6 +186,22 @@ async fn handle_session_rename(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtR
             acp::Error::internal_error().data(format!("failed to update session title: {e}"))
         })?;
 
+    // Freeze the auto title refresh so an in-flight one can't flip the
+    // user's title and no later refresh fights it (the actor persists the
+    // frozen watermark).
+    if let Some(handle) = agent.resident_handle(&session_id) {
+        let _ = handle
+            .cmd_tx
+            .send(crate::session::commands::SessionCommand::TitleRenamed { manual: true });
+    } else {
+        // Dormant session: no actor to freeze it, so persist the frozen
+        // watermark directly for the next resume.
+        crate::session::helpers::session_summary::save_title_refresh_watermark(
+            &crate::session::persistence::session_dir(&info),
+            crate::session::helpers::session_summary::TITLE_REFRESH_TURNS.len(),
+        );
+    }
+
     // Update session search index with new title
     crate::session::storage::search::notify_session_updated(&info.id.to_string(), &info.cwd);
 
@@ -185,6 +211,62 @@ async fn handle_session_rename(agent: &MvpAgent, args: &acp::ExtRequest) -> ExtR
     tracing::info!(session_id = %req.session_id, title = %req.title, "Session renamed");
 
     to_raw_response(&serde_json::json!({ "success": true }))
+}
+
+/// `/rename --auto`: clear the manual pin under the summary lock and reopen
+/// auto titling (first-prompt generation plus the whole-conversation
+/// refresh).
+async fn reset_session_title_to_auto(
+    agent: &MvpAgent,
+    session_id: &str,
+    cwd: Option<&str>,
+) -> ExtResult {
+    let session_id_acp = acp::SessionId::new(Arc::from(session_id));
+
+    let summaries = list_summaries(cwd)
+        .await
+        .map_err(|e| acp::Error::internal_error().data(format!("failed to list sessions: {e}")))?;
+
+    let summary = summaries
+        .iter()
+        .find(|s| s.info.id == session_id_acp)
+        .ok_or_else(|| {
+            acp::Error::invalid_request().data(format!("session not found: {session_id}"))
+        })?;
+
+    let info = summary.info.clone();
+
+    let storage = JsonlStorageAdapter::default();
+    let cleared = storage.reset_title_to_auto(&info).await.map_err(|e| {
+        acp::Error::internal_error().data(format!("failed to reset session title: {e}"))
+    })?;
+
+    if cleared {
+        if let Some(handle) = agent.resident_handle(&session_id_acp) {
+            let _ = handle
+                .persistence_tx
+                .send(crate::session::persistence::PersistenceMsg::ResetTitleToAuto);
+            // Reopen the auto title refresh so it can re-title from the whole
+            // conversation now that the manual pin is gone (the actor persists
+            // the reopened watermark).
+            let _ = handle
+                .cmd_tx
+                .send(crate::session::commands::SessionCommand::TitleRenamed { manual: false });
+        } else {
+            // Dormant session: persist the reopened watermark directly so the
+            // whole-conversation retitle can run on the next resume.
+            crate::session::helpers::session_summary::save_title_refresh_watermark(
+                &crate::session::persistence::session_dir(&info),
+                0,
+            );
+        }
+    }
+
+    crate::session::storage::search::notify_session_updated(&info.id.to_string(), &info.cwd);
+
+    tracing::info!(session_id = %session_id, cleared, "session title reset to auto");
+
+    to_raw_response(&serde_json::json!({ "success": true, "cleared": cleared }))
 }
 
 /// Notify connected clients of a session's new title via

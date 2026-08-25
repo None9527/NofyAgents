@@ -440,6 +440,11 @@ pub(crate) async fn spawn_session_actor(
     let initial_last_recap_main_turn = crate::session::helpers::session_recap::load_recap_watermark(
         &crate::session::persistence::session_dir(&session_info),
     );
+    let title_session_dir = crate::session::persistence::session_dir(&session_info);
+    let title_refresh_watermark =
+        crate::session::helpers::session_summary::load_title_refresh_watermark(&title_session_dir);
+    let title_refresh_turns_at_spawn =
+        crate::session::helpers::session_recap::main_turn_count(&conversation);
     let initial_user_count = initial_prompt_index.saturating_sub(1) as u32;
     let initial_assistant_count = conversation
         .iter()
@@ -1476,6 +1481,19 @@ pub(crate) async fn spawn_session_actor(
         }
     };
     let doom_loop_recovery = effective_config.resolve_doom_loop_recovery();
+    let title_refresh_enabled = effective_config.is_title_refresh_enabled();
+    let initial_title_refresh_idx =
+        crate::session::helpers::session_summary::initial_title_refresh_idx(
+            title_refresh_watermark,
+            title_refresh_enabled,
+            title_refresh_turns_at_spawn,
+        );
+    if title_refresh_watermark.is_none() && initial_title_refresh_idx == 0 {
+        crate::session::helpers::session_summary::save_title_refresh_watermark(
+            &title_session_dir,
+            0,
+        );
+    }
     let session = Arc::new_cyclic(|weak: &std::sync::Weak<SessionActor>| SessionActor {
         session_info: session_info.clone(),
         auth_method_id,
@@ -1683,6 +1701,10 @@ pub(crate) async fn spawn_session_actor(
         turn_summary_task: std::cell::RefCell::new(None),
         turn_summary_generation: std::cell::Cell::new(0),
         turn_summary_enabled: effective_config.is_turn_summary_enabled(),
+        title_refresh_enabled,
+        title_refresh_task: std::cell::RefCell::new(None),
+        title_refresh_generation: std::cell::Cell::new(0),
+        next_title_refresh_idx: std::cell::Cell::new(initial_title_refresh_idx),
         session_turn_active: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         streaming_turn_capture: parking_lot::Mutex::new(StreamingTurnCapture::default()),
         turn_stream_drained: parking_lot::Mutex::new(None),

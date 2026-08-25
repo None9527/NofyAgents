@@ -2481,7 +2481,11 @@ mod inline_auto_compact_flow_tests {
             recap_epoch: std::cell::Cell::new(0),
             turn_summary_task: std::cell::RefCell::new(None),
             turn_summary_generation: std::cell::Cell::new(0),
-            turn_summary_enabled: false,
+            turn_summary_enabled: false,            title_refresh_enabled: false,
+            title_refresh_task: std::cell::RefCell::new(None),
+            title_refresh_generation: std::cell::Cell::new(0),
+            next_title_refresh_idx: std::cell::Cell::new(0),
+
             session_turn_active: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             streaming_turn_capture: parking_lot::Mutex::new(
                 crate::session::acp_session::StreamingTurnCapture::default(),

@@ -75,6 +75,7 @@ pub(in crate::app::dispatch) fn dispatch_sessions_confirm_close(
 pub(in crate::app::dispatch) fn dispatch_rename_session(
     app: &mut AppView,
     title: String,
+    reset_to_auto: bool,
 ) -> Vec<Effect> {
     let ActiveView::Agent(id) = app.active_view else {
         return vec![];
@@ -85,11 +86,18 @@ pub(in crate::app::dispatch) fn dispatch_rename_session(
     let Some(session_id) = agent.session.session_id.clone() else {
         return vec![];
     };
-    agent.display_name = Some(title.clone());
+    if !reset_to_auto {
+        agent.display_name = Some(title.clone());
+    } else {
+        // The manual pin is gone; fall back to the generated title until a
+        // refresh re-titles the session.
+        agent.display_name = None;
+    }
     vec![Effect::RenameSession {
         agent_id: id,
         session_id,
         title,
         cwd: agent.session.cwd.clone(),
+        reset_to_auto,
     }]
 }

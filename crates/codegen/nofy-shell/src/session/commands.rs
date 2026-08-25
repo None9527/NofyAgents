@@ -244,6 +244,13 @@ pub enum SessionCommand {
     /// reverse-request so the client re-shows approval chrome over a real live
     /// waiter. Fire-and-forget; the actor spawns the round-trip + decision.
     RestorePlanApproval,
+    /// A `/rename` landed. `manual: true` (a user-set title) freezes the auto
+    /// title refresh and aborts any in-flight one; `manual: false`
+    /// (`/rename --auto`) reopens it so the whole-conversation refresh can
+    /// re-title.
+    TitleRenamed {
+        manual: bool,
+    },
     Prompt {
         prompt_id: String,
         prompt_blocks: Vec<acp::ContentBlock>,

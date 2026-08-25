@@ -106,6 +106,12 @@ impl SummaryGenerator {
     pub(crate) fn mark_done(&mut self) {
         self.state = State::Done;
     }
+
+    /// Inverse of [`mark_done`]: `/rename --auto` so the next content chunk
+    /// regenerates a title through the normal if-absent path.
+    pub(crate) fn reset(&mut self) {
+        self.state = State::Idle;
+    }
 }
 
 /// Notify the client that a session summary is available.

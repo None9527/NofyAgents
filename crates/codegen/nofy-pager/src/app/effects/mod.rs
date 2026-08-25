@@ -2785,7 +2785,13 @@ pub(crate) fn execute(
                     }
                 });
         }
-        Effect::RenameSession { agent_id, session_id, title, cwd } => {
+        Effect::RenameSession {
+            agent_id,
+            session_id,
+            title,
+            cwd,
+            reset_to_auto,
+        } => {
             let tx = acp_tx.clone();
             tasks
                 .spawn(async move {
@@ -2795,6 +2801,7 @@ pub(crate) fn execute(
                         session_id: String,
                         title: String,
                         cwd: String,
+                        reset_to_auto: bool,
                     }
                     let request = acp::ExtRequest::new(
                         "nofy/session/rename",
@@ -2803,6 +2810,7 @@ pub(crate) fn execute(
                                     session_id: session_id.0.to_string(),
                                     title: title.clone(),
                                     cwd: cwd.to_string_lossy().to_string(),
+                                    reset_to_auto,
                                 },
                             )
                             .expect("serialize rename params")

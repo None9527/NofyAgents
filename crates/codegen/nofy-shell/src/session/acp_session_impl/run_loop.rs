@@ -528,6 +528,9 @@ pub(super) async fn run_session(
                     // work the user aborted.
                     if turn_ran && turn_succeeded && owned_completion {
                         session.restart_turn_summary(completed_prompt_id);
+                        // Early-session auto-title refresh (turns 3 and 6),
+                        // then frozen. Same success gating as the turn summary.
+                        session.maybe_refresh_title();
                     }
                 }
                 maybe_cmd = cmd_rx.recv() => {
@@ -594,6 +597,9 @@ pub(super) async fn run_session(
                             tokio::task::spawn_local(async move {
                                 s.resume_plan_approval(completion_tx).await;
                             });
+                        }
+                        SessionCommand::TitleRenamed { manual } => {
+                            session.on_title_renamed(manual);
                         }
                         SessionCommand::Prompt { prompt_id, prompt_blocks, prompt_mode, client_identifier, screen_mode, verbatim, traceparent, json_schema, send_now, admission, respond_to, persist_ack, parsed_prompt_tx } => {
                             let origin = super::PromptOrigin::from_prompt_id(&prompt_id);
@@ -2043,6 +2049,7 @@ pub(super) async fn run_session(
                             // Session is ending: do not leave a side-call
                             // holding an Arc into this actor.
                             session.abort_turn_summary();
+                            session.abort_title_refresh();
                             // This arm returns; an unanswered turn would race
                             // teardown and report `EndTurn` for unfinished work.
                             if kind == crate::session::ShutdownKind::CancelRunningTurn {

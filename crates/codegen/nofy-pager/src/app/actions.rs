@@ -618,6 +618,8 @@ pub enum Action {
     /// Rename the current session's title/summary.
     RenameSession {
         title: String,
+        /// `/rename --auto`: clear the manual pin and reopen auto titling.
+        reset_to_auto: bool,
     },
     /// Show detailed context usage (progress bar, token breakdown, stats).
     ShowContextInfo,
@@ -1876,6 +1878,7 @@ pub enum Effect {
         session_id: acp::SessionId,
         title: String,
         cwd: std::path::PathBuf,
+        reset_to_auto: bool,
     },
     /// Delete a session's stored data (local + remote) via
     /// `nofy/session/delete`.

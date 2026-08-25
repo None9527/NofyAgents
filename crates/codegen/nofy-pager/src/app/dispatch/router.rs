@@ -943,7 +943,9 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
             dispatch_show_release_notes(app, title, content)
         }
         Action::OpenTutorial => dispatch_open_tutorial(app),
-        Action::RenameSession { title } => dispatch_rename_session(app, title),
+        Action::RenameSession { title, reset_to_auto } => {
+            dispatch_rename_session(app, title, reset_to_auto)
+        }
         Action::ShowContextInfo => dispatch_show_context_info(app),
         Action::ShowUsage => dispatch_show_usage(app),
         Action::ShowQueue => dispatch_show_queue(app),

@@ -117,7 +117,7 @@ fn scrub_error_for_toast_unit() {
 #[test]
 fn dispatch_rename_session_updates_display_name_locally() {
     let mut app = test_app_with_agent();
-    let effects = dispatch_rename_session(&mut app, "renamed via slash".into());
+    let effects = dispatch_rename_session(&mut app, "renamed via slash".into(), false);
     assert_eq!(effects.len(), 1);
     assert_eq!(
         app.agents[&AgentId(0)].display_name.as_deref(),

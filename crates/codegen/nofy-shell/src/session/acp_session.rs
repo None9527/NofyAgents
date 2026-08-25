@@ -100,6 +100,8 @@ mod turn;
 mod workflow_run;
 #[path = "acp_session_impl/named_workflow_args.rs"]
 mod named_workflow_args;
+#[path = "acp_session_impl/title_refresh.rs"]
+mod title_refresh;
 use tool_layer_images::*;
 #[path = "acp_session_impl/auth_retry.rs"]
 mod auth_retry;
@@ -994,6 +996,21 @@ pub(crate) struct SessionActor {
     /// Turn-summary gate, resolved once at spawn (env / config / remote
     /// settings — see `Config::resolve_turn_summary`).
     pub(crate) turn_summary_enabled: bool,
+    /// Early-session title-refresh gate, resolved once at spawn (defaults to
+    /// `turn_summary_enabled`; see `Config::resolve_title_refresh`).
+    pub(crate) title_refresh_enabled: bool,
+    /// The in-flight title-refresh side-call, if any. Only one runs at a time
+    /// (a newer completion skips rather than aborts); aborted on rename,
+    /// rewind, and shutdown. See `maybe_refresh_title`.
+    pub(crate) title_refresh_task: std::cell::RefCell<Option<tokio::task::JoinHandle<()>>>,
+    /// Generation of the currently registered title-refresh task. A finishing
+    /// task whose generation no longer matches must not persist its result.
+    pub(crate) title_refresh_generation: std::cell::Cell<u64>,
+    /// Index into `TITLE_REFRESH_TURNS` of the next checkpoint to apply.
+    /// Advanced when an attempt completes — success *or* failure — (with
+    /// catch-up past skipped checkpoints), and persisted to the watermark;
+    /// once it reaches the end the title is frozen.
+    pub(crate) next_title_refresh_idx: std::cell::Cell<usize>,
     /// True while THIS session has a prompt turn in flight (RAII-guarded in
     /// `handle_prompt`, like `tool_context.is_turn_active` — which is the
     /// agent-wide coordinator flag shared by all sessions and so unusable

@@ -2077,6 +2077,17 @@ impl Config {
             .default(true)
             .resolve()
     }
+    pub(crate) fn is_title_refresh_enabled(&self) -> bool {
+        self.resolve_title_refresh().value
+    }
+    /// Early-session title refresh gate. Unset it follows `turn_summary`;
+    /// `[features] title_refresh` or `NOFY_TITLE_REFRESH` decouples them.
+    pub(crate) fn resolve_title_refresh(&self) -> Resolved<bool> {
+        BoolFlag::env("NOFY_TITLE_REFRESH")
+            .config(self.features.title_refresh)
+            .default(self.is_turn_summary_enabled())
+            .resolve()
+    }
     /// Goal mode (`/goal`) master switch. Default ON.
     pub(crate) fn resolve_goal(&self) -> Resolved<bool> {
         BoolFlag::env("NOFY_GOAL")
@@ -3766,6 +3777,10 @@ pub struct Features {
     /// `None` = defer to env / default (`true`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub turn_summary: Option<bool>,
+    /// Early-session auto-title refresh (turns 3 and 6, then frozen).
+    /// `None` = follow `turn_summary`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_refresh: Option<bool>,
     /// Two-pass (prefire) compaction: speculatively summarize the history
     /// prefix in the background, then summarize NOTE₁ + recent tail at
     /// compaction. `None` = defer to env / default (`false`).

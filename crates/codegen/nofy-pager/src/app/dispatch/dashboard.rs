@@ -1820,6 +1820,7 @@ pub(super) fn dispatch_dashboard_commit_rename(app: &mut AppView) -> Vec<Effect>
                 session_id,
                 title,
                 cwd,
+                reset_to_auto: false,
             });
         } else {
             agent.display_name = Some(title);

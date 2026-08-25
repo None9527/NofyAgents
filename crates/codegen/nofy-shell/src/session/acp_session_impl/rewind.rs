@@ -468,6 +468,7 @@ impl SessionActor {
             // The summary describes turns the rewind just removed; an
             // in-flight generation would re-persist one for them.
             self.abort_turn_summary();
+            self.abort_title_refresh();
             let _ = self
                 .notifications
                 .persistence_tx

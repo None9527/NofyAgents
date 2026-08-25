@@ -192,6 +192,11 @@ pub enum PersistenceMsg {
     /// Routed back through the persistence channel so the storage write
     /// stays sequential with other summary.json mutations.
     GeneratedTitle(String),
+    /// Early-session title refresh: overwrites an auto title but never a
+    /// manual `/rename` (enforced under the summary lock).
+    RegenerateTitle(String),
+    /// `/rename --auto`: clear the manual pin and reopen auto titling.
+    ResetTitleToAuto,
     /// Per-turn dashboard summary as `(text, prompt_id)`; replaces (`Some`)
     /// or clears (`None`, on conversation rewind) the previous one in
     /// `summary.json`.
@@ -1970,6 +1975,36 @@ impl SessionPersistence {
                             tracing::warn!(?e, "failed to persist generated session title");
                         }
                     }
+                }
+                PersistenceMsg::RegenerateTitle(title) => {
+                    // Overwrites an existing auto title but never a manual
+                    // `/rename` (enforced atomically under the summary lock);
+                    // `Ok(true)` means the refresh landed.
+                    match self
+                        .storage
+                        .regenerate_generated_title(&self.info, title.clone())
+                        .await
+                    {
+                        Ok(true) => {
+                            crate::session::summary::notify_client(
+                                &self.gateway,
+                                &self.info,
+                                &title,
+                            );
+                        }
+                        Ok(false) => {
+                            tracing::debug!("skipped title refresh; session has a manual title");
+                        }
+                        Err(e) => {
+                            tracing::warn!(?e, "failed to persist refreshed session title");
+                        }
+                    }
+                }
+                PersistenceMsg::ResetTitleToAuto => {
+                    if let Err(e) = self.storage.reset_title_to_auto(&self.info).await {
+                        tracing::warn!(?e, "failed to reset session title to auto");
+                    }
+                    self.summary.reset();
                 }
                 PersistenceMsg::LastTurnSummary(summary) => {
                     if let Err(e) = self
