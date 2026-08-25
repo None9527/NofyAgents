@@ -9,7 +9,7 @@
 | 项 | 值 |
 |---|---|
 | 我们的移植基线 | 上游 1.0.4 |
-| 已同步到 | 上游 1.0.8(2026-08-25,批1–批11) |
+| 已同步到 | 上游 1.0.8(2026-08-26,批1–批12) |
 | 上游克隆 | `/tmp/grok-upstream`(丢失时 `git clone https://github.com/xai-org/grok-build`) |
 | 对照工具 | `scripts/upstream_diff.sh`(命名归一后 diff;`--changed <tag>..` 列改动面) |
 
@@ -33,7 +33,7 @@
 | 计费/付费墙/账单 | 无 | 物理剔除 |
 | xAI 登录流 | 无,BYOK(DashScope 等 OpenAI 兼容端点) | 物理剔除 |
 | 媒体生成/网页搜索/语音工具 | 无 | 物理剔除 |
-| 状态栏(status line) | 无 | 批12 待移植;上游依赖它的代码(如事件循环刷新计时)移植时裁掉 |
+| 状态栏(status line) | 已移植 | 批12(aee2fe61,0.2.147) |
 | feedback_manager(退出反馈上传) | 无 | 依赖云上传;相关测试引用时裁掉 |
 | 遥测 activity gauges(SUBAGENTS_ACTIVE 等) | 无 | 仅遥测面,需要时整体移植 |
 | turn.rs round 式 goal 循环重构(GoalRoundDecision 外的上游回合结构) | 保留现有循环 | 上游 turn.rs 大重构的一部分;我们的循环语义等价,让位/续跑门控已按上游逻辑移植 |
@@ -57,6 +57,7 @@
 - 权限 Always/Never 移植(批9):上游 `xai_grok_paths`→`nofy_paths`、`xai_grok_agent`→`nofy_agent`(state.rs 仓库根作用域);本机 `~/.claude/settings.local.json` 有真实规则,.resolution_tests 里 15 个全局层测试要补 HOME 隔离守卫(上游 CI 干净不需要);`ToolInput::from(EditInput)` 我们映射到 `Dynamic`(上游映射 `SearchReplace`),types.rs 动态测试断言随之调整;`permission_prompt` 通知钩子:管理器接线(`wire_permission_prompt_notification`)与 tool_calls 内联分发二选一,两者都留会双发;钩子事件 wire 方法是 `nofy/hooks/event`(测试里别写 `x.ai/`);`remember_tool_approvals` 默认翻转为 ON(`DEFAULT_REMEMBER_TOOL_APPROVALS`),pager 默认值测试/开关方向全部随之翻转;上游 pre_tool_use `updatedInput` 钩子改写特性未移植,其测试不纳入
 - attempt_store 移植(批10):上游整包替换会把 waterfall/activity telemetry/backend-search/tool-overrides 等其他批次特性一起拖进来,必须外科手术——只移植台账基座(`attempt_store/` 15 文件,上游自身即 `#[allow(dead_code)]` 基座)+孤儿恢复加固(heal_lock 每会话串行、persist_running_meta_as_finish 先写盘再广播、orphan_reason 参数化、`reconcile_live_orphaned_subagents`+notification_drain 30 秒节流接线);锁经 RetainedResources→session_registry→ToolContext 传递;测试 wire 断言 `nofy/session_notification`(sed 别误伤 `api.x.ai` 测试 URL)
 - MCP elicitation 移植(批11):上游 `servers.rs` 与我们分叉 2800+ 行,只能外科手术(elicitation_tx 槽位、`ElicitationComplete` 事件、handler 两个 trait 方法、ClientInfo 能力通告);`make_client_info` 加 `advertise_elicitation` 参数后 4 处测试夹具要补第二参数;协议版本保持我们的 `V_2025_06_18` 不跟上游 `V_2025_11_25`(与 elicitation 正交);协调器非交互标志用 `startup_hints.non_interactive` 构造 `Rc<Cell<bool>>`(我们没有上游的动态 attach 流);leader 重放层、headless ext_method 应答路径我们不存在,相应上游代码不纳入;`restore_card_prompt` 必须补 question 打开分支(草稿移交 question 的 stash,否则 peer-resolved 测试失败);上游 key_owner 里的 feedback 面板/line-viewer 排名调整/取消面板语义变更属于被剔除或其他批次特性,不随批移植;测试注入时注意区块边界,别把下一个测试的头切进来
+- 状态栏移植(批12):新增 `nofy-status-line` crate(配置+上下文载荷+能力常量 `nofy/statusLine`);shell 侧 `StatusLineContext` 快照经 `SessionStatus` 通知发出(只发不落盘),`status_line_enabled: Arc<AtomicBool>` 贯穿两条 spawn 路径,压缩/回合结束/模型切换处 `emit_status_snapshot_detached` 唤醒,fs_watch git 分支变更联动;pager 侧 app 拥有 `StatusLineState` 状态机,命令型行走 `Effect::RunStatusLineCommand`/`TaskResult::StatusLineCommandFinished`,事件循环接刷新定时器+resize 队列+tick 需求;**未采纳**上游 `AgentViewLayoutParams` 布局重构(保持位置参数 `AgentViewLayout::compute`,只插入 `status_line_height` 一个参数)与语音字段;我们无 leader 层,相应接线跳过;`transcript_path()` 换成 `session_dir().join("updates.jsonl")`;宿主机 `NO_COLOR=1` 使 `quantize` 返回 `Color::Reset`,颜色断言要包 `crate::theme::color_support::detect().has_color()` 守卫(结构断言保持无条件);`include_str!` 引用的 `docs/user-guide/25-status-line.md` 必须随批移植;`try_get_estimated_total_tokens` 返回 `Option<u64>` 不做 `unwrap_or(0)`
 
 ## 已完成批次日志
 
@@ -77,3 +78,4 @@
 | 批9 | 3fe2d814 | 权限 Always/Never:manager/bash_grants 作用域持久化、state 仓库根存储+deny 集、resolution MCP URL 结构化匹配、prompter Never 行、pager 分行作用域 UI、permission_prompt 管理器接线、remember_tool_approvals 默认 ON、sessions 目录 0700 | 0.2.144 |
 | 批10 | 09c96a05 | attempt_store 台账基座(15 文件)+孤儿恢复加固(heal_lock 串行/先写盘再广播/存活会话 30s 节流治愈)+12 个 reconcile 测试 | 0.2.145 |
 | 批11 | b3778c3f | MCP elicitation:tools schema/校验模块、mcp 桥接层+servers 外科接入、shell 协调器+dispatcher completes、pager 表单/URL 卡片全链(键鼠/粘贴/Esc 阶梯/渲染)+35 文件 | 0.2.146 |
+| 批12 | aee2fe61 | 状态栏:新增 nofy-status-line crate、shared [ui.status_line] 配置、telemetry 两事件、shell 快照发射器+通知+唤醒联动、pager 状态机/布局行/渲染/命令型行/刷新定时器+73 文件 | 0.2.147 |
