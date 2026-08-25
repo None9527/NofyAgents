@@ -68,4 +68,4 @@
 | 批8-1 | c0f28872 | 工作流列表+命名参数+effort | 0.2.141 |
 | 批8-2 | 47a7a422 | 标题自动刷新(3/6 回合) | 0.2.141 |
 | 批8-3 | e570b82b | 进程内 /minimal⇄/fullscreen | 0.2.141 |
-| 批8-4 | be544e21 | 队列策略架构:InputPolicy/QueuePolicy 类型、queue_mutation 授权、edit_holds TTL 乐观锁、HoldEdit promote 阻塞、受保护行 | 0.2.142 |
+| 批8-4 | 2077fc9b | 队列策略架构:InputPolicy/QueuePolicy 类型、queue_mutation 授权、edit_holds TTL 乐观锁、HoldEdit promote 阻塞、受保护行 | 0.2.142 |
