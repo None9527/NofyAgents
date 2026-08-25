@@ -1508,6 +1508,7 @@ pub(crate) async fn spawn_session_actor(
         file_state_tracker,
         rewind_pending_prompt: std::sync::Mutex::new(None),
         startup_hints,
+        rate_limit_waits: RateLimitWaitConfig::default(),
         forked_tool_override,
         compaction: super::compaction_config::CompactionConfig {
             threshold_percent: std::cell::Cell::new(auto_compact_threshold_percent),

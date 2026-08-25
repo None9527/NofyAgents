@@ -107,6 +107,15 @@ pub fn retry_backoff_with_jitter(retry_count: u32) -> Duration {
     jittered(Duration::from_millis(base_ms))
 }
 
+/// Honor a server `Retry-After` hint when present (capped and jittered like
+/// any other wait); otherwise fall back to the exponential backoff ladder.
+pub fn retry_after_or_backoff(attempt: u32, retry_after_secs: Option<u64>) -> Duration {
+    match retry_after_secs.filter(|secs| *secs > 0) {
+        Some(secs) => jittered(Duration::from_secs(secs).min(MAX_RETRY_BACKOFF)),
+        None => retry_backoff_with_jitter(attempt),
+    }
+}
+
 /// +/-20% jitter around `base`, de-syncing clients that failed at the
 /// same instant (e.g. a mass Cloudflare 52x event during an origin outage).
 fn jittered(base: Duration) -> Duration {

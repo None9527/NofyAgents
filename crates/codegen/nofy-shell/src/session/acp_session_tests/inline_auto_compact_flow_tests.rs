@@ -109,6 +109,7 @@ async fn create_test_actor(
         file_state_tracker: Arc::new(FileStateTracker::new()),
         rewind_pending_prompt: std::sync::Mutex::new(None),
         startup_hints: StartupHints::default(),
+        rate_limit_waits: RateLimitWaitConfig::default(),
         forked_tool_override: None,
         compaction: crate::session::compaction_config::CompactionConfig {
             threshold_percent: std::cell::Cell::new(threshold_percent),
@@ -551,6 +552,7 @@ async fn create_test_actor_with_memory(
         file_state_tracker: Arc::new(FileStateTracker::new()),
         rewind_pending_prompt: std::sync::Mutex::new(None),
         startup_hints: StartupHints::default(),
+        rate_limit_waits: RateLimitWaitConfig::default(),
         forked_tool_override: None,
         compaction: crate::session::compaction_config::CompactionConfig {
             threshold_percent: std::cell::Cell::new(threshold_percent),
@@ -1337,6 +1339,7 @@ async fn test_e2e_idle_resume_refreshes_model_metadata() {
                 file_state_tracker: Arc::new(FileStateTracker::new()),
                 rewind_pending_prompt: std::sync::Mutex::new(None),
                 startup_hints: StartupHints::default(),
+                rate_limit_waits: RateLimitWaitConfig::default(),
                 forked_tool_override: None,
                 compaction: crate::session::compaction_config::CompactionConfig {
                     threshold_percent: std::cell::Cell::new(85),

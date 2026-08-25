@@ -111,6 +111,7 @@ pub(super) async fn make_replay_send_update_fixture() -> ReplaySendUpdateFixture
         file_state_tracker: Arc::new(FileStateTracker::new()),
         rewind_pending_prompt: std::sync::Mutex::new(None),
         startup_hints: StartupHints::default(),
+        rate_limit_waits: RateLimitWaitConfig::default(),
         forked_tool_override: None,
         compaction: crate::session::compaction_config::CompactionConfig {
             threshold_percent: std::cell::Cell::new(85),
@@ -1241,7 +1242,7 @@ async fn reasoning_only_doomloop_turn_captures_every_generation_as_segments() {
                     error: error.clone(),
                 })
                 .await;
-            let Err(_terminal) = actor.handle_sampling_failure(error).await else {
+            let Err(_terminal) = actor.handle_sampling_failure(error, 0).await else {
                 panic!("a reasoning_only empty response must be a terminal error, not recoverable");
             };
             let (cmd_tx, cmd_rx) = mpsc::unbounded_channel::<SessionCommand>();

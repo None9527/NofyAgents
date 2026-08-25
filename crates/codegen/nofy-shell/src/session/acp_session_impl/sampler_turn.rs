@@ -734,6 +734,7 @@ impl SessionActor {
     pub(crate) async fn handle_sampling_failure(
         self: &Arc<Self>,
         error: nofy_sampler::SamplingErrorInfo,
+        rate_limit_waits: u32,
     ) -> Result<SamplerFailureRecovery, acp::Error> {
         use nofy_sampler::SamplingErrorKind;
         if self.tool_context.task_output_token_budget.is_some() {
@@ -815,7 +816,7 @@ impl SessionActor {
             self.log_terminal_failure("rate_limited", error.status_code, &detailed_message);
             self.send_xai_notification(NofySessionUpdate::RetryState(
                 crate::extensions::notification::RetryState::Exhausted {
-                    attempts: 0,
+                    attempts: rate_limit_waits,
                     reason: detailed_message.clone(),
                     is_rate_limited: true,
                 },
@@ -1027,7 +1028,7 @@ impl SessionActor {
             )),
         )
     }
-    /// Drive a single turn through the sampler-based path.
+    /// Drive one turn through the sampler, pacing a subagent's 429s via `budget`.
     ///
     /// Calls `prepare_sampler_for_turn` first (auth refresh + config
     /// push), then submits via `SamplerHandle::submit_and_collect` and
@@ -1042,6 +1043,7 @@ impl SessionActor {
     pub(crate) async fn run_turn_via_sampler(
         self: &Arc<Self>,
         request: ConversationRequest,
+        budget: &mut RateLimitWaitBudget,
     ) -> Result<SamplerTurnOutcome, acp::Error> {
         // DS-#8 fail-closed checkpoint: the journal prefix must be durable
         // before the request is initiated (no stream, not even a first
@@ -1057,10 +1059,45 @@ impl SessionActor {
             return Err(acp::Error::internal_error().data(reason));
         }
         self.prepare_sampler_for_turn().await;
-        let stream_drained_rx = {
+        if !budget.can_wait() {
+            return match self.submit_turn_request(request).await {
+                Ok(outcome) => Ok(outcome),
+                Err(info) => self.recover_from_sampling_failure(info, budget).await,
+            };
+        }
+        loop {
+            match self.submit_turn_request(request.clone()).await {
+                Ok(outcome) => {
+                    budget.record_submission_accepted();
+                    return Ok(outcome);
+                }
+                Err(info) => {
+                    let decision = budget.decide(&info);
+                    let RateLimitWaitDecision::Wait { attempt, backoff } = decision else {
+                        self.log_rate_limit_budget_spent(decision, &info);
+                        return self.recover_from_sampling_failure(info, budget).await;
+                    };
+                    self.notify_rate_limit_wait(attempt, budget, backoff).await;
+                    tokio::time::sleep(backoff).await;
+                    self.prepare_sampler_for_turn().await;
+                }
+            }
+        }
+    }
+    async fn submit_turn_request(
+        self: &Arc<Self>,
+        request: ConversationRequest,
+    ) -> Result<SamplerTurnOutcome, nofy_sampler::SamplingErrorInfo> {
+        struct DrainBarrier<'a>(&'a parking_lot::Mutex<Option<tokio::sync::oneshot::Sender<()>>>);
+        impl Drop for DrainBarrier<'_> {
+            fn drop(&mut self) {
+                self.0.lock().take();
+            }
+        }
+        let (_barrier, stream_drained_rx) = {
             let (tx, rx) = tokio::sync::oneshot::channel();
             *self.turn_stream_drained.lock() = Some(tx);
-            rx
+            (DrainBarrier(&self.turn_stream_drained), rx)
         };
         let request_id = nofy_sampler::RequestId::random();
         let request_id_str = request_id.as_str().to_string();
@@ -1082,7 +1119,6 @@ impl SessionActor {
                     .await
                     .is_err()
                 {
-                    self.turn_stream_drained.lock().take();
                     tracing::warn!(
                         "stream-drain barrier timed out; proceeding to emit tool \
                          calls (eventId ordering may be imperfect this turn)"
@@ -1093,19 +1129,86 @@ impl SessionActor {
                     Box::new(metrics),
                 ))
             }
-            Err(rich_err) => {
-                self.turn_stream_drained.lock().take();
-                let info = nofy_sampler::SamplingErrorInfo::from(&rich_err);
-                match self.handle_sampling_failure(info).await? {
-                    SamplerFailureRecovery::CompactAndResubmit => {
-                        Ok(SamplerTurnOutcome::CompactAndResubmit)
-                    }
-                    SamplerFailureRecovery::RefreshAuthAndResubmit { credential, store } => {
-                        Ok(SamplerTurnOutcome::RefreshAuthAndResubmit { credential, store })
-                    }
-                }
+            Err(rich_err) => Err(nofy_sampler::SamplingErrorInfo::from(&rich_err)),
+        }
+    }
+    async fn recover_from_sampling_failure(
+        self: &Arc<Self>,
+        info: nofy_sampler::SamplingErrorInfo,
+        budget: &RateLimitWaitBudget,
+    ) -> Result<SamplerTurnOutcome, acp::Error> {
+        match self
+            .handle_sampling_failure(info, budget.attempts_used())
+            .await?
+        {
+            SamplerFailureRecovery::CompactAndResubmit => {
+                Ok(SamplerTurnOutcome::CompactAndResubmit)
+            }
+            SamplerFailureRecovery::RefreshAuthAndResubmit { credential, store } => {
+                Ok(SamplerTurnOutcome::RefreshAuthAndResubmit { credential, store })
             }
         }
+    }
+    /// Mirror the auth-retry path's `RetryState::Retrying` marker so the paced
+    /// wait is observable to the client.
+    async fn notify_rate_limit_wait(
+        &self,
+        attempt: u32,
+        budget: &RateLimitWaitBudget,
+        backoff: std::time::Duration,
+    ) {
+        tracing::debug!(
+            attempt,
+            delay_ms = backoff.as_millis() as u64,
+            "subagent turn rate limited; waiting for sampling capacity"
+        );
+        nofy_telemetry::unified_log::info(
+            "shell.turn.subagent_rate_limit_backoff",
+            Some(self.session_info.id.0.as_ref()),
+            Some(serde_json::json!({
+                "attempt": attempt,
+                "max_attempts": budget.max_attempts(),
+                "delay_ms": backoff.as_millis() as u64,
+            })),
+        );
+        let announced =
+            std::time::Duration::from_secs(backoff.as_secs_f64().round().max(1.0) as u64);
+        self.send_xai_notification(NofySessionUpdate::RetryState(
+            crate::extensions::notification::RetryState::Retrying {
+                attempt,
+                max_retries: budget.max_attempts(),
+                reason: format!(
+                    "Too many requests in flight; waiting {} before trying again",
+                    human_duration(announced)
+                ),
+            },
+        ))
+        .await;
+    }
+    fn log_rate_limit_budget_spent(
+        &self,
+        decision: RateLimitWaitDecision,
+        error: &nofy_sampler::SamplingErrorInfo,
+    ) {
+        let RateLimitWaitDecision::BudgetSpent { attempts, limit } = decision else {
+            return;
+        };
+        tracing::warn!(
+            attempts,
+            cause = limit.as_str(),
+            retry_after_secs = ?error.retry_after_secs,
+            "subagent stopped waiting out rate limits; failing the turn"
+        );
+        nofy_telemetry::unified_log::warn(
+            "shell.turn.subagent_rate_limit_exhausted",
+            Some(self.session_info.id.0.as_ref()),
+            Some(serde_json::json!({
+                "attempts": attempts,
+                "cause": limit.as_str(),
+                "retry_after_secs": error.retry_after_secs,
+                "status_code": error.status_code,
+            })),
+        );
     }
     /// Proactively refresh the auth token if near expiry.
     ///

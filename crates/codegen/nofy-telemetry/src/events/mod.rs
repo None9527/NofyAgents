@@ -506,6 +506,27 @@ pub struct SubagentCompleted {
     pub tokens_used: Option<u64>,
 }
 
+/// How a subagent turn's 429 wait ended.
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RateLimitWaitOutcome {
+    Recovered,
+    BudgetSpent,
+    Unresolved,
+}
+
+/// Emitted once per inner `process_conversation_turn`, so one `turn_number`
+/// can carry several rows; do not blindly GROUP BY turn_number.
+#[derive(Serialize)]
+pub struct SubagentRateLimitWaited {
+    /// Resubmits (waits) this turn, excluding the initial send.
+    pub attempts: u32,
+    pub max_attempts: u32,
+    pub waited_ms: u64,
+    pub budget_ms: u64,
+    pub outcome: RateLimitWaitOutcome,
+}
+
 #[derive(Serialize)]
 pub struct SubagentLimitHit {
     pub parent_session_id: String,
@@ -1706,6 +1727,7 @@ telemetry_event!(
     external = crate::external::schema::map_subagent_completed
 );
 telemetry_event!(SubagentLimitHit, "subagent_limit_hit");
+telemetry_event!(SubagentRateLimitWaited, "subagent_rate_limit_waited");
 telemetry_event!(WorkflowRunStarted, "workflow_run_started");
 telemetry_event!(WorkflowRunEnded, "workflow_run_ended");
 telemetry_event!(
