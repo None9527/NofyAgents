@@ -951,6 +951,11 @@ pub struct AgentView {
     /// agents that have never run a turn still show a sensible
     /// relative time.
     pub last_active_at: Option<Instant>,
+    /// Latest `SessionStatus` payload the agent pushed for this session.
+    pub status_context: Option<nofy_status_line::StatusLineContext>,
+    /// Held across a frame that clamps the row away, so a script keeps the size
+    /// it last painted at.
+    pub last_status_line_size: Option<crate::views::status_line::RowSize>,
     pub current_branch: Option<String>,
     pub is_worktree: bool,
     pub main_repo: Option<String>,

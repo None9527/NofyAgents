@@ -20,6 +20,7 @@ tracing = { workspace = true }
 urlencoding = { workspace = true }
 nofy-config-types = { workspace = true }
 nofy-models = { workspace = true }
+nofy-status-line = { workspace = true }
 nofy-tools = { workspace = true }
 nofy-tty-utils = { workspace = true }
 

@@ -634,6 +634,7 @@ impl SessionActor {
             summary_preview: None,
         })
         .await;
+        self.emit_status_snapshot_detached();
         Ok(())
     }
     async fn emit_compact_cancelled(&self, auto_trigger: bool) -> Result<(), acp::Error> {
@@ -2080,6 +2081,7 @@ impl SessionActor {
                     summary_preview: None,
                 })
                 .await;
+                self.emit_status_snapshot_detached();
                 Ok(())
             }
             Err(e) => {
@@ -2349,6 +2351,8 @@ mod inline_auto_compact_flow_tests {
             file_state_tracker: Arc::new(FileStateTracker::new()),
             rewind_pending_prompt: std::sync::Mutex::new(None),
             startup_hints: StartupHints::default(),
+            status_wake: crate::session::acp_session::status_line::StatusWake::default(),
+            status_line_enabled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             rate_limit_waits: RateLimitWaitConfig::default(),
             forked_tool_override: None,
             compaction: crate::session::compaction_config::CompactionConfig {

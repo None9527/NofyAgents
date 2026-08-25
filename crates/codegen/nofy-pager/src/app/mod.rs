@@ -33,6 +33,8 @@ pub mod roster;
 pub mod session_startup;
 pub(crate) mod session_title_resolve;
 pub mod status_blocks;
+pub(crate) mod status_line;
+mod status_line_policy;
 pub mod subagent;
 pub(crate) use effects::sanitize_user_error;
 mod event_loop;
@@ -681,7 +683,7 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
         args.yolo,
         args.permission_mode_flag.as_deref(),
     );
-    let connect_flags = crate::acp::ConnectFlags {
+    let mut connect_flags = crate::acp::ConnectFlags {
         subagents: !args.no_subagents,
         experimental_memory: args.experimental_memory,
         no_memory: args.no_memory,
@@ -705,6 +707,7 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
         ),
         default_yolo_mode: launch_yolo.yolo,
         default_auto_mode: launch_auto && !launch_yolo.yolo,
+        status_line: false,
     };
     let mut config_watcher = crate::appearance::ConfigWatcher::start().await?;
     let alt_screen_config_mode = config_watcher.current().alt_screen;
@@ -716,6 +719,9 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
         term_ctx,
         is_control_mode,
     );
+    connect_flags.status_line = event_loop::load_initial_ui_config()
+        .status_line
+        .reserves_a_row();
     let config_screen_mode = raw_config
         .get("ui")
         .and_then(|ui| ui.get("screen_mode"))
@@ -919,6 +925,7 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
     let restore_result = restore_terminal(terminal, writer_thread, screen_mode);
     drop(agent_guard);
     nofy_tty_utils::global_process_scope().kill_all();
+    crate::app::status_line::metrics::global().report_health();
     if let Err(cleanup_error) = restore_result {
         match &result {
             Ok(_) => {

@@ -537,6 +537,7 @@ impl MvpAgent {
                 &models,
             );
         }
+        self.attach_status_line(&session_id, arguments.meta.as_ref(), init);
         #[cfg(all(feature = "local-workspace", unix))]
         local_ws_reap_guard.disarm();
         Ok(acp::NewSessionResponse::new(session_id)
@@ -712,6 +713,7 @@ impl MvpAgent {
                 no_replay,
             )
             .await?;
+        self.attach_status_line(&session_id, request_meta.as_ref(), init);
         let preloaded_envrc = nofy_workspace::envrc::load_envrc_or_empty_when_trusted(
             cwd.as_path(),
             load_envrc && folder_trust::project_scope_allowed(cwd.as_path()),

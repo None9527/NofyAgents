@@ -156,6 +156,8 @@ async fn persist_ack_waits_for_disk_flush_before_success() {
                 file_state_tracker: Arc::new(FileStateTracker::new()),
                 rewind_pending_prompt: std::sync::Mutex::new(None),
                 startup_hints: StartupHints::default(),
+                status_wake: crate::session::acp_session::status_line::StatusWake::default(),
+                status_line_enabled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
                 rate_limit_waits: RateLimitWaitConfig::default(),
                 forked_tool_override: None,
                 compaction: crate::session::compaction_config::CompactionConfig {
@@ -628,6 +630,8 @@ async fn first_turn_memory_injection_disabled_does_not_persist_to_chat_history()
                 file_state_tracker: Arc::new(FileStateTracker::new()),
                 rewind_pending_prompt: std::sync::Mutex::new(None),
                 startup_hints: StartupHints::default(),
+                status_wake: crate::session::acp_session::status_line::StatusWake::default(),
+                status_line_enabled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
                 rate_limit_waits: RateLimitWaitConfig::default(),
                 forked_tool_override: None,
                 compaction: crate::session::compaction_config::CompactionConfig {
@@ -919,6 +923,8 @@ async fn cancel_running_task_teardown_clears_running_and_pending_work() {
                 file_state_tracker: Arc::new(FileStateTracker::new()),
                 rewind_pending_prompt: std::sync::Mutex::new(None),
                 startup_hints: StartupHints::default(),
+                status_wake: crate::session::acp_session::status_line::StatusWake::default(),
+                status_line_enabled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
                 rate_limit_waits: RateLimitWaitConfig::default(),
                 forked_tool_override: None,
                 compaction: crate::session::compaction_config::CompactionConfig {
@@ -2343,6 +2349,8 @@ async fn cancel_propagates_to_sampler_handle_so_no_further_emission() {
                 file_state_tracker: Arc::new(FileStateTracker::new()),
                 rewind_pending_prompt: std::sync::Mutex::new(None),
                 startup_hints: StartupHints::default(),
+                status_wake: crate::session::acp_session::status_line::StatusWake::default(),
+                status_line_enabled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
                 rate_limit_waits: RateLimitWaitConfig::default(),
                 forked_tool_override: None,
                 compaction: crate::session::compaction_config::CompactionConfig {

@@ -7064,6 +7064,7 @@ dependencies = [
  "nofy-ratatui-textarea",
  "nofy-sandbox",
  "nofy-shell",
+ "nofy-status-line",
  "nofy-stewardcore",
  "nofy-telemetry",
  "nofy-test-support",
@@ -7452,6 +7453,7 @@ dependencies = [
  "libc",
  "nofy-config-types",
  "nofy-models",
+ "nofy-status-line",
  "nofy-tools",
  "nofy-tty-utils",
  "objc2 0.6.3",
@@ -7548,6 +7550,7 @@ dependencies = [
  "nofy-shell-base",
  "nofy-shell-session-support",
  "nofy-sqlite-journal",
+ "nofy-status-line",
  "nofy-subagent-resolution",
  "nofy-system-power",
  "nofy-telemetry",
@@ -7668,6 +7671,16 @@ dependencies = [
  "tempfile",
  "tracing",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "nofy-status-line"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "strum 0.27.2",
+ "toml",
 ]
 
 [[package]]

@@ -149,6 +149,8 @@ impl AgentView {
             turn_paused_wall: std::time::Duration::ZERO,
             self_interjection_ids: std::collections::HashSet::new(),
             last_active_at: Some(Instant::now()),
+            status_context: None,
+            last_status_line_size: None,
             current_branch: None,
             is_worktree: false,
             main_repo: None,

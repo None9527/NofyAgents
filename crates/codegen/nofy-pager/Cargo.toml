@@ -94,6 +94,7 @@ nofy-config = { workspace = true }
 nofy-shell = { workspace = true }
 nofy-workspace = { workspace = true }
 nofy-token-estimation = { workspace = true }
+nofy-status-line = { workspace = true }
 nofy-telemetry = { workspace = true }
 nofy-fast-worktree = { path = "../nofy-fast-worktree", features = ["metadata"] }
 backon = { workspace = true }
@@ -159,6 +160,7 @@ windows-sys = { version = "0.59", features = ["Win32_System_Console"] }
 [dev-dependencies]
 nofy-pager-render = { path = "../nofy-pager-render", features = ["test-support"] }
 nofy-shell = { workspace = true, features = ["test-support"] }
+nofy-status-line = { workspace = true, features = ["test-support"] }
 pretty_assertions = { workspace = true }
 insta = { workspace = true }
 criterion = { workspace = true }

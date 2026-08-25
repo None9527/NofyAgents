@@ -141,6 +141,21 @@ impl AgentView {
             });
         }
     }
+    /// OSC 8 spans the status row painted, dropped under the same occlusion
+    /// rule as every other frame-painted link.
+    pub(super) fn push_status_line_link_spans(
+        &self,
+        link_spans_out: &mut Vec<nofy_ratatui_inline::LinkSpan>,
+        status_line_spans: Vec<nofy_ratatui_inline::LinkSpan>,
+    ) {
+        for span in status_line_spans {
+            let width = span.col_end.saturating_sub(span.col_start);
+            let row = ratatui::layout::Rect::new(span.col_start, span.row, width, 1);
+            if !self.rect_occluded(row) {
+                link_spans_out.push(span);
+            }
+        }
+    }
     /// Re-evaluate which link (if any) is under the cursor for the given
     /// modifier state.  Returns `true` when `hovered_link_idx` changed.
     pub(in crate::app) fn update_hovered_link(&mut self, modifier_held: bool) -> bool {

@@ -129,6 +129,7 @@ nofy-paths = { path = "../nofy-paths" }
 nofy-shell-base = { workspace = true }
 nofy-shell-session-support = { workspace = true }
 nofy-shared = { workspace = true }
+nofy-status-line = { workspace = true }
 nofy-tracing-macros = { path = "../nofy-tracing-macros" }
 nofy-fsnotify = { path = "../nofy-fsnotify" }
 nofy-codebase-graph = { path = "../nofy-codebase-graph" }

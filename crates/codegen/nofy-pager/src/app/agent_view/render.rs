@@ -44,6 +44,8 @@ pub struct AppRenderParams {
     /// path so the bar never advertises `Esc cancel` while an app-level owner
     /// would consume it.
     pub esc_owned_before_agent: bool,
+    /// The status row this frame paints, or `Off` when this frame has none.
+    pub status_line: crate::views::status_line::StatusLineFrame,
 }
 /// What the bottom shortcuts bar renders this frame.
 enum ShortcutsBarContent {
@@ -828,6 +830,7 @@ impl AgentView {
     ) {
         let AppRenderParams {
             esc_owned_before_agent,
+            status_line,
         } = app_params;
         self.scrollback.begin_frame();
         self.in_dashboard_overlay = in_dashboard_overlay;
@@ -1296,6 +1299,7 @@ impl AgentView {
             follow_ups_height,
             0,
             prompt_gap,
+            status_line.height(),
             1,
             compact,
         );
@@ -1371,6 +1375,7 @@ impl AgentView {
                         follow_ups_height,
                         0,
                         prompt_gap,
+                        status_line.height(),
                         1,
                         compact,
                     );
@@ -1393,6 +1398,28 @@ impl AgentView {
             self.timeline_hover_preview = None;
         }
         agent::fill_background(buf, area, layout_cfg, compact, &theme);
+        let mut status_line_link_spans: Vec<nofy_ratatui_inline::LinkSpan> = Vec::new();
+        if let Some(padding) = status_line.padding()
+            && layout.status_line.height > 0
+        {
+            if let Some(width) =
+                crate::views::status_line::inner_width(layout.status_line.width, padding)
+            {
+                self.last_status_line_size = Some(crate::views::status_line::RowSize {
+                    cols: width,
+                    lines: layout.status_line.height,
+                });
+            }
+            if let Some(display) = status_line.display() {
+                status_line_link_spans = crate::views::status_line::render_status_line(
+                    buf,
+                    layout.status_line,
+                    display,
+                    padding,
+                    &theme,
+                );
+            }
+        }
         use crate::views::agent_status::AgentStatusBar;
         use crate::views::context_bar;
         let mut status = AgentStatusBar::new(&theme);
@@ -4256,6 +4283,10 @@ impl AgentView {
                     link_spans_out,
                     banner_announcements,
                     hidden_announcement_ids,
+                );
+                self.push_status_line_link_spans(
+                    link_spans_out,
+                    std::mem::take(&mut status_line_link_spans),
                 );
             }
         }

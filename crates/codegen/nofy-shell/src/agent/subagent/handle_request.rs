@@ -982,6 +982,7 @@ pub(crate) async fn run_shell_child(
         )),
         false,
         subagent_fs_watch,
+        std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         false,
         false,
         std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),

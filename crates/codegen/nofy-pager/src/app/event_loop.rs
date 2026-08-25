@@ -544,6 +544,8 @@ fn run_pending_mode_switch(
     input_rx: &mut tokio::sync::mpsc::UnboundedReceiver<TimedInputEvent>,
     presenter: &mut Presenter,
     tasks: &mut JoinSet<TaskResult>,
+    status_line_refresh_interval: &mut Option<Duration>,
+    status_line_refresh_at: &mut Option<Instant>,
 ) -> bool {
     let Some(target) = app.pending_screen_mode_switch.take() else {
         return false;
@@ -563,6 +565,14 @@ fn run_pending_mode_switch(
     ) {
         crate::app::mode_switch::ModeSwitchOutcome::Switched => {
             crate::app::mode_switch::reseed_screen_mode(app, target);
+            // Disarm in minimal or the command keeps running for an unpainted row.
+            *status_line_refresh_interval =
+                if super::status_line::draws_a_row(app.screen_mode, &app.current_ui.status_line) {
+                    app.status_line_refresh_interval()
+                } else {
+                    None
+                };
+            *status_line_refresh_at = status_line_refresh_interval.map(|iv| Instant::now() + iv);
             if target.is_minimal() {
                 crate::theme::reset_cursor_color();
                 crate::app::mode_switch::dismiss_fullscreen_only_surfaces(app);
@@ -1231,6 +1241,11 @@ pub(crate) async fn run(
     // Seed app state from disk once at the I/O boundary so dispatch
     // stays sans-IO.
     app.current_ui = load_initial_ui_config();
+    // Here rather than from the row's own update: that runs only once an agent
+    // view is on screen, so a minimal-mode or welcome-only session would be
+    // missing from the denominator adoption is measured against.
+    crate::app::status_line::metrics::global()
+        .report_config(&app.current_ui.status_line, app.screen_mode);
     // Field-tolerant: a whole-`UiConfig` default (malformed unrelated `[ui]`
     // field) must not wipe a valid `show_timeline` or leave appearance /
     // cache / `current_ui` disagreeing — `/timeline` and the rail all read
@@ -1432,6 +1447,19 @@ pub(crate) async fn run(
     // `should_pregenerate_away_recap`.
     const RECAP_POLL_INTERVAL: Duration = Duration::from_secs(20);
     let mut recap_poll_at: Option<Instant> = Some(Instant::now() + RECAP_POLL_INTERVAL);
+
+    // `[ui.status_line] refresh_interval`: re-runs a command row on a timer.
+    // Read once, like the section it comes from, so a future config reload
+    // must run this arming again; unarmed while the current mode cannot draw
+    // the row. Re-derived on a mode switch (`run_pending_mode_switch`).
+    let mut status_line_refresh_interval: Option<Duration> =
+        if super::status_line::draws_a_row(app.screen_mode, &app.current_ui.status_line) {
+            app.status_line_refresh_interval()
+        } else {
+            None
+        };
+    let mut status_line_refresh_at: Option<Instant> =
+        status_line_refresh_interval.map(|interval| Instant::now() + interval);
 
     // Seed the folder-trust verdict BEFORE the first render and before any
     // session is created (no repo-local MCP/LSP/hooks/plugins have loaded yet).
@@ -1737,6 +1765,8 @@ pub(crate) async fn run(
             &mut input_rx,
             &mut presenter,
             &mut tasks,
+            &mut status_line_refresh_interval,
+            &mut status_line_refresh_at,
         ) {
             break;
         }
@@ -1847,6 +1877,13 @@ pub(crate) async fn run(
             }
         };
 
+        let status_line_refresh = async {
+            match status_line_refresh_at {
+                Some(at) => sleep_until(at).await,
+                None => std::future::pending().await,
+            }
+        };
+
         let load_barrier_tick = async {
             match session_load_barrier.next_wakeup() {
                 Some(deadline) => {
@@ -1930,6 +1967,13 @@ pub(crate) async fn run(
                             return Ok(make_run_result(&app));
                         }
                     }
+                }
+
+                // A snapshot inside the refresh floor changes nothing yet but
+                // still owes a run, and the arm below arms the tick only on a
+                // state change.
+                if app.status_line.force_pending() {
+                    schedule_tick(&mut animation_tick_at, &app, tick_interval);
                 }
 
                 if state_changed {
@@ -2130,6 +2174,23 @@ pub(crate) async fn run(
                 }
                 // Always re-arm: a cheap no-op fire while focused / not-yet-eligible.
                 recap_poll_at = Some(Instant::now() + RECAP_POLL_INTERVAL);
+            }
+
+            _ = status_line_refresh => {
+                status_line_refresh_at = None;
+                // lands in `pending_effects`, drained below like every arm's.
+                app.note_status_line_refresh_due();
+                // owed; `status_line_tick_demand` owns the routing.
+                schedule_tick(&mut animation_tick_at, &app, tick_interval);
+                if app.status_line.take_changed() {
+                    presenter.request(false);
+                }
+                // Re-armed at fire time, so the cadence is independent of how
+                // long a run takes; the owed-run rule above is what keeps a
+                // slow script from stacking runs behind the timer.
+                if let Some(interval) = status_line_refresh_interval {
+                    status_line_refresh_at = Some(Instant::now() + interval);
+                }
             }
 
             // Session-load barrier deadline: re-check deferred loads even when
@@ -2936,6 +2997,7 @@ async fn drain_and_process(
                 needs_draw = true;
                 if is_resize {
                     had_resize = true;
+                    app.queue_status_line_resize();
                 } else {
                     had_non_resize_change = true;
                 }

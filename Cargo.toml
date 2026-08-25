@@ -62,6 +62,7 @@ members = [
     "crates/codegen/nofy-shell",
     "crates/codegen/nofy-shell-base",
     "crates/codegen/nofy-shell-session-support",
+    "crates/codegen/nofy-status-line",
     "crates/codegen/nofy-subagent-resolution",
     "crates/codegen/nofy-telemetry",
     "crates/codegen/nofy-test-support",
@@ -341,6 +342,7 @@ nofy-shared = { path = "crates/codegen/nofy-shared" }
 nofy-shell = { path = "crates/codegen/nofy-shell" }
 nofy-shell-base = { path = "crates/codegen/nofy-shell-base" }
 nofy-shell-session-support = { path = "crates/codegen/nofy-shell-session-support" }
+nofy-status-line = { path = "crates/codegen/nofy-status-line" }
 nofy-telemetry = { path = "crates/codegen/nofy-telemetry" }
 nofy-test-support = { path = "crates/codegen/nofy-test-support" }
 nofy-tools = { path = "crates/codegen/nofy-tools" }

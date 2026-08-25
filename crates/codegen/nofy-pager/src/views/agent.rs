@@ -119,6 +119,8 @@ pub struct AgentViewLayout {
     /// Follow-up suggestion chips row (below the plugin CTA, above the prompt).
     pub follow_ups: Rect,
     pub prompt: Rect,
+    /// Bottom status_line row; zero-area when disabled.
+    pub status_line: Rect,
     pub shortcuts: Rect,
     /// Scrollback area narrowed for scrollbar (content rendering uses this).
     pub scrollback_content: Rect,
@@ -169,6 +171,7 @@ impl AgentViewLayout {
         follow_ups_height: u16,
         startup_warning_height: u16,
         prompt_gap: u16,
+        status_line_height: u16,
         shortcuts_height: u16,
         compact: bool,
     ) -> Self {
@@ -246,9 +249,22 @@ impl AgentViewLayout {
             constraints.push(Constraint::Length(prompt_gap));
         }
         constraints.push(Constraint::Length(prompt_height));
-        let shortcuts_gap = if bottom_vpad == 0 { 0u16 } else { 1 };
+        let pushed = constraints
+            .iter()
+            .map(|c| match c {
+                Constraint::Length(n) | Constraint::Min(n) | Constraint::Max(n) => *n,
+                Constraint::Percentage(_) | Constraint::Ratio(_, _) | Constraint::Fill(_) => 0,
+            })
+            .fold(0u16, u16::saturating_add);
+        let reserved = pushed.saturating_add(shortcuts_height);
+        let status_line_height =
+            status_line_height.min(inner_area.height.saturating_sub(reserved));
+        let shortcuts_gap = u16::from(bottom_vpad > 0 && status_line_height == 0);
         if shortcuts_gap > 0 {
             constraints.push(Constraint::Length(shortcuts_gap));
+        }
+        if status_line_height > 0 {
+            constraints.push(Constraint::Length(status_line_height));
         }
         constraints.push(Constraint::Length(shortcuts_height));
         let chunks = Layout::vertical(constraints).split(inner_area);
@@ -345,6 +361,13 @@ impl AgentViewLayout {
         if shortcuts_gap > 0 {
             i += 1;
         }
+        let status_line = if status_line_height > 0 {
+            let r = chunks[i];
+            i += 1;
+            r
+        } else {
+            Rect::default()
+        };
         let shortcuts = chunks[i];
         let scrollbar_x = area.right().saturating_sub(scrollbar_cfg.gap_right + 1);
         let timeline_width = if scrollbar_cfg.enabled {
@@ -381,6 +404,7 @@ impl AgentViewLayout {
             plugin_cta,
             follow_ups,
             prompt,
+            status_line,
             shortcuts,
             scrollback_content,
             scrollbar_x,
@@ -1962,6 +1986,7 @@ mod tests {
             follow_ups_height,
             0,
             0,
+            0,
             1,
             false,
         )
@@ -1983,6 +2008,7 @@ mod tests {
             scrollbar_cfg,
             timeline_width,
             2,
+            0,
             0,
             0,
             0,

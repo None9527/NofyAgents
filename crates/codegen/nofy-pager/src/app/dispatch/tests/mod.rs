@@ -12,6 +12,7 @@ mod router;
 mod session;
 mod settings;
 mod status;
+mod status_line;
 mod task_result;
 mod transcript;
 mod turn;
@@ -84,6 +85,7 @@ fn test_app() -> AppView {
         scroll_config: crate::input::mouse::ScrollConfig::default(),
         appearance: crate::appearance::AppearanceConfig::default(),
         notification_service: crate::notifications::NotificationService::new(Default::default()),
+        status_line: Default::default(),
         pending_notification_escapes: None,
         deferred_notification: None,
         tracing_rx: None,

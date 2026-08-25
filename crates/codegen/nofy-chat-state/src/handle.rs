@@ -448,6 +448,15 @@ impl ChatStateHandle {
         .unwrap_or(0)
     }
 
+    /// [`Self::get_estimated_total_tokens`] keeping a failed read as `None`
+    /// instead of `0`, so a caller can render "unknown" rather than `0%`.
+    pub async fn try_get_estimated_total_tokens(&self) -> Option<u64> {
+        self.query("GetEstimatedTotalTokens", |reply| {
+            ChatStateCommand::GetEstimatedTotalTokens { reply }
+        })
+        .await
+    }
+
     /// Bytes/4 estimate of all non-system conversation items.
     pub async fn get_estimated_messages_tokens(&self) -> u64 {
         self.query("GetEstimatedMessagesTokens", |reply| {

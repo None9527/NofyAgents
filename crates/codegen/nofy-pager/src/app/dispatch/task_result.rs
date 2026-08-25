@@ -229,6 +229,10 @@ pub(crate) fn deliver_doctor_message(app: &mut AppView, preferred: AgentId, mess
 /// Handle a completed async task result.
 pub(super) fn dispatch_task_result(result: TaskResult, app: &mut AppView) -> Vec<Effect> {
     match result {
+        TaskResult::StatusLineCommandFinished { id, outcome } => {
+            app.on_status_line_command_finished(id, outcome);
+            vec![]
+        }
         TaskResult::SessionCreated {
             agent_id,
             session_id,

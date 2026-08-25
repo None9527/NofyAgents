@@ -111,6 +111,9 @@ pub struct ConnectFlags {
     pub laziness_debug_log: Option<std::path::PathBuf>,
     /// Storage mode override.
     pub storage_mode: Option<String>,
+    /// Whether this client will draw a status row, advertised as
+    /// `nofy/statusLine` so the agent can skip an unpainted payload.
+    pub status_line: bool,
     /// Client identifier for ACP Initialize metadata.
     pub client_identifier: Option<String>,
     /// Hunk tracker mode for ACP Initialize capabilities.
@@ -248,12 +251,14 @@ fn build_initialize_meta(flags: &ConnectFlags) -> serde_json::Value {
 fn client_capabilities_meta(flags: &ConnectFlags) -> serde_json::Value {
     let hunk_mode =
         crate::settings::canonical_hunk_tracker_mode(flags.hunk_tracker_mode.as_deref());
-    serde_json::json!({
+    let mut meta = serde_json::json!({
         "nofy/incrementalBashOutput": true,
         "nofy/hunkTracker": { "mode": hunk_mode },
         "nofy/bashOutputNoColor": true,
         "nofy/gitHeadChanged": true,
-    })
+    });
+    meta[nofy_status_line::STATUS_LINE_CAPABILITY] = flags.status_line.into();
+    meta
 }
 
 /// Parse `defaultAuthMethodId` from `InitializeResponse.meta`.

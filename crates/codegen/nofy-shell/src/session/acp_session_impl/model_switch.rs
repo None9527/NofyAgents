@@ -114,6 +114,7 @@ impl SessionActor {
                 agent_name: Some(agent_name),
                 reasoning_effort: Some(sampling_config.reasoning_effort),
             });
+        self.emit_status_snapshot_detached();
         Ok(model_id)
     }
     /// Handle [`SessionCommand::RebuildAgentForDefinition`].
