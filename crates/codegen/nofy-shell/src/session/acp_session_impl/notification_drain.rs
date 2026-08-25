@@ -6,6 +6,13 @@ use super::*;
 /// Maximum number of pending notifications before oldest are dropped.
 pub(super) const MAX_PENDING_NOTIFICATIONS: usize = 50;
 
+/// Minimum gap between mid-turn live-orphan disk scans: heals are idempotent
+/// (persist-first + per-parent lock), but the scan itself costs a readdir per
+/// subagent — one disk pass per window is enough because persist-first makes a
+/// repeat finalize a no-op.
+pub(crate) const LIVE_ORPHAN_RECONCILE_INTERVAL: std::time::Duration =
+    std::time::Duration::from_secs(30);
+
 /// A notification buffered for idle-gated drain (see `maybe_drain_notifications`).
 pub(crate) struct PendingNotification {
     #[expect(
@@ -367,10 +374,52 @@ impl SessionActor {
     /// All notifications are taken and merged into a single `InputItem` with
     /// `---` separators between content blocks. The take+push happens in a
     /// single lock acquisition to avoid interleaving.
+    /// Flip on-disk `running` metas that the coordinator no longer holds so
+    /// the pager stops showing Responding without a quit+resume.
+    pub(super) async fn reconcile_live_orphaned_subagents(&self) {
+        self.last_live_orphan_reconcile
+            .set(Some(std::time::Instant::now()));
+        let Some(event_tx) = self.tool_context.subagent_event_tx.clone() else {
+            return;
+        };
+        let session_dir = crate::session::persistence::session_dir(&self.session_info);
+        let backend =
+            nofy_tools::implementations::nofy_build::task::backend::ChannelBackend::new(
+                event_tx,
+            );
+        let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel();
+        crate::agent::subagent::reconcile_live_orphaned_subagents(
+            &backend,
+            &session_dir,
+            self.session_info.id.0.as_ref(),
+            &self.notifications.gateway,
+            Some(&cmd_tx),
+            self.tool_context.live_orphan_heal_lock.clone(),
+        )
+        .await;
+        drop(cmd_tx);
+        while let Ok(cmd) = cmd_rx.try_recv() {
+            if let SessionCommand::XaiSessionNotification { notification } = cmd {
+                self.handle_xai_session_notification(notification).await;
+            }
+        }
+    }
+
     pub(super) async fn maybe_drain_notifications(
         self: Arc<Self>,
         completion_tx: mpsc::UnboundedSender<(String, PromptTurnResult)>,
     ) {
+        // Mid-turn tick: parent may still be Responding so the idle
+        // hook never runs. Throttled so InjectNotification does not scan disk
+        // on every event.
+        if self
+            .last_live_orphan_reconcile
+            .get()
+            .is_none_or(|prev| prev.elapsed() >= LIVE_ORPHAN_RECONCILE_INTERVAL)
+        {
+            self.reconcile_live_orphaned_subagents().await;
+        }
+
         // Auto-wake notification turns are DROPPED both while the goal loop is
         // active (a bg-task / monitor "completed" turn would pull a weak model
         // off the goal continuation, e.g. relaunching a killed server) AND
@@ -454,11 +503,18 @@ impl SessionActor {
     /// Notifies extensions when the session settles idle (nothing running, nothing queued).
     /// The idle check stays host-side; extensions only get the event.
     pub(super) async fn emit_session_idle_if_idle(&self) {
-        {
+        let suppressed = {
             let state = self.state.lock().await;
             if !is_session_idle_for_injection(&state) {
                 return;
             }
+            state.notifications_suppressed
+        };
+        // Reconciliation writes subagent records, so it stays behind the
+        // suppression check, and it runs in a child session, which the
+        // notification below does not.
+        if !suppressed {
+            self.reconcile_live_orphaned_subagents().await;
         }
         for contributor in self.extension_registry.session_lifecycle_contributors() {
             contributor

@@ -39,6 +39,8 @@ use nofy_tools::implementations::nofy_build::task::types::*;
 use nofy_tools::types::tool::ToolKind;
 use nofy_workspace::file_system::AsyncFileSystem;
 use nofy_hunk_tracker::HunkTrackerHandle;
+#[allow(dead_code, reason = "attempt ledger foundation consumed by the next storage slice")]
+mod attempt_store;
 mod handle_request;
 pub(crate) use handle_request::run_shell_child;
 /// How the child session's initial context was bootstrapped.
@@ -2301,18 +2303,20 @@ fn persist_subagent_completion(dir: &Path, result: &SubagentResult) {
         write_subagent_meta(dir, &meta);
     }
 }
-const ORPHAN_RECONCILE_REASON: &str = "interrupted by process restart";
+pub(crate) const ORPHAN_RECONCILE_REASON: &str = "interrupted by process restart";
+pub(crate) const LIVE_ORPHAN_RECONCILE_REASON: &str = "orphaned while parent session stayed live";
 /// `SubagentFinished` for a force-terminated orphan; interrupt counts are zeroed.
 fn cancelled_orphan_finish(
     subagent_id: String,
     child_session_id: String,
     duration_ms: u64,
+    reason: &str,
 ) -> SessionUpdate {
     SessionUpdate::SubagentFinished {
         subagent_id,
         child_session_id,
         status: "cancelled".to_string(),
-        error: Some(ORPHAN_RECONCILE_REASON.to_string()),
+        error: Some(reason.to_owned()),
         tool_calls: 0,
         turns: 0,
         duration_ms,
@@ -2328,7 +2332,11 @@ fn finalize_orphaned_subagent(
     mut meta: SubagentMeta,
     gateway: &GatewaySender,
     parent_cmd_tx: Option<&mpsc::UnboundedSender<SessionCommand>>,
+    reason: &str,
 ) -> bool {
+    if !is_on_disk_meta_running(subagent_meta_dir) {
+        return false;
+    }
     let completed_at = chrono::Utc::now();
     let duration_ms = (completed_at - meta.started_at).num_milliseconds().max(0) as u64;
     meta.status = "cancelled".to_string();
@@ -2336,17 +2344,52 @@ fn finalize_orphaned_subagent(
     meta.duration_ms = Some(duration_ms);
     meta.tool_calls = Some(0);
     meta.turns = Some(0);
-    meta.error = Some(ORPHAN_RECONCILE_REASON.to_string());
+    meta.error = Some(reason.to_owned());
     if !write_subagent_meta(subagent_meta_dir, &meta) {
         return false;
     }
     emit_subagent_notification(
         gateway,
         &meta.parent_session_id,
-        cancelled_orphan_finish(meta.subagent_id, meta.child_session_id, duration_ms),
+        cancelled_orphan_finish(meta.subagent_id, meta.child_session_id, duration_ms, reason),
         parent_cmd_tx,
     );
     true
+}
+fn is_on_disk_meta_running(subagent_meta_dir: &Path) -> bool {
+    let Ok(data) = std::fs::read_to_string(subagent_meta_dir.join("meta.json")) else {
+        return false;
+    };
+    serde_json::from_str::<SubagentMeta>(&data).is_ok_and(|meta| meta.status == "running")
+}
+/// Persist a coordinator-held terminal outcome over a stale `running` meta.
+/// Same write-then-emit durability as [`finalize_orphaned_subagent`].
+fn persist_running_meta_as_finish(
+    subagent_meta_dir: &Path,
+    mut meta: SubagentMeta,
+    finish: &SessionUpdate,
+) -> bool {
+    let SessionUpdate::SubagentFinished {
+        status,
+        error,
+        tool_calls,
+        turns,
+        duration_ms,
+        ..
+    } = finish
+    else {
+        return false;
+    };
+    if !is_on_disk_meta_running(subagent_meta_dir) {
+        return false;
+    }
+    meta.status = status.clone();
+    meta.completed_at = Some(chrono::Utc::now());
+    meta.duration_ms = Some(*duration_ms);
+    meta.tool_calls = Some(*tool_calls);
+    meta.turns = Some(*turns);
+    meta.error = error.clone();
+    write_subagent_meta(subagent_meta_dir, &meta)
 }
 /// Parse `meta_path` and return it only when it is a stale `running` orphan
 /// owned by `parent_session_id` and not tracked live. Malformed metas → `None`.
@@ -2397,7 +2440,10 @@ pub(crate) async fn reconcile_orphaned_subagents_with_backend(
     parent_session_id: &str,
     gateway: &GatewaySender,
     parent_cmd_tx: Option<&mpsc::UnboundedSender<SessionCommand>>,
+    orphan_reason: &str,
+    heal_lock: Arc<tokio::sync::Mutex<()>>,
 ) {
+    let _heal_guard = heal_lock.lock().await;
     let subagents_dir = session_dir.join("subagents");
     let mut candidates: std::collections::BTreeMap<String, Option<String>> =
         std::collections::BTreeMap::new();
@@ -2433,19 +2479,32 @@ pub(crate) async fn reconcile_orphaned_subagents_with_backend(
                     .as_ref()
                     .and_then(completed_finish_from_inspection)
                 {
-                    tracing::info!(
-                        subagent_id = %subagent_id,
-                        parent_session_id,
-                        "Re-emitting finish for completed subagent with a lost terminal meta write"
-                    );
-                    emit_subagent_notification(gateway, parent_session_id, finish, parent_cmd_tx);
+                    if persist_running_meta_as_finish(&subagent_dir, m, &finish) {
+                        tracing::info!(
+                            subagent_id = %subagent_id,
+                            parent_session_id,
+                            "Re-emitting finish for completed subagent with a lost terminal meta write"
+                        );
+                        emit_subagent_notification(
+                            gateway,
+                            parent_session_id,
+                            finish,
+                            parent_cmd_tx,
+                        );
+                    }
                 } else {
                     tracing::info!(
                         subagent_id = %m.subagent_id,
                         parent_session_id,
                         "Reconciling orphaned subagent left running by a previous process"
                     );
-                    finalize_orphaned_subagent(&subagent_dir, m, gateway, parent_cmd_tx);
+                    finalize_orphaned_subagent(
+                        &subagent_dir,
+                        m,
+                        gateway,
+                        parent_cmd_tx,
+                        orphan_reason,
+                    );
                 }
             }
             Some(m) => {
@@ -2485,12 +2544,37 @@ pub(crate) async fn reconcile_orphaned_subagents_with_backend(
                 emit_subagent_notification(
                     gateway,
                     parent_session_id,
-                    cancelled_orphan_finish(subagent_id, child_session_id, 0),
+                    cancelled_orphan_finish(subagent_id, child_session_id, 0, orphan_reason),
                     parent_cmd_tx,
                 );
             }
         }
     }
+    drop(_heal_guard);
+}
+/// Same heal as resume, for a parent that never restarts. `unfinished` is
+/// empty so only on-disk `running` metas are candidates. Persist-first plus
+/// the per-parent lock make a second tick, sequential or overlapping, a
+/// no-op.
+pub(crate) async fn reconcile_live_orphaned_subagents(
+    backend: &nofy_tools::implementations::nofy_build::task::backend::ChannelBackend,
+    session_dir: &Path,
+    parent_session_id: &str,
+    gateway: &GatewaySender,
+    parent_cmd_tx: Option<&mpsc::UnboundedSender<SessionCommand>>,
+    heal_lock: Arc<tokio::sync::Mutex<()>>,
+) {
+    reconcile_orphaned_subagents_with_backend(
+        &[],
+        backend,
+        session_dir,
+        parent_session_id,
+        gateway,
+        parent_cmd_tx,
+        LIVE_ORPHAN_RECONCILE_REASON,
+        heal_lock,
+    )
+    .await;
 }
 #[cfg(test)]
 mod tests;

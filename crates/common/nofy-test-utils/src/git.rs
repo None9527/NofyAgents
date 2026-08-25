@@ -183,3 +183,64 @@ pub fn make_feature_branch(dir: &Path, picks: usize) -> String {
     run_git(dir, &["checkout", "feature"]);
     base
 }
+
+
+/// `git init -b main` plus `core.excludesFile=/dev/null`, the shared preamble
+/// for a seeded source repo.
+pub fn git_init_seed(dir: &Path) {
+    run_git(dir, &["init", "-b", "main"]);
+    run_git(dir, &["config", "core.excludesFile", "/dev/null"]);
+}
+
+
+/// Create `<temp>/repo` with one committed `tracked.txt` and return its path.
+pub fn seed_repo(temp: &Path) -> PathBuf {
+    let repo = temp.join("repo");
+    std::fs::create_dir(&repo).unwrap();
+    init_git_repo(&repo);
+    std::fs::write(repo.join("tracked.txt"), "original").unwrap();
+    git_commit_all(&repo, "initial");
+    repo
+}
+
+
+/// [`seed_repo`] plus a bare `origin` remote holding `refs/heads/main`.
+/// Returns `(repo, remote)`.
+pub fn seed_repo_with_remote(temp: &Path) -> (PathBuf, PathBuf) {
+    let repo = seed_repo(temp);
+    let remote = temp.join("remote.git");
+    run_git(temp, &["init", "--bare", remote.to_str().unwrap()]);
+    run_git(
+        &repo,
+        &["remote", "add", "origin", remote.to_str().unwrap()],
+    );
+    run_git(&repo, &["push", "origin", "HEAD:refs/heads/main"]);
+    run_git(&repo, &["fetch", "origin"]);
+    (repo, remote)
+}
+
+
+/// Commit a modification to `tracked.txt`, then `reset --hard HEAD~1` so only
+/// the reflog names the discarded commit. `when` pins the author/committer date
+/// (e.g. to age the commit); `None` uses the current time. Returns the discarded
+/// commit's SHA and asserts no ref reaches it.
+pub fn reflog_only_commit(worktree: &Path, when: Option<&str>) -> String {
+    std::fs::write(worktree.join("tracked.txt"), "three hours of work\n").unwrap();
+    let dates = when.map(|w| [("GIT_AUTHOR_DATE", w), ("GIT_COMMITTER_DATE", w)]);
+    run_git_with_env(
+        worktree,
+        &["commit", "-am", "work only this worktree saw"],
+        dates.as_ref().map(|d| &d[..]).unwrap_or(&[]),
+    );
+    let discarded = run_git(worktree, &["rev-parse", "HEAD"]);
+    run_git(worktree, &["reset", "--hard", "HEAD~1"]);
+    assert_eq!(
+        run_git(
+            worktree,
+            &["rev-list", "--max-count=1", &discarded, "--not", "--all"]
+        ),
+        discarded,
+        "no ref names it, so only the reflog does"
+    );
+    discarded
+}

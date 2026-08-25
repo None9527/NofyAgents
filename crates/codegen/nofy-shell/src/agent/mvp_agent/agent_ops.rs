@@ -2855,6 +2855,9 @@ impl MvpAgent {
                     )
             })?;
         tool_ctx.subagent_event_tx = Some(self.subagent_event_tx.clone());
+        tool_ctx.live_orphan_heal_lock = self
+            .session_registry
+            .live_orphan_heal_lock(&session_info.id);
         tool_ctx.is_turn_active = Some(
             self.subagent_presentation.borrow().turn_active_flag(),
         );

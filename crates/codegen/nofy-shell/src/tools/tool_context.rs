@@ -194,6 +194,9 @@ pub struct ToolContext {
             nofy_tools::implementations::nofy_build::task::types::SubagentEvent,
         >,
     >,
+    /// Serializes live-orphan heals for this session's subagent metas; the
+    /// same `Arc` the session registry hands to resume-time reconciliation.
+    pub live_orphan_heal_lock: Arc<tokio::sync::Mutex<()>>,
     /// Shared LSP runtime — cloned cheaply (Arc) from parent to child.
     /// Same pattern as `fs` and `terminal`.
     pub lsp: Option<Arc<dyn nofy_tools::implementations::lsp::LspBackend>>,
@@ -287,6 +290,7 @@ impl ToolContext {
             prompt_index: Arc::new(tokio::sync::Mutex::new(0)),
             subagent_depth: 0,
             subagent_event_tx: None,
+            live_orphan_heal_lock: Arc::new(tokio::sync::Mutex::new(())),
             lsp: None,
             lsp_server_names: Vec::new(),
             is_turn_active: None,
@@ -331,6 +335,7 @@ impl ToolContext {
             prompt_index: Arc::new(tokio::sync::Mutex::new(0)),
             subagent_depth: 0,
             subagent_event_tx: None,
+            live_orphan_heal_lock: Arc::new(tokio::sync::Mutex::new(())),
             lsp: None,
             lsp_server_names: Vec::new(),
             is_turn_active: None,
@@ -424,6 +429,7 @@ mod tests {
                 prompt_index: Arc::new(tokio::sync::Mutex::new(0)),
                 subagent_depth: 0,
                 subagent_event_tx: None,
+                live_orphan_heal_lock: Arc::new(tokio::sync::Mutex::new(())),
                 lsp: None,
                 lsp_server_names: Vec::new(),
                 is_turn_active: None,

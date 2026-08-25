@@ -1674,6 +1674,7 @@ pub(crate) async fn spawn_session_actor(
         extension_registry: session_extension_registry(weak.clone()),
         last_announced_local_date: std::cell::Cell::new(chrono::Local::now().date_naive()),
         prefix_carries_fallback_date: std::cell::Cell::new(initial_prefix_carries_fallback_date),
+        last_live_orphan_reconcile: std::cell::Cell::new(None),
         last_search_prompt_index: std::sync::atomic::AtomicI64::new(-1),
         last_api_request_at: std::sync::atomic::AtomicI64::new(0),
         hook_registry: std::cell::RefCell::new(built_hook_registry),

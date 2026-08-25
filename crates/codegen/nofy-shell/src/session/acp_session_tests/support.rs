@@ -393,6 +393,7 @@ pub(crate) async fn create_test_actor_with_terminal(
         extension_registry: nofy_agent_lifecycle::LocalExtensionRegistry::default(),
         last_announced_local_date: std::cell::Cell::new(chrono::Local::now().date_naive()),
         prefix_carries_fallback_date: std::cell::Cell::new(false),
+        last_live_orphan_reconcile: std::cell::Cell::new(None),
         last_search_prompt_index: std::sync::atomic::AtomicI64::new(-1),
         last_api_request_at: std::sync::atomic::AtomicI64::new(0),
         hook_registry: std::cell::RefCell::new(None),

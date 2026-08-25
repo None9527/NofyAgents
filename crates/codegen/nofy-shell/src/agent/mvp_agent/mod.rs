@@ -595,6 +595,10 @@ struct ResidentResources {
 struct RetainedResources {
     turn_number: Option<u64>,
     dispatch_lock: Option<std::rc::Rc<tokio::sync::Mutex<()>>>,
+    /// Serializes tray `list_running` and the actor's live-orphan tick.
+    /// Same `Arc` is cloned onto `ToolContext` at spawn. Released by
+    /// `remove_session`.
+    live_orphan_heal_lock: Option<std::sync::Arc<tokio::sync::Mutex<()>>>,
     permission_event_receiver: Option<
         tokio::sync::mpsc::UnboundedReceiver<PermissionEvent>,
     >,

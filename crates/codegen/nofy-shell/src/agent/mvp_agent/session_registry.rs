@@ -681,6 +681,18 @@ impl SessionRegistry {
                 .clone()
         })
     }
+    pub(super) fn live_orphan_heal_lock(
+        &self,
+        id: &acp::SessionId,
+    ) -> std::sync::Arc<tokio::sync::Mutex<()>> {
+        self.edit(id, |e| {
+            e.retained
+                .get_or_insert_default()
+                .live_orphan_heal_lock
+                .get_or_insert_with(|| std::sync::Arc::new(tokio::sync::Mutex::new(())))
+                .clone()
+        })
+    }
     pub(super) fn set_permission_receiver(
         &self,
         id: &acp::SessionId,
