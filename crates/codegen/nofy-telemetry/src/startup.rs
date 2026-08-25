@@ -109,6 +109,51 @@ struct Inner {
     owner: Owner,
 }
 
+/// A copied view of a timer's phase accounting at one instant.
+#[derive(Clone, Debug)]
+pub struct PhaseSnapshot {
+    pub completed: Vec<(StartupPhase, Duration)>,
+    pub open: Option<(StartupPhase, Duration)>,
+}
+
+impl PhaseSnapshot {
+    pub fn stuck_in(&self) -> &'static str {
+        self.open.map_or("unknown", |(phase, _)| phase.label())
+    }
+
+    /// Not the open step: a step with no await inside closes before a deadline
+    /// observer can run, so the open one is usually its successor.
+    pub fn longest_step(&self) -> Option<StartupPhase> {
+        self.completed
+            .iter()
+            .copied()
+            .chain(self.open)
+            .max_by_key(|(_, elapsed)| *elapsed)
+            .map(|(phase, _)| phase)
+    }
+
+    /// Completed phases read `phase=dur`; the open one reads `phase>=dur`.
+    pub fn summary(&self) -> String {
+        if self.completed.is_empty() && self.open.is_none() {
+            return "no phases entered".to_string();
+        }
+        let mut out = String::new();
+        for (phase, d) in &self.completed {
+            if !out.is_empty() {
+                out.push_str(", ");
+            }
+            let _ = write!(out, "{}={}", phase.label(), format_duration(*d));
+        }
+        if let Some((phase, open)) = self.open {
+            if !out.is_empty() {
+                out.push_str(", ");
+            }
+            let _ = write!(out, "{}>={}", phase.label(), format_duration(open));
+        }
+        out
+    }
+}
+
 pub struct StartupTimer {
     started: Instant,
     inner: Mutex<Inner>,
@@ -174,35 +219,24 @@ impl StartupTimer {
         self.lock().owner
     }
 
+    pub fn phase_snapshot(&self) -> PhaseSnapshot {
+        let now = Instant::now();
+        let g = self.lock();
+        PhaseSnapshot {
+            completed: g.completed.clone(),
+            open: g
+                .current
+                .map(|(phase, t0)| (phase, now.saturating_duration_since(t0))),
+        }
+    }
+
     pub fn stuck_in(&self) -> &'static str {
-        self.lock()
-            .current
-            .map(|(p, _)| p.label())
-            .unwrap_or("unknown")
+        self.phase_snapshot().stuck_in()
     }
 
     /// Completed phases read `phase=dur`; the open one reads `phase>=dur`.
     pub fn summary(&self) -> String {
-        let now = Instant::now();
-        let g = self.lock();
-        if g.completed.is_empty() && g.current.is_none() {
-            return "no phases entered".to_string();
-        }
-        let mut out = String::new();
-        for (phase, d) in &g.completed {
-            if !out.is_empty() {
-                out.push_str(", ");
-            }
-            let _ = write!(out, "{}={}", phase.label(), format_duration(*d));
-        }
-        if let Some((phase, t0)) = g.current {
-            if !out.is_empty() {
-                out.push_str(", ");
-            }
-            let open = now.saturating_duration_since(t0);
-            let _ = write!(out, "{}>={}", phase.label(), format_duration(open));
-        }
-        out
+        self.phase_snapshot().summary()
     }
 
     pub fn elapsed(&self) -> Duration {
@@ -392,7 +426,7 @@ pub fn report_total(outcome: StartupOutcome) {
     });
 }
 
-fn format_duration(d: Duration) -> String {
+pub fn format_duration(d: Duration) -> String {
     let ms = d.as_millis();
     if ms < 1000 {
         format!("{ms}ms")

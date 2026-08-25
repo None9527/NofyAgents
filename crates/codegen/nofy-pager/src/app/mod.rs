@@ -22,6 +22,7 @@ pub mod edit_highlight_worker;
 pub mod mermaid_worker;
 pub use nofy_prompt_queue as prompt_queue;
 mod acp_handler;
+mod connect_timeout;
 mod csi_filter;
 mod dispatch;
 /// Display-refresh probe + motion cadence + terminal telemetry at startup.
@@ -35,6 +36,7 @@ pub mod status_blocks;
 pub mod subagent;
 pub(crate) use effects::sanitize_user_error;
 mod event_loop;
+mod exit_timeout;
 pub(crate) mod external_editor;
 mod foreign_sessions;
 mod inline_edit;
@@ -43,6 +45,7 @@ mod mouse;
 mod queue_edit;
 pub(crate) mod screen_mode_relaunch;
 pub mod signal_handler;
+mod startup_failure;
 mod turn_completion;
 mod xt_filter;
 pub(crate) use crate::terminal::kitty_flags_pushed;
@@ -50,6 +53,7 @@ pub use cli::{
     AgentArgs, AgentCmd, Command, HeadlessArgs, LeaderArgs, LeaderMgmtArgs, LeaderMgmtCommand,
     LeaderTargetArgs, OutputFormat, PagerArgs, ServeArgs, WrapArgs,
 };
+pub use startup_failure::StartupFailure;
 pub use cli::{WorkspaceMgmtArgs, WorkspaceMgmtCommand, WorkspaceStartArgs};
 use crossterm::cursor::{self, SetCursorStyle};
 use crossterm::event;
@@ -428,51 +432,59 @@ struct ConnectFailure {
     outcome: crate::acp::StartupOutcome,
     error: anyhow::Error,
     timeout_secs: Option<u64>,
+    longest_step: Option<crate::acp::StartupPhase>,
 }
 /// Bound connect so a hung leader/spawn cannot blank-screen forever.
-/// Timeout error includes phase summary (`stuck in` + `phases=`).
 async fn bounded_connect(
     cancel: &CancellationToken,
     timeout: std::time::Duration,
     target: crate::acp::AgentKind,
+    attempt: startup_failure::ConnectAttempt,
     timer: &crate::acp::StartupTimer,
     connect: impl std::future::Future<Output = anyhow::Result<crate::acp::AcpConnection>>,
 ) -> Result<crate::acp::AcpConnection, ConnectFailure> {
     use crate::acp::StartupOutcome;
+    let context = || startup_failure::Context {
+        target,
+        attempt,
+        version: nofy_version::display_version(),
+        log_path: nofy_telemetry::unified_log::path(),
+    };
     tokio::select! {
         biased;
         () = cancel.cancelled() => Err(ConnectFailure {
             outcome: StartupOutcome::Cancelled,
-            error: anyhow::anyhow!("startup cancelled before {target} connected"),
+            error: anyhow::Error::new(startup_failure::StartupFailure::cancelled(context())),
             timeout_secs: None,
+            longest_step: None,
         }),
-        r = connect => r.map_err(|error| ConnectFailure {
+        connected = connect => connected.map_err(|error| ConnectFailure {
             outcome: StartupOutcome::Error,
             error,
             timeout_secs: None,
+            longest_step: None,
         }),
         () = tokio::time::sleep(timeout) => {
-            let stuck = timer.stuck_in();
-            let phases = timer.summary();
-            // `connect_target`: tracing reserves bare `target=` for the log target.
+            let timings = timer.phase_snapshot();
+            let longest_step = timings.longest_step();
+            // `connect_target`: tracing reserves bare `target=`.
             tracing::error!(
                 connect_target = %target,
-                stuck_in = stuck,
-                phases = %phases,
+                stuck_in = timings.stuck_in(),
+                phases = %timings.summary(),
                 timeout_secs = timeout.as_secs(),
                 "connect timed out"
             );
             Err(ConnectFailure {
                 outcome: StartupOutcome::Timeout,
-                error: anyhow::anyhow!(
-                    "timed out after {}s connecting to {target}\n  \
-                     stuck in: {stuck}\n  \
-                     phases: {phases}\n  \
-                     startup log: {}",
-                    timeout.as_secs(),
-                    nofy_telemetry::unified_log::path().display()
-                ),
+                error: anyhow::Error::new(startup_failure::StartupFailure::timed_out(
+                    context(),
+                    // Measured, not the budget: a synchronous step can overrun it.
+                    timer.elapsed(),
+                    timings,
+                )),
                 timeout_secs: Some(timeout.as_secs()),
+                longest_step,
             })
         }
     }
@@ -747,7 +759,18 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
     if let Some(ref t) = session_title {
         set_terminal_title(t);
     }
-    const CONNECT_UI_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+    let connect_ui_timeout_env = std::env::var(connect_timeout::CONNECT_UI_TIMEOUT_ENV).ok();
+    let connect_ui_timeout = connect_timeout::resolve(connect_ui_timeout_env.as_deref());
+    if let Some(raw) = connect_ui_timeout_env {
+        nofy_telemetry::unified_log::info(
+            "startup connect budget from env",
+            None,
+            Some(serde_json::json!({
+                "raw": raw,
+                "timeout_secs": connect_ui_timeout.as_secs(),
+            })),
+        );
+    }
     let fallback_flags = use_leader.then(|| connect_flags.clone());
     let primary_target = if use_leader {
         crate::acp::AgentKind::Leader
@@ -764,15 +787,22 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
         ),
     );
     let timer = nofy_telemetry::startup::begin(crate::acp::Owner::Client);
-    let connect_result =
-        bounded_connect(&cancel, CONNECT_UI_TIMEOUT, primary_target, &timer, async {
+    let primary_started = std::time::Instant::now();
+    let connect_result = bounded_connect(
+        &cancel,
+        connect_ui_timeout,
+        primary_target,
+        startup_failure::ConnectAttempt::First,
+        &timer,
+        async {
             if use_leader {
                 crate::acp::connect_via_leader(&cancel, connect_flags, &raw_config).await
             } else {
                 crate::acp::connect(&cancel, connect_flags).await
             }
-        })
-        .await;
+        },
+    )
+    .await;
     let (connect_result, embedded_fallback, timer, connect_target) = match connect_result {
         Err(f) if use_leader && !cancel.is_cancelled() => {
             tracing::warn!(error = %f.error, "leader connect failed; falling back to embedded agent");
@@ -780,9 +810,19 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
             let flags = fallback_flags.expect("set on the use_leader path");
             let timer = nofy_telemetry::startup::begin(crate::acp::Owner::Client);
             let target = crate::acp::AgentKind::Embedded;
-            let fallback = bounded_connect(&cancel, CONNECT_UI_TIMEOUT, target, &timer, async {
-                crate::acp::connect(&cancel, flags).await
-            })
+            let fallback = bounded_connect(
+                &cancel,
+                connect_ui_timeout,
+                target,
+                startup_failure::ConnectAttempt::AfterFallback(startup_failure::EarlierAttempt {
+                    target: primary_target,
+                    wait: primary_started.elapsed(),
+                    outcome: f.outcome,
+                    longest_step: f.longest_step,
+                }),
+                &timer,
+                async { crate::acp::connect(&cancel, flags).await },
+            )
             .await;
             (fallback, true, timer, target)
         }
@@ -846,6 +886,15 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
         writer_event_rx,
     )
     .await;
+    let forced_exit_code = match &result {
+        Ok(run_result) if run_result.relaunch.is_some() => None,
+        Ok(_) => Some(0),
+        Err(_) => Some(1),
+    };
+    if let Some(code) = forced_exit_code {
+        exit_timeout::arm(code);
+        exit_timeout::hold_teardown_for_test();
+    }
     crate::unified_log::flush_blocking().await;
     let restore_result = restore_terminal(terminal, writer_thread, screen_mode);
     drop(agent_guard);
@@ -1587,6 +1636,7 @@ mod tests {
             &cancel,
             std::time::Duration::from_millis(20),
             crate::acp::AgentKind::Embedded,
+            startup_failure::ConnectAttempt::First,
             &timer,
             std::future::pending::<anyhow::Result<crate::acp::AcpConnection>>(),
         )
@@ -1595,13 +1645,27 @@ mod tests {
             panic!("should time out");
         };
         assert_eq!(f.outcome, crate::acp::StartupOutcome::Timeout);
-        let msg = f.error.to_string();
+        // One clause for log fields; the full report is user_report().
         assert!(
-            msg.contains("timed out after 0s connecting to the embedded agent"),
-            "{msg}"
+            f.error.to_string().starts_with("startup timed out after "),
+            "{}",
+            f.error
         );
-        assert!(msg.contains("stuck in: model_catalog"), "{msg}");
-        assert!(msg.contains("startup log: "), "{msg}");
+        let report = f
+            .error
+            .downcast_ref::<startup_failure::StartupFailure>()
+            .expect("timeout error carries a StartupFailure")
+            .user_report();
+        assert!(
+            report.contains("Couldn't start Nofy: startup timed out after"),
+            "{report}"
+        );
+        assert!(report.contains("model_catalog"), "{report}");
+        assert!(report.contains("Log:"), "{report}");
+        assert!(
+            report.contains(connect_timeout::CONNECT_UI_TIMEOUT_TRY_COMMAND),
+            "{report}"
+        );
     }
     #[tokio::test]
     async fn bounded_connect_returns_err_on_cancel() {
@@ -1613,6 +1677,7 @@ mod tests {
             &cancel,
             std::time::Duration::from_secs(60),
             crate::acp::AgentKind::Embedded,
+            startup_failure::ConnectAttempt::First,
             &timer,
             std::future::pending::<anyhow::Result<crate::acp::AcpConnection>>(),
         )

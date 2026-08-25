@@ -197,10 +197,17 @@ fn request_graceful_or_exit(code: i32) {
     if TERMINAL_OWNED.load(Ordering::Acquire)
         && let Some(n) = notify
     {
+        // An orphan never gets the second, forcing signal; bound the quit.
+        super::exit_timeout::arm(code);
         n.notify_one();
     } else {
         shutdown_with_terminal_restore(code);
     }
+}
+
+/// The second-signal teardown, exposed for the exit-timeout path.
+pub(crate) fn force_exit(exit_code: i32) -> ! {
+    shutdown_with_terminal_restore(exit_code)
 }
 
 /// Restore the terminal first, then flush observability, then exit.

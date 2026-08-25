@@ -655,7 +655,10 @@ fn main() {
     nofy_telemetry::debug_log::flush();
     if let Err(e) = result {
         nofy_tty_utils::restore_native_stderr();
-        eprintln!("Error: {e:#}");
+        match e.downcast_ref::<nofy_pager::app::StartupFailure>() {
+            Some(startup) => eprintln!("{}", startup.user_report()),
+            None => eprintln!("Error: {e:#}"),
+        }
         std::process::exit(1);
     }
 }
