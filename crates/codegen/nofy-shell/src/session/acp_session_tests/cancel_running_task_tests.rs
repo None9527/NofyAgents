@@ -120,7 +120,7 @@ async fn persist_ack_waits_for_disk_flush_before_success() {
                 state: TokioMutex::new(State {
                     running_task: None,
                     pending_inputs: VecDeque::new(),
-                    combine_edit_holds: std::collections::HashSet::new(),
+                    edit_holds: std::collections::HashMap::new(),
                     pending_notifications: Vec::new(),
                     notifications_suppressed: false,
                     rewindable: false,
@@ -591,7 +591,7 @@ async fn first_turn_memory_injection_disabled_does_not_persist_to_chat_history()
                 state: TokioMutex::new(State {
                     running_task: None,
                     pending_inputs: VecDeque::new(),
-                    combine_edit_holds: std::collections::HashSet::new(),
+                    edit_holds: std::collections::HashMap::new(),
                     pending_notifications: Vec::new(),
                     notifications_suppressed: false,
                     rewindable: false,
@@ -851,7 +851,7 @@ async fn cancel_running_task_teardown_clears_running_and_pending_work() {
             let state = TokioMutex::new(State {
                 running_task: None,
                 pending_inputs: VecDeque::new(),
-                combine_edit_holds: std::collections::HashSet::new(),
+                edit_holds: std::collections::HashMap::new(),
                 pending_notifications: Vec::new(),
                 notifications_suppressed: false,
                 rewindable: false,
@@ -1109,12 +1109,13 @@ async fn cancel_running_task_teardown_clears_running_and_pending_work() {
                         screen_mode: None,
                         verbatim: false,
                         json_schema: None,
-                        origin: crate::session::PromptOrigin::User,
+                        input_origin: InputOrigin::new(crate::session::PromptOrigin::User),
                         task_wake_fallback: None,
                         respond_to: tx,
                         persist_ack: None,
                         parsed_prompt_tx: None,
                         queue_meta: None,
+                        queue_mutation_policy: QueueMutationPolicy::hidden(),
                         send_now: false,
                     });
             }
@@ -1533,7 +1534,7 @@ async fn cancel_running_task_interactive_preserves_queued_work() {
             screen_mode: None,
             verbatim: false,
             json_schema: None,
-            origin: crate::session::PromptOrigin::User,
+            input_origin: InputOrigin::new(crate::session::PromptOrigin::User),
             task_wake_fallback: None,
             respond_to,
             persist_ack: None,
@@ -1547,6 +1548,7 @@ async fn cancel_running_task_interactive_preserves_queued_work() {
                 text: String::new(),
                 combined_texts: None,
             }),
+            queue_mutation_policy: QueueMutationPolicy::editable(),
             send_now: false,
         };
         (item, rx)
@@ -2086,7 +2088,7 @@ async fn cancel_resolves_front_when_running_task_is_none() {
             screen_mode: None,
             verbatim: false,
             json_schema: None,
-            origin: crate::session::PromptOrigin::User,
+            input_origin: InputOrigin::new(crate::session::PromptOrigin::User),
             task_wake_fallback: None,
             respond_to,
             persist_ack: None,
@@ -2100,6 +2102,7 @@ async fn cancel_resolves_front_when_running_task_is_none() {
                 text: String::new(),
                 combined_texts: None,
             }),
+            queue_mutation_policy: QueueMutationPolicy::editable(),
             send_now: false,
         };
         (item, rx)
@@ -2271,7 +2274,7 @@ async fn cancel_propagates_to_sampler_handle_so_no_further_emission() {
             let state = TokioMutex::new(State {
                 running_task: None,
                 pending_inputs: VecDeque::new(),
-                combine_edit_holds: std::collections::HashSet::new(),
+                edit_holds: std::collections::HashMap::new(),
                 pending_notifications: Vec::new(),
                 notifications_suppressed: false,
                 rewindable: false,
@@ -2652,7 +2655,7 @@ async fn cancel_keeps_remaining_queued_prompts_visible_to_clients() {
             screen_mode: None,
             verbatim: false,
             json_schema: None,
-            origin: crate::session::PromptOrigin::User,
+            input_origin: InputOrigin::new(crate::session::PromptOrigin::User),
             task_wake_fallback: None,
             respond_to,
             persist_ack: None,
@@ -2666,6 +2669,7 @@ async fn cancel_keeps_remaining_queued_prompts_visible_to_clients() {
                 text: String::new(),
                 combined_texts: None,
             }),
+            queue_mutation_policy: QueueMutationPolicy::editable(),
             send_now: false,
         }
     }

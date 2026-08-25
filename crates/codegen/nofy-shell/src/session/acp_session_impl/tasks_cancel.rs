@@ -458,8 +458,10 @@ impl SessionActor {
             // prompt id, so this is an origin check); other fronts take a
             // plain cancel rather than silently losing their message.
             let front_is_user_row = state.pending_inputs.front().is_some_and(|f| {
-                matches!(f.origin, crate::session::PromptOrigin::User)
-                    && !super::interjection::is_interject_fallback(&f.prompt_id)
+                matches!(
+                    f.input_origin.as_prompt_origin(),
+                    crate::session::PromptOrigin::User
+                ) && !super::interjection::is_interject_fallback(&f.prompt_id)
             });
             let rewound_input = if rewind_if_no_output && state.rewindable && front_is_user_row {
                 let rewind_epoch = self.turn_report.epoch();
@@ -536,7 +538,7 @@ impl SessionActor {
                         cancelled.push_back(item);
                     } else if suppress_task_wakes
                         && matches!(
-                            &item.origin,
+                            item.input_origin.as_prompt_origin(),
                             super::PromptOrigin::TaskCompleted { .. }
                                 | super::PromptOrigin::WorkflowCompleted { .. }
                         )
@@ -560,7 +562,7 @@ impl SessionActor {
             let had_queued_user_prompt = state
                 .pending_inputs
                 .iter()
-                .any(|i| !i.origin.is_synthetic());
+                .any(|i| !i.input_origin.is_synthetic());
             // NOTE: `current_prompt_id` is deliberately NOT cleared here —
             // cancel usage attribution must snapshot the ledger against the
             // live pin first; it is cleared below, right after the
@@ -749,7 +751,7 @@ impl SessionActor {
         for (idx, input) in pending_inputs.into_iter().enumerate() {
             // Running turn is idx 0; queued prompts never spent tokens.
             let is_running_turn = idx == 0;
-            if let Some(task_id) = input.origin.completion_id()
+            if let Some(task_id) = input.input_origin.completion_id()
                 && let Some(reservations) = &self.tool_context.task_completion_reservations
             {
                 reservations.release(task_id);

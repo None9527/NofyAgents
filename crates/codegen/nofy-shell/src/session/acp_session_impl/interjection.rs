@@ -74,12 +74,13 @@ impl SessionActor {
             screen_mode: None,
             verbatim: false,
             json_schema: None,
-            origin: super::super::PromptOrigin::User,
+            input_origin: InputOrigin::new(super::super::PromptOrigin::User),
             task_wake_fallback: None,
             respond_to,
             persist_ack: None,
             parsed_prompt_tx: None,
             queue_meta: None,
+            queue_mutation_policy: QueueMutationPolicy::hidden(),
             // Send-now semantics (see doc): a later real send-now must not
             // leapfrog this fallback in `queue_input`'s FIFO scan.
             send_now: front,

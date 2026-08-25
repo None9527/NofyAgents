@@ -672,6 +672,7 @@ pub(super) async fn run_session(
                                 .queue_input(QueueInputRequest {
                                     prompt_blocks,
                                     prompt_id,
+                                    input_origin: InputOrigin::new(origin),
                                     prompt_mode,
                                     client_identifier,
                                     screen_mode,
@@ -946,23 +947,31 @@ pub(super) async fn run_session(
                         }
                         SessionCommand::RemoveQueuedPrompt { id, expected_version, owner } => {
                             session.handle_remove_queued_prompt(&id, expected_version, owner.as_deref()).await;
+                            // Re-kick: delete-while-editing keeps the hold until remove clears it.
+                            SessionActor::maybe_start_running_task(session.clone(), completion_tx.clone()).await;
                         }
                         SessionCommand::ReorderQueue { ordered_ids } => {
                             session.handle_reorder_queue(&ordered_ids).await;
+                            SessionActor::maybe_start_running_task(session.clone(), completion_tx.clone()).await;
                         }
                         SessionCommand::ClearQueue { owner } => {
                             session.handle_clear_queue(owner.as_deref()).await;
+                            SessionActor::maybe_start_running_task(session.clone(), completion_tx.clone()).await;
                         }
                         SessionCommand::EditQueuedPrompt { id, new_text, editor } => {
+                            // Edit clears the hold; re-kick so a previously held front can start.
                             session.handle_edit_queued_prompt(&id, new_text, editor.as_deref()).await;
+                            SessionActor::maybe_start_running_task(session.clone(), completion_tx.clone()).await;
                         }
-                        SessionCommand::HoldCombineEdit { id } => {
-                            let mut state = session.state.lock().await;
-                            state.combine_edit_holds.insert(id);
+                        SessionCommand::HoldEdit { id } => {
+                            // insert (not entry/or_insert): re-entering edit after a
+                            // dropped release must refresh the TTL stamp.
+                            session.handle_hold_edit(id).await;
                         }
-                        SessionCommand::ReleaseCombineEdit { id } => {
-                            let mut state = session.state.lock().await;
-                            state.combine_edit_holds.remove(&id);
+                        SessionCommand::ReleaseEdit { id } => {
+                            session.handle_release_edit(&id).await;
+                            // Unblocks an editable front that was parked under edit hold.
+                            SessionActor::maybe_start_running_task(session.clone(), completion_tx.clone()).await;
                         }
                         SessionCommand::InterjectQueuedPrompt { id, expected_version, owner, new_text } => {
                             // Send-now: the handler promoted the row; cancel the running turn and start it.
@@ -1919,12 +1928,13 @@ pub(super) async fn run_session(
                                     screen_mode: None,
                                     verbatim: true,
                                     json_schema: None,
-                                    origin: super::PromptOrigin::GoalSummary,
+                                    input_origin: InputOrigin::new(super::PromptOrigin::GoalSummary),
                                     task_wake_fallback: None,
                                     respond_to,
                                     persist_ack: None,
                                     parsed_prompt_tx: None,
                                     queue_meta: None,
+                                    queue_mutation_policy: QueueMutationPolicy::hidden(),
                                     send_now: false,
                                 });
                             }
@@ -1954,7 +1964,7 @@ pub(super) async fn run_session(
                             {
                                 let mut state = session.state.lock().await;
                                 let workflow_wake_queued = state.pending_inputs.iter().any(|item| {
-                                    matches!(item.origin, super::PromptOrigin::WorkflowCompleted { .. })
+                                    matches!(item.input_origin.as_prompt_origin(), super::PromptOrigin::WorkflowCompleted { .. })
                                 });
                                 if workflow_wake_queued {
                                     continue;
@@ -1967,14 +1977,15 @@ pub(super) async fn run_session(
                                     screen_mode: None,
                                     verbatim: true,
                                     json_schema: None,
-                                    origin: super::PromptOrigin::WorkflowCompleted {
+                                    input_origin: InputOrigin::new(super::PromptOrigin::WorkflowCompleted {
                                         completion_id: format!("{run_id}-{revision}"),
-                                    },
+                                    }),
                                     task_wake_fallback: None,
                                     respond_to,
                                     persist_ack: None,
                                     parsed_prompt_tx: None,
                                     queue_meta: None,
+                                    queue_mutation_policy: QueueMutationPolicy::hidden(),
                                     send_now: false,
                                 });
                             }

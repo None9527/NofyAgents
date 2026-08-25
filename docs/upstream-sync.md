@@ -36,7 +36,7 @@
 | 状态栏(status line) | 无 | 批12 待移植;上游依赖它的代码(如事件循环刷新计时)移植时裁掉 |
 | feedback_manager(退出反馈上传) | 无 | 依赖云上传;相关测试引用时裁掉 |
 | 遥测 activity gauges(SUBAGENTS_ACTIVE 等) | 无 | 仅遥测面,需要时整体移植 |
-| 队列策略架构(InputPolicy/QueuePolicy/ShutdownPolicy、queue_mutation) | 无 | 上游对 prompt_queue 的整体重构,无法独立移植;我们的队列语义自洽 |
+| goal steering(planner 转向、promote_queued_as_interjections、follow-up steer 配置) | 无 | 批8-5 待移植;依赖 goal_tracker planner_run + turn.rs round 循环 |
 | session registry 标题同步 | 无 | 依赖 registry 服务 |
 | 权限 Always/Never | 无 | 批9 待移植(~1400 行,安全敏感) |
 | attempt_store 子代理恢复台账 | 无 | 批10 待移植(~1500 行) |
@@ -52,6 +52,7 @@
 - 上游 `CancellationCategory` 在 `session::events`,我们在 `nofy_file_utils::events::types`
 - 上游 grok_build 工具路径 → 我们 `nofy_build`
 - 上游 `_x.ai/` wire 方法前缀 → `_nofy/`
+- 队列策略移植(批8-4):上游 `trace_gcs_config`/`artifact_tracker`/`tool_overrides_update` 字段一律裁掉;`goal_tracker.lock().status()` 两侧同构可直接用;`combine_edit_holds: HashSet` → `edit_holds: HashMap<String, Instant>` + `EDIT_HOLD_TTL`(10 分钟)+ `expire_older_than` GC
 
 ## 已完成批次日志
 
@@ -67,3 +68,4 @@
 | 批8-1 | c0f28872 | 工作流列表+命名参数+effort | 0.2.141 |
 | 批8-2 | 47a7a422 | 标题自动刷新(3/6 回合) | 0.2.141 |
 | 批8-3 | e570b82b | 进程内 /minimal⇄/fullscreen | 0.2.141 |
+| 批8-4 | be544e21 | 队列策略架构:InputPolicy/QueuePolicy 类型、queue_mutation 授权、edit_holds TTL 乐观锁、HoldEdit promote 阻塞、受保护行 | 0.2.142 |

@@ -1774,7 +1774,7 @@ impl SessionActor {
         let prompt_blocks = vec![acp::ContentBlock::Text(acp::TextContent::new(text))];
         let (respond_to, _rx) = oneshot::channel();
         let _ = self
-            .queue_input(QueueInputRequest::new(
+            .queue_input(QueueInputRequest::from_legacy_prompt_id(
                 prompt_blocks,
                 prompt_id,
                 mode,
@@ -2221,7 +2221,7 @@ impl SessionActor {
         }
         let mut state = self.state.lock().await;
         let dropped = state.sweep_pending_inputs(|i| {
-            i.origin
+            i.input_origin
                 .completion_id()
                 .is_some_and(|id| consumed_ids.contains(&id))
         });
@@ -2235,7 +2235,7 @@ impl SessionActor {
         if let Some(reservations) = &self.tool_context.task_completion_reservations {
             for task_id in dropped
                 .iter()
-                .filter_map(|input| input.origin.completion_id())
+                .filter_map(|input| input.input_origin.completion_id())
             {
                 reservations.release(task_id);
             }
@@ -2249,23 +2249,21 @@ impl SessionActor {
             );
         }
     }
-    /// Drain all queued synthetic prompts (auto-wake task/subagent
-    /// completions, notification-drain batches, and goal-summary turns —
-    /// every `PromptOrigin` variant where `is_synthetic()` returns
-    /// `true`) from `pending_inputs`, and clear ALL
-    /// `pending_notifications` unconditionally (every current
-    /// `NotificationSource` variant is sourced from a synthetic event).
+    /// Drain queued runtime producer wakes (non-`ShutdownPolicy::Drain`
+    /// origins: auto-wake task/subagent completions, notification-drain
+    /// batches, goal-summary turns, etc.) from `pending_inputs`, and clear
+    /// ALL `pending_notifications` unconditionally.
     ///
-    /// Called from `SessionCommand::Shutdown` as a defensive backstop
-    /// so a synthetic prompt that slipped past the per-tool-result
-    /// sweep cannot be flushed to `chat_history.jsonl` after the actor
-    /// returns. Real user inputs are preserved.
+    /// Called from `SessionCommand::Shutdown` as a defensive backstop so a
+    /// runtime wake that slipped past the per-tool-result sweep cannot be
+    /// flushed to `chat_history.jsonl` after the actor returns. Drain-policy
+    /// rows are preserved.
     pub(super) async fn drop_pending_synthetic_items(&self) {
         let mut state = self.state.lock().await;
         let mut kept = VecDeque::with_capacity(state.pending_inputs.len());
         let mut dropped = Vec::new();
         for input in std::mem::take(&mut state.pending_inputs) {
-            if input.origin.is_synthetic() {
+            if input.input_origin.is_preemptible_runtime_wake() {
                 dropped.push(input);
             } else {
                 kept.push_back(input);
@@ -2277,7 +2275,7 @@ impl SessionActor {
         if let Some(reservations) = &self.tool_context.task_completion_reservations {
             for task_id in dropped
                 .iter()
-                .filter_map(|input| input.origin.completion_id())
+                .filter_map(|input| input.input_origin.completion_id())
             {
                 reservations.release(task_id);
             }

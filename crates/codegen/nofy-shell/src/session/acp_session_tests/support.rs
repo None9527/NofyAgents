@@ -213,7 +213,7 @@ pub(crate) async fn create_test_actor_with_terminal(
     let state = TokioMutex::new(State {
         running_task: None,
         pending_inputs: VecDeque::new(),
-        combine_edit_holds: std::collections::HashSet::new(),
+        edit_holds: std::collections::HashMap::new(),
         pending_notifications: Vec::new(),
         notifications_suppressed: false,
         rewindable: false,
@@ -481,7 +481,7 @@ pub(crate) fn user_item_with_rx(
         screen_mode: None,
         verbatim: false,
         json_schema: None,
-        origin: crate::session::PromptOrigin::User,
+        input_origin: InputOrigin::new(crate::session::PromptOrigin::User),
         task_wake_fallback: None,
         respond_to,
         persist_ack: None,
@@ -495,6 +495,7 @@ pub(crate) fn user_item_with_rx(
             text,
             combined_texts: None,
         }),
+        queue_mutation_policy: QueueMutationPolicy::editable(),
         send_now: false,
     };
     (item, rx)
@@ -512,6 +513,7 @@ pub(crate) fn input_with_origin_rx(
 ) -> (InputItem, oneshot::Receiver<PromptTurnResult>) {
     let (respond_to, rx) = oneshot::channel();
     let verbatim = origin.is_synthetic();
+    let input_origin = InputOrigin::new(origin);
     let item = InputItem {
         prompt_id: prompt_id.to_string(),
         prompt_blocks: vec![],
@@ -520,12 +522,13 @@ pub(crate) fn input_with_origin_rx(
         screen_mode: None,
         verbatim,
         json_schema: None,
-        origin,
+        input_origin,
         task_wake_fallback: None,
         respond_to,
         persist_ack: None,
         parsed_prompt_tx: None,
         queue_meta: None,
+        queue_mutation_policy: QueueMutationPolicy::hidden(),
         send_now: false,
     };
     (item, rx)
@@ -537,7 +540,7 @@ pub(crate) fn queue_input_request(
     prompt_id: &str,
     respond_to: oneshot::Sender<PromptTurnResult>,
 ) -> QueueInputRequest {
-    QueueInputRequest::new(
+    QueueInputRequest::from_legacy_prompt_id(
         prompt_blocks,
         prompt_id.to_string(),
         PromptMode::Agent,

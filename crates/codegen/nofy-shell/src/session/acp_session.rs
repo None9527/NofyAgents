@@ -130,6 +130,9 @@ pub(crate) use interjection::*;
 mod laziness;
 #[cfg(test)]
 pub(crate) use laziness::*;
+#[path = "acp_session_impl/queue_mutation.rs"]
+mod queue_mutation;
+use queue_mutation::{InputOrigin, QueueMutationPolicy};
 #[path = "acp_session_impl/prompt_queue.rs"]
 mod prompt_queue;
 pub(super) use prompt_queue::QueueInputRequest;
@@ -227,8 +230,8 @@ pub(crate) struct InputItem {
     /// See [`SessionCommand::Prompt::verbatim`].
     pub(crate) verbatim: bool,
     pub(crate) json_schema: Option<serde_json::Value>,
-    /// Who originated this prompt — user or auto-wake system.
-    pub(crate) origin: super::PromptOrigin,
+    /// Authoritative typed provenance for this input.
+    pub(crate) input_origin: InputOrigin,
     /// Typed deferred completion retained while an admitted task wake is queued.
     /// Consumed by an interactive stop if it removes the wake before the
     /// turn starts.
@@ -243,6 +246,7 @@ pub(crate) struct InputItem {
     /// user-originated prompts (they appear in the shared queue); `None` for
     /// synthetic / system inputs (auto-wake, nudges, notification drains).
     pub(crate) queue_meta: Option<crate::session::prompt_queue::QueueEntryMeta>,
+    pub(crate) queue_mutation_policy: QueueMutationPolicy,
     /// Whether this prompt entered via the send-now path (explicit, derived
     /// during a blocking wait, or an interjection fallback). Send-now inserts
     /// land behind earlier still-queued send-now prompts so stacked sends
@@ -300,6 +304,29 @@ struct GoalContinuationPlan {
     /// directive is committed for delivery.
     strategy_rec: Option<String>,
 }
+/// Maximum age of a queue-edit hold before the promoter discards it.
+///
+/// Bounds leaked holds after a client crash or dropped `release_edit`. Expiry
+/// runs during the next promote attempt (`maybe_start_running_task`), not on a
+/// timer. A repeat `hold_edit` inserts a fresh stamp so re-entering edit after
+/// a dropped release does not inherit an aged bound.
+pub(crate) const EDIT_HOLD_TTL: std::time::Duration = std::time::Duration::from_secs(10 * 60);
+
+fn expire_older_than(holds: &mut HashMap<String, std::time::Instant>, ttl: std::time::Duration) {
+    holds.retain(|_, since| since.elapsed() < ttl);
+}
+
+#[cfg(test)]
+fn backdate_edit_hold(
+    holds: &mut HashMap<String, std::time::Instant>,
+    id: &str,
+    age: std::time::Duration,
+) {
+    if let Some(since) = holds.get_mut(id) {
+        *since = std::time::Instant::now() - age;
+    }
+}
+
 /// Task scheduling state — the only fields that remain behind `TokioMutex`.
 ///
 /// All chat state (conversation, tokens, timing, prompt_index, prompt_texts,
@@ -311,8 +338,9 @@ pub(crate) struct State {
     pub(crate) running_task: Option<AgentTask>,
     pub(crate) pending_inputs: VecDeque<InputItem>,
     pub(crate) pending_notifications: Vec<PendingNotification>,
-    /// Prompt ids held out of combine-on-promote (composer edit in progress).
-    pub(crate) combine_edit_holds: std::collections::HashSet<String>,
+    /// Prompt ids under composer edit, stamped (and re-stamped) by `hold_edit`.
+    /// Held followers are skipped by combine; a live held front blocks promote.
+    pub(crate) edit_holds: HashMap<String, std::time::Instant>,
     /// When true, notifications are buffered but not drained until genuine
     /// user re-engagement. Set by an interactive stop, cleared by a user
     /// prompt.

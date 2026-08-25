@@ -173,9 +173,15 @@ impl SessionActor {
         // Note: Auto-compact is now handled inline during process_conversation_turn,
         // so we no longer need to check for queued auto-compact here.
 
-        // Drop stale workflow-completion synthetic fronts (already reported).
+        // Drop stale synthetic fronts before promoting: already-reported workflow completions, and
+        // goal continuations whose goal is no longer Active. An Active goal re-arms a fresh
+        // continuation at turn end, so a leftover one here would jump ahead of the user's queue.
         loop {
-            let stale = match state.pending_inputs.front().map(|item| &item.origin) {
+            let stale = match state
+                .pending_inputs
+                .front()
+                .map(|item| item.input_origin.as_prompt_origin())
+            {
                 Some(super::PromptOrigin::WorkflowCompleted { completion_id }) => {
                     match completion_id
                         .rsplit_once('-')
@@ -192,6 +198,9 @@ impl SessionActor {
                         None => true,
                     }
                 }
+                Some(
+                    super::PromptOrigin::GoalSummary | super::PromptOrigin::GoalClassifierNudge,
+                ) => !self.goal_loop_active(),
                 _ => false,
             };
             if !stale {
@@ -202,20 +211,48 @@ impl SessionActor {
             }
         }
 
-        // GC stale edit-holds: an id that is no longer queued (promoted,
-        // removed, or whose fire-and-forget `release_edit` was dropped) can
-        // never be edited again, so drop it to bound the set over a long session.
-        if !state.combine_edit_holds.is_empty() {
+        // Drop holds for rows no longer queued, then expire leaked holds so a
+        // client crash or dropped release cannot park the queue forever.
+        if !state.edit_holds.is_empty() {
             let live: std::collections::HashSet<String> = state
                 .pending_inputs
                 .iter()
                 .map(|i| i.prompt_id.clone())
                 .collect();
-            state.combine_edit_holds.retain(|id| live.contains(id));
+            state.edit_holds.retain(|id, _| live.contains(id));
+            super::expire_older_than(&mut state.edit_holds, super::EDIT_HOLD_TTL);
+        }
+
+        // Held front must not start until edit/release; check before combine so
+        // we never absorb followers into a front that will not run yet.
+        if let Some(front) = state.pending_inputs.front()
+            && state.edit_holds.contains_key(&front.prompt_id)
+        {
+            let front_prompt_id = front.prompt_id.as_str();
+            let queue_depth = state.pending_inputs.len();
+            nofy_telemetry::unified_log::debug(
+                "shell.prompt.start_blocked",
+                Some(self.session_info.id.0.as_ref()),
+                Some(serde_json::json!({
+                    "reason": "front_edit_hold",
+                    "queue_depth": queue_depth,
+                    "front_prompt_id": front_prompt_id,
+                })),
+            );
+            tracing::debug!(
+                target: "qtrace",
+                pid = std::process::id(),
+                event = "server_start_blocked",
+                queue_depth,
+                front_prompt_id,
+                session = self.session_info.id.0.as_ref(),
+                "maybe_start_running_task blocked: front is under edit hold",
+            );
+            return;
         }
 
         if combine_queued {
-            let holds: Vec<String> = state.combine_edit_holds.iter().cloned().collect();
+            let holds: Vec<String> = state.edit_holds.keys().cloned().collect();
             let skip: Vec<&str> = holds.iter().map(String::as_str).collect();
             SessionActor::combine_front_pending_inputs(&mut state.pending_inputs, &skip);
         }
@@ -233,7 +270,7 @@ impl SessionActor {
             screen_mode,
             verbatim,
             json_schema,
-            origin,
+            input_origin,
             running_display,
         ) = {
             let Some(front) = state.pending_inputs.front_mut() else {
@@ -250,11 +287,11 @@ impl SessionActor {
                 front.screen_mode.clone(),
                 front.verbatim,
                 front.json_schema.clone(),
-                front.origin.clone(),
+                front.input_origin.clone(),
                 running_display,
             )
         };
-        if matches!(origin, super::PromptOrigin::User) {
+        if input_origin.policy().authority.is_human_intent() {
             if let Some(gate) = &self.tool_context.task_wake_suppressed {
                 gate.set(false);
             }
@@ -582,12 +619,13 @@ impl SessionActor {
             screen_mode: None,
             verbatim: true,
             json_schema: None,
-            origin: super::PromptOrigin::NotificationDrain,
+            input_origin: InputOrigin::new(super::PromptOrigin::NotificationDrain),
             task_wake_fallback: None,
             respond_to,
             persist_ack: None,
             parsed_prompt_tx: None,
             queue_meta: None,
+            queue_mutation_policy: QueueMutationPolicy::hidden(),
             send_now: false,
         });
 

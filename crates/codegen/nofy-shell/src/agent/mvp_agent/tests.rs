@@ -2893,10 +2893,10 @@ async fn ext_notification_forwards_each_queue_method_to_session_actor() {
                 assert_eq!(owner.as_deref(), Some("nofy-tui"));
                 assert_eq!(new_text.as_deref(), Some("now"));
             }
-            ("nofy/queue/hold_edit", SessionCommand::HoldCombineEdit { id }) => {
+            ("nofy/queue/hold_edit", SessionCommand::HoldEdit { id }) => {
                 assert_eq!(id, "p-hold");
             }
-            ("nofy/queue/release_edit", SessionCommand::ReleaseCombineEdit { id }) => {
+            ("nofy/queue/release_edit", SessionCommand::ReleaseEdit { id }) => {
                 assert_eq!(id, "p-release");
             }
             (method, _) => {
