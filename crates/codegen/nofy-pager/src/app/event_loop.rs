@@ -1562,7 +1562,44 @@ pub(crate) async fn run(
     let quit_notify = std::sync::Arc::new(tokio::sync::Notify::new());
     crate::app::signal_handler::set_quit_notify(quit_notify.clone());
 
+    // Defers `SessionLoaded`/`SessionLoadFailed` until queued ACP replay for
+    // the loading session has been applied; see `session_load_barrier`.
+    let mut session_load_barrier = super::session_load_barrier::SessionLoadBarrier::new();
+    let mut acp_peek: Option<nofy_acp_lib::AcpClientMessage> = None;
+
     loop {
+        if !session_load_barrier.is_empty() && acp_peek.is_none() {
+            acp_peek = acp_rx.try_recv().ok();
+        }
+        let ready_loads = session_load_barrier.take_ready(
+            |id| {
+                app.agents
+                    .get(&id)
+                    .is_some_and(|a| a.session.loading_replay)
+            },
+            super::session_load_barrier::SessionLoadAcpTick {
+                head: acp_peek.as_ref(),
+                drain_arm: super::session_load_barrier::AcpDrainArm::from_input_rx_empty(
+                    input_rx.is_empty(),
+                ),
+                now: std::time::Instant::now(),
+            },
+        );
+        let mut quit_after_deferred_load = false;
+        for result in ready_loads {
+            let effs = dispatch::dispatch(Action::TaskComplete(result), &mut app);
+            if process_effects(effs, &mut tasks, &mut app) {
+                quit_after_deferred_load = true;
+                break;
+            }
+            schedule_tick(&mut animation_tick_at, &app, tick_interval);
+            resize_debounce_at = None;
+            presenter.request(false);
+        }
+        if quit_after_deferred_load {
+            break;
+        }
+
         // Pending $EDITOR / $PAGER suspends first: they can be armed by ANY
         // arm of the select below (input, ticks — e.g. minimal's incremental
         // /transcript build finishing inside a tick draw — tasks, ACP), so
@@ -1685,6 +1722,18 @@ pub(crate) async fn run(
             }
         };
 
+        let load_barrier_tick = async {
+            match session_load_barrier.next_wakeup() {
+                Some(deadline) => {
+                    tokio::time::sleep(
+                        deadline.saturating_duration_since(std::time::Instant::now()),
+                    )
+                    .await;
+                }
+                None => std::future::pending().await,
+            }
+        };
+
         tokio::select! {
             biased;
 
@@ -1724,7 +1773,12 @@ pub(crate) async fn run(
             // Gating, not reordering: moving input above ACP would flip the
             // starvation direction (streaming redraws starving behind held
             // keys), and cancel/quit must stay above the firehose regardless.
-            msg = acp_rx.recv(), if input_rx.is_empty() => {
+            msg = async {
+                match acp_peek.take() {
+                    Some(msg) => Some(msg),
+                    None => acp_rx.recv().await,
+                }
+            }, if input_rx.is_empty() => {
                 let Some(msg) = msg else { break };
                 let mut state_changed = acp_handler::handle(msg, &mut app);
                 if !app.pending_effects.is_empty() {
@@ -1768,6 +1822,30 @@ pub(crate) async fn run(
             Some(join_result) = tasks.join_next() => {
                 match join_result {
                     Ok(result) => {
+                        let agent_loading =
+                            super::session_load_barrier::session_load_agent_id(&result)
+                                .is_some_and(|id| {
+                                    app.agents
+                                        .get(&id)
+                                        .is_some_and(|a| a.session.loading_replay)
+                                });
+                        if agent_loading && acp_peek.is_none() {
+                            acp_peek = acp_rx.try_recv().ok();
+                        }
+                        let Some(result) = session_load_barrier.push_or_dispatch(
+                            result,
+                            agent_loading,
+                            super::session_load_barrier::SessionLoadAcpTick {
+                                head: acp_peek.as_ref(),
+                                drain_arm:
+                                    super::session_load_barrier::AcpDrainArm::from_input_rx_empty(
+                                        input_rx.is_empty(),
+                                    ),
+                                now: std::time::Instant::now(),
+                            },
+                        ) else {
+                            continue;
+                        };
                         let effs = dispatch::dispatch(Action::TaskComplete(result), &mut app);
                         if process_effects(effs, &mut tasks, &mut app) {
                             break;
@@ -1928,6 +2006,10 @@ pub(crate) async fn run(
                 // Always re-arm: a cheap no-op fire while focused / not-yet-eligible.
                 recap_poll_at = Some(Instant::now() + RECAP_POLL_INTERVAL);
             }
+
+            // Session-load barrier deadline: re-check deferred loads even when
+            // no other event fires (unrelated-drain timeout expired).
+            _ = load_barrier_tick => {}
 
             // Hot-reload: config file changed (dev mode) or initial load.
             Ok(()) = config_watcher.changed() => {

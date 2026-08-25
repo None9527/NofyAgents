@@ -12,6 +12,13 @@ mod version_mismatch;
 
 pub(crate) use version_mismatch::{is_version_mismatch_banner, version_mismatch_banner};
 
+/// Ext methods that carry a session-scoped update and may stamp `isReplay`.
+/// Shared by TUI/headless dispatch and the session-load ACP barrier so a new
+/// method cannot be handled in one path and classified `Unrelated` in the other.
+pub(crate) fn is_session_update_ext_method(method: &str) -> bool {
+    matches!(method, "nofy/session_notification" | "nofy/session/update")
+}
+
 use nofy_telemetry::startup;
 pub use nofy_telemetry::startup::{
     AgentKind, Owner, StartupOutcome, StartupPhase, StartupTimer,
