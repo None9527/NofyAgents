@@ -143,6 +143,7 @@ use crate::views::modal::{self, ActiveModal, ModalButtonHit};
 use crate::views::permission_view::{PermissionViewState, SubagentInfo};
 use crate::views::plan_approval_view::{PlanApprovalViewState, PlanComment};
 use crate::views::prompt_widget::{PromptWidget, StashedPrompt};
+use crate::views::elicitation_view::ElicitationViewState;
 use crate::views::question_view::QuestionViewState;
 use crate::views::queue_pane::QueuePane;
 use crate::views::subagent_catalog_pane::SubagentCatalogPane;
@@ -156,6 +157,7 @@ use ratatui::widgets::Widget;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::time::Instant;
 mod cta;
+mod elicitation;
 mod input;
 pub(crate) use input::ExternalPromptEditorAccess;
 mod interactions;
@@ -1256,6 +1258,15 @@ pub struct AgentView {
     /// Active question view (from `AskUserQuestion` tool). When `Some`, the
     /// prompt area shows a structured question UI and input is modal.
     pub(crate) question_view: Option<QuestionViewState>,
+    pub(crate) elicitation_view: Option<ElicitationViewState>,
+    pub(crate) pending_elicitation: Option<(
+        nofy_tools::mcp_elicitation::McpElicitExtRequest,
+        tokio::sync::oneshot::Sender<nofy_acp_lib::AcpResult<agent_client_protocol::ExtResponse>>,
+    )>,
+    pub(crate) elicit_hits: Vec<(
+        crate::views::elicitation_view::ElicitHit,
+        ratatui::layout::Rect,
+    )>,
     /// Scrollbar hit area for the question view (set during render).
     pub(crate) hit_question_scrollbar: HitArea,
     /// Hovered question item index (visual highlight only).

@@ -1067,6 +1067,28 @@ impl AgentView {
             let _ = self.dismiss_question_view();
             return true;
         }
+        if let Some(ev) = self.elicitation_view.as_ref()
+            && ev.tool_call_id == tool_call_id
+        {
+            if ev.is_url_waiting() {
+                return false;
+            }
+            if let Some(mut ev) = self.elicitation_view.take() {
+                let _ = ev.take_response_tx();
+                self.restore_elicitation_prompt(ev.stashed_prompt);
+            }
+            return true;
+        }
+        if self
+            .pending_elicitation
+            .as_ref()
+            .is_some_and(|(req, _)| req.tool_call_id == tool_call_id)
+        {
+            if let Some((_, tx)) = self.pending_elicitation.take() {
+                drop(tx);
+            }
+            return true;
+        }
         if self
             .plan_approval_view
             .as_ref()
@@ -1119,14 +1141,17 @@ impl AgentView {
     ///
     /// A permission and a plan approval each stash the composer and blank it, so while one is up the composer is not the live editor
     /// and their stash is what will be restored from. The draft has to go there instead, or that stash puts back whatever the card was
-    /// holding. Casual commenting is the other way round, keeping its draft parked and the composer live, so it takes the ordinary
-    /// restore.
+    /// holding. A question owns the live composer as freeform, so the draft
+    /// goes into its stash — writing through would first clobber the
+    /// freeform and then be clobbered by the question's own restore.
     pub(crate) fn restore_card_prompt(
         &mut self,
         stashed: crate::views::prompt_widget::StashedPrompt,
     ) {
         if self.permission_stashed_prompt.is_some() {
             self.permission_stashed_prompt = Some(stashed);
+        } else if let Some(qv) = self.question_view.as_mut() {
+            qv.stashed_prompt = stashed;
         } else if let Some(pav) = self.plan_approval_view.as_mut() {
             pav.stashed_prompt = stashed;
         } else {

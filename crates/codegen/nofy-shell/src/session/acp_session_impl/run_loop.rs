@@ -233,6 +233,24 @@ pub(super) async fn run_session(
             None,
         )
     };
+    let _elicitation_coordinator = if !session.startup_hints.is_subagent {
+        let elicit_inbox = nofy_mcp::elicitation::ElicitationInbox::new();
+        {
+            let mut mcp_state = session.mcp_state.lock().await;
+            mcp_state.set_elicitation_tx(Some(elicit_inbox.clone()));
+        }
+        Some(
+            crate::session::mcp_elicitation::spawn_elicitation_coordinator(
+                elicit_inbox,
+                session.notifications.gateway.clone(),
+                session.session_info.id.clone(),
+                session.pending_interactions.clone(),
+                std::rc::Rc::new(std::cell::Cell::new(session.startup_hints.non_interactive)),
+            ),
+        )
+    } else {
+        None
+    };
     if !session.startup_hints.is_subagent && liveness_watchers_enabled {
         let (event_tx, event_rx) =
             tokio::sync::mpsc::unbounded_channel::<nofy_mcp::servers::McpClientEvent>();

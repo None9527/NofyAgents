@@ -329,3 +329,22 @@ pub(super) fn handle_mcp_servers_updated(_notif: &acp::ExtNotification, app: &mu
     }
     redraw
 }
+
+/// Handle `nofy/mcp/elicit_complete`: dismiss the matched agent's URL-mode
+/// elicitation card that is still waiting on this `elicitation_id`.
+pub(super) fn handle_mcp_elicit_complete(notif: &acp::ExtNotification, app: &mut AppView) -> bool {
+    let Ok(payload) = serde_json::from_str::<
+        nofy_tools::mcp_elicitation::McpElicitCompletePayload,
+    >(notif.params.get()) else {
+        return false;
+    };
+    let session_id = acp::SessionId::new(payload.session_id);
+    let Some(matched) = find_session_match(app, &session_id) else {
+        return false;
+    };
+    let id = matched.agent_id();
+    let Some(agent) = app.agents.get_mut(&id) else {
+        return false;
+    };
+    agent.dismiss_waiting_elicitation(&payload.elicitation_id, payload.server_name.as_deref())
+}

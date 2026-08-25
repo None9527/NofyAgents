@@ -306,6 +306,13 @@ impl AgentView {
                     .map(|qv| self.question_shortcut_hints(qv))
                     .unwrap_or_default(),
             ),
+            KeyOwner::Card(BlockingCard::McpElicitation) => ShortcutsBarContent::Surface(vec![
+                HintItem::new(key!(Enter), "accept / toggle"),
+                HintItem::new(key!('d'), "decline"),
+                HintItem::new(key!('c', CONTROL), "cancel"),
+                HintItem::new(key!(Tab), "next field"),
+                self.card_esc_hint(),
+            ]),
             KeyOwner::Pane => {
                 ShortcutsBarContent::Pane(self.normal_pane_hints(registry, esc_owned_before_agent))
             }
@@ -1027,8 +1034,22 @@ impl AgentView {
         } else {
             0
         };
-        let rewind_view_h = if permission_view_h == 0 && question_view_h == 0 {
-            if let Some(ref rw) = self.rewind_state {
+        let elicitation_view_h = if permission_view_h == 0 && question_view_h == 0 {
+            if let Some(ref ev) = self.elicitation_view {
+                crate::views::elicitation_view::elicitation_view_height(
+                    ev,
+                    area.height,
+                    overlay_content_w,
+                )
+            } else {
+                0
+            }
+        } else {
+            0
+        };
+        let rewind_view_h =
+            if permission_view_h == 0 && question_view_h == 0 && elicitation_view_h == 0 {
+                if let Some(ref rw) = self.rewind_state {
                 crate::views::rewind::rewind_overlay_height(&rw.phase, area.height)
             } else {
                 0
@@ -1036,9 +1057,12 @@ impl AgentView {
         } else {
             0
         };
-        let cancel_turn_view_h =
-            if permission_view_h == 0 && question_view_h == 0 && rewind_view_h == 0 {
-                if self.cancel_turn_view.is_some() {
+        let cancel_turn_view_h = if permission_view_h == 0
+            && question_view_h == 0
+            && elicitation_view_h == 0
+            && rewind_view_h == 0
+        {
+            if self.cancel_turn_view.is_some() {
                     modal::cancel_turn_panel_height(area.height)
                 } else {
                     0
@@ -1126,6 +1150,8 @@ impl AgentView {
             question_view_h.saturating_sub(freeform_offset)
                 + question_prompt_body_h
                 + question_footer_h
+        } else if elicitation_view_h > 0 {
+            elicitation_view_h
         } else if rewind_view_h > 0 {
             rewind_view_h
         } else if jump_view_h > 0 {
@@ -2744,6 +2770,24 @@ impl AgentView {
                 self.hit_question_scrollbar.set(sb_rect);
             } else {
                 self.hit_question_scrollbar.clear();
+            }
+        } else if elicitation_view_h > 0 {
+            self.elicit_hits.clear();
+            if let Some(ev) = self.elicitation_view.as_mut() {
+                let elicit_area = Rect {
+                    x: layout.prompt.x,
+                    y: layout.prompt.y,
+                    width: layout.prompt.width,
+                    height: layout.prompt.height,
+                };
+                crate::views::elicitation_view::render_elicitation_view(
+                    buf,
+                    elicit_area,
+                    ev,
+                    &theme,
+                    prompt_focused,
+                    Some(&mut self.elicit_hits),
+                );
             }
         } else if rewind_view_h > 0 {
             if let Some(ref rw) = self.rewind_state {

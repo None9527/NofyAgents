@@ -21,7 +21,8 @@ use rmcp::{
         PaginatedRequestParams,
     },
     service::{
-        ClientInitializeError, NotificationContext, RoleClient, RunningService, ServiceError,
+        ClientInitializeError, NotificationContext, RequestContext, RoleClient, RunningService,
+        ServiceError,
     },
     service::{RxJsonRpcMessage, TxJsonRpcMessage},
     transport::{
@@ -416,6 +417,7 @@ pub struct McpState {
     /// dropping `tools/list_changed`, `Ready`, and `HandshakeFailed`
     /// emits for them. Read access is via [`Self::client_event_tx`].
     client_event_tx: Option<tokio::sync::mpsc::UnboundedSender<McpClientEvent>>,
+    elicitation_job_tx: Option<crate::elicitation::ElicitationInbox>,
 }
 
 impl McpState {
@@ -439,6 +441,7 @@ impl McpState {
             disabled_tool_registrations: HashMap::new(),
             event_writer: nofy_file_utils::events::EventWriter::noop(),
             client_event_tx: None,
+            elicitation_job_tx: None,
         }
     }
 
@@ -479,6 +482,17 @@ impl McpState {
     /// `client_event_tx` cannot be bypassed by a direct assignment.
     pub fn client_event_tx(&self) -> Option<tokio::sync::mpsc::UnboundedSender<McpClientEvent>> {
         self.client_event_tx.clone()
+    }
+
+    pub fn set_elicitation_tx(&mut self, tx: Option<crate::elicitation::ElicitationInbox>) {
+        for client in self.owned_clients.values() {
+            client.set_elicitation_tx(tx.clone());
+        }
+        self.elicitation_job_tx = tx;
+    }
+
+    pub fn elicitation_tx(&self) -> Option<crate::elicitation::ElicitationInbox> {
+        self.elicitation_job_tx.clone()
     }
 
     pub fn set_event_writer(&mut self, writer: nofy_file_utils::events::EventWriter) {
@@ -2378,6 +2392,10 @@ pub enum McpClientEvent {
     ToolsChanged { server: McpServerName },
     /// Server pushed `notifications/resources/list_changed`.
     ResourcesChanged { server: McpServerName },
+    ElicitationComplete {
+        server: McpServerName,
+        elicitation_id: String,
+    },
     /// Client transitioned to [`ClientState::Ready`]; dispatcher uses
     /// this to surface "ready" status without polling. Emitted from
     /// `ensure_initialized`; the dispatcher maps it to
@@ -2418,6 +2436,7 @@ pub enum McpClientEventKind {
     HandshakeFailed,
     ToolsChanged,
     ResourcesChanged,
+    ElicitationComplete,
     Ready,
     ConfigAdded,
     ConfigRemoved,
@@ -2436,6 +2455,7 @@ impl McpClientEvent {
             | Self::HandshakeFailed { server, .. }
             | Self::ToolsChanged { server }
             | Self::ResourcesChanged { server }
+            | Self::ElicitationComplete { server, .. }
             | Self::Ready { server }
             | Self::ConfigAdded { server }
             | Self::ConfigRemoved { server } => Some(server.as_str()),
@@ -2606,6 +2626,7 @@ pub struct McpClient {
     /// `.await`, and the handler's `emit` path is short and
     /// allocation-free.
     notify_tx: SharedEventTx,
+    elicitation_tx: crate::elicitation::SharedElicitationTx,
     /// RAII handle for the per-client transport-liveness poller.
     ///
     /// `Some` after [`Self::arm_liveness_watcher`] succeeds; `None`
@@ -2741,6 +2762,7 @@ impl McpClient {
             warn_budget: crate::mcp_http_client::WarnBudget::default(),
             reconnect,
             notify_tx: Arc::new(parking_lot::Mutex::new(None)),
+            elicitation_tx: Arc::new(parking_lot::Mutex::new(None)),
             liveness_handle: Arc::new(parking_lot::Mutex::new(None)),
         }
     }
@@ -3534,7 +3556,11 @@ impl McpClient {
         }
     }
 
-    fn make_client_info(server_name: &str) -> ClientInfo {
+    fn make_client_info(server_name: &str, advertise_elicitation: bool) -> ClientInfo {
+        use rmcp::model::{
+            ElicitationCapability, FormElicitationCapability, UrlElicitationCapability,
+        };
+
         let mut extensions = rmcp::model::ExtensionCapabilities::new();
         extensions.insert(
             "io.modelcontextprotocol/ui".to_string(),
@@ -3545,6 +3571,13 @@ impl McpClient {
         );
         let mut capabilities = ClientCapabilities::default();
         capabilities.extensions = Some(extensions);
+        if advertise_elicitation {
+            capabilities.elicitation = Some(
+                ElicitationCapability::new()
+                    .with_form(FormElicitationCapability::new().with_schema_validation(true))
+                    .with_url(UrlElicitationCapability::new()),
+            );
+        }
         ClientInfo::new(
             capabilities,
             Implementation::new(
@@ -3566,9 +3599,13 @@ impl McpClient {
     /// loop on its next notification.
     fn make_client_handler(&self) -> NofyClientHandler {
         NofyClientHandler {
-            info: Self::make_client_info(&self.server_name),
+            info: Self::make_client_info(
+                &self.server_name,
+                !self.is_acp() && self.elicitation_tx.lock().is_some(),
+            ),
             server_name: self.server_name.clone(),
             notify_tx: Arc::clone(&self.notify_tx),
+            elicitation_tx: Arc::clone(&self.elicitation_tx),
         }
     }
 
@@ -3581,6 +3618,10 @@ impl McpClient {
     /// session-wide on the next event.
     pub fn set_event_tx(&self, tx: Option<tokio::sync::mpsc::UnboundedSender<McpClientEvent>>) {
         *self.notify_tx.lock() = tx;
+    }
+
+    pub fn set_elicitation_tx(&self, tx: Option<crate::elicitation::ElicitationInbox>) {
+        *self.elicitation_tx.lock() = tx;
     }
 
     /// Snapshot the current event sender, if any.
@@ -4468,6 +4509,7 @@ pub struct NofyClientHandler {
     /// post-handshake is supported without restarting the rmcp
     /// service loop.
     notify_tx: SharedEventTx,
+    elicitation_tx: crate::elicitation::SharedElicitationTx,
 }
 
 impl NofyClientHandler {
@@ -4502,6 +4544,55 @@ impl ClientHandler for NofyClientHandler {
     async fn on_resource_list_changed(&self, _context: NotificationContext<RoleClient>) {
         self.emit(McpClientEvent::ResourcesChanged {
             server: self.server_name.clone(),
+        });
+    }
+
+    async fn create_elicitation(
+        &self,
+        request: rmcp::model::ElicitRequestParams,
+        context: RequestContext<RoleClient>,
+    ) -> Result<rmcp::model::ElicitResult, rmcp::ErrorData> {
+        tracing::info!(
+            server = %self.server_name,
+            "MCP elicitation/create received"
+        );
+        // `context.ct` fires when the server cancels this request
+        // (`notifications/cancelled`). Dropping the bridge future closes the
+        // job's response channel, which the shell coordinator observes to
+        // tear down the HITL card — otherwise the popup would outlive the
+        // abandoned request and answer into the void.
+        let bridged =
+            crate::elicitation::bridge_elicit(&self.elicitation_tx, &self.server_name, request);
+        tokio::select! {
+            result = bridged => Ok(result),
+            _ = context.ct.cancelled() => {
+                tracing::info!(
+                    server = %self.server_name,
+                    "elicitation/create cancelled by server; abandoning HITL bridge"
+                );
+                Ok(crate::elicitation::cancel_result())
+            }
+        }
+    }
+
+    async fn on_url_elicitation_notification_complete(
+        &self,
+        params: rmcp::model::ElicitationResponseNotificationParam,
+        _context: NotificationContext<RoleClient>,
+    ) {
+        if !nofy_tools::mcp_elicitation::chars_within(
+            &params.elicitation_id,
+            nofy_tools::mcp_elicitation::MAX_ELICIT_ID_CHARS,
+        ) {
+            tracing::warn!(
+                server = %self.server_name,
+                "oversized elicitation_id on complete; dropping"
+            );
+            return;
+        }
+        self.emit(McpClientEvent::ElicitationComplete {
+            server: self.server_name.clone(),
+            elicitation_id: params.elicitation_id,
         });
     }
 
@@ -6914,9 +7005,10 @@ mod tests {
                 }
             });
             let handler = NofyClientHandler {
-                info: McpClient::make_client_info("dead"),
+                info: McpClient::make_client_info("dead", false),
                 server_name: "dead".to_string(),
                 notify_tx: Arc::new(parking_lot::Mutex::new(None)),
+                elicitation_tx: Arc::new(parking_lot::Mutex::new(None)),
             };
             let transport = rmcp::transport::async_rw::AsyncRwTransport::<RoleClient, _, _>::new(
                 client_read,
@@ -7652,9 +7744,10 @@ mod tests {
     async fn client_handler_routes_tools_changed() {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<McpClientEvent>();
         let handler = NofyClientHandler {
-            info: McpClient::make_client_info("test"),
+            info: McpClient::make_client_info("test", false),
             server_name: "test".to_string(),
             notify_tx: Arc::new(parking_lot::Mutex::new(Some(tx))),
+            elicitation_tx: Arc::new(parking_lot::Mutex::new(None)),
         };
         handler.emit(McpClientEvent::ToolsChanged {
             server: handler.server_name.clone(),
@@ -7672,9 +7765,10 @@ mod tests {
     #[tokio::test]
     async fn client_handler_no_dispatcher_is_silent() {
         let handler = NofyClientHandler {
-            info: McpClient::make_client_info("test"),
+            info: McpClient::make_client_info("test", false),
             server_name: "test".to_string(),
             notify_tx: Arc::new(parking_lot::Mutex::new(None)),
+            elicitation_tx: Arc::new(parking_lot::Mutex::new(None)),
         };
         handler.emit(McpClientEvent::ToolsChanged {
             server: "test".to_string(),
@@ -7685,11 +7779,12 @@ mod tests {
     /// Contract: get_info returns a clone of the stored ClientInfo.
     #[tokio::test]
     async fn client_handler_get_info_round_trips() {
-        let info = McpClient::make_client_info("test-srv");
+        let info = McpClient::make_client_info("test-srv", false);
         let handler = NofyClientHandler {
             info: info.clone(),
             server_name: "test-srv".to_string(),
             notify_tx: Arc::new(parking_lot::Mutex::new(None)),
+            elicitation_tx: Arc::new(parking_lot::Mutex::new(None)),
         };
         let got = handler.get_info();
         // ClientInfo doesn't derive PartialEq; check the visible

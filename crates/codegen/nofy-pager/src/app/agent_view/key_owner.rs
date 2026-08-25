@@ -24,6 +24,7 @@ pub(crate) enum BlockingCard {
     Permission,
     CancelTurn,
     Question,
+    McpElicitation,
 }
 
 impl BlockingCard {
@@ -35,6 +36,7 @@ impl BlockingCard {
             Self::Permission => "permission",
             Self::CancelTurn => "cancel turn",
             Self::Question => "question",
+            Self::McpElicitation => "elicitation",
         };
         HintItem {
             keys: vec![crate::key!(Tab), crate::key!(' ')],
@@ -92,6 +94,7 @@ pub(crate) enum EscStep {
     ParkFocus,
     /// Resolve the cancel-turn panel by keeping everything running.
     KeepRunning,
+    DismissElicitWaiting,
 }
 
 impl EscStep {
@@ -104,6 +107,7 @@ impl EscStep {
             Self::BackOutOverlay => "dashboard",
             Self::ParkFocus => "scrollback",
             Self::KeepRunning => "keep running",
+            Self::DismissElicitWaiting => "dismiss",
         }
     }
 }
@@ -118,6 +122,8 @@ impl AgentView {
             Some(BlockingCard::CancelTurn)
         } else if self.question_view.is_some() {
             Some(BlockingCard::Question)
+        } else if self.elicitation_view.is_some() {
+            Some(BlockingCard::McpElicitation)
         } else {
             None
         }
@@ -215,6 +221,17 @@ impl AgentView {
                     EscStep::ParkFocus
                 }
             }
+            BlockingCard::McpElicitation => {
+                use crate::views::elicitation_view::ElicitationFocus;
+                let ev = self.elicitation_view.as_ref()?;
+                if ev.focus == ElicitationFocus::Editing {
+                    EscStep::LeaveTextInput
+                } else if ev.is_url_waiting() {
+                    EscStep::DismissElicitWaiting
+                } else {
+                    EscStep::ParkFocus
+                }
+            }
         })
     }
 
@@ -228,6 +245,10 @@ impl AgentView {
             EscStep::LeaveTextInput => {
                 if self.focused_card() == Some(BlockingCard::Permission) {
                     self.permission_back_to_options();
+                } else if self.focused_card() == Some(BlockingCard::McpElicitation) {
+                    if let Some(ev) = self.elicitation_view.as_mut() {
+                        ev.focus = crate::views::elicitation_view::ElicitationFocus::Fields;
+                    }
                 } else {
                     self.commit_question_freeform();
                 }
@@ -256,6 +277,7 @@ impl AgentView {
                     CancelTurnChoice::ContinueToRun,
                 ));
             }
+            EscStep::DismissElicitWaiting => return self.resolve_elicitation_cancel(),
         }
         InputOutcome::Changed
     }

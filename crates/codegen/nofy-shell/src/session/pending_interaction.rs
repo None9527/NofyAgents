@@ -40,6 +40,8 @@ pub enum PendingKind {
     Question,
     /// `nofy/exit_plan_mode` plan approval.
     PlanApproval,
+    /// `nofy/mcp/elicit` MCP elicitation form.
+    McpElicitation,
 }
 
 /// Whether a blocking plan-approval reverse-request is parked in `pending`.

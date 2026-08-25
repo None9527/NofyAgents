@@ -1,4 +1,17 @@
 use super::*;
+
+/// Wire the session's elicitation inbox into a freshly built client so its
+/// `elicitation/create` requests reach the coordinator. Takes the
+/// already-locked `McpState` so each caller keeps its own lock scope.
+fn attach_elicitation_tx(
+    state: &crate::session::mcp_servers::McpState,
+    client: &crate::session::mcp_servers::McpClient,
+) {
+    if let Some(tx) = state.elicitation_tx() {
+        client.set_elicitation_tx(Some(tx));
+    }
+}
+
 impl SessionActor {
     /// Wait for MCP tools to be initialized.
     /// If initialization is in progress by another task, this will poll until complete.
@@ -505,6 +518,7 @@ impl SessionActor {
         if let Some(tx) = event_tx {
             new_client.set_event_tx(Some(tx));
         }
+        attach_elicitation_tx(&*self.mcp_state.lock().await, &new_client);
         let arc = std::sync::Arc::new(new_client);
         {
             let mut mcp_state = self.mcp_state.lock().await;
@@ -991,6 +1005,7 @@ impl SessionActor {
         )
         .await
         .map_err(|e| e.to_string())?;
+        attach_elicitation_tx(&*self.mcp_state.lock().await, &new_client);
         new_client
             .ensure_initialized()
             .await
@@ -1404,6 +1419,7 @@ impl SessionActor {
                     if let Some(tx) = task_event_tx {
                         client.set_event_tx(Some(tx));
                     }
+                    attach_elicitation_tx(&*mcp_state.lock().await, client);
                     let init_budget = std::time::Duration::from_secs(
                         timeout_sec.saturating_mul(2).saturating_add(5),
                     );

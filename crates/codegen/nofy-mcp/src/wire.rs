@@ -25,3 +25,15 @@ pub const MCP_SERVERS: &str = "nofy/mcp/servers";
 /// `initialize` `_meta` capability flag advertising in-process SDK MCP support
 /// (enables the SDK's `transport="acp"`): `nofy/mcp/sdk`.
 pub const MCP_SDK: &str = "nofy/mcp/sdk";
+
+/// Reverse elicitation method (agent -> client): `nofy/mcp/elicit`.
+///
+/// The agent forwards an MCP server's `elicitation/create` request to the client,
+/// which renders the HITL popup and returns accept/decline/cancel.
+pub const MCP_ELICIT: &str = "nofy/mcp/elicit";
+
+/// Elicitation-complete notification (agent -> client): `nofy/mcp/elicit_complete`.
+///
+/// Forwards a server's `notifications/elicitation/complete` so the client can
+/// dismiss the popup for the given `elicitationId`.
+pub const MCP_ELICIT_COMPLETE: &str = "nofy/mcp/elicit_complete";
