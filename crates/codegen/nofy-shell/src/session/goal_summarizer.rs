@@ -143,7 +143,7 @@ impl GoalSummarizerSpawner for ChannelSpawner {
                     message,
                 )
             }
-            Err(SpawnError::Transport(_)) => {}
+            Err(SpawnError::Transport(_) | SpawnError::Interrupted) => {}
         }
         outcome
     }
@@ -265,6 +265,14 @@ pub(crate) async fn run_goal_summarizer(
     let spawn_id = uuid::Uuid::now_v7().to_string();
     let response = match spawner.spawn_summarizer(&spawn_id, prompt).await {
         Ok(text) => text,
+        Err(SpawnError::Interrupted) => {
+            return record_fail_open(
+                GoalSummarizerFailReason::Aborted,
+                inputs.attempt,
+                started,
+                emit_event,
+            );
+        }
         Err(SpawnError::Transport(detail)) => {
             tracing::warn!(error = %detail, "goal summarizer: transport error; failing open");
             return record_fail_open(
@@ -418,6 +426,7 @@ mod tests {
                     message: message.clone(),
                     cancelled: *cancelled,
                 }),
+                Err(SpawnError::Interrupted) => Err(SpawnError::Interrupted),
             }
         }
     }

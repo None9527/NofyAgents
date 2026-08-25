@@ -518,6 +518,9 @@ pub enum Action {
     /// drain site) and persists to `[ui].combine_queued_prompts` via
     /// `Effect::PersistSetting`.
     SetCombineQueuedPrompts(bool),
+    /// Mid-turn follow-up routing (`queue` | `steer`).
+    /// SHARED-owned: `[ui].follow_up_behavior`.
+    SetFollowUpBehavior(crate::appearance::FollowUpBehavior),
     /// Set simple mode (ASCII / minimal glyphs). Persists via `Effect::PersistSetting`.
     SetSimpleMode(bool),
     /// Set the per-tip contextual-hint user config (`[ui.contextual_hints]`).

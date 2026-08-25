@@ -36,7 +36,7 @@
 | 状态栏(status line) | 无 | 批12 待移植;上游依赖它的代码(如事件循环刷新计时)移植时裁掉 |
 | feedback_manager(退出反馈上传) | 无 | 依赖云上传;相关测试引用时裁掉 |
 | 遥测 activity gauges(SUBAGENTS_ACTIVE 等) | 无 | 仅遥测面,需要时整体移植 |
-| goal steering(planner 转向、promote_queued_as_interjections、follow-up steer 配置) | 无 | 批8-5 待移植;依赖 goal_tracker planner_run + turn.rs round 循环 |
+| turn.rs round 式 goal 循环重构(GoalRoundDecision 外的上游回合结构) | 保留现有循环 | 上游 turn.rs 大重构的一部分;我们的循环语义等价,让位/续跑门控已按上游逻辑移植 |
 | session registry 标题同步 | 无 | 依赖 registry 服务 |
 | 权限 Always/Never | 无 | 批9 待移植(~1400 行,安全敏感) |
 | attempt_store 子代理恢复台账 | 无 | 批10 待移植(~1500 行) |
@@ -53,6 +53,7 @@
 - 上游 grok_build 工具路径 → 我们 `nofy_build`
 - 上游 `_x.ai/` wire 方法前缀 → `_nofy/`
 - 队列策略移植(批8-4):上游 `trace_gcs_config`/`artifact_tracker`/`tool_overrides_update` 字段一律裁掉;`goal_tracker.lock().status()` 两侧同构可直接用;`combine_edit_holds: HashSet` → `edit_holds: HashMap<String, Instant>` + `EDIT_HOLD_TTL`(10 分钟)+ `expire_older_than` GC
+- goal steering 移植(批8-5):steer 缓存是进程级静态,翻动它的三个测试要加串行锁(`STEER_CACHE_TEST_LOCK`)防竞态;e2e mock 从 prompt 反引号 `.md` token 取计划路径(`plan_path_from_prompt`),不能写死 `/plan.md`(planner 现在写暂存文件 `plan-<uuid>.md`)
 
 ## 已完成批次日志
 
@@ -69,3 +70,4 @@
 | 批8-2 | 47a7a422 | 标题自动刷新(3/6 回合) | 0.2.141 |
 | 批8-3 | e570b82b | 进程内 /minimal⇄/fullscreen | 0.2.141 |
 | 批8-4 | 2077fc9b | 队列策略架构:InputPolicy/QueuePolicy 类型、queue_mutation 授权、edit_holds TTL 乐观锁、HoldEdit promote 阻塞、受保护行 | 0.2.142 |
+| 批8-5 | HASH85 | goal steering:planner 转向循环(5 次上限+目标身份守卫+原子暂存)、队列并入活跃 goal、promote_queued_as_interjections、goal 回合让位、follow_up_behavior 配置+pager 设置 | 0.2.143 |

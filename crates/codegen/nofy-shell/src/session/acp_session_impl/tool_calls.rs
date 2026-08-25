@@ -421,7 +421,7 @@ impl SessionActor {
         // RTAgent Phase D1: verification-evidence nudge (once per
         // mutation wave, gated by NOFY_VERIFICATION_GATE).
         self.inject_verification_reminder().await;
-        self.drain_pending_interjections().await;
+        self.drain_interjections_at_safe_point().await;
         self.flush_pending_skill_reminders().await;
         if let Some(final_result) = final_result {
             return Ok(final_result);

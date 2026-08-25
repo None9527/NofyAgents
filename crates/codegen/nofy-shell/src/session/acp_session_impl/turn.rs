@@ -886,14 +886,35 @@ impl SessionActor {
                     self.goal_tracker.lock().status(),
                 );
                 if goal_active {
-                    let decision = if self.goal_runs_on_workflow_engine() {
-                        self.run_goal_round_end().await
+                    if self.has_runnable_queued_user_row().await {
+                        nofy_telemetry::unified_log::info(
+                            "shell.goal.yielded_to_queued_input",
+                            Some(self.session_info.id.0.as_ref()),
+                            Some(serde_json::json!({ "prompt_id": prompt_id })),
+                        );
+                        tracing::info!(
+                            "goal turn: yielding to queued user prompts; continuation re-arms \
+                             at turn end"
+                        );
+                        break round;
+                    }
+                    if crate::session::PromptOrigin::from_prompt_id(prompt_id).is_synthetic()
+                        || !self.has_pending_goal_continuation().await
+                    {
+                        let decision = if self.goal_runs_on_workflow_engine() {
+                            self.run_goal_round_end().await
+                        } else {
+                            self.run_goal_round_end_legacy().await
+                        };
+                        if let GoalRoundDecision::Continue(directive) = decision {
+                            self.inject_goal_continuation_message(directive).await;
+                            continue;
+                        }
                     } else {
-                        self.run_goal_round_end_legacy().await
-                    };
-                    if let GoalRoundDecision::Continue(directive) = decision {
-                        self.inject_goal_continuation_message(directive).await;
-                        continue;
+                        tracing::info!(
+                            "goal turn: user prompt runs standalone; a queued continuation \
+                             resumes the goal"
+                        );
                     }
                 }
                 match self
@@ -2013,7 +2034,7 @@ impl SessionActor {
                     .unwrap_or_else(|| ACTION_STATIONARITY_NUDGE_TEMPLATE.to_string());
                 self.push_system_reminder(&reminder);
             }
-            self.drain_pending_interjections().await;
+            self.drain_interjections_at_safe_point().await;
             self.flush_pending_skill_reminders().await;
             self.inject_pending_monitor_events().await;
             let memory_reminder = self.first_turn_memory_reminder().await;
@@ -2471,7 +2492,7 @@ impl SessionActor {
                         ));
                     }
                 }
-                if self.drain_pending_interjections().await {
+                if self.drain_interjections_at_safe_point().await {
                     tracing::info!("Drained interjection(s) before turn completion — continuing");
                     continue;
                 }

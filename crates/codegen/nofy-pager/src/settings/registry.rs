@@ -463,6 +463,9 @@ pub fn current_value_for(
         "combine_queued_prompts" => Some(SettingValue::Bool(
             crate::appearance::cache::load_combine_queued_prompts(),
         )),
+        "follow_up_behavior" => Some(SettingValue::Enum(
+            crate::appearance::cache::load_follow_up_behavior().as_canonical(),
+        )),
         "confirm_before_rewind" => Some(SettingValue::Bool(ui.confirm_before_rewind_enabled())),
         "simple_mode" => Some(SettingValue::Bool(ui.simple_mode.unwrap_or(true))),
         // Per-tip contextual hints — `None` (inherit) reads as the default ON.
@@ -767,6 +770,13 @@ mod tests {
                         *default,
                         ui.combine_queued_prompts.unwrap_or(false),
                         "combine_queued_prompts default drifts from UiConfig::default()"
+                    );
+                }
+                ("follow_up_behavior", SettingKind::Enum { default, .. }) => {
+                    assert_eq!(
+                        *default,
+                        ui.follow_up_behavior(),
+                        "follow_up_behavior default drifts from UiConfig::default()"
                     );
                 }
                 ("simple_mode", SettingKind::Bool { default }) => {
