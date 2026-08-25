@@ -146,6 +146,14 @@ pub(crate) fn dispatch(action: Action, app: &mut AppView) -> Vec<Effect> {
             super::dispatch_initial_prompt(app, prompt)
         }
         Action::RelaunchInScreenMode { minimal } => {
+            if !crate::app::screen_mode_relaunch::exec_switch_forced() {
+                app.pending_screen_mode_switch = Some(if minimal {
+                    crate::app::ScreenMode::Minimal
+                } else {
+                    crate::app::ScreenMode::Fullscreen
+                });
+                return vec![];
+            }
             if let Some(session_id) = app.active_session_id().map(str::to_owned) {
                 app.relaunch = Some(crate::app::app_view::ScreenModeRelaunch {
                     minimal,

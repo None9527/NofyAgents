@@ -27,7 +27,7 @@ use super::app_view::{
 use super::{PagerArgs, PagerTerminal, acp_handler, dispatch, effects};
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct TimedInputEvent {
+pub(crate) struct TimedInputEvent {
     pub(super) event: Event,
     pub(super) arrived_at: std::time::Instant,
 }
@@ -221,7 +221,7 @@ fn seed_trust_state(app: &mut AppView) {
 
 /// Pause terminal input and wait up to `timeout` for the reader to acknowledge.
 /// Returns with the pause still asserted; the handoff owner resumes the reader.
-fn park_input_reader(
+pub(super) fn park_input_reader(
     input_paused: &std::sync::atomic::AtomicBool,
     reader_parked: &std::sync::atomic::AtomicBool,
     timeout: Duration,
@@ -532,6 +532,117 @@ fn restore_after_child(
 
 /// Consume a pending `$EDITOR` / `$PAGER` suspend request, if any.
 ///
+/// Consume a pending in-process `/minimal` ⇄ `/fullscreen` switch; returns
+/// `true` when the caller must quit (exec fallback armed on `app.relaunch`).
+#[allow(clippy::too_many_arguments)]
+fn run_pending_mode_switch(
+    app: &mut AppView,
+    terminal: &mut PagerTerminal,
+    minimal_live_rows: u16,
+    input_paused: &std::sync::atomic::AtomicBool,
+    reader_parked: &std::sync::atomic::AtomicBool,
+    input_rx: &mut tokio::sync::mpsc::UnboundedReceiver<TimedInputEvent>,
+    presenter: &mut Presenter,
+    tasks: &mut JoinSet<TaskResult>,
+) -> bool {
+    let Some(target) = app.pending_screen_mode_switch.take() else {
+        return false;
+    };
+    let from = app.screen_mode;
+    if target == from {
+        return false;
+    }
+    match crate::app::mode_switch::transition_terminal(
+        terminal,
+        from,
+        target,
+        minimal_live_rows,
+        input_paused,
+        reader_parked,
+        input_rx,
+    ) {
+        crate::app::mode_switch::ModeSwitchOutcome::Switched => {
+            crate::app::mode_switch::reseed_screen_mode(app, target);
+            if target.is_minimal() {
+                crate::theme::reset_cursor_color();
+                crate::app::mode_switch::dismiss_fullscreen_only_surfaces(app);
+                super::MINIMAL_SHOW_SWITCH_BACK_TO_FULLSCREEN
+                    .store(true, std::sync::atomic::Ordering::Release);
+                // A committed block, not a toast: toasts never render in minimal.
+                if let ActiveView::Agent(id) = app.active_view
+                    && let Some(agent) = app.agents.get_mut(&id)
+                {
+                    crate::app::mode_switch::push_block_behind_live_stream(
+                        &mut agent.scrollback,
+                        crate::scrollback::block::RenderBlock::system(
+                            "Switched to minimal mode · /fullscreen to go back",
+                        ),
+                    );
+                }
+            } else {
+                crate::theme::apply_cursor_color();
+                super::MINIMAL_SHOW_SWITCH_BACK_TO_FULLSCREEN
+                    .store(false, std::sync::atomic::Ordering::Release);
+                // Capture is back on: clear the mouse-off banner like the toggle-on path.
+                for agent in app.agents.values_mut() {
+                    agent.set_sticky_toast_recursive(None);
+                }
+                if let ActiveView::Agent(id) = app.active_view
+                    && let Some(agent) = app.agents.get_mut(&id)
+                {
+                    agent.show_toast("Switched to fullscreen mode · /minimal to go back");
+                }
+            }
+            tracing::info!(
+                from = from.meta_label(),
+                to = target.meta_label(),
+                "in-process screen-mode switch"
+            );
+            presenter.request_presentation(app, terminal, true);
+            false
+        }
+        crate::app::mode_switch::ModeSwitchOutcome::Aborted(reason) => {
+            tracing::warn!(%reason, "screen-mode switch aborted; staying in current mode");
+            if let ActiveView::Agent(id) = app.active_view
+                && let Some(agent) = app.agents.get_mut(&id)
+            {
+                // An abort can land mid-turn in minimal too; same stream hazard.
+                crate::app::mode_switch::push_block_behind_live_stream(
+                    &mut agent.scrollback,
+                    crate::scrollback::block::RenderBlock::system(format!(
+                        "Couldn't switch to {} mode: {reason}",
+                        target.meta_label()
+                    )),
+                );
+            }
+            presenter.request_presentation(app, terminal, true);
+            false
+        }
+        crate::app::mode_switch::ModeSwitchOutcome::NeedsExecFallback(reason) => {
+            tracing::error!(%reason, "screen-mode switch failed; falling back to exec relaunch");
+            if let Some(session_id) = app.active_session_id().map(str::to_owned) {
+                app.relaunch = Some(crate::app::app_view::ScreenModeRelaunch {
+                    minimal: target.is_minimal(),
+                    session_id,
+                });
+            }
+            let effs: Vec<super::actions::Effect> = app
+                .agents
+                .values()
+                .filter_map(|a| {
+                    a.session.session_id.as_ref().map(|sid| {
+                        super::actions::Effect::UnregisterActiveSession {
+                            session_id: sid.clone(),
+                        }
+                    })
+                })
+                .collect();
+            let _ = process_effects(effs, tasks, app);
+            true
+        }
+    }
+}
+
 /// Called at the top of every event-loop iteration because any select arm can
 /// queue one of these requests, including transcript completion during a draw.
 /// Each attempt uses a bounded safe-handoff wait; timeout leaves the one-shot
@@ -1615,6 +1726,20 @@ pub(crate) async fn run(
             &mut suspend_retry_after,
             &mut suspend_wait_reports,
         )?;
+
+        // In-process `/minimal` ⇄ `/fullscreen` switch, queued by dispatch.
+        if run_pending_mode_switch(
+            &mut app,
+            terminal,
+            config_watcher.current().minimal_live_rows,
+            &input_paused,
+            &reader_parked,
+            &mut input_rx,
+            &mut presenter,
+            &mut tasks,
+        ) {
+            break;
+        }
 
         // Keep the /gboom keyboard layer in sync with whether the game is
         // open, so WASD emit releases while it runs and the layer is popped

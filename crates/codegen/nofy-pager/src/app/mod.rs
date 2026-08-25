@@ -41,6 +41,7 @@ pub(crate) mod external_editor;
 mod foreign_sessions;
 mod inline_edit;
 mod modals;
+pub(crate) mod mode_switch;
 mod mouse;
 mod queue_edit;
 pub(crate) mod screen_mode_relaunch;
@@ -136,6 +137,21 @@ pub(crate) static CURSOR_STYLE_FORCED: AtomicBool = AtomicBool::new(false);
 /// future embedded host flipping them must not inherit minimal's key remaps or
 /// scrollback writes.
 static MINIMAL_MODE_ACTIVE: AtomicBool = AtomicBool::new(false);
+/// The screen mode the terminal is ACTUALLY on right now. Teardown paths
+/// (panic hook, exit cleanup) read this rather than the requested mode, so a
+/// mid-switch failure never leaves escapes for the wrong screen.
+static CURRENT_SCREEN_MODE: std::sync::atomic::AtomicU8 =
+    std::sync::atomic::AtomicU8::new(ScreenMode::Fullscreen as u8);
+pub(crate) fn set_current_screen_mode(mode: ScreenMode) {
+    CURRENT_SCREEN_MODE.store(mode as u8, Ordering::Release);
+}
+pub(crate) fn current_screen_mode() -> ScreenMode {
+    match CURRENT_SCREEN_MODE.load(Ordering::Acquire) {
+        m if m == ScreenMode::Minimal as u8 => ScreenMode::Minimal,
+        m if m == ScreenMode::Inline as u8 => ScreenMode::Inline,
+        _ => ScreenMode::Fullscreen,
+    }
+}
 /// Whether the process runs in minimal (scrollback-native) mode. See
 /// [`MINIMAL_MODE_ACTIVE`]; prefer `AppView::screen_mode.is_minimal()` wherever
 /// the screen mode is already in reach.
@@ -242,6 +258,7 @@ impl ScreenMode {
 /// mode is safe and keeps the effective-mode source of truth singular.
 fn apply_screen_mode_globals(screen_mode: ScreenMode) {
     let minimal = screen_mode.is_minimal();
+    set_current_screen_mode(screen_mode);
     MINIMAL_MODE_ACTIVE.store(minimal, Ordering::Release);
     crate::terminal::image::set_inline_overlay_force_off(minimal);
     crate::views::modal_window::set_embedded(minimal);
@@ -258,6 +275,7 @@ fn engage_startup_theme(screen_mode: ScreenMode) {
     } else {
         let initial_theme = crate::theme::cache::resolve_initial_theme();
         crate::theme::cache::set(initial_theme);
+        mode_switch::mark_theme_resolved();
     }
 }
 /// Step 2 of the startup theme handshake: if a `--minimal` start was
@@ -268,6 +286,7 @@ fn finish_theme_after_probe(requested_minimal: bool, effective_mode: ScreenMode)
         let late_theme = crate::theme::cache::resolve_initial_theme_no_osc11();
         crate::theme::cache::set(late_theme);
         crate::theme::apply_cursor_color();
+        mode_switch::mark_theme_resolved();
         tracing::info!(?late_theme, "minimal downgrade: resolved regular theme");
     }
 }
@@ -1299,7 +1318,8 @@ fn init_terminal(
             io::Result::Ok(())
         })?;
         MOUSE_CAPTURE_ENABLED.store(!want_minimal, Ordering::Release);
-        set_panic_hook(mode);
+        set_current_screen_mode(mode);
+        set_panic_hook();
         signal_handler::install(mode);
         let drain_timeout = if crate::terminal::terminal_context().vte_version.is_some() {
             std::time::Duration::from_millis(20)
@@ -1557,10 +1577,12 @@ fn terminal_title_string(title: &str) -> String {
         format!("{} - nofy", truncated)
     }
 }
-fn set_panic_hook(mode: ScreenMode) {
+fn set_panic_hook() {
     let hook = panic::take_hook();
     panic::set_hook(Box::new(move |info| {
-        emit_terminal_teardown_sequences(mode, None);
+        // Read the live mode: an in-process switch may have changed the
+        // screen since the hook was installed.
+        emit_terminal_teardown_sequences(current_screen_mode(), None);
         let _ = terminal::disable_raw_mode();
         signal_handler::mark_restored();
         nofy_crash_handler::disable_terminal_escape_restore();

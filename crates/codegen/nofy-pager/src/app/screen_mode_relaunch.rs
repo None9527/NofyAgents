@@ -22,6 +22,14 @@ use std::sync::OnceLock;
 /// [`take_screen_mode_env_override`]; not a public user interface.
 pub(crate) const NOFY_SCREEN_MODE_ENV: &str = "NOFY_SCREEN_MODE";
 
+/// `NOFY_SCREEN_MODE_SWITCH=exec` forces the legacy re-exec switch instead of
+/// the in-process `/minimal` ⇄ `/fullscreen` transition.
+pub(crate) const SCREEN_MODE_SWITCH_ENV: &str = "NOFY_SCREEN_MODE_SWITCH";
+
+pub(crate) fn exec_switch_forced() -> bool {
+    std::env::var(SCREEN_MODE_SWITCH_ENV).is_ok_and(|v| v.trim().eq_ignore_ascii_case("exec"))
+}
+
 /// Argv tokens (`--long`, `-s`, and their aliases) of [`super::cli::PagerArgs`]
 /// flags that consume a following value token when not written as
 /// `--flag=value`.

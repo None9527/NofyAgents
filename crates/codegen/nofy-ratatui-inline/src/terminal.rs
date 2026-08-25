@@ -1315,6 +1315,39 @@ impl<B: Backend> Terminal<B> {
         self.last_known_area
     }
 
+    /// Rebuild the terminal for a different [`Viewport`] in place (used by the
+    /// in-process screen-mode switch). Clears both buffers and the link tables;
+    /// the caller owns the surrounding terminal escapes (alt screen, cursor).
+    pub fn set_viewport(&mut self, viewport: Viewport) -> io::Result<()> {
+        let area = match viewport {
+            Viewport::Fullscreen | Viewport::Inline(_) => {
+                Rect::from((Position::ORIGIN, self.backend.size()?))
+            }
+            Viewport::Fixed(area) => area,
+        };
+        let (viewport_area, cursor_pos) = match viewport {
+            Viewport::Fullscreen => (area, Position::ORIGIN),
+            Viewport::Inline(height) => {
+                compute_inline_size(&mut self.backend, height, area.as_size(), 0)?
+            }
+            Viewport::Fixed(area) => (area, area.as_position()),
+        };
+        let link_len = (viewport_area.width as usize) * (viewport_area.height as usize);
+        self.viewport = viewport;
+        self.viewport_area = viewport_area;
+        self.last_known_area = area;
+        self.last_known_cursor_pos = cursor_pos;
+        self.buffers = [Buffer::empty(viewport_area), Buffer::empty(viewport_area)];
+        self.current = 0;
+        for layer in self.link_ids.iter_mut() {
+            layer.clear();
+            layer.resize(link_len, 0);
+        }
+        self.link_tables[0].clear();
+        self.link_tables[1].clear();
+        Ok(())
+    }
+
     /// HACK: this is made pub
     pub fn set_viewport_area(&mut self, area: Rect) {
         self.buffers[self.current].resize(area);

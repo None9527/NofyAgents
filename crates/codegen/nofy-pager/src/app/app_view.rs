@@ -890,8 +890,11 @@ pub struct AppView {
     /// Doc viewer overlay for the welcome screen (release notes via Ctrl+L).
     pub welcome_doc_viewer: Option<crate::views::modal::ActiveModal>,
     /// Whether the pager uses fullscreen (alt-screen) or inline mode.
-    /// Set from the resolved terminal state at startup.
+    /// Set from the resolved terminal state at startup; updated by the
+    /// in-process `/minimal` ⇄ `/fullscreen` switch (`mode_switch`).
     pub(crate) screen_mode: super::ScreenMode,
+    /// Pending in-process mode-switch target, consumed by the event loop.
+    pub(crate) pending_screen_mode_switch: Option<super::ScreenMode>,
     /// Onboarding tutorial overlay, if open. Top-level (not per-agent) so it
     /// works over both the welcome screen and an agent session. Opened by
     /// `/tutorial` (also in the command palette).
@@ -1077,6 +1080,7 @@ impl AppView {
             import_claude_modal: None,
             welcome_doc_viewer: None,
             screen_mode: ScreenMode::Inline,
+            pending_screen_mode_switch: None,
             show_resolved_model: true,
             sharing_enabled: false,
             plugin_cta_enabled: false,
@@ -4807,6 +4811,7 @@ pub(crate) mod tests {
             import_claude_modal: None,
             welcome_doc_viewer: None,
             screen_mode: ScreenMode::Inline,
+            pending_screen_mode_switch: None,
             pending_effects: Vec::new(),
             pending_editor: None,
             pending_pager_path: None,
