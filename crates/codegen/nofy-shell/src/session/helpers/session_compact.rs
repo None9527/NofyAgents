@@ -123,27 +123,9 @@ fn classify_response_event_error(code: Option<&str>, message: &str) -> CompactFa
     }
     CompactFailure::Transient(acp_err)
 }
-/// Build the chat history that will be sent to the compaction model.
-///
-/// Appends the summarization prompt (selected by `use_short_prompt` and
-/// optionally splicing in the user-provided `/compact <text>` context) as
-/// the final `User` item.
-///
-/// Pure function — no I/O. Extracted so callers can persist the exact payload
-/// that will be sent (for offline prompt iteration) without duplicating the
-/// prompt-building logic that lives in `generate_session_compact`.
-pub(crate) fn build_compaction_chat_history(
-    mut chat_history: Vec<ConversationItem>,
-    user_context: Option<&str>,
-    use_short_prompt: bool,
-) -> Vec<ConversationItem> {
-    let prompt = build_compaction_prompt(user_context, use_short_prompt);
-    chat_history.push(ConversationItem::user(prompt));
-    chat_history
-}
 /// Build the bare summarization prompt text (no chat history). See
-/// [`build_compaction_chat_history`] for the wrapper that appends this to a
-/// conversation as a user message.
+/// [`super::prepared_compaction_history::build_compaction_chat_history`] for
+/// the wrapper that appends this to a conversation as a user message.
 pub(crate) fn build_compaction_prompt(
     user_context: Option<&str>,
     use_short_prompt: bool,
@@ -396,12 +378,14 @@ mod compact_cancel_await_tests {
     }
 }
 /// Generates a summary of the conversation for compaction.
-/// Accepts `Vec<ConversationItem>` so the Responses path can preserve
-/// encrypted reasoning. ChatCompletions converts at point of use.
+/// Accepts raw or already-budgeted history so direct callers are guarded while
+/// single-pass sampling and artifact reconstruction share one transformation.
 ///
 /// `chat_history` must already include the summarization prompt as its final
-/// user message — use [`build_compaction_chat_history`] to construct it. The
-/// split lets callers persist the exact request payload before issuing it.
+/// user message — use
+/// [`super::prepared_compaction_history::build_compaction_chat_history`] to
+/// construct it. The split lets callers persist the exact request payload
+/// before issuing it.
 ///
 /// `tools` are the SAME effective definitions the turn loop
 /// attaches to normal requests. Tool definitions are serialized into the
@@ -416,7 +400,10 @@ mod compact_cancel_await_tests {
 /// auth errors) while still retrying transient ones (5xx,
 /// network blips, rate limits).
 pub(crate) async fn generate_session_compact(
-    chat_history: Vec<ConversationItem>,
+    chat_history: impl Into<
+        crate::session::helpers::prepared_compaction_history::CompactionHistoryInput,
+    >,
+    compaction_tool_tokens: u64,
     tools: Vec<ToolSpec>,
     client: OaiCompatClient,
     session_id: acp::SessionId,
@@ -429,6 +416,19 @@ pub(crate) async fn generate_session_compact(
     if cancel.is_cancelled() {
         return Err(CompactFailure::Cancelled);
     }
+    let prepared_history = chat_history.into().prepare(compaction_tool_tokens);
+    let budget = prepared_history.image_budget;
+    if budget.inline_images > 0 {
+        tracing::info!(
+            body_bytes = budget.body_bytes,
+            body_bytes_after = budget.body_bytes_after,
+            inline_images = budget.inline_images,
+            evicted = budget.evicted,
+            needs_image_compaction = budget.needs_image_compaction,
+            "Applied image budget to compaction request"
+        );
+    }
+    let chat_history = prepared_history.items;
     let num_messages = chat_history.len();
     let wire_tool_choice = match tool_choice {
         crate::util::config::CompactionToolChoice::Auto => ToolChoice::auto(),
@@ -1693,6 +1693,7 @@ mod reasoning_compaction_regression_tests {
         ];
         let output = generate_session_compact(
             chat_history,
+            0,
             vec![],
             client,
             acp::SessionId::new("test-session"),
@@ -1783,6 +1784,7 @@ mod reasoning_compaction_regression_tests {
         ];
         let result = generate_session_compact(
             chat_history,
+            0,
             vec![],
             client,
             acp::SessionId::new("test-session"),
@@ -1845,6 +1847,7 @@ mod reasoning_compaction_regression_tests {
         let client = Client::new(config.clone()).unwrap();
         generate_session_compact(
             chat_history.clone(),
+            0,
             tools,
             client,
             acp::SessionId::new("test-session"),
@@ -1859,6 +1862,7 @@ mod reasoning_compaction_regression_tests {
         let client = Client::new(config.clone()).unwrap();
         generate_session_compact(
             chat_history,
+            0,
             vec![],
             client,
             acp::SessionId::new("test-session"),
@@ -1991,6 +1995,7 @@ mod reasoning_compaction_regression_tests {
         let client = Client::new(config.clone()).unwrap();
         generate_session_compact(
             chat_history.clone(),
+            0,
             tools,
             client,
             acp::SessionId::new("test-session"),
@@ -2005,6 +2010,7 @@ mod reasoning_compaction_regression_tests {
         let client = Client::new(config.clone()).unwrap();
         generate_session_compact(
             chat_history,
+            0,
             vec![],
             client,
             acp::SessionId::new("test-session"),
@@ -2078,6 +2084,7 @@ mod reasoning_compaction_regression_tests {
         ];
         let result = generate_session_compact(
             chat_history,
+            0,
             vec![],
             client,
             acp::SessionId::new("test-session"),
@@ -2159,6 +2166,7 @@ mod reasoning_compaction_regression_tests {
         ];
         let result = generate_session_compact(
             chat_history,
+            0,
             vec![],
             client,
             acp::SessionId::new("test-session"),
@@ -2237,6 +2245,7 @@ mod reasoning_compaction_regression_tests {
         ];
         let result = generate_session_compact(
             chat_history,
+            0,
             vec![],
             client,
             acp::SessionId::new("test-session"),
@@ -2312,6 +2321,7 @@ mod reasoning_compaction_regression_tests {
         ];
         let result = generate_session_compact(
             chat_history,
+            0,
             vec![],
             client,
             acp::SessionId::new("test-session"),

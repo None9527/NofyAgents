@@ -20,18 +20,37 @@ pub fn estimate_system_message_tokens(item: &ConversationItem) -> u64 {
     }
 }
 
+fn estimate_tool_tokens(
+    name: &str,
+    description: Option<&str>,
+    parameters: &serde_json::Value,
+) -> u64 {
+    let desc_len = description.map_or(0, str::len);
+    let params_len = parameters.to_string().len();
+    ((name.len() + desc_len + params_len) as u64) / nofy_token_estimation::BYTES_PER_TOKEN
+}
+
 /// Bytes/4 estimate of one tool definition (name + description + the
 /// JSON-serialized parameters).
 pub fn estimate_tool_definition_tokens(td: &nofy_sampling_types::ToolDefinition) -> u64 {
-    let name_len = td.function.name.len();
-    let desc_len = td.function.description.as_deref().map_or(0, |d| d.len());
-    let params_len = td.function.parameters.to_string().len();
-    ((name_len + desc_len + params_len) as u64) / nofy_token_estimation::BYTES_PER_TOKEN
+    estimate_tool_tokens(
+        &td.function.name,
+        td.function.description.as_deref(),
+        &td.function.parameters,
+    )
 }
 
 /// Sum [`estimate_tool_definition_tokens`] across a slice.
 pub fn estimate_tool_definitions_tokens(tds: &[nofy_sampling_types::ToolDefinition]) -> u64 {
     tds.iter().map(estimate_tool_definition_tokens).sum()
+}
+
+/// Sum the bytes/4 estimate across a slice of [`nofy_sampling_types::ToolSpec`].
+pub fn estimate_tool_specs_tokens(tools: &[nofy_sampling_types::ToolSpec]) -> u64 {
+    tools
+        .iter()
+        .map(|tool| estimate_tool_tokens(&tool.name, tool.description.as_deref(), &tool.parameters))
+        .sum()
 }
 
 /// Bytes/4 estimate for a single [`ConversationItem`].

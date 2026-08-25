@@ -4311,7 +4311,7 @@ async fn prefix_stable_after_image_pruning() {
     // Large enough that the serialized body crosses the compaction trigger.
     let big_image_url = format!(
         "data:image/png;base64,{}",
-        "A".repeat(crate::actor::request_builder::IMAGE_COMPACT_TRIGGER_BYTES)
+        "A".repeat(crate::image_budget::IMAGE_COMPACT_TRIGGER_BYTES)
     );
 
     let h = TestHarness::with_conversation(vec![

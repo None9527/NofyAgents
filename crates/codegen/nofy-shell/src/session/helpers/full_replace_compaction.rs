@@ -38,9 +38,24 @@ use nofy_chat_state::compaction_utils::{
 };
 
 use crate::sampling::Client as OaiCompatClient;
-use crate::session::helpers::session_compact::{
-    CompactFailure, CompactOutput, build_compaction_chat_history, generate_session_compact,
+use crate::session::helpers::prepared_compaction_history::{
+    PreparedCompactionHistory, build_compaction_chat_history,
 };
+use crate::session::helpers::session_compact::{
+    CompactFailure, CompactOutput, generate_session_compact,
+};
+
+#[derive(Default)]
+struct SamplerState {
+    last_success: Option<CompactOutput>,
+    last_attempted_items: Option<Vec<ConversationItem>>,
+}
+
+impl SamplerState {
+    fn record_attempt(&mut self, history: &PreparedCompactionHistory) {
+        self.last_attempted_items = Some(history.items.clone());
+    }
+}
 
 /// Wraps `generate_session_compact` as the shared engine's
 /// [`CompactionSampler`] for nofy-build's full-replace pass.
@@ -60,6 +75,7 @@ pub(crate) struct ShellCompactionSampler {
     use_short_prompt: bool,
     user_context: Option<String>,
     tools: Vec<ToolSpec>,
+    compaction_tool_tokens: u64,
     client: OaiCompatClient,
     session_id: acp::SessionId,
     sampling_config: SamplingConfig,
@@ -72,8 +88,7 @@ pub(crate) struct ShellCompactionSampler {
     wall_clock_budget_secs: u64,
     tool_choice: crate::util::config::CompactionToolChoice,
     cancel: tokio_util::sync::CancellationToken,
-    /// Full output of the most recent successful sample (for L5 telemetry).
-    last_success: Mutex<Option<CompactOutput>>,
+    state: Mutex<SamplerState>,
 }
 
 impl ShellCompactionSampler {
@@ -82,6 +97,7 @@ impl ShellCompactionSampler {
         use_short_prompt: bool,
         user_context: Option<String>,
         tools: Vec<ToolSpec>,
+        compaction_tool_tokens: u64,
         client: OaiCompatClient,
         session_id: acp::SessionId,
         sampling_config: SamplingConfig,
@@ -94,6 +110,7 @@ impl ShellCompactionSampler {
             use_short_prompt,
             user_context,
             tools,
+            compaction_tool_tokens,
             client,
             session_id,
             sampling_config,
@@ -101,13 +118,18 @@ impl ShellCompactionSampler {
             wall_clock_budget_secs,
             tool_choice,
             cancel,
-            last_success: Mutex::new(None),
+            state: Mutex::new(SamplerState::default()),
         }
     }
 
     /// Take the [`CompactOutput`] of the most recent successful sample, if any.
     pub(crate) fn take_last_success(&self) -> Option<CompactOutput> {
-        self.last_success.lock().unwrap().take()
+        self.state.lock().unwrap().last_success.take()
+    }
+
+    /// Take the exact image-budgeted items from the latest transport attempt.
+    pub(crate) fn take_last_attempted_items(&self) -> Option<Vec<ConversationItem>> {
+        self.state.lock().unwrap().last_attempted_items.take()
     }
 }
 
@@ -128,10 +150,13 @@ impl CompactionSampler for ShellCompactionSampler {
             turns.to_vec(),
             self.user_context.as_deref(),
             self.use_short_prompt,
+            self.compaction_tool_tokens,
         );
+        self.state.lock().unwrap().record_attempt(&chat_history);
 
         match generate_session_compact(
             chat_history,
+            self.compaction_tool_tokens,
             self.tools.clone(),
             self.client.clone(),
             self.session_id.clone(),
@@ -145,7 +170,7 @@ impl CompactionSampler for ShellCompactionSampler {
         {
             Ok(output) => {
                 let response = output.content.clone();
-                *self.last_success.lock().unwrap() = Some(output);
+                self.state.lock().unwrap().last_success = Some(output);
                 Ok(LlmCompactionOutput {
                     response,
                     thinking: String::new(),
@@ -467,6 +492,11 @@ impl FactProjectingSampler<ShellCompactionSampler> {
             output.content = format!("{block}\n{}", output.content);
         }
         Some(output)
+    }
+
+    /// Delegate the exact attempted-history accessor of the wrapped sampler.
+    pub(crate) fn take_last_attempted_items(&self) -> Option<Vec<ConversationItem>> {
+        self.inner.take_last_attempted_items()
     }
 }
 

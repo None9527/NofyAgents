@@ -15,8 +15,8 @@ use crate::session::helpers::CompactionStateContext;
 use crate::session::helpers::compaction_context::CompactionInputs;
 use crate::session::helpers::compaction_context::to_system_reminder;
 use crate::session::helpers::session_compact::{
-    CompactOutput, CompactionOutcome, build_compaction_chat_history,
-    build_two_pass_compaction_prompt, generate_session_compact, is_context_length_error,
+    CompactOutput, CompactionOutcome, build_two_pass_compaction_prompt, generate_session_compact,
+    is_context_length_error,
 };
 use crate::session::persistence::PersistenceMsg;
 use crate::session::two_pass::{
@@ -182,6 +182,7 @@ impl SessionActor {
         };
         let tool_defs = self.prepare_tool_definitions().await;
         let tools = self.turn_base_tool_specs(&tool_defs);
+        let compaction_tool_tokens = nofy_chat_state::estimate_tool_specs_tokens(&tools);
         let wall_clock_budget_secs = self
             .agent
             .borrow()
@@ -190,6 +191,7 @@ impl SessionActor {
         let (cancel, _cancel_scope) = self.compaction.cancel.enter();
         match generate_session_compact(
             history,
+            compaction_tool_tokens,
             tools,
             client,
             self.session_info.id.clone(),
@@ -1062,10 +1064,12 @@ impl SessionActor {
             .borrow()
             .compaction_policy()
             .wall_clock_budget_secs;
+        let compaction_tool_tokens = nofy_chat_state::estimate_tool_specs_tokens(&compaction_tools);
         let sampler = crate::session::helpers::full_replace_compaction::ShellCompactionSampler::new(
             use_short_prompt,
             user_context.clone(),
             compaction_tools.clone(),
+            compaction_tool_tokens,
             sampling_client,
             self.session_info.id.clone(),
             sampling_config.clone(),
@@ -1239,12 +1243,9 @@ impl SessionActor {
             }
         }
         let telemetry = observer.into_telemetry();
-        if two_pass_output.is_none() {
-            let request_chat_history = build_compaction_chat_history(
-                request_turns,
-                user_context.as_deref(),
-                use_short_prompt,
-            );
+        if two_pass_output.is_none()
+            && let Some(request_chat_history) = sampler.take_last_attempted_items()
+        {
             self.persist_compaction_request_artifact(
                 request_chat_history,
                 compaction_tools,
