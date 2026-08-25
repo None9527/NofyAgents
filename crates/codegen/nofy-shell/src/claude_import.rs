@@ -923,6 +923,7 @@ fn format_rule_string(rule: &PermissionRule) -> String {
         ToolFilter::Grep => "Grep",
         ToolFilter::Mcp => "MCPTool",
         ToolFilter::WebFetch => "WebFetch",
+        ToolFilter::WebSearch => "WebSearch",
     };
 
     match (&rule.pattern, &rule.tool) {

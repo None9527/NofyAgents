@@ -131,7 +131,10 @@ impl PermissionHookTransport for ToolServerPermissionTransport {
 fn scope_for_access(access: &AccessKind) -> &'static str {
     match access {
         AccessKind::Bash(_) | AccessKind::Edit(_) | AccessKind::MCPTool { .. } => "write",
-        AccessKind::Read(_) | AccessKind::Grep { .. } | AccessKind::WebFetch(_) => "read",
+        AccessKind::Read(_)
+        | AccessKind::Grep { .. }
+        | AccessKind::WebFetch(_)
+        | AccessKind::WebSearch(_) => "read",
     }
 }
 fn describe_access(access: &AccessKind) -> String {
@@ -140,6 +143,7 @@ fn describe_access(access: &AccessKind) -> String {
         AccessKind::Edit(path) => format!("Edit {path}"),
         AccessKind::MCPTool { name, .. } => format!("Run MCP tool {name}"),
         AccessKind::WebFetch(url) => format!("Fetch {url}"),
+        AccessKind::WebSearch(query) => format!("Search the web for {query}"),
         AccessKind::Read(_) => "Read a file".to_owned(),
         AccessKind::Grep { .. } => "Search file contents".to_owned(),
     }
@@ -235,9 +239,10 @@ pub fn access_kind_for_hub_tool(tool_name: &str, args: &Value) -> Option<AccessK
                 .to_owned();
             Some(AccessKind::Bash(cmd))
         }
-        "search_replace" | "hashline_edit" => {
+        "search_replace" | "hashline_edit" | "edit" => {
             let path = args
                 .get("file_path")
+                .or_else(|| args.get("filePath"))
                 .or_else(|| args.get("path"))
                 .and_then(Value::as_str)
                 .unwrap_or("unknown")
@@ -247,6 +252,7 @@ pub fn access_kind_for_hub_tool(tool_name: &str, args: &Value) -> Option<AccessK
         "write" | "write_file" => {
             let path = args
                 .get("file_path")
+                .or_else(|| args.get("filePath"))
                 .or_else(|| args.get("path"))
                 .and_then(Value::as_str)
                 .unwrap_or("unknown")
@@ -254,6 +260,13 @@ pub fn access_kind_for_hub_tool(tool_name: &str, args: &Value) -> Option<AccessK
             Some(AccessKind::Edit(path))
         }
         "apply_patch" => Some(AccessKind::Edit("apply_patch".to_owned())),
+        "task" | "Task" | "spawn_subagent" => {
+            let kind = args
+                .get("subagent_type")
+                .and_then(Value::as_str)
+                .unwrap_or("task");
+            Some(AccessKind::Edit(format!("task:{kind}")))
+        }
         "web_fetch" => {
             let url = args
                 .get("url")

@@ -1268,6 +1268,9 @@ impl SessionActor {
                 nofy_workspace::permission::AccessKind::WebFetch(u) => {
                     (nofy_telemetry::events::AccessKind::Web, u.clone())
                 }
+                nofy_workspace::permission::AccessKind::WebSearch(q) => {
+                    (nofy_telemetry::events::AccessKind::Web, q.clone())
+                }
             };
             let subagent_session_id = if self.startup_hints.is_subagent {
                 Some(self.session_id_string())
@@ -1295,15 +1298,6 @@ impl SessionActor {
                 !self.session_info.id.0.is_empty(),
                 "permission reverse-request must carry a non-empty sessionId (design §5.4)"
             );
-            if !self.permissions.is_yolo_mode() {
-                self.dispatch_notification_hook(
-                    "permission_prompt",
-                    Some("Tool permission requested".into()),
-                    None,
-                    Some("info".into()),
-                )
-                .await;
-            }
             if self.permissions.is_auto_mode() {
                 let conv = self.chat_state_handle.get_conversation().await;
                 let turns = super::build_classifier_turns(&conv, super::CLASSIFIER_REFRESH_TURNS);
@@ -1645,13 +1639,8 @@ impl SessionActor {
                 .expect("ExitPlanModeExtRequest serialization should not fail")
                 .into(),
         );
-        self.dispatch_notification_hook(
-            "permission_prompt",
-            Some("Plan approval requested".into()),
-            None,
-            Some("info".into()),
-        )
-        .await;
+        self.dispatch_permission_prompt_notification("Plan approval requested")
+            .await;
         self.plan_mode.lock().set_awaiting_plan_approval(true);
         self.persist_plan_mode_state();
         let clear_awaiting = AwaitingApprovalGuard(self);

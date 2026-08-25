@@ -3,13 +3,19 @@ use toml::Value as TomlValue;
 /// Env override for the **remember tool approvals** permission-panel gate.
 pub(crate) const ENV_REMEMBER_TOOL_APPROVALS: &str = "NOFY_REMEMBER_TOOL_APPROVALS";
 
+/// Default for the `remember_tool_approvals` gate when no layer sets it.
+/// Shared with the pager settings modal so the displayed default cannot
+/// drift from the resolver.
+pub const DEFAULT_REMEMBER_TOOL_APPROVALS: bool = true;
+
 /// Extract the user knob `[ui] remember_tool_approvals` from one TOML layer.
 fn remember_tool_approvals_from_toml(v: Option<&TomlValue>) -> Option<bool> {
     v?.get("ui")?.get("remember_tool_approvals")?.as_bool()
 }
 
 /// Precedence core shared by the typed resolver and the disk reader so they
-/// can't drift: requirement > env > config > managed > default `false`.
+/// can't drift: requirement > env > config > managed > default
+/// [`DEFAULT_REMEMBER_TOOL_APPROVALS`] (`true`).
 fn resolve_remember_tool_approvals_layers(
     requirement: Option<bool>,
     config: Option<bool>,
@@ -20,12 +26,14 @@ fn resolve_remember_tool_approvals_layers(
         .requirement(requirement)
         .config(config)
         .managed(managed)
+        .default(DEFAULT_REMEMBER_TOOL_APPROVALS)
         .resolve()
 }
 
 /// Resolve whether the granular per-tool "Always allow …" prompt options are
 /// shown. Precedence: requirements > env (`NOFY_REMEMBER_TOOL_APPROVALS`) >
-/// `[ui].remember_tool_approvals` > managed > default `false`.
+/// `[ui].remember_tool_approvals` > managed > default `true`
+/// ([`DEFAULT_REMEMBER_TOOL_APPROVALS`]).
 pub fn resolve_remember_tool_approvals(
     requirements: Option<&TomlValue>,
     user: Option<&TomlValue>,
@@ -40,7 +48,7 @@ pub fn resolve_remember_tool_approvals(
 
 /// Free-function form of [`resolve_remember_tool_approvals`] for the
 /// permission-manager spawn: env + requirements + effective `config.toml`.
-/// Defaults `false`.
+/// Defaults `true` ([`DEFAULT_REMEMBER_TOOL_APPROVALS`]).
 pub(crate) fn remember_tool_approvals_from_disk() -> bool {
     let requirements = crate::config::load_merged_requirements();
     let effective = crate::config::load_effective_config().ok();
@@ -72,29 +80,40 @@ mod remember_tool_approvals_gate_tests {
     }
 
     #[test]
-    fn defaults_off_when_nothing_set() {
+    fn defaults_on_when_nothing_set() {
         let _g = guard();
         let r = resolve_remember_tool_approvals(None, None, None);
-        assert!(!r.value, "gate must default OFF");
+        assert!(r.value, "gate must default ON");
         assert_eq!(r.source, ConfigSource::Default);
     }
 
     #[test]
-    fn each_layer_can_turn_it_on() {
+    fn each_layer_can_turn_it_off() {
         let _g = guard();
-        let on = toml_ui(true);
+        let off = toml_ui(false);
         // requirement
-        let r = resolve_remember_tool_approvals(Some(&on), None, None);
-        assert!(r.value);
+        let r = resolve_remember_tool_approvals(Some(&off), None, None);
+        assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Requirement);
         // config (user)
+        let r = resolve_remember_tool_approvals(None, Some(&off), None);
+        assert!(!r.value);
+        assert_eq!(r.source, ConfigSource::Config);
+        // managed
+        let r = resolve_remember_tool_approvals(None, None, Some(&off));
+        assert!(!r.value);
+        assert_eq!(r.source, ConfigSource::ManagedConfig);
+    }
+
+    #[test]
+    fn explicit_layer_reports_its_source() {
+        let _g = guard();
+        let on = toml_ui(true);
+        // An explicit `true` matches the default but must still resolve with
+        // the layer's provenance, not `Default`.
         let r = resolve_remember_tool_approvals(None, Some(&on), None);
         assert!(r.value);
         assert_eq!(r.source, ConfigSource::Config);
-        // managed
-        let r = resolve_remember_tool_approvals(None, None, Some(&on));
-        assert!(r.value);
-        assert_eq!(r.source, ConfigSource::ManagedConfig);
     }
 
     #[test]
@@ -105,6 +124,9 @@ mod remember_tool_approvals_gate_tests {
         let r = resolve_remember_tool_approvals(None, Some(&off), Some(&on));
         assert!(!r.value);
         assert_eq!(r.source, ConfigSource::Config);
+        let r = resolve_remember_tool_approvals(None, None, Some(&off));
+        assert!(!r.value);
+        assert_eq!(r.source, ConfigSource::ManagedConfig);
     }
 
     #[test]

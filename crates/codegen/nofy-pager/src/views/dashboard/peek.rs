@@ -260,19 +260,34 @@ pub fn compute_peek_fields(
                 if let Some(p) = agent.permission_queue.front() {
                     let q = sanitize_display_text(&p.title).into_owned();
                     // Live scope-aware labels: the peek's answer path attaches
-                    // the same selection meta, so the label must match it.
-                    let selected_words: Option<String> = p
+                    // the same selection meta, so each row's label must match
+                    // its own count (allow and deny scopes are independent).
+                    let selected_words = p.bash_highlights.as_ref().map(|h| {
+                        crate::views::permission_view::allow_scope_label(
+                            h,
+                            p.bash_command_raw.as_deref(),
+                            p.bash_selection_count,
+                        )
+                    });
+                    let deny_selected_words = p
                         .bash_highlights
                         .as_ref()
-                        .filter(|_| p.bash_selection_count > 0)
-                        .map(|h| h.highlighted_words[..p.bash_selection_count].join(" "));
+                        .filter(|_| p.bash_deny_selection_count > 0)
+                        .map(|h| h.highlighted_words[..p.bash_deny_selection_count].join(" "));
                     let opts = p
                         .options
                         .iter()
                         .map(|opt| {
+                            let row_words = if opt.option_id.0.as_ref()
+                                == crate::views::permission_view::REJECT_ALWAYS_COMMAND_OPTION_ID
+                            {
+                                deny_selected_words.as_deref()
+                            } else {
+                                selected_words.as_deref()
+                            };
                             let name = crate::views::permission_view::option_label_for_selection(
                                 opt,
-                                selected_words.as_deref(),
+                                row_words,
                                 p.mcp_scope.as_ref(),
                             );
                             (

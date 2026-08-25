@@ -2,6 +2,8 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
+use parking_lot::Mutex;
+
 use agent_client_protocol as acp;
 use chrono::Utc;
 use tokio::sync::{mpsc, oneshot};
@@ -23,10 +25,12 @@ use crate::permission::gate_preflight::GatePreflight;
 use crate::permission::policy::{CompiledPolicy, ShellWord};
 use crate::permission::prompter::{AcpPrompter, PromptOutcome, PromptOutcomeKind};
 use crate::permission::shell_access::{
-    command_write_paths_in_tree, edit_target_protection, is_safe_write_sink, tree_has_opaque_shell,
+    command_write_paths_split, edit_target_protection, is_safe_write_sink, tree_has_opaque_shell,
     words_are_opaque_shell,
 };
-use crate::permission::state::{PermissionState, load_state_from_disk, persist_state};
+use crate::permission::state::{
+    PermissionState, load_state_from_disk, persist_state, replace_state_on_disk,
+};
 use crate::permission::types::{
     AccessKind, ClientType, Decision, EditPolicy, PermissionCommand, PermissionEvent,
     PermissionResolution, PromptPolicy, RequestPathContext,
@@ -38,8 +42,14 @@ use nofy_tools::implementations::nofy_build::web_fetch::{
 };
 use nofy_tools::types::resources::resolve_model_path;
 
+mod bash_grants;
 pub mod reasons;
 mod request_classification;
+
+pub use bash_grants::{always_allow_row_is_effective, always_allow_scope_persists};
+use bash_grants::{
+    bash_glob_covers_script, bash_grant_segments, persist_bash_always_allow, whole_script_grant,
+};
 
 pub use request_classification::{AUTO_DENY_CONSECUTIVE_LIMIT, AUTO_DENY_TOTAL_LIMIT};
 use request_classification::{
@@ -82,6 +92,8 @@ pub enum PermissionHandle {
         /// Concurrent in-flight permission requests. Shared across handle clones
         /// (subagents), so the actor can gauge overlapping requests for telemetry.
         in_flight: Arc<AtomicUsize>,
+        /// Prompt-start only; auto-allow paths never send.
+        user_prompt_notify: Arc<Mutex<Option<mpsc::UnboundedSender<()>>>>,
     },
     AllowAll,
 }
@@ -93,10 +105,10 @@ fn mcp_server_prefix_allowed(name: &str, servers: &HashSet<String>) -> bool {
         && parse_mcp_qualified_name(name).is_some_and(|(_, server, _)| servers.contains(server))
 }
 
-/// Pre-decision lookup for an MCP tool. Returns `Some(Decision::Allow)`
-/// when the user has previously granted "always allow" for this exact
-/// tool name or for the tool's server prefix. Returns `None` (i.e. fall
-/// through to the prompt) when no grant exists.
+/// Pre-decision lookup for an MCP tool: `Reject` for a remembered "never
+/// allow" (checked first and before the `ask`-floor early return — deny wins
+/// over any grant, mirroring the bash disallow path), `Allow` for a tool or
+/// server-prefix grant, `None` to fall through to the prompt.
 ///
 /// An `ask` policy rule (`policy_forced_prompt`) normally overrides a grant and
 /// forces a re-prompt. With `remember_tool_approvals` on, an existing grant
@@ -108,6 +120,14 @@ fn mcp_pre_decision(
     policy_forced_prompt: bool,
     remember_tool_approvals: bool,
 ) -> Option<Decision> {
+    // Exact qualified `server__tool` match, same lookup key as
+    // `allowed_mcp_tools`.
+    if state.disallowed_mcp_tools.contains(name) {
+        tracing::debug!(%name, source = "session_denylist_tool", "MCP tool auto-rejected");
+        return Some(Decision::Reject(format!(
+            "User previously rejected `{name}` in this project"
+        )));
+    }
     if policy_forced_prompt && !remember_tool_approvals {
         return None;
     }
@@ -128,6 +148,66 @@ fn mcp_pre_decision(
         return Some(Decision::Allow);
     }
     None
+}
+
+/// Canonical key for a persisted web_fetch deny: the host lowercased with the
+/// trailing dot trimmed — WITHOUT the `www.`-stripping the allow side's
+/// `normalize_domain` applies. Collapsing `www.X` to `X` is harmless for the
+/// exact-match allow lookup but not for the subdomain-broad deny matcher:
+/// `www.com` stored as `com` would deny every `.com` host. Rejecting a `www.`
+/// host therefore denies only that host's subtree; the common direction
+/// (entry `example.com` denying `www.example.com`) still works because `www.`
+/// is an ordinary subdomain label to the matcher.
+pub(crate) fn web_fetch_deny_key(host: &str) -> String {
+    host.trim().trim_end_matches('.').to_lowercase()
+}
+
+/// [`web_fetch_deny_key`] of a raw URL's host, if it parses to a non-empty one.
+pub(crate) fn web_fetch_deny_key_from_url(url: &str) -> Option<String> {
+    let key = web_fetch_deny_key(url::Url::parse(url).ok()?.host_str()?);
+    (!key.is_empty()).then_some(key)
+}
+
+/// The persisted "never allow" entry matching a web_fetch host, if any.
+/// A deny covers the exact host and its subdomains — broader than the
+/// exact-match allow lookup on purpose (denies fail safe) — but never a
+/// parent of the entry.
+/// Returns the matched entry so the rejection reason names the persisted key.
+fn denied_web_fetch_domain<'a>(host: &str, disallowed: &'a HashSet<String>) -> Option<&'a str> {
+    if disallowed.is_empty() {
+        return None;
+    }
+    let domain = web_fetch_deny_key(host);
+    disallowed
+        .iter()
+        .find(|denied| {
+            // A hand-edited empty entry must never match (it would dot-match
+            // any host ending in '.').
+            !denied.is_empty()
+                && (domain == **denied
+                    || (domain.len() > denied.len() + 1
+                        && domain.ends_with(denied.as_str())
+                        && domain.as_bytes()[domain.len() - denied.len() - 1] == b'.'))
+        })
+        .map(String::as_str)
+}
+
+/// Session-deny pre-decision for a web_fetch URL: `Some(Reject)` when the
+/// host (or a parent domain of it) is on `disallowed_web_fetch_domains`.
+/// Consulted before every allow source — static allowlist, persisted grant —
+/// so a remembered deny wins over grants, mirroring the bash disallow path.
+fn web_fetch_deny_pre_decision(parsed_url: &url::Url, state: &PermissionState) -> Option<Decision> {
+    let denied =
+        denied_web_fetch_domain(parsed_url.host_str()?, &state.disallowed_web_fetch_domains)?;
+    tracing::debug!(
+        url = %parsed_url,
+        %denied,
+        source = "session_denylist",
+        "web_fetch domain auto-rejected"
+    );
+    Some(Decision::Reject(format!(
+        "User previously rejected `{denied}` in this project"
+    )))
 }
 
 /// True when `words` is an `rg` invocation that enables a preprocessor.
@@ -388,14 +468,26 @@ fn is_always_safe_command_words(words: &[String]) -> bool {
     false
 }
 
+/// Whether an always-allow grant for `words` must pin to the exact full
+/// command instead of a narrower prefix. Two families qualify: dangerous verbs
+/// (`rm`, `git push`, …), which enforcement honors only as exact whole-command
+/// grants, and exec vehicles (interpreters, package runners, `sudo`/`ssh`),
+/// where a bare `python3`/`sudo git` prefix would authorize "run anything with
+/// these arguments". Both [`default_always_allow_scope`] and
+/// [`minimum_always_allow_scope`] pin to the full command for these, so the
+/// offered default scope is never below the minimum and the two cannot drift
+/// (see [`always_allow_scope_persists`], the predicate the prompt arrows use).
+fn always_allow_scope_pinned(words: &[String]) -> bool {
+    is_dangerous_command_words(words) || crate::permission::policy::head_is_exec_vehicle(words)
+}
+
 /// Default always-allow whitelist scope (word count) for a parsed command.
 ///
 /// Safe-listed prefixes (`ls`, `grep`, `git status`, `kubectl get`, …) scope
 /// to exactly the safe prefix: persisting it grants nothing beyond the
 /// built-in safe-command auto-allow, while baking the first path or pattern
 /// into the prefix made every different-arg invocation re-prompt.
-/// Everything else keeps the first-two-words-plus-flags default, so e.g.
-/// `sudo git status` still scopes to `sudo git`, not bare `sudo`.
+/// Everything else keeps the first-two-words-plus-flags default.
 ///
 /// Scope narrowing applies only when the **full** invocation is safe-listed.
 /// Otherwise a non-auto-allowed form like `rg --pre …` would still scope to
@@ -404,6 +496,31 @@ pub fn default_always_allow_scope(words: &[String]) -> usize {
     if words.is_empty() {
         return 0;
     }
+    // Pinned commands (dangerous verbs, exec vehicles) offer only the full
+    // command: a narrowed default like "Always allow: git push" would save a
+    // rule that can never match, and "Always allow: sudo git" / "python3"
+    // would authorize arbitrary arguments. Wrapped/chained forms whose
+    // full-scope grant still cannot match get no row at all
+    // (`always_allow_row_is_effective`).
+    if always_allow_scope_pinned(words) {
+        return words.len();
+    }
+    base_scope(words)
+}
+
+/// Default "Never allow" scope (word count) for a parsed command. Denies
+/// honor prefixes for every command — "Never allow: git push" blocking all
+/// pushes is the point — so the dangerous full-command pin does not apply.
+pub fn default_always_deny_scope(words: &[String]) -> usize {
+    if words.is_empty() {
+        return 0;
+    }
+    base_scope(words)
+}
+
+/// Verb-plus-flags scope shared by the allow default (non-dangerous arm) and
+/// the deny default.
+fn base_scope(words: &[String]) -> usize {
     if is_safe_command_words(words) {
         if is_safe_command_words_str(&words[0]) {
             return 1;
@@ -417,6 +534,19 @@ pub fn default_always_allow_scope(words: &[String]) -> usize {
         n += 1;
     }
     n
+}
+
+/// Narrowest always-allow scope (word count) the prompt may offer for a
+/// parsed command. Pinned commands ([`always_allow_scope_pinned`]: dangerous
+/// verbs and exec vehicles) are held at the full command — only the exact
+/// command the user saw may persist. Everything else narrows down to one word.
+/// Deny scopes are not pinned (see [`default_always_deny_scope`]).
+pub fn minimum_always_allow_scope(words: &[String]) -> usize {
+    if always_allow_scope_pinned(words) {
+        words.len()
+    } else {
+        1
+    }
 }
 
 /// Check whether parsed command words begin with a known dangerous command.
@@ -487,6 +617,10 @@ struct BashEvaluation {
     /// single source for grant/sandbox floor disposition and classifier
     /// evidence. `ExecOrAmbientGit` may be added later by the ambient git scan.
     assessment: BashSecurityAssessment,
+    /// An unsafe write target came from a redirect (`> f`), which allow-rule
+    /// word matching cannot see — so no configured allow rule may vouch for it.
+    /// `true` (fail closed) on undecomposable scripts.
+    redirect_write: bool,
     /// Raw segment word lists for ambient cwd tracking (git present, flags clean).
     ambient_segments: Option<Vec<Vec<String>>>,
 }
@@ -506,6 +640,20 @@ fn env_risk_finding(env_risk: EnvRisk) -> Option<ClassifierSecurityFinding> {
     }
 }
 
+/// A persisted deny matching the raw script text (word-boundary prefix, the
+/// deny regime everywhere else). Unparseable scripts never reach per-segment
+/// deny matching, so without this their "don't ask again" denies would be
+/// silently inert; matching the raw text can only over-block (deny-safe).
+fn raw_deny_rejection(cmd: &str, state: &PermissionState) -> Option<SegmentEvaluation> {
+    state
+        .disallowed_bash_commands
+        .iter()
+        .find(|d| matches_whitelist_prefix(cmd, d))
+        .map(|d| {
+            SegmentEvaluation::Reject(format!("User previously rejected `{d}` in this project"))
+        })
+}
+
 /// Parse and classify one Bash request once, keeping ordinary segment outcome
 /// separate from the script-level real-file-write and unsafe-environment floors.
 fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> BashEvaluation {
@@ -520,16 +668,27 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
             assessment.insert(Finding::ExecOrAmbientGit);
         }
         return BashEvaluation {
-            segments: SegmentEvaluation::Unparseable,
+            segments: raw_deny_rejection(cmd, state).unwrap_or(SegmentEvaluation::Unparseable),
             exact_grant,
             all_segments_granted: false,
             assessment,
+            redirect_write: true,
             ambient_segments: None,
         };
     };
-    if command_write_paths_in_tree(tree.root_node(), cmd)
-        .into_iter()
-        .any(|path| !is_safe_write_sink(&path))
+    let writes = command_write_paths_split(tree.root_node(), cmd);
+    // An unextractable write-redirect target (`> $OUT`) is a write nothing can
+    // vouch for: it both counts as FileWrite and pins `redirect_write`.
+    let redirect_write = writes.unextracted_write_redirect
+        || writes
+            .redirect_paths
+            .iter()
+            .any(|path| !is_safe_write_sink(path));
+    if redirect_write
+        || writes
+            .word_paths
+            .iter()
+            .any(|path| !is_safe_write_sink(path))
     {
         assessment.insert(Finding::FileWrite);
     }
@@ -551,13 +710,17 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
             assessment.insert(Finding::ExecOrAmbientGit);
         }
         return BashEvaluation {
-            segments: SegmentEvaluation::Unparseable,
+            segments: raw_deny_rejection(cmd, state).unwrap_or(SegmentEvaluation::Unparseable),
             exact_grant,
             all_segments_granted: false,
             assessment,
+            redirect_write: true,
             ambient_segments: None,
         };
     };
+    // Upgrade the raw-string compare with the dequoted single-command form now
+    // that the parse is available (see `whole_script_grant`).
+    let exact_grant = whole_script_grant(cmd, &segments, state);
     let mut needs_prompt: Vec<String> = Vec::new();
     let mut via_session_grant = false;
     let mut all_segments_granted = true;
@@ -598,19 +761,31 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
         {
             return BashEvaluation {
                 segments: SegmentEvaluation::Reject(format!(
-                    "User previously rejected `{d}` for this session"
+                    "User previously rejected `{d}` in this project"
                 )),
                 exact_grant,
                 all_segments_granted,
                 assessment: std::mem::take(&mut assessment),
+                redirect_write,
                 ambient_segments: None,
             };
         }
 
-        let matched_grant = state
-            .allowed_bash_commands
-            .iter()
-            .any(|a| matches_whitelist_prefix(&s, a))
+        // Exec vehicles run whatever argv follows, so a word-boundary prefix
+        // grant would widen: always-allow floors their scope to the full
+        // command (`always_allow_scope_pinned`), and enforcement must honor
+        // that key only on the exact segment — `docker run nginx` must not
+        // match `docker run nginx --privileged`. Dangerous verbs get the
+        // stronger rule 2 below.
+        let matched_command_grant = if crate::permission::policy::head_is_exec_vehicle(words) {
+            state.allowed_bash_commands.contains(s.as_str())
+        } else {
+            state
+                .allowed_bash_commands
+                .iter()
+                .any(|a| matches_whitelist_prefix(&s, a))
+        };
+        let matched_grant = matched_command_grant
             || state
                 .allowed_bash_globs
                 .iter()
@@ -677,6 +852,7 @@ fn evaluate_bash(cmd: &str, state: &PermissionState, honor_safe_lists: bool) -> 
         exact_grant,
         all_segments_granted,
         assessment,
+        redirect_write,
         ambient_segments,
     }
 }
@@ -822,6 +998,23 @@ impl PermissionHandle {
             && let Err(e) = cmd_tx.send(PermissionCommand::ResetState)
         {
             tracing::error!(?e, "failed to send reset state command");
+        }
+    }
+
+    /// First writer wins so a cloned (subagent) handle cannot replace the owner.
+    /// A closed sender is treated as vacant: the owner listener holds a `Weak`
+    /// and drops `rx` when the session dies, so a later owner can re-wire.
+    pub fn set_user_prompt_notify(&self, tx: mpsc::UnboundedSender<()>) {
+        if let PermissionHandle::Actor {
+            user_prompt_notify, ..
+        } = self
+        {
+            let mut slot = user_prompt_notify.lock();
+            if slot.as_ref().is_some_and(|existing| !existing.is_closed()) {
+                tracing::debug!("user_prompt_notify already set; first writer wins");
+                return;
+            }
+            *slot = Some(tx);
         }
     }
 
@@ -1014,6 +1207,21 @@ fn bash_request_floor_requires_prompt(evaluation: Option<&BashEvaluation>) -> bo
     evaluation.is_some_and(|e| !e.exact_grant && e.assessment.constrains_broad_grant())
 }
 
+/// Whether a configured allow rule clears the bash request floor in ask/dontAsk
+/// (GB-5153). Requires ALL of: the assessment is `FileWrite`-only (other floor
+/// findings describe effects outside the rule's matched words), the writes are
+/// command-word operands rather than redirects (which word matching cannot
+/// see), and narrow allow rules authorize every segment (`Bash(*)` catch-alls
+/// stay floored). Auto mode instead routes floored commands to its classifier.
+fn narrow_allow_clears_write_floor(
+    evaluation: Option<&BashEvaluation>,
+    policy: Option<&CompiledPolicy>,
+    access: &AccessKind,
+) -> bool {
+    evaluation.is_some_and(|e| e.assessment.is_file_write_only() && !e.redirect_write)
+        && policy.is_some_and(|p| p.narrow_allow_authorizes(access))
+}
+
 /// A request has no static-analysis findings at all — the only case where a
 /// broad configured policy Allow may bypass the classifier. Non-Bash access has
 /// no Bash findings and is always clear here.
@@ -1098,13 +1306,21 @@ fn bash_grant_pre_decision(
             }
         }
         SegmentEvaluation::NeedsPrompts { .. } => {
-            if !opts.allow_blanket
-                || (opts.conservative_blanket
-                    && evaluation
-                        .assessment
-                        .contains(ClassifierSecurityFinding::DangerousCommand))
-            {
+            if !opts.allow_blanket {
                 None
+            } else if opts.conservative_blanket
+                && evaluation
+                    .assessment
+                    .contains(ClassifierSecurityFinding::DangerousCommand)
+            {
+                // An exact whole-command grant is explicit user authority for
+                // THIS command, so the auto classifier must not silent-deny it
+                // (it would make auto mode stricter than ask mode for the same
+                // persisted grant). Blanket/prefix grants stay excluded — a
+                // dangerous verb prefix like `git push` is never trusted.
+                evaluation
+                    .exact_grant
+                    .then_some((Decision::Allow, reasons::SESSION_GRANT))
             } else {
                 persisted_bash_auto_allows(state, cmd, yolo_pin)
                     .then_some((Decision::Allow, reasons::SESSION_GRANT))
@@ -1142,13 +1358,22 @@ fn session_grant_pre_decision(
     yolo_pin: Option<&'static str>,
 ) -> Option<(Decision, &'static str)> {
     match access {
-        AccessKind::MCPTool { name, .. } => {
-            mcp_pre_decision(name, state, false, false).map(|d| (d, reasons::SESSION_GRANT))
-        }
+        AccessKind::MCPTool { name, .. } => mcp_pre_decision(name, state, false, false).map(|d| {
+            let reason = if matches!(d, Decision::Reject(_)) {
+                reasons::SESSION_DENY
+            } else {
+                reasons::SESSION_GRANT
+            };
+            (d, reason)
+        }),
         AccessKind::WebFetch(url) => {
             let Ok(parsed_url) = url::Url::parse(url) else {
                 return None;
             };
+            // Remembered deny wins over the static allowlist and any grant.
+            if let Some(reject) = web_fetch_deny_pre_decision(&parsed_url, state) {
+                return Some((reject, reasons::SESSION_DENY));
+            }
             if honor_static_web_allowlist && static_domain_matcher.check(&parsed_url).is_none() {
                 return grant_allow(reasons::STATIC_ALLOWLIST);
             }
@@ -1167,7 +1392,10 @@ fn session_grant_pre_decision(
             yolo_pin,
             BashGrantOpts::PRE_CLASSIFIER,
         ),
-        AccessKind::Read(_) | AccessKind::Grep { .. } | AccessKind::Edit(_) => None,
+        AccessKind::Read(_)
+        | AccessKind::Grep { .. }
+        | AccessKind::WebSearch(_)
+        | AccessKind::Edit(_) => None,
     }
 }
 
@@ -1290,6 +1518,8 @@ fn spawn_permission_manager_with_pin(
     let side_query_wired = Arc::new(AtomicBool::new(false));
     let in_flight = Arc::new(AtomicUsize::new(0));
     let in_flight_actor = in_flight.clone();
+    let user_prompt_notify = Arc::new(Mutex::new(None::<mpsc::UnboundedSender<()>>));
+    let user_prompt_notify_actor = user_prompt_notify.clone();
 
     let _task = tokio::task::spawn_local(async move {
         let client_id_ref = client_identifier.as_deref();
@@ -1404,7 +1634,10 @@ fn spawn_permission_manager_with_pin(
                 }
                 PermissionCommand::ResetState => {
                     state = PermissionState::default();
-                    persist_state(&cwd, &state, client_id_ref).await;
+                    // Replace, not merge: persist_state unions on-disk grants
+                    // back in, which would resurrect everything a reset is
+                    // meant to discard.
+                    replace_state_on_disk(&cwd, &state, client_id_ref).await;
                     allow_edits_for_session = false;
                     tracing::info!(
                         "Permission state reset to defaults (including session edit allow)"
@@ -1461,6 +1694,9 @@ fn spawn_permission_manager_with_pin(
                             Some(crate::permission::auto_mode::mcp_access_detail(name, input)),
                         ),
                         AccessKind::WebFetch(url) => ("web_fetch".to_owned(), Some(url.clone())),
+                        AccessKind::WebSearch(query) => {
+                            ("web_search".to_owned(), Some(query.clone()))
+                        }
                     };
 
                     let denials = std::cell::Cell::new(DenialCounters {
@@ -1531,6 +1767,7 @@ fn spawn_permission_manager_with_pin(
                             classifier_verdict: classification
                                 .classifier_verdict()
                                 .map(|v| v.wire_str().to_owned()),
+                            remember_tool_approvals: Some(remember_tool_approvals),
                         };
                         // Exactly one clone to the trace receiver; the identical
                         // event is returned to the requester via the resolution.
@@ -1691,12 +1928,20 @@ fn spawn_permission_manager_with_pin(
                     // skip the classifier when the request has NO findings; a
                     // dangerous/special/other finding sends it to the classifier
                     // so a broad allow cannot bypass HackerOne detections.
+                    // Narrow allow rules also resolve before the classifier
+                    // unless a grant-floor finding constrains them — rationale
+                    // and boundaries on `narrow_allow_authorizes`. That walk
+                    // re-parses the script, so it runs only when findings exist.
                     if auto_mode
                         && !policy_forced_prompt
                         && !shell_forced_prompt
                         && protected_edit.is_none()
-                        && bash_assessment_is_clear(bash_evaluation.as_ref())
                         && matches!(policy_decision, Some(Decision::Allow))
+                        && (bash_assessment_is_clear(bash_evaluation.as_ref())
+                            || (!bash_request_floor_requires_prompt(bash_evaluation.as_ref())
+                                && compiled_policy
+                                    .as_ref()
+                                    .is_some_and(|p| p.narrow_allow_authorizes(&access))))
                     {
                         tracing::info!(
                             tool = ?tool_name,
@@ -1998,7 +2243,13 @@ fn spawn_permission_manager_with_pin(
                         Some(Decision::Allow)
                             if protected_edit.is_some()
                                 || auto_forced_prompt
-                                || bash_request_floor_requires_prompt(bash_evaluation.as_ref()) =>
+                                || (bash_request_floor_requires_prompt(
+                                    bash_evaluation.as_ref(),
+                                ) && !narrow_allow_clears_write_floor(
+                                    bash_evaluation.as_ref(),
+                                    compiled_policy.as_ref(),
+                                    &access,
+                                )) =>
                         {
                             // Auto forced a prompt (classifier timeout/unavailable/
                             // denial-limit on a findings-bearing command): a broad
@@ -2047,6 +2298,7 @@ fn spawn_permission_manager_with_pin(
                             None
                         }
                         AccessKind::Read(_) => Some((Decision::Allow, reasons::SAFE_COMMAND)),
+                        AccessKind::WebSearch(_) => Some((Decision::Allow, reasons::SAFE_COMMAND)),
                         AccessKind::Grep { .. } => Some((Decision::Allow, reasons::SAFE_COMMAND)),
                         // CWE-862: MCP tools must prompt the user instead of
                         // being silently auto-approved. They can execute arbitrary
@@ -2066,7 +2318,16 @@ fn spawn_permission_manager_with_pin(
                             policy_forced_prompt,
                             remember_tool_approvals,
                         )
-                        .map(|d| (d, reasons::PERSISTED_GRANT)),
+                        .map(|d| {
+                            // A remembered "never allow" reports the same
+                            // trigger as the bash disallow path.
+                            let reason = if matches!(d, Decision::Reject(_)) {
+                                reasons::SESSION_DENY
+                            } else {
+                                reasons::PERSISTED_GRANT
+                            };
+                            (d, reason)
+                        }),
                         AccessKind::Edit(_) => {
                             if allow_edits_for_session && protected_edit.is_none() {
                                 Some((Decision::Allow, reasons::PERSISTED_GRANT))
@@ -2122,7 +2383,13 @@ fn spawn_permission_manager_with_pin(
                         AccessKind::WebFetch(url) => {
                             match url::Url::parse(url) {
                                 Ok(parsed_url) => {
-                                    if static_domain_matcher.check(&parsed_url).is_none() {
+                                    // Remembered deny wins over the static
+                                    // allowlist and any persisted grant.
+                                    if let Some(reject) =
+                                        web_fetch_deny_pre_decision(&parsed_url, &state)
+                                    {
+                                        Some((reject, reasons::SESSION_DENY))
+                                    } else if static_domain_matcher.check(&parsed_url).is_none() {
                                         tracing::debug!(
                                             url = %url,
                                             source = "static_allowlist",
@@ -2228,6 +2495,12 @@ fn spawn_permission_manager_with_pin(
                         );
                         continue;
                     }
+                    {
+                        let slot = user_prompt_notify_actor.lock();
+                        if let Some(tx) = slot.as_ref() {
+                            let _ = tx.send(());
+                        }
+                    }
                     let (decision, outcome_str, user_prompted) = match &access {
                         AccessKind::Bash(cmd) => {
                             // Segment evaluation above still auto-allows fully-safe
@@ -2253,18 +2526,36 @@ fn spawn_permission_manager_with_pin(
                             let decision = match prompt_outcome {
                                 PromptOutcome::AllowOnce => Decision::Allow,
                                 PromptOutcome::AllowAlways => {
+                                    // Enforcement matches grants per chained *segment*, so
+                                    // the raw `a && b` chain string alone could never match
+                                    // a future `a` or `b`. Persist per-segment grants too;
+                                    // the raw script stays the exact-grant key for floored
+                                    // requests.
                                     state.allowed_bash_commands.insert(cmd.clone());
+                                    state.allowed_bash_commands.extend(bash_grant_segments(cmd));
                                     persist_state(&cwd, &state, client_id_ref).await;
                                     Decision::Allow
                                 }
                                 PromptOutcome::AllowAlwaysBashCommand(prefix) => {
-                                    state.allowed_bash_commands.insert(prefix.clone());
+                                    persist_bash_always_allow(&mut state, cmd, &prefix);
                                     persist_state(&cwd, &state, client_id_ref).await;
                                     Decision::Allow
                                 }
                                 PromptOutcome::AllowAlwaysBashGlob(pattern) => {
-                                    state.allowed_bash_globs.insert(pattern.clone());
-                                    persist_state(&cwd, &state, client_id_ref).await;
+                                    // Same trust rule as command labels: a
+                                    // client/hub-supplied glob persists only if
+                                    // it matches the script it was asked about —
+                                    // a forged reply must not mint a grant for
+                                    // commands the prompt never showed.
+                                    if bash_glob_covers_script(cmd, &pattern) {
+                                        state.allowed_bash_globs.insert(pattern.clone());
+                                        persist_state(&cwd, &state, client_id_ref).await;
+                                    } else {
+                                        tracing::warn!(
+                                            glob = %pattern,
+                                            "always-allow glob does not match the prompted script; not persisted"
+                                        );
+                                    }
                                     Decision::Allow
                                 }
                                 PromptOutcome::AllowAlwaysDomain(_)
@@ -2283,8 +2574,15 @@ fn spawn_permission_manager_with_pin(
                                     state.disallowed_bash_commands.insert(prefix.clone());
                                     persist_state(&cwd, &state, client_id_ref).await;
                                     Decision::Reject(format!(
-                                        "User rejected the execution and excluded {prefix} from this session"
+                                        "User rejected the execution and excluded `{prefix}` from future runs in this project"
                                     ))
+                                }
+                                PromptOutcome::RejectAlwaysMcpTool(_)
+                                | PromptOutcome::RejectAlwaysDomain(_) => {
+                                    // Not reachable for Bash access; nothing persisted,
+                                    // so report the plain reject wire value.
+                                    effective_kind = PromptOutcomeKind::RejectOnce;
+                                    Decision::Reject("User rejected the execution".to_owned())
                                 }
                                 PromptOutcome::Cancelled => Decision::Cancelled,
                                 PromptOutcome::FollowupMessage(msg) => {
@@ -2337,9 +2635,26 @@ fn spawn_permission_manager_with_pin(
                                     effective_kind = PromptOutcomeKind::AllowAlwaysBash;
                                     Decision::Allow
                                 }
-                                PromptOutcome::AllowAlwaysDomain(domain) => {
-                                    if let AccessKind::WebFetch(_) = &access {
-                                        state.allowed_web_fetch_domains.insert(domain.clone());
+                                PromptOutcome::AllowAlwaysDomain(client_domain) => {
+                                    // Persist the domain from the access URL, NOT the
+                                    // client-supplied value — same anti-spoof rule as
+                                    // the MCP arms below. A forged hub reply must not
+                                    // whitelist a domain the prompt never showed. The
+                                    // enforcement lookup normalizes the request host,
+                                    // so persist the same normalized form.
+                                    if let AccessKind::WebFetch(url) = &access
+                                        && let Ok(parsed) = url::Url::parse(url)
+                                        && let Some(host) = parsed.host_str()
+                                    {
+                                        let domain = normalize_domain(host);
+                                        if domain != *client_domain {
+                                            tracing::warn!(
+                                                client_supplied = %client_domain,
+                                                access_domain = %domain,
+                                                "AllowAlwaysDomain mismatch; persisting access-URL domain"
+                                            );
+                                        }
+                                        state.allowed_web_fetch_domains.insert(domain);
                                         persist_state(&cwd, &state, client_id_ref).await;
                                     }
                                     Decision::Allow
@@ -2411,6 +2726,63 @@ fn spawn_permission_manager_with_pin(
                                 PromptOutcome::RejectAlwaysBashCommand(_) => {
                                     // Not reachable for non-bash access; defensive.
                                     Decision::Reject("User rejected the execution".to_owned())
+                                }
+                                PromptOutcome::RejectAlwaysMcpTool(tool_name) => {
+                                    // Persist the name from the current AccessKind,
+                                    // NOT the client-supplied value — same anti-spoof
+                                    // rule as AllowAlwaysMcpTool. Always the exact
+                                    // qualified tool; no server-scope deny exists.
+                                    if let AccessKind::MCPTool {
+                                        name: access_name, ..
+                                    } = &access
+                                    {
+                                        if tool_name != access_name {
+                                            tracing::warn!(
+                                                client_supplied = %tool_name,
+                                                access_name = %access_name,
+                                                "RejectAlwaysMcpTool tool_name mismatch; persisting access-kind name"
+                                            );
+                                        }
+                                        state.disallowed_mcp_tools.insert(access_name.clone());
+                                        persist_state(&cwd, &state, client_id_ref).await;
+                                        Decision::Reject(format!(
+                                            "User rejected the execution and excluded `{access_name}` from future runs in this project"
+                                        ))
+                                    } else {
+                                        // Not an MCP access; nothing persisted.
+                                        effective_kind = PromptOutcomeKind::RejectOnce;
+                                        Decision::Reject("User rejected the execution".to_owned())
+                                    }
+                                }
+                                PromptOutcome::RejectAlwaysDomain(client_domain) => {
+                                    // Persist the domain from the access URL, NOT the
+                                    // client-supplied value — same anti-spoof rule as
+                                    // AllowAlwaysDomain. Deny keys keep the `www.`
+                                    // label (see `web_fetch_deny_key`), matching the
+                                    // enforcement lookup exactly.
+                                    if let Some(domain) = match &access {
+                                        AccessKind::WebFetch(url) => {
+                                            web_fetch_deny_key_from_url(url)
+                                        }
+                                        _ => None,
+                                    } {
+                                        if domain != *client_domain {
+                                            tracing::warn!(
+                                                client_supplied = %client_domain,
+                                                access_domain = %domain,
+                                                "RejectAlwaysDomain mismatch; persisting access-URL domain"
+                                            );
+                                        }
+                                        state.disallowed_web_fetch_domains.insert(domain.clone());
+                                        persist_state(&cwd, &state, client_id_ref).await;
+                                        Decision::Reject(format!(
+                                            "User rejected the execution and excluded `{domain}` from future runs in this project"
+                                        ))
+                                    } else {
+                                        // No parseable non-empty host; nothing persisted.
+                                        effective_kind = PromptOutcomeKind::RejectOnce;
+                                        Decision::Reject("User rejected the execution".to_owned())
+                                    }
                                 }
                                 PromptOutcome::RejectOnce => {
                                     Decision::Reject("User rejected the execution".to_owned())
@@ -2492,6 +2864,7 @@ fn spawn_permission_manager_with_pin(
             yolo_pin,
             deny_read_globs: Arc::new(deny_read_globs),
             in_flight,
+            user_prompt_notify,
         },
         event_rx,
     )
@@ -3642,6 +4015,47 @@ mod tests {
         }
     }
 
+    /// A client that answers every prompt by selecting the option with the
+    /// exact given id, for exercising the persistent "Never allow" rows.
+    struct IdSelectingClient {
+        id: &'static str,
+        prompts: std::rc::Rc<std::cell::RefCell<Vec<acp::RequestPermissionRequest>>>,
+    }
+
+    impl IdSelectingClient {
+        fn new(id: &'static str) -> Self {
+            Self {
+                id,
+                prompts: Default::default(),
+            }
+        }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl acp::Client for IdSelectingClient {
+        async fn request_permission(
+            &self,
+            args: acp::RequestPermissionRequest,
+        ) -> acp::Result<acp::RequestPermissionResponse> {
+            let option_id = args
+                .options
+                .iter()
+                .find(|o| o.option_id.0.as_ref() == self.id)
+                .map(|o| o.option_id.clone())
+                .unwrap_or_else(|| panic!("prompt must offer option `{}`", self.id));
+            self.prompts.borrow_mut().push(args);
+            Ok(acp::RequestPermissionResponse::new(
+                acp::RequestPermissionOutcome::Selected(acp::SelectedPermissionOutcome::new(
+                    option_id,
+                )),
+            ))
+        }
+
+        async fn session_notification(&self, _: acp::SessionNotification) -> acp::Result<()> {
+            Ok(())
+        }
+    }
+
     /// A client that answers every prompt by selecting the first allow-once (when
     /// `allow`) or reject-once option, for exercising human Allow vs Reject at a
     /// denial-limit escalation prompt.
@@ -3743,6 +4157,7 @@ mod tests {
             yolo_pin: None,
             deny_read_globs: Arc::new(vec![]),
             in_flight: Arc::new(AtomicUsize::new(0)),
+            user_prompt_notify: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -5368,6 +5783,126 @@ mod tests {
             .await;
     }
 
+    /// `redirect_write` provenance: word-operand writes leave it false; literal
+    /// and unextractable (`> $OUT`) redirect targets pin it true (fail closed),
+    /// so `narrow_allow_clears_write_floor` can never vouch for a redirect.
+    #[test]
+    fn evaluate_bash_pins_redirect_write_provenance() {
+        let state = PermissionState::default();
+        assert!(!evaluate_bash("touch CANARY", &state, true).redirect_write);
+        assert!(evaluate_bash("cat payload > out", &state, true).redirect_write);
+        assert!(evaluate_bash("touch CANARY > $OUT", &state, true).redirect_write);
+        // Safe sinks are not real file writes.
+        assert!(!evaluate_bash("cat payload > /dev/null", &state, true).redirect_write);
+    }
+
+    /// GB-5153: a narrow allow rule clears the FileWrite floor for word-operand
+    /// writes — `Bash(touch:*)` + `touch CANARY` auto-allows as `policy_allow`
+    /// in ask AND dontAsk (headless auto-cancels prompts, so the old floor made
+    /// allowlists unusable for writes).
+    #[tokio::test]
+    async fn narrow_bash_allow_clears_word_visible_write_floor() {
+        use crate::permission::rules::parse_permission_rule;
+        use crate::permission::types::{PermissionConfig, RuleAction};
+
+        let local = tokio::task::LocalSet::new();
+        local
+            .run_until(async {
+                for prompt_policy in [PromptPolicy::Ask, PromptPolicy::Deny] {
+                    let tmp = tempfile::tempdir().unwrap();
+                    let cwd = AbsPathBuf::new(tmp.path().to_path_buf()).unwrap();
+                    let rule = parse_permission_rule("Bash(touch:*)", RuleAction::Allow).unwrap();
+                    let mut config = PermissionConfig::new(vec![rule]);
+                    config.prompt_policy = prompt_policy;
+                    let client = RecordingClient::default();
+                    let prompts = client.prompts.clone();
+                    let (mgr, mut events) = manager_with_recording_client(
+                        &cwd,
+                        Some(config),
+                        client,
+                        ClientType::Generic,
+                    );
+                    let d = mgr
+                        .request(
+                            AccessKind::Bash("touch CANARY".into()),
+                            tool_call(),
+                            None,
+                            None,
+                            None,
+                        )
+                        .await;
+                    assert_eq!(
+                        d,
+                        Decision::Allow,
+                        "narrow allow must clear the write floor ({prompt_policy:?})"
+                    );
+                    let ev = events.try_recv().expect("event must be emitted");
+                    assert_eq!(ev.decision_reason.as_deref(), Some(reasons::POLICY_ALLOW));
+                    assert!(!ev.user_prompted);
+                    assert_eq!(prompts.borrow().len(), 0, "{prompt_policy:?}");
+                }
+            })
+            .await;
+    }
+
+    /// The narrow-allow floor exception must NOT extend to effects the rule's
+    /// matcher cannot see: redirect writes, mixed findings (env injection), and
+    /// catch-all rules all stay floored to a prompt.
+    #[tokio::test]
+    async fn narrow_bash_allow_does_not_clear_invisible_or_mixed_floors() {
+        use crate::permission::rules::parse_permission_rule;
+        use crate::permission::types::{PermissionConfig, RuleAction};
+
+        let local = tokio::task::LocalSet::new();
+        local
+            .run_until(async {
+                // (rule, command): each would auto-allow under the GB-5153
+                // exception if its guard were dropped.
+                let cases = [
+                    // Redirect write: `Bash(cat:*)` matches words "cat payload"
+                    // but the `> out` write is invisible to the matcher.
+                    ("Bash(cat:*)", "cat payload > out"),
+                    // Unextractable redirect target (Bugbot): the write exists
+                    // but nothing can vouch for it.
+                    ("Bash(touch:*)", "touch CANARY > $OUT"),
+                    // Mixed findings: env injection alongside the word write.
+                    ("Bash(touch:*)", "LD_PRELOAD=/x/e.so touch CANARY"),
+                    // Catch-all: `narrow_allow_authorizes` excludes it.
+                    ("Bash(*)", "touch CANARY"),
+                ];
+                for (rule_str, cmd) in cases {
+                    let tmp = tempfile::tempdir().unwrap();
+                    let cwd = AbsPathBuf::new(tmp.path().to_path_buf()).unwrap();
+                    let rule = parse_permission_rule(rule_str, RuleAction::Allow).unwrap();
+                    let config = PermissionConfig::new(vec![rule]);
+                    let client = RecordingClient::default();
+                    let prompts = client.prompts.clone();
+                    let (mgr, mut events) = manager_with_recording_client(
+                        &cwd,
+                        Some(config),
+                        client,
+                        ClientType::Generic,
+                    );
+                    let d = mgr
+                        .request(AccessKind::Bash(cmd.into()), tool_call(), None, None, None)
+                        .await;
+                    assert!(
+                        matches!(d, Decision::Reject(_)),
+                        "{rule_str} + {cmd} must stay floored, got {d:?}"
+                    );
+                    assert_eq!(prompts.borrow().len(), 1, "{rule_str} + {cmd}");
+                    let ev = events.try_recv().expect("event must be emitted");
+                    assert!(ev.user_prompted, "{rule_str} + {cmd}");
+                    assert_ne!(
+                        ev.decision_reason.as_deref(),
+                        Some(reasons::POLICY_ALLOW),
+                        "{rule_str} + {cmd}"
+                    );
+                }
+            })
+            .await;
+    }
+
     /// HackerOne #3876332: a managed `Bash(git:*)` allow must not auto-approve a
     /// chain whose later segments are not independently allowed. Drive the real
     /// `PermissionHandle::request` boundary (policy allow + always-safe list +
@@ -6730,13 +7265,51 @@ mod tests {
         );
         assert_eq!(default_always_allow_scope(&words("cargo test --lib")), 3);
         assert_eq!(default_always_allow_scope(&words("npm run build")), 2);
-        // Unknown wrappers must not widen to the bare first word.
-        assert_eq!(default_always_allow_scope(&words("sudo git status")), 2);
         // Prefix collisions with safe binaries stay on the default path.
         assert_eq!(default_always_allow_scope(&words("lsof -i :8080")), 2);
         assert_eq!(default_always_allow_scope(&[]), 0);
         assert_eq!(default_always_allow_scope(&words("pwd")), 1);
         assert_eq!(default_always_allow_scope(&words("git")), 1);
+        // Dangerous commands honor only exact whole-command grants, so their
+        // default scope is the full command — a "git push" prefix would save
+        // a rule that can never match.
+        assert_eq!(
+            default_always_allow_scope(&words("git push origin main")),
+            4
+        );
+        assert_eq!(default_always_allow_scope(&words("rm -rf target/debug")), 3);
+        // …and the minimum pins there too, so narrowing cannot reach a
+        // prefix that enforcement would never honor.
+        assert_eq!(
+            minimum_always_allow_scope(&words("git push origin main")),
+            4
+        );
+        assert_eq!(minimum_always_allow_scope(&words("cargo test --lib")), 1);
+
+        // Exec vehicles (interpreters, package runners, privilege escalators,
+        // remote shells) pin the default AND the minimum to the full command:
+        // a bare `python3`/`sudo git` prefix would authorize arbitrary args.
+        // The two must agree so the offered default is never below the floor.
+        for cmd in [
+            "sudo git status",
+            "python3 -u foo.py arg",
+            "python3.13t script.py",
+            "nodejs server.js",
+            "/usr/bin/python3 tool.py",
+            "ssh host uname -a",
+        ] {
+            let w = words(cmd);
+            assert_eq!(
+                default_always_allow_scope(&w),
+                w.len(),
+                "exec vehicle {cmd:?} must default to the full command",
+            );
+            assert_eq!(
+                minimum_always_allow_scope(&w),
+                w.len(),
+                "exec vehicle {cmd:?} must floor to the full command",
+            );
+        }
     }
 
     #[test]
@@ -7197,6 +7770,29 @@ mod tests {
         match evaluate_bash_segments(cmd, &exact_state) {
             SegmentEvaluation::AutoAllow { .. } => {}
             other => panic!("exact grant must auto-allow, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn exec_vehicle_grants_match_exactly_never_by_prefix() {
+        // Always-allow floors exec vehicles to the full command; enforcement
+        // must honor that key only on the exact segment, or the floor is
+        // meaningless — the grant would still authorize arbitrary argv.
+        for (grant, widened) in [
+            ("docker run nginx", "docker run nginx --privileged"),
+            ("python3 foo.py", "python3 foo.py --extra"),
+            ("sudo git status", "sudo git status --short"),
+        ] {
+            let mut state = PermissionState::default();
+            state.allowed_bash_commands.insert(grant.into());
+            match evaluate_bash_segments(grant, &state) {
+                SegmentEvaluation::AutoAllow { via_session_grant } => assert!(via_session_grant),
+                other => panic!("exact grant must auto-allow {grant:?}, got {other:?}"),
+            }
+            match evaluate_bash_segments(widened, &state) {
+                SegmentEvaluation::NeedsPrompts { .. } => {}
+                other => panic!("{widened:?} must prompt under grant {grant:?}, got {other:?}"),
+            }
         }
     }
 
@@ -7788,6 +8384,124 @@ mod tests {
         // Finding still present, but exact grant makes the floor stand down.
         assert!(granted.assessment.contains(OpaqueShell));
         assert!(!bash_request_floor_requires_prompt(Some(&granted)));
+    }
+
+    /// An exact whole-command grant on a dangerous-listed command (`git push`)
+    /// must short-circuit before the auto classifier, exactly as ask mode
+    /// honors the same grant — never a prefix or blanket grant.
+    #[test]
+    fn exact_grant_beats_conservative_dangerous_gate() {
+        let cmd = "git push origin main";
+
+        // Prefix grant ("git push" via arrow scope): never trusted for a
+        // dangerous verb — falls through to the classifier.
+        let prefix_state = PermissionState {
+            allowed_bash_commands: HashSet::from(["git push".to_owned()]),
+            ..Default::default()
+        };
+        assert!(
+            bash_grant_pre_decision(
+                cmd,
+                &evaluate_bash(cmd, &prefix_state, true),
+                &prefix_state,
+                None,
+                BashGrantOpts::PRE_CLASSIFIER,
+            )
+            .is_none()
+        );
+
+        // Blanket allow_bash_execute: also never trusted for a dangerous verb.
+        let blanket_state = PermissionState {
+            allow_bash_execute: true,
+            ..Default::default()
+        };
+        assert!(
+            bash_grant_pre_decision(
+                cmd,
+                &evaluate_bash(cmd, &blanket_state, true),
+                &blanket_state,
+                None,
+                BashGrantOpts::PRE_CLASSIFIER,
+            )
+            .is_none()
+        );
+
+        // Exact whole-command grant: explicit user authority; pre-classifier
+        // allow so auto mode cannot silent-deny the very command the user
+        // always-allowed.
+        let exact_state = PermissionState {
+            allowed_bash_commands: HashSet::from([cmd.to_owned()]),
+            ..Default::default()
+        };
+        let decision = bash_grant_pre_decision(
+            cmd,
+            &evaluate_bash(cmd, &exact_state, true),
+            &exact_state,
+            None,
+            BashGrantOpts::PRE_CLASSIFIER,
+        );
+        assert!(
+            matches!(decision, Some((Decision::Allow, r)) if r == reasons::SESSION_GRANT),
+            "exact grant must allow before the classifier, got {decision:?}"
+        );
+    }
+
+    /// Unparseable scripts never reach per-segment deny matching, so a
+    /// persisted deny must bind against the raw text — otherwise a generic
+    /// client's "don't ask again" deny would be silently inert.
+    #[test]
+    fn raw_deny_binds_for_unparseable_scripts() {
+        const OPAQUE: &str = "deploy $(git rev-parse HEAD)";
+        let state = PermissionState {
+            disallowed_bash_commands: HashSet::from([OPAQUE.to_owned()]),
+            ..Default::default()
+        };
+        assert!(matches!(
+            evaluate_bash(OPAQUE, &state, true).segments,
+            SegmentEvaluation::Reject(_)
+        ));
+
+        // Verb-prefix denies bind against raw text too (deny-safe direction).
+        let prefix_deny = PermissionState {
+            disallowed_bash_commands: HashSet::from(["git push".to_owned()]),
+            ..Default::default()
+        };
+        assert!(matches!(
+            evaluate_bash("git push $(target-branch)", &prefix_deny, true).segments,
+            SegmentEvaluation::Reject(_)
+        ));
+        // No deny → unparseable stays unparseable.
+        assert!(matches!(
+            evaluate_bash(OPAQUE, &PermissionState::default(), true).segments,
+            SegmentEvaluation::Unparseable
+        ));
+    }
+
+    /// Grants saved by the prompt UI are dequoted word joins; the exact-grant
+    /// compare must recognize the quoted spelling of the same single command.
+    #[test]
+    fn dequoted_exact_grant_matches_quoted_command() {
+        let state = PermissionState {
+            allowed_bash_commands: HashSet::from(["git commit -m fix".to_owned()]),
+            ..Default::default()
+        };
+        assert!(evaluate_bash(r#"git commit -m "fix""#, &state, true).exact_grant);
+        assert!(evaluate_bash("git commit -m 'fix'", &state, true).exact_grant);
+
+        // A leading env assignment or a chained sibling is NOT covered by the
+        // dequoted compare — that would widen the grant past what the user saw.
+        assert!(!evaluate_bash("FOO=1 git commit -m fix", &state, true).exact_grant);
+        assert!(!evaluate_bash("git commit -m fix && rm -rf /", &state, true).exact_grant);
+
+        // A space-bearing word collapses to the same join as separate adjacent
+        // words; such joins must never exact-match across spellings (different
+        // argv), only the identical raw text may.
+        let spaced = PermissionState {
+            allowed_bash_commands: HashSet::from(["rm -rf my dir".to_owned()]),
+            ..Default::default()
+        };
+        assert!(!evaluate_bash(r#"rm -rf "my dir""#, &spaced, true).exact_grant);
+        assert!(evaluate_bash("rm -rf my dir", &spaced, true).exact_grant);
     }
 
     #[test]
@@ -8417,6 +9131,91 @@ mod tests {
             // `ask` rule still prompts (returns None).
             let state = PermissionState::default();
             assert!(mcp_pre_decision("linear__list", &state, true, true).is_none());
+        }
+
+        #[test]
+        fn pre_decision_deny_wins_over_tool_and_server_grants() {
+            let mut state = PermissionState::default();
+            state.allowed_mcp_tools.insert("linear__list".to_string());
+            state.allowed_mcp_servers.insert("linear".to_string());
+            state
+                .disallowed_mcp_tools
+                .insert("linear__list".to_string());
+            assert!(matches!(
+                mcp_pre_decision("linear__list", &state, false, false),
+                Some(Decision::Reject(r)) if r.contains("previously rejected")
+            ));
+            // The deny is exact tool-scope: a sibling tool of the same server
+            // still rides the server grant.
+            assert!(matches!(
+                mcp_pre_decision("linear__create", &state, false, false),
+                Some(Decision::Allow)
+            ));
+        }
+
+        #[test]
+        fn pre_decision_deny_binds_under_ask_floor_regardless_of_gate() {
+            // Mirrors the bash disallow path: the deny is checked before the
+            // ask-floor early return, in both gate states.
+            let mut state = PermissionState::default();
+            state
+                .disallowed_mcp_tools
+                .insert("linear__list".to_string());
+            for remember in [false, true] {
+                assert!(matches!(
+                    mcp_pre_decision("linear__list", &state, true, remember),
+                    Some(Decision::Reject(_))
+                ));
+            }
+        }
+    }
+
+    mod web_fetch_deny {
+        use super::*;
+
+        fn denied(values: &[&str]) -> HashSet<String> {
+            values.iter().map(|s| (*s).to_string()).collect()
+        }
+
+        #[test]
+        fn matches_exact_host_www_and_subdomains() {
+            let set = denied(&["example.com"]);
+            for host in [
+                "example.com",
+                "www.example.com",
+                "EXAMPLE.com",
+                "api.example.com",
+                "a.b.example.com",
+            ] {
+                assert_eq!(
+                    denied_web_fetch_domain(host, &set),
+                    Some("example.com"),
+                    "{host} must match the deny"
+                );
+            }
+        }
+
+        #[test]
+        fn does_not_match_lookalike_suffixes() {
+            let set = denied(&["example.com"]);
+            for host in ["notexample.com", "example.com.evil.net", "example.org"] {
+                assert_eq!(denied_web_fetch_domain(host, &set), None, "{host}");
+            }
+        }
+
+        /// A `www.X` deny key is never collapsed to `X`: storing `com` for a
+        /// `www.com` rejection would deny every `.com` host.
+        #[test]
+        fn www_host_deny_stays_narrow() {
+            assert_eq!(
+                web_fetch_deny_key_from_url("https://www.com/x").as_deref(),
+                Some("www.com")
+            );
+            let set = denied(&["www.com"]);
+            assert_eq!(denied_web_fetch_domain("www.com", &set), Some("www.com"));
+            for host in ["example.com", "foo.com", "com"] {
+                assert_eq!(denied_web_fetch_domain(host, &set), None, "{host}");
+            }
         }
     }
 
@@ -9336,6 +10135,117 @@ mod tests {
             .await;
     }
 
+    /// End-to-end: an exact whole-command always-allow on a dangerous-listed
+    /// command (`git push`) must Allow before the auto classifier instead of
+    /// being silent-denied by a Block verdict.
+    #[tokio::test]
+    async fn auto_bash_exact_grant_on_dangerous_command_skips_classifier() {
+        use crate::permission::auto_mode::LlmPermissionClassifier;
+        let local = tokio::task::LocalSet::new();
+        local
+            .run_until(async {
+                let tmp = tempfile::tempdir().unwrap();
+                let cwd = AbsPathBuf::new(tmp.path().to_path_buf()).unwrap();
+                const CMD: &str = "git push origin main";
+                let mut seeded = PermissionState::default();
+                seeded.allowed_bash_commands.insert(CMD.to_string());
+                persist_state(&cwd, &seeded, None).await;
+
+                let client = RecordingClient::default();
+                let prompts = client.prompts.clone();
+                let (mgr, _e) =
+                    manager_with_recording_client(&cwd, None, client, ClientType::NofyPager);
+                mgr.set_auto_mode(true);
+                mgr.set_classifier(Some(LlmPermissionClassifier::with_fixed_model_text(
+                    r#"{"thinking":"t","shouldBlock":true,"reason":"x"}"#,
+                )));
+
+                let d = tokio::time::timeout(
+                    std::time::Duration::from_secs(5),
+                    mgr.request(AccessKind::Bash(CMD.into()), tool_call(), None, None, None),
+                )
+                .await
+                .expect("must resolve, not hang");
+                assert!(
+                    matches!(d, Decision::Allow),
+                    "exact grant on dangerous command must Allow before classifier, got {d:?}"
+                );
+                assert_eq!(prompts.borrow().len(), 0);
+            })
+            .await;
+    }
+
+    /// A narrow (non-catchall) configured allow rule resolves before the auto
+    /// classifier — parity with ask mode, where the same rule auto-allows —
+    /// while a catch-all `Bash` rule stays suspended into the classifier.
+    #[tokio::test]
+    async fn auto_narrow_policy_allow_bypasses_classifier_but_catchall_does_not() {
+        use crate::permission::auto_mode::{ClassifierVerdict, FixedClassifier};
+        use crate::permission::types::{
+            PatternMode, PermissionConfig, PermissionRule, RuleAction, ToolFilter,
+        };
+        let local = tokio::task::LocalSet::new();
+        local
+            .run_until(async {
+                let tmp = tempfile::tempdir().unwrap();
+                let cwd = AbsPathBuf::new(tmp.path().to_path_buf()).unwrap();
+
+                // Narrow rule: `Bash(git push:*)`-style prefix.
+                let narrow = PermissionConfig::new(vec![PermissionRule {
+                    action: RuleAction::Allow,
+                    tool: ToolFilter::Bash,
+                    pattern: Some("git push".to_owned()),
+                    pattern_mode: PatternMode::Glob,
+                }]);
+                let (mgr, _ev) = test_manager_with_config(&cwd, narrow, false);
+                mgr.set_auto_mode(true);
+                mgr.set_classifier(Some(std::sync::Arc::new(FixedClassifier(
+                    ClassifierVerdict::Block,
+                ))));
+                let d = mgr
+                    .request(
+                        AccessKind::Bash("git push origin main".into()),
+                        tool_call(),
+                        None,
+                        None,
+                        None,
+                    )
+                    .await;
+                assert!(
+                    matches!(d, Decision::Allow),
+                    "narrow policy allow must bypass the classifier, got {d:?}"
+                );
+
+                // Catch-all rule: same command must still hit the classifier
+                // (Block → deny within budget).
+                let catchall = PermissionConfig::new(vec![PermissionRule {
+                    action: RuleAction::Allow,
+                    tool: ToolFilter::Bash,
+                    pattern: None,
+                    pattern_mode: PatternMode::Glob,
+                }]);
+                let (mgr2, _ev2) = test_manager_with_config(&cwd, catchall, false);
+                mgr2.set_auto_mode(true);
+                mgr2.set_classifier(Some(std::sync::Arc::new(FixedClassifier(
+                    ClassifierVerdict::Block,
+                ))));
+                let d2 = mgr2
+                    .request(
+                        AccessKind::Bash("git push origin main".into()),
+                        tool_call(),
+                        None,
+                        None,
+                        None,
+                    )
+                    .await;
+                assert!(
+                    matches!(d2, Decision::PolicyDeny(_)),
+                    "catch-all allow must stay suspended into the classifier, got {d2:?}"
+                );
+            })
+            .await;
+    }
+
     /// Bash prefix always-allow wins before the auto classifier.
     #[tokio::test]
     async fn auto_bash_prefix_grant_skips_classifier() {
@@ -9460,6 +10370,145 @@ mod tests {
                     matches!(&rejected, Decision::Reject(r) if r.contains("previously rejected")),
                     "disallow must Reject via session deny (not prompt failure), got {rejected:?}"
                 );
+            })
+            .await;
+    }
+
+    /// Selecting the MCP "Never allow" row persists the exact tool deny, and
+    /// the deny survives a state reload (a fresh manager rejects without
+    /// prompting).
+    #[tokio::test]
+    async fn reject_always_mcp_persists_and_survives_reload() {
+        let local = tokio::task::LocalSet::new();
+        local
+            .run_until(async {
+                let tmp = tempfile::tempdir().unwrap();
+                let cwd = AbsPathBuf::new(tmp.path().to_path_buf()).unwrap();
+
+                let client = IdSelectingClient::new("reject-always-mcp");
+                let prompts = client.prompts.clone();
+                let (mgr, _e) = manager_with_recording_client_remember(
+                    &cwd,
+                    None,
+                    client,
+                    ClientType::NofyPager,
+                    true,
+                );
+                let access = || AccessKind::MCPTool {
+                    name: "linear__delete_issue".into(),
+                    input: serde_json::Value::Null,
+                };
+                let d = mgr.request(access(), tool_call(), None, None, None).await;
+                assert!(
+                    matches!(&d, Decision::Reject(r) if r.contains("excluded `linear__delete_issue`")),
+                    "never-allow selection must Reject with the persisted key, got {d:?}"
+                );
+                assert_eq!(prompts.borrow().len(), 1);
+
+                let persisted = load_state_from_disk(&cwd, None).await;
+                assert!(persisted.disallowed_mcp_tools.contains("linear__delete_issue"));
+                assert!(
+                    persisted.allowed_mcp_servers.is_empty()
+                        && persisted.allowed_mcp_tools.is_empty(),
+                    "reject row must never mint a grant"
+                );
+
+                // Same manager: remembered deny short-circuits.
+                let d2 = mgr.request(access(), tool_call(), None, None, None).await;
+                assert!(matches!(&d2, Decision::Reject(r) if r.contains("previously rejected")));
+                assert_eq!(prompts.borrow().len(), 1, "no second prompt");
+
+                // Fresh manager over the reloaded state: still denied, no prompt.
+                let reload_client = RecordingClient::default();
+                let reload_prompts = reload_client.prompts.clone();
+                let (reloaded, _e2) = manager_with_recording_client(
+                    &cwd,
+                    None,
+                    reload_client,
+                    ClientType::NofyPager,
+                );
+                let d3 = reloaded.request(access(), tool_call(), None, None, None).await;
+                assert!(matches!(&d3, Decision::Reject(r) if r.contains("previously rejected")));
+                assert_eq!(reload_prompts.borrow().len(), 0);
+            })
+            .await;
+    }
+
+    /// Selecting the web-fetch "Never allow" row persists the normalized
+    /// domain deny, which survives reload and covers subdomains.
+    #[tokio::test]
+    async fn reject_always_domain_persists_and_survives_reload() {
+        let local = tokio::task::LocalSet::new();
+        local
+            .run_until(async {
+                let tmp = tempfile::tempdir().unwrap();
+                let cwd = AbsPathBuf::new(tmp.path().to_path_buf()).unwrap();
+
+                let client = IdSelectingClient::new("reject-always-domain");
+                let prompts = client.prompts.clone();
+                let (mgr, _e) = manager_with_recording_client_remember(
+                    &cwd,
+                    None,
+                    client,
+                    ClientType::NofyPager,
+                    true,
+                );
+                let d = mgr
+                    .request(
+                        AccessKind::WebFetch("https://Example.COM/docs".into()),
+                        tool_call(),
+                        None,
+                        None,
+                        None,
+                    )
+                    .await;
+                assert!(
+                    matches!(&d, Decision::Reject(r) if r.contains("excluded `example.com`")),
+                    "never-allow selection must Reject with the deny key, got {d:?}"
+                );
+                assert_eq!(prompts.borrow().len(), 1);
+
+                let persisted = load_state_from_disk(&cwd, None).await;
+                assert!(
+                    persisted
+                        .disallowed_web_fetch_domains
+                        .contains("example.com")
+                );
+                assert!(persisted.allowed_web_fetch_domains.is_empty());
+
+                // Seed a conflicting allow grant: the deny must still win.
+                let mut with_grant = persisted;
+                with_grant
+                    .allowed_web_fetch_domains
+                    .insert("example.com".to_string());
+                persist_state(&cwd, &with_grant, None).await;
+
+                // Fresh manager over the reloaded state: host, www variant,
+                // and subdomain all denied without prompting, despite the grant.
+                let reload_client = RecordingClient::default();
+                let reload_prompts = reload_client.prompts.clone();
+                let (reloaded, _e2) =
+                    manager_with_recording_client(&cwd, None, reload_client, ClientType::NofyPager);
+                for url in [
+                    "https://example.com/x",
+                    "https://www.example.com/x",
+                    "https://api.example.com/x",
+                ] {
+                    let d2 = reloaded
+                        .request(
+                            AccessKind::WebFetch(url.into()),
+                            tool_call(),
+                            None,
+                            None,
+                            None,
+                        )
+                        .await;
+                    assert!(
+                        matches!(&d2, Decision::Reject(r) if r.contains("previously rejected")),
+                        "{url}: got {d2:?}"
+                    );
+                }
+                assert_eq!(reload_prompts.borrow().len(), 0);
             })
             .await;
     }

@@ -168,7 +168,7 @@ pub fn sessions_cwd_dir(cwd: &str) -> PathBuf {
 pub fn ensure_sessions_cwd_dir(cwd: &str) -> std::io::Result<PathBuf> {
     let encoded_name = encode_cwd_dirname(cwd);
     let dir = nofy_home().join("sessions").join(&encoded_name);
-    std::fs::create_dir_all(&dir)?;
+    create_dir_all_owner_only(&dir)?;
     // Hash-based encoding is in use when the dirname differs from the
     // plain URL-encoded form.  Write a `.cwd` file so decode can recover
     // the original path.  O_CREAT|O_EXCL via create_new avoids TOCTOU
@@ -184,6 +184,43 @@ pub fn ensure_sessions_cwd_dir(cwd: &str) -> std::io::Result<PathBuf> {
         }
     }
     Ok(dir)
+}
+
+/// Best-effort chmod 0700 on Unix, no-op elsewhere: session dirs hold chat
+/// history, and creators re-run on every touch so the mode self-heals.
+/// Failures are logged (not returned): on chmod-hostile filesystems (FAT,
+/// some network mounts) healing pre-existing loose dirs can never succeed,
+/// and that must be visible.
+pub fn set_dir_owner_only(dir: &std::path::Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Err(e) = std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700)) {
+            tracing::debug!(?e, dir = %dir.display(), "failed to chmod session dir owner-only");
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = dir;
+    }
+}
+
+/// `create_dir_all` with directories born 0700 on Unix (no umask window),
+/// plus a self-heal chmod for a pre-existing `dir`. Prefer this over bare
+/// `create_dir_all` for anything under `sessions/`.
+pub fn create_dir_all_owner_only(dir: &std::path::Path) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        std::fs::DirBuilder::new()
+            .recursive(true)
+            .mode(0o700)
+            .create(dir)?;
+    }
+    #[cfg(not(unix))]
+    std::fs::create_dir_all(dir)?;
+    set_dir_owner_only(dir);
+    Ok(())
 }
 
 /// Generate a URL-safe slug from a string.
