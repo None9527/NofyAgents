@@ -108,6 +108,8 @@ pub(crate) use auth_retry::{
 mod interjection;
 #[path = "acp_session_impl/tool_calls.rs"]
 mod tool_calls;
+#[path = "acp_session_impl/image_strip.rs"]
+mod image_strip;
 pub(crate) use interjection::*;
 #[path = "acp_session_impl/laziness.rs"]
 mod laziness;
@@ -1029,6 +1031,12 @@ pub(crate) struct SessionActor {
     /// terminal `SamplingEvent::Completed` (every text/thought chunk has been
     /// `send_update`d by then). `None` between turns.
     pub(crate) turn_stream_drained: parking_lot::Mutex<Option<tokio::sync::oneshot::Sender<()>>>,
+    /// A server-confirmed image strip awaiting proof that the stripped retry
+    /// helped: URLs buffered by request id on `ImagesStripped`, persisted to
+    /// stored history only when that request's `Completed` arrives, dropped
+    /// on `Failed`. See `acp_session_impl/image_strip.rs`.
+    pub(crate) pending_image_strip:
+        parking_lot::Mutex<Option<(nofy_sampler::RequestId, Vec<std::sync::Arc<str>>)>>,
     /// Handle to the per-session `nofy-sampler` actor.
     ///
     /// Live sessions get a real handle from `spawn_session_actor`;

@@ -65,6 +65,11 @@ impl TestHarness {
         Self::with_persistence(items, test_config(), mock, persistence_rx)
     }
 
+    fn with_failing_strip_writes(items: Vec<ConversationItem>) -> Self {
+        let (mock, persistence_rx) = MockChatPersistence::new_failing_strip_writes();
+        Self::with_persistence(items, test_config(), mock, persistence_rx)
+    }
+
     fn with_persistence(
         items: Vec<ConversationItem>,
         config: SamplingConfig,
@@ -4722,4 +4727,96 @@ async fn repair_history_command_refused_while_turn_active() {
         .unwrap()
         .unwrap();
     assert_eq!(report.stripped_tool_result_ids, vec!["call_ORPHAN"]);
+}
+
+// ============================================================================
+// StripConversationImages tests
+// ============================================================================
+
+fn user_with_image(text: &str, url: &str) -> ConversationItem {
+    let mut item = ConversationItem::user(text);
+    item.add_image(url.to_string());
+    item
+}
+
+/// A matching URL is stripped in place and the rewrite is persisted
+/// backup-gated; the outcome is `Applied` with the occurrence count.
+#[tokio::test]
+async fn strip_conversation_images_applies_and_persists() {
+    let mut h = TestHarness::with_conversation(vec![
+        ConversationItem::system("sys"),
+        user_with_image("look", "data:image/png;base64,poison"),
+        ConversationItem::tool_result_with_images(
+            "call_1",
+            "Read image file: sheet.png",
+            vec![nofy_sampling_types::ContentPart::Image {
+                url: "data:image/png;base64,poison".into(),
+            }],
+        ),
+    ]);
+    h.drain_persistence();
+
+    let outcome = h
+        .handle
+        .strip_conversation_images(vec!["data:image/png;base64,poison".into()])
+        .await;
+
+    assert_eq!(
+        outcome,
+        crate::StripOutcome::Applied { stripped: 2 },
+        "one user part + one tool image, same URL, count both"
+    );
+    let records = h.drain_persistence();
+    assert!(
+        records
+            .iter()
+            .any(|r| matches!(r, crate::persistence::PersistenceRecord::ReplaceHistoryForStrip(_))),
+        "the strip persists via the backup-gated rewrite path: {records:?}"
+    );
+}
+
+/// No stored image matches: `NoMatch`, nothing persisted, history untouched.
+#[tokio::test]
+async fn strip_conversation_images_no_match() {
+    let mut h = TestHarness::with_conversation(vec![user_with_image(
+        "look",
+        "data:image/png;base64,keep",
+    )]);
+    h.drain_persistence();
+
+    let outcome = h
+        .handle
+        .strip_conversation_images(vec!["data:image/png;base64,other".into()])
+        .await;
+
+    assert_eq!(outcome, crate::StripOutcome::NoMatch);
+    assert!(h.drain_persistence().is_empty());
+    let conv = h.handle.get_conversation().await;
+    match &conv[0] {
+        ConversationItem::User(u) => {
+            assert!(matches!(
+                u.content.last(),
+                Some(nofy_sampling_types::ContentPart::Image { .. })
+            ));
+        }
+        other => panic!("expected user item, got {other:?}"),
+    }
+}
+
+/// The disk write fails: the in-memory strip stands but the outcome must
+/// say the stored file may still carry the image.
+#[tokio::test]
+async fn strip_conversation_images_write_failed() {
+    let mut h = TestHarness::with_failing_strip_writes(vec![user_with_image(
+        "look",
+        "data:image/png;base64,poison",
+    )]);
+    h.drain_persistence();
+
+    let outcome = h
+        .handle
+        .strip_conversation_images(vec!["data:image/png;base64,poison".into()])
+        .await;
+
+    assert_eq!(outcome, crate::StripOutcome::WriteFailed { stripped: 1 });
 }

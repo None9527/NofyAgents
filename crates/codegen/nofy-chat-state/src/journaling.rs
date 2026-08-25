@@ -122,6 +122,18 @@ impl<P: ChatPersistence> ChatPersistence for JournalingPersistence<P> {
         );
     }
 
+    fn replace_history_for_strip_and_ack(
+        &mut self,
+        items: &[ConversationItem],
+    ) -> tokio::sync::oneshot::Receiver<std::io::Result<()>> {
+        let ack = self.inner.replace_history_for_strip_and_ack(items);
+        self.record(
+            EventKind::HistoryReplaced,
+            serde_json::json!({ "items_len": items.len(), "strip": true }),
+        );
+        ack
+    }
+
     fn flush(&mut self) {
         // A flush is a durability barrier, not a fact — the journal's own
         // appends are already durable, so nothing to record.

@@ -52,7 +52,7 @@ pub use handle::ChatStateHandle;
 pub use journaling::JournalingPersistence;
 pub use persistence::{
     ChatPersistence, MockChatPersistence, MockPersistenceReceiver, NullChatPersistence,
-    PersistenceRecord,
+    PersistenceRecord, StripOutcome,
 };
 pub use projection_audit::ProjectionAudit;
 pub use types::*;

@@ -2774,11 +2774,19 @@ impl SessionActor {
                 .await;
             }
             SamplingEvent::Completed {
-                response, metrics, ..
+                request_id,
+                response,
+                metrics,
+                ..
             } => {
                 if let Some(tx) = self.turn_stream_drained.lock().take() {
                     let _ = tx.send(());
                 }
+                let session = Arc::clone(self);
+                let rid = request_id.clone();
+                tokio::task::spawn_local(async move {
+                    session.apply_pending_image_strip(&rid).await;
+                });
                 if let Some(policy) = self.doom_loop_recovery {
                     let triggers = policy.confident_triggers(&response.doom_loop_signals);
                     if !triggers.is_empty() {
@@ -2812,6 +2820,14 @@ impl SessionActor {
             }
             SamplingEvent::ModelMetadata { metadata, .. } => {
                 self.handle_model_metadata_update(metadata).await;
+            }
+            SamplingEvent::ImagesStripped {
+                request_id,
+                stripped_urls,
+                reason,
+            } => {
+                self.handle_images_stripped(request_id, stripped_urls, reason)
+                    .await;
             }
             SamplingEvent::Retrying {
                 request_id,
@@ -2862,6 +2878,7 @@ impl SessionActor {
                 .await;
             }
             SamplingEvent::Failed { request_id, error } => {
+                self.drop_pending_image_strip(&request_id);
                 nofy_telemetry::unified_log::error(
                     "shell.turn.inference_failed",
                     Some(self.session_info.id.0.as_ref()),

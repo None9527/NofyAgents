@@ -113,6 +113,12 @@ pub enum PersistenceMsg {
     },
     /// Replace the entire chat history (used for compaction)
     ReplaceChatHistory(Vec<ConversationItem>),
+    /// Backup-gated, disk-acknowledged chat-history rewrite for a
+    /// server-confirmed image strip.
+    ReplaceChatHistoryForStripAndAck {
+        messages: Vec<ConversationItem>,
+        respond_to: tokio::sync::oneshot::Sender<std::io::Result<()>>,
+    },
     CurrentModel {
         model_id: acp::ModelId,
         /// The active agent definition name (e.g. `"nofy-build"`).
@@ -1826,6 +1832,23 @@ impl SessionPersistence {
                     if let Err(e) = result {
                         tracing::warn!(?e, "failed to replace chat history");
                     }
+                }
+                PersistenceMsg::ReplaceChatHistoryForStripAndAck {
+                    messages,
+                    respond_to,
+                } => {
+                    // Backup gates the rewrite; see `strip_rewrite_gated`.
+                    let result = crate::session::storage::strip_rewrite_gated(
+                        self.storage.as_ref(),
+                        &self.info,
+                        &messages,
+                    )
+                    .await;
+                    self.observe_io(&result);
+                    if let Err(e) = &result {
+                        tracing::warn!(?e, "failed to persist image-strip rewrite");
+                    }
+                    let _ = respond_to.send(result);
                 }
                 PersistenceMsg::CurrentModel {
                     model_id,

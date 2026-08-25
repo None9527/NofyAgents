@@ -63,6 +63,29 @@ impl ChatPersistence for ChannelChatPersistence {
             .send(PersistenceMsg::ReplaceChatHistory(items.to_vec()));
     }
 
+    fn replace_history_for_strip_and_ack(
+        &mut self,
+        items: &[ConversationItem],
+    ) -> oneshot::Receiver<io::Result<()>> {
+        let (respond_to, receiver) = oneshot::channel();
+        if self
+            .tx
+            .send(PersistenceMsg::ReplaceChatHistoryForStripAndAck {
+                messages: items.to_vec(),
+                respond_to,
+            })
+            .is_err()
+        {
+            let (reply, receiver) = oneshot::channel();
+            let _ = reply.send(Err(io::Error::new(
+                io::ErrorKind::BrokenPipe,
+                "session persistence actor unavailable for strip rewrite",
+            )));
+            return receiver;
+        }
+        receiver
+    }
+
     fn flush(&mut self) {
         let _ = self.tx.send(PersistenceMsg::Flush);
     }

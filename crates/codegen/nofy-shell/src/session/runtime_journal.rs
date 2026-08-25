@@ -618,6 +618,17 @@ impl<P: ChatPersistence> ChatPersistence for JournalingChatPersistence<P> {
         self.inner.replace_history(items);
     }
 
+    fn replace_history_for_strip_and_ack(
+        &mut self,
+        items: &[ConversationItem],
+    ) -> tokio::sync::oneshot::Receiver<std::io::Result<()>> {
+        self.journal.emit(
+            EventKind::HistoryReplaced,
+            serde_json::json!({ "items_len": items.len(), "strip": true }),
+        );
+        self.inner.replace_history_for_strip_and_ack(items)
+    }
+
     fn flush(&mut self) {
         self.inner.flush();
     }
@@ -667,6 +678,19 @@ mod tests {
                 .lock()
                 .unwrap()
                 .push(PersistenceRecord::ReplaceHistory(items.to_vec()));
+        }
+
+        fn replace_history_for_strip_and_ack(
+            &mut self,
+            items: &[ConversationItem],
+        ) -> oneshot::Receiver<std::io::Result<()>> {
+            self.records
+                .lock()
+                .unwrap()
+                .push(PersistenceRecord::ReplaceHistoryForStrip(items.to_vec()));
+            let (reply, receiver) = oneshot::channel();
+            let _ = reply.send(Ok(()));
+            receiver
         }
 
         fn flush(&mut self) {

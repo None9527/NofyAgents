@@ -153,6 +153,15 @@ pub enum ChatStateCommand {
         >,
     },
 
+    /// Strip stored images whose URLs the server rejected (see the sampler's
+    /// `StripReason::ServerRejected`). In-place rewrite + backup-gated,
+    /// disk-acknowledged persist; the reply tells the caller whether the
+    /// stored conversation really changed.
+    StripConversationImages {
+        urls: Vec<std::sync::Arc<str>>,
+        reply: oneshot::Sender<crate::StripOutcome>,
+    },
+
     /// Atomically align the leading `System` message with `prompt` (inserting
     /// one if absent), persisting the conversation. Executed inside the actor so
     /// it serializes with concurrent turn pushes (`PushAssistantResponse` /

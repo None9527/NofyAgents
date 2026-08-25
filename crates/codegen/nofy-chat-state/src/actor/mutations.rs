@@ -109,6 +109,30 @@ impl ChatStateActor {
         report
     }
 
+    /// URL-scoped image strip (server-rejected images): replaces matching
+    /// parts in place — item count and ordering unchanged, so turn-capture
+    /// offsets and token totals stay valid — then persists backup-gated and
+    /// disk-acknowledged. `None` when nothing matched, else the occurrence
+    /// count plus the disk ack receiver.
+    pub(super) fn strip_conversation_images(
+        &mut self,
+        urls: &[std::sync::Arc<str>],
+    ) -> Option<(usize, tokio::sync::oneshot::Receiver<std::io::Result<()>>)> {
+        let stripped =
+            nofy_sampling_types::strip_images_by_url(&mut self.state.conversation, urls);
+        if stripped == 0 {
+            return None;
+        }
+        tracing::warn!(
+            stripped,
+            "stripped server-rejected image(s) from stored conversation"
+        );
+        let ack = self
+            .persistence
+            .replace_history_for_strip_and_ack(&self.state.conversation);
+        Some((stripped, ack))
+    }
+
     /// Make memory match the disk-authoritative switch for one generation.
     pub(super) fn converge_working_directory_switch(
         &mut self,
