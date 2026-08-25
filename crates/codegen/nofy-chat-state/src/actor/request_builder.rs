@@ -237,6 +237,12 @@ pub(crate) fn prune_conversation(conversation: &mut [ConversationItem], config: 
 /// confident hallucination of its contents.
 const IMAGE_COMPACT_PLACEHOLDER: &str = "[An earlier image was removed to keep the request within its size limit and is no longer visible. Do not describe or reason about its contents from memory; ask the user to re-share it if you need to see it again.]";
 
+/// Appended once to a tool result's content when one or more of its inline
+/// images are evicted. Same anti-hallucination phrasing as the user-image
+/// placeholder, adapted to the tool-result surface (there is no part slot to
+/// leave a placeholder in — the images live in a separate vec).
+const TOOL_IMAGE_COMPACT_NOTE: &str = "[One or more images from this tool result were removed to keep the request within its size limit and are no longer visible. Do not describe or reason about their contents from memory.]";
+
 /// Hard request-body ceiling enforced by the inference proxy
 /// (nginx `proxy-body-size`). Bodies larger than this are rejected with HTTP
 /// 413 — or a connection reset before the response is written. Inline image
@@ -327,16 +333,28 @@ fn image_part_bytes(url: &str) -> usize {
 }
 
 /// Count of inline images in the conversation — for observability only.
+/// Covers both user-message images and tool-result images (e.g. `read_file`
+/// on an image file); the budget and eviction paths see the same set.
 fn inline_image_count(conversation: &[ConversationItem]) -> usize {
     conversation
         .iter()
-        .filter_map(|item| match item {
-            ConversationItem::User(u) => Some(u),
-            _ => None,
+        .map(|item| match item {
+            ConversationItem::User(user) => user
+                .content
+                .iter()
+                .filter(|part| matches!(part, ContentPart::Image { .. }))
+                .count(),
+            ConversationItem::ToolResult(tool_result) => tool_result
+                .images
+                .iter()
+                .filter(|part| matches!(part, ContentPart::Image { .. }))
+                .count(),
+            ConversationItem::System(_)
+            | ConversationItem::Assistant(_)
+            | ConversationItem::BackendToolCall(_)
+            | ConversationItem::Reasoning(_) => 0,
         })
-        .flat_map(|u| u.content.iter())
-        .filter(|p| matches!(p, ContentPart::Image { .. }))
-        .count()
+        .sum()
 }
 
 /// Outcome of [`compact_images_to_byte_budget`], surfaced for logging and
@@ -367,16 +385,32 @@ fn conversation_body_bytes(conversation: &[ConversationItem]) -> usize {
     let mut blanked = conversation.to_vec();
     let mut image_url_bytes = 0usize;
     for item in &mut blanked {
-        if let ConversationItem::User(user) = item {
-            for part in &mut user.content {
-                if let ContentPart::Image { url } = part {
-                    image_url_bytes += url.len();
-                    *url = std::sync::Arc::<str>::from("");
-                }
+        match item {
+            ConversationItem::User(user) => {
+                blank_image_urls(&mut user.content, &mut image_url_bytes);
             }
+            ConversationItem::ToolResult(tool_result) => {
+                blank_image_urls(&mut tool_result.images, &mut image_url_bytes);
+            }
+            ConversationItem::System(_)
+            | ConversationItem::Assistant(_)
+            | ConversationItem::BackendToolCall(_)
+            | ConversationItem::Reasoning(_) => {}
         }
     }
     serialized_json_bytes(&blanked) + image_url_bytes
+}
+
+/// Blanks image URLs in a content-part slice, accumulating each URL's exact
+/// serialized contribution (base64 data URIs contain no JSON-escaped
+/// characters, so raw length equals encoded length).
+fn blank_image_urls(parts: &mut [ContentPart], image_url_bytes: &mut usize) {
+    for part in parts {
+        if let ContentPart::Image { url } = part {
+            *image_url_bytes += url.len();
+            *url = std::sync::Arc::<str>::from("");
+        }
+    }
 }
 
 /// Replace the oldest inline images with [`IMAGE_COMPACT_PLACEHOLDER`] until
@@ -411,6 +445,16 @@ fn conversation_body_bytes(conversation: &[ConversationItem]) -> usize {
 /// recent user turn on *every* request — which (a) busted the prompt-cache
 /// prefix on the turn after any image, and (b) dropped images the model still
 /// needed one turn later, causing it to hallucinate their contents.
+/// Where an inline image lives — a user-message content part or a tool-result
+/// image vec. Eviction replaces user parts with a text placeholder but removes
+/// tool-result images outright (appending a note to the result content, since
+/// the images live in a separate vec with no part slot to leave a marker in).
+#[derive(Clone, Copy)]
+enum ImageLocation {
+    User { item: usize, part: usize },
+    ToolResult { item: usize },
+}
+
 pub(crate) fn compact_images_to_byte_budget(
     conversation: &mut [ConversationItem],
     current_bytes: usize,
@@ -423,44 +467,96 @@ pub(crate) fn compact_images_to_byte_budget(
         };
     }
 
-    // The text part each evicted image is replaced with. Measured once: every
-    // eviction shrinks the body by the image part's bytes and grows it back by
-    // this placeholder's bytes, so the net saving is `image - placeholder`.
+    // The text part each evicted user image is replaced with. Measured once:
+    // every eviction shrinks the body by the image part's bytes and grows it
+    // back by this placeholder's bytes, so the net saving is `image - placeholder`.
     let placeholder = ContentPart::Text {
         text: std::sync::Arc::<str>::from(IMAGE_COMPACT_PLACEHOLDER),
     };
     let placeholder_bytes = serialized_json_bytes(&placeholder);
 
-    // (item_idx, part_idx, exact serialized image-part bytes) for every inline
-    // image, oldest-first.
-    let mut images: Vec<(usize, usize, usize)> = Vec::new();
+    // The note appended once to a tool result whose images are evicted.
+    // Measured as a JSON string minus its two quotes: it is glued onto the
+    // already-serialized content string, so only its escaped length matters.
+    let tool_note_suffix = format!("\n\n{TOOL_IMAGE_COMPACT_NOTE}");
+    let tool_note_bytes = serialized_json_bytes(&tool_note_suffix).saturating_sub(2);
+
+    // Every inline image (user content parts and tool-result images),
+    // oldest-first, with its exact serialized bytes.
+    let mut images: Vec<(ImageLocation, usize)> = Vec::new();
     for (i, item) in conversation.iter().enumerate() {
-        if let ConversationItem::User(user) = item {
-            for (j, part) in user.content.iter().enumerate() {
-                if let ContentPart::Image { url } = part {
-                    images.push((i, j, image_part_bytes(url)));
+        match item {
+            ConversationItem::User(user) => {
+                for (j, part) in user.content.iter().enumerate() {
+                    if let ContentPart::Image { url } = part {
+                        images.push((
+                            ImageLocation::User { item: i, part: j },
+                            image_part_bytes(url),
+                        ));
+                    }
                 }
             }
+            ConversationItem::ToolResult(tool_result) => {
+                for part in &tool_result.images {
+                    if let ContentPart::Image { url } = part {
+                        images.push((
+                            ImageLocation::ToolResult { item: i },
+                            image_part_bytes(url),
+                        ));
+                    }
+                }
+            }
+            ConversationItem::System(_)
+            | ConversationItem::Assistant(_)
+            | ConversationItem::BackendToolCall(_)
+            | ConversationItem::Reasoning(_) => {}
         }
     }
 
     // Evict oldest-first until the body fits again, keeping the newest images.
     let mut running = current_bytes;
     let mut evicted = 0usize;
-    for &(i, j, image_bytes) in &images {
+    for &(location, image_bytes) in &images {
         if running <= target_bytes {
             break;
         }
-        if let ConversationItem::User(user) = &mut conversation[i]
-            && let Some(part) = user.content.get_mut(j)
-        {
-            *part = placeholder.clone();
-            // Net body saving: the image part leaves, the placeholder takes its
-            // slot. Everything else (siblings, commas, brackets) is untouched,
-            // so this is the exact change in the serialized body size.
-            running = running.saturating_sub(image_bytes.saturating_sub(placeholder_bytes));
-            evicted += 1;
+        match location {
+            ImageLocation::User { item, part } => {
+                let ConversationItem::User(user) = &mut conversation[item] else {
+                    unreachable!("image location must retain its item variant")
+                };
+                let slot = user
+                    .content
+                    .get_mut(part)
+                    .expect("discovered image part must remain present");
+                *slot = placeholder.clone();
+                // Net body saving: the image part leaves, the placeholder takes
+                // its slot. Everything else (siblings, commas, brackets) is
+                // untouched, so this is the exact change in the serialized body.
+                running = running.saturating_sub(image_bytes.saturating_sub(placeholder_bytes));
+            }
+            ImageLocation::ToolResult { item } => {
+                let ConversationItem::ToolResult(tool_result) = &mut conversation[item] else {
+                    unreachable!("image location must retain its item variant")
+                };
+                let image_index = tool_result
+                    .images
+                    .iter()
+                    .position(|part| matches!(part, ContentPart::Image { .. }))
+                    .expect("discovered tool image must remain present");
+                tool_result.images.remove(image_index);
+                // The removed image takes its array comma with it unless it was
+                // the last element (then no separator disappears).
+                running = running
+                    .saturating_sub(image_bytes + usize::from(!tool_result.images.is_empty()));
+                if !tool_result.content.contains(TOOL_IMAGE_COMPACT_NOTE) {
+                    tool_result.content =
+                        format!("{}{tool_note_suffix}", tool_result.content).into();
+                    running = running.saturating_add(tool_note_bytes);
+                }
+            }
         }
+        evicted += 1;
     }
 
     ImageEvictionOutcome {
@@ -869,6 +965,134 @@ mod tests {
         assert_eq!(image_parts(&conv), 1, "newest image survives");
         assert!(has_placeholder(&conv[0]), "oldest turn evicted");
         assert!(has_image(&conv[1]), "newest turn keeps an image");
+    }
+
+    // ── Tool-result image coverage ─────────────────────────────────────────
+    // read_file on an image file embeds the picture in the tool result, not a
+    // user message. Budget accounting and eviction must see those images too,
+    // or a session that reads many pictures accumulates them without bound.
+
+    /// A tool result carrying an inline image whose `data:` URL is exactly
+    /// `url_bytes` long.
+    fn tool_result_with_image_of_bytes(content: &str, url_bytes: usize) -> ConversationItem {
+        const PREFIX: &str = "data:image/png;base64,";
+        let pad = url_bytes.saturating_sub(PREFIX.len());
+        ConversationItem::ToolResult(nofy_sampling_types::ToolResultItem {
+            tool_call_id: "tc".to_string(),
+            content: content.into(),
+            images: vec![ContentPart::Image {
+                url: format!("{PREFIX}{}", "A".repeat(pad)).into(),
+            }],
+        })
+    }
+
+    fn tool_images(item: &ConversationItem) -> usize {
+        match item {
+            ConversationItem::ToolResult(t) => t
+                .images
+                .iter()
+                .filter(|p| matches!(p, ContentPart::Image { .. }))
+                .count(),
+            _ => 0,
+        }
+    }
+
+    fn tool_content(item: &ConversationItem) -> String {
+        match item {
+            ConversationItem::ToolResult(t) => t.content.to_string(),
+            _ => String::new(),
+        }
+    }
+
+    #[test]
+    fn inline_image_count_sees_tool_result_images() {
+        let conv = vec![
+            user_with_image_of_bytes("user image", TEST_IMG_BYTES),
+            tool_result_with_image_of_bytes("tool image", TEST_IMG_BYTES),
+            tool_result_with_image_of_bytes("another tool image", TEST_IMG_BYTES),
+            ConversationItem::assistant("no images"),
+        ];
+        assert_eq!(inline_image_count(&conv), 3);
+    }
+
+    #[test]
+    fn conversation_body_bytes_counts_tool_result_image_urls() {
+        let without = vec![ConversationItem::ToolResult(
+            nofy_sampling_types::ToolResultItem {
+                tool_call_id: "tc".to_string(),
+                content: "Read image file: sheet.png".into(),
+                images: Vec::new(),
+            },
+        )];
+        let url_bytes = TEST_IMG_BYTES;
+        let with = vec![tool_result_with_image_of_bytes("Read image file: sheet.png", url_bytes)];
+        let delta = conversation_body_bytes(&with) - conversation_body_bytes(&without);
+        // The URL's raw bytes, the image-part frame around it, and the
+        // `,"images":[...]` field wrapper (omitted entirely when empty by
+        // `skip_serializing_if`).
+        assert_eq!(
+            delta,
+            url_bytes + IMAGE_PART_FRAME_BYTES + r#","images":[]"#.len()
+        );
+    }
+
+    #[test]
+    fn evicts_tool_result_images_and_appends_note() {
+        let mut conv = vec![
+            tool_result_with_image_of_bytes("oldest tool image", TEST_IMG_BYTES),
+            tool_result_with_image_of_bytes("newest tool image", TEST_IMG_BYTES),
+        ];
+        // ~200k body, reclaim to 150k: the oldest tool image goes.
+        let outcome = compact_images_to_byte_budget(&mut conv, 200_000, 150_000);
+        assert_eq!(outcome.evicted, 1);
+        assert_eq!(tool_images(&conv[0]), 0, "oldest tool image evicted");
+        assert_eq!(tool_images(&conv[1]), 1, "newest tool image kept");
+        assert!(
+            tool_content(&conv[0]).contains(TOOL_IMAGE_COMPACT_NOTE),
+            "evicted tool result carries the anti-hallucination note"
+        );
+        assert!(
+            !tool_content(&conv[1]).contains(TOOL_IMAGE_COMPACT_NOTE),
+            "kept tool result stays unannotated"
+        );
+    }
+
+    #[test]
+    fn tool_note_appended_once_when_all_images_of_one_result_go() {
+        let mut item = tool_result_with_image_of_bytes("two images", TEST_IMG_BYTES);
+        if let ConversationItem::ToolResult(t) = &mut item {
+            t.images.push(ContentPart::Image {
+                url: format!("data:image/png;base64,{}", "B".repeat(TEST_IMG_BYTES)).into(),
+            });
+        }
+        let mut conv = vec![item];
+        // Reclaim far below one image: both go.
+        let outcome = compact_images_to_byte_budget(&mut conv, 200_000, 10);
+        assert_eq!(outcome.evicted, 2);
+        assert_eq!(tool_images(&conv[0]), 0);
+        let content = tool_content(&conv[0]);
+        assert_eq!(
+            content.matches(TOOL_IMAGE_COMPACT_NOTE).count(),
+            1,
+            "the note is appended once, not per evicted image"
+        );
+    }
+
+    #[test]
+    fn eviction_orders_user_and_tool_images_oldest_first() {
+        // Interleaved variants: eviction must walk conversation order across
+        // both variants, not evict one variant wholesale.
+        let mut conv = vec![
+            tool_result_with_image_of_bytes("oldest (tool)", TEST_IMG_BYTES),
+            user_with_image_of_bytes("middle (user)", TEST_IMG_BYTES),
+            tool_result_with_image_of_bytes("newest (tool)", TEST_IMG_BYTES),
+        ];
+        // ~300k body, reclaim to 150k: the two oldest go, whichever variant.
+        let outcome = compact_images_to_byte_budget(&mut conv, 300_000, 150_000);
+        assert_eq!(outcome.evicted, 2);
+        assert_eq!(tool_images(&conv[0]), 0, "oldest tool image evicted");
+        assert!(has_placeholder(&conv[1]), "middle user image evicted");
+        assert_eq!(tool_images(&conv[2]), 1, "newest tool image kept");
     }
 
     #[test]

@@ -605,6 +605,20 @@ mod tests {
         ));
     }
 
+    /// DashScope's multimodal preprocessing timeout (verbatim from a bricked
+    /// session) must take the strip-and-retry path, not Fatal.
+    #[test]
+    fn classify_dashscope_multimodal_timeout_strips_images() {
+        let err = api_err(
+            StatusCode::BAD_REQUEST,
+            "API error (status 400 Bad Request): invalid_request_error: <400> InternalError.Algo.InvalidParameter: Download multimodal file timed out",
+        );
+        assert!(matches!(
+            classify_error(&err, 0, 5, RATE_LIMIT_RETRY_THRESHOLD),
+            RetryDecision::RetryWithImageStrip
+        ));
+    }
+
     #[test]
     fn classify_image_processing_error_takes_priority_over_5xx_retry() {
         // A 500 wrapping "Could not process image" is retryable by status

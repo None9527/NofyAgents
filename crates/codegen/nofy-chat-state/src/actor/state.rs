@@ -63,7 +63,18 @@ pub fn estimate_item_tokens(item: &ConversationItem) -> u64 {
                     .sum::<usize>();
             (bytes as u64) / nofy_token_estimation::BYTES_PER_TOKEN
         }
-        ConversationItem::ToolResult(tr) => nofy_token_estimation::estimate_tokens(&tr.content),
+        ConversationItem::ToolResult(tr) => {
+            // Tool-result images (e.g. read_file on a picture) cost vision
+            // tokens exactly like user images; counting only the text
+            // undercounts the trigger estimate by ~765 tokens per image.
+            let images = tr
+                .images
+                .iter()
+                .filter(|p| matches!(p, ContentPart::Image { .. }))
+                .count() as u64;
+            nofy_token_estimation::estimate_tokens(&tr.content)
+                + nofy_token_estimation::estimate_image_tokens(images)
+        }
         ConversationItem::BackendToolCall(b) => {
             nofy_token_estimation::estimate_tokens(&b.text_summary())
         }
@@ -299,6 +310,38 @@ mod tests {
                 "counter must report the same trusted count as estimate_item_tokens"
             );
         }
+    }
+
+    /// Tool-result images (read_file on a picture) must cost the same vision
+    /// estimate as user images, or the compaction trigger undercounts every
+    /// image a session reads.
+    #[test]
+    fn estimate_item_tokens_counts_tool_result_images() {
+        use nofy_sampling_types::{ContentPart, ToolResultItem};
+
+        let plain = ConversationItem::ToolResult(ToolResultItem {
+            tool_call_id: "tc".to_string(),
+            content: "Read image file: sheet.png".into(),
+            images: Vec::new(),
+        });
+        let with_two_images = ConversationItem::ToolResult(ToolResultItem {
+            tool_call_id: "tc".to_string(),
+            content: "Read image file: sheet.png".into(),
+            images: vec![
+                ContentPart::Image {
+                    url: "data:image/png;base64,AAA".into(),
+                },
+                ContentPart::Image {
+                    url: "data:image/png;base64,BBB".into(),
+                },
+            ],
+        });
+
+        assert_eq!(
+            estimate_item_tokens(&with_two_images) - estimate_item_tokens(&plain),
+            2 * nofy_token_estimation::IMAGE_TOKEN_ESTIMATE,
+            "each tool-result image adds the per-image vision estimate"
+        );
     }
 
     #[test]

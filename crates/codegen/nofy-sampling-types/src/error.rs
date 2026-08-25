@@ -302,6 +302,11 @@ impl SamplingError {
     /// The API rejected the request because an inline image could not be
     /// processed. Matches both direct 400 and proxy-wrapped 500 responses.
     /// Exact-case match — consistent with `is_encrypted_content_error`.
+    ///
+    /// Provider wordings: Anthropic returns "Could not process image";
+    /// DashScope returns "Download multimodal file timed out" (its
+    /// preprocessing worker fetches/decodes every image URL, data: URIs
+    /// included) — matched via the stable "multimodal file" substring.
     pub fn is_image_processing_error(&self) -> bool {
         matches!(
             self,
@@ -309,7 +314,9 @@ impl SamplingError {
                 status,
                 message,
                 ..
-            } if matches!(status.as_u16(), 400 | 500) && message.contains("Could not process image")
+            } if matches!(status.as_u16(), 400 | 500)
+                && (message.contains("Could not process image")
+                    || message.contains("multimodal file"))
         )
     }
 
@@ -1239,6 +1246,33 @@ mod tests {
             !err.is_image_processing_error(),
             "only 400 and 500 should match"
         );
+    }
+
+    /// DashScope fields this as a multimodal-file download timeout (its
+    /// preprocessing worker fetches/decodes every image URL, data: URIs
+    /// included) — verbatim from a bricked session.
+    #[test]
+    fn image_processing_error_dashscope_multimodal_timeout_detected() {
+        let err = SamplingError::Api {
+            status: StatusCode::BAD_REQUEST,
+            message: "API error (status 400 Bad Request): invalid_request_error: <400> InternalError.Algo.InvalidParameter: Download multimodal file timed out".into(),
+            model_metadata: None,
+            retry_after_secs: None,
+            should_retry: None,
+        };
+        assert!(err.is_image_processing_error());
+    }
+
+    #[test]
+    fn image_processing_error_dashscope_other_multimodal_wording_detected() {
+        let err = SamplingError::Api {
+            status: StatusCode::BAD_REQUEST,
+            message: "<400> InternalError.Algo: Failed to download multimodal file".into(),
+            model_metadata: None,
+            retry_after_secs: None,
+            should_retry: None,
+        };
+        assert!(err.is_image_processing_error());
     }
 
     #[test]
