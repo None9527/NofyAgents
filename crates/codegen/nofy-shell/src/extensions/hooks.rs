@@ -30,6 +30,7 @@ pub(crate) fn hook_spec_to_info(spec: &nofy_hooks::config::HookSpec) -> HookInfo
         HookEventName::SessionEnd => HookEvent::SessionEnd,
         HookEventName::Stop => HookEvent::Stop,
         HookEventName::StopFailure => HookEvent::StopFailure,
+        HookEventName::StopCancelled => HookEvent::StopCancelled,
         // Tool events
         HookEventName::PreToolUse => HookEvent::PreToolUse,
         HookEventName::PostToolUse => HookEvent::PostToolUse,

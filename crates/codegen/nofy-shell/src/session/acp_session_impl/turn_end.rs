@@ -1,7 +1,18 @@
 //! Turn-completion concern for `SessionActor`: completion handling
 //! and turn-error classification.
 
+use super::turn_end_hooks::{cancel_details, cancel_reason_for_completion};
 use super::*;
+
+fn completion_cancel_trigger(result: &PromptTurnResult) -> Option<&str> {
+    match result.as_ref().ok()?.completion_kind {
+        PromptCompletionKind::Cancelled {
+            context: Some(ref ctx),
+            ..
+        } => ctx.trigger.as_deref(),
+        _ => None,
+    }
+}
 
 impl SessionActor {
     /// Emit a cosmetic `Plan` update at turn end to clear stale spinners.
@@ -212,6 +223,13 @@ impl SessionActor {
             self.set_goal_loop_active_resource(false).await;
         }
 
+        // Read before the lock: the report below runs under it and cannot await.
+        let last_assistant_message = match result.as_ref().ok() {
+            Some(ok) if cancel_reason_for_completion(&ok.completion_kind).is_some() => {
+                self.last_assistant_message_for_cancel().await
+            }
+            _ => None,
+        };
         let mut state = self.state.lock().await;
         // True only when this completion matched the front prompt and dequeued
         // it. The unknown-prompt branch below must NOT emit a terminal: a turn
@@ -241,6 +259,32 @@ impl SessionActor {
                     "prompt_id": prompt_id,
                     "running_prompt_id": state.running_prompt_id(),
                 })),
+            );
+        }
+        // Owned (dequeued at the front) only: the unknown-prompt branch above is a stale
+        // completion the Cancel path already finalized, and `RemovedFromQueue` never ran.
+        let finalizes_turn = owned_completion
+            && !matches!(
+                result,
+                Ok(PromptTurnOk {
+                    completion_kind: PromptCompletionKind::RemovedFromQueue,
+                    ..
+                })
+            );
+        // Under the lock that promotion needs and before the task is cleared, so this
+        // completion's turn is still the current one.
+        if finalizes_turn
+            && let Ok(ok) = &result
+            && let Some(reason) = cancel_reason_for_completion(&ok.completion_kind)
+        {
+            self.report_turn_end(
+                &prompt_id,
+                TurnEnd::Cancelled {
+                    reason,
+                    trigger: completion_cancel_trigger(&result).map(str::to_string),
+                    reason_details: cancel_details(&ok.completion_kind),
+                    last_assistant_message,
+                },
             );
         }
         // Ownership-gated: a stale completion must not null the promoted turn's
@@ -307,15 +351,7 @@ impl SessionActor {
                 }
             };
             // Surface the cancel trigger on the terminal `_meta` as `cancelTrigger`.
-            let cancel_trigger = result
-                .as_ref()
-                .ok()
-                .and_then(|ok| match &ok.completion_kind {
-                    PromptCompletionKind::Cancelled {
-                        context: Some(ctx), ..
-                    } => ctx.trigger.as_deref(),
-                    _ => None,
-                });
+            let cancel_trigger = completion_cancel_trigger(&result);
             // `cancellationCategory` on the terminal `_meta` lets re-attaching
             // viewers finalize with the same copy as the driver (a hook-denied
             // or governor-halted turn must not render as "cancelled by user").

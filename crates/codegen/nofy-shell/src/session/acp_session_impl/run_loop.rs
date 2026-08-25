@@ -167,6 +167,7 @@ pub(super) async fn run_session(
 ) {
     let (completion_tx, mut completion_rx) =
         mpsc::unbounded_channel::<(String, PromptTurnResult)>();
+    let mut turn_end_queue = super::turn_end_hooks::TurnEndQueue::spawn(session.clone());
     tracing::debug!("fs_notify_config: {:?}", fs_notify_config);
     let mut replay_buffer = ReplayBuffer::new(session.buffering_settings.clone());
     let event_tx_for_flush_timer = session.event_tx.clone();
@@ -445,7 +446,11 @@ pub(super) async fn run_session(
                     let Some((prompt_id, result)) = maybe_completion else {
                         // Completion channel closed: run the exit teardown
                         // (signals actor shutdown + manifest persistence).
+                        // No session-end hooks here, but the flush still has to precede
+                        // `shutdown_workflows`, which makes a queued report's entry durable.
+                        turn_end_queue.flush().await;
                         shutdown_workflows(&session).await;
+                        turn_end_queue.drain().await;
                         finish_session_exit_signals(&session).await;
                         return;
                     };
@@ -528,7 +533,9 @@ pub(super) async fn run_session(
                 maybe_cmd = cmd_rx.recv() => {
                     let Some(cmd) = maybe_cmd else {
                         // ── session_end (channel-closed path) ────────
-                        // Hooks fire BEFORE memory auto-save per plan contract.
+                        // Queued reports first, so an earlier turn's report precedes the
+                        // session-end `Stop`. Hooks fire BEFORE memory auto-save per plan contract.
+                        turn_end_queue.flush().await;
                         fire_session_end_hooks(&session, "channel_closed").await;
                         session
                             .run_session_end_memory_pipeline(
@@ -553,6 +560,7 @@ pub(super) async fn run_session(
                             }
                         }
                         shutdown_workflows(&session).await;
+                        turn_end_queue.drain().await;
                         finish_session_exit_signals(&session).await;
                         return;
                     };
@@ -2061,11 +2069,14 @@ pub(super) async fn run_session(
                             session.drop_pending_synthetic_items().await;
 
                             // ── session_end (shutdown path) ────────────
-                            // Hooks fire BEFORE memory auto-save per plan contract.
+                            // Queued reports first, so an earlier turn's report precedes the
+                            // session-end `Stop`. Hooks fire BEFORE memory auto-save per plan contract.
+                            turn_end_queue.flush().await;
                             fire_session_end_hooks(&session, "shutdown").await;
                             session
                                 .run_session_end_memory_pipeline("session summary saved")
                                 .await;
+                            turn_end_queue.drain().await;
                             finish_session_exit_signals(&session).await;
                             return;
                         }

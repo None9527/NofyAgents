@@ -140,6 +140,21 @@ fn user_echo_mode(prompt_id: &str) -> UserEchoMode {
     }
 }
 impl SessionActor {
+    /// Exactly once per turn: the cancel path and the turn's own post-loop both announce.
+    pub(super) async fn notify_turn_abort(
+        &self,
+        epoch: TurnEpoch,
+        reason: nofy_agent_lifecycle::TurnAbortReason,
+    ) {
+        if !self.turn_abort.try_mark_announced(epoch) {
+            return;
+        }
+        let input = nofy_agent_lifecycle::TurnAbortInput::new(reason);
+        for contributor in self.extension_registry.turn_lifecycle_contributors() {
+            contributor.on_turn_abort(&input).await;
+        }
+    }
+
     /// Run the image-normalization pipeline (re-encode caps, min-side and
     /// integrity checks) and surface its outcomes: compression / re-encode
     /// fallback / dropped notices are appended to `text_out` (TEXT only —
@@ -947,18 +962,15 @@ impl SessionActor {
                     None,
                 );
                 if let Some(explanation) = refusal {
-                    let details = (!explanation.is_empty()).then(|| explanation.clone());
-                    self.dispatch_hook(
-                        nofy_hooks::event::HookEventName::StopFailure,
-                        nofy_hooks::event::HookPayload::StopFailure {
+                    self.report_turn_end(
+                        prompt_id,
+                        TurnEnd::Failed {
                             error: nofy_hooks::event::StopFailureKind::InvalidRequest,
-                            error_details: details.clone(),
-                            last_assistant_message: details,
+                            error_details: None,
+                            last_assistant_message: (!explanation.is_empty())
+                                .then(|| explanation.clone()),
                         },
-                        Some(prompt_id),
-                        None,
-                    )
-                    .await;
+                    );
                 }
                 self.send_after_turn_event(nofy_tool_protocol::turn_hook::AfterTurnPayload {
                     turn_number: current_prompt_index as u64,
@@ -1110,17 +1122,14 @@ impl SessionActor {
                         error_category: Some(error_category),
                     },
                 );
-                self.dispatch_hook(
-                    nofy_hooks::event::HookEventName::StopFailure,
-                    nofy_hooks::event::HookPayload::StopFailure {
+                self.report_turn_end(
+                    prompt_id,
+                    TurnEnd::Failed {
                         error: Self::stop_failure_error_type(err),
                         error_details: Self::turn_error_detail(err),
                         last_assistant_message: Some(Self::format_turn_error_message(err)),
                     },
-                    Some(prompt_id),
-                    None,
-                )
-                .await;
+                );
             }
         }
         nofy_telemetry::session_ctx::log_session_event(
@@ -1151,12 +1160,11 @@ impl SessionActor {
                 }
             }
             Ok(TurnOutcome::Cancelled { .. }) | Ok(TurnOutcome::MaxTurnsReached { .. }) => {
-                let input = nofy_agent_lifecycle::TurnAbortInput::new(
+                self.notify_turn_abort(
+                    self.turn_report.epoch(),
                     nofy_agent_lifecycle::TurnAbortReason::Interrupted,
-                );
-                for contributor in self.extension_registry.turn_lifecycle_contributors() {
-                    contributor.on_turn_abort(&input).await;
-                }
+                )
+                .await;
             }
             Err(err) => {
                 let message = err.to_string();

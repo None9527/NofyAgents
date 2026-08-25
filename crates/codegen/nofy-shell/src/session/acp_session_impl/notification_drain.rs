@@ -302,6 +302,9 @@ impl SessionActor {
         // before the user-message chunk can race in.
         self.broadcast_queue_changed_promoting(&state, running_display);
 
+        // Bump the epoch here rather than in `handle_prompt`: a cancel reads the slot as soon as
+        // `running_task` is set on the next line.
+        self.turn_report.start_next_turn();
         state.running_task = Some(AgentTask::new_prompt(
             self.clone(),
             prompt_id,

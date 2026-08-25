@@ -146,6 +146,16 @@ hook_events! {
         aliases: ["StopFailure", "stop_failure", "stopFailure"],
         traits: (Observe, Tested, true),
     },
+    /// Runs instead of `Stop` when a turn ends without completing. Observe-only.
+    StopCancelled {
+        display: "stop_cancelled",
+        aliases: [
+            "StopCancelled",
+            "stop_cancelled",
+            "stopCancelled",
+        ],
+        traits: (Observe, Tested, true),
+    },
     Notification {
         display: "notification",
         aliases: ["Notification", "notification"],
@@ -230,6 +240,9 @@ impl HookEventName {
 /// Max characters for free-text fields in `StopBackgroundTask`/`StopSessionCron` entries.
 pub const MAX_STOP_ENTRY_TEXT_CHARS: usize = 1000;
 
+/// Max chars of a cancel trigger string shipped in `StopCancelled`.
+pub const MAX_CANCEL_TRIGGER_CHARS: usize = 64;
+
 /// Clip `text` to `max` chars (on a char boundary) with a `… [+N chars]` marker.
 pub fn clip_text(text: &str, max: usize) -> String {
     let char_count = text.chars().count();
@@ -242,6 +255,14 @@ pub fn clip_text(text: &str, max: usize) -> String {
 
 pub fn clip_stop_entry_text(text: &str) -> String {
     clip_text(text, MAX_STOP_ENTRY_TEXT_CHARS)
+}
+
+/// Chars, not bytes. Nothing truncates a hook envelope, so this is the field's only ceiling.
+/// Sized as [`MAX_PAYLOAD_SIZE`] divided by UTF-8's worst case of 4 bytes per char.
+pub const MAX_ASSISTANT_MESSAGE_CHARS: usize = 32_768;
+
+pub fn clip_assistant_message(text: &str) -> String {
+    clip_text(text, MAX_ASSISTANT_MESSAGE_CHARS)
 }
 
 /// `SubagentStop` fire phase: always `Gate` today, `Observe` reserved and not emitted.
@@ -309,6 +330,52 @@ impl StopFailureKind {
             Self::ServerError => "server_error",
             Self::MaxOutputTokens => "max_output_tokens",
             Self::Unknown => "unknown",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StopCancelledReason {
+    UserInterrupt,
+    PermissionRejected,
+    PermissionCancelled,
+    MaxTurns,
+    NoProgress,
+    /// A cancel the runtime could not classify. New causes land here until they get a name.
+    Unknown,
+}
+
+/// Derived from `reason` and shipped anyway, so hosts do not re-derive it as reasons are added.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CancelledBy {
+    User,
+    Runtime,
+    /// Paired with `reason: "unknown"`, where the runtime cannot say whether the user was
+    /// responsible.
+    Unknown,
+}
+
+impl StopCancelledReason {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::UserInterrupt => "user_interrupt",
+            Self::PermissionRejected => "permission_rejected",
+            Self::PermissionCancelled => "permission_cancelled",
+            Self::MaxTurns => "max_turns",
+            Self::NoProgress => "no_progress",
+            Self::Unknown => "unknown",
+        }
+    }
+
+    pub fn cancelled_by(self) -> CancelledBy {
+        match self {
+            Self::UserInterrupt | Self::PermissionRejected | Self::PermissionCancelled => {
+                CancelledBy::User
+            }
+            Self::MaxTurns | Self::NoProgress => CancelledBy::Runtime,
+            Self::Unknown => CancelledBy::Unknown,
         }
     }
 }
@@ -384,6 +451,24 @@ pub enum HookPayload {
             skip_serializing_if = "Option::is_none"
         )]
         last_assistant_message: Option<String>,
+        #[serde(rename = "subagentType", skip_serializing_if = "Option::is_none")]
+        subagent_type: Option<String>,
+    },
+    StopCancelled {
+        reason: StopCancelledReason,
+        #[serde(rename = "cancelledBy")]
+        cancelled_by: CancelledBy,
+        #[serde(rename = "cancelTrigger", skip_serializing_if = "Option::is_none")]
+        cancel_trigger: Option<String>,
+        #[serde(rename = "reasonDetails", skip_serializing_if = "Option::is_none")]
+        reason_details: Option<String>,
+        #[serde(
+            rename = "lastAssistantMessage",
+            skip_serializing_if = "Option::is_none"
+        )]
+        last_assistant_message: Option<String>,
+        #[serde(rename = "subagentType", skip_serializing_if = "Option::is_none")]
+        subagent_type: Option<String>,
     },
 
     PreToolUse {
@@ -520,6 +605,7 @@ impl HookPayload {
             Self::SessionEnd { reason, .. } => reason,
             // Always a non-empty name, unlike the free-text arms above.
             Self::StopFailure { error, .. } => return Some(error.as_str()),
+            Self::StopCancelled { reason, .. } => return Some(reason.as_str()),
             // Ignored events listed explicitly so a new Tested event can't silently return None.
             Self::Stop { .. } | Self::UserPromptSubmit { .. } => return None,
         };
@@ -837,6 +923,43 @@ mod tests {
         }
         for key in ["hook_event_name", "session_id", "model_id"] {
             assert!(value.get(key).is_none(), "leaked snake_case key {key}");
+        }
+    }
+
+    /// Exhaustive, so a new reason has to name its wire value here.
+    #[test]
+    fn stop_cancelled_wire_shape() {
+        let wire_of = |reason: StopCancelledReason| match reason {
+            StopCancelledReason::UserInterrupt => ("user_interrupt", "user"),
+            StopCancelledReason::PermissionRejected => ("permission_rejected", "user"),
+            StopCancelledReason::PermissionCancelled => ("permission_cancelled", "user"),
+            StopCancelledReason::MaxTurns => ("max_turns", "runtime"),
+            StopCancelledReason::NoProgress => ("no_progress", "runtime"),
+            StopCancelledReason::Unknown => ("unknown", "unknown"),
+        };
+        let reasons = [
+            StopCancelledReason::UserInterrupt,
+            StopCancelledReason::PermissionRejected,
+            StopCancelledReason::PermissionCancelled,
+            StopCancelledReason::MaxTurns,
+            StopCancelledReason::NoProgress,
+            StopCancelledReason::Unknown,
+        ];
+        for reason in reasons {
+            let (wire, cancelled_by) = wire_of(reason);
+            let payload = HookPayload::StopCancelled {
+                reason,
+                cancelled_by: reason.cancelled_by(),
+                cancel_trigger: None,
+                reason_details: None,
+                last_assistant_message: None,
+                subagent_type: None,
+            };
+            assert_eq!(payload.match_value(), Some(wire));
+            let value = serde_json::to_value(&payload).unwrap();
+            assert_eq!(value["reason"], wire);
+            assert_eq!(value["cancelledBy"], cancelled_by);
+            assert!(value.get("cancelTrigger").is_none());
         }
     }
 }

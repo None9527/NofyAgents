@@ -11,6 +11,16 @@ pub(super) enum WakeBarrier {
     Clear,
 }
 
+/// What a cancel needs to report the turn it tore down. `epoch` is captured with the task under
+/// the state lock, so the report names that turn rather than whichever is current when it files.
+pub(super) struct CancelledTurn<'a> {
+    pub(super) prompt_id: &'a str,
+    pub(super) epoch: TurnEpoch,
+    pub(super) reason: nofy_hooks::event::StopCancelledReason,
+    pub(super) trigger: Option<String>,
+    pub(super) last_assistant_message: Option<String>,
+}
+
 pub(super) struct TurnSubagentScopeGuard {
     current_prompt_id: std::sync::Arc<std::sync::Mutex<Option<String>>>,
     prompt_id: String,
@@ -253,10 +263,33 @@ impl SessionActor {
         );
     }
 
+    /// Releases the gate's claim here rather than at the aborted task's drop, which runs too late
+    /// for the cancel to report. Callers read `epoch` under the lock they take the task from.
+    fn abort_turn_task(&self, task: &AgentTask, epoch: TurnEpoch) {
+        task.abort();
+        self.turn_report.release_aborted(epoch);
+    }
+
+    /// Names the turn this cancel tore down, so a turn promoted in between is refused rather
+    /// than reported over.
+    fn report_cancelled_turn(&self, cancelled: CancelledTurn<'_>) {
+        self.claim_and_queue(
+            cancelled.prompt_id,
+            cancelled.epoch,
+            TurnEnd::Cancelled {
+                reason: cancelled.reason,
+                trigger: cancelled.trigger,
+                reason_details: None,
+                last_assistant_message: cancelled.last_assistant_message,
+            },
+        );
+    }
+
     pub(super) async fn cancel_running_task(
         &self,
         options: crate::session::CancelOptions,
     ) -> WakeBarrier {
+        let cancel_reason = super::turn_end_hooks::cancel_reason_for_options(&options);
         let crate::session::CancelOptions {
             cancel_subagents,
             kill_background_tasks,
@@ -332,13 +365,21 @@ impl SessionActor {
             {
                 let state = self.state.lock().await;
                 if let Some(task) = state.running_task.as_ref() {
-                    task.abort();
+                    self.abort_turn_task(task, self.turn_report.epoch());
                 }
             }
             // Then cancel every non-workflow session child (incl. prior turns)
             // and close spawn admission until the next turn opens it.
             self.cancel_all_session_subagents();
         }
+
+        // After the abort, so this chat-state round trip cannot keep the turn task alive, and
+        // before the teardown edits the text.
+        let last_assistant_message = if cancel_reason.is_some() {
+            self.last_assistant_message_for_cancel().await
+        } else {
+            None
+        };
 
         // A rewind is not a cancel either: the turn is being replaced, not stopped.
         if user_initiated && !rewind_if_no_output {
@@ -388,8 +429,9 @@ impl SessionActor {
         }
 
         let total_tokens = self.chat_state_handle.get_total_tokens().await;
-        let (running_task, pending_inputs, rewound_input, had_queued_user_prompt) = {
+        let (running_task, pending_inputs, rewound_input, had_queued_user_prompt, turn_epoch) = {
             let mut state = self.state.lock().await;
+            let turn_epoch = self.turn_report.epoch();
             debug_assert!(
                 pinned_prompt_id.is_none()
                     || state.running_prompt_id().is_none()
@@ -420,8 +462,9 @@ impl SessionActor {
                     && !super::interjection::is_interject_fallback(&f.prompt_id)
             });
             let rewound_input = if rewind_if_no_output && state.rewindable && front_is_user_row {
+                let rewind_epoch = self.turn_report.epoch();
                 if let Some(task) = state.running_task.take() {
-                    task.abort();
+                    self.abort_turn_task(&task, rewind_epoch);
                 }
                 if let Some(gate) = &self.tool_context.task_wake_suppressed {
                     gate.set(false);
@@ -442,6 +485,9 @@ impl SessionActor {
             } else {
                 state.running_task.take()
             };
+            if let Some(task) = &running_task {
+                self.abort_turn_task(task, turn_epoch);
+            }
 
             // Decide which queued inputs get resolved with `Cancelled` now vs.
             // preserved for the post-cancel drain:
@@ -524,6 +570,7 @@ impl SessionActor {
                 pending_inputs,
                 rewound_input,
                 had_queued_user_prompt,
+                turn_epoch,
             )
         };
         // Authoritative cancel identity: the task actually torn down. The pin
@@ -533,6 +580,19 @@ impl SessionActor {
             .as_ref()
             .map(|t| t.prompt_id.clone())
             .or(pinned_prompt_id);
+
+        if rewound_input.is_none()
+            && let Some(prompt_id) = cancelled_prompt_id.as_deref()
+            && let Some(reason) = cancel_reason
+        {
+            self.report_cancelled_turn(CancelledTurn {
+                prompt_id,
+                epoch: turn_epoch,
+                reason,
+                trigger: trigger.as_ref().map(|t| t.as_str().to_string()),
+                last_assistant_message,
+            });
+        }
 
         self.agent
             .borrow()
@@ -597,9 +657,6 @@ impl SessionActor {
                 });
         }
 
-        if let Some(running_task) = running_task {
-            running_task.abort();
-        }
         if let Some(is_turn_active) = &self.tool_context.is_turn_active {
             is_turn_active.store(false, std::sync::atomic::Ordering::Relaxed);
         }
@@ -631,6 +688,15 @@ impl SessionActor {
                 .lock()
                 .expect("current_prompt_id mutex poisoned");
             *current_prompt_id = None;
+        }
+        // Announced for every cancel that stopped a turn, including a rewind and a
+        // cancel-and-send. A no-op if the turn task announced first.
+        if cancelled_prompt_id.is_some() {
+            self.notify_turn_abort(
+                turn_epoch,
+                nofy_agent_lifecycle::TurnAbortReason::Interrupted,
+            )
+            .await;
         }
         if rewound_input.is_none()
             && let Some(prompt_id) = cancelled_prompt_id

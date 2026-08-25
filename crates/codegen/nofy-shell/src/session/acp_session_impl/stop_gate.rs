@@ -8,6 +8,12 @@ use nofy_hooks::{dispatcher, result};
 
 pub const MAX_STOP_HOOK_CONTINUATIONS_PER_TURN: u32 = 8;
 
+fn commit_stop_report(claim: TurnReportClaim<'_>, prompt_id: &str) {
+    if claim.commit() == CommitOutcome::LostToAnotherReporter {
+        tracing::debug!(prompt_id, "a cancel already reported this turn");
+    }
+}
+
 const SESSION_END_STOP_BUDGET: std::time::Duration = std::time::Duration::from_secs(5);
 
 /// `command` is a shell-only field, so a monitor's watch command is carried in
@@ -281,6 +287,16 @@ impl SessionActor {
             return StopGateDecision::AllowStop;
         }
 
+        // Claim before the hooks, not after: a turn already reported is being torn down, so the
+        // gate skips instead of running verification hooks for a turn the user cancelled.
+        let Some(claim) = self.turn_report.claim_for_gate() else {
+            tracing::debug!(
+                prompt_id,
+                "a cancel already reported this turn; the stop gate did not run"
+            );
+            return StopGateDecision::AllowStop;
+        };
+
         let payload = self.build_stop_payload(continuations_this_turn > 0).await;
         // Gate envelope via `make_hook_envelope`, not the observe-notify
         // `fire_hook`: client hooks get the awaited `nofy/hooks/run` request
@@ -303,6 +319,7 @@ impl SessionActor {
             self.emit_stop_results(event, prompt_id, &result.results)
                 .await;
             self.notify_client_hooks(&envelope);
+            commit_stop_report(claim, prompt_id);
             self.announce_force_stop(&prevent).await;
             return StopGateDecision::AllowStop;
         }
@@ -319,14 +336,25 @@ impl SessionActor {
         result.blocks.extend(client.blocks);
         result.additional_context.extend(client.additional_context);
         if let Some(prevent) = client.prevent_continuation {
+            commit_stop_report(claim, prompt_id);
             self.announce_force_stop(&prevent).await;
             return StopGateDecision::AllowStop;
         }
 
         if !result.wants_continuation() {
+            // A gate whose hooks all skipped or crashed told nobody the turn ended, so it
+            // releases the claim and a later cancel or failure can still report.
+            let any_hook_succeeded = all_results
+                .iter()
+                .any(|r| matches!(r, result::HookRunResult::Success { .. }));
+            if any_hook_succeeded {
+                commit_stop_report(claim, prompt_id);
+            }
             return StopGateDecision::AllowStop;
         }
 
+        // The turn has not ended, so a later interrupt must still be able to report it.
+        drop(claim);
         self.announce_keep_working(&result.blocks, &result.additional_context)
             .await;
         StopGateDecision::KeepWorking {

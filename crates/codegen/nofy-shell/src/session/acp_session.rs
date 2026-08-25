@@ -115,6 +115,12 @@ mod rate_limit_waits;
 pub(crate) use rate_limit_waits::{
     RateLimitWaitBudget, RateLimitWaitConfig, RateLimitWaitDecision,
 };
+#[path = "acp_session_impl/turn_report_slot.rs"]
+mod turn_report_slot;
+use turn_report_slot::{CommitOutcome, TurnEpoch, TurnReportClaim};
+#[path = "acp_session_impl/turn_end_hooks.rs"]
+mod turn_end_hooks;
+use turn_end_hooks::TurnEnd;
 pub(crate) use interjection::*;
 #[path = "acp_session_impl/laziness.rs"]
 mod laziness;
@@ -1038,6 +1044,13 @@ pub(crate) struct SessionActor {
     /// terminal `SamplingEvent::Completed` (every text/thought chunk has been
     /// `send_update`d by then). `None` between turns.
     pub(crate) turn_stream_drained: parking_lot::Mutex<Option<tokio::sync::oneshot::Sender<()>>>,
+    /// Which turn may still report its end, and who holds the right to.
+    pub(crate) turn_report: turn_report_slot::TurnReportSlot,
+    /// Announces a turn's abort at most once (high-water mark).
+    pub(crate) turn_abort: turn_report_slot::AbortAnnouncement,
+    /// Set once by [`turn_end_hooks::TurnEndQueue::spawn`]; `None` before the loop starts.
+    pub(crate) turn_end_tx:
+        std::cell::RefCell<Option<tokio::sync::mpsc::UnboundedSender<turn_end_hooks::QueueItem>>>,
     /// A server-confirmed image strip awaiting proof that the stripped retry
     /// helped: URLs buffered by request id on `ImagesStripped`, persisted to
     /// stored history only when that request's `Completed` arrives, dropped

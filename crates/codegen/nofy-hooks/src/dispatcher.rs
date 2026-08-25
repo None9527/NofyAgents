@@ -1109,6 +1109,7 @@ mod tests {
             (HookEventName::SessionEnd, "hook.session_end"),
             (HookEventName::Stop, "hook.stop"),
             (HookEventName::StopFailure, "hook.stop_failure"),
+            (HookEventName::StopCancelled, "hook.stop_cancelled"),
             (HookEventName::PostToolUse, "hook.post_tool_use"),
             (
                 HookEventName::PostToolUseFailure,
@@ -1132,6 +1133,7 @@ mod tests {
                 | HookEventName::SessionEnd
                 | HookEventName::Stop
                 | HookEventName::StopFailure
+                | HookEventName::StopCancelled
                 | HookEventName::PreToolUse
                 | HookEventName::PostToolUse
                 | HookEventName::PostToolUseFailure
@@ -1142,7 +1144,7 @@ mod tests {
                 | HookEventName::SubagentStop
                 | HookEventName::SubagentEnd
                 | HookEventName::PreCompact
-                | HookEventName::PostCompact => 15,
+                | HookEventName::PostCompact => 16,
             }
         };
         assert_eq!(

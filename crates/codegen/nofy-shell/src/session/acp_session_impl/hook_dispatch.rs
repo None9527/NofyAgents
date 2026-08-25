@@ -212,6 +212,16 @@ impl SessionActor {
         )
     }
 
+    /// Whether any file or client hook listens for `event`.
+    pub(super) fn has_enabled_hooks_for(&self, event: nofy_hooks::event::HookEventName) -> bool {
+        let has_file_hooks = self
+            .hook_registry
+            .borrow()
+            .as_ref()
+            .is_some_and(|r| r.has_enabled_hooks_for_canonical(event));
+        has_file_hooks || self.client_hooks.borrow().contains_key(&event)
+    }
+
     /// The session's current permission mode (`plan` / `bypassPermissions` / `auto` / `default`).
     pub(super) fn permission_mode_label(&self) -> &'static str {
         if self.plan_mode.lock().is_active() {
