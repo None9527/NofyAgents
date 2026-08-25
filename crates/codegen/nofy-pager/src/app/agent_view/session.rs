@@ -305,6 +305,7 @@ impl AgentView {
             timeline_hover_preview: None,
             session_agent_name: None,
             subagent_sessions: HashMap::new(),
+            deferred_subagent_finishes: HashMap::new(),
             subagent_views: HashMap::new(),
             active_subagent: None,
             is_subagent_view: false,

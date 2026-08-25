@@ -48,6 +48,7 @@ mod routing;
 mod session_notification;
 mod settings;
 mod subagent_activity;
+mod subagent_lifecycle;
 mod workflow_ingest;
 
 #[cfg(test)]
@@ -55,6 +56,10 @@ use permissions::{MCP_ARGS_MAX_LINE_CHARS, MCP_ARGS_MAX_LINES, mcp_args_lines};
 use permissions::{
     apply_recap_block, handle_permission_request, should_drop_duplicate_auto_recap,
     should_drop_late_auto_recap,
+};
+use subagent_lifecycle::{
+    LifecycleDelivery, LifecycleOrigin, classify_subagent_lifecycle, gate_subagent_lifecycle,
+    redispatched_subagent_finish, take_deferred_subagent_finish,
 };
 
 // Hub + child modules (via `use super::*`) need sibling symbols in this scope.
@@ -76,7 +81,7 @@ use workflow_ingest::ingest_workflow_update;
 
 use session_notification::{
     advance_reconnect_cursor, confirm_context_used, detect_plan_mode_change,
-    drop_unexpected_replay, handle_session_notification,
+    drop_unexpected_replay, handle_session_notification, handle_session_notification_with_origin,
 };
 
 pub(crate) use queue::PendingRunningAdoption;

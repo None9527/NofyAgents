@@ -597,6 +597,13 @@ pub(crate) struct PendingForkBanner {
 /// the `session/load` replay streams into. [`AgentView::finish_session_reload`]
 /// then keeps the replayed state, merges a cursor-resolved live tail onto the
 /// stash, or restores the stash wholesale on failure — so a failed or
+/// A finish held until its spawn arrives. Output is stripped at insert.
+#[derive(Debug, Clone)]
+pub(crate) struct DeferredSubagentFinish {
+    pub notification: nofy_shell::extensions::notification::SessionNotification,
+    pub inserted_at: std::time::Instant,
+}
+
 /// superseded reload can never leave the transcript blank.
 ///
 /// Restore scope: the stash covers the transcript-critical state below (plus
@@ -1381,6 +1388,9 @@ pub struct AgentView {
     /// `SubagentSpawned` notifications, used for permission routing
     /// (which agent owns a session) and provenance display.
     pub subagent_sessions: HashMap<String, SubagentInfo>,
+    /// Finishes that raced their spawn: held until the spawn arrives
+    /// (TTL-bounded; see `subagent_lifecycle`).
+    pub deferred_subagent_finishes: HashMap<String, DeferredSubagentFinish>,
     /// Child subagent views. Keyed by child_session_id.
     /// Created eagerly on SubagentSpawned so updates are tracked from the start.
     pub subagent_views: HashMap<String, Box<AgentView>>,
