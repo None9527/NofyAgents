@@ -194,8 +194,21 @@ pub(crate) fn is_scaffold_template(content: &str) -> bool {
     without_comments.push_str(rest);
     without_comments.lines().all(|line| {
         let t = line.trim();
-        t.is_empty() || t.starts_with('#') || t.starts_with('>')
+        t.is_empty()
+            || t.starts_with('>')
+            // Only the template's own headings are scaffold; any other
+            // heading is a user entry (e.g. a `## note` added before the
+            // bullet-entry format) and makes the file real content.
+            || is_scaffold_heading(t)
     })
+}
+
+/// Template headings that belong to the generated scaffold.
+fn is_scaffold_heading(line: &str) -> bool {
+    line == "# Global Memory"
+        || line == "## Preferences"
+        || line == "## Project Context"
+        || line.starts_with("# Project Memory")
 }
 
 /// Build the user message for the dream model call from session log contents.
@@ -1392,6 +1405,21 @@ mod tests {
         assert!(!is_scaffold_template(
             "## Decisions\n\nWe chose Rust.\n\n## Architecture\n\nEvent-driven.",
         ));
+    }
+
+    #[test]
+    fn scaffold_heading_only_user_entry_is_not_scaffold() {
+        // Regression: memory_write entries written before the bullet format
+        // landed as bare headings (`## note`). A short template + one user
+        // heading must stay searchable — only the template's own headings
+        // are scaffold.
+        let content = "# Project Memory — /test\n\n\
+             > Auto-populated by dream consolidation. Edit freely.\n\n\n\
+             ## 冒烟测试:用户偏好简洁中文回复\n";
+        assert!(
+            !is_scaffold_template(content),
+            "template + heading-only user entry must not be classified as scaffold"
+        );
     }
 
     #[test]

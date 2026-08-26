@@ -533,15 +533,19 @@ fn is_older_than(dir: &Path, days: u64) -> bool {
     age > std::time::Duration::from_secs(days * 24 * 60 * 60)
 }
 
-/// Ensure content has proper Markdown heading structure for the memory chunker.
+/// Ensure content has proper Markdown structure for the memory chunker.
 ///
 /// The chunker splits on `## ` boundaries, and the search pipeline uses
 /// headings for section-level ranking. Raw text without headings produces
-/// low-quality chunks. This function ensures every note gets a heading.
+/// low-quality chunks. This function ensures every note gets structure.
 ///
 /// **Rules:**
 /// 1. Content already starts with `#` → leave as-is (user-provided structure).
-/// 2. Single-line content → wrap as `## {content}` (the note IS the heading).
+/// 2. Single-line content → wrap as a bullet entry `- {content}`. Bullets,
+///    not headings: a heading-only file is indistinguishable from scaffold
+///    template and would be excluded from search (is_scaffold_template),
+///    and a heading-only chunk has no substantive text once headings are
+///    stripped (is_structurally_empty).
 /// 3. Multi-line, first line ≤ 80 chars → first line becomes `## {first_line}`,
 ///    remaining lines become the body paragraph.
 /// 4. Multi-line, first line > 80 chars → use `## Note` as a generic heading,
@@ -558,8 +562,10 @@ pub fn normalize_memory_content(raw: &str) -> String {
     }
 
     match trimmed.find('\n') {
-        // Single-line → the note IS the heading.
-        None => format!("## {trimmed}"),
+        // Single-line → the note becomes a bullet entry. NOT a heading:
+        // heading-only files are indistinguishable from scaffold templates
+        // and get excluded from search (is_scaffold_template).
+        None => format!("- {trimmed}"),
 
         // Multi-line → promote first line to heading if it's short enough.
         Some(pos) => {
@@ -1043,9 +1049,11 @@ mod tests {
 
     #[test]
     fn test_normalize_single_line() {
+        // Bullet, not heading: heading-only entries vanish from search
+        // (scaffold detection + heading-stripping in structural emptiness).
         assert_eq!(
             normalize_memory_content("prefer tabs over spaces"),
-            "## prefer tabs over spaces"
+            "- prefer tabs over spaces"
         );
     }
 
@@ -1105,7 +1113,7 @@ mod tests {
     fn test_normalize_trims_surrounding_whitespace() {
         assert_eq!(
             normalize_memory_content("  prefer tabs  "),
-            "## prefer tabs"
+            "- prefer tabs"
         );
     }
 
@@ -1132,7 +1140,7 @@ mod tests {
             .unwrap();
 
         let content = std::fs::read_to_string(workspace_dir.join("MEMORY.md")).unwrap();
-        assert_eq!(content, "## prefer tabs");
+        assert_eq!(content, "- prefer tabs");
     }
 
     #[test]
@@ -1147,7 +1155,7 @@ mod tests {
             .unwrap();
 
         let content = std::fs::read_to_string(global_dir.join("MEMORY.md")).unwrap();
-        assert_eq!(content, "## always use UTC");
+        assert_eq!(content, "- always use UTC");
     }
 
     #[test]
@@ -1165,7 +1173,7 @@ mod tests {
             .unwrap();
 
         let content = std::fs::read_to_string(workspace_dir.join("MEMORY.md")).unwrap();
-        assert_eq!(content, "## first note\n\n## second note");
+        assert_eq!(content, "- first note\n\n- second note");
     }
 
     #[test]
@@ -1181,8 +1189,8 @@ mod tests {
 
         let content = std::fs::read_to_string(workspace_dir.join("MEMORY.md")).unwrap();
         assert!(
-            content.starts_with("## "),
-            "should have been normalized with a heading"
+            content.starts_with("- "),
+            "should have been normalized to a bullet entry"
         );
     }
 
