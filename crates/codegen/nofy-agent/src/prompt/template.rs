@@ -471,11 +471,44 @@ mod tests {
     // ── Memory section ──────────────────────────────────────────────
 
     #[test]
-    fn test_memory_enabled_does_not_render_memory_section() {
-        // The <memory> section was removed from the minimal base prompt.
-        // Even when the memory tools are registered AND memory_enabled=true,
-        // the trimmed template must not render a memory section. (Complements
-        // test_memory_disabled_omits_memory_section, which covers the default.)
+    fn test_memory_enabled_renders_proactive_memory_section() {
+        // When memory is enabled AND the memory tools are registered, the
+        // base prompt must carry a <memory> section that instructs the
+        // model to write memories proactively (tool descriptions alone do
+        // not make weaker models initiate writes).
+        let tools: HashMap<ToolKind, String> = [
+            (ToolKind::Read, "read_file".to_string()),
+            (ToolKind::MemorySearch, "memory_search".to_string()),
+            (ToolKind::MemoryGet, "memory_get".to_string()),
+            (ToolKind::MemoryWrite, "memory_write".to_string()),
+        ]
+        .into();
+        let r = TemplateRenderer::new(tools, HashMap::new());
+        let mut p = default_placeholders();
+        p["memory_enabled"] = serde_json::json!(true);
+        let prompt = render_base(&r, &p);
+        assert!(
+            prompt.contains("<memory>"),
+            "memory section must render when memory is enabled"
+        );
+        assert!(
+            prompt.contains("PROACTIVELY"),
+            "memory section must instruct proactive writes"
+        );
+        assert!(
+            prompt.contains("`memory_write`"),
+            "memory section must resolve the write tool name"
+        );
+        assert!(
+            prompt.contains("`memory_search`"),
+            "memory section must resolve the search tool name"
+        );
+    }
+
+    #[test]
+    fn test_memory_enabled_without_write_tool_omits_memory_section() {
+        // Read-only memory tooling (search/get) must not render the write
+        // guidance section.
         let tools: HashMap<ToolKind, String> = [
             (ToolKind::Read, "read_file".to_string()),
             (ToolKind::MemorySearch, "memory_search".to_string()),
@@ -488,19 +521,7 @@ mod tests {
         let prompt = render_base(&r, &p);
         assert!(
             !prompt.contains("<memory>"),
-            "Memory section was removed from the minimal prompt"
-        );
-        assert!(
-            !prompt.contains("### Memory Management"),
-            "Memory Management section was removed from the minimal prompt"
-        );
-        assert!(
-            !prompt.contains("memory_search"),
-            "memory tool names must not appear once the memory section is gone"
-        );
-        assert!(
-            !prompt.contains("memory_get"),
-            "memory tool names must not appear once the memory section is gone"
+            "memory section is gated on the write tool"
         );
     }
 
