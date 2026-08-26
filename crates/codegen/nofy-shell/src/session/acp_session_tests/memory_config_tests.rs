@@ -599,7 +599,7 @@ async fn test_first_turn_reminder_skips_when_block_persisted() {
                         source: "workspace".into(),
                         created_at: None,
                     },
-                ])
+                ], None)
                 .unwrap();
             let actor = create_injection_ready_actor(vec![
                 nofy_sampling_types::ConversationItem::system(format!(

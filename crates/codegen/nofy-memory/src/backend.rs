@@ -458,7 +458,7 @@ impl MemoryBackend for MemoryBackendImpl {
         // chunks appear in candidates even when session volume crowds them
         // out of the base FTS results. Mirrors hybrid_search() in search.rs.
         let evergreen = index
-            .search_fts_by_sources(query, candidate_limit, &["global", "workspace"])
+            .search_fts_by_sources(query, candidate_limit, &["global", "workspace", "user"])
             .unwrap_or_default();
         let existing: std::collections::HashSet<String> =
             fts_results.iter().map(|r| r.chunk_id.clone()).collect();

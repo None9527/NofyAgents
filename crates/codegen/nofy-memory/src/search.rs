@@ -155,7 +155,7 @@ pub async fn hybrid_search(
     // global/workspace chunks aren't crowded out by session volume.
     let mut fts_results = index.search_fts(query, candidate_limit).unwrap_or_default();
     let evergreen = index
-        .search_fts_by_sources(query, candidate_limit, &["global", "workspace"])
+        .search_fts_by_sources(query, candidate_limit, &["global", "workspace", "user"])
         .unwrap_or_default();
     let existing: std::collections::HashSet<String> =
         fts_results.iter().map(|r| r.chunk_id.clone()).collect();

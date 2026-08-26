@@ -57,10 +57,13 @@ pub struct MemoryGetOutput {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum MemoryWriteScope {
-    /// Global memory — shared across all workspaces (`~/.nofy/memory/MEMORY.md`).
+    /// Global memory — cross-project facts (`~/.nofy/memory/MEMORY.md`).
     Global,
     /// Workspace-scoped memory — specific to this project.
     Workspace,
+    /// User profile — who the user is: preferences, communication style,
+    /// workflow habits (cross-project, `~/.nofy/memory/USER.md`).
+    User,
 }
 
 /// What a `memory_write` call does to the target store.
@@ -75,14 +78,29 @@ pub enum MemoryWriteAction {
     Remove,
 }
 
+/// One operation inside a batch write.
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+pub struct MemoryWriteOpInput {
+    /// What to do.
+    pub action: MemoryWriteAction,
+    /// Entry text for `add`, replacement text for `replace`.
+    #[serde(default)]
+    pub content: Option<String>,
+    /// Unique substring identifying the entry for `replace`/`remove`.
+    #[serde(default)]
+    pub old_text: Option<String>,
+}
+
 /// Input for the `memory_write` tool.
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct MemoryWriteInput {
-    /// What to do: `add`, `replace`, or `remove`.
-    pub action: MemoryWriteAction,
-    /// Which store to write: `global` (cross-project) or `workspace`
-    /// (this project only). Prefer `workspace` unless the fact is truly
-    /// project-independent (user preferences, environment facts).
+    /// What to do: `add`, `replace`, or `remove` (single-op shape). Omit
+    /// when using `operations`.
+    #[serde(default)]
+    pub action: Option<MemoryWriteAction>,
+    /// Which store to write: `workspace` (project conventions, decisions),
+    /// `global` (cross-project facts), or `user` (who the user is:
+    /// preferences, style, habits).
     pub scope: MemoryWriteScope,
     /// The entry text for `add`, or the replacement text for `replace`.
     /// Ignored for `remove`. Keep entries to one or two sentences —
@@ -95,6 +113,73 @@ pub struct MemoryWriteInput {
     /// `remove`, ignored for `add`.
     #[serde(default)]
     pub old_text: Option<String>,
+    /// Batch shape: operations applied atomically in one call against the
+    /// store's character budget (checked on the FINAL result). Preferred
+    /// when making multiple changes or when the store is full — remove or
+    /// shorten stale entries AND add the new one together.
+    #[serde(default, deserialize_with = "deserialize_operations_lenient")]
+    pub operations: Option<Vec<MemoryWriteOpInput>>,
+}
+
+/// Some models stringify nested arrays and pass `operations` as a JSON
+/// string instead of an array. Accept both shapes rather than failing the
+/// whole call at the schema boundary.
+fn deserialize_operations_lenient<'de, D>(
+    deserializer: D,
+) -> Result<Option<Vec<MemoryWriteOpInput>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::Error;
+    let value: Option<serde_json::Value> = Option::deserialize(deserializer)?;
+    match value {
+        None | Some(serde_json::Value::Null) => Ok(None),
+        Some(v @ serde_json::Value::Array(_)) => {
+            serde_json::from_value(v).map_err(Error::custom)
+        }
+        Some(serde_json::Value::String(s)) => serde_json::from_str(&s).map_err(|e| {
+            Error::custom(format!(
+                "operations was a string that does not parse as an array of \
+                 {{action, content?, old_text?}} objects: {e}"
+            ))
+        }),
+        Some(other) => Err(Error::custom(format!(
+            "operations must be an array of {{action, content?, old_text?}} objects, got: {other}"
+        ))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn operations_accepts_real_array() {
+        let input: MemoryWriteInput = serde_json::from_str(
+            r#"{"scope":"workspace","operations":[{"action":"remove","old_text":"x"}]}"#,
+        )
+        .unwrap();
+        assert_eq!(input.operations.expect("array must parse").len(), 1);
+    }
+
+    #[test]
+    fn operations_accepts_stringified_array() {
+        let input: MemoryWriteInput = serde_json::from_str(
+            r#"{"scope":"workspace","operations":"[{\"action\":\"add\",\"content\":\"y\"}]"}"#,
+        )
+        .unwrap();
+        let ops = input.operations.expect("stringified array must parse");
+        assert!(matches!(ops[0].action, MemoryWriteAction::Add));
+    }
+
+    #[test]
+    fn operations_rejects_garbage_string() {
+        let err = serde_json::from_str::<MemoryWriteInput>(
+            r#"{"scope":"workspace","operations":"not json"}"#,
+        )
+        .unwrap_err();
+        assert!(err.to_string().contains("does not parse"));
+    }
 }
 
 /// Output schema for `memory_write` (used for JSON Schema generation only).

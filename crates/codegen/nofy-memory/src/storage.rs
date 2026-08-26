@@ -121,6 +121,12 @@ impl MemoryStorage {
         self.global_dir.join("MEMORY.md")
     }
 
+    /// Path to the global `USER.md` profile (who the user is: preferences,
+    /// communication style, workflow habits — cross-project by nature).
+    pub fn global_user_file(&self) -> PathBuf {
+        self.global_dir.join("USER.md")
+    }
+
     /// Path to the workspace-scoped `MEMORY.md`.
     pub fn workspace_memory_file(&self) -> PathBuf {
         self.workspace_dir.join("MEMORY.md")
@@ -128,7 +134,8 @@ impl MemoryStorage {
 
     /// Classify a file path as a memory source type.
     ///
-    /// Returns `"global"`, `"workspace"`, or `"session"` based on location.
+    /// Returns `"user"`, `"global"`, `"workspace"`, or `"session"` based on
+    /// location.
     pub fn classify_source(&self, path: &Path) -> &'static str {
         if path.starts_with(&self.workspace_dir) {
             if path.file_name().is_some_and(|f| f == "MEMORY.md") {
@@ -137,7 +144,11 @@ impl MemoryStorage {
                 "session"
             }
         } else if path.starts_with(&self.global_dir) {
-            "global"
+            if path.file_name().is_some_and(|f| f == "USER.md") {
+                "user"
+            } else {
+                "global"
+            }
         } else {
             "session"
         }
@@ -326,6 +337,12 @@ impl MemoryStorage {
             files.push(global_file);
         }
 
+        // Global USER.md (user profile)
+        let user_file = self.global_user_file();
+        if user_file.is_file() {
+            files.push(user_file);
+        }
+
         // Workspace MEMORY.md
         let workspace_file = self.workspace_memory_file();
         if workspace_file.is_file() {
@@ -375,6 +392,18 @@ impl MemoryStorage {
                  <!-- Add any cross-project preferences here -->\n",
             )?;
             tracing::info!(path = %global_file.display(), "created global MEMORY.md template");
+        }
+
+        let user_file = self.global_user_file();
+        if !user_file.exists() {
+            std::fs::write(
+                &user_file,
+                "# User Profile\n\
+                 \n\
+                 > Who the user is: preferences, communication style, workflow habits.\n\
+                 > Preferences change — replace stale entries instead of appending duplicates.\n",
+            )?;
+            tracing::info!(path = %user_file.display(), "created global USER.md template");
         }
 
         if self.ephemeral {

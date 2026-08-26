@@ -95,9 +95,8 @@ nofy-shell = { workspace = true }
 nofy-workspace = { workspace = true }
 nofy-token-estimation = { workspace = true }
 nofy-status-line = { workspace = true }
-nofy-telemetry = { workspace = true }
+nofy-telemetry = { workspace = true, features = ["memory-log"] }
 nofy-fast-worktree = { path = "../nofy-fast-worktree", features = ["metadata"] }
-backon = { workspace = true }
 chrono = { workspace = true }
 flate2 = { workspace = true }
 tar = { workspace = true }

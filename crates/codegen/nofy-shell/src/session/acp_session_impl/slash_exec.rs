@@ -765,6 +765,7 @@ impl SessionActor {
                                 crate::session::memory_writer::ShellMemoryWriter::new(
                                     storage.clone(),
                                     Some(params.clone()),
+                                    Default::default(),
                                 ),
                             );
                             let bridge = self.agent.borrow().tool_bridge().clone();

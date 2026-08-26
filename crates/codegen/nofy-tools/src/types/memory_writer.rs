@@ -20,6 +20,28 @@ pub struct MemoryWriteOutcome {
     pub summary: String,
 }
 
+/// One operation inside a batch write.
+#[derive(Debug, Clone)]
+pub enum MemoryOp {
+    /// Append a new entry.
+    Add(String),
+    /// Replace the unique fragment `old` with `new`.
+    Replace { old: String, new: String },
+    /// Remove the unique fragment.
+    Remove(String),
+}
+
+/// Current size of a memory store against its budget.
+#[derive(Debug, Clone)]
+pub struct MemoryUsage {
+    /// Characters currently used (whole file).
+    pub used_chars: usize,
+    /// Character budget for this store.
+    pub limit_chars: usize,
+    /// The store's current content (for surfacing on budget rejection).
+    pub content: String,
+}
+
 /// Backend-agnostic interface for memory mutations.
 ///
 /// Implementations must be `Send + Sync` to be stored as
@@ -53,4 +75,23 @@ pub trait MemoryWriter: Send + Sync {
         scope: &str,
         old_text: &str,
     ) -> Result<MemoryWriteOutcome, Box<dyn std::error::Error + Send + Sync>>;
+
+    /// Apply a batch of operations atomically against the store's budget.
+    ///
+    /// All operations are applied in order to an in-memory copy; the budget
+    /// is checked only on the FINAL result. On success the file is written
+    /// once. On budget overflow or any failed operation nothing is written
+    /// and the error carries the current usage so the caller can free room
+    /// and retry in one batch.
+    async fn apply_batch(
+        &self,
+        scope: &str,
+        ops: &[MemoryOp],
+    ) -> Result<MemoryWriteOutcome, Box<dyn std::error::Error + Send + Sync>>;
+
+    /// Report the store's current size against its budget.
+    async fn usage(
+        &self,
+        scope: &str,
+    ) -> Result<MemoryUsage, Box<dyn std::error::Error + Send + Sync>>;
 }

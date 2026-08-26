@@ -34,6 +34,7 @@ pub mod schema;
 pub mod search;
 pub mod storage;
 pub mod text_utils;
+pub mod threat_scan;
 pub mod watcher;
 
 pub use backend::{EndpointScopedCredentials, MemoryBackendImpl, MemoryBackendParams};

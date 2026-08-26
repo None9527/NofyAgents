@@ -101,6 +101,7 @@ fn init_tracing_simple(app_entrypoint: &'static str) {
         .with(nofy_telemetry::sampling_log::layer())
         .with(nofy_telemetry::instrumentation::layer())
         .with(nofy_telemetry::hooks_log::layer())
+        .with(nofy_telemetry::memory_log::layer())
         .with(nofy_telemetry::otel_layer::build_otel_layer(
             nofy_telemetry::otel_layer::OtelClientInfo {
                 client_name: "nofy-pager",

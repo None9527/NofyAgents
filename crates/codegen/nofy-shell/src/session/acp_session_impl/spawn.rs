@@ -837,11 +837,15 @@ pub(crate) async fn spawn_session_actor(
         );
         memory_search_counter = Some(backend.search_counter.clone());
         // Active memory writes: the memory_write tool persists curated
-        // entries through this writer (storage + index + embedding seam).
+        // entries through this writer (storage + index + embedding seam),
+        // bounded by the configured store budgets.
         memory_writer_for_spec = Some(std::sync::Arc::new(
             crate::session::memory_writer::ShellMemoryWriter::new(
                 storage.clone(),
                 Some(params.clone()),
+                memory_config
+                    .as_ref()
+                    .map_or_else(Default::default, |mc| mc.budget),
             ),
         ));
         let watcher_started = params.watcher.is_some();

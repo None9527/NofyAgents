@@ -3,9 +3,10 @@ pub mod watcher;
 use crate::bundle;
 use serde::Deserialize;
 pub use nofy_config_types::{
-    DEFAULT_RECENCY_DECAY, MemoryDreamConfig, MemoryEmbeddingConfig, MemoryFlushConfig,
-    MemoryGcConfig, MemoryIndexConfig, MemoryInitialInjectionConfig, MemorySearchConfig,
-    MemorySessionConfig, MemoryWatcherConfig, MmrConfig, PruningConfig, TemporalDecayConfig,
+    DEFAULT_RECENCY_DECAY, MemoryBudgetConfig, MemoryDreamConfig, MemoryEmbeddingConfig,
+    MemoryFlushConfig, MemoryGcConfig, MemoryIndexConfig, MemoryInitialInjectionConfig,
+    MemorySearchConfig, MemorySessionConfig, MemoryWatcherConfig, MmrConfig, PruningConfig,
+    TemporalDecayConfig,
 };
 /// Full configuration for the memory system.
 ///
@@ -32,6 +33,8 @@ pub struct MemoryConfig {
     pub initial_injection: MemoryInitialInjectionConfig,
     /// Session lifecycle settings.
     pub session: MemorySessionConfig,
+    /// Store size budgets (bounded memory signal density).
+    pub budget: MemoryBudgetConfig,
     /// File watcher settings for detecting external memory edits.
     pub watcher: MemoryWatcherConfig,
     /// Garbage collection settings for orphaned workspace directories.

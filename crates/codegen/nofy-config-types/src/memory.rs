@@ -83,6 +83,7 @@ impl Default for MemorySearchConfig {
         source_weights.insert("workspace".to_string(), 1.0);
         source_weights.insert("session".to_string(), 1.0);
         source_weights.insert("global".to_string(), 1.0);
+        source_weights.insert("user".to_string(), 1.0);
 
         Self {
             max_results: 6,
@@ -255,6 +256,36 @@ pub struct MemorySessionConfig {
 impl Default for MemorySessionConfig {
     fn default() -> Self {
         Self { save_on_end: true }
+    }
+}
+
+/// Memory store size budgets (`[memory.budget]`).
+///
+/// Memory is injected into context, so signal density must be protected:
+/// each store has a character budget. Writes that would push a store over
+/// budget are rejected with the current entries shown, so the agent can
+/// free room (remove/shorten stale entries) and retry in one batch.
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+#[serde(default)]
+pub struct MemoryBudgetConfig {
+    /// Whether budget enforcement is enabled.
+    pub enabled: bool,
+    /// Character budget for the workspace `MEMORY.md`.
+    pub workspace_chars: usize,
+    /// Character budget for the global `MEMORY.md`.
+    pub global_chars: usize,
+    /// Character budget for the global `USER.md` profile.
+    pub user_chars: usize,
+}
+
+impl Default for MemoryBudgetConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            workspace_chars: 4000,
+            global_chars: 3000,
+            user_chars: 1500,
+        }
     }
 }
 

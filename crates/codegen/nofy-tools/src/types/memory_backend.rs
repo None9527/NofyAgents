@@ -25,7 +25,7 @@ const VERY_STALE_DAYS: f64 = 7.0;
 /// Global and workspace entries are curated/evergreen — no warning emitted.
 /// Returns an empty string for fresh, evergreen, or unknown-age results.
 pub fn format_staleness_note(source: &str, created_at: Option<i64>) -> String {
-    if matches!(source, "global" | "workspace") {
+    if matches!(source, "global" | "workspace" | "user") {
         return String::new();
     }
     let Some(created) = created_at else {

@@ -435,11 +435,13 @@ pub fn init_tracing() -> TracingHandle {
     let instrumentation_layer = nofy_telemetry::instrumentation::layer();
     let sampling_log_layer = nofy_telemetry::sampling_log::layer();
     let hooks_log_layer = nofy_telemetry::hooks_log::layer();
+    let memory_log_layer = nofy_telemetry::memory_log::layer();
     let registry = tracing_subscriber::registry()
         .with(fmt_layer.with_filter(env_filter))
         .with(instrumentation_layer)
         .with(sampling_log_layer)
         .with(hooks_log_layer)
+        .with(memory_log_layer)
         .with(otel_layer);
     nofy_telemetry::debug_log::install_firehose(registry, "tui");
     nofy_telemetry::external::init(

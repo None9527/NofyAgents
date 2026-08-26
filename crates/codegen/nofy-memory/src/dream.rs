@@ -158,12 +158,13 @@ pub struct DreamMessage {
 /// A file is scaffold only if it is short (< 500 bytes trimmed) AND contains
 /// a scaffold marker. Files with substantial content are never scaffold, even
 /// if they contain leftover marker strings from the initial template.
-pub(crate) fn is_scaffold_template(content: &str) -> bool {
+pub fn is_scaffold_template(content: &str) -> bool {
     const SCAFFOLD_MAX_LEN: usize = 500;
     const MARKERS: &[&str] = &[
         "Auto-populated by dream consolidation",
         "Add project-specific knowledge here",
         "Add any cross-project preferences here",
+        "Preferences change — replace stale entries",
     ];
     let trimmed = content.trim();
     if trimmed.len() >= SCAFFOLD_MAX_LEN || !MARKERS.iter().any(|marker| trimmed.contains(marker))
@@ -208,6 +209,7 @@ fn is_scaffold_heading(line: &str) -> bool {
     line == "# Global Memory"
         || line == "## Preferences"
         || line == "## Project Context"
+        || line == "# User Profile"
         || line.starts_with("# Project Memory")
 }
 

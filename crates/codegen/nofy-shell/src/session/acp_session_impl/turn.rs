@@ -1720,9 +1720,29 @@ impl SessionActor {
                 injection_duration_ms: inject_start.elapsed().as_millis() as u64,
             },
         );
-        inject_results.and_then(|results| {
-            crate::session::helpers::memory_context::format_memory_reminder(&results)
-        })
+        // A failed search must not lose the user profile: inject whichever
+        // halves are available.
+        let results = inject_results.unwrap_or_default();
+        crate::session::helpers::memory_context::format_memory_reminder(
+            &results,
+            self.load_user_profile().as_deref(),
+        )
+    }
+
+    /// Load the global USER.md profile for first-turn injection.
+    ///
+    /// Returns `None` when the file is missing, empty, or still the
+    /// generated scaffold template — an empty profile injects nothing.
+    fn load_user_profile(&self) -> Option<String> {
+        let storage = self.memory.storage()?;
+        let content = std::fs::read_to_string(storage.global_user_file()).ok()?;
+        let trimmed = content.trim();
+        if trimmed.is_empty()
+            || crate::session::memory::dream::is_scaffold_template(trimmed)
+        {
+            return None;
+        }
+        Some(content)
     }
     /// Inspect `tool_calls` for a `StructuredOutput` call and decide the turn's
     /// next step, pushing the call's `tool_result` (correction / retry error /

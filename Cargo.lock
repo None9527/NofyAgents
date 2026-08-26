@@ -2181,15 +2181,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
-name = "cryptify"
-version = "3.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa6bda41d3e8e4337cfa18a178e69f4404802a208fe59abc23075a81a7d373df"
-dependencies = [
- "labyrinth_macros",
-]
-
-[[package]]
 name = "crypto-bigint"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5666,18 +5657,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf36173d4167ed999940f804952e6b08197cae5ad5d572eb4db150ce8ad5d58f"
 
 [[package]]
-name = "labyrinth_macros"
-version = "3.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "108484a425d5e622b63194be3fb8fbf88823271912d8b63cc12917be292329b2"
-dependencies = [
- "proc-macro2",
- "quote",
- "rand 0.8.5",
- "syn 2.0.117",
-]
-
-[[package]]
 name = "landlock"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6333,9 +6312,7 @@ dependencies = [
  "ignore",
  "minijinja",
  "nofy-config",
- "nofy-env",
  "nofy-hooks",
- "nofy-sampling-types",
  "nofy-token-estimation",
  "nofy-tool-types",
  "nofy-tools",
@@ -6932,14 +6909,12 @@ dependencies = [
 name = "nofy-memory"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "arc-swap",
  "async-trait",
  "blake3",
  "chrono",
  "dunce",
  "filetime",
- "flate2",
  "git2",
  "nix 0.30.1",
  "nofy-auth",
@@ -6956,7 +6931,6 @@ dependencies = [
  "rusqlite",
  "serde_json",
  "sqlite-vec",
- "tar",
  "tempfile",
  "tokio",
  "tracing",
@@ -7024,7 +6998,6 @@ dependencies = [
  "agent-client-protocol",
  "ansi-to-tui",
  "anyhow",
- "backon",
  "base64",
  "blake3",
  "chrono",
@@ -7115,7 +7088,6 @@ version = "0.2.121"
 dependencies = [
  "anyhow",
  "clap",
- "cryptify",
  "dunce",
  "libc",
  "nofy-config",
@@ -7129,9 +7101,7 @@ dependencies = [
  "nofy-tty-utils",
  "nofy-version",
  "nofy-workspace",
- "obfstr",
  "rustls",
- "semver",
  "serde_json",
  "serial_test",
  "tikv-jemalloc-ctl",
@@ -7361,13 +7331,11 @@ version = "0.1.0"
 dependencies = [
  "assert_matches",
  "async-openai",
- "chrono",
  "indexmap",
  "nofy-circuit-breaker",
  "nofy-compaction",
  "nofy-tools",
  "reqwest 0.12.24",
- "schemars 1.0.4",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -7525,7 +7493,6 @@ dependencies = [
  "nofy-convergence",
  "nofy-daemon",
  "nofy-env",
- "nofy-extra-ca",
  "nofy-fast-worktree",
  "nofy-file-utils",
  "nofy-fsnotify",
@@ -7578,7 +7545,6 @@ dependencies = [
  "rand 0.9.2",
  "regex",
  "reqwest 0.12.24",
- "reqwest-middleware 0.4.2",
  "ring",
  "rusqlite",
  "rustls",
@@ -7607,7 +7573,6 @@ dependencies = [
  "toml_edit 0.22.27",
  "tonic",
  "tonic-prost",
- "tower-http",
  "tracing",
  "tracing-subscriber",
  "url",
@@ -7621,7 +7586,6 @@ dependencies = [
 name = "nofy-shell-base"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "chrono",
  "libc",
  "nix 0.30.1",
@@ -7629,7 +7593,6 @@ dependencies = [
  "nofy-env",
  "nofy-shared",
  "nofy-tty-utils",
- "nofy-version",
  "pprof",
  "reqwest 0.12.24",
  "serde",
@@ -7889,9 +7852,7 @@ dependencies = [
  "nofy-computer-hub-core",
  "nofy-computer-hub-sdk",
  "nofy-config",
- "nofy-env",
  "nofy-extra-ca",
- "nofy-file-utils",
  "nofy-interjection-core",
  "nofy-sandbox",
  "nofy-stewardcore",
@@ -7934,7 +7895,6 @@ dependencies = [
  "which",
  "wildmatch",
  "windows 0.61.3",
- "wiremock",
  "zip",
 ]
 

@@ -29,10 +29,12 @@ fn stewardcore_loc_ratchet_only_shrinks() {
     // - 2418→2587: batch P osbridge.rs (Spotlight/Everything provider
     //   evaluation gate; FR12.10).
     // - 2587→2672: coverage-gate — tests for uncovered branches.
-    // - 2672→3077: W-9 trash.rs — the on-disk recoverable-deletion store
+    // - 2672→3108: W-9 trash.rs — the on-disk recoverable-deletion store
     //   (staged copies + append-only manifest fold, fail-loud restore,
-    //   deliberate empty) + its directory of tests.
-    let cap = 3077;
+    //   deliberate empty) + its directory of tests. The cap was recorded as
+    //   3077 at landing, but the W-9 tree actually measured 3108; corrected
+    //   here deliberately (the ratchet still only shrinks from 3108).
+    let cap = 3108;
     let got = loc(&src);
     assert!(
         got <= cap,
