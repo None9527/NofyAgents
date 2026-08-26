@@ -1281,11 +1281,13 @@ impl SessionActor {
         has_workflow_runs: bool,
     ) -> slash_commands::CommandAvailability {
         use nofy_tools::implementations::memory::{
-            MEMORY_GET_TOOL_NAME, MEMORY_SEARCH_TOOL_NAME,
+            MEMORY_GET_TOOL_NAME, MEMORY_SEARCH_TOOL_NAME, MEMORY_WRITE_TOOL_NAME,
         };
-        let memory_read_registered = tool_names
-            .iter()
-            .any(|n| n == MEMORY_SEARCH_TOOL_NAME || n == MEMORY_GET_TOOL_NAME);
+        let memory_read_registered = tool_names.iter().any(|n| {
+            n == MEMORY_SEARCH_TOOL_NAME
+                || n == MEMORY_GET_TOOL_NAME
+                || n == MEMORY_WRITE_TOOL_NAME
+        });
         let goal = if self.goal_runs_on_workflow_engine() {
             self.sync_goal_harness()
         } else {

@@ -529,7 +529,7 @@ async fn create_injection_ready_actor(
         4,
     )
     .unwrap();
-    idx.reindex_file(&note, "workspace").unwrap();
+    idx.reindex_file(&note, "workspace", "agent").unwrap();
     drop(idx);
     actor.memory.storage = std::cell::RefCell::new(Some(storage));
     std::mem::forget(tmp);

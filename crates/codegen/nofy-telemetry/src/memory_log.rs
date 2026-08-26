@@ -1,6 +1,6 @@
 //! Memory system tracing target and optional file-based logging layer.
 //!
-//! Provides a dedicated tracing target (`xai_memory`) with an optional
+//! Provides a dedicated tracing target (`nofy_memory`) with an optional
 //! file logger that writes to `~/.nofy/logs/memory.log`.
 //!
 //! ## When to use
@@ -18,7 +18,7 @@
 //! ```
 
 /// Tracing target for all memory system operations.
-pub const TARGET: &str = "xai_memory";
+pub const TARGET: &str = "nofy_memory";
 
 #[cfg(feature = "memory-log")]
 mod inner {
@@ -65,7 +65,7 @@ mod inner {
 
     /// Build the memory log layer.
     ///
-    /// Writes to `~/.nofy/logs/memory.log`. Filters to `xai_memory=trace`.
+    /// Writes to `~/.nofy/logs/memory.log`. Filters to `nofy_memory=trace`.
     /// Set `NOFY_MEMORY_LOG=0` to disable, `NOFY_MEMORY_LOG=/path` to redirect.
     pub fn layer<S>() -> Option<impl Layer<S>>
     where

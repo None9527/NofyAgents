@@ -378,7 +378,7 @@ impl MemoryBackend for MemoryBackendImpl {
                 if file.exists() {
                     // File was created or modified — reindex it.
                     let source = self.storage.classify_source(file);
-                    if let Ok(stats) = index.reindex_file(file, source) {
+                    if let Ok(stats) = index.reindex_file(file, source, "owner") {
                         changed_chunk_count += stats.added + stats.updated + stats.removed;
                     }
                 } else {
@@ -637,7 +637,7 @@ mod factory_tests {
         .unwrap();
         let file = tmp.path().join("note.md");
         std::fs::write(&file, "# Facts\n\nRust is fast.").unwrap();
-        idx.reindex_file(&file, "workspace").unwrap();
+        idx.reindex_file(&file, "workspace", "agent").unwrap();
         drop(idx);
 
         let params = make_params_fts_only("test-session-abc");
@@ -688,7 +688,7 @@ mod factory_tests {
         for i in 0..10 {
             let f = tmp.path().join(format!("note{i}.md"));
             std::fs::write(&f, format!("# Entry {i}\n\nRust tip number {i}.")).unwrap();
-            idx.reindex_file(&f, "workspace").unwrap();
+            idx.reindex_file(&f, "workspace", "agent").unwrap();
         }
         drop(idx);
 
@@ -901,7 +901,7 @@ mod factory_tests {
         .unwrap();
         let f = tmp.path().join("note.md");
         std::fs::write(&f, "# Guide\n\nRust ownership rules.").unwrap();
-        idx.reindex_file(&f, "workspace").unwrap();
+        idx.reindex_file(&f, "workspace", "agent").unwrap();
         drop(idx);
 
         let params = make_params_fts_only("test-fts-only");
@@ -935,7 +935,7 @@ mod factory_tests {
         .unwrap();
         let f = tmp.path().join("note.md");
         std::fs::write(&f, "# Guide\n\nRust borrow checker.").unwrap();
-        idx.reindex_file(&f, "workspace").unwrap();
+        idx.reindex_file(&f, "workspace", "agent").unwrap();
         drop(idx);
 
         let params = MemoryBackendParams {
@@ -976,7 +976,7 @@ mod factory_tests {
         .unwrap();
         let f = tmp.path().join("note.md");
         std::fs::write(&f, "# Tip\n\nAlways write tests.").unwrap();
-        idx.reindex_file(&f, "workspace").unwrap();
+        idx.reindex_file(&f, "workspace", "agent").unwrap();
         drop(idx);
 
         let params = MemoryBackendParams {
@@ -1104,7 +1104,7 @@ mod factory_tests {
             )
             .unwrap();
             // Index with the canonical path so DB key matches watcher event paths.
-            idx.reindex_file(&file, "workspace").unwrap();
+            idx.reindex_file(&file, "workspace", "agent").unwrap();
         }
 
         // Step 2: Start watcher AFTER indexing so the Remove event for the
@@ -1272,7 +1272,7 @@ mod tests {
 
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Guide\n\nRust programming tutorial.").unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         (db_path, storage)
     }
@@ -1501,7 +1501,7 @@ mod tests {
             "# Preferences\n\nAlways use graphite for PRs. Prefer Rust over Python.",
         )
         .unwrap();
-        idx.reindex_file(&global_file, "global").unwrap();
+        idx.reindex_file(&global_file, "global", "agent").unwrap();
 
         let ws_file = tmp.path().join("ws_mem.md");
         std::fs::write(
@@ -1509,7 +1509,7 @@ mod tests {
             "# Project Decisions\n\nWe chose graphite for PRs in this project.",
         )
         .unwrap();
-        idx.reindex_file(&ws_file, "workspace").unwrap();
+        idx.reindex_file(&ws_file, "workspace", "agent").unwrap();
 
         // Index session files that also match the query.
         for i in 0..5 {
@@ -1519,7 +1519,7 @@ mod tests {
                 format!("# Session {i}\n\nDiscussed graphite for PRs and item {i}."),
             )
             .unwrap();
-            idx.reindex_file(&f, "session").unwrap();
+            idx.reindex_file(&f, "session", "agent").unwrap();
         }
 
         // Verify the supplemental query mechanism: with a tight limit the
@@ -1594,7 +1594,7 @@ mod index_embedding_tests {
 
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Title\n\nSome content here.").unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         // After reindex, chunks should exist but have no embeddings
         let missing = idx.chunks_without_embeddings().unwrap();

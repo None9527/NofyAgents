@@ -90,6 +90,7 @@ impl ToolKind {
             ToolKind::Skill => "Skill",
             ToolKind::MemorySearch => "Memory Search",
             ToolKind::MemoryGet => "Memory Read",
+            ToolKind::MemoryWrite => "Memory Write",
             ToolKind::Task => "Subagent",
             ToolKind::EnterPlan => "Enter Plan Mode",
             ToolKind::ExitPlan => "Exit Plan Mode",
@@ -126,6 +127,7 @@ impl ToolKind {
             | ToolKind::Move
             | ToolKind::Execute
             | ToolKind::Plan
+            | ToolKind::MemoryWrite
             | ToolKind::BackgroundTaskAction
             | ToolKind::WaitTasksAction
             | ToolKind::KillTaskAction

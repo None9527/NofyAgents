@@ -413,7 +413,7 @@ mod tests {
 
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Guide\n\nRust programming language tutorial.").unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         let config = MemorySearchConfig::default();
         let results = hybrid_search(&idx, None, "rust programming", &config)
@@ -436,7 +436,7 @@ mod tests {
 
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Guide\n\nPython tutorial.").unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         let config = MemorySearchConfig::default();
         let results = hybrid_search(&idx, None, "haskell monads", &config)
@@ -455,7 +455,7 @@ mod tests {
         for i in 0..10 {
             let file_path = tmp.path().join(format!("test_{i}.md"));
             std::fs::write(&file_path, format!("# Doc {i}\n\nRust content {i}.")).unwrap();
-            idx.reindex_file(&file_path, "workspace").unwrap();
+            idx.reindex_file(&file_path, "workspace", "agent").unwrap();
         }
 
         let config = MemorySearchConfig {
@@ -495,11 +495,11 @@ mod tests {
 
         let ws_file = tmp.path().join("ws.md");
         std::fs::write(&ws_file, "# WS\n\nRust workspace content.").unwrap();
-        idx.reindex_file(&ws_file, "workspace").unwrap();
+        idx.reindex_file(&ws_file, "workspace", "agent").unwrap();
 
         let gl_file = tmp.path().join("gl.md");
         std::fs::write(&gl_file, "# GL\n\nRust global content.").unwrap();
-        idx.reindex_file(&gl_file, "global").unwrap();
+        idx.reindex_file(&gl_file, "global", "agent").unwrap();
 
         let config = MemorySearchConfig {
             min_score: 0.0,
@@ -532,7 +532,7 @@ mod tests {
         // Index a file and embed its chunks
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Guide\n\nRust programming language tutorial.").unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         // Embed the chunk
         let path_str = file_path.to_string_lossy().to_string();
@@ -676,11 +676,11 @@ mod tests {
         // Index a workspace file (evergreen) and a session file (decays)
         let ws_file = tmp.path().join("ws.md");
         std::fs::write(&ws_file, "# WS\n\nRust workspace content about memory.").unwrap();
-        idx.reindex_file(&ws_file, "workspace").unwrap();
+        idx.reindex_file(&ws_file, "workspace", "agent").unwrap();
 
         let sess_file = tmp.path().join("sess.md");
         std::fs::write(&sess_file, "# Sess\n\nRust session content about memory.").unwrap();
-        idx.reindex_file(&sess_file, "session").unwrap();
+        idx.reindex_file(&sess_file, "session", "agent").unwrap();
 
         // Backdate the session chunk's created_at by 60 days (2 half-lives)
         let sixty_days_ago = std::time::SystemTime::now()
@@ -742,8 +742,8 @@ mod tests {
         let fb = tmp.path().join("chunk_b.md");
         std::fs::write(&fa, "# Rust\n\nRust ownership model explained.").unwrap();
         std::fs::write(&fb, "# Rust\n\nRust ownership model explained.").unwrap();
-        idx.reindex_file(&fa, "workspace").unwrap();
-        idx.reindex_file(&fb, "workspace").unwrap();
+        idx.reindex_file(&fa, "workspace", "agent").unwrap();
+        idx.reindex_file(&fb, "workspace", "agent").unwrap();
 
         // Record one access for chunk B.
         let chunk_b_id = format!("{}:0", fb.to_string_lossy());
@@ -815,9 +815,9 @@ mod tests {
         std::fs::write(&fa, "# Rust\n\nRust ownership model explained.").unwrap();
         std::fs::write(&fb, "# Rust\n\nRust ownership model explained.").unwrap();
         std::fs::write(&fc, "# Borrow\n\nRust borrowing and lifetimes guide.").unwrap();
-        idx.reindex_file(&fa, "workspace").unwrap();
-        idx.reindex_file(&fb, "workspace").unwrap();
-        idx.reindex_file(&fc, "workspace").unwrap();
+        idx.reindex_file(&fa, "workspace", "agent").unwrap();
+        idx.reindex_file(&fb, "workspace", "agent").unwrap();
+        idx.reindex_file(&fc, "workspace", "agent").unwrap();
 
         // Boost chunk B so its unclamped relevance exceeds chunk A's.
         let chunk_b_id = format!("{}:0", fb.to_string_lossy());
@@ -891,7 +891,7 @@ mod tests {
             "# Rust Guide\n\nRust programming language ownership and borrowing tutorial.",
         )
         .unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         let config = MemorySearchConfig {
             min_score: 0.3,
@@ -928,7 +928,7 @@ mod tests {
             "# Project Conventions\n\nAlways use graphite for PRs. Never commit without review.",
         )
         .unwrap();
-        idx.reindex_file(&file_path, "global").unwrap();
+        idx.reindex_file(&file_path, "global", "agent").unwrap();
 
         let config = MemorySearchConfig {
             min_score: 0.25,
@@ -966,7 +966,7 @@ mod tests {
             "# Rust\n\nRust programming language ownership tutorial.",
         )
         .unwrap();
-        idx.reindex_file(&file_a, "workspace").unwrap();
+        idx.reindex_file(&file_a, "workspace", "agent").unwrap();
 
         // Embed chunk A
         let path_a = file_a.to_string_lossy().to_string();
@@ -982,7 +982,7 @@ mod tests {
             "# Rust\n\nRust programming language borrowing tutorial.",
         )
         .unwrap();
-        idx.reindex_file(&file_b, "workspace").unwrap();
+        idx.reindex_file(&file_b, "workspace", "agent").unwrap();
 
         let config = MemorySearchConfig {
             min_score: 0.0,
@@ -1035,7 +1035,7 @@ mod tests {
 
         let file = tmp.path().join("test.md");
         std::fs::write(&file, "# Test\n\nContent for vector search test.").unwrap();
-        idx.reindex_file(&file, "workspace").unwrap();
+        idx.reindex_file(&file, "workspace", "agent").unwrap();
 
         let path_str = file.to_string_lossy().to_string();
         let chunk_id = format!("{path_str}:0");
@@ -1236,7 +1236,7 @@ mod tests {
 
         let stub_path = tmp.path().join("stub.md");
         std::fs::write(&stub_path, GLOBAL_STUB).unwrap();
-        idx.reindex_file(&stub_path, "global").unwrap();
+        idx.reindex_file(&stub_path, "global", "agent").unwrap();
 
         // A real-content global file that also matches the query.
         let real_path = tmp.path().join("real.md");
@@ -1246,7 +1246,7 @@ mod tests {
              Architecture is event-driven.",
         )
         .unwrap();
-        idx.reindex_file(&real_path, "global").unwrap();
+        idx.reindex_file(&real_path, "global", "agent").unwrap();
 
         // Precondition: the stub IS a raw FTS candidate for this query (the
         // term "preferences" appears in it). This proves the filter — not a
@@ -1315,7 +1315,7 @@ mod tests {
             "# Rust\n\nRust ownership and borrowing tutorial.",
         )
         .unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         // Drive access_count high so the unbounded access_boost exceeds 1.0.
         let chunk_id = format!("{}:0", file_path.to_string_lossy());

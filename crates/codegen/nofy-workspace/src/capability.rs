@@ -89,6 +89,7 @@ pub(crate) const ALL_TOOL_KINDS: &[ToolKind] = &[
     ToolKind::Skill,
     ToolKind::MemorySearch,
     ToolKind::MemoryGet,
+    ToolKind::MemoryWrite,
     ToolKind::Task,
     ToolKind::EnterPlan,
     ToolKind::ExitPlan,
@@ -139,7 +140,7 @@ pub(crate) fn kind_allowed(mode: CapabilityMode, kind: ToolKind) -> bool {
         Lsp | ListDir | List => matches!(mode, M::ReadOnly | M::ReadWrite | M::Execute),
 
         // Edit class.
-        Edit | Write | Delete | Move | DeployApp => matches!(mode, M::ReadWrite),
+        Edit | Write | Delete | Move | DeployApp | MemoryWrite => matches!(mode, M::ReadWrite),
 
         // Bash / shell.
         Execute => matches!(mode, M::Execute),

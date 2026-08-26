@@ -86,6 +86,7 @@ pub struct AgentBuilder {
     session_env: Option<Arc<HashMap<String, String>>>,
     state_path: Option<PathBuf>,
     memory_backend: Option<Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>>,
+    memory_writer: Option<Arc<dyn nofy_tools::types::memory_writer::MemoryWriter>>,
     session_recall_backend:
         Option<Arc<dyn nofy_tools::types::session_recall::SessionRecallProvider>>,
     forensics_backend: Option<Arc<dyn nofy_tools::types::forensics::ForensicsProvider>>,
@@ -226,6 +227,7 @@ impl AgentBuilder {
             session_env: None,
             state_path: None,
             memory_backend: None,
+            memory_writer: None,
             session_recall_backend: None,
             forensics_backend: None,
             delegation_backend: None,
@@ -397,6 +399,20 @@ impl AgentBuilder {
         backend: Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>,
     ) -> Self {
         self.memory_backend = Some(backend);
+        self
+    }
+
+    /// Set a memory writer so the agent can persist curated memory entries
+    /// (`memory_write` tool).
+    ///
+    /// When set, the `memory_write` tool is registered and can add, replace,
+    /// and remove entries. When `None` (default), the tool returns "Memory
+    /// is not enabled".
+    pub fn with_memory_writer(
+        mut self,
+        writer: Arc<dyn nofy_tools::types::memory_writer::MemoryWriter>,
+    ) -> Self {
+        self.memory_writer = Some(writer);
         self
     }
     /// Set a cross-session recall backend so the agent can autonomously
@@ -691,6 +707,11 @@ impl AgentBuilder {
                     .tools
                     .push((&memory::get_tool::MemoryGetImpl).into());
             }
+            if self.memory_writer.is_some() {
+                tool_config.tools.push(
+                    (&nofy_tools::implementations::memory::write_tool::MemoryWriteImpl).into(),
+                );
+            }
             if self.session_recall_backend.is_some() {
                 tool_config
                     .tools
@@ -747,6 +768,14 @@ impl AgentBuilder {
             tool_config
                 .tools
                 .retain(|tc| tc.id != mem_search_id && tc.id != mem_get_id);
+        }
+        if self.memory_writer.is_none() {
+            let mem_write_id = format!(
+                "{}:{}",
+                nofy_tools::types::tool::ToolNamespace::NofyBuild,
+                nofy_tools::implementations::memory::MEMORY_WRITE_TOOL_NAME
+            );
+            tool_config.tools.retain(|tc| tc.id != mem_write_id);
         }
         if !self.ask_user_question_enabled {
             let ask_user_id = format!(
@@ -1009,6 +1038,7 @@ impl AgentBuilder {
                 skills: skill_info.clone(),
                 state_path,
                 memory_backend: self.memory_backend,
+                memory_writer: self.memory_writer,
                 session_recall: self.session_recall_backend.clone(),
                 forensics: self.forensics_backend.clone(),
                 delegation: self.delegation_backend.clone(),

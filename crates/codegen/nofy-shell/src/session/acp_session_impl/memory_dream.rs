@@ -34,7 +34,8 @@ pub(super) fn build_initial_injection_backend_params(
 }
 
 impl SessionActor {
-    /// Re-register `memory_search` and `memory_get` tools on the tool bridge.
+    /// Re-register `memory_search`, `memory_get`, and `memory_write` tools
+    /// on the tool bridge.
     ///
     /// Used when re-enabling memory mid-session (`/memory on`). The tools are
     /// registered via the dynamic `register_mcp_tools` path which puts them in
@@ -45,7 +46,7 @@ impl SessionActor {
         bridge: &nofy_tools::bridge::ToolBridge,
     ) -> Result<(), String> {
         use nofy_tools::implementations::memory::{
-            MEMORY_GET_TOOL_NAME, MEMORY_SEARCH_TOOL_NAME,
+            MEMORY_GET_TOOL_NAME, MEMORY_SEARCH_TOOL_NAME, MEMORY_WRITE_TOOL_NAME,
         };
 
         bridge
@@ -64,6 +65,14 @@ impl SessionActor {
             )
             .await
             .map_err(|e| format!("failed to register memory_get: {e}"))?;
+        bridge
+            .register_mcp_tools(
+                MEMORY_WRITE_TOOL_NAME.to_owned(),
+                nofy_tools::implementations::memory::write_tool::MemoryWriteImpl,
+                None,
+            )
+            .await
+            .map_err(|e| format!("failed to register memory_write: {e}"))?;
         Ok(())
     }
 
@@ -435,6 +444,14 @@ impl SessionActor {
         snapshot: Option<MemoryFlushSnapshot>,
     ) -> bool {
         use crate::session::helpers::memory_flush::*;
+
+        // Hygiene gate (mirrors the session-end summary and dream gates):
+        // subagent sessions do not produce durable memory candidates —
+        // their work is task-scoped, and auto-capturing it floods memory
+        // with scaffolding restatements.
+        if self.startup_hints.is_subagent {
+            return false;
+        }
 
         // Atomically acquire the flushing lock. If another flush is already
         // running (idle timer, pre-compaction, or user-requested), skip.

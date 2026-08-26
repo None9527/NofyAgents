@@ -56,6 +56,7 @@ async fn tool_bridge_routes_writes_through_injected_fs() {
         skills: vec![],
         state_path: std::env::temp_dir().join("nofy-test-fs/tool_state.json"),
         memory_backend: None,
+        memory_writer: None,
         session_recall: None,
         forensics: None,
         delegation: None,

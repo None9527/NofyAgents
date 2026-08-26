@@ -35,7 +35,7 @@ grok
 ### Config File (Persistent)
 
 ```toml
-# ~/.grok/config.toml
+# ~/.nofy/config.toml
 [memory]
 enabled = true
 ```
@@ -81,13 +81,13 @@ You can also toggle from inside the `/memory` modal by pressing `t`.
 
 ## How Memory Is Stored
 
-Memory is stored as Markdown files under `~/.grok/memory/`:
+Memory is stored as Markdown files under `~/.nofy/memory/`:
 
 | Location | Scope | Description |
 |----------|-------|-------------|
-| `~/.grok/memory/MEMORY.md` | Global | Facts that apply across all your projects |
-| `~/.grok/memory/<project-slug>-<hash8>/MEMORY.md` | Workspace | Project-specific conventions and context |
-| `~/.grok/memory/<project-slug>-<hash8>/sessions/` | Sessions | Per-session summaries and logs |
+| `~/.nofy/memory/MEMORY.md` | Global | Facts that apply across all your projects |
+| `~/.nofy/memory/<project-slug>-<hash8>/MEMORY.md` | Workspace | Project-specific conventions and context |
+| `~/.nofy/memory/<project-slug>-<hash8>/sessions/` | Sessions | Per-session summaries and logs |
 
 Grok suffixes each workspace directory with a short hash of the repository's identity. The identity is the `origin` remote in `org/repo` form when the directory is a Git repository with an `origin` remote, or the directory path otherwise. Because clones and worktrees of the same repository share an `origin` remote, they also share one memory directory.
 
@@ -132,7 +132,7 @@ Use `/flush` when you want to preserve important context:
 
 ### Remember
 
-Ask Grok to remember something, and it appends the note to a `MEMORY.md` file -- the workspace file for project-specific items, or the global `~/.grok/memory/MEMORY.md` for cross-project preferences:
+Ask Grok to remember something, and it appends the note to a `MEMORY.md` file -- the workspace file for project-specific items, or the global `~/.nofy/memory/MEMORY.md` for cross-project preferences:
 
 ```
 > remember to always open PR links after pushing
@@ -146,7 +146,7 @@ You can also save a note directly with the `/remember` command:
 /remember always open PR links after pushing
 ```
 
-Run `/remember` with no text to enter remember mode, where the next line you type becomes the note. Either way, Grok opens a review panel showing the note (with an optional rewritten version you can toggle with `Tab`); the note is written only after you confirm. On save, Grok shows `Memory saved to ~/.grok/memory/MEMORY.md`.
+Run `/remember` with no text to enter remember mode, where the next line you type becomes the note. Either way, Grok opens a review panel showing the note (with an optional rewritten version you can toggle with `Tab`); the note is written only after you confirm. On save, Grok shows `Memory saved to ~/.nofy/memory/MEMORY.md`.
 
 ### Forget
 
@@ -156,7 +156,7 @@ Ask Grok to forget something, and it finds and removes the matching entry:
 > forget the snake_case convention
 ```
 
-Forget is best-effort: the model searches memory and removes entries that match. For guaranteed removal, edit the files under `~/.grok/memory/` directly and delete the entry yourself. To locate a file, open the `/memory` browser and press `y` to copy its path.
+Forget is best-effort: the model searches memory and removes entries that match. For guaranteed removal, edit the files under `~/.nofy/memory/` directly and delete the entry yourself. To locate a file, open the `/memory` browser and press `y` to copy its path.
 
 ### Recall
 
@@ -170,7 +170,7 @@ Grok searches across all memory files and summarizes what it knows, grouped by s
 
 ### Direct Editing
 
-You can edit memory files directly under `~/.grok/memory/`. The file watcher reindexes your changes on the next memory search. Use `/flush` to save the current session now, and `/dream` to consolidate session logs into organized topics.
+You can edit memory files directly under `~/.nofy/memory/`. The file watcher reindexes your changes on the next memory search. Use `/flush` to save the current session now, and `/dream` to consolidate session logs into organized topics.
 
 ---
 
@@ -215,7 +215,7 @@ You can also open `/memory` from the command palette.
 When you save a note with `/remember`, Grok confirms in the scrollback:
 
 ```
-Memory saved to ~/.grok/memory/MEMORY.md
+Memory saved to ~/.nofy/memory/MEMORY.md
 ```
 
 Background saves — flush, dream, and session-end — run silently and do not post a scrollback message. Use `/memory` at any time to browse what Grok has stored.
@@ -276,9 +276,10 @@ Search memory for "auth middleware patterns"
 Read my workspace MEMORY.md
 ```
 
-The model has access to two memory tools:
+The model has access to three memory tools:
 - `memory_search` -- Hybrid search across all memory (vector + full-text)
 - `memory_get` -- Read a specific memory file by path
+- `memory_write` -- Add, replace, or remove curated entries (global or workspace scope). Writes land on disk and in the search index immediately; they are injected into context at the start of the next session (the current session's memory snapshot stays frozen to protect the prompt cache)
 
 ### Hybrid Scoring
 
@@ -343,7 +344,7 @@ grok memory clear --all
 grok memory clear --yes
 ```
 
-To edit memory from the shell, open the files in your editor directly -- for example, `$EDITOR ~/.grok/memory/MEMORY.md`.
+To edit memory from the shell, open the files in your editor directly -- for example, `$EDITOR ~/.nofy/memory/MEMORY.md`.
 
 ---
 
@@ -355,7 +356,7 @@ To edit memory from the shell, open the files in your editor directly -- for exa
 |-----|---------|-------------|
 | `enabled` | `false` | Enable memory |
 | `session.save_on_end` | `true` | Write metadata summary on session end |
-| `watcher.enabled` | `true` | Watch `~/.grok/memory/` for external edits and reindex |
+| `watcher.enabled` | `true` | Watch `~/.nofy/memory/` for external edits and reindex |
 
 ### Index Settings (`[memory.index]`)
 
@@ -434,7 +435,7 @@ When a session memory is old, Grok attaches a staleness note to it in search res
 
 ## File Watcher
 
-By default, Grok watches `~/.grok/memory/` for external file changes. If you edit memory files directly (e.g., in your editor), the changes are picked up automatically on the next memory search:
+By default, Grok watches `~/.nofy/memory/` for external file changes. If you edit memory files directly (e.g., in your editor), the changes are picked up automatically on the next memory search:
 
 - Created or modified files are reindexed.
 - Deleted files have their stale chunks removed from the index.
@@ -463,9 +464,9 @@ Memory is injected on the first turn. If you started a session before enabling m
 Use `/memory` in the TUI to browse all memory files with a preview. You can also access them directly:
 
 ```bash
-ls ~/.grok/memory/
-cat ~/.grok/memory/MEMORY.md
-$EDITOR ~/.grok/memory/MEMORY.md
+ls ~/.nofy/memory/
+cat ~/.nofy/memory/MEMORY.md
+$EDITOR ~/.nofy/memory/MEMORY.md
 ```
 
 ### Debug Logging

@@ -88,6 +88,7 @@ pub(crate) struct AgentRebuildSpec {
     pub memory_global_path: Option<String>,
     pub memory_workspace_path: Option<String>,
     pub memory_backend: Option<Arc<dyn MemoryBackend>>,
+    pub memory_writer: Option<Arc<dyn nofy_tools::types::memory_writer::MemoryWriter>>,
     pub web_fetch_config: WebFetchConfig,
     pub app_builder_deployer_config: AppBuilderDeployerConfig,
     pub write_file_enabled: bool,
@@ -186,6 +187,7 @@ impl AgentRebuildSpec {
             memory_global_path,
             memory_workspace_path,
             memory_backend,
+            memory_writer,
             web_fetch_config,
             app_builder_deployer_config,
             write_file_enabled,
@@ -273,6 +275,9 @@ impl AgentRebuildSpec {
         }
         if let Some(memory_backend) = memory_backend.clone() {
             builder = builder.with_memory_backend(memory_backend);
+        }
+        if let Some(memory_writer) = memory_writer.clone() {
+            builder = builder.with_memory_writer(memory_writer);
         }
         // Cross-session recall is always available (local index, no auth) so
         // the agent can autonomously bring in other conversations' context.
@@ -414,6 +419,7 @@ pub(crate) fn test_rebuild_spec_default() -> Arc<AgentRebuildSpec> {
         memory_global_path: None,
         memory_workspace_path: None,
         memory_backend: None,
+        memory_writer: None,
         web_fetch_config: WebFetchConfig::Disabled,
         app_builder_deployer_config: AppBuilderDeployerConfig::default(),
         write_file_enabled: true,

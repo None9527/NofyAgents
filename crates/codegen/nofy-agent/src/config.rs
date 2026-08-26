@@ -182,6 +182,7 @@ pub fn workspace_nofy_build_toolset() -> ToolServerConfig {
     tools.push((&nofy_build::WebFetchTool).into());
     tools.push((&memory::search_tool::MemorySearchImpl).into());
     tools.push((&memory::get_tool::MemoryGetImpl).into());
+    tools.push((&memory::write_tool::MemoryWriteImpl).into());
     tools.push((&nofy_build::LspTool).into());
     ToolServerConfig {
         tools,

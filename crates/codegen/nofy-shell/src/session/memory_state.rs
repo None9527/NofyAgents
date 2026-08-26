@@ -154,7 +154,7 @@ impl SessionMemory {
             return;
         };
         if let Some(mut index) = self.open_index(&storage) {
-            let _ = index.reindex_file(path, source);
+            let _ = index.reindex_file(path, source, "agent");
             if let Some(ref params) = self.backend_params
                 && let Some(provider) = params.make_embedding_provider().await
             {

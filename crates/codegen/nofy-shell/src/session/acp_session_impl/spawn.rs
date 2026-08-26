@@ -769,10 +769,12 @@ pub(crate) async fn spawn_session_actor(
     let mut memory_backend_params_for_session: Option<crate::session::memory::MemoryBackendParams> =
         None;
     let mut memory_search_counter: Option<std::sync::Arc<std::sync::atomic::AtomicU64>> = None;
+    let mut memory_writer_for_spec: Option<
+        std::sync::Arc<dyn nofy_tools::types::memory_writer::MemoryWriter>,
+    > = None;
     let memory_backend_for_spec: Option<
         std::sync::Arc<dyn nofy_tools::types::memory_backend::MemoryBackend>,
-    > = if let Some(ref storage) = memory_storage_for_session {
-        if let Err(e) = storage.ensure_initialized() {
+    > = if let Some(ref storage) = memory_storage_for_session {        if let Err(e) = storage.ensure_initialized() {
             tracing::warn!(
                 target: nofy_telemetry::memory_log::TARGET,
                 error = %e,
@@ -834,6 +836,14 @@ pub(crate) async fn spawn_session_actor(
             &params,
         );
         memory_search_counter = Some(backend.search_counter.clone());
+        // Active memory writes: the memory_write tool persists curated
+        // entries through this writer (storage + index + embedding seam).
+        memory_writer_for_spec = Some(std::sync::Arc::new(
+            crate::session::memory_writer::ShellMemoryWriter::new(
+                storage.clone(),
+                Some(params.clone()),
+            ),
+        ));
         let watcher_started = params.watcher.is_some();
         let backend: std::sync::Arc<dyn nofy_tools::types::memory_backend::MemoryBackend> =
             std::sync::Arc::new(backend);
@@ -934,6 +944,7 @@ pub(crate) async fn spawn_session_actor(
             .as_ref()
             .map(|s| s.workspace_memory_file().to_string_lossy().into_owned()),
         memory_backend: memory_backend_for_spec,
+        memory_writer: memory_writer_for_spec,
         web_fetch_config: web_fetch_config.clone(),
         app_builder_deployer_config: app_builder_deployer_config.clone(),
         write_file_enabled,
@@ -1855,7 +1866,7 @@ pub(crate) async fn spawn_session_actor(
                 let (mut total_added, mut total_updated, mut total_removed) = (0, 0, 0);
                 for file in &files {
                     let source = storage.classify_source(file);
-                    if let Ok(stats) = index.reindex_file(file, source) {
+                    if let Ok(stats) = index.reindex_file(file, source, "owner") {
                         total_added += stats.added;
                         total_updated += stats.updated;
                         total_removed += stats.removed;

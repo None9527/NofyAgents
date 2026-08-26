@@ -148,6 +148,26 @@ impl MemoryIndex {
         // Create schema
         db.execute_batch(&schema::schema_sql(dimensions, vec_available))?;
 
+        // Migration: databases created before the provenance column lack
+        // `chunks.origin`. Add it idempotently (CREATE TABLE IF NOT EXISTS
+        // never alters an existing table). Failure is non-fatal: the column
+        // is record-only, so a read-only or damaged file degrades to "no
+        // provenance", not "no index".
+        let has_origin: bool = db
+            .prepare("PRAGMA table_info(chunks)")
+            .and_then(|mut stmt| {
+                let rows = stmt.query_map([], |row| row.get::<_, String>(1))?;
+                Ok(rows.filter_map(|r| r.ok()).any(|name| name == "origin"))
+            })
+            .unwrap_or(false);
+        if !has_origin {
+            if let Err(e) = db.execute_batch(
+                "ALTER TABLE chunks ADD COLUMN origin TEXT NOT NULL DEFAULT 'agent'",
+            ) {
+                tracing::warn!(error = %e, "failed to add chunks.origin column; provenance disabled");
+            }
+        }
+
         // Store/verify embedding dimensions in meta table
         let stored_dims: Option<String> = db
             .query_row(schema::GET_META_SQL, params!["embedding_dimensions"], |r| {
@@ -224,6 +244,7 @@ impl MemoryIndex {
         &mut self,
         path: &Path,
         source: &str,
+        origin: &str,
     ) -> Result<ReindexResult, rusqlite::Error> {
         let content = match std::fs::read_to_string(path) {
             Ok(c) => c,
@@ -264,13 +285,14 @@ impl MemoryIndex {
                     // Changed: update chunk, delete stale FTS entry, insert new one
                     tx.execute(
                         "UPDATE chunks SET text = ?1, hash = ?2, start_line = ?3, \
-                         end_line = ?4, updated_at = ?5 WHERE id = ?6",
+                         end_line = ?4, updated_at = ?5, origin = ?6 WHERE id = ?7",
                         params![
                             chunk.text,
                             hash,
                             chunk.start_line,
                             chunk.end_line,
                             now,
+                            origin,
                             chunk_id
                         ],
                     )?;
@@ -305,7 +327,7 @@ impl MemoryIndex {
                     // New chunk
                     tx.execute(
                         "INSERT INTO chunks (id, path, start_line, end_line, text, hash, source, \
-                         created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                         origin, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
                         params![
                             chunk_id,
                             path_str,
@@ -314,6 +336,7 @@ impl MemoryIndex {
                             chunk.text,
                             hash,
                             source,
+                            origin,
                             now,
                             now,
                         ],
@@ -879,7 +902,7 @@ mod tests {
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Title\n\nSome content here.").unwrap();
 
-        let result = idx.reindex_file(&file_path, "workspace").unwrap();
+        let result = idx.reindex_file(&file_path, "workspace", "agent").unwrap();
         assert_eq!(result.added, 1);
         assert_eq!(result.updated, 0);
         assert_eq!(result.removed, 0);
@@ -892,12 +915,12 @@ mod tests {
 
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Title\n\nOriginal content.").unwrap();
-        let r1 = idx.reindex_file(&file_path, "workspace").unwrap();
+        let r1 = idx.reindex_file(&file_path, "workspace", "agent").unwrap();
         assert_eq!(r1.added, 1);
 
         // Modify file
         std::fs::write(&file_path, "# Title\n\nUpdated content.").unwrap();
-        let r2 = idx.reindex_file(&file_path, "workspace").unwrap();
+        let r2 = idx.reindex_file(&file_path, "workspace", "agent").unwrap();
         assert_eq!(r2.updated, 1);
         assert_eq!(r2.added, 0);
     }
@@ -915,12 +938,12 @@ mod tests {
             "B".repeat(2000)
         );
         std::fs::write(&file_path, &big).unwrap();
-        let r1 = idx.reindex_file(&file_path, "workspace").unwrap();
+        let r1 = idx.reindex_file(&file_path, "workspace", "agent").unwrap();
         assert!(r1.added >= 2, "should add at least 2 chunks");
 
         // Shrink to 1 chunk
         std::fs::write(&file_path, "## Only Section\n\nSmall.").unwrap();
-        let r2 = idx.reindex_file(&file_path, "workspace").unwrap();
+        let r2 = idx.reindex_file(&file_path, "workspace", "agent").unwrap();
         assert!(r2.removed > 0, "should remove old chunks");
     }
 
@@ -932,10 +955,10 @@ mod tests {
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Static\n\nContent.").unwrap();
 
-        let r1 = idx.reindex_file(&file_path, "workspace").unwrap();
+        let r1 = idx.reindex_file(&file_path, "workspace", "agent").unwrap();
         assert_eq!(r1.added, 1);
 
-        let r2 = idx.reindex_file(&file_path, "workspace").unwrap();
+        let r2 = idx.reindex_file(&file_path, "workspace", "agent").unwrap();
         assert_eq!(r2.added, 0);
         assert_eq!(r2.updated, 0);
         assert_eq!(r2.removed, 0);
@@ -948,7 +971,7 @@ mod tests {
 
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Guide\n\nRust programming language tutorial.").unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         let results = idx.search_fts("rust programming", 10).unwrap();
         assert!(!results.is_empty(), "FTS should find 'rust programming'");
@@ -961,7 +984,7 @@ mod tests {
 
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Guide\n\nPython tutorial.").unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         let results = idx.search_fts("haskell monads", 10).unwrap();
         assert!(results.is_empty(), "FTS should not find unrelated query");
@@ -977,7 +1000,7 @@ mod tests {
 
         let file_path = tmp.path().join("memory.md");
         std::fs::write(&file_path, "## Preferences\n\n- 最喜欢的茶:碧螺春\n").unwrap();
-        idx.reindex_file(&file_path, "global").unwrap();
+        idx.reindex_file(&file_path, "global", "agent").unwrap();
 
         // Single-char sub-run query.
         let results = idx.search_fts("茶", 10).unwrap();
@@ -1003,7 +1026,7 @@ mod tests {
 
         let file_path = tmp.path().join("test.md");
         std::fs::write(&file_path, "# Test\n\nChunk content.").unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         let path_str = file_path.to_string_lossy().to_string();
         let chunk_id = format!("{path_str}:0");
@@ -1060,7 +1083,7 @@ mod tests {
         );
 
         // Immediate reindex (what reindex_appended_memory in app.rs does).
-        idx.reindex_file(&mem_file, "workspace").unwrap();
+        idx.reindex_file(&mem_file, "workspace", "agent").unwrap();
 
         // Now the content must be searchable without watcher or restart.
         let post = idx.search_fts("prefer references over clones", 10).unwrap();
@@ -1082,7 +1105,7 @@ mod tests {
 
         let file_path = tmp.path().join("removeme.md");
         std::fs::write(&file_path, "# Rust Guide\n\nRust ownership rules.").unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         // Precondition: FTS finds the file.
         let pre = idx.search_fts("rust ownership", 10).unwrap();
@@ -1108,7 +1131,7 @@ mod tests {
 
         let file_path = tmp.path().join("idempotent.md");
         std::fs::write(&file_path, "# Entry\n\nSome content.").unwrap();
-        idx.reindex_file(&file_path, "workspace").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
 
         let first = idx.delete_path(&file_path).unwrap();
         assert!(first >= 1);
@@ -1140,8 +1163,8 @@ mod tests {
         std::fs::write(&keep, "# Keep\n\nPython tutorial.").unwrap();
         std::fs::write(&remove, "# Remove\n\nRust tutorial.").unwrap();
 
-        idx.reindex_file(&keep, "workspace").unwrap();
-        idx.reindex_file(&remove, "workspace").unwrap();
+        idx.reindex_file(&keep, "workspace", "agent").unwrap();
+        idx.reindex_file(&remove, "workspace", "agent").unwrap();
 
         idx.delete_path(&remove).unwrap();
 
@@ -1172,7 +1195,7 @@ mod tests {
 
         let file = tmp.path().join("note.md");
         std::fs::write(&file, "# Guide\n\nRust testing.").unwrap();
-        idx.reindex_file(&file, "workspace").unwrap();
+        idx.reindex_file(&file, "workspace", "agent").unwrap();
 
         let path_str = file.to_string_lossy().to_string();
         let chunk_id = format!("{path_str}:0");
@@ -1211,8 +1234,8 @@ mod tests {
         let f2 = tmp.path().join("b.md");
         std::fs::write(&f1, "# Alpha\n\nalpha content.").unwrap();
         std::fs::write(&f2, "# Beta\n\nbeta content.").unwrap();
-        idx.reindex_file(&f1, "workspace").unwrap();
-        idx.reindex_file(&f2, "workspace").unwrap();
+        idx.reindex_file(&f1, "workspace", "agent").unwrap();
+        idx.reindex_file(&f2, "workspace", "agent").unwrap();
 
         let paths = idx.all_indexed_paths().unwrap();
         let path_strs: Vec<&str> = paths.iter().map(String::as_str).collect();
@@ -1264,7 +1287,7 @@ mod tests {
         // Seed the index with a file containing uniquely-identifiable content.
         let file = tmp.path().join("session.md");
         std::fs::write(&file, "# Session\n\nXyzzy-orphan-regression-token.").unwrap();
-        idx.reindex_file(&file, "workspace").unwrap();
+        idx.reindex_file(&file, "workspace", "agent").unwrap();
 
         // Precondition: the content is searchable.
         let before = idx.search_fts("orphan-regression-token", 10).unwrap();
@@ -1352,5 +1375,95 @@ mod tests {
             "",
             "release_claim must reset the claim so doctor reports no stale lock"
         );
+    }
+
+    #[test]
+    fn test_reindex_records_origin() {
+        let tmp = TempDir::new().unwrap();
+        let mut idx = test_index(&tmp);
+
+        let file_path = tmp.path().join("test.md");
+        std::fs::write(&file_path, "# Title\n\nOwner-written note.").unwrap();
+        idx.reindex_file(&file_path, "workspace", "owner").unwrap();
+
+        let origin: String = idx
+            .db
+            .query_row(
+                "SELECT origin FROM chunks WHERE path = ?1",
+                params![file_path.to_string_lossy().to_string()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(origin, "owner");
+
+        // A later reindex by another writer updates the origin with the
+        // content (file-level provenance, openclaw-style downgrade).
+        std::fs::write(&file_path, "# Title\n\nAgent-revised note.").unwrap();
+        idx.reindex_file(&file_path, "workspace", "agent").unwrap();
+        let origin: String = idx
+            .db
+            .query_row(
+                "SELECT origin FROM chunks WHERE path = ?1",
+                params![file_path.to_string_lossy().to_string()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(origin, "agent");
+    }
+
+    #[test]
+    fn test_legacy_db_gains_origin_column() {
+        let tmp = TempDir::new().unwrap();
+        let db_path = tmp.path().join("legacy.sqlite");
+
+        // Build a pre-provenance database: the old schema without `origin`.
+        {
+            let db = rusqlite::Connection::open(&db_path).unwrap();
+            db.execute_batch(
+                "CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);\n\
+                 CREATE TABLE chunks (\n\
+                     rowid INTEGER PRIMARY KEY AUTOINCREMENT,\n\
+                     id TEXT UNIQUE NOT NULL,\n\
+                     path TEXT NOT NULL,\n\
+                     start_line INTEGER NOT NULL,\n\
+                     end_line INTEGER NOT NULL,\n\
+                     text TEXT NOT NULL,\n\
+                     hash TEXT NOT NULL,\n\
+                     source TEXT NOT NULL,\n\
+                     created_at INTEGER NOT NULL,\n\
+                     updated_at INTEGER NOT NULL,\n\
+                     access_count INTEGER DEFAULT 0,\n\
+                     last_accessed INTEGER\n\
+                 );",
+            )
+            .unwrap();
+        }
+
+        // Opening migrates idempotently.
+        let storage = test_storage(&tmp);
+        let mut idx =
+            MemoryIndex::open_or_create(&db_path, storage, MemoryIndexConfig::default(), 1536)
+                .unwrap();
+
+        let file_path = tmp.path().join("test.md");
+        std::fs::write(&file_path, "# Title\n\nMigrated content.").unwrap();
+        let result = idx.reindex_file(&file_path, "workspace", "agent").unwrap();
+        assert_eq!(result.added, 1);
+
+        let origin: String = idx
+            .db
+            .query_row(
+                "SELECT origin FROM chunks WHERE path = ?1",
+                params![file_path.to_string_lossy().to_string()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(origin, "agent");
+
+        // Re-opening is a no-op migration (idempotent).
+        drop(idx);
+        let storage = test_storage(&tmp);
+        MemoryIndex::open_or_create(&db_path, storage, MemoryIndexConfig::default(), 1536)
+            .unwrap();
     }
 }

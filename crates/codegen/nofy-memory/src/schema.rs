@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS chunks (
     text TEXT NOT NULL,
     hash TEXT NOT NULL,
     source TEXT NOT NULL,
+    origin TEXT NOT NULL DEFAULT 'agent',
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     access_count INTEGER DEFAULT 0,

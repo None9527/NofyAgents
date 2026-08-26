@@ -38,7 +38,7 @@ impl Default for CompactionPolicy {
         Self {
             auto_compact_threshold_percent: 85,
             compact_model: None,
-            memory_flush_enabled: false,
+            memory_flush_enabled: true,
             wall_clock_budget_secs: 300,
             two_pass_enabled: false,
         }

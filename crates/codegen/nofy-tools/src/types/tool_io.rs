@@ -26,7 +26,7 @@ use crate::implementations::nofy_build::todo::TodoWriteInput;
 use crate::implementations::nofy_build::update_goal::UpdateGoalInput;
 use crate::implementations::nofy_build::web_fetch::WebFetchInput;
 use crate::implementations::lsp::LspToolInput;
-use crate::implementations::memory::types::{MemoryGetInput, MemorySearchInput};
+use crate::implementations::memory::types::{MemoryGetInput, MemorySearchInput, MemoryWriteInput};
 use crate::implementations::session_recall::SessionRecallInput;
 use crate::implementations::forensics::ForensicsInput;
 use crate::implementations::delegation::{DelegateTaskInput, DelegationStatusInput};
@@ -78,6 +78,7 @@ pub enum ToolInput {
     CodexReadFile(CodexReadFileInput),
     MemorySearch(MemorySearchInput),
     MemoryGet(MemoryGetInput),
+    MemoryWrite(MemoryWriteInput),
     SessionRecall(SessionRecallInput),
     Forensics(ForensicsInput),
     DelegateTask(DelegateTaskInput),

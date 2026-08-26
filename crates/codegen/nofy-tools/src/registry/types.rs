@@ -259,6 +259,10 @@ pub struct SessionContext {
     /// When `Some`, injected into `Resources` so `memory_search` / `memory_get`
     /// tools can access it. When `None`, the tools return "not enabled".
     pub memory_backend: Option<Arc<dyn crate::types::memory_backend::MemoryBackend>>,
+    /// Optional memory writer for active memory writes. When `Some`,
+    /// injected into `Resources` so the `memory_write` tool can persist
+    /// curated entries. When `None`, the tool returns "not enabled".
+    pub memory_writer: Option<Arc<dyn crate::types::memory_writer::MemoryWriter>>,
     /// Optional cross-session recall backend. When `Some`, injected into
     /// `Resources` so the `session_recall` tool can search the user's other
     /// sessions (global awareness). When `None`, the tool returns
@@ -715,6 +719,7 @@ impl ToolRegistryBuilder {
         b.register::<opencode::OpenCodeSkillTool>();
         b.register::<crate::implementations::memory::search_tool::MemorySearchImpl>();
         b.register::<crate::implementations::memory::get_tool::MemoryGetImpl>();
+        b.register::<crate::implementations::memory::write_tool::MemoryWriteImpl>();
         b.register::<crate::implementations::session_recall::SessionRecallTool>();
         b.register::<crate::implementations::forensics::ForensicsTool>();
         b.register::<crate::implementations::delegation::DelegateTaskTool>();
@@ -1021,6 +1026,9 @@ impl ToolRegistryBuilder {
         }
         if let Some(memory_backend) = ctx.memory_backend {
             resources.insert(memory_backend);
+        }
+        if let Some(memory_writer) = ctx.memory_writer {
+            resources.insert(memory_writer);
         }
         if let Some(session_recall) = ctx.session_recall {
             resources.insert(crate::types::session_recall::SessionRecallAccess(session_recall));
@@ -2124,6 +2132,7 @@ mod tests {
             skills: vec![],
             state_path: tmp.path().join("state.json"),
             memory_backend: None,
+            memory_writer: None,
             session_recall: None,
             forensics: None,
             delegation: None,

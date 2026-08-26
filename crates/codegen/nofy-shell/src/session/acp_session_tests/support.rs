@@ -119,6 +119,7 @@ async fn test_agent_from_config(
                 .join("tool_state.json")
         },
         memory_backend: None,
+        memory_writer: None,
         session_recall: None,
         forensics: None,
         delegation: None,

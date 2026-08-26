@@ -28,11 +28,9 @@ impl crate::types::tool_metadata::ToolMetadata for MemorySearchImpl {
          - The user mentions something discussed or decided in a previous session\n\
          - Starting work in an unfamiliar part of the codebase\n\
          - After compaction when prior context may have been lost\n\n\
-         Saving memories: there is no write tool. To remember something for future \
-         sessions, append a short line to the appropriate MEMORY.md file — global \
-         memory lives at ~/.nofy/memory/MEMORY.md (or $NOFY_HOME/memory/MEMORY.md \
-         when NOFY_HOME is set), workspace memory at <project>/.nofy/memory/MEMORY.md. \
-         Edits are picked up automatically; confirm the write by reading the file back."
+         Saving memories: use the `memory_write` tool to add, replace, or remove \
+         curated entries (global or workspace scope). Writes are saved immediately \
+         and injected into context at the start of the next session."
     }
 }
 

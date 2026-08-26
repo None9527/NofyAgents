@@ -25,7 +25,7 @@ use crate::sampling::{ChatRequestMessage, Role};
 use crate::session::memory::text_utils::{has_markdown_headers, is_no_reply};
 
 /// Memory log target — matches `nofy_telemetry::memory_log::TARGET`.
-const LOG: &str = "xai_memory";
+const LOG: &str = "nofy_memory";
 
 /// Check whether a memory flush should run before the next compaction.
 ///
@@ -307,6 +307,10 @@ pub fn select_flush_window(
     let messages: Vec<_> = messages
         .into_iter()
         .filter(|m| m.role != Role::System)
+        // Recall-loop prevention: content injected from memory (the
+        // <memory-context> block) is never re-extracted as new memory —
+        // a fact recalled one hundred times stays one fact.
+        .filter(|m| !m.text_content().contains(nofy_chat_state::MEMORY_CONTEXT_OPEN_TAG))
         .collect();
 
     let total = messages.len();
@@ -571,6 +575,29 @@ mod tests {
         assert_eq!(window[0].role, Role::User);
     }
 
+    #[test]
+    fn test_select_flush_window_excludes_injected_memory_context() {
+        // Recall-loop prevention: a <memory-context> block injected from
+        // memory must never be re-extracted as a new memory candidate.
+        let injected = format!(
+            "{}\n## Relevant Memory from Past Sessions\n- old fact\n{}",
+            nofy_chat_state::MEMORY_CONTEXT_OPEN_TAG,
+            nofy_chat_state::MEMORY_CONTEXT_CLOSE_TAG
+        );
+        let messages = vec![
+            ChatRequestMessage::user(&injected),
+            ChatRequestMessage::assistant("ok", "", None),
+            ChatRequestMessage::user("real new question"),
+        ];
+
+        let window = select_flush_window(messages, 20);
+
+        assert_eq!(window.len(), 2, "injected memory block must be dropped");
+        assert!(window
+            .iter()
+            .all(|m| !m.text_content().contains("<memory-context>")));
+    }
+
     // -----------------------------------------------------------------------
     // is_semantically_duplicate tests
     // -----------------------------------------------------------------------
@@ -644,7 +671,7 @@ mod tests {
         // Index a file containing the same content.
         let file_path = tmp.path().join("existing.md");
         std::fs::write(&file_path, content).unwrap();
-        index.reindex_file(&file_path, "session").unwrap();
+        index.reindex_file(&file_path, "session", "agent").unwrap();
 
         // Embed the existing chunk.
         let existing_embedding = provider.embed_batch(&[content]).await.unwrap();
@@ -684,7 +711,7 @@ mod tests {
         // Index and embed existing content.
         let file_path = tmp.path().join("existing.md");
         std::fs::write(&file_path, existing).unwrap();
-        index.reindex_file(&file_path, "session").unwrap();
+        index.reindex_file(&file_path, "session", "agent").unwrap();
         let emb = provider.embed_batch(&[existing]).await.unwrap();
         let chunk_id = format!("{}:0", file_path.to_string_lossy());
         index.upsert_embedding(&chunk_id, &emb[0]).unwrap();

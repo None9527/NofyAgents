@@ -759,8 +759,17 @@ impl SessionActor {
                             let backend: std::sync::Arc<
                                 dyn nofy_tools::types::memory_backend::MemoryBackend,
                             > = std::sync::Arc::new(backend);
+                            let writer: std::sync::Arc<
+                                dyn nofy_tools::types::memory_writer::MemoryWriter,
+                            > = std::sync::Arc::new(
+                                crate::session::memory_writer::ShellMemoryWriter::new(
+                                    storage.clone(),
+                                    Some(params.clone()),
+                                ),
+                            );
                             let bridge = self.agent.borrow().tool_bridge().clone();
                             bridge.update_resource(backend.clone()).await;
+                            bridge.update_resource(writer.clone()).await;
                             if let Err(e) = self.register_memory_tools(&bridge).await {
                                 tracing::warn!(error = %e, "memory tool registration failed during toggle");
                             }
@@ -781,6 +790,11 @@ impl SessionActor {
                         nofy_tools::implementations::memory::MEMORY_GET_TOOL_NAME,
                     ) {
                         tracing::debug!("memory_get tool was not registered during unregister");
+                    }
+                    if !bridge.unregister_tool_by_name(
+                        nofy_tools::implementations::memory::MEMORY_WRITE_TOOL_NAME,
+                    ) {
+                        tracing::debug!("memory_write tool was not registered during unregister");
                     }
                     *self.memory.storage.borrow_mut() = None;
                     *self.memory.search_counter.borrow_mut() = None;
