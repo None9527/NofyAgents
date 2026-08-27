@@ -41,6 +41,8 @@
 | 遥测 Clone* 事件(CloneSession* 等) | 无 | 批14 有意跳过:依赖云会话克隆特性 |
 | auto_mode 测试断言放宽(上游 1.0.10) | 保留严格断言 | 批16 跳过:实现未变,上游仅放宽测试 pin |
 | listing/template/context/builder 测试断言放宽(上游 1.0.10) | 保留严格断言 | 批17 跳过:模板与实现均未变,上游仅删/放宽脆弱文本断言 |
+| pager 区间混入 hunk(record_prompt_in_history/prompt_stash_evicted 删除/draws_a_row 签名、load.rs picker 路由) | 按批拆分 | 批18 跳过:前者属批19,后者属批22 |
+| cancel_agent_turn 提取 + 子代理覆盖层取消分支(turn.rs) | 无 | 批18 外科适配:上游早期未移植特性,我们保留现有 turn.rs 结构直接接 cancel_and_arm |
 | turn.rs round 式 goal 循环重构(GoalRoundDecision 外的上游回合结构) | 保留现有循环 | 上游 turn.rs 大重构的一部分;我们的循环语义等价,让位/续跑门控已按上游逻辑移植 |
 | session registry 标题同步 | 无 | 依赖 registry 服务 |
 | 权限 Always/Never | 已移植 | 批9(3fe2d814,0.2.144) |
@@ -56,6 +58,7 @@
 - MCP 失败提醒(批15):`retries_on_use` 判定保留 Nofy 分歧——`nofy_com_` 前缀托管连接器走 managed-mcp 代理,「下次工具调用自动重试」提示不适用(上游无此排除,因其无托管连接器机制);`mcp_server_name` 我们走 `session::managed_mcp` 路径(上游同);上游对 mcp_connecting_reminder/reminder_policy 测试断言的放宽不移植(实现未变,保留严格断言)
 - 权限/信任(批16):上游 `permissions.rs`/`folder_trust.rs` 带 remote 设置通道参数(`remote_permission_mode`/`RemoteSettings`),我们已剥离,签名需降维适配(只留本地配置维度);`effective_auto_for_launch` 第三参 `unset_default` 由调用方按场景传(headless 传 Ask、TUI 传 `default_interactive_permission_mode()`);echo 等命令入安全清单自动放行后,依赖「权限必询问」的测试探测命令要换成脚本路径(上游同改)
 - workflow/子代理(批17):我们的子代理 ChildRunner 在 `mvp_agent/subagent_coordinator.rs`(上游在 `agent/subagent/spawn.rs`),继承工具剥离接线点在 `resident_handle` 快照处;上游 `acp_session_impl/spawn.rs` 的区间 diff 混有批20 的 `sampling_gate` 参数,移植时只取 workflow 启动块;工具描述与 reminder 里的斜杠命令保持我们的 `/workflows`(上游 `/workflow runs`);`ToolInput::Workflow` 标题逻辑在 `tool_calls.rs`,字段改 `source` 后要同步重写;`tracker.rs` 的 legacy 平铺 JSON 测试夹具保留(正好验证 wire 兼容)
+- pager 健壮性(批18):`mark_turn_finished(TurnEnd)` 为横切签名改动,调用点 11 处(fork/lifecycle/load 传 Aborted、prompt/turn_completion 传 Completed);我们的 event_loop.rs 无 finish_startup 遥测,错误路径改显式 match + flush_pending_stall;我们的 drain_and_process 无 progress_tx 参数;上游 welcome_paste 测试未移植,新 handled 计数测试独立追加;FocusGained 鼠标捕获重申依赖 MOUSE_CAPTURE_ENABLED + with_locked_stderr
 - `log_prompt_cache_usage` → 我们是 `log_prompt_cache_hit`(side_call.rs)
 - `AuxCall` 无 `hosted_tools` 字段
 - `strum` 依赖:我们不引入,枚举改手写 `as_str` + 显式变体列表测试
@@ -95,3 +98,4 @@
 | 批15 | f2ad859a | MCP 失败提醒集群(上游 1.0.10):McpAnnounced episode 状态机(每失败宣布一次/auth 粘性/配置编辑开新 episode/恢复接管不误宣布)+mcp_failed_reminder 分类渲染模块(单一消毒边界)+mcp.rs 重接线(dirty 提前清+RearmOnDrop+同步 latch_and_push)+rewind/compaction rearm+text_sanitize 欺骗字符压平+announced_failed_servers 持久化(只存分类);Nofy 分歧保留:托管连接器(nofy_com_)不带自动重试提示;跳过上游测试断言放宽(实现未变);顺带修复批H 遗留 benches/session_list 编译错 | 0.2.150 |
 | 批16 | 3f20ae9b | 权限修复+信任加固(上游 1.0.10):TrustStore 0600 原子写+workspace_id+同 git 根后代覆盖+has_decision;祖先授权不再级联、撤销对从未信任目录不写 deny;permission/manager 批量屏障与取消路径修复+echo 安全清单自动放行;新增 default_interactive_permission_mode()+NOFY_DEFAULT_PERMISSION_MODE env(未知值忽略防 bypass);load_permission_mode 拆出 load_selected_permission_mode(坏配置显式 Ask);effective_auto_for_launch 增 unset_default(headless=Ask/TUI=交互默认),4 处调用方接线;上游 remote 设置通道签名为本地降维适配;测试探测命令 echo→脚本(echo 已自动放行);跳过 auto_mode 测试断言放宽(实现未变) | 0.2.151 |
 | 批17 | 6ab0f93b | workflow 工具重构+子代理门控(上游 1.0.10):WorkflowSource tagged 枚举+wire 兼容反序列化(legacy 平铺字段仍可用)+is_workflow_tool 辅助函数(按 kind 或短 id 匹配);子代理剥离 workflow 工具(builder 构建末段按受众剥离+继承工具定义剥离),顺带补齐上游基线已有但我们遗漏的 strip_ask_user_question_tool;启动块/标题/reminder 措辞按新 source 语法重写;保留 /workflows 措辞分歧;跳过 sampling_gate/compaction pins(批20)、四处纯测试断言放宽、plan 门控放行 Task(批20) | 0.2.152 |
+| 批18 | 6fc21c1d | pager 健壮性三件套(上游 1.0.10):x10_filter X10 鼠标报告重组(ConPTY/WSL UTF-8 展开修复,377 行)+pty-harness 泄漏场景;event_loop_stall 60 秒窗口滚动上报(最坏卡滞+活动快照+事件计数,截止/退出/错误路径冲刷);cancel_latency(cancel_and_arm 统一取消点防动作与测量漂移+settle_cancel 一次性发射 CancellationCompleted,Completed 上报/Aborted 丢弃);mark_turn_finished(TurnEnd) 横切 11 调用点接线+fork 失败强制空闲丢锚点防泄漏;event_loop 接线(drain_and_process 挂 x10_filter+DrainResult.handled 计数+stall select 臂+FocusGained 鼠标捕获重申);跳过 record_prompt_in_history/prompt_stash_evicted/draws_a_row(批19)、load.rs picker 路由(批22)、子代理覆盖层取消分支(上游早期未移植) | 0.2.153 |
