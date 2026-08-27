@@ -302,6 +302,7 @@ pub(crate) async fn spawn_session_actor(
     max_turns: Option<usize>,
     forked_tool_override: Option<Vec<ToolSpec>>,
     is_chat_kind: bool,
+    sampling_gate: Option<Arc<tokio::sync::Semaphore>>,
 ) -> Result<
     (
         SessionHandle,
@@ -1709,6 +1710,7 @@ pub(crate) async fn spawn_session_actor(
         turn_end_tx: Default::default(),
         pending_image_strip: parking_lot::Mutex::new(None),
         sampler_handle,
+        sampling_gate,
         rebuild_spec: rebuild_spec.clone(),
         image_description_model,
         image_describe_cache: Arc::new(crate::session::image_describe::ImageDescribeCache::new()),
@@ -2192,6 +2194,7 @@ pub(crate) async fn spawn_session_on_thread(
     max_turns: Option<usize>,
     forked_tool_override: Option<Vec<ToolSpec>>,
     is_chat_kind: bool,
+    sampling_gate: Option<Arc<tokio::sync::Semaphore>>,
 ) -> Result<
     (
         SessionHandle,
@@ -2350,6 +2353,7 @@ pub(crate) async fn spawn_session_on_thread(
                         max_turns,
                         forked_tool_override,
                         is_chat_kind,
+                        sampling_gate,
                     )
                     .await
                     {

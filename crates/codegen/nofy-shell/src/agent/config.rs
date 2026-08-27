@@ -527,7 +527,7 @@ pub use nofy_config::env_bool;
 /// Compaction-mode precedence (env > config > default, with unrecognized
 /// values at each source falling through). Pure so it's unit-testable without
 /// mutating process env.
-fn resolve_compaction_mode_from(
+pub(crate) fn resolve_compaction_mode_from(
     env: Option<&str>,
     config: Option<&str>,
 ) -> nofy_chat_state::CompactionMode {
@@ -538,7 +538,7 @@ fn resolve_compaction_mode_from(
 }
 /// Compaction-detail precedence (env > config > default). Pure.
 /// Controls the per-turn verbatim detail in `segments` mode (default `verbose`).
-fn resolve_compaction_detail_from(
+pub(crate) fn resolve_compaction_detail_from(
     env: Option<&str>,
     config: Option<&str>,
 ) -> nofy_chat_state::CompactionDetail {
@@ -1236,6 +1236,10 @@ pub struct Config {
     pub subagents_max_depth: u32,
     #[serde(skip)]
     pub subagents_max_concurrent: usize,
+    /// Resolved concurrent subagent turn-sampling limit feeding the shared
+    /// semaphore. See [`crate::config::SubagentsConfig::resolve_sampling_limit`].
+    #[serde(skip)]
+    pub subagents_sampling_limit: usize,
     #[serde(skip)]
     pub subagents_limit_behavior:
         nofy_tools::implementations::nofy_build::task::admission::LimitBehavior,
@@ -1506,6 +1510,8 @@ impl Default for Config {
             subagents_enabled: true,
             subagents_max_depth: crate::config::SubagentsConfig::DEFAULT_MAX_DEPTH,
             subagents_max_concurrent:
+                nofy_tools::implementations::nofy_build::task::admission::DEFAULT_MAX_CONCURRENT,
+            subagents_sampling_limit:
                 nofy_tools::implementations::nofy_build::task::admission::DEFAULT_MAX_CONCURRENT,
             subagents_limit_behavior: Default::default(),
             workflow_max_concurrent_agents:
@@ -1820,6 +1826,11 @@ impl Config {
         self.subagents_max_concurrent = SubagentsConfig::resolve_max_concurrent(
             env(SubagentsConfig::ENV_MAX_CONCURRENT).as_deref(),
             sa.max_concurrent,
+        );
+        self.subagents_sampling_limit = SubagentsConfig::resolve_sampling_limit(
+            env(SubagentsConfig::ENV_SAMPLING_LIMIT).as_deref(),
+            sa.sampling_limit,
+            self.subagents_max_concurrent,
         );
         self.subagents_limit_behavior = SubagentsConfig::resolve_limit_behavior(
             env(SubagentsConfig::ENV_LIMIT_BEHAVIOR).as_deref(),
@@ -3798,7 +3809,7 @@ pub struct Features {
     /// `None` = defer to env / default (true).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auto_wake: Option<bool>,
-    /// `summary` (default) | `transcript` | `segments`. `None` = defer to CLI /
+    /// `summary` | `transcript` | `segments` (default). `None` = defer to CLI /
     /// env (`NOFY_COMPACTION_MODE`). Parsed via `CompactionMode::parse`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compaction_mode: Option<String>,
@@ -6013,9 +6024,12 @@ reasoning_effort = "low"
         );
         assert_eq!(
             resolve_compaction_mode_from(Some("garbage"), None),
-            CompactionMode::Summary
+            CompactionMode::Segments(nofy_chat_state::CompactionDetail::default())
         );
-        assert_eq!(resolve_compaction_mode_from(None, None), CompactionMode::Summary);
+        assert_eq!(
+            resolve_compaction_mode_from(None, None),
+            CompactionMode::Segments(nofy_chat_state::CompactionDetail::default())
+        );
     }
     /// Detail shares the env>config>default combinator that the mode
     /// test exercises; the detail-specific fact is the `Verbose` default

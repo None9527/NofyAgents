@@ -29,6 +29,28 @@ pub(crate) fn is_cursor_user_template(
 ) -> bool {
     false
 }
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct CompactionPins {
+    pub mode: nofy_chat_state::CompactionMode,
+    pub two_pass: bool,
+}
+pub(crate) fn cursor_compaction_pins(
+    resolved_mode: nofy_chat_state::CompactionMode,
+    resolved_two_pass: bool,
+    is_cursor: bool,
+) -> CompactionPins {
+    if is_cursor {
+        CompactionPins {
+            mode: nofy_chat_state::CompactionMode::Summary,
+            two_pass: false,
+        }
+    } else {
+        CompactionPins {
+            mode: resolved_mode,
+            two_pass: resolved_two_pass,
+        }
+    }
+}
 /// `false` twin of [`is_cursor_system_template`]; see [`is_cursor_user_template`].
 pub(crate) fn is_cursor_system_template(
     _template: &nofy_agent::prompt::context::TemplateOverride,

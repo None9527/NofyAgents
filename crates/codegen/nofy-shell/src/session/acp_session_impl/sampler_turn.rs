@@ -1101,11 +1101,13 @@ impl SessionActor {
         };
         let request_id = nofy_sampler::RequestId::random();
         let request_id_str = request_id.as_str().to_string();
-        match self
-            .sampler_handle
-            .submit_and_collect(request_id, request)
-            .await
-        {
+        let submit_outcome = {
+            let _permit = acquire_subagent_sampling_permit(&self.sampling_gate).await;
+            self.sampler_handle
+                .submit_and_collect(request_id, request)
+                .await
+        };
+        match submit_outcome {
             Ok((response, metrics)) => {
                 let span = tracing::Span::current();
                 span.record("request_id", request_id_str.as_str());
@@ -1428,3 +1430,16 @@ impl SessionActor {
             .push_assistant_response(assistant_item);
     }
 }
+/// Acquire the turn-sampling permit for this session, or `None` when the gate is
+/// `None` (ungated). A subagent's excess turns queue on `acquire_owned`; the permit
+/// releases on drop. The semaphore is never closed, so `.ok()` fails open to ungated
+/// for this turn.
+async fn acquire_subagent_sampling_permit(
+    gate: &Option<Arc<tokio::sync::Semaphore>>,
+) -> Option<tokio::sync::OwnedSemaphorePermit> {
+    let semaphore = gate.as_ref()?;
+    semaphore.clone().acquire_owned().await.ok()
+}
+#[cfg(test)]
+#[path = "sampler_turn_tests.rs"]
+mod tests;

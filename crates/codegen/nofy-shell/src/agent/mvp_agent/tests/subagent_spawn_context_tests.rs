@@ -154,3 +154,111 @@ async fn subagent_spawn_context_inherits_parent_process_scope() {
         "the child sees the owner enrolled through the parent scope"
     );
 }
+
+/// Subagents share the parent's env > config > default chain
+/// (compiled default is `Segments`). Not pinned to `Summary`.
+#[test]
+#[serial_test::serial]
+fn subagent_spawn_context_resolves_compaction_mode_like_parent() {
+    use crate::agent::config::Config;
+    use nofy_chat_state::{CompactionDetail, CompactionMode};
+    use nofy_test_support::EnvGuard;
+    let _mode = EnvGuard::unset("NOFY_COMPACTION_MODE");
+    let _detail = EnvGuard::unset("NOFY_COMPACTION_DETAIL");
+    let mut ctx = crate::test_support::lsp_runtime::ctx_with_toggle(Default::default());
+    assert_eq!(
+        ctx.resolve_compaction_mode(),
+        CompactionMode::default(),
+        "empty spawn context must inherit the compiled Segments default, not Summary"
+    );
+    let mut summary_cfg = Config::default();
+    summary_cfg.features.compaction_mode = Some("summary".into());
+    ctx.agent_config = Some(summary_cfg);
+    assert_eq!(
+        ctx.resolve_compaction_mode(),
+        CompactionMode::Summary,
+        "parent [features].compaction_mode must win over the default"
+    );
+    let mut segments_cfg = Config::default();
+    segments_cfg.features.compaction_mode = Some("segments".into());
+    segments_cfg.features.compaction_detail = Some("balanced".into());
+    ctx.agent_config = Some(segments_cfg);
+    assert_eq!(
+        ctx.resolve_compaction_mode(),
+        CompactionMode::Segments(CompactionDetail::Balanced),
+        "parent config mode+detail must attach via with_segment_detail"
+    );
+    let _env_mode = EnvGuard::set("NOFY_COMPACTION_MODE", "transcript");
+    assert_eq!(
+        ctx.resolve_compaction_mode(),
+        CompactionMode::Transcript,
+        "NOFY_COMPACTION_MODE must win over parent config"
+    );
+}
+
+#[test]
+fn run_shell_child_passes_parent_compaction_pins_into_spawn() {
+    use crate::agent::subagent::SubagentSpawnContext;
+    use crate::session::CompactionPins;
+    use nofy_agent::prompt::user_message::UserMessageTemplate;
+    use nofy_chat_state::CompactionMode;
+    let default_child = UserMessageTemplate::Default;
+    let mut ctx = crate::test_support::lsp_runtime::ctx_with_toggle(Default::default());
+    ctx.parent_compaction = CompactionPins {
+        mode: CompactionMode::default(),
+        two_pass: true,
+    };
+    assert_eq!(
+        ctx.compaction_pins_for_child(&default_child),
+        CompactionPins {
+            mode: CompactionMode::default(),
+            two_pass: true,
+        },
+    );
+    ctx.parent_compaction = CompactionPins {
+        mode: CompactionMode::Summary,
+        two_pass: false,
+    };
+    assert_eq!(
+        ctx.compaction_pins_for_child(&default_child),
+        CompactionPins {
+            mode: CompactionMode::Summary,
+            two_pass: false,
+        },
+    );
+    ctx.parent_compaction = CompactionPins {
+        mode: CompactionMode::default(),
+        two_pass: true,
+    };
+    assert_eq!(
+        SubagentSpawnContext::snapshot_parent_compaction_pins(
+            CompactionMode::default(),
+            true,
+            Some("nofy-build"),
+            Some("nofy-build"),
+            std::path::Path::new("/tmp"),
+        ),
+        CompactionPins {
+            mode: CompactionMode::default(),
+            two_pass: true,
+        },
+    );
+    let spawn_src = include_str!("../../subagent/handle_request.rs");
+    assert!(
+        spawn_src.contains("ctx.compaction_pins_for_child(&definition.user_message_template)"),
+        "run_shell_child must pass compaction_pins_for_child into spawn"
+    );
+    assert!(
+        spawn_src.contains("pins.two_pass"),
+        "run_shell_child must pass pins.two_pass into spawn_session_on_thread"
+    );
+    assert!(
+        !spawn_src.contains("CompactionMode::Summary"),
+        "run_shell_child must not hard-pin Summary at the spawn site"
+    );
+    assert!(
+        !spawn_src.contains("two_pass_enabled = false")
+            && !spawn_src.contains("false, // two_pass"),
+        "run_shell_child must not hard-pin two-pass off at the spawn site"
+    );
+}

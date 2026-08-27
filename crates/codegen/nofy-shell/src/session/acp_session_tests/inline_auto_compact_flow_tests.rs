@@ -251,6 +251,7 @@ async fn create_test_actor(
         turn_abort: Default::default(),
         turn_end_tx: Default::default(),
         sampler_handle: nofy_sampler::SamplerHandle::noop(),
+        sampling_gate: None,
         image_description_model: crate::test_support::TEST_MODEL.to_owned(),
         image_describe_cache: Arc::new(crate::session::image_describe::ImageDescribeCache::new()),
         subagent_token_records: parking_lot::Mutex::new(HashMap::new()),
@@ -717,6 +718,7 @@ async fn create_test_actor_with_memory(
         turn_abort: Default::default(),
         turn_end_tx: Default::default(),
         sampler_handle: nofy_sampler::SamplerHandle::noop(),
+        sampling_gate: None,
         image_description_model: crate::test_support::TEST_MODEL.to_owned(),
         image_describe_cache: Arc::new(crate::session::image_describe::ImageDescribeCache::new()),
         subagent_token_records: parking_lot::Mutex::new(HashMap::new()),
@@ -1508,6 +1510,7 @@ async fn test_e2e_idle_resume_refreshes_model_metadata() {
                 turn_end_tx: Default::default(),
                 attribution_callback: None,
                 sampler_handle: nofy_sampler::SamplerHandle::noop(),
+                sampling_gate: None,
                 image_description_model: crate::test_support::TEST_MODEL.to_owned(),
                 image_describe_cache: Arc::new(
                     crate::session::image_describe::ImageDescribeCache::new(),

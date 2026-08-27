@@ -473,9 +473,9 @@ pub struct PagerArgs {
     /// Extra rules to append to the system prompt.
     #[clap(long = "rules", alias = "append-system-prompt")]
     pub rules: Option<String>,
-    /// Compaction mode [summary|transcript|segments]: `summary` (default) adds
+    /// Compaction mode [summary|transcript|segments]: `summary` adds
     /// no pointer; `transcript` points at the raw transcript; `segments`
-    /// persists per-segment markdown to grep. Sets `NOFY_COMPACTION_MODE`.
+    /// (default) persists per-segment markdown to grep. Sets `NOFY_COMPACTION_MODE`.
     #[clap(long = "compaction-mode", value_name = "MODE", hide = true)]
     pub compaction_mode: Option<String>,
     /// Segments verbatim detail [none|minimal|balanced|verbose] (default

@@ -2500,6 +2500,7 @@ mod inline_auto_compact_flow_tests {
             turn_abort: Default::default(),
             turn_end_tx: Default::default(),
             sampler_handle: nofy_sampler::SamplerHandle::noop(),
+            sampling_gate: None,
             rebuild_spec: crate::session::agent_rebuild::test_rebuild_spec_default(),
             image_description_model: crate::test_support::TEST_MODEL.to_owned(),
             image_describe_cache: Arc::new(

@@ -118,6 +118,9 @@ pub struct SubagentsConfig {
     pub max_depth: Option<i64>,
     #[serde(default)]
     pub max_concurrent: Option<i64>,
+    /// Concurrent subagent turn-sampling limit. See [`Self::resolve_sampling_limit`].
+    #[serde(default)]
+    pub sampling_limit: Option<i64>,
     /// `"queue"` or `"fail"`.
     #[serde(default)]
     pub limit_behavior: Option<String>,
@@ -375,6 +378,7 @@ impl SubagentsConfig {
         Self::DEFAULT_MAX_DEPTH
     }
     pub const ENV_MAX_CONCURRENT: &'static str = "NOFY_MAX_CONCURRENT_SUBAGENTS";
+    pub const ENV_SAMPLING_LIMIT: &'static str = "NOFY_SUBAGENT_SAMPLING_LIMIT";
     pub const ENV_LIMIT_BEHAVIOR: &'static str = "NOFY_SUBAGENT_LIMIT_BEHAVIOR";
     pub const ENV_WORKFLOW_MAX_CONCURRENT: &'static str = "NOFY_WORKFLOW_MAX_CONCURRENT_AGENTS";
     /// Clamp to `1..`; a limit can be adjusted but never disabled.
@@ -417,6 +421,28 @@ impl SubagentsConfig {
             config,
             nofy_tools::implementations::nofy_build::task::admission::DEFAULT_MAX_CONCURRENT,
         )
+    }
+    /// Resolve the subagent turn-sampling limit, clamped to
+    /// [`crate::agent::subagent::MAX_SUBAGENT_SAMPLING_LIMIT`]. `default` is the
+    /// resolved concurrent-subagent bound (`NOFY_MAX_CONCURRENT_SUBAGENTS`); a
+    /// lower `NOFY_SUBAGENT_SAMPLING_LIMIT` or `[subagents] sampling_limit`
+    /// caps sampling further.
+    pub(crate) fn resolve_sampling_limit(
+        env: Option<&str>,
+        config: Option<i64>,
+        default: usize,
+    ) -> usize {
+        let max = crate::agent::subagent::MAX_SUBAGENT_SAMPLING_LIMIT;
+        let resolved = Self::resolve_count(Self::ENV_SAMPLING_LIMIT, env, config, default);
+        if resolved > max {
+            tracing::warn!(
+                name = Self::ENV_SAMPLING_LIMIT,
+                resolved,
+                max,
+                "subagent sampling limit exceeds the ceiling; clamping"
+            );
+        }
+        resolved.min(max)
     }
     pub(crate) fn resolve_workflow_max_concurrent(
         env: Option<&str>,

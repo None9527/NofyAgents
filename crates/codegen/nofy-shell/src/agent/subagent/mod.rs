@@ -43,6 +43,11 @@ use nofy_hunk_tracker::HunkTrackerHandle;
 mod attempt_store;
 mod handle_request;
 pub(crate) use handle_request::run_shell_child;
+/// Clamp for a resolved sampling-limit override; `Semaphore::new` panics past
+/// `Semaphore::MAX_PERMITS`. See [`SubagentsConfig::resolve_sampling_limit`].
+///
+/// [`SubagentsConfig::resolve_sampling_limit`]: crate::config::SubagentsConfig::resolve_sampling_limit
+pub(crate) const MAX_SUBAGENT_SAMPLING_LIMIT: usize = 512;
 /// How the child session's initial context was bootstrapped.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum InitialContextSource {
@@ -122,6 +127,7 @@ pub(crate) struct SubagentSpawnContext {
     pub workflow_max_concurrent_agents: usize,
     /// Inference idle timeout (secs), resolved from the parent's model config at spawn-context creation time.
     pub inference_idle_timeout_secs: u64,
+    pub parent_compaction: crate::session::CompactionPins,
     /// Tier inputs for resolving `auto_compact_threshold_percent` at
     /// spawn time — once the subagent's actual model id is known.
     /// Lazy because the subagent may be assigned a different model from
@@ -284,6 +290,9 @@ pub(crate) struct SubagentSpawnContext {
     /// auto-wake synthetic prompt is suppressed so an async completion wake
     /// doesn't derail the parent mid-`/goal`; surfaces 2/3 still drain it.
     pub goal_loop_active: Arc<std::sync::atomic::AtomicBool>,
+    /// The process tree's shared subagent turn-sampling semaphore. See
+    /// [`crate::config::SubagentsConfig::resolve_sampling_limit`].
+    pub subagent_sampling_semaphore: Arc<tokio::sync::Semaphore>,
 }
 pub(crate) fn strip_ask_user_question_tool(tools: &mut Vec<nofy_sampling_types::ToolSpec>) {
     tools.retain(|tool| tool.name != "ask_user_question");
@@ -357,6 +366,54 @@ impl SubagentSpawnContext {
                 .as_ref()
                 .and_then(|c| c.features.compaction_tool_choice.as_deref()),
         )
+    }
+    pub(crate) fn snapshot_parent_compaction_pins(
+        resolved_mode: nofy_chat_state::CompactionMode,
+        resolved_two_pass: bool,
+        parent_agent_name: Option<&str>,
+        parent_model_agent_type: Option<&str>,
+        parent_cwd: &Path,
+    ) -> crate::session::CompactionPins {
+        let current = parent_agent_name
+            .and_then(|name| nofy_agent::discovery::by_name_in_cwd(name, parent_cwd))
+            .map(|d| d.user_message_template)
+            .unwrap_or_default();
+        let template = crate::agent::mvp_agent::inherited_harness_template(
+            &current,
+            parent_model_agent_type,
+            parent_cwd,
+        )
+        .unwrap_or(current);
+        crate::session::cursor_compaction_pins(
+            resolved_mode,
+            resolved_two_pass,
+            crate::session::is_cursor_user_template(&template),
+        )
+    }
+    pub(crate) fn compaction_pins_for_child(
+        &self,
+        child_template: &nofy_agent::prompt::user_message::UserMessageTemplate,
+    ) -> crate::session::CompactionPins {
+        crate::session::cursor_compaction_pins(
+            self.parent_compaction.mode,
+            self.parent_compaction.two_pass,
+            crate::session::is_cursor_user_template(child_template),
+        )
+    }
+    /// Env > parent config features > default.
+    pub(crate) fn resolve_compaction_mode(&self) -> nofy_chat_state::CompactionMode {
+        crate::agent::config::resolve_compaction_mode_from(
+            crate::agent::config::env_string("NOFY_COMPACTION_MODE").as_deref(),
+            self.agent_config
+                .as_ref()
+                .and_then(|c| c.features.compaction_mode.as_deref()),
+        )
+        .with_segment_detail(crate::agent::config::resolve_compaction_detail_from(
+            crate::agent::config::env_string("NOFY_COMPACTION_DETAIL").as_deref(),
+            self.agent_config
+                .as_ref()
+                .and_then(|c| c.features.compaction_detail.as_deref()),
+        ))
     }
     /// Whether a completed subagent's worktree is snapshotted into a durable ref
     /// and its directory deleted. Resolution mirrors the other subagent gates

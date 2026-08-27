@@ -99,6 +99,7 @@ pub(crate) fn ctx_with_toggle(toggle: HashMap<String, bool>) -> SubagentSpawnCon
         workflow_max_concurrent_agents:
             crate::session::workflow::host_service::DEFAULT_WORKFLOW_MAX_CONCURRENT_AGENTS,
         inference_idle_timeout_secs: 600,
+        parent_compaction: crate::session::CompactionPins::default(),
         auto_compact_threshold_tiers: crate::agent::subagent::AutoCompactThresholdTiers::default(),
         permission_handle: None,
         worktree_type: crate::util::config::WorktreeType::Linked,
@@ -129,6 +130,9 @@ pub(crate) fn ctx_with_toggle(toggle: HashMap<String, bool>) -> SubagentSpawnCon
         parent_terminal_backend: None,
         parent_notification_handle: None,
         parent_scheduler_handle: None,
+        subagent_sampling_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(
+            nofy_tools::implementations::nofy_build::task::admission::DEFAULT_MAX_CONCURRENT,
+        )),
     }
 }
 #[derive(Default)]

@@ -273,6 +273,13 @@ pub enum KillOutcome {
     NotFound,
 }
 
+/// One command moved to the background by [`TerminalBackend::background_foreground_commands`].
+/// `tool_call_id` doubles as the background task id the model uses to retrieve output later.
+#[derive(Debug, Clone)]
+pub struct BackgroundedForeground {
+    pub tool_call_id: String,
+}
+
 // ============================================================================
 // TerminalBackend trait
 // ============================================================================
@@ -307,6 +314,15 @@ pub trait TerminalBackend: Send + Sync {
     /// Used on a shared terminal backend so a subagent's cancel doesn't
     /// kill the parent's foreground commands.
     async fn kill_foreground_commands_by_owner(&self, _owner_session_id: &str) {}
+
+    /// Background every running foreground command instead of killing it, scoped to `owner_session_id` when `Some`.
+    /// Called on a mid-turn redirect (send-now); one returned entry per command lets the caller answer the model's dangling tool call.
+    async fn background_foreground_commands(
+        &self,
+        _owner_session_id: Option<&str>,
+    ) -> Vec<BackgroundedForeground> {
+        Vec::new()
+    }
 
     /// Kill all running background tasks.
     /// Used during subagent teardown to clean up orphaned processes.

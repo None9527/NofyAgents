@@ -944,6 +944,7 @@ pub(crate) async fn run_shell_child(
             agent_name: Some(definition.name.clone()),
             reasoning_effort: Some(effective_sampling_config.reasoning_effort),
         });
+    let pins = ctx.compaction_pins_for_child(&definition.user_message_template);
     let spawn_result = session::spawn_session_on_thread(
         child_session_info,
         gateway.clone(),
@@ -976,10 +977,10 @@ pub(crate) async fn run_shell_child(
         nofy_workspace::permission::ClientType::Generic,
         ctx.resolve_auto_compact_threshold_percent(&subagent_model_id),
         nofy_agent::DEFAULT_SYSTEM_PROMPT_LABEL.to_string(),
-        nofy_chat_state::CompactionMode::Summary,
+        pins.mode,
         ctx.resolve_compaction_verbatim_input(),
         ctx.resolve_compaction_tool_choice(),
-        false,
+        pins.two_pass,
         None,
         None,
         std::sync::Arc::new(parking_lot::Mutex::new(
@@ -1081,6 +1082,7 @@ pub(crate) async fn run_shell_child(
             None
         },
         false,
+        Some(ctx.subagent_sampling_semaphore.clone()),
     )
     .await;
     let (child_handle, _permission_rx, _system_prompt, child_thread) = match spawn_result {

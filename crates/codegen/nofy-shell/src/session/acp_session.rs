@@ -1125,6 +1125,9 @@ pub(crate) struct SessionActor {
     /// tests and other constructor sites use `SamplerHandle::noop()`.
     /// All inference flows through this handle.
     pub(crate) sampler_handle: nofy_sampler::SamplerHandle,
+    /// Turn-sampling gate: `None` is the main session (ungated), `Some` is the process
+    /// tree's shared sampling semaphore. See `acquire_subagent_sampling_permit`.
+    pub(crate) sampling_gate: Option<Arc<tokio::sync::Semaphore>>,
     /// Cached recipe for constructing this session's [`nofy_agent::Agent`].
     ///
     /// Populated once at session spawn and then reused by

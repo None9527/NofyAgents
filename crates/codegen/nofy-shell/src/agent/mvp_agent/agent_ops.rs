@@ -1711,6 +1711,9 @@ impl MvpAgent {
             subagent_presentation: RefCell::new(
                 crate::agent::subagent::SubagentPresentation::new(),
             ),
+            subagent_sampling_semaphore: Arc::new(tokio::sync::Semaphore::new(
+                cfg.subagents_sampling_limit,
+            )),
             monitor_event_buffer: nofy_tools::implementations::nofy_build::monitor::types::MonitorEventBuffer::default(),
             workspace_ops: RefCell::new(None),
             #[cfg(all(feature = "local-workspace", unix))]
@@ -3385,6 +3388,7 @@ impl MvpAgent {
                     max_turns,
                     None,
                     is_chat_kind,
+                    None,
                 )
                 .await?
         };
