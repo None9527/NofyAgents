@@ -62,6 +62,27 @@ impl AttachOperation {
         }
     }
 }
+/// Parse the client-claimed `_meta.sessionKind` on `session/new`.
+/// `headless` is the only client-minted kind; the `subagent*` namespace is
+/// server-owned. Other values stay forward-compatible and leave the session
+/// unstamped.
+fn parse_client_session_kind(meta: Option<&acp::Meta>) -> Result<Option<String>, acp::Error> {
+    let Some(kind) = meta
+        .and_then(|m| m.get("sessionKind").or_else(|| m.get("session_kind")))
+        .and_then(|v| v.as_str())
+    else {
+        return Ok(None);
+    };
+    if kind == "headless" {
+        return Ok(Some(kind.to_owned()));
+    }
+    if kind.starts_with("subagent") {
+        return Err(acp::Error::invalid_params()
+            .data("_meta.sessionKind uses the server-reserved subagent namespace"));
+    }
+    tracing::warn!(kind, "ignoring unsupported _meta.sessionKind claim");
+    Ok(None)
+}
 /// What the two attach methods do differently, decided in one exhaustive match
 /// so a branch further down cannot quietly skip [`AttachOperation`]. Not in the
 /// request's `_meta`, where resume used to write it: that lets a client spoof it.
@@ -203,6 +224,8 @@ impl MvpAgent {
             .as_ref()
             .and_then(|m| m.get("sessionId"))
             .and_then(|v| v.as_str());
+        let client_session_kind = parse_client_session_kind(arguments.meta.as_ref())?;
+        let is_headless = client_session_kind.as_deref() == Some("headless");
         let custom_model_id = arguments
             .meta
             .as_ref()
@@ -381,6 +404,7 @@ impl MvpAgent {
                 summary_client,
                 Some(self.gateway.clone()),
                 summary_model,
+                client_session_kind,
             )
             .await
             .map_err(|e| crate::session::persistence::io_error_to_acp(&e))?
@@ -435,6 +459,7 @@ impl MvpAgent {
                     session_yolo_mode,
                     session_auto_mode: session_auto_mode && !session_yolo_mode,
                     prompt_display_cwd: None,
+                    is_headless,
                     is_chat_kind: false,
                 }
             };
@@ -801,6 +826,7 @@ impl MvpAgent {
                     session_yolo_mode,
                     session_auto_mode: session_auto_mode && !session_yolo_mode,
                     prompt_display_cwd,
+                    is_headless: summary.is_headless(),
                     is_chat_kind: false,
                 },
             )
@@ -1380,4 +1406,68 @@ pub(super) fn load_request_for_resume(args: acp::ResumeSessionRequest) -> acp::L
     acp::LoadSessionRequest::new(session_id, cwd)
         .mcp_servers(mcp_servers)
         .meta(meta.unwrap_or_default())
+}
+
+#[cfg(test)]
+mod session_kind_claim_tests {
+    use super::parse_client_session_kind;
+    use agent_client_protocol as acp;
+
+    fn meta(kind: serde_json::Value) -> acp::Meta {
+        let mut m = acp::Meta::new();
+        m.insert("sessionKind".into(), kind);
+        m
+    }
+
+    #[test]
+    fn absent_or_untyped_kind_is_none() {
+        assert_eq!(parse_client_session_kind(None).unwrap(), None);
+        assert_eq!(
+            parse_client_session_kind(Some(&acp::Meta::new())).unwrap(),
+            None
+        );
+        assert_eq!(
+            parse_client_session_kind(Some(&meta(serde_json::json!(7)))).unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn headless_is_the_only_accepted_claim() {
+        assert_eq!(
+            parse_client_session_kind(Some(&meta(serde_json::json!("headless")))).unwrap(),
+            Some("headless".to_owned())
+        );
+        let mut snake = acp::Meta::new();
+        snake.insert("session_kind".into(), serde_json::json!("headless"));
+        assert_eq!(
+            parse_client_session_kind(Some(&snake)).unwrap(),
+            Some("headless".to_owned())
+        );
+    }
+
+    #[test]
+    fn reserved_subagent_claims_are_invalid_params() {
+        for kind in [
+            "subagent",
+            "subagent_fork",
+            "subagent_resume",
+            "subagent_future",
+        ] {
+            let error = parse_client_session_kind(Some(&meta(serde_json::json!(kind))))
+                .expect_err("reserved claims must be rejected");
+            assert_eq!(error.code, acp::ErrorCode::InvalidParams, "{kind}");
+        }
+    }
+
+    #[test]
+    fn unknown_non_reserved_claims_are_ignored() {
+        for kind in ["fork", "worktree", "future"] {
+            assert_eq!(
+                parse_client_session_kind(Some(&meta(serde_json::json!(kind)))).unwrap(),
+                None,
+                "{kind} must not be stamped"
+            );
+        }
+    }
 }

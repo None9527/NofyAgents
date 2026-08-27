@@ -269,6 +269,9 @@ impl MvpAgent {
         &self,
         id: &acp::SessionId,
     ) -> Option<crate::agent::roster::RosterEntry> {
+        if self.session_registry.is_headless(id) {
+            return None;
+        }
         let session_id = id.0.to_string();
         let (cwd, is_worktree, model_id, reasoning_effort, yolo) = {
             let h = self.resident_handle(id)?;

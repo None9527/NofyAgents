@@ -817,6 +817,18 @@ impl PagerArgs {
     pub fn resume_most_recent(&self) -> bool {
         self.resume_session.as_deref() == Some("")
     }
+    pub(crate) fn local_resume_selection(
+        &self,
+    ) -> nofy_shell::session::persistence::RecentSessionSelection {
+        use nofy_shell::session::unified_list::HeadlessPolicy;
+        let policy =
+            if self.single.is_some() || self.prompt_json.is_some() || self.prompt_file.is_some() {
+                HeadlessPolicy::Include
+            } else {
+                HeadlessPolicy::Exclude
+            };
+        nofy_shell::session::persistence::RecentSessionSelection::from_headless_policy(policy)
+    }
     /// Classify flags for sandbox profile lookup on an existing session.
     ///
     /// Uses [`Self::session_startup_intent`]; invalid combos fall through to
@@ -880,7 +892,7 @@ impl PagerArgs {
             return Ok(());
         };
         use crate::app::session_title_resolve::{PinnedResumeTarget, presandbox_resume_target};
-        let pinned = presandbox_resume_target(&target, cwd)?;
+        let pinned = presandbox_resume_target(&target, cwd, self.local_resume_selection())?;
         self.resume_target_pinned = true;
         if let PinnedResumeTarget::Title {
             ref id,
@@ -926,7 +938,10 @@ impl PagerArgs {
                 )
             }
             ResumeTarget::MostRecentForCwd => {
-                nofy_shell::session::persistence::resumed_session_sandbox_profile(None, cwd)
+                nofy_shell::session::persistence::resolve_recent_session_sandbox_profile(
+                    cwd,
+                    self.local_resume_selection(),
+                )
             }
             ResumeTarget::None => None,
         }

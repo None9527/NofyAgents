@@ -10,6 +10,7 @@ use nofy_workspace::session::file_state::RewindPoint;
 use crate::session::signals::SessionSignals;
 use crate::session::storage::relocation::{RelocationError, RelocationView};
 use crate::session::storage::{JsonlStorageAdapter, StorageAdapter};
+use crate::session::visibility::ClassifiedSessionKind;
 use crate::tools::todo::TodoState;
 use crate::util::nofy_home::nofy_home;
 use agent_client_protocol as acp;
@@ -510,15 +511,80 @@ fn read_summary_from_dir(session_dir: &Path) -> RelocationResult<Summary> {
     serde_json::from_slice(&bytes).map_err(|source| RelocationError::Json { path, source })
 }
 
-/// The most recently updated local session summary for `cwd` (by
-/// `last_active_at` else `updated_at`), or `None` if there are no local sessions
-/// for that cwd. Sync and local-only — suitable for the startup path that must
-/// resolve the sandbox profile before the (irreversible) OS sandbox is applied.
+/// Dir index plus on-demand summary reads. Search classifies only the FTS
+/// hits it walks; loading every `summary.json` on each query is too expensive
+/// at the ~12K-session scale already called out for recent listing.
+pub(crate) struct SessionKindIndex {
+    view: RelocationView,
+}
+
+impl SessionKindIndex {
+    pub(crate) fn load() -> io::Result<Self> {
+        Self::load_in_root(&nofy_home().join("sessions"))
+    }
+
+    pub(crate) fn load_in_root(sessions_root: &Path) -> io::Result<Self> {
+        Ok(Self {
+            view: storage_view(sessions_root).map_err(io::Error::other)?,
+        })
+    }
+
+    pub(crate) fn kind(&self, session_id: &str) -> ClassifiedSessionKind {
+        match self.view.find_persisted_session_dir(session_id) {
+            Ok(Some(dir)) => match read_summary_from_dir(&dir) {
+                Ok(summary) if summary.is_headless() => ClassifiedSessionKind::Headless,
+                Ok(_) => ClassifiedSessionKind::Interactive,
+                Err(_) => ClassifiedSessionKind::Unknown,
+            },
+            Ok(None) | Err(_) => ClassifiedSessionKind::Unknown,
+        }
+    }
+}
+
+#[cfg(test)]
+fn authoritative_summaries_in_root(sessions_root: &Path) -> io::Result<Vec<Summary>> {
+    let view = storage_view(sessions_root).map_err(io::Error::other)?;
+    Ok(view
+        .session_dirs(None)
+        .map_err(io::Error::other)?
+        .into_iter()
+        .filter_map(|dir| read_summary_from_dir(&dir).ok())
+        .collect())
+}
+
+/// Which local rows may satisfy a most-recent startup selection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecentSessionSelection {
+    Interactive,
+    Any,
+}
+
+impl RecentSessionSelection {
+    /// Startup-edge map: `Exclude` is interactive-only most-recent;
+    /// `Include`/`Only` keep headless rows eligible (`-p` continuation).
+    pub fn from_headless_policy(policy: crate::session::visibility::HeadlessPolicy) -> Self {
+        match policy {
+            crate::session::visibility::HeadlessPolicy::Exclude => Self::Interactive,
+            crate::session::visibility::HeadlessPolicy::Only
+            | crate::session::visibility::HeadlessPolicy::Include => Self::Any,
+        }
+    }
+
+    pub fn admits(self, summary: &Summary) -> bool {
+        match self {
+            Self::Interactive => !summary.is_headless(),
+            Self::Any => true,
+        }
+    }
+}
+
+/// The most recently updated interactive local session summary for `cwd`.
 fn most_recent_local_summary_for_cwd_in_root(cwd: &str, sessions_root: &Path) -> Option<Summary> {
     most_recent_local_summary_for_cwd_in_view(
         cwd,
         &storage_view(sessions_root).ok()?,
         read_summary_from_dir,
+        RecentSessionSelection::Interactive,
     )
     .ok()
     .flatten()
@@ -528,6 +594,7 @@ fn most_recent_local_summary_for_cwd_in_view(
     cwd: &str,
     view: &RelocationView,
     read_summary: SummaryReader,
+    selection: RecentSessionSelection,
 ) -> RelocationResult<Option<Summary>> {
     let mut best: Option<Summary> = None;
     for session_dir in view.session_dirs(Some(cwd))? {
@@ -539,7 +606,7 @@ fn most_recent_local_summary_for_cwd_in_view(
             }
             Err(error) => return Err(error),
         };
-        if summary.is_hidden() {
+        if summary.is_hidden() || !selection.admits(&summary) {
             continue;
         }
         if best.as_ref().is_none_or(|current| {
@@ -554,19 +621,25 @@ fn most_recent_local_summary_for_cwd_in_view(
     Ok(best)
 }
 
-/// Sync, local-only session summaries for `cwd` (hidden sessions filtered).
-/// For startup paths that must resolve a resume target before the
-/// irreversible OS sandbox is applied; async callers use [`list_summaries`].
+/// Sync, local-only summaries for `cwd` under the caller's title-selection
+/// policy. Explicit-id lookup remains inclusive through
+/// [`find_summary_by_session_id`].
+/// For startup paths that must resolve a resume target before the irreversible
+/// OS sandbox is applied; async callers use [`list_summaries`].
 ///
 /// Listing failures propagate so pre-sandbox callers can fail closed;
 /// individual unreadable summaries are skipped, matching the async path's
 /// tolerance for a single corrupt file.
-pub fn local_summaries_for_cwd_sync(cwd: &str) -> io::Result<Vec<Summary>> {
-    local_summaries_for_cwd_sync_in_root(cwd, &nofy_home().join("sessions"))
+pub fn local_summaries_for_cwd_sync(
+    cwd: &str,
+    selection: RecentSessionSelection,
+) -> io::Result<Vec<Summary>> {
+    local_summaries_for_cwd_sync_in_root(cwd, selection, &nofy_home().join("sessions"))
 }
 
 fn local_summaries_for_cwd_sync_in_root(
     cwd: &str,
+    selection: RecentSessionSelection,
     sessions_root: &Path,
 ) -> io::Result<Vec<Summary>> {
     let view = storage_view(sessions_root).map_err(io::Error::other)?;
@@ -574,7 +647,7 @@ fn local_summaries_for_cwd_sync_in_root(
     Ok(dirs
         .iter()
         .filter_map(|dir| read_summary_from_dir(dir).ok())
-        .filter(|s| !s.is_hidden())
+        .filter(|summary| !summary.is_hidden() && selection.admits(summary))
         .collect())
 }
 
@@ -597,6 +670,23 @@ pub fn resumed_session_sandbox_profile(
     cwd: Option<&str>,
 ) -> Option<String> {
     resumed_session_sandbox_profile_in_root(session_id, cwd, &nofy_home().join("sessions"))
+}
+
+/// Resolve the saved profile for the same typed most-recent view used by
+/// startup materialization.
+pub fn resolve_recent_session_sandbox_profile(
+    cwd: Option<&str>,
+    selection: RecentSessionSelection,
+) -> Option<String> {
+    most_recent_local_summary_for_cwd_in_view(
+        cwd?,
+        &storage_view(&nofy_home().join("sessions")).ok()?,
+        read_summary_from_dir,
+        selection,
+    )
+    .ok()
+    .flatten()
+    .and_then(|summary| summary.sandbox_profile)
 }
 
 fn resumed_session_sandbox_profile_in_root(
@@ -849,6 +939,16 @@ impl Summary {
         )
     }
 
+    /// Whether this is a one-shot `nofy -p` session. Deliberately not part of
+    /// [`Self::is_hidden`]: headless sessions stay listable (the picker's
+    /// Headless page, the search index) and are only excluded from the default
+    /// pages by `HeadlessPolicy`. Unstamped summaries (`session_kind` absent)
+    /// are interactive, including pre-stamp one-shots; they still fill default
+    /// `/resume`.
+    pub fn is_headless(&self) -> bool {
+        self.session_kind.as_deref() == Some(crate::session::visibility::SESSION_KIND_HEADLESS)
+    }
+
     /// Preferred display title: `generated_title` if non-empty, else `session_summary`.
     pub fn display_title(&self) -> &str {
         self.generated_title
@@ -939,6 +1039,17 @@ mod is_hidden_tests {
         assert!(!summary_with_kind(None).is_hidden());
         assert!(!summary_with_kind(Some("fork")).is_hidden());
         assert!(!summary_with_kind(Some("worktree")).is_hidden());
+    }
+
+    #[test]
+    fn headless_is_listable_but_flagged() {
+        let headless = summary_with_kind(Some("headless"));
+        assert!(!headless.is_hidden(), "headless must stay listable");
+        assert!(headless.is_headless());
+
+        assert!(!summary_with_kind(None).is_headless());
+        assert!(!summary_with_kind(Some("fork")).is_headless());
+        assert!(!summary_with_kind(Some("subagent")).is_headless());
     }
 
     #[test]
@@ -2320,6 +2431,7 @@ pub(crate) async fn new(
     sampling_client: OaiCompatClient,
     gateway: Option<GatewaySender>,
     session_summary_model: String,
+    session_kind: Option<String>,
 ) -> io::Result<PersistenceHandle> {
     let root_dir = nofy_home();
     let storage: Box<dyn StorageAdapter> = Box::new(JsonlStorageAdapter::with_root(root_dir));
@@ -2327,6 +2439,17 @@ pub(crate) async fn new(
     // Initialize session in storage
     let mut summary = storage.init_session(info, model_id.clone()).await?;
     touch_worktree_for_session(info).await;
+
+    // Stamp the claimed kind only on a summary that has none yet: a dir left
+    // by a crash keeps its persisted kind (init_session already loaded it).
+    // Goes through the locked atomic summary writer so it cannot clobber a
+    // concurrent writer's fields or leave a torn summary.json.
+    if summary.session_kind.is_none()
+        && let Some(kind) = session_kind
+    {
+        storage.set_session_kind_if_absent(info, kind.clone()).await?;
+        summary.session_kind = Some(kind);
+    }
 
     // Update model if different
     if summary.current_model_id != model_id {
@@ -3171,7 +3294,13 @@ mod session_exists_tests {
 
 #[cfg(test)]
 mod find_summary_by_session_id_tests {
-    use super::find_summary_by_session_id_in_root;
+    use super::{
+        SessionKindIndex, Summary, authoritative_summaries_in_root,
+        find_summary_by_session_id_in_root,
+    };
+    use crate::session::info::Info;
+    use crate::session::storage::relocation::{RelocationRequest, RelocationStorage};
+    use crate::session::visibility::ClassifiedSessionKind;
     use std::fs;
     use tempfile::TempDir;
 
@@ -3237,14 +3366,103 @@ mod find_summary_by_session_id_tests {
 
         assert!(find_summary_by_session_id_in_root("bad-session", &root).is_none());
     }
+
+    #[test]
+    fn authoritative_scan_uses_relocated_target_once() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path().join("sessions");
+        let storage = RelocationStorage::new(tmp.path().into());
+        let info = Info {
+            id: agent_client_protocol::SessionId::new("moved"),
+            cwd: "/source".into(),
+        };
+        let dir = root
+            .join(crate::util::nofy_home::encode_cwd_dirname(&info.cwd))
+            .join(info.id.to_string());
+        fs::create_dir_all(&dir).unwrap();
+        let mut summary =
+            Summary::new(&info, agent_client_protocol::ModelId::new("model")).unwrap();
+        summary.session_kind = Some("headless".into());
+        fs::write(
+            dir.join("summary.json"),
+            serde_json::to_vec(&summary).unwrap(),
+        )
+        .unwrap();
+
+        let lease = storage.acquire("moved").unwrap();
+        let staged = storage
+            .stage_and_publish(
+                &lease,
+                RelocationRequest {
+                    session_id: "moved".into(),
+                    nonce: "test".into(),
+                    source_cwd: "/source".into(),
+                    target_cwd: "/target".into(),
+                    cwd_generation: 1,
+                    pending_reminder: crate::session::persistence::PendingCwdSwitchReminder {
+                        cwd_generation: 1,
+                        previous_cwd: "/source".into(),
+                        destination_cwd: "/target".into(),
+                        content: "moved".into(),
+                        destination_project_instructions: None,
+                    },
+                },
+            )
+            .unwrap();
+        let _ = storage.mark_ready_and_commit(&lease, &staged).unwrap();
+
+        let rows = authoritative_summaries_in_root(&root).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].info.cwd, "/target");
+        assert!(rows[0].is_headless());
+    }
+
+    #[test]
+    fn kind_index_classifies_requested_ids_without_requiring_a_full_scan() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path().join("sessions");
+        write_summary(
+            &root,
+            "cwd1",
+            "interactive",
+            &minimal_summary("abc", "main"),
+        );
+        write_summary(
+            &root,
+            "cwd1",
+            "headless-one",
+            &serde_json::json!({
+                "info": { "id": "headless-one", "cwd": "/tmp" },
+                "session_summary": "",
+                "created_at": "2026-01-01T00:00:00Z",
+                "updated_at": "2026-01-01T00:00:00Z",
+                "num_messages": 0,
+                "current_model_id": "qwen-coder",
+                "session_kind": "headless"
+            })
+            .to_string(),
+        );
+        let dir = root.join("cwd1").join("bad-session");
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("summary.json"), b"not-json").unwrap();
+
+        let index = SessionKindIndex::load_in_root(&root).unwrap();
+        assert_eq!(
+            index.kind("interactive"),
+            ClassifiedSessionKind::Interactive
+        );
+        assert_eq!(index.kind("headless-one"), ClassifiedSessionKind::Headless);
+        assert_eq!(index.kind("bad-session"), ClassifiedSessionKind::Unknown);
+        assert_eq!(index.kind("missing"), ClassifiedSessionKind::Unknown);
+    }
 }
 
 #[cfg(test)]
 mod resumed_sandbox_profile_tests {
     use super::{
-        RelocationError, RelocationView, most_recent_local_summary_for_cwd_in_root,
-        most_recent_local_summary_for_cwd_in_view, read_summary_from_dir,
-        resumed_session_sandbox_profile_in_root,
+        RecentSessionSelection, RelocationError, RelocationView,
+        most_recent_local_summary_for_cwd_in_root, most_recent_local_summary_for_cwd_in_view,
+        read_summary_from_dir, resumed_session_sandbox_profile_in_root,
     };
     use std::{fs, io};
     use tempfile::TempDir;
@@ -3461,17 +3679,22 @@ mod resumed_sandbox_profile_tests {
         );
         let view = RelocationView::load_for_sessions_root(&root).unwrap();
 
-        let picked = most_recent_local_summary_for_cwd_in_view(cwd, &view, |session_dir| {
-            if session_dir.ends_with("removed") {
-                Err(RelocationError::Io {
-                    operation: "read",
-                    path: session_dir.join("summary.json"),
-                    source: io::Error::new(io::ErrorKind::NotFound, "injected"),
-                })
-            } else {
-                read_summary_from_dir(session_dir)
-            }
-        })
+        let picked = most_recent_local_summary_for_cwd_in_view(
+            cwd,
+            &view,
+            |session_dir| {
+                if session_dir.ends_with("removed") {
+                    Err(RelocationError::Io {
+                        operation: "read",
+                        path: session_dir.join("summary.json"),
+                        source: io::Error::new(io::ErrorKind::NotFound, "injected"),
+                    })
+                } else {
+                    read_summary_from_dir(session_dir)
+                }
+            },
+            RecentSessionSelection::Interactive,
+        )
         .unwrap()
         .unwrap();
         assert_eq!(picked.info.id.0.as_ref(), "valid");
@@ -3502,17 +3725,22 @@ mod resumed_sandbox_profile_tests {
         );
         let view = RelocationView::load_for_sessions_root(&root).unwrap();
 
-        let error = most_recent_local_summary_for_cwd_in_view(cwd, &view, |session_dir| {
-            if session_dir.ends_with("unreadable-newer") {
-                Err(RelocationError::Io {
-                    operation: "read",
-                    path: session_dir.join("summary.json"),
-                    source: io::Error::new(io::ErrorKind::PermissionDenied, "injected"),
-                })
-            } else {
-                read_summary_from_dir(session_dir)
-            }
-        })
+        let error = most_recent_local_summary_for_cwd_in_view(
+            cwd,
+            &view,
+            |session_dir| {
+                if session_dir.ends_with("unreadable-newer") {
+                    Err(RelocationError::Io {
+                        operation: "read",
+                        path: session_dir.join("summary.json"),
+                        source: io::Error::new(io::ErrorKind::PermissionDenied, "injected"),
+                    })
+                } else {
+                    read_summary_from_dir(session_dir)
+                }
+            },
+            RecentSessionSelection::Interactive,
+        )
         .unwrap_err();
         assert!(matches!(
             error,
@@ -3592,6 +3820,45 @@ mod resumed_sandbox_profile_tests {
         assert_eq!(
             resumed_session_sandbox_profile_in_root(None, Some(cwd), &root),
             Some("workspace".to_string())
+        );
+    }
+
+    #[test]
+    fn most_recent_cwd_skips_headless_session() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path().join("sessions");
+        let cwd = "/work/proj";
+        write_session(
+            &root,
+            cwd,
+            "interactive",
+            "2026-01-01T00:00:00Z",
+            None,
+            Some("workspace"),
+            false,
+        );
+        let encoded = crate::util::nofy_home::encode_cwd_dirname(cwd);
+        let dir = root.join(&encoded).join("headless-newer");
+        fs::create_dir_all(&dir).unwrap();
+        let summary = serde_json::json!({
+            "info": { "id": "headless-newer", "cwd": cwd },
+            "session_summary": "",
+            "created_at": "2026-06-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "num_messages": 2,
+            "current_model_id": "qwen-coder",
+            "session_kind": "headless",
+        });
+        fs::write(dir.join("summary.json"), summary.to_string()).unwrap();
+
+        assert_eq!(
+            most_recent_local_summary_for_cwd_in_root(cwd, &root)
+                .unwrap()
+                .info
+                .id
+                .0
+                .to_string(),
+            "interactive"
         );
     }
 

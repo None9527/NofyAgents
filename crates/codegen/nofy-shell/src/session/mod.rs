@@ -10,6 +10,7 @@ pub mod notifications;
 pub mod pending_interaction;
 pub mod prompt_queue;
 pub mod two_pass;
+pub mod visibility;
 pub use self::acp_session::*;
 pub use self::acp_types::*;
 pub use self::commands::*;

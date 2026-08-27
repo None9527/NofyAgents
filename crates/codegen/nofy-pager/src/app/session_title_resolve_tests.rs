@@ -243,6 +243,7 @@ fn pinned_local_ctx() -> crate::app::session_startup::MaterializeCtx {
         chat_mode: false,
         title_resolution: crate::app::session_startup::TitleResolution::PinnedPreSandbox,
         restore_code: false,
+        recent_session_selection: crate::app::session_startup::RecentSessionSelection::Interactive,
     }
 }
 

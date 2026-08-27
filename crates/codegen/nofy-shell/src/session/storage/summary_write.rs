@@ -101,6 +101,10 @@ pub(crate) struct SummaryPatch {
     /// applies (last-writer-wins); `Some(None)` clears it (conversation
     /// rewind removed the described work).
     pub last_turn_summary: Option<Option<(String, String)>>,
+    /// Stamp `session_kind` only when the summary has none yet. Used by the
+    /// session/new headless stamp; a kind already on disk (crash-recovered
+    /// dir, concurrent writer) is never overwritten.
+    pub session_kind_if_absent: Option<String>,
 }
 
 impl Summary {
@@ -170,6 +174,11 @@ impl Summary {
             let (text, prompt_id) = last_turn_summary.clone().unzip();
             self.last_turn_summary = text;
             self.last_turn_summary_prompt_id = prompt_id;
+        }
+        if let Some(kind) = &patch.session_kind_if_absent
+            && self.session_kind.is_none()
+        {
+            self.session_kind = Some(kind.clone());
         }
         let mut absent_title_applied = false;
         if patch.reset_title_to_auto {
@@ -666,6 +675,48 @@ mod tests {
                 .await
                 .unwrap(),
             "no-op unpin must leave the auto title blocking if-absent"
+        );
+    }
+
+    #[tokio::test]
+    async fn session_kind_if_absent_stamps_unset_summary() {
+        let dir = TempDir::new().unwrap();
+        let (adapter, info, summary_path) = new_session(&dir).await;
+
+        adapter
+            .set_session_kind_if_absent(&info, "headless".into())
+            .await
+            .unwrap();
+
+        let summary = read_summary(&summary_path).unwrap();
+        assert_eq!(summary.session_kind.as_deref(), Some("headless"));
+    }
+
+    #[tokio::test]
+    async fn session_kind_if_absent_preserves_existing_kind() {
+        let dir = TempDir::new().unwrap();
+        let (adapter, info, summary_path) = new_session(&dir).await;
+
+        adapter
+            .apply_summary_patch(
+                &info,
+                SummaryPatch {
+                    session_kind_if_absent: Some("subagent".into()),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        adapter
+            .set_session_kind_if_absent(&info, "headless".into())
+            .await
+            .unwrap();
+
+        let summary = read_summary(&summary_path).unwrap();
+        assert_eq!(
+            summary.session_kind.as_deref(),
+            Some("subagent"),
+            "an existing kind must win over a later stamp"
         );
     }
 

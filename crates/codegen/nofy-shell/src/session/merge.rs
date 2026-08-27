@@ -58,10 +58,15 @@ pub struct MergedSession {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_kind: Option<String>,
 }
+use crate::session::visibility::HeadlessPolicy;
+
 /// Inputs to [`merge`].
 pub(crate) struct SessionLanes {
     pub local: Vec<Summary>,
     pub repo_urls: Vec<String>,
+    /// The visibility policy dropped a local row proven relevant to this
+    /// cwd/repo, so an empty page must not widen past it.
+    pub rows_dropped_by_policy: bool,
 }
 
 /// Which directories a cwd-scoped listing draws from.
@@ -96,8 +101,9 @@ pub async fn fetch_merged(
     scope: CwdScope,
     query: Option<&str>,
     limit: usize,
+    headless: HeadlessPolicy,
 ) -> Vec<MergedSession> {
-    let SessionLanes { local, repo_urls: _ } = fetch_lanes(cwd, scope, query).await;
+    let SessionLanes { local, .. } = fetch_lanes(cwd, scope, query, headless).await;
     merge(local, query, limit)
 }
 
@@ -124,6 +130,7 @@ pub(crate) async fn fetch_lanes(
     cwd: Option<&str>,
     scope: CwdScope,
     query: Option<&str>,
+    headless: HeadlessPolicy,
 ) -> SessionLanes {
     let cwd_owned = cwd.map(String::from);
     // `merge` truncates before any caller-side filter runs.
@@ -198,7 +205,14 @@ pub(crate) async fn fetch_lanes(
             local.push(summary);
         }
     }
-    SessionLanes { local, repo_urls }
+    // After the uuid promotion so a pasted headless id still obeys the page's policy.
+    let rows_dropped_by_policy =
+        crate::session::visibility::retain_session_lanes(&mut local, headless);
+    SessionLanes {
+        local,
+        repo_urls,
+        rows_dropped_by_policy,
+    }
 }
 
 /// Merge local results. Local results are optionally filtered by `query`
@@ -385,6 +399,42 @@ mod tests {
             merged[0].last_turn_summary.as_deref(),
             Some("Fixed the parser")
         );
+    }
+
+    fn headless_lane() -> Vec<Summary> {
+        let mut headless = make_summary("h1", "one-shot", "2026-03-01T00:00:00Z");
+        headless.session_kind = Some("headless".into());
+        vec![
+            make_summary("s1", "interactive", "2026-03-01T00:00:00Z"),
+            headless,
+        ]
+    }
+
+    #[test]
+    fn headless_exclude_drops_local_row() {
+        let mut local = headless_lane();
+        let dropped =
+            crate::session::visibility::retain_session_lanes(&mut local, HeadlessPolicy::Exclude);
+        assert!(dropped, "a dropped local row must be reported");
+        let local_ids: Vec<&str> = local.iter().map(|s| s.info.id.0.as_ref()).collect();
+        assert_eq!(local_ids, ["s1"]);
+    }
+
+    #[test]
+    fn headless_only_keeps_only_headless_rows() {
+        let mut local = headless_lane();
+        crate::session::visibility::retain_session_lanes(&mut local, HeadlessPolicy::Only);
+        let local_ids: Vec<&str> = local.iter().map(|s| s.info.id.0.as_ref()).collect();
+        assert_eq!(local_ids, ["h1"]);
+    }
+
+    #[test]
+    fn headless_include_keeps_everything() {
+        let mut local = headless_lane();
+        let dropped =
+            crate::session::visibility::retain_session_lanes(&mut local, HeadlessPolicy::Include);
+        assert!(!dropped);
+        assert_eq!(local.len(), 2);
     }
 
     #[test]

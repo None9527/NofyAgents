@@ -3,6 +3,7 @@ mod envelope;
 mod facets;
 mod row;
 pub use crate::session::merge::CwdScope;
+pub use crate::session::visibility::HeadlessPolicy;
 use agent_client_protocol as acp;
 use cursor::{CompositeCursor, Paginated, merge_and_paginate};
 pub use envelope::{FacetMap, FacetValue, SessionKind, SessionMetaEnvelope};
@@ -94,6 +95,11 @@ pub struct ListReq {
         deserialize_with = "cwd_scope_from_allow_relax"
     )]
     pub cwd_scope: CwdScope,
+    /// `session_kind=headless` policy: `"exclude"` | `"only"` | `"include"`.
+    /// Omission preserves the legacy inclusive behavior; unknown explicit
+    /// values fail closed to exclude.
+    #[serde(default)]
+    pub headless: Option<String>,
     #[serde(default, rename = "_meta")]
     pub meta: Option<serde_json::Value>,
 }
@@ -223,6 +229,7 @@ pub async fn build_unified_list(mut req: ListReq) -> UnifiedListResult {
     let limit = req.limit.or(meta_limit).unwrap_or(DEFAULT_LIMIT);
     let query = req.query.or(meta_query);
     let cursor = CompositeCursor::decode(req.cursor.as_deref());
+    let headless = HeadlessPolicy::from_wire(req.headless.as_deref());
     let exclude_build = excludes_build(&facet_filters);
     let over = crate::session::merge::over_fetch(limit);
     let cwd_scope = req.cwd_scope;
@@ -238,7 +245,7 @@ pub async fn build_unified_list(mut req: ListReq) -> UnifiedListResult {
         }
         let cwd = req.cwd.as_deref();
         if can_relax {
-            let lanes = crate::session::merge::fetch_lanes(cwd, cwd_scope, None).await;
+            let lanes = crate::session::merge::fetch_lanes(cwd, cwd_scope, None, headless).await;
             let rows = to_rows(
                 crate::session::merge::merge(lanes.local, None, over),
                 reg,
@@ -247,12 +254,18 @@ pub async fn build_unified_list(mut req: ListReq) -> UnifiedListResult {
                 rows,
                 relax: Some(RelaxInputs {
                     repo_urls: lanes.repo_urls,
+                    cwd_rows_dropped_by_policy: lanes.rows_dropped_by_policy,
                 }),
             }
         } else {
-            let merged =
-                crate::session::merge::fetch_merged(cwd, cwd_scope, query.as_deref(), over)
-                    .await;
+            let merged = crate::session::merge::fetch_merged(
+                cwd,
+                cwd_scope,
+                query.as_deref(),
+                over,
+                headless,
+            )
+            .await;
             LocalLane {
                 rows: to_rows(merged, reg),
                 relax: None,
@@ -263,7 +276,7 @@ pub async fn build_unified_list(mut req: ListReq) -> UnifiedListResult {
         rows: local_rows,
         relax,
     } = local_lane.await;
-    let (local_rows, scope) = maybe_relax(local_rows, relax, over, reg).await;
+    let (local_rows, scope) = maybe_relax(local_rows, relax, over, reg, headless).await;
 
     tracing::debug!(
         local_lane_skipped = exclude_build,
@@ -297,6 +310,8 @@ struct LocalLane {
 
 struct RelaxInputs {
     repo_urls: Vec<String>,
+    /// The visibility policy dropped a local row relevant to this cwd/repo.
+    cwd_rows_dropped_by_policy: bool,
 }
 
 fn to_rows(
@@ -326,13 +341,24 @@ fn lane_has_no_messages(rows: &[UnifiedRow]) -> bool {
     rows.iter().all(|r| r.legacy.num_messages == 0)
 }
 
+/// Policy emptied this cwd's local lane (`retain_session_lanes` dropped every
+/// remaining row). A partial drop that still leaves interactive husks must
+/// not block the stranded-cwd widen.
+fn policy_emptied_cwd_lane(dropped: bool, remaining: &[UnifiedRow]) -> bool {
+    dropped && remaining.is_empty()
+}
+
 async fn maybe_relax(
     local_rows: Vec<UnifiedRow>,
     relax: Option<RelaxInputs>,
     over: usize,
     reg: &FacetRegistry,
+    headless: HeadlessPolicy,
 ) -> (Vec<UnifiedRow>, ListScope) {
-    let Some(relax) = relax.filter(|_| lane_has_no_messages(&local_rows)) else {
+    let Some(relax) = relax.filter(|r| {
+        !policy_emptied_cwd_lane(r.cwd_rows_dropped_by_policy, &local_rows)
+            && lane_has_no_messages(&local_rows)
+    }) else {
         return (local_rows, ListScope::Cwd);
     };
     let scope = if relax.repo_urls.is_empty() {
@@ -346,7 +372,7 @@ async fn maybe_relax(
             tracing::debug!("cwd scan failed: {e}");
             Vec::new()
         });
-    match relax_rows(relax, all_local, over, reg) {
+    match relax_rows(relax, all_local, over, reg, headless) {
         Some(relaxed) => {
             tracing::debug!(
                 rows = relaxed.len(),
@@ -359,15 +385,18 @@ async fn maybe_relax(
     }
 }
 
-/// Re-merge the registry page with a repo-scoped local scan (all directories
-/// when the cwd is not a repo); relax only when it reveals a messaged session.
+/// Re-merge with a repo-scoped local scan (all directories when the cwd is
+/// not a repo); relax only when it reveals a messaged session.
 fn relax_rows(
     relax: RelaxInputs,
-    all_local: Vec<crate::session::persistence::Summary>,
+    mut all_local: Vec<crate::session::persistence::Summary>,
     over: usize,
     reg: &FacetRegistry,
+    headless: HeadlessPolicy,
 ) -> Option<Vec<UnifiedRow>> {
-    let scoped = crate::session::merge::filter_summaries_by_repo(all_local, &relax.repo_urls);
+    let RelaxInputs { repo_urls, .. } = relax;
+    crate::session::visibility::retain_session_lanes(&mut all_local, headless);
+    let scoped = crate::session::merge::filter_summaries_by_repo(all_local, &repo_urls);
     let rows = to_rows(crate::session::merge::merge(scoped, None, over), reg);
     (!lane_has_no_messages(&rows)).then_some(rows)
 }
@@ -725,6 +754,20 @@ mod tests {
         assert_eq!(req.cwd_scope, CwdScope::WithSiblings);
     }
 
+    #[test]
+    fn list_req_deserializes_headless_key() {
+        let req: ListReq = serde_json::from_str(r#"{"headless": "only"}"#).expect("parse");
+        assert_eq!(
+            HeadlessPolicy::from_wire(req.headless.as_deref()),
+            HeadlessPolicy::Only
+        );
+        let req: ListReq = serde_json::from_str("{}").expect("parse");
+        assert_eq!(
+            HeadlessPolicy::from_wire(req.headless.as_deref()),
+            HeadlessPolicy::Include
+        );
+    }
+
     /// relax_rows scopes to the cwd's repo and relaxes only on a messaged session.
     #[test]
     fn relax_rows_scopes_to_repo_and_requires_messages() {
@@ -746,6 +789,7 @@ mod tests {
         };
         let relax = || RelaxInputs {
             repo_urls: vec![repo_url.clone()],
+            cwd_rows_dropped_by_policy: false,
         };
         let rows = relax_rows(
             relax(),
@@ -755,6 +799,7 @@ mod tests {
             ],
             30,
             facet_registry(),
+            HeadlessPolicy::Exclude,
         )
         .expect("relaxes onto the same-repo messaged session");
         let ids: Vec<_> = rows.iter().map(|r| r.legacy.session_id.clone()).collect();
@@ -764,11 +809,102 @@ mod tests {
                 relax(),
                 vec![summary("husk", Some(this_repo), 0)],
                 30,
-                facet_registry()
+                facet_registry(),
+                HeadlessPolicy::Exclude,
             )
             .is_none(),
             "placeholder-only scan keeps the scoped view"
         );
+    }
+
+    /// The relaxed repo-wide scan honors the headless policy too, so a
+    /// headless session never leaks back into an Exclude page.
+    #[test]
+    fn relaxed_scan_drops_headless_row() {
+        use crate::session::persistence::Summary;
+        let headless_local = || {
+            let mut s = Summary::new(
+                &crate::session::info::Info {
+                    id: agent_client_protocol::SessionId::new("h1"),
+                    cwd: "/elsewhere/h1".into(),
+                },
+                agent_client_protocol::ModelId::new("m"),
+            )
+            .expect("summary");
+            s.num_messages = 6;
+            s.session_kind = Some("headless".into());
+            s
+        };
+        let relax = || RelaxInputs {
+            repo_urls: Vec::new(),
+            cwd_rows_dropped_by_policy: false,
+        };
+        assert!(
+            relax_rows(
+                relax(),
+                vec![headless_local()],
+                30,
+                facet_registry(),
+                HeadlessPolicy::Exclude,
+            )
+            .is_none(),
+            "the headless session must not leak back into an Exclude page"
+        );
+        let rows = relax_rows(
+            relax(),
+            vec![headless_local()],
+            30,
+            facet_registry(),
+            HeadlessPolicy::Include,
+        )
+        .expect("Include keeps the row, proving the fixture would leak");
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].legacy.session_id, "h1");
+    }
+
+    #[tokio::test]
+    async fn policy_emptied_cwd_lane_does_not_relax() {
+        let (rows, scope) = maybe_relax(
+            Vec::new(),
+            Some(RelaxInputs {
+                repo_urls: Vec::new(),
+                cwd_rows_dropped_by_policy: true,
+            }),
+            30,
+            facet_registry(),
+            HeadlessPolicy::Exclude,
+        )
+        .await;
+        assert!(rows.is_empty(), "the filtered page stays empty");
+        assert_eq!(scope, ListScope::Cwd, "scope must not relax");
+    }
+
+    #[test]
+    fn policy_relax_gate_only_blocks_emptied_lanes() {
+        assert!(policy_emptied_cwd_lane(true, &[]));
+        assert!(!policy_emptied_cwd_lane(false, &[]));
+        let husk = to_rows(
+            crate::session::merge::merge(
+                vec![{
+                    let mut summary = crate::session::persistence::Summary::new(
+                        &crate::session::info::Info {
+                            id: agent_client_protocol::SessionId::new("husk"),
+                            cwd: "/repo".into(),
+                        },
+                        agent_client_protocol::ModelId::new("m"),
+                    )
+                    .expect("summary");
+                    summary.num_messages = 0;
+                    summary
+                }],
+                None,
+                30,
+            ),
+            facet_registry(),
+        );
+        assert!(!husk.is_empty());
+        assert!(!policy_emptied_cwd_lane(true, &husk));
+        assert!(!policy_emptied_cwd_lane(false, &husk));
     }
 
     /// Send-side wire pin: `nofy/listScope` present iff the scope relaxed.
