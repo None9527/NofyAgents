@@ -51,6 +51,7 @@
 - 记忆 flush 提示词:上游在 `xai-grok-memory/src/flush.rs`,我们在 `nofy-shell/src/session/helpers/memory_flush.rs`(FLUSH/FLUSH_DELTA 两提示词同文件)
 - 遥测 startup.rs 测试基建(批14):上游有 `SERIAL` 串行锁+`reset_for_tests()`,我们原本只有单个整体生命周期测试;移植新测试时已补齐,既有生命周期测试也要拿锁+重置
 - nofy-shell `agent/session_metrics.rs` 是遥测事件的 re-export shim:遥测新增导出项要同步补,否则编译错(批14 漏 `SessionStartKind` 曾致编译失败)
+- MCP 失败提醒(批15):`retries_on_use` 判定保留 Nofy 分歧——`nofy_com_` 前缀托管连接器走 managed-mcp 代理,「下次工具调用自动重试」提示不适用(上游无此排除,因其无托管连接器机制);`mcp_server_name` 我们走 `session::managed_mcp` 路径(上游同);上游对 mcp_connecting_reminder/reminder_policy 测试断言的放宽不移植(实现未变,保留严格断言)
 - `log_prompt_cache_usage` → 我们是 `log_prompt_cache_hit`(side_call.rs)
 - `AuxCall` 无 `hosted_tools` 字段
 - `strum` 依赖:我们不引入,枚举改手写 `as_str` + 显式变体列表测试
@@ -87,3 +88,4 @@
 | 批12 | aee2fe61 | 状态栏:新增 nofy-status-line crate、shared [ui.status_line] 配置、telemetry 两事件、shell 快照发射器+通知+唤醒联动、pager 状态机/布局行/渲染/命令型行/刷新定时器+73 文件 | 0.2.147 |
 | 批13 | 2a628c92 | 记忆精化(上游 1.0.9):dream/flush 提示词泛化+细节接地、注入段与 memory_get/search 描述加「历史上下文,用前核实」;我们的 memory_context 双参+可信扫描结构保留,只移措辞;注意上游 flush 在我们树中位于 shell/helpers/memory_flush.rs | 0.2.148 |
 | 批14 | 554647cb | 遥测地基(上游 1.0.9/1.0.10):activity gauges 模块整体移植+六路接线(子代理/压缩/MCP 连接/回合/工作流/会话)、事件 metadata 活动计数合并、StartupComplete→StartupCompleted+6 subphase 计时字段、startup.rs Subphase 时序机制(不含 span)、InstrumentationTimer::with_subphase、StartupPhase 改名(ConfigLoad/WorkerSpawn)、SessionStarted 增 kind/setup_duration/restored_from_disk、新事件 CancellationCompleted/EventLoopStall、MCP ClientState::Ready 持连接 gauge、pager prefetch/首帧计时;跳过 Clone* 事件/two-pass 字段/span 机制;测试基建补 SERIAL 锁+reset_for_tests | 0.2.149 |
+| 批15 | f2ad859a | MCP 失败提醒集群(上游 1.0.10):McpAnnounced episode 状态机(每失败宣布一次/auth 粘性/配置编辑开新 episode/恢复接管不误宣布)+mcp_failed_reminder 分类渲染模块(单一消毒边界)+mcp.rs 重接线(dirty 提前清+RearmOnDrop+同步 latch_and_push)+rewind/compaction rearm+text_sanitize 欺骗字符压平+announced_failed_servers 持久化(只存分类);Nofy 分歧保留:托管连接器(nofy_com_)不带自动重试提示;跳过上游测试断言放宽(实现未变);顺带修复批H 遗留 benches/session_list 编译错 | 0.2.150 |
