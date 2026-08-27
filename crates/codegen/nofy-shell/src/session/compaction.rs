@@ -1752,7 +1752,7 @@ impl SessionActor {
             .tool_bridge()
             .on_skill_discovery_compaction()
             .await;
-        self.persist_announcement_state().await;
+        self.rearm_failed_server_announcements().await;
         self.plan_mode.lock().reset_after_compaction();
         self.persist_plan_mode_state();
         self.dispatch_hook(
@@ -2458,7 +2458,7 @@ mod inline_auto_compact_flow_tests {
             managed_mcp_expires_at: std::sync::Mutex::new(None),
             initial_client_mcp_servers: vec![],
             tool_metadata_snapshot: Arc::new(std::sync::Mutex::new(Default::default())),
-            mcp_announced_servers: parking_lot::Mutex::new(std::collections::HashMap::new()),
+            mcp_announcements: parking_lot::Mutex::new(Default::default()),
             mcp_reminder_mode: McpReminderMode::Delta,
             mcp_reminder_dirty: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             mcp_connecting_reminder_injected: std::cell::Cell::new(false),

@@ -4,6 +4,7 @@ pub mod nofy_auth_credentials;
 pub mod hooks;
 pub mod limits;
 pub(crate) mod subprocess;
+pub(crate) mod text_sanitize;
 
 // The foundation utilities live in `nofy-shell-base` (upstream of this
 // crate so they build in parallel). Re-exported at the original paths so

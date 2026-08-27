@@ -1672,14 +1672,9 @@ pub(crate) async fn spawn_session_actor(
         managed_mcp_handle,
         managed_mcp_expires_at: std::sync::Mutex::new(managed_mcp_expires_at),
         tool_metadata_snapshot: Arc::new(std::sync::Mutex::new(Default::default())),
-        mcp_announced_servers: Mutex::new(
+        mcp_announcements: Mutex::new(
             persisted_announcement_state
-                .as_ref()
-                .map(|s| {
-                    crate::session::announcement_state::from_persisted_fingerprints(
-                        &s.mcp_server_fingerprints,
-                    )
-                })
+                .map(crate::session::announcement_state::McpAnnounced::from_persisted)
                 .unwrap_or_default(),
         ),
         mcp_reminder_mode: McpReminderMode::from_env(),
