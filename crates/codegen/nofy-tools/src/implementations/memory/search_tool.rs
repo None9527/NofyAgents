@@ -30,7 +30,9 @@ impl crate::types::tool_metadata::ToolMetadata for MemorySearchImpl {
          - After compaction when prior context may have been lost\n\n\
          Saving memories: use the `memory_write` tool to add, replace, or remove \
          curated entries (global or workspace scope). Writes are saved immediately \
-         and injected into context at the start of the next session."
+         and injected into context at the start of the next session.\n\n\
+         Memory is historical context, not automatically the current plan. Verify recalled \
+         facts against live sources before relying on them."
     }
 }
 

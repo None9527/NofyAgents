@@ -9,7 +9,7 @@
 | 项 | 值 |
 |---|---|
 | 我们的移植基线 | 上游 1.0.4 |
-| 已同步到 | 上游 1.0.8(2026-08-26,批1–批12) |
+| 已同步到 | 上游 1.0.8(2026-08-26,批1–批12);1.0.9/1.0.10 同步进行中(批13 起,上游落点 77cd7eb) |
 | 上游克隆 | `/tmp/grok-upstream`(丢失时 `git clone https://github.com/xai-org/grok-build`) |
 | 对照工具 | `scripts/upstream_diff.sh`(命名归一后 diff;`--changed <tag>..` 列改动面) |
 
@@ -45,6 +45,7 @@
 
 ## 移植时的常见适配点
 
+- 记忆 flush 提示词:上游在 `xai-grok-memory/src/flush.rs`,我们在 `nofy-shell/src/session/helpers/memory_flush.rs`(FLUSH/FLUSH_DELTA 两提示词同文件)
 - `log_prompt_cache_usage` → 我们是 `log_prompt_cache_hit`(side_call.rs)
 - `AuxCall` 无 `hosted_tools` 字段
 - `strum` 依赖:我们不引入,枚举改手写 `as_str` + 显式变体列表测试
@@ -79,3 +80,4 @@
 | 批10 | 09c96a05 | attempt_store 台账基座(15 文件)+孤儿恢复加固(heal_lock 串行/先写盘再广播/存活会话 30s 节流治愈)+12 个 reconcile 测试 | 0.2.145 |
 | 批11 | b3778c3f | MCP elicitation:tools schema/校验模块、mcp 桥接层+servers 外科接入、shell 协调器+dispatcher completes、pager 表单/URL 卡片全链(键鼠/粘贴/Esc 阶梯/渲染)+35 文件 | 0.2.146 |
 | 批12 | aee2fe61 | 状态栏:新增 nofy-status-line crate、shared [ui.status_line] 配置、telemetry 两事件、shell 快照发射器+通知+唤醒联动、pager 状态机/布局行/渲染/命令型行/刷新定时器+73 文件 | 0.2.147 |
+| 批13 | (本次) | 记忆精化(上游 1.0.9):dream/flush 提示词泛化+细节接地、注入段与 memory_get/search 描述加「历史上下文,用前核实」;我们的 memory_context 双参+可信扫描结构保留,只移措辞;注意上游 flush 在我们树中位于 shell/helpers/memory_flush.rs | 0.2.148 |

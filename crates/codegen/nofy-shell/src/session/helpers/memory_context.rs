@@ -54,7 +54,13 @@ pub fn format_memory_reminder(
     }
 
     if !results.is_empty() {
-        section.push_str("## Relevant Memory from Past Sessions\n\n");
+        section.push_str(
+            "## Relevant Memory from Past Sessions\n\n\
+             Treat memory as historical context, not automatically as the current plan. \
+             Verify recalled paths, commands, \
+             repository state, and external facts with live tools before relying on them; \
+             prefer current evidence when it conflicts with memory.\n\n",
+        );
 
         for (i, r) in results.iter().enumerate() {
             // Scan the FULL chunk text before truncating for display:
