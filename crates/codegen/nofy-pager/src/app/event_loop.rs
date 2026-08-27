@@ -905,6 +905,7 @@ pub(crate) async fn run(
     let launch_auto = nofy_shell::util::config::effective_auto_for_launch(
         args.yolo,
         args.permission_mode_flag.as_deref(),
+        nofy_shell::util::config::default_interactive_permission_mode(),
     );
     if launch_auto {
         app.current_ui.permission_mode = Some("auto".into());

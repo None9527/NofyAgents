@@ -684,6 +684,7 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
     let launch_auto = nofy_shell::util::config::effective_auto_for_launch(
         args.yolo,
         args.permission_mode_flag.as_deref(),
+        nofy_shell::util::config::default_interactive_permission_mode(),
     );
     let mut connect_flags = crate::acp::ConnectFlags {
         subagents: !args.no_subagents,

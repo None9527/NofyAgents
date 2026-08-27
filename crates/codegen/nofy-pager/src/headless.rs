@@ -848,6 +848,7 @@ pub async fn run_single_turn(
     agent_config.default_auto_mode = nofy_shell::util::config::effective_auto_for_launch(
         options.yolo,
         options.permission_mode_flag.as_deref(),
+        nofy_shell::util::config::PermissionMode::Ask,
     );
 
     apply_agent_flag(&options.agent, &mut agent_config);

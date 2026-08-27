@@ -218,6 +218,7 @@ async fn run_agent_command(
     agent_config.default_auto_mode = nofy_shell::util::config::effective_auto_for_launch(
         agent_args.yolo,
         permission_mode_flag.as_deref(),
+        nofy_shell::util::config::PermissionMode::Ask,
     );
     agent_config.agent_profile_path = agent_args
         .agent_profile

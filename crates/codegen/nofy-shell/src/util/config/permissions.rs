@@ -70,6 +70,22 @@ pub fn permission_mode_from_ui_if_set(ui: &TomlValue) -> Option<PermissionMode> 
     Some(PermissionMode::Ask)
 }
 
+/// Shipped TUI default when CLI and TOML all leave the mode unset.
+pub(crate) const DEFAULT_INTERACTIVE_PERMISSION_MODE: PermissionMode = PermissionMode::Ask;
+
+pub(crate) const ENV_DEFAULT_PERMISSION_MODE: &str = "NOFY_DEFAULT_PERMISSION_MODE";
+
+/// Env override for [`DEFAULT_INTERACTIVE_PERMISSION_MODE`].
+/// `always-approve` and unknown values are ignored so bypass cannot inherit
+/// from the process environment.
+pub fn default_interactive_permission_mode() -> PermissionMode {
+    match std::env::var(ENV_DEFAULT_PERMISSION_MODE).ok().as_deref() {
+        Some("auto") => PermissionMode::Auto,
+        Some("ask") | Some("default") => PermissionMode::Ask,
+        _ => DEFAULT_INTERACTIVE_PERMISSION_MODE,
+    }
+}
+
 /// Pure resolver: effective TOML `[ui]` permission keys (if any) > `Ask`.
 /// CLI is applied above this by the launch helpers. Managed/requirements TOML
 /// already deep-merge into effective config.
@@ -122,12 +138,18 @@ pub fn resolved_display_permission_mode(effective_ui: Option<&TomlValue>) -> &'s
 ///   approval_mode = "always-approve"   (legacy)
 ///   yolo = true                        (legacy)
 pub fn load_permission_mode() -> PermissionMode {
+    load_selected_permission_mode().unwrap_or(PermissionMode::Ask)
+}
+
+/// Disk form of [`resolve_permission_mode`]. Load failure is explicit Ask so
+/// a broken config cannot fall into the interactive default (which may be auto).
+fn load_selected_permission_mode() -> Option<PermissionMode> {
     let root: TomlValue = match crate::config::load_effective_config() {
         Ok(r) => r,
-        Err(_) => return PermissionMode::Ask,
+        Err(_) => return Some(PermissionMode::Ask),
     };
     let ui = root.as_table().and_then(|t| t.get("ui"));
-    resolve_permission_mode(ui)
+    ui.and_then(|ui| permission_mode_from_ui_if_set(ui))
 }
 
 /// Result of [`effective_yolo_for_launch`].
@@ -154,12 +176,14 @@ pub fn effective_yolo_for_launch(
     )
 }
 
-/// Whether this launch should start in **auto** permission mode (LLM/heuristic
-/// classifier — not always-approve). CLI `--permission-mode auto` beats config.
-/// Mutually exclusive with effective yolo (yolo / `--yolo` wins if both requested).
+/// Whether this launch should start in auto (not always-approve). CLI
+/// `--permission-mode auto` beats config; yolo wins if both requested.
+/// `unset_default` applies only when nothing selected a mode: Ask for
+/// headless, [`default_interactive_permission_mode`] for the TUI.
 pub fn effective_auto_for_launch(
     cli_always_approve: bool,
     cli_permission_mode: Option<&str>,
+    unset_default: PermissionMode,
 ) -> bool {
     // Feature gate (default ON): when the auto permission-mode feature is
     // disabled, Auto is inert — never launch into it regardless of CLI/config,
@@ -182,7 +206,9 @@ pub fn effective_auto_for_launch(
     if let Some(mode) = cli_permission_mode {
         return mode == "auto";
     }
-    load_permission_mode().is_auto()
+    load_selected_permission_mode()
+        .unwrap_or(unset_default)
+        .is_auto()
 }
 
 /// Whether a session should activate the **auto** permission mode: the feature
@@ -552,13 +578,25 @@ mod tests {
             .lock()
             .unwrap_or_else(|p| p.into_inner());
         unsafe { std::env::set_var("NOFY_AUTO_PERMISSION_MODE", "1") };
-        assert!(effective_auto_for_launch(false, Some("auto")));
+        assert!(effective_auto_for_launch(
+            false,
+            Some("auto"),
+            PermissionMode::Ask
+        ));
         assert!(
-            !effective_auto_for_launch(true, Some("auto")),
+            !effective_auto_for_launch(true, Some("auto"), PermissionMode::Ask),
             "--yolo beats auto"
         );
-        assert!(!effective_auto_for_launch(false, Some("always-approve")));
-        assert!(!effective_auto_for_launch(false, Some("ask")));
+        assert!(!effective_auto_for_launch(
+            false,
+            Some("always-approve"),
+            PermissionMode::Ask
+        ));
+        assert!(!effective_auto_for_launch(
+            false,
+            Some("ask"),
+            PermissionMode::Ask
+        ));
         unsafe { std::env::remove_var("NOFY_AUTO_PERMISSION_MODE") };
     }
 
@@ -596,14 +634,45 @@ mod tests {
             .unwrap_or_else(|p| p.into_inner());
         unsafe { std::env::set_var("NOFY_AUTO_PERMISSION_MODE", "0") };
         assert!(
-            !effective_auto_for_launch(false, Some("auto")),
+            !effective_auto_for_launch(false, Some("auto"), PermissionMode::Ask),
             "gate OFF: explicit --permission-mode auto must not activate auto"
         );
         assert!(
-            !effective_auto_for_launch(false, None),
+            !effective_auto_for_launch(false, None, PermissionMode::Ask),
             "gate OFF: config-driven auto must not activate auto"
         );
+        assert!(
+            !effective_auto_for_launch(false, None, PermissionMode::Auto),
+            "gate OFF: an Auto unset-default must be inert"
+        );
         unsafe { std::env::remove_var("NOFY_AUTO_PERMISSION_MODE") };
+    }
+
+    #[test]
+    fn interactive_default_slot() {
+        let _g = crate::util::config::resolve::AUTO_PERMISSION_MODE_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        unsafe { std::env::remove_var(ENV_DEFAULT_PERMISSION_MODE) };
+        assert_eq!(
+            default_interactive_permission_mode(),
+            DEFAULT_INTERACTIVE_PERMISSION_MODE,
+        );
+        for (raw, expected) in [
+            ("auto", PermissionMode::Auto),
+            ("ask", PermissionMode::Ask),
+            ("default", PermissionMode::Ask),
+            ("always-approve", DEFAULT_INTERACTIVE_PERMISSION_MODE),
+            ("garbage", DEFAULT_INTERACTIVE_PERMISSION_MODE),
+        ] {
+            unsafe { std::env::set_var(ENV_DEFAULT_PERMISSION_MODE, raw) };
+            assert_eq!(
+                default_interactive_permission_mode(),
+                expected,
+                "NOFY_DEFAULT_PERMISSION_MODE={raw}"
+            );
+        }
+        unsafe { std::env::remove_var(ENV_DEFAULT_PERMISSION_MODE) };
     }
 
     // Pure tests for the policy predicate itself live next to its canonical
