@@ -9,7 +9,7 @@
 | 项 | 值 |
 |---|---|
 | 我们的移植基线 | 上游 1.0.4 |
-| 已同步到 | 上游 1.0.8(2026-08-26,批1–批12);1.0.9/1.0.10 同步进行中(批13 起,上游落点 77cd7eb) |
+| 已同步到 | 上游 1.0.8(2026-08-26,批1–批12);1.0.10(2026-08-28,批13–批23 完成,上游落点 77cd7eb) |
 | 上游克隆 | `/tmp/grok-upstream`(丢失时 `git clone https://github.com/xai-org/grok-build`) |
 | 对照工具 | `scripts/upstream_diff.sh`(命名归一后 diff;`--changed <tag>..` 列改动面) |
 
@@ -49,7 +49,7 @@
 | cancel_agent_turn 提取 + 子代理覆盖层取消分支(turn.rs) | 无 | 批18 外科适配:上游早期未移植特性,我们保留现有 turn.rs 结构直接接 cancel_and_arm |
 | turn.rs round 式 goal 循环重构(GoalRoundDecision 外的上游回合结构) | 保留现有循环 | 上游 turn.rs 大重构的一部分;我们的循环语义等价,让位/续跑门控已按上游逻辑移植 |
 | compaction.rs 遥测 hunk(CompactionModeLabel 内联/segments_written→segments_queued) | 无 | 批20 跳过:压缩完成遥测(CompactionCompleteStats/CompactionModeLabel)未移植 |
-| two_pass_compaction 默认 false→true(config-types registry+文档) | 保持 false | 批20 暂缓:行为变更未列入本批范围,我们树无 FEATURES registry,解析在 Config::resolve_two_pass_compaction,留待单独评估 |
+| two_pass_compaction 默认 false→true(config-types registry+文档) | 已完成 | 批20 暂缓→批23 落地:我们树无 FEATURES registry,等价改动在 `Config::resolve_two_pass_compaction` 默认值翻转(含优先级测试与文档同步);上游 1.0.10 已全量默认开启 |
 | plan_mode.rs/enter_plan_mode/exit_plan_mode/revise_plan_message 测试断言放宽 | 保留严格断言 | 批20 跳过:模板与实现均未变,上游仅删脆弱文本断言(同批16/17 方针) |
 | session_setup.rs sessionKind/is_headless(parse_client_session_kind 等) | 按批拆分 | 批20 跳过:属批21 会话列表/搜索架构;SessionStarted 计时部分批14 已移植 |
 | 27-grok-clone.md 用户指南(docs.rs include) | 无 | 批20 跳过:Grove 深度克隆为云特性文档 |
@@ -66,6 +66,22 @@
 | SourceFilter::Grok 变体名 | SourceFilter::Nofy | 批22 保留既有命名分歧:Headless 循环(Nofy→Headless→External→All→Local→Remote)与测试均按我们变体名 |
 | SessionPickerEntry.last_recap 字段 | 无 | 批22 适配:云特性我们从无,session_kind 插在 last_turn_summary 之后 |
 | picker 窗口内 dashboard.rs 12 行 | 已移植 | 批22 跳过:属批18 cancel_and_arm |
+| shell-terminal 拆包(上游新 crate) | 已完成 | 批23:新建 nofy-shell-terminal(11 文件),nofy-shell 以 `pub use nofy_shell_terminal as terminal` 重导出保持路径不变;移动的是**我们的**终端文件(对上游基线有真实分歧:live_waiters/KillSource 等基线前特性从未移植),只叠加窗口路径改写,不照搬上游最终文件 |
+| hunk-tracker SetWorkingDir/rekey_paths_for_working_dir | 无 | 批23 跳过:路径虚拟化(hub guest 工作区重挂载)配套,唯一消费者是 workspace `set_cwd_for_virtualization` |
+| path_virtualization.rs(+550/+465)/session_root/LocalFs remount_root | 无 | 批23 跳过:hub guest 工作区 `/workspace/<conversation_id>` 虚拟化,云特性 |
+| bot_relay.rs(1306 行)+Bot* wire 方法+`__hub:` 会话前缀 | 无 | 批23 跳过:hub bot 中继协议;我们架构是「表面只审批、执行走 provider」,仅作参照 |
+| hub_auth/proactive.rs(+759/+1044 测试)、hub.rs 增量 | 无 | 云认证,随批跳过 |
+| status_config.rs(+446) | 无 | workspace 工具服务器心跳/keepalive(hub 连接) |
+| grok clone 系列(tip 拉取/worktree 复用/fast-worktree nfs 客户端/`Clone*` 遥测) | 无 | 我们无 clone 表面;Clone* 遥测批14 已登记 |
+| /feedback 附图 | 无 | 依赖云上传 |
+| Dashboard Shift+Tab 启 Auto | 无 | hub dashboard 表面 |
+| config-types RemoteSettings(subagents_sampling_limit/two_pass remote 参/FEATURES registry) | 无 | 批23:我们无远端设置结构;等价项经 `Config::resolve_two_pass_compaction` 默认翻转与批20 `[subagents] sampling_limit` 本地配置实现 |
+| pager-bin Cargo.toml sandbox-enforce feature 接线 | 无需 | 批23:上游因 workspace 不再默认开启而补;我们 nofy-workspace 的 sandbox-enforce 仍是默认 feature |
+| agent config.rs general_purpose_toolset(workflow 不入列表) | 已完成 | 批23:`nofy_build_core_toolset(include_workflow)` 拆分,general-purpose 定义自带无 workflow 工具集(与子代理剥离双保险) |
+| ConnectionKind::as_wire_str/Display/ALL | 已完成 | 批23:协议层单一来源,hub-sdk `expected_role` 改用;BotClient 变体不引入 |
+| bash_grants warn/computer terminal 转后台/桥接方法 | 已移植 | 批23 核查:批20 已移植,无需重复 |
+| 工具测试断言放宽集群(bash/kill_task/task_output/search_replace/enter·exit_plan/ask_user_question/types·output/registry·types/plan_mode/opencode bash/tools-api slash) | 已移植 | 批23:与批16/17/20 的「保留严格断言」不同,本批按上游放宽(断言去措辞钉选,改结构对比),减少后续同步摩擦;`.grok/plan.md`→`.nofy/plan.md` 需手工归一 |
+| agent crate 测试放宽(discovery/context/template 共约 400 行删减) | 保留严格断言 | 批23 跳过:实现与措辞未变,按批16/17/20 方针保留 |
 | session registry 标题同步 | 无 | 依赖 registry 服务 |
 | 权限 Always/Never | 已移植 | 批9(3fe2d814,0.2.144) |
 | attempt_store 子代理恢复台账 | 已移植 | 批10(09c96a05,0.2.145) |
@@ -85,6 +101,7 @@
 - 子代理/回合集群(批20):`spawn_session_actor`/`spawn_session_on_thread` 无上游的 `spawn_timer` 参数(subagent spawn 遥测未移植),`sampling_gate` 直接加在 `is_chat_kind` 之后;SubagentSpawnContext 构造点在 `mvp_agent/subagent_coordinator.rs`(上游 subagent_spawn.rs),`parent_compaction` 快照的两段开关来源改 `Config::resolve_two_pass_compaction()`(上游走 `resolve_feature(Feature::TwoPassCompaction)`,我们 SubagentSpawnContext 无 resolve_feature);`resolve_compaction_mode`/`resolve_sampling_limit` 去掉 remote 层;我们的 sampler_turn.rs 无上游基线的 classifier/cutoff 函数,新测试文件只装门控测试;send-now 转后台的 kill 兜底依赖下一回合 dangling 修复(我们同有该机制,函数名不同)
 - 会话可见性(批21):`retain_session_lanes` 上游双车道(本地 Summary+远端 SessionRecord)降为本地单车道;`SessionKindIndex` 用 `RelocationView.find_persisted_session_dir`+`read_summary_from_dir` 按需分类单个 id,避免全量扫描;`-p` 打戳走 `_meta.sessionKind` wire 字段(headless.rs 三处:新会话/带 id/fork),`subagent*` 是保留命名空间直接拒绝;`list_sessions_recent` 跳过 headless 但按 `RECENT_LIST_READ_SLACK=8` 倍读取上限回填,防 headless 主导树短路分页;`rows_dropped_by_policy` 标志阻止「策略清空车道后误放宽到全量扫描」;`session_registry.with` 我们返回 `Option`,is_headless 要 `.unwrap_or(false)`;pager 启动链路 `local_resume_selection()` 由 `single/prompt_json/prompt_file` 任一存在判定(Include),headless_materialize_ctx 恒 Any
 - picker 路由(批22):测试只能逐 hunk 移植(我们 dispatch/tests/session/load.rs 无上游 title hydration/worktree/restore 等测试,不能整文件替换);`content_hit` 夹具按上游从 foreign.rs 上移到 tests/session/mod.rs;`open_session_picker_with` 助手打戳真实 generation(生产模态的 generation 由 dispatch_fetch_session_list 分配,0 只是构造占位);所有 `ActiveModal::SessionPicker` 字面量要补 `generation`/`detail_seq`;我们 effects 测试的 `execute()` 无 progress_tx 参数,上游新测试降维适配;`gitnexus_rename` 仍会漏定义文件自身引用(PersistedInfo 改名 4 处中漏 2 处),改名后要 grep 复核
+- shell-terminal 拆包(批23):移动**我们的**文件而非照搬上游最终版(终端模块对上游基线有真实分歧);转换脚本做 `crate::terminal::`→`crate::`,pty_session 内联 `send_routed_notification`(新 crate 不依赖 shell 的 extensions::routing,用 `agent_client_protocol::ExtNotification`),`TargetClientId` 改从 `nofy_workspace::file_system` 导入,10 处 `pub(crate)`→`pub`;`nofy_home` 在新 crate 走 `nofy_config::nofy_home`(shell 里是 shell-base re-export);`From<TerminalExtError> for ExtMethodResult` impl 随上游移到 shell `session/result.rs`;上游已删的 `get_task_output_path` 我们保留(会话任务日志路径仍在用);工作区 Cargo.toml 要同时加 members 与 `[workspace.dependencies]` 条目;归一化 sed 表易漏 `.grok/` 路径字面量(测试断言里),apply 后要全量 grep 复核
 - `log_prompt_cache_usage` → 我们是 `log_prompt_cache_hit`(side_call.rs)
 - `AuxCall` 无 `hosted_tools` 字段
 - `strum` 依赖:我们不引入,枚举改手写 `as_str` + 显式变体列表测试
@@ -129,3 +146,4 @@
 | 批20 | c62278ab | 子代理/回合集群(上游 1.0.10):①压缩默认 Summary→Segments(手写 Default impl+解析链文档/测试同步);②compaction pins(CompactionPins{mode,two_pass}+cursor_compaction_pins+父会话快照含 harness 模板继承判定+子代理派生,子代理不再硬编码 Summary/两段关闭);③sampling 信号量全链路(NOFY_SUBAGENT_SAMPLING_LIMIT env+[subagents] sampling_limit,≤512 钳制;MvpAgent 共享 Semaphore→SubagentSpawnContext→spawn_session_on_thread/actor sampling_gate 参;子代理回合 submit 持许可排队、主会话 None 不限流、信号量关闭失败开放;CompletionResult 转 pub);④plan 门控放行 Task(plan_mode_edit_gate 对 ToolInput::Task 直接 Allow);⑤send-now 转后台(回合中发消息不再 SIGKILL 前台命令:TerminalBackend::background_foreground_commands+LocalTerminalActor 全量转后台+BashExecutionBackgrounded 补宣布+桥接方法+tasks_cancel 接线,空返回回退杀进程,模型收到「仍在运行,按 task_id 取输出」的 tool result);测试 +6(shell 5220 过)+1 终端转后台集成测试(tools 2912 过);跳过 compaction.rs 遥测 hunk、two_pass 默认翻转(暂缓)、sessionKind(批21)、纯测试放宽、grok-clone 云文档 | 0.2.155 |
 | 批21 | ce84f43b | 会话列表/搜索可见性架构(上游 1.0.10):①新 visibility.rs(HeadlessPolicy Exclude/Only/Include+from_wire fail-closed+ClassifiedSessionKind+retain_session_lanes 本地单车道);②`-p`/headless 打戳全链(_meta.sessionKind 解析,subagent* 保留命名空间拒绝;StorageAdapter::set_session_kind_if_absent 锁内原子写;新会话/带 id/fork 三处 wire meta);③unified_list 的 ListReq.headless wire 字段+fetch_lanes/fetch_merged 策略过滤+rows_dropped_by_policy 阻止策略清空后假放宽;④session_search walk_admitted_window 分页分类(filtered-view offset/total);⑤list_sessions_recent 跳过 headless+8 倍读取上限;⑥花名册 mark_headless/is_headless,headless 不入 roster(resident+dormant 均排除);⑦pager 启动 local_resume_selection(-p/--prompt-*→Include)+presandbox_resume_target/most_recent_session_id/resolve_session_by_title 携带 RecentSessionSelection;sessions 命令清单用 Include;测试 +29(shell 5249 过)+4(pager 8044 过);跳过远端 SessionRecord 车道/conversations lane(无云),load()/PersistedInfoLight 与 welcome/foreign_sessions session_kind 延迟批22 | 0.2.156 |
 | 批22 | 42e3abdb | picker 路由重构(上游 1.0.10):①新增 SessionPickerHost{Welcome/AgentModal/Dashboard}+SessionPickerSurface,picker_routing.rs 三重门(host 存活+generation 相等+seq 当前)统一结果路由;②AppView 新增 picker_generation_counter/session_picker_generation/alloc_picker_generation,welcome generation 每次 browse fetch 与每次 dismiss 重分配,session_picker_detail_generation 改名 detail_seq;③Effect/TaskResult 全量携带 host+generation 回显,wire 层 nofy/session/list 与 search 加 headless 参数,FetchDashboardSessions 恒 Exclude;④SourceFilter 新增 Headless 页(Nofy→Headless→External→All→Local→Remote),跨越 Headless 触发 refetch+清过期 natives+重启深搜,hidden_external_hint 移 Headless 页专属;⑤parse_session_picker_entries 解析 sessionKind,invalidate_picker_fetch_on_dismiss 改 generation+list_seq 双隔离,debounce 过期加 welcome 视图存活性检查(仅 build 模式深搜);⑥收尾 PersistedInfoLight 改名 PersistedInfo(上游合并 dead-code load(),我们本无);测试 8062 过(净增 18,含 8 个上游新测试),删 1 过时测试重写 2,minimal panel 删 pin-hint 测试;跳过 dashboard peek Esc changelog(窗口内无代码)/dashboard.rs 12 行(批18)/last_recap(云),dashboard_session_picker 预留臂照搬 | 0.2.157 |
+| 批23 | 49b789d0 | shell-terminal 拆包+工具修复集群(上游 1.0.9/1.0.10,末批):①终端模块移出为独立 crate nofy-shell-terminal(11 文件机械移动+路径改写,移动的是我们的文件——对上游基线有 live_waiters/KillSource 等真实分歧,不照搬上游最终版),nofy-shell `pub use nofy_shell_terminal as terminal` 重导出路径不变,From<TerminalExtError> impl 移 session/result.rs,pty_session 内联路由通知,shlex/process-wrap/portable-pty 依赖迁移;②子代理 workflow 剥离补全(apply_child_tool_policy 按 kind/短 id 剥离+agent config.rs nofy_build_core_toolset(include_workflow) 拆分,general-purpose 定义自带无 workflow 工具集)+4 测试;③two_pass 压缩默认翻转开启(批20 暂缓解除,上游 1.0.10 全量);④工具测试断言放宽集群(bash/kill_task/task_output/search_replace/enter·exit_plan/ask_user_question/types·output/registry·types/plan_mode/opencode bash/tools-api slash,措辞去钉选改结构对比);⑤携带:build.rs 版本哈希 12 位、sandbox 钉 NOFY_DEFAULT_PERMISSION_MODE=ask、ConnectionKind::as_wire_str 协议单一来源+hub-sdk 改用、用户指南 6 处同步;测试 tools 2906/shell 5183/agent 575/subagent-resolution 108/shell-terminal 63/协议层全过;跳过 hunk-tracker SetWorkingDir(路径虚拟化配套)/config-types RemoteSettings(无此结构)/agent crate 测试放宽(保留严格断言)/bot_relay+hub_auth/proactive+status_config+grok clone 系列+/feedback 附图+Dashboard Shift+Tab(云/hub,登记分歧表);bash_grants warn 与 send-now 转后台核查批20 已移植 | 0.2.158 |
