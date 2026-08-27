@@ -2022,7 +2022,9 @@ pub(crate) async fn spawn_session_actor(
             nofy_telemetry::session_ctx::log_event_dual(telemetry_enabled, ev);
         });
     }
+    let hosting = nofy_telemetry::activity::SESSIONS_ACTIVE.enter();
     tokio::task::spawn_local(async move {
+        let _hosting = hosting;
         nofy_telemetry::session_ctx::with_session_ctx(
             telemetry_ctx,
             run_session(

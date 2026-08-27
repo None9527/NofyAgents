@@ -373,6 +373,7 @@ pub struct CompactionScope {
     pub tokens_before: u64,
     pub model_id: String,
     start: std::time::Instant,
+    _active: crate::activity::ActivityGaugeGuard,
 }
 
 impl CompactionScope {
@@ -385,6 +386,11 @@ impl CompactionScope {
     ) -> Self {
         let compaction_id = uuid::Uuid::new_v4().to_string();
         let percentage = nofy_token_estimation::usage_percentage_u8(tokens_used, context_window);
+        let active = crate::activity::COMPACTIONS_ACTIVE.enter();
+        debug_assert!(
+            crate::activity::COMPACTIONS_ACTIVE.get() >= 1,
+            "CompactionTriggered must stamp a self-inclusive count"
+        );
         crate::session_ctx::log_event(CompactionTriggered {
             trigger,
             tokens_used,
@@ -399,6 +405,7 @@ impl CompactionScope {
             tokens_before: tokens_used,
             model_id,
             start: std::time::Instant::now(),
+            _active: active,
         }
     }
 
@@ -1163,6 +1170,19 @@ pub struct TurnCompleted {
     pub error_category: Option<String>,
 }
 
+#[derive(Serialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum CancellationScope {
+    Turn,
+    Compaction,
+}
+
+#[derive(Serialize, Clone, Copy)]
+pub struct CancellationCompleted {
+    pub latency_ms: u64,
+    pub scope: CancellationScope,
+}
+
 /// Model issued a shell tool call whose command is `true` (keepalive thrash signal).
 #[derive(Serialize)]
 pub struct ShellTrueNoop {
@@ -1285,14 +1305,24 @@ pub struct AgentConnect {
     pub auth_mode: crate::startup::AuthMode,
 }
 
-/// End to end startup: process start to a usable session, with the phase
-/// breakdown that accounts for it.
 #[derive(Serialize)]
-pub struct StartupComplete {
+pub struct StartupCompleted {
     pub total_ms: u64,
     pub outcome: crate::startup::StartupOutcome,
     pub phases: String,
     pub auth_mode: crate::startup::AuthMode,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prefetch_wait_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_load_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_replay_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_git_scan_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_spawn_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_to_first_frame_ms: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -1304,6 +1334,16 @@ pub struct PagerSlashCommand {
 #[derive(Serialize)]
 pub struct PlanSubmit {
     pub action: String,
+}
+
+#[derive(Serialize)]
+pub struct EventLoopStall {
+    pub max_stall_ms: u64,
+    pub window_ms: u64,
+    pub events_handled: u32,
+    pub stall_compaction_active: bool,
+    pub stall_subagents_active: u32,
+    pub stall_mcp_servers_connected: u32,
 }
 
 /// Which surface a promo announcement's upgrade CTA was activated from.
@@ -1833,6 +1873,7 @@ telemetry_event!(MultiAgentDiscard, "multi_agent_discard");
 telemetry_event!(RepoChanges, "repo_changes");
 telemetry_event!(NonGitDecisionEvent, "non_git_decision");
 telemetry_event!(PromptLatency, "prompt_latency");
+telemetry_event!(CancellationCompleted, "cancellation_completed");
 telemetry_event!(HeapThresholdCrossed, "heap_threshold_crossed");
 telemetry_event!(ProcessResourceUsage, "process_resource_usage");
 telemetry_event!(ProcessResourceLimits, "process_resource_limits");
@@ -1867,12 +1908,13 @@ telemetry_event!(
     external = crate::external::schema::map_agent_connect
 );
 telemetry_event!(
-    StartupComplete,
-    "startup_complete",
-    external = crate::external::schema::map_startup_complete
+    StartupCompleted,
+    "startup_completed",
+    external = crate::external::schema::map_startup_completed
 );
 telemetry_event!(PagerSlashCommand, "pager_slash_command");
 telemetry_event!(PlanSubmit, "plan_submit");
+telemetry_event!(EventLoopStall, "event_loop_stall");
 telemetry_event!(AnnouncementCtaShown, "announcement_cta_shown");
 telemetry_event!(AnnouncementCtaClicked, "announcement_cta_clicked");
 telemetry_event!(TerminalTelemetry, "terminal_context");

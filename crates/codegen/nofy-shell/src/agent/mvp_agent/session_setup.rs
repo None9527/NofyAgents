@@ -53,6 +53,15 @@ pub(super) enum AttachOperation {
     Load,
     Resume,
 }
+impl AttachOperation {
+    pub(super) fn start_kind(self) -> crate::agent::session_metrics::SessionStartKind {
+        use crate::agent::session_metrics::SessionStartKind;
+        match self {
+            Self::Load => SessionStartKind::Load,
+            Self::Resume => SessionStartKind::Resume,
+        }
+    }
+}
 /// What the two attach methods do differently, decided in one exhaustive match
 /// so a branch further down cannot quietly skip [`AttachOperation`]. Not in the
 /// request's `_meta`, where resume used to write it: that lets a client spoof it.
@@ -100,18 +109,26 @@ struct SessionWorkspace {
     managed_mcp_expires_at: Option<chrono::DateTime<chrono::Utc>>,
     mcp_meta_config_map: McpMetaConfigMap,
 }
-/// Open the telemetry session context, then describe the session for storage.
-/// Both pipelines start here, so both appear in session metrics identically.
-fn begin_session(session_id: &acp::SessionId, cwd: &AbsPathBuf) -> SessionInfo {
-    nofy_telemetry::session_ctx::log_session_event(
-        crate::agent::session_metrics::SessionStarted {
-            session_id: session_id.0.to_string(),
-        },
-    );
+fn session_info_for(session_id: &acp::SessionId, cwd: &AbsPathBuf) -> SessionInfo {
     SessionInfo {
         id: session_id.clone(),
         cwd: cwd.as_str().to_owned(),
     }
+}
+fn log_session_started(
+    session_id: &acp::SessionId,
+    kind: crate::agent::session_metrics::SessionStartKind,
+    setup_duration: std::time::Duration,
+    restored_from_disk: bool,
+) {
+    nofy_telemetry::session_ctx::log_session_event(
+        crate::agent::session_metrics::SessionStarted::new(
+            session_id.0.to_string(),
+            kind,
+            setup_duration,
+            restored_from_disk,
+        ),
+    );
 }
 impl MvpAgent {
     /// Read this client's capabilities, falling back to the agent's own state
@@ -161,6 +178,7 @@ impl MvpAgent {
         &self,
         arguments: acp::NewSessionRequest,
     ) -> Result<acp::NewSessionResponse, acp::Error> {
+        let session_started_at = std::time::Instant::now();
         reject_chat_kind_without_feature(arguments.meta.as_ref())?;
         tracing::debug!(config = ?self.sampling_config, "Received new session request {arguments:?}");
         let init = self.initialize_request.get().ok_or_else(|| {
@@ -258,7 +276,7 @@ impl MvpAgent {
                     .and_then(|v| v.as_str())
                     .map(|s| s.to_string())
             });
-        let session_info = begin_session(&session_id, &cwd);
+        let session_info = session_info_for(&session_id, &cwd);
         let mut model_agent_type: Option<String> = None;
         let mut session_sampling_override: Option<SamplingConfig> = None;
         let mut disallowed_custom: Option<String> = None;
@@ -378,6 +396,7 @@ impl MvpAgent {
         let spawn_res = {
             let mut timer = crate::instrumentation_timer!("session.spawn_session_actor");
             timer.with_field("session_id", session_id.0.as_ref());
+            timer.with_subphase(nofy_telemetry::startup::Subphase::SessionSpawn);
             let spawn_opts = if is_chat_kind {
                 chat_session_spawn_options(
                     session_info.clone(),
@@ -540,6 +559,12 @@ impl MvpAgent {
         self.attach_status_line(&session_id, arguments.meta.as_ref(), init);
         #[cfg(all(feature = "local-workspace", unix))]
         local_ws_reap_guard.disarm();
+        log_session_started(
+            &session_id,
+            crate::agent::session_metrics::SessionStartKind::New,
+            session_started_at.elapsed(),
+            false,
+        );
         Ok(acp::NewSessionResponse::new(session_id)
             .models(Some(models))
             .meta(meta.as_object().cloned()))
@@ -555,6 +580,7 @@ impl MvpAgent {
         arguments: acp::LoadSessionRequest,
         op: AttachOperation,
     ) -> Result<acp::LoadSessionResponse, acp::Error> {
+        let attach_started_at = std::time::Instant::now();
         let _load_guard = self.begin_session_load(&arguments.session_id);
         reject_chat_kind_without_feature(arguments.meta.as_ref())?;
         self.sweep_dead_sessions();
@@ -603,7 +629,7 @@ impl MvpAgent {
                 crate::session::worktree_pool::cleanup_stale_pool_worktrees(Some(&root));
             });
         }
-        let session_info = begin_session(&session_id, &cwd);
+        let session_info = session_info_for(&session_id, &cwd);
         let current_session_dir = crate::session::persistence::session_dir(&session_info);
         tokio::task::spawn_blocking(move || {
             crate::session::persistence::cleanup_stale_sessions(Some(&current_session_dir));
@@ -639,6 +665,7 @@ impl MvpAgent {
         let (summary_client, summary_model) = self.build_summary_client(&load_session_sampling)?;
         let mut persistence_timer = crate::instrumentation_timer!("session.load_light");
         persistence_timer.with_field("session_id", session_id.0.as_ref());
+        persistence_timer.with_subphase(nofy_telemetry::startup::Subphase::SessionLoad);
         let (persistence_info, persistence) = crate::session::persistence::load_light(
             &session_info,
             summary_client,
@@ -730,7 +757,7 @@ impl MvpAgent {
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
             .or_else(|| summary.prompt_display_cwd.clone());
-        if !self.is_resident(&session_id) {
+        let restored_from_disk = if !self.is_resident(&session_id) {
             tracing::info!(
                 session_id = %session_id.0,
                 "load_session: spawning new session actor (session not in memory)"
@@ -738,6 +765,7 @@ impl MvpAgent {
             let mut spawn_timer =
                 crate::instrumentation_timer!("session.spawn_and_register_session");
             spawn_timer.with_field("session_id", session_id.0.as_ref());
+            spawn_timer.with_subphase(nofy_telemetry::startup::Subphase::SessionSpawn);
             let persisted_agent_name: Option<String> = summary.agent_name.clone().or_else(|| {
                 self.resolve_model_id(&summary.current_model_id)
                     .ok()
@@ -778,6 +806,7 @@ impl MvpAgent {
             )
             .await?;
             drop(spawn_timer);
+            true
         } else {
             tracing::info!(
                 session_id = %session_id.0,
@@ -794,7 +823,8 @@ impl MvpAgent {
                         respond_to: tx,
                     });
             });
-        }
+            false
+        };
         {
             let init_meta = self
                 .initialize_request
@@ -862,6 +892,12 @@ impl MvpAgent {
                 restored_from_disk: true,
             });
         }
+        log_session_started(
+            &session_id,
+            op.start_kind(),
+            attach_started_at.elapsed(),
+            restored_from_disk,
+        );
         Ok(response)
     }
     /// Restore-code phase: check the persisted HEAD out into `cwd`, then
@@ -1248,7 +1284,8 @@ impl MvpAgent {
                 .is_some_and(|current_root| current_root == std::path::Path::new(root))
             })
         {
-            let _timer = crate::instrumentation_timer!("session.git_divergence");
+            let mut git_scan_timer = crate::instrumentation_timer!("session.git_divergence");
+            git_scan_timer.with_subphase(nofy_telemetry::startup::Subphase::SessionGitScan);
             let cwd_path = std::path::Path::new(cwd.as_str());
             let current_head =
                 nofy_workspace::session::git::git_cli(cwd_path, &["rev-parse", "HEAD"])

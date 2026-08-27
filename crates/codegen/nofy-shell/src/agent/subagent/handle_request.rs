@@ -914,6 +914,11 @@ pub(crate) async fn run_shell_child(
         );
     }
     let mcp_owned_count = agent_mcp_servers.len() as u32;
+    let _active = nofy_telemetry::activity::SUBAGENTS_ACTIVE.enter();
+    debug_assert!(
+        nofy_telemetry::activity::SUBAGENTS_ACTIVE.get() >= 1,
+        "SubagentLaunched must stamp a self-inclusive count"
+    );
     nofy_telemetry::session_ctx::log_event(nofy_telemetry::events::SubagentLaunched {
         subagent_id: request.id.clone(),
         parent_session_id: request.parent_session_id.clone(),

@@ -1099,6 +1099,7 @@ impl MvpAgent {
         let mut replay_timer = crate::instrumentation_timer!("session.load_session_replay");
         replay_timer.with_field("session_id", session_id.0.as_ref());
         replay_timer.with_field("cwd", cwd.as_str());
+        replay_timer.with_subphase(nofy_telemetry::startup::Subphase::SessionReplay);
         let Some(updates_path) = updates_file_path.clone() else {
             tracing::warn!(session_id = %session_id.0, "replay: no updates file path");
             return Ok((0, 0, Vec::new()));

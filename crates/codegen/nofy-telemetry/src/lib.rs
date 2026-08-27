@@ -6,6 +6,7 @@
 //! that only want event tracking + inference metrics no longer pull in
 //! Mixpanel/HTTP/identity dependencies.
 
+pub mod activity;
 mod appender;
 pub mod client;
 pub mod config;

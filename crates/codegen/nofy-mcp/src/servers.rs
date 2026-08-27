@@ -2316,7 +2316,10 @@ enum ClientState {
     /// transport on a best-effort basis so other callers can retry.
     Initializing,
     /// Handshake completed; the service is reference-counted via `Arc`.
-    Ready(McpService),
+    Ready {
+        service: McpService,
+        _connected: nofy_telemetry::activity::ActivityGaugeGuard,
+    },
 }
 
 /// `Copy` projection of [`ClientState`] used for cheap state-machine
@@ -3285,9 +3288,16 @@ impl McpClient {
             // variant write per non-Pending call (plus an `Arc::clone`
             // on the Ready path) — negligible.
             match std::mem::replace(&mut *guard, ClientState::Initializing) {
-                ClientState::Ready(service) => {
-                    *guard = ClientState::Ready(service.clone());
-                    return Ok(service);
+                ClientState::Ready {
+                    service,
+                    _connected,
+                } => {
+                    let ready = service.clone();
+                    *guard = ClientState::Ready {
+                        service,
+                        _connected,
+                    };
+                    return Ok(ready);
                 }
                 ClientState::Empty => {
                     *guard = ClientState::Empty;
@@ -3400,7 +3410,10 @@ impl McpClient {
             match result {
                 Ok(service) => {
                     let service = Arc::new(service);
-                    *guard = ClientState::Ready(service.clone());
+                    *guard = ClientState::Ready {
+                        service: service.clone(),
+                        _connected: nofy_telemetry::activity::MCP_SERVERS_CONNECTED.enter(),
+                    };
                     tracing::info!(
                         server = %self.server_name,
                         "MCP server initialized successfully"
@@ -3766,7 +3779,7 @@ impl McpClient {
     pub async fn is_healthy(&self) -> bool {
         let guard = self.state.lock().await;
         match &*guard {
-            ClientState::Ready(service) => !service.is_transport_closed(),
+            ClientState::Ready { service, .. } => !service.is_transport_closed(),
             _ => false,
         }
     }
@@ -3782,7 +3795,7 @@ impl McpClient {
     pub async fn liveness_check(&self) -> LivenessCheck {
         let guard = self.state.lock().await;
         match &*guard {
-            ClientState::Ready(service) => {
+            ClientState::Ready { service, .. } => {
                 if service.is_transport_closed() {
                     LivenessCheck::TransportClosed
                 } else {
@@ -3805,7 +3818,7 @@ impl McpClient {
             ClientState::Empty => ClientStateKind::Empty,
             ClientState::Pending(_) => ClientStateKind::Pending,
             ClientState::Initializing => ClientStateKind::Initializing,
-            ClientState::Ready(_) => ClientStateKind::Ready,
+            ClientState::Ready { .. } => ClientStateKind::Ready,
         }
     }
 
@@ -3899,7 +3912,7 @@ impl McpClient {
     /// Returns `None` if the client isn't ready yet.
     pub async fn server_instructions(&self) -> Option<String> {
         let guard = self.state.lock().await;
-        if let ClientState::Ready(service) = &*guard {
+        if let ClientState::Ready { service, .. } = &*guard {
             service
                 .peer_info()?
                 .instructions
@@ -7032,7 +7045,10 @@ mod tests {
         ));
         // Inject the closed real service so the FIRST `call_tool` fails retriably.
         let dead = dead_service().await;
-        *client.state.lock().await = ClientState::Ready(dead);
+        *client.state.lock().await = ClientState::Ready {
+            service: dead,
+            _connected: nofy_telemetry::activity::MCP_SERVERS_CONNECTED.enter(),
+        };
 
         let erased = McpErasedTool {
             tool: McpTool::new(
@@ -7075,7 +7091,7 @@ mod tests {
             "successful retry must not be flagged as timeout"
         );
         // reset_transport + re-handshake replaced the dead service with a live one.
-        assert!(matches!(&*client.state.lock().await, ClientState::Ready(_)));
+        assert!(matches!(&*client.state.lock().await, ClientState::Ready { .. }));
     }
 
     #[test]
@@ -7629,7 +7645,7 @@ mod tests {
             ClientState::Empty => "Empty",
             ClientState::Pending(_) => "Pending",
             ClientState::Initializing => "Initializing",
-            ClientState::Ready(_) => "Ready",
+            ClientState::Ready { .. } => "Ready",
         }
     }
 

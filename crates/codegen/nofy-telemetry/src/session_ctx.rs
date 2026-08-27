@@ -244,6 +244,9 @@ pub fn emit_event_with_origin<T: Serialize + Send + 'static>(
         })
         .ok();
 
+    // Read here, not in the spawned post: boundary events see their moment.
+    let activity = crate::activity::ActivitySnapshot::read();
+
     if tokio::runtime::Handle::try_current().is_err() {
         // `spawn` below panics without a runtime; counting first would pin the
         // gauge above zero for the rest of the process.
@@ -270,6 +273,12 @@ pub fn emit_event_with_origin<T: Serialize + Send + 'static>(
             metadata.insert("session_id".into(), json!(session_id));
             if let Some(turn) = turn_number {
                 metadata.insert("turn_number".into(), json!(turn));
+            }
+        }
+
+        if let Ok(serde_json::Value::Object(gauges)) = serde_json::to_value(activity) {
+            for (key, value) in gauges {
+                metadata.entry(key).or_insert(value);
             }
         }
 

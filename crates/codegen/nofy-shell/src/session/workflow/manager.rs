@@ -244,6 +244,11 @@ impl WorkflowManager {
         self.notify
             .emit(&state, self.tracker.lock().elapsed_ms(&run_id), 0);
 
+        let active = nofy_telemetry::activity::WORKFLOW_RUNS_ACTIVE.enter();
+        debug_assert!(
+            nofy_telemetry::activity::WORKFLOW_RUNS_ACTIVE.get() >= 1,
+            "WorkflowRunStarted must stamp a self-inclusive count"
+        );
         log_run_started(
             &run_id,
             &self.session_id,
@@ -321,6 +326,7 @@ impl WorkflowManager {
         let watcher_agent_stats = agent_stats;
         let execution_epoch = self.tracker.lock().execution_epoch(&run_id).unwrap_or(0);
         tokio::spawn(async move {
+            let _active = active;
             let mut outcome = exec.await.unwrap_or_else(|e| WorkflowOutcome::Failed {
                 error: format!("workflow executor panicked: {e}"),
             });

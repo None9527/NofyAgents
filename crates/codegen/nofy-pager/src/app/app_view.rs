@@ -3244,6 +3244,7 @@ impl AppView {
     /// docs for the full rationale.
     pub fn draw(&mut self, terminal: &mut PagerTerminal) {
         self.draw_inner(terminal);
+        nofy_telemetry::startup::record_first_frame();
         crate::memory_release::run_deferred_release();
     }
     fn draw_inner(&mut self, terminal: &mut PagerTerminal) {

@@ -142,7 +142,7 @@ pub struct ConnectFlags {
 
 /// Connect to an agent: spawn, initialize, authenticate.
 pub async fn connect(cancel: &CancellationToken, flags: ConnectFlags) -> Result<AcpConnection> {
-    startup::enter(StartupPhase::LoadConfig);
+    startup::enter(StartupPhase::ConfigLoad);
     let raw_config = nofy_shell::config::load_effective_config()
         .map_err(|e| anyhow::anyhow!("Failed to load config: {}", e))?;
     let mut agent_config = AgentConfig::new_from_toml_cfg(&raw_config)

@@ -234,7 +234,7 @@ pub async fn spawn_nofy_shell(
     };
 
     // Spawn the agent thread with direct dispatch
-    startup::enter(StartupPhase::SpawnWorker);
+    startup::enter(StartupPhase::WorkerSpawn);
     let handle =
         spawn_agent_thread_direct(spawn_fn, acp_agent, agent_cancel.clone(), skills_paths)?;
 

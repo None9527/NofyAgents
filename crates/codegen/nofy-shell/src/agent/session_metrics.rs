@@ -5,5 +5,5 @@
 //! the existing import path so nothing else in shell needs to change.
 
 pub(crate) use nofy_telemetry::session_metrics::{
-    DoomLoopRecovery, SessionStarted, Turn, TurnCompletedLifecycle,
+    DoomLoopRecovery, SessionStartKind, SessionStarted, Turn, TurnCompletedLifecycle,
 };

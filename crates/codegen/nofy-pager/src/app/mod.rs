@@ -547,7 +547,9 @@ pub async fn run(args: PagerArgs) -> anyhow::Result<()> {
     if let Ok(cwd) = std::env::current_dir() {
         crate::git_info::populate_from_cwd_async(cwd);
     }
+    let prefetch_wait_started = std::time::Instant::now();
     join_early_prefetch(early_prefetch);
+    nofy_telemetry::startup::record_prefetch_wait(prefetch_wait_started.elapsed());
     let raw_config = nofy_shell::config::load_effective_config()
         .map_err(|e| anyhow::anyhow!("Failed to load config: {e}"))?;
     let prefetch_elapsed = startup_start.elapsed();
@@ -1660,7 +1662,7 @@ mod tests {
         nofy_telemetry::unified_log::redirect_to_temp_for_tests();
         let cancel = CancellationToken::new();
         let timer = crate::acp::StartupTimer::new();
-        timer.enter(crate::acp::StartupPhase::LoadConfig);
+        timer.enter(crate::acp::StartupPhase::ConfigLoad);
         timer.enter(crate::acp::StartupPhase::ModelCatalog);
         let r = bounded_connect(
             &cancel,
