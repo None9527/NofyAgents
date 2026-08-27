@@ -7098,6 +7098,23 @@ pub(crate) mod tests {
         );
     }
     #[test]
+    fn streaming_wake_turn_counts_as_running_for_minimal_commit() {
+        let mut app = test_app_with_agent();
+        let id = super::super::agent::AgentId(0);
+        let agent = app.agents.get_mut(&id).unwrap();
+        assert!(agent.session.state.is_idle());
+        assert!(!crate::minimal_api::is_turn_or_wake_running(agent));
+        agent.note_streaming_wake_turn("subagent-completed-abc");
+        assert!(
+            crate::minimal_api::is_turn_or_wake_running(agent),
+            "a streaming wake turn must hold the minimal commit frontier"
+        );
+        agent.running_wake_turn = None;
+        assert!(!crate::minimal_api::is_turn_or_wake_running(agent));
+        agent.session.state = AgentState::TurnRunning;
+        assert!(crate::minimal_api::is_turn_or_wake_running(agent));
+    }
+    #[test]
     fn esc_from_prompt_pane_running_turn_with_draft_cancels_preserving_draft() {
         let mut app = test_app_with_agent();
         let id = super::super::agent::AgentId(0);
@@ -7314,12 +7331,15 @@ pub(crate) mod tests {
         let effects = crate::app::dispatch::dispatch(Action::ClearPrompt, &mut app);
         assert!(effects.is_empty());
         assert!(app.agents[&id].prompt.textarea.text().is_empty());
+        assert!(
+            app.agents[&id].session.prompt_history.is_empty(),
+            "the cleared draft goes to the stash, never to the history"
+        );
         assert_eq!(
             app.agents[&id]
-                .session
-                .prompt_history
-                .first()
-                .map(String::as_str),
+                .prompt_stash
+                .as_ref()
+                .map(|entry| entry.prompt.text.as_str()),
             Some("draft to clear")
         );
     }
@@ -7822,6 +7842,7 @@ pub(crate) mod tests {
             .push_block(crate::scrollback::block::RenderBlock::user_prompt(
                 "earlier",
             ));
+        agent.session.prompt_history = vec!["earlier".into()];
         assert!(agent.prompt.textarea.text().is_empty());
         let history = agent.combined_prompt_history();
         let current_text = agent.prompt.text().to_string();

@@ -6,7 +6,6 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use nofy_status_line::{ResolvedStatusLine, StatusLineConfig, StatusLineItem, StatusLineType};
 
-use crate::app::ScreenMode;
 
 use super::draws_a_row;
 
@@ -53,15 +52,14 @@ impl StatusLineMetrics {
 
     /// Called once per session at the config boundary, row or not: the
     /// sessions that never touched the feature are adoption's denominator.
-    pub(crate) fn report_config(&self, cfg: &StatusLineConfig, screen_mode: ScreenMode) {
+    pub(crate) fn report_config(&self, cfg: &StatusLineConfig) {
         // `unset`, not `disabled`: no readable mode, whether the section named none
         // or its `type` was rejected. `row_shows_a_problem` separates those.
         let kind = cfg.declared_kind().map_or("unset", StatusLineType::as_str);
         if self.kind.set(kind).is_err() {
             return;
         }
-        self.draws_a_row
-            .store(draws_a_row(screen_mode, cfg), Ordering::Relaxed);
+        self.draws_a_row.store(draws_a_row(cfg), Ordering::Relaxed);
         nofy_telemetry::session_ctx::log_event(
             nofy_telemetry::events::StatusLineConfigured {
                 kind,

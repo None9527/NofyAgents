@@ -122,7 +122,6 @@ impl AgentView {
             stashed_prompt: None,
             prompt_stash: None,
             draft_consumed: false,
-            prompt_stash_evicted: Vec::new(),
             active_modal: None,
             modal_buttons: Vec::new(),
             modal_hovered_key: None,

@@ -28,10 +28,23 @@ pub(super) fn dispatch_enter_remember_mode(app: &mut AppView) -> Vec<Effect> {
     vec![]
 }
 
+/// The `#` composer path. Nothing else records the note, so this records it.
+pub(super) fn dispatch_send_remember_note(app: &mut AppView, text: String) -> Vec<Effect> {
+    send_remember_note(app, text, true)
+}
+
+/// The `/remember <text>` path. `dispatch_send_prompt_inner` already recorded the typed command.
+pub(super) fn dispatch_send_remember_note_from_command(
+    app: &mut AppView,
+    text: String,
+) -> Vec<Effect> {
+    send_remember_note(app, text, false)
+}
+
 /// Send a raw remember note for LLM-powered rewriting via `nofy/memory/rewrite`.
 /// Clears remember mode and prompts the LLM to reformat the note with session
 /// context. Falls back to direct `SaveMemoryNote` when no session is available.
-pub(super) fn dispatch_send_remember_note(app: &mut AppView, text: String) -> Vec<Effect> {
+fn send_remember_note(app: &mut AppView, text: String, record_in_history: bool) -> Vec<Effect> {
     use crate::views::modal::ActiveModal;
 
     let ActiveView::Agent(id) = app.active_view else {
@@ -55,6 +68,10 @@ pub(super) fn dispatch_send_remember_note(app: &mut AppView, text: String) -> Ve
     }
 
     agent.note_draft_consumed();
+    if record_in_history {
+        // Stored without the `#`. Recall decodes a prefix back into its mode, which would turn `# Context` into a note.
+        agent.record_prompt_in_history(&trimmed);
+    }
 
     let cwd = agent.session.cwd.clone();
 

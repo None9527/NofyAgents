@@ -180,12 +180,8 @@ pub(super) fn handle_settings_update(notif: &acp::ExtNotification, app: &mut App
     true
 }
 
-/// Re-arm the soft-defaulted launch mode from the local `[ui]` config
-/// (TOML `[ui]` > Ask), for the next `/new` only — live sessions are
-/// untouched and nothing is persisted. `effective_ui` is injected so the
-/// resolve is deterministic under test. Enforcement gating reuses the app's
-/// startup snapshots (`yolo_policy_block`, `auto_mode_gate`); the agent's
-/// permission manager re-clamps authoritatively at decision time.
+/// Re-arm the next `/new` from the local `[ui]` config's `permission_mode`.
+/// Live sessions stay untouched; nothing is persisted.
 pub(super) fn apply_soft_default_permission_mode(
     app: &mut AppView,
     effective_ui: Option<&toml::Value>,

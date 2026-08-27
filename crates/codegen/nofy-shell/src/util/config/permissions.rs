@@ -86,16 +86,16 @@ pub fn default_interactive_permission_mode() -> PermissionMode {
     }
 }
 
-/// Pure resolver: effective TOML `[ui]` permission keys (if any) > `Ask`.
-/// CLI is applied above this by the launch helpers. Managed/requirements TOML
-/// already deep-merge into effective config.
+/// Pure resolver: effective TOML `[ui]` permission keys (if any) > the
+/// interactive default. CLI is applied above this by the launch helpers.
+/// Managed/requirements TOML already deep-merge into effective config.
 pub fn resolve_permission_mode(effective_ui: Option<&TomlValue>) -> PermissionMode {
     if let Some(ui) = effective_ui
         && let Some(mode) = permission_mode_from_ui_if_set(ui)
     {
         return mode;
     }
-    PermissionMode::Ask
+    default_interactive_permission_mode()
 }
 
 /// Display projection for a selected mode that did NOT win yolo/auto
@@ -280,6 +280,7 @@ mod tests {
 
     #[test]
     fn resolve_permission_mode_none_is_ask() {
+        unsafe { std::env::remove_var(ENV_DEFAULT_PERMISSION_MODE) };
         assert_eq!(resolve_permission_mode(None), PermissionMode::Ask);
     }
 

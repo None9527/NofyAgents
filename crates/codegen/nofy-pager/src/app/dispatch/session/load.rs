@@ -969,6 +969,7 @@ pub(in crate::app::dispatch) fn handle_session_loaded(
             cwd: cwd.clone(),
             last_turn_summary_gen: agent.last_turn_summary_gen,
         });
+        agent.seed_prompt_history_from_scrollback();
         agent.session.prompt_history_loading = true;
         effects.push(Effect::FetchPromptHistory {
             agent_id,

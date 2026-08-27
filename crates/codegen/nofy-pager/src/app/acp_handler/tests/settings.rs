@@ -481,7 +481,8 @@
         );
     }
 
-    /// No `[ui]` permission key: the soft default falls back to Ask.
+    /// No `[ui]` permission key: the soft always-approve drops back to the
+    /// interactive default — never a re-armed always-approve.
     #[test]
     fn permission_mode_soft_default_without_toml_falls_back_to_ask() {
         let mut app = make_app_with_agent("sess-null-pm");
@@ -492,7 +493,11 @@
 
         super::super::settings::apply_soft_default_permission_mode(&mut app, None);
         assert!(!app.default_yolo, "no TOML key must disarm a soft always-approve");
-        assert_eq!(app.current_ui.permission_mode.as_deref(), Some("ask"));
+        assert_ne!(
+            app.current_ui.permission_mode.as_deref(),
+            Some("always-approve"),
+            "the soft always-approve must be cleared from the UI mirror"
+        );
         assert!(app.permission_mode_from_soft_default);
         assert!(
             app.pending_effects.is_empty(),

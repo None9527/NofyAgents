@@ -19,50 +19,57 @@ impl AgentView {
         self.session.prompt_history_loading && self.prompt.text().is_empty()
     }
 
-    /// Build the combined prompt history, deduped by `text.trim()`: this
-    /// session's prompts first (scrollback `UserPrompt` blocks, newest
-    /// first), then the fetched history (`session.prompt_history`).
+    /// Unsent drafts first (the stash, then drafts it replaced), then `session.prompt_history` in order.
     ///
-    /// Scrollback-first is load-bearing: the fetch races the shell-side
-    /// append of a fresh session's first prompts (and `PromptHistoryLoaded`
-    /// replaces the local list), so a just-sent prompt may exist only as a
-    /// scrollback block — it must still rank newest.
+    /// `session.prompt_history` in order, and nothing else. A stashed draft is not history: `Ctrl+S`
+    /// is how you get it back, and listing it here shows it before you ever sent it.
     pub fn combined_prompt_history(&self) -> Vec<crate::views::history_search::HistoryEntry> {
-        use crate::scrollback::block::RenderBlock;
         use crate::views::history_search::HistoryEntry;
-        use std::collections::HashSet;
 
-        fn push_unique(out: &mut Vec<HistoryEntry>, seen: &mut HashSet<String>, text: String) {
-            let key = text.trim().to_string();
-            if !key.is_empty() && seen.insert(key) {
+        fn push(out: &mut Vec<HistoryEntry>, text: String) {
+            if !text.trim().is_empty() {
                 out.push(HistoryEntry { text });
             }
         }
 
-        let mut seen: HashSet<String> = HashSet::new();
         let mut history = Vec::new();
 
-        if let Some(entry) = &self.prompt_stash {
-            push_unique(&mut history, &mut seen, entry.history_text());
-        }
-
-        for text in &self.prompt_stash_evicted {
-            push_unique(&mut history, &mut seen, text.clone());
-        }
-
-        for i in (0..self.scrollback.len()).rev() {
-            if let Some(entry) = self.scrollback.entry(i)
-                && let RenderBlock::UserPrompt(block) = &entry.block
-            {
-                push_unique(&mut history, &mut seen, block.text.clone());
-            }
-        }
-
         for prompt in &self.session.prompt_history {
-            push_unique(&mut history, &mut seen, prompt.clone());
+            push(&mut history, prompt.clone());
         }
 
         history
+    }
+
+    /// Append the replayed transcript's `UserPrompt` blocks to `session.prompt_history`, newest first.
+    ///
+    /// The browse reads that list alone, and the `nofy/prompt_history` fetch delivers an empty list when it
+    /// fails, so this is what makes a restored session's prompts recallable. Appended, not prepended: a prompt
+    /// sent during the load is newer than anything the transcript holds. `PromptHistoryLoaded` skips fetched
+    /// prompts whose trimmed text is already here.
+    pub(in crate::app) fn seed_prompt_history_from_scrollback(&mut self) {
+        use crate::scrollback::block::RenderBlock;
+
+        let recorded: std::collections::HashSet<String> = self
+            .session
+            .prompt_history
+            .iter()
+            .map(|prompt| prompt.trim().to_owned())
+            .collect();
+
+        let restored: Vec<String> = (0..self.scrollback.len())
+            .rev()
+            .filter_map(|i| match &self.scrollback.entry(i)?.block {
+                RenderBlock::UserPrompt(block) => Some(block.text.clone()),
+                _ => None,
+            })
+            .filter(|text| !text.trim().is_empty() && !recorded.contains(text.trim()))
+            .collect();
+
+        self.session.prompt_history.extend(restored);
+        self.session
+            .prompt_history
+            .truncate(crate::app::agent::PROMPT_HISTORY_CAP);
     }
 
     /// Prompt-focused key handling.
@@ -1385,67 +1392,36 @@ mod combined_prompt_history_tests {
             .collect()
     }
 
-    /// THIS SESSION's prompts (scrollback blocks) outrank the fetched
-    /// fetched history: the fetch races the shell-side append of a
-    /// fresh session's first prompts, so scrollback is the authoritative
-    /// "newest" source and a just-sent prompt is always recalled first.
+    /// Every kind of entry sorts against every other.
     #[test]
-    fn session_scrollback_prompts_outrank_fetched_history() {
+    fn every_kind_of_entry_sorts_against_every_other() {
         let mut agent = make_agent_view(None, "/tmp");
         agent.session.prompt_history = vec![
-            "seventeen".into(),
-            "sixteen".into(),
-            "fifteen".into(),
-            "ten".into(),
+            "/session-info".into(),
+            "! ls".into(),
+            "/pwd".into(),
+            "hello".into(),
         ];
-        agent.scrollback.push_block(RenderBlock::user_prompt("ten"));
         agent
             .scrollback
-            .push_block(RenderBlock::user_prompt("just sent"));
+            .push_block(RenderBlock::user_prompt("hello"));
 
-        assert_eq!(
-            texts(&agent),
-            [
-                "just sent", // this session, newest first
-                "ten",       // this session (fetched dup ignored)
-                "seventeen", // fetched history follows
-                "sixteen",
-                "fifteen",
-            ]
-        );
+        assert_eq!(texts(&agent), ["/session-info", "! ls", "/pwd", "hello"]);
     }
 
+    /// Rows keep their position when a text repeats.
     #[test]
-    fn fetched_history_follows_scrollback_and_dedups_on_trim() {
+    fn a_repeat_keeps_both_of_its_places() {
         let mut agent = make_agent_view(None, "/tmp");
-        agent.session.prompt_history = vec!["shared".into(), "fetched_only".into()];
-        agent
-            .scrollback
-            .push_block(RenderBlock::user_prompt("scrollback_only_old"));
-        agent
-            .scrollback
-            .push_block(RenderBlock::user_prompt("  shared  "));
-        agent
-            .scrollback
-            .push_block(RenderBlock::user_prompt("scrollback_only_new"));
+        agent.session.prompt_history = vec!["/docs".into(), "fix the bug".into(), "/docs".into()];
 
-        assert_eq!(
-            texts(&agent),
-            [
-                "scrollback_only_new",
-                "  shared  ", // trim-keyed dedup: scrollback variant wins
-                "scrollback_only_old",
-                "fetched_only",
-            ]
-        );
+        assert_eq!(texts(&agent), ["/docs", "fix the bug", "/docs"]);
     }
 
     #[test]
     fn skips_empty_trimmed_keys() {
         let mut agent = make_agent_view(None, "/tmp");
         agent.session.prompt_history = vec!["   ".into(), "ok".into(), "".into()];
-        agent.scrollback.push_block(RenderBlock::user_prompt("  "));
-        agent.scrollback.push_block(RenderBlock::user_prompt("ok"));
 
         assert_eq!(texts(&agent), ["ok"]);
     }

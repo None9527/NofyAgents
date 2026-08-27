@@ -866,8 +866,6 @@ pub struct AgentView {
     pub prompt_stash: Option<PromptStashEntry>,
     /// Set by the send that consumed the user's draft this dispatch; see `note_draft_consumed`.
     pub(crate) draft_consumed: bool,
-    /// Drafts a newer stash pushed out of the slot. Held apart from `session.prompt_history`, which a late `PromptHistoryLoaded` replaces wholesale.
-    pub prompt_stash_evicted: Vec<String>,
     /// Currently active modal dialog (blocks all other input).
     pub active_modal: Option<ActiveModal>,
     /// Hit areas for modal buttons (from last render).

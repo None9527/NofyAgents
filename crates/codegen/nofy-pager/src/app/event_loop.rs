@@ -565,9 +565,9 @@ fn run_pending_mode_switch(
     ) {
         crate::app::mode_switch::ModeSwitchOutcome::Switched => {
             crate::app::mode_switch::reseed_screen_mode(app, target);
-            // Disarm in minimal or the command keeps running for an unpainted row.
+            // Re-armed so the switch cannot fire a stale deadline.
             *status_line_refresh_interval =
-                if super::status_line::draws_a_row(app.screen_mode, &app.current_ui.status_line) {
+                if super::status_line::draws_a_row(&app.current_ui.status_line) {
                     app.status_line_refresh_interval()
                 } else {
                     None
@@ -1243,10 +1243,9 @@ pub(crate) async fn run(
     // stays sans-IO.
     app.current_ui = load_initial_ui_config();
     // Here rather than from the row's own update: that runs only once an agent
-    // view is on screen, so a minimal-mode or welcome-only session would be
-    // missing from the denominator adoption is measured against.
-    crate::app::status_line::metrics::global()
-        .report_config(&app.current_ui.status_line, app.screen_mode);
+    // view is on screen, so a welcome-only session would be missing from the
+    // denominator adoption is measured against.
+    crate::app::status_line::metrics::global().report_config(&app.current_ui.status_line);
     // Field-tolerant: a whole-`UiConfig` default (malformed unrelated `[ui]`
     // field) must not wipe a valid `show_timeline` or leave appearance /
     // cache / `current_ui` disagreeing — `/timeline` and the rail all read
@@ -1451,10 +1450,10 @@ pub(crate) async fn run(
 
     // `[ui.status_line] refresh_interval`: re-runs a command row on a timer.
     // Read once, like the section it comes from, so a future config reload
-    // must run this arming again; unarmed while the current mode cannot draw
-    // the row. Re-derived on a mode switch (`run_pending_mode_switch`).
+    // must run this arming again; unarmed while the config reserves no row.
+    // Re-derived on a mode switch (`run_pending_mode_switch`).
     let mut status_line_refresh_interval: Option<Duration> =
-        if super::status_line::draws_a_row(app.screen_mode, &app.current_ui.status_line) {
+        if super::status_line::draws_a_row(&app.current_ui.status_line) {
             app.status_line_refresh_interval()
         } else {
             None
