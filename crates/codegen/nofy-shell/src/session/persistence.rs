@@ -2548,7 +2548,7 @@ pub(crate) async fn new_with_explicit_dir(
 
 /// Loaded session state without updates in memory — updates stream from
 /// disk for memory efficiency.
-pub struct PersistedInfoLight {
+pub struct PersistedInfo {
     pub summary: Summary,
     pub chat_history: Vec<ConversationItem>,
     pub plan_state: Option<TodoState>,
@@ -2576,7 +2576,7 @@ pub(crate) async fn load_light(
     sampling_client: OaiCompatClient,
     gateway: Option<GatewaySender>,
     session_summary_model: String,
-) -> io::Result<(PersistedInfoLight, PersistenceHandle)> {
+) -> io::Result<(PersistedInfo, PersistenceHandle)> {
     let root_dir = nofy_home();
     let storage: Box<dyn StorageAdapter> =
         Box::new(JsonlStorageAdapter::with_root(root_dir.clone()));
@@ -2589,7 +2589,7 @@ pub(crate) async fn load_light(
     let updates_file_path = storage.updates_file_path(&loaded_info);
     let rewind_points_file_path = storage.rewind_points_file_path(&loaded_info);
 
-    let persisted_info = PersistedInfoLight {
+    let persisted_info = PersistedInfo {
         summary: persisted.summary,
         chat_history: persisted.chat_history,
         plan_state: persisted.plan_state,

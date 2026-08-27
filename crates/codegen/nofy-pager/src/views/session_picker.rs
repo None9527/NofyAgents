@@ -228,31 +228,49 @@ pub(crate) fn loading_spinner_active(
     let nothing_visible = entries.is_none_or(|entries| {
         !entries
             .iter()
-            .any(|entry| source_filter.matches(&entry.source))
+            .any(|entry| source_filter.matches(&entry.source, entry.session_kind.as_deref()))
     });
-    nothing_visible && (loading || lanes.foreign_loading)
+    if nothing_visible && (loading || lanes.foreign_loading) {
+        return true;
+    }
+    // External is the foreign cache: an Exclude refetch cannot change it.
+    if source_filter.is_content_search_disabled() {
+        return false;
+    }
+    // Native refetch in flight with only foreign (or Headless) rows matching:
+    // the visible cache is not the policy being fetched.
+    loading
+        && entries.is_none_or(|entries| {
+            !entries.iter().any(|entry| {
+                !crate::app::is_foreign_picker_source(&entry.source)
+                    && source_filter.matches(&entry.source, entry.session_kind.as_deref())
+            })
+        })
 }
 
 // ---------------------------------------------------------------------------
 // Source filter
 // ---------------------------------------------------------------------------
 
-/// Filter session entries by native, remote, or external source.
+/// Filter session entries by native, headless, remote, or external source.
 ///
 /// Default is [`Self::Nofy`]: native Nofy sessions only (local / remote /
 /// conversation), so `/resume` does not mix Claude/Codex/Cursor foreign
-/// sessions into the list. `f` cycles Nofy → External → All → Local →
-/// Remote — External first so one press from the default reveals foreign
-/// sessions.
+/// sessions or `nofy -p` one-shots into the list. `f` cycles Nofy → Headless →
+/// External → All → Local → Remote. Entering or leaving `Headless` refetches:
+/// the shell excludes headless rows from every other page's fetch, so a
+/// client-side refilter of the cached page could never populate it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SourceFilter {
     /// Native Nofy sessions only — excludes Claude/Codex/Cursor foreign rows.
     #[default]
     Nofy,
+    /// `nofy -p` one-shots only (`session_kind == "headless"`).
+    Headless,
     Local,
     Remote,
     External,
-    /// Every source, including foreign agent sessions.
+    /// Every source, including foreign agent sessions — but not headless rows.
     All,
 }
 
@@ -260,6 +278,7 @@ impl SourceFilter {
     pub fn label(self) -> &'static str {
         match self {
             Self::Nofy => "Nofy",
+            Self::Headless => "Headless",
             Self::Local => "Local",
             Self::Remote => "Remote",
             Self::External => "External",
@@ -269,7 +288,8 @@ impl SourceFilter {
 
     pub fn next(self) -> Self {
         match self {
-            Self::Nofy => Self::External,
+            Self::Nofy => Self::Headless,
+            Self::Headless => Self::External,
             Self::External => Self::All,
             Self::All => Self::Local,
             Self::Local => Self::Remote,
@@ -282,19 +302,44 @@ impl SourceFilter {
         self != Self::Nofy
     }
 
-    /// Returns `true` if a session with the given `source` string passes the filter.
+    /// Whether the deep content search is unavailable on this page: foreign
+    /// stores are not FTS-indexed. The Headless page searches like every
+    /// native page; the server filters hits by the page's headless policy.
+    pub fn is_content_search_disabled(self) -> bool {
+        self == Self::External
+    }
+
+    /// The server-side headless policy a fetch or content search for this
+    /// page must carry: `Only` on the Headless page, `Exclude` everywhere
+    /// else (foreign rows are never headless, so External keeps the default).
+    pub fn headless_policy(self) -> nofy_shell::session::unified_list::HeadlessPolicy {
+        use nofy_shell::session::unified_list::HeadlessPolicy;
+        if self == Self::Headless {
+            HeadlessPolicy::Only
+        } else {
+            HeadlessPolicy::Exclude
+        }
+    }
+
+    /// Returns `true` if a session with the given `source` string and
+    /// `session_kind` passes the filter.
     ///
     /// nofy.com conversations carry `source == "conversation"` and live remotely,
     /// so they pass the `Remote` filter (and `Nofy` / `All`) but not `Local`.
     /// Foreign sources (`claude` / `codex` / `cursor`) only pass `External` and
-    /// `All`.
-    pub fn matches(self, source: &str) -> bool {
+    /// `All`. Headless rows pass only `Headless`; every other page excludes
+    /// them, mirroring the server-side fetch policy.
+    pub fn matches(self, source: &str, session_kind: Option<&str>) -> bool {
+        let is_headless = session_kind == Some("headless");
         match self {
-            Self::Nofy => !crate::app::is_foreign_picker_source(source),
-            Self::Local => source == "local" || source == "both",
-            Self::Remote => source == "remote" || source == "both" || source == "conversation",
+            Self::Nofy => !crate::app::is_foreign_picker_source(source) && !is_headless,
+            Self::Headless => is_headless && !crate::app::is_foreign_picker_source(source),
+            Self::Local => (source == "local" || source == "both") && !is_headless,
+            Self::Remote => {
+                (source == "remote" || source == "both" || source == "conversation") && !is_headless
+            }
             Self::External => crate::app::is_foreign_picker_source(source),
-            Self::All => true,
+            Self::All => !is_headless,
         }
     }
 }
@@ -469,7 +514,7 @@ pub(crate) fn filter_session_entries(
         .iter()
         .enumerate()
         .filter(|(_, e)| {
-            source_filter.matches(&e.source)
+            source_filter.matches(&e.source, e.session_kind.as_deref())
                 && (query.is_empty()
                     || fuzzy_matches_session(&e.id, &q)
                     || fuzzy_matches_session(&e.summary, &q))
@@ -507,7 +552,7 @@ pub(crate) fn build_virtual_list(
         .into_iter()
         .map(|i| PickerItem::Fuzzy { original_index: i })
         .collect();
-    if source_filter != SourceFilter::External
+    if !source_filter.is_content_search_disabled()
         && let Some(hits) = content_results
     {
         for (hit_idx, hit) in hits.iter().enumerate() {
@@ -579,7 +624,7 @@ pub(crate) fn build_entry_map(
                     .map(|entry| entry.id.as_str())
             })
             .collect();
-        let content_items: Vec<usize> = if source_filter != SourceFilter::External
+        let content_items: Vec<usize> = if !source_filter.is_content_search_disabled()
             && let Some(hits) = content_results
             && !query.is_empty()
         {
@@ -592,7 +637,7 @@ pub(crate) fn build_entry_map(
             Vec::new()
         };
         let show_content_header = !content_items.is_empty()
-            || (source_filter != SourceFilter::External
+            || (!source_filter.is_content_search_disabled()
                 && content_loading
                 && !query.trim().is_empty());
         if show_content_header {
@@ -603,7 +648,7 @@ pub(crate) fn build_entry_map(
         }
         map
     } else {
-        let content_for_flat = if query.is_empty() || source_filter == SourceFilter::External {
+        let content_for_flat = if query.is_empty() || source_filter.is_content_search_disabled() {
             None
         } else {
             content_results
@@ -615,7 +660,7 @@ pub(crate) fn build_entry_map(
             .count();
         let content_count = virtual_list.len() - fuzzy_count;
         let has_header = content_count > 0
-            || (source_filter != SourceFilter::External
+            || (!source_filter.is_content_search_disabled()
                 && content_loading
                 && !query.trim().is_empty());
         let mut map = Vec::with_capacity(virtual_list.len() + usize::from(has_header));
@@ -948,26 +993,24 @@ pub(crate) fn build_content_header_label(
     }
 }
 
-/// Hint shown on the default `Nofy` view when the foreign-session scan loaded
-/// Claude/Codex/Cursor entries it hides. Nofy-only: `next(Nofy) == External`
-/// makes the copy literally true, and reaching Local/Remote already cycles
-/// through External/All, so the discovery hint is only needed on the default
-/// state.
+/// Hint for external sessions hidden on the Headless page.
 pub(crate) fn hidden_external_hint(
     entries: Option<&[SessionPickerEntry]>,
     source_filter: SourceFilter,
 ) -> Option<String> {
-    if source_filter != SourceFilter::Nofy {
-        return None;
+    match source_filter {
+        SourceFilter::Headless => {
+            let hidden = entries?
+                .iter()
+                .filter(|entry| crate::app::is_foreign_picker_source(&entry.source))
+                .count();
+            (hidden > 0).then(|| {
+                let plural = if hidden == 1 { "" } else { "s" };
+                format!("{hidden} external session{plural} hidden \u{b7} f to show")
+            })
+        }
+        _ => None,
     }
-    let hidden = entries?
-        .iter()
-        .filter(|entry| crate::app::is_foreign_picker_source(&entry.source))
-        .count();
-    (hidden > 0).then(|| {
-        let plural = if hidden == 1 { "" } else { "s" };
-        format!("{hidden} external session{plural} hidden \u{b7} f to show")
-    })
 }
 
 // ---------------------------------------------------------------------------
@@ -1110,6 +1153,7 @@ mod tests {
             repo_name: repo.into(),
             worktree_label: None,
             last_turn_summary: None,
+            session_kind: None,
             card_detail: None,
         }
     }
@@ -1437,54 +1481,55 @@ mod tests {
     #[test]
     fn source_filter_matches() {
         // Default Nofy filter: native only (not Claude/Codex/Cursor).
-        assert!(SourceFilter::Nofy.matches("local"));
-        assert!(SourceFilter::Nofy.matches("remote"));
-        assert!(SourceFilter::Nofy.matches("both"));
-        assert!(SourceFilter::Nofy.matches("conversation"));
-        assert!(!SourceFilter::Nofy.matches("claude"));
-        assert!(!SourceFilter::Nofy.matches("codex"));
-        assert!(!SourceFilter::Nofy.matches("cursor"));
+        assert!(SourceFilter::Nofy.matches("local", None));
+        assert!(SourceFilter::Nofy.matches("remote", None));
+        assert!(SourceFilter::Nofy.matches("both", None));
+        assert!(SourceFilter::Nofy.matches("conversation", None));
+        assert!(!SourceFilter::Nofy.matches("claude", None));
+        assert!(!SourceFilter::Nofy.matches("codex", None));
+        assert!(!SourceFilter::Nofy.matches("cursor", None));
 
-        assert!(SourceFilter::All.matches("local"));
-        assert!(SourceFilter::All.matches("remote"));
-        assert!(SourceFilter::All.matches("both"));
-        assert!(SourceFilter::All.matches("claude"));
-        assert!(SourceFilter::All.matches("codex"));
-        assert!(SourceFilter::All.matches("cursor"));
+        assert!(SourceFilter::All.matches("local", None));
+        assert!(SourceFilter::All.matches("remote", None));
+        assert!(SourceFilter::All.matches("both", None));
+        assert!(SourceFilter::All.matches("claude", None));
+        assert!(SourceFilter::All.matches("codex", None));
+        assert!(SourceFilter::All.matches("cursor", None));
 
-        assert!(SourceFilter::Local.matches("local"));
-        assert!(SourceFilter::Local.matches("both"));
-        assert!(!SourceFilter::Local.matches("remote"));
-        assert!(!SourceFilter::Local.matches("claude"));
+        assert!(SourceFilter::Local.matches("local", None));
+        assert!(SourceFilter::Local.matches("both", None));
+        assert!(!SourceFilter::Local.matches("remote", None));
+        assert!(!SourceFilter::Local.matches("claude", None));
 
-        assert!(SourceFilter::Remote.matches("remote"));
-        assert!(SourceFilter::Remote.matches("both"));
-        assert!(!SourceFilter::Remote.matches("local"));
-        assert!(!SourceFilter::Remote.matches("cursor"));
+        assert!(SourceFilter::Remote.matches("remote", None));
+        assert!(SourceFilter::Remote.matches("both", None));
+        assert!(!SourceFilter::Remote.matches("local", None));
+        assert!(!SourceFilter::Remote.matches("cursor", None));
 
         // nofy.com conversations are remote: visible under Nofy + All + Remote, not Local.
-        assert!(SourceFilter::All.matches("conversation"));
-        assert!(SourceFilter::Remote.matches("conversation"));
-        assert!(!SourceFilter::Local.matches("conversation"));
+        assert!(SourceFilter::All.matches("conversation", None));
+        assert!(SourceFilter::Remote.matches("conversation", None));
+        assert!(!SourceFilter::Local.matches("conversation", None));
 
-        assert!(SourceFilter::External.matches("claude"));
-        assert!(SourceFilter::External.matches("codex"));
-        assert!(SourceFilter::External.matches("cursor"));
-        assert!(!SourceFilter::External.matches("local"));
-        assert!(!SourceFilter::External.matches("remote"));
-        assert!(!SourceFilter::External.matches("both"));
-        assert!(!SourceFilter::External.matches("conversation"));
+        assert!(SourceFilter::External.matches("claude", None));
+        assert!(SourceFilter::External.matches("codex", None));
+        assert!(SourceFilter::External.matches("cursor", None));
+        assert!(!SourceFilter::External.matches("local", None));
+        assert!(!SourceFilter::External.matches("remote", None));
+        assert!(!SourceFilter::External.matches("both", None));
+        assert!(!SourceFilter::External.matches("conversation", None));
     }
 
     #[test]
     fn source_filter_cycles() {
-        // External first: one press from the default reveals foreign sessions.
-        assert_eq!(SourceFilter::Nofy.next(), SourceFilter::External);
+        assert_eq!(SourceFilter::Nofy.next(), SourceFilter::Headless);
+        assert_eq!(SourceFilter::Headless.next(), SourceFilter::External);
         assert_eq!(SourceFilter::External.next(), SourceFilter::All);
         assert_eq!(SourceFilter::All.next(), SourceFilter::Local);
         assert_eq!(SourceFilter::Local.next(), SourceFilter::Remote);
         assert_eq!(SourceFilter::Remote.next(), SourceFilter::Nofy);
         assert_eq!(SourceFilter::Nofy.label(), "Nofy");
+        assert_eq!(SourceFilter::Headless.label(), "Headless");
         assert_eq!(SourceFilter::External.label(), "External");
         assert_eq!(SourceFilter::default(), SourceFilter::Nofy);
     }
@@ -1496,26 +1541,31 @@ mod tests {
             e.source = source.into();
             e
         }
-        let entries = vec![
+        let mut entries = vec![
             entry_with_source("s0", "local"),
             entry_with_source("s1", "remote"),
             entry_with_source("s2", "both"),
             entry_with_source("s3", "claude"),
             entry_with_source("s4", "codex"),
             entry_with_source("s5", "cursor"),
+            entry_with_source("s6", "local"),
         ];
+        entries[6].session_kind = Some("headless".into());
 
         let nofy = filter_session_entries(Some(&entries), "", SourceFilter::Nofy);
-        assert_eq!(nofy, vec![0, 1, 2]); // local + remote + both, no foreign
+        assert_eq!(nofy, vec![0, 1, 2]);
+
+        let headless = filter_session_entries(Some(&entries), "", SourceFilter::Headless);
+        assert_eq!(headless, vec![6]);
 
         let all = filter_session_entries(Some(&entries), "", SourceFilter::All);
         assert_eq!(all, vec![0, 1, 2, 3, 4, 5]);
 
         let local = filter_session_entries(Some(&entries), "", SourceFilter::Local);
-        assert_eq!(local, vec![0, 2]); // local + both
+        assert_eq!(local, vec![0, 2]);
 
         let remote = filter_session_entries(Some(&entries), "", SourceFilter::Remote);
-        assert_eq!(remote, vec![1, 2]); // remote + both
+        assert_eq!(remote, vec![1, 2]);
 
         let external = filter_session_entries(Some(&entries), "", SourceFilter::External);
         assert_eq!(external, vec![3, 4, 5]);
@@ -1525,22 +1575,23 @@ mod tests {
     fn source_filter_empty_and_unknown_source() {
         // Empty / unknown source (e.g. from old data or test fixtures) is not
         // foreign, so it passes Nofy + All but never Local, Remote, or External.
-        assert!(SourceFilter::Nofy.matches(""));
-        assert!(SourceFilter::All.matches(""));
-        assert!(!SourceFilter::Local.matches(""));
-        assert!(!SourceFilter::Remote.matches(""));
-        assert!(!SourceFilter::External.matches(""));
+        assert!(SourceFilter::Nofy.matches("", None));
+        assert!(SourceFilter::All.matches("", None));
+        assert!(!SourceFilter::Local.matches("", None));
+        assert!(!SourceFilter::Remote.matches("", None));
+        assert!(!SourceFilter::External.matches("", None));
 
-        assert!(SourceFilter::Nofy.matches("unknown"));
-        assert!(SourceFilter::All.matches("unknown"));
-        assert!(!SourceFilter::Local.matches("unknown"));
-        assert!(!SourceFilter::Remote.matches("unknown"));
-        assert!(!SourceFilter::External.matches("unknown"));
+        assert!(SourceFilter::Nofy.matches("unknown", None));
+        assert!(SourceFilter::All.matches("unknown", None));
+        assert!(!SourceFilter::Local.matches("unknown", None));
+        assert!(!SourceFilter::Remote.matches("unknown", None));
+        assert!(!SourceFilter::External.matches("unknown", None));
     }
 
     #[test]
     fn source_filter_is_active() {
         assert!(!SourceFilter::Nofy.is_active());
+        assert!(SourceFilter::Headless.is_active());
         assert!(SourceFilter::Local.is_active());
         assert!(SourceFilter::Remote.is_active());
         assert!(SourceFilter::External.is_active());
@@ -1560,32 +1611,16 @@ mod tests {
             entry_with_source("s2", "codex"),
         ];
 
-        // Only the default Nofy view surfaces the hint (with the count).
-        assert_eq!(
-            hidden_external_hint(Some(&entries), SourceFilter::Nofy).as_deref(),
-            Some("2 external sessions hidden \u{b7} f to show")
-        );
+        assert!(hidden_external_hint(Some(&entries), SourceFilter::Nofy).is_none());
         assert!(hidden_external_hint(Some(&entries), SourceFilter::Local).is_none());
         assert!(hidden_external_hint(Some(&entries), SourceFilter::Remote).is_none());
-
-        // Singular count.
-        let one = vec![
-            entry_with_source("s0", "local"),
-            entry_with_source("s1", "cursor"),
-        ];
-        assert_eq!(
-            hidden_external_hint(Some(&one), SourceFilter::Nofy).as_deref(),
-            Some("1 external session hidden \u{b7} f to show")
-        );
-
-        // External / All show foreign rows — no hint.
+        assert!(hidden_external_hint(Some(&entries), SourceFilter::Headless).is_some());
         assert!(hidden_external_hint(Some(&entries), SourceFilter::External).is_none());
         assert!(hidden_external_hint(Some(&entries), SourceFilter::All).is_none());
 
-        // No foreign entries loaded (native-only or no scan) — no hint.
         let native = vec![entry_with_source("s0", "local")];
-        assert!(hidden_external_hint(Some(&native), SourceFilter::Nofy).is_none());
-        assert!(hidden_external_hint(None, SourceFilter::Nofy).is_none());
+        assert!(hidden_external_hint(Some(&native), SourceFilter::Headless).is_none());
+        assert!(hidden_external_hint(None, SourceFilter::Headless).is_none());
     }
 
     #[test]

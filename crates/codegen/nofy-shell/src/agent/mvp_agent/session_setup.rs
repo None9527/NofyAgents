@@ -700,7 +700,7 @@ impl MvpAgent {
         .await
         .map_err(|e| crate::session::persistence::io_error_to_acp(&e))?;
         drop(persistence_timer);
-        let crate::session::persistence::PersistedInfoLight {
+        let crate::session::persistence::PersistedInfo {
             summary,
             chat_history,
             plan_state: _,
