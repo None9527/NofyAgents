@@ -337,6 +337,8 @@ fn baseline_env_from_parent(
         ("DISABLE_TELEMETRY", "1"),
         ("NOFY_DISABLE_AUTOUPDATER", "1"),
         ("NOFY_PROMPT_SUGGESTIONS", "false"),
+        // Pin so a developer-exported override cannot flake empty-home launch tests.
+        ("NOFY_DEFAULT_PERMISSION_MODE", "ask"),
         // Post-turn summary side-calls would add unscripted requests to the
         // mock server and break exact wire-traffic assertions.
         ("NOFY_TURN_SUMMARY", "0"),

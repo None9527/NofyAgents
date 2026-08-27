@@ -65,7 +65,7 @@ impl Default for TrackedTask {
             kind: TaskKind::Bash,
             owner_session_id: None,
             description: None,
-            output_byte_limit: crate::terminal::DEFAULT_OUTPUT_BYTE_LIMIT,
+            output_byte_limit: crate::DEFAULT_OUTPUT_BYTE_LIMIT,
         }
     }
 }
@@ -122,7 +122,7 @@ fn wrap_command(command: &str) -> Result<String, ComputerError> {
         let quoted = shlex::try_quote(command).map_err(|_| ComputerError::CommandNotQuoted)?;
         Ok(format!(
             "{} -lc {quoted}",
-            crate::terminal::default_shell_path()
+            crate::default_shell_path()
         ))
     }
 }
@@ -538,7 +538,7 @@ impl TerminalBackend for AcpTerminalAdapter {
 
     async fn kill_foreground_commands(&self) {
         let session_id = self.session_id.0.to_string();
-        crate::terminal::kill_and_release_all_for_session(&session_id).await;
+        crate::kill_and_release_all_for_session(&session_id).await;
     }
 }
 

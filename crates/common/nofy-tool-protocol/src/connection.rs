@@ -11,6 +11,45 @@ pub enum ConnectionKind {
     ToolServer,
 }
 
+impl ConnectionKind {
+    pub const ALL: &'static [Self] = &[Self::Harness, Self::ToolServer];
+
+    /// Wire string (`snake_case`), matching serde.
+    pub const fn as_wire_str(self) -> &'static str {
+        match self {
+            Self::Harness => "harness",
+            Self::ToolServer => "tool_server",
+        }
+    }
+}
+
+impl std::fmt::Display for ConnectionKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_wire_str())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn as_wire_str_matches_serde_and_display_for_every_variant() {
+        for kind in ConnectionKind::ALL {
+            let serde_str = serde_json::to_value(kind)
+                .expect("serialize")
+                .as_str()
+                .expect("string")
+                .to_owned();
+            assert_eq!(kind.as_wire_str(), serde_str);
+            assert_eq!(kind.to_string(), serde_str);
+            let back: ConnectionKind =
+                serde_json::from_value(serde_json::Value::String(serde_str)).expect("deserialize");
+            assert_eq!(back, *kind);
+        }
+    }
+}
+
 /// How the computer hub exposes the registered tool set to the model.
 ///
 /// `Concise` carries a configurable meta-tool pair so callers can choose

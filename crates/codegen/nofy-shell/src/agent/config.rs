@@ -1979,9 +1979,9 @@ impl Config {
     pub(crate) fn is_turn_summary_enabled(&self) -> bool {
         self.resolve_turn_summary().value
     }
-    /// Two-pass (prefire) compaction gate. Default OFF (opt-in) — enable via
-    /// the `[features] two_pass_compaction` config.toml key or
-    /// `NOFY_TWO_PASS_COMPACTION` env.
+    /// Two-pass (prefire) compaction gate. Default ON — `Some(false)` in
+    /// `[features] two_pass_compaction` or `NOFY_TWO_PASS_COMPACTION=0`
+    /// forces it off.
     pub(crate) fn is_two_pass_compaction_enabled(&self) -> bool {
         self.resolve_two_pass_compaction().value
     }
@@ -2000,7 +2000,7 @@ impl Config {
     pub(crate) fn resolve_two_pass_compaction(&self) -> Resolved<bool> {
         BoolFlag::env("NOFY_TWO_PASS_COMPACTION")
             .config(self.features.two_pass_compaction)
-            .default(false)
+            .default(true)
             .resolve()
     }
     /// Server-side doom-loop check policy (the `x-nofy-doom-loop-check`
@@ -7607,7 +7607,7 @@ reasoning_effort = "low"
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var("NOFY_TURN_SUMMARY") };
     }
-    /// Precedence: env > config.toml > default(false). One test covers the
+    /// Precedence: env > config.toml > default(true). One test covers the
     /// full ladder so we do not maintain a matrix of flag cases.
     #[test]
     #[serial]
@@ -7615,21 +7615,21 @@ reasoning_effort = "low"
         unsafe { std::env::remove_var("NOFY_TWO_PASS_COMPACTION") };
         let default_cfg = Config::default();
         let r = default_cfg.resolve_two_pass_compaction();
-        assert!(!r.value, "default is opt-in off");
+        assert!(r.value, "default is on");
         assert_eq!(r.source, ConfigSource::Default);
-        let config_on = Config {
+        let config_off = Config {
             features: Features {
-                two_pass_compaction: Some(true),
+                two_pass_compaction: Some(false),
                 ..Default::default()
             },
             ..Default::default()
         };
-        let r = config_on.resolve_two_pass_compaction();
-        assert!(r.value);
+        let r = config_off.resolve_two_pass_compaction();
+        assert!(!r.value, "config.toml kill-switch");
         assert_eq!(r.source, ConfigSource::Config);
-        unsafe { std::env::set_var("NOFY_TWO_PASS_COMPACTION", "0") };
-        let r = config_on.resolve_two_pass_compaction();
-        assert!(!r.value, "env wins over config");
+        unsafe { std::env::set_var("NOFY_TWO_PASS_COMPACTION", "1") };
+        let r = config_off.resolve_two_pass_compaction();
+        assert!(r.value, "env wins over config");
         assert_eq!(r.source, ConfigSource::Env);
         unsafe { std::env::remove_var("NOFY_TWO_PASS_COMPACTION") };
     }

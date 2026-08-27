@@ -117,7 +117,6 @@ base64 = { workspace = true }
 jsonwebtoken = { version = "10", features = ["rust_crypto"] }
 sha2 = { workspace = true }
 rand = { workspace = true }
-shlex = { workspace = true }
 strum = { workspace = true }
 nofy-fast-worktree = { path = "../nofy-fast-worktree", features = ["metadata"] }
 
@@ -126,6 +125,7 @@ prost = { workspace = true, optional = true }
 nofy-paths = { path = "../nofy-paths" }
 nofy-shell-base = { workspace = true }
 nofy-shell-session-support = { workspace = true }
+nofy-shell-terminal = { workspace = true }
 nofy-shared = { workspace = true }
 nofy-status-line = { workspace = true }
 nofy-tracing-macros = { path = "../nofy-tracing-macros" }
@@ -173,8 +173,6 @@ url = { workspace = true }
 walkdir = { workspace = true }
 tdigests = "1.0"
 semver = { workspace = true }
-process-wrap = { version = "9.0.0", features = ["tokio1", "job-object", "creation-flags"] }
-portable-pty = "0.9"
 parking_lot.workspace = true
 
 # Used by acp_session.rs and mcp_servers.rs for the unified

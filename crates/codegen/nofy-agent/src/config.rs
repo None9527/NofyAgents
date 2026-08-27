@@ -258,27 +258,38 @@ pub fn toolset_for_preset(preset: &str) -> Option<ToolServerConfig> {
         .or_else(|| registered_toolset_preset(&normalized))
 }
 fn default_nofy_build_toolset() -> ToolServerConfig {
+    nofy_build_core_toolset(true)
+}
+/// Same as the parent nofy-build list, without `workflow`. The usual
+/// `general-purpose` spawn path must not add that tool and then strip it.
+fn general_purpose_toolset() -> ToolServerConfig {
+    nofy_build_core_toolset(false)
+}
+fn nofy_build_core_toolset(include_workflow: bool) -> ToolServerConfig {
+    let mut tools = vec![
+        bash_tool_config(),
+        (&nofy_build::ReadFileTool).into(),
+        (&nofy_build::SearchReplaceTool).into(),
+        (&nofy_build::ListDirTool).into(),
+        (&nofy_build::GrepTool).into(),
+        kill_task_tool_config(),
+        (&nofy_build::TodoWriteTool).into(),
+        task_output_tool_config(),
+        wait_tasks_tool_config(),
+        task_tool_config(),
+        (&nofy_build::SchedulerCreateTool).into(),
+        (&nofy_build::SchedulerDeleteTool).into(),
+        (&nofy_build::SchedulerListTool).into(),
+        (&nofy_build::MonitorTool).into(),
+        (&search_tool::SearchTool).into(),
+        (&use_tool::UseTool).into(),
+        (&nofy_build::UpdateGoalTool).into(),
+    ];
+    if include_workflow {
+        tools.push((&nofy_build::WorkflowTool).into());
+    }
     ToolServerConfig {
-        tools: vec![
-            bash_tool_config(),
-            (&nofy_build::ReadFileTool).into(),
-            (&nofy_build::SearchReplaceTool).into(),
-            (&nofy_build::ListDirTool).into(),
-            (&nofy_build::GrepTool).into(),
-            kill_task_tool_config(),
-            (&nofy_build::TodoWriteTool).into(),
-            task_output_tool_config(),
-            wait_tasks_tool_config(),
-            task_tool_config(),
-            (&nofy_build::SchedulerCreateTool).into(),
-            (&nofy_build::SchedulerDeleteTool).into(),
-            (&nofy_build::SchedulerListTool).into(),
-            (&nofy_build::MonitorTool).into(),
-            (&search_tool::SearchTool).into(),
-            (&use_tool::UseTool).into(),
-            (&nofy_build::UpdateGoalTool).into(),
-            (&nofy_build::WorkflowTool).into(),
-        ],
+        tools,
         behavior_preset: None,
     }
 }
@@ -1563,6 +1574,7 @@ impl AgentDefinition {
             description: nofy_tool_types::GENERAL_PURPOSE_SUBAGENT
                 .description
                 .to_string(),
+            tool_config: general_purpose_toolset(),
             prompt_body: Some(subagent_prompts::GENERAL_PURPOSE_PROMPT.to_string()),
             ..Self::base(BuiltinAgentName::GeneralPurpose, "")
         }
