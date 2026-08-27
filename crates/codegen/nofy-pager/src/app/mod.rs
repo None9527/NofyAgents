@@ -14,6 +14,7 @@ pub mod agent;
 pub mod agent_view;
 pub mod app_view;
 pub mod bundle;
+pub(crate) mod cancel_latency;
 pub mod cli;
 pub use crate::link_opener;
 /// Off-thread full-file syntax highlight upgrade for edit diffs.
@@ -36,8 +37,10 @@ pub mod status_blocks;
 pub(crate) mod status_line;
 mod status_line_policy;
 pub mod subagent;
+mod x10_filter;
 pub(crate) use effects::sanitize_user_error;
 mod event_loop;
+mod event_loop_stall;
 mod exit_timeout;
 pub(crate) mod external_editor;
 mod foreign_sessions;

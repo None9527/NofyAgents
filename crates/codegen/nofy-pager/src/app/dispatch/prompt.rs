@@ -16,6 +16,7 @@ use crate::app::actions::{Action, DoctorFixTarget, Effect};
 use crate::app::agent::{AgentCommand, AgentId, AgentState};
 use crate::app::agent_view::AgentView;
 use crate::app::app_view::{ActiveView, AppView};
+use crate::app::cancel_latency::TurnEnd;
 use crate::notifications::{NotificationEvent, NotificationEventKind};
 use crate::scrollback::block::RenderBlock;
 use crate::scrollback::blocks::SessionEvent;
@@ -1278,7 +1279,7 @@ pub(super) fn handle_prompt_response(
             _ => None,
         };
 
-        agent.mark_turn_finished();
+        agent.mark_turn_finished(TurnEnd::Completed);
         agent.activity_started_at = None;
         agent.last_activity = None;
 
@@ -1501,7 +1502,7 @@ pub(super) fn handle_compact_complete(
             }
         }
 
-        agent.mark_turn_finished();
+        agent.mark_turn_finished(TurnEnd::Completed);
         agent.activity_started_at = None;
         agent.last_activity = None;
 

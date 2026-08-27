@@ -1685,6 +1685,12 @@ pub(crate) async fn run(
     // land in the same batch.
     let mut csi_filter = super::csi_filter::CsiFragmentFilter::new();
 
+    // Persistent X10 reassembly filter — recombines mouse reports whose
+    // column byte a UTF-8-converting relay expanded (ConPTY/WSL), which
+    // crossterm mis-parses into a magic-shape mouse event plus a stray
+    // typed character.
+    let mut x10_filter = super::x10_filter::X10ReassemblyFilter::new();
+
     // Swallows the fire-and-forget XTVERSION reply whenever it arrives;
     // armed only when the startup query is still unanswered.
     let mut xt_filter = super::xt_filter::XtversionFilter::new();
@@ -1701,6 +1707,10 @@ pub(crate) async fn run(
     // Registered so the signal handler can request a graceful quit; see signal_handler.
     let quit_notify = std::sync::Arc::new(tokio::sync::Notify::new());
     crate::app::signal_handler::set_quit_notify(quit_notify.clone());
+
+    let mut stall_rollup =
+        super::event_loop_stall::StallRollup::new(super::event_loop_stall::STALL_REPORT_WINDOW);
+    let loop_entry = std::time::Instant::now();
 
     // Defers `SessionLoaded`/`SessionLoadFailed` until queued ACP replay for
     // the loading session has been applied; see `session_load_barrier`.
@@ -1745,7 +1755,7 @@ pub(crate) async fn run(
         // /transcript build finishing inside a tick draw — tasks, ACP), so
         // consuming them here keeps the handoff immediate instead of waiting
         // for the next unrelated event.
-        run_pending_suspends(
+        if let Err(e) = run_pending_suspends(
             &mut app,
             terminal,
             &input_paused,
@@ -1754,7 +1764,10 @@ pub(crate) async fn run(
             &mut presenter,
             &mut suspend_retry_after,
             &mut suspend_wait_reports,
-        )?;
+        ) {
+            flush_pending_stall(&mut stall_rollup);
+            return Err(e);
+        }
 
         // In-process `/minimal` ⇄ `/fullscreen` switch, queued by dispatch.
         if run_pending_mode_switch(
@@ -1897,6 +1910,14 @@ pub(crate) async fn run(
             }
         };
 
+        let stall_flush_at = stall_rollup.deadline().map(tokio::time::Instant::from_std);
+        let stall_flush = async {
+            match stall_flush_at {
+                Some(at) => sleep_until(at).await,
+                None => std::future::pending().await,
+            }
+        };
+
         tokio::select! {
             biased;
 
@@ -1917,10 +1938,18 @@ pub(crate) async fn run(
 
             writer_event = writer_event_rx.recv() => {
                 let Some(writer_event) = writer_event else {
+                    flush_pending_stall(&mut stall_rollup);
                     return Err(anyhow::anyhow!("terminal writer stopped"));
                 };
-                let sequence = writer_event_sequence(writer_event)
-                    .context("terminal output failed")?;
+                let sequence = match writer_event_sequence(writer_event)
+                    .context("terminal output failed")
+                {
+                    Ok(sequence) => sequence,
+                    Err(e) => {
+                        flush_pending_stall(&mut stall_rollup);
+                        return Err(e);
+                    }
+                };
                 presenter.acknowledge(sequence);
             }
 
@@ -1965,7 +1994,7 @@ pub(crate) async fn run(
                     if !app.pending_effects.is_empty() {
                         let effs = std::mem::take(&mut app.pending_effects);
                         if process_effects(effs, &mut tasks, &mut app) {
-                            return Ok(make_run_result(&app));
+                            return Ok(finish_run_with_stall_flush(&app, &mut stall_rollup));
                         }
                     }
                 }
@@ -2037,13 +2066,21 @@ pub(crate) async fn run(
             }
 
             maybe_ev = input_rx.recv() => {
-                // Terminal events arrive via the dedicated reader thread set up
-                // near the top of this function. `None` means that thread ended.
+                // `None` means the dedicated terminal reader thread has ended.
                 let Some(ev) = maybe_ev else { break };
+                let handled_at = std::time::Instant::now();
+                let waited =
+                    super::event_loop_stall::input_wait(ev.arrived_at, handled_at, loop_entry);
+                let stall_activity = super::event_loop_stall::StallActivity::read();
                 let result = drain_and_process(
                     ev, &mut input_rx, &mut app, &mut tasks,
-                    &mut csi_filter, &mut xt_filter,
+                    &mut csi_filter, &mut x10_filter, &mut xt_filter,
                 ).await;
+                if let Some(window) =
+                    stall_rollup.observe(waited, stall_activity, result.handled, handled_at)
+                {
+                    emit_event_loop_stall(window);
+                }
                 if result.should_quit {
                     break;
                 }
@@ -2081,6 +2118,8 @@ pub(crate) async fn run(
                 // Sync appearance watcher when auto-mode toggles.
                 sync_appearance_watcher(&mut appearance_watcher);
             }
+
+            _ = stall_flush => {}
 
             // Debounced resize: draw once the terminal size has stabilized.
             _ = resize_debounce => {
@@ -2574,7 +2613,7 @@ pub(crate) async fn run(
                 if active_restored {
                     let drain_effects = dispatch::dispatch(Action::DrainQueue, &mut app);
                     if process_effects(drain_effects, &mut tasks, &mut app) {
-                        return Ok(make_run_result(&app));
+                        return Ok(finish_run_with_stall_flush(&app, &mut stall_rollup));
                     }
                 }
 
@@ -2582,8 +2621,15 @@ pub(crate) async fn run(
             }
         }
 
+        // Flush after observing, not as a select arm, so it can neither starve nor split a boundary stall.
+        if let Some(window) = stall_rollup.take_if_elapsed(std::time::Instant::now()) {
+            emit_event_loop_stall(window);
+        }
+
         presenter.present_if_dirty(&mut app, terminal);
     }
+
+    flush_pending_stall(&mut stall_rollup);
 
     app.notification_service.shutdown();
 
@@ -2698,6 +2744,26 @@ fn sync_appearance_watcher(watcher: &mut Option<SystemAppearanceWatcher>) {
     }
 }
 
+fn emit_event_loop_stall(window: super::event_loop_stall::StallWindow) {
+    nofy_telemetry::session_ctx::log_event(super::event_loop_stall::event_loop_stall_event(
+        window,
+    ));
+}
+
+fn flush_pending_stall(stall_rollup: &mut super::event_loop_stall::StallRollup) {
+    if let Some(window) = stall_rollup.take() {
+        emit_event_loop_stall(window);
+    }
+}
+
+fn finish_run_with_stall_flush(
+    app: &AppView,
+    stall_rollup: &mut super::event_loop_stall::StallRollup,
+) -> RunResult {
+    flush_pending_stall(stall_rollup);
+    make_run_result(app)
+}
+
 /// Build [`ExitInfo`] from the active agent's session (if any).
 ///
 /// Sole construction site of [`super::ExitSummary`]: fullscreen quits only
@@ -2749,6 +2815,9 @@ struct DrainResult {
     /// Whether the next draw must be preceded by a full clear+repaint, set on
     /// refocus in editor/multiplexer contexts to heal out-of-band stranded rows.
     force_repaint: bool,
+    /// Count of coalesced events processed in this drain batch, summed into the
+    /// stall window's `events_handled`.
+    handled: u32,
 }
 
 struct RoutedInputEvent {
@@ -2798,15 +2867,18 @@ fn normalize_input_event(timed: TimedInputEvent) -> RoutedInputEvent {
 /// of sequential draws, freezing the UI for seconds or minutes.
 ///
 /// Runs [`coalesce_rapid_keys`] and the persistent
-/// [`CsiFragmentFilter`](super::csi_filter::CsiFragmentFilter) before
+/// [`CsiFragmentFilter`](super::csi_filter::CsiFragmentFilter) and
+/// [`X10ReassemblyFilter`](super::x10_filter::X10ReassemblyFilter) before
 /// processing to fix paste on terminals without bracketed paste (e.g.
-/// Windows PowerShell) and filter leaked CSI fragments (SGR mouse and focus reports).
+/// Windows PowerShell), filter leaked CSI fragments (SGR mouse and focus
+/// reports), and recombine relay-mangled X10 mouse reports.
 async fn drain_and_process(
     first: TimedInputEvent,
     input_rx: &mut tokio::sync::mpsc::UnboundedReceiver<TimedInputEvent>,
     app: &mut AppView,
     tasks: &mut JoinSet<TaskResult>,
     csi_filter: &mut super::csi_filter::CsiFragmentFilter,
+    x10_filter: &mut super::x10_filter::X10ReassemblyFilter,
     xt_filter: &mut super::xt_filter::XtversionFilter,
 ) -> DrainResult {
     let mut needs_draw = false;
@@ -2847,16 +2919,30 @@ async fn drain_and_process(
         coalesce_rapid_keys(raw_events)
     };
     let coalesced = csi_filter.filter(coalesced);
+    let coalesced = x10_filter.filter(coalesced);
     let coalesced = coalesced
         .into_iter()
         .map(normalize_input_event)
         .collect::<Vec<_>>();
+
+    let mut handled: u32 = 0;
 
     let suspend_armed_after_event = std::cell::Cell::new(false);
     let mut handle_one = |routed: &RoutedInputEvent| -> bool {
         let ev = &routed.event;
         match ev {
             Event::FocusGained => {
+                // Re-assert mouse capture on refocus: ConPTY-backed relays
+                // (VS Code on Windows hosting a WSL/SSH session) can strip DEC
+                // private modes, silently downgrading mouse reports from SGR
+                // to legacy X10 — whose >= 95-column coordinate bytes then
+                // corrupt into typed characters. Idempotent everywhere else,
+                // and gated so a deliberate capture-off state is never undone.
+                if crate::app::MOUSE_CAPTURE_ENABLED.load(std::sync::atomic::Ordering::Acquire) {
+                    nofy_shell::util::with_locked_stderr(|stderr| {
+                        let _ = crossterm::execute!(stderr, crossterm::event::EnableMouseCapture);
+                    });
+                }
                 // Force a full repaint on refocus to heal out-of-band stranded rows.
                 // Sets needs_draw (not had_non_resize_change); the draw site honors force_repaint
                 // ahead of the resize debounce, clearing even a coalesced same-size resize.
@@ -3015,12 +3101,14 @@ async fn drain_and_process(
     };
 
     for routed in &coalesced {
+        handled = handled.saturating_add(1);
         if handle_one(routed) {
             return DrainResult {
                 needs_draw,
                 should_quit: true,
                 resize_only: false,
                 force_repaint: false,
+                handled,
             };
         }
         // Hand off to the TTY-taking child before later buffered events mutate UI state.
@@ -3034,6 +3122,7 @@ async fn drain_and_process(
         should_quit: false,
         resize_only: had_resize && !had_non_resize_change,
         force_repaint,
+        handled,
     }
 }
 
@@ -3539,6 +3628,47 @@ mod tests {
             },
         );
         assert!(tty_suspend_armed(&app));
+    }
+
+    #[tokio::test]
+    async fn handled_counts_only_events_processed_before_suspend_break() {
+        let mut app = crate::app::app_view::tests::test_app();
+        app.pending_editor = Some(
+            crate::app::external_editor::PendingEditorRequest::PromptDraft {
+                agent_id: crate::app::agent::AgentId(0),
+                original_text: "draft".to_owned(),
+            },
+        );
+        let (acp_tx, _acp_rx) = tokio::sync::mpsc::unbounded_channel();
+        app.acp_tx = acp_tx;
+        let (input_tx, mut input_rx) = tokio::sync::mpsc::unbounded_channel();
+        let _ = input_tx.send(press(KeyCode::Char('b')));
+        let _ = input_tx.send(press(KeyCode::Char('c')));
+        drop(input_tx);
+        let mut tasks = JoinSet::new();
+        let mut csi_filter = super::super::csi_filter::CsiFragmentFilter::new();
+        let mut x10_filter = super::super::x10_filter::X10ReassemblyFilter::new();
+        let mut xt_filter = super::super::xt_filter::XtversionFilter::new();
+
+        let result = drain_and_process(
+            press(KeyCode::Char('a')),
+            &mut input_rx,
+            &mut app,
+            &mut tasks,
+            &mut csi_filter,
+            &mut x10_filter,
+            &mut xt_filter,
+        )
+        .await;
+
+        assert!(
+            !result.should_quit,
+            "the armed suspend breaks the batch, it does not quit"
+        );
+        assert_eq!(
+            result.handled, 1,
+            "only the first event ran before the suspend break; the two-event tail is unhandled"
+        );
     }
 
     // ── plan_reconnect_load ──────────────────────────────────────────────
