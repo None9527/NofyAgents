@@ -49,7 +49,9 @@ impl coordinator::ChildRunner for ShellChildRunner {
             if let Some(handle) = parent_handle {
                 ctx.parent_mcp_pool = handle.snapshot_mcp_pool().await;
                 ctx.client_hooks = handle.snapshot_client_hooks().await;
-                let definitions = handle.snapshot_tool_definitions().await;
+                let mut definitions = handle.snapshot_tool_definitions().await;
+                crate::agent::subagent::strip_ask_user_question_tool(&mut definitions);
+                crate::agent::subagent::strip_workflow_tool(&mut definitions);
                 ctx.parent_tool_definitions = (!definitions.is_empty()).then_some(definitions);
             }
             crate::agent::subagent::run_shell_child(run, ctx, &this.gateway).await

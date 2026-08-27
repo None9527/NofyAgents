@@ -1019,6 +1019,11 @@ impl AgentBuilder {
                 }
             }
         }
+        if self.prompt_audience == crate::prompt::context::PromptAudience::Subagent {
+            tool_config.tools.retain(|tool| {
+                !nofy_tools::implementations::nofy_build::is_workflow_tool(tool.kind, &tool.id)
+            });
+        }
         let tool_bridge = ToolBridge::finalize_builder(
             tool_bridge_builder,
             tool_config,
@@ -1733,6 +1738,122 @@ mod tests {
             assert!(
                 names.contains(&"exit_plan_mode"),
                 "[{label}] exit_plan_mode must always be present (TUI plan-mode keybind needs it); got tools: {names:?}"
+            );
+        }
+    }
+    async fn workflow_tool_names(
+        audience: crate::prompt::context::PromptAudience,
+        definition: crate::config::AgentDefinition,
+    ) -> Vec<String> {
+        use nofy_tools::computer::local::LocalTerminalBackend;
+        use nofy_tools::notification::ToolNotificationHandle;
+        AgentBuilder::new(
+            std::env::temp_dir(),
+            Arc::new(LocalTerminalBackend::new()),
+            ToolNotificationHandle::noop(),
+        )
+        .from_definition(definition)
+        .with_background_workflows_enabled(true)
+        .with_prompt_audience(audience)
+        .build()
+        .await
+        .expect("agent should build")
+        .tool_definitions()
+        .await
+        .iter()
+        .map(|definition| definition.function.name.clone())
+        .collect()
+    }
+    #[tokio::test]
+    async fn top_level_session_still_receives_workflow() {
+        let names = workflow_tool_names(
+            crate::prompt::context::PromptAudience::Primary,
+            crate::config::AgentDefinition::default_nofy_build(),
+        )
+        .await;
+        assert!(
+            names.iter().any(|name| name == "workflow"),
+            "top-level sessions must keep workflow when the feature is enabled: {names:?}"
+        );
+    }
+    #[tokio::test]
+    async fn ordinary_subagent_does_not_receive_workflow() {
+        let names = workflow_tool_names(
+            crate::prompt::context::PromptAudience::Subagent,
+            crate::config::AgentDefinition::general_purpose(),
+        )
+        .await;
+        assert!(
+            !names.iter().any(|name| name == "workflow"),
+            "ordinary subagents must not receive workflow: {names:?}"
+        );
+    }
+    #[tokio::test]
+    async fn workflow_spawned_agent_does_not_receive_workflow() {
+        let names = workflow_tool_names(
+            crate::prompt::context::PromptAudience::Subagent,
+            crate::config::AgentDefinition::default_nofy_build(),
+        )
+        .await;
+        assert!(
+            !names.iter().any(|name| name == "workflow"),
+            "workflow-spawned agents must not receive workflow: {names:?}"
+        );
+    }
+    #[tokio::test]
+    async fn custom_child_toolset_cannot_reintroduce_workflow() {
+        use nofy_tools::implementations::nofy_build::{ReadFileTool, WorkflowTool};
+        let mut definition = crate::config::AgentDefinition::general_purpose();
+        definition.inject_default_tools = false;
+        definition.tool_config.tools = vec![
+            (&ReadFileTool).into(),
+            (&WorkflowTool).into(),
+            nofy_tools::registry::types::ToolConfig::from_id("NofyBuild:workflow"),
+        ];
+        let names =
+            workflow_tool_names(crate::prompt::context::PromptAudience::Subagent, definition).await;
+        assert!(
+            names.iter().any(|name| name == "read_file"),
+            "unrelated custom tools must survive: {names:?}"
+        );
+        assert!(
+            !names.iter().any(|name| name == "workflow"),
+            "a custom child toolset must not be able to reintroduce workflow: {names:?}"
+        );
+    }
+    #[tokio::test]
+    async fn child_workflow_strip_leaves_unrelated_tools() {
+        let primary = workflow_tool_names(
+            crate::prompt::context::PromptAudience::Primary,
+            crate::config::AgentDefinition::default_nofy_build(),
+        )
+        .await;
+        let child = workflow_tool_names(
+            crate::prompt::context::PromptAudience::Subagent,
+            crate::config::AgentDefinition::default_nofy_build(),
+        )
+        .await;
+        assert!(
+            primary.iter().any(|name| name == "workflow"),
+            "premise: primary toolset includes workflow: {primary:?}"
+        );
+        let lost: Vec<&String> = primary
+            .iter()
+            .filter(|name| !child.contains(name))
+            .collect();
+        assert!(
+            lost.iter().any(|name| *name == "workflow"),
+            "child must lose workflow: lost={lost:?}"
+        );
+        assert!(
+            lost.iter()
+                .all(|name| *name == "workflow" || *name == "ask_user_question"),
+            "child strip must not drop unrelated tools: lost={lost:?}"
+        );
+        for name in &child {
+            assert!(
+                primary.contains(name),
+                "child gained unexpected tool {name}; primary={primary:?} child={child:?}"
             );
         }
     }

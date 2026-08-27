@@ -2916,3 +2916,54 @@ async fn progress_publisher_delivers_ticks_to_parent_cmd_channel() {
         })
         .await;
 }
+#[test]
+fn subagent_tool_filter_removes_ask_user_question() {
+    let mut tools = vec![
+            nofy_sampling_types::ToolSpec {
+                name: "read_file".to_owned(),
+                description: None,
+                parameters: serde_json::json!({}),
+            },
+            nofy_sampling_types::ToolSpec {
+                name: "ask_user_question".to_owned(),
+                description: None,
+                parameters: serde_json::json!({}),
+            },
+        ];
+    strip_ask_user_question_tool(&mut tools);
+    assert_eq!(tools.len(), 1);
+    assert_eq!(tools[0].name, "read_file");
+}
+#[test]
+fn inherited_child_toolset_cannot_reintroduce_workflow() {
+    let mut tools = vec![
+            nofy_sampling_types::ToolSpec {
+                name: "read_file".to_owned(),
+                description: None,
+                parameters: serde_json::json!({}),
+            },
+            nofy_sampling_types::ToolSpec {
+                name: "workflow".to_owned(),
+                description: None,
+                parameters: serde_json::json!({}),
+            },
+            nofy_sampling_types::ToolSpec {
+                name: "NofyBuild:workflow".to_owned(),
+                description: None,
+                parameters: serde_json::json!({}),
+            },
+            nofy_sampling_types::ToolSpec {
+                name: "run_terminal_cmd".to_owned(),
+                description: None,
+                parameters: serde_json::json!({}),
+            },
+        ];
+    strip_workflow_tool(&mut tools);
+    assert_eq!(
+            tools
+                .iter()
+                .map(|tool| tool.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["read_file", "run_terminal_cmd"]
+        );
+}

@@ -285,6 +285,14 @@ pub(crate) struct SubagentSpawnContext {
     /// doesn't derail the parent mid-`/goal`; surfaces 2/3 still drain it.
     pub goal_loop_active: Arc<std::sync::atomic::AtomicBool>,
 }
+pub(crate) fn strip_ask_user_question_tool(tools: &mut Vec<nofy_sampling_types::ToolSpec>) {
+    tools.retain(|tool| tool.name != "ask_user_question");
+}
+pub(crate) fn strip_workflow_tool(tools: &mut Vec<nofy_sampling_types::ToolSpec>) {
+    tools.retain(|tool| {
+        !nofy_tools::implementations::nofy_build::is_workflow_tool_id(&tool.name)
+    });
+}
 impl SubagentSpawnContext {
     /// Would installing a live bearer resolver strip this subagent's only
     /// credential? A wired resolver is the sampler's sole auth source, so
