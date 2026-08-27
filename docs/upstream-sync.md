@@ -35,7 +35,10 @@
 | 媒体生成/网页搜索/语音工具 | 无 | 物理剔除 |
 | 状态栏(status line) | 已移植 | 批12(aee2fe61,0.2.147) |
 | feedback_manager(退出反馈上传) | 无 | 依赖云上传;相关测试引用时裁掉 |
-| 遥测 activity gauges(SUBAGENTS_ACTIVE 等) | 无 | 仅遥测面,需要时整体移植 |
+| 遥测 activity gauges(SUBAGENTS_ACTIVE 等) | 已移植 | 批14(554647cb,0.2.149):activity 模块整体移植+六路接线+事件 metadata 合并 |
+| startup tracing span 机制(span_table/phase_span/subphase_span/root_span) | 无 | 批14 有意跳过:只移 subphase 时序,保持 PhaseSnapshot 路线;startup.rs 相关上游代码不纳入 |
+| two-pass 压缩遥测字段(TwoPassOutcome/segments/compaction_mode) | 无 | 未移植 two-pass 压缩,遥测字段随之不引入 |
+| 遥测 Clone* 事件(CloneSession* 等) | 无 | 批14 有意跳过:依赖云会话克隆特性 |
 | turn.rs round 式 goal 循环重构(GoalRoundDecision 外的上游回合结构) | 保留现有循环 | 上游 turn.rs 大重构的一部分;我们的循环语义等价,让位/续跑门控已按上游逻辑移植 |
 | session registry 标题同步 | 无 | 依赖 registry 服务 |
 | 权限 Always/Never | 已移植 | 批9(3fe2d814,0.2.144) |
@@ -46,6 +49,8 @@
 ## 移植时的常见适配点
 
 - 记忆 flush 提示词:上游在 `xai-grok-memory/src/flush.rs`,我们在 `nofy-shell/src/session/helpers/memory_flush.rs`(FLUSH/FLUSH_DELTA 两提示词同文件)
+- 遥测 startup.rs 测试基建(批14):上游有 `SERIAL` 串行锁+`reset_for_tests()`,我们原本只有单个整体生命周期测试;移植新测试时已补齐,既有生命周期测试也要拿锁+重置
+- nofy-shell `agent/session_metrics.rs` 是遥测事件的 re-export shim:遥测新增导出项要同步补,否则编译错(批14 漏 `SessionStartKind` 曾致编译失败)
 - `log_prompt_cache_usage` → 我们是 `log_prompt_cache_hit`(side_call.rs)
 - `AuxCall` 无 `hosted_tools` 字段
 - `strum` 依赖:我们不引入,枚举改手写 `as_str` + 显式变体列表测试
@@ -81,3 +86,4 @@
 | 批11 | b3778c3f | MCP elicitation:tools schema/校验模块、mcp 桥接层+servers 外科接入、shell 协调器+dispatcher completes、pager 表单/URL 卡片全链(键鼠/粘贴/Esc 阶梯/渲染)+35 文件 | 0.2.146 |
 | 批12 | aee2fe61 | 状态栏:新增 nofy-status-line crate、shared [ui.status_line] 配置、telemetry 两事件、shell 快照发射器+通知+唤醒联动、pager 状态机/布局行/渲染/命令型行/刷新定时器+73 文件 | 0.2.147 |
 | 批13 | 2a628c92 | 记忆精化(上游 1.0.9):dream/flush 提示词泛化+细节接地、注入段与 memory_get/search 描述加「历史上下文,用前核实」;我们的 memory_context 双参+可信扫描结构保留,只移措辞;注意上游 flush 在我们树中位于 shell/helpers/memory_flush.rs | 0.2.148 |
+| 批14 | 554647cb | 遥测地基(上游 1.0.9/1.0.10):activity gauges 模块整体移植+六路接线(子代理/压缩/MCP 连接/回合/工作流/会话)、事件 metadata 活动计数合并、StartupComplete→StartupCompleted+6 subphase 计时字段、startup.rs Subphase 时序机制(不含 span)、InstrumentationTimer::with_subphase、StartupPhase 改名(ConfigLoad/WorkerSpawn)、SessionStarted 增 kind/setup_duration/restored_from_disk、新事件 CancellationCompleted/EventLoopStall、MCP ClientState::Ready 持连接 gauge、pager prefetch/首帧计时;跳过 Clone* 事件/two-pass 字段/span 机制;测试基建补 SERIAL 锁+reset_for_tests | 0.2.149 |
