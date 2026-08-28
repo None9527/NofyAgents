@@ -7,6 +7,7 @@
 
 - **行号口径**：
   - styles 族（F00–F20 主体）：`js` = 融合 chunk `out/renderer/assets/styles-CdEGpc2x.js`（213,695 行，压缩版，**主口径**）；`jsx` = `src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx`（170,400 行，pretty-print 版，规格文档口径）。
+    B5 起 styles 族以当前 out 213,979 行为「当前 js」口径（台账 213,695 口径 = 当前−分段偏移，见 B5-MERGE-NOTES §1）。
   - 独立 chunk（i18n/button/charts/office/…）：行号指**该 chunk 自身**（见每族标题的 chunk 名）；office 族按 OfficePreview.report 口径以 **jsx pretty 版**为锚点。
   - 空行号 = 该符号在尾符号表登记但未附行号（多为局部助手/导入符号），可在所在文件内按混淆名直接检索。
 - **混淆名是 chunk 局部的**：不同 chunk 可复用同一短名（如 `Oc` 在 styles = useWorkspaceServices，在 xlsx chunk = XlsxWorkerClient）。跨 chunk 同名不构成冲突，以「所在文件」列区分。
@@ -15,7 +16,7 @@
 - **校验**：12% 随机抽样（297 条）存在性复核 0 失败；16 个行号锚点回代原始 chunk 逐字命中（`function X(` / `var X = memo(`）。
   B4 增量校验：10.1% 随机抽样（131 条）存在性复核 0 失败；21 个行号锚点回代原始 chunk 逐字命中（详见附录 C）。
 
-**规模**：3,697 条符号登记（含 79 个重建文件；B4 批次新增 1,303 条 / 16 文件，见 §25–§32）。
+**规模**：8,681 条符号登记（含 115 个重建文件；B4 批次新增 1,303 条 / 16 文件，见 §25–§32；B5 批次新增 4,984 条 / 36 文件，见 §34–§69）。
 
 ## 1. TopBar
 
@@ -4368,6 +4369,5304 @@
 | 文本测量原语 jsx 18184-18193 | `uh` | — | — | LegacyDocEngineBLayout.tsx | previewPaneOfficeLegacyDocContent-HWD4EOEM.js | （字体分段/宽度测量） |
 | replaceExpandedSelection | `yt/bt` | — | — | LegacyDocEngineBEditorState.tsx | previewPaneOfficeLegacyDocContent-HWD4EOEM.js | /deleteExpandedSelection (25196/25387) |
 
+## 33. D5c seam（out/main/seam，手写接线层；非混淆，符号即本名）
+
+> 族登记：D5c nofy 内核接线（kernel supervisor / ACP client / ZCode↔ACP adapter /
+> workspace 枚举 / 标题回退）。导航详见 `D5C-WIRING-LEDGER.md`（§1–§7）。
+> 行号口径：`out/main/seam/*.js` 自身行号（ESM，未压缩）。
+
+| 语义名 | 所在文件 | 备注 |
+|---|---|---|
+| ensureKernel / disposeKernel / KERNEL_WS_URL | kernel-supervisor.js | 发现-否则-启动（NOFY_SOCKET→appdata sock→9800 探针→spawn）；父退子收 |
+| NofyAcpClient / chunkText | acp-client.js | Node ACP client（initialize/list/new/load/prompt/cancel/permission） |
+| handleHostFrame / handleCommand | acp-agent-adapter.js | ZCode stdio ↔ ACP 桥总入口 |
+| zcodeSessionSnapshot | acp-agent-adapter.js | **FIX-RESUME**：按 host `Vr` schema 的完整会话快照（protocol/session/settings/projection/runtime/messages）；session/create\|resume\|read\|setModel\|setThoughtLevel\|setMode\|updateRuntimeModelConfig 共用 |
+| ZCODE_PROTOCOL / zcodeSettings / zcodeTitle | acp-agent-adapter.js | **FIX-RESUME**：`{name:"ZCode Protocol",version:1}`；settings 最小合法对象；标题回退链（live→首条用户消息→sid8） |
+| ensureWorkspaceIndexLoaded / backfillAllIndexes | acp-agent-adapter.js | **FIX-WS**：sessions-index 订阅先懒加载后发初始快照（存量行进快照不进 deltas → host seed 路，不逐行 resume） |
+| populateFromSummaries / populateFromSessionList | acp-agent-adapter.js | **FIX-WS**：静默填充 workspaceState.entries（workspace_list 主路 / session/list 回退） |
+| logOnce | acp-agent-adapter.js | **FIX-RESUME**：同类日志每键只记一次（防刷屏写盘） |
+| emitWireFrameFor / emitConv / emitSessionsIndexDelta | acp-agent-adapter.js | v4 帧发射（per-subscriptionId builder；topic/subscriptionId 与外层一致） |
+| conversationSnapshot / sessionsIndexSnapshot / workspaceConfigSnapshot | acp-agent-adapter.js | 三类 topic 初始快照构建 |
+| ensureReplayed / finishReplay / replayUpdate | acp-agent-adapter.js | session/load 回放重建 rows（高水位续接） |
+| listKnownWorkspaces / listWorkspaceSessions | workspace-registry.js | **FIX-WS**：main 侧全量 workspace 枚举（ACP workspace_list 主路；dir-scan 3s 负缓存 + mtime 排序 + 200 行上限） |
+| registerWorkspaceRegistry | workspace-registry.js | **FIX-WS**：IPC 注册（zcode:nofy-list-workspaces / zcode:nofy-workspace-sessions）；注册即预连 ACP |
+| firstUserQueryTitle / truncateTitle | session-title.js | 标题回退链末环（chat_history.jsonl 首个 user_query，80 字截断） |
+| WsEnumUseKnownWorkspaces / WsEnumUseWorkspaceSessions / WsEnumSection | out/renderer/assets/styles-CdEGpc2x.js（≈159277/159302/159404） | renderer 项目段枚举 + 展开懒 acquire（VS/HS SessionIndexStore 引用计数池）；本次未改动 |
+| host Vr（session 快照 schema） | out/host/chunk-O5YHTQBW.js ≈15061 | resume/create/read/set* 响应校验形状（protocol/session/settings/projection/runtime/messages，strict） |
+| host applySessionsIndexFrame / processSummary / seedMissingRowsFromInitialSnapshot | out/host/index.js ≈49359/49122/49141 | 首个快照 seed（不 resume）vs 后续 delta 逐行 resume——FIX-WS 让存量行走前者 |
+
+## 34. B5 · Composer.tsx（Composer 族 F08 first-party）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk）· B5-01。行号口径：js 行（头注声明源为台账 213,695 行本，即台账口径；换算当前 js = 台账 + 分段偏移，见 B5-MERGE-NOTES §1）。
+- 符号条数：377（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| useSubagentsContext | pqe | 63490 | Composer.tsx |  |
+| skillContextRequestCache | RB | 63562 | Composer.tsx |  |
+| skillContextGeneration | zB | 63563 | Composer.tsx |  |
+| skillContextGenerationCounter | mqe | 63564 | Composer.tsx |  |
+| skillContextCacheKey | BB | 63565 | Composer.tsx |  |
+| mergeSkillContextEntry | VB | 63568 | Composer.tsx |  |
+| dedupeSkillContextList | hqe | 63571 | Composer.tsx |  |
+| loadSkillContext | HB | 63581 | Composer.tsx |  |
+| useSkillContextStore | UB | 63640 | Composer.tsx |  |
+| useSkillsContext | WB | 63680 | Composer.tsx |  |
+| SUGGESTION_DEFAULT_LIMIT | gqe | 63751 | Composer.tsx | = 1000 |
+| hasNonEmptyQuery | GB | 63752 | Composer.tsx |  |
+| suggestionLimitForQuery | _qe | 63755 | Composer.tsx |  |
+| filterVisibleSuggestionSections | vqe | 63758 | Composer.tsx |  |
+| fuzzyScore | KB | 63761 | Composer.tsx |  |
+| sortByFuzzyScore | yqe | 63778 | Composer.tsx |  |
+| limitItems | qB | 63795 | Composer.tsx |  |
+| fileDirectoryPriority | bqe | 63801 | Composer.tsx |  |
+| sortFilesDirectoryFirst | xqe | 63803 | Composer.tsx |  |
+| filterSuggestionsByQuery | JB | 63808 | Composer.tsx |  |
+| subagentScopePriority | YB | 63843 | Composer.tsx |  |
+| subagentScopeLabel | Sqe | 63845 | Composer.tsx |  |
+| dedupeSubagentsByName | Cqe | 63854 | Composer.tsx |  |
+| detectGlmSkillOrigin | wqe | 63878 | Composer.tsx |  |
+| GLM_SKILL_ID_PREFIX_REGEX | Tqe | 63887 | Composer.tsx |  |
+| isGlmSkill | Eqe | 63888 | Composer.tsx |  |
+| filterGlmSkills | XB | 63891 | Composer.tsx |  |
+| OFFICIAL_SKILL_PLUGINS | Dqe | 63893 | Composer.tsx |  |
+| OFFICIAL_PLUGIN_PATH_MARKERS | Oqe | 63903 | Composer.tsx |  |
+| CURATED_SKILL_DESCRIPTIONS | kqe | 63911 | Composer.tsx |  |
+| localizeSkillScopeLabel | Aqe | 64010 | Composer.tsx |  |
+| curatedSkillDescription | jqe | 64022 | Composer.tsx |  |
+| isOfficialPluginSkill | Mqe | 64025 | Composer.tsx |  |
+| buildSkillSuggestions | ZB | 64033 | Composer.tsx |  |
+| useSkillSuggestions | Nqe | 64057 | Composer.tsx |  |
+| suggestionQueryKey | QB | 64069 | Composer.tsx |  |
+| MENTION_TRIGGER_REGEX | Pqe | 64072 | Composer.tsx |  |
+| MENTION_TOKEN_PREFIX_REGEX | Fqe | 64073 | Composer.tsx |  |
+| normalizeCnyTrigger | Iqe | 64074 | Composer.tsx |  |
+| mentionFuzzyScore | $B | 64077 | Composer.tsx |  |
+| scoreMentionSuggestion | eV | 64096 | Composer.tsx |  |
+| parseMentionTrigger | tV | 64109 | Composer.tsx |  |
+| mentionCompletionOverlap | nV | 64113 | Composer.tsx |  |
+| sortMentionSuggestions | rV | 64131 | Composer.tsx |  |
+| findBestSuggestionIndex | Lqe | 64151 | Composer.tsx |  |
+| APP_SLASH_PREFIX | iV | 64163 | Composer.tsx | `app-slash:` |
+| buildAppSlashSuggestions | Rqe | 64164 | Composer.tsx |  |
+| isAppSlashSuggestion | zqe | 64179 | Composer.tsx |  |
+| isSlashPanelAvailable | Bqe | 64182 | Composer.tsx |  |
+| normalizeSlashCommandName | aV | 64185 | Composer.tsx |  |
+| buildSessionSlashSuggestions | Vqe | 64188 | Composer.tsx |  |
+| buildSubagentSlashSuggestions | Hqe | 64207 | Composer.tsx |  |
+| buildSkillSlashSuggestions | Uqe | 64209 | Composer.tsx |  |
+| toSubagentSlashSuggestion | Wqe | 64219 | Composer.tsx |  |
+| readTextAroundCursor | Gqe | 64233 | Composer.tsx |  |
+| toSlashPanelMention | Kqe | 64243 | Composer.tsx |  |
+| useSessionSlashCommands | qqe | 64275 | Composer.tsx |  |
+| isHttpUrl | oV | 64278 | Composer.tsx |  |
+| MENTION_NODE_BASE_CLASS | sV | 64279 | Composer.tsx |  |
+| mentionCategoryClass | cV | 64280 | Composer.tsx |  |
+| unescapeMarkdownLinkLabel | Jqe | 64294 | Composer.tsx |  |
+| parseMarkdownLinkLabel | Yqe | 64303 | Composer.tsx |  |
+| mentionDisplayLabel | lV | 64307 | Composer.tsx |  |
+| SVG_NAMESPACE | uV | 64319 | Composer.tsx |  |
+| 技能 | Xqe |  | Composer.tsx |  |
+| 子代理 | Zqe |  | Composer.tsx |  |
+| 白板 | Qqe |  | Composer.tsx |  |
+| 目标命令 | $qe |  | Composer.tsx |  |
+| 紧凑命令 | eJe |  | Composer.tsx |  |
+| 命令 | tJe |  | Composer.tsx |  |
+| 会话 | nJe |  | Composer.tsx |  |
+| 插件 | rJe |  | Composer.tsx |  |
+| createMentionIconSvg | dV | 64387 | Composer.tsx |  |
+| create | iJe | 64406–64431 | Composer.tsx | *Icon |
+| create | aJe | 64406–64431 | Composer.tsx | *Icon |
+| create | oJe | 64406–64431 | Composer.tsx | *Icon |
+| create | sJe | 64406–64431 | Composer.tsx | *Icon |
+| create | cJe | 64406–64431 | Composer.tsx | *Icon |
+| create | lJe | 64406–64431 | Composer.tsx | *Icon |
+| create | uJe | 64406–64431 | Composer.tsx | *Icon |
+| create | dJe | 64406–64431 | Composer.tsx | *Icon |
+| mentionFilePath | fJe | 64433 | Composer.tsx |  |
+| stripLeadingSlashes | fV | 64436 | Composer.tsx |  |
+| renderMentionNodeContent | pV | 64438 | Composer.tsx |  |
+| PromptMentionNode | mV | 64514 | Composer.tsx |  |
+| createMentionNode | hV | 64632 | Composer.tsx |  |
+| isMentionNode | gV | 64636 | Composer.tsx |  |
+| SCROLL_FADE_HEIGHT | _V | 64639 | Composer.tsx | = 24 |
+| SCROLL_FADE_THRESHOLD | vV | 64640 | Composer.tsx | = 1 |
+| NO_SCROLL_FADE | yV | 64641 | Composer.tsx |  |
+| computeScrollFade | bV | 64642 | Composer.tsx |  |
+| scrollFadeMaskStyle | xV | 64646 | Composer.tsx |  |
+| 行高 34 | pJe | 64655–64657 | Composer.tsx |  |
+| 40 | mJe | 64655–64657 | Composer.tsx |  |
+| 28 | hJe | 64655–64657 | Composer.tsx |  |
+| flattenSuggestionRows | gJe | 64663 | Composer.tsx |  |
+| SuggestionPanel | SV | 64687 | Composer.tsx |  |
+| SuggestionSectionHeaderRow | _Je | 64822 | Composer.tsx |  |
+| SuggestionStatusRow | vJe | 64833 | Composer.tsx |  |
+| SuggestionOptionRow | yJe | 64863 | Composer.tsx |  |
+| useSlashPanelSections | bJe | 64915 | Composer.tsx |  |
+| readSlashCursorContext | CV | 65000 | Composer.tsx |  |
+| isCursorInsideToken | wV | 65018 | Composer.tsx |  |
+| parseSlashTokenAtCursor | TV | 65021 | Composer.tsx |  |
+| trackSlashToken | EV | 65028 | Composer.tsx |  |
+| resolveSlashTokenRange | DV | 65038 | Composer.tsx |  |
+| PROGRAMMATIC_UPDATE_TAG | OV | 65046 | Composer.tsx |  |
+| HISTORY_NAVIGATION_TAG | kV | 65047 | Composer.tsx |  |
+| isUserInitiatedUpdate | xJe | 65048 | Composer.tsx |  |
+| SlashPanel | SJe | 65052 | Composer.tsx |  |
+| PluginMentionIcon | AV | 65257 | Composer.tsx |  |
+| @ | CJe | 65276–65278 | Composer.tsx |  |
+| # | wJe | 65276–65278 | Composer.tsx |  |
+| $ 触发类别表 | TJe | 65276–65278 | Composer.tsx |  |
+| mentionCategoriesForTrigger | EJe | 65279 | Composer.tsx |  |
+| mentionSessionScope | DJe | 65283 | Composer.tsx |  |
+| buildFileSuggestions | OJe | 65286 | Composer.tsx |  |
+| normalizeQueryCase | jV | 65298 | Composer.tsx |  |
+| shouldRefreshFileList | kJe | 65301 | Composer.tsx |  |
+| useFileSuggestions | AJe | 65310 | Composer.tsx |  |
+| EMPTY_PLUGIN_CATALOG | MV | 65360 | Composer.tsx |  |
+| INITIAL_PLUGIN_CATALOG_STATE | jJe | 65361 | Composer.tsx |  |
+| pluginCatalogRequestCache | NV | 65362 | Composer.tsx |  |
+| releasePluginCatalogRequest | PV | 65364 | Composer.tsx |  |
+| trackPluginCatalogRequest | MJe | 65368 | Composer.tsx |  |
+| usePluginReferenceCatalog | FV | 65372 | Composer.tsx |  |
+| buildPluginSuggestions | NJe | 65436 | Composer.tsx |  |
+| usePluginSuggestions | PJe | 65455 | Composer.tsx |  |
+| SESSION_SUGGESTIONS_PER_WORKSPACE | FJe | 65483 | Composer.tsx | = 20 |
+| compareSessionSuggestions | IJe | 65484 | Composer.tsx |  |
+| sessionDisplayTitle | IV | 65496 | Composer.tsx |  |
+| sessionWorkspaceLabel | LJe | 65499 | Composer.tsx |  |
+| buildSessionSuggestion | RJe | 65504 | Composer.tsx |  |
+| dedupeAndSortSessions | zJe | 65515 | Composer.tsx |  |
+| limitSessionsPerWorkspace | BJe | 65528 | Composer.tsx |  |
+| collectSessionListEndpoints | VJe | 65534 | Composer.tsx |  |
+| useSessionSuggestions | HJe | 65565 | Composer.tsx |  |
+| buildWhiteboardSuggestions | UJe | 65610 | Composer.tsx |  |
+| useWhiteboardSuggestions | WJe | 65623 | Composer.tsx |  |
+| wrapIndex | LV | 65636 | Composer.tsx |  |
+| findNextEnabledIndex | RV | 65639 | Composer.tsx |  |
+| clampToEnabledIndex | GJe | 65648 | Composer.tsx |  |
+| MentionSelector | KJe | 65653 | Composer.tsx |  |
+| resolveTaskProvider | zV | 66097 | Composer.tsx |  |
+| useActiveTaskProvider | qJe | 66103 | Composer.tsx |  |
+| appendPromptHistory | JJe | 66112 | Composer.tsx |  |
+| navigatePromptHistory | YJe | 66118 | Composer.tsx |  |
+| MOBILE_TEXT_INPUT_MEDIA_QUERY | BV | 66134 | Composer.tsx |  |
+| matchesMediaQuery | XJe | 66135 | Composer.tsx |  |
+| subscribeMediaQuery | ZJe | 66139 | Composer.tsx |  |
+| isMobileTextInputViewportNow | QJe | 66149 | Composer.tsx |  |
+| subscribeMobileTextInputViewport | $Je | 66152 | Composer.tsx |  |
+| useIsMobileTextInputViewport | VV | 66155 | Composer.tsx |  |
+| isEnterSubmitAllowed | eYe | 66159 | Composer.tsx |  |
+| submitShortcutKey | tYe | 66162 | Composer.tsx |  |
+| isMobileWebRemoteInput | nYe | 66165 | Composer.tsx |  |
+| inputTextClass | HV | 66167 | Composer.tsx |  |
+| CJK_COMMA | rYe | 66173 | Composer.tsx | `、` |
+| SLASH_CHAR | iYe | 66174 | Composer.tsx | `/` |
+| canSubmitText | aYe | 66175 | Composer.tsx |  |
+| isSubmitAccepted | oYe | 66187 | Composer.tsx |  |
+| isCjkCommaSlashInput | sYe | 66188 | Composer.tsx |  |
+| readEditorText | UV | 66192 | Composer.tsx |  |
+| setEditorText | WV | 66199 | Composer.tsx |  |
+| setEditorMention | cYe | 66214 | Composer.tsx |  |
+| applyEditorStateJson | GV | 66225 | Composer.tsx |  |
+| clearEditor | KV | 66229 | Composer.tsx |  |
+| setSkillMentionContent | lYe | 66232 | Composer.tsx |  |
+| setSlashCommandMentionContent | uYe | 66248 | Composer.tsx |  |
+| appendFileMentionContent | dYe | 66264 | Composer.tsx |  |
+| appendTextContent | fYe | 66289 | Composer.tsx |  |
+| findMentionIdAfterCaret | pYe | 66302 | Composer.tsx |  |
+| mentionIdFromElement | qV | 66316 | Composer.tsx |  |
+| focusAfterMention | mYe | 66321 | Composer.tsx |  |
+| SubmitOnEnterPlugin | hYe | 66333 | Composer.tsx |  |
+| EditorChangeLogger | gYe | 66411 | Composer.tsx |  |
+| EditableSyncPlugin | _Ye | 66451 | Composer.tsx |  |
+| E2ELexicalBridgePlugin | vYe | 66463 | Composer.tsx |  |
+| PromptHistoryNavigationPlugin | yYe | 66507 | Composer.tsx |  |
+| isCaretAtEditorStart | JV | 66575 | Composer.tsx |  |
+| CjkCommaSlashPlugin | bYe | 66588 | Composer.tsx |  |
+| PasteCapturePlugin | xYe | 66623 | Composer.tsx |  |
+| EditorApiPlugin | SYe | 66639 | Composer.tsx |  |
+| LEXICAL_CHAT_INPUT_THEME | CYe | 66666 | Composer.tsx |  |
+| LexicalChatInput | wYe | 66668 | Composer.tsx |  |
+| PassthroughErrorBoundary | TYe | 66808 | Composer.tsx |  |
+| applyWorkspaceFileMentionDrop | YV | 66811 | Composer.tsx |  |
+| hasExternalFiles | EYe | 66823 | Composer.tsx |  |
+| useComposerFileDragDetection | XV | 66827 | Composer.tsx |  |
+| buildActionMenuShortcuts | DYe | 66887 | Composer.tsx |  |
+| onNextFrame | OYe | 66893 | Composer.tsx |  |
+| appendTriggerText | kYe | 66899 | Composer.tsx |  |
+| preventDefaultOnMouseDown | AYe | 66904 | Composer.tsx |  |
+| ComposerActionMenu | jYe | 66907 | Composer.tsx |  |
+| runOnNextFrame | MYe | 67000 | Composer.tsx |  |
+| ComposerInput | ZV | 67007 | Composer.tsx |  |
+| NANOID_ALPHABET | NYe | 67277 | Composer.tsx |  |
+| nanoid | QV | 67278 | Composer.tsx |  |
+| LARGE_PASTED_TEXT_THRESHOLD | PYe | 67282 | Composer.tsx | = 5KB |
+| MAX_INLINE_IMAGE_BYTES | $V | 67283 | Composer.tsx | = 20MB |
+| TEXT_ATTACHMENT_PREVIEW_LIMIT | eH | 67284 | Composer.tsx | = 64KB |
+| OversizedInlineImageAttachmentError | FYe | 67285 | Composer.tsx |  |
+| readFileAsDataUrl | IYe | 67299 | Composer.tsx |  |
+| createFileAttachment | LYe | 67315 | Composer.tsx |  |
+| createLocalPathAttachment | RYe | 67324 | Composer.tsx |  |
+| createClipboardTextAttachment | zYe | 67328 | Composer.tsx |  |
+| isLargePastedText | BYe | 67338 | Composer.tsx |  |
+| SPREADSHEET_HTML_PATTERN | VYe | 67340 | Composer.tsx |  |
+| prefersSpreadsheetText | HYe | 67342 | Composer.tsx |  |
+| pastedTextFilename | UYe | 67346 | Composer.tsx |  |
+| countLines | WYe | 67349 | Composer.tsx |  |
+| revokeAttachmentObjectUrl | tH | 67371 | Composer.tsx |  |
+| resolveAttachmentPayload | GYe | 67374 | Composer.tsx |  |
+| readAttachmentBase64 | KYe | 67417 | Composer.tsx |  |
+| isImageAttachment | nH | 67424 | Composer.tsx |  |
+| isTextLikeAttachment | qYe | 67427 | Composer.tsx |  |
+| readTextFilePreview | JYe | 67434 | Composer.tsx |  |
+| guessMimeType | rH | 67439 | Composer.tsx |  |
+| basenameOfPath | YYe | 67466 | Composer.tsx |  |
+| formatPastedTextFilename | XYe | 67469 | Composer.tsx |  |
+| resolveComposerPlaceholderKey | ZYe | 67473 | Composer.tsx |  |
+| PROMPT_HISTORY_STORAGE_PREFIX | QYe | 67480 | Composer.tsx |  |
+| safeLocalStorage | iH | 67481 | Composer.tsx |  |
+| promptHistoryStorageKey | aH | 67489 | Composer.tsx |  |
+| sanitizePromptHistory | oH | 67492 | Composer.tsx |  |
+| loadPromptHistory | sH | 67499 | Composer.tsx |  |
+| savePromptHistory | cH | 67509 | Composer.tsx |  |
+| resolveFocusStrategy | lH | 67514 | Composer.tsx |  |
+| DRAFT_STORAGE_PREFIX | $Ye | 67518 | Composer.tsx | `zcode-v4-composer-drafts:v1:` |
+| DRAFT_SCOPE_ID | eXe | 67519 | Composer.tsx | `__draft__` |
+| MAX_DRAFT_SCOPES | uH | 67520 | Composer.tsx | = 50 |
+| safeDraftStorage | dH | 67521 | Composer.tsx |  |
+| draftStorageKey | fH | 67527 | Composer.tsx |  |
+| parseDraftStore | pH | 67532 | Composer.tsx |  |
+| persistDraftStore | mH | 67542 | Composer.tsx |  |
+| pruneDraftScopes | tXe | 67559 | Composer.tsx |  |
+| readDraftScope | nXe | 67568 | Composer.tsx |  |
+| writeDraftScope | hH | 67574 | Composer.tsx |  |
+| deleteDraftScope | gH | 67581 | Composer.tsx |  |
+| pendingDraftTransfer | _H | 67587 | Composer.tsx |  |
+| draftScopeWorkspaceKey | vH | 67588 | Composer.tsx |  |
+| setPendingDraftTransfer | rXe | 67591 | Composer.tsx |  |
+| consumePendingDraftTransfer | iXe | 67593 | Composer.tsx |  |
+| useComposerAttachmentStore | yH | 67602 | Composer.tsx |  |
+| getScopeAttachments | bH | 67603 | Composer.tsx |  |
+| updateScopeAttachments | aXe | 67606 | Composer.tsx |  |
+| encodeBase64Utf8 | oXe | 67616 | Composer.tsx |  |
+| estimateBase64Bytes | sXe | 67623 | Composer.tsx |  |
+| putAttachmentContent | cXe | 67627 | Composer.tsx |  |
+| EMPTY_ATTACHMENTS | lXe | 67646 | Composer.tsx |  |
+| REMOTE_ATTACHMENT_NOT_STAGED | xH | 67647 | Composer.tsx |  |
+| selectAttachmentPaths | uXe | 67648 | Composer.tsx |  |
+| attachmentScopeKey | dXe | 67653 | Composer.tsx |  |
+| isAbortError | SH | 67656 | Composer.tsx |  |
+| RemoteAttachmentNotStagedError | fXe | 67663 | Composer.tsx |  |
+| isTransientUploadError | pXe | 67666 | Composer.tsx |  |
+| uploadProgressPercent | CH | 67673 | Composer.tsx |  |
+| isRemoteAttachmentTarget | wH | 67676 | Composer.tsx |  |
+| useComposerAttachments | mXe | 67679 | Composer.tsx |  |
+| codeCommentKey | hXe | 68295 | Composer.tsx |  |
+| CodeCommentsChip | TH | 68298 | Composer.tsx |  |
+| CODE_COMMENT_ADD_EVENT | EH | 68411 | Composer.tsx |  |
+| CODE_COMMENT_REMOVE_EVENT | DH | 68412 | Composer.tsx |  |
+| CODE_COMMENT_REMOVE_CHANNEL | gXe | 68413 | Composer.tsx |  |
+| suppressedCodeCommentIds | OH | 68414 | Composer.tsx |  |
+| commentWorkspaceKey | kH | 68415 | Composer.tsx |  |
+| codeCommentIdentityKey | AH | 68418 | Composer.tsx |  |
+| isCodeCommentSuppressed | _Xe | 68421 | Composer.tsx |  |
+| suppressCodeComment | jH | 68424 | Composer.tsx |  |
+| unsuppressCodeComment | vXe | 68427 | Composer.tsx |  |
+| isCodeCommentAddEvent | yXe | 68430 | Composer.tsx |  |
+| isCodeCommentRemoveEvent | bXe | 68438 | Composer.tsx |  |
+| isCodeCommentRemoveDetail | MH | 68446 | Composer.tsx |  |
+| isCodeCommentAddDetail | NH | 68457 | Composer.tsx |  |
+| formatCodeCommentMarkdown | xXe | 68475 | Composer.tsx |  |
+| formatCodeCommentsMarkdown | SXe | 68479 | Composer.tsx |  |
+| appendCodeCommentsToContent | CXe | 68486 | Composer.tsx |  |
+| pathBasename | wXe | 68499 | Composer.tsx |  |
+| parseLineRange | TXe | 68502 | Composer.tsx |  |
+| parseCodeCommentMarkdown | EXe | 68510 | Composer.tsx |  |
+| extractCodeCommentsFromContent | DXe | 68536 | Composer.tsx |  |
+| dispatchCodeCommentAddEvent | OXe | 68551 | Composer.tsx |  |
+| dispatchCodeCommentRemoveEvent | kXe | 68555 | Composer.tsx |  |
+| EMPTY_COMMENTS | AXe | 68558 | Composer.tsx |  |
+| commentBucketKey | PH | 68559 | Composer.tsx |  |
+| useCodeCommentsStore | FH | 68562 | Composer.tsx |  |
+| removeCodeCommentEverywhere | jXe | 68628 | Composer.tsx |  |
+| WEB_ELEMENT_ADD_EVENT | IH | 68643 | Composer.tsx |  |
+| WEB_ELEMENT_REMOVE_EVENT | LH | 68644 | Composer.tsx |  |
+| WEB_ELEMENTS_MARKDOWN_HEADER | MXe | 68645 | Composer.tsx |  |
+| WEB_ELEMENT_TEXT_LIMIT | RH | 68646 | Composer.tsx | = 8000 |
+| createWebElementId | NXe | 68648 | Composer.tsx |  |
+| webElementWorkspaceKey | zH | 68653 | Composer.tsx |  |
+| isWebElementAddEvent | PXe | 68656 | Composer.tsx |  |
+| isWebElementRemoveEvent | FXe | 68663 | Composer.tsx |  |
+| isWebElementAddDetail | BH | 68670 | Composer.tsx |  |
+| truncateWebElementText | VH | 68686 | Composer.tsx |  |
+| pushWebElementField | HH | 68691 | Composer.tsx |  |
+| formatWebElementAttributes | IXe | 68695 | Composer.tsx |  |
+| formatWebElementFont | LXe | 68703 | Composer.tsx |  |
+| formatWebElementMarkdown | RXe | 68707 | Composer.tsx |  |
+| appendWebElementsToContent | zXe | 68737 | Composer.tsx |  |
+| readWebElementField | UH | 68749 | Composer.tsx |  |
+| readWebElementCodeField | WH | 68752 | Composer.tsx |  |
+| parseWebElementFont | BXe | 68761 | Composer.tsx |  |
+| parseWebElementStyle | VXe | 68766 | Composer.tsx |  |
+| parseWebElementMarkdown | HXe | 68781 | Composer.tsx |  |
+| extractWebElementsFromContent | UXe | 68805 | Composer.tsx |  |
+| dispatchWebElementAddEvent | WXe | 68824 | Composer.tsx |  |
+| countComposerContexts | GH | 68825 | Composer.tsx |  |
+| buildComposerContextMarkdown | GXe | 68833 | Composer.tsx |  |
+| parseComposerContextContent | KXe | 68839 | Composer.tsx |  |
+| createCodeCommentId | qXe | 68852 | Composer.tsx |  |
+| codeCommentContextKey | KH | 68857 | Composer.tsx |  |
+| useCodeCommentContexts | JXe | 68860 | Composer.tsx |  |
+| isWebElementRemoveDetail | YXe | 68926 | Composer.tsx |  |
+| normalizeWebElementDetail | XXe | 68936 | Composer.tsx |  |
+| useWebElementContexts | ZXe | 68940 | Composer.tsx |  |
+| usePptxElementReferences | QXe | 68996 | Composer.tsx |  |
+| pptxReferenceLabel | qH | 69033 | Composer.tsx |  |
+| PptxReferencesChip | JH | 69036 | Composer.tsx |  |
+| buildPptxPreviewNavigation | $Xe | 69181 | Composer.tsx |  |
+| toPptxViewerTarget | eZe | 69194 | Composer.tsx |  |
+| usePptxPreviewOpener | YH | 69207 | Composer.tsx |  |
+| useSessionScopedReferences | tZe | 69225 | Composer.tsx |  |
+| countBackgroundWorks | nZe | 69266 | Composer.tsx |  |
+| BackgroundWorksCapsule | rZe | 69273 | Composer.tsx |  |
+| BackgroundWorksCapsuleMemo | iZe | 69345 | Composer.tsx |  |
+| isCoarseTouchDevice | XH | 69346 | Composer.tsx |  |
+| shouldRestoreFocus | ZH | 69351 | Composer.tsx |  |
+| LABEL_ANIMATION_TRANSITION | N4e | 75495 | Composer.tsx |  |
+| usePrefersReducedMotion | P4e | 75496 | Composer.tsx |  |
+| AnimatedLabel | _q | 75520 | Composer.tsx |  |
+| EMPTY_FOOTER_ACTIONS | F4e | 75556 | Composer.tsx |  |
+| hasMultipleGroups | I4e | 75557 | Composer.tsx |  |
+| hasGroupDecoration | L4e | 75560 | Composer.tsx |  |
+| needsGroupSeparator | R4e | 75565 | Composer.tsx |  |
+| groupContainsValue | z4e | 75568 | Composer.tsx |  |
+| resolveTriggerLabelClass | B4e | 75571 | Composer.tsx |  |
+| ModelSelector | vq | 75575 | Composer.tsx |  |
+| MODE_LABEL_I18N | V4e | 75972 | Composer.tsx |  |
+| MODE_DESCRIPTION_I18N | H4e | 76002 | Composer.tsx |  |
+| SegmentedProgress | yq | 76034 | Composer.tsx |  |
+| 上下文环几何 10 | bq | 76066–76069 | Composer.tsx |  |
+| 24 | U4e | 76066–76069 | Composer.tsx |  |
+| 12 | xq | 76066–76069 | Composer.tsx |  |
+| 4 | W4e | 76066–76069 | Composer.tsx |  |
+| ContextUsageContext | G4e | 76071 | Composer.tsx |  |
+| usageRatio | K4e | 76072 | Composer.tsx |  |
+| useContextUsage | q4e | 76075 | Composer.tsx |  |
+| ContextUsageProvider | J4e | 76079 | Composer.tsx |  |
+| ContextRingGlyph | Y4e | 76089 | Composer.tsx |  |
+| ContextRingTrigger | X4e | 76125 | Composer.tsx |  |
+| ContextRingTooltipContent | Z4e | 76139 | Composer.tsx |  |
+| ContextRingTooltipBody | Q4e | 76147 | Composer.tsx |  |
+| isOptionValue | M3e | 76848 | Composer.tsx |  |
+| DANGEROUS_MODE_VALUES | N3e | 76851 | Composer.tsx |  |
+| configSelectTestId | P3e | 76852 | Composer.tsx |  |
+| configOptionTestId | F3e | 76856 | Composer.tsx |  |
+| ApiRetryIndicator | I3e | 76860 | Composer.tsx |  |
+| modeOptionLabel | L3e | 76880 | Composer.tsx |  |
+| modeLabelI18nId | R3e | 76883 | Composer.tsx |  |
+| modeDescriptionI18nId | z3e | 76886 | Composer.tsx |  |
+| configOptionLabel | jq | 76889 | Composer.tsx |  |
+| configOptionDescription | B3e | 76892 | Composer.tsx |  |
+| isDangerousModeValue | V3e | 76897 | Composer.tsx |  |
+| modeOptionIcon | H3e | 76900 | Composer.tsx |  |
+| ConfigSelect | Mq | 76911 | Composer.tsx |  |
+| THOUGHT_LEVEL_DISABLED_VALUES | U3e | 77062 | Composer.tsx |  |
+| THOUGHT_LEVEL_RANKS | W3e | 77063 | Composer.tsx |  |
+| THOUGHT_LEVEL_LABEL_I18N | G3e | 77094 | Composer.tsx |  |
+| normalizeThoughtLevelKey | Nq | 77127 | Composer.tsx |  |
+| isDisabledThoughtOption | K3e | 77130 | Composer.tsx |  |
+| thoughtOptionRank | q3e | 77133 | Composer.tsx |  |
+| sortThoughtOptions | J3e | 77141 | Composer.tsx |  |
+| nextThoughtLevelValue | Y3e | 77155 | Composer.tsx |  |
+| thoughtOptionLabel | X3e | 77163 | Composer.tsx |  |
+
+## 35. B5 · OnboardingLoginLeaves.tsx（F18 OnboardingLogin 族余量）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，现行 213,979 行）· B5-02。行号口径：当前 js 行（头注同时给出 jsx 孪生行）。
+- 符号条数：139（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| LOGIN_FAILED_MESSAGE | c4t | 205995 | OnboardingLoginLeaves.tsx | 常量「登录失败，请重试」 |
+| useOAuth | l4t | 205996 | OnboardingLoginLeaves.tsx | OAuth 流程钩子 |
+| familyDomainToProviderId | M9 | 206077 | OnboardingLoginLeaves.tsx | zai/bigmodel → providerId |
+| familyDomainLabel | u4t | 206080 | OnboardingLoginLeaves.tsx | Z.ai / BigModel |
+| identityDomain | d4t | 206083 | OnboardingLoginLeaves.tsx | 恒等（保留调用面） |
+| withFamilyMode | f4t | 206086 | OnboardingLoginLeaves.tsx | modelProviderFamilyModes 置 apiKey |
+| familyDomainPatch | p4t | 206089 | OnboardingLoginLeaves.tsx | providerFamilyDomain 补丁 |
+| apiKeyUrlForDomain | m4t | 206096 | OnboardingLoginLeaves.tsx | 注册表取 apiKeyUrl |
+| shouldShowGetApiKeyLink | h4t | 206099 | OnboardingLoginLeaves.tsx |  |
+| applyApiKeyToProvider | g4t | 206102 | OnboardingLoginLeaves.tsx |  |
+| defaultModelKeyForProvider | _4t | 206105 | OnboardingLoginLeaves.tsx |  |
+| findSavedApiKeyForDomain | v4t | 206109 | OnboardingLoginLeaves.tsx |  |
+| savedApiKeyIfUntouched | y4t | 206113 | OnboardingLoginLeaves.tsx |  |
+| ApiKeyLoginView | b4t | 206116 | OnboardingLoginLeaves.tsx | API key 登录视图（login.*） |
+| LoginEntryScreen | w4t | 206410 | OnboardingLoginLeaves.tsx | 登录入口屏（hero 壳 + D4t） |
+| attemptMatchesSuccessProvider | T4t | 206425 | OnboardingLoginLeaves.tsx |  |
+| canAutoCompleteOAuth | E4t | 206428 | OnboardingLoginLeaves.tsx |  |
+| OAuthLoginPanel | D4t | 206431 | OnboardingLoginLeaves.tsx | OAuth 登录面板（login.*） |
+| LoginHeader | O4t | 206685 | OnboardingLoginLeaves.tsx |  |
+| LoginLogoBadge | k4t | 206704 | OnboardingLoginLeaves.tsx | （REBRAND-011+111 aria-label） |
+| oauthButtonLabelKey | A4t | 206712 | OnboardingLoginLeaves.tsx |  |
+| oauthRegionTagKey | j4t | 206722 | OnboardingLoginLeaves.tsx |  |
+| OAuthRegionTag | M4t | 206732 | OnboardingLoginLeaves.tsx |  |
+| providerSortRank | N4t | 206742 | OnboardingLoginLeaves.tsx |  |
+| sortLoginProviders | P4t | 206752 | OnboardingLoginLeaves.tsx |  |
+| resolveRetryProviderId | F4t | 206755 | OnboardingLoginLeaves.tsx |  |
+| shouldReportLaunchMarks | I4t | 206758 | OnboardingLoginLeaves.tsx |  |
+| readRendererLaunchMarks | L4t | 206761 | OnboardingLoginLeaves.tsx | __ZCODE_*__ window 标记 |
+| countTotalUnreadTasks | R4t | 206769 | OnboardingLoginLeaves.tsx |  |
+| isResolvingStartupAuthState | z4t | 206782 | OnboardingLoginLeaves.tsx | ★OFFLINE-PATCH-001 直通 |
+| isStartupRenderBlocked | B4t | 206787 | OnboardingLoginLeaves.tsx |  |
+| isProviderAvailabilityGateEnabled | V4t | 206790 | OnboardingLoginLeaves.tsx |  |
+| isProviderStartupSyncPending | H4t | 206793 | OnboardingLoginLeaves.tsx |  |
+| needsFallbackWorkspaceBootstrap | U4t | 206798 | OnboardingLoginLeaves.tsx |  |
+| isProviderStartupHydrationPending | W4t | 206801 | OnboardingLoginLeaves.tsx |  |
+| SettingsLayer | J4t | 206998 | OnboardingLoginLeaves.tsx | 设置层（挂 j9） |
+| MemoizedWorkspaceShell | Y4t | 207063 | OnboardingLoginLeaves.tsx | memo(XJt) |
+| RootWorkspaceContent | X4t | 207064 | OnboardingLoginLeaves.tsx |  |
+| trimmedOrUndefined | Z4t | 207205 | OnboardingLoginLeaves.tsx |  |
+| resolveActiveWorkspaceShellProps | Q4t | 207208 | OnboardingLoginLeaves.tsx |  |
+| workspaceKeyOfRestoreEntry | D3t | 208827 | OnboardingLoginLeaves.tsx |  |
+| buildPersistedTabPatch | O3t | 208830 | OnboardingLoginLeaves.tsx |  |
+| restoreCombinedWorkspaceSessions | k3t | 208839 | OnboardingLoginLeaves.tsx | ★MODULE-MAP「导入向导」为误标 |
+| slugifyRemoteSeed | A3t | 208929 | OnboardingLoginLeaves.tsx |  |
+| remoteTargetSeedName | j3t | 208932 | OnboardingLoginLeaves.tsx |  |
+| remoteWorkspaceRuntimeLabelPrefix | M3t | 208947 | OnboardingLoginLeaves.tsx |  |
+| matchReconnectingWorkspaceKeys | N3t | 208950 | OnboardingLoginLeaves.tsx |  |
+| MAX_REMOTE_LOGS_PER_WORKSPACE | P3t | 208963 | OnboardingLoginLeaves.tsx | = 50 |
+| useRemoteConnectionLogs | F3t | 208964 | OnboardingLoginLeaves.tsx |  |
+| reconnectRemoteWorkspaceEntry | I3t | 209023 | OnboardingLoginLeaves.tsx |  |
+| isActiveTaskRuntimeStatus | B9 | 209132 | OnboardingLoginLeaves.tsx |  |
+| isTaskRuntimeActiveInState | L3t | 209135 | OnboardingLoginLeaves.tsx |  |
+| collectActiveTaskIds | R3t | 209139 | OnboardingLoginLeaves.tsx |  |
+| failActiveTasksForClosedTabs | z3t | 209149 | OnboardingLoginLeaves.tsx |  |
+| identityFromReconnectEvent | B3t | 209161 | OnboardingLoginLeaves.tsx |  |
+| shouldPersistClosedSessionFailure | V3t | 209164 | OnboardingLoginLeaves.tsx |  |
+| reconnectRemoteWorkspaceByKey | H3t | 209169 | OnboardingLoginLeaves.tsx |  |
+| resolveSshReconnectGroup | U3t | 209181 | OnboardingLoginLeaves.tsx |  |
+| reconnectGroupWithSshReuse | W3t | 209189 | OnboardingLoginLeaves.tsx |  |
+| isWorkspacePresentInTabs | G3t | 209247 | OnboardingLoginLeaves.tsx |  |
+| cancelPendingReconnectRequests | K3t | 209258 | OnboardingLoginLeaves.tsx |  |
+| openRemoteWorkspaceFromHistory | q3t | 209275 | OnboardingLoginLeaves.tsx |  |
+| completeRemoteProjectSelection | J3t | 209333 | OnboardingLoginLeaves.tsx |  |
+| useRemoteWorkspaceOrchestrator | Y3t | 209393 | OnboardingLoginLeaves.tsx |  |
+| removedRemoteWorkspaceIdentities | X3t | 209851 | OnboardingLoginLeaves.tsx |  |
+| useRemoteTabSessionDisposal | Z3t | 209865 | OnboardingLoginLeaves.tsx |  |
+| useModelProviderSnapshotRefresher | Q3t | 209916 | OnboardingLoginLeaves.tsx |  |
+| presetSelectedKey | e6t | 209943 | OnboardingLoginLeaves.tsx |  |
+| codingPlanSelectedKey | V9 | 209946 | OnboardingLoginLeaves.tsx |  |
+| teamPlanSelectedKey | t6t | 209949 | OnboardingLoginLeaves.tsx |  |
+| firstSubscribedTeamPlanKey | n6t | 209956 | OnboardingLoginLeaves.tsx |  |
+| isTeamPlanKeySubscribed | r6t | 209984 | OnboardingLoginLeaves.tsx |  |
+| resolveOAuthFamilySelection | i6t | 210020 | OnboardingLoginLeaves.tsx |  |
+| FAMILY_DEFAULT_SELECTED_KEYS | H9 | 210036 | OnboardingLoginLeaves.tsx |  |
+| isFamilySelectionUsable | a6t | 210040 | OnboardingLoginLeaves.tsx |  |
+| findUnusableFamilyDomains | o6t | 210048 | OnboardingLoginLeaves.tsx |  |
+| migrateDefaultFamilySelectedKeys | s6t | 210060 | OnboardingLoginLeaves.tsx |  |
+| fetchBigModelTeamProducts | c6t | 210078 | OnboardingLoginLeaves.tsx |  |
+| maybeUpgradeBigModelTeamPlan | l6t | 210090 | OnboardingLoginLeaves.tsx |  |
+| migrateFamilySelectionWithUpgrade | u6t | 210110 | OnboardingLoginLeaves.tsx |  |
+| planProviderIdsForDomain | U9 | 210119 | OnboardingLoginLeaves.tsx |  |
+| codingPlanProviderFromKey | d6t | 210126 | OnboardingLoginLeaves.tsx |  |
+| fetchEntitlementSnapshot | W9 | 210134 | OnboardingLoginLeaves.tsx |  |
+| fetchTeamProductListResult | f6t | 210147 | OnboardingLoginLeaves.tsx |  |
+| fetchTeamProductListOrEmpty | p6t | 210160 | OnboardingLoginLeaves.tsx |  |
+| isCompleteTeamPlanKey | m6t | 210164 | OnboardingLoginLeaves.tsx |  |
+| refreshLatestFamilySelection | h6t | 210168 | OnboardingLoginLeaves.tsx |  |
+| refreshFamilySelectionKeepTeamPlan | g6t | 210198 | OnboardingLoginLeaves.tsx |  |
+| refreshProvidersAfterStartupRestore | _6t | 210239 | OnboardingLoginLeaves.tsx |  |
+| applyRestoredOAuthSession | v6t | 210288 | OnboardingLoginLeaves.tsx |  |
+| applyOAuthCallbackSuccess | y6t | 210295 | OnboardingLoginLeaves.tsx |  |
+| useOAuthSessionBootstrap | b6t | 210359 | OnboardingLoginLeaves.tsx |  |
+| useTitleBarThemeSync | x6t | 210452 | OnboardingLoginLeaves.tsx |  |
+| buildWebRemoteControlWorkspaces | S6t | 210467 | OnboardingLoginLeaves.tsx |  |
+| buildConnectedRemoteWorkspaces | C6t | 210497 | OnboardingLoginLeaves.tsx |  |
+| passThroughFlag | w6t | 210510 | OnboardingLoginLeaves.tsx |  |
+| useRootPlatformBridge | T6t | 210513 | OnboardingLoginLeaves.tsx |  |
+| WSL_UNC_PATH_REGEX | E6t | 210684 | OnboardingLoginLeaves.tsx |  |
+| parseWslUncPath | D6t | 210685 | OnboardingLoginLeaves.tsx |  |
+| openWorkspaceFolderEntry | G9 | 210692 | OnboardingLoginLeaves.tsx |  |
+| useConversationWorkspaceActions | O6t | 210717 | OnboardingLoginLeaves.tsx |  |
+| paneWorkspaceScopePatch | k6t | 210753 | OnboardingLoginLeaves.tsx |  |
+| resolveActiveWorkspaceScope | A6t | 210759 | OnboardingLoginLeaves.tsx |  |
+| invalidUsageKeys | M6t | 211055 | OnboardingLoginLeaves.tsx | Set |
+| usageSanityKey | N6t | 211056 | OnboardingLoginLeaves.tsx |  |
+| recordInvalidUsage | P6t | 211060 | OnboardingLoginLeaves.tsx |  |
+| isCompactSlashCommand | F6t | 211067 | OnboardingLoginLeaves.tsx |  |
+| resolveIncomingUsage | I6t | 211073 | OnboardingLoginLeaves.tsx |  |
+| isTaskBroadcastPayload | L6t | 211089 | OnboardingLoginLeaves.tsx |  |
+| matchTaskBroadcast | R6t | 211133 | OnboardingLoginLeaves.tsx |  |
+| runtimeStateOfBroadcastEvent | z6t | 211138 | OnboardingLoginLeaves.tsx |  |
+| isStreamEventBody | B6t | 211158 | OnboardingLoginLeaves.tsx |  |
+| isTaskStreamPayload | V6t | 211163 | OnboardingLoginLeaves.tsx |  |
+| matchTaskStreamBroadcast | H6t | 211175 | OnboardingLoginLeaves.tsx |  |
+| storeBroadcastConfigOptions | U6t | 211180 | OnboardingLoginLeaves.tsx |  |
+| shouldBumpTaskListVersion | W6t | 211188 | OnboardingLoginLeaves.tsx |  |
+| shouldApplyStreamBroadcast | G6t | 211195 | OnboardingLoginLeaves.tsx |  |
+| useBotsTaskBroadcastBridge | K6t | 211198 | OnboardingLoginLeaves.tsx |  |
+| createDiffsWorker | q6t | 211381 | OnboardingLoginLeaves.tsx |  |
+| resolveDiffsPoolSize | J6t | 211387 | OnboardingLoginLeaves.tsx |  |
+| DiffsPoolOptionsSync | Y6t | 211392 | OnboardingLoginLeaves.tsx |  |
+| DiffsWorkerPoolProvider | X6t | 211414 | OnboardingLoginLeaves.tsx |  |
+| canSyncWebRemoteTasks | Z6t | 211435 | OnboardingLoginLeaves.tsx |  |
+| logDeferredWebRemoteSync | Q6t | 211438 | OnboardingLoginLeaves.tsx |  |
+| RootStartupLoading | $6t | 211441 | OnboardingLoginLeaves.tsx | data-testid root-startup-loading |
+| StartupLogoSvg | e8t | 211454 | OnboardingLoginLeaves.tsx | （REBRAND-013+113 + animate） |
+| useProviderAvailabilityLoginGuard | t8t | 211481 | OnboardingLoginLeaves.tsx |  |
+| inferFamilyDomainFromCache | n8t | 211532 | OnboardingLoginLeaves.tsx |  |
+| migrateProviderFamilyDomain | r8t | 211540 | OnboardingLoginLeaves.tsx |  |
+| TDP_SEED_DEFAULTS | K9 | 211564 | OnboardingLoginLeaves.tsx | （i8t 消费，语义属 F20） |
+| tdpNamespacedId | q9 | 211570 | OnboardingLoginLeaves.tsx |  |
+| buildTdpTurnOperations | J9 | 211573 | OnboardingLoginLeaves.tsx |  |
+| defineTelemetryParityCase | Y9 | 211666 | OnboardingLoginLeaves.tsx |  |
+| WelcomeGate | v8t | 213554 | OnboardingLoginLeaves.tsx | 更新窗 + 语言选择壳 |
+| pluginInstallationKey | Q9 | 213619 | OnboardingLoginLeaves.tsx |  |
+| PluginMarketplaceStoreCreation | — | 213621–213895 | OnboardingLoginLeaves.tsx | 无赋值 裸 Ae(...) 死创建 |
+| TASK_NOTIFICATION_SOUND_URL | y8t | 213896 | OnboardingLoginLeaves.tsx |  |
+| sharedNotificationAudio | $9 | 213897 | OnboardingLoginLeaves.tsx |  |
+| getNotificationAudio | b8t | 213898 | OnboardingLoginLeaves.tsx |  |
+
+## 36. B5 · AppRootLeaves.tsx（F20 Bootstrap/AppRoot 族余量）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，现行 213,979 行）· B5-02。行号口径：当前 js 行（头注同时给出 jsx 孪生行）。
+- 符号条数：23（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| useWorkspaceActions | j6t | 210776 | AppRootLeaves.tsx |  |
+| buildTelemetryParityCases | i8t | 211669 | AppRootLeaves.tsx | TDP01–19 |
+| TELEMETRY_PARITY_CASES | a8t | 212448 | AppRootLeaves.tsx | Map(caseId → case) |
+| [...a8t.keys()]; | — | 212449 | AppRootLeaves.tsx | 裸语句 逐字保留 |
+| telemetryParityCaseById | o8t | 212450 | AppRootLeaves.tsx |  |
+| quotaParityAssertions | s8t | 212455 | AppRootLeaves.tsx |  |
+| captchaParityAssertions | c8t | 212490 | AppRootLeaves.tsx |  |
+| assertParityState | X9 | 212520 | AppRootLeaves.tsx |  |
+| exposeTelemetryParityE2E | l8t | 212523 | AppRootLeaves.tsx |  |
+| runTelemetryParityCase | u8t | 212534 | AppRootLeaves.tsx |  |
+| applyTelemetryParityOperation | d8t | 212580 | AppRootLeaves.tsx |  |
+| runTelemetryParityWebNoop | f8t | 212775 | AppRootLeaves.tsx |  |
+| pushUniqueParityAssertion | p8t | 212803 | AppRootLeaves.tsx |  |
+| buildParityEventFact | Z9 | 212806 | AppRootLeaves.tsx |  |
+| APP_ROOT_ICON_STROKE_WIDTH | m8t | 212817 | AppRootLeaves.tsx | = 1.5 |
+| WebRemoteControlTaskSyncBridge | h8t | 212818 | AppRootLeaves.tsx |  |
+| ZCodeApp | g8t | 212878 | AppRootLeaves.tsx |  |
+| AppRootContent | _8t | 212905 | AppRootLeaves.tsx | ★OFFLINE-PATCH-002 |
+| playStartupSound | x8t | 213901 | AppRootLeaves.tsx |  |
+| ARMS_E2E_EVENT_LIMIT | S8t | 213909 | AppRootLeaves.tsx | = 200 |
+| recordArmsCustomEventE2E | C8t | 213910 | AppRootLeaves.tsx |  |
+| rendererInstanceId | w8t | 213921 | AppRootLeaves.tsx | 模块级 null |
+| setRendererInstanceId | T8t | 213922 | AppRootLeaves.tsx |  |
+
+## 37. B5 · FeedbackCenter.tsx（F09 反馈中心 RMe 族）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，213,979 行）· B5-03。行号口径：当前 js 行（头注同时给出 jsx 孪生行）。
+- 符号条数：109（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| TICKET_STATUS_STYLES | Bje | 37093 | FeedbackCenter.tsx |  |
+| TICKET_STATUS_I18N_KEYS | Vje | 37104 | FeedbackCenter.tsx |  |
+| formatTicketStatus | Hje | 37115 | FeedbackCenter.tsx |  |
+| TicketStatusBadge | Uje | 37118 | FeedbackCenter.tsx |  |
+| FeedbackErrorBanner | bC | 37129 | FeedbackCenter.tsx |  |
+| persistFeedbackContact | TC | 37172 | FeedbackCenter.tsx |  |
+| ScreenshotPicker | Gje | 37175 | FeedbackCenter.tsx |  |
+| ScreenshotGridItem | Kje | 37294 | FeedbackCenter.tsx |  |
+| readScreenshotFile | qje | 37320 | FeedbackCenter.tsx |  |
+| screenshotDataUrl | EC | 37342 | FeedbackCenter.tsx |  |
+| FeedbackSwitch | DC | 37345 | FeedbackCenter.tsx |  |
+| UploadProgressRow | OC | 37360 | FeedbackCenter.tsx |  |
+| DescriptionField | Jje | 37394 | FeedbackCenter.tsx |  |
+| ContactField | Yje | 37411 | FeedbackCenter.tsx |  |
+| LogsToggleRow | Xje | 37430 | FeedbackCenter.tsx |  |
+| SubmitActionBar | Zje | 37465 | FeedbackCenter.tsx |  |
+| FormSection | kC | 37530 | FeedbackCenter.tsx |  |
+| FormFieldBody | AC | 37548 | FeedbackCenter.tsx |  |
+| CharCount | Qje | 37559 | FeedbackCenter.tsx |  |
+| SCROLL_FADE_CLASSES | $je | 37565 | FeedbackCenter.tsx |  |
+| FadeScrollArea | jC | 37571 | FeedbackCenter.tsx |  |
+| MODEL_OPTIONS_PREVIEW_LIMIT=12 | eMe | 37630 | FeedbackCenter.tsx |  |
+| collectModelContext | tMe | 37631 | FeedbackCenter.tsx |  |
+| extractErrorMessage | MC | 37651 | FeedbackCenter.tsx |  |
+| DEFAULT_SUBMISSION_COPY | NC | 37656 | FeedbackCenter.tsx |  |
+| submissionJobSeq | nMe | 37679 | FeedbackCenter.tsx |  |
+| submissionJobsById | PC | 37680 | FeedbackCenter.tsx |  |
+| submissionRegistryListeners | FC | 37681 | FeedbackCenter.tsx |  |
+| snapshotSubmissionJobs | IC | 37682 | FeedbackCenter.tsx |  |
+| notifySubmissionRegistry | LC | 37685 | FeedbackCenter.tsx |  |
+| getSubmissionJobs | rMe | 37689 | FeedbackCenter.tsx |  |
+| subscribeSubmissionJobs | iMe | 37692 | FeedbackCenter.tsx |  |
+| dismissSubmissionJob | RC | 37703 | FeedbackCenter.tsx |  |
+| getSubmissionJobById | aMe | 37706 | FeedbackCenter.tsx |  |
+| cancelJobBeforeTicket | zC | 37709 | FeedbackCenter.tsx |  |
+| createFeedbackSubmissionJob | oMe | 37723 | FeedbackCenter.tsx |  |
+| freezeFormDraft | sMe | 37898 | FeedbackCenter.tsx |  |
+| displaySubmissionError | cMe | 37902 | FeedbackCenter.tsx |  |
+| FeedbackSubmissionCanceledError | BC | 37911 | FeedbackCenter.tsx |  |
+| uploadFullLogWithResume | lMe | 37916 | FeedbackCenter.tsx |  |
+| formatBytes | VC | 37992 | FeedbackCenter.tsx |  |
+| mapUploadProgress | uMe | 37999 | FeedbackCenter.tsx |  |
+| isUploadCanceledError | dMe | 38021 | FeedbackCenter.tsx |  |
+| useSubmissionCopy | HC | 38024 | FeedbackCenter.tsx |  |
+| TITLE_MAX_LENGTH=80 | fMe | 38052 | FeedbackCenter.tsx |  |
+| TICKET_AGENT_NAME | pMe | 38053 | FeedbackCenter.tsx | ='Nofy Agent' REBRAND-014+114 |
+| deriveTicketTitle | mMe | 38054 | FeedbackCenter.tsx |  |
+| buildFeedbackDescription | hMe | 38064 | FeedbackCenter.tsx |  |
+| DEVICE_AGENT_PROVIDER | gMe | 38089 | FeedbackCenter.tsx | ='Nofy Agent' REBRAND-015+115 |
+| DEFAULT_SEVERITY | _Me | 38090 | FeedbackCenter.tsx | ='P2-中' |
+| DEFAULT_MODULE | vMe | 38091 | FeedbackCenter.tsx | ='其它' |
+| startFeedbackSubmission | UC | 38092 | FeedbackCenter.tsx |  |
+| DESCRIPTION_MAX_LENGTH=4000 | yMe | 38162 | FeedbackCenter.tsx |  |
+| CONTACT_MAX_LENGTH=200 | bMe | 38163 | FeedbackCenter.tsx |  |
+| SCREENSHOT_MAX_COUNT=5 | WC | 38164 | FeedbackCenter.tsx |  |
+| hasFeedbackAttachments | xMe | 38165 | FeedbackCenter.tsx |  |
+| FeedbackSubmitForm | SMe | 38168 | FeedbackCenter.tsx |  |
+| isTextEditingTarget | CMe | 38389 | FeedbackCenter.tsx |  |
+| useFeedbackModelContext | wMe | 38394 | FeedbackCenter.tsx |  |
+| FEATURE_FIELD_MAX=2000 | GC | 38400 | FeedbackCenter.tsx |  |
+| FEATURE_CONTACT_MAX=200 | TMe | 38401 | FeedbackCenter.tsx |  |
+| FeatureRequestDialog | EMe | 38402 | FeedbackCenter.tsx |  |
+| FeatureRequestField | KC | 38637 | FeedbackCenter.tsx |  |
+| buildFeatureRequestDescription | DMe | 38677 | FeedbackCenter.tsx |  |
+| formatRelativeTime | qC | 38690 | FeedbackCenter.tsx |  |
+| FeedbackTicketsView | OMe | 38717 | FeedbackCenter.tsx |  |
+| TicketsLoadingPlaceholder | kMe | 38827 | FeedbackCenter.tsx |  |
+| TicketList | AMe | 38837 | FeedbackCenter.tsx |  |
+| TicketsEmptyState | jMe | 38924 | FeedbackCenter.tsx |  |
+| SUCCESS_CARD_TTL_MS=5000 | MMe | 38952 | FeedbackCenter.tsx |  |
+| isJobSettledWithTicket | NMe | 38953 | FeedbackCenter.tsx |  |
+| jobOpenTarget | PMe | 38956 | FeedbackCenter.tsx |  |
+| FeedbackBackgroundJobHost | FMe | 38961 | FeedbackCenter.tsx |  |
+| BackgroundJobCard | IMe | 38980 | FeedbackCenter.tsx |  |
+| BackgroundJobIndicator | LMe | 39014 | FeedbackCenter.tsx |  |
+| FeedbackCenter | RMe | 39155 | FeedbackCenter.tsx | （memo 根） |
+| resolveAdjacentTasks | zMe | 39254 | FeedbackCenter.tsx |  |
+| collectWorkspaceTaskIds | BMe | 39268 | FeedbackCenter.tsx |  |
+| runWithWorkspaceVisibility | JMe | 39455 | FeedbackCenter.tsx |  |
+| APP_LOGO_DATA_URL | uw | 39459 | FeedbackCenter.tsx | REBRAND-003+103 |
+| ATTACHMENT_CHUNK_BYTES=384KB | dw | 39460 | FeedbackCenter.tsx |  |
+| throwIfUploadAborted | fw | 39461 | FeedbackCenter.tsx |  |
+| base64ToBytes | YMe | 39466 | FeedbackCenter.tsx |  |
+| base64ByteLength | XMe | 39472 | FeedbackCenter.tsx |  |
+| bytesToBase64 | ZMe | 39492 | FeedbackCenter.tsx |  |
+| sha256Checksum | QMe | 39498 | FeedbackCenter.tsx |  |
+| newUploadId | $Me | 39503 | FeedbackCenter.tsx |  |
+| measureAttachmentFrameBytes | eNe | 39508 | FeedbackCenter.tsx |  |
+| assertFrameWithinLimit | pw | 39512 | FeedbackCenter.tsx |  |
+| uploadAttachmentChunkedV4 | tNe | 39515 | FeedbackCenter.tsx |  |
+| createConversationTransport | mw | 39582 | FeedbackCenter.tsx |  |
+| INITIAL_SNAPSHOT_STORE_STATE | nNe | 39781 | FeedbackCenter.tsx |  |
+| TERMINAL_COMMAND_STATUSES | rNe | 39793 | FeedbackCenter.tsx |  |
+| frameBumpsPlanDirectory | iNe | 39794 | FeedbackCenter.tsx |  |
+| frameBumpsTurnNavigator | aNe | 39804 | FeedbackCenter.tsx |  |
+| hasOlderRows | hw | 39814 | FeedbackCenter.tsx |  |
+| isFirstTurnHeaderMissing | oNe | 39819 | FeedbackCenter.tsx |  |
+| prependOlderRows | gw | 39824 | FeedbackCenter.tsx |  |
+| ConversationSnapshotStore | sNe | 39829 | FeedbackCenter.tsx |  |
+| KEEP_WARM_MS_DEFAULT=30000 | cNe | 40329 | FeedbackCenter.tsx |  |
+| KEEP_WARM_MS_E2E=1000 | lNe | 40330 | FeedbackCenter.tsx |  |
+| resolveKeepWarmMs | uNe | 40331 | FeedbackCenter.tsx |  |
+| ConversationDataLayer | _w | 40334 | FeedbackCenter.tsx |  |
+| dataLayerEntriesByKey | vw | 40390 | FeedbackCenter.tsx |  |
+| DATA_LAYER_KEEP_WARM_MS=30000 | dNe | 40391 | FeedbackCenter.tsx |  |
+| dataLayerKey | fNe | 40392 | FeedbackCenter.tsx |  |
+| disposeDataLayerEntry | yw | 40396 | FeedbackCenter.tsx |  |
+| releaseDataLayerEntry | pNe | 40400 | FeedbackCenter.tsx |  |
+| acquireConversationDataLayer | mNe | 40411 | FeedbackCenter.tsx |  |
+
+## 38. B5 · PaymentDeep.tsx（F12 支付深部第二符号组）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，213,979 行本机口径）· B5-04。行号口径：本机当前 js 行（主口径）。
+- 符号条数：482（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| closeThenRun | y3e | 76612 | PaymentDeep.tsx | 先关弹层再执行动作 |
+| USAGE_CHART_COLORS | Aq | 76615 | PaymentDeep.tsx | 5 段用量图色 |
+| PERCENT_SCALE=100 | b3e | 76621 | PaymentDeep.tsx | / x3e → CACHE_HIT_DISPLAY_THRESHOLD=0.78 |
+| formatCompactNumberLocale | S3e | 76623 | PaymentDeep.tsx | ja 包装 |
+| formatUsedOfTotal | C3e | 76626 | PaymentDeep.tsx | `used/total (pct)` |
+| formatPercentOrNull | w3e | 76630 | PaymentDeep.tsx | 阈值下隐 |
+| segmentStyleOfIndex | T3e | 76637 | PaymentDeep.tsx | Aq 取色 |
+| CONTEXT_BREAKDOWN_LABEL_KEYS | E3e | 76640 | PaymentDeep.tsx | 7 源 i18n 键 |
+| CONTEXT_BREAKDOWN_ORDER | D3e | 76648 | PaymentDeep.tsx | 7 源序 |
+| aggregateContextBreakdown | O3e | 76656 | PaymentDeep.tsx | chars 聚合+排序 |
+| toBreakdownSegments | k3e | 76667 | PaymentDeep.tsx | → id/percent/style |
+| validTaskUsageOrNull | A3e | 76670 | PaymentDeep.tsx | used/size 正数守卫 |
+| ContextUsagePopover | j3e | 76678 | PaymentDeep.tsx | 弹层根 |
+| isOptionValuePresent | M3e | 76844 | PaymentDeep.tsx |  |
+| FULL_ACCESS_MODES | N3e | 76847 | PaymentDeep.tsx |  |
+| categoryTestidOf | P3e | 76848 | PaymentDeep.tsx |  |
+| optionTestidOf | F3e | 76852 | PaymentDeep.tsx |  |
+| ApiRetryStatusChip | I3e | 76856 | PaymentDeep.tsx |  |
+| modeOptionLabelOf | L3e | 76874 | PaymentDeep.tsx |  |
+| modeLabelKeyOf | R3e | 76877 | PaymentDeep.tsx |  |
+| modeDescriptionKeyOf | z3e | 76880 | PaymentDeep.tsx |  |
+| optionLabelOf | jq | 76883 | PaymentDeep.tsx |  |
+| optionDescriptionOf | B3e | 76886 | PaymentDeep.tsx |  |
+| isFullAccessMode | V3e | 76892 | PaymentDeep.tsx |  |
+| modeIconOf | H3e | 76895 | PaymentDeep.tsx |  |
+| ConfigSelect | Mq | 76912 | PaymentDeep.tsx | 工具条 select 触发器 |
+| normalizeOptionKey | Nq | 77127 | PaymentDeep.tsx |  |
+| isThoughtOffOption | K3e | 77130 | PaymentDeep.tsx |  |
+| thoughtRankOf | q3e | 77133 | PaymentDeep.tsx |  |
+| sortThoughtOptions | J3e | 77141 | PaymentDeep.tsx |  |
+| nextThoughtLevelValue | Y3e | 77153 | PaymentDeep.tsx |  |
+| thoughtOptionLabelOf | X3e | 77160 | PaymentDeep.tsx |  |
+| ThoughtLevelControl | Pq | 77164 | PaymentDeep.tsx | 三态触发器 |
+| shortcutKeyOfCategory | Fq | 77337 | PaymentDeep.tsx |  |
+| nextSelectValue | Z3e |  | PaymentDeep.tsx |  |
+| resolveToolbarShortcut | Q3e |  | PaymentDeep.tsx |  |
+| useToolbarShortcuts | $3e |  | PaymentDeep.tsx | (Ctrl+M 族) |
+| PROVIDER_FAMILY_ORDER | e6e | 77452 | PaymentDeep.tsx |  |
+| providerFamilyRankOf | t6e |  | PaymentDeep.tsx |  |
+| sortProvidersByFamilyAndOrder | Iq |  | PaymentDeep.tsx |  |
+| teamOrganizationLabelOf | Lq |  | PaymentDeep.tsx |  |
+| providerDisplayLabelsOf | n6e |  | PaymentDeep.tsx |  |
+| alwaysFalse | r6e |  | PaymentDeep.tsx |  |
+| agentModelFormatsOf | i6e |  | PaymentDeep.tsx |  |
+| isModelEntryWithModified | a6e |  | PaymentDeep.tsx |  |
+| modelsForAgent | Rq |  | PaymentDeep.tsx |  |
+| hasProviderCredentials | o6e |  | PaymentDeep.tsx |  |
+| providerSupportsFormat | s6e |  | PaymentDeep.tsx |  |
+| providerSupportsAnyFormat | zq |  | PaymentDeep.tsx |  |
+| providerUsableForAgent | Bq |  | PaymentDeep.tsx |  |
+| isPresetDirectProvider | c6e |  | PaymentDeep.tsx |  |
+| modelItemsOfProvider | l6e |  | PaymentDeep.tsx |  |
+| providerGroupOf | u6e |  | PaymentDeep.tsx |  |
+| preset | d6e |  | PaymentDeep.tsx | 选项键 |
+| codingPlan | f6e |  | PaymentDeep.tsx | 选项键 |
+| teamPlanOptionKey | Vq |  | PaymentDeep.tsx |  |
+| teamPlanOptionsOf | p6e |  | PaymentDeep.tsx |  |
+| isTeamPlanKeyAllUnavailable | m6e |  | PaymentDeep.tsx |  |
+| savedBigmodelTeamPlanKeyOf | h6e |  | PaymentDeep.tsx |  |
+| isBigmodelTeamPlanSelected | g6e |  | PaymentDeep.tsx |  |
+| resolveFamilyDefaultOption | _6e |  | PaymentDeep.tsx |  |
+| familyGroupOf | v6e |  | PaymentDeep.tsx |  |
+| familyOptionBadgeOf | y6e |  | PaymentDeep.tsx |  |
+| teamPlanOptionKeysMatch | b6e |  | PaymentDeep.tsx |  |
+| inactiveOAuthFamilyOf | x6e |  | PaymentDeep.tsx |  |
+| modelMenuGroupsForAgent | S6e |  | PaymentDeep.tsx |  |
+| glmMenuGroupsOf | C6e |  | PaymentDeep.tsx |  |
+| modelMenuGroupsOf | Hq |  | PaymentDeep.tsx |  |
+| modelNameOfValue | w6e |  | PaymentDeep.tsx |  |
+| isModelSelectorEnabled | T6e |  | PaymentDeep.tsx |  |
+| isSyntheticModel | E6e |  | PaymentDeep.tsx |  |
+| shortModelNameOf | D6e |  | PaymentDeep.tsx |  |
+| groupsContainValue | O6e |  | PaymentDeep.tsx |  |
+| resolveModelSelectState | k6e |  | PaymentDeep.tsx |  |
+| hasActiveEntitlementAlias | A6e |  | PaymentDeep.tsx |  |
+| isProviderEntitlementVisible | j6e |  | PaymentDeep.tsx |  |
+| isStartPlanVisible | M6e |  | PaymentDeep.tsx |  |
+| filterUsableProviders | N6e |  | PaymentDeep.tsx |  |
+| 供应商指纹族 | P6e |  | PaymentDeep.tsx |  |
+| 供应商指纹族 | F6e |  | PaymentDeep.tsx |  |
+| 供应商指纹族 | I6e |  | PaymentDeep.tsx |  |
+| 供应商指纹族 | L6e |  | PaymentDeep.tsx |  |
+| 供应商指纹族 | R6e |  | PaymentDeep.tsx |  |
+| 供应商指纹族 | z6e |  | PaymentDeep.tsx |  |
+| 供应商指纹族 | B6e |  | PaymentDeep.tsx |  |
+| ghost | Uq |  | PaymentDeep.tsx | 模型解析 |
+| ghost | V6e |  | PaymentDeep.tsx | 模型解析 |
+| 任务供应商解析 | H6e |  | PaymentDeep.tsx |  |
+| 任务供应商解析 | U6e |  | PaymentDeep.tsx |  |
+| 任务供应商解析 | W6e |  | PaymentDeep.tsx |  |
+| 任务供应商解析 | G6e |  | PaymentDeep.tsx |  |
+| 代理前缀模型 | K6e |  | PaymentDeep.tsx |  |
+| 代理前缀模型 | q6e |  | PaymentDeep.tsx |  |
+| canonicalModelNameOf | J6e |  | PaymentDeep.tsx |  |
+| claude | Y6e |  | PaymentDeep.tsx | 别名 |
+| claude | X6e |  | PaymentDeep.tsx | 别名 |
+| 选项调和 | Z6e |  | PaymentDeep.tsx |  |
+| 选项调和 | Q6e |  | PaymentDeep.tsx |  |
+| 选项调和 | $6e |  | PaymentDeep.tsx |  |
+| agent | e8e |  | PaymentDeep.tsx | 同步 |
+| agent | t8e |  | PaymentDeep.tsx | 同步 |
+| 展示序模块态 | n8e |  | PaymentDeep.tsx |  |
+| 展示序模块态 | Wq |  | PaymentDeep.tsx |  |
+| 展示序模块态 | r8e |  | PaymentDeep.tsx |  |
+| 展示序模块态 | Gq |  | PaymentDeep.tsx |  |
+| 展示序模块态 | Kq |  | PaymentDeep.tsx |  |
+| 展示序模块态 | i8e |  | PaymentDeep.tsx |  |
+| 保存与目标收集 | a8e |  | PaymentDeep.tsx |  |
+| 保存与目标收集 | o8e |  | PaymentDeep.tsx |  |
+| 保存与目标收集 | s8e |  | PaymentDeep.tsx |  |
+| useModelProviders | qq | — / 69033 | PaymentDeep.tsx |  |
+| 任务驱动刷新与配置选项钩 | c8e |  | PaymentDeep.tsx |  |
+| 任务驱动刷新与配置选项钩 | l8e |  | PaymentDeep.tsx |  |
+| 任务驱动刷新与配置选项钩 | u8e |  | PaymentDeep.tsx |  |
+| 任务驱动刷新与配置选项钩 | d8e |  | PaymentDeep.tsx |  |
+| 任务驱动刷新与配置选项钩 | f8e |  | PaymentDeep.tsx |  |
+| 任务驱动刷新与配置选项钩 | Jq |  | PaymentDeep.tsx |  |
+| CACHE_HIT_DISPLAY_THRESHOLD | x3e | 76622 | PaymentDeep.tsx |  |
+| ALIPAY_LOGO_SRC | L8e |  | PaymentDeep.tsx |  |
+| normalizeDescriptionItems | $q |  | PaymentDeep.tsx |  |
+| CURRENCY_LABELS | R8e |  | PaymentDeep.tsx |  |
+| PERIOD_LABEL_KEYS | eJ |  | PaymentDeep.tsx |  |
+| productTitleOf | tJ |  | PaymentDeep.tsx |  |
+| productBulletLinesOf | z8e |  | PaymentDeep.tsx |  |
+| primaryAmountOf | nJ |  | PaymentDeep.tsx |  |
+| normalizeCurrency | rJ |  | PaymentDeep.tsx |  |
+| formatMoney | iJ |  | PaymentDeep.tsx |  |
+| periodOfProduct | aJ |  | PaymentDeep.tsx |  |
+| AmountSummaryCard | oJ |  | PaymentDeep.tsx |  |
+| AmountRow | sJ |  | PaymentDeep.tsx |  |
+| adjustmentSummaryLabelOf | B8e |  | PaymentDeep.tsx |  |
+| formatNegatedTotal | V8e |  | PaymentDeep.tsx |  |
+| buildAmountSummary | cJ |  | PaymentDeep.tsx |  |
+| resolvePayAmount | H8e |  | PaymentDeep.tsx |  |
+| pickRenewAmount | U8e |  | PaymentDeep.tsx |  |
+| sumCampaignDiscounts | W8e |  | PaymentDeep.tsx |  |
+| campaignDiscountRowsOf | G8e |  | PaymentDeep.tsx |  |
+| currentPlanCreditRowOf | K8e |  | PaymentDeep.tsx |  |
+| firstPositive | q8e |  | PaymentDeep.tsx |  |
+| firstNonNegative | J8e |  | PaymentDeep.tsx |  |
+| residualCreditOf | Y8e |  | PaymentDeep.tsx |  |
+| PLAN_OVERVIEW | X8e |  | PaymentDeep.tsx |  |
+| SERVICE_AGREEMENT | Z8e |  | PaymentDeep.tsx |  |
+| SUBSCRIPTION_AGREEMENT_URL | Q8e |  | PaymentDeep.tsx |  |
+| CodingPlanPaymentQrHost | $8e |  | PaymentDeep.tsx |  |
+| CodingPlanPaymentQrDialog | e5e | 80027 | PaymentDeep.tsx |  |
+| paymentDialogTitleOf | t5e |  | PaymentDeep.tsx |  |
+| PolicyLink | lJ |  | PaymentDeep.tsx |  |
+| currencyOfProduct | n5e |  | PaymentDeep.tsx |  |
+| BADGE_VARIANTS | r5e |  | PaymentDeep.tsx |  |
+| Badge | uJ |  | PaymentDeep.tsx |  |
+| OAUTH_REQUIRED_ERROR | i5e |  | PaymentDeep.tsx |  |
+| ZAI_START_FREE 文案 | dJ |  | PaymentDeep.tsx |  |
+| ZAI_START_FREE 文案 | fJ |  | PaymentDeep.tsx |  |
+| TTL + 模块映射 | a5e |  | PaymentDeep.tsx |  |
+| TTL + 模块映射 | o5e |  | PaymentDeep.tsx |  |
+| useCodingPlanProducts | s5e | 80369 | PaymentDeep.tsx |  |
+| 预览快照机制 | c5e |  | PaymentDeep.tsx |  |
+| 预览快照机制 | l5e |  | PaymentDeep.tsx |  |
+| 预览快照机制 | d5e |  | PaymentDeep.tsx |  |
+| 预览快照机制 | f5e |  | PaymentDeep.tsx |  |
+| 预览快照机制 | p5e |  | PaymentDeep.tsx |  |
+| 预览快照机制 | m5e |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | h5e |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | g5e |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | vJ |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | yJ |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | _5e |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | v5e |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | bJ |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | y5e |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | b5e |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | xJ |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | SJ |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | x5e |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | S5e |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | C5e |  | PaymentDeep.tsx |  |
+| Start-Free 与错误归一 | w5e |  | PaymentDeep.tsx |  |
+| InfoNoticeCard | CJ |  | PaymentDeep.tsx |  |
+| productErrorMessageOf | wJ | 80672 | PaymentDeep.tsx |  |
+| TERMINAL_ORDER_STATES | T5e |  | PaymentDeep.tsx |  |
+| 企业目录/估算/折扣/订单判定 | DJ |  | PaymentDeep.tsx |  |
+| 企业目录/估算/折扣/订单判定 | OJ |  | PaymentDeep.tsx |  |
+| 企业目录/估算/折扣/订单判定 | kJ |  | PaymentDeep.tsx |  |
+| 企业目录/估算/折扣/订单判定 | AJ |  | PaymentDeep.tsx |  |
+| 企业目录/估算/折扣/订单判定 | jJ |  | PaymentDeep.tsx |  |
+| 企业目录/估算/折扣/订单判定 | z5e |  | PaymentDeep.tsx |  |
+| 企业目录/估算/折扣/订单判定 | B5e |  | PaymentDeep.tsx |  |
+| 卡品牌/资产图（含 AMEX/VISA 等） | $J…z7e |  | PaymentDeep.tsx |  |
+| ZAI_*_URL | B7e…U7e |  | PaymentDeep.tsx |  |
+| STRIPE_LIVE_PUBLISHABLE_KEY | W7e |  | PaymentDeep.tsx |  |
+| CARD_BRAND_IMAGES | G7e |  | PaymentDeep.tsx |  |
+| COUNTRY_OPTIONS | K7e |  | PaymentDeep.tsx |  |
+| stripeElementAppearanceOf | q7e |  | PaymentDeep.tsx |  |
+| StripeCardDialogEntry | J7e | 81798 | PaymentDeep.tsx |  |
+| StripeCardDialog | Y7e | 81807 | PaymentDeep.tsx |  |
+| PaymentMethodOptionRow | X7e |  | PaymentDeep.tsx |  |
+| CardBrandLabel | Z7e |  | PaymentDeep.tsx |  |
+| CardBrandImage | eY |  | PaymentDeep.tsx |  |
+| cardBrandImageOf | Q7e |  | PaymentDeep.tsx |  |
+| StripeCardManageDialog | $7e |  | PaymentDeep.tsx |  |
+| SavedCardRow | e9e |  | PaymentDeep.tsx |  |
+| AddStripeCardForm | t9e |  | PaymentDeep.tsx |  |
+| FieldLabel | tY |  | PaymentDeep.tsx |  |
+| BillingTextInput | nY |  | PaymentDeep.tsx |  |
+| CountrySelect | n9e |  | PaymentDeep.tsx |  |
+| CardBrandRow | r9e |  | PaymentDeep.tsx |  |
+| OverseasPolicyLink | rY |  | PaymentDeep.tsx |  |
+| rawPeriodOfProduct | i9e |  | PaymentDeep.tsx |  |
+| stripePublishableKeyOf | a9e |  | PaymentDeep.tsx |  |
+| purchaseAttemptIdOf | o9e |  | PaymentDeep.tsx |  |
+| 漏斗快照/埋点 | iY |  | PaymentDeep.tsx |  |
+| 漏斗快照/埋点 | s9e |  | PaymentDeep.tsx |  |
+| 漏斗快照/埋点 | c9e |  | PaymentDeep.tsx |  |
+| 漏斗快照/埋点 | l9e |  | PaymentDeep.tsx |  |
+| 漏斗快照/埋点 | u9e |  | PaymentDeep.tsx |  |
+| 漏斗快照/埋点 | aY |  | PaymentDeep.tsx |  |
+| 漏斗快照/埋点 | oY |  | PaymentDeep.tsx |  |
+| TCaptcha 验证码块（appId 196026326） | D9e |  | PaymentDeep.tsx |  |
+| TCaptcha 验证码块（appId 196026326） | O9e |  | PaymentDeep.tsx |  |
+| TCaptcha 验证码块（appId 196026326） | k9e |  | PaymentDeep.tsx |  |
+| TCaptcha 验证码块（appId 196026326） | A9e |  | PaymentDeep.tsx |  |
+| TCaptcha 验证码块（appId 196026326） | j9e |  | PaymentDeep.tsx |  |
+| TCaptcha 验证码块（appId 196026326） | M9e |  | PaymentDeep.tsx |  |
+| TCaptcha 验证码块（appId 196026326） | N9e |  | PaymentDeep.tsx |  |
+| TCaptcha 验证码块（appId 196026326） | gY |  | PaymentDeep.tsx |  |
+| TCaptcha 验证码块（appId 196026326） | P9e |  | PaymentDeep.tsx |  |
+| 漏斗常量 | F9e…V9e |  | PaymentDeep.tsx |  |
+| useCodingPlanPurchase | H9e | 83232 | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | U9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | bY |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | W9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | G9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | K9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | q9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | J9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | xY |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | Y9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | X9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | SY |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | Z9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | CY |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | Q9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | $9e |  | PaymentDeep.tsx |  |
+| PayPal/回调/轮询 | eet |  | PaymentDeep.tsx |  |
+| START_PLAN_PREVIEW_TTL_MS | get |  | PaymentDeep.tsx |  |
+| useStartPlanPreview | MY | 84302 | PaymentDeep.tsx |  |
+| 预览回退/登录竞态 | _et |  | PaymentDeep.tsx |  |
+| 预览回退/登录竞态 | vet |  | PaymentDeep.tsx |  |
+| 预览回退/登录竞态 | yet |  | PaymentDeep.tsx |  |
+| 结账/政策 URL 表 | bet…jet |  | PaymentDeep.tsx |  |
+| SEAT_COUNT_OPTIONS | Met |  | PaymentDeep.tsx |  |
+| PERSONAL_PLAN_BUTTON_TESTID | Net |  | PaymentDeep.tsx |  |
+| DEFAULT_ZH_LOCALE | Pet |  | PaymentDeep.tsx |  |
+| ZH_CHECKOUT_POLICY_COPY | NY |  | PaymentDeep.tsx |  |
+| 待支付恢复判定 | Fet |  | PaymentDeep.tsx |  |
+| 待支付恢复判定 | PY |  | PaymentDeep.tsx |  |
+| 待支付恢复判定 | Let |  | PaymentDeep.tsx |  |
+| 待支付恢复判定 | Ret |  | PaymentDeep.tsx |  |
+| CodingPlanPurchasePanel | zet | 84460 | PaymentDeep.tsx |  |
+| PendingOrderDialog | Bet |  | PaymentDeep.tsx |  |
+| PlanSelectSections | Vet |  | PaymentDeep.tsx |  |
+| planSectionsClassName | Het |  | PaymentDeep.tsx |  |
+| planGridClassName | Uet |  | PaymentDeep.tsx |  |
+| TeamPlanCard | Wet |  | PaymentDeep.tsx |  |
+| StartPlanCard | Get |  | PaymentDeep.tsx |  |
+| PersonalPlanCard | Ket |  | PaymentDeep.tsx |  |
+| UnavailableProductButton | qet |  | PaymentDeep.tsx |  |
+| FromPriceLabel | Jet |  | PaymentDeep.tsx |  |
+| BillingCycleSelectPersonal | Yet |  | PaymentDeep.tsx |  |
+| BillingCycleOptionRow | Xet |  | PaymentDeep.tsx |  |
+| EnterpriseCheckoutPanel | Zet | 85996 | PaymentDeep.tsx |  |
+| CheckoutSection | FY |  | PaymentDeep.tsx |  |
+| scrollableAncestorOf | Qet |  | PaymentDeep.tsx |  |
+| SeatsRow | $et |  | PaymentDeep.tsx |  |
+| DurationSelect | ett |  | PaymentDeep.tsx |  |
+| SeatCountInput | ttt |  | PaymentDeep.tsx |  |
+| PurchaseOptionCard | ntt |  | PaymentDeep.tsx |  |
+| DurationDiscountBadge | IY |  | PaymentDeep.tsx |  |
+| BalanceSection | rtt |  | PaymentDeep.tsx |  |
+| BalanceCheckboxRow | itt |  | PaymentDeep.tsx |  |
+| EstimateSummaryBar | att |  | PaymentDeep.tsx |  |
+| EstimatePriceLabel | ott |  | PaymentDeep.tsx |  |
+| teamTierLabelOf | LY |  | PaymentDeep.tsx |  |
+| seatMonthlyPriceOf | stt |  | PaymentDeep.tsx |  |
+| yearlyDiscountBadgeOf | ctt |  | PaymentDeep.tsx |  |
+| PriceWithUnit | ltt |  | PaymentDeep.tsx |  |
+| priceUnitPartsOf | utt |  | PaymentDeep.tsx |  |
+| PersonalPaymentConfirm | dtt |  | PaymentDeep.tsx |  |
+| EnterprisePaymentConfirm | ftt |  | PaymentDeep.tsx |  |
+| EnterpriseEstimateSummary | ptt |  | PaymentDeep.tsx |  |
+| SummaryRow | RY |  | PaymentDeep.tsx |  |
+| StrongAmount | mtt |  | PaymentDeep.tsx |  |
+| PersonalPolicyBlock | htt |  | PaymentDeep.tsx |  |
+| AccountPolicyCollapsible | gtt |  | PaymentDeep.tsx |  |
+| yenNormalizeOf | _tt |  | PaymentDeep.tsx |  |
+| periodEveryLabelOf | vtt |  | PaymentDeep.tsx |  |
+| periodSlashLabelOf | ytt |  | PaymentDeep.tsx |  |
+| OverseasPolicyBlock | btt |  | PaymentDeep.tsx |  |
+| PolicyLayout | xtt |  | PaymentDeep.tsx |  |
+| AccountPolicyNote | Stt |  | PaymentDeep.tsx |  |
+| TermsCheckbox | zY |  | PaymentDeep.tsx |  |
+| PolicyInlineLink | BY |  | PaymentDeep.tsx |  |
+| rawPeriodUnitOf | Ctt |  | PaymentDeep.tsx |  |
+| personalServicePeriodOf | wtt |  | PaymentDeep.tsx |  |
+| enterpriseServicePeriodOf | Ttt |  | PaymentDeep.tsx |  |
+| orderDurationOf | Ett |  | PaymentDeep.tsx |  |
+| periodMessageOf | Dtt |  | PaymentDeep.tsx |  |
+| PaymentStage | Ott |  | PaymentDeep.tsx |  |
+| PurchaseSuccessView | ktt |  | PaymentDeep.tsx |  |
+| SuccessSummaryRow | VY |  | PaymentDeep.tsx |  |
+| enterpriseSummaryLineOf | Att |  | PaymentDeep.tsx |  |
+| zhPricePartsOf | jtt |  | PaymentDeep.tsx |  |
+| enterprisePayTextOf | Mtt |  | PaymentDeep.tsx |  |
+| discountSummaryOf | Ntt |  | PaymentDeep.tsx |  |
+| roundEnterpriseAmount | Ptt |  | PaymentDeep.tsx |  |
+| formatEnterpriseAmount | Ftt |  | PaymentDeep.tsx |  |
+| teamPlanGroupsOf | HY |  | PaymentDeep.tsx |  |
+| teamPlanGroupsOfDefaultLocale | Itt |  | PaymentDeep.tsx |  |
+| mergePublicAndAuthenticatedProducts | Ltt |  | PaymentDeep.tsx |  |
+| teamGroupActionStateOf | Rtt |  | PaymentDeep.tsx |  |
+| purchaseOptionsOf | UY |  | PaymentDeep.tsx |  |
+| isOptionEligible | ztt |  | PaymentDeep.tsx |  |
+| isProductPurchasable | WY |  | PaymentDeep.tsx |  |
+| isOneTimeMonthly | Btt |  | PaymentDeep.tsx |  |
+| isPromoDisabled | Vtt |  | PaymentDeep.tsx |  |
+| isBalanceUsable | GY |  | PaymentDeep.tsx |  |
+| hasAnyBalance | Htt |  | PaymentDeep.tsx |  |
+| cheapestMonthlyProductOf | Utt |  | PaymentDeep.tsx |  |
+| resolveEnterpriseSelection | Wtt |  | PaymentDeep.tsx |  |
+| teamProductOfId | Gtt |  | PaymentDeep.tsx |  |
+| purchaseOptionKeyOf | KY |  | PaymentDeep.tsx |  |
+| purchaseOptionRankOf | qY |  | PaymentDeep.tsx |  |
+| tierLabelOf | Ktt |  | PaymentDeep.tsx |  |
+| tierMessageKeyOf | qtt |  | PaymentDeep.tsx |  |
+| normalizeTierFormatArg | Jtt |  | PaymentDeep.tsx |  |
+| tierMessageFormatterOf | JY |  | PaymentDeep.tsx |  |
+| teamGroupRankOf | Ytt |  | PaymentDeep.tsx |  |
+| durationUnitLabelOf | Xtt |  | PaymentDeep.tsx |  |
+| normalizedDurationOf | Ztt |  | PaymentDeep.tsx |  |
+| durationOptionsOf | Qtt |  | PaymentDeep.tsx |  |
+| durationOptionLabelOf | $tt |  | PaymentDeep.tsx |  |
+| durationDiscountLabelOf | ent |  | PaymentDeep.tsx |  |
+| clampInt | tnt |  | PaymentDeep.tsx |  |
+| parseIntOrNull | nnt |  | PaymentDeep.tsx |  |
+| commitSeatDraft | rnt |  | PaymentDeep.tsx |  |
+| personalActionStateOf | int |  | PaymentDeep.tsx |  |
+| isActionSelectable | ant |  | PaymentDeep.tsx |  |
+| billingCycleActionLabelOf | ont |  | PaymentDeep.tsx |  |
+| personalPlanActionStateOf | snt |  | PaymentDeep.tsx |  |
+| startPlanCurrentStateOf | cnt |  | PaymentDeep.tsx |  |
+| startPlanChoiceStateOf | lnt |  | PaymentDeep.tsx |  |
+| actionLabelOf | YY |  | PaymentDeep.tsx |  |
+| subscriptionGateActionOf | unt |  | PaymentDeep.tsx |  |
+| subscribeUrlOf | dnt |  | PaymentDeep.tsx |  |
+| groupAvailabilityOf | XY |  | PaymentDeep.tsx |  |
+| isMaxGroup | fnt |  | PaymentDeep.tsx |  |
+| wordBoundaryTest | ZY |  | PaymentDeep.tsx |  |
+| isAnyPurchasable | pnt |  | PaymentDeep.tsx |  |
+| strikethroughPriceOf | mnt |  | PaymentDeep.tsx |  |
+| priceUnitLabelOf | hnt |  | PaymentDeep.tsx |  |
+| currentPlanEntryOf | QY |  | PaymentDeep.tsx |  |
+| isAbovePlan | gnt |  | PaymentDeep.tsx |  |
+| planEntryRankOf | $Y |  | PaymentDeep.tsx |  |
+| tierRankOf | _nt |  | PaymentDeep.tsx |  |
+| periodRankOf | vnt |  | PaymentDeep.tsx |  |
+| EquityItemLabel | eX |  | PaymentDeep.tsx |  |
+| planCardCopyOf | ynt |  | PaymentDeep.tsx |  |
+| startPlanCardCopyOf | bnt |  | PaymentDeep.tsx |  |
+| startPlanEntitlementRowsOf | xnt | 88047 | PaymentDeep.tsx |  |
+| startPlanSummaryOf | Snt |  | PaymentDeep.tsx |  |
+| modelUsageEntitlementsOf | Cnt |  | PaymentDeep.tsx |  |
+| normalizeUnitName | wnt |  | PaymentDeep.tsx |  |
+| periodSuffixOf | Tnt |  | PaymentDeep.tsx |  |
+| personalPlanGroupsOf | Ent |  | PaymentDeep.tsx |  |
+| hasProductPreview | tX |  | PaymentDeep.tsx |  |
+| planGroupKeyOf | Dnt |  | PaymentDeep.tsx |  |
+| planGroupRankOf | Ont |  | PaymentDeep.tsx |  |
+| availablePeriodsOf | knt |  | PaymentDeep.tsx |  |
+| cheapestProductOf | Ant |  | PaymentDeep.tsx |  |
+| currentProductOfId | jnt |  | PaymentDeep.tsx |  |
+| funnelTierOf | Mnt |  | PaymentDeep.tsx |  |
+| funnelTeamTierOf | Nnt |  | PaymentDeep.tsx |  |
+| funnelPeriodOf | Pnt |  | PaymentDeep.tsx |  |
+| funnelSubscribePeriodOf | Fnt |  | PaymentDeep.tsx |  |
+| funnelSubscribeModeOf | Int |  | PaymentDeep.tsx |  |
+| funnelAmountOf | Lnt |  | PaymentDeep.tsx |  |
+| funnelSlugOf | nX |  | PaymentDeep.tsx |  |
+| isGroupCurrentOf | Rnt |  | PaymentDeep.tsx |  |
+| providerDisplayNameOf | znt |  | PaymentDeep.tsx |  |
+| isBigmodelCodingPlanProvider | Bnt |  | PaymentDeep.tsx |  |
+| isPendingRequestCurrent | Vnt |  | PaymentDeep.tsx |  |
+| panelTitleOf | Hnt |  | PaymentDeep.tsx |  |
+| buildEnvSnapshot | Unt |  | PaymentDeep.tsx |  |
+| envConfigOf | Wnt |  | PaymentDeep.tsx |  |
+| PLAN_DOMAINS | Gnt |  | PaymentDeep.tsx |  |
+| authSessionSnapshotOf | Knt |  | PaymentDeep.tsx |  |
+| PURCHASE_TOKEN_TTL | qnt |  | PaymentDeep.tsx |  |
+| LOGIN_URL | Jnt |  | PaymentDeep.tsx |  |
+| CONSOLE_URL_FOR_PURCHASE | Ynt |  | PaymentDeep.tsx |  |
+| SITE_URL_FOR_PURCHASE | rX |  | PaymentDeep.tsx |  |
+| API_KEY_PROVIDER_ENTRIES | iX |  | PaymentDeep.tsx |  |
+| API_KEY_PROVIDER_ENTRY_MAP | aX |  | PaymentDeep.tsx |  |
+| CODING_PLAN_PROVIDER_ENTRIES | oX |  | PaymentDeep.tsx |  |
+| KNOWN_PROVIDER_ENTRY_IDS | Xnt |  | PaymentDeep.tsx |  |
+| providerDisplayNameOfEntry | Znt |  | PaymentDeep.tsx |  |
+| isPresetEntryEnabled | Qnt |  | PaymentDeep.tsx |  |
+| teamPlanSelectionOf | $nt |  | PaymentDeep.tsx |  |
+| autoRefreshDecisionOf | ert |  | PaymentDeep.tsx |  |
+| useCodingPlanEntitlements | sX |  | PaymentDeep.tsx |  |
+| mergeRefreshResults | trt |  | PaymentDeep.tsx |  |
+| preset | cX |  | PaymentDeep.tsx |  |
+| codingPlan | nrt |  | PaymentDeep.tsx |  |
+| customSourceIdOf | rrt |  | PaymentDeep.tsx |  |
+| isCustomProviderReady | lX |  | PaymentDeep.tsx |  |
+| isKnownProviderEntryId | irt |  | PaymentDeep.tsx |  |
+| oauthProviderIdOfEntry | art |  | PaymentDeep.tsx |  |
+| apiKeyUrlOfEntry | ort |  | PaymentDeep.tsx |  |
+| isEmptyText | srt |  | PaymentDeep.tsx |  |
+| providerEntryIconOf | crt |  | PaymentDeep.tsx |  |
+| codingPlanEntryStatusOf | lrt |  | PaymentDeep.tsx |  |
+| injectTeamPlanMenuItems | urt |  | PaymentDeep.tsx |  |
+| filterStartPlanMenuItems | drt |  | PaymentDeep.tsx |  |
+| mergeTeamPlanMenuItems | frt |  | PaymentDeep.tsx |  |
+| teamPlanOrganizationOf | prt |  | PaymentDeep.tsx |  |
+| hasTeamScopedEntitlement | mrt |  | PaymentDeep.tsx |  |
+| teamMenuItemsOfEntitlement | hrt |  | PaymentDeep.tsx |  |
+| fallbackTeamMenuItemOf | grt |  | PaymentDeep.tsx |  |
+| teamMenuItemKeyOf | uX |  | PaymentDeep.tsx |  |
+| isStatusVisible | _rt |  | PaymentDeep.tsx |  |
+| hasApiKey | vrt |  | PaymentDeep.tsx |  |
+| CODING_PLAN_ENTRY_ID_SET | yrt |  | PaymentDeep.tsx |  |
+| isLoginStatePending | brt |  | PaymentDeep.tsx |  |
+| loadPurchaseAuthState | xrt |  | PaymentDeep.tsx |  |
+| codingPlanProviderIdOfTarget | Srt |  | PaymentDeep.tsx |  |
+| isNonEmpty | Crt |  | PaymentDeep.tsx |  |
+| oauthProviderIdOfCodingPlan | wrt |  | PaymentDeep.tsx |  |
+| beginUpgradeLoginAttempt | Trt |  | PaymentDeep.tsx |  |
+| resolveLoginAttemptAction | Ert |  | PaymentDeep.tsx |  |
+| refreshAfterPurchase | Drt |  | PaymentDeep.tsx |  |
+| CodingPlanUpgradeDialog | Ort |  | PaymentDeep.tsx |  |
+| CodingPlanUpgradeDialogContext | dX |  | PaymentDeep.tsx |  |
+| CodingPlanUpgradeDialogProvider | krt |  | PaymentDeep.tsx |  |
+| useCodingPlanUpgradeDialog | fX |  | PaymentDeep.tsx |  |
+| useCodingPlanUpgradeDialogOptional | Art |  | PaymentDeep.tsx |  |
+| planSourceOptionsOf | pX |  | PaymentDeep.tsx |  |
+| teamSourceOptionsOf | jrt |  | PaymentDeep.tsx |  |
+| resolvePurchaseAudience | Mrt |  | PaymentDeep.tsx |  |
+| teamSourceIdMatches | mX |  | PaymentDeep.tsx |  |
+| teamSourceLabelOf | Nrt |  | PaymentDeep.tsx |  |
+| SIDEBAR_CODING_PLAN_PROVIDER_PREFERENCE_KEY | Prt |  | PaymentDeep.tsx |  |
+| SIDEBAR_CODING_PLAN_PROVIDER_IDS | Frt |  | PaymentDeep.tsx |  |
+| eligibleSidebarCodingPlanProviders | hX |  | PaymentDeep.tsx |  |
+| sidebarPreferenceStorageOf | Irt |  | PaymentDeep.tsx |  |
+| writeSidebarCodingPlanProviderPreference | Lrt |  | PaymentDeep.tsx |  |
+| modelEntryMatchesValue | Rrt |  | PaymentDeep.tsx |  |
+| thoughtOptionOfModel | zrt |  | PaymentDeep.tsx |  |
+| currentOptionValueOf | Brt |  | PaymentDeep.tsx |  |
+| projectionConfigOfOptions | Vrt |  | PaymentDeep.tsx |  |
+| configMatchesModel | Hrt |  | PaymentDeep.tsx |  |
+| resolveEffectiveConfig | Urt |  | PaymentDeep.tsx |  |
+| draftThoughtOptionOfModel | Wrt |  | PaymentDeep.tsx |  |
+| resolvedThoughtLevelOf | Grt |  | PaymentDeep.tsx |  |
+| defaultModeOf | Krt |  | PaymentDeep.tsx |  |
+| ModePickerTrigger | qrt |  | PaymentDeep.tsx |  |
+| noopToolbarAction | Jrt |  | PaymentDeep.tsx |  |
+| MODE_TRIGGER_SELECTOR | Yrt |  | PaymentDeep.tsx |  |
+| SessionModePicker | Xrt | 89343 | PaymentDeep.tsx |  |
+| SessionModePickerMemo | Zrt |  | PaymentDeep.tsx |  |
+| MODEL_FOCUS_SELECTOR | Qrt |  | PaymentDeep.tsx |  |
+| noopSessionModeCycle | $rt |  | PaymentDeep.tsx |  |
+| providerFamilyKindOf | eit |  | PaymentDeep.tsx |  |
+| purchaseAudienceStateOf | tit |  | PaymentDeep.tsx |  |
+| teamSourceOfEntitlementSnapshot | nit |  | PaymentDeep.tsx |  |
+| resolveTeamSourceSelection | rit |  | PaymentDeep.tsx |  |
+| SessionModelToolbar | iit | 89503 | PaymentDeep.tsx |  |
+| SessionModelToolbarMemo | ait |  | PaymentDeep.tsx |  |
+| diffValueOf | oit |  | PaymentDeep.tsx |  |
+| accessibleLabelOf | sit |  | PaymentDeep.tsx |  |
+| elementDescriptorOf | cit |  | PaymentDeep.tsx |  |
+| WebElementsChip | lit | 89989 | PaymentDeep.tsx |  |
+| SelectionsChip | uit | 90097 | PaymentDeep.tsx |  |
+
+## 39. B5 · Bots.tsx（F11 Bots 族）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，213,979 行本机口径）· B5-04。行号口径：本机当前 js 行（主口径）。
+- 符号条数：42（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| BOT_PROVIDERS | vLt | 147772 | Bots.tsx | 8 供应商目录（implemented 标记） |
+| REPLY_GRANULARITY_OPTIONS | yLt | 147782 | Bots.tsx | 4 回复粒度选项 |
+| DEFAULT_REPLY_GRANULARITY | bLt | 147804 | Bots.tsx | yLt[0] |
+| replyGranularityOptionsOf | xLt | 147805 | Bots.tsx | Wne(provider) ∩ yLt |
+| resolveReplyGranularity | SLt | 147809 | Bots.tsx | 选中 ?? 首项 ?? 缺省 |
+| regionTagKeyOfProvider | CLt | 147813 | Bots.tsx | lark→zai / feishu→bigmodel 标签键 |
+| workspaceLabelOf | wLt | 147823 | Bots.tsx | trim 非空优先 |
+| resolveEntryIntent | TLt | 147826 | Bots.tsx | 已配→select / 未配→create |
+| discord | ELt | 147830 | Bots.tsx | 图标 URL |
+| dingding | DLt | 147830 | Bots.tsx | 图标 URL |
+| feishu | OLt | 147830 | Bots.tsx | 图标 URL |
+| telegram | kLt | 147830 | Bots.tsx | 图标 URL |
+| wecom | ALt | 147830 | Bots.tsx | 图标 URL |
+| weixin | jLt | 147830 | Bots.tsx | 图标 URL |
+| BIND_CODE_TTL_MS | MLt | 147836 | Bots.tsx | = See（跨 chunk 常量） |
+| TELEGRAM_BOTFATHER_URL | NLt | 147837 | Bots.tsx | `https://t.me/BotFather` |
+| isAllWorkspaces | PLt | 147838 | Bots.tsx | 空或含 `*` |
+| nonEmptyOr | g8 | 147841 | Bots.tsx | trim 非空优先 |
+| BotProviderIcon | _8 | 147844 | Bots.tsx | 7 图标分派 + webhook/log-in 回退 |
+| runtimeStatusTextOf | FLt | 147870 | Bots.tsx | messageId→i18n / message / status / enabled \| disabled |
+| runtimeDotClassOf | ILt | 147875 | Bots.tsx | error→destructive / polling \| connected→success |
+| formatSecondsCeil | LLt | 147884 | Bots.tsx | `NNs` 向上取整 |
+| defaultAllowedCommands | RLt | 147887 | Bots.tsx | 7 命令开关全 true |
+| BotHeaderRow | zLt | 147890 | Bots.tsx | 图标+名称(内联重命名)+运行态+启用开关 |
+| BotReplyGranularityRow | BLt | 148005 | Bots.tsx | 回复粒度 Select |
+| BotDeleteRow | VLt | 148030 | Bots.tsx | 删除行 |
+| BotDetailCard | v8 | 148046 | Bots.tsx | rounded-lg bg-background p-3 |
+| TelegramBotFatherCredentialCard | HLt | 148049 | Bots.tsx | BotFather QR + token 输入 + 保存 |
+| BotCredentialSection | ULt | 148125 | Bots.tsx | 凭据/绑定码/飞书注册/微信注册 四路状态机 |
+| BotAllowedWorkspacesRow | WLt | 148500 | Bots.tsx | all/selected + 工作区勾选列表 |
+| emptyBotsConfig | GLt | 148604 | Bots.tsx | {version:2,bots:[]} |
+| newBotOfProvider | KLt | 148607 | Bots.tsx | 新 Bot 骨架 |
+| BotsDialog | qLt | 148619 | Bots.tsx | 根对话框 |
+| REMOTE_PAIRING_PROVIDERS | JLt | 149473 | Bots.tsx | weixin/feishu/lark/telegram |
+| isWorkspaceControlActiveFor | YLt | 149479 | Bots.tsx | 工作区键匹配+会话存在 |
+| hasWindowControlSession | XLt | 149490 | Bots.tsx | mobileConnected+会话 |
+| remoteControlStatusLabelOf | ZLt | 149495 | Bots.tsx | 6 态 |
+| remoteControlStatusDetailOf | QLt | 149511 | Bots.tsx | 6 态 |
+| remoteControlDotClassOf | $Lt | 149527 | Bots.tsx | 4 色 |
+| remoteControlDeviceTagOf | eRt | 149536 | Bots.tsx | 设备名/phone/ready 回退 |
+| remoteControlStatesEqual | tRt | 149549 | Bots.tsx | 18 字段相等 |
+| remoteControlFailureMessageOf | nRt | 149571 | Bots.tsx | 11 失败原因 |
+
+## 40. B5 · WebRemote.tsx（F17 WebRemoteFamily）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，213,979 行，D5b 后现状）· B5-05。行号口径：当前 out chunk js 行。
+- 符号条数：39（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| EMPTY_MOBILE_HOME_RESULT | OPt | 140585 | WebRemote.tsx | {workspaces:[],tasks:[]} |
+| MOBILE_HOME_PREFERENCES_STORAGE_KEY | kPt | 140586 | WebRemote.tsx |  |
+| DEFAULT_MOBILE_HOME_PREFERENCES | v6 | 140587 | WebRemote.tsx | {organizeBy:workspace,sortBy:updated} |
+| safeLocalStorage | APt | 140588 | WebRemote.tsx |  |
+| isValidMobileHomePreferences | jPt | 140596 | WebRemote.tsx |  |
+| loadMobileHomePreferences | MPt | 140604 | WebRemote.tsx |  |
+| saveMobileHomePreferences | NPt | 140614 | WebRemote.tsx |  |
+| buildMobileHomeModel | PPt | 140619 | WebRemote.tsx | pinned/timeline/groups/计数 |
+| activeTaskPresentInModel | FPt | 140648 | WebRemote.tsx |  |
+| taskStatusBadgeClass | y6 | 140658 | WebRemote.tsx | running/completed/error/idle |
+| latestTaskUpdatedAt | IPt | 140670 | WebRemote.tsx |  |
+| MOBILE_THEME_OPTIONS | LPt | 140673 | WebRemote.tsx | [system,zai-dark,zai-light] |
+| MobileThemeMenu | RPt | 140674 | WebRemote.tsx | 手机端远控视图主题下拉 |
+| TaskStatusIcon | b6 | 140716 | WebRemote.tsx | running→spinner/completed→circle-check/error→circle-alert |
+| noopSelectTask | zPt | 140725 | WebRemote.tsx |  |
+| WebRemoteMobileTaskHome | BPt | 140726–141572 | WebRemote.tsx | props: activeTaskId/initialResult/onNavigateHome/onNavigateToChat 等 |
+| terminalTransportState | VPt | 141573 | WebRemote.tsx | 初值 `idle` |
+| transportStateListeners | HPt | 141574 | WebRemote.tsx |  |
+| subscribeTransportState | UPt | 141577 | WebRemote.tsx |  |
+| getTerminalTransportState | WPt | 141583 | WebRemote.tsx |  |
+| useTerminalTransportState | GPt | 141586 | WebRemote.tsx | useSyncExternalStore |
+| isMobileChatHistoryState | x6 | 141590 | WebRemote.tsx | history.state.zcodeMobilePage===`chat` |
+| pushMobileChatHistoryState | KPt | 141594 | WebRemote.tsx |  |
+| resolveInitialMobilePage | qPt | 141598 | WebRemote.tsx |  |
+| WebRemoteMobileShell | JPt | 141601–141801 | WebRemote.tsx | home/chat 双页 + 侧pane 覆盖 + 重连通知 |
+| BOT_CHANNEL_PROVIDERS | JLt | 149473 | WebRemote.tsx | [weixin,feishu,lark,telegram] |
+| statusMatchesWorkspaceTarget | YLt | 149479 | WebRemote.tsx |  |
+| isStatusLiveMobileConnected | XLt | 149490 | WebRemote.tsx |  |
+| resolveStatusTitle | ZLt | 149495 | WebRemote.tsx | starting/running/… |
+| resolveStatusDetail | QLt | 149511 | WebRemote.tsx |  |
+| statusDotClass | $Lt | 149527 | WebRemote.tsx | error→bg-destructive/active→bg-success/idle→bg-border/余→bg-warning |
+| resolveStatusTag | eRt | 149536 | WebRemote.tsx | 设备名/phone/ready/idle/error |
+| isSameWebRemoteStatus | tRt | 149549 | WebRemote.tsx | 17 字段逐比 |
+| resolveFailureMessage | nRt | 149571 | WebRemote.tsx | 11 种 failure.reason |
+| WebRemoteControlDialog | rRt | 149600–150145 | WebRemote.tsx | memo；QR 配对 + 停止/刷新/复制 + Bot Channel 入口 |
+| WEB_REMOTE_CONTROL_ENABLED_DEFAULT | iRt | 150147 | WebRemote.tsx | **D5b 改写：!0 → !1** |
+| WebRemoteControlEnabledContext | aRt | 150148 | WebRemote.tsx |  |
+| WebRemoteControlEnabledProvider | oRt | 150149 | WebRemote.tsx |  |
+| useWebRemoteControlEnabled | y8 | 150152 | WebRemote.tsx |  |
+
+## 41. B5 · RemoteWizard.tsx（F10 RemoteFamily 远程向导）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，213,979 行，D5b 后现状）· B5-05。行号口径：当前 out chunk js 行。
+- 符号条数：12（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| REMOTE_WIZARD_STEPS | i4 | 127943 | RemoteWizard.tsx | [kind,settings,connecting,directory] |
+| wizardStepIndex | lOt | 127949 | RemoteWizard.tsx |  |
+| RemoteWizardStepIndicator | uOt | 127952 | RemoteWizard.tsx | 移动横滚 nav + 桌面 aside 双形态 |
+| RemoteWizardHeader | dOt | 128058 | RemoteWizard.tsx | 标题/描述 + 最小化(bv minus)/关闭(g x) |
+| RemoteSettingsForm | REt | 124284–125011 | RemoteWizard.tsx | ssh/server/wsl/docker 四 case 分步表单 |
+| RemoteWizardDialog | fOt | 128110–128541 | RemoteWizard.tsx | 触发器 + Dialog 壳 + 四步分派（最小化/关闭语义内嵌） |
+| RemoteWizardDialogAlias | pOt | 128542 | RemoteWizard.tsx | `var pOt = fOt`（Home.tsx 接口引用名） |
+| — | G2 | 124260 | RemoteWizard.tsx | 内联隙段小助手（无语义名） |
+| — | FEt | 124267 | RemoteWizard.tsx | 内联隙段小助手（无语义名） |
+| — | K2 | 124276 | RemoteWizard.tsx | 内联隙段小助手（无语义名） |
+| — | IEt | 124277 | RemoteWizard.tsx | 内联隙段小助手（无语义名） |
+| — | LEt | 124278 | RemoteWizard.tsx | 内联隙段小助手（无语义名） |
+
+## 42. B5 · PreviewCards.tsx（F19 预览卡群深部）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，本机实测 213,979 行）· B5-06。行号口径：本机实测当前 js 行。
+- 符号条数：65（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| MIN_DIAGRAM_ZOOM | Uze | 48114 | PreviewCards.tsx |  |
+| clampDiagramZoom | ek | 48115 | PreviewCards.tsx |  |
+| zoomDiagramAt | tk | 48118 | PreviewCards.tsx |  |
+| panDiagram | nk | 48125 | PreviewCards.tsx |  |
+| fitDiagramToViewport | Wze | 48128 | PreviewCards.tsx |  |
+| IDENTITY_DIAGRAM_TRANSFORM | rk | 48143 | PreviewCards.tsx |  |
+| DIAGRAM_ZOOM_PRESETS | Gze | 48144 | PreviewCards.tsx |  |
+| SVG_RENDERED_SELECTOR | Kze | 48145 | PreviewCards.tsx |  |
+| SVG_NON_RENDERED_SELECTOR | qze | 48158 | PreviewCards.tsx |  |
+| pointerCenter | ik | 48173 | PreviewCards.tsx |  |
+| pointerDistance | ak | 48179 | PreviewCards.tsx |  |
+| isInvisiblePaint | Jze | 48183 | PreviewCards.tsx |  |
+| svgRootBounds | ok | 48187 | PreviewCards.tsx |  |
+| applySvgRootBounds | sk | 48196 | PreviewCards.tsx |  |
+| serializeRect | ck | 48209 | PreviewCards.tsx |  |
+| svgBBox | Yze | 48214 | PreviewCards.tsx |  |
+| unionBounds | Xze | 48222 | PreviewCards.tsx |  |
+| isBackgroundRect | Zze | 48229 | PreviewCards.tsx |  |
+| measureSvgContentBounds | lk | 48244 | PreviewCards.tsx |  |
+| toViewportLocalPoint | uk | 48265 | PreviewCards.tsx |  |
+| MermaidFullscreenDialog | Qze | 48269 | PreviewCards.tsx |  |
+| DiagramToolbarButton | dk | 48558 | PreviewCards.tsx |  |
+| MarkdownTableStickyScrollbar | MBe | 49138 | PreviewCards.tsx |  |
+| TableToolbarButton | Lk | 49758 | PreviewCards.tsx |  |
+| ORIGIN_POINT | Rk | 49801 | PreviewCards.tsx |  |
+| LIGHTBOX_DOWNLOAD_MAX_BYTES | zk | 49802 | PreviewCards.tsx |  |
+| MIME_TO_DOWNLOAD_EXTENSION | RBe | 49803 | PreviewCards.tsx |  |
+| clampPanOffset | zBe | 49811 | PreviewCards.tsx |  |
+| downloadBaseName | Bk | 49819 | PreviewCards.tsx |  |
+| LightboxDownloadError | Vk | 49828 | PreviewCards.tsx |  |
+| isHttpDownloadSource | Hk | 49833 | PreviewCards.tsx |  |
+| summarizeDownloadSource | Uk | 49836 | PreviewCards.tsx |  |
+| downloadBlobWithSizeLimit | BBe | 49845 | PreviewCards.tsx |  |
+| openUrlInNewTab | VBe | 49873 | PreviewCards.tsx |  |
+| ImageLightbox | Wk | 49882 | PreviewCards.tsx |  |
+| ImageGalleryGroup | qk | 50165 | PreviewCards.tsx |  |
+| TOOL_PREVIEW_TEXT_LIMIT | HBe | 50177 | PreviewCards.tsx |  |
+| EXTENSION_LANGUAGE_MAP | Jk | 50178 | PreviewCards.tsx |  |
+| EXTENSION_IMAGE_MIME_MAP | UBe | 50212 | PreviewCards.tsx |  |
+| isPlainObject | WBe | 50224 | PreviewCards.tsx |  |
+| resolvePreviewTitle | Yk | 50227 | PreviewCards.tsx |  |
+| pickStringField | Xk | 50230 | PreviewCards.tsx |  |
+| looksLikeUnifiedDiff | Zk | 50237 | PreviewCards.tsx |  |
+| extractPatchText | Qk | 50240 | PreviewCards.tsx |  |
+| extractContentText | $k | 50245 | PreviewCards.tsx |  |
+| extractPathField | eA | 50250 | PreviewCards.tsx |  |
+| buildTextPreview | tA | 50263 | PreviewCards.tsx |  |
+| resolvePreviewPath | nA | 50266 | PreviewCards.tsx |  |
+| detectPreviewLanguage | rA | 50271 | PreviewCards.tsx |  |
+| imageMimeTypeOfPath | iA | 50283 | PreviewCards.tsx |  |
+| isImagePath | aA | 50289 | PreviewCards.tsx |  |
+| isPdfPreviewPath | oA | 50292 | PreviewCards.tsx |  |
+| isPptxPreviewPath | sA | 50295 | PreviewCards.tsx |  |
+| isUsablePreviewPath | cA | 50298 | PreviewCards.tsx |  |
+| unquoteDiffPath | GBe | 50302 | PreviewCards.tsx |  |
+| stripDiffSidePrefix | lA | 50306 | PreviewCards.tsx |  |
+| parseDiffSidePath | uA | 50310 | PreviewCards.tsx |  |
+| parseDiffGitHeaderPath | KBe | 50320 | PreviewCards.tsx |  |
+| extractDiffTargetPath | qBe | 50329 | PreviewCards.tsx |  |
+| resolvePatchPath | JBe | 50345 | PreviewCards.tsx |  |
+| buildDiffPreviewSource | YBe | 50348 | PreviewCards.tsx |  |
+| buildToolPreviewSource | XBe | 50367 | PreviewCards.tsx |  |
+| buildToolContentPreview | ZBe | 50401 | PreviewCards.tsx |  |
+| InlineActionRow | ej | 51221 | PreviewCards.tsx |  |
+| InlineIconButton | tj | 51223 | PreviewCards.tsx |  |
+
+## 43. B5 · FileTreePanel.tsx（F04 工作区文件树 $It 全族）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，本机实测 213,979 行）· B5-06。行号口径：本机实测当前 js 行。
+- 符号条数：78（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| GIT_STATUS_PRIORITY | AA | 50907 | FileTreePanel.tsx |  |
+| GIT_STATUS_BADGE_PRIORITY | jA | 50907 | FileTreePanel.tsx |  |
+| normalizePathSeparators | MA | 50909 | FileTreePanel.tsx |  |
+| normalizePathKey | NA | 50912 | FileTreePanel.tsx |  |
+| gitStatusKeyOf | NVe | 50915 | FileTreePanel.tsx |  |
+| buildStatusByPath | PVe | 50918 | FileTreePanel.tsx |  |
+| isGitStatusAvailable | FVe | 50928 | FileTreePanel.tsx |  |
+| statusForPath | PA | 50931 | FileTreePanel.tsx |  |
+| normalizePathSet | IVe | 50934 | FileTreePanel.tsx |  |
+| hasNormalizedPath | FA | 50937 | FileTreePanel.tsx |  |
+| isDeletedFileRow | IA | 50940 | FileTreePanel.tsx |  |
+| isRealDirectory | LA | 50943 | FileTreePanel.tsx |  |
+| descendantStatuses | RA | 50946 | FileTreePanel.tsx |  |
+| mergeDeletedFileRows | LVe | 50952 | FileTreePanel.tsx |  |
+| relativePathFromWorkspace | zA | 50967 | FileTreePanel.tsx | ★MarkdownIntegration 已实现，此处声明 ★MI |
+| samePath | BA | 50974 | FileTreePanel.tsx |  |
+| isPathWithinRoot | VA | 50977 | FileTreePanel.tsx |  |
+| ancestorDirectoryPaths | RVe | 50982 | FileTreePanel.tsx |  |
+| relativeDepthFromRoot | HA | 50997 | FileTreePanel.tsx |  |
+| parentDirectoryPathInRoot | UA | 51004 | FileTreePanel.tsx |  |
+| normalizeSearchQuery | zVe | 51014 | FileTreePanel.tsx |  |
+| rowHasGitChange | BVe | 51017 | FileTreePanel.tsx |  |
+| filterTreeRows | VVe | 51021 | FileTreePanel.tsx |  |
+| flattenTreeRows | HVe | 51035 | FileTreePanel.tsx |  |
+| buildFilePreviewNode | UVe | 51077 | FileTreePanel.tsx |  |
+| FILE_MANAGER_EDITOR_ORDER | WA | 51084 | FileTreePanel.tsx |  |
+| orderEditorsForFileManager | GA | 51085 | FileTreePanel.tsx |  |
+| SSH_EDITOR_IDS | WVe | 51092 | FileTreePanel.tsx |  |
+| WSL_EDITOR_IDS | GVe | 51092 | FileTreePanel.tsx |  |
+| wslFallbackEditor | KA | 51094 | FileTreePanel.tsx |  |
+| editorsByIds | qA | 51097 | FileTreePanel.tsx |  |
+| resolveAvailableEditors | JA | 51100 | FileTreePanel.tsx |  |
+| isExplicitSelection | KVe | 51109 | FileTreePanel.tsx |  |
+| toError | YA | 51112 | FileTreePanel.tsx |  |
+| toggledPathSet | XA | 51115 | FileTreePanel.tsx |  |
+| isMacPlatform | qVe | 51119 | FileTreePanel.tsx |  |
+| isWindowsPlatform | JVe | 51122 | FileTreePanel.tsx |  |
+| revealInFileManagerLabel | YVe | 51125 | FileTreePanel.tsx |  |
+| isHtmlPreviewRow | ZA | 51132 | FileTreePanel.tsx |  |
+| browserUrlForRow | XVe | 51135 | FileTreePanel.tsx |  |
+| revealPathForEntry | ZVe | 51138 | FileTreePanel.tsx |  |
+| useFileContextActions | QA | 51141 | FileTreePanel.tsx |  |
+| resolveRemoteWorkspaceInfo | QVe | 51198 | FileTreePanel.tsx | ★MarkdownIntegration 已实现，此处声明 ★MI |
+| useRemoteWorkspaceInfo | $A | 51214 | FileTreePanel.tsx | ★MarkdownIntegration 已实现，此处声明 ★MI |
+| FILE_TREE_ROW_HEIGHT | f8 | 145213 | FileTreePanel.tsx |  |
+| REFRESH_DIRECTORY_TIMEOUT_MS | jIt | 145214 | FileTreePanel.tsx |  |
+| REFRESH_GIT_TIMEOUT_MS | MIt | 145215 | FileTreePanel.tsx |  |
+| useInstalledEditors | NIt | 145216 | FileTreePanel.tsx |  |
+| loadGitStatusSnapshot | PIt | 145241 | FileTreePanel.tsx |  |
+| useDirectoryFileWatcher | FIt | 145249 | FileTreePanel.tsx |  |
+| collectRefreshTargetPaths | IIt | 145312 | FileTreePanel.tsx |  |
+| useFlattenedTreeRows | LIt | 145323 | FileTreePanel.tsx |  |
+| timeoutError | RIt | 145346 | FileTreePanel.tsx |  |
+| withTimeout | zIt | 145349 | FileTreePanel.tsx |  |
+| useWorkspaceFileTreeData | BIt | 145364 | FileTreePanel.tsx |  |
+| computeStickyFolderRows | VIt | 145687 | FileTreePanel.tsx |  |
+| useStickyFolderScroll | HIt | 145717 | FileTreePanel.tsx |  |
+| FileTreeEmptyState | p8 | 145763 | FileTreePanel.tsx |  |
+| gitStatusBadgeLetter | UIt | 145778 | FileTreePanel.tsx |  |
+| gitStatusTextColor | WIt | 145794 | FileTreePanel.tsx |  |
+| primaryGitStatus | GIt | 145812 | FileTreePanel.tsx |  |
+| gitStatusBadgeColor | KIt | 145815 | FileTreePanel.tsx |  |
+| gitStatusDotColor | qIt | 145831 | FileTreePanel.tsx |  |
+| HIERARCHY_GUIDE_BACKGROUND | JIt | 145849 | FileTreePanel.tsx |  |
+| hierarchyGuideStyle | YIt | 145850 | FileTreePanel.tsx |  |
+| useFileTreeDragState | XIt | 145853 | FileTreePanel.tsx |  |
+| CompactPathName | ZIt | 145873 | FileTreePanel.tsx |  |
+| FileTreeRow | QIt | 145893 | FileTreePanel.tsx |  |
+| FileTreeVirtualList | $It | 146135 | FileTreePanel.tsx |  |
+| StickyFolderList | eLt | 146208 | FileTreePanel.tsx |  |
+| depthOfPath | tLt | 146283 | FileTreePanel.tsx |  |
+| FileTreePanel | nLt | 146286 | FileTreePanel.tsx |  |
+| rootErrorIfNotLoaded | rLt | 146775 | FileTreePanel.tsx |  |
+| DEFAULT_TASK_MEMBERSHIP | iLt | 146778 | FileTreePanel.tsx |  |
+| sortTasksByRecency | aLt | 146779 | FileTreePanel.tsx |  |
+| upsertTaskInWorkspaceCache | oLt | 146788 | FileTreePanel.tsx |  |
+| cleanupDeletedTaskState | sLt | 146825 | FileTreePanel.tsx |  |
+| registerWorkspaceTask | cLt | 146839 | FileTreePanel.tsx |  |
+
+## 44. B5 · FileRewindDialogDeep.tsx（F14 MO 代码查看器 + F03 FileRewindDialog 深部）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，本机实测 213,979 行）· B5-06。行号口径：本机实测当前 js 行。
+- 符号条数：25（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| resolveColorScheme | cze | 47354 | FileRewindDialogDeep.tsx |  |
+| assignRef | lze | 47363 | FileRewindDialogDeep.tsx |  |
+| CODE_COMMENT_DEFAULT_LABELS | uze | 47372 | FileRewindDialogDeep.tsx |  |
+| CODE_COMMENT_GUTTER_CSS | dze | 47382 | FileRewindDialogDeep.tsx |  |
+| cssVarJsonEscape | fze | 47390 | FileRewindDialogDeep.tsx |  |
+| hashStringBase36 | pze | 47393 | FileRewindDialogDeep.tsx |  |
+| navigatorFingerprint | mze | 47398 | FileRewindDialogDeep.tsx |  |
+| isSubmitCommentShortcut | hze | 47403 | FileRewindDialogDeep.tsx |  |
+| isEscapeKey | gze | 47406 | FileRewindDialogDeep.tsx |  |
+| submitShortcutLabel | _ze | 47409 | FileRewindDialogDeep.tsx |  |
+| cancelShortcutLabel | vze | 47412 | FileRewindDialogDeep.tsx |  |
+| setUtilityButtonTitles | DO | 47415 | FileRewindDialogDeep.tsx |  |
+| walkShadowRoots | OO | 47419 | FileRewindDialogDeep.tsx |  |
+| buildCodeViewerFileSource | yze | 47422 | FileRewindDialogDeep.tsx |  |
+| normalizeLineRange | kO | 47433 | FileRewindDialogDeep.tsx |  |
+| selectionToLineRange | AO | 47436 | FileRewindDialogDeep.tsx |  |
+| rangeToRelativeLines | bze | 47439 | FileRewindDialogDeep.tsx |  |
+| extractRangeText | xze | 47443 | FileRewindDialogDeep.tsx |  |
+| formatCommentRangeLabel | jO | 47454 | FileRewindDialogDeep.tsx |  |
+| CodeCommentComposer | Sze | 47462 | FileRewindDialogDeep.tsx |  |
+| CodeCommentCard | Cze | 47518 | FileRewindDialogDeep.tsx |  |
+| CodeViewerWithComments | MO | 47549 | FileRewindDialogDeep.tsx |  |
+| isMermaidLanguage | NO | 47709 | FileRewindDialogDeep.tsx |  |
+| buildFilePreviewSource | __t | 110410 | FileRewindDialogDeep.tsx |  |
+| FileOpenWithMenu | v_t | 110427 | FileRewindDialogDeep.tsx |  |
+
+## 45. B5 · QuickPickDeep.tsx（B5-07 段 A：ZS useGlobalTaskList 深部助手 + 分组拖拽 + 协议宿主常量）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，213,979 行）· B5-07 段 A。行号口径：本机当前 chunk js 行（较旧报告 213,695 口径 A 段偏移 +48）。
+- 符号条数：108（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| TASK_META_REFRESH_REASONS | nOe | 32249 | QuickPickDeep.tsx | 6 原因集 |
+| META_ONLY_REFRESH_REASONS | rOe | 32257 | QuickPickDeep.tsx | 4 原因集 |
+| MEMBERSHIP_TOGGLE_REASONS | iOe | 32258 | QuickPickDeep.tsx | 4 原因集 |
+| isMembershipToggleReason | nx | 32259 | QuickPickDeep.tsx |  |
+| isTaskDeletedReason | aOe | 32262 | QuickPickDeep.tsx |  |
+| isListMembershipChanged | rx | 32265 | QuickPickDeep.tsx |  |
+| shouldInvalidateShardCache | oOe | 32273 | QuickPickDeep.tsx |  |
+| resolveMembershipIntent | ix | 32276 | QuickPickDeep.tsx | insert-active/preserve-membership/null |
+| hasMembershipIntent | sOe | 32285 | QuickPickDeep.tsx |  |
+| UNREAD_PERSIST_DEDUPE_MS=1e3 | dOe | 32330 | QuickPickDeep.tsx |  |
+| UNREAD_PERSIST_DEDUPE_MAX=256 | fOe | 32331 | QuickPickDeep.tsx |  |
+| unreadPersistDedupe | fx | 32332 | QuickPickDeep.tsx |  |
+| isTerminalStatus | pOe | 32333 | QuickPickDeep.tsx |  |
+| unreadPersistDedupeKey | mOe | 32336 | QuickPickDeep.tsx |  |
+| isUnreadPersistDeduped | hOe | 32344 | QuickPickDeep.tsx |  |
+| isBackgroundTerminalUnreadEvent | gOe | 32354 | QuickPickDeep.tsx |  |
+| syncBackgroundTerminalUnread | px | 32364 | QuickPickDeep.tsx |  |
+| setTaskUnreadOverlayNow | tae | 1905 | QuickPickDeep.tsx |  |
+| reconcileTaskUnreadNow | nae | 1908 | QuickPickDeep.tsx |  |
+| rollbackTaskUnreadNow | Wo | 1911 | QuickPickDeep.tsx |  |
+| markWorkspaceKeysStaleNow | Ho | 1885 | QuickPickDeep.tsx |  |
+| membershipHold | mx | 32414 | QuickPickDeep.tsx |  |
+| membershipHoldStats | hx | 32414 | QuickPickDeep.tsx |  |
+| armMembershipRefreshHold | _Oe | 32416 | QuickPickDeep.tsx |  |
+| releaseMembershipRefreshHold | vOe | 32428 | QuickPickDeep.tsx |  |
+| getMembershipHoldStats | yOe | 32432 | QuickPickDeep.tsx |  |
+| awaitMembershipRefreshHold | bOe | 32435 | QuickPickDeep.tsx |  |
+| scopeOf | gx | 32439 | QuickPickDeep.tsx |  |
+| listPinnedIdsSafe | _x | 32445 | QuickPickDeep.tsx |  |
+| listTasksWithAvailability | vx | 32452 | QuickPickDeep.tsx |  |
+| collectUnreadAt | yx | 32459 | QuickPickDeep.tsx |  |
+| collectTerminalStatus | bx | 32462 | QuickPickDeep.tsx |  |
+| collectTitleOverrides | xx | 32465 | QuickPickDeep.tsx |  |
+| collectCronAutomationIds | Sx | 32469 | QuickPickDeep.tsx |  |
+| dedupeTaskRowsByEntityKey | xOe | 32472 | QuickPickDeep.tsx |  |
+| loadTaskIndexShard | Cx | 32477 | QuickPickDeep.tsx |  |
+| taskIndexSnapshotCache | wx | 32528 | QuickPickDeep.tsx |  |
+| SNAPSHOT_CACHE_MAX=8 | SOe | 32529 | QuickPickDeep.tsx |  |
+| serviceIdWeakMap | Tx | 32530 | QuickPickDeep.tsx |  |
+| nextServiceId | COe | 32531 | QuickPickDeep.tsx |  |
+| serviceIdOf | wOe | 32532 | QuickPickDeep.tsx |  |
+| acquireTaskIndexSnapshot | Ex | 32536 | QuickPickDeep.tsx |  |
+| clearTaskIndexSnapshots | TOe | 32548 | QuickPickDeep.tsx |  |
+| loadMergedTaskIndex | EOe | 32551 | QuickPickDeep.tsx |  |
+| mergeSessionIntoTask | DOe | 32578 | QuickPickDeep.tsx |  |
+| hydrateTaskIndexItems | Dx | 32594 | QuickPickDeep.tsx |  |
+| matchesMembershipKind | OOe | 32601 | QuickPickDeep.tsx |  |
+| applyIndexOverlay | kOe | 32615 | QuickPickDeep.tsx |  |
+| projectTaskIndex | Ox | 32648 | QuickPickDeep.tsx |  |
+| mapSessionPhaseToStatus | AOe | 32665 | QuickPickDeep.tsx |  |
+| sessionRowToTaskMeta | jOe | 32679 | QuickPickDeep.tsx |  |
+| INITIAL_SESSION_INDEX_STATE | FS | 34986 | QuickPickDeep.tsx |  |
+| RUNTIME_RESTART_BASE_DELAY_MS=100 | UAe | 34987 | QuickPickDeep.tsx |  |
+| RUNTIME_RESTART_MAX_DELAY_MS=5e3 | WAe | 34988 | QuickPickDeep.tsx |  |
+| RUNTIME_RESTART_RESET_MS=3e4 | GAe | 34989 | QuickPickDeep.tsx |  |
+| SUBSCRIBE_RETRY_BACKOFF_MS | KAe | 34990 | QuickPickDeep.tsx | =[250,1e3,3e3] |
+| isDormantSubscribeError | qAe | 34991 | QuickPickDeep.tsx |  |
+| isTransientSubscribeError | JAe | 35000 | QuickPickDeep.tsx |  |
+| unsubscribeTransportSafe | IS | 35003 | QuickPickDeep.tsx |  |
+| applyFrameToIndexState | YAe | 35012 | QuickPickDeep.tsx |  |
+| subscriptionScopeKey | US | 35443 | QuickPickDeep.tsx |  |
+| isSameSubscriptionEntry | ZAe | 35446 | QuickPickDeep.tsx |  |
+| scopeStoreKey | GS | 35529 | QuickPickDeep.tsx |  |
+| scopeStoreKeyAlias | $Ae | 35532 | QuickPickDeep.tsx |  |
+| toSessionIndexScope | KS | 35535 | QuickPickDeep.tsx |  |
+| shardCacheKeyOf | qS | 35543 | QuickPickDeep.tsx |  |
+| isIdleEmptyIndexStore | eje | 35546 | QuickPickDeep.tsx |  |
+| useSessionIndexShards | JS | 35552 | QuickPickDeep.tsx | ZS 深部主钩子 |
+| entityPrevKeyOf | YS | 35625 | QuickPickDeep.tsx |  |
+| sessionPrevKeyOf | tje | 35628 | QuickPickDeep.tsx |  |
+| deepValueEqual | nje | 35631 | QuickPickDeep.tsx |  |
+| reuseUnchangedTaskRows | rje | 35649 | QuickPickDeep.tsx |  |
+| dynamicSubsByService | XS | 35659 | QuickPickDeep.tsx |  |
+| dynamicScopeKey | ije | 35659 | QuickPickDeep.tsx |  |
+| subscribeDynamicWorkspaceEvents | aje | 35663 | QuickPickDeep.tsx |  |
+| normalizeShardScopes | oje | 35695 | QuickPickDeep.tsx |  |
+| buildShardPlan | sje | 35700 | QuickPickDeep.tsx |  |
+| narrowCachedShardToDescriptor | cje | 35730 | QuickPickDeep.tsx |  |
+| applyRuntimeStateEvent | lje | 35745 | QuickPickDeep.tsx |  |
+| pointerPositionOf | Lzt | 155248 | QuickPickDeep.tsx |  |
+| trackPointerPosition | Rzt | 155253 | QuickPickDeep.tsx |  |
+| findScrollableAncestor | F8 | 155281 | QuickPickDeep.tsx |  |
+| groupSignaturesEqual | zzt | 155290 | QuickPickDeep.tsx |  |
+| stringArraysEqual | Bzt | 155296 | QuickPickDeep.tsx |  |
+| taskKeyOfDropData | I8 | 155299 | QuickPickDeep.tsx |  |
+| groupIdOfDropData | L8 | 155304 | QuickPickDeep.tsx |  |
+| dropDataTypeOf | R8 | 155309 | QuickPickDeep.tsx |  |
+| groupIdOfGroupOver | Vzt | 155314 | QuickPickDeep.tsx |  |
+| groupIdOfCollapsedGroup | Hzt | 155319 | QuickPickDeep.tsx |  |
+| groupIdOfExpandedHeader | Uzt | 155324 | QuickPickDeep.tsx |  |
+| groupIdOfExpandedFooter | Wzt | 155331 | QuickPickDeep.tsx |  |
+| groupIdOfEmptyDropZone | Gzt | 155338 | QuickPickDeep.tsx |  |
+| groupedCollisionDetection | Kzt | 155343 | QuickPickDeep.tsx |  |
+| applyTaskOverTaskDrop | qzt | 155353 | QuickPickDeep.tsx |  |
+| applyTaskOverCollapsedDrop | Jzt | 155358 | QuickPickDeep.tsx |  |
+| applyTaskOverExpandedHeaderDrop | Yzt | 155363 | QuickPickDeep.tsx |  |
+| applyTaskOverExpandedFooterDrop | Xzt | 155372 | QuickPickDeep.tsx |  |
+| applyTaskOverEmptyZoneDrop | Zzt | 155381 | QuickPickDeep.tsx |  |
+| applyGroupOverGroupDrop | Qzt | 155386 | QuickPickDeep.tsx |  |
+| applyGroupOverTaskDrop | $zt | 155393 | QuickPickDeep.tsx |  |
+| groupedLayoutFingerprint | z8 | 155400 | QuickPickDeep.tsx |  |
+| DROP_ANIMATION_CONFIG | eBt | 155407 | QuickPickDeep.tsx |  |
+| AUTO_SCROLL_THRESHOLDS | tBt | 155408 | QuickPickDeep.tsx |  |
+| measureGroupedLayout | nBt | 155409 | QuickPickDeep.tsx |  |
+| measureGroupedTaskWidth | rBt | 155427 | QuickPickDeep.tsx |  |
+| measureGroupItemWidth | iBt | 155434 | QuickPickDeep.tsx |  |
+| findStickyCollapsedGroupId | aBt | 155440 | QuickPickDeep.tsx |  |
+| replayGroupedLayoutAnimations | oBt | 155460 | QuickPickDeep.tsx |  |
+
+## 46. B5 · CmdkPaletteDeep.tsx（B5-07 段 B：zZ cmdk 弹层深部（F00 分支切换器深部））
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（本机 213,979 行副本）· B5-07 段 B。行号口径：本机当前 js 行（旧 213,695 口径本区偏移 +48）。
+- 符号条数：55（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| resolveBranchDisplayLabel | MZ | 95015 | CmdkPaletteDeep.tsx |  |
+| branchFilterMatches | bst | 95020 | CmdkPaletteDeep.tsx |  |
+| firstIssue | xst | 95024 | CmdkPaletteDeep.tsx |  |
+| isOverwriteIssueCode | Sst | 95027 | CmdkPaletteDeep.tsx |  |
+| issueErrorI18nKey | Cst | 95032 | CmdkPaletteDeep.tsx |  |
+| successToastI18nKey | wst | 95054 | CmdkPaletteDeep.tsx |  |
+| splitVisibleIssuePaths | Tst | 95061 | CmdkPaletteDeep.tsx |  |
+| mapChangeFilesToRows | NZ | 95065 | CmdkPaletteDeep.tsx |  |
+| summarizeFileRows | Est | 95091 | CmdkPaletteDeep.tsx |  |
+| filesOfIssuePaths | Dst | 95097 | CmdkPaletteDeep.tsx |  |
+| checkpointCommitMessage | Ost | 95113 | CmdkPaletteDeep.tsx |  |
+| formatShortList | kst | 95119 | CmdkPaletteDeep.tsx |  |
+| hasGitIdentity | PZ | 95124 | CmdkPaletteDeep.tsx |  |
+| buildSwitchAssistState | Ast | 95127 | CmdkPaletteDeep.tsx |  |
+| CreateBranchDialog | jst | 95169 | CmdkPaletteDeep.tsx |  |
+| SwitchAssistDialog | Mst | 95262 | CmdkPaletteDeep.tsx |  |
+| shortHash | FZ | 95567 | CmdkPaletteDeep.tsx |  |
+| refKindIcon | Nst | 95570 | CmdkPaletteDeep.tsx |  |
+| formatAuthoredAt | Pst | 95573 | CmdkPaletteDeep.tsx |  |
+| CommitDetailPanel | Fst | 95583 | CmdkPaletteDeep.tsx |  |
+| MISSING_PARENT_ROW_INDEX | Ist | 95686 | CmdkPaletteDeep.tsx |  |
+| GraphLine | Lst | 95687 | CmdkPaletteDeep.tsx |  |
+| GraphVertex | Rst | 95700 | CmdkPaletteDeep.tsx |  |
+| buildGraphVertices | zst | 95759 | CmdkPaletteDeep.tsx |  |
+| allocateColourIndex | Bst | 95772 | CmdkPaletteDeep.tsx |  |
+| connectMergeParent | Vst | 95776 | CmdkPaletteDeep.tsx |  |
+| walkBranchLine | Hst | 95796 | CmdkPaletteDeep.tsx |  |
+| processVertex | Ust | 95827 | CmdkPaletteDeep.tsx |  |
+| layoutCommitGraphBranches | Wst | 95840 | CmdkPaletteDeep.tsx |  |
+| GRAPH_ROW_HEIGHT=42 | Gst | 95853 | CmdkPaletteDeep.tsx |  |
+| GRAPH_LANE_GAP=18 | Kst | 95854 | CmdkPaletteDeep.tsx |  |
+| GRAPH_LANE_PADDING=16 | qst | 95855 | CmdkPaletteDeep.tsx |  |
+| GRAPH_TOP_PADDING=20 | Jst | 95856 | CmdkPaletteDeep.tsx |  |
+| GRAPH_BOTTOM_PADDING=18 | Yst | 95853–95857 | CmdkPaletteDeep.tsx |  |
+| curvePath | IZ | 95858 | CmdkPaletteDeep.tsx |  |
+| pointPixels | LZ | 95865 | CmdkPaletteDeep.tsx |  |
+| buildEdgePath | Xst | 95868 | CmdkPaletteDeep.tsx |  |
+| buildLaneSegmentPath | Zst | 95878 | CmdkPaletteDeep.tsx |  |
+| buildTruncatedEdges | Qst | 95888 | CmdkPaletteDeep.tsx |  |
+| computeCommitGraphLayout | $st | 95912 | CmdkPaletteDeep.tsx |  |
+| STROKE_CLASSES | ect | 95944 | CmdkPaletteDeep.tsx |  |
+| FILL_CLASSES | tct | 95949 | CmdkPaletteDeep.tsx |  |
+| DOT_RADIUS=4 | nct | 95951 | CmdkPaletteDeep.tsx |  |
+| DOT_SELECTED_RADIUS=4.25 | rct | 95952 | CmdkPaletteDeep.tsx |  |
+| DOT_SELECTED_RING_RADIUS=5.5 | ict | 95953 | CmdkPaletteDeep.tsx |  |
+| LOAD_MORE_SCROLL_PX=96 | act | 95954 | CmdkPaletteDeep.tsx |  |
+| GRAPH_MIN_COLUMN_PX=56 | oct | 95944–95955 | CmdkPaletteDeep.tsx |  |
+| strokeClassOfLane | sct | 95956 | CmdkPaletteDeep.tsx |  |
+| fillClassOfLane | cct | 95959 | CmdkPaletteDeep.tsx |  |
+| gridColumnsStyle | lct | 95962 | CmdkPaletteDeep.tsx |  |
+| edgeTouchesHash | uct | 95965 | CmdkPaletteDeep.tsx |  |
+| CommitGraphView | dct | 95968 | CmdkPaletteDeep.tsx |  |
+| GRAPH_PAGE_SIZE=50 | RZ | 96282 | CmdkPaletteDeep.tsx |  |
+| CommitGraphDialog | fct | 96283 | CmdkPaletteDeep.tsx |  |
+| useGitBranchSwitcher | pct | 96410 | CmdkPaletteDeep.tsx |  |
+
+## 47. B5 · McpHelpers.tsx（B5-07 段 C：MCP 纯助手群 + 迁移助手尾部）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（本机 213,979 行副本）· B5-07 段 C。行号口径：本机当前 js 行。
+- 符号条数：32（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| PLUGIN_COMPONENT_KIND_SEQUENCE | qQt | 193351 | McpHelpers.tsx |  |
+| matchesScopedQuery | N7 | 193380 | McpHelpers.tsx |  |
+| splitSkillsByScope | XQt | 193384 | McpHelpers.tsx |  |
+| splitCommandsByScope | ZQt | 193397 | McpHelpers.tsx |  |
+| filterZcodeAgentMcpServers | QQt | 193409 | McpHelpers.tsx |  |
+| pluginMcpServerRows | $Qt | 193414 | McpHelpers.tsx |  |
+| unwrapPluginServerName | P7 | 193440 | McpHelpers.tsx |  |
+| resolveRuntimeServerName | e$t | 193444 | McpHelpers.tsx |  |
+| runtimeStateProjection | t$t | 193447 | McpHelpers.tsx |  |
+| syncResourceKey | n$t | 193471 | McpHelpers.tsx |  |
+| jsonStringify | F7 | 193474 | McpHelpers.tsx |  |
+| parseSyncResourceKey | r$t | 193477 | McpHelpers.tsx |  |
+| groupImportPlans | i$t | 193494 | McpHelpers.tsx |  |
+| errorMessageText | a$t | 193525 | McpHelpers.tsx |  |
+| taskResultsOfCategory | o$t | 193528 | McpHelpers.tsx |  |
+| agentDisplayLabel | s$t | 193541 | McpHelpers.tsx |  |
+| categoryOfAgentResult | I7 | 193583 | McpHelpers.tsx |  |
+| SYNC_SCOPES | c$t | 193586 | McpHelpers.tsx |  |
+| SYNC_IMPORT_MODES | l$t | 193587 | McpHelpers.tsx |  |
+| importScopeI18nKey | u$t | 193588 | McpHelpers.tsx |  |
+| itemsOfCategory | L7 | 193591 | McpHelpers.tsx |  |
+| normalizeSlashes | d$t | 193600 | McpHelpers.tsx |  |
+| scopeOfPath | f$t | 193603 | McpHelpers.tsx |  |
+| sourceRootsOfAgent | p$t | 193609 | McpHelpers.tsx |  |
+| scopeRowsOfAgents | m$t | 193623 | McpHelpers.tsx |  |
+| MIGRATION_DEFAULT_LIMIT=100 | k2t | 203426 | McpHelpers.tsx |  |
+| MIGRATION_MAX_LIMIT=500 | A2t | 203427 | McpHelpers.tsx |  |
+| MIGRATION_UNLIMITED | j2t | 203428 | McpHelpers.tsx | =`unlimited` |
+| MIGRATION_RANGE_DURATIONS | M2t | 203429 | McpHelpers.tsx |  |
+| modifiedSinceOfRange | N2t | 203430 | McpHelpers.tsx |  |
+| parseScanLimit | P2t | 203433 | McpHelpers.tsx |  |
+| resolveWorkspaceFilterMode | F2t | 203437 | McpHelpers.tsx |  |
+
+## 48. B5 · LegacyDocEngineC1.tsx（legacy-doc 内部引擎 C 上（[E6]b 登记余量 + §D 依赖补全））
+
+- 族/来源：legacy-doc 族 · 源 chunk `out/renderer/assets/previewPaneOfficeLegacyDocContent-HWD4EOEM.js` · B5-08。行号口径：jsx 还原孪生行（`previewPaneOfficeLegacyDocContent-HWD4EOEM.jsx`）。
+- 符号条数：172（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| twipsToPxNonNegative | Br | 12019 | LegacyDocEngineC1.tsx |  |
+| PAGE_BREAK_RUN_RE | _o | 13983 | LegacyDocEngineC1.tsx |  |
+| PAGE_BREAK_BEFORE_TAG_RE | vo | 13984 | LegacyDocEngineC1.tsx |  |
+| paragraphHasPageBreakRun | xo | 13993 | LegacyDocEngineC1.tsx |  |
+| paragraphPageBreakBeforeOf | So | 13997 | LegacyDocEngineC1.tsx |  |
+| nodePageBreakStarts | Mo | 14061 | LegacyDocEngineC1.tsx |  |
+| layoutTextCache | Cp | 17137 | LegacyDocEngineC1.tsx |  |
+| fragmentCache | wp | 17138 | LegacyDocEngineC1.tsx |  |
+| singleFontCache | Tp | 17139 | LegacyDocEngineC1.tsx |  |
+| tabPlaceholderSpaces | jp | 17233 | LegacyDocEngineC1.tsx |  |
+| paragraphLayoutText | Mp | 17248 | LegacyDocEngineC1.tsx |  |
+| splitParagraphByLineBreaks | Np | 17330 | LegacyDocEngineC1.tsx |  |
+| splitPartContentHeight | Pp | 17373 | LegacyDocEngineC1.tsx |  |
+| fitSplitPartsHeight | Fp | 17380 | LegacyDocEngineC1.tsx |  |
+| layoutTextFragments | zp | 17418 | LegacyDocEngineC1.tsx |  |
+| singleFontOfLayoutText | Bp | 17440 | LegacyDocEngineC1.tsx |  |
+| fragmentsForRuns | Vp | 17465 | LegacyDocEngineC1.tsx |  |
+| paragraphLineLayout | Hp | 17480 | LegacyDocEngineC1.tsx |  |
+| pageBreakHintMap | Gm | 18049 | LegacyDocEngineC1.tsx |  |
+| paragraphIsKeepNextCandidate | Km | 18055 | LegacyDocEngineC1.tsx |  |
+| keepNextChainFitsPageTail | qm | 18058 | LegacyDocEngineC1.tsx |  |
+| paragraphDominantFontSizePt | Jm | 18088 | LegacyDocEngineC1.tsx |  |
+| spacingBeforeForPagination | _m | 17851 | LegacyDocEngineC1.tsx |  |
+| spacingAfterForPagination | gm | 17846 | LegacyDocEngineC1.tsx |  |
+| 局部克隆 cloneBordersLocal 等（正式实体在 C2，高） | ry |  | LegacyDocEngineC1.tsx |  |
+| 局部克隆 cloneBordersLocal 等（正式实体在 C2，高） | iy |  | LegacyDocEngineC1.tsx |  |
+| 局部克隆 cloneBordersLocal 等（正式实体在 C2，高） | ay |  | LegacyDocEngineC1.tsx |  |
+| 局部克隆 cloneBordersLocal 等（正式实体在 C2，高） | fb |  | LegacyDocEngineC1.tsx |  |
+| 局部克隆 cloneBordersLocal 等（正式实体在 C2，高） | bb |  | LegacyDocEngineC1.tsx |  |
+| 局部克隆 cloneBordersLocal 等（正式实体在 C2，高） | gb |  | LegacyDocEngineC1.tsx |  |
+| 局部克隆 cloneBordersLocal 等（正式实体在 C2，高） | mb |  | LegacyDocEngineC1.tsx |  |
+| paragraphFontSizePx | Ym | 18106 | LegacyDocEngineC1.tsx |  |
+| paragraphMaxFontPx | Xm | 18113 | LegacyDocEngineC1.tsx |  |
+| firstFontFamilyName | Zm | 18121 | LegacyDocEngineC1.tsx |  |
+| paragraphDefaultFontFamily | Qm | 18124 | LegacyDocEngineC1.tsx |  |
+| denseLineFactorForFont | $m | 18148 | LegacyDocEngineC1.tsx |  |
+| looseLineFactorForFont | eh | 18154 | LegacyDocEngineC1.tsx |  |
+| paragraphIsCjkLike | th | 18158 | LegacyDocEngineC1.tsx |  |
+| lineSpacingFactorFor | nh | 18161 | LegacyDocEngineC1.tsx |  |
+| paragraphHasHardLineBreak | rh | 18166 | LegacyDocEngineC1.tsx |  |
+| charClassWidthFactor | ih | 18168 | LegacyDocEngineC1.tsx |  |
+| heuristicCharClassWidth | ah | 18171 | LegacyDocEngineC1.tsx |  |
+| runFontPx | oh | 18175 | LegacyDocEngineC1.tsx |  |
+| fontStringOf | sh | 18180 | LegacyDocEngineC1.tsx |  |
+| runFontString | ch | 18183 | LegacyDocEngineC1.tsx |  |
+| splitTextByFont | lh | 18185 | LegacyDocEngineC1.tsx |  |
+| measureTextWidth | uh | 18192 | LegacyDocEngineC1.tsx |  |
+| paragraphTabStopsPx | dh | 18214 | LegacyDocEngineC1.tsx |  |
+| paragraphIndentStartPx | fh | 18217 | LegacyDocEngineC1.tsx |  |
+| leftTabStopsAfterIndent | ph | 18224 | LegacyDocEngineC1.tsx |  |
+| nextTabStopAfter | mh | 18228 | LegacyDocEngineC1.tsx |  |
+| expandTabsToSpaces | hh | 18233 | LegacyDocEngineC1.tsx |  |
+| segmentsWidthPx | gh | 18235 | LegacyDocEngineC1.tsx |  |
+| greedyLineCount | _h | 18241 | LegacyDocEngineC1.tsx |  |
+| paragraphTabSegments | vh | 18274 | LegacyDocEngineC1.tsx |  |
+| splitTabSegments | yh | 18295 | LegacyDocEngineC1.tsx |  |
+| tocTabLineCount | bh | 18322 | LegacyDocEngineC1.tsx |  |
+| lineCountCache | xh | 18343 | LegacyDocEngineC1.tsx |  |
+| lineCountCacheGet | Sh | 18345 | LegacyDocEngineC1.tsx |  |
+| lineCountCacheSet | Ch | 18347 | LegacyDocEngineC1.tsx |  |
+| paragraphLineCount | wh | 18352 | LegacyDocEngineC1.tsx |  |
+| paragraphContentWidth | Th | 18440 | LegacyDocEngineC1.tsx |  |
+| paragraphEstimatedLineCount | Eh | 18454 | LegacyDocEngineC1.tsx |  |
+| wrappedImageFootprintHeight | Dh | 18466 | LegacyDocEngineC1.tsx |  |
+| layoutBottomPx | Oh | 18479 | LegacyDocEngineC1.tsx |  |
+| layoutHasFullWidthExclusion | kh | 18484 | LegacyDocEngineC1.tsx |  |
+| layoutHeightPx | Ah | 18493 | LegacyDocEngineC1.tsx |  |
+| layoutRangeHeightPx | jh | 18496 | LegacyDocEngineC1.tsx |  |
+| layoutFitLineEnd | Mh | 18505 | LegacyDocEngineC1.tsx |  |
+| lineTwipsToMultiple | Nh | 18523 | LegacyDocEngineC1.tsx |  |
+| doubleLineBlend | Ph | 18525 | LegacyDocEngineC1.tsx |  |
+| lineHeightFromMultiple | Fh | 18532 | LegacyDocEngineC1.tsx |  |
+| snapToGridModeOf | Ih | 18536 | LegacyDocEngineC1.tsx |  |
+| gridSnapHeight | Lh | 18548 | LegacyDocEngineC1.tsx |  |
+| paragraphLineHeight | Rh | 18553 | LegacyDocEngineC1.tsx |  |
+| paragraphOuterHeight | zh | 18572 | LegacyDocEngineC1.tsx |  |
+| xmlHasSpacingBefore | Bh | 18602 | LegacyDocEngineC1.tsx |  |
+| xmlHasParagraphSpacing | Vh | 18608 | LegacyDocEngineC1.tsx |  |
+| applyDefaultSpacingForGrid | Hh | 18614 | LegacyDocEngineC1.tsx |  |
+| spacingBeforeAbsent | Uh | 18630 | LegacyDocEngineC1.tsx |  |
+| estimateCellContentHeight | Wh | 18635 | LegacyDocEngineC1.tsx |  |
+| rowIsSplittable | Gh | 18673 | LegacyDocEngineC1.tsx |  |
+| rowNeedsHeightEstimation | Kh | 18676 | LegacyDocEngineC1.tsx |  |
+| rowHasNestedTable | qh | 18686 | LegacyDocEngineC1.tsx |  |
+| rowHeightWithCaps | Jh | 18689 | LegacyDocEngineC1.tsx |  |
+| tableStyleIdOf | Yh | 18699 | LegacyDocEngineC1.tsx |  |
+| tableHasVisibleBorders | Xh | 18703 | LegacyDocEngineC1.tsx |  |
+| tableHasUnspacedParagraphs | Zh | 18707 | LegacyDocEngineC1.tsx |  |
+| tableIsTableGrid | Qh | 18710 | LegacyDocEngineC1.tsx |  |
+| tableRowHeights | $h | 18713 | LegacyDocEngineC1.tsx |  |
+| computeTableRowHeights | eg | 18729 | LegacyDocEngineC1.tsx |  |
+| tableRowStyle | tg | 18759 | LegacyDocEngineC1.tsx |  |
+| dedupeSafeBoundaries | ng | 18766 | LegacyDocEngineC1.tsx |  |
+| paragraphSafeLayout | rg | 18776 | LegacyDocEngineC1.tsx |  |
+| tableSafeLayout | ig | 18803 | LegacyDocEngineC1.tsx |  |
+| cellSafeBoundaries | ag | 18812 | LegacyDocEngineC1.tsx |  |
+| boundaryIsSafe | og | 18840 | LegacyDocEngineC1.tsx |  |
+| tableRowSliceFitHeight | sg | 18844 | LegacyDocEngineC1.tsx |  |
+| tableOuterHeightPx | cg | 18899 | LegacyDocEngineC1.tsx |  |
+| estimateNodeHeight | lg | 18915 | LegacyDocEngineC1.tsx |  |
+| paragraphSpacingBeforeRaw | ug | 18918 | LegacyDocEngineC1.tsx |  |
+| paragraphSpacingAfterRaw | dg | 18921 | LegacyDocEngineC1.tsx |  |
+| widowControlEnabled | fg | 18924 | LegacyDocEngineC1.tsx |  |
+| isPlainPageBreakSpacer | pg | 18926 | LegacyDocEngineC1.tsx |  |
+| spacingBeforeAfterPageBreak | mg | 18929 | LegacyDocEngineC1.tsx |  |
+| paragraphCanSplitLines | hg | 18935 | LegacyDocEngineC1.tsx |  |
+| lineRangeIsPartial | gg | 18939 | LegacyDocEngineC1.tsx |  |
+| lineRangeForBand | _g | 18942 | LegacyDocEngineC1.tsx |  |
+| segmentRenderBottomPx | vg | 18957 | LegacyDocEngineC1.tsx |  |
+| segmentCoversWholeParagraph | yg | 18961 | LegacyDocEngineC1.tsx |  |
+| splitEdgePadding | bg | 18964 | LegacyDocEngineC1.tsx |  |
+| splitEdgeSmoothingPadding | xg | 18974 | LegacyDocEngineC1.tsx |  |
+| splitSegmentExtraHeight | Sg | 18987 | LegacyDocEngineC1.tsx |  |
+| splitSegmentSmoothingExtraHeight | Cg | 18994 | LegacyDocEngineC1.tsx |  |
+| segmentMatchesLineRange | wg | 19000 | LegacyDocEngineC1.tsx |  |
+| nodeLayoutHeight | Tg | 19003 | LegacyDocEngineC1.tsx |  |
+| resolveParagraphLineRange | Eg | 19025 | LegacyDocEngineC1.tsx |  |
+| trySplitParagraphSegment | Dg | 19045 | LegacyDocEngineC1.tsx |  |
+| distributeSegmentsAcrossPages | Og | 19092 | LegacyDocEngineC1.tsx |  |
+| rowRangeHeight | kg | 19155 | LegacyDocEngineC1.tsx |  |
+| fitRowsWithin | Ag | 19162 | LegacyDocEngineC1.tsx |  |
+| paginateByBreakHints | jg | 19173 | LegacyDocEngineC1.tsx |  |
+| paginateDocument | Mg | 19190-19541 | LegacyDocEngineC1.tsx |  |
+| isInlineImageNode | Ng | 19542 | LegacyDocEngineC1.tsx |  |
+| isPageMarginCornerAnchoredFloating | Fg | 19555 | LegacyDocEngineC1.tsx |  |
+| isFloatingImageNode | Kg | 19817 | LegacyDocEngineC1.tsx |  |
+| tocLevelOf | w_ | 20231 | LegacyDocEngineC1.tsx |  |
+| isTocParagraph | T_ | 20241 | LegacyDocEngineC1.tsx |  |
+| paragraphHasTocTab | E_ | 20242 | LegacyDocEngineC1.tsx |  |
+| tocTabStopOf | D_ | 20245 | LegacyDocEngineC1.tsx |  |
+| tocFirstTabStopPx | O_ | 20254 | LegacyDocEngineC1.tsx |  |
+| paragraphHasTabChar | k_ | 20257 | LegacyDocEngineC1.tsx |  |
+| countTabChars | A_ | 20260 | LegacyDocEngineC1.tsx |  |
+| tabLayoutKindOf | j_ | 20269 | LegacyDocEngineC1.tsx |  |
+| tabStopByAlignment | M_ | 20279 | LegacyDocEngineC1.tsx |  |
+| decodeXmlEntities | N_ | 20282 | LegacyDocEngineC1.tsx |  |
+| matchXmlRegions | P_ | 20291 | LegacyDocEngineC1.tsx |  |
+| revisionKindOfTag | F_ | 20329 | LegacyDocEngineC1.tsx |  |
+| normalizeWhitespace | I_ | 20341 | LegacyDocEngineC1.tsx |  |
+| formatRevisionDateUtc | L_ | 20346 | LegacyDocEngineC1.tsx |  |
+| stripTextBoxContentXml | R_ | 20357 | LegacyDocEngineC1.tsx |  |
+| extractRunTextSegments | z_ | 20361 | LegacyDocEngineC1.tsx |  |
+| xmlFlagEnabled | B_ | 20402 | LegacyDocEngineC1.tsx |  |
+| xmlColorAttr | V_ | 20407 | LegacyDocEngineC1.tsx |  |
+| parseRunStyleXml | H_ | 20413 | LegacyDocEngineC1.tsx |  |
+| extractXmlRegionContents | U_ | 20451 | LegacyDocEngineC1.tsx |  |
+| mergeRunStyles | W_ | 20454 | LegacyDocEngineC1.tsx |  |
+| parseParagraphAlign | G_ | 20469 | LegacyDocEngineC1.tsx |  |
+| escapeXmlAttrValue | K_ | 20474 | LegacyDocEngineC1.tsx |  |
+| svgDataUrl | q_ | 20477 | LegacyDocEngineC1.tsx |  |
+| emuToPxRounded | J_ | 20479 | LegacyDocEngineC1.tsx |  |
+| resolveFieldDisplayText | Y_ | 20482 | LegacyDocEngineC1.tsx |  |
+| parseTextBoxLines | X_ | 20504 | LegacyDocEngineC1.tsx |  |
+| parseTextBoxShapeStyle | Z_ | 20574 | LegacyDocEngineC1.tsx |  |
+| textBoxPlainText | Q_ | 20594 | LegacyDocEngineC1.tsx |  |
+| textBoxRenderLines | $_ | 20600 | LegacyDocEngineC1.tsx |  |
+| textBoxZIndex | ev | 20621 | LegacyDocEngineC1.tsx |  |
+| renderTextBoxSvg | tv | 20625 | LegacyDocEngineC1.tsx |  |
+| syntheticTextBoxIsGraphicShape | nv | 20674 | LegacyDocEngineC1.tsx |  |
+| parseShapeTransformXml | rv | 20679 | LegacyDocEngineC1.tsx |  |
+| joinCssTransforms | iv | 20695 | LegacyDocEngineC1.tsx |  |
+| shapeTransformCss | av | 20699 | LegacyDocEngineC1.tsx |  |
+| isTopAnchoredFloating | ov | 20726 | LegacyDocEngineC1.tsx |  |
+| describeFormattingList | sv | 20729 | LegacyDocEngineC1.tsx |  |
+| describeRunFormattingXml | cv | 20732 | LegacyDocEngineC1.tsx |  |
+| describeParagraphFormattingXml | lv | 20736 | LegacyDocEngineC1.tsx |  |
+| describeTableFormattingXml | uv | 20740 | LegacyDocEngineC1.tsx |  |
+| parseParagraphRevisions | dv | 20746 | LegacyDocEngineC1.tsx |  |
+| parseParagraphCommentRanges | fv | 20863 | LegacyDocEngineC1.tsx |  |
+| pageFieldKindOfInstruction | pv | 20913 | LegacyDocEngineC1.tsx |  |
+| styleRefTargetOfInstruction | mv | 20920 | LegacyDocEngineC1.tsx |  |
+| paragraphPageFieldKinds | hv | 20930 | LegacyDocEngineC1.tsx |  |
+
+## 49. B5 · LegacyDocEngineC2.tsx（legacy-doc 内部引擎 C 下）
+
+- 族/来源：legacy-doc 族 · 源 chunk `out/renderer/assets/previewPaneOfficeLegacyDocContent-HWD4EOEM.js` · B5-08。行号口径：jsx 还原孪生行。
+- 符号条数：206（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| pageFieldResultsCache | gv | 20944 | LegacyDocEngineC2.tsx |  |
+| paragraphPageFieldResults | _v | 20945 | LegacyDocEngineC2.tsx |  |
+| styleRefFieldResultsCache | vv | 20998 | LegacyDocEngineC2.tsx |  |
+| paragraphStyleRefFieldResults | yv | 20999 | LegacyDocEngineC2.tsx |  |
+| normalizeStyleName | bv | 21052 | LegacyDocEngineC2.tsx |  |
+| tocFieldFallback | xv | 21055 | LegacyDocEngineC2.tsx |  |
+| leaderBackgroundStyle | Sv | 21074 | LegacyDocEngineC2.tsx |  |
+| noteReferenceMark | Cv | 21094 | LegacyDocEngineC2.tsx |  |
+| normalizeDateToIso | wv | 21104 | LegacyDocEngineC2.tsx |  |
+| renderParagraphRuns | Tv | 21113-21684 | LegacyDocEngineC2.tsx |  |
+| romanNumeralOf | Ev | 21685 | LegacyDocEngineC2.tsx |  |
+| letterOrdinalOf | Dv | 21693 | LegacyDocEngineC2.tsx |  |
+| numberInFormat | Ov | 21703 | LegacyDocEngineC2.tsx |  |
+| formatPageNumber | kv | 21728 | LegacyDocEngineC2.tsx |  |
+| numberingLevelOf | Av | 21732 | LegacyDocEngineC2.tsx |  |
+| numberingLevelHasVisibleBullet | jv | 21736 | LegacyDocEngineC2.tsx |  |
+| numberingLevelIsBullet | Mv | 21739 | LegacyDocEngineC2.tsx |  |
+| numberingLevelsOf | Nv | 21742 | LegacyDocEngineC2.tsx |  |
+| effectiveNumIdOfParagraph | Pv | 21746 | LegacyDocEngineC2.tsx |  |
+| numberingLevelStart | Fv | 21771 | LegacyDocEngineC2.tsx |  |
+| numberingSuffixText | Iv | 21777 | LegacyDocEngineC2.tsx |  |
+| BULLET_GLYPH_REPLACEMENTS | Lv | 21780 | LegacyDocEngineC2.tsx |  |
+| replaceBulletGlyphs | Rv | 21785 | LegacyDocEngineC2.tsx |  |
+| numberingLabelsForModel | zv | 21792 | LegacyDocEngineC2.tsx |  |
+| UNORDERED_BULLET_PREFIX_REGEX | Bv | 21878 | LegacyDocEngineC2.tsx |  |
+| ORDERED_DOT_PREFIX_REGEX | Vv | 21878 | LegacyDocEngineC2.tsx |  |
+| ANY_LIST_PREFIX_REGEX | Hv | 21878 | LegacyDocEngineC2.tsx |  |
+| ORDERED_PREFIX_REGEX | Uv | 21878 | LegacyDocEngineC2.tsx |  |
+| LIST_INDENT_TWIPS=720 | Wv | 21878 | LegacyDocEngineC2.tsx |  |
+| LIST_HANGING_TWIPS=360 | Gv | 21878 | LegacyDocEngineC2.tsx |  |
+| MAX_NUMBERING_DEPTH_DEFAULT=8 | Kv | 21878 | LegacyDocEngineC2.tsx |  |
+| looksUnordered | qv | 21885 | LegacyDocEngineC2.tsx |  |
+| looksOrdered | Jv | 21888 | LegacyDocEngineC2.tsx |  |
+| textIsBulletGlyphs | Yv | 21891 | LegacyDocEngineC2.tsx |  |
+| paragraphHasNumbering | Xv | 21895 | LegacyDocEngineC2.tsx |  |
+| numberingKindOf | Zv | 21898 | LegacyDocEngineC2.tsx |  |
+| isNumberedParagraph | Qv | 21913 | LegacyDocEngineC2.tsx |  |
+| stripListPrefix | $v | 21917 | LegacyDocEngineC2.tsx |  |
+| listPrefixLength | ey | 21920 | LegacyDocEngineC2.tsx |  |
+| orderedSuccessor | ty | 21922 | LegacyDocEngineC2.tsx |  |
+| applyListPrefix | ny | 21928 | LegacyDocEngineC2.tsx |  |
+| cloneBorderSide | ry | 21933 | LegacyDocEngineC2.tsx |  |
+| cloneParagraphBorders | iy | 21938 | LegacyDocEngineC2.tsx |  |
+| cloneParagraphStyle | ay | 21948 | LegacyDocEngineC2.tsx |  |
+| cloneParagraphStyleWithDefaultSpacing | oy | 21969 | LegacyDocEngineC2.tsx |  |
+| cloneMarginTwips | sy | 21983 | LegacyDocEngineC2.tsx |  |
+| cloneTableBorderSide | cy | 21991 | LegacyDocEngineC2.tsx |  |
+| cloneTableBorders | ly | 21998 | LegacyDocEngineC2.tsx |  |
+| cloneCellStyle | uy | 22011 | LegacyDocEngineC2.tsx |  |
+| cloneRowStyle | dy | 22018 | LegacyDocEngineC2.tsx |  |
+| emptyParagraph | fy | 22024 | LegacyDocEngineC2.tsx |  |
+| cloneCell | py | 22037 | LegacyDocEngineC2.tsx |  |
+| maxNumberingDepth | my | 22048 | LegacyDocEngineC2.tsx |  |
+| shiftIndent | hy | 22057 | LegacyDocEngineC2.tsx |  |
+| applyListIndent | gy | 22066 | LegacyDocEngineC2.tsx |  |
+| removeListIndent | _y | 22081 | LegacyDocEngineC2.tsx |  |
+| cellParagraphsSignature | vy | 22099 | LegacyDocEngineC2.tsx |  |
+| tableMaxColumnCount | yy | 22103 | LegacyDocEngineC2.tsx |  |
+| floatingTableSide | by | 22106 | LegacyDocEngineC2.tsx |  |
+| floatingTableWidthPx | xy | 22112 | LegacyDocEngineC2.tsx |  |
+| floatingTableLayout | Sy | 22118 | LegacyDocEngineC2.tsx |  |
+| floatingTableStyle | Cy | 22150 | LegacyDocEngineC2.tsx |  |
+| locateNestedTable | wy | 22173 | LegacyDocEngineC2.tsx |  |
+| tableGridWidthsCache | Ty | 22207 | LegacyDocEngineC2.tsx |  |
+| tableGridWidthsCached | Ey | 22208 | LegacyDocEngineC2.tsx |  |
+| tableGridWidthsTwips | Dy | 22215 | LegacyDocEngineC2.tsx |  |
+| gridWidthsDivergeFromCells | Oy | 22222 | LegacyDocEngineC2.tsx |  |
+| gridWidthsFromCellWidths | ky | 22240 | LegacyDocEngineC2.tsx |  |
+| normalizeGridWidthsTwips | Ay | 22266 | LegacyDocEngineC2.tsx |  |
+| normalizeGridWidthsPx | jy | 22276 | LegacyDocEngineC2.tsx |  |
+| evenGridWidthsPx | My | 22285 | LegacyDocEngineC2.tsx |  |
+| clampTableContentWidthPx | Ny | 22291 | LegacyDocEngineC2.tsx |  |
+| scaleGridWidthsToPx | Py | 22294 | LegacyDocEngineC2.tsx |  |
+| rowColumnSpanCount | Fy | 22336 | LegacyDocEngineC2.tsx |  |
+| effectiveColumnWidthsPx | Iy | 22339 | LegacyDocEngineC2.tsx |  |
+| cellMarginsPx | Ly | 22378 | LegacyDocEngineC2.tsx |  |
+| cellPaddingStyle | Ry | 22385 | LegacyDocEngineC2.tsx |  |
+| effectiveCellMarginTwips | zy | 22400 | LegacyDocEngineC2.tsx |  |
+| diagonalBordersBackground | db | 22884 | LegacyDocEngineC2.tsx |  |
+| borderTypeNormalized | By | 22408 | LegacyDocEngineC2.tsx |  |
+| borderSideCss | Vy | 22411 | LegacyDocEngineC2.tsx |  |
+| borderSideWidthPx | Hy | 22421 | LegacyDocEngineC2.tsx |  |
+| borderTypeVisible | Uy | 22427 | LegacyDocEngineC2.tsx |  |
+| paragraphBorderVisible | Wy | 22431 | LegacyDocEngineC2.tsx |  |
+| tableBorderVisible | Gy | 22434 | LegacyDocEngineC2.tsx |  |
+| cellBordersVisible | Ky | 22437 | LegacyDocEngineC2.tsx |  |
+| tableUsesCellBorders | qy | 22440 | LegacyDocEngineC2.tsx |  |
+| tableBorderSpacingPx | Jy | 22446 | LegacyDocEngineC2.tsx |  |
+| tableBorderCollapseStyle | Yy | 22451 | LegacyDocEngineC2.tsx |  |
+| firstParagraphBorder | Xy | 22458 | LegacyDocEngineC2.tsx |  |
+| firstTableBorder | Zy | 22461 | LegacyDocEngineC2.tsx |  |
+| normalizeParagraphBorderSpec | Qy | 22464 | LegacyDocEngineC2.tsx |  |
+| normalizeTableBorderSpec | $y | 22472 | LegacyDocEngineC2.tsx |  |
+| nilParagraphBorder | eb | 22481 | LegacyDocEngineC2.tsx |  |
+| nilTableBorder | tb | 22486 | LegacyDocEngineC2.tsx |  |
+| paragraphBorderPresets | nb | 22491 | LegacyDocEngineC2.tsx |  |
+| paragraphsMatchBorderPreset | rb | 22514 | LegacyDocEngineC2.tsx |  |
+| toggleTableCellBorder | ib | 22553 | LegacyDocEngineC2.tsx |  |
+| tableBorderPresets | ab | 22619 | LegacyDocEngineC2.tsx |  |
+| toggleParagraphBorder | ob | 22644 | LegacyDocEngineC2.tsx |  |
+| toggleTableBorder | sb | 22727 | LegacyDocEngineC2.tsx |  |
+| cellBorderForSide | cb | 22839 | LegacyDocEngineC2.tsx |  |
+| cellBorderCss | lb | 22848 | LegacyDocEngineC2.tsx |  |
+| tableOuterBorderWidthPx | ub | 22868 | LegacyDocEngineC2.tsx |  |
+| cloneRunStyle | fb | 22901 | LegacyDocEngineC2.tsx |  |
+| withFontFamily | pb | 22906 | LegacyDocEngineC2.tsx |  |
+| cloneFormFieldWidget | mb | 22913 | LegacyDocEngineC2.tsx |  |
+| mergeFormFieldWidget | hb | 22934 | LegacyDocEngineC2.tsx |  |
+| cloneFormField | gb | 22970 | LegacyDocEngineC2.tsx |  |
+| sameJson | _b | 22993 | LegacyDocEngineC2.tsx |  |
+| normalizeParagraphChildren | vb | 22996 | LegacyDocEngineC2.tsx |  |
+| paragraphChildrenAllText | yb | 23027 | LegacyDocEngineC2.tsx |  |
+| cloneTextNode | bb | 23030 | LegacyDocEngineC2.tsx |  |
+| splitChildrenAt | xb | 23041 | LegacyDocEngineC2.tsx |  |
+| runStyleAt | Sb | 23074 | LegacyDocEngineC2.tsx |  |
+| linkFrom | Cb | 23088 | LegacyDocEngineC2.tsx |  |
+| linkWithin | wb | 23102 | LegacyDocEngineC2.tsx |  |
+| expandLinkAt | Tb | 23122 | LegacyDocEngineC2.tsx |  |
+| applyRunStyleToRange | Eb | 23154 | LegacyDocEngineC2.tsx |  |
+| applyLinkToRange | Db | 23216 | LegacyDocEngineC2.tsx |  |
+| bytesToBase64Inline | Ob | 23278 | LegacyDocEngineC2.tsx |  |
+| selectionCoversCell | kb | 23288 | LegacyDocEngineC2.tsx |  |
+| locationKeyContract | Ab | 23291 | LegacyDocEngineC2.tsx |  |
+| imageLocationKeyContract | jb | 23294 | LegacyDocEngineC2.tsx |  |
+| childLocationKey | Mb | 23297 | LegacyDocEngineC2.tsx |  |
+| locationFromDataset | Nb | 23300 | LegacyDocEngineC2.tsx |  |
+| firstTableCellLocation | Pb | 23328 | LegacyDocEngineC2.tsx |  |
+| tableFormattingRevisions | Fb | 23342 | LegacyDocEngineC2.tsx |  |
+| extractTrackedChanges | Ib | 23379 | LegacyDocEngineC2.tsx |  |
+| xmlTextPreview | Lb | 23454 | LegacyDocEngineC2.tsx |  |
+| commentAnchorText | Rb | 23460 | LegacyDocEngineC2.tsx |  |
+| extractComments | zb | 23468 | LegacyDocEngineC2.tsx |  |
+| colorWithAlpha | Bb | 23537 | LegacyDocEngineC2.tsx |  |
+| annotationColorFor | Vb | 23541 | LegacyDocEngineC2.tsx |  |
+| commentHighlightStyle | Hb | 23550 | LegacyDocEngineC2.tsx |  |
+| commentCardHeight | Ub | 23557 | LegacyDocEngineC2.tsx |  |
+| trackedChangeKindLabel | Wb | 23562 | LegacyDocEngineC2.tsx |  |
+| trackedChangeColor | Gb | 23580 | LegacyDocEngineC2.tsx |  |
+| trackedChangeIsAnnotatable | Kb | 23610 | LegacyDocEngineC2.tsx |  |
+| locationSortVector | qb | 23613 | LegacyDocEngineC2.tsx |  |
+| locationInPages | Jb | 23616 | LegacyDocEngineC2.tsx |  |
+| pageIndexForLocation | Yb | 23619 | LegacyDocEngineC2.tsx |  |
+| locationElement | Xb | 23623 | LegacyDocEngineC2.tsx |  |
+| annotationAnchorRect | Zb | 23626 | LegacyDocEngineC2.tsx |  |
+| elementWithClassToken | Qb | 23644 | LegacyDocEngineC2.tsx |  |
+| annotationLocationElement | $b | 23652 | LegacyDocEngineC2.tsx |  |
+| elementByDataAttr | ex | 23655 | LegacyDocEngineC2.tsx |  |
+| annotationAnchorElement | tx | 23663 | LegacyDocEngineC2.tsx |  |
+| trackedChangeCardHeight | nx | 23679 | LegacyDocEngineC2.tsx |  |
+| assignConnectorLanes | rx | 23684 | LegacyDocEngineC2.tsx |  |
+| layoutGutterAnnotations | ix | 23712 | LegacyDocEngineC2.tsx |  |
+| sameLocation | ax | 23754 | LegacyDocEngineC2.tsx |  |
+| firstEditableCellLocation | ox | 23757 | LegacyDocEngineC2.tsx |  |
+| lastEditableCellLocation | sx | 23773 | LegacyDocEngineC2.tsx |  |
+| locationNodeIndex | cx | 23791 | LegacyDocEngineC2.tsx |  |
+| shiftLocationAfterTableRemoval | lx | 23794 | LegacyDocEngineC2.tsx |  |
+| tableFullTextRange | ux | 23813 | LegacyDocEngineC2.tsx |  |
+| emptiedTableIndexes | dx | 23830 | LegacyDocEngineC2.tsx |  |
+| firstLocationOfNode | fx | 23847 | LegacyDocEngineC2.tsx |  |
+| previousEditableParagraphLocation | px | 23854 | LegacyDocEngineC2.tsx |  |
+| nextEditableParagraphLocation | mx | 23861 | LegacyDocEngineC2.tsx |  |
+| firstEditableLocation | hx | 23899 | LegacyDocEngineC2.tsx |  |
+| lastLocation | gx | 23905 | LegacyDocEngineC2.tsx |  |
+| enumerateRangeLocations | _x | 23931 | LegacyDocEngineC2.tsx |  |
+| caretOffsetIn | vx | 23941 | LegacyDocEngineC2.tsx |  |
+| documentIsSingleParagraph | yx | 23945 | LegacyDocEngineC2.tsx |  |
+| rangeOffsetsInParagraph | bx | 23957 | LegacyDocEngineC2.tsx |  |
+| cloneLocation | xx | 23965 | LegacyDocEngineC2.tsx |  |
+| cloneTextRange | Sx | 23977 | LegacyDocEngineC2.tsx |  |
+| cloneSelection | Cx | 23989 | LegacyDocEngineC2.tsx |  |
+| sameSelection | wx | 24000 | LegacyDocEngineC2.tsx |  |
+| sameTextPosition | Tx | 24006 | LegacyDocEngineC2.tsx |  |
+| sameTextRange | Ex | 24009 | LegacyDocEngineC2.tsx |  |
+| modelChangedBroadcastable | Dx | 24016 | LegacyDocEngineC2.tsx |  |
+| selectionRestoreArbitration | Ox | 24019 | LegacyDocEngineC2.tsx |  |
+| htmlInsertionContract | kx | 24022 | LegacyDocEngineC2.tsx |  |
+| isCompositionKey | Ax | 24030 | LegacyDocEngineC2.tsx |  |
+| isNavigationOrEditKey | jx | 24033 | LegacyDocEngineC2.tsx |  |
+| caretBeforeBlockText | Mx | 24042 | LegacyDocEngineC2.tsx |  |
+| caretXOutOfRange | Nx | 24053 | LegacyDocEngineC2.tsx |  |
+| paragraphLocationOfImage | Px | 24056 | LegacyDocEngineC2.tsx |  |
+| resolveLocation | Fx | 24068 | LegacyDocEngineC2.tsx |  |
+| locationFirstParagraph | Ix | 24085 | LegacyDocEngineC2.tsx |  |
+| toMutableLocation | Lx | 24097 | LegacyDocEngineC2.tsx |  |
+| locationBase | Rx | 24108 | LegacyDocEngineC2.tsx |  |
+| locationFor | zx | 24120 | LegacyDocEngineC2.tsx |  |
+| selectionRunStyle | Bx | 24124 | LegacyDocEngineC2.tsx |  |
+| nearestEditableLocation | Vx | 24133 | LegacyDocEngineC2.tsx |  |
+| normalizeRangeToEditable | Hx | 24172 | LegacyDocEngineC2.tsx |  |
+| selectionFromLocation | Ux | 24191 | LegacyDocEngineC2.tsx |  |
+| normalizeCursorState | Wx | 24198 | LegacyDocEngineC2.tsx |  |
+| editorReducer | Gx | 24208 | LegacyDocEngineC2.tsx |  |
+| replaceTextAtLocation | Kx | 24217 | LegacyDocEngineC2.tsx |  |
+| sectionParagraphDraftKey | qx | 24220 | LegacyDocEngineC2.tsx |  |
+| sectionImageKey | Jx | 24230 | LegacyDocEngineC2.tsx |  |
+| cellParagraphDraftKey | Yx | 24241 | LegacyDocEngineC2.tsx |  |
+| parseSectionDraftKey | Xx | 24244 | LegacyDocEngineC2.tsx |  |
+| sectionNodeTextAt | Zx | 24263 | LegacyDocEngineC2.tsx |  |
+| sectionParagraphAt | Qx | 24274 | LegacyDocEngineC2.tsx |  |
+| replaceSectionParagraphText | $x | 24290 | LegacyDocEngineC2.tsx |  |
+| moveSectionFloatingImage | eS | 24313 | LegacyDocEngineC2.tsx |  |
+| floatingWrapSide | Ig | 19564 | LegacyDocEngineC2.tsx |  |
+| floatingWrapStyle | Lg | 19576 | LegacyDocEngineC2.tsx |  |
+| floatingAbsoluteStyle | Rg | 19649 | LegacyDocEngineC2.tsx |  |
+| behindDocImageFrameSize | Gg | 19788 | LegacyDocEngineC2.tsx |  |
+| imageIsPageAnchoredFloating | Jg | 19829 | LegacyDocEngineC2.tsx |  |
+
+## 50. B5 · LegacyDocEngineC3.tsx（legacy-doc [E7] 交互回调簇前半（jsx 27889–31873））
+
+- 族/来源：legacy-doc 族 · 源 chunk `out/renderer/assets/previewPaneOfficeLegacyDocContent-HWD4EOEM.js` · B5-09。行号口径：jsx 还原孪生行。
+- 符号条数：175（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| firstPageIndexByNodeIndex | ir | 27889 | LegacyDocEngineC3.tsx |  |
+| declaredPageCount | ar | 27893 | LegacyDocEngineC3.tsx |  |
+| pageSectionInfoByIndex | or | 27900 | LegacyDocEngineC3.tsx |  |
+| pageContentKeys | sr | 27957 | LegacyDocEngineC3.tsx |  |
+| pageLayoutSizes | cr | 27966 | LegacyDocEngineC3.tsx |  |
+| pageSnapshotBatch | lr | 27971 | LegacyDocEngineC3.tsx |  |
+| publishPageSnapshots-effect | aS | 27985 | LegacyDocEngineC3.tsx |  |
+| tocStyleFieldResolver | ur | 27988 | LegacyDocEngineC3.tsx |  |
+| livePageCount | dr | 28023 | LegacyDocEngineC3.tsx |  |
+| heavyTableDocument | fr | 28024 | LegacyDocEngineC3.tsx |  |
+| deferredPaintActive | pr | 28040 | LegacyDocEngineC3.tsx |  |
+| totalHeightForPageCount | mr | 28041 | LegacyDocEngineC3.tsx |  |
+| convergencePageCount | hr | 28070 | LegacyDocEngineC3.tsx |  |
+| virtualizationPageCount | gr | 28071 | LegacyDocEngineC3.tsx |  |
+| virtualizationTotalHeightPx | _r | 28072 | LegacyDocEngineC3.tsx |  |
+| externalRangeProvided | vr | 28073 | LegacyDocEngineC3.tsx |  |
+| virtualizationSettled | yr | 28078 | LegacyDocEngineC3.tsx |  |
+| virtualizationSettled | br | 28078 | LegacyDocEngineC3.tsx |  |
+| resolvedScrollElement | xr | 28079 | LegacyDocEngineC3.tsx |  |
+| resolvedScrollElement | Sr | 28079 | LegacyDocEngineC3.tsx |  |
+| resolvedZoomScale | Cr | 28080 | LegacyDocEngineC3.tsx |  |
+| resolvedZoomScale | wr | 28080 | LegacyDocEngineC3.tsx |  |
+| pendingVisibleRange | Tr | 28081 | LegacyDocEngineC3.tsx |  |
+| pendingVisibleRange | Er | 28081 | LegacyDocEngineC3.tsx |  |
+| settleDelayMs | Dr | 28082 | LegacyDocEngineC3.tsx |  |
+| overscanPx | Or | 28083 | LegacyDocEngineC3.tsx |  |
+| effectiveOverscan | kr | 28084 | LegacyDocEngineC3.tsx |  |
+| webdriverDetected | Ar | 28085 | LegacyDocEngineC3.tsx |  |
+| virtualizationEnabled | jr | 28086 | LegacyDocEngineC3.tsx |  |
+| scrollElementProp | Mr | 28087 | LegacyDocEngineC3.tsx |  |
+| zoomScaleProp | Nr | 28088 | LegacyDocEngineC3.tsx |  |
+| resolveZoomScale | Fr | 28089 | LegacyDocEngineC3.tsx |  |
+| viewportSizeEpoch | Ir | 28182 | LegacyDocEngineC3.tsx |  |
+| viewportSizeEpoch | Lr | 28182 | LegacyDocEngineC3.tsx |  |
+| virtualizerActive | Rr | 28203 | LegacyDocEngineC3.tsx |  |
+| windowScrollPending | Vr | 28204 | LegacyDocEngineC3.tsx |  |
+| scrollElementIsDocument | Hr | 28205 | LegacyDocEngineC3.tsx |  |
+| virtualizerInContainer | Ur | 28206 | LegacyDocEngineC3.tsx |  |
+| virtualizerInWindow | Wr | 28207 | LegacyDocEngineC3.tsx |  |
+| estimatePageSize | Gr | 28208 | LegacyDocEngineC3.tsx |  |
+| markPaginationThrottle | Kr | 28211 | LegacyDocEngineC3.tsx |  |
+| containerVirtualizer | qr | 28213 | LegacyDocEngineC3.tsx |  |
+| windowVirtualizer | Xr | 28219 | LegacyDocEngineC3.tsx |  |
+| activeVirtualizer | Zr | 28225 | LegacyDocEngineC3.tsx |  |
+| virtualItems | Qr | 28231 | LegacyDocEngineC3.tsx |  |
+| anchorPageIndex | $r | 28232 | LegacyDocEngineC3.tsx |  |
+| virtualVisibleRange | ei | 28248 | LegacyDocEngineC3.tsx |  |
+| overscannedVisibleRange | ti | 28268 | LegacyDocEngineC3.tsx |  |
+| manualWindowActive | ni | 28282 | LegacyDocEngineC3.tsx |  |
+| mergedVisibleRange | ri | 28354 | LegacyDocEngineC3.tsx |  |
+| effectiveVisibleRange | ii | 28359 | LegacyDocEngineC3.tsx |  |
+| clampedVisibleRange | ai | 28361 | LegacyDocEngineC3.tsx |  |
+| renderWindowStart | oi | 28378 | LegacyDocEngineC3.tsx |  |
+| initialRenderSpan | si | 28379 | LegacyDocEngineC3.tsx |  |
+| renderWindowEnd | ci | 28380 | LegacyDocEngineC3.tsx |  |
+| deferredFullWindow | di | 28381 | LegacyDocEngineC3.tsx |  |
+| firstRenderedPage | fi | 28382 | LegacyDocEngineC3.tsx |  |
+| lastRenderedPage | pi | 28383 | LegacyDocEngineC3.tsx |  |
+| renderedPageIndexes | mi | 28384 | LegacyDocEngineC3.tsx |  |
+| pageWindowSpacers | hi | 28390 | LegacyDocEngineC3.tsx |  |
+| visibleTableRowIndexes | gi | 28423 | LegacyDocEngineC3.tsx |  |
+| measurementPassActive | yi | 28447 | LegacyDocEngineC3.tsx |  |
+| awaitingTableMeasurement | bi | 28448 | LegacyDocEngineC3.tsx |  |
+| measurementOverlayPending | xi | 28466 | LegacyDocEngineC3.tsx |  |
+| annotationsByPage | Si | 28488 | LegacyDocEngineC3.tsx |  |
+| annotationAnchorPoints | Ci | 28516 | LegacyDocEngineC3.tsx |  |
+| annotationAnchorPoints | wi | 28516 | LegacyDocEngineC3.tsx |  |
+| headerOverlapHeights | Ti | 28517 | LegacyDocEngineC3.tsx |  |
+| headerOverlapHeights | Ei | 28517 | LegacyDocEngineC3.tsx |  |
+| annotationCardHeights | Di | 28521 | LegacyDocEngineC3.tsx |  |
+| annotationCardHeights | Oi | 28521 | LegacyDocEngineC3.tsx |  |
+| gutterAnnotationLayouts | ki | 28580 | LegacyDocEngineC3.tsx |  |
+| footnotePageNumberBase | Ai | 28585 | LegacyDocEngineC3.tsx |  |
+| pageInRenderWindow | ji | 28588 | LegacyDocEngineC3.tsx |  |
+| revealPage | Ni | 28589 | LegacyDocEngineC3.tsx |  |
+| scrollToBookmark | Pi | 28600 | LegacyDocEngineC3.tsx |  |
+| headerFooterNodesByPage | Fi | 28633 | LegacyDocEngineC3.tsx |  |
+| estimatedHeaderHeights | Ii | 28655 | LegacyDocEngineC3.tsx |  |
+| setTableSelectionAnchor | Li | 28909 | LegacyDocEngineC3.tsx |  |
+| clearTableSelection | Ri | 28919 | LegacyDocEngineC3.tsx |  |
+| tableHitTest | zi | 28921 | LegacyDocEngineC3.tsx |  |
+| nearestTableAtPoint | Bi | 28928 | LegacyDocEngineC3.tsx |  |
+| handlePointerMoveCapture | Vi | 28940 | LegacyDocEngineC3.tsx |  |
+| handlePointerLeave | Hi | 28946 | LegacyDocEngineC3.tsx |  |
+| selectWholeTable | Ui | 28948 | LegacyDocEngineC3.tsx |  |
+| computeTableDropTarget | Wi | 28959 | LegacyDocEngineC3.tsx |  |
+| beginTableMove | Gi | 28996 | LegacyDocEngineC3.tsx |  |
+| closeTableContextMenu | Ki | 29063 | LegacyDocEngineC3.tsx |  |
+| closeContextMenu | qi | 29066 | LegacyDocEngineC3.tsx |  |
+| openTextContextMenu | Ji | 29069 | LegacyDocEngineC3.tsx |  |
+| openTableContextMenu | Yi | 29077 | LegacyDocEngineC3.tsx |  |
+| runTableAction | Xi | 29084 | LegacyDocEngineC3.tsx |  |
+| tableContextMenuActions | Zi | 29114 | LegacyDocEngineC3.tsx |  |
+| resolveTableMenuCell | Qi | 29115 | LegacyDocEngineC3.tsx |  |
+| placeCaretInHost | $i | 29166 | LegacyDocEngineC3.tsx |  |
+| setTextRangeInElement | ea | 29276 | LegacyDocEngineC3.tsx |  |
+| textLengthOfElement | ta | 29310 | LegacyDocEngineC3.tsx |  |
+| recordPartialLineSelection | na | 29313 | LegacyDocEngineC3.tsx |  |
+| resolveLocationHostElement | ra | 29332 | LegacyDocEngineC3.tsx |  |
+| textNodeAtOffset | ia | 29348 | LegacyDocEngineC3.tsx |  |
+| paragraphHostAtOffset | aa | 29371 | LegacyDocEngineC3.tsx |  |
+| boundaryToDomPoint | oa | 29389 | LegacyDocEngineC3.tsx |  |
+| applyDomSelection | sa | 29395 | LegacyDocEngineC3.tsx |  |
+| restoreSelectionAfterEdit | ca | 29455 | LegacyDocEngineC3.tsx |  |
+| wrappedParagraphHit | la | 29510 | LegacyDocEngineC3.tsx |  |
+| selectAllContent | ua | 29523 | LegacyDocEngineC3.tsx |  |
+| domPointToBoundary | da | 29540 | LegacyDocEngineC3.tsx |  |
+| boundaryAtPoint | fa | 29583 | LegacyDocEngineC3.tsx |  |
+| selectionFromDom | pa | 29676 | LegacyDocEngineC3.tsx |  |
+| syncActiveTextRangeFromDom | ma | 29690 | LegacyDocEngineC3.tsx |  |
+| scheduleSelectionSync | ha | 29715 | LegacyDocEngineC3.tsx |  |
+| hasSelectionInside | ga | 29766 | LegacyDocEngineC3.tsx |  |
+| restoreCaretAtX | _a | 29773 | LegacyDocEngineC3.tsx |  |
+| ensureSelectionAfterTap | va | 29795 | LegacyDocEngineC3.tsx |  |
+| cancelPointerSession | ya | 29821 | LegacyDocEngineC3.tsx |  |
+| clearTransientSelections | ba | 29824 | LegacyDocEngineC3.tsx |  |
+| beginWrappedEditing | xa | 29827 | LegacyDocEngineC3.tsx |  |
+| focusWrappedTextarea | Sa | 29862 | LegacyDocEngineC3.tsx |  |
+| commitWrappedText | Ca | 29882 | LegacyDocEngineC3.tsx |  |
+| focusParagraphNode | wa | 29888 | LegacyDocEngineC3.tsx |  |
+| selectDropCap | Ta | 29893 | LegacyDocEngineC3.tsx |  |
+| scheduleCollapsedSelectionSync | Ea | 29897 | LegacyDocEngineC3.tsx |  |
+| beginTextDragSelection | Da | 30039 | LegacyDocEngineC3.tsx |  |
+| tableCellAtPoint | Oa | 30088 | LegacyDocEngineC3.tsx |  |
+| beginTableCellDragSelection | ka | 30090 | LegacyDocEngineC3.tsx |  |
+| handlePointerDownCapture | Aa | 30143 | LegacyDocEngineC3.tsx |  |
+| handleContextMenu | ja | 30161 | LegacyDocEngineC3.tsx |  |
+| handleTableSelectionDelete | Ma | 30195 | LegacyDocEngineC3.tsx |  |
+| handleKeyDownCapture | Na | 30211 | LegacyDocEngineC3.tsx |  |
+| handleKeyUp | Pa | 30252 | LegacyDocEngineC3.tsx |  |
+| deleteExpandedSelectionFromKey | Fa | 30255 | LegacyDocEngineC3.tsx |  |
+| replaceSelectionWithText | Ia | 30286 | LegacyDocEngineC3.tsx |  |
+| contextMenuActionsFor | La | 30306 | LegacyDocEngineC3.tsx |  |
+| runContextMenuAction | Ra | 30385 | LegacyDocEngineC3.tsx |  |
+| focusParagraphAtOffset | za | 30747 | LegacyDocEngineC3.tsx |  |
+| focusTableCellParagraph | Ba | 30776 | LegacyDocEngineC3.tsx |  |
+| focusLocationAtOffset | Va | 30789 | LegacyDocEngineC3.tsx |  |
+| placeCaretAtPointInLocation | Ha | 30793 | LegacyDocEngineC3.tsx |  |
+| focusParagraphEnd | Ua | 30813 | LegacyDocEngineC3.tsx |  |
+| selectionOffsetsInHost | Wa | 30824 | LegacyDocEngineC3.tsx |  |
+| caretPointOfCollapsed | Ga | 30851 | LegacyDocEngineC3.tsx |  |
+| tableParagraphUnderSelection | Ka | 30866 | LegacyDocEngineC3.tsx |  |
+| syncTableCellTextRange | qa | 30884 | LegacyDocEngineC3.tsx |  |
+| syncParagraphTextRange | Ja | 30902 | LegacyDocEngineC3.tsx |  |
+| commitTableCellDraft | Ya | 30924 | LegacyDocEngineC3.tsx |  |
+| registerCellDraftElement | Xa | 30935 | LegacyDocEngineC3.tsx |  |
+| cellParagraphDraftElement | Za | 30938 | LegacyDocEngineC3.tsx |  |
+| registerCellParagraphDraftElement | Qa | 30939 | LegacyDocEngineC3.tsx |  |
+| unregisterCellParagraphDraftElement | eo | 30941 | LegacyDocEngineC3.tsx |  |
+| commitCellParagraphDraft | no | 30943 | LegacyDocEngineC3.tsx |  |
+| registerSectionDraftElement | ao | 30957 | LegacyDocEngineC3.tsx |  |
+| sectionParagraphDraft | oo | 30960 | LegacyDocEngineC3.tsx |  |
+| setSectionParagraphDraft | so | 30961 | LegacyDocEngineC3.tsx |  |
+| deleteSectionParagraphDraft | co | 30963 | LegacyDocEngineC3.tsx |  |
+| commitSectionParagraphDraft | lo | 30965 | LegacyDocEngineC3.tsx |  |
+| captureSectionParagraphDraft | uo | 30980 | LegacyDocEngineC3.tsx |  |
+| flushSectionParagraphDrafts | fo | 30986 | LegacyDocEngineC3.tsx |  |
+| finishHeaderFooterSession | po | 30996 | LegacyDocEngineC3.tsx |  |
+| endHeaderFooterSession | ho | 31001 | LegacyDocEngineC3.tsx |  |
+| handleUndoRedoKeys | _o | 31073 | LegacyDocEngineC3.tsx |  |
+| handleBeforeInput | vo | 31083 | LegacyDocEngineC3.tsx |  |
+| resolveColumnWidthsRender | yo | 31341 | LegacyDocEngineC3.tsx |  |
+| resolveRowHeightsRender | bo | 31346 | LegacyDocEngineC3.tsx |  |
+| resolveColumnWidthsDraft | xo | 31352 | LegacyDocEngineC3.tsx |  |
+| resolveRowHeightsDraft | So | 31359 | LegacyDocEngineC3.tsx |  |
+| normalizeRowHeightsForResize | Co | 31451 | LegacyDocEngineC3.tsx |  |
+| distributeRowHeights | wo | 31453 | LegacyDocEngineC3.tsx |  |
+| beginColumnResize | To | 31479 | LegacyDocEngineC3.tsx |  |
+| beginRowResize | Eo | 31524 | LegacyDocEngineC3.tsx |  |
+| beginColumnResizeDraft | Do | 31565 | LegacyDocEngineC3.tsx |  |
+| beginRowResizeDraft | Oo | 31606 | LegacyDocEngineC3.tsx |  |
+| beginImageResize | ko | 31646 | LegacyDocEngineC3.tsx |  |
+| beginImagePointerMove | Ao | 31675 | LegacyDocEngineC3.tsx |  |
+| beginDropCapMove | Mo | 31820 | LegacyDocEngineC3.tsx |  |
+| beginDropCapResize | No | 31847 | LegacyDocEngineC3.tsx |  |
+
+## 51. B5 · LegacyDocEngineC4.tsx（legacy-doc [E7] 交互回调簇后半（jsx 31874–35407））
+
+- 族/来源：legacy-doc 族 · 源 chunk `out/renderer/assets/previewPaneOfficeLegacyDocContent-HWD4EOEM.js` · B5-09。行号口径：jsx 还原孪生行（仅文件头映射表，无尾符号表）。
+- 符号条数：36（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| beginSectionImagePointerMove | Fo | 31877 | LegacyDocEngineC4.tsx |  |
+| selectSectionImageOnTap | zo | 31949 | LegacyDocEngineC4.tsx |  |
+| handleImageDragStart | Vo | 31952 | LegacyDocEngineC4.tsx |  |
+| handleImageDragEnd | Ho | 31959 | LegacyDocEngineC4.tsx |  |
+| beginCornerResize | Uo | 31962 | LegacyDocEngineC4.tsx |  |
+| beginCornerResizeDraft | Wo | 32011 | LegacyDocEngineC4.tsx |  |
+| beginEmbeddedTableMove | Go | 32060 | LegacyDocEngineC4.tsx |  |
+| tableInteractionContext | Ko | 32099 | LegacyDocEngineC4.tsx |  |
+| commitImageDrop | qo | 32126 | LegacyDocEngineC4.tsx |  |
+| renderImageDropZone | Jo | 32146 | LegacyDocEngineC4.tsx |  |
+| renderWrappedParagraph | Yo | 32174 | LegacyDocEngineC4.tsx |  |
+| renderParagraphRuns | Xo | 32506 | LegacyDocEngineC4.tsx |  |
+| renderTableCellSlice | ds | 33726 | LegacyDocEngineC4.tsx |  |
+| renderNode | fs | 33827 | LegacyDocEngineC4.tsx |  |
+| renderPageFlow | ps | 35044 | LegacyDocEngineC4.tsx |  |
+| dataTransferHasFiles | Zo | 33516 | LegacyDocEngineC4.tsx |  |
+| findDocxFileInTransfer | Qo | 33517 | LegacyDocEngineC4.tsx |  |
+| handleRootDragEnter | $o | 33518 | LegacyDocEngineC4.tsx |  |
+| handleRootDragLeave | es | 33533 | LegacyDocEngineC4.tsx |  |
+| handleRootDrop | ts | 33536 | LegacyDocEngineC4.tsx |  |
+| minCellContentWidthPx | ns | 33572 | LegacyDocEngineC4.tsx |  |
+| documentFontFamily | rs | 33573 | LegacyDocEngineC4.tsx |  |
+| pageSurfaceStyle | is | 33574 | LegacyDocEngineC4.tsx |  |
+| cellLayoutSignature | ls | 33594 | LegacyDocEngineC4.tsx |  |
+| cellSliceLayoutEntries | us | 33600 | LegacyDocEngineC4.tsx |  |
+| footnoteNumberById | gs | 35334 | LegacyDocEngineC4.tsx |  |
+| endnoteNumberById | _s | 35335 | LegacyDocEngineC4.tsx |  |
+| footnoteById | vs | 35336 | LegacyDocEngineC4.tsx |  |
+| endnoteById | ys | 35337 | LegacyDocEngineC4.tsx |  |
+| footnoteRefsByPage | bs | 35338 | LegacyDocEngineC4.tsx |  |
+| orderedEndnotes | xs | 35348 | LegacyDocEngineC4.tsx |  |
+| referencedFootnoteIds | Ss | 35360 | LegacyDocEngineC4.tsx |  |
+| unreferencedFootnotes | Cs | 35368 | LegacyDocEngineC4.tsx |  |
+| renderFootnoteParagraphs | ws | 35369 | LegacyDocEngineC4.tsx |  |
+| sectionDraftHandlers | Ts | 35391 | LegacyDocEngineC4.tsx |  |
+| beginHeaderFooterEdit | Es | 35398 | LegacyDocEngineC4.tsx |  |
+
+## 52. B5 · LegacyDocEngineC5.tsx（legacy-doc [E6]b 余带：浮动图缩放/页锚定谓词族）
+
+- 族/来源：legacy-doc 族 · 源 chunk `out/renderer/assets/previewPaneOfficeLegacyDocContent-HWD4EOEM.js` · B5-14。行号口径：jsx 还原孪生行（pretty 重建孪生为主口径）。
+- 符号条数：17（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| floatingIsParagraphRelative | Dp | 17145 | LegacyDocEngineC5.tsx |  |
+| inlineImageIsPageOrMarginAnchored | Pg | 19552 | LegacyDocEngineC5.tsx |  |
+| unscaleDelta | zg | 19680 | LegacyDocEngineC5.tsx |  |
+| unscaleRect | Bg | 19683 | LegacyDocEngineC5.tsx |  |
+| sectionFloatingMovePatch | Vg | 19696 | LegacyDocEngineC5.tsx |  |
+| floatingMovePatch | Hg | 19724 | LegacyDocEngineC5.tsx |  |
+| paragraphHostPointHit | Ug | 19761 | LegacyDocEngineC5.tsx |  |
+| floatingWrapIsInlineLike | Wg | 19783 | LegacyDocEngineC5.tsx |  |
+| isPageOrMarginAnchoredFloating | qg | 19821 | LegacyDocEngineC5.tsx |  |
+| paragraphHasAnchoredImage | Yg | 19837 | LegacyDocEngineC5.tsx |  |
+| paragraphHasUnanchoredFloatingImage | Xg | 19840 | LegacyDocEngineC5.tsx |  |
+| paragraphHasPageAnchoredFloatingImage | Zg | 19843 | LegacyDocEngineC5.tsx |  |
+| paragraphHasVisiblePageAnchoredImage | Qg | 19846 | LegacyDocEngineC5.tsx |  |
+| resolveHighlightColor | e_ | 19872 | LegacyDocEngineC5.tsx |  |
+| paragraphHostStyle | f_ | 20104 | LegacyDocEngineC5.tsx |  |
+| themeAwareColor | p_ | 20127 | LegacyDocEngineC5.tsx |  |
+| normalizeFontFamily | m_ | 20133 | LegacyDocEngineC5.tsx |  |
+
+## 53. B5 · DocxWasmGlue.tsx（docx-core wasm 装载 + API 再导出（两 chunk 合并））
+
+- 族/来源：独立 chunk · 源 `out/renderer/assets/chunk-YE7GQOST-DVtn9d8T.js`（428 行）+ `src-AEHDFCS5-Cut3IAW0.js`（25 行）· B5-14。行号口径：chunk 自身行号。
+- 符号条数：40（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| toUint8Array | r | 13 | DocxWasmGlue.tsx |  |
+| normalizeImageNode | i | 17 | DocxWasmGlue.tsx |  |
+| normalizeBlockNode | a | 22 | DocxWasmGlue.tsx |  |
+| normalizeBlock | o | 24 | DocxWasmGlue.tsx |  |
+| normalizeDocModel | s | 37 | DocxWasmGlue.tsx | （导出 u → normalizeDocModel） |
+| blockIdCounter | c | 57 | DocxWasmGlue.tsx |  |
+| allocateBlockId | l | 58 | DocxWasmGlue.tsx | 导出 t； |
+| assignBlockIdsRecursive | u | 61 | DocxWasmGlue.tsx |  |
+| ensureDocModelBlockIds | d | 64 | DocxWasmGlue.tsx |  |
+| collectDuplicateBlockIdsRecursive | f | 75 | DocxWasmGlue.tsx |  |
+| collectDuplicateDocModelBlockIds | p | 80 | DocxWasmGlue.tsx | （导出 s） |
+| blockIsParagraph | m | 96 | DocxWasmGlue.tsx |  |
+| blockIsTable | h | 99 | DocxWasmGlue.tsx |  |
+| mapBlockNodes | g | 102 | DocxWasmGlue.tsx |  |
+| cloneNumberingStyle | _ | 105 | DocxWasmGlue.tsx | / |
+| cloneSpacingStyle | v | 108 | DocxWasmGlue.tsx | / |
+| cloneIndentStyle | y | 111 | DocxWasmGlue.tsx | / |
+| cloneBorderSideStyle | b | 114 | DocxWasmGlue.tsx | / |
+| cloneParagraphBordersStyle | x | 117 | DocxWasmGlue.tsx |  |
+| cloneParagraphStyleDeep | S | 126 | DocxWasmGlue.tsx |  |
+| cloneRunStyleDeep | C | 137 | DocxWasmGlue.tsx |  |
+| cloneParagraphNode | w | 140 | DocxWasmGlue.tsx | （导出 a） |
+| cloneParagraphFull | E | 146 | DocxWasmGlue.tsx |  |
+| cloneTableNode | T | 143 | DocxWasmGlue.tsx |  |
+| cloneCellMarginTwips | D | 241 | DocxWasmGlue.tsx |  |
+| cloneBorderSpec | O | 247 | DocxWasmGlue.tsx |  |
+| cloneTableBordersSpec | k | 250 | DocxWasmGlue.tsx |  |
+| cloneTableFloatingSpec | A | 262 | DocxWasmGlue.tsx |  |
+| cloneTableFull | j | 275 | DocxWasmGlue.tsx |  |
+| cloneBlock | M | 315 | DocxWasmGlue.tsx |  |
+| cloneNumberingDefinitions | N | 318 | DocxWasmGlue.tsx |  |
+| cloneDocModel | P | 341 | DocxWasmGlue.tsx | （导出 i；C2 契约名 deepCloneModel，原 h） |
+| deepFreezeRecursive | F | 395 | DocxWasmGlue.tsx |  |
+| deepFreezeDocModel | I | 407 | DocxWasmGlue.tsx |  |
+| buildDocModel | L | 410 | DocxWasmGlue.tsx | （导出 n） |
+| buildDocModelFromBytes | R | 413 | DocxWasmGlue.tsx | 导出 r；动态 import src-2FP7IUE6 |
+| __vite__mapDeps | — | 1-10 | DocxWasmGlue.tsx | vite 依赖映射：src-2FP7IUE6/chunk-WKBPLHUA/ |
+| preloadModule | e |  | DocxWasmGlue.tsx | （declare；preload-helper-BHSF1fZ9.js 的 t 导出， |
+| wasmBuildDocModelFromPackage | t |  | DocxWasmGlue.tsx | （declare；chunk-WKBPLHUA `r` 导出，原 G： |
+| packageToPlainInput | n |  | DocxWasmGlue.tsx | （declare；chunk-WKBPLHUA `t` 导出，原 U： |
+
+## 54. B5 · RemoteGapSegments.tsx（F10 远程族未分配隙段 a/b）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，只读）· B5-14。行号口径：「当前 N」= 当前 out chunk 实测 js 行。
+- 符号条数：26（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| probeDockerAvailability | dEt | 123513–123521 | RemoteGapSegments.tsx | 高 |
+| resolveCurrentDockerContainer | fEt | 123522–123525 | RemoteGapSegments.tsx | 高 |
+| listAvailableRemoteKinds | pEt | 123526–123534 | RemoteGapSegments.tsx | 高 |
+| useRemoteWizardState | mEt | 123535–123746 | RemoteGapSegments.tsx | 高 |
+| stripRemoteLogPrefixes | hEt | 123747–123753 | RemoteGapSegments.tsx | 高 |
+| logIsDownloadProgress | gEt | 123754–123756 | RemoteGapSegments.tsx | 高 |
+| classifyProgressLogMessage | _Et | 123757–123761 | RemoteGapSegments.tsx | 高 |
+| mergeRemoteLogProgressEntry | vEt | 123762–123784 | RemoteGapSegments.tsx | 高 |
+| logEntryMatchesRequestId | yEt | 123785–123788 | RemoteGapSegments.tsx | 高 |
+| useRemoteConnectionLogs | bEt | 123789–123837 | RemoteGapSegments.tsx | 高 |
+| resolveWizardStepCopy | xEt | 123838–123867 | RemoteGapSegments.tsx | 高 |
+| validateAndBuildRemoteTarget | SEt | 123868–123928 | RemoteGapSegments.tsx | 高 |
+| attachSelectedResourcePackages | CEt | 123929–123931 | RemoteGapSegments.tsx | 高 |
+| isWizardFlowActive | wEt | 123932–123934 | RemoteGapSegments.tsx | 高 |
+| isWizardFlowIdle | TEt | 123935–123937 | RemoteGapSegments.tsx | 高 |
+| wizardResultToOpenState | EEt | 123938–123940 | RemoteGapSegments.tsx | 高 |
+| resolveDirectorySelectFallback | DEt | 123941–123945 | RemoteGapSegments.tsx | 高 |
+| REMOTE_LOG_AUTOSCROLL_THRESHOLD_PX | eOt | 127350 | RemoteGapSegments.tsx | 高 |
+| logViewIsScrolledToBottom | tOt | 127351–127353 | RemoteGapSegments.tsx | 高 |
+| scrollLogViewToBottom | nOt | 127354–127356 | RemoteGapSegments.tsx | 高 |
+| RemoteConnectingStep | rOt | 127357–127509 | RemoteGapSegments.tsx | 高 |
+| buildRemoteConnectionFeedbackDescription | iOt | 127510–127526 | RemoteGapSegments.tsx | 高 |
+| remoteKindIcon | aOt | 127527–127538 | RemoteGapSegments.tsx | 高 |
+| RemoteKindStep | oOt | 127539–127615 | RemoteGapSegments.tsx | 高 |
+| RemoteSettingsStep | sOt | 127616–127781 | RemoteGapSegments.tsx | 高 |
+| RemoteDirectoryStep | cOt | 127782–127942 | RemoteGapSegments.tsx | 高 |
+
+## 55. B5 · SrcSharedA.tsx（src-HCld2afU 共享 chunk 上半部，jsx 1–4901）
+
+- 族/来源：独立 chunk · 解码对象 `src-reconstructed/renderer/assets/src-HCld2afU.jsx`（9,742 行 pretty 孪生）· B5-10a。行号口径：jsx 孪生行。
+- 符号条数：567（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| DEFAULT_LOCALE | e | 1 | SrcSharedA.tsx | ·export Ps |
+| sanitizeWorkspaceDescriptor | t | 2 | SrcSharedA.tsx | ·export Ns |
+| parsePathRootPrefix | n | 20 | SrcSharedA.tsx |  |
+| normalizeTraversalPath | r | 64 | SrcSharedA.tsx |  |
+| resolveSshAuthMethod | i | 83 | SrcSharedA.tsx |  |
+| sshTargetIdentityKey | a | 86 | SrcSharedA.tsx | ·export Ms |
+| normalizeBuildEnv | o | 89 | SrcSharedA.tsx |  |
+| RESOLVED_BUILD_ENV | s | 92 | SrcSharedA.tsx | ·export js |
+| isNonNullObject | c | 94 | SrcSharedA.tsx |  |
+| toPrimitiveString | l | 97 | SrcSharedA.tsx |  |
+| unwrapErrorPayload | u | 100 | SrcSharedA.tsx |  |
+| FILE_LOCK_TIMEOUT_CODE | d | 103 | SrcSharedA.tsx |  |
+| stringifyErrorValue | f | 104 | SrcSharedA.tsx |  |
+| extractErrorInfo | ee | 115 | SrcSharedA.tsx | ·export As |
+| isFileLockTimeoutError | te | 136 | SrcSharedA.tsx | ·export ks |
+| $constructor | p | 142 | SrcSharedA.tsx |  |
+| $ZodAsyncError | ne | 180 | SrcSharedA.tsx |  |
+| $ZodEncodeError | re | 185 | SrcSharedA.tsx |  |
+| $globalConfig | ie | 190 | SrcSharedA.tsx |  |
+| $getGlobalConfig | ae | 191 | SrcSharedA.tsx |  |
+| $getEnumValues | oe | 194 | SrcSharedA.tsx |  |
+| jsonStringifyReplacer | se | 198 | SrcSharedA.tsx |  |
+| $lazy | ce | 201 | SrcSharedA.tsx |  |
+| nullish | le | 214 | SrcSharedA.tsx |  |
+| stripRegexAnchors | ue | 217 | SrcSharedA.tsx |  |
+| decimalModulo | de | 222 | SrcSharedA.tsx |  |
+| EVALUATING_SENTINEL | fe | 233 | SrcSharedA.tsx |  |
+| $lazyDefine | m | 234 | SrcSharedA.tsx |  |
+| defineWritableProperty | pe | 248 | SrcSharedA.tsx |  |
+| $mergeDefs | me | 256 | SrcSharedA.tsx |  |
+| jsonStringify | he | 261 | SrcSharedA.tsx |  |
+| slugify | ge | 264 | SrcSharedA.tsx |  |
+| captureStackTrace | _e | 267 | SrcSharedA.tsx |  |
+| isObject | ve | 268 | SrcSharedA.tsx |  |
+| $canUseFunction | ye | 271 | SrcSharedA.tsx |  |
+| isPlainObject | be | 279 | SrcSharedA.tsx |  |
+| shallowClone | xe | 286 | SrcSharedA.tsx |  |
+| PRIMITIVE_TYPES | Se | 291 | SrcSharedA.tsx |  |
+| escapeRegex | Ce | 292 | SrcSharedA.tsx |  |
+| clone | h | 295 | SrcSharedA.tsx |  |
+| normalizeCheckParams | g | 299 | SrcSharedA.tsx |  |
+| optionalKeys | we | 314 | SrcSharedA.tsx |  |
+| NUMBER_FORMAT_LIMITS | Te | 317 | SrcSharedA.tsx |  |
+| $pick | Ee | 324 | SrcSharedA.tsx |  |
+| $omit | De | 340 | SrcSharedA.tsx |  |
+| $extend | Oe | 358 | SrcSharedA.tsx |  |
+| $safeExtend | ke | 375 | SrcSharedA.tsx |  |
+| $merge | Ae | 387 | SrcSharedA.tsx |  |
+| $partial | je | 402 | SrcSharedA.tsx |  |
+| $nonpartial | Me | 426 | SrcSharedA.tsx |  |
+| $shouldAbort | Ne | 447 | SrcSharedA.tsx |  |
+| prefixIssuePath | Pe | 452 | SrcSharedA.tsx |  |
+| resolveMessageString | Fe | 458 | SrcSharedA.tsx |  |
+| $cleanIssue | Ie | 461 | SrcSharedA.tsx |  |
+| resolveOriginKind | Le | 468 | SrcSharedA.tsx |  |
+| $issue | Re | 471 | SrcSharedA.tsx |  |
+| $ZodErrorInternals | ze | 482 | SrcSharedA.tsx |  |
+| $ZodError | Be | 494 | SrcSharedA.tsx |  |
+| $ZodRealError | Ve | 495 | SrcSharedA.tsx |  |
+| $flattenError | He | 498 | SrcSharedA.tsx |  |
+| $treeifyError | Ue | 507 | SrcSharedA.tsx |  |
+| makeParseFn | We | 533 | SrcSharedA.tsx |  |
+| makeParseAsyncFn | Ge | 550 | SrcSharedA.tsx |  |
+| makeSafeParseFn | Ke | 566 | SrcSharedA.tsx |  |
+| safeParseReal | qe | 586 | SrcSharedA.tsx |  |
+| makeSafeParseAsyncFn | Je | 587 | SrcSharedA.tsx |  |
+| safeParseAsyncReal | Ye | 605 | SrcSharedA.tsx |  |
+| makeEncodeFn | Xe | 606 | SrcSharedA.tsx |  |
+| makeDecodeFn | Ze | 614 | SrcSharedA.tsx |  |
+| makeEncodeAsyncFn | Qe | 615 | SrcSharedA.tsx |  |
+| makeDecodeAsyncFn | $e | 623 | SrcSharedA.tsx |  |
+| makeSafeEncodeFn | et | 624 | SrcSharedA.tsx |  |
+| makeSafeDecodeFn | tt | 632 | SrcSharedA.tsx |  |
+| makeSafeEncodeAsyncFn | nt | 633 | SrcSharedA.tsx |  |
+| makeSafeDecodeAsyncFn | rt | 641 | SrcSharedA.tsx |  |
+| cuidRegex | it | 642 | SrcSharedA.tsx |  |
+| cuid2Regex | at | 643 | SrcSharedA.tsx |  |
+| ulidRegex | ot | 644 | SrcSharedA.tsx |  |
+| xidRegex | st | 645 | SrcSharedA.tsx |  |
+| ksuidRegex | ct | 646 | SrcSharedA.tsx |  |
+| nanoidRegex | lt | 647 | SrcSharedA.tsx |  |
+| isoDurationRegex | ut | 648 | SrcSharedA.tsx |  |
+| uuidGenericRegex | dt | 649 | SrcSharedA.tsx |  |
+| uuidVersionedRegex | ft | 650 | SrcSharedA.tsx |  |
+| emailRegex | pt | 651 | SrcSharedA.tsx |  |
+| emojiRegexSource | mt | 652 | SrcSharedA.tsx |  |
+| emojiRegex | ht | 653 | SrcSharedA.tsx |  |
+| ipv4Regex | gt | 656 | SrcSharedA.tsx |  |
+| ipv6Regex | _t | 657 | SrcSharedA.tsx |  |
+| ipv4CidrRegex | vt | 658 | SrcSharedA.tsx |  |
+| ipv6CidrRegex | yt | 659 | SrcSharedA.tsx |  |
+| base64Regex | bt | 660 | SrcSharedA.tsx |  |
+| base64urlRegex | xt | 661 | SrcSharedA.tsx |  |
+| e164Regex | St | 662 | SrcSharedA.tsx |  |
+| isoDateSource | Ct | 663 | SrcSharedA.tsx |  |
+| isoDateRegex | wt | 664 | SrcSharedA.tsx |  |
+| isoTimeSource | Tt | 665 | SrcSharedA.tsx |  |
+| isoTimeRegex | Et | 669 | SrcSharedA.tsx |  |
+| isoDateTimeRegex | Dt | 672 | SrcSharedA.tsx |  |
+| makeStringLengthRegex | Ot | 681 | SrcSharedA.tsx |  |
+| integerRegex | kt | 685 | SrcSharedA.tsx |  |
+| numberRegex | At | 686 | SrcSharedA.tsx |  |
+| booleanRegex | jt | 687 | SrcSharedA.tsx |  |
+| undefinedRegex | Mt | 688 | SrcSharedA.tsx |  |
+| lowercaseRegex | Nt | 689 | SrcSharedA.tsx |  |
+| uppercaseRegex | Pt | 690 | SrcSharedA.tsx |  |
+| $ZodCheck | _ | 691 | SrcSharedA.tsx |  |
+| CHECK_ORIGIN_BY_VALUE_TYPE | Ft | 695 | SrcSharedA.tsx |  |
+| $ZodCheckLessThan | It | 700 | SrcSharedA.tsx |  |
+| $ZodCheckGreaterThan | Lt | 719 | SrcSharedA.tsx |  |
+| $ZodCheckMultipleOf | Rt | 738 | SrcSharedA.tsx |  |
+| $ZodCheckNumberFormat | zt | 754 | SrcSharedA.tsx |  |
+| $ZodCheckMaxLength | Bt | 818 | SrcSharedA.tsx |  |
+| $ZodCheckMinLength | Vt | 841 | SrcSharedA.tsx |  |
+| $ZodCheckLengthEquals | Ht | 864 | SrcSharedA.tsx |  |
+| $ZodCheckStringFormat | Ut | 895 | SrcSharedA.tsx |  |
+| $ZodCheckRegex | Wt | 914 | SrcSharedA.tsx |  |
+| $ZodCheckLowerCase | Gt | 927 | SrcSharedA.tsx |  |
+| $ZodCheckUpperCase | Kt | 930 | SrcSharedA.tsx |  |
+| $ZodCheckIncludes | qt | 933 | SrcSharedA.tsx |  |
+| $ZodCheckStartsWith | Jt | 952 | SrcSharedA.tsx |  |
+| $ZodCheckEndsWith | Yt | 970 | SrcSharedA.tsx |  |
+| $ZodCheckOverwrite | Xt | 988 | SrcSharedA.tsx |  |
+| JitCodeBuilder | Zt | 993 | SrcSharedA.tsx |  |
+| ZOD_VERSION | Qt | 1023 | SrcSharedA.tsx |  |
+| $ZodType | v | 1028 | SrcSharedA.tsx |  |
+| $ZodString | $t | 1106 | SrcSharedA.tsx |  |
+| $ZodStringFormat | y | 1119 | SrcSharedA.tsx |  |
+| $ZodGUID | en | 1122 | SrcSharedA.tsx |  |
+| $ZodUUID | tn | 1125 | SrcSharedA.tsx |  |
+| $ZodEmail | nn | 1142 | SrcSharedA.tsx |  |
+| $ZodURL | rn | 1145 | SrcSharedA.tsx |  |
+| $ZodEmoji | an | 1179 | SrcSharedA.tsx |  |
+| $ZodNanoID | on | 1182 | SrcSharedA.tsx |  |
+| $ZodCUID | sn | 1185 | SrcSharedA.tsx |  |
+| $ZodCUID2 | cn | 1188 | SrcSharedA.tsx |  |
+| $ZodULID | ln | 1191 | SrcSharedA.tsx |  |
+| $ZodXID | un | 1194 | SrcSharedA.tsx |  |
+| $ZodKSUID | dn | 1197 | SrcSharedA.tsx |  |
+| $ZodISODateTime | fn | 1200 | SrcSharedA.tsx |  |
+| $ZodISODate | pn | 1203 | SrcSharedA.tsx |  |
+| $ZodISOTime | mn | 1206 | SrcSharedA.tsx |  |
+| $ZodISODuration | hn | 1209 | SrcSharedA.tsx |  |
+| $ZodIPv4 | gn | 1212 | SrcSharedA.tsx |  |
+| $ZodIPv6 | _n | 1215 | SrcSharedA.tsx |  |
+| $ZodCIDRv4 | vn | 1230 | SrcSharedA.tsx |  |
+| $ZodCIDRv6 | yn | 1233 | SrcSharedA.tsx |  |
+| isValidBase64 | bn | 1254 | SrcSharedA.tsx |  |
+| $ZodBase64 | xn | 1263 | SrcSharedA.tsx |  |
+| isValidBase64URL | Sn | 1274 | SrcSharedA.tsx |  |
+| $ZodBase64URL | Cn | 1279 | SrcSharedA.tsx |  |
+| $ZodE164 | wn | 1290 | SrcSharedA.tsx |  |
+| isValidJWT | Tn | 1293 | SrcSharedA.tsx |  |
+| $ZodJWT | En | 1305 | SrcSharedA.tsx |  |
+| $ZodNumber | Dn | 1316 | SrcSharedA.tsx |  |
+| $ZodNumberFormat | On | 1335 | SrcSharedA.tsx |  |
+| $ZodBoolean | kn | 1338 | SrcSharedA.tsx |  |
+| $ZodUndefined | An | 1352 | SrcSharedA.tsx |  |
+| $ZodUnknown | jn | 1363 | SrcSharedA.tsx |  |
+| $ZodNever | Mn | 1366 | SrcSharedA.tsx |  |
+| $ZodDate | Nn | 1374 | SrcSharedA.tsx |  |
+| assignArrayElementResult | Pn | 1392 | SrcSharedA.tsx |  |
+| $ZodArray | Fn | 1395 | SrcSharedA.tsx |  |
+| assignShapeEntryResult | In | 1417 | SrcSharedA.tsx |  |
+| computeObjectInternals | Ln | 1424 | SrcSharedA.tsx |  |
+| processCatchallKeys | Rn | 1436 | SrcSharedA.tsx |  |
+| $ZodObject | zn | 1461 | SrcSharedA.tsx |  |
+| $ZodObjectJIT | Bn | 1515 | SrcSharedA.tsx |  |
+| finalizeUnionParse | Vn | 1592 | SrcSharedA.tsx |  |
+| $ZodUnion | Hn | 1602 | SrcSharedA.tsx |  |
+| $ZodDiscriminatedUnion | Un | 1630 | SrcSharedA.tsx |  |
+| $ZodIntersection | Wn | 1678 | SrcSharedA.tsx |  |
+| mergeValues | Gn | 1692 | SrcSharedA.tsx |  |
+| finalizeIntersectionParse | Kn | 1743 | SrcSharedA.tsx |  |
+| $ZodRecord | qn | 1760 | SrcSharedA.tsx |  |
+| $ZodEnum | Jn | 1832 | SrcSharedA.tsx |  |
+| $ZodLiteral | Yn | 1846 | SrcSharedA.tsx |  |
+| $ZodTransform | Xn | 1859 | SrcSharedA.tsx |  |
+| resetIssuesForOptionalUndefined | Zn | 1868 | SrcSharedA.tsx |  |
+| $ZodOptional | Qn | 1874 | SrcSharedA.tsx |  |
+| $ZodExactOptional | $n | 1886 | SrcSharedA.tsx |  |
+| $ZodNullable | er | 1889 | SrcSharedA.tsx |  |
+| $ZodDefault | tr | 1895 | SrcSharedA.tsx |  |
+| applyDefaultValue | nr | 1903 | SrcSharedA.tsx |  |
+| $ZodPrefault | rr | 1906 | SrcSharedA.tsx |  |
+| $ZodNonOptional | ir | 1909 | SrcSharedA.tsx |  |
+| rejectUndefinedValue | ar | 1918 | SrcSharedA.tsx |  |
+| $ZodCatch | or | 1926 | SrcSharedA.tsx |  |
+| $ZodPipe | sr | 1945 | SrcSharedA.tsx |  |
+| runPipeStage | cr | 1955 | SrcSharedA.tsx |  |
+| $ZodReadonly | lr | 1961 | SrcSharedA.tsx |  |
+| freezePayloadValue | ur | 1968 | SrcSharedA.tsx |  |
+| $ZodCustom | dr | 1971 | SrcSharedA.tsx |  |
+| handleCustomCheckResult | fr | 1979 | SrcSharedA.tsx |  |
+| registryInit | pr | 1991 | SrcSharedA.tsx |  |
+| MetadataRegistry | mr | 1992 | SrcSharedA.tsx |  |
+| createMetadataRegistry | hr | 2026 | SrcSharedA.tsx |  |
+| $globalRegistry | gr | 2030 | SrcSharedA.tsx |  |
+| $string | _r | 2031 | SrcSharedA.tsx |  |
+| $email | vr | 2037 | SrcSharedA.tsx |  |
+| $guid | yr | 2046 | SrcSharedA.tsx |  |
+| $uuid | br | 2055 | SrcSharedA.tsx |  |
+| $uuidv4 | xr | 2064 | SrcSharedA.tsx |  |
+| $uuidv6 | Sr | 2074 | SrcSharedA.tsx |  |
+| $uuidv7 | Cr | 2084 | SrcSharedA.tsx |  |
+| $url | wr | 2094 | SrcSharedA.tsx |  |
+| $emoji | Tr | 2103 | SrcSharedA.tsx |  |
+| $nanoid | Er | 2112 | SrcSharedA.tsx |  |
+| $cuid | Dr | 2121 | SrcSharedA.tsx |  |
+| $cuid2 | Or | 2130 | SrcSharedA.tsx |  |
+| $ulid | kr | 2139 | SrcSharedA.tsx |  |
+| $xid | Ar | 2148 | SrcSharedA.tsx |  |
+| $ksuid | jr | 2157 | SrcSharedA.tsx |  |
+| $ipv4 | Mr | 2166 | SrcSharedA.tsx |  |
+| $ipv6 | Nr | 2175 | SrcSharedA.tsx |  |
+| $cidrv4 | Pr | 2184 | SrcSharedA.tsx |  |
+| $cidrv6 | Fr | 2193 | SrcSharedA.tsx |  |
+| $base64 | Ir | 2202 | SrcSharedA.tsx |  |
+| $base64url | Lr | 2211 | SrcSharedA.tsx |  |
+| $e164 | Rr | 2220 | SrcSharedA.tsx |  |
+| $jwt | zr | 2229 | SrcSharedA.tsx |  |
+| $datetime | Br | 2238 | SrcSharedA.tsx |  |
+| $date | Vr | 2249 | SrcSharedA.tsx |  |
+| $time | Hr | 2257 | SrcSharedA.tsx |  |
+| $duration | Ur | 2266 | SrcSharedA.tsx |  |
+| $number | Wr | 2274 | SrcSharedA.tsx |  |
+| $int | Gr | 2281 | SrcSharedA.tsx |  |
+| $boolean | Kr | 2290 | SrcSharedA.tsx |  |
+| $undefined | qr | 2296 | SrcSharedA.tsx |  |
+| $unknown | Jr | 2302 | SrcSharedA.tsx |  |
+| $never | Yr | 2307 | SrcSharedA.tsx |  |
+| $dateValue | Xr | 2313 | SrcSharedA.tsx |  |
+| $lt | Zr | 2319 | SrcSharedA.tsx |  |
+| $lte | Qr | 2327 | SrcSharedA.tsx |  |
+| $gt | $r | 2335 | SrcSharedA.tsx |  |
+| $gte | ei | 2343 | SrcSharedA.tsx |  |
+| $multipleOf | ti | 2351 | SrcSharedA.tsx |  |
+| $maxLength | ni | 2358 | SrcSharedA.tsx |  |
+| $minLength | ri | 2365 | SrcSharedA.tsx |  |
+| $length | ii | 2372 | SrcSharedA.tsx |  |
+| $regex | ai | 2379 | SrcSharedA.tsx |  |
+| $lowercase | oi | 2387 | SrcSharedA.tsx |  |
+| $uppercase | si | 2394 | SrcSharedA.tsx |  |
+| $includes | ci | 2401 | SrcSharedA.tsx |  |
+| $startsWith | li | 2409 | SrcSharedA.tsx |  |
+| $endsWith | ui | 2417 | SrcSharedA.tsx |  |
+| $overwrite | di | 2425 | SrcSharedA.tsx |  |
+| $normalize | fi | 2431 | SrcSharedA.tsx |  |
+| $trim | pi | 2434 | SrcSharedA.tsx |  |
+| $toLowerCase | mi | 2437 | SrcSharedA.tsx |  |
+| $toUpperCase | hi | 2440 | SrcSharedA.tsx |  |
+| $slugify | gi | 2443 | SrcSharedA.tsx |  |
+| $array | _i | 2446 | SrcSharedA.tsx |  |
+| $custom | vi | 2453 | SrcSharedA.tsx |  |
+| $superRefine | yi | 2461 | SrcSharedA.tsx |  |
+| defineCheck | bi | 2470 | SrcSharedA.tsx |  |
+| initJsonSchemaContext | xi | 2477 | SrcSharedA.tsx |  |
+| processJsonSchemaNode | b | 2493 | SrcSharedA.tsx |  |
+| resolveJsonSchemaRefs | Si | 2527 | SrcSharedA.tsx |  |
+| finalizeJsonSchema | Ci | 2610 | SrcSharedA.tsx |  |
+| schemaContainsTransform | x | 2671 | SrcSharedA.tsx |  |
+| makeToJsonSchemaFn | wi | 2700 | SrcSharedA.tsx |  |
+| makeIoJsonSchemaFn | Ti | 2707 | SrcSharedA.tsx |  |
+| JSON_SCHEMA_FORMAT_MAP | Ei | 2720 | SrcSharedA.tsx |  |
+| processJsonSchemaString | Di | 2727 | SrcSharedA.tsx |  |
+| processJsonSchemaNumber | Oi | 2747 | SrcSharedA.tsx |  |
+| processJsonSchemaBoolean | ki | 2759 | SrcSharedA.tsx |  |
+| processJsonSchemaUndefined | Ai | 2762 | SrcSharedA.tsx |  |
+| processJsonSchemaNever | ji | 2765 | SrcSharedA.tsx |  |
+| processJsonSchemaDate | Mi | 2768 | SrcSharedA.tsx |  |
+| processJsonSchemaEnum | Ni | 2771 | SrcSharedA.tsx |  |
+| processJsonSchemaLiteral | Pi | 2776 | SrcSharedA.tsx |  |
+| processJsonSchemaCustom | Fi | 2790 | SrcSharedA.tsx |  |
+| processJsonSchemaTransform | Ii | 2793 | SrcSharedA.tsx |  |
+| processJsonSchemaArray | Li | 2796 | SrcSharedA.tsx |  |
+| processJsonSchemaObject | Ri | 2808 | SrcSharedA.tsx |  |
+| processJsonSchemaUnion | zi | 2827 | SrcSharedA.tsx |  |
+| processJsonSchemaIntersection | Bi | 2836 | SrcSharedA.tsx |  |
+| processJsonSchemaRecord | Vi | 2849 | SrcSharedA.tsx |  |
+| processJsonSchemaNullable | Hi | 2875 | SrcSharedA.tsx |  |
+| processJsonSchemaNonOptional | Ui | 2883 | SrcSharedA.tsx |  |
+| processJsonSchemaDefault | Wi | 2889 | SrcSharedA.tsx |  |
+| processJsonSchemaPrefault | Gi | 2895 | SrcSharedA.tsx |  |
+| processJsonSchemaCatch | Ki | 2901 | SrcSharedA.tsx |  |
+| processJsonSchemaPipe | qi | 2914 | SrcSharedA.tsx |  |
+| processJsonSchemaReadonly | Ji | 2921 | SrcSharedA.tsx |  |
+| processJsonSchemaOptional | Yi | 2927 | SrcSharedA.tsx |  |
+| ZodISODateTime | Xi | 2933 | SrcSharedA.tsx |  |
+| isoDateTime | Zi | 2936 | SrcSharedA.tsx |  |
+| ZodISODate | Qi | 2939 | SrcSharedA.tsx |  |
+| isoDate | $i | 2942 | SrcSharedA.tsx |  |
+| ZodISOTime | ea | 2945 | SrcSharedA.tsx |  |
+| isoTime | ta | 2948 | SrcSharedA.tsx |  |
+| ZodISODuration | na | 2951 | SrcSharedA.tsx |  |
+| isoDuration | ra | 2954 | SrcSharedA.tsx |  |
+| ZodErrorInternals | ia | 2957 | SrcSharedA.tsx |  |
+| ZodError | S | 2983 | SrcSharedA.tsx |  |
+| parseImpl | aa | 2986 | SrcSharedA.tsx |  |
+| parseAsyncImpl | oa | 2987 | SrcSharedA.tsx |  |
+| safeParseImpl | sa | 2988 | SrcSharedA.tsx |  |
+| safeParseAsyncImpl | ca | 2989 | SrcSharedA.tsx |  |
+| encodeImpl | la | 2990 | SrcSharedA.tsx |  |
+| decodeImpl | ua | 2991 | SrcSharedA.tsx |  |
+| encodeAsyncImpl | da | 2992 | SrcSharedA.tsx |  |
+| decodeAsyncImpl | fa | 2993 | SrcSharedA.tsx |  |
+| safeEncodeImpl | pa | 2994 | SrcSharedA.tsx |  |
+| safeDecodeImpl | ma | 2995 | SrcSharedA.tsx |  |
+| safeEncodeAsyncImpl | ha | 2996 | SrcSharedA.tsx |  |
+| safeDecodeAsyncImpl | ga | 2997 | SrcSharedA.tsx |  |
+| ZodType | C | 2998 | SrcSharedA.tsx |  |
+| _ZodString | _a | 3036 | SrcSharedA.tsx |  |
+| ZodString | va | 3041 | SrcSharedA.tsx |  |
+| zString | w | 3044 | SrcSharedA.tsx | ·export Es |
+| ZodStringFormat | T | 3047 | SrcSharedA.tsx |  |
+| ZodEmail | ya | 3050 | SrcSharedA.tsx |  |
+| ZodGUID | ba | 3053 | SrcSharedA.tsx |  |
+| ZodUUID | xa | 3056 | SrcSharedA.tsx |  |
+| ZodURL | Sa | 3059 | SrcSharedA.tsx |  |
+| ZodEmoji | Ca | 3062 | SrcSharedA.tsx |  |
+| ZodNanoID | wa | 3065 | SrcSharedA.tsx |  |
+| ZodCUID | Ta | 3068 | SrcSharedA.tsx |  |
+| ZodCUID2 | Ea | 3071 | SrcSharedA.tsx |  |
+| ZodULID | Da | 3074 | SrcSharedA.tsx |  |
+| ZodXID | Oa | 3077 | SrcSharedA.tsx |  |
+| ZodKSUID | ka | 3080 | SrcSharedA.tsx |  |
+| ZodIPv4 | Aa | 3083 | SrcSharedA.tsx |  |
+| ZodIPv6 | ja | 3086 | SrcSharedA.tsx |  |
+| ZodCIDRv4 | Ma | 3089 | SrcSharedA.tsx |  |
+| ZodCIDRv6 | Na | 3092 | SrcSharedA.tsx |  |
+| ZodBase64 | Pa | 3095 | SrcSharedA.tsx |  |
+| ZodBase64URL | Fa | 3098 | SrcSharedA.tsx |  |
+| ZodE164 | Ia | 3101 | SrcSharedA.tsx |  |
+| ZodJWT | La | 3104 | SrcSharedA.tsx |  |
+| ZodNumber | Ra | 3107 | SrcSharedA.tsx |  |
+| zNumber | E | 3112 | SrcSharedA.tsx | ·export Cs |
+| ZodNumberFormat | za | 3115 | SrcSharedA.tsx |  |
+| intCheck | Ba | 3118 | SrcSharedA.tsx |  |
+| ZodBoolean | Va | 3121 | SrcSharedA.tsx |  |
+| zBoolean | D | 3124 | SrcSharedA.tsx | ·export ys |
+| ZodUndefined | Ha | 3127 | SrcSharedA.tsx |  |
+| zUndefined | Ua | 3130 | SrcSharedA.tsx |  |
+| ZodUnknown | Wa | 3133 | SrcSharedA.tsx |  |
+| zUnknown | O | 3136 | SrcSharedA.tsx | ·export Os |
+| ZodNever | Ga | 3139 | SrcSharedA.tsx |  |
+| zNever | Ka | 3142 | SrcSharedA.tsx | ·export Ss |
+| ZodDate | qa | 3145 | SrcSharedA.tsx |  |
+| zDate | Ja | 3150 | SrcSharedA.tsx |  |
+| ZodArray | Ya | 3153 | SrcSharedA.tsx |  |
+| zArray | k | 3156 | SrcSharedA.tsx | ·export vs |
+| ZodObject | Xa | 3159 | SrcSharedA.tsx |  |
+| zObject | A | 3177 | SrcSharedA.tsx | ·export ws |
+| ZodUnion | Za | 3184 | SrcSharedA.tsx |  |
+| zUnion | j | 3187 | SrcSharedA.tsx | ·export Ds |
+| ZodDiscriminatedUnion | Qa | 3194 | SrcSharedA.tsx |  |
+| zDiscriminatedUnion | M | 3197 | SrcSharedA.tsx | ·export bs |
+| ZodIntersection | $a | 3205 | SrcSharedA.tsx |  |
+| zIntersection | eo | 3208 | SrcSharedA.tsx |  |
+| ZodRecord | to | 3215 | SrcSharedA.tsx |  |
+| zRecord | N | 3218 | SrcSharedA.tsx | ·export Ts |
+| looseRecord | no | 3226 | SrcSharedA.tsx |  |
+| ZodEnum | ro | 3235 | SrcSharedA.tsx |  |
+| zEnum | P | 3260 | SrcSharedA.tsx | ·export _s |
+| ZodLiteral | io | 3267 | SrcSharedA.tsx |  |
+| zLiteral | F | 3275 | SrcSharedA.tsx | ·export xs |
+| ZodTransform | ao | 3282 | SrcSharedA.tsx |  |
+| zTransform | oo | 3295 | SrcSharedA.tsx |  |
+| ZodOptional | so | 3301 | SrcSharedA.tsx |  |
+| zOptional | co | 3304 | SrcSharedA.tsx |  |
+| ZodExactOptional | lo | 3310 | SrcSharedA.tsx |  |
+| zExactOptional | uo | 3313 | SrcSharedA.tsx |  |
+| ZodNullable | fo | 3319 | SrcSharedA.tsx |  |
+| zNullable | po | 3322 | SrcSharedA.tsx |  |
+| ZodDefault | mo | 3328 | SrcSharedA.tsx |  |
+| zDefault | ho | 3331 | SrcSharedA.tsx |  |
+| ZodPrefault | go | 3340 | SrcSharedA.tsx |  |
+| zPrefault | _o | 3343 | SrcSharedA.tsx |  |
+| ZodNonOptional | vo | 3352 | SrcSharedA.tsx |  |
+| zNonOptional | yo | 3355 | SrcSharedA.tsx |  |
+| ZodCatch | bo | 3362 | SrcSharedA.tsx |  |
+| zCatch | xo | 3365 | SrcSharedA.tsx |  |
+| ZodPipe | So | 3372 | SrcSharedA.tsx |  |
+| zPipe | Co | 3375 | SrcSharedA.tsx |  |
+| ZodReadonly | wo | 3382 | SrcSharedA.tsx |  |
+| zReadonly | To | 3385 | SrcSharedA.tsx |  |
+| ZodCustom | Eo | 3391 | SrcSharedA.tsx |  |
+| refine | Do | 3394 | SrcSharedA.tsx |  |
+| superRefine | Oo | 3397 | SrcSharedA.tsx |  |
+| transformPipe | ko | 3400 | SrcSharedA.tsx |  |
+| ISSUE_CODES | Ao | 3403 | SrcSharedA.tsx | ·export gs |
+| emptyNamespaceResidue | jo | 3416 | SrcSharedA.tsx |  |
+| BROWSER_VIEWPORT_LIMITS | Mo | 3418 | SrcSharedA.tsx | ·export hs |
+| browserViewportSchema | No | 3424 | SrcSharedA.tsx |  |
+| browserViewportBoundsSchema | Po | 3428 | SrcSharedA.tsx |  |
+| clientModeEnum | Fo | 3433 | SrcSharedA.tsx |  |
+| browserErrorCodeEnum | Io | 3441 | SrcSharedA.tsx |  |
+| browserPageStateSchema | Lo | 3442 | SrcSharedA.tsx |  |
+| mouseButtonEnum | Ro | 3452 | SrcSharedA.tsx |  |
+| keyboardModifierEnum | zo | 3453 | SrcSharedA.tsx |  |
+| pointSchema | Bo | 3454 | SrcSharedA.tsx |  |
+| locatorOperationEnum | Vo | 3458 | SrcSharedA.tsx |  |
+| locatorModifierEnum | Ho | 3459 | SrcSharedA.tsx |  |
+| timeoutMsSchema | Uo | 3460 | SrcSharedA.tsx |  |
+| selectOptionSchema | Wo | 3461 | SrcSharedA.tsx |  |
+| playwrightActionSchema | Go | 3466 | SrcSharedA.tsx |  |
+| browserRequestSchema | Ko | 3524 | SrcSharedA.tsx |  |
+| browserBackendTypeEnum | qo | 3724 | SrcSharedA.tsx |  |
+| browserCapabilityRefSchema | Jo | 3725 | SrcSharedA.tsx |  |
+| browserDescriptorSchema | Yo | 3729 | SrcSharedA.tsx |  |
+| sessionContextEnum | Xo | 3741 | SrcSharedA.tsx |  |
+| rectSchema | Zo | 3758 | SrcSharedA.tsx |  |
+| domElementSchema | Qo | 3764 | SrcSharedA.tsx |  |
+| domNodeSchema | $o | 3781 | SrcSharedA.tsx |  |
+| domSnapshotSchema | es | 3791 | SrcSharedA.tsx |  |
+| browserTabSchema | ts | 3799 | SrcSharedA.tsx |  |
+| userTabSchema | ns | 3807 | SrcSharedA.tsx |  |
+| browserDialogSchema | rs | 3814 | SrcSharedA.tsx |  |
+| browserMetaSchema | is | 3819 | SrcSharedA.tsx |  |
+| browserResultSchema | as | 3829 | SrcSharedA.tsx |  |
+| ASSET_INSTALL_MODES | os | 3851 | SrcSharedA.tsx |  |
+| DEFAULT_ASSET_INSTALL_MODE | ss | 3852 | SrcSharedA.tsx | ·export ms |
+| FILE_TRANSFER_CAPABILITIES | cs | 3853 | SrcSharedA.tsx |  |
+| ALL_FILE_TRANSFER_CAPABILITIES | ls | 3854 | SrcSharedA.tsx |  |
+| REMOTE_FILE_TRANSFER_CAPABILITIES | us | 3855 | SrcSharedA.tsx |  |
+| fileTransferCapabilitySet | ds | 3857 | SrcSharedA.tsx |  |
+| listFileTransferCapabilities | fs | 3859 | SrcSharedA.tsx | ·export ps |
+| isFileTransferCapability | ps | 3862 | SrcSharedA.tsx |  |
+| agentCliProviderEnum | I | 3865 | SrcSharedA.tsx |  |
+| USAGE_REPORT_RANGES | ms | 3866 | SrcSharedA.tsx | ·export fs |
+| favoriteModelSchema | hs | 3867 | SrcSharedA.tsx |  |
+| usageSummarySchema | gs | 3872 | SrcSharedA.tsx |  |
+| usageHeatmapDaySchema | _s | 3891 | SrcSharedA.tsx |  |
+| usageHeatmapWeekSchema | vs | 3898 | SrcSharedA.tsx |  |
+| usageHeatmapSchema | ys | 3902 | SrcSharedA.tsx |  |
+| usageDailyModelSchema | bs | 3908 | SrcSharedA.tsx |  |
+| usageDailyModelUsageSchema | xs | 3912 | SrcSharedA.tsx |  |
+| usageModelDetailSchema | Ss | 3916 | SrcSharedA.tsx |  |
+| usageToolStatsSchema | Cs | 3924 | SrcSharedA.tsx |  |
+| DEFAULT_AGENT_NAME | ws | 3942 | SrcSharedA.tsx | ·export ls |
+| BUILTIN_AGENT_CLI_PROVIDERS | Ts | 3943 | SrcSharedA.tsx |  |
+| resolveDefaultAgentCliProvider | Es | 3944 | SrcSharedA.tsx | ·export ds |
+| isGlmAgentCliProvider | Ds | 3947 | SrcSharedA.tsx | ·export us |
+| nonEmptyString | L | 3950 | SrcSharedA.tsx |  |
+| unknownRecord | R | 3951 | SrcSharedA.tsx |  |
+| timestampMs | z | 3952 | SrcSharedA.tsx |  |
+| clientModeEnum2 | Os | 3953 | SrcSharedA.tsx |  |
+| messageVisibilityEnum | ks | 3954 | SrcSharedA.tsx |  |
+| syntheticSourceEnum | As | 3955 | SrcSharedA.tsx |  |
+| workspaceRefSchema | B | 3956 | SrcSharedA.tsx |  |
+| permissionDecisionEnum | js | 3962 | SrcSharedA.tsx |  |
+| permissionBehaviorEnum | Ms | 3963 | SrcSharedA.tsx |  |
+| permissionRuleSchema | Ns | 3964 | SrcSharedA.tsx |  |
+| addRulesUpdateSchema | Ps | 3968 | SrcSharedA.tsx |  |
+| permissionResponseSchema | Fs | 3973 | SrcSharedA.tsx | ·export ss |
+| modelRefSchema | V | 3979 | SrcSharedA.tsx |  |
+| sessionModeEnum | Is | 3984 | SrcSharedA.tsx |  |
+| sessionStatusEnum | Ls | 3985 | SrcSharedA.tsx |  |
+| sessionKindEnum | Rs | 3986 | SrcSharedA.tsx |  |
+| goalTargetSchema | zs | 3987 | SrcSharedA.tsx |  |
+| goalVerificationResultSchema | Bs | 4002 | SrcSharedA.tsx |  |
+| goalVerificationTimelineSchema | Vs | 4007 | SrcSharedA.tsx |  |
+| sessionDescriptorSchema | Hs | 4022 | SrcSharedA.tsx |  |
+| subagentOriginSchema | Us | 4038 | SrcSharedA.tsx | ·export os |
+| messageTimeSchema | Ws | 4049 | SrcSharedA.tsx |  |
+| tokenUsageSchema | Gs | 4053 | SrcSharedA.tsx |  |
+| messageSemanticsSchema | Ks | 4063 | SrcSharedA.tsx |  |
+| messageInfoSchema | qs | 4072 | SrcSharedA.tsx |  |
+| partBaseSchema | H | 4105 | SrcSharedA.tsx |  |
+| toolStateSchema | Js | 4110 | SrcSharedA.tsx |  |
+| labeledModelRefSchema | Ys | 4136 | SrcSharedA.tsx |  |
+| timeRangeSchema | Xs | 4139 | SrcSharedA.tsx |  |
+| timelinePartSchema | Zs | 4143 | SrcSharedA.tsx |  |
+| messagePartSchema | Qs | 4180 | SrcSharedA.tsx |  |
+| messageWithPartsSchema | $s | 4239 | SrcSharedA.tsx |  |
+| apiRetrySchema | ec | 4243 | SrcSharedA.tsx |  |
+| cacheStatsSchema | tc | 4251 | SrcSharedA.tsx | ·export cs |
+| contextBreakdownSchema | nc | 4262 | SrcSharedA.tsx | ·export as |
+| contextUsageSchema | rc | 4266 | SrcSharedA.tsx |  |
+| sessionStateEventSchema | ic | 4276 | SrcSharedA.tsx |  |
+| extractTextFromParts | ac | 4288 | SrcSharedA.tsx |  |
+| BOT_PROVIDER_IDS | oc | 4291 | SrcSharedA.tsx |  |
+| imBindingSchema | sc | 4292 | SrcSharedA.tsx | ·export is |
+| isFeishuOrLark | cc | 4298 | SrcSharedA.tsx | ·export ns |
+| BOT_REPLY_MODES | lc | 4301 | SrcSharedA.tsx |  |
+| BOTS_STREAM_TIMEOUT_MS | uc | 4302 | SrcSharedA.tsx | ·export Zo |
+| BOTS_TASK_CHANNEL | dc | 4303 | SrcSharedA.tsx | ·export Qo |
+| BOTS_TASK_STREAM_CHANNEL | fc | 4304 | SrcSharedA.tsx |  |
+| botAllowedCommandsSchema | pc | 4305 | SrcSharedA.tsx |  |
+| botCurrentOptionsSchema | mc | 4317 | SrcSharedA.tsx |  |
+| botDraftOptionsSchema | hc | 4325 | SrcSharedA.tsx |  |
+| botQuestionOptionSchema | gc | 4331 | SrcSharedA.tsx |  |
+| botQuestionSchema | _c | 4336 | SrcSharedA.tsx |  |
+| botElicitationSchema | vc | 4342 | SrcSharedA.tsx |  |
+| botConfigSchema | yc | 4358 | SrcSharedA.tsx |  |
+| DEFAULT_BOT_REPLY_MODE | bc | 4403 | SrcSharedA.tsx | ·export es |
+| availableReplyModesForProvider | xc | 4404 | SrcSharedA.tsx | ·export ts |
+| resolveBotReplyMode | Sc | 4407 | SrcSharedA.tsx | ·export rs |
+| isValidWslUser | Cc | 4412 | SrcSharedA.tsx | ·export Xo |
+| containsControlCharacter | wc | 4416 | SrcSharedA.tsx |  |
+| wslUserSchema | Tc | 4423 | SrcSharedA.tsx |  |
+| ZCODE_PRODUCTION_ORIGIN | Ec | 4426 | SrcSharedA.tsx |  |
+| ZCODE_TEST_ORIGIN | Dc | 4427 | SrcSharedA.tsx |  |
+| BIGMODEL_PRODUCTION_ORIGIN | Oc | 4428 | SrcSharedA.tsx |  |
+| BIGMODEL_DEV_ORIGIN | kc | 4429 | SrcSharedA.tsx |  |
+| REMOTE_V4_MIN_APP_VERSION | Ac | 4430 | SrcSharedA.tsx |  |
+| isAppVersionAbove | jc | 4431 | SrcSharedA.tsx |  |
+| readEnvValue | Mc | 4445 | SrcSharedA.tsx |  |
+| normalizeEndpointOrigin | Nc | 4448 | SrcSharedA.tsx |  |
+| resolveZcodeOriginByEnv | Pc | 4455 | SrcSharedA.tsx |  |
+| resolveBuildEnvFromVars | Fc | 4462 | SrcSharedA.tsx |  |
+| resolveZcodeEndpointOrigin | Ic | 4465 | SrcSharedA.tsx |  |
+| resolveZcodeEndpointConfig | Lc | 4474 | SrcSharedA.tsx | ·export Yo |
+| resolveBigmodelApiBaseUrl | Rc | 4477 | SrcSharedA.tsx |  |
+| buildBigmodelApiUrl | zc | 4483 | SrcSharedA.tsx | ·export Ko |
+| codingPlanPersonalOverviewUrl | Bc | 4487 | SrcSharedA.tsx | ·export qo |
+| codingPlanTeamPlansUrl | Vc | 4490 | SrcSharedA.tsx | ·export Jo |
+| buildZcodeEndpointConfig | Hc | 4493 | SrcSharedA.tsx |  |
+| settingsNonEmptyString | U | 4510 | SrcSharedA.tsx |  |
+| localeEnum | Uc | 4511 | SrcSharedA.tsx |  |
+| localePreferenceEnum | Wc | 4512 | SrcSharedA.tsx |  |
+| interactionBehaviorEnum | Gc | 4513 | SrcSharedA.tsx |  |
+| updateChannelEnum | Kc | 4514 | SrcSharedA.tsx |  |
+| zoomLevelSchema | qc | 4515 | SrcSharedA.tsx |  |
+| integratedTerminalShellSchema | Jc | 4516 | SrcSharedA.tsx |  |
+| builtinAgentCliProvidersSchema | Yc | 4525 | SrcSharedA.tsx |  |
+| providerFamilyModesSchema | Xc | 4526 | SrcSharedA.tsx |  |
+| providerFamilyDomainEnum | Zc | 4530 | SrcSharedA.tsx |  |
+| providerFamilySelectedKeysSchema | Qc | 4531 | SrcSharedA.tsx |  |
+| isRepoSnapshotIndexingUserEnabled | $c | 4535 | SrcSharedA.tsx | ·export Go |
+| releaseNotesSchema | el | 4538 | SrcSharedA.tsx |  |
+| skippedUpdateVersionsSchema | tl | 4548 | SrcSharedA.tsx |  |
+| remoteTargetSchema | nl | 4549 | SrcSharedA.tsx |  |
+| workspaceSessionEntrySchema | rl | 4577 | SrcSharedA.tsx |  |
+| webRemoteRelayDeviceSchema | il | 4591 | SrcSharedA.tsx |  |
+| webRemoteEnabledContextSchema | al | 4594 | SrcSharedA.tsx |  |
+| zcodeEndpointOriginSchema | ol | 4599 | SrcSharedA.tsx |  |
+| migrateZcodeEndpointOrigin | sl | 4608 | SrcSharedA.tsx |  |
+| migrateOptimizeAgentExperience | cl | 4623 | SrcSharedA.tsx |  |
+| migrateCloseToTrayOnWindows | ll | 4632 | SrcSharedA.tsx |  |
+| migrateLocalePreference | ul | 4641 | SrcSharedA.tsx |  |
+| remoteWorkspaceHistoryEntrySchema | dl | 4651 | SrcSharedA.tsx |  |
+| migrateEnabledBuiltinAgentCliProviders | fl | 4661 | SrcSharedA.tsx |  |
+| stripResourcePackagesFromTarget | pl | 4667 | SrcSharedA.tsx |  |
+| migrateLastWorkspaceSession | ml | 4677 | SrcSharedA.tsx |  |
+| approvalPolicyEnum | hl | 4831 | SrcSharedA.tsx |  |
+| BUILTIN_PROVIDER_PREFIX | gl | 4832 | SrcSharedA.tsx |  |
+| providerIds | W | 4833 | SrcSharedA.tsx | ·export mo |
+| isBuiltinProviderId | _l | 4842 | SrcSharedA.tsx | ·export Eo |
+| isZaiPlanProviderId | vl | 4845 | SrcSharedA.tsx | ·export Po |
+| isStartPlanProviderId | yl | 4848 | SrcSharedA.tsx | ·export No |
+| isCodingPlanProviderId | bl | 4851 | SrcSharedA.tsx | ·export Do |
+| GLM_MODEL_IDS | xl | 4854 | SrcSharedA.tsx | ·export vo |
+| GLM_REASONING_LEVELS | Sl | 4855 | SrcSharedA.tsx | ·export ho |
+| GLM_DEFAULT_MODEL_PREFIX | Cl | 4856 | SrcSharedA.tsx |  |
+| GLM_DATED_MODEL_REGEX | wl | 4857 | SrcSharedA.tsx |  |
+| isGlmModelId | Tl | 4858 | SrcSharedA.tsx | ·export Oo |
+| CLAUDE_TO_GLM_MODEL_MAP | El | 4863 | SrcSharedA.tsx | ·export yo |
+| modelAliasOverrideSchema | Dl | 4871 | SrcSharedA.tsx |  |
+| apiFormatEnum | Ol | 4879 | SrcSharedA.tsx |  |
+| wireFormatEnum | kl | 4880 | SrcSharedA.tsx |  |
+| providerKindEnum | Al | 4881 | SrcSharedA.tsx |  |
+| devProviderIdEnum | jl | 4882 | SrcSharedA.tsx |  |
+| modalityEnum | Ml | 4883 | SrcSharedA.tsx |  |
+| envPathSchema | Nl | 4884 | SrcSharedA.tsx |  |
+| envOverrideSchema | Pl | 4887 | SrcSharedA.tsx |  |
+| reasoningLevelConfigSchema | Fl | 4893 | SrcSharedA.tsx |  |
+| endpointsByKindSchema | Il | 4897 | SrcSharedA.tsx |  |
+| providerEndpointsSchema | Ll | 4898 | SrcSharedA.tsx |  |
+
+## 56. B5 · SrcSharedB.tsx（src-HCld2afU 共享 chunk 下半部，jsx 4902–9742）
+
+- 族/来源：独立 chunk · 解码对象 `src-reconstructed/renderer/assets/src-HCld2afU.jsx`（9,742 行 pretty 孪生）· B5-10b。行号口径：jsx 孪生行。
+- 符号条数：769（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| CatalogModelSchema | Rl | 4902 | SrcSharedB.tsx |  |
+| CatalogProviderSchema | zl | 4917 | SrcSharedB.tsx |  |
+| CatalogModelEntrySchema | Bl | 4928 | SrcSharedB.tsx |  |
+| ProviderSourceEnum | Vl | 4935 | SrcSharedB.tsx |  |
+| ProviderSystemDisabledReasonEnum | Hl | 4936 | SrcSharedB.tsx |  |
+| ProviderEndpointsSchema | Ul | 4937 | SrcSharedB.tsx |  |
+| ProviderEndpointsOverrideSchema | Wl | 4942 | SrcSharedB.tsx |  |
+| ProviderConfigEntryListSchema | Gl | 4970 | SrcSharedB.tsx |  |
+| isProviderEnabled | Kl | 5001 | SrcSharedB.tsx |  |
+| isProviderReadyForUse | ql | 5004 | SrcSharedB.tsx |  |
+| hasAnyReadyProvider | Jl | 5013 | SrcSharedB.tsx |  |
+| MODEL_CONTEXT_WINDOW_DEFAULT | Yl | 5016 | SrcSharedB.tsx |  |
+| MODEL_CONTEXT_WINDOW_FALLBACK | Xl | 5017 | SrcSharedB.tsx |  |
+| MODEL_CONTEXT_WINDOW_UNLIMITED | Zl | 5018 | SrcSharedB.tsx |  |
+| isUnlimitedContextModelId | Ql | 5019 | SrcSharedB.tsx |  |
+| resolveModelContextWindow | $l | 5022 | SrcSharedB.tsx |  |
+| normalizeProviderId | eu | 5028 | SrcSharedB.tsx |  |
+| isObjectRecord | tu | 5031 | SrcSharedB.tsx |  |
+| resolveModelDisplayName | nu | 5034 | SrcSharedB.tsx |  |
+| listProviderModelIds | ru | 5037 | SrcSharedB.tsx |  |
+| findProviderModel | iu | 5040 | SrcSharedB.tsx |  |
+| dedupeStrings | au | 5044 | SrcSharedB.tsx |  |
+| mapModelFormatToKind | ou | 5047 | SrcSharedB.tsx |  |
+| mapKindToModelFormat | su | 5059 | SrcSharedB.tsx |  |
+| normalizeCatalogModel | cu | 5069 | SrcSharedB.tsx |  |
+| resolveProviderDefaultKind | lu | 5110 | SrcSharedB.tsx |  |
+| mapKindToApiFormat | uu | 5125 | SrcSharedB.tsx |  |
+| mapApiFormatToKind | du | 5135 | SrcSharedB.tsx |  |
+| mapKindToDefaultEndpointPath | fu | 5145 | SrcSharedB.tsx |  |
+| isHttpUrl | pu | 5155 | SrcSharedB.tsx |  |
+| normalizeEndpointBaseUrl | mu | 5163 | SrcSharedB.tsx |  |
+| joinEndpointUrlParts | hu | 5179 | SrcSharedB.tsx |  |
+| stripKnownEndpointPathSuffix | gu | 5184 | SrcSharedB.tsx |  |
+| canonicalizeEndpointUrl | _u | 5197 | SrcSharedB.tsx |  |
+| resolveProviderKindEndpointUrl | vu | 5200 | SrcSharedB.tsx |  |
+| listEndpointKinds | yu | 5205 | SrcSharedB.tsx |  |
+| hasOwnPropertySafe | bu | 5210 | SrcSharedB.tsx |  |
+| listEndpointApiFormats | xu | 5213 | SrcSharedB.tsx |  |
+| mapApiFormatToModelFormats | Su | 5218 | SrcSharedB.tsx |  |
+| resolveProviderApiFormat | Cu | 5228 | SrcSharedB.tsx |  |
+| resolveProviderPrimaryEndpointUrl | wu | 5231 | SrcSharedB.tsx |  |
+| resolveModelSupportedKinds | Tu | 5238 | SrcSharedB.tsx |  |
+| ZCODE_PROTOCOL_NAME | Eu | 5243 | SrcSharedB.tsx |  |
+| NonEmptyTrimmedStringSchema | G | 5244 | SrcSharedB.tsx |  |
+| JsonObjectRecordSchema | K | 5245 | SrcSharedB.tsx |  |
+| NonNegativeIntegerSchema | q | 5246 | SrcSharedB.tsx |  |
+| TimestampValueSchema | Du | 5247 | SrcSharedB.tsx |  |
+| NodeReplImagesDisplaySchema | Ou | 5248 | SrcSharedB.tsx |  |
+| ToolResultDisplaySchema | ku | 5257 | SrcSharedB.tsx |  |
+| StringOrIntegerIdSchema | Au | 5266 | SrcSharedB.tsx |  |
+| TraceContextSchema | ju | 5267 | SrcSharedB.tsx |  |
+| AgentResourceSampleSchema | Mu | 5293 | SrcSharedB.tsx |  |
+| MessageInputSourceEnum | Nu | 5302 | SrcSharedB.tsx |  |
+| SessionPersistenceEnum | Pu | 5303 | SrcSharedB.tsx |  |
+| PermissionOptionSchema | Fu | 5304 | SrcSharedB.tsx |  |
+| NameValueEntrySchema | Iu | 5311 | SrcSharedB.tsx |  |
+| McpOAuthConfigSchema | Lu | 5315 | SrcSharedB.tsx |  |
+| McpServerConfigSchema | Ru | 5329 | SrcSharedB.tsx |  |
+| McpServerStatusSchema | zu | 5347 | SrcSharedB.tsx |  |
+| McpConnectionActionEnum | Bu | 5360 | SrcSharedB.tsx |  |
+| ImportedHistoryMessageSchema | Vu | 5368 | SrcSharedB.tsx |  |
+| ImportedClaudeHistorySchema | Hu | 5373 | SrcSharedB.tsx |  |
+| ThoughtLevelOptionSchema | Uu | 5380 | SrcSharedB.tsx |  |
+| ReasoningLevelConfigSchema | Wu | 5385 | SrcSharedB.tsx |  |
+| AvailableModelEntrySchema | Gu | 5391 | SrcSharedB.tsx |  |
+| RuntimeProviderKindEnum | Ku | 5407 | SrcSharedB.tsx |  |
+| RuntimeApiFormatEnum | qu | 5408 | SrcSharedB.tsx |  |
+| RuntimeProviderSourceEnum | Ju | 5409 | SrcSharedB.tsx |  |
+| ApiKeyReferenceSchema | Yu | 5410 | SrcSharedB.tsx |  |
+| ApiKeyMaterialSchema | Xu | 5423 | SrcSharedB.tsx |  |
+| RuntimeModelEntrySchema | Zu | 5436 | SrcSharedB.tsx |  |
+| RuntimeProviderWithKeyRefSchema | Qu | 5450 | SrcSharedB.tsx |  |
+| RuntimeProviderWithInlineKeySchema | $u | 5467 | SrcSharedB.tsx |  |
+| RuntimeModelSelectionSchema | J | 5482 | SrcSharedB.tsx |  |
+| trimProviderEndpoints | ed | 5494 | SrcSharedB.tsx |  |
+| resolveProviderEndpointBundle | td | 5505 | SrcSharedB.tsx |  |
+| resolveProviderSourceBucket | nd | 5515 | SrcSharedB.tsx |  |
+| resolveProviderModelFormats | rd | 5518 | SrcSharedB.tsx |  |
+| resolveCatalogModelEntry | id | 5522 | SrcSharedB.tsx |  |
+| trimHeaderRecord | ad | 5542 | SrcSharedB.tsx |  |
+| capitalizeLabel | od | 5547 | SrcSharedB.tsx |  |
+| modelSupportsKind | sd | 5551 | SrcSharedB.tsx |  |
+| buildReasoningViewModel | cd | 5554 | SrcSharedB.tsx |  |
+| buildProviderOptionsByLevel | ld | 5574 | SrcSharedB.tsx |  |
+| providerOptionsKeyForKind | ud | 5585 | SrcSharedB.tsx |  |
+| buildReasoningProviderOptions | dd | 5595 | SrcSharedB.tsx |  |
+| setNestedOptionValue | fd | 5601 | SrcSharedB.tsx |  |
+| deleteNestedOptionValue | pd | 5612 | SrcSharedB.tsx |  |
+| resolveModelIdForKind | md | 5622 | SrcSharedB.tsx |  |
+| VISION_INPUT_MODALITIES | hd | 5625 | SrcSharedB.tsx |  |
+| isModelsDevSourcedProvider | gd | 5626 | SrcSharedB.tsx |  |
+| modelAcceptsVisionInput | _d | 5629 | SrcSharedB.tsx |  |
+| providerSupportsVisionModels | vd | 5632 | SrcSharedB.tsx |  |
+| buildRuntimeProviderFromConfig | yd | 5635 | SrcSharedB.tsx |  |
+| ModelCatalogSnapshotSchema | bd | 5694 | SrcSharedB.tsx |  |
+| TodoItemSchema | xd | 5702 | SrcSharedB.tsx |  |
+| GoalStatsSchema | Sd | 5707 | SrcSharedB.tsx |  |
+| TodoGroupSchema | Cd | 5716 | SrcSharedB.tsx |  |
+| SessionSettingsStateSchema | wd | 5725 | SrcSharedB.tsx |  |
+| PendingPermissionRequestSchema | Td | 5746 | SrcSharedB.tsx |  |
+| ActiveToolCallSchema | Ed | 5757 | SrcSharedB.tsx |  |
+| SessionProjectionSchema | Dd | 5763 | SrcSharedB.tsx |  |
+| SlashCommandSchema | Od | 5783 | SrcSharedB.tsx |  |
+| ModelStreamEventKindEnum | kd | 5789 | SrcSharedB.tsx |  |
+| ModelStreamingPayloadSchema | Ad | 5790 | SrcSharedB.tsx |  |
+| SessionSnapshotSchema | jd | 5801 | SrcSharedB.tsx |  |
+| SessionEventEnvelopeBaseSchema | Md | 5816 | SrcSharedB.tsx |  |
+| SerializedErrorSchema | Nd | 5826 | SrcSharedB.tsx |  |
+| SessionCreatedPayloadSchema | Pd | 5835 | SrcSharedB.tsx |  |
+| SessionResumedPayloadSchema | Fd | 5839 | SrcSharedB.tsx |  |
+| SessionTitleUpdatedPayloadSchema | Id | 5848 | SrcSharedB.tsx |  |
+| TurnStartedPayloadSchema | Ld | 5855 | SrcSharedB.tsx |  |
+| PLAN_APPROVAL_FEEDBACK_SOURCE | Rd | 5870 | SrcSharedB.tsx |  |
+| SteerCommandKindEnum | zd | 5871 | SrcSharedB.tsx |  |
+| SteerDeliveryModeEnum | Bd | 5872 | SrcSharedB.tsx |  |
+| TurnSteerQueuedPayloadSchema | Vd | 5873 | SrcSharedB.tsx |  |
+| TurnSteerDrainedPayloadSchema | Hd | 5888 | SrcSharedB.tsx |  |
+| TurnCompletedPayloadSchema | Ud | 5902 | SrcSharedB.tsx |  |
+| TurnFailedPayloadSchema | Wd | 5918 | SrcSharedB.tsx |  |
+| MessageUpsertedPayloadSchema | Gd | 5923 | SrcSharedB.tsx |  |
+| MessageRemovedPayloadSchema | Kd | 5930 | SrcSharedB.tsx |  |
+| PartDeltaPayloadSchema | qd | 5934 | SrcSharedB.tsx |  |
+| PartSnapshotPayloadSchema | Jd | 5940 | SrcSharedB.tsx |  |
+| PartRemovedPayloadSchema | Yd | 5943 | SrcSharedB.tsx |  |
+| ToolUpdateBaseSchema | Xd | 5948 | SrcSharedB.tsx |  |
+| ToolUpdatedPayloadSchema | Zd | 5959 | SrcSharedB.tsx |  |
+| PermissionRequestedPayloadSchema | Qd | 5998 | SrcSharedB.tsx |  |
+| PermissionResolvedPayloadSchema | $d | 6009 | SrcSharedB.tsx |  |
+| UserInputRequestedPayloadSchema | ef | 6018 | SrcSharedB.tsx |  |
+| UserInputResolvedPayloadSchema | tf | 6024 | SrcSharedB.tsx |  |
+| SessionClosedPayloadSchema | nf | 6029 | SrcSharedB.tsx |  |
+| sessionEvent | Y | 6032 | SrcSharedB.tsx |  |
+| SessionEventSchema | rf | 6038 | SrcSharedB.tsx |  |
+| SubagentSessionBaseSchema | af | 6064 | SrcSharedB.tsx |  |
+| ActiveSubagentSchema | of | 6074 | SrcSharedB.tsx |  |
+| EndedSubagentSchema | sf | 6077 | SrcSharedB.tsx |  |
+| WorkspaceStateSchema | cf | 6090 | SrcSharedB.tsx |  |
+| PREFLIGHT_PROTOCOL_VERSION | lf | 6159 | SrcSharedB.tsx |  |
+| ModelContextBudgetStrategyEnum | uf | 6160 | SrcSharedB.tsx |  |
+| BrowserAmbientContextSchema | df | 6168 | SrcSharedB.tsx |  |
+| GoalQueueActionEnum | ff | 6241 | SrcSharedB.tsx |  |
+| BackgroundTaskStatusEnum | pf | 6255 | SrcSharedB.tsx |  |
+| BackgroundTaskSchema | mf | 6256 | SrcSharedB.tsx |  |
+| WorkspaceProviderRegistrySchema | hf | 6332 | SrcSharedB.tsx |  |
+| ProviderRegistryApplyStatusEnum | gf | 6337 | SrcSharedB.tsx |  |
+| AskUserQuestionSchema | _f | 6413 | SrcSharedB.tsx |  |
+| CredentialPromptReasonEnum | vf | 6440 | SrcSharedB.tsx |  |
+| PluginConfigValueSchema | yf | 6454 | SrcSharedB.tsx |  |
+| PluginHookDetailSchema | bf | 6455 | SrcSharedB.tsx |  |
+| PluginUserConfigOptionSchema | xf | 6469 | SrcSharedB.tsx |  |
+| PluginComponentGroupSchema | Sf | 6477 | SrcSharedB.tsx |  |
+| PluginDescriptorSchema | Cf | 6484 | SrcSharedB.tsx |  |
+| PluginDiagnosticSchema | wf | 6507 | SrcSharedB.tsx |  |
+| PluginAuthorityEntrySchema | Tf | 6519 | SrcSharedB.tsx |  |
+| PluginInstallScopeEnum | Ef | 6544 | SrcSharedB.tsx |  |
+| PluginListingSchema | Df | 6545 | SrcSharedB.tsx |  |
+| PluginMarketplaceSchema | Of | 6560 | SrcSharedB.tsx |  |
+| AvailablePluginEntrySchema | kf | 6575 | SrcSharedB.tsx |  |
+| InstalledPluginEntrySchema | Af | 6585 | SrcSharedB.tsx |  |
+| AutomationScheduleRuleSchema | jf | 6698 | SrcSharedB.tsx |  |
+| AutomationIntervalUnitEnum | Mf | 6709 | SrcSharedB.tsx |  |
+| AutomationRecordSchema | Nf | 6710 | SrcSharedB.tsx |  |
+| ZcodeRpcMethods | Pf | 6797 | SrcSharedB.tsx |  |
+| StreamRowKeySchema | Ff | 6857 | SrcSharedB.tsx |  |
+| StreamTimestampSchema | If | 6861 | SrcSharedB.tsx |  |
+| StreamTextFieldEnum | Lf | 6862 | SrcSharedB.tsx |  |
+| STREAM_TRANSPORT_LIMITS | Rf | 6863 | SrcSharedB.tsx |  |
+| Base64StringSchema | zf | 6893 | SrcSharedB.tsx |  |
+| crc32Hex | Bf | 6894 | SrcSharedB.tsx |  |
+| BASE64_ALPHABET | Vf | 6902 | SrcSharedB.tsx |  |
+| encodeBase64FromBytes | Hf | 6903 | SrcSharedB.tsx |  |
+| decodeBase64ToBytes | Uf | 6916 | SrcSharedB.tsx |  |
+| RPC_FRAME_LIMITS | Wf | 6932 | SrcSharedB.tsx |  |
+| PositiveSafeIntegerSchema | Gf | 6939 | SrcSharedB.tsx |  |
+| NonNegativeSafeIntegerSchema | Kf | 6940 | SrcSharedB.tsx |  |
+| BridgeTransportIdStringSchema | qf | 6941 | SrcSharedB.tsx |  |
+| RpcFrameChecksumSchema | Jf | 6947 | SrcSharedB.tsx |  |
+| isValidRpcFramePayload | Yf | 6951 | SrcSharedB.tsx |  |
+| RpcDataFrameSchema | Xf | 6956 | SrcSharedB.tsx |  |
+| RpcFrameAckSchema | Zf | 6979 | SrcSharedB.tsx |  |
+| RpcFramePayloadSchema | Qf | 6986 | SrcSharedB.tsx |  |
+| TaskMirrorNonEmptyString | X | 6993 | SrcSharedB.tsx |  |
+| TASK_MODE_IDS | $f | 6994 | SrcSharedB.tsx |  |
+| TASK_PROVIDER_IDS | ep | 6995 | SrcSharedB.tsx |  |
+| TASK_MIGRATION_SOURCES | tp | 6996 | SrcSharedB.tsx |  |
+| TaskChangeSummarySchema | np | 6997 | SrcSharedB.tsx |  |
+| TaskMirrorMetaSchema | rp | 7009 | SrcSharedB.tsx |  |
+| automationsWorkspaceKey | ip | 7034 | SrcSharedB.tsx |  |
+| TaskMirrorInvalidationReasonEnum | ap | 7037 | SrcSharedB.tsx |  |
+| TaskMirrorDeliveryPurposeEnum | op | 7038 | SrcSharedB.tsx |  |
+| TaskMirrorDeliverySourceEnum | sp | 7039 | SrcSharedB.tsx |  |
+| TaskMirrorEventBaseSchema | cp | 7040 | SrcSharedB.tsx |  |
+| TaskMirrorStreamWatermarkSchema | lp | 7048 | SrcSharedB.tsx |  |
+| TaskMirrorInvalidationBaseSchema | up | 7052 | SrcSharedB.tsx |  |
+| assertWorkspaceKeyMatchesIdentity | dp | 7056 | SrcSharedB.tsx |  |
+| assertRunIdMatchesTraceId | fp | 7064 | SrcSharedB.tsx |  |
+| TaskSnapshotInvalidatedEventSchema | pp | 7071 | SrcSharedB.tsx |  |
+| WorkspaceTaskListInvalidatedEventSchema | mp | 7075 | SrcSharedB.tsx |  |
+| TaskMirrorAttachmentSchema | hp | 7080 | SrcSharedB.tsx |  |
+| TaskMirrorStreamEventSchema | gp | 7102 | SrcSharedB.tsx |  |
+| TaskMirrorUserMessageOpSchema | _p | 7107 | SrcSharedB.tsx |  |
+| TaskMirrorStreamEventOpSchema | vp | 7114 | SrcSharedB.tsx |  |
+| TaskMirrorStreamOpSchema | yp | 7118 | SrcSharedB.tsx |  |
+| TaskMirrorSequencedStreamOpSchema | bp | 7119 | SrcSharedB.tsx |  |
+| TaskMirrorStreamTargetSchema | xp | 7124 | SrcSharedB.tsx |  |
+| TaskMirrorValidatedStreamTargetSchema | Sp | 7134 | SrcSharedB.tsx |  |
+| TaskStreamMirrorBatchEventSchema | Cp | 7137 | SrcSharedB.tsx |  |
+| TaskMirrorStreamReleaseTargetSchema | wp | 7149 | SrcSharedB.tsx |  |
+| TaskRunLeaseRequestSchema | Tp | 7150 | SrcSharedB.tsx |  |
+| TaskRunLeaseResultSchema | Ep | 7155 | SrcSharedB.tsx |  |
+| TaskOwnerCommandBaseSchema | Dp | 7165 | SrcSharedB.tsx |  |
+| StopGenerationOwnerCommandSchema | Op | 7173 | SrcSharedB.tsx |  |
+| RespondPermissionOwnerCommandSchema | kp | 7176 | SrcSharedB.tsx |  |
+| RespondElicitationOwnerCommandSchema | Ap | 7182 | SrcSharedB.tsx |  |
+| SendPromptTaskCommandSchema | jp | 7188 | SrcSharedB.tsx |  |
+| EnqueueTaskCommandSchema | Mp | 7207 | SrcSharedB.tsx |  |
+| PromoteTaskCommandSchema | Np | 7211 | SrcSharedB.tsx |  |
+| CancelTaskCommandSchema | Pp | 7216 | SrcSharedB.tsx |  |
+| TaskOwnerCommandSchema | Fp | 7221 | SrcSharedB.tsx |  |
+| TaskOwnerCommandWithRequesterSchema | Ip | 7224 | SrcSharedB.tsx |  |
+| TaskOwnerCommandErrorCodeEnum | Lp | 7239 | SrcSharedB.tsx |  |
+| TaskOwnerCommandResultSchema | Rp | 7240 | SrcSharedB.tsx |  |
+| TaskRealtimeEventSchema | zp | 7250 | SrcSharedB.tsx |  |
+| TaskRealtimeEventWithOriginSchema | Bp | 7253 | SrcSharedB.tsx |  |
+| RemoteBridgeNonEmptyString | Z | 7265 | SrcSharedB.tsx |  |
+| RemoteBridgeTransportIdSchema | Q | 7266 | SrcSharedB.tsx |  |
+| WindowControlWorkspaceListSchema | Vp | 7267 | SrcSharedB.tsx |  |
+| WindowControlTaskListSchema | Hp | 7290 | SrcSharedB.tsx |  |
+| MobileBridgeFailureReasonEnum | Up | 7306 | SrcSharedB.tsx |  |
+| WorkspaceBridgeDescriptorSchema | Wp | 7307 | SrcSharedB.tsx |  |
+| RemoteViewStateChangedSchema | Gp | 7326 | SrcSharedB.tsx |  |
+| RemoteDeviceInfoSchema | Kp | 7331 | SrcSharedB.tsx |  |
+| WindowControlBootstrapResultSchema | qp | 7352 | SrcSharedB.tsx |  |
+| WorkspaceListSnapshotSchema | Jp | 7359 | SrcSharedB.tsx |  |
+| RemotePlatformRequestMethodEnum | Yp | 7365 | SrcSharedB.tsx |  |
+| SshRemoteTargetSchema | Xp | 7476 | SrcSharedB.tsx |  |
+| WslRemoteTargetSchema | Zp | 7490 | SrcSharedB.tsx |  |
+| RemoteConnectionTargetSchema | Qp | 7495 | SrcSharedB.tsx |  |
+| InterWindowBroadcastMessageSchema | $p | 7545 | SrcSharedB.tsx |  |
+| RemoteAssetsConfigSchema | em | 7550 | SrcSharedB.tsx |  |
+| AgentWarmupTargetSchema | tm | 7556 | SrcSharedB.tsx |  |
+| InitLocalAgentHostCommandSchema | nm | 7560 | SrcSharedB.tsx |  |
+| InitRemoteAgentHostCommandSchema | rm | 7572 | SrcSharedB.tsx |  |
+| InitRemoteWorkspaceCommandSchema | im | 7577 | SrcSharedB.tsx |  |
+| InitRemoteSshHostCommandSchema | am | 7586 | SrcSharedB.tsx |  |
+| InitRemoteWslHostCommandSchema | om | 7593 | SrcSharedB.tsx |  |
+| AttachServicePortCommandSchema | sm | 7600 | SrcSharedB.tsx |  |
+| DetachServicePortCommandSchema | cm | 7605 | SrcSharedB.tsx |  |
+| AcquireRemoteWorkspaceCommandSchema | lm | 7609 | SrcSharedB.tsx |  |
+| ReleaseRemoteWorkspaceCommandSchema | um | 7616 | SrcSharedB.tsx |  |
+| DisposeAgentHostCommandSchema | dm | 7622 | SrcSharedB.tsx |  |
+| BroadcastAgentHostCommandSchema | fm | 7625 | SrcSharedB.tsx |  |
+| TaskRealtimeDeliverCommandSchema | pm | 7629 | SrcSharedB.tsx |  |
+| TaskRunLeaseResultCommandSchema | mm | 7633 | SrcSharedB.tsx |  |
+| TaskOwnerCommandDeliverCommandSchema | hm | 7637 | SrcSharedB.tsx |  |
+| TaskOwnerCommandResultCommandSchema | gm | 7641 | SrcSharedB.tsx |  |
+| BotReconnectResultCommandSchema | _m | 7645 | SrcSharedB.tsx |  |
+| BotConnectionStatusResultCommandSchema | vm | 7652 | SrcSharedB.tsx |  |
+| BotRuntimePortResultCommandSchema | ym | 7659 | SrcSharedB.tsx |  |
+| SessionMessageDeliverRequestSchema | bm | 7665 | SrcSharedB.tsx |  |
+| SessionMessageDeliveryResultSchema | xm | 7673 | SrcSharedB.tsx |  |
+| SessionRouteAnnouncePayloadSchema | Sm | 7680 | SrcSharedB.tsx |  |
+| AgentConnectedEventSchema | Cm | 7725 | SrcSharedB.tsx |  |
+| RemoteWorkspaceAcquiredEventSchema | wm | 7728 | SrcSharedB.tsx |  |
+| AgentErrorEventSchema | Tm | 7737 | SrcSharedB.tsx |  |
+| AgentLogEventSchema | Em | 7741 | SrcSharedB.tsx |  |
+| AgentMigrationProviderEnum | Dm | 7747 | SrcSharedB.tsx |  |
+| AgentProcessSpawnedEventSchema | Om | 7748 | SrcSharedB.tsx |  |
+| AgentProcessReadyEventSchema | km | 7759 | SrcSharedB.tsx |  |
+| AgentProcessExitedEventSchema | Am | 7769 | SrcSharedB.tsx |  |
+| AgentProcessErrorEventSchema | jm | 7786 | SrcSharedB.tsx |  |
+| AgentResourceSampleEventSchema | Mm | 7801 | SrcSharedB.tsx |  |
+| AgentRunningTaskCountChangedEventSchema | Nm | 7806 | SrcSharedB.tsx |  |
+| WorkspaceRunningTaskCountChangedEventSchema | Pm | 7810 | SrcSharedB.tsx |  |
+| RepoWikiRunningTaskCountChangedEventSchema | Fm | 7816 | SrcSharedB.tsx |  |
+| TaskRealtimePublishEventSchema | Im | 7820 | SrcSharedB.tsx |  |
+| TaskStreamOpPublishEventSchema | Lm | 7824 | SrcSharedB.tsx |  |
+| TaskRunLeaseAcquireEventSchema | Rm | 7829 | SrcSharedB.tsx |  |
+| TaskRunLeaseReleaseEventSchema | zm | 7833 | SrcSharedB.tsx |  |
+| TaskOwnerCommandRequestEventSchema | Bm | 7837 | SrcSharedB.tsx |  |
+| TaskOwnerCommandResultEventSchema | Vm | 7841 | SrcSharedB.tsx |  |
+| BotReconnectRequestEventSchema | Hm | 7845 | SrcSharedB.tsx |  |
+| BotConnectionStatusRequestEventSchema | Um | 7852 | SrcSharedB.tsx |  |
+| BotRuntimePortRequestEventSchema | Wm | 7859 | SrcSharedB.tsx |  |
+| SessionMessageSendRequestedEventSchema | Gm | 7866 | SrcSharedB.tsx |  |
+| SessionRouteAnnounceEventSchema | Km | 7870 | SrcSharedB.tsx |  |
+| SessionMessageDeliverResultEventSchema | qm | 7874 | SrcSharedB.tsx |  |
+| FeedbackLogArchiveRequestEventSchema | Jm | 7878 | SrcSharedB.tsx |  |
+| CronRunResultEventSchema | Ym | 7883 | SrcSharedB.tsx |  |
+| OffPeakRunResultEventSchema | Xm | 7892 | SrcSharedB.tsx |  |
+| CronSchedulerWakeRequestEventSchema | Zm | 7901 | SrcSharedB.tsx |  |
+| OffPeakSchedulerWakeRequestEventSchema | Qm | 7905 | SrcSharedB.tsx |  |
+| BrowserExecuteRequestEventSchema | $m | 7909 | SrcSharedB.tsx |  |
+| NetworkTelemetryObservationSchema | eh | 7924 | SrcSharedB.tsx |  |
+| TaskSnapshotStatusEnum | th | 7942 | SrcSharedB.tsx |  |
+| SnapshotAttachmentSchema | nh | 7943 | SrcSharedB.tsx |  |
+| SnapshotToolCallSchema | rh | 7959 | SrcSharedB.tsx |  |
+| SnapshotMessagePartSchema | ih | 7976 | SrcSharedB.tsx |  |
+| SnapshotMessageSchema | ah | 7986 | SrcSharedB.tsx |  |
+| GoalTargetStatusEnum | oh | 8018 | SrcSharedB.tsx |  |
+| GoalStateActionKindEnum | sh | 8019 | SrcSharedB.tsx |  |
+| GoalStateSourceEnum | ch | 8020 | SrcSharedB.tsx |  |
+| GoalTargetSchema | lh | 8021 | SrcSharedB.tsx |  |
+| TaskSnapshotMetaSchema | uh | 8044 | SrcSharedB.tsx |  |
+| NativeSnapshotSyncStateEnum | dh | 8090 | SrcSharedB.tsx |  |
+| TaskSnapshotFileKeySchema | fh | 8097 | SrcSharedB.tsx |  |
+| FileChangeSnapshotSchema | ph | 8105 | SrcSharedB.tsx |  |
+| TurnFileChangesSnapshotSchema | mh | 8118 | SrcSharedB.tsx |  |
+| TurnCheckpointSchema | hh | 8123 | SrcSharedB.tsx |  |
+| REMOTE_WORKSPACE_KEY_PREFIX | gh | 8134 | SrcSharedB.tsx |  |
+| REMOTE_KIND_SEGMENT_COUNTS | _h | 8135 | SrcSharedB.tsx |  |
+| isRemoteWorkspaceKind | vh | 8141 | SrcSharedB.tsx |  |
+| normalizeRemoteWorkspacePath | yh | 8144 | SrcSharedB.tsx |  |
+| sanitizeServerIdForWorkspaceKey | bh | 8147 | SrcSharedB.tsx |  |
+| buildRemoteServerWorkspaceKey | xh | 8152 | SrcSharedB.tsx |  |
+| parseRemoteWorkspaceKey | Sh | 8155 | SrcSharedB.tsx |  |
+| MODEL_ONLY_VISIBILITY | Ch | 8179 | SrcSharedB.tsx |  |
+| FORK_MESSAGE_SOURCE | wh | 8180 | SrcSharedB.tsx |  |
+| GOAL_CONTINUATION_REMINDER_TAG | Th | 8181 | SrcSharedB.tsx |  |
+| GOAL_CONTINUATION_PROMPT_LINE | Eh | 8182 | SrcSharedB.tsx |  |
+| GOAL_STATE_SECTION_HEADING | Dh | 8183 | SrcSharedB.tsx |  |
+| TASK_NOTIFICATION_TAG | Oh | 8184 | SrcSharedB.tsx |  |
+| SUBAGENT_NOTIFICATION_TAG | kh | 8185 | SrcSharedB.tsx |  |
+| REWIND_APPLIED_NOTICE_LINES | Ah | 8186 | SrcSharedB.tsx |  |
+| PROVIDER_ONLY_MESSAGE_SOURCES | jh | 8187 | SrcSharedB.tsx |  |
+| classifyMessageVisibility | Mh | 8188 | SrcSharedB.tsx |  |
+| isTimelineOnlyMessage | Nh | 8206 | SrcSharedB.tsx |  |
+| hasProviderOnlyParts | Ph | 8214 | SrcSharedB.tsx |  |
+| resolveMessageSource | Fh | 8220 | SrcSharedB.tsx |  |
+| isGoalContinuationText | Ih | 8224 | SrcSharedB.tsx |  |
+| isQueuedNotificationText | Lh | 8228 | SrcSharedB.tsx |  |
+| collectVisiblePartText | Rh | 8232 | SrcSharedB.tsx |  |
+| isSessionForkContextMetadata | zh | 8235 | SrcSharedB.tsx |  |
+| asPlainRecord | Bh | 8239 | SrcSharedB.tsx |  |
+| asNonEmptyString | Vh | 8242 | SrcSharedB.tsx |  |
+| GOAL_CONTINUATION_SYSTEM_TAG | Hh | 8245 | SrcSharedB.tsx |  |
+| GOAL_CONTINUATION_PROMPT | Uh | 8246 | SrcSharedB.tsx |  |
+| GOAL_STATE_HEADING_LINE | Wh | 8247 | SrcSharedB.tsx |  |
+| SUBAGENT_MESSAGE_SOURCE | Gh | 8248 | SrcSharedB.tsx |  |
+| isGoalContinuationContent | Kh | 8249 | SrcSharedB.tsx |  |
+| isGoalContinuationMessage | qh | 8253 | SrcSharedB.tsx |  |
+| isGoalStateContent | Jh | 8256 | SrcSharedB.tsx |  |
+| isGoalStateMessage | Yh | 8260 | SrcSharedB.tsx |  |
+| isMessageHiddenFromUser | Xh | 8263 | SrcSharedB.tsx |  |
+| isCompactionTimelineMessage | Zh | 8268 | SrcSharedB.tsx |  |
+| filterUserVisibleMessages | Qh | 8271 | SrcSharedB.tsx |  |
+| resolveSessionDisplayTitle | $h | 8276 | SrcSharedB.tsx |  |
+| mapSubagentStatusToDisplayStatus | eg | 8284 | SrcSharedB.tsx |  |
+| hasSessionActiveWork | tg | 8289 | SrcSharedB.tsx |  |
+| isSessionBusy | ng | 8292 | SrcSharedB.tsx |  |
+| isToolCallsFinishReason | rg | 8295 | SrcSharedB.tsx |  |
+| isSessionAssistantCompleted | ig | 8298 | SrcSharedB.tsx |  |
+| resolveSessionDisplayStatus | ag | 8304 | SrcSharedB.tsx |  |
+| WorkspacePathOptionSchema | og | 8309 | SrcSharedB.tsx |  |
+| loginTriggerTestid | sg | 8329 | SrcSharedB.tsx |  |
+| loginMenuItemTestid | cg | 8330 | SrcSharedB.tsx |  |
+| loginUseApiKeyButtonTestid | lg | 8331 | SrcSharedB.tsx |  |
+| loginApiKeyProviderTriggerTestid | ug | 8332 | SrcSharedB.tsx |  |
+| loginApiKeyProviderItemTestid | dg | 8333 | SrcSharedB.tsx |  |
+| loginApiKeyInputTestid | fg | 8334 | SrcSharedB.tsx |  |
+| loginApiKeyContinueButtonTestid | pg | 8335 | SrcSharedB.tsx |  |
+| loginApiKeyCancelButtonTestid | mg | 8336 | SrcSharedB.tsx |  |
+| loginApiKeySkipButtonTestid | hg | 8337 | SrcSharedB.tsx |  |
+| loginApiKeyErrorTestid | gg | 8338 | SrcSharedB.tsx |  |
+| oauthLoginButtonTestid | _g | 8339 | SrcSharedB.tsx |  |
+| oauthCancelTestid | vg | 8340 | SrcSharedB.tsx |  |
+| oauthErrorTestid | yg | 8341 | SrcSharedB.tsx |  |
+| appHeaderTestid | bg | 8342 | SrcSharedB.tsx |  |
+| logoutButtonTestid | xg | 8343 | SrcSharedB.tsx |  |
+| terminalToggleTestid | Sg | 8344 | SrcSharedB.tsx |  |
+| terminalCloseButtonTestid | Cg | 8345 | SrcSharedB.tsx |  |
+| gitPaneTestid | wg | 8346 | SrcSharedB.tsx |  |
+| browserAddressInputTestid | Tg | 8347 | SrcSharedB.tsx |  |
+| browserBackButtonTestid | Eg | 8348 | SrcSharedB.tsx |  |
+| browserForwardButtonTestid | Dg | 8349 | SrcSharedB.tsx |  |
+| browserRefreshButtonTestid | Og | 8350 | SrcSharedB.tsx |  |
+| browserResponsiveButtonTestid | kg | 8351 | SrcSharedB.tsx |  |
+| browserResponsiveViewportTestid | Ag | 8352 | SrcSharedB.tsx |  |
+| browserResponsiveToolbarTestid | jg | 8353 | SrcSharedB.tsx |  |
+| browserResponsiveWidthInputTestid | Mg | 8354 | SrcSharedB.tsx |  |
+| browserResponsiveHeightInputTestid | Ng | 8355 | SrcSharedB.tsx |  |
+| browserResponsiveZoomSelectTestid | Pg | 8356 | SrcSharedB.tsx |  |
+| browserResponsiveZoomOptionTestid | Fg | 8357 | SrcSharedB.tsx |  |
+| browserResponsiveScaledFrameTestid | Ig | 8358 | SrcSharedB.tsx |  |
+| browserResponsiveResizeLeftTestid | Lg | 8359 | SrcSharedB.tsx |  |
+| browserResponsiveResizeWidthTestid | Rg | 8360 | SrcSharedB.tsx |  |
+| browserResponsiveResizeTopTestid | zg | 8361 | SrcSharedB.tsx |  |
+| browserResponsiveResizeHeightTestid | Bg | 8362 | SrcSharedB.tsx |  |
+| browserResponsiveResizeCornerTopLeftTestid | Vg | 8363 | SrcSharedB.tsx |  |
+| browserResponsiveResizeCornerTopRightTestid | Hg | 8364 | SrcSharedB.tsx |  |
+| browserResponsiveResizeCornerBottomLeftTestid | Ug | 8365 | SrcSharedB.tsx |  |
+| browserResponsiveResizeCornerTestid | Wg | 8366 | SrcSharedB.tsx |  |
+| browserElementPickerButtonTestid | Gg | 8367 | SrcSharedB.tsx |  |
+| browserMoreButtonTestid | Kg | 8368 | SrcSharedB.tsx |  |
+| browserOpenExternalItemTestid | qg | 8369 | SrcSharedB.tsx |  |
+| browserDevtoolsButtonTestid | Jg | 8370 | SrcSharedB.tsx |  |
+| browserWebviewTestid | Yg | 8371 | SrcSharedB.tsx |  |
+| previewPaneTestid | Xg | 8372 | SrcSharedB.tsx |  |
+| toolSummaryTriggerTestid | Zg | 8373 | SrcSharedB.tsx |  |
+| terminalTestid | Qg | 8374 | SrcSharedB.tsx |  |
+| sshConnectTriggerTestid | $g | 8375 | SrcSharedB.tsx |  |
+| sshDialogTestid | e_ | 8376 | SrcSharedB.tsx |  |
+| remoteKindSshTestid | t_ | 8377 | SrcSharedB.tsx |  |
+| remoteKindServerTestid | n_ | 8378 | SrcSharedB.tsx |  |
+| remoteKindWslTestid | r_ | 8379 | SrcSharedB.tsx |  |
+| remoteKindDockerTestid | i_ | 8380 | SrcSharedB.tsx |  |
+| sshHostInputTestid | a_ | 8381 | SrcSharedB.tsx |  |
+| sshPortInputTestid | o_ | 8382 | SrcSharedB.tsx |  |
+| sshUsernameInputTestid | s_ | 8383 | SrcSharedB.tsx |  |
+| sshConfigAliasSelectTestid | c_ | 8384 | SrcSharedB.tsx |  |
+| sshPasswordInputTestid | l_ | 8385 | SrcSharedB.tsx |  |
+| sshPrivateKeyInputTestid | u_ | 8386 | SrcSharedB.tsx |  |
+| sshAuthPasswordTestid | d_ | 8387 | SrcSharedB.tsx |  |
+| sshAuthPrivateKeyTestid | f_ | 8388 | SrcSharedB.tsx |  |
+| wslDistroSelectTestid | p_ | 8389 | SrcSharedB.tsx |  |
+| wslUserInputTestid | m_ | 8390 | SrcSharedB.tsx |  |
+| dockerContainerSelectTestid | h_ | 8391 | SrcSharedB.tsx |  |
+| dockerContainerInputTestid | g_ | 8392 | SrcSharedB.tsx |  |
+| serverUrlInputTestid | __ | 8393 | SrcSharedB.tsx |  |
+| serverNameInputTestid | v_ | 8394 | SrcSharedB.tsx |  |
+| serverTokenInputTestid | y_ | 8395 | SrcSharedB.tsx |  |
+| serverWorkspacePathInputTestid | b_ | 8396 | SrcSharedB.tsx |  |
+| sidebarTestid | x_ | 8397 | SrcSharedB.tsx |  |
+| workspaceListTestid | S_ | 8398 | SrcSharedB.tsx |  |
+| workspaceItemTestid | C_ | 8399 | SrcSharedB.tsx |  |
+| workspaceCloseTestid | w_ | 8400 | SrcSharedB.tsx |  |
+| conversationSectionTestid | T_ | 8401 | SrcSharedB.tsx |  |
+| projectSectionTestid | E_ | 8402 | SrcSharedB.tsx |  |
+| conversationNewTaskTestid | D_ | 8403 | SrcSharedB.tsx |  |
+| projectAddTestid | O_ | 8404 | SrcSharedB.tsx |  |
+| composerWorkspaceTriggerTestid | k_ | 8405 | SrcSharedB.tsx |  |
+| composerRemoteConnectionTestid | A_ | 8406 | SrcSharedB.tsx |  |
+| composerProjectDetachTestid | j_ | 8407 | SrcSharedB.tsx |  |
+| composerWorkOutsideProjectTestid | M_ | 8408 | SrcSharedB.tsx |  |
+| chatErrorBannerTestid | N_ | 8409 | SrcSharedB.tsx |  |
+| chatEmptyTestid | P_ | 8410 | SrcSharedB.tsx |  |
+| chatAttachmentButtonTestid | F_ | 8411 | SrcSharedB.tsx |  |
+| chatAttachmentMenuItemTestid | I_ | 8412 | SrcSharedB.tsx |  |
+| chatSendButtonTestid | L_ | 8413 | SrcSharedB.tsx |  |
+| chatLoadingTestid | R_ | 8414 | SrcSharedB.tsx |  |
+| chatSummaryPanelTestid | z_ | 8415 | SrcSharedB.tsx |  |
+| chatAssistantHistoryTriggerTestid | B_ | 8416 | SrcSharedB.tsx |  |
+| chatAssistantHistoryContentTestid | V_ | 8417 | SrcSharedB.tsx |  |
+| chatBackgroundResultTitleTestid | H_ | 8418 | SrcSharedB.tsx |  |
+| chatToolCallBlockTestid | U_ | 8419 | SrcSharedB.tsx |  |
+| promptSuggestionPanelTestid | W_ | 8420 | SrcSharedB.tsx |  |
+| promptSuggestionSectionTestid | G_ | 8421 | SrcSharedB.tsx |  |
+| promptSuggestionOptionTestid | K_ | 8422 | SrcSharedB.tsx |  |
+| promptSuggestionStatusTestid | q_ | 8423 | SrcSharedB.tsx |  |
+| taskListTestid | J_ | 8424 | SrcSharedB.tsx |  |
+| taskNewButtonTestid | Y_ | 8425 | SrcSharedB.tsx |  |
+| taskItemTestid | X_ | 8426 | SrcSharedB.tsx |  |
+| taskEmptyTestid | Z_ | 8427 | SrcSharedB.tsx |  |
+| taskArchiveTestid | Q_ | 8428 | SrcSharedB.tsx |  |
+| taskSettingsButtonTestid | $_ | 8429 | SrcSharedB.tsx |  |
+| settingsPageTestid | ev | 8430 | SrcSharedB.tsx |  |
+| settingsBackButtonTestid | tv | 8431 | SrcSharedB.tsx |  |
+| settingsSectionNavTestid | nv | 8432 | SrcSharedB.tsx |  |
+| settingsNativeSearchSwitchTestid | rv | 8433 | SrcSharedB.tsx |  |
+| settingsMemorySwitchTestid | iv | 8434 | SrcSharedB.tsx |  |
+| settingsMemoryRefreshTestid | av | 8435 | SrcSharedB.tsx |  |
+| settingsMemoryBackProjectsTestid | ov | 8436 | SrcSharedB.tsx |  |
+| settingsMemoryBackMemoriesTestid | sv | 8437 | SrcSharedB.tsx |  |
+| settingsMemoryWorkspaceTestid | cv | 8438 | SrcSharedB.tsx |  |
+| settingsMemoryFileTestid | lv | 8439 | SrcSharedB.tsx |  |
+| settingsMemoryPreviewTestid | uv | 8440 | SrcSharedB.tsx |  |
+| settingsAskUserQuestionAutoResolutionSwitchTestid | dv | 8441 | SrcSharedB.tsx |  |
+| settingsLocaleSelectTriggerTestid | fv | 8442 | SrcSharedB.tsx |  |
+| settingsLocaleSelectItemTestid | pv | 8443 | SrcSharedB.tsx |  |
+| mcpServerRowTestid | mv | 8444 | SrcSharedB.tsx |  |
+| pluginMcpServerRowTestid | hv | 8445 | SrcSharedB.tsx |  |
+| mcpOpenAuthorizationButtonTestid | gv | 8446 | SrcSharedB.tsx |  |
+| subagentRowTestid | _v | 8447 | SrcSharedB.tsx |  |
+| subagentBuiltInModelTriggerTestid | vv | 8448 | SrcSharedB.tsx |  |
+| settingsUsageTabTestid | yv | 8449 | SrcSharedB.tsx |  |
+| sidebarCodingPlanUsageButtonTestid | bv | 8450 | SrcSharedB.tsx |  |
+| modelProviderNavItemTestid | xv | 8451 | SrcSharedB.tsx |  |
+| modelProviderConnectionModeTriggerTestid | Sv | 8452 | SrcSharedB.tsx |  |
+| modelProviderConnectionModeItemTestid | Cv | 8453 | SrcSharedB.tsx |  |
+| modelProviderApiKeyInputTestid | wv | 8454 | SrcSharedB.tsx |  |
+| modelProviderModelInputTestid | Tv | 8455 | SrcSharedB.tsx |  |
+| modelProviderModelDeleteButtonTestid | Ev | 8456 | SrcSharedB.tsx |  |
+| modelProviderAddModelButtonTestid | Dv | 8457 | SrcSharedB.tsx |  |
+| chatModelSelectTriggerTestid | Ov | 8458 | SrcSharedB.tsx |  |
+| chatModelSelectGroupTestid | kv | 8459 | SrcSharedB.tsx |  |
+| chatModelSelectItemTestid | Av | 8460 | SrcSharedB.tsx |  |
+| chatThoughtLevelSelectTriggerTestid | jv | 8461 | SrcSharedB.tsx |  |
+| chatThoughtLevelSelectItemTestid | Mv | 8462 | SrcSharedB.tsx |  |
+| chatModeSelectTriggerTestid | Nv | 8463 | SrcSharedB.tsx |  |
+| chatModeSelectItemTestid | Pv | 8464 | SrcSharedB.tsx |  |
+| chatContextUsageTriggerTestid | Fv | 8465 | SrcSharedB.tsx |  |
+| chatReasoningTriggerTestid | Iv | 8466 | SrcSharedB.tsx |  |
+| chatReasoningContentTestid | Lv | 8467 | SrcSharedB.tsx |  |
+| workspaceHeaderTestid | Rv | 8468 | SrcSharedB.tsx |  |
+| workspaceTitleTestid | zv | 8469 | SrcSharedB.tsx |  |
+| workspacePathTestid | Bv | 8470 | SrcSharedB.tsx |  |
+| workspaceMoreButtonTestid | Vv | 8471 | SrcSharedB.tsx |  |
+| workspaceFileTreeButtonTestid | Hv | 8472 | SrcSharedB.tsx |  |
+| workspaceFileTreePanelTestid | Uv | 8473 | SrcSharedB.tsx |  |
+| workspaceFileTreeRefreshButtonTestid | Wv | 8474 | SrcSharedB.tsx |  |
+| workspaceFileTreeRowTestid | Gv | 8475 | SrcSharedB.tsx |  |
+| sshErrorTestid | Kv | 8476 | SrcSharedB.tsx |  |
+| sshSuccessTestid | qv | 8477 | SrcSharedB.tsx |  |
+| v4SessionPaneTestid | Jv | 8478 | SrcSharedB.tsx |  |
+| v4TimelineTestid | Yv | 8479 | SrcSharedB.tsx |  |
+| v4RowTestid | Xv | 8480 | SrcSharedB.tsx |  |
+| v4ComposerTestid | Zv | 8481 | SrcSharedB.tsx |  |
+| v4ComposerInputTestid | Qv | 8482 | SrcSharedB.tsx |  |
+| v4ComposerBackgroundWorkTriggerTestid | $v | 8483 | SrcSharedB.tsx |  |
+| v4ComposerSendTestid | ey | 8484 | SrcSharedB.tsx |  |
+| v4ComposerClearQueueSendTestid | ty | 8485 | SrcSharedB.tsx |  |
+| v4ComposerKeepQueueSendTestid | ny | 8486 | SrcSharedB.tsx |  |
+| v4PausedQueueSendDialogTestid | ry | 8487 | SrcSharedB.tsx |  |
+| v4AttachmentTestid | iy | 8488 | SrcSharedB.tsx |  |
+| v4AttachmentUploadProgressTestid | ay | 8489 | SrcSharedB.tsx |  |
+| v4AttachmentUploadRetryTestid | oy | 8490 | SrcSharedB.tsx |  |
+| v4StopTestid | sy | 8491 | SrcSharedB.tsx |  |
+| v4ForkTestid | cy | 8492 | SrcSharedB.tsx |  |
+| v4FeedbackLikeTestid | ly | 8493 | SrcSharedB.tsx |  |
+| v4FeedbackDislikeTestid | uy | 8494 | SrcSharedB.tsx |  |
+| v4EditTestid | dy | 8495 | SrcSharedB.tsx |  |
+| v4EditInputTestid | fy | 8496 | SrcSharedB.tsx |  |
+| v4EditSubmitTestid | py | 8497 | SrcSharedB.tsx |  |
+| v4EditCancelTestid | my | 8498 | SrcSharedB.tsx |  |
+| v4EditAttachmentRemoveTestid | hy | 8499 | SrcSharedB.tsx |  |
+| v4EditRewindWorkspaceTestid | gy | 8500 | SrcSharedB.tsx |  |
+| v4EditWorkspaceConflictDialogTestid | _y | 8501 | SrcSharedB.tsx |  |
+| v4EditWorkspaceConflictConversationOnlyTestid | vy | 8502 | SrcSharedB.tsx |  |
+| v4QueueTestid | yy | 8503 | SrcSharedB.tsx |  |
+| v4QueuePausedBannerTestid | by | 8504 | SrcSharedB.tsx |  |
+| v4QueueResumeTestid | xy | 8505 | SrcSharedB.tsx |  |
+| v4QueueItemTestid | Sy | 8506 | SrcSharedB.tsx |  |
+| v4QueueItemDeleteTestid | Cy | 8507 | SrcSharedB.tsx |  |
+| v4QueueItemEditTestid | wy | 8508 | SrcSharedB.tsx |  |
+| v4QueueItemSendNowTestid | Ty | 8509 | SrcSharedB.tsx |  |
+| v4SessionTitleTestid | Ey | 8510 | SrcSharedB.tsx |  |
+| v4BackgroundWorkItemTestid | Dy | 8511 | SrcSharedB.tsx |  |
+| v4BackgroundWorkCancelTestid | Oy | 8512 | SrcSharedB.tsx |  |
+| v4ModelConfigTestid | ky | 8513 | SrcSharedB.tsx |  |
+| v4RetrySubscribeTestid | Ay | 8514 | SrcSharedB.tsx |  |
+| v4UserInputDialogTestid | jy | 8515 | SrcSharedB.tsx |  |
+| v4UserInputOptionTestid | My | 8516 | SrcSharedB.tsx |  |
+| v4UserInputTextTestid | Ny | 8517 | SrcSharedB.tsx |  |
+| v4TimelineBottomTestid | Py | 8518 | SrcSharedB.tsx |  |
+| v4PaneShellTestid | Fy | 8519 | SrcSharedB.tsx |  |
+| v4SplitCloseTestid | Iy | 8520 | SrcSharedB.tsx |  |
+| v4SplitDividerTestid | Ly | 8521 | SrcSharedB.tsx |  |
+| v4PaneWorkspaceBadgeTestid | Ry | 8522 | SrcSharedB.tsx |  |
+| v4TaskOpenInSplitTestid | zy | 8523 | SrcSharedB.tsx |  |
+| v4TurnNavigatorTestid | By | 8524 | SrcSharedB.tsx |  |
+| v4TurnNavigatorItemTestid | Vy | 8525 | SrcSharedB.tsx |  |
+| v4TurnNavigatorTooltipTestid | Hy | 8526 | SrcSharedB.tsx |  |
+| v4SubagentOpenSidePaneTestid | Uy | 8527 | SrcSharedB.tsx |  |
+| v4RowAttachmentsTestid | Wy | 8528 | SrcSharedB.tsx |  |
+| automationsOpenTestid | Gy | 8529 | SrcSharedB.tsx |  |
+| automationsListTestid | Ky | 8530 | SrcSharedB.tsx |  |
+| automationCreateMenuTestid | qy | 8531 | SrcSharedB.tsx |  |
+| automationCreateManuallyTestid | Jy | 8532 | SrcSharedB.tsx |  |
+| automationCardTestid | Yy | 8533 | SrcSharedB.tsx |  |
+| offpeakCreateButtonTestid | Xy | 8534 | SrcSharedB.tsx |  |
+| offpeakCardTestid | Zy | 8535 | SrcSharedB.tsx |  |
+| offpeakCardMenuTestid | Qy | 8536 | SrcSharedB.tsx |  |
+| offpeakEditViewTestid | $y | 8537 | SrcSharedB.tsx |  |
+| offpeakEditSubmitTestid | eb | 8538 | SrcSharedB.tsx |  |
+| offpeakFormTitleTestid | tb | 8539 | SrcSharedB.tsx |  |
+| offpeakFormInstructionsTestid | nb | 8540 | SrcSharedB.tsx |  |
+| offpeakActionPauseTestid | rb | 8541 | SrcSharedB.tsx |  |
+| offpeakActionContinueTestid | ib | 8542 | SrcSharedB.tsx |  |
+| offpeakActionDeleteTestid | ab | 8543 | SrcSharedB.tsx |  |
+| offpeakTabTestid | ob | 8544 | SrcSharedB.tsx |  |
+| automationCardMenuTestid | sb | 8545 | SrcSharedB.tsx |  |
+| automationActionToggleTestid | cb | 8546 | SrcSharedB.tsx |  |
+| automationActionDeleteTestid | lb | 8547 | SrcSharedB.tsx |  |
+| automationFormTitleTestid | ub | 8548 | SrcSharedB.tsx |  |
+| automationFormPromptTestid | db | 8549 | SrcSharedB.tsx |  |
+| automationFormSubmitTestid | fb | 8550 | SrcSharedB.tsx |  |
+| automationRunNowTestid | pb | 8551 | SrcSharedB.tsx |  |
+| automationEditBackTestid | mb | 8552 | SrcSharedB.tsx |  |
+| automationFrequencySelectTestid | hb | 8553 | SrcSharedB.tsx |  |
+| automationFrequencyOptionTestid | gb | 8554 | SrcSharedB.tsx |  |
+| automationCustomUnitSelectTestid | _b | 8555 | SrcSharedB.tsx |  |
+| automationCustomUnitOptionTestid | vb | 8556 | SrcSharedB.tsx |  |
+| automationCustomIntervalSelectTestid | yb | 8557 | SrcSharedB.tsx |  |
+| automationCustomIntervalIncrementTestid | bb | 8558 | SrcSharedB.tsx |  |
+| automationCustomIntervalDecrementTestid | xb | 8559 | SrcSharedB.tsx |  |
+| automationCustomRepeatEditTestid | Sb | 8560 | SrcSharedB.tsx |  |
+| automationCustomConfirmTestid | Cb | 8561 | SrcSharedB.tsx |  |
+| automationYearMonthdayTestid | wb | 8562 | SrcSharedB.tsx |  |
+| automationYearMonthOptionTestid | Tb | 8563 | SrcSharedB.tsx |  |
+| automationYearDayOptionTestid | Eb | 8564 | SrcSharedB.tsx |  |
+| automationSchedulePreviewTestid | Db | 8565 | SrcSharedB.tsx |  |
+| automationScheduleAddTestid | Ob | 8566 | SrcSharedB.tsx |  |
+| automationScheduleDeleteTestid | kb | 8567 | SrcSharedB.tsx |  |
+| cronCreateCardTestid | Ab | 8568 | SrcSharedB.tsx |  |
+| cronCreateOpenTestid | jb | 8569 | SrcSharedB.tsx |  |
+| confirmDialogConfirmTestid | Mb | 8570 | SrcSharedB.tsx |  |
+| joinTestidParts | Nb | 8571 | SrcSharedB.tsx |  |
+| IpcChannelNames | Pb | 8574 | SrcSharedB.tsx |  |
+| EmbeddedBrowserIpcTopics | Fb | 8609 | SrcSharedB.tsx |  |
+| ServicePortIpcTopics | Ib | 8612 | SrcSharedB.tsx |  |
+| BIGMODEL_PROVIDER_DOMAIN | Lb | 8617 | SrcSharedB.tsx |  |
+| CREDENTIAL_DECRYPT_FAILED_CODE | Rb | 8618 | SrcSharedB.tsx |  |
+| isCredentialDecryptFailure | zb | 8619 | SrcSharedB.tsx |  |
+| extractErrorCode | Bb | 8623 | SrcSharedB.tsx |  |
+| extractErrorMessage | Vb | 8626 | SrcSharedB.tsx |  |
+| ZCODE_AGENT_AUDIENCE | Hb | 8629 | SrcSharedB.tsx |  |
+| CODING_PLAN_SCOPE_PREFIX | Ub | 8630 | SrcSharedB.tsx |  |
+| buildCodingPlanScope | Wb | 8631 | SrcSharedB.tsx |  |
+| parseCodingPlanScope | Gb | 8638 | SrcSharedB.tsx |  |
+| codingPlanScopesOverlap | Kb | 8658 | SrcSharedB.tsx |  |
+| encodeScopeSegment | qb | 8664 | SrcSharedB.tsx |  |
+| decodeScopeSegment | Jb | 8667 | SrcSharedB.tsx |  |
+| resolveCodingPlanAttribution | Yb | 8674 | SrcSharedB.tsx |  |
+| makeCodingPlanAttribution | Xb | 8691 | SrcSharedB.tsx |  |
+| resolveEntitlementCacheStatus | Zb | 8698 | SrcSharedB.tsx |  |
+| BROWSER_RESTORE_PENDING_URL | Qb | 8712 | SrcSharedB.tsx |  |
+| sanitizeRemoteTargetForRestore | $b | 8713 | SrcSharedB.tsx |  |
+| DesktopMenuActionIds | ex | 8745 | SrcSharedB.tsx |  |
+| resolveClientTelemetryContext | tx | 8774 | SrcSharedB.tsx |  |
+| buildWebRemoteTelemetryEvent | nx | 8789 | SrcSharedB.tsx |  |
+| buildWebRemoteEntryViewTelemetryEvent | rx | 8797 | SrcSharedB.tsx |  |
+| LAUNCH_MARKS_STORAGE_KEY | ix | 8803 | SrcSharedB.tsx |  |
+| parseLaunchMarks | ax | 8804 | SrcSharedB.tsx |  |
+| toHexByte | ox | 8823 | SrcSharedB.tsx |  |
+| formatUuidFromBytes | sx | 8826 | SrcSharedB.tsx |  |
+| generateUuid | cx | 8830 | SrcSharedB.tsx |  |
+| newUniqueId | lx | 8841 | SrcSharedB.tsx |  |
+| DEFAULT_CRON_AUTOMATION_GROUP_ID | ux | 8844 | SrcSharedB.tsx |  |
+| DEFAULT_OFFPEAK_AUTOMATION_GROUP_ID | dx | 8845 | SrcSharedB.tsx |  |
+| isCronAutomationPayload | fx | 8846 | SrcSharedB.tsx |  |
+| isOffPeakTaskPayload | px | 8849 | SrcSharedB.tsx |  |
+| AUTOMATION_CREATE_LIMIT_REACHED | mx | 8852 | SrcSharedB.tsx |  |
+| isAutomationCreateLimitError | hx | 8853 | SrcSharedB.tsx |  |
+| TERMINAL_OFFPEAK_RUN_STATUSES | gx | 8856 | SrcSharedB.tsx |  |
+| isTerminalOffPeakRunStatus | _x | 8857 | SrcSharedB.tsx |  |
+| OFFPEAK_IDLE_PLAN_ID | vx | 8860 | SrcSharedB.tsx |  |
+| MODEL_SETTING_ID | yx | 8861 | SrcSharedB.tsx |  |
+| MODEL_SETTING_CATEGORY | bx | 8862 | SrcSharedB.tsx |  |
+| MODE_SETTING_ID | xx | 8863 | SrcSharedB.tsx |  |
+| MODE_SETTING_CATEGORY | Sx | 8864 | SrcSharedB.tsx |  |
+| THOUGHT_LEVEL_SETTING_ID | Cx | 8865 | SrcSharedB.tsx |  |
+| THOUGHT_LEVEL_SETTING_CATEGORY | wx | 8866 | SrcSharedB.tsx |  |
+| SESSION_MODE_PRESETS | Tx | 8867 | SrcSharedB.tsx |  |
+| SESSION_MODE_PRESET_ID_SET | Ex | 8884 | SrcSharedB.tsx |  |
+| buildModelSettingOptionValue | Dx | 8885 | SrcSharedB.tsx |  |
+| normalizeSessionModeId | Ox | 8889 | SrcSharedB.tsx |  |
+| listSessionModeOptions | kx | 8892 | SrcSharedB.tsx |  |
+| listSessionModePresets | Ax | 8899 | SrcSharedB.tsx |  |
+| buildSessionSettingsViewModel | jx | 8904 | SrcSharedB.tsx |  |
+| slugifyProviderName | Mx | 8954 | SrcSharedB.tsx |  |
+| fnv1aHash32Hex | Nx | 8957 | SrcSharedB.tsx |  |
+| buildStableProviderId | Px | 8962 | SrcSharedB.tsx |  |
+| buildStableModelId | Fx | 8967 | SrcSharedB.tsx |  |
+| formatLocalTimestamp | Ix | 8972 | SrcSharedB.tsx |  |
+| formatLogLinePrefix | Lx | 8975 | SrcSharedB.tsx |  |
+| ZCODE_AGENT_PROVIDER_NOT_READY | Rx | 8978 | SrcSharedB.tsx |  |
+| PROVIDER_NOT_READY_REASON | zx | 8979 | SrcSharedB.tsx |  |
+| providerHasUsableCredential | Bx | 8980 | SrcSharedB.tsx |  |
+| resolveFirstReadyProvider | Vx | 8994 | SrcSharedB.tsx |  |
+| OAUTH_PROVIDER_FAMILIES | Hx | 9009 | SrcSharedB.tsx |  |
+| OAUTH_FAMILY_BY_ID | Ux | 9024 | SrcSharedB.tsx |  |
+| OAUTH_FAMILY_BY_PROVIDER_ID | Wx | 9025 | SrcSharedB.tsx |  |
+| resolveProviderFamilyMode | Gx | 9026 | SrcSharedB.tsx |  |
+| isProviderAllowedForFamilyMode | Kx | 9029 | SrcSharedB.tsx |  |
+| getOAuthProviderFamilyById | qx | 9033 | SrcSharedB.tsx |  |
+| getOAuthFamilyIdByProviderId | Jx | 9036 | SrcSharedB.tsx |  |
+| getOAuthProviderFamilyByProviderId | Yx | 9039 | SrcSharedB.tsx |  |
+| normalizeProviderFamilyDomain | Xx | 9043 | SrcSharedB.tsx |  |
+| normalizeOAuthProviderDomain | Zx | 9046 | SrcSharedB.tsx |  |
+| providerFamilyMatchesDomain | Qx | 9049 | SrcSharedB.tsx |  |
+| providerIdMatchesFamilyDomain | $x | 9053 | SrcSharedB.tsx |  |
+| activeOAuthProviderMatchesFamily | eS | 9060 | SrcSharedB.tsx |  |
+| CUSTOM_MODEL_REF_PREFIX | tS | 9066 | SrcSharedB.tsx |  |
+| safeDecodeURIComponent | nS | 9067 | SrcSharedB.tsx |  |
+| buildCustomModelRef | rS | 9074 | SrcSharedB.tsx |  |
+| parseCustomModelRef | iS | 9078 | SrcSharedB.tsx |  |
+| NATIVE_PROVIDER_REF_PREFIX | aS | 9097 | SrcSharedB.tsx |  |
+| CUSTOM_PROVIDER_REF_PREFIX | oS | 9098 | SrcSharedB.tsx |  |
+| GHOST_PROVIDER_REF_PREFIX | sS | 9099 | SrcSharedB.tsx |  |
+| nativeProviderRef | cS | 9100 | SrcSharedB.tsx |  |
+| customProviderRef | lS | 9103 | SrcSharedB.tsx |  |
+| resolveProviderRefFromCustomModelRef | uS | 9106 | SrcSharedB.tsx |  |
+| isDataBaseDirForbiddenError | dS | 9110 | SrcSharedB.tsx |  |
+| APP_RUNTIME_PREFERENCES_STORAGE_KEY | fS | 9114 | SrcSharedB.tsx |  |
+| AppRuntimePreferencesSchema | pS | 9115 | SrcSharedB.tsx |  |
+| isUserPreferenceSource | mS | 9118 | SrcSharedB.tsx |  |
+| isPluginPreferenceSource | hS | 9121 | SrcSharedB.tsx |  |
+| OFFICIAL_PLUGIN_MARKETPLACE_IDS | gS | 9124 | SrcSharedB.tsx |  |
+| isOfficialPluginMarketplace | _S | 9125 | SrcSharedB.tsx |  |
+| LINE_DIFF_LCS_CELL_BUDGET | vS | 9128 | SrcSharedB.tsx |  |
+| splitTextIntoLines | yS | 9129 | SrcSharedB.tsx |  |
+| countLineDiffChanges | bS | 9135 | SrcSharedB.tsx |  |
+| readMcpServerHeaders | xS | 9173 | SrcSharedB.tsx |  |
+| normalizeMcpServerConfigEntry | SS | 9176 | SrcSharedB.tsx |  |
+| isValidPositiveTimeoutMs | CS | 9231 | SrcSharedB.tsx |  |
+| isValidMcpIsolation | wS | 9234 | SrcSharedB.tsx |  |
+| isValidMcpProtocolVersion | TS | 9237 | SrcSharedB.tsx |  |
+| isValidMcpOAuthConfig | ES | 9240 | SrcSharedB.tsx |  |
+| isPlainObjectRecord | DS | 9243 | SrcSharedB.tsx |  |
+| resolvePlatformBinaryName | OS | 9246 | SrcSharedB.tsx |  |
+| SEARCH_BINARY_PRESETS | kS | 9249 | SrcSharedB.tsx |  |
+| PENDING_TOOL_CALL_STATUSES | AS | 9273 | SrcSharedB.tsx |  |
+| TOOL_CALL_STATUS_I18N_IDS | jS | 9274 | SrcSharedB.tsx |  |
+| isPendingToolCallStatus | MS | 9281 | SrcSharedB.tsx |  |
+| resolveToolCallStatusI18nId | NS | 9284 | SrcSharedB.tsx |  |
+| KNOWN_TOOL_NAME_LIST | PS | 9287 | SrcSharedB.tsx |  |
+| TOOL_VIEW_KIND_BY_NAME | FS | 9288 | SrcSharedB.tsx |  |
+| TOOL_NAME_LOWERCASE_INDEX | IS | 9318 | SrcSharedB.tsx |  |
+| canonicalizeToolName | LS | 9319 | SrcSharedB.tsx |  |
+| resolveToolViewKind | RS | 9323 | SrcSharedB.tsx |  |
+| isFileWriteToolName | zS | 9327 | SrcSharedB.tsx |  |
+| TOOL_INPUT_KNOWN_FIELD_NAMES | BS | 9330 | SrcSharedB.tsx |  |
+| parseToolCallInput | VS | 9331 | SrcSharedB.tsx |  |
+| tryParseJsonValue | HS | 9348 | SrcSharedB.tsx |  |
+| extractKnownToolInputFields | US | 9360 | SrcSharedB.tsx |  |
+| extractJsonStringField | WS | 9368 | SrcSharedB.tsx |  |
+| decodeExtractedJsonString | GS | 9392 | SrcSharedB.tsx |  |
+| stripTrailingPartialEscape | KS | 9400 | SrcSharedB.tsx |  |
+| unescapeJsonStringLiterals | qS | 9403 | SrcSharedB.tsx |  |
+| escapeRegExpSource | JS | 9407 | SrcSharedB.tsx |  |
+| TODO_TOOL_TITLE_PATTERN | YS | 9410 | SrcSharedB.tsx |  |
+| TODO_LIST_FIELD_NAMES | XS | 9411 | SrcSharedB.tsx |  |
+| isPlainObjectValue | ZS | 9412 | SrcSharedB.tsx |  |
+| nonEmptyTrimmedString | QS | 9415 | SrcSharedB.tsx |  |
+| normalizeTodoStatus | $S | 9418 | SrcSharedB.tsx |  |
+| normalizeTodoEntry | eC | 9422 | SrcSharedB.tsx |  |
+| tryParseTodoJson | tC | 9440 | SrcSharedB.tsx |  |
+| extractTodoListContainer | nC | 9447 | SrcSharedB.tsx |  |
+| parseTodoListStrict | rC | 9456 | SrcSharedB.tsx |  |
+| collectTodoParseCandidates | iC | 9462 | SrcSharedB.tsx |  |
+| isTodoToolTitle | aC | 9474 | SrcSharedB.tsx |  |
+| extractTodosFromToolInput | oC | 9477 | SrcSharedB.tsx |  |
+| extractTodosFromToolOutput | sC | 9480 | SrcSharedB.tsx |  |
+| COMMAND_INPUT_FIELD_NAMES | cC | 9488 | SrcSharedB.tsx |  |
+| COMMAND_ARGS_FIELD_NAMES | lC | 9489 | SrcSharedB.tsx |  |
+| FILE_PATH_FIELD_NAMES | uC | 9490 | SrcSharedB.tsx |  |
+| DIRECTORY_FIELD_NAMES | dC | 9491 | SrcSharedB.tsx |  |
+| PERMISSION_FILE_PATH_LIMIT | fC | 9492 | SrcSharedB.tsx |  |
+| isPlainRecordValue | $ | 9493 | SrcSharedB.tsx |  |
+| collapseWhitespace | pC | 9496 | SrcSharedB.tsx |  |
+| normalizeLineEndings | mC | 9499 | SrcSharedB.tsx |  |
+| coerceStringArray | hC | 9503 | SrcSharedB.tsx |  |
+| unwrapToolCallPayload | gC | 9506 | SrcSharedB.tsx |  |
+| extractCommandFromRecord | _C | 9509 | SrcSharedB.tsx |  |
+| findCommandValueDeep | vC | 9524 | SrcSharedB.tsx |  |
+| pushUniqueFilePath | yC | 9555 | SrcSharedB.tsx |  |
+| collectFilePathValues | bC | 9559 | SrcSharedB.tsx |  |
+| collectPermissionFilePaths | xC | 9576 | SrcSharedB.tsx |  |
+| collectPermissionFileChanges | SC | 9599 | SrcSharedB.tsx |  |
+| buildPermissionRequestViewModel | CC | 9614 | SrcSharedB.tsx |  |
+| webRemoteWorkspaceKey | wC | 9632 | SrcSharedB.tsx |  |
+| CODING_PLAN_SECURITY_VERIFICATION_REQUIRED | TC | 9635 | SrcSharedB.tsx |  |
+| CODING_PLAN_SYSTEM_BUSY | EC | 9636 | SrcSharedB.tsx |  |
+| readProcessEnv | DC | 9637 | SrcSharedB.tsx |  |
+| resolveIntranetMachineHost | OC | 9640 | SrcSharedB.tsx |  |
+| INTRANET_MACHINE_HOST | kC | 9643 | SrcSharedB.tsx |  |
+| INTRANET_PROBE_CONFIG | AC | 9645 | SrcSharedB.tsx |  |
+| shouldUseTestEndpoints | jC | 9654 | SrcSharedB.tsx |  |
+| coerceEnvRecord | MC | 9657 | SrcSharedB.tsx |  |
+| isTruthyEnvFlag | NC | 9660 | SrcSharedB.tsx |  |
+| normalizeEffectiveEnv | PC | 9665 | SrcSharedB.tsx |  |
+| normalizeNetworkEnv | FC | 9669 | SrcSharedB.tsx |  |
+| resolveEnvOverrideSignals | IC | 9673 | SrcSharedB.tsx |  |
+| resolveRuntimeEnvMode | LC | 9688 | SrcSharedB.tsx |  |
+| repoSnapshotStorageKey | RC | 9697 | SrcSharedB.tsx |  |
+| repoWikiWorkspaceKey | zC | 9701 | SrcSharedB.tsx |  |
+| findLocalWorkspaceIndexForward | BC | 9704 | SrcSharedB.tsx |  |
+| findNearestLocalWorkspaceIndex | VC | 9708 | SrcSharedB.tsx |  |
+| BrowserExecuteOpBaseSchema | HC | 9713 | SrcSharedB.tsx |  |
+
+## 57. B5 · SkillStore.tsx（skillStore chunk 全量）
+
+- 族/来源：独立 chunk · 源 `out/renderer/assets/skillStore-BmeKHDBI.js` · B5-11。行号口径：jsx 孪生 `skillStore-BmeKHDBI.jsx`（2,518 行）行（头注声明共 204 个模块内符号；本表含 200 模块符号 + 11 导入绑定）。
+- 符号条数：211（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| ReactInterop | d | 5 | SkillStore.tsx | import 侧，未单列符号 |
+| createStoreImpl | f | 6 | SkillStore.tsx |  |
+| createVanillaStore | p | 26 | SkillStore.tsx |  |
+| identitySelector | m | 27 | SkillStore.tsx |  |
+| useStore | h | 28 | SkillStore.tsx | 导出 J |
+| createBoundStore | g | 32 | SkillStore.tsx |  |
+| create | _ | 38 | SkillStore.tsx | 导出 q |
+| readBuildEnvSnapshot | ee | 40 | SkillStore.tsx |  |
+| isE2EStoreBridgeEnabled | v | 50 | SkillStore.tsx | 导出 K |
+| initialWorkspaceInitState | te | 53 | SkillStore.tsx |  |
+| DEFAULT_PROVIDER | ne | 58 | SkillStore.tsx |  |
+| initialTaskUiState | re | 59 | SkillStore.tsx |  |
+| initialTaskRuntimeState | ie | 67 | SkillStore.tsx |  |
+| createInitialWorkspaceTaskState | ae | 79 | SkillStore.tsx |  |
+| defaultWorkspaceTaskState | oe | 120 | SkillStore.tsx |  |
+| getDefaultWorkspaceTaskState | se | 121 | SkillStore.tsx |  |
+| hasOwnProperty | ce | 124 | SkillStore.tsx |  |
+| isUntitledTaskTitle | le | 127 | SkillStore.tsx |  |
+| pickTaskTitle | ue | 131 | SkillStore.tsx |  |
+| mergeTaskMeta | y | 134 | SkillStore.tsx | 导出 G |
+| mergeTaskMetaMany | de | 150 | SkillStore.tsx | 导出 W |
+| resolveWorkspaceKey | b | 155 | SkillStore.tsx | 导出 H |
+| pickRecordByTaskIds | x | 158 | SkillStore.tsx |  |
+| collectWorkspaceTaskIds | fe | 162 | SkillStore.tsx |  |
+| scopeWorkspaceTaskState | pe | 169 | SkillStore.tsx |  |
+| getWorkspaceTaskState | S | 195 | SkillStore.tsx | 导出 V |
+| updateWorkspaceTaskState | C | 200 | SkillStore.tsx |  |
+| getTaskRuntime | w | 218 | SkillStore.tsx | 导出 F |
+| getActiveTaskStatusError | me | 221 | SkillStore.tsx | 导出 z |
+| getTaskUi | T | 232 | SkillStore.tsx | 导出 I |
+| getMergedTaskListItem | E | 235 | SkillStore.tsx | 导出 P |
+| getMergedTaskList | he | 240 | SkillStore.tsx | 导出 R |
+| isTaskUnread | ge | 246 | SkillStore.tsx | 导出 L |
+| getWorkspaceTaskStateAlias | _e | 249 | SkillStore.tsx | 导出 U |
+| getWorkspaceInit | ve | 252 | SkillStore.tsx | 导出 B |
+| TASK_NAV_HISTORY_LIMIT | ye | 255 | SkillStore.tsx |  |
+| createEmptyTaskNavHistory | be | 256 | SkillStore.tsx |  |
+| isTaskNavTaskEntry | xe | 262 | SkillStore.tsx |  |
+| isTaskNavAutomationsEntry | Se | 265 | SkillStore.tsx | 导出 N |
+| isSameTaskNavEntry | Ce | 268 | SkillStore.tsx |  |
+| pushTaskNavEntry | we | 271 | SkillStore.tsx |  |
+| pushTaskNavTaskEntry | Te | 287 | SkillStore.tsx |  |
+| pushTaskNavAutomationsEntry | Ee | 297 | SkillStore.tsx |  |
+| canGoBackInTaskNav | De | 309 | SkillStore.tsx | 导出 j |
+| canGoForwardInTaskNav | Oe | 312 | SkillStore.tsx | 导出 M |
+| goBackInTaskNavHistory | ke | 315 | SkillStore.tsx |  |
+| goForwardInTaskNavHistory | Ae | 327 | SkillStore.tsx |  |
+| removeTaskFromTaskNavHistory | je | 339 | SkillStore.tsx |  |
+| createTaskNavActions | Me | 350 | SkillStore.tsx |  |
+| COMPOSER_DRAFT_STORAGE_PREFIX | Ne | 377 | SkillStore.tsx |  |
+| DEFAULT_DRAFT_SCOPE | Pe | 378 | SkillStore.tsx |  |
+| getDraftStorage | Fe | 379 | SkillStore.tsx |  |
+| getComposerDraftStorageKey | Ie | 387 | SkillStore.tsx |  |
+| readComposerDraftStore | Le | 391 | SkillStore.tsx |  |
+| clearComposerDraftScope | Re | 412 | SkillStore.tsx |  |
+| isSameConfigOptionValueJson | ze | 427 | SkillStore.tsx |  |
+| areConfigOptionsEqual | Be | 430 | SkillStore.tsx |  |
+| sortTaskListByRecency | Ve | 436 | SkillStore.tsx |  |
+| areElicitationOptionListsEqual | He | 439 | SkillStore.tsx |  |
+| isSameTaskInteractionRequest | Ue | 445 | SkillStore.tsx |  |
+| isSameUsageCost | We | 448 | SkillStore.tsx |  |
+| isSameUsageCacheStats | Ge | 453 | SkillStore.tsx |  |
+| isSameUsageBreakdown | Ke | 456 | SkillStore.tsx |  |
+| isSameTaskUsage | qe | 459 | SkillStore.tsx |  |
+| normalizeContextWindow | Je | 462 | SkillStore.tsx |  |
+| updateWorkspaceTaskStateResolved | Ye | 465 | SkillStore.tsx |  |
+| createTaskRuntimeActions | Xe | 476 | SkillStore.tsx | （16 动作） |
+| LAST_AGENT_PROVIDER_KEY | Ze | 850 | SkillStore.tsx |  |
+| getProviderStorage | Qe | 851 | SkillStore.tsx |  |
+| persistLastAgentProvider | $e | 859 | SkillStore.tsx |  |
+| CUSTOM_PROVIDER_IDS | et | 862 | SkillStore.tsx |  |
+| parseCustomProviderModelSuffix | tt | 863 | SkillStore.tsx |  |
+| isCustomModelOption | nt | 872 | SkillStore.tsx |  |
+| formatCustomModelId | rt | 878 | SkillStore.tsx | 导出 k |
+| parseCustomModelId | D | 881 | SkillStore.tsx | 导出 O |
+| filterNativeModelOptions | it | 884 | SkillStore.tsx | 导出 A |
+| LAST_AGENT_MODEL_KEY | O | 887 | SkillStore.tsx |  |
+| LAST_AGENT_THOUGHT_LEVEL_KEY | at | 888 | SkillStore.tsx |  |
+| LAST_AGENT_CONFIG_KEY | ot | 889 | SkillStore.tsx |  |
+| GLOBAL_SCOPE | k | 890 | SkillStore.tsx |  |
+| LAST_AGENT_CONFIG_SCHEMA_VERSION | A | 891 | SkillStore.tsx |  |
+| GLM_MODEL_PREFIX | st | 892 | SkillStore.tsx |  |
+| GLM_DATED_MODEL_PATTERN | ct | 893 | SkillStore.tsx |  |
+| MAX_THOUGHT_LEVEL | lt | 894 | SkillStore.tsx |  |
+| DISABLED_THOUGHT_VALUES | ut | 895 | SkillStore.tsx |  |
+| getModelStorage | j | 896 | SkillStore.tsx |  |
+| resolveIdentityKey | dt | 904 | SkillStore.tsx |  |
+| getIdentityScopedModelKey | M | 907 | SkillStore.tsx |  |
+| getWorkspaceModelStorageKey | ft | 910 | SkillStore.tsx |  |
+| getGlobalModelKey | pt | 913 | SkillStore.tsx |  |
+| getGlobalThoughtLevelKey | N | 916 | SkillStore.tsx |  |
+| getGlobalConfigKey | P | 919 | SkillStore.tsx |  |
+| getWorkspaceModelKey | F | 922 | SkillStore.tsx |  |
+| findModelSelectOption | mt | 925 | SkillStore.tsx |  |
+| findThoughtLevelSelectOption | ht | 928 | SkillStore.tsx |  |
+| collectModelValueAliases | gt | 931 | SkillStore.tsx |  |
+| extractModelNameFromQualified | _t | 944 | SkillStore.tsx |  |
+| isQualifiedProviderModel | vt | 953 | SkillStore.tsx |  |
+| getCurrentModelValue | I | 958 | SkillStore.tsx | 导出 w |
+| getCurrentThoughtLevelValue | yt | 962 | SkillStore.tsx | 导出 T |
+| parseLastAgentConfig | bt | 966 | SkillStore.tsx |  |
+| readGlobalLastAgentConfig | xt | 981 | SkillStore.tsx |  |
+| readLastAgentModel | St | 984 | SkillStore.tsx |  |
+| clearLegacyModelKeys | Ct | 996 | SkillStore.tsx |  |
+| writeLastAgentConfig | L | 999 | SkillStore.tsx | 导出 x |
+| persistLastAgentConfigIfUnchanged | wt | 1014 | SkillStore.tsx | 导出 S |
+| readLastAgentModelConfig | R | 1018 | SkillStore.tsx | 导出 E |
+| readLastAgentModelOnly | Tt | 1039 | SkillStore.tsx | 导出 D |
+| updateLastAgentModel | Et | 1042 | SkillStore.tsx | 导出 C |
+| clearLastAgentModelConfig | Dt | 1051 | SkillStore.tsx | 导出 y |
+| applyStoredModelToOptions | Ot | 1056 | SkillStore.tsx | 导出 v |
+| hasThoughtLevelOption | z | 1067 | SkillStore.tsx | 导出 b |
+| applyThoughtLevelToOptions | kt | 1071 | SkillStore.tsx |  |
+| resolveThoughtLevelWithMaxFallback | At | 1081 | SkillStore.tsx |  |
+| getMaxThoughtLevelIfSupported | jt | 1084 | SkillStore.tsx |  |
+| resolveMaxThoughtLevelForModel | Mt | 1087 | SkillStore.tsx |  |
+| isThoughtLevelDisabled | Nt | 1090 | SkillStore.tsx |  |
+| isGlmModelSelected | Pt | 1093 | SkillStore.tsx |  |
+| getModelNameAliases | B | 1097 | SkillStore.tsx |  |
+| applyStoredConfigToOptions | Ft | 1103 | SkillStore.tsx | 导出 _ |
+| findModeSelectOption | It | 1109 | SkillStore.tsx |  |
+| getCurrentModeValue | Lt | 1112 | SkillStore.tsx |  |
+| modelSwitchGuardCache | Rt | 1118 | SkillStore.tsx | 只读预留，无 set |
+| trimToNull | V | 1119 | SkillStore.tsx |  |
+| findSelectOptionByCategory | zt | 1124 | SkillStore.tsx |  |
+| getCurrentValueByCategory | Bt | 1127 | SkillStore.tsx |  |
+| isSameModelAlias | Vt | 1130 | SkillStore.tsx |  |
+| getModelSwitchGuard | Ht | 1134 | SkillStore.tsx |  |
+| findMatchingCurrentOption | Ut | 1139 | SkillStore.tsx |  |
+| optionHasValue | Wt | 1142 | SkillStore.tsx |  |
+| isOptionValueAcceptable | Gt | 1145 | SkillStore.tsx |  |
+| shouldKeepCurrentModelOption | Kt | 1148 | SkillStore.tsx |  |
+| pickAuthoritativeOption | qt | 1153 | SkillStore.tsx |  |
+| reconcileConfigOptionsWithGuard | Jt | 1157 | SkillStore.tsx |  |
+| parseProviderQualifiedModel | Yt | 1187 | SkillStore.tsx |  |
+| isSyntheticModel | Xt | 1198 | SkillStore.tsx |  |
+| normalizeGlmModelId | Zt | 1201 | SkillStore.tsx |  |
+| resolveTaskMetaModel | Qt | 1209 | SkillStore.tsx |  |
+| getModelDisplayName | $t | 1213 | SkillStore.tsx |  |
+| withModelCurrentValue | en | 1218 | SkillStore.tsx |  |
+| createModelSelectOption | tn | 1230 | SkillStore.tsx |  |
+| createModeSelectOption | nn | 1243 | SkillStore.tsx |  |
+| createThoughtLevelSelectOption | rn | 1253 | SkillStore.tsx |  |
+| withCurrentValueGeneric | an | 1266 | SkillStore.tsx |  |
+| injectTaskModelIntoOptions | on | 1278 | SkillStore.tsx |  |
+| buildTaskConfigOptionsFromMeta | sn | 1294 | SkillStore.tsx | 导出 g |
+| groupedDraftCounter | cn | 1316 | SkillStore.tsx |  |
+| createGroupedDraftId | ln | 1317 | SkillStore.tsx |  |
+| sanitizeThoughtLevelOption | un | 1320 | SkillStore.tsx |  |
+| sanitizeConfigOptions | H | 1330 | SkillStore.tsx |  |
+| cloneConfigOptions | dn | 1333 | SkillStore.tsx |  |
+| isSameGroupedDraftPlacement | fn | 1341 | SkillStore.tsx |  |
+| isModeSelectOption | pn | 1344 | SkillStore.tsx |  |
+| createModeOptionFromCurrentId | mn | 1347 | SkillStore.tsx |  |
+| replaceModeOption | U | 1361 | SkillStore.tsx |  |
+| applyModeIdToOptions | hn | 1366 | SkillStore.tsx |  |
+| updateActiveTaskConfigOptions | gn | 1378 | SkillStore.tsx |  |
+| resolveTaskConfigOptionsForActivation | _n | 1391 | SkillStore.tsx |  |
+| createTaskStateActions | vn | 1411 | SkillStore.tsx | （25 动作） |
+| useTaskStore | yn | 1794 | SkillStore.tsx | 导出 h + E2E 挂载 (1800) |
+| WHITEBOARD_DEFAULT_WIDTH | bn | 1802 | SkillStore.tsx |  |
+| WHITEBOARD_DEFAULT_HEIGHT | xn | 1803 | SkillStore.tsx |  |
+| WHITEBOARD_DARK_COLOR | Sn | 1804 | SkillStore.tsx | 导出 c |
+| WHITEBOARD_ADD_TO_CHAT_EVENT | Cn | 1805 | SkillStore.tsx | 导出 s |
+| WHITEBOARD_BACKGROUND_COLOR | wn | 1806 | SkillStore.tsx |  |
+| resolveWhiteboardWorkspaceKey | W | 1807 | SkillStore.tsx | 导出 l |
+| createWhiteboard | Tn | 1813 | SkillStore.tsx |  |
+| createUniqueWhiteboardName | En | 1826 | SkillStore.tsx |  |
+| createWhiteboardStroke | Dn | 1833 | SkillStore.tsx | 导出 d |
+| renderWhiteboardToContext | On | 1842 | SkillStore.tsx | 导出 p |
+| drawWhiteboardStroke | kn | 1849 | SkillStore.tsx |  |
+| renderWhiteboardToPngDataUrl | An | 1861 | SkillStore.tsx |  |
+| whiteboardToPngFile | jn | 1868 | SkillStore.tsx | 导出 u |
+| isWhiteboardAddToChatEvent | Mn | 1879 | SkillStore.tsx | 导出 m |
+| dispatchWhiteboardAddToChat | Nn | 1882 | SkillStore.tsx | 导出 f |
+| sanitizeWhiteboardFileName | Pn | 1890 | SkillStore.tsx |  |
+| isWhiteboardAddToChatDetail | Fn | 1893 | SkillStore.tsx |  |
+| getWhiteboardWorkspaceState | G | 1898 | SkillStore.tsx |  |
+| updateWhiteboardBoard | K | 1904 | SkillStore.tsx |  |
+| useWhiteboardStore | In | 1923 | SkillStore.tsx | 导出 o + E2E 挂载 (2014) |
+| subagentContextInflight | q | 2015 | SkillStore.tsx |  |
+| subagentContextLoadSeqByScope | J | 2016 | SkillStore.tsx |  |
+| subagentContextLoadSeq | Ln | 2017 | SkillStore.tsx |  |
+| getSubagentContextScopeKey | Y | 2018 | SkillStore.tsx | 导出 i |
+| setSubagentContext | X | 2021 | SkillStore.tsx |  |
+| loadSubagentContext | Rn | 2029 | SkillStore.tsx |  |
+| loadSubagentContextIntoStore | zn | 2043 | SkillStore.tsx |  |
+| useSubagentContextsStore | Bn | 2094 | SkillStore.tsx | 导出 a |
+| subagentListInflight | Z | 2135 | SkillStore.tsx |  |
+| subagentOperationSeq | Vn | 2136 | SkillStore.tsx |  |
+| getSubagentScopeKey | Hn | 2137 | SkillStore.tsx |  |
+| listSubagentsCached | Un | 2140 | SkillStore.tsx |  |
+| nextSubagentOperationSeq | Wn | 2155 | SkillStore.tsx |  |
+| isCurrentSubagentOperation | Q | 2158 | SkillStore.tsx |  |
+| useSubagentsStore | Gn | 2161 | SkillStore.tsx | 导出 r + E2E 挂载 (2356) |
+| refreshSubagentStoresForWorkspace | Kn | 2357 | SkillStore.tsx | 导出 n |
+| skillListInflight | $ | 2368 | SkillStore.tsx |  |
+| getSkillScopeKey | qn | 2369 | SkillStore.tsx |  |
+| listSkillsCached | Jn | 2372 | SkillStore.tsx |  |
+| useSkillsStore | Yn | 2387 | SkillStore.tsx | 导出 t + E2E 挂载 (2517) |
+| toEsmInterop | e |  | SkillStore.tsx | import chunk-Cq_f4orQ s |
+| reactModuleFactory | t |  | SkillStore.tsx | import react t |
+| formatCustomQualifiedModelId | n | 3 | SkillStore.tsx | import =F 内部 rS |
+| formatNativeSupplierKey | r | 3 | SkillStore.tsx | import =M cS |
+| parseCustomQualifiedModelId | i | 3 | SkillStore.tsx | import =P iS |
+| getDefaultModeOptions | a | 3 | SkillStore.tsx | import =Y kx |
+| resolveAgentProvider | o | 3 | SkillStore.tsx | import =ds Es，恒 'glm' |
+| createUuid | s | 3 | SkillStore.tsx | import =ot cx |
+| formatBuiltinQualifiedModelId | c | 3 | SkillStore.tsx | import =q Fx |
+| isGlmProvider | l | 3 | SkillStore.tsx | import =us Ds |
+| logger | u |  | SkillStore.tsx | import logger t |
+
+## 58. B5 · UsageStatsUiParts.tsx（用量 UI 件 + Tooltip 全栈）
+
+- 族/来源：独立 chunk · 源 `out/renderer/assets/usageStatsUiParts-CiR7YEhh.js`（883 行）· B5-11。行号口径：jsx 孪生 `usageStatsUiParts-CiR7YEhh.jsx`（747 行）行。
+- 符号条数：95（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| toEsmInterop | e | 1 | UsageStatsUiParts.tsx |  |
+| commonJsModule | t | 1 | UsageStatsUiParts.tsx |  |
+| reactModuleFactory | n | 2 | UsageStatsUiParts.tsx |  |
+| jsxRuntimeModuleFactory | r | 4 | UsageStatsUiParts.tsx |  |
+| isApplePlatform | i | 5 | UsageStatsUiParts.tsx |  |
+| createContextScope | a | 6 | UsageStatsUiParts.tsx |  |
+| usePopperScope | o | 6 | UsageStatsUiParts.tsx |  |
+| Portal | s | 6 | UsageStatsUiParts.tsx |  |
+| Primitive | c | 6 | UsageStatsUiParts.tsx |  |
+| PopperRoot | l | 6 | UsageStatsUiParts.tsx |  |
+| DismissableLayer | u | 6 | UsageStatsUiParts.tsx |  |
+| useId | d | 6 | UsageStatsUiParts.tsx |  |
+| PopperArrow | f | 6 | UsageStatsUiParts.tsx |  |
+| useControllableState | p | 6 | UsageStatsUiParts.tsx |  |
+| PopperContent | m | 6 | UsageStatsUiParts.tsx |  |
+| Presence | h | 6 | UsageStatsUiParts.tsx |  |
+| Slot | g | 6 | UsageStatsUiParts.tsx |  |
+| composeEventHandlers | _ | 6 | UsageStatsUiParts.tsx |  |
+| useComposedRefs | v | 7 | UsageStatsUiParts.tsx |  |
+| createSlottable | y | 7 | UsageStatsUiParts.tsx |  |
+| cn | b | 8 | UsageStatsUiParts.tsx |  |
+| ReactInterop | x | 9 | UsageStatsUiParts.tsx |  |
+| jsxRuntime | S | 10 | UsageStatsUiParts.tsx |  |
+| VISUALLY_HIDDEN_STYLE | C | 11 | UsageStatsUiParts.tsx |  |
+| VISUALLY_HIDDEN_NAME | w | 23 | UsageStatsUiParts.tsx |  |
+| VisuallyHidden | T | 24 | UsageStatsUiParts.tsx |  |
+| VisuallyHiddenComponent | E | 29 | UsageStatsUiParts.tsx |  |
+| useSyncExternalStoreShimFactory | D | 30 | UsageStatsUiParts.tsx |  |
+| useSyncExternalStoreShim | ee | 80 | UsageStatsUiParts.tsx |  |
+| TooltipScope | O | 83 | UsageStatsUiParts.tsx |  |
+| useTooltipScopeFactory | te | 83 | UsageStatsUiParts.tsx |  |
+| useTooltipPopperScope | k | 84 | UsageStatsUiParts.tsx |  |
+| TOOLTIP_PROVIDER_NAME | A | 85 | UsageStatsUiParts.tsx |  |
+| DEFAULT_DELAY_DURATION | ne | 86 | UsageStatsUiParts.tsx |  |
+| TOOLTIP_OPEN_EVENT | j | 87 | UsageStatsUiParts.tsx |  |
+| TooltipProviderContextProvider | re | 88 | UsageStatsUiParts.tsx |  |
+| useTooltipProviderContext | M | 88 | UsageStatsUiParts.tsx |  |
+| TooltipProvider | N | 89 | UsageStatsUiParts.tsx |  |
+| TOOLTIP_NAME | P | 122 | UsageStatsUiParts.tsx |  |
+| TooltipContextProvider | ie | 123 | UsageStatsUiParts.tsx |  |
+| useTooltipContext | F | 123 | UsageStatsUiParts.tsx |  |
+| Tooltip | I | 124 | UsageStatsUiParts.tsx |  |
+| TOOLTIP_TRIGGER_NAME | L | 187 | UsageStatsUiParts.tsx |  |
+| TooltipTrigger | R | 188 | UsageStatsUiParts.tsx |  |
+| TOOLTIP_PORTAL_NAME | z | 217 | UsageStatsUiParts.tsx |  |
+| TooltipPortalContextProvider | ae | 218 | UsageStatsUiParts.tsx |  |
+| useTooltipPortalContext | oe | 218 | UsageStatsUiParts.tsx |  |
+| TooltipPortal | B | 221 | UsageStatsUiParts.tsx |  |
+| TOOLTIP_CONTENT_NAME | V | 243 | UsageStatsUiParts.tsx |  |
+| TooltipContent | H | 244 | UsageStatsUiParts.tsx |  |
+| TooltipContentHoverable | se | 261 | UsageStatsUiParts.tsx |  |
+| TooltipContentContextProvider | ce | 312 | UsageStatsUiParts.tsx |  |
+| useTooltipContentContext | le | 312 | UsageStatsUiParts.tsx |  |
+| TooltipContentSlottable | ue | 315 | UsageStatsUiParts.tsx |  |
+| TooltipContentBase | U | 316 | UsageStatsUiParts.tsx |  |
+| TOOLTIP_ARROW_NAME | W | 372 | UsageStatsUiParts.tsx |  |
+| TooltipArrow | de | 373 | UsageStatsUiParts.tsx |  |
+| resolveNearestSide | fe | 386 | UsageStatsUiParts.tsx |  |
+| getSideOffsetPoints | pe | 404 | UsageStatsUiParts.tsx |  |
+| getRectCornerPoints | me | 446 | UsageStatsUiParts.tsx |  |
+| isPointInPolygon | he | 467 | UsageStatsUiParts.tsx |  |
+| getSortedHullPoints | ge | 484 | UsageStatsUiParts.tsx |  |
+| getConvexHull | _e | 488 | UsageStatsUiParts.tsx |  |
+| TooltipProviderRoot | ve | 513 | UsageStatsUiParts.tsx |  |
+| TooltipRoot | ye | 514 | UsageStatsUiParts.tsx |  |
+| TooltipTriggerRoot | be | 515 | UsageStatsUiParts.tsx |  |
+| TooltipPortalRoot | xe | 516 | UsageStatsUiParts.tsx |  |
+| TooltipContentRoot | Se | 517 | UsageStatsUiParts.tsx |  |
+| ShadcnTooltipProvider | Ce | 518 | UsageStatsUiParts.tsx |  |
+| ShadcnTooltip | G | 528 | UsageStatsUiParts.tsx |  |
+| ShadcnTooltipTrigger | K | 536 | UsageStatsUiParts.tsx |  |
+| ShadcnTooltipContent | q | 544 | UsageStatsUiParts.tsx |  |
+| TOOLTIP_KBD_CLASS | J | 554 | UsageStatsUiParts.tsx |  |
+| setRefValue | Y | 555 | UsageStatsUiParts.tsx |  |
+| InfoTooltip | X | 564 | UsageStatsUiParts.tsx |  |
+| formatNumberCompact | Z | 599 | UsageStatsUiParts.tsx |  |
+| USAGE_HEATMAP_COLORS | Q | 609 | UsageStatsUiParts.tsx |  |
+| HEATMAP_WEEK_COUNT | we | 610 | UsageStatsUiParts.tsx |  |
+| HEATMAP_DAYS_PER_WEEK | $ | 611 | UsageStatsUiParts.tsx |  |
+| MS_PER_DAY | Te | 612 | UsageStatsUiParts.tsx |  |
+| formatCountCompact | Ee | 613 | UsageStatsUiParts.tsx |  |
+| formatTokens | De | 619 | UsageStatsUiParts.tsx |  |
+| formatPercent | Oe | 622 | UsageStatsUiParts.tsx |  |
+| formatUtcDateShort | ke | 628 | UsageStatsUiParts.tsx |  |
+| resolveModelLabel | Ae | 637 | UsageStatsUiParts.tsx |  |
+| heatmapCellStyle | je | 642 | UsageStatsUiParts.tsx |  |
+| formatHeatmapCellLabel | Me | 647 | UsageStatsUiParts.tsx |  |
+| UsageStatCard | Ne | 656 | UsageStatsUiParts.tsx |  |
+| UsageEmptyState | Pe | 669 | UsageStatsUiParts.tsx |  |
+| dayIndexOfDate | Fe | 675 | UsageStatsUiParts.tsx |  |
+| dateOfDayIndex | Ie | 679 | UsageStatsUiParts.tsx |  |
+| createEmptyHeatmapCell | Le | 682 | UsageStatsUiParts.tsx |  |
+| normalizeHeatmapWeeks | Re | 691 | UsageStatsUiParts.tsx |  |
+| UsageHeatmap | ze | 715 | UsageStatsUiParts.tsx |  |
+| UsageHeatmapCell | Be | 739 | UsageStatsUiParts.tsx |  |
+
+## 59. B5 · ProcessMonitor.tsx（进程监控独立窗口）
+
+- 族/来源：独立 chunk · 源 `out/renderer/assets/process-monitor-DOlutpPR.js`（180 行）· B5-11。行号口径：jsx 孪生 `process-monitor-DOlutpPR.jsx`（94 行）行。
+- 符号条数：20（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| toEsmInterop | e | 1 | ProcessMonitor.tsx |  |
+| watchUiFontSizeStorageChanges | t | 2 | ProcessMonitor.tsx |  |
+| applyUiFontSizeCssVariable | n | 2 | ProcessMonitor.tsx |  |
+| readStoredUiFontSizePx | r | 2 | ProcessMonitor.tsx |  |
+| reactDomClientModule | i | 3 | ProcessMonitor.tsx |  |
+| reactModuleFactory | a | 4 | ProcessMonitor.tsx |  |
+| jsxRuntimeModuleFactory | o | 5 | ProcessMonitor.tsx |  |
+| ReactInterop | s | 6 | ProcessMonitor.tsx |  |
+| ReactDOMClient | c | 7 | ProcessMonitor.tsx |  |
+| jsxRuntime | l | 8 | ProcessMonitor.tsx |  |
+| PROCESS_MONITOR_MESSAGES | u | 9 | ProcessMonitor.tsx |  |
+| resolveThemeDarkness | d | 31 | ProcessMonitor.tsx |  |
+| applyStoredThemeClasses | f | 34 | ProcessMonitor.tsx |  |
+| resolveStoredLocale | p | 40 | ProcessMonitor.tsx |  |
+| countProcessTreeNodes | m | 43 | ProcessMonitor.tsx |  |
+| PROCESS_GRID_TEMPLATE_COLUMNS | h | 46 | ProcessMonitor.tsx |  |
+| formatMemoryMegabytes | g | 47 | ProcessMonitor.tsx |  |
+| ProcessTreeNodeRow | _ | 52 | ProcessMonitor.tsx |  |
+| ProcessMonitorApp | v | 61 | ProcessMonitor.tsx |  |
+| rootElement | y | 93 | ProcessMonitor.tsx |  |
+
+## 60. B5 · XlsxDeepA.tsx（react-xlsx 深部 A 段：控制器 + canvas 图表渲染层）
+
+- 族/来源：xlsx 族 · 源 chunk `out/renderer/assets/previewPaneOfficeXlsxContent-XeHwYdMn.js`（199,508 行）· B5-12a。行号口径：chunk js 行。
+- 符号条数：154（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| WORLD_COUNTRY_FEATURES | kd | 183972 | XlsxDeepA.tsx |  |
+| US_STATE_FIPS_INFO | Ad | 183973 | XlsxDeepA.tsx |  |
+| US_STATE_FEATURES | jd | 184026 | XlsxDeepA.tsx |  |
+| COUNTRY_NAME_ALIASES | Md | 184038 | XlsxDeepA.tsx |  |
+| US_STATE_NAME_ALIASES | Nd | 184057 | XlsxDeepA.tsx |  |
+| COUNTRY_FEATURE_BY_NAME | Pd | 184064 | XlsxDeepA.tsx |  |
+| US_STATE_FEATURE_BY_NAME | Fd | 184074 | XlsxDeepA.tsx |  |
+| normalizeGeoName | Vd | 184117 | XlsxDeepA.tsx |  |
+| findGeoFeature | nf | 184213 | XlsxDeepA.tsx |  |
+| resolveRegionSet | lf | 184254 | XlsxDeepA.tsx |  |
+| featuresForRegionSet | uf | 184260 | XlsxDeepA.tsx |  |
+| parseHexColor | Id | 184090 | XlsxDeepA.tsx |  |
+| mixHexColors | Ld | 184100 | XlsxDeepA.tsx |  |
+| lightenHexColor | Rd | 184108 | XlsxDeepA.tsx |  |
+| darkenHexColor | zd | 184111 | XlsxDeepA.tsx |  |
+| clampNumber | Bd | 184114 | XlsxDeepA.tsx |  |
+| SPREADSHEET_FONT_STACK | Hd | 184129 | XlsxDeepA.tsx |  |
+| DEFAULT_CHART_TEXT_COLOR | Ud | 184132 | XlsxDeepA.tsx |  |
+| DEFAULT_AXIS_LABEL_COLOR | Wd | 184133 | XlsxDeepA.tsx |  |
+| quoteFontFamilyName | Gd | 184134 | XlsxDeepA.tsx |  |
+| resolveFontFamilyStack | Kd | 184146 | XlsxDeepA.tsx |  |
+| resolveTitleTextColor | qd | 184154 | XlsxDeepA.tsx |  |
+| resolveAxisLabelColor | Jd | 184157 | XlsxDeepA.tsx |  |
+| resolveSecondaryTextColor | Yd | 184160 | XlsxDeepA.tsx |  |
+| toFiniteNumber | Xd | 184163 | XlsxDeepA.tsx |  |
+| normalizeHexColor | fp | 184993 | XlsxDeepA.tsx |  |
+| formatTickNumber | Cp | 185197 | XlsxDeepA.tsx |  |
+| formatPercentTick | wp | 185202 | XlsxDeepA.tsx |  |
+| truncateLabel | kp | 185244 | XlsxDeepA.tsx |  |
+| toCleanLabel | wf | 184404 | XlsxDeepA.tsx |  |
+| formulaRowCount | Tf | 184411 | XlsxDeepA.tsx |  |
+| TWO_PI | jp | 185276 | XlsxDeepA.tsx |  |
+| roundPathNumber | Fp | 185300 | XlsxDeepA.tsx |  |
+| resolveSeriesFillColor | Zd | 184173 | XlsxDeepA.tsx |  |
+| resolveSeriesLineColor | Qd | 184178 | XlsxDeepA.tsx |  |
+| resolveDataPointColor | $d | 184183 | XlsxDeepA.tsx |  |
+| hasHistogramBins | ef | 184206 | XlsxDeepA.tsx |  |
+| hasHistogramSeries | tf | 184210 | XlsxDeepA.tsx |  |
+| resolveReferenceLineColor | rf | 184223 | XlsxDeepA.tsx |  |
+| resolveRegionMapBaseColor | af | 184226 | XlsxDeepA.tsx |  |
+| extractValueColorScale | of | 184236 | XlsxDeepA.tsx |  |
+| extractCategoryColorLabels | sf | 184241 | XlsxDeepA.tsx |  |
+| extractLayoutProperties | cf | 184250 | XlsxDeepA.tsx |  |
+| normalizeChartStyleId | hf | 184301 | XlsxDeepA.tsx |  |
+| surfaceStyle32Palette | gf | 184304 | XlsxDeepA.tsx |  |
+| resolvePieSliceColor | _f | 184309 | XlsxDeepA.tsx |  |
+| pickPrimarySeriesIndex | vf | 184315 | XlsxDeepA.tsx |  |
+| resolveBarSeriesStyle | yf | 184332 | XlsxDeepA.tsx |  |
+| barPaddingFromGapWidth | bf | 184351 | XlsxDeepA.tsx |  |
+| normalizeLegendPosition | xf | 184356 | XlsxDeepA.tsx |  |
+| normalizeMarkerSymbol | Sf | 184378 | XlsxDeepA.tsx |  |
+| resolveChartRenderType | Cf | 184381 | XlsxDeepA.tsx |  |
+| resolveCategoryLabels | Ef | 184421 | XlsxDeepA.tsx |  |
+| isComboChart | Df | 184453 | XlsxDeepA.tsx |  |
+| comboLegendItems | Of | 184457 | XlsxDeepA.tsx |  |
+| findAxisByIds | kf | 184467 | XlsxDeepA.tsx |  |
+| resolveTypeGroups | Af | 184473 | XlsxDeepA.tsx |  |
+| toAxisNumber | jf | 184492 | XlsxDeepA.tsx |  |
+| extractNumericValue | Mf | 184495 | XlsxDeepA.tsx |  |
+| collectPieDataPoints | Nf | 184521 | XlsxDeepA.tsx |  |
+| isSubtotalSeries | Pf | 184532 | XlsxDeepA.tsx |  |
+| collectStackedTotals | Ff | 184537 | XlsxDeepA.tsx |  |
+| resolveLegendItems | gp | 185063 | XlsxDeepA.tsx |  |
+| computeChartLayout | _p | 185092 | XlsxDeepA.tsx |  |
+| buildHierarchyTree | If | 184575 | XlsxDeepA.tsx |  |
+| resolveQuartileMethod | Lf | 184616 | XlsxDeepA.tsx |  |
+| resolveBoxWhiskerVisibility | Rf | 184624 | XlsxDeepA.tsx |  |
+| quantileValue | zf | 184635 | XlsxDeepA.tsx |  |
+| computeBoxWhiskerStats | Bf | 184648 | XlsxDeepA.tsx |  |
+| resolveSunburstFillColor | Vf | 184681 | XlsxDeepA.tsx |  |
+| resolveTreemapFillColor | Hf | 184686 | XlsxDeepA.tsx |  |
+| tileHierarchyNode | Uf | 184690 | XlsxDeepA.tsx |  |
+| resolveSurfaceBaseColor | Wf | 184699 | XlsxDeepA.tsx |  |
+| normalizeSurfaceStyleId | Gf | 184709 | XlsxDeepA.tsx |  |
+| resolveSurfaceAccentColor | Kf | 184712 | XlsxDeepA.tsx |  |
+| surfaceStyleRamp | qf | 184718 | XlsxDeepA.tsx |  |
+| resolveSurfaceStylePalette | Jf | 184723 | XlsxDeepA.tsx |  |
+| isStyledSurfaceChart | Yf | 184736 | XlsxDeepA.tsx |  |
+| resolveSurfaceBandCount | Xf | 184747 | XlsxDeepA.tsx |  |
+| resolveSurfaceColorRamp | Zf | 184765 | XlsxDeepA.tsx |  |
+| resolveSurfaceBandColor | Qf | 184774 | XlsxDeepA.tsx |  |
+| computeSurfaceValueScale | $f | 184780 | XlsxDeepA.tsx |  |
+| sampleSurfaceRampColor | ep | 184809 | XlsxDeepA.tsx |  |
+| resolveSurfaceCellColor | tp | 184819 | XlsxDeepA.tsx |  |
+| surfaceBandIndexForValue | np | 184822 | XlsxDeepA.tsx |  |
+| resolveSurfaceLineColors | op | 184886 | XlsxDeepA.tsx |  |
+| resolveSurfaceLineColor | sp | 184893 | XlsxDeepA.tsx |  |
+| resolveSurfacePlotRect | cp | 184899 | XlsxDeepA.tsx |  |
+| surfaceLegendItems | lp | 184918 | XlsxDeepA.tsx |  |
+| is2dSurfaceChart | up | 184930 | XlsxDeepA.tsx |  |
+| renderSurface2dFrame | dp | 184941 | XlsxDeepA.tsx |  |
+| pointsToLinePath | rp | 184828 | XlsxDeepA.tsx |  |
+| splitDefinedPointRuns | ip | 184836 | XlsxDeepA.tsx |  |
+| joinContourSegments | ap | 184853 | XlsxDeepA.tsx |  |
+| niceTickStep | vp | 185122 | XlsxDeepA.tsx |  |
+| buildTicks | yp | 185128 | XlsxDeepA.tsx |  |
+| buildValueScale | bp | 185138 | XlsxDeepA.tsx |  |
+| resolveAxisScale | xp | 185151 | XlsxDeepA.tsx |  |
+| computeBar3dDepth | Sp | 185165 | XlsxDeepA.tsx |  |
+| isDateFormatCode | Tp | 185205 | XlsxDeepA.tsx |  |
+| excelSerialToDate | Ep | 185214 | XlsxDeepA.tsx |  |
+| formatExcelDate | Dp | 185219 | XlsxDeepA.tsx |  |
+| formatCategoryValue | Op | 185236 | XlsxDeepA.tsx |  |
+| markerSymbolPath | Ap | 185250 | XlsxDeepA.tsx |  |
+| normalizeArcAngles | Mp | 185277 | XlsxDeepA.tsx |  |
+| arcTopFaceSegments | Np | 185283 | XlsxDeepA.tsx |  |
+| pieArcPoint | Pp | 185297 | XlsxDeepA.tsx |  |
+| pie3dSidePaths | Ip | 185303 | XlsxDeepA.tsx |  |
+| isArcBackAngle | Lp | 185320 | XlsxDeepA.tsx |  |
+| pie3dSliceWallPath | Rp | 185324 | XlsxDeepA.tsx |  |
+| pointsToPath | qp | 185752 | XlsxDeepA.tsx |  |
+| project3dPoint | Jp | 185757 | XlsxDeepA.tsx |  |
+| scalePoint2d | Hp | 185522 | XlsxDeepA.tsx |  |
+| ellipseArcPoints | Up | 185525 | XlsxDeepA.tsx |  |
+| closedOutlinePath | Wp | 185538 | XlsxDeepA.tsx |  |
+| renderChartTitle | zp | 185338 | XlsxDeepA.tsx |  |
+| renderChartLegend | Bp | 185353 | XlsxDeepA.tsx |  |
+| renderCartesianGrid | Vp | 185399 | XlsxDeepA.tsx |  |
+| resolveStockSeriesRoles | pp | 185000 | XlsxDeepA.tsx |  |
+| resolveStockPalette | mp | 185022 | XlsxDeepA.tsx |  |
+| stockLegendItems | hp | 185045 | XlsxDeepA.tsx |  |
+| findSeriesByNamePattern | om | 188487 | XlsxDeepA.tsx |  |
+| renderCylinderCone3d | Gp | 185541 | XlsxDeepA.tsx |  |
+| renderBar3dShape | Kp | 185614 | XlsxDeepA.tsx |  |
+| renderLine3dChart | Yp | 185769 | XlsxDeepA.tsx |  |
+| renderBarChart | Xp | 186122 | XlsxDeepA.tsx |  |
+| renderLineAreaChart | Zp | 186505 | XlsxDeepA.tsx |  |
+| renderComboChart | Qp | 186738 | XlsxDeepA.tsx |  |
+| renderScatterChart | $p | 186906 | XlsxDeepA.tsx |  |
+| renderBubbleChart | em | 187147 | XlsxDeepA.tsx |  |
+| renderRadarChart | tm | 187378 | XlsxDeepA.tsx |  |
+| renderPieChart | nm | 187540 | XlsxDeepA.tsx |  |
+| renderBarOfPieChart | rm | 187776 | XlsxDeepA.tsx |  |
+| renderSurfaceChart | im | 187927 | XlsxDeepA.tsx |  |
+| renderSurfaceHitAreas | am | 188448 | XlsxDeepA.tsx |  |
+| renderStockChart | sm | 188491 | XlsxDeepA.tsx |  |
+| renderWaterfallChart | cm | 188659 | XlsxDeepA.tsx |  |
+| renderFunnelChart | lm | 188793 | XlsxDeepA.tsx |  |
+| renderSunburstChart | um | 188844 | XlsxDeepA.tsx |  |
+| renderTreemapChart | dm | 188910 | XlsxDeepA.tsx |  |
+| renderBoxWhiskerChart | fm | 188972 | XlsxDeepA.tsx |  |
+| renderRegionMapChart | pm | 189183 | XlsxDeepA.tsx |  |
+| renderUnsupportedChart | mm | 189294 | XlsxDeepA.tsx |  |
+| renderChartBody | hm | 189317 | XlsxDeepA.tsx |  |
+| ChartSvgRenderer | gm | 189364 | XlsxDeepA.tsx |  |
+| LIGHT_GRID_THEME | _m | 189454 | XlsxDeepA.tsx |  |
+| DARK_GRID_THEME | vm | 189476 | XlsxDeepA.tsx |  |
+| isDarkGridTheme | ym | 189498 | XlsxDeepA.tsx |  |
+| resolveGridTheme | bm | 189501 | XlsxDeepA.tsx |  |
+| useSpreadsheetController | Ru | 15672 | XlsxDeepA.tsx |  |
+| sampleColorRamp | df | 184263 | XlsxDeepA.tsx |  |
+| resolveRegionValueColor | ff | 184272 | XlsxDeepA.tsx |  |
+| resolveRegionMapStrokeColor | pf | 184278 | XlsxDeepA.tsx |  |
+| regionMapLegendItems | mf | 184281 | XlsxDeepA.tsx |  |
+
+## 61. B5 · XlsxDeepB.tsx（react-xlsx 深部 B 段：oy 网格主组件，单一符号）
+
+- 族/来源：xlsx 族 · 源 chunk `out/renderer/assets/previewPaneOfficeXlsxContent-XeHwYdMn.js`（199,508 行）· B5-12b。行号口径：chunk js 行。
+- 符号条数：1（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| SpreadsheetGrid | oy | 193217–199291 | XlsxDeepB.tsx | 高（结构逐字；类型注记机器补） |
+
+## 62. B5 · XlsxDeepC.tsx（react-xlsx 深部 C 段：常量族/上下文/工具栏/行渲染）
+
+- 族/来源：xlsx 族 · 源 chunk `out/renderer/assets/previewPaneOfficeXlsxContent-XeHwYdMn.js`（199,508 行）· B5-12c。行号口径：chunk js 行。
+- 符号条数：297（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| clampValue | Vu | 183064 | XlsxDeepC.tsx |  |
+| parseNumericInput | Hu | 183067 | XlsxDeepC.tsx |  |
+| parseSurfaceHexRgb | Uu | 183077 | XlsxDeepC.tsx |  |
+| mixSurfaceHexColors | Wu | 183087 | XlsxDeepC.tsx |  |
+| lightenSurfaceHex | Gu | 183095 | XlsxDeepC.tsx |  |
+| darkenSurfaceHex | Ku | 183098 | XlsxDeepC.tsx |  |
+| resolveChartPrimaryColor | qu | 183101 | XlsxDeepC.tsx |  |
+| unwrapChartStyleId | Ju | 183111 | XlsxDeepC.tsx |  |
+| normalizeHexColorLiteral | Yu | 183114 | XlsxDeepC.tsx |  |
+| resolveSeriesAccentColor | Xu | 183121 | XlsxDeepC.tsx |  |
+| surfaceStyleTintRamp | Zu | 183127 | XlsxDeepC.tsx |  |
+| surfaceStyleRampFor | Qu | 183132 | XlsxDeepC.tsx |  |
+| isSurfaceStyleApplied | $u | 183145 | XlsxDeepC.tsx |  |
+| resolveSurfaceBandTotal | ed | 183156 | XlsxDeepC.tsx |  |
+| resolveSurfaceBandRamp | td | 183174 | XlsxDeepC.tsx |  |
+| computeSurfaceValueTicks | nd | 183183 | XlsxDeepC.tsx |  |
+| surfaceBandColorForValue | rd | 183212 | XlsxDeepC.tsx |  |
+| surfaceBandColorAlias | id | 183221 | XlsxDeepC.tsx |  |
+| surfaceLineColorsForChart | ad | 183224 | XlsxDeepC.tsx |  |
+| surfaceLineColorForValue | od | 183231 | XlsxDeepC.tsx |  |
+| hexToRgbaTuple | sd | 183240 | XlsxDeepC.tsx |  |
+| surfaceLitRgba | cd | 183244 | XlsxDeepC.tsx |  |
+| bilinearInterpolateValue | ld | 183247 | XlsxDeepC.tsx |  |
+| normalizeGridU | ud | 183250 | XlsxDeepC.tsx |  |
+| normalizeGridV | dd | 183253 | XlsxDeepC.tsx |  |
+| surfaceValueElevation | fd | 183256 | XlsxDeepC.tsx |  |
+| projectSurfacePoint3d | pd | 183259 | XlsxDeepC.tsx |  |
+| triangleSurfaceNormal | md | 183271 | XlsxDeepC.tsx |  |
+| withAbsoluteDepth | hd | 183284 | XlsxDeepC.tsx |  |
+| withRelativeDepth | gd | 183287 | XlsxDeepC.tsx |  |
+| isFlatSurfaceChart | _d | 183290 | XlsxDeepC.tsx |  |
+| buildSurfaceGeometry | vd | 183301 | XlsxDeepC.tsx |  |
+| SurfaceChartPanel | yd | 183672 | XlsxDeepC.tsx |  |
+| chartSeriesDataAttrs | bd | 183890 | XlsxDeepC.tsx |  |
+| chartSeriesFirstDataAttrs | xd | 183898 | XlsxDeepC.tsx |  |
+| closestChartSeriesElement | Sd | 183901 | XlsxDeepC.tsx |  |
+| resolveChartElementTarget | Cd | 183904 | XlsxDeepC.tsx |  |
+| isChartSeriesSelected | wd | 183926 | XlsxDeepC.tsx |  |
+| isChartPointSelected | Td | 183929 | XlsxDeepC.tsx |  |
+| isChartElementSelected | Ed | 183932 | XlsxDeepC.tsx |  |
+| renderRectSelectionHandles | Dd | 183935 | XlsxDeepC.tsx |  |
+| renderSelectionHandles | Od | 183947 | XlsxDeepC.tsx |  |
+| DEFAULT_ROW_HEIGHT | xm | 189512 | XlsxDeepC.tsx |  |
+| DEFAULT_COL_WIDTH | Sm | 189513 | XlsxDeepC.tsx |  |
+| HEADER_ROW_HEIGHT | Cm | 189514 | XlsxDeepC.tsx |  |
+| ROW_HEADER_WIDTH | wm | 189515 | XlsxDeepC.tsx |  |
+| RANGE_CLIPBOARD_MIME | Tm | 189516 | XlsxDeepC.tsx |  |
+| MIN_RENDERED_ROWS | Em | 189517 | XlsxDeepC.tsx |  |
+| MIN_RENDERED_COLS | Dm | 189518 | XlsxDeepC.tsx |  |
+| ROW_BATCH_SIZE | Om | 189519 | XlsxDeepC.tsx |  |
+| COL_BATCH_SIZE | km | 189520 | XlsxDeepC.tsx |  |
+| MAX_RENDERED_ROWS | Am | 189521 | XlsxDeepC.tsx |  |
+| MAX_RENDERED_COLS | jm | 189522 | XlsxDeepC.tsx |  |
+| ROW_CAPACITY_STEP | Mm | 189523 | XlsxDeepC.tsx |  |
+| COL_CAPACITY_STEP | Nm | 189524 | XlsxDeepC.tsx |  |
+| ROW_PREFETCH_THRESHOLD | Pm | 189525 | XlsxDeepC.tsx |  |
+| COL_PREFETCH_THRESHOLD | Fm | 189526 | XlsxDeepC.tsx |  |
+| ROW_SCROLL_GROWTH_STEP | Im | 189527 | XlsxDeepC.tsx |  |
+| COL_SCROLL_GROWTH_STEP | Lm | 189528 | XlsxDeepC.tsx |  |
+| ROW_SCROLL_PREFETCH_PX | Rm | 189529 | XlsxDeepC.tsx |  |
+| COL_SCROLL_PREFETCH_PX | zm | 189530 | XlsxDeepC.tsx |  |
+| POINTER_MOVE_TOLERANCE_PX | Bm | 189531 | XlsxDeepC.tsx |  |
+| SCROLLBAR_PLACEHOLDER_PX | Vm | 189532 | XlsxDeepC.tsx |  |
+| RESIZE_HANDLE_SIZE_PX | Hm | 189533 | XlsxDeepC.tsx |  |
+| FROZEN_DIVIDER_HIT_TOLERANCE_PX | Um | 189534 | XlsxDeepC.tsx |  |
+| CONTENT_LAYER_MAX_PX | Wm | 189535 | XlsxDeepC.tsx |  |
+| VIEWPORT_OVERDRAW_MAX_PX | Gm | 189536 | XlsxDeepC.tsx |  |
+| SCROLL_SYNC_INVALIDATE_PX | Km | 189537 | XlsxDeepC.tsx |  |
+| SCROLL_JUMP_THRESHOLD_PX | qm | 189538 | XlsxDeepC.tsx |  |
+| CONTENT_CULL_MARGIN_PX | Jm | 189539 | XlsxDeepC.tsx |  |
+| GESTURE_ZOOM_SETTLE_MS | Ym | 189540 | XlsxDeepC.tsx |  |
+| WHEEL_ZOOM_FACTOR | Xm | 189541 | XlsxDeepC.tsx |  |
+| WHEEL_LINE_DELTA_PX | Zm | 189542 | XlsxDeepC.tsx |  |
+| CHART_HIGHLIGHT_PALETTE | Qm | 189543 | XlsxDeepC.tsx |  |
+| CHART_HIGHLIGHT_ROLE_COLORS | $m | 189544 | XlsxDeepC.tsx |  |
+| DEFAULT_EDITOR_BACKGROUND | eh | 189551 | XlsxDeepC.tsx |  |
+| MUTED_SLATE_COLOR | th | 189552 | XlsxDeepC.tsx |  |
+| LIGHT_CANVAS_SURFACE | nh | 189553 | XlsxDeepC.tsx |  |
+| HANDLE_SHADOW_COLOR | rh | 189554 | XlsxDeepC.tsx |  |
+| CELL_PADDING | ih | 189555 | XlsxDeepC.tsx |  |
+| RESIZE_HANDLE_DIRECTIONS | ah | 189556 | XlsxDeepC.tsx |  |
+| STYLE_INFO_CACHE_CAPACITY | oh | 189557 | XlsxDeepC.tsx |  |
+| TEXT_WIDTH_CACHE_CAPACITY | sh | 189558 | XlsxDeepC.tsx |  |
+| TRUNCATE_CACHE_CAPACITY | ch | 189559 | XlsxDeepC.tsx |  |
+| WRAP_CACHE_CAPACITY | lh | 189560 | XlsxDeepC.tsx |  |
+| PATH2D_CACHE_CAPACITY | uh | 189561 | XlsxDeepC.tsx |  |
+| EMPTY_VIRTUAL_ITEMS | dh | 189562 | XlsxDeepC.tsx |  |
+| RESIZE_CURSOR_BY_DIRECTION | fh | 189563 | XlsxDeepC.tsx |  |
+| CSS_LENGTH_PROPERTIES | ph | 189573 | XlsxDeepC.tsx |  |
+| STYLE_INFO_CACHE | mh | 189578 | XlsxDeepC.tsx |  |
+| TEXT_WIDTH_CACHE | hh | 189579 | XlsxDeepC.tsx |  |
+| TRUNCATE_CACHE | gh | 189580 | XlsxDeepC.tsx |  |
+| WRAP_CACHE | _h | 189581 | XlsxDeepC.tsx |  |
+| PATH2D_CACHE | vh | 189582 | XlsxDeepC.tsx |  |
+| cachePutEvicting | yh | 189583 | XlsxDeepC.tsx |  |
+| roundToQuarterPx | bh | 189590 | XlsxDeepC.tsx |  |
+| measureTextWidthCached | xh | 189593 | XlsxDeepC.tsx |  |
+| drawTextDecorations | Sh | 189599 | XlsxDeepC.tsx |  |
+| getPath2dCached | Ch | 189622 | XlsxDeepC.tsx |  |
+| scaleCssLengths | wh | 189625 | XlsxDeepC.tsx |  |
+| scaleStyleValues | Th | 189633 | XlsxDeepC.tsx |  |
+| parseLengthNumber | Eh | 189651 | XlsxDeepC.tsx |  |
+| parseBoxInsets | Dh | 189662 | XlsxDeepC.tsx |  |
+| resolveTextRotationDeg | Oh | 189686 | XlsxDeepC.tsx |  |
+| resolveFontShorthand | kh | 189691 | XlsxDeepC.tsx |  |
+| fontShorthandAtSize | Ah | 189702 | XlsxDeepC.tsx |  |
+| parseBorderShorthand | jh | 189714 | XlsxDeepC.tsx |  |
+| borderStyleRank | Mh | 189725 | XlsxDeepC.tsx |  |
+| pickStrongerBorder | Nh | 189728 | XlsxDeepC.tsx |  |
+| applyLineDashForBorderStyle | Ph | 189732 | XlsxDeepC.tsx |  |
+| drawCellBorder | Fh | 189743 | XlsxDeepC.tsx |  |
+| truncateTextToWidth | Ih | 189767 | XlsxDeepC.tsx |  |
+| resolveFontSizePx | Lh | 189782 | XlsxDeepC.tsx |  |
+| resolveLineHeightPx | Rh | 189793 | XlsxDeepC.tsx |  |
+| resolveTextBaselineY | zh | 189814 | XlsxDeepC.tsx |  |
+| fitTextCharCount | Bh | 189817 | XlsxDeepC.tsx |  |
+| wrapTextToWidth | Vh | 189828 | XlsxDeepC.tsx |  |
+| resolveCellStyleInfo | Hh | 189874 | XlsxDeepC.tsx |  |
+| splitTopLevelSegments | Uh | 189916 | XlsxDeepC.tsx |  |
+| parseGradientStops | Wh | 189937 | XlsxDeepC.tsx |  |
+| createGradientFill | Gh | 189950 | XlsxDeepC.tsx |  |
+| createDataBarFill | Kh | 190010 | XlsxDeepC.tsx |  |
+| drawConditionalIconGlyph | qh | 190015 | XlsxDeepC.tsx |  |
+| formatZoomPercent | Jh | 190055 | XlsxDeepC.tsx |  |
+| clampToBounds | Yh | 190058 | XlsxDeepC.tsx |  |
+| normalizeWheelDelta | Xh | 190061 | XlsxDeepC.tsx |  |
+| clampPointToRect | Zh | 190072 | XlsxDeepC.tsx |  |
+| pointerDistance | Qh | 190075 | XlsxDeepC.tsx |  |
+| parseHexRgb | $h | 190078 | XlsxDeepC.tsx |  |
+| blendHexColors | eg | 190088 | XlsxDeepC.tsx |  |
+| lightenHex | tg | 190096 | XlsxDeepC.tsx |  |
+| darkenHex | ng | 190099 | XlsxDeepC.tsx |  |
+| SpreadsheetControllerContext | rg | 190102 | XlsxDeepC.tsx |  |
+| SpreadsheetHeaderThemeContext | ig | 190103 | XlsxDeepC.tsx |  |
+| joinClassNames | ag | 190104 | XlsxDeepC.tsx |  |
+| darkHeaderSurface | og | 190107 | XlsxDeepC.tsx |  |
+| resolveHeaderSurfaceColor | sg | 190110 | XlsxDeepC.tsx |  |
+| normalizeRangeBounds | cg | 190113 | XlsxDeepC.tsx |  |
+| parseCellKey | lg | 190119 | XlsxDeepC.tsx |  |
+| isSameCell | ug | 190126 | XlsxDeepC.tsx |  |
+| cellInRange | dg | 190129 | XlsxDeepC.tsx |  |
+| chartHighlightForCell | fg | 190134 | XlsxDeepC.tsx |  |
+| rangesEqual | pg | 190150 | XlsxDeepC.tsx |  |
+| isPrintableCharKey | mg | 190161 | XlsxDeepC.tsx |  |
+| closestInteractiveElement | hg | 190164 | XlsxDeepC.tsx |  |
+| isFocusWithinContainer | gg | 190171 | XlsxDeepC.tsx |  |
+| buildPrefixSums | _g | 190175 | XlsxDeepC.tsx |  |
+| rangeHasIndex | vg | 190180 | XlsxDeepC.tsx |  |
+| expandIndicesAcrossMerges | yg | 190184 | XlsxDeepC.tsx |  |
+| rangesFingerprint | bg | 190209 | XlsxDeepC.tsx |  |
+| rangeBoundsKey | xg | 190212 | XlsxDeepC.tsx |  |
+| prefixSpanBetween | Sg | 190217 | XlsxDeepC.tsx |  |
+| offsetsByIndices | Cg | 190220 | XlsxDeepC.tsx |  |
+| findSegmentIndexAt | wg | 190226 | XlsxDeepC.tsx |  |
+| clampScrollOffset | Tg | 190239 | XlsxDeepC.tsx |  |
+| minContentExtent | Eg | 190242 | XlsxDeepC.tsx |  |
+| collectRenderIndices | Dg | 190245 | XlsxDeepC.tsx |  |
+| resolveRenderCapacity | Og | 190259 | XlsxDeepC.tsx |  |
+| offsetBeforeIndex | kg | 190263 | XlsxDeepC.tsx |  |
+| resolveIndexOffset | Ag | 190268 | XlsxDeepC.tsx |  |
+| resolveAnchorRectPx | jg | 190273 | XlsxDeepC.tsx |  |
+| drawingRectPx | Mg | 190301 | XlsxDeepC.tsx |  |
+| imageAnchorMaxCell | Ng | 190304 | XlsxDeepC.tsx |  |
+| shapeAnchorMaxCell | Pg | 190314 | XlsxDeepC.tsx |  |
+| chartAnchorMaxCell | Fg | 190324 | XlsxDeepC.tsx |  |
+| rectsIntersectWithMargin | Ig | 190334 | XlsxDeepC.tsx |  |
+| resolveScrollRegionKind | Lg | 190343 | XlsxDeepC.tsx |  |
+| shapeContainerStyle | Rg | 190360 | XlsxDeepC.tsx |  |
+| clampShapeAdjust | zg | 190400 | XlsxDeepC.tsx |  |
+| resolveShapeAdjust | Bg | 190403 | XlsxDeepC.tsx |  |
+| pointsToOutlinePath | Vg | 190407 | XlsxDeepC.tsx |  |
+| polarPoint | Hg | 190412 | XlsxDeepC.tsx |  |
+| regularPolygonPath | Ug | 190416 | XlsxDeepC.tsx |  |
+| starPolygonPath | Wg | 190419 | XlsxDeepC.tsx |  |
+| roundedRectPath | Gg | 190424 | XlsxDeepC.tsx |  |
+| ellipsePath | Kg | 190440 | XlsxDeepC.tsx |  |
+| pieWedgePath | qg | 190443 | XlsxDeepC.tsx |  |
+| chordPath | Jg | 190449 | XlsxDeepC.tsx |  |
+| plusCrossPath | Yg | 190455 | XlsxDeepC.tsx |  |
+| pentagonArrowPath | Xg | 190474 | XlsxDeepC.tsx |  |
+| chevronArrowPath | Zg | 190485 | XlsxDeepC.tsx |  |
+| notchedArrowPath | Qg | 190497 | XlsxDeepC.tsx |  |
+| stripedArrowPath | $g | 190516 | XlsxDeepC.tsx |  |
+| leftUpArrowPath | e_ | 190535 | XlsxDeepC.tsx |  |
+| bentUpArrowPath | t_ | 190548 | XlsxDeepC.tsx |  |
+| uturnArrowPath | n_ | 190568 | XlsxDeepC.tsx |  |
+| leftRightUpArrowPath | r_ | 190585 | XlsxDeepC.tsx |  |
+| quadArrowPath | i_ | 190612 | XlsxDeepC.tsx |  |
+| heartPath | a_ | 190646 | XlsxDeepC.tsx |  |
+| lightningBoltPath | o_ | 190658 | XlsxDeepC.tsx |  |
+| teardropPath | s_ | 190669 | XlsxDeepC.tsx |  |
+| cloudPath | c_ | 190679 | XlsxDeepC.tsx |  |
+| rightArrowPath | l_ | 190695 | XlsxDeepC.tsx |  |
+| leftArrowPath | u_ | 190711 | XlsxDeepC.tsx |  |
+| upArrowPath | d_ | 190727 | XlsxDeepC.tsx |  |
+| downArrowPath | f_ | 190743 | XlsxDeepC.tsx |  |
+| leftRightArrowPath | p_ | 190759 | XlsxDeepC.tsx |  |
+| upDownArrowPath | m_ | 190777 | XlsxDeepC.tsx |  |
+| bentArrowPath | h_ | 190795 | XlsxDeepC.tsx |  |
+| resolveAutoShapePath | g_ | 190815 | XlsxDeepC.tsx |  |
+| resolveShapeSvgPath | __ | 191051 | XlsxDeepC.tsx |  |
+| traceRoundedRectPath | v_ | 191054 | XlsxDeepC.tsx |  |
+| applyDashPattern | y_ | 191068 | XlsxDeepC.tsx |  |
+| renderArrowMarkerDef | b_ | 191092 | XlsxDeepC.tsx |  |
+| renderTextParagraphRuns | x_ | 191113 | XlsxDeepC.tsx |  |
+| clampRectToGrid | S_ | 191139 | XlsxDeepC.tsx |  |
+| resizeHandleStyle | C_ | 191150 | XlsxDeepC.tsx |  |
+| useGridTheme | w_ | 191175 | XlsxDeepC.tsx |  |
+| columnIndexToLetters | T_ | 191178 | XlsxDeepC.tsx |  |
+| formatCellRef | E_ | 191184 | XlsxDeepC.tsx |  |
+| parseCellRef | D_ | 191187 | XlsxDeepC.tsx |  |
+| resolveGridCellStyle | O_ | 191195 | XlsxDeepC.tsx |  |
+| parseExternalCellRef | k_ | 191205 | XlsxDeepC.tsx |  |
+| decodeXmlEntities | A_ | 191219 | XlsxDeepC.tsx |  |
+| borderToCssShorthand | j_ | 191229 | XlsxDeepC.tsx |  |
+| isDarkTheme | M_ | 191233 | XlsxDeepC.tsx |  |
+| parseColorToRgbTuple | N_ | 191236 | XlsxDeepC.tsx |  |
+| colorWithAlpha | P_ | 191266 | XlsxDeepC.tsx |  |
+| relativeLuminance | F_ | 191272 | XlsxDeepC.tsx |  |
+| contrastRatio | I_ | 191281 | XlsxDeepC.tsx |  |
+| resolveContrastTextColor | L_ | 191289 | XlsxDeepC.tsx |  |
+| hueChannel | R_ | 191296 | XlsxDeepC.tsx |  |
+| hslToRgbTuple | z_ | 191304 | XlsxDeepC.tsx |  |
+| quoteFontFamily | B_ | 191317 | XlsxDeepC.tsx |  |
+| resolveSchemeFontFamily | V_ | 191320 | XlsxDeepC.tsx |  |
+| resolveFontFamilyStack | H_ | 191325 | XlsxDeepC.tsx |  |
+| lineHeightMultiplier | U_ | 191334 | XlsxDeepC.tsx |  |
+| gridInsetShadow | W_ | 191338 | XlsxDeepC.tsx |  |
+| resolveCellStyleCss | G_ | 191346 | XlsxDeepC.tsx |  |
+| measureCanvasSingleton | K_ | 191415 | XlsxDeepC.tsx |  |
+| verticalPaddingPx | q_ | 191416 | XlsxDeepC.tsx |  |
+| styleFontShorthand | J_ | 191431 | XlsxDeepC.tsx |  |
+| measureCellTextWidth | Y_ | 191434 | XlsxDeepC.tsx |  |
+| estimateCellContentHeight | X_ | 191441 | XlsxDeepC.tsx |  |
+| canOverflowRight | Z_ | 191459 | XlsxDeepC.tsx |  |
+| isRenderableEmptyCell | Q_ | 191465 | XlsxDeepC.tsx |  |
+| resolveCellDisplayText | $_ | 191468 | XlsxDeepC.tsx |  |
+| numericValueAtCell | ev | 191482 | XlsxDeepC.tsx |  |
+| booleanValueAtCell | tv | 191490 | XlsxDeepC.tsx |  |
+| parseRangeLiteral | nv | 191500 | XlsxDeepC.tsx |  |
+| unquoteSheetName | rv | 191506 | XlsxDeepC.tsx |  |
+| splitQualifiedRef | iv | 191510 | XlsxDeepC.tsx |  |
+| resolveFormulaRangeRef | av | 191526 | XlsxDeepC.tsx |  |
+| rangeCellAtOffset | ov | 191548 | XlsxDeepC.tsx |  |
+| chartSelectionRanges | sv | 191559 | XlsxDeepC.tsx |  |
+| sparklineValueScale | cv | 191618 | XlsxDeepC.tsx |  |
+| renderSparklineSvg | lv | 191621 | XlsxDeepC.tsx |  |
+| toNonNegativeInteger | uv | 191736 | XlsxDeepC.tsx |  |
+| toPlainRecord | dv | 191739 | XlsxDeepC.tsx |  |
+| parseHyperlinkInfo | fv | 191742 | XlsxDeepC.tsx |  |
+| parseMergeSpan | pv | 191752 | XlsxDeepC.tsx |  |
+| resolveDisplayValue | mv | 191759 | XlsxDeepC.tsx |  |
+| buildCellBatchMap | hv | 191764 | XlsxDeepC.tsx |  |
+| findRangeContaining | gv | 191786 | XlsxDeepC.tsx |  |
+| mergeCellStyles | _v | 191791 | XlsxDeepC.tsx |  |
+| expandTableBorderSpans | vv | 191807 | XlsxDeepC.tsx |  |
+| resolveTableCellStyle | yv | 191818 | XlsxDeepC.tsx |  |
+| tableColumnAtHeader | bv | 191845 | XlsxDeepC.tsx |  |
+| SortDirectionMenu | xv | 191850 | XlsxDeepC.tsx |  |
+| headerFilterButtonStyle | Sv | 191896 | XlsxDeepC.tsx |  |
+| WorkbookSheetTabStrip | Cv | 191915 | XlsxDeepC.tsx |  |
+| SpreadsheetToolbar | wv | 191961 | XlsxDeepC.tsx |  |
+| resolveToolbarNode | Tv | 192125 | XlsxDeepC.tsx |  |
+| resolveErrorNode | Ev | 192134 | XlsxDeepC.tsx |  |
+| resolveLoadingNode | Dv | 192153 | XlsxDeepC.tsx |  |
+| resolveEmptyNode | Ov | 192170 | XlsxDeepC.tsx |  |
+| formatByteSize | kv | 192187 | XlsxDeepC.tsx |  |
+| renderFileSizeLimitState | Av | 192195 | XlsxDeepC.tsx |  |
+| resolveFileTooLargeNode | jv | 192234 | XlsxDeepC.tsx |  |
+| ChartLoadingBars | Mv | 192237 | XlsxDeepC.tsx |  |
+| resolveChartLoadingNode | Nv | 192264 | XlsxDeepC.tsx |  |
+| formatByteSizeAlias | Pv | 192268 | XlsxDeepC.tsx |  |
+| DeferredLoadPrompt | Fv | 192276 | XlsxDeepC.tsx |  |
+| resolveSelectionPalette | Iv | 192336 | XlsxDeepC.tsx |  |
+| fullBleedRects | Lv | 192344 | XlsxDeepC.tsx |  |
+| rectIntersectsAnyRect | Rv | 192347 | XlsxDeepC.tsx |  |
+| blitScrolledCanvas | zv | 192353 | XlsxDeepC.tsx |  |
+| conditionalRuleKey | Bv | 192388 | XlsxDeepC.tsx |  |
+| resolveCfvoThreshold | Vv | 192391 | XlsxDeepC.tsx |  |
+| iconSetAppearanceFor | Hv | 192405 | XlsxDeepC.tsx |  |
+| renderConditionalIconSvg | Uv | 192490 | XlsxDeepC.tsx |  |
+| isCheckboxChecked | Wv | 192539 | XlsxDeepC.tsx |  |
+| isCheckboxMixed | Gv | 192542 | XlsxDeepC.tsx |  |
+| normalizeFormControlModel | Kv | 192545 | XlsxDeepC.tsx |  |
+| renderCheckboxIcon | qv | 192615 | XlsxDeepC.tsx |  |
+| renderRadioIcon | Jv | 192658 | XlsxDeepC.tsx |  |
+| cleanFormControlCaption | Yv | 192680 | XlsxDeepC.tsx |  |
+| resolveDataBarAppearance | Xv | 192694 | XlsxDeepC.tsx |  |
+| resolveColorScaleAppearance | Zv | 192736 | XlsxDeepC.tsx |  |
+| resolveCellIconSet | Qv | 192772 | XlsxDeepC.tsx |  |
+| resolveCellValidation | $v | 192801 | XlsxDeepC.tsx |  |
+| verticalAlignToFlexAlign | ey | 192814 | XlsxDeepC.tsx |  |
+| horizontalAlignToFlexAlign | ty | 192817 | XlsxDeepC.tsx |  |
+| nextIndexAtLeast | ny | 192820 | XlsxDeepC.tsx |  |
+| lastIndexAtMost | ry | 192823 | XlsxDeepC.tsx |  |
+| SpreadsheetRow | iy | 192832 | XlsxDeepC.tsx |  |
+| MemoSpreadsheetRow | ay | 193182 | XlsxDeepC.tsx |  |
+
+## 63. B5 · XlsxDeepP.tsx（react-xlsx 深部前导段 P，js 9111–15671）
+
+- 族/来源：xlsx 族 · 源 chunk `out/renderer/assets/previewPaneOfficeXlsxContent-XeHwYdMn.js`（199,508 行）· B5-12p。行号口径：chunk js 行。
+- 符号条数：440（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| reactInterop | G | 9111 | XlsxDeepP.tsx |  |
+| reglInterop | Rn | 9112 | XlsxDeepP.tsx |  |
+| jsxRuntime | K | 9113 | XlsxDeepP.tsx |  |
+| chartXmlNamespace | zn | 9114 | XlsxDeepP.tsx |  |
+| drawingXmlNamespace | q | 9115 | XlsxDeepP.tsx |  |
+| chartRelNamespace | Bn | 9116 | XlsxDeepP.tsx |  |
+| chartExRelNamespace | Vn | 9117 | XlsxDeepP.tsx |  |
+| chartStyleRelNamespace | Hn | 9118 | XlsxDeepP.tsx |  |
+| chartColorStyleRelNamespace | Un | 9119 | XlsxDeepP.tsx |  |
+| officeChartPalette | Wn | 9120 | XlsxDeepP.tsx |  |
+| quoteFormulaString | Gn | 9132 | XlsxDeepP.tsx |  |
+| unquoteFormulaString | Kn | 9135 | XlsxDeepP.tsx |  |
+| splitFormulaArgs | qn | 9141 | XlsxDeepP.tsx |  |
+| seriesRawName | Jn | 9182 | XlsxDeepP.tsx |  |
+| chartSeriesFormula | Yn | 9186 | XlsxDeepP.tsx |  |
+| parseSeriesFormula | Xn | 9198 | XlsxDeepP.tsx |  |
+| updateChartSeriesValues | Zn | 9220 | XlsxDeepP.tsx |  |
+| normalizeSheetVisibility | Qn | 9256 | XlsxDeepP.tsx |  |
+| emuPerPx | $n | 9259 | XlsxDeepP.tsx |  |
+| themeColorIndices | er | 9260 | XlsxDeepP.tsx |  |
+| chartElementTagNames | tr | 9278 | XlsxDeepP.tsx |  |
+| clampUnitValue | nr | 9296 | XlsxDeepP.tsx |  |
+| isElementNode | rr | 9299 | XlsxDeepP.tsx |  |
+| normalizeHexColor | ir | 9302 | XlsxDeepP.tsx |  |
+| fillColorFromXml | ar | 9310 | XlsxDeepP.tsx |  |
+| shapePaintFromXml | or | 9338 | XlsxDeepP.tsx |  |
+| seriesPaintColorsFromXml | sr | 9346 | XlsxDeepP.tsx |  |
+| dataPointOverridesFromXml | J | 9355 | XlsxDeepP.tsx |  |
+| numericPointValuesFromXml | cr | 9399 | XlsxDeepP.tsx |  |
+| bubbleSizeValuesFromXml | lr | 9420 | XlsxDeepP.tsx |  |
+| decodeXmlEntities | ur | 9429 | XlsxDeepP.tsx |  |
+| normalizeTitleText | dr | 9437 | XlsxDeepP.tsx |  |
+| chartTitleFromXml | fr | 9440 | XlsxDeepP.tsx |  |
+| matchBubbleChartValues | pr | 9446 | XlsxDeepP.tsx |  |
+| chartTypeTagFromXml | mr | 9467 | XlsxDeepP.tsx |  |
+| chartTypeElement | hr | 9471 | XlsxDeepP.tsx |  |
+| scatterChartSubtype | gr | 9479 | XlsxDeepP.tsx |  |
+| matchDataPointOverrides | _r | 9491 | XlsxDeepP.tsx |  |
+| hexToRgb | Y | 9523 | XlsxDeepP.tsx |  |
+| rgbToHsl | X | 9535 | XlsxDeepP.tsx |  |
+| hueToRgbChannel | vr | 9559 | XlsxDeepP.tsx |  |
+| hslToRgb | yr | 9567 | XlsxDeepP.tsx |  |
+| rgbToHex | br | 9580 | XlsxDeepP.tsx |  |
+| adjustColorLuminance | xr | 9589 | XlsxDeepP.tsx |  |
+| resolveSchemeColor | Sr | 9596 | XlsxDeepP.tsx |  |
+| resolveThemeTypeface | Cr | 9601 | XlsxDeepP.tsx |  |
+| defaultRunFontFromXml | wr | 9610 | XlsxDeepP.tsx |  |
+| colorFromXmlElement | Tr | 9624 | XlsxDeepP.tsx |  |
+| isColorElement | Er | 9651 | XlsxDeepP.tsx |  |
+| findColorElement | Dr | 9657 | XlsxDeepP.tsx |  |
+| resolveShapeFillColor | Or | 9663 | XlsxDeepP.tsx |  |
+| resolveShapeLineProperties | kr | 9692 | XlsxDeepP.tsx |  |
+| normalizeChartLegend | Ar | 9705 | XlsxDeepP.tsx |  |
+| legendPositionCode | jr | 9714 | XlsxDeepP.tsx |  |
+| childNumericVal | Z | 9729 | XlsxDeepP.tsx |  |
+| childBooleanVal | Mr | 9734 | XlsxDeepP.tsx |  |
+| runFontSizePt | Nr | 9741 | XlsxDeepP.tsx |  |
+| dataLabelSpecs | Pr | 9747 | XlsxDeepP.tsx |  |
+| normalizeDataLabels | Fr | 9770 | XlsxDeepP.tsx |  |
+| partRelationshipMap | Ir | 9793 | XlsxDeepP.tsx |  |
+| themeColorList | Lr | 9807 | XlsxDeepP.tsx |  |
+| chartStyleColors | Rr | 9818 | XlsxDeepP.tsx |  |
+| accentColorPalette | zr | 9848 | XlsxDeepP.tsx |  |
+| normalizeChartStyleId | Br | 9852 | XlsxDeepP.tsx |  |
+| surfaceChartPalette | Vr | 9855 | XlsxDeepP.tsx |  |
+| applySurfaceChartDefaults | Hr | 9863 | XlsxDeepP.tsx |  |
+| applyChartStyleDefaults | Ur | 9886 | XlsxDeepP.tsx |  |
+| dataPointOverridesFromElement | Wr | 9933 | XlsxDeepP.tsx |  |
+| invertedPointStyle | Gr | 9949 | XlsxDeepP.tsx |  |
+| referencePointsFromElement | Kr | 9956 | XlsxDeepP.tsx |  |
+| multiLevelRefPoints | qr | 9975 | XlsxDeepP.tsx |  |
+| applySeriesXmlStyles | Jr | 10001 | XlsxDeepP.tsx |  |
+| hydrateChartFromPartXml | Yr | 10071 | XlsxDeepP.tsx |  |
+| normalizePartPath | Xr | 10501 | XlsxDeepP.tsx |  |
+| partDirectory | Zr | 10504 | XlsxDeepP.tsx |  |
+| resolvePartTarget | Qr | 10509 | XlsxDeepP.tsx |  |
+| partText | $r | 10535 | XlsxDeepP.tsx |  |
+| parseXmlDocument | ei | 10540 | XlsxDeepP.tsx |  |
+| serializeXmlDocument | ti | 10548 | XlsxDeepP.tsx |  |
+| childElements | ni | 10551 | XlsxDeepP.tsx |  |
+| removeChildElements | ri | 10556 | XlsxDeepP.tsx |  |
+| descendantElements | ii | 10559 | XlsxDeepP.tsx |  |
+| firstChild | Q | 10562 | XlsxDeepP.tsx |  |
+| firstDescendant | ai | 10565 | XlsxDeepP.tsx |  |
+| ensureChildElement | oi | 10568 | XlsxDeepP.tsx |  |
+| ensureChildTextElement | si | 10574 | XlsxDeepP.tsx |  |
+| ensureBooleanChildElement | ci | 10578 | XlsxDeepP.tsx |  |
+| ensureIntegerChildElement | li | 10582 | XlsxDeepP.tsx |  |
+| unquoteSheetName | ui | 10586 | XlsxDeepP.tsx |  |
+| splitSheetReference | di | 10590 | XlsxDeepP.tsx |  |
+| parseCellRef | fi | 10603 | XlsxDeepP.tsx |  |
+| parseRangeRef | pi | 10610 | XlsxDeepP.tsx |  |
+| columnLetters | mi | 10621 | XlsxDeepP.tsx |  |
+| formatAbsoluteRangeRef | hi | 10630 | XlsxDeepP.tsx |  |
+| resolveFormulaRange | gi | 10633 | XlsxDeepP.tsx |  |
+| resolveRangeTitle | _i | 10649 | XlsxDeepP.tsx |  |
+| readRangeStrings | vi | 10669 | XlsxDeepP.tsx |  |
+| normalizeLegendModel | yi | 10692 | XlsxDeepP.tsx |  |
+| titleCaseLabel | bi | 10698 | XlsxDeepP.tsx |  |
+| normalizeAxisModel | xi | 10706 | XlsxDeepP.tsx |  |
+| chartExLayoutType | Si | 10733 | XlsxDeepP.tsx |  |
+| chartExLayoutId | Ci | 10755 | XlsxDeepP.tsx |  |
+| chartExAxisIds | wi | 10764 | XlsxDeepP.tsx |  |
+| niceBinSize | Ti | 10781 | XlsxDeepP.tsx |  |
+| formatBinInterval | Ei | 10787 | XlsxDeepP.tsx |  |
+| computeHistogramBins | Di | 10792 | XlsxDeepP.tsx |  |
+| applyHistogramBinning | Oi | 10844 | XlsxDeepP.tsx |  |
+| buildParetoSeries | ki | 10867 | XlsxDeepP.tsx |  |
+| chartExTextValue | Ai | 10889 | XlsxDeepP.tsx |  |
+| chartExTitleText | ji | 10897 | XlsxDeepP.tsx |  |
+| hierarchyCategoryRef | Mi | 10906 | XlsxDeepP.tsx |  |
+| buildChartExSeries | Ni | 10919 | XlsxDeepP.tsx |  |
+| filterChartExSeries | Pi | 10995 | XlsxDeepP.tsx |  |
+| buildChartExModel | Fi | 11010 | XlsxDeepP.tsx |  |
+| cellValueToNumber | Ii | 11112 | XlsxDeepP.tsx |  |
+| cellValueToString | Li | 11135 | XlsxDeepP.tsx |  |
+| readFormulaValues | Ri | 11149 | XlsxDeepP.tsx |  |
+| resolveFormulaText | zi | 11171 | XlsxDeepP.tsx |  |
+| normalizeSeriesRef | Bi | 11182 | XlsxDeepP.tsx |  |
+| normalizeChartExAxis | Vi | 11192 | XlsxDeepP.tsx |  |
+| mergeAxisModel | Hi | 11234 | XlsxDeepP.tsx |  |
+| axisModelFromElement | Ui | 11237 | XlsxDeepP.tsx |  |
+| wallModelFromElement | Wi | 11279 | XlsxDeepP.tsx |  |
+| normalizeDataLabelsModel | Gi | 11290 | XlsxDeepP.tsx |  |
+| normalizeAnchorModel | Ki | 11338 | XlsxDeepP.tsx |  |
+| anchorMarkerFromElement | qi | 11398 | XlsxDeepP.tsx |  |
+| anchorFromElement | Ji | 11413 | XlsxDeepP.tsx |  |
+| isAnchorInverted | Yi | 11446 | XlsxDeepP.tsx |  |
+| buildJsonChartSeries | Xi | 11456 | XlsxDeepP.tsx |  |
+| buildJsonChartTypeGroup | Zi | 11501 | XlsxDeepP.tsx |  |
+| buildChartsheetTab | Qi | 11519 | XlsxDeepP.tsx |  |
+| buildSheetTabList | $i | 11531 | XlsxDeepP.tsx |  |
+| drawingChartRefs | ea | 11584 | XlsxDeepP.tsx |  |
+| assignChartOrigins | ta | 11636 | XlsxDeepP.tsx |  |
+| hydrateChartAssets | na | 11661 | XlsxDeepP.tsx |  |
+| chartAnchorElements | ra | 11786 | XlsxDeepP.tsx |  |
+| writeAnchorMarker | ia | 11800 | XlsxDeepP.tsx |  |
+| writeAnchorGeometry | aa | 11807 | XlsxDeepP.tsx |  |
+| writeChartTitle | oa | 11829 | XlsxDeepP.tsx |  |
+| writeRefFormula | sa | 11851 | XlsxDeepP.tsx |  |
+| writeSeriesName | ca | 11858 | XlsxDeepP.tsx |  |
+| writeSeriesFormulas | la | 11869 | XlsxDeepP.tsx |  |
+| writeAxisProperties | ua | 11911 | XlsxDeepP.tsx |  |
+| writeDataLabelFlags | da | 11955 | XlsxDeepP.tsx |  |
+| updateChartAnchorInImageAssets | fa | 11965 | XlsxDeepP.tsx |  |
+| updateChartInImageAssets | pa | 11980 | XlsxDeepP.tsx |  |
+| normalizeStyleHex | ma | 12007 | XlsxDeepP.tsx |  |
+| styleHexToRgb | ha | 12015 | XlsxDeepP.tsx |  |
+| styleRgbToHsl | ga | 12026 | XlsxDeepP.tsx |  |
+| styleHueChannel | _a | 12050 | XlsxDeepP.tsx |  |
+| styleHslToRgb | va | 12058 | XlsxDeepP.tsx |  |
+| styleRgbToHex | ya | 12071 | XlsxDeepP.tsx |  |
+| adjustColorTint | ba | 12074 | XlsxDeepP.tsx |  |
+| resolveFontColor | xa | 12082 | XlsxDeepP.tsx |  |
+| resolveSolidFillColor | Sa | 12096 | XlsxDeepP.tsx |  |
+| resolveFillColor | Ca | 12105 | XlsxDeepP.tsx |  |
+| officeRelationshipsNamespace | wa | 12131 | XlsxDeepP.tsx |  |
+| packageRelationshipsNamespace | Ta | 12132 | XlsxDeepP.tsx |  |
+| spreadsheetMlNamespace | Ea | 12133 | XlsxDeepP.tsx |  |
+| contentTypesNamespace | Da | 12134 | XlsxDeepP.tsx |  |
+| drawingRelNamespace | Oa | 12135 | XlsxDeepP.tsx |  |
+| imageRelNamespace | ka | 12136 | XlsxDeepP.tsx |  |
+| drawingContentType | Aa | 12137 | XlsxDeepP.tsx |  |
+| emuPerPixel | ja | 12138 | XlsxDeepP.tsx |  |
+| minColumnWidthPx | Ma | 12139 | XlsxDeepP.tsx |  |
+| minRowHeightPx | Na | 12140 | XlsxDeepP.tsx |  |
+| maxColumnWidthEmu | Pa | 12141 | XlsxDeepP.tsx |  |
+| defaultRowHeightEmu | Fa | 12142 | XlsxDeepP.tsx |  |
+| defaultCharWidthPx | Ia | 12143 | XlsxDeepP.tsx |  |
+| charWidthCache | La | 12144 | XlsxDeepP.tsx |  |
+| devicePixelSnap | Ra | 12145 | XlsxDeepP.tsx |  |
+| measureCharWidth | za | 12150 | XlsxDeepP.tsx |  |
+| columnWidthToPixels | Ba | 12171 | XlsxDeepP.tsx |  |
+| defaultColumnWidthPx | Va | 12177 | XlsxDeepP.tsx |  |
+| defaultRowHeightPx | Ha | 12181 | XlsxDeepP.tsx |  |
+| hiddenRowIndices | Ua | 12185 | XlsxDeepP.tsx |  |
+| hiddenColumnIndices | Wa | 12191 | XlsxDeepP.tsx |  |
+| mergeSpanSummary | Ga | 12197 | XlsxDeepP.tsx |  |
+| themePaletteModel | Ka | 12231 | XlsxDeepP.tsx |  |
+| copyToUint8Array | qa | 12259 | XlsxDeepP.tsx |  |
+| normalizeZipPath | Ja | 12263 | XlsxDeepP.tsx |  |
+| joinZipPath | Ya | 12266 | XlsxDeepP.tsx |  |
+| zipPathDir | Xa | 12269 | XlsxDeepP.tsx |  |
+| resolveZipPath | Za | 12274 | XlsxDeepP.tsx |  |
+| relativeZipPath | Qa | 12289 | XlsxDeepP.tsx |  |
+| zipRelsPath | $a | 12298 | XlsxDeepP.tsx |  |
+| parseXmlStrict | eo | 12302 | XlsxDeepP.tsx |  |
+| serializeXmlWb | to | 12306 | XlsxDeepP.tsx |  |
+| zipEntryTextWb | no | 12309 | XlsxDeepP.tsx |  |
+| columnLettersToIndex | ro | 12313 | XlsxDeepP.tsx |  |
+| parseCellAddress | io | 12321 | XlsxDeepP.tsx |  |
+| parseRangeAddress | ao | 12328 | XlsxDeepP.tsx |  |
+| stripSheetPrefix | oo | 12334 | XlsxDeepP.tsx |  |
+| rangeStartCell | so | 12339 | XlsxDeepP.tsx |  |
+| rangeAddressPart | co | 12342 | XlsxDeepP.tsx |  |
+| isElementNodeWb | lo | 12345 | XlsxDeepP.tsx |  |
+| descendantElementsWb | uo | 12348 | XlsxDeepP.tsx |  |
+| childElementsWb | fo | 12351 | XlsxDeepP.tsx |  |
+| firstChildWb | $ | 12354 | XlsxDeepP.tsx |  |
+| firstDescendantWb | po | 12357 | XlsxDeepP.tsx |  |
+| featurePropertyBagTypes | mo | 12360 | XlsxDeepP.tsx |  |
+| relationIdAttr | ho | 12392 | XlsxDeepP.tsx |  |
+| relationEmbedAttr | go | 12395 | XlsxDeepP.tsx |  |
+| setChildText | _o | 12398 | XlsxDeepP.tsx |  |
+| writeMarkerText | vo | 12402 | XlsxDeepP.tsx |  |
+| contentTypeMaps | yo | 12409 | XlsxDeepP.tsx |  |
+| contentTypeForPart | bo | 12428 | XlsxDeepP.tsx |  |
+| relationshipMapForPart | xo | 12435 | XlsxDeepP.tsx |  |
+| workbookSheetEntries | So | 12452 | XlsxDeepP.tsx |  |
+| parseTheme | Co | 12467 | XlsxDeepP.tsx |  |
+| parseColorAttributes | wo | 12515 | XlsxDeepP.tsx |  |
+| booleanFlagAttr | To | 12530 | XlsxDeepP.tsx |  |
+| parseSparklineGroups | Eo | 12535 | XlsxDeepP.tsx |  |
+| parseFontElement | Do | 12576 | XlsxDeepP.tsx |  |
+| parseFillElement | Oo | 12605 | XlsxDeepP.tsx |  |
+| parseBorderSide | ko | 12638 | XlsxDeepP.tsx |  |
+| parseBorderElement | Ao | 12644 | XlsxDeepP.tsx |  |
+| parseAlignmentElement | jo | 12655 | XlsxDeepP.tsx |  |
+| parseDxfElement | Mo | 12677 | XlsxDeepP.tsx |  |
+| resolveXfStyle | No | 12686 | XlsxDeepP.tsx |  |
+| parseStylesPart | Po | 12700 | XlsxDeepP.tsx |  |
+| parseSqrefRanges | Fo | 12762 | XlsxDeepP.tsx |  |
+| parseCfvo | Io | 12773 | XlsxDeepP.tsx |  |
+| optionalBooleanAttr | Lo | 12781 | XlsxDeepP.tsx |  |
+| parseConditionalRule | Ro | 12786 | XlsxDeepP.tsx |  |
+| parseConditionalRuleExt | zo | 12834 | XlsxDeepP.tsx |  |
+| mergeConditionalRules | Bo | 12894 | XlsxDeepP.tsx |  |
+| parseConditionalFormatting | Vo | 12932 | XlsxDeepP.tsx |  |
+| parseSheetLayout | Ho | 12967 | XlsxDeepP.tsx |  |
+| clampColorChannel | Uo | 13057 | XlsxDeepP.tsx |  |
+| normalizeArgbHex | Wo | 13060 | XlsxDeepP.tsx |  |
+| hexToRgbObject | Go | 13068 | XlsxDeepP.tsx |  |
+| rgbChannelsToHex | Ko | 13076 | XlsxDeepP.tsx |  |
+| applyColorTransforms | qo | 13079 | XlsxDeepP.tsx |  |
+| schemeColorFromTheme | Jo | 13112 | XlsxDeepP.tsx |  |
+| drawingColorFromElement | Yo | 13117 | XlsxDeepP.tsx |  |
+| drawingSolidFill | Xo | 13135 | XlsxDeepP.tsx |  |
+| resolveSchemeTypefaceWb | Zo | 13140 | XlsxDeepP.tsx |  |
+| isSchemeTypeface | Qo | 13148 | XlsxDeepP.tsx |  |
+| runTypefaceFromElement | $o | 13151 | XlsxDeepP.tsx |  |
+| textRunStyleFromElement | es | 13160 | XlsxDeepP.tsx |  |
+| mergeRunStyles | ts | 13173 | XlsxDeepP.tsx |  |
+| markerPointFromText | ns | 13189 | XlsxDeepP.tsx |  |
+| anchorModelToXml | rs | 13200 | XlsxDeepP.tsx |  |
+| normalizeDrawingAnchor | is | 13226 | XlsxDeepP.tsx |  |
+| captionColorSpec | as | 13255 | XlsxDeepP.tsx |  |
+| captionFontSpec | os | 13270 | XlsxDeepP.tsx |  |
+| captionSpec | ss | 13286 | XlsxDeepP.tsx |  |
+| resolveCaptionTextColor | cs | 13293 | XlsxDeepP.tsx |  |
+| captionDisplayProps | ls | 13312 | XlsxDeepP.tsx |  |
+| formControlDisplayProps | us | 13326 | XlsxDeepP.tsx |  |
+| buildFormControlModel | ds | 13402 | XlsxDeepP.tsx |  |
+| buildFormControlsBySheet | fs | 13422 | XlsxDeepP.tsx |  |
+| normalizeLabelText | ps | 13432 | XlsxDeepP.tsx |  |
+| legacyAnchorFromElement | ms | 13440 | XlsxDeepP.tsx |  |
+| anchorEmuRect | hs | 13472 | XlsxDeepP.tsx |  |
+| columnWidthPxAt | gs | 13484 | XlsxDeepP.tsx |  |
+| rowHeightPxAt | _s | 13487 | XlsxDeepP.tsx |  |
+| columnOffsetPx | vs | 13490 | XlsxDeepP.tsx |  |
+| rowOffsetPx | ys | 13495 | XlsxDeepP.tsx |  |
+| anchorRectPx | bs | 13500 | XlsxDeepP.tsx |  |
+| rectToAbsoluteAnchor | xs | 13515 | XlsxDeepP.tsx |  |
+| xfrmFromElement | Ss | 13518 | XlsxDeepP.tsx |  |
+| applyChildTransform | Cs | 13534 | XlsxDeepP.tsx |  |
+| resolveGroupChildTransform | ws | 13542 | XlsxDeepP.tsx |  |
+| shapeTransformFromXfrm | Ts | 13578 | XlsxDeepP.tsx |  |
+| textAlignFromDrawing | Es | 13601 | XlsxDeepP.tsx |  |
+| verticalAlignFromDrawing | Ds | 13615 | XlsxDeepP.tsx |  |
+| drawingAnchorElements | Os | 13625 | XlsxDeepP.tsx |  |
+| bytesToObjectUrl | ks | 13636 | XlsxDeepP.tsx |  |
+| isConnectorGeometry | As | 13645 | XlsxDeepP.tsx |  |
+| drawingLineProps | js | 13648 | XlsxDeepP.tsx |  |
+| drawingFillProps | Ms | 13665 | XlsxDeepP.tsx |  |
+| pathPointAttr | Ns | 13672 | XlsxDeepP.tsx |  |
+| customGeometryPath | Ps | 13678 | XlsxDeepP.tsx |  |
+| geometryAdjustValues | Fs | 13709 | XlsxDeepP.tsx |  |
+| drawingParagraphs | Is | 13724 | XlsxDeepP.tsx |  |
+| drawingTextBoxProps | Ls | 13785 | XlsxDeepP.tsx |  |
+| drawingHyperlinkTarget | Rs | 13799 | XlsxDeepP.tsx |  |
+| drawingImageFromPic | zs | 13804 | XlsxDeepP.tsx |  |
+| drawingShapeFromSp | Bs | 13831 | XlsxDeepP.tsx |  |
+| collectDrawingShapes | Vs | 13863 | XlsxDeepP.tsx |  |
+| parseDrawingPart | Hs | 13899 | XlsxDeepP.tsx |  |
+| syncFormControls | Us | 13922 | XlsxDeepP.tsx |  |
+| disposeImageAssets | Ws | 13925 | XlsxDeepP.tsx |  |
+| parseWorkbookMetadata | Gs | 13928 | XlsxDeepP.tsx |  |
+| parseWorkbookImageAssets | Ks | 13948 | XlsxDeepP.tsx |  |
+| writeAnchorGeometryWb | qs | 14009 | XlsxDeepP.tsx |  |
+| updateImageRect | Js | 14031 | XlsxDeepP.tsx |  |
+| ensureRelsDocument | Ys | 14049 | XlsxDeepP.tsx |  |
+| ensureContentTypesDocument | Xs | 14059 | XlsxDeepP.tsx |  |
+| ensureContentTypeEntry | Zs | 14067 | XlsxDeepP.tsx |  |
+| removeDrawingRefs | Qs | 14102 | XlsxDeepP.tsx |  |
+| nextDrawingRelationId | $s | 14108 | XlsxDeepP.tsx |  |
+| appendDrawingElement | ec | 14118 | XlsxDeepP.tsx |  |
+| saveXlsxWithAssets | tc | 14130 | XlsxDeepP.tsx |  |
+| emuToPx | nc | 14191 | XlsxDeepP.tsx |  |
+| pxToEmu | rc | 14194 | XlsxDeepP.tsx |  |
+| pxToColumnWidthUnits | ic | 14197 | XlsxDeepP.tsx |  |
+| columnWidthToPx | ac | 14200 | XlsxDeepP.tsx |  |
+| rowHeightToPx | oc | 14203 | XlsxDeepP.tsx |  |
+| snapGridSize | sc | 14206 | XlsxDeepP.tsx |  |
+| pxFromGridSize | cc | 14209 | XlsxDeepP.tsx |  |
+| pixelToGridIndex | lc | 14212 | XlsxDeepP.tsx |  |
+| rectToDrawingAnchor | uc | 14222 | XlsxDeepP.tsx |  |
+| resizeRectWithHandle | dc | 14259 | XlsxDeepP.tsx |  |
+| sheetReferenceRegex | fc | 14274 | XlsxDeepP.tsx |  |
+| collectFormulaSheetRefs | pc | 14275 | XlsxDeepP.tsx |  |
+| hasUnresolvedSheetRefs | mc | 14299 | XlsxDeepP.tsx |  |
+| calculateWorkbookSafe | hc | 14311 | XlsxDeepP.tsx |  |
+| ensureWorkbookCalculated | gc | 14331 | XlsxDeepP.tsx |  |
+| cachedWasmModulePromise | _c | 14341 | XlsxDeepP.tsx |  |
+| wasmSourceExplicitlySet | vc | 14342 | XlsxDeepP.tsx |  |
+| rawWasmSource | yc | 14343 | XlsxDeepP.tsx |  |
+| resolvedWasmSource | bc | 14344 | XlsxDeepP.tsx |  |
+| copyToStandaloneBuffer | xc | 14345 | XlsxDeepP.tsx |  |
+| normalizeWasmSource | Sc | 14350 | XlsxDeepP.tsx |  |
+| setDukeSheetsWasmSource | Cc | 14357 | XlsxDeepP.tsx |  |
+| isWasmSourceAvailable | wc | 14360 | XlsxDeepP.tsx |  |
+| getDukeSheetsWasmSource | Tc | 14363 | XlsxDeepP.tsx |  |
+| loadDukeSheetsWasmModule | Ec | 14366 | XlsxDeepP.tsx |  |
+| createAbortError | Dc | 14382 | XlsxDeepP.tsx |  |
+| XlsxWorkerClient | Oc | 14387 | XlsxDeepP.tsx |  |
+| cloneArrayBuffer | kc | 14474 | XlsxDeepP.tsx |  |
+| backslashCharCode | Ac | 14477 | XlsxDeepP.tsx |  |
+| slashCharCode | jc | 14478 | XlsxDeepP.tsx |  |
+| zipEndOfCentralDirSignature | Mc | 14479 | XlsxDeepP.tsx |  |
+| zipCentralDirSignature | Nc | 14480 | XlsxDeepP.tsx |  |
+| zipLocalHeaderSignature | Pc | 14481 | XlsxDeepP.tsx |  |
+| zipEndOfCentralDirSize | Fc | 14482 | XlsxDeepP.tsx |  |
+| zipCentralDirEntrySize | Ic | 14483 | XlsxDeepP.tsx |  |
+| zipLocalHeaderSize | Lc | 14484 | XlsxDeepP.tsx |  |
+| zipMaxCommentLength | Rc | 14485 | XlsxDeepP.tsx |  |
+| zipMaxEntryCount | zc | 14486 | XlsxDeepP.tsx |  |
+| zip64MagicValue | Bc | 14487 | XlsxDeepP.tsx |  |
+| findEndOfCentralDir | Vc | 14488 | XlsxDeepP.tsx |  |
+| readEndOfCentralDir | Hc | 14497 | XlsxDeepP.tsx |  |
+| readCentralDirEntry | Uc | 14511 | XlsxDeepP.tsx |  |
+| entryNameHasBackslash | Wc | 14529 | XlsxDeepP.tsx |  |
+| hasBackslashEntries | Gc | 14533 | XlsxDeepP.tsx |  |
+| zipEntryName | Kc | 14543 | XlsxDeepP.tsx |  |
+| validateZipStructure | qc | 14551 | XlsxDeepP.tsx |  |
+| sanitizeBackslashNames | Jc | 14586 | XlsxDeepP.tsx |  |
+| sanitizeZipBytes | Yc | 14601 | XlsxDeepP.tsx |  |
+| normalizeWorkbookBytes | Xc | 14608 | XlsxDeepP.tsx |  |
+| saveDebounceMs | Zc | 14617 | XlsxDeepP.tsx |  |
+| defaultRowHeight | Qc | 14618 | XlsxDeepP.tsx |  |
+| defaultColumnWidth | $c | 14619 | XlsxDeepP.tsx |  |
+| xlsxMimeType | el | 14620 | XlsxDeepP.tsx |  |
+| csvMimeType | tl | 14621 | XlsxDeepP.tsx |  |
+| minSheetRowHeightPx | nl | 14622 | XlsxDeepP.tsx |  |
+| headerRowHeightPx | rl | 14623 | XlsxDeepP.tsx |  |
+| rowHeaderWidthPx | il | 14624 | XlsxDeepP.tsx |  |
+| undoEntryLimit | al | 14625 | XlsxDeepP.tsx |  |
+| rangeClipboardMimeType | ol | 14626 | XlsxDeepP.tsx |  |
+| deferLoadingDefault | sl | 14627 | XlsxDeepP.tsx |  |
+| maxFileSizeDefault | cl | 14628 | XlsxDeepP.tsx |  |
+| maxWorksheetXmlBytes | ll | 14629 | XlsxDeepP.tsx |  |
+| maxSharedStringsBytes | ul | 14630 | XlsxDeepP.tsx |  |
+| maxTotalWorksheetBytes | dl | 14631 | XlsxDeepP.tsx |  |
+| defaultZoomPercent | fl | 14632 | XlsxDeepP.tsx |  |
+| minZoomScale | pl | 14633 | XlsxDeepP.tsx |  |
+| maxZoomScale | ml | 14634 | XlsxDeepP.tsx |  |
+| zoomStepPercent | hl | 14635 | XlsxDeepP.tsx |  |
+| defaultTabId | gl | 14636 | XlsxDeepP.tsx |  |
+| normalizeVisibility | _l | 14637 | XlsxDeepP.tsx |  |
+| clampZoomScale | vl | 14640 | XlsxDeepP.tsx |  |
+| defaultZoomForSheet | yl | 14643 | XlsxDeepP.tsx |  |
+| resolveZoomScale | bl | 14646 | XlsxDeepP.tsx |  |
+| stepZoomScale | xl | 14654 | XlsxDeepP.tsx |  |
+| formatByteSize | Sl | 14659 | XlsxDeepP.tsx |  |
+| findEocdrOffset | Cl | 14667 | XlsxDeepP.tsx |  |
+| readZipCentralDirectory | wl | 14674 | XlsxDeepP.tsx |  |
+| checkSheetLimits | Tl | 14700 | XlsxDeepP.tsx |  |
+| sheetLimitError | El | 14721 | XlsxDeepP.tsx |  |
+| XlsxFileSizeLimitExceededError | Dl | 14726 | XlsxDeepP.tsx |  |
+| deriveDisplayFileName | Ol | 14736 | XlsxDeepP.tsx |  |
+| expandUsedRange | kl | 14748 | XlsxDeepP.tsx |  |
+| buildSheetStates | Al | 14765 | XlsxDeepP.tsx |  |
+| collectSheetOrigins | jl | 14903 | XlsxDeepP.tsx |  |
+| defaultCellStyleAt | Ml | 14906 | XlsxDeepP.tsx |  |
+| columnIndexToLetters | Nl | 14913 | XlsxDeepP.tsx |  |
+| cellAddress | Pl | 14919 | XlsxDeepP.tsx |  |
+| parseCellAddressString | Fl | 14922 | XlsxDeepP.tsx |  |
+| parseRangeString | Il | 14930 | XlsxDeepP.tsx |  |
+| resolveInputRange | Ll | 14936 | XlsxDeepP.tsx |  |
+| hexToRgbArray | Rl | 14961 | XlsxDeepP.tsx |  |
+| normalizeColorSpec | zl | 14967 | XlsxDeepP.tsx |  |
+| normalizeFontSpec | Bl | 15004 | XlsxDeepP.tsx |  |
+| normalizeCaptionSpec | Vl | 15019 | XlsxDeepP.tsx |  |
+| formControlKindFromInput | Hl | 15028 | XlsxDeepP.tsx |  |
+| formControlKindToSpec | Ul | 15061 | XlsxDeepP.tsx |  |
+| normalizeDrawing | Wl | 15075 | XlsxDeepP.tsx |  |
+| formControlDrawingSpec | Gl | 15092 | XlsxDeepP.tsx |  |
+| syncGroupBoxes | Kl | 15105 | XlsxDeepP.tsx |  |
+| formControlKindChanged | ql | 15120 | XlsxDeepP.tsx |  |
+| normalizeFreezePanes | Jl | 15143 | XlsxDeepP.tsx |  |
+| normalizeDataValidations | Yl | 15149 | XlsxDeepP.tsx |  |
+| normalizeRange | Xl | 15179 | XlsxDeepP.tsx |  |
+| rangeToRef | Zl | 15185 | XlsxDeepP.tsx |  |
+| rangeContainsCell | Ql | 15191 | XlsxDeepP.tsx |  |
+| worksheetTables | $l | 15195 | XlsxDeepP.tsx |  |
+| nonNegativeIntParam | eu | 15231 | XlsxDeepP.tsx |  |
+| booleanParam | tu | 15239 | XlsxDeepP.tsx |  |
+| fileBaseName | nu | 15249 | XlsxDeepP.tsx |  |
+| pxToRowHeightUnits | ru | 15254 | XlsxDeepP.tsx |  |
+| colorHexOnly | iu | 15257 | XlsxDeepP.tsx |  |
+| borderCss | au | 15262 | XlsxDeepP.tsx |  |
+| normalizeDisplayValue | ou | 15266 | XlsxDeepP.tsx |  |
+| copyBytes | su | 15276 | XlsxDeepP.tsx |  |
+| workbookSavePayload | cu | 15280 | XlsxDeepP.tsx |  |
+| pushUndoEntry | lu | 15297 | XlsxDeepP.tsx |  |
+| cloneCellValue | uu | 15300 | XlsxDeepP.tsx |  |
+| cloneCellStyle | du | 15303 | XlsxDeepP.tsx |  |
+| parseCellValueInput | fu | 15315 | XlsxDeepP.tsx |  |
+| applyCellMutation | pu | 15326 | XlsxDeepP.tsx |  |
+| escapeHtml | mu | 15330 | XlsxDeepP.tsx |  |
+| parseClipboardText | hu | 15338 | XlsxDeepP.tsx |  |
+| createAbortErrorLocal | gu | 15353 | XlsxDeepP.tsx |  |
+| isAbortError | _u | 15358 | XlsxDeepP.tsx |  |
+| resolveWorkbookSource | vu | 15361 | XlsxDeepP.tsx |  |
+| parseWorkbook | yu | 15381 | XlsxDeepP.tsx |  |
+| scheduleIdleWork | bu | 15391 | XlsxDeepP.tsx |  |
+| mimeTypeFromImageUrl | xu | 15411 | XlsxDeepP.tsx |  |
+| imageFormatMimeType | Su | 15427 | XlsxDeepP.tsx |  |
+| bytesToBlobUrl | Cu | 15440 | XlsxDeepP.tsx |  |
+| worksheetImageModel | wu | 15453 | XlsxDeepP.tsx |  |
+| worksheetImagesBySheet | Tu | 15480 | XlsxDeepP.tsx |  |
+| anchorSignature | Eu | 15494 | XlsxDeepP.tsx |  |
+| hiddenImageAnchorSignatures | Du | 15525 | XlsxDeepP.tsx |  |
+| mergeImageAssets | Ou | 15534 | XlsxDeepP.tsx |  |
+| isZipSignature | ku | 15579 | XlsxDeepP.tsx |  |
+| isOleSignature | Au | 15582 | XlsxDeepP.tsx |  |
+| shouldSkipXmlParsing | ju | 15595 | XlsxDeepP.tsx |  |
+| emptyImageAssets | Mu | 15598 | XlsxDeepP.tsx |  |
+| buildImageAssets | Nu | 15617 | XlsxDeepP.tsx |  |
+| downloadFileSource | Pu | 15628 | XlsxDeepP.tsx |  |
+| exportBlob | Fu | 15639 | XlsxDeepP.tsx |  |
+| exportTextFile | Iu | 15652 | XlsxDeepP.tsx |  |
+| downloadUrlFile | Lu | 15663 | XlsxDeepP.tsx |  |
+
+## 64. B5 · XlsxDeepT.tsx（react-xlsx 深部尾段 T：页签条 + 预览面板入口）
+
+- 族/来源：xlsx 族 · 源 chunk `out/renderer/assets/previewPaneOfficeXlsxContent-XeHwYdMn.js`（199,508 行）· B5-12t。行号口径：chunk js 行。
+- 符号条数：7（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| SpreadsheetViewer | sy | 199292 | XlsxDeepT.tsx |  |
+| SpreadsheetWithOwnedController | cy | 199402 | XlsxDeepT.tsx |  |
+| Spreadsheet | ly | 199406 | XlsxDeepT.tsx |  |
+| resolveSheetTabTargetIndex | uy | 199415 | XlsxDeepT.tsx |  |
+| SheetTabBar | dy | 199428 | XlsxDeepT.tsx |  |
+| XlsxParseErrorState | fy | 199470 | XlsxDeepT.tsx |  |
+| PreviewPaneOfficeXlsxContent | py | 199478 | XlsxDeepT.tsx | ·export |
+
+## 65. B5 · OfficeWiring.tsx（office 装配接线 + DEFERRED_PRESET_GEOMETRY 登记）
+
+- 族/来源：独立 chunk · 源 `out/renderer/assets/pptxRendererPreviewEngine-BIIRLBue.js`（55,446 行；孪生 jsx 44,678 行）· B5-12b · B 段。行号口径：`js 行 / jsx 行` 双记（预设几何行为锚点行；头部 9 符号锚点为 pptxEngineGeometry.ts 源注记）。
+- 符号条数：47（脚本抽取；头注映射表与文件尾符号总表合并去重）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| PRESET_GEOMETRY_PATHS | V |  | OfficeWiring.tsx | 预设几何注册表（pptxEngineGeometry.ts:181） |
+| adjRatio | yi |  | OfficeWiring.tsx | 调整值归一（÷1e5，带回落）（pptxEngineGeometry.ts:30） |
+| adjValue | bi |  | OfficeWiring.tsx | 调整值原值读取（带回落）（pptxEngineGeometry.ts:37） |
+| mirrorPathHorizontally | Si |  | OfficeWiring.tsx | 路径水平镜像（pptxEngineGeometry.ts:105） |
+| mirrorPathVertically | Ci |  | OfficeWiring.tsx | 路径垂直镜像（仅 Ei 引用；多区域余量，未转录） |
+| splitOuterPath | wi |  | OfficeWiring.tsx | 外环/余环拆分（pptxEngineGeometry.ts:163；仅 Ti 引用） |
+| circularArrowPairBuilder | Di | 11195 / 8238 | OfficeWiring.tsx | circularArrow/leftCircularArrow 共用生成器（本文件转录） [A] |
+| 多区域包装：单预设 → 区域数组 | Ti | jsx 8099–8127 | OfficeWiring.tsx | ┐ 属 DEFERRED_MULTI_REGION_ANCHORS 未转录余量 |
+| curvedUp/Down 多区域包装 | Ei | jsx 8128–8150 | OfficeWiring.tsx | ┘ 余量（1508–1524），本批不转录，仅记录 未转录余量 |
+| downArrowCallout | — | 10504 / 7766 | OfficeWiring.tsx | [A] |
+| rightArrowCallout | — | 10539 / 7788 | OfficeWiring.tsx | [A] |
+| leftArrowCallout | — | 10572 / 7808 | OfficeWiring.tsx | [A] |
+| upArrowCallout | — | 10605 / 7828 | OfficeWiring.tsx | [A] |
+| upDownArrowCallout | — | 10638 / 7848 | OfficeWiring.tsx | [A] |
+| leftRightArrowCallout | — | 10683 / 7868 | OfficeWiring.tsx | [A] |
+| uturnArrow | — | 10728 / 7890 | OfficeWiring.tsx | [A] |
+| leftUpArrow | — | 10800 / 7934 | OfficeWiring.tsx | [A] |
+| bentArrow | — | 10924 / 7998 | OfficeWiring.tsx | [A] |
+| bentUpArrow | — | 10955 / 8022 | OfficeWiring.tsx | [A] |
+| curvedRightArrow | — | 10980 / 8036 | OfficeWiring.tsx | [A] |
+| curvedLeftArrow | — | 11048 / 8088 | OfficeWiring.tsx | [A] |
+| curvedUpArrow | — | 11081 / 8152 | OfficeWiring.tsx | [A] |
+| curvedDownArrow | — | 11139 / 8196 | OfficeWiring.tsx | [A] |
+| circularArrow | — | 11421 / 8238 | OfficeWiring.tsx | [A] |
+| leftCircularArrow | — | 11422 / 8238 | OfficeWiring.tsx | [A] |
+| leftRightCircularArrow | — | 11423 / 8446 | OfficeWiring.tsx | [A] |
+| quadArrowCallout | — | 11513 / 8499 | OfficeWiring.tsx | [A] |
+| leftRightUpArrow | — | 11578 / 8520 | OfficeWiring.tsx | [A] |
+| swooshArrow | — | 11619 / 8540 | OfficeWiring.tsx | [A] |
+| flowChartPunchedTape | — | 11778 / 8644 | OfficeWiring.tsx | [A] |
+| flowChartMagneticTape | — | 11885 / 8692 | OfficeWiring.tsx | [A] |
+| flowChartMultidocument | — | 11917 / 8722 | OfficeWiring.tsx | [A] |
+| cloudCallout | — | 12039 / 8788 | OfficeWiring.tsx | [A] |
+| sun | — | 12638 / 9200 | OfficeWiring.tsx | [A] |
+| moon | — | 12696 / 9244 | OfficeWiring.tsx | [A] |
+| lightningBolt | — | 12710 / 9256 | OfficeWiring.tsx | [A] |
+| bracketPair | — | 12726 / 9290 | OfficeWiring.tsx | [A] |
+| bracePair | — | 12741 / 9330 | OfficeWiring.tsx | [A] |
+| leftBracket | — | 12762 / 9267 | OfficeWiring.tsx | [A] |
+| rightBracket | — | 12780 / 9280 | OfficeWiring.tsx | [A] |
+| leftBrace | — | 12799 / 9370 | OfficeWiring.tsx | [A] |
+| rightBrace | — | 12832 / 9395 | OfficeWiring.tsx | [A] |
+| actionButtonBlank | — | 12863 / 9410 | OfficeWiring.tsx | [A] |
+| wave | — | 12948 / 9423 | OfficeWiring.tsx | [A] |
+| doubleWave | — | 12977 / 9450 | OfficeWiring.tsx | [A] |
+| irregularSeal1 | — | 13016 / 9460 | OfficeWiring.tsx | [A] |
+| irregularSeal2 | — | 13047 / 9479 | OfficeWiring.tsx | [A] |
+
+## 66. B5 · RemoteDirectorySuggestInput.tsx（F10 远程族建议输入 W2 + cmdk 建议弹层）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，现行 213,979 行）· B5-15。行号口径：当前 js 行（台账 213,695 口径 ＝ 当前 − 17；头注同时给出 jsx 孪生行）。
+- 符号条数：14（脚本抽取；3 本体符号 + 11 依赖 declare/import 登记）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| containerContainsTarget | NEt | 124144–124146 | RemoteDirectorySuggestInput.tsx | onInteractOutside 目标 containment 判定透传；jsx 105812；把握度高 |
+| suggestionMatchesQuery | PEt | 124147–124151 | RemoteDirectorySuggestInput.tsx | 建议项 trim+toLowerCase includes 查询；jsx 105817；把握度高 |
+| SuggestionInput | W2 | 124152–124259 | RemoteDirectorySuggestInput.tsx | Popover(anchor)+cmdk 建议输入组件；jsx 105822；把握度高；仅 REt 消费 4 处 |
+| ReactInterop | Q | 996 | RemoteDirectorySuggestInput.tsx | 依赖 declare；chunk 996 `var Q = r(F(), 1)` |
+| jsxRuntime | $ | 1287 | RemoteDirectorySuggestInput.tsx | 依赖 declare；chunk 1287 `var $ = Ke()` |
+| cn | Z | import 901 | RemoteDirectorySuggestInput.tsx | 依赖 declare；utils-CEEH0K_K.js 导出 t；重建实体 UtilsCn.tsx |
+| Popover | T | import 358 | RemoteDirectorySuggestInput.tsx | 依赖 declare；imeComposition 导出 n；根封装 pr |
+| PopoverAnchor | O | import 361 | RemoteDirectorySuggestInput.tsx | 依赖 declare；imeComposition 导出 r；封装 gr |
+| Input | P | import 367 | RemoteDirectorySuggestInput.tsx | 依赖 declare；imeComposition 导出 y；forwardRef Dn |
+| PopoverContent | x | import 354 | RemoteDirectorySuggestInput.tsx | 依赖 declare；imeComposition 导出 i；封装 hr |
+| Command | Yb | 32140 | RemoteDirectorySuggestInput.tsx | 依赖 declare；cmdk 封装 |
+| CommandList | Zb | 32196 | RemoteDirectorySuggestInput.tsx | 依赖 declare |
+| CommandEmpty | Qb | 32206 | RemoteDirectorySuggestInput.tsx | 依赖 declare |
+| CommandItem | ex | 32223 | RemoteDirectorySuggestInput.tsx | 依赖 declare |
+
+## 67. B5 · LazyPreviewViewers.ts（PDF/PPTX 预览懒加载分包包装 lVt/dVt）
+
+- 族/来源：styles 族 · 源 chunk `out/renderer/assets/styles-CdEGpc2x.js`（融合 chunk，现行 213,979 行）· B5-15b。行号口径：当前 js 行（头注同时给出 jsx 孪生行）。
+- 符号条数：5（脚本抽取；2 本体符号 + 3 依赖 declare/注记）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| LazyPdfViewer | lVt | 160672–160678 | LazyPreviewViewers.ts | React.lazy 分包包装；jsx 132852；把握度高；消费方 uVt（CodeViewer.tsx） |
+| LazyPptxPreviewViewer | dVt | 160688–160695 | LazyPreviewViewers.ts | React.lazy 分包包装；jsx 132865；把握度高；消费方 fVt（CodeViewer.tsx） |
+| ReactInterop | Q | 996 | LazyPreviewViewers.ts | 依赖 declare；chunk 996 |
+| preloadModuleWrapper | Y | import 856 | LazyPreviewViewers.ts | 依赖 declare；preload-helper-BHSF1fZ9.js 导出 t；三参 (loader, deps, url) 包装 |
+| __vite__mapDeps | — | 1 | LazyPreviewViewers.ts | 依赖注记；vite 运行时依赖索引表；chunk 1 |
+
+## 68. B5 · PptxGeometryDeferredPresets.ts（DEFERRED 单区域复杂预设注册 + circularArrowPath）
+
+- 族/来源：独立 chunk · 源 `out/renderer/assets/pptxRendererPreviewEngine-BIIRLBue.js`（55,446 行；孪生 jsx 44,678 行）· B5-17。行号口径：jsx 孪生行（预设条目行号取各 `V.set` 注册实际行；无混淆名，按预设名登记）。
+- 符号条数：43（脚本抽取；1 导出函数 + 38 预设注册 + 4 导入）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| circularArrowPath | Di | 8237–8443 | PptxGeometryDeferredPresets.ts | 本文件顶层导出；circularArrow/leftCircularArrow/leftRightCircularArrow 共用生成器 |
+| downArrowCallout | — | 7768 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| rightArrowCallout | — | 7789 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| leftArrowCallout | — | 7808 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| upArrowCallout | — | 7827 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| upDownArrowCallout | — | 7846 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| leftRightArrowCallout | — | 7870 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| uturnArrow | — | 7894 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| leftUpArrow | — | 7935 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| bentArrow | — | 7998 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| bentUpArrow | — | 8022 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| curvedRightArrow | — | 8035 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| curvedLeftArrow | — | 8088 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| curvedUpArrow | — | 8151 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| curvedDownArrow | — | 8195 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| circularArrow | — | 8444 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| leftCircularArrow | — | 8444 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| leftRightCircularArrow | — | 8444 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| quadArrowCallout | — | 8495 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| leftRightUpArrow | — | 8525 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| swooshArrow | — | 8546 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| flowChartPunchedTape | — | 8641 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| flowChartMagneticTape | — | 8694 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| flowChartMultidocument | — | 8725 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| cloudCallout | — | 8787 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| sun | — | 9200 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| moon | — | 9244 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| lightningBolt | — | 9257 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| bracketPair | — | 9257 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| bracePair | — | 9262 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| leftBracket | — | 9267 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| rightBracket | — | 9288 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| leftBrace | — | 9310 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| rightBrace | — | 9342 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| actionButtonBlank | — | 9372 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| wave | — | 9423 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| doubleWave | — | 9445 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| irregularSeal1 | — | 9475 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| irregularSeal2 | — | 9479 | PptxGeometryDeferredPresets.ts | PRESET_GEOMETRY_PATHS 注册（原 V.set）；DEFERRED 单区域复杂预设 |
+| PRESET_GEOMETRY_PATHS | V | 7459 | PptxGeometryDeferredPresets.ts | import（pptxEngineGeometry 导出） |
+| adjRatio | yi | 7373 | PptxGeometryDeferredPresets.ts | import（pptxEngineGeometry 导出） |
+| adjValue | bi | 7376 | PptxGeometryDeferredPresets.ts | import（pptxEngineGeometry 导出） |
+| mirrorPathHorizontally | Si | 7399 | PptxGeometryDeferredPresets.ts | import（pptxEngineGeometry 导出） |
+
+## 69. B5 · PptxGeometryMultiRegion.ts（MULTI_REGION_SHAPES 多区域预设注册 + actionButton 字形/度量）
+
+- 族/来源：独立 chunk · 源 `out/renderer/assets/pptxRendererPreviewEngine-BIIRLBue.js`（55,446 行；孪生 jsx 44,678 行）· B5-16。行号口径：jsx 孪生行（预设条目行号取各 `ji.set`/`ki.set` 注册实际行；无混淆名，按预设名登记）。
+- 符号条数：56（脚本抽取；11 具名符号 + 7 字形注册 + 38 预设注册）
+
+| 语义名 | 混淆名 | 行号 | 所在文件 | 备注 |
+|---|---|---|---|---|
+| curvedRightArrowBuilder | V | 8035–8087 | PptxGeometryMultiRegion.ts | 原 V.set；弯箭头构建器（逐字） |
+| curvedLeftArrowBuilder | V | 8088 | PptxGeometryMultiRegion.ts | 原 V.set；弯箭头构建器（逐字） |
+| curvedUpArrowBuilder | V | 8151–8194 | PptxGeometryMultiRegion.ts | 原 V.set；弯箭头构建器（逐字） |
+| curvedDownArrowBuilder | V | 8195–8236 | PptxGeometryMultiRegion.ts | 原 V.set；弯箭头构建器（逐字） |
+| wrapSplitPresetRegions | Ti | 8099–8125 | PptxGeometryMultiRegion.ts | 单预设→区域数组包装（弯箭头特判）；逐字 |
+| wrapVerticalArrowRegions | Ei | 8127–8150 | PptxGeometryMultiRegion.ts | 弯上/下箭头垂直镜像包装；逐字 |
+| ACTION_BUTTON_GLYPH_PATHS | ki | 9373–9417 | PptxGeometryMultiRegion.ts | actionButton 字形路径 Map（7 条）；逐字 |
+| actionButtonForwardNext | — | 9374 | PptxGeometryMultiRegion.ts | ACTION_BUTTON_GLYPH_PATHS 注册（原 ki.set）；字形路径 |
+| actionButtonBackPrevious | — | 9379 | PptxGeometryMultiRegion.ts | ACTION_BUTTON_GLYPH_PATHS 注册（原 ki.set）；字形路径 |
+| actionButtonReturn | — | 9384 | PptxGeometryMultiRegion.ts | ACTION_BUTTON_GLYPH_PATHS 注册（原 ki.set）；字形路径 |
+| actionButtonBeginning | — | 9395 | PptxGeometryMultiRegion.ts | ACTION_BUTTON_GLYPH_PATHS 注册（原 ki.set）；字形路径 |
+| actionButtonEnd | — | 9400 | PptxGeometryMultiRegion.ts | ACTION_BUTTON_GLYPH_PATHS 注册（原 ki.set）；字形路径 |
+| actionButtonInformation | — | 9405 | PptxGeometryMultiRegion.ts | ACTION_BUTTON_GLYPH_PATHS 注册（原 ki.set）；字形路径 |
+| actionButtonDocument | — | 9410 | PptxGeometryMultiRegion.ts | ACTION_BUTTON_GLYPH_PATHS 注册（原 ki.set）；字形路径 |
+| actionButtonGlyphPath | Ai | 9419–9422 | PptxGeometryMultiRegion.ts | actionButton 字形查询；逐字 |
+| actionButtonMetrics | Mi | 9610–9624 | PptxGeometryMultiRegion.ts | actionButton 公共度量；逐字；既有副本 1441 未导出 |
+| actionButtonOuterRect | Ni | 9626 | PptxGeometryMultiRegion.ts | actionButton 外框矩形路径；逐字；既有副本 1451 未导出 |
+| actionButtonBeginning | — | 9683 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| actionButtonEnd | — | 9713 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| actionButtonReturn | — | 9744 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| actionButtonSound | — | 9786 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| actionButtonInformation | — | 9827 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| actionButtonHome | — | 9877 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| actionButtonHelp | — | 9934 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| actionButtonDocument | — | 10000 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| actionButtonMovie | — | 10037 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| bevel | — | 10132 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| leftRightRibbon | — | 10161 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| ellipseRibbon | — | 10222 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| ellipseRibbon2 | — | 10276 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| smileyFace | — | 10334 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| can | — | 10393 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| curvedrightarrow | — | 10435 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| curvedleftarrow | — | 10435 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| curveduparrow | — | 10435 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| curveddownarrow | — | 10435 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| bordercallout1 | — | 10435 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| accentcallout1 | — | 10449 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| accentcallout2 | — | 10467 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| accentcallout3 | — | 10487 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| callout1 | — | 10509 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| callout2 | — | 10523 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| callout3 | — | 10539 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| bordercallout2 | — | 10557 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| bordercallout3 | — | 10573 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| accentbordercallout1 | — | 10591 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| accentbordercallout2 | — | 10609 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| accentbordercallout3 | — | 10629 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| chartx | — | 10651 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| chartplus | — | 10659 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| chartstar | — | 10671 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| ribbon | — | 10696 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| ribbon2 | — | 10742 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| horizontalscroll | — | 10789 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| verticalscroll | — | 10823 | PptxGeometryMultiRegion.ts | MULTI_REGION_SHAPES 注册（原 ji.set）；多区域预设 |
+| resolveMultiRegionPreset | Pi | 10857–10861 | PptxGeometryMultiRegion.ts | 多区域查询（小写→原名回退）；逐字 |
+
 ## 附录 A · 全族共享依赖速查
 
 所有 styles 族共用的跨 chunk 依赖（MODULE-MAP §3 导入块 js 336–966）：
@@ -4410,6 +9709,9 @@
 | `TRt` | styles | **resolveInteractionBadgeModel**（与 `wRt`=isSnoozableUserInputInteraction 为 zip 对） | — | Sidebar.report §1.1 行 150788/150793 顺序 |
 | `UBt` | styles | **expandToggleMessageId**（与 `WBt`=resolveExpandToggleState 为 zip 对） | — | 同上（158970/158967） |
 | `FH` | styles | **CodeCommentsStore**（stores-workspace.tsx 本体） | useCodeCommentsStore（钩子形态，CodeViewer/GitReview） | 同实体两形态，非冲突 |
+| `YLt…nRt`（js 149473–149599） | styles | **WebRemote.tsx**（B5-05 全量；rRt 唯一消费族） | Bots.tsx 尾段重复转录（整合期删除或改 import） | B5-MERGE-NOTES §2（双方互让消费面优先） |
+| `Mq` ConfigSelect 整闭包（js 76848–77167） | styles | **Composer.tsx**（B5-01 先收且含 mode.* 消费链） | PaymentDeep.tsx Mq@76912 锚点版（整合期改 import） | B5-MERGE-NOTES §2 |
+| `U3e/W3e/G3e`（js 77062–77126）+ 76034–76156 popover 原语 | styles | **Composer.tsx**（U3e@77062 锚点） | PaymentDeep.tsx declare-only（声明改 import） | B5-MERGE-NOTES §2 |
 
 ### B.2 跨 chunk 同名（非冲突，仅登记高频项）
 
@@ -4446,28 +9748,11 @@
 - §21 内 previewPaneOfficeLegacyDocContent.tsx 公共层 10 条手工登记保留不变；批次 A/B 引擎条目分列 §31/§32，不与公共层重复计。
 - 规模变化：2,394 → **3,697** 条；重建文件 63 → **79** 个。`out/` 全程只读（批后复验 md5 `c9d0d675d0b858e6e7711df3e9122e81`、213,695 行不变；legacy-doc chunk 47,538 行不变）。
 
-## 33. D5c seam（out/main/seam，手写接线层；非混淆，符号即本名）
+**B5 批次增量（2026-08-29）**：
 
-> 族登记：D5c nofy 内核接线（kernel supervisor / ACP client / ZCode↔ACP adapter /
-> workspace 枚举 / 标题回退）。导航详见 `D5C-WIRING-LEDGER.md`（§1–§7）。
-> 行号口径：`out/main/seam/*.js` 自身行号（ESM，未压缩）。
-
-| 语义名 | 所在文件 | 备注 |
-|---|---|---|
-| ensureKernel / disposeKernel / KERNEL_WS_URL | kernel-supervisor.js | 发现-否则-启动（NOFY_SOCKET→appdata sock→9800 探针→spawn）；父退子收 |
-| NofyAcpClient / chunkText | acp-client.js | Node ACP client（initialize/list/new/load/prompt/cancel/permission） |
-| handleHostFrame / handleCommand | acp-agent-adapter.js | ZCode stdio ↔ ACP 桥总入口 |
-| zcodeSessionSnapshot | acp-agent-adapter.js | **FIX-RESUME**：按 host `Vr` schema 的完整会话快照（protocol/session/settings/projection/runtime/messages）；session/create\|resume\|read\|setModel\|setThoughtLevel\|setMode\|updateRuntimeModelConfig 共用 |
-| ZCODE_PROTOCOL / zcodeSettings / zcodeTitle | acp-agent-adapter.js | **FIX-RESUME**：`{name:"ZCode Protocol",version:1}`；settings 最小合法对象；标题回退链（live→首条用户消息→sid8） |
-| ensureWorkspaceIndexLoaded / backfillAllIndexes | acp-agent-adapter.js | **FIX-WS**：sessions-index 订阅先懒加载后发初始快照（存量行进快照不进 deltas → host seed 路，不逐行 resume） |
-| populateFromSummaries / populateFromSessionList | acp-agent-adapter.js | **FIX-WS**：静默填充 workspaceState.entries（workspace_list 主路 / session/list 回退） |
-| logOnce | acp-agent-adapter.js | **FIX-RESUME**：同类日志每键只记一次（防刷屏写盘） |
-| emitWireFrameFor / emitConv / emitSessionsIndexDelta | acp-agent-adapter.js | v4 帧发射（per-subscriptionId builder；topic/subscriptionId 与外层一致） |
-| conversationSnapshot / sessionsIndexSnapshot / workspaceConfigSnapshot | acp-agent-adapter.js | 三类 topic 初始快照构建 |
-| ensureReplayed / finishReplay / replayUpdate | acp-agent-adapter.js | session/load 回放重建 rows（高水位续接） |
-| listKnownWorkspaces / listWorkspaceSessions | workspace-registry.js | **FIX-WS**：main 侧全量 workspace 枚举（ACP workspace_list 主路；dir-scan 3s 负缓存 + mtime 排序 + 200 行上限） |
-| registerWorkspaceRegistry | workspace-registry.js | **FIX-WS**：IPC 注册（zcode:nofy-list-workspaces / zcode:nofy-workspace-sessions）；注册即预连 ACP |
-| firstUserQueryTitle / truncateTitle | session-title.js | 标题回退链末环（chat_history.jsonl 首个 user_query，80 字截断） |
-| WsEnumUseKnownWorkspaces / WsEnumUseWorkspaceSessions / WsEnumSection | out/renderer/assets/styles-CdEGpc2x.js（≈159277/159302/159404） | renderer 项目段枚举 + 展开懒 acquire（VS/HS SessionIndexStore 引用计数池）；本次未改动 |
-| host Vr（session 快照 schema） | out/host/chunk-O5YHTQBW.js ≈15061 | resume/create/read/set* 响应校验形状（protocol/session/settings/projection/runtime/messages，strict） |
-| host applySessionsIndexFrame / processSummary / seedMissingRowsFromInitialSnapshot | out/host/index.js ≈49359/49122/49141 | 首个快照 seed（不 resume）vs 后续 delta 逐行 resume——FIX-WS 让存量行走前者 |
+- 抽取：`/tmp/b5idx/extract.py`（头注映射表 + 文件尾符号总表，12+ 种体例逐文件适配解析；节区切分 `/tmp/b5idx/sections.json`），32 文件共抽取 **4,866 条**入 §34–§65（头表与尾表合并、按混淆名去重）。
+- 每文件条数：Composer 377 / OnboardingLoginLeaves 139 / AppRootLeaves 23 / FeedbackCenter 109 / PaymentDeep 482 / Bots 42 / WebRemote 39 / RemoteWizard 12 / PreviewCards 65 / FileTreePanel 78 / FileRewindDialogDeep 25 / QuickPickDeep 108 / CmdkPaletteDeep 55 / McpHelpers 32 / LegacyDocEngineC1 172 / C2 206 / C3 175 / C4 36 / C5 17 / DocxWasmGlue 40 / RemoteGapSegments 26 / SrcSharedA 567 / SrcSharedB 769 / SkillStore 211 / UsageStatsUiParts 95 / ProcessMonitor 20 / XlsxDeepA 154 / XlsxDeepB 1 / XlsxDeepC 297 / XlsxDeepP 440 / XlsxDeepT 7 / OfficeWiring 47。
+- 存在性抽查：每文件抽 3 条（首/中/尾；XlsxDeepB 仅 1 条），对产物原文做「混淆名 + 语义名同行共现」grep 复核——32 文件 94 条抽查 **0 失败**（93 条共现命中；1 条匿名条目 RemoteWizard `LEt` 无语义名，按混淆名命中）。
+- 行号口径：B5 起 styles 族以当前 out 213,979 行为「当前 js」口径（台账 213,695 口径 = 当前−分段偏移，见 B5-MERGE-NOTES §1）；Composer（B5-01）头注按台账 213,695 行本声明，为 B5 中唯一台账口径节。
+- 补记（同日续作 4 件）：`/tmp/b5idx/extract2.py`（同管线）抽取 RemoteDirectorySuggestInput（B5-15）/ LazyPreviewViewers（B5-15b）/ PptxGeometryDeferredPresets（B5-17）/ PptxGeometryMultiRegion（B5-16）共 **118 条**入 §66–§69；每文件条数：RemoteDirectorySuggestInput 14 / LazyPreviewViewers 5 / PptxGeometryDeferredPresets 43 / PptxGeometryMultiRegion 56。行号口径：前两件为 styles 当前 js 行（头注同给 jsx 孪生行），后两件为 `pptxRendererPreviewEngine-BIIRLBue.jsx` 孪生行（预设条目取各 `V.set`/`ji.set`/`ki.set` 注册实际行，无混淆名按预设名登记）。存在性抽查：每文件 ≥2 条对产物原文与 jsx 孪生行号复核，0 失败。
+- 规模变化：3,697 → **8,681** 条；重建文件 79 → **115** 个。产物/台账/报告零改动（仅本文件回写）。

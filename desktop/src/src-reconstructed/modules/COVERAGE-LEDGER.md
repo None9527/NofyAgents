@@ -112,6 +112,8 @@
 > 口径：各报告标「接口级」「登记」「待抽取」「后续展开」的符号/行段。行号 = styles js（除注明外）。
 > 建议批次：**B4-1** = 用户改造高价值；**B4-2** = 补全族闭环；**B4-3** = 深部引擎/低优先。
 > **B4 状态（2026-08-26）**：本队列多数项已随 B4 批次落地（逐行见「B4 状态」列）；完成台账、验证与裁决见 §f。
+> **B5 状态（2026-08-29）**：本队列全部余项已经 B5 十七批全量解码清零——逐行对照见 §g.1/g.2；
+> 唯一豁免 = vendored 依赖替换策略项（xterm/resizable-panels/Lexical/qrcode/diff 引擎等）。
 
 ### c.1 大块（未抽取族/引擎）
 
@@ -288,3 +290,59 @@
 | first-party 逐字总量（两大块） | ~95,000–100,000 | **≈ 134,900+ 行**（styles ~121,000 + legacy-doc 引擎 13,910；其余独立 chunk 按 §b 状态不变，未重复计） |
 
 **剩余接口级总清单**：styles 侧 17 段（见 §a 汇总表，去重后 ~18,100 行）+ legacy-doc 引擎区 4 段（~11,800 行）+ 未重建 first-party chunk ×4（skillStore/src/usageStatsUiParts/process-monitor）。
+
+---
+
+## g) B5 全量解码完成台账（2026-08-29）
+
+> B4 剩余接口级清单（§a 17 段 + 引擎区 4 段 + 未重建 chunk ×4）经 B5 十七批次全量逐字解码。
+> 体例：逐字重建（类名/常量/分支零改动；顶层符号语义名+映射表，局部名保留原混淆名，逆映射可回代）。
+> 门禁：每批 esbuild 0 错 + tsc strict 0 错 + ≥8 锚点回代逐字命中 + 报告；全部经独立复核。
+> **基数刷新**：styles-CdEGpc2x.js 213,695 → **213,979 行**（D5b 删除/桩化净位移；分段偏移映射见 B5-MERGE-NOTES §1）。
+> `out/` 全程只读：styles `48d71d48…`、src-HCld2afU `f5edd6a1…`、legacy-doc `cfa43c9f…`、xlsx `41932140…`、YE7GQOST `bbd574fd…`、AEHDFCS5 `c200d53a…` 批前批后一致。
+
+### g.1 批次产物总表（36 件 .tsx/.ts，~122,300 重建行；报告 23 份另计）
+
+| 批次 | 产物（重建行数） | 覆盖对象 |
+|---|---|---|
+| B5-01 | Composer.tsx（9,321） | §a #1 F08 Composer 族全量（351 符号） |
+| B5-02 | OnboardingLoginLeaves.tsx（5,379）+ AppRootLeaves.tsx（2,726） | §a #2 F18 余量 + #6 F20 应用根 |
+| B5-03 | FeedbackCenter.tsx（4,334） | §a #3 反馈中心（真实起点今 37093；85 个 feedback.* 键） |
+| B5-04 | PaymentDeep.tsx（12,066）+ Bots.tsx（2,209） | §a #4 支付深部第二符号组 + #8 F11 Bots 族 |
+| B5-05 | WebRemote.tsx（2,063）+ RemoteWizard.tsx（1,637） | §a #5 F17 WebRemote + #10 远程向导 |
+| B5-06 | PreviewCards.tsx（2,385）+ FileTreePanel.tsx（2,718）+ FileRewindDialogDeep.tsx（950） | §a #7 预览卡群 + #9 $It 文件树 + #14 rewind 深部 |
+| B5-07 | QuickPickDeep.tsx（1,697）+ CmdkPaletteDeep.tsx（1,804）+ McpHelpers.tsx（529） | §a #11 ZS 深部 + #12 zZ cmdk 深部 + #13 MCP 助手群（实测 193351–193633/203426–203439） |
+| B5-08 | LegacyDocEngineC1.tsx（3,799）+ C2.tsx（4,794） | 引擎区 jsx 18106–19541 ∪ 20231–20943 ∪ 20944–24337（[E6]c 195 符号全量实体化） |
+| B5-09 | LegacyDocEngineC3.tsx（5,317）+ C4.tsx（4,110） | 引擎区 [E7] 交互回调簇 jsx 27889–35407（C4 回代 99.97% 逐字） |
+| B5-10a/b | SrcSharedA.tsx（6,358，567 符号）+ SrcSharedB.tsx（7,009，769 符号） | src-HCld2afU 全量（AST 1,336 声明 1:1 对齐；§2–§8 为捆绑 zod v4.3.6） |
+| B5-11 | SkillStore.tsx（4,569）+ UsageStatsUiParts.tsx（1,374）+ ProcessMonitor.tsx（310） | 三个未重建 first-party chunk 全量 |
+| B5-12a | XlsxDeepA.tsx（8,178） | xlsx Ru 控制器域（15672+） |
+| B5-12b | XlsxDeepB.tsx（6,530）+ OfficeWiring.tsx（1,662） | xlsx canvas/工具条域 + office 接线（CartesianChart = 纯 recharts 3.8.0 vendor，免产出） |
+| B5-12c | XlsxDeepC.tsx（5,133，297 符号） | xlsx 189512–193216（常量/剪贴板/上下文/工具条 UI/行渲染层；逆映射逐字节一致） |
+| B5-12d | XlsxDeepP.tsx（7,292，440 符号/87 导出）+ XlsxDeepT.tsx（331） | xlsx 9111–15671 前导段（裁决 FIRST-PARTY react-xlsx 私有引擎）+ 199292–199508 入口层 |
+| B5-13 | I18nDynamicKeys.report.md | i18n 动态键全域核销（74/109 消费；35 孤儿键；postUpdateReleaseNotes/forceUpdate 证伪） |
+| B5-14 | LegacyDocEngineC5.tsx（364）+ DocxWasmGlue.tsx（953）+ RemoteGapSegments.tsx（1,435） | [E6]b 余带 + chunk-YE7GQOST/src-AEHDFCS5（deepCloneModel/newBlockId 实体化）+ F10 两隙段（123522–123945/127350–127942） |
+| B5-15 | RemoteDirectorySuggestInput.tsx（233） | NEt/PEt/W2 微段（今 124144–124259；W2 = ssh 连接建议输入，逆映射 116/116 一致） |
+| B5-15b | LazyPreviewViewers.ts（93）+ 2×.d.ts 垫片 | lVt/dVt 两个 React.lazy 包装（今 160672–160695；逆映射 15/15 一致；styles 接口级 declare 残留清零） |
+| B5-16 | PptxGeometryMultiRegion.ts（1,501） | pptx DEFERRED_MULTI_REGION_ANCHORS：实测 38 多区域条目全转录 + 弯箭头四 V 构建器 + ki/Ai/Pi/Mi/Ni（锚点 98；运行时冒烟 38/38） |
+| B5-17 | PptxGeometryDeferredPresets.ts（1,170） | pptx DEFERRED_PRESET_GEOMETRY_ANCHORS：38 单区域复杂预设转录 + 1 项已覆盖跳过（逆映射 212/212 抽查一致） |
+
+### g.2 三态重算（B5 后）
+
+| 口径 | B4 后 | B5 后 |
+|---|---|---|
+| styles 213,979 行 · 逐字重建 | ~118,400–123,400（55–58%） | **~136,000+（≈64%；§a 17 段中 16 段转逐字）** |
+| styles · 接口级 | ~17,600–18,600（8–9%） | **~210（仅 resizable-panels vendored 变体，依赖替换策略豁免）——first-party 接口级清零** |
+| styles · vendored/横切 | 62,262（29.14%） | 不变（策略：npm 整体替换） |
+| legacy-doc 引擎区 26,114 行 · 逐字 | 13,910（53.3%） | **≈26,114（100%；接口级四段全部实体化：18106–19541/20231–20943/20944–24337 归 C1/C2，27889–35407 归 C3/C4，[E6]b 余带归 C5）** |
+| xlsx chunk 199,508 行 | 自研 94 行 + 桥 134 行（登记口径） | **first-party 9111–199508 逐字全覆盖（XlsxDeepA/B/C/P/T + OfficeWiring + 既有 XlsxPreview 族）；1–9110 = d3/topojson/regl vendored** |
+| 未重建 first-party chunk | 4 | **0**（skillStore/src/usageStatsUiParts/process-monitor 全量落定） |
+| docx wasm glue 两微 chunk | declare 挂接 | **逐字全覆盖**（DocxWasmGlue.tsx，453 行原件 → 953 行重建） |
+
+### g.3 B5 后剩余事项（全部非「未解码」性质）
+
+1. **vendored 依赖替换候选**（A0.1 执行）：zod v4.3.6（SrcSharedA §2–§8 内联）、recharts 3.8.0（CartesianChart）、Lexical（styles 57652–63592）、Stripe 6.4.0/9.6.0（80955–81731）、qrcode（78456–79690）、resizable-panels（131439–131820）、shiki/xterm/dnd-kit/framer-motion/mermaid 等（VENDOR-MANIFEST 在案）。
+2. **declare 替换总账**（整合期执行，清单在 B5-MERGE-NOTES §4 与各批报告）：xlsx 12a 94 + 12b 146 + 12c 6 → XlsxDeepC/P 导出；SkillStore 8 → SrcSharedA/B；C4 316 项 → 属主模块；SrcSharedB 90 ambient → SrcSharedA；RemoteWizard 234–363 → RemoteGapSegments；C3/C4 六 declare → C5；C2 301/303 → DocxWasmGlue；Modals 补导出 `$2`、SrcSharedA 补导出 `DEFAULT_ASSET_INSTALL_MODE`。
+3. **双归属裁决遗留**（整合期改 import）：14341–14474（XlsxDeepP vs XlsxPreviewWasmBridge）、199415–199508（XlsxDeepT vs XlsxPreview）、Bots 尾段 149473–149599、PaymentDeep 版 76848–77167、批 B qg…e_/m_/p_ 副本。
+4. **i18n 孤儿键 35 个**（阶段 C 清理候选，B5-13 §5）。
+5. **全部解码批次已落地**（B5-15/15b/16/17 于 2026-08-29 凌晨验收）；仅余 SYMBOL-INDEX B5 增量登记进行中。整合期清单见 B5-MERGE-NOTES §4（declare 替换/双归属改指/登记表删除）。
