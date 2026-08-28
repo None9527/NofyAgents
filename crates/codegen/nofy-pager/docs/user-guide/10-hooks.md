@@ -1,12 +1,12 @@
 # Hooks
 
-Hooks let you run a script or send an HTTP request at key moments in a Grok session. Use them to automate tasks, enforce safety checks, log activity, send notifications, and integrate your own tools.
+Hooks let you run a script or send an HTTP request at key moments in a Nofy session. Use them to automate tasks, enforce safety checks, log activity, send notifications, and integrate your own tools.
 
 ---
 
 ## What Are Hooks?
 
-A hook is a shell command or HTTP endpoint that Grok calls when a specific lifecycle event occurs. Hooks can:
+A hook is a shell command or HTTP endpoint that Nofy calls when a specific lifecycle event occurs. Hooks can:
 
 - **Block actions** -- A `PreToolUse` hook can deny a dangerous command before it runs.
 - **Keep the agent working** -- A `Stop` hook can block the agent from finishing its turn until a condition holds (e.g. the test suite passes) and feed the reason back to the model.
@@ -31,10 +31,10 @@ A hook is a shell command or HTTP endpoint that Grok calls when a specific lifec
 1. Create the hooks directory:
 
    ```sh
-   mkdir -p ~/.grok/hooks
+   mkdir -p ~/.nofy/hooks
    ```
 
-2. Create a hook file, e.g. `~/.grok/hooks/session-start.json`:
+2. Create a hook file, e.g. `~/.nofy/hooks/session-start.json`:
 
    ```json
    {
@@ -42,7 +42,7 @@ A hook is a shell command or HTTP endpoint that Grok calls when a specific lifec
        "SessionStart": [
          {
            "hooks": [
-             { "type": "command", "command": "echo 'Grok session started in '$(pwd)" }
+             { "type": "command", "command": "echo 'Nofy session started in '$(pwd)" }
            ]
          }
        ]
@@ -50,7 +50,7 @@ A hook is a shell command or HTTP endpoint that Grok calls when a specific lifec
    }
    ```
 
-3. Start (or restart) a Grok session. The hook runs automatically on `SessionStart`.
+3. Start (or restart) a Nofy session. The hook runs automatically on `SessionStart`.
 
 4. Press `Ctrl+L` on non–VS Code family terminals (or run `/hooks` anywhere — preferred on VS Code family) and check the Hooks tab to confirm it loaded.
 
@@ -62,20 +62,20 @@ Hooks are discovered from several places (all are merged):
 
 | Scope | Path | Trusted? | Notes |
 |-------|------|----------|-------|
-| Global | `~/.grok/hooks/*.json` | Always | Personal hooks |
+| Global | `~/.nofy/hooks/*.json` | Always | Personal hooks |
 | Global | `~/.claude/settings.json` (and `settings.local.json`) | Always | Claude Code compatibility (configurable) |
 | Global | `~/.cursor/hooks.json` | Always | Cursor compatibility (configurable) |
-| Project | `<project>/.grok/hooks/*.json` | Requires trust | Per-repo automation |
+| Project | `<project>/.nofy/hooks/*.json` | Requires trust | Per-repo automation |
 | Project | `<project>/.claude/settings.json` (and `settings.local.json`) | Requires trust | Claude compatibility (configurable) |
 | Project | `<project>/.cursor/hooks.json` | Requires trust | Cursor compatibility (configurable) |
-| Config | `~/.grok/config.toml` | Always | Your hooks alongside the rest of your config |
-| Config | `managed_config.toml` (`$GROK_HOME` and `/etc/grok`) | Always | Organization-distributed hooks (server-synced and on-device) |
+| Config | `~/.nofy/config.toml` | Always | Your hooks alongside the rest of your config |
+| Config | `managed_config.toml` (`$NOFY_HOME` and `/etc/nofy`) | Always | Organization-distributed hooks (server-synced and on-device) |
 | Config | `requirements.toml` (user and system) | Always | Organization-distributed hooks in the requirements layer |
 | Plugin | Bundled inside installed plugins | Per-plugin | Shared team hooks |
 
-Config-file hooks live in the same TOML your organization already controls; see [Hooks in Config Files](#hooks-in-config-files) for the format. The compatible vendor hook sources are scanned by default. To disable scanning for a specific vendor, set `[compat.<vendor>] hooks = false` in `~/.grok/config.toml` or the corresponding environment variable. See [Configuration](05-configuration.md#harness-compatibility) for details.
+Config-file hooks live in the same TOML your organization already controls; see [Hooks in Config Files](#hooks-in-config-files) for the format. The compatible vendor hook sources are scanned by default. To disable scanning for a specific vendor, set `[compat.<vendor>] hooks = false` in `~/.nofy/config.toml` or the corresponding environment variable. See [Configuration](05-configuration.md#harness-compatibility) for details.
 
-**Trusting a project**: The first time you open a project with hooks, you must trust it before its project hooks will run -- until then they are silently skipped. Grant trust by running `/hooks-trust` (or launching with `--trust`); the decision is recorded in the unified folder-trust store (`~/.grok/trusted_folders.toml`), the same gate that governs repo-local MCP/LSP servers. Global hooks in `~/.grok/hooks/` are always trusted and need no entry. This prevents untrusted repos from running arbitrary code.
+**Trusting a project**: The first time you open a project with hooks, you must trust it before its project hooks will run -- until then they are silently skipped. Grant trust by running `/hooks-trust` (or launching with `--trust`); the decision is recorded in the unified folder-trust store (`~/.nofy/trusted_folders.toml`), the same gate that governs repo-local MCP/LSP servers. Global hooks in `~/.nofy/hooks/` are always trusted and need no entry. This prevents untrusted repos from running arbitrary code.
 
 Because hooks are unified under folder-trust, a `--trust` / `/hooks-trust` grant trusts the whole folder for **MCP, LSP, and hooks** together, and covers subdirectories of the same repository. A nested git checkout under that folder is a separate workspace and is not covered. Conversely, disabling folder-trust (`NOFY_FOLDER_TRUST=0` or `[folder_trust] enabled = false`) ungates project hooks along with MCP/LSP.
 
@@ -104,7 +104,7 @@ Because hooks are unified under folder-trust, a `--trust` / `/hooks-trust` grant
 
 ### Cursor Hook Compatibility
 
-Grok accepts Cursor's camelCase hook event names, so `~/.cursor/hooks.json` loads unchanged:
+Nofy accepts Cursor's camelCase hook event names, so `~/.cursor/hooks.json` loads unchanged:
 
 | Cursor event | Maps to |
 |---|---|
@@ -149,7 +149,7 @@ Each `.json` file can define hooks for multiple events:
 
 ### Key Fields
 
-- **Event name** (top-level key): any event listed in [Hook Events](#hook-events). Grok skips unrecognized event names so a shared Claude or Cursor settings file still loads.
+- **Event name** (top-level key): any event listed in [Hook Events](#hook-events). Nofy skips unrecognized event names so a shared Claude or Cursor settings file still loads.
 - **matcher** (optional): A regular expression that selects which invocations trigger the hook. What it tests depends on the event: the tool name on tool events (`PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionDenied`), the notification type on `Notification`, the subagent type on `SubagentStart`/`SubagentStop` (e.g. `explore`), the start source on `SessionStart` (`startup`, `resume`, …), the end reason on `SessionEnd`, the compaction trigger on `PreCompact`/`PostCompact` (`manual` or `auto`), and the error type on `StopFailure` (`rate_limit`, `authentication_failed`, `invalid_request`, `server_error`, `max_output_tokens`, or `unknown`). A matcher on `Stop` or `UserPromptSubmit` is ignored with a warning (those events always fire). An empty or omitted matcher matches everything. The matcher tests the real tool name; MCP calls routed through the internal `use_tool` dispatcher appear as the qualified `server__tool` name (e.g. `linear__save_issue`), so match on that, not the dispatcher name.
 - **type**: `"command"` (run a script or shell one-liner) or `"http"` (POST the event to a URL).
 - **command**: Path to executable (relative to the JSON file) or inline shell command.
@@ -157,7 +157,7 @@ Each `.json` file can define hooks for multiple events:
 
 ### Tool Name Aliases
 
-In a `matcher`, Grok maps Claude-style tool names to its own so hooks migrated from Claude fire correctly. Common aliases include:
+In a `matcher`, Nofy maps Claude-style tool names to its own so hooks migrated from Claude fire correctly. Common aliases include:
 
 - `Bash` → `run_terminal_command`
 - `Read` → `read_file`
@@ -172,12 +172,12 @@ A matcher keeps its original name too, so `Bash` matches both `Bash` and `run_te
 
 ## Hooks in Config Files
 
-Hooks can also live directly in your Grok config, so a team can distribute them with the rest of their configuration instead of shipping separate JSON files. The same `hooks` object is read from three TOML files:
+Hooks can also live directly in your Nofy config, so a team can distribute them with the rest of their configuration instead of shipping separate JSON files. The same `hooks` object is read from three TOML files:
 
 | File | Tier | Who sets it |
 |------|------|-------------|
-| `~/.grok/config.toml` | User | You |
-| `managed_config.toml` (`$GROK_HOME`, `/etc/grok`) | Managed / system | Your organization |
+| `~/.nofy/config.toml` | User | You |
+| `managed_config.toml` (`$NOFY_HOME`, `/etc/nofy`) | Managed / system | Your organization |
 | `requirements.toml` (user and system) | Requirements | Your organization |
 
 The TOML is structurally identical to the JSON hook object, so an existing hook transliterates directly:
@@ -266,7 +266,7 @@ The gate runs only for genuine completions. Interrupted (Esc / Ctrl+C), refused,
 
 `StopFailure` is observation-only (use it to log failures or send alerts; output and exit code are ignored). Its input carries `error` (the classified type the matcher tests, in Claude Code's vocabulary: `rate_limit`, `authentication_failed`, `invalid_request`, `server_error`, `max_output_tokens`, or `unknown` for anything the runtime cannot distinguish; capacity errors fold into `rate_limit` and there is no signal for `billing_error`), `errorDetails` (the raw error detail, when available), and `lastAssistantMessage` (the rendered error text shown in the conversation; for this event it is the error string, not assistant output).
 
-`Stop` input also carries `backgroundTasks` and `sessionCrons`, so a hook can distinguish "session is done" from "session is paused waiting for background work to wake it back up". Both arrays are empty when nothing is in flight or scheduled. Each `backgroundTasks` entry describes one in-flight task: `id`, `type` (`shell`, `monitor`, or `subagent`), `status`, and (depending on the type) `command` (shell tasks only), `description` (a monitor's watched command line, or a subagent's task description), and `agentType` (subagents). Each `sessionCrons` entry describes one scheduled wakeup (`scheduler_create` or `/loop`): `id`, `schedule`, `recurring`, and `prompt`. The `schedule` value is a human-readable interval such as `every 5 minutes`; grok schedules are intervals, not cron expressions. Free-text entry fields are capped at 1000 characters with an in-string `… [+N chars]` marker.
+`Stop` input also carries `backgroundTasks` and `sessionCrons`, so a hook can distinguish "session is done" from "session is paused waiting for background work to wake it back up". Both arrays are empty when nothing is in flight or scheduled. Each `backgroundTasks` entry describes one in-flight task: `id`, `type` (`shell`, `monitor`, or `subagent`), `status`, and (depending on the type) `command` (shell tasks only), `description` (a monitor's watched command line, or a subagent's task description), and `agentType` (subagents). Each `sessionCrons` entry describes one scheduled wakeup (`scheduler_create` or `/loop`): `id`, `schedule`, `recurring`, and `prompt`. The `schedule` value is a human-readable interval such as `every 5 minutes`; nofy schedules are intervals, not cron expressions. Free-text entry fields are capped at 1000 characters with an in-string `… [+N chars]` marker.
 
 Inside a subagent, the gate fires as `SubagentStop` (agent-frontmatter `Stop` hooks are automatically remapped). A `Stop` hook only gates the main agent.
 
@@ -274,15 +274,15 @@ Inside a subagent, the gate fires as `SubagentStop` (agent-frontmatter `Stop` ho
 
 **Porting Claude Code stop hooks**: the output vocabulary (`decision`, `reason`, `continue`, `stopReason`, `additionalContext`) works unchanged. Check this list for what does not match Claude:
 
-- **camelCase input**: grok's stdin envelope uses camelCase keys throughout where Claude uses snake_case. A script reading `.stop_hook_active`, `.hook_event_name`, or `.background_tasks[].agent_type` must switch to `.stopHookActive`, `.hookEventName`, and `.backgroundTasks[].agentType` (the event value is `"stop"`). Hooks registered through the grok-agent-sdk convert both the top-level keys and the `backgroundTasks`/`sessionCrons` entry keys to snake_case, so the wire's `.backgroundTasks[].agentType` reads as `.background_tasks[].agent_type` in the SDK.
+- **camelCase input**: nofy's stdin envelope uses camelCase keys throughout where Claude uses snake_case. A script reading `.stop_hook_active`, `.hook_event_name`, or `.background_tasks[].agent_type` must switch to `.stopHookActive`, `.hookEventName`, and `.backgroundTasks[].agentType` (the event value is `"stop"`). Hooks registered through the nofy-agent-sdk convert both the top-level keys and the `backgroundTasks`/`sessionCrons` entry keys to snake_case, so the wire's `.backgroundTasks[].agentType` reads as `.background_tasks[].agent_type` in the SDK.
 - **`toolResult` field**: the `PostToolUse` tool output is `toolResult` (SDK: `tool_result`), not Claude's `tool_response`; a hook reading `.tool_response` must switch to `.toolResult`.
 - **Session-end fire**: an extra observe-only Stop fires at session end; filter on `reason == "end_turn"` (see above).
 - **Interval schedules**: `sessionCrons[].schedule` is a human-readable interval, never a cron expression.
 - **Task types**: `backgroundTasks[].type` is only `shell`, `monitor`, or `subagent`; Claude's other labels (`workflow`, `teammate`, …) are not emitted.
-- **StopFailure classes**: the emitted set is Claude Code's vocabulary — `rate_limit`, `authentication_failed`, `invalid_request`, `server_error`, `max_output_tokens`, `unknown`. grok emits a subset: capacity errors (503/529) fold into `rate_limit` as in Claude, and `billing_error` is never emitted (no signal), so a `billing_error` matcher will not fire.
-- **permission_mode values**: grok emits `default`, `auto`, `plan`, or `bypassPermissions`. Claude's `acceptEdits`/`dontAsk` have no grok equivalent (grok's `auto` is the nearest), so a check like `permission_mode === "acceptEdits"` never matches.
+- **StopFailure classes**: the emitted set is Claude Code's vocabulary — `rate_limit`, `authentication_failed`, `invalid_request`, `server_error`, `max_output_tokens`, `unknown`. nofy emits a subset: capacity errors (503/529) fold into `rate_limit` as in Claude, and `billing_error` is never emitted (no signal), so a `billing_error` matcher will not fire.
+- **permission_mode values**: nofy emits `default`, `auto`, `plan`, or `bypassPermissions`. Claude's `acceptEdits`/`dontAsk` have no nofy equivalent (nofy's `auto` is the nearest), so a check like `permission_mode === "acceptEdits"` never matches.
 - **Client (SDK) gate timeouts**: SDK `Stop`/`SubagentStop` gates default to 600 seconds like file hooks; `PreToolUse` client gates default to 30 seconds (the interactive hot path). Either can be overridden per matcher group via `timeoutS`, capped at 600.
-- **`/goal`**: grok's goal loop is a separate feature that runs before the stop gate; it is not a prompt-type Stop hook.
+- **`/goal`**: nofy's goal loop is a separate feature that runs before the stop gate; it is not a prompt-type Stop hook.
 
 A complete keep-working policy in one script:
 
@@ -304,7 +304,7 @@ For events like `SessionStart` or `PostToolUse`, stdout is ignored. Just exit 0 
 
 ### Environment Variables
 
-Grok sets several environment variables on every hook process. These are useful when writing context-aware or plugin-aware hook scripts.
+Nofy sets several environment variables on every hook process. These are useful when writing context-aware or plugin-aware hook scripts.
 
 #### Runner-injected variables (always available)
 
@@ -312,24 +312,24 @@ These variables are set by the hook runner for **every** hook:
 
 | Variable              | Description |
 |-----------------------|-------------|
-| `GROK_HOOK_EVENT`     | The name of the event that triggered the hook (e.g. `pre_tool_use`, `session_start`, `post_tool_use`, `session_end`, `stop`, `notification`). |
-| `GROK_HOOK_NAME`      | The configured name of this specific hook (includes the plugin prefix for plugin-provided hooks). |
-| `GROK_SESSION_ID`     | The unique identifier of the current Grok session. |
-| `GROK_WORKSPACE_ROOT` | Absolute path to the root of the current workspace. |
-| `CLAUDE_PROJECT_DIR`  | Absolute path to the workspace root. A Claude Code-compatible alias for `GROK_WORKSPACE_ROOT`, set for every hook. |
+| `NOFY_HOOK_EVENT`     | The name of the event that triggered the hook (e.g. `pre_tool_use`, `session_start`, `post_tool_use`, `session_end`, `stop`, `notification`). |
+| `NOFY_HOOK_NAME`      | The configured name of this specific hook (includes the plugin prefix for plugin-provided hooks). |
+| `NOFY_SESSION_ID`     | The unique identifier of the current Nofy session. |
+| `NOFY_WORKSPACE_ROOT` | Absolute path to the root of the current workspace. |
+| `CLAUDE_PROJECT_DIR`  | Absolute path to the workspace root. A Claude Code-compatible alias for `NOFY_WORKSPACE_ROOT`, set for every hook. |
 
 These variables are **reserved**. Any values you attempt to set for them via the `env` field in your hook JSON are stripped at load time (a warning is logged), and the runner always injects the real values at spawn time.
 
 #### Plugin hook variables
 
-When a hook originates from a plugin, Grok additionally injects the following variables:
+When a hook originates from a plugin, Nofy additionally injects the following variables:
 
 | Variable             | Description |
 |----------------------|-------------|
-| `GROK_PLUGIN_ROOT`   | Absolute path to the plugin's installed directory. |
-| `GROK_PLUGIN_DATA`   | Absolute path to the plugin's writable data directory (for storing plugin state, caches, etc.). |
+| `NOFY_PLUGIN_ROOT`   | Absolute path to the plugin's installed directory. |
+| `NOFY_PLUGIN_DATA`   | Absolute path to the plugin's writable data directory (for storing plugin state, caches, etc.). |
 
-These values are provided by the plugin system. For the four plugin-related keys (`GROK_PLUGIN_ROOT`, `GROK_PLUGIN_DATA`, and their Claude aliases), the plugin adapter ensures the official plugin values always win over any user-declared values in the hook's `env` map.
+These values are provided by the plugin system. For the four plugin-related keys (`NOFY_PLUGIN_ROOT`, `NOFY_PLUGIN_DATA`, and their Claude aliases), the plugin adapter ensures the official plugin values always win over any user-declared values in the hook's `env` map.
 
 #### User-defined environment variables
 
@@ -359,7 +359,7 @@ Both `command` and `url` support `${VAR}` and `$VAR` expansion. See the custom-h
 Instead of a local script, call a remote endpoint:
 
 ```json
-{ "type": "http", "url": "https://hooks.example.com/grok-event", "timeout": 15 }
+{ "type": "http", "url": "https://hooks.example.com/nofy-event", "timeout": 15 }
 ```
 
 The full event envelope is POSTed as JSON.
@@ -406,7 +406,7 @@ Enable or disable an individual hook at runtime by pressing `Space` in the Hooks
 
 ### Mid-Session Reload
 
-Press `r` in the Hooks tab to reload all hooks from disk. Grok re-reads every hook source, so this picks up changes you made to hook files during the session.
+Press `r` in the Hooks tab to reload all hooks from disk. Nofy re-reads every hook source, so this picks up changes you made to hook files during the session.
 
 ---
 
@@ -455,7 +455,7 @@ echo '{"decision": "allow"}'
 
 ## Security Notes
 
-- Global hooks (`~/.grok/hooks/`) run with your user permissions -- treat them like shell scripts.
+- Global hooks (`~/.nofy/hooks/`) run with your user permissions -- treat them like shell scripts.
 - Project hooks require folder trust (`/hooks-trust` or `--trust`, the same gate as repo-local MCP/LSP) to prevent supply-chain attacks from malicious repos.
 - HTTP hooks send session data -- only use trusted endpoints.
 
@@ -467,7 +467,7 @@ echo '{"decision": "allow"}'
 2. **Use explicit `deny` to block** -- hooks fail-open on any error, so a hook that crashes will not block the tool. To enforce policy, your hook must run to completion and emit `{"decision":"deny","reason":"..."}` on stdout. Always handle errors inside your script so it can return an explicit decision.
 3. **Use absolute paths or relative to hook file** -- scripts in `bin/` next to the JSON file are portable.
 4. **Test with the modal** -- press `Ctrl+L` (non–VS Code family) or run `/hooks` to verify hooks are loaded and matching before relying on them.
-5. **Version control project hooks** -- commit `.grok/hooks/` (but never secrets).
+5. **Version control project hooks** -- commit `.nofy/hooks/` (but never secrets).
 
 ---
 
@@ -476,4 +476,4 @@ echo '{"decision": "allow"}'
 - **Hook not running?** Press `Ctrl+L` on non–VS Code family (or run `/hooks` anywhere) to see if it is loaded and matched.
 - **Project hooks ignored?** The folder may be untrusted. Run `/hooks-trust` (or relaunch with `--trust`).
 - **Script not found?** Check the path is relative to the `.json` file and executable (`chmod +x`).
-- **See errors?** Capture logs by launching with `RUST_LOG=debug GROK_LOG_FILE=/tmp/grok.log grok`, then check `/tmp/grok.log`.
+- **See errors?** Capture logs by launching with `RUST_LOG=debug NOFY_LOG_FILE=/tmp/nofy.log nofy`, then check `/tmp/nofy.log`.

@@ -1,13 +1,13 @@
 # Monitoring Usage (External OpenTelemetry)
 
-> **Status: alpha.** The schema below is versioned (`grok_code.schema.version = v1`);
+> **Status: alpha.** The schema below is versioned (`nofy_code.schema.version = v1`);
 > additive changes may occur without notice, renames/removals will bump the
 > version and be called out in the changelog.
 
-Grok CLI can export usage **metrics** and **events** to your organization's
+Nofy CLI can export usage **metrics** and **events** to your organization's
 own OpenTelemetry collector, so platform teams can monitor adoption, token
-consumption, tool-permission decisions, and errors across the fleet — without
-any data flowing through SpaceXAI.
+consumption, tool-permission decisions, and errors across the fleet — all
+data stays in your own infrastructure.
 
 ## Related settings
 
@@ -15,8 +15,8 @@ These knobs are independent of each other (and of this guide's external OTEL str
 
 | Setting | How to set it |
 |---------|---------------|
-| Telemetry master switch | `[features] telemetry` / `GROK_TELEMETRY_ENABLED` |
-| External OpenTelemetry | `GROK_EXTERNAL_OTEL` / `[telemetry] otel_*` (this guide) |
+| Telemetry master switch | `[features] telemetry` / `NOFY_TELEMETRY_ENABLED` |
+| External OpenTelemetry | `NOFY_EXTERNAL_OTEL` / `[telemetry] otel_*` (this guide) |
 
 See also [Authentication](02-authentication.md#related-settings) and
 [Configuration](05-configuration.md#telemetry).
@@ -30,25 +30,25 @@ The external stream is:
 - **Content-free by default**: no prompts, no code, no file paths (extension
   only), no tool arguments, no bash commands, and MCP/skill/plugin names
   collapsed to categories. Optional content gates re-enable some of these.
-- **Structurally separate** from SpaceXAI-internal telemetry: its exporters carry
-  only the headers you configure, never SpaceXAI credentials.
+- **Structurally separate** from product telemetry: its exporters carry
+  only the headers you configure.
 - **Independent of the telemetry toggle**: it works even when `telemetry`
-  is disabled — that toggle governs SpaceXAI-side analytics, while the
+  is disabled — that toggle governs product analytics, while the
   external stream is governed solely by your own OTEL configuration.
 
 ## Quick start
 
 ```bash
-export GROK_EXTERNAL_OTEL=1                  # master switch
+export NOFY_EXTERNAL_OTEL=1                  # master switch
 export OTEL_METRICS_EXPORTER=otlp
 export OTEL_LOGS_EXPORTER=otlp
 export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf  # or grpc
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://collector.corp.example:4318
 export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <collector-token>"
-grok
+nofy
 ```
 
-`GROK_EXTERNAL_OTEL=1` alone enables **nothing** — you must also select at
+`NOFY_EXTERNAL_OTEL=1` alone enables **nothing** — you must also select at
 least one exporter. Conversely, the `OTEL_*` vars alone enable nothing
 without the master switch.
 
@@ -56,7 +56,7 @@ without the master switch.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `GROK_EXTERNAL_OTEL` | `0` | Master switch. Distinct from `GROK_TELEMETRY_ENABLED`, which controls SpaceXAI-internal product analytics — the two govern opposite-pointing data flows. |
+| `NOFY_EXTERNAL_OTEL` | `0` | Master switch. Distinct from `NOFY_TELEMETRY_ENABLED`, which controls product analytics — the two govern opposite-pointing data flows. |
 | `OTEL_METRICS_EXPORTER` | `none` | `otlp` \| `console` \| `none`. |
 | `OTEL_LOGS_EXPORTER` | `none` | `otlp` \| `console` \| `none`. Gates the event stream. |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | `http/protobuf` \| `grpc`. |
@@ -70,7 +70,7 @@ without the master switch.
 | `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` | `delta` | `delta` \| `cumulative`. |
 | `OTEL_METRICS_INCLUDE_SESSION_ID` | `1` | Attach `session.id` to metrics (cardinality opt-out). |
 | `OTEL_METRICS_INCLUDE_VERSION` | `0` | Attach `app.version` to metrics. |
-| `OTEL_LOG_USER_PROMPTS` | `0` | Content gate: prompt text on `grok_code.user_prompt` (60 KB cap, secret-scrubbed). |
+| `OTEL_LOG_USER_PROMPTS` | `0` | Content gate: prompt text on `nofy_code.user_prompt` (60 KB cap, secret-scrubbed). |
 | `OTEL_LOG_TOOL_DETAILS` | `0` | Content gate: tool parameters (4 KB cap), full file paths, verbatim MCP/skill/plugin names. Bash command text is **never** exported in v1, even with this gate. |
 
 `OTEL_RESOURCE_ATTRIBUTES` is deliberately ignored: the resource is built
@@ -78,7 +78,7 @@ from a fixed, audited attribute set.
 
 > **Migration note:** older releases could share `OTEL_EXPORTER_OTLP_*` with
 > the product's own analytics pipeline. That behavior is deprecated: when
-> `GROK_EXTERNAL_OTEL` is set, product analytics ignores those vars, and the
+> `NOFY_EXTERNAL_OTEL` is set, product analytics ignores those vars, and the
 > CLI refuses to activate the external stream in any configuration where
 > product analytics already consumed them — your collector only receives the
 > external stream you opted into.
@@ -101,7 +101,7 @@ otel_log_tool_details = false
 ```
 
 The config keys are `otel_*` under `[telemetry]`; the **env vars keep their
-standard OTEL names** (`GROK_EXTERNAL_OTEL`, `OTEL_*`) for ecosystem
+standard OTEL names** (`NOFY_EXTERNAL_OTEL`, `OTEL_*`) for ecosystem
 interop, so the two layers use deliberately different namespaces. The
 `otel_protocol` config key maps to `OTEL_EXPORTER_OTLP_PROTOCOL`.
 
@@ -109,62 +109,46 @@ There is deliberately no `headers` key: supply collector auth via
 `OTEL_EXPORTER_OTLP_HEADERS` so tokens are never stored on disk.
 
 Managed deployments can additionally enable org-wide telemetry by distributing
-the `[telemetry]` `otel_*` keys through `grok setup` managed config /
+the `[telemetry]` `otel_*` keys through managed config /
 requirements pins, or force-disable it fleet-wide with the same local config
 layers (`external_otel_disabled`, content-gate locks).
 
-## Startup suppression (why nothing arrives for the first few seconds)
+## Startup behavior
 
-Because xAI can force-disable this stream fleet-wide, the CLI holds emission
-closed at startup until it knows whether that switch is set — it fetches the
-fleet policy from `/v1/settings` and only then starts exporting. In a healthy
-setup that is well under a second and invisible.
-
-**The wait is bounded**, so a deployment that cannot reach xAI still exports:
-
-- If no fleet policy can apply at all — `[features] remote_fetch = false`, or
-  `[endpoints] cli_chat_proxy_base_url` points somewhere other than xAI — the
-  stream starts immediately, governed by your local configuration.
-- If the policy fetch fails or never completes (firewalled host, offline
-  laptop), emission starts anyway once the attempt is exhausted, and in all
-  cases no later than 30 seconds after startup.
-
-A fleet policy that arrives afterwards still applies; it can only ever
-*tighten* (disable the stream or force the content gates off), never enable
-something your local configuration did not.
-
-If your collector receives nothing at all, check the debug log
-(`grok --debug`) for `external otel:` lines — they record whether the stream
-resolved its configuration, and whether it is exporting or suppressed.
+The stream starts at launch, governed solely by your local configuration —
+there is no remote switch that can disable it. If your collector receives
+nothing at all, check the debug log (`nofy --debug`) for `external otel:`
+lines — they record whether the stream resolved its configuration, and
+whether it is exporting.
 
 ## Resource attributes
 
 | Attribute | Value |
 |---|---|
-| `service.name` | `grok-cli` |
+| `service.name` | `nofy-cli` |
 | `service.version`, `client.version` | build/client versions |
 | `app.entrypoint` | `cli` \| `headless` \| `agent` |
 | `terminal.type` | terminal emulator brand |
-| `grok_code.schema.version` | `v1` |
+| `nofy_code.schema.version` | `v1` |
 
 Identity attributes (`user.id`, and `organization.id` / `team.id` /
 `deployment.id` when known) are attached per metric data point and per event
 once authentication completes. `prompt.id` (per-prompt UUID) appears on
 events only, never metrics.
 
-## Metrics (meter scope `ai.xai.grok_code`)
+## Metrics (meter scope `ai.nofy.nofy_code`)
 
 | Metric | Unit | Attributes |
 |---|---|---|
-| `grok_code.session.count` | `{session}` | base attrs only |
-| `grok_code.token.usage` | `{token}` | `type` = `input` \| `output` \| `reasoning` \| `cache_read`; `model` |
-| `grok_code.turn.count` | `{turn}` | `outcome` = `completed` \| `cancelled` \| `error`; `model` |
-| `grok_code.tool.decision` | `{decision}` | `tool_name`, `decision` = `allow` \| `deny` \| `cancelled` \| `followup`, `access_kind`, `permission_mode` |
-| `grok_code.tool.usage` | `{call}` | `tool_name`, `outcome` |
-| `grok_code.error.count` | `{error}` | `error_category`, `model` |
-| `grok_code.startup.total` | `ms` | `outcome` = `ok` \| `timeout` \| `error`; `auth_mode` |
-| `grok_code.startup.phase_duration` | `ms` | `phase`, `outcome`, `auth_mode` |
-| `grok_code.startup.timeout` | `{timeout}` | `stuck_in`, `auth_mode` |
+| `nofy_code.session.count` | `{session}` | base attrs only |
+| `nofy_code.token.usage` | `{token}` | `type` = `input` \| `output` \| `reasoning` \| `cache_read`; `model` |
+| `nofy_code.turn.count` | `{turn}` | `outcome` = `completed` \| `cancelled` \| `error`; `model` |
+| `nofy_code.tool.decision` | `{decision}` | `tool_name`, `decision` = `allow` \| `deny` \| `cancelled` \| `followup`, `access_kind`, `permission_mode` |
+| `nofy_code.tool.usage` | `{call}` | `tool_name`, `outcome` |
+| `nofy_code.error.count` | `{error}` | `error_category`, `model` |
+| `nofy_code.startup.total` | `ms` | `outcome` = `ok` \| `timeout` \| `error`; `auth_mode` |
+| `nofy_code.startup.phase_duration` | `ms` | `phase`, `outcome`, `auth_mode` |
+| `nofy_code.startup.timeout` | `{timeout}` | `stuck_in`, `auth_mode` |
 
 `startup.total` measures process start to a usable session, recorded once per
 process; `outcome` = `timeout` or `error` means startup ended without one.
@@ -178,7 +162,7 @@ strings, not in this metric. `stuck_in` on a timeout names the step that did
 not finish. `auth_mode` is `personal`, `team`, `deployment`, or `unknown`:
 startup cost differs by kind, so split by it before comparing.
 
-There is no `cost.usage` metric: join `grok_code.token.usage` with your own
+There is no `cost.usage` metric: join `nofy_code.token.usage` with your own
 price sheet. `lines_of_code.count` and `active_time.total` are planned for a
 later phase.
 
@@ -196,23 +180,23 @@ active.
 
 | `event.name` | Attributes |
 |---|---|
-| `grok_code.session_start` | `model`, `permission_mode`, `mcp_server_count`, `plugin_count`, `skill_count`, `hook_count`, `memory_enabled`, `is_git_repo`, `client_identifier` |
-| `grok_code.session_end` | `duration_secs`, `turn_count`, `tool_call_count`, `compaction_count`, `model` |
-| `grok_code.user_prompt` | `prompt_length`, `model`, `screen_mode?` (`fullscreen` \| `inline` \| `minimal` \| `headless` \| `other`); `prompt` (**prompts**) |
-| `grok_code.turn_completed` | `outcome`, `duration_ms`, `tool_call_count`, `model`, `error_category?`, `cancellation_category?` |
-| `grok_code.api_request` | `model`, `duration_ms`, `stop_reason?`, `input_tokens`, `output_tokens`, `reasoning_tokens`, `cache_read_tokens` |
-| `grok_code.api_error` | `error_category`, `model`, `status_code?`, `duration_ms?` |
-| `grok_code.tool_result` | `tool_name`, `outcome`, `success`, `duration_ms`, `file_extension`; `tool_parameters`, `file_path` (**details**) |
-| `grok_code.tool_decision` | `tool_name`, `decision`, `access_kind`, `permission_mode`, `source` |
-| `grok_code.mcp_server_connection` | `status`, `transport_type`, `duration_ms`, `tool_count?`, `error_type?`; `mcp_server.name` (**details**; collapsed to `mcp_server` otherwise) |
-| `grok_code.permission_mode_changed` | `to_mode`, `trigger` |
-| `grok_code.skill_activated` | `skill_source`, `trigger` = `slash_command` \| `skill_md_read` \| `skill_tool`; `skill.name` (**details**) |
-| `grok_code.plugin_loaded` | `install_kind?`, `success`, `error_category?`; `plugin_name` (**details**) |
-| `grok_code.compaction` | `duration_ms`, `tokens_before`, `tokens_after`, `model?` |
-| `grok_code.subagent` | `phase` = `launched` \| `completed`, `subagent_type?`, `outcome?`, `duration_ms?` |
-| `grok_code.auth` | `auth_method` |
-| `grok_code.internal_error` | `error_type` (class only — no message, no location) |
-| `grok_code.model_switched` | `from_model`, `to_model`, `success`, `error_code?` |
+| `nofy_code.session_start` | `model`, `permission_mode`, `mcp_server_count`, `plugin_count`, `skill_count`, `hook_count`, `memory_enabled`, `is_git_repo`, `client_identifier` |
+| `nofy_code.session_end` | `duration_secs`, `turn_count`, `tool_call_count`, `compaction_count`, `model` |
+| `nofy_code.user_prompt` | `prompt_length`, `model`, `screen_mode?` (`fullscreen` \| `inline` \| `minimal` \| `headless` \| `other`); `prompt` (**prompts**) |
+| `nofy_code.turn_completed` | `outcome`, `duration_ms`, `tool_call_count`, `model`, `error_category?`, `cancellation_category?` |
+| `nofy_code.api_request` | `model`, `duration_ms`, `stop_reason?`, `input_tokens`, `output_tokens`, `reasoning_tokens`, `cache_read_tokens` |
+| `nofy_code.api_error` | `error_category`, `model`, `status_code?`, `duration_ms?` |
+| `nofy_code.tool_result` | `tool_name`, `outcome`, `success`, `duration_ms`, `file_extension`; `tool_parameters`, `file_path` (**details**) |
+| `nofy_code.tool_decision` | `tool_name`, `decision`, `access_kind`, `permission_mode`, `source` |
+| `nofy_code.mcp_server_connection` | `status`, `transport_type`, `duration_ms`, `tool_count?`, `error_type?`; `mcp_server.name` (**details**; collapsed to `mcp_server` otherwise) |
+| `nofy_code.permission_mode_changed` | `to_mode`, `trigger` |
+| `nofy_code.skill_activated` | `skill_source`, `trigger` = `slash_command` \| `skill_md_read` \| `skill_tool`; `skill.name` (**details**) |
+| `nofy_code.plugin_loaded` | `install_kind?`, `success`, `error_category?`; `plugin_name` (**details**) |
+| `nofy_code.compaction` | `duration_ms`, `tokens_before`, `tokens_after`, `model?` |
+| `nofy_code.subagent` | `phase` = `launched` \| `completed`, `subagent_type?`, `outcome?`, `duration_ms?` |
+| `nofy_code.auth` | `auth_method` |
+| `nofy_code.internal_error` | `error_type` (class only — no message, no location) |
+| `nofy_code.model_switched` | `from_model`, `to_model`, `success`, `error_code?` |
 
 ## Privacy model
 
@@ -266,14 +250,14 @@ Example queries (PromQL, with the Prometheus exporter above):
 
 ```promql
 # Tokens by model and type across the org, 1h rate
-sum by (model, type) (rate(grok_code_token_usage_total[1h]))
+sum by (model, type) (rate(nofy_code_token_usage_total[1h]))
 
 # Sessions per team per day
-sum by (team_id) (increase(grok_code_session_count_total[1d]))
+sum by (team_id) (increase(nofy_code_session_count_total[1d]))
 
 # Tool-permission denial ratio
-sum(rate(grok_code_tool_decision_total{decision="deny"}[1h]))
-  / sum(rate(grok_code_tool_decision_total[1h]))
+sum(rate(nofy_code_tool_decision_total{decision="deny"}[1h]))
+  / sum(rate(nofy_code_tool_decision_total[1h]))
 ```
 
 ## Debugging

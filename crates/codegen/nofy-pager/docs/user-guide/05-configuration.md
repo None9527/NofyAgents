@@ -1,6 +1,6 @@
 # Configuration
 
-Grok reads settings from config files, environment variables, and CLI flags. This page covers the common options.
+Nofy reads settings from config files, environment variables, and CLI flags. This page covers the common options.
 
 ---
 
@@ -9,8 +9,8 @@ Grok reads settings from config files, environment variables, and CLI flags. Thi
 Settings resolve highest-priority first:
 
 1. **CLI flags** (e.g. `--yolo`, `--model`, `--sandbox`)
-2. **Environment variables** (e.g. `NOFY_API_KEY`, `GROK_MEMORY`)
-3. **config.toml** (`~/.grok/config.toml`)
+2. **Environment variables** (e.g. `NOFY_API_KEY`, `NOFY_MEMORY`)
+3. **config.toml** (`~/.nofy/config.toml`)
 4. **Managed / requirements config** (files your org may deploy, e.g. `managed_config.toml` / `requirements.toml`)
 5. **Built-in defaults**
 
@@ -18,7 +18,7 @@ Settings resolve highest-priority first:
 
 ## config.toml (main configuration)
 
-Location: `~/.grok/config.toml`. If the file is missing, Grok uses its built-in defaults, so you only need to set the values you want to override.
+Location: `~/.nofy/config.toml`. If the file is missing, Nofy uses its built-in defaults, so you only need to set the values you want to override.
 
 ### General settings
 
@@ -89,7 +89,7 @@ To switch the prompt to vim-style editing:
 simple_mode = false
 ```
 
-You can also flip it from the settings pane (`/settings` → **Disable vim input mode**); Grok writes your choice to `[ui] simple_mode`. `simple_mode` and `vim_mode` are independent — one governs the prompt editor, the other governs scrollback navigation. See [Keyboard Shortcuts](03-keyboard-shortcuts.md) for the full binding reference.
+You can also flip it from the settings pane (`/settings` → **Disable vim input mode**); Nofy writes your choice to `[ui] simple_mode`. `simple_mode` and `vim_mode` are independent — one governs the prompt editor, the other governs scrollback navigation. See [Keyboard Shortcuts](03-keyboard-shortcuts.md) for the full binding reference.
 
 #### Default selected permission
 
@@ -111,7 +111,7 @@ After you answer the first prompt the cursor turns **sticky**: each later prompt
 
 Values match case-insensitively; an unset or unrecognized value falls back to `always_allow_all_sessions`. The `allow_command_always` row is always scoped to the specific action being approved (command / tool / domain / edit-session), never a global allow-everything — that's what `always_allow_all_sessions` is for. Note the per-command "Always allow" rows only appear when `[ui] remember_tool_approvals = true` (default false). See [22-permissions-and-safety.md](22-permissions-and-safety.md).
 
-You can also override this with `GROK_DEFAULT_SELECTED_PERMISSION`, which is handy for headless or agent test runs that shouldn't mutate `config.toml`. Precedence: env var → `config.toml` → `always_allow_all_sessions`.
+You can also override this with `NOFY_DEFAULT_SELECTED_PERMISSION`, which is handy for headless or agent test runs that shouldn't mutate `config.toml`. Precedence: env var → `config.toml` → `always_allow_all_sessions`.
 
 #### Vim mode
 
@@ -122,11 +122,11 @@ You can also override this with `GROK_DEFAULT_SELECTED_PERMISSION`, which is han
 | `false` (default) | Bare-letter and `Shift+letter` keys (`j`/`k`, `h`/`l`, `g`/`G`, `y`/`Y`, `o`/`O`, `r`, `x`, `e`/`E`, `H`/`L`, plus `i`) are suppressed in the scrollback: pressing one focuses the prompt and types the character. Arrows, `Tab`, `Space`, `PageUp`/`PageDown`, and every `Ctrl+letter` shortcut still navigate. `Esc` is **not** a scrollback key — it cancels a running turn, and while idle follows the clear / rewind policy (see [Keyboard Shortcuts](03-keyboard-shortcuts.md#escape)). |
 | `true` | All vim-style scrollback bindings are active, exactly as listed in [Keyboard Shortcuts](03-keyboard-shortcuts.md). Mid-turn `Esc` is swallowed in this mode (`Ctrl+C` cancels); minimal mode keeps Esc-cancel regardless. |
 
-Toggle it at runtime with `/vim-mode`, or from `/settings` → **Vim scrollback navigation**. Grok writes the change to `[ui] vim_mode` immediately and applies it to every future pager session, including new agents and subagents in the same process. There's no per-session override — `config.toml` is the source of truth on next launch. `vim_mode` is independent of `simple_mode`.
+Toggle it at runtime with `/vim-mode`, or from `/settings` → **Vim scrollback navigation**. Nofy writes the change to `[ui] vim_mode` immediately and applies it to every future pager session, including new agents and subagents in the same process. There's no per-session override — `config.toml` is the source of truth on next launch. `vim_mode` is independent of `simple_mode`.
 
 #### Screen mode
 
-`[ui] screen_mode` is the **default render mode** for plain `grok` launches. Set it from `/settings` → **Default screen mode** (restart required) or edit `config.toml` by hand — both write the file. CLI flags (`--minimal` / `--fullscreen`) and slash commands (`/minimal` / `/fullscreen`) are session-scoped and do **not** write this key; after a slash switch, the reverse command returns you for that session only.
+`[ui] screen_mode` is the **default render mode** for plain `nofy` launches. Set it from `/settings` → **Default screen mode** (restart required) or edit `config.toml` by hand — both write the file. CLI flags (`--minimal` / `--fullscreen`) and slash commands (`/minimal` / `/fullscreen`) are session-scoped and do **not** write this key; after a slash switch, the reverse command returns you for that session only.
 
 | Value | Behavior |
 |-------|----------|
@@ -160,7 +160,7 @@ invert_scroll = false
 # scroll_lines = 3
 ```
 
-Each setting also has an environment-variable override, applied on first load only (again, handy for headless / test runs): `GROK_SCROLL_SPEED`, `GROK_SCROLL_MODE`, `GROK_INVERT_SCROLL` (`1`/`true`/`0`/`false`), and `GROK_SCROLL_LINES`. Precedence: env var → `config.toml` → default. Unrecognized values fall back to the default, and out-of-range numbers clamp.
+Each setting also has an environment-variable override, applied on first load only (again, handy for headless / test runs): `NOFY_SCROLL_SPEED`, `NOFY_SCROLL_MODE`, `NOFY_INVERT_SCROLL` (`1`/`true`/`0`/`false`), and `NOFY_SCROLL_LINES`. Precedence: env var → `config.toml` → default. Unrecognized values fall back to the default, and out-of-range numbers clamp.
 
 ### Tool configuration
 
@@ -179,9 +179,9 @@ allowed_domains = ["docs.rs", "example.com"]   # override the built-in allowlist
 allow_local = false                            # true = allow localhost / 127.0.0.0/8 / ::1 only
 ```
 
-`allow_local` is off by default (SSRF fail-closed). Turn it on (or set `GROK_WEB_FETCH_ALLOW_LOCAL=1`) and `web_fetch` may reach **explicit** loopback hosts only — private, link-local, and cloud-metadata ranges stay blocked. Resolution: TOML > env > default off.
+`allow_local` is off by default (SSRF fail-closed). Turn it on (or set `NOFY_WEB_FETCH_ALLOW_LOCAL=1`) and `web_fetch` may reach **explicit** loopback hosts only — private, link-local, and cloud-metadata ranges stay blocked. Resolution: TOML > env > default off.
 
-`[toolset.ask_user_question]` is honored across **requirements.toml**, **managed config**, and your user **`config.toml`**. Precedence: requirements → env (`GROK_ASK_USER_QUESTION_TIMEOUT_ENABLED` / `GROK_ASK_USER_QUESTION_TIMEOUT_SECS`) → user config → managed → defaults. Set `timeout_enabled = false` in your user config to disable the automatic questionnaire timeout for yourself; `timeout_secs` must be a positive integer. You can also toggle `timeout_enabled` from `/settings` → **Ask-Question timeout** (under Agent & Approval); changes apply to newly started sessions.
+`[toolset.ask_user_question]` is honored across **requirements.toml**, **managed config**, and your user **`config.toml`**. Precedence: requirements → env (`NOFY_ASK_USER_QUESTION_TIMEOUT_ENABLED` / `NOFY_ASK_USER_QUESTION_TIMEOUT_SECS`) → user config → managed → defaults. Set `timeout_enabled = false` in your user config to disable the automatic questionnaire timeout for yourself; `timeout_secs` must be a positive integer. You can also toggle `timeout_enabled` from `/settings` → **Ask-Question timeout** (under Agent & Approval); changes apply to newly started sessions.
 
 ### Authentication
 
@@ -192,12 +192,6 @@ See [Authentication](02-authentication.md) for the full story.
 auth_provider_command = "/usr/local/bin/my-auth-provider"
 auth_provider_label = "Acme Corp"
 auth_token_ttl = 3600
-
-[grok_com_config.oidc]
-issuer = "https://acme.okta.com"
-client_id = "0oa1b2c3d4e5f6g7h8i9"
-# scopes = ["openid", "profile", "email", "offline_access", "api:access"]
-# audience = "https://api.acme.com"
 ```
 
 ### Custom models
@@ -225,7 +219,7 @@ Credential resolution: `api_key` > `env_key` > `NOFY_API_KEY` > session token fr
 To override a built-in model, use its name as the section key and set only the fields you need:
 
 ```toml
-[model.grok-build]
+[model.nofy-build]
 api_key = "my-api-key"
 ```
 
@@ -252,13 +246,13 @@ url = "https://mcp.example.com/api/mcp"  # HTTP/SSE transport
 headers = { "x-mcp-session-id" = "{{session_id}}" }
 ```
 
-MCP servers can also be set per-project in `.grok/config.toml`. Project-scoped config contributes `[mcp_servers]`, `[plugins]`, and `[permission]` rules; every other section loads only from `~/.grok/config.toml`.
+MCP servers can also be set per-project in `.nofy/config.toml`. Project-scoped config contributes `[mcp_servers]`, `[plugins]`, and `[permission]` rules; every other section loads only from `~/.nofy/config.toml`.
 
-Priority for `[mcp_servers]` and `[plugins]`: `.grok/config.toml` (current dir) > `<repo-root>/.grok/config.toml` > `~/.grok/config.toml`. `[permission]` rules aren't overridden by priority — they merge across all files with `deny` > `ask` > `allow` (see [22-permissions-and-safety.md](22-permissions-and-safety.md)).
+Priority for `[mcp_servers]` and `[plugins]`: `.nofy/config.toml` (current dir) > `<repo-root>/.nofy/config.toml` > `~/.nofy/config.toml`. `[permission]` rules aren't overridden by priority — they merge across all files with `deny` > `ask` > `allow` (see [22-permissions-and-safety.md](22-permissions-and-safety.md)).
 
 ### Memory
 
-Persist knowledge across sessions (requires `--experimental-memory` or `GROK_MEMORY=1`).
+Persist knowledge across sessions (requires `--experimental-memory` or `NOFY_MEMORY=1`).
 
 ```toml
 [memory]
@@ -295,7 +289,7 @@ explore = true                        # enable/disable specific types
 plan = false
 
 [subagents.models]
-explore = "grok-build"               # route to different models
+explore = "nofy-build"               # route to different models
 ```
 
 To pin the model a subagent uses, set its entry under `[subagents.models]`.
@@ -304,14 +298,14 @@ To pin the model a subagent uses, set its entry under `[subagents.models]`.
 
 `/goal` has two drivers, chosen by the background-workflows setting. With workflows enabled, the host-owned workflow engine evaluates rounds and drives completion verification; with them disabled, `/goal` falls back to the legacy model-facing `update_goal` tool. Whether `/goal` is available at all is a separate switch (the goal feature setting).
 
-Background workflows — the `workflow` tool, named `.grok/workflows/*.rhai` scripts, `/deep-research`, and `/workflow` launches — are **on by default**. Disable with config, env, or remote settings.
+Background workflows — the `workflow` tool, named `.nofy/workflows/*.rhai` scripts, `/deep-research`, and `/workflow` launches — are **on by default**. Disable with config, env, or remote settings.
 
 ```toml
 [workflows]
-enabled = false                       # disable background workflows (or GROK_WORKFLOWS=0)
+enabled = false                       # disable background workflows (or NOFY_WORKFLOWS=0)
 ```
 
-Project workflows are discovered from `<repo-root>/.grok/workflows/`; user workflows from `~/.grok/workflows/`. Discovery and invocation key off the script's `meta.name`, so keep each filename aligned with its `meta.name`. Built-ins win over project names, and project names win over user names, so keep names unique across scopes.
+Project workflows are discovered from `<repo-root>/.nofy/workflows/`; user workflows from `~/.nofy/workflows/`. Discovery and invocation key off the script's `meta.name`, so keep each filename aligned with its `meta.name`. Built-ins win over project names, and project names win over user names, so keep names unique across scopes.
 
 Each launch gets a session-unique display handle such as `deep-research-2`. That handle is what you see in the `/workflows` run dashboard and pass to `/workflow pause`, `resume`, or `stop` — the internal run IDs never surface in commands. A numbered handle isn't a reusable definition name, so the dashboard disables **save** until you pick a new unique `meta.name` and save the edited script yourself. See [Slash Commands](04-slash-commands.md) for examples.
 
@@ -355,7 +349,7 @@ For Claude and Cursor, `rules` and `agents` are independent: turning off named i
 
 Each cell can be set via environment variable or `config.toml`; see the environment-variables reference for the names. Resolution: env var > config.toml > default (on).
 
-`grok inspect` reports cells that still need session-start resolution as `?` until a value is available; cells with an explicit env or TOML value use that value. Affected discovery entries report `compatibilityStatus: "unresolved"` in JSON and `[compat unresolved]` in human output.
+`nofy inspect` reports cells that still need session-start resolution as `?` until a value is available; cells with an explicit env or TOML value use that value. Affected discovery entries report `compatibilityStatus: "unresolved"` in JSON and `[compat unresolved]` in human output.
 
 ### Plugins
 
@@ -367,9 +361,9 @@ disabled = ["user/a1b2c3d4/noisy-plugin"]
 
 ### Hints
 
-`[hints]` holds small persisted UI preferences: remembered answers and modal layout. Grok writes these for you as you use the TUI, but you can edit or delete them by hand; removing a key restores the default.
+`[hints]` holds small persisted UI preferences: remembered answers and modal layout. Nofy writes these for you as you use the TUI, but you can edit or delete them by hand; removing a key restores the default.
 
-`[hints]` is read from the **effective config merge**, with the usual precedence: system managed → user `managed_config.toml` → user `config.toml` → user `requirements.toml` → system `requirements.toml`, higher layers winning. The TUI only ever **writes** these to your user `~/.grok/config.toml`.
+`[hints]` is read from the **effective config merge**, with the usual precedence: system managed → user `managed_config.toml` → user `config.toml` → user `requirements.toml` → system `requirements.toml`, higher layers winning. The TUI only ever **writes** these to your user `~/.nofy/config.toml`.
 
 ```toml
 [hints]
@@ -399,7 +393,7 @@ progress_bar = true       # show tab progress bar (OSC 9;4)
 
 [ui.notifications.title]
 enabled = true
-items = ["action-required", "spinner", "activity", "session-name", "grok"]
+items = ["action-required", "spinner", "activity", "session-name", "nofy"]
 ```
 
 | Option | Type | Default | Description |
@@ -411,7 +405,7 @@ items = ["action-required", "spinner", "activity", "session-name", "grok"]
 | `sleep_prevention` | bool | `true` | Keep the display awake while the agent works (macOS/Linux). |
 | `progress_bar` | bool | `true` | Show a progress indicator in the terminal tab (OSC 9;4). |
 | `title.enabled` | bool | `true` | Set the terminal title to reflect agent state. |
-| `title.items` | array | (see above) | Items shown in the title bar. Options: `action-required`, `spinner`, `activity`, `session-name`, `cwd`, `model`, `turn-timer`, `grok`. |
+| `title.items` | array | (see above) | Items shown in the title bar. Options: `action-required`, `spinner`, `activity`, `session-name`, `cwd`, `model`, `turn-timer`, `nofy`. |
 
 #### Terminal support matrix
 
@@ -426,26 +420,25 @@ items = ["action-required", "spinner", "activity", "session-name", "grok"]
 | VS Code | BEL | Yes | No |
 | Apple Terminal | BEL | No | No |
 | VTE (GNOME Terminal) | OSC 777 | Yes | No |
-| Grok Desktop | None (native) | N/A | N/A |
 | Unknown | BEL | No | No |
 
-With `method = "auto"`, Grok detects the terminal brand and picks the best protocol. Set `method` explicitly to override that.
+With `method = "auto"`, Nofy detects the terminal brand and picks the best protocol. Set `method` explicitly to override that.
 
 #### Notification hooks
 
-Run your own commands when events fire. Hooks receive `$GROK_EVENT`, `$GROK_MESSAGE`, and `$GROK_SESSION_ID` in the environment.
+Run your own commands when events fire. Hooks receive `$NOFY_EVENT`, `$NOFY_MESSAGE`, and `$NOFY_SESSION_ID` in the environment.
 
 ```toml
 # macOS native notification
 [[ui.notifications.hooks]]
-command = "terminal-notifier -title 'Grok' -message '$GROK_MESSAGE'"
+command = "terminal-notifier -title 'Nofy' -message '$NOFY_MESSAGE'"
 events = ["turn_complete", "approval_required"]
 only_unfocused = true
 timeout_secs = 10
 
 # Push to ntfy server
 [[ui.notifications.hooks]]
-command = "curl -s -d '$GROK_MESSAGE' ntfy.sh/my-grok-alerts"
+command = "curl -s -d '$NOFY_MESSAGE' ntfy.sh/my-nofy-alerts"
 events = ["turn_complete"]
 only_unfocused = true
 timeout_secs = 10
@@ -479,8 +472,8 @@ Keyboard shortcuts are **not** configurable — all bindings are built in. See [
 
 These are independent knobs (see [Monitoring Usage](24-monitoring-usage.md#related-settings)):
 
-- **`[features] telemetry`** / `GROK_TELEMETRY_ENABLED` — the product-analytics master switch.
-- **`[telemetry] otel_*`** / `GROK_EXTERNAL_OTEL` — external OTEL to your own collector (below).
+- **`[features] telemetry`** / `NOFY_TELEMETRY_ENABLED` — the product-analytics master switch.
+- **`[telemetry] otel_*`** / `NOFY_EXTERNAL_OTEL` — external OTEL to your own collector (below).
 
 When telemetry is on, enterprises running their own collector can redirect it or turn parts off under `[telemetry]`:
 
@@ -488,16 +481,15 @@ When telemetry is on, enterprises running their own collector can redirect it or
 [telemetry]
 events_url = "https://telemetry.your-company.com/events"  # send events to your own collector
 events_api_key = "your-collector-token"                   # auth for your collector, if required
-mixpanel_enabled = false                                  # disable Mixpanel product analytics
 ```
 
-Set these only to point telemetry at your own infrastructure or to switch parts off. The built-in endpoint and credentials are managed by Grok — leave them unset to use the defaults.
+Set these only to point telemetry at your own infrastructure or to switch parts off. Leave them unset to use the built-in defaults.
 
 The same `[telemetry]` table also configures the **external OpenTelemetry stream**, an independent opt-in (it doesn't require the telemetry toggle above) that ships a curated, content-free usage schema to your *own* OTLP collector. Collector auth comes from `OTEL_EXPORTER_OTLP_HEADERS` and is never stored on disk. See [Monitoring & Usage](24-monitoring-usage.md) for the full schema, env vars, and privacy model.
 
 ```toml
 [telemetry]
-otel_enabled = true                                       # external OTEL master switch (= GROK_EXTERNAL_OTEL)
+otel_enabled = true                                       # external OTEL master switch (= NOFY_EXTERNAL_OTEL)
 otel_metrics_exporter = "otlp"                            # otlp | console | none
 otel_logs_exporter = "otlp"                               # otlp | console | none
 otel_endpoint = "https://collector.corp.example:4318"     # OTLP base endpoint
@@ -517,12 +509,12 @@ auth_provider_label = "Acme Corp"
 auth_token_ttl = 3600
 
 [models]
-default = "company-grok"
+default = "company-nofy"
 
-[model.company-grok]
-model = "grok-build"
-base_url = "https://grok-proxy.acme.com/"
-name = "Grok Build Latest (Proxy)"
+[model.company-nofy]
+model = "nofy-build"
+base_url = "https://nofy-proxy.acme.com/"
+name = "Nofy Build Latest (Proxy)"
 context_window = 128000
 
 [features]
@@ -533,7 +525,7 @@ telemetry = false
 
 ## pager.toml (appearance configuration)
 
-Location: `~/.grok/pager.toml`. This controls the TUI's look and feel. Changes apply on restart.
+Location: `~/.nofy/pager.toml`. This controls the TUI's look and feel. Changes apply on restart.
 
 ### Terminal
 
@@ -656,53 +648,51 @@ The key ones. See the README for the complete list.
 | Variable | Description |
 |----------|-------------|
 | `NOFY_API_KEY` | Fallback API key when a model sets neither `api_key` nor `env_key` |
-| `GROK_AUTH_PROVIDER_COMMAND` | External auth binary path |
-| `GROK_AUTH_PROVIDER_LABEL` | Display name for the external auth provider |
-| `GROK_AUTH_TOKEN_TTL` | Token lifetime in seconds |
-| `GROK_AUTH_EARLY_INVALIDATION_SECS` | Seconds before expiry to refresh (default: 300) |
-| `GROK_OIDC_ISSUER` | OIDC issuer URL |
-| `GROK_OIDC_CLIENT_ID` | OIDC client ID |
+| `NOFY_AUTH_PROVIDER_COMMAND` | External auth binary path |
+| `NOFY_AUTH_PROVIDER_LABEL` | Display name for the external auth provider |
+| `NOFY_AUTH_TOKEN_TTL` | Token lifetime in seconds |
+| `NOFY_AUTH_EARLY_INVALIDATION_SECS` | Seconds before expiry to refresh (default: 300) |
 
 ### Endpoints
 
 | Variable | Description |
 |----------|-------------|
-| `GROK_CLI_CHAT_PROXY_BASE_URL` | Override API proxy base URL |
+| `NOFY_CLI_CHAT_PROXY_BASE_URL` | Override API proxy base URL |
 
 ### Features
 
 | Variable | Description |
 |----------|-------------|
-| `GROK_MEMORY` | Enable (`1`) or disable (`0`) cross-session memory |
-| `GROK_SUBAGENTS` | Enable (`1`) or disable (`0`) subagents |
-| `GROK_WORKFLOWS` | Enable (`1`) or disable (`0`) background workflows and select the `/goal` driver (default on: host-owned workflow driver; off: legacy `update_goal`) |
-| `GROK_WEB_FETCH` | Enable (`1`) or disable (`0`) the web_fetch tool |
-| `GROK_WEB_FETCH_ALLOW_LOCAL` | Allow `web_fetch` to explicit loopback hosts only (`localhost` / `127.0.0.0/8` / `::1`). Same as `[toolset.web_fetch] allow_local`. Default off; private/metadata stay blocked. |
-| `GROK_AGENT` | Custom agent definition path or name |
-| `GROK_SANDBOX` | Sandbox profile (off, workspace, devbox, read-only, strict; or a custom profile name) |
+| `NOFY_MEMORY` | Enable (`1`) or disable (`0`) cross-session memory |
+| `NOFY_SUBAGENTS` | Enable (`1`) or disable (`0`) subagents |
+| `NOFY_WORKFLOWS` | Enable (`1`) or disable (`0`) background workflows and select the `/goal` driver (default on: host-owned workflow driver; off: legacy `update_goal`) |
+| `NOFY_WEB_FETCH` | Enable (`1`) or disable (`0`) the web_fetch tool |
+| `NOFY_WEB_FETCH_ALLOW_LOCAL` | Allow `web_fetch` to explicit loopback hosts only (`localhost` / `127.0.0.0/8` / `::1`). Same as `[toolset.web_fetch] allow_local`. Default off; private/metadata stay blocked. |
+| `NOFY_AGENT` | Custom agent definition path or name |
+| `NOFY_SANDBOX` | Sandbox profile (off, workspace, devbox, read-only, strict; or a custom profile name) |
 
 ### Logging
 
 | Variable | Description |
 |----------|-------------|
-| `GROK_LOG_FILE` | Write logs to this file path (used verbatim as the path) |
-| `RUST_LOG` | Log level filter (e.g. `debug`); controls the `GROK_LOG_FILE` log and headless stderr output |
+| `NOFY_LOG_FILE` | Write logs to this file path (used verbatim as the path) |
+| `RUST_LOG` | Log level filter (e.g. `debug`); controls the `NOFY_LOG_FILE` log and headless stderr output |
 
 ### Paths
 
 | Variable | Description |
 |----------|-------------|
-| `GROK_HOME` | Override config directory (default: `~/.grok`) |
-| `GROK_RESPECT_GITIGNORE` | Force gitignore filtering on (`1`) or off (`0`); overrides `[tools] respect_gitignore` |
+| `NOFY_HOME` | Override config directory (default: `~/.nofy`) |
+| `NOFY_RESPECT_GITIGNORE` | Force gitignore filtering on (`1`) or off (`0`); overrides `[tools] respect_gitignore` |
 
 ### Telemetry
 
 | Variable | Description |
 |----------|-------------|
-| `GROK_TELEMETRY_ENABLED` | Enable/disable telemetry |
-| `GROK_TELEMETRY_MIXPANEL_ENABLED` | Enable/disable Mixpanel specifically |
-| `GROK_EXTERNAL_OTEL` | External OTEL to your collector (see [24-monitoring-usage.md](24-monitoring-usage.md)) |
-| `GROK_DEPLOYMENT_KEY` | Management API key for enterprise |
+| `NOFY_TELEMETRY_ENABLED` | Enable/disable telemetry |
+| `NOFY_TELEMETRY_MIXPANEL_ENABLED` | Enable/disable Mixpanel specifically |
+| `NOFY_EXTERNAL_OTEL` | External OTEL to your collector (see [24-monitoring-usage.md](24-monitoring-usage.md)) |
+| `NOFY_DEPLOYMENT_KEY` | Management API key for enterprise |
 
 ---
 
@@ -710,37 +700,37 @@ The key ones. See the README for the complete list.
 
 | Path | Description |
 |------|-------------|
-| `~/.grok/config.toml` | Main configuration file |
-| `~/.grok/pager.toml` | TUI appearance configuration |
-| `~/.grok/auth.json` | Authentication credentials (auto-managed) |
-| `~/.grok/sessions/` | Persisted sessions (organized by working directory) |
-| `~/.grok/memory/` | Cross-session memory files and index |
-| `~/.grok/skills/` | User-scoped skill definitions |
-| `~/.grok/plugins/` | User-scoped plugins |
-| `~/.grok/agents/` | User-scoped agent definitions |
-| `~/.grok/lsp.json` | LSP server configuration (user-scoped) |
-| `~/.grok/logs/` | Internal log files (e.g. `unified.jsonl`, MCP server logs) |
-| `.grok/config.toml` | Project-scoped MCP servers, plugins, and permission rules |
-| `.grok/skills/` | Project-scoped skill definitions |
-| `.grok/plugins/` | Project-scoped plugins |
-| `.grok/agents/` | Project-scoped agent definitions |
-| `.grok/hooks/` | Project-scoped hooks |
-| `.grok/lsp.json` | LSP server configuration |
+| `~/.nofy/config.toml` | Main configuration file |
+| `~/.nofy/pager.toml` | TUI appearance configuration |
+| `~/.nofy/auth.json` | Authentication credentials (auto-managed) |
+| `~/.nofy/sessions/` | Persisted sessions (organized by working directory) |
+| `~/.nofy/memory/` | Cross-session memory files and index |
+| `~/.nofy/skills/` | User-scoped skill definitions |
+| `~/.nofy/plugins/` | User-scoped plugins |
+| `~/.nofy/agents/` | User-scoped agent definitions |
+| `~/.nofy/lsp.json` | LSP server configuration (user-scoped) |
+| `~/.nofy/logs/` | Internal log files (e.g. `unified.jsonl`, MCP server logs) |
+| `.nofy/config.toml` | Project-scoped MCP servers, plugins, and permission rules |
+| `.nofy/skills/` | Project-scoped skill definitions |
+| `.nofy/plugins/` | Project-scoped plugins |
+| `.nofy/agents/` | Project-scoped agent definitions |
+| `.nofy/hooks/` | Project-scoped hooks |
+| `.nofy/lsp.json` | LSP server configuration |
 
 ---
 
 ## Project-scoped configuration
 
-Some settings can be set per-project by placing files in `.grok/` inside your repository:
+Some settings can be set per-project by placing files in `.nofy/` inside your repository:
 
 | File | What it configures |
 |------|--------------------|
-| `.grok/config.toml` | MCP servers, plugins, permission rules, and the `[mcp] max_output_bytes` tool-result cap (other sections load only from `~/.grok/config.toml`) |
-| `.grok/skills/` | Project-specific skills |
-| `.grok/hooks/` | Project-specific lifecycle hooks |
-| `.grok/agents/` | Project-specific agent definitions |
-| `.grok/lsp.json` | LSP server configuration |
-| `.grok/sandbox.toml` | Custom sandbox profiles |
+| `.nofy/config.toml` | MCP servers, plugins, permission rules, and the `[mcp] max_output_bytes` tool-result cap (other sections load only from `~/.nofy/config.toml`) |
+| `.nofy/skills/` | Project-specific skills |
+| `.nofy/hooks/` | Project-specific lifecycle hooks |
+| `.nofy/agents/` | Project-specific agent definitions |
+| `.nofy/lsp.json` | LSP server configuration |
+| `.nofy/sandbox.toml` | Custom sandbox profiles |
 | `AGENTS.md` | Project instructions (system prompt) |
 
 Project-scoped MCP servers override global ones with the same name (full replacement, not a merge).
@@ -753,14 +743,14 @@ Language servers power passive diagnostics and the optional `lsp` tool (see the 
 
 | Source | Location | Scope |
 |--------|----------|-------|
-| User | `~/.grok/lsp.json` | All projects |
-| Project | `.grok/lsp.json` | Current repository |
+| User | `~/.nofy/lsp.json` | All projects |
+| Project | `.nofy/lsp.json` | Current repository |
 | Plugin | A trusted plugin's `.lsp.json` file, or an inline `lspServers` block in its `plugin.json` | Wherever the plugin is enabled |
 
 When the same server name comes from more than one source, it resolves highest-priority first:
 
-1. **Project** — `.grok/lsp.json`
-2. **User** — `~/.grok/lsp.json`
+1. **Project** — `.nofy/lsp.json`
+2. **User** — `~/.nofy/lsp.json`
 3. **Plugins** — file-based `.lsp.json`, then inline `lspServers`, in plugin load order
 
 Project and user entries replace lower-priority ones of the same name. Plugin entries only add servers whose names aren't already defined by a local file, so a local `lsp.json` always wins over a plugin. Plugin LSP servers load only after the plugin is trusted (see [Plugins](09-plugins.md)).

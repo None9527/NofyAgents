@@ -1,6 +1,6 @@
 # Getting Started
 
-Grok Build is a terminal-based AI coding assistant from SpaceXAI. It runs as a TUI (Terminal User Interface) that understands your codebase, executes shell commands, edits files, searches the web, and manages tasks.
+Nofy Build is a terminal-based AI coding assistant. It runs as a TUI (Terminal User Interface) that understands your codebase, executes shell commands, edits files, and manages tasks.
 
 You can use it interactively as a full-screen TUI, run it headlessly for scripting and CI/CD, or integrate it into editors via the Agent Client Protocol (ACP).
 
@@ -20,21 +20,21 @@ Make sure `~/.local/bin` is on your `PATH`.
 Verify the installation:
 
 ```bash
-grok --version
+nofy --version
 ```
 
 ---
 
 ## First Launch
 
-Start Grok by running:
+Start Nofy by running:
 
 ```bash
-grok
+nofy
 ```
 
 This build uses your own API key (BYOK). Before the first launch, point the
-CLI at your OpenAI-compatible endpoint in `~/.grok/config.toml`:
+CLI at your OpenAI-compatible endpoint in `~/.nofy/config.toml`:
 
 ```toml
 [models]
@@ -50,7 +50,7 @@ Then export the key and start:
 
 ```bash
 export YOUR_KEY_ENV_VAR="sk-..."
-grok
+nofy
 ```
 
 See [Authentication](02-authentication.md) for the full set of auth options,
@@ -60,12 +60,12 @@ including external auth providers for headless environments.
 
 ## Basic Interaction
 
-Once authenticated, Grok presents a full-screen TUI with two main areas:
+Once authenticated, Nofy presents a full-screen TUI with two main areas:
 
-- **Scrollback** -- the conversation history showing your prompts, Grok's responses, tool calls, file edits, and more.
+- **Scrollback** -- the conversation history showing your prompts, Nofy's responses, tool calls, file edits, and more.
 - **Prompt** -- the input area at the bottom where you type messages.
 
-Type a message and press `Enter` to send it. Grok reads files, runs commands, and edits code as needed. Each tool run streams into the scrollback in real time.
+Type a message and press `Enter` to send it. Nofy reads files, runs commands, and edits code as needed. Each tool run streams into the scrollback in real time.
 
 Press `Tab` to move focus between the prompt and the scrollback. While a turn is running, `Esc` cancels it (the exception is fullscreen vim scrollback mode, where mid-turn `Esc` is a no-op; minimal mode cancels even with vim on); `Ctrl+C` cancels once the composer is empty — with a draft, the first press only clears it. Idle, press `Esc` twice within 800ms to clear a non-empty prompt, or (with an empty prompt and conversation messages) to open rewind — see [Keyboard Shortcuts](03-keyboard-shortcuts.md#escape). With the scrollback focused, use the arrow keys to select entries and to collapse or expand them. To navigate with `j`/`k` and fold with `h`/`l` instead, enable Vim mode.
 
@@ -88,10 +88,10 @@ The `@` operator opens a fuzzy file picker. By default it respects `.gitignore` 
 
 ### Permissions
 
-By default, Grok asks for permission before executing shell commands or editing files. You can approve individually or toggle always-approve mode:
+By default, Nofy asks for permission before executing shell commands or editing files. You can approve individually or toggle always-approve mode:
 
 - Press `Ctrl+O` to toggle always-approve mode
-- Use the `--yolo` flag at launch: `grok --yolo`
+- Use the `--yolo` flag at launch: `nofy --yolo`
 - Type `/always-approve` in the prompt to toggle the mode
 
 ---
@@ -100,19 +100,19 @@ By default, Grok asks for permission before executing shell commands or editing 
 
 ### Sessions
 
-Every conversation is a **session**. Sessions are automatically saved to `~/.grok/sessions/` and can be resumed later. Each session tracks the full conversation history, tool calls, file edits, and task state.
+Every conversation is a **session**. Sessions are automatically saved to `~/.nofy/sessions/` and can be resumed later. Each session tracks the full conversation history, tool calls, file edits, and task state.
 
 - Start a new session: `Ctrl+N` or `/new`
 - Resume a previous session: `/resume` in the TUI, or `--resume <ID>` from the CLI
-- Continue the most recent session: `grok -c`
+- Continue the most recent session: `nofy -c`
 
 ### Scrollback
 
 The scrollback is the main display area. It shows:
 
 - **User prompts** -- your messages, rendered as sticky headers
-- **Agent messages** -- Grok's responses with full markdown rendering and syntax highlighting
-- **Thinking blocks** -- Grok's reasoning process (collapsible)
+- **Agent messages** -- Nofy's responses with full markdown rendering and syntax highlighting
+- **Thinking blocks** -- Nofy's reasoning process (collapsible)
 - **Tool calls** -- file edits (with inline diffs), command executions, search results, and more
 - **Task lists** -- TODO items tracking progress
 
@@ -120,7 +120,7 @@ Collapse or expand the selected entry with the `Left`/`Right` arrow keys (or `h`
 
 ### Tools
 
-Grok has built-in tools for:
+Nofy has built-in tools for:
 
 | Tool | Description |
 |------|-------------|
@@ -140,7 +140,7 @@ Tools can be extended with [MCP servers](05-configuration.md#mcp-servers) for in
 Type `/` in the prompt to access commands. These provide quick actions without writing a full prompt:
 
 ```
-/model grok-build                 # Switch model
+/model nofy-build                 # Switch model
 /compact                          # Compress conversation history
 /always-approve                   # Toggle always-approve mode
 /new                              # Start a new session
@@ -154,54 +154,54 @@ See [Slash Commands](04-slash-commands.md) for the complete reference.
 
 ```bash
 # Launch the interactive TUI and submit an initial prompt as the first turn
-grok "fix the failing auth test and run it"
+nofy "fix the failing auth test and run it"
 
 # Initial prompt in a new git worktree. Use --worktree=<name> (with `=`) so the
-# prompt isn't swallowed as the worktree name — `grok -w "refactor module X"`
+# prompt isn't swallowed as the worktree name — `nofy -w "refactor module X"`
 # would treat "refactor module X" as the worktree label, not the prompt.
-grok --worktree=feat "refactor module X"
+nofy --worktree=feat "refactor module X"
 
 # Base the worktree on a specific branch (e.g. main) instead of the current HEAD:
-grok -w --ref main "implement feature from main"
+nofy -w --ref main "implement feature from main"
 
 
 # Start in a specific project directory
-grok --cwd ~/projects/my-app
+nofy --cwd ~/projects/my-app
 
 # Add project-specific rules
-grok --rules "Always use TypeScript. Prefer functional components."
+nofy --rules "Always use TypeScript. Prefer functional components."
 
 # Auto-approve all tool executions
-grok --yolo
+nofy --yolo
 
 # Use a specific model
-grok -m grok-build
+nofy -m nofy-build
 
 # Resume a previous session
-grok --resume <session-id>
+nofy --resume <session-id>
 
 # Continue the most recent session
-grok -c
+nofy -c
 
-# Experimental scrollback-native render mode. Sticky: plain `grok` reopens in
+# Experimental scrollback-native render mode. Sticky: plain `nofy` reopens in
 # the mode last chosen via --minimal/--fullscreen (or /minimal//fullscreen).
-grok --minimal
+nofy --minimal
 
 # Back to the standard fullscreen TUI (and make it sticky again)
-grok --fullscreen
+nofy --fullscreen
 
 # Headless mode (for scripts)
-grok -p "Explain this codebase"
+nofy -p "Explain this codebase"
 ```
 
 ---
 
 ## Headless Mode
 
-Run Grok non-interactively for scripting, CI/CD, and automation:
+Run Nofy non-interactively for scripting, CI/CD, and automation:
 
 ```bash
-grok -p "Your prompt here"
+nofy -p "Your prompt here"
 ```
 
 Output formats:
@@ -215,22 +215,22 @@ Output formats:
 Example CI/CD usage:
 
 ```bash
-grok -p "Review changes for bugs" --output-format json --yolo | jq -r '.text'
+nofy -p "Review changes for bugs" --output-format json --yolo | jq -r '.text'
 ```
 
 ---
 
 ## Project Rules (AGENTS.md)
 
-Add per-project instructions by creating an `AGENTS.md` file in your repository. Grok reads these files and injects their contents as a project-instructions message at the start of the conversation:
+Add per-project instructions by creating an `AGENTS.md` file in your repository. Nofy reads these files and injects their contents as a project-instructions message at the start of the conversation:
 
 ```
-~/.grok/AGENTS.md           # Global rules (apply to all projects)
+~/.nofy/AGENTS.md           # Global rules (apply to all projects)
 <repo-root>/AGENTS.md       # Repository-level rules
 <cwd>/AGENTS.md             # Directory-level rules (highest priority)
 ```
 
-Deeper files take precedence. Grok also reads `CLAUDE.md` files for compatibility.
+Deeper files take precedence. Nofy also reads `CLAUDE.md` files for compatibility.
 
 ---
 
