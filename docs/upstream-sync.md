@@ -87,7 +87,8 @@
 | attempt_store 子代理恢复台账 | 已移植 | 批10(09c96a05,0.2.145) |
 | MCP elicitation | 已移植 | 批11(b3778c3f,0.2.146) |
 | 双向文本(阿拉伯/波斯) | 无 | 低优先 |
-| 系统提示词模板身份归属("released by xAI"/"Grok Build"/"xAI Grok Build harness") | 已清理 | 批23 后身份清理:7 个模板 8 处改 Nofy Build 表述,主提示词删 "released by xAI" 归属,用户指南引导路径 `~/.grok/`→`~/.nofy/`;改模板后须重跑 `crates/codegen/nofy-agent/scripts/encrypt_templates.py` 重新生成加密产物;用户指南正文 26 文件约 301 处 Grok/xAI 字样尚未清理(待办) |
+| 系统提示词模板身份归属("released by xAI"/"Grok Build"/"xAI Grok Build harness") | 已清理 | 批23 后身份清理:7 个模板 8 处改 Nofy Build 表述,主提示词删 "released by xAI" 归属,用户指南引导路径 `~/.grok/`→`~/.nofy/`;改模板后须重跑 `crates/codegen/nofy-agent/scripts/encrypt_templates.py` 重新生成加密产物 |
+| 用户指南/参考文档/教程/模型表品牌遗留 | 已清理 | 身份清理第二步:26 个用户指南+2 个参考文档+9 个教程全量 Nofy 品牌化(按代码实况校正:`NOFY_*` 环境变量、`.nofy-plugin`/`.nofy/` 目录、`nofy plugin`/`nofy inspect` 子命令、`nofy/git/worktree/*` wire 前缀、`worktrees/nofy/` 路径、`nofy_code.*` 遥测 schema/`nofy-cli` service.name/`ai.nofy.nofy_code` meter scope、NofyNight/NofyDay 主题、`--nofy-ws-origin` 旗标);删除代码中不存在的条目(`GROK_OIDC_*` 环境变量、`[grok_com_config.oidc]` 表、mixpanel_enabled、Grok Desktop 终端、`nofy update`/`/feedback`、fleet 策略抑制段——远端设置已剔除);default_models.json 显示名/描述改 Nofy,`system_prompt_label` "Grok 4.5"→"Nofy"(该字段经模型表注入系统提示词);模型 ID `grok-4.5` 为功能性 API 标识保留 |
 
 ## 移植时的常见适配点
 
