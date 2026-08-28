@@ -298,8 +298,12 @@ main (Electron)
 - 在 **main 进程**落地 `NofyKernelClient` 单例（WS JSON-RPC；吸收 `seam/acp-client.js`
   已验证部分，修正 cancel=notification、`_nofy/*` 前缀等错误），由 kernel-supervisor
   发现的端点接入；host 经 main↔host IPC 使用它（旧 ZCodeProtocolClient 暂留，仍服务 renderer）。
+- **收编 `seam/workspace-registry.js`**：它已在 main 里自建第二条 ACP 连接做
+  workspace/session 枚举（`zcode:nofy-list-workspaces` / `zcode:nofy-workspace-sessions`），
+  是单客户端中继约束的现存违例（可能抢走 adapter 的事件流）——其客户端并入单例，
+  枚举逻辑（含 dir-scan 回退与标题回退链）保留。
 - **验证**：initialize 成功（clientIdentifier=nofy-desktop）、modelState/roster 拉取；
-  探针脚本入库 `desktop/scripts/acp-probe*.mjs` 作为回归基线。
+  全进程对内核只剩一条 WS；探针脚本入库 `desktop/scripts/acp-probe*.mjs` 作为回归基线。
 
 ### 阶段 B：会话主流程切换（核心垂直切片）
 - `nofy-agent`/`zcode-session` 通道背后的会话实现改走 ACP：
@@ -341,7 +345,10 @@ main (Electron)
   孤儿远端配置 URL 常量、ARMS nudge 残留。
 - "升级"按钮：云漏斗对话框（`Ort`）在本地 stub 下渲染空白——把入口改指向
   模型设置（小改），或保留无害现状。
-- 通道名/语义中残留的 "zcode" 逐步改名（在 renderer 契约允许范围内）。
+- 通道名/语义中残留的 "zcode" 逐步改名（在 renderer 契约允许范围内）。注意 33 个
+  服务通道名在三处定义必须同步（host `CZ` chunk-O5YHTQBW.js:17538-17571 /
+  main `mC` chunk-FQMTTDFW.js:302-334 / renderer `Pb` src-HCld2afU.js:8468-8501），
+  renderer 那份不能动 ⇒ 通道名事实上冻结，改名仅限 host/main 内部符号。
 - **验证**：`grep -ri zcode` 于 host 代码只剩无关项；全功能回归一遍。
 
 ### 阶段 E：收尾能力与打磨
