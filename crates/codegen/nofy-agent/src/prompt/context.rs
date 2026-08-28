@@ -150,7 +150,7 @@ pub struct PromptContext {
     #[serde(default = "default_system_prompt_label")]
     pub system_prompt_label: String,
 }
-/// Default identity on trim-tool-descriptions (`You are Nofy released by xAI`).
+/// Default identity on trim-tool-descriptions (`You are Nofy`).
 pub const DEFAULT_SYSTEM_PROMPT_LABEL: &str = "Nofy";
 fn default_system_prompt_label() -> String {
     DEFAULT_SYSTEM_PROMPT_LABEL.to_string()
