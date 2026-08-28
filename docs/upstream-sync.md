@@ -87,6 +87,7 @@
 | attempt_store 子代理恢复台账 | 已移植 | 批10(09c96a05,0.2.145) |
 | MCP elicitation | 已移植 | 批11(b3778c3f,0.2.146) |
 | 双向文本(阿拉伯/波斯) | 无 | 低优先 |
+| 系统提示词模板身份归属("released by xAI"/"Grok Build"/"xAI Grok Build harness") | 已清理 | 批23 后身份清理:7 个模板 8 处改 Nofy Build 表述,主提示词删 "released by xAI" 归属,用户指南引导路径 `~/.grok/`→`~/.nofy/`;改模板后须重跑 `crates/codegen/nofy-agent/scripts/encrypt_templates.py` 重新生成加密产物;用户指南正文 26 文件约 301 处 Grok/xAI 字样尚未清理(待办) |
 
 ## 移植时的常见适配点
 
