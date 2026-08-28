@@ -38074,7 +38074,7 @@ function hMe({
     `反馈类型: ${n}`,
     `产品模块: ${r}`,
     `严重程度: ${i}`,
-    `Agent 框架: zcode-agent`,
+    `Agent 框架: nofy-agent`,
     `当前 Agent: ${pMe}`,
     `当前模型型号: ${t.display || t.model || `未上报`}`,
     `模型列表数量: ${t.optionCount ?? `未上报`}`,
@@ -63877,7 +63877,7 @@ function Cqe(e) {
 }
 function wqe(e) {
   let t = e.replaceAll(`\\`, `/`).toLowerCase();
-  return t.includes(`/.zcode/skills/`) || t.includes(`/.zcode/cli/plugins/cache/`)
+  return t.includes(`/.nofy/skills/`) || t.includes(`/.nofy/cli/plugins/cache/`)
     ? `glm`
     : `unknown`;
 }
@@ -83218,7 +83218,7 @@ var F9e = 2e3,
   z9e = `coding_plan_paypal_unsupported`,
   yY = `coding_plan_paypal_subscribe_failed`,
   B9e = `coding_plan_stripe_action_required`,
-  V9e = `zcode://payment/callback`;
+  V9e = `nofy://payment/callback`;
 function H9e({ providerId: e, batchPreview: t, funnelContext: n, onComplete: r }) {
   let i = ps(),
     a = S(),
@@ -193575,7 +193575,7 @@ function s$t(e, t) {
     case `agents`:
       return t.formatMessage({ id: `settingsSync.agent.agents` });
     case `zcode`:
-      return t.formatMessage({ id: `settingsSync.agent.zcode` });
+      return t.formatMessage({ id: `settingsSync.agent.nofy` });
     default:
       return e;
   }
@@ -208681,7 +208681,7 @@ function E3t(e) {
             { id: `onboarding.agentsFile.confirmDescription` },
             {
               source: v.status?.sourcePath ?? `~/.claude/CLAUDE.md`,
-              target: v.status?.targetPath ?? `~/.zcode/AGENTS.md`,
+              target: v.status?.targetPath ?? `~/.nofy/AGENTS.md`,
             },
           ),
           confirmLabel: t.formatMessage({ id: `onboarding.agentsFile.confirmAction` }),

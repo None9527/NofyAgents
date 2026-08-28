@@ -310,7 +310,7 @@ var mC = {
     Credential: "credential",
     Broadcast: "broadcast",
     ZCodeTask: "zcode-task",
-    ZCodeAgent: "zcode-agent",
+    ZCodeAgent: "nofy-agent",
     ZCodeSession: "zcode-session",
     FileWatcher: "file-watcher",
     OAuth: "oauth",
@@ -17774,12 +17774,12 @@ var mZ = {
   bundledResourceDir: "glm",
   version: "0.13.3",
   spawnArgs: ["app-server", "--stdio"],
-  nativeConfigDir: ".zcode/cli",
+  nativeConfigDir: ".nofy/cli",
   nativeConfigFileName: "config.json",
   missingBinaryMessage:
     "[ZCode Agent] glm binary \u672A\u627E\u5230\uFF0C\u8BF7\u8BBE\u7F6E ZCODE_AGENT_WORKDIR\u3001GLM_BINARY_PATH \u6216\u5148\u51C6\u5907 GLM \u8FD0\u884C\u65F6\u8D44\u6E90",
-  resolveEntrySegments: c((e) => [resolvePlatformBinaryName("zcode-agent", e)], "resolveEntrySegments"),
-  nodeBundleEntryFile: "zcode.cjs",
+  resolveEntrySegments: c((e) => [resolvePlatformBinaryName("nofy-agent", e)], "resolveEntrySegments"),
+  nodeBundleEntryFile: "nofy.cjs",
   resolveNodeBundleSegments() {
     return [this.nodeBundleEntryFile];
   },
@@ -17824,7 +17824,7 @@ function readCredentialErrorMessage(e) {
 }
 c(readCredentialErrorMessage, "readCredentialErrorMessage");
 var uI = "none";
-var pI = [{ value: "zcode-agent", label: "Nofy Agent" }], // REBRAND-033+133
+var pI = [{ value: "nofy-agent", label: "Nofy Agent" }], // REBRAND-033+133
   NZ = [{ value: uI, label: "\u672A\u6307\u5B9A" }, ...pI];
 var mI = "https://cdn.zcode-ai.com/zcode/config/default.json";
 function buildVersionedRemoteAppConfigUrl(e, o = mI) {
@@ -18071,7 +18071,7 @@ var OB = new Map(Pf.map((e) => [e.id, e])),
   );
 var gL = "DATA_BASE_DIR_FORBIDDEN_WINDOWS_INSTALL_DIR";
 var SL = t.object({ askUserQuestionAutoResolutionEnabled: t.boolean() }).strict();
-var II = "zcode";
+var II = "nofy"; // REBRAND-047+147
 function sanitizeProcessNameSegment(e) {
   if (!e) return null;
   let o = e

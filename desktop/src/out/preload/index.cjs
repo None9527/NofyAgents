@@ -16685,7 +16685,7 @@ var Zt = {
 };
 var df = "bigmodel";
 var Y_ = "none";
-var X_ = [{ value: "zcode-agent", label: "ZCode Agent" }],
+var X_ = [{ value: "nofy-agent", label: "ZCode Agent" }],
   M$ = [{ value: Y_, label: "\u672A\u6307\u5B9A" }, ...X_];
 var F$ = `team-plan:${be.bigmodelCodingPlan}:`;
 var Q_ = [
@@ -16732,7 +16732,7 @@ var eU = new Map(pf.map((e) => [e.id, e])),
     ),
   );
 var EU = t.object({ askUserQuestionAutoResolutionEnabled: t.boolean() }).strict();
-var tx = "zcode";
+var tx = "nofy"; // REBRAND-047+147
 function sanitizeProcessNameSegment(e) {
   if (!e) return null;
   let n = e

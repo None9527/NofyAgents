@@ -177,7 +177,7 @@ function getDataBaseDir() {
 }
 s(getDataBaseDir, "getDataBaseDir");
 function getZCodeDataRootDir() {
-  return gt(getDataBaseDir(), ".zcode");
+  return gt(getDataBaseDir(), ".nofy");
 }
 s(getZCodeDataRootDir, "getZCodeDataRootDir");
 function getConversationWorkspaceDir() {
@@ -274,7 +274,7 @@ function getProviderWorkspaceConfigDir(e, t, n) {
   if (e === "gemini") return gt(getProviderWorkspaceZCodeConfigIsolationDir(e, t, n), ".gemini");
   if (e === "glm") {
     let o = x$.glm;
-    return o.nativeConfigDir ? gt(getDataBaseDir(), o.nativeConfigDir) : gt(getDataBaseDir(), ".zcode", "cli");
+    return o.nativeConfigDir ? gt(getDataBaseDir(), o.nativeConfigDir) : gt(getDataBaseDir(), ".nofy", "cli");
   }
   return gt(getAppConfigDir(), "agent-config", e, getWorkspaceHash(t, n));
 }
@@ -284,8 +284,8 @@ function getProviderWorkspaceZCodeConfigIsolationDir(e, t, n) {
 }
 s(getProviderWorkspaceZCodeConfigIsolationDir, "getProviderWorkspaceZCodeConfigIsolationDir");
 async function copyDataDirectory(e, t) {
-  let n = gt(e, ".zcode", "v2"),
-    o = gt(t, ".zcode", "v2");
+  let n = gt(e, ".nofy", "v2"),
+    o = gt(t, ".nofy", "v2");
   await R$(n, o, {
     recursive: !0,
     force: !1,
@@ -2276,7 +2276,7 @@ function resolveUserHomeDir() {
 }
 s(resolveUserHomeDir, "resolveUserHomeDir");
 function getSettingsDir() {
-  return Zm(resolveUserHomeDir(), ".zcode", "v2");
+  return Zm(resolveUserHomeDir(), ".nofy", "v2");
 }
 s(getSettingsDir, "getSettingsDir");
 function getSettingsFile() {
@@ -3092,9 +3092,9 @@ function setZCodeStdioTapDevEnabled(e) {
   );
 }
 s(setZCodeStdioTapDevEnabled, "setZCodeStdioTapDevEnabled");
-var Kme = createServiceLogger("zcode-agent");
+var Kme = createServiceLogger("nofy-agent");
 import { randomUUID as Qme } from "crypto";
-var lhe = createServiceLogger("zcode-agent-service");
+var lhe = createServiceLogger("nofy-agent-service");
 var uhe = 5 * 6e4;
 var phe = 5 * 6e4;
 import { createHash as xke } from "crypto";
@@ -3660,7 +3660,7 @@ function isLaunchServicesTimeout(e) {
 }
 s(isLaunchServicesTimeout, "isLaunchServicesTimeout");
 function resolveZcodeHome(e) {
-  return e.ZCODE_HOME?.trim() || (e.HOME?.trim() ? pf(e.HOME.trim(), ".zcode") : null);
+  return e.ZCODE_HOME?.trim() || (e.HOME?.trim() ? pf(e.HOME.trim(), ".nofy") : null);
 }
 s(resolveZcodeHome, "resolveZcodeHome");
 function resolveCuaHelperInstallRoot(e) {
@@ -3865,7 +3865,7 @@ function resolveCuaHelperInstallPlan(e = {}) {
   if (!resolveZcodeHome(t))
     throw new ye(
       "install_failed",
-      "Cannot resolve ${ZCODE_HOME:-$HOME/.zcode}; set ZCODE_HOME or HOME before installing ZCode CUA Helper.",
+      "Cannot resolve ${ZCODE_HOME:-$HOME/.nofy}; set ZCODE_HOME or HOME before installing ZCode CUA Helper.",
     );
   let a = `${n}-${o}`,
     c = `ZCode-CUA-Helper-${r}-mac-${o}.zip`,
@@ -16090,7 +16090,7 @@ var W1 = 2,
 import { Buffer as XDe } from "buffer";
 import { createDecipheriv as QDe, randomInt as eLe, randomUUID as tLe } from "crypto";
 function resolveBootstrapSettingsFile(e = JG()) {
-  return XG(e, ".zcode", "v2", "setting.json");
+  return XG(e, ".nofy", "v2", "setting.json");
 }
 s(resolveBootstrapSettingsFile, "resolveBootstrapSettingsFile");
 function extractBootstrapDataBaseDir(e) {
@@ -16122,7 +16122,7 @@ import { existsSync as tq, readFileSync as nq } from "fs";
 import { homedir as rq } from "os";
 import { join as oq } from "path";
 function resolveChromiumHardwareAccelerationSettingsFile(e = rq()) {
-  return oq(e, ".zcode", "v2", "setting.json");
+  return oq(e, ".nofy", "v2", "setting.json");
 }
 s(resolveChromiumHardwareAccelerationSettingsFile, "resolveChromiumHardwareAccelerationSettingsFile");
 function extractBootstrapChromiumHardwareAccelerationEnabled(e) {
@@ -16625,7 +16625,7 @@ function isTruthyRuntimeEnvOverride(e) {
 }
 s(isTruthyRuntimeEnvOverride, "isTruthyRuntimeEnvOverride");
 var Jr =
-    readRuntimeEnvOverride("ZCODE_DESKTOP_APPLICATION_NAME") ?? (oa ? "ZCode Dev" : mA ? "ZCode Preview" : "ZCode"),
+    readRuntimeEnvOverride("ZCODE_DESKTOP_APPLICATION_NAME") ?? (oa ? "Nofy Dev" : mA ? "Nofy Preview" : "Nofy"), // REBRAND-044+144
   Ov = readRuntimeEnvOverride("ZCODE_DESKTOP_HOME_DIR"),
   Dv = isTruthyRuntimeEnvOverride("ZCODE_DESKTOP_USE_ELECTRON_DEFAULT_USER_DATA"),
   ia = readRuntimeEnvOverride("ZCODE_DESKTOP_USER_DATA_DIR") ?? (Dv ? void 0 : vt(getElectronAppPath("appData"), Jr)),
@@ -25480,8 +25480,8 @@ s(resolveStartupWindowBootstrap, "resolveStartupWindowBootstrap");
 import { statSync as w3 } from "fs";
 import { isAbsolute as k3, resolve as v3 } from "path";
 import { app as Ei, BrowserWindow as ao, dialog as rD } from "electron";
-var WP = "zcode",
-  j8 = /\bzcode:(?:\/\/|\/)?[^\s"'<>]+/i,
+var WP = "nofy", // REBRAND-046+146
+  j8 = /\bnofy:(?:\/\/|\/)?[^\s"'<>]+/i, // REBRAND-046+146
   HO = "workspace",
   GO = "deepLinkUrl",
   qO = "openWorkspacePath",
@@ -25631,9 +25631,9 @@ import {
   writeFileSync as Y8,
 } from "fs";
 import { dirname as GP, join as Tu } from "path";
-var QO = "zcode.desktop",
-  eD = "x-scheme-handler/zcode",
-  Q8 = "zcode",
+var QO = "nofy.desktop", // REBRAND-046+146
+  eD = "x-scheme-handler/nofy", // REBRAND-046+146
+  Q8 = "nofy", // REBRAND-046+146
   e3 = "512x512",
   Ru = 2e3,
   t3 = new Set(["--no-sandbox", "--disable-gpu", "--disable-software-rasterizer"]),
@@ -25670,7 +25670,7 @@ function formatDesktopExec(e) {
 s(formatDesktopExec, "formatDesktopExec");
 function createLinuxDeepLinkDesktopEntry(e) {
   let t = e.productName ?? "nofy", // REBRAND-042+142
-    n = e.iconName ?? "zcode",
+    n = e.iconName ?? "nofy", // REBRAND-046+146
     o = { executablePath: e.executablePath, args: e.args ?? [] };
   return [
     "[Desktop Entry]",
@@ -26005,7 +26005,7 @@ function handleDeepLink(e, t, n = {}) {
 }
 s(handleDeepLink, "handleDeepLink");
 function registerDeepLinkProtocol(e, t = {}) {
-  let n = "zcode";
+  let n = "nofy"; // REBRAND-046+146
   if (process.defaultApp && process.argv.length >= 2) {
     let r = v3(process.argv[1]);
     Ei.setAsDefaultProtocolClient(n, process.execPath, [r])
@@ -26486,7 +26486,7 @@ function getZCodeDataDir() {
 }
 s(getZCodeDataDir, "getZCodeDataDir");
 function getZCodeCliDir() {
-  return Mt(aX(), ".zcode", "cli");
+  return Mt(aX(), ".nofy", "cli");
 }
 s(getZCodeCliDir, "getZCodeCliDir");
 function getZCodeCliLogDir() {
@@ -26841,7 +26841,7 @@ function isExcludedRelativePath(e) {
 s(isExcludedRelativePath, "isExcludedRelativePath");
 function shouldApplyLogExportRetention(e) {
   let t = normalizeArchivePath(e);
-  return !!(t.startsWith("logs/") || t.startsWith(".zcode/cli/log/"));
+  return !!(t.startsWith("logs/") || t.startsWith(".nofy/cli/log/"));
 }
 s(shouldApplyLogExportRetention, "shouldApplyLogExportRetention");
 async function filterRecentLogArchiveFiles(e, t = {}) {
@@ -26932,10 +26932,10 @@ async function createLogArchiveArtifacts(e, t = {}) {
     o = new Set();
   await collectLogArchiveFilesFromDirectory(e, "", o, n);
   let r = getZCodeCliLogDir();
-  await collectLogArchiveFilesFromDirectory(r, Uu.join(".zcode", "cli", "log"), o, n);
+  await collectLogArchiveFilesFromDirectory(r, Uu.join(".nofy", "cli", "log"), o, n);
   let i = getZCodeCliDir();
-  (await collectLogArchiveFile(Mt(i, "config.json"), Uu.join(".zcode", "cli", "config.json"), n),
-    await collectLogArchiveFilesFromDirectory(Mt(i, "rollout"), Uu.join(".zcode", "cli", "rollout"), o, n));
+  (await collectLogArchiveFile(Mt(i, "config.json"), Uu.join(".nofy", "cli", "config.json"), n),
+    await collectLogArchiveFilesFromDirectory(Mt(i, "rollout"), Uu.join(".nofy", "cli", "rollout"), o, n));
   let a = await filterRecentLogArchiveFiles(n, t);
   return (
     a.sort((c, d) => c.archivePath.localeCompare(d.archivePath)),
@@ -27740,15 +27740,15 @@ async function clearAllDataAndRelaunch(e) {
     title: "Clear All Data",
     message: "\u786E\u5B9A\u8981\u6E05\u9664\u6240\u6709\u6570\u636E\u5417\uFF1F",
     detail:
-      "\u5C06\u5220\u9664 ~/.zcode/v2\uFF08\u914D\u7F6E\u3001\u51ED\u636E\u3001\u65E5\u5FD7\uFF09\u548C\u6D4F\u89C8\u5668\u7F13\u5B58\uFF08localStorage\uFF09\u3002\u64CD\u4F5C\u4E0D\u53EF\u6062\u590D\uFF0C\u6E05\u9664\u540E\u5E94\u7528\u5C06\u81EA\u52A8\u91CD\u542F\u3002",
+      "\u5C06\u5220\u9664 ~/.nofy/v2\uFF08\u914D\u7F6E\u3001\u51ED\u636E\u3001\u65E5\u5FD7\uFF09\u548C\u6D4F\u89C8\u5668\u7F13\u5B58\uFF08localStorage\uFF09\u3002\u64CD\u4F5C\u4E0D\u53EF\u6062\u590D\uFF0C\u6E05\u9664\u540E\u5E94\u7528\u5C06\u81EA\u52A8\u91CD\u542F\u3002",
   });
   if (t !== 1) return;
   let { rm: n } = await import("fs/promises");
   try {
     (await n(e.credentialsDir, { recursive: !0, force: !0 }),
-      e.logger.info("[clear-all-data] deleted ~/.zcode/v2"));
+      e.logger.info("[clear-all-data] deleted ~/.nofy/v2"));
   } catch (o) {
-    e.logger.error("[clear-all-data] failed to delete ~/.zcode/v2:", o);
+    e.logger.error("[clear-all-data] failed to delete ~/.nofy/v2:", o);
   }
   for (let o of po.getAllWindows())
     try {
@@ -29604,7 +29604,7 @@ done
 
 if [ -n "$first" ]; then
   encoded=$(/usr/bin/osascript -l JavaScript -e 'function run(argv) { return encodeURIComponent(argv[0]); }' "$first")
-  /usr/bin/open "zcode://workspace/open?path=\${encoded}"
+  /usr/bin/open "nofy://workspace/open?path=\${encoded}"
 fi
 `;
 function escapeXml(e) {
@@ -32540,7 +32540,7 @@ function buildLegacyCommonMcpStorageCandidates(e) {
   let n = process.env.LOCALAPPDATA ?? Hn(U0(), "AppData", "Local"),
     o = process.env.APPDATA ?? Hn(U0(), "AppData", "Roaming");
   return (
-    t.push(Hn(o, "ai.z.zcode", "store.json")),
+    t.push(Hn(o, "ai.z.nofy", "store.json")),
     t.push(
       Hn(n, "ai.z.work", "EBWebView", "Default", "Local Storage", "leveldb"),
       Hn(o, "ZCode", "Local Storage", "leveldb"),
@@ -32567,8 +32567,8 @@ s(migrateLegacyCommonMcp, "migrateLegacyCommonMcp");
 var go = {
     source: "zcodeagentmcp",
     directorySource: "zcode",
-    userConfigDirSegments: [".zcode", "cli"],
-    workspaceConfigDirSegments: [".zcode"],
+    userConfigDirSegments: [".nofy", "cli"],
+    workspaceConfigDirSegments: [".nofy"],
     fileName: "config.json",
     format: "json",
     configKeyName: "mcp.servers",
@@ -33800,7 +33800,7 @@ async function runBrowserCommandOnView(e) {
 s(runBrowserCommandOnView, "runBrowserCommandOnView");
 var Wb = 0,
   a$ = Tr(import.meta.dirname, "../preload/index.cjs"),
-  kte = Tr(hte(), ".zcode", "v2", "setting.json"),
+  kte = Tr(hte(), ".nofy", "v2", "setting.json"),
   Fi = resolveAppShutdownPolicy("normal", process.platform),
   Rb = null,
   Tb = resolveRemoteHostShutdownPolicy(),
@@ -34289,7 +34289,7 @@ pe.whenReady().then(async () => {
   } catch (i) {
     k.error("[cron-scheduler] failed to spawn scheduler process:", i);
   }
-  (process.platform === "win32" && !pe.isPackaged && pe.setAppUserModelId("cn.aminer.zcode"),
+  (process.platform === "win32" && !pe.isPackaged && pe.setAppUserModelId("cn.aminer.nofy"),
     applyAppIcon(wo),
     e || (Oe = resolveSystemApplicationLocale()),
     installFinderOpenFolderWorkflow({ platform: process.platform, locale: Oe, homeDir: pe.getPath("home"), logger: k }),

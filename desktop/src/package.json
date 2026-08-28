@@ -1,10 +1,10 @@
 {
-  "name": "@zcode/desktop",
+  "name": "nofy-desktop",
   "private": true,
-  "description": "ZCode Desktop App",
+  "description": "Nofy Desktop App",
   "author": {
-    "name": "ZCode",
-    "email": "dev@zcode.z.ai"
+    "name": "Nofy",
+    "email": "dev@nofy.local"
   },
   "type": "module",
   "main": "out/main/index.js",
@@ -36,8 +36,8 @@
     "yaml": "^2.9.0",
     "yazl": "^3.3.1"
   },
-  "productName": "ZCode",
+  "productName": "Nofy",
   "version": "3.7.6",
   "zcodeProductFlavor": "production",
-  "homepage": "https://zcode.z.ai"
+  "homepage": ""
 }

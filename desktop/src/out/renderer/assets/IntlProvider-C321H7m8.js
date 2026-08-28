@@ -1694,7 +1694,7 @@ var p = {
     "settings.taskAutoArchiveDays.option.14": `14 天后归档`,
     "settings.taskAutoArchiveDays.option.30": `30 天后归档`,
     "settings.dataBaseDir": `数据存储路径`,
-    "settings.dataBaseDirDescription": `应用数据的根目录（默认为用户主目录），修改后会将现有数据复制到新位置。路径后缀 .zcode/v2 不可更改。`,
+    "settings.dataBaseDirDescription": `应用数据的根目录（默认为用户主目录），修改后会将现有数据复制到新位置。路径后缀 .nofy/v2 不可更改。`,
     "settings.dataBaseDirPlaceholder": `默认：用户主目录`,
     "settings.dataBaseDirBrowse": `选择文件夹`,
     "settings.dataBaseDirSave": `保存`,
@@ -3160,7 +3160,7 @@ var p = {
     "settingsSync.action.importSelected": `一键导入已选内容`,
     "settingsSync.action.importing": `导入进行中`,
     "settingsSync.action.finish": `开始使用`,
-    "settingsSync.agent.zcode": `Nofy Agent`, // REBRAND-016+116
+    "settingsSync.agent.nofy": `Nofy Agent`, // REBRAND-016+116
     "settingsSync.agent.claudeCode": `Claude Code`,
     "settingsSync.agent.codexCli": `Codex CLI`,
     "settingsSync.agent.openCode": `OpenCode`,
@@ -6212,7 +6212,7 @@ We recommend opening it through WSL connection, though you can still continue wi
     "settings.taskAutoArchiveDays.option.14": `Archive after 14 days`,
     "settings.taskAutoArchiveDays.option.30": `Archive after 30 days`,
     "settings.dataBaseDir": `Data storage path`,
-    "settings.dataBaseDirDescription": `Root directory for app data (defaults to user home directory). Existing data will be copied to the new location. The .zcode/v2 suffix cannot be changed.`,
+    "settings.dataBaseDirDescription": `Root directory for app data (defaults to user home directory). Existing data will be copied to the new location. The .nofy/v2 suffix cannot be changed.`,
     "settings.dataBaseDirPlaceholder": `Default: user home directory`,
     "settings.dataBaseDirBrowse": `Choose folder`,
     "settings.dataBaseDirSave": `Save`,
@@ -7681,7 +7681,7 @@ We recommend opening it through WSL connection, though you can still continue wi
     "settingsSync.action.importSelected": `Import selected`,
     "settingsSync.action.importing": `Importing...`,
     "settingsSync.action.finish": `Start using nofy`, // REBRAND-016+116
-    "settingsSync.agent.zcode": `Nofy Agent`, // REBRAND-016+116
+    "settingsSync.agent.nofy": `Nofy Agent`, // REBRAND-016+116
     "settingsSync.agent.claudeCode": `Claude Code`,
     "settingsSync.agent.codexCli": `Codex CLI`,
     "settingsSync.agent.openCode": `OpenCode`,

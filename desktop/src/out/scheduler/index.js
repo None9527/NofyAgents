@@ -16563,12 +16563,12 @@ var mi = {
   bundledResourceDir: "glm",
   version: "0.13.3",
   spawnArgs: ["app-server", "--stdio"],
-  nativeConfigDir: ".zcode/cli",
+  nativeConfigDir: ".nofy/cli",
   nativeConfigFileName: "config.json",
   missingBinaryMessage:
     "[ZCode Agent] glm binary \u672A\u627E\u5230\uFF0C\u8BF7\u8BBE\u7F6E ZCODE_AGENT_WORKDIR\u3001GLM_BINARY_PATH \u6216\u5148\u51C6\u5907 GLM \u8FD0\u884C\u65F6\u8D44\u6E90",
-  resolveEntrySegments: c((e) => [resolvePlatformBinaryName("zcode-agent", e)], "resolveEntrySegments"),
-  nodeBundleEntryFile: "zcode.cjs",
+  resolveEntrySegments: c((e) => [resolvePlatformBinaryName("nofy-agent", e)], "resolveEntrySegments"),
+  nodeBundleEntryFile: "nofy.cjs",
   resolveNodeBundleSegments() {
     return [this.nodeBundleEntryFile];
   },
@@ -16611,7 +16611,7 @@ var N = {
   Credential: "credential",
   Broadcast: "broadcast",
   ZCodeTask: "zcode-task",
-  ZCodeAgent: "zcode-agent",
+  ZCodeAgent: "nofy-agent",
   ZCodeSession: "zcode-session",
   FileWatcher: "file-watcher",
   OAuth: "oauth",
@@ -16638,7 +16638,7 @@ var N = {
 };
 var ye = "bigmodel";
 var pB = "none";
-var mB = [{ value: "zcode-agent", label: "ZCode Agent" }],
+var mB = [{ value: "nofy-agent", label: "ZCode Agent" }],
   f7 = [{ value: pB, label: "\u672A\u6307\u5B9A" }, ...mB];
 var _7 = `team-plan:${L.bigmodelCodingPlan}:`;
 var _y = "AUTOMATION_CREATE_LIMIT_REACHED";
@@ -16847,7 +16847,7 @@ function getDataBaseDir() {
 }
 c(getDataBaseDir, "getDataBaseDir");
 function getZCodeDataRootDir() {
-  return nn(getDataBaseDir(), ".zcode");
+  return nn(getDataBaseDir(), ".nofy");
 }
 c(getZCodeDataRootDir, "getZCodeDataRootDir");
 function getAppConfigDir() {
@@ -16870,7 +16870,7 @@ function getProviderWorkspaceConfigDir(e, n, o) {
   if (e === "gemini") return nn(getProviderWorkspaceZCodeConfigIsolationDir(e, n, o), ".gemini");
   if (e === "glm") {
     let s = LB.glm;
-    return s.nativeConfigDir ? nn(getDataBaseDir(), s.nativeConfigDir) : nn(getDataBaseDir(), ".zcode", "cli");
+    return s.nativeConfigDir ? nn(getDataBaseDir(), s.nativeConfigDir) : nn(getDataBaseDir(), ".nofy", "cli");
   }
   return nn(getAppConfigDir(), "agent-config", e, getWorkspaceHash(n, o));
 }
@@ -22197,9 +22197,9 @@ import { readFileSync as JSe } from "fs";
 import { execFile as tPe } from "child_process";
 import { existsSync as WPe, mkdirSync as jPe, readFileSync as KPe, writeFileSync as GPe } from "fs";
 import { join as HPe } from "path";
-var Rbe = createServiceLogger("zcode-agent");
+var Rbe = createServiceLogger("nofy-agent");
 import { randomUUID as Mbe } from "crypto";
-var Pwe = createServiceLogger("zcode-agent-service");
+var Pwe = createServiceLogger("nofy-agent-service");
 var bwe = 5 * 6e4;
 var wwe = 5 * 6e4;
 import { createHash as PIe } from "crypto";

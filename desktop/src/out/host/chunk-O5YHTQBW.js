@@ -17543,7 +17543,7 @@ var CZ = {
   Credential: "credential",
   Broadcast: "broadcast",
   ZCodeTask: "zcode-task",
-  ZCodeAgent: "zcode-agent",
+  ZCodeAgent: "nofy-agent",
   ZCodeSession: "zcode-session",
   FileWatcher: "file-watcher",
   OAuth: "oauth",
@@ -17657,7 +17657,7 @@ function formatLogPrefix(e, t) {
   return `[${r}]${i} [${e}]`;
 }
 s(formatLogPrefix, "formatLogPrefix");
-var BC = "zcode";
+var BC = "nofy"; // REBRAND-047+147
 function sanitizeProcessNameSegment(e) {
   if (!e) return null;
   let t = e
@@ -18317,12 +18317,12 @@ var aB = {
   bundledResourceDir: "glm",
   version: "0.13.3",
   spawnArgs: ["app-server", "--stdio"],
-  nativeConfigDir: ".zcode/cli",
+  nativeConfigDir: ".nofy/cli",
   nativeConfigFileName: "config.json",
   missingBinaryMessage:
     "[ZCode Agent] glm binary \u672A\u627E\u5230\uFF0C\u8BF7\u8BBE\u7F6E ZCODE_AGENT_WORKDIR\u3001GLM_BINARY_PATH \u6216\u5148\u51C6\u5907 GLM \u8FD0\u884C\u65F6\u8D44\u6E90",
-  resolveEntrySegments: s((e) => [resolvePlatformBinaryName("zcode-agent", e)], "resolveEntrySegments"),
-  nodeBundleEntryFile: "zcode.cjs",
+  resolveEntrySegments: s((e) => [resolvePlatformBinaryName("nofy-agent", e)], "resolveEntrySegments"),
+  nodeBundleEntryFile: "nofy.cjs",
   resolveNodeBundleSegments() {
     return [this.nodeBundleEntryFile];
   },
@@ -18391,7 +18391,7 @@ function resolveJwtExpiration(e, t = Date.now(), r = 3e4) {
 }
 s(resolveJwtExpiration, "resolveJwtExpiration");
 var UR = "none";
-var NR = [{ value: "zcode-agent", label: "ZCode Agent" }],
+var NR = [{ value: "nofy-agent", label: "ZCode Agent" }],
   AB = [{ value: UR, label: "\u672A\u6307\u5B9A" }, ...NR];
 var zh = `team-plan:${D.bigmodelCodingPlan}:`;
 function parseBigModelTeamPlanConnectionKey(e) {

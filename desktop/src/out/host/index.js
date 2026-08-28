@@ -701,7 +701,7 @@ function getDataBaseDir() {
 }
 i(getDataBaseDir, "getDataBaseDir");
 function getZCodeDataRootDir() {
-  return Jt(getDataBaseDir(), ".zcode");
+  return Jt(getDataBaseDir(), ".nofy");
 }
 i(getZCodeDataRootDir, "getZCodeDataRootDir");
 function getConversationWorkspaceDir() {
@@ -802,7 +802,7 @@ function getProviderWorkspaceConfigDir(e, t, n) {
   if (e === "gemini") return Jt(getProviderWorkspaceZCodeConfigIsolationDir(e, t, n), ".gemini");
   if (e === "glm") {
     let o = zU.glm;
-    return o.nativeConfigDir ? Jt(getDataBaseDir(), o.nativeConfigDir) : Jt(getDataBaseDir(), ".zcode", "cli");
+    return o.nativeConfigDir ? Jt(getDataBaseDir(), o.nativeConfigDir) : Jt(getDataBaseDir(), ".nofy", "cli");
   }
   return Jt(getAppConfigDir(), "agent-config", e, getWorkspaceHash(t, n));
 }
@@ -830,7 +830,7 @@ i(getProviderWorkspacePrimaryConfigFileName, "getProviderWorkspacePrimaryConfigF
 function getProviderWorkspacePrimaryConfigPath(e, t, n) {
   if (e === "glm") {
     let o = zU.glm,
-      r = o.nativeConfigDir ? Jt(getDataBaseDir(), o.nativeConfigDir) : Jt(getDataBaseDir(), ".zcode", "cli"),
+      r = o.nativeConfigDir ? Jt(getDataBaseDir(), o.nativeConfigDir) : Jt(getDataBaseDir(), ".nofy", "cli"),
       s = o.nativeConfigFileName ?? "config.json";
     return Jt(r, s);
   }
@@ -838,8 +838,8 @@ function getProviderWorkspacePrimaryConfigPath(e, t, n) {
 }
 i(getProviderWorkspacePrimaryConfigPath, "getProviderWorkspacePrimaryConfigPath");
 async function copyDataDirectory(e, t) {
-  let n = Jt(e, ".zcode", "v2"),
-    o = Jt(t, ".zcode", "v2");
+  let n = Jt(e, ".nofy", "v2"),
+    o = Jt(t, ".nofy", "v2");
   await B3(n, o, {
     recursive: !0,
     force: !1,
@@ -6131,7 +6131,7 @@ function resolveUserHomeDir() {
 }
 i(resolveUserHomeDir, "resolveUserHomeDir");
 function getSettingsDir() {
-  return mC(resolveUserHomeDir(), ".zcode", "v2");
+  return mC(resolveUserHomeDir(), ".nofy", "v2");
 }
 i(getSettingsDir, "getSettingsDir");
 function getSettingsFile() {
@@ -11830,7 +11830,7 @@ function findZCodeAgentRuntimeBinary() {
     a = resolveLegacyBundledResourceRoots(r),
     c = [
       Bg ? Sn(Bg, ...n) : null,
-      Sn(Oz(), ".zcode", "server", "agents", ...n),
+      Sn(Oz(), ".nofy", "server", "agents", ...n),
       ...s.map((d) => (d ? Sn(d, e.bundledResourceDir, ...t) : null)),
       ...a.map((d) => (d ? Sn(d, ...n) : null)),
     ];
@@ -11846,7 +11846,7 @@ function findZCodeAgentRuntimeNodeBundle() {
     s = resolveLegacyBundledResourceRoots(o),
     a = [
       Bg ? Sn(Bg, ...n) : null,
-      Sn(Oz(), ".zcode", "server", "agents", ...n),
+      Sn(Oz(), ".nofy", "server", "agents", ...n),
       ...r.map((c) => (c ? Sn(c, e.bundledResourceDir, ...t) : null)),
       ...s.map((c) => (c ? Sn(c, ...n) : null)),
     ];
@@ -13182,7 +13182,7 @@ function buildE2EAgentCoverageEnv(e = process.env) {
   };
 }
 i(buildE2EAgentCoverageEnv, "buildE2EAgentCoverageEnv");
-var Qg = createServiceLogger("zcode-agent"),
+var Qg = createServiceLogger("nofy-agent"),
   Ps = i((...e) => Qg.info(void 0, ...e), "log"),
   YC = i((...e) => Qg.warn(void 0, ...e), "warnLog"),
   QC = i((...e) => Qg.error(void 0, ...e), "errorLog"),
@@ -13796,7 +13796,7 @@ async function collectBrowserAmbientContext(e, t) {
   }
 }
 i(collectBrowserAmbientContext, "collectBrowserAmbientContext");
-var Se = createServiceLogger("zcode-agent-service"),
+var Se = createServiceLogger("nofy-agent-service"),
   ere = "plugin-workspace",
   qr = 5 * 6e4,
   tre = 5e3,
@@ -13847,7 +13847,7 @@ function buildWorkspaceRef(e) {
 }
 i(buildWorkspaceRef, "buildWorkspaceRef");
 function ensurePluginManagementWorkspacePath() {
-  let e = Qne(getDataBaseDir(), ".zcode", ere);
+  let e = Qne(getDataBaseDir(), ".nofy", ere);
   return (Yne(e, { recursive: !0 }), e);
 }
 i(ensurePluginManagementWorkspacePath, "ensurePluginManagementWorkspacePath");
@@ -17103,7 +17103,7 @@ function createZCodeAgentService(e) {
                   if (E) return;
                   if (pt >= cre - 1) {
                     (console.warn(
-                      ot("zcode-agent", process.pid),
+                      ot("nofy-agent", process.pid),
                       "session \u8BA2\u9605\u5EFA\u7ACB\u5931\u8D25\uFF0C\u5DF2\u8FBE\u6700\u5927\u91CD\u8BD5\u6B21\u6570\uFF0C\u653E\u5F03",
                       {
                         sessionId: m.sessionId,
@@ -17541,7 +17541,7 @@ function readModelTrajectory(e, t = xZ) {
 }
 i(readModelTrajectory, "readModelTrajectory");
 function resolveModelIODirs() {
-  let e = new Set([xu(Ere(), ".zcode", "cli"), xu(getDataBaseDir(), ".zcode", "cli")]),
+  let e = new Set([xu(Ere(), ".nofy", "cli"), xu(getDataBaseDir(), ".nofy", "cli")]),
     t = [];
   for (let n of e) t.push(xu(n, "debug"), xu(n, "rollout"));
   return t;
@@ -18868,7 +18868,7 @@ function formatZCodeAgentLogDate(e) {
 }
 i(formatZCodeAgentLogDate, "formatZCodeAgentLogDate");
 function resolveZCodeAgentCurrentLogFilePath(e = new Date()) {
-  let n = process.env.ZCODE_LOG_DIR?.trim() || pW(qoe(), ".zcode", "cli", "log");
+  let n = process.env.ZCODE_LOG_DIR?.trim() || pW(qoe(), ".nofy", "cli", "log");
   return pW(n, `zcode-${formatZCodeAgentLogDate(e)}.jsonl`);
 }
 i(resolveZCodeAgentCurrentLogFilePath, "resolveZCodeAgentCurrentLogFilePath");
@@ -20011,7 +20011,7 @@ function createZCodeTaskServiceAdapter(e) {
       await e.zcodeAgentService.disposeWorkspace(normalizeWorkspaceParams(f));
     },
     async checkCodexConnectivity() {
-      return { target: "zcode-agent", reachable: !0 };
+      return { target: "nofy-agent", reachable: !0 };
     },
     async createTask(f) {
       let C = normalizeWorkspaceParams(f),
@@ -23441,7 +23441,7 @@ function brokerRuntimeDir(e) {
     ? gh(t, "zcode-cua")
     : process.platform === "darwin"
       ? gh("/tmp", `zcode-cua-${safeUser(e)}`)
-      : gh($se(), ".zcode", "cua-broker");
+      : gh($se(), ".nofy", "cua-broker");
 }
 i(brokerRuntimeDir, "brokerRuntimeDir");
 function safeUser(e) {
@@ -23663,7 +23663,7 @@ function uniqueNonEmpty(e) {
 }
 i(uniqueNonEmpty, "uniqueNonEmpty");
 function resolveZcodeHome(e) {
-  return e.ZCODE_HOME?.trim() || (e.HOME?.trim() ? sd(e.HOME.trim(), ".zcode") : null);
+  return e.ZCODE_HOME?.trim() || (e.HOME?.trim() ? sd(e.HOME.trim(), ".nofy") : null);
 }
 i(resolveZcodeHome, "resolveZcodeHome");
 function resolveCuaHelperInstallRoot(e) {
@@ -23953,7 +23953,7 @@ function isLikelyZCodeDevOwnerCommand(e) {
         e.includes("/zcode/") ||
         e.includes("packages/services") ||
         e.includes("apps/zcode") ||
-        e.includes("dev.zcode")
+        e.includes("dev.nofy")
     : !1;
 }
 i(isLikelyZCodeDevOwnerCommand, "isLikelyZCodeDevOwnerCommand");
@@ -24144,7 +24144,7 @@ function resolveCuaHelperInstallPlan(e = {}) {
   if (!resolveZcodeHome(t))
     throw new st(
       "install_failed",
-      "Cannot resolve ${ZCODE_HOME:-$HOME/.zcode}; set ZCODE_HOME or HOME before installing ZCode CUA Helper.",
+      "Cannot resolve ${ZCODE_HOME:-$HOME/.nofy}; set ZCODE_HOME or HOME before installing ZCode CUA Helper.",
     );
   let a = `${n}-${o}`,
     c = `ZCode-CUA-Helper-${r}-mac-${o}.zip`,
@@ -24646,7 +24646,7 @@ var vce = vh,
       if (!r)
         throw new st(
           "helper_missing",
-          `ZCode CUA Helper.app was not found (looked in: ${o.join(", ") || "<none>"}). Install the standalone ZCode CUA Helper component under \${ZCODE_HOME:-$HOME/.zcode}/computer-use[/<variant>]/ZCode CUA Helper.app.`,
+          `ZCode CUA Helper.app was not found (looked in: ${o.join(", ") || "<none>"}). Install the standalone ZCode CUA Helper component under \${ZCODE_HOME:-$HOME/.nofy}/computer-use[/<variant>]/ZCode CUA Helper.app.`,
         );
       let s = (this.options.mintSocketPath ?? (() => mintBrokerSocketPath({ env: this.options.env })))(),
         a = (this.options.mintToken ?? mintBrokerToken)();
@@ -38771,14 +38771,14 @@ function r6(e) {
 }
 i(r6, "isRecord");
 var twe = "_meta.json",
-  s6 = Zt(Xp(), ".zcode", "v2"),
-  k6 = Zt(Xp(), ".zcode", "cli"),
+  s6 = Zt(Xp(), ".nofy", "v2"),
+  k6 = Zt(Xp(), ".nofy", "cli"),
   v6 = Zt(k6, "config.json"),
   nwe = ".git",
   a6 = "~/",
   KM = "zcode-plugins-official",
   rwe = "inline",
-  owe = Zt(".zcode-plugin", "plugin.json"),
+  owe = Zt(".nofy-plugin", "plugin.json"),
   iwe = Zt(".claude-plugin", "plugin.json"),
   swe = Zt(".codex-plugin", "plugin.json"),
   awe = new Set([
@@ -38794,7 +38794,7 @@ function Xp() {
 }
 i(Xp, "resolveUserHomeDir");
 function getWorkspaceZcodeSkillRoot(e) {
-  return Zt(e, ".zcode", "skills");
+  return Zt(e, ".nofy", "skills");
 }
 i(getWorkspaceZcodeSkillRoot, "getWorkspaceZcodeSkillRoot");
 function getWorkspaceAgentsSkillRoot(e) {
@@ -38802,7 +38802,7 @@ function getWorkspaceAgentsSkillRoot(e) {
 }
 i(getWorkspaceAgentsSkillRoot, "getWorkspaceAgentsSkillRoot");
 function getUserZcodeSkillRoot() {
-  return Zt(Xp(), ".zcode", "skills");
+  return Zt(Xp(), ".nofy", "skills");
 }
 i(getUserZcodeSkillRoot, "getUserZcodeSkillRoot");
 function getUserAgentsSkillRoot() {
@@ -39193,7 +39193,7 @@ function readBooleanRecord(e) {
 i(readBooleanRecord, "readBooleanRecord");
 function readStorageDirFromConfig(e) {
   let t = Jo(e.storage) ? e.storage : {};
-  return typeof t.dir == "string" && t.dir.trim().length > 0 ? t.dir : "~/.zcode";
+  return typeof t.dir == "string" && t.dir.trim().length > 0 ? t.dir : "~/.nofy";
 }
 i(readStorageDirFromConfig, "readStorageDirFromConfig");
 function resolveConfigPath(e) {
@@ -39854,7 +39854,7 @@ function W6() {
 }
 i(W6, "resolveUserHomeDir");
 function tm() {
-  return Ui(W6(), ".zcode", "skills");
+  return Ui(W6(), ".nofy", "skills");
 }
 i(tm, "getUserZcodeSkillRoot");
 function j6() {
@@ -40095,8 +40095,8 @@ import { basename as OPe, dirname as Dv, join as n2, posix as q6, win32 as DPe }
 var Yo = {
     source: "zcode",
     directorySource: "zcode",
-    userConfigDirSegments: [".zcode", "cli"],
-    workspaceConfigDirSegments: [".zcode"],
+    userConfigDirSegments: [".nofy", "cli"],
+    workspaceConfigDirSegments: [".nofy"],
     fileName: "config.json",
     configKeyName: "mcp.servers",
   },
@@ -40637,7 +40637,7 @@ var mSe = p2(pSe),
   u2 = p2(uSe),
   ei = 512,
   m2 = ei * 2,
-  Fv = ".zcode-plugin-sync.json";
+  Fv = ".nofy-plugin-sync.json";
 async function createPluginSyncArchive(e) {
   let t = [];
   for (let n of e.entries)
@@ -40835,7 +40835,7 @@ var bSe = "inline",
   RSe = "marketplace-sources",
   I2 = "plugins",
   TSe = [
-    [".zcode-plugin", "plugin.json"],
+    [".nofy-plugin", "plugin.json"],
     [".claude-plugin", "plugin.json"],
     [".codex-plugin", "plugin.json"],
   ];
@@ -40932,11 +40932,11 @@ function R2() {
 }
 i(R2, "resolveUserHomeDir");
 function getUserZcodeConfigPath() {
-  return bn(R2(), ".zcode", "cli", "config.json");
+  return bn(R2(), ".nofy", "cli", "config.json");
 }
 i(getUserZcodeConfigPath, "getUserZcodeConfigPath");
 function getUserZcodePluginRoot() {
-  return bn(R2(), ".zcode", "plugins");
+  return bn(R2(), ".nofy", "plugins");
 }
 i(getUserZcodePluginRoot, "getUserZcodePluginRoot");
 async function collectLocalUserPluginCandidates() {
@@ -41960,7 +41960,7 @@ async function resolveUserSubagentRoot(e) {
 }
 i(resolveUserSubagentRoot, "resolveUserSubagentRoot");
 function resolveWorkspaceSubagentRoot(e) {
-  return pm(e, ".zcode", "agents");
+  return pm(e, ".nofy", "agents");
 }
 i(resolveWorkspaceSubagentRoot, "resolveWorkspaceSubagentRoot");
 async function resolveSubagentStateFile(e) {
@@ -41970,7 +41970,7 @@ i(resolveSubagentStateFile, "resolveSubagentStateFile");
 async function resolveZCodeStorageRoot(e) {
   let t = await yCe(e),
     n = H2(t.storage) ? t.storage : {},
-    o = typeof n.dir == "string" && n.dir.trim().length > 0 ? n.dir.trim() : "~/.zcode";
+    o = typeof n.dir == "string" && n.dir.trim().length > 0 ? n.dir.trim() : "~/.nofy";
   return hCe(o, e);
 }
 i(resolveZCodeStorageRoot, "resolveZCodeStorageRoot");
@@ -41981,7 +41981,7 @@ function hCe(e, t) {
 i(hCe, "resolveConfigPath");
 async function yCe(e) {
   try {
-    let t = await pCe(pm(Xv(e), ".zcode", "cli", "config.json"), "utf8"),
+    let t = await pCe(pm(Xv(e), ".nofy", "cli", "config.json"), "utf8"),
       n = JSON.parse(t);
     return H2(n) ? n : {};
   } catch {
@@ -41995,7 +41995,7 @@ function H2(e) {
 i(H2, "isObjectRecord");
 var rV = new Set(["general-purpose", "Explore"]),
   bCe = [
-    So(".zcode-plugin", "plugin.json"),
+    So(".nofy-plugin", "plugin.json"),
     So(".claude-plugin", "plugin.json"),
     So(".codex-plugin", "plugin.json"),
   ];
@@ -42204,7 +42204,7 @@ async function discoverPluginAgents(e) {
 i(discoverPluginAgents, "discoverPluginAgents");
 async function readEnabledPluginIds(e) {
   try {
-    let t = So(Xv(e), ".zcode", "cli", "config.json"),
+    let t = So(Xv(e), ".nofy", "cli", "config.json"),
       n = await ol(t, "utf-8"),
       o = JSON.parse(n);
     if (!dc(o)) return {};
@@ -42565,7 +42565,7 @@ var zO = wf,
   cV = "~/",
   WO = "zcode-plugins-official",
   HCe = "inline",
-  GCe = Qt(".zcode-plugin", "plugin.json"),
+  GCe = Qt(".nofy-plugin", "plugin.json"),
   qCe = Qt(".claude-plugin", "plugin.json"),
   VCe = Qt(".codex-plugin", "plugin.json"),
   JCe = new Set([
@@ -42577,8 +42577,8 @@ var zO = wf,
   sl = {
     agentSource: "zcodeAgent",
     directorySource: "zcode",
-    userDirectorySegments: [".zcode", "commands"],
-    workspaceDirectorySegments: [".zcode", "commands"],
+    userDirectorySegments: [".nofy", "commands"],
+    workspaceDirectorySegments: [".nofy", "commands"],
     fileExtension: ".md",
     format: "markdown",
     namespaceSeparator: "/",
@@ -42604,7 +42604,7 @@ function getUserCommandsRoot(e) {
 }
 i(getUserCommandsRoot, "getUserCommandsRoot");
 function getUserCliConfigPath() {
-  return Qt(iw(), ".zcode", "cli", "config.json");
+  return Qt(iw(), ".nofy", "cli", "config.json");
 }
 i(getUserCliConfigPath, "getUserCliConfigPath");
 function Vs(e) {
@@ -42668,7 +42668,7 @@ function tbe(e) {
 i(tbe, "readBooleanRecord");
 function nbe(e) {
   let t = Vs(e.storage) ? e.storage : {};
-  return typeof t.dir == "string" && t.dir.trim().length > 0 ? t.dir : "~/.zcode";
+  return typeof t.dir == "string" && t.dir.trim().length > 0 ? t.dir : "~/.nofy";
 }
 i(nbe, "readStorageDirFromConfig");
 function rbe(e) {
@@ -43196,8 +43196,8 @@ function getRootDir(e, t) {
   let n = t ?? Rbe();
   return e === "zcode"
     ? t
-      ? sw(n, ".zcode")
-      : sw(n, ".zcode", "cli")
+      ? sw(n, ".nofy")
+      : sw(n, ".nofy", "cli")
     : sw(n, e === "agents" ? ".agents" : ".claude");
 }
 i(getRootDir, "getRootDir");
@@ -44069,7 +44069,7 @@ var dD = createServiceLogger("settings-sync"),
       format: "mcpServersJson",
     },
   ],
-  m_e = [".zcode-plugin", "plugin.json"],
+  m_e = [".nofy-plugin", "plugin.json"],
   f_e = [".claude-plugin", "plugin.json"],
   g_e = [".codex-plugin", "plugin.json"],
   h_e = "inline";
@@ -44079,35 +44079,35 @@ function ri() {
 }
 i(ri, "resolveUserHomeDir");
 function GV(e) {
-  return Mt(e, ".zcode", "skills");
+  return Mt(e, ".nofy", "skills");
 }
 i(GV, "getWorkspaceZcodeSkillRoot");
 function qV() {
-  return Mt(ri(), ".zcode", "skills");
+  return Mt(ri(), ".nofy", "skills");
 }
 i(qV, "getUserZcodeSkillRoot");
 function getWorkspaceZcodeCommandRoot(e) {
-  return Mt(e, ".zcode", "commands");
+  return Mt(e, ".nofy", "commands");
 }
 i(getWorkspaceZcodeCommandRoot, "getWorkspaceZcodeCommandRoot");
 function getUserZcodeCommandRoot() {
-  return Mt(ri(), ".zcode", "commands");
+  return Mt(ri(), ".nofy", "commands");
 }
 i(getUserZcodeCommandRoot, "getUserZcodeCommandRoot");
 function getWorkspaceZcodePluginRoot(e) {
-  return Mt(e, ".zcode", "plugins");
+  return Mt(e, ".nofy", "plugins");
 }
 i(getWorkspaceZcodePluginRoot, "getWorkspaceZcodePluginRoot");
 function YV() {
-  return Mt(ri(), ".zcode", "plugins");
+  return Mt(ri(), ".nofy", "plugins");
 }
 i(YV, "getUserZcodePluginRoot");
 function getUserZcodeCliConfigPath() {
-  return Mt(ri(), ".zcode", "cli", "config.json");
+  return Mt(ri(), ".nofy", "cli", "config.json");
 }
 i(getUserZcodeCliConfigPath, "getUserZcodeCliConfigPath");
 function getWorkspaceZcodeConfigPath(e) {
-  return Mt(e, ".zcode", "config.json");
+  return Mt(e, ".nofy", "config.json");
 }
 i(getWorkspaceZcodeConfigPath, "getWorkspaceZcodeConfigPath");
 function getClaudeUserAgentsFileSourcePath() {
@@ -44115,7 +44115,7 @@ function getClaudeUserAgentsFileSourcePath() {
 }
 i(getClaudeUserAgentsFileSourcePath, "getClaudeUserAgentsFileSourcePath");
 function getUserZcodeAgentsFilePath() {
-  return Mt(ri(), ".zcode", "AGENTS.md");
+  return Mt(ri(), ".nofy", "AGENTS.md");
 }
 i(getUserZcodeAgentsFilePath, "getUserZcodeAgentsFilePath");
 function resolveTargetRootForScope(e, t) {
@@ -45992,7 +45992,7 @@ function isAbortError(e) {
 i(isAbortError, "isAbortError");
 var QRe = new Set([
     ".git",
-    ".zcode",
+    ".nofy",
     ".zread",
     ".cache",
     ".next",
@@ -50145,7 +50145,7 @@ function createDefaultCuaProductHelper() {
 i(createDefaultCuaProductHelper, "createDefaultCuaProductHelper");
 function hasGlobalCliZCodeCuaServer(e = process.env) {
   let t = e.HOME?.trim() || JMe(),
-    n = XMe(t, ".zcode", "cli", "config.json"),
+    n = XMe(t, ".nofy", "cli", "config.json"),
     o;
   try {
     o = JSON.parse(VMe(n, "utf8"));
@@ -51017,8 +51017,8 @@ function createRemoteRepoWikiServiceRelay(e) {
 }
 i(createRemoteRepoWikiServiceRelay, "createRemoteRepoWikiServiceRelay");
 import { randomUUID as pOe } from "crypto";
-var tP = "~/.zcode/tmp/prompt-attachments",
-  mOe = ".zcode/tmp/prompt-attachments";
+var tP = "~/.nofy/tmp/prompt-attachments",
+  mOe = ".nofy/tmp/prompt-attachments";
 async function materializeRemotePromptAttachments(e, t) {
   let n = e.attachments;
   if (!n || n.length === 0) return { ...e, uploadedCount: 0 };
@@ -51720,7 +51720,7 @@ var Cl = {
   },
 };
 function writeHostLog(e, ...t) {
-  let n = ot("zcode-host", process.pid);
+  let n = ot("nofy-host", process.pid);
   ((e === "error" ? Cl.error : e === "warn" ? Cl.warn : Cl.log)(n, ...t), reportHostLog(e, [n, ...t]));
 }
 i(writeHostLog, "writeHostLog");

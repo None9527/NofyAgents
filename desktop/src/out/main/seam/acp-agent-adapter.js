@@ -1198,7 +1198,8 @@ async function handleHostFrame(frame) {
       case "session/subagents":
       case "session/events":
       case "session/messages":
-        respond(id, method === "mcp/list" ? { servers: [] } : method === "automation/list" ? { automations: [] } : method === "plugins/list" ? { plugins: [] } : method === "usage/stats" || method === "v4/usage/stats" ? { stats: [] } : method === "session/usage" || method === "v4/conversation/usage" ? { usage: usageZero() } : method === "v4/conversation/plans" ? { plans: [], atSeq: 0, atLogEpoch: LOG_EPOCH } : method === "v4/conversation/fileChanges" ? { files: 0, additions: 0, deletions: 0, items: [] } : {});
+        // FIX-PLUGINS：host schema 要求 diagnostics/marketplaces 等数组字段，缺失会 ZodError
+        respond(id, method === "mcp/list" ? { servers: [] } : method === "automation/list" ? { automations: [] } : method === "plugins/list" ? { plugins: [], diagnostics: [] } : method === "plugins/overview" ? { marketplaces: [], availablePlugins: [], installedPlugins: [], capability: { supported: !1 }, diagnostics: [] } : method === "usage/stats" || method === "v4/usage/stats" ? { stats: [] } : method === "session/usage" || method === "v4/conversation/usage" ? { usage: usageZero() } : method === "v4/conversation/plans" ? { plans: [], atSeq: 0, atLogEpoch: LOG_EPOCH } : method === "v4/conversation/fileChanges" ? { files: 0, additions: 0, deletions: 0, items: [] } : {});
         return;
       case "v4/attachment/begin":
       case "v4/attachment/chunk":

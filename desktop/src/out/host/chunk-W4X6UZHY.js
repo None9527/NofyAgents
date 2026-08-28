@@ -170,7 +170,7 @@ i(formatHandshakeFailure, "formatHandshakeFailure");
 import { join as oi } from "path";
 import { join as Ao } from "path";
 import { access as vo } from "fs/promises";
-var M = "~/.zcode/server";
+var M = "~/.nofy/server";
 async function fileExists(...e) {
   let t = Ao(...e);
   try {
@@ -537,13 +537,13 @@ async function applyMode(e, t) {
     } catch {}
 }
 i(applyMode, "applyMode");
-var ue = "zcode.cjs";
+var ue = "nofy.cjs";
 function buildRemoteAgentBundleWrapper(e) {
   return [
     "#!/bin/sh",
     "set -eu",
-    'runtime_root="${ZCODE_SERVER_RUNTIME_ROOT:-$HOME/.zcode/server}"',
-    `exec "$runtime_root/node" "$HOME/.zcode/server/agents/${e}/${ue}" "$@"`,
+    'runtime_root="${ZCODE_SERVER_RUNTIME_ROOT:-$HOME/.nofy/server}"',
+    `exec "$runtime_root/node" "$HOME/.nofy/server/agents/${e}/${ue}" "$@"`,
     "",
   ].join(`
 `);
@@ -569,7 +569,7 @@ i(isWslBackend, "isWslBackend");
 async function deployRemoteAgentWrapper(e) {
   let t = `${e.remoteWrapperPath}.new`;
   if (isWslBackend(e.backend)) {
-    let o = en(Qo(), `zcode-agent-wrapper-${process.pid}-${Date.now()}.sh`);
+    let o = en(Qo(), `nofy-agent-wrapper-${process.pid}-${Date.now()}.sh`);
     try {
       (await Yo(o, e.content, "utf8"), await e.backend.upload(o, t));
       let n = await e.backend.exec(buildRemoteExecutableReplaceCommand(t, e.remoteWrapperPath));
@@ -596,7 +596,7 @@ var U = "packages",
   ],
   lt = [
     ".mcp.json",
-    ".zcode-plugin",
+    ".nofy-plugin",
     "README.md",
     "commands",
     "dist",
@@ -609,7 +609,7 @@ var U = "packages",
     "templates",
   ],
   te = [
-    ...Ne.map((e) => `${e}/.zcode-plugin/plugin.json`),
+    ...Ne.map((e) => `${e}/.nofy-plugin/plugin.json`),
     "browser-use-plugin/dist/mcp/server.js",
     "browser-use-plugin/docs/api.json",
     "browser-use-plugin/docs/documents.json",
@@ -634,7 +634,7 @@ function buildRemoteAgentOfficialPluginRequiredPaths(e) {
 i(buildRemoteAgentOfficialPluginRequiredPaths, "buildRemoteAgentOfficialPluginRequiredPaths");
 async function repairLegacyRemoteOfficialPluginDirectoryPermissions(e) {
   e.loggers.logWarn(
-    `[zcode-agent-deploy] ${"glm"}: \u68C0\u67E5\u5E76\u4FEE\u590D\u65E7 builtin plugin \u76EE\u5F55\u6743\u9650 ${e.remoteOfficialPluginDir}`,
+    `[nofy-agent-deploy] ${"glm"}: \u68C0\u67E5\u5E76\u4FEE\u590D\u65E7 builtin plugin \u76EE\u5F55\u6743\u9650 ${e.remoteOfficialPluginDir}`,
   );
   let t = u(e.remoteOfficialPluginDir),
     r = await e.backend.exec(`if [ -d ${t} ]; then command chmod -R u+rwX ${t}; fi`);
@@ -643,7 +643,7 @@ async function repairLegacyRemoteOfficialPluginDirectoryPermissions(e) {
   } catch (o) {
     return (
       e.loggers.logWarn(
-        `[zcode-agent-deploy] ${"glm"}: \u4FEE\u590D\u65E7 builtin plugin \u76EE\u5F55\u6743\u9650\u5931\u8D25\uFF0C\u5C06\u7EE7\u7EED\u5C1D\u8BD5\u66FF\u6362 packages: ${o instanceof Error ? o.message : String(o)}`,
+        `[nofy-agent-deploy] ${"glm"}: \u4FEE\u590D\u65E7 builtin plugin \u76EE\u5F55\u6743\u9650\u5931\u8D25\uFF0C\u5C06\u7EE7\u7EED\u5C1D\u8BD5\u66FF\u6362 packages: ${o instanceof Error ? o.message : String(o)}`,
       ),
       !1
     );
@@ -692,8 +692,8 @@ async function computeDevelopmentAgentAssetsSha256(e) {
 }
 i(computeDevelopmentAgentAssetsSha256, "computeDevelopmentAgentAssetsSha256");
 async function hashDevelopmentOfficialPluginPackage(e, t, r) {
-  let o = B(t, ".zcode-plugin", "plugin.json");
-  if (!pe(o)) throw new Error(`[zcode-agent-deploy] missing official plugin manifest: ${o}`);
+  let o = B(t, ".nofy-plugin", "plugin.json");
+  if (!pe(o)) throw new Error(`[nofy-agent-deploy] missing official plugin manifest: ${o}`);
   assertDevelopmentOfficialPluginRequiredAssets(t, r);
   for (let n of lt) {
     let s = B(t, n);
@@ -728,7 +728,7 @@ function assertDevelopmentOfficialPluginRequiredAssets(e, t) {
     let n = o.slice(r.length),
       s = B(e, ...n.split("/"));
     if (!pe(s))
-      throw new Error(`[zcode-agent-deploy] missing official plugin required asset: ${s}`);
+      throw new Error(`[nofy-agent-deploy] missing official plugin required asset: ${s}`);
   }
 }
 i(assertDevelopmentOfficialPluginRequiredAssets, "assertDevelopmentOfficialPluginRequiredAssets");
@@ -760,7 +760,7 @@ async function shouldSkipDevelopmentZCodeAgentDeploy(e) {
     e.missingOfficialPluginAssetPaths.length > 0
     ? !1
     : (e.loggers.log(
-        `[zcode-agent-deploy] ${"glm"}: \u5F00\u53D1\u6001 zcode.cjs \u672A\u53D8\u5316\uFF0C\u8DF3\u8FC7`,
+        `[nofy-agent-deploy] ${"glm"}: \u5F00\u53D1\u6001 zcode.cjs \u672A\u53D8\u5316\uFF0C\u8DF3\u8FC7`,
       ),
       !0);
 }
@@ -769,8 +769,8 @@ async function stageDevelopmentOfficialPluginPackages(e) {
   await mr(e.packagesDir, { recursive: !0 });
   for (let t of Ne) {
     let r = B(e.repoRoot, "apps", "zcode-cli", "packages", t),
-      o = B(r, ".zcode-plugin", "plugin.json");
-    if (!pe(o)) throw new Error(`[zcode-agent-deploy] missing official plugin manifest: ${o}`);
+      o = B(r, ".nofy-plugin", "plugin.json");
+    if (!pe(o)) throw new Error(`[nofy-agent-deploy] missing official plugin manifest: ${o}`);
     assertDevelopmentOfficialPluginRequiredAssets(r, t);
     let n = B(e.packagesDir, t);
     await mr(n, { recursive: !0 });
@@ -798,12 +798,12 @@ async function uploadDevelopmentOfficialPluginPackages(e) {
           await waitForClose(m);
         } catch (m) {
           e.loggers.logWarn(
-            `[zcode-agent-deploy] ${"glm"}: \u6E05\u7406 owner staging \u5931\u8D25 (${n}): ${String(m)}`,
+            `[nofy-agent-deploy] ${"glm"}: \u6E05\u7406 owner staging \u5931\u8D25 (${n}): ${String(m)}`,
           );
         }
       }, "cleanupRemoteStaging");
     e.loggers.log(
-      `[zcode-agent-deploy] ${"glm"}: \u5F00\u53D1\u6001\u4E0A\u4F20\u5B98\u65B9\u63D2\u4EF6\u8D44\u6E90`,
+      `[nofy-agent-deploy] ${"glm"}: \u5F00\u53D1\u6001\u4E0A\u4F20\u5B98\u65B9\u63D2\u4EF6\u8D44\u6E90`,
     );
     try {
       (await e.backend.upload(o, s),
@@ -861,7 +861,7 @@ async function deployDevelopmentZCodeAgentRuntime(e, t, r) {
   )
     return !0;
   r.log(
-    `[zcode-agent-deploy] ${"glm"}: \u5F00\u53D1\u6001\u4E0A\u4F20\u672C\u5730 zcode.cjs ${a.slice(0, 12)}`,
+    `[nofy-agent-deploy] ${"glm"}: \u5F00\u53D1\u6001\u4E0A\u4F20\u672C\u5730 zcode.cjs ${a.slice(0, 12)}`,
   );
   let l = await e.exec(`mkdir -p ${u(t.remoteProviderDir)}`);
   await waitForClose(l);
@@ -888,7 +888,7 @@ async function deployDevelopmentZCodeAgentRuntime(e, t, r) {
   return (
     await waitForClose(g),
     r.log(
-      `[zcode-agent-deploy] ${"glm"}: \u5F00\u53D1\u6001\u90E8\u7F72\u5B8C\u6210 ${a.slice(0, 12)}`,
+      `[nofy-agent-deploy] ${"glm"}: \u5F00\u53D1\u6001\u90E8\u7F72\u5B8C\u6210 ${a.slice(0, 12)}`,
     ),
     !0
   );
@@ -2198,7 +2198,7 @@ async function shouldSkipZCodeAgentDeploy(e) {
         ),
         !1)
       : (e.loggers.log(
-          `[zcode-agent-deploy] ${"glm"}: \u5236\u54C1 SHA ${e.expectedArtifactSha256} \u5DF2\u90E8\u7F72\uFF0C\u8DF3\u8FC7`,
+          `[nofy-agent-deploy] ${"glm"}: \u5236\u54C1 SHA ${e.expectedArtifactSha256} \u5DF2\u90E8\u7F72\uFF0C\u8DF3\u8FC7`,
         ),
         !0)
     : (e.loggers.logWarn(
@@ -2219,14 +2219,14 @@ async function deployZCodeAgentRuntime(e, t, r, o) {
     a = n;
   if (!isSelectedZCodeAgentComponent(a, r.selectedResourcePackageIds)) {
     o.log(
-      `[zcode-agent-deploy] ${n}: \u672A\u9009\u62E9\u8D44\u6E90\u5305 ${a}\uFF0C\u8DF3\u8FC7\u68C0\u67E5\u548C\u90E8\u7F72`,
+      `[nofy-agent-deploy] ${n}: \u672A\u9009\u62E9\u8D44\u6E90\u5305 ${a}\uFF0C\u8DF3\u8FC7\u68C0\u67E5\u548C\u90E8\u7F72`,
     );
     return;
   }
   let c = s.resolveEntrySegments(t.platform).at(-1);
   if (!c) {
     o.logWarn(
-      `[zcode-agent-deploy] ${n}: \u65E0\u6CD5\u89E3\u6790 agent \u5165\u53E3\u540D\u79F0\uFF0C\u8DF3\u8FC7\u90E8\u7F72`,
+      `[nofy-agent-deploy] ${n}: \u65E0\u6CD5\u89E3\u6790 agent \u5165\u53E3\u540D\u79F0\uFF0C\u8DF3\u8FC7\u90E8\u7F72`,
     );
     return;
   }
@@ -2256,7 +2256,7 @@ async function deployZCodeAgentRuntime(e, t, r, o) {
     p = (await r.installer.resolveComponentSha256?.(a)) ?? null;
   } catch (k) {
     o.logWarn(
-      `[zcode-agent-deploy] ${n}: \u8BFB\u53D6 manifest SHA \u5931\u8D25\uFF0C\u5C06\u91CD\u65B0\u90E8\u7F72: ${String(k)}`,
+      `[nofy-agent-deploy] ${n}: \u8BFB\u53D6 manifest SHA \u5931\u8D25\uFF0C\u5C06\u91CD\u65B0\u90E8\u7F72: ${String(k)}`,
     );
   }
   if (
@@ -2275,7 +2275,7 @@ async function deployZCodeAgentRuntime(e, t, r, o) {
     })
   )
     return;
-  o.log(`[zcode-agent-deploy] ${n}: \u5F00\u59CB\u90E8\u7F72 v${s.version}...`);
+  o.log(`[nofy-agent-deploy] ${n}: \u5F00\u59CB\u90E8\u7F72 v${s.version}...`);
   let R = !!r.force,
     y = await repairLegacyRemoteOfficialPluginDirectoryPermissions({ backend: e, loggers: o, remoteOfficialPluginDir: h }),
     A = i(
@@ -2308,7 +2308,7 @@ async function deployZCodeAgentRuntime(e, t, r, o) {
   let C = await e.exec(L(m, s.version));
   (await waitForClose(C),
     p && (await writeRemoteAssetComponentMeta(e, { id: a, version: s.version, sha256: p, platformArch: r.platformArch })),
-    o.log(`[zcode-agent-deploy] ${n}: \u90E8\u7F72\u5B8C\u6210 v${s.version}`));
+    o.log(`[nofy-agent-deploy] ${n}: \u90E8\u7F72\u5B8C\u6210 v${s.version}`));
 }
 i(deployZCodeAgentRuntime, "deployZCodeAgentRuntime");
 import { createHash as Ds, randomUUID as le } from "crypto";
@@ -3868,12 +3868,12 @@ async function connectRemoteUnchecked(e, t) {
 }
 i(connectRemoteUnchecked, "connectRemoteUnchecked");
 function buildRemoteServerCommand(e) {
-  let t = [`${Ht}="desktop-attached-remote"`, 'ZCODE_SERVER_RUNTIME_ROOT="$HOME/.zcode/server"'];
+  let t = [`${Ht}="desktop-attached-remote"`, 'ZCODE_SERVER_RUNTIME_ROOT="$HOME/.nofy/server"'];
   for (let [o, n] of Object.entries(pickRemoteRuntimeEnv(e?.remoteRuntimeEnv ?? {}))) t.push(`${o}=${S(n)}`);
   let r = e?.appVersion?.trim();
   return (
     r && t.push(`${Ft}=${S(r)}`),
-    `${t.join(" ")} ~/.zcode/server/node ~/.zcode/server/zcode-server.cjs`
+    `${t.join(" ")} ~/.nofy/server/node ~/.nofy/server/zcode-server.cjs`
   );
 }
 i(buildRemoteServerCommand, "buildRemoteServerCommand");

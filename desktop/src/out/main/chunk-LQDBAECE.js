@@ -8,7 +8,7 @@ var d = {
     "https://proj-xtrace-7e235817c9b9381c22d8b743908d469f-cn-beijing.cn-beijing.log.aliyuncs.com/apm/trace/opentelemetry",
   OTEL_EXPORTER_OTLP_HEADERS:
     "x-arms-license-key=j2c03hoppk@8309eb6928a66ff,x-arms-project=proj-xtrace-7e235817c9b9381c22d8b743908d469f-cn-beijing,x-cms-workspace=default-cms-1936221977589032-cn-beijing",
-  OTEL_SERVICE_NAME: "zcode-cli-agent",
+  OTEL_SERVICE_NAME: "nofy-cli-agent",
   ZCODE_TELEMETRY_RUNTIME_DISTRIBUTION: "packaged",
 };
 var h = ["https://cdn-zcode.z.ai/zcode/electron/releases"];

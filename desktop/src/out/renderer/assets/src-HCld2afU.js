@@ -8474,7 +8474,7 @@ var Pb = {
     Credential: `credential`,
     Broadcast: `broadcast`,
     ZCodeTask: `zcode-task`,
-    ZCodeAgent: `zcode-agent`,
+    ZCodeAgent: `nofy-agent`,
     ZCodeSession: `zcode-session`,
     FileWatcher: `file-watcher`,
     OAuth: `oauth`,
@@ -8521,7 +8521,7 @@ function Vb(e) {
       ? String(e.message ?? ``)
       : ``;
 }
-var Hb = `zcode-agent`,
+var Hb = `nofy-agent`,
   Ub = `team-plan:${W.bigmodelCodingPlan}:`;
 function Wb(e) {
   let t = e.productId.trim(),
