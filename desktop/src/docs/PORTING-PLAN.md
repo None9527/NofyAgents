@@ -2,7 +2,8 @@
 
 状态：**调研定稿（待批准）**— 5 路测绘 + 活体探针全部完成，动代码前的唯一依据
 分支：二次开发分支 · 基线 cb2ab75（去品牌完成）
-日期：2026-08-28
+日期：2026-08-28（2026-08-29 增补：新增阶段 A0 前端源码化——B5 全量解码收官后、
+阶段 A 之前执行，把逐字重建产物转为模块化真源码工程；见 §5 阶段 A0）
 
 ---
 
@@ -293,6 +294,49 @@ main (Electron)
 ## 5. 分阶段计划
 
 每阶段独立可验证、独立提交；前一阶段不绿不进下一阶段。
+
+### 阶段 A0：前端源码化（移植前置，B5 全量解码完成后执行）
+
+> 前提：B5 全量解码收官（`B5-FULL-DECODE-PLAN.md` 全部批次 + b5-merge 对账验收：
+> 接口级清单清零、`out/` md5 复验不变）。此后**逐字产物 + 映射表 + SYMBOL-INDEX
+> 升格为只读真值底稿**（与 `out/` 同级），本阶段产出的工程化源码是**可重新派生**的
+> 衍生物，任何时候可回退重导。
+
+目标：把「族级大文件 + 映射表代指」的重建产物转成真正的模块化源码工程，
+作为阶段 A–E 手术的操作面。分三层，验证强度递减、可读性递增：
+
+**A0.1 模块拆分 + 别名落地（纯机械变换，可证明正确）**
+- 以各批导出别名表为模块边界图（SrcSharedB 412 条、SmallChunks 三张、
+  Composer 351 条映射等；汇总见 `B5-MERGE-NOTES.md`），把族级 `.tsx`
+  （Composer.tsx / SrcSharedA/B.tsx / SkillStore.tsx / …）拆成
+  `src/{components,hooks,stores,lib,services}/…` 文件树。
+- 跨文件 `declare` 接缝全部换成真实 `import`；双归属段按既定裁决取 canonical
+  （ConfigSelect→Composer、YLt…nRt→WebRemote，见 B5-MERGE-NOTES §2），
+  重复转录件删除。
+- vendored 库体按 `VENDOR-MANIFEST-LIBS.md` 换 npm 依赖：
+  **zod v4.3.6**（SrcSharedA §2–§8，~3,260 行）、recharts（含 CartesianChart 分包）、
+  Lexical、xterm、Stripe（6.4.0/9.6.0）、resizable-panels 等；
+  存储键与薄层包装保持兼容（WorkspaceShell.report §6 策略）。
+- **验证**：esbuild/tsc strict 0 错；拆分前后发射代码 diff 对照（语义名回代后
+  与逐字产物一致）；既有锚点抽查不回退。
+
+**A0.2 类型收敛（机械 + 少量归纳）**
+- 把接口级 `declare const X: any` 换成属主模块的类型化导入：
+  LegacyDocEngineC4 §0 316 项、SkillStore 的 SubagentsService/SkillsService/
+  Descriptor、SrcSharedB §0 90 条 ambient、各批「集成改指清单」
+  （B5-MERGE-NOTES §4 总账）。
+- **验证**：tsc strict 0 错；`grep -c "declare const .* any"` 逐批清零。
+
+**A0.3 局部语义化（按需，随移植阶段滚动做，不盲目全量）**
+- 函数体内单字母局部名（`e/t/n`，逐字保留的部分）只在**阶段 A–E 要动到的模块**
+  上做语义重命名，改到哪美化到哪。
+- 注意：此层一旦执行即永久失去「逆映射回代逐字节一致」证明，守护手段从
+  字节 diff 换成 esbuild/tsc + 运行时验证（UI 端到端回归）。因此必须以
+  A0.1/A0.2 完成为前置，且每个模块改动前留逐字底稿快照。
+- 原项目的完整 TS 类型与注释在打包时已烧毁，不可恢复；注释只重写不伪造。
+
+**总验证**：`src/` 工程可独立编译；对 `out/` 与逐字底稿零改动（md5 复验）；
+阶段 B 起的每一处移植改动都能落在可读的具名模块上。
 
 ### 阶段 A：main 内锚定原生 ACP 单例（不拆旧路）
 - 在 **main 进程**落地 `NofyKernelClient` 单例（WS JSON-RPC；吸收 `seam/acp-client.js`
