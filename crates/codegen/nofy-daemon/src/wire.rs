@@ -717,6 +717,7 @@ pub(crate) fn parent_pids() -> Vec<u32> {
 }
 
 /// Peer PID via SO_PEERCRED (UDS). None when unavailable.
+#[cfg(target_os = "linux")]
 pub(crate) fn peer_pid(stream: &std::os::unix::net::UnixStream) -> Option<u32> {
     use std::os::unix::io::AsRawFd;
     let mut cred: libc::ucred = unsafe { std::mem::zeroed() };
@@ -732,6 +733,30 @@ pub(crate) fn peer_pid(stream: &std::os::unix::net::UnixStream) -> Option<u32> {
     };
     if ret == 0 {
         Some(cred.pid as u32)
+    } else {
+        None
+    }
+}
+
+/// Peer PID via LOCAL_PEEREPID (UDS, BSD/macOS). None when unavailable.
+/// LOCAL_PEEREPID reports the pid at connect time, which is what the
+/// lifeguard ancestry check needs.
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn peer_pid(stream: &std::os::unix::net::UnixStream) -> Option<u32> {
+    use std::os::unix::io::AsRawFd;
+    let mut pid: libc::pid_t = 0;
+    let mut len = std::mem::size_of::<libc::pid_t>() as libc::socklen_t;
+    let ret = unsafe {
+        libc::getsockopt(
+            stream.as_raw_fd(),
+            libc::SOL_LOCAL,
+            libc::LOCAL_PEEREPID,
+            &mut pid as *mut _ as *mut libc::c_void,
+            &mut len,
+        )
+    };
+    if ret == 0 {
+        Some(pid as u32)
     } else {
         None
     }
@@ -2945,10 +2970,12 @@ goal = "risky"
     #[test]
     fn socket_helpers_peer_pid_parent_pids_secs_now() {
         use std::os::unix::net::UnixStream;
-        // SO_PEERCRED on a socket pair names our own pid.
+        // Peer credentials on a socket pair name our own pid.
         let (a, _b) = UnixStream::pair().unwrap();
         assert_eq!(peer_pid(&a), Some(std::process::id()));
         // The daemon's parent chain is non-empty on any hosted process.
+        // /proc-based lookup is Linux-only; elsewhere it degrades to empty.
+        #[cfg(target_os = "linux")]
         assert!(!parent_pids().is_empty());
         // Wall-clock seconds track the system clock.
         let sys = std::time::SystemTime::now()
