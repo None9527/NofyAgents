@@ -1,0 +1,13 @@
+import WebSocket from 'ws';
+const list = await (await fetch('http://127.0.0.1:9224/json/list')).json();
+const page = list.find(p => p.type === 'page' && p.title === 'ZCode');
+const ws = new WebSocket(page.webSocketDebuggerUrl, { perMessageDeflate: false });
+let id = 0;
+const send = (m, p={}) => ws.send(JSON.stringify({id:++id, method:m, params:p}));
+ws.on('open', () => { send('Runtime.enable'); send('Page.enable');
+  setTimeout(() => send('Page.reload', {}), 300); });
+ws.on('message', d => { const m = JSON.parse(d);
+  if (m.method === 'Runtime.consoleAPICalled') console.log('[c]', m.params.type, m.params.args?.map(a=>a.value??a.description).join(' ').slice(0,250));
+  if (m.method === 'Runtime.exceptionThrown') console.log('[E]', JSON.stringify(m.params.exceptionDetails?.exception?.description||m.params.exceptionDetails?.text).slice(0,400));
+});
+setTimeout(() => process.exit(0), 15000);

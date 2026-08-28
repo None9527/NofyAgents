@@ -1,0 +1,597 @@
+{
+ "__ZCODE_DEVICE_ID__": {
+  "kind": "CallExpression"
+ },
+ "__zcodeFinalArmsCustomEventsE2E": [
+  {
+   "name": "read",
+   "ipc": "invoke",
+   "channel": "zcode:e2e:read-final-arms-custom-events"
+  },
+  {
+   "name": "clear",
+   "ipc": "invoke",
+   "channel": "zcode:e2e:clear-final-arms-custom-events"
+  },
+  {
+   "name": "configure",
+   "ipc": "invoke",
+   "channel": "zcode:e2e:configure-final-arms-custom-events"
+  }
+ ],
+ "zcode": [
+  {
+   "name": "connectRemote",
+   "ipc": "invoke",
+   "channel": "zcode:connect-remote"
+  },
+  {
+   "name": "cancelPendingRemoteConnection",
+   "ipc": "invoke",
+   "channel": "zcode:cancel-pending-remote-connection"
+  },
+  {
+   "name": "bindRemoteWorkspaceSessionContext",
+   "ipc": "invoke",
+   "channel": "zcode:bind-remote-workspace-session-context"
+  },
+  {
+   "name": "startWebRemoteControl",
+   "ipc": "invoke",
+   "channel": "zcode:start-web-remote-control"
+  },
+  {
+   "name": "refreshWebRemoteControlPairing",
+   "ipc": "invoke",
+   "channel": "zcode:reset-web-remote-control-pairing"
+  },
+  {
+   "name": "stopWebRemoteControl",
+   "ipc": "invoke",
+   "channel": "zcode:stop-web-remote-control"
+  },
+  {
+   "name": "getWebRemoteControlStatus",
+   "ipc": "invoke",
+   "channel": "zcode:get-web-remote-control-status"
+  },
+  {
+   "name": "onWebRemoteControlStatusChanged",
+   "ipc": "on",
+   "channel": "zcode:web-remote-control-status-changed"
+  },
+  {
+   "name": "disposeRemoteSession",
+   "ipc": "invoke",
+   "channel": "zcode:dispose-remote-session"
+  },
+  {
+   "name": "isDockerAvailable",
+   "ipc": "invoke",
+   "channel": "zcode:is-docker-available"
+  },
+  {
+   "name": "listWSLDistros",
+   "ipc": "invoke",
+   "channel": "zcode:list-wsl-distros"
+  },
+  {
+   "name": "listDockerContainers",
+   "ipc": "invoke",
+   "channel": "zcode:list-docker-containers"
+  },
+  {
+   "name": "listSSHConfigAliases",
+   "ipc": "invoke",
+   "channel": "zcode:list-ssh-config-aliases"
+  },
+  {
+   "name": "loadMcpFromUserDirectory",
+   "ipc": "invoke",
+   "channel": "zcode:load-mcp-from-user-directory"
+  },
+  {
+   "name": "saveMcpToUserDirectory",
+   "ipc": "invoke",
+   "channel": "zcode:save-mcp-to-user-directory"
+  },
+  {
+   "name": "migrateLegacyCommonMcp",
+   "ipc": "invoke",
+   "channel": "zcode:migrate-legacy-common-mcp"
+  },
+  {
+   "name": "log",
+   "ipc": "send",
+   "channel": "zcode:log"
+  },
+  {
+   "name": "selectDirectory",
+   "ipc": "invoke",
+   "channel": "zcode:select-directory"
+  },
+  {
+   "name": "selectFile",
+   "ipc": "invoke",
+   "channel": "zcode:select-file"
+  },
+  {
+   "name": "selectFiles",
+   "ipc": "invoke",
+   "channel": "zcode:select-files"
+  },
+  {
+   "name": "saveFile",
+   "ipc": "invoke",
+   "channel": "zcode:save-file"
+  },
+  {
+   "name": "printPageToPdf",
+   "ipc": "invoke",
+   "channel": "zcode:print-to-pdf"
+  },
+  {
+   "name": "getPathForFile",
+   "ipc": null,
+   "channel": null
+  },
+  {
+   "name": "createTempTextAttachment",
+   "ipc": "invoke",
+   "channel": "zcode:create-temp-text-attachment"
+  },
+  {
+   "name": "onRemoteConnectionLog",
+   "ipc": "on",
+   "channel": "zcode:remote-connection-log"
+  },
+  {
+   "name": "onRemoteSessionClosed",
+   "ipc": "on",
+   "channel": "zcode:remote-session-closed"
+  },
+  {
+   "name": "onBotRemoteWorkspaceReconnected",
+   "ipc": "on",
+   "channel": "zcode:bot-remote-workspace-reconnected"
+  },
+  {
+   "name": "activateOrSetWorkspace",
+   "ipc": "invoke",
+   "channel": "zcode:activate-or-set-workspace"
+  },
+  {
+   "name": "syncWindowTabs",
+   "ipc": "send",
+   "channel": "zcode:sync-window-tabs"
+  },
+  {
+   "name": "syncWebRemoteControlWorkspaces",
+   "ipc": "send",
+   "channel": "zcode:sync-web-remote-control-workspaces"
+  },
+  {
+   "name": "syncWebRemoteControlTasks",
+   "ipc": "send",
+   "channel": "zcode:sync-web-remote-control-tasks"
+  },
+  {
+   "name": "onWebRemoteControlReconnectWorkspace",
+   "ipc": "on",
+   "channel": "zcode:web-remote-control-reconnect-workspace"
+  },
+  {
+   "name": "syncWindowUnreadCount",
+   "ipc": "send",
+   "channel": "zcode:sync-window-unread-count"
+  },
+  {
+   "name": "syncAppSettings",
+   "ipc": "send",
+   "channel": "zcode:sync-app-settings"
+  },
+  {
+   "name": "onFocusTab",
+   "ipc": "on",
+   "channel": "zcode:focus-tab"
+  },
+  {
+   "name": "onNewTab",
+   "ipc": "on",
+   "channel": "zcode:new-tab"
+  },
+  {
+   "name": "onCloseActiveContextRequest",
+   "ipc": "on",
+   "channel": "zcode:close-active-context-request"
+  },
+  {
+   "name": "onOpenBrowserUrl",
+   "ipc": "on",
+   "channel": "zcode:open-browser-url"
+  },
+  {
+   "name": "onBrowserViewReady",
+   "ipc": "on",
+   "channel": "zcode:browser-view-ready"
+  },
+  {
+   "name": "onBrowserViewOperation",
+   "ipc": "on",
+   "channel": "zcode:browser-view-operation"
+  },
+  {
+   "name": "onBrowserViewViewportChanged",
+   "ipc": "on",
+   "channel": "zcode:browser-view-viewport-changed"
+  },
+  {
+   "name": "onBrowserViewScreenshotSurfacePrepare",
+   "ipc": "on",
+   "channel": "zcode:browser-view-screenshot-surface-prepare"
+  },
+  {
+   "name": "onBrowserViewScreenshotSurfaceRelease",
+   "ipc": "on",
+   "channel": "zcode:browser-view-screenshot-surface-release"
+  },
+  {
+   "name": "browserViewScreenshotSurfaceReady",
+   "ipc": "send",
+   "channel": "zcode:browser-view-screenshot-surface-ready"
+  },
+  {
+   "name": "onBrowserViewVisibility",
+   "ipc": "on",
+   "channel": "zcode:browser-view-visibility"
+  },
+  {
+   "name": "onBrowserViewCloseTab",
+   "ipc": "on",
+   "channel": "zcode:browser-view-close-tab"
+  },
+  {
+   "name": "onBrowserViewSuspend",
+   "ipc": "on",
+   "channel": "zcode:browser-view-suspend"
+  },
+  {
+   "name": "onBrowserViewRestore",
+   "ipc": "on",
+   "channel": "zcode:browser-view-restore"
+  },
+  {
+   "name": "onNewTask",
+   "ipc": "on",
+   "channel": "zcode:new-task"
+  },
+  {
+   "name": "onOpenWorkspace",
+   "ipc": "on",
+   "channel": "zcode:open-workspace"
+  },
+  {
+   "name": "onOpenWorkspacePath",
+   "ipc": null,
+   "channel": null
+  },
+  {
+   "name": "onOpenFeedbackDialog",
+   "ipc": "on",
+   "channel": "zcode:open-feedback-dialog"
+  },
+  {
+   "name": "onOpenTicketsPanel",
+   "ipc": "on",
+   "channel": "zcode:open-tickets-panel"
+  },
+  {
+   "name": "onWindowFullscreenChanged",
+   "ipc": "on",
+   "channel": "zcode:window-fullscreen-changed"
+  },
+  {
+   "name": "getDesktopWindowChromeState",
+   "ipc": "invoke",
+   "channel": "zcode:get-desktop-window-chrome-state"
+  },
+  {
+   "name": "onDesktopWindowChromeStateChanged",
+   "ipc": "on",
+   "channel": "zcode:desktop-window-chrome-state-changed"
+  },
+  {
+   "name": "getWindowControlsOverlayMetrics",
+   "ipc": null,
+   "channel": null
+  },
+  {
+   "name": "onWindowControlsOverlayChanged",
+   "ipc": "on",
+   "channel": "zcode:window-controls-overlay-changed"
+  },
+  {
+   "name": "getDesktopZoomLevel",
+   "ipc": "invoke",
+   "channel": "zcode:get-desktop-zoom-level"
+  },
+  {
+   "name": "onDesktopZoomLevelChanged",
+   "ipc": "on",
+   "channel": "zcode:desktop-zoom-level-changed"
+  },
+  {
+   "name": "onTaskNotificationClick",
+   "ipc": "on",
+   "channel": "zcode:task-notification-click"
+  },
+  {
+   "name": "openExternal",
+   "ipc": "send",
+   "channel": "zcode:open-external"
+  },
+  {
+   "name": "canOpenCommunity",
+   "ipc": "invoke",
+   "channel": "zcode:can-open-community"
+  },
+  {
+   "name": "openInFileManager",
+   "ipc": "invoke",
+   "channel": "zcode:open-in-file-manager"
+  },
+  {
+   "name": "openCuaPermissionOnboarding",
+   "ipc": "invoke",
+   "channel": "zcode:open-cua-permission-onboarding"
+  },
+  {
+   "name": "prepareCuaHelperPermissionDrag",
+   "ipc": "invoke",
+   "channel": "zcode:prepare-cua-helper-permission-drag"
+  },
+  {
+   "name": "startCuaHelperPermissionDrag",
+   "ipc": "send",
+   "channel": "zcode:start-cua-helper-permission-drag"
+  },
+  {
+   "name": "openCuaAccessibilitySettings",
+   "ipc": "invoke",
+   "channel": "zcode:open-cua-accessibility-settings"
+  },
+  {
+   "name": "registerOAuthState",
+   "ipc": "send",
+   "channel": "zcode:oauth-register-state"
+  },
+  {
+   "name": "onOAuthCallback",
+   "ipc": "send",
+   "channel": "zcode:oauth-callback-handled"
+  },
+  {
+   "name": "onPaymentCallback",
+   "ipc": "on",
+   "channel": "zcode:payment-callback"
+  },
+  {
+   "name": "notifyRendererReady",
+   "ipc": "send",
+   "channel": "zcode:renderer-ready"
+  },
+  {
+   "name": "syncTelemetryContext",
+   "ipc": "send",
+   "channel": "zcode:sync-telemetry-context"
+  },
+  {
+   "name": "reportTelemetryEvent",
+   "ipc": "invoke",
+   "channel": "zcode:report-telemetry-event"
+  },
+  {
+   "name": "reportArmsCustomEvent",
+   "ipc": "invoke",
+   "channel": "zcode:report-arms-custom-event"
+  },
+  {
+   "name": "showTaskNotification",
+   "ipc": "send",
+   "channel": "zcode:show-task-notification"
+  },
+  {
+   "name": "exportLogs",
+   "ipc": "invoke",
+   "channel": "zcode:export-logs"
+  },
+  {
+   "name": "captureWindowScreenshot",
+   "ipc": "invoke",
+   "channel": "zcode:capture-window-screenshot"
+  },
+  {
+   "name": "browserViewAttachGuest",
+   "ipc": "invoke",
+   "channel": "zcode:browser-view-attach-guest"
+  },
+  {
+   "name": "browserViewCloseTab",
+   "ipc": "invoke",
+   "channel": "zcode:browser-view-close-tab-from-renderer"
+  },
+  {
+   "name": "browserViewReportResidency",
+   "ipc": "invoke",
+   "channel": "zcode:browser-view-report-residency"
+  },
+  {
+   "name": "browserViewSuspendReady",
+   "ipc": "invoke",
+   "channel": "zcode:browser-view-suspend-ready"
+  },
+  {
+   "name": "browserViewEnsureResident",
+   "ipc": "invoke",
+   "channel": "zcode:browser-view-ensure-resident"
+  },
+  {
+   "name": "browserViewRestoreTabs",
+   "ipc": "invoke",
+   "channel": "zcode:browser-view-restore-tabs"
+  },
+  {
+   "name": "browserViewUpdateViewport",
+   "ipc": "invoke",
+   "channel": "zcode:browser-view-update-viewport"
+  },
+  {
+   "name": "importChromeBrowserData",
+   "ipc": "invoke",
+   "channel": "zcode:import-chrome-browser-data"
+  },
+  {
+   "name": "clearEmbeddedBrowserData",
+   "ipc": "invoke",
+   "channel": "zcode:clear-embedded-browser-data"
+  },
+  {
+   "name": "startPerformanceTrace",
+   "ipc": "invoke",
+   "channel": "zcode:perf:start"
+  },
+  {
+   "name": "stopPerformanceTrace",
+   "ipc": "invoke",
+   "channel": "zcode:perf:stop"
+  },
+  {
+   "name": "getZCodeStdioTapDevState",
+   "ipc": "invoke",
+   "channel": "zcode:get-zcode-stdio-tap-dev-state"
+  },
+  {
+   "name": "onSettingsChanged",
+   "ipc": "on",
+   "channel": "zcode:settings-changed"
+  },
+  {
+   "name": "onApplicationLocaleChanged",
+   "ipc": "on",
+   "channel": "zcode:application-locale-changed"
+  },
+  {
+   "name": "onUpdateCheckResult",
+   "ipc": "on",
+   "channel": "zcode:update-check-result"
+  },
+  {
+   "name": "getUpdateState",
+   "ipc": "invoke",
+   "channel": "zcode:get-update-state"
+  },
+  {
+   "name": "downloadUpdate",
+   "ipc": "invoke",
+   "channel": "zcode:download-update"
+  },
+  {
+   "name": "cancelUpdateDownload",
+   "ipc": "invoke",
+   "channel": "zcode:cancel-update-download"
+  },
+  {
+   "name": "openUpdateStatusWindow",
+   "ipc": "invoke",
+   "channel": "zcode:open-update-status-window"
+  },
+  {
+   "name": "getAutoUpdatePreferences",
+   "ipc": "invoke",
+   "channel": "zcode:get-auto-update-preferences"
+  },
+  {
+   "name": "setAutoDownloadAndInstallUpdates",
+   "ipc": "invoke",
+   "channel": "zcode:set-auto-download-and-install-updates"
+  },
+  {
+   "name": "getDesktopSessionActivity",
+   "ipc": "invoke",
+   "channel": "zcode:get-desktop-session-activity"
+  },
+  {
+   "name": "onUpdateStateChanged",
+   "ipc": null,
+   "channel": null
+  },
+  {
+   "name": "onUpdateReady",
+   "ipc": null,
+   "channel": null
+  },
+  {
+   "name": "onPostUpdateReleaseNotes",
+   "ipc": null,
+   "channel": null
+  },
+  {
+   "name": "acknowledgePostUpdateReleaseNotes",
+   "ipc": "invoke",
+   "channel": "zcode:ack-post-update-release-notes"
+  },
+  {
+   "name": "skipUpdateVersion",
+   "ipc": "invoke",
+   "channel": "zcode:skip-update-version"
+  },
+  {
+   "name": "quitAndInstallUpdate",
+   "ipc": "invoke",
+   "channel": "zcode:quit-and-install-update"
+  },
+  {
+   "name": "getInstalledEditors",
+   "ipc": "invoke",
+   "channel": "zcode:get-installed-editors"
+  },
+  {
+   "name": "openInEditor",
+   "ipc": "invoke",
+   "channel": "zcode:open-in-editor"
+  },
+  {
+   "name": "executeDesktopCommand",
+   "ipc": "invoke",
+   "channel": "zcode:execute-desktop-command"
+  },
+  {
+   "name": "setApplicationLocale",
+   "ipc": "invoke",
+   "channel": "zcode:set-application-locale"
+  },
+  {
+   "name": "getSystemLocale",
+   "ipc": "invoke",
+   "channel": "zcode:get-system-locale"
+  },
+  {
+   "name": "setTitleBarTheme",
+   "ipc": "invoke",
+   "channel": "zcode:set-title-bar-theme"
+  },
+  {
+   "name": "getDeviceId",
+   "ipc": "invoke",
+   "channel": "zcode:get-device-id"
+  }
+ ],
+ "?": [],
+ "processMonitor": [
+  {
+   "name": "getProcessMetrics",
+   "ipc": "invoke",
+   "channel": "zcode:get-process-metrics"
+  }
+ ]
+}

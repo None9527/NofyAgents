@@ -1,0 +1,28 @@
+import { i as e, r as t } from "./src-D6nttw3b.js";
+import { c as n } from "./chunk-ICPOFSXX-C_rmVRO5.js";
+import { t as r } from "./chunk-426QAEUC-Dad5DTJk.js";
+import { t as i } from "./mermaid-parser.core-eu6-s8Rd.js";
+var a = {
+    parse: t(async t => {
+      let n = await i(`info`, t);
+      e.debug(n);
+    }, `parse`)
+  },
+  o = {
+    version: `11.14.0`
+  },
+  s = {
+    parser: a,
+    db: {
+      getVersion: t(() => o.version, `getVersion`)
+    },
+    renderer: {
+      draw: t((t, i, a) => {
+        e.debug(`rendering info diagram
+` + t);
+        let o = r(i);
+        n(o, 100, 400, !0), o.append(`g`).append(`text`).attr(`x`, 100).attr(`y`, 40).attr(`class`, `version`).attr(`font-size`, 32).style(`text-anchor`, `middle`).text(`v${a}`);
+      }, `draw`)
+    }
+  };
+export { s as diagram };

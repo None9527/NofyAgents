@@ -1,0 +1,21 @@
+// RECONSTRUCTED FILE — not from the original repository.
+// Inferred from the shipped build output (ESM bundles, "type": "module",
+// React 19 renderer, Node builtins imported from main-process bundles).
+// The original tsconfig.json is not recoverable: no source files or source
+// maps ship in the package. Values below are the minimal consistent set.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": ["src"]
+}

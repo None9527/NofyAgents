@@ -1,0 +1,70 @@
+# RECONSTRUCTED FILE — not from the original repository.
+# Rebuilt from shipped evidence in ZCode-3.7.6-linux-x64.deb:
+#   - out/metadata/build-meta.json  (electron-builder 26.8.1, appVersion 3.7.6, commit cc3ba847)
+#   - resources/app-update.yml      (generic provider, updaterCacheDirName)
+#   - DEBIAN/control                (package name, version scheme 3.7.6-4691, depends, homepage)
+#   - resources/apparmor-profile, resources/package-type ("deb")
+#   - resources/app.asar.unpacked/  (node-pty + ssh2 native prebuilds unpacked from the asar)
+#   - resources/icon*.png           (linux/windows icons)
+appId: ai.zcode.desktop
+productName: ZCode
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - resources/**
+  - package.json
+asar: true
+asarUnpack:
+  # Evidence: resources/app.asar.unpacked/node_modules/{node-pty,ssh2} ship as
+  # unpacked native prebuilds beside app.asar.
+  - node_modules/node-pty/prebuilds/**
+  - node_modules/ssh2/lib/protocol/crypto/build/Release/**
+extraResources:
+  # Evidence: these entries live at opt/ZCode/resources/ beside app.asar,
+  # outside the asar container.
+  - from: resources/config
+    to: config
+  - from: resources/model-providers
+    to: model-providers
+  - from: resources/glm
+    to: glm
+  - from: resources/tools
+    to: tools
+  - from: resources/apparmor-profile
+    to: apparmor-profile
+  - from: resources/package-type
+    to: package-type
+linux:
+  executableName: zcode
+  category: Development
+  icon: resources/icon_512x512.png
+  target:
+    - deb
+  # Evidence: DEBIAN/control Depends/Recommends fields.
+  synopsis: ZCode Desktop App
+  maintainer: ZCode <dev@zcode.z.ai>
+deb:
+  # Evidence: control file "Version: 3.7.6-4691" (appVersion-buildNumber).
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+  recommends:
+    - libappindicator3-1
+win:
+  # Evidence: resources/icon_windows.png shipped for the Windows build.
+  icon: resources/icon_windows.png
+publish:
+  # Evidence: resources/app-update.yml
+  provider: generic
+  url: http://localhost:8081
+  useMultipleRangeRequest: false
+  updaterCacheDirName: "@zcodedesktop-updater"
