@@ -1,0 +1,63 @@
+/* 契约（S9） */
+
+.contract {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 24px;
+}
+.contract__col {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.contract__card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--bg-card);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.contract__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.contract__card-title {
+  font-weight: 650;
+  font-size: var(--fs-dense);
+}
+.contract__desc {
+  font-size: var(--fs-sm);
+  color: var(--fg-subtle);
+  line-height: 1.6;
+}
+.contract__bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--hover);
+  overflow: hidden;
+}
+.contract__bar > div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s var(--ease);
+}
+.contract__bar > div[data-warn="true"] {
+  background: var(--amber);
+}
+.contract__bar > div[data-danger="true"] {
+  background: var(--danger);
+}
+.contract__stats {
+  display: flex;
+  gap: 14px;
+  font-size: var(--fs-sm);
+  color: var(--fg-subtle);
+  flex-wrap: wrap;
+}

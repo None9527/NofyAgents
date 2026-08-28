@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Grok Build · Desktop View</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #101010; overflow: hidden;
+    font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; color: #ccc; }
+  #bar { position: fixed; top: 0; left: 0; right: 0; height: 32px; background: #1c1c1c;
+    display: flex; align-items: center; gap: 12px; padding: 0 12px; z-index: 2; }
+  #status { color: #7fb069; }
+  #hint { color: #666; }
+  #wrap { position: absolute; inset: 32px 0 0 0; display: flex; align-items: center; justify-content: center; }
+  canvas { box-shadow: 0 0 40px rgba(0,0,0,.6); cursor: default; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <strong>Grok Build · Electron 桌面投屏</strong>
+  <span id="status">连接中…</span>
+  <span id="hint">鼠标/键盘/滚轮直接操作真实 Electron 窗口</span>
+</div>
+<div id="wrap"><canvas id="view"></canvas></div>
+<script>
+const params = new URLSearchParams(location.search);
+const BASE = params.get("cdp") || "/cdp"; // same-origin vite proxy -> Electron CDP
+const canvas = document.getElementById("view");
+const ctx = canvas.getContext("2d");
+const status = document.getElementById("status");
+
+let ws = null;
+let nextId = 1;
+let scale = 1;
+let deviceW = 1280, deviceH = 800;
+
+function send(method, p = {}) {
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ id: nextId++, method, params: p }));
+}
+
+async function connect() {
+  status.textContent = "发现窗口…";
+  let list = [];
+  try {
+    list = await (await fetch(`${BASE}/json`)).json();
+  } catch (e) {
+    status.textContent = "无法连接 Electron 调试端口，3 秒后重试";
+    setTimeout(connect, 3000);
+    return;
+  }
+  const page = list.find((t) => t.type === "page");
+  if (!page) { setTimeout(connect, 2000); return; }
+  const url = `ws://${location.host}${BASE}/devtools/page/${page.id}`;
+  ws = new WebSocket(url);
+  ws.onopen = () => {
+    status.textContent = "已连接真实 Electron 窗口";
+    send("Page.enable");
+    send("Page.startScreencast", { format: "jpeg", quality: 70, maxWidth: 1600, maxHeight: 1000 });
+  };
+  ws.onclose = () => { status.textContent = "连接断开，重试中…"; setTimeout(connect, 2000); };
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.method === "Page.screencastFrame") {
+      const { data, metadata } = msg.params;
+      deviceW = metadata.deviceWidth || deviceW;
+      deviceH = metadata.deviceHeight || deviceH;
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width; canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        fit();
+      };
+      img.src = "data:image/jpeg;base64," + data;
+      send("Page.screencastFrameAck", { sessionId: msg.params.sessionId });
+    }
+  };
+}
+
+function fit() {
+  const wrap = document.getElementById("wrap");
+  const r = Math.min(wrap.clientWidth / canvas.width, wrap.clientHeight / canvas.height, 1);
+  canvas.style.width = canvas.width * r + "px";
+  canvas.style.height = canvas.height * r + "px";
+  scale = canvas.width / (canvas.width * r);
+}
+window.addEventListener("resize", fit);
+
+function coords(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: Math.round((e.clientX - rect.left) * scale),
+    y: Math.round((e.clientY - rect.top) * scale),
+  };
+}
+
+canvas.addEventListener("mousemove", (e) => send("Input.dispatchMouseEvent", { type: "mouseMoved", ...coords(e) }));
+canvas.addEventListener("mousedown", (e) => { e.preventDefault(); canvas.focus(); send("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 1, ...coords(e) }); });
+canvas.addEventListener("mouseup", (e) => send("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, ...coords(e) }));
+canvas.addEventListener("wheel", (e) => { e.preventDefault(); const c = coords(e); send("Input.dispatchMouseEvent", { type: "mouseWheel", deltaX: e.deltaX, deltaY: e.deltaY, ...c }); }, { passive: false });
+
+const mods = (e) => (e.ctrlKey ? 2 : 0) | (e.altKey ? 1 : 0) | (e.shiftKey ? 8 : 0) | (e.metaKey ? 4 : 0);
+canvas.setAttribute("tabindex", "0");
+canvas.addEventListener("keydown", (e) => {
+  e.preventDefault();
+  send("Input.dispatchKeyEvent", { type: "rawKeyDown", key: e.key, code: e.code, windowsVirtualKeyCode: e.keyCode, modifiers: mods(e) });
+  if (e.key.length === 1) send("Input.dispatchKeyEvent", { type: "char", text: e.key, modifiers: mods(e) });
+});
+canvas.addEventListener("keyup", (e) => send("Input.dispatchKeyEvent", { type: "keyUp", key: e.key, code: e.code, windowsVirtualKeyCode: e.keyCode, modifiers: mods(e) }));
+
+connect();
+</script>
+</body>
+</html>

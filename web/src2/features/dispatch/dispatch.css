@@ -1,0 +1,115 @@
+/* Dispatch 工作单（S4） */
+
+.dispatch {
+  position: relative;
+  width: min(640px, 92%);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-lift);
+  transition: border-color var(--dur) var(--ease);
+}
+.dispatch:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.dispatch__area {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  max-height: 200px;
+  padding: 12px 14px 6px;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  letter-spacing: inherit;
+  line-height: 1.5;
+}
+.dispatch__area::placeholder {
+  color: var(--fg-subtlest);
+}
+
+/* 芯片行：工作单实时成形 */
+.dispatch__chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 10px;
+  flex-wrap: wrap;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-subtle);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  letter-spacing: inherit;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.chip:hover {
+  background: var(--hover);
+  color: var(--fg);
+  border-color: var(--border-hover);
+}
+.chip[data-set="true"] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.chip--send {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-fg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.chip--send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.chip--send:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 88%, var(--bg));
+}
+
+/* 内联弹层（/ @ # 菜单） */
+.dispatch-popup {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(100% + 6px);
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-floating);
+  animation: ui-menu-in 0.12s var(--ease);
+}
+.dispatch-popup .ui-menu__item {
+  height: 30px;
+}
+.dispatch-popup__empty {
+  padding: 8px 10px;
+  font-size: var(--fs-sm);
+  color: var(--fg-subtlest);
+}

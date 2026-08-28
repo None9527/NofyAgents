@@ -14,7 +14,6 @@ CLAUDE.md
 # 本地参考资料与实验产物
 ref/
 /ref-ui/
-/web/
 /draw_bbox.py
 /nofy-architecture.html
 /ScreenShot_*.png
