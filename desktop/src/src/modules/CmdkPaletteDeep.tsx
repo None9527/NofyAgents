@@ -59,27 +59,21 @@
  * ==========================================================================*/
 /* eslint-disable */
 import * as React from "react";
-import { hasGitIdentity, mapChangeFilesToRows, summarizeFileRows } from './GitReview';
+import { extractErrorMessage as errorMessageOf } from './FeedbackCenter'; // 原 MC（js 37651）：错误消息提取（剥 `Error:` 前缀）；AMBIGUOUS 裁决见 A0-D-Misc 报告
+import { hasGitIdentity, mapChangeFilesToRows, summarizeFileRows, type GitFileChange, type GitIdentity } from './GitReview';
 import { Input, Textarea, toast } from './ImeComposition';
 import { FilePathInline } from './ModalsLeaves';
 import { logger } from './SkillStore';
 import { useServices } from './services';
+/* ── A0-D-Misc 接线：可用属主（前波成果） ── */
+import { cn } from './UtilsCn'; // 原 Z（clsx + tailwind-merge 的 cn）
+import { useZCodeIntl as useIntlContext } from './I18n'; // 原 G（IntlProvider-C321H7m8.js 的 n 导出）
+import { Button } from './button'; // 原 X（button-laUijeDG.js 的 t 导出）
 
 /* --- 横切依赖（他族已抽取/登记，本件仅 declare） --- */
 
 /** 原 J（logger-PFDwl5Yq.js 的 t 导出） */
-/** 原 MC（js 37651）：错误消息提取（剥 `Error:` 前缀） */
-declare function errorMessageOf(error: unknown): string;
 /** 原 m（imeComposition chunk 的 _ 导出） */
-/** 原 Z（clsx + tailwind-merge 的 cn） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
-type FormatMessageFn = (descriptor: { id: string }, values?: Record<string, string>) => string;
-interface IntlShape {
-  formatMessage: FormatMessageFn;
-}
-/** 原 G（IntlProvider-C321H7m8.js 的 n 导出） */
-declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** Radix Dialog 封装族（原 zb/Hb/Ub/Gb/Kb/Wb/Vb，本 chunk js 31943+） */
 declare const Dialog: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; children?: React.ReactNode }>;
@@ -90,13 +84,6 @@ declare const DialogDescription: React.FC<React.HTMLAttributes<HTMLParagraphElem
 declare const DialogFooter: React.FC<React.HTMLAttributes<HTMLDivElement>>;
 declare const DialogClose: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
 
-/** 原 X（button-laUijeDG.js 的 t 导出） */
-declare const Button: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: "default" | "secondary" | "ghost" | "outline" | "destructive" | "link";
-    size?: "default" | "sm" | "lg" | "icon-xs" | "icon-sm" | "icon-md";
-  }
->;
 /** 原 P（imeComposition chunk 的 y 导出） */
 /** 原 j（imeComposition chunk 的 Textarea 导出） */
 
@@ -114,18 +101,8 @@ declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // g（imeComposit
 
 /* --- Git 服务（原 fs，js 2638；接口按本族调用点推断） --- */
 
-interface GitIdentity {
-  userName?: string | null;
-  userEmail?: string | null;
-}
-interface GitFileChange {
-  path: string;
-  repoRelativePath: string;
-  workspaceRelativePath: string;
-  kind: string;
-  added: number;
-  removed: number;
-}
+/* A0-D-Misc：原本地 GitIdentity/GitFileChange 接口删除，改自 GitReview 类型导入
+ * （消费面 hasGitIdentity/mapChangeFilesToRows 均按 GitReview 形状契约）。 */
 /** 原 NZ 的返回元素形（GitReview.tsx 的 CommitDialogFileRow） */
 interface GitFileRow {
   stagePath: string;
@@ -1388,7 +1365,7 @@ export function CommitGraphView({
 export const GRAPH_PAGE_SIZE = 50;
 
 export function CommitGraphDialog({ open, workspacePath, onOpenChange }: { open: boolean; workspacePath: string; onOpenChange: (open: boolean) => void }) {
-  const { gitService } = useServices();
+  const { gitService } = useServices() as { gitService: GitService };
   const { intl } = useIntlContext();
   const [loading, setLoading] = React.useState(!1);
   const [loadingMore, setLoadingMore] = React.useState(!1);
@@ -1541,7 +1518,7 @@ export function useGitBranchSwitcher({
   headRefType: string;
   onRefreshGit: () => void;
 }): GitBranchSwitcherState {
-  const { gitService } = useServices();
+  const { gitService } = useServices() as { gitService: GitService };
   const { intl, locale } = useIntlContext();
   const numberFormat = new Intl.NumberFormat(locale);
   const [open, setOpen] = React.useState(!1);

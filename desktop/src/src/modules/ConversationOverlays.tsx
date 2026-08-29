@@ -111,30 +111,24 @@
  */
 
 import * as React from "react";
-import { ShellToolView } from './Conversation';
-import { FallbackToolView, FileWriteToolView, SearchToolView, SkillToolView } from './ConversationLeaves';
+import { ShellToolView, ToolLayout } from './Conversation'; // +ToolLayout（A0-D 接线：declare → Conversation canonical）
+import { FallbackToolView, FileWriteToolView, SearchToolView, SkillToolView, type FileSummary, type ToolCall, type ToolCallNode, type ToolCallViewProps } from './ConversationLeaves'; // +4 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）
 import { Input } from './ImeComposition';
+import { type CodePreviewSettings } from './MarkdownIntegration';
 import { Badge } from './PaymentDeep';
 import { logger } from './SkillStore';
 import { buildPermissionRequestViewModel } from './SrcSharedB';
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
+import { Button } from './button'; // 原 H，button-laUijeDG.js（A0-D 接线：declare → button canonical）
+import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 
 /* ============================================================================
  * 0. 外部依赖类型声明（重建接口）
  * ==========================================================================*/
 
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape; locale: string };
-
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
-  size?: "xs" | "sm" | "default" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-md" | "icon-lg";
-}
-declare const Button: React.FC<ButtonProps>;
+/* ── tombstone（A0-D）：cn declare 删除 → import { cn } from './UtilsCn'（canonical）。 ── */
+/* ── tombstone（A0-D）：IntlShape/useIntlContext 脚手架删除 → I18n useZCodeIntl（alias）+ type ZCodeIntl as IntlShape。 ── */
+/* ── tombstone（A0-D）：ButtonProps/Button declare 删除 → import { Button } from './button'（canonical）。 ── */
 
 /** 原 Ao（src-HCld2afU.js）：设置 store 选择器（theme/codePreviewSettings/notificationEnabled） */
 declare function useSettingsSelector<T>(selector: (settings: { theme: string; codePreviewSettings: unknown; notificationEnabled: boolean }) => T, fallback: T): T;
@@ -152,57 +146,13 @@ declare const IconChevronDown: React.FC<React.SVGProps<SVGSVGElement>>; // N_
 declare const IconChevronUp: React.FC<React.SVGProps<SVGSVGElement>>; // P_
 declare const IconCheck: React.FC<React.SVGProps<SVGSVGElement>>; // M_
 
-/* --- 工具视图复用（Conversation.tsx §4；此处按调用面声明） --- */
+/* --- 工具视图复用（Conversation.tsx §4）---
+ * ── tombstone（A0-D）：本地 ToolCall/ToolCallNode/ToolCallViewProps 接口删除 →
+ *    type import from './ConversationLeaves'（会话流共享类型 canonical）。
+ * ── tombstone（A0-D）：ToolLayout declare 删除 → import { ToolLayout } from './Conversation'。 ── */
 
-interface ToolCall {
-  toolId: string;
-  toolName?: string;
-  kind?: string;
-  title?: string;
-  status: string;
-  input?: unknown;
-  output?: unknown;
-  raw?: unknown;
-}
-interface ToolCallNode {
-  toolCall: ToolCall;
-  childToolCalls: ToolCallNode[];
-}
-interface ToolCallViewProps {
-  toolCallNode: ToolCallNode;
-  workspacePath?: string;
-  theme?: string;
-  codePreviewSettings?: unknown;
-  displayModel: unknown;
-  viewerSource: unknown;
-  rawFileSummaries: unknown[];
-  isRunning: boolean;
-  statusLabel: string;
-  sourceLabel?: string;
-  errorText?: string;
-  childToolList: React.ReactNode;
-  showIcon: boolean;
-  showTodoToolCalls?: boolean;
-  disableSummaryContentAnimation?: boolean;
-  kindLabelOverride?: React.ReactNode;
-  canToggle?: boolean;
-  forceOpen?: boolean;
-  onOpenCodeViewer?: undefined;
-  onOpenBrowserUrl?: undefined;
-}
-/** ToolLayout（Conversation.tsx §4.1 的 lQ；此处按覆盖层用到的属性声明） */
-declare const ToolLayout: React.FC<{
-  toolId: string;
-  icon?: React.ReactNode;
-  showIcon?: boolean;
-  canToggle?: boolean;
-  kindLabel?: React.ReactNode;
-  primaryText?: React.ReactNode;
-  isRunning?: boolean;
-  content?: React.ReactNode;
-}>;
 declare function classifyToolCall(toolCall: ToolCall): { family: string };
-declare function extractRawFileSummaries(raw: unknown, toolCall: ToolCall): unknown[];
+declare function extractRawFileSummaries(raw: unknown, toolCall: ToolCall): FileSummary[];
 declare function parseToolCallRaw(raw: unknown): Record<string, unknown> | null; // hg
 declare function isPlainRecord(value: unknown): value is Record<string, unknown>; // pg
 
@@ -489,7 +439,7 @@ function resolveRawReason(request: PermissionRequest): string | null {
 function classifyPermissionToolView(
   model: { command?: string; fileChanges: unknown[] },
   toolCall: ToolCall,
-  fileSummaries: unknown[],
+  fileSummaries: FileSummary[],
 ): "edit" | "mcp" | "skill" | "search" | "execute" | "fallback" {
   if (fileSummaries.length > 0 || model.fileChanges.length > 0) return `edit`;
   const identity = classifyToolCall(toolCall);
@@ -523,13 +473,13 @@ function toPermissionToolCall(request: PermissionRequest, model: { title?: strin
     input: parsedRaw ?? model.command ?? request.raw,
     status: `completed`,
     raw: request.raw,
-  };
+  } as ToolCall; // bundle zxt 116939：伪工具调用无 toolName（canonical ToolCall 必填，断言收敛）
 }
 
 /** 原 Bxt（js 116899 / jsx 99335）：组装工具视图 props（关闭交互入口） */
 function buildPermissionToolViewProps(
   toolCall: ToolCall,
-  fileSummaries: unknown[],
+  fileSummaries: FileSummary[],
   workspacePath: string | undefined,
   viewKind: "edit" | "mcp" | "skill" | "search" | "execute" | "fallback",
   kindLabel: string,
@@ -541,7 +491,7 @@ function buildPermissionToolViewProps(
     toolCallNode: { toolCall, childToolCalls: [] },
     workspacePath,
     theme,
-    codePreviewSettings,
+    codePreviewSettings: codePreviewSettings as CodePreviewSettings,
     displayModel: {
       inlinePreview: { type: `none` },
       planResult: null,

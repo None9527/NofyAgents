@@ -461,22 +461,23 @@ import * as ReactDOM from "react-dom";
 import { Spinner } from './Home';
 import { PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
-import { logger, useTaskStore, useWhiteboardStore } from './SkillStore';
+import { create as createStore, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, useWhiteboardStore } from './SkillStore'; // +createStore（A0-S2d 接线：原 zustand create declare → SkillStore q 导出）；+workspaceKey（A0-D 接线：declare → SkillStore b 导出 resolveWorkspaceKey）
 import { normalizeProviderId } from './SrcSharedB';
-import { useBaseServices, useWorkspaceServices } from './services';
+import { useBaseServices, useServices } from './services'; // 原 fs（bundle 2675）= services.tsx useServices（context 面）；基线误名 useWorkspaceServices（= Oc，带参解析面），A0-D 裁决改接 useServices
+import { TooltipContent, TooltipTrigger } from './UsageStatsUiParts'; // 原 fN/pN，usageStatsUiParts-CiR7YEhh.js（A0-D 接线：declare → UsageStatsUiParts radix 导出）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
+import { Button } from './button'; // 原 H，button-laUijeDG.js（A0-D 接线：declare → button canonical）
+import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 
 /* ============================================================================
  * 0. 外部依赖类型声明（未重建依赖以 declare 挂接；来源见上方清单）
  * ==========================================================================*/
 
 /** 2. cn（utils-CEEH0K_K.js，UtilsCn.tsx 已重建） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
+/* ── tombstone（A0-D）：cn declare 删除 → import { cn } from './UtilsCn'（canonical）。 ── */
 
 /** 4. useIntlContext（IntlProvider-C321H7m8.js，I18n.tsx canonical） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+/* ── tombstone（A0-D）：IntlShape/useIntlContext 脚手架删除 → I18n useZCodeIntl（alias）+ type ZCodeIntl as IntlShape。 ── */
 
 /** 5. toast / 图标 / 平台服务（imeComposition-DEYFkwWm.js，ImeComposition.tsx 已重建） */
 declare const InfoIcon: React.ComponentType<{ className?: string }>;
@@ -502,33 +503,13 @@ declare function usePlatformService(): PlatformService;
 /** 6. logger（logger-PFDwl5Yq.js，logger.tsx 已重建） */
 
 /** 3. Button（button-laUijeDG.js，button.tsx 已重建） */
-declare const Button: React.ComponentType<
-  {
-    type?: "button" | "submit";
-    variant?: string;
-    size?: string;
-    disabled?: boolean;
-    className?: string;
-    title?: string;
-    onClick?: React.MouseEventHandler;
-    onMouseDown?: React.MouseEventHandler;
-    onKeyDown?: React.KeyboardEventHandler;
-    "aria-label"?: string;
-    "data-testid"?: string;
-    children?: React.ReactNode;
-  } & Record<string, unknown>
->;
+/* ── tombstone（A0-D）：Button declare 删除 → import { Button } from './button'（canonical，
+ *    ButtonProps 为 loose Record；事件回调参数需显式标注，见各调用面）。 ── */
 
-/** 7/8. skillStore-BmeKHDBI.js（未重建，B5-11）：zustand create / 任务 store / 白板 store / 子代理 store */
-interface ZustandStore<T> {
-  <R>(selector: (state: T) => R): R;
-  (): T;
-  getState(): T;
-  setState(fn: ((state: T) => Partial<T> | T) | Partial<T> | T): void;
-}
-type ZustandSetState<T> = (fn: ((state: T) => Partial<T> | T) | Partial<T> | T) => void;
-declare function createStore<T>(init: (set: ZustandSetState<T>, get: () => T) => T): ZustandStore<T>;
-declare function createStore(): <T>(init: (set: ZustandSetState<T>, get: () => T) => T) => ZustandStore<T>;
+/** 7/8. skillStore-BmeKHDBI.js（B5-11 已重建为 SkillStore.tsx）：任务 store / 白板 store / 子代理 store
+ *  ── tombstone（A0-S2d）：createStore declare 与本地 ZustandStore/ZustandSetState
+ *     脚手架已删除，canonical = SkillStore.tsx vendored zustand create（原 q 导出），
+ *     经文件头真实 import 消费；本文件消费面均为选择器/getState/setState 调用，形状兼容。 ── */
 interface TaskStoreState {
   [key: string]: unknown;
 }
@@ -643,7 +624,7 @@ declare function useResolvedServices(
   workspaceIdentity?: string | null,
   extra?: unknown,
 ): { services: { zcodeAgentService: ZcodeAgentService; pluginManagementService: PluginManagementService }; remoteSessionId?: string | null; isRemoteTarget: boolean; rpcReady: boolean };
-declare function workspaceKey(workspacePath: string, workspaceIdentity?: string | null): string;
+/* ── tombstone（A0-D）：workspaceKey declare 删除 → SkillStore b 导出 resolveWorkspaceKey（alias workspaceKey）。 ── */
 declare function useSessionRegistry(selector: (state: any) => unknown): any;
 declare function useSessionListsHydrator(endpoints: SessionListEndpoint[]): {
   items: SessionListItem[];
@@ -801,18 +782,13 @@ declare function useVirtualizer(options: {
   scrollToIndex(index: number, options?: { align: string }): void;
 };
 
-/** 12. usageStatsUiParts-CiR7YEhh.js（未重建，B5-11）：Tooltip/Progress 原语 */
-declare const Tooltip: React.ComponentType<{
-  title?: React.ReactNode;
-  shortcut?: string;
-  triggerRef?: React.RefObject<HTMLElement | null>;
-  children?: React.ReactNode;
-}>;
+/** 12. usageStatsUiParts-CiR7YEhh.js（B5-11 已重建 UsageStatsUiParts.tsx）：Tooltip/Progress 原语 */
+/* ── tombstone（A0-D）：Tooltip（原 Ia，title/shortcut 形）declare 删除——本文件无调用面（孤儿）；
+ *    同形组件 UsageStatsUiParts.InfoTooltip 已导出，供后续波次按需接线。 ── */
 declare const TooltipRoot: React.ComponentType<
   { openDelay?: number; closeDelay?: number; children?: React.ReactNode } & Record<string, unknown>
->;
-declare const TooltipTrigger: React.ComponentType<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const TooltipContent: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
+>; // 原 Ia 族封装（title/shortcut 面），UsageStatsUiParts 未导出，需要的 export 已登记
+/* ── tombstone（A0-D）：TooltipTrigger/TooltipContent declare 删除 → import from './UsageStatsUiParts'（radix 导出）。 ── */
 declare const PopoverRoot: React.ComponentType<Record<string, unknown> & { children?: React.ReactNode }>;
 declare const ProgressRoot: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
 declare const ProgressIndicator: React.ComponentType<Record<string, unknown> & { className?: string; style?: React.CSSProperties; children?: React.ReactNode }>;
@@ -1011,7 +987,7 @@ export function useSubagentsContext(
   provider: string,
   workspaceIdentity?: string | null,
 ) {
-  const { subagentsService } = useWorkspaceServices();
+  const { subagentsService } = useServices();
   const trimmedIdentity = workspaceIdentity?.trim() || void 0;
   const tabResolution = useWorkspaceTabsSelector(
     shallowSelector((state) => {
@@ -1271,7 +1247,7 @@ export function useSkillsContext(
   provider: string,
   workspaceIdentity?: string | null,
 ) {
-  const { skillsService } = useWorkspaceServices();
+  const { skillsService } = useServices() as unknown as { skillsService: SkillsService };
   const trimmedIdentity = workspaceIdentity?.trim() || void 0;
   const tabResolution = useWorkspaceTabsSelector(
     shallowSelector((state) => {
@@ -3261,7 +3237,7 @@ function useFileSuggestions(
   title: string,
   emptyQueryLimit: number,
 ) {
-  const { fileService } = useWorkspaceServices();
+  const { fileService } = useServices() as unknown as { fileService: { listWorkspaceFiles(args: { rootPath: string }): Promise<WorkspaceFileEntry[]> } };
   const [files, setFiles] = React.useState<MentionSuggestionItem[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [loaded, setLoaded] = React.useState(false);
@@ -5204,7 +5180,8 @@ function ComposerActionMenu({
   return (
     <DropdownMenuRoot>
       <TooltipRoot title={disabledReason ?? actionMenuTitle}>
-        <TooltipTrigger asChild>
+        {/* asChild 经 spread 透传：UsageStatsUiParts radix TooltipTrigger 面未声明 asChild（内部 Slot 支持） */}
+        <TooltipTrigger {...{ asChild: true }}>
           <Button
             type={`button`}
             variant={`ghost`}
@@ -6225,7 +6202,7 @@ function useComposerAttachments(args: {
       disabled = false,
     } = args,
     platform = usePlatformService(),
-    { promptAttachmentTransferService } = useWorkspaceServices(),
+    { promptAttachmentTransferService } = useServices() as unknown as { promptAttachmentTransferService: PromptAttachmentTransferService },
     { intl } = useIntlContext(),
     scopeKey = attachmentScopeKey(workspacePath, workspaceIdentity, scopeId),
     scopeContextsRef = React.useRef(new Map<string, AttachmentScopeContext>()),
@@ -6895,7 +6872,7 @@ function CodeCommentsChip({ comments, contentAlign = `start`, onRemove, onRemove
                 className={`size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100`}
                 aria-label={removeLabel}
                 title={removeLabel}
-                onClick={(event) => {
+                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                   (event.stopPropagation(), onRemoveAll());
                 }}
               >
@@ -6940,7 +6917,7 @@ function CodeCommentsChip({ comments, contentAlign = `start`, onRemove, onRemove
                       className={`mt-0.5 size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover/comment:opacity-100`}
                       aria-label={removeLabel}
                       title={removeLabel}
-                      onClick={(event) => {
+                      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                         (event.stopPropagation(), onRemove(comment));
                       }}
                     >
@@ -7811,7 +7788,7 @@ function PptxReferencesChip({ references, onOpen, onRemove, onRemoveAll }: {
                 className={`size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100`}
                 aria-label={removeLabel}
                 title={removeLabel}
-                onClick={(event) => {
+                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                   (event.stopPropagation(), onRemoveAll());
                 }}
               >
@@ -7886,7 +7863,7 @@ function PptxReferencesChip({ references, onOpen, onRemove, onRemoveAll }: {
                       className={`mt-0.5 size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover/context:opacity-100 focus-visible:opacity-100`}
                       aria-label={removeLabel}
                       title={removeLabel}
-                      onClick={(event) => {
+                      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                         (event.stopPropagation(), onRemove(reference.id));
                       }}
                     >
@@ -8470,8 +8447,8 @@ const ModelSelector = React.memo(function ModelSelector({
                   className={`min-w-0 shrink-0 gap-0.5 rounded-full pr-1.5 text-ui-sm text-foreground-subtle [&_svg]:size-3`}
                   data-testid={testidOf(MODEL_SELECT_GROUP_TESTID, group.key)}
                   data-model-provider-key={group.key}
-                  onPointerDown={(event: Event) => event.stopPropagation()}
-                  onKeyDown={(event: Event) => event.stopPropagation()}
+                  onPointerDown={(event: React.PointerEvent<HTMLButtonElement>) => event.stopPropagation()}
+                  onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => event.stopPropagation()}
                 >
                   <span className={`max-w-28 truncate`}>
                     {selectedOption?.badgeLabel ?? selectedOption?.label ?? group.label}
@@ -8481,7 +8458,7 @@ const ModelSelector = React.memo(function ModelSelector({
                   align={`end`}
                   position={`popper`}
                   className={`w-max min-w-40 max-w-72`}
-                  onCloseAutoFocus={(event: Event) => event.preventDefault()}
+                  {...{ onCloseAutoFocus: (event: Event) => event.preventDefault() }} // radix onCloseAutoFocus 透传（Settings SelectContent 面未声明该 prop，spread 规避多余属性检查）
                 >
                   {connectionOptions.map((option) =>
                     (
@@ -8504,7 +8481,7 @@ const ModelSelector = React.memo(function ModelSelector({
       return (showManageModelsAction && manageModelsLabel && actions.push({ key: `manage-models`, label: manageModelsLabel, onSelect: onManageModels }), actions);
     }, [footerActions, manageModelsLabel, onManageModels, showManageModelsAction]),
     triggerElement = (
-      <TooltipTrigger asChild>
+      <TooltipTrigger {...{ asChild: true }}>
         <Button
           type={`button`}
           variant={`ghost`}
@@ -8706,8 +8683,9 @@ const MODE_DESCRIPTION_I18N: Record<string, Record<string, string>> = {
   },
 };
 
-/** yq → SegmentedProgress（js 76034） */
-function SegmentedProgress({ className, indicatorClassName, segments, value, ...rest }: {
+/** yq → SegmentedProgress（js 76034）
+ *  （A0-S2d 补导出：PaymentDeep.tsx 经真实 import 消费，去重 76034–76156 双归属） */
+export function SegmentedProgress({ className, indicatorClassName, segments, value, ...rest }: {
   className?: string;
   indicatorClassName?: string;
   segments?: Array<{ id: string; percent: number; className?: string; style?: React.CSSProperties }>;
@@ -8770,7 +8748,7 @@ const useContextUsage = () => {
 };
 
 /** J4e → ContextUsageProvider（js 76079） */
-const ContextUsageProvider = ({ usedTokens, maxTokens, usage, modelId, ...rest }: {
+export const ContextUsageProvider = ({ usedTokens, maxTokens, usage, modelId, ...rest }: {
   usedTokens: number;
   maxTokens: number;
   usage?: unknown;
@@ -8821,9 +8799,9 @@ const ContextRingGlyph = () => {
 };
 
 /** X4e → ContextRingTrigger（js 76125） */
-const ContextRingTrigger = ({ children, ...rest }: { children?: React.ReactNode } & Record<string, unknown>) =>
+export const ContextRingTrigger = ({ children, ...rest }: { children?: React.ReactNode } & Record<string, unknown>) =>
   (
-    <TooltipTrigger asChild>
+    <TooltipTrigger {...{ asChild: true }}>
       {children ??
         (
           <Button type={`button`} variant={`ghost`} size={`icon-md`} {...rest} className={cn((rest as { className?: string }).className)}>
@@ -8834,7 +8812,7 @@ const ContextRingTrigger = ({ children, ...rest }: { children?: React.ReactNode 
   );
 
 /** Z4e → ContextRingTooltipContent（js 76139） */
-const ContextRingTooltipContent = ({ className, ...rest }: { className?: string } & Record<string, unknown>) =>
+export const ContextRingTooltipContent = ({ className, ...rest }: { className?: string } & Record<string, unknown>) =>
   (
     <TooltipContent
       className={cn(
@@ -8846,7 +8824,7 @@ const ContextRingTooltipContent = ({ className, ...rest }: { className?: string 
   );
 
 /** Q4e → ContextRingTooltipBody（js 76147） */
-const ContextRingTooltipBody = ({ children, className, ...rest }: { children?: React.ReactNode; className?: string } & Record<string, unknown>) =>
+export const ContextRingTooltipBody = ({ children, className, ...rest }: { children?: React.ReactNode; className?: string } & Record<string, unknown>) =>
   <div className={cn(`w-full bg-menu p-3`, className)} {...rest}>{children}</div>;
 
 /* ============================================================================
@@ -8855,13 +8833,14 @@ const ContextRingTooltipBody = ({ children, className, ...rest }: { children?: R
  *        跨 77079 终点；整表随族收录，裁决 §R3）
  * ========================================================================== */
 
-/** 配置选择器形状（语义归纳；中把握度） */
-interface ConfigSelectOption {
+/** 配置选择器形状（语义归纳；中把握度）
+ *  （A0-S2d 补导出：PaymentDeep 类型垫片引用） */
+export interface ConfigSelectOption {
   value: string;
   name: string;
   description?: string;
 }
-interface ConfigSelectSpec {
+export interface ConfigSelectSpec {
   type: string;
   category?: string;
   options?: ConfigSelectOption[];
@@ -8960,8 +8939,9 @@ function modeOptionIcon(value: unknown): React.ComponentType<{ className?: strin
           : HandIcon;
 }
 
-/** Mq → ConfigSelect（js 76911） */
-function ConfigSelect({
+/** Mq → ConfigSelect（js 76911）
+ *  （A0-S2d 补导出：PaymentDeep.tsx 去重 76848–77167 双归属后真实 import 消费） */
+export function ConfigSelect({
   option,
   onValueChange,
   open,
@@ -8989,8 +8969,8 @@ function ConfigSelect({
   triggerRef?: { current: HTMLElement | null };
   triggerClassName?: string;
   indicatorClassName?: string;
-  triggerVariant?: string;
-  triggerSize?: string;
+  triggerVariant?: "input" | "default" | "outline" | "secondary" | "ghost" | "destructive"; // A0-D 收敛：对齐 Settings SelectTrigger variant 值域（调用面均为字面量）
+  triggerSize?: "xs" | "sm" | "default" | "lg"; // A0-D 收敛：对齐 Settings SelectTrigger size 值域
   leadingIcon?: React.ComponentType<{ className?: string }>;
   labelVisibilityClassName?: string;
   provider?: string;
@@ -9011,7 +8991,9 @@ function ConfigSelect({
   const LeadingGlyph = option.category === `mode` ? modeOptionIcon(option.currentValue) : leadingIcon;
   const triggerClass = cn(triggerClassName, isDangerousCurrent && `text-warning hover:text-warning aria-expanded:text-warning`);
   const triggerIconClass = cn(`pointer-events-none size-4 text-current`, isDangerousCurrent && `text-warning`);
-  const contentProps = isModeOrThought
+  const contentProps:
+    | { position: "popper"; side: "top"; align: "start"; sideOffset: number; collisionPadding: number; className: string | undefined }
+    | undefined = isModeOrThought
     ? {
         position: `popper`,
         side: `top`,
@@ -9061,16 +9043,18 @@ function ConfigSelect({
       <SelectContent
         {...contentProps}
         onKeyDown={handleTabNavigation}
-        onCloseAutoFocus={(event: Event) => {
-          if (!restoreFocusSelector || (event.preventDefault(), !shouldRestoreFocus({ isCoarseTouchDevice: isCoarseTouchDevice() }))) return;
-          const target = document.querySelector(restoreFocusSelector);
-          (logger.debug(`[ConfigSelect] picker focus handoff`, {
-            category: option.category,
-            restoreFocusSelector,
-            targetFound: !!target,
-          }),
-            (target as HTMLElement | null)?.focus());
-        }}
+        {...{
+          onCloseAutoFocus: (event: Event) => {
+            if (!restoreFocusSelector || (event.preventDefault(), !shouldRestoreFocus({ isCoarseTouchDevice: isCoarseTouchDevice() }))) return;
+            const target = document.querySelector(restoreFocusSelector);
+            (logger.debug(`[ConfigSelect] picker focus handoff`, {
+              category: option.category,
+              restoreFocusSelector,
+              targetFound: !!target,
+            }),
+              (target as HTMLElement | null)?.focus());
+          },
+        }} // radix onCloseAutoFocus 透传（spread 规避多余属性检查）
       >
         {option.category === `mode`
           ? option.options.map((optionEntry) => {
@@ -9189,7 +9173,7 @@ function normalizeThoughtLevelKey(key: string): string {
 }
 
 /** K3e → isDisabledThoughtOption（js 77130） */
-function isDisabledThoughtOption(option: ConfigSelectOption): boolean {
+export function isDisabledThoughtOption(option: ConfigSelectOption): boolean {
   return THOUGHT_LEVEL_DISABLED_VALUES.has(normalizeThoughtLevelKey(option.value)) || THOUGHT_LEVEL_DISABLED_VALUES.has(normalizeThoughtLevelKey(option.name));
 }
 
@@ -9204,7 +9188,7 @@ function thoughtOptionRank(option: ConfigSelectOption): number | null {
 }
 
 /** J3e → sortThoughtOptions（js 77141） */
-function sortThoughtOptions(options: ConfigSelectOption[]): ConfigSelectOption[] {
+export function sortThoughtOptions(options: ConfigSelectOption[]): ConfigSelectOption[] {
   return options
     .map((entry, index) => ({ entry, index, rank: thoughtOptionRank(entry) }))
     .sort((a, b) =>
@@ -9220,7 +9204,7 @@ function sortThoughtOptions(options: ConfigSelectOption[]): ConfigSelectOption[]
 }
 
 /** Y3e → nextThoughtLevelValue（js 77155） */
-function nextThoughtLevelValue(spec: ConfigSelectSpec): string | null {
+export function nextThoughtLevelValue(spec: ConfigSelectSpec): string | null {
   if (spec.type !== `select` || !spec.options || spec.options.length < 2) return null;
   const sorted = sortThoughtOptions(spec.options);
   const currentValue = String(spec.currentValue);
@@ -9229,7 +9213,7 @@ function nextThoughtLevelValue(spec: ConfigSelectSpec): string | null {
 }
 
 /** X3e → thoughtOptionLabel（js 77163） */
-function thoughtOptionLabel(intl: IntlShape, provider: string | undefined, spec: ConfigSelectSpec, option: ConfigSelectOption): string {
+export function thoughtOptionLabel(intl: IntlShape, provider: string | undefined, spec: ConfigSelectSpec, option: ConfigSelectOption): string {
   const i18nId = THOUGHT_LEVEL_LABEL_I18N[normalizeThoughtLevelKey(option.value)];
   return i18nId ? intl.formatMessage({ id: i18nId }) : configOptionLabel(intl, provider, spec, option);
 }

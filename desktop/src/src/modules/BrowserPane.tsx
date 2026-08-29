@@ -106,48 +106,29 @@ import * as React from "react";
 import { Input, Popover, PopoverContent, PopoverTrigger } from './ImeComposition';
 import { Select, SelectItem, SelectTrigger, SelectValue, TabsContent } from './Settings';
 import { logger } from './SkillStore';
+/* ── A0-D-Misc 接线：可用属主（前波成果） ── */
+import { cn } from './UtilsCn'; // 原 Z：cn 类名合并
+import { useZCodeIntl as useIntlContext, type ZCodeIntl } from './I18n'; // 原 G：useIntlContext（IntlShape 消费面改指 ZCodeIntl）
+import { Button } from './button'; // 原 X：Button
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u=X InfoTooltip）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-/** Electron <webview> 内联元素（guest view 标签） */
-interface WebviewIntrinsicProps extends React.HTMLAttributes<HTMLElement> {
-  key?: string;
-  allowpopups?: string;
-  src?: string;
-  partition?: string;
-  nodeintegrationinsubframes?: string;
-  ref?: React.Ref<ElectronWebviewElement>;
-  [dataAttribute: `data-${string}`]: unknown;
-}
+/* A0-D-Misc：原 `webview: WebviewIntrinsicProps` 整件增补与 @types/react 内建
+ * webview（DetailedHTMLProps<WebViewHTMLAttributes<HTMLWebViewElement>, …>）冲突
+ * （TS2717）；改为向内建 WebViewHTMLAttributes 追加 electron 专有属性与
+ * data-* 索引签名（原 WebviewIntrinsicProps 消费面），调用面差异
+ * （ref/allowpopups）在使用点以类型垫片对齐（零运行时影响）。 */
 declare module "react" {
-  namespace JSX {
-    interface IntrinsicElements {
-      webview: WebviewIntrinsicProps;
-    }
+  interface WebViewHTMLAttributes<T> {
+    nodeintegrationinsubframes?: string;
+    [dataAttribute: `data-${string}`]: unknown;
   }
 }
 
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape; locale: string };
-
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  type: "button";
-  variant: "ghost" | "secondary" | "outline";
-  size: "default" | "icon-md";
-  title?: string;
-  "aria-label"?: string;
-  "aria-pressed"?: boolean;
-  "data-testid"?: string;
-  disabled?: boolean;
-}
-declare const Button: React.FC<ButtonProps>;
 
 /** lucide 风格图标（原 Ea/wa/Nv/$ye/tbe/q_/k_/K_/N/fv/nv/iv/Rye） */
 declare const IconArrowLeft: React.FC<{ className?: string }>;
@@ -166,8 +147,7 @@ declare const IconMoveVertical: React.FC<{ className?: string }>;
 
 /** Input（原 P，imeComposition chunk） */
 
-/** Tooltip（原 Ia，usageStatsUiParts） */
-declare const Tooltip: React.FC<{ title: string; children: React.ReactNode }>;
+/** Tooltip（原 Ia，usageStatsUiParts）——已改真实 import（InfoTooltip），见文件头 import 块。 */
 
 /** DropdownMenu 封装（原 VO/HO/UO/WO/GO/KO/qO/JO/YO） */
 declare const DropdownMenu: React.FC<{ children: React.ReactNode }>;
@@ -1098,7 +1078,7 @@ export function BrowserMoreMenu({
 }: {
   canOpenDevTools: boolean;
   canOpenExternal: boolean;
-  formatMessage: IntlShape["formatMessage"];
+  formatMessage: ZCodeIntl["formatMessage"];
   onOpenDevTools: () => void;
   onOpenExternal: () => void;
 }) {
@@ -1145,7 +1125,7 @@ export function BrowserToolbar({
 }: {
   addressValue: string;
   browserState: BrowserNavigationState;
-  formatMessage: IntlShape["formatMessage"];
+  formatMessage: ZCodeIntl["formatMessage"];
   onAddressChange: (value: string) => void;
   onGoBack: () => void;
   onGoForward: () => void;
@@ -1224,7 +1204,7 @@ export function BrowserEmptyState({
   formatMessage,
 }: {
   browserState: BrowserNavigationState;
-  formatMessage: IntlShape["formatMessage"];
+  formatMessage: ZCodeIntl["formatMessage"];
 }) {
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-background px-6">
@@ -1752,7 +1732,7 @@ export function BrowserSurface({
   browserState: BrowserNavigationState;
   desktopZoomFactor: number;
   isResidencyRestore: boolean;
-  formatMessage: IntlShape["formatMessage"];
+  formatMessage: ZCodeIntl["formatMessage"];
   isEmptyBrowserState: boolean;
   isComposed: boolean;
   isResponsiveMode: boolean;
@@ -1805,8 +1785,8 @@ export function BrowserSurface({
         {isEmptyBrowserState ? <BrowserEmptyState key="empty-state" browserState={browserState} formatMessage={formatMessage} /> : null}
         <webview
           key={`webview:${webviewGeneration}`}
-          ref={setWebviewRef}
-          allowpopups=""
+          ref={setWebviewRef as unknown as React.Ref<HTMLWebViewElement>}
+          allowpopups={"" as unknown as boolean}
           src={isResidencyRestore ? "zcode-browser-restore://pending" : BLANK_URL}
           partition="persist:zcode-embedded-browser"
           nodeintegrationinsubframes="true"
@@ -3112,7 +3092,7 @@ export function BrowserUseView({
   return (
     <TabsContent
       value={tab.id}
-      forceMount
+      {...({ forceMount: true } as unknown as Partial<React.ComponentProps<typeof TabsContent>>)} /* A0-D-Misc：bundle TabsContent 为 radix 原语带 forceMount，Settings.TabsContent 缺，已登记需要的 export */
       aria-hidden={!isSelected}
       inert={isSelected ? void 0 : true}
       data-browser-use-tab-id={tab.tabId}

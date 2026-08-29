@@ -61,8 +61,8 @@
 | S2-d | SrcSharedA/B ambient、SkillStore、Remote 改指、补导出、双归属去重 | **完工已验证** | 152 接线（SrcSharedB 91 ambient 全接）+ 去重删 ≈520 行（Bots 204/PaymentDeep 292/popover 族，均留 tombstone）+ SrcSharedA 新导出块 40 符号（含 DEFAULT_ASSET_INSTALL_MODE）+ Modals $2 再导出；域错 76→66 零新增；diff +364/−923；报告 A0-S2d.report.md |
 | D-Shell | WorkspaceShell/Sidebar 族 7 文件 | **完工已验证** | 11 组接线 + 域内补导出 8 + 回退前批误接 3；错 342→286（逐文件不增）；需要的 export 16 项；报告 A0-D-Shell.report.md |
 | D-Services | services/stores-*/StoresDeep/AppRootLeaves | **完工已验证** | 35 接线 + 6 logger 改接 + 4 组类型收敛；**域错 135→0 全清零**；workspaceKey 属主落实 = SkillStore.resolveWorkspaceKey（bundle b/H）；保留 114 逐条登记；需要的 export 9 项 + 未重建属主一批；报告 A0-D-Services.report.md |
-| D-Conversation | Conversation 族 + Composer/Modals（6 文件，518 declares，75 错） | 运行中 | — |
-| D-Misc | Bots/QuickPick/Cmdk/Usage/Onboarding 等（13 文件，489 declares，139 错） | 运行中 | — |
+| D-Conversation | Conversation 族 + Composer/Modals（6 文件，518 declares，75 错） | **完工已验证** | 56 接线（值 30+型 26）+ 4 处 useWorkspaceServices()→useServices()（bundle fs 5 锚点）；**域错 75→0 全清零**；保留 495（Lane-4 lexical/Icon*/radix 原语 + 域外未导出）；共享类型收敛到 ConversationLeaves（+5 type export）；外溢核验消费方计数全部不变；需要的 export 13 项；报告 A0-D-Conversation.report.md |
+| D-Misc | Bots/QuickPick/Cmdk/Usage/Onboarding 等（13 文件，489 declares，139 错） | **完工已验证** | 62 接线 + 域内补 export 2（UsageDeep.formatGrantUnits、RDSI.SuggestionInput）；**域错 139→0 全清零**；保留 451（Lane-4/未重建属主/域外未导出）；AMBIGUOUS 裁决 6（workspaceScopeKey→resolveWorkspaceKey 等）；回滚前波误接 5；需要的 export 17 项；报告 A0-D-Misc.report.md |
 | 收尾接线 pass | Button 族（29 文件）/Tooltip 族 declare → ./button、./UsageStatsUiParts（导出面已就绪：button.tsx 9 名 + UsageStatsUiParts 补 4 名） | 待当前波次落地（避开在编文件） | — |
 
 ## 事故与教训（本阶段）

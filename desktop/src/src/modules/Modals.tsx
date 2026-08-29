@@ -126,12 +126,16 @@
 
 import * as React from "react";
 import { Input } from './ImeComposition';
-import { HeroCard } from './ModalsLeaves';
+import { HeroCard, useHeroThemeStyles as useHeroTextSizes } from './ModalsLeaves'; // +useHeroThemeStyles（A0-D 接线：原 S4t declare → ModalsLeaves canonical，alias useHeroTextSizes）
 import { Badge } from './PaymentDeep';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
-import { logger } from './SkillStore';
+import { create as zustandCreate, logger } from './SkillStore'; // +Ae（A0-S2d 接线：原 zustandCreate declare → SkillStore q 导出 = vendored zustand create）
 import { useServices } from './services';
 import { useSettingsStore } from './stores-core';
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（u 导出），usageStatsUiParts-CiR7YEhh.js（A0-D 接线：declare → InfoTooltip，title/description/side/align/open 面同形）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
+import { Button, createLucideIcon } from './button'; // 原 X/c，button-laUijeDG.js（A0-D 接线：declare → button canonical）
+import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 
 declare global {
   interface ImportMeta {
@@ -144,22 +148,15 @@ declare global {
  * ==========================================================================*/
 
 /** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
+/* ── tombstone（A0-D）：cn declare 删除 → import { cn } from './UtilsCn'（canonical）。 ── */
 
 /** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+/* ── tombstone（A0-D）：IntlShape/useIntlContext 脚手架删除 → I18n useZCodeIntl（alias）+ type ZCodeIntl as IntlShape。 ── */
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
-interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
-  variant?: "default" | "secondary" | "outline" | "ghost" | "destructive";
-  size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-xs";
-}
-/** 原 X（button-laUijeDG.js） */
-declare const Button: React.FC<ButtonProps>;
+/* ── tombstone（A0-D）：ButtonProps/Button declare 删除 → import { Button } from './button'（canonical，
+ *    ButtonProps 为 loose Record；事件回调参数需显式标注，见各调用面）。 ── */
 /** 原 P（imeComposition chunk 的 y 导出） */
 /** spinner：loader-circle（原 M，imeComposition chunk 的 w 导出） */
 declare const IconLoaderCircle: React.FC<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }>;
@@ -168,8 +165,8 @@ declare const IconX: React.FC<{ className?: string; strokeWidth?: number }>;
 /** chevron-right（原 wa，button chunk） */
 declare const IconChevronRight: React.FC<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }>;
 
-interface IconProps { className?: string; "aria-hidden"?: boolean | "true" | "false" }
-declare function createLucideIcon(name: string, paths: unknown[]): React.FC<IconProps>;
+/* ── tombstone（A0-D）：IconProps/createLucideIcon declare 删除 → import { createLucideIcon } from './button'
+ *    （canonical，iconNode: Array<[string, Record<string, unknown>]>，空数组调用面兼容）。 ── */
 const IconCheck = createLucideIcon("check", []);            // 原 M_
 const IconChevronDown = createLucideIcon("chevron-down", []); // 原 N_
 const IconArrowRight = createLucideIcon("arrow-right", []);   // 原 C_
@@ -188,14 +185,8 @@ const IconFileText = createLucideIcon("file-text", []);         // 原 Z_
 const IconTriangleAlert = createLucideIcon("triangle-alert", []); // 原 N
 
 /** Tooltip（原 Ia，usageStatsUiParts-CiR7YEhh.js 的 u 导出） */
-declare const Tooltip: React.FC<{
-  children: React.ReactNode;
-  title?: string;
-  description?: string;
-  side?: string;
-  align?: string;
-  open?: boolean;
-}>;
+/* ── tombstone（A0-D）：Tooltip declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'
+ *    （调用面 open/title/description/side/align 均在其 props 面内）。 ── */
 /** HoverCard 三件（原 dN/fN/pN，本 chunk jsx 49005） */
 declare const HoverCard: React.FC<{ children: React.ReactNode; openDelay?: number; closeDelay?: number }>;
 declare const HoverCardTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
@@ -325,7 +316,8 @@ declare const ImportSelectionView: React.FC<{
 }>;
 
 /** Hero 文案尺寸（原 S4t，本 chunk 206090）与 Hero 卡片壳（原 C4t，206094） */
-declare function useHeroTextSizes(): { heading: string; description: string };
+/* ── tombstone（A0-D）：useHeroTextSizes declare 删除 → ModalsLeaves useHeroThemeStyles（alias；
+ *    返回 HeroThemeStyles 含 heading/description，调用面 4174 兼容）。 ── */
 
 /** testid 常量（src-HCld2afU.js：8463 行 Mb） */
 const TESTID_CONFIRM_DIALOG_CONFIRM = "confirm-dialog-confirm"; // 原 mee
@@ -669,8 +661,9 @@ class RemoteSyncPreflightTimeoutError extends Error {
 function isRemoteSyncPreflightTimeoutError(e: unknown): e is RemoteSyncPreflightTimeoutError {
   return e instanceof RemoteSyncPreflightTimeoutError;
 }
-/** 原 $2（js 127125-127132 / jsx 107556）：仅 ssh/wsl 远端会话且有本地源服务才可同步 */
-function canOpenRemoteSessionSourceCheck(e: {
+/** 原 $2（js 127125-127132 / jsx 107556）：仅 ssh/wsl 远端会话且有本地源服务才可同步
+ *  （A0-S2d/B5-14 补导出：RemoteGapSegments.tsx 经真实 import 消费） */
+export function canOpenRemoteSessionSourceCheck(e: {
   clientMode: string;
   hasLocalSourceService: boolean;
   remoteSessionId?: string | null;
@@ -3732,9 +3725,9 @@ interface AgentsFileMigrationStatus {
  * startImport 走 importSelected 并按 $4t 逐任务推进动画。
  */
 function useOnboardingDialogController(e: { workspacePath?: string; workspaceIdentity?: string }) {
-  const { settingsSyncService, modelProviderService } = useServices() as BaseServices & {
+  const { settingsSyncService, modelProviderService } = useServices() as unknown as BaseServices & {
     settingsSyncService: SettingsSyncService;
-  };
+  }; // A0-D：BaseServices 索引签名收敛需经 unknown 二段断言
   const sessionService = useZcodeSessionService(e.workspacePath, undefined, e.workspaceIdentity);
   const importRunRef = React.useRef(0);
   const [state, setState] = React.useState<OnboardingControllerState>(initialOnboardingState);
@@ -4772,7 +4765,7 @@ function errorMessageText2(error: unknown): string {
 
 /** 原 T3t（js 208197-208250 / jsx 165337）：AGENTS.md 迁移状态 hook */
 function useAgentsFileMigration(e: { workspacePath?: string; workspaceIdentity?: string; enabled: boolean }) {
-  const { settingsSyncService } = useServices() as BaseServices & { settingsSyncService: SettingsSyncService };
+  const { settingsSyncService } = useServices() as unknown as BaseServices & { settingsSyncService: SettingsSyncService }; // A0-D：同上，二段断言
   const [status, setStatus] = React.useState<AgentsFileMigrationStatus | null>(null);
   const [selected, setSelected] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -5173,14 +5166,9 @@ export interface ConfirmDialogRequest {
 }
 
 /** zustand store 形状（原 Ae=create，skillStore-BmeKHDBI.js 的 q 导出） */
-interface ZustandStore<T> {
-  (): T;
-  <R>(selector: (state: T) => R): R;
-  getState(): T;
-}
-declare function zustandCreate<T>(
-  init: (set: (patch: Partial<T>) => void, get: () => T) => T,
-): ZustandStore<T>;
+/* ── tombstone（A0-S2d）：zustandCreate declare 与本地 ZustandStore 接口已删除，
+ *    canonical = SkillStore.tsx vendored zustand create（原 q 导出，styles 侧 Ae），
+ *    经文件头真实 import 消费；本文件消费面均为选择器调用，形状兼容。 ── */
 
 interface ConfirmDialogStoreState {
   pendingRequest: ConfirmDialogRequest | undefined;

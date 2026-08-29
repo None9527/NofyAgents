@@ -189,25 +189,27 @@
 import * as React from "react";
 import { CaptchaHostContainer } from './ConversationLeaves';
 import { Input, toast, usePlatform } from './ImeComposition';
-import { AppDialogHost, ConfirmDialog, DirectoryBrowserDialog, OnboardingDialog, useAlertDialog } from './Modals';
-import { CodingPlanUpgradeDialogProvider } from './PaymentDeep';
+import { AppDialogHost, DirectoryBrowserDialog, OnboardingDialog, useAlertDialog, useConfirmDialog } from './Modals'; // useConfirmDialog（原 U2，js 123493）
+// A0-D-Misc 回滚：ConfirmDialog（Modals 未导出）、CodingPlanUpgradeDialogProvider（PaymentDeep 未导出）、
+// CLOSE_ACTIVE_CONTEXT_EVENT（WorkspaceShell 未导出）的前波 import 均编译失败，恢复基线 declare（本文件无调用面）。
 import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, SettingsView } from './Settings';
-import { logger } from './SkillStore';
-import { CLOSE_ACTIVE_CONTEXT_EVENT, WorkspaceShell } from './WorkspaceShell';
-import { ConversationTelemetrySupervisor, useServices, useWorkspaceServices } from './services';
+import { logger, resolveWorkspaceKey as workspaceScopeKey } from './SkillStore'; // workspaceScopeKey（原 Io，js 1368：两参实体键；前波误接 stores-session.workspaceScopeKey 单参形，A0-D-Misc 按 bundle R6t 裁决改接 resolveWorkspaceKey）
+import { WorkspaceShell } from './WorkspaceShell';
+import { ConversationTelemetrySupervisor, registerBaseServices, useServices, useWorkspaceServices } from './services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）
 import { useSettingsStore } from './stores-core';
-import { workspaceScopeKey } from './stores-session';
+import { DEFAULT_CODE_PREVIEW_SETTINGS as defaultCodePreviewSettings } from './MarkdownIntegration'; // 默认代码预览设置（原 lo，1040）
+import { cn } from './UtilsCn'; // 类名合并（原 Z）
+import { useZCodeIntl as useIntlContext } from './I18n'; // intl 上下文（原 G()）
+import { Button } from './button'; // Button（原 X，button-laUijeDG.js）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（跨 chunk / 它族已重建者，此处声明接口）
  * ==========================================================================*/
 
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
+/** react-intl 风格 intl 对象——A0-D-Misc：useIntlContext 已接线 I18n.useZCodeIntl，此接口仅供本族签名引用 */
 export interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 
 /* --- 服务束（fs = useServices）--- */
@@ -454,19 +456,8 @@ export interface CodePreviewSettings {
   darkTheme: string;
   [key: string]: any;
 }
-declare const defaultCodePreviewSettings: CodePreviewSettings;
 
 /* --- UI 原语（横切层）--- */
-declare const Button: React.FC<{
-  type?: "button" | "submit" | "reset";
-  variant?: string;
-  size?: string;
-  className?: string;
-  disabled?: boolean;
-  onClick?: (event: React.MouseEvent) => void;
-  "data-testid"?: string;
-  children?: React.ReactNode;
-}>;
 declare const SelectRoot: React.FC<{ value: string; onValueChange: (value: string) => void; disabled?: boolean; children?: React.ReactNode }>;
 declare const AlertTriangleIcon: React.FC<{ className?: string }>;
 declare const SpinnerIcon: React.FC<{ className?: string }>;
@@ -510,7 +501,9 @@ export interface ConfirmDialogOptions {
   confirmLabel: string;
   cancelLabel: string;
 }
-declare function useConfirmDialog(): (options: ConfirmDialogOptions) => Promise<boolean>;
+declare const ConfirmDialog: React.FC<Record<string, never>>; // 基线 declare：Modals 未导出，需要的 export 已登记
+declare const CodingPlanUpgradeDialogProvider: React.FC<{ children?: React.ReactNode }>; // 基线 declare：PaymentDeep 未导出，需要的 export 已登记
+declare const CLOSE_ACTIVE_CONTEXT_EVENT: string; // 基线 declare：WorkspaceShell 未导出，需要的 export 已登记
 declare const RemoteConnectionDialog: React.FC<Record<string, any>>;
 declare const UpdateStatusWindow: React.FC<{
   platform: PlatformService;
@@ -792,7 +785,6 @@ declare function reportLaunchMarks(payload: {
 declare function setCurrentPlatform(platform: PlatformService | null): void;
 declare function setCurrentServices(services: ServicesBundle | null): void;
 declare function disposeStartupServiceRegistry(): void;
-declare function registerBaseServices(services: ServicesBundle): void;
 declare function useAppSettings(): { settings: AppSettings | null; refresh: () => Promise<void>; update: (patch: Partial<AppSettings>) => Promise<void> };
 declare function useWebRemoteControlFeatureEnabled(): boolean;
 declare function useWebRemoteControlFeatureFlag(): boolean;
@@ -907,8 +899,8 @@ export const LOGIN_FAILED_MESSAGE = `登录失败，请重试`;
 
 /** 原 l4t（205996 / 163718）：useOAuth —— provider 列表/活动 provider/startOAuth/cancel/reset */
 export function useOAuth() {
-  const { oauthService } = useServices();
-  const platform = usePlatform();
+  const { oauthService } = useServices() as { oauthService: OAuthServiceLike }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
+  const platform = usePlatform() as unknown as PlatformService; // A0-D-Misc 类型收敛：ImeComposition.PlatformService 索引签名为 unknown
   const [status, setStatus] = React.useState<string>(`idle`);
   const [error, setError] = React.useState<string | null>(null);
   const [providers, setProviders] = React.useState<OAuthProviderInfo[]>([]);
@@ -1056,8 +1048,8 @@ export function savedApiKeyIfUntouched(options: { savedApiKey: string; userEdite
 /** 原 b4t（206116 / 163845）：API Key 登录视图（login.apiKey.* 全套） */
 export function ApiKeyLoginView({ onCancel, onSaved, onSkipped }: { onCancel: () => void; onSaved: () => void | Promise<void>; onSkipped: () => void | Promise<void> }) {
   const { intl } = useIntlContext();
-  const platform = usePlatform();
-  const { modelProviderService, settingService } = useServices();
+  const platform = usePlatform() as unknown as PlatformService; // A0-D-Misc 类型收敛：ImeComposition.PlatformService 索引签名为 unknown
+  const { modelProviderService, settingService } = useServices() as { modelProviderService: ModelProviderServiceLike; settingService: SettingServiceLike }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
   const markApiKeyLoginSuccess = useSettingsStore((state) => state.markApiKeyLoginSuccess);
   const [providerChoice, setProviderChoice] = React.useState<string>(`zai`);
   const [apiKey, setApiKey] = React.useState<string>(``);
@@ -1283,7 +1275,7 @@ export function OAuthLoginPanel({ active, onComplete }: { active: boolean; onCom
     refreshProviders,
   } = useOAuth();
   const user = useSettingsStore((state) => state.user);
-  const oauthError = useSettingsStore((state) => state.oauthError);
+  const oauthError = useSettingsStore((state) => state.oauthError) as string | null; // A0-D-Misc 类型收敛：stores-core oauthError 为 unknown，渲染面按文案字符串使用
   const setOAuthError = useSettingsStore((state) => state.setOAuthError);
   const oauthSuccessSeq = useSettingsStore((state) => state.oauthSuccessSeq);
   const lastOAuthSuccessProvider = useSettingsStore((state) => state.lastOAuthSuccessProvider);
@@ -1292,10 +1284,10 @@ export function OAuthLoginPanel({ active, onComplete }: { active: boolean; onCom
   const markLoginEntryAttemptStatus = useSettingsStore((state) => state.markLoginEntryAttemptStatus);
   const [view, setView] = React.useState<string>(`providers`);
   const activeRef = React.useRef(active);
-  const handledRequestIdRef = React.useRef<string | null>(null);
+  const handledRequestIdRef = React.useRef<number | null>(null); // A0-D-Misc 类型收敛：stores-core LoginEntryRequest.id 为 number
   const successSeqRef = React.useRef(oauthSuccessSeq);
   const lastStartedProviderRef = React.useRef<string | null>(null);
-  const pendingAttemptRef = React.useRef<{ id: string; providerId: string } | null>(null);
+  const pendingAttemptRef = React.useRef<{ id: number; providerId: string } | null>(null);
   const settlePendingAttempt = React.useCallback(
     (outcome: string) => {
       const attempt = pendingAttemptRef.current;
@@ -1304,7 +1296,7 @@ export function OAuthLoginPanel({ active, onComplete }: { active: boolean; onCom
     [markLoginEntryAttemptStatus],
   );
   const startLoginTracked = React.useCallback(
-    (providerId: string, options: { purpose?: string } = {}, requestId?: string) => {
+    (providerId: string, options: { purpose?: string } = {}, requestId?: number) => {
       const attempt = pendingAttemptRef.current;
       return (
         attempt && attempt.id !== requestId && settlePendingAttempt(`cancelled`),
@@ -1388,7 +1380,7 @@ export function OAuthLoginPanel({ active, onComplete }: { active: boolean; onCom
                 </div>
               ) : null}
               {!loadingProviders && providers.length === 0 ? (
-                <Alert variant={`warning`} className={`flex items-center justify-center gap-2 text-center`} data-testid={`oauth-error`}>
+                <Alert variant={`warning` as "default" | "destructive"} /* A0-D-Misc：bundle Alert 有 warning 变体（styles 202627），Settings.Alert 缺，已登记需要的 export */ className={`flex items-center justify-center gap-2 text-center`} data-testid={`oauth-error`}>
                   <AlertTriangleIcon className={`size-4`} />
                   <AlertDescription className={`text-center`}>{intl.formatMessage({ id: `login.oauth.noProviders` })}</AlertDescription>
                 </Alert>
@@ -1454,7 +1446,7 @@ export function OAuthLoginPanel({ active, onComplete }: { active: boolean; onCom
           )}
           {(status === `error` || oauthError) && (
             <div className={`space-y-4`}>
-              <Alert variant={`warning`} className={`flex items-center justify-center gap-2 text-center`} data-testid={`oauth-error`}>
+              <Alert variant={`warning` as "default" | "destructive"} /* A0-D-Misc：bundle Alert 有 warning 变体（styles 202627），Settings.Alert 缺，已登记需要的 export */ className={`flex items-center justify-center gap-2 text-center`} data-testid={`oauth-error`}>
                 <AlertTriangleIcon className={`size-4`} />
                 <AlertDescription className={`text-center`}>{oauthError || error}</AlertDescription>
               </Alert>
@@ -1713,7 +1705,7 @@ export function SettingsLayer({
               isWindowsDesktop={isWindowsDesktop}
               isWebRemoteControl={isWebRemoteControl}
               windowsWindowControlsRightPaddingPx={windowsWindowControlsRightPaddingPx}
-              captionWorkspacePath={captionWorkspacePath}
+              captionWorkspacePath={captionWorkspacePath ?? undefined} // A0-D-Misc 类型收敛：SettingsView 侧为 string | undefined
               onBack={onBack}
               onCreateTask={onCreateTask}
               onOpenWorkspace={onOpenWorkspace}
@@ -1730,7 +1722,7 @@ export function SettingsLayer({
             isWindowsDesktop={isWindowsDesktop}
             isWebRemoteControl={isWebRemoteControl}
             windowsWindowControlsRightPaddingPx={windowsWindowControlsRightPaddingPx}
-            captionWorkspacePath={captionWorkspacePath}
+            captionWorkspacePath={captionWorkspacePath ?? undefined} // A0-D-Misc 类型收敛：SettingsView 侧为 string | undefined
             onBack={onBack}
             onCreateTask={onCreateTask}
             onOpenWorkspace={onOpenWorkspace}
@@ -1818,8 +1810,15 @@ export function RootWorkspaceContent(args: {
             <ServicesProvider services={args.workspaceScopedServices as ServicesBundle}>
               <ScopeBoundary scope={`workspace-app`} resetKeys={[resetKey]} variant={`panel`} className={`h-full`}>
                 <MemoizedWorkspaceShell
-                  services={args.workspaceScopedServices}
-                  baseFeedbackService={args.baseFeedbackService}
+                  {...({
+                    /* A0-D-Misc：bundle XJt 收这 4 个 prop（styles 186515–186552），重建版 WorkspaceShellProps 缺，
+                       已登记需要的 export（WorkspaceShell 域）；此处经投射传递保持 bundle 调用面 */
+                    baseFeedbackService: args.baseFeedbackService,
+                    remoteConnectionLogs: args.remoteConnectionLogs,
+                    remoteConnectionInProgress: args.remoteConnectionInProgress,
+                    onReturnToWorkspace: args.handleBackFromSettings,
+                  } as unknown as React.ComponentProps<typeof WorkspaceShell>)}
+                  services={args.workspaceScopedServices as unknown as React.ComponentProps<typeof WorkspaceShell>["services"]} /* A0-D-Misc 类型收敛：WorkspaceShell.WorkspaceServices 未导出；非空性由上层 ServicesProvider 同值保证 */
                   onConnectRemote={args.handleConnectRemote}
                   onSelectRemoteProject={args.handleSelectRemoteProject}
                   onCancelRemoteProject={args.handleCancelRemoteProject}
@@ -1830,19 +1829,16 @@ export function RootWorkspaceContent(args: {
                   reconnectingRemoteWorkspaceKeys={args.reconnectingRemoteWorkspaceKeys}
                   remoteWorkspaceErrorByWorkspaceKey={args.remoteWorkspaceErrorByWorkspaceKey}
                   reconnectingRemoteWorkspaceLogsByWorkspaceKey={args.reconnectingRemoteWorkspaceLogsByWorkspaceKey}
-                  remoteConnectionLogs={args.remoteConnectionLogs}
                   workspaceAbsPath={args.workspaceShellPath}
                   workspaceRemoteSessionId={args.workspaceRemoteSessionId}
-                  workspaceIdentity={args.workspaceIdentity}
+                  workspaceIdentity={args.workspaceIdentity ?? undefined} // A0-D-Misc 类型收敛：WorkspaceShell 侧为 string | undefined
                   onCreateTask={args.handleCreateTask}
                   onCreateConversationTask={args.handleCreateConversationTask}
                   onResolveConversationWorkspace={args.handleResolveConversationWorkspace}
                   onOpenWorkspace={args.handleOpenWorkspace}
                   onOpenFolderFromWorkspaceMenu={args.handleOpenFolderFromWorkspaceMenu}
                   onOpenRemoteWorkspace={args.handleOpenRemoteWorkspace}
-                  onCreateScratchWorkspace={args.handleCreateScratchWorkspace}
-                  remoteConnectionInProgress={args.remoteConnectionInProgress}
-                  onReturnToWorkspace={args.handleBackFromSettings}
+                  onCreateScratchWorkspace={args.handleCreateScratchWorkspace as unknown as () => void} /* A0-D-Misc：bundle 调用面为 (name) => Promise<string|null>，WorkspaceShell 侧 prop 类型缺参，已登记需要的 export */
                   allowOpenWorkspace={args.allowOpenWorkspace}
                   webRemoteControlWorkspaceSwitcher={args.webRemoteControlWorkspaceSwitcher}
                   initialWebRemoteControlMobileNavigationIntent={args.initialWebRemoteControlMobileNavigationIntent}
@@ -4936,7 +4932,8 @@ export function WelcomeGate({
             edgeToEdge={true}
             showOverlay={false}
           />
-          <AppDialogHost />
+          {/* A0-D-Misc：bundle P9 的 children 可省（206992），Modals.AppDialogHost 类型将 children 设为必填，已登记需要的 export；此处显式 {null} 保持无子节点语义 */}
+          <AppDialogHost>{null}</AppDialogHost>
         </IntlProviderShell>
       </div>
     )

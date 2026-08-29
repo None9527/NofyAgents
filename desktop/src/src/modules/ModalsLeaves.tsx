@@ -74,19 +74,15 @@
 
 import * as React from "react";
 import { useSettingsStore } from './stores-core';
+import { useZCodeIntl as useIntlContext } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
+import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
+ *    ── A0-D 接线：cn / useIntlContext declare 已删除，canonical = UtilsCn.tsx /
+ *       I18n.tsx（useZCodeIntl），经文件头真实 import 消费；本地 IntlShape 脚手架
+ *       随删除（ZCodeIntlContextValue.intl: ZCodeIntl 形状吻合）。 ──
  * ==========================================================================*/
-
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
-/** 自研 i18n（原 G，IntlProvider chunk） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** 设置 store（原 ko，stores-core.tsx）：主题字段 */
 /** 原 xo（1103，stores-core 域）：system 主题的暗色解析 */

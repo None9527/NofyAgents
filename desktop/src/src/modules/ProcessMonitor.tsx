@@ -54,6 +54,7 @@
  */
 
 import * as React from "react";
+import * as ReactDOMClient from 'react-dom/client'; // 原 i（imeComposition 的 P 导出）：react-dom/client 模块（A0-D-Misc 接线）
 
 /* ============================================================================
  * 0. 外部依赖接口（跨 chunk，declare 挂接）
@@ -71,10 +72,7 @@ declare function applyUiFontSizeCssVariable(fontSizePx: number): void;
  *  （缺省 14，clamp 12–20）。 */
 declare function readStoredUiFontSizePx(): number;
 
-/** 原 i（imeComposition 的 P 导出）：react-dom/client 模块。 */
-declare const ReactDOMClient: {
-  createRoot(container: Element): { render(node: React.ReactNode): void };
-};
+
 
 /** 宿主进程监控桥（preload 注入；不可用时为 undefined）。 */
 interface ProcessTreeNode {

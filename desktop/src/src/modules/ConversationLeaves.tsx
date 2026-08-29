@@ -106,26 +106,42 @@
  */
 
 import * as React from "react";
-import { ToolCallBlock } from './Conversation';
-import { FileOpenWithMenu } from './FileRewindDialogDeep';
-import { MarkdownRenderer, baseName, joinWorkspacePath } from './MarkdownIntegration';
+import { ToolCallBlock, ToolLayout } from './Conversation'; // +ToolLayout（A0-D 接线：原 lQ declare → Conversation §4.1 canonical 导出）
+import { MarkdownRenderer, baseName, joinWorkspacePath, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
 import { logger } from './SkillStore';
-import { useWorkspaceServices } from './services';
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
+import { Button } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）
+import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
+import { useServices } from './services'; // 原 eSt 内 fs()（bundle 117331）= context 面 useServices（A0-D 裁决：基线误名 useWorkspaceServices）
+
+/* ── tombstone（A0-D）：FileOpenWithMenu（原 v_t，110427 / 94447）的跨文件 import
+ *    已回退为下方 declare——属主 FileRewindDialogDeep.tsx 本地定义未导出（全文件
+ *    0 导出），待属主补 export 后换真实 import（需要的 export 已登记）。 ── */
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
+ *    ── A0-D 接线：cn / useIntlContext / Button / ToolLayout declare 已删除，
+ *       canonical = UtilsCn / I18n（useZCodeIntl）/ button / Conversation §4.1，
+ *       经文件头真实 import 消费；本地 IntlShape/ButtonProps 脚手架随删除。 ──
  * ==========================================================================*/
 
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape; locale: string };
-interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
-  variant?: "default" | "ghost" | "outline" | "destructive" | "link" | string;
-  size?: "default" | "sm" | "lg" | "xs" | "icon-sm" | "icon-xs" | string;
-}
-declare const Button: React.ForwardRefExoticComponent<ButtonProps & React.RefAttributes<HTMLButtonElement>>;
+/** 原 v_t（110427 / 94447，FileRewindDialogDeep 未导出）：文件「打开方式」拆分按钮
+ * （调用面形状：website 分支仅 type+url；previewSource 容宽） */
+declare const FileOpenWithMenu: React.FC<{
+  target: {
+    type: `file` | `website`;
+    path?: string;
+    title?: string;
+    label?: string;
+    url?: string;
+    previewSource?: unknown;
+  };
+  onOpenBrowserUrl?: (url: string) => void;
+  onOpenFileLink?: (path: string) => void;
+  onOpenCodeViewer?: (target: unknown) => void;
+  hideOpenWithMenu?: boolean;
+  stopPropagation?: boolean;
+}>;
 
 /** 图标 */
 declare const IconPencil: React.FC<React.SVGProps<SVGSVGElement>>; // Dv（edit）
@@ -147,9 +163,11 @@ declare const IconArrowUpRight: React.FC<React.SVGProps<SVGSVGElement>>; // C_�
 declare const IconExternal: React.FC<React.SVGProps<SVGSVGElement>>; // q_（node-repl 打开）
 declare const IconLoader: React.FC<React.SVGProps<SVGSVGElement>>; // fv
 
-/* ---- 会话流共享类型（与 Conversation.tsx 同口径） ---- */
+/* ---- 会话流共享类型（与 Conversation.tsx 同口径）
+ * A0-D 类型收敛：ToolCall/ToolCallNode/ToolDisplayModel/FileSummary/OpenCodeViewerFn
+ * 为会话族 canonical 形状，导出供 Conversation/ConversationOverlays import。 ---- */
 
-interface ToolCall {
+export interface ToolCall {
   toolId: string;
   toolName: string;
   kind: string;
@@ -165,17 +183,18 @@ interface ToolCall {
   snapshotRefs?: unknown[];
   [key: string]: unknown;
 }
-interface ToolCallNode {
+export interface ToolCallNode {
   toolCall: ToolCall;
   childToolCalls?: ToolCallNode[];
   [key: string]: unknown;
 }
-interface CodePreviewSettings { [key: string]: unknown }
-interface ToolDisplayModel {
+/* ── A0-D：本地 CodePreviewSettings 脚手架删除，canonical = MarkdownIntegration
+ *    导出（经文件头 type import 消费；形状为五字段严格型）。 ── */
+export interface ToolDisplayModel {
   inlinePreview: { type: string; [key: string]: unknown };
   [key: string]: unknown;
 }
-type OpenCodeViewerFn = (target: unknown) => void;
+export type OpenCodeViewerFn = (target: unknown) => void;
 
 export interface ToolCallViewProps {
   toolCallNode: ToolCallNode;
@@ -206,7 +225,7 @@ export interface ToolCallViewProps {
   forceOpen?: boolean;
 }
 
-interface FileSummary {
+export interface FileSummary {
   path: string;
   fileName: string;
   filePath?: string | null;
@@ -217,41 +236,10 @@ interface FileSummary {
   [key: string]: unknown;
 }
 
-/** ToolLayout（原 lQ，Conversation.tsx §4 已还原） */
-declare const ToolLayout: React.FC<{
-  toolId: string;
-  icon: React.ReactNode;
-  showIcon?: boolean;
-  canToggle?: boolean;
-  forceOpen?: boolean;
-  autoOpen?: boolean;
-  kindLabel: React.ReactNode;
-  expandedKindLabel?: React.ReactNode;
-  kindDetail?: React.ReactNode;
-  expandedKindDetail?: React.ReactNode;
-  sourceLabel?: string;
-  primaryText: React.ReactNode;
-  expandedPrimaryText?: React.ReactNode;
-  secondaryText?: React.ReactNode;
-  expandedSecondaryText?: React.ReactNode;
-  diffCount?: React.ReactNode;
-  hideDiffCountWhenOpen?: boolean;
-  hideSecondaryTextWhenOpen?: boolean;
-  statusLabel?: React.ReactNode;
-  statusTooltip?: string;
-  showFailureStatus?: boolean;
-  isRunning: boolean;
-  title?: string | null;
-  expandedTitle?: string | null;
-  summaryAction?: { ariaLabel: string; [key: string]: unknown };
-  summaryContentSeparator?: string;
-  animateSummaryContent?: boolean;
-  disableSummaryContentAnimation?: boolean;
-  summaryContentKey?: string;
-  autoCollapseOnComplete?: boolean;
-  content?: React.ReactNode;
-  renderContent?: () => React.ReactNode;
-}>;
+/* ── tombstone（A0-D）：ToolLayout declare（原 lQ）已删除，canonical = Conversation.tsx
+ *    §4.1 ToolLayoutImpl（memo 导出），经文件头真实 import 消费；props 面以
+ *    Conversation ToolLayoutProps 为准（summaryAction 含 onActivate，1412 消费点
+ *    以类型垫片接通）。 ── */
 /** ToolCallBlock（原 K$，Conversation.tsx §4 已还原） */
 /** 展开区通用内容（原 oQ：输入/输出/错误/子工具列表） */
 declare const ToolCallExpandedContent: React.FC<{
@@ -533,7 +521,7 @@ export const EditInlineDiffContent = React.memo(function EditInlineDiffContent({
 }) {
   const lines = React.useMemo(() => parsePatchLines(preview.patch), [preview.patch]);
   const language = React.useMemo(() => inferPatchLanguage(preview.path ?? preview.title, preview.patch), [preview.patch, preview.path, preview.title]);
-  const highlightTheme = React.useMemo(() => resolveHighlightTheme(theme, codePreviewSettings ?? {}), [codePreviewSettings, theme]);
+  const highlightTheme = React.useMemo(() => resolveHighlightTheme(theme, codePreviewSettings ?? ({} as CodePreviewSettings)), [codePreviewSettings, theme]); /* A0-D 类型垫片：缺省空对象 */
   return (
     <div className="space-y-3">
       <div className="mb-2 max-h-60 overflow-auto rounded-xl border border-border bg-card" data-inline-diff-preview={true}>
@@ -1353,7 +1341,11 @@ export function AgentToolView(props: ToolCallViewProps) {
   const summaryAction = React.useMemo(
     () =>
       props.agentSummaryAction
-        ? { ...props.agentSummaryAction, ariaLabel: fallbackMessage(intl, "chat.toolCall.agent.openInSidePane", "Open on the right") }
+        ? ({ ...props.agentSummaryAction, ariaLabel: fallbackMessage(intl, "chat.toolCall.agent.openInSidePane", "Open on the right") } as {
+            testId?: string;
+            ariaLabel: string;
+            onActivate: () => void;
+          }) /* A0-D 类型垫片：agentSummaryAction 运行时含 onActivate（Conversation 透传 unknown） */
         : undefined,
     [props.agentSummaryAction, intl],
   );
@@ -2127,7 +2119,7 @@ export function SessionContextToolView(props: ToolCallViewProps) {
               theme={props.theme}
               codePreviewSettings={props.codePreviewSettings}
               onOpenCodeViewer={props.onOpenCodeViewer}
-              onOpenFileLink={props.onOpenFileLink}
+              onOpenFileLink={props.onOpenFileLink as ((link: FileLinkModel) => void) | undefined} /* A0-D 类型垫片：链路按 path 建模，MI 边界收 FileLinkModel（零运行时影响） */
               onOpenExternalUrl={props.onOpenBrowserUrl}
             >
               {displayedResult}
@@ -2328,7 +2320,7 @@ export function SwitchModeToolView(props: ToolCallViewProps) {
                 variant="ghost"
                 size="icon-sm"
                 aria-label={intl.formatMessage({ id: isCopied ? "planTool.panel.copied" : "planTool.panel.copy" })}
-                onClick={(event) => {
+                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                   event.stopPropagation();
                   copyMarkdown();
                 }}
@@ -2345,7 +2337,7 @@ export function SwitchModeToolView(props: ToolCallViewProps) {
                 theme={props.theme}
                 codePreviewSettings={props.codePreviewSettings}
                 onOpenCodeViewer={props.onOpenCodeViewer}
-                onOpenFileLink={props.onOpenFileLink}
+                onOpenFileLink={props.onOpenFileLink as ((link: FileLinkModel) => void) | undefined} /* A0-D 类型垫片：同 §sessionContext 处 */
                 onOpenExternalUrl={props.onOpenBrowserUrl}
               >
                 {markdown}
@@ -2356,7 +2348,7 @@ export function SwitchModeToolView(props: ToolCallViewProps) {
               variant="default"
               size="lg"
               className="absolute bottom-6 left-1/2 h-10 -translate-x-1/2 rounded-full !pr-4.5 pl-6 shadow-xs"
-              onClick={(event) => {
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 event.stopPropagation();
                 openDetail();
               }}
@@ -2738,7 +2730,7 @@ function resolveReferencePath(workspacePath: string | undefined, reference: stri
   if (relative) return relative.path;
   const cleaned = stripTrailingPunctuation(reference);
   if (!cleaned || cleaned.startsWith("http://") || cleaned.startsWith("https://")) return null;
-  if (!cleaned.includes("/") && !cleaned.includes("\\")) return joinWorkspacePath(workspacePath, cleaned);
+  if (!cleaned.includes("/") && !cleaned.includes("\\")) return joinWorkspacePath(workspacePath as string, cleaned); /* A0-D 类型垫片：bundle 同参（undefined 时原样抛出） */
   return resolveWorkspaceRelativePath(workspacePath, `./${cleaned}`)?.path ?? null;
 }
 /** 原 c1（94007）：卡片 → 本地路径（website 用 filePath/file:// 解析） */
@@ -4045,7 +4037,7 @@ export function useWorkspaceInteractionNotifier(args: {
   platform: PlatformService | null;
   formatMessage: FormatMessageFn;
 }): void {
-  const services = useWorkspaceServices();
+  const services = useServices(); // 原 fs()（bundle eSt 117331）：context 面，零参
   const workspaceIdentity = trimToUndefined(args.workspaceIdentity);
   const endpointKey = trimToUndefined(args.endpointKey);
   const workspaceKey = workspaceIdentity ?? args.workspacePath;

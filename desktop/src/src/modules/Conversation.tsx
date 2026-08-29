@@ -98,31 +98,89 @@
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent } from './ConversationLeaves';
+import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
-import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep';
-import { FileRewindDialog, countContextAttachments } from './GitReview';
+import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）
 import { OffPeakNewTaskBanner } from './Home';
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
-import { MarkdownRenderer } from './MarkdownIntegration';
+import { MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
 import { Badge } from './PaymentDeep';
 import { logger } from './SkillStore';
-import { ConversationSummaryAside, buildSummaryPanelModel, resolveSummaryPanelVariant } from './TopBar';
-import { BillingDiscountBadge } from './UsageDeep';
-import { PRIMARY_PANE_ID, useSessionRouterStore, useSplitLayoutStore, workspaceScopeKey } from './stores-session';
+import { ConversationSummaryAside } from './TopBar';
+import { BillingDiscountBadge, type BillingDiscountConfig } from './UsageDeep'; // +BillingDiscountConfig（A0-D 类型收敛）
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u 导出 = X InfoTooltip，title/description/shortcut 面吻合）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
+import { Button } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）
+import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
+import { PRIMARY_PANE_ID, useSessionRouterStore, useSplitLayoutStore, workspaceScopeKey, type SessionBinding, type WorkspaceScope } from './stores-session'; // +SessionBinding/WorkspaceScope（A0-D 类型收敛）
+
+/* ── tombstone（A0-D）：FileOpenWithMenu/buildFilePreviewSource（原 v_t/__t，
+ *    FileRewindDialogDeep 110427/110410）与 buildSummaryPanelModel/resolveSummaryPanelVariant
+ *    （原 tlt/Uct，TopBar 98133/98016）的跨文件 import 已回退为 §0 declare——
+ *    属主本地定义未导出（需要的 export 已登记），待补 export 后换真实 import。 ── */
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
+ *    ── A0-D 接线：cn / useIntlContext / Button / Tooltip declare 已删除，
+ *       canonical = UtilsCn / I18n（useZCodeIntl）/ button / UsageStatsUiParts
+ *       （InfoTooltip），经文件头真实 import 消费；本地 IntlShape/ButtonProps
+ *       脚手架随删除。 ──
  * ==========================================================================*/
 
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
-/** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+/** 原 v_t（110427 / 94447，FileRewindDialogDeep 未导出）：文件「打开方式」拆分按钮（调用面形状） */
+declare const FileOpenWithMenu: React.FC<{
+  target: {
+    type: `file` | `website`;
+    path?: string;
+    title?: string;
+    label?: string;
+    url?: string;
+    previewSource?: unknown;
+  };
+  onOpenBrowserUrl?: (url: string) => void;
+  onOpenFileLink?: (path: string) => void;
+  onOpenCodeViewer?: (target: unknown) => void;
+  hideOpenWithMenu?: boolean;
+  stopPropagation?: boolean;
+}>;
+/** 原 __t（110410 / 94426，FileRewindDialogDeep 未导出）：构建文件预览源（代码查看器入参） */
+declare function buildFilePreviewSource(args: {
+  path: string;
+  relativePath: string;
+  workspacePath?: string;
+  workspaceIdentity?: string | null;
+  workspaceRemoteSessionId?: string | null;
+}): {
+  type: `file`;
+  title: string;
+  path: string;
+  workspacePath?: string;
+  workspaceIdentity?: string;
+  workspaceRemoteSessionId?: string;
+};
+/** 原 tlt（98133 / 85113，TopBar 未导出）：会话状态 → 摘要面板模型 */
+declare function buildSummaryPanelModel(args: {
+  gitSummary: GitSummary;
+  gitDirtyFileCount: number;
+  gitWorktreeChangeSummary?: unknown;
+  goal?: SummaryGoal | null;
+  sessionPlans?: unknown;
+  workspacePath: string;
+  plan?: unknown;
+  backgroundWorks?: BackgroundWork[];
+  runningSubagents?: RunningSubagent[];
+}): {
+  git: GitSummary | null;
+  goal: SummaryGoal | null;
+  sessionPlans: unknown;
+  plan: unknown;
+  runningWorks: BackgroundWork[];
+  runningBashWorks: BackgroundWork[];
+  runningSubagentWorks: RunningSubagent[];
+  hasContent: boolean;
+};
+/** 原 Uct（98016 / 84991，TopBar 未导出）：变体解析（override 优先，缺省 auto） */
+declare function resolveSummaryPanelVariant(args: { variantOverride: SummaryPanelVariant | null }): SummaryPanelVariant;
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
@@ -147,25 +205,9 @@ declare function trackEvent(
   source: string,
 ): void;
 
-/* --- UI 原语（button / usageStatsUiParts / imeComposition chunk） --- */
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
-  size?: "xs" | "sm" | "default" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-md" | "icon-lg";
-  "data-icon"?: string;
-}
-declare const Button: React.ForwardRefExoticComponent<ButtonProps & React.RefAttributes<HTMLButtonElement>>;
-
-/** Tooltip：title + 可选描述/快捷键（原 Ia，usageStatsUiParts 的 u 导出） */
-declare const Tooltip: React.FC<{
-  title: string;
-  description?: string;
-  shortcut?: string;
-  side?: "top" | "bottom" | "left" | "right";
-  align?: "start" | "center" | "end";
-  className?: string;
-  children: React.ReactNode;
-}>;
+/* --- UI 原语（button / usageStatsUiParts / imeComposition chunk） ---
+ * ── tombstone（A0-D）：Button（原 t，button-laUijeDG）与 Tooltip（原 Ia = usageStatsUiParts
+ *    u 导出 X InfoTooltip）declare 已删除，经文件头真实 import 消费。 ── */
 
 /** Popover 原语（原 Na/Oa/Ma/ka，usageStatsUiParts 导出） */
 
@@ -373,24 +415,9 @@ interface AttachmentRef {
   bytes: number;
 }
 
-/** 工具调用（规范化后，原 u1 js 110158 / jsx 94198 的产物） */
-interface ToolCall {
-  toolId: string;
-  toolName?: string;
-  kind?: string;
-  title?: string;
-  status: "input-streaming" | "input-available" | "output-available" | "output-error" | "completed" | "failed" | string;
-  input?: unknown;
-  output?: unknown;
-  error?: string;
-  raw?: unknown;
-  parentToolUseId?: string | null;
-  snapshotRefs?: unknown[];
-}
-interface ToolCallNode {
-  toolCall: ToolCall;
-  childToolCalls: ToolCallNode[];
-}
+/* ── tombstone（A0-D 类型收敛）：本地 ToolCall/ToolCallNode 接口已删除，
+ *    canonical = ConversationLeaves 导出（原 u1 归一产物同口径），经文件头
+ *    type import 消费；parentToolUseId 等扩展字段经索引签名访问。 ── */
 
 /** 工具分类（原 og，js 23084 / jsx 19826；family 枚举按 Wht 分派归纳） */
 type ToolFamily =
@@ -414,11 +441,9 @@ type ToolFamily =
   | "fallback";
 declare function classifyToolCall(toolCall: { toolName?: string; kind?: string }): { family: ToolFamily };
 
-/** Markdown 渲染器（原 cj，F19 族 jsx 46461，memo） */
-type OpenCodeViewerFn = (request: { path?: string; source?: unknown; [k: string]: unknown }) => void;
-interface CodePreviewSettings {
-  [key: string]: unknown;
-}
+/* ── tombstone（A0-D 类型收敛）：本地 OpenCodeViewerFn/CodePreviewSettings 已删除，
+ *    canonical = ConversationLeaves（OpenCodeViewerFn）/ MarkdownIntegration
+ *    （CodePreviewSettings 五字段严格型），经文件头 type import 消费。 ── */
 
 /** 摘要面板（右 aside，原 Flt/Ilt，已随 TopBar 族抽取；此处仅接口） */
 interface GitSummary {
@@ -426,6 +451,35 @@ interface GitSummary {
   isRepository: boolean;
   branchName: string;
   headRefType: "branch" | "detached" | string;
+}
+
+/* ── A0-D：TopBar 未导出类型的本地镜像（与 TopBar 2719–2742 逐字段同形；
+ *    待 TopBar 补 export 后改 type import，需要的 export 已登记）。 ── */
+type SummaryPanelVariant = "mini" | "panel" | "auto";
+interface BackgroundWork {
+  workId: string;
+  kind: "bash" | "subagent";
+  status: "running" | string;
+  title?: string;
+  childSessionId?: string;
+  cancellable?: boolean;
+  blocked?: boolean;
+  startedAt?: number;
+}
+interface RunningSubagent {
+  agentId?: string;
+  childSessionId: string;
+  controlWorkId?: string;
+  subagentType?: string;
+  title?: string;
+  status: string;
+  startedAt?: number;
+  cancellable?: boolean;
+}
+interface SummaryGoal {
+  objective: string;
+  status: string;
+  [key: string]: unknown;
 }
 
 /** Home 草稿头（原 hit，memo 名 git；F02 族 jsx 78144；Composer 接线在此） */
@@ -555,7 +609,7 @@ function SessionQuotaBanner({
 }: {
   state: QuotaBannerState;
   billingDiscountActive: boolean | null;
-  billingDiscountConfig: unknown;
+  billingDiscountConfig: BillingDiscountConfig | null;
   upgradeActionLabelId?: string;
   onUpgrade?: () => void;
   onDismiss?: () => void;
@@ -586,7 +640,7 @@ function SessionQuotaBanner({
             <Button type="button" size="sm" className="gap-1.5 rounded-full" onClick={onUpgrade}>
               <IconZap className="size-3.5" />
               {intl.formatMessage({ id: upgradeActionLabelId })}
-              {showDiscount ? <BillingDiscountBadge config={billingDiscountConfig} iconVisible={false} variant={`surface`} /> : null}
+              {showDiscount ? <BillingDiscountBadge config={billingDiscountConfig ?? undefined} iconVisible={false} variant={`surface`} /> : null}
             </Button>
             {showDiscount ? <BillingDiscountNote config={billingDiscountConfig} /> : null}
           </div>
@@ -1012,21 +1066,12 @@ function resolveInlinePreview(
   return { type: `none` };
 }
 
-/** 工具显示模型（原 Glt js 99696 / jsx 86085 的产物；Wlt 规则表 js 99593） */
-interface ToolDisplayModel {
-  inlinePreview: { type: "patch" | "image" | "text" | "none"; source?: unknown };
-  planResult?: unknown;
-  viewerSource?: unknown;
-  viewerLabelId?: string;
-  showSummaryFileLink?: boolean;
-  showInput?: boolean;
-  showOutput?: boolean;
-  showKind?: boolean;
-}
+/* ── tombstone（A0-D 类型收敛）：本地 ToolDisplayModel 已删除，canonical =
+ *    ConversationLeaves 导出（索引签名容宽型），经文件头 type import 消费。 ── */
 declare function resolveToolDisplayModel(toolCall: ToolCall, workspacePath?: string): ToolDisplayModel;
 
 /** 原 _g（js 20269）：从工具输入/输出抽取文件摘要列表（供展开区渲染） */
-declare function extractRawFileSummaries(raw: unknown, toolCall: ToolCall): unknown[];
+declare function extractRawFileSummaries(raw: unknown, toolCall: ToolCall): FileSummary[];
 
 /** 原 qZ（js 98044 / jsx 85024）：ExitPlanMode 结果 → markdown（供复制文本合并） */
 declare function buildPlanResultMarkdown(toolCall: ToolCall, fallback: string): { markdown: string };
@@ -1399,7 +1444,7 @@ function ToolLayoutImpl(props: ToolLayoutProps) {
                     variant="ghost"
                     size="icon-md"
                     className="shrink-0"
-                    onClick={(event) => {
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                       event.preventDefault();
                       event.stopPropagation();
                       copyStatusTooltip();
@@ -1801,39 +1846,10 @@ function isAgentToolCall(toolCall: ToolCall): boolean {
   return classifyToolCall(toolCall).family === `agent`;
 }
 
-/** ToolCallBlock 视图上下文（原 Ght 内 useMemo 组装的 I 对象） */
-interface ToolCallViewProps {
-  toolCallNode: ToolCallNode;
-  workspacePath?: string;
-  theme?: string;
-  codePreviewSettings?: CodePreviewSettings;
-  displayModel: ToolDisplayModel;
-  viewerSource: unknown;
-  rawFileSummaries: unknown[];
-  isRunning: boolean;
-  statusLabel: string;
-  sourceLabel?: string;
-  errorText?: string;
-  childToolList: React.ReactNode;
-  showIcon: boolean;
-  showTodoToolCalls: boolean;
-  disableSummaryContentAnimation: boolean;
-  agentSummaryAction?: unknown;
-  authoritativeAgentType?: string;
-  onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (path: string) => void;
-  onOpenBrowserUrl?: (url: string) => void;
-  onOpenAutomationsMain?: () => void;
-  onOpenPlanDetail?: (plan: unknown) => void;
-  onLoadFullToolCallFields?: (toolId: string) => void;
-  /** permission 覆盖层复用工具视图时的种类标签覆盖（原 kindLabelOverride） */
-  kindLabelOverride?: React.ReactNode;
-  canToggle?: boolean;
-  forceOpen?: boolean;
-}
-
-/* 各工具视图组件（§4.6 登记表给出全部 16 个的混淆名/行号；此处声明接口） */
-declare const ShellToolView: React.FC<ToolCallViewProps>; // 实现见 §4.5（原 ept 全量还原）
+/* ── tombstone（A0-D 类型收敛）：本地 ToolCallViewProps（原 Ght I 对象）已删除，
+ *    canonical = ConversationLeaves 导出，经文件头 type import 消费；
+ *    ShellToolView declare 一并删除——本文件 §4.5 ShellToolViewImpl 即 canonical
+ *    实体（尾部符号表以 ShellToolView 别名导出），分派点直接引用实现。 ── */
 declare function isAutomationToolCall(props: ToolCallViewProps): boolean; // Vmt (107448 / 92190)
 
 /**
@@ -1872,7 +1888,7 @@ function resolveToolCallView(props: ToolCallViewProps): React.FC<ToolCallViewPro
     case `search`:
       return SearchToolView;
     case `shell`:
-      return ShellToolView;
+      return ShellToolViewImpl; // A0-D：原 ShellToolView declare 已删，直接引用 §4.5 实现
     case `goal`:
       return GoalToolView;
     default:
@@ -1923,18 +1939,25 @@ function ToolCallBlockImpl({
   onOpenCodeViewer?: OpenCodeViewerFn;
   onOpenFileLink?: (path: string) => void;
   onOpenBrowserUrl?: (url: string) => void;
-  onOpenAutomationsMain?: () => void;
+  onOpenAutomationsMain?: (automationId: string) => void; // A0-D 类型收敛：与 Leaves ToolCallViewProps 同口径（bundle 传 automationId）
   onOpenPlanDetail?: (plan: unknown) => void;
   onLoadFullToolCallFields?: (toolId: string) => void;
   suppressSourceLabel?: boolean;
   showTodoToolCalls?: boolean;
   disableSummaryContentAnimation?: boolean;
-  agentSummaryAction?: unknown;
+  agentSummaryAction?: { [key: string]: unknown; ariaLabel?: string };
   authoritativeAgentType?: string;
   streamingEntranceActive?: boolean;
   streamingEntranceKeyPrefix?: string;
+  /* A0-D：bundle 递归调用面透传的 I 对象冗余字段（实现内部自行重算，接收即忽略） */
+  displayModel?: ToolDisplayModel;
+  rawFileSummaries?: FileSummary[];
+  isRunning?: boolean;
+  statusLabel?: string;
+  childToolList?: React.ReactNode;
+  viewerSource?: unknown;
 }) {
-  const { toolCall, childToolCalls } = toolCallNode;
+  const { toolCall, childToolCalls = [] } = toolCallNode; // A0-D：Leaves ToolCallNode 的 childToolCalls 可选，缺省空数组
   const { intl } = useIntlContext();
   const entranceKey = `${streamingEntranceKeyPrefix}:${toolCall.toolId}`;
   const [entranceActive, setEntranceActive] = React.useState(() => shouldPlayStreamingEntrance(entranceKey, streamingEntranceActive));
@@ -2253,10 +2276,9 @@ interface FileChangeDetail {
   deletions: number;
   patches: unknown[];
 }
-interface FileRewindPreview {
-  canApply: boolean;
-  [key: string]: unknown;
-}
+/* ── tombstone（A0-D 类型收敛）：本地 FileRewindPreview 已删除，canonical =
+ *    GitReview 导出（safeFiles/unsafeFiles/ignoredFiles/canApply），经文件头
+ *    type import 消费。 ── */
 
 /* --- 5.1 行锚点与复制（原 y1/lvt，jsx 95440/95447） --- */
 
@@ -3038,7 +3060,7 @@ const UserQueryRow = React.memo(function UserQueryRow({
         </div>
         {visibleContent ? (
           <UserInputCollapsibleText contentText={visibleContent} rowId={row.rowId}>
-            <UserInputRichText text={visibleContent} attachments={row.attachments ?? []} contextAttachmentCount={countContextAttachments(parsed)} />
+            <UserInputRichText text={visibleContent} attachments={row.attachments ?? []} contextAttachmentCount={countContextAttachments(parsed as AttachmentContextBundle)} />
           </UserInputCollapsibleText>
         ) : null}
       </div>
@@ -3239,7 +3261,7 @@ const AssistantMessageRow = React.memo(function AssistantMessageRow({
   hideActions?: boolean;
   deferActions?: boolean;
   copyText?: string;
-  previewCards?: unknown[];
+  previewCards?: PreviewCardModel[];
 }) {
   const streaming = row.state === `streaming`;
   const cards = previewCards && previewCards.length > 0 ? previewCards : null;
@@ -3254,7 +3276,7 @@ const AssistantMessageRow = React.memo(function AssistantMessageRow({
           theme={context.theme}
           codePreviewSettings={context.codePreviewSettings}
           onOpenCodeViewer={context.onOpenCodeViewer}
-          onOpenFileLink={context.onOpenFileLink}
+          onOpenFileLink={context.onOpenFileLink as ((link: FileLinkModel) => void) | undefined}
           onOpenExternalUrl={context.onOpenBrowserUrl}
         >
           {row.text}
@@ -3604,7 +3626,7 @@ interface RowRendererProps {
   hideAssistantActions?: boolean;
   deferAssistantActions?: boolean;
   assistantCopyText?: string;
-  assistantPreviewCards?: unknown[];
+  assistantPreviewCards?: PreviewCardModel[];
 }
 
 /**
@@ -3802,11 +3824,8 @@ function RowSegmentList({ rows, context }: { rows: ConversationRow[]; context: R
 
 /* --- 5.12 自动化卡（原 Mvt/Nvt/Pvt/Fvt/fgt，jsx 93676–96238） --- */
 
-interface AutomationCardModel {
-  rowId: number;
-  toolCallId: string;
-  automation: { automationId: string; [key: string]: unknown };
-}
+/* ── tombstone（A0-D 类型收敛）：本地 AutomationCardModel 已删除，canonical =
+ *    ConversationLeaves 导出（automation: AutomationModel），经文件头 type import 消费。 ── */
 /** 原 Mvt（jsx 96194）：从成功工具调用里收集自动化卡（CronDelete 会移除对应卡） */
 /** 原 fgt（jsx 93676）：单张自动化卡（automations.card.*） */
 
@@ -4154,11 +4173,11 @@ function TurnFileChangesSummary({ header, context }: { header: TurnHeaderRowMode
                           title={intl.formatMessage({ id: `chat.changeSummary.review` })}
                           disabled={!canReview}
                           className="h-7 gap-1.5 rounded-lg bg-input px-2 text-ui-base"
-                          onClick={(event) => {
+                          onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                             event.stopPropagation();
                             openFileChangeInViewer(item, context);
                           }}
-                          onPointerDown={(event) => event.stopPropagation()}
+                          onPointerDown={(event: React.MouseEvent<HTMLButtonElement>) => event.stopPropagation()}
                         >
                           <span>{intl.formatMessage({ id: `chat.changeSummary.review` })}</span>
                         </Button>
@@ -4255,7 +4274,7 @@ declare function buildAssistantPreviewCards(args: {
   fileChangesTarget: { rowId: number; entityId: string } | null;
   fileChangesState?: string;
   fetchFileChanges?: RowRenderContext["fetchFileChanges"];
-}): unknown[] | undefined;
+}): PreviewCardModel[] | undefined;
 
 /**
  * 工作段头（原 Ivt，js 112890 / jsx 96238）：「工作中 N 秒 / 工作了 N 秒」
@@ -4316,7 +4335,7 @@ function WorkSegmentView({
   onEdit?: RowRendererProps["onEdit"];
   editWorkspaceRewindAvailability?: RowRendererProps["editWorkspaceRewindAvailability"];
   assistantCopyText?: string;
-  assistantPreviewCards?: unknown[];
+  assistantPreviewCards?: PreviewCardModel[];
   canForkLatestAssistant: boolean;
   canRetryLatestAssistant: boolean;
 }) {
@@ -4598,7 +4617,15 @@ function TurnSectionImpl({
   );
   const latest = unit.latestAssistantTextRow;
   const copyText = React.useMemo(() => buildAssistantCopyText(unit), [unit.assistantTextRows, unit.assistantWorkRows, unit.latestAssistantTextRow]);
-  const automationCards = React.useMemo(() => (unit.isRunning ? [] : collectAutomationCards(unit.assistantWorkRows)), [unit.assistantWorkRows, unit.isRunning]);
+  const automationCards = React.useMemo(
+    () =>
+      unit.isRunning
+        ? []
+        : collectAutomationCards(
+            unit.assistantWorkRows as unknown as Array<{ kind: string; status: string; toolName: string; rowId: number; toolCallId: string; [key: string]: unknown }>,
+          ),
+    [unit.assistantWorkRows, unit.isRunning],
+  );
   const showTurnActions = !unit.timelineOnly && latest?.state === `complete` && copyText !== undefined;
   const canRetry = latest?.actions?.canRetry === true;
   const canFork = latest?.actions?.canFork === true;
@@ -7148,7 +7175,7 @@ interface ConversationPaneProps {
   gitWorktreeChangeSummary?: unknown;
   activeTaskChangeSummary?: unknown;
   summaryPanelVariantOverride?: string | null;
-  onSummaryPanelVariantOverrideChange?: (variant: "mini" | "panel" | "auto") => void;
+  onSummaryPanelVariantOverrideChange?: (variant: "mini" | "panel" | "auto" | null) => void;
   onRefreshGit?: () => void;
   onOpenGitReview?: () => void;
   onOpenBrowserUrl?: (url: string) => void;
@@ -7159,7 +7186,7 @@ interface ConversationPaneProps {
   onOpenSubagentDirectory?: () => void;
   onSyncSubagentSessionTabs?: (tabs: unknown) => void;
   onOpenSelectionSideChat?: (reference: unknown) => void;
-  onOpenPlanDetail?: (plan: unknown) => void;
+  onOpenPlanDetail?: (plan?: unknown) => void;
   conversationFindQuery?: string;
   conversationFindActiveIndex?: number;
   onConversationFindMatchStateChange?: (state: { matchCount: number; activeIndex: number }) => void;
@@ -7466,20 +7493,20 @@ function ConversationPane({
   const summaryModel = React.useMemo(
     () =>
       buildSummaryPanelModel({
-        workspacePath,
-        gitSummary,
-        gitDirtyFileCount,
+        workspacePath: workspacePath as string,
+        gitSummary: gitSummary as GitSummary,
+        gitDirtyFileCount: gitDirtyFileCount as number,
         gitWorktreeChangeSummary,
-        goal: selectionSideChat ? null : snapshot?.goal ?? null,
+        goal: (selectionSideChat ? null : snapshot?.goal ?? null) as SummaryGoal | null,
         sessionPlans: subscription.sessionPlans,
         plan: snapshot?.plan ?? null,
-        backgroundWorks: snapshot?.backgroundWorks ?? [],
-        runningSubagents: subagents.running,
+        backgroundWorks: (snapshot?.backgroundWorks ?? []) as BackgroundWork[],
+        runningSubagents: subagents.running as RunningSubagent[],
       }),
     [gitDirtyFileCount, gitSummary, gitWorktreeChangeSummary, snapshot?.backgroundWorks, snapshot?.goal, snapshot?.plan, subscription.sessionPlans, selectionSideChat, subagents.running, workspacePath],
   );
   const runningWorkCount = summaryModel.runningBashWorks.length + summaryModel.runningSubagentWorks.length;
-  const summaryVariant = resolveSummaryPanelVariant({ variantOverride: summaryPanelVariantOverride });
+  const summaryVariant = resolveSummaryPanelVariant({ variantOverride: summaryPanelVariantOverride as SummaryPanelVariant | null });
   const summaryPanelLayout: "none" | "inline" | "auto" =
     !isDraft && shouldShowSummaryPanel({ hasContent: summaryModel.hasContent, variant: summaryVariant })
       ? summaryVariant === `auto`
@@ -7671,23 +7698,23 @@ function ConversationPane({
       <div className="@container/conversation relative flex min-h-0 flex-1 flex-col">
         {isDraft ? null : (
           <ConversationSummaryAside
-            workspacePath={workspacePath}
+            workspacePath={workspacePath as string}
             workspaceIdentity={workspaceIdentity}
-            gitSummary={gitSummary}
-            gitDirtyFileCount={gitDirtyFileCount}
+            gitSummary={gitSummary as GitSummary}
+            gitDirtyFileCount={gitDirtyFileCount as number | undefined}
             gitWorktreeReviewSourceId={gitWorktreeReviewSourceId}
             gitWorktreeChangeSummary={gitWorktreeChangeSummary}
-            activeTaskChangeSummary={activeTaskChangeSummary}
-            goal={selectionSideChat ? null : snapshot?.goal ?? null}
+            activeTaskChangeSummary={activeTaskChangeSummary as string | null}
+            goal={(selectionSideChat ? null : snapshot?.goal ?? null) as SummaryGoal | null}
             sessionPlans={subscription.sessionPlans}
             plan={snapshot?.plan ?? null}
-            backgroundWorks={snapshot?.backgroundWorks ?? []}
-            runningSubagents={subagents.running}
+            backgroundWorks={(snapshot?.backgroundWorks ?? []) as BackgroundWork[]}
+            runningSubagents={subagents.running as RunningSubagent[]}
             endedSubagentCount={subagents.endedTotal}
             rootSessionId={rootSessionId ?? sessionId ?? undefined}
             parentSessionId={sessionId ?? undefined}
             layoutMode={summaryPanelLayout}
-            summaryPanelVariantOverride={summaryPanelVariantOverride}
+            summaryPanelVariantOverride={summaryPanelVariantOverride as SummaryPanelVariant | null}
             onVariantChange={(variant) => onSummaryPanelVariantOverrideChange?.(variant)}
             terminalSectionOpen={false}
             onTerminalSectionOpenChange={() => {}}
@@ -7817,7 +7844,8 @@ declare const SplitPaneHost: React.FC<{
   primaryBinding: SplitPaneBinding | null;
   shell: Record<string, unknown>;
   onFocusRequest: (paneId: string) => void;
-  onSplit?: (paneId: string, side: "right" | "down") => void;
+  /** bundle 122015/122163：内部 C/w 回调按 onSplit(paneId, `row`|`column`, workspaceScope) 调用（与 stores-session.splitPane 同签） */
+  onSplit?: (paneId: string, direction: "row" | "column", workspaceScope: WorkspaceScope) => void;
   onClosePane: (paneId: string) => void;
   onConfirmRestoredSession: (paneId: string) => void;
   onBindSession: (paneId: string, sessionId: string) => boolean;
@@ -7899,7 +7927,7 @@ function ConversationOrchestrator({
   gitWorktreeChangeSummary?: unknown;
   activeTaskChangeSummary?: unknown;
   summaryPanelVariantOverride?: string | null;
-  onSummaryPanelVariantOverrideChange?: (variant: "mini" | "panel" | "auto") => void;
+  onSummaryPanelVariantOverrideChange?: (variant: "mini" | "panel" | "auto" | null) => void;
   onRefreshGit?: () => void;
   onOpenGitReview?: () => void;
   onPaneActiveSessionChange?: (scope: unknown, sessionId: string) => void;
@@ -7911,7 +7939,7 @@ function ConversationOrchestrator({
   onOpenSubagentDirectory?: () => void;
   onSyncSubagentSessionTabs?: (tabs: unknown) => void;
   onOpenSelectionSideChat?: (reference: unknown) => void;
-  onOpenPlanDetail?: (plan: unknown) => void;
+  onOpenPlanDetail?: (plan?: unknown) => void;
   conversationFindQuery?: string;
   conversationFindActiveIndex?: number;
   onConversationFindMatchStateChange?: (state: { matchCount: number; activeIndex: number }) => void;
@@ -7945,7 +7973,7 @@ function ConversationOrchestrator({
     () =>
       compactForRemoteControl || activeGroup || !sessionId
         ? false
-        : Object.values(rootPanes).some((pane) => pane.sessionId === sessionId && workspaceScopeKey(pane.workspaceScope as { workspacePath?: string }) === shellWorkspaceKey),
+        : Object.values(rootPanes).some((pane) => pane.sessionId === sessionId && workspaceScopeKey(pane.workspaceScope as WorkspaceScope) === shellWorkspaceKey),
     [activeGroup, compactForRemoteControl, rootPanes, sessionId, shellWorkspaceKey],
   );
   const primarySessionId = sessionAlreadyBound ? null : sessionId;
@@ -8085,7 +8113,7 @@ function ConversationOrchestrator({
       }
       if (paneId === PRIMARY_PANE_ID) {
         const state = rootPanes;
-        if (Object.keys(state).length > 0 && primaryBinding && promotePaneLayoutToGroup(primaryBinding, state)) {
+        if (Object.keys(state).length > 0 && primaryBinding && promotePaneLayoutToGroup(primaryBinding as SessionBinding, useSplitLayoutStore.getState())) {
           resetToPrimaryPane();
           logger.info(`[v4-workbench] primary draft promoted to session group`, {
             createdSessionId: newSessionId,
@@ -8096,7 +8124,7 @@ function ConversationOrchestrator({
       }
       bindRootPaneSession(paneId, newSessionId);
       if (!sessionId) return false;
-      const promoted = primaryBinding ? promotePaneLayoutToGroup({ ...primaryBinding, sessionId }, rootPanes) : false;
+      const promoted = primaryBinding ? promotePaneLayoutToGroup({ ...primaryBinding, sessionId } as SessionBinding, useSplitLayoutStore.getState()) : false;
       if (promoted) resetToPrimaryPane();
       return promoted;
     },

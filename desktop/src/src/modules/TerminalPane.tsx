@@ -103,24 +103,21 @@
  */
 
 import * as React from "react";
-import { ContextMenuItem } from './LegacyDocEngineBModel';
+/* ── tombstone（A0-D-Misc）：原 `import { ContextMenuItem } from './LegacyDocEngineBModel'` 退回——
+ *    该处 ContextMenuItem 为数据接口（interface），非组件值；本处消费面为 radix
+ *    ContextMenu 条目组件（Sk，本 chunk 48825–48880），按 Lane-4 恢复 declare。 ── */
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './Settings';
 import { logger } from './SkillStore';
 import { ScopedErrorBoundary } from './WorkspaceShell';
 import { useTuiEditOpenRequest } from './stores-session';
+/* ── A0-D-Misc 接线：可用属主（前波成果） ── */
+import { cn } from './UtilsCn'; // 类名合并（原 Z，utils-CEEH0K_K.js）
+import { useZCodeIntl as useIntlContext } from './I18n'; // react-intl 风格 intl（原 G()，IntlProvider-C321H7m8.js）
+import { Button } from './button'; // 原 X：Button
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
-
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
-/** react-intl 风格 intl（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** 日志器（原 J） */
 
@@ -131,16 +128,6 @@ declare function uid(): string;
 declare function basename(path: string): string;
 
 /** D5c：TUI 编辑打开请求信箱消费钩子（实现见 stores-session.tsx TuiEditRequestStore） */
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  type: "button";
-  variant: "ghost" | "secondary" | "outline";
-  size: "default" | "icon-xs" | "icon-sm" | "icon-md";
-  title?: string;
-  "aria-label"?: string;
-  "data-testid"?: string;
-}
-declare const Button: React.FC<ButtonProps>;
 
 /** lucide 风格图标（原 kv/g/W_/bye） */
 declare const IconPlus: React.FC<{ className?: string }>;
@@ -154,6 +141,7 @@ declare const IconClipboardPaste: React.FC<{ className?: string }>;
 declare const ContextMenu: React.FC<{ children: React.ReactNode }>;
 declare const ContextMenuTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
 declare const ContextMenuContent: React.FC<{ className?: string; children: React.ReactNode }>;
+declare const ContextMenuItem: React.FC<{ onSelect?: () => void; children?: React.ReactNode }>;
 
 /** react-resizable-panels 封装（原 Z4/Q4，131934–131960） */
 interface ResizablePanelApi {
@@ -1483,7 +1471,7 @@ export function TerminalTabChip({
   onClose: (sessionId: string) => void;
 }) {
   return (
-    <TabsTrigger value={session.id} asChild>
+    <TabsTrigger value={session.id} {...({ asChild: true } as unknown as Partial<React.ComponentProps<typeof TabsTrigger>>)} /* A0-D-Misc：bundle TabsTrigger 为 radix 原语带 asChild，Settings.TabsTrigger 缺，已登记需要的 export */>
       <div
         data-active={isActive ? "" : void 0}
         data-state={isActive ? "active" : "inactive"}
@@ -1501,10 +1489,10 @@ export function TerminalTabChip({
           size="icon-xs"
           aria-label={closeLabel}
           className={cn("rounded-md", isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
-          onPointerDown={(e) => {
+          onPointerDown={(e: any) => {
             e.stopPropagation();
           }}
-          onClick={(e) => {
+          onClick={(e: any) => {
             e.preventDefault();
             e.stopPropagation();
             onClose(session.id);
@@ -1780,7 +1768,7 @@ export function TerminalDockPanel({
             <TabsContent
               key={session.id}
               value={session.id}
-              forceMount
+              {...({ forceMount: true } as unknown as Partial<React.ComponentProps<typeof TabsContent>>)} /* A0-D-Misc：bundle TabsContent 为 radix 原语带 forceMount，Settings.TabsContent 缺，已登记需要的 export */
               className="h-full min-h-0 flex-1 data-[state=inactive]:hidden"
             >
               <XtermTerminalPane

@@ -81,7 +81,10 @@
 // ----------------------------------------------------------------------------
 // 外部依赖挂接（行号在案，见上 §二；类型从宽）
 // ----------------------------------------------------------------------------
-import { $, O, P, Q, T, Z, x } from './SrcSharedB';
+import * as Q from 'react'; // React interop（chunk 996；B5-15 §6.1）
+import * as $ from 'react/jsx-runtime'; // jsx-runtime（chunk 1287；B5-15 §6.1）
+import { cn as Z } from './UtilsCn'; // cn 类名合并（chunk import 901；UtilsCn.tsx @117）
+import { Popover as T, PopoverAnchor as O, Input as P, PopoverContent as x } from './ImeComposition'; // chunk import 358/361/367/354（B5-15 §6.3）
 declare const Yb: any; // Command 封装 cmdk（chunk 32140）
 declare const Zb: any; // CommandList 封装（chunk 32196）
 declare const Qb: any; // CommandEmpty 封装（chunk 32206）
@@ -96,7 +99,7 @@ function suggestionMatchesQuery(e: any, t: any) {
     r = t.trim().toLowerCase();
   return r ? n.includes(r) : !0;
 }
-function SuggestionInput({
+export function SuggestionInput({
   containerClassName: e,
   suggestionWidth: t,
   label: n,
@@ -109,14 +112,14 @@ function SuggestionInput({
 }: any) {
   let [l, u] = (0, Q.useState)(!1),
     [d, f] = (0, Q.useState)(!1),
-    p = (0, Q.useRef)(null),
-    m = (0, Q.useRef)(null),
+    p = (0, Q.useRef)(null as HTMLDivElement | null),
+    m = (0, Q.useRef)(null as HTMLInputElement | null),
     h = (0, Q.useRef)(!1),
     g = (0, Q.useRef)(0),
     _ = (0, Q.useRef)(!1),
     v = (0, Q.useMemo)(() => (d ? a.filter((e: any) => suggestionMatchesQuery(e, i)) : a), [d, a, i]),
     y = (0, Q.useCallback)(
-      (e: any) => {
+      (e?: any) => {
         Date.now() < g.current ||
           a.length === 0 ||
           (e?.resetFilter !== !1 && f(!1), (h.current = !0), u(!0));

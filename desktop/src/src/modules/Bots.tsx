@@ -71,34 +71,51 @@
  * ============================================================================
  */
 import * as React from "react";
-import { workspaceKeyOf } from './CodeViewer';
+/* ── tombstone（A0-S2d）：原 `import { workspaceKeyOf } from './CodeViewer'` 已删除——
+ *    唯一消费点在 §6 重复转录段（149473–149599，canonical 在 WebRemote.tsx），
+ *    随段删除后无引用（该接线本身即错配：签名 (string, string?) 与调用面不符）。 ── */
 import { Spinner } from './Home';
 import { Input, isComposingText, toast } from './ImeComposition';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SettingsRow, SettingsSectionCard, Switch } from './Settings';
 import { logger } from './SkillStore';
 import { useBaseServices } from './services';
+/* ── A0-S2d 接线：src-HCld2afU 跨 chunk 导入（别名经 styles 617–780 导入块核验）；混淆名注释随迁 ── */
+import {
+  isFeishuOrLark as isFeishuFamilyProvider, // src-HCld2afU.js：`ns as yi` —— provider 属飞书系（feishu|lark）
+  availableReplyModesForProvider as replyModeIdsOfProvider, // src-HCld2afU.js：`ts as Wne` —— provider 可用回复粒度 id 集
+  DEFAULT_BOT_REPLY_MODE as REPLY_MODE_DEFAULTS, // src-HCld2afU.js：`es as ote` —— 回复粒度缺省（原注「缺省序表」为误注，实体为单值常量）
+  resolveBotReplyMode as defaultReplyModeOf, // src-HCld2afU.js：`rs as Mne` —— provider 缺省回复粒度
+  BOTS_STREAM_TIMEOUT_MS as BIND_CODE_TTL_MS // 跨 chunk 常量 `Zo as See` —— 绑定码 TTL（ms）
+} from './SrcSharedA';
+import { generateUuid as generateUniqueId } from './SrcSharedB'; // src-HCld2afU.js：`ot as xi` —— 随机 id 生成
+import { useConfirmDialog } from './Modals'; // Modals 域确认对话框钩子（原 U2，123510）
+/* ── A0-D-Misc 接线：域内可用属主（cn→UtilsCn、Button→button、useZCodeIntl→I18n） ── */
+import { cn } from './UtilsCn'; // utils-CEEH0K_K.js：`Z` 类名合并
+import { Button } from './button'; // button-laUijeDG.js：`X`
+import { useZCodeIntl } from './I18n'; // IntlProvider：`G` useZCodeIntl
 
 /* ----------------------------------------------------------------------------
  * §0 外部依赖声明（跨 chunk / 横切，接口级）
  * -------------------------------------------------------------------------- */
 
-/** utils-CEEH0K_K.js：`Z` 类名合并 */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-/** button-laUijeDG.js：`X` */
-declare const Button: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: string;
-    size?: string;
-    title?: string;
-  }
->;
 /** imeComposition：`P` Input / `M` Spinner / `l` usePlatformService / `A` IME 回车守卫 / `m` toast */
 declare const usePlatformService: () => { openExternal(url: string): void };
-/** IntlProvider：`G` useZCodeIntl */
-interface IntlShape {
-  formatMessage(desc: { id: string }, values?: Record<string, string | number>): string;
+/** A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown，按 BotsDialog 调用面收敛 botsService。 */
+interface BotsServiceLike {
+  getConfig(): Promise<BotsConfig>;
+  getStatus(): Promise<BotsStatus>;
+  listWorkspaceRefs(args: { currentWorkspace?: unknown }): Promise<WorkspaceRef[]>;
+  getBotStates(): Promise<BotState[]>;
+  saveBot(args: { bot: Bot; credentialValue?: unknown }): Promise<Bot>;
+  createBindCode(args: { botId: string; ttlMs: number; allowedWorkspaces?: unknown }): Promise<{ code: string; expiresAt: number }>;
+  pollFeishuRegistration(args: Record<string, unknown>): Promise<any>;
+  pollWeixinRegistration(args: { qrCode?: unknown }): Promise<any>;
+  beginFeishuRegistration(args: { domain?: unknown }): Promise<any>;
+  beginWeixinRegistration(): Promise<any>;
+  resetBotState(botId: string): Promise<unknown>;
+  removeBotSecret(botId: string): Promise<Bot>;
+  deleteBot(botId: string): Promise<unknown>;
 }
-declare function useZCodeIntl(): { intl: IntlShape; locale: string };
 /** logger-PFDwl5Yq.js：`J` */
 /** Settings.tsx 行式原语：`U3` SettingsRow / `W3` SectionCard（135351/135380，已随 Settings 族重建） */
 /** 本 chunk 横切原语：Dialog/Select/Switch（28021–32245 封装块，接口级） */
@@ -125,26 +142,12 @@ declare const CopyIcon: React.FC<React.SVGProps<SVGSVGElement>>; // W_
 declare const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M_
 declare const PlusIcon: React.FC<React.SVGProps<SVGSVGElement>>; // kv
 
-/** src-HCld2afU.js：`ns as yi` —— provider 属飞书系（feishu|lark） */
-declare function isFeishuFamilyProvider(provider: string): boolean;
-/** src-HCld2afU.js：`ts as Wne` —— provider 可用回复粒度 id 集 */
-declare function replyModeIdsOfProvider(provider: string): string[];
-/** src-HCld2afU.js：`es as ote` —— 回复粒度缺省序表 */
-declare const REPLY_MODE_DEFAULTS: unknown;
-/** src-HCld2afU.js：`rs as Mne` —— provider 缺省回复粒度 */
-declare function defaultReplyModeOf(provider: string, defaults: unknown): string;
-/** src-HCld2afU.js：`ot as xi` —— 随机 id 生成 */
-declare function generateUniqueId(): string;
-/** src-HCld2afU.js：`c as ei` —— 工作区稳定键 */
-/** 跨 chunk 常量 `Zo as See` —— 绑定码 TTL（ms） */
-declare const BIND_CODE_TTL_MS: number;
-/** Modals 域确认对话框钩子（原 U2，123510） */
-declare function useConfirmDialog(): (opts: {
-  title: string;
-  description: string;
-  confirmLabel: string;
-}) => Promise<boolean>;
-/** 基础服务面（原 fs，services.tsx）：botsService 等 */
+/* ── tombstone（A0-S2d）：yi/Wne/ote/Mne/xi/See/U2 七件 declare 已删除，
+ *    canonical：SrcSharedA（isFeishuOrLark / availableReplyModesForProvider /
+ *    DEFAULT_BOT_REPLY_MODE / resolveBotReplyMode / BOTS_STREAM_TIMEOUT_MS）、
+ *    SrcSharedB（generateUuid）、Modals（useConfirmDialog），经文件头真实 import 消费。
+ *    原 `c as ei`（工作区稳定键）挂注随 §6 重复转录段删除（canonical = SrcSharedB
+ *    webRemoteWorkspaceKey，消费面在 WebRemote）。 ── */
 /** vendored qrcode 库（本 chunk 78456–79690，VENDOR 登记不转录）：toDataURL */
 declare const qrcode: {
   toDataURL(text: string, opts: { margin: number; width: number }): Promise<string>;
@@ -1122,7 +1125,7 @@ export function BotsDialog(props: {
   const { intl } = useZCodeIntl();
   const platform = usePlatformService();
   const confirm = useConfirmDialog();
-  const { botsService } = useBaseServices();
+  const { botsService } = useBaseServices() as { botsService: BotsServiceLike };
   const [config, setConfig] = React.useState<BotsConfig>(() => emptyBotsConfig());
   const [workspaceRefs, setWorkspaceRefs] = React.useState<WorkspaceRef[]>([]);
   const [status, setStatus] = React.useState<BotsStatus | null>(null);
@@ -1964,209 +1967,19 @@ export function BotsDialog(props: {
 }
 
 /* ----------------------------------------------------------------------------
- * §6 尾段：WebRemote 运行态助手（原 JLt…nRt，149473–149599；语义属 F17，双归属）
+ * §6 tombstone（A0-S2d · §2 裁决「重复转录件删除」）：WebRemote 运行态助手
+ *    原 JLt…nRt（149473–149599）9 符号（REMOTE_PAIRING_PROVIDERS /
+ *    isWorkspaceControlActiveFor / hasWindowControlSession /
+ *    remoteControlStatusLabelOf / remoteControlStatusDetailOf /
+ *    remoteControlDotClassOf / remoteControlDeviceTagOf /
+ *    remoteControlStatesEqual / remoteControlFailureMessageOf）
+ *    为重复转录：canonical 在 WebRemote.tsx §7（BOT_CHANNEL_PROVIDERS /
+ *    statusMatchesWorkspaceTarget / isStatusLiveMobileConnected /
+ *    resolveStatusTitle / resolveStatusDetail / statusDotClass /
+ *    resolveStatusTag / isSameWebRemoteStatus / resolveFailureMessage，
+ *    rRt WebRemoteControlDialog 闭包内消费）。全仓库无本侧 9 名消费点
+ *    （grep 核验），无需改 import，消费面语义不变。
  * -------------------------------------------------------------------------- */
-
-/** 原 JLt（149473）：远控配对供应商表 */
-export const REMOTE_PAIRING_PROVIDERS = [
-  { provider: `weixin` },
-  { provider: `feishu` },
-  { provider: `lark` },
-  { provider: `telegram` },
-];
-
-/** 原 YLt（149479）：工作区键匹配且存在窗口控制会话 */
-export function isWorkspaceControlActiveFor(
-  state: {
-    status: string;
-    workspacePath?: string | null;
-    workspaceIdentity?: string | null;
-    remoteSessionId?: string | null;
-    windowControlSessionId?: string | null;
-    sessionId?: string | null;
-  },
-  workspacePath: string,
-  workspaceIdentity?: string | null,
-  remoteSessionId?: string | null,
-): boolean {
-  if (state.status === `idle` || state.status === `error`) return !1;
-  const stateWorkspacePath = state.workspacePath?.trim();
-  if (!stateWorkspacePath) return !1;
-  const targetKey = workspaceKeyOf({ workspacePath, workspaceIdentity });
-  if (workspaceKeyOf({ workspacePath: stateWorkspacePath, workspaceIdentity: state.workspaceIdentity }) !== targetKey)
-    return !1;
-  const wantedRemoteSessionId = remoteSessionId?.trim() || void 0;
-  return (state.remoteSessionId?.trim() || void 0) === wantedRemoteSessionId
-    ? !!(state.windowControlSessionId ?? state.sessionId)
-    : !1;
-}
-
-/** 原 XLt（149490）：移动端已连且存在窗口控制会话 */
-export function hasWindowControlSession(state: {
-  status: string;
-  mobileConnected?: boolean;
-  windowControlSessionId?: string | null;
-  sessionId?: string | null;
-}): boolean {
-  return state.status === `idle` || state.status === `error`
-    ? !1
-    : !!(state.mobileConnected && (state.windowControlSessionId ?? state.sessionId));
-}
-
-/** 原 ZLt（149495）：远控状态标签（6 态） */
-export function remoteControlStatusLabelOf(
-  state: { status: string },
-  formatMessage: FormatMessage,
-): string {
-  switch (state.status) {
-    case `starting`:
-      return formatMessage({ id: `webRemoteControl.status.starting` });
-    case `running`:
-      return formatMessage({ id: `webRemoteControl.status.running` });
-    case `connecting`:
-      return formatMessage({ id: `webRemoteControl.status.connecting` });
-    case `active`:
-      return formatMessage({ id: `webRemoteControl.status.active` });
-    case `error`:
-      return formatMessage({ id: `webRemoteControl.status.error` });
-    default:
-      return formatMessage({ id: `webRemoteControl.status.idle` });
-  }
-}
-
-/** 原 QLt（149511）：远控状态详情（6 态） */
-export function remoteControlStatusDetailOf(
-  state: { status: string },
-  formatMessage: FormatMessage,
-): string {
-  switch (state.status) {
-    case `starting`:
-      return formatMessage({ id: `webRemoteControl.statusDetail.starting` });
-    case `running`:
-      return formatMessage({ id: `webRemoteControl.statusDetail.running` });
-    case `connecting`:
-      return formatMessage({ id: `webRemoteControl.statusDetail.connecting` });
-    case `active`:
-      return formatMessage({ id: `webRemoteControl.statusDetail.active` });
-    case `error`:
-      return formatMessage({ id: `webRemoteControl.statusDetail.error` });
-    default:
-      return formatMessage({ id: `webRemoteControl.statusDetail.idle` });
-  }
-}
-
-/** 原 $Lt（149527）：远控圆点配色（4 色） */
-export function remoteControlDotClassOf(state: { status: string }): string {
-  return state.status === `error`
-    ? `bg-destructive`
-    : state.status === `active`
-      ? `bg-success`
-      : state.status === `idle`
-        ? `bg-border`
-        : `bg-warning`;
-}
-
-/** 原 eRt（149536）：设备标签（设备名 → phone/ready/idle/error 回退） */
-export function remoteControlDeviceTagOf(
-  state: {
-    status: string;
-    mobileConnected?: boolean;
-    mobileDeviceInfo?: { browserPlatform?: string | null; name?: string | null } | null;
-  },
-  formatMessage: FormatMessage,
-): string {
-  return (
-    state.mobileDeviceInfo?.browserPlatform?.trim() ||
-    state.mobileDeviceInfo?.name?.trim() ||
-    (state.mobileConnected
-      ? formatMessage({ id: `webRemoteControl.statusTag.phone` })
-      : state.status === `idle`
-        ? formatMessage({ id: `webRemoteControl.status.idle` })
-        : state.status === `error`
-          ? formatMessage({ id: `webRemoteControl.status.error` })
-          : formatMessage({ id: `webRemoteControl.statusTag.ready` }))
-  );
-}
-
-/** 原 tRt（149549）：远控状态 18 字段深相等 */
-export function remoteControlStatesEqual(
-  left: {
-    status: string;
-    sessionId?: string | null;
-    windowControlSessionId?: string | null;
-    deviceToken?: string | null;
-    expiresAt?: number | null;
-    mobileConnected?: boolean;
-    mobileDeviceInfo?: {
-      updatedAt?: number | null;
-      userAgent?: string | null;
-      viewport?: { width?: number; height?: number } | null;
-    } | null;
-    qrUrl?: string | null;
-    connectUrl?: string | null;
-    workspacePath?: string | null;
-    workspaceIdentity?: string | null;
-    remoteSessionId?: string | null;
-    error?: string | null;
-    failure?: { reason?: string | null; message?: string | null } | null;
-  },
-  right: typeof left,
-): boolean {
-  return (
-    left.status === right.status &&
-    left.sessionId === right.sessionId &&
-    left.windowControlSessionId === right.windowControlSessionId &&
-    left.deviceToken === right.deviceToken &&
-    left.expiresAt === right.expiresAt &&
-    left.mobileConnected === right.mobileConnected &&
-    left.mobileDeviceInfo?.updatedAt === right.mobileDeviceInfo?.updatedAt &&
-    left.mobileDeviceInfo?.userAgent === right.mobileDeviceInfo?.userAgent &&
-    left.mobileDeviceInfo?.viewport?.width === right.mobileDeviceInfo?.viewport?.width &&
-    left.mobileDeviceInfo?.viewport?.height === right.mobileDeviceInfo?.viewport?.height &&
-    left.qrUrl === right.qrUrl &&
-    left.connectUrl === right.connectUrl &&
-    left.workspacePath === right.workspacePath &&
-    left.workspaceIdentity === right.workspaceIdentity &&
-    left.remoteSessionId === right.remoteSessionId &&
-    left.error === right.error &&
-    left.failure?.reason === right.failure?.reason &&
-    left.failure?.message === right.failure?.message
-  );
-}
-
-/** 原 nRt（149571）：远控失败原因文案（11 原因） */
-export function remoteControlFailureMessageOf(
-  failure: { reason: string; message?: string | null } | null | undefined,
-  formatMessage: FormatMessage,
-): string | null | undefined {
-  if (!failure) return null;
-  switch (failure.reason) {
-    case `session-not-found`:
-      return formatMessage({ id: `webRemoteControl.failure.sessionNotFound` });
-    case `session-expired`:
-      return formatMessage({ id: `webRemoteControl.failure.sessionExpired` });
-    case `session-conflict`:
-      return failure.message?.toLowerCase().includes(`kicked`)
-        ? formatMessage({ id: `webRemoteControl.failure.kicked` })
-        : formatMessage({ id: `webRemoteControl.failure.sessionConflict` });
-    case `workspace-closed`:
-      return formatMessage({ id: `webRemoteControl.failure.workspaceClosed` });
-    case `desktop-disconnected`:
-      return formatMessage({ id: `webRemoteControl.failure.desktopDisconnected` });
-    case `invalid-mobile-connection`:
-      return formatMessage({ id: `webRemoteControl.failure.invalidMobileConnection` });
-    case `desktop-bootstrap-timeout`:
-      return formatMessage({ id: `webRemoteControl.failure.desktopBootstrapTimeout` });
-    case `connection-recovery-timeout`:
-      return formatMessage({ id: `webRemoteControl.failure.connectionRecoveryTimeout` });
-    case `relay-unavailable`:
-      return formatMessage({ id: `webRemoteControl.failure.relayUnavailable` });
-    case `unsupported-action`:
-      return formatMessage({ id: `webRemoteControl.failure.unsupportedAction` });
-    case `unexpected-error`:
-      return formatMessage({ id: `webRemoteControl.failure.unexpectedError` });
-  }
-}
 
 /* ============================================================================
  * 尾符号表（混淆名 → 语义名 → js 行 / jsx 行；本批次展开的 F11 全族）

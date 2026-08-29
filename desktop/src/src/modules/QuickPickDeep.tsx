@@ -124,7 +124,9 @@ import * as React from "react";
 import { workspaceKeyOf } from './CodeViewer';
 import { logger, useTaskStore } from './SkillStore';
 import { dedupeWorkspaceScopes, sessionActivityOf } from './StoresDeep';
-import { SessionIndexStore, WorkspaceSubscriptionSet, sessionIndexPoolKey, useBaseServices } from './services';
+import { SessionIndexStore, WorkspaceSubscriptionSet, sessionIndexPoolKey, useBaseServices, type SessionIndexScope } from './services';
+/* ── A0-D-Misc 接线：Vo 搜索结果 store 属主 = QuickPick（useSearchResultsStore，QuickPick.tsx 1553–1878） ── */
+import { useSearchResultsStore as SearchResultsStore } from './QuickPick'; // 原 Vo（QuickPick.tsx 已实体化）：搜索结果/未读覆盖 store
 
 /* ============================================================================
  * 0. 外部依赖类型声明
@@ -200,7 +202,6 @@ interface WorkspaceAgentService {
 interface WorkspaceStateLike {
   activeTaskId: string | null;
   taskListVersion?: number;
-  [key: string]: unknown;
 }
 interface TaskStoreApi {
   getState(): {
@@ -224,18 +225,8 @@ interface TaskStoreApi {
 /** 原 ie（skillStore L 导出）：读工作区状态中的任务未读指示 */
 declare function readTaskUnreadIndicator(state: WorkspaceStateLike, taskId: string): boolean;
 
-/** 原 Vo（QuickPick.tsx 已实体化）：搜索结果/未读覆盖 store */
-interface SearchResultsStoreApi {
-  getState(): {
-    taskMetaByEntityKey: Record<string, TaskMeta | undefined>;
-    taskUnreadOverlayByEntityKey: Record<string, number | undefined>;
-    setTaskUnreadOverlay(entity: WorkspaceScope & { taskId: string }, unreadAt: number): void;
-    reconcileTaskUnread(entity: WorkspaceScope & { taskId: string }, unreadAt: number): void;
-    rollbackTaskUnread(entity: WorkspaceScope & { taskId: string }, unreadAt?: number): void;
-    markWorkspaceKeysStale(keys: string[]): void;
-  };
-}
-declare const SearchResultsStore: SearchResultsStoreApi;
+/* A0-D-Misc：原 SearchResultsStoreApi declare 删除——Vo 已改真实 import
+ * （QuickPick.useSearchResultsStore，getState() 面逐方法核验兼容）。 */
 
 /* StoresDeep.tsx §A 已实体化的 Vo 合并助手族 */
 declare function attachSessionActivity(meta: TaskMeta, activity: unknown): TaskMeta; // 原 jo
@@ -245,13 +236,7 @@ declare function entityKeyOf(entity: WorkspaceScope & { taskId: string }): strin
 /* services.tsx §G.1 已实体化：未读修订自增（原 sx） */
 declare function bumpUnreadRevision(): void; // 原 sx
 
-/* services.tsx §G.5/G.6 已实体化 */
-interface SessionIndexScope {
-  workspaceKey: string;
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  endpointKey?: string;
-}
+/* services.tsx §G.5/G.6 已实体化（SessionIndexScope 改自 services 类型导入，A0-D-Misc） */
 interface SessionIndexRow {
   sessionId: string;
   phase: string;
@@ -414,7 +399,7 @@ export function reconcileTaskUnreadNow(entity: WorkspaceScope & { taskId: string
   SearchResultsStore.getState().reconcileTaskUnread(entity, unreadAt);
 }
 /** 原 Wo（1911） */
-export function rollbackTaskUnreadNow(entity: WorkspaceScope & { taskId: string }, unreadAt?: number): void {
+export function rollbackTaskUnreadNow(entity: WorkspaceScope & { taskId: string }, unreadAt?: number | null): void { // Vo store 侧接受 number|null|undefined，放宽形参（A0-D-Misc）
   SearchResultsStore.getState().rollbackTaskUnread(entity, unreadAt);
 }
 
@@ -1027,7 +1012,7 @@ export function scopeStoreKey(tab: { workspacePath: string; workspaceIdentity?: 
   return sessionIndexPoolKey({
     workspaceKey: workspaceIdentityOf({ workspacePath: tab.workspacePath, workspaceIdentity: tab.workspaceIdentity }),
     ...(tab.endpointKey ? { endpointKey: tab.endpointKey } : {}),
-  });
+  } as unknown as SessionIndexScope); // bundle GS@styles 35529 仅传 workspaceKey(+endpointKey)；services 接口 workspacePath 必填过严（已登记）
 }
 /** 原 $Ae（35532） */
 export function scopeStoreKeyAlias(tab: { workspacePath: string; workspaceIdentity?: string | null; endpointKey?: string }): string {
@@ -1251,7 +1236,7 @@ export function applyRuntimeStateEvent(event: {
     event.workspacePath,
     event.taskId,
     status,
-    event.status === `error` ? event.lastError?.message : void 0,
+    (event.status === `error` ? event.lastError?.message : void 0) ?? null, // bundle 传 undefined 面；SkillStore 签名 string|null，?? null 零语义差
     event.workspaceIdentity,
     event.provider,
   );
@@ -1271,7 +1256,7 @@ export function useSessionIndexShards(tabs: SessionIndexShardHookTab[]): {
   sourceRevisionByScopeKey: Record<string, string>;
   hydratingEndpointKeys: string[];
 } {
-  const baseAgentService = useBaseServices().zcodeAgentService;
+  const baseAgentService = useBaseServices().zcodeAgentService as WorkspaceAgentService | null; // BaseServices 索引签名为 unknown，按本族契约收敛
   const shardsRevision = React.useMemo(
     () =>
       tabs
@@ -1318,7 +1303,7 @@ export function useSessionIndexShards(tabs: SessionIndexShardHookTab[]): {
       const store = subscriptionSet.getStore({
         workspaceKey: workspaceIdentityOf(tab),
         ...(tab.endpointKey ? { endpointKey: tab.endpointKey } : {}),
-      });
+      } as unknown as SessionIndexScope); // 同 scopeStoreKey：bundle 消费面仅 workspaceKey(+endpointKey)
       if (!store) {
         sourceRevisionByScopeKey[scopeKey] = `${shardKey}:missing`;
         continue;
@@ -1328,7 +1313,7 @@ export function useSessionIndexShards(tabs: SessionIndexShardHookTab[]): {
       if (isIdleEmptyIndexStore(store)) idleEndpoints.add(tab.endpointKey ?? `__base__`);
       for (const session of store.getSessions()) {
         items.push(
-          sessionRowToTaskMeta(session, {
+          sessionRowToTaskMeta(session as SessionIndexRow, { // services SessionIndexEntry 为弱形（索引签名），按本族行形收敛
             workspacePath: tab.workspacePath,
             ...(tab.workspaceIdentity ? { workspaceIdentity: tab.workspaceIdentity } : {}),
             previous: prevByKey.get(sessionPrevKeyOf(tab, session.sessionId)),

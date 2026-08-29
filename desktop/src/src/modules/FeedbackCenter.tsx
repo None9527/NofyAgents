@@ -164,31 +164,24 @@ import { Input, Textarea, toast } from './ImeComposition';
 import { Tabs, TabsContent } from './Settings';
 import { logger } from './SkillStore';
 import { readFeedbackContact, useFeedbackStore, writeFeedbackContact } from './stores-core';
+/* ── A0-D-Misc 接线：可用属主（前波成果） ── */
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 的 t 导出）
+import { useZCodeIntl as useIntlContext } from './I18n'; // 原 G（IntlProvider-C321H7m8.js 的 n 导出）
+import { Button, createLucideIcon } from './button'; // 原 X（button t）| createLucideIcon 原导出别名 c
+import { parseCustomModelRef as parseCustomModelKey } from './SrcSharedB'; // 原 Zn（src-HCld2afU.js 的 P 导出）
+import { isE2EStoreBridgeEnabled as isE2eStoreBridgeMode } from './SkillStore'; // 原 re（skillStore chunk 的 K 导出）
+import { resolveWorkspaceKey as workspaceEntityKey } from './SkillStore'; // 原 Io（工作区实体键）
 
 /* ============================================================================
  * §0 外部依赖（跨 chunk 导入 / 本 chunk 它族；声明位）
  * ==========================================================================*/
 
-/** 原 Z（utils-CEEH0K_K.js 的 t 导出） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
 type FormatMessageFn = (descriptor: { id: string }, values?: Record<string, string>) => string;
-interface IntlShape {
-  formatMessage: FormatMessageFn;
-}
-/** 原 G（IntlProvider-C321H7m8.js 的 n 导出） */
-declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** 原 J（logger-PFDwl5Yq.js 的 t 导出） */
 
 /** toast（原 m，imeComposition chunk 的 _ 导出） */
 
-interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
-  variant?: "default" | "secondary" | "outline" | "ghost" | "destructive" | "link";
-  size?: "default" | "sm" | "lg" | "icon" | "icon-lg" | "icon-md" | "icon-sm" | "icon-xs";
-}
-/** 原 X（button-laUijeDG.js 的 t 导出） */
-declare const Button: React.FC<ButtonProps>;
 /** 原 P（imeComposition chunk 的 y 导出） */
 /** 原 j（imeComposition chunk 的 v 导出） */
 /** spinner：loader-circle（原 M，imeComposition chunk 的 w 导出） */
@@ -196,10 +189,6 @@ declare const IconLoaderCircle: React.FC<{ className?: string }>;
 /** 关闭图标（原 g，imeComposition chunk 的 b 导出） */
 declare const IconX: React.FC<{ className?: string }>;
 
-interface IconProps {
-  className?: string;
-}
-declare function createLucideIcon(name: string, paths: unknown[]): React.FC<IconProps>;
 const IconInbox = createLucideIcon("inbox", []);            // 原 Vye（js 27298）
 const IconRefreshCcw = createLucideIcon("refresh-ccw", []); // 原 Mv（js 27719）
 const IconCirclePlus = createLucideIcon("circle-plus", []); // 原 L_（js 26902）
@@ -276,14 +265,9 @@ declare function resolveWorkspaceServicesEntry(
   workspaceIdentity?: string,
 ): { configOptions?: ConfigOptionItem[] } | null;
 
-/** `custom:…` 模型键解析（原 Zn，src-HCld2afU.js 的 P 导出） */
-declare function parseCustomModelKey(key: string): { providerId: string; modelName?: string } | null;
-
-/** E2E store bridge 模式判定（原 re，skillStore chunk 的 K 导出） */
-declare function isE2eStoreBridgeMode(): boolean;
-
-/** 工作区实体键（原 Io，本 chunk 1368） */
-declare function workspaceEntityKey(workspacePath: string, workspaceIdentity?: string): string;
+/* A0-D-Misc：parseCustomModelKey（Zn）/isE2eStoreBridgeMode（re）/workspaceEntityKey（Io）
+ * 已改真实 import（SrcSharedB.parseCustomModelRef / SkillStore.isE2EStoreBridgeEnabled /
+ * SkillStore.resolveWorkspaceKey），见文件头 import 块。 */
 
 /* --- v4 会话协议底座（本 chunk 它族：33283–34760 区，F03/横切域） --- */
 

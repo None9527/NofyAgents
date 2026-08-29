@@ -126,26 +126,27 @@
  */
 
 import * as React from "react";
-import { normalizeWorkspaceScopes } from './126518';
+/* ── tombstone（A0-D-Misc）：原 `import { normalizeWorkspaceScopes } from './126518'` 退回 declare——
+ *    chunk 号模块不存在（TS2307）；oje（35647）无正规重建属主，按重建基准恢复 declare 挂接。 ── */
 import { toast } from './ImeComposition';
 import { pathBasename } from './ModalsLeaves';
-import { logger, mergeTaskMeta, useTaskStore } from './SkillStore';
+import { getWorkspaceTaskStateAlias as getWorkspaceState, logger, mergeTaskMeta as mergeTaskMetaBase, resolveWorkspaceKey as workspaceKey, useTaskStore } from './SkillStore'; // getWorkspaceState（原 fe，skillStore 的 U 导出 = 内部 _e；B5-11 规范名 getWorkspaceTaskStateAlias）；workspaceKey（原 Io/Lo，js 1368/1371）
 import { sessionActivityOf, taskEntityKey } from './StoresDeep';
 import { useBaseServices, useServices } from './services';
 import { useSessionRegistryStore } from './stores-core';
+import { cn } from './UtilsCn'; // 类名合并（原 Z，utils-CEEH0K_K.js）
+import { useZCodeIntl as useIntlContext } from './I18n'; // intl 上下文（原 G()，IntlProvider-C321H7m8.js）
+import { Button } from './button'; // Button（原 X，button-laUijeDG.js）
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Tooltip（原 Ia，usageStatsUiParts-CiR7YEhh.js）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
-/** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
+/** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js）——A0-D-Misc：useIntlContext 已接线 I18n.useZCodeIntl，此接口仅供 formatRelativeTime 签名 */
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** toast（原 m，imeComposition chunk 的 _ 导出） */
 
@@ -267,33 +268,10 @@ interface ZustandStore<S> {
 }
 declare function createZustandStore<S>(init: (set: (updater: (state: S) => S | Partial<S>) => void) => S): ZustandStore<S>;
 
-/** useTaskStore（skillStore chunk 的 h 导出） */
-interface TaskStoreState {
-  getWorkspaceState(workspacePath: string, workspaceIdentity?: string | null): {
-    taskListVersion: number;
-    activeTaskId?: string | null;
-    [key: string]: unknown;
-  };
-  setTaskRuntimeState(
-    workspacePath: string,
-    taskId: string,
-    status: string,
-    errorMessage?: string,
-    workspaceIdentity?: string | null,
-    provider?: string | null,
-  ): void;
-  setTaskUnreadIndicator(workspacePath: string, taskId: string, unread: boolean, workspaceIdentity?: string | null): void;
-  [key: string]: unknown;
-}
+/** useTaskStore（skillStore chunk 的 h 导出）——A0-D-Misc：TaskStoreState/getWorkspaceState 已接线 SkillStore（getWorkspaceTaskStateAlias），本地形状声明移除 */
 
-/** getWorkspaceState 选择器（原 fe，skillStore 的 U 导出 = 内部 _e） */
-declare function getWorkspaceState(
-  state: TaskStoreState,
-  workspacePath: string,
-  workspaceIdentity?: string | null,
-): { taskListVersion: number; activeTaskId?: string | null; [key: string]: unknown };
-
-/** mergeTaskMeta（原 pe，skillStore 的 W 导出 = 内部 de） */
+/** mergeTaskMeta（原 pe，skillStore 的 W 导出 = 内部 de）；A0-D-Misc 类型收敛：本地 TaskMeta 的 unreadAt/changeSummary 更宽，按本地签名投射 */
+const mergeTaskMeta = mergeTaskMetaBase as unknown as (base: TaskMeta, incoming: TaskMeta) => TaskMeta;
 
 /** SessionRegistryStore（原 Zs，js 4309） */
 interface SessionRegistryState {
@@ -305,18 +283,6 @@ interface SessionRegistryState {
 }
 
 /* ------------------------------ UI 原语声明 ------------------------------ */
-
-/** Button（原 X，button-laUijeDG.js） */
-declare const Button: React.FC<
-  React.ComponentPropsWithoutRef<"button"> & { variant?: string; size?: string; asChild?: boolean }
->;
-
-/** Tooltip（原 Ia，usageStatsUiParts-CiR7YEhh.js） */
-declare const Tooltip: React.FC<{
-  title?: React.ReactNode;
-  side?: "top" | "bottom" | "left" | "right";
-  children: React.ReactNode;
-}>;
 
 /** Radix Dialog 封装（原 zb/Ub/Gb/Kb/Hb，本 chunk js 31943–32040） */
 declare const Dialog: React.FC<{
@@ -350,8 +316,7 @@ declare function resolveFileInfo(path: string, options?: { basePath?: string; ki
 declare function stripTrailingSlash(path: string): string;
 declare function relativePathFrom(rootPath: string, absPath: string): string;
 
-/** 实体键（原 Io/Lo，js 1368/1371） */
-declare function workspaceKey(workspacePath: string, workspaceIdentity?: string | null): string;
+/** 实体键（原 Io/Lo，js 1368/1371）——A0-D-Misc：已接线 SkillStore.resolveWorkspaceKey */
 
 /* ============================================================================
  * 1. cmdk 封装原语（原 Yb/tOe/Zb/Qb/$b/ex/tx；底层 cmdk 库 = 本 chunk 26004–26574）
@@ -1710,6 +1675,7 @@ export interface UseGlobalTaskListResult {
 }
 
 /* —— 深部助手（本 chunk，行号见注释；接口级 stub） —— */
+declare function normalizeWorkspaceScopes(tabs: WorkspaceTab[]): WorkspaceScope[]; // 原 oje（35647）
 declare function resolveTaskListShards(
   tabs: WorkspaceTab[],
   baseServices: TaskListShardServices,
@@ -1793,7 +1759,7 @@ export function useGlobalTaskList(args: UseGlobalTaskListArgs): UseGlobalTaskLis
   );
   const workspaceScopes = React.useMemo(() => normalizeWorkspaceScopes(args.workspaceTabs), [args.workspaceTabs]);
   const { shards, missingSessionIds } = React.useMemo(
-    () => resolveTaskListShards(args.workspaceTabs, baseServices, registry),
+    () => resolveTaskListShards(args.workspaceTabs, baseServices as TaskListShardServices, registry),
     [baseServices, args.workspaceTabs, registry],
   );
   const isBrowseMode = args.searchQuery.trim() === "";
@@ -2183,7 +2149,7 @@ export const QuickPick = React.memo(function QuickPick({
   onSearchResultHighlightRequest,
   onOpenCodeViewer,
 }: QuickPickProps) {
-  const { fileService } = useServices();
+  const { fileService } = useServices() as { fileService: FileService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown，按本族 FileService 投射
   const { intl } = useIntlContext();
   const workspaceKeyLocal = workspaceIdentity?.trim() || workspaceAbsPath;
   const [rawQuery, setRawQuery] = React.useState("");

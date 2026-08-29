@@ -64,6 +64,31 @@
 33. appUsageDailyModelBarChart / appUsageModelUsagePieChart / codingPlanUsageLineChart：Lazy 包装导出 → SettingsPanelsData 三个 Lazy*（D-Settings）
 34. Sidebar.tsx：xIt/vIt（moveGroupOver/placeTaskOutsideGroup）物化后导出 → QuickPickDeep L300–322 改指（D-Shell #16）
 
+### D-Misc 批新增（17 项，与上文重复者并入）
+35. Modals.tsx：`ConfirmDialog`（q4t，206572）export；`AppDialogHost` children 改可选（bundle P9 @styles 206992）【★等 D-Conversation】
+36. WorkspaceShell.tsx：WorkspaceShellProps 补 `baseFeedbackService`/`remoteConnectionLogs`/`remoteConnectionInProgress`/`onReturnToWorkspace`（bundle XJt @styles 186515–186552）；`onCreateScratchWorkspace` 型改 `(name: string) => Promise<string | null>`；`WorkspaceServices` 类型 export
+37. Settings.tsx：`Alert` 补 `warning` 变体（@styles 202627）；`TabsTrigger` 补 `asChild`；`TabsContent` 补 `forceMount`（radix 语义）
+38. ImeComposition.tsx：`usePlatformService`/`SpinnerIcon`/`InfoIcon` export → UsageDeep/BrowserPane/TerminalPane
+39. MarkdownIntegration.tsx：`getLastEditorId`/`setLastEditorId` export → FileRewindDialogDeep
+40. services.tsx：`SessionIndexScope.workspacePath` 改可选（bundle GS@styles 35529 只传 workspaceKey+endpointKey）→ QuickPickDeep 2 处断言收窄
+41. GitReview.tsx：`openFileChangeInViewer`/`toWorkspaceRelativePath` export → FileRewindDialogDeep
+42. ★ Composer.tsx：`addWebElementContextToChat`/`validateWebElementContext` export → BrowserPane【等 D-Conversation】
+43. SidebarLeaves.tsx（或相应属主）：ProcessMonitor 3 个 font-size 函数实体化/export
+44. Settings 域：`useSettingsStoreValue`（Ao 1301）/`useOptionalServices`（ps 2643）实体化/export → UsageDeep
+（D-Misc #2 PaymentDeep CodingPlanUpgradeDialogProvider = 上文 #30；#3 WorkspaceShell CLOSE_ACTIVE_CONTEXT_EVENT = 上文 #32）
+
+### D-Conversation 批新增（13 项）
+45. FileRewindDialogDeep.tsx：`FileOpenWithMenu`（L694）、`buildFilePreviewSource`（L652）export → Conversation/ConversationLeaves
+46. TopBar.tsx：`buildSummaryPanelModel`（L2782）、`resolveSummaryPanelVariant`（L2811）、type `SummaryPanelVariant`/`SummaryPanelLayoutMode`/`BackgroundWork`/`RunningSubagent`/`SummaryGoal`/`GitSummary`（L2719–2743/219）export → Conversation 删 4 条镜像 declare + 8 镜像类型改 type import
+47. UsageStatsUiParts.tsx：`TooltipRoot`（title/shortcut/triggerRef 封装，原 Ia 族）、`useControllableState`（原 fa，dist-DJJArJ7D.js p）export → Composer/Conversation
+48. 横切层（属主待定位，bundle src 23084/20269 一带）：`classifyToolCall`(og)/`extractRawFileSummaries`(_g)/`parseToolCallRaw`(hg)/`isPlainRecord`(pg) → Conversation/ConversationOverlays
+49. Settings store 族：`useSettingsSelector`（Ao，src-HCld2afU.js）属主定位后 export → Overlays/SidePanel/GitReview 三处同形 declare
+（注意：上文 #17 Conversation GitSummary.branchName 与 #46 TopBar GitSummary 属主关系需在落地时复核——D-Conversation 报告称 Conversation 为本地镜像、TopBar 为属主）
+
+### PaymentDeep 追补（无批次覆盖，12,066 行）
+50. PaymentDeep.tsx：2 处 `formatGrantUnits` 调用面参数序翻正为 `(value, locale)`（bundle PXt；D-Misc 批登记）
+51. PaymentDeep.tsx：~26 处 TS2339（paymentService 型为 `{}`）待 §C BaseServices 服务类型化后消解；其余 2 处随核
+
 ## C. 类型收敛（属主侧，非缺 export）
 - stores-core：`SettingsState.theme` → `ThemeMode`；`BaseServices` 服务类型化（消 TS18046 族）
 - stores-tasks：`AutomationRun` 增补 `trigger`/`sessionId`

@@ -355,45 +355,34 @@
  */
 
 import * as React from "react";
-import { Input, PopoverContent, PopoverTrigger } from './ImeComposition';
-import { MarkdownRenderer } from './MarkdownIntegration';
+import { Input, Popover as PopoverRoot, PopoverContent, PopoverTrigger } from './ImeComposition'; // PopoverRoot（原 n=T 根）
+import { MarkdownRenderer, type CodePreviewSettings } from './MarkdownIntegration';
 import { useCodingPlanProducts, useStartPlanPreview } from './PaymentDeep';
 import { CommandEmpty, CommandList } from './QuickPick';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
 import { logger } from './SkillStore';
 import { isStartPlanProviderId } from './SrcSharedA';
 import { useBaseServices, useServices } from './services';
+import { cn } from './UtilsCn'; // 类名合并（原 Z）
+import { useZCodeIntl as useIntlContext } from './I18n'; // intl 上下文（原 G()）
+import { Button } from './button'; // Button（原 X，button-laUijeDG.js）
+import { InfoTooltip as Tooltip, formatNumberCompact as formatCompactNumber } from './UsageStatsUiParts'; // Tooltip（原 Ia = usageStatsUiParts u）；formatCompactNumber（原 ja = usageStatsUiParts l；A0-D-Misc 裁决：真实签名 (locale, value)，调用面已按 bundle NYt/PXt 翻正）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
+/** react-intl 风格 intl 对象——A0-D-Misc：useIntlContext 已接线 I18n.useZCodeIntl，此接口仅供本族签名引用 */
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string };
 
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "secondary" | "ghost" | "outline" | "link" | "destructive";
-  size?: "xs" | "sm" | "default" | "lg" | "icon-sm" | "icon-md" | "icon-lg";
-}
-declare const Button: React.FC<ButtonProps>;
 declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M（imeComposition w）
 declare const InfoIcon: React.FC<React.SVGProps<SVGSVGElement>>; // p（imeComposition T=Ht `info`）
-declare const Tooltip: React.FC<{
-  title: string;
-  side?: "top" | "bottom" | "left" | "right";
-  children: React.ReactNode;
-}>; // Ia（usageStatsUiParts u）
-declare function formatCompactNumber(value: number, locale: string, options?: { maximumFractionDigits?: number }): string; // ja（usageStatsUiParts l）
 
 declare const usePlatformService: () => { openExternal(url: string): void }; // l（imeComposition M）
 
-/* --- Popover 原语（imeComposition：n=T 根 / a=h 触发 / i=x 内容） --- */
-declare const PopoverRoot: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; children: React.ReactNode }>;
+/* --- Popover 原语（imeComposition：n=T 根 / a=h 触发 / i=x 内容）——A0-D-Misc：PopoverRoot 已接线 ImeComposition.Popover --- */
 
 /* --- Dialog 原语（本 chunk 31943–32034：zb/Bb/Hb/Ub/Gb/Kb/Wb） --- */
 declare const DialogRoot: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; children: React.ReactNode }>;
@@ -803,7 +792,7 @@ export function useAppUsageStats(range: string): {
   error: string | null;
   refresh: () => void;
 } {
-  const { usageStatsService } = useServices();
+  const { usageStatsService } = useServices() as { usageStatsService: UsageStatsService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
   const [state, setState] = React.useState<{ snapshot: AppUsageSnapshot | null; loading: boolean; error: string | null }>({
     snapshot: null,
     loading: false,
@@ -837,7 +826,7 @@ export function useCodingPlanUsageStats(
   range: string,
   opts: { enabled?: boolean; preferredProviderId?: string; organizationId?: string; projectId?: string }
 ): { snapshot: CodingPlanUsageSnapshot | null; loading: boolean; error: string | null; refresh: () => void } {
-  const { usageStatsService } = useServices();
+  const { usageStatsService } = useServices() as { usageStatsService: UsageStatsService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
   const [state, setState] = React.useState<{ snapshot: CodingPlanUsageSnapshot | null; loading: boolean; error: string | null }>({
     snapshot: null,
     loading: false,
@@ -1183,7 +1172,7 @@ export interface UseSubscriptionSnapshotResult {
 
 /** 原 $j（js 52449）：权益/订阅快照 hook（薄包装；服务取自 useBaseServices） */
 export function useSubscriptionSnapshot(options: UseSubscriptionSnapshotOptions = {}): UseSubscriptionSnapshotResult {
-  return useUsageEntitlementCore(useBaseServices()?.usageStatsService, options);
+  return useUsageEntitlementCore(useBaseServices()?.usageStatsService as UsageStatsService | undefined, options); // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
 }
 
 /** 原 eM（js 52451）：权益主 hook —— 缓存命中/单飞去重/失败退避/可见性轮询/重置唤醒/跨实例广播 */
@@ -1683,7 +1672,7 @@ export function BillingDiscountInfoDialog(props: { config: BillingDiscountConfig
   const { intl, locale } = useIntlContext();
   const copy = localizedDiscountCopyOf(config, locale);
   const theme = useSettingsStoreValue((state) => state.theme, `system`);
-  const codePreviewSettings = useSettingsStoreValue((state) => state.codePreviewSettings, null);
+  const codePreviewSettings = useSettingsStoreValue((state) => state.codePreviewSettings, null) as CodePreviewSettings | undefined; // A0-D-Misc 类型收敛：设置态该字段为 unknown
   const openLabel = intl.formatMessage({ id: `settings.modelProvider.codingPlan.billingDiscountInfo.open` });
   if (!copy.infoTitle || !copy.infoBody) return null;
   const markdown = `## ${copy.infoTitle}\n\n${copy.infoBody}`;
@@ -2208,7 +2197,7 @@ export function SidebarStartPlanWidget(props: { config: StartPlanWidgetConfig; i
                 `h-6 shrink-0 gap-1 px-2 text-ui-sm`,
                 discountActive && `button-gradient rounded-full pr-[5px] text-white hover:bg-transparent hover:opacity-90 dark:bg-[#484A58] dark:hover:bg-[#484A58]`
               )}
-              onClick={(event) => {
+              onClick={(event: any) => {
                 event.preventDefault();
                 event.stopPropagation();
                 config.onUpgradeClick?.();
@@ -2348,7 +2337,7 @@ export function useIntranetProbe(
   error: Error | null;
   probeNow: () => Promise<{ isIntranet: boolean } | null>;
 } {
-  const { systemService } = useServices();
+  const { systemService } = useServices() as { systemService: SystemService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
   const [result, setResult] = React.useState<{ isIntranet: boolean } | null>(null);
   const [probing, setProbing] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
@@ -2777,7 +2766,7 @@ export function ModelMetadataDialog(props: {
 
 /** 原 NYt（js 187631）：上下文窗口紧凑格式（locale 参数存在但实现固定 en-US） */
 function formatContextWindowCompact(value: number, _locale: string = `en-US`): string {
-  return formatCompactNumber(value, `en-US`);
+  return formatCompactNumber(`en-US`, value);
 }
 
 /** 原 PYt（js 187634）：获取 API Key 链接（仅缺 key 时显示） */
@@ -2935,7 +2924,7 @@ export function ModelRow(props: {
             className={`shrink-0 p-0`}
             disabled={testDisabled}
             title={intl.formatMessage({ id: `settings.modelProvider.testModel` })}
-            onMouseDown={(event) => {
+            onMouseDown={(event: any) => {
               event.preventDefault();
             }}
             onClick={runTest}
@@ -2963,7 +2952,7 @@ export function ModelRow(props: {
             data-testid={deleteTestId}
             aria-label={intl.formatMessage({ id: `settings.modelProvider.delete` })}
             title={intl.formatMessage({ id: `settings.modelProvider.delete` })}
-            onMouseDown={(event) => {
+            onMouseDown={(event: any) => {
               event.preventDefault();
             }}
             onClick={onDelete}
@@ -3136,7 +3125,7 @@ export function ProviderCardFormHeader(props: {
   providerName: string;
   editingName: boolean;
   nameValue: string;
-  nameInputRef: React.RefObject<HTMLInputElement>;
+  nameInputRef: React.RefObject<HTMLInputElement | null>;
   usageUrl?: string;
   nameEditable?: boolean;
   onNameChange: (value: string) => void;
@@ -3380,7 +3369,7 @@ export function ProviderModelsSection(props: {
 }): React.ReactElement {
   const { models, apiKeyValue, currentApiFormat, apiFormatOptions, onModelCommit, onDeleteModel, onAddModel, readOnly } = props;
   const { intl } = useIntlContext();
-  const { modelProviderService } = useServices();
+  const { modelProviderService } = useServices() as { modelProviderService: ModelProviderService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
   const preferredKind = currentApiFormat ? kindOfApiFormat(currentApiFormat) : null;
   const allowedKinds = apiFormatOptions?.map(kindOfApiFormat);
   const preferredDefaultKind = preferredKind ?? `openai-compatible`;
@@ -4151,7 +4140,7 @@ export function AddCustomProviderDraftForm(props: {
 }): React.ReactElement {
   const { draft: externalDraft, onDraftChange, onCreateProvider } = props;
   const { intl } = useIntlContext();
-  const { modelProviderService } = useServices();
+  const { modelProviderService } = useServices() as { modelProviderService: ModelProviderService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
   const [localDraft, setLocalDraft] = React.useState<AddProviderDraft>(newAddProviderDraft);
   const [catalog, setCatalog] = React.useState<CatalogProvider[]>([]);
   const [catalogLoading, setCatalogLoading] = React.useState(false);
@@ -4637,14 +4626,14 @@ function isVisibleModelUsageEntitlement(entitlement: StartPlanPreview["entitleme
   return entitlement.meter === `model_usage` && entitlement.grantUnits > 0 && entitlement.showName.trim().length > 0;
 }
 
-/** 原 PXt（js 189398）：配额数紧凑格式 */
-function formatGrantUnits(value: number, locale: string): string {
-  return formatCompactNumber(value, locale);
+/** 原 PXt（js 189398）：配额数紧凑格式（A0-D-Misc 补 export：PaymentDeep 跨模块消费，恢复 bundle 拓扑） */
+export function formatGrantUnits(value: number, locale: string): string {
+  return formatCompactNumber(locale, value);
 }
 
 /** 原 FXt（js 189401）：en 紧凑长词形（thousand/million… 首大写）；其余语言走紧凑数字 */
 function formatGrantUnitsLocalized(value: number, locale: string): string {
-  if (!locale.toLowerCase().startsWith(`en`)) return formatCompactNumber(value, locale);
+  if (!locale.toLowerCase().startsWith(`en`)) return formatCompactNumber(locale, value);
   return new Intl.NumberFormat(locale || `en-US`, {
     notation: Math.abs(value) >= 1e3 ? `compact` : `standard`,
     compactDisplay: `long`,

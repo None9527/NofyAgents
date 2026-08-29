@@ -82,25 +82,23 @@
  */
 
 import * as React from "react";
-import { DiffViewer } from './CodeViewer';
+/* ── tombstone（A0-D-Misc）：原 `import { DiffViewer } from './CodeViewer'` 退回 declare——
+ *    CodeViewer.DiffViewer（mVt）props 面（patch/oldFile/newFile/themeType…）与本处
+ *    消费面（file/options/lineAnnotations/selectedLines/renderAnnotation）不符；本处实体为
+ *    vendored X09 DiffViewer（$Re），按重建基准恢复 declare 挂接。 ── */
 import { resolveAvailableEditors, useFileContextActions } from './FileTreePanel';
 import { Textarea, usePlatform } from './ImeComposition';
 import { relativePathFromWorkspace, useRemoteWorkspaceInfo } from './MarkdownIntegration';
 import { logger } from './SkillStore';
 import { isDarkTheme } from './XlsxDeepC';
+/* ── A0-D-Misc 接线：可用属主（前波成果） ── */
+import { cn } from './UtilsCn'; // 原 Z：cn 类名拼接
+import { useZCodeIntl as useIntlContext } from './I18n'; // 原 G：useIntlContext
+import { Button } from './button'; // 原 X：Button
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
-
-/** 原 Z：cn 类名拼接 */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-/** 原 G：react-intl 风格 intl 上下文 */
-declare function useIntlContext(): { intl: IntlShape };
 
 /** 原 J：logger */
 
@@ -127,23 +125,25 @@ interface PlatformService {
 
 /** 原 j：Textarea（imeComposition chunk） */
 
-/** 原 X：Button */
-declare const Button: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    type: "button";
-    variant?: string;
-    size?: string;
-    title?: string;
-  }
->;
-
 /** 原 oze：暗色主题探测（47343，横切层） */
 
 /* 键盘助手（keyboardShortcuts-BGHopxr9.js） */
 declare function formatKbd(symbol: string, platform: { platform?: string; userAgent?: string }): string; // 原 $i
 declare function isMacKeyboard(platform: { platform?: string; userAgent?: string }): boolean; // 原 Lre
 
-/** 原 $Re：vendored diff 组件（X09，DiffViewer） */
+/** 原 $Re：vendored diff 组件（X09，DiffViewer；A0-D-Misc 自 CodeViewer 误接退回，形状照重建基准） */
+declare const DiffViewer: React.FC<{
+  file: { name: string; contents: string; lang?: string; cacheKey: string };
+  options: Record<string, unknown>;
+  lineAnnotations?: Array<{ lineNumber: number; metadata: { kind: string; [key: string]: unknown } }>;
+  selectedLines?: { start: number; end: number } | null;
+  className?: string;
+  style?: React.CSSProperties;
+  renderAnnotation?: (annotation: {
+    lineNumber: number;
+    metadata: { kind: string; [key: string]: unknown };
+  }) => React.ReactNode;
+}>;
 
 /* FileTreePanel.tsx 已重建件（接口挂接） */
 
@@ -714,7 +714,7 @@ function FileOpenWithMenu({
   stopPropagation?: boolean;
 }) {
   let { intl } = useIntlContext(),
-    platform = usePlatform(),
+    platform = usePlatform() as unknown as PlatformService,
     contextActions = useFileContextActions(),
     previewSource = target.type === `file` ? target.previewSource : void 0,
     remoteInfo = useRemoteWorkspaceInfo({
@@ -805,7 +805,7 @@ function FileOpenWithMenu({
         size={`default`}
         className={`h-7 rounded-none border-0 gap-1 px-2`}
         disabled={!canOpen}
-        onClick={(event) => {
+        onClick={(event: any) => {
           (swallow(event), openPrimary());
         }}
       >
@@ -825,7 +825,7 @@ function FileOpenWithMenu({
           size={`default`}
           className={`h-7 rounded-none border-0 gap-1 pr-1.5`}
           disabled={!canOpen}
-          onClick={(event) => {
+          onClick={(event: any) => {
             (swallow(event), openPrimary());
           }}
         >
@@ -854,7 +854,7 @@ function FileOpenWithMenu({
         ) : (
           <>
             {preferredEditor
-              ? availableEditors.map((editor) => (
+              ? availableEditors.map((editor: InstalledEditor) => (
                   <DropdownMenuItem key={editor.id} onSelect={() => openInEditor(editor)}>
                     <img src={editor.iconDataUrl} alt={editor.name} className={`size-4 shrink-0`} />
                     <span>{editor.name}</span>
