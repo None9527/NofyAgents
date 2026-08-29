@@ -85,6 +85,8 @@
 
 | S3-d | lexical vendored→npm | **完工已验证** | 版本指纹双锚定 **0.42.0**（非旧记 0.49.0）；20 declares 全在 Composer.tsx（Markdown/DocEngine 提示被 grep 证伪）；19 转 npm import + 8 KEY_*/COPY/BLUR 命令 + LexicalCommand 接口；1 保留（reportLexicalInputTelemetry 一方遥测）；4 处 bundle 锚定修正（$applyNodeMutation 实为 $applyNodeReplacement hV/LR@61025 错码 200–203 等）；lexical+@lexical/react@0.42.0 精确钉版（30 包传递锁齐）；tsc 逐行不变（2）；报告 A0-S3d.report.md |
 
+| S4-1 | lib 层拆分（shim 模式） | **完工已验证** | 11 件 lib/ 新文件（608 行）：UtilsCn 全件→lib/cn；logger 全件→lib/logger；SrcSharedA §1 15 符号→locale/workspaceUtils/buildEnv/errorUtils；SrcSharedB 5 自含簇 23 符号→uuid/stableIds/logFormat/providerRefs/lineDiff；原 4 件 modules 文件转薄 re-export shim（B5 头注+尾表保留）；零 importers 改写；emit-diff 用 10 入口覆盖 bundle（88MB，rendererEntry 图仅 9 模块不可用）+ __esm 归一化多集比较 = 0 删 0 增；1 处文档化偏差（logger 内 formatLogLinePrefix 改指同层 ./logFormat，emit-diff 0 差验证惰性）；tsc 恒 2、md5 恒不变、零抑制；报告 A0-S4-1.report.md（含 S5 可复用 harness 命令） |
+
 **S3 阶段总结**：22 库落地（zod 4.3.6 / qrcode 1.5.4 / @tanstack/react-virtual 3.14.10 / @stripe/stripe-js 9.6.0 + react-stripe-js 6.4.0 / @xterm/xterm 5.5.0 + addon-fit 0.10.0 / lucide-react 1.35.0 / @radix-ui 13 包 + cmdk 1.1.1 / lexical 0.42.0 族），1 件推迟（react-resizable-panels）；SrcSharedA 6,167→2,907 行；components/ui 层建立（12 件）；全程零抑制、tsc 恒 2（TopBar S4 桩）、out/ md5 恒不变。
 
 **S2 接线阶段总结**：项目 tsc 364（declare-any 静默基线）→ 2,448（真实类型引入峰值）→ … → 773（波次末）→ 582 → 538 → 528 → 44 → **2**（均为 S4 待实体化桩，型已就绪）。剩余 declare 2,502 条 = Lane-4 vendored（S3 目标）+ 未重建深部（S4 目标）。

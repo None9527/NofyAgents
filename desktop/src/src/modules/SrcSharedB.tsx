@@ -333,6 +333,7 @@
  * [S46] 浏览器执行操作 schema（9713–9741）：HC→BrowserExecuteOpBaseSchema(9713/9629)
  * [S47] 对外 export 块（jsx 9742 / js 9656–10069）：412 个别名全量收录，见文件尾与报告 §2。
  *
+ * 〔A0-S4-1：[S26] uuid、[S28] 稳定 id 与日志前缀、[S31]/[S32] 模型/供应商引用、[S34] 行差异 LCS 共 23 符号实体已迁 lib/（uuid/stableIds/logFormat/providerRefs/lineDiff）；文件体保留 re-export〕
  * ----------------------------------------------------------------------------
  * 二、把握度分级：全部符号 = 高（逐字转录：类名/字符串/分支零改动；标识符语义化重命名）。
  *     类型标注 = 中高（推断，zod 链路以 any 挂接，行为语义由注释说明）。
@@ -445,6 +446,41 @@ import {
  *    消费点（5795 typeof 守卫 / 6393 globalThis.process?.env）直接用宿主类型即可。 ── */
 
 
+/* ─────────────────────────── A0-S4-1 shim ───────────────────────────
+ * 工具单元实体已原样迁入 lib/（头块/尾符号表映射保留）；导出面不变
+ * （含尾单字母 export 块与语义名导出面），全部导入方无需改动。迁入单元：
+ *   §25 uuid（jsx 8823–8843）：toHexByte/formatUuidFromBytes/
+ *     generateUuid/newUniqueId → ../lib/uuid.ts
+ *   §28 稳定 id（jsx 8954–8970）：slugifyProviderName/fnv1aHash32Hex/
+ *     buildStableProviderId/buildStableModelId → ../lib/stableIds.ts
+ *   §28 日志前缀（jsx 8972–8977）：formatLocalTimestamp/
+ *     formatLogLinePrefix → ../lib/logFormat.ts
+ *   §31/§32 模型/供应商引用（jsx 9066–9109）：CUSTOM_MODEL_REF_PREFIX/
+ *     safeDecodeURIComponent/buildCustomModelRef/parseCustomModelRef/
+ *     NATIVE_PROVIDER_REF_PREFIX/CUSTOM_PROVIDER_REF_PREFIX/
+ *     GHOST_PROVIDER_REF_PREFIX/nativeProviderRef/customProviderRef/
+ *     resolveProviderRefFromCustomModelRef → ../lib/providerRefs.ts
+ *   §34 行差异 LCS（jsx 9128–9172）：LINE_DIFF_LCS_CELL_BUDGET/
+ *     splitTextIntoLines/countLineDiffChanges → ../lib/lineDiff.ts
+ */
+import { toHexByte, formatUuidFromBytes, generateUuid, newUniqueId } from '../lib/uuid';
+import { slugifyProviderName, fnv1aHash32Hex, buildStableProviderId, buildStableModelId } from '../lib/stableIds';
+import { formatLocalTimestamp, formatLogLinePrefix } from '../lib/logFormat';
+import {
+  CUSTOM_MODEL_REF_PREFIX, safeDecodeURIComponent, buildCustomModelRef, parseCustomModelRef,
+  NATIVE_PROVIDER_REF_PREFIX, CUSTOM_PROVIDER_REF_PREFIX, GHOST_PROVIDER_REF_PREFIX,
+  nativeProviderRef, customProviderRef, resolveProviderRefFromCustomModelRef
+} from '../lib/providerRefs';
+import { LINE_DIFF_LCS_CELL_BUDGET, splitTextIntoLines, countLineDiffChanges } from '../lib/lineDiff';
+export {
+  toHexByte, formatUuidFromBytes, generateUuid, newUniqueId,
+  slugifyProviderName, fnv1aHash32Hex, buildStableProviderId, buildStableModelId,
+  formatLocalTimestamp, formatLogLinePrefix,
+  CUSTOM_MODEL_REF_PREFIX, safeDecodeURIComponent, buildCustomModelRef, parseCustomModelRef,
+  NATIVE_PROVIDER_REF_PREFIX, CUSTOM_PROVIDER_REF_PREFIX, GHOST_PROVIDER_REF_PREFIX,
+  nativeProviderRef, customProviderRef, resolveProviderRefFromCustomModelRef,
+  LINE_DIFF_LCS_CELL_BUDGET, splitTextIntoLines, countLineDiffChanges
+};
 /* ============================================================================
  * §1 模型目录 schema 与助手（jsx 4902–5242 / js 4787–5138 区）
  *    边界注记：原 `var El = …, Dl, Ol, kl, Al, jl, Ml, Nl, Pl, Fl, Il, Ll, Rl, zl;`
@@ -5281,34 +5317,7 @@ export function parseLaunchMarks(e: any) {
   return i;
 }
 
-/** 原 ox（jsx 8823 / js 8697）：字节转十六进制 */
-export function toHexByte(e: any) {
-  return e.toString(16).padStart(2, `0`);
-}
-
-/** 原 sx（jsx 8826 / js 8700）：从字节格式化 UUID */
-export function formatUuidFromBytes(e: any) {
-  let t = new Uint8Array(e);
-  return t[6] = t[6] & 15 | 64, t[8] = t[8] & 63 | 128, [t.slice(0, 4), t.slice(4, 6), t.slice(6, 8), t.slice(8, 10), t.slice(10, 16)].map((e: any) => Array.from(e, toHexByte).join(``)).join(`-`);
-}
-
-/** 原 cx（jsx 8830 / js 8710）：生成 UUID */
-export function generateUuid() {
-  let e = globalThis.crypto;
-  if (e?.randomUUID) return e.randomUUID();
-  if (e?.getRandomValues) {
-    let t = new Uint8Array(16);
-    return e.getRandomValues(t), formatUuidFromBytes(t);
-  }
-  let t = new Uint8Array(16);
-  for (let e = 0; e < t.length; e += 1) t[e] = Math.floor(Math.random() * 256);
-  return formatUuidFromBytes(t);
-}
-
-/** 原 lx（jsx 8841 / js 8721）：新建唯一 id */
-export function newUniqueId(e: any) {
-  return generateUuid();
-}
+/* A0-S4-1：§25 uuid 4 项（toHexByte/formatUuidFromBytes/generateUuid/newUniqueId）已原样迁 ../lib/uuid.ts；文件顶部 shim 重导出。 */
 
 /** 原 ux（jsx 8844 / js 8724）：默认定时自动化分组 id */
 export var DEFAULT_CRON_AUTOMATION_GROUP_ID = `zcode-default-group-cron`;
@@ -5476,41 +5485,9 @@ export function buildSessionSettingsViewModel(e: any) {
  * §35 MCP 配置规范化（jsx 9173–9248 / js 9041–9112 区）
  * ==========================================================================*/
 
-/** 原 Mx（jsx 8954 / js 8838）：供应商名 slug 化 */
-export function slugifyProviderName(e: any) {
-  return e.trim().toLowerCase().replace(/[^a-z0-9]+/g, `-`).replace(/^-+|-+$/g, ``) || `provider`;
-}
+/* A0-S4-1：§28 稳定 id 4 项（slugifyProviderName/fnv1aHash32Hex/buildStableProviderId/buildStableModelId）已原样迁 ../lib/stableIds.ts；文件顶部 shim 重导出。 */
 
-/** 原 Nx（jsx 8957 / js 8847）：FNV-1a 32 位哈希十六进制 */
-export function fnv1aHash32Hex(e: any) {
-  let t = 2166136261;
-  for (let n of e) t ^= n.codePointAt(0) ?? 0, t = Math.imul(t, 16777619);
-  return (t >>> 0).toString(16).padStart(8, `0`);
-}
-
-/** 原 Px（jsx 8962 / js 8852）：构建稳定供应商 id */
-export function buildStableProviderId(e: any) {
-  let t = e.trim();
-  if (!t) throw Error(`providerId 不能为空`);
-  return `${slugifyProviderName(t)}-${fnv1aHash32Hex(t)}`;
-}
-
-/** 原 Fx（jsx 8967 / js 8857）：构建稳定模型 id */
-export function buildStableModelId(e: any, t: any) {
-  let n = t.trim();
-  if (!n) throw Error(`modelName 不能为空`);
-  return `${buildStableProviderId(e)}/${n}`;
-}
-
-/** 原 Ix（jsx 8972 / js 8862）：本地时间戳格式化 */
-export function formatLocalTimestamp(e: any = new Date()) {
-  return `${e.getFullYear()}-${String(e.getMonth() + 1).padStart(2, `0`)}-${String(e.getDate()).padStart(2, `0`)} ${String(e.getHours()).padStart(2, `0`)}:${String(e.getMinutes()).padStart(2, `0`)}:${String(e.getSeconds()).padStart(2, `0`)}.${String(e.getMilliseconds()).padStart(3, `0`)}`;
-}
-
-/** 原 Lx（jsx 8975 / js 8865）：日志行前缀格式化 */
-export function formatLogLinePrefix(e: any, t: any) {
-  return `[${formatLocalTimestamp()}]${t == null ? `` : ` [pid:${t}]`} [${e}]`;
-}
+/* A0-S4-1：§28 日志前缀 2 项（formatLocalTimestamp/formatLogLinePrefix）已原样迁 ../lib/logFormat.ts；文件顶部 shim 重导出。 */
 
 /** 原 Rx（jsx 8978 / js 8868）：代理供应商未就绪标记 */
 export var ZCODE_AGENT_PROVIDER_NOT_READY = `ZCODE_AGENT_PROVIDER_NOT_READY`;
@@ -5634,69 +5611,7 @@ export function activeOAuthProviderMatchesFamily(e: any) {
   });
 }
 
-/** 原 tS（jsx 9066 / js 8954）：自定义模型引用前缀 */
-export var CUSTOM_MODEL_REF_PREFIX = `custom:`;
-
-/** 原 nS（jsx 9067 / js 8955）：安全解码 URI 组件 */
-export function safeDecodeURIComponent(e: any) {
-  try {
-    return decodeURIComponent(e);
-  } catch {
-    return e;
-  }
-}
-
-/** 原 rS（jsx 9074 / js 8962）：构建自定义模型引用 */
-export function buildCustomModelRef(e: any, t: any) {
-  let n = encodeURIComponent(e);
-  return t ? `${CUSTOM_MODEL_REF_PREFIX}${n}:${encodeURIComponent(t)}` : `${CUSTOM_MODEL_REF_PREFIX}${n}`;
-}
-
-/** 原 iS（jsx 9078 / js 8966）：解析自定义模型引用（导出别名 P） */
-export function parseCustomModelRef(e: any) {
-  if (!e.startsWith(`custom:`)) return null;
-  let t = e.slice(7),
-    n = t.indexOf(`:`);
-  if (n < 0) return {
-    providerId: safeDecodeURIComponent(t)
-  };
-  let r = t.split(`:`);
-  if (r.length >= 3 && r[0] === `builtin`) return {
-    providerId: `${r[0]}:${r[1]}`,
-    modelName: safeDecodeURIComponent(r.slice(2).join(`:`))
-  };
-  let i = t.slice(0, n),
-    a = t.slice(n + 1);
-  return {
-    providerId: safeDecodeURIComponent(i),
-    modelName: safeDecodeURIComponent(a)
-  };
-}
-
-/** 原 aS（jsx 9097 / js 8978）：原生供应商引用前缀 */
-export var NATIVE_PROVIDER_REF_PREFIX = `native:`;
-
-/** 原 oS（jsx 9098 / js 8979）：自定义供应商引用前缀 */
-export var CUSTOM_PROVIDER_REF_PREFIX = `custom:`;
-
-/** 原 sS（jsx 9099 / js 8980）：幽灵供应商引用前缀 */
-export var GHOST_PROVIDER_REF_PREFIX = `ghost:`;
-
-/** 原 cS（jsx 9100 / js 8981）：原生供应商引用 */
-export function nativeProviderRef(e: any) {
-  return `${NATIVE_PROVIDER_REF_PREFIX}${e}`;
-}
-
-/** 原 lS（jsx 9103 / js 8984）：自定义供应商引用 */
-export function customProviderRef(e: any) {
-  return `${CUSTOM_PROVIDER_REF_PREFIX}${e.trim()}`;
-}
-
-/** 原 uS（jsx 9106 / js 8987）：从自定义模型引用解析供应商引用 */
-export function resolveProviderRefFromCustomModelRef(e: any, t: any) {
-  let n = parseCustomModelRef(String(t ?? ``));
-  return n?.providerId ? customProviderRef(n.providerId) : nativeProviderRef(e);
-}
+/* A0-S4-1：§31/§32 模型/供应商引用 10 项已原样迁 ../lib/providerRefs.ts；文件顶部 shim 重导出。 */
 
 /** 原 dS（jsx 9110 / js 8991）：是否数据库基目录禁止错误 */
 export function isDataBaseDirForbiddenError(e: any) {
@@ -5730,56 +5645,7 @@ export function isOfficialPluginMarketplace(e: any) {
   return OFFICIAL_PLUGIN_MARKETPLACE_IDS.includes(e);
 }
 
-/** 原 vS（jsx 9128 / js 9010）：行差异 LCS 单元预算 */
-export var LINE_DIFF_LCS_CELL_BUDGET = 4e5;
-
-/** 原 yS（jsx 9129 / js 9011）：文本按行拆分（模板串内含字面换行，零改动） */
-export function splitTextIntoLines(e: any) {
-  if (!e) return [];
-  let t = e.split(`
-`);
-  return t[t.length - 1] === `` && t.pop(), t;
-}
-
-/** 原 bS（jsx 9135 / js 9017）：行差异变更统计（LCS，导出别名 b） */
-export function countLineDiffChanges(e: any, t: any) {
-  let n = splitTextIntoLines(e),
-    r = splitTextIntoLines(t),
-    i = 0;
-  for (; i < n.length && i < r.length && n[i] === r[i];) i += 1;
-  let a = n.length - 1,
-    o = r.length - 1;
-  for (; a >= i && o >= i && n[a] === r[o];) --a, --o;
-  let s = n.slice(i, a + 1),
-    c = r.slice(i, o + 1);
-  if (s.length === 0) return {
-    added: c.length,
-    removed: 0
-  };
-  if (c.length === 0) return {
-    added: 0,
-    removed: s.length
-  };
-  if (s.length * c.length > LINE_DIFF_LCS_CELL_BUDGET) return {
-    added: c.length,
-    removed: s.length
-  };
-  let l = Array.from({
-    length: c.length + 1
-  }, () => 0);
-  for (let e = 1; e <= s.length; e += 1) {
-    let t = 0;
-    for (let n = 1; n <= c.length; n += 1) {
-      let r = l[n];
-      s[e - 1] === c[n - 1] ? l[n] = t + 1 : l[n] = Math.max(l[n], l[n - 1]), t = r;
-    }
-  }
-  let u = l[c.length] ?? 0;
-  return {
-    added: c.length - u,
-    removed: s.length - u
-  };
-}
+/* A0-S4-1：§34 行差异 LCS 3 项（LINE_DIFF_LCS_CELL_BUDGET/splitTextIntoLines/countLineDiffChanges）已原样迁 ../lib/lineDiff.ts；文件顶部 shim 重导出。 */
 
 /** 原 xS（jsx 9173 / js 9041）：读取 MCP 服务器头部 */
 export function readMcpServerHeaders(e: any) {
@@ -6541,6 +6407,7 @@ M(`op`, [BrowserExecuteOpBaseSchema.extend({
 export { AUTOMATION_CREATE_LIMIT_REACHED as $, buildRemoteServerWorkspaceKey as $a, v4EditCancelTestid as $i, cronCreateOpenTestid as $n, fc as $o, settingsAskUserQuestionAutoResolutionSwitchTestid as $r, browserAddressInputTestid as $t, NATIVE_PROVIDER_REF_PREFIX as A, v4TimelineBottomTestid as Aa, taskArchiveTestid as Ai, chatEmptyTestid as An, isObjectRecord as Ao, offpeakCardMenuTestid as Ar, ee as As, automationCardMenuTestid as At, getOAuthProviderFamilyByProviderId as B, workspaceFileTreeRefreshButtonTestid as Ba, v4AttachmentTestid as Bi, chatSendButtonTestid as Bn, resolveModelContextWindow as Bo, projectSectionTestid as Br, automationEditBackTestid as Bt, isPluginPreferenceSource as C, v4SessionTitleTestid as Ca, sshPasswordInputTestid as Ci, browserWebviewTestid as Cn, normalizeProviderId as Co, oauthCancelTestid as Cr, E as Cs, IpcChannelNames as Ct, isDataBaseDirForbiddenError as D, v4SubagentOpenSidePaneTestid as Da, sshUsernameInputTestid as Di, chatAttachmentMenuItemTestid as Dn, bl as Do, offpeakActionDeleteTestid as Dr, j as Ds, automationActionDeleteTestid as Dt, AppRuntimePreferencesSchema as E, v4StopTestid as Ea, sshSuccessTestid as Ei, chatAttachmentButtonTestid as En, _l as Eo, offpeakActionContinueTestid as Er, w as Es, automationsOpenTestid as Et, buildCustomModelRef as F, v4UserInputOptionTestid as Fa, taskSettingsButtonTestid as Fi, chatModelSelectTriggerTestid as Fn, mapApiFormatToKind as Fo, offpeakFormTitleTestid as Fr, automationCustomIntervalIncrementTestid as Ft, resolveFirstReadyProvider as G, workspaceMoreButtonTestid as Ga, v4ComposerTestid as Gi, composerProjectDetachTestid as Gn, $c as Go, remoteKindDockerTestid as Gr, automationFrequencySelectTestid as Gt, activeOAuthProviderMatchesFamily as H, workspaceHeaderTestid as Ha, v4AttachmentUploadRetryTestid as Hi, chatThoughtLevelSelectItemTestid as Hn, mapKindToApiFormat as Ho, promptSuggestionPanelTestid as Hr, automationFormSubmitTestid as Ht, getOAuthProviderFamilyById as I, v4UserInputTextTestid as Ia, terminalTestid as Ii, chatModeSelectItemTestid as In, mapModelFormatToKind as Io, offpeakTabTestid as Ir, automationCustomIntervalSelectTestid as It, listSessionModePresets as J, wslDistroSelectTestid as Ja, v4ComposerInputTestid as Ji, composerWorkOutsideProjectTestid as Jn, Vc as Jo, remoteKindWslTestid as Jr, automationScheduleDeleteTestid as Jt, formatLogLinePrefix as K, workspacePathTestid as Ka, v4ComposerBackgroundWorkTriggerTestid as Ki, composerRemoteConnectionTestid as Kn, zc as Ko, remoteKindServerTestid as Kr, automationRunNowTestid as Kt, normalizeProviderFamilyDomain as L, workspaceCloseTestid as La, terminalCloseButtonTestid as Li, chatModeSelectTriggerTestid as Ln, canonicalizeEndpointUrl as Lo, pluginMcpServerRowTestid as Lr, automationCustomRepeatEditTestid as Lt, nativeProviderRef as M, v4TurnNavigatorItemTestid as Ma, taskItemTestid as Mi, chatLoadingTestid as Mn, isUnlimitedContextModelId as Mo, offpeakEditSubmitTestid as Mr, a as Ms, automationCreateMenuTestid as Mt, resolveProviderRefFromCustomModelRef as N, v4TurnNavigatorTooltipTestid as Na, taskListTestid as Ni, chatModelSelectGroupTestid as Nn, yl as No, offpeakEditViewTestid as Nr, t as Ns, automationCustomConfirmTestid as Nt, CUSTOM_PROVIDER_REF_PREFIX as O, v4TaskOpenInSplitTestid as Oa, subagentBuiltInModelTriggerTestid as Oi, chatBackgroundResultTitleTestid as On, Tl as Oo, offpeakActionPauseTestid as Or, O as Os, automationActionToggleTestid as Ot, parseCustomModelRef as P, v4UserInputDialogTestid as Pa, taskNewButtonTestid as Pi, chatModelSelectItemTestid as Pn, vl as Po, offpeakFormInstructionsTestid as Pr, e as Ps, automationCustomIntervalDecrementTestid as Pt, isTerminalOffPeakRunStatus as Q, resolveSessionDisplayTitle as Qa, v4EditAttachmentRemoveTestid as Qi, cronCreateCardTestid as Qn, dc as Qo, serverWorkspacePathInputTestid as Qr, automationYearMonthOptionTestid as Qt, getOAuthFamilyIdByProviderId as R, workspaceFileTreeButtonTestid as Ra, terminalToggleTestid as Ri, chatReasoningContentTestid as Rn, resolveProviderApiFormat as Ro, previewPaneTestid as Rr, automationCustomUnitOptionTestid as Rt, isOfficialPluginMarketplace as S, v4SessionPaneTestid as Sa, sshHostInputTestid as Si, browserResponsiveZoomSelectTestid as Sn, listEndpointKinds as So, modelProviderNavItemTestid as Sr, Ka as Ss, ServicePortIpcTopics as St, APP_RUNTIME_PREFERENCES_STORAGE_KEY as T, v4SplitDividerTestid as Ta, sshPrivateKeyInputTestid as Ti, chatAssistantHistoryTriggerTestid as Tn, hasAnyReadyProvider as To, oauthLoginButtonTestid as Tr, N as Ts, automationsListTestid as Tt, isProviderAllowedForFamilyMode as U, workspaceItemTestid as Ua, v4BackgroundWorkCancelTestid as Ui, chatThoughtLevelSelectTriggerTestid as Un, resolveProviderKindEndpointUrl as Uo, promptSuggestionSectionTestid as Ur, automationFormTitleTestid as Ut, normalizeOAuthProviderDomain as V, workspaceFileTreeRowTestid as Va, v4AttachmentUploadProgressTestid as Vi, chatSummaryPanelTestid as Vn, resolveProviderDefaultKind as Vo, promptSuggestionOptionTestid as Vr, automationFormPromptTestid as Vt, ZCODE_AGENT_PROVIDER_NOT_READY as W, workspaceListTestid as Wa, v4BackgroundWorkItemTestid as Wi, chatToolCallBlockTestid as Wn, resolveModelSupportedKinds as Wo, promptSuggestionStatusTestid as Wr, automationFrequencyOptionTestid as Wt, buildSessionSettingsViewModel as X, joinTestidParts as Xa, v4ComposerSendTestid as Xi, conversationNewTaskTestid as Xn, Cc as Xo, serverTokenInputTestid as Xr, automationYearDayOptionTestid as Xt, listSessionModeOptions as Y, wslUserInputTestid as Ya, v4ComposerKeepQueueSendTestid as Yi, confirmDialogConfirmTestid as Yn, Lc as Yo, serverNameInputTestid as Yr, automationSchedulePreviewTestid as Yt, OFFPEAK_IDLE_PLAN_ID as Z, resolveSessionDisplayStatus as Za, v4EditTestid as Zi, conversationSectionTestid as Zn, uc as Zo, serverUrlInputTestid as Zr, automationYearMonthdayTestid as Zt, resolveToolCallStatusI18nId as _, v4QueuePausedBannerTestid as _a, sshAuthPrivateKeyTestid as _i, browserResponsiveScaledFrameTestid as _n, MODEL_CONTEXT_WINDOW_DEFAULT as _o, modelProviderApiKeyInputTestid as _r, P as _s, resolveCodingPlanAttribution as _t, shouldUseTestEndpoints as a, v4FeedbackDislikeTestid as aa, settingsMemoryFileTestid as ai, browserOpenExternalItemTestid as an, Base64StringSchema as ao, loginApiKeyErrorTestid as ar, nc as as, isOffPeakTaskPayload as at, countLineDiffChanges as b, v4RowTestid as ba, sshDialogTestid as bi, browserResponsiveWidthInputTestid as bn, normalizeCatalogModel as bo, modelProviderModelDeleteButtonTestid as br, M as bs, isCredentialDecryptFailure as bt, webRemoteWorkspaceKey as c, v4ModelConfigTestid as ca, settingsMemorySwitchTestid as ci, browserResponsiveHeightInputTestid as cn, StreamTextFieldEnum as co, loginApiKeyProviderTriggerTestid as cr, tc as cs, parseLaunchMarks as ct, extractTodosFromToolOutput as d, v4PausedQueueSendDialogTestid as da, settingsPageTestid as di, browserResponsiveResizeCornerTopLeftTestid as dn, BrowserAmbientContextSchema as do, loginTriggerTestid as dr, Es as ds, BROWSER_RESTORE_PENDING_URL as dt, v4EditInputTestid as ea, settingsBackButtonTestid as ei, browserBackButtonTestid as en, parseRemoteWorkspaceKey as eo, dockerContainerInputTestid as er, bc as es, isAutomationCreateLimitError as et, isTodoToolTitle as f, v4QueueTestid as fa, settingsSectionNavTestid as fi, browserResponsiveResizeCornerTopRightTestid as fn, RuntimeModelSelectionSchema as fo, loginUseApiKeyButtonTestid as fr, ms as fs, DesktopMenuActionIds as ft, canonicalizeToolName as g, v4QueueItemSendNowTestid as ga, sshAuthPasswordTestid as gi, browserResponsiveResizeWidthTestid as gn, MODEL_CONTEXT_WINDOW_UNLIMITED as go, modelProviderAddModelButtonTestid as gr, Ao as gs, parseCodingPlanScope as gt, isFileWriteToolName as h, v4QueueItemEditTestid as ha, sidebarCodingPlanUsageButtonTestid as hi, browserResponsiveResizeTopTestid as hn, Sl as ho, mcpServerRowTestid as hr, Mo as hs, codingPlanScopesOverlap as ht, INTRANET_PROBE_CONFIG as i, v4EditWorkspaceConflictDialogTestid as ia, settingsMemoryBackProjectsTestid as ii, browserMoreButtonTestid as in, decodeBase64ToBytes as io, loginApiKeyContinueButtonTestid as ir, sc as is, isCronAutomationPayload as it, customProviderRef as j, v4TurnNavigatorTestid as ja, taskEmptyTestid as ji, chatErrorBannerTestid as jn, isProviderReadyForUse as jo, offpeakCreateButtonTestid as jr, s as js, automationCreateManuallyTestid as jt, GHOST_PROVIDER_REF_PREFIX as k, v4TimelineTestid as ka, subagentRowTestid as ki, chatContextUsageTriggerTestid as kn, isProviderEnabled as ko, offpeakCardTestid as kr, te as ks, automationCardTestid as kt, buildPermissionRequestViewModel as l, v4PaneShellTestid as la, settingsMemoryWorkspaceTestid as li, browserResponsiveResizeCornerTestid as ln, StreamTimestampSchema as lo, loginApiKeySkipButtonTestid as lr, ws as ls, buildWebRemoteEntryViewTelemetryEvent as lt, resolveToolViewKind as m, v4QueueItemDeleteTestid as ma, sidebarTestid as mi, browserResponsiveResizeLeftTestid as mn, W as mo, mcpOpenAuthorizationButtonTestid as mr, ss as ms, buildCodingPlanScope as mt, repoWikiWorkspaceKey as n, v4EditSubmitTestid as na, settingsLocaleSelectTriggerTestid as ni, browserElementPickerButtonTestid as nn, RPC_FRAME_LIMITS as no, gitPaneTestid as nr, cc as ns, DEFAULT_OFFPEAK_AUTOMATION_GROUP_ID as nt, CODING_PLAN_SECURITY_VERIFICATION_REQUIRED as o, v4FeedbackLikeTestid as oa, settingsMemoryPreviewTestid as oi, browserRefreshButtonTestid as on, STREAM_TRANSPORT_LIMITS as oo, loginApiKeyInputTestid as or, Us as os, generateUuid as ot, parseToolCallInput as p, v4QueueItemTestid as pa, settingsUsageTabTestid as pi, browserResponsiveResizeHeightTestid as pn, McpServerConfigSchema as po, logoutButtonTestid as pr, fs as ps, sanitizeRemoteTargetForRestore as pt, buildStableModelId as q, workspaceTitleTestid as qa, v4ComposerClearQueueSendTestid as qi, composerWorkspaceTriggerTestid as qn, Bc as qo, remoteKindSshTestid as qr, automationScheduleAddTestid as qt, resolveRuntimeEnvMode as r, v4EditWorkspaceConflictConversationOnlyTestid as ra, settingsMemoryBackMemoriesTestid as ri, browserForwardButtonTestid as rn, crc32Hex as ro, loginApiKeyCancelButtonTestid as rr, Sc as rs, newUniqueId as rt, CODING_PLAN_SYSTEM_BUSY as s, v4ForkTestid as sa, settingsMemoryRefreshTestid as si, browserResponsiveButtonTestid as sn, StreamRowKeySchema as so, loginApiKeyProviderItemTestid as sr, Fs as ss, LAUNCH_MARKS_STORAGE_KEY as st, findNearestLocalWorkspaceIndex as t, v4EditRewindWorkspaceTestid as ta, settingsLocaleSelectItemTestid as ti, browserDevtoolsButtonTestid as tn, automationsWorkspaceKey as to, dockerContainerSelectTestid as tr, xc as ts, DEFAULT_CRON_AUTOMATION_GROUP_ID as tt, extractTodosFromToolInput as u, v4PaneWorkspaceBadgeTestid as ua, settingsNativeSearchSwitchTestid as ui, browserResponsiveResizeCornerBottomLeftTestid as un, buildRuntimeProviderFromConfig as uo, loginMenuItemTestid as ur, Ds as us, resolveClientTelemetryContext as ut, isPendingToolCallStatus as v, v4QueueResumeTestid as va, sshConfigAliasSelectTestid as vi, browserResponsiveToolbarTestid as vn, xl as vo, modelProviderConnectionModeItemTestid as vr, k as vs, ZCODE_AGENT_AUDIENCE as vt, isUserPreferenceSource as w, v4SplitCloseTestid as wa, sshPortInputTestid as wi, chatAssistantHistoryContentTestid as wn, listProviderModelIds as wo, oauthErrorTestid as wr, A as ws, appHeaderTestid as wt, OFFICIAL_PLUGIN_MARKETPLACE_IDS as x, v4RowAttachmentsTestid as xa, sshErrorTestid as xi, browserResponsiveZoomOptionTestid as xn, mapKindToDefaultEndpointPath as xo, modelProviderModelInputTestid as xr, F as xs, EmbeddedBrowserIpcTopics as xt, normalizeMcpServerConfigEntry as y, v4RetrySubscribeTestid as ya, sshConnectTriggerTestid as yi, browserResponsiveViewportTestid as yn, El as yo, modelProviderConnectionModeTriggerTestid as yr, D as ys, BIGMODEL_PROVIDER_DOMAIN as yt, resolveProviderFamilyMode as z, workspaceFileTreePanelTestid as za, toolSummaryTriggerTestid as zi, chatReasoningTriggerTestid as zn, resolveProviderPrimaryEndpointUrl as zo, projectAddTestid as zr, automationCustomUnitSelectTestid as zt };
 
 /* ============================================================================
+ * A0-S4-1：§25/§28/§31/§32/§34 共 23 个工具符号实体已迁 lib/（uuid/stableIds/logFormat/providerRefs/lineDiff）；表映射保留，文件体保留 re-export。
  * 尾符号表（混淆名 → 语义名，jsx 行 / js 行；B5-10b 全量 769 符号）
  * ============================================================================
  */

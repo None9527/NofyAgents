@@ -24,6 +24,7 @@
  * 一、混淆名 → 语义名 映射表（行号 = jsx 孪生行；★ = 本 chunk 对外导出）
  * ----------------------------------------------------------------------------
  * §1 first-party 基础助手（jsx 1–141）
+ *   〔A0-S4-1：本节 15 符号实体已迁 lib/locale.ts、lib/workspaceUtils.ts、lib/buildEnv.ts、lib/errorUtils.ts；文件体保留 re-export，映射信息不变〕
  *   e   → DEFAULT_LOCALE                 (1)   ★Ps  已登记：I18n.report/intlProvider.report（'zh-CN'）
  *   t   → sanitizeWorkspaceDescriptor    (2)   ★Ns  ssh 去 password/passphrase、server 去 token
  *   n   → parsePathRootPrefix            (20)   —    Windows 盘符/UNC/绝对/~/ 前缀解析
@@ -291,194 +292,23 @@ interface ParseContext {
   reportInput?: boolean;
   [key: string]: any;
 }
-interface WorkspaceDescriptor {
-  kind: string;
-  [key: string]: any;
-}
-
 /* ============================================================================
- * §1 first-party 基础助手（jsx 1–141）
+ * §1 first-party 基础助手（jsx 1–141）—— A0-S4-1：实体代码已整体迁入 lib/
+ *   DEFAULT_LOCALE                                        → ../lib/locale.ts
+ *   WorkspaceDescriptor + sanitizeWorkspaceDescriptor + parsePathRootPrefix +
+ *     normalizeTraversalPath + resolveSshAuthMethod + sshTargetIdentityKey
+ *                                                         → ../lib/workspaceUtils.ts
+ *   normalizeBuildEnv + RESOLVED_BUILD_ENV + jsx 93 探针  → ../lib/buildEnv.ts
+ *   isNonNullObject + toPrimitiveString + unwrapErrorPayload +
+ *     FILE_LOCK_TIMEOUT_CODE + stringifyErrorValue + extractErrorInfo +
+ *     isFileLockTimeoutError + jsx 139–141 冻结语句       → ../lib/errorUtils.ts
+ *   导出面不变（Ps/Ns/Ms/js/As/ks）；全部导入方（含 SrcSharedB §0、services、
+ *   rendererEntry、intlProvider）无需改动。映射见头块 §1 与尾符号表（原样保留）。
  * ==========================================================================*/
-
-/** jsx 1 ★Ps —— 已登记：I18n.report / intlProvider.report（Ps='zh-CN' DEFAULT_LOCALE） */
-export const DEFAULT_LOCALE = `zh-CN`;
-
-/** jsx 2 ★Ns —— ssh 描述符去 password/privateKeyPassphrase；server 描述符去 token */
-export function sanitizeWorkspaceDescriptor(descriptor: WorkspaceDescriptor): WorkspaceDescriptor {
-  if (descriptor.kind === `ssh`) {
-    let {
-      password: password,
-      privateKeyPassphrase: privateKeyPassphrase,
-      ...rest
-    } = descriptor;
-    return rest;
-  }
-  if (descriptor.kind === `server`) {
-    let {
-      token: token,
-      ...rest
-    } = descriptor;
-    return rest;
-  }
-  return descriptor;
-}
-
-interface PathRootPrefix {
-  prefix: string;
-  body: string;
-  blocksParentTraversal: boolean;
-}
-
-/** jsx 20 —— Windows 盘符（`C:/` 与 `C:` 两形）、UNC（`//srv/share`）、POSIX 绝对、`~/` 四路前缀解析 */
-function parsePathRootPrefix(path: string): PathRootPrefix {
-  let driveSlash = path.match(/^([A-Z]:)\/(.*)$/);
-  if (driveSlash) return {
-    prefix: `${driveSlash[1]}/`,
-    body: driveSlash[2] ?? ``,
-    blocksParentTraversal: !0
-  };
-  if (path.startsWith(`//`)) {
-    let segments = path.slice(2).split(`/`).filter(Boolean);
-    if (segments.length >= 2) {
-      let [server, share, ...rest] = segments;
-      return {
-        prefix: `//${server}/${share}/`,
-        body: rest.join(`/`),
-        blocksParentTraversal: !0
-      };
-    }
-    return {
-      prefix: `//`,
-      body: segments.join(`/`),
-      blocksParentTraversal: !0
-    };
-  }
-  if (path.startsWith(`/`)) return {
-    prefix: `/`,
-    body: path.replace(/^\/+/, ``),
-    blocksParentTraversal: !0
-  };
-  if (path.startsWith(`~/`)) return {
-    prefix: `~/`,
-    body: path.slice(2),
-    blocksParentTraversal: !1
-  };
-  let driveOnly = path.match(/^([A-Z]:)(.*)$/);
-  return driveOnly ? {
-    prefix: driveOnly[1] ?? ``,
-    body: driveOnly[2] ?? ``,
-    blocksParentTraversal: !1
-  } : {
-    prefix: ``,
-    body: path,
-    blocksParentTraversal: !1
-  };
-}
-
-/** jsx 64 —— 反斜杠归一 + 盘符大写 + `.`/`..` 段消解（`..` 越界时按 blocksParentTraversal 裁决） */
-function normalizeTraversalPath(raw?: string | null): string {
-  let trimmed = raw?.trim();
-  if (!trimmed) return ``;
-  let root = parsePathRootPrefix(trimmed.replace(/\\/g, `/`).replace(/^([a-z]):/i, (m, drive) => `${drive.toUpperCase()}:`)),
-    segments: string[] = [];
-  for (let segment of root.body.split(`/`)) if (!(!segment || segment === `.`)) {
-    if (segment === `..`) {
-      if (segments.length > 0 && segments.at(-1) !== `..`) {
-        segments.pop();
-        continue;
-      }
-      if (root.blocksParentTraversal) continue;
-      segments.push(segment);
-      continue;
-    }
-    segments.push(segment);
-  }
-  return `${root.prefix}${segments.join(`/`)}` || root.prefix;
-}
-
-/** jsx 83 —— ssh 认证方式三态判定：私钥路径 → private-key；password/passwordCredentialKey → password；否则 agent */
-function resolveSshAuthMethod(descriptor: any): `private-key` | `password` | `agent` {
-  return descriptor.privateKeyPath?.trim() ? `private-key` : `password` in descriptor && typeof descriptor.password == `string` || `passwordCredentialKey` in descriptor && descriptor.passwordCredentialKey?.trim() ? `password` : `agent`;
-}
-
-/** jsx 86 ★Ms —— ssh 目标身份键（版本化 JSON 元组：host 小写、port 缺省 22、认证方式、私钥路径归一） */
-export function sshTargetIdentityKey(descriptor: any): string {
-  return JSON.stringify([`ssh:v1`, descriptor.host.trim().toLowerCase(), descriptor.port ?? 22, descriptor.username.trim(), resolveSshAuthMethod(descriptor), normalizeTraversalPath(descriptor.privateKeyPath)]);
-}
-
-/** jsx 89 —— 环境归一：仅 'production'（大小写空白宽容）为生产，其余一律 test */
-function normalizeBuildEnv(value?: string | null): `production` | `test` {
-  return value?.trim().toLowerCase() === `production` ? `production` : `test`;
-}
-
-/** jsx 92 ★js */
-export const RESOLVED_BUILD_ENV = normalizeBuildEnv(`production`);
-// jsx 93 —— 原样保留的调试探针（死代码）：`typeof process < 'u'` 即 process 存在时读 `{}.ZCODE_DEBUG`（恒 undefined）
-typeof process < `u` && ({} as { ZCODE_DEBUG?: unknown }).ZCODE_DEBUG;
-
-/** jsx 94 */
-function isNonNullObject(value: unknown): value is object {
-  return typeof value == `object` && !!value;
-}
-
-/** jsx 97 */
-function toPrimitiveString(value: unknown): string | undefined {
-  if (typeof value == `string` || typeof value == `number` || typeof value == `bigint`) return String(value);
-}
-
-/** jsx 100 —— 载荷带 error 子对象（含 message 或 code）时解包，否则原样返回 */
-function unwrapErrorPayload(value: any): any {
-  return !isNonNullObject(value) || !(`error` in value) || !isNonNullObject(value.error) ? value : `message` in value.error || `code` in value.error ? value.error : value;
-}
-
-/** jsx 103 */
-const FILE_LOCK_TIMEOUT_CODE = `ZCODE_FILE_LOCK_TIMEOUT`;
-
-/** jsx 104 —— 任意值 → 错误文案字符串（JSON.stringify 兜底 String） */
-function stringifyErrorValue(value: any): string {
-  if (typeof value == `string`) return value;
-  if (value === null) return `null`;
-  if (value === void 0) return `undefined`;
-  if (typeof value == `number` || typeof value == `boolean` || typeof value == `bigint`) return String(value);
-  try {
-    let json = JSON.stringify(value);
-    if (json !== void 0) return json;
-  } catch {}
-  return String(value);
-}
-
-/** jsx 115 ★As —— Error/对象/任意值 → {message, code} 归一 */
-export function extractErrorInfo(value: any): { message: string; code?: string } {
-  let unwrapped = unwrapErrorPayload(value);
-  if (unwrapped instanceof Error) {
-    let error = unwrapped as Error & { code?: unknown };
-    return {
-      message: unwrapped.message || unwrapped.name || String(unwrapped),
-      code: toPrimitiveString(error.code)
-    };
-  }
-  if (isNonNullObject(unwrapped)) {
-    let code = `code` in unwrapped ? toPrimitiveString((unwrapped as any).code) : void 0,
-      message = `message` in unwrapped ? stringifyErrorValue((unwrapped as any).message) : stringifyErrorValue(unwrapped);
-    return {
-      message: message !== `undefined` && message.length > 0 ? message : stringifyErrorValue(unwrapped),
-      code: code
-    };
-  }
-  return {
-    message: stringifyErrorValue(unwrapped)
-  };
-}
-
-/** jsx 136 ★ks */
-export function isFileLockTimeoutError(value: any): boolean {
-  return extractErrorInfo(value).code === FILE_LOCK_TIMEOUT_CODE;
-}
-
-// jsx 139–141 —— 匿名冻结对象（模块级副作用语句，原样保留）
-Object.freeze({
-  status: `aborted`
-});
+export { DEFAULT_LOCALE } from '../lib/locale';
+export { sanitizeWorkspaceDescriptor, sshTargetIdentityKey } from '../lib/workspaceUtils';
+export { RESOLVED_BUILD_ENV } from '../lib/buildEnv';
+export { extractErrorInfo, isFileLockTimeoutError } from '../lib/errorUtils';
 
 /* ============================================================================
  * §2–§8 zod v4.3.6 —— npm zod@4.3.6 薄层接入（A0-S3a）
@@ -2323,6 +2153,7 @@ export {
  *   §1/§9–§14 为 first-party（语义名按用法规约，把握度见报告 §5）
  * ============================================================================
  * §1 first-party 助手（jsx 1–141，15 符号）
+ *   〔A0-S4-1：本节 15 符号实体已迁 lib/（locale/workspaceUtils/buildEnv/errorUtils）；表映射保留，文件体保留 re-export〕
  *   e      → DEFAULT_LOCALE                             jsx 1     / js 1     ★Ps
  *   t      → sanitizeWorkspaceDescriptor                jsx 2     / js 2     ★Ns
  *   n      → parsePathRootPrefix                        jsx 20    / js 13     —
