@@ -95,6 +95,8 @@
 
 | S4-4a | components 拆分：settings/modal 域（8 文件，shim 模式） | **完工已验证** | 8 源文件 35,812→9,402 行（−73.7%）；32 件 components/ 新文件 28,848 行（components/settings、components/modals、components/automations）；SettingsLeaves 6,555→397（SubagentLeaves/PluginLeaves/AutomationEditor 三族）、ExtendedViews 6,609→4,964（§6 AutomationsMainView 2,037 行）、Settings/Modals 族组件全迁；中途破损即修（U7 5→0、U8 44→0）；emit-diff 全程累计 0 语义差；推迟件：ModalsLeaves §D 管道缠绕、ExtendedViews §1–§5 域外归 S4-4b/c；tsc 0→0、md5 恒、esbuild 40/40、零抑制（as-any 150=150）；报告 A0-S4-4a.report.md |
 
+| S4-4b | components 拆分：conversation/composer 域（4 文件，shim 模式） | **完工已验证** | 15 单元→15 件新文件（components/conversation 10 + components/composer 5）；ConversationLeaves 4,141→1,475、ConversationOverlays 2,080→360、Composer 9,198→7,419、Conversation 8,098→6,004；**emit-diff 捕获并修复 1 处真实语义差**（ModelSelector Sparkles≠Sparkle 误代图标，sparkle.mjs 模块消失检出）；推迟件：Composer lexical 编辑器引擎域（[A]/[B1–B15] 编辑器态闭包）+ Conversation §5/§7/§8/§9 编排域（不切闭包纪律）；tsc 0→0、md5 恒、esbuild 19/19、零新增抑制（as-any 净 −2）；报告 A0-S4-4b.report.md |
+
 **S3 阶段总结**：22 库落地（zod 4.3.6 / qrcode 1.5.4 / @tanstack/react-virtual 3.14.10 / @stripe/stripe-js 9.6.0 + react-stripe-js 6.4.0 / @xterm/xterm 5.5.0 + addon-fit 0.10.0 / lucide-react 1.35.0 / @radix-ui 13 包 + cmdk 1.1.1 / lexical 0.42.0 族），1 件推迟（react-resizable-panels）；SrcSharedA 6,167→2,907 行；components/ui 层建立（12 件）；全程零抑制、tsc 恒 2（TopBar S4 桩）、out/ md5 恒不变。
 
 **S2 接线阶段总结**：项目 tsc 364（declare-any 静默基线）→ 2,448（真实类型引入峰值）→ … → 773（波次末）→ 582 → 538 → 528 → 44 → **2**（均为 S4 待实体化桩，型已就绪）。剩余 declare 2,502 条 = Lane-4 vendored（S3 目标）+ 未重建深部（S4 目标）。
