@@ -39,7 +39,7 @@
 |---|---|---|
 | zod（SrcSharedA §2–§8 ~3,260 行） | zod@4.3.6 | ✓ 精确版本 |
 | recharts（CartesianChart） | recharts@3.8.0 | ✓ 精确版本 |
-| Lexical（styles 57652–63592） | lexical/@lexical/react（latest 0.49.0） | ✓ 可达；**vendored 版本号需先从 bundle 锚定再定 npm 版本** |
+| Lexical（styles 57652–63592） | lexical/@lexical/react@**0.42.0**（S3-d bundle 指纹双锚 styles 60548/62523 `0.42.0+prod.esm` + 125 错误码 ⊆ 0.42.0 族并集；0.49.0 仅为 npm 可达性） | ✓ S3-d 落地 |
 | resizable-panels（131439–131820） | react-resizable-panels（latest 4.12.3） | ✓ 可达；同上需锚定版本 |
 | qrcode（78456–79690） | qrcode@1.5.4 | ✓ |
 | useVirtualizer | @tanstack/react-virtual@3.14.10 | ✓ |
@@ -53,7 +53,7 @@
 - Lane-4 vendored 现存：lucide **285**/286、radix/shadcn **104**/109、lexical **20**/28（余者已被波次消耗）。
 - first-party 未重建深部：2,427 名中 **1,395** 仍 declared（1,032 已被波次接线消耗）；另有 122 名为波次新增登记。
 - 完整性 manifest：a0-wiring-data/ground-truth-md5.manifest（187 件）、a0-wiring-data/out-md5.manifest（2,183 件）。
-- S3 子批划分：S3-a = zod（SrcSharedA 内联 ~3,260 行）+ qrcode + useVirtualizer + resizable-panels + Stripe + xterm 裁决（运行中）；S3-b = lucide 285→lucide-react；S3-c = radix/shadcn 104→自建 shadcn 层；S3-d = lexical 20（版本锚定）。
+- S3 子批（全部完工验证）：S3-a = zod/qrcode/virtualizer/Stripe/xterm（resizable-panels 整件推迟）；S3-b = lucide 429/491；S3-c = radix/shadcn 348（components/ui 12 件）；S3-d = lexical 0.42.0（19/20，全在 Composer）。**合计 22 库落地、1 件推迟（react-resizable-panels 待 X4/Z4/Q4 包装重建）**。
 
 ## 批次台账
 
@@ -82,6 +82,10 @@
 | S3-b | lucide 285 declares→lucide-react | **完工已验证** | lucide-react@1.35.0 落地；**429/491 declare 语句转真 import**（225 名纯迁移 + 21 句 4 图标并入 ./button pass-1 正典）；62 句/60 名保留逐件登记（49 自定义一方图标误分类、FileIcon 自定义 src prop、IconFork 无对应导出、6 名-符号冲突不猜）；裁决含 Kv trash 簇→Trash2（js 27882）、IconSend→ArrowUpFromLine（w_ 26653）、Spinner 族→LoaderCircle；零调用面改动（LucideProps 全覆盖）、零抑制；32 文件 +134/−444；tsc 逐行不变（2）；报告 A0-S3b.report.md |
 
 | S3-c | radix/shadcn 原语→自建 shadcn 层 | **完工已验证** | 实测 101 名/328 语句（前记 104 偏差已核）；库归属精分（Command*=cmdk、ResizablePanel*=react-resizable-panels 续推迟、PopoverRoot 四分、GitReview Tooltip*=hover-card 包装）；新建 components/ui 12 件（dialog/alert-dialog/dropdown-menu/context-menu/hover-card/collapsible/card/scroll-area/checkbox/input-group/command/alert）+ 13 包精确钉版（@radix-ui/react-dialog 1.1.23…cmdk 1.1.1）；**348 declares 转 import**、8 件附因保留；事故：转换器截断多行 declare 致 12 文件 ~170 语法错，HEAD 全跨度提取手术修复（31 尾移除、280 验净），全量 esbuild 复扫通过；零抑制；报告 A0-S3c.report.md |
+
+| S3-d | lexical vendored→npm | **完工已验证** | 版本指纹双锚定 **0.42.0**（非旧记 0.49.0）；20 declares 全在 Composer.tsx（Markdown/DocEngine 提示被 grep 证伪）；19 转 npm import + 8 KEY_*/COPY/BLUR 命令 + LexicalCommand 接口；1 保留（reportLexicalInputTelemetry 一方遥测）；4 处 bundle 锚定修正（$applyNodeMutation 实为 $applyNodeReplacement hV/LR@61025 错码 200–203 等）；lexical+@lexical/react@0.42.0 精确钉版（30 包传递锁齐）；tsc 逐行不变（2）；报告 A0-S3d.report.md |
+
+**S3 阶段总结**：22 库落地（zod 4.3.6 / qrcode 1.5.4 / @tanstack/react-virtual 3.14.10 / @stripe/stripe-js 9.6.0 + react-stripe-js 6.4.0 / @xterm/xterm 5.5.0 + addon-fit 0.10.0 / lucide-react 1.35.0 / @radix-ui 13 包 + cmdk 1.1.1 / lexical 0.42.0 族），1 件推迟（react-resizable-panels）；SrcSharedA 6,167→2,907 行；components/ui 层建立（12 件）；全程零抑制、tsc 恒 2（TopBar S4 桩）、out/ md5 恒不变。
 
 **S2 接线阶段总结**：项目 tsc 364（declare-any 静默基线）→ 2,448（真实类型引入峰值）→ … → 773（波次末）→ 582 → 538 → 528 → 44 → **2**（均为 S4 待实体化桩，型已就绪）。剩余 declare 2,502 条 = Lane-4 vendored（S3 目标）+ 未重建深部（S4 目标）。
 

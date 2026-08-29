@@ -463,6 +463,34 @@ import { HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card'
 import { InfoIcon, X as CloseIcon, PlusIcon, SlashIcon, AtSignIcon, PaperclipIcon, LoaderIcon, ArrowUpIcon, HandIcon, ShieldCheckIcon, SparkleIcon, ChevronDownIcon, CheckIcon, LockIcon, BrainIcon, ShieldAlertIcon, Trash2 as TrashIcon, TerminalIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import * as ReactDOM from "react-dom";
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
+import {
+  $applyNodeReplacement,
+  $createParagraphNode,
+  $createTextNode,
+  $getSelection,
+  $getRoot,
+  $isParagraphNode,
+  $isRangeSelection,
+  $isTextNode,
+  BLUR_COMMAND,
+  COPY_COMMAND,
+  KEY_ARROW_DOWN_COMMAND,
+  KEY_ARROW_UP_COMMAND,
+  KEY_BACKSPACE_COMMAND,
+  KEY_ENTER_COMMAND,
+  KEY_ESCAPE_COMMAND,
+  KEY_TAB_COMMAND,
+  type EditorState as LexicalEditorState,
+  type LexicalEditor,
+  type RangeSelection as LexicalRangeSelection,
+  TextNode as LexicalTextNode,
+  type SerializedEditorState,
+} from 'lexical'; // A0-S3d：vendored lexical declare → npm lexical@0.42.0（版本指纹：styles 60548 `FL.version` / 62523 `TB` = `0.42.0+prod.esm`；LexicalEditor/EditorState/RangeSelection 为 type-only 导出；依据见 A0-S3d.report.md）
+import { LexicalComposer } from '@lexical/react/LexicalComposer'; // A0-S3d：@lexical/react@0.42.0（子路径导出名 LexicalComposer）
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'; // A0-S3d：@lexical/react@0.42.0
+import { ContentEditable as LexicalContentEditable } from '@lexical/react/LexicalContentEditable'; // A0-S3d：导出名 ContentEditable，语义别名保留
+import { HistoryPlugin as LexicalHistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'; // A0-S3d：导出名 HistoryPlugin，语义别名保留
+import { RichTextPlugin as LexicalRichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'; // A0-S3d：导出名 RichTextPlugin，语义别名保留
 import { Spinner } from './Home';
 import { PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
@@ -662,117 +690,15 @@ interface SessionListItem {
   migrationSource?: boolean;
 }
 
-/** 10. Lexical 引擎（本 chunk 57652–63489 vendored；依赖替换策略，接口挂接） */
-declare class LexicalNode {
-  constructor(key?: string);
-  getKey(): string;
-  getTextContent(): string;
-  getTextContentSize(): number;
-  is(node: LexicalNode | null): boolean;
-  getNextSibling(): LexicalNode | null;
-  getPreviousSibling(): LexicalNode | null;
-  getParent(): LexicalElementNode | null;
-  getFirstDescendant(): LexicalNode | null;
-  getAllTextNodes(): LexicalTextNode[];
-  append(...nodes: LexicalNode[]): LexicalElementNode;
-  clear(): void;
-  remove(): void;
-  select(offset?: number, end?: number): unknown;
-  selectNext(anchorOffset?: number, focusOffset?: number): unknown;
-  selectEnd(): void;
-  exportJSON(): Record<string, unknown>;
-}
-declare class LexicalTextNode extends LexicalNode {
-  constructor(text: string, key?: string);
-  __key: string;
-  __text: string;
-  setTextContent(text: string): void;
-  setFormat(format: string): void;
-  setDetail(detail: number): void;
-  setMode(mode: string): void;
-  setStyle(style: string): void;
-  createDOM(config?: unknown): unknown;
-  updateDOM(prevNode: LexicalTextNode, element: HTMLElement, config: unknown): boolean;
-}
-declare class LexicalElementNode extends LexicalNode {
-  getFirstChild(): LexicalNode | null;
-  getLastChild(): LexicalNode | null;
-  getChildren(): LexicalNode[];
-}
-declare class LexicalEditor {
-  update(fn: () => void, options?: { tag?: string }): void;
-  read(fn: () => void): void;
-  focus(): void;
-  setEditable(editable: boolean): void;
-  getEditorState(): LexicalEditorState;
-  setEditorState(state: LexicalEditorState, options?: { tag?: string }): void;
-  parseEditorState(json: unknown): LexicalEditorState;
-  getRootElement(): HTMLElement | null;
-  registerCommand(
-    command: LexicalCommand,
-    listener: (payload: any, editor: LexicalEditor) => boolean,
-    priority: number,
-  ): () => void;
-  registerUpdateListener(
-    listener: (payload: {
-      editorState: LexicalEditorState;
-      prevEditorState: LexicalEditorState;
-      dirtyElements: Map<string, unknown>;
-      dirtyLeaves: Set<string>;
-      tags: Set<string>;
-    }) => void,
-  ): () => void;
-  registerRootListener(
-    listener: (next: HTMLElement | null, prev: HTMLElement | null) => void,
-  ): () => void;
-}
-declare class LexicalEditorState {
-  read<T>(fn: () => T): T;
-}
-declare class LexicalRangeSelection {
-  anchor: { type: string; offset: number; getNode(): LexicalTextNode };
-  getTextContent(): string;
-  isCollapsed(): boolean;
-  getStartEndPoints(): Array<{ type: string; offset: number; getNode(): LexicalNode }> | null;
-  setTextNodeRange(
-    anchorNode: LexicalTextNode,
-    anchorOffset: number,
-    focusNode: LexicalTextNode,
-    focusOffset: number,
-  ): void;
-  insertNodes(nodes: LexicalNode[]): void;
-  insertText(text: string): void;
-  removeText(): void;
-}
-declare function useLexicalComposerContext(): [LexicalEditor];
-declare function $getSelection(): LexicalRangeSelection | null;
-declare function $isRangeSelection(selection: unknown): selection is LexicalRangeSelection;
-declare function $isTextNode(node: unknown): node is LexicalTextNode;
-declare function $getRoot(): LexicalElementNode;
-declare function $createTextNode(text?: string): LexicalTextNode;
-declare function $createParagraphNode(): LexicalElementNode;
-declare function $isParagraphNode(node: unknown): node is LexicalElementNode;
-declare function $applyNodeMutation(node: LexicalNode): void;
-declare const LexicalComposer: React.ComponentType<{ initialConfig: Record<string, unknown>; children?: React.ReactNode }>;
-declare const LexicalRichTextPlugin: React.ComponentType<{
-  contentEditable: React.ReactElement;
-  ErrorBoundary: React.ComponentType<{ children?: React.ReactNode }>;
-}>;
-declare const LexicalContentEditable: React.ComponentType<
-  { className?: string; onFocus?: React.FocusEventHandler } & Record<string, unknown>
->;
-interface LexicalCommand {
-  __type?: string;
-}
-declare const KEY_ARROW_UP_COMMAND: LexicalCommand;
-declare const KEY_ARROW_DOWN_COMMAND: LexicalCommand;
-declare const KEY_ENTER_COMMAND: LexicalCommand;
-declare const KEY_TAB_COMMAND: LexicalCommand;
-declare const KEY_ESCAPE_COMMAND: LexicalCommand;
-declare const KEY_BACKSPACE_COMMAND: LexicalCommand;
-declare const COPY_COMMAND: LexicalCommand;
-declare const BLUR_COMMAND: LexicalCommand;
-declare const LexicalHistoryPlugin: React.ComponentType<Record<string, unknown>>;
+/* ── tombstone（A0-S3d）：vendored lexical 引擎 declare 删除（20 条：LexicalNode/LexicalTextNode/LexicalElementNode/
+ *    LexicalEditor/LexicalEditorState/LexicalRangeSelection 类 + useLexicalComposerContext/$getSelection/$isRangeSelection/
+ *    $isTextNode/$getRoot/$createTextNode/$createParagraphNode/$isParagraphNode 函数 + LexicalComposer/LexicalRichTextPlugin/
+ *    LexicalContentEditable/LexicalHistoryPlugin 组件）+ 本地 LexicalCommand 接口与 KEY_x/COPY/BLUR 8 条命令 declare
+ *    → npm lexical@0.42.0 + @lexical/react@0.42.0 真实 import（文件头导入块）。
+ *    版本指纹：styles 60548 `FL.version = '0.42.0+prod.esm'`（LexicalEditor.version）/ 62523 `TB`（@lexical/extension
+ *    PACKAGE_VERSION）；错误码面 125 码 ⊆ 0.42.0 包并集（含 @lexical/clipboard 166）。
+ *    两处形状适配：$applyNodeMutation 实为 $applyNodeReplacement（bundle hV = `(t.setMode('token'), LR(t))`，LR@61025）；
+ *    parseEditorState 参数面 `unknown` → `string | SerializedEditorState`（0.42.0 d.ts 实面）。依据见 A0-S3d.report.md。 ── */
 
 /* ── tombstone（A0-S3a）：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）declare 删除，
  *    改 npm @tanstack/react-virtual@3.14.10 真实 import（文件头）；
@@ -2372,7 +2298,8 @@ export class PromptMentionNode extends LexicalTextNode {
       result
     );
   }
-  exportJSON(): Record<string, unknown> {
+  exportJSON() {
+    // A0-S3d：去 `: Record<string, unknown>` 注解（bundle mV@styles 64595 无注解；推断面对真实 TextNode.exportJSON(): SerializedTextNode 协变兼容）
     return {
       ...super.exportJSON(),
       type: `prompt-mention`,
@@ -2410,10 +2337,10 @@ export class PromptMentionNode extends LexicalTextNode {
   }
 }
 
-/** 原 hV（js 64633）：创建 token 模式提及节点 */
+/** 原 hV（js 64633）：创建 token 模式提及节点（bundle：`(t.setMode('token'), LR(t))`，LR = $applyNodeReplacement@styles 61025；A0-S3d：返回值按 bundle 收口） */
 function createMentionNode(payload: MentionPayload): PromptMentionNode {
   const node = new PromptMentionNode(payload);
-  return (node.setMode(`token`), $applyNodeMutation(node), node);
+  return (node.setMode(`token`), $applyNodeReplacement(node));
 }
 
 /** 原 gV（js 64637）：提及节点判定 */
@@ -4306,8 +4233,8 @@ function setEditorMention(editor: LexicalEditor, mention: MentionPayload, traili
   );
 }
 
-/** GV → applyEditorStateJson（js 66225） */
-function applyEditorStateJson(editor: LexicalEditor, json: unknown): void {
+/** GV → applyEditorStateJson（js 66225；A0-S3d：json 面收口真实 parseEditorState 参数 `string | SerializedEditorState`） */
+function applyEditorStateJson(editor: LexicalEditor, json: string | SerializedEditorState): void {
   const state = editor.parseEditorState(json);
   editor.setEditorState(state, { tag: PROGRAMMATIC_UPDATE_TAG });
 }
@@ -4594,7 +4521,7 @@ function E2ELexicalBridgePlugin({ inputTestId }: { inputTestId?: string }): null
           getEditorState: () => editor.getEditorState(),
           getText: () => readEditorText(editor.getEditorState()),
           setText: (text: string) => setEditorText(editor, text),
-          setEditorStateJson: (json: unknown) => applyEditorStateJson(editor, json),
+          setEditorStateJson: (json: string | SerializedEditorState) => applyEditorStateJson(editor, json),
         };
       let attachedElement: Element | null = null;
       const detachBridge = (element: Element | null) => {
@@ -4782,7 +4709,7 @@ export interface ComposerEditorApi {
   appendFileMention(label: string, filePath: string, markdown: string, data: Record<string, unknown> | undefined, trailingText?: string): void;
   setMention(mention: MentionPayload, trailingText?: string): void;
   setText(text: string): void;
-  setEditorStateJson(json: unknown): void;
+  setEditorStateJson(json: string | SerializedEditorState): void;
   setSkillMention(skillName: string, markdown?: string, trailingText?: string): void;
   setSlashCommandMention(commandName: string, markdown?: string, trailingText?: string): void;
 }
