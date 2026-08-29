@@ -155,12 +155,14 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input, toast, usePlatform } from './ImeComposition';
 import { baseName, relativePathFromWorkspace, useRemoteWorkspaceInfo } from './MarkdownIntegration';
 import { imageMimeTypeOfPath } from './PreviewCards';
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
 import { taskEntityKey } from './StoresDeep';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip；aria-pressed 见 B-28）
 import { FileIconImg as FileIconImage, resolveFileDisplayInfo as getFileMeta } from './ModalsLeaves'; // 原 Vc / zc
 
 /* ============================================================================
@@ -178,9 +180,11 @@ declare function useIntlContext(): { intl: IntlShape };
 /** 原 m：toast（imeComposition chunk） */
 
 /* 原 l：usePlatform */
-interface InstalledEditor {
+export interface InstalledEditor {
   id: string;
   name: string;
+  /** 平台实返字段（图标 data URL；可能缺省）。 */
+  iconDataUrl?: string;
   [key: string]: unknown;
 }
 interface PlatformOpenResult {
@@ -283,27 +287,10 @@ const TESTID_FILE_TREE_PANEL = `workspace-file-tree-panel`;
 const TESTID_FILE_TREE_REFRESH_BUTTON = `workspace-file-tree-refresh-button`;
 const scopedTestId = (base: string, id: string): string => `${base}-${id}`;
 
-/* 原 X：Button */
-declare const Button: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    type: "button";
-    variant?: string;
-    size?: string;
-  }
->;
+/* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）declare 删除 → import { Button } from './button'；
+   Tooltip（原 Ia）declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'（aria-pressed 经 B-28 加入 InfoTooltipProps）。 ── */
 
 /** 原 P：Input */
-
-/** 原 Ia：Tooltip */
-declare const Tooltip: React.FC<{
-  title: string;
-  side?: string;
-  align?: string;
-  sideOffset?: number;
-  triggerClassName?: string;
-  "aria-pressed"?: boolean;
-  children?: React.ReactNode;
-}>;
 
 /* 原 VO/HO/UO/WO：DropdownMenu 原语族（X03 双归属，接口挂接） */
 declare const DropdownMenu: React.FC<{ children?: React.ReactNode }>;

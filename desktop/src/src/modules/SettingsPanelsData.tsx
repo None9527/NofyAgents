@@ -73,11 +73,13 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input } from './ImeComposition';
 import { CodeBlockFrame, MarkdownRenderer, documentVisibilityState, isMermaidBlock } from './MarkdownIntegration';
 import { MIGRATION_DEFAULT_LIMIT, modifiedSinceOfRange, parseScanLimit, resolveWorkspaceFilterMode } from './McpHelpers';
 import { Badge } from './PaymentDeep';
 import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsList, TabsTrigger } from './Settings';
+import { USAGE_REPORT_RANGES as APP_USAGE_RANGES } from './SrcSharedA'; // ai=ms（A0-CLEANUP B-9：APP_USAGE_RANGES declare 改指 USAGE_REPORT_RANGES）
 import { findQuotaLimit, formatQuotaResetTime, formatQuotaUsage, providerCacheKey, quotaPercent, useAppUsageStats, useCodingPlanUsageStats, useSubscriptionSnapshot } from './UsageDeep';
 import { UsageHeatmap, formatPercent } from './UsageStatsUiParts';
 import { cn } from './UtilsCn';
@@ -99,12 +101,7 @@ interface IntlShape {
 }
 
 
-declare const Button: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: "default" | "secondary" | "ghost" | "outline" | "link" | "destructive";
-    size?: "xs" | "sm" | "lg" | "icon-sm" | "icon-md";
-  }
->;
+/* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
 declare const SelectRoot: React.FC<{
   value: string;
@@ -180,7 +177,8 @@ declare const UsageErrorBoundary: React.FC<{
   variant: "inline";
   children: React.ReactNode;
 }>; // p4（129952 / jsx 109217）
-declare const APP_USAGE_RANGES: string[]; // ai（usageStats chunk）
+/* ── tombstone（A0-CLEANUP B-9）：APP_USAGE_RANGES declare 删除 → import
+ *    { USAGE_REPORT_RANGES as APP_USAGE_RANGES } from './SrcSharedA'（原 ai=ms）。 ── */
 
 /* --- 图表 lazy 消费（原 Q$t/$$t/i1t；图表本体已在 appUsage* 模块恢复） --- */
 
@@ -1467,7 +1465,7 @@ export function CodeBlockWrapLinesButton(props: {
         aria-label={ariaLabel ?? title}
         aria-pressed={wrapLongLines}
         className={cn("shrink-0", wrapLongLines && "bg-muted", className)}
-        onClick={(event) => {
+        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
           onClick?.(event);
           if (!event.defaultPrevented) toggleWrapLongLines();
         }}
@@ -1500,7 +1498,7 @@ export function CodeBlockMermaidPreviewButton(props: {
         aria-label={ariaLabel ?? resolvedTitle}
         className={cn("shrink-0", className)}
         disabled={!mermaidPreviewAvailable}
-        onClick={(event) => {
+        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
           onClick?.(event);
           if (!event.defaultPrevented) openMermaidPreview();
         }}

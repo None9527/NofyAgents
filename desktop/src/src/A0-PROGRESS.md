@@ -63,7 +63,7 @@
 | D-Services | services/stores-*/StoresDeep/AppRootLeaves | **完工已验证** | 35 接线 + 6 logger 改接 + 4 组类型收敛；**域错 135→0 全清零**；workspaceKey 属主落实 = SkillStore.resolveWorkspaceKey（bundle b/H）；保留 114 逐条登记；需要的 export 9 项 + 未重建属主一批；报告 A0-D-Services.report.md |
 | D-Conversation | Conversation 族 + Composer/Modals（6 文件，518 declares，75 错） | **完工已验证** | 56 接线（值 30+型 26）+ 4 处 useWorkspaceServices()→useServices()（bundle fs 5 锚点）；**域错 75→0 全清零**；保留 495（Lane-4 lexical/Icon*/radix 原语 + 域外未导出）；共享类型收敛到 ConversationLeaves（+5 type export）；外溢核验消费方计数全部不变；需要的 export 13 项；报告 A0-D-Conversation.report.md |
 | D-Misc | Bots/QuickPick/Cmdk/Usage/Onboarding 等（13 文件，489 declares，139 错） | **完工已验证** | 62 接线 + 域内补 export 2（UsageDeep.formatGrantUnits、RDSI.SuggestionInput）；**域错 139→0 全清零**；保留 451（Lane-4/未重建属主/域外未导出）；AMBIGUOUS 裁决 6（workspaceScopeKey→resolveWorkspaceKey 等）；回滚前波误接 5；需要的 export 17 项；报告 A0-D-Misc.report.md |
-| 收尾接线 pass | Button 族（29 文件）/Tooltip 族 declare → ./button、./UsageStatsUiParts（导出面已就绪：button.tsx 9 名 + UsageStatsUiParts 补 4 名） | 待当前波次落地（避开在编文件） | — |
+| 收尾接线 pass 1 | 工作清单 A 段 + B 段非★项（27 文件） | **完工已验证** | Button 22 文件/buttonVariants/createLucideIcon 8 文件/9 图标接线；Tooltip→InfoTooltip 8 文件；workspaceKey→resolveWorkspaceKey（SettingsLeaves 变体→automationsWorkspaceKey@SrcSharedB）；B 段 1–9/21/22/24–28/30/32 落地，23/29/31 部分/33/34 附因跳过；发现 ButtonProps Record<string,unknown> 失上下文型（26 TS7006+5 TS2322）以最小注解修复；项目 582→538 逐文件零回退；报告 A0-CLEANUP1.report.md |
 
 ## 事故与教训（本阶段）
 

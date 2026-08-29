@@ -201,6 +201,7 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { resolveBranchDisplayLabel } from './CmdkPaletteDeep';
 import { DiffViewer, readLastEditorId as getPreferredEditorId } from './CodeViewer'; // 原 OA
 import { orderEditorsForFileManager as normalizeInstalledEditors, useFileContextActions } from './FileTreePanel'; // 原 GA / QA
@@ -297,13 +298,7 @@ declare const DialogTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>>;
 declare const DialogDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement>>;
 declare const DialogFooter: React.FC<React.HTMLAttributes<HTMLDivElement>>;
 
-/** Button（原 X，button-laUijeDG.js） */
-declare const Button: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: "default" | "secondary" | "ghost" | "outline" | "destructive" | "link";
-    size?: "default" | "sm" | "lg" | "icon-xs" | "icon-sm" | "icon-md";
-  }
->;
+/* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）declare 删除 → import { Button } from './button'。 ── */
 
 /** 文本域（原 j，imeComposition chunk 的 v 导出；forwardRef，提交对话框需聚焦） */
 
@@ -1405,7 +1400,7 @@ export function GitChangesPanel({
     remoteTarget: remoteInfo.remoteTarget,
     workspaceIdentity,
   });
-  const resolvedTheme = resolveTheme(theme as "light" | "dark" | "zai-light" | "zai-dark" | "system");
+  const resolvedTheme = resolveTheme(theme);
   const [expandedPath, setExpandedPath] = React.useState<string | null>(null);
   const [diffCache, setDiffCache] = React.useState<Record<string, DiffCacheEntry>>({});
   const revisionRef = React.useRef(0);
@@ -2502,7 +2497,7 @@ export function CodeCommentsChip({
               className="size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
               aria-label={removeLabel}
               title={removeLabel}
-              onClick={(event) => {
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 event.stopPropagation();
                 onRemoveAll();
               }}
@@ -2544,7 +2539,7 @@ export function CodeCommentsChip({
                     className="mt-0.5 size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover/comment:opacity-100"
                     aria-label={removeLabel}
                     title={removeLabel}
-                    onClick={(event) => {
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                       event.stopPropagation();
                       onRemove(comment);
                     }}

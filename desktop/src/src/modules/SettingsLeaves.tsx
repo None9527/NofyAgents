@@ -134,6 +134,7 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input, Popover, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, BackLinkButton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger } from './Settings';
 import { ResourceEnabledFilterSelect } from './SettingsPanelsCapability';
@@ -146,8 +147,9 @@ import { useConfirmDialog } from './Modals'; // U2
 import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
 import { isComposingText as imeGuard } from './ImeComposition'; // A
 import { parseCustomModelId as parseModelValue } from './SkillStore'; // se（src chunk）
-import { isGlmModelId as isMaxThinkingModel } from './SrcSharedA'; // qn（F12）
+import { isGlmModelId as isMaxThinkingModel, GLM_REASONING_LEVELS as MAX_THINKING_LEVELS } from './SrcSharedA'; // qn（F12）/ ui=Sl（A0-CLEANUP B-8：MAX_THINKING_LEVELS declare 改指 GLM_REASONING_LEVELS）
 import {
+  automationsWorkspaceKey as workspaceKey, // Ti（src chunk ip，6913；A0-CLEANUP 族清理：对象参工作区键）
   joinTestidParts as testidTemplate, // Xa
   parseCustomModelRef as parseCustomModelKey, // Zn（src chunk B）
   subagentRowTestid as TESTID_SUBAGENT_ROW, // Ite
@@ -283,23 +285,7 @@ declare const ScrollAreaScrollbar: React.FC<
 >; // aEe
 declare const ScrollAreaThumb: React.FC<{ "data-slot"?: string; className?: string }>; // mEe
 declare const ScrollAreaCorner: React.FC<{ className?: string }>; // EEe
-declare const Button: React.FC<
-  {
-    type?: "button" | "submit" | "reset";
-    variant?: string;
-    size?: string;
-    disabled?: boolean;
-    className?: string;
-    onClick?: React.MouseEventHandler;
-    form?: string;
-    title?: string;
-    "data-testid"?: string;
-    "data-plugin-id"?: string;
-    "data-marketplace-id"?: string;
-    "aria-label"?: string;
-    children: React.ReactNode;
-  } & Record<string, unknown>
->; // X
+/* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）declare 删除 → import { Button } from './button'。 ── */
 declare function usePlatformService(): {
   openExternal(url: string): void;
   selectDirectory(): Promise<string | null>;
@@ -369,7 +355,8 @@ declare function useWorkspaceConfigOptions(
   unused: null,
   workspaceIdentity?: string,
 ): { configOptions: ConfigOption[]; status: string }; // Jq（F12，js 78389）
-declare const MAX_THINKING_LEVELS: string[]; // ui（F12）
+/* ── tombstone（A0-CLEANUP B-8）：MAX_THINKING_LEVELS declare 删除 → import
+ *    { GLM_REASONING_LEVELS as MAX_THINKING_LEVELS } from './SrcSharedA'（原 ui=Sl）。 ── */
 declare function resolveModelGroupLabel(args: {
   modelGroups: SelectGroupEntry[];
   normalizedValue: string;
@@ -1986,7 +1973,7 @@ export function PluginItemMenu({ item, actions, triggerClassName }: { item: Plug
           size="icon-md"
           className={triggerClassName}
           aria-label={intl.formatMessage({ id: "settings.plugins.store.menu.label" })}
-          onClick={(event) => event.stopPropagation()}
+          onClick={(event: React.MouseEvent<HTMLButtonElement>) => event.stopPropagation()}
         >
           {busy ? <IconSpinner className="size-4 animate-spin" aria-hidden="true" /> : <IconEllipsis className="size-4" aria-hidden="true" />}
         </Button>
@@ -2028,7 +2015,7 @@ export function PluginInstallButton({ item, actions, size = "sm" }: { item: Plug
       size={size}
       className="rounded-full"
       disabled={busy}
-      onClick={(event) => {
+      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
         actions.onInstall(item);
       }}
@@ -4192,8 +4179,8 @@ export function removeFromSet<T>(set: Set<T>, value: T): Set<T> {
   return next;
 }
 
-/** 原 Ti（src chunk ip，6913；接口级）：工作区键（identity?.trim() || path） */
-declare function workspaceKey(option: { workspacePath: string; workspaceIdentity?: string | null }): string;
+/* ── tombstone（A0-CLEANUP 族清理）：workspaceKey（原 Ti = src chunk ip，6913）declare 删除 →
+   import { automationsWorkspaceKey as workspaceKey } from './SrcSharedB'。 ── */
 
 /** 原 X3（136087）：工作区选项键（= workspaceKey） */
 export function workspaceOptionKey(option: WorkspaceOption): string {

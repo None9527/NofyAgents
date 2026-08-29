@@ -139,6 +139,7 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Textarea, toast, usePlatform } from './ImeComposition';
 import { TableEdgeShadow, IMAGE_THUMBNAIL_CLASS, backToBottomInset, baseName, chatDockHeight, decodeUriSafe, extractTableRows, findVerticalScroller, isAbsolutePath, measureRect, sameRect, shouldShowStickyScrollbar, stickyScrollMax, stickyScrollbarOffset, stickyThumbGeometry, stickyTrackGeometry, tableLayoutInsets, tableLayoutRoot, tableNeedsStickyScrollbar, tableRowsToCsv, tableRowsToMarkdown } from './MarkdownIntegration'; // 新增项原 Gk/EBe/qo/Pk/Ko/Ak/jk/Nk/TBe/kk
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
@@ -166,16 +167,7 @@ interface PlatformService {
   [key: string]: unknown;
 }
 
-/** 原 X：Button */
-declare const Button: React.FC<
-  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type"> & {
-    type?: "button" | "submit" | "reset";
-    variant?: string;
-    size?: string;
-    "aria-label"?: string;
-    title?: string;
-  }
->;
+/* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）declare 删除 → import { Button } from './button'。 ── */
 
 /** 原 j：Textarea（imeComposition chunk） */
 

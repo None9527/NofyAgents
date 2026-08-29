@@ -80,6 +80,7 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { toast, usePlatform as usePlatformService } from './ImeComposition'; // 原 m / 平台服务钩子（imeComposition chunk 导出 M=usePlatform）
 import { LazyPdfViewer, LazyPptxPreviewViewer } from './LazyPreviewViewers';
 import { MarkdownRenderer, baseName as basename, isAbsolutePath, relativePathFromWorkspace as relativePath, useRemoteWorkspaceInfo } from './MarkdownIntegration'; // 原 Go / Ko / zA / $A
@@ -89,6 +90,7 @@ import { resolveAvailableEditors as useResolvedEditor, useFileContextActions as 
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
 import { resolveThemeMode as useResolvedTheme } from './Settings'; // 原 xo（theme → dark|light）
+import { normalizeDecodedSource } from './SidePanel'; // 原 cae（A0-CLEANUP B-26 接线；SidePanel 族解码归一）
 import { create as createZustandStore } from './SkillStore'; // 原 Ae（zustand create，SkillStore 导出）
 import { useWorkspaceServices } from './services';
 import { useSettingsStore } from './stores-core';
@@ -114,7 +116,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   disabled?: boolean;
   "data-diff-source-preview-trigger"?: boolean;
 }
-declare const Button: React.FC<ButtonProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 
 /** lucide 风格图标（原 wa/K_/q_/Y_/J_/W_/N_/Vc） */
 declare const IconChevronRight: React.FC<{ className?: string }>;
@@ -257,8 +259,8 @@ declare function officeKindOfPath(path: string): "excel" | "docx" | "legacy-doc"
 /** 原 Ko：绝对路径判 */
 /** 原 Go/zA：basename / 相对路径 */
 /** 原 zc：文件显示信息（图标） */
-/** 原 cae（SidePanel 族）：解码 source 归一 */
-declare function normalizeDecodedSource(source: CodeViewerSourceInput): DecodedCodeViewerSource | null;
+/* ── tombstone（A0-CLEANUP B-26）：normalizeDecodedSource declare 删除 →
+ *    import { normalizeDecodedSource } from './SidePanel'（原 cae，SidePanel 族）。 ── */
 /** 原 YBe：patch/multi-file-diff → 可回看的 diff source */
 
 /** 懒加载分包（动态 import 登记；真实 chunk 见 out/renderer/assets/） */
@@ -1575,7 +1577,7 @@ export function CodeViewerPanel({
   const scrollSnapshotRef = React.useRef({ scrollHeight: 0, scrollTop: 0 });
   const wasHeavyRenderedRef = React.useRef(renderHeavyContent);
 
-  const resolvedTheme = useResolvedTheme(theme as "light" | "dark" | "zai-light" | "zai-dark" | "system");
+  const resolvedTheme = useResolvedTheme(theme);
   const codeTheme = resolvedTheme === "dark" ? codePreviewSettings.darkTheme : codePreviewSettings.lightTheme;
 
   const imageSource = React.useMemo(() => projectImageSource(decoded), [decoded]);

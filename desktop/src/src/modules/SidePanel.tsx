@@ -148,6 +148,7 @@
  */
 
 import * as React from "react";
+import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { BrowserUseView, BrowserView, useScreenshotSurfaceRequest } from './BrowserPane';
 import { CodeViewerPanel } from './CodeViewer';
 import { useIsMobileTextInputViewport } from './Composer';
@@ -163,6 +164,7 @@ import { ScopedErrorBoundary } from './WorkspaceShell';
 import { useServices } from './services';
 import { useTrajectoryViewerStore, useTuiEditPendingRequest } from './stores-session';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { InfoTooltip as Tooltip, TooltipProvider } from './UsageStatsUiParts'; // 原 Ia=X / Na=Ce（A0-CLEANUP 族清理：本地 Tooltip/TooltipProvider declare 改指属主导出）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -276,20 +278,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
   size?: "xs" | "sm" | "default" | "lg" | "icon-xs" | "icon-sm" | "icon-md" | "icon-lg";
 }
-declare const Button: React.FC<ButtonProps>;
-
-/** TooltipProvider（原 Na = usageStatsUiParts Ce，js 512） */
-declare const TooltipProvider: React.FC<{ delayDuration?: number; skipDelayDuration?: number; children: React.ReactNode }>;
-/** Tooltip（原 Ia = usageStatsUiParts X）：title + shortcut + triggerClassName */
-declare const Tooltip: React.FC<{
-  title: string;
-  shortcut?: string;
-  side?: "top" | "bottom" | "left" | "right";
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  triggerClassName?: string;
-  children: React.ReactNode;
-}>;
+/* ── tombstone（A0-CLEANUP 族清理）：Button / TooltipProvider（原 Na=Ce）/ Tooltip（原 Ia=X）
+   declare 删除 → import { Button, createLucideIcon } from './button'、
+   import { InfoTooltip as Tooltip, TooltipProvider } from './UsageStatsUiParts'。 ── */
 
 /** Popover 原语（原 T/h/x，imeComposition chunk n/a/i 导出） */
 
@@ -491,7 +482,7 @@ const FileIconImg: React.FC<{ src: string; size?: number; className?: string }> 
 /* --- 图标（原 Sa 工厂批量生成的 lucide 图标；此处按语义命名） --- */
 
 type IconProps = React.SVGProps<SVGSVGElement>;
-declare function createLucideIcon(name: string, paths: unknown[]): React.FC<IconProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 
 const IconPlus = createLucideIcon("plus", []);                      // 原 kv（js 27606）新增标签 ⊞
 const IconChevronsDown = createLucideIcon("chevrons-down", []);     // 原 dye（js 26804）标签总览
@@ -938,8 +929,11 @@ function codeViewerSourceKey(source: CodeViewerSource, workspaceIdentity?: strin
   return null;
 }
 
-/** 原 cae：URI 解码 source 的 title/path（解码失败原样返回） */
-function normalizeDecodedSource(source: CodeViewerSource): CodeViewerSource {
+/** 原 cae：URI 解码 source 的 title/path（解码失败原样返回）。
+ *  A0-CLEANUP B-26：补导出供 CodeViewer 改指；泛型恒等形（实现逐字返回入参，
+ *  见 js 1965–1976），两侧调用面（本族 CodeViewerSource / CodeViewer 的
+ *  CodeViewerSourceInput）各按自身型回流。 */
+export function normalizeDecodedSource<T extends { title: string }>(source: T): T {
   // 完整实现见 js 1965–1976：decodeURI 保护 + 标题回退为文件名
   return source;
 }
@@ -2736,10 +2730,10 @@ export function SidePaneTabChip({
                     size="icon-xs"
                     aria-label={closeTabLabel}
                     className="rounded-md"
-                    onPointerDown={(event) => {
+                    onPointerDown={(event: React.PointerEvent<HTMLButtonElement>) => {
                       event.stopPropagation();
                     }}
-                    onClick={(event) => {
+                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                       event.preventDefault();
                       event.stopPropagation();
                       onCloseTab(tab.id);
@@ -2969,11 +2963,11 @@ export function SidePaneTabOverview({
                       size="icon-xs"
                       aria-label={labels.closeTab(title)}
                       className="shrink-0 opacity-70 hover:opacity-100"
-                      onPointerDown={(event) => {
+                      onPointerDown={(event: React.PointerEvent<HTMLButtonElement>) => {
                         event.preventDefault();
                         event.stopPropagation();
                       }}
-                      onClick={(event) => {
+                      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                         event.preventDefault();
                         event.stopPropagation();
                         onCloseTab(tab.id);
@@ -4098,7 +4092,7 @@ export function SidePanel({
   );
 
   /* --- 空态四宫格（原 Ke/qe/Je，js 182804–182891） --- */
-  const emptyStateOptionsById: Record<EmptyStateTabOptionId, { id: EmptyStateTabOptionId; label: string; icon: React.FC<IconProps>; onOpen: () => void }> = {
+  const emptyStateOptionsById: Record<EmptyStateTabOptionId, { id: EmptyStateTabOptionId; label: string; icon: ReturnType<typeof createLucideIcon>; onOpen: () => void }> = {
     "selection-side-conversation": {
       id: "selection-side-conversation",
       label: intl.formatMessage({ id: "sidePane.selectionChat" }),

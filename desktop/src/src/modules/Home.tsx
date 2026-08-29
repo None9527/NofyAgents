@@ -122,16 +122,18 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { BackgroundWorksCapsule, ComposerInput } from './Composer';
 import { countContextAttachments, isAddToChatEvent, useCodeCommentContexts, type CodeCommentAttachment } from './GitReview';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { pathBasename } from './ModalsLeaves';
-import { RemoteWizardDialog } from './RemoteWizard';
+import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from './RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
 import { create, logger, useTaskStore } from './SkillStore';
 import { providerIds } from './SrcSharedA';
 import { useServices } from './services';
 import { workspaceScopeKey } from './stores-session';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -264,9 +266,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: "xs" | "sm" | "default" | "lg" | "icon-sm" | "icon-md";
   type?: "button" | "submit";
 }
-declare const Button: React.FC<ButtonProps>;
-
-declare function Tooltip(props: { title: string; shortcut?: string; children: React.ReactNode }): React.ReactElement;
+/* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
+/* ── tombstone（A0-CLEANUP 族清理）：Tooltip declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'。 ── */
 
 
 /* DropdownMenu 原语族（本 chunk 47926–48040，TopBar.tsx §1.1 已逐字还原） */
@@ -1180,7 +1181,7 @@ export interface WorkspaceSelectionRowProps {
   onOpenFolder: () => void;
   allowOpenWorkspace?: boolean;
   allowRemoteWorkspace?: boolean;
-  remoteWorkspaceSessions?: unknown[];
+  remoteWorkspaceSessions?: RemoteWorkspaceSessionLike[];
   onConnectRemote: (args: unknown) => Promise<string> | string;
   onSelectRemoteProject: (args: unknown) => Promise<void> | void;
   onCancelRemoteProject: (sessionId: string) => Promise<void> | void;

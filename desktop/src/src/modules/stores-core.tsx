@@ -45,6 +45,7 @@ import * as React from "react";
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { create as createStore } from './SkillStore'; // 原 Ae（skillStore chunk q 导出）
 import { readLocalStorageItem as readLocalStorage, writeLocalStorageItem as writeLocalStorage } from './intlProvider'; // 原 He/We
+import type { ThemeMode } from './Settings'; // A0-CLEANUP B-22：theme 收敛到 ThemeMode（type-only，无运行时环）
 import type { UserInfo } from './OnboardingLoginLeaves';
 
 /* ============================================================================
@@ -113,7 +114,7 @@ export interface LoginEntryRequest { id: number; providerId: string; purpose: st
 export interface LoginEntryAttempt extends LoginEntryRequest { status: "requested" | "pending" | "settled" | string }
 
 export interface SettingsState {
-  theme: string;
+  theme: ThemeMode;
   locale: string;
   codePreviewSettings: CodePreviewSettings;
   uiFontSizePx: number;
@@ -133,7 +134,7 @@ export interface SettingsState {
   loginEntryAttempt: LoginEntryAttempt | null;
   onboardingDialogRequested: boolean;
   /* actions */
-  setTheme(theme: string): void;
+  setTheme(theme: ThemeMode): void;
   setLocale(locale: string): void;
   setCodePreviewSettings(patch: Partial<CodePreviewSettings>): void;
   setUiFontSizePx(px: number): void;
@@ -268,9 +269,9 @@ export function createSettingsStore(broadcast: BroadcastService, options: { init
   let disposeSystemThemeListener: (() => void) | null = null;
 
   const store = createStore<SettingsState>((set) => ({
-    theme: normalizeThemeId(readLocalStorage("zcode-theme") || "zai-dark"),
+    theme: normalizeThemeId(readLocalStorage("zcode-theme") || "zai-dark") as ThemeMode,
     setTheme: (theme) => {
-      const normalized = normalizeThemeId(theme);
+      const normalized = normalizeThemeId(theme) as ThemeMode;
       writeLocalStorage("zcode-theme", normalized);
       broadcastThemeChange(normalized);
       applyThemeClasses(normalized);
@@ -399,7 +400,7 @@ export function createSettingsStore(broadcast: BroadcastService, options: { init
     applyingRemoteChange = true;
     try {
       const state = store.getState();
-      if (field === "theme" && typeof message.payload === "string") state.setTheme(message.payload);
+      if (field === "theme" && typeof message.payload === "string") state.setTheme(message.payload as ThemeMode);
       else if (field === "locale" && typeof message.payload === "string") state.setLocale(message.payload);
       else if (field === "uiFontSizePx" && typeof message.payload === "number") state.setUiFontSizePx(message.payload);
     } finally {

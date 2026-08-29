@@ -109,6 +109,7 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { workspaceKeyOf } from './CodeViewer';
 import { toast } from './ImeComposition';
 import { RemoteSyncingRow, TaskListLoadingRow } from './Sidebar';
@@ -118,6 +119,7 @@ import { useBaseServices } from './services';
 import { useSessionRegistryStore, type BaseServices } from './stores-core'; // BaseServices：buildScopedServices 实参形
 import { formatRelativeTime } from './SidePanel'; // $S
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上述 chunk；此处为重建接口）
@@ -134,21 +136,8 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** toast（原 m，imeComposition chunk） */
 
-/** 通用按钮（原 X，button-laUijeDG.js） */
-interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
-  variant?: "default" | "ghost" | "outline" | "destructive" | string;
-  size?: "default" | "sm" | "icon-sm" | "icon-xs" | string;
-}
-declare const Button: React.ForwardRefExoticComponent<ButtonProps & React.RefAttributes<HTMLButtonElement>>;
-
-/** Tooltip（原 Ia，usageStatsUiParts-CiR7YEhh.js） */
-declare const Tooltip: React.FC<{
-  title: string;
-  side?: "top" | "bottom" | "left" | "right";
-  align?: "start" | "center" | "end";
-  triggerClassName?: string;
-  children?: React.ReactNode;
-}>;
+/* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）declare 删除 → import { Button } from './button'；
+   Tooltip（原 Ia）declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'。 ── */
 
 /** 图标（lucide 风格；原图标块 + button chunk 导出） */
 declare const IconSmartphone: React.FC<React.SVGProps<SVGSVGElement>>; // Vv
@@ -3230,11 +3219,11 @@ export function ArchivedTasksSection({
                   className="shrink-0 text-foreground-subtle hover:text-foreground"
                   title={unarchiveLabel}
                   aria-label={unarchiveLabel}
-                  onMouseDown={(event) => {
+                  onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
                     event.preventDefault();
                     event.stopPropagation();
                   }}
-                  onClick={(event) => {
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                     event.preventDefault();
                     event.stopPropagation();
                     services.zcodeTaskService
@@ -3266,11 +3255,11 @@ export function ArchivedTasksSection({
                   className="shrink-0 text-destructive hover:text-destructive"
                   title={deleteLabel}
                   aria-label={deleteLabel}
-                  onMouseDown={(event) => {
+                  onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
                     event.preventDefault();
                     event.stopPropagation();
                   }}
-                  onClick={(event) => {
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                     event.preventDefault();
                     event.stopPropagation();
                     void (async () => {
@@ -3753,11 +3742,11 @@ function WebRemoteTaskRow({
             variant="ghost"
             size="icon-xs"
             disabled={isBusy || isMutating}
-            onMouseDown={(event) => {
+            onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
               event.preventDefault();
               event.stopPropagation();
             }}
-            onClick={(event) => onToggleTaskPin(event, task)}
+            onClick={(event: React.MouseEvent<HTMLButtonElement>) => onToggleTaskPin(event, task)}
             className={cn("absolute left-2.5 top-1/2 z-10 inline-flex size-4 min-w-0 -translate-y-1/2 rounded-sm !bg-transparent p-0 text-foreground-subtle hover:text-foreground")}
             aria-label={pinLabel}
           >
@@ -3772,11 +3761,11 @@ function WebRemoteTaskRow({
             variant={isPendingArchive ? "destructive" : "ghost"}
             size={isPendingArchive ? "sm" : "icon-sm"}
             disabled={isBusy || isMutating}
-            onMouseDown={(event) => {
+            onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
               event.preventDefault();
               event.stopPropagation();
             }}
-            onClick={(event) => onArchiveTask(event, task)}
+            onClick={(event: React.MouseEvent<HTMLButtonElement>) => onArchiveTask(event, task)}
             data-testid={scopedTestId(TESTID_TASK_ARCHIVE, task.taskId)}
             className={cn("shrink-0", isPendingArchive ? "flex border-destructive/20 px-2" : "flex")}
             aria-label={archiveLabel}
@@ -3794,11 +3783,11 @@ function WebRemoteTaskRow({
                 variant="ghost"
                 size="icon-sm"
                 disabled={isBusy || isMutating}
-                onMouseDown={(event) => {
+                onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
                   event.preventDefault();
                   event.stopPropagation();
                 }}
-                onClick={(event) => onUnarchiveTask(event, task)}
+                onClick={(event: React.MouseEvent<HTMLButtonElement>) => onUnarchiveTask(event, task)}
                 className="shrink-0 text-foreground-subtle hover:text-foreground"
                 aria-label={unarchiveLabel}
               >
@@ -3813,11 +3802,11 @@ function WebRemoteTaskRow({
                 variant="ghost"
                 size="icon-sm"
                 disabled={isBusy || isMutating}
-                onMouseDown={(event) => {
+                onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
                   event.preventDefault();
                   event.stopPropagation();
                 }}
-                onClick={(event) => onDeleteArchivedTask(event, task)}
+                onClick={(event: React.MouseEvent<HTMLButtonElement>) => onDeleteArchivedTask(event, task)}
                 className="shrink-0 text-destructive hover:text-destructive"
                 aria-label={deleteLabel}
               >

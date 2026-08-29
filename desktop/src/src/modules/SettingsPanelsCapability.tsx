@@ -115,6 +115,7 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { registerWorkspaceTask } from './FileTreePanel';
 import { Input, Textarea, toast } from './ImeComposition';
 import { splitCommandsByScope, splitSkillsByScope } from './McpHelpers';
@@ -134,7 +135,8 @@ import { useConfirmDialog } from './Modals'; // U2
 import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
 import { useMcpStore as useMcpStoreStatic } from './stores-workspace'; // Ug（静态调用形态）
 import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from './Settings'; // H3 容器类
-import { DEFAULT_AGENT_NAME as COMMANDS_AGENT_SOURCE } from './SrcSharedA'; // Kte（`zcodeAgent`）
+import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from './ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
+import { DEFAULT_AGENT_NAME as COMMANDS_AGENT_SOURCE, providerIds } from './SrcSharedA'; // Kte（`zcodeAgent`）/ q=mo（A0-CLEANUP B-7）
 import {
   isUserPreferenceSource as isFileBasedCommand, // ki（跨 chunk）
   isPluginPreferenceSource as isPluginCommand, // ft（跨 chunk）
@@ -175,12 +177,7 @@ interface ToastOptions {
 
 /* --- UI 原语 --- */
 
-declare const Button: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: "default" | "secondary" | "ghost" | "outline" | "link" | "destructive";
-    size?: "xs" | "sm" | "lg" | "icon-sm" | "icon-md";
-  }
->;
+/* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
 declare const SelectRoot: React.FC<{
   value: string;
@@ -3807,11 +3804,9 @@ declare const OffPeakTaskList: React.FC<{
 }>; // cMt（jsx 113500）
 declare const AutomationStatusChip: React.FC<{ text: string; icon?: React.ReactNode; dimmed?: boolean }>; // ANt（jsx 115689）
 declare const OFF_PEAK_TEMPLATES: Array<{ id: string; cronExpr?: string }>; // Pjt（jsx 112762）
-/** 原 INt（jsx 115771）：闲时创建按钮 —— 属主 ExtendedViews.tsx 未导出，登记需要的 export 后保留 declare */
-declare const OffPeakCreateButton: React.FC<{ greyReason: string | null; greyTooltip?: string; onCreate: () => void }>; // INt（jsx 115771）
-/** 原 LNt（jsx 115784）：定时模板表 —— 属主 ExtendedViews.tsx 未导出，登记需要的 export 后保留 declare */
-declare const SCHEDULED_TEMPLATES: Array<{ id: string; cronExpr: string; icon?: string }>; // LNt（jsx 115784）
-/** 原 AMt（jsx 113829）：自动化模型选择分组 —— 属主 ExtendedViews.tsx 未导出，登记需要的 export 后保留 declare */
+/** 原 INt（jsx 115771）：闲时创建按钮 —— A0-CLEANUP B-31 改指 ExtendedViews 导出（见文件头 import） */
+/** 原 LNt（jsx 115784）：定时模板表 —— A0-CLEANUP B-31 改指 ExtendedViews 导出（见文件头 import） */
+/** 原 AMt（jsx 113829）：自动化模型选择分组 —— 保留 declare：属主 EV 实体签名（displayOrder: string[]）与本域调用面（{providerIds…}|null）形状冲突，改指会新增错（A0-CLEANUP B-31 记录在案） */
 declare function buildAutomationModelSelectGroups(opts: {
   selectedProvider: string;
   providers: ModelProvider[];
@@ -4980,7 +4975,7 @@ declare function useCodingPlanEntitlementsForAutomations(opts: {
   loading: boolean;
   modelProviderFamilySelectedKeys?: Record<string, string>;
 }): { entitlements: Record<string, { snapshot?: unknown }> }; // sX（88255）
-declare const PROVIDER_IDS_ZAI_CODING_PLAN: string; // q.zaiCodingPlan
-declare const PROVIDER_IDS_BIGMODEL_CODING_PLAN: string; // q.bigmodelCodingPlan
+const PROVIDER_IDS_ZAI_CODING_PLAN = providerIds.zaiCodingPlan; // 原 q.zaiCodingPlan（A0-CLEANUP B-7 接线）
+const PROVIDER_IDS_BIGMODEL_CODING_PLAN = providerIds.bigmodelCodingPlan; // 原 q.bigmodelCodingPlan（A0-CLEANUP B-7 接线）
 declare function buildUpgradeFunnelForAutomations(opts: { providerId: string; eventText: string; entryPlanState: string }): string; // FM
 declare function planStateOfProviders(opts: { providers: ModelProvider[]; loading: boolean }): string; // LM

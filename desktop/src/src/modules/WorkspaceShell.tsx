@@ -194,6 +194,7 @@
  */
 
 import * as React from "react";
+import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { workspaceKeyOf } from './CodeViewer';
 import { ConversationOrchestrator } from './Conversation';
 import { APP_LOGO_DATA_URL, FeedbackCenter, collectWorkspaceTaskIds, resolveAdjacentTasks, runWithWorkspaceVisibility } from './FeedbackCenter';
@@ -201,9 +202,10 @@ import { WorkspaceSelectionRow } from './Home';
 import { toast } from './ImeComposition';
 import { pathBasename } from './ModalsLeaves';
 import { QuickPick, buildQuickPickCommands } from './QuickPick';
+import { type RemoteWorkspaceSessionLike } from './RemoteWizard'; // A0-CLEANUP B-24：远端会话形（Home/RemoteWizardDialog 调用面对齐）
 import { resolveThemeMode } from './Settings';
 import { SidePanel, useSidePaneState, type RecentClosedSidePaneTab, type SidePaneState, type SidePaneTab } from './SidePanel'; // 侧面板态型以 SidePanel 导出为准
-import { logger, useTaskStore } from './SkillStore';
+import { logger, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from './SkillStore'; // +TaskStore（A0-CLEANUP B-3：选择器改指真 store 型）；+workspaceKey（原 Io/Lo，A0-CLEANUP 族清理）
 import { taskEntityKey } from './StoresDeep';
 import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle } from './TopBar';
 import { WebRemoteMobileShell } from './WebRemote';
@@ -463,8 +465,10 @@ interface TaskStoreState {
   removeTaskFromNavHistory(taskId: string): void;
 }
 declare const taskStore: { getState(): TaskStoreState };
+/* A0-CLEANUP B-3：选择器经 useTaskStore 消费真 store（TaskStore），其余调用面
+ * 维持本地归纳形；参数收两形并集。 */
 declare function getWorkspaceStateSelector(
-  state: TaskStoreState,
+  state: TaskStoreState | TaskStore,
   workspacePath: string,
   workspaceIdentity?: string,
 ): WorkspaceZCodeState;
@@ -583,7 +587,7 @@ declare function setSettingsTabTarget(section: string): void;
 
 /* --- 路径 / 工作区键 工具（原 Io/Go/Yo/BA/VA/Lo） --- */
 
-declare function workspaceKey(workspacePath: string, workspaceIdentity?: string | null): string;
+/* ── tombstone（A0-CLEANUP 族清理）：workspaceKey declare 删除 → import { resolveWorkspaceKey as workspaceKey } from './SkillStore'。 ── */
 declare function browserUrlFromPath(path: string): string;
 declare function isPathWithin(parent: string, child: string): boolean;
 declare function isSamePath(a: string, b: string): boolean;
@@ -840,7 +844,7 @@ declare const APP_HEADER_TEST_ID: string;
 /* --- 图标（原 Sa 工厂；此处按语义命名） --- */
 
 type IconProps = React.SVGProps<SVGSVGElement>;
-declare function createLucideIcon(name: string, paths: unknown[]): React.FC<IconProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 const IconGripHorizontal = createLucideIcon("grip-horizontal", []); // 原 Rye（js 27180）
 const IconLoader = createLucideIcon("loader", []);                   // 原 fv（js 27315）
 const IconMinus = createLucideIcon("minus", []);                     // 原 bv（js 27442）
@@ -849,12 +853,7 @@ declare const IconClose: React.FC<IconProps>;                        // 原 g（
 
 /* --- 按钮（原 X，button-laUijeDG.js） --- */
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "ghost" | "outline" | string;
-  size?: "icon" | "icon-md" | string;
-  "data-web-remote-navigation-resize-handle"?: string;
-}
-declare const Button: React.FC<ButtonProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）declare 删除 → import { Button } from './button'。 ── */
 
 /* ============================================================================
  * 1. 窗口壳 WindowShell（原 l4，js 129647-129666 / jsx 109071-109087）
@@ -1354,7 +1353,7 @@ const SIDEBAR_PANEL_WIDTH_VAR = "--workspace-sidebar-panel-width"; // 原 aJt
 const SIDEBAR_WIDTH_VAR = "--workspace-sidebar-width";             // 原 oJt
 const SIDE_PANE_AUTO_COLLAPSE_THRESHOLD_PX = 480; // 原 sJt
 const EMPTY_LOGS_BY_WORKSPACE_KEY: Record<string, unknown> = {}; // 原 cJt
-const EMPTY_REMOTE_WORKSPACE_SESSIONS: unknown[] = []; // 原 lJt
+const EMPTY_REMOTE_WORKSPACE_SESSIONS: RemoteWorkspaceSessionLike[] = []; // 原 lJt
 const SIDEBAR_AUTO_COLLAPSE_THRESHOLD_PX = 360; // 原 uJt：会话列窄于此自动收侧栏
 const RESIZE_DEBOUNCE_MS = 300; // 原 dJt
 /** 原 fJt：主体水平分割的两个面板 id（conversation-column | browser=侧面板） */
@@ -1864,7 +1863,7 @@ interface WorkspaceShellProps {
   initialWebRemoteControlWorkspaceList?: unknown;
   webRemoteControlTerminalTransportState?: unknown;
   allowRemoteWorkspace?: boolean;
-  remoteWorkspaceSessions?: unknown[];
+  remoteWorkspaceSessions?: RemoteWorkspaceSessionLike[];
   workspaceAbsPath: string;
   workspaceRemoteSessionId?: string;
   workspaceIdentity?: string;
@@ -4361,7 +4360,7 @@ function useWorkspaceShellZCodeState(workspaceAbsPath: string, workspaceIdentity
 } {
   return {
     workspaceShellZCodeState: useTaskStore(
-      shallowSelector((state: TaskStoreState): WorkspaceStateSlice => {
+      shallowSelector((state: TaskStore): WorkspaceStateSlice => {
         const workspaceState = getWorkspaceStateSelector(state, workspaceAbsPath, workspaceIdentity);
         const taskSlice = deriveTaskStateSlice(workspaceState);
         return {
@@ -4379,7 +4378,7 @@ function useWorkspaceShellZCodeState(workspaceAbsPath: string, workspaceIdentity
         };
       }),
     ),
-    reloadSessionDisabled: useTaskStore((state: TaskStoreState) => {
+    reloadSessionDisabled: useTaskStore((state: TaskStore) => {
       const workspaceState = getWorkspaceStateSelector(state, workspaceAbsPath, workspaceIdentity);
       return hasActiveTaskRuntimeForProvider(
         deriveDraftStateSlice(workspaceState).provider,
@@ -4856,7 +4855,7 @@ declare function describeTaskActivity(meta: { taskId: string; status?: string })
 declare function workspaceKeyOf2(workspacePath: string, workspaceIdentity?: string): string;
 
 /** 原 r7（js 186215）：全局"关闭活动上下文"事件名（Esc 等由宿主派发） */
-const CLOSE_ACTIVE_CONTEXT_EVENT = "zcode:close-active-context-request";
+export const CLOSE_ACTIVE_CONTEXT_EVENT = "zcode:close-active-context-request";
 
 /** 原 KJt（js 186216）：工作区可见且侧面板未收起时，返回激活标签供关闭 */
 function resolveCloseableSidePaneTab(input: {
@@ -4951,7 +4950,7 @@ interface WorkspaceRootProps {
   initialWebRemoteControlWorkspaceList?: unknown;
   webRemoteControlTerminalTransportState?: unknown;
   allowRemoteWorkspace?: boolean;
-  remoteWorkspaceSessions?: unknown[];
+  remoteWorkspaceSessions?: RemoteWorkspaceSessionLike[];
   workspaceAbsPath: string;
   workspaceRemoteSessionId?: string;
   workspaceIdentity?: string;

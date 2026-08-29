@@ -343,8 +343,8 @@ export function PopoverContent({
   );
 }
 
-/** Popover 锚点（原码 `gr`，导出别名 `r`）。 */
-export function PopoverAnchor(props: React.ComponentProps<typeof PopoverPrimitive.Anchor>) {
+/** Popover 锚点（原码 `gr`，导出别名 `r`；bundle FBt styles-158095 收透传 props）。 */
+export function PopoverAnchor(props: React.ComponentProps<typeof PopoverPrimitive.Anchor> & Record<string, unknown>) {
   return <PopoverPrimitive.Anchor data-slot="popover-anchor" {...props} />;
 }
 

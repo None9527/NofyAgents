@@ -100,10 +100,12 @@
  */
 
 import * as React from "react";
+import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 /* ── A0-S2d 接线：跨模块 declare → 真实 import（属主/别名经 bundle 导出表核验）；混淆名注释随迁 ── */
 import { t as logger } from './logger';
 import { dismissToast, toast } from './ImeComposition';
 import { useSettingsStore } from './stores-core'; // 原 ko：设置 store（theme/setTheme 选择器用法）
+import type { ThemeMode } from './Settings'; // A0-CLEANUP B-22：theme 收敛 ThemeMode（type-only）
 import { useConfirmDialog } from './Modals'; // 原 U2（Modals.tsx useConfirmDialog，js 123510）
 import { formatRelativeTime } from './QuickPick'; // 原 $S（QuickPick.tsx formatRelativeTime，js 36080）
 import { webRemoteWorkspaceKey as taskWorkspaceKey } from './SrcSharedB'; // 原 ei（styles 导入块 `c as ei` = SrcSharedB wC 导出）：任务工作区键
@@ -134,11 +136,7 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 /* ── tombstone（A0-S2d）：logger/toast/dismissToast declare 删除，canonical 在
  *    logger.tsx（t 导出）与 ImeComposition.tsx，经文件头真实 import 消费。 ── */
 
-interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
-  variant?: "default" | "ghost" | "outline" | "destructive" | "link" | string;
-  size?: "default" | "sm" | "lg" | "icon-sm" | "icon-lg" | string;
-}
-declare const Button: React.ForwardRefExoticComponent<ButtonProps & React.RefAttributes<HTMLButtonElement>>;
+/* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 
 /** 原 l（imeComposition M 导出）：平台/桌面服务钩子（远控 IPC 面） */
 interface WebRemoteControlStatusLike {
@@ -206,7 +204,7 @@ declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
 
 /* ---- 图标（lucide vendored 块；名字逐字取自 Sa(`name`) 工厂） ---- */
 interface IconProps { className?: string; "aria-hidden"?: boolean | "true" | "false" }
-declare function createLucideIcon(name: string, paths: unknown[]): React.FC<IconProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 const IconLoader = createLucideIcon("loader", []);                 // 原 fv（27363）
 const IconCircleCheck = createLucideIcon("circle-check", []);      // 原 I_（26869）
 const IconCircleAlert = createLucideIcon("circle-alert", []);      // 原 F_（26860）
@@ -486,7 +484,7 @@ function MobileThemeMenu() {
         <DropdownMenuRadioGroup
           value={t}
           onValueChange={(e) => {
-            MOBILE_THEME_OPTIONS.includes(e) && n(e);
+            MOBILE_THEME_OPTIONS.includes(e) && n(e as ThemeMode);
           }}
         >
           {MOBILE_THEME_OPTIONS.map((t) => (

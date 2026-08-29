@@ -934,6 +934,8 @@ interface InfoTooltipProps {
   className?: string;
   triggerClassName?: string;
   triggerRef?: React.Ref<HTMLSpanElement>;
+  /** A0-CLEANUP B-28（D-Viewers #5 前置）：FileTreePanel 调用面收按压缩态属性。 */
+  "aria-pressed"?: boolean;
 }
 
 /** 原 X（jsx 564）：InfoTooltip（标题/描述/快捷键；Apple 平台用系统字体）。 */

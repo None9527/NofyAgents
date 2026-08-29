@@ -166,6 +166,13 @@ import {
  * Modals/PaymentDeep 经 `import { logger } from './SkillStore'` 消费。 */
 export { logger };
 
+/* 类型补导出（A0-CLEANUP B-3/4/5/6）：TaskMeta/TaskStore/TaskStoreState 供
+ * Sidebar/WorkspaceShell/ExtendedViews 改指；WorkspaceTaskState 为 TaskStore.
+ * getWorkspaceState 返回型（消费侧命名依赖）；WhiteboardStroke/WhiteboardBoard
+ * 供 ExtendedViews 白板域改指（消 TS2719 同名异型）；GroupedDraftPlacement 供
+ * AppRootLeaves 具名化；SkillsService 供 StoresDeep 静态面对齐前置。 */
+export type { TaskMeta, TaskStore, TaskStoreState, WorkspaceTaskState, WhiteboardStroke, WhiteboardBoard, GroupedDraftPlacement, SkillsService };
+
 /* ============================================================================
  * 0. 外部依赖接口（跨 chunk）—— 原 logger + 8 条 src-HCld2afU declare 已由
  *    A0-S2d 接线为上方真实 import（B5-11）；SubagentsService/SkillsService/
@@ -265,6 +272,7 @@ const createBoundStore = <T,>(createState: ZustandStateCreator<T>): BoundStoreHo
 const create: {
   <T>(createState: ZustandStateCreator<T>): ReturnType<typeof createBoundStore<T>>;
   (): typeof createBoundStore;
+  <T>(): (createState: ZustandStateCreator<T>) => ReturnType<typeof createBoundStore<T>>;
 } = ((createState?: any) => (createState ? createBoundStore(createState) : createBoundStore)) as any;
 
 /* ============================================================================
@@ -399,7 +407,7 @@ interface TaskMeta {
   model?: string | null;
   thoughtLevel?: string | null;
   status?: string;
-  unreadAt?: number;
+  unreadAt?: number | null;
   changeSummary?: unknown;
 }
 

@@ -130,14 +130,18 @@ import type {
 import { CaptchaHostContainer } from './ConversationLeaves';
 import { PlatformProvider } from './ImeComposition';
 import { AppDialogHost, DirectoryBrowserDialog, OnboardingDialog } from './Modals';
+import { CodingPlanUpgradeDialogProvider } from './PaymentDeep'; // 原 krt（89089；A0-CLEANUP B-30 接线）
 import { SettingsView } from './Settings';
-import { useTaskStore } from './SkillStore';
+import { useTaskStore, type GroupedDraftPlacement } from './SkillStore';
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { ConversationTelemetrySupervisor, useWorkspaceServices } from './services';
 import { useSettingsStore } from './stores-core';
+import { TooltipProvider } from './UsageStatsUiParts'; // 原 Na（A0-CLEANUP 族清理接线）
+import { CLOSE_ACTIVE_CONTEXT_EVENT } from './WorkspaceShell'; // 原 r7（A0-CLEANUP B-32 接线）
 import type { AgentFact, TelemetryPlatform } from './services';
-/* CodingPlanUpgradeDialogProvider 属主 PaymentDeep（未导出）——需要的 export 已登记，保留 declare（§0 provider 区） */
-/* CLOSE_ACTIVE_CONTEXT_EVENT 属主 WorkspaceShell（未导出）——需要的 export 已登记，保留 declare（§0 平台桥区） */
+/* ── tombstone（A0-CLEANUP）：CodingPlanUpgradeDialogProvider（PaymentDeep krt）/
+ *    CLOSE_ACTIVE_CONTEXT_EVENT（WorkspaceShell r7）declare 已删除，改经文件头
+ *    真实 import 消费。 ── */
 
 /* ============================================================================
  * §0. 外部依赖声明（接口级；均为本范围外的其它 chunk / 家族符号）
@@ -148,7 +152,6 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /* --- 平台桥 --- */
 declare const DESKTOP_COMMANDS: { RelaunchApp: string; CloseWindow: string; [key: string]: string };
-declare const CLOSE_ACTIVE_CONTEXT_EVENT: string;
 
 /* --- stores（模块级句柄）--- */
 declare function useTabStoreSelector<T>(selector: (state: TabStoreState) => T): T; // 原 pc
@@ -269,12 +272,10 @@ declare function createRandomId(): string; // 原 xi
 
 /* --- provider 树组件（各家族批次，接口级消费面）--- */
 declare const LucideProvider: React.FC<{ strokeWidth?: number; children?: React.ReactNode }>; // 原 qre（button-laUijeDG.js l）
-declare const TooltipProvider: React.FC<{ children?: React.ReactNode }>; // 原 Na
 declare const ServicesProvider: React.FC<{ services: ServicesBundle; children?: React.ReactNode }>; // 原 ds（2672）
 declare const StoreProvider: React.FC<{ broadcastService: BroadcastServiceLike; initialIsRestoringOAuthSession?: boolean; children?: React.ReactNode }>; // 原 Nie（1289）
 declare const TabStoreProvider: React.FC<{ children?: React.ReactNode }>; // 原 Vse（4784）
 declare const WebRemoteControlFeatureGate: React.FC<{ enabled?: boolean; children?: React.ReactNode }>; // 原 oRt（150149）
-declare const CodingPlanUpgradeDialogProvider: React.FC<{ children?: React.ReactNode }>; // 原 krt（89089）
 declare const RemoteConnectionDialog: React.FC<Record<string, any>>; // 原 pOt
 declare const ScopeBoundary: React.FC<Record<string, any>>; // 原 p4
 
@@ -359,7 +360,7 @@ export function useWorkspaceActions({
       [workbenchGroupClientMode],
     ),
     startNewTaskFromActiveWorkspace = (0, React.useCallback)(
-      (source: string, options?: string | { provider?: string; groupedDraftPlacement?: { type: string; groupId?: string }; initialPrompt?: string; initialPromptMention?: unknown }) => {
+      (source: string, options?: string | { provider?: string; groupedDraftPlacement?: GroupedDraftPlacement; initialPrompt?: string; initialPromptMention?: unknown }) => {
         let tabState = tabStoreApi.getState(),
           { activeWorkspacePath: currentPath, activeWorkspaceIdentity: currentIdentity, activateTabByPath } = tabState,
           routerState = sessionRouterStore.getState(),
@@ -580,7 +581,7 @@ export function useWorkspaceActions({
       [allowOpenWorkspace, handleSelectProject, services.fileService],
     ),
     handleCreateTask: (0, React.useCallback)(
-      (options?: string | { provider?: string; groupedDraftPlacement?: { type: string; groupId?: string }; initialPrompt?: string; initialPromptMention?: unknown }) => {
+      (options?: string | { provider?: string; groupedDraftPlacement?: GroupedDraftPlacement; initialPrompt?: string; initialPromptMention?: unknown }) => {
         startNewTaskFromActiveWorkspace(`sidebar new task`, options);
       },
       [startNewTaskFromActiveWorkspace],

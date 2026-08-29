@@ -61,6 +61,7 @@
  */
 
 import * as React from "react";
+import { Button, ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight, ZoomOut as IconZoomOut, ZoomIn as IconZoomIn, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/四图标/createLucideIcon declare 改指 button chunk
 
 /* ============================================================================
  * 0. 外部依赖类型声明（真实实现位于上述 chunk；此处为重建接口）
@@ -144,19 +145,7 @@ declare function PopoverContent(props: {
   onCloseAutoFocus(e: Event): void;
   children: React.ReactNode;
 }): React.ReactElement;
-declare function Button(props: {
-  type: `button`;
-  size: `sm` | `lg` | `icon-md`;
-  variant?: `ghost` | `secondary`;
-  disabled?: boolean;
-  className?: string;
-  title?: string;
-  "aria-label"?: string;
-  "aria-pressed"?: boolean;
-  onMouseDown?: (e: React.MouseEvent) => void;
-  onClick?: (e: React.MouseEvent) => void;
-  children: React.ReactNode;
-}): React.ReactElement;
+/* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 declare function Input(props: {
   type: `text`;
   inputMode: `numeric`;
@@ -182,10 +171,8 @@ declare function Textarea(props: {
 declare function IconSparkles(props: { className: string }): React.ReactElement;
 declare function IconMousePointerClick(props: { className: string }): React.ReactElement;
 declare function IconLoaderCircle(props: { className: string }): React.ReactElement;
-declare function IconChevronLeft(props: Record<string, never>): React.ReactElement;
-declare function IconChevronRight(props: Record<string, never>): React.ReactElement;
-declare function IconZoomOut(props: Record<string, never>): React.ReactElement;
-declare function IconZoomIn(props: Record<string, never>): React.ReactElement;
+/* ── tombstone（A0-CLEANUP 族清理）：IconChevronLeft/Right/ZoomOut/ZoomIn declare 删除 →
+   import { ChevronLeft/ChevronRight/ZoomOut/ZoomIn } from './button'。 ── */
 
 /** lucide file-down 图标（原 re，createLucideIcon 工厂） */
 const IconFileDown = createLucideIcon(`file-down`, [
@@ -197,7 +184,7 @@ const IconFileDown = createLucideIcon(`file-down`, [
   [`path`, { d: `M12 18v-6`, key: `17g6i2` }],
   [`path`, { d: `m9 15 3 3 3-3`, key: `1npd3o` }],
 ]);
-declare function createLucideIcon(name: string, nodes: Array<[string, Record<string, string>]>): (props: Record<string, unknown>) => React.ReactElement;
+/* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 
 /* ============================================================================
  * 1. 文案标签集（由父组件注入；原组件全部文案经 labels props 传入）
@@ -338,7 +325,7 @@ function SlideAiEditPopover({
             aria-label={label}
             disabled={disabled}
             className="w-full justify-start rounded-lg px-2"
-            onMouseDown={(e) => { e.preventDefault(); }}
+            onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => { e.preventDefault(); }}
             onClick={onAiEdit}
           >
             <IconSparkles className="size-4" />

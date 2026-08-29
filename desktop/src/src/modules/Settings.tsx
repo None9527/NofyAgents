@@ -143,6 +143,7 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input, toast, useSelectDirectory } from './ImeComposition';
 import { RemoteSyncDialogs } from './Modals';
 import { McpImportDialog, McpServerEditor, McpServerRow, ModelProviderSettingsSection } from './SettingsPanels';
@@ -161,7 +162,7 @@ import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
 import { CodeBlock } from './SettingsPanelsData'; // gk（48634）
 import { AutomationsMain } from './SettingsPanelsCapability'; // F15 族（d6）
 import { isDataBaseDirForbiddenError as isForbiddenInstallDirError } from './SrcSharedB'; // dS（9110/8991）
-import { isRepoSnapshotIndexingUserEnabled as resolveRepoSnapshotIndexingEnabled } from './SrcSharedA'; // Go（4535）
+import { isRepoSnapshotIndexingUserEnabled as resolveRepoSnapshotIndexingEnabled, providerIds as ModelProviderId } from './SrcSharedA'; // Go（4535）/ q=mo（A0-CLEANUP B-7：ModelProviderId declare 改指 providerIds）
 import { t as logger } from './logger';
 
 /* ============================================================================
@@ -317,7 +318,7 @@ declare function useAppSettings(): {
 
 /* --- zustand stores（本 chunk 创建点） --- */
 
-type ThemeMode = "light" | "dark" | "zai-light" | "zai-dark" | "system";
+export type ThemeMode = "light" | "dark" | "zai-light" | "zai-dark" | "system";
 interface CodePreviewSettings {
   lightTheme: string;
   darkTheme: string;
@@ -360,12 +361,8 @@ declare function isConversationTab(tab: WorkspaceTab): boolean;
 
 /* --- 模型供应商 / Coding Plan（F12 族，接口级） --- */
 
-/** 原 q（skillStore chunk 的 mo 导出）：内置供应商 id 枚举 */
-declare const ModelProviderId: {
-  zaiCodingPlan: string;
-  bigmodelCodingPlan: string;
-  [key: string]: string;
-};
+/* ── tombstone（A0-CLEANUP B-7）：ModelProviderId declare 删除 → import
+ *    { providerIds as ModelProviderId } from './SrcSharedA'（原 q=mo）。 ── */
 interface ModelProvider {
   id: string;
   name: string;
@@ -464,7 +461,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
   size?: "xs" | "sm" | "default" | "lg" | "icon-sm" | "icon-md" | "icon-lg";
 }
-declare const Button: React.FC<ButtonProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 /** spinner（原 M，imeComposition chunk 的 w 导出：loader-circle） */
 declare const SpinnerIcon: React.FC<{ className?: string; "aria-hidden"?: boolean | "true" }>;
 

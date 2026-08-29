@@ -149,6 +149,7 @@
  */
 
 import * as React from "react";
+import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { ModelSelector } from './Composer';
 import { Input, Popover, PopoverContent, PopoverTrigger, toast, type ToastOptions } from './ImeComposition'; // ToastOptions 原属 imeComposition chunk（与 toast 同主）
 import { MarkdownRenderer } from './MarkdownIntegration';
@@ -156,13 +157,14 @@ import { FilePathInline, pathBasename, resolveFileDisplayInfo } from './ModalsLe
 import { Badge } from './PaymentDeep';
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
 import { AutomationEditor, OffPeakTaskEditor } from './SettingsLeaves';
-import { createWhiteboardStroke, logger, useTaskStore, useWhiteboardStore } from './SkillStore';
+import { createWhiteboardStroke, logger, useTaskStore, useWhiteboardStore, type TaskStore, type WhiteboardBoard, type WhiteboardStroke, type WorkspaceTaskState } from './SkillStore';
 import { providerIds } from './SrcSharedA';
 import { automationsWorkspaceKey, repoWikiWorkspaceKey } from './SrcSharedB';
 import { reportTelemetry } from './StoresDeep';
 import { useServices } from './services';
 import { useAutomationsStore } from './stores-tasks';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import type { CodeViewerSource } from './SidePanel'; // 代码查看源以侧面板导出形为准（type-only，无运行时环）
 
 /* ============================================================================
@@ -441,18 +443,13 @@ declare function selectProviderConfigState(
 
 /* --- zustand：任务 store / 设置 store / 白板 store（跨 chunk） --- */
 
-interface TaskStoreState {
-  getWorkspaceState(workspacePath: string, workspaceIdentity?: string | null): WorkspaceTaskState;
-  [key: string]: unknown;
-}
-interface WorkspaceTaskState {
-  [key: string]: unknown;
-}
+/* TaskStoreState/WorkspaceTaskState：A0-CLEANUP B-3 改指 SkillStore 类型导出
+ * （原本地索引签名形删除；选择器工厂按 TaskStore 全store形收参）。 */
 /** 原 xe（skillStore h 导出） */
 /** 原 co（js 1033）：ref 记忆化浅比较选择器工厂 */
 declare function createShallowSelectorFactory<T>(
-  factory: (state: TaskStoreState) => T,
-): (state: TaskStoreState) => T;
+  factory: (state: TaskStore) => T,
+): (state: TaskStore) => T;
 
 interface SettingsStoreState {
   theme: string;
@@ -484,22 +481,8 @@ interface TokenCacheStats {
 
 /* --- 白板 store（原 Oe，skillStore o 导出） --- */
 
-interface WhiteboardStroke {
-  id?: string;
-  color: string;
-  tool: "pen" | "eraser";
-  width: number;
-  points: Array<{ x: number; y: number }>;
-}
-
-interface WhiteboardBoard {
-  id: string;
-  name: string;
-  width: number;
-  height: number;
-  strokes: WhiteboardStroke[];
-  undoneStrokes: WhiteboardStroke[];
-}
+/* WhiteboardStroke/WhiteboardBoard：A0-CLEANUP B-4 改指 SkillStore 类型导出
+ * （原本地副本删除，消 TS2719 同名异型）。 */
 
 interface WhiteboardStoreState {
   workspaces: Record<string, { boardsById: Record<string, WhiteboardBoard | undefined> } | undefined>;
@@ -855,19 +838,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
   size?: "xs" | "sm" | "default" | "lg" | "icon-sm" | "icon-md" | "icon-lg";
 }
-declare const Button: React.FC<ButtonProps>;
-
-
-declare const Tooltip: React.FC<{
-  title: string;
-  side?: "top" | "bottom" | "left" | "right";
-  align?: "start" | "center" | "end";
-  className?: string;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  triggerRef?: React.RefObject<HTMLElement | null>;
-  children: React.ReactNode;
-}>;
+/* ── tombstone（A0-CLEANUP 族清理）：Button / Tooltip declare 删除 → import
+ *    { Button } from './button'、{ InfoTooltip as Tooltip } from './UsageStatsUiParts'。 ── */
 
 /** Popover 原语（原 Na/Oa/Ma/ka，usageStatsUiParts） */
 declare const PopoverRoot: React.FC<{ children: React.ReactNode }>;
@@ -878,7 +850,7 @@ declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
 /* --- 图标（原 Sa 工厂 / 跨 chunk 图标；此处按语义命名） --- */
 
 type IconProps = React.SVGProps<SVGSVGElement> & { size?: number; containerSize?: number };
-declare function createLucideIcon(name: string, paths: unknown[]): React.FC<IconProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 
 const IconArrowLeft = createLucideIcon("arrow-left", []);          // 原 S_（js 26634）
 const IconChevronDown = createLucideIcon("chevron-down", []);      // 原 N_（js 26802）
@@ -5151,7 +5123,7 @@ const AutomationCreateSplitButton: React.FC<{
 
 const OFFPEAK_TOOLTIP_CLASS = "max-w-[220px] [&>span]:break-words [&>span]:whitespace-normal [&>span]:text-wrap-pretty"; // 原 Fjt（js 133991）
 
-const OffPeakCreateButton: React.FC<{ greyReason: string | null; greyTooltip?: string; onCreate: () => void }> = ({ greyReason, greyTooltip, onCreate }) => {
+export const OffPeakCreateButton: React.FC<{ greyReason: string | null; greyTooltip?: string; onCreate: () => void }> = ({ greyReason, greyTooltip, onCreate }) => {
   const { intl } = useIntlContext();
   const button = (
     <button
@@ -5296,7 +5268,7 @@ const AutomationCardMenu: React.FC<{
 
 /* ---- 6.8 模板数据与图标（原 Mjt/Njt/Pjt、lMt/uMt、LNt） ---- */
 
-const AUTOMATION_TEMPLATE_ICONS: Record<string, React.FC<IconProps>> = {
+const AUTOMATION_TEMPLATE_ICONS: Record<string, ReturnType<typeof createLucideIcon>> = {
   target: IconTarget, // 原 Mjt（js 133984）
   activity: IconActivity,
   file: IconFileText,
@@ -5310,7 +5282,7 @@ const AutomationTemplateIcon: React.FC<{ className?: string; name: string }> = (
 };
 
 /** 原 lMt（js 134923–134930 / jsx 113569）：闲时模板图标映射（6 项全量） */
-const OFFPEAK_TEMPLATE_ICONS: Record<string, React.FC<IconProps>> = {
+const OFFPEAK_TEMPLATE_ICONS: Record<string, ReturnType<typeof createLucideIcon>> = {
   standupGitSummary: IconList,
   ciFlakyReport: IconActivity,
   documentationSyncCheck: IconListChecks,
@@ -5329,7 +5301,7 @@ const OffPeakTemplateIcon: React.FC<{ className?: string; name: string }> = ({ c
 const OFFPEAK_TEMPLATES = [{ id: "standupGitSummary" }, { id: "ciFlakyReport" }, { id: "documentationSyncCheck" }];
 
 /** 原 LNt（js 138654 / jsx 115784）：定时模板表 */
-const SCHEDULED_TEMPLATES = [
+export const SCHEDULED_TEMPLATES = [
   { id: "morningDevBrief", icon: "target", cronExpr: "0 9 * * 1-5" },
   { id: "dailyRiskScan", icon: "activity", cronExpr: "0 10 * * *" },
   { id: "weeklyReleaseBrief", icon: "file", cronExpr: "0 16 * * 5" },

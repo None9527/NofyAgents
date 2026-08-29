@@ -85,6 +85,7 @@
  * ============================================================================
  */
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 /* ── A0-S2d 接线（§2 裁决去重 76848–77167 / 76034–76156）：原本地重复转录与
  *    declare 挂接删除，canonical 在 Composer.tsx，真实 import 消费；混淆名注释随迁 ── */
 import {
@@ -112,7 +113,7 @@ import { useServices } from './services';
  * §0 外部依赖声明（跨 chunk / 横切 / 他族已抽取件，接口级）
  * -------------------------------------------------------------------------- */
 declare function cn(...inputs: Array<string | false | null | undefined>): string; // Z
-declare const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }>; // X
+/* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 interface IntlShape {
   formatMessage(desc: { id: string }, values?: Record<string, string | number>): string;
 }
@@ -9639,7 +9640,7 @@ function autoRefreshDecisionOf({
 }
 
 // sX → useCodingPlanEntitlements（本地 88323）
-function useCodingPlanEntitlements({
+export function useCodingPlanEntitlements({
   modelProviders,
   loading,
   modelProviderFamilySelectedKeys = {},
@@ -10489,7 +10490,7 @@ function CodingPlanUpgradeDialog({ target, onClose, onReopen }: any) {
 const CodingPlanUpgradeDialogContext = React.createContext<any>(null);
 
 // krt → CodingPlanUpgradeDialogProvider（本地 89141）
-function CodingPlanUpgradeDialogProvider({ children }: any) {
+export function CodingPlanUpgradeDialogProvider({ children }: any) {
   const [target, setTarget] = React.useState<any>(undefined);
   const openCodingPlanUpgrade = React.useCallback((next: any) => {
     setTarget(next);
@@ -11512,7 +11513,7 @@ function WebElementsChip({ contexts, contentAlign = `start`, onRemove, onRemoveA
               className={`size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100`}
               aria-label={removeLabel}
               title={removeLabel}
-              onClick={(event) => {
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 (event.stopPropagation(), onRemoveAll());
               }}
             >
@@ -11550,7 +11551,7 @@ function WebElementsChip({ contexts, contentAlign = `start`, onRemove, onRemoveA
                   className={`mt-0.5 size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover/context:opacity-100`}
                   aria-label={removeLabel}
                   title={removeLabel}
-                  onClick={(event) => {
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                     (event.stopPropagation(), onRemove(context.id));
                   }}
                 >
@@ -11592,7 +11593,7 @@ function SelectionsChip({ references, onRemove, onRemoveAll }: any) {
               size={`icon-xs`}
               className={`size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity group-hover:opacity-100`}
               aria-label={removeLabel}
-              onClick={(event) => {
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 (event.stopPropagation(), onRemoveAll());
               }}
             >

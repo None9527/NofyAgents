@@ -121,8 +121,9 @@
  */
 
 import * as React from "react";
+import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { CommitGraphDialog as CommitGraphViewer, CreateBranchDialog, SwitchAssistDialog, resolveBranchDisplayLabel, useGitBranchSwitcher } from './CmdkPaletteDeep'; // CommitGraphViewer 原 fct
-import { resolveAvailableEditors } from './FileTreePanel';
+import { resolveAvailableEditors, type InstalledEditor } from './FileTreePanel'; // +InstalledEditor（A0-CLEANUP B-21：本地别名删除改指属主型）
 import { SummaryGitSection, useTaskFileActions } from './GitReview';
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, dismissToast, toast } from './ImeComposition';
 import { MarkdownRenderer } from './MarkdownIntegration';
@@ -134,6 +135,7 @@ import { useFeedbackStore } from './stores-core';
 import { useTrajectoryViewerStore, useTuiEditRequestStore } from './stores-session';
 import { usePinnedTaskListStore, useWorkspaceTaskListStore } from './stores-tasks';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia=u（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -214,8 +216,8 @@ interface RemoteTarget {
   container?: string;
   sshConfigAlias?: string;
 }
-/** type 别名（对 FileTreePanel.InstalledEditor 的索引签名形可赋值）；iconDataUrl 为平台实返字段 */
-type InstalledEditor = { id: string; name: string; iconDataUrl: string };
+/* ── tombstone（A0-CLEANUP B-21）：本地 InstalledEditor 别名删除 → import type
+ *    { InstalledEditor } from './FileTreePanel'（iconDataUrl 为平台实返可选字段）。 ── */
 interface GitSummary {
   isGitAvailable: boolean;
   isRepository: boolean;
@@ -230,17 +232,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
   size?: "xs" | "sm" | "default" | "lg" | "icon-sm" | "icon-md" | "icon-lg";
 }
-declare const Button: React.FC<ButtonProps>;
-
-/** Tooltip：title + 可选快捷键提示（原 Ia，usageStatsUiParts 的 u 导出） */
-declare const Tooltip: React.FC<{
-  title: string;
-  shortcut?: string;
-  side?: "top" | "bottom" | "left" | "right";
-  align?: "start" | "center" | "end";
-  className?: string;
-  children: React.ReactNode;
-}>;
+/* ── tombstone（A0-CLEANUP 族清理）：Button / Tooltip declare 删除 → import
+ *    { Button, createLucideIcon } from './button'、{ InfoTooltip as Tooltip }
+ *    from './UsageStatsUiParts'（原 Ia=usageStatsUiParts u 导出）。 ── */
 
 /* --- 下拉菜单原语族（原 VO/HO/UO/WO/GO/KO/qO/JO/YO/XO，本 chunk 47926-48040 / jsx 43144-43290）
  * 底层是打包进本 chunk 的 Radix DropdownMenu（aTe…vTe，jsx 27465）。
@@ -327,7 +321,7 @@ const DropdownMenuShortcut: React.FC<React.ComponentPropsWithoutRef<"span">> = (
 /* --- 图标（原 Sa 工厂批量生成的 lucide 图标；此处按语义命名） --- */
 
 type IconProps = React.SVGProps<SVGSVGElement>;
-declare function createLucideIcon(name: string, paths: unknown[]): React.FC<IconProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 
 const IconArrowLeft = createLucideIcon("arrow-left", []);            // 原 S_（js 26634）
 const IconArrowRight = createLucideIcon("arrow-right", []);          // 原 C_（js 26649）
@@ -1615,12 +1609,8 @@ function OpenInEditorButtonGroup({
 
   // 原 JA：在已安装列表中挑出选中项（找不到则取第一个可用）
   const { availableEditors, selectedEditor } = React.useMemo(
-    // remoteTarget ?? null：FTP 参数收 null 不收 undefined；断言回本族 InstalledEditor（返回为入参子集同引用，含 iconDataUrl）
-    () => resolveAvailableEditors({ installedEditors, selectedEditorId, remoteTarget: remoteTarget ?? null }) as {
-      availableEditors: InstalledEditor[];
-      selectedEditor: InstalledEditor | null;
-      selectionKind: string;
-    },
+    // remoteTarget ?? null：FTP 参数收 null 不收 undefined（属主返回形即本族 InstalledEditor 三面）
+    () => resolveAvailableEditors({ installedEditors, selectedEditorId, remoteTarget: remoteTarget ?? null }),
     [installedEditors, remoteTarget, selectedEditorId],
   );
 
@@ -2462,7 +2452,7 @@ interface GitBranchChipProps {
   branchListClassName?: string;
   markAsWorkspaceHeaderBranch?: boolean;
   compactForRemoteControl?: boolean;
-  popoverSide?: "top" | "bottom";
+  popoverSide?: "top" | "bottom" | "left";
   avoidPopoverCollisions?: boolean;
   showFooterActions?: boolean;
 }

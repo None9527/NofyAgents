@@ -135,8 +135,9 @@
  */
 
 import * as React from "react";
+import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input, Textarea, toast } from './ImeComposition';
-import { Badge, providerFamilyOf, useStartPlanPreview } from './PaymentDeep';
+import { Badge, providerFamilyOf, useCodingPlanEntitlements, useStartPlanPreview } from './PaymentDeep'; // +useCodingPlanEntitlements（A0-CLEANUP B-30 接线）
 import { SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger, subscribeSettingsSectionIntent } from './Settings';
 import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, useSubscriptionSnapshot, useZapiEnabled } from './UsageDeep';
 import { useServices } from './services';
@@ -146,7 +147,7 @@ import { t as logger } from './logger';
 import { useConfirmDialog } from './Modals'; // U2
 import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
 import { consumeModelProviderIntent as readSettingsSectionIntent } from './Settings'; // sw（39377）
-import { isStartPlanProviderId as isStartPlanPreset } from './SrcSharedA'; // Bn
+import { isStartPlanProviderId as isStartPlanPreset, providerIds as PROVIDER_IDS } from './SrcSharedA'; // Bn / q=mo（A0-CLEANUP B-7：PROVIDER_IDS declare 改指 providerIds）
 import {
   resolveProviderFamilyMode as familyModeOf, // zi
   getOAuthProviderFamilyByProviderId as familyDescriptorOf, // ot
@@ -195,12 +196,7 @@ interface ToastOptions {
 
 /* --- UI 原语（跨 chunk） --- */
 
-declare const Button: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: "default" | "secondary" | "ghost" | "outline" | "link" | "destructive";
-    size?: "xs" | "sm" | "lg" | "icon-sm" | "icon-md";
-  }
->;
+/* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
 /** 原 yq（75986）：进度条 —— 属主 Modals.tsx 未导出，登记需要的 export 后保留 declare */
 declare const Progress: React.FC<{ value: number; className?: string }>; // yq（75986 / 67310）
@@ -252,17 +248,10 @@ declare const CircleHelpIcon: React.FC<React.SVGProps<SVGSVGElement>>; // F_ cir
 declare const AlertIcon: React.FC<React.SVGProps<SVGSVGElement>>; // N triangle-alert
 declare const DownloadIcon: React.FC<React.SVGProps<SVGSVGElement>>; // G_ download
 
-/* --- 供应商 id 枚举与领域类型（原 q=mo，skillStore-BmeKHDBI.js） --- */
+/* --- 供应商 id 枚举与领域类型（原 q=mo；A0-CLEANUP B-7 改指 SrcSharedA.providerIds） --- */
 
-declare const PROVIDER_IDS: {
-  zai: string;
-  bigmodel: string;
-  zapi: string;
-  zaiCodingPlan: string;
-  zaiStartPlan: string;
-  bigmodelCodingPlan: string;
-  bigmodelStartPlan: string;
-};
+/* ── tombstone（A0-CLEANUP B-7）：PROVIDER_IDS declare 删除 → import
+ *    { providerIds as PROVIDER_IDS } from './SrcSharedA'。 ── */
 /** 原 Ri：bigmodel OAuth provider id 常量（跨 chunk 导入；值即 `bigmodel`） */
 declare const BIGMODEL_OAUTH_PROVIDER_ID: "bigmodel";
 
@@ -393,13 +382,8 @@ interface CodingPlanEntitlement {
   [key: string]: unknown;
 }
 
-/** 原 sX（88255）：Coding Plan 权益钩子 —— 属主 PaymentDeep.tsx 未导出，登记需要的 export 后保留 declare */
-declare function useCodingPlanEntitlements(opts: {
-  modelProviders: ModelProvider[];
-  loading: boolean;
-  modelProviderFamilySelectedKeys?: Record<string, string>;
-  suppressProviderFingerprintAutoRefresh?: boolean;
-}): { entitlements: Record<string, CodingPlanEntitlement>; refresh: () => Promise<void> }; // sX（88255）
+/* ── tombstone（A0-CLEANUP B-30）：useCodingPlanEntitlements declare 删除 →
+ *    import { useCodingPlanEntitlements } from './PaymentDeep'（sX 88255）。 ── */
 
 declare function useUpgradeEntry(): {
   openCodingPlanUpgrade: (opts: {

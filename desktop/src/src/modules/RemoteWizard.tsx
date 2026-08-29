@@ -62,6 +62,7 @@
  */
 
 import * as React from "react";
+import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 /* ── A0-S2d 接线（B5-14）：隙段 declare 组改指 RemoteGapSegments 实体；混淆名注释随迁 ── */
 import {
   useRemoteWizardState, // 原 mEt（隙段 a，原 123535–123746）：远程向导状态总钩（表单字段 + 运行时选项 + setters）
@@ -105,7 +106,7 @@ interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
   variant?: "default" | "ghost" | "outline" | "destructive" | "link" | string;
   size?: "default" | "sm" | "lg" | "xs" | "icon-sm" | "icon-lg" | string;
 }
-declare const Button: React.ForwardRefExoticComponent<ButtonProps & React.RefAttributes<HTMLButtonElement>>;
+/* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 /** 原 l（imeComposition M 导出） */
 interface PlatformServiceLike {
   selectFile?(): Promise<string | null>;
@@ -163,7 +164,7 @@ declare const SelectItem: React.FC<{ value: string; children: React.ReactNode }>
 
 /* ---- 图标（lucide 名逐字取自 Sa(`name`) 工厂） ---- */
 interface IconProps { className?: string; "aria-hidden"?: boolean | "true" | "false" }
-declare function createLucideIcon(name: string, paths: unknown[]): React.FC<IconProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 const IconChevronDown = createLucideIcon("chevron-down", []);   // 原 N_（26850）
 const IconCheck = createLucideIcon("check", []);                // 原 M_（26849）
 const IconLoader = createLucideIcon("loader", []);              // 原 fv（27363）
@@ -233,7 +234,7 @@ interface RemoteTarget {
   workspacePath?: string;
   resourcePackages?: { selectedPackageIds: string[] };
 }
-interface RemoteWorkspaceSessionLike {
+export interface RemoteWorkspaceSessionLike {
   target?: RemoteTarget | null;
   services?: unknown;
 }

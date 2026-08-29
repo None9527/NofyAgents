@@ -82,6 +82,7 @@
  * ==========================================================================*/
 
 import * as React from "react";
+import { Button, ChevronRight as IconChevronRight, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/IconChevronRight（原 wa=o）/createLucideIcon declare 改指 button chunk
 import { RemoteSettingsForm } from "./RemoteWizard";
 import { canOpenRemoteSessionSourceCheck, DirectoryBrowserDialog, RemoteSyncDialogs, RemoteSyncDropdownButton } from "./Modals"; // +$2（A0-S2d/B5-14 接线）
 import { DEFAULT_ASSET_INSTALL_MODE, isValidWslUser, listFileTransferCapabilities } from "./SrcSharedA"; // +$te（A0-S2d/B5-14 接线）
@@ -107,12 +108,7 @@ interface IntlShape {
 /** 原 G（IntlProvider chunk） */
 declare function useIntlContext(): { intl: IntlShape; locale: string };
 
-/** 原 X（button chunk t 导出） */
-interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
-  variant?: "default" | "ghost" | "outline" | "destructive" | "link" | "secondary" | string;
-  size?: "default" | "sm" | "lg" | "xs" | "icon-sm" | "icon-lg" | string;
-}
-declare const Button: React.ForwardRefExoticComponent<ButtonProps & React.RefAttributes<HTMLButtonElement>>;
+/* ── tombstone（A0-CLEANUP 族清理）：Button（原 X=t）declare 删除 → import { Button } from './button'。 ── */
 
 /** 原 l（imeComposition M 导出；本批按 mEt/bEt/rOt 调用面扩展） */
 interface RemotePlatformService {
@@ -136,15 +132,14 @@ interface IconProps {
   className?: string;
   "aria-hidden"?: boolean | "true" | "false";
 }
-declare function createLucideIcon(name: string, paths: unknown[]): React.FC<IconProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 const IconLoader = createLucideIcon("loader", []);                // 原 fv（27363）
 const IconTriangleAlert = createLucideIcon("triangle-alert", []); // 原 N（imeComposition x 导出）
 const IconServer = createLucideIcon("server", []);                // 原 Iv（27794）
 const IconCloud = createLucideIcon("cloud", []);                  // 原 U_（26966）
 const IconMonitorCog = createLucideIcon("monitor-cog", []);       // 原 Qye（27491）
 const IconTerminal = createLucideIcon("terminal", []);            // 原 Gv（27900）
-/** 原 wa（button chunk o 导出 = ChevronRight；Modals.tsx 174 行同式登记） */
-declare const IconChevronRight: React.FC<IconProps>;
+/* ── tombstone（A0-CLEANUP 族清理）：IconChevronRight（原 wa=button chunk o 导出）declare 删除 → import { ChevronRight as IconChevronRight } from './button'。 ── */
 
 /* ============================================================================
  * 0b. 本地类型（与 RemoteWizard.tsx 未导出类型同构；整合期可并一处）

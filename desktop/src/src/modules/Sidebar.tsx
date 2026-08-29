@@ -188,6 +188,7 @@
  */
 
 import * as React from "react";
+import { Button, buttonVariants } from './button'; // A0-CLEANUP 族清理：Button/buttonVariants declare 改指 button chunk
 import { FileTreePanel } from './FileTreePanel';
 import { useTaskFileActions } from './GitReview';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
@@ -195,13 +196,14 @@ import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from './Modals';
 import { Badge } from './PaymentDeep';
 import { TabsList, TabsTrigger } from './Settings';
 import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from './SidebarLeaves';
-import { logger, mergeTaskMeta, useTaskStore } from './SkillStore';
+import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore } from './SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）
 import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, type TaskActionMenuItemsProps } from './TopBar';
 import { WebRemoteControlDialog, useWebRemoteControlEnabled } from './WebRemote';
 import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useWorkspaceServices } from './services';
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from './stores-core';
 import { useSessionRouterStore, useTrajectoryViewerStore } from './stores-session';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现见上清单；此处为重建接口）
@@ -329,8 +331,7 @@ type TaskAttention = { kind: "userInput" | "permission"; count: number } | null;
  * 2. 横切任务助手（原 Io/Lo/Fo/Mo/No/Po/QS/$S/vg/Vhe/Go/pi/Yr，jsx 369–411/986/20317/33105）
  * ==========================================================================*/
 
-/** 原 Io（jsx 408）：工作区键 = 路径 × 身份（委托 skillStore 导出 U） */
-declare function workspaceKey(workspacePath: string, workspaceIdentity?: string | null): string;
+/* ── tombstone（A0-CLEANUP 族清理）：workspaceKey（原 Io）declare 删除 → import { resolveWorkspaceKey as workspaceKey } from './SkillStore'。 ── */
 /** 原 Lo（jsx 411）：任务实体键 `workspaceKey::taskId` */
 function taskEntityKey(task: Pick<TaskMeta, "workspacePath" | "workspaceIdentity" | "taskId">): string {
   return `${workspaceKey(task.workspacePath, task.workspaceIdentity)}::${task.taskId}`;
@@ -1058,10 +1059,7 @@ export const useRemoteWorkspaceTaskListStore = createStore<RemoteWorkspaceTaskLi
  * 7. UI 原语与横切依赖声明（真实实现见头注清单）
  * ==========================================================================*/
 
-/** Button（原 X，button-laUijeDG.js） */
-declare const Button: React.FC<React.ComponentPropsWithoutRef<"button"> & { variant?: string; size?: string; "data-testid"?: string }>;
-/** cva 类名变体助手（原 Ca） */
-declare function buttonVariants(opts: { variant: string; size: string }): string;
+/* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）/buttonVariants（原 Ca）declare 删除 → import from './button'。 ── */
 /** Radix Tabs 原语（原 hC/gC/_C，本 chunk 36949+；分段控件复用） */
 declare const TabsRoot: React.FC<React.ComponentPropsWithoutRef<"div"> & { value: string; onValueChange: (v: string) => void; defaultValue?: string }>;
 /** Radix DropdownMenu 原语（原 VO/HO/UO/WO/XO/YO/JO/KO/qO/ZO/QO/$O，本 chunk 47926–48040） */
@@ -1090,8 +1088,7 @@ declare const ContextMenuSubContent: React.FC<React.ComponentPropsWithoutRef<"di
 declare const Collapsible: React.FC<{ open: boolean; onOpenChange: (v: boolean) => void; className?: string; children?: React.ReactNode }>;
 declare const CollapsibleTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
 declare const CollapsibleContent: React.FC<{ children?: React.ReactNode }>;
-/** Tooltip（原 Ia，usageStatsUiParts chunk） */
-declare const Tooltip: React.FC<{ title: string; description?: string; side?: "top" | "right" | "bottom" | "left"; align?: "start" | "center" | "end"; className?: string; triggerClassName?: string; children?: React.ReactNode }>;
+/* ── tombstone（A0-CLEANUP 族清理）：Tooltip（原 Ia）declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'。 ── */
 /** Popover 原语（原 Na/Oa/Ma/ka，usageStatsUiParts chunk） */
 /** Badge（原 uJ，本 chunk 70704） */
 /** Avatar 原语（原 hLt/gLt/_Lt，本 chunk 147698–147725） */

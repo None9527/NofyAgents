@@ -106,6 +106,7 @@
  */
 
 import * as React from "react";
+import { Button, ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight, ZoomOut as IconZoomOut, ZoomIn as IconZoomIn } from './button'; // A0-CLEANUP 族清理：Button/四图标 declare 改指 button chunk（原 t / s / o / i / a 导出）
 import { isMacPlatform } from './LegacyDocEngineBModel';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
 
@@ -118,19 +119,8 @@ import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcShar
 /** Mac 平台判定（原 o，keyboardShortcuts-BGHopxr9.js 的 a 导出：
  *  navigator.platform 含 mac/iphone/ipad/ipod，或 UA 匹配 Mac|iPhone|iPad|iPod） */
 
-/** 按钮（原 d，button-laUijeDG.js 的 t 导出） */
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "secondary" | "ghost" | "outline" | "destructive";
-  size?: "xs" | "sm" | "default" | "lg" | "icon-sm" | "icon-md" | "icon-lg";
-}
-declare const Button: React.FC<ButtonProps>;
-
-/* 图标（原 s/l/c/s，button-laUijeDG.js；lucide 工厂产物） */
-type IconProps = React.SVGProps<SVGSVGElement>;
-declare const IconChevronLeft: React.FC<IconProps>;   // 原 u（button chunk `s` 导出 = chevron-left）
-declare const IconChevronRight: React.FC<IconProps>;  // 原 l（button chunk `o` 导出 = chevron-right）
-declare const IconZoomOut: React.FC<IconProps>;       // 原 c（button chunk `i` 导出 = zoom-out）
-declare const IconZoomIn: React.FC<IconProps>;        // 原 s（button chunk `a` 导出 = zoom-in）
+/* ── tombstone（A0-CLEANUP 族清理）：Button（原 d=t）declare 与四图标（原 u/l/c/s = button chunk
+   s/o/i/a 导出 ChevronLeft/ChevronRight/ZoomOut/ZoomIn）declare 删除 → import from './button'。 ── */
 
 /* --- pdfjs-dist 5.4.296（本 chunk vendor 段 1；此处仅取自研段用到的两个符号） --- */
 
