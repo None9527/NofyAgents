@@ -106,6 +106,7 @@
  */
 
 import * as React from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Pencil as IconPencil, Search as IconSearch, Terminal as IconTerminal, Shield as IconShield, Target as IconTarget, Gauge as IconGauge, Calendar as IconCalendar, Clock as IconClock, Bot as IconBot, Globe as IconGlobe, File as IconFile, Check as IconCheck, Copy as IconCopy, ArrowUpRight as IconArrowUpRight, ExternalLink as IconExternal, Loader as IconLoader } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { ToolCallBlock, ToolLayout } from './Conversation'; // +ToolLayout（A0-D 接线：原 lQ declare → Conversation §4.1 canonical 导出）
 import { FileOpenWithMenu } from './FileRewindDialogDeep'; // 原 v_t（A0-CLEANUP2 item 45 接线：declare → 属主导出；本文件 E_t buildFilePreviewSource 为另一束符号，保留本地）
@@ -238,9 +239,9 @@ declare const SnapshotRefsLoader: React.FC<{
 declare const ToolErrorSurface: React.FC<{ errorText?: string | null; [key: string]: unknown }>;
 /** Markdown 渲染器（原 cj，F19） */
 /** Collapsible 原语（Radix 封装） */
-declare const Collapsible: React.FC<{ className?: string; children?: React.ReactNode }>;
-declare const CollapsibleTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const CollapsibleContent: React.FC<{ children?: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：Collapsible、CollapsibleContent、CollapsibleTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
 /** 代码面（shiki 封装，原 w$/gk 族） */
 declare const CodeSurface: React.FC<{
   cardSurface?: boolean;

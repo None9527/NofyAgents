@@ -73,6 +73,7 @@
 import * as React from "react";
 import { BotIcon, WebhookIcon, LinkIcon, Trash2 as TrashIcon, SaveIcon, UnlinkIcon, ExternalLinkIcon, QrCodeIcon, AlertCircleIcon, CopyIcon, CheckIcon, PlusIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import * as qrcode from 'qrcode'; // A0-S3a：vendored qrcode（78456–79690，Qq）→ npm qrcode@1.5.4
+import { Dialog as DialogRoot, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb）
 /* ── tombstone（A0-S2d）：原 `import { workspaceKeyOf } from './CodeViewer'` 已删除——
  *    唯一消费点在 §6 重复转录段（149473–149599，canonical 在 WebRemote.tsx），
  *    随段删除后无引用（该接线本身即错配：签名 (string, string?) 与调用面不符）。 ── */
@@ -121,15 +122,7 @@ interface BotsServiceLike {
 /** logger-PFDwl5Yq.js：`J` */
 /** Settings.tsx 行式原语：`U3` SettingsRow / `W3` SectionCard（135351/135380，已随 Settings 族重建） */
 /** 本 chunk 横切原语：Dialog/Select/Switch（28021–32245 封装块，接口级） */
-declare const DialogRoot: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; children?: React.ReactNode }>;
-declare const DialogContent: React.FC<{
-  className?: string;
-  onEscapeKeyDown?: (event: KeyboardEvent) => void;
-  children?: React.ReactNode;
-}>;
-declare const DialogHeader: React.FC<{ children?: React.ReactNode }>;
-declare const DialogTitle: React.FC<{ className?: string; children?: React.ReactNode }>;
-declare const DialogDescription: React.FC<{ className?: string; children?: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：Dialog 族 declare 删除 → import from '../components/ui/dialog'；调用面逐字不变。 ── */
 /** 图标块（26575–28020，lucide vendored）：本族用到的 12 个 */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（12）：BotIcon/WebhookIcon/LinkIcon/TrashIcon/SaveIcon/UnlinkIcon/ExternalLinkIcon/QrCodeIcon/AlertCircleIcon/CopyIcon/CheckIcon/PlusIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 

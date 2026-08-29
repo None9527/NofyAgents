@@ -100,6 +100,8 @@
  */
 
 import * as React from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { LoaderCircle as IconLoaderCircle } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 /* ── A0-S2d 接线：跨模块 declare → 真实 import（属主/别名经 bundle 导出表核验）；混淆名注释随迁 ── */
@@ -188,20 +190,16 @@ declare function usePlatformService(): PlatformServiceLike;
  *    canonical 在 stores-core.tsx / Modals.tsx，经文件头真实 import 消费。 ── */
 
 /* ---- Dialog 原语族（原 zb/Hb/Ub/Gb/Kb） ---- */
-declare const Dialog: React.FC<{ open: boolean; onOpenChange: (v: boolean) => void; children: React.ReactNode }>;
-declare const DialogContent: React.FC<{ showCloseButton?: boolean; className?: string; children: React.ReactNode }>;
-declare const DialogHeader: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DialogTitle: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DialogDescription: React.FC<{ className?: string; children: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：Dialog、DialogContent、DialogDescription、DialogHeader、DialogTitle declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
 
 /* ---- DropdownMenu 原语族（原 VO/HO/UO/KO/qO/JO/YO） ---- */
-declare const DropdownMenu: React.FC<{ children: React.ReactNode }>;
-declare const DropdownMenuTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const DropdownMenuContent: React.FC<{ align?: string; className?: string; children: React.ReactNode }>;
-declare const DropdownMenuRadioGroup: React.FC<{ value: string; onValueChange: (v: string) => void; children: React.ReactNode }>;
-declare const DropdownMenuRadioItem: React.FC<{ value: string; children: React.ReactNode }>;
-declare const DropdownMenuLabel: React.FC<{ children: React.ReactNode }>;
-declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
+/* ── tombstone（A0-S3c）：DropdownMenu、DropdownMenuContent、DropdownMenuLabel、DropdownMenuRadioGroup、DropdownMenuRadioItem、DropdownMenuSeparator、DropdownMenuTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
+
+
+
 
 /* ---- 图标（lucide vendored 块；名字逐字取自 Sa(`name`) 工厂） ---- */
 interface IconProps { className?: string; "aria-hidden"?: boolean | "true" | "false" }

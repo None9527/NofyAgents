@@ -160,9 +160,11 @@
  */
 
 import * as React from "react";
+import { Root as SwitchRoot, Thumb as SwitchThumb } from '@radix-ui/react-switch'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { LoaderCircle as IconLoaderCircle } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Input, Textarea, toast } from './ImeComposition';
 import { Tabs, TabsContent } from './Settings';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb）
 import { logger } from './SkillStore';
 import { readFeedbackContact, useFeedbackStore, writeFeedbackContact } from './stores-core';
 /* ── A0-D-Misc 接线：可用属主（前波成果） ── */
@@ -206,24 +208,13 @@ const IconFileText = createLucideIcon("file-text", []);     // 原 Z_（js 27108
 const IconCheck = createLucideIcon("check", []);            // 原 M_（js 26xxx）
 
 /** Radix Dialog 封装族（原 zb/Hb/Ub/Gb，本 chunk 31943+） */
-declare const Dialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode }>;
-declare const DialogContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { showCloseButton?: boolean }>;
-declare const DialogHeader: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const DialogTitle: React.FC<React.ComponentPropsWithoutRef<"div">>;
+/* ── tombstone（A0-S3c）：Dialog 族 declare 删除 → import from '../components/ui/dialog'；调用面逐字不变。 ── */
 
 /** Tabs 原语（原 hC/vC，本 chunk 36949/36986；Settings.tsx §Tabs 已逐字抽取） */
 
 /** Radix Switch 原语（原 UDe/WDe，Radix 封装主块） */
-declare const SwitchRoot: React.FC<
-  Omit<React.ComponentPropsWithoutRef<"button">, "onChange"> & {
-    "data-slot"?: string;
-    "data-size"?: string;
-    checked?: boolean;
-    defaultChecked?: boolean;
-    onCheckedChange?: (checked: boolean) => void;
-  }
->;
-declare const SwitchThumb: React.FC<React.ComponentPropsWithoutRef<"span"> & { "data-slot"?: string }>;
+/* ── tombstone（A0-S3c）：SwitchRoot、SwitchThumb declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
 
 /** FeedbackStore（原 yC，js 37040 / jsx 33835）——stores-core.tsx §3 已逐字重建 */
 interface FeedbackSubmitPayload {

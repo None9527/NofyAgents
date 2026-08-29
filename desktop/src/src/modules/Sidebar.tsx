@@ -188,6 +188,11 @@
  */
 
 import * as React from "react";
+import { Tabs as TabsRoot } from './Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { ContextMenu, ContextMenuContent, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../components/ui/context-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Hash as IconHash, Folder as IconFolder, FolderOpen as IconFolderOpen, Cloud as IconCloud, House as IconHouse, ListTree as IconListTree, MessageCirclePlus as IconMessageCirclePlus, Search as IconSearch, CalendarClock as IconCalendarClock, WandSparkles as IconWandSparkles, Minimize2 as IconMinimize2, Maximize2 as IconMaximize2, ListFilter as IconListFilter, Clock3 as IconClock3, MessageCircleCheck as IconMessageCircleCheck, Archive as IconArchive, CloudUpload as IconCloudUpload, Pin as IconPin, Smartphone as IconSmartphone, Clock as IconClock, Moon as IconMoon, Loader as IconLoader, TriangleAlert as IconTriangleAlert, RefreshCw as IconRefreshCw, Check as IconCheck, Copy as IconCopy, Ellipsis as IconEllipsis, Settings as IconSettings, Globe as IconGlobe, Palette as IconPalette, Maximize as IconMaximize, LogIn as IconLogIn, LogOut as IconLogOut, User as IconUser, Settings2 as IconSettings2, GripVertical as IconGripVertical, ArrowUpToLine as IconArrowUpToLine, ChevronDown as IconChevronDown, LoaderCircle as SpinnerIcon, Plus as IconPlus, ChartColumn as IconChartColumn, Rocket as IconRocket } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, buttonVariants, ZoomIn as IconZoomIn, ZoomOut as IconZoomOut, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button/buttonVariants declare 改指 button chunk；A0-S3b 增补：ZoomIn as IconZoomIn, ZoomOut as IconZoomOut, ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { FileTreePanel } from './FileTreePanel';
@@ -1064,33 +1069,33 @@ export const useRemoteWorkspaceTaskListStore = createStore<RemoteWorkspaceTaskLi
 
 /* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）/buttonVariants（原 Ca）declare 删除 → import from './button'。 ── */
 /** Radix Tabs 原语（原 hC/gC/_C，本 chunk 36949+；分段控件复用） */
-declare const TabsRoot: React.FC<React.ComponentPropsWithoutRef<"div"> & { value: string; onValueChange: (v: string) => void; defaultValue?: string }>;
+/* ── tombstone（A0-S3c）：Collapsible、CollapsibleContent、CollapsibleTrigger、ContextMenu、ContextMenuContent、ContextMenuSeparator、ContextMenuSub、ContextMenuSubContent、ContextMenuSubTrigger、ContextMenuTrigger、Dialog、DialogContent、DialogFooter、DialogHeader、DialogTitle、DropdownMenu、DropdownMenuContent、DropdownMenuItem、DropdownMenuLabel、DropdownMenuRadioGroup、DropdownMenuRadioItem、DropdownMenuSeparator、DropdownMenuShortcut、DropdownMenuSub、DropdownMenuSubContent、DropdownMenuSubTrigger、DropdownMenuTrigger、TabsRoot declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
 /** Radix DropdownMenu 原语（原 VO/HO/UO/WO/XO/YO/JO/KO/qO/ZO/QO/$O，本 chunk 47926–48040） */
-declare const DropdownMenu: React.FC<{ open?: boolean; onOpenChange?: (v: boolean) => void; modal?: boolean; children?: React.ReactNode }>;
-declare const DropdownMenuTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const DropdownMenuContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { align?: "start" | "center" | "end"; side?: string; forceMount?: boolean; onClick?: React.MouseEventHandler; onPointerDown?: React.PointerEventHandler; onCloseAutoFocus?: (e: Event) => void }>;
-declare const DropdownMenuItem: React.FC<React.ComponentPropsWithoutRef<"div"> & { disabled?: boolean; title?: string; onSelect?: (e?: unknown) => void; "data-testid"?: string; onMouseDown?: React.MouseEventHandler }>;
-declare const DropdownMenuShortcut: React.FC<{ children?: React.ReactNode }>;
-declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
-declare const DropdownMenuLabel: React.FC<{ children?: React.ReactNode }>;
-declare const DropdownMenuRadioGroup: React.FC<{ value: string; onValueChange: (v: string) => void; children?: React.ReactNode }>;
-declare const DropdownMenuRadioItem: React.FC<{ value: string; children?: React.ReactNode }>;
-declare const DropdownMenuSub: React.FC<{ children?: React.ReactNode }>;
-declare const DropdownMenuSubTrigger: React.FC<{ disabled?: boolean; title?: string; children?: React.ReactNode }>;
-declare const DropdownMenuSubContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { className?: string }>;
+
+
+
+
+
+
+
+
+
+
+
+
 /** Radix ContextMenu 原语（原 yk/bk/xk/wk/Tk/Ek/Sk/Ck，本 chunk 43966–44030） */
-declare const ContextMenu: React.FC<{ onOpenChange?: (open: boolean) => void; children?: React.ReactNode }>;
-declare const ContextMenuTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const ContextMenuContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { className?: string; onCloseAutoFocus?: (e: Event) => void }>;
+
+
+
 declare const ContextMenuItem: React.FC<React.ComponentPropsWithoutRef<"div"> & { disabled?: boolean; title?: string; onSelect?: () => void }>;
-declare const ContextMenuSeparator: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const ContextMenuSub: React.FC<{ children?: React.ReactNode }>;
-declare const ContextMenuSubTrigger: React.FC<{ disabled?: boolean; title?: string; children?: React.ReactNode }>;
-declare const ContextMenuSubContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { className?: string }>;
+
+
+
+
 /** Radix Collapsible 原语（原 kZ/AZ/jZ，本 chunk 82939–82949） */
-declare const Collapsible: React.FC<{ open: boolean; onOpenChange: (v: boolean) => void; className?: string; children?: React.ReactNode }>;
-declare const CollapsibleTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const CollapsibleContent: React.FC<{ children?: React.ReactNode }>;
+
+
+
 /* ── tombstone（A0-CLEANUP 族清理）：Tooltip（原 Ia）declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'。 ── */
 /** Popover 原语（原 Na/Oa/Ma/ka，usageStatsUiParts chunk） */
 /** Badge（原 uJ，本 chunk 70704） */
@@ -1099,11 +1104,11 @@ declare function Avatar(props: { size?: "default" | string; children?: React.Rea
 declare const AvatarImage: React.FC<{ src: string; alt: string }>;
 declare const AvatarFallback: React.FC<React.ComponentPropsWithoutRef<"div">>;
 /** Radix Dialog 封装（原 zb…，本 chunk 31943+；TopBar.tsx 已还原） */
-declare const Dialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; children?: React.ReactNode }>;
-declare const DialogContent: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const DialogHeader: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const DialogTitle: React.FC<React.ComponentPropsWithoutRef<"h2">>;
-declare const DialogFooter: React.FC<React.ComponentPropsWithoutRef<"div">>;
+
+
+
+
+
 /** dnd-kit（vendored 块 91811–94695；_Z=DndContext、EZ=SortableContext、bZ=DragOverlay、
  *  DZ=useSortable、vZ=useDraggable、yZ=useDroppable、UX=PointerSensor、WX=sensors、
  *  aZ=PointerSensor、rZ=KeyboardSensor、KX=closestCenter、TZ=rectSortingStrategy、

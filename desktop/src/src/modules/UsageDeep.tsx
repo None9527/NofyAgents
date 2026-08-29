@@ -355,6 +355,11 @@
  */
 
 import * as React from "react";
+import { Dialog as DialogRoot, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Command as CommandRoot, CommandItem } from './QuickPick'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { CommandInput } from '../components/ui/command'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Select as SelectRoot } from './Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Collapsible as CollapsibleRoot, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { ChevronDownIcon, PencilIcon, Trash2 as TrashIcon, UnplugIcon, RadioTowerIcon, EyeOffIcon, EyeIcon, AstroidIcon, ArrowRightIcon, UsersIcon, CircleIcon, GripVerticalIcon, ArrowLeftIcon, RocketIcon, TrendingUpIcon, LogInIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { InfoIcon, Input, Popover as PopoverRoot, PopoverContent, PopoverTrigger, SpinnerIcon, usePlatformService } from './ImeComposition'; // PopoverRoot（原 n=T 根）；A0-CLEANUP3 #38：SpinnerIcon/InfoIcon/usePlatformService 改由属主导出
 import { MarkdownRenderer, type CodePreviewSettings } from './MarkdownIntegration';
@@ -384,31 +389,26 @@ interface IntlShape {
 /* --- Popover 原语（imeComposition：n=T 根 / a=h 触发 / i=x 内容）——A0-D-Misc：PopoverRoot 已接线 ImeComposition.Popover --- */
 
 /* --- Dialog 原语（本 chunk 31943–32034：zb/Bb/Hb/Ub/Gb/Kb/Wb） --- */
-declare const DialogRoot: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; children: React.ReactNode }>;
-declare const DialogTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const DialogContent: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DialogHeader: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DialogTitle: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DialogDescription: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DialogFooter: React.FC<{ className?: string; children: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：CollapsibleContent、CollapsibleRoot、CollapsibleTrigger、CommandInput、CommandItem、CommandRoot、DialogContent、DialogDescription、DialogFooter、DialogHeader、DialogRoot、DialogTitle、DialogTrigger、SelectRoot declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
+
+
+
 
 /* --- Command 原语（本 chunk 32092–32175：Yb/Xb/Zb/Qb/ex，cmdk 封装） --- */
-declare const CommandRoot: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const CommandInput: React.FC<{ inputGroupClassName?: string; placeholder?: string }>;
-declare const CommandItem: React.FC<{
-  value: string;
-  onSelect?: () => void;
-  className?: string;
-  children: React.ReactNode;
-}>;
+
+
+
 
 /* --- Select 原语（本 chunk 46009–46072：iO/oO/aO/sO/cO） --- */
-declare const SelectRoot: React.FC<{ value: string; onValueChange: (value: string) => void; children: React.ReactNode }>;
+
 
 /* --- Collapsible 原语（本 chunk 94925–94931：kZ/AZ/jZ） --- */
-declare const CollapsibleRoot: React.FC<{ children: React.ReactNode }>;
-declare const CollapsibleTrigger: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const CollapsibleContent: React.FC<{ children: React.ReactNode }>;
+
+
+
 
 /* --- dnd-kit（本 chunk vendored 91811–94695：_Z/EZ/DZ/UX/WX/aZ/rZ/ist/KX/TZ/BX） --- */
 declare const PointerSensor: unknown; // aZ

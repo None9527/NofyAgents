@@ -122,9 +122,12 @@
  */
 
 import * as React from "react";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { InputGroup, InputGroupAddon } from '../components/ui/input-group'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphone, Moon as IconMoon, RotateCcw as IconRotateCcw, ClipboardPenLine as IconClipboardPenLine, House as IconHouse, Folder as IconFolder, Cloud as IconCloud, FolderPlus as IconFolderPlus, MessageCircle as IconMessageCircle, Search as IconSearch, ChevronDown as IconChevronDown, Loader as IconLoader, Info as IconInfo, X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb/Vb）
 import { BackgroundWorksCapsule, ComposerInput, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from './Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）
 import { countContextAttachments, isAddToChatEvent, useCodeCommentContexts, type CodeCommentAttachment } from './GitReview';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
@@ -268,25 +271,19 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 
 /* DropdownMenu 原语族（本 chunk 47926–48040，TopBar.tsx §1.1 已逐字还原） */
-declare function DropdownMenu(props: { children: React.ReactNode }): React.ReactElement;
-declare function DropdownMenuTrigger(props: { asChild?: boolean; children: React.ReactNode }): React.ReactElement;
-declare function DropdownMenuContent(props: { align?: "start" | "center" | "end"; side?: "top" | "bottom"; className?: string; children: React.ReactNode }): React.ReactElement;
-declare function DropdownMenuItem(props: { checked?: boolean; onSelect?: () => void; className?: string; children: React.ReactNode } & Record<string, unknown>): React.ReactElement;
-declare function DropdownMenuCheckboxItem(props: { checked?: boolean; onSelect?: () => void; className?: string; children: React.ReactNode } & Record<string, unknown>): React.ReactElement;
-declare function DropdownMenuSeparator(props: Record<string, unknown>): React.ReactElement;
+/* ── tombstone（A0-S3c）：DropdownMenu、DropdownMenuCheckboxItem、DropdownMenuContent、DropdownMenuItem、DropdownMenuSeparator、DropdownMenuTrigger、InputGroup、InputGroupAddon declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
+
+
 
 /* Dialog 原语族（本 chunk 31943+，TopBar.tsx 已登记） */
-declare function Dialog(props: { open: boolean; onOpenChange?: (open: boolean) => void; children: React.ReactNode }): React.ReactElement;
-declare function DialogContent(props: { className?: string; showCloseButton?: boolean; children: React.ReactNode } & Record<string, unknown>): React.ReactElement;
-declare function DialogHeader(props: { className?: string; children: React.ReactNode }): React.ReactElement;
-declare function DialogTitle(props: { className?: string; children: React.ReactNode }): React.ReactElement;
-declare function DialogDescription(props: { className?: string; children: React.ReactNode }): React.ReactElement;
-declare function DialogClose(props: { asChild?: boolean; children: React.ReactNode }): React.ReactElement;
-declare function DialogFooter(props: { className?: string; children: React.ReactNode }): React.ReactElement;
+/* ── tombstone（A0-S3c）：Dialog 族 declare 删除 → import from '../components/ui/dialog'；调用面逐字不变。 ── */
 
 /* InputGroup（本 chunk 28021–32245 原语块） */
-declare function InputGroup(props: { className?: string; children: React.ReactNode }): React.ReactElement;
-declare function InputGroupAddon(props: { children: React.ReactNode }): React.ReactElement;
+
+
 
 /* 图标（原混淆名 → lucide 名；button-laUijeDG.js 的 createLucideIcon 产物） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（16）：IconArrowUp/IconSquare/IconMegaphone/IconMoon/IconRotateCcw/IconClipboardPenLine/IconHouse/IconFolder/IconCloud/IconFolderPlus/IconMessageCircle/IconSearch/IconChevronDown/IconLoader/IconInfo/IconClose → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */

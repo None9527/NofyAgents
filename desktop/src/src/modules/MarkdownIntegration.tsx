@@ -128,8 +128,10 @@
  */
 
 import * as React from "react";
+import { ContextMenu, ContextMenuContent, ContextMenuSeparator, ContextMenuTrigger } from '../components/ui/context-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Check as IconCheck, Copy as IconCopy, ExternalLink as IconExternal, Loader as IconLoader, ImageOff as IconImageOff, LoaderCircle as IconSpinner } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Streamdown, DEFAULT_REHYPE_PLUGINS } from "./MarkdownRenderer";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb）
 import { visit, type UnistNode } from "./MarkdownVendored";
 import type {
   StreamdownPlugins,
@@ -199,18 +201,14 @@ declare const X: React.ComponentType<React.ButtonHTMLAttributes<HTMLButtonElemen
 declare const Ia: React.ComponentType<{ title: string; side?: string; children?: React.ReactNode }>;
 
 /* 原 yk/bk/xk/Sk/Ck：ContextMenu 原语族（本 chunk 48800 段，横切 X03） */
-declare const ContextMenu: React.ComponentType<Record<string, unknown>>; // yk
-declare const ContextMenuTrigger: React.ComponentType<Record<string, unknown>>; // bk
-declare const ContextMenuContent: React.ComponentType<Record<string, unknown>>; // xk
+/* ── tombstone（A0-S3c）：ContextMenu、ContextMenuContent、ContextMenuSeparator、ContextMenuTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
 declare const ContextMenuItem: React.ComponentType<Record<string, unknown>>; // Sk
-declare const ContextMenuSeparator: React.ComponentType<Record<string, unknown>>; // Ck
+
 
 /* 原 zb/Hb/Ub/Gb/Kb/Bb：Dialog 原语族 */
-declare const Dialog: React.ComponentType<Record<string, unknown>>; // zb
-declare const DialogContent: React.ComponentType<Record<string, unknown>>; // Hb
-declare const DialogHeader: React.ComponentType<Record<string, unknown>>; // Ub
-declare const DialogTitle: React.ComponentType<Record<string, unknown>>; // Gb
-declare const DialogDescription: React.ComponentType<Record<string, unknown>>; // Kb
+/* ── tombstone（A0-S3c）：Dialog 族 declare 删除 → import from '../components/ui/dialog'；调用面逐字不变。 ── */
 
 /* 图标族（lucide 风格） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：IconCheck/IconCopy/IconExternal → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */

@@ -139,6 +139,8 @@ import { cn } from './UtilsCn'; // 类名合并（原 Z，utils-CEEH0K_K.js）
 import { useZCodeIntl as useIntlContext } from './I18n'; // intl 上下文（原 G()，IntlProvider-C321H7m8.js）
 import { Button } from './button'; // Button（原 X，button-laUijeDG.js）
 import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Tooltip（原 Ia，usageStatsUiParts-CiR7YEhh.js）
+import { Command as CmdkCommand, CommandEmpty as CmdkEmpty, CommandGroup as CmdkGroup, CommandInput as CmdkInput, CommandItem as CmdkItem, CommandList as CmdkList, CommandLoading as CmdkLoading, CommandSeparator as CmdkSeparator } from 'cmdk'; // A0-S3c：vendored cmdk（本 chunk 26004–26574）→ npm cmdk@1.1.1
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -285,23 +287,7 @@ interface SessionRegistryState {
 
 /* ------------------------------ UI 原语声明 ------------------------------ */
 
-/** Radix Dialog 封装（原 zb/Ub/Gb/Kb/Hb，本 chunk js 31943–32040） */
-declare const Dialog: React.FC<{
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  modal?: boolean;
-  children: React.ReactNode;
-}>;
-declare const DialogHeader: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const DialogTitle: React.FC<React.ComponentPropsWithoutRef<"h2">>;
-declare const DialogDescription: React.FC<React.ComponentPropsWithoutRef<"p">>;
-declare const DialogContent: React.FC<
-  React.ComponentPropsWithoutRef<"div"> & {
-    showCloseButton?: boolean;
-    showOverlay?: boolean;
-    onInteractOutside?: (e: { preventDefault(): void }) => void;
-  }
->;
+/* ── tombstone（A0-S3c）：Dialog 族 declare 删除 → import from '../components/ui/dialog'（bundle zb/Hb/Ub/Gb/Kb，styles 31943–32040）；调用面逐字不变。 ── */
 
 /** 文件图标解析（原 zc，js 5150；图标资产映射在 4946–6061 文件工具块） */
 interface FileInfo {
@@ -324,40 +310,20 @@ declare function relativePathFrom(rootPath: string, absPath: string): string;
  * ==========================================================================*/
 
 /**
- * vendored cmdk 命名空间（原 m_，js 26493–26501）。
- * 底层实现（root/item/group/input/list/dialog/empty/loading + 评分过滤）
- * 在本 chunk js 26004–26574，重建时以 npm `cmdk` 整体替换。
+ * A0-S3c：vendored cmdk 命名空间（原 m_，js 26493–26501）→ npm cmdk@1.1.1。
+ * declare namespace 删除，改为对 cmdk 具名导出的命名空间映射（调用面
+ * CommandPrimitive.X 逐字不变；cmdk 复合导出无 Root 静态，故以 const 映射补齐）。
  */
-declare namespace CommandPrimitive {
-  const Root: React.FC<
-    React.ComponentPropsWithoutRef<"div"> & {
-      value?: string;
-      defaultValue?: string;
-      onValueChange?: (value: string) => void;
-      label?: string;
-      filter?: (value: string, search: string, keywords?: string[]) => number;
-      shouldFilter?: boolean;
-      loop?: boolean;
-      disablePointerSelection?: boolean;
-      vimBindings?: boolean;
-    }
-  >;
-  const List: React.FC<React.ComponentPropsWithRef<"div"> & { label?: string }>;
-  const Item: React.FC<
-    React.ComponentPropsWithoutRef<"div"> & {
-      value?: string;
-      disabled?: boolean;
-      forceMount?: boolean;
-      keywords?: string[];
-      onSelect?: (value: string) => void;
-    }
-  >;
-  const Input: React.FC<React.ComponentPropsWithoutRef<"input"> & { value?: string; onValueChange?: (v: string) => void }>;
-  const Group: React.FC<React.ComponentPropsWithoutRef<"div"> & { heading?: React.ReactNode; forceMount?: boolean }>;
-  const Separator: React.FC<React.ComponentPropsWithoutRef<"div"> & { alwaysRender?: boolean }>;
-  const Empty: React.FC<React.ComponentPropsWithoutRef<"div">>;
-  const Loading: React.FC<React.ComponentPropsWithoutRef<"div"> & { progress?: number; label?: string }>;
-}
+const CommandPrimitive = {
+  Root: CmdkCommand,
+  List: CmdkList,
+  Item: CmdkItem,
+  Input: CmdkInput,
+  Group: CmdkGroup,
+  Separator: CmdkSeparator,
+  Empty: CmdkEmpty,
+  Loading: CmdkLoading,
+};
 
 /** 原 Yb（js 32092 / jsx 29478）：Command 根封装 */
 export function Command({ className, loop = false, ...props }: React.ComponentProps<typeof CommandPrimitive.Root>) {

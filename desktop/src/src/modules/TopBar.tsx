@@ -121,6 +121,11 @@
  */
 
 import * as React from "react";
+import { ShadcnTooltipProvider as PopoverRoot } from './UsageStatsUiParts'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { PopoverContent as PopoverContentPrimitive, PopoverTrigger as PopoverTriggerPrimitive } from './ImeComposition'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Command as CommandPalette, CommandItem } from './QuickPick'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { CommandInput } from '../components/ui/command'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { CommitGraphDialog as CommitGraphViewer, CreateBranchDialog, SwitchAssistDialog, resolveBranchDisplayLabel, useGitBranchSwitcher } from './CmdkPaletteDeep'; // CommitGraphViewer 原 fct
 import { resolveAvailableEditors, type InstalledEditor } from './FileTreePanel'; // +InstalledEditor（A0-CLEANUP B-21：本地别名删除改指属主型）
@@ -846,7 +851,7 @@ function ReleaseNotesPopover({
   );
 }
 
-declare const PopoverRoot: React.FC<{ children: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：CommandInput、CommandItem、CommandPalette、Dialog、DialogContent、DialogFooter、DialogHeader、DialogTitle、PopoverContentPrimitive、PopoverRoot、PopoverTriggerPrimitive declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
 
 /**
  * 原 POt（js 129125-129295 / jsx 108678-108830）：更新对话框控制器。
@@ -2297,11 +2302,11 @@ export function TaskRenameDialog({
 }
 
 /** 原 zb/Hb/Ub/Gb/Wb（本 chunk js 31943+ / jsx 29335+）：Radix Dialog 封装 */
-declare const Dialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode }>;
-declare const DialogContent: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const DialogHeader: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const DialogTitle: React.FC<React.ComponentPropsWithoutRef<"h2">>;
-declare const DialogFooter: React.FC<React.ComponentPropsWithoutRef<"div">>;
+
+
+
+
+
 declare function isImeEnter(args: { compositionActive: boolean; nativeEvent: React.KeyboardEvent["nativeEvent"] }): boolean;
 
 /* ============================================================================
@@ -2635,11 +2640,11 @@ export function GitBranchChip({
   );
 }
 
-declare const PopoverTriggerPrimitive: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const PopoverContentPrimitive: React.FC<React.ComponentPropsWithoutRef<"div"> & { align?: string; side?: string; avoidCollisions?: boolean }>;
-declare const CommandPalette: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const CommandInput: React.FC<React.ComponentPropsWithoutRef<"input">>;
-declare const CommandItem: React.FC<React.ComponentPropsWithoutRef<"div"> & { value: string; disabled?: boolean; onSelect?: () => void }>;
+
+
+
+
+
 
 /* ============================================================================
  * 5.7 RemoteSyncMenuItems / RemoteSyncDialogs（原 n4/r4，js 127149/127248）

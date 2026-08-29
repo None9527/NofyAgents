@@ -62,7 +62,12 @@
  */
 
 import * as React from "react";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './ImeComposition'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from './QuickPick'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { CommandInput } from '../components/ui/command'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb）
 /* ── A0-S2d 接线（B5-14）：隙段 declare 组改指 RemoteGapSegments 实体；混淆名注释随迁 ── */
 import {
   useRemoteWizardState, // 原 mEt（隙段 a，原 123535–123746）：远程向导状态总钩（表单字段 + 运行时选项 + setters）
@@ -114,53 +119,28 @@ interface PlatformServiceLike {
 declare function usePlatformService(): PlatformServiceLike;
 
 /* ---- Dialog 原语族（原 zb/Hb/Ub/Gb/Kb） ---- */
-declare const Dialog: React.FC<{ open: boolean; onOpenChange: (v: boolean) => void; children: React.ReactNode }>;
-declare const DialogContent: React.FC<{ showCloseButton?: boolean; className?: string; children: React.ReactNode }>;
-declare const DialogHeader: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DialogTitle: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DialogDescription: React.FC<{ className?: string; children: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：Dialog 族 declare 删除 → import from '../components/ui/dialog'；调用面逐字不变。 ── */
 
 /* ---- Popover 原语族（原 T/h/x/O，imeComposition n/a/i 等） ---- */
-declare const Popover: React.FC<{ open: boolean; onOpenChange: (v: boolean) => void; children: React.ReactNode }>;
-declare const PopoverTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const PopoverAnchor: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const PopoverContent: React.FC<
-  React.ComponentPropsWithoutRef<"div"> & {
-    align?: string;
-    sideOffset?: number;
-    style?: React.CSSProperties;
-    onInteractOutside?: (e: { target: EventTarget | null; preventDefault(): void }) => void;
-    onOpenAutoFocus?: (e: { preventDefault(): void }) => void;
-  }
->;
+/* ── tombstone（A0-S3c）：Command、CommandEmpty、CommandGroup、CommandInput、CommandItem、CommandList、Popover、PopoverAnchor、PopoverContent、PopoverTrigger、Select、SelectContent、SelectItem、SelectTrigger、SelectValue declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
 
 /* ---- Command/cmdk 原语族（原 Yb/Zb/Xb/Qb/$b/ex） ---- */
-declare const Command: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const CommandList: React.FC<{
-  className?: string;
-  onWheel?: React.WheelEventHandler<HTMLDivElement>;
-  ref?: React.Ref<HTMLDivElement>;
-  children: React.ReactNode;
-}>;
-declare const CommandInput: React.FC<{ placeholder?: string; className?: string }>;
-declare const CommandEmpty: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const CommandGroup: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const CommandItem: React.FC<{
-  value: string;
-  className?: string;
-  "data-checked"?: string;
-  "data-ssh-config-alias-selected"?: string;
-  onSelect?: (value: string) => void;
-  onPointerDown?: () => void;
-  children: React.ReactNode;
-}>;
+
+
+
+
+
+
 
 /* ---- Select 原语族（原 iO/oO/aO/sO/cO） ---- */
-declare const Select: React.FC<{ value: string; onValueChange: (v: string) => void; children: React.ReactNode }>;
-declare const SelectTrigger: React.FC<{ size?: string; className?: string; "data-testid"?: string; children: React.ReactNode }>;
-declare const SelectValue: React.FC<Record<string, never>>;
-declare const SelectContent: React.FC<{ align?: string; children: React.ReactNode }>;
-declare const SelectItem: React.FC<{ value: string; children: React.ReactNode }>;
+
+
+
+
+
 
 /* ---- 图标（lucide 名逐字取自 Sa(`name`) 工厂） ---- */
 interface IconProps { className?: string; "aria-hidden"?: boolean | "true" | "false" }

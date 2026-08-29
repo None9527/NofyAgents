@@ -61,6 +61,7 @@
  */
 
 import * as React from "react";
+import { Input, Popover as PopoverRoot, PopoverAnchor, PopoverContent, Textarea } from './ImeComposition'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Sparkles as IconSparkles, MousePointerClick as IconMousePointerClick, LoaderCircle as IconLoaderCircle } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight, ZoomOut as IconZoomOut, ZoomIn as IconZoomIn, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/四图标/createLucideIcon declare 改指 button chunk
 
@@ -128,47 +129,12 @@ interface PptxEngine {
 
 /* --- UI 原语（imeComposition / button chunk；类名逐字保留） --- */
 
-declare function PopoverRoot(props: { open: boolean; modal: boolean; children: React.ReactNode }): React.ReactElement;
-declare function PopoverAnchor(props: { asChild: boolean; children: React.ReactNode; key?: string }): React.ReactElement;
-declare function PopoverContent(props: {
-  role: string;
-  "aria-label": string;
-  side: `top`;
-  align: `center`;
-  sideOffset: number;
-  collisionBoundary: HTMLElement | null;
-  collisionPadding: number;
-  sticky: `partial`;
-  hideWhenDetached: boolean;
-  updatePositionStrategy: `always`;
-  className: string;
-  onEscapeKeyDown(e: KeyboardEvent & { isComposing: boolean }): void;
-  onCloseAutoFocus(e: Event): void;
-  children: React.ReactNode;
-}): React.ReactElement;
+/* ── tombstone（A0-S3c）：Input、PopoverAnchor、PopoverContent、PopoverRoot、Textarea declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
 /* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
-declare function Input(props: {
-  type: `text`;
-  inputMode: `numeric`;
-  "aria-label": string;
-  value: string;
-  onChange(e: React.ChangeEvent<HTMLInputElement>): void;
-  onBlur(): void;
-  onKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void;
-  className: string;
-}): React.ReactElement;
-declare function Textarea(props: {
-  autoFocus: boolean;
-  "aria-label": string;
-  placeholder: string;
-  value: string;
-  disabled?: boolean;
-  rows: number;
-  className: string;
-  onChange(e: React.ChangeEvent<HTMLTextAreaElement>): void;
-  onCompositionStart(): void;
-  onCompositionEnd(): void;
-}): React.ReactElement;
+
+
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：IconSparkles/IconMousePointerClick/IconLoaderCircle → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：IconChevronLeft/Right/ZoomOut/ZoomIn declare 删除 →
    import { ChevronLeft/ChevronRight/ZoomOut/ZoomIn } from './button'。 ── */

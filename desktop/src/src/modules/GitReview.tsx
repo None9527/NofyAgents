@@ -201,9 +201,13 @@
  */
 
 import * as React from "react";
+import { ContextMenu, ContextMenuContent, ContextMenuSeparator, ContextMenuTrigger } from '../components/ui/context-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { HoverCardTooltip as TooltipRoot, HoverCardTooltipContent as TooltipContent, HoverCardTooltipTrigger as TooltipTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { LoaderCircle as SpinnerIcon, FolderOpen as IconFolderOpen, Copy as IconCopy, RefreshCw as IconRefreshCw, FileText as IconFileText, ChevronDown as IconChevronDown, ListTree as IconListTree, FileDiff as IconFileDiff, ArrowUpFromLine as IconArrowUpFromLine, GitCommitHorizontal as IconGitCommitHorizontal, CloudUpload as IconCloudUpload, CircleAlert as IconCircleAlert, Check as IconCheck, Loader as IconLoader, GitBranch as IconGitBranch, Trash2 as IconTrash2, CodeXml as IconCodeXml, MessageSquareText as IconMessageSquareText, Undo2 as IconUndo2, Sparkles as IconSparkles } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb）
 import { resolveBranchDisplayLabel } from './CmdkPaletteDeep';
 import { DiffViewer, readLastEditorId as getPreferredEditorId } from './CodeViewer'; // 原 OA
 import { appendWebElementsToContent, type WebElementContext } from './Composer'; // 原 zXe 族（A0-CLEANUP2 item 11 接线：declare → Composer 属主导出）
@@ -282,12 +286,7 @@ export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => 
 /* --- Radix/shadcn 封装原语（本 chunk 内；类名逐字保留于各自定义处） --- */
 
 /** Dialog 族（原 zb/Hb/Ub/Gb/Kb/Wb，js 31943+） */
-declare const Dialog: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; children?: React.ReactNode }>;
-declare const DialogContent: React.FC<React.HTMLAttributes<HTMLDivElement> & { showCloseButton?: boolean; onOpenAutoFocus?: (e: Event) => void }>;
-declare const DialogHeader: React.FC<React.HTMLAttributes<HTMLDivElement>>;
-declare const DialogTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>>;
-declare const DialogDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement>>;
-declare const DialogFooter: React.FC<React.HTMLAttributes<HTMLDivElement>>;
+/* ── tombstone（A0-S3c）：Dialog 族 declare 删除 → import from '../components/ui/dialog'；调用面逐字不变。 ── */
 
 /* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）declare 删除 → import { Button } from './button'。 ── */
 
@@ -299,21 +298,21 @@ declare const DialogFooter: React.FC<React.HTMLAttributes<HTMLDivElement>>;
 /** Select 族（原 iO/oO/aO/sO/cO，js 46009+；data-slot=select-*） */
 
 /** ContextMenu 族（原 yk/bk/xk/Sk/Ck，js 48825+） */
-declare const ContextMenu: React.FC<{ children?: React.ReactNode }>;
-declare const ContextMenuTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const ContextMenuContent: React.FC<React.HTMLAttributes<HTMLDivElement>>;
+/* ── tombstone（A0-S3c）：Collapsible、CollapsibleContent、CollapsibleTrigger、ContextMenu、ContextMenuContent、ContextMenuSeparator、ContextMenuTrigger、TooltipContent、TooltipRoot、TooltipTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
 declare const ContextMenuItem: React.FC<React.HTMLAttributes<HTMLDivElement> & { disabled?: boolean; onSelect?: () => void }>; // Sk
-declare const ContextMenuSeparator: React.FC<React.HTMLAttributes<HTMLDivElement>>;
+
 
 /** Collapsible 族（原 kZ/AZ/jZ，js 94925+；data-slot=collapsible*） */
-declare const Collapsible: React.FC<React.HTMLAttributes<HTMLDivElement> & { open?: boolean; onOpenChange?: (open: boolean) => void }>;
-declare const CollapsibleTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const CollapsibleContent: React.FC<React.HTMLAttributes<HTMLDivElement>>;
+
+
+
 
 /** Tooltip 封装（原 CN/wN/TN，js 54784；底层 dN/fN/pN） */
-declare const TooltipRoot: React.FC<{ openDelay?: number; closeDelay?: number; children?: React.ReactNode }>;
-declare const TooltipTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const TooltipContent: React.FC<React.HTMLAttributes<HTMLDivElement> & { align?: "start" | "center" | "end"; side?: "top" | "bottom" | "left" | "right" }>;
+
+
+
 
 /** Popover 原语（原 Na/Oa/Ma/ka，usageStatsUiParts chunk；提交对话框生成按钮用） */
 

@@ -82,6 +82,7 @@
  */
 
 import * as React from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Trash2 as IconTrash, ChevronDown as IconChevronDown, ExternalLink as IconOpenExternal, Copy as IconCopy } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 /* ── tombstone（A0-D-Misc）：原 `import { DiffViewer } from './CodeViewer'` 退回 declare——
  *    CodeViewer.DiffViewer（mVt）props 面（patch/oldFile/newFile/themeType…）与本处
@@ -154,17 +155,11 @@ declare const DiffViewer: React.FC<{
 import { openFileChangePatchInCodeViewer as openFileChangeInViewer, resolveRepoRelativePath as toWorkspaceRelativePath } from './GitReview';
 
 /* 原 VO/HO/UO/WO/YO：DropdownMenu 原语族（X03 双归属，接口挂接） */
-declare const DropdownMenu: React.FC<{ children?: React.ReactNode; onOpenChange?: (open: boolean) => void }>;
-declare const DropdownMenuTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const DropdownMenuContent: React.FC<{
-  align?: string;
-  side?: string;
-  className?: string;
-  onClick?: React.MouseEventHandler;
-  children?: React.ReactNode;
-}>;
-declare const DropdownMenuItem: React.FC<{ disabled?: boolean; onSelect?: () => void; children?: React.ReactNode }>;
-declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
+/* ── tombstone（A0-S3c）：DropdownMenu、DropdownMenuContent、DropdownMenuItem、DropdownMenuSeparator、DropdownMenuTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
+
 
 /* 图标族（lucide 封装） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（4）：IconTrash/IconChevronDown/IconOpenExternal/IconCopy → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */

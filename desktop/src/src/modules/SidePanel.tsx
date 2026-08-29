@@ -148,6 +148,7 @@
  */
 
 import * as React from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { BrowserUseView, BrowserView, useScreenshotSurfaceRequest } from './BrowserPane';
 import { CodeViewerPanel } from './CodeViewer';
@@ -285,10 +286,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 /** Popover 原语（原 T/h/x，imeComposition chunk n/a/i 导出） */
 
 /** 下拉菜单原语（已完整还原于 TopBar.tsx；此处声明接口复用） */
-declare const DropdownMenu: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; children: React.ReactNode }>;
-declare const DropdownMenuTrigger: React.FC<React.ComponentPropsWithoutRef<"button"> & { asChild?: boolean }>;
-declare const DropdownMenuContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { align?: "start" | "center" | "end"; className?: string }>;
-declare const DropdownMenuItem: React.FC<React.ComponentPropsWithoutRef<"div"> & { disabled?: boolean; onSelect?: () => void }>;
+/* ── tombstone（A0-S3c）：DropdownMenu、DropdownMenuContent、DropdownMenuItem、DropdownMenuTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
 
 /* --- cmdk 封装（原 Yb/Xb/Zb/Qb/$b/ex/tx，本 chunk 32092–32200；类名逐字保留） --- */
 

@@ -107,6 +107,7 @@
  */
 
 import * as React from "react";
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '../components/ui/context-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Plus as IconPlus, Copy as IconCopy, ClipboardPaste as IconClipboardPaste } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Terminal } from '@xterm/xterm'; // xterm 核心（原 vendored PHt；bundle 指纹 = 5.5.0，S3a 裁决）
 import { FitAddon } from '@xterm/addon-fit'; // fit 插件（原 vendored NHt）
@@ -144,9 +145,9 @@ declare const IconX: React.FC<{ className?: string }>;
 /** Radix Tabs 封装（原 hC/gC/_C/vC，本 chunk 36949–36991） */
 
 /** Radix ContextMenu 封装（原 yk/bk/xk/Sk，本 chunk 48825–48880） */
-declare const ContextMenu: React.FC<{ children: React.ReactNode }>;
-declare const ContextMenuTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const ContextMenuContent: React.FC<{ className?: string; children: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：ContextMenu、ContextMenuContent、ContextMenuTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
 declare const ContextMenuItem: React.FC<{ onSelect?: () => void; children?: React.ReactNode }>;
 
 /** react-resizable-panels 封装（原 Z4/Q4，131934–131960） */

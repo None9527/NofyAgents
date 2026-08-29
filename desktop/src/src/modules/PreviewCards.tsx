@@ -139,9 +139,11 @@
  */
 
 import * as React from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Copy as IconCopy, Download as IconDownload, X as IconClose, ArrowLeft as IconPrevious, ArrowRight as IconNext, ChevronDown as IconChevronDown } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, ZoomOut as IconZoomOut, ZoomIn as IconZoomIn } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ZoomOut as IconZoomOut, ZoomIn as IconZoomIn（button chunk 图标，pass-1 同源）
 import { Textarea, toast, usePlatform } from './ImeComposition';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Vb）
 import { TableEdgeShadow, IMAGE_THUMBNAIL_CLASS, backToBottomInset, baseName, chatDockHeight, decodeUriSafe, extractTableRows, findVerticalScroller, isAbsolutePath, measureRect, sameRect, shouldShowStickyScrollbar, stickyScrollMax, stickyScrollbarOffset, stickyThumbGeometry, stickyTrackGeometry, tableLayoutInsets, tableLayoutRoot, tableNeedsStickyScrollbar, tableRowsToCsv, tableRowsToMarkdown } from './MarkdownIntegration'; // 新增项原 Gk/EBe/qo/Pk/Ko/Ak/jk/Nk/TBe/kk
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
@@ -175,31 +177,14 @@ interface PlatformService {
 /** 原 Ia：Tooltip（usageStatsUiParts chunk；side/align/sideOffset/triggerClassName 按消费面） */
 
 /* 原 zb/Hb/Ub/Gb/Kb/Vb：Dialog 原语族（showCloseButton 按 Wk/Qze 消费面） */
-declare const Dialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; children?: React.ReactNode }>;
-declare const DialogContent: React.FC<
-  { className?: string; showCloseButton?: boolean; ref?: React.Ref<HTMLDivElement>; children?: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>
->;
-declare const DialogHeader: React.FC<{ className?: string; children?: React.ReactNode }>;
-declare const DialogTitle: React.FC<{ className?: string; children?: React.ReactNode }>;
-declare const DialogDescription: React.FC<{ className?: string; children?: React.ReactNode }>;
-declare const DialogClose: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：Dialog 族 declare 删除 → import from '../components/ui/dialog'；调用面逐字不变。 ── */
 
 /* 原 VO/HO/UO/WO/YO：DropdownMenu 原语族（X03 双归属，接口挂接） */
-declare const DropdownMenu: React.FC<{ children?: React.ReactNode; onOpenChange?: (open: boolean) => void }>;
-declare const DropdownMenuTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const DropdownMenuContent: React.FC<{
-  align?: string;
-  side?: string;
-  className?: string;
-  onClick?: React.MouseEventHandler;
-  children?: React.ReactNode;
-}>;
-declare const DropdownMenuItem: React.FC<{
-  disabled?: boolean;
-  onSelect?: () => void;
-  children?: React.ReactNode;
-}>;
-declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
+/* ── tombstone（A0-S3c）：DropdownMenu、DropdownMenuContent、DropdownMenuItem、DropdownMenuSeparator、DropdownMenuTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
+
 
 /* 图标族（lucide 封装，登记见 VENDOR-MANIFEST） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：IconCopy/IconDownload → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */

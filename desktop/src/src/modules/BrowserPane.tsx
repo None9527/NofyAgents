@@ -103,9 +103,10 @@
  */
 
 import * as React from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { ArrowLeft as IconArrowLeft, ArrowRight as IconArrowRight, RotateCw as IconRotateCw, Smartphone as IconSmartphone, MousePointerClick as IconMousePointerClick, ExternalLink as IconOpenExternal, Bug as IconBug, Ellipsis as IconEllipsis, TriangleAlert as IconTriangleAlert, Loader as IconLoader, Globe as IconGlobe, MoveHorizontal as IconMoveHorizontal, MoveVertical as IconMoveVertical } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Input, Popover, PopoverContent, PopoverTrigger } from './ImeComposition';
-import { Select, SelectItem, SelectTrigger, SelectValue, TabsContent } from './Settings';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TabsContent } from './Settings'; // A0-S3c：SelectContent 收 sO 真实 import
 import { logger } from './SkillStore';
 /* ── A0-D-Misc 接线：可用属主（前波成果） ── */
 import { cn } from './UtilsCn'; // 原 Z：cn 类名合并
@@ -140,10 +141,10 @@ declare module "react" {
 /** Tooltip（原 Ia，usageStatsUiParts）——已改真实 import（InfoTooltip），见文件头 import 块。 */
 
 /** DropdownMenu 封装（原 VO/HO/UO/WO/GO/KO/qO/JO/YO） */
-declare const DropdownMenu: React.FC<{ children: React.ReactNode }>;
-declare const DropdownMenuTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const DropdownMenuContent: React.FC<{ align?: "start" | "end"; className?: string; children: React.ReactNode }>;
-declare const DropdownMenuItem: React.FC<{ "data-testid"?: string; disabled?: boolean; onSelect?: () => void; children: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：DropdownMenu、DropdownMenuContent、DropdownMenuItem、DropdownMenuTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
 
 /** Popover 封装（原 Oa/Ma/ka） */
 
@@ -1952,19 +1953,18 @@ export function ResponsiveToolbar({
         >
           <SelectValue />
         </SelectTrigger>
-        <SelectContentAlignEnd>
+        <SelectContent align="end">{/* A0-S3c：原 SelectContentAlignEnd，bundle sO = SelectContent align=end */}
           {ZOOM_OPTIONS.map((option) => (
             <SelectItem key={option} data-testid={`browser-responsive-zoom-option-${option}`} value={option}>
               {option === "fit" ? intl.formatMessage({ id: "browser.responsive.fitToWindow" }) : `${option}%`}
             </SelectItem>
           ))}
-        </SelectContentAlignEnd>
+        </SelectContent>
       </Select>
     </div>
   );
 }
-/** 原 sO（SelectContent align=end） */
-declare const SelectContentAlignEnd: React.FC<{ children: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：SelectContentAlignEnd declare 删除 → 调用面改 <SelectContent align="end">（bundle sO = SelectContent align=end，Settings.tsx 真实导出）。 ── */
 
 /* ============================================================================
  * 5. resize 弱提示（原 JUt/$Ut，js 177344–177455）

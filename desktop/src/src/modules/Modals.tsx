@@ -125,6 +125,12 @@
  */
 
 import * as React from "react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Indicator as ProgressIndicator, Root as ProgressRoot } from '@radix-ui/react-progress'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Indicator as CheckboxIndicator, Root as CheckboxRoot } from '@radix-ui/react-checkbox'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Slot } from '@radix-ui/react-slot'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { LoaderCircle as IconLoaderCircle } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Input } from './ImeComposition';
 import { HeroCard, useHeroThemeStyles as useHeroTextSizes } from './ModalsLeaves'; // +useHeroThemeStyles（A0-D 接线：原 S4t declare → ModalsLeaves canonical，alias useHeroTextSizes）
@@ -189,46 +195,33 @@ const IconTriangleAlert = createLucideIcon("triangle-alert", []); // 原 N
 /* ── tombstone（A0-D）：Tooltip declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'
  *    （调用面 open/title/description/side/align 均在其 props 面内）。 ── */
 /** HoverCard 三件（原 dN/fN/pN，本 chunk jsx 49005） */
-declare const HoverCard: React.FC<{ children: React.ReactNode; openDelay?: number; closeDelay?: number }>;
-declare const HoverCardTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const HoverCardContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { side?: string; align?: string; sideOffset?: number }>;
+/* ── tombstone（A0-S3c）：CheckboxIndicator、CheckboxRoot、Dialog、DialogClose、DialogContent、DialogDescription、DialogFooter、DialogHeader、DialogTitle、DropdownMenu、DropdownMenuContent、DropdownMenuItem、DropdownMenuTrigger、HoverCard、HoverCardContent、HoverCardTrigger、ProgressIndicator、ProgressRoot、Slot declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
 
 /** Radix Dialog 封装族（原 zb/Hb/Ub/Gb/Kb/Wb/Vb，本 chunk 31943+ / jsx 29335+） */
-declare const Dialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode }>;
-declare const DialogContent: React.FC<
-  React.ComponentPropsWithoutRef<"div"> & {
-    showCloseButton?: boolean;
-    showOverlay?: boolean;
-    overlayClassName?: string;
-  }
->;
-declare const DialogHeader: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const DialogTitle: React.FC<React.ComponentPropsWithoutRef<"div"> & { asChild?: boolean }>;
-declare const DialogDescription: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const DialogFooter: React.FC<React.ComponentPropsWithoutRef<"div">>;
-declare const DialogClose: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
+
+
+
+
+
+
+
 
 /** Radix Progress 原语（原 XTe/ZTe，Radix 封装主块） */
-declare const ProgressRoot: React.FC<React.ComponentPropsWithoutRef<"div"> & { "data-slot"?: string }>;
-declare const ProgressIndicator: React.FC<React.ComponentPropsWithoutRef<"div"> & { "data-slot"?: string }>;
+
+
 
 /** Radix Checkbox 原语（原 Zxe/$xe，Radix 封装主块） */
-declare const CheckboxRoot: React.FC<
-  Omit<React.ComponentPropsWithoutRef<"button">, "onChange"> & {
-    "data-slot"?: string;
-    checked?: boolean;
-    disabled?: boolean;
-    onCheckedChange?: (checked: boolean | "indeterminate") => void;
-  }
->;
-declare const CheckboxIndicator: React.FC<React.ComponentPropsWithoutRef<"span"> & { "data-slot"?: string }>;
+
+
 
 /** Radix Select 四件（原 iO/oO/sO/cO，Radix 封装主块） */
 
 /** Badge（原 uJ，本 chunk 80303 / jsx 70704） */
 
 /** asChild 槽位助手（原 Gre，dist-vnZIbudW.js） */
-declare const Slot: React.FC<Record<string, unknown>>;
+
 
 /** 基础服务 context（原 fs()，本 chunk 2638） */
 export interface BaseServices {
@@ -762,12 +755,10 @@ export function RemoteSyncDropdownButton({
   );
 }
 /** DropdownMenu 原语族接口（原 VO/HO/UO/WO，TopBar.tsx 已还原实现） */
-declare const DropdownMenu: React.FC<{ children: React.ReactNode }>;
-declare const DropdownMenuTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const DropdownMenuContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { align?: string }>;
-declare const DropdownMenuItem: React.FC<
-  React.ComponentPropsWithoutRef<"div"> & { disabled?: boolean; onSelect?: () => void }
->;
+
+
+
+
 /** 原 n4 菜单项（TopBar.tsx 已导出 RemoteSyncMenuItems；此处为族内引用接口） */
 declare const RemoteSyncMenuItemsInner: React.FC<{
   canSyncSkills: boolean;

@@ -457,6 +457,9 @@
  */
 
 import * as React from "react";
+import { DropdownMenu as DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Select as SelectRoot } from './Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { InfoIcon, X as CloseIcon, PlusIcon, SlashIcon, AtSignIcon, PaperclipIcon, LoaderIcon, ArrowUpIcon, HandIcon, ShieldCheckIcon, SparkleIcon, ChevronDownIcon, CheckIcon, LockIcon, BrainIcon, ShieldAlertIcon, Trash2 as TrashIcon, TerminalIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import * as ReactDOM from "react-dom";
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
@@ -785,22 +788,22 @@ declare const ProgressRoot: React.ComponentType<Record<string, unknown> & { clas
 declare const ProgressIndicator: React.ComponentType<Record<string, unknown> & { className?: string; style?: React.CSSProperties; children?: React.ReactNode }>;
 
 /** 13. Radix 菜单/悬浮卡原语（本 chunk 封装区；VO 族 TopBar.tsx 已还原） */
-declare const DropdownMenuRoot: React.ComponentType<Record<string, unknown> & { children?: React.ReactNode }>;
-declare const DropdownMenuTrigger: React.ComponentType<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const DropdownMenuContent: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
-declare const DropdownMenuItem: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
-declare const DropdownMenuSeparator: React.ComponentType<Record<string, unknown>>;
-declare const DropdownMenuLabel: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
-declare const DropdownMenuGroup: React.ComponentType<{ children?: React.ReactNode }>;
-declare const DropdownMenuSub: React.ComponentType<{ children?: React.ReactNode }>;
-declare const DropdownMenuSubTrigger: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
-declare const DropdownMenuSubContent: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
-declare const DropdownMenuRadioGroup: React.ComponentType<{ value: string; children?: React.ReactNode }>;
-declare const DropdownMenuRadioItem: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
-declare const SelectRoot: React.ComponentType<Record<string, unknown> & { children?: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：DropdownMenuContent、DropdownMenuGroup、DropdownMenuItem、DropdownMenuLabel、DropdownMenuRadioGroup、DropdownMenuRadioItem、DropdownMenuRoot、DropdownMenuSeparator、DropdownMenuSub、DropdownMenuSubContent、DropdownMenuSubTrigger、DropdownMenuTrigger、HoverCardContent、HoverCardTrigger、SelectRoot declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
+
+
+
+
+
+
+
+
+
 declare const HoverCardRoot: React.ComponentType<{ openDelay?: number; closeDelay?: number; children?: React.ReactNode } & Record<string, unknown>>; // dN 透传面（bundle 54538）：radix HoverCard openDelay/closeDelay 收 J4e 调用面（76086）
-declare const HoverCardTrigger: React.ComponentType<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const HoverCardContent: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
+
+
 
 /** 13b. framer-motion（vendored 69354–75494；仅消费面 declare，不转录） */
 declare const motion: { span: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }> };
@@ -8269,8 +8272,8 @@ export const ModelSelector = React.memo(function ModelSelector({
   manageModelsLabel?: string;
   onManageModels?: () => void;
   focusSelectorOnClose?: string | null; // bundle 调用面收 null（132964/197382 等：禁用聚焦还原）
-  contentSide?: string;
-  contentAlign?: string;
+  contentSide?: `top` | `right` | `bottom` | `left`; // A0-S3c：收真实 radix side 联合（UO DropdownMenuContent 透传）
+  contentAlign?: `start` | `center` | `end`; // A0-S3c：收真实 radix align 联合（UO DropdownMenuContent 透传）
 }) {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isOpen = open ?? internalOpen;
@@ -8542,7 +8545,7 @@ export const ModelSelector = React.memo(function ModelSelector({
                   return (
                     <React.Fragment key={group.key}>
                       {separator}
-                      <DropdownMenuGroup>
+                      <DropdownMenuSub>{/* A0-S3c：原误名 DropdownMenuGroup，bundle ZO@75905 为 Sub 封装（包 SubTrigger+SubContent） */}
                         <DropdownMenuSubTrigger
                           className={`min-h-8`}
                           data-testid={testidOf(MODEL_SELECT_GROUP_TESTID, group.key)}
@@ -8559,7 +8562,7 @@ export const ModelSelector = React.memo(function ModelSelector({
                         <DropdownMenuSubContent className={`max-h-72 w-48 overflow-y-auto`}>
                           {renderRadioItems(group.items)}
                         </DropdownMenuSubContent>
-                      </DropdownMenuGroup>
+                      </DropdownMenuSub>
                     </React.Fragment>
                   );
                 })

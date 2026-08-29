@@ -81,6 +81,8 @@
 
 | S3-b | lucide 285 declares→lucide-react | **完工已验证** | lucide-react@1.35.0 落地；**429/491 declare 语句转真 import**（225 名纯迁移 + 21 句 4 图标并入 ./button pass-1 正典）；62 句/60 名保留逐件登记（49 自定义一方图标误分类、FileIcon 自定义 src prop、IconFork 无对应导出、6 名-符号冲突不猜）；裁决含 Kv trash 簇→Trash2（js 27882）、IconSend→ArrowUpFromLine（w_ 26653）、Spinner 族→LoaderCircle；零调用面改动（LucideProps 全覆盖）、零抑制；32 文件 +134/−444；tsc 逐行不变（2）；报告 A0-S3b.report.md |
 
+| S3-c | radix/shadcn 原语→自建 shadcn 层 | **完工已验证** | 实测 101 名/328 语句（前记 104 偏差已核）；库归属精分（Command*=cmdk、ResizablePanel*=react-resizable-panels 续推迟、PopoverRoot 四分、GitReview Tooltip*=hover-card 包装）；新建 components/ui 12 件（dialog/alert-dialog/dropdown-menu/context-menu/hover-card/collapsible/card/scroll-area/checkbox/input-group/command/alert）+ 13 包精确钉版（@radix-ui/react-dialog 1.1.23…cmdk 1.1.1）；**348 declares 转 import**、8 件附因保留；事故：转换器截断多行 declare 致 12 文件 ~170 语法错，HEAD 全跨度提取手术修复（31 尾移除、280 验净），全量 esbuild 复扫通过；零抑制；报告 A0-S3c.report.md |
+
 **S2 接线阶段总结**：项目 tsc 364（declare-any 静默基线）→ 2,448（真实类型引入峰值）→ … → 773（波次末）→ 582 → 538 → 528 → 44 → **2**（均为 S4 待实体化桩，型已就绪）。剩余 declare 2,502 条 = Lane-4 vendored（S3 目标）+ 未重建深部（S4 目标）。
 
 ## 事故与教训（本阶段）

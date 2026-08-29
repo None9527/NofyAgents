@@ -97,6 +97,7 @@
  */
 
 import * as React from "react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Copy as IconCopy, Pencil as IconPencil, GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, ArrowDownToLine as IconArrowDownToLine, SquareTerminal as IconSquareTerminal, File as IconFile, Bot as IconBot, Sparkles as IconSparkles, Target as IconTarget, GitBranch as IconGitBranch, Lightbulb as IconLightbulb, Eye as IconModelChange, Shield as IconShield, ThumbsUp as IconThumbsUp, ThumbsDown as IconThumbsDown, Rewind as IconRewind, Loader as IconLoader, LoaderCircle as IconSpinner, Info as IconInfo, Upload as IconUpload, Globe as IconGlobe, Gauge as IconGauge, Clock as IconClock, ListTodo as IconListTodo, MessageSquare as IconMessageSquare, Calendar as IconCalendar } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import * as ReactDOM from "react-dom";
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
@@ -165,11 +166,9 @@ declare function trackEvent(
 /** Popover 原语（原 Na/Oa/Ma/ka，usageStatsUiParts 导出） */
 
 /** HoverCard 原语（原 dN/fN/pN，本 chunk jsx 49005；Radix 封装） */
-declare const HoverCard: React.FC<{ openDelay?: number; closeDelay?: number; children?: React.ReactNode }>;
-declare const HoverCardTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const HoverCardContent: React.FC<
-  React.ComponentPropsWithoutRef<"div"> & { align?: "start" | "center" | "end"; side?: "top" | "bottom" | "left" | "right"; sideOffset?: number }
->;
+/* ── tombstone（A0-S3c）：HoverCard、HoverCardContent、HoverCardTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
 
 /** Badge（原 uJ，本 chunk jsx 70704） */
 

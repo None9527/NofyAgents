@@ -76,6 +76,7 @@
  */
 
 import * as React from "react";
+import { Slot } from '@radix-ui/react-slot'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 
 /* ============================================================================
  * 0. 外部依赖接口（跨 chunk，declare 挂接）
@@ -148,7 +149,7 @@ declare const PopperContent: React.ForwardRefExoticComponent<AnyProps & React.Re
 declare const Presence: React.ComponentType<{ present: boolean; children?: React.ReactNode }>;
 
 /** 原 g（dist 的 t 导出）：Slot 原语。 */
-declare const Slot: React.ForwardRefExoticComponent<AnyProps & React.RefAttributes<any>>;
+/* ── tombstone（A0-S3c）：Slot declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
 
 /** 原 _（dist 的 v 导出）：事件处理器合成。 */
 declare function composeEventHandlers<E>(
@@ -480,7 +481,7 @@ const TooltipTrigger = React.forwardRef<HTMLButtonElement, React.ComponentPropsW
   return (
     React.useEffect(() => () => document.removeEventListener(`pointerup`, handlePointerUp), [handlePointerUp]),
     (
-      <Slot asChild {...popperScope}>
+      <Slot {...popperScope}>{/* A0-S3c：npm react-slot@1.3.3 的 Slot 恒为合并语义，asChild 已出其类型面（同 button.tsx S2-a 约定；原 g@dist-vnZIbudW asChild=true 行为不变） */}
         <Primitive.button
           aria-describedby={context.open ? context.contentId : void 0}
           data-state={context.stateAttribute}

@@ -135,6 +135,9 @@
  */
 
 import * as React from "react";
+import { Select as SelectRoot } from './Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Dialog as DialogRoot, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { DropdownMenu as DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { LoaderCircle as SpinnerIcon, RefreshCw as RefreshIcon, PlusIcon, Trash2 as TrashIcon, PencilIcon, ExternalLinkIcon, ChevronDownIcon, PlugIcon, CircleIcon, CheckIcon, MinusIcon, CircleHelpIcon, TriangleAlert as AlertIcon, DownloadIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, ChevronRight as ChevronRightIcon } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as ChevronRightIcon（button chunk 图标，pass-1 同源）
 import { Input, Textarea, toast } from './ImeComposition';
@@ -201,36 +204,16 @@ interface ToastOptions {
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /** 原 yq（75986）：进度条 —— 属主 Modals.tsx 未导出，登记需要的 export 后保留 declare */
 /* ── tombstone（A0-CLEANUP2 item 15）：Progress（原 yq）declare 删除 → import { Progress } from './Modals'。 ── */
-declare const SelectRoot: React.FC<{
-  value: string;
-  onValueChange: (v: string) => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}>;
-declare const DialogRoot: React.FC<{
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  children: React.ReactNode;
-}>;
-declare const DialogContent: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DialogHeader: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DialogTitle: React.FC<{ className?: string; children: React.ReactNode }>;
-declare const DropdownMenuRoot: React.FC<{ children: React.ReactNode }>;
-declare const DropdownMenuTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const DropdownMenuContent: React.FC<{
-  align?: "start" | "end";
-  sideOffset?: number;
-  className?: string;
-  onClick?: React.MouseEventHandler;
-  children: React.ReactNode;
-}>;
-declare const DropdownMenuItem: React.FC<
-  { className?: string; disabled?: boolean; onSelect: (e: Event) => void; "data-testid"?: string } & Record<
-    string,
-    unknown
-  >
->;
-declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
+/* ── tombstone（A0-S3c）：DialogContent、DialogHeader、DialogRoot、DialogTitle、DropdownMenuContent、DropdownMenuItem、DropdownMenuRoot、DropdownMenuSeparator、DropdownMenuTrigger、SelectRoot declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
+
+
+
+
+
+
 
 /* --- 图标（lucide 风格；原符号见各行注释） --- */
 

@@ -155,6 +155,8 @@
  */
 
 import * as React from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { ContextMenu, ContextMenuContent, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../components/ui/context-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { CircleAlert as IconError, LoaderCircle as IconSpinner, RefreshCw as IconRefresh, FolderOpen as IconFolderOpen, Ellipsis as IconMore, Copy as IconCopy, X as IconClose, ArrowLeft as IconBack, Search as IconSearch } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
@@ -285,20 +287,20 @@ const scopedTestId = (base: string, id: string): string => `${base}-${id}`;
 /** 原 P：Input */
 
 /* 原 VO/HO/UO/WO：DropdownMenu 原语族（X03 双归属，接口挂接） */
-declare const DropdownMenu: React.FC<{ children?: React.ReactNode }>;
-declare const DropdownMenuTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const DropdownMenuContent: React.FC<{ align?: string; className?: string; children?: React.ReactNode }>;
-declare const DropdownMenuItem: React.FC<{ disabled?: boolean; onSelect?: () => void; children?: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：ContextMenu、ContextMenuContent、ContextMenuSeparator、ContextMenuSub、ContextMenuSubContent、ContextMenuSubTrigger、ContextMenuTrigger、DropdownMenu、DropdownMenuContent、DropdownMenuItem、DropdownMenuTrigger declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
 
 /* 原 yk/bk/xk/Sk/Ck/wk/Tk/Ek：ContextMenu 原语族（接口挂接） */
-declare const ContextMenu: React.FC<{ children?: React.ReactNode }>;
-declare const ContextMenuTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
-declare const ContextMenuContent: React.FC<{ className?: string; children?: React.ReactNode }>;
+
+
+
 declare const ContextMenuItem: React.FC<{ disabled?: boolean; onSelect?: () => void; children?: React.ReactNode }>; // Sk
-declare const ContextMenuSeparator: React.FC<Record<string, never>>;
-declare const ContextMenuSub: React.FC<{ children?: React.ReactNode }>;
-declare const ContextMenuSubTrigger: React.FC<{ disabled?: boolean; children?: React.ReactNode }>;
-declare const ContextMenuSubContent: React.FC<{ className?: string; children?: React.ReactNode }>;
+
+
+
+
 
 /* 图标族（lucide 封装） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：IconError/IconSpinner → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */

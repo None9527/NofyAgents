@@ -85,6 +85,12 @@
  * ============================================================================
  */
 import * as React from "react";
+import { InfoTooltip as TooltipTriggerWrap, ShadcnTooltip as TooltipRoot, ShadcnTooltipContent as TooltipContent, ShadcnTooltipTrigger as TooltipTriggerAsChild } from './UsageStatsUiParts'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Select as SelectRoot } from './Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Slot } from '@radix-ui/react-slot'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Dialog as DialogRoot, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { HoverCardTooltip as PopoverRoot, HoverCardTooltipTrigger as PopoverTriggerAsChild } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { DropdownMenu as SelectShell, DropdownMenuContent as SelectPopup, DropdownMenuRadioGroup as SelectControl, DropdownMenuRadioItem as SelectOption, DropdownMenuTrigger as SelectTriggerAsChild } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { ChevronDownIcon, Lightbulb as ThoughtLevelIcon, RefreshCw as RefreshIcon, X as CloseIcon, Trash2 as TrashIcon, CheckIcon, ArrowLeft as BackIcon, CircleCheck as SuccessIcon, MinusIcon, PlusIcon, GlobeIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import * as qrcode from 'qrcode'; // A0-S3a：vendored qrcode（78456–79690，Qq）→ npm qrcode@1.5.4
 // A0-S3a：vendored Stripe（80955–81731）→ npm @stripe/react-stripe-js@6.4.0 + @stripe/stripe-js@9.6.0（bundle 双版本锚定）
@@ -127,8 +133,8 @@ declare const usePlatformService: () => { openExternal(url: string): void }; // 
 /** usageStatsUiParts：ja 紧凑数字 */
 declare function formatCompactNumber(value: number, locale: string, options?: Record<string, unknown>): string;
 /** 本 chunk 原语：Tooltip 触发包装（Ia）/Select 五件（iO/oO/aO/sO/cO）/chevron（N_）/弹层关闭守卫（ZH/XH） */
-declare const TooltipTriggerWrap: React.FC<{ title?: string; description?: string; shortcut?: string; className?: string; side?: string; align?: string; triggerRef?: React.RefObject<unknown> | null; children?: React.ReactNode }>; // Ia
-declare const SelectRoot: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; value?: string; onValueChange?: (value: string) => void; disabled?: boolean; children?: React.ReactNode }>; // iO
+/* ── tombstone（A0-S3c）：DialogClose、DialogContent、DialogDescription、DialogFooter、DialogHeader、DialogRoot、DialogTitle、PopoverRoot、PopoverTriggerAsChild、SelectControl、SelectOption、SelectPopup、SelectRoot、SelectShell、SelectTriggerAsChild、Slot、TooltipContent、TooltipRoot、TooltipTriggerAsChild、TooltipTriggerWrap declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：ChevronDownIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare function isCoarseTouchDeviceGuard(args: { isCoarseTouchDevice: boolean }): boolean; // ZH
 declare function detectCoarseTouchDevice(): boolean; // XH
@@ -214,7 +220,7 @@ declare const CONTEXT_USAGE_TRIGGER_TESTID: string; // Lte
  *    toDataURL(text, { margin, width }) 调用面逐字不变。 ── */
 /** §5 支付/产品域外部依赖 */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：ChevronRightIcon/RefreshIcon → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const Slot: React.FC<Record<string, unknown> & { children?: React.ReactNode }>; // Gre（dist-vnZIbudW.js 导入，asChild 槽）
+
 declare function classVariance(
   base: string,
   config: { variants?: Record<string, Record<string, string>>; defaultVariants?: Record<string, string> },
@@ -225,11 +231,11 @@ declare function envSiteUrlOf(cfg: { ZCODE_ENV: string }): string; // fn
 declare function envPathUrlOf(cfg: { ZCODE_ENV: string }, path: string): string; // vn
 declare const NETWORK_BLOCKED_ERROR_CODE: string; // Pne（跨 chunk 导入的错误码常量）
 /** §6 Stripe/验证码/遥测 外部依赖 */
-declare const DialogRoot: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; children?: React.ReactNode }>; // zb
-declare const DialogContent: React.FC<{ className?: string; showCloseButton?: boolean; children?: React.ReactNode }>; // Hb
-declare const DialogHeader: React.FC<{ className?: string; children?: React.ReactNode }>; // Ub
-declare const DialogTitle: React.FC<{ className?: string; children?: React.ReactNode }>; // Gb
-declare const DialogClose: React.FC<{ asChild?: boolean; children?: React.ReactNode }>; // Vb
+
+
+
+
+
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：CloseIcon/TrashIcon/CheckIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare function useAppStore<T>(selector: (state: any) => T): T; // ko（同一 store：theme + OAuth/user 状态）
 /* ── tombstone（A0-S3a）：vendored @stripe/react-stripe-js 6.4.0 + @stripe/stripe-js 9.6.0
@@ -244,18 +250,18 @@ declare function isBenignRemoteError(error: unknown): boolean; // Sc
 declare const SECURITY_VERIFICATION_REQUIRED_CODE: string; // one
 declare function usePlatformBridge(): any; // S（openExternal/onPaymentCallback）
 /** §7–§10 外部依赖（对话框原语/图标/遥测/供应商机制横切件，接口级） */
-declare const DialogDescription: React.FC<{ className?: string; children?: React.ReactNode }>; // Kb
-declare const DialogFooter: React.FC<{ className?: string; children?: React.ReactNode }>; // Wb
-declare const TooltipRoot: React.FC<{ children?: React.ReactNode }>; // Oa
-declare const TooltipTriggerAsChild: React.FC<{ asChild?: boolean; children?: React.ReactNode }>; // Ma
-declare const TooltipContent: React.FC<{ sideOffset?: number; className?: string; children?: React.ReactNode }>; // ka
-declare const PopoverRoot: React.FC<{ children?: React.ReactNode }>; // CN
-declare const PopoverTriggerAsChild: React.FC<{ asChild?: boolean; children?: React.ReactNode }>; // wN
-declare const SelectShell: React.FC<Record<string, unknown> & { children?: React.ReactNode }>; // VO
-declare const SelectTriggerAsChild: React.FC<{ asChild?: boolean; children?: React.ReactNode }>; // HO
-declare const SelectPopup: React.FC<{ align?: string; className?: string; children?: React.ReactNode }>; // UO
-declare const SelectControl: React.FC<{ value: string; onValueChange: (value: string) => void; children?: React.ReactNode }>; // KO
-declare const SelectOption: React.FC<{ value: string; className?: string; children?: React.ReactNode }>; // qO
+
+
+
+
+
+
+
+
+
+
+
+
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：BackIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const EquityCheckIcon: React.FC<React.SVGProps<SVGSVGElement>>; // E_
 declare const HelpIcon: React.FC<React.SVGProps<SVGSVGElement>>; // p
@@ -631,7 +637,7 @@ export function ThoughtLevelControl({
   restoreFocusSelector?: string;
   shortcutLabel?: string;
   triggerClassName?: string;
-  triggerRef?: React.RefObject<unknown> | null;
+  triggerRef?: React.Ref<HTMLSpanElement> | null; // A0-S3c：收 InfoTooltip（Ia）triggerRef 消费面（span ref，UsageStatsUiParts 945）
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onValueChange: (value: string) => void;

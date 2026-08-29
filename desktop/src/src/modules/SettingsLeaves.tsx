@@ -134,6 +134,10 @@
  */
 
 import * as React from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { AlertDialog as AlertDialogRoot } from '../components/ui/alert-dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Corner as ScrollAreaCorner, Root as ScrollAreaRoot, Scrollbar as ScrollAreaScrollbar, Thumb as ScrollAreaThumb, Viewport as ScrollAreaViewport } from '@radix-ui/react-scroll-area'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { ArrowLeft as IconArrowLeft, ArrowRight as IconArrowRight, ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Plus as IconPlus, Ellipsis as IconEllipsis, Trash2 as IconTrash, Pencil as IconPencil, ExternalLink as IconExternalLink, RefreshCw as IconRefresh, CloudUpload as IconCloudUpload, Search as IconSearch, Settings as IconSettings, Puzzle as IconPuzzle, MessageSquarePlus as IconMessageSquarePlus, Play as IconPlay, CirclePlay as IconCirclePlay, Pause as IconPause, Activity as IconActivity, Info as IconInfo, TriangleAlert as IconAlertTriangle, Target as IconTarget, File as IconFile, List as IconList, RotateCcw as IconRestart, LoaderCircle as IconSpinner, Users as IconUsers, FolderOpen as IconFolderOpen, Power as IconPower, Server as IconServer, Sparkle as IconSparkle, TerminalSquare as IconTerminalSquare, Bot as IconBot, Webhook as IconWebhook, ArrowUpRight as IconArrowUpRight } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { ModelSelector, type ModelGroup } from './Composer'; // 原 vq（F08，js 75527；A0-CLEANUP2 item 10 接线：declare → Composer 属主导出）
@@ -229,39 +233,24 @@ export interface SelectGroupEntry {
   items: SelectItemEntry[];
   [key: string]: unknown;
 }
-declare const DropdownMenu: React.FC<{ children: React.ReactNode }>; // VO
-declare const DropdownMenuTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>; // HO
-declare const DropdownMenuContent: React.FC<
-  { align?: string; sideOffset?: number; className?: string; onClick?: React.MouseEventHandler; children: React.ReactNode } & Record<string, unknown>
->; // UO
-declare const DropdownMenuItem: React.FC<
-  {
-    className?: string;
-    variant?: string;
-    disabled?: boolean;
-    onSelect: (event?: unknown) => void;
-    "data-testid"?: string;
-    children: React.ReactNode;
-  } & Record<string, unknown>
->; // WO
-declare const DropdownMenuSeparator: React.FC<{ className?: string }>; // YO
-declare const Dialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode }>; // zb
-declare const DialogContent: React.FC<
-  { className?: string; "aria-describedby"?: undefined; showCloseButton?: boolean; "data-testid"?: string; children: React.ReactNode } & Record<string, unknown>
->; // Hb
-declare const DialogHeader: React.FC<{ className?: string; children: React.ReactNode }>; // Ub
-declare const DialogTitle: React.FC<{ className?: string; children: React.ReactNode }>; // Gb
-declare const DialogDescription: React.FC<{ children: React.ReactNode }>; // Vb
-declare const DialogClose: React.FC<{ asChild?: boolean; children: React.ReactNode }>; // Wb
-declare const DialogFooter: React.FC<{ className?: string; children: React.ReactNode }>; // Kb（原 Wb 尾部，行 136886 消费面）
-declare const AlertDialogRoot: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode }>; // $4
-declare const ScrollAreaRoot: React.FC<{ "data-slot"?: string; className?: string; children: React.ReactNode } & Record<string, unknown>>; // wEe
-declare const ScrollAreaViewport: React.FC<{ "data-slot"?: string; className?: string; children: React.ReactNode }>; // TEe
-declare const ScrollAreaScrollbar: React.FC<
-  { "data-slot"?: string; "data-orientation"?: string; orientation?: string; className?: string; children: React.ReactNode } & Record<string, unknown>
->; // aEe
-declare const ScrollAreaThumb: React.FC<{ "data-slot"?: string; className?: string }>; // mEe
-declare const ScrollAreaCorner: React.FC<{ className?: string }>; // EEe
+/* ── tombstone（A0-S3c）：AlertDialogRoot、Dialog、DialogClose、DialogContent、DialogDescription、DialogFooter、DialogHeader、DialogTitle、DropdownMenu、DropdownMenuContent、DropdownMenuItem、DropdownMenuSeparator、DropdownMenuTrigger、ScrollAreaCorner、ScrollAreaRoot、ScrollAreaScrollbar、ScrollAreaThumb、ScrollAreaViewport declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）declare 删除 → import { Button } from './button'。 ── */
 declare function usePlatformService(): {
   openExternal(url: string): void;
@@ -4134,7 +4123,7 @@ export function AutomationScrollArea({ className, children, ...rest }: { classNa
 }
 
 /** 原 XMt（136042）：Scrollbar */
-export function AutomationScrollbar({ className, orientation = "vertical", ...rest }: { className?: string; orientation?: string } & Record<string, unknown>) {
+export function AutomationScrollbar({ className, orientation = "vertical", ...rest }: { className?: string; orientation?: "horizontal" | "vertical" } & Record<string, unknown>) { // A0-S3c：收真实 radix Scrollbar orientation 联合（XMt@136042 透传）
   return (
     <ScrollAreaScrollbar
       data-slot="scroll-area-scrollbar"

@@ -187,6 +187,7 @@
  */
 
 import * as React from "react";
+import { Select as SelectRoot } from './Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { AlertTriangleIcon, LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { CaptchaHostContainer } from './ConversationLeaves';
 import { Input, toast, usePlatform } from './ImeComposition';
@@ -462,7 +463,7 @@ export interface CodePreviewSettings {
 }
 
 /* --- UI 原语（横切层）--- */
-declare const SelectRoot: React.FC<{ value: string; onValueChange: (value: string) => void; disabled?: boolean; children?: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：SelectRoot declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：AlertTriangleIcon/SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const OrbitSpinnerIcon: React.FC<{ className?: string }>;
 declare function ProviderIcon(providerId: string, className: string): React.ReactNode;

@@ -61,6 +61,7 @@
 import * as React from "react";
 import { GitBranch as IconGitBranch, Loader as IconLoader, CircleAlert as IconCircleAlert, Tag as IconTag, GitMerge as IconGitMerge, GitGraph as IconGitGraph, RefreshCw as IconRefreshCw } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { extractErrorMessage as errorMessageOf } from './FeedbackCenter'; // 原 MC（js 37651）：错误消息提取（剥 `Error:` 前缀）；AMBIGUOUS 裁决见 A0-D-Misc 报告
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb/Vb）
 import { hasGitIdentity, mapChangeFilesToRows, summarizeFileRows, type GitFileChange, type GitIdentity } from './GitReview';
 import { Input, Textarea, toast } from './ImeComposition';
 import { FilePathInline } from './ModalsLeaves';
@@ -77,13 +78,7 @@ import { Button } from './button'; // 原 X（button-laUijeDG.js 的 t 导出）
 /** 原 m（imeComposition chunk 的 _ 导出） */
 
 /** Radix Dialog 封装族（原 zb/Hb/Ub/Gb/Kb/Wb/Vb，本 chunk js 31943+） */
-declare const Dialog: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; children?: React.ReactNode }>;
-declare const DialogContent: React.FC<React.HTMLAttributes<HTMLDivElement> & { showCloseButton?: boolean }>;
-declare const DialogHeader: React.FC<React.HTMLAttributes<HTMLDivElement>>;
-declare const DialogTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>>;
-declare const DialogDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement>>;
-declare const DialogFooter: React.FC<React.HTMLAttributes<HTMLDivElement>>;
-declare const DialogClose: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：Dialog 族 declare 删除 → import from '../components/ui/dialog'；调用面逐字不变。 ── */
 
 /** 原 P（imeComposition chunk 的 y 导出） */
 /** 原 j（imeComposition chunk 的 Textarea 导出） */

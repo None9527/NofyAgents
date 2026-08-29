@@ -149,6 +149,12 @@
  */
 
 import * as React from "react";
+import { ShadcnTooltipProvider as PopoverRoot } from './UsageStatsUiParts'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Select as SelectRoot } from './Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { AlertDialog as AlertDialogRoot, AlertDialogTrigger } from '../components/ui/alert-dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Collapsible as CollapsibleRoot, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { ScrollArea } from '../components/ui/scroll-area'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { ModelSelector, type ModelGroup } from './Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 vq，js 75527）
@@ -850,7 +856,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
  *    { Button } from './button'、{ InfoTooltip as Tooltip } from './UsageStatsUiParts'。 ── */
 
 /** Popover 原语（原 Na/Oa/Ma/ka，usageStatsUiParts） */
-declare const PopoverRoot: React.FC<{ children: React.ReactNode }>;
+/* ── tombstone（A0-S3c）：AlertDialogRoot、AlertDialogTrigger、CollapsibleContent、CollapsibleRoot、CollapsibleTrigger、DropdownMenu、DropdownMenuContent、DropdownMenuItem、DropdownMenuSeparator、DropdownMenuTrigger、PopoverRoot、ScrollArea、SelectRoot declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
 
 /** 原 Ia 之外的 spinner（原 M，imeComposition w 导出 = loader-circle） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
@@ -901,12 +907,7 @@ const IconNetwork = createLucideIcon("network", []);               // 原 rbe（
 /* --- 本 chunk 内 UI 原语（完整类名见各自定义处） --- */
 
 /** Select 原语族（原 iO/oO/aO/sO/cO，js 46009–46100） */
-declare const SelectRoot: React.FC<{
-  value: string;
-  onValueChange: (value: string) => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}>;
+
 
 /** Checkbox（原 DC，js 37297） */
 declare const Checkbox: React.FC<{
@@ -919,29 +920,25 @@ declare const Checkbox: React.FC<{
 }>;
 
 /** AlertDialog 原语族（原 $4/_At/e3/t3/r3/i3/n3/o3/a3，js 131966–132040） */
-declare const AlertDialogRoot: React.FC<{ children: React.ReactNode }>;
-declare const AlertDialogTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
+
+
 
 /** DropdownMenu 原语族（原 VO/HO/UO/WO/…/JO，js 47926–48040；TopBar.tsx 已完整还原） */
-declare const DropdownMenu: React.FC<{ children: React.ReactNode }>;
-declare const DropdownMenuTrigger: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const DropdownMenuContent: React.FC<
-  React.ComponentPropsWithoutRef<"div"> & { align?: "start" | "center" | "end"; alignOffset?: number; sideOffset?: number }
->;
-declare const DropdownMenuItem: React.FC<
-  React.ComponentPropsWithoutRef<"div"> & { disabled?: boolean; onSelect?: () => void }
->;
-declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
+
+
+
+
+
 
 /** Collapsible 原语族（原 kZ/AZ/jZ，js 94925） */
-declare const CollapsibleRoot: React.FC<React.ComponentPropsWithoutRef<"div"> & { defaultOpen?: boolean }>;
-declare const CollapsibleTrigger: React.FC<React.ComponentPropsWithoutRef<"button">>;
-declare const CollapsibleContent: React.FC<React.ComponentPropsWithoutRef<"div">>;
+
+
+
 
 /** Badge（原 uJ，js 80303） */
 
 /** ScrollArea（原 Y3，js 136026） */
-declare const ScrollArea: React.FC<React.ComponentPropsWithoutRef<"div"> & { className?: string }>;
+
 
 /** 分屏布局（原 X4/Z4/Q4，js 131934–131944；react-resizable-panels 封装） */
 declare const PanelGroup: React.FC<

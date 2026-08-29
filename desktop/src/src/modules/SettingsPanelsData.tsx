@@ -73,13 +73,15 @@
  */
 
 import * as React from "react";
+import { CardAction, CardDescription, CardHeader, CardTitle } from '../components/ui/card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { AlertTitle } from '../components/ui/alert'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { LoaderCircle as SpinnerIcon, BoltIcon, FlameIcon, StarIcon, RefreshCcw as RefreshIcon, TriangleAlert as AlertIcon, CheckIcon, DownloadIcon, CopyIcon, Check as CopiedIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input } from './ImeComposition';
 import { CodeBlockFrame, MarkdownRenderer, documentVisibilityState, isMermaidBlock } from './MarkdownIntegration';
 import { MIGRATION_DEFAULT_LIMIT, modifiedSinceOfRange, parseScanLimit, resolveWorkspaceFilterMode } from './McpHelpers';
 import { Badge } from './PaymentDeep';
-import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsList, TabsTrigger } from './Settings';
+import { Alert, AlertDescription, Select as SelectRoot, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsList, TabsTrigger } from './Settings'; // A0-S3c：SelectRoot 收 Settings Select 真实 import
 import { USAGE_REPORT_RANGES as APP_USAGE_RANGES } from './SrcSharedA'; // ai=ms（A0-CLEANUP B-9：APP_USAGE_RANGES declare 改指 USAGE_REPORT_RANGES）
 import { findQuotaLimit, formatQuotaResetTime, formatQuotaUsage, providerCacheKey, quotaPercent, useAppUsageStats, useCodingPlanUsageStats, useSubscriptionSnapshot, type EntitlementQuotaLimit, type ModelProvider } from './UsageDeep'; // A0-CLEANUP3 3b：quota/provider 具型
 import { UsageHeatmap, formatPercent } from './UsageStatsUiParts';
@@ -104,12 +106,7 @@ interface IntlShape {
 
 /* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const SelectRoot: React.FC<{
-  value: string;
-  onValueChange: (v: string) => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}>;
+/* ── tombstone（A0-S3c）：SelectRoot declare 删除 → import { Select as SelectRoot } from './Settings'（iO 消费面：value/disabled/onValueChange 吻合）。 ── */
 
 declare const TokensIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Mye
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：BoltIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
@@ -957,11 +954,11 @@ export function MigrationResultItemList(props: { title: string; items: Migration
 }
 
 /* Card/Alert 原语（Settings.tsx 已抽取；此处按接口声明） */
-declare const CardHeader: React.FC<{ className?: string; children: React.ReactNode }>; // bMt
-declare const CardTitle: React.FC<{ children: React.ReactNode }>; // xMt
-declare const CardDescription: React.FC<{ children: React.ReactNode }>; // SMt
-declare const CardAction: React.FC<{ className?: string; children: React.ReactNode }>; // CMt
-declare const AlertTitle: React.FC<{ children: React.ReactNode }>; // C9
+/* ── tombstone（A0-S3c）：AlertTitle、CardAction、CardDescription、CardHeader、CardTitle declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
+
+
+
+
 
 /** 原 z2t（js 203332）：候选会话卡（计数徽章/全选/导入/结果明细） */
 export function MigrationCandidatesCard(props: {

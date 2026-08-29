@@ -162,6 +162,10 @@ import { useConfirmDialog } from './Modals';
 import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
 import { CodeBlock } from './SettingsPanelsData'; // gk（48634）
 import { AutomationsMain } from './SettingsPanelsCapability'; // F15 族（d6）
+import { Root as RadixSelectRoot, Value as RadixSelectValue, Trigger as RadixSelectTrigger, Icon as RadixSelectIcon, Portal as RadixSelectPortal, Content as RadixSelectContent, Viewport as RadixSelectViewport, Item as RadixSelectItem, ItemText as RadixSelectItemText, ItemIndicator as RadixSelectItemIndicator, ScrollUpButton as RadixSelectScrollUpButton, ScrollDownButton as RadixSelectScrollDownButton } from '@radix-ui/react-select'; // A0-S3c：vendored radix select → npm @radix-ui/react-select@2.3.7
+import { Root as RadixSwitchRoot, Thumb as RadixSwitchThumb } from '@radix-ui/react-switch'; // A0-S3c：→ npm @radix-ui/react-switch@1.3.7
+import { Root as RadixTabsRoot, List as RadixTabsList, Trigger as RadixTabsTrigger, Content as RadixTabsContent } from '@radix-ui/react-tabs'; // A0-S3c：→ npm @radix-ui/react-tabs@1.1.21
+import { Root as RadixAlertDialogRoot, Portal as RadixAlertDialogPortal, Overlay as RadixAlertDialogOverlay, Content as RadixAlertDialogContent, Title as RadixAlertDialogTitle, Description as RadixAlertDialogDescription, Action as RadixAlertDialogAction, Cancel as RadixAlertDialogCancel } from '@radix-ui/react-alert-dialog'; // A0-S3c：→ npm @radix-ui/react-alert-dialog@1.1.23
 import { isDataBaseDirForbiddenError as isForbiddenInstallDirError } from './SrcSharedB'; // dS（9110/8991）
 import { isRepoSnapshotIndexingUserEnabled as resolveRepoSnapshotIndexingEnabled, providerIds as ModelProviderId } from './SrcSharedA'; // Go（4535）/ q=mo（A0-CLEANUP B-7：ModelProviderId declare 改指 providerIds）
 import { t as logger } from './logger';
@@ -477,55 +481,10 @@ declare const ZCODE_LOGO_DATA_URL: string;
 
 /* --- Radix 底层原语（打包进本 chunk；此处声明行为接口） --- */
 
-declare const RadixSelectRoot: React.FC<{
-  value: string;
-  onValueChange: (v: string) => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}>;
-declare const RadixSelectValue: React.FC<{ placeholder?: string; children?: React.ReactNode }>;
-declare const RadixSelectTrigger: React.ForwardRefExoticComponent<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & React.RefAttributes<HTMLButtonElement>
->;
-declare const RadixSelectIcon: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
-declare const RadixSelectPortal: React.FC<{ children: React.ReactNode }>;
-declare const RadixSelectContent: React.FC<
-  /* onCloseAutoFocus：radix Select.Content 原生面（PaymentDeep 模型选择器消费） */
-  React.HTMLAttributes<HTMLDivElement> & { position?: "item-aligned" | "popper"; align?: "start" | "center" | "end"; onCloseAutoFocus?: (event: Event) => void }
->;
-declare const RadixSelectViewport: React.FC<React.HTMLAttributes<HTMLDivElement> & { "data-position"?: string }>;
-declare const RadixSelectItem: React.ForwardRefExoticComponent<
-  React.HTMLAttributes<HTMLDivElement> & { value: string; disabled?: boolean } & React.RefAttributes<HTMLDivElement>
->;
-declare const RadixSelectItemText: React.FC<{ children: React.ReactNode }>;
-declare const RadixSelectItemIndicator: React.FC<{ children: React.ReactNode }>;
-declare const RadixSelectScrollUpButton: React.FC<React.HTMLAttributes<HTMLDivElement>>;
-declare const RadixSelectScrollDownButton: React.FC<React.HTMLAttributes<HTMLDivElement>>;
-declare const RadixSelectGroup: React.FC<React.HTMLAttributes<HTMLDivElement>>;
-
-declare const RadixSwitchRoot: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    checked: boolean;
-    onCheckedChange: (v: boolean) => void;
-  }
->;
-declare const RadixSwitchThumb: React.FC<React.HTMLAttributes<HTMLSpanElement>>;
-
-declare const RadixTabsRoot: React.FC<
-  React.HTMLAttributes<HTMLDivElement> & { value: string; onValueChange: (v: string) => void }
->;
-declare const RadixTabsList: React.FC<React.ComponentPropsWithRef<"div">>; // A0-CLEANUP3 3b：ref 透传（Sidebar 段控滑块引用）
-declare const RadixTabsTrigger: React.FC<React.ComponentPropsWithRef<"button"> & { value: string; asChild?: boolean }>;
-declare const RadixTabsContent: React.FC<React.HTMLAttributes<HTMLDivElement> & { value: string; forceMount?: boolean }>;
-
-declare const RadixAlertDialogRoot: React.FC<{ open?: boolean; onOpenChange?: (v: boolean) => void; children: React.ReactNode }>;
-declare const RadixAlertDialogPortal: React.FC<{ children: React.ReactNode }>;
-declare const RadixAlertDialogOverlay: React.FC<React.HTMLAttributes<HTMLDivElement>>;
-declare const RadixAlertDialogContent: React.FC<React.HTMLAttributes<HTMLDivElement>>;
-declare const RadixAlertDialogTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>>;
-declare const RadixAlertDialogDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement>>;
-declare const RadixAlertDialogAction: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>>;
-declare const RadixAlertDialogCancel: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>>;
+/* ── tombstone（A0-S3c）：Radix Select/Switch/Tabs/AlertDialog 原语 declare 删除 →
+ *    npm 具名 import（文件头导入块）：@radix-ui/react-select@2.3.7 / -switch@1.3.7 /
+ *    -tabs@1.1.21 / -alert-dialog@1.1.23。RadixSelectGroup 无调用面，随删。
+ *    调用面逐字不变。 ── */
 
 /* --- 大块叶子渲染器（跨族，接口级） --- */
 
@@ -1264,7 +1223,7 @@ export function Tabs({
   className,
   orientation = "horizontal",
   ...rest
-}: React.HTMLAttributes<HTMLDivElement> & { value: string; onValueChange: (v: string) => void; orientation?: "horizontal" | "vertical" }) {
+}: React.ComponentProps<typeof RadixTabsRoot> & { orientation?: "horizontal" | "vertical" }) { // A0-S3c：rest 透传面改指 radix TabsRoot 真面（bundle hC 透传）
   return (
     <RadixTabsRoot
       data-slot="tabs"
@@ -1313,7 +1272,7 @@ export function TabsTrigger({ className, ...rest }: React.ComponentPropsWithRef<
 }
 
 /** 原 vC（js 36986）：TabsContent */
-export function TabsContent({ className, ...rest }: React.HTMLAttributes<HTMLDivElement> & { value: string; forceMount?: boolean }) {
+export function TabsContent({ className, ...rest }: React.ComponentProps<typeof RadixTabsContent>) { // A0-S3c：透传面改指 radix TabsContent 真面（bundle vC 透传；forceMount?: true）
   return <RadixTabsContent data-slot="tabs-content" className={cn("flex-1 text-ui-base outline-none", className)} {...rest} />;
 }
 
