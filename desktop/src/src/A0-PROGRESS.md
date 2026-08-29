@@ -99,6 +99,10 @@
 
 | S4-4c | components 拆分：shell + 深部 viewers + 杂项 UI（shim 模式） | **完工已验证** | 46 单元全落地（53 件整件组件迁移→19 个 components/ 域：shell/xlsx/charts/markdown/code-viewer/remote/quickpick/payments/usage/feedback/browser/terminal/cmdk/bots/ime/pdf/preview/process-monitor/onboarding）；53 源文件 132,772→8,802 行 shim；零剩余单元；边界案：UsageStatsUiParts useControllableState shim 副本、ProcessMonitor 副作用转发 shim、动态 import 型改写、XlsxDeepB default 再导出；emit-diff 46/46 PASS + 累计 241/241 行全分类（90 未配对 = 8 白名单通配 external 换位，151 对 = 碰撞后缀翻转）零语义漂移；esbuild 106/106（含 5 通配 external 教训）；53/53 shim 面审计一致；73 处 as-any 全字节搬运 0 新增；MarkdownVendored 按设计不迁；tsc 0→0、md5 恒；报告 A0-S4-4c.report.md |
 
+| S4-5 | services 拆分（shim 模式） | **完工已验证** | services.tsx 4,279→130 行 shim；11 单元→services/ 11 件（4,258 行，4,190 体行字节核验一致）：eventPrimitives/ipcBridge/serviceContext/sessionRegistry/providerRegistrySync/remoteServices/workspaceServiceHooks/telemetryScopes/conversationTelemetry/commandQueueProtocol/sessionIndex；拓扑序执行；无顶层注册/订阅代码（初始化序平凡守恒）；导出面审计 77 值+49 型精确；中途 2 修（EventUtil 改指 eventPrimitives、protocolLimits ambient 本地零发射副本——esbuild 0.25.12 ambient 值引用经再导出链拒绝，FeedbackCenter L303 先例）；emit-diff 11/11 PASS + 累计白名单零新增；tsc 0、md5 恒、零抑制；报告 A0-S4-5.report.md（含 modules/ 终态清单 104 件：61 shim + 部分拆分残余 + 入口/胶合 + LegacyDocEngine 域） |
+
+**S4 阶段总结**：文件树拆分完成——lib 11 件、lib/i18n 5 件（18,118 行）、stores 34 件、components 112 件（19 域）、services 11 件；modules/ 从 117 件族级大文件（300,457 行）收敛为 61 薄 shim + 入口/胶合 + 文档化推迟域（ExtendedViews §1–§5、ModalsLeaves §D、Composer 编辑器引擎、Conversation 编排域、LegacyDocEngine）；全程 shim 模式零 importers 改写、emit-diff 零语义漂移、tsc 恒 0、out/ md5 恒不变、零新增抑制。
+
 **S3 阶段总结**：22 库落地（zod 4.3.6 / qrcode 1.5.4 / @tanstack/react-virtual 3.14.10 / @stripe/stripe-js 9.6.0 + react-stripe-js 6.4.0 / @xterm/xterm 5.5.0 + addon-fit 0.10.0 / lucide-react 1.35.0 / @radix-ui 13 包 + cmdk 1.1.1 / lexical 0.42.0 族），1 件推迟（react-resizable-panels）；SrcSharedA 6,167→2,907 行；components/ui 层建立（12 件）；全程零抑制、tsc 恒 2（TopBar S4 桩）、out/ md5 恒不变。
 
 **S2 接线阶段总结**：项目 tsc 364（declare-any 静默基线）→ 2,448（真实类型引入峰值）→ … → 773（波次末）→ 582 → 538 → 528 → 44 → **2**（均为 S4 待实体化桩，型已就绪）。剩余 declare 2,502 条 = Lane-4 vendored（S3 目标）+ 未重建深部（S4 目标）。
