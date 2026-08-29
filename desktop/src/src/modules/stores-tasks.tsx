@@ -683,6 +683,9 @@ export interface ZCodeTaskService {
   /* 宿主任务操作面（调用面归纳；返回形态未全量重建处按 any 兜底） */
   renameTask(args: Record<string, unknown>): Promise<any>;
   archiveTask(args: Record<string, unknown>): Promise<any>;
+  /* A0-CLEANUP4：归档逆操作与删除面（bundle jsx 122398/122435：zcodeTaskService.unarchiveTask/deleteTask） */
+  unarchiveTask(args: Record<string, unknown>): Promise<any>;
+  deleteTask(args: Record<string, unknown>): Promise<any>;
   setTaskPinned(args: Record<string, unknown>): Promise<any>;
   setTaskUnread(args: Record<string, unknown>): Promise<any>;
   restartWorkspaceProcess(args: Record<string, unknown>): Promise<any>;

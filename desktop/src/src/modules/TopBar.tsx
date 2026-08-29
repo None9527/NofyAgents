@@ -124,11 +124,12 @@ import * as React from "react";
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { CommitGraphDialog as CommitGraphViewer, CreateBranchDialog, SwitchAssistDialog, resolveBranchDisplayLabel, useGitBranchSwitcher } from './CmdkPaletteDeep'; // CommitGraphViewer 原 fct
 import { resolveAvailableEditors, type InstalledEditor } from './FileTreePanel'; // +InstalledEditor（A0-CLEANUP B-21：本地别名删除改指属主型）
-import { SummaryGitSection, useTaskFileActions } from './GitReview';
+import { SummaryGitSection, useTaskFileActions, type GitSummary } from './GitReview'; // A0-CLEANUP4：GitSummary 属主为 GitReview（原 Yhe 缺省形），本地镜像删除后转手导出
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, dismissToast, toast } from './ImeComposition';
 import { MarkdownRenderer } from './MarkdownIntegration';
 import { RemoteSyncDialogs, UpdateStatusDialog, canOpenRemoteSessionSourceCheck } from './Modals';
 import { CommandEmpty, CommandGroup, CommandList } from './QuickPick';
+import { type SubagentOpenRequest } from './SidePanel'; // A0-CLEANUP4：子代理会话打开请求（原 Dlt 构造面，js 98874）
 import { logger, useTaskStore } from './SkillStore';
 import { useBaseServices, useWorkspaceServices } from './services';
 import { useFeedbackStore } from './stores-core';
@@ -218,13 +219,10 @@ interface RemoteTarget {
 }
 /* ── tombstone（A0-CLEANUP B-21）：本地 InstalledEditor 别名删除 → import type
  *    { InstalledEditor } from './FileTreePanel'（iconDataUrl 为平台实返可选字段）。 ── */
-export interface GitSummary {
-  isGitAvailable: boolean;
-  isRepository: boolean;
-  /** 与 GitReview.GitSummary 对齐：无仓库时为 null（useGitBranchSwitcher/resolveBranchDisplayLabel 均收 string | null） */
-  branchName: string | null;
-  headRefType: "branch" | "detached" | string;
-}
+/* ── tombstone（A0-CLEANUP4）：本地 4 字段 GitSummary 镜像删除 → 接线 git 域属主
+ *    GitReview.GitSummary（原 Yhe 缺省形，12 字段；运行期值恒为 useGitState 全形，
+ *    束 nge→a4/ConversationSummaryAside/mlt 链路实证）。 ── */
+export type { GitSummary };
 
 /* --- UI 原语（button-laUijeDG / usageStatsUiParts / imeComposition chunk） --- */
 
@@ -1329,6 +1327,7 @@ interface SessionHeaderProps {
 
 interface TaskMeta {
   taskId: string;
+  workspacePath: string; // A0-CLEANUP4：束 e_e 返回面恒含 workspacePath（store 实体 + Pge 会话回退，js 24501/24737/24794）
   title?: string | null;
   forkedFromTaskId?: string | null;
   [key: string]: unknown;
@@ -2760,7 +2759,7 @@ interface ConversationSummaryAsideProps {
   onResumeGoal?: () => void;
   onOpenPlanDetail?: () => void;
   onCancelBackgroundWork?: (workId: string) => void;
-  onOpenSubagentSession?: (sessionId: string) => void;
+  onOpenSubagentSession?: (request: SubagentOpenRequest) => void;
   onOpenSubagentDirectory?: () => void;
   className?: string;
 }
@@ -3003,5 +3002,5 @@ declare const SummaryGoalSection: React.FC<{ model: unknown; separated: boolean;
 declare const SummaryPlansSection: React.FC<{ model: unknown; parentSessionId?: string | null; onOpenPlanDetail?: () => void; separated: boolean }>;
 declare const SummaryPlanSection: React.FC<{ model: unknown; separated: boolean }>;
 declare const SummaryTerminalsSection: React.FC<{ section: string; title: string; works: BackgroundWork[]; open?: boolean; onOpenChange?: (v: boolean) => void; separated: boolean; onCancelBackgroundWork?: (workId: string) => void }>;
-declare const SummaryAgentsSection: React.FC<{ title: string; subagents: RunningSubagent[]; endedSubagentCount: number; onCancelBackgroundWork?: (workId: string) => void; open?: boolean; onOpenChange?: (v: boolean) => void; separated: boolean; parentSessionId?: string | null; rootSessionId?: string | null; onOpenSubagentSession?: (sessionId: string) => void; onOpenSubagentDirectory?: () => void }>;
+declare const SummaryAgentsSection: React.FC<{ title: string; subagents: RunningSubagent[]; endedSubagentCount: number; onCancelBackgroundWork?: (workId: string) => void; open?: boolean; onOpenChange?: (v: boolean) => void; separated: boolean; parentSessionId?: string | null; rootSessionId?: string | null; onOpenSubagentSession?: (request: SubagentOpenRequest) => void; onOpenSubagentDirectory?: () => void }>;
 declare const SummaryMiniCard: React.FC<{ model: unknown; gitWorktreeChangeSummary?: unknown; onVariantChange?: (variant: SummaryPanelVariant | null) => void }>;

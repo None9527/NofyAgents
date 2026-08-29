@@ -699,8 +699,9 @@ MarkdownParagraph.displayName = `MarkdownParagraph`;
  *     pre 不渲染自身样式，只给子元素（code）克隆注入 data-block 标记。
  * ==========================================================================*/
 
+/* A0-CLEANUP4：React19 ReactElement 缺省 props=unknown，克隆注入 data-block 需显式 props 面 */
 const MarkdownPre: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
-  React.isValidElement(children) ? React.cloneElement(children as React.ReactElement, { "data-block": `true` }) : children;
+  React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<{ "data-block"?: string }>, { "data-block": `true` }) : children;
 /** 标签 → 组件映射表。值统一收敛为 ComponentType<never>（never 入参可接纳任意
  *  具体 props 的组件）；渲染端（MarkdownRenderer）按 hast-to-jsx-runtime 的
  *  调用约定以 passNode/passKeys 注入 props。 */

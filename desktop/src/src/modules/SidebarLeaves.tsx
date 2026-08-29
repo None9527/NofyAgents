@@ -3326,7 +3326,9 @@ interface WebRemoteWorkspace {
   workspaceIdentity?: string | null;
   remoteSessionId?: string | null;
   label?: string;
-  kind?: "local" | "remote" | string;
+  /* A0-CLEANUP4：kind 必有——与 WebRemote.WebRemoteWorkspaceInfo（kind 必填）同族对齐，
+     供 listWorkspaces 返回面双向可比（消费仅 === "remote" 判定） */
+  kind: "local" | "remote" | string;
   workspacePurpose?: string;
   [key: string]: unknown;
 }
@@ -3334,7 +3336,8 @@ interface WebRemoteTaskIndex {
   workspaces: WebRemoteWorkspace[];
   tasks: TaskMeta[];
 }
-interface WebRemoteSwitcher {
+/* A0-CLEANUP4：导出——Sidebar webRemoteControlWorkspaceSwitcher prop 同形接线 */
+export interface WebRemoteSwitcher {
   listWorkspaces(): Promise<WebRemoteTaskIndex>;
   onWorkspaceListUpdated?(cb: (result: WebRemoteTaskIndex) => void): () => void;
   markTaskRead?(task: TaskMeta): Promise<void>;

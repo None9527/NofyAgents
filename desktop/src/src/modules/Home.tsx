@@ -168,10 +168,13 @@ declare function useVirtualizer(opts: {
 
 /* --- 平台 / 服务 --- */
 
+/* A0-CLEANUP4：与 stores-tasks.OffPeakTask 双向对齐（bundle js 134720/134426 消费面
+   offPeakTaskId 恒有值；title 可选）。原 id/title 必填为重建偏差。 */
 interface OffPeakTaskSummary {
-  id: string;
-  title: string;
+  offPeakTaskId: string;
+  prompt: string;
   status: string;
+  title?: string;
   [key: string]: unknown;
 }
 interface OffPeakGrayConfig {
@@ -1182,9 +1185,10 @@ export interface WorkspaceSelectionRowProps {
   allowOpenWorkspace?: boolean;
   allowRemoteWorkspace?: boolean;
   remoteWorkspaceSessions?: RemoteWorkspaceSessionLike[];
-  onConnectRemote: (args: unknown) => Promise<string> | string;
-  onSelectRemoteProject: (args: unknown) => Promise<void> | void;
-  onCancelRemoteProject: (sessionId: string) => Promise<void> | void;
+  /* A0-CLEANUP4：三回调收 RemoteWizardDialog 属主面具型（bundle a4 js 128776–128786 纯透传 pOt） */
+  onConnectRemote: (target: RemoteTarget, requestId: string) => Promise<string | null>;
+  onSelectRemoteProject: (sessionId: string, path: string, localWorkspacePath?: string) => Promise<void>;
+  onCancelRemoteProject: (sessionId: string) => Promise<void>;
   containerClassName?: string;
   triggerClassName?: string;
   triggerIndicator?: React.ReactNode;

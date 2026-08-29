@@ -923,6 +923,12 @@ function setRefValue(ref: React.Ref<any> | null | undefined, instance: any): voi
   }
 }
 
+/** A0-CLEANUP4：InfoTooltip 克隆子元素 props 面（className/ref 透传；React19 ref 入 props） */
+interface InfoTooltipCloneProps {
+  className?: string;
+  ref?: React.Ref<HTMLSpanElement>;
+}
+
 interface InfoTooltipProps {
   children?: React.ReactNode;
   title: React.ReactNode;
@@ -961,7 +967,7 @@ function InfoTooltip({
       ? { fontFamily: `-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif` }
       : void 0,
     isElementChild = React.isValidElement(children),
-    childRef = isElementChild ? (children as React.ReactElement).props.ref : void 0,
+    childRef = isElementChild ? (children as React.ReactElement<InfoTooltipCloneProps>).props.ref : void 0,
     handleTriggerRef = React.useCallback(
       (instance: HTMLSpanElement | null) => {
         setRefValue(childRef, instance), setRefValue(triggerRef, instance);
@@ -972,8 +978,8 @@ function InfoTooltip({
     <ShadcnTooltip open={open} onOpenChange={onOpenChange}>
       <ShadcnTooltipTrigger asChild>
         {isElementChild ? (
-          React.cloneElement(children as React.ReactElement, {
-            className: cn(`shrink-0`, (children as React.ReactElement).props.className, triggerClassName),
+          React.cloneElement(children as React.ReactElement<InfoTooltipCloneProps>, {
+            className: cn(`shrink-0`, (children as React.ReactElement<InfoTooltipCloneProps>).props.className, triggerClassName),
             ref: handleTriggerRef,
           })
         ) : (

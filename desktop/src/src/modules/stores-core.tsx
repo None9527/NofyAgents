@@ -48,7 +48,7 @@ import { readLocalStorageItem as readLocalStorage, writeLocalStorageItem as writ
 import type { ThemeMode } from './Settings'; // A0-CLEANUP B-22：theme 收敛到 ThemeMode（type-only，无运行时环）
 import type { UserInfo } from './OnboardingLoginLeaves';
 // A0-CLEANUP3 3b：BaseServices 服务面收敛——各属主真实类型（type-only，无运行时环）
-import type { AutomationsAgentService, OffPeakTaskService, ZCodeTaskService } from './stores-tasks';
+import type { AutomationsAgentService, OffPeakGrayConfig, OffPeakTaskService, ZCodeTaskService } from './stores-tasks';
 import type { CommandsService, McpSyncService, PluginService, SkillsService, SubagentsService } from './stores-workspace';
 import type { MemoryService, SettingService, SystemService } from './Settings';
 
@@ -503,8 +503,12 @@ export interface BaseServices {
   subagentsService?: SubagentsService;
   automationsAgentService?: AutomationsAgentService;
   offPeakTaskService?: OffPeakTaskService;
-  /** 宿主支付/订阅 IPC 服务（方法面过宽，按可调用索引签名兜底；PaymentDeep/UsageDeep 消费） */
-  codingPlanSubscriptionService?: Record<string, (...args: any[]) => any>;
+  /** 宿主支付/订阅 IPC 服务（方法面过宽，按可调用索引签名兜底；PaymentDeep/UsageDeep 消费）；
+   *  getOffPeakClientConfig = off-peak 灰度配置面（bundle js 91441 bX.initialize 消费，A0-CLEANUP4 具型） */
+  codingPlanSubscriptionService?: {
+    getOffPeakClientConfig(opts: { forceRefresh: boolean }): Promise<OffPeakGrayConfig | null>;
+    [method: string]: (...args: any[]) => any;
+  };
   paymentService?: Record<string, (...args: any[]) => any>;
   settingService?: SettingService;
   systemService?: SystemService;

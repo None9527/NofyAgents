@@ -75,7 +75,8 @@ export interface UseLazyRenderOptions {
 
 export function useLazyRender(options: UseLazyRenderOptions = {}): {
   shouldRender: boolean;
-  containerRef: React.RefObject<HTMLDivElement>;
+  /* A0-CLEANUP4：React19 useRef<T>(null) 产 RefObject<T | null>（ref 属性消费兼容） */
+  containerRef: React.RefObject<HTMLDivElement | null>;
 } {
   const {
     immediate = false,

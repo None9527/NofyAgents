@@ -195,7 +195,7 @@ import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from '.
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from './Modals';
 import { Badge } from './PaymentDeep';
 import { TabsList, TabsTrigger } from './Settings';
-import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from './SidebarLeaves';
+import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups, type WebRemoteSwitcher } from './SidebarLeaves';
 import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from './SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；A0-CLEANUP3 3b：getWorkspaceSlice 形参对齐真 store 面
 import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, type TaskActionMenuItemsProps } from './TopBar';
 import { WebRemoteControlDialog, useWebRemoteControlEnabled } from './WebRemote';
@@ -258,7 +258,9 @@ interface TaskMeta {
   workspaceIdentity?: string | null;
   createdAt: number;
   updatedAt: number;
-  status: string;
+  /* A0-CLEANUP4：status 可缺——与 SidebarLeaves TaskMeta（store 真值面）同族对齐，
+     消费仅 === 比较（388）与透传（364） */
+  status?: string;
   unreadAt?: number | null;
   provider?: string;
   model?: string;
@@ -3814,7 +3816,8 @@ interface WorkspaceSidebarProps {
   onCreateConversationTask?: () => void;
   onOpenFolderFromWorkspaceMenu?: () => void;
   onOpenRemoteWorkspace?: () => void;
-  webRemoteControlWorkspaceSwitcher?: { updateMobileViewState?(workspaceKey: string, taskId: string): Promise<void> } | null;
+  /* A0-CLEANUP4：收 SidebarLeaves WebRemoteSwitcher 面——WebRemoteTaskListSection（原 mLt）switcher 同形 */
+  webRemoteControlWorkspaceSwitcher?: WebRemoteSwitcher | null;
   theme: ThemeId;
   onConnectRemote?: () => void;
   onSelectRemoteProject?: () => void;
@@ -3845,8 +3848,10 @@ interface WorkspaceSidebarProps {
   onOpenAutomations?: () => void;
   automationsActive?: boolean;
   onFileTreeOpenChange?: (open: boolean) => void;
-  onWebRemoteTaskOpen?: (workspacePath: string, taskId: string, workspaceIdentity?: string | null) => void;
-  onWebRemoteTaskSwitchingChange?: (switching: boolean) => void;
+  /* A0-CLEANUP4：与 mLt/iPt 调用面对齐——onTaskOpen 收 {crossWorkspace}（bundle jsx 148809 qn 解构面）、
+     切换中回调收任务键 string | null（iPt onSwitchingChange(taskKey/null)，SidebarLeaves 3417/3435） */
+  onWebRemoteTaskOpen?: (info: { crossWorkspace: boolean }) => void;
+  onWebRemoteTaskSwitchingChange?: (key: string | null) => void;
 }
 
 export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: WorkspaceSidebarProps) {

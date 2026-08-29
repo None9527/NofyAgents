@@ -263,7 +263,9 @@ interface TerminalCreateResult {
   fontFamilySource?: string | null;
   windowsPty?: XtermWindowsPty | null;
 }
-interface TerminalService {
+/* A0-CLEANUP4：导出——服务注册表（rendererEntry js 335 terminalService: registry.terminalService）
+   经 WorkspaceShell/SidePanel 透传至 TerminalPanel（原 bUt，jsx 147768 services: e 全量透传） */
+export interface TerminalService {
   create(req: { cols: number; rows: number; cwd: string }): Promise<TerminalCreateResult>;
   resize(req: { id: string; cols: number; rows: number }): Promise<void>;
   write(req: { id: string; data: string }): void;

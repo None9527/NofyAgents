@@ -152,15 +152,15 @@ import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：B
 import { BrowserUseView, BrowserView, useScreenshotSurfaceRequest } from './BrowserPane';
 import { CodeViewerPanel } from './CodeViewer';
 import { useIsMobileTextInputViewport } from './Composer';
-import { ConversationPane, useSessionSnapshot } from './Conversation';
+import { ConversationPane, useSessionSnapshot, type SessionStoreHandle } from './Conversation';
 import { DeveloperToolsView, ModelTrajectoryView, RepoWikiView, TreemappingView, WhiteboardCanvas } from './ExtendedViews';
-import { GitChangesPanel } from './GitReview';
+import { GitChangesPanel, type GitPaneState } from './GitReview';
 import { Popover, PopoverContent, PopoverTrigger } from './ImeComposition';
-import { DEFAULT_CODE_PREVIEW_SETTINGS, MarkdownRenderer, type CodePreviewSettings } from './MarkdownIntegration';
+import { DEFAULT_CODE_PREVIEW_SETTINGS, MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration';
 import { useSettingsStoreValue as useSettingsSelector } from './stores-core'; // A0-CLEANUP3 #49：原 Ao，canonical = stores-core useSettingsStoreValue（styles js 1301）
 import { resolveFileDisplayInfo } from './ModalsLeaves';
 import { logger, useWhiteboardStore } from './SkillStore';
-import { TerminalPanel } from './TerminalPane';
+import { TerminalPanel, type TerminalService } from './TerminalPane';
 import { ScopedErrorBoundary } from './WorkspaceShell';
 import { useServices } from './services';
 import { useTrajectoryViewerStore, useTuiEditPendingRequest } from './stores-session';
@@ -219,7 +219,8 @@ interface ZCodeAgentService {
     endedCursor?: string;
   }): Promise<SubagentListResponse>;
 }
-interface SubagentListResponse {
+/* A0-CLEANUP4：导出——WorkspaceShell WorkspaceServices.zcodeAgentService 视图同形接线 */
+export interface SubagentListResponse {
   revision: number;
   childSessionIds: string[];
   running: SubagentDirectoryItem[];
@@ -231,6 +232,8 @@ interface ZCodeSessionService {
 interface BaseServices {
   zcodeAgentService?: ZCodeAgentService;
   zcodeSessionService: ZCodeSessionService;
+  /* A0-CLEANUP4：终端面板（原 bUt）消费面——bundle 全量 services 透传（jsx 147768） */
+  terminalService: TerminalService;
 }
 
 /** 白板 store（原 Oe）：createBoard 返回 {id, name} */
@@ -239,15 +242,13 @@ interface BaseServices {
 declare function subscribeTaskEnded(cb: (e: { type: string; taskId: string; workspaceKey: string }) => void): () => void;
 /** D5c：TUI 编辑打开请求只读订阅（不消费；实现见 stores-session.tsx TuiEditRequestStore） */
 
-/** 会话运行时层（原 ET()：usePanelScope → { layer }；layer.acquire(sessionId) → {snapshot, release}） */
+/** 会话运行时层（原 ET()：usePanelScope → { layer }；layer.acquire(sessionId) → {store, release}，
+    bundle js 40347；k0（js 118692）读 handle.store——快照经 Conversation useSessionSnapshot 订阅） */
 interface SessionHandle {
-  snapshot: SessionSnapshot | null;
+  store: SessionStoreHandle;
   release(): void;
 }
-interface SessionSnapshot {
-  subagents?: { revision: number; running: SubagentDirectoryItem[]; endedTotal: number };
-  rows: { window: Array<{ kind: string; toolCallId?: string; [k: string]: unknown }> };
-}declare function usePanelScope(): { layer: { acquire(sessionId: string): SessionHandle } };
+declare function usePanelScope(): { layer: { acquire(sessionId: string): SessionHandle } };
 
 /** 会话快照钩子（原 k0(handle)） */
 
@@ -522,9 +523,8 @@ const RepoWikiIcon: React.FC<IconProps & { size?: number }> = ({ size, ...rest }
 
 /** Git 变更面板 = 审查标签内容（原 BWt，本族叶子，js 178584 / jsx 144748；
  *  体量大，接口保留：文件变更列表+diff 查看+查找+源切换） */
-interface GitState {
-  [key: string]: unknown;
-}
+/* A0-CLEANUP4：本地 GitState 占位（{[key:string]:unknown}）删除——gitState prop 直接
+   采用 GitReview 导出的 GitPaneState（原 nge 返回形，见 GitReview 571）。 */
 
 /** 白板画布（原 FGt，js 179888）、Treemapping（原 AGt，js 179493）、
  *  模型轨迹（原 tKt，js 180606）、开发者工具（原 mKt，js 180870）、
@@ -3325,7 +3325,7 @@ export const SubagentSessionTabContent = React.memo(function SubagentSessionTabC
   focused: boolean;
   onOpenBrowserUrl: (url: string) => void;
   onOpenCodeViewer: (source: CodeViewerSource) => void;
-  onOpenFileLink: (path: string) => void;
+  onOpenFileLink: (link: FileLinkModel) => void;
   onOpenSubagentSession: (req: SubagentOpenRequest) => void;
 }) {
   return (
@@ -3372,7 +3372,7 @@ export const SelectionSideChatTabContent = React.memo(function SelectionSideChat
   focused: boolean;
   onOpenBrowserUrl: (url: string) => void;
   onOpenCodeViewer: (source: CodeViewerSource) => void;
-  onOpenFileLink: (path: string) => void;
+  onOpenFileLink: (link: FileLinkModel) => void;
   /** runtime 不可用时关闭本标签（原 onUnavailable = onCloseTab） */
   onUnavailable: (tabId: string) => void;
 }) {
@@ -3415,7 +3415,7 @@ const PlanDetailBody = React.memo(function PlanDetailBody({
   tab: PlanDetailTab;
   onOpenBrowserUrl: (url: string) => void;
   onOpenCodeViewer: (source: CodeViewerSource) => void;
-  onOpenFileLink: (path: string) => void;
+  onOpenFileLink: (link: FileLinkModel) => void;
 }) {
   const { layer } = usePanelScope();
   const [handle, setHandle] = React.useState<SessionHandle | null>(null);
@@ -3471,7 +3471,7 @@ export const PlanDetailTabContent = React.memo(function PlanDetailTabContent({
   tab: PlanDetailTab;
   onOpenBrowserUrl: (url: string) => void;
   onOpenCodeViewer: (source: CodeViewerSource) => void;
-  onOpenFileLink: (path: string) => void;
+  onOpenFileLink: (link: FileLinkModel) => void;
 }) {
   return (
     <ServiceScopeProvider
@@ -3752,7 +3752,9 @@ declare function findBrowserUseTabForSurface(tabs: SidePaneTab[], request: Scree
 export interface SidePanelProps {
   services: BaseServices;
   isDesktop: boolean;
-  isWindowsDesktop: boolean;
+  /* A0-CLEANUP4：可省——bundle 调用面（原 Er，jsx 149076）不传此参，xqt（jsx 147333）解构后
+     透传 bUt（TerminalPanel 缺省 false） */
+  isWindowsDesktop?: boolean;
   isVisible: boolean;
   sidePaneState: SidePaneState | null;
   recentClosedSidePaneTabs: RecentClosedSidePaneTab[];
@@ -3763,7 +3765,7 @@ export interface SidePanelProps {
   workspaceRemoteSessionId?: string | null;
   activeTaskId: string | null;
   sidePaneOwnerId: string | null;
-  gitState: GitState;
+  gitState: GitPaneState;
   activeGitSourceId: string;
   panelRef?: React.Ref<unknown>;
   panelElementRef: React.RefObject<HTMLElement | null>;
@@ -3791,7 +3793,7 @@ export interface SidePanelProps {
   onRevealGitFileInTree: (path: string) => void;
   onOpenBrowserUrl: (url: string) => void;
   onOpenCodeViewer: (source: CodeViewerSource) => void;
-  onOpenFileLink: (path: string) => void;
+  onOpenFileLink: (link: FileLinkModel) => void;
   onOpenSubagentSession: (req: SubagentOpenRequest) => void;
   onRefreshGit: () => void;
   onBrowserNavigationRequestHandled: (requestId: string) => void;

@@ -86,7 +86,7 @@ import { toast, usePlatform as usePlatformService } from './ImeComposition'; // 
 import { LazyPdfViewer, LazyPptxPreviewViewer } from './LazyPreviewViewers';
 import { MarkdownRenderer, baseName as basename, isAbsolutePath, relativePathFromWorkspace as relativePath, useRemoteWorkspaceInfo } from './MarkdownIntegration'; // 原 Go / Ko / zA / $A
 import { FileIconImg, resolveFileDisplayInfo } from './ModalsLeaves'; // 原 Vc / zc
-import { buildDiffPreviewSource, detectPreviewLanguage as detectLanguage, imageMimeTypeOfPath as mimeTypeOfPath, isPdfPreviewPath as isPdfPath, isPptxPreviewPath as isPptxPath } from './PreviewCards'; // 原 rA / iA / oA / sA
+import { buildDiffPreviewSource, detectPreviewLanguage as detectLanguage, imageMimeTypeOfPath as mimeTypeOfPath, isPdfPreviewPath as isPdfPath, isPptxPreviewPath as isPptxPath, type DiffPreviewFileSource } from './PreviewCards'; // 原 rA / iA / oA / sA；+DiffPreviewFileSource（A0-CLEANUP4 tHt 发射面具型）
 import { resolveAvailableEditors as useResolvedEditor, useFileContextActions as useFileActions } from './FileTreePanel'; // 原 JA / g（QA 族文件动作）
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
@@ -1517,9 +1517,12 @@ export function rememberLastEditorId(editorId: string, storage: Storage | null =
 
 export interface CodeViewerPanelProps {
   source: CodeViewerSourceInput | null;
+  /** bundle 调用面透传但 tHt 本体不消费（ground-truth jsx 147739 传 onClose: C；tHt jsx 133444 解构无此参） */
+  onClose?: (tabId: string) => void;
   workspacePath?: string | null;
   onOpenBrowserUrl?: (url: string) => void;
-  onOpenCodeViewer?: (source: CodeViewerSourceInput) => void;
+  /** A0-CLEANUP4：发射面 = YBe 回看源（bundle js 161971 `we && r?.(we)`，we=YBe 恒 type:"file"） */
+  onOpenCodeViewer?: (source: DiffPreviewFileSource) => void;
   renderHeavyContent?: boolean;
 }
 
@@ -2148,7 +2151,7 @@ export function CodeViewerPanel({
     }
   };
   const openSourcePreview = () => {
-    if (diffSource) onOpenCodeViewer?.(diffSource as CodeViewerSourceInput);
+    if (diffSource) onOpenCodeViewer?.(diffSource);
   };
   const placeholderStyle =
     !renderHeavyContent && scrollSnapshotRef.current.scrollHeight > 0

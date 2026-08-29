@@ -215,7 +215,7 @@ interface DockerContainerRef {
 interface WslDistroRef {
   name: string;
 }
-interface RemoteTarget {
+export interface RemoteTarget {
   kind: RemoteKind;
   host?: string;
   port?: number;
@@ -1084,9 +1084,11 @@ export function RemoteWizardDialog({
   preferredWslDistro: g,
 }: {
   onConnect: (target: RemoteTarget, requestId: string) => Promise<string | null>;
-  onSelectProject: (sessionId: string, path: string, localWorkspacePath: string) => Promise<void>;
+  /* A0-CLEANUP4：第三参收可选——bundle a4（js 128782）localWorkspacePath 可传 undefined，
+     实际处理方 selectRemoteProject（OnboardingLoginLeaves js 209393 域）第三参即可选 */
+  onSelectProject: (sessionId: string, path: string, localWorkspacePath?: string) => Promise<void>;
   onCancelSession: (sessionId: string) => Promise<void>;
-  localWorkspacePath: string;
+  localWorkspacePath?: string;
   trigger?: React.ReactNode;
   triggerVariant?: string;
   triggerSize?: string;

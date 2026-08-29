@@ -440,10 +440,9 @@ import {
   CLAUDE_TO_GLM_MODEL_MAP as El // claude→GLM 模型映射表（jsx 4863，边界链头）
 } from './SrcSharedA';
 
-// 宿主全局（运行时以 typeof 守卫访问；原块未 import，属浏览器/Node 环境探测）
-declare global {
-  var process: any;
-}
+/* ── tombstone（A0-CLEANUP4）：`declare global { var process: any }` 删除——
+ *    与上层 node_modules @types/node 的 process: Process 全局冲突（TS2403）；
+ *    消费点（5795 typeof 守卫 / 6393 globalThis.process?.env）直接用宿主类型即可。 ── */
 
 
 /* ============================================================================
@@ -861,8 +860,9 @@ export function mapApiFormatToModelFormats(e: any): string[] | undefined {
   }
 }
 
-/** 原 Cu（jsx 5228 / js 5116）：解析供应商 API 格式（显式 → 默认种类 → 端点推断） */
-export function resolveProviderApiFormat(e: any): string {
+/** 原 Cu（jsx 5228 / js 5116）：解析供应商 API 格式（显式 → 默认种类 → 端点推断）；
+    A0-CLEANUP4：defaultKind 分支透传 uu（src chunk 5229），未知种类产 undefined——返回面收 string | undefined */
+export function resolveProviderApiFormat(e: any): string | undefined {
   return e.apiFormat === `anthropic-messages` || e.apiFormat === `openai-chat-completions` || e.apiFormat === `openai-responses` ? e.apiFormat : e.defaultKind ? mapKindToApiFormat(e.defaultKind) : e.endpoints.paths?.anthropic === void 0 ? e.endpoints.paths?.openai === void 0 ? e.endpoints.paths?.[`openai-compatible`] === void 0 ? `anthropic-messages` : `openai-chat-completions` : `openai-responses` : `anthropic-messages`;
 }
 

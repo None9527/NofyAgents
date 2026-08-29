@@ -518,7 +518,8 @@ declare const RadixSelectTrigger: React.ForwardRefExoticComponent<
 declare const RadixSelectIcon: React.FC<{ asChild?: boolean; children: React.ReactNode }>;
 declare const RadixSelectPortal: React.FC<{ children: React.ReactNode }>;
 declare const RadixSelectContent: React.FC<
-  React.HTMLAttributes<HTMLDivElement> & { position?: "item-aligned" | "popper"; align?: "start" | "center" | "end" }
+  /* onCloseAutoFocus：radix Select.Content 原生面（PaymentDeep 模型选择器消费） */
+  React.HTMLAttributes<HTMLDivElement> & { position?: "item-aligned" | "popper"; align?: "start" | "center" | "end"; onCloseAutoFocus?: (event: Event) => void }
 >;
 declare const RadixSelectViewport: React.FC<React.HTMLAttributes<HTMLDivElement> & { "data-position"?: string }>;
 declare const RadixSelectItem: React.ForwardRefExoticComponent<
@@ -1200,6 +1201,7 @@ export function SelectContent({
   side?: "top" | "right" | "bottom" | "left";
   sideOffset?: number;
   collisionPadding?: number;
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
     <RadixSelectPortal>

@@ -204,7 +204,7 @@ export interface ToolCallViewProps {
   agentSummaryAction?: { [key: string]: unknown; ariaLabel?: string };
   authoritativeAgentType?: string;
   onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenBrowserUrl?: (url: string) => void;
   onOpenAutomationsMain?: (automationId: string) => void;
   onOpenPlanDetail?: (plan: { toolCallId: string; markdown: string; planFilePath?: string }) => void;
@@ -240,7 +240,7 @@ declare const ToolCallExpandedContent: React.FC<{
   theme?: string;
   codePreviewSettings?: CodePreviewSettings;
   onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenBrowserUrl?: (url: string) => void;
 }>;
 /** 快照引用加载条（原 sQ） */
@@ -749,7 +749,7 @@ function FileWriteChildRow({
   toolId: string;
   isFailed: boolean;
   onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenBrowserUrl?: (url: string) => void;
   childToolList: React.ReactNode;
   displayModel: ToolDisplayModel;
@@ -1275,7 +1275,7 @@ declare const AgentPromptBlock: React.FC<{
   theme?: string;
   codePreviewSettings?: CodePreviewSettings;
   onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenBrowserUrl?: (url: string) => void;
 }>;
 declare const AgentChildToolList: React.FC<ToolCallViewProps & { childToolCalls: ToolCallNode[] }>;
@@ -1286,7 +1286,7 @@ declare const AgentLabeledBlock: React.FC<{
   theme?: string;
   codePreviewSettings?: CodePreviewSettings;
   onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenBrowserUrl?: (url: string) => void;
 }>;
 declare const AgentOutputFileCard: React.FC<{ outputFile: string; hasActivity: boolean; isRunning: boolean; status: string }>;
@@ -2108,7 +2108,7 @@ export function SessionContextToolView(props: ToolCallViewProps) {
               theme={props.theme}
               codePreviewSettings={props.codePreviewSettings}
               onOpenCodeViewer={props.onOpenCodeViewer}
-              onOpenFileLink={props.onOpenFileLink as ((link: FileLinkModel) => void) | undefined} /* A0-D 类型垫片：链路按 path 建模，MI 边界收 FileLinkModel（零运行时影响） */
+              onOpenFileLink={props.onOpenFileLink}
               onOpenExternalUrl={props.onOpenBrowserUrl}
             >
               {displayedResult}
@@ -2326,7 +2326,7 @@ export function SwitchModeToolView(props: ToolCallViewProps) {
                 theme={props.theme}
                 codePreviewSettings={props.codePreviewSettings}
                 onOpenCodeViewer={props.onOpenCodeViewer}
-                onOpenFileLink={props.onOpenFileLink as ((link: FileLinkModel) => void) | undefined} /* A0-D 类型垫片：同 §sessionContext 处 */
+                onOpenFileLink={props.onOpenFileLink}
                 onOpenExternalUrl={props.onOpenBrowserUrl}
               >
                 {markdown}
@@ -2914,7 +2914,7 @@ export function PreviewCardList({
   workspaceIdentity?: string | null;
   workspaceRemoteSessionId?: string | null;
   onOpenBrowserUrl?: (url: string) => void;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenCodeViewer?: OpenCodeViewerFn;
   compactForRemoteControl?: boolean;
 }) {

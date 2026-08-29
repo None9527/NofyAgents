@@ -104,7 +104,7 @@ import type { ConfigSelectOption, ConfigSelectSpec } from './Composer'; // 类�
 import { Spinner } from './Home';
 import { Input, PopoverContent, toast } from './ImeComposition';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
-import { resolveModelTriggerLabel } from './SettingsLeaves';
+import { resolveModelTriggerLabelParts } from './SettingsLeaves'; // A0-CLEANUP4：原 nWe（styles jsx 48452）三元面，非 $7 单串面
 import { logger } from './SkillStore';
 import { SidebarCodingPlanWidget, SidebarStartPlanWidget, formatGrantUnits, useBillingDiscount } from './UsageDeep';
 import { useServices } from './services';
@@ -1635,7 +1635,6 @@ export function activeTaskProviderOf(state: { activeTaskId?: string | null; opti
   return taskId
     ? (state.optimisticTaskListByTaskId[taskId]?.provider ??
       state.taskListCache?.find((task) => task.taskId === taskId)?.provider ??
-      null ??
       null)
     : null;
 }
@@ -11248,7 +11247,7 @@ function SessionModelToolbar({
   const triggerLabel = React.useMemo(() => {
     const fallbackLabel = normalizedSelection.placeholder ?? intl.formatMessage({ id: `chat.toolbar.model.label` });
     const providerName = modelProviders.find((entry: any) => entry.id === effectiveConfig?.provider)?.name;
-    return resolveModelTriggerLabel({
+    return resolveModelTriggerLabelParts({
       modelGroups: modelGroups,
       normalizedValue: normalizedValue,
       fallbackLabel: fallbackLabel,

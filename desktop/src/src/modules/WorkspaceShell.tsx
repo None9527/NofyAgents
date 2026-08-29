@@ -201,20 +201,22 @@ import { type InstalledEditor } from './FileTreePanel';
 import { APP_LOGO_DATA_URL, FeedbackCenter, collectWorkspaceTaskIds, resolveAdjacentTasks, runWithWorkspaceVisibility, type FeedbackService } from './FeedbackCenter';
 import { WorkspaceSelectionRow } from './Home';
 import { toast } from './ImeComposition';
+import { type FileLinkModel } from './MarkdownIntegration'; // A0-CLEANUP4：markdown 文件链接回调面（原 MHe 模型，js 51430）
 import { pathBasename } from './ModalsLeaves';
 import { QuickPick, buildQuickPickCommands } from './QuickPick';
 import { type RemoteWorkspaceSessionLike } from './RemoteWizard'; // A0-CLEANUP B-24：远端会话形（Home/RemoteWizardDialog 调用面对齐）
 import { resolveThemeMode } from './Settings';
-import { SidePanel, useSidePaneState, type BrowserMetadataPatch, type BrowserNavigationRequest, type BrowserResidencyEvent, type BrowserUseOperationEvent, type BrowserUseTabDescriptor, type BrowserUseVisibilityEvent, type CodeViewerSource as SidePanelCodeViewerSource, type PlatformService as SidePanelPlatformService, type RecentClosedSidePaneTab, type ScreenshotSurfaceRequest, type SidePaneState, type SidePaneTab, type SubagentOpenRequest } from './SidePanel'; // 侧面板态型以 SidePanel 导出为准
+import { SidePanel, useSidePaneState, type BrowserMetadataPatch, type BrowserNavigationRequest, type BrowserResidencyEvent, type BrowserUseOperationEvent, type BrowserUseTabDescriptor, type BrowserUseVisibilityEvent, type CodeViewerSource as SidePanelCodeViewerSource, type PlatformService as SidePanelPlatformService, type RecentClosedSidePaneTab, type ScreenshotSurfaceRequest, type SidePaneState, type SidePaneTab, type SubagentListResponse, type SubagentOpenRequest } from './SidePanel'; // 侧面板态型以 SidePanel 导出为准
 import { logger, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from './SkillStore'; // +TaskStore（A0-CLEANUP B-3：选择器改指真 store 型）；+workspaceKey（原 Io/Lo，A0-CLEANUP 族清理）
 import { taskEntityKey } from './StoresDeep';
+import { type TerminalService } from './TerminalPane'; // A0-CLEANUP4：WorkspaceServices.terminalService 型（注册表透传面）
 import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle, type UpdateState } from './TopBar';
 import { WebRemoteMobileShell, type MobileHomeResult, type TaskMeta as WebRemoteTaskMeta, type WebRemoteSwitcherService } from './WebRemote';
 import { useBaseServices, useServices } from './services';
 import { useFeedbackStore, useSettingsStore } from './stores-core';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { AutomationsMain } from './ExtendedViews'; // 原 d6（F15 根）
-import { type GitDataset, type GitSourceOption, type GitSummary } from './GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
+import { type GitDataset, type GitPaneState, type GitSourceOption, type GitSummary } from './GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -327,7 +329,11 @@ export interface WorkspaceServices {
       unread: boolean;
     }): Promise<{ unreadAt: number | null }>;
   };
-  zcodeSessionService: unknown;
+  /* A0-CLEANUP4：会话服务关会话面（bundle jsx 118609 e.zcodeSessionService.closeSession；
+     SidePanel ZCodeSessionService 消费视图同形） */
+  zcodeSessionService: {
+    closeSession(req: { workspacePath: string; workspaceIdentity?: string; sessionId: string }): Promise<void>;
+  };
   modelProviderService: {
     onDidChangeProviderRegistry(cb: (e: { snapshot: { revision: number } }) => void): {
       dispose(): void;
@@ -347,6 +353,16 @@ export interface WorkspaceServices {
     updatePluginMarketplace(input: unknown): Promise<unknown>;
     installPlugin(input: unknown): Promise<unknown>;
     listPlugins(input: unknown): Promise<unknown>;
+    /* A0-CLEANUP4：宿主 agent 服务会话面——SidePanel useSubagentDirectory 消费
+       （bundle jsx 146810 typeof 守卫调用；响应面 = SidePanel SubagentListResponse） */
+    listSessionSubagents(req: {
+      workspacePath: string;
+      workspaceIdentity?: string;
+      remoteSessionId?: string;
+      sessionId: string;
+      endedLimit: number;
+      endedCursor?: string;
+    }): Promise<SubagentListResponse>;
   };
   offPeakTaskService: {
     list(): Promise<Array<{
@@ -359,6 +375,8 @@ export interface WorkspaceServices {
     }>>;
   };
   mcpSyncService: unknown;
+  /* A0-CLEANUP4：注册表含 terminalService（rendererEntry js 335），SidePanel→TerminalPanel 透传 */
+  terminalService: TerminalService;
 }
 declare function useWorkspaceServicesResolver(
   workspacePath: string,
@@ -617,13 +635,9 @@ declare function isSamePath(a: string, b: string): boolean;
 
 /* --- git 域（原 nge/Yse/yst） --- */
 /* GitSummary/GitDataset/GitSourceOption 已接线 GitReview 导出（原 Yhe 缺省形）；
- * GitState 用 type 别名（对 SidePanel GitState {[key:string]:unknown} 占位可赋值） */
-type GitState = {
-  summary: GitSummary;
-  datasets: { unstaged: GitDataset; staged: GitDataset; [key: string]: GitDataset };
-  sourceOptions: GitSourceOption[];
-  workspaceKey: string;
-};
+ * A0-CLEANUP4：GitState 别名直指 GitReview GitPaneState（原 nge 返回形，bundle js 23815 域）。
+ * 原 4 字段子集是欠规范——useGitState 实际返回全量面（identity/placeholder/loading/error/revision 等）。 */
+type GitState = GitPaneState;
 declare function useGitState(input: {
   workspacePath: string;
   activeTaskId: string | null;
@@ -756,8 +770,9 @@ interface ActiveTaskMeta {
   /* A0-CLEANUP3 #36：束 e_e 返回面 resolvedActiveTaskMeta = 任务元对象（含
    * taskId/title/forkedFromTaskId，TopBar.TaskMeta 同形）；activeTaskChangeSummary
    * 束真恒 null（e_e 字面返回），型收 null（SessionHeader string|null /
-   * QuickPick TaskChangeSummary|null 双向可赋）。 */
-  resolvedActiveTaskMeta: { taskId: string; title?: string | null; forkedFromTaskId?: string | null; [key: string]: unknown } | null;
+   * QuickPick TaskChangeSummary|null 双向可赋）。
+   * A0-CLEANUP4：补 workspacePath（束 js 24501/24737/24794 实体与回退均恒含）。 */
+  resolvedActiveTaskMeta: { taskId: string; workspacePath: string; title?: string | null; forkedFromTaskId?: string | null; [key: string]: unknown } | null;
   activeTraceId: string | null;
   activeSessionId: string | null;
   activeTaskProvider: string | null;
@@ -1868,10 +1883,11 @@ interface WorkspaceShellProps {
   onOpenAutomationConsumed?: () => void;
   handleOpenAutomations: (automationId?: string) => void;
   /* A0-CLEANUP3 #36：远端连接三回调收 Home.WorkspaceSelectionRowProps 规范形
-   * （束 XJt 解构无默认值 = 必收）；原 (...args: unknown[]) => void 弱形删除。 */
-  onConnectRemote: (args: unknown) => Promise<string> | string;
-  onSelectRemoteProject: (args: unknown) => Promise<void> | void;
-  onCancelRemoteProject: (sessionId: string) => Promise<void> | void;
+   * （束 XJt 解构无默认值 = 必收）；原 (...args: unknown[]) => void 弱形删除。
+   * A0-CLEANUP4：对齐 RemoteWizardDialog 属主面具型（束 a4 纯透传 pOt，js 128776–128786）。 */
+  onConnectRemote: (target: RemoteTarget, requestId: string) => Promise<string | null>;
+  onSelectRemoteProject: (sessionId: string, path: string, localWorkspacePath?: string) => Promise<void>;
+  onCancelRemoteProject: (sessionId: string) => Promise<void>;
   onReconnectRemoteWorkspace?: (...args: unknown[]) => void;
   onLogout?: () => void;
   onLogin?: () => void;
@@ -1934,7 +1950,7 @@ interface WorkspaceShellProps {
   activeTraceId?: string | null;
   activeSessionId?: string | null;
   activeTaskProvider?: string | null;
-  resolvedActiveTaskMeta?: { taskId: string; title?: string | null; forkedFromTaskId?: string | null; [key: string]: unknown } | null;
+  resolvedActiveTaskMeta?: { taskId: string; workspacePath: string; title?: string | null; forkedFromTaskId?: string | null; [key: string]: unknown } | null; // A0-CLEANUP4：补 workspacePath（束 e_e 恒含）
   activeTaskTitle?: string | null;
   activeTaskChangeSummary?: string | null;
   gitWorktreeReviewSourceId?: string | null;
@@ -2018,9 +2034,10 @@ interface CodeViewerSource {
   type: string;
   title?: string;
   path?: string;
-  workspacePath?: string;
-  workspaceIdentity?: string;
-  workspaceRemoteSessionId?: string;
+  /* A0-CLEANUP4：workspace 三字段容 null——上游 FileLinkModel（MHe）即 string | null 面 */
+  workspacePath?: string | null;
+  workspaceIdentity?: string | null;
+  workspaceRemoteSessionId?: string | null;
   [key: string]: unknown;
 }
 
@@ -2212,7 +2229,8 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
     const viewport = viewportHeight();
     return clampNavHeight({ heightPx: preferredNavHeightForViewport(viewport), viewportHeight: viewport }).heightPx;
   }); // 原 [Gt, Kt]
-  const [webRemoteTaskSwitching, setWebRemoteTaskSwitching] = React.useState(false); // 原 [qt, Jt]
+  /* 原 [qt, Jt]：bundle 初始 !1、运行中收任务键（jsx 148541 / Jn 148814 转发键值），消费仅真值判定 */
+  const [webRemoteTaskSwitching, setWebRemoteTaskSwitching] = React.useState<string | null | false>(false);
   const [primaryDraftDropTargetController, setPrimaryDraftDropTargetController] =
     React.useState<PrimaryDraftDropTargetController | null>(null); // 原 [Yt, Xt]
   const fileTreeOpenRequestIdRef = React.useRef(0); // 原 Zt
@@ -2638,7 +2656,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
   );
 
   /** 原 Jn（184360） */
-  const handleWebRemoteTaskSwitchingChange = React.useCallback((switching: boolean) => {
+  const handleWebRemoteTaskSwitchingChange = React.useCallback((switching: string | null) => {
     setWebRemoteTaskSwitching(switching);
   }, []);
 
@@ -2706,7 +2724,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
 
   /** 原 ir（184399）：按路径找已开工作区 tab（身份/远程会话过滤 + 当前身份优先、路径长者优先） */
   const findWorkspaceTabByPath = React.useCallback(
-    (path: string, identity?: string, remoteSessionId?: string) => {
+    (path: string, identity?: string | null, remoteSessionId?: string | null) => {
       const matches = workspaceTabs.filter(
         (tab) =>
           isSamePath(tab.workspacePath, path) &&
@@ -2966,13 +2984,9 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
   /** 原 Sr（184591）：markdown 文件链接打开裁决：
    *  文件 → 可内嵌浏览器? 浏览器 : 代码查看；目录 → 已开工作区? 文件树定位 : 临时外部目录 */
   const handleOpenFileLink = React.useCallback(
-    async (link: {
-      path: string;
-      label?: string;
-      workspacePath?: string;
-      workspaceIdentity?: string;
-      workspaceRemoteSessionId?: string;
-    }) => {
+    /* A0-CLEANUP4：参数收 MarkdownIntegration FileLinkModel——cj（js 51688）经 MHe（js 51430）
+       构造完整模型（含 label/relativePath/pathKind）上抛，链路 Conversation/SidePanel 同形 */
+    async (link: FileLinkModel) => {
       if (workspaceReadOnlyReason) return;
       try {
         if ((await services.fileService.stat({ path: link.path })).type === "file") {
@@ -4957,10 +4971,11 @@ interface WorkspaceRootProps {
   services: WorkspaceServices;
   baseFeedbackService: FeedbackService | null;
   /* A0-CLEANUP3 #36：远端连接三回调收 Home.WorkspaceSelectionRowProps 规范形
-   * （束 XJt 解构无默认值 = 必收）；原 (...args: unknown[]) => void 弱形删除。 */
-  onConnectRemote: (args: unknown) => Promise<string> | string;
-  onSelectRemoteProject: (args: unknown) => Promise<void> | void;
-  onCancelRemoteProject: (sessionId: string) => Promise<void> | void;
+   * （束 XJt 解构无默认值 = 必收）；原 (...args: unknown[]) => void 弱形删除。
+   * A0-CLEANUP4：对齐 RemoteWizardDialog 属主面具型（束 a4 纯透传 pOt，js 128776–128786）。 */
+  onConnectRemote: (target: RemoteTarget, requestId: string) => Promise<string | null>;
+  onSelectRemoteProject: (sessionId: string, path: string, localWorkspacePath?: string) => Promise<void>;
+  onCancelRemoteProject: (sessionId: string) => Promise<void>;
   onReconnectRemoteWorkspace?: (...args: unknown[]) => void;
   onLogout?: () => void;
   onLogin?: () => void;

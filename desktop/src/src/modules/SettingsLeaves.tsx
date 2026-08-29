@@ -636,6 +636,48 @@ export function resolveModelTriggerLabel(args: {
 /** 组内条目标签查找（原 w6e，F08 域；接口级） */
 declare function findModelGroupItemLabel(groups: SelectGroupEntry[], value: string): string | null;
 
+/** 原 dr（src chunk Jx，9036；Wx 别名→规范供应商表，9025）：已知供应商别名解析 */
+declare function canonicalProviderIdOf(providerId: string): string | null;
+
+/** 原 rN（styles jsx 48436）：供应商前缀模型名——已知别名供应商不加前缀，否则 `供应商名/模型名` */
+function composeProviderModelLabel(providerId: string | null | undefined, providerName: string | null | undefined, modelName: string | undefined): string | undefined {
+  if (providerId && canonicalProviderIdOf(providerId)) return modelName;
+  const trimmedName = providerName?.trim();
+  return trimmedName ? `${trimmedName}/${modelName}` : modelName;
+}
+
+/** 原 iN（styles jsx 48441）：规范值全标签——组内命中走 rN 拼接，未命中回退 */
+function resolveModelFullLabel(args: {
+  modelGroups: SelectGroupEntry[];
+  normalizedValue: string;
+  fallbackLabel: string;
+  providerId?: string | null;
+  providerName?: string | null;
+}): string | undefined {
+  const group = args.modelGroups.find((entry) => entry.items.some((item) => item.value === args.normalizedValue));
+  const item = group?.items.find((entry) => entry.value === args.normalizedValue);
+  return !group || !item ? args.fallbackLabel : composeProviderModelLabel(args.providerId, args.providerName, item.name);
+}
+
+/** 原 nWe（styles jsx 48452）：composer 模型触发器标签三元面（PaymentDeep ModelSelectMenu 消费） */
+export function resolveModelTriggerLabelParts(args: {
+  modelGroups: SelectGroupEntry[];
+  normalizedValue: string;
+  fallbackLabel: string;
+  providerId?: string | null;
+  providerName?: string | null;
+}): { fullLabel: string | undefined; providerPrefix?: string; modelLabel: string | undefined } {
+  const fullLabel = resolveModelFullLabel(args);
+  const group = args.modelGroups.find((entry) => entry.items.some((item) => item.value === args.normalizedValue));
+  const item = group?.items.find((entry) => entry.value === args.normalizedValue);
+  if (!group || !item) return { fullLabel: fullLabel, modelLabel: args.fallbackLabel };
+  const modelLabel = item.name;
+  const providerName = args.providerName?.trim();
+  return !providerName || (args.providerId && canonicalProviderIdOf(args.providerId))
+    ? { fullLabel: fullLabel, modelLabel: modelLabel }
+    : { fullLabel: fullLabel, providerPrefix: `${providerName}/`, modelLabel: modelLabel };
+}
+
 /** 原 e9（196765）：表单标签 */
 export function SubagentFormLabel({ children }: { children: React.ReactNode }) {
   return <label className="mb-1.5 block text-ui-base font-medium text-foreground-subtle">{children}</label>;

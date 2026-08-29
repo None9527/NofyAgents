@@ -2156,8 +2156,19 @@ export interface CodeViewerSourceInput {
   [key: string]: unknown;
 }
 
+/** 原 YBe 返回面（bundle js 50348–50365 字面）：type:"file" 回看源 */
+export interface DiffPreviewFileSource {
+  type: "file";
+  title: string;
+  path: string;
+  workspacePath?: string;
+  workspaceIdentity?: string;
+  workspaceRemoteSessionId?: string;
+  [key: string]: unknown;
+}
+
 /** 原 YBe：patch/multi-file-diff → 可回看文件源（CodeViewer.tsx 以 buildDiffPreviewSource 声明） */
-export function buildDiffPreviewSource(source: CodeViewerSourceInput, workspacePath: string | null): CodeViewerSourceInput | null {
+export function buildDiffPreviewSource(source: CodeViewerSourceInput, workspacePath: string | null): DiffPreviewFileSource | null {
   const targetPath = resolvePatchPath(source);
   if (!targetPath) return null;
   const baseWorkspace = source.workspacePath ?? workspacePath;

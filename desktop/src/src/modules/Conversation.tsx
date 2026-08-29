@@ -1854,7 +1854,7 @@ function ToolCallBlockImpl({
   codePreviewSettings?: CodePreviewSettings;
   showIcon?: boolean;
   onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenBrowserUrl?: (url: string) => void;
   onOpenAutomationsMain?: (automationId: string) => void; // A0-D 类型收敛：与 Leaves ToolCallViewProps 同口径（bundle 传 automationId）
   onOpenPlanDetail?: (plan: unknown) => void;
@@ -2180,7 +2180,7 @@ interface RowRenderContext {
   applyFileRewind?: (target: { rowId: number; entityId: string }) => Promise<{ status: "accepted" | "duplicate" | "rejected"; message?: string }>;
   readAttachment?: (request: { sessionId: string; ref: string }) => Promise<{ bytes: Uint8Array; mediaType: string }>;
   onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenBrowserUrl?: (url: string) => void;
   onOpenAutomationsMain?: () => void;
   onOpenPlanDetail?: (plan: unknown) => void;
@@ -3193,7 +3193,7 @@ const AssistantMessageRow = React.memo(function AssistantMessageRow({
           theme={context.theme}
           codePreviewSettings={context.codePreviewSettings}
           onOpenCodeViewer={context.onOpenCodeViewer}
-          onOpenFileLink={context.onOpenFileLink as ((link: FileLinkModel) => void) | undefined}
+          onOpenFileLink={context.onOpenFileLink}
           onOpenExternalUrl={context.onOpenBrowserUrl}
         >
           {row.text}
@@ -3829,7 +3829,7 @@ declare const PreviewCardItem: React.FC<{
   workspaceIdentity?: string | null;
   workspaceRemoteSessionId?: string | null;
   onOpenBrowserUrl?: (url: string) => void;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenCodeViewer?: OpenCodeViewerFn;
   compactForRemoteControl?: boolean;
 }>;
@@ -3853,7 +3853,7 @@ function PreviewCardListImpl({
   workspaceIdentity?: string | null;
   workspaceRemoteSessionId?: string | null;
   onOpenBrowserUrl?: (url: string) => void;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenCodeViewer?: OpenCodeViewerFn;
   compactForRemoteControl?: boolean;
 }) {
@@ -6732,6 +6732,17 @@ declare function useMessageListVirtualizer(opts: {
 /* --- 9.1 会话快照（原 k0/TCt，js 118675 / jsx 100917–100933） --- */
 
 interface SessionQueueSnapshot extends QueueState {}
+/** 原 rke 条目（bundle js 33140）：快照 subagents.running 运行中子代理条目 */
+export interface SubagentRunningSnapshot {
+  childSessionId: string;
+  agentId?: string;
+  toolCallId?: string;
+  subagentType: string;
+  title: string;
+  summary?: string;
+  status: "running" | "waiting" | "blocked";
+  startedAt?: number;
+}
 interface SessionSnapshot {
   sessionId: string;
   meta: { title: string };
@@ -6749,7 +6760,7 @@ interface SessionSnapshot {
   plan?: unknown;
   backgroundWorks?: unknown[];
   pendingInteractions: { interactionId: string; payload: { kind: string }; autoResolution?: unknown }[];
-  subagents?: { revision: number; childSessionIds: string[]; running: unknown[]; endedTotal: number };
+  subagents?: { revision: number; childSessionIds: string[]; running: SubagentRunningSnapshot[]; endedTotal: number };
   availability: { pauseGoal: { allowed: boolean }; resumeGoal: { allowed: boolean } };
   logEpoch: string;
   revision: number;
@@ -6768,7 +6779,8 @@ const CLOSED_SESSION_STATE = {
   turnNavigatorDirectoryRevision: 0,
 } as const;
 
-interface SessionStoreHandle {
+/* A0-CLEANUP4：导出——SidePanel SessionHandle（原 ET acquire 返回面，js 40347）的 store 字段同形 */
+export interface SessionStoreHandle {
   subscribe(listener: () => void): () => void;
   getState(): SessionSubscriptionState;
   retry(): void;
@@ -7098,8 +7110,8 @@ interface ConversationPaneProps {
   onOpenBrowserUrl?: (url: string) => void;
   onOpenAutomationsMain?: () => void;
   onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (path: string) => void;
-  onOpenSubagentSession?: (session: unknown) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
+  onOpenSubagentSession?: (session: SubagentOpenRequest) => void;
   onOpenSubagentDirectory?: () => void;
   onSyncSubagentSessionTabs?: (tabs: unknown) => void;
   onOpenSelectionSideChat?: (reference: unknown) => void;
@@ -7851,7 +7863,7 @@ function ConversationOrchestrator({
   onOpenBrowserUrl?: (url: string) => void;
   onOpenAutomationsMain?: () => void;
   onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (path: string) => void;
+  onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenSubagentSession?: (session: SubagentOpenRequest) => void;
   onOpenSubagentDirectory?: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; rootSessionId?: string; parentSessionId: string }) => void;
   onSyncSubagentSessionTabs?: (req: { rootSessionId: string; parentSessionId: string; validChildSessionIds: string[] }) => void;
