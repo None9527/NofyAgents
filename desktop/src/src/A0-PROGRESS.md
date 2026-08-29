@@ -45,8 +45,15 @@
 | useVirtualizer | @tanstack/react-virtual@3.14.10 | ✓ |
 | 图标（286 名） | lucide-react@1.35.0（自定义 Icon* 除外，属 first-party） | ✓ |
 | shadcn/radix 原语（109 名） | @radix-ui/*（dialog 1.1.23 等）+ 自建 shadcn 层 | ✓ |
-| Stripe（80955–81731，6.4.0/9.6.0 双版本） | @stripe/stripe-js / react-stripe-js | 待核版本 |
-| xterm 3.7.8 | `xterm@3.7.8` 不可达（包已改名）→ @xterm/xterm 或锁旧版 | ⚠ 需裁决 |
+| Stripe（80955–81731，6.4.0/9.6.0 双版本） | @stripe/stripe-js@9.6.0 + @stripe/react-stripe-js@6.4.0 | ✓ S3-a 落地（版本= bundle 自标记） |
+| xterm（旧记 3.7.8 实为 js-base64 标记） | @xterm/xterm@5.5.0 + @xterm/addon-fit@0.10.0（bundle 指纹：rescaleOverlappingGlyphs/allowRescaling/isEmoji 5.5 独有；blink_box_shadow_ 5.4 独有缺失） | ✓ S3-a 裁决落地 |
+
+## S3 清点（pass 4 后实测）
+- 剩余 declare：2,502 条语句 / **1,822 个唯一名**。
+- Lane-4 vendored 现存：lucide **285**/286、radix/shadcn **104**/109、lexical **20**/28（余者已被波次消耗）。
+- first-party 未重建深部：2,427 名中 **1,395** 仍 declared（1,032 已被波次接线消耗）；另有 122 名为波次新增登记。
+- 完整性 manifest：a0-wiring-data/ground-truth-md5.manifest（187 件）、a0-wiring-data/out-md5.manifest（2,183 件）。
+- S3 子批划分：S3-a = zod（SrcSharedA 内联 ~3,260 行）+ qrcode + useVirtualizer + resizable-panels + Stripe + xterm 裁决（运行中）；S3-b = lucide 285→lucide-react；S3-c = radix/shadcn 104→自建 shadcn 层；S3-d = lexical 20（版本锚定）。
 
 ## 批次台账
 
@@ -69,6 +76,8 @@
 | 收尾接线 pass 3 | 3a 机械项（36–41/43/44）+ 3b BaseServices 服务类型化（~250 unknown-族）+ 3c 横切属主定位（48/49） | **完工已验证** | **项目 528→44（−91.7%）零回退、零新增抑制**；3b 杠杆 = stores-core ResolvedBaseServices（BaseServices & Pick<Required<…>> 23 字段收窄）经 useServices/useBaseServices/useWorkspaceServices 贯通；服务字段型从真实属主（SkillsService/PluginService/CommandsService/SubagentsService/AutomationsAgentService/OffPeakTaskService/SettingService/SystemService/MemoryService），未重建属主以带注 callable 兜底；10 文件清零（SPC 168→0/EV 74→0/Settings 52→0/SP 44→0 等）；#49 useSettingsSelector 属主定位 = stores-core useSettingsStoreValue（styles js 1301，非工作清单所记 src 块）；#48 横切工具身份层确认未重建（declare 保留）；报告 A0-CLEANUP3.report.md |
 
 | 收尾接线 pass 4 | 残余 44 错终局收敛（11 文件） | **完工已验证** | **44→2（−42）零回退、零新增抑制**；SidePanel SessionHandle 整形（js 40347/k0 118692）+ BaseServices += terminalService；FileLinkModel 族 11 处中段签名统一并删 3 处 pass-3 投射；PaymentDeep onCloseAutoFocus/?? null 重复/nWe 标签链转录（resolveModelTriggerLabelParts）；TopBar 双 GitSummary 镜像删除改 GitReview 再导出 + TaskMeta += workspacePath（e_e 24501 族）；SrcSharedB 伪 declare global process 删除（真源 = 父目录 @types/node，S3 移除时需本地型声明）。残余 2 错均 TopBar S4 待实体化（UpdateDialog POt 19-prop 面 jsx 108829；Qct git 投射 jsx 85059–85080）；报告 A0-CLEANUP4.report.md |
+
+| S3-a | vendored→npm：zod/qrcode/useVirtualizer/Stripe/xterm | **完工已验证** | zod@4.3.6 落地（SrcSharedA 删 3,562 行 vendored 体→`import * as zod` + 语义名 shim，6,167→2,907 行）；qrcode@1.5.4（2 declares）；@tanstack/react-virtual@3.14.10（5 declares，useMessageListVirtualizer 确认为直接别名）；Stripe 9.6.0/6.4.0（7 declares）；xterm 裁决 = @xterm/xterm@5.5.0（"3.7.8" 标记实为 js-base64；bundle 指纹锚定 5.5.0，3 处内部 API shim 迁公共 API）；react-resizable-panels **整件推迟**（仅 declare 无转录引擎，X4/Z4/Q4 包装属主未重建，门禁无法验证运行时）；tsc 逐行不变（2）；报告 A0-S3a.report.md |
 
 **S2 接线阶段总结**：项目 tsc 364（declare-any 静默基线）→ 2,448（真实类型引入峰值）→ … → 773（波次末）→ 582 → 538 → 528 → 44 → **2**（均为 S4 待实体化桩，型已就绪）。剩余 declare 2,502 条 = Lane-4 vendored（S3 目标）+ 未重建深部（S4 目标）。
 

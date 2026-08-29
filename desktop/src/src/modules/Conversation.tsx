@@ -98,6 +98,7 @@
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
+import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
 import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep'; // 原 v_t/__t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
@@ -4877,18 +4878,8 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
-/** useVirtualizer（原 to，esm-BY6T6pIH.js） */
-declare function useVirtualizer(opts: {
-  count: number;
-  estimateSize: () => number;
-  getItemKey: (index: number) => string | number;
-  getScrollElement: () => HTMLElement | null;
-  overscan: number;
-}): {
-  getVirtualItems(): { index: number; key: string | number; start: number; size: number }[];
-  getTotalSize(): number;
-  scrollToIndex(index: number, opts?: { align?: "auto" | "start" | "center" | "end"; behavior?: "auto" | "smooth" }): void;
-};
+/* ── tombstone（A0-S3a）：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）declare 删除，
+ *    改 npm @tanstack/react-virtual@3.14.10 真实 import（文件头）；调用/返回面逐字不变。 ── */
 
 /**
  * TurnNavigator（原 ryt，js 113443 / jsx 96660；memo 名 iyt，js 113619 / jsx 96769）。
@@ -6506,7 +6497,7 @@ function ConversationMessageListImpl({
     let delta: number | null = null;
     if (prepended && scrollRef.current) {
       const loadAnchor = loadOlderAnchorRef.current;
-      const measured = loadAnchor ? virtualizer.measurementsCache.find((entry: { key: string | number }) => entry.key === loadAnchor.key) : undefined;
+      const measured = loadAnchor ? virtualizer.measurementsCache.find((entry) => entry.key === loadAnchor.key) : undefined;
       if (loadAnchor && measured) {
         delta = computeLoadOlderScrollDelta(loadAnchor, { key: loadAnchor.key, offsetTop: loadAnchor.offsetTop, start: measured.start }, scrollRef.current.scrollTop);
       }
@@ -6704,26 +6695,13 @@ function ConversationMessageListImpl({
 }
 const ConversationMessageList = React.memo(ConversationMessageListImpl);
 
-/** 列表虚拟化（原 to=useVirtualizer，esm-BY6T6pIH.js；此处按调用面声明） */
-declare function useMessageListVirtualizer(opts: {
-  count: number;
-  getScrollElement: () => HTMLElement | null;
-  estimateSize: (index: number) => number;
-  overscan: number;
-  getItemKey: (index: number) => string | number;
-  measureElement: (element: HTMLElement, entry?: ResizeObserverEntry) => number;
-}): {
-  getVirtualItems(): { index: number; key: string | number; start: number; size: number }[];
-  getTotalSize(): number;
-  getVirtualItemForOffset(offset: number): { index: number; key: string | number; start: number } | null;
-  scrollToIndex(index: number, opts?: { align?: "auto" | "start" | "center" | "end"; behavior?: "auto" | "smooth" }): void;
-  measure(): void;
-  measureElement: (element: HTMLElement) => void;
-  measurementsCache: { key: string | number; start: number }[];
-  scrollOffset?: number;
-  scrollRect?: { height: number };
-  shouldAdjustScrollPositionOnItemSizeChange: (item: { end: number }) => boolean;
-};
+/** 列表虚拟化（原 to=useVirtualizer，esm-BY6T6pIH.js）。A0-S3a：vendored declare 删除——
+ *    本件实为 @tanstack/react-virtual useVirtualizer（真实 import 见文件头）的语义别名：
+ *    调用面（count/getScrollElement/estimateSize/overscan/getItemKey/measureElement）与
+ *    返回面（getVirtualItems/getTotalSize/getVirtualItemForOffset/scrollToIndex/measure/
+ *    measureElement/measurementsCache/scrollOffset/scrollRect/
+ *    shouldAdjustScrollPositionOnItemSizeChange）均为真实 Virtualizer 成员，逐字吻合。 */
+const useMessageListVirtualizer = useVirtualizer;
 
 /* ============================================================================
  * 9. Pane 子族（会话快照/面板头/插件门/会话面板 R0/编排器 PTt）

@@ -85,6 +85,10 @@
  * ============================================================================
  */
 import * as React from "react";
+import * as qrcode from 'qrcode'; // A0-S3a：vendored qrcode（78456–79690，Qq）→ npm qrcode@1.5.4
+// A0-S3a：vendored Stripe（80955–81731）→ npm @stripe/react-stripe-js@6.4.0 + @stripe/stripe-js@9.6.0（bundle 双版本锚定）
+import { Elements as StripeElementsProvider, useStripe, useElements, CardNumberElement, CardExpiryElement, CardCvcElement } from '@stripe/react-stripe-js';
+import * as stripeLoader from '@stripe/stripe-js';
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 /* ── A0-S2d 接线（§2 裁决去重 76848–77167 / 76034–76156）：原本地重复转录与
  *    declare 挂接删除，canonical 在 Composer.tsx，真实 import 消费；混淆名注释随迁 ── */
@@ -204,8 +208,9 @@ declare function hasPlanWidgetModel(config: any): boolean; // i3e
 declare function hasStartPlanBalance(config: any): boolean; // g3e
 /** src-HCld2afU testid 常量：Lte（上下文用量触发器） */
 declare const CONTEXT_USAGE_TRIGGER_TESTID: string; // Lte
-/** vendored qrcode（78456–79690，VENDOR 登记） */
-declare const qrcode: { toDataURL(text: string, opts: { margin: number; width: number }): Promise<string> }; // Qq
+/* ── tombstone（A0-S3a）：vendored qrcode（78456–79690，Qq）declare 删除，
+ *    改 npm qrcode@1.5.4 真实 import（文件头 `import * as qrcode from 'qrcode'`）；
+ *    toDataURL(text, { margin, width }) 调用面逐字不变。 ── */
 /** §5 支付/产品域外部依赖 */
 declare const ChevronRightIcon: React.FC<React.SVGProps<SVGSVGElement>>; // wa
 declare const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Nv
@@ -229,14 +234,12 @@ declare const CloseIcon: React.FC<React.SVGProps<SVGSVGElement>>; // g
 declare const TrashIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Kv
 declare const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M_
 declare function useAppStore<T>(selector: (state: any) => T): T; // ko（同一 store：theme + OAuth/user 状态）
-/** vendored @stripe/react-stripe-js 6.4.0 原语（80955–81731 不转录，接口级 declare） */
-declare const StripeElementsProvider: React.FC<{ stripe: any; options?: any; children?: React.ReactNode }>; // u7e
-declare function useStripe(): any; // v7e
-declare function useElements(): any; // f7e
-declare const CardNumberElement: any; // y7e
-declare const CardExpiryElement: any; // b7e
-declare const CardCvcElement: any; // x7e
-declare const stripeLoader: { loadStripe(key: string): Promise<any> }; // F7e
+/* ── tombstone（A0-S3a）：vendored @stripe/react-stripe-js 6.4.0 + @stripe/stripe-js 9.6.0
+ *    原语（80955–81731，u7e/v7e/f7e/y7e/b7e/x7e/F7e）declare 删除，改 npm 真实 import（文件头）：
+ *    StripeElementsProvider=Elements、useStripe/useElements、CardNumberElement/CardExpiryElement/
+ *    CardCvcElement ← @stripe/react-stripe-js@6.4.0；stripeLoader.loadStripe ← @stripe/stripe-js@9.6.0。
+ *    调用面（stripe={stripePromise} / elements.getElement / createPaymentMethod /
+ *    confirmCardPayment / confirmCardSetup）逐字不变。 ── */
 /** 横切：遥测上报（40457）/ 远断错误守卫（4894）/ 验证码错误码（736 导入）/ 平台桥（S） */
 declare function trackTelemetry(service: any, event: Record<string, unknown>, scope: string): void; // xw
 declare function isBenignRemoteError(error: unknown): boolean; // Sc
@@ -3681,7 +3684,12 @@ export function AddStripeCardForm({
     [formError, setFormError] = React.useState<string | null>(null),
     submitting = busy || binding;
   async function handleSubmit(event: React.FormEvent) {
-    if ((event.preventDefault(), setFormError(null), !stripe || !elements)) {
+    /* A0-S3a：原逗号守卫 `if ((event.preventDefault(), setFormError(null), !stripe || !elements))`
+       拆分为等价顺序语句——副作用次序逐字不变，真实 @stripe 类型（Stripe | null /
+       StripeElements | null）须经显式收窄方可调用，逗号表达式不触发 TS 收窄。 */
+    event.preventDefault();
+    setFormError(null);
+    if (!stripe || !elements) {
       setFormError(
         intl.formatMessage({ id: `settings.modelProvider.codingPlan.overseasPayment.stripeNotReady` }),
       );

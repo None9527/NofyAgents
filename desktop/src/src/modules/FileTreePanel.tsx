@@ -155,6 +155,7 @@
  */
 
 import * as React from "react";
+import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input, toast, usePlatform } from './ImeComposition';
 import { baseName, relativePathFromWorkspace, useRemoteWorkspaceInfo } from './MarkdownIntegration';
@@ -251,20 +252,10 @@ interface VirtualItem {
   size: number;
   end: number;
 }
-interface Virtualizer {
-  getVirtualItems(): VirtualItem[];
-  getTotalSize(): number;
-  scrollToIndex(index: number, options?: { align?: string }): void;
-  scrollToOffset(offset: number): void;
-  scrollOffset?: number;
-  scrollDirection?: string;
-}
-declare function useVirtualizer(options: {
-  count: number;
-  getScrollElement: () => HTMLElement | null;
-  estimateSize: () => number;
-  overscan?: number;
-}): Virtualizer;
+/* ── tombstone（A0-S3a）：本地 Virtualizer 接口 + vendored useVirtualizer declare 删除，
+ *    改 npm @tanstack/react-virtual@3.14.10 真实 import（文件头）；真实 Virtualizer 为
+ *    原接口面的超集（getVirtualItems/getTotalSize/scrollToIndex/scrollToOffset/scrollOffset/
+ *    scrollDirection 均吻合）。VirtualItem 接口保留（行 1319/1358/1844 组件 prop 仍消费）。 ── */
 
 /* 路径助手（横切 1925–1975，未归本批，接口挂接） */
 declare function parentDirectoryPath(path: string): string | null; // 原 sae（1932）
@@ -2291,7 +2282,7 @@ export function FileTreePanel({
     stickyRows = useStickyFolderScroll({
       rows: visibleRows,
       virtualItems,
-      scrollDirection: virtualizer.scrollDirection,
+      scrollDirection: virtualizer.scrollDirection ?? undefined,
       scrollOffset,
       enabled: stickyScrollEnabled,
       onScrollToOffset: virtualizer.scrollToOffset,

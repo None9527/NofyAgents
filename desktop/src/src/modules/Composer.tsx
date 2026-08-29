@@ -458,6 +458,7 @@
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
+import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Spinner } from './Home';
 import { PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
@@ -770,17 +771,9 @@ declare const COPY_COMMAND: LexicalCommand;
 declare const BLUR_COMMAND: LexicalCommand;
 declare const LexicalHistoryPlugin: React.ComponentType<Record<string, unknown>>;
 
-/** 11. useVirtualizer（@tanstack/react-virtual，vendored） */
-declare function useVirtualizer(options: {
-  count: number;
-  getScrollElement: () => HTMLElement | null;
-  estimateSize: (index: number) => number;
-  overscan: number;
-}): {
-  getTotalSize(): number;
-  getVirtualItems(): Array<{ index: number; size: number; start: number; key: string | number }>;
-  scrollToIndex(index: number, options?: { align: string }): void;
-};
+/* ── tombstone（A0-S3a）：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）declare 删除，
+ *    改 npm @tanstack/react-virtual@3.14.10 真实 import（文件头）；
+ *    count/getScrollElement/estimateSize/overscan 调用面与 getTotalSize/getVirtualItems/scrollToIndex 返回面逐字不变。 ── */
 
 /** 12. usageStatsUiParts-CiR7YEhh.js（B5-11 已重建 UsageStatsUiParts.tsx）：Tooltip/Progress 原语 */
 /* ── tombstone（A0-D）：Tooltip（原 Ia，title/shortcut 形）declare 删除——本文件无调用面（孤儿）；

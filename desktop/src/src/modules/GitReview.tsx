@@ -201,6 +201,7 @@
  */
 
 import * as React from "react";
+import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { resolveBranchDisplayLabel } from './CmdkPaletteDeep';
 import { DiffViewer, readLastEditorId as getPreferredEditorId } from './CodeViewer'; // 原 OA
@@ -272,22 +273,10 @@ interface StoreApi<T> {
 }
 export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R) & (() => T); // 无参调用返回全量 state（zustand 语义）
 
-/** 虚拟列表（原 to，esm-BY6T6pIH.js 的 t 导出 = @tanstack/react-virtual useVirtualizer） */
-interface VirtualItem { key: string | number; index: number; start: number; size: number }
-interface Virtualizer {
-  getVirtualItems(): VirtualItem[];
-  getTotalSize(): number;
-  scrollToIndex(index: number, opts?: { align?: "start" | "center" | "end" | "auto" }): void;
-  measure(): void;
-  measureElement(el: Element | null): void;
-}
-declare function useVirtualizer(opts: {
-  count: number;
-  getItemKey: (index: number) => string | number;
-  getScrollElement: () => HTMLElement | null;
-  estimateSize: () => number;
-  overscan: number;
-}): Virtualizer;
+/* ── tombstone（A0-S3a）：本地 VirtualItem/Virtualizer 接口 + vendored useVirtualizer declare
+ *    （原 to，esm-BY6T6pIH.js 的 t 导出）删除，改 npm @tanstack/react-virtual@3.14.10 真实
+ *    import（文件头）；真实 Virtualizer 为原接口面的超集（getVirtualItems/getTotalSize/
+ *    scrollToIndex/measure/measureElement 均吻合），VirtualItem 字段 key/index/start/size 逐字不变。 ── */
 
 /* --- Radix/shadcn 封装原语（本 chunk 内；类名逐字保留于各自定义处） --- */
 

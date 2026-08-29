@@ -122,6 +122,7 @@
  */
 
 import * as React from "react";
+import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { BackgroundWorksCapsule, ComposerInput, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from './Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）
 import { countContextAttachments, isAddToChatEvent, useCodeCommentContexts, type CodeCommentAttachment } from './GitReview';
@@ -154,17 +155,9 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** useTaskStore（原 xe，skillStore chunk）——本族仅用 draftFocusVersion */
 
-/** 虚拟列表（原 to，esm-BY6T6pIH.js = @tanstack/react-virtual useVirtualizer） */
-declare function useVirtualizer(opts: {
-  count: number;
-  getScrollElement: () => HTMLElement | null;
-  estimateSize: (index: number) => number;
-  overscan: number;
-}): {
-  getTotalSize(): number;
-  getVirtualItems(): Array<{ index: number; size: number; start: number; key: string | number }>;
-  scrollToIndex(index: number, opts?: { align?: "auto" | "start" | "center" | "end" }): void;
-};
+/* ── tombstone（A0-S3a）：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）declare 删除，
+ *    改 npm @tanstack/react-virtual@3.14.10 真实 import（文件头）；
+ *    count/getScrollElement/estimateSize/overscan 调用面与 getTotalSize/getVirtualItems/scrollToIndex 返回面逐字不变。 ── */
 
 /* --- 平台 / 服务 --- */
 

@@ -71,6 +71,7 @@
  * ============================================================================
  */
 import * as React from "react";
+import * as qrcode from 'qrcode'; // A0-S3a：vendored qrcode（78456–79690，Qq）→ npm qrcode@1.5.4
 /* ── tombstone（A0-S2d）：原 `import { workspaceKeyOf } from './CodeViewer'` 已删除——
  *    唯一消费点在 §6 重复转录段（149473–149599，canonical 在 WebRemote.tsx），
  *    随段删除后无引用（该接线本身即错配：签名 (string, string?) 与调用面不符）。 ── */
@@ -148,10 +149,9 @@ declare const PlusIcon: React.FC<React.SVGProps<SVGSVGElement>>; // kv
  *    SrcSharedB（generateUuid）、Modals（useConfirmDialog），经文件头真实 import 消费。
  *    原 `c as ei`（工作区稳定键）挂注随 §6 重复转录段删除（canonical = SrcSharedB
  *    webRemoteWorkspaceKey，消费面在 WebRemote）。 ── */
-/** vendored qrcode 库（本 chunk 78456–79690，VENDOR 登记不转录）：toDataURL */
-declare const qrcode: {
-  toDataURL(text: string, opts: { margin: number; width: number }): Promise<string>;
-};
+/* ── tombstone（A0-S3a）：vendored qrcode 库（78456–79690，Qq）declare 删除，
+ *    改 npm qrcode@1.5.4 真实 import（文件头 `import * as qrcode from 'qrcode'`）；
+ *    toDataURL(text, { margin, width }) 调用面逐字不变。 ── */
 
 interface BotsService {
   getConfig(): Promise<BotsConfig>;

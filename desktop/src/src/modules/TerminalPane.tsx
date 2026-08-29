@@ -13,8 +13,11 @@
  * provider / CSS 变量主题 / OSC 52 剪贴板 addon / fit+resize 合流）、单会话终端面板
  * （SidePanel `terminal` 标签内容）、多会话 dock（标签页 新建/关闭/退出自动关）、
  * dock 面板控制器（react-resizable-panels 挂载/折叠/尺寸记忆）。
- * vendored xterm 库本体（js 162010–175264，13,255 行单声明，`nHt='3.7.8'` 起始）
- * 按 MODULE-MAP 横切层 X14 登记，**不逐行还原**，仅以依赖接口挂接。
+ * xterm 库本体原为 vendored（js 162010–175264；旧注「`nHt='3.7.8'` 起始」系误归——
+ * 该版本号实属 js-base64，jsx 134112）。S3a 裁决：bundle 指纹 = xterm 5.5.0
+ * （含 5.5 专有 rescaleOverlappingGlyphs/allowRescaling/isEmoji/blink_block_$，
+ * 无 5.4 专有 blink_box_shadow_；documentOverride 排除 5.3），落地为 npm
+ * @xterm/xterm@5.5.0 + @xterm/addon-fit@0.10.0（X14 结案）。
  *
  * ----------------------------------------------------------------------------
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
@@ -97,12 +100,15 @@
  *  8. ContextMenu 封装 yk/bk/xk/Sk    本 chunk 48825–48880（Radix ContextMenu）
  *  9. react-resizable-panels 封装 Z4/Q4（131934–131960）、ScopedErrorBoundary p4（129952）
  * 10. basename (Go)                   同 chunk 路径助手
- * 11. xterm（vendored，X14 登记不还原）：PHt=Terminal 模块、NHt=FitAddon 模块（175263–175264）；
- *     OHt=OSC 52 剪贴板 addon（162213，本文件逐字重建）
+ * 11. xterm → npm @xterm/xterm@5.5.0（原 vendored PHt=Terminal，175263）+
+ *     @xterm/addon-fit@0.10.0（原 NHt=FitAddon，175264）；
+ *     OHt=OSC 52 剪贴板 addon（162213，应用级，本文件逐字重建）
  * ============================================================================
  */
 
 import * as React from "react";
+import { Terminal } from '@xterm/xterm'; // xterm 核心（原 vendored PHt；bundle 指纹 = 5.5.0，S3a 裁决）
+import { FitAddon } from '@xterm/addon-fit'; // fit 插件（原 vendored NHt）
 /* ── tombstone（A0-D-Misc）：原 `import { ContextMenuItem } from './LegacyDocEngineBModel'` 退回——
  *    该处 ContextMenuItem 为数据接口（interface），非组件值；本处消费面为 radix
  *    ContextMenu 条目组件（Sk，本 chunk 48825–48880），按 Lane-4 恢复 declare。 ── */
@@ -173,13 +179,15 @@ declare const PanelResizeHandle: React.FC<{
 /** 作用域错误边界（原 p4，129952） */
 
 /* ----------------------------------------------------------------------------
- * xterm 依赖接口（vendored，X14；原 PHt/NHt 175263–175264）
+ * xterm 依赖接口（S3a：npm @xterm/xterm@5.5.0 + @xterm/addon-fit@0.10.0；
+ * 原 vendored PHt/NHt 175263–175264）
  * -------------------------------------------------------------------------- */
 interface XtermTheme {
   [slot: string]: string | undefined;
 }
 interface XtermWindowsPty {
-  backend: string;
+  /** xterm IWindowsPty 契约：'conpty' | 'winpty' */
+  backend: "conpty" | "winpty";
   buildNumber?: number;
 }
 interface XtermBufferCell {
@@ -210,48 +218,10 @@ interface XtermLinkProvider {
 interface XtermDisposable {
   dispose(): void;
 }
-interface XtermTerminalInstance {
-  cols: number;
-  rows: number;
-  options: {
-    theme?: XtermTheme;
-    fontFamily?: string;
-    fontSize?: number;
-    windowsPty?: XtermWindowsPty | undefined;
-  };
-  buffer: XtermBuffer;
-  loadAddon(addon: unknown): void;
-  open(element: HTMLElement): void;
-  write(data: string): void;
-  paste(data: string): void;
-  focus(): void;
-  hasSelection(): boolean;
-  getSelection(): string;
-  attachCustomKeyEventHandler(handler: (event: KeyboardEvent) => boolean): void;
-  registerLinkProvider(provider: XtermLinkProvider): XtermDisposable;
-  onData(handler: (data: string) => void): XtermDisposable;
-  dispose(): void;
-  /** 内部句柄：Windows 桌面 IME 回退监听 textarea（原 s._core?.textarea） */
-  _core?: { textarea?: HTMLTextAreaElement };
-  /** vendored 内部 API：OSC 处理注册（原 parser.registerOscHandler） */
-  registerOscHandlerCompat?(
-    id: number,
-    handler: (data: string) => boolean | Promise<boolean>,
-  ): XtermDisposable;
-  /** vendored 内部 API：反向写入（原 terminal.input(data, false)） */
-  inputCompat?(data: string, isUserInput: boolean): void;
-}
-declare const XtermModule: {
-  Terminal: new (options: {
-    fontSize: number;
-    fontFamily: string;
-    theme: XtermTheme;
-    linkHandler: { allowNonHttpProtocols: boolean; activate(event: MouseEvent, uri: string): void };
-  }) => XtermTerminalInstance;
-};
-declare const XtermFitAddonModule: {
-  FitAddon: new () => { fit(): void };
-};
+/** xterm 实例契约 = npm @xterm/xterm@5.5.0 的 Terminal（原 vendored PHt.Terminal，X14 裁决落地）。
+ *  原 declare 的三个内部句柄改走 5.5 公开 API：registerOscHandlerCompat → parser.registerOscHandler、
+ *  inputCompat → input(data, false)、_core?.textarea → textarea。 */
+type XtermTerminalInstance = Terminal;
 
 /** 终端服务（services.terminalService，host 32 服务面之一） */
 interface TerminalCreateResult {
@@ -772,14 +742,14 @@ export class Osc52ClipboardAddon {
   ) {}
   activate(terminal: XtermTerminalInstance): void {
     this.terminal = terminal;
-    this.disposable = terminal.registerOscHandlerCompat?.(52, (data) => this.setOrReportClipboard(data)) ?? null;
+    this.disposable = terminal.parser.registerOscHandler(52, (data) => this.setOrReportClipboard(data));
   }
   dispose(): void {
     return this.disposable?.dispose();
   }
   private readText(slot: string, text: string): void {
     const encoded = this.base64.encodeText(text);
-    this.terminal?.inputCompat?.(`\x1B]52;${slot};${encoded}\x07`, false);
+    this.terminal?.input(`\x1B]52;${slot};${encoded}\x07`, false);
   }
   private setOrReportClipboard(data: string): boolean | Promise<boolean> {
     const parts = data.split(";");
@@ -996,7 +966,7 @@ export function XtermTerminalPane({
     let disposed = false;
     customThemeRef.current = void 0;
 
-    const term = new XtermModule.Terminal({
+    const term = new Terminal({
       fontSize: 13,
       fontFamily: TERMINAL_FONT_STACK,
       theme: mergeTerminalTheme(customThemeRef.current),
@@ -1012,7 +982,7 @@ export function XtermTerminalPane({
     });
     termRef.current = term;
 
-    const fitAddon = new XtermFitAddonModule.FitAddon();
+    const fitAddon = new FitAddon();
     fitRef.current = fitAddon;
     term.loadAddon(fitAddon);
     term.loadAddon(new Osc52ClipboardAddon());
@@ -1163,8 +1133,8 @@ export function XtermTerminalPane({
             }),
           );
 
-          /* Windows 桌面：xterm 内部 textarea 的组合输入回退（IME 丢字守卫） */
-          const textarea = isWindowsDesktop ? term._core?.textarea : void 0;
+          /* Windows 桌面：xterm 隐藏 textarea 的组合输入回退（IME 丢字守卫；5.5 公开 API term.textarea） */
+          const textarea = isWindowsDesktop ? term.textarea : void 0;
           if (textarea) {
             const onInput = (event: InputEvent) => {
               if (event.inputType !== "insertText" || !event.data || !event.composed) return;
