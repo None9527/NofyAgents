@@ -649,7 +649,7 @@ function isMermaidLanguage(language: string): boolean {
  * ==========================================================================*/
 
 /** 原 __t：构建文件预览源（代码查看器入参） */
-function buildFilePreviewSource(args: {
+export function buildFilePreviewSource(args: {
   path: string;
   relativePath: string;
   workspacePath?: string;
@@ -674,24 +674,23 @@ function buildFilePreviewSource(args: {
   };
 }
 
-interface OpenWithTarget {
-  type: `file` | `website`;
-  path: string;
+/** 「打开方式」目标形（判别联合）：file 支收 path/title/label 全量；
+ *  website 支 bundle 111334 调用面仅 type+url（path/title/label 可省）。
+ *  previewSource.path 可选：消费面 E_t（ConversationLeaves）按 card.path 可缺省。 */
+interface FileOpenPreviewSource {
+  type: string;
   title: string;
-  label: string;
-  url?: string;
-  previewSource?: {
-    type: string;
-    title: string;
-    path: string;
-    workspacePath?: string;
-    workspaceIdentity?: string;
-    workspaceRemoteSessionId?: string;
-  };
+  path?: string;
+  workspacePath?: string;
+  workspaceIdentity?: string;
+  workspaceRemoteSessionId?: string;
 }
+type OpenWithTarget =
+  | { type: `file`; path: string; title: string; label: string; url?: string; previewSource?: FileOpenPreviewSource }
+  | { type: `website`; url?: string; path?: string; title?: string; label?: string; previewSource?: FileOpenPreviewSource };
 
 /** 原 v_t：文件「打开方式」拆分按钮（主打开 + 第三方 App 菜单 + 复制路径） */
-function FileOpenWithMenu({
+export function FileOpenWithMenu({
   target,
   onOpenBrowserUrl,
   onOpenFileLink,
@@ -709,7 +708,7 @@ function FileOpenWithMenu({
     workspaceIdentity?: string;
     workspaceRemoteSessionId?: string;
   }) => void;
-  onOpenCodeViewer?: (source: { type: string; title: string; path: string }) => void;
+  onOpenCodeViewer?: (source: { type: string; title: string; path?: string }) => void; // path 可省：previewSource 透传面（E_t 形）path 可缺
   hideOpenWithMenu?: boolean;
   stopPropagation?: boolean;
 }) {

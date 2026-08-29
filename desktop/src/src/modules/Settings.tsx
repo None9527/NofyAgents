@@ -145,7 +145,7 @@
 import * as React from "react";
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input, toast, useSelectDirectory } from './ImeComposition';
-import { RemoteSyncDialogs } from './Modals';
+import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource } from './Modals'; // +$2（A0-CLEANUP2 item 14 接线：原别名保留）
 import { McpImportDialog, McpServerEditor, McpServerRow, ModelProviderSettingsSection } from './SettingsPanels';
 import { CommandsSettingsSection, HooksSettingsSection, PluginsSettingsSection, SkillsSettingsSection, SubagentsSettingsSection } from './SettingsPanelsCapability';
 import { MemoryFilePreview, MigrationSettingsSection, UsageSettingsSection } from './SettingsPanelsData';
@@ -445,13 +445,8 @@ declare const WindowsCaptionControls: React.FC<{ className?: string }>;
 /** 原 ROt（js 129508 附近）：caption 菜单让位的额外 margin 常量 */
 declare const WINDOWS_CAPTION_MENU_MARGIN: string;
 /** 原 r4（js 127248，TopBar.tsx RemoteSyncDialogs）：远程同步对话框组 */
-/** 原 $2（js 127125）：是否可打开远程会话源（远程同步可用性判定） */
-declare function canOpenRemoteSessionSource(input: {
-  remoteSessionId?: string | null;
-  remoteTarget?: RemoteTarget | null;
-  clientMode: "web-remote-replayable" | "desktop-continuous";
-  hasLocalSourceService: boolean;
-}): boolean;
+/* ── tombstone（A0-CLEANUP2 item 14）：canOpenRemoteSessionSource（原 $2）declare 删除
+ *    → import { canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource } from './Modals'。 ── */
 /** 原 q2：远程目标展示标签 */
 declare function remoteTargetDisplayLabel(target: RemoteTarget, workspacePath: string): string;
 

@@ -100,24 +100,24 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
+import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep'; // 原 v_t/__t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
 import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）
 import { OffPeakNewTaskBanner } from './Home';
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
 import { Badge } from './PaymentDeep';
 import { logger } from './SkillStore';
-import { ConversationSummaryAside } from './TopBar';
+import { ConversationSummaryAside, buildSummaryPanelModel, resolveSummaryPanelVariant, type BackgroundWork, type GitSummary, type RunningSubagent, type SummaryGoal, type SummaryPanelVariant } from './TopBar'; // A0-CLEANUP2 items 17+46：本地镜像删除 → 属主导出（GitSummary.branchName 属主侧已 string | null）
 import { BillingDiscountBadge, type BillingDiscountConfig } from './UsageDeep'; // +BillingDiscountConfig（A0-D 类型收敛）
-import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u 导出 = X InfoTooltip，title/description/shortcut 面吻合）
+import { InfoTooltip as Tooltip, useControllableState } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u 导出 = X InfoTooltip）+ 原 fa（A0-CLEANUP2 item 47 接线）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
 import { Button } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 import { PRIMARY_PANE_ID, useSessionRouterStore, useSplitLayoutStore, workspaceScopeKey, type SessionBinding, type WorkspaceScope } from './stores-session'; // +SessionBinding/WorkspaceScope（A0-D 类型收敛）
 
-/* ── tombstone（A0-D）：FileOpenWithMenu/buildFilePreviewSource（原 v_t/__t，
- *    FileRewindDialogDeep 110427/110410）与 buildSummaryPanelModel/resolveSummaryPanelVariant
- *    （原 tlt/Uct，TopBar 98133/98016）的跨文件 import 已回退为 §0 declare——
- *    属主本地定义未导出（需要的 export 已登记），待补 export 后换真实 import。 ── */
+/* ── tombstone（A0-D → A0-CLEANUP2 items 45+46 已接线）：FileOpenWithMenu/buildFilePreviewSource
+ *    （原 v_t/__t，FileRewindDialogDeep 110427/110410）与 buildSummaryPanelModel/resolveSummaryPanelVariant
+ *    （原 tlt/Uct，TopBar 98133/98016）——属主已补 export，§0 declare 删除，改文件头真实 import。 ── */
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -127,60 +127,9 @@ import { PRIMARY_PANE_ID, useSessionRouterStore, useSplitLayoutStore, workspaceS
  *       脚手架随删除。 ──
  * ==========================================================================*/
 
-/** 原 v_t（110427 / 94447，FileRewindDialogDeep 未导出）：文件「打开方式」拆分按钮（调用面形状） */
-declare const FileOpenWithMenu: React.FC<{
-  target: {
-    type: `file` | `website`;
-    path?: string;
-    title?: string;
-    label?: string;
-    url?: string;
-    previewSource?: unknown;
-  };
-  onOpenBrowserUrl?: (url: string) => void;
-  onOpenFileLink?: (path: string) => void;
-  onOpenCodeViewer?: (target: unknown) => void;
-  hideOpenWithMenu?: boolean;
-  stopPropagation?: boolean;
-}>;
-/** 原 __t（110410 / 94426，FileRewindDialogDeep 未导出）：构建文件预览源（代码查看器入参） */
-declare function buildFilePreviewSource(args: {
-  path: string;
-  relativePath: string;
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  workspaceRemoteSessionId?: string | null;
-}): {
-  type: `file`;
-  title: string;
-  path: string;
-  workspacePath?: string;
-  workspaceIdentity?: string;
-  workspaceRemoteSessionId?: string;
-};
-/** 原 tlt（98133 / 85113，TopBar 未导出）：会话状态 → 摘要面板模型 */
-declare function buildSummaryPanelModel(args: {
-  gitSummary: GitSummary;
-  gitDirtyFileCount: number;
-  gitWorktreeChangeSummary?: unknown;
-  goal?: SummaryGoal | null;
-  sessionPlans?: unknown;
-  workspacePath: string;
-  plan?: unknown;
-  backgroundWorks?: BackgroundWork[];
-  runningSubagents?: RunningSubagent[];
-}): {
-  git: GitSummary | null;
-  goal: SummaryGoal | null;
-  sessionPlans: unknown;
-  plan: unknown;
-  runningWorks: BackgroundWork[];
-  runningBashWorks: BackgroundWork[];
-  runningSubagentWorks: RunningSubagent[];
-  hasContent: boolean;
-};
-/** 原 Uct（98016 / 84991，TopBar 未导出）：变体解析（override 优先，缺省 auto） */
-declare function resolveSummaryPanelVariant(args: { variantOverride: SummaryPanelVariant | null }): SummaryPanelVariant;
+/* ── A0-CLEANUP2 items 45+46：FileOpenWithMenu/buildFilePreviewSource declare 删除 →
+ *    import from './FileRewindDialogDeep'；buildSummaryPanelModel/resolveSummaryPanelVariant
+ *    declare 删除 → import from './TopBar'（属主均已导出，形状逐字段吻合）。 ── */
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
@@ -445,42 +394,9 @@ declare function classifyToolCall(toolCall: { toolName?: string; kind?: string }
  *    canonical = ConversationLeaves（OpenCodeViewerFn）/ MarkdownIntegration
  *    （CodePreviewSettings 五字段严格型），经文件头 type import 消费。 ── */
 
-/** 摘要面板（右 aside，原 Flt/Ilt，已随 TopBar 族抽取；此处仅接口） */
-interface GitSummary {
-  isGitAvailable: boolean;
-  isRepository: boolean;
-  branchName: string;
-  headRefType: "branch" | "detached" | string;
-}
-
-/* ── A0-D：TopBar 未导出类型的本地镜像（与 TopBar 2719–2742 逐字段同形；
- *    待 TopBar 补 export 后改 type import，需要的 export 已登记）。 ── */
-type SummaryPanelVariant = "mini" | "panel" | "auto";
-interface BackgroundWork {
-  workId: string;
-  kind: "bash" | "subagent";
-  status: "running" | string;
-  title?: string;
-  childSessionId?: string;
-  cancellable?: boolean;
-  blocked?: boolean;
-  startedAt?: number;
-}
-interface RunningSubagent {
-  agentId?: string;
-  childSessionId: string;
-  controlWorkId?: string;
-  subagentType?: string;
-  title?: string;
-  status: string;
-  startedAt?: number;
-  cancellable?: boolean;
-}
-interface SummaryGoal {
-  objective: string;
-  status: string;
-  [key: string]: unknown;
-}
+/* ── A0-CLEANUP2 items 17+46：GitSummary（含 branchName: string | null，item 17 目标）
+ *    与 SummaryPanelVariant/BackgroundWork/RunningSubagent/SummaryGoal 本地镜像删除 →
+ *    type import from './TopBar'（属主导出，逐字段同形；branchName 属主侧已收 string | null）。 ── */
 
 /** Home 草稿头（原 hit，memo 名 git；F02 族 jsx 78144；Composer 接线在此） */
 declare const HomeDraftHeader: React.FC<Record<string, unknown>>;
@@ -1549,8 +1465,7 @@ function isReasoningAtBottom(metrics: { clientHeight: number; scrollHeight: numb
   return reasoningDistanceFromBottom(metrics) <= REASONING_BOTTOM_EPSILON_PX;
 }
 
-/** 原 fa：useControllableState（dist-DJJArJ7D.js 的 p 导出；此处为等价重建） */
-declare function useControllableState<T>(opts: { defaultProp: T; prop?: T; onChange?: (value: T) => void }): [T, (value: T) => void];
+/* A0-CLEANUP2 item 47：useControllableState declare 删除 → import { useControllableState } from './UsageStatsUiParts'（原 fa = dist-DJJArJ7D.js p 导出，属主 export declare 登记）。 */
 
 /**
  * Reasoning 根（原 z_t，js 111329 / jsx 95033，displayName=`Reasoning`）。

@@ -230,7 +230,7 @@ declare const CheckboxIndicator: React.FC<React.ComponentPropsWithoutRef<"span">
 declare const Slot: React.FC<Record<string, unknown>>;
 
 /** 基础服务 context（原 fs()，本 chunk 2638） */
-interface BaseServices {
+export interface BaseServices {
   settingsSyncService: SettingsSyncService;
   modelProviderService: { getAll(): Promise<unknown> };
   fileService: {
@@ -606,7 +606,7 @@ function splitUpdateDialogTitle({
 }
 
 /** 原 yq（js 75986+ / jsx 67310）：Progress 条（本 chunk 内共享小件，随族转录） */
-function Progress({
+export function Progress({
   className,
   indicatorClassName,
   segments,
@@ -5274,7 +5274,7 @@ const AUTOMATION_CONFIRM_DIALOG_CLASS = `min-h-[180px] w-[min(448px,calc(100vw-2
  * 打开期间 window 级 Enter 捕获确认；esc/⏎ 键帽提示可关（showKeyboardHints）。
  * presentation=`automation-confirmation` 时加宽 + 描述 line-clamp-3。
  */
-function ConfirmDialog() {
+export function ConfirmDialog() {
   const { intl } = useIntlContext();
   const pending = ConfirmDialogStore((state) => state.pendingRequest);
   const settle = ConfirmDialogStore((state) => state.settleConfirmation);
@@ -5388,7 +5388,7 @@ function ConfirmDialog() {
 }
 
 /** 原 P9（js 206704-206710 / jsx 164396）：模态宿主——全窗口壳挂 G4t + q4t */
-export function AppDialogHost({ children }: { children: React.ReactNode }) {
+export function AppDialogHost({ children }: { children?: React.ReactNode }) {
   return (
     <div className={`relative h-dvh`}>
       {children}

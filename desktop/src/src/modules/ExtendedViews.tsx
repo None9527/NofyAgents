@@ -150,7 +150,7 @@
 
 import * as React from "react";
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
-import { ModelSelector } from './Composer';
+import { ModelSelector, type ModelGroup } from './Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 vq，js 75527）
 import { Input, Popover, PopoverContent, PopoverTrigger, toast, type ToastOptions } from './ImeComposition'; // ToastOptions 原属 imeComposition chunk（与 toast 同主）
 import { MarkdownRenderer } from './MarkdownIntegration';
 import { FilePathInline, pathBasename, resolveFileDisplayInfo } from './ModalsLeaves';
@@ -2104,7 +2104,7 @@ const WikiGenerateEmptyState: React.FC<{
             <div className="text-ui-base font-medium text-foreground-subtle">{intl.formatMessage({ id: "repoWiki.meta.model" })}</div>
             <div className="min-w-0">
               <ModelSelector
-                modelGroups={modelGroups}
+                modelGroups={modelGroups as unknown as ModelGroup[]}
                 normalizedValue={selectedModelValue}
                 triggerLabel={selectedModelLabel}
                 showManageModelsAction={false}
@@ -2760,7 +2760,7 @@ export const RepoWikiView: React.FC<{
                 </SelectContent>
               </SelectRoot>
               <ModelSelector
-                modelGroups={modelGroups}
+                modelGroups={modelGroups as unknown as ModelGroup[]}
                 normalizedValue={normalizedModelValue}
                 triggerLabel={modelTriggerLabel}
                 showManageModelsAction={false}

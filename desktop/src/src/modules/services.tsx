@@ -60,7 +60,7 @@ import {
   type RegisteredSession,
 } from "./stores-core";
 import { createConversationTransport } from './FeedbackCenter';
-import { INITIAL_SESSION_INDEX_STATE, RUNTIME_RESTART_BASE_DELAY_MS, RUNTIME_RESTART_MAX_DELAY_MS, RUNTIME_RESTART_RESET_MS, SUBSCRIBE_RETRY_BACKOFF_MS, applyFrameToIndexState, isDormantSubscribeError, isTransientSubscribeError } from './QuickPickDeep';
+import { INITIAL_SESSION_INDEX_STATE, RUNTIME_RESTART_BASE_DELAY_MS, RUNTIME_RESTART_MAX_DELAY_MS, RUNTIME_RESTART_RESET_MS, SUBSCRIBE_RETRY_BACKOFF_MS, applyFrameToIndexState, isDormantSubscribeError, isTransientSubscribeError, type SessionIndexRow } from './QuickPickDeep';
 import { logger } from './SkillStore';
 import { SessionSnapshotSchema, crc32Hex } from './SrcSharedB';
 import { buildCompactionDetail, buildMessageCompletionDetail, buildPromptSeedDetail, clearConversationWaitState, currentConversationModel, extractPromptSeedFromTurnStarted, extractStepSourceDetail, finalizeConversationSteps, lastReportedMessageId, purgeConversationTiming, purgePromptSeedTiming, recordComposerFocusSink, recordComposerTextChangeSink, recordConversationResult, recordDuration, recordModelRequestStatus, recordPermissionRequested, recordPermissionResolved, recordProviderTtft, recordStreamChunkForeground, recordSubagentToolAttribution, recordToolPerformance, recordTtft, recordTurnStarted, recordUsageDelta, reportTelemetry, reportVisibleChatErrorSink, resolveBusinessRecoveryAction, resolveCompactionModelName } from './StoresDeep';
@@ -3677,7 +3677,8 @@ export interface SessionIndexState {
   workspaceId: string | null;
   logEpoch: string | null;
   seq: number;
-  sessions: Map<string, SessionIndexEntry>;
+  /** A0-CLEANUP2 item 20：对齐属主 QuickPickDeep 行形（原镜像 SessionIndexEntry 弱形移至 getSessions 公共边界）。 */
+  sessions: Map<string, SessionIndexRow>;
 }
 
 export type SessionIndexStatus = "idle" | "connecting" | "live" | "dormant" | "error";
@@ -3714,7 +3715,7 @@ interface SessionIndexRecovery {
  * 运行时重启 → 指数退避重连（突发计数 2^min(n-1,16)，封顶）。
  */
 export class SessionIndexStore {
-  private state: SessionIndexState = INITIAL_SESSION_INDEX_STATE as unknown as SessionIndexState;
+  private state: SessionIndexState = INITIAL_SESSION_INDEX_STATE;
   private listeners = new Set<() => void>();
   private cachedList: SessionIndexEntry[] | null = null;
   private transport: SessionIndexTransport | null = null;
@@ -4044,7 +4045,7 @@ export class SessionIndexStore {
       clearTimeout(this.runtimeRestartReconnectTimer);
       this.runtimeRestartReconnectTimer = null;
     }
-    this.state = INITIAL_SESSION_INDEX_STATE as unknown as SessionIndexState;
+    this.state = INITIAL_SESSION_INDEX_STATE;
     this.cachedList = null;
     this.status = "dormant";
     this.emit();
@@ -4086,12 +4087,13 @@ export class SessionIndexStore {
   /** 返回 true 表示帧断档 */
   private applyFrame(frame: { payload: unknown; toSeq: number }): boolean {
     const { state, gap } = applyFrameToIndexState(
-      this.state as unknown as typeof INITIAL_SESSION_INDEX_STATE,
+      this.state,
+      // 传输面 frame.payload 为 {kind; [key]: unknown} 弱形，与属主 snapshot/deltas 判别联合不可比，双铸保留。
       frame as unknown as Parameters<typeof applyFrameToIndexState>[1],
     );
     if (gap) return true;
     if (state !== this.state) {
-      this.state = state as unknown as SessionIndexState;
+      this.state = state;
       this.cachedList = null;
       this.emit();
     }
@@ -4101,7 +4103,7 @@ export class SessionIndexStore {
   reset(): void {
     this.discardRecovery();
     this.subscriptionHasAppliedBase = false;
-    this.state = INITIAL_SESSION_INDEX_STATE as unknown as SessionIndexState;
+    this.state = INITIAL_SESSION_INDEX_STATE;
     this.cachedList = null;
     this.emit();
   }
@@ -4109,7 +4111,8 @@ export class SessionIndexStore {
   /** 按最近活动降序的会话列表（带缓存） */
   getSessions(): SessionIndexEntry[] {
     if (this.cachedList === null) {
-      this.cachedList = [...this.state.sessions.values()].sort((a, b) => b.lastActivityAt - a.lastActivityAt);
+      // 公共边界收弱形（消费面 Sidebar HomeConversationEntry 等收索引签名）；行形 SessionIndexRow → 弱形不可比，双铸。
+      this.cachedList = ([...this.state.sessions.values()] as unknown as SessionIndexEntry[]).sort((a, b) => b.lastActivityAt - a.lastActivityAt);
     }
     return this.cachedList;
   }

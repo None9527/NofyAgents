@@ -9308,7 +9308,7 @@ function startPlanCardCopyOf(providerId: string, preview: any, locale: any) {
 function startPlanEntitlementRowsOf(preview: any, locale: string) {
   return modelUsageEntitlementsOf(preview).map((entry: any) => {
     const name = entry.showName.trim();
-    const units = formatGrantUnits(locale, entry.grantUnits);
+    const units = formatGrantUnits(entry.grantUnits, locale); // A0-CLEANUP2 item 50：(value, locale) 序（bundle PXt）
     const unitName = normalizeUnitName(entry.unitType);
     const suffix = periodSuffixOf(entry.period, locale);
     return locale === `zh-CN` ? `${name}${suffix} ${units} ${unitName}` : `${name} · ${units} ${unitName}${suffix}`;
@@ -9321,7 +9321,7 @@ function startPlanSummaryOf(preview: any, locale: string) {
   if (entries.length === 0) return null;
   const total = entries.reduce((sum: number, entry: any) => sum + entry.grantUnits, 0);
   const daily = entries.every((entry: any) => entry.period.trim() === `daily`);
-  const units = formatGrantUnits(locale, total);
+  const units = formatGrantUnits(total, locale); // A0-CLEANUP2 item 50：(value, locale) 序（bundle PXt）
   return locale === `zh-CN`
     ? `GLM 模型${daily ? `每日` : ``} ${units} tokens`
     : `${units} GLM tokens${daily ? ` daily` : ``}`;

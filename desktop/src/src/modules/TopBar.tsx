@@ -218,7 +218,7 @@ interface RemoteTarget {
 }
 /* ── tombstone（A0-CLEANUP B-21）：本地 InstalledEditor 别名删除 → import type
  *    { InstalledEditor } from './FileTreePanel'（iconDataUrl 为平台实返可选字段）。 ── */
-interface GitSummary {
+export interface GitSummary {
   isGitAvailable: boolean;
   isRepository: boolean;
   /** 与 GitReview.GitSummary 对齐：无仓库时为 null（useGitBranchSwitcher/resolveBranchDisplayLabel 均收 string | null） */
@@ -2706,10 +2706,10 @@ export function RemoteSyncMenuItems({
  * mini 卡宽度用 ResizeObserver 测量（封顶 320px）写入 --chat-summary-panel-mini-width。
  * ==========================================================================*/
 
-type SummaryPanelVariant = "mini" | "panel" | "auto";
-type SummaryPanelLayoutMode = "none" | "inline" | "auto";
+export type SummaryPanelVariant = "mini" | "panel" | "auto";
+export type SummaryPanelLayoutMode = "none" | "inline" | "auto";
 
-interface BackgroundWork {
+export interface BackgroundWork {
   workId: string;
   kind: "bash" | "subagent";
   status: "running" | string;
@@ -2719,7 +2719,7 @@ interface BackgroundWork {
   blocked?: boolean;
   startedAt?: number;
 }
-interface RunningSubagent {
+export interface RunningSubagent {
   agentId?: string;
   childSessionId: string;
   controlWorkId?: string;
@@ -2729,7 +2729,7 @@ interface RunningSubagent {
   startedAt?: number;
   cancellable?: boolean;
 }
-interface SummaryGoal { objective: string; status: string; [key: string]: unknown }
+export interface SummaryGoal { objective: string; status: string; [key: string]: unknown }
 
 interface ConversationSummaryAsideProps {
   workspacePath: string;
@@ -2769,7 +2769,7 @@ const EMPTY_BACKGROUND_WORKS: BackgroundWork[] = [];   // 原 slt（js 98224）
 const EMPTY_SUBAGENTS: RunningSubagent[] = [];         // 原 clt
 
 /** 原 tlt（js 98133）：把原始会话状态归一成摘要面板模型 */
-function buildSummaryPanelModel(args: {
+export function buildSummaryPanelModel(args: {
   gitSummary: GitSummary;
   gitDirtyFileCount: number;
   gitWorktreeChangeSummary?: unknown;
@@ -2798,7 +2798,7 @@ function buildSummaryPanelModel(args: {
 }
 
 /** 原 Uct（js 98016）：变体解析（override 优先，缺省 auto） */
-function resolveSummaryPanelVariant(args: { variantOverride: SummaryPanelVariant | null }): SummaryPanelVariant {
+export function resolveSummaryPanelVariant(args: { variantOverride: SummaryPanelVariant | null }): SummaryPanelVariant {
   return args.variantOverride ?? "auto";
 }
 

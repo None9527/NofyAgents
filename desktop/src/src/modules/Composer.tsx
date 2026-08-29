@@ -464,7 +464,7 @@ import { SelectContent, SelectItem, SelectTrigger, SelectValue } from './Setting
 import { create as createStore, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, useWhiteboardStore } from './SkillStore'; // +createStore（A0-S2d 接线：原 zustand create declare → SkillStore q 导出）；+workspaceKey（A0-D 接线：declare → SkillStore b 导出 resolveWorkspaceKey）
 import { normalizeProviderId } from './SrcSharedB';
 import { useBaseServices, useServices } from './services'; // 原 fs（bundle 2675）= services.tsx useServices（context 面）；基线误名 useWorkspaceServices（= Oc，带参解析面），A0-D 裁决改接 useServices
-import { TooltipContent, TooltipTrigger } from './UsageStatsUiParts'; // 原 fN/pN，usageStatsUiParts-CiR7YEhh.js（A0-D 接线：declare → UsageStatsUiParts radix 导出）
+import { InfoTooltip as TooltipRoot, TooltipContent, TooltipTrigger } from './UsageStatsUiParts'; // 原 fN/pN + Ia（A0-D 接线 + A0-CLEANUP2 item 47：TooltipRoot declare → InfoTooltip 属主导出）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
 import { Button } from './button'; // 原 H，button-laUijeDG.js（A0-D 接线：declare → button canonical）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
@@ -785,9 +785,7 @@ declare function useVirtualizer(options: {
 /** 12. usageStatsUiParts-CiR7YEhh.js（B5-11 已重建 UsageStatsUiParts.tsx）：Tooltip/Progress 原语 */
 /* ── tombstone（A0-D）：Tooltip（原 Ia，title/shortcut 形）declare 删除——本文件无调用面（孤儿）；
  *    同形组件 UsageStatsUiParts.InfoTooltip 已导出，供后续波次按需接线。 ── */
-declare const TooltipRoot: React.ComponentType<
-  { openDelay?: number; closeDelay?: number; children?: React.ReactNode } & Record<string, unknown>
->; // 原 Ia 族封装（title/shortcut 面），UsageStatsUiParts 未导出，需要的 export 已登记
+/* A0-CLEANUP2 item 47：TooltipRoot declare 删除 → import { InfoTooltip as TooltipRoot } from './UsageStatsUiParts'（原 Ia = u 导出，title/shortcut/triggerRef 面吻合）。 */
 /* ── tombstone（A0-D）：TooltipTrigger/TooltipContent declare 删除 → import from './UsageStatsUiParts'（radix 导出）。 ── */
 declare const PopoverRoot: React.ComponentType<Record<string, unknown> & { children?: React.ReactNode }>;
 declare const ProgressRoot: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
@@ -807,7 +805,7 @@ declare const DropdownMenuSubContent: React.ComponentType<Record<string, unknown
 declare const DropdownMenuRadioGroup: React.ComponentType<{ value: string; children?: React.ReactNode }>;
 declare const DropdownMenuRadioItem: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
 declare const SelectRoot: React.ComponentType<Record<string, unknown> & { children?: React.ReactNode }>;
-declare const HoverCardRoot: React.ComponentType<{ children?: React.ReactNode }>;
+declare const HoverCardRoot: React.ComponentType<{ openDelay?: number; closeDelay?: number; children?: React.ReactNode } & Record<string, unknown>>; // dN 透传面（bundle 54538）：radix HoverCard openDelay/closeDelay 收 J4e 调用面（76086）
 declare const HoverCardTrigger: React.ComponentType<{ asChild?: boolean; children?: React.ReactNode }>;
 declare const HoverCardContent: React.ComponentType<Record<string, unknown> & { className?: string; children?: React.ReactNode }>;
 
@@ -1104,7 +1102,7 @@ function dedupeSkillContextList(
 }
 
 /** 原 HB（js 63581）：加载技能上下文（两阶段：占位 loading → 结果/错误；代次防竞态） */
-async function loadSkillContext(
+export async function loadSkillContext(
   args: {
     workspacePath: string;
     provider: string;
@@ -1984,7 +1982,7 @@ function useSessionSlashCommands(workspacePath: string, workspaceIdentity?: stri
   return useTaskStore((state) => taskScopeSelector(state, workspacePath, workspaceIdentity).slashCommands);
 }
 
-interface AppSlashCommand {
+export interface AppSlashCommand {
   value: string;
   description?: string;
   keywords?: string[];
@@ -4222,7 +4220,7 @@ function subscribeMobileTextInputViewport(onChange: (matches: boolean) => void):
 }
 
 /** VV → useIsMobileTextInputViewport（js 66155） */
-function useIsMobileTextInputViewport(): boolean {
+export function useIsMobileTextInputViewport(): boolean {
   const [matches, setMatches] = React.useState(isMobileTextInputViewportNow);
   return (React.useEffect(() => subscribeMobileTextInputViewport(setMatches), []), matches);
 }
@@ -4791,7 +4789,7 @@ function PasteCapturePlugin({ disabled, onPaste }: { disabled: boolean; onPaste?
 }
 
 /** Composer 编辑器对外 API（SYe 注入形状） */
-interface ComposerEditorApi {
+export interface ComposerEditorApi {
   clear(): void;
   focus(): void;
   getEditorState(): LexicalEditorState;
@@ -5254,7 +5252,7 @@ function runOnNextFrame(callback: () => void): void {
 }
 
 /** ZV → ComposerInput（js 67007 / jsx 59468；F08 根组件） */
-function ComposerInput({
+export function ComposerInput({
   workspacePath,
   workspaceIdentity,
   taskId,
@@ -5581,7 +5579,7 @@ interface ComposerAttachment {
 const NANOID_ALPHABET = `useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict`;
 
 /** QV → nanoid（js 67278） */
-const nanoid = (size = 21): string => {
+export const nanoid = (size = 21): string => {
   let id = ``;
   const bytes = crypto.getRandomValues(new Uint8Array((size |= 0)));
   for (; size--;) id += NANOID_ALPHABET[bytes[size] & 63];
@@ -7237,8 +7235,9 @@ function removeCodeCommentEverywhere(
  * ========================================================================== */
 
 /** 网页元素形状（语义归纳；中把握度） */
-interface WebElementContext {
-  id: string;
+export interface WebElementContext {
+  /** 派发面可缺省（BH 校验不含 id）；接收侧 XXe 归一时 `id ?? NXe()` 补齐（bundle 68936）。 */
+  id?: string;
   workspacePath: string;
   workspaceIdentity?: string | null;
   pageUrl: string;
@@ -7305,8 +7304,8 @@ function isWebElementRemoveEvent(event: Event): boolean {
   );
 }
 
-/** BH → isWebElementAddDetail（js 68670） */
-function isWebElementAddDetail(detail: unknown): detail is WebElementContext {
+/** BH → isWebElementAddDetail（js 68670；BrowserPane 消费名 validateWebElementContext） */
+export function isWebElementAddDetail(detail: unknown): detail is WebElementContext {
   const candidate = detail as WebElementContext;
   return (
     typeof detail == `object` &&
@@ -7385,7 +7384,7 @@ function formatWebElementMarkdown(element: WebElementContext): string {
 }
 
 /** zXe → appendWebElementsToContent（js 68737） */
-function appendWebElementsToContent(content: string, elements: WebElementContext[]): string {
+export function appendWebElementsToContent(content: string, elements: WebElementContext[]): string {
   const trimmedContent = content.trimEnd();
   if (elements.length === 0) return trimmedContent.trim();
   const section = `${WEB_ELEMENTS_MARKDOWN_HEADER}\n\n${elements.map((element, index) => formatWebElementMarkdown(element).replace(`## Element`, `## Element ${index + 1}`)).join(`
@@ -7485,8 +7484,8 @@ function extractWebElementsFromContent(content: string, scope: { workspacePath: 
     : { visibleContent: content.slice(0, sectionMatch.index).trimEnd(), webElementContexts: parsed as WebElementContext[] };
 }
 
-/** WXe → dispatchWebElementAddEvent（js 68824） */
-function dispatchWebElementAddEvent(detail: WebElementContext): void {
+/** WXe → dispatchWebElementAddEvent（js 68824；BrowserPane 消费名 addWebElementContextToChat） */
+export function dispatchWebElementAddEvent(detail: WebElementContext): void {
   window.dispatchEvent(new CustomEvent(WEB_ELEMENT_ADD_EVENT, { detail }));
 }
 
@@ -7993,6 +7992,7 @@ interface BackgroundWork {
   kind: string;
   [key: string]: unknown;
 }
+export type { BackgroundWork };
 
 /** nZe → countBackgroundWorks（js 69266） */
 function countBackgroundWorks(works: BackgroundWork[], subagentCount = 0): { bashCount: number; subagentCount: number; totalCount: number } {
@@ -8003,7 +8003,7 @@ function countBackgroundWorks(works: BackgroundWork[], subagentCount = 0): { bas
 }
 
 /** rZe → BackgroundWorksCapsule（js 69273） */
-function BackgroundWorksCapsule({ backgroundWorks, runningSubagentCount = 0, onOpen }: {
+export function BackgroundWorksCapsule({ backgroundWorks, runningSubagentCount = 0, onOpen }: {
   backgroundWorks: BackgroundWork[];
   runningSubagentCount?: number;
   onOpen?: () => void;
@@ -8214,6 +8214,7 @@ interface ModelGroup {
   connectionOptions?: ModelConnectionOption[];
   selectedConnectionKey?: string;
 }
+export type { ModelGroup };
 interface ModelFooterAction {
   key: string;
   label: string;
@@ -8222,7 +8223,7 @@ interface ModelFooterAction {
 }
 
 /** vq → ModelSelector（js 75575 / jsx 67089；MODULE-MAP 副根） */
-const ModelSelector = React.memo(function ModelSelector({
+export const ModelSelector = React.memo(function ModelSelector({
   modelGroups,
   normalizedValue,
   triggerLabel,
@@ -8287,7 +8288,7 @@ const ModelSelector = React.memo(function ModelSelector({
   footerActions?: ModelFooterAction[];
   manageModelsLabel?: string;
   onManageModels?: () => void;
-  focusSelectorOnClose?: string;
+  focusSelectorOnClose?: string | null; // bundle 调用面收 null（132964/197382 等：禁用聚焦还原）
   contentSide?: string;
   contentAlign?: string;
 }) {
@@ -8760,7 +8761,8 @@ export const ContextUsageProvider = ({ usedTokens, maxTokens, usage, modelId, ..
   );
   return (
     <ContextUsageContext.Provider value={contextValue}>
-      <TooltipRoot closeDelay={0} openDelay={0} {...rest} />
+      {/* bundle J4e@76086 渲染 dN（HoverCard root，closeDelay/openDelay=0），非 Ia 族——原重建误挂 TooltipRoot declare。 */}
+      <HoverCardRoot closeDelay={0} openDelay={0} {...rest} />
     </ContextUsageContext.Provider>
   );
 };

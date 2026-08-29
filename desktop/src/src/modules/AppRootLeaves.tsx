@@ -129,7 +129,7 @@ import type {
 } from "./OnboardingLoginLeaves";
 import { CaptchaHostContainer } from './ConversationLeaves';
 import { PlatformProvider } from './ImeComposition';
-import { AppDialogHost, DirectoryBrowserDialog, OnboardingDialog } from './Modals';
+import { AppDialogHost, DirectoryBrowserDialog, OnboardingDialog, type BaseServices } from './Modals'; // +type BaseServices（A0-CLEANUP2 item 16：DirectoryBrowserDialog services 断言改具名型）
 import { CodingPlanUpgradeDialogProvider } from './PaymentDeep'; // 原 krt（89089；A0-CLEANUP B-30 接线）
 import { SettingsView } from './Settings';
 import { useTaskStore, type GroupedDraftPlacement } from './SkillStore';
@@ -2468,7 +2468,7 @@ export function AppRootContent({
             variant={`silent`}
           >
             <DirectoryBrowserDialog
-              services={services as unknown as React.ComponentProps<typeof DirectoryBrowserDialog>["services"]}
+              services={services as unknown as BaseServices}
               onCancel={() => setDirectoryBrowserOpen(false)}
               onSelect={(path: string) => {
                 (setDirectoryBrowserOpen(false), handleSelectProject(path));

@@ -123,7 +123,7 @@
 
 import * as React from "react";
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
-import { BackgroundWorksCapsule, ComposerInput } from './Composer';
+import { BackgroundWorksCapsule, ComposerInput, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from './Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）
 import { countContextAttachments, isAddToChatEvent, useCodeCommentContexts, type CodeCommentAttachment } from './GitReview';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { pathBasename } from './ModalsLeaves';
@@ -1894,7 +1894,7 @@ declare function useWhiteboardAttachmentScope(args: {
   clearAttachments(): void;
   restoreSessionOwnedAttachments(attachments: ComposerAttachment[]): boolean;
   handleWhiteboardMentionSelected: (mention: unknown) => void;
-  handlePaste: (event: React.ClipboardEvent) => void;
+  handlePaste: (event: ClipboardEvent) => void; // A0-CLEANUP2 item 10：对齐 ComposerInput onPaste 的 DOM ClipboardEvent（PasteCapturePlugin 原生监听）
   handleDragOverComposer(event: React.DragEvent): void;
   handleDragLeaveComposer(event: React.DragEvent): void;
   handleDropComposer(event: React.DragEvent): void;
@@ -2808,7 +2808,7 @@ export function DraftComposerRegion({
         const contextAttachmentCount = countContextAttachments({
           codeComments: codeCommentsToSend,
           conversationSelections: selectionsToSend,
-          webElements: webElementsToSend,
+          webElements: webElementsToSend as unknown as WebElementContext[],
           pptxElements: pptxElementsToSend,
         });
         if (draftText) {
@@ -3231,7 +3231,7 @@ export function DraftComposerRegion({
           onSwitchMode={onSwitchMode}
         />
         <BackgroundWorksCapsule
-          backgroundWorks={snapshot?.backgroundWorks ?? []}
+          backgroundWorks={(snapshot?.backgroundWorks ?? []) as BackgroundWork[]}
           runningSubagentCount={runningSubagentCount}
           onOpen={onOpenRunningBackgroundWorks}
         />
@@ -3292,12 +3292,12 @@ export function DraftComposerRegion({
           topContent={topContent}
           attachmentAction={attachmentAction}
           inputTestId={COMPOSER_INPUT_TESTID}
-          inputApiRef={inputApiRef}
+          inputApiRef={inputApiRef as unknown as { current: ComposerEditorApi | null }}
           promptHistory={promptHistory}
           avoidIosInputFocusZoom={avoidIosInputFocusZoom}
           compactPlaceholder={compactNewTask}
           excludedSlashCommandNames={suppressGoalCommands ? ["goal"] : undefined}
-          appSlashCommands={appSlashCommands}
+          appSlashCommands={appSlashCommands as AppSlashCommand[]}
           enableMentionPanel
           leadingActions={leadingActions}
           submitControl={submitControl}

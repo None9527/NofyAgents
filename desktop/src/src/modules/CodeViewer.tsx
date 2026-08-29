@@ -81,6 +81,7 @@
 
 import * as React from "react";
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { nanoid as uid } from './Composer'; // 原 QV（js 67278；A0-CLEANUP2 item 12 接线：uid declare → Composer 属主导出 nanoid）
 import { toast, usePlatform as usePlatformService } from './ImeComposition'; // 原 m / 平台服务钩子（imeComposition chunk 导出 M=usePlatform）
 import { LazyPdfViewer, LazyPptxPreviewViewer } from './LazyPreviewViewers';
 import { MarkdownRenderer, baseName as basename, isAbsolutePath, relativePathFromWorkspace as relativePath, useRemoteWorkspaceInfo } from './MarkdownIntegration'; // 原 Go / Ko / zA / $A
@@ -105,7 +106,7 @@ interface IntlShape {
 declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 
-declare function uid(): string;
+// A0-CLEANUP2 item 12：uid declare 删除 → import { nanoid as uid } from './Composer'（bundle Ue 评论 id = QV()，js 161559）。
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   type: "button";

@@ -131,8 +131,10 @@ declare function useId(): string;
 /** 原 f（dist 的 n 导出）：popper 箭头（PopperPrimitive.Arrow）。 */
 declare const PopperArrow: React.ForwardRefExoticComponent<AnyProps & React.RefAttributes<any>>;
 
-/** 原 p（dist 的 v 导出）：受控状态钩子。 */
-declare function useControllableState<T>(args: {
+/** 原 p（dist 的 v 导出）：受控状态钩子。
+ *  A0-CLEANUP2 item 47 补导出：Conversation（原 fa 消费面）经此接入；
+ *  本体在 dist-DJJArJ7D.js（未转录），此处为接口级 export declare（同 MarkdownVendored 惯例）。 */
+export declare function useControllableState<T>(args: {
   prop?: T;
   defaultProp?: T;
   onChange?: (value: T) => void;

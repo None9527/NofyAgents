@@ -47,6 +47,7 @@ interface StoreApi<T> {
   subscribe: (listener: (state: T, prevState: T) => void) => () => void;
 }
 export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
+import { loadSkillContext } from './Composer'; // 原 HB（js 63581；A0-CLEANUP2 item 13 接线：declare → Composer 属主导出）
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { buildNewHook, hookLocationForScope, hooksWorkspaceKey, isHookEditable, mergeHookPatch, reloadHooks, saveHooksList } from './StoresDeep';
 import { isRemoteDisconnectedError } from './services';
@@ -54,7 +55,7 @@ import { create as createStore, resolveWorkspaceKey as workspaceKey } from './Sk
 import { resolveDefaultAgentCliProvider as normalizeProvider } from './SrcSharedA'; // 原 ni
 import type { HookDescriptor, HooksService } from './StoresDeep';
 export type { HookDescriptor, HooksService };
-/* 原 HB（loadSkillContext）属主 Composer.tsx:1131 未导出——需要的 export 已登记，保留 declare（见 §5 原 HB 处） */
+/* A0-CLEANUP2 item 13：原 HB declare 已接线 → import { loadSkillContext } from './Composer'（属主已导出，js 63581） */
 /** 原 Sc：是否远端工作区断开错误 */
 
 /* ============================================================================
@@ -589,13 +590,9 @@ export function skillContextKey(workspacePath: string, provider: string, workspa
   return `${workspaceIdentity?.trim() || workspacePath}::${normalizeProvider(provider)}`;
 }
 
-/** 原 HB：上下文装载器（初始化/强制刷新两用；接口级，本体在 63400 区） */
-/** 属主 Composer.tsx:1131（未导出）——需要的 export 已登记；接线前保留 declare */
-declare function loadSkillContext(
-  args: { workspacePath: string; provider: string; skillsService: SkillsService; workspaceIdentity?: string | null; bypassCache: boolean },
-  set: SetState<SkillContextState>,
-  get: GetState<SkillContextState>,
-): Promise<void>;
+/* A0-CLEANUP2 item 13：原 HB declare 删除 → 改用 Composer 属实导出。
+   本文件 SkillContextEntry/SkillsService 为接口级镜像（缺 workspacePath/provider/loaded 等属主侧字段），
+   故调用面按 Composer 自身先例（Composer useSkillContextStore，js UB 63640）以 as never 桥接。 */
 
 function patchSkillContextEntry(state: SkillContextState, key: string, entry: SkillContextEntry): Partial<SkillContextState> {
   return { contexts: { ...state.contexts, [key]: entry } };
@@ -606,10 +603,18 @@ export const useSkillContextStore: UseBoundStore<SkillContextState> = createStor
   async initialize(workspacePath, provider, skillsService, workspaceIdentity) {
     const key = skillContextKey(workspacePath, provider, workspaceIdentity);
     if (get().contexts[key]) return;
-    await loadSkillContext({ workspacePath, provider, skillsService, workspaceIdentity, bypassCache: false }, set, get);
+    await loadSkillContext(
+      { workspacePath, provider, skillsService: skillsService as never, workspaceIdentity: workspaceIdentity ?? undefined, bypassCache: false },
+      set as never,
+      get as never,
+    );
   },
   async refresh(workspacePath, provider, skillsService, workspaceIdentity) {
-    await loadSkillContext({ workspacePath, provider, skillsService, workspaceIdentity, bypassCache: true }, set, get);
+    await loadSkillContext(
+      { workspacePath, provider, skillsService: skillsService as never, workspaceIdentity: workspaceIdentity ?? undefined, bypassCache: true },
+      set as never,
+      get as never,
+    );
   },
   async setEnabled(workspacePath, provider, skillId, scope, enabled, skillsService, workspaceIdentity) {
     const normalized = normalizeProvider(provider);

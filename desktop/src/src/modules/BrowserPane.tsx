@@ -111,6 +111,7 @@ import { cn } from './UtilsCn'; // 原 Z：cn 类名合并
 import { useZCodeIntl as useIntlContext, type ZCodeIntl } from './I18n'; // 原 G：useIntlContext（IntlShape 消费面改指 ZCodeIntl）
 import { Button } from './button'; // 原 X：Button
 import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u=X InfoTooltip）
+import { dispatchWebElementAddEvent as addWebElementContextToChat, isWebElementAddDetail as validateWebElementContext } from './Composer'; // 原 WXe/BH（68822/68671；A0-CLEANUP2 item 42 接线：declare → Composer 属主导出）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
@@ -223,7 +224,7 @@ interface BrowserPlatformService {
     loading: boolean;
     restoreUrl: string | null;
     title: string | null;
-    faviconUrl?: string;
+    faviconUrl?: string | null; // bundle 178245：faviconUrl === void 0 才省略，null 原样上报
   }): Promise<void>;
   browserViewUpdateViewport?(req: { tabId: string; viewport: ViewportSize | null }): Promise<void> | null;
   onBrowserViewViewportChanged?(
@@ -238,11 +239,9 @@ interface BrowserPlatformService {
 }
 declare function usePlatformService(): BrowserPlatformService;
 
-/** 网页元素上下文入聊天 / 校验（原 WXe/BH，68774/68623，Composer 域横切） */
-declare function addWebElementContextToChat(context: PickedWebElement & { workspacePath: string; workspaceIdentity?: string }): void;
-declare function validateWebElementContext(
-  context: PickedWebElement & { workspacePath: string; workspaceIdentity?: string },
-): boolean;
+/* ── tombstone（A0-CLEANUP2 item 42）：addWebElementContextToChat/validateWebElementContext
+ *    declare 删除 → import { dispatchWebElementAddEvent as …, isWebElementAddDetail as … }
+ *    from './Composer'（原 WXe/BH，bundle 68822/68671）。 ── */
 
 /* ============================================================================
  * 1. URL / 状态助手（原 50712–50860 浏览器域段）
@@ -2513,7 +2512,7 @@ export interface BrowserViewProps {
   isSelected?: boolean;
   isCurrentTask?: boolean;
   initialUrl?: string | null;
-  faviconUrl?: string;
+  faviconUrl?: string | null; // A0-CLEANUP2 item 19：SidePanel BrowserTab.faviconUrl 为 string | null（bundle 传 null）
   navigationRequest?: { id: string; url: string } | null;
   onUrlChange?: (url: string) => void;
   onPageMetadataChange?: (meta: { title?: string; faviconUrl?: string | null }) => void;
@@ -3053,7 +3052,7 @@ export interface BrowserUseTabDescriptor {
   tabId: string;
   residency?: "restoring" | "suspended" | "resident" | string;
   residencyGeneration?: number;
-  faviconUrl?: string;
+  faviconUrl?: string | null; // A0-CLEANUP2 item 19：SidePanel BrowserUseTab.faviconUrl?: string | null 对齐
   sessionId?: string;
   browserUseOperationUntil?: number;
   browserUseResizeBaselineVersion?: number;
@@ -3129,9 +3128,9 @@ export function BrowserUseView({
   );
 }
 
-/** 原 yWt */
+/** 原 yWt；tab 面收宽：消费面传异构 tabs 数组（SidePanel SidePaneTab 联合，browser 族字段可选） */
 export function browserUseTabMatches(
-  tab: { workspaceKey: string; sessionId: string; browserId: string; browserGeneration: number; tabId: string },
+  tab: { workspaceKey?: string | null; sessionId?: string; browserId?: string; browserGeneration?: number; tabId?: string },
   request: { workspaceKey: string; sessionId: string; browserId: string; browserGeneration: number; tabId: string },
 ): boolean {
   return (
@@ -3167,15 +3166,16 @@ export function findBrowserUseTab<T extends { type: string } & Parameters<typeof
   return tabs.find((tab) => tab.type === "browser-use" && browserUseTabMatches(tab, request));
 }
 
-/** 原 SWt：订阅主进程截图 surface prepare/release（非本 renderer tab 忽略；新请求替换旧请求） */
-export function useScreenshotSurfaceRequest(
-  tabScope: { workspaceKey: string; sessionId: string; browserId: string; browserGeneration: number; tabId: string },
+/** 原 SWt：订阅主进程截图 surface prepare/release（非本 renderer tab 忽略；新请求替换旧请求）。
+ *  实收 tabs 数组（bundle 178517：SWt(e) 直传 xWt(e, incoming)）。 */
+export function useScreenshotSurfaceRequest<T extends { type: string } & Parameters<typeof browserUseTabMatches>[0]>(
+  tabs: T[],
 ): ScreenshotSurfaceRequest | null {
   const platform = usePlatformService();
   const [request, setRequest] = React.useState<ScreenshotSurfaceRequest | null>(null);
   React.useEffect(() => {
     const unsubscribePrepare = platform.onBrowserViewScreenshotSurfacePrepare?.((incoming) => {
-      if (!findBrowserUseTab([{ type: "browser-use", ...tabScope }], incoming)) {
+      if (!findBrowserUseTab(tabs, incoming)) {
         logger.debug("[browser-use] 忽略非当前 renderer tab 的截图 surface prepare", {
           requestId: incoming.requestId,
           tabId: incoming.tabId,
@@ -3199,6 +3199,6 @@ export function useScreenshotSurfaceRequest(
       unsubscribePrepare?.();
       unsubscribeRelease?.();
     };
-  }, [platform, tabScope]);
+  }, [platform, tabs]);
   return request;
 }

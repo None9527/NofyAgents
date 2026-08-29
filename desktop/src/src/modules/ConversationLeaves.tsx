@@ -107,6 +107,7 @@
 
 import * as React from "react";
 import { ToolCallBlock, ToolLayout } from './Conversation'; // +ToolLayout（A0-D 接线：原 lQ declare → Conversation §4.1 canonical 导出）
+import { FileOpenWithMenu } from './FileRewindDialogDeep'; // 原 v_t（A0-CLEANUP2 item 45 接线：declare → 属主导出；本文件 E_t buildFilePreviewSource 为另一束符号，保留本地）
 import { MarkdownRenderer, baseName, joinWorkspacePath, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
 import { logger } from './SkillStore';
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
@@ -125,23 +126,8 @@ import { useServices } from './services'; // 原 eSt 内 fs()（bundle 117331）
  *       经文件头真实 import 消费；本地 IntlShape/ButtonProps 脚手架随删除。 ──
  * ==========================================================================*/
 
-/** 原 v_t（110427 / 94447，FileRewindDialogDeep 未导出）：文件「打开方式」拆分按钮
- * （调用面形状：website 分支仅 type+url；previewSource 容宽） */
-declare const FileOpenWithMenu: React.FC<{
-  target: {
-    type: `file` | `website`;
-    path?: string;
-    title?: string;
-    label?: string;
-    url?: string;
-    previewSource?: unknown;
-  };
-  onOpenBrowserUrl?: (url: string) => void;
-  onOpenFileLink?: (path: string) => void;
-  onOpenCodeViewer?: (target: unknown) => void;
-  hideOpenWithMenu?: boolean;
-  stopPropagation?: boolean;
-}>;
+/* A0-CLEANUP2 item 45：FileOpenWithMenu declare 删除 → import { FileOpenWithMenu } from './FileRewindDialogDeep'
+   （属主导出，原 v_t；website 分支仅 type+url 与属主判别联合吻合）。 */
 
 /** 图标 */
 declare const IconPencil: React.FC<React.SVGProps<SVGSVGElement>>; // Dv（edit）
@@ -2771,11 +2757,11 @@ async function resolveAsyncVisibleCards(cards: PreviewCardModel[], fileService: 
     })
     .slice(0, 10);
 }
-/** 原 E_t（94854）：文件预览源构建 */
+/** 原 E_t（94854）：文件预览源构建（返回形对齐属主 FileOpenPreviewSource，供 v_t target.previewSource 透传） */
 function buildFilePreviewSource(
   card: PreviewCardModel,
   scope: { workspacePath?: string; workspaceIdentity?: string | null; workspaceRemoteSessionId?: string | null },
-): Record<string, unknown> {
+): { type: `file`; title: string; path: string | undefined; workspacePath?: string; workspaceIdentity?: string; workspaceRemoteSessionId?: string } {
   return {
     type: "file",
     title: card.title,
@@ -2851,7 +2837,8 @@ export function PreviewCard({
   workspaceIdentity?: string | null;
   workspaceRemoteSessionId?: string | null;
   onOpenBrowserUrl?: (url: string) => void;
-  onOpenFileLink?: (path: string) => void;
+  /** bundle v_t 实际回传对象 {path,label,pathKind,workspacePath,...}（110488）；链路按 path 建模，边界收 any。 */
+  onOpenFileLink?: (arg: any) => void;
   onOpenCodeViewer?: OpenCodeViewerFn;
   compactForRemoteControl?: boolean;
 }) {
@@ -2897,7 +2884,7 @@ export function PreviewCard({
                 path: localPath ?? "",
                 title: card.title,
                 label: card.title,
-                previewSource: card.type === "website" ? previewSource : buildFilePreviewSource(card, { workspacePath, workspaceIdentity, workspaceRemoteSessionId }),
+                previewSource: card.type === "website" ? previewSource ?? undefined : buildFilePreviewSource(card, { workspacePath, workspaceIdentity, workspaceRemoteSessionId }),
               }
         }
         onOpenBrowserUrl={onOpenBrowserUrl}

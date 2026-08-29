@@ -237,7 +237,7 @@ declare function entityKeyOf(entity: WorkspaceScope & { taskId: string }): strin
 declare function bumpUnreadRevision(): void; // 原 sx
 
 /* services.tsx §G.5/G.6 已实体化（SessionIndexScope 改自 services 类型导入，A0-D-Misc） */
-interface SessionIndexRow {
+export interface SessionIndexRow {
   sessionId: string;
   phase: string;
   title: string;
@@ -918,7 +918,7 @@ export function sessionRowToTaskMeta(
 /** 原 FS（34986）：会话索引初始状态 */
 export const INITIAL_SESSION_INDEX_STATE = {
   workspaceId: null as string | null,
-  logEpoch: null as number | null,
+  logEpoch: null as string | null, // bundle schema hke@styles33313：logEpoch: K() = z.string()
   seq: 0,
   sessions: new Map<string, SessionIndexRow>(),
 };
@@ -963,7 +963,7 @@ export function applyFrameToIndexState(
     toSeq: number;
     fromSeq?: number;
     payload:
-      | { kind: `snapshot`; snapshot: { workspaceId: string | null; logEpoch: number | null; sessions: SessionIndexRow[] } }
+      | { kind: `snapshot`; snapshot: { workspaceId: string | null; logEpoch: string | null; sessions: SessionIndexRow[] } }
       | { kind: `deltas`; deltas: Array<{ op: string; session?: SessionIndexRow; sessionId?: string }> };
   },
 ): { state: typeof INITIAL_SESSION_INDEX_STATE; gap: boolean } {

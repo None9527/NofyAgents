@@ -144,7 +144,7 @@ import { useServices } from './services';
 import { cn } from './UtilsCn';
 import { useZCodeIntl as useIntlContext } from './I18n';
 import { t as logger } from './logger';
-import { useConfirmDialog } from './Modals'; // U2
+import { Progress, useConfirmDialog } from './Modals'; // +yq Progress（A0-CLEANUP2 item 15 接线）
 import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
 import { consumeModelProviderIntent as readSettingsSectionIntent } from './Settings'; // sw（39377）
 import { isStartPlanProviderId as isStartPlanPreset, providerIds as PROVIDER_IDS } from './SrcSharedA'; // Bn / q=mo（A0-CLEANUP B-7：PROVIDER_IDS declare 改指 providerIds）
@@ -199,7 +199,7 @@ interface ToastOptions {
 /* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
 /** 原 yq（75986）：进度条 —— 属主 Modals.tsx 未导出，登记需要的 export 后保留 declare */
-declare const Progress: React.FC<{ value: number; className?: string }>; // yq（75986 / 67310）
+/* ── tombstone（A0-CLEANUP2 item 15）：Progress（原 yq）declare 删除 → import { Progress } from './Modals'。 ── */
 declare const SelectRoot: React.FC<{
   value: string;
   onValueChange: (v: string) => void;

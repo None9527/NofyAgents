@@ -89,6 +89,12 @@
 50. PaymentDeep.tsx：2 处 `formatGrantUnits` 调用面参数序翻正为 `(value, locale)`（bundle PXt；D-Misc 批登记）
 51. PaymentDeep.tsx：~26 处 TS2339（paymentService 型为 `{}`）待 §C BaseServices 服务类型化后消解；其余 2 处随核
 
+## Pass 3 计划（pass 2 落地后执行；依据 /tmp/tsc-now9.txt 538 错分类）
+- **3a 机械项**：#36（WorkspaceShellProps 补 4 prop + onCreateScratchWorkspace 签名 + WorkspaceServices 导出；WS 54 TS2322 主因）、#37、#38、#39、#40、#41、#43、#44
+- **3b 语义项（最大杠杆）**：§C BaseServices 服务类型化——SettingsPanelsCapability 168 错中 ~120 为 unknown-服务族（hooksStore×21/PluginService×12/AutomationsAgentService×9/subagentsService×7/CommandsService×5/SkillsService×6），ExtendedViews 42/75、Settings 22/52 同族；服务型从属主模块既有定义导出（SkillsService 已导出）；含 #51 PaymentDeep paymentService TS2339 族
+- **3c 属主定位**：#48/49 横切层（classifyToolCall 族、useSettingsSelector）
+- 剩余零散：#23/29/31/33/34 已附因跳过（复核机会）
+
 ## C. 类型收敛（属主侧，非缺 export）
 - stores-core：`SettingsState.theme` → `ThemeMode`；`BaseServices` 服务类型化（消 TS18046 族）
 - stores-tasks：`AutomationRun` 增补 `trigger`/`sessionId`

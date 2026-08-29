@@ -189,9 +189,10 @@
 import * as React from "react";
 import { CaptchaHostContainer } from './ConversationLeaves';
 import { Input, toast, usePlatform } from './ImeComposition';
-import { AppDialogHost, DirectoryBrowserDialog, OnboardingDialog, useAlertDialog, useConfirmDialog } from './Modals'; // useConfirmDialog（原 U2，js 123493）
-// A0-D-Misc 回滚：ConfirmDialog（Modals 未导出）、CodingPlanUpgradeDialogProvider（PaymentDeep 未导出）、
-// CLOSE_ACTIVE_CONTEXT_EVENT（WorkspaceShell 未导出）的前波 import 均编译失败，恢复基线 declare（本文件无调用面）。
+import { AppDialogHost, ConfirmDialog, DirectoryBrowserDialog, OnboardingDialog, useAlertDialog, useConfirmDialog } from './Modals'; // +ConfirmDialog（原 q4t，A0-CLEANUP2 item 35 接线）；useConfirmDialog（原 U2，js 123493）
+// A0-D-Misc 回滚注记：CodingPlanUpgradeDialogProvider（PaymentDeep）、CLOSE_ACTIVE_CONTEXT_EVENT（WorkspaceShell）
+// 的前波 import 曾编译失败恢复基线 declare（本文件无调用面）；两者属主 export 已由 A0-CLEANUP B-30/B-32 落地（A0-CLEANUP2 复核）。
+// ConfirmDialog 已由 A0-CLEANUP2 item 35 接入真实 import（上方）。
 import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, SettingsView } from './Settings';
 import { logger, resolveWorkspaceKey as workspaceScopeKey } from './SkillStore'; // workspaceScopeKey（原 Io，js 1368：两参实体键；前波误接 stores-session.workspaceScopeKey 单参形，A0-D-Misc 按 bundle R6t 裁决改接 resolveWorkspaceKey）
 import { WorkspaceShell } from './WorkspaceShell';
@@ -501,7 +502,7 @@ export interface ConfirmDialogOptions {
   confirmLabel: string;
   cancelLabel: string;
 }
-declare const ConfirmDialog: React.FC<Record<string, never>>; // 基线 declare：Modals 未导出，需要的 export 已登记
+/* ── tombstone（A0-CLEANUP2 item 35）：ConfirmDialog（原 q4t）declare 删除 → import { ConfirmDialog } from './Modals'。 ── */
 declare const CodingPlanUpgradeDialogProvider: React.FC<{ children?: React.ReactNode }>; // 基线 declare：PaymentDeep 未导出，需要的 export 已登记
 declare const CLOSE_ACTIVE_CONTEXT_EVENT: string; // 基线 declare：WorkspaceShell 未导出，需要的 export 已登记
 declare const RemoteConnectionDialog: React.FC<Record<string, any>>;
@@ -4932,8 +4933,8 @@ export function WelcomeGate({
             edgeToEdge={true}
             showOverlay={false}
           />
-          {/* A0-D-Misc：bundle P9 的 children 可省（206992），Modals.AppDialogHost 类型将 children 设为必填，已登记需要的 export；此处显式 {null} 保持无子节点语义 */}
-          <AppDialogHost>{null}</AppDialogHost>
+          {/* A0-CLEANUP2 item 35：Modals.AppDialogHost children 已改可选（bundle P9 @styles 206992），{null} 垫片移除 */}
+          <AppDialogHost />
         </IntlProviderShell>
       </div>
     )

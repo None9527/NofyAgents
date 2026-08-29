@@ -204,6 +204,7 @@ import * as React from "react";
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { resolveBranchDisplayLabel } from './CmdkPaletteDeep';
 import { DiffViewer, readLastEditorId as getPreferredEditorId } from './CodeViewer'; // 原 OA
+import { appendWebElementsToContent, type WebElementContext } from './Composer'; // 原 zXe 族（A0-CLEANUP2 item 11 接线：declare → Composer 属主导出）
 import { orderEditorsForFileManager as normalizeInstalledEditors, useFileContextActions } from './FileTreePanel'; // 原 GA / QA
 import { Popover as PopoverRoot, PopoverAnchor, PopoverContent, PopoverTrigger, Textarea, toast, usePlatform as usePlatformService } from './ImeComposition'; // 原 平台钩子（imeComposition 导出 M=usePlatform）
 import { FilePathInline, PlainTextDiffPreview as LightweightDiffPreview, pathBasename } from './ModalsLeaves'; // 原 gut
@@ -2561,13 +2562,12 @@ export function CodeCommentsChip({
 
 /** 会话引用选择（原 Moe 消费面，composer 族） */
 interface ConversationSelectionRef { [key: string]: unknown }
-/** 网页元素上下文（原 zXe 消费面，与代码评论同段的 IH/LH 族） */
-interface WebElementContext { [key: string]: unknown }
+// A0-CLEANUP2 item 11：WebElementContext 本地镜像删除 → 改自 Composer 类型导入（属主 zXe 族）。
 /** pptx 元素引用（原 _ 消费面） */
 interface PptxElementRef { [key: string]: unknown }
 
 declare function appendSelectionsToContent(content: string, selections: ConversationSelectionRef[]): string;
-declare function appendWebElementsToContent(content: string, webElements: WebElementContext[]): string; // 原 Composer 族（属主未导出，待登记）
+// A0-CLEANUP2 item 11：appendWebElementsToContent declare 删除 → import { appendWebElementsToContent } from './Composer'（属主导出，原注释「属主未导出，待登记」）。
 declare function appendPptxElementsToContent(content: string, pptxElements: PptxElementRef[]): string;
 declare function parseSelectionReferences(content: string): { visibleContent: string; references: ConversationSelectionRef[] };
 declare function splitWebElementContexts(content: string, workspace: { workspacePath: string; workspaceIdentity?: string | null }): { visibleContent: string; webElementContexts: WebElementContext[] };
@@ -2586,11 +2586,15 @@ export function countContextAttachments(bundle: AttachmentContextBundle): number
   return bundle.codeComments.length + bundle.conversationSelections.length + bundle.webElements.length + bundle.pptxElements.length;
 }
 
-/** 原 GXe（js 68787）：发送内容装配 = 文本 + 引用 + 代码评论 + 网页元素 + pptx 元素 */
+/** 原 GXe（js 68833）：发送内容装配 = 文本 + 引用 + 代码评论 + 网页元素 + pptx 元素 */
 export function buildOutboundContentWithAttachments(content: string, bundle: AttachmentContextBundle): string {
+  // bundle GXe：_(zXe(CXe(Moe(e, selections), codeComments), webElements), pptxElements)——接线时按束真对齐（原重建层调用错位一层）。
   return appendPptxElementsToContent(
-    appendWebElementsToContent(appendSelectionsToContent(content, bundle.conversationSelections), bundle.codeComments as unknown as WebElementContext[]),
-    bundle.webElements,
+    appendWebElementsToContent(
+      appendCodeCommentsToContent(appendSelectionsToContent(content, bundle.conversationSelections), bundle.codeComments),
+      bundle.webElements,
+    ),
+    bundle.pptxElements,
   );
 }
 

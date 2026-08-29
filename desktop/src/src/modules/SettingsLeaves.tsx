@@ -135,6 +135,7 @@
 
 import * as React from "react";
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { ModelSelector, type ModelGroup } from './Composer'; // 原 vq（F08，js 75527；A0-CLEANUP2 item 10 接线：declare → Composer 属主导出）
 import { Input, Popover, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, BackLinkButton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger } from './Settings';
 import { ResourceEnabledFilterSelect } from './SettingsPanelsCapability';
@@ -401,32 +402,8 @@ interface PluginsStoreState {
   [key: string]: unknown;
 }
 
-/** 原 vq（F08，js 75527）：模型选择器 —— 属主 Composer.tsx 未导出，登记需要的 export 后保留 declare */
-declare const ModelSelector: React.FC<{
-  modelGroups: SelectGroupEntry[];
-  normalizedValue: string;
-  triggerLabel: string;
-  showProviderLevel?: boolean;
-  showManageModelsAction?: boolean;
-  lockReasonMessage?: string;
-  isItemLocked?: (item: SelectItemEntry) => boolean;
-  onValueChange: (value: string) => void;
-  footerActions?: Array<{ key: string; label: string; onSelect: () => void; selected: boolean }>;
-  manageModelsLabel?: string;
-  onManageModels?: () => void;
-  contentSide?: string;
-  contentAlign?: string;
-  focusSelectorOnClose?: string | null;
-  labelVisibilityClassName?: string;
-  indicatorClassName?: string;
-  triggerClassName?: string;
-  triggerLabelClassName?: string;
-  triggerIconClassName?: string;
-  disabled?: boolean;
-  pending?: boolean;
-  pendingLabel?: string;
-  tooltipTitle?: string;
-}>; // vq（F08，js 75527）
+/* A0-CLEANUP2 item 10：ModelSelector declare 删除 → import { ModelSelector, type ModelGroup } from './Composer'（属主导出，原 vq，js 75527）。
+   调用面 SelectGroupEntry[] 与属主 ModelGroup[] 之间按边界 as ModelGroup[] 桥接（单 as 合法，可比性已验证）。 */
 
 /* ============================================================================
  * §A. 子代理分区深层叶子（原 js 196654–197541）
@@ -979,7 +956,7 @@ export function BuiltInModelOverrideControl({
       <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2">
         <span data-testid={testidTemplate(TESTID_SUBAGENT_MODEL, agent.name)} data-model-current-value={currentModel} className="inline-flex min-w-0">
           <ModelSelector
-            modelGroups={modelGroups}
+            modelGroups={modelGroups as ModelGroup[]}
             normalizedValue={currentModel}
             triggerLabel={triggerLabel}
             showManageModelsAction={false}
@@ -1234,7 +1211,7 @@ export function SubagentConfigForm({
           <SubagentFormLabel>{intl.formatMessage({ id: "settings.subagents.form.model.label" })}</SubagentFormLabel>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <ModelSelector
-              modelGroups={modelSelectGroups}
+              modelGroups={modelSelectGroups as ModelGroup[]}
               normalizedValue={model}
               triggerLabel={triggerLabel}
               showManageModelsAction={!!onManageModels}
@@ -6371,7 +6348,7 @@ export function AutomationEditor({
                   </div>
                   <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 text-foreground-subtle">
                     <ModelSelector
-                      modelGroups={modelSelectGroups}
+                      modelGroups={modelSelectGroups as ModelGroup[]}
                       normalizedValue={modelItem?.value ?? model}
                       triggerLabel={modelTriggerLabel}
                       showManageModelsAction={!!onManageModels}
