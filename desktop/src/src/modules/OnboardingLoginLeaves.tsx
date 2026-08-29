@@ -187,6 +187,7 @@
  */
 
 import * as React from "react";
+import { AlertTriangleIcon, LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { CaptchaHostContainer } from './ConversationLeaves';
 import { Input, toast, usePlatform } from './ImeComposition';
 import { AppDialogHost, ConfirmDialog, DirectoryBrowserDialog, OnboardingDialog, useAlertDialog, useConfirmDialog } from './Modals'; // +ConfirmDialog（原 q4t，A0-CLEANUP2 item 35 接线）；useConfirmDialog（原 U2，js 123493）
@@ -462,8 +463,7 @@ export interface CodePreviewSettings {
 
 /* --- UI 原语（横切层）--- */
 declare const SelectRoot: React.FC<{ value: string; onValueChange: (value: string) => void; disabled?: boolean; children?: React.ReactNode }>;
-declare const AlertTriangleIcon: React.FC<{ className?: string }>;
-declare const SpinnerIcon: React.FC<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：AlertTriangleIcon/SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const OrbitSpinnerIcon: React.FC<{ className?: string }>;
 declare function ProviderIcon(providerId: string, className: string): React.ReactNode;
 declare function joinTestId(base: string, suffix: string): string;

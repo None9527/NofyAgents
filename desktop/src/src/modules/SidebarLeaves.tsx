@@ -109,7 +109,8 @@
  */
 
 import * as React from "react";
-import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { Smartphone as IconSmartphone, Cloud as IconCloud, Folder as IconFolder, FolderOpen as IconFolderOpen, CloudUpload as IconCloudUpload, ArchiveRestore as IconArchiveRestore, Archive as IconArchive, Pin as IconPin, Loader as IconLoader, ChevronDown as IconChevronDown, MessageCirclePlus as IconMessageCirclePlus } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Button, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { workspaceKeyOf } from './CodeViewer';
 import { toast } from './ImeComposition';
 import { RemoteSyncingRow, TaskListLoadingRow } from './Sidebar';
@@ -140,19 +141,9 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
    Tooltip（原 Ia）declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'。 ── */
 
 /** 图标（lucide 风格；原图标块 + button chunk 导出） */
-declare const IconSmartphone: React.FC<React.SVGProps<SVGSVGElement>>; // Vv
-declare const IconCloud: React.FC<React.SVGProps<SVGSVGElement>>; // U_
-declare const IconFolder: React.FC<React.SVGProps<SVGSVGElement>>; // $_
-declare const IconFolderOpen: React.FC<React.SVGProps<SVGSVGElement>>; // Q_
-declare const IconCloudUpload: React.FC<React.SVGProps<SVGSVGElement>>; // Sye（远控取消归档）
-declare const IconArchiveRestore: React.FC<React.SVGProps<SVGSVGElement>>; // Xve（本地取消归档）
-declare const IconArchive: React.FC<React.SVGProps<SVGSVGElement>>; // x_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（7）：IconSmartphone/IconCloud/IconFolder/IconFolderOpen/IconCloudUpload/IconArchiveRestore/IconArchive → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // Kv
-declare const IconPin: React.FC<React.SVGProps<SVGSVGElement>>; // Ov
-declare const IconLoader: React.FC<React.SVGProps<SVGSVGElement>>; // fv
-declare const IconChevronRight: React.FC<React.SVGProps<SVGSVGElement>>; // wa
-declare const IconChevronDown: React.FC<React.SVGProps<SVGSVGElement>>; // N_
-declare const IconMessageCirclePlus: React.FC<React.SVGProps<SVGSVGElement>>; // hv
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（5）：IconPin/IconLoader/IconChevronRight/IconChevronDown/IconMessageCirclePlus → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* ---- store / 横切助手（src-HCld2afU.js / skillStore-BmeKHDBI.js） ---- */
 

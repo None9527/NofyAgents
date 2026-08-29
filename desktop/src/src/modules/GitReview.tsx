@@ -201,8 +201,9 @@
  */
 
 import * as React from "react";
+import { LoaderCircle as SpinnerIcon, FolderOpen as IconFolderOpen, Copy as IconCopy, RefreshCw as IconRefreshCw, FileText as IconFileText, ChevronDown as IconChevronDown, ListTree as IconListTree, FileDiff as IconFileDiff, ArrowUpFromLine as IconArrowUpFromLine, GitCommitHorizontal as IconGitCommitHorizontal, CloudUpload as IconCloudUpload, CircleAlert as IconCircleAlert, Check as IconCheck, Loader as IconLoader, GitBranch as IconGitBranch, Trash2 as IconTrash2, CodeXml as IconCodeXml, MessageSquareText as IconMessageSquareText, Undo2 as IconUndo2, Sparkles as IconSparkles } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
-import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { Button, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { resolveBranchDisplayLabel } from './CmdkPaletteDeep';
 import { DiffViewer, readLastEditorId as getPreferredEditorId } from './CodeViewer'; // 原 OA
 import { appendWebElementsToContent, type WebElementContext } from './Composer'; // 原 zXe 族（A0-CLEANUP2 item 11 接线：declare → Composer 属主导出）
@@ -293,7 +294,7 @@ declare const DialogFooter: React.FC<React.HTMLAttributes<HTMLDivElement>>;
 /** 文本域（原 j，imeComposition chunk 的 v 导出；forwardRef，提交对话框需聚焦） */
 
 /** spinner 图标（原 M，imeComposition chunk 的 w 导出 = loader-circle） */
-declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** Select 族（原 iO/oO/aO/sO/cO，js 46009+；data-slot=select-*） */
 
@@ -319,26 +320,7 @@ declare const TooltipContent: React.FC<React.HTMLAttributes<HTMLDivElement> & { 
 /** cmdk 封装（原 Yb/Zb/ex/tx，js 32092+；data-slot=command*） */
 
 /* --- lucide 图标（原 Sa 工厂，js 26575–28020；语义名 = lucide 图标名） --- */
-declare const IconFolderOpen: React.FC<React.SVGProps<SVGSVGElement>>; // Q_ folder-open 27103
-declare const IconCopy: React.FC<React.SVGProps<SVGSVGElement>>; // W_ copy 26926
-declare const IconRefreshCw: React.FC<React.SVGProps<SVGSVGElement>>; // Nv refresh-cw 27677
-declare const IconFileText: React.FC<React.SVGProps<SVGSVGElement>>; // Z_ file-text 27060
-declare const IconChevronDown: React.FC<React.SVGProps<SVGSVGElement>>; // N_ chevron-down 26802
-declare const IconChevronRight: React.FC<React.SVGProps<SVGSVGElement>>; // wa chevron-right（usageStatsUiParts o）
-declare const IconListTree: React.FC<React.SVGProps<SVGSVGElement>>; // uv list-tree 27300
-declare const IconFileDiff: React.FC<React.SVGProps<SVGSVGElement>>; // X_ file-diff 27036
-declare const IconArrowUpFromLine: React.FC<React.SVGProps<SVGSVGElement>>; // w_ arrow-up-from-line 26653
-declare const IconGitCommitHorizontal: React.FC<React.SVGProps<SVGSVGElement>>; // Fye 27147
-declare const IconCloudUpload: React.FC<React.SVGProps<SVGSVGElement>>; // H_ 26913
-declare const IconCircleAlert: React.FC<React.SVGProps<SVGSVGElement>>; // F_ 26812
-declare const IconCheck: React.FC<React.SVGProps<SVGSVGElement>>; // M_ 26801
-declare const IconLoader: React.FC<React.SVGProps<SVGSVGElement>>; // fv loader 27315
-declare const IconGitBranch: React.FC<React.SVGProps<SVGSVGElement>>; // ev 27142
-declare const IconTrash2: React.FC<React.SVGProps<SVGSVGElement>>; // Kv 27882
-declare const IconCodeXml: React.FC<React.SVGProps<SVGSVGElement>>; // Cye 26921
-declare const IconMessageSquareText: React.FC<React.SVGProps<SVGSVGElement>>; // _v 27399
-declare const IconUndo2: React.FC<React.SVGProps<SVGSVGElement>>; // qv 27899
-declare const IconSparkles: React.FC<React.SVGProps<SVGSVGElement>>; // f（imeComposition S）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（20）：IconFolderOpen/IconCopy/IconRefreshCw/IconFileText/IconChevronDown/IconChevronRight/IconListTree/IconFileDiff/IconArrowUpFromLine/IconGitCommitHorizontal/IconCloudUpload/IconCircleAlert/IconCheck/IconLoader/IconGitBranch/IconTrash2/IconCodeXml/IconMessageSquareText/IconUndo2/IconSparkles → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // g（imeComposition b）
 
 /* --- 横切助手（本 chunk 他处定义，本族引用） --- */

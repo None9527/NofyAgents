@@ -61,6 +61,7 @@
  */
 
 import * as React from "react";
+import { Sparkles as IconSparkles, MousePointerClick as IconMousePointerClick, LoaderCircle as IconLoaderCircle } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight, ZoomOut as IconZoomOut, ZoomIn as IconZoomIn, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/四图标/createLucideIcon declare 改指 button chunk
 
 /* ============================================================================
@@ -168,9 +169,7 @@ declare function Textarea(props: {
   onCompositionStart(): void;
   onCompositionEnd(): void;
 }): React.ReactElement;
-declare function IconSparkles(props: { className: string }): React.ReactElement;
-declare function IconMousePointerClick(props: { className: string }): React.ReactElement;
-declare function IconLoaderCircle(props: { className: string }): React.ReactElement;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：IconSparkles/IconMousePointerClick/IconLoaderCircle → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：IconChevronLeft/Right/ZoomOut/ZoomIn declare 删除 →
    import { ChevronLeft/ChevronRight/ZoomOut/ZoomIn } from './button'。 ── */
 

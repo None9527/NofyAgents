@@ -194,6 +194,7 @@
  */
 
 import * as React from "react";
+import { X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { workspaceKeyOf } from './CodeViewer';
 import { ConversationOrchestrator } from './Conversation';
@@ -891,7 +892,7 @@ const IconGripHorizontal = createLucideIcon("grip-horizontal", []); // 原 Rye�
 const IconLoader = createLucideIcon("loader", []);                   // 原 fv（js 27315）
 const IconMinus = createLucideIcon("minus", []);                     // 原 bv（js 27442）
 const IconSquare = createLucideIcon("square", []);                   // 原 Wv（js 27823）
-declare const IconClose: React.FC<IconProps>;                        // 原 g（imeComposition chunk b 导出）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconClose → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* --- 按钮（原 X，button-laUijeDG.js） --- */
 

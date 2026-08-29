@@ -97,6 +97,7 @@
  */
 
 import * as React from "react";
+import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Copy as IconCopy, Pencil as IconPencil, GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, ArrowDownToLine as IconArrowDownToLine, SquareTerminal as IconSquareTerminal, File as IconFile, Bot as IconBot, Sparkles as IconSparkles, Target as IconTarget, GitBranch as IconGitBranch, Lightbulb as IconLightbulb, Eye as IconModelChange, Shield as IconShield, ThumbsUp as IconThumbsUp, ThumbsDown as IconThumbsDown, Rewind as IconRewind, Loader as IconLoader, LoaderCircle as IconSpinner, Info as IconInfo, Upload as IconUpload, Globe as IconGlobe, Gauge as IconGauge, Clock as IconClock, ListTodo as IconListTodo, MessageSquare as IconMessageSquare, Calendar as IconCalendar } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import * as ReactDOM from "react-dom";
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）
@@ -114,7 +115,7 @@ import { type PrimaryDraftDropTargetController } from './WorkspaceShell'; // A0-
 import { BillingDiscountBadge, type BillingDiscountConfig } from './UsageDeep'; // +BillingDiscountConfig（A0-D 类型收敛）
 import { InfoTooltip as Tooltip, useControllableState } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u 导出 = X InfoTooltip）+ 原 fa（A0-CLEANUP2 item 47 接线）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
-import { Button } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）
+import { Button, ChevronRight as IconChevronRight, ChevronLeft as IconChevronLeft } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）；A0-S3b 增补：ChevronRight as IconChevronRight, ChevronLeft as IconChevronLeft（button chunk 图标，pass-1 同源）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 import { PRIMARY_PANE_ID, useSessionRouterStore, useSplitLayoutStore, workspaceScopeKey, type SessionBinding, type WorkspaceScope } from './stores-session'; // +SessionBinding/WorkspaceScope（A0-D 类型收敛）
 
@@ -174,43 +175,17 @@ declare const HoverCardContent: React.FC<
 
 /** 图标（lucide 风格；原图标块 js 26575–28020 / jsx 23141–25478 + button chunk 导出） */
 declare const IconComponent: React.FC<React.SVGProps<SVGSVGElement>>;
-declare const IconChevronRight: React.FC<React.SVGProps<SVGSVGElement>>; // wa（button chunk o 导出）
-declare const IconChevronLeft: React.FC<React.SVGProps<SVGSVGElement>>; // Ea（button chunk s 导出）
-declare const IconChevronDown: React.FC<React.SVGProps<SVGSVGElement>>; // N_
-declare const IconChevronUp: React.FC<React.SVGProps<SVGSVGElement>>; // P_
-declare const IconCheck: React.FC<React.SVGProps<SVGSVGElement>>; // M_
-declare const IconCopy: React.FC<React.SVGProps<SVGSVGElement>>; // W_
-declare const IconPencil: React.FC<React.SVGProps<SVGSVGElement>>; // Dv
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（7）：IconChevronRight/IconChevronLeft/IconChevronDown/IconChevronUp/IconCheck/IconCopy/IconPencil → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // Kv / g（关闭）
-declare const IconGripVertical: React.FC<React.SVGProps<SVGSVGElement>>; // iv
-declare const IconSend: React.FC<React.SVGProps<SVGSVGElement>>; // w_（queue runNow/sendNow）
-declare const IconArrowDownToLine: React.FC<React.SVGProps<SVGSVGElement>>; // Qve（回到底部）
-declare const IconSquareTerminal: React.FC<React.SVGProps<SVGSVGElement>>; // Uv（shell 工具）
-declare const IconFile: React.FC<React.SVGProps<SVGSVGElement>>; // Fv（file-read/write/search 工具）
-declare const IconBot: React.FC<React.SVGProps<SVGSVGElement>>; // D_（subagent/skill 提及）
-declare const IconSparkles: React.FC<React.SVGProps<SVGSVGElement>>; // Yv（skill 提及）
-declare const IconTarget: React.FC<React.SVGProps<SVGSVGElement>>; // rv（/goal 命令、goalVerify 标记）
-declare const IconGitBranch: React.FC<React.SVGProps<SVGSVGElement>>; // ev（forkNotice 标记）
-declare const IconLightbulb: React.FC<React.SVGProps<SVGSVGElement>>; // O_（Reasoning 触发器）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（10）：IconGripVertical/IconSend/IconArrowDownToLine/IconSquareTerminal/IconFile/IconBot/IconSparkles/IconTarget/IconGitBranch/IconLightbulb → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconCompact: React.FC<React.SVGProps<SVGSVGElement>>; // x_（compact 标记）
-declare const IconModelChange: React.FC<React.SVGProps<SVGSVGElement>>; // eye（modelChange 标记）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconModelChange → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconQuestion: React.FC<React.SVGProps<SVGSVGElement>>; // vye（ask-user-question 工具）
-declare const IconShield: React.FC<React.SVGProps<SVGSVGElement>>; // Rbe（permission 工具行）
-declare const IconThumbsUp: React.FC<React.SVGProps<SVGSVGElement>>; // Dbe
-declare const IconThumbsDown: React.FC<React.SVGProps<SVGSVGElement>>; // Ebe
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：IconShield/IconThumbsUp/IconThumbsDown → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconFork: React.FC<React.SVGProps<SVGSVGElement>>; // Obe
-declare const IconRewind: React.FC<React.SVGProps<SVGSVGElement>>; // Oye（回退文件）
-declare const IconLoader: React.FC<React.SVGProps<SVGSVGElement>>; // fv（loader）
-declare const IconSpinner: React.FC<React.SVGProps<SVGSVGElement>>; // M（loader-circle，imeComposition w 导出）
-declare const IconInfo: React.FC<React.SVGProps<SVGSVGElement>>; // p（横幅信息图标）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（4）：IconRewind/IconLoader/IconSpinner/IconInfo → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconZap: React.FC<React.SVGProps<SVGSVGElement>>; // Pv（quota 升级按钮）
-declare const IconUpload: React.FC<React.SVGProps<SVGSVGElement>>; // av（拖放提示）
-declare const IconGlobe: React.FC<React.SVGProps<SVGSVGElement>>; // Gye（session-context 工具）
-declare const IconGauge: React.FC<React.SVGProps<SVGSVGElement>>; // Sv（switch-mode 工具）
-declare const IconClock: React.FC<React.SVGProps<SVGSVGElement>>; // aye（goal 工具）
-declare const IconListTodo: React.FC<React.SVGProps<SVGSVGElement>>; // kye（todo 工具）
-declare const IconMessageSquare: React.FC<React.SVGProps<SVGSVGElement>>; // hbe / ybe / xbe / lbe（message/task 工具）
-declare const IconCalendar: React.FC<React.SVGProps<SVGSVGElement>>; // R_（automations 工具）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（7）：IconUpload/IconGlobe/IconGauge/IconClock/IconListTodo/IconMessageSquare/IconCalendar → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** 文件路径显示组件（原 Bc，文件树/提及/代码查看共用；调用面归纳） */
 declare const FilePath: React.FC<{

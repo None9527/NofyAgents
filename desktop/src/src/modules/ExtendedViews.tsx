@@ -149,6 +149,7 @@
  */
 
 import * as React from "react";
+import { LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { ModelSelector, type ModelGroup } from './Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 vq，js 75527）
 import { Input, Popover, PopoverContent, PopoverTrigger, toast, type ToastOptions } from './ImeComposition'; // ToastOptions 原属 imeComposition chunk（与 toast 同主）
@@ -852,7 +853,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 declare const PopoverRoot: React.FC<{ children: React.ReactNode }>;
 
 /** 原 Ia 之外的 spinner（原 M，imeComposition w 导出 = loader-circle） */
-declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* --- 图标（原 Sa 工厂 / 跨 chunk 图标；此处按语义命名） --- */
 

@@ -107,6 +107,7 @@
  */
 
 import * as React from "react";
+import { Plus as IconPlus, Copy as IconCopy, ClipboardPaste as IconClipboardPaste } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Terminal } from '@xterm/xterm'; // xterm 核心（原 vendored PHt；bundle 指纹 = 5.5.0，S3a 裁决）
 import { FitAddon } from '@xterm/addon-fit'; // fit 插件（原 vendored NHt）
 /* ── tombstone（A0-D-Misc）：原 `import { ContextMenuItem } from './LegacyDocEngineBModel'` 退回——
@@ -136,10 +137,9 @@ declare function basename(path: string): string;
 /** D5c：TUI 编辑打开请求信箱消费钩子（实现见 stores-session.tsx TuiEditRequestStore） */
 
 /** lucide 风格图标（原 kv/g/W_/bye） */
-declare const IconPlus: React.FC<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconPlus → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconX: React.FC<{ className?: string }>;
-declare const IconCopy: React.FC<{ className?: string }>;
-declare const IconClipboardPaste: React.FC<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：IconCopy/IconClipboardPaste → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** Radix Tabs 封装（原 hC/gC/_C/vC，本 chunk 36949–36991） */
 

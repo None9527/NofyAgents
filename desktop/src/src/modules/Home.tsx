@@ -122,6 +122,7 @@
  */
 
 import * as React from "react";
+import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphone, Moon as IconMoon, RotateCcw as IconRotateCcw, ClipboardPenLine as IconClipboardPenLine, House as IconHouse, Folder as IconFolder, Cloud as IconCloud, FolderPlus as IconFolderPlus, MessageCircle as IconMessageCircle, Search as IconSearch, ChevronDown as IconChevronDown, Loader as IconLoader, Info as IconInfo, X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { BackgroundWorksCapsule, ComposerInput, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from './Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）
@@ -288,22 +289,7 @@ declare function InputGroup(props: { className?: string; children: React.ReactNo
 declare function InputGroupAddon(props: { children: React.ReactNode }): React.ReactElement;
 
 /* 图标（原混淆名 → lucide 名；button-laUijeDG.js 的 createLucideIcon 产物） */
-declare const IconArrowUp: React.FC<React.SVGProps<SVGSVGElement>>; // T_ arrow-up（发送）
-declare const IconSquare: React.FC<React.SVGProps<SVGSVGElement>>; // Wv square（停止）
-declare const IconMegaphone: React.FC<React.SVGProps<SVGSVGElement>>; // Yye megaphone（横幅）
-declare const IconMoon: React.FC<React.SVGProps<SVGSVGElement> & { "data-off-peak-homepage-template-icon"?: string; size?: number }>; // xv moon（建议卡）
-declare const IconRotateCcw: React.FC<React.SVGProps<SVGSVGElement>>; // gbe rotate-ccw（重试）
-declare const IconClipboardPenLine: React.FC<React.SVGProps<SVGSVGElement>>; // xye clipboard-pen-line
-declare const IconHouse: React.FC<React.SVGProps<SVGSVGElement>>; // sv house（家目录=工作区）
-declare const IconFolder: React.FC<React.SVGProps<SVGSVGElement>>; // $_ folder
-declare const IconCloud: React.FC<React.SVGProps<SVGSVGElement>>; // U_ cloud（远程）
-declare const IconFolderPlus: React.FC<React.SVGProps<SVGSVGElement>>; // Nye folder-plus（打开文件夹）
-declare const IconMessageCircle: React.FC<React.SVGProps<SVGSVGElement>>; // gv message-circle（会话工作区）
-declare const IconSearch: React.FC<React.SVGProps<SVGSVGElement>>; // Fv search
-declare const IconChevronDown: React.FC<React.SVGProps<SVGSVGElement>>; // N_ chevron-down
-declare const IconLoader: React.FC<React.SVGProps<SVGSVGElement>>; // fv loader
-declare const IconInfo: React.FC<React.SVGProps<SVGSVGElement>>; // p（imeComposition chunk `info`）
-declare const IconClose: React.FC<React.SVGProps<SVGSVGElement>>; // g（imeComposition chunk close-x）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（16）：IconArrowUp/IconSquare/IconMegaphone/IconMoon/IconRotateCcw/IconClipboardPenLine/IconHouse/IconFolder/IconCloud/IconFolderPlus/IconMessageCircle/IconSearch/IconChevronDown/IconLoader/IconInfo/IconClose → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** Spinner（原 EN，js 54789：loader 图标 + animate-spin 包装） */
 export function Spinner({ className, ...rest }: { className?: string } & React.SVGProps<SVGSVGElement>) {

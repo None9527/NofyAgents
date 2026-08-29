@@ -100,6 +100,7 @@
  */
 
 import * as React from "react";
+import { LoaderCircle as IconLoaderCircle } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 /* ── A0-S2d 接线：跨模块 declare → 真实 import（属主/别名经 bundle 导出表核验）；混淆名注释随迁 ── */
 import { t as logger } from './logger';
@@ -230,7 +231,7 @@ const IconCopy = createLucideIcon("copy", []);                     // 原 W_（2
 /** 关闭图标（原 g，button chunk） */
 declare const IconX: React.FC<{ className?: string }>;
 /** spinner：loader-circle（原 M，imeComposition w 导出） */
-declare const IconLoaderCircle: React.FC<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconLoaderCircle → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** 原 Qq：qrcode vendored 库（X12）toDataURL */
 declare const Qq: {

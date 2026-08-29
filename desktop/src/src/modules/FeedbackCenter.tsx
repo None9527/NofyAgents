@@ -160,6 +160,7 @@
  */
 
 import * as React from "react";
+import { LoaderCircle as IconLoaderCircle } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Input, Textarea, toast } from './ImeComposition';
 import { Tabs, TabsContent } from './Settings';
 import { logger } from './SkillStore';
@@ -185,7 +186,7 @@ type FormatMessageFn = (descriptor: { id: string }, values?: Record<string, stri
 /** 原 P（imeComposition chunk 的 y 导出） */
 /** 原 j（imeComposition chunk 的 v 导出） */
 /** spinner：loader-circle（原 M，imeComposition chunk 的 w 导出） */
-declare const IconLoaderCircle: React.FC<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconLoaderCircle → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /** 关闭图标（原 g，imeComposition chunk 的 b 导出） */
 declare const IconX: React.FC<{ className?: string }>;
 

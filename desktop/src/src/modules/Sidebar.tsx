@@ -188,7 +188,8 @@
  */
 
 import * as React from "react";
-import { Button, buttonVariants } from './button'; // A0-CLEANUP 族清理：Button/buttonVariants declare 改指 button chunk
+import { Hash as IconHash, Folder as IconFolder, FolderOpen as IconFolderOpen, Cloud as IconCloud, House as IconHouse, ListTree as IconListTree, MessageCirclePlus as IconMessageCirclePlus, Search as IconSearch, CalendarClock as IconCalendarClock, WandSparkles as IconWandSparkles, Minimize2 as IconMinimize2, Maximize2 as IconMaximize2, ListFilter as IconListFilter, Clock3 as IconClock3, MessageCircleCheck as IconMessageCircleCheck, Archive as IconArchive, CloudUpload as IconCloudUpload, Pin as IconPin, Smartphone as IconSmartphone, Clock as IconClock, Moon as IconMoon, Loader as IconLoader, TriangleAlert as IconTriangleAlert, RefreshCw as IconRefreshCw, Check as IconCheck, Copy as IconCopy, Ellipsis as IconEllipsis, Settings as IconSettings, Globe as IconGlobe, Palette as IconPalette, Maximize as IconMaximize, LogIn as IconLogIn, LogOut as IconLogOut, User as IconUser, Settings2 as IconSettings2, GripVertical as IconGripVertical, ArrowUpToLine as IconArrowUpToLine, ChevronDown as IconChevronDown, LoaderCircle as SpinnerIcon, Plus as IconPlus, ChartColumn as IconChartColumn, Rocket as IconRocket } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Button, buttonVariants, ZoomIn as IconZoomIn, ZoomOut as IconZoomOut, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button/buttonVariants declare 改指 button chunk；A0-S3b 增补：ZoomIn as IconZoomIn, ZoomOut as IconZoomOut, ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { FileTreePanel } from './FileTreePanel';
 import { useTaskFileActions } from './GitReview';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
@@ -1149,49 +1150,9 @@ declare function useVirtualizer(opts: {
 };
 /* ---- 图标（原混淆名 → lucide 名，js 行号见头注 §一） ---- */
 type IconProps = React.SVGProps<SVGSVGElement> & { className?: string };
-declare const IconHash: React.FC<IconProps>;            // ov hash 27208
-declare const IconFolder: React.FC<IconProps>;          // $_ folder 27133
-declare const IconFolderOpen: React.FC<IconProps>;      // Q_ folder-open 27103
-declare const IconCloud: React.FC<IconProps>;           // U_ cloud 26918
-declare const IconHouse: React.FC<IconProps>;           // sv house 27214
-declare const IconListTree: React.FC<IconProps>;        // uv list-tree 27300
-declare const IconMessageCirclePlus: React.FC<IconProps>; // hv message-circle-plus 27379
-declare const IconSearch: React.FC<IconProps>;          // Fv search 27732
-declare const IconCalendarClock: React.FC<IconProps>;   // lye calendar-clock 26775
-declare const IconWandSparkles: React.FC<IconProps>;    // Yv wand-sparkles 27966
-declare const IconMinimize2: React.FC<IconProps>;       // Zye minimize-2 27436
-declare const IconMaximize2: React.FC<IconProps>;       // mv maximize-2 27346
-declare const IconListFilter: React.FC<IconProps>;      // Wye list-filter 27288
-declare const IconClock3: React.FC<IconProps>;          // B_ clock-3 26897
-declare const IconMessageCircleCheck: React.FC<IconProps>; // Xye message-circle-check 27369
-declare const IconArchive: React.FC<IconProps>;         // x_ archive 26615
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（16）：IconHash/IconFolder/IconFolderOpen/IconCloud/IconHouse/IconListTree/IconMessageCirclePlus/IconSearch/IconCalendarClock/IconWandSparkles/IconMinimize2/IconMaximize2/IconListFilter/IconClock3/IconMessageCircleCheck/IconArchive → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconX: React.FC<IconProps>;               // g x（imeComposition chunk）
-declare const IconCloudUpload: React.FC<IconProps>;     // H_ cloud-upload 26913
-declare const IconPin: React.FC<IconProps>;             // Ov pin 27578
-declare const IconSmartphone: React.FC<IconProps>;      // Vv smartphone 27800
-declare const IconClock: React.FC<IconProps>;           // V_ clock 26901
-declare const IconMoon: React.FC<IconProps>;            // xv moon 27468
-declare const IconLoader: React.FC<IconProps>;          // fv loader 27315
-declare const IconTriangleAlert: React.FC<IconProps>;   // p triangle-alert（imeComposition chunk）
-declare const IconRefreshCw: React.FC<IconProps>;       // Nv refresh-cw 27677
-declare const IconCheck: React.FC<IconProps>;           // M_ check 26801
-declare const IconCopy: React.FC<IconProps>;            // W_ copy 26926
-declare const IconEllipsis: React.FC<IconProps>;        // K_ ellipsis 26950
-declare const IconSettings: React.FC<IconProps>;        // Rv settings 27758
-declare const IconGlobe: React.FC<IconProps>;           // nv globe 27170
-declare const IconPalette: React.FC<IconProps>;         // wv palette 27522
-declare const IconZoomIn: React.FC<IconProps>;          // xa zoom-in（button chunk）
-declare const IconZoomOut: React.FC<IconProps>;         // Kre zoom-out（button chunk）
-declare const IconMaximize: React.FC<IconProps>;        // Jye maximize 27352
-declare const IconLogIn: React.FC<IconProps>;           // pv log-in 27325
-declare const IconLogOut: React.FC<IconProps>;          // Kye log-out 27330
-declare const IconUser: React.FC<IconProps>;            // Pbe user 27946
-declare const IconSettings2: React.FC<IconProps>;       // Lv settings-2 27752
-declare const IconGripVertical: React.FC<IconProps>;    // iv grip-vertical 27188
-declare const IconArrowUpToLine: React.FC<IconProps>;   // nye arrow-up-to-line 26658
-declare const IconChevronDown: React.FC<IconProps>;     // N_ chevron-down 26802
-declare const IconChevronRight: React.FC<IconProps>;    // wa chevron-right（button chunk）
-declare const SpinnerIcon: React.FC<IconProps>;         // M spinner（imeComposition chunk）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（26）：IconCloudUpload/IconPin/IconSmartphone/IconClock/IconMoon/IconLoader/IconTriangleAlert/IconRefreshCw/IconCheck/IconCopy/IconEllipsis/IconSettings/IconGlobe/IconPalette/IconZoomIn/IconZoomOut/IconMaximize/IconLogIn/IconLogOut/IconUser/IconSettings2/IconGripVertical/IconArrowUpToLine/IconChevronDown/IconChevronRight/SpinnerIcon → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /** 原 EN（54789）：role=status 的旋转加载图标 */
 function SpinnerStatus({ className, ...rest }: IconProps) {
   return <IconLoader role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...rest} />;
@@ -4692,7 +4653,7 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
   );
 });
 /** 原 kv：plus 图标（新建项目/会话） */
-declare const IconPlus: React.FC<IconProps>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconPlus → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /** 原 oc：工作区标签是否承载任务（排除设置/预览类标签） */
 declare function isTaskWorkspaceTab(tab: WorkspaceTab): boolean;
 /** 原 fX（77235）：Coding Plan 升级入口钩子 */
@@ -4981,8 +4942,7 @@ export function UsageMenuItems({ state, onUsageClick, onUpgradeClick }: {
   );
 }
 /** 原 uye/Pv 图标（用量菜单用）：bar-chart / rocket */
-declare const IconChartColumn: React.FC<IconProps>;
-declare const IconRocket: React.FC<IconProps>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：IconChartColumn/IconRocket → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 const ZOOM_LEVEL_MIN = -3; // 原 _Rt（150424）
 const ZOOM_LEVEL_MAX = 5;  // 原 vRt（150424）
 

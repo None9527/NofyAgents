@@ -106,12 +106,13 @@
  */
 
 import * as React from "react";
+import { Pencil as IconPencil, Search as IconSearch, Terminal as IconTerminal, Shield as IconShield, Target as IconTarget, Gauge as IconGauge, Calendar as IconCalendar, Clock as IconClock, Bot as IconBot, Globe as IconGlobe, File as IconFile, Check as IconCheck, Copy as IconCopy, ArrowUpRight as IconArrowUpRight, ExternalLink as IconExternal, Loader as IconLoader } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { ToolCallBlock, ToolLayout } from './Conversation'; // +ToolLayout（A0-D 接线：原 lQ declare → Conversation §4.1 canonical 导出）
 import { FileOpenWithMenu } from './FileRewindDialogDeep'; // 原 v_t（A0-CLEANUP2 item 45 接线：declare → 属主导出；本文件 E_t buildFilePreviewSource 为另一束符号，保留本地）
 import { MarkdownRenderer, baseName, joinWorkspacePath, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
 import { logger } from './SkillStore';
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
-import { Button } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）
+import { Button, ChevronRight as IconChevronRight } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 import { useServices } from './services'; // 原 eSt 内 fs()（bundle 117331）= context 面 useServices（A0-D 裁决：基线误名 useWorkspaceServices）
 
@@ -130,24 +131,9 @@ import { useServices } from './services'; // 原 eSt 内 fs()（bundle 117331）
    （属主导出，原 v_t；website 分支仅 type+url 与属主判别联合吻合）。 */
 
 /** 图标 */
-declare const IconPencil: React.FC<React.SVGProps<SVGSVGElement>>; // Dv（edit）
-declare const IconSearch: React.FC<React.SVGProps<SVGSVGElement>>; // Fv（read/search）
-declare const IconTerminal: React.FC<React.SVGProps<SVGSVGElement>>; // Uv
-declare const IconShield: React.FC<React.SVGProps<SVGSVGElement>>; // Rbe
-declare const IconTarget: React.FC<React.SVGProps<SVGSVGElement>>; // rv（goal）
-declare const IconGauge: React.FC<React.SVGProps<SVGSVGElement>>; // Sv（switch-mode）
-declare const IconCalendar: React.FC<React.SVGProps<SVGSVGElement>>; // R_（automations/task-stop）
-declare const IconClock: React.FC<React.SVGProps<SVGSVGElement>>; // V_（automation 卡）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（8）：IconPencil/IconSearch/IconTerminal/IconShield/IconTarget/IconGauge/IconCalendar/IconClock → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconQuestion: React.FC<React.SVGProps<SVGSVGElement>>; // vye
-declare const IconBot: React.FC<React.SVGProps<SVGSVGElement>>; // D_
-declare const IconGlobe: React.FC<React.SVGProps<SVGSVGElement>>; // nv（website 卡）
-declare const IconFile: React.FC<React.SVGProps<SVGSVGElement>>; // Z_（文件卡缺省）
-declare const IconCheck: React.FC<React.SVGProps<SVGSVGElement>>; // M_
-declare const IconCopy: React.FC<React.SVGProps<SVGSVGElement>>; // W_
-declare const IconChevronRight: React.FC<React.SVGProps<SVGSVGElement>>; // wa
-declare const IconArrowUpRight: React.FC<React.SVGProps<SVGSVGElement>>; // C_（plan 全览）
-declare const IconExternal: React.FC<React.SVGProps<SVGSVGElement>>; // q_（node-repl 打开）
-declare const IconLoader: React.FC<React.SVGProps<SVGSVGElement>>; // fv
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（9）：IconBot/IconGlobe/IconFile/IconCheck/IconCopy/IconChevronRight/IconArrowUpRight/IconExternal/IconLoader → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* ---- 会话流共享类型（与 Conversation.tsx 同口径）
  * A0-D 类型收敛：ToolCall/ToolCallNode/ToolDisplayModel/FileSummary/OpenCodeViewerFn

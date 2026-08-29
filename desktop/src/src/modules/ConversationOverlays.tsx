@@ -111,6 +111,7 @@
  */
 
 import * as React from "react";
+import { Info as IconInfo, Loader as IconLoader, LoaderCircle as IconSpinner, Shield as IconShield, ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { ShellToolView, ToolLayout } from './Conversation'; // +ToolLayout（A0-D 接线：declare → Conversation canonical）
 import { FallbackToolView, FileWriteToolView, SearchToolView, SkillToolView, type FileSummary, type ToolCall, type ToolCallNode, type ToolCallViewProps } from './ConversationLeaves'; // +4 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）
 import { Input } from './ImeComposition';
@@ -120,7 +121,7 @@ import { logger } from './SkillStore';
 import { buildPermissionRequestViewModel } from './SrcSharedB';
 import { useSettingsStoreValue as useSettingsSelector } from './stores-core'; // A0-CLEANUP3 #49：原 Ao，canonical = stores-core useSettingsStoreValue（styles js 1301）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
-import { Button } from './button'; // 原 H，button-laUijeDG.js（A0-D 接线：declare → button canonical）
+import { Button, ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight } from './button'; // 原 H，button-laUijeDG.js（A0-D 接线：declare → button canonical）；A0-S3b 增补：ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 
 /* ============================================================================
@@ -138,15 +139,7 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
 /** 原 A（imeComposition chunk 的 t 导出）：IME 组词回车守卫 */
 declare function isImeComposing(event: React.KeyboardEvent): boolean;
 
-declare const IconInfo: React.FC<React.SVGProps<SVGSVGElement>>; // p
-declare const IconLoader: React.FC<React.SVGProps<SVGSVGElement>>; // fv
-declare const IconSpinner: React.FC<React.SVGProps<SVGSVGElement>>; // M（imeComposition w）
-declare const IconShield: React.FC<React.SVGProps<SVGSVGElement>>; // Rbe
-declare const IconChevronLeft: React.FC<React.SVGProps<SVGSVGElement>>; // Ea
-declare const IconChevronRight: React.FC<React.SVGProps<SVGSVGElement>>; // wa
-declare const IconChevronDown: React.FC<React.SVGProps<SVGSVGElement>>; // N_
-declare const IconChevronUp: React.FC<React.SVGProps<SVGSVGElement>>; // P_
-declare const IconCheck: React.FC<React.SVGProps<SVGSVGElement>>; // M_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（9）：IconInfo/IconLoader/IconSpinner/IconShield/IconChevronLeft/IconChevronRight/IconChevronDown/IconChevronUp/IconCheck → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* --- 工具视图复用（Conversation.tsx §4）---
  * ── tombstone（A0-D）：本地 ToolCall/ToolCallNode/ToolCallViewProps 接口删除 →

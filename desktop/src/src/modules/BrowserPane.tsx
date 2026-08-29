@@ -103,6 +103,7 @@
  */
 
 import * as React from "react";
+import { ArrowLeft as IconArrowLeft, ArrowRight as IconArrowRight, RotateCw as IconRotateCw, Smartphone as IconSmartphone, MousePointerClick as IconMousePointerClick, ExternalLink as IconOpenExternal, Bug as IconBug, Ellipsis as IconEllipsis, TriangleAlert as IconTriangleAlert, Loader as IconLoader, Globe as IconGlobe, MoveHorizontal as IconMoveHorizontal, MoveVertical as IconMoveVertical } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Input, Popover, PopoverContent, PopoverTrigger } from './ImeComposition';
 import { Select, SelectItem, SelectTrigger, SelectValue, TabsContent } from './Settings';
 import { logger } from './SkillStore';
@@ -132,19 +133,7 @@ declare module "react" {
 
 
 /** lucide 风格图标（原 Ea/wa/Nv/$ye/tbe/q_/k_/K_/N/fv/nv/iv/Rye） */
-declare const IconArrowLeft: React.FC<{ className?: string }>;
-declare const IconArrowRight: React.FC<{ className?: string }>;
-declare const IconRotateCw: React.FC<{ className?: string }>;
-declare const IconSmartphone: React.FC<{ className?: string }>;
-declare const IconMousePointerClick: React.FC<{ className?: string }>;
-declare const IconOpenExternal: React.FC<{ className?: string }>;
-declare const IconBug: React.FC<{ className?: string }>;
-declare const IconEllipsis: React.FC<{ className?: string }>;
-declare const IconTriangleAlert: React.FC<{ className?: string }>;
-declare const IconLoader: React.FC<{ className?: string }>;
-declare const IconGlobe: React.FC<{ className?: string }>;
-declare const IconMoveHorizontal: React.FC<{ className?: string }>;
-declare const IconMoveVertical: React.FC<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（13）：IconArrowLeft/IconArrowRight/IconRotateCw/IconSmartphone/IconMousePointerClick/IconOpenExternal/IconBug/IconEllipsis/IconTriangleAlert/IconLoader/IconGlobe/IconMoveHorizontal/IconMoveVertical → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** Input（原 P，imeComposition chunk） */
 

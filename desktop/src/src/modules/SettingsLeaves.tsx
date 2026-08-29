@@ -134,7 +134,8 @@
  */
 
 import * as React from "react";
-import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { ArrowLeft as IconArrowLeft, ArrowRight as IconArrowRight, ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Plus as IconPlus, Ellipsis as IconEllipsis, Trash2 as IconTrash, Pencil as IconPencil, ExternalLink as IconExternalLink, RefreshCw as IconRefresh, CloudUpload as IconCloudUpload, Search as IconSearch, Settings as IconSettings, Puzzle as IconPuzzle, MessageSquarePlus as IconMessageSquarePlus, Play as IconPlay, CirclePlay as IconCirclePlay, Pause as IconPause, Activity as IconActivity, Info as IconInfo, TriangleAlert as IconAlertTriangle, Target as IconTarget, File as IconFile, List as IconList, RotateCcw as IconRestart, LoaderCircle as IconSpinner, Users as IconUsers, FolderOpen as IconFolderOpen, Power as IconPower, Server as IconServer, Sparkle as IconSparkle, TerminalSquare as IconTerminalSquare, Bot as IconBot, Webhook as IconWebhook, ArrowUpRight as IconArrowUpRight } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Button, ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { ModelSelector, type ModelGroup } from './Composer'; // 原 vq（F08，js 75527；A0-CLEANUP2 item 10 接线：declare → Composer 属主导出）
 import { Input, Popover, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, BackLinkButton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger } from './Settings';
@@ -205,39 +206,14 @@ declare global {
 
 /* --- 图标（lucide 风格；Sa=createLucideIcon 工厂，button chunk / 本 chunk 图标块） --- */
 type IconComponent = React.FC<React.SVGProps<SVGSVGElement> & { size?: number }>;
-declare const IconArrowLeft: IconComponent; // S_ 26634
-declare const IconArrowRight: IconComponent; // C_ 26649
-declare const IconChevronDown: IconComponent; // N_ 26802
-declare const IconChevronUp: IconComponent; // P_（chevron-up）
-declare const IconChevronLeft: IconComponent; // Ea（button chunk）
-declare const IconChevronRight: IconComponent; // wa（button chunk）
-declare const IconCheck: IconComponent; // M_ 26801
-declare const IconPlus: IconComponent; // kv
-declare const IconEllipsis: IconComponent; // K_ 26950
-declare const IconTrash: IconComponent; // Kv（trash-2）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（10）：IconArrowLeft/IconArrowRight/IconChevronDown/IconChevronUp/IconChevronLeft/IconChevronRight/IconCheck/IconPlus/IconEllipsis/IconTrash → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconX: IconComponent; // g（imeComposition b）
-declare const IconPencil: IconComponent; // Dv
-declare const IconExternalLink: IconComponent; // q_
-declare const IconRefresh: IconComponent; // Nv
-declare const IconCloudUpload: IconComponent; // H_ 26913
-declare const IconSearch: IconComponent; // Fv
-declare const IconSettings: IconComponent; // Lv
-declare const IconPuzzle: IconComponent; // jv
-declare const IconMessageSquarePlus: IconComponent; // yv
-declare const IconPlay: IconComponent; // cbe
-declare const IconCirclePlay: IconComponent; // _ye
-declare const IconPause: IconComponent; // R_
-declare const IconActivity: IconComponent; // V_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（12）：IconPencil/IconExternalLink/IconRefresh/IconCloudUpload/IconSearch/IconSettings/IconPuzzle/IconMessageSquarePlus/IconPlay/IconCirclePlay/IconPause/IconActivity → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconStar: IconComponent; // Wv
 declare const IconCalendar: IconComponent; // j_
-declare const IconInfo: IconComponent; // p（info）
-declare const IconAlertTriangle: IconComponent; // N（triangle-alert）
-declare const IconTarget: IconComponent; // Mjt 模板图标（target）
-declare const IconFile: IconComponent; // 模板图标（file）
-declare const IconList: IconComponent; // 模板图标（list）
-declare const IconRestart: IconComponent; // gbe（rotate-ccw 族）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（6）：IconInfo/IconAlertTriangle/IconTarget/IconFile/IconList/IconRestart → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconExternalSession: IconComponent; // P3 包装 = q_
-declare const IconSpinner: React.FC<{ className?: string }>; // M（imeComposition，loader-circle）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconSpinner → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconSpinnerAlt: React.FC<{ className?: string }>; // EN（运行历史加载）
 
 /* --- UI 原语（本 chunk 横切层，类名逐字引用） --- */
@@ -900,7 +876,7 @@ export function SubagentRow({
     </div>
   );
 }
-declare const IconUsers: IconComponent; // Jv 27950
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconUsers → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /**
  * 原 B1t（196982）：内置代理模型覆盖控件。
@@ -1946,7 +1922,7 @@ export function AddMarketplaceDialog({
     </Dialog>
   );
 }
-declare const IconFolderOpen: IconComponent; // Q_（folder-open）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconFolderOpen → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** 原 i0t（198670）：插件忙碌判定（安装/恢复/卸载/更新/开关五态） */
 export function isPluginBusy(item: PluginItem, actions: PluginStoreActions): boolean {
@@ -2021,7 +1997,7 @@ export function PluginItemMenu({ item, actions, triggerClassName }: { item: Plug
     </DropdownMenu>
   );
 }
-declare const IconPower: IconComponent; // ube（power）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconPower → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** 原 s0t（198765）：安装按钮（安装/恢复忙碌态） */
 export function PluginInstallButton({ item, actions, size = "sm" }: { item: PluginItem; actions: PluginStoreActions; size?: string }) {
@@ -2506,11 +2482,7 @@ const PLUGIN_COMPONENT_KIND_ICONS: Record<string, IconComponent> = {
   agent: IconBot,
   hook: IconWebhook,
 };
-declare const IconServer: IconComponent; // Iv
-declare const IconSparkle: IconComponent; // f（sparkle）
-declare const IconTerminalSquare: IconComponent; // Hv
-declare const IconBot: IconComponent; // D_
-declare const IconWebhook: IconComponent; // b_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（5）：IconServer/IconSparkle/IconTerminalSquare/IconBot/IconWebhook → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 export interface PluginDescribeEntry {
   status: "loading" | "loaded" | "error";
@@ -2707,7 +2679,7 @@ export function MarketEntryCard({
     <div className="flex flex-col items-stretch gap-2">{promptButtons}</div>
   );
 }
-declare const IconArrowUpRight: IconComponent; // C_（arrow-up-right）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconArrowUpRight → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** 原 w0t（199474）：组件段（标题 + 计数 + 条目列表） */
 export function PluginComponentSection({ group }: { group: { kind: string; count: number; items: Array<{ name: string; description?: string }> } }) {

@@ -125,6 +125,7 @@
  */
 
 import * as React from "react";
+import { LoaderCircle as IconLoaderCircle } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Input } from './ImeComposition';
 import { HeroCard, useHeroThemeStyles as useHeroTextSizes } from './ModalsLeaves'; // +useHeroThemeStyles（A0-D 接线：原 S4t declare → ModalsLeaves canonical，alias useHeroTextSizes）
 import { Badge } from './PaymentDeep';
@@ -134,7 +135,7 @@ import { useServices } from './services';
 import { useSettingsStore } from './stores-core';
 import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（u 导出），usageStatsUiParts-CiR7YEhh.js（A0-D 接线：declare → InfoTooltip，title/description/side/align/open 面同形）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
-import { Button, createLucideIcon } from './button'; // 原 X/c，button-laUijeDG.js（A0-D 接线：declare → button canonical）
+import { Button, createLucideIcon, ChevronRight as IconChevronRight } from './button'; // 原 X/c，button-laUijeDG.js（A0-D 接线：declare → button canonical）；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 
 declare global {
@@ -159,11 +160,11 @@ declare global {
  *    ButtonProps 为 loose Record；事件回调参数需显式标注，见各调用面）。 ── */
 /** 原 P（imeComposition chunk 的 y 导出） */
 /** spinner：loader-circle（原 M，imeComposition chunk 的 w 导出） */
-declare const IconLoaderCircle: React.FC<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconLoaderCircle → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /** 关闭图标（原 g，button chunk） */
 declare const IconX: React.FC<{ className?: string; strokeWidth?: number }>;
 /** chevron-right（原 wa，button chunk） */
-declare const IconChevronRight: React.FC<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconChevronRight → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* ── tombstone（A0-D）：IconProps/createLucideIcon declare 删除 → import { createLucideIcon } from './button'
  *    （canonical，iconNode: Array<[string, Record<string, unknown>]>，空数组调用面兼容）。 ── */

@@ -457,6 +457,7 @@
  */
 
 import * as React from "react";
+import { InfoIcon, X as CloseIcon, PlusIcon, SlashIcon, AtSignIcon, PaperclipIcon, LoaderIcon, ArrowUpIcon, HandIcon, ShieldCheckIcon, SparkleIcon, ChevronDownIcon, CheckIcon, LockIcon, BrainIcon, ShieldAlertIcon, Trash2 as TrashIcon, TerminalIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import * as ReactDOM from "react-dom";
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Spinner } from './Home';
@@ -481,8 +482,7 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
 /* ── tombstone（A0-D）：IntlShape/useIntlContext 脚手架删除 → I18n useZCodeIntl（alias）+ type ZCodeIntl as IntlShape。 ── */
 
 /** 5. toast / 图标 / 平台服务（imeComposition-DEYFkwWm.js，ImeComposition.tsx 已重建） */
-declare const InfoIcon: React.ComponentType<{ className?: string }>;
-declare const CloseIcon: React.ComponentType<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：InfoIcon/CloseIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 interface TempTextAttachmentMeta {
   filename: string;
   localPath?: string;
@@ -813,20 +813,7 @@ declare const NestedTooltipTrigger: React.ComponentType<{ asChild?: boolean; chi
 declare const NestedTooltipContent: React.ComponentType<Record<string, unknown> & { side?: string; align?: string; sideOffset?: number; children?: React.ReactNode }>;
 
 /** 14. 图标（本 chunk 图标块 = lucide vendored 登记；语义按消费点命名） */
-declare const PlusIcon: React.ComponentType<{ className?: string }>;
-declare const SlashIcon: React.ComponentType<{ className?: string }>;
-declare const AtSignIcon: React.ComponentType<{ className?: string }>;
-declare const PaperclipIcon: React.ComponentType<{ className?: string }>;
-declare const LoaderIcon: React.ComponentType<{ className?: string }>;
-declare const ArrowUpIcon: React.ComponentType<{ className?: string }>;
-declare const HandIcon: React.ComponentType<{ className?: string }>;
-declare const ShieldCheckIcon: React.ComponentType<{ className?: string }>;
-declare const SparkleIcon: React.ComponentType<{ className?: string }>;
-declare const ChevronDownIcon: React.ComponentType<{ className?: string }>;
-declare const CheckIcon: React.ComponentType<{ className?: string }>;
-declare const LockIcon: React.ComponentType<{ className?: string }>;
-declare const BrainIcon: React.ComponentType<{ className?: string }>;
-declare const ShieldAlertIcon: React.ComponentType<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（14）：PlusIcon/SlashIcon/AtSignIcon/PaperclipIcon/LoaderIcon/ArrowUpIcon/HandIcon/ShieldCheckIcon/SparkleIcon/ChevronDownIcon/CheckIcon/LockIcon/BrainIcon/ShieldAlertIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const PlanIcon: React.ComponentType<{ className?: string }>;
 declare const AgentIcon: React.ComponentType<{ className?: string }>;
 declare const SkillIcon: React.ComponentType<{ className?: string }>;
@@ -835,10 +822,10 @@ declare const SessionIcon: React.ComponentType<{ className?: string }>;
 declare const PluginFallbackIcon: React.ComponentType<{ className?: string }>;
 declare const CodeCommentIcon: React.ComponentType<{ className?: string }>;
 declare const PptxElementIcon: React.ComponentType<{ className?: string }>;
-declare const TrashIcon: React.ComponentType<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：TrashIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const CommentGlyphIcon: React.ComponentType<{ className?: string }>;
 declare const LoginIcon: React.ComponentType<{ className?: string }>;
-declare const TerminalIcon: React.ComponentType<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：TerminalIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const SubagentGlyphIcon: React.ComponentType<{ className?: string }>;
 declare const WorksCompactIcon: React.ComponentType<{ className?: string }>;
 declare const AttachmentIcon: React.ComponentType<{ className?: string }>;

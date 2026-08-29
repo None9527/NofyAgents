@@ -80,7 +80,8 @@
  */
 
 import * as React from "react";
-import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { Ellipsis as IconEllipsis, ExternalLink as IconOpenExternal, FileCode as IconFileCode, Eye as IconEye, Copy as IconCopy, ChevronDown as IconChevronDown } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Button, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { nanoid as uid } from './Composer'; // 原 QV（js 67278；A0-CLEANUP2 item 12 接线：uid declare → Composer 属主导出 nanoid）
 import { toast, usePlatform as usePlatformService } from './ImeComposition'; // 原 m / 平台服务钩子（imeComposition chunk 导出 M=usePlatform）
 import { LazyPdfViewer, LazyPptxPreviewViewer } from './LazyPreviewViewers';
@@ -120,13 +121,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 /* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 
 /** lucide 风格图标（原 wa/K_/q_/Y_/J_/W_/N_/Vc） */
-declare const IconChevronRight: React.FC<{ className?: string }>;
-declare const IconEllipsis: React.FC<{ className?: string }>;
-declare const IconOpenExternal: React.FC<{ className?: string }>;
-declare const IconFileCode: React.FC<{ className?: string }>;
-declare const IconEye: React.FC<{ className?: string }>;
-declare const IconCopy: React.FC<{ className?: string }>;
-declare const IconChevronDown: React.FC<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（7）：IconChevronRight/IconEllipsis/IconOpenExternal/IconFileCode/IconEye/IconCopy/IconChevronDown → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** DropdownMenu 封装（原 VO/HO/UO/WO/GO/KO/qO/JO/YO） */
 declare const DropdownMenu: React.FC<{ children: React.ReactNode }>;

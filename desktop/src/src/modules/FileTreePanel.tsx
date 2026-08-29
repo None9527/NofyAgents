@@ -155,8 +155,9 @@
  */
 
 import * as React from "react";
+import { CircleAlert as IconError, LoaderCircle as IconSpinner, RefreshCw as IconRefresh, FolderOpen as IconFolderOpen, Ellipsis as IconMore, Copy as IconCopy, X as IconClose, ArrowLeft as IconBack, Search as IconSearch } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
-import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { Button, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { Input, toast, usePlatform } from './ImeComposition';
 import { baseName, relativePathFromWorkspace, useRemoteWorkspaceInfo } from './MarkdownIntegration';
 import { imageMimeTypeOfPath } from './PreviewCards';
@@ -300,19 +301,12 @@ declare const ContextMenuSubTrigger: React.FC<{ disabled?: boolean; children?: R
 declare const ContextMenuSubContent: React.FC<{ className?: string; children?: React.ReactNode }>;
 
 /* 图标族（lucide 封装） */
-declare const IconError: React.FC<{ className?: string }>; // F_
-declare const IconSpinner: React.FC<{ className?: string }>; // M
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：IconError/IconSpinner → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconEmptyFolder: React.FC<{ className?: string }>; // jye
 declare const IconFilterChanges: React.FC<{ className?: string }>; // Iye
-declare const IconRefresh: React.FC<{ className?: string }>; // Nv
-declare const IconFolderOpen: React.FC<{ className?: string }>; // Q_
-declare const IconMore: React.FC<{ className?: string }>; // K_
-declare const IconCopy: React.FC<{ className?: string }>; // W_
-declare const IconClose: React.FC<{ className?: string }>; // g
-declare const IconBack: React.FC<{ className?: string }>; // S_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（6）：IconRefresh/IconFolderOpen/IconMore/IconCopy/IconClose/IconBack → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconRepoWiki: React.FC<{ className?: string }>; // s3
-declare const IconChevronRight: React.FC<{ className?: string }>; // wa
-declare const IconSearch: React.FC<{ className?: string }>; // Fv
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：IconChevronRight/IconSearch → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* ============================================================================
  * 1. 文件树模型层（原 50907–51197）

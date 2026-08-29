@@ -126,6 +126,7 @@
  */
 
 import * as React from "react";
+import { Check as IconCheck, Search as IconSearch, List as IconList, Rocket as IconRocket, MessagesSquare as IconMessagesSquare, File as IconFile, Trash2 as IconTrash, ChevronDown as IconChevronDown, MessageSquare as IconMessageSquare, MessageCirclePlus as IconMessageCirclePlus, PanelLeftClose as IconPanelLeftClose, PanelLeftOpen as IconPanelLeftOpen, SquareTerminal as IconSquareTerminal, BookOpen as IconBookOpen, Users as IconUsers, FileDiff as IconFileDiff, FolderOpen as IconFolderOpen, LogIn as IconLogIn, LogOut as IconLogOut, Server as IconServer, Settings as IconSettings, WandSparkles as IconWandSparkles, Moon as IconMoon, Sun as IconSun, Globe as IconGlobe, MessageCircle as IconMessageCircle, ArrowUp as IconArrowUp, ArrowDown as IconArrowDown, X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 /* ── tombstone（A0-D-Misc）：原 `import { normalizeWorkspaceScopes } from './126518'` 退回 declare——
  *    chunk 号模块不存在（TS2307）；oje（35647）无正规重建属主，按重建基准恢复 declare 挂接。 ── */
 import { toast } from './ImeComposition';
@@ -431,7 +432,7 @@ export function CommandGroup({ className, ...props }: React.ComponentProps<typeo
 }
 
 /** 图标声明（命令条目右侧的选中 ✓，原 M_ = check） */
-declare const IconCheck: React.FC<{ className?: string }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconCheck → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** 原 ex（js 32175 / jsx 29531）：CommandItem（尾部带条件 ✓） */
 export function CommandItem({ className, children, ...props }: React.ComponentProps<typeof CommandPrimitive.Item>) {
@@ -465,34 +466,7 @@ export function CommandShortcut({ className, ...props }: React.ComponentPropsWit
  * 2. 图标（lucide；原 Sa 工厂，本 chunk 26575–28020）
  * ==========================================================================*/
 
-declare const IconSearch: React.FC<{ className?: string }>; // Fv search 27732
-declare const IconList: React.FC<{ className?: string }>; // dv list 27307（scope=all）
-declare const IconRocket: React.FC<{ className?: string }>; // Pv rocket 27687（scope=commands）
-declare const IconMessagesSquare: React.FC<{ className?: string }>; // yv messages-square 27420（scope=conversations）
-declare const IconFile: React.FC<{ className?: string }>; // Aye file 27073（scope=files）
-declare const IconTrash: React.FC<{ className?: string }>; // Kv trash-2 27882（清空历史）
-declare const IconChevronDown: React.FC<{ className?: string }>; // N_ chevron-down
-declare const IconMessageSquare: React.FC<{ className?: string }>; // vv message-square（任务行/反馈）
-declare const IconMessageCirclePlus: React.FC<{ className?: string }>; // hv message-circle-plus（new-task）
-declare const IconPanelLeftClose: React.FC<{ className?: string }>; // Tv panel-left-close
-declare const IconPanelLeftOpen: React.FC<{ className?: string }>; // Ev panel-left-open
-declare const IconSquareTerminal: React.FC<{ className?: string }>; // Uv square-terminal
-declare const IconBookOpen: React.FC<{ className?: string }>; // oye book-open（产品文档）
-declare const IconUsers: React.FC<{ className?: string }>; // Jv users（社群）
-declare const IconFileDiff: React.FC<{ className?: string }>; // X_ file-diff 27036（审查/变更）
-declare const IconFolderOpen: React.FC<{ className?: string }>; // Q_ folder-open 27103（打开工作区）
-declare const IconLogIn: React.FC<{ className?: string }>; // pv log-in 27325
-declare const IconLogOut: React.FC<{ className?: string }>; // Kye log-out 27330
-declare const IconServer: React.FC<{ className?: string }>; // Iv server 27746（MCP）
-declare const IconSettings: React.FC<{ className?: string }>; // Rv settings 27758
-declare const IconWandSparkles: React.FC<{ className?: string }>; // Yv wand-sparkles 27966（技能）
-declare const IconMoon: React.FC<{ className?: string }>; // xv moon 27468（深色主题）
-declare const IconSun: React.FC<{ className?: string }>; // Sbe sun 27826（浅色主题）
-declare const IconGlobe: React.FC<{ className?: string }>; // nv globe 27170（浏览器/预览）
-declare const IconMessageCircle: React.FC<{ className?: string }>; // gv message-circle 27390（查找范围=消息）
-declare const IconArrowUp: React.FC<{ className?: string }>; // T_ arrow-up 26663（上一个）
-declare const IconArrowDown: React.FC<{ className?: string }>; // Qve arrow-down 26625（下一个）
-declare const IconClose: React.FC<{ className?: string }>; // g = x（imeComposition chunk b 导出）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（28）：IconSearch/IconList/IconRocket/IconMessagesSquare/IconFile/IconTrash/IconChevronDown/IconMessageSquare/IconMessageCirclePlus/IconPanelLeftClose/IconPanelLeftOpen/IconSquareTerminal/IconBookOpen/IconUsers/IconFileDiff/IconFolderOpen/IconLogIn/IconLogOut/IconServer/IconSettings/IconWandSparkles/IconMoon/IconSun/IconGlobe/IconMessageCircle/IconArrowUp/IconArrowDown/IconClose → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** 文件图标 <img>（原 Vc，js 5195；加载失败回退） */
 export function FileIconImg({ src, size = 16, className }: { src: string; size?: number; className?: string }) {

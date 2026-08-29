@@ -139,7 +139,8 @@
  */
 
 import * as React from "react";
-import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { Copy as IconCopy, Download as IconDownload, X as IconClose, ArrowLeft as IconPrevious, ArrowRight as IconNext, ChevronDown as IconChevronDown } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Button, ZoomOut as IconZoomOut, ZoomIn as IconZoomIn } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ZoomOut as IconZoomOut, ZoomIn as IconZoomIn（button chunk 图标，pass-1 同源）
 import { Textarea, toast, usePlatform } from './ImeComposition';
 import { TableEdgeShadow, IMAGE_THUMBNAIL_CLASS, backToBottomInset, baseName, chatDockHeight, decodeUriSafe, extractTableRows, findVerticalScroller, isAbsolutePath, measureRect, sameRect, shouldShowStickyScrollbar, stickyScrollMax, stickyScrollbarOffset, stickyThumbGeometry, stickyTrackGeometry, tableLayoutInsets, tableLayoutRoot, tableNeedsStickyScrollbar, tableRowsToCsv, tableRowsToMarkdown } from './MarkdownIntegration'; // 新增项原 Gk/EBe/qo/Pk/Ko/Ak/jk/Nk/TBe/kk
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
@@ -201,19 +202,14 @@ declare const DropdownMenuItem: React.FC<{
 declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
 
 /* 图标族（lucide 封装，登记见 VENDOR-MANIFEST） */
-declare const IconCopy: React.FC<{ className?: string }>; // W_
-declare const IconDownload: React.FC<{ className?: string }>; // G_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：IconCopy/IconDownload → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconTablePreview: React.FC<{ className?: string }>; // mv
 declare const IconCollapseScrollMode: React.FC<{ className?: string }>; // $ve
 declare const IconExpandScrollMode: React.FC<{ className?: string }>; // tye
-declare const IconClose: React.FC<{ className?: string }>; // g
-declare const IconPrevious: React.FC<{ className?: string }>; // S_
-declare const IconNext: React.FC<{ className?: string }>; // C_
-declare const IconZoomOut: React.FC<{ className?: string }>; // bv（灯箱）/ hye（mermaid 为另一图标）
-declare const IconZoomIn: React.FC<{ className?: string }>; // kv（灯箱）/ L_（mermaid 为另一图标）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（5）：IconClose/IconPrevious/IconNext/IconZoomOut/IconZoomIn → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconMermaidZoomOut: React.FC<{ className?: string }>; // hye
 declare const IconMermaidZoomIn: React.FC<{ className?: string }>; // L_
-declare const IconChevronDown: React.FC<{ className?: string }>; // N_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconChevronDown → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* MarkdownIntegration.tsx 已重建件（接口挂接） */
 /* 原 kk/TBe/Ak/jk/Nk/EBe/Pk/Gk：表格粘性条助手族 —— 已接线 MarkdownIntegration 真实导出 */

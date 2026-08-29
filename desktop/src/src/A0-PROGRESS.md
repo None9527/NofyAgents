@@ -79,6 +79,8 @@
 
 | S3-a | vendored→npm：zod/qrcode/useVirtualizer/Stripe/xterm | **完工已验证** | zod@4.3.6 落地（SrcSharedA 删 3,562 行 vendored 体→`import * as zod` + 语义名 shim，6,167→2,907 行）；qrcode@1.5.4（2 declares）；@tanstack/react-virtual@3.14.10（5 declares，useMessageListVirtualizer 确认为直接别名）；Stripe 9.6.0/6.4.0（7 declares）；xterm 裁决 = @xterm/xterm@5.5.0（"3.7.8" 标记实为 js-base64；bundle 指纹锚定 5.5.0，3 处内部 API shim 迁公共 API）；react-resizable-panels **整件推迟**（仅 declare 无转录引擎，X4/Z4/Q4 包装属主未重建，门禁无法验证运行时）；tsc 逐行不变（2）；报告 A0-S3a.report.md |
 
+| S3-b | lucide 285 declares→lucide-react | **完工已验证** | lucide-react@1.35.0 落地；**429/491 declare 语句转真 import**（225 名纯迁移 + 21 句 4 图标并入 ./button pass-1 正典）；62 句/60 名保留逐件登记（49 自定义一方图标误分类、FileIcon 自定义 src prop、IconFork 无对应导出、6 名-符号冲突不猜）；裁决含 Kv trash 簇→Trash2（js 27882）、IconSend→ArrowUpFromLine（w_ 26653）、Spinner 族→LoaderCircle；零调用面改动（LucideProps 全覆盖）、零抑制；32 文件 +134/−444；tsc 逐行不变（2）；报告 A0-S3b.report.md |
+
 **S2 接线阶段总结**：项目 tsc 364（declare-any 静默基线）→ 2,448（真实类型引入峰值）→ … → 773（波次末）→ 582 → 538 → 528 → 44 → **2**（均为 S4 待实体化桩，型已就绪）。剩余 declare 2,502 条 = Lane-4 vendored（S3 目标）+ 未重建深部（S4 目标）。
 
 ## 事故与教训（本阶段）

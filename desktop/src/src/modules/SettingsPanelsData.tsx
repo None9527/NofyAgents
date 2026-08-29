@@ -73,6 +73,7 @@
  */
 
 import * as React from "react";
+import { LoaderCircle as SpinnerIcon, BoltIcon, FlameIcon, StarIcon, RefreshCcw as RefreshIcon, TriangleAlert as AlertIcon, CheckIcon, DownloadIcon, CopyIcon, Check as CopiedIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input } from './ImeComposition';
 import { CodeBlockFrame, MarkdownRenderer, documentVisibilityState, isMermaidBlock } from './MarkdownIntegration';
@@ -102,7 +103,7 @@ interface IntlShape {
 
 
 /* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
-declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const SelectRoot: React.FC<{
   value: string;
   onValueChange: (v: string) => void;
@@ -111,15 +112,10 @@ declare const SelectRoot: React.FC<{
 }>;
 
 declare const TokensIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Mye
-declare const BoltIcon: React.FC<React.SVGProps<SVGSVGElement>>; // yv
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：BoltIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const MessageIcon: React.FC<React.SVGProps<SVGSVGElement>>; // vv
 declare const CalendarIcon: React.FC<React.SVGProps<SVGSVGElement>>; // j_
-declare const FlameIcon: React.FC<React.SVGProps<SVGSVGElement>>; // cye
-declare const StarIcon: React.FC<React.SVGProps<SVGSVGElement>>; // y_
-declare const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Mv
-declare const AlertIcon: React.FC<React.SVGProps<SVGSVGElement>>; // N
-declare const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M_
-declare const DownloadIcon: React.FC<React.SVGProps<SVGSVGElement>>; // G_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（6）：FlameIcon/StarIcon/RefreshIcon/AlertIcon/CheckIcon/DownloadIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* ============================================================================
  * 1. 用量分区（原 p1t 及消费面，jsx 157119–157534）
@@ -1316,8 +1312,7 @@ export function MemoryFilePreview(props: {
 
 declare const WrapLinesIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Tbe
 declare const MermaidIcon: React.FC<React.SVGProps<SVGSVGElement>>; // mv
-declare const CopyIcon: React.FC<React.SVGProps<SVGSVGElement>>; // W_
-declare const CopiedIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：CopyIcon/CopiedIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 interface CodeBlockContextValue {
   code: string;

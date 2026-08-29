@@ -128,6 +128,7 @@
  */
 
 import * as React from "react";
+import { Check as IconCheck, Copy as IconCopy, ExternalLink as IconExternal, Loader as IconLoader, ImageOff as IconImageOff, LoaderCircle as IconSpinner } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Streamdown, DEFAULT_REHYPE_PLUGINS } from "./MarkdownRenderer";
 import { visit, type UnistNode } from "./MarkdownVendored";
 import type {
@@ -212,14 +213,10 @@ declare const DialogTitle: React.ComponentType<Record<string, unknown>>; // Gb
 declare const DialogDescription: React.ComponentType<Record<string, unknown>>; // Kb
 
 /* 图标族（lucide 风格） */
-declare const IconCheck: React.ComponentType<{ className?: string }>; // M_
-declare const IconCopy: React.ComponentType<{ className?: string }>; // W_
-declare const IconExternal: React.ComponentType<{ className?: string }>; // q_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：IconCheck/IconCopy/IconExternal → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconMermaid: React.ComponentType<{ className?: string }>; // mv
 declare const IconWrap: React.ComponentType<{ className?: string }>; // Tbe
-declare const IconLoader: React.ComponentType<{ className?: string }>; // cv
-declare const IconImageOff: React.ComponentType<{ className?: string }>; // zye
-declare const IconSpinner: React.ComponentType<{ className?: string }>; // M（imeComposition chunk）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：IconLoader/IconImageOff/IconSpinner → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /** 原 Vc：文件图标 img 组件（js 5195） */
 /** 原 Fc：Pc('folder') 目录图标 data-url */
 

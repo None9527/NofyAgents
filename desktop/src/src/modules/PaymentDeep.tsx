@@ -85,11 +85,12 @@
  * ============================================================================
  */
 import * as React from "react";
+import { ChevronDownIcon, Lightbulb as ThoughtLevelIcon, RefreshCw as RefreshIcon, X as CloseIcon, Trash2 as TrashIcon, CheckIcon, ArrowLeft as BackIcon, CircleCheck as SuccessIcon, MinusIcon, PlusIcon, GlobeIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import * as qrcode from 'qrcode'; // A0-S3a：vendored qrcode（78456–79690，Qq）→ npm qrcode@1.5.4
 // A0-S3a：vendored Stripe（80955–81731）→ npm @stripe/react-stripe-js@6.4.0 + @stripe/stripe-js@9.6.0（bundle 双版本锚定）
 import { Elements as StripeElementsProvider, useStripe, useElements, CardNumberElement, CardExpiryElement, CardCvcElement } from '@stripe/react-stripe-js';
 import * as stripeLoader from '@stripe/stripe-js';
-import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { Button, ChevronRight as ChevronRightIcon } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as ChevronRightIcon（button chunk 图标，pass-1 同源）
 /* ── A0-S2d 接线（§2 裁决去重 76848–77167 / 76034–76156）：原本地重复转录与
  *    declare 挂接删除，canonical 在 Composer.tsx，真实 import 消费；混淆名注释随迁 ── */
 import {
@@ -128,7 +129,7 @@ declare function formatCompactNumber(value: number, locale: string, options?: Re
 /** 本 chunk 原语：Tooltip 触发包装（Ia）/Select 五件（iO/oO/aO/sO/cO）/chevron（N_）/弹层关闭守卫（ZH/XH） */
 declare const TooltipTriggerWrap: React.FC<{ title?: string; description?: string; shortcut?: string; className?: string; side?: string; align?: string; triggerRef?: React.RefObject<unknown> | null; children?: React.ReactNode }>; // Ia
 declare const SelectRoot: React.FC<{ open?: boolean; onOpenChange?: (open: boolean) => void; value?: string; onValueChange?: (value: string) => void; disabled?: boolean; children?: React.ReactNode }>; // iO
-declare const ChevronDownIcon: React.FC<React.SVGProps<SVGSVGElement>>; // N_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：ChevronDownIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare function isCoarseTouchDeviceGuard(args: { isCoarseTouchDevice: boolean }): boolean; // ZH
 declare function detectCoarseTouchDevice(): boolean; // XH
 /** src-HCld2afU / skillStore / stores 横切助手（按调用面接口级） */
@@ -172,7 +173,7 @@ declare const MODEL_MENU_TESTID: string; // Fr
  *    （canonical 在 Composer.tsx），随段删除后无引用。zv ModeIconFullAccess 保留
  *    （§5/§7 等正文章节仍有消费）。 ── */
 declare const ModeIconFullAccess: React.FC<React.SVGProps<SVGSVGElement>>; // zv
-declare const ThoughtLevelIcon: React.FC<React.SVGProps<SVGSVGElement>>; // O_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：ThoughtLevelIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const TruncateLabel: React.FC<{ label: string }>; // _q
 declare const KNOWN_MODEL_FORMATS: string[]; // Di
 declare function isProviderSystemEnabled(id: string): boolean; // Bn
@@ -212,8 +213,7 @@ declare const CONTEXT_USAGE_TRIGGER_TESTID: string; // Lte
  *    改 npm qrcode@1.5.4 真实 import（文件头 `import * as qrcode from 'qrcode'`）；
  *    toDataURL(text, { margin, width }) 调用面逐字不变。 ── */
 /** §5 支付/产品域外部依赖 */
-declare const ChevronRightIcon: React.FC<React.SVGProps<SVGSVGElement>>; // wa
-declare const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Nv
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：ChevronRightIcon/RefreshIcon → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const Slot: React.FC<Record<string, unknown> & { children?: React.ReactNode }>; // Gre（dist-vnZIbudW.js 导入，asChild 槽）
 declare function classVariance(
   base: string,
@@ -230,9 +230,7 @@ declare const DialogContent: React.FC<{ className?: string; showCloseButton?: bo
 declare const DialogHeader: React.FC<{ className?: string; children?: React.ReactNode }>; // Ub
 declare const DialogTitle: React.FC<{ className?: string; children?: React.ReactNode }>; // Gb
 declare const DialogClose: React.FC<{ asChild?: boolean; children?: React.ReactNode }>; // Vb
-declare const CloseIcon: React.FC<React.SVGProps<SVGSVGElement>>; // g
-declare const TrashIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Kv
-declare const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：CloseIcon/TrashIcon/CheckIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare function useAppStore<T>(selector: (state: any) => T): T; // ko（同一 store：theme + OAuth/user 状态）
 /* ── tombstone（A0-S3a）：vendored @stripe/react-stripe-js 6.4.0 + @stripe/stripe-js 9.6.0
  *    原语（80955–81731，u7e/v7e/f7e/y7e/b7e/x7e/F7e）declare 删除，改 npm 真实 import（文件头）：
@@ -258,13 +256,10 @@ declare const SelectTriggerAsChild: React.FC<{ asChild?: boolean; children?: Rea
 declare const SelectPopup: React.FC<{ align?: string; className?: string; children?: React.ReactNode }>; // UO
 declare const SelectControl: React.FC<{ value: string; onValueChange: (value: string) => void; children?: React.ReactNode }>; // KO
 declare const SelectOption: React.FC<{ value: string; className?: string; children?: React.ReactNode }>; // qO
-declare const BackIcon: React.FC<React.SVGProps<SVGSVGElement>>; // S_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：BackIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const EquityCheckIcon: React.FC<React.SVGProps<SVGSVGElement>>; // E_
 declare const HelpIcon: React.FC<React.SVGProps<SVGSVGElement>>; // p
-declare const SuccessIcon: React.FC<React.SVGProps<SVGSVGElement>>; // I_
-declare const MinusIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bv
-declare const PlusIcon: React.FC<React.SVGProps<SVGSVGElement>>; // kv
-declare const GlobeIcon: React.FC<React.SVGProps<SVGSVGElement>>; // o
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（4）：SuccessIcon/MinusIcon/PlusIcon/GlobeIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const WebElementIcon: React.FC<React.SVGProps<SVGSVGElement>>; // wye
 declare const SelectionIcon: React.FC<React.SVGProps<SVGSVGElement>>; // fbe
 declare const GenericProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Cv

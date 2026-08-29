@@ -115,7 +115,8 @@
  */
 
 import * as React from "react";
-import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { LoaderCircle as SpinnerIcon, RefreshCw as RefreshIcon, PlusIcon, Trash2 as TrashIcon, PencilIcon, ExternalLinkIcon, ChevronDownIcon, CheckIcon, DownloadIcon, FolderOpenIcon, SearchIcon, TriangleAlert as AlertIcon, Settings2 as SettingsIcon, EllipsisIcon, PlayIcon, RotateCcw as RotateIcon, PauseIcon, PlayCircle as ResumeIcon, SquarePen as EditIcon, CircleCheck as AutomationStatusCompletedIcon, TriangleAlert as AutomationStatusFailedIcon, Sparkles as SkillIcon, SquareTerminal as CommandIcon, Bot as SubagentIcon, UserRound as UserScopeIcon, InfoIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Button, ChevronRight as ChevronRightIcon } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as ChevronRightIcon（button chunk 图标，pass-1 同源）
 import { registerWorkspaceTask } from './FileTreePanel';
 import { Input, Textarea, toast } from './ImeComposition';
 import { splitCommandsByScope, splitSkillsByScope } from './McpHelpers';
@@ -178,7 +179,7 @@ interface ToastOptions {
 /* --- UI 原语 --- */
 
 /* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
-declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const SelectRoot: React.FC<{
   value: string;
   onValueChange: (v: string) => void;
@@ -205,37 +206,15 @@ declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
 
 /* --- 图标 --- */
 
-declare const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Nv
-declare const PlusIcon: React.FC<React.SVGProps<SVGSVGElement>>; // kv
-declare const TrashIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Kv
-declare const PencilIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Dv
-declare const ExternalLinkIcon: React.FC<React.SVGProps<SVGSVGElement>>; // q_
-declare const ChevronDownIcon: React.FC<React.SVGProps<SVGSVGElement>>; // N_
-declare const ChevronRightIcon: React.FC<React.SVGProps<SVGSVGElement>>; // wa
-declare const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M_
-declare const DownloadIcon: React.FC<React.SVGProps<SVGSVGElement>>; // G_
-declare const FolderOpenIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Q_ folder-open
-declare const SearchIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Fv search
-declare const AlertIcon: React.FC<React.SVGProps<SVGSVGElement>>; // N triangle-alert
-declare const SettingsIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Rv settings-2
-declare const EllipsisIcon: React.FC<React.SVGProps<SVGSVGElement>>; // N3 ellipsis
-declare const PlayIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Yjt play
-declare const RotateIcon: React.FC<React.SVGProps<SVGSVGElement>>; // gbe rotate-ccw
-declare const PauseIcon: React.FC<React.SVGProps<SVGSVGElement>>; // A3 pause
-declare const ResumeIcon: React.FC<React.SVGProps<SVGSVGElement>>; // j3 play-circle
-declare const EditIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Jjt square-pen
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（19）：RefreshIcon/PlusIcon/TrashIcon/PencilIcon/ExternalLinkIcon/ChevronDownIcon/ChevronRightIcon/CheckIcon/DownloadIcon/FolderOpenIcon/SearchIcon/AlertIcon/SettingsIcon/EllipsisIcon/PlayIcon/RotateIcon/PauseIcon/ResumeIcon/EditIcon → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const AutomationStatusActiveIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M3
 declare const AutomationStatusPausedIcon: React.FC<React.SVGProps<SVGSVGElement>>; // k3
-declare const AutomationStatusCompletedIcon: React.FC<React.SVGProps<SVGSVGElement>>; // I_
-declare const AutomationStatusFailedIcon: React.FC<React.SVGProps<SVGSVGElement>>; // N（三角警示复用）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：AutomationStatusCompletedIcon/AutomationStatusFailedIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const TemplateIcon: React.FC<{ className?: string; name: string }>; // uMt 闲时模板图标
 declare const ScheduledTemplateIcon: React.FC<{ className?: string; name?: string }>; // Njt 定时模板图标
-declare const SkillIcon: React.FC<React.SVGProps<SVGSVGElement>>; // sye sparkles
-declare const CommandIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Gv square-terminal
-declare const SubagentIcon: React.FC<React.SVGProps<SVGSVGElement>>; // b_ bot
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：SkillIcon/CommandIcon/SubagentIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const HookIcon: React.FC<React.SVGProps<SVGSVGElement>>; // p（camera-info 占位）
-declare const UserScopeIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Nbe user-round
-declare const InfoIcon: React.FC<React.SVGProps<SVGSVGElement>>; // F_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：UserScopeIcon/InfoIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* --- 通用领域类型 --- */
 

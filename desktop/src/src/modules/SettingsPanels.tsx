@@ -135,7 +135,8 @@
  */
 
 import * as React from "react";
-import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { LoaderCircle as SpinnerIcon, RefreshCw as RefreshIcon, PlusIcon, Trash2 as TrashIcon, PencilIcon, ExternalLinkIcon, ChevronDownIcon, PlugIcon, CircleIcon, CheckIcon, MinusIcon, CircleHelpIcon, TriangleAlert as AlertIcon, DownloadIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Button, ChevronRight as ChevronRightIcon } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as ChevronRightIcon（button chunk 图标，pass-1 同源）
 import { Input, Textarea, toast } from './ImeComposition';
 import { Badge, providerFamilyOf, useCodingPlanEntitlements, useStartPlanPreview } from './PaymentDeep'; // +useCodingPlanEntitlements（A0-CLEANUP B-30 接线）
 import { SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger, subscribeSettingsSectionIntent } from './Settings';
@@ -197,7 +198,7 @@ interface ToastOptions {
 /* --- UI 原语（跨 chunk） --- */
 
 /* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
-declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /** 原 yq（75986）：进度条 —— 属主 Modals.tsx 未导出，登记需要的 export 后保留 declare */
 /* ── tombstone（A0-CLEANUP2 item 15）：Progress（原 yq）declare 删除 → import { Progress } from './Modals'。 ── */
 declare const SelectRoot: React.FC<{
@@ -233,20 +234,7 @@ declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
 
 /* --- 图标（lucide 风格；原符号见各行注释） --- */
 
-declare const RefreshIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Nv refresh-cw
-declare const PlusIcon: React.FC<React.SVGProps<SVGSVGElement>>; // kv plus
-declare const TrashIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Kv trash
-declare const PencilIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Dv pencil
-declare const ExternalLinkIcon: React.FC<React.SVGProps<SVGSVGElement>>; // q_ external-link
-declare const ChevronDownIcon: React.FC<React.SVGProps<SVGSVGElement>>; // N_ chevron-down
-declare const ChevronRightIcon: React.FC<React.SVGProps<SVGSVGElement>>; // wa chevron-right
-declare const PlugIcon: React.FC<React.SVGProps<SVGSVGElement>>; // A_ plug
-declare const CircleIcon: React.FC<React.SVGProps<SVGSVGElement>>; // z_ circle
-declare const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M_ check
-declare const MinusIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bv minus（半选）
-declare const CircleHelpIcon: React.FC<React.SVGProps<SVGSVGElement>>; // F_ circle-help
-declare const AlertIcon: React.FC<React.SVGProps<SVGSVGElement>>; // N triangle-alert
-declare const DownloadIcon: React.FC<React.SVGProps<SVGSVGElement>>; // G_ download
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（14）：RefreshIcon/PlusIcon/TrashIcon/PencilIcon/ExternalLinkIcon/ChevronDownIcon/ChevronRightIcon/PlugIcon/CircleIcon/CheckIcon/MinusIcon/CircleHelpIcon/AlertIcon/DownloadIcon → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* --- 供应商 id 枚举与领域类型（原 q=mo；A0-CLEANUP B-7 改指 SrcSharedA.providerIds） --- */
 

@@ -143,7 +143,8 @@
  */
 
 import * as React from "react";
-import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { LoaderCircle as SpinnerIcon, Settings2 as IconGeneral, Palette as IconAppearance, Server as IconModelProvider, Brain as IconMemory, Puzzle as IconPlugins, WandSparkles as IconSkills, Bot as IconSubagents, AlarmClock as IconAutomations, Cable as IconMcp, Terminal as IconCommands, Anchor as IconHooks, ShieldCheck as IconIndexing, Earth as IconBrowser, ChartColumn as IconUsage, Rocket as IconOnboarding, FolderOpen as IconFolderOpen, RefreshCcw as IconRefresh, FileText as IconFileText, Folder as IconFolder, Box as IconSkillRow, Plus as IconPlus, Download as IconDownload, CloudUpload as IconCloudUpload, ArrowLeft as IconArrowLeft, ChevronDown as IconChevronDown, Check as IconCheck, Monitor as IconThemeSystem, Moon as IconThemeDark, Sun as IconThemeLight } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Button, ChevronRight as IconChevronRight } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { Input, toast, useSelectDirectory } from './ImeComposition';
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource } from './Modals'; // +$2（A0-CLEANUP2 item 14 接线：原别名保留）
 import { McpImportDialog, McpServerEditor, McpServerRow, ModelProviderSettingsSection, type McpFormDraft } from './SettingsPanels'; // A0-CLEANUP3 3b：编辑器保存草稿面
@@ -465,40 +466,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 /* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
 /** spinner（原 M，imeComposition chunk 的 w 导出：loader-circle） */
-declare const SpinnerIcon: React.FC<{ className?: string; "aria-hidden"?: boolean | "true" }>;
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 type IconComponent = React.FC<{ className?: string; "aria-hidden"?: boolean | "true" }>;
 /* 图标（原 Sa=createLucideIcon 工厂产物，行号见头部映射表） */
-declare const IconGeneral: IconComponent; // settings-2 (Lv)
-declare const IconAppearance: IconComponent; // palette (wv)
-declare const IconModelProvider: IconComponent; // server (Iv)
-declare const IconMemory: IconComponent; // brain (O_)
-declare const IconPlugins: IconComponent; // puzzle (jv)
-declare const IconSkills: IconComponent; // wand-sparkles (Yv)
-declare const IconSubagents: IconComponent; // bot (D_)
-declare const IconAutomations: IconComponent; // alarm-clock (Yve)
-declare const IconMcp: IconComponent; // cable (A_)
-declare const IconCommands: IconComponent; // terminal (Gv)
-declare const IconHooks: IconComponent; // anchor (b_)
-declare const IconIndexing: IconComponent; // shield-check (Bv)
-declare const IconBrowser: IconComponent; // earth (wye)
-declare const IconUsage: IconComponent; // chart-column (uye)
-declare const IconOnboarding: IconComponent; // rocket (Pv)
-declare const IconFolderOpen: IconComponent; // folder-open (Q_)
-declare const IconRefresh: IconComponent; // refresh-ccw (Mv)
-declare const IconFileText: IconComponent; // file-text (Z_)
-declare const IconFolder: IconComponent; // folder ($_)
-declare const IconSkillRow: IconComponent; // box (sye)
-declare const IconPlus: IconComponent; // plus (kv)
-declare const IconDownload: IconComponent; // download (G_)
-declare const IconCloudUpload: IconComponent; // cloud-upload (H_)
-declare const IconArrowLeft: IconComponent; // arrow-left (S_)
-declare const IconChevronRight: IconComponent; // chevron-right (wa，button chunk)
-declare const IconChevronDown: IconComponent; // chevron-down (N_)
-declare const IconCheck: IconComponent; // check (M_)
-declare const IconThemeSystem: IconComponent; // ebe（monitor 系）
-declare const IconThemeDark: IconComponent; // xv（moon 系）
-declare const IconThemeLight: IconComponent; // Sbe（sun 系）
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（30）：IconGeneral/IconAppearance/IconModelProvider/IconMemory/IconPlugins/IconSkills/IconSubagents/IconAutomations/IconMcp/IconCommands/IconHooks/IconIndexing/IconBrowser/IconUsage/IconOnboarding/IconFolderOpen/IconRefresh/IconFileText/IconFolder/IconSkillRow/IconPlus/IconDownload/IconCloudUpload/IconArrowLeft/IconChevronRight/IconChevronDown/IconCheck/IconThemeSystem/IconThemeDark/IconThemeLight → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /** ZCode logo data-url（原 uw，js 39411）：Win caption 左上 logo */
 declare const ZCODE_LOGO_DATA_URL: string;

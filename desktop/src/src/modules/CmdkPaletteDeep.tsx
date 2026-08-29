@@ -59,6 +59,7 @@
  * ==========================================================================*/
 /* eslint-disable */
 import * as React from "react";
+import { GitBranch as IconGitBranch, Loader as IconLoader, CircleAlert as IconCircleAlert, Tag as IconTag, GitMerge as IconGitMerge, GitGraph as IconGitGraph, RefreshCw as IconRefreshCw } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { extractErrorMessage as errorMessageOf } from './FeedbackCenter'; // 原 MC（js 37651）：错误消息提取（剥 `Error:` 前缀）；AMBIGUOUS 裁决见 A0-D-Misc 报告
 import { hasGitIdentity, mapChangeFilesToRows, summarizeFileRows, type GitFileChange, type GitIdentity } from './GitReview';
 import { Input, Textarea, toast } from './ImeComposition';
@@ -88,13 +89,7 @@ declare const DialogClose: React.FC<{ asChild?: boolean; children?: React.ReactN
 /** 原 j（imeComposition chunk 的 Textarea 导出） */
 
 /* --- lucide 图标（原 Sa 工厂，js 26575–28020；语义名 = lucide 图标名） --- */
-declare const IconGitBranch: React.FC<React.SVGProps<SVGSVGElement>>; // ev git-branch 27142
-declare const IconLoader: React.FC<React.SVGProps<SVGSVGElement>>; // fv loader 27315
-declare const IconCircleAlert: React.FC<React.SVGProps<SVGSVGElement>>; // F_ circle-alert 26812
-declare const IconTag: React.FC<React.SVGProps<SVGSVGElement>>; // Cbe tag 27885
-declare const IconGitMerge: React.FC<React.SVGProps<SVGSVGElement>>; // Lye git-merge 27213
-declare const IconGitGraph: React.FC<React.SVGProps<SVGSVGElement>>; // tv git-graph
-declare const IconRefreshCw: React.FC<React.SVGProps<SVGSVGElement>>; // Nv refresh-cw 27677
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（7）：IconGitBranch/IconLoader/IconCircleAlert/IconTag/IconGitMerge/IconGitGraph/IconRefreshCw → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // g（imeComposition b）
 
 /** 文件路径内联组件（原 Bc，js 5157；图标 + 文件名 + 目录尾） */

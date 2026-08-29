@@ -82,6 +82,7 @@
  */
 
 import * as React from "react";
+import { Trash2 as IconTrash, ChevronDown as IconChevronDown, ExternalLink as IconOpenExternal, Copy as IconCopy } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 /* ── tombstone（A0-D-Misc）：原 `import { DiffViewer } from './CodeViewer'` 退回 declare——
  *    CodeViewer.DiffViewer（mVt）props 面（patch/oldFile/newFile/themeType…）与本处
  *    消费面（file/options/lineAnnotations/selectedLines/renderAnnotation）不符；本处实体为
@@ -166,10 +167,7 @@ declare const DropdownMenuItem: React.FC<{ disabled?: boolean; onSelect?: () => 
 declare const DropdownMenuSeparator: React.FC<Record<string, never>>;
 
 /* 图标族（lucide 封装） */
-declare const IconTrash: React.FC<{ className?: string }>; // Kv
-declare const IconChevronDown: React.FC<{ className?: string }>; // N_
-declare const IconOpenExternal: React.FC<{ className?: string }>; // q_
-declare const IconCopy: React.FC<{ className?: string }>; // W_
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（4）：IconTrash/IconChevronDown/IconOpenExternal/IconCopy → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* ============================================================================
  * 1. MO 代码查看器深部（原 47354–47712）

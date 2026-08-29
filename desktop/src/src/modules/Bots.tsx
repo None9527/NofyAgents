@@ -71,6 +71,7 @@
  * ============================================================================
  */
 import * as React from "react";
+import { BotIcon, WebhookIcon, LinkIcon, Trash2 as TrashIcon, SaveIcon, UnlinkIcon, ExternalLinkIcon, QrCodeIcon, AlertCircleIcon, CopyIcon, CheckIcon, PlusIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import * as qrcode from 'qrcode'; // A0-S3a：vendored qrcode（78456–79690，Qq）→ npm qrcode@1.5.4
 /* ── tombstone（A0-S2d）：原 `import { workspaceKeyOf } from './CodeViewer'` 已删除——
  *    唯一消费点在 §6 重复转录段（149473–149599，canonical 在 WebRemote.tsx），
@@ -130,18 +131,7 @@ declare const DialogHeader: React.FC<{ children?: React.ReactNode }>;
 declare const DialogTitle: React.FC<{ className?: string; children?: React.ReactNode }>;
 declare const DialogDescription: React.FC<{ className?: string; children?: React.ReactNode }>;
 /** 图标块（26575–28020，lucide vendored）：本族用到的 12 个 */
-declare const BotIcon: React.FC<React.SVGProps<SVGSVGElement>>; // D_
-declare const WebhookIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Lbe
-declare const LinkIcon: React.FC<React.SVGProps<SVGSVGElement>>; // B_
-declare const TrashIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Kv
-declare const SaveIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Hye
-declare const UnlinkIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Abe
-declare const ExternalLinkIcon: React.FC<React.SVGProps<SVGSVGElement>>; // q_
-declare const QrCodeIcon: React.FC<React.SVGProps<SVGSVGElement>>; // dbe
-declare const AlertCircleIcon: React.FC<React.SVGProps<SVGSVGElement>>; // F_
-declare const CopyIcon: React.FC<React.SVGProps<SVGSVGElement>>; // W_
-declare const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M_
-declare const PlusIcon: React.FC<React.SVGProps<SVGSVGElement>>; // kv
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（12）：BotIcon/WebhookIcon/LinkIcon/TrashIcon/SaveIcon/UnlinkIcon/ExternalLinkIcon/QrCodeIcon/AlertCircleIcon/CopyIcon/CheckIcon/PlusIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* ── tombstone（A0-S2d）：yi/Wne/ote/Mne/xi/See/U2 七件 declare 已删除，
  *    canonical：SrcSharedA（isFeishuOrLark / availableReplyModesForProvider /

@@ -355,6 +355,7 @@
  */
 
 import * as React from "react";
+import { ChevronDownIcon, PencilIcon, Trash2 as TrashIcon, UnplugIcon, RadioTowerIcon, EyeOffIcon, EyeIcon, AstroidIcon, ArrowRightIcon, UsersIcon, CircleIcon, GripVerticalIcon, ArrowLeftIcon, RocketIcon, TrendingUpIcon, LogInIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { InfoIcon, Input, Popover as PopoverRoot, PopoverContent, PopoverTrigger, SpinnerIcon, usePlatformService } from './ImeComposition'; // PopoverRoot（原 n=T 根）；A0-CLEANUP3 #38：SpinnerIcon/InfoIcon/usePlatformService 改由属主导出
 import { MarkdownRenderer, type CodePreviewSettings } from './MarkdownIntegration';
 import { useCodingPlanProducts, useStartPlanPreview } from './PaymentDeep';
@@ -436,22 +437,7 @@ declare function useDraggable(opts: { id: string; disabled?: boolean }): {
 }; // DZ（94331）
 
 /* --- 图标（本 chunk 26575–28020 vendored lucide 块，Sa 工厂） --- */
-declare const ChevronDownIcon: React.FC<React.SVGProps<SVGSVGElement>>; // N_ chevron-down 26802
-declare const PencilIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Dv pencil 27568
-declare const TrashIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Kv trash-2 27882
-declare const UnplugIcon: React.FC<React.SVGProps<SVGSVGElement>>; // jbe unplug 27923
-declare const RadioTowerIcon: React.FC<React.SVGProps<SVGSVGElement>>; // pbe radio-tower 27658
-declare const EyeOffIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Eye eye-off 26970
-declare const EyeIcon: React.FC<React.SVGProps<SVGSVGElement>>; // J_ eye 26988
-declare const AstroidIcon: React.FC<React.SVGProps<SVGSVGElement>>; // E_ astroid 26667
-declare const ArrowRightIcon: React.FC<React.SVGProps<SVGSVGElement>>; // C_ arrow-right 26649
-declare const UsersIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Jv users 27950
-declare const CircleIcon: React.FC<React.SVGProps<SVGSVGElement>>; // z_ circle 26873
-declare const GripVerticalIcon: React.FC<React.SVGProps<SVGSVGElement>>; // iv grip-vertical 27188
-declare const ArrowLeftIcon: React.FC<React.SVGProps<SVGSVGElement>>; // S_ arrow-left 26634
-declare const RocketIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Pv rocket 27687
-declare const TrendingUpIcon: React.FC<React.SVGProps<SVGSVGElement>>; // kbe trending-up 27895
-declare const LogInIcon: React.FC<React.SVGProps<SVGSVGElement>>; // pv log-in 27325
+/* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（16）：ChevronDownIcon/PencilIcon/TrashIcon/UnplugIcon/RadioTowerIcon/EyeOffIcon/EyeIcon/AstroidIcon/ArrowRightIcon/UsersIcon/CircleIcon/GripVerticalIcon/ArrowLeftIcon/RocketIcon/TrendingUpIcon/LogInIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* --- src-HCld2afU.js：供应商/模型域助手（未重建 chunk，接口级） --- */
 interface ModelProviderFamily {
