@@ -19,7 +19,7 @@
  *   IOt  → updatePillResponsiveClasses 更新胶囊按平台展开的容器查询类 (129354 / 108851)
  *   FOt  → ReleaseNotesPopover       发行说明弹层 (129296 / 108831)
  *   POt  → UpdateStatusDialogController 更新对话框控制器（下载/跳过/重启安装）(129125 / 108678)
- *   COt  → UpdateStatusDialog        更新对话框呈现层（本文件仅保留接口，见注释）(128795 / 108390)
+ *   COt  → UpdateStatusDialog        更新对话框呈现层（属主 Modals.tsx，本文件真实 import 调用）(128795 / 108390)
  *   DOt  → resolveUpdateViewModel    更新状态 → 视图模型 (129066 / 108630)
  *   TOt  → pickLocalizedReleaseNotes (129047 / 108612)
  *   EOt  → formatReleaseDate         (129054 / 108620)
@@ -132,7 +132,7 @@ import { resolveAvailableEditors, type InstalledEditor } from './FileTreePanel';
 import { SummaryGitSection, useTaskFileActions, type GitSummary } from './GitReview'; // A0-CLEANUP4：GitSummary 属主为 GitReview（原 Yhe 缺省形），本地镜像删除后转手导出
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, dismissToast, toast } from './ImeComposition';
 import { MarkdownRenderer } from './MarkdownIntegration';
-import { RemoteSyncDialogs, UpdateStatusDialog, canOpenRemoteSessionSourceCheck } from './Modals';
+import { RemoteSyncDialogs, UpdateStatusDialog, canOpenRemoteSessionSourceCheck, useConfirmDialog } from './Modals'; // A0-TOPBAR-MATER：useConfirmDialog（原 U2）declare 删除 → Modals 属主真实 import
 import { CommandEmpty, CommandGroup, CommandList } from './QuickPick';
 import { type SubagentOpenRequest } from './SidePanel'; // A0-CLEANUP4：子代理会话打开请求（原 Dlt 构造面，js 98874）
 import { logger, useTaskStore } from './SkillStore';
@@ -686,7 +686,13 @@ function downloadProgressLabel(state: UpdateState): string | null {
     : null;
 }
 
-/** 原 DOt：把 updateState 归一成视图模型（相位/展示版本/进度/发行说明…） */
+/** 原 jOt：下载进度夹取到 0-100 */
+function downloadProgressValue(state: UpdateState): number {
+  const value = state?.kind === "download-progress" ? Number(state.progress) : 0;
+  return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+}
+
+/** 原 DOt：把 updateState 归一成视图模型（相位/展示版本/进度/发行说明/可跳过版本/通道） */
 function resolveUpdateViewModel({ legacyReadyVersion, updateState }: { legacyReadyVersion?: string | null; updateState: UpdateState }) {
   const isDownloading = updateState?.kind === "download-progress";
   const downloadedVersion = updateState?.kind === "update-downloaded" ? updateState.version : updateState === null ? legacyReadyVersion ?? null : null;
@@ -695,11 +701,27 @@ function resolveUpdateViewModel({ legacyReadyVersion, updateState }: { legacyRea
     dialogPhase: downloadedVersion ? ("downloaded" as const) : isDownloading ? ("downloading" as const) : ("before-download" as const),
     displayVersion: downloadedVersion ?? (isDownloading ? updateState!.version : null) ?? availableVersion ?? (isDownloading ? "…" : null),
     progressLabel: downloadProgressLabel(updateState),
+    progressValue: downloadProgressValue(updateState),
     releaseNotesPayload:
       updateState?.kind === "update-available" || updateState?.kind === "download-progress" || updateState?.kind === "update-downloaded"
         ? updateState.releaseNotes
         : undefined,
+    skippableVersion:
+      updateState?.kind === "update-available" || updateState?.kind === "download-progress" ? (updateState.version ?? null) : null,
+    updateChannel:
+      updateState?.kind === "update-available" || updateState?.kind === "download-progress" || updateState?.kind === "update-downloaded"
+        ? updateState.channel
+        : undefined,
   };
+}
+
+/** 原 OOt：pending 动作是否已被更新状态超越（用于即时清锁） */
+function isPendingUpdateActionResolved(action: "download" | "cancel" | "skip" | "restart", state: UpdateState): boolean {
+  return (
+    (action === "download" && (state?.kind === "download-progress" || state?.kind === "update-downloaded")) ||
+    (action === "cancel" && state?.kind !== "download-progress") ||
+    (action === "skip" && state?.kind !== "update-available" && state?.kind !== "download-progress")
+  );
 }
 
 export function UpdateIndicator({ platform, version, updateState, isMacDesktop = false, isWindowsDesktop = false, className }: UpdateIndicatorProps) {
@@ -854,11 +876,13 @@ function ReleaseNotesPopover({
 /* ── tombstone（A0-S3c）：CommandInput、CommandItem、CommandPalette、Dialog、DialogContent、DialogFooter、DialogHeader、DialogTitle、PopoverContentPrimitive、PopoverRoot、PopoverTriggerPrimitive declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
 
 /**
- * 原 POt（js 129125-129295 / jsx 108678-108830）：更新对话框控制器。
+ * 原 POt（js 129142-129312 / jsx 108678-108830）：更新对话框控制器。
  * 职责：拉取自动更新偏好（getAutoUpdatePreferences + onSettingsChanged 订阅）、
  * 下载/取消/跳过/重启安装四类异步动作（每类带 pending 动作锁 + 1.5s 自动清除）、
  * 重启前若有运行中会话先走 useConfirmDialog 确认、发行说明 LRU 缓存。
- * 最终渲染原 COt（js 128795）呈现层。此处保留接口与关键行为注释。
+ * 最终渲染原 COt（Modals.UpdateStatusDialog）呈现层。
+ * 注：bundle 调用面另传 localizedUpdateReleaseNotes / onOpenReleaseNotesExternalUrl 两 prop，
+ * COt 解构面（js 128812）不消费，Modals 属主型面亦未声明，故不透传。
  */
 function UpdateStatusDialogController({
   platform,
@@ -866,34 +890,175 @@ function UpdateStatusDialogController({
   updateState,
   open,
   onOpenChange,
+  edgeToEdge = false,
+  showOverlay = true,
 }: {
   platform: PlatformService;
   version: string | null;
   updateState: UpdateState;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  edgeToEdge?: boolean;
+  showOverlay?: boolean;
 }) {
   const { intl, locale } = useIntlContext();
-  const confirmDialog = useConfirmDialog();
-  const [autoDownloadAndInstall, setAutoDownloadAndInstall] = React.useState(false);
+  const requestConfirmation = useConfirmDialog();
+  const [autoDownloadAndInstallUpdates, setAutoDownloadAndInstallUpdates] = React.useState(false);
   const [pendingAction, setPendingAction] = React.useState<null | "download" | "cancel" | "skip" | "restart">(null);
+  const pendingActionRef = React.useRef<null | "download" | "cancel" | "skip" | "restart">(null);
+  const releaseNotesCacheRef = React.useRef(new Map<string, { releaseDateLabel: string | null; releaseNotes: { title: string; markdown: string } }>());
+  const markPendingAction = React.useCallback((action: null | "download" | "cancel" | "skip" | "restart") => {
+    pendingActionRef.current = action;
+    setPendingAction(action);
+  }, []);
   const viewModel = resolveUpdateViewModel({ legacyReadyVersion: version, updateState });
-  // …下载/取消/跳过/重启回调、活动会话确认、相位同步逻辑（与原实现一致，从略）…
-  if (!viewModel.displayVersion) return null;
+  const lastViewModelRef = React.useRef<ReturnType<typeof resolveUpdateViewModel> | null>(null);
+  // 下载中相位冻结：pending 动作期间沿用上一有效视图模型，避免版本/相位跳变
+  const { dialogPhase, displayVersion, progressLabel, progressValue, releaseNotesPayload, skippableVersion } =
+    viewModel.displayVersion || pendingAction === null ? viewModel : lastViewModelRef.current ?? viewModel;
+  const localizedNotes = pickLocalizedReleaseNotes(releaseNotesPayload, locale);
+  const releaseDateLabel = formatReleaseDate(releaseNotesPayload?.releaseDate, locale);
+  const cacheKey = displayVersion ? `${locale}:${displayVersion}` : null;
+
+  React.useEffect(() => {
+    if (viewModel.displayVersion) lastViewModelRef.current = viewModel;
+  }, [viewModel]);
+  React.useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      platform.getAutoUpdatePreferences?.()
+        .then((prefs) => {
+          if (!cancelled) setAutoDownloadAndInstallUpdates(prefs.autoDownloadAndInstallUpdates);
+        })
+        .catch(() => {
+          if (!cancelled) setAutoDownloadAndInstallUpdates(false);
+        });
+    };
+    refresh();
+    const unsubscribe = platform.onSettingsChanged?.(refresh) ?? (() => {});
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [platform]);
+  React.useEffect(() => {
+    if (!cacheKey || !localizedNotes) return;
+    releaseNotesCacheRef.current.set(cacheKey, { releaseDateLabel, releaseNotes: localizedNotes });
+    if (releaseNotesCacheRef.current.size > 8) {
+      const oldest = releaseNotesCacheRef.current.keys().next().value;
+      if (oldest) releaseNotesCacheRef.current.delete(oldest);
+    }
+  }, [releaseDateLabel, localizedNotes, cacheKey]);
+
+  const cached = cacheKey ? releaseNotesCacheRef.current.get(cacheKey) : undefined;
+  const effectiveDateLabel = releaseDateLabel ?? cached?.releaseDateLabel ?? null;
+  const downloadUpdate = React.useCallback(async () => {
+    if (pendingActionRef.current) return;
+    markPendingAction("download");
+    try {
+      await platform.downloadUpdate?.();
+    } catch (error) {
+      markPendingAction(null);
+      throw error;
+    }
+  }, [platform, markPendingAction]);
+  const handleAutoDownloadAndInstallUpdatesChange = React.useCallback(
+    async (value: boolean) => {
+      setAutoDownloadAndInstallUpdates(value);
+      await platform.setAutoDownloadAndInstallUpdates?.(value);
+      if (value && updateState?.kind === "update-available") await downloadUpdate();
+    },
+    [downloadUpdate, platform, updateState?.kind],
+  );
+  const cancelDownload = React.useCallback(async () => {
+    if (pendingActionRef.current) return;
+    markPendingAction("cancel");
+    try {
+      await platform.cancelUpdateDownload?.();
+    } catch (error) {
+      markPendingAction(null);
+      throw error;
+    }
+  }, [platform, markPendingAction]);
+  const skipVersion = React.useCallback(async () => {
+    if (!skippableVersion || pendingActionRef.current) return;
+    markPendingAction("skip");
+    try {
+      await platform.skipUpdateVersion?.(skippableVersion);
+      onOpenChange(false);
+    } catch (error) {
+      markPendingAction(null);
+      throw error;
+    }
+  }, [onOpenChange, platform, markPendingAction, skippableVersion]);
+  const restartAndInstall = React.useCallback(async () => {
+    if (pendingActionRef.current) return;
+    const activity = await platform.getDesktopSessionActivity?.();
+    const hasActiveSessions = (activity?.runningAgentSessionCount ?? 0) + (activity?.runningRepoWikiTaskCount ?? 0) > 0;
+    if (hasActiveSessions) {
+      const confirmed = await requestConfirmation({
+        title: intl.formatMessage({ id: "updateReady.confirm.title" }, { version: displayVersion ?? "" }),
+        description: intl.formatMessage({ id: "updateReady.confirm.description" }),
+        confirmLabel: intl.formatMessage({ id: "updateReady.confirm.ok" }),
+        cancelLabel: intl.formatMessage({ id: "updateReady.confirm.cancel" }),
+      });
+      if (!confirmed) return;
+    }
+    markPendingAction("restart");
+    try {
+      await platform.quitAndInstallUpdate?.();
+    } catch (error) {
+      markPendingAction(null);
+      throw error;
+    }
+  }, [displayVersion, intl, platform, requestConfirmation, markPendingAction]);
+
+  React.useEffect(() => {
+    if (!displayVersion && updateState !== null) onOpenChange(false);
+  }, [displayVersion, onOpenChange, updateState]);
+  React.useEffect(() => {
+    if (!pendingAction) return;
+    if (isPendingUpdateActionResolved(pendingAction, updateState)) {
+      markPendingAction(null);
+      return;
+    }
+    if (pendingAction === "restart") {
+      if (updateState !== null && updateState.kind !== "update-downloaded") markPendingAction(null);
+      return;
+    }
+    const timer = globalThis.setTimeout(() => markPendingAction(null), 1500);
+    return () => {
+      globalThis.clearTimeout(timer);
+    };
+  }, [markPendingAction, pendingAction, updateState?.kind]);
+
+  if (!displayVersion) return null;
+  const releaseDateMessage = effectiveDateLabel
+    ? intl.formatMessage({ id: "updateDialog.releaseDate" }, { date: effectiveDateLabel })
+    : null;
   return (
     <UpdateStatusDialog
-      open={open}
-      phase={viewModel.dialogPhase}
-      displayVersion={viewModel.displayVersion}
-      progressLabel={viewModel.progressLabel}
+      autoDownloadAndInstallUpdates={autoDownloadAndInstallUpdates}
+      displayVersion={displayVersion}
+      edgeToEdge={edgeToEdge}
+      intl={intl}
+      isUpdateActionPending={pendingAction !== null}
+      onAutoDownloadAndInstallUpdatesChange={handleAutoDownloadAndInstallUpdatesChange}
+      onCancelDownload={cancelDownload}
+      onDownloadUpdate={downloadUpdate}
       onOpenChange={onOpenChange}
+      onRestartUpdate={restartAndInstall}
+      onSkipUpdate={skipVersion}
+      open={open}
+      phase={dialogPhase}
+      progressLabel={progressLabel}
+      progressValue={progressValue}
+      releaseDateLabel={releaseDateMessage}
+      showOverlay={showOverlay}
+      skippableVersion={skippableVersion}
     />
   );
 }
-
-/** 原 COt（js 128795）呈现层的接口（完整 JSX 从略：标题/进度条/发行说明/自动更新开关/动作按钮） */
-
-declare function useConfirmDialog(): (opts: { title: string; description: string; confirmLabel: string; cancelLabel?: string }) => Promise<boolean>;
 
 /* ============================================================================
  * 2. WindowsCaptionMenu（原 S6，js 141854-142058 / jsx 117848-118005）
@@ -2772,6 +2937,34 @@ interface ConversationSummaryAsideProps {
 const EMPTY_BACKGROUND_WORKS: BackgroundWork[] = [];   // 原 slt（js 98224）
 const EMPTY_SUBAGENTS: RunningSubagent[] = [];         // 原 clt
 
+/** 原 Qct（js 98128 / jsx 85059-85080）：摘要面板 git 段投影，两道 null 门
+ * （!isGitAvailable || !isRepository → null；added + removed <= 0 → null）。 */
+function buildSummaryPanelGitModel({
+  gitSummary,
+  gitDirtyFileCount = 0,
+  gitWorktreeChangeSummary,
+}: {
+  gitSummary: GitSummary | null;
+  gitDirtyFileCount?: number;
+  gitWorktreeChangeSummary?: { added?: number; removed?: number } | null;
+}) {
+  if (!gitSummary?.isGitAvailable || !gitSummary.isRepository) return null;
+  const added = gitWorktreeChangeSummary?.added ?? 0;
+  const removed = gitWorktreeChangeSummary?.removed ?? 0;
+  if (added + removed <= 0) return null;
+  const isClean = !gitSummary.isDirty && gitDirtyFileCount === 0 && added === 0 && removed === 0 && gitSummary.ahead === 0;
+  return {
+    branchName: gitSummary.branchName,
+    headRefType: gitSummary.headRefType,
+    dirtyFileCount: gitDirtyFileCount,
+    added,
+    removed,
+    ahead: gitSummary.ahead,
+    behind: gitSummary.behind,
+    isClean,
+  };
+}
+
 /** 原 tlt（js 98133）：把原始会话状态归一成摘要面板模型 */
 export function buildSummaryPanelModel(args: {
   gitSummary: GitSummary;
@@ -2788,7 +2981,13 @@ export function buildSummaryPanelModel(args: {
   // runningBashWorks / runningSubagentWorks（按 childSessionId 关联控制项）。
   const runningBashWorks = (args.backgroundWorks ?? []).filter((w) => w.status === "running" && w.kind === "bash");
   const runningSubagentWorks = args.runningSubagents ?? [];
-  const git = args.gitSummary?.isRepository ? args.gitSummary : null;
+  // 原 tlt 直接 Qct(e) 全参透传；gitWorktreeChangeSummary 公共面为 unknown（Conversation 域同），
+  // 投影入口按消费面（added/removed）具型桥接，与 WorkspaceShell 属主型一致。
+  const git = buildSummaryPanelGitModel({
+    gitSummary: args.gitSummary,
+    gitDirtyFileCount: args.gitDirtyFileCount,
+    gitWorktreeChangeSummary: args.gitWorktreeChangeSummary as { added?: number; removed?: number } | null | undefined,
+  });
   return {
     git,
     goal: args.goal ?? null,
