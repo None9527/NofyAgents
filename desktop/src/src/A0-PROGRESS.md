@@ -87,6 +87,10 @@
 
 | S4-1 | lib 层拆分（shim 模式） | **完工已验证** | 11 件 lib/ 新文件（608 行）：UtilsCn 全件→lib/cn；logger 全件→lib/logger；SrcSharedA §1 15 符号→locale/workspaceUtils/buildEnv/errorUtils；SrcSharedB 5 自含簇 23 符号→uuid/stableIds/logFormat/providerRefs/lineDiff；原 4 件 modules 文件转薄 re-export shim（B5 头注+尾表保留）；零 importers 改写；emit-diff 用 10 入口覆盖 bundle（88MB，rendererEntry 图仅 9 模块不可用）+ __esm 归一化多集比较 = 0 删 0 增；1 处文档化偏差（logger 内 formatLogLinePrefix 改指同层 ./logFormat，emit-diff 0 差验证惰性）；tsc 恒 2、md5 恒不变、零抑制；报告 A0-S4-1.report.md（含 S5 可复用 harness 命令） |
 
+| TopBar 实体化 | 最后 2 错档消解 | **完工已验证** | UpdateDialog 控制器（POt js 129142–129312/jsx 108678–108830 全转录：更新偏好订阅、4 待锁异步动作 +1.5s 自清 OOt、useConfirmDialog 改 import Modals 属主、release-notes LRU、18-prop 渲染面；2 死 prop 登记不转发）+ buildSummaryPanelGitModel（Qct js 98128–98144 逐字，双 null 门）；锚点修正：jsx 108829 实属 styles 块非 src 块；**项目 tsc 归零**（364→2,448 峰→…→2→0）；报告 A0-TOPBAR-MATER.report.md |
+
+| S4-2 | i18n 消息表拆分（shim 模式） | **完工已验证** | 普查发现两表非同一副本：I18n.tsx 带 REBRAND-035+135 nofy 值、intlProvider.tsx 留原始 ZCode 值（各 4,506 键实测）→ 各自字节忠实去向不合并；lib/i18n/ 5 件 18,118 行（zh-CN/en-US 正典 + .zcode 双件 + types）；**I18n.tsx 9,686→657（−93.2%）、intlProvider.tsx 9,516→479（−95.0%）**；28 消费方零改写；emit-diff（10 入口 86MB + --external:./TopBar 隔离并行批）0 删 0 增；树摇对称核验（nofy×2/ZCode×1）；tsc 0、md5 恒、零抑制；推迟件：intlProvider 全去重、lib/locale 合并；报告 A0-S4-2.report.md |
+
 **S3 阶段总结**：22 库落地（zod 4.3.6 / qrcode 1.5.4 / @tanstack/react-virtual 3.14.10 / @stripe/stripe-js 9.6.0 + react-stripe-js 6.4.0 / @xterm/xterm 5.5.0 + addon-fit 0.10.0 / lucide-react 1.35.0 / @radix-ui 13 包 + cmdk 1.1.1 / lexical 0.42.0 族），1 件推迟（react-resizable-panels）；SrcSharedA 6,167→2,907 行；components/ui 层建立（12 件）；全程零抑制、tsc 恒 2（TopBar S4 桩）、out/ md5 恒不变。
 
 **S2 接线阶段总结**：项目 tsc 364（declare-any 静默基线）→ 2,448（真实类型引入峰值）→ … → 773（波次末）→ 582 → 538 → 528 → 44 → **2**（均为 S4 待实体化桩，型已就绪）。剩余 declare 2,502 条 = Lane-4 vendored（S3 目标）+ 未重建深部（S4 目标）。
