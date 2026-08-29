@@ -52,139 +52,15 @@
  */
 'use client';
 
-import { useContext, useState, useEffect } from 'react';
-// chunk-BO2N2NFS-CSNAeaxF.js = first-party markdown/streamdown 渲染 mega-chunk
-// （VENDOR-MANIFEST-LIBS.md 定性；三个符号的重建落点如下）。
-// 重建模块 MarkdownContext.tsx 中该上下文名为 StreamdownContext（原上游名
-// StreamdownOptionsContext），此处以 `as` 保留本文件既有局部名。
-import { StreamdownContext as StreamdownOptionsContext, useCodeHighlighter } from './MarkdownContext'; // 原 chunk-BO2N2NFS i (Xb), n (ry)
-import { CodeBlockBody } from './MarkdownCodeBlock'; // 原 chunk-BO2N2NFS t (kv)
 
-/* ─────────────────────────── 类型声明（推断） ─────────────────────────── */
+/* ────────────────────────────────────────────────────────────────────────────────────────────────
+ * 〔A0-S4-4c〕SHIM MODE：本文件组件全体已原样迁入 components/code-viewer/highlightedCodeBlockBody.tsx（导入方零改动）。
+ * 下方再导出面与迁出前导出面逐一对应；B5 头块与尾部符号表随体迁往新文件。
+ * ────────────────────────────────────────────────────────────────────────────────────────────── */
 
-/**
- * shiki 主题规格。
- * // TODO(infer): streamdown 允许主题名/对象/双主题（light/dark），
- * // 此处按上下文默认值（上游 `Jb` 常量）宽松建模。
- */
-type ShikiTheme = unknown;
-
-/** shiki 高亮结果（tokens/bg/fg/rootStyle），由 CodeBlockBody 消费。 */
-interface HighlightResult {
-  bg?: string;
-  fg?: string;
-  rootStyle?: string | Record<string, string>;
-  tokens: Array<Array<{ content: string; color?: string; bgColor?: string; htmlStyle?: Record<string, string>; htmlAttrs?: Record<string, string>; offset?: number }>>;
-}
-
-/**
- * 代码高亮器（由 streamdown 顶层组件经 CodeHighlighterContext 提供）。
- * `highlight(args, onUpdate)` 返回同步结果或 undefined（异步经回调更新）。
- * // TODO(infer): 完整签名以上游 @streamdown/code 的 createHighlighter 为准。
- */
-interface CodeHighlighter {
-  highlight: (
-    args: { code: string; language: string; themes: ShikiTheme },
-    onUpdate: (result: HighlightResult) => void,
-  ) => HighlightResult | undefined | Promise<unknown>;
-}
-
-/** StreamdownOptionsContext 的值形状（上游默认值逐字列出）。 */
-interface StreamdownOptions {
-  shikiTheme: ShikiTheme;
-  controls: boolean;
-  isAnimating: boolean;
-  lineNumbers: boolean;
-  mode: 'streaming' | 'static';
-  mermaid: unknown;
-  linkSafety: unknown;
-}
-
-/** 本组件 props（与上游 R 组件解构一致）。 */
-export interface HighlightedCodeBlockBodyProps {
-  /** 原始代码文本（高亮输入）。 */
-  code: string;
-  /** 语言 id（shiki bundledLanguages 或别名）。 */
-  language: string;
-  /** 兜底结果：无高亮器/高亮未完成时直接渲染它。 */
-  raw: HighlightResult;
-  className?: string;
-  /** 起始行号（>1 时用 CSS counter-reset 偏移）。 */
-  startLine?: number;
-  /** 是否显示行号。 */
-  lineNumbers?: boolean;
-  [prop: string]: unknown;
-}
-
-/* ─────────────────────────── HighlightedCodeBlockBody ─────────────────────────── */
-
-/**
- * 代码块「正文」懒加载组件：把 `code` 交给 shiki 高亮器异步着色，
- * 完成后经 CodeBlockBody 渲染 token 序列；无高亮器时直接渲染 `raw`
- * （纯文本降级结果）。上游导出名即 `HighlightedCodeBlockBody`（未混淆）。
- */
-const HighlightedCodeBlockBody = ({
-  code,
-  language,
-  raw,
-  className,
-  startLine,
-  lineNumbers,
-  ...rest
-}: HighlightedCodeBlockBodyProps) => {
-  const { shikiTheme } = useContext(StreamdownOptionsContext as unknown as React.Context<StreamdownOptions>);
-  const highlighter = (useCodeHighlighter as () => CodeHighlighter | null)();
-  const [result, setResult] = useState<HighlightResult>(raw);
-
-  useEffect(() => {
-    if (!highlighter) {
-      setResult(raw);
-      return;
-    }
-    const sync = highlighter.highlight({ code, language, themes: shikiTheme }, (updated) => {
-      setResult(updated);
-    });
-    if (sync) setResult(sync as HighlightResult);
-  }, [code, language, shikiTheme, highlighter, raw]);
-
-  // 局部名原为 `jsx`（与 jsx-runtime 同名导致 JSX 解析歧义），改名不改行为。
-  const CodeBlockBodyView = (CodeBlockBody as unknown as React.ComponentType<{
-    className?: string;
-    language: string;
-    lineNumbers?: boolean;
-    result: HighlightResult;
-    startLine?: number;
-    [prop: string]: unknown;
-  }>);
-  return (
-    <CodeBlockBodyView
-      className={className}
-      language={language}
-      lineNumbers={lineNumbers}
-      result={result}
-      startLine={startLine}
-      {...rest}
-    />
-  );
-};
-
-export { HighlightedCodeBlockBody };
-
-/* ════════════════════════════════════════════════════════════════════════
- * SYMBOLS: exportName -> 原名(minified) -> 语义名（=上游名）
- * ════════════════════════════════════════════════════════════════════════
- * 导出符号（1 个）：
- *   HighlightedCodeBlockBody -> c -> HighlightedCodeBlockBody
- *     （原 chunk 导出即 `export { c as HighlightedCodeBlockBody }`，未混淆）
- * 模块内局部符号（2 个，互操作包装）：
- *   - -> o -> ReactInterop        （`e(t(), 1)`，取 react 默认导出）
- *   - -> s -> jsxRuntime          （`n()`，取 jsx-runtime 命名空间）
- * 导入符号（3 个，来自 ./chunk-BO2N2NFS-CSNAeaxF.js，
- *           格式：构建导出别名 -> 构建内部名 -> 上游内部名 -> 上游语义名）：
- *   i -> Xb -> R  -> StreamdownOptionsContext   （shikiTheme 等全局选项上下文）
- *   n -> ry -> Li -> useCodeHighlighter         （取上下文中的 .code 高亮器）
- *   t -> kv -> At -> CodeBlockBody              （shiki token 渲染 memo 组件）
- *
- * 上游登记：streamdown@2.5.0（vercel/streamdown，Apache-2.0）
- *   dist/highlighted-body-OFNGDK62.js  +  dist/chunk-BO2N2NFS.js
- * ════════════════════════════════════════════════════════════════════════ */
+export {
+  HighlightedCodeBlockBody,
+} from '../components/code-viewer/highlightedCodeBlockBody';
+export type {
+  HighlightedCodeBlockBodyProps,
+} from '../components/code-viewer/highlightedCodeBlockBody';

@@ -97,6 +97,8 @@
 
 | S4-4b | components 拆分：conversation/composer 域（4 文件，shim 模式） | **完工已验证** | 15 单元→15 件新文件（components/conversation 10 + components/composer 5）；ConversationLeaves 4,141→1,475、ConversationOverlays 2,080→360、Composer 9,198→7,419、Conversation 8,098→6,004；**emit-diff 捕获并修复 1 处真实语义差**（ModelSelector Sparkles≠Sparkle 误代图标，sparkle.mjs 模块消失检出）；推迟件：Composer lexical 编辑器引擎域（[A]/[B1–B15] 编辑器态闭包）+ Conversation §5/§7/§8/§9 编排域（不切闭包纪律）；tsc 0→0、md5 恒、esbuild 19/19、零新增抑制（as-any 净 −2）；报告 A0-S4-4b.report.md |
 
+| S4-4c | components 拆分：shell + 深部 viewers + 杂项 UI（shim 模式） | **完工已验证** | 46 单元全落地（53 件整件组件迁移→19 个 components/ 域：shell/xlsx/charts/markdown/code-viewer/remote/quickpick/payments/usage/feedback/browser/terminal/cmdk/bots/ime/pdf/preview/process-monitor/onboarding）；53 源文件 132,772→8,802 行 shim；零剩余单元；边界案：UsageStatsUiParts useControllableState shim 副本、ProcessMonitor 副作用转发 shim、动态 import 型改写、XlsxDeepB default 再导出；emit-diff 46/46 PASS + 累计 241/241 行全分类（90 未配对 = 8 白名单通配 external 换位，151 对 = 碰撞后缀翻转）零语义漂移；esbuild 106/106（含 5 通配 external 教训）；53/53 shim 面审计一致；73 处 as-any 全字节搬运 0 新增；MarkdownVendored 按设计不迁；tsc 0→0、md5 恒；报告 A0-S4-4c.report.md |
+
 **S3 阶段总结**：22 库落地（zod 4.3.6 / qrcode 1.5.4 / @tanstack/react-virtual 3.14.10 / @stripe/stripe-js 9.6.0 + react-stripe-js 6.4.0 / @xterm/xterm 5.5.0 + addon-fit 0.10.0 / lucide-react 1.35.0 / @radix-ui 13 包 + cmdk 1.1.1 / lexical 0.42.0 族），1 件推迟（react-resizable-panels）；SrcSharedA 6,167→2,907 行；components/ui 层建立（12 件）；全程零抑制、tsc 恒 2（TopBar S4 桩）、out/ md5 恒不变。
 
 **S2 接线阶段总结**：项目 tsc 364（declare-any 静默基线）→ 2,448（真实类型引入峰值）→ … → 773（波次末）→ 582 → 538 → 528 → 44 → **2**（均为 S4 待实体化桩，型已就绪）。剩余 declare 2,502 条 = Lane-4 vendored（S3 目标）+ 未重建深部（S4 目标）。
