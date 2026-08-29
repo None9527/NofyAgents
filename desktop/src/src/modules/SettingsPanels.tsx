@@ -139,7 +139,7 @@ import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改�
 import { Input, Textarea, toast } from './ImeComposition';
 import { Badge, providerFamilyOf, useCodingPlanEntitlements, useStartPlanPreview } from './PaymentDeep'; // +useCodingPlanEntitlements（A0-CLEANUP B-30 接线）
 import { SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger, subscribeSettingsSectionIntent } from './Settings';
-import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, useSubscriptionSnapshot, useZapiEnabled } from './UsageDeep';
+import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, useSubscriptionSnapshot, useZapiEnabled, type AddProviderDraft, type CodingPlanDisplayStatus, type CodingPlanViewState, type EntitlementQuotaLimit, type ModelMetadata, type ProviderEndpoints } from './UsageDeep'; // A0-CLEANUP3 3b：ModelProvider/CodingPlan 面对齐
 import { useServices } from './services';
 import { cn } from './UtilsCn';
 import { useZCodeIntl as useIntlContext } from './I18n';
@@ -255,16 +255,17 @@ declare const DownloadIcon: React.FC<React.SVGProps<SVGSVGElement>>; // G_ downl
 /** 原 Ri：bigmodel OAuth provider id 常量（跨 chunk 导入；值即 `bigmodel`） */
 declare const BIGMODEL_OAUTH_PROVIDER_ID: "bigmodel";
 
+/** A0-CLEANUP3 3b：与 UsageDeep.ModelProvider 双向对齐（endpoints/models 按运行期实形收紧） */
 interface ModelProvider {
   id: string;
   name: string;
   apiKey: string;
   apiKeyUrl?: string;
-  endpoints?: string[];
+  endpoints: ProviderEndpoints;
   apiFormat?: string;
   defaultKind?: string;
   headers?: Record<string, string>;
-  models?: unknown[];
+  models: ModelMetadata[];
   modelSupportedFormats?: unknown;
   enabled?: boolean;
   systemDisabledReason?: string | null;
@@ -317,11 +318,11 @@ interface ModelProvidersStoreState {
   deleteProvider: (providerId: string) => Promise<void>;
   saveDisplayOrder: (order: { providerIds: string[]; updatedAt: number }) => Promise<void>;
   testModelConnectivity: (request: {
-    endpoints?: string[];
+    endpoints?: ProviderEndpoints; // A0-CLEANUP3 3b：对齐 ModelProvider.endpoints 实形
     apiKey: string;
     model: string;
     provider: Partial<ModelProvider>;
-  }) => Promise<unknown>;
+  }) => Promise<{ results: unknown[] }>; // A0-CLEANUP3 3b：对齐 ProviderConfigCardForm.onTestModel 返回面
 }
 declare function useModelProvidersStore(): ModelProvidersStoreState; // qq（78195）
 
@@ -366,18 +367,19 @@ interface BigModelProduct {
 declare function useBigModelProducts(opts: { enabled: boolean; authenticated: boolean }): BigModelProductsState; // TY（83697）
 
 interface SubscriptionSnapshot {
-  quota?: { limits?: unknown[] };
+  quota?: { limits?: unknown[] } | null; // A0-CLEANUP3 3b：对齐 UsageDeep.EntitlementSnapshot.quota 可空
   [key: string]: unknown;
 }
 
+/** A0-CLEANUP3 3b：renew/expire 为 ISO 字符串（源真 Date.parse 消费）；quotaLimits 具型 */
 interface CodingPlanEntitlement {
   status?: string;
   planLevel?: string;
   currentProductId?: string;
   subscriptionBillingCycle?: string;
-  subscriptionRenewTime?: number;
-  subscriptionExpireTime?: number;
-  quotaLimits?: unknown;
+  subscriptionRenewTime?: string;
+  subscriptionExpireTime?: string;
+  quotaLimits?: EntitlementQuotaLimit[];
   snapshot?: unknown;
   [key: string]: unknown;
 }
@@ -401,6 +403,7 @@ declare function navigateToSettingsSection(section: string): void; // iw（本�
 interface McpServer {
   id: string;
   name: string;
+  source: string; // A0-CLEANUP3 3b：对齐 Settings.McpServer（双向可指派）
   enabled: boolean;
   scope: "user" | "workspace";
   status?: "connected" | "connecting" | "error" | "disconnected";
@@ -465,9 +468,9 @@ declare function resolveCodingPlanStatus(opts: {
   planLevel?: string;
   currentProductId?: string;
   subscriptionBillingCycle?: string;
-  subscriptionRenewTime?: number;
-  subscriptionExpireTime?: number;
-  quotaLimits?: unknown;
+  subscriptionRenewTime?: string; // A0-CLEANUP3 3b：ISO 字符串面
+  subscriptionExpireTime?: string;
+  quotaLimits?: EntitlementQuotaLimit[];
 }; // lrt（88475）
 declare function buildTeamPlanNavItems(opts: {
   items: ModelProviderNavItem[];
@@ -525,7 +528,7 @@ declare function purchaseBannerCopy(
 declare function codingPlanViewState(opts: {
   status: string;
   loginPending: boolean;
-}): { displayStatus: string; actionStatus: string; balanceStatus: string; loginLoading: boolean }; // _Zt（190181）
+}): CodingPlanViewState; // _Zt（190181）；A0-CLEANUP3 3b：返回面收紧为 UsageDeep.CodingPlanViewState
 declare function isTeamPlanNavItem(item: ModelProviderNavItem): item is ModelProviderNavItem & {
   organizationId: string;
   projectId: string;
@@ -557,7 +560,7 @@ export interface ModelProviderNavItem {
   presetId?: string;
   oauthProviderId?: string;
   label: string;
-  provider?: ModelProvider | null;
+  provider?: ModelProvider; // A0-CLEANUP3 3b：去 null（与 UsageDeep.ModelProviderNavItem 互指；调用面均以真值守卫）
   providerName?: string;
   displayName?: string;
   status?: string;
@@ -565,14 +568,15 @@ export interface ModelProviderNavItem {
   planLevel?: string;
   currentProductId?: string;
   subscriptionBillingCycle?: string;
-  subscriptionRenewTime?: number;
-  subscriptionExpireTime?: number;
-  quotaLimits?: unknown;
+  subscriptionRenewTime?: string; // A0-CLEANUP3 3b：ISO 字符串面（对齐 UsageDeep.CodingPlanStatusSectionProps）
+  subscriptionExpireTime?: string;
+  quotaLimits?: EntitlementQuotaLimit[];
   purchaseUrl?: string;
   statusActive?: boolean;
   inactivePlanTitle?: string;
   organizationId?: string;
   projectId?: string;
+  [key: string]: unknown; // A0-CLEANUP3 3b：与 UsageDeep.ModelProviderNavItem 互指（接口无隐式索引签名）
 }
 
 export interface ModelProviderNavigationGroup {
@@ -1074,7 +1078,7 @@ export function useModelProviderNavigationModel(opts: {
                 : "settings.modelProvider.connectionMode.codingPlan",
             })}`,
             providerName: preset.providerName,
-            provider,
+            provider: provider ?? undefined, // A0-CLEANUP3 3b：NavItem.provider 去 null（真值守卫消费）
             status: status.status,
             planLevel: status.planLevel,
             currentProductId: status.currentProductId,
@@ -1112,7 +1116,7 @@ export function useModelProviderNavigationModel(opts: {
           type: "preset" as const,
           presetId: id,
           label: displayName ?? id,
-          provider,
+          provider: provider ?? undefined, // A0-CLEANUP3 3b：NavItem.provider 去 null（真值守卫消费）
           displayName,
           statusActive: resolvePresetActiveState({
             presetId: id,
@@ -1280,11 +1284,11 @@ export function ModelProviderPanel(props: {
   codingPlanStatusSyncProviderId: string | null;
   codingPlanDisconnectProviderId: string | null;
   codingPlanProductsRefreshToken: number;
-  addProviderDraft: unknown;
-  onAddProviderDraftChange: (draft: unknown) => void;
+  addProviderDraft: AddProviderDraft; // A0-CLEANUP3 3b：对齐 UsageDeep.AddCustomProviderDraftForm 面
+  onAddProviderDraftChange: React.Dispatch<React.SetStateAction<AddProviderDraft>>;
   onSave: (provider: ModelProvider) => void;
   onDelete: (provider: ModelProvider) => void;
-  onTestModel: (provider: ModelProvider, model: string) => Promise<unknown>;
+  onTestModel: (provider: ModelProvider, model: string) => Promise<{ results: unknown[] }>; // A0-CLEANUP3 3b：对齐 UsageDeep.ProviderConfigCardForm 面
   onCodingPlanLogin: (
     presetId: string,
     oauthProviderId: string | undefined,
@@ -1432,7 +1436,7 @@ export function ModelProviderPanel(props: {
     const statusSyncPending = codingPlanStatusSyncProviderId === item.presetId;
     const disconnectPending = codingPlanDisconnectProviderId === item.presetId;
     const purchaseStateKnown = item.status === "purchased" || item.status === "notPurchased";
-    const viewState =
+    const viewState: CodingPlanViewState = // A0-CLEANUP3 3b：字面量分支按具型收敛
       disconnectPending || (statusSyncPending && !purchaseStateKnown)
         ? { displayStatus: "checking", actionStatus: "checking", balanceStatus: "checking", loginLoading: statusSyncPending }
         : codingPlanViewState({ status: item.status ?? "", loginPending: loginPending || statusSyncPending });
@@ -1503,9 +1507,9 @@ export function ModelProviderPanel(props: {
           nameEditable={false}
           statusSection={
             <CodingPlanStatusSection
-              providerId={item.presetId}
-              providerName={item.providerName}
-              status={item.status}
+              providerId={item.presetId ?? "" /* A0-CLEANUP3 3b：运行期恒有值 */}
+              providerName={item.providerName ?? "" /* A0-CLEANUP3 3b：运行期恒有值 */}
+              status={(item.status ?? "disconnected") as CodingPlanDisplayStatus /* A0-CLEANUP3 3b：状态值域为 CodingPlanDisplayStatus（边界收敛） */}
               viewState={viewState}
               planLevel={item.planLevel}
               currentProductId={item.currentProductId}
@@ -1539,7 +1543,7 @@ export function ModelProviderPanel(props: {
                 )
               }
               onPurchaseComplete={onCodingPlanPurchaseComplete}
-              onOpenUpgradePlans={(request: { initialAudience: "personal" | "team"; funnelContext?: string }) => {
+              onOpenUpgradePlans={(request: { initialAudience: "personal" | "team"; funnelContext?: string | null }) => {
                 openCodingPlanUpgrade({
                   providerId: item.presetId ?? "",
                   initialAudience: request.initialAudience,
@@ -1562,9 +1566,9 @@ export function ModelProviderPanel(props: {
       <ProviderCardShell header={header}>
         <div className="space-y-3">
           <CodingPlanStatusSection
-            providerId={item.presetId}
-            providerName={item.providerName}
-            status={item.status}
+            providerId={item.presetId ?? "" /* A0-CLEANUP3 3b：运行期恒有值 */}
+            providerName={item.providerName ?? "" /* A0-CLEANUP3 3b：运行期恒有值 */}
+            status={(item.status ?? "disconnected") as CodingPlanDisplayStatus /* A0-CLEANUP3 3b：状态值域为 CodingPlanDisplayStatus（边界收敛） */}
             viewState={viewState}
             codingPlanApiKeyAuthenticated={codingPlanApiKeyAuthenticated}
             codingPlanPurchaseTokenAuthenticated={codingPlanPurchaseTokenAuthenticated}
@@ -1594,7 +1598,7 @@ export function ModelProviderPanel(props: {
             }
             disconnectLoading={codingPlanDisconnectProviderId === item.presetId}
             onPurchaseComplete={onCodingPlanPurchaseComplete}
-            onOpenUpgradePlans={(request: { initialAudience: "personal" | "team"; funnelContext?: string }) => {
+            onOpenUpgradePlans={(request: { initialAudience: "personal" | "team"; funnelContext?: string | null }) => {
               openCodingPlanUpgrade({
                 providerId: item.presetId ?? "",
                 initialAudience: request.initialAudience,
@@ -1688,7 +1692,7 @@ export function ModelProviderSettingsSection({
   const [codingPlanStatusSyncProviderId, setCodingPlanStatusSyncProviderId] = React.useState<string | null>(null);
   const [codingPlanDisconnectProviderId, setCodingPlanDisconnectProviderId] = React.useState<string | null>(null);
   const [codingPlanProductsRefreshToken, bumpCodingPlanProductsRefreshToken] = React.useState(0);
-  const [addProviderDraft, setAddProviderDraft] = React.useState<unknown>(createEmptyProviderDraft());
+  const [addProviderDraft, setAddProviderDraft] = React.useState<AddProviderDraft>(createEmptyProviderDraft()); // A0-CLEANUP3 3b：具型
   const applyIntent = React.useCallback((intent?: { providerId: string }): boolean => {
     const normalized = normalizeModelProviderIntent(intent);
     if (!normalized) return false;
@@ -2303,7 +2307,7 @@ export function ModelProviderSettingsSection({
 }
 
 /** 原 d7（F12 族）：空供应商草稿构造（接口级） */
-declare function createEmptyProviderDraft(): unknown;
+declare function createEmptyProviderDraft(): AddProviderDraft; // A0-CLEANUP3 3b：具型（源真 newAddProviderDraft）
 /** 原 CYt（F12 族，154856 引用）：按模式恢复 API Key 供应商启用态（接口级） */
 declare function restoreApiKeyProviderState(opts: {
   provider: ModelProvider | null;
@@ -2693,6 +2697,8 @@ export function McpServerList(props: {
 export interface McpServerEditorProps {
   initial?: McpServer;
   editingId?: string;
+  /** A0-CLEANUP3 3b：Settings 调用面附带 source（编辑器体内未消费，仅对齐调用面） */
+  source?: string;
   editorMode: "form" | "json";
   onEditorModeChange: (mode: "form" | "json") => void;
   onSave: (server: McpFormDraft, initial?: McpServer) => void;

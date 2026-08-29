@@ -156,11 +156,11 @@ import { MarkdownRenderer } from './MarkdownIntegration';
 import { FilePathInline, pathBasename, resolveFileDisplayInfo } from './ModalsLeaves';
 import { Badge } from './PaymentDeep';
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
-import { AutomationEditor, OffPeakTaskEditor } from './SettingsLeaves';
+import { AutomationEditor, OffPeakTaskEditor, type ScheduleRule } from './SettingsLeaves'; // A0-CLEANUP3 3b：Automation 三型 scheduleRule 统一
 import { createWhiteboardStroke, logger, useTaskStore, useWhiteboardStore, type TaskStore, type WhiteboardBoard, type WhiteboardStroke, type WorkspaceTaskState } from './SkillStore';
 import { providerIds } from './SrcSharedA';
 import { automationsWorkspaceKey, repoWikiWorkspaceKey } from './SrcSharedB';
-import { reportTelemetry } from './StoresDeep';
+import { reportTelemetry, type TelemetryPlatform } from './StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
 import { useServices } from './services';
 import { useAutomationsStore } from './stores-tasks';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
@@ -187,6 +187,9 @@ interface PlatformService {
   openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
   openExternal?(url: string): void | Promise<void>;
   onSettingsChanged?(cb: () => void): () => void;
+  /* A0-CLEANUP3 3b：同一平台服务兼遥测面（StoresDeep.TelemetryPlatform 消费面；bundle 真值） */
+  reportTelemetryEvent(report: Record<string, unknown>): Promise<void> | void;
+  reportArmsCustomEvent(event: { name: string; group?: string; value?: number | string; [key: string]: unknown }): Promise<void> | void;
 }
 declare function usePlatformService(): PlatformService;
 
@@ -392,6 +395,7 @@ declare function resolveEntryPlanState(params: {
 interface ModelSelectGroup {
   label?: string;
   items: Array<{ value: string; label?: string; [key: string]: unknown }>;
+  [key: string]: unknown; // A0-CLEANUP3 3b：流入 SL.SelectGroupEntry（接口无隐式索引签名）
 }
 
 /** 原 hjt 依赖的 F12 分组构造器（Mr/Bq/L/Hq/N6e/Hq 族，js 76xxx–77xxx）——接口保留 */
@@ -513,25 +517,27 @@ declare function addWhiteboardToChat(params: { boardId: string; workspaceIdentit
 
 /* --- 自动化 stores（原 T3 js 134111 / bX js 91368；体量 ~4,800 行，接口保留） --- */
 
+/** A0-CLEANUP3 3b：cronExpr 收紧为必有（列表/编辑器运行期恒有值）；scheduleRule 统一为 SL.ScheduleRule，
+ * 与 StoresDeep.Automation / SL.AutomationTaskLite 三型互指 */
 interface AutomationRecord {
   automationId: string;
   title: string;
   prompt: string;
-  cronExpr?: string;
+  cronExpr: string;
   recurring?: boolean;
   maxRuns?: number | null;
-  runCount: number;
+  runCount?: number; // A0-CLEANUP3 3b §C：与 StoresDeep.Automation 对齐（列表态运行期可能缺省统计字段）
   enabled: boolean;
-  lifecycleStatus: "active" | "paused" | "completed" | "failed" | string;
+  lifecycleStatus?: "active" | "paused" | "completed" | "failed" | string;
   dispatchStatus?: string;
   lastError?: string | null;
   nextRunAt?: number | null;
-  workspacePath: string;
+  workspacePath?: string;
   workspaceIdentity?: string | null;
   model?: string | null;
   provider?: string | null;
-  scheduleRule?: AutomationScheduleRule | null;
-  createdAt: number;
+  scheduleRule?: ScheduleRule | null;
+  createdAt?: number;
   [key: string]: unknown;
 }
 
@@ -601,9 +607,9 @@ interface AutomationsStoreHook {
 
 interface OffPeakTask {
   offPeakTaskId: string;
-  title: string;
+  title?: string; // A0-CLEANUP3 3b：与 SL.OffPeakTaskRecord/stores-tasks.OffPeakTask 对齐（双向收敛）
   prompt: string;
-  status: "queued" | "paused" | "running" | "completed" | "failed" | "cancelled";
+  status: "queued" | "paused" | "running" | "completed" | "failed" | "cancelled" | string;
   queuePosition?: number;
   permissionMode?: string | null;
   model?: string | null;
@@ -645,7 +651,7 @@ interface OffPeakStoreState {
   tasks: OffPeakTask[];
   loading: boolean;
   error: string | null;
-  grayConfig: { enabled?: boolean; codingPlanActive?: boolean; allowedModels?: string[]; allowedModelConfigs?: unknown[]; providerFamily?: string; selectedConnectionKey?: string } | null;
+  grayConfig: { enabled?: boolean; codingPlanActive?: boolean; allowedModels?: string[]; allowedModelConfigs?: Array<{ id: string; modelIdByKind?: Record<string, string>; reasoning?: { levels: Record<string, unknown>; defaultLevel?: string } }>; providerFamily?: string; selectedConnectionKey?: string } | null; // A0-CLEANUP3 3b：allowedModelConfigs 按消费面（OffPeakTaskEditor props）具型
   codingPlanSupport: { supported?: boolean; providerFamily?: string; selectedConnectionKey?: string } | null;
   takeNumberAvailability: { canTakeNumber?: boolean; nextTakeAt?: number } | null;
   takeNumberAvailabilityStatus: "loading" | "ready" | "error" | string;
@@ -783,6 +789,7 @@ interface TelemetryEvent {
   eventType: string;
   eventText?: string;
   eventExtraDetail?: Record<string, unknown>;
+  [key: string]: unknown; // A0-CLEANUP3 3b：流入 StoresDeep.TelemetryReport（带索引签名），接口级补齐
 }
 /** 原 ri：创建限制错误判定 */
 declare function isCreateLimitError(error: string | null): boolean;
@@ -5435,7 +5442,7 @@ function sanitizeTelemetryText(text?: string | null): string {
 }
 
 function reportAutomationCreateResult(
-  service: unknown,
+  service: TelemetryPlatform,
   params: {
     automationId?: string | null;
     cronExpr: string;
@@ -5466,7 +5473,7 @@ function reportAutomationCreateResult(
 }
 
 function reportAutomationAction(
-  service: unknown,
+  service: TelemetryPlatform,
   params: {
     action: "run_now" | "delete";
     source: string;
@@ -5542,12 +5549,12 @@ function buildOffPeakCreateResultEvent(
   };
 }
 
-function reportOffPeakCreateResult(service: unknown, context: OffPeakTelemetryContext, result: OffPeakCreateResult): void {
+function reportOffPeakCreateResult(service: TelemetryPlatform, context: OffPeakTelemetryContext, result: OffPeakCreateResult): void {
   reportTelemetry(service, buildOffPeakCreateResultEvent(context, result), "off-peak-telemetry");
 }
 
 async function withOffPeakCreateTelemetry<T extends OffPeakCreateResult>(
-  service: unknown,
+  service: TelemetryPlatform,
   context: OffPeakTelemetryContext,
   action: () => Promise<T>,
 ): Promise<T> {
@@ -5689,7 +5696,7 @@ export const AutomationsMain: React.FC<{
   onCreateViaChat?: (prompt: string) => void;
   openAutomationId?: string | null;
   onOpenAutomationConsumed?: () => void;
-  onOpenSession?: (target: { sessionId: string; workspacePath: string; workspaceIdentity?: string | null }) => void;
+  onOpenSession?: (target: { sessionId: string; workspacePath?: string; workspaceIdentity?: string | null }) => void; // A0-CLEANUP3 3b：与 SL.OffPeakTaskEditor.onOpenSession 形参面对齐（逆变收敛）
 }> = ({ workspacePath, workspaceIdentity, onCreateViaChat, openAutomationId, onOpenAutomationConsumed, onOpenSession }) => {
   const { intl } = useIntlContext();
   const platformService = usePlatformService();
@@ -6075,7 +6082,7 @@ export const AutomationsMain: React.FC<{
                 onAction: () =>
                   onOpenSession({
                     sessionId,
-                    workspacePath: automation.workspacePath,
+                    workspacePath: automation.workspacePath ?? "", // A0-CLEANUP3 3b §C：workspacePath 对齐为可选，运行期恒有值
                     workspaceIdentity: automation.workspaceIdentity,
                   }),
               }
@@ -6593,7 +6600,7 @@ export const AutomationsMain: React.FC<{
           ? (sessionId) => {
               onOpenSession({
                 sessionId,
-                workspacePath: viewState.automation.workspacePath,
+                workspacePath: viewState.automation.workspacePath ?? "", // A0-CLEANUP3 3b §C：workspacePath 对齐为可选，运行期恒有值
                 workspaceIdentity: viewState.automation.workspaceIdentity,
               });
             }

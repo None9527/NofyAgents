@@ -270,7 +270,7 @@ interface StoreApi<T> {
   setState: (partial: Partial<T> | ((state: T) => Partial<T>)) => void;
   subscribe: (listener: (state: T, prevState: T) => void) => () => void;
 }
-export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
+export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R) & (() => T); // 无参调用返回全量 state（zustand 语义）
 
 /** 虚拟列表（原 to，esm-BY6T6pIH.js 的 t 导出 = @tanstack/react-virtual useVirtualizer） */
 interface VirtualItem { key: string | number; index: number; start: number; size: number }
@@ -897,7 +897,7 @@ export function useGitRepository(props: {
     remoteTarget,
     workspaceIdentity = null,
   } = props;
-  const { gitService } = useServices() as { gitService: GitService };
+  const { gitService } = useServices() as unknown as { gitService: GitService } // A0-CLEANUP3 3b：ResolvedBaseServices 交集型与投射面不再直接可比，二段断言;
   // 原 bg(...)：远程会话走 base 作用域 RPC；远程目标直连不启用工作区 RPC
   const workspaceRpcEnabled = isGitRpcEnabled({ workspaceIdentity, remoteSessionId: resolveRemoteSessionKey(workspacePath, remoteSessionId, workspaceIdentity, remoteTarget), remoteTarget });
   const workspaceKey = workspaceIdentity?.trim() || workspacePath;
@@ -1390,7 +1390,7 @@ export function GitChangesPanel({
   workspaceIdentity,
   workspaceRemoteSessionId,
 }: GitChangesPanelProps) {
-  const { gitService } = useServices() as { gitService: GitService };
+  const { gitService } = useServices() as unknown as { gitService: GitService } // A0-CLEANUP3 3b：ResolvedBaseServices 交集型与投射面不再直接可比，二段断言;
   const { intl } = useIntlContext();
   const theme = useSettingsSelector((state) => state.theme);
   const codePreviewSettings = useSettingsSelector((state) => state.codePreviewSettings) as CodePreviewSettings;
@@ -3520,7 +3520,7 @@ export function GitActionMenu({
   triggerIconOnly = false,
   triggerLayout = `header`,
 }: GitActionMenuProps) {
-  const { gitService } = useServices() as { gitService: GitService };
+  const { gitService } = useServices() as unknown as { gitService: GitService } // A0-CLEANUP3 3b：ResolvedBaseServices 交集型与投射面不再直接可比，二段断言;
   const { intl, locale } = useIntlContext();
   const [commitDialogOpen, setCommitDialogOpen] = React.useState(false);
   const [dialogLoading, setDialogLoading] = React.useState(false);

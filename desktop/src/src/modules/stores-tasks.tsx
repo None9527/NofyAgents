@@ -42,7 +42,7 @@ interface StoreApi<T> {
   setState: (partial: Partial<T> | ((state: T) => Partial<T>)) => void;
   subscribe: (listener: (state: T, prevState: T) => void) => () => void;
 }
-export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
+export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R) & (() => T); // 无参调用返回全量 state（zustand 语义）
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { automationErrorMessage, findAutomation, isAutomationLimitError, isSameAutomationWorkspace, isTakeNumberFailure, loadAutomationsIntoStore } from './StoresDeep';
 import { create as createStore, resolveWorkspaceKey as workspaceKey } from './SkillStore'; // 原 Ae | 原 Io
@@ -74,13 +74,27 @@ export type { Automation, OffPeakCreateResult };
  * ==========================================================================*/
 
 export interface OffPeakTask {
-  offPeakTaskId?: string;
+  offPeakTaskId: string; // A0-CLEANUP3 3b：按消费面（SL OffPeakTaskRecord/SPC OffPeakTask）补足；运行期恒有值
+  prompt: string;
+  status: string;
+  title?: string;
+  permissionMode?: string;
+  model?: string | null;
+  thoughtLevel?: string | null;
+  startedAt?: number;
+  endedAt?: number;
+  historyDeletedAt?: number;
+  sessionId?: string | null;
+  workspacePath?: string;
+  workspaceIdentity?: string | null;
   [key: string]: unknown;
 }
 
 export interface OffPeakGrayConfig {
   enabled?: boolean;
   codingPlanActive?: boolean;
+  allowedModels?: string[]; // A0-CLEANUP3 3b：按消费面（OffPeakTaskEditor props）补足
+  allowedModelConfigs?: Array<{ id: string; modelIdByKind?: Record<string, string>; reasoning?: { levels: Record<string, unknown>; defaultLevel?: string } }>;
   [key: string]: unknown;
 }
 
@@ -104,6 +118,7 @@ export interface OffPeakTaskService {
   cancelTask(taskId: string): Promise<void>;
   deleteTask(taskId: string): Promise<void>;
   deleteHistory(taskId: string): Promise<void>;
+  [method: string]: unknown; // A0-CLEANUP3 3b：EV 弱型面（{[key]: unknown}）互指
 }
 
 export interface CodingPlanSubscriptionService {
@@ -350,10 +365,23 @@ export const OFF_PEAK_TEMPLATE_IDS = [{ id: "standupGitSummary" }, { id: "ciFlak
    本地原有 lifecycleStatus 必填收窄与索引签名由规范型覆盖） */
 
 export interface AutomationRun {
+  runId: string; // A0-CLEANUP3 3b §C：按消费面（SL.AutomationRunRecord/运行历史表）补足；运行期恒有值
+  trigger: string;
+  sessionId?: string | null;
+  scheduledAt?: number;
+  createdAt: number;
+  updatedAt?: number;
+  outcome?: string;
+  dispatchStatus?: string;
+  error?: string;
+  workspacePath?: string;
   [key: string]: unknown;
 }
 
 export interface AutomationsAgentService {
+  /* A0-CLEANUP3 3b：宿主 agent 服务会话面（SettingsLeaves.AgentService 消费：思考项预览等） */
+  createSession(args: unknown): Promise<any>;
+  closeSession(args: unknown): Promise<any>;
   listAllAutomations(): Promise<Automation[]>;
   listAutomations?(args: { workspacePath: string; workspaceIdentity?: string }): Promise<Automation[]>;
   createAutomation(args: { workspacePath: string; workspaceIdentity?: string; title: string; [key: string]: unknown }): Promise<Automation>;
@@ -364,6 +392,16 @@ export interface AutomationsAgentService {
   runAutomationNow(args: { workspacePath: string; workspaceIdentity?: string; automationId: string }): Promise<{ status: "queued" | "duplicate" | string }>;
   listAutomationRuns(args: { workspacePath: string; workspaceIdentity?: string; automationId: string }): Promise<AutomationRun[]>;
   deleteAutomationRun(args: { workspacePath: string; workspaceIdentity?: string; runId: string }): Promise<void>;
+  /* A0-CLEANUP3 3b：模型轨迹面（ExtendedViews.ZCodeAgentService 消费） */
+  getModelTrajectory(args: unknown): Promise<any>;
+  /* A0-CLEANUP3 3b：同一宿主服务兼插件同步面（Modals.ZCodeAgentService 消费面；bundle 真值） */
+  getPluginsOverview(args: Record<string, unknown>): Promise<any>;
+  listPlugins(args: Record<string, unknown>): Promise<any>;
+  installPlugin(args: Record<string, unknown>): Promise<any>;
+  setPluginEnabled(args: Record<string, unknown>): Promise<any>;
+  configurePlugin(args: Record<string, unknown>): Promise<any>;
+  addPluginMarketplace(args: Record<string, unknown>): Promise<any>;
+  cancelPluginOperation?(args: { operationId: string }): Promise<void>;
   [method: string]: unknown;
 }
 
@@ -642,6 +680,20 @@ export interface ZCodeTaskService {
     sortBy: "created" | "updated" | string;
     limit: number;
   }): Promise<{ items: TimelineTask[]; total: number; hasMore: boolean }>;
+  /* 宿主任务操作面（调用面归纳；返回形态未全量重建处按 any 兜底） */
+  renameTask(args: Record<string, unknown>): Promise<any>;
+  archiveTask(args: Record<string, unknown>): Promise<any>;
+  setTaskPinned(args: Record<string, unknown>): Promise<any>;
+  setTaskUnread(args: Record<string, unknown>): Promise<any>;
+  restartWorkspaceProcess(args: Record<string, unknown>): Promise<any>;
+  /* 任务分组面（SidebarLeaves 消费面归纳；入参含接口型对象，按 unknown 收口） */
+  listGroupedTaskViewStructure(args: unknown): Promise<any>;
+  createTaskGroup(args?: unknown): Promise<any>;
+  renameTaskGroup(args: unknown): Promise<any>;
+  updateTaskGroupColor(args: unknown): Promise<any>;
+  deleteTaskGroup(args: unknown): Promise<any>;
+  applyGroupedTaskViewOrder(args: unknown): Promise<any>;
+  onDynamicWorkspaceEvent(scope: unknown): (cb: (event: any) => void) => { dispose(): void };
   [method: string]: unknown;
 }
 

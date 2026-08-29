@@ -65,6 +65,9 @@
 | D-Misc | Bots/QuickPick/Cmdk/Usage/Onboarding 等（13 文件，489 declares，139 错） | **完工已验证** | 62 接线 + 域内补 export 2（UsageDeep.formatGrantUnits、RDSI.SuggestionInput）；**域错 139→0 全清零**；保留 451（Lane-4/未重建属主/域外未导出）；AMBIGUOUS 裁决 6（workspaceScopeKey→resolveWorkspaceKey 等）；回滚前波误接 5；需要的 export 17 项；报告 A0-D-Misc.report.md |
 | 收尾接线 pass 1 | 工作清单 A 段 + B 段非★项（27 文件） | **完工已验证** | Button 22 文件/buttonVariants/createLucideIcon 8 文件/9 图标接线；Tooltip→InfoTooltip 8 文件；workspaceKey→resolveWorkspaceKey（SettingsLeaves 变体→automationsWorkspaceKey@SrcSharedB）；B 段 1–9/21/22/24–28/30/32 落地，23/29/31 部分/33/34 附因跳过；发现 ButtonProps Record<string,unknown> 失上下文型（26 TS7006+5 TS2322）以最小注解修复；项目 582→538 逐文件零回退；报告 A0-CLEANUP1.report.md |
 
+| 收尾接线 pass 2 | 工作清单 ★项（10–20/35/42）+ 45/46/47/50（21 文件） | **完工已验证** | 29 新 export（值 16+型 13）+ 14 消费接线；15 declare + 6 镜像类型删除；GitSummary 镜像并归 TopBar 属主（item 17 经 46 消解）；SessionIndexState.sessions→Map<string,SessionIndexRow> 去 5/6 双重断言；bundle 实证修正 2 处（GitReview GXe@68833 附件层级、Composer HoverCard J4e@76086 非 Tooltip）；项目 538→528 零回退；报告 A0-CLEANUP2.report.md |
+| 收尾接线 pass 3 | 3a 机械项（36–41/43/44）+ 3b BaseServices 服务类型化（~250 unknown-族）+ 3c 横切属主定位（48/49） | **完工已验证** | **项目 528→44（−91.7%）零回退、零新增抑制**；3b 杠杆 = stores-core ResolvedBaseServices（BaseServices & Pick<Required<…>> 23 字段收窄）经 useServices/useBaseServices/useWorkspaceServices 贯通；服务字段型从真实属主（SkillsService/PluginService/CommandsService/SubagentsService/AutomationsAgentService/OffPeakTaskService/SettingService/SystemService/MemoryService），未重建属主以带注 callable 兜底；10 文件清零（SPC 168→0/EV 74→0/Settings 52→0/SP 44→0 等）；#49 useSettingsSelector 属主定位 = stores-core useSettingsStoreValue（styles js 1301，非工作清单所记 src 块）；#48 横切工具身份层确认未重建（declare 保留）；报告 A0-CLEANUP3.report.md |
+
 ## 事故与教训（本阶段）
 
 1. declare 提取器三版演进：v1 漏泛型/多行（2,696 条）→ v2 尾注释逃逸吞并 143 行 → v3 尖括号深度+kind 终止（4,607 条，0 吞并）。**教训：机械删除前必须逐文件计数校验 + 完工后 drift 审计。**

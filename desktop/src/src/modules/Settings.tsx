@@ -146,15 +146,15 @@ import * as React from "react";
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input, toast, useSelectDirectory } from './ImeComposition';
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource } from './Modals'; // +$2（A0-CLEANUP2 item 14 接线：原别名保留）
-import { McpImportDialog, McpServerEditor, McpServerRow, ModelProviderSettingsSection } from './SettingsPanels';
+import { McpImportDialog, McpServerEditor, McpServerRow, ModelProviderSettingsSection, type McpFormDraft } from './SettingsPanels'; // A0-CLEANUP3 3b：编辑器保存草稿面
 import { CommandsSettingsSection, HooksSettingsSection, PluginsSettingsSection, SkillsSettingsSection, SubagentsSettingsSection } from './SettingsPanelsCapability';
 import { MemoryFilePreview, MigrationSettingsSection, UsageSettingsSection } from './SettingsPanelsData';
 import { SidebarFooter } from './Sidebar';
 import { useSkillsStore } from './SkillStore';
 import { HelpMenu, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle } from './TopBar';
-import { useSubscriptionSnapshot } from './UsageDeep';
+import { useSubscriptionSnapshot, type ModelMetadata, type ProviderEndpoints } from './UsageDeep'; // A0-CLEANUP3 3b：ModelProvider 面对齐
 import { useBaseServices, useServices } from './services';
-import { useMcpStore, usePluginsStore } from './stores-workspace';
+import { useMcpStore, usePluginsStore, type McpServerConfig, type McpSource } from './stores-workspace'; // A0-CLEANUP3 3b：McpServer 面对齐派生型
 import { cn } from './UtilsCn'; // Z（utils chunk）
 import { useZCodeIntl as useIntlContext } from './I18n'; // G（IntlProvider chunk）
 import { useConfirmDialog } from './Modals';
@@ -187,6 +187,7 @@ interface AppUser {
   name?: string;
   email?: string;
   avatarUrl?: string;
+  [key: string]: unknown; // A0-CLEANUP3 3b：流入 Sidebar.SidebarUser（带索引签名），接口级补齐
 }
 
 /** 桌面平台服务（原 l()，imeComposition chunk 的 M 导出）——IPC 桥 */
@@ -262,12 +263,12 @@ interface RendererSettingsSnapshot {
   zcodeInteractionBehavior?: "queue" | "guide";
   optimizeAgentExperienceEnabled?: boolean;
 }
-interface SettingService {
+export interface SettingService {
   get(): Promise<RendererSettingsSnapshot>;
   update(patch: Partial<RendererSettingsSnapshot>): Promise<void>;
   updateDataBaseDir(dir: string | undefined): Promise<void>;
 }
-interface SystemService {
+export interface SystemService {
   info(): Promise<{ homedir: string; platform: string }>;
   listIntegratedTerminalShells(): Promise<IntegratedTerminalShell[]>;
 }
@@ -277,7 +278,7 @@ interface ProjectMemoryWorkspace {
   updatedAt: number;
   files: Array<{ name: string }>;
 }
-interface MemoryService {
+export interface MemoryService {
   listProjectMemories(): Promise<ProjectMemoryWorkspace[]>;
   readProjectMemoryFile(req: { workspaceId: string; fileName: string }): Promise<{ content: string }>;
 }
@@ -363,9 +364,13 @@ declare function isConversationTab(tab: WorkspaceTab): boolean;
 
 /* ── tombstone（A0-CLEANUP B-7）：ModelProviderId declare 删除 → import
  *    { providerIds as ModelProviderId } from './SrcSharedA'（原 q=mo）。 ── */
+/** A0-CLEANUP3 3b：补足必有面（与 UsageDeep.ModelProvider 对齐；运行期恒有值） */
 interface ModelProvider {
   id: string;
   name: string;
+  apiKey: string;
+  endpoints: ProviderEndpoints;
+  models: ModelMetadata[];
   [key: string]: unknown;
 }
 /** 原 qq()（js 78195）：模型供应商列表 + 排序 + CRUD + 测速 */
@@ -398,10 +403,12 @@ declare function useBigModelProducts(opts: { enabled: boolean; authenticated: bo
 declare function normalizeModelProviders(providers: ModelProvider[]): ModelProvider[];
 /** 原 rM（js 52600）：订阅快照缓存键 */
 declare function subscriptionCacheKey(provider: ModelProvider | undefined): string;
+/** A0-CLEANUP3 3b：与 SettingsPanelsData.CodingPlanSource 双向对齐（providerId 必有 + 索引签名） */
 interface CodingPlanSource {
   id: string;
-  providerId?: string;
+  providerId: string;
   label: string;
+  [key: string]: unknown;
 }
 /** 原 pX（js 89061）：团队计划源列表 */
 declare function buildTeamPlanSources(input: {
@@ -534,9 +541,9 @@ declare const RadixSwitchThumb: React.FC<React.HTMLAttributes<HTMLSpanElement>>;
 declare const RadixTabsRoot: React.FC<
   React.HTMLAttributes<HTMLDivElement> & { value: string; onValueChange: (v: string) => void }
 >;
-declare const RadixTabsList: React.FC<React.HTMLAttributes<HTMLDivElement>>;
-declare const RadixTabsTrigger: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { value: string }>;
-declare const RadixTabsContent: React.FC<React.HTMLAttributes<HTMLDivElement> & { value: string }>;
+declare const RadixTabsList: React.FC<React.ComponentPropsWithRef<"div">>; // A0-CLEANUP3 3b：ref 透传（Sidebar 段控滑块引用）
+declare const RadixTabsTrigger: React.FC<React.ComponentPropsWithRef<"button"> & { value: string; asChild?: boolean }>;
+declare const RadixTabsContent: React.FC<React.HTMLAttributes<HTMLDivElement> & { value: string; forceMount?: boolean }>;
 
 declare const RadixAlertDialogRoot: React.FC<{ open?: boolean; onOpenChange?: (v: boolean) => void; children: React.ReactNode }>;
 declare const RadixAlertDialogPortal: React.FC<{ children: React.ReactNode }>;
@@ -1299,7 +1306,7 @@ export function TabsList({
   className,
   variant = "default",
   ...rest
-}: React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "line" }) {
+}: React.ComponentPropsWithRef<"div"> & { variant?: "default" | "line" }) { // A0-CLEANUP3 3b：ref 透传
   return (
     <RadixTabsList
       data-slot="tabs-list"
@@ -1315,7 +1322,7 @@ export function TabsList({
 }
 
 /** 原 _C（js 36972）：TabsTrigger，类名逐字保留（含 line 变体的下划线 after:） */
-export function TabsTrigger({ className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { value: string }) {
+export function TabsTrigger({ className, ...rest }: React.ComponentPropsWithRef<"button"> & { value: string; asChild?: boolean }) { // A0-CLEANUP3 3b：ref 透传
   return (
     <RadixTabsTrigger
       data-slot="tabs-trigger"
@@ -1332,12 +1339,12 @@ export function TabsTrigger({ className, ...rest }: React.ButtonHTMLAttributes<H
 }
 
 /** 原 vC（js 36986）：TabsContent */
-export function TabsContent({ className, ...rest }: React.HTMLAttributes<HTMLDivElement> & { value: string }) {
+export function TabsContent({ className, ...rest }: React.HTMLAttributes<HTMLDivElement> & { value: string; forceMount?: boolean }) {
   return <RadixTabsContent data-slot="tabs-content" className={cn("flex-1 text-ui-base outline-none", className)} {...rest} />;
 }
 
 /** 原 S9（js 202338）：Alert（role=alert） */
-export function Alert({ className, variant, ...rest }: React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "destructive" }) {
+export function Alert({ className, variant, ...rest }: React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "warning" | "destructive" }) {
   return (
     <div
       data-slot="alert"
@@ -1346,7 +1353,9 @@ export function Alert({ className, variant, ...rest }: React.HTMLAttributes<HTML
         "group/alert relative grid w-full gap-0.5 rounded-lg border px-2 py-1.5 text-left text-ui-base/relaxed has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-1.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-3.5",
         variant === "destructive"
           ? "border-destructive/50 bg-destructive/10 text-destructive"
-          : "border-card-border bg-card text-foreground",
+          : variant === "warning"
+            ? "border-warning/40 bg-warning/10 text-warning *:data-[slot=alert-description]:text-warning *:[svg]:text-current" /* bundle g2t warning 变体（styles 202627） */
+            : "border-card-border bg-card text-foreground",
         className,
       )}
       {...rest}
@@ -1552,7 +1561,7 @@ export function DataBaseDirControl({
   dataBaseDir: string;
   defaultHomeDir: string;
   onDataBaseDirChange: (dir: string) => Promise<void>;
-  onSelectDataBaseDir: () => Promise<string | null>;
+  onSelectDataBaseDir: () => Promise<string | null | undefined>; // A0-CLEANUP3 3b：ImeComposition.selectDirectory 值域含 undefined，函数体以 !selected 兜底
 }) {
   const { intl } = useIntlContext();
   const effectiveDir = dataBaseDir || defaultHomeDir;
@@ -1716,7 +1725,7 @@ export interface GeneralSettingsSectionProps {
   askUserQuestionAutoResolutionEnabled?: boolean;
   optimizeAgentExperienceEnabled: boolean;
   onDataBaseDirChange: (dir: string) => Promise<void>;
-  onSelectDataBaseDir: () => Promise<string | null>;
+  onSelectDataBaseDir: () => Promise<string | null | undefined>; // A0-CLEANUP3 3b：ImeComposition.selectDirectory 值域含 undefined，函数体以 !selected 兜底
   onTerminalInheritSystemProfileChange?: (v: boolean) => Promise<void>;
   onTerminalFontFamilyChange?: (v: string) => Promise<void>;
   onIntegratedTerminalShellChange?: (v: IntegratedTerminalShellSetting) => Promise<void>;
@@ -3526,15 +3535,18 @@ export function BrowserSettingsSection({
  *     OAuth 状态轮询与焦点回归刷新（效果链 194795–194916）
  * ==========================================================================*/
 
+/** A0-CLEANUP3 3b：与 SettingsPanels.McpServer / stores-workspace.DerivedMcpServer 双向对齐
+ * （去掉索引签名、补足 scope/config、enabled 收紧为必有），消除三型互指错误族 */
 export interface McpServer {
   id: string;
   name: string;
   source: string;
+  scope: "user" | "workspace";
+  config: McpServerConfig;
+  enabled: boolean;
   storageLevel?: "workspace" | "user" | string;
   projectPath?: string | null;
-  enabled?: boolean;
   authorization?: { authorizationUrl?: string } | null;
-  [key: string]: unknown;
 }
 export type McpStatusSnapshot = Record<string, unknown>;
 
@@ -3579,9 +3591,9 @@ declare function mcpServersFingerprint(servers: McpServer[]): string;
 /** 原 B$t：插件列表指纹 */
 declare function pluginsFingerprint(plugins: PluginRecord[]): string;
 /** 原 H$t：计算待 OAuth 授权键（有则轮询状态） */
-declare function computePendingOAuthKey(servers: McpServer[], snapshots: Record<string, McpStatusSnapshot>): string | null;
+declare function computePendingOAuthKey(servers: McpServer[], snapshots: Record<string, unknown>): string | null; // A0-CLEANUP3 3b：snapshots 对齐 store 弱型（statusSnapshots: Record<string, unknown>）
 /** 原 R$t：参与状态刷新的服务器 */
-declare function pickStatusRefreshServers(servers: McpServer[], snapshots: Record<string, McpStatusSnapshot>): McpServer[];
+declare function pickStatusRefreshServers(servers: McpServer[], snapshots: Record<string, unknown>): McpServer[];
 /** 原 M$t：OAuth 轮询截止时间 */
 declare function oauthPollDeadline(): number;
 /** 原 N$t：是否已过截止时间 */
@@ -3612,9 +3624,11 @@ interface OAuthFollowup {
 declare function refreshMcpServerStatuses(input: {
   beginServerStatusListRefresh: () => void;
   getCurrentWorkspaceKey: () => string;
-  markServerStatusListRefreshFailed: () => void;
-  mergeServerStatusSnapshots: (snapshots: Record<string, McpStatusSnapshot>) => void;
-  mcpServers: McpServer[];
+  /** A0-CLEANUP3 3b：对齐 store 实签名（error/generation/kind） */
+  markServerStatusListRefreshFailed: (error: string, generation: number, kind?: "connect" | "status") => void;
+  mergeServerStatusSnapshots: (snapshots: Record<string, unknown>, generation: number, kind?: "connect" | "status") => void;
+  /** getEnabledMcpServersForZCode 返回 {name; config} 面，与 McpServer 并存（原 union） */
+  mcpServers: Array<McpServer | { name: string; config: unknown }>;
   mode?: "status" | "full";
   requestedWorkspaceKey: string;
   workspaceIdentity?: string | null;
@@ -3629,14 +3643,14 @@ declare function isPluginMcpListVisible(remote: boolean): boolean;
 declare function buildPluginMcpItems(
   plugins: PluginRecord[],
   query: string,
-  snapshots: Record<string, McpStatusSnapshot>,
+  snapshots: Record<string, unknown>, // A0-CLEANUP3 3b：对齐 store 弱型
 ): unknown[];
 /** 原 L$t：互斥锁工厂（串行化状态刷新） */
 declare function createSerialMutex(): { request<T>(task: () => Promise<T>): Promise<T> } | null;
 /** 原 H7（js 194440）：服务器序列化（刷新参数） */
 declare function serializeMcpServers(servers: McpServer[]): unknown;
 /** 原 RQt：服务器 → 编辑载荷 */
-declare function mcpServerToPayload(server: McpServer): Record<string, unknown>;
+declare function mcpServerToPayload(server: McpServer | McpFormDraft): Record<string, unknown>; // A0-CLEANUP3 3b：编辑器保存路径以草稿回传
 
 /** 原 KQt（js 192956）：MCP 服务器列表（空态带创建按钮；行 = GQt，接口级） */
 export function McpServerList({
@@ -4094,7 +4108,8 @@ export function McpSettingsSection({
   }
 
   /** 原 Me（194944–194950）：保存（新建→add；编辑→update；可附带禁用） */
-  async function handleSaveServer(server: McpServer, options?: { enabled?: boolean; name?: string }) {
+  // A0-CLEANUP3 3b：McpServerEditor.onSave 以表单草稿回传（仅用 name/storageLevel 面）
+  async function handleSaveServer(server: McpServer | McpFormDraft, options?: { enabled?: boolean; name?: string }) {
     const payload = { ...mcpServerToPayload(server), ...(options?.enabled === false ? { enable: false } : {}) };
     const workspaceIdentityForScope = (server.storageLevel === "workspace" && storeWorkspaceIdentity) || undefined;
     if (options?.name) {
@@ -4114,7 +4129,7 @@ export function McpSettingsSection({
       confirmLabel: intl.formatMessage({ id: "settings.mcp.deleteConfirmAction" }),
       cancelLabel: intl.formatMessage({ id: "common.cancel" }),
     });
-    if (confirmed) await deleteScopedMcpServer(server.source, server.name, server.projectPath);
+    if (confirmed) await deleteScopedMcpServer(server.source as McpSource, server.name, server.projectPath ?? undefined); // A0-CLEANUP3 3b：store 面 source 为 McpSource 枚举
   }
 
   /** 原 Pe（194958–194961）：进入编辑 */
@@ -4317,7 +4332,7 @@ export function McpSettingsSection({
         remoteTarget={effectiveRemoteTarget}
         skillWorkspacePath=""
         mcpWorkspacePath={effectiveWorkspacePath ?? ""}
-        mcpLocalWorkspacePath={localWorkspacePath}
+        mcpLocalWorkspacePath={localWorkspacePath ?? undefined} // A0-CLEANUP3 3b：props 面为 string | undefined（null 归一）
         onSkillsSynced={() => {}}
         onMcpSynced={async () => {
           const reloaded = await loadMcpFromUserDirectory(services.mcpSyncService, effectiveWorkspaceIdentity);
@@ -5009,11 +5024,11 @@ export function SettingsView({
               <SidebarFooter
                 theme={theme}
                 localeMenuValue={localePreference}
-                onLocaleChange={handleLocaleChange}
-                onThemeChange={handleThemeChange}
+                onLocaleChange={handleLocaleChange as (value: string) => void} // A0-CLEANUP3 3b：SidebarFooter 菜单面为 string 值域（边界收敛）
+                onThemeChange={handleThemeChange as (value: string) => void}
                 onSettingsButtonClick={onBack}
                 onUsageClick={openUsageSection}
-                onUpgradeClick={handleUpgradeClick}
+                onUpgradeClick={handleUpgradeClick as (providerId: string | null, funnel: unknown) => void} // A0-CLEANUP3 3b：SidebarFooter 形参面为 (string | null, unknown)（边界收敛）
                 onLogin={onLogin}
                 onLogout={onLogout}
                 settingsButtonMode="back"

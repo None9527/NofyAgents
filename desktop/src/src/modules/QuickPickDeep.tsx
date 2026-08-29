@@ -1012,7 +1012,7 @@ export function scopeStoreKey(tab: { workspacePath: string; workspaceIdentity?: 
   return sessionIndexPoolKey({
     workspaceKey: workspaceIdentityOf({ workspacePath: tab.workspacePath, workspaceIdentity: tab.workspaceIdentity }),
     ...(tab.endpointKey ? { endpointKey: tab.endpointKey } : {}),
-  } as unknown as SessionIndexScope); // bundle GS@styles 35529 仅传 workspaceKey(+endpointKey)；services 接口 workspacePath 必填过严（已登记）
+  }); // A0-CLEANUP3 #40：SessionIndexScope.workspacePath 已改可选，断言移除（bundle GS@styles 35529 仅传 workspaceKey(+endpointKey)）
 }
 /** 原 $Ae（35532） */
 export function scopeStoreKeyAlias(tab: { workspacePath: string; workspaceIdentity?: string | null; endpointKey?: string }): string {
@@ -1256,7 +1256,7 @@ export function useSessionIndexShards(tabs: SessionIndexShardHookTab[]): {
   sourceRevisionByScopeKey: Record<string, string>;
   hydratingEndpointKeys: string[];
 } {
-  const baseAgentService = useBaseServices().zcodeAgentService as WorkspaceAgentService | null; // BaseServices 索引签名为 unknown，按本族契约收敛
+  const baseAgentService = useBaseServices().zcodeAgentService as unknown as WorkspaceAgentService | null; // A0-CLEANUP3 3b：zcodeAgentService 已具型为 AutomationsAgentService，与本地 WorkspaceAgentService 不重叠，双重收敛
   const shardsRevision = React.useMemo(
     () =>
       tabs
@@ -1303,7 +1303,7 @@ export function useSessionIndexShards(tabs: SessionIndexShardHookTab[]): {
       const store = subscriptionSet.getStore({
         workspaceKey: workspaceIdentityOf(tab),
         ...(tab.endpointKey ? { endpointKey: tab.endpointKey } : {}),
-      } as unknown as SessionIndexScope); // 同 scopeStoreKey：bundle 消费面仅 workspaceKey(+endpointKey)
+      }); // A0-CLEANUP3 #40：同 scopeStoreKey，断言移除
       if (!store) {
         sourceRevisionByScopeKey[scopeKey] = `${shardKey}:missing`;
         continue;

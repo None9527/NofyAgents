@@ -1365,7 +1365,7 @@ export function CommitGraphView({
 export const GRAPH_PAGE_SIZE = 50;
 
 export function CommitGraphDialog({ open, workspacePath, onOpenChange }: { open: boolean; workspacePath: string; onOpenChange: (open: boolean) => void }) {
-  const { gitService } = useServices() as { gitService: GitService };
+  const { gitService } = useServices() as unknown as { gitService: GitService } // A0-CLEANUP3 3b：ResolvedBaseServices 交集型与投射面不再直接可比，二段断言;
   const { intl } = useIntlContext();
   const [loading, setLoading] = React.useState(!1);
   const [loadingMore, setLoadingMore] = React.useState(!1);
@@ -1518,7 +1518,7 @@ export function useGitBranchSwitcher({
   headRefType: string;
   onRefreshGit: () => void;
 }): GitBranchSwitcherState {
-  const { gitService } = useServices() as { gitService: GitService };
+  const { gitService } = useServices() as unknown as { gitService: GitService } // A0-CLEANUP3 3b：ResolvedBaseServices 交集型与投射面不再直接可比，二段断言;
   const { intl, locale } = useIntlContext();
   const numberFormat = new Intl.NumberFormat(locale);
   const [open, setOpen] = React.useState(!1);

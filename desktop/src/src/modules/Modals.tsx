@@ -3236,7 +3236,7 @@ export function RemoteSyncDialogs({
   pluginOpen?: boolean;
   onSkillOpenChange: (v: boolean) => void;
   onMcpOpenChange: (v: boolean) => void;
-  onPluginOpenChange: (v: boolean) => void;
+  onPluginOpenChange?: (v: boolean) => void; // A0-CLEANUP3 3b：技能/MCP 单域调用面不传插件侧回调，函数体已 ?? 兜底
   localSkillSyncService?: SkillSyncService | null;
   remoteSkillSyncService?: RemoteSkillSyncService | null;
   localMcpSyncService?: McpSyncService | null;
@@ -3248,7 +3248,7 @@ export function RemoteSyncDialogs({
   remoteTarget?: RemoteTarget | null;
   skillWorkspacePath: string;
   mcpWorkspacePath: string;
-  pluginWorkspacePath: string;
+  pluginWorkspacePath?: string; // A0-CLEANUP3 3b：同上，函数体以 ?? mcpWorkspacePath 兜底
   pluginLocalWorkspacePath?: string;
   mcpLocalWorkspacePath?: string;
   workspaceIdentity?: string | null;

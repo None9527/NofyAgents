@@ -195,7 +195,9 @@ import { AppDialogHost, ConfirmDialog, DirectoryBrowserDialog, OnboardingDialog,
 // ConfirmDialog 已由 A0-CLEANUP2 item 35 接入真实 import（上方）。
 import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, SettingsView } from './Settings';
 import { logger, resolveWorkspaceKey as workspaceScopeKey } from './SkillStore'; // workspaceScopeKey（原 Io，js 1368：两参实体键；前波误接 stores-session.workspaceScopeKey 单参形，A0-D-Misc 按 bundle R6t 裁决改接 resolveWorkspaceKey）
-import { WorkspaceShell } from './WorkspaceShell';
+import { MemoizedWorkspaceRoot, type WorkspaceServices } from './WorkspaceShell'; // A0-CLEANUP3 #36：Y4t=memo(XJt)=WorkspaceRoot 属主接线（原误包 yJt=WorkspaceShell）
+import { type FeedbackService } from './FeedbackCenter';
+import { type MobileHomeResult, type WebRemoteSwitcherService } from './WebRemote';
 import { ConversationTelemetrySupervisor, registerBaseServices, useServices, useWorkspaceServices } from './services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）
 import { useSettingsStore } from './stores-core';
 import { DEFAULT_CODE_PREVIEW_SETTINGS as defaultCodePreviewSettings } from './MarkdownIntegration'; // 默认代码预览设置（原 lo，1040）
@@ -408,8 +410,8 @@ export interface PlatformService {
   onUpdateStateChanged?(handler: (state: UpdateStateSnapshot) => void): () => void;
   onUpdateReady(handler: (version: string | null) => void): () => void;
   onApplicationLocaleChanged?(handler: (locale: string) => void): () => void;
-  reportTelemetryEvent?(...args: unknown[]): Promise<void>;
-  reportArmsCustomEvent?(...args: unknown[]): Promise<void>;
+  reportTelemetryEvent(...args: unknown[]): Promise<void>;
+  reportArmsCustomEvent(...args: unknown[]): Promise<void>;
   [key: string]: any;
 }
 
@@ -900,7 +902,7 @@ export const LOGIN_FAILED_MESSAGE = `登录失败，请重试`;
 
 /** 原 l4t（205996 / 163718）：useOAuth —— provider 列表/活动 provider/startOAuth/cancel/reset */
 export function useOAuth() {
-  const { oauthService } = useServices() as { oauthService: OAuthServiceLike }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
+  const { oauthService } = useServices() as unknown as { oauthService: OAuthServiceLike }; // A0-CLEANUP3 3b：oauthService 已具型（facet），本地 OAuthServiceLike 与之不重叠，双重收敛
   const platform = usePlatform() as unknown as PlatformService; // A0-D-Misc 类型收敛：ImeComposition.PlatformService 索引签名为 unknown
   const [status, setStatus] = React.useState<string>(`idle`);
   const [error, setError] = React.useState<string | null>(null);
@@ -1050,7 +1052,7 @@ export function savedApiKeyIfUntouched(options: { savedApiKey: string; userEdite
 export function ApiKeyLoginView({ onCancel, onSaved, onSkipped }: { onCancel: () => void; onSaved: () => void | Promise<void>; onSkipped: () => void | Promise<void> }) {
   const { intl } = useIntlContext();
   const platform = usePlatform() as unknown as PlatformService; // A0-D-Misc 类型收敛：ImeComposition.PlatformService 索引签名为 unknown
-  const { modelProviderService, settingService } = useServices() as { modelProviderService: ModelProviderServiceLike; settingService: SettingServiceLike }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
+  const { modelProviderService, settingService } = useServices() as unknown as { modelProviderService: ModelProviderServiceLike; settingService: SettingServiceLike }; // A0-CLEANUP3 3b：BaseServices 服务面收敛后本地 Like 面与规范型不重叠，边界双断言
   const markApiKeyLoginSuccess = useSettingsStore((state) => state.markApiKeyLoginSuccess);
   const [providerChoice, setProviderChoice] = React.useState<string>(`zai`);
   const [apiKey, setApiKey] = React.useState<string>(``);
@@ -1381,7 +1383,7 @@ export function OAuthLoginPanel({ active, onComplete }: { active: boolean; onCom
                 </div>
               ) : null}
               {!loadingProviders && providers.length === 0 ? (
-                <Alert variant={`warning` as "default" | "destructive"} /* A0-D-Misc：bundle Alert 有 warning 变体（styles 202627），Settings.Alert 缺，已登记需要的 export */ className={`flex items-center justify-center gap-2 text-center`} data-testid={`oauth-error`}>
+                <Alert variant="warning" /* A0-CLEANUP3 #37：Settings.Alert 已补 warning 变体（bundle g2t，styles 202627） */ className={`flex items-center justify-center gap-2 text-center`} data-testid={`oauth-error`}>
                   <AlertTriangleIcon className={`size-4`} />
                   <AlertDescription className={`text-center`}>{intl.formatMessage({ id: `login.oauth.noProviders` })}</AlertDescription>
                 </Alert>
@@ -1447,7 +1449,7 @@ export function OAuthLoginPanel({ active, onComplete }: { active: boolean; onCom
           )}
           {(status === `error` || oauthError) && (
             <div className={`space-y-4`}>
-              <Alert variant={`warning` as "default" | "destructive"} /* A0-D-Misc：bundle Alert 有 warning 变体（styles 202627），Settings.Alert 缺，已登记需要的 export */ className={`flex items-center justify-center gap-2 text-center`} data-testid={`oauth-error`}>
+              <Alert variant="warning" /* A0-CLEANUP3 #37：Settings.Alert 已补 warning 变体（bundle g2t，styles 202627） */ className={`flex items-center justify-center gap-2 text-center`} data-testid={`oauth-error`}>
                 <AlertTriangleIcon className={`size-4`} />
                 <AlertDescription className={`text-center`}>{oauthError || error}</AlertDescription>
               </Alert>
@@ -1738,13 +1740,15 @@ export function SettingsLayer({
   );
 }
 
-/** 原 Y4t（207063）：memo(XJt) —— 工作区壳 memo 包装（XJt 属 F07 WorkspaceShell.tsx） */
-export const MemoizedWorkspaceShell = React.memo(WorkspaceShell);
+/** 原 Y4t（207063）：memo(XJt) —— XJt = WorkspaceRoot（工作区根；束 7039025 实证
+ *  baseFeedbackService/remoteConnectionLogs/remoteConnectionInProgress/onReturnToWorkspace
+ *  由该层收取）。A0-CLEANUP3 #36：前版误包 yJt=WorkspaceShell，改指属主导出。 */
+export const MemoizedWorkspaceShell = MemoizedWorkspaceRoot;
 
 /** 原 X4t（207064 / 164453）：根工作区内容（工作区壳 + 设置层双表面） */
 export function RootWorkspaceContent(args: {
   workspaceScopedServices: ServicesBundle | null;
-  baseFeedbackService: unknown;
+  baseFeedbackService: FeedbackService | null;
   workspaceShellPath: string;
   workspaceIdentity?: string | null;
   workspaceRemoteSessionId?: string;
@@ -1810,16 +1814,9 @@ export function RootWorkspaceContent(args: {
           >
             <ServicesProvider services={args.workspaceScopedServices as ServicesBundle}>
               <ScopeBoundary scope={`workspace-app`} resetKeys={[resetKey]} variant={`panel`} className={`h-full`}>
-                <MemoizedWorkspaceShell
-                  {...({
-                    /* A0-D-Misc：bundle XJt 收这 4 个 prop（styles 186515–186552），重建版 WorkspaceShellProps 缺，
-                       已登记需要的 export（WorkspaceShell 域）；此处经投射传递保持 bundle 调用面 */
-                    baseFeedbackService: args.baseFeedbackService,
-                    remoteConnectionLogs: args.remoteConnectionLogs,
-                    remoteConnectionInProgress: args.remoteConnectionInProgress,
-                    onReturnToWorkspace: args.handleBackFromSettings,
-                  } as unknown as React.ComponentProps<typeof WorkspaceShell>)}
-                  services={args.workspaceScopedServices as unknown as React.ComponentProps<typeof WorkspaceShell>["services"]} /* A0-D-Misc 类型收敛：WorkspaceShell.WorkspaceServices 未导出；非空性由上层 ServicesProvider 同值保证 */
+                <MemoizedWorkspaceRoot
+                  services={args.workspaceScopedServices as unknown as WorkspaceServices} /* A0-CLEANUP3 #36：WorkspaceServices 已由属主导出；ServicesBundle 与 WorkspaceServices 无结构重叠，边界处双断言 */
+                  baseFeedbackService={args.baseFeedbackService}
                   onConnectRemote={args.handleConnectRemote}
                   onSelectRemoteProject={args.handleSelectRemoteProject}
                   onCancelRemoteProject={args.handleCancelRemoteProject}
@@ -1830,6 +1827,7 @@ export function RootWorkspaceContent(args: {
                   reconnectingRemoteWorkspaceKeys={args.reconnectingRemoteWorkspaceKeys}
                   remoteWorkspaceErrorByWorkspaceKey={args.remoteWorkspaceErrorByWorkspaceKey}
                   reconnectingRemoteWorkspaceLogsByWorkspaceKey={args.reconnectingRemoteWorkspaceLogsByWorkspaceKey}
+                  remoteConnectionLogs={args.remoteConnectionLogs}
                   workspaceAbsPath={args.workspaceShellPath}
                   workspaceRemoteSessionId={args.workspaceRemoteSessionId}
                   workspaceIdentity={args.workspaceIdentity ?? undefined} // A0-D-Misc 类型收敛：WorkspaceShell 侧为 string | undefined
@@ -1839,12 +1837,14 @@ export function RootWorkspaceContent(args: {
                   onOpenWorkspace={args.handleOpenWorkspace}
                   onOpenFolderFromWorkspaceMenu={args.handleOpenFolderFromWorkspaceMenu}
                   onOpenRemoteWorkspace={args.handleOpenRemoteWorkspace}
-                  onCreateScratchWorkspace={args.handleCreateScratchWorkspace as unknown as () => void} /* A0-D-Misc：bundle 调用面为 (name) => Promise<string|null>，WorkspaceShell 侧 prop 类型缺参，已登记需要的 export */
+                  onCreateScratchWorkspace={args.handleCreateScratchWorkspace}
+                  remoteConnectionInProgress={args.remoteConnectionInProgress}
+                  onReturnToWorkspace={args.handleBackFromSettings}
                   allowOpenWorkspace={args.allowOpenWorkspace}
-                  webRemoteControlWorkspaceSwitcher={args.webRemoteControlWorkspaceSwitcher}
-                  initialWebRemoteControlMobileNavigationIntent={args.initialWebRemoteControlMobileNavigationIntent}
-                  initialWebRemoteControlWorkspaceList={args.initialWebRemoteControlWorkspaceList}
-                  webRemoteControlTerminalTransportState={args.webRemoteControlTerminalTransportState}
+                  webRemoteControlWorkspaceSwitcher={args.webRemoteControlWorkspaceSwitcher as WebRemoteSwitcherService | undefined}
+                  initialWebRemoteControlMobileNavigationIntent={args.initialWebRemoteControlMobileNavigationIntent as string | undefined}
+                  initialWebRemoteControlWorkspaceList={args.initialWebRemoteControlWorkspaceList as MobileHomeResult | undefined}
+                  webRemoteControlTerminalTransportState={args.webRemoteControlTerminalTransportState as string | undefined}
                   allowRemoteWorkspace={args.allowRemoteWorkspace}
                   remoteWorkspaceSessions={args.remoteWorkspaceSessions}
                   isWorkspaceVisible={!args.isSettingsTabActive}

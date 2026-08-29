@@ -140,7 +140,7 @@ import { Input, Popover, PopoverContent, PopoverTrigger, toast } from './ImeComp
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, BackLinkButton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger } from './Settings';
 import { ResourceEnabledFilterSelect } from './SettingsPanelsCapability';
 import { useServices } from './services';
-import { usePluginsStore } from './stores-workspace';
+import { usePluginsStore, type PluginService } from './stores-workspace'; // A0-CLEANUP3 3b：useUninstallFlow 服务面具型
 import { cn } from './UtilsCn';
 import { useZCodeIntl as useIntlContext } from './I18n';
 import { t as logger } from './logger';
@@ -241,13 +241,13 @@ declare const IconSpinner: React.FC<{ className?: string }>; // M（imeCompositi
 declare const IconSpinnerAlt: React.FC<{ className?: string }>; // EN（运行历史加载）
 
 /* --- UI 原语（本 chunk 横切层，类名逐字引用） --- */
-interface SelectItemEntry {
+export interface SelectItemEntry {
   key?: string;
   value: string;
   name?: string;
   [key: string]: unknown;
 }
-interface SelectGroupEntry {
+export interface SelectGroupEntry {
   key?: string;
   label?: string;
   items: SelectItemEntry[];
@@ -368,7 +368,7 @@ declare function resolveModelGroupLabel(args: {
 declare function normalizeSettingsOptions(options: unknown[]): ConfigOption[]; // oee（F12）
 declare function pluginMentionMarkdown(displayName: string, pluginId: string): string; // Dj（F19，js 52090）
 
-interface ConfigOption {
+export interface ConfigOption {
   id: string;
   name: string;
   category: string;
@@ -1369,7 +1369,7 @@ export interface PluginListing {
 export interface PluginItem {
   id: string;
   name: string;
-  marketplace: string;
+  marketplace?: string; // A0-CLEANUP3 3b：与 SettingsPanelsCapability.PluginItem 对齐（可选），双向收敛
   installed?: boolean;
   restorable?: boolean;
   orphaned?: boolean;
@@ -1383,6 +1383,8 @@ export interface PluginItem {
     description?: string;
     homepage?: string;
     source?: string;
+    rootPath?: string; // A0-CLEANUP3 3b：按消费面（PluginDetail advanced 段）补足
+    hookDetails?: PluginHookDetail[];
     components?: Array<{ kind: string; items: Array<{ name: string; description?: string }> }>;
     [key: string]: unknown;
   };
@@ -1519,7 +1521,7 @@ export function buildStoreItems(args: {
       marketplace: plugin.marketplace,
       installed: true,
       restorable: false,
-      orphaned: args.marketplaceAvailabilityKnown && (plugin as { source?: string }).source === "cache" && !marketplaceIds.has(plugin.marketplace),
+      orphaned: args.marketplaceAvailabilityKnown && (plugin as { source?: string }).source === "cache" && !marketplaceIds.has(plugin.marketplace ?? ""), // A0-CLEANUP3 3b：marketplace 对齐为可选，运行期恒有值
       info: plugin,
       ...(installedById.get(plugin.id) ? { installedMeta: installedById.get(plugin.id) } : {}),
     });
@@ -1687,7 +1689,7 @@ export function PluginInstalledList({
   );
 }
 
-interface PluginHookDetail {
+export interface PluginHookDetail {
   event: string;
   matcher?: string;
   runnable?: boolean;
@@ -2117,8 +2119,8 @@ export function PluginStoreGrid({
   const normalizedQuery = query.trim().toLowerCase();
   const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({});
   const installedStrip = React.useMemo(() => sortInstalledItems(items.filter((item) => item.installed), locale), [items, locale]);
-  const publicItems = React.useMemo(() => items.filter((item) => isOfficialMarketplace(item.marketplace)), [items]);
-  const personalItems = React.useMemo(() => items.filter((item) => !isOfficialMarketplace(item.marketplace)), [items]);
+  const publicItems = React.useMemo(() => items.filter((item) => isOfficialMarketplace(item.marketplace ?? "")), [items]); // A0-CLEANUP3 3b：marketplace 对齐为可选，运行期恒有值
+  const personalItems = React.useMemo(() => items.filter((item) => !isOfficialMarketplace(item.marketplace ?? "")), [items]);
   const resolveCategoryLabel = React.useMemo(
     () => (category: string) => {
       const i18nId = PLUGIN_CATEGORY_I18N[category];
@@ -2139,9 +2141,9 @@ export function PluginStoreGrid({
     const claudeLabel = intl.formatMessage({ id: "settings.plugins.marketplace.claudeCodePlugins" });
     const byMarketplace = new Map<string, PluginItem[]>();
     for (const item of personalItems) {
-      const bucket = byMarketplace.get(item.marketplace) ?? [];
+      const bucket = byMarketplace.get(item.marketplace ?? "") ?? []; // A0-CLEANUP3 3b：marketplace 对齐为可选，运行期恒有值
       bucket.push(item);
-      byMarketplace.set(item.marketplace, bucket);
+      byMarketplace.set(item.marketplace ?? "", bucket);
     }
     return [...byMarketplace.entries()]
       .map(([marketplaceId, bucket]) => ({
@@ -2998,7 +3000,7 @@ export function PluginUninstallDialog({
 
 /** 原 N0t（199952）：卸载流状态机（请求/取消/确认；忙碌判定 = 操作 id） */
 export function useUninstallFlow(opts: {
-  pluginService: unknown;
+  pluginService: PluginService; // A0-CLEANUP3 3b：store uninstallPlugin 形参面具型
   installedPlugins: Array<{ id: string; [key: string]: unknown }>;
   plugins: PluginItem[];
   operationId: string | null;
@@ -3055,9 +3057,9 @@ export function buildPluginMentionEntry({ item, locale }: { item: PluginItem; lo
 }
 
 /** 原 F0t（199989）：聊天提示词构造（提及 + 追加提示） */
-export function buildPluginChatPrompt({ item, locale, prompt }: { item: PluginItem; locale: string; prompt: string }): string {
+export function buildPluginChatPrompt({ item, locale, prompt }: { item: PluginItem; locale: string; prompt?: string }): string { // A0-CLEANUP3 3b：bundle F0t（159974）prompt 可选
   const markdown = buildPluginMentionEntry({ item, locale }).markdown;
-  const trimmed = prompt.trim();
+  const trimmed = (prompt ?? "").trim();
   return trimmed ? `${markdown} ${trimmed}` : markdown;
 }
 
@@ -3068,9 +3070,9 @@ export function buildPluginChatPrompt({ item, locale, prompt }: { item: PluginIt
 /* --- C.1 cron 域（原 109250–109510；F03 段双归属，F15 消费） --- */
 
 export interface AutomationTaskLite {
-  automationId?: string;
-  title?: string;
-  prompt?: string;
+  automationId: string; // A0-CLEANUP3 3b §C：与 SPC.AutomationTask/StoresDeep.Automation 对齐（运行期恒有值，编辑器 ?? 为防御）
+  title: string;
+  prompt: string;
   cronExpr: string;
   enabled: boolean;
   lifecycleStatus?: string;
@@ -3745,6 +3747,7 @@ export function OffPeakTaskMenu({
 }
 
 export interface OffPeakTaskRecord {
+  offPeakTaskId: string; // A0-CLEANUP3 3b：与 stores-tasks.OffPeakTask 对齐（运行期恒有值）
   taskId?: string;
   title?: string;
   prompt: string;
@@ -4947,10 +4950,12 @@ export interface ScheduleRule {
   monthDays: number[];
   months: number[];
   monthlyMode: string;
+  [key: string]: unknown; // A0-CLEANUP3 3b：与 AutomationScheduleRule/Record 面互指（接口无隐式索引签名）
 }
 
 /** 原 ONt（136990）：scheduleRule 提交载荷（空 → null） */
-export function scheduleRulePayload(rule: Omit<ScheduleRule, "weekdays" | "monthDays" | "months" | "monthlyMode"> & Partial<ScheduleRule> | null): ScheduleRule | null {
+/** A0-CLEANUP3 3b：ScheduleRule 带索引签名后 Omit 会塌缩成员，改用 Pick&Partial 保形 */
+export function scheduleRulePayload(rule: Pick<ScheduleRule, "unit" | "interval" | "hour" | "minute" | "anchorAt"> & Partial<ScheduleRule> | null): ScheduleRule | null {
   return rule
     ? {
         unit: rule.unit,
@@ -5008,7 +5013,7 @@ export function OffPeakTaskEditor({
   createBlocked?: boolean;
   createBlockedTooltip?: string;
   onBack: () => void;
-  onSubmit: (input: Record<string, unknown>) => Promise<boolean>;
+  onSubmit: (input: { title: string; prompt: string; [key: string]: unknown }) => Promise<boolean>; // A0-CLEANUP3 3b：提交面恒含 title/prompt（函数体构造面即如此），兼容 EV.OffPeakCreateInput 回调
   onOpenSession?: (opts: { sessionId: string; workspacePath?: string; workspaceIdentity?: string | null }) => void;
   onDelete?: (task: OffPeakTaskRecord) => void;
   onDeleteHistory?: (task: OffPeakTaskRecord) => void;
@@ -5398,7 +5403,8 @@ export function AutomationEditor({
   modelSelectGroups: SelectGroupEntry[];
   onManageModels?: () => void;
   saving: boolean;
-  onSubmit: (request: { input: Record<string, unknown>; workspacePath: string; workspaceIdentity?: string | null }) => Promise<boolean>;
+  /** A0-CLEANUP3 3b：input 带出 title/prompt 必有面（buildInput 运行期恒产；消费端 AutomationInput 对齐） */
+  onSubmit: (request: { input: { title: string; prompt: string; [key: string]: unknown }; workspacePath: string; workspaceIdentity?: string | null }) => Promise<boolean>;
   onBack: () => void;
   onRunNow?: (automation: AutomationTaskLite) => void;
   onToggle?: (automation: AutomationTaskLite, enabled: boolean) => Promise<void>;

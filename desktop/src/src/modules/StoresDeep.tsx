@@ -143,6 +143,7 @@ import { resolveWorkspaceKey as workspaceKey, formatCustomModelId as joinModelNa
 import { isZaiPlanProviderId as isZaiPlanFamily, isBuiltinProviderId as isZaiProviderFamily } from './SrcSharedA'; // 原 tr | 原 jt
 import { parseCustomModelRef as parseCustomModelKey, countLineDiffChanges as countDiffLines, generateUuid as generateRandomId, resolveClientTelemetryContext as telemetryClientContext } from './SrcSharedB'; // 原 Zn | 原 Xr | 原 xi | 原 Qne
 import type { SkillsService } from './stores-workspace';
+import type { ScheduleRule } from './SettingsLeaves'; // A0-CLEANUP3 3b：Automation 三型 scheduleRule 统一
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -709,7 +710,9 @@ export interface Automation {
   endAt?: number | null;
   targetTaskId?: string | null;
   scheduleEditedByUser?: boolean;
-  scheduleRule?: Record<string, unknown> | null;
+  scheduleRule?: ScheduleRule | null; // A0-CLEANUP3 3b：统一为 SL.ScheduleRule（EV.AutomationRecord / SL.AutomationTaskLite 互指）
+  nextRunAt?: number | null; // A0-CLEANUP3 3b：列表态展示消费（describeAutomationNextRun）
+  runCount?: number;
   workspacePath?: string;
   workspaceIdentity?: string | null;
   workspaceKey?: string | null;
@@ -829,7 +832,7 @@ export interface HookDescriptor {
   statusMessage?: string;
   timeout: number;
   enabled: boolean;
-  custom?: unknown;
+  custom?: Record<string, unknown>; // A0-CLEANUP3 3b：按消费面（customJsonOf/HookItem.custom）收敛
   location?: { source: string; scope: string; directoryPath: string; projectPath?: string };
   [key: string]: unknown;
 }
@@ -1355,7 +1358,7 @@ export interface TelemetryReport {
   elementName: string;
   eventRegion: string;
   eventType: string;
-  eventExtraDetail?: Record<string, string>;
+  eventExtraDetail?: Record<string, unknown>; // A0-CLEANUP3 3b：与域内各消费面（Conversation/OLL/EV）统一为 unknown 值域
   talkId?: string;
   messageId?: string;
   [key: string]: unknown;

@@ -126,6 +126,11 @@ const cva = cvaMin as (
 export interface PlatformService {
   /** 打开系统目录选择器；返回所选目录路径（取消时为空值）。 */
   selectDirectory(): Promise<string | null | undefined>;
+  /** 打开外部链接（TopBar.tsx PlatformService 登记同面；UsageDeep/Bots 消费）。 */
+  openExternal(url: string): void | Promise<void>;
+  /* A0-CLEANUP3 3b：同一平台服务兼遥测面（StoresDeep.TelemetryPlatform 消费面；bundle 真值） */
+  reportTelemetryEvent(report: Record<string, unknown>): Promise<void> | void;
+  reportArmsCustomEvent(event: { name: string; group?: string; value?: number | string; [key: string]: unknown }): Promise<void> | void;
   /** 其余方法由其他族消费，此处以索引签名兜底。 */
   [method: string]: unknown;
 }
@@ -169,6 +174,9 @@ export function useSelectDirectory(): () => Promise<string | null | undefined> {
   return React.useCallback(() => platform.selectDirectory(), [platform]);
 }
 
+/** usePlatformService（bundle l = 本 chunk 导出别名 M）：usePlatform 的域外消费别名。 */
+export const usePlatformService = usePlatform;
+
 /* ════════════════════════ 2. lucide 图标 ×6（11781–11822） ════════════════════════
  * vendored lucide 图标数据（与 lucide-react 各图标定义逐字一致，含 key 哈希），
  * 经 button chunk 的 createLucideIcon 实例化。供 toast 卡片使用。
@@ -181,10 +189,16 @@ export const Info = createLucideIcon('info', [
   ['path', { d: 'M12 8h.01', key: 'e9boi3' }],
 ]);
 
+/** InfoIcon（bundle T=Ht `info`）：Info 的域外消费别名。 */
+export const InfoIcon = Info;
+
 /** loader-circle（原码 `Ut`，导出别名 `w`；全应用 spinner 图标）。 */
 export const LoaderCircle = createLucideIcon('loader-circle', [
   ['path', { d: 'M21 12a9 9 0 1 1-6.219-8.56', key: '13zald' }],
 ]);
+
+/** SpinnerIcon（bundle w）：LoaderCircle 的域外消费别名（调用面自加 animate-spin）。 */
+export const SpinnerIcon = LoaderCircle;
 
 /** mouse-pointer-2（原码 `Wt`，导出别名 `C`；PPTX 元素选择指针）。 */
 export const MousePointer2 = createLucideIcon('mouse-pointer-2', [

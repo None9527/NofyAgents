@@ -1125,7 +1125,7 @@ export function BotsDialog(props: {
   const { intl } = useZCodeIntl();
   const platform = usePlatformService();
   const confirm = useConfirmDialog();
-  const { botsService } = useBaseServices() as { botsService: BotsServiceLike };
+  const { botsService } = useBaseServices() as unknown as { botsService: BotsServiceLike } // A0-CLEANUP3 3b：ResolvedBaseServices 交集型与投射面不再直接可比，二段断言;
   const [config, setConfig] = React.useState<BotsConfig>(() => emptyBotsConfig());
   const [workspaceRefs, setWorkspaceRefs] = React.useState<WorkspaceRef[]>([]);
   const [status, setStatus] = React.useState<BotsStatus | null>(null);

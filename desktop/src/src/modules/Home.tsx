@@ -1263,7 +1263,7 @@ export function WorkspaceSelectionRow({
             className="pointer-events-none absolute left-1.5 z-10 rounded-full text-foreground-subtle opacity-0 transition-opacity group-hover/workspace-chip:pointer-events-auto group-hover/workspace-chip:opacity-100 group-focus-within/workspace-chip:pointer-events-auto group-focus-within/workspace-chip:opacity-100"
             aria-label={intl.formatMessage({ id: "chat.empty.detachProject" })}
             data-testid={PROJECT_DETACH_TESTID}
-            onClick={(event) => {
+            onClick={(event: React.MouseEvent) => {
               event.stopPropagation();
               onSelectConversationWorkspace();
             }}

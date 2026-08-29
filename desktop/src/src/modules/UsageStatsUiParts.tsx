@@ -1205,7 +1205,7 @@ function createEmptyHeatmapCell(date: string): UsageHeatmapCellData {
   };
 }
 
-interface UsageHeatmapWeekInput {
+export interface UsageHeatmapWeekInput { // A0-CLEANUP3 3b：UsageDeep.AppUsageSnapshot.heatmap 具型消费
   days: Array<UsageHeatmapCellData | null>;
   [key: string]: unknown;
 }

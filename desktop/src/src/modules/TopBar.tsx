@@ -197,7 +197,7 @@ declare enum DesktopCommand {
 }
 
 type Platform = "mac" | "windows" | "linux" | "web";
-type UpdateState =
+export type UpdateState =
   | { kind: "checking" }
   | { kind: "update-available"; version: string; channel?: string; releaseNotes?: ReleaseNotesPayload }
   | { kind: "download-progress"; version: string; progress: number; totalBytes: number; transferredBytes: number; channel?: string; releaseNotes?: ReleaseNotesPayload }
@@ -2094,7 +2094,7 @@ export function SessionHeaderLeft({
               onCopyWorkspacePath={() => { taskFileActions.handleCopyText(intl.formatMessage({ id: "appHeader.copyPath" }), workspaceAbsPath); }}
               onCopyTaskPath={() => { taskFileActions.handleCopyText(intl.formatMessage({ id: "appHeader.copyTaskPath" }), taskFileActions.taskSessionFile.path); }}
               onCopyTaskLogPath={() => { taskFileActions.handleCopyText(intl.formatMessage({ id: "appHeader.copyLogPath" }), taskFileActions.taskNativeSessionLogFile.path); }}
-              onCopySessionId={() => { taskFileActions.handleCopyText(intl.formatMessage({ id: "appHeader.copySessionId" }), activeSessionId); }}
+              onCopySessionId={() => { taskFileActions.handleCopyText(intl.formatMessage({ id: "appHeader.copySessionId" }), activeSessionId ?? null); /* 运行期 undefined↔null 等价归一 */ }}
               onViewModelTrajectory={effectiveTaskId ? () => {
                 useTrajectoryViewerStore.getState().requestOpen({
                   taskId: effectiveTaskId,

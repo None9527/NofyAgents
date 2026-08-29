@@ -68,11 +68,13 @@ export function matchesScopedQuery(query: string, candidates: Array<string | nul
 }
 
 interface ScopedSkillLike {
+  id: string; // A0-CLEANUP3 3b：技能记录为统一形（SPC.SkillItem 消费面），补足记录字段
+  enabled: boolean;
   path: string;
   name: string;
-  description?: string | null;
-  pluginName?: string | null;
-  scope?: string;
+  description?: string;
+  pluginName?: string;
+  scope: string; // A0-CLEANUP3 3b：收紧为必有（与 SPC.SkillItem 互指；运行期恒有值）
 }
 /** 原 XQt（193384）：技能按路径去重 + 查询过滤，scope=plugin 归 plugin 侧 */
 export function splitSkillsByScope(skills: ScopedSkillLike[], query: string): { local: ScopedSkillLike[]; plugin: ScopedSkillLike[] } {
@@ -90,16 +92,25 @@ export function splitSkillsByScope(skills: ScopedSkillLike[], query: string): { 
 }
 
 interface FileBasedCommandLike {
-  agentSource?: string;
+  id: string; // A0-CLEANUP3 3b：命令记录为统一形（SPC.CommandItem 消费面），补足记录字段
+  enabled: boolean;
+  filePath: string;
+  agentSource: string;
   name: string;
-  description?: string | null;
-  prompt?: string | null;
+  description?: string;
+  prompt?: string;
+  [key: string]: unknown;
 }
 interface PluginCommandLike {
+  id: string; // A0-CLEANUP3 3b：同上（命令记录统一形）
+  enabled: boolean;
+  filePath: string;
+  agentSource: string;
   name: string;
-  description?: string | null;
-  prompt?: string | null;
-  pluginName?: string | null;
+  description?: string;
+  prompt?: string;
+  pluginName?: string;
+  [key: string]: unknown;
 }
 /** ki（跨 chunk）：文件型命令判定 */
 declare function isFileBasedCommand(command: unknown): command is FileBasedCommandLike;

@@ -355,18 +355,19 @@
  */
 
 import * as React from "react";
-import { Input, Popover as PopoverRoot, PopoverContent, PopoverTrigger } from './ImeComposition'; // PopoverRoot（原 n=T 根）
+import { InfoIcon, Input, Popover as PopoverRoot, PopoverContent, PopoverTrigger, SpinnerIcon, usePlatformService } from './ImeComposition'; // PopoverRoot（原 n=T 根）；A0-CLEANUP3 #38：SpinnerIcon/InfoIcon/usePlatformService 改由属主导出
 import { MarkdownRenderer, type CodePreviewSettings } from './MarkdownIntegration';
 import { useCodingPlanProducts, useStartPlanPreview } from './PaymentDeep';
 import { CommandEmpty, CommandList } from './QuickPick';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
 import { logger } from './SkillStore';
 import { isStartPlanProviderId } from './SrcSharedA';
-import { useBaseServices, useServices } from './services';
+import { useBaseServices, useServices, useServicesOptional as useOptionalServices } from './services'; // A0-CLEANUP3 #44：ps useOptionalServices 属主为 services.useServicesOptional
+import { useSettingsStoreValue } from './stores-core'; // A0-CLEANUP3 #44：Ao useSettingsStoreValue 属主为 stores-core（具名导出）
 import { cn } from './UtilsCn'; // 类名合并（原 Z）
 import { useZCodeIntl as useIntlContext } from './I18n'; // intl 上下文（原 G()）
 import { Button } from './button'; // Button（原 X，button-laUijeDG.js）
-import { InfoTooltip as Tooltip, formatNumberCompact as formatCompactNumber } from './UsageStatsUiParts'; // Tooltip（原 Ia = usageStatsUiParts u）；formatCompactNumber（原 ja = usageStatsUiParts l；A0-D-Misc 裁决：真实签名 (locale, value)，调用面已按 bundle NYt/PXt 翻正）
+import { InfoTooltip as Tooltip, formatNumberCompact as formatCompactNumber, type UsageHeatmapWeekInput } from './UsageStatsUiParts'; // Tooltip（原 Ia = usageStatsUiParts u）；formatCompactNumber（原 ja = usageStatsUiParts l；A0-D-Misc 裁决：真实签名 (locale, value)，调用面已按 bundle NYt/PXt 翻正）；A0-CLEANUP3 3b：heatmap 具型
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
@@ -377,10 +378,7 @@ interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
 
-declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M（imeComposition w）
-declare const InfoIcon: React.FC<React.SVGProps<SVGSVGElement>>; // p（imeComposition T=Ht `info`）
-
-declare const usePlatformService: () => { openExternal(url: string): void }; // l（imeComposition M）
+/* A0-CLEANUP3 #38：SpinnerIcon（w）/InfoIcon（T=Ht）/usePlatformService（l=M）已由 ImeComposition 属主导出，原 declare 移除 */
 
 /* --- Popover 原语（imeComposition：n=T 根 / a=h 触发 / i=x 内容）——A0-D-Misc：PopoverRoot 已接线 ImeComposition.Popover --- */
 
@@ -564,15 +562,7 @@ declare const CodingPlanPurchaseDialog: React.FC<{
   onPurchaseComplete?: () => void;
   [key: string]: unknown;
 }>; // zet（84412）
-declare function useSettingsStoreValue<T>(selector: (state: SettingsStoreState) => T, fallback: T): T; // Ao（1301）
-interface SettingsStoreState {
-  theme: string;
-  codePreviewSettings: unknown;
-  [key: string]: unknown;
-}
-declare function useOptionalServices():
-  | ({ codingPlanSubscriptionService?: CodingPlanSubscriptionService } & Record<string, unknown>)
-  | null; // ps（2643）
+/* A0-CLEANUP3 #44：Ao useSettingsStoreValue 属主为 stores-core（具名导出），ps useOptionalServices 属主为 services.useServicesOptional，declare 移除 */
 
 /* --- 服务接口（宿主侧实现，经服务解析注入） --- */
 interface UsageStatsService {
@@ -639,7 +629,7 @@ export interface ModelProvider {
   models: ModelMetadata[];
   headers?: Record<string, string>;
   enabled?: boolean;
-  systemDisabledReason?: string;
+  systemDisabledReason?: string | null; // A0-CLEANUP3 3b：与 SettingsPanels 本地 ModelProvider 互指
   createdAt?: number;
   updatedAt?: number;
   [key: string]: unknown;
@@ -663,7 +653,7 @@ export interface AppUsageSnapshot {
     currentStreakDays: number;
     favoriteModel?: { modelId: string; share: number } | null;
   };
-  heatmap: { weeks: unknown[] };
+  heatmap: { weeks: UsageHeatmapWeekInput[] }; // A0-CLEANUP3 3b：对齐 UsageHeatmap 消费面
   [key: string]: unknown;
 }
 export interface CodingPlanUsageSnapshot {
@@ -792,7 +782,7 @@ export function useAppUsageStats(range: string): {
   error: string | null;
   refresh: () => void;
 } {
-  const { usageStatsService } = useServices() as { usageStatsService: UsageStatsService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
+  const { usageStatsService } = useServices() as unknown as { usageStatsService: UsageStatsService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown；A0-CLEANUP3 3b：交集型不再直接可比，二段断言
   const [state, setState] = React.useState<{ snapshot: AppUsageSnapshot | null; loading: boolean; error: string | null }>({
     snapshot: null,
     loading: false,
@@ -826,7 +816,7 @@ export function useCodingPlanUsageStats(
   range: string,
   opts: { enabled?: boolean; preferredProviderId?: string; organizationId?: string; projectId?: string }
 ): { snapshot: CodingPlanUsageSnapshot | null; loading: boolean; error: string | null; refresh: () => void } {
-  const { usageStatsService } = useServices() as { usageStatsService: UsageStatsService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
+  const { usageStatsService } = useServices() as unknown as { usageStatsService: UsageStatsService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown；A0-CLEANUP3 3b：交集型不再直接可比，二段断言
   const [state, setState] = React.useState<{ snapshot: CodingPlanUsageSnapshot | null; loading: boolean; error: string | null }>({
     snapshot: null,
     loading: false,
@@ -1635,7 +1625,7 @@ function useBillingDiscountCore(service: CodingPlanSubscriptionService | undefin
 
 /** 原 dj（js 51862）：折扣配置 hook（服务取自 useOptionalServices） */
 export function useBillingDiscount(): { active: boolean; config: BillingDiscountConfig | undefined; loading: boolean; refresh: () => Promise<void> } {
-  return useBillingDiscountCore(useOptionalServices()?.codingPlanSubscriptionService);
+  return useBillingDiscountCore(useOptionalServices()?.codingPlanSubscriptionService as unknown as CodingPlanSubscriptionService | undefined); // A0-CLEANUP3 3b：宽 Record 面与本地 CodingPlanSubscriptionService 不重叠，双重收敛
 }
 
 /** 原 hj（js 51911）：折扣徽章（gradient 缺省 / surface / tag；compact 尺寸） */
@@ -2337,7 +2327,7 @@ export function useIntranetProbe(
   error: Error | null;
   probeNow: () => Promise<{ isIntranet: boolean } | null>;
 } {
-  const { systemService } = useServices() as { systemService: SystemService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
+  const { systemService } = useServices() as unknown as { systemService: SystemService }; // A0-CLEANUP3 3b：BaseServices 收敛后与本地 SystemService 面不重叠，边界双断言
   const [result, setResult] = React.useState<{ isIntranet: boolean } | null>(null);
   const [probing, setProbing] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
@@ -3369,7 +3359,7 @@ export function ProviderModelsSection(props: {
 }): React.ReactElement {
   const { models, apiKeyValue, currentApiFormat, apiFormatOptions, onModelCommit, onDeleteModel, onAddModel, readOnly } = props;
   const { intl } = useIntlContext();
-  const { modelProviderService } = useServices() as { modelProviderService: ModelProviderService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
+  const { modelProviderService } = useServices() as unknown as { modelProviderService: ModelProviderService }; // A0-CLEANUP3 3b：modelProviderService 已具型（facet），本地 ModelProviderService 与之不重叠，双重收敛
   const preferredKind = currentApiFormat ? kindOfApiFormat(currentApiFormat) : null;
   const allowedKinds = apiFormatOptions?.map(kindOfApiFormat);
   const preferredDefaultKind = preferredKind ?? `openai-compatible`;
@@ -4140,7 +4130,7 @@ export function AddCustomProviderDraftForm(props: {
 }): React.ReactElement {
   const { draft: externalDraft, onDraftChange, onCreateProvider } = props;
   const { intl } = useIntlContext();
-  const { modelProviderService } = useServices() as { modelProviderService: ModelProviderService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
+  const { modelProviderService } = useServices() as unknown as { modelProviderService: ModelProviderService }; // A0-CLEANUP3 3b：modelProviderService 已具型（facet），本地 ModelProviderService 与之不重叠，双重收敛
   const [localDraft, setLocalDraft] = React.useState<AddProviderDraft>(newAddProviderDraft);
   const [catalog, setCatalog] = React.useState<CatalogProvider[]>([]);
   const [catalogLoading, setCatalogLoading] = React.useState(false);

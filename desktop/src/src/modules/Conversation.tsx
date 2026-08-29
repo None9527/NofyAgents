@@ -108,6 +108,8 @@ import { MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from '
 import { Badge } from './PaymentDeep';
 import { logger } from './SkillStore';
 import { ConversationSummaryAside, buildSummaryPanelModel, resolveSummaryPanelVariant, type BackgroundWork, type GitSummary, type RunningSubagent, type SummaryGoal, type SummaryPanelVariant } from './TopBar'; // A0-CLEANUP2 items 17+46：本地镜像删除 → 属主导出（GitSummary.branchName 属主侧已 string | null）
+import { type SubagentOpenRequest } from './SidePanel'; // A0-CLEANUP3 #36：编排器回调型收口
+import { type PrimaryDraftDropTargetController } from './WorkspaceShell'; // A0-CLEANUP3 #36：草稿投放控制器型（type-only，无运行时环）
 import { BillingDiscountBadge, type BillingDiscountConfig } from './UsageDeep'; // +BillingDiscountConfig（A0-D 类型收敛）
 import { InfoTooltip as Tooltip, useControllableState } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u 导出 = X InfoTooltip）+ 原 fa（A0-CLEANUP2 item 47 接线）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
@@ -7835,7 +7837,7 @@ function ConversationOrchestrator({
   onSessionCreated?: (sessionId: string, groupedDraftTask?: unknown) => void;
   onSessionDeleted?: (sessionId: string) => void;
   draftComposerHeader?: React.ReactNode;
-  onPrimaryDraftDropTargetControllerChange?: (controller: unknown) => void;
+  onPrimaryDraftDropTargetControllerChange?: (controller: PrimaryDraftDropTargetController | null) => void;
   gitSummary?: GitSummary | null;
   gitDirtyFileCount?: number | null;
   gitWorktreeReviewSourceId?: string | null;
@@ -7850,16 +7852,16 @@ function ConversationOrchestrator({
   onOpenAutomationsMain?: () => void;
   onOpenCodeViewer?: OpenCodeViewerFn;
   onOpenFileLink?: (path: string) => void;
-  onOpenSubagentSession?: (session: unknown) => void;
-  onOpenSubagentDirectory?: () => void;
-  onSyncSubagentSessionTabs?: (tabs: unknown) => void;
-  onOpenSelectionSideChat?: (reference: unknown) => void;
-  onOpenPlanDetail?: (plan?: unknown) => void;
+  onOpenSubagentSession?: (session: SubagentOpenRequest) => void;
+  onOpenSubagentDirectory?: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; rootSessionId?: string; parentSessionId: string }) => void;
+  onSyncSubagentSessionTabs?: (req: { rootSessionId: string; parentSessionId: string; validChildSessionIds: string[] }) => void;
+  onOpenSelectionSideChat?: (reference: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; parentSessionId: string; childSessionId: string; replacesChildSessionId?: string }) => void;
+  onOpenPlanDetail?: (plan: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; parentSessionId: string; toolCallId: string; markdown?: string; planFilePath?: string }) => void;
   conversationFindQuery?: string;
   conversationFindActiveIndex?: number;
   onConversationFindMatchStateChange?: (state: { matchCount: number; activeIndex: number }) => void;
-  searchResultHighlightRequest?: { requestId: string; query: string; snippet?: string; snippetIndex?: number } | null;
-  onSearchResultHighlightDone?: (requestId: string) => void;
+  searchResultHighlightRequest?: { taskId?: string; workspacePath?: string; workspaceIdentity?: string | null; requestId?: number; query?: string; snippet?: string; snippetIndex?: number; [key: string]: unknown } | null;
+  onSearchResultHighlightDone?: (requestId: number) => void;
 }) {
   const shellWorkspaceKey = workspaceIdentity?.trim() || workspacePath;
   const rootLayout = useSplitLayoutStore((state) => state.root);

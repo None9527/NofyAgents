@@ -156,7 +156,8 @@ import { ConversationPane, useSessionSnapshot } from './Conversation';
 import { DeveloperToolsView, ModelTrajectoryView, RepoWikiView, TreemappingView, WhiteboardCanvas } from './ExtendedViews';
 import { GitChangesPanel } from './GitReview';
 import { Popover, PopoverContent, PopoverTrigger } from './ImeComposition';
-import { MarkdownRenderer } from './MarkdownIntegration';
+import { DEFAULT_CODE_PREVIEW_SETTINGS, MarkdownRenderer, type CodePreviewSettings } from './MarkdownIntegration';
+import { useSettingsStoreValue as useSettingsSelector } from './stores-core'; // A0-CLEANUP3 #49：原 Ao，canonical = stores-core useSettingsStoreValue（styles js 1301）
 import { resolveFileDisplayInfo } from './ModalsLeaves';
 import { logger, useWhiteboardStore } from './SkillStore';
 import { TerminalPanel } from './TerminalPane';
@@ -191,7 +192,7 @@ declare function isAltShortcut(event: React.KeyboardEvent | KeyboardEvent, key: 
 declare function uid(): string;
 
 /** 桌面平台服务（原 l()，imeComposition chunk M 导出）——侧面板用到的 IPC 面 */
-interface PlatformService {
+export interface PlatformService {
   onOpenBrowserUrl?(cb: (e: { url: string; disposition?: string }) => void): () => void;
   onBrowserViewReady?(cb: (e: BrowserUseTabDescriptor) => void): () => void;
   onBrowserViewOperation?(cb: (e: BrowserUseOperationEvent) => void): () => void;
@@ -250,11 +251,9 @@ interface SessionSnapshot {
 
 /** 会话快照钩子（原 k0(handle)） */
 
-/** 设置 store 选择器（原 Ao(selector, fallback)） */
-interface CodePreviewSettings {
-  [key: string]: unknown;
-}
-declare function useSettingsSelector<T>(selector: (s: { theme: string; codePreviewSettings: CodePreviewSettings }) => T, fallback: T): T;
+/* ── tombstone（A0-CLEANUP3 #49）：原 Ao useSettingsSelector declare + 本地
+ *    CodePreviewSettings（[key] 占位）删除 → useSettingsStoreValue（stores-core，
+ *    alias）+ CodePreviewSettings/DEFAULT_CODE_PREVIEW_SETTINGS（MarkdownIntegration canonical）。 ── */
 
 /** 计划 markdown 提取（原 qZ(u1(row).toolCall, workspacePath).markdown） */
 declare function extractPlanMarkdown(toolCall: unknown, workspacePath: string): { markdown: string };
@@ -453,7 +452,7 @@ declare const Panel: React.FC<
   React.ComponentPropsWithoutRef<"div"> & {
     id: string;
     panelRef?: React.Ref<unknown>;
-    elementRef?: React.RefObject<HTMLDivElement | null>;
+    elementRef?: React.RefObject<HTMLElement | null>;
     defaultSize?: string;
     minSize?: string;
     maxSize?: string;
@@ -710,7 +709,7 @@ export interface RecentClosedSidePaneTab {
   closedAt: number;
 }
 
-interface BrowserUseTabDescriptor {
+export interface BrowserUseTabDescriptor {
   workspaceKey: string;
   remoteSessionId?: string | null;
   sessionId: string;
@@ -720,7 +719,7 @@ interface BrowserUseTabDescriptor {
   title?: string | null;
   activate?: boolean;
 }
-interface BrowserUseOperationEvent {
+export interface BrowserUseOperationEvent {
   workspaceKey: string;
   remoteSessionId?: string | null;
   sessionId: string;
@@ -729,7 +728,7 @@ interface BrowserUseOperationEvent {
   browserGeneration?: number;
   resetsResizeBaseline?: boolean;
 }
-interface BrowserUseVisibilityEvent {
+export interface BrowserUseVisibilityEvent {
   visible: boolean;
   workspaceKey: string;
   remoteSessionId?: string | null;
@@ -738,7 +737,7 @@ interface BrowserUseVisibilityEvent {
   browserGeneration: number;
   tabId?: string;
 }
-interface BrowserResidencyEvent {
+export interface BrowserResidencyEvent {
   tabId: string;
   workspaceKey?: string;
   remoteSessionId?: string | null;
@@ -748,7 +747,7 @@ interface BrowserResidencyEvent {
   browserId?: string;
   browserGeneration?: number;
 }
-interface ScreenshotSurfaceRequest {
+export interface ScreenshotSurfaceRequest {
   requestId: string;
   workspaceKey: string;
   sessionId: string;
@@ -762,7 +761,7 @@ interface BrowserPageMetadata {
   faviconUrl?: string | null;
   [key: string]: unknown;
 }
-interface BrowserNavigationRequest {
+export interface BrowserNavigationRequest {
   id: string;
   targetTabId: string;
   url: string;
@@ -1299,7 +1298,7 @@ export function activateTab(state: SidePaneState | null, tabId: string): SidePan
 }
 
 /** 原 aoe：浏览器元数据补丁（标题/favicon，仅 browser/browser-use） */
-interface BrowserMetadataPatch {
+export interface BrowserMetadataPatch {
   title?: string | null;
   faviconUrl?: string | null;
 }
@@ -3422,7 +3421,7 @@ const PlanDetailBody = React.memo(function PlanDetailBody({
   const [handle, setHandle] = React.useState<SessionHandle | null>(null);
   const [fallbackMarkdown, setFallbackMarkdown] = React.useState(tab.markdown);
   const theme = useSettingsSelector((s) => s.theme, "system");
-  const codePreviewSettings = useSettingsSelector((s) => s.codePreviewSettings, {} as CodePreviewSettings);
+  const codePreviewSettings = useSettingsSelector((s) => s.codePreviewSettings, DEFAULT_CODE_PREVIEW_SETTINGS); /* 原 bundle 回退即 lo 默认值 */
 
   React.useEffect(() => {
     const acquired = layer.acquire(tab.parentSessionId);
@@ -3641,7 +3640,7 @@ function measureVisibleInlineSize(element: HTMLElement | null): number | null {
 }
 
 /** 原 yqt：面板可见内宽（resize/scroll/ResizeObserver 合流，rAF 防抖） */
-export function usePanelVisibleInlineSize(elementRef: React.RefObject<HTMLDivElement | null>, visible: boolean): number | null {
+export function usePanelVisibleInlineSize(elementRef: React.RefObject<HTMLElement | null>, visible: boolean): number | null {
   const [size, setSize] = React.useState<number | null>(null);
   React.useEffect(() => {
     if (!visible || typeof window > "u") {
@@ -3767,14 +3766,14 @@ export interface SidePanelProps {
   gitState: GitState;
   activeGitSourceId: string;
   panelRef?: React.Ref<unknown>;
-  panelElementRef: React.RefObject<HTMLDivElement | null>;
+  panelElementRef: React.RefObject<HTMLElement | null>;
   browserNavigationRequest: BrowserNavigationRequest | null;
   browserRestoreUrls: Record<string, string>;
   fileChangeFindActiveIndex: number;
   fileChangeFindNavigationRequestId: number;
   fileChangeFindQuery: string;
   onFileChangeFindMatchCountChange: (count: number) => void;
-  onCloseCodeViewer: () => void;
+  onCloseCodeViewer: (tabId: string) => void;
   onCloseGit: () => void;
   onActivateTab: (tabId: string) => void;
   onReorderTab: (tabId: string, targetId: string) => void;

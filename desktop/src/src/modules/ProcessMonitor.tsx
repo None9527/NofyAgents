@@ -60,17 +60,13 @@ import * as ReactDOMClient from 'react-dom/client'; // 原 i（imeComposition �
  * 0. 外部依赖接口（跨 chunk，declare 挂接）
  * ==========================================================================*/
 
-/** 原 t（styles 的 J 导出 = Tie，styles js 1062）：监听 storage 事件中
- *  `zcode-ui-font-size-px` 的变化并写 `--ui-font-size`；返回卸载函数。 */
-declare function watchUiFontSizeStorageChanges(): () => void;
-
-/** 原 n（styles 的 K 导出 = mo，styles js 1058）：把字号 clamp 12–20 后写
- *  `document.documentElement.style` 的 `--ui-font-size`。 */
-declare function applyUiFontSizeCssVariable(fontSizePx: number): void;
-
-/** 原 r（styles 的 q 导出 = po，styles js 1053）：读 `zcode-ui-font-size-px`
- *  （缺省 14，clamp 12–20）。 */
-declare function readStoredUiFontSizePx(): number;
+/* A0-CLEANUP3 #43：字号三件属主为 stores-core（SettingsStore 域 §1）——
+ * Tie=watchUiFontSizeStorageChanges / mo=applyUiFontSizePx / po=loadUiFontSizePx，declare 改实接线 */
+import {
+  applyUiFontSizePx as applyUiFontSizeCssVariable,
+  loadUiFontSizePx as readStoredUiFontSizePx,
+  watchUiFontSizeStorageChanges,
+} from './stores-core';
 
 
 

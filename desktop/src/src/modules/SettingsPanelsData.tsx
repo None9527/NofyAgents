@@ -80,7 +80,7 @@ import { MIGRATION_DEFAULT_LIMIT, modifiedSinceOfRange, parseScanLimit, resolveW
 import { Badge } from './PaymentDeep';
 import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsList, TabsTrigger } from './Settings';
 import { USAGE_REPORT_RANGES as APP_USAGE_RANGES } from './SrcSharedA'; // ai=ms（A0-CLEANUP B-9：APP_USAGE_RANGES declare 改指 USAGE_REPORT_RANGES）
-import { findQuotaLimit, formatQuotaResetTime, formatQuotaUsage, providerCacheKey, quotaPercent, useAppUsageStats, useCodingPlanUsageStats, useSubscriptionSnapshot } from './UsageDeep';
+import { findQuotaLimit, formatQuotaResetTime, formatQuotaUsage, providerCacheKey, quotaPercent, useAppUsageStats, useCodingPlanUsageStats, useSubscriptionSnapshot, type EntitlementQuotaLimit, type ModelProvider } from './UsageDeep'; // A0-CLEANUP3 3b：quota/provider 具型
 import { UsageHeatmap, formatPercent } from './UsageStatsUiParts';
 import { cn } from './UtilsCn';
 import { useZCodeIntl as useIntlContext } from './I18n';
@@ -144,7 +144,7 @@ export interface AppUsageSnapshot {
 export interface CodingPlanUsageSnapshot {
   range: string;
   generatedAt: number;
-  quota?: { limits?: unknown[] };
+  quota?: { limits?: EntitlementQuotaLimit[] }; // A0-CLEANUP3 3b：对齐 findQuotaLimit 形参
   sourceProvider: { id: string; name: string };
   modelUsage: {
     totalTokensUsage: number;
@@ -162,11 +162,7 @@ export interface CodingPlanUsageSnapshot {
   [key: string]: unknown;
 }
 
-interface ModelProvider {
-  id: string;
-  name: string;
-  [key: string]: unknown;
-}
+/* A0-CLEANUP3 3b：tombstone —— 本地 ModelProvider 删除，改用 UsageDeep.ModelProvider（props 面直消费） */
 declare const PROVIDER_IDS: { zaiCodingPlan: string; bigmodelCodingPlan: string }; // q（skillStore chunk）
 
 /* --- 展示原语（接口级） --- */
@@ -412,10 +408,11 @@ export function resolveUsageSourceProviderName(opts: {
     : opts.snapshot?.sourceProvider.name ?? opts.source?.label ?? opts.fallbackProviderName;
 }
 
+/** A0-CLEANUP3 3b：label 收紧为必有（与 Settings 本地 CodingPlanSource 双向对齐；消费端均以 ?. 读取） */
 export interface CodingPlanSource {
   id: string;
   providerId: string;
-  label?: string;
+  label: string;
   organizationId?: string;
   projectId?: string;
   [key: string]: unknown;
@@ -439,7 +436,7 @@ export function CodingPlanRangeTabs(props: { range: string; onRangeChange: (rang
 }
 
 /** 原 c1t（jsx 157378）：配额卡（5 小时/周/月 MCP；缺失则整节隐藏） */
-export function CodingPlanQuotaCards(props: { quota?: { limits?: unknown[] }; providerName?: string }) {
+export function CodingPlanQuotaCards(props: { quota?: { limits?: EntitlementQuotaLimit[] }; providerName?: string }) { // A0-CLEANUP3 3b：对齐 findQuotaLimit 形参
   const { quota, providerName } = props;
   const { intl, locale } = useIntlContext();
   const limits = quota?.limits ?? [];

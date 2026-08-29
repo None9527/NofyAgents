@@ -47,6 +47,10 @@ import { create as createStore } from './SkillStore'; // 原 Ae（skillStore chu
 import { readLocalStorageItem as readLocalStorage, writeLocalStorageItem as writeLocalStorage } from './intlProvider'; // 原 He/We
 import type { ThemeMode } from './Settings'; // A0-CLEANUP B-22：theme 收敛到 ThemeMode（type-only，无运行时环）
 import type { UserInfo } from './OnboardingLoginLeaves';
+// A0-CLEANUP3 3b：BaseServices 服务面收敛——各属主真实类型（type-only，无运行时环）
+import type { AutomationsAgentService, OffPeakTaskService, ZCodeTaskService } from './stores-tasks';
+import type { CommandsService, McpSyncService, PluginService, SkillsService, SubagentsService } from './stores-workspace';
+import type { MemoryService, SettingService, SystemService } from './Settings';
 
 /* ============================================================================
  * 0. zustand 接口（原 `Ae` = skillStore chunk 导出的 create；`ne` = 选择器钩子）
@@ -61,8 +65,9 @@ interface StoreApi<T> {
   subscribe: (listener: (state: T, prevState: T) => void) => () => void;
 }
 
-/** zustand 绑定钩子：`useStore(selector)` + 静态 getState/setState/subscribe */
-export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
+/** zustand 绑定钩子：`useStore(selector)` + 静态 getState/setState/subscribe；
+ *  无参调用返回全量 state（zustand 语义，hooksStore() 等消费面依赖） */
+export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R) & (() => T);
 
 /** localStorage 读/写（原 He/We；失败静默）— 已接线 intlProvider readLocalStorageItem/writeLocalStorageItem */
 
@@ -209,15 +214,26 @@ function clampUiFontSizePx(px: number | undefined): number {
 }
 
 /** 原 mo：写 CSS 变量 --ui-font-size */
-function applyUiFontSizePx(px: number): void {
+export function applyUiFontSizePx(px: number): void {
   const target = document.documentElement.style;
   target?.setProperty?.("--ui-font-size", `${clampUiFontSizePx(px)}px`);
 }
 
-function loadUiFontSizePx(): number {
+export function loadUiFontSizePx(): number {
   const raw = readLocalStorage(UI_FONT_SIZE_STORAGE_KEY);
   const parsed = raw === null ? NaN : Number(raw);
   return clampUiFontSizePx(Number.isFinite(parsed) ? parsed : undefined);
+}
+
+/** 原 Tie：监听 storage 事件 zcode-ui-font-size-px → 写 --ui-font-size；返回卸载函数 */
+export function watchUiFontSizeStorageChanges(): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== UI_FONT_SIZE_STORAGE_KEY) return;
+    const parsed = event.newValue === null ? NaN : Number(event.newValue);
+    applyUiFontSizePx(Number.isFinite(parsed) ? parsed : 14);
+  };
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
 }
 
 function loadCodePreviewSettings(): CodePreviewSettings {
@@ -440,6 +456,12 @@ export function useSettingsStore<R>(selector: (state: SettingsState) => R): R {
   return store(selector);
 }
 
+/** 原 Ao：带缺省值的设置 store 选择器（SettingsStoreProvider 外返回 fallback） */
+export function useSettingsStoreValue<R>(selector: (state: SettingsState) => R, fallback: R): R {
+  const store = React.useContext(SettingsStoreContext);
+  return store ? store(selector) : fallback;
+}
+
 /* ============================================================================
  * 2. SessionRegistryStore（原 Zs，js 4309–4352 / jsx 3184）
  * ----------------------------------------------------------------------------
@@ -459,14 +481,105 @@ export function useSettingsStore<R>(selector: (state: SettingsState) => R): R {
  * ==========================================================================*/
 
 export interface BaseServices {
-  zcodeAgentService?: unknown;
-  zcodeTaskService?: unknown;
-  zcodeSessionService?: unknown;
-  mcpSyncService?: unknown;
+  /** 宿主 agent 服务；automations 面为其子面（ExtendedViews initializeAutomations 消费），其余成员经索引签名兜底 */
+  zcodeAgentService?: AutomationsAgentService;
+  zcodeTaskService?: ZCodeTaskService;
+  zcodeSessionService?: { closeSession(args: unknown): Promise<any>; [method: string]: unknown };
+  /** A0-CLEANUP3 3b：按消费面（Modals McpSyncDialog 本地面）补足同步方法 */
+  mcpSyncService?: McpSyncService & {
+    listLocalUserMcpCandidates(): Promise<any>;
+    exportMcpServers(args: unknown): Promise<any>;
+    listRemoteUserMcpStatuses(args: unknown): Promise<any>;
+    checkRemoteUserMcpWriteAccess(): Promise<any>;
+    importMcpServers(payload: unknown): Promise<any>;
+  };
   fileWatcherService?: unknown;
   localModelProviderService?: unknown;
+  /* A0-CLEANUP3 3b：属主已重建的服务面（field → owner 见 A0-CLEANUP3.report.md） */
+  skillsService?: SkillsService;
+  commandsService?: CommandsService;
+  pluginService?: PluginService;
+  pluginManagementService?: PluginService;
+  subagentsService?: SubagentsService;
+  automationsAgentService?: AutomationsAgentService;
+  offPeakTaskService?: OffPeakTaskService;
+  /** 宿主支付/订阅 IPC 服务（方法面过宽，按可调用索引签名兜底；PaymentDeep/UsageDeep 消费） */
+  codingPlanSubscriptionService?: Record<string, (...args: any[]) => any>;
+  paymentService?: Record<string, (...args: any[]) => any>;
+  settingService?: SettingService;
+  systemService?: SystemService;
+  memoryService?: MemoryService;
+  modelProviderService?: {
+    onDidChangeProviderRegistry(cb: (event: any) => void): { dispose(): void };
+    refreshCodingPlanApiKey(providerId: string): Promise<any>;
+    getAllCached(): Promise<any>;
+    [method: string]: unknown;
+  };
+  repoWikiService?: {
+    onDidChangeRepoWiki(cb: (event: any) => void): { dispose(): void };
+    readSummary(args: unknown): Promise<any>;
+    readPage(args: unknown): Promise<any>;
+    generate(args: unknown): Promise<any>;
+    delete(args: unknown): Promise<any>;
+    cancel(args: unknown): void;
+    [method: string]: unknown;
+  };
+  hooksService?: { loadHooks(args: unknown): Promise<any>; saveHooks(args: unknown): Promise<any>; [method: string]: unknown }; // A0-CLEANUP3 3b：按消费面（StoresDeep.HooksService/SPC 本地面）具型
+  skillSyncService?: {
+    listLocalUserSkillCandidates(): Promise<any>;
+    exportSkillsArchive(args: unknown): Promise<any>;
+    /* A0-CLEANUP3 3b：按消费面（Modals.RemoteSkillSyncService）补足远端同步方法 */
+    listRemoteUserSkillStatuses(args: unknown): Promise<any>;
+    checkRemoteUserSkillWriteAccess(): Promise<any>;
+    importSkillsArchive(args: unknown): Promise<any>;
+    [method: string]: unknown;
+  }; // A0-CLEANUP3 3b：按消费面（Modals 同步对话框）具型
+  pluginSyncService?: {
+    listLocalUserPluginCandidates(): Promise<any>;
+    exportPluginsArchive(args: unknown): Promise<any>;
+    exportMarketplaceSourceArchive(args: unknown): Promise<any>;
+    /* A0-CLEANUP3 3b：按消费面（Modals.RemotePluginSyncService）补足远端同步方法 */
+    listRemoteUserPluginStatuses(args: unknown): Promise<any>;
+    checkRemoteUserPluginWriteAccess(): Promise<any>;
+    importPluginsArchive(args: unknown): Promise<any>;
+    importMarketplaceSourceArchive(args: unknown): Promise<any>;
+    [method: string]: unknown;
+  };
+  credentialService?: { load(key: string): Promise<any>; [method: string]: unknown };
+  oauthService?: { logout(providerId: string): Promise<any>; [method: string]: unknown };
+  settingsSyncService?: { detect(args: unknown): Promise<any>; importSelected(args: unknown): Promise<any>; [method: string]: unknown };
   [serviceName: string]: unknown;
 }
+
+/** A0-CLEANUP3 3b：运行期恒有值的热服务面（启动注册 + 断开 Proxy 兜底）；
+ * useServices/useBaseServices 等「必有上下文」钩子的收窄返回型，消除消费端 undefined 守卫。 */
+export type ResolvedBaseServices = BaseServices &
+  Pick<
+    Required<BaseServices>,
+    | "settingService"
+    | "systemService"
+    | "memoryService"
+    | "mcpSyncService"
+    | "zcodeTaskService"
+    | "zcodeSessionService"
+    | "skillsService"
+    | "commandsService"
+    | "pluginService"
+    | "pluginManagementService"
+    | "subagentsService"
+    | "repoWikiService"
+    | "zcodeAgentService"
+    | "automationsAgentService"
+    | "offPeakTaskService"
+    | "modelProviderService"
+    | "credentialService"
+    | "oauthService"
+    | "settingsSyncService"
+    | "hooksService"
+    | "skillSyncService"
+    | "pluginSyncService"
+    | "codingPlanSubscriptionService"
+  >;
 
 export interface RegisteredSession {
   sessionId: string;

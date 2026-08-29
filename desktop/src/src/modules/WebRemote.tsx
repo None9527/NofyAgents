@@ -245,7 +245,7 @@ function scopedTestId(base: string, id: string): string {
 const TESTID_TASK_ITEM = "task-item"; // 原 An ← Mi ← X_
 
 /* ---- 它批已还原的远控助手（SidebarLeaves.tsx / Sidebar.tsx） ---- */
-interface TaskMeta {
+export interface TaskMeta {
   taskId: string;
   title?: string | null;
   createdAt: number;
@@ -268,7 +268,7 @@ interface WebRemoteWorkspaceInfo {
   remoteSessionId?: string | null;
   lastConnectionError?: string | null;
 }
-interface MobileHomeResult {
+export interface MobileHomeResult {
   workspaces: WebRemoteWorkspaceInfo[];
   tasks: TaskMeta[];
   activeWorkspaceKey?: string | null;
@@ -313,7 +313,7 @@ declare function groupTasksByTimelineBucket(
 declare function toErrorMessage(e: unknown): string;
 
 /** 手机端远控 switcher 服务面（BPt/aPt 共用 props.switcher） */
-interface WebRemoteSwitcherService {
+export interface WebRemoteSwitcherService {
   listWorkspaces(): Promise<MobileHomeResult>;
   onWorkspaceListUpdated?(cb: (result: MobileHomeResult) => void): () => void;
   reconnectWorkspace?(workspaceKey: string): Promise<unknown>;

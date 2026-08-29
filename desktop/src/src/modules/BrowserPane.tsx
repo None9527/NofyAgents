@@ -3091,7 +3091,7 @@ export function BrowserUseView({
   return (
     <TabsContent
       value={tab.id}
-      {...({ forceMount: true } as unknown as Partial<React.ComponentProps<typeof TabsContent>>)} /* A0-D-Misc：bundle TabsContent 为 radix 原语带 forceMount，Settings.TabsContent 缺，已登记需要的 export */
+      forceMount /* A0-CLEANUP3 #37：Settings.TabsContent 已补 forceMount（radix 语义） */
       aria-hidden={!isSelected}
       inert={isSelected ? void 0 : true}
       data-browser-use-tab-id={tab.tabId}

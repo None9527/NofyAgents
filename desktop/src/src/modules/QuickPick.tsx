@@ -341,7 +341,7 @@ declare namespace CommandPrimitive {
       vimBindings?: boolean;
     }
   >;
-  const List: React.FC<React.ComponentPropsWithoutRef<"div"> & { label?: string }>;
+  const List: React.FC<React.ComponentPropsWithRef<"div"> & { label?: string }>;
   const Item: React.FC<
     React.ComponentPropsWithoutRef<"div"> & {
       value?: string;
@@ -1759,7 +1759,7 @@ export function useGlobalTaskList(args: UseGlobalTaskListArgs): UseGlobalTaskLis
   );
   const workspaceScopes = React.useMemo(() => normalizeWorkspaceScopes(args.workspaceTabs), [args.workspaceTabs]);
   const { shards, missingSessionIds } = React.useMemo(
-    () => resolveTaskListShards(args.workspaceTabs, baseServices as TaskListShardServices, registry),
+    () => resolveTaskListShards(args.workspaceTabs, baseServices as unknown as TaskListShardServices, registry), // A0-CLEANUP3 3b：BaseServices 收敛后与本地 TaskListShardServices 不重叠，边界双断言
     [baseServices, args.workspaceTabs, registry],
   );
   const isBrowseMode = args.searchQuery.trim() === "";
@@ -2149,7 +2149,7 @@ export const QuickPick = React.memo(function QuickPick({
   onSearchResultHighlightRequest,
   onOpenCodeViewer,
 }: QuickPickProps) {
-  const { fileService } = useServices() as { fileService: FileService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown，按本族 FileService 投射
+  const { fileService } = useServices() as unknown as { fileService: FileService }; // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown，按本族 FileService 投射；A0-CLEANUP3 3b：交集型不再直接可比，二段断言
   const { intl } = useIntlContext();
   const workspaceKeyLocal = workspaceIdentity?.trim() || workspaceAbsPath;
   const [rawQuery, setRawQuery] = React.useState("");

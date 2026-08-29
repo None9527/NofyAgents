@@ -52,7 +52,7 @@ interface StoreApi<T> {
   setState: (partial: Partial<T> | ((state: T) => Partial<T>)) => void;
   subscribe: (listener: (state: T, prevState: T) => void) => () => void;
 }
-export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
+export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R) & (() => T); // 无参调用返回全量 state（zustand 语义）
 
 /** 任务实体键（原 Lo：`${workspaceKey}::${taskId}`） */
 /** 侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明） */

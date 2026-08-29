@@ -88,7 +88,7 @@ import * as React from "react";
  *    vendored X09 DiffViewer（$Re），按重建基准恢复 declare 挂接。 ── */
 import { resolveAvailableEditors, useFileContextActions } from './FileTreePanel';
 import { Textarea, usePlatform } from './ImeComposition';
-import { relativePathFromWorkspace, useRemoteWorkspaceInfo } from './MarkdownIntegration';
+import { readLastUsedEditorId as getLastEditorId, rememberUsedEditorId as setLastEditorId, relativePathFromWorkspace, useRemoteWorkspaceInfo } from './MarkdownIntegration'; // A0-CLEANUP3 #39：OA/kA 属主为 MarkdownIntegration（原 OA=readLastUsedEditorId / kA=rememberUsedEditorId）
 import { logger } from './SkillStore';
 import { isDarkTheme } from './XlsxDeepC';
 /* ── A0-D-Misc 接线：可用属主（前波成果） ── */
@@ -147,13 +147,10 @@ declare const DiffViewer: React.FC<{
 
 /* FileTreePanel.tsx 已重建件（接口挂接） */
 
-/* MarkdownIntegration.tsx 已重建件（接口挂接） */
-declare function getLastEditorId(): string | null; // 原 OA（50861）
-declare function setLastEditorId(editorId: string): void; // 原 kA（50864）
+/* MarkdownIntegration.tsx 已重建件（接口挂接）——A0-CLEANUP3 #39：getLastEditorId/setLastEditorId（原 OA/kA）已改由 MarkdownIntegration 导入 */
 
-/* GitReview.tsx 已重建件（接口挂接，不重复转录） */
-declare function openFileChangeInViewer(item: unknown, context: unknown): void; // 原 p1（110841）
-declare function toWorkspaceRelativePath(workspacePath: string | undefined, path: string): string; // 原 yg（23765）
+/* GitReview.tsx 已重建件（接口挂接，不重复转录）——A0-CLEANUP3 #41：p1/yg 属主为 GitReview（openFileChangePatchInCodeViewer/resolveRepoRelativePath），declare 改实接线 */
+import { openFileChangePatchInCodeViewer as openFileChangeInViewer, resolveRepoRelativePath as toWorkspaceRelativePath } from './GitReview';
 
 /* 原 VO/HO/UO/WO/YO：DropdownMenu 原语族（X03 双归属，接口挂接） */
 declare const DropdownMenu: React.FC<{ children?: React.ReactNode; onOpenChange?: (open: boolean) => void }>;

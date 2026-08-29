@@ -1471,7 +1471,7 @@ export function TerminalTabChip({
   onClose: (sessionId: string) => void;
 }) {
   return (
-    <TabsTrigger value={session.id} {...({ asChild: true } as unknown as Partial<React.ComponentProps<typeof TabsTrigger>>)} /* A0-D-Misc：bundle TabsTrigger 为 radix 原语带 asChild，Settings.TabsTrigger 缺，已登记需要的 export */>
+    <TabsTrigger value={session.id} asChild /* A0-CLEANUP3 #37：Settings.TabsTrigger 已补 asChild（radix 语义） */>
       <div
         data-active={isActive ? "" : void 0}
         data-state={isActive ? "active" : "inactive"}

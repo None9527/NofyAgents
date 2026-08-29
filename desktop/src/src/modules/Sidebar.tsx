@@ -196,7 +196,7 @@ import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from './Modals';
 import { Badge } from './PaymentDeep';
 import { TabsList, TabsTrigger } from './Settings';
 import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from './SidebarLeaves';
-import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore } from './SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）
+import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from './SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；A0-CLEANUP3 3b：getWorkspaceSlice 形参对齐真 store 面
 import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, type TaskActionMenuItemsProps } from './TopBar';
 import { WebRemoteControlDialog, useWebRemoteControlEnabled } from './WebRemote';
 import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useWorkspaceServices } from './services';
@@ -1243,7 +1243,7 @@ interface TaskGlobalState {
   getWorkspaceState(workspacePath: string, identity?: string | null): WorkspaceSliceState;
 }
 /** 原 fe（skillStore 导出 U）：取工作区 slice */
-declare function getWorkspaceSlice(state: TaskGlobalState, workspacePath: string, workspaceIdentity?: string | null): WorkspaceSliceState;
+declare function getWorkspaceSlice(state: TaskStore, workspacePath: string, workspaceIdentity?: string | null): WorkspaceSliceState; // A0-CLEANUP3 3b：useTaskStore 选择器以真 store 面传入
 /** 原 ko（jsx 351）：设置 store（主题/语言/恢复 OAuth 会话） */
 /** 原 pc（jsx 3601）：工作区标签 store（context 注入） */
 interface WorkspaceTabStore {
@@ -1733,7 +1733,7 @@ export function TaskRow({
           type="button"
           variant={isArchiveConfirming ? "destructive" : "ghost"}
           size={isArchiveConfirming ? "sm" : "icon-sm"}
-          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }}
           onClick={handleArchiveInline}
           data-testid={scopedTestId(TESTID_TASK_ARCHIVE, task.taskId)}
           className={cn("shrink-0", archiveVisibilityClass, isArchiveConfirming ? "border-destructive/20 px-2" : "text-foreground hover:bg-background/90 hover:text-foreground")}
@@ -1757,7 +1757,7 @@ export function TaskRow({
       variant="ghost"
       size="icon-xs"
       disabled={directoryUnavailable}
-      onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }}
       onClick={handleTogglePin}
       className={cn(
         "hidden size-4 min-w-0 rounded-sm p-0 text-foreground-subtle !bg-transparent hover:text-foreground",
@@ -1922,9 +1922,9 @@ export function TaskRowActionButton({
       variant="ghost"
       size="icon-sm"
       disabled={!!disabledReason}
-      onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-      onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-      onClick={(e) => { if (!disabledReason) onClick(e); }}
+      onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }}
+      onPointerDown={(e: React.PointerEvent) => { e.preventDefault(); e.stopPropagation(); }}
+      onClick={(e: React.MouseEvent) => { if (!disabledReason) onClick(e); }}
       aria-label={label}
     >
       {children}
@@ -3300,7 +3300,7 @@ export const WorkspaceSidebarItem = React.memo(function WorkspaceSidebarItem({
                             <pre className="max-h-32 min-w-0 flex-1 overflow-auto text-ui-sm/relaxed whitespace-pre-wrap break-words font-mono text-tooltip-foreground">{remoteError}</pre>
                             <Button type="button" variant="ghost" size="icon-md"
                               className="mt-0.5 size-6 shrink-0 text-tooltip-foreground/80 hover:bg-tooltip-tag hover:text-tooltip-foreground"
-                              onClick={(event) => { event.preventDefault(); event.stopPropagation(); void copyRemoteError(); }}
+                              onClick={(event: React.MouseEvent) => { event.preventDefault(); event.stopPropagation(); void copyRemoteError(); }}
                               title={intl.formatMessage({ id: copiedError ? "chat.toolCall.copyError.copied" : "chat.toolCall.copyError" })}
                               aria-label={intl.formatMessage({ id: copiedError ? "chat.toolCall.copyError.copied" : "chat.toolCall.copyError" })}
                             >
@@ -3407,8 +3407,8 @@ export const WorkspaceSidebarItem = React.memo(function WorkspaceSidebarItem({
         skillWorkspacePath={tab.workspacePath}
         mcpWorkspacePath={tab.workspacePath}
         pluginWorkspacePath={tab.workspacePath}
-        pluginLocalWorkspacePath={tab.localWorkspacePath}
-        mcpLocalWorkspacePath={tab.localWorkspacePath}
+        pluginLocalWorkspacePath={tab.localWorkspacePath ?? undefined} // A0-CLEANUP3 3b：props 面为 string | undefined（null 归一）
+        mcpLocalWorkspacePath={tab.localWorkspacePath ?? undefined}
         workspaceIdentity={tab.workspaceIdentity}
         onSkillsSynced={async () => {
           await refreshAfterSkillSync({ zcodeSessionService: workspaceServices.zcodeSessionService, workspacePath: tab.workspacePath, workspaceIdentity: tab.workspaceIdentity, reason: "sidebar-remote-skill-sync" });
@@ -4993,7 +4993,8 @@ interface SidebarFooterProps {
   onLogout?: () => void;
   settingsButtonMode?: "settings" | "back";
   user?: SidebarUser | null;
-  workspacePath: string;
+  /** A0-CLEANUP3 3b：SettingsView 页脚调用不传路径（对齐源真 declare 面），体内以 "" 兜底 */
+  workspacePath?: string;
   workspaceIdentity?: string | null;
   workspaceRemoteSessionId?: string | null;
   activeTaskId?: string | null;
@@ -5012,7 +5013,7 @@ export const SidebarFooter = React.memo(function SidebarFooter({
   const initial = userInitial(user);
   const avatarKey = user?.avatarUrl ?? user?.id ?? "guest";
   const showRestoringSpinner = !user && isRestoringOAuthSession;
-  const usageState = useSidebarUsageState({ enabled: true, workspaceIdentity, workspacePath });
+  const usageState = useSidebarUsageState({ enabled: true, workspaceIdentity, workspacePath: workspacePath ?? "" }); // A0-CLEANUP3 3b：workspacePath 可省（SettingsView 页脚不传）
 
   // 头像 + 名称 + plan 徽章（菜单触发器内容）
   const profileTriggerContent = (
@@ -5264,7 +5265,7 @@ export function TaskInteractionBadge({ interaction, legacyPending = false, class
       aria-label={stopLabel}
       className={cn("group/interaction-badge cursor-pointer transition-colors hover:bg-secondary hover:text-foreground focus-visible:bg-secondary focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-input-border-focused motion-reduce:transition-none", badgeClass)}
       style={progressStyle}
-      onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }}
       onPointerDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSnooze(); }}

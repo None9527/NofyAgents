@@ -180,7 +180,10 @@ export interface ToolDisplayModel {
   inlinePreview: { type: string; [key: string]: unknown };
   [key: string]: unknown;
 }
-export type OpenCodeViewerFn = (target: unknown) => void;
+/* A0-CLEANUP3 #36：target 收 any（束边界弱形）——值侧 (source: SidePanel.CodeViewerSource) => void
+ * 与调用面字面量 {type:"file";title;path?: undefined}（NodeRepl 结果打开，1857）
+ * 双向兼容；原 unknown 形参致逆变失配（3602/3355/3401）。 */
+export type OpenCodeViewerFn = (target: any) => void;
 
 export interface ToolCallViewProps {
   toolCallNode: ToolCallNode;

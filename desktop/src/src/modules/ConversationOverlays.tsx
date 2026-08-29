@@ -98,8 +98,8 @@
  * ----------------------------------------------------------------------------
  *  - cn (utils)、Button/Input (button/imeComposition)、Tooltip/Popover (usageStatsUiParts)、
  *    useIntlContext (IntlProvider)、logger (logger)、toast (imeComposition _)
- *  - Ao → useSettingsSelector（src-HCld2afU.js）：读取 theme / codePreviewSettings /
- *    notificationEnabled
+ *  - Ao → useSettingsStoreValue（stores-core，styles js 1301）：读取 theme /
+ *    codePreviewSettings / notificationEnabled
  *  - xe → useTaskStore、te/W → 任务作用域选择器（skillStore-BmeKHDBI.js）：
  *    elicitation 表单草稿按 工作区×会话 持久化
  *  - Vte → buildPermissionRequestModel（src-HCld2afU.js 的 l 导出）
@@ -118,6 +118,7 @@ import { type CodePreviewSettings } from './MarkdownIntegration';
 import { Badge } from './PaymentDeep';
 import { logger } from './SkillStore';
 import { buildPermissionRequestViewModel } from './SrcSharedB';
+import { useSettingsStoreValue as useSettingsSelector } from './stores-core'; // A0-CLEANUP3 #49：原 Ao，canonical = stores-core useSettingsStoreValue（styles js 1301）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
 import { Button } from './button'; // 原 H，button-laUijeDG.js（A0-D 接线：declare → button canonical）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
@@ -130,8 +131,9 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
 /* ── tombstone（A0-D）：IntlShape/useIntlContext 脚手架删除 → I18n useZCodeIntl（alias）+ type ZCodeIntl as IntlShape。 ── */
 /* ── tombstone（A0-D）：ButtonProps/Button declare 删除 → import { Button } from './button'（canonical）。 ── */
 
-/** 原 Ao（src-HCld2afU.js）：设置 store 选择器（theme/codePreviewSettings/notificationEnabled） */
-declare function useSettingsSelector<T>(selector: (settings: { theme: string; codePreviewSettings: unknown; notificationEnabled: boolean }) => T, fallback: T): T;
+/* ── tombstone（A0-CLEANUP3 #49）：原 Ao useSettingsSelector declare 删除 →
+ *    import { useSettingsStoreValue as useSettingsSelector } from './stores-core'。
+ *    属主定位：styles-CdEGpc2x.js js 1301（非 src-HCld2afU.js；该 chunk 3367 的 Ao 为无关对象）。 ── */
 
 /** 原 A（imeComposition chunk 的 t 导出）：IME 组词回车守卫 */
 declare function isImeComposing(event: React.KeyboardEvent): boolean;

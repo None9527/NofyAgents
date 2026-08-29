@@ -46,7 +46,7 @@ interface StoreApi<T> {
   setState: (partial: Partial<T> | ((state: T) => Partial<T>)) => void;
   subscribe: (listener: (state: T, prevState: T) => void) => () => void;
 }
-export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
+export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R) & (() => T); // 无参调用返回全量 state（zustand 语义；useHooksStore() 消费面）
 import { loadSkillContext } from './Composer'; // 原 HB（js 63581；A0-CLEANUP2 item 13 接线：declare → Composer 属主导出）
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { buildNewHook, hookLocationForScope, hooksWorkspaceKey, isHookEditable, mergeHookPatch, reloadHooks, saveHooksList } from './StoresDeep';
@@ -92,10 +92,14 @@ export type McpScope = "user" | "workspace";
 export type McpServerStatus = "unknown" | "connecting" | "connected" | "error" | string;
 
 export interface McpServerConfig {
+  type?: string; // A0-CLEANUP3 3b：对齐 SettingsPanels.McpServer.config 消费面
   command?: string;
   args?: string[];
   url?: string;
   env?: Record<string, string>;
+  headers?: Record<string, string>;
+  timeoutMs?: number;
+  oauth?: unknown;
   [key: string]: unknown;
 }
 
@@ -105,7 +109,7 @@ export interface NativeMcpServer {
   name: string;
   config: McpServerConfig;
   enabled: boolean;
-  projectPath?: string;
+  projectPath?: string | null; // A0-CLEANUP3 3b：upsert 以 null 兜底传入（用户级服务器）
   location?: unknown;
 }
 
@@ -119,7 +123,7 @@ export interface DerivedMcpServer {
   projectPath?: string;
   location?: unknown;
   status: McpServerStatus;
-  authorization?: unknown;
+  authorization?: { authorizationUrl?: string } | null; // A0-CLEANUP3 3b：派生逻辑仅置 undefined（405/424/438），按消费面具型
   error?: string;
   toolCount?: number;
   changed?: boolean;
@@ -153,8 +157,8 @@ export interface McpState {
   addMcpServer(name: string, config: McpServerConfig): Promise<void>;
   updateMcpServer(name: string, config: McpServerConfig): Promise<void>;
   deleteMcpServer(name: string): void;
-  addScopedMcpServer(source: McpSource, name: string, config: McpServerConfig, projectPath?: string): Promise<void>;
-  updateScopedMcpServer(source: McpSource, name: string, config: McpServerConfig, projectPath?: string): Promise<void>;
+  addScopedMcpServer(source: McpSource, name: string, config: McpServerConfig, projectPath?: string | null): Promise<void>; // A0-CLEANUP3 3b：Settings 以 null 兜底传入
+  updateScopedMcpServer(source: McpSource, name: string, config: McpServerConfig, projectPath?: string | null): Promise<void>;
   deleteScopedMcpServer(source: McpSource, name: string, projectPath?: string): void;
   addClaudeCliMcpServer(name: string, config: McpServerConfig, projectPath?: string): Promise<void>;
   updateClaudeCliMcpServer(name: string, config: McpServerConfig, projectPath?: string): Promise<void>;
@@ -256,7 +260,7 @@ export const useMcpStore: UseBoundStore<McpState> = createStore<McpState>((set, 
   }
 
   /** 原 c：upsert 原生服务器条目 */
-  function upsertNativeServer(source: McpSource, name: string, config: McpServerConfig, projectPath?: string) {
+  function upsertNativeServer(source: McpSource, name: string, config: McpServerConfig, projectPath?: string | null) { // A0-CLEANUP3 3b：上游以 null 兜底传入
     const nativeServers = get().nativeServers.slice();
     const index = nativeServers.findIndex((server) => server.source === source && server.name === name && server.projectPath === projectPath);
     if (index >= 0) {
@@ -566,7 +570,17 @@ export interface SkillContextEntry {
 }
 
 export interface SkillsService {
-  setEnabled(args: { workspacePath: string; workspaceIdentity?: string; provider: string; scope: string; skillId: string; enabled: boolean }): Promise<void>;
+  list(args: { workspacePath: string; workspaceIdentity?: string | null; provider: string }): Promise<{
+    skills: any[];
+    capability: any;
+    diagnostics: any[];
+  }>;
+  setEnabled(args: { workspacePath: string; workspaceIdentity?: string | null; provider: string; scope?: string; skillId: string; enabled: boolean }): Promise<void>;
+  deleteSkill(args: { workspacePath: string; workspaceIdentity?: string | null; skillId: string }): Promise<void>;
+  /* A0-CLEANUP3 3b：同一服务兼远端技能同步面（SPC 以 skillsService 作 remoteSkillSyncService；Modals.RemoteSkillSyncService 消费面） */
+  listRemoteUserSkillStatuses(args: unknown): Promise<any>;
+  checkRemoteUserSkillWriteAccess(): Promise<any>;
+  importSkillsArchive(args: unknown): Promise<any>;
   [method: string]: unknown;
 }
 
@@ -790,6 +804,18 @@ export interface CommandDescriptor {
   [key: string]: unknown;
 }
 
+/** 子代理管理服务（调用面归纳：SettingsPanelsCapability/Composer/SkillStore 消费；条目型面按 any 兜底） */
+export interface SubagentsService {
+  list(args: unknown): Promise<any>;
+  getPrimaryUserAgentsDirectory(args: unknown): Promise<{ path: string }>;
+  createAgent(args: unknown): Promise<any>;
+  updateAgent(args: unknown): Promise<any>;
+  deleteAgent(args: unknown): Promise<any>;
+  setEnabled(args: unknown): Promise<any>;
+  setBuiltInModelOverride(args: unknown): Promise<any>;
+  [method: string]: unknown;
+}
+
 export interface CommandsService {
   list(args: { workspacePath?: string | null; workspaceIdentity?: string }): Promise<{
     commands: CommandDescriptor[];
@@ -801,6 +827,7 @@ export interface CommandsService {
   updateCommandFile(args: { commandId: string; [key: string]: unknown }): Promise<{ command: CommandDescriptor }>;
   deleteCommandFile(args: { commandId: string }): Promise<void>;
   setCommandEnabled(args: { commandId: string; enabled: boolean }): Promise<void>;
+  getPrimaryUserCommandsDirectory(args: { agentSource: string }): Promise<{ path: string }>;
 }
 
 export interface CommandsState {
@@ -1005,19 +1032,19 @@ export function mergeSlashCommands(existing: CommandDescriptor[], serviceCommand
  *   validateSource/setEnabled/describePlugin
  * ==========================================================================*/
 
-export interface PluginDescriptor { id: string; name: string; enabled?: boolean; [key: string]: unknown }
-export interface PluginMarketplace { name?: string; [key: string]: unknown }
+export interface PluginDescriptor { id: string; name: string; enabled: boolean; version?: string; description?: string; [key: string]: unknown } // A0-CLEANUP3 3b：按消费面（PluginManageList props）补足 version/description，enabled 运行期恒有值
+export interface PluginMarketplace { id: string; name?: string; pluginCount?: number; lastUpdated?: number | null; featured?: string[]; refreshFailure?: { failedAt: number; message: string }; [key: string]: unknown } // A0-CLEANUP3 3b：按消费面（SPC/SL 市场族）补足字段
 export interface PluginDiagnostic { severity: "error" | "warning" | string; message: string; [key: string]: unknown }
 
 export interface PluginService {
   listPlugins(args: { workspacePath: string; workspaceIdentity?: string }): Promise<{ plugins: PluginDescriptor[]; diagnostics: PluginDiagnostic[] }>;
   getPluginsOverview(args: { workspacePath: string; workspaceIdentity?: string }): Promise<{
     marketplaces: PluginMarketplace[];
-    availablePlugins: unknown[];
-    installedPlugins: unknown[];
-    restorableBuiltins: unknown[];
+    availablePlugins: Array<{ id: string; name: string; marketplace?: string; installed?: boolean; [key: string]: unknown }>;
+    installedPlugins: Array<{ id: string; scope?: string; updateStatus?: string; [key: string]: unknown }>;
+    restorableBuiltins: Array<{ id: string; name: string; marketplace?: string; [key: string]: unknown }>;
     diagnostics: PluginDiagnostic[];
-  }>;
+  }>; // A0-CLEANUP3 3b：返回面与 PluginsState 对齐
   addPluginMarketplace(args: { source: string; workspacePath: string; workspaceIdentity?: string; [key: string]: unknown }): Promise<void>;
   updatePluginMarketplace(args: { marketplace?: string; workspacePath: string; workspaceIdentity?: string; [key: string]: unknown }): Promise<{ diagnostics?: PluginDiagnostic[] }>;
   removePluginMarketplace(args: { marketplace: string; workspacePath: string; workspaceIdentity?: string }): Promise<void>;
@@ -1037,15 +1064,15 @@ export interface PluginsState {
   plugins: PluginDescriptor[];
   marketplaces: PluginMarketplace[];
   marketplaceAvailabilityKnown: boolean;
-  availablePlugins: unknown[];
-  installedPlugins: unknown[];
-  restorableBuiltins: unknown[];
+  availablePlugins: Array<{ id: string; name: string; marketplace?: string; installed?: boolean; [key: string]: unknown }>; // A0-CLEANUP3 3b：按消费面（SL buildStoreItems）具型
+  installedPlugins: Array<{ id: string; scope?: string; updateStatus?: string; [key: string]: unknown }>;
+  restorableBuiltins: Array<{ id: string; name: string; marketplace?: string; [key: string]: unknown }>;
   diagnostics: PluginDiagnostic[];
   loading: boolean;
   error: string | null;
   togglingPluginId: string | null;
   operationId: string | null;
-  describeCache: Record<string, { status: "loading" | "loaded" | "error"; data?: unknown; error?: string }>;
+  describeCache: Record<string, { status: "loading" | "loaded" | "error"; data?: Record<string, unknown>; error?: string }>; // A0-CLEANUP3 3b：data 收敛为对象面（SL PluginDescribeEntry.data 兼容）
   initialize(args: { workspacePath: string; workspaceIdentity?: string | null; pluginService: PluginService }): Promise<void>;
   refresh(service: PluginService): Promise<void>;
   addMarketplace(source: string, service: PluginService): Promise<boolean>;

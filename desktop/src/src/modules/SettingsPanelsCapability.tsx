@@ -122,7 +122,7 @@ import { splitCommandsByScope, splitSkillsByScope } from './McpHelpers';
 import { RemoteSyncDialogs } from './Modals';
 import { Badge } from './PaymentDeep';
 import { BackLinkButton, ResourceGroupHeader, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger } from './Settings';
-import { AddMarketplaceDialog, AutomationEditor, CreateSplitButton, KeepAwakeRow, OffPeakTaskEditor, PluginAdvancedSection, PluginDetail, PluginHookDetailsList, PluginInfoRow, PluginManageList, PluginSourcesDialog, PluginStoreGrid, PluginUninstallDialog, SubagentConfigForm, SubagentRow, buildPluginChatPrompt, buildStoreItems, builtInSubagentName, groupSubagents, isUserManagedSubagent, useUninstallFlow } from './SettingsLeaves';
+import { AddMarketplaceDialog, AutomationEditor, CreateSplitButton, KeepAwakeRow, OffPeakTaskEditor, PluginAdvancedSection, PluginDetail, PluginHookDetailsList, PluginInfoRow, PluginManageList, PluginSourcesDialog, PluginStoreGrid, PluginUninstallDialog, SubagentConfigForm, SubagentRow, buildPluginChatPrompt, buildStoreItems, builtInSubagentName, groupSubagents, isUserManagedSubagent, useUninstallFlow, type ConfigOption, type PluginHookDetail, type SelectGroupEntry } from './SettingsLeaves'; // A0-CLEANUP3 3b：SelectGroupEntry/ConfigOption/PluginHookDetail 属主为 SettingsLeaves（导出）
 import { CommandsImportDialog, SkillsImportDialog } from './SettingsPanels';
 import { useTaskStore, useTaskStore as taskStoreStatic } from './SkillStore'; // xe.getState()
 import { useBaseServices, useServices } from './services';
@@ -242,7 +242,9 @@ declare const InfoIcon: React.FC<React.SVGProps<SVGSVGElement>>; // F_
 interface RemoteTarget {
   kind: "ssh" | "wsl" | "docker" | "server";
   host?: string;
-  [key: string]: unknown;
+  port?: number; // A0-CLEANUP3 3b：与 Settings.RemoteTarget 对齐（跨模块传参同型）
+  container?: string;
+  sshConfigAlias?: string;
 }
 interface ModelProvider {
   id: string;
@@ -296,7 +298,7 @@ interface ZcodeAgentService {
     workspaceIdentity?: string;
     provider: string;
     mcpServers?: unknown[];
-  }): Promise<{ taskId: string; provider?: string; initialSlashCommands?: unknown[] }>;
+  }): Promise<{ taskId: string; provider?: string; initialSlashCommands?: unknown[]; workspacePath: string; createdAt: number; updatedAt: number; [key: string]: unknown }>; // A0-CLEANUP3 3b：创建结果为完整任务记录（流入 FileTreePanel.TaskRecord）
 }
 
 /* --- 跨 chunk 助手（接口级） --- */
@@ -1082,11 +1084,11 @@ declare function resolveRuntimeProvider(taskId: string | null, workspaceState: u
  * ==========================================================================*/
 
 export interface SubagentItem {
-  id: string;
+  id?: string; // A0-CLEANUP3 3b：与属主 SettingsLeaves.SubagentItem 对齐（id/path 可选、model 含 null），回调逆变收敛
   name: string;
   description?: string;
-  model?: string;
-  path: string;
+  model?: string | null;
+  path?: string;
   scope: string;
   source: string;
   enabled: boolean;
@@ -1112,9 +1114,9 @@ export interface SubagentConfig {
 /* 接口级子件（行号见头部映射 §B） */
 declare function sortSubagents(agents: SubagentItem[]): SubagentItem[]; // w1t（157977）
 declare function useWorkspaceConfigOptions(workspacePath: string, unused: null, workspaceIdentity?: string | null): {
-  configOptions: unknown;
-  status: unknown;
-}; // Jq
+  configOptions: ConfigOption[];
+  status: string;
+}; // Jq；A0-CLEANUP3 3b：返回面按消费端（SubagentRow/SubagentConfigForm props）具型
 declare function buildModelSelectGroups(
   provider: string,
   agents: unknown[],
@@ -1122,7 +1124,7 @@ declare function buildModelSelectGroups(
   labels: { apiKeyLabel: string; codingPlanLabel: string },
   displayOrder: { providerIds: string[]; updatedAt?: number } | null,
   familyModes?: Record<string, string>
-): unknown; // Hq
+): SelectGroupEntry[]; // Hq；A0-CLEANUP3 3b：返回面按消费端具型
 declare function refreshSubagentCapabilities(opts: {
   workspacePath: string | null;
   workspaceIdentity?: string | null;
@@ -1263,7 +1265,7 @@ export function SubagentsSettingsSection(props: SubagentsSettingsSectionProps) {
         confirmLabel: intl.formatMessage({ id: "common.delete" }),
       });
       if (!confirmed) return;
-      setOperatingAgentId(agent.id);
+      setOperatingAgentId(agent.id ?? null); // A0-CLEANUP3 3b：SubagentItem.id 与属主对齐为可选，运行期恒有值
       try {
         await subagentsService.deleteAgent({ agentId: agent.id, filePath: agent.path });
         setEditingAgent(null);
@@ -1281,7 +1283,7 @@ export function SubagentsSettingsSection(props: SubagentsSettingsSectionProps) {
   const handleToggleAgent = React.useCallback(
     async (agent: SubagentItem, enabled: boolean) => {
       if (!isUserManagedSubagent(agent)) return;
-      setOperatingAgentId(agent.id);
+      setOperatingAgentId(agent.id ?? null); // A0-CLEANUP3 3b：SubagentItem.id 与属主对齐为可选，运行期恒有值
       try {
         await subagentsService.setEnabled({ agentId: agent.id, enabled });
         await Promise.all([handleRefresh(), handleRefreshCapabilities()]);
@@ -1298,7 +1300,7 @@ export function SubagentsSettingsSection(props: SubagentsSettingsSectionProps) {
     async (agent: SubagentItem, override: { model?: string | null; thoughtLevel?: string | null }) => {
       const builtInName = builtInSubagentName(agent);
       if (!builtInName) return;
-      setOperatingAgentId(agent.id);
+      setOperatingAgentId(agent.id ?? null); // A0-CLEANUP3 3b：SubagentItem.id 与属主对齐为可选，运行期恒有值
       try {
         await subagentsService.setBuiltInModelOverride({
           agentName: builtInName,
@@ -1591,7 +1593,7 @@ export interface PluginItem {
   name: string;
   marketplace?: string;
   source?: string;
-  enabled: boolean;
+  enabled?: boolean; // A0-CLEANUP3 3b：与属主 SettingsLeaves.PluginItem 对齐（可选），双向收敛
   installed?: boolean;
   restorable?: boolean;
   updateStatus?: string;
@@ -1604,7 +1606,7 @@ export interface PluginItem {
 }
 export interface PluginDescribeInfo {
   rootPath?: string;
-  hookDetails?: unknown[];
+  hookDetails?: PluginHookDetail[]; // A0-CLEANUP3 3b：与 SL.PluginItem.info.hookDetails 对齐
   userConfig?: PluginItem["userConfig"];
   configuredOptions?: Record<string, unknown>;
   [key: string]: unknown;
@@ -1668,7 +1670,7 @@ declare const CLAUDE_CODE_PLUGINS_MARKETPLACE_ID: string; // c9（jsx 159313）
 interface PluginStoreActions {
   onOpenDetail: (pluginId: string) => void;
   onInstall: (item: PluginItem) => void;
-  onUninstall: (item: PluginItem) => void;
+  onUninstall: (pluginId: string) => void; // A0-CLEANUP3 3b：与属主 SettingsLeaves.PluginStoreActions 对齐（实参为 item.id）
   onSetEnabled: (pluginId: string, enabled: boolean) => void;
   onUpdate: (pluginId: string) => void;
   operationId: string | null;
@@ -1783,11 +1785,11 @@ export function PluginsSettingsSection(props: PluginsSettingsSectionProps) {
   const storeItemById = React.useMemo(() => new Map(storeItems.map((item) => [item.id, item] as const)), [storeItems]);
   const selectedItem = selectedPluginId ? storeItemById.get(selectedPluginId) ?? null : null;
   const installedPluginMetaById = React.useMemo(() => new Map(installedPlugins.map((meta) => [meta.id, meta] as const)), [installedPlugins]);
-  const managedPlugins = React.useMemo(() => plugins.filter((plugin) => skillEnabledFilterMatch(plugin.enabled, enabledFilter)), [enabledFilter, plugins]);
+  const managedPlugins = React.useMemo(() => plugins.filter((plugin) => skillEnabledFilterMatch(plugin.enabled ?? false, enabledFilter)), [enabledFilter, plugins]); // A0-CLEANUP3 3b：enabled 对齐为可选，运行期恒有值
 
   React.useEffect(() => {
     if (view === "detail" && selectedItem && !selectedItem.info) {
-      describePlugin(selectedItem.id, selectedItem.name, selectedItem.marketplace, pluginManagementService);
+      describePlugin(selectedItem.id, selectedItem.name, selectedItem.marketplace ?? "", pluginManagementService); // A0-CLEANUP3 3b：marketplace 运行期恒有值
     }
   }, [describePlugin, selectedItem, pluginManagementService, view]);
   React.useEffect(() => {
@@ -1871,7 +1873,7 @@ export function PluginsSettingsSection(props: PluginsSettingsSectionProps) {
       if (item.restorable) {
         await restoreBuiltin(item.id, pluginManagementService);
       } else {
-        await installPlugin(item.name, item.marketplace, pluginManagementService);
+        await installPlugin(item.name, item.marketplace ?? "", pluginManagementService); // A0-CLEANUP3 3b：marketplace 运行期恒有值
       }
       await handleAfterLocalChange();
     },
@@ -2058,7 +2060,7 @@ export function PluginsSettingsSection(props: PluginsSettingsSectionProps) {
           actions={storeActions}
           describeEntry={describeCache[selectedItem.id]}
           onBack={handleBackToStore}
-          onRetryDescribe={() => void describePlugin(selectedItem.id, selectedItem.name, selectedItem.marketplace, pluginManagementService, true)}
+          onRetryDescribe={() => void describePlugin(selectedItem.id, selectedItem.name, selectedItem.marketplace ?? "", pluginManagementService, true)} // A0-CLEANUP3 3b：marketplace 运行期恒有值
           onUsePrompt={handleUsePrompt}
           advanced={
             selectedItem.info ? (
@@ -2268,7 +2270,7 @@ export function useCommandsStoreBridge(opts: {
   const toggleCommand = useCommandsStore((state) => state.toggleCommand);
 
   React.useEffect(() => {
-    if (enabled) initialize(workspacePath, commandsService, workspaceIdentity);
+    if (enabled) initialize(workspacePath ?? null, commandsService, workspaceIdentity); // A0-CLEANUP3 3b：workspacePath 形参为 string | null
   }, [enabled, workspacePath, workspaceIdentity, commandsService, initialize]);
 
   const handleRefresh = React.useCallback(() => refresh(commandsService), [commandsService, refresh]);
@@ -2873,7 +2875,7 @@ export interface HookItem {
   timeout?: number;
   enabled: boolean;
   custom?: Record<string, unknown>;
-  location?: { source: string; scope?: "user" | "project"; directoryPath?: string };
+  location?: { source: string; scope?: string; directoryPath?: string; projectPath?: string }; // A0-CLEANUP3 3b：与 StoresDeep.HookDescriptor.location 对齐
   [key: string]: unknown;
 }
 export interface PluginHookRowModel {
@@ -2948,6 +2950,7 @@ export interface HookFormValues {
   enabled: boolean;
   custom?: Record<string, unknown>;
   storageLevel: "user" | "project";
+  [key: string]: unknown; // A0-CLEANUP3 3b：流入 Partial<HookDescriptor>（带索引签名），接口级补齐
 }
 
 /** 原 y9（jsx 161229）：hook 表单字段容器 */
@@ -3369,7 +3372,7 @@ export function collectPluginHookRows(
   return plugins.flatMap((plugin) =>
     (plugin.hookDetails ?? []).map((detail) => ({
       detail: detail as PluginHookRowModel["detail"],
-      pluginEnabled: plugin.enabled,
+      pluginEnabled: plugin.enabled ?? false, // A0-CLEANUP3 3b：enabled 对齐为可选，运行期恒有值
       pluginId: plugin.id,
       pluginName: plugin.name,
       pluginScope: marketplaceAvailabilityKnown ? scopeById.get(plugin.id) : undefined,
@@ -3520,7 +3523,7 @@ export function HooksSettingsSection(props: HooksSettingsSectionProps) {
   );
 
   React.useEffect(() => {
-    hooksStore.initialize(workspacePath ?? undefined, workspaceIdentity, hooksService);
+    hooksStore.initialize(workspacePath ?? null, workspaceIdentity ?? null, hooksService); // A0-CLEANUP3 3b：HooksState.initialize 形参为 string | null
   }, [hooksService, hooksStore.initialize, workspaceIdentity, workspacePath]);
   React.useEffect(() => {
     if (workspacePath) {
@@ -3718,21 +3721,22 @@ export interface AutomationTask {
   automationId: string;
   title: string;
   prompt: string;
-  cronExpr?: string;
+  cronExpr: string; // A0-CLEANUP3 3b §C：与 StoresDeep.Automation/SL.AutomationTaskLite 对齐（双向收敛）
   enabled: boolean;
-  lifecycleStatus: "active" | "paused" | "completed" | "failed" | string;
-  runCount: number;
-  nextRunAt?: number;
-  workspacePath: string;
+  lifecycleStatus?: "active" | "paused" | "completed" | "failed" | string;
+  runCount?: number;
+  nextRunAt?: number | null; // A0-CLEANUP3 3b：StoresDeep.Automation 可空面对齐
+  workspacePath?: string;
   workspaceIdentity?: string | null;
-  model?: unknown;
-  provider?: unknown;
+  model?: string | null;
+  provider?: string | null;
   [key: string]: unknown;
 }
 export interface OffPeakTask {
   offPeakTaskId: string;
   title?: string;
   prompt: string;
+  status: string; // A0-CLEANUP3 3b：与 SL.OffPeakTaskRecord 互指（运行期恒有值）
   permissionMode?: string;
   model?: string | null;
   thoughtLevel?: string | null;
@@ -3769,7 +3773,13 @@ declare const automationsStoreStatic: { getState: () => AutomationsStoreState };
 interface OffPeakStoreState {
   tasks: OffPeakTask[];
   loading: boolean;
-  grayConfig: { enabled?: boolean; codingPlanActive?: boolean; allowedModels?: unknown[]; allowedModelConfigs?: unknown[] } | null;
+  /** A0-CLEANUP3 3b：allowedModels/allowedModelConfigs 按 OffPeakTaskEditor 消费面具型 */
+  grayConfig: {
+    enabled?: boolean;
+    codingPlanActive?: boolean;
+    allowedModels?: string[];
+    allowedModelConfigs?: Array<{ id: string; modelIdByKind?: Record<string, string>; reasoning?: { levels: Record<string, unknown>; defaultLevel?: string } }>;
+  } | null;
   codingPlanSupport: unknown;
   takeNumberAvailability: { canTakeNumber?: boolean; nextTakeAt?: number } | null;
   takeNumberAvailabilityStatus: string | null;
@@ -3848,7 +3858,7 @@ declare function offPeakCreateFailureMessageId(result: { ok: boolean; [key: stri
 declare function automationLifecycleOf(automation: AutomationTask): "active" | "paused" | "completed" | "failed"; // qht（93279）
 declare function automationHasFailedRun(automation: AutomationTask): boolean; // Kht（93276）
 declare function automationScheduleLabel(automation: AutomationTask, intl: IntlShape): string; // rgt（93602）
-declare function automationNextRunLabel(nextRunAt: number | undefined, now: number, intl: IntlShape): string | null; // egt（93576）
+declare function automationNextRunLabel(nextRunAt: number | null | undefined, now: number, intl: IntlShape): string | null; // egt（93576）；A0-CLEANUP3 3b：nextRunAt 可空面
 declare function hasCodingPlanEntitlement(codingPlanSupport: unknown, settings: unknown): boolean; // Tit（78933）
 declare function showToastWithAction(message: string, opts?: ToastOptions): string; // l6（toast 变体）
 
@@ -4339,7 +4349,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
 
   const handleSubmitAutomation = React.useCallback(
     async ({ input, workspacePath: targetWorkspacePath, workspaceIdentity: targetWorkspaceIdentity }: {
-      input: Record<string, unknown>;
+      input: { title: string; [key: string]: unknown }; // A0-CLEANUP3 3b：AutomationEditor 提交草稿恒含 title（createAutomation 形参面）
       workspacePath: string;
       workspaceIdentity?: string | null;
     }) => {

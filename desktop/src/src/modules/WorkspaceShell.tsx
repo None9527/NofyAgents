@@ -197,18 +197,19 @@ import * as React from "react";
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { workspaceKeyOf } from './CodeViewer';
 import { ConversationOrchestrator } from './Conversation';
-import { APP_LOGO_DATA_URL, FeedbackCenter, collectWorkspaceTaskIds, resolveAdjacentTasks, runWithWorkspaceVisibility } from './FeedbackCenter';
+import { type InstalledEditor } from './FileTreePanel';
+import { APP_LOGO_DATA_URL, FeedbackCenter, collectWorkspaceTaskIds, resolveAdjacentTasks, runWithWorkspaceVisibility, type FeedbackService } from './FeedbackCenter';
 import { WorkspaceSelectionRow } from './Home';
 import { toast } from './ImeComposition';
 import { pathBasename } from './ModalsLeaves';
 import { QuickPick, buildQuickPickCommands } from './QuickPick';
 import { type RemoteWorkspaceSessionLike } from './RemoteWizard'; // A0-CLEANUP B-24：远端会话形（Home/RemoteWizardDialog 调用面对齐）
 import { resolveThemeMode } from './Settings';
-import { SidePanel, useSidePaneState, type RecentClosedSidePaneTab, type SidePaneState, type SidePaneTab } from './SidePanel'; // 侧面板态型以 SidePanel 导出为准
+import { SidePanel, useSidePaneState, type BrowserMetadataPatch, type BrowserNavigationRequest, type BrowserResidencyEvent, type BrowserUseOperationEvent, type BrowserUseTabDescriptor, type BrowserUseVisibilityEvent, type CodeViewerSource as SidePanelCodeViewerSource, type PlatformService as SidePanelPlatformService, type RecentClosedSidePaneTab, type ScreenshotSurfaceRequest, type SidePaneState, type SidePaneTab, type SubagentOpenRequest } from './SidePanel'; // 侧面板态型以 SidePanel 导出为准
 import { logger, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from './SkillStore'; // +TaskStore（A0-CLEANUP B-3：选择器改指真 store 型）；+workspaceKey（原 Io/Lo，A0-CLEANUP 族清理）
 import { taskEntityKey } from './StoresDeep';
-import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle } from './TopBar';
-import { WebRemoteMobileShell } from './WebRemote';
+import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle, type UpdateState } from './TopBar';
+import { WebRemoteMobileShell, type MobileHomeResult, type TaskMeta as WebRemoteTaskMeta, type WebRemoteSwitcherService } from './WebRemote';
 import { useBaseServices, useServices } from './services';
 import { useFeedbackStore, useSettingsStore } from './stores-core';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
@@ -259,13 +260,13 @@ interface DesktopWindowChromeState {
   isMaximized: boolean;
   supportsNativeRoundedCorners: boolean | null;
 }
-type UpdateState =
-  | { kind: "update-available"; version?: string }
-  | { kind: "download-progress"; version?: string; percent?: number }
-  | { kind: "update-downloaded"; version: string }
-  | { kind: string };
+/* ── A0-CLEANUP3 #36：本地 UpdateState 弱形删除 → import type { UpdateState }
+ *    from './TopBar'（属主规范形，含 checking/null 支与下载进度字段）。 ── */
 
-interface PlatformService {
+/* A0-CLEANUP3 #36：平台服务为单一桌面服务，本文件声明面原仅收录窗口/社区/通知
+ * 切片；extends SidePanelPlatformService 收浏览器视图事件切片（useSidePaneState
+ * 消费面），并补 TopBar 族文件操作四件（3631/5123 失配修复）。 */
+interface PlatformService extends SidePanelPlatformService {
   getWindowControlsOverlayMetrics?(): WindowControlsOverlayMetrics;
   onWindowFullscreenChanged(cb: (fullscreen: boolean) => void): () => void;
   getDesktopWindowChromeState?(): Promise<DesktopWindowChromeState>;
@@ -288,7 +289,15 @@ interface PlatformService {
     title: string;
     body: string;
   }): void;
-  executeDesktopCommand(command: DesktopCommandValue): void;
+  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
+  openInEditor(
+    editorId: string,
+    path: string,
+    opts?: { pathKind?: "directory"; workspaceIdentity?: string | null },
+  ): Promise<{ success: boolean; error?: string }>;
+  getInstalledEditors(): Promise<InstalledEditor[]>;
+  exportLogs(): Promise<{ success: boolean; error?: string }>;
+  executeDesktopCommand(command: string): Promise<void>;
 }
 declare function usePlatformService(): PlatformService;
 
@@ -297,7 +306,7 @@ declare function usePlatformService(): PlatformService;
 interface FileStatResult {
   type: "file" | "directory";
 }
-interface WorkspaceServices {
+export interface WorkspaceServices {
   fileService: { stat(input: { path: string }): Promise<FileStatResult> };
   zcodeTaskService: {
     restartWorkspaceProcess(input: {
@@ -510,6 +519,8 @@ interface SearchResultsState {
     string,
     {
       taskId: string;
+      workspacePath: string;
+      workspaceIdentity?: string;
       unreadAt?: number | null;
       status?: string;
     }
@@ -549,7 +560,18 @@ declare function getRemoteSessionRegistryEntry(
 
 /* --- 工作区 tabs 域（原 pc/hc/oc/sc） --- */
 
-type RemoteTarget = { host?: string; label?: string } | string | null;
+/* A0-CLEANUP3 #36：RemoteTarget 收规范形（TopBar/Home/RemoteWizard 同形；
+ * 束 rl schema target=nl 实证），原 {host?;label?}|string 弱形删除。
+ * WorkspaceTab：label 改必填（束 Vp schema label: Z 必填）、workspacePurpose
+ * 去 scratch（束真仅 project|conversation）、localWorkspacePath 去 null
+ * （束 rl schema U.optional()）、补索引签名（QuickPick.WorkspaceTab 消费面）。 */
+type RemoteTarget = {
+  kind: "ssh" | "wsl" | "docker" | "server";
+  host?: string;
+  port?: number;
+  container?: string;
+  sshConfigAlias?: string;
+} | null;
 interface WorkspaceTab {
   kind: "workspace" | "settings";
   id: string;
@@ -557,10 +579,11 @@ interface WorkspaceTab {
   workspaceIdentity?: string | null;
   remoteSessionId?: string | null;
   remoteTarget?: RemoteTarget;
-  workspacePurpose?: "project" | "conversation" | "scratch";
-  localWorkspacePath?: string | null;
+  workspacePurpose?: "project" | "conversation";
+  localWorkspacePath?: string;
   availability?: string;
-  label?: string;
+  label: string;
+  [key: string]: unknown;
 }
 interface WorkspaceTabsState {
   tabs: WorkspaceTab[];
@@ -690,13 +713,13 @@ interface SidePaneController {
   isSidebarVisible: boolean;
   browserNavigationRequest: unknown;
   setBrowserNavigationRequest(request: unknown): void;
-  handleOpenCodeViewer(...args: unknown[]): void;
+  handleOpenCodeViewer(source: CodeViewerSource): void;
   handleOpenBrowserUrl(url: string): void;
   handleToggleBrowser(): void;
   handleOpenBrowserTab(): void;
   handleToggleGit(): void;
   handleOpenGit(sourceId?: string): void;
-  handleOpenTreemapping(...args: unknown[]): void;
+  handleOpenTreemapping(source?: { kind?: string }): void;
   handleOpenWhiteboard(): void;
   handleOpenDeveloperTools(): void;
   handleOpenTerminalTab(): void;
@@ -730,12 +753,16 @@ interface TaskFileRef {
   provider?: string;
 }
 interface ActiveTaskMeta {
-  resolvedActiveTaskMeta: unknown;
+  /* A0-CLEANUP3 #36：束 e_e 返回面 resolvedActiveTaskMeta = 任务元对象（含
+   * taskId/title/forkedFromTaskId，TopBar.TaskMeta 同形）；activeTaskChangeSummary
+   * 束真恒 null（e_e 字面返回），型收 null（SessionHeader string|null /
+   * QuickPick TaskChangeSummary|null 双向可赋）。 */
+  resolvedActiveTaskMeta: { taskId: string; title?: string | null; forkedFromTaskId?: string | null; [key: string]: unknown } | null;
   activeTraceId: string | null;
   activeSessionId: string | null;
   activeTaskProvider: string | null;
   workspaceHeaderProvider: string | null;
-  activeTaskChangeSummary: string | null;
+  activeTaskChangeSummary: null;
   activeTaskTitle: string | null;
   taskNativeSessionLogFile: TaskFileRef;
   taskSessionFile: TaskFileRef;
@@ -1823,12 +1850,12 @@ type WorkspaceMainView = "chat" | "automations" | "repo-wiki";
 /** 原 tn 投影：传给壳的工作区 tab 摘要（无 kind/id 内部字段） */
 interface WorkspaceTabSummary {
   workspacePath: string;
-  label?: string;
+  label: string;
   remoteSessionId?: string | null;
   remoteTarget?: RemoteTarget;
   workspaceIdentity?: string | null;
-  workspacePurpose?: "project" | "conversation" | "scratch";
-  localWorkspacePath?: string | null;
+  workspacePurpose?: "project" | "conversation";
+  localWorkspacePath?: string;
   availability?: string;
 }
 
@@ -1840,9 +1867,11 @@ interface WorkspaceShellProps {
   onWorkspaceMainViewChange: (view: WorkspaceMainView) => void;
   onOpenAutomationConsumed?: () => void;
   handleOpenAutomations: (automationId?: string) => void;
-  onConnectRemote?: (...args: unknown[]) => void;
-  onSelectRemoteProject?: (...args: unknown[]) => void;
-  onCancelRemoteProject?: (...args: unknown[]) => void;
+  /* A0-CLEANUP3 #36：远端连接三回调收 Home.WorkspaceSelectionRowProps 规范形
+   * （束 XJt 解构无默认值 = 必收）；原 (...args: unknown[]) => void 弱形删除。 */
+  onConnectRemote: (args: unknown) => Promise<string> | string;
+  onSelectRemoteProject: (args: unknown) => Promise<void> | void;
+  onCancelRemoteProject: (sessionId: string) => Promise<void> | void;
   onReconnectRemoteWorkspace?: (...args: unknown[]) => void;
   onLogout?: () => void;
   onLogin?: () => void;
@@ -1853,15 +1882,15 @@ interface WorkspaceShellProps {
   onCreateTask?: (options?: { initialPrompt?: string }) => void;
   onCreateConversationTask?: (options?: { initialPrompt?: string }) => void;
   onResolveConversationWorkspace?: () => Promise<string>;
-  onOpenWorkspace?: () => void;
-  onOpenFolderFromWorkspaceMenu?: (...args: unknown[]) => void;
+  onOpenWorkspace: () => void;
+  onOpenFolderFromWorkspaceMenu: () => void;
   onOpenRemoteWorkspace?: (...args: unknown[]) => void;
-  onCreateScratchWorkspace?: () => void;
+  onCreateScratchWorkspace?: (name: string) => Promise<string | null>;
   allowOpenWorkspace?: boolean;
-  webRemoteControlWorkspaceSwitcher?: unknown;
-  initialWebRemoteControlMobileNavigationIntent?: unknown;
-  initialWebRemoteControlWorkspaceList?: unknown;
-  webRemoteControlTerminalTransportState?: unknown;
+  webRemoteControlWorkspaceSwitcher?: WebRemoteSwitcherService;
+  initialWebRemoteControlMobileNavigationIntent?: string;
+  initialWebRemoteControlWorkspaceList?: MobileHomeResult;
+  webRemoteControlTerminalTransportState?: string;
   allowRemoteWorkspace?: boolean;
   remoteWorkspaceSessions?: RemoteWorkspaceSessionLike[];
   workspaceAbsPath: string;
@@ -1878,7 +1907,7 @@ interface WorkspaceShellProps {
   macWindowControlsLeftPaddingPx?: number;
   windowsWindowControlsRightPaddingPx?: number;
   updateReadyVersion?: string | null;
-  updateState?: UpdateState | null;
+  updateState: UpdateState;
   sidebarContainerRef?: React.RefObject<HTMLElement | null>;
   toggleSidebarShortcutLabel?: string;
   newTaskShortcutLabel?: string;
@@ -1905,15 +1934,15 @@ interface WorkspaceShellProps {
   activeTraceId?: string | null;
   activeSessionId?: string | null;
   activeTaskProvider?: string | null;
-  resolvedActiveTaskMeta?: unknown;
+  resolvedActiveTaskMeta?: { taskId: string; title?: string | null; forkedFromTaskId?: string | null; [key: string]: unknown } | null;
   activeTaskTitle?: string | null;
   activeTaskChangeSummary?: string | null;
   gitWorktreeReviewSourceId?: string | null;
   gitWorktreeChangeSummary?: { added: number; removed: number } | null;
-  activeGitSourceId?: string;
+  activeGitSourceId: string;
   gitState: GitState;
-  browserNavigationRequest?: unknown;
-  browserRestoreUrls?: Record<string, string>;
+  browserNavigationRequest: BrowserNavigationRequest | null;
+  browserRestoreUrls: Record<string, string>;
   providerConfigFile: TaskFileRef;
   taskNativeSessionLogFile: TaskFileRef;
   taskSessionFile: TaskFileRef;
@@ -1923,10 +1952,10 @@ interface WorkspaceShellProps {
   onConversationFindMatchStateChange?: (state: { matchCount: number; activeIndex?: number }) => void;
   searchResultHighlightRequest?: SearchResultHighlightRequest | null;
   onSearchResultHighlightDone?: (requestId: number) => void;
-  fileChangeFindActiveIndex?: number;
-  fileChangeFindNavigationRequestId?: number;
-  fileChangeFindQuery?: string;
-  onFileChangeFindMatchCountChange?: (count: number) => void;
+  fileChangeFindActiveIndex: number;
+  fileChangeFindNavigationRequestId: number;
+  fileChangeFindQuery: string;
+  onFileChangeFindMatchCountChange: (count: number) => void;
   appLogoUrl: string;
   platform: PlatformService;
   reloadSessionDisabled: boolean;
@@ -1939,12 +1968,12 @@ interface WorkspaceShellProps {
   handleOpenCommandCenter: () => void;
   handleRefreshGit: () => void;
   handleBrowserUrlChange: (tabId: string, url: string) => void;
-  handleBrowserPageMetadataChange: (input: unknown) => void;
+  handleBrowserPageMetadataChange: (tabId: string, metadata: BrowserMetadataPatch) => void;
   handleToggleSidebar: () => void;
   handleToggleTerminal: () => void;
   handleToggleBrowser: () => void;
   handleOpenBrowserTab: () => void;
-  handleOpenTreemapping: (...args: unknown[]) => void;
+  handleOpenTreemapping: (source?: { kind?: string }) => void;
   handleOpenWhiteboard: () => void;
   handleOpenDeveloperTools: () => void;
   handleOpenTerminalTab: () => void;
@@ -1953,20 +1982,20 @@ interface WorkspaceShellProps {
   handleToggleSidePane: () => void;
   handleOpenBrowserUrl: (url: string) => void;
   handleOpenCodeViewer: (source: CodeViewerSource) => void;
-  handleOpenSubagentSession: (sessionId: string) => void;
-  handleOpenSubagentDirectory: () => void;
-  handleSyncSubagentSessionTabs: () => void;
-  handleOpenSelectionSideChat: (sessionId: string) => void;
-  handleOpenPlanDetail: (planId?: string) => void;
+  handleOpenSubagentSession: (req: SubagentOpenRequest) => void;
+  handleOpenSubagentDirectory: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; rootSessionId?: string; parentSessionId: string }) => void;
+  handleSyncSubagentSessionTabs: (req: { rootSessionId: string; parentSessionId: string; validChildSessionIds: string[] }) => void;
+  handleOpenSelectionSideChat: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; parentSessionId: string; childSessionId: string; replacesChildSessionId?: string }) => void;
+  handleOpenPlanDetail: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; parentSessionId: string; toolCallId: string; markdown?: string; planFilePath?: string }) => void;
   handleCloseCodeViewer: (tabId: string) => void;
   handleCloseGit: () => void;
   handleActivateSidePaneTab: (tabId: string) => void;
-  handleReorderSidePaneTab: (input: unknown) => void;
+  handleReorderSidePaneTab: (tabId: string, targetId: string) => void;
   handleCloseSidePaneTab: (tabId: string) => void;
   handleCloseOtherSidePaneTabs: (tabId: string) => void;
   handleCloseAllSidePaneTabs: () => void;
   handleReopenClosedSidePaneTab: (tabId: string) => void;
-  handleBrowserNavigationRequestHandled: (requestId: unknown) => void;
+  handleBrowserNavigationRequestHandled: (requestId: string) => void;
   setIsTerminalOpen: (open: boolean) => void;
   setGitSelectedSourceId: (sourceId: string) => void;
   taskFindDialogProps: TaskFindDialogProps;
@@ -1980,7 +2009,7 @@ interface WorkspaceShellProps {
 interface SearchResultHighlightRequest {
   taskId: string;
   workspacePath: string;
-  workspaceIdentity?: string;
+  workspaceIdentity?: string | null;
   requestId?: number;
   [key: string]: unknown;
 }
@@ -2013,7 +2042,7 @@ interface TaskFindDialogProps {
   onOpenFileChanges?: () => void;
 }
 
-interface PrimaryDraftDropTargetController {
+export interface PrimaryDraftDropTargetController {
   active: boolean;
   onDragOver: React.DragEventHandler;
   onDragLeave: React.DragEventHandler;
@@ -2255,7 +2284,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
     resizeOnInitialVisibleMount: false,
   }); // 原 En/Dn/On
   const mobileSidePanePanelRef = React.useRef<unknown>(null); // 原 kn
-  const mobileSidePanePanelElementRef = React.useRef<unknown>(null); // 原 An
+  const mobileSidePanePanelElementRef = React.useRef<HTMLElement | null>(null); // 原 An
 
   const reloadSessionDisabledEffective = !!workspaceReadOnlyReason || reloadSessionDisabled || reloadSessionPending; // 原 jn
   const simplifyForNarrowRemote = isWebRemoteControlShell && isMobileViewport; // 原 Mn
@@ -2799,7 +2828,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
 
   /** 原 fr（184496）：分屏面板活动会话变化回调 */
   const handlePaneActiveSessionChange = React.useCallback(
-    (binding: { workspacePath: string; workspaceIdentity?: string; sessionId: string; remoteSessionId?: string }, sessionId: string) => {
+    (binding: { workspacePath: string; workspaceIdentity?: string; sessionId?: string; remoteSessionId?: string }, sessionId: string) => {
       handleSelectTaskAcrossWorkspaces(binding.workspacePath, sessionId, binding.workspaceIdentity, binding.remoteSessionId);
     },
     [handleSelectTaskAcrossWorkspaces],
@@ -2826,9 +2855,9 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
 
   /** 原 hr（184514）：在某工作区开始草稿（先切 chat） */
   const handleStartDraftInWorkspaceView = React.useCallback(
-    (targetWorkspacePath: string, targetIdentity?: string, purpose?: string) => {
+    (targetWorkspacePath: string, targetIdentity?: string | null, purpose?: string) => {
       switchToChatView();
-      handleStartDraftInWorkspace(targetWorkspacePath, targetIdentity, purpose);
+      handleStartDraftInWorkspace(targetWorkspacePath, targetIdentity ?? undefined, purpose);
     },
     [handleStartDraftInWorkspace, switchToChatView],
   );
@@ -2877,7 +2906,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
           isWindowsDesktop={isWindowsDesktop}
           compactForRemoteControl={isWebRemoteControlShell}
           workspaceTabs={workspaceTabs}
-          onSelectWorkspace={(target: { workspacePath: string; workspaceIdentity?: string; workspacePurpose?: string }) =>
+          onSelectWorkspace={(target: { workspacePath: string; workspaceIdentity?: string | null; workspacePurpose?: string }) =>
             handleStartDraftInWorkspaceView(target.workspacePath, target.workspaceIdentity, target.workspacePurpose)
           }
           onSelectConversationWorkspace={handleResolveConversationWorkspaceAndStartDraft}
@@ -3196,7 +3225,9 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
           webRemoteControlTerminalTransportState={webRemoteControlTerminalTransportState}
           isSidePaneOpen={isSidePaneOpen}
           onCloseSidePane={isSidePaneOpen ? handleToggleSidePane : undefined}
-          onSelectTask={handleSelectTaskAcrossWorkspaces}
+          onSelectTask={(task: WebRemoteTaskMeta) =>
+            handleSelectTaskAcrossWorkspaces(task.workspacePath, task.taskId, task.workspaceIdentity ?? undefined, undefined)
+          }
           onStartDraftInWorkspace={handleStartDraftInWorkspaceView}
           switcher={webRemoteControlWorkspaceSwitcher}
           renderChatHeader={() =>
@@ -3478,10 +3509,10 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
                 })}
                 onPointerDown={handleWebRemoteNavPointerDown}
                 onPointerMove={handleWebRemoteNavPointerMove}
-                onPointerUp={(event) => {
+                onPointerUp={(event: React.PointerEvent<HTMLButtonElement>) => {
                   handleWebRemoteNavPointerUp(event);
                 }}
-                onPointerCancel={(event) => {
+                onPointerCancel={(event: React.PointerEvent<HTMLButtonElement>) => {
                   handleWebRemoteNavPointerUp(event, true);
                 }}
                 onClick={handleWebRemoteNavClick}
@@ -3565,7 +3596,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
                             onSummaryPanelVariantOverrideChange={onSummaryPanelVariantOverrideChange}
                             onRefreshGit={handleRefreshGit}
                             onOpenGitReview={handleOpenGitReview}
-                            onPaneActiveSessionChange={handlePaneActiveSessionChange}
+                            onPaneActiveSessionChange={handlePaneActiveSessionChange as (scope: unknown, sessionId: string) => void} /* 边界：Conversation 侧 SplitPaneBinding.workspaceScope 为弱型，运行时恒含 workspacePath */
                             onOpenBrowserUrl={handleOpenBrowserUrl}
                             onOpenAutomationsMain={handleOpenAutomations}
                             onOpenCodeViewer={handleOpenCodeViewer}
@@ -3733,9 +3764,9 @@ function AutomationsMainContent({
                 workspaceIdentity: targetIdentity,
               }: {
                 sessionId: string;
-                workspacePath: string;
+                workspacePath?: string; // A0-CLEANUP3 3b：EV/SL onOpenSession 形参面为可选，运行期恒有值
                 workspaceIdentity?: string | null;
-              }) => handleSelectTaskAcrossWorkspaces(workspacePath, sessionId, targetIdentity ?? undefined)}
+              }) => handleSelectTaskAcrossWorkspaces(workspacePath ?? "", sessionId, targetIdentity ?? undefined)}
             />
           </div>
         </ScopedErrorBoundary>
@@ -4258,7 +4289,7 @@ function useWorkspaceLifecycle(input: {
   workspaceAbsPath: string;
   workspaceIdentity?: string;
   services: WorkspaceServices;
-  setBrowserNavigationRequest: (request: unknown) => void;
+  setBrowserNavigationRequest: (request: BrowserNavigationRequest | null) => void;
   setTestMessages: (messages: unknown[] | null) => void;
 }): void {
   const { workspaceAbsPath, workspaceIdentity, services, setBrowserNavigationRequest, setTestMessages } = input;
@@ -4413,7 +4444,8 @@ function isTaskStillVisible(input: {
   taskMetaByEntityKey: SearchResultsState["taskMetaByEntityKey"];
 }): boolean {
   if (input.visibleTasks.some((task) => task.taskId === input.entry.taskId)) return true;
-  const meta = input.taskMetaByEntityKey[taskEntityKey(input.entry)];
+  /* 调用面已过 isAutomationsNavEntry 闸（taskId 必存），束形收口 */
+  const meta = input.taskMetaByEntityKey[taskEntityKey(input.entry as TaskNavItem & { taskId: string })];
   return meta ? meta.taskId === input.entry.taskId : false;
 }
 
@@ -4425,7 +4457,7 @@ function useTaskNavigation(input: {
   onNavigateToTask?: () => void;
   onNavigateToAutomations?: (target: { workspacePath: string; workspaceIdentity?: string; automationId?: string }) => void;
 }): {
-  handleSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string) => void;
+  handleSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string | null) => void;
   handleOpenAutomations: (automationId?: string) => void;
   handleTaskNavBack: () => void;
   handleTaskNavForward: () => void;
@@ -4446,8 +4478,8 @@ function useTaskNavigation(input: {
 
   /** 原 h（185907）：选择任务（含未读清除乐观链） */
   const handleSelectTask = React.useCallback(
-    (targetWorkspacePath: string, taskId: string, targetIdentity?: string) => {
-      const workspaceState = taskStore.getState().getWorkspaceState(targetWorkspacePath, targetIdentity);
+    (targetWorkspacePath: string, taskId: string, targetIdentity?: string | null) => {
+      const workspaceState = taskStore.getState().getWorkspaceState(targetWorkspacePath, targetIdentity ?? undefined);
       if (isRestartingRuntime(workspaceState.modelSwitchPending, workspaceState.modelSwitchStage)) {
         logger.info(
           `[App] 模型运行时重建中，忽略 task 切换 workspace=${targetWorkspacePath} taskId=${taskId} stage=${workspaceState.modelSwitchStage}`,
@@ -4923,10 +4955,12 @@ function navigateFindState(state: FindState, query: string, activeIndex: number)
 
 interface WorkspaceRootProps {
   services: WorkspaceServices;
-  baseFeedbackService: unknown;
-  onConnectRemote?: (...args: unknown[]) => void;
-  onSelectRemoteProject?: (...args: unknown[]) => void;
-  onCancelRemoteProject?: (...args: unknown[]) => void;
+  baseFeedbackService: FeedbackService | null;
+  /* A0-CLEANUP3 #36：远端连接三回调收 Home.WorkspaceSelectionRowProps 规范形
+   * （束 XJt 解构无默认值 = 必收）；原 (...args: unknown[]) => void 弱形删除。 */
+  onConnectRemote: (args: unknown) => Promise<string> | string;
+  onSelectRemoteProject: (args: unknown) => Promise<void> | void;
+  onCancelRemoteProject: (sessionId: string) => Promise<void> | void;
   onReconnectRemoteWorkspace?: (...args: unknown[]) => void;
   onLogout?: () => void;
   onLogin?: () => void;
@@ -4938,17 +4972,17 @@ interface WorkspaceRootProps {
   onCreateTask?: (options?: { initialPrompt?: string }) => void;
   onCreateConversationTask?: (options?: { initialPrompt?: string }) => void;
   onResolveConversationWorkspace?: () => Promise<string>;
-  onOpenWorkspace?: () => void;
-  onOpenFolderFromWorkspaceMenu?: (...args: unknown[]) => void;
+  onOpenWorkspace: () => void;
+  onOpenFolderFromWorkspaceMenu: () => void;
   onOpenRemoteWorkspace?: (...args: unknown[]) => void;
-  onCreateScratchWorkspace?: () => void;
+  onCreateScratchWorkspace?: (name: string) => Promise<string | null>;
   remoteConnectionInProgress?: boolean;
   onReturnToWorkspace?: () => void;
   allowOpenWorkspace?: boolean;
-  webRemoteControlWorkspaceSwitcher?: unknown;
-  initialWebRemoteControlMobileNavigationIntent?: unknown;
-  initialWebRemoteControlWorkspaceList?: unknown;
-  webRemoteControlTerminalTransportState?: unknown;
+  webRemoteControlWorkspaceSwitcher?: WebRemoteSwitcherService;
+  initialWebRemoteControlMobileNavigationIntent?: string;
+  initialWebRemoteControlWorkspaceList?: MobileHomeResult;
+  webRemoteControlTerminalTransportState?: string;
   allowRemoteWorkspace?: boolean;
   remoteWorkspaceSessions?: RemoteWorkspaceSessionLike[];
   workspaceAbsPath: string;
@@ -5381,7 +5415,8 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
   }, [handleToggleGit, workspaceReadOnlyReason]);
   const handleOpenCodeViewerGuarded = React.useCallback(
     (...args: Parameters<SidePaneController["handleOpenCodeViewer"]>) => {
-      if (!workspaceReadOnlyReason) handleOpenCodeViewer(...args);
+      // 边界：壳层文件链接源携带 workspace* 扩展字段，SidePanel 的建页函数只消费 type/title/path 等核心字段
+      if (!workspaceReadOnlyReason) handleOpenCodeViewer(...(args as [SidePanelCodeViewerSource]));
     },
     [handleOpenCodeViewer, workspaceReadOnlyReason],
   );
@@ -5831,7 +5866,7 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
         activeGitSourceId={activeGitSourceId}
         gitState={gitState}
         browserNavigationRequest={browserNavigationRequest}
-        browserRestoreUrls={browserRestoreUrls}
+        browserRestoreUrls={browserRestoreUrls ?? {}}
         providerConfigFile={providerConfigFile}
         taskNativeSessionLogFile={taskNativeSessionLogFile}
         taskSessionFile={taskSessionFile}

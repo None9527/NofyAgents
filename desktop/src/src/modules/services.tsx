@@ -58,6 +58,7 @@ import {
   serviceGeneration,
   type BaseServices,
   type RegisteredSession,
+  type ResolvedBaseServices,
 } from "./stores-core";
 import { createConversationTransport } from './FeedbackCenter';
 import { INITIAL_SESSION_INDEX_STATE, RUNTIME_RESTART_BASE_DELAY_MS, RUNTIME_RESTART_MAX_DELAY_MS, RUNTIME_RESTART_RESET_MS, SUBSCRIBE_RETRY_BACKOFF_MS, applyFrameToIndexState, isDormantSubscribeError, isTransientSubscribeError, type SessionIndexRow } from './QuickPickDeep';
@@ -773,10 +774,11 @@ export function ServiceProvider({ services, children }: { services: BaseServices
 }
 
 /** 原 fs：useServices —— 必须在 ServiceProvider 内使用 */
-export function useServices(): BaseServices {
+export function useServices(): ResolvedBaseServices {
   const services = React.useContext(ServicesContext);
   if (!services) throw new Error("useServices 必须在 ServiceProvider 内使用");
-  return services;
+  // A0-CLEANUP3 3b：热服务面运行期恒有值（启动注册/断开 Proxy 兜底），收窄返回型
+  return services as ResolvedBaseServices;
 }
 
 /** 原 ps：useServicesOptional */
@@ -1218,8 +1220,8 @@ function coalesceServices<T>(fallback: T, override?: T | null): T {
 }
 
 /** 原 Ec：useBaseServices（context 服务 + 注册表基础服务合流） */
-export function useBaseServices(): BaseServices {
-  return coalesceServices(useServices(), useSessionRegistryStore((state) => state.baseServices));
+export function useBaseServices(): ResolvedBaseServices {
+  return coalesceServices(useServices(), useSessionRegistryStore((state) => state.baseServices as ResolvedBaseServices | null));
 }
 
 /** 原 qse：useBaseServicesOptional */
@@ -1231,7 +1233,7 @@ export function useBaseServicesOptional(): BaseServices | null {
 export type ConnectionKind = "local-ready" | "remote-ready" | "remote-waiting";
 
 export interface ResolvedWorkspaceServices {
-  services: BaseServices;
+  services: ResolvedBaseServices;
   remoteSessionId: string | null;
   isRemoteTarget: boolean;
   connectionKind: ConnectionKind;
@@ -1272,7 +1274,7 @@ export function useResolvedWorkspaceServices(
   );
   const connectionKind: ConnectionKind = isRemoteTarget ? (resolvedRemoteSessionId ? "remote-ready" : "remote-waiting") : "local-ready";
   return React.useMemo(
-    () => ({ services, remoteSessionId: resolvedRemoteSessionId, isRemoteTarget, connectionKind, rpcReady: connectionKind !== "remote-waiting" }),
+    () => ({ services: services as ResolvedBaseServices, remoteSessionId: resolvedRemoteSessionId, isRemoteTarget, connectionKind, rpcReady: connectionKind !== "remote-waiting" }),
     [connectionKind, isRemoteTarget, resolvedRemoteSessionId, services],
   );
 }
@@ -1283,7 +1285,7 @@ export function useWorkspaceServices(
   preferredRemoteSessionId: string | null | undefined,
   workspaceIdentity?: string | null,
   remoteTarget?: unknown,
-): BaseServices {
+): ResolvedBaseServices {
   return useResolvedWorkspaceServices(workspacePath, preferredRemoteSessionId, workspaceIdentity, remoteTarget).services;
 }
 
@@ -1568,7 +1570,7 @@ function withTaskSnapshotCache(service: TaskSnapshotService): TaskSnapshotServic
 /** 原 kg：useCachedTaskService —— 按工作区解析任务服务并套快照缓存 */
 export function useCachedTaskService(workspacePath?: string | null, remoteSessionId?: string | null, workspaceIdentity?: string | null): unknown {
   const services = workspacePath ? useWorkspaceServices(workspacePath, remoteSessionId, workspaceIdentity) : useServices();
-  const taskService = (services as { zcodeTaskService?: TaskSnapshotService }).zcodeTaskService;
+  const taskService = (services as unknown as { zcodeTaskService?: TaskSnapshotService }).zcodeTaskService; // A0-CLEANUP3 3b：交集型不再直接可比，二段断言
   if (!taskService || typeof taskService !== "object") return taskService;
   const known = snapshotProxies.get(taskService);
   if (known) return known;
@@ -1936,7 +1938,7 @@ export function V4ConversationProviderInner({
 }) {
   const { zcodeAgentService } = services;
   const api = React.useMemo(() => {
-    const transport = createConversationTransport(zcodeAgentService as AgentServiceV4, { workspacePath, workspaceIdentity });
+    const transport = createConversationTransport(zcodeAgentService as unknown as AgentServiceV4, { workspacePath, workspaceIdentity }); // A0-CLEANUP3 3b：zcodeAgentService 已具型为 AutomationsAgentService，与本地 AgentServiceV4 不重叠，双重收敛
     return {
       layer: new ConversationLayer({ transport }),
       sendCommand: (command: unknown) => transport.sendCommand(command),
@@ -4126,7 +4128,8 @@ export class SessionIndexStore {
 
 export interface SessionIndexScope {
   workspaceKey: string;
-  workspacePath: string;
+  /** bundle GS@styles 35529 仅传 workspaceKey(+endpointKey)，远程端点 scope 可无本地路径 */
+  workspacePath?: string;
   workspaceIdentity?: string;
   endpointKey?: string;
 }
@@ -4142,7 +4145,7 @@ interface SessionIndexPoolEntry {
 const sessionIndexPool = new Map<string, SessionIndexPoolEntry>(); // 原 LS
 const sessionIndexPoolReverse = new WeakMap<SessionIndexStore, SessionIndexPoolEntry>(); // 原 RS
 
-declare function createWorkspaceSessionIndexTransport(scope: { workspacePath: string; workspaceIdentity?: string }, agentService: unknown): SessionIndexTransport; // 原 zS=oAe
+declare function createWorkspaceSessionIndexTransport(scope: { workspacePath?: string; workspaceIdentity?: string }, agentService: unknown): SessionIndexTransport; // 原 zS=oAe
 declare function workspaceIdentityOf(scope: { workspacePath: string; workspaceIdentity?: string | null }): string; // 原 WS
 
 export function sessionIndexPoolKey(scope: SessionIndexScope, agentService?: unknown): string {
