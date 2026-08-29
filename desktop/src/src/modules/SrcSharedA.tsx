@@ -5769,6 +5769,57 @@ export const CLAUDE_TO_GLM_MODEL_MAP = {
   });
 
 /* ============================================================================
+ * §15 对外导出补充（A0-S2d · B5-10b/B5-14）：SrcSharedB §0 跨批次消费、原未导出的
+ *    40 符号（50 登记中 10 件已随 5706/5720 导出链转出，无需重复）；均为上方
+ *    边界链成员，export 不触碰实体正文（接口级依赖，不影响发射代码）；
+ *    逐项注明原混淆名与 jsx 行。DEFAULT_ASSET_INSTALL_MODE 为 B5-14 清单补导出。
+ * ============================================================================ */
+export {
+  zUndefined, // Ua（jsx 3130）
+  zDate, // Ja（jsx 3150）
+  looseRecord, // no（jsx 3226）
+  clientModeEnum, // Fo（jsx 3433）
+  browserRequestSchema, // Ko（jsx 3524）
+  browserDescriptorSchema, // Yo（jsx 3729）
+  sessionContextEnum, // Xo（jsx 3741）
+  browserResultSchema, // as（jsx 3829）
+  ASSET_INSTALL_MODES, // os（jsx 3851）
+  DEFAULT_ASSET_INSTALL_MODE, // ss（jsx 3852）—— B5-14 补导出
+  isFileTransferCapability, // ps（jsx 3862）
+  agentCliProviderEnum, // I（jsx 3865）
+  USAGE_REPORT_RANGES, // ms（jsx 3866）
+  clientModeEnum2, // Os（jsx 3953）
+  messageVisibilityEnum, // ks（jsx 3954）
+  syntheticSourceEnum, // As（jsx 3955）
+  workspaceRefSchema, // B（jsx 3956）
+  permissionDecisionEnum, // js（jsx 3962）
+  addRulesUpdateSchema, // Ps（jsx 3968）
+  permissionResponseSchema, // Fs（jsx 3973）
+  modelRefSchema, // V（jsx 3979）
+  sessionModeEnum, // Is（jsx 3984）
+  sessionStatusEnum, // Ls（jsx 3985）
+  goalTargetSchema, // zs（jsx 3987）
+  sessionDescriptorSchema, // Hs（jsx 4022）
+  subagentOriginSchema, // Us（jsx 4038）
+  messagePartSchema, // Qs（jsx 4180）
+  messageWithPartsSchema, // $s（jsx 4239）
+  cacheStatsSchema, // tc（jsx 4251）
+  contextBreakdownSchema, // nc（jsx 4262）
+  sessionStateEventSchema, // ic（jsx 4276）
+  extractTextFromParts, // ac（jsx 4288）
+  imBindingSchema, // sc（jsx 4292）
+  BOTS_STREAM_TIMEOUT_MS, // uc（jsx 4302）
+  BOTS_TASK_CHANNEL, // dc（jsx 4303）
+  BOTS_TASK_STREAM_CHANNEL, // fc（jsx 4304）
+  wslUserSchema, // Tc（jsx 4423）
+  integratedTerminalShellSchema, // Jc（jsx 4516）
+  approvalPolicyEnum, // hl（jsx 4831）
+  providerIds // W（jsx 4833）
+  // Dl/Ol/kl/Al/jl/Ml/Fl/Il/Ll（modelAliasOverrideSchema…providerEndpointsSchema）
+  // 与 Sl（GLM_REASONING_LEVELS）已随 5706/5720 导出链转出，此处不重复登记。
+};
+
+/* ============================================================================
  * 尾符号表（混淆名 → 语义名 → jsx 行 / js 行 → 导出字母；jsx 1–4901 全覆盖）
  *   ★ = 有导出字母；§2–§8 为捆绑 zod v4.3.6（vendored，语义名取 zod 上游命名）；
  *   §1/§9–§14 为 first-party（语义名按用法规约，把握度见报告 §5）

@@ -141,12 +141,15 @@ import type {
   StreamdownMode,
   HastNodeLike,
 } from "./MarkdownContext";
-import { readLastEditorId } from './CodeViewer';
+import { readLastEditorId, rememberLastEditorId } from './CodeViewer'; // 原 OA / kA
 import { resolveAvailableEditors } from './FileTreePanel';
 import { HighlightedCodeBlock } from './HighlightedCodeBlock';
-import { ContextMenuItem } from './LegacyDocEngineBModel';
 import { ImageGalleryGroup, ImageLightbox, MarkdownTableStickyScrollbar, MermaidFullscreenDialog } from './PreviewCards';
-import { G, Ia, J, X, Z, ps } from './SrcSharedB';
+import { cn as Z } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
+import { t as J } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
+import { useServicesOptional as ps } from './services'; // 原 ps（services.tsx 导出 useServicesOptional）
+import { usePlatform as l } from './ImeComposition'; // 原 l（imeComposition chunk 导出 M=usePlatform）
+import { FileIconImg as FileIcon, FOLDER_ICON_DATA_URI as FOLDER_ICON_SRC, resolveFileDisplayInfo as resolveFileMeta } from './ModalsLeaves'; // 原 Vc / Fc / zc
 
 /* ============================================================================
  * 0. 外部依赖声明（横切层 / 跨 chunk；原混淆名见注释）
@@ -158,11 +161,13 @@ interface IntlLike {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
 /** 原 G：useIntlContext */
+declare function G(): { intl: IntlLike };
 
 interface InstalledEditor {
   id: string;
   name: string;
-  iconDataUrl: string;
+  iconDataUrl?: string;
+  [key: string]: unknown;
 }
 interface PlatformServiceLike {
   openExternal(url: string): void;
@@ -174,7 +179,6 @@ interface PlatformServiceLike {
   ): Promise<{ success: boolean; error?: string }>;
 }
 /** 原 l：usePlatformService */
-declare function l(): PlatformServiceLike;
 
 interface WorkspaceServicesLike {
   fileService: {
@@ -189,12 +193,15 @@ declare function QA(options?: Record<string, unknown>): WorkspaceServicesLike | 
 /** 原 J：logger */
 
 /** 原 X：Button（size/variant） */
+declare const X: React.ComponentType<React.ButtonHTMLAttributes<HTMLButtonElement> & { size?: string; variant?: string }>;
 /** 原 Ia：Tooltip */
+declare const Ia: React.ComponentType<{ title: string; side?: string; children?: React.ReactNode }>;
 
 /* 原 yk/bk/xk/Sk/Ck：ContextMenu 原语族（本 chunk 48800 段，横切 X03） */
 declare const ContextMenu: React.ComponentType<Record<string, unknown>>; // yk
 declare const ContextMenuTrigger: React.ComponentType<Record<string, unknown>>; // bk
 declare const ContextMenuContent: React.ComponentType<Record<string, unknown>>; // xk
+declare const ContextMenuItem: React.ComponentType<Record<string, unknown>>; // Sk
 declare const ContextMenuSeparator: React.ComponentType<Record<string, unknown>>; // Ck
 
 /* 原 zb/Hb/Ub/Gb/Kb/Bb：Dialog 原语族 */
@@ -214,15 +221,9 @@ declare const IconLoader: React.ComponentType<{ className?: string }>; // cv
 declare const IconImageOff: React.ComponentType<{ className?: string }>; // zye
 declare const IconSpinner: React.ComponentType<{ className?: string }>; // M（imeComposition chunk）
 /** 原 Vc：文件图标 img 组件（js 5195） */
-declare const FileIcon: React.ComponentType<{ src: string; size?: number; className?: string }>;
 /** 原 Fc：Pc('folder') 目录图标 data-url */
-declare const FOLDER_ICON_SRC: string;
 
 /** 原 zc：文件元数据解析（fileIcon/fileName/normalizedPath；js 5150） */
-declare function resolveFileMeta(
-  path: string,
-  options?: { basePath?: string; kind?: string },
-): { fileIcon: string; fileIconSrc: string; fileName: string; filePath: string; normalizedPath: string };
 
 /** 原 mc：useTabStore 选择器（$A 用） */
 declare function mc<R>(selector: (state: { tabs: WorkspaceTabLike[] }) => R): R;
@@ -274,7 +275,6 @@ interface LightboxItem {
 /** 原 JA：可用编辑器目录解析（js 51052） */
 /** 原 OA：读取上次使用的编辑器 id */
 /** 原 kA：记住本次使用的编辑器 id */
-declare function rememberLastEditorId(editorId: string, storage?: Storage | null): void;
 
 /* ============================================================================
  * 1. 代码预览设置默认值 + 主题解析（原 lo / EHe / DHe / bHe，js 1040 / 51389 / 51398 / 51315）
@@ -343,7 +343,7 @@ export function childrenToText(children: React.ReactNode): string {
     : Array.isArray(children)
       ? children.map(childrenToText).join(``)
       : React.isValidElement(children)
-        ? childrenToText(children.props.children)
+        ? childrenToText((children.props as { children?: React.ReactNode }).children)
         : ``;
 }
 
@@ -835,7 +835,7 @@ const SYSTEM_ROOT_DIRS = new Set([
 ]); // 原 rVe
 
 /** 原 qo：decodeURI 安全版 */
-function decodeUriSafe(value: string): string {
+export function decodeUriSafe(value: string): string {
   if (!/%[0-9a-fA-F]{2}/.test(value)) return value;
   try {
     return decodeURI(value);
@@ -923,9 +923,9 @@ export function parseFileHref(href: string): ParsedFileHref {
 }
 
 /** 原 Ko 依赖：绝对路径判定（js 1941 区域） */
-declare const ABS_UNIX_REGEX: RegExp; // 原 iae
-declare const ABS_WIN_REGEX: RegExp; // 原 aae
-function isAbsolutePath(path: string): boolean {
+const ABS_UNIX_REGEX = /^[a-zA-Z]:[\\/]/; // 原 iae（styles 1925 逐字；名为 UNIX 实为盘符形，不做改名）
+const ABS_WIN_REGEX = /^\\\\/; // 原 aae（styles 1926 逐字）
+export function isAbsolutePath(path: string): boolean {
   return path.startsWith(`/`) || ABS_UNIX_REGEX.test(path) || ABS_WIN_REGEX.test(path);
 }
 /** 原 dA */
@@ -1254,7 +1254,7 @@ interface ExternalLinkProps {
 /** 原 IHe（js 51461）：外链按钮 + 右键菜单（打开 / 外部浏览器打开） */
 export function ExternalLinkWithContextMenu({ children, className, href, onClick, onOpenExternalUrl, ...rest }: ExternalLinkProps) {
   const { intl } = G();
-  const platform = l();
+  const platform = l() as unknown as PlatformServiceLike;
   const open = React.useCallback(
     (options: { forceExternal?: boolean } = {}) => {
       const inApp = !options.forceExternal && isInAppBrowserUrl(href);
@@ -1340,8 +1340,8 @@ interface FileLinkWithMenuProps {
 /** 原 RHe（js 51537 / jsx 46389）：文件链接 + 右键「打开方式」编辑器菜单 */
 export function FileLinkWithContextMenu({ className, fileIconSrc, fileLink, onOpen }: FileLinkWithMenuProps) {
   const { intl } = G();
-  const platform = l();
-  const services = ps();
+  const platform = l() as unknown as PlatformServiceLike;
+  const services = ps() as WorkspaceServicesLike | null;
   const remote = useRemoteWorkspaceInfo({
     workspacePath: fileLink.workspacePath,
     workspaceIdentity: fileLink.workspaceIdentity,
@@ -1354,7 +1354,7 @@ export function FileLinkWithContextMenu({ className, fileIconSrc, fileLink, onOp
     () =>
       remote.isRemoteWorkspace && !remote.remoteTarget
         ? []
-        : resolveAvailableEditors({ installedEditors: installed, selectedEditorId: null, remoteTarget: remote.remoteTarget })
+        : resolveAvailableEditors({ installedEditors: installed, selectedEditorId: null, remoteTarget: remote.remoteTarget as { kind?: string } | null })
             .availableEditors,
     [installed, remote],
   );
@@ -1424,7 +1424,7 @@ export function FileLinkWithContextMenu({ className, fileIconSrc, fileLink, onOp
         {preferredEditor ? (
           availableEditors.map((editor) => (
             <ContextMenuItem key={editor.id} onSelect={() => openInThirdParty(editor)}>
-              <img src={editor.iconDataUrl} alt={editor.name} className={`size-4 shrink-0`} />
+              <img src={editor.iconDataUrl as string | undefined} alt={editor.name} className={`size-4 shrink-0`} />
               <span>{editor.name}</span>
             </ContextMenuItem>
           ))
@@ -1587,7 +1587,7 @@ export function extractTableRows(table: HTMLTableElement | null): string[][] {
     : [];
 }
 /** 原 kk */
-function tableLayoutRoot(element: Element | null, fallback: Element | null): Element | null {
+export function tableLayoutRoot(element: Element | null, fallback: Element | null): Element | null {
   return element?.closest(TABLE_LAYOUT_ROOT_SELECTOR) ?? fallback;
 }
 /** 原 wBe：按视口宽度选粘性条内缩 */
@@ -1601,7 +1601,7 @@ function stickyInsetForViewport(): number {
         : STICKY_INSET_DESKTOP_PX;
 }
 /** 原 TBe */
-function tableLayoutInsets(root: Element | null): { leftInset: number; rightInset: number } {
+export function tableLayoutInsets(root: Element | null): { leftInset: number; rightInset: number } {
   if (typeof window < `u` && root?.matches(`[data-markdown-table-layout-root="true"]`)) {
     return { leftInset: cssVarPx(root, LEFT_INSET_VAR), rightInset: cssVarPx(root, RIGHT_INSET_VAR) };
   }
@@ -1614,13 +1614,13 @@ interface RectMetrics {
   width: number;
 }
 /** 原 Ak */
-function measureRect(element: Element | null): RectMetrics | null {
+export function measureRect(element: Element | null): RectMetrics | null {
   if (!element) return null;
   const rect = element.getBoundingClientRect();
   return { left: Math.round(rect.left), right: Math.round(rect.right), width: Math.round(rect.width) };
 }
 /** 原 jk */
-function sameRect(a: RectMetrics | null, b: RectMetrics | null): boolean {
+export function sameRect(a: RectMetrics | null, b: RectMetrics | null): boolean {
   return a?.left === b?.left && a?.right === b?.right && a?.width === b?.width;
 }
 /** 原 Mk */
@@ -1630,17 +1630,17 @@ function cssVarPx(element: Element | null, name: string): number {
   return Number.isFinite(value) ? Math.max(0, value) : 0;
 }
 /** 原 Nk：聊天底部 dock 高度（--chat-bottom-dock-height 或 composer dock 实测） */
-function chatDockHeight(root: Element | null): number {
+export function chatDockHeight(root: Element | null): number {
   const fromVar = cssVarPx(root, `--chat-bottom-dock-height`);
   return fromVar > 0 ? fromVar : (root?.querySelector(COMPOSER_DOCK_SELECTOR)?.getBoundingClientRect().height ?? 0);
 }
 /** 原 EBe：回底按钮高度 + 间隙 */
-function backToBottomInset(root: Element | null): number {
+export function backToBottomInset(root: Element | null): number {
   const button = root?.querySelector(BACK_TO_BOTTOM_BUTTON_SELECTOR);
   return button ? button.getBoundingClientRect().height + STICKY_GAP_PX : 0;
 }
 /** 原 Pk：向上找可纵向滚动的祖先 */
-function findVerticalScroller(element: Element | null, fallback: Element | null): Element | null {
+export function findVerticalScroller(element: Element | null, fallback: Element | null): Element | null {
   if (typeof window > `u`) return fallback;
   let current = element?.parentElement ?? null;
   while (current) {
@@ -1673,8 +1673,8 @@ export function stickyScrollbarOffset(args: {
   const clamped = Math.min(args.frameBottom, args.frameTop + Math.max(0, args.scrollbarHeight));
   return Math.min(0, Math.min(args.frameBottom, Math.max(clamped, args.viewportBottom)) - args.frameBottom);
 }
-/** 原 kBe */
-export function tableNeedsStickyScrollbar(root: Element | null, table: HTMLTableElement | null): boolean {
+/** 原 kBe（styles 49084：对象参数 { root, table }） */
+export function tableNeedsStickyScrollbar({ root, table }: { root: Element | null; table: HTMLTableElement | null }): boolean {
   if (!table) return false;
   const scroller = findVerticalScroller(table, root);
   const viewportHeight =
@@ -2252,7 +2252,7 @@ export function ZCodeCodeBlock({
  * 10. 图片 / 段落渲染器（原 mVe / dVe + 画廊原语）
  * ==========================================================================*/
 
-const IMAGE_THUMBNAIL_CLASS =
+export const IMAGE_THUMBNAIL_CLASS =
   `my-4 block w-fit max-w-1/2 cursor-zoom-in overflow-hidden rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background`; // 原 Gk
 const IMAGE_INNER_CLASS = `h-auto max-h-90 max-w-full rounded-xl border border-border bg-background object-cover`; // 原 Kk
 
@@ -2285,7 +2285,7 @@ export interface MarkdownImageProps {
 /** 原 mVe（js 50561 / jsx 45449）：本地图片走 fileService.readMediaPreview，失败/远端降级；灯箱 Wk */
 export function MarkdownImage({ alt, className, node, onError, onLoad, src, workspacePath, ...rest }: MarkdownImageProps) {
   const { intl } = G();
-  const services = ps();
+  const services = ps() as WorkspaceServicesLike | null;
   const rawSrc = typeof src === `string` ? src : ``;
   const local = React.useMemo(() => {
     const link = resolveWorkspaceFileLink(workspacePath, rawSrc);

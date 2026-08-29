@@ -121,8 +121,7 @@
  */
 
 import * as React from "react";
-import { resolveEffectiveProvider } from './21359';
-import { CreateBranchDialog, SwitchAssistDialog, resolveBranchDisplayLabel, useGitBranchSwitcher } from './CmdkPaletteDeep';
+import { CommitGraphDialog as CommitGraphViewer, CreateBranchDialog, SwitchAssistDialog, resolveBranchDisplayLabel, useGitBranchSwitcher } from './CmdkPaletteDeep'; // CommitGraphViewer 原 fct
 import { resolveAvailableEditors } from './FileTreePanel';
 import { SummaryGitSection, useTaskFileActions } from './GitReview';
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, dismissToast, toast } from './ImeComposition';
@@ -134,13 +133,12 @@ import { useBaseServices, useWorkspaceServices } from './services';
 import { useFeedbackStore } from './stores-core';
 import { useTrajectoryViewerStore, useTuiEditRequestStore } from './stores-session';
 import { usePinnedTaskListStore, useWorkspaceTaskListStore } from './stores-tasks';
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 /** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
 interface IntlShape {
@@ -216,11 +214,13 @@ interface RemoteTarget {
   container?: string;
   sshConfigAlias?: string;
 }
-interface InstalledEditor { id: string; name: string; iconDataUrl: string }
+/** type 别名（对 FileTreePanel.InstalledEditor 的索引签名形可赋值）；iconDataUrl 为平台实返字段 */
+type InstalledEditor = { id: string; name: string; iconDataUrl: string };
 interface GitSummary {
   isGitAvailable: boolean;
   isRepository: boolean;
-  branchName: string;
+  /** 与 GitReview.GitSummary 对齐：无仓库时为 null（useGitBranchSwitcher/resolveBranchDisplayLabel 均收 string | null） */
+  branchName: string | null;
   headRefType: "branch" | "detached" | string;
 }
 
@@ -595,10 +595,10 @@ export function TopBarIconButton({
  *     右侧 −□× 三键总宽，再三等分得到单键宽（供 ⌄ 菜单/终端开关贴合原生键宽）。
  * ==========================================================================*/
 
-const WINDOWS_CAPTION_RIGHT_INSET_VAR = "var(--windows-caption-controls-right-inset)"; // 原 s4
+export const WINDOWS_CAPTION_RIGHT_INSET_VAR = "var(--windows-caption-controls-right-inset)"; // 原 s4
 const WINDOWS_CAPTION_CONTROL_WIDTH_VAR = "var(--windows-caption-control-width)";      // 原 ROt
 
-function windowsCaptionInsetStyle(fallbackTotalWidth = 136): Record<string, string> {
+export function windowsCaptionInsetStyle(fallbackTotalWidth = 136): Record<string, string> {
   const safeFallback = Number.isFinite(fallbackTotalWidth) && fallbackTotalWidth > 0 ? Math.round(fallbackTotalWidth) : 136;
   return {
     "--windows-caption-controls-right-inset": `calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - ${safeFallback}px)))`,
@@ -908,7 +908,7 @@ declare function useConfirmDialog(): (opts: { title: string; description: string
  * 产品文档 / 导出日志 | [stdio tap 开关 + DevTools（开发可见）] | 关闭窗口。
  * ==========================================================================*/
 
-const PRODUCT_DOCS_URL = "https://zcode.z.ai/docs"; // 原 lw（js 39410）
+export const PRODUCT_DOCS_URL = "https://zcode.z.ai/docs"; // 原 lw（js 39410）
 const CAPTION_MENU_ALIGN_OFFSET = -12;              // 原 QPt（js 141825）
 
 /** 原 $Pt：自动更新仅在生产构建可用 */
@@ -1009,7 +1009,8 @@ interface WindowsCaptionMenuProps {
   onToggleTerminal: () => void;
   onToggleBrowser: () => void;
   /** header：带 border-l 分隔线；其它场景（如首页草稿头）可去掉 */
-  triggerPresentation?: "header" | "bare";
+  /** header-borderless：Windows 草稿 caption 菜单（bundle 185695/205611 实传值） */
+  triggerPresentation?: "header" | "header-borderless" | "bare";
   /** Windows：按原生 caption 键宽排版 */
   useWindowsCaptionSpacing?: boolean;
 }
@@ -1614,7 +1615,12 @@ function OpenInEditorButtonGroup({
 
   // 原 JA：在已安装列表中挑出选中项（找不到则取第一个可用）
   const { availableEditors, selectedEditor } = React.useMemo(
-    () => resolveAvailableEditors({ installedEditors, selectedEditorId, remoteTarget }),
+    // remoteTarget ?? null：FTP 参数收 null 不收 undefined；断言回本族 InstalledEditor（返回为入参子集同引用，含 iconDataUrl）
+    () => resolveAvailableEditors({ installedEditors, selectedEditorId, remoteTarget: remoteTarget ?? null }) as {
+      availableEditors: InstalledEditor[];
+      selectedEditor: InstalledEditor | null;
+      selectionKind: string;
+    },
     [installedEditors, remoteTarget, selectedEditorId],
   );
 
@@ -2223,6 +2229,7 @@ export function SessionHeaderLeft({
 
 /** D5c：TUI 编辑打开请求信箱（实现见 stores-session.tsx TuiEditRequestStore） */
 declare function useTaskListItems(query: { kind: "pinned"; workspaceTabs: unknown[]; sortBy: "updated"; searchQuery: string; expanded: boolean; collapsedLimit: number }): { items: Array<{ taskId: string }>; loading: boolean };
+declare function resolveEffectiveProvider(taskProvider: string | null | undefined, selectedProvider: string | null | undefined): string; // 原 Zge（jsx 21359；前批次误作 './21359' import，复原为 declare）
 declare function remoteTargetDisplayLabel(target: RemoteTarget): string;
 declare function sshDecoratedProjectName(name: string, target: RemoteTarget | null | undefined): string;
 declare function applyOptimisticTaskMutation(mutation: { previousTask: TaskMeta; nextTask: TaskMeta; previousState: { pinned: boolean; archived: boolean }; nextState: { pinned: boolean; archived: boolean } }): void;
@@ -2246,7 +2253,7 @@ export function TaskRenameDialog({
 }: {
   open: boolean;
   value: string;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   intl: IntlShape;
   onOpenChange: (open: boolean) => void;
   onChange: (value: string) => void;
@@ -2315,7 +2322,7 @@ declare function isImeEnter(args: { compositionActive: boolean; nativeEvent: Rea
  *     复制工作区路径/任务路径/日志路径/[会话ID]/[供应商配置] | [查看轨迹]。
  * ==========================================================================*/
 
-interface TaskActionMenuItemsProps {
+export interface TaskActionMenuItemsProps {
   intl: IntlShape;
   isPinned: boolean;
   fileManagerLabel: string;
@@ -2644,7 +2651,6 @@ declare const PopoverContentPrimitive: React.FC<React.ComponentPropsWithoutRef<"
 declare const CommandPalette: React.FC<React.ComponentPropsWithoutRef<"div">>;
 declare const CommandInput: React.FC<React.ComponentPropsWithoutRef<"input">>;
 declare const CommandItem: React.FC<React.ComponentPropsWithoutRef<"div"> & { value: string; disabled?: boolean; onSelect?: () => void }>;
-declare const CommitGraphViewer: React.FC<{ open: boolean; workspacePath: string; onOpenChange: (v: boolean) => void }>;
 
 /* ============================================================================
  * 5.7 RemoteSyncMenuItems / RemoteSyncDialogs（原 n4/r4，js 127149/127248）

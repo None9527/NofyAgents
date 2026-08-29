@@ -101,12 +101,20 @@
  *   lp → floatingLayerStyle (16795) | up → paragraphIsCheckboxYesNoRow (16810)
  *
  * ----------------------------------------------------------------------------
- * 外部契约（其他段/层提供，本文件以 declare 登记）
+ * 外部契约（A0-S2c 接线后）
  * ----------------------------------------------------------------------------
- *   chunk-YE7GQOST：deepCloneModel（h）/ finalizeModel（g）/ newBlockId（v）
- *   [E2]/公共层：twipsToPxFloat（Br）/ 页面几何 parsePageGeometry（Yr）
- *   [E3]：字体名归一 normalizeFontFamily（m_）/ 颜色主题化 themeColor（p_）
- *   [E4]：段落行高估算（lg/zh）/ 编号标签（Zv/Xv/$v/ny/ey/qv/Jv/Uv/ty）等
+ *   chunk-YE7GQOST（经 DocxWasmGlue）：deepCloneModel←cloneDocModel（h）/ finalizeModel←ensureDocModelBlockIds（g）；
+ *     newBlockId（v）本文件无消费点，declare 已删
+ *   公共层 previewPane：parsePageGeometryLocal←parsePageGeometry（Yr）/ resolveImageSrc（_i）
+ *   C1：estimateNodeHeight（lg）/ paragraphOuterHeight（zh）/ tableRowHeights（$h）/ rowIsSplittable（Gh）/
+ *     rowNeedsHeightEstimation（Kh）/ isFloatingImageNode（Kg）/ isInlineImageNode（Ng）/
+ *     parseTextBoxLines（X_）/ syntheticTextBoxIsGraphicShape（nv）
+ *   C2：paragraphBorderVisible（Wy，转导出 isBorderVisible）/ cloneParagraphStyle（ay，转导出）
+ *   Engine4：cachedStructuralHash（qs，以 contentSignatureLocal 名导入）
+ *   BLayout：collectNodeNoteReferences（bm，以 collectNoteReferences 名导入）
+ *   [E3]：normalizeFontFamily（m_）/ themeAwareColor（p_）——C5 canonical 族之本地副本，按 B5-14 §2 保留；
+ *     A0-S2c 条目4：域内消费点（C1/C2/BLayout/BPageRegistry/C4）已改指 C5 导出，副本仅作导出保留
+ *   仍保留 declare：renderToStaticMarkupContract（react-dom/server，[V1] CJS 段 Te.renderToStaticMarkup）
  * ============================================================================
  */
 
@@ -420,18 +428,34 @@ export interface DocxTextRange {
   end: DocxTextPosition;
 }
 
-/* --- 外部契约（跨段/跨 chunk） --- */
+/* --- 外部契约（跨段/跨 chunk）：A0-S2c 已接线为真实导入 --- */
 
-/** chunk-YE7GQOST `i` 导出：模型深拷贝（原 h） */
-declare function deepCloneModel(model: DocxEditorModel): DocxEditorModel;
-/** chunk-YE7GQOST `l` 导出：模型终结化（原 g；起始模型构造链用） */
-declare function finalizeModel(model: DocxEditorModel): DocxEditorModel;
-/** chunk-YE7GQOST `t` 导出：新块 id 生成器（原 v） */
-declare function newBlockId(): string;
-/** [E2]：段落行高估算（原 lg，jsx 18913；锚点登记） */
-declare function estimateNodeHeight(node: DocxNode, contentWidthPx: number, gridLinePitchPx: number | undefined, extra?: unknown): number;
-/** [E2]：段落外层高度（原 zh，jsx 18571；锚点登记） */
-declare function paragraphOuterHeight(paragraph: DocxParagraphNode, contentWidthPx: number, gridLinePitchPx?: number): number;
+/**
+ * chunk-YE7GQOST 助手（B5-14-Final.report §2.2/§2.3 裁决）：`i`=cloneDocModel（原 h）、
+ * `l`=ensureDocModelBlockIds（原 g）经 DocxWasmGlue 以语义名导入；模型类型族不同，按本文件契约桥接。
+ * `t`=allocateBlockId（原 v）本文件无消费点，declare 删除。
+ */
+import { cloneDocModel, ensureDocModelBlockIds } from "./DocxWasmGlue";
+const deepCloneModel = cloneDocModel as unknown as (model: DocxEditorModel) => DocxEditorModel; // 原 h
+const finalizeModel = ensureDocModelBlockIds as unknown as (model: DocxEditorModel) => DocxEditorModel; // 原 g
+
+/**
+ * [E2]/[E4] 段落·图片·文本框助手 → C1 实体导出。模型类型族不同（本文件 DocxNode 族 vs C1 局部类型），
+ * 按本文件契约作类型桥接，运行时零改动。
+ */
+import {
+  estimateNodeHeight as estimateNodeHeightC1, // 原 lg（jsx 18915）
+  paragraphOuterHeight as paragraphOuterHeightC1, // 原 zh（jsx 18572）
+  isFloatingImageNode as isFloatingImageNodeC1, // 原 Kg（jsx 19817）
+  isInlineImageNode as isInlineImageNodeC1, // 原 Ng（jsx 19542）
+  parseTextBoxLines as parseTextBoxParagraphs, // 原 X_（jsx 20504）
+  syntheticTextBoxIsGraphicShape as imageIsRealPictureShapeC1, // 原 nv（jsx 20674）
+} from "./LegacyDocEngineC1";
+const estimateNodeHeight = estimateNodeHeightC1 as unknown as (node: DocxNode, contentWidthPx: number, numberingDefinitions?: unknown, gridPitchPx?: number) => number;
+const paragraphOuterHeight = paragraphOuterHeightC1 as unknown as (paragraph: DocxParagraphNode, contentWidthPx: number, gridLinePitchPx?: number) => number;
+const isFloatingImageNode = isFloatingImageNodeC1 as unknown as (image: DocxImageNode) => boolean;
+const isInlineImageNode = isInlineImageNodeC1 as unknown as (image: DocxImageNode) => boolean;
+const imageIsRealPictureShape = imageIsRealPictureShapeC1 as unknown as (image: DocxImageNode) => boolean;
 /** [E3]：字体名归一（原 m_，jsx 20133；定义属 [E6] 区段，此处按语义实现） */
 export function normalizeFontFamily(family: string | undefined): string | undefined {
   if (!family) return;
@@ -453,60 +477,24 @@ export function themeAwareColor(color: string | undefined, theme: `light` | `dar
   const lower = color.trim().toLowerCase();
   return lower === `#000` || lower === `#000000` || lower === `#111111` || lower === `#111827` || lower === `black` || lower === `rgb(0,0,0)` || lower === `rgb(0, 0, 0)` ? `#f3f4f6` : color;
 }
-/** [E4]：编号种类判定（原 Zv，锚点登记） */
-declare function numberingKindOf(paragraph: DocxParagraphNode, definitions: unknown): `unordered` | `ordered` | undefined;
-/** [E4]：编号段落判定（原 Xv） */
-declare function isNumberedParagraph(paragraph: DocxParagraphNode): boolean;
-/** [E4]：段落是否含制表位文本（原 cm 语义；锚点登记） */
-declare function isEmptyTextParagraph(paragraph: DocxParagraphNode): boolean;
-/** [E4]：图片浮动判定族（原 Ng=inline?/Kg=floating?；锚点登记） */
-declare function isFloatingImageNode(image: DocxImageNode): boolean;
-declare function isInlineImageNode(image: DocxImageNode): boolean;
-/** [E4]：合成文本框文本提取（原 Zf 依赖 X_，锚点登记） */
-declare function parseTextBoxParagraphs(sourceXml: string): { segments: { text: string }[] }[];
-/** [E4]：边框可见性判定（原 Wy） */
-export declare function isBorderVisible(border: DocxBorderSpec | undefined): boolean;
-/** [E4]：段落样式浅克隆（原 ay） */
-export declare function cloneParagraphStyle(style: DocxParagraphStyle | undefined, sourceXml?: string): DocxParagraphStyle | undefined;
-/** [E4]：文本框图片渲染（原 tv；锚点登记） */
-declare function renderTextBoxImage(image: DocxImageNode, a?: unknown, b?: unknown, c?: unknown, d?: unknown): string | undefined;
-/** [E4]：浮动包装模式解析（原 Op） */
-declare function resolveWrapMode(floating: DocxFloatingImage | undefined): { mode: string; [key: string]: unknown };
-/** [E4]：浮动参数按模式构造（原 Ap） */
-declare function buildFloatingForWrapMode(mode: string, current: DocxFloatingImage | undefined, extra?: unknown): DocxFloatingImage | undefined;
-/** [E4]：字节 → base64（原 Ob） */
-declare function bytesToBase64Url(bytes: Uint8Array): string;
-/** [E4]：嵌套表定位（原 wy） */
-declare function locateNestedTable(location: unknown): { hostTableIndex: number; hostRowIndex: number; hostCellIndex: number; rootContentIndex: number; descendants: { rowIndex: number; cellIndex: number; contentIndex: number }[] } | undefined;
-/** [E4]：表格首选项（原 ox：表内首个可定位单元格） */
-declare function firstTableCellLocation(model: DocxEditorModel, tableIndex: number): { kind: `table-cell`; tableIndex: number; rowIndex: number; cellIndex: number } | undefined;
-/** [E4]：修订/批注模型操作（原 da/fa/Sa/pa；锚点登记） */
-declare function acceptRevision(model: DocxEditorModel, target: { nodeIndex: number; revisionId: string; kind: string }): { ok: true; model: DocxEditorModel } | { ok: false; reason: string };
-declare function rejectRevision(model: DocxEditorModel, target: { nodeIndex: number; revisionId: string; kind: string }): { ok: true; model: DocxEditorModel } | { ok: false; reason: string };
-declare function addComment(model: DocxEditorModel, target: { nodeIndex: number; startOffset: number; endOffset: number; text: string; author?: string; initials?: string; date?: string }): { ok: true; model: DocxEditorModel; commentId: number } | { ok: false; reason: string };
-declare function setCommentResolved(model: DocxEditorModel, commentId: number, resolved: boolean): { ok: true; model: DocxEditorModel } | { ok: false; reason: string };
-/** [E4]：DOCX 序列化（原 no，锚点登记） */
-declare function serializeDocx(model: DocxEditorModel, pkg: unknown): Promise<Uint8Array>;
-/** [E4]：分页主函数（原 Mg，jsx 19190；锚点登记，布局文件亦引用） */
-declare function paginateDocument(
-  model: DocxEditorModel,
-  pageContentHeightPx: number,
-  pageContentWidthPx: number,
-  numberingDefinitions: unknown,
-  sectionMetrics: SectionPageMetrics[],
-  options?: {
-    allowParagraphLineSplitting?: boolean;
-    suppressSpacingBeforeAfterPageBreak?: boolean;
-    preferLastRenderedParagraphStartBreaks?: boolean;
-    strictLastRenderedParagraphStartBreaks?: boolean;
-    measuredTableRowHeightsByNodeIndex?: Record<number, number[]>;
-    measuredPageContentHeightsPxByPageIndex?: number[];
-    measuredParagraphOuterHeightsPxByNodeIndex?: Map<number, number>;
-    precomputedNumberingLabels?: Map<unknown, unknown>;
-  },
-): PageSegment[][];
-/** [E2]：图片 src 解析（公共层 §4 _i） */
-import { resolveImageSrc } from "./previewPaneOfficeLegacyDocContent";
+/**
+ * A0-S2c 删除：本文件无消费点的 [E4] declare——numberingKindOf（原 Zv→C2 numberingKindOf）/
+ * isNumberedParagraph（原 Xv→C2 paragraphHasNumbering）/ isEmptyTextParagraph（原 cm→BLayout paragraphIsEmptyText）。
+ * 图片浮动判定族（原 Kg/Ng）与文本框行提取（原 X_）已接线 C1，见上。
+ */
+/** [E4]：边框可见性判定（原 Wy = C2 paragraphBorderVisible，jsx 22431）与段落样式浅克隆（原 ay = C2 cloneParagraphStyle，jsx 21948）；BLayout 经本文件转导出消费 */
+import { paragraphBorderVisible as isBorderVisible, cloneParagraphStyle } from "./LegacyDocEngineC2";
+export { isBorderVisible, cloneParagraphStyle };
+/**
+ * A0-S2c 删除：本文件无消费点的 [E4] declare——renderTextBoxImage（原 tv→C1 renderTextBoxSvg）/
+ * resolveWrapMode（原 Op）/ buildFloatingForWrapMode（原 Ap）/ bytesToBase64Url（原 Ob→C2 bytesToBase64Inline）/
+ * locateNestedTable（原 wy→C2 locateNestedTable）/ firstTableCellLocation（原 ox→C2 firstEditableCellLocation）/
+ * acceptRevision·rejectRevision·addComment·setCommentResolved（原 da/fa/Sa/pa 标注系调用点猜测，
+ * 实为 C3 交互面/Engine3 修订族符号）/ serializeDocx（原 no→Engine4 serializeDocxPackage）/
+ * paginateDocument（原 Mg→C1 paginateDocument，jsx 19190；布局文件引用由其自行接线）。
+ */
+/** 公共层：图片 src 解析（§4 _i）＋ sectPr 页面几何解析（原 Yr；parsePageGeometryLocal 接线） */
+import { resolveImageSrc, parsePageGeometry as parsePageGeometryLocal } from "./previewPaneOfficeLegacyDocContent";
 
 /* --- 分页中间类型 --- */
 
@@ -712,7 +700,12 @@ export function letterheadColumnStyle(): Record<string, string | number> {
 }
 
 /** 原 au：信头容器样式（可抑制双栏布局） */
-export function letterheadContainerStyle(options?: { suppressLetterheadColumnLayout?: boolean }): Record<string, string | number> {
+// A0-S2c：原式 au(e, t, n)（jsx 15279）收信头侧别两参但体内未用；补齐调用面，不改语义
+export function letterheadContainerStyle(
+  _letterheadFloatSide?: string,
+  _oppositeLetterheadFloatSide?: string,
+  options?: { suppressLetterheadColumnLayout?: boolean },
+): Record<string, string | number> {
   return options?.suppressLetterheadColumnLayout
     ? { width: `100%`, boxSizing: `border-box`, marginLeft: 0, marginRight: 0 }
     : {};
@@ -879,17 +872,19 @@ export function normalizeMeasuredHeight(height: number): number {
  * §6 表格行高核算（原 Bu/Vu/Hu/Uu/Wu，jsx 15404-15493）
  * ==========================================================================*/
 
-/** [E2]：表格自然行高估算（原 $h；锚点登记） */
-declare function estimateTableRowHeights(
-  table: DocxTableNode,
-  contentWidthPx: number,
-  numberingDefinitions: unknown,
-  gridLinePitchPx: number | undefined,
-  contentHeightPx?: number,
-): number[];
-/** [E2]：表格行头判定（原 Kh/Gh；锚点登记） */
-declare function isHeaderRow(row: DocxTableRow): boolean;
-declare function isRepeatHeaderRow(row: DocxTableRow): boolean;
+/** [E2]：表格自然行高估算（原 $h = C1 tableRowHeights，jsx 18713） */
+import {
+  tableRowHeights as estimateTableRowHeightsC1, // 原 $h
+  rowIsSplittable as isHeaderRowC1, // 原 Gh（jsx 18673）
+  rowNeedsHeightEstimation as isRepeatHeaderRowC1, // 原 Kh（jsx 18676）
+} from "./LegacyDocEngineC1";
+const estimateTableRowHeights = estimateTableRowHeightsC1 as unknown as (table: DocxTableNode, contentWidthPx: number, numberingDefinitions: unknown, gridLinePitchPx: number | undefined, contentHeightPx?: number) => number[];
+/**
+ * [E2]：表格行判定（原标注 Kh/Gh 语义名系猜测；jsx 15404 Bu 实际消费 Gh=rowIsSplittable、
+ * Kh=rowNeedsHeightEstimation，均出自 C1，此处按实际实体接线并保留本文件语义名）
+ */
+const isHeaderRow = isHeaderRowC1 as unknown as (row: DocxTableRow) => boolean;
+const isRepeatHeaderRow = isRepeatHeaderRowC1 as unknown as (row: DocxTableRow) => boolean;
 
 /**
  * 原 Bu：测量行高 ↔ 模型行高 核算——按行高规则（exact/atLeast/auto）
@@ -970,8 +965,8 @@ export function resolveMeasuredRowHeights(
   return Object.keys(result).length > 0 ? result : void 0;
 }
 
-/** [E4]：内容签名（原 qs，jsx 14889；锚点登记） */
-declare function contentSignatureLocal(node: DocxNode): string;
+/** [E4]：内容签名（原 qs = Engine4 cachedStructuralHash，jsx 14889） */
+import { cachedStructuralHash as contentSignatureLocal } from "./LegacyDocEngine4";
 
 /** 原 Hu：分页上下文快照（块级签名序列） */
 export function buildPaginationSnapshot(
@@ -1734,8 +1729,7 @@ export function pageIdentityKey(segments: PageSegment[]): string {
   return segments.map(segmentIdentityKey).join(`::`);
 }
 
-/** [E2]/公共层：sectPr → 页面几何（原 Yr；公共层 parsePageGeometry） */
-declare function parsePageGeometryLocal(sectPr: string | undefined): { pageWidthPx: number; pageHeightPx: number; marginsPx: { top: number; right: number; bottom: number; left: number }; headerDistancePx: number; footerDistancePx: number; docGridLinePitchPx?: number };
+/** [E2]/公共层：sectPr → 页面几何（原 Yr）→ 公共层 parsePageGeometry（§0 以 parsePageGeometryLocal 名导入；返回 DocxPageGeometry，与本处原契约同构） */
 
 /** 原 Vd：节序列 → 逐节页面度量（内容宽高/多栏倍率/网格行距） */
 export function buildSectionPageMetrics(sections: DocxSection[], fallbackGeometry: { pageWidthPx: number; pageHeightPx: number; marginsPx: { top: number; right: number; bottom: number; left: number }; headerDistancePx: number; footerDistancePx: number; docGridLinePitchPx?: number }): SectionPageMetrics[] {
@@ -1858,8 +1852,10 @@ export function estimateFootnoteHeight(footnotes: DocxNode[], contentWidthPx: nu
   return Math.max(0, height);
 }
 
-/** [E4]：节点脚注/尾注引用收集（原 bm，jsx 17866） */
-declare function collectNoteReferences(node: DocxNode, kind: `footnote` | `endnote`, rowRange: PageSegment[`tableRowRange`], lineRange: PageSegment[`paragraphLineRange`]): string[];
+/** [E4]：节点脚注/尾注引用收集（原 bm = BLayout collectNodeNoteReferences，jsx 17871） */
+import { collectNodeNoteReferences as collectNoteReferencesBL } from "./LegacyDocEngineBLayout";
+/** BLayout 侧返回 number[]（重建期类型分歧）；此处按本文件既有 string[] 契约桥接，运行时为同一实体。 */
+const collectNoteReferences = collectNoteReferencesBL as unknown as (node: DocxNode, kind: `footnote` | `endnote`, rowRange: PageSegment[`tableRowRange`], lineRange: PageSegment[`paragraphLineRange`]) => string[];
 
 /** 原 Yd：页段引用的脚注实体收集（去重、按定义序） */
 export function collectPageFootnotes(model: DocxEditorModel, segments: PageSegment[], footnotesById: Map<string, { id: string; nodes: DocxNode[] }>): { id: string; nodes: DocxNode[] }[] {
@@ -2382,8 +2378,7 @@ export function paragraphHasImage(paragraph: DocxParagraphNode): boolean {
   return paragraph.children.some((child) => child.type === `image`);
 }
 
-/** [E6]-渲染层：合成文本框图片的真实图形判定（原 nv，jsx 20671；锚点登记） */
-declare function imageIsRealPictureShape(image: DocxImageNode): boolean;
+/** [E6]-渲染层：合成文本框图片的真实图形判定（原 nv）→ C1 syntheticTextBoxIsGraphicShape（§0 以 imageIsRealPictureShape 名导入） */
 
 /** 原 Ff：段落为合成文本框载体（浮动 + 真实图形 + 有文本） */
 export function paragraphIsTextBoxCarrier(paragraph: DocxParagraphNode): boolean {

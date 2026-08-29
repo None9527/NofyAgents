@@ -34,8 +34,12 @@
  */
 
 import * as React from "react";
-import { logger, mergeTaskMeta } from './SkillStore';
+import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { freezeQueryResult, mergeIncomingTaskKeys, taskEntityKey } from './StoresDeep';
+import { create as createStore, resolveWorkspaceKey as workspaceKey } from './SkillStore'; // 原 Ae | 原 Io=U
+import { mergeTaskMetaEntry as mergeTaskMeta, isQueryResultEquivalent as isQueryResultEqual, descriptorContainsTask as matchesDescriptor, sortTaskKeysByDescriptor as sortTaskKeys, pickBestTaskMetadata as pickPreferredMeta, mergeMetaPreservingActivity as mergeMeta, sessionActivityOf as isNewerMeta, broadcastSessionActivity as broadcastTaskListEvent } from './StoresDeep'; // 原 Jie | 原 Yie | 原 Kie | 原 Bo | 原 pe | 原 Po | 原 Mo | 原 Hie
+import type { SearchDescriptor, QueryResult, QueryResultInput, TaskMeta } from './StoresDeep';
+export type { SearchDescriptor, QueryResult, TaskMeta };
 
 /* ============================================================================
  * 0. zustand 接口（同 stores-core.tsx；`Ae` = skillStore chunk 的 create）
@@ -49,11 +53,7 @@ interface StoreApi<T> {
   subscribe: (listener: (state: T, prevState: T) => void) => () => void;
 }
 export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
-declare function createStore<T>(initializer: (set: SetState<T>, get: GetState<T>) => T): UseBoundStore<T>;
 
-
-/** 工作区键（原 Io = U(path, identity)：identity 优先，回退 path） */
-declare function workspaceKey(workspacePath: string, workspaceIdentity?: string | null): string;
 /** 任务实体键（原 Lo：`${workspaceKey}::${taskId}`） */
 /** 侧面板标签页 store（原 pc useTabStore / oc isWorkspaceTab，F04 域；此处为外部依赖声明） */
 export interface WorkspaceTab {
@@ -210,39 +210,7 @@ export function useTuiEditOpenRequest(
  *   Po 元数据合并、Mo 是否新元数据、Hie 任务列表事件广播（归档/删除）。
  * ==========================================================================*/
 
-export interface SearchDescriptor {
-  workspaceKeys: string[];
-  search?: string;
-  visibleLimit: number | null;
-  [key: string]: unknown;
-}
-
-export interface QueryResult {
-  descriptor: SearchDescriptor;
-  taskKeys: string[];
-  unreadTaskKeys?: string[];
-  searchSnippetsByTaskKey?: Record<string, string>;
-  searchSnippetListsByTaskKey?: Record<string, string[]>;
-  total: number;
-  hasMore: boolean;
-  partial?: boolean;
-  loadingShardKeys?: string[];
-  failedShardKeys?: string[];
-  invalidationVersion: number;
-  stale?: boolean;
-}
-
-export interface TaskMeta {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  taskId: string;
-  title?: string | null;
-  unreadAt?: number | null;
-  archived?: boolean;
-  createdAt?: number;
-  updatedAt?: number;
-  [key: string]: unknown;
-}
+/* SearchDescriptor/QueryResult/TaskMeta 已收敛至 StoresDeep 规范型（文件头 import + re-export） */
 
 export interface SearchResultsState {
   resultsByQueryKey: Record<string, QueryResult>;
@@ -288,25 +256,9 @@ export interface SearchResultsState {
   clearAll(): void;
 }
 
-/* --- 内部纯函数（原实现体量大，接口级声明；行号见融合 chunk） --- */
-declare function isQueryResultEqual(a: {
-  previousResult: QueryResult | undefined;
-  taskKeys: string[];
-  unreadTaskKeys?: string[];
-  searchSnippetsByTaskKey?: Record<string, string>;
-  searchSnippetListsByTaskKey?: Record<string, string[]>;
-  total: number;
-  hasMore: boolean;
-  partial: boolean;
-  loadingShardKeys: string[];
-  failedShardKeys: string[];
-}): boolean;
-declare function matchesDescriptor(descriptor: SearchDescriptor, task: TaskMeta, state: TaskMeta): boolean;
-declare function sortTaskKeys(args: { taskKeys: string[]; taskMetaByEntityKey: Record<string, TaskMeta>; descriptor: SearchDescriptor }): string[];
-declare function pickPreferredMeta(incoming: TaskMeta, existing: TaskMeta | undefined): TaskMeta | undefined;
-declare function mergeMeta(existing: TaskMeta, incoming: TaskMeta): TaskMeta;
-declare function isNewerMeta(task: TaskMeta): boolean;
-declare function broadcastTaskListEvent(event: { type: "archived" | "deleted"; taskId: string; workspaceKey: string }): void;
+/* --- 内部纯函数已接线 StoresDeep（isQueryResultEquivalent/descriptorContainsTask/
+   sortTaskKeysByDescriptor/pickBestTaskMetadata/mergeMetaPreservingActivity/
+   sessionActivityOf/broadcastSessionActivity；别名见文件头 import） --- */
 
 export const useSearchResultsStore: UseBoundStore<SearchResultsState> = createStore<SearchResultsState>((set) => ({
   resultsByQueryKey: {},
@@ -345,7 +297,7 @@ export const useSearchResultsStore: UseBoundStore<SearchResultsState> = createSt
         taskMetaByEntityKey,
         descriptor,
       });
-      const result: QueryResult = {
+      const result: QueryResultInput = {
         descriptor,
         taskKeys,
         unreadTaskKeys,
@@ -421,7 +373,7 @@ export const useSearchResultsStore: UseBoundStore<SearchResultsState> = createSt
           taskMetaByEntityKey,
           descriptor: payload.descriptor,
         });
-        const result: QueryResult = {
+        const result: QueryResultInput = {
           descriptor: payload.descriptor,
           taskKeys,
           unreadTaskKeys: payload.unreadTaskKeys,

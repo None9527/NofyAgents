@@ -27,12 +27,9 @@
  */
 
 import * as React from 'react';
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明
-import { t as Slot } from '../../out/renderer/assets/dist-vnZIbudW.js';
-// @ts-expect-error 同上；bundle-mjs 导出 r=clsx
-import { r as clsx } from '../../out/renderer/assets/bundle-mjs-D8tLE0rB.js';
-// @ts-expect-error 同上；utils 导出 t=cn（extendTailwindMerge 定制版）
-import { t as cn } from '../../out/renderer/assets/utils-CEEH0K_K.js';
+import { Slot } from '@radix-ui/react-slot'; // 原 dist-vnZIbudW t（@radix-ui/react-compose-refs + react-slot）
+import { clsx } from 'clsx'; // 原 bundle-mjs-D8tLE0rB r（clsx@2.1.1）
+import { cn } from './UtilsCn'; // 原 utils-CEEH0K_K t（extendTailwindMerge 定制版）
 
 /* ════════════════════════ vendor 段：lucide-react@1.17.0 ════════════════════════
  * 以下 10 个符号全部来自 lucide-react，逐一对照上游源码（逐字节一致）：
@@ -129,12 +126,25 @@ const useLucideContext = () => React.useContext(LucideContext);
 /** lucide iconNode 元素：[标签名, 属性表]。 */
 type IconNode = Array<[string, Record<string, unknown>]>;
 
+/** lucide Icon props（iconNode 之外的属性透传给 <svg>）。
+ * 索引值用 any：React 19 PropsWithoutRef 会对含索引签名的 props 做 Omit 塌缩，
+ * unknown 索引会吞掉显式属性类型。 */
+interface LucideIconInternalProps extends Record<string, any> {
+  iconNode: IconNode;
+  color?: string;
+  size?: number | string;
+  strokeWidth?: number | string;
+  absoluteStrokeWidth?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}
+
 /**
  * lucide Icon（内部基础组件）：渲染 <svg>，合并上下文缺省、
  * 计算 absoluteStrokeWidth 缩放后的线宽，并在无 children 且无 a11y 属性时
  * 自动补 aria-hidden。
  */
-const Icon = React.forwardRef<SVGSVGElement, Record<string, unknown> & { iconNode: IconNode }>(
+const Icon = React.forwardRef<SVGSVGElement, LucideIconInternalProps>(
   (
     {
       color,
@@ -154,7 +164,7 @@ const Icon = React.forwardRef<SVGSVGElement, Record<string, unknown> & { iconNod
       absoluteStrokeWidth: contextAbsoluteStrokeWidth = false,
       color: contextColor = `currentColor`,
       className: contextClass = ``,
-    } = useLucideContext() ?? {};
+    } = useLucideContext() ?? ({} as LucideContextValue);
     const calculatedStrokeWidth = (absoluteStrokeWidth ?? contextAbsoluteStrokeWidth)
       ? (Number(strokeWidth ?? contextStrokeWidth) * 24) / Number(size ?? contextSize)
       : (strokeWidth ?? contextStrokeWidth);
@@ -170,7 +180,7 @@ const Icon = React.forwardRef<SVGSVGElement, Record<string, unknown> & { iconNod
         {...(!children && !hasA11yProp(rest) && { 'aria-hidden': `true` })}
         {...rest}
       >
-        {[...iconNode.map(([tag, attrs]) => React.createElement(tag, attrs)), ...(Array.isArray(children) ? children : [children])]}
+        {[...iconNode.map(([tag, attrs]: IconNode[number]) => React.createElement(tag, attrs)), ...(Array.isArray(children) ? children : [children])]}
       </svg>
     );
   },
@@ -336,6 +346,8 @@ function Button({ className, variant = `default`, size = `default`, asChild = fa
 }
 
 export { ZoomIn as a, createLucideIcon as c, ZoomOut as i, LucideProvider as l, buttonVariants as n, ChevronRight as o, cva as r, ChevronLeft as s, Button as t };
+// 语义名导出（S2-a 补导出：原导出面仅单字母别名；实现不变，仅增补导出）。
+export { Button, buttonVariants, createLucideIcon, cva, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, LucideProvider };
 
 /* ════════════════════════════════════════════════════════════════════════
  * SYMBOLS: exportName -> 原名(minified) -> 语义名

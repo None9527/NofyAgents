@@ -114,16 +114,15 @@ import { toast } from './ImeComposition';
 import { RemoteSyncingRow, TaskListLoadingRow } from './Sidebar';
 import { logger, useTaskStore } from './SkillStore';
 import { taskEntityKey } from './StoresDeep';
-import { resolveSelectedSupplierKey } from './WorkspaceShell';
 import { useBaseServices } from './services';
-import { useSessionRegistryStore } from './stores-core';
+import { useSessionRegistryStore, type BaseServices } from './stores-core'; // BaseServices：buildScopedServices 实参形
+import { formatRelativeTime } from './SidePanel'; // $S
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上述 chunk；此处为重建接口）
  * ==========================================================================*/
 
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 /** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
 interface IntlShape {
@@ -269,7 +268,7 @@ declare function resolveRemoteSessionId(tab: WorkspaceTab, registry: SessionRegi
 declare function isRemoteWorkspace(tab: WorkspaceTab, remoteSessionId: string | null): boolean;
 declare function buildScopedServices(
   scope: WorkspaceScope & { remoteSessionId?: string | null },
-  services: WorkspaceServices,
+  services: BaseServices, // 实参为 useBaseServices() 返回形；返回分片按 WorkspaceServices 收敛
   registry: SessionRegistrySnapshot,
 ): { services: WorkspaceServices; remoteSessionId?: string | null } | null;
 interface SessionRegistrySnapshot {
@@ -358,12 +357,11 @@ declare function useTaskListItems(args: {
 /** 工作区服务映射（原 yc，jsx 3637） */
 declare function buildWorkspaceServicesMap(
   tabs: WorkspaceTab[],
-  services: WorkspaceServices,
+  services: BaseServices, // 实参为 useBaseServices() 返回形；分片值按 WorkspaceServices 收敛
   registry: SessionRegistrySnapshot,
 ): Map<string, { services: WorkspaceServices }>;
 
 /** 横切展示助手（Sidebar.tsx 同族已还原） */
-declare function formatRelativeTime(timestamp: number, intl: IntlShape): string; // $S
 declare function taskChangeSummary(task: TaskMeta): { added: number; removed: number } | null; // vg
 declare function workspaceBaseName(workspacePath: string): string; // Go
 declare function mergeTaskWithActivity(task: TaskMeta, overlay: TaskMeta): TaskMeta; // Po
@@ -399,6 +397,7 @@ declare function useModelProviders(): { modelProviders: unknown[]; loading: bool
 declare function normalizeCodingPlanProviders(providers: unknown[]): CodingPlanProvider[]; // hX
 interface CodingPlanProvider { id: string; [key: string]: unknown }
 declare const PROVIDER_IDS: { zaiCodingPlan: string; bigmodelCodingPlan: string }; // q
+declare function resolveSelectedSupplierKey(key: string | null | undefined): string | null; // Uq（与 WorkspaceShell kJt 同名异函数：此处为供应商键前缀解析）
 declare function supplierProviderId(key: string): string | null; // dr
 declare function useTeamProducts(args: { enabled: boolean; authenticated: boolean }): {
   snapshot: { productList: Array<{ subscribed?: boolean; [key: string]: unknown }> } | null;
@@ -518,7 +517,7 @@ function workspaceLoadingFlags(current: Record<string, boolean>, keys: string[])
     : Object.fromEntries(unique.map((k) => [k, true]));
 }
 /** 原 FFt（144351）：读取可见条数限制（下限 n，默认 5） */
-function readVisibleLimit(map: Record<string, number>, key: string, defaultLimit = 5): number {
+export function readVisibleLimit(map: Record<string, number>, key: string, defaultLimit = 5): number {
   const value = map[key];
   return typeof value === "number" && Number.isFinite(value) ? Math.max(defaultLimit, Math.floor(value)) : defaultLimit;
 }

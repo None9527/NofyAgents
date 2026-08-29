@@ -149,30 +149,30 @@ import { McpImportDialog, McpServerEditor, McpServerRow, ModelProviderSettingsSe
 import { CommandsSettingsSection, HooksSettingsSection, PluginsSettingsSection, SkillsSettingsSection, SubagentsSettingsSection } from './SettingsPanelsCapability';
 import { MemoryFilePreview, MigrationSettingsSection, UsageSettingsSection } from './SettingsPanelsData';
 import { SidebarFooter } from './Sidebar';
-import { logger, useSkillsStore } from './SkillStore';
+import { useSkillsStore } from './SkillStore';
 import { HelpMenu, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle } from './TopBar';
 import { useSubscriptionSnapshot } from './UsageDeep';
 import { useBaseServices, useServices } from './services';
 import { useMcpStore, usePluginsStore } from './stores-workspace';
+import { cn } from './UtilsCn'; // Z（utils chunk）
+import { useZCodeIntl as useIntlContext } from './I18n'; // G（IntlProvider chunk）
+import { useConfirmDialog } from './Modals';
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
+import { CodeBlock } from './SettingsPanelsData'; // gk（48634）
+import { AutomationsMain } from './SettingsPanelsCapability'; // F15 族（d6）
+import { isDataBaseDirForbiddenError as isForbiddenInstallDirError } from './SrcSharedB'; // dS（9110/8991）
+import { isRepoSnapshotIndexingUserEnabled as resolveRepoSnapshotIndexingEnabled } from './SrcSharedA'; // Go（4535）
+import { t as logger } from './logger';
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
-
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 /** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
 type LocalePreference = "system" | "zh-CN" | "en-US";
-declare function useIntlContext(): {
-  intl: IntlShape;
-  locale: string;
-  localePreference: LocalePreference;
-  setLocalePreference: (v: LocalePreference) => void;
-};
 
 interface RemoteTarget {
   kind: "ssh" | "wsl" | "docker" | "server";
@@ -424,14 +424,6 @@ declare function useProviderEntitlements(input: {
   suppressProviderFingerprintAutoRefresh?: boolean;
 }): { entitlements: unknown; refresh(): Promise<void> };
 
-/** 原 U2()：确认对话框钩子（ConfirmDialog，F09） */
-declare function useConfirmDialog(): (req: {
-  title: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-}) => Promise<boolean>;
-
 /* --- 跨族已抽取组件（TopBar.tsx / 窗口壳族 / 侧栏族） --- */
 
 /** 原 l4（js 129647）：次级窗口壳（memo），设置视图的外壳 */
@@ -473,14 +465,6 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: "xs" | "sm" | "default" | "lg" | "icon-sm" | "icon-md" | "icon-lg";
 }
 declare const Button: React.FC<ButtonProps>;
-declare const Tooltip: React.FC<{
-  title: string;
-  shortcut?: string;
-  side?: "top" | "bottom" | "left" | "right";
-  align?: "start" | "center" | "end";
-  className?: string;
-  children: React.ReactNode;
-}>;
 /** spinner（原 M，imeComposition chunk 的 w 导出：loader-circle） */
 declare const SpinnerIcon: React.FC<{ className?: string; "aria-hidden"?: boolean | "true" }>;
 
@@ -574,20 +558,6 @@ declare const RadixAlertDialogCancel: React.FC<React.ButtonHTMLAttributes<HTMLBu
 /* --- 大块叶子渲染器（跨族，接口级） --- */
 
 /** 原 gk（js 48634，F19 Markdown 族）：代码块渲染器（shiki 主题/行号/换行） */
-declare const CodeBlock: React.FC<{
-  code: string;
-  language?: string;
-  theme?: unknown;
-  appTheme?: string;
-  enableSyntaxHighlighting?: boolean;
-  showLineNumbers?: boolean;
-  wrapLongLines?: boolean;
-  fontSizePx?: number;
-  renderMermaid?: boolean;
-  className?: string;
-  style?: React.CSSProperties;
-  children?: React.ReactNode;
-}>;
 /** 原 U8（js 160323，F14 代码查看族）：记忆文件预览渲染器（memo） */
 /** 原 cj（js 51688，F19）：Markdown 渲染器（此处未直接使用，登记备查） */
 
@@ -1225,7 +1195,13 @@ export function SelectContent({
   position = "item-aligned",
   align = "center",
   ...rest
-}: React.HTMLAttributes<HTMLDivElement> & { position?: "item-aligned" | "popper"; align?: "start" | "center" | "end" }) {
+}: React.HTMLAttributes<HTMLDivElement> & {
+  position?: "item-aligned" | "popper";
+  align?: "start" | "center" | "end";
+  side?: "top" | "right" | "bottom" | "left";
+  sideOffset?: number;
+  collisionPadding?: number;
+}) {
   return (
     <RadixSelectPortal>
       <RadixSelectContent
@@ -1659,7 +1635,6 @@ export function DataBaseDirControl({
 }
 
 /** 原 yt（U2t 内引用）：判定「禁止安装目录」错误（错误对象带 forbidden 标记） */
-declare function isForbiddenInstallDirError(error: unknown): boolean;
 
 /** 原 e4t（js 204779）：用量分区标签栏（app + 每个 Coding Plan 源一个标签） */
 export function UsageSectionTabBar({
@@ -3167,7 +3142,6 @@ export function MemorySettingsSection({
  * ==========================================================================*/
 
 /** 原 Wt：repoSnapshotIndexingEnabled 的有效值判定（设置层助手，行号见报告） */
-declare function resolveRepoSnapshotIndexingEnabled(settings: AppSettingsSnapshot | null): boolean;
 
 export function IndexingSettingsSection() {
   const { intl } = useIntlContext();
@@ -4380,14 +4354,6 @@ export function McpSettingsSection({
 /** 原 d6（js 138823–139924 / jsx 115911，F15 族根）：自动化主视图。
  *  定时任务列表（≤20 提示）/编辑器入口/运行历史/立即运行/暂停；off-peak 闲时任务接线。
  *  注册表中被 VMe 门控隐藏（侧栏不显示），但 j9 保留渲染分支供意图直达。 */
-declare const AutomationsMain: React.FC<{
-  workspacePath: string | null;
-  workspaceIdentity?: string | null;
-  onCreateViaChat?: () => void;
-  openAutomationId?: string | null;
-  onOpenAutomationConsumed?: () => void;
-  onOpenSession?: (sessionId: string) => void;
-}>;
 
 /** 原 I0t（js 199994）：插件分区（市场浏览 GitHub/Git/dir 源、商店分类/精选、更新/卸载；
  *  市场条目卡 C0t 199415；checkForUpdates 199737/200173）。 */

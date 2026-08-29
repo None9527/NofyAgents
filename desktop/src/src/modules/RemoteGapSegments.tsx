@@ -83,8 +83,8 @@
 
 import * as React from "react";
 import { RemoteSettingsForm } from "./RemoteWizard";
-import { DirectoryBrowserDialog, RemoteSyncDialogs, RemoteSyncDropdownButton } from "./Modals";
-import { isValidWslUser, listFileTransferCapabilities } from "./SrcSharedA";
+import { canOpenRemoteSessionSourceCheck, DirectoryBrowserDialog, RemoteSyncDialogs, RemoteSyncDropdownButton } from "./Modals"; // +$2（A0-S2d/B5-14 接线）
+import { DEFAULT_ASSET_INSTALL_MODE, isValidWslUser, listFileTransferCapabilities } from "./SrcSharedA"; // +$te（A0-S2d/B5-14 接线）
 import {
   remoteKindDockerTestid,
   remoteKindServerTestid,
@@ -126,16 +126,10 @@ interface RemotePlatformService {
 }
 declare function usePlatformService(): RemotePlatformService;
 
-/** 原 $2（Modals.tsx 689 行，未导出；签名照录，整合期改自 Modals 再导出） */
-declare function canOpenRemoteSessionSourceCheck(e: {
-  clientMode: string;
-  hasLocalSourceService: boolean;
-  remoteSessionId?: string | null;
-  remoteTarget?: { kind?: string } | null;
-}): boolean;
-
-/** 原 $te（styles 自 src-HCld2afU 引入 ms；正规实体 SrcSharedA.tsx 4542，未导出） */
-declare const DEFAULT_ASSET_INSTALL_MODE: string;
+/* ── tombstone（A0-S2d/B5-14）：$2 与 $te 的 declare 挂接已删除 ——
+ *    $2 canOpenRemoteSessionSourceCheck canonical 在 Modals.tsx（已补导出），
+ *    $te DEFAULT_ASSET_INSTALL_MODE canonical 在 SrcSharedA.tsx（§15 已补导出），
+ *    均经文件头真实 import 消费。 ── */
 
 /** 图标工厂（原 Sa，lucide vendored 块） */
 interface IconProps {

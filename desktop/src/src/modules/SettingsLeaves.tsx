@@ -134,24 +134,70 @@
  */
 
 import * as React from "react";
-import { ModelSelector } from './Composer';
 import { Input, Popover, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, BackLinkButton, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger } from './Settings';
 import { ResourceEnabledFilterSelect } from './SettingsPanelsCapability';
-import { logger } from './SkillStore';
 import { useServices } from './services';
 import { usePluginsStore } from './stores-workspace';
+import { cn } from './UtilsCn';
+import { useZCodeIntl as useIntlContext } from './I18n';
+import { t as logger } from './logger';
+import { useConfirmDialog } from './Modals'; // U2
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
+import { isComposingText as imeGuard } from './ImeComposition'; // A
+import { parseCustomModelId as parseModelValue } from './SkillStore'; // se（src chunk）
+import { isGlmModelId as isMaxThinkingModel } from './SrcSharedA'; // qn（F12）
+import {
+  joinTestidParts as testidTemplate, // Xa
+  parseCustomModelRef as parseCustomModelKey, // Zn（src chunk B）
+  subagentRowTestid as TESTID_SUBAGENT_ROW, // Ite
+  subagentBuiltInModelTriggerTestid as TESTID_SUBAGENT_MODEL, // Gn
+  automationFormSubmitTestid as TESTID_AUTOMATION_SAVE, // $t
+  automationRunNowTestid as TESTID_AUTOMATION_RUN_NOW, // bn
+  automationCardMenuTestid as TESTID_AUTOMATION_ROW_MENU, // at
+  automationActionToggleTestid as TESTID_AUTOMATION_TOGGLE, // Xn
+  automationActionDeleteTestid as TESTID_AUTOMATION_DELETE, // Et
+  automationEditBackTestid as TESTID_AUTOMATION_BACK, // dt
+  automationFormTitleTestid as TESTID_AUTOMATION_TITLE, // Rr
+  automationSchedulePreviewTestid as TESTID_AUTOMATION_SCHEDULE_BOX, // _ee
+  automationScheduleDeleteTestid as TESTID_AUTOMATION_SCHEDULE_DELETE, // mn
+  automationScheduleAddTestid as TESTID_AUTOMATION_SCHEDULE_ADD, // Tne
+  automationFrequencySelectTestid as TESTID_AUTOMATION_FREQUENCY, // Kt
+  automationCustomRepeatEditTestid as TESTID_AUTOMATION_CUSTOM_FREQUENCY, // Dn
+  automationFormPromptTestid as TESTID_AUTOMATION_PROMPT, // ree
+  automationFrequencyOptionTestid as TESTID_FREQUENCY_OPTION, // Kr
+  automationCustomIntervalSelectTestid as TESTID_CUSTOM_INTERVAL_INPUT, // sn
+  automationCustomIntervalIncrementTestid as TESTID_CUSTOM_INTERVAL_INC, // zt
+  automationCustomIntervalDecrementTestid as TESTID_CUSTOM_INTERVAL_DEC, // ir
+  automationCustomUnitSelectTestid as TESTID_CUSTOM_UNIT, // bre
+  automationCustomUnitOptionTestid as TESTID_CUSTOM_UNIT_OPTION, // _r
+  automationCustomConfirmTestid as TESTID_CUSTOM_CONFIRM, // Un
+  automationYearMonthdayTestid as TESTID_ENDDATE_TRIGGER, // wee
+  automationYearMonthOptionTestid as TESTID_MONTH_OPTION, // ur
+  automationYearDayOptionTestid as TESTID_DAY_OPTION, // dee
+  offpeakEditSubmitTestid as TESTID_OFFPEAK_SUBMIT, // Nn
+  offpeakFormTitleTestid as TESTID_OFFPEAK_TITLE, // Rt
+  offpeakFormInstructionsTestid as TESTID_OFFPEAK_PROMPT, // nr
+  offpeakCreateButtonTestid as TESTID_OFFPEAK_CREATE, // Mte
+  offpeakCardMenuTestid as TESTID_OFFPEAK_MENU, // rt
+  automationCreateManuallyTestid as TESTID_CREATE_MANUALLY, // Nte
+  automationCreateMenuTestid as TESTID_CREATE_MORE, // Fn
+} from './SrcSharedB';
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+
+/** ES2023 Array.toSorted（bundle 目标含 es2023；tsconfig lib 未含，按接口级补齐） */
+declare global {
+  interface Array<T> {
+    toSorted(compareFn?: (a: T, b: T) => number): T[];
+  }
+}
 
 
 /* --- 图标（lucide 风格；Sa=createLucideIcon 工厂，button chunk / 本 chunk 图标块） --- */
@@ -230,9 +276,6 @@ declare const DialogDescription: React.FC<{ children: React.ReactNode }>; // Vb
 declare const DialogClose: React.FC<{ asChild?: boolean; children: React.ReactNode }>; // Wb
 declare const DialogFooter: React.FC<{ className?: string; children: React.ReactNode }>; // Kb（原 Wb 尾部，行 136886 消费面）
 declare const AlertDialogRoot: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode }>; // $4
-declare const Tooltip: React.FC<
-  { title: string; side?: string; align?: string; className?: string; children: React.ReactNode } & Record<string, unknown>
->; // Ia
 declare const ScrollAreaRoot: React.FC<{ "data-slot"?: string; className?: string; children: React.ReactNode } & Record<string, unknown>>; // wEe
 declare const ScrollAreaViewport: React.FC<{ "data-slot"?: string; className?: string; children: React.ReactNode }>; // TEe
 declare const ScrollAreaScrollbar: React.FC<
@@ -272,15 +315,6 @@ export interface ToastOptions {
   anchorId?: string;
   [key: string]: unknown;
 }
-declare function useConfirmDialog(): (request: {
-  title: string;
-  description: string;
-  confirmLabel: string;
-  confirmVariant?: string;
-  showCloseButton?: boolean;
-  showKeyboardHints?: boolean;
-  presentation?: string;
-}) => Promise<boolean>; // U2（Modals.tsx 已重建）
 declare function useAppSettings(): {
   settings: { keepAwakeWhileRunning?: boolean; [key: string]: unknown } | null;
   update(patch: Record<string, unknown>): Promise<void> | void;
@@ -335,9 +369,6 @@ declare function useWorkspaceConfigOptions(
   unused: null,
   workspaceIdentity?: string,
 ): { configOptions: ConfigOption[]; status: string }; // Jq（F12，js 78389）
-declare function parseModelValue(value: string): { providerId?: string; modelName?: string } | null; // se（src chunk）
-declare function parseCustomModelKey(value: string): { providerId: string; modelName?: string } | null; // Zn（src chunk）
-declare function isMaxThinkingModel(model: string): boolean; // qn（F12）
 declare const MAX_THINKING_LEVELS: string[]; // ui（F12）
 declare function resolveModelGroupLabel(args: {
   modelGroups: SelectGroupEntry[];
@@ -348,7 +379,6 @@ declare function resolveModelGroupLabel(args: {
 }): string; // iN（F08）
 declare function normalizeSettingsOptions(options: unknown[]): ConfigOption[]; // oee（F12）
 declare function pluginMentionMarkdown(displayName: string, pluginId: string): string; // Dj（F19，js 52090）
-declare function imeGuard(args: { compositionActive: boolean; nativeEvent: unknown }): boolean; // A（imeComposition）
 
 interface ConfigOption {
   id: string;
@@ -384,42 +414,32 @@ interface PluginsStoreState {
   [key: string]: unknown;
 }
 
-/** testid 模板（原 qr，src chunk Xa=Nb） */
-declare function testidTemplate(template: string, ...parts: Array<string | number>): string;
-
-/* testid 常量（src-HCld2afU.js；值待整合期三级反查，此处接口级登记） */
-declare const TESTID_SUBAGENT_ROW: string; // Ite：subagent-row-${name}
-declare const TESTID_SUBAGENT_MODEL: string; // Gn：subagent-model-${name}
-declare const TESTID_AUTOMATION_SAVE: string; // $t
-declare const TESTID_AUTOMATION_RUN_NOW: string; // bn
-declare const TESTID_AUTOMATION_ROW_MENU: string; // at
-declare const TESTID_AUTOMATION_TOGGLE: string; // Xn
-declare const TESTID_AUTOMATION_DELETE: string; // Et
-declare const TESTID_AUTOMATION_BACK: string; // dt
-declare const TESTID_AUTOMATION_TITLE: string; // Rr
-declare const TESTID_AUTOMATION_SCHEDULE_BOX: string; // _ee
-declare const TESTID_AUTOMATION_SCHEDULE_DELETE: string; // mn
-declare const TESTID_AUTOMATION_SCHEDULE_ADD: string; // Tne
-declare const TESTID_AUTOMATION_FREQUENCY: string; // Kt
-declare const TESTID_AUTOMATION_CUSTOM_FREQUENCY: string; // Dn
-declare const TESTID_AUTOMATION_PROMPT: string; // ree
-declare const TESTID_FREQUENCY_OPTION: string; // Kr：automation-frequency-option-${value}
-declare const TESTID_CUSTOM_INTERVAL_INPUT: string; // sn
-declare const TESTID_CUSTOM_INTERVAL_INC: string; // zt
-declare const TESTID_CUSTOM_INTERVAL_DEC: string; // ir
-declare const TESTID_CUSTOM_UNIT: string; // bre
-declare const TESTID_CUSTOM_UNIT_OPTION: string; // _r：automation-custom-unit-${value}
-declare const TESTID_CUSTOM_CONFIRM: string; // Un
-declare const TESTID_ENDDATE_TRIGGER: string; // wee
-declare const TESTID_MONTH_OPTION: string; // ur：automation-month-${value}
-declare const TESTID_DAY_OPTION: string; // dee：automation-day-${value}
-declare const TESTID_OFFPEAK_SUBMIT: string; // Nn
-declare const TESTID_OFFPEAK_TITLE: string; // Rt
-declare const TESTID_OFFPEAK_PROMPT: string; // nr
-declare const TESTID_OFFPEAK_CREATE: string; // Mte
-declare const TESTID_OFFPEAK_MENU: string; // rt
-declare const TESTID_CREATE_MANUALLY: string; // Nte
-declare const TESTID_CREATE_MORE: string; // Fn
+/** 原 vq（F08，js 75527）：模型选择器 —— 属主 Composer.tsx 未导出，登记需要的 export 后保留 declare */
+declare const ModelSelector: React.FC<{
+  modelGroups: SelectGroupEntry[];
+  normalizedValue: string;
+  triggerLabel: string;
+  showProviderLevel?: boolean;
+  showManageModelsAction?: boolean;
+  lockReasonMessage?: string;
+  isItemLocked?: (item: SelectItemEntry) => boolean;
+  onValueChange: (value: string) => void;
+  footerActions?: Array<{ key: string; label: string; onSelect: () => void; selected: boolean }>;
+  manageModelsLabel?: string;
+  onManageModels?: () => void;
+  contentSide?: string;
+  contentAlign?: string;
+  focusSelectorOnClose?: string | null;
+  labelVisibilityClassName?: string;
+  indicatorClassName?: string;
+  triggerClassName?: string;
+  triggerLabelClassName?: string;
+  triggerIconClassName?: string;
+  disabled?: boolean;
+  pending?: boolean;
+  pendingLabel?: string;
+  tooltipTitle?: string;
+}>; // vq（F08，js 75527）
 
 /* ============================================================================
  * §A. 子代理分区深层叶子（原 js 196654–197541）
@@ -5030,7 +5050,7 @@ export function OffPeakTaskEditor({
   onDeleteHistory?: (task: OffPeakTaskRecord) => void;
   onPause?: (task: OffPeakTaskRecord) => void;
   onContinue?: (task: OffPeakTaskRecord) => void;
-  showToast?: (message: string, options?: ToastOptions) => string;
+  showToast?: (message: string, options?: any) => string | number;
 }) {
   const { intl } = useIntlContext();
   const { settings, update } = useAppSettings();

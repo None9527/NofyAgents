@@ -80,21 +80,22 @@
  */
 
 import * as React from "react";
-import { toast } from './ImeComposition';
+import { toast, usePlatform as usePlatformService } from './ImeComposition'; // 原 m / 平台服务钩子（imeComposition chunk 导出 M=usePlatform）
 import { LazyPdfViewer, LazyPptxPreviewViewer } from './LazyPreviewViewers';
-import { MarkdownRenderer, useRemoteWorkspaceInfo } from './MarkdownIntegration';
-import { resolveFileDisplayInfo } from './ModalsLeaves';
-import { buildDiffPreviewSource } from './PreviewCards';
-import { normalizeDecodedSource } from './SidePanel';
-import { logger } from './SkillStore';
+import { MarkdownRenderer, baseName as basename, isAbsolutePath, relativePathFromWorkspace as relativePath, useRemoteWorkspaceInfo } from './MarkdownIntegration'; // 原 Go / Ko / zA / $A
+import { FileIconImg, resolveFileDisplayInfo } from './ModalsLeaves'; // 原 Vc / zc
+import { buildDiffPreviewSource, detectPreviewLanguage as detectLanguage, imageMimeTypeOfPath as mimeTypeOfPath, isPdfPreviewPath as isPdfPath, isPptxPreviewPath as isPptxPath } from './PreviewCards'; // 原 rA / iA / oA / sA
+import { resolveAvailableEditors as useResolvedEditor, useFileContextActions as useFileActions } from './FileTreePanel'; // 原 JA / g（QA 族文件动作）
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
+import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
+import { resolveThemeMode as useResolvedTheme } from './Settings'; // 原 xo（theme → dark|light）
+import { create as createZustandStore } from './SkillStore'; // 原 Ae（zustand create，SkillStore 导出）
 import { useWorkspaceServices } from './services';
 import { useSettingsStore } from './stores-core';
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
-
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
@@ -123,7 +124,6 @@ declare const IconFileCode: React.FC<{ className?: string }>;
 declare const IconEye: React.FC<{ className?: string }>;
 declare const IconCopy: React.FC<{ className?: string }>;
 declare const IconChevronDown: React.FC<{ className?: string }>;
-declare const FileIconImg: React.FC<{ src: string; size?: number; className?: string }>;
 
 /** DropdownMenu 封装（原 VO/HO/UO/WO/GO/KO/qO/JO/YO） */
 declare const DropdownMenu: React.FC<{ children: React.ReactNode }>;
@@ -152,7 +152,6 @@ interface SettingsState {
 }
 /** 原 ko（zustand 设置 store） */
 /** 原 xo：theme → dark|light */
-declare function useResolvedTheme(theme: string): "dark" | "light";
 
 interface FilePreviewResult {
   isBinary: boolean;
@@ -172,7 +171,7 @@ interface WorkspaceServices {
 /** 原 Oc */
 
 interface RemoteWorkspaceInfo {
-  remoteTarget: string | null;
+  remoteTarget: { kind?: string } | null;
   isRemoteWorkspace: boolean;
 }
 /** 原 $A */
@@ -180,30 +179,19 @@ interface RemoteWorkspaceInfo {
 interface InstalledEditor {
   id: string;
   name: string;
+  [key: string]: unknown;
 }
 interface PlatformService {
   getInstalledEditors(): Promise<InstalledEditor[]>;
   openInEditor(
     editorId: string,
     path: string,
-    options: { pathKind: "file"; remoteTarget: string | null; workspaceIdentity?: string },
+    options: { pathKind: "file"; remoteTarget: { kind?: string } | null; workspaceIdentity?: string },
   ): Promise<{ success: boolean; error?: string }>;
 }
-declare function usePlatformService(): PlatformService;
-
 /** 原 JA：已安装编辑器 × 偏好 × 远程门 → 选中编辑器 */
-declare function useResolvedEditor(args: {
-  installedEditors: InstalledEditor[];
-  selectedEditorId: string | null;
-  remoteTarget: string | null;
-}): { selectedEditor: InstalledEditor | null };
 
 /** 原 g：文件动作（复制路径） */
-interface FileActions {
-  copyAbsolutePath(req: { path: string }): Promise<void> | void;
-  copyRelativePath(req: { path: string; relativePath: string }): Promise<void> | void;
-}
-declare function useFileActions(): FileActions;
 
 /* ----------------------------------------------------------------------------
  * 同 chunk 他族叶子组件 / 助手（接口挂接）
@@ -233,15 +221,9 @@ declare const HighlightedCodeBlockWithComments: React.FC<{
 /** 原 NO：是否纯文本语言（无高亮） */
 declare function isPlainTextLanguage(language: string): boolean;
 /** 原 rA：语言探测 */
-declare function detectLanguage(path: string | null | undefined, content: string): string;
 /** 原 fg：patch → 纯文本行（非 patch 返回 null） */
 declare function patchToPlainTextLines(patch: string): string[] | null;
-/** 原 gut：纯文本 diff 预览 */
-declare const PlainTextDiffPreview: React.FC<{
-  lines: string[];
-  codePreviewSettings: CodePreviewSettings;
-  "data-git-plain-text-diff-preview"?: boolean;
-}>;
+/** 原 gut：纯文本 diff 预览（本文件无消费点，声明移除；实体在 ModalsLeaves 导出） */
 /** 原 Oft：patch 纯文本预览（带语言头） */
 declare const PatchPlainTextPreview: React.FC<{
   className?: string;
@@ -271,17 +253,12 @@ declare const DiffPatchViewer: React.FC<{
 /** 原 no：base64 → ArrayBuffer */
 declare function base64ToArrayBuffer(dataBase64: string): ArrayBuffer | null;
 /** 原 iA/oA/sA/ro：mime / pdf / pptx / office 判定（4946–6061 文件类型工具块） */
-declare function mimeTypeOfPath(path: string): string | null;
-declare function isPdfPath(path: string): boolean;
-declare function isPptxPath(path: string): boolean;
 declare function officeKindOfPath(path: string): "excel" | "docx" | "legacy-doc" | null;
 /** 原 Ko：绝对路径判 */
-declare function isAbsolutePath(path: string): boolean;
 /** 原 Go/zA：basename / 相对路径 */
-declare function basename(path: string): string;
-declare function relativePath(from: string, to: string): string;
 /** 原 zc：文件显示信息（图标） */
 /** 原 cae（SidePanel 族）：解码 source 归一 */
+declare function normalizeDecodedSource(source: CodeViewerSourceInput): DecodedCodeViewerSource | null;
 /** 原 YBe：patch/multi-file-diff → 可回看的 diff source */
 
 /** 懒加载分包（动态 import 登记；真实 chunk 见 out/renderer/assets/） */
@@ -341,12 +318,7 @@ interface CodeCommentsStoreState {
   clearSource(bucket: CodeCommentBucketKeyArgs): void;
 }
 /** zustand create（原 Ae，skillStore chunk；set 支持局部更新） */
-declare function createZustandStore<T>(
-  initializer: (set: (updater: (state: T) => Partial<T>) => void, get: () => T) => T,
-): {
-  (selector?: undefined): T;
-  <U>(selector: (state: T) => U): U;
-};
+
 
 /** 原 FH：行级代码评论 store（按 工作区\0源路径 分桶） */
 export const useCodeCommentsStore = createZustandStore<CodeCommentsStoreState>((set, get) => ({
@@ -1531,6 +1503,10 @@ export function readLastEditorId(storage: Storage | null = editorPreferenceStora
   const value = storage?.getItem(LAST_EDITOR_ID_KEY);
   return typeof value === "string" && value.length > 0 ? value : null;
 }
+/** 原 kA（styles 50904 逐字） */
+export function rememberLastEditorId(editorId: string, storage: Storage | null = editorPreferenceStorage()): void {
+  storage?.setItem(LAST_EDITOR_ID_KEY, editorId);
+}
 
 /* ============================================================================
  * 6. CodeViewerPanel（原 tHt，js 161141 / jsx 133444）
@@ -1552,7 +1528,7 @@ export function CodeViewerPanel({
   onOpenCodeViewer,
   renderHeavyContent = true,
 }: CodeViewerPanelProps) {
-  const platform = usePlatformService();
+  const platform = usePlatformService() as unknown as PlatformService;
   const { intl } = useIntlContext();
   const theme = useSettingsStore((state) => state.theme);
   const codePreviewSettings = useSettingsStore((state) => state.codePreviewSettings);
@@ -1563,10 +1539,10 @@ export function CodeViewerPanel({
     workspaceIdentity: decoded?.workspaceIdentity,
     workspaceRemoteSessionId: decoded?.workspaceRemoteSessionId,
   });
-  const remoteTarget = remoteInfo.remoteTarget;
+  const remoteTarget = remoteInfo.remoteTarget as { kind?: string } | null;
   const isRemote = !!(decoded?.workspaceIdentity || decoded?.workspaceRemoteSessionId || remoteInfo.isRemoteWorkspace);
   const fileActions = useFileActions();
-  const { fileService } = useWorkspaceServices(effectiveWorkspacePath ?? "", decoded?.workspaceRemoteSessionId, decoded?.workspaceIdentity);
+  const { fileService } = useWorkspaceServices(effectiveWorkspacePath ?? "", decoded?.workspaceRemoteSessionId, decoded?.workspaceIdentity) as unknown as WorkspaceServices;
 
   const [filePreview, setFilePreview] = React.useState<FilePreviewResult | null>(null);
   const [fileTooLarge, setFileTooLarge] = React.useState(false);
@@ -1599,7 +1575,7 @@ export function CodeViewerPanel({
   const scrollSnapshotRef = React.useRef({ scrollHeight: 0, scrollTop: 0 });
   const wasHeavyRenderedRef = React.useRef(renderHeavyContent);
 
-  const resolvedTheme = useResolvedTheme(theme);
+  const resolvedTheme = useResolvedTheme(theme as "light" | "dark" | "zai-light" | "zai-dark" | "system");
   const codeTheme = resolvedTheme === "dark" ? codePreviewSettings.darkTheme : codePreviewSettings.lightTheme;
 
   const imageSource = React.useMemo(() => projectImageSource(decoded), [decoded]);
@@ -1610,7 +1586,7 @@ export function CodeViewerPanel({
   const pptxPath = pptxSource?.path ?? null;
   const pptxReferenceNavigation = pptxSource?.referenceNavigation ?? null;
   const diffSource = React.useMemo(
-    () => (decoded?.type === "patch" || decoded?.type === "multi-file-diff" ? buildDiffPreviewSource(decoded, effectiveWorkspacePath) : null),
+    () => (decoded?.type === "patch" || decoded?.type === "multi-file-diff" ? buildDiffPreviewSource(decoded as CodeViewerSourceInput, effectiveWorkspacePath) : null),
     [decoded, effectiveWorkspacePath],
   );
   const plainFileSource = decoded?.type === "file" && !imageSource && !pdfSource && !officeKind && !pptxSource ? decoded : null;
@@ -2169,7 +2145,7 @@ export function CodeViewerPanel({
     }
   };
   const openSourcePreview = () => {
-    if (diffSource) onOpenCodeViewer?.(diffSource);
+    if (diffSource) onOpenCodeViewer?.(diffSource as CodeViewerSourceInput);
   };
   const placeholderStyle =
     !renderHeavyContent && scrollSnapshotRef.current.scrollHeight > 0

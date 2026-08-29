@@ -202,16 +202,20 @@
 
 import * as React from "react";
 import { resolveBranchDisplayLabel } from './CmdkPaletteDeep';
-import { DiffViewer } from './CodeViewer';
-import { appendWebElementsToContent } from './Composer';
-import { useFileContextActions } from './FileTreePanel';
-import { PopoverAnchor, PopoverContent, PopoverTrigger, Textarea, toast } from './ImeComposition';
-import { ContextMenuItem } from './LegacyDocEngineBModel';
-import { FilePathInline, pathBasename } from './ModalsLeaves';
-import { Command, CommandList, CommandShortcut } from './QuickPick';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
-import { logger } from './SkillStore';
+import { DiffViewer, readLastEditorId as getPreferredEditorId } from './CodeViewer'; // 原 OA
+import { orderEditorsForFileManager as normalizeInstalledEditors, useFileContextActions } from './FileTreePanel'; // 原 GA / QA
+import { Popover as PopoverRoot, PopoverAnchor, PopoverContent, PopoverTrigger, Textarea, toast, usePlatform as usePlatformService } from './ImeComposition'; // 原 平台钩子（imeComposition 导出 M=usePlatform）
+import { FilePathInline, PlainTextDiffPreview as LightweightDiffPreview, pathBasename } from './ModalsLeaves'; // 原 gut
+import { Command, CommandItem, CommandList, CommandShortcut } from './QuickPick';
+import { resolveThemeMode as resolveTheme, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings'; // 原 xo
+import { create as createStore } from './SkillStore'; // 原 Ae（zustand create，SkillStore 导出）
 import { GitBranchChip } from './TopBar';
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
+import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
+import { countLineDiffChanges as countDiffLines } from './SrcSharedB'; // 原 bS（styles 侧 Xr 经别名 b 消费）
+import { extractErrorMessage } from './FeedbackCenter';
+import { isAbsolutePath, relativePathFromWorkspace as toRelativePath, useRemoteWorkspaceInfo as useWorkspaceRemoteInfo } from './MarkdownIntegration'; // 原 Ko / zA / $A
+import { useSettingsStore as useSettingsSelector } from './stores-core'; // 原 ko（zustand 设置 store）
 import { useServices } from './services';
 
 /* ============================================================================
@@ -219,7 +223,6 @@ import { useServices } from './services';
  * ==========================================================================*/
 
 /** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 /** 自研 i18n 上下文（原 G()，IntlProvider-C321H7m8.js） */
 interface IntlShape {
@@ -239,7 +242,7 @@ interface RemoteTarget {
   container?: string;
   sshConfigAlias?: string;
 }
-interface InstalledEditor { id: string; name: string; iconDataUrl?: string }
+interface InstalledEditor { id: string; name: string; iconDataUrl?: string; [key: string]: unknown }
 interface OpenResult { success: boolean; error?: string }
 interface PlatformService {
   openInFileManager(path: string): Promise<OpenResult>;
@@ -250,7 +253,6 @@ interface PlatformService {
   ): Promise<OpenResult>;
   getInstalledEditors(): Promise<InstalledEditor[]>;
 }
-declare function usePlatformService(): PlatformService;
 
 /** 快捷键文案：`shortcutLabel("⏎")` → “Ctrl+Enter / ⏎”（原 $i） */
 declare function shortcutLabel(key: string): string;
@@ -267,7 +269,6 @@ interface StoreApi<T> {
   subscribe: (listener: (state: T, prevState: T) => void) => () => void;
 }
 export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
-declare function createStore<T>(initializer: (set: SetState<T>, get: GetState<T>) => T): UseBoundStore<T>;
 
 /** 虚拟列表（原 to，esm-BY6T6pIH.js 的 t 导出 = @tanstack/react-virtual useVirtualizer） */
 interface VirtualItem { key: string | number; index: number; start: number; size: number }
@@ -315,6 +316,7 @@ declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
 declare const ContextMenu: React.FC<{ children?: React.ReactNode }>;
 declare const ContextMenuTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
 declare const ContextMenuContent: React.FC<React.HTMLAttributes<HTMLDivElement>>;
+declare const ContextMenuItem: React.FC<React.HTMLAttributes<HTMLDivElement> & { disabled?: boolean; onSelect?: () => void }>; // Sk
 declare const ContextMenuSeparator: React.FC<React.HTMLAttributes<HTMLDivElement>>;
 
 /** Collapsible 族（原 kZ/AZ/jZ，js 94925+；data-slot=collapsible*） */
@@ -328,10 +330,8 @@ declare const TooltipTrigger: React.FC<{ asChild?: boolean; children?: React.Rea
 declare const TooltipContent: React.FC<React.HTMLAttributes<HTMLDivElement> & { align?: "start" | "center" | "end"; side?: "top" | "bottom" | "left" | "right" }>;
 
 /** Popover 原语（原 Na/Oa/Ma/ka，usageStatsUiParts chunk；提交对话框生成按钮用） */
-declare const PopoverRoot: React.FC<{ children?: React.ReactNode }>;
 
 /** cmdk 封装（原 Yb/Zb/ex/tx，js 32092+；data-slot=command*） */
-declare const CommandItem: React.FC<React.HTMLAttributes<HTMLDivElement> & { value: string; disabled?: boolean; onSelect?: () => void }>;
 
 /* --- lucide 图标（原 Sa 工厂，js 26575–28020；语义名 = lucide 图标名） --- */
 declare const IconFolderOpen: React.FC<React.SVGProps<SVGSVGElement>>; // Q_ folder-open 27103
@@ -377,13 +377,12 @@ interface CodePreviewSettings {
   darkTheme: string;
   showLineNumbers: boolean;
   wrapLongLines: boolean;
+  [key: string]: unknown;
 }
 
 /** 设置 store 选择器（原 ko，js 1296；StoreProvider 内可用） */
-declare function useSettingsSelector<R>(selector: (state: { theme: string; codePreviewSettings: CodePreviewSettings }) => R): R;
 
 /** 主题解析（原 xo，js 1103：system → 系统，dark/zai-dark → dark，其余 light） */
-declare function resolveTheme(theme: string): "dark" | "light";
 
 /** 服务上下文（原 fs，js 2638） */
 interface GitService {
@@ -409,11 +408,6 @@ interface GitService {
 }
 
 /** 工作区远程信息钩子（原 $A，js 51166；读远程标签页推导 isRemoteWorkspace/remoteTarget） */
-declare function useWorkspaceRemoteInfo(req: {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  workspaceRemoteSessionId?: string | null;
-}): { isRemoteWorkspace: boolean; remoteTarget?: RemoteTarget };
 
 /** 文件上下文动作（原 QA，js 51093；复制路径/在文件管理器中显示） */
 interface FileContextActions {
@@ -424,9 +418,7 @@ interface FileContextActions {
 }
 
 /** 路径助手（原 Ko/Jo/Go/zA，js 1941/1952/1928/50919） */
-declare function isAbsolutePath(path: string): boolean;
-declare function joinPath(base: string, sub: string): string;
-declare function toRelativePath(base: string, target: string): string;
+declare function joinPath(base: string, sub: string): string; // 原 Jo（待实体化）
 
 /** 任务路径钩子群（原 Xge/qge/wge，js 24638/24564/24240；横切 services 层） */
 interface TaskPathState { path: string | null; exists: boolean; loading: boolean; error: string | null }
@@ -452,11 +444,8 @@ declare function useProviderConfigFilePath(
 ): TaskPathState;
 
 /** 编辑器助手（原 OA/GA，js 50852/51037） */
-declare function getPreferredEditorId(storage?: Storage): string | null;
-declare function normalizeInstalledEditors(editors: InstalledEditor[]): InstalledEditor[];
 
 /** 错误消息提取（原 MC，js 37603；去 `Error:` 前缀） */
-declare function extractErrorMessage(error: unknown): string;
 
 /** 文件分派/打开代码查看（原 p1 使用的 onOpenCodeViewer 目标，F14 标签工厂） */
 interface CodeViewerPatchSource {
@@ -848,7 +837,6 @@ export interface LastTurnChangeSummary {
 }
 
 /** diff 行数统计（原 Xr，src-HCld2afU.js 导出 b；LCS 行级统计） */
-declare function countDiffLines(before: string | null, after: string | null): { added: number; removed: number };
 
 /**
  * 原 Hhe（js 23726 / jsx 20340）：任务快照 → 上一轮变更摘要。
@@ -913,7 +901,7 @@ export function useGitRepository(props: {
     remoteTarget,
     workspaceIdentity = null,
   } = props;
-  const { gitService } = useServices();
+  const { gitService } = useServices() as { gitService: GitService };
   // 原 bg(...)：远程会话走 base 作用域 RPC；远程目标直连不启用工作区 RPC
   const workspaceRpcEnabled = isGitRpcEnabled({ workspaceIdentity, remoteSessionId: resolveRemoteSessionKey(workspacePath, remoteSessionId, workspaceIdentity, remoteTarget), remoteTarget });
   const workspaceKey = workspaceIdentity?.trim() || workspacePath;
@@ -987,7 +975,7 @@ export function useGitRepository(props: {
       workspacePath,
       turnIndex: null,
       fileChange: null,
-      summary: buildLastTurnChangeSummary(null) ?? void 0 ?? null,
+      summary: buildLastTurnChangeSummary(null) ?? null, // 原 bundle 24056 为 `?? void 0 ?? null`，TS2881（void 0 恒 undefined）语义等价收敛
     });
     return { ...base, sourceOptions: buildGitSourceOptions(datasets), datasets };
     // 原依赖数组逐字为 [null, null, state, workspaceKey, workspacePath]
@@ -1133,10 +1121,7 @@ export function PlainTextDiffPreview({ lines, codePreviewSettings }: { lines: st
   );
 }
 
-/** 轻量 diff 预览（原 gut，js 100459；F14 基建，接口声明） */
-declare const LightweightDiffPreview: React.FC<
-  React.HTMLAttributes<HTMLDivElement> & { codePreviewSettings: CodePreviewSettings; lines: string[]; renderLineContent?: (line: unknown, index: number) => React.ReactNode }
->;
+/** 轻量 diff 预览（原 gut，js 100459；实体在 ModalsLeaves 导出 PlainTextDiffPreview） */
 
 /** Diff 视图（原 W8 = memo(mVt)，js 160479/160542；F14 基建，接口声明） */
 interface DiffViewerFile { name: string; contents: string; cacheKey: string }
@@ -1409,18 +1394,18 @@ export function GitChangesPanel({
   workspaceIdentity,
   workspaceRemoteSessionId,
 }: GitChangesPanelProps) {
-  const { gitService } = useServices();
+  const { gitService } = useServices() as { gitService: GitService };
   const { intl } = useIntlContext();
   const theme = useSettingsSelector((state) => state.theme);
-  const codePreviewSettings = useSettingsSelector((state) => state.codePreviewSettings);
-  const remoteInfo = useWorkspaceRemoteInfo({ workspacePath, workspaceIdentity, workspaceRemoteSessionId });
+  const codePreviewSettings = useSettingsSelector((state) => state.codePreviewSettings) as CodePreviewSettings;
+  const remoteInfo = useWorkspaceRemoteInfo({ workspacePath, workspaceIdentity, workspaceRemoteSessionId }) as { isRemoteWorkspace: boolean; remoteTarget?: RemoteTarget };
   const fileActions = useFileContextActions({
     canOpenLocalFileManager: !!isDesktop,
     isRemoteWorkspace: !!(workspaceRemoteSessionId || workspaceIdentity?.trim()) || remoteInfo.isRemoteWorkspace,
     remoteTarget: remoteInfo.remoteTarget,
     workspaceIdentity,
   });
-  const resolvedTheme = resolveTheme(theme);
+  const resolvedTheme = resolveTheme(theme as "light" | "dark" | "zai-light" | "zai-dark" | "system");
   const [expandedPath, setExpandedPath] = React.useState<string | null>(null);
   const [diffCache, setDiffCache] = React.useState<Record<string, DiffCacheEntry>>({});
   const revisionRef = React.useRef(0);
@@ -2587,6 +2572,7 @@ interface WebElementContext { [key: string]: unknown }
 interface PptxElementRef { [key: string]: unknown }
 
 declare function appendSelectionsToContent(content: string, selections: ConversationSelectionRef[]): string;
+declare function appendWebElementsToContent(content: string, webElements: WebElementContext[]): string; // 原 Composer 族（属主未导出，待登记）
 declare function appendPptxElementsToContent(content: string, pptxElements: PptxElementRef[]): string;
 declare function parseSelectionReferences(content: string): { visibleContent: string; references: ConversationSelectionRef[] };
 declare function splitWebElementContexts(content: string, workspace: { workspacePath: string; workspaceIdentity?: string | null }): { visibleContent: string; webElementContexts: WebElementContext[] };
@@ -3535,7 +3521,7 @@ export function GitActionMenu({
   triggerIconOnly = false,
   triggerLayout = `header`,
 }: GitActionMenuProps) {
-  const { gitService } = useServices();
+  const { gitService } = useServices() as { gitService: GitService };
   const { intl, locale } = useIntlContext();
   const [commitDialogOpen, setCommitDialogOpen] = React.useState(false);
   const [dialogLoading, setDialogLoading] = React.useState(false);
@@ -4266,8 +4252,8 @@ export function useTaskFileActions({
   loadTaskPaths = true,
   loadProviderConfig = true,
 }: UseTaskFileActionsProps): TaskFileActions {
-  const platformService = usePlatformService();
-  const remoteInfo = useWorkspaceRemoteInfo({ workspacePath, workspaceIdentity, workspaceRemoteSessionId: remoteSessionId });
+  const platformService = usePlatformService() as unknown as PlatformService;
+  const remoteInfo = useWorkspaceRemoteInfo({ workspacePath, workspaceIdentity, workspaceRemoteSessionId: remoteSessionId }) as { isRemoteWorkspace: boolean; remoteTarget?: RemoteTarget };
   const resolvedProvider = provider ?? `glm`;
   const taskSessionFile = useTaskSessionFilePath(workspacePath, taskId, workspaceIdentity, { enabled: loadTaskPaths });
   const taskNativeSessionLogFile = useTaskNativeSessionLogFilePath(workspacePath, taskId, provider ?? null, workspaceIdentity, { enabled: loadTaskPaths });

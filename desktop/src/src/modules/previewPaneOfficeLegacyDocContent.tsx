@@ -21,8 +21,9 @@
  *        Se = react-dom/server 汇总包装                jsx 10295-10300
  *        上游对照 VENDOR-MANIFEST-LIBS.md（pako/UTIF/react 19.2.7）。
  *   [V2] 动态依赖 chunk / 资产（vite __vite__mapDeps，jsx 1）：
- *        src-2FP7IUE6-ahbsNOoE.js   → parseDocx（docx 包解析）
+ *        src-2FP7IUE6-ahbsNOoE.js   → parseDocx（docx 包解析；属他批，保留 declare）
  *        src-AEHDFCS5-Cut3IAW0.js   → buildDocModel / ensureDocModelBlockIds
+ *        （A0-S2c：AEHDFCS5 两符号已接线 DocxWasmGlue 实体导出，见 §0）
  *        docx-import-worker-oPk-zLr5.js → 导入工作者（协议 {id, type:
  *        `import-docx`, buffer, wasmSource}，jsx 11971-11975）
  *        docx_wasm_bg-HWnIvdMf.wasm → docx-core wasm（Cr() 注入，jsx 36460）
@@ -61,36 +62,50 @@
  * 外部依赖（其他重建文件/declare 桩）：
  *   logger-PFDwl5Yq.js（o）· officeFilePreview-DDCn9-xI.js（u=fit 度量）
  *   react（b = CJS 互操作）· [E6] tS · [E7] ES
+ *   A0-S2c 接线：[E6] tS ← LegacyDocEngineBEditorState createDocxEditor；
+ *   AEHDFCS5 buildDocModel/ensureDocModelBlockIds ← DocxWasmGlue（§0 桥接）。
+ *   保留 declare（属他批/他 chunk，注记见 §0）：logger、Buffer、
+ *   computeOfficeFitMetrics、encodePng、utifCodec、parseDocx、initDocxWasmSync。
  * ============================================================================
  */
 
 import * as React from "react";
+/** A0-S2c 接线：chunk src-AEHDFCS5 的 buildDocModel/ensureDocModelBlockIds 实体 =
+ * DocxWasmGlue 导出（B5-14-Final.report §2.3 裁决）；[E6] tS 编辑器状态 =
+ * LegacyDocEngineBEditorState createDocxEditor（其对本文件仅 type 导入，无运行时环）。 */
+import {
+  buildDocModel as buildDocModelCore, // 原 AEHDFCS5 `buildDocModel` 导出（Glue L，jsx 410-412）
+  ensureDocModelBlockIds as ensureDocModelBlockIdsCore, // 原 AEHDFCS5 导出（Glue d，jsx 64-74）
+} from "./DocxWasmGlue";
+import { createDocxEditor as createDocxEditorCore } from "./LegacyDocEngineBEditorState"; // 原 tS（[E6] jsx 24338）
 
 /* ============================================================================
  * 0. 外部依赖类型声明（真实实现位于上述 chunk/段；此处为重建接口）
  * ==========================================================================*/
 
-/** 日志器（原 o，logger-PFDwl5Yq.js） */
+/** 日志器（原 o，logger-PFDwl5Yq.js）——A0-S2c 保留 declare（属他批 logger chunk，遗留） */
 declare const logger: {
   debug(message: string, meta?: Record<string, unknown>): void;
   error(message: string, meta?: Record<string, unknown>): void;
 };
 
 /** Node Buffer（渲染进程中可能由 polyfill 提供；原代码以 typeof Buffer 探测，
- * 未定义时 typeof 判定为 "undefined"，运行期安全） */
+ * 未定义时 typeof 判定为 "undefined"，运行期安全）
+ *  ——A0-S2c 保留 declare（运行期 typeof 探测，无实体属主，遗留） */
 declare const Buffer: {
   from(data: string, encoding: string): Uint8Array;
   from(data: Uint8Array): { toString(encoding: string): string };
 };
 
-/** 办公室预览缩放计算（原 u，officeFilePreview-DDCn9-xI.js 的 i/t 导出） */
+/** 办公室预览缩放计算（原 u，officeFilePreview-DDCn9-xI.js 的 i/t 导出）
+ *  ——A0-S2c 保留 declare（属他批 officeFilePreview chunk，遗留） */
 declare function computeOfficeFitMetrics(input: {
   availableWidth: number;
   naturalHeight: number;
   naturalWidth: number;
 }): { scale: number; width: number; height: number } | null;
 
-/** PNG 编码（原 se，[V0] 段 jsx 489-491） */
+/** PNG 编码（原 se，[V0] 段 jsx 489-491）——A0-S2c 保留 declare（vendor 段不转录，遗留） */
 declare function encodePng(
   data: {
     width: number;
@@ -104,21 +119,25 @@ declare function encodePng(
   options?: { zlib?: Record<string, unknown>; interlace?: string },
 ): Uint8Array;
 
-/** UTIF 解码器（原 we.default = ti，[V1] 段 jsx 2026-3311） */
+/** UTIF 解码器（原 we.default = ti，[V1] 段 jsx 2026-3311）——A0-S2c 保留 declare（vendor 段不转录，遗留） */
 declare const utifCodec: {
   decode(buffer: ArrayBuffer): unknown[];
   decodeImage(buffer: ArrayBuffer, ifd: unknown, ifds: unknown[]): void;
   toRGBA8(ifd: unknown): Uint8Array;
 };
 
-/** 动态 chunk src-2FP7IUE6（parseDocx，[V2]） */
+/** 动态 chunk src-2FP7IUE6（parseDocx，[V2]）——A0-S2c 注记：该 chunk 属他批，
+ * 保留 declare 不接线（遗留；Glue 侧同源 loadParseDocxModule 同样保留） */
 declare function parseDocx(buffer: ArrayBuffer): Promise<DocxPackage>;
 
-/** 动态 chunk src-AEHDFCS5（buildDocModel/ensureDocModelBlockIds，[V2]） */
-declare function buildDocModel(pkg: DocxPackage): Promise<DocxModel>;
-declare function ensureDocModelBlockIds(model: DocxModel): DocxModel;
+/** 动态 chunk src-AEHDFCS5（buildDocModel/ensureDocModelBlockIds，[V2]）——
+ * A0-S2c 已接线 DocxWasmGlue 实体导出；本文件 DocxPackage/DocxModel 为按用法
+ * 还原的最小公共契约（见下），与 Glue DocxCore* 型族以类型桥接，不改发射语义。 */
+const buildDocModel = buildDocModelCore as unknown as (pkg: DocxPackage) => Promise<DocxModel>;
+const ensureDocModelBlockIds = ensureDocModelBlockIdsCore as unknown as (model: DocxModel) => DocxModel;
 
-/** wasm 同步初始化（原 d，chunk-WKBPLHUA-Dg0DBfSj.js 导出；Cr 内调用） */
+/** wasm 同步初始化（原 d，chunk-WKBPLHUA-Dg0DBfSj.js 导出；Cr 内调用）
+ *  ——A0-S2c 保留 declare（属他批 chunk，遗留） */
 declare function initDocxWasmSync(source: string | ArrayBuffer | WebAssembly.Module): void;
 
 /* --- docx 模型最小接口（真实类型在 [V2] src-AEHDFCS5；按 ES 用法还原） --- */
@@ -154,14 +173,14 @@ export interface DocxEditor {
 
 /**
  * 编辑器状态 hook（原 tS，[E6] jsx 24338-27339 区段）。
- * 真实实现为完整编辑器状态机（选区/历史/分页/修订）；
- * 此处为接口级占位——公共契约 = starterModel + 文件名 + 主题 → DocxEditor。
+ * A0-S2c 已接线：实体 = LegacyDocEngineBEditorState createDocxEditor（完整状态机）；
+ * 本文件保留公共契约面（starterModel + 文件名 + 主题 → DocxEditor），类型桥接。
  */
-declare function createDocxEditor(options: {
+const createDocxEditor = createDocxEditorCore as unknown as (options: {
   starterModel: DocxModel;
   initialFileName?: string;
   initialDocumentTheme?: DocxDocumentTheme;
-}): DocxEditor;
+}) => DocxEditor;
 
 /** ES 页面渲染器 props（原 ES，[E7] jsx 27340-27362） */
 export interface DocxEditorViewProps {
@@ -682,7 +701,7 @@ function bytesToBase64(bytes: Uint8Array): string | undefined {
 /** 原 pi：视图 → 独立 ArrayBuffer */
 function toStandaloneBuffer(bytes: Uint8Array): ArrayBuffer {
   const { buffer, byteOffset, byteLength } = bytes;
-  return byteOffset === 0 && byteLength === buffer.byteLength ? buffer : buffer.slice(byteOffset, byteOffset + byteLength);
+  return byteOffset === 0 && byteLength === buffer.byteLength ? (buffer as ArrayBuffer) : (buffer.slice(byteOffset, byteOffset + byteLength) as ArrayBuffer);
 }
 
 /** 原 mi：图片字节（data 优先，回退 src data URL） */

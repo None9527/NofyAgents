@@ -191,24 +191,22 @@ import * as React from "react";
 import { FileTreePanel } from './FileTreePanel';
 import { useTaskFileActions } from './GitReview';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
-import { ContextMenuItem } from './LegacyDocEngineBModel';
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from './Modals';
 import { Badge } from './PaymentDeep';
 import { TabsList, TabsTrigger } from './Settings';
 import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from './SidebarLeaves';
 import { logger, mergeTaskMeta, useTaskStore } from './SkillStore';
-import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog } from './TopBar';
+import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, type TaskActionMenuItemsProps } from './TopBar';
 import { WebRemoteControlDialog, useWebRemoteControlEnabled } from './WebRemote';
 import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useWorkspaceServices } from './services';
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from './stores-core';
 import { useSessionRouterStore, useTrajectoryViewerStore } from './stores-session';
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现见上清单；此处为重建接口）
  * ==========================================================================*/
 
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 /** react-intl 风格 intl（原 G()，IntlProvider-C321H7m8.js） */
 interface IntlShape {
@@ -294,7 +292,8 @@ type GroupedViewNode =
   | { type: "task"; task: TaskMeta; sortOrder?: number };
 interface GroupedView { nodes: GroupedViewNode[] }
 /** 工作区标签（原 workspace tab；pc store 的条目） */
-interface WorkspaceTab {
+/** type 别名：对 SidebarLeaves.WorkspaceTab（带索引签名）可赋值 */
+type WorkspaceTab = {
   id: string;
   workspacePath: string;
   workspaceIdentity?: string | null;
@@ -304,14 +303,15 @@ interface WorkspaceTab {
   workspacePurpose?: "project" | "conversation";
   label?: string;
   availability?: "unavailable-local-directory" | string;
-}
+};
+/** 远程目标：kind 基（与 SidebarLeaves/Home/RemoteWizard 同口径；resolveSshConnectionInfo 按 kind==="ssh" 裁决） */
 interface RemoteTarget {
-  kind?: string;
+  kind: "ssh" | "wsl" | "docker" | "server";
   host?: string;
   alias?: string;
   username?: string;
-  port?: number | null;
-  sshConfigAlias?: string | null;
+  port?: number;
+  sshConfigAlias?: string;
   [key: string]: unknown;
 }
 type TaskSortBy = "created" | "updated";
@@ -815,14 +815,14 @@ function insertTaskBesideGroupNode(view: GroupedView, task: TaskMeta, groupId: s
   return { nodes };
 }
 /** 原 u8（145057）：拖拽——把活动任务移到组头/组尾外侧 */
-function moveTaskToGroupEdge(view: GroupedView, args: { activeTaskKey: string; groupId: string; position: "before" | "after" }): GroupedView {
+export function moveTaskToGroupEdge(view: GroupedView, args: { activeTaskKey: string; groupId: string; position: "before" | "after" }): GroupedView {
   const groupNode = view.nodes.find((node) => node.type === "group" && node.group.id === args.groupId);
   if (!groupNode || groupNode.type !== "group") return view;
   const { nextView, task } = removeTaskFromView(view, args.activeTaskKey);
   return task ? insertTaskBesideGroupNode(nextView, task, args.groupId, args.position) : view;
 }
 /** 原 d8（145063）：拖拽——把活动任务放入组首 */
-function moveTaskIntoGroupStart(view: GroupedView, args: { activeTaskKey: string; groupId: string }): GroupedView {
+export function moveTaskIntoGroupStart(view: GroupedView, args: { activeTaskKey: string; groupId: string }): GroupedView {
   const { nextView, task } = removeTaskFromView(view, args.activeTaskKey);
   if (!task) return view;
   const groupNode = nextView.nodes.find((node) => node.type === "group" && node.group.id === args.groupId);
@@ -831,7 +831,7 @@ function moveTaskIntoGroupStart(view: GroupedView, args: { activeTaskKey: string
   return insertTaskIntoGroup(nextView, task, args.groupId, firstKey);
 }
 /** 原 bIt（145071）：拖拽——把活动任务追加到组尾 */
-function moveTaskIntoGroupEnd(view: GroupedView, args: { activeTaskKey: string; groupId: string }): GroupedView {
+export function moveTaskIntoGroupEnd(view: GroupedView, args: { activeTaskKey: string; groupId: string }): GroupedView {
   const { nextView, task } = removeTaskFromView(view, args.activeTaskKey);
   if (!task) return view;
   const groupIndex = findGroupNodeIndex(nextView, args.groupId);
@@ -1081,7 +1081,8 @@ declare const DropdownMenuSubContent: React.FC<React.ComponentPropsWithoutRef<"d
 declare const ContextMenu: React.FC<{ onOpenChange?: (open: boolean) => void; children?: React.ReactNode }>;
 declare const ContextMenuTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
 declare const ContextMenuContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { className?: string; onCloseAutoFocus?: (e: Event) => void }>;
-declare const ContextMenuSeparator: React.FC<Record<string, never>>;
+declare const ContextMenuItem: React.FC<React.ComponentPropsWithoutRef<"div"> & { disabled?: boolean; title?: string; onSelect?: () => void }>;
+declare const ContextMenuSeparator: React.FC<React.ComponentPropsWithoutRef<"div">>;
 declare const ContextMenuSub: React.FC<{ children?: React.ReactNode }>;
 declare const ContextMenuSubTrigger: React.FC<{ disabled?: boolean; title?: string; children?: React.ReactNode }>;
 declare const ContextMenuSubContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { className?: string }>;
@@ -1948,7 +1949,7 @@ export function TaskRowActionButton({
 
 /** 原 CRt（150732 / 124828）：任务操作右键菜单壳——把 TopBar 族的 TaskActionMenuItems
  *  注入 ContextMenu 原语（复用于置顶段/时间线段/工作区列表）。 */
-export function TaskActionContextMenuContent(props: Record<string, unknown>) {
+export function TaskActionContextMenuContent(props: Omit<TaskActionMenuItemsProps, "Item" | "Separator">) {
   return (
     <ContextMenuContent className="w-52">
       <TaskActionMenuItems {...props} Item={ContextMenuItem} Separator={ContextMenuSeparator} />
@@ -4256,7 +4257,7 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
                 />
                 {/* HOME-SEG：Home 段（原 分组 段位置；house 图标，两语言文案均为 "Home"） */}
                 <TabsTrigger
-                  ref={(el) => { segmentThumbRefs.current.home = el; }}
+                  ref={(el: HTMLButtonElement | null) => { segmentThumbRefs.current.home = el; }}
                   value="home"
                   className="relative z-10 h-6 flex-none gap-1 rounded-full border-transparent bg-transparent py-0 pl-1.5 pr-2 text-ui-sm font-medium text-foreground-subtle transition-colors data-active:border-transparent data-active:bg-transparent data-active:text-foreground data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-transparent"
                 >
@@ -4264,7 +4265,7 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
                   <span>{intl.formatMessage({ id: "workspaceSidebar.organizeHome" })}</span>
                 </TabsTrigger>
                 <TabsTrigger
-                  ref={(el) => { segmentThumbRefs.current.workspace = el; }}
+                  ref={(el: HTMLButtonElement | null) => { segmentThumbRefs.current.workspace = el; }}
                   value="workspace"
                   className="relative z-10 h-6 flex-none gap-1 rounded-full border-transparent bg-transparent py-0 pl-1.5 pr-2 text-ui-sm font-medium text-foreground-subtle transition-colors data-active:border-transparent data-active:bg-transparent data-active:text-foreground data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-transparent"
                 >
@@ -4906,11 +4907,11 @@ function userInitial(user: SidebarUser | null | undefined): string {
   return (user?.displayName?.trim() || user?.username?.trim() || "Z")[0]?.toUpperCase() ?? "Z";
 }
 /** 原 mRt（150255 / 124527）：侧栏用量状态钩子（供应商计划接线，F12 域，接口级） */
+/** 与 SidebarLeaves.SidebarUsageStateModel（mRt 返回形）结构对齐；去索引签名以便接口型来源可赋值 */
 interface SidebarUsageState {
   providerEntitlements: Array<{ providerId: string; snapshot: PlanSnapshot | null }>;
-  upgradeTargetProviderId: string | null;
+  upgradeTargetProviderId: string | null | undefined; // 与 SidebarLeaves SidebarUsageStateModel 对齐（mRt 返回 string | undefined）
   profilePlanBadge?: { audience?: "individual" | "team"; snapshot?: PlanSnapshot | null } | null;
-  [key: string]: unknown;
 }
 interface PlanSnapshot { [key: string]: unknown }
 declare function isPlanExpiring(snapshot: PlanSnapshot | null): boolean;
@@ -4962,8 +4963,8 @@ export function UsageMenuItems({ state, onUsageClick, onUpgradeClick }: {
       </DropdownMenuItem>
       <DropdownMenuItem data-testid={TESTID_SIDEBAR_UPGRADE_BUTTON}
         onSelect={() => {
-          onUpgradeClick?.(upgradeTargetProviderId, planUpgradeFunnelArgs({
-            providerId: upgradeTargetProviderId,
+          onUpgradeClick?.(upgradeTargetProviderId ?? null, planUpgradeFunnelArgs({
+            providerId: upgradeTargetProviderId ?? null,
             upgradeSource: "profile_menu",
             eventRegion: "app.profile",
             eventText: intl.formatMessage({ id: upgradeMessageId }),

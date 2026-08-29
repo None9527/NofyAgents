@@ -33,8 +33,10 @@
 //   r -> 内部函数 t() -> clsx            （clsx 经典实现：toVal + 参数串接）
 //   t -> 内部 Ne      -> extendTailwindMerge
 //   n -> 内部 Pe      -> twMerge（默认实例；本模块不使用，保持上游导出面登记）
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明；类型契约由下方 cast 约束
-import { r as clsxMin, t as extendTailwindMergeMin } from '../../out/renderer/assets/bundle-mjs-D8tLE0rB.js';
+// 改接 npm 同名包（版本与 VENDOR-MANIFEST-LIBS.md 登记一致：
+// clsx@2.1.1、tailwind-merge@3.5.0）。
+import { clsx as clsxMin } from 'clsx'; // 原 bundle-mjs-D8tLE0rB r
+import { extendTailwindMerge as extendTailwindMergeMin } from 'tailwind-merge'; // 原 bundle-mjs-D8tLE0rB t
 
 /* ─────────────────────────── 类型声明（与上游一致） ─────────────────────────── */
 
@@ -66,16 +68,14 @@ type ExtendTailwindMergeConfig = {
 
 /* ──────── bundle-mjs 符号的类型化绑定（minified 别名 -> 语义名） ──────── */
 
-/** clsx：把 ClassValue 串接为类名字符串（bundle-mjs 内联副本）。 */
-const clsx = clsxMin as (...inputs: ClassValue[]) => string;
+/** clsx：把 ClassValue 串接为类名字符串（原为 bundle-mjs 内联副本，现直用 npm 包）。 */
+const clsx = clsxMin;
 
 /**
  * extendTailwindMerge：基于默认配置创建定制合并器。
- * 注意原码调用形态为 `extendTailwindMergeMin({ extend: ... })`（单参数配置对象）。
+ * 注意原码调用形态为 `extendTailwindMerge({ extend: ... })`（单参数配置对象）。
  */
-const extendTailwindMerge = extendTailwindMergeMin as (
-  config: ExtendTailwindMergeConfig,
-) => TwMerge;
+const extendTailwindMerge = extendTailwindMergeMin;
 
 /* ─────────────────────────── ZCode 定制 tailwind-merge 实例 ─────────────────────────── */
 

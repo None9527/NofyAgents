@@ -100,6 +100,18 @@
  */
 
 import * as React from "react";
+/* ── A0-S2d 接线：跨模块 declare → 真实 import（属主/别名经 bundle 导出表核验）；混淆名注释随迁 ── */
+import { t as logger } from './logger';
+import { dismissToast, toast } from './ImeComposition';
+import { useSettingsStore } from './stores-core'; // 原 ko：设置 store（theme/setTheme 选择器用法）
+import { useConfirmDialog } from './Modals'; // 原 U2（Modals.tsx useConfirmDialog，js 123510）
+import { formatRelativeTime } from './QuickPick'; // 原 $S（QuickPick.tsx formatRelativeTime，js 36080）
+import { webRemoteWorkspaceKey as taskWorkspaceKey } from './SrcSharedB'; // 原 ei（styles 导入块 `c as ei` = SrcSharedB wC 导出）：任务工作区键
+import {
+  BotsDialog as BotsConfigDialog, // 原 qLt（F11，147767 区）：Bots 配置对话框
+  BotProviderIcon as BotProviderAvatar, // 原 _8（F11）：Bot 供应商头像
+  regionTagKeyOfProvider as resolveBotProviderRegionTagId // 原 CLt（147813，F11）：Bot 供应商区域标签 i18n id
+} from './Bots';
 
 // @types/react 18 尚未收录 `inert` 属性（React 19 类型才加入）；原 JSX 在
 // <main> 上原样使用（js 141722 `inert: E ? !0 : void 0`），此处仅补类型垫片，
@@ -119,14 +131,8 @@ interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
 declare function useIntlContext(): { intl: IntlShape; locale: string };
-declare const logger: {
-  debug(msg: string, ...meta: unknown[]): void;
-  info(msg: string, ...meta: unknown[]): void;
-  warn(msg: string, ...meta: unknown[]): void;
-  error(msg: string, ...meta: unknown[]): void;
-};
-declare function toast(message: string, options?: { durationMs?: number }): unknown;
-declare function dismissToast(handle: unknown): void;
+/* ── tombstone（A0-S2d）：logger/toast/dismissToast declare 删除，canonical 在
+ *    logger.tsx（t 导出）与 ImeComposition.tsx，经文件头真实 import 消费。 ── */
 
 interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
   variant?: "default" | "ghost" | "outline" | "destructive" | "link" | string;
@@ -179,16 +185,8 @@ interface PlatformServiceLike {
 }
 declare function usePlatformService(): PlatformServiceLike;
 
-/** 原 ko：设置 store（theme/setTheme 选择器用法） */
-declare function useSettingsStore<T>(selector: (state: { theme: string; setTheme: (t: string) => void }) => T): T;
-
-/** 原 U2（Modals.tsx useConfirmDialog，js 123510） */
-declare function useConfirmDialog(): (args: {
-  title: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-}) => Promise<boolean>;
+/* ── tombstone（A0-S2d）：ko useSettingsStore / U2 useConfirmDialog declare 删除，
+ *    canonical 在 stores-core.tsx / Modals.tsx，经文件头真实 import 消费。 ── */
 
 /* ---- Dialog 原语族（原 zb/Hb/Ub/Gb/Kb） ---- */
 declare const Dialog: React.FC<{ open: boolean; onOpenChange: (v: boolean) => void; children: React.ReactNode }>;
@@ -293,8 +291,9 @@ declare function useWebRemoteTaskSwitcher(args: {
 }): { error: string | null; openTask: (task: TaskMeta) => void; switchingTaskKey: string | null };
 /** 原 f6（SidebarLeaves webRemoteTaskKey） */
 declare function webRemoteTaskKey(task: TaskMeta): string;
-/** 原 ei（SidebarLeaves taskWorkspaceKey） */
-declare function taskWorkspaceKey(task: { workspacePath: string; workspaceIdentity?: string | null }): string;
+/* ── tombstone（A0-S2d）：ei taskWorkspaceKey declare 删除——styles 导入块 `c as ei`
+ *    证明实体 = SrcSharedB webRemoteWorkspaceKey（wC，jsx 9632），经文件头真实
+ *    import 消费（B5 注「SidebarLeaves」为误归）。 ── */
 /** 原 g6（SidebarLeaves sortTaskRows） */
 declare function sortTaskRows(tasks: TaskMeta[], sortBy: string): TaskMeta[];
 /** 原 TPt（SidebarLeaves groupTasksByWorkspace） */
@@ -309,9 +308,10 @@ declare function groupTasksByTimelineBucket(
   tasks: TaskMeta[],
   options: { sortBy: string; now: number; locale: string },
 ): Array<{ key: string; label: string; items: TaskMeta[] }>;
-/** 原 $S（QuickPick.tsx formatRelativeTime，js 36080） */
-declare function formatRelativeTime(timestamp: number, intl: IntlShape): string;
-/** 原 p6：错误文本提取（SidebarLeaves 域，jsx 116942 区） */
+/* ── tombstone（A0-S2d）：$S formatRelativeTime declare 删除，canonical 在
+ *    QuickPick.tsx（已导出），经文件头真实 import 消费。 ── */
+/** 原 p6：错误文本提取（SidebarLeaves 域，jsx 116942 区；属主在域外且未导出，
+ *  登记「需要的 export：SidebarLeaves toErrorMessage(p6)」，保留 declare） */
 declare function toErrorMessage(e: unknown): string;
 
 /** 手机端远控 switcher 服务面（BPt/aPt 共用 props.switcher） */
@@ -324,21 +324,12 @@ interface WebRemoteSwitcherService {
   updateMobileViewState?(workspaceKey: string, taskId?: string): Promise<unknown>;
 }
 
-/* ---- F11 Bots 族接口级登记（§c #8 剩余；rRt 依赖面） ---- */
-/** 原 CLt（147813，F11）：Bot 供应商区域标签 i18n id。
- *  注意：返回 `login.oauth.regionTag.zai`/`login.oauth.regionTag.bigmodel`——
- *  D5b 云端删除后的残留键，按现状逐字登记。 */
-declare function resolveBotProviderRegionTagId(provider: string): string | null;
-/** 原 _8（F11）：Bot 供应商头像 */
-declare const BotProviderAvatar: React.FC<{ provider: string; className?: string }>;
-/** 原 qLt（F11，147767 区）：Bots 配置对话框 */
-declare const BotsConfigDialog: React.FC<{
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  entryProvider: string | null;
-}>;
+/* ---- F11 Bots 族（rRt 依赖面）：A0-S2d 已接线自 Bots.tsx 真实导出 ----
+ * ── tombstone（A0-S2d）：CLt resolveBotProviderRegionTagId / _8 BotProviderAvatar /
+ *    qLt BotsConfigDialog declare 删除，canonical 在 Bots.tsx
+ *    （regionTagKeyOfProvider / BotProviderIcon / BotsDialog，均已导出），
+ *    经文件头真实 import 消费。CLt 返回值注记保留：
+ *    `login.oauth.regionTag.zai`/`login.oauth.regionTag.bigmodel` 为 D5b 云端删除后的残留键。 ── */
 
 /* ============================================================================
  * 1. MobileHome 模型与偏好（原 OPt…IPt，js 140585–140672 / jsx 117214–117299）

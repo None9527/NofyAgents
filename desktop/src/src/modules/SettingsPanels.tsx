@@ -136,24 +136,42 @@
 
 import * as React from "react";
 import { Input, Textarea, toast } from './ImeComposition';
-import { Progress } from './Modals';
-import { Badge, providerFamilyOf, useCodingPlanEntitlements, useStartPlanPreview } from './PaymentDeep';
+import { Badge, providerFamilyOf, useStartPlanPreview } from './PaymentDeep';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger, subscribeSettingsSectionIntent } from './Settings';
-import { logger } from './SkillStore';
 import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, useSubscriptionSnapshot, useZapiEnabled } from './UsageDeep';
 import { useServices } from './services';
+import { cn } from './UtilsCn';
+import { useZCodeIntl as useIntlContext } from './I18n';
+import { t as logger } from './logger';
+import { useConfirmDialog } from './Modals'; // U2
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
+import { consumeModelProviderIntent as readSettingsSectionIntent } from './Settings'; // sw（39377）
+import { isStartPlanProviderId as isStartPlanPreset } from './SrcSharedA'; // Bn
+import {
+  resolveProviderFamilyMode as familyModeOf, // zi
+  getOAuthProviderFamilyByProviderId as familyDescriptorOf, // ot
+  isProviderEnabled as isProviderActive, // gi
+  parseCodingPlanScope as parseTeamPlanKey, // li
+  buildCodingPlanScope as buildTeamPlanKey, // vi
+  codingPlanScopesOverlap as isSameTeamPlanKey, // fi
+  mcpServerRowTestid as MCP_SERVER_ROW_TESTID_PREFIX, // bte（8337）
+  joinTestidParts as testidOf, // qr
+} from './SrcSharedB';
+import {
+  jsonStringify as importSelectionKey, // F7（jsx 155654）
+  syncResourceKey as sourceGroupKey, // n$t（jsx 155651）
+  agentDisplayLabel as agentDisplayName, // s$t（jsx 155703）
+  importScopeI18nKey as scopeOptionLabel, // u$t（jsx 155789）
+  errorMessageText as describeImportError, // a$t（jsx 155700）
+} from './McpHelpers';
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
@@ -175,17 +193,6 @@ interface ToastOptions {
   dismissLabel?: string;
 }
 
-/** 确认对话框（原 U2） */
-declare function useConfirmDialog(): (options: {
-  presentation?: string;
-  title: string;
-  description?: string;
-  confirmLabel: string;
-  cancelLabel?: string;
-  confirmVariant?: "default" | "destructive";
-  showKeyboardHints?: boolean;
-}) => Promise<boolean>;
-
 /* --- UI 原语（跨 chunk） --- */
 
 declare const Button: React.FC<
@@ -195,13 +202,8 @@ declare const Button: React.FC<
   }
 >;
 declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
-declare const Tooltip: React.FC<{
-  title: string;
-  description?: string;
-  side?: "top" | "bottom" | "left" | "right";
-  align?: "start" | "center" | "end";
-  children: React.ReactNode;
-}>;
+/** 原 yq（75986）：进度条 —— 属主 Modals.tsx 未导出，登记需要的 export 后保留 declare */
+declare const Progress: React.FC<{ value: number; className?: string }>; // yq（75986 / 67310）
 declare const SelectRoot: React.FC<{
   value: string;
   onValueChange: (v: string) => void;
@@ -289,24 +291,17 @@ interface PresetProviderDefinition {
 }
 
 /** 供应商族连接方式（原 dr/zi/ot 等，F12 族，跨 chunk） */
-declare function familyModeOf(familyId: string, modes: Record<string, string> | undefined): string; // zi
 interface ProviderFamilyDescriptor {
   id: string;
   apiKeyProviderId: string;
 }
-declare function familyDescriptorOf(presetId: string): ProviderFamilyDescriptor | null; // ot
-declare function isProviderActive(provider: ModelProvider): boolean; // gi
 declare function isPresetProvider(provider: ModelProvider): boolean; // lX
 declare function isProviderUsable(provider: ModelProvider): boolean; // vM
-declare function isStartPlanPreset(presetId: string): boolean; // Bn
 declare function sortProvidersByDisplayOrder(
   providers: ModelProvider[],
   displayOrder: { providerIds: string[]; updatedAt?: number } | null
 ): ModelProvider[]; // Iq
 declare function isBuiltInProviderId(providerId: string): boolean; // irt
-declare function parseTeamPlanKey(key: string): { productId?: string; organizationId?: string; projectId?: string } | null; // li
-declare function buildTeamPlanKey(parts: { productId?: string; organizationId?: string; projectId?: string }): string; // vi
-declare function isSameTeamPlanKey(a: string, b: string): boolean; // fi
 declare function presetApiKeyUrl(presetId: string): string | null; // ort
 declare function presetRegistrationUrl(presetId: string): string | null; // ort 族
 declare function trackEvent(
@@ -398,6 +393,14 @@ interface CodingPlanEntitlement {
   [key: string]: unknown;
 }
 
+/** 原 sX（88255）：Coding Plan 权益钩子 —— 属主 PaymentDeep.tsx 未导出，登记需要的 export 后保留 declare */
+declare function useCodingPlanEntitlements(opts: {
+  modelProviders: ModelProvider[];
+  loading: boolean;
+  modelProviderFamilySelectedKeys?: Record<string, string>;
+  suppressProviderFingerprintAutoRefresh?: boolean;
+}): { entitlements: Record<string, CodingPlanEntitlement>; refresh: () => Promise<void> }; // sX（88255）
+
 declare function useUpgradeEntry(): {
   openCodingPlanUpgrade: (opts: {
     providerId: string;
@@ -408,8 +411,7 @@ declare function useUpgradeEntry(): {
 }; // fX（89052）
 
 /** 分区导航意图（原 sw 39377 / cw 39394 / iw 35393） */
-declare function readSettingsSectionIntent(): { providerId: string } | null; // sw
-declare function navigateToSettingsSection(section: string): void; // iw
+declare function navigateToSettingsSection(section: string): void; // iw（本文件无调用点，保留 declare）
 
 /** 服务 context（原 fs()，2638） */
 interface McpServer {
@@ -2569,8 +2571,6 @@ export function McpScopeBadge({ scope }: { scope: "user" | "workspace" }) {
 }
 
 /** MCP 行件 testid 前缀（原 bte，src chunk）与模板（原 qr） */
-declare const MCP_SERVER_ROW_TESTID_PREFIX: string; // bte = "mcp-server-row"（src-HCld2afU.js 8337）
-declare function testidOf(prefix: string, value: string): string; // qr
 
 /** 原 GQt（js 192855）：MCP 服务器行件 */
 export function McpServerRow(props: {
@@ -3002,12 +3002,6 @@ export interface ExternalAgentScopeGroup {
 }
 
 /* 纯助手（原 155522–155824 区段；此处接口级声明，行号见头部映射 §C） */
-declare function importSelectionKey(selection: {
-  agent: string;
-  category: string;
-  sourceScope: ExternalAgentImportScope;
-  resourcePath: string;
-}): string; // F7（jsx 155654）
 declare function buildImportSelections(
   selectedKeys: string[],
   targetScope: ExternalAgentImportScope,
@@ -3024,10 +3018,6 @@ declare function listImportableResources(
   sourceRoot: { scope: ExternalAgentImportScope; path: string },
   category: string
 ): ExternalAgentImportResource[]; // L7（jsx 155794）
-declare function sourceGroupKey(agent: string, category: string, scope: ExternalAgentImportScope): string; // n$t（jsx 155651）
-declare function agentDisplayName(agent: string, intl: IntlShape): string; // s$t（jsx 155703）
-declare function scopeOptionLabel(scope: ExternalAgentImportScope, intl: IntlShape, category: string): string; // u$t（jsx 155789）
-declare function describeImportError(error: unknown): string; // a$t（jsx 155700）
 
 /** 原 c$t（jsx 155787）：源/目标作用域枚举 */
 const IMPORT_SCOPES: ExternalAgentImportScope[] = ["global", "project"];

@@ -53,8 +53,12 @@
 'use client';
 
 import { useContext, useState, useEffect } from 'react';
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明；类型契约见下方
-import { i as StreamdownOptionsContext, n as useCodeHighlighter, t as CodeBlockBody } from '../../out/renderer/assets/chunk-BO2N2NFS-CSNAeaxF.js';
+// chunk-BO2N2NFS-CSNAeaxF.js = first-party markdown/streamdown 渲染 mega-chunk
+// （VENDOR-MANIFEST-LIBS.md 定性；三个符号的重建落点如下）。
+// 重建模块 MarkdownContext.tsx 中该上下文名为 StreamdownContext（原上游名
+// StreamdownOptionsContext），此处以 `as` 保留本文件既有局部名。
+import { StreamdownContext as StreamdownOptionsContext, useCodeHighlighter } from './MarkdownContext'; // 原 chunk-BO2N2NFS i (Xb), n (ry)
+import { CodeBlockBody } from './MarkdownCodeBlock'; // 原 chunk-BO2N2NFS t (kv)
 
 /* ─────────────────────────── 类型声明（推断） ─────────────────────────── */
 
@@ -143,7 +147,8 @@ const HighlightedCodeBlockBody = ({
     if (sync) setResult(sync as HighlightResult);
   }, [code, language, shikiTheme, highlighter, raw]);
 
-  const jsx = (CodeBlockBody as unknown as React.ComponentType<{
+  // 局部名原为 `jsx`（与 jsx-runtime 同名导致 JSX 解析歧义），改名不改行为。
+  const CodeBlockBodyView = (CodeBlockBody as unknown as React.ComponentType<{
     className?: string;
     language: string;
     lineNumbers?: boolean;
@@ -152,7 +157,7 @@ const HighlightedCodeBlockBody = ({
     [prop: string]: unknown;
   }>);
   return (
-    <jsx
+    <CodeBlockBodyView
       className={className}
       language={language}
       lineNumbers={lineNumbers}

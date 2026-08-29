@@ -107,13 +107,13 @@
 
 import * as React from "react";
 import { isMacPlatform } from './LegacyDocEngineBModel';
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于 §三 所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
 /** 类名合并（原 p，utils-CEEH0K_K.js 的 t 导出） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 /** Mac 平台判定（原 o，keyboardShortcuts-BGHopxr9.js 的 a 导出：
  *  navigator.platform 含 mac/iphone/ipad/ipod，或 UA 匹配 Mac|iPhone|iPad|iPod） */
@@ -374,7 +374,7 @@ function applyScrollPreservation(scrollContainer: HTMLElement, pageViewport: HTM
 
 function useStageZoomOverlay(): {
   clearZoomOverlay: () => void;
-  pageViewportRef: React.RefObject<HTMLDivElement>;
+  pageViewportRef: React.RefObject<HTMLDivElement | null>;
   stageZoomOverlay: (width: number, height: number) => void;
 } {
   const pageViewportRef = React.useRef<HTMLDivElement>(null);

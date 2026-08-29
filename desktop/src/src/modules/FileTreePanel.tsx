@@ -156,18 +156,16 @@
 
 import * as React from "react";
 import { Input, toast, usePlatform } from './ImeComposition';
-import { ContextMenuItem } from './LegacyDocEngineBModel';
 import { baseName, relativePathFromWorkspace, useRemoteWorkspaceInfo } from './MarkdownIntegration';
 import { imageMimeTypeOfPath } from './PreviewCards';
-import { logger } from './SkillStore';
+import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
 import { taskEntityKey } from './StoresDeep';
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
+import { FileIconImg as FileIconImage, resolveFileDisplayInfo as getFileMeta } from './ModalsLeaves'; // 原 Vc / zc
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
-
-/** 原 Z：cn 类名拼接 */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
@@ -241,9 +239,6 @@ declare function useWorkspaceScopedServices(
   workspaceRemoteSessionId: string | null | undefined,
   workspaceIdentity: string | null | undefined,
 ): { fileService: FileService; fileWatcherService: FileWatcherService; gitService: GitService };
-
-/** 原 zc：getFileMeta（文件图标等元信息） */
-declare function getFileMeta(path: string): { fileIconSrc?: string | null };
 
 /* 原 to：useVirtualizer（@tanstack/react-virtual 封装） */
 interface VirtualItem {
@@ -320,6 +315,7 @@ declare const DropdownMenuItem: React.FC<{ disabled?: boolean; onSelect?: () => 
 declare const ContextMenu: React.FC<{ children?: React.ReactNode }>;
 declare const ContextMenuTrigger: React.FC<{ asChild?: boolean; children?: React.ReactNode }>;
 declare const ContextMenuContent: React.FC<{ className?: string; children?: React.ReactNode }>;
+declare const ContextMenuItem: React.FC<{ disabled?: boolean; onSelect?: () => void; children?: React.ReactNode }>; // Sk
 declare const ContextMenuSeparator: React.FC<Record<string, never>>;
 declare const ContextMenuSub: React.FC<{ children?: React.ReactNode }>;
 declare const ContextMenuSubTrigger: React.FC<{ disabled?: boolean; children?: React.ReactNode }>;
@@ -339,7 +335,6 @@ declare const IconBack: React.FC<{ className?: string }>; // S_
 declare const IconRepoWiki: React.FC<{ className?: string }>; // s3
 declare const IconChevronRight: React.FC<{ className?: string }>; // wa
 declare const IconSearch: React.FC<{ className?: string }>; // Fv
-declare const FileIconImage: React.FC<{ src?: string | null; className?: string }>; // Vc
 
 /* ============================================================================
  * 1. 文件树模型层（原 50907–51197）
@@ -626,7 +621,7 @@ function buildFilePreviewNode(path: string): { type: string; title: string; path
 const FILE_MANAGER_EDITOR_ORDER = [`finder`, `qspace`, `qspace-pro`, `explorer`];
 
 /** 原 GA：按优先顺序排列已安装编辑器 */
-function orderEditorsForFileManager(editors: InstalledEditor[]): InstalledEditor[] {
+export function orderEditorsForFileManager(editors: InstalledEditor[]): InstalledEditor[] {
   let byId = new Map(editors.map((editor) => [editor.id, editor])),
     preferred = FILE_MANAGER_EDITOR_ORDER.map((id) => byId.get(id) ?? null).filter((editor): editor is InstalledEditor => editor !== null),
     preferredIds = new Set(FILE_MANAGER_EDITOR_ORDER),
@@ -649,7 +644,7 @@ function editorsByIds(editors: InstalledEditor[], ids: string[]): InstalledEdito
 }
 
 /** 原 JA：解析可用编辑器（ssh→vscode 系；wsl→vscode 系+explorer；本地→文件管理器顺序） */
-function resolveAvailableEditors({
+export function resolveAvailableEditors({
   installedEditors,
   selectedEditorId,
   remoteTarget,
@@ -725,14 +720,14 @@ function revealPathForEntry(entry: { kind?: string; path: string }): string {
 }
 
 /** 原 QA：文件上下文动作钩子（显示/复制绝对/相对路径） */
-function useFileContextActions(options: {
+export function useFileContextActions(options: {
   canOpenLocalFileManager?: boolean;
   isRemoteWorkspace?: boolean;
   remoteTarget?: { kind?: string } | null;
   workspaceIdentity?: string | null;
   openFailedMessage?: string;
 } = {}) {
-  let platform = usePlatform(),
+  let platform = usePlatform() as unknown as PlatformService,
     { intl } = useIntlContext(),
     canOpenLocalFileManager = !!options.canOpenLocalFileManager,
     isRemoteWorkspace = !!options.isRemoteWorkspace,
@@ -806,7 +801,7 @@ const FILE_TREE_ROW_HEIGHT = 28,
 
 /** 原 NIt：已安装编辑器钩子（失败仅告警） */
 function useInstalledEditors(): { installedEditors: InstalledEditor[] } {
-  let platform = usePlatform(),
+  let platform = usePlatform() as unknown as PlatformService,
     [installedEditors, setInstalledEditors] = React.useState<InstalledEditor[]>([]);
   return (
     React.useEffect(() => {
@@ -1619,7 +1614,7 @@ function FileTreeRow({
   onOpenBrowserUrl?: (url: string) => void;
   onKeyDown: (event: React.KeyboardEvent, row: FlatTreeRow) => void;
 }) {
-  let platform = usePlatform(),
+  let platform = usePlatform() as unknown as PlatformService,
     { isDragging, setIsDragging } = useFileTreeDragState(),
     contextActions = useFileContextActions({ canOpenLocalFileManager, isRemoteWorkspace: isRemoteWorkspaceFileTree, openFailedMessage: contextMenuLabels.openFailed }),
     relativePath = relativePathFromWorkspace(workspacePath, row.path),
@@ -2030,7 +2025,7 @@ function rootErrorIfNotLoaded({ rootLoaded, rootError }: { rootLoaded: boolean; 
 }
 
 /** 原 nLt：文件树面板（返回任务/搜索/变更过滤/刷新/吸顶/虚拟列表） */
-function FileTreePanel({
+export function FileTreePanel({
   workspacePath,
   workspaceName,
   workspaceIdentity,
@@ -2060,7 +2055,7 @@ function FileTreePanel({
   repoWikiActive?: boolean;
 }) {
   let { intl } = useIntlContext(),
-    platform = usePlatform(),
+    platform = usePlatform() as unknown as PlatformService,
     scrollElementRef = React.useRef<HTMLDivElement | null>(null),
     pendingRevealRef = React.useRef<string | null>(null),
     [selectedPath, setSelectedPath] = React.useState<string | null>(null),
@@ -2552,10 +2547,10 @@ declare function applyTaskQueryCacheMutation(args: {
 declare function removeTaskAndNotify(args: { workspacePath: string; workspaceIdentity?: string | null; taskId: string }): void; // 原 rae（1914）
 
 /** 原 iLt：默认任务归属（置顶且未归档） */
-const DEFAULT_TASK_MEMBERSHIP: TaskMembership = { pinned: true, archived: true };
+export const DEFAULT_TASK_MEMBERSHIP: TaskMembership = { pinned: true, archived: true };
 
 /** 原 aLt：任务按更新时间倒序（并列退比创建时间、再退比 taskId） */
-function sortTasksByRecency(tasks: TaskRecord[]): TaskRecord[] {
+export function sortTasksByRecency(tasks: TaskRecord[]): TaskRecord[] {
   return [...tasks].sort((a, b) =>
     b.updatedAt === a.updatedAt
       ? b.createdAt === a.createdAt
@@ -2566,7 +2561,7 @@ function sortTasksByRecency(tasks: TaskRecord[]): TaskRecord[] {
 }
 
 /** 原 oLt：任务写入工作区缓存（乐观列表 + 元数据 + 查询缓存变更） */
-function upsertTaskInWorkspaceCache(args: {
+export function upsertTaskInWorkspaceCache(args: {
   workspacePath: string;
   workspaceIdentity?: string | null;
   task: TaskRecord;
@@ -2614,7 +2609,7 @@ function upsertTaskInWorkspaceCache(args: {
 }
 
 /** 原 sLt：删除归档任务后的状态清理 */
-function cleanupDeletedTaskState(args: {
+export function cleanupDeletedTaskState(args: {
   workspacePath: string;
   workspaceIdentity?: string | null;
   taskId: string;
@@ -2634,7 +2629,7 @@ function cleanupDeletedTaskState(args: {
 }
 
 /** 原 cLt：工作区任务登记（强制插入归属，未置顶未归档时确保入缓存） */
-function registerWorkspaceTask(args: {
+export function registerWorkspaceTask(args: {
   workspacePath: string;
   workspaceIdentity?: string | null;
   task: TaskRecord;

@@ -235,7 +235,6 @@ import {
   formFieldDisplayText,
   firstTextRunStyle,
   isBehindDocImageOf,
-  themeAwareColor,
   joinDefined,
   clampNumber,
   twipsToPxRounded,
@@ -250,6 +249,9 @@ import {
   isParagraph,
   paragraphIsCheckboxYesNoRow,
 } from "./LegacyDocEngineBModel";
+/** A0-S2c 条目4：p_ canonical = C5（BModel 473 为批 B 重复转录副本，保留不改；
+ * 本文件消费点改指 C5 导出。C5→C2 环：双方均函数体内消费，时序安全） */
+import { themeAwareColor } from "./LegacyDocEngineC5"; // 原 p_
 import {
   runStyleToCss,
   runStyleToCssDefaults,
@@ -637,6 +639,9 @@ export interface ParagraphRenderOptions {
   numberingDefinitions?: unknown;
   resolveStyleRefFieldValue?: (target: string) => string | undefined;
   sectionImageInteraction?: SectionImageInteraction;
+  /** A0-S2c：C4 调用面按原式（jsx 32609-32610）附带段落原点坐标，Tv 本体未消费 */
+  paragraphOriginLeftPx?: number;
+  paragraphOriginTopPx?: number;
 }
 
 /** 原 Tv（jsx 21113）：段落 run 渲染（域替换/制表布局/修订/批注/浮动图） */

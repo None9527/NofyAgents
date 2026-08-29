@@ -31,74 +31,49 @@
 
 import * as React from 'react';
 import { clsx } from 'clsx';
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明
-import { n as useZCodeIntl } from '../../out/renderer/assets/IntlProvider-C321H7m8.js';
-// @ts-expect-error usageStatsUiParts 导出：a=紧凑数字, i=次数格式化, t=空态卡片
+import { useZCodeIntl } from './I18n'; // 原 IntlProvider-C321H7m8 n
+// usageStatsUiParts 导出：a=紧凑数字, i=次数格式化, t=空态卡片
 import {
-  a as formatCompactNumber,
-  i as formatTurnCount,
-  t as UsageEmptyState,
-} from '../../out/renderer/assets/usageStatsUiParts-CiR7YEhh.js';
-// @ts-expect-error CartesianChart chunk：a=useNeedsClip, i=GraphicalItemClipPath, n=YAxis, o=SetErrorBarContext, r=XAxis, s=CartesianGrid, t=CartesianChart
-import {
-  a as useNeedsClip,
-  i as GraphicalItemClipPath,
-  n as YAxis,
-  o as SetErrorBarContext,
-  r as XAxis,
-  s as CartesianGrid,
-  t as CartesianChart,
-} from '../../out/renderer/assets/CartesianChart-nORn-0bc.js';
-// @ts-expect-error chart-iT2j9K3u.js = recharts@3.8.0 bundle（+ chart.tsx 封装），别名映射见尾符号表
-import {
-  $t as selectChartLayout,
-  A as SetTooltipEntrySettings,
-  Bn as filterProps,
-  D as RegisterGraphicalItemId,
-  Dn as resolveDefaultProps,
-  En as useAppSelector,
-  F as CartesianLabelListContextProvider,
-  G as ZIndexLayer,
-  Gt as selectChartDataWithIndexesIfNotInPanoramaPosition4,
-  Hn as svgPropertiesNoEventsFromUnknown,
-  I as LabelListFromLabelProp,
-  In as noop,
-  J as selectActiveTooltipIndex,
-  Jt as useAnimationId,
-  Lt as DefaultZIndexes,
-  N as isClipDot,
-  Nn as isNullish,
-  O as SetLegendPayload,
-  On as adaptEventHandlers,
-  Pn as isNumber,
-  Qt as propsAreEqual,
-  Rn as Layer,
-  St as selectUnfilteredCartesianItems,
-  T as SetCartesianGraphicalItem,
-  Vn as svgPropertiesNoEvents,
-  W as arrayTooltipSearcher,
-  Yt as JavascriptAnimate,
-  _ as usePlotArea,
-  a as ChartTooltip,
-  bn as isCategoricalAxis,
-  dn as getBandSizeOfAxis,
-  ft as selectAxisWithScale,
-  g as useActiveTooltipDataPoints,
-  i as Tooltip,
-  j as Shape,
-  jn as interpolate,
-  mn as getCateCoordinateOfLine,
-  n as Legend,
-  nn as useChartLayout,
-  on as useIsPanorama,
-  r as ChartLegendContent,
-  t as ChartContainer,
-  vn as getTooltipNameProp,
-  wn as createSelector,
-  xt as selectTicksOfGraphicalItem,
-  yn as getValueByDataKey,
-  zn as svgPropertiesAndEvents,
-} from '../../out/renderer/assets/chart-iT2j9K3u.js';
+  formatTokens as formatCompactNumber, // 原 usageStatsUiParts-CiR7YEhh a
+  formatCountCompact as formatTurnCount, // 原 usageStatsUiParts-CiR7YEhh i
+  UsageEmptyState, // 原 usageStatsUiParts-CiR7YEhh t
+} from './UsageStatsUiParts';
+// CartesianChart chunk = 纯 recharts 3.8.0 vendor：a=useNeedsClip, i=GraphicalItemClipPath,
+// n=YAxis, o=SetErrorBarContext, r=XAxis, s=CartesianGrid, t=CartesianChart
+import { CartesianChart } from 'recharts/es6/chart/CartesianChart.js'; // 原 CartesianChart-nORn-0bc t
+import { useNeedsClip, GraphicalItemClipPath } from 'recharts/es6/cartesian/GraphicalItemClipPath.js'; // 原 CartesianChart-nORn-0bc a, i
+import { XAxis, YAxis, CartesianGrid } from 'recharts'; // 原 CartesianChart-nORn-0bc r, n, s
+import { SetErrorBarContext } from 'recharts/es6/context/ErrorBarContext.js'; // 原 CartesianChart-nORn-0bc o
+// chart-iT2j9K3u.js = recharts@3.8.0 bundle（+ chart.tsx 封装），别名映射见尾符号表。
+// 改接 npm recharts@3.8.0（根导出 / 深路径，深路径类型环境见 ../lib/recharts-deep.d.ts）
+// + reselect + ./ChartShadcn + ../lib/rechartsChunkInternals（bundle 内部件转录）。
+import { DefaultZIndexes, Layer, Legend, Tooltip, ZIndexLayer, usePlotArea, useActiveTooltipDataPoints } from 'recharts'; // 原 chart-iT2j9K3u Lt, Rn, n, i, G, _, g
+import { createSelector } from 'reselect'; // 原 chart-iT2j9K3u wn
+import { ChartContainer, ChartTooltip, ChartLegendContent } from './ChartShadcn'; // 原 chart-iT2j9K3u t, a, r
+import { filterProps } from '../lib/rechartsChunkInternals'; // 原 chart-iT2j9K3u Bn
+import { selectChartLayout, useChartLayout } from 'recharts/es6/context/chartLayoutContext.js'; // 原 chart-iT2j9K3u $t, nn
+import { SetTooltipEntrySettings } from 'recharts/es6/state/SetTooltipEntrySettings.js'; // 原 chart-iT2j9K3u A
+import { RegisterGraphicalItemId } from 'recharts/es6/context/RegisterGraphicalItemId.js'; // 原 chart-iT2j9K3u D
+import { resolveDefaultProps } from 'recharts/es6/util/resolveDefaultProps.js'; // 原 chart-iT2j9K3u Dn
+import { useAppSelector } from 'recharts/es6/state/hooks.js'; // 原 chart-iT2j9K3u En
+import { CartesianLabelListContextProvider, LabelListFromLabelProp } from 'recharts/es6/component/LabelList.js'; // 原 chart-iT2j9K3u F, I
+import { selectChartDataWithIndexesIfNotInPanoramaPosition4 } from 'recharts/es6/state/selectors/dataSelectors.js'; // 原 chart-iT2j9K3u Gt
+import { svgPropertiesNoEventsFromUnknown, svgPropertiesNoEvents } from 'recharts/es6/util/svgPropertiesNoEvents.js'; // 原 chart-iT2j9K3u Hn, Vn
+import { noop, isNullish, interpolate, isNumber } from 'recharts/es6/util/DataUtils.js'; // 原 chart-iT2j9K3u In, Nn, jn, Pn
+import { selectActiveTooltipIndex } from 'recharts/es6/state/selectors/tooltipSelectors.js'; // 原 chart-iT2j9K3u J
+import { useAnimationId } from 'recharts/es6/util/useAnimationId.js'; // 原 chart-iT2j9K3u Jt
+import { isClipDot } from 'recharts/es6/util/ReactUtils.js'; // 原 chart-iT2j9K3u N
+import { SetLegendPayload } from 'recharts/es6/state/SetLegendPayload.js'; // 原 chart-iT2j9K3u O
+import { adaptEventHandlers } from 'recharts/es6/util/types.js'; // 原 chart-iT2j9K3u On
+import { propsAreEqual } from 'recharts/es6/util/propsAreEqual.js'; // 原 chart-iT2j9K3u Qt
+import { selectUnfilteredCartesianItems, selectAxisWithScale, selectTicksOfGraphicalItem } from 'recharts/es6/state/selectors/axisSelectors.js'; // 原 chart-iT2j9K3u St, ft, xt
+import { SetCartesianGraphicalItem } from 'recharts/es6/state/SetGraphicalItem.js'; // 原 chart-iT2j9K3u T
+import { arrayTooltipSearcher } from 'recharts/es6/state/optionsSlice.js'; // 原 chart-iT2j9K3u W
+import { JavascriptAnimate } from 'recharts/es6/animation/JavascriptAnimate.js'; // 原 chart-iT2j9K3u Yt
+import { isCategoricalAxis, getBandSizeOfAxis, getCateCoordinateOfLine, getTooltipNameProp, getValueByDataKey } from 'recharts/es6/util/ChartUtils.js'; // 原 chart-iT2j9K3u bn, dn, mn, vn, yn
+import { Shape } from 'recharts/es6/util/ActiveShapeUtils.js'; // 原 chart-iT2j9K3u j
+import { useIsPanorama } from 'recharts/es6/context/PanoramaContext.js'; // 原 chart-iT2j9K3u on
+import { svgPropertiesAndEvents } from 'recharts/es6/util/svgPropertiesAndEvents.js'; // 原 chart-iT2j9K3u zn
 
 /* ─────────────────────────── 公共类型（推断） ─────────────────────────── */
 
@@ -337,7 +312,7 @@ function _objectSpread(target: any, ..._sources: any[]) {
     } else if (Object.getOwnPropertyDescriptors) {
       Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
     } else {
-      _ownKeys(Object(source)).forEach((key: any) => Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)));
+      _ownKeys(Object(source)).forEach((key: any) => Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)!));
     }
   }
   return target;
@@ -346,8 +321,8 @@ function _ownKeys(object: any, enumerableOnly?: boolean) {
   const keys = Object.keys(object);
   if (Object.getOwnPropertySymbols) {
     let symbols = Object.getOwnPropertySymbols(object);
-    if (enumerableOnly) symbols = symbols.filter((sym) => Object.getOwnPropertyDescriptor(object, sym).enumerable);
-    keys.push.apply(keys, symbols);
+    if (enumerableOnly) symbols = symbols.filter((sym) => Object.getOwnPropertyDescriptor(object, sym)?.enumerable);
+    keys.push.apply(keys, symbols as unknown as string[]);
   }
   return keys;
 }
@@ -951,12 +926,11 @@ function CodingPlanUsageLineChart({
     },
     [chartConfig, locale, valueKind],
   );
+  // indicator/labelFormatter/formatter 为 shadcn 内容层属性：原码直接透传给 recharts Tooltip（其对未知 props 不消费），故经 spread 透传
   const tooltipContent = React.useMemo(
     () => (
       <ChartTooltip
-        indicator="line"
-        labelFormatter={(label: unknown) => String(label)}
-        formatter={tooltipFormatter}
+        {...({ indicator: 'line', labelFormatter: (label: unknown) => String(label), formatter: tooltipFormatter } as Record<string, unknown>)}
       />
     ),
     [tooltipFormatter],

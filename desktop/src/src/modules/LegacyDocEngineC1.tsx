@@ -144,8 +144,9 @@
  *  Engine4：layoutTextItemsBlock (Ns) / layoutPlainTextBlock (Ms) /
  *    tablePageBreakRowIndexes (jo) / countWrappedLinesCached (_s)
  *
- * 本文件 declare 登记（实体在 C2，避免 C1→C2 循环）：
+ * §0 接线（A0-S2c；实体在 C2，C1↔C2 环时序安全）：
  *   zv → numberingLabelsForModel (21793) | kv → formatPageNumber (21729)
+ *   yy/Ey/jy/My/Ny/Py/Ly/zy/ub → 表格几何族（22103-22868）
  *
  * ----------------------------------------------------------------------------
  * 三、与批 B 的边界裁决（详见 LegacyDocEngineC.report.md §2）
@@ -229,7 +230,6 @@ import type {
   SectionPageMetrics,
 } from "./LegacyDocEngineBModel";
 import {
-  normalizeFontFamily,
   xmlAttrValue,
   twipsToPxRounded,
   clampNumber,
@@ -250,6 +250,9 @@ import {
   rowHeightCacheKey,
   Z_LAYER_MAX,
 } from "./LegacyDocEngineBModel";
+/** A0-S2c 条目4：m_ canonical = C5（BModel 459 为批 B 重复转录副本，保留不改；
+ * 本文件消费点改指 C5 导出。C5→C1 环：双方均函数体内消费，时序安全） */
+import { normalizeFontFamily } from "./LegacyDocEngineC5"; // 原 m_
 import {
   paragraphBreakFlags,
   explicitColumnBreakOf,
@@ -293,35 +296,27 @@ import {
 import type { TextBlockLayout, TextLayoutItem, LayoutExclusion } from "./LegacyDocEngine4";
 
 /* ============================================================================
- * §0 契约登记（实体在 C2；C1 不得反向依赖 C2，此处以 declare 登记）
+ * §0 契约登记（实体在 C2；A0-S2c 已接线为真实导入。
+ * C1↔C2 环本已存在（C2 导入 C1 类型/值），两侧均为函数声明，
+ * 模块初始化期无互调，时序安全。）
  * ==========================================================================*/
 
-/** 原 zv（jsx 21793，C2 实体化）：全文档编号标签预计算 */
-declare function numberingLabelsForModel(model: DocxEditorModel): Map<string, NumberingLabelEntry>;
-
-/** 原 kv（jsx 21729，C2 实体化）：页码格式化（数字 → 格式串） */
-declare function formatPageNumber(value: number, format: string | undefined): string;
-
-/* --- 表格几何契约（实体在 C2；§7 eg/ag/sg 消费，避免 C1→C2 循环） --- */
-
-/** 原 yy（jsx 22103，C2 实体化）：表格最大列数（gridSpan 合计） */
-declare function tableMaxColumnCount(table: DocxTableNode): number;
-/** 原 Ey（jsx 22208，C2 实体化）：表格栅格宽缓存（twips 数组） */
-declare function tableGridWidthsCached(table: DocxTableNode, columnCount: number): (number | undefined)[] | undefined;
-/** 原 jy（jsx 22276，C2 实体化）：栅格宽归一（缺省均摊；下限 24/1） */
-declare function normalizeGridWidthsPx(widthsPx: number[], columnCount: number, tableWidthPx: number | undefined, minWidthPx?: number): number[];
-/** 原 My（jsx 22285，C2 实体化）：均分栅格宽 */
-declare function evenGridWidthsPx(columnCount: number, tableWidthPx: number | undefined): number[];
-/** 原 Ny（jsx 22291，C2 实体化）：表体宽夹取 */
-declare function clampTableContentWidthPx(totalPx: number, capPx: number | undefined): number;
-/** 原 Py（jsx 22294，C2 实体化）：栅格宽按总宽缩放 */
-declare function scaleGridWidthsToPx(widthsPx: number[], totalPx: number): number[];
-/** 原 Ly（jsx 22378，C2 实体化）：单元格边距 twips → px */
-declare function cellMarginsPx(marginTwips: unknown): { top: number; right: number; bottom: number; left: number };
-/** 原 zy（jsx 22400，C2 实体化）：有效单元格边距 twips（覆盖优先） */
-declare function effectiveCellMarginTwips(tableMarginTwips: unknown, cellMarginTwips: unknown): unknown;
-/** 原 ub（jsx 22868，C2 实体化）：表格外侧边框宽合计 px */
-declare function tableOuterBorderWidthPx(table: DocxTableNode, columnCount?: number): number;
+/** 原 zv（jsx 21793）：全文档编号标签预计算 → C2 实体导出（返回 C1 NumberingLabelEntry 面） */
+/** 原 kv（jsx 21729）：页码格式化（数字 → 格式串） → C2 实体导出 */
+/** 表格几何族（原 yy/Ey/jy/My/Ny/Py/Ly/zy/ub）→ C2 实体导出（§7 eg/ag/sg 消费） */
+import {
+  numberingLabelsForModel, // 原 zv
+  formatPageNumber, // 原 kv
+  tableMaxColumnCount, // 原 yy（jsx 22103）
+  tableGridWidthsCached, // 原 Ey（jsx 22208）
+  normalizeGridWidthsPx, // 原 jy（jsx 22276）
+  evenGridWidthsPx, // 原 My（jsx 22285）
+  clampTableContentWidthPx, // 原 Ny（jsx 22291）
+  scaleGridWidthsToPx, // 原 Py（jsx 22294）
+  cellMarginsPx, // 原 Ly（jsx 22378）
+  effectiveCellMarginTwips, // 原 zy（jsx 22400）
+  tableOuterBorderWidthPx, // 原 ub（jsx 22868）
+} from "./LegacyDocEngineC2";
 
 /** zv 的登记值面（与 C2 导出类型对齐） */
 export interface NumberingLabelEntry {
@@ -2088,13 +2083,14 @@ export interface SegmentGeometry {
   sliceBottomPx: number;
 }
 
-/** 原 vg（jsx 18957）：分段渲染底边（段落底与文本底取大） */
-export function segmentRenderBottomPx(geometry: SegmentGeometry): number {
+/** 原 vg（jsx 18957）：分段渲染底边（段落底与文本底取大）。
+ * A0-S2c：原式只读三字段，C4 调用面按原式传部分字段，参数收窄为所需字段集 */
+export function segmentRenderBottomPx(geometry: Pick<SegmentGeometry, `paragraphTopPx` | `paragraphHeightPx` | `textBottomPx`>): number {
   return Math.max(Math.round(geometry.paragraphTopPx + geometry.paragraphHeightPx), Math.round(geometry.textBottomPx));
 }
 
-/** 原 yg（jsx 18961）：分段是否覆盖整段 */
-export function segmentCoversWholeParagraph(geometry: SegmentGeometry): boolean {
+/** 原 yg（jsx 18961）：分段是否覆盖整段（A0-S2c：参数收窄为原式实际读取的四字段） */
+export function segmentCoversWholeParagraph(geometry: Pick<SegmentGeometry, `sliceStartPx` | `sliceBottomPx` | `paragraphTopPx` | `paragraphBottomPx`>): boolean {
   return geometry.sliceStartPx <= geometry.paragraphTopPx + ROW_HEIGHT_TOLERANCE_PX && geometry.sliceBottomPx >= geometry.paragraphBottomPx + KEY_CODE_PAGE_NAV - ROW_HEIGHT_TOLERANCE_PX;
 }
 

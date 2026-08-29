@@ -130,12 +130,14 @@ import type {
 import { CaptchaHostContainer } from './ConversationLeaves';
 import { PlatformProvider } from './ImeComposition';
 import { AppDialogHost, DirectoryBrowserDialog, OnboardingDialog } from './Modals';
-import { CodingPlanUpgradeDialogProvider } from './PaymentDeep';
 import { SettingsView } from './Settings';
-import { logger, useTaskStore } from './SkillStore';
-import { CLOSE_ACTIVE_CONTEXT_EVENT } from './WorkspaceShell';
+import { useTaskStore } from './SkillStore';
+import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { ConversationTelemetrySupervisor, useWorkspaceServices } from './services';
 import { useSettingsStore } from './stores-core';
+import type { AgentFact, TelemetryPlatform } from './services';
+/* CodingPlanUpgradeDialogProvider 属主 PaymentDeep（未导出）——需要的 export 已登记，保留 declare（§0 provider 区） */
+/* CLOSE_ACTIVE_CONTEXT_EVENT 属主 WorkspaceShell（未导出）——需要的 export 已登记，保留 declare（§0 平台桥区） */
 
 /* ============================================================================
  * §0. 外部依赖声明（接口级；均为本范围外的其它 chunk / 家族符号）
@@ -146,6 +148,7 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /* --- 平台桥 --- */
 declare const DESKTOP_COMMANDS: { RelaunchApp: string; CloseWindow: string; [key: string]: string };
+declare const CLOSE_ACTIVE_CONTEXT_EVENT: string;
 
 /* --- stores（模块级句柄）--- */
 declare function useTabStoreSelector<T>(selector: (state: TabStoreState) => T): T; // 原 pc
@@ -233,7 +236,7 @@ declare function useRemoteConnectionLogsBridge(state: unknown): { connectionLogs
 
 /* --- 任务列表（h8t 消费面）--- */
 declare function useTaskListItems(options: { kind: string; workspaceTabs: WorkspaceTab[]; sortBy: string; searchQuery: string; expanded: boolean; collapsedLimit: number }): { items: Array<{ taskId: string; updatedAt: number; createdAt: number; [key: string]: any }>; loading: boolean }; // 原 ZS
-declare function taskRuntimeByWorkspaceKey(workspaces: Record<string, WorkspaceTaskState>): Record<string, unknown>; // 原 yPt
+declare function taskRuntimeByWorkspaceKey(workspaces: Record<string, unknown>): Record<string, unknown>; // 原 yPt
 declare function mapTasksToListItems(options: { workspaceTabs: WorkspaceTab[]; tasks: Array<{ taskId: string; [key: string]: any }>; taskRuntimeByWorkspaceKey: Record<string, unknown>; pinned?: boolean; archived?: boolean }): Array<{ taskId: string; updatedAt: number; createdAt: number; [key: string]: any }>; // 原 h6
 
 /* --- TDP 对测域外部件 --- */
@@ -271,6 +274,7 @@ declare const ServicesProvider: React.FC<{ services: ServicesBundle; children?: 
 declare const StoreProvider: React.FC<{ broadcastService: BroadcastServiceLike; initialIsRestoringOAuthSession?: boolean; children?: React.ReactNode }>; // 原 Nie（1289）
 declare const TabStoreProvider: React.FC<{ children?: React.ReactNode }>; // 原 Vse（4784）
 declare const WebRemoteControlFeatureGate: React.FC<{ enabled?: boolean; children?: React.ReactNode }>; // 原 oRt（150149）
+declare const CodingPlanUpgradeDialogProvider: React.FC<{ children?: React.ReactNode }>; // 原 krt（89089）
 declare const RemoteConnectionDialog: React.FC<Record<string, any>>; // 原 pOt
 declare const ScopeBoundary: React.FC<Record<string, any>>; // 原 p4
 
@@ -355,7 +359,7 @@ export function useWorkspaceActions({
       [workbenchGroupClientMode],
     ),
     startNewTaskFromActiveWorkspace = (0, React.useCallback)(
-      (source: string, options?: string | { provider?: string; groupedDraftPlacement?: string; initialPrompt?: string; initialPromptMention?: unknown }) => {
+      (source: string, options?: string | { provider?: string; groupedDraftPlacement?: { type: string; groupId?: string }; initialPrompt?: string; initialPromptMention?: unknown }) => {
         let tabState = tabStoreApi.getState(),
           { activeWorkspacePath: currentPath, activeWorkspaceIdentity: currentIdentity, activateTabByPath } = tabState,
           routerState = sessionRouterStore.getState(),
@@ -576,7 +580,7 @@ export function useWorkspaceActions({
       [allowOpenWorkspace, handleSelectProject, services.fileService],
     ),
     handleCreateTask: (0, React.useCallback)(
-      (options?: string | { provider?: string; groupedDraftPlacement?: string; initialPrompt?: string; initialPromptMention?: unknown }) => {
+      (options?: string | { provider?: string; groupedDraftPlacement?: { type: string; groupId?: string }; initialPrompt?: string; initialPromptMention?: unknown }) => {
         startNewTaskFromActiveWorkspace(`sidebar new task`, options);
       },
       [startNewTaskFromActiveWorkspace],
@@ -1487,7 +1491,7 @@ export async function runTelemetryParityCase(platform: PlatformService, caseId: 
       let scope: ParityScope = { now: 0, sequence: 0, foregroundOwners: new Map(), supervisor: void 0 as unknown as ConversationTelemetrySupervisor };
       return (
         (scope.supervisor = new ConversationTelemetrySupervisor({
-          platform,
+          platform: platform as unknown as TelemetryPlatform,
           workspaceScopeKey: `telemetry-parity\u0000${caseId}\u0000${scopeName}`,
           now: () => scope.now,
         })),
@@ -1768,7 +1772,7 @@ export function pushUniqueParityAssertion(assertions: string[], label: string) {
 }
 
 /** 原 Z9（js 212806）— 逐字 */
-export function buildParityEventFact(scope: ParityScope, operation: any, patch: Record<string, unknown>) {
+export function buildParityEventFact(scope: ParityScope, operation: any, patch: Partial<AgentFact> & { kind: string }): AgentFact {
   return {
     version: 1,
     eventId: operation.eventId,
@@ -2066,7 +2070,7 @@ export function AppRootContent({
       ))
         return activeTab.workspacePath;
     }),
-    totalUnreadTaskCount = useTaskStore((state) => countTotalUnreadTasks(state.workspaces)),
+    totalUnreadTaskCount = useTaskStore((state) => countTotalUnreadTasks(state.workspaces as Record<string, WorkspaceTaskState>)),
     addTab = useTabStoreSelector((state) => state.addTab),
     activateTabByPath = useTabStoreSelector((state) => state.activateTabByPath),
     tabStoreApi = useTabStoreApi(),
@@ -2463,7 +2467,7 @@ export function AppRootContent({
             variant={`silent`}
           >
             <DirectoryBrowserDialog
-              services={services}
+              services={services as unknown as React.ComponentProps<typeof DirectoryBrowserDialog>["services"]}
               onCancel={() => setDirectoryBrowserOpen(false)}
               onSelect={(path: string) => {
                 (setDirectoryBrowserOpen(false), handleSelectProject(path));
@@ -2480,7 +2484,7 @@ export function AppRootContent({
     isMacDesktop,
     isWindowsDesktop,
     isWebRemoteControl: !!webRemoteControlWorkspaceSwitcher,
-    captionWorkspacePath: activeWorkspacePath,
+    captionWorkspacePath: activeWorkspacePath as string | undefined,
     onBack: activeWorkspacePath ? handleBackFromSettings : void 0,
     onCreateTask: handleCreateTask,
     onOpenWorkspace: handleOpenWorkspace,
@@ -2524,7 +2528,7 @@ export function AppRootContent({
       {remoteConnectionDialog}
       {directoryBrowserLayer}
       <RootWorkspaceContent
-        workspaceScopedServices={workspaceScopedServices}
+        workspaceScopedServices={workspaceScopedServices as unknown as ServicesBundle}
         baseFeedbackService={services.feedbackService}
         workspaceShellPath={workspaceShellPath}
         workspaceIdentity={workspaceIdentity}

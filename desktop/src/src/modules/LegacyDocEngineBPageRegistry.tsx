@@ -45,12 +45,9 @@ import {
   textChildren,
   formFieldDisplayText,
   collectParagraphsRecursive,
-  themeAwareColor,
-  normalizeFontFamily,
   firstTextRunStyle,
 } from "./LegacyDocEngineBModel";
 import {
-  resolveHighlightColor,
   paragraphCssStyle,
   estimateTextWidthPx,
 } from "./LegacyDocEngineBLayout";
@@ -58,7 +55,12 @@ import { THUMBNAIL_HEADING_METRICS } from "./LegacyDocEngineBThumbnails";
 import { resolveImageSrc } from "./previewPaneOfficeLegacyDocContent";
 
 /* ============================================================================
- * §0 外部契约（[E2]/[E4]/渲染层，锚点登记）
+ * §0 外部契约（[E2]/[E4]/渲染层；A0-S2c 已接线为真实导入：
+ *   C1：Ym/Qm/Rh/Tg/lg/$h/tg 段落·行高·表格行族
+ *   C2：yy/Ey/jy/My/Ny/Iy/ub/Cy/Yy/lb/db/Ry/zy/Jy/qy 表格几何族、Tv renderParagraphRuns、
+ *       qx sectionParagraphDraftKey
+ *   C5：f_ paragraphHostStyle（canonical）｜ Engine4：qs cachedStructuralHash
+ *   仍保留 declare：renderStaticMarkupLocal（react-dom/server，vendor 段）
  * ==========================================================================*/
 
 /** 原 rS 消费面：编辑器仅暴露 syncPaginationInfo（注册表宿主键） */
@@ -114,36 +116,51 @@ export interface ThumbnailRun {
   fontFamily?: string;
 }
 
-/** [E2]：段落字号/行高/字体族（锚点登记） */
-declare function paragraphFontSizePx(paragraph: DocxParagraphNode): number;
-declare function paragraphRenderLineHeight(paragraph: DocxParagraphNode, gridPitchPx: number | undefined): number;
-declare function paragraphDefaultFontFamily(paragraph: DocxParagraphNode): string | undefined;
-/** [E2]：节点布局高（锚点登记） */
-declare function nodeLayoutHeight(node: DocxNode, segment: PageSegment, model: DocxEditorModel, contentWidthPx: number, numberingDefinitions: unknown, gridPitchPx: number | undefined): number;
-/** [E2]：表格几何族（原 yy/Ey/jy/My/Ny/Iy/ub/$h/Cy/Yy/tg/lb/db/Ry/zy/Jy/qy，锚点登记） */
-declare function tableGridColumns(table: DocxTableNode): number;
-declare function tableColumnWidthsTwips(table: DocxTableNode, columns: number): number[] | undefined;
-declare function distributeColumnWidths(widthsTwips: number[], columns: number, tableWidthPx: number | undefined, scale: number): number[];
-declare function defaultColumnWidths(columns: number, tableWidthPx: number | undefined): number[];
-declare function resolveTableWidth(tableWidthPx: number, maxWidthPx: number | undefined): number;
-declare function resolveTableLayout(table: DocxTableNode, widthsTwips: number[], contentWidthPx: number): { columnWidthsPx: number[] };
-declare function tableIndentPx(table: DocxTableNode, columns: number): number;
-declare function tableRowHeights(table: DocxTableNode, contentWidthPx: number, numberingDefinitions: unknown, gridPitchPx: number | undefined, contentHeightPx?: number): number[];
-declare function tableContainerStyle(table: DocxTableNode, indentPx: number): Record<string, unknown>;
-declare function tableAlignmentStyle(table: DocxTableNode, alignment: number): Record<string, unknown>;
-declare function tableRowStyle(row: { style?: { heightTwips?: number } }, heightPx: number | undefined): Record<string, unknown>;
-declare function tableCellBorders(tableBorders: unknown, cellBorders: unknown, rowIndex: number, rowCount: number, startColumn: number, endColumn: number, columns: number): Record<string, unknown>;
-declare function tableCellPadding(tableBorders: unknown, cellBorders: unknown): Record<string, unknown>;
-declare function tableCellMargins(margin: unknown): Record<string, unknown>;
-declare function mergeCellMargins(tableMargin: unknown, cellMargin: unknown): unknown;
-declare function tableBorderSpacing(table: DocxTableNode): number;
-declare function tableAlignmentOf(table: DocxTableNode): string | undefined;
-/** [E4]：内容签名（原 qs） */
-declare function contentSignatureOf(node: DocxNode): string;
-/** [E4]：段落行高估算（原 lg/zh） */
-declare function estimateNodeHeight(node: DocxNode, contentWidthPx: number, gridPitchPx: number | undefined, extra?: unknown): number;
-/** 渲染层：段落渲染器（原 Tv，jsx 21113；锚点登记） */
-declare function renderParagraph(
+/** [E2] 段落字号/行高/字体族/节点高 → C1 实体导出（A0-S2c 接线；同 BModel 类型族） */
+import {
+  paragraphFontSizePx, // 原 Ym（jsx 18106）
+  paragraphLineHeight as paragraphRenderLineHeight, // 原 Rh（jsx 18553）
+  paragraphDefaultFontFamily, // 原 Qm（jsx 18124）
+  nodeLayoutHeight, // 原 Tg（jsx 19003）
+  estimateNodeHeight, // 原 lg（jsx 18915）
+  tableRowHeights, // 原 $h（jsx 18713）
+  tableRowStyle, // 原 tg（jsx 18759）
+} from "./LegacyDocEngineC1";
+/** [E2] 表格几何族 → C2 实体导出（原 yy/Ey/jy/My/Ny/Iy/ub/Cy/Yy/lb/db/Ry/zy/Jy/qy；本地语义名保留） */
+import {
+  tableMaxColumnCount as tableGridColumns, // 原 yy（jsx 22103）
+  tableGridWidthsCached as tableColumnWidthsTwips, // 原 Ey（jsx 22208）
+  normalizeGridWidthsPx as distributeColumnWidths, // 原 jy（jsx 22276）
+  evenGridWidthsPx as defaultColumnWidths, // 原 My（jsx 22285）
+  clampTableContentWidthPx as resolveTableWidth, // 原 Ny（jsx 22291）
+  effectiveColumnWidthsPx as resolveTableLayout, // 原 Iy（jsx 22339）
+  tableOuterBorderWidthPx as tableIndentPx, // 原 ub（jsx 22868）
+  floatingTableStyle as tableContainerStyle, // 原 Cy（jsx 22150）
+  tableBorderCollapseStyle as tableAlignmentStyle, // 原 Yy（jsx 22451）
+  cellBorderCss as tableCellBorders, // 原 lb（jsx 22848）
+  diagonalBordersBackground as tableCellPadding, // 原 db（jsx 22884）
+  cellPaddingStyle as tableCellMargins, // 原 Ry（jsx 22385）
+  effectiveCellMarginTwips as mergeCellMargins, // 原 zy（jsx 22400）
+  tableBorderSpacingPx as tableBorderSpacing, // 原 Jy（jsx 22446）
+  tableUsesCellBorders as tableAlignmentOf, // 原 qy（jsx 22440）
+  renderParagraphRuns as renderParagraphC2, // 原 Tv（jsx 21113）
+  sectionParagraphDraftKey as sectionParagraphKey, // 原 qx（jsx 24220）
+} from "./LegacyDocEngineC2";
+/** [E4] 内容签名（原 qs）→ Engine4 cachedStructuralHash */
+import { cachedStructuralHash as contentSignatureOf } from "./LegacyDocEngine4";
+/** 渲染层：节段落宿主样式（原 f_）→ C5 canonical 导出（B5-14 §1.2 qg 族） */
+/** A0-S2c 条目4：f_/m_/p_/e_ canonical = C5（BModel 459/473、BLayout 1509 为
+ * 批 B 重复转录副本，保留不改；本文件消费点改指 C5 导出） */
+import {
+  paragraphHostStyle as sectionParagraphStyleC5, // 原 f_（jsx 20104）
+  themeAwareColor, // 原 p_
+  normalizeFontFamily, // 原 m_
+  resolveHighlightColor, // 原 e_
+} from "./LegacyDocEngineC5";
+
+/* --- 类型桥接：本地契约与实体签名分歧者（运行时为同一实体） --- */
+/** 原 Tv：实体 renderParagraphRuns 参数面与本文件渲染器契约不同，按本地契约桥接 */
+const renderParagraph = renderParagraphC2 as unknown as (
   paragraph: DocxParagraphNode,
   numberingDefinitions: unknown,
   documentTheme: `light` | `dark`,
@@ -154,11 +171,10 @@ declare function renderParagraph(
   contentWidthOverride: number | undefined,
   renderOptions: Record<string, unknown> | undefined,
   sectionRenderState: Record<string, unknown> | undefined,
-): React.ReactElement;
-/** 渲染层：段落键/样式助手（原 qx/f_，锚点登记） */
-declare function sectionParagraphKey(location: SectionParagraphLocation): string;
-declare function sectionParagraphStyle(paragraph: DocxParagraphNode, numberingDefinitions: unknown, headingStyles: Record<number, Record<string, unknown>> | undefined, paragraphIndex: number, borderContext: unknown): Record<string, unknown>;
-/** 渲染层：静态标记（模型层 renderStaticMarkup 的 react-dom/server 实现） */
+) => React.ReactElement;
+/** 原 f_：实体 paragraphHostStyle（C5 类型面），按本地契约桥接 */
+const sectionParagraphStyle = sectionParagraphStyleC5 as unknown as (paragraph: DocxParagraphNode, numberingDefinitions: unknown, headingStyles: Record<number, Record<string, unknown>> | undefined, paragraphIndex: number, borderContext: unknown) => Record<string, unknown>;
+/** 渲染层：静态标记（模型层 renderStaticMarkup 的 react-dom/server 实现）——vendor 段，保留 declare */
 declare function renderStaticMarkupLocal(node: React.ReactNode): string;
 /** 渲染层：表格列宽/行高解析器（原 g 参数面） */
 export interface TableResizeController {

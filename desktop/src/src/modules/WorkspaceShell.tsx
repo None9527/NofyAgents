@@ -202,20 +202,21 @@ import { toast } from './ImeComposition';
 import { pathBasename } from './ModalsLeaves';
 import { QuickPick, buildQuickPickCommands } from './QuickPick';
 import { resolveThemeMode } from './Settings';
-import { SidePanel, useSidePaneState } from './SidePanel';
+import { SidePanel, useSidePaneState, type RecentClosedSidePaneTab, type SidePaneState, type SidePaneTab } from './SidePanel'; // 侧面板态型以 SidePanel 导出为准
 import { logger, useTaskStore } from './SkillStore';
 import { taskEntityKey } from './StoresDeep';
 import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle } from './TopBar';
 import { WebRemoteMobileShell } from './WebRemote';
 import { useBaseServices, useServices } from './services';
 import { useFeedbackStore, useSettingsStore } from './stores-core';
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { AutomationsMain } from './ExtendedViews'; // 原 d6（F15 根）
+import { type GitDataset, type GitSourceOption, type GitSummary } from './GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 /** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
 interface IntlShape {
@@ -588,29 +589,14 @@ declare function isPathWithin(parent: string, child: string): boolean;
 declare function isSamePath(a: string, b: string): boolean;
 
 /* --- git 域（原 nge/Yse/yst） --- */
-
-interface GitChange {
-  path: string;
-  added: number;
-  removed: number;
-}
-interface GitDataset {
-  sections: Array<{ changes: GitChange[] }>;
-}
-interface GitSourceOption {
-  id: string;
-}
-interface GitSummary {
-  headRefType?: string;
-  detachedLabel?: string;
-  [key: string]: unknown;
-}
-interface GitState {
+/* GitSummary/GitDataset/GitSourceOption 已接线 GitReview 导出（原 Yhe 缺省形）；
+ * GitState 用 type 别名（对 SidePanel GitState {[key:string]:unknown} 占位可赋值） */
+type GitState = {
   summary: GitSummary;
   datasets: { unstaged: GitDataset; staged: GitDataset; [key: string]: GitDataset };
   sourceOptions: GitSourceOption[];
   workspaceKey: string;
-}
+};
 declare function useGitState(input: {
   workspacePath: string;
   activeTaskId: string | null;
@@ -675,18 +661,7 @@ declare function openSessionInSplit(
 
 /* --- 辅助对话 / 选择域（原 $ae/_oe/woe/rXe） --- */
 
-interface SidePaneTab {
-  id: string;
-  type: string;
-  parentSessionId?: string | null;
-  workspaceKey?: string;
-  source?: { path?: string | null };
-  [key: string]: unknown;
-}
-interface SidePaneState {
-  tabs: SidePaneTab[];
-  activeTabId: string | null;
-}
+/* SidePaneTab/SidePaneState 已接线 SidePanel 导出（本地松形已删） */
 declare function findSelectionSideChatTab(
   sidePaneState: SidePaneState | null | undefined,
   input: { workspaceKey: string; parentSessionId: string },
@@ -705,7 +680,7 @@ interface SidePaneController {
   isTerminalOpen: boolean;
   setIsTerminalOpen(open: boolean): void;
   sidePaneState: SidePaneState | null;
-  recentClosedSidePaneTabs: SidePaneTab[];
+  recentClosedSidePaneTabs: RecentClosedSidePaneTab[];
   isSidePaneCollapsed: boolean;
   setIsSidePaneCollapsed(collapsed: boolean): void;
   isSidebarVisible: boolean;
@@ -1767,7 +1742,7 @@ export function useSidebarSessionDrop(): SidebarSessionDropValue {
 
 /** 原 rVt Sidebar（F01 根，js 159137-160322 / jsx 132075）：
  *  aside flex h-full flex-col = h-12 drag 条 + 导航 4 行 + 分段行 + 任务/项目列表 + 页脚 */
-declare const Sidebar: React.FC<Record<string, unknown>>;
+declare const Sidebar: React.FC<Record<string, unknown>>; // 属主 Sidebar.tsx 已导出 WorkspaceSidebar（rVt）；调用面 10 处类型未收敛，暂保留 declare
 
 /** 原 xqt SidePanel（F04 根，js 182519-183363 / jsx 147333）：
  *  右侧多标签面板（文件树/Git/白板/轨迹/子代理目录…）。
@@ -1792,8 +1767,8 @@ declare const TaskFindDialog: React.FC<Record<string, unknown> & { placement: "c
 /** 原 l3 RepoWikiMain（F16 根，js 132306-133070 / jsx 111550） */
 declare const RepoWikiMain: React.FC<Record<string, unknown>>;
 
-/** 原 d6 AutomationsMain（F15 根，js 138823-139924 / jsx 115911） */
-declare const AutomationsMain: React.FC<Record<string, unknown>>;
+/** 原 d6 AutomationsMain（F15 根，js 138823-139924 / jsx 115911）
+ *  已接线：ExtendedViews.tsx §6.10（d6 视图态全量展开） */
 
 /** 原 JPt WebRemoteMobileShell（F17，js 141584）：
  *  手机端远控壳（导航抽屉 + 聊天内容 + 侧面板覆盖层） */
@@ -1923,7 +1898,7 @@ interface WorkspaceShellProps {
   summaryPanelVariantOverride?: string | null;
   onSummaryPanelVariantOverrideChange?: (variant: string | null) => void;
   sidePaneState: SidePaneState | null;
-  recentClosedSidePaneTabs: SidePaneTab[];
+  recentClosedSidePaneTabs: RecentClosedSidePaneTab[];
   projectName: string;
   workspaceTabs: WorkspaceTabSummary[];
   activeTaskId: string | null;
@@ -3760,8 +3735,8 @@ function AutomationsMainContent({
               }: {
                 sessionId: string;
                 workspacePath: string;
-                workspaceIdentity?: string;
-              }) => handleSelectTaskAcrossWorkspaces(workspacePath, sessionId, targetIdentity)}
+                workspaceIdentity?: string | null;
+              }) => handleSelectTaskAcrossWorkspaces(workspacePath, sessionId, targetIdentity ?? undefined)}
             />
           </div>
         </ScopedErrorBoundary>

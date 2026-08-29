@@ -74,13 +74,11 @@ import { createRoot } from 'react-dom/client';
 // 此处自 npm 参照安装导入（类型齐备），语义一致。
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 
-// ─── 跨 chunk 依赖（真实构建产物，minified 无类型） ───────────────────────────
+// ─── 跨 chunk 依赖（改接重建模块） ───────────────────────────
 // utils-CEEH0K_K.js 导出 t = cn（见 UtilsCn.tsx）。
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明
-import { t as cnMin } from '../../out/renderer/assets/utils-CEEH0K_K.js';
+import { cn as cnMin } from './UtilsCn'; // 原 utils-CEEH0K_K t
 // button-laUijeDG.js 导出 c = createLucideIcon、r = cva（见 button.tsx 重建）。
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明
-import { c as createLucideIconMin, r as cvaMin } from '../../out/renderer/assets/button-laUijeDG.js';
+import { createLucideIcon as createLucideIconMin, cva as cvaMin } from './button'; // 原 button-laUijeDG c, r
 
 /* ─────────────────────────── 依赖的类型化绑定 ─────────────────────────── */
 

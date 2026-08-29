@@ -162,13 +162,12 @@ import { TerminalPanel } from './TerminalPane';
 import { ScopedErrorBoundary } from './WorkspaceShell';
 import { useServices } from './services';
 import { useTrajectoryViewerStore, useTuiEditPendingRequest } from './stores-session';
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 /** react-intl 风格 intl（原 G()，IntlProvider-C321H7m8.js） */
 interface IntlShape {
@@ -1290,7 +1289,7 @@ function ensureScopeActiveTab(state: SidePaneState | null, ownerTaskId: string |
   const next =
     tabs.find((t) => t.id === state.activeTabId) ??
     preferred ??
-    tabs.findLast((t) => t.type === "subagent-session" || t.type === "subagent-directory" || t.type === "selection-side-chat" || t.type === "plan-detail") ??
+    [...tabs].reverse().find((t) => t.type === "subagent-session" || t.type === "subagent-directory" || t.type === "selection-side-chat" || t.type === "plan-detail") ??
     tabs.at(-1);
   return next && next.id !== state.activeTabId ? { ...state, activeTabId: next.id } : state;
 }
@@ -1546,7 +1545,8 @@ export interface UseSidePaneStateArgs {
   isDesktop: boolean;
   isWorkspaceVisible?: boolean;
   supportsEmbeddedBrowser?: boolean;
-  defaultWhiteboardNamePrefix?: string;
+  /** 唯一调用面 WorkspaceShell 恒传 intl 字符串（与 SkillStore createBoard 必填 defaultNamePrefix 对齐） */
+  defaultWhiteboardNamePrefix: string;
   platform?: PlatformService;
 }
 

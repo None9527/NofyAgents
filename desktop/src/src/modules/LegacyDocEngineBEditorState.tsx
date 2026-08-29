@@ -52,19 +52,29 @@
  *   cn → syncPaginationInfo (26541)
  *
  * ----------------------------------------------------------------------------
- * 二、外部契约（其他段/层提供，本文件以 declare 登记）
+ * 二、外部契约（A0-S2c 接线后）
  * ----------------------------------------------------------------------------
  *   公共层：importDocx（原 Nr，§2 导入管线）
- *   [E4]：Uo 编辑器 reducer 工厂（jsx 14202）与 Gx 实例（jsx 24208）、
- *         Fx 位置解析、Wx 光标归一、wx/Ex 相等判定、Cx/Sx/fb 克隆、
- *         zx 位置合成、Bx 选区 run 样式、ax 位置等价、Lx/xx/Px 位置助手、
- *         Qa/eo/Kx 文本替换、_x 范围枚举、bx/Eb 范围样式、Tb/Db 链接、
- *         Sb/Of run 样式、ay 样式克隆、gy/_y/ny/ey/$v/qv/Jv/ty/Uv/my/hy
- *         编号文本族、Qv 提交校验、Za 段落拆分、fy/py/dy/vy 表格构造、
- *         ox 首格定位、wy 嵌套表定位、eS/$x 节级编辑、da/fa/Sa/pa 修订/
- *         批注操作、no DOCX 序列化、Ob base64、tv 文本框渲染、Ap/Op 环绕、
- *         gb/hb 表单域助手、ho 输入合并判定、dx/yx/hx/vx/xb/lx 选区文本族
- *   [E6]-布局层：Ib/zb 修订与批注提取（本批 LegacyDocEngineBRender 登记）
+ *   [E4]→C2 实体导出（§1 接线）：Gx editorReducer、Fx resolveLocation、
+ *         Wx normalizeCursorState、wx/Ex sameSelection/sameTextRange、
+ *         Cx/Sx/fb cloneSelection/cloneTextRange/cloneRunStyle、
+ *         zx locationFor、ax sameLocationContract、Lx toMutableLocation、
+ *         Px paragraphLocationOfImage、Bx selectionRunStyle、Kx replaceTextAtLocation、
+ *         _x enumerateRangeLocations、bx rangeOffsetsInParagraph、Eb applyRunStyleToRange、
+ *         Tb/Db expandLinkAt/applyLinkToRange、Sb runStyleAt、ay cloneParagraphStyle、
+ *         gy/_y applyListIndent/removeListIndent、ny/ey/$v/qv/Jv/ty/Uv/my/hy 编号文本族、
+ *         Zv/Xv/Qv numberingKindOf/paragraphHasNumbering/isNumberedParagraph、
+ *         fy/py/dy/vy emptyParagraph/cloneCell/cloneRowStyle/cellParagraphsSignature、
+ *         ox firstEditableCellLocation、wy locateNestedTable、$x replaceSectionParagraphText、
+ *         eS moveSectionFloatingImage、Ob bytesToBase64Inline、gb/hb cloneFormField/mergeFormFieldWidget、
+ *         Ib/zb extractTrackedChanges/extractComments、pb withFontFamily、nb/ab/ob 边框预设族
+ *   [E4]→Engine3：da/fa/Sa/pa acceptTrackedChange/rejectTrackedChange/insertCommentIntoParagraph/setCommentResolved
+ *   [E4]→Engine4：no serializeDocxPackage、Za splitParagraphChildrenAroundRange、qs cachedStructuralHash
+ *   [E4]→C1：tv renderTextBoxSvg
+ *   仍保留 declare：replaceParagraphText/replaceCellText（归属存疑）/canCoalesceTyping（ho = C3 钩子面）/
+ *         buildFloatingForWrapMode（Ap）/resolveWrapMode（Op）
+ *   A0-S2c 删除：本文件无消费点之 declare（dx/yx/hx/vx/xb/lx/bb 选区文本族与
+ *         sb/ib/tb/ly/uy/$y/Zy 边框助手，属主均见 §1 注释）
  * ============================================================================
  */
 
@@ -110,100 +120,150 @@ export type DocxEditorAction =
   | { type: `undo` }
   | { type: `redo` };
 
-/** [E4]：编辑器 reducer（原 Gx = Uo({...})，jsx 24208；工厂 jsx 14202） */
-declare function editorReducer(state: DocxEditorInternalState, action: DocxEditorAction): DocxEditorInternalState;
-/** [E4]：内容签名（原 qs，jsx 14889） */
-declare function contentSignatureOf(node: unknown): string;
-/** [E4]：链接范围解析（原 Tb/Db 族） */
-declare function linkWithin(paragraph: DocxParagraphNode, start: number, end: number): string | undefined;
-declare function linkFrom(paragraph: DocxParagraphNode, offset: number, strict: boolean): string | undefined;
-/** [E4]：位置解析（原 Fx） */
-declare function resolveLocation(model: DocxEditorModel, location: DocxLocation | DocxSelection): { paragraph?: DocxParagraphNode; tableNode?: { sourceXml?: string } };
-/** [E4]：光标归一与相等判定（原 Wx/wx/Ex） */
-declare function normalizeCursorState(model: DocxEditorModel, selection: DocxSelection, range: DocxTextRange | undefined): { selection: DocxSelection; activeTextRange: DocxTextRange | undefined };
-declare function sameSelection(a: DocxSelection, b: DocxSelection): boolean;
-declare function sameTextRange(a: DocxTextRange | undefined, b: DocxTextRange | undefined): boolean;
-/** [E4]：克隆族（原 Cx/Sx/fb） */
-declare function cloneSelection(selection: DocxSelection): DocxSelection;
-declare function cloneTextRange(range: DocxTextRange | undefined): DocxTextRange | undefined;
-declare function clonePendingStyle(style: DocxRunStyle | undefined): DocxRunStyle | undefined;
-/** [E4]：位置合成/等价/助手（原 zx/ax/Lx/xx/Px） */
-declare function locationFor(selection: DocxSelection, range: DocxTextRange | undefined): DocxLocation;
-declare function sameLocation(a: DocxLocation | undefined, b: DocxLocation | undefined): boolean;
-declare function selectionFromLocation(location: DocxLocation): DocxSelection;
-declare function toMutableLocation(location: DocxLocation): DocxLocation;
-declare function childLocation(location: DocxLocation & { childIndex?: number }): DocxLocation & { childIndex: number };
-/** [E4]：选区 run 样式（原 Bx） */
-declare function selectionRunStyle(model: DocxEditorModel, selection: DocxSelection, range: DocxTextRange | undefined): DocxRunStyle | undefined;
-/** [E4]：文本替换/范围枚举/范围样式（原 Qa/eo/Kx/_x/bx/Eb） */
+/**
+ * [E4] 编辑器状态机助手 → C2 实体导出（A0-S2c 接线；同 BModel 类型族）。
+ * 混淆名归属按 C2 映射表；本地语义名保留，契约分歧者于下方桥接并注明。
+ */
+import {
+  editorReducer as editorReducerC2, // 原 Gx（jsx 24208；C2 为 const）
+  linkWithin, // C2 linkWithin（jsx 23000±）
+  linkFrom, // C2 linkFrom
+  resolveLocation as resolveLocationC2, // 原 Fx（jsx 24068）
+  normalizeCursorState, // 原 Wx（jsx 24198）
+  sameSelection, // 原 wx（jsx 24000）
+  sameTextRange, // 原 Ex（jsx 24009）
+  cloneSelection, // 原 Cx（jsx 23989）
+  cloneTextRange, // 原 Sx（jsx 23977）
+  cloneRunStyle as clonePendingStyle, // 原 fb（jsx 22901）
+  locationFor as locationForC2, // 原 zx（jsx 24120）
+  sameLocationContract as sameLocation, // 原 ax（jsx 23754；C2 为 const）
+  selectionFromLocation as selectionFromLocationC2, // C2 selectionFromLocation（实体双参，见下方桥接）
+  toMutableLocation as toMutableLocationC2, // 原 Lx（jsx 24097）
+  paragraphLocationOfImage as childLocationC2, // 原 Px（jsx 24056）
+  selectionRunStyle as selectionRunStyleC2, // 原 Bx（jsx 24124）
+  replaceTextAtLocation, // 原 Kx（jsx 24217）
+  enumerateRangeLocations, // 原 _x（jsx 23931）
+  rangeOffsetsInParagraph as rangeSplitOffsetsC2, // 原 bx（jsx 23957）
+  applyRunStyleToRange as applyRunStyleToRangeC2, // 原 Eb（jsx 23154）
+  expandLinkAt, // 原 Tb（jsx 23122）
+  applyLinkToRange, // 原 Db（jsx 23216）
+  runStyleAt, // 原 Sb（jsx 23074）
+  cloneParagraphStyle as cloneParagraphStyleC2, // 原 ay（jsx 21948）
+  applyListIndent as stripNumberingPrefix, // 原 gy（jsx 22066）
+  removeListIndent as renumberParagraph, // 原 _y（jsx 22081）
+  applyListPrefix, // 原 ny（jsx 21928）
+  listPrefixLength, // 原 ey（jsx 21920）
+  stripListPrefix, // 原 $v（jsx 21917）
+  looksUnordered, // 原 qv（jsx 21885）
+  looksOrdered, // 原 Jv（jsx 21888）
+  orderedSuccessor, // 原 ty（jsx 21922）
+  ORDERED_PREFIX_REGEX, // 原 Uv（jsx 21878）
+  maxNumberingDepth, // 原 my（jsx 22048）
+  shiftIndent, // 原 hy（jsx 22057）
+  numberingKindOf, // 原 Zv（jsx 21898）
+  paragraphHasNumbering as isNumberedParagraph, // 原 Xv（jsx 21895）
+  isNumberedParagraph as canCommitParagraphText, // 原 Qv（jsx 21913）
+  emptyParagraph, // 原 fy（jsx 22024）
+  cloneCell as cloneCellC2, // 原 py（jsx 22037）
+  cloneRowStyle as cloneRowStyleC2, // 原 dy（jsx 22018）
+  cellParagraphsSignature as cellHasContentC2, // 原 vy（jsx 22099）
+  firstEditableCellLocation as firstTableCellLocation, // 原 ox（jsx 23757）
+  locateNestedTable as locateNestedTableC2, // 原 wy（jsx 22173）
+  replaceSectionParagraphText as commitSectionParagraphText, // 原 $x（jsx 24290）
+  moveSectionFloatingImage, // 原 eS（jsx 24313）
+  bytesToBase64Inline, // 原 Ob（jsx 23278）
+  cloneFormField as normalizeFormField, // 原 gb（jsx 22970）
+  mergeFormFieldWidget as mergeFormFieldWidgetC2, // 原 hb（jsx 22934）
+  extractTrackedChanges as extractTrackedChangesC2, // 原 Ib（jsx 23379）
+  extractComments as extractCommentsC2, // 原 zb（jsx 23468）
+  withFontFamily as withFontFamilyC2, // 原 pb（jsx 22906）
+  paragraphBorderPresets as paragraphBorderPresetsC2, // 原 nb（jsx 22491）
+  tableBorderPresets as tableBorderPresetsC2, // 原 ab（jsx 22619）
+  toggleParagraphBorder as toggleParagraphBorderC2, // 原 ob（jsx 22644）
+} from "./LegacyDocEngineC2";
+/** [E4] 修订/批注操作（原 da/fa/Sa/pa 之 Engine3 归属）→ Engine3 实体导出 */
+import {
+  acceptTrackedChange as acceptRevisionE3, // 原 da（jsx 12900）
+  rejectTrackedChange as rejectRevisionE3, // 原 fa（jsx 12903）
+  insertCommentIntoParagraph as addCommentE3, // 原 Sa（jsx 12986）
+  setCommentResolved as setCommentResolvedOnModelE3, // 原 pa（jsx 12906）
+} from "./LegacyDocEngine3";
+/** [E4] 序列化/段落拆分/签名 → Engine4 实体导出（原 no/Za/qs） */
+import {
+  serializeDocxPackage as serializeDocxE4, // 原 no（jsx 13764）
+  splitParagraphChildrenAroundRange as splitParagraphE4, // 原 Za（Engine4 注释已标）
+  cachedStructuralHash as contentSignatureOf, // 原 qs（jsx 14889）
+} from "./LegacyDocEngine4";
+/** [E4] 文本框渲染 → C1 实体导出（原 tv） */
+import { renderTextBoxSvg as renderTextBoxImageC1 } from "./LegacyDocEngineC1"; // 原 tv（jsx 20625）
+
+/* --- 类型桥接：本地契约与实体签名分歧（重建期猜测），运行时为同一实体 --- */
+/** 原 Gx：C2 reducer 状态/动作面为 EditorReducerStateView/ActionView，与本文件 DocxEditorInternalState/Action 不同构 */
+const editorReducer = editorReducerC2 as unknown as (state: DocxEditorInternalState, action: DocxEditorAction) => DocxEditorInternalState;
+/** 原 Fx：实体第 2 参为 DocxLocation；本地契约含 DocxSelection 并集 */
+const resolveLocation = resolveLocationC2 as unknown as (model: DocxEditorModel, location: DocxLocation | DocxSelection) => { paragraph?: DocxParagraphNode; tableNode?: { sourceXml?: string } };
+/** 原 zx：实体第 1 参为 baseLocation: DocxLocation；本地契约传选区 */
+const locationFor = locationForC2 as unknown as (selection: DocxSelection, range: DocxTextRange | undefined) => DocxLocation;
+/** 原 Lx：实体返回 DocxSelection；本地契约按 DocxLocation 登记 */
+const toMutableLocation = toMutableLocationC2 as unknown as (location: DocxLocation) => DocxLocation;
+/** 原 Bx：实体第 2 参为 baseLocation: DocxLocation；本地契约传选区 */
+const selectionRunStyle = selectionRunStyleC2 as unknown as (model: DocxEditorModel, selection: DocxSelection, range: DocxTextRange | undefined) => DocxRunStyle | undefined;
+/** 原 Eb：实体第 4 参为样式映射函数 (style) => DocxRunStyle；本地契约按样式对象登记 */
+const applyRunStyleToRange = applyRunStyleToRangeC2 as unknown as (paragraph: DocxParagraphNode, start: number, end: number, style: DocxRunStyle) => boolean;
+/** 原 ay：实体单参（无 sourceXml）；本地契约含第 2 参 */
+const cloneParagraphStyle = cloneParagraphStyleC2 as unknown as (style: DocxParagraphNode[`style`] | undefined, sourceXml?: string) => DocxParagraphNode[`style`] | undefined;
+/** 原 py：实体 cloneCell(cell?: DocxTableCell): DocxTableCell；本地契约 unknown 面 */
+const cloneCell = cloneCellC2 as unknown as (cell?: unknown) => unknown;
+/** 原 dy：实体 cloneRowStyle(style?: DocxTableRow[`style`])；本地契约 unknown 面 */
+const cloneRowStyle = cloneRowStyleC2 as unknown as (style?: unknown) => unknown;
+/** 原 wy：实体 locateNestedTable(nestedTableId: string)；本地契约按位置对象登记 */
+const locateNestedTable = locateNestedTableC2 as unknown as (location: unknown) => { hostTableIndex: number; hostRowIndex: number; hostCellIndex: number; rootContentIndex: number; descendants: { rowIndex: number; cellIndex: number; contentIndex: number }[] } | undefined;
+/** 原 hb：实体 (widget: FormFieldWidgetView | undefined, patch: Partial<FormFieldWidgetView>)；本地契约 unknown 面 */
+const mergeFormFieldWidget = mergeFormFieldWidgetC2 as unknown as (widget: DocxFormFieldNode[`widget`], patch: unknown) => DocxFormFieldNode[`widget`];
+/** 原 Ib/zb：实体 nonce 为 string 且返回 C2 卡片类型；本地契约 number + 本文件卡片类型 */
+const extractTrackedChanges = extractTrackedChangesC2 as unknown as (model: DocxEditorModel, documentLoadNonce: number) => TrackedChangeCard[];
+const extractComments = extractCommentsC2 as unknown as (model: DocxEditorModel, documentLoadNonce: number) => CommentCard[];
+/** 原 pb：实体第 2 参 family: string（必需）；本地契约 string | undefined */
+const withFontFamily = withFontFamilyC2 as unknown as (style: DocxRunStyle | undefined, family: string | undefined) => DocxRunStyle | undefined;
+/** 原 nb/ab/ob：实体参数为 C2 边框类型面；本地契约 unknown 面 */
+const paragraphBorderPresets = paragraphBorderPresetsC2 as unknown as (borders: unknown) => Record<string, unknown> | undefined;
+const tableBorderPresets = tableBorderPresetsC2 as unknown as (tableBorders: unknown, cellBorders: unknown) => Record<string, unknown> | undefined;
+const toggleParagraphBorder = toggleParagraphBorderC2 as unknown as (borders: unknown, side: string, enabled: boolean) => unknown;
+/** C2 selectionFromLocation(model, location|selection)——本地契约单参 */
+const selectionFromLocation = selectionFromLocationC2 as unknown as (location: DocxLocation) => DocxSelection;
+/** 原 Px：实体 paragraphLocationOfImage 返回段落级位置（不含 childIndex）；本地契约按重建猜测保留 */
+const childLocation = childLocationC2 as unknown as (location: DocxLocation & { childIndex?: number }) => DocxLocation & { childIndex: number };
+/** 原 bx：实体 rangeOffsetsInParagraph(location, startPosition: DocxTextPosition, endPosition: DocxTextPosition, paragraph) */
+const rangeSplitOffsets = rangeSplitOffsetsC2 as unknown as (location: DocxLocation, start: { location: DocxLocation; offset: number }, end: { location: DocxLocation; offset: number }, paragraph: DocxParagraphNode) => [number, number];
+/** 原 vy：实体 cellParagraphsSignature(paragraphs: DocxParagraphNode[]): string——参数/返回分歧 */
+const cellHasContent = cellHasContentC2 as unknown as (cell: unknown) => unknown[];
+/** 原 da/fa/Sa/pa：Engine3 模型类型族不同，按本文件契约桥接 */
+const acceptRevision = acceptRevisionE3 as unknown as (model: DocxEditorModel, target: { nodeIndex: number; revisionId: string; kind: string }) => { ok: true; model: DocxEditorModel } | { ok: false; reason: string };
+const rejectRevision = rejectRevisionE3 as unknown as (model: DocxEditorModel, target: { nodeIndex: number; revisionId: string; kind: string }) => { ok: true; model: DocxEditorModel } | { ok: false; reason: string };
+const addComment = addCommentE3 as unknown as (model: DocxEditorModel, target: { nodeIndex: number; startOffset: number; endOffset: number; text: string; author?: string; initials?: string; date?: string }) => { ok: true; model: DocxEditorModel; commentId: number } | { ok: false; reason: string };
+const setCommentResolvedOnModel = setCommentResolvedOnModelE3 as unknown as (model: DocxEditorModel, commentId: number, resolved: boolean) => { ok: true; model: DocxEditorModel } | { ok: false; reason: string };
+/** 原 no：实体 serializeDocxPackage(model, pkg)（Engine4 类型族） */
+const serializeDocx = serializeDocxE4 as unknown as (model: DocxEditorModel, pkg: unknown) => Promise<Uint8Array>;
+/** 原 Za：实体 splitParagraphChildrenAroundRange(paragraph, newText, startOffset, endOffset, options?: ParagraphTextOptions)（Engine4 DocxRun 族） */
+const splitParagraph = splitParagraphE4 as unknown as (paragraph: DocxParagraphNode, text: string, start: number, end: number, options: { beforeInsertedStyle?: DocxRunStyle; afterInsertedStyle?: DocxRunStyle }) => { beforeChildren: DocxParagraphNode[`children`]; afterChildren: DocxParagraphNode[`children`] };
+/** 原 tv：实体 renderTextBoxSvg(image: DocxImageNode, pageIndex?, pageCount?, pageNumberFormat?, styleRefResolver?)——本地契约按重建猜测 */
+const renderTextBoxImage = renderTextBoxImageC1 as unknown as (image: { textBoxText?: string; [key: string]: unknown }, a?: unknown, b?: unknown, c?: unknown, d?: unknown) => string | undefined;
+
+/**
+ * [E4] 保留 declare：属主未在本批导出——replaceParagraphText / replaceCellText（文本替换，
+ * 原标注 Qa/eo 实为 C3 草稿面 writeDraftHtml/clearDraftHtml，归属存疑）/
+ * canCoalesceTyping（原 ho = C3 钩子面 scheduleEndHeaderFooterSession，非模块导出）/
+ * buildFloatingForWrapMode（原 Ap）/ resolveWrapMode（原 Op）。
+ * A0-S2c 删除：本文件无消费点的 declare——emptiedTableIndexes（原 dx→C2）/
+ * documentIsSingleParagraph（原 yx→C2）/ lastLocation（原 hx→C2 firstEditableLocation）/
+ * caretOffsetIn（原 vx→C2）/ splitChildrenAt（原 xb→C2）/
+ * shiftLocationAfterTableRemoval（原 lx→C2）/ cloneTextNode（原 bb→C2）。
+ */
 declare function replaceParagraphText(model: DocxEditorModel, nodeIndex: number, text: string, options?: { insertedStyle?: DocxRunStyle }): DocxEditorModel;
 declare function replaceCellText(model: DocxEditorModel, tableIndex: number, rowIndex: number, cellIndex: number, paragraphIndex: number, text: string, options?: { insertedStyle?: DocxRunStyle }): DocxEditorModel;
-declare function replaceTextAtLocation(model: DocxEditorModel, location: DocxLocation, text: string, options?: { insertedStyle?: DocxRunStyle }): DocxEditorModel;
-declare function enumerateRangeLocations(model: DocxEditorModel, start: DocxLocation, end: DocxLocation): { location: DocxLocation }[];
-declare function rangeSplitOffsets(location: DocxLocation, start: { location: DocxLocation; offset: number }, end: { location: DocxLocation; offset: number }, paragraph: DocxParagraphNode): [number, number];
-declare function applyRunStyleToRange(paragraph: DocxParagraphNode, start: number, end: number, style: DocxRunStyle): boolean;
-/** [E4]：链接操作（原 Tb/Db） */
-declare function expandLinkAt(paragraph: DocxParagraphNode, offset: number): { start: number; end: number } | undefined;
-declare function applyLinkToRange(paragraph: DocxParagraphNode, start: number, end: number, href: string | undefined): boolean;
-/** [E4]：run 样式读取（原 Sb） */
-declare function runStyleAt(paragraph: DocxParagraphNode, offset: number, forward: boolean): DocxRunStyle | undefined;
-/** [E4]：样式克隆（原 ay） */
-declare function cloneParagraphStyle(style: DocxParagraphNode[`style`] | undefined, sourceXml?: string): DocxParagraphNode[`style`] | undefined;
-/** [E4]：编号文本族（原 gy/_y/ny/ey/$v/qv/Jv/ty/Uv/my/hy/Zv/Xv） */
-declare function stripNumberingPrefix(paragraph: DocxParagraphNode): void;
-declare function renumberParagraph(paragraph: DocxParagraphNode): void;
-declare function applyListPrefix(text: string, kind: `unordered` | `ordered`): string;
-declare function listPrefixLength(text: string): number;
-declare function stripListPrefix(text: string): string;
-declare function looksUnordered(text: string): boolean;
-declare function looksOrdered(text: string): boolean;
-declare function orderedSuccessor(text: string, rest: string): string;
-declare const ORDERED_PREFIX_REGEX: RegExp;
-declare function maxNumberingDepth(definitions: unknown, numId: number): number;
-declare function shiftIndent(indent: DocxParagraphIndent | undefined, delta: number): DocxParagraphIndent | undefined;
-declare function numberingKindOf(paragraph: DocxParagraphNode, definitions: unknown): `unordered` | `ordered` | undefined;
-declare function isNumberedParagraph(paragraph: DocxParagraphNode): boolean;
-/** [E4]：提交校验/段落拆分（原 Qv/Za） */
-declare function canCommitParagraphText(paragraph: DocxParagraphNode, text: string): boolean;
-declare function splitParagraph(paragraph: DocxParagraphNode, text: string, start: number, end: number, options: { beforeInsertedStyle?: DocxRunStyle; afterInsertedStyle?: DocxRunStyle }): { beforeChildren: DocxParagraphNode[`children`]; afterChildren: DocxParagraphNode[`children`] };
-/** [E4]：表格构造族（原 fy/py/dy/vy） */
-declare function emptyParagraph(style?: DocxParagraphNode[`style`]): DocxParagraphNode;
-declare function cloneCell(cell?: unknown): unknown;
-declare function cloneRowStyle(style?: unknown): unknown;
-declare function cellHasContent(cell: unknown): unknown[];
-/** [E4]：表格定位（原 ox/wy） */
-declare function firstTableCellLocation(model: DocxEditorModel, tableIndex: number): { kind: `table-cell`; tableIndex: number; rowIndex: number; cellIndex: number } | undefined;
-declare function locateNestedTable(location: unknown): { hostTableIndex: number; hostRowIndex: number; hostCellIndex: number; rootContentIndex: number; descendants: { rowIndex: number; cellIndex: number; contentIndex: number }[] } | undefined;
-/** [E4]：节级编辑（原 $x/eS） */
-declare function commitSectionParagraphText(model: DocxEditorModel, location: { region: `header` | `footer`; partName: string; nodeIndex: number; rowIndex?: number; cellIndex?: number; paragraphIndex?: number }, text: string, options?: { insertedStyle?: DocxRunStyle }): DocxEditorModel;
-declare function moveSectionFloatingImage(model: DocxEditorModel, location: { region: `header` | `footer`; partName: string; nodeIndex: number; rowIndex?: number; cellIndex?: number; paragraphIndex?: number; childIndex: number }, floating: Record<string, unknown>): DocxEditorModel;
-/** [E4]：修订/批注操作（原 da/fa/Sa/pa） */
-declare function acceptRevision(model: DocxEditorModel, target: { nodeIndex: number; revisionId: string; kind: string }): { ok: true; model: DocxEditorModel } | { ok: false; reason: string };
-declare function rejectRevision(model: DocxEditorModel, target: { nodeIndex: number; revisionId: string; kind: string }): { ok: true; model: DocxEditorModel } | { ok: false; reason: string };
-declare function addComment(model: DocxEditorModel, target: { nodeIndex: number; startOffset: number; endOffset: number; text: string; author?: string; initials?: string; date?: string }): { ok: true; model: DocxEditorModel; commentId: number } | { ok: false; reason: string };
-declare function setCommentResolvedOnModel(model: DocxEditorModel, commentId: number, resolved: boolean): { ok: true; model: DocxEditorModel } | { ok: false; reason: string };
-/** [E4]：DOCX 序列化 / base64 / 文本框 / 环绕（原 no/Ob/tv/Ap/Op） */
-declare function serializeDocx(model: DocxEditorModel, pkg: unknown): Promise<Uint8Array>;
-declare function bytesToBase64Inline(bytes: Uint8Array): string;
-declare function renderTextBoxImage(image: { textBoxText?: string; [key: string]: unknown }, a?: unknown, b?: unknown, c?: unknown, d?: unknown): string | undefined;
+declare function canCoalesceTyping(previous: { key: string; caretAfter: number; at: number } | undefined, next: { key: string; caretBefore: number; at: number }): boolean;
 declare function buildFloatingForWrapMode(mode: string, current: Record<string, unknown> | undefined, extra?: unknown): Record<string, unknown> | undefined;
 declare function resolveWrapMode(floating: Record<string, unknown> | undefined): { mode: string; [key: string]: unknown };
-/** [E4]：表单域助手（原 gb/hb） */
-declare function normalizeFormField(field: DocxFormFieldNode): DocxFormFieldNode;
-declare function mergeFormFieldWidget(widget: DocxFormFieldNode[`widget`], patch: unknown): DocxFormFieldNode[`widget`];
-/** [E4]：输入合并判定（原 ho） */
-declare function canCoalesceTyping(previous: { key: string; caretAfter: number; at: number } | undefined, next: { key: string; caretBefore: number; at: number }): boolean;
-/** [E4]：选区文本族（原 dx/yx/hx/vx/xb/lx/bb） */
-declare function emptiedTableIndexes(model: DocxEditorModel, range: DocxTextRange): number[];
-declare function documentIsSingleParagraph(model: DocxEditorModel, range: DocxTextRange): boolean;
-declare function lastLocation(model: DocxEditorModel): DocxLocation | undefined;
-declare function caretOffsetIn(paragraph: DocxParagraphNode, globalOffset: number): number;
-declare function splitChildrenAt(children: DocxParagraphNode[`children`], offset: number): { left: DocxParagraphNode[`children`]; right: DocxParagraphNode[`children`] };
-declare function shiftLocationAfterTableRemoval(location: DocxSelection, removedIndexes: number[]): DocxSelection | undefined;
-declare function cloneTextNode(child: unknown): unknown;
-/** [E6]-渲染层：修订/批注提取（原 Ib/zb，jsx 23379/23468） */
-declare function extractTrackedChanges(model: DocxEditorModel, documentLoadNonce: number): TrackedChangeCard[];
-declare function extractComments(model: DocxEditorModel, documentLoadNonce: number): CommentCard[];
 /** 公共层：导入管线（原 Nr） */
 import { importDocx } from "./previewPaneOfficeLegacyDocContent";
 
@@ -373,19 +433,14 @@ export interface DocxEditorState {
  * §2 编辑器状态机（原 tS，jsx 24338-26660）
  * ==========================================================================*/
 
-/** 边框预设助手（原 nb/ab/sb/ob/ib/tb/ly/uy/$y/Zy，jsx 22553-22900；锚点登记） */
-declare function paragraphBorderPresets(borders: unknown): Record<string, unknown> | undefined;
-declare function tableBorderPresets(tableBorders: unknown, cellBorders: unknown): Record<string, unknown> | undefined;
-declare function toggleParagraphBorder(borders: unknown, side: string, enabled: boolean): unknown;
-declare function toggleTableBorder(borders: unknown, side: string, enabled: boolean): unknown;
-declare function toggleTableCellBorder(borders: unknown, side: string, enabled: boolean, index: number, count: number): unknown;
-declare function clearDiagonalBorders(): Record<string, unknown>;
-declare function cloneCellStyle(style: unknown): Record<string, unknown> | undefined;
-declare function cloneBorders(borders: unknown): Record<string, unknown> | undefined;
-declare function inheritableBorder(borders: unknown): Record<string, unknown> | undefined;
-declare function firstDefinedBorder(...borders: unknown[]): Record<string, unknown> | undefined;
-/** 编号标签/字体助手（原 pb，jsx 22900±） */
-declare function withFontFamily(style: DocxRunStyle | undefined, family: string | undefined): DocxRunStyle | undefined;
+/**
+ * 边框预设助手（原 nb/ab/ob，jsx 22491/22619/22644）→ C2 实体导出（§1 导入：
+ * paragraphBorderPresets/tableBorderPresets/toggleParagraphBorder/withFontFamily）。
+ * A0-S2c 删除：本文件无消费点的 declare——toggleTableBorder（原 sb→C2 toggleTableBorder）/
+ * toggleTableCellBorder（原 ib→C2）/ clearDiagonalBorders（原 tb→C2 nilTableBorder）/
+ * cloneCellStyle（原 uy→C2 cloneCellStyle）/ cloneBorders（原 ly→C2 cloneTableBorders）/
+ * inheritableBorder（原 $y→C2 normalizeTableBorderSpec）/ firstDefinedBorder（原 Zy→C2 firstTableBorder）。
+ */
 /** 段落首字下沉解析（模型层 parseDropCap） */
 import { parseDropCap } from "./LegacyDocEngineBModel";
 
@@ -951,7 +1006,7 @@ export function createDocxEditor(options: CreateDocxEditorOptions = {}): DocxEdi
     const transformed = pendingExportTransformerRef.current ? pendingExportTransformerRef.current(current) : current;
     transformed !== current && commitModel(transformed);
     const bytes = await serializeDocx(transformed, docxPackage);
-    const blob = new Blob([bytes], { type: `application/vnd.openxmlformats-officedocument.wordprocessingml.document` });
+    const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: `application/vnd.openxmlformats-officedocument.wordprocessingml.document` });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement(`a`);
     anchor.href = url;

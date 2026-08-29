@@ -73,28 +73,30 @@
  */
 
 import * as React from "react";
-import { LazyAppUsageDailyModelBarChart } from './157159';
-import { LazyAppUsageModelUsagePieChart } from './157161';
-import { LazyCodingPlanUsageLineChart } from './157256';
 import { Input } from './ImeComposition';
-import { CodeBlockFrame, MarkdownRenderer, documentVisibilityState, isMermaidLanguage } from './MarkdownIntegration';
+import { CodeBlockFrame, MarkdownRenderer, documentVisibilityState, isMermaidBlock } from './MarkdownIntegration';
 import { MIGRATION_DEFAULT_LIMIT, modifiedSinceOfRange, parseScanLimit, resolveWorkspaceFilterMode } from './McpHelpers';
 import { Badge } from './PaymentDeep';
 import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsList, TabsTrigger } from './Settings';
-import { logger } from './SkillStore';
-import { findQuotaLimit, formatQuotaResetTime, formatQuotaUsage, modelDisplayName, providerCacheKey, quotaPercent, useAppUsageStats, useCodingPlanUsageStats, useSubscriptionSnapshot } from './UsageDeep';
+import { findQuotaLimit, formatQuotaResetTime, formatQuotaUsage, providerCacheKey, quotaPercent, useAppUsageStats, useCodingPlanUsageStats, useSubscriptionSnapshot } from './UsageDeep';
 import { UsageHeatmap, formatPercent } from './UsageStatsUiParts';
+import { cn } from './UtilsCn';
+import { useZCodeIntl as useIntlContext } from './I18n';
+import { t as logger } from './logger';
+import { InfoTooltip as Tooltip, UsageEmptyState as LoadingPlaceholder, UsageStatCard as StatCard, formatTokens as formatTokenCount, formatCountCompact as formatInteger, resolveModelLabel as modelDisplayName } from './UsageStatsUiParts'; // Ia / Fa / Pa / Da / Aa / Jre
+import { SettingsCard as Card, SettingsCardContent as CardContent, requestSettingsSectionNavigation as navigateToSettingsSection } from './Settings'; // B3 / V3 / iw（35393）
+import { MermaidInlinePreview as MermaidPreview, mermaidAutoRenderGate as evaluateMermaidAutoRender, useDocumentVisibilityTick as mermaidAutoRenderDependency } from './MarkdownIntegration'; // BO / Pze / tBe
+import { HighlightedCodeBlock as ShikiHighlight } from './HighlightedCodeBlock'; // MO
+import { MermaidFullscreenDialog as MermaidPreviewDialog } from './PreviewCards'; // Qze
+import { type CodePreviewSettings } from './stores-core';
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 
 declare const Button: React.FC<
@@ -104,7 +106,6 @@ declare const Button: React.FC<
   }
 >;
 declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
-declare const Tooltip: React.FC<{ title: string; children: React.ReactNode }>;
 declare const SelectRoot: React.FC<{
   value: string;
   onValueChange: (v: string) => void;
@@ -170,33 +171,33 @@ interface ModelProvider {
   [key: string]: unknown;
 }
 declare const PROVIDER_IDS: { zaiCodingPlan: string; bigmodelCodingPlan: string }; // q（skillStore chunk）
-declare function navigateToSettingsSection(section: string): void; // iw（35393）
 
 /* --- 展示原语（接口级） --- */
 
-declare const LoadingPlaceholder: React.FC<{ title: string; description?: string }>; // Fa
-declare const StatCard: React.FC<{
-  icon: React.FC<React.SVGProps<SVGSVGElement>>;
-  label: string;
-  value: string;
-  valueSize?: "sm";
-  helper?: string;
-}>; // Pa
 declare const UsageErrorBoundary: React.FC<{
   scope: string;
   resetKeys: unknown[];
   variant: "inline";
   children: React.ReactNode;
 }>; // p4（129952 / jsx 109217）
-declare function formatTokenCount(locale: string, value: number): string; // Da
-declare function formatInteger(locale: string, value: number): string; // Aa
 declare const APP_USAGE_RANGES: string[]; // ai（usageStats chunk）
 
 /* --- 图表 lazy 消费（原 Q$t/$$t/i1t；图表本体已在 appUsage* 模块恢复） --- */
 
 /** 原 Q$t（jsx 157159）：lazy ← AppUsageDailyModelBarChart-037NXfkz.js（deps 321…325） */
+declare const LazyAppUsageDailyModelBarChart: React.LazyExoticComponent<React.FC<{ snapshot: AppUsageSnapshot }>>;
 /** 原 $$t（jsx 157161）：lazy ← AppUsageModelUsagePieChart-_KCE1AAL.js（deps 326…325） */
+declare const LazyAppUsageModelUsagePieChart: React.LazyExoticComponent<React.FC<{ snapshot: AppUsageSnapshot }>>;
 /** 原 i1t（jsx 157256）：lazy ← CodingPlanUsageLineChart-BpNLwqMV.js（deps 327…324） */
+declare const LazyCodingPlanUsageLineChart: React.LazyExoticComponent<
+  React.FC<{
+    xTime: unknown[];
+    granularity: string;
+    emptyDescription: string;
+    series: Array<{ name: string; values: number[] }>;
+    valueKind?: "token";
+  }>
+>;
 
 /** 原 Y$t（jsx 157137）：凭证类错误模式 */
 const USAGE_CREDENTIAL_ERROR_PATTERNS: RegExp[] = [
@@ -965,8 +966,6 @@ export function MigrationResultItemList(props: { title: string; items: Migration
 }
 
 /* Card/Alert 原语（Settings.tsx 已抽取；此处按接口声明） */
-declare const Card: React.FC<{ className?: string; children: React.ReactNode }>; // B3
-declare const CardContent: React.FC<{ className?: string; children: React.ReactNode }>; // V3
 declare const CardHeader: React.FC<{ className?: string; children: React.ReactNode }>; // bMt
 declare const CardTitle: React.FC<{ children: React.ReactNode }>; // xMt
 declare const CardDescription: React.FC<{ children: React.ReactNode }>; // SMt
@@ -1290,13 +1289,7 @@ export function MigrationSettingsSection(props: MigrationSettingsSectionProps) {
 
 /** Markdown 渲染器（原 cj，F19 族；Markdown.tsx 已抽取，接口级） */
 
-export interface CodePreviewSettings {
-  showLineNumbers: boolean;
-  wrapLongLines?: boolean;
-  fontSizePx: number;
-  enableSyntaxHighlighting?: boolean;
-  [key: string]: unknown;
-}
+export type { CodePreviewSettings };
 
 /** 原 U8（js 160323 / jsx 132773）：记忆文件预览（Markdown 包装，F14 代码查看族入口） */
 export function MemoryFilePreview(props: {
@@ -1326,34 +1319,6 @@ export function MemoryFilePreview(props: {
 
 /* --- CodeBlock（原 gk，js 48634 / jsx 43829；F19 Markdown 族） --- */
 
-declare const MermaidPreview: React.FC<{
-  code: string;
-  theme?: string;
-  onOpenPreview: () => void;
-  onPreviewSvgChange: (svg: unknown) => void;
-}>; // BO
-declare const ShikiHighlight: React.FC<{
-  code: string;
-  enableSyntaxHighlighting?: boolean;
-  language?: string;
-  showLineNumbers?: boolean;
-  theme?: unknown;
-  wrapLongLines?: boolean;
-  className?: string;
-  fontSizePx?: number;
-  style?: React.CSSProperties;
-}>; // MO
-declare function evaluateMermaidAutoRender(
-  code: string,
-  opts: { documentVisibilityState: string }
-): { shouldRender: boolean; reason?: string; metrics?: unknown } | null; // Pze
-declare function mermaidAutoRenderDependency(value: unknown): unknown; // tBe
-declare const MermaidPreviewDialog: React.FC<{
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  svg: unknown;
-  title: string;
-}>; // Qze
 declare const WrapLinesIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Tbe
 declare const MermaidIcon: React.FC<React.SVGProps<SVGSVGElement>>; // mv
 declare const CopyIcon: React.FC<React.SVGProps<SVGSVGElement>>; // W_
@@ -1378,7 +1343,7 @@ const CodeBlockContext = React.createContext<CodeBlockContextValue>({
 export interface CodeBlockProps {
   code: string;
   enableSyntaxHighlighting?: boolean;
-  language?: string;
+  language: string;
   showLineNumbers?: boolean;
   theme?: unknown;
   appTheme?: string;
@@ -1408,9 +1373,9 @@ export function CodeBlock(props: CodeBlockProps) {
   } = props;
   const { intl } = useIntlContext();
   const [wrapEnabled, setWrapEnabled] = React.useState(wrapLongLines);
-  const [mermaidSvg, setMermaidSvg] = React.useState<unknown>(null);
+  const [mermaidSvg, setMermaidSvg] = React.useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = React.useState(false);
-  const mermaidCandidate = renderMermaid && isMermaidLanguage(language, code);
+  const mermaidCandidate = renderMermaid && isMermaidBlock(language, code);
   const mermaidEvaluation = React.useMemo(
     () => (mermaidCandidate ? evaluateMermaidAutoRender(code, { documentVisibilityState: documentVisibilityState() }) : null),
     [mermaidCandidate, code, mermaidAutoRenderDependency(mermaidCandidate)]

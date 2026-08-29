@@ -46,15 +46,22 @@
  *   右键菜单 data-docx-context-menu / data-docx-table-context-menu (36356/36408)
  *
  * ----------------------------------------------------------------------------
- * 二、外部契约（其他段/层提供）
+ * 二、外部契约（A0-S2c 接线后）
  * ----------------------------------------------------------------------------
  *   [E6]：createDocxEditor 返回面（本批 LegacyDocEngineBEditorState）
  *   [E6]：页注册表（本批 LegacyDocEngineBPageRegistry：registerPageElement/
  *         publishPageSnapshots）、renderSectionNode（页眉/页脚）
  *   [E6]-布局：分页主函数/节度量/段落 CSS（本批 LegacyDocEngineBLayout/Model）
- *   [E4]：Mg 分页（锚点）、Lo/Ro/Bo/Po 分页仲裁（jsx 14108-14201）、
- *         jg 断页提示分页、Og 分栏布局、Mm 节索引、Bm 断页集、
- *         Em/Dm 断页提示、jo 表格跨页行、fs 节点渲染器（锚点 28000±）
+ *   公共层：Yr parsePageGeometry（previewPane）
+ *   [E4]→Engine4：Lo/Ro/Bo/Po memoizePageBuilder/chooseEstimatedPages/
+ *         fitPageCountByScale/pageBudgetSatisfied（jsx 14080-14142）
+ *   [E4]→C1：jg paginateByBreakHints、Og distributeSegmentsAcrossPages、Kg isFloatingImageNode、
+ *         av shapeTransformCss
+ *   [E4]→BLayout：sectionBreakNodeIndexes｜BModel：Mm sectionIndexForNode、tp imageIsFullPageCover
+ *   [E4]→C2：ki 族 layoutGutterAnnotations
+ *   仍保留 declare：Em/Dm tableSpannedRowIndexes（属主未收录）、fs renderDocumentNode
+ *         （jsx 28000± 渲染层，obf 名跨段冲突）、Zr computeVisiblePages（虚拟化面）、
+ *         or pageSectionInfoFor / La 族 contextMenuActionsFor（C3 未模块导出）
  * ============================================================================
  */
 
@@ -107,45 +114,51 @@ import { pageMarginsToPadding, parsePageBorders } from "./previewPaneOfficeLegac
  * §0 外部契约声明（锚点登记）
  * ==========================================================================*/
 
-/** [E2]：sectPr → 页面几何（公共层 parsePageGeometry 契约） */
-declare function parsePageGeometryContract(sectPr: string | undefined): {
-  pageWidthPx: number;
-  pageHeightPx: number;
-  marginsPx: { top: number; right: number; bottom: number; left: number };
-  headerDistancePx: number;
-  footerDistancePx: number;
-  docGridLinePitchPx?: number;
-};
-/** [E4]：分页仲裁族（原 Lo/Ro/Bo/Po，jsx 14108-14201） */
-declare function memoizedPaginationFactory(build: (measuredHeights: number[] | undefined, pageHeights: number[] | undefined, strict: boolean) => PageSegment[][]): (measuredHeights: number[] | undefined, pageHeights: number[] | undefined, strict: boolean) => PageSegment[][];
-declare function pureEstimatedPagesArbitration(input: {
+/** [E2]：sectPr → 页面几何（原 Yr）→ 公共层 parsePageGeometry（返回 DocxPageGeometry，与原契约同构） */
+import { parsePageGeometry as parsePageGeometryContract } from "./previewPaneOfficeLegacyDocContent";
+/** [E4]：分页仲裁族（原 Lo/Ro/Bo/Po，jsx 14080-14142）→ Engine4 实体导出 */
+import {
+  memoizePageBuilder as memoizedPaginationFactoryE4, // 原 Lo（jsx 14109）
+  chooseEstimatedPages as pureEstimatedPagesArbitrationE4, // 原 Ro（jsx 14121）
+  fitPageCountByScale as scaledPaginationArbitrationE4, // 原 Bo（jsx 14142）
+  pageBudgetSatisfied as pageCountConvergenceCheckE4, // 原 Po（jsx 14080）
+} from "./LegacyDocEngine4";
+/** [E4]：断页提示分页（原 jg）→ C1；断页集（BLayout sectionBreakNodeIndexes） */
+import { paginateByBreakHints, distributeSegmentsAcrossPages as columnLayoutBandsC1 } from "./LegacyDocEngineC1"; // 原 jg（jsx 19173）/ Og（jsx 19092）
+import { sectionBreakNodeIndexes } from "./LegacyDocEngineBLayout";
+/** [E4]：节索引（原 Mm）→ BModel sectionIndexForNode */
+import { sectionIndexForNode as sectionIndexForNodeInSectionsBModel } from "./LegacyDocEngineBModel";
+
+/* --- 类型桥接：本地契约与实体签名分歧者（运行时为同一实体） --- */
+/** 原 Lo：实体 memoizePageBuilder（Engine4 分页器工厂面） */
+const memoizedPaginationFactory = memoizedPaginationFactoryE4 as unknown as (build: (measuredHeights: number[] | undefined, pageHeights: number[] | undefined, strict: boolean) => PageSegment[][]) => (measuredHeights: number[] | undefined, pageHeights: number[] | undefined, strict: boolean) => PageSegment[][];
+/** 原 Ro：实体 chooseEstimatedPages（Engine4 仲裁输入面） */
+const pureEstimatedPagesArbitration = pureEstimatedPagesArbitrationE4 as unknown as (input: {
   canUndo: boolean;
   canRedo: boolean;
   hasMeasuredPageContentHeights: boolean;
   measuredEstimatedPages: PageSegment[][];
   buildPureEstimatedPages: () => PageSegment[][];
   pageContainsOnlySplitParagraphSegments: (segments: PageSegment[]) => boolean;
-}): { usedPureEstimatedPages: boolean; pages: PageSegment[][] };
-declare function scaledPaginationArbitration(input: {
+}) => { usedPureEstimatedPages: boolean; pages: PageSegment[][] };
+/** 原 Bo：实体 fitPageCountByScale */
+const scaledPaginationArbitration = scaledPaginationArbitrationE4 as unknown as (input: {
   initialPages: PageSegment[][];
   targetPageCount: number;
   maxDifference: number;
   scales?: number[];
   buildPagesAtScale: (scale: number) => PageSegment[][];
-}): { pages: PageSegment[][]; scale: number };
-declare function pageCountConvergenceCheck(input: {
+}) => { pages: PageSegment[][]; scale: number };
+/** 原 Po：实体 pageBudgetSatisfied */
+const pageCountConvergenceCheck = pageCountConvergenceCheckE4 as unknown as (input: {
   estimatedPageCount: number;
   targetPageCount: number;
   hasLastRenderedPageBreakHints: boolean;
   renderedBreakHintPageCount?: number;
   hasMeasuredBodyFooterOverlap: boolean;
-}): boolean;
-/** [E4]：断页提示分页（原 jg）与断页集/提示（原 Bm/Em/Dm） */
-declare function paginateByBreakHints(model: DocxEditorModel): PageSegment[][];
-declare function sectionBreakNodeIndexes(model: DocxEditorModel): Set<number>;
-declare function tableSpannedRowIndexes(table: DocxTableNode): { startRowIndexes: number[] };
-/** [E4]：分栏布局（原 Og，jsx 19093） */
-declare function columnLayoutBands(
+}) => boolean;
+/** 原 Og：实体 distributeSegmentsAcrossPages（C1 分栏分派面） */
+const columnLayoutBands = columnLayoutBandsC1 as unknown as (
   model: DocxEditorModel,
   segments: PageSegment[],
   columnWidthsPx: number[],
@@ -155,9 +168,11 @@ declare function columnLayoutBands(
   measuredParagraphHeights: Map<number, number>,
   allowTrailingOverflow: boolean,
   nextColumnSectionStarts: Set<number>,
-): unknown[];
-/** [E4]：节索引（原 Mm） */
-declare function sectionIndexForNodeInSections(sections: DocxSection[], nodeIndex: number, hint: number): number;
+) => unknown[];
+/** 原 Mm：实体 sectionIndexForNode（BModel） */
+const sectionIndexForNodeInSections = sectionIndexForNodeInSectionsBModel as unknown as (sections: DocxSection[], nodeIndex: number, hint: number) => number;
+/** [E4] 保留 declare：tableSpannedRowIndexes（原 Em/Dm 未收录属主） */
+declare function tableSpannedRowIndexes(table: DocxTableNode): { startRowIndexes: number[] };
 /** 渲染层：节点渲染器（原 fs，jsx 28000±；ES 正文逐段渲染入口；锚点登记） */
 declare function renderDocumentNode(
   node: DocxNode,
@@ -177,15 +192,18 @@ declare function renderDocumentNode(
     normalizeParagraphHostFontSize?: boolean;
   },
 ): React.ReactElement | null;
-/** 渲染层：封面图样式（原 av）与图片浮动判定族 */
-declare function coverImageStyle(image: { crop?: unknown }, frame: { frameWidthPx: number; frameHeightPx: number; fillFrame?: boolean }): Record<string, unknown>;
-/** [E4]：浮动图判定（原 Kg/tp） */
-declare function isFloatingImageNode(image: { floating?: unknown }): boolean;
-declare function imageIsFullPageCoverContract(image: { floating?: unknown; widthPx?: number; heightPx?: number }, contentWidthPx: number, contentHeightPx: number): boolean;
+/** 渲染层：封面图样式（原 av = C1 shapeTransformCss，jsx 20699）与图片浮动判定族（原 Kg → C1；tp → BModel imageIsFullPageCover） */
+import { shapeTransformCss as coverImageStyleC1, isFloatingImageNode } from "./LegacyDocEngineC1";
+import { imageIsFullPageCover as imageIsFullPageCoverBModel } from "./LegacyDocEngineBModel";
+/** 原 av：实体 shapeTransformCss（C1 形状变换 CSS 面），按本地契约桥接 */
+const coverImageStyle = coverImageStyleC1 as unknown as (image: { crop?: unknown }, frame: { frameWidthPx: number; frameHeightPx: number; fillFrame?: boolean }) => Record<string, unknown>;
+/** 原 tp：实体 imageIsFullPageCover（BModel），按本地契约桥接 */
+const imageIsFullPageCoverContract = imageIsFullPageCoverBModel as unknown as (image: { floating?: unknown; widthPx?: number; heightPx?: number }, contentWidthPx: number, contentHeightPx: number) => boolean;
 /** 虚拟化：页窗计算（原 Zr.getVirtualItems 面；锚点登记） */
 declare function computeVisiblePages(totalHeightPx: number, pageOffsets: number[], scrollTop: number, viewportHeight: number, overscanPx: number): { indexes: number[]; before: { heightPx: number; widthPx: number }; after: { heightPx: number; widthPx: number } };
-/** 批注槽布局（原 ki 计算簇，jsx 28590±；锚点登记） */
-declare function layoutGutterAnnotations(input: { pageIndex: number; annotations: unknown[]; pageHeightPx: number }): { top: number; heightPx: number; annotation: { id: string }; anchorX: number; anchorY: number; connectorLane: number }[];
+/** 批注槽布局（原 ki 计算簇）→ C2 layoutGutterAnnotations 实体导出 */
+import { layoutGutterAnnotations as layoutGutterAnnotationsC2 } from "./LegacyDocEngineC2";
+const layoutGutterAnnotations = layoutGutterAnnotationsC2 as unknown as (input: { pageIndex: number; annotations: unknown[]; pageHeightPx: number }) => { top: number; heightPx: number; annotation: { id: string }; anchorX: number; anchorY: number; connectorLane: number }[];
 /** 页节信息表（原 or，jsx 28400±；锚点登记：逐页节归属/页码/布局） */
 declare function pageSectionInfoFor(pageIndex: number): PageSectionInfo | undefined;
 /** 右键菜单动作解析（原 La/Ra/Zi/Xi/qi/Ki，jsx 34000±；锚点登记） */

@@ -30,17 +30,16 @@
 
 import * as React from 'react';
 import { clsx } from 'clsx';
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明
-import { n as useZCodeIntl } from '../../out/renderer/assets/IntlProvider-C321H7m8.js';
-// @ts-expect-error usageStatsUiParts 导出：a=紧凑数字, s=百分比, t=空态卡片
+import { useZCodeIntl } from './I18n'; // 原 IntlProvider-C321H7m8 n
+// usageStatsUiParts 导出：a=紧凑数字, s=百分比, t=空态卡片
 import {
-  a as formatCompactNumber,
-  s as formatPercent,
-  t as UsageEmptyState,
-} from '../../out/renderer/assets/usageStatsUiParts-CiR7YEhh.js';
-// @ts-expect-error CartesianChart chunk：t=CartesianChart（极坐标版经 PolarChart 复用）
-import { t as CartesianChart } from '../../out/renderer/assets/CartesianChart-nORn-0bc.js';
-// @ts-expect-error 已恢复的调色板模块
+  formatTokens as formatCompactNumber, // 原 usageStatsUiParts-CiR7YEhh a
+  formatPercent, // 原 usageStatsUiParts-CiR7YEhh s
+  UsageEmptyState, // 原 usageStatsUiParts-CiR7YEhh t
+} from './UsageStatsUiParts';
+// CartesianChart chunk = 纯 recharts 3.8.0 vendor：t=CartesianChart（极坐标版经 PolarChart 复用）
+import { CartesianChart } from 'recharts/es6/chart/CartesianChart.js'; // 原 CartesianChart-nORn-0bc t
+// 已恢复的调色板模块
 import {
   Cell,
   useMouseLeaveItemDispatch,
@@ -48,81 +47,59 @@ import {
   useMouseEnterItemDispatch,
   getUsageChartColor,
 } from './appUsageChartPalette';
-// @ts-expect-error chart-iT2j9K3u.js = recharts@3.8.0 bundle（+ chart.tsx 封装），别名映射见尾符号表
+// chart-iT2j9K3u.js = recharts@3.8.0 bundle（+ chart.tsx 封装），别名映射见尾符号表。
+// 改接 npm recharts@3.8.0（根导出 / 深路径，深路径类型环境见 ../lib/recharts-deep.d.ts）
+// + reselect + ./ChartShadcn + ../lib/rechartsChunkInternals（bundle 内部件转录）。
+import { Curve, DefaultZIndexes, Layer, Text, Tooltip, ZIndexLayer } from 'recharts'; // 原 chart-iT2j9K3u Xt, Lt, Rn, V, i, G
+import { createSelector } from 'reselect'; // 原 chart-iT2j9K3u wn
+import { ChartContainer, ChartTooltip } from './ChartShadcn'; // 原 chart-iT2j9K3u t, a
 import {
-  $ as combineTooltipPayload,
-  $t as selectChartLayout,
-  A as SetTooltipEntrySettings,
-  An as getPercentValue,
-  D as RegisterGraphicalItemId,
-  Dn as resolveDefaultProps,
-  E as SetPolarGraphicalItem,
-  En as useAppSelector,
-  Fn as mathSign,
-  Ft as pickAxisType,
-  G as ZIndexLayer,
-  Hn as svgPropertiesNoEventsFromUnknown,
-  Ht as selectActiveLabel,
-  I as LabelListFromLabelProp,
-  J as selectActiveTooltipIndex,
-  Jt as useAnimationId,
-  K as selectActiveTooltipDataKey,
-  Kt as getMaxRadius,
-  L as PolarLabelListContextProvider,
-  Ln as lodashGetModule,
-  Lt as DefaultZIndexes,
-  M as findAllByType,
-  P as getClassNameFromUnknown,
-  Pn as isFunction,
-  Pt as pickAxisId,
-  Q as combineAppliedValues,
-  Rn as Layer,
-  Tn as useAppDispatch,
-  Ut as selectChartDataAndAlwaysIgnoreIndexes,
-  V as Text,
-  Vn as svgPropertiesNoEventsOfProps,
-  W as arrayTooltipSearcher,
-  Xt as Curve,
-  Yt as JavascriptAnimate,
-  _t as pickTooltipEventType,
-  a as ChartTooltip,
-  at as selectTooltipPayloadConfigurationsInput,
-  c as ReportChartProps,
-  cn as selectChartOffsetInternal,
-  d as initialEventSettingsState,
-  et as combineTooltipPayloadConfigurations,
-  f as setPolarOptions,
-  gt as selectTooltipAxisDataKey,
-  h as ChartDataContextProvider,
-  ht as selectTooltipPayloadSearcher,
-  i as Tooltip,
-  it as combineGraphicalItemsSettings,
-  j as Shape,
-  jn as interpolate,
-  jt as selectPolarTooltipEvents,
-  k as SetPolarLegendPayload,
-  kn as adaptEventsOfChild,
-  l as ReportMainChartProps,
-  ln as DATA_ITEM_GRAPHICAL_ITEM_ID_ATTRIBUTE_NAME,
-  lt as itemAxisPredicate,
-  nt as combinePolarAppliedNumericalValues,
-  o as CategoricalChart,
-  ot as combineTooltipPayloadConfigurationsInput,
-  pt as pickId,
-  q as selectActiveTooltipGraphicalItemId,
-  qt as polarToCartesian,
-  rt as combineGraphicalItemsData,
-  s as ReportEventSettings,
-  t as ChartContainer,
-  tt as combineDisplayedData,
-  u as RechartsStoreProvider,
-  un as DATA_ITEM_INDEX_ATTRIBUTE_NAME,
-  ut as selectPolarAppliedNumericalValuesInput,
-  vn as getTooltipNameProp,
-  vt as selectTooltipEventType,
-  wn as createSelector,
-  yn as getValueByDataKey,
-} from '../../out/renderer/assets/chart-iT2j9K3u.js';
+  lodashGetModule, // 原 chart-iT2j9K3u Ln
+  pickId, // 原 chart-iT2j9K3u pt
+  pickTooltipEventType, // 原 chart-iT2j9K3u _t
+  selectPolarTooltipEvents, // 原 chart-iT2j9K3u jt
+  combinePolarAppliedNumericalValues, // 原 chart-iT2j9K3u nt
+  combineTooltipPayloadConfigurationsInput, // 原 chart-iT2j9K3u ot
+  selectTooltipPayloadConfigurationsInput, // 原 chart-iT2j9K3u at
+} from '../lib/rechartsChunkInternals';
+import { combineTooltipPayload } from 'recharts/es6/state/selectors/combiners/combineTooltipPayload.js'; // 原 chart-iT2j9K3u $
+import { selectChartLayout } from 'recharts/es6/context/chartLayoutContext.js'; // 原 chart-iT2j9K3u $t
+import { SetTooltipEntrySettings } from 'recharts/es6/state/SetTooltipEntrySettings.js'; // 原 chart-iT2j9K3u A
+import { getPercentValue, mathSign, interpolate, isNumber as isFunction } from 'recharts/es6/util/DataUtils.js'; // 原 chart-iT2j9K3u An, Fn, jn, Pn（Pn 局部名 isFunction，实为 isNumber）
+import { RegisterGraphicalItemId } from 'recharts/es6/context/RegisterGraphicalItemId.js'; // 原 chart-iT2j9K3u D
+import { resolveDefaultProps } from 'recharts/es6/util/resolveDefaultProps.js'; // 原 chart-iT2j9K3u Dn
+import { SetPolarGraphicalItem } from 'recharts/es6/state/SetGraphicalItem.js'; // 原 chart-iT2j9K3u E
+import { useAppSelector, useAppDispatch } from 'recharts/es6/state/hooks.js'; // 原 chart-iT2j9K3u En, Tn
+import { pickAxisType } from 'recharts/es6/state/selectors/pickAxisType.js'; // 原 chart-iT2j9K3u Ft
+import { svgPropertiesNoEventsFromUnknown, svgPropertiesNoEvents as svgPropertiesNoEventsOfProps } from 'recharts/es6/util/svgPropertiesNoEvents.js'; // 原 chart-iT2j9K3u Hn, Vn（Vn 局部名 svgPropertiesNoEventsOfProps，实为 svgPropertiesNoEvents）
+import { selectActiveLabel, selectActiveTooltipIndex, selectActiveTooltipDataKey, selectActiveTooltipGraphicalItemId } from 'recharts/es6/state/selectors/tooltipSelectors.js'; // 原 chart-iT2j9K3u Ht, J, K, q
+import { LabelListFromLabelProp, PolarLabelListContextProvider } from 'recharts/es6/component/LabelList.js'; // 原 chart-iT2j9K3u I, L
+import { useAnimationId } from 'recharts/es6/util/useAnimationId.js'; // 原 chart-iT2j9K3u Jt
+import { getMaxRadius, polarToCartesian } from 'recharts/es6/util/PolarUtils.js'; // 原 chart-iT2j9K3u Kt, qt
+import { findAllByType } from 'recharts/es6/util/ReactUtils.js'; // 原 chart-iT2j9K3u M
+import { getClassNameFromUnknown } from 'recharts/es6/util/getClassNameFromUnknown.js'; // 原 chart-iT2j9K3u P
+import { pickAxisId } from 'recharts/es6/state/selectors/pickAxisId.js'; // 原 chart-iT2j9K3u Pt
+import { combineAppliedValues, selectTooltipAxisDataKey, combineGraphicalItemsSettings, itemAxisPredicate, combineGraphicalItemsData, combineDisplayedData, selectAllErrorBarSettings as selectPolarAppliedNumericalValuesInput } from 'recharts/es6/state/selectors/axisSelectors.js'; // 原 chart-iT2j9K3u Q, gt, it, lt, rt, tt, ut（ut 局部名 selectPolarAppliedNumericalValuesInput，实为 selectAllErrorBarSettings）
+import { selectChartDataAndAlwaysIgnoreIndexes } from 'recharts/es6/state/selectors/dataSelectors.js'; // 原 chart-iT2j9K3u Ut
+import { arrayTooltipSearcher } from 'recharts/es6/state/optionsSlice.js'; // 原 chart-iT2j9K3u W
+import { JavascriptAnimate } from 'recharts/es6/animation/JavascriptAnimate.js'; // 原 chart-iT2j9K3u Yt
+import { ReportChartProps } from 'recharts/es6/state/ReportChartProps.js'; // 原 chart-iT2j9K3u c
+import { selectChartOffsetInternal } from 'recharts/es6/state/selectors/selectChartOffsetInternal.js'; // 原 chart-iT2j9K3u cn
+import { initialEventSettingsState } from 'recharts/es6/state/eventSettingsSlice.js'; // 原 chart-iT2j9K3u d
+import { combineTooltipPayloadConfigurations } from 'recharts/es6/state/selectors/combiners/combineTooltipPayloadConfigurations.js'; // 原 chart-iT2j9K3u et
+import { updatePolarOptions as setPolarOptions } from 'recharts/es6/state/polarOptionsSlice.js'; // 原 chart-iT2j9K3u f（局部名 setPolarOptions，实为 updatePolarOptions）
+import { ChartDataContextProvider } from 'recharts/es6/context/chartDataContext.js'; // 原 chart-iT2j9K3u h
+import { selectTooltipPayloadSearcher } from 'recharts/es6/state/selectors/selectTooltipPayloadSearcher.js'; // 原 chart-iT2j9K3u ht
+import { Shape } from 'recharts/es6/util/ActiveShapeUtils.js'; // 原 chart-iT2j9K3u j
+import { SetPolarLegendPayload } from 'recharts/es6/state/SetLegendPayload.js'; // 原 chart-iT2j9K3u k
+import { adaptEventsOfChild } from 'recharts/es6/util/types.js'; // 原 chart-iT2j9K3u kn
+import { ReportMainChartProps } from 'recharts/es6/state/ReportMainChartProps.js'; // 原 chart-iT2j9K3u l
+import { DATA_ITEM_GRAPHICAL_ITEM_ID_ATTRIBUTE_NAME, DATA_ITEM_INDEX_ATTRIBUTE_NAME } from 'recharts/es6/util/Constants.js'; // 原 chart-iT2j9K3u ln, un
+import { CategoricalChart } from 'recharts/es6/chart/CategoricalChart.js'; // 原 chart-iT2j9K3u o
+import { ReportEventSettings } from 'recharts/es6/state/ReportEventSettings.js'; // 原 chart-iT2j9K3u s
+import { RechartsStoreProvider } from 'recharts/es6/state/RechartsStoreProvider.js'; // 原 chart-iT2j9K3u u
+import { getTooltipNameProp, getValueByDataKey } from 'recharts/es6/util/ChartUtils.js'; // 原 chart-iT2j9K3u vn, yn
+import { selectTooltipEventType } from 'recharts/es6/state/selectors/selectTooltipEventType.js'; // 原 chart-iT2j9K3u vt
 
 /* ─────────────────────────── 公共类型（推断） ─────────────────────────── */
 
@@ -225,7 +202,7 @@ const selectDisplayedData = createSelector(
     if (pieSettings != null) {
       let displayedData: any[] | undefined = pieSettings?.data != null && pieSettings.data.length > 0 ? pieSettings.data : chartData;
       if ((!displayedData || !displayedData.length) && cells != null) {
-        displayedData = cells.map((cell) => ({ ...pieSettings.presentationProps, ...cell.props }));
+        displayedData = cells.map((cell) => ({ ...pieSettings.presentationProps, ...(cell.props as Record<string, unknown>) }));
       }
       if (displayedData != null) return displayedData;
     }
@@ -241,8 +218,8 @@ const selectPieLegend = createSelector(
     return displayedData.map((entry, i) => {
       const name = getValueByDataKey(entry, pieSettings.nameKey, pieSettings.name);
       let color: string | undefined;
-      if (cells != null && cells[i] != null && cells[i]!.props != null && cells[i]!.props.fill) {
-        color = cells[i]!.props.fill;
+      if (cells != null && cells[i] != null && cells[i]!.props != null && (cells[i]!.props as { fill?: string }).fill) {
+        color = (cells[i]!.props as { fill?: string }).fill;
       } else if (typeof entry === 'object' && entry != null && 'fill' in entry) {
         color = (entry as { fill: string }).fill;
       } else {
@@ -294,7 +271,7 @@ function _objectSpread(target: any, ..._sources: any[]) {
     } else if (Object.getOwnPropertyDescriptors) {
       Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
     } else {
-      _ownKeys(Object(source)).forEach((key: any) => Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)));
+      _ownKeys(Object(source)).forEach((key: any) => Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)!));
     }
   }
   return target;
@@ -303,8 +280,8 @@ function _ownKeys(object: any, enumerableOnly?: boolean) {
   const keys = Object.keys(object);
   if (Object.getOwnPropertySymbols) {
     let symbols = Object.getOwnPropertySymbols(object);
-    if (enumerableOnly) symbols = symbols.filter((sym) => Object.getOwnPropertyDescriptor(object, sym).enumerable);
-    keys.push.apply(keys, symbols);
+    if (enumerableOnly) symbols = symbols.filter((sym) => Object.getOwnPropertyDescriptor(object, sym)?.enumerable);
+    keys.push.apply(keys, symbols as unknown as string[]);
   }
   return keys;
 }
@@ -782,7 +759,7 @@ function PieFn(outsideProps: any) {
 }
 
 /** recharts <Pie>（displayName 'Pie'）。 */
-const Pie = PieFn;
+const Pie: typeof PieFn & { displayName?: string } = PieFn;
 Pie.displayName = 'Pie';
 
 /* ════════════════════════ vendor 段 3：chart/PolarChart.js + chart/PieChart.js ════════════════════════ */
@@ -978,7 +955,11 @@ function AppUsageModelUsagePieChart({ snapshot }: { snapshot: ModelUsageSnapshot
     },
     [locale, tokenUnit],
   );
-  const tooltipContent = React.useMemo(() => <ChartTooltip hideLabel indicator="line" formatter={tooltipFormatter} />, [tooltipFormatter]);
+  // hideLabel/indicator/formatter 为 shadcn 内容层属性：原码直接透传给 recharts Tooltip（其对未知 props 不消费），故经 spread 透传
+  const tooltipContent = React.useMemo(
+    () => <ChartTooltip {...({ hideLabel: true, indicator: 'line', formatter: tooltipFormatter } as Record<string, unknown>)} />,
+    [tooltipFormatter],
+  );
   return (
     <section className="space-y-3 rounded-lg bg-surface p-4">
       <h3 className="text-ui-base font-medium text-foreground">{intl.formatMessage({ id: 'settings.usage.modelChartTitle' })}</h3>

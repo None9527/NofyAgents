@@ -1331,6 +1331,10 @@ export {
   formatPercent,
   UsageEmptyState,
   InfoTooltip,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
 };
 
 /* ============================================================================

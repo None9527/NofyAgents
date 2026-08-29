@@ -47,17 +47,14 @@ interface StoreApi<T> {
   subscribe: (listener: (state: T, prevState: T) => void) => () => void;
 }
 export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
-import { loadSkillContext } from './Composer';
-import { logger } from './SkillStore';
+import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { buildNewHook, hookLocationForScope, hooksWorkspaceKey, isHookEditable, mergeHookPatch, reloadHooks, saveHooksList } from './StoresDeep';
 import { isRemoteDisconnectedError } from './services';
-declare function createStore<T>(initializer: (set: SetState<T>, get: GetState<T>) => T): UseBoundStore<T>;
-
-
-/** 原 Io：工作区键（identity 优先，回退 path） */
-declare function workspaceKey(workspacePath: string, workspaceIdentity?: string | null): string;
-/** 原 ni：供应商 id 归一 */
-declare function normalizeProvider(provider: string): string;
+import { create as createStore, resolveWorkspaceKey as workspaceKey } from './SkillStore'; // 原 Ae | 原 Io
+import { resolveDefaultAgentCliProvider as normalizeProvider } from './SrcSharedA'; // 原 ni
+import type { HookDescriptor, HooksService } from './StoresDeep';
+export type { HookDescriptor, HooksService };
+/* 原 HB（loadSkillContext）属主 Composer.tsx:1131 未导出——需要的 export 已登记，保留 declare（见 §5 原 HB 处） */
 /** 原 Sc：是否远端工作区断开错误 */
 
 /* ============================================================================
@@ -593,6 +590,12 @@ export function skillContextKey(workspacePath: string, provider: string, workspa
 }
 
 /** 原 HB：上下文装载器（初始化/强制刷新两用；接口级，本体在 63400 区） */
+/** 属主 Composer.tsx:1131（未导出）——需要的 export 已登记；接线前保留 declare */
+declare function loadSkillContext(
+  args: { workspacePath: string; provider: string; skillsService: SkillsService; workspaceIdentity?: string | null; bypassCache: boolean },
+  set: SetState<SkillContextState>,
+  get: GetState<SkillContextState>,
+): Promise<void>;
 
 function patchSkillContextEntry(state: SkillContextState, key: string, entry: SkillContextEntry): Partial<SkillContextState> {
   return { contexts: { ...state.contexts, [key]: entry } };
@@ -1326,29 +1329,8 @@ export const HOOK_EVENTS = [
   "Stop",
 ] as const;
 
-export interface HookDescriptor {
-  id: string;
-  event: (typeof HOOK_EVENTS)[number] | string;
-  type?: "process" | string;
-  matcher?: string;
-  command?: string;
-  args?: string[];
-  async?: boolean;
-  shell?: string;
-  statusMessage?: string;
-  timeout?: number;
-  custom?: Record<string, unknown>;
-  enabled: boolean;
-  editable?: boolean;
-  location?: { source: "zcode" | "claude" | string; scope: "user" | "project" | string };
-  [key: string]: unknown;
-}
-
-export interface HooksService {
-  loadHooks(args: { workspacePath: string; workspaceIdentity?: string }): Promise<{ hooks: HookDescriptor[] }>;
-  saveHooks?(args: { workspacePath: string; workspaceIdentity?: string; hooks: HookDescriptor[] }): Promise<void>;
-  [method: string]: unknown;
-}
+/* HookDescriptor/HooksService 已收敛至 StoresDeep 规范型（文件头 import + re-export；
+   本地原有 event 联合/editable/shell: string/saveHooks 可选等差异由规范型覆盖） */
 
 export interface HooksState {
   workspacePath: string | null;

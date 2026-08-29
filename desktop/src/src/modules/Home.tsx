@@ -123,7 +123,7 @@
 
 import * as React from "react";
 import { BackgroundWorksCapsule, ComposerInput } from './Composer';
-import { countContextAttachments, isAddToChatEvent, useCodeCommentContexts } from './GitReview';
+import { countContextAttachments, isAddToChatEvent, useCodeCommentContexts, type CodeCommentAttachment } from './GitReview';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { pathBasename } from './ModalsLeaves';
 import { RemoteWizardDialog } from './RemoteWizard';
@@ -131,13 +131,12 @@ import { create, logger, useTaskStore } from './SkillStore';
 import { providerIds } from './SrcSharedA';
 import { useServices } from './services';
 import { workspaceScopeKey } from './stores-session';
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 /** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
 interface IntlShape {
@@ -1127,7 +1126,12 @@ export function isSameWorkspaceTab(
   a: Pick<WorkspaceTab, "workspacePath" | "workspaceIdentity" | "remoteSessionId">,
   b: Pick<WorkspaceTab, "workspacePath" | "workspaceIdentity" | "remoteSessionId">,
 ): boolean {
-  return workspaceScopeKey(a) === workspaceScopeKey(b);
+  const scopeOf = (tab: typeof a) => ({
+    workspacePath: tab.workspacePath,
+    workspaceIdentity: tab.workspaceIdentity ?? undefined,
+    remoteSessionId: tab.remoteSessionId ?? undefined,
+  });
+  return workspaceScopeKey(scopeOf(a)) === workspaceScopeKey(scopeOf(b));
 }
 
 /** 原 yOt：远程标签的搜索串（远程目标标签 + 身份） */
@@ -1863,7 +1867,8 @@ function isImageAttachment(attachment: ComposerAttachment): boolean {
 interface WebContextItem { id: string; [key: string]: unknown }
 interface PptxReferenceItem { id: string; [key: string]: unknown }
 interface ConversationSelectionItem { id: string; [key: string]: unknown }
-interface CodeCommentItem { id: string; [key: string]: unknown }
+/** 代码评论条目统一采用 GitReview 导出的 CodeCommentAttachment（原 DXe 族类型） */
+type CodeCommentItem = CodeCommentAttachment;
 declare function useWhiteboardAttachmentScope(args: {
   workspacePath: string;
   workspaceIdentity?: string | null;
@@ -2024,7 +2029,7 @@ declare function AttachmentPreviewDialog(props: {
   onOpenChange: (open: boolean) => void;
 }): React.ReactElement;
 /** 上下文/引用 chip 行（原 TH lit JH uit，js 68250/89941/68988/90039） */
-declare function CodeCommentChipRow(props: { comments: CodeCommentItem[]; onRemove: (id: string) => void; onRemoveAll: () => void }): React.ReactElement | null;
+declare function CodeCommentChipRow(props: { comments: CodeCommentItem[]; onRemove: (scope: { id: string; workspacePath: string; workspaceIdentity?: string | null }) => void; onRemoveAll: () => void }): React.ReactElement | null;
 declare function WebContextChipRow(props: { contexts: WebContextItem[]; onRemove: (id: string) => void; onRemoveAll: () => void }): React.ReactElement | null;
 declare function PptxReferenceChipRow(props: {
   references: PptxReferenceItem[];

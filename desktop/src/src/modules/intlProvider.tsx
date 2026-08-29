@@ -38,8 +38,7 @@
  */
 
 import * as React from 'react';
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明；Ps = 内部名 e = 'zh-CN'
-import { Ps as DEFAULT_LOCALE } from '../../out/renderer/assets/src-HCld2afU.js';
+import { DEFAULT_LOCALE } from './SrcSharedA'; // 原 src-HCld2afU Ps（内部名 e = 'zh-CN'）
 
 /* ─────────────────────────── 类型声明（推断） ─────────────────────────── */
 

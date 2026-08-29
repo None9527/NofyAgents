@@ -150,7 +150,7 @@
 
 import * as React from "react";
 import { ModelSelector } from './Composer';
-import { Input, Popover, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
+import { Input, Popover, PopoverContent, PopoverTrigger, toast, type ToastOptions } from './ImeComposition'; // ToastOptions 原属 imeComposition chunk（与 toast 同主）
 import { MarkdownRenderer } from './MarkdownIntegration';
 import { FilePathInline, pathBasename, resolveFileDisplayInfo } from './ModalsLeaves';
 import { Badge } from './PaymentDeep';
@@ -162,13 +162,13 @@ import { automationsWorkspaceKey, repoWikiWorkspaceKey } from './SrcSharedB';
 import { reportTelemetry } from './StoresDeep';
 import { useServices } from './services';
 import { useAutomationsStore } from './stores-tasks';
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import type { CodeViewerSource } from './SidePanel'; // 代码查看源以侧面板导出形为准（type-only，无运行时环）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
-/** 类名合并（原 Z，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 /** react-intl 风格 intl（原 G()，IntlProvider-C321H7m8.js） */
 interface IntlShape {
@@ -178,17 +178,7 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
-/** toast（原 m，imeComposition chunk）；l6 在其上加自动化锚点 */
-interface ToastOptions {
-  durationMs?: number;
-  position?: "top-center" | string;
-  variant?: "info" | "success" | "error" | string;
-  actionLabel?: string;
-  onAction?: () => void;
-  dismissible?: boolean;
-  dismissLabel?: string;
-  anchorId?: string;
-}
+/** toast（原 m，imeComposition chunk）；l6 在其上加自动化锚点。ToastOptions 已接线 ImeComposition 导出 */
 
 /** 桌面平台服务（原 l()，imeComposition chunk）——仅列本族用到的面 */
 interface PlatformService {
@@ -984,11 +974,8 @@ declare const PanelResizeHandle: React.FC<React.ComponentPropsWithoutRef<"div">>
 
 /** Markdown 渲染器（原 cj，F19，jsx 46461） */
 
-/** 代码查看源（与 SidePanel.tsx 的 CodeViewerSource 对齐） */
-export type CodeViewerSource =
-  | { kind: "file"; path: string; workspacePath?: string }
-  | { kind: "url"; url: string }
-  | { kind: string; [key: string]: unknown };
+/** 代码查看源：接线 SidePanel.CodeViewerSource（原本地 kind 形为重建误差；MarkdownIntegration 调用面为 type:"file" 请求形） */
+export type { CodeViewerSource };
 
 /** 确认对话框钩子（原 U2，js 123493） */
 declare function useConfirmDialog(): (request: {
@@ -4992,7 +4979,7 @@ const AUTOMATIONS_MAIN_CONTAINER_CLASS = "mx-auto w-full max-w-4xl px-4 pb-8 pt-
 const AUTOMATIONS_TOAST_ANCHOR_ID = "automations-main-toast-anchor"; // 原 c6
 
 /** 原 l6：自动化主视图 toast（统一挂锚点） */
-function automationsToast(message: string, opts?: ToastOptions): string {
+function automationsToast(message: string, opts?: ToastOptions): number {
   return toast(message, { ...opts, anchorId: AUTOMATIONS_TOAST_ANCHOR_ID });
 }
 

@@ -43,15 +43,12 @@ interface StoreApi<T> {
   subscribe: (listener: (state: T, prevState: T) => void) => () => void;
 }
 export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
-import { logger } from './SkillStore';
+import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { automationErrorMessage, findAutomation, isAutomationLimitError, isSameAutomationWorkspace, isTakeNumberFailure, loadAutomationsIntoStore } from './StoresDeep';
-declare function createStore<T>(initializer: (set: SetState<T>, get: GetState<T>) => T): UseBoundStore<T>;
-
-
-/** 原 Io：工作区键（identity 优先，回退 path） */
-declare function workspaceKey(workspacePath: string, workspaceIdentity?: string | null): string;
-/** 原 tc：按 sessionId 取已注册远端会话（stores-core.tsx 的 getSessionById） */
-declare function getRegisteredSession(sessionId: string): { services: { zcodeTaskService?: ZCodeTaskService; [key: string]: unknown } } | null;
+import { create as createStore, resolveWorkspaceKey as workspaceKey } from './SkillStore'; // 原 Ae | 原 Io
+import { getSessionById as getRegisteredSession } from './stores-core'; // 原 tc
+import type { Automation, OffPeakCreateResult } from './StoresDeep';
+export type { Automation, OffPeakCreateResult };
 
 /* ============================================================================
  * 1. OffPeakTaskStore（原 bX，js 91368–91590 / jsx 78945）
@@ -113,15 +110,8 @@ export interface CodingPlanSubscriptionService {
   getOffPeakClientConfig(args: { forceRefresh: boolean }): Promise<OffPeakGrayConfig | null>;
 }
 
-export interface OffPeakCreateResult {
-  ok: boolean;
-  task?: OffPeakTask;
-  errorCategory?: string;
-  errorCode?: string;
-  failureStage?: string;
-  providerName?: string;
-  queuePosition?: number;
-}
+/* OffPeakCreateResult 已收敛至 StoresDeep 规范型（文件头 import + re-export；
+   本地原有 task?: OffPeakTask/queuePosition 字段由规范型的 task?: unknown 与索引签名覆盖） */
 
 export interface OffPeakState {
   tasks: OffPeakTask[];
@@ -356,21 +346,15 @@ export const OFF_PEAK_TEMPLATE_IDS = [{ id: "standupGitSummary" }, { id: "ciFlak
  *   setEnabled/restartAutomation/runAutomationNow/loadRuns/deleteRun
  * ==========================================================================*/
 
-export interface Automation {
-  automationId: string;
-  title: string;
-  enabled: boolean;
-  lifecycleStatus: "active" | "paused" | string;
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  [key: string]: unknown;
-}
+/* Automation 已收敛至 StoresDeep 规范型（文件头 import + re-export；
+   本地原有 lifecycleStatus 必填收窄与索引签名由规范型覆盖） */
 
 export interface AutomationRun {
   [key: string]: unknown;
 }
 
 export interface AutomationsAgentService {
+  listAllAutomations(): Promise<Automation[]>;
   listAutomations?(args: { workspacePath: string; workspaceIdentity?: string }): Promise<Automation[]>;
   createAutomation(args: { workspacePath: string; workspaceIdentity?: string; title: string; [key: string]: unknown }): Promise<Automation>;
   updateAutomation(args: { workspacePath: string; workspaceIdentity?: string; automationId: string; [key: string]: unknown }): Promise<void>;

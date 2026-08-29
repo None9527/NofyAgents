@@ -140,14 +140,15 @@
 
 import * as React from "react";
 import { Textarea, toast, usePlatform } from './ImeComposition';
-import { TableEdgeShadow, baseName, extractTableRows, shouldShowStickyScrollbar, stickyScrollMax, stickyScrollbarOffset, stickyThumbGeometry, stickyTrackGeometry, tableNeedsStickyScrollbar, tableRowsToCsv, tableRowsToMarkdown } from './MarkdownIntegration';
-import { logger } from './SkillStore';
+import { TableEdgeShadow, IMAGE_THUMBNAIL_CLASS, backToBottomInset, baseName, chatDockHeight, decodeUriSafe, extractTableRows, findVerticalScroller, isAbsolutePath, measureRect, sameRect, shouldShowStickyScrollbar, stickyScrollMax, stickyScrollbarOffset, stickyThumbGeometry, stickyTrackGeometry, tableLayoutInsets, tableLayoutRoot, tableNeedsStickyScrollbar, tableRowsToCsv, tableRowsToMarkdown } from './MarkdownIntegration'; // 新增项原 Gk/EBe/qo/Pk/Ko/Ak/jk/Nk/TBe/kk
+import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
+import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（first-party 信息浮层件，调用面仅 title/side）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
@@ -179,14 +180,6 @@ declare const Button: React.FC<
 /** 原 j：Textarea（imeComposition chunk） */
 
 /** 原 Ia：Tooltip（usageStatsUiParts chunk；side/align/sideOffset/triggerClassName 按消费面） */
-declare const Tooltip: React.FC<{
-  title: string;
-  side?: string;
-  align?: string;
-  sideOffset?: number;
-  triggerClassName?: string;
-  children?: React.ReactNode;
-}>;
 
 /* 原 zb/Hb/Ub/Gb/Kb/Vb：Dialog 原语族（showCloseButton 按 Wk/Qze 消费面） */
 declare const Dialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; children?: React.ReactNode }>;
@@ -231,14 +224,7 @@ declare const IconMermaidZoomIn: React.FC<{ className?: string }>; // L_
 declare const IconChevronDown: React.FC<{ className?: string }>; // N_
 
 /* MarkdownIntegration.tsx 已重建件（接口挂接） */
-declare function tableLayoutRoot(element: Element | null, fallback: Element | null): Element | null; // kk
-declare function tableLayoutInsets(root: Element | null): { leftInset: number; rightInset: number }; // TBe
-declare function measureRect(element: Element | null): { left: number; right: number; width: number } | null; // Ak
-declare function sameRect(a: { left: number; right: number; width: number } | null, b: { left: number; right: number; width: number } | null): boolean; // jk
-declare function chatDockHeight(root: Element | null): number; // Nk
-declare function backToBottomInset(root: Element | null): number; // EBe
-declare function findVerticalScroller(element: Element | null, fallback: Element | null): Element | null; // Pk
-declare const IMAGE_THUMBNAIL_CLASS: string; // Gk（MarkdownIntegration §10）
+/* 原 kk/TBe/Ak/jk/Nk/EBe/Pk/Gk：表格粘性条助手族 —— 已接线 MarkdownIntegration 真实导出 */
 
 /* 工具身份族（Conversation 域，js 22666–23193；Conversation.tsx 已声明 og） */
 interface ToolCallLike {
@@ -262,9 +248,7 @@ declare function extractBeforeAfterEdit(value: unknown): { before: string; after
 declare function buildUnifiedDiffText(before: string, after: string, fileName: string, mode?: unknown): string | null; // Kh
 
 /* 路径助手（横切 1925–1975） */
-declare function isAbsolutePath(path: string): boolean; // Ko
 declare function resolvePathAgainst(basePath: string, relativePath: string): string; // Jo
-declare function decodeUriSafe(value: string): string; // qo
 
 /* ============================================================================
  * 1. Qze 深部 —— Mermaid 全屏对话框的缩放/平移几何模型（原 48114–48268）
@@ -1608,7 +1592,7 @@ export function ImageLightbox({
   open,
 }: ImageLightboxProps) {
   const { intl } = useIntlContext();
-  const platform = usePlatform();
+  const platform = usePlatform() as unknown as PlatformService;
   const [currentIndex, setCurrentIndex] = React.useState(initialIndex);
   const [scale, setScale] = React.useState(1);
   const [offset, setOffset] = React.useState(ORIGIN_POINT);

@@ -42,7 +42,10 @@
  */
 
 import * as React from "react";
-import { logger } from './SkillStore';
+import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
+import { create as createStore } from './SkillStore'; // 原 Ae（skillStore chunk q 导出）
+import { readLocalStorageItem as readLocalStorage, writeLocalStorageItem as writeLocalStorage } from './intlProvider'; // 原 He/We
+import type { UserInfo } from './OnboardingLoginLeaves';
 
 /* ============================================================================
  * 0. zustand 接口（原 `Ae` = skillStore chunk 导出的 create；`ne` = 选择器钩子）
@@ -60,12 +63,7 @@ interface StoreApi<T> {
 /** zustand 绑定钩子：`useStore(selector)` + 静态 getState/setState/subscribe */
 export type UseBoundStore<T> = StoreApi<T> & (<R>(selector: (state: T) => R) => R);
 
-declare function createStore<T>(initializer: (set: SetState<T>, get: GetState<T>) => T): UseBoundStore<T>;
-
-
-/** localStorage 读/写（原 He/We；失败静默） */
-declare function readLocalStorage(key: string): string | null;
-declare function writeLocalStorage(key: string, value: string): void;
+/** localStorage 读/写（原 He/We；失败静默）— 已接线 intlProvider readLocalStorageItem/writeLocalStorageItem */
 
 /* ============================================================================
  * 1. SettingsStore（原 Mie 工厂 + Oo context + Nie provider + ko 钩子）
@@ -122,7 +120,7 @@ export interface SettingsState {
   performanceMode: boolean;
   notificationEnabled: boolean;
   notificationSoundEnabled: boolean;
-  user: unknown | null;
+  user: UserInfo | null;
   isRestoringOAuthSession: boolean;
   oauthError: unknown | null;
   oauthSuccessSeq: number;
@@ -142,7 +140,7 @@ export interface SettingsState {
   setPerformanceMode(enabled: boolean): void;
   setNotificationEnabled(enabled: boolean): void;
   setNotificationSoundEnabled(enabled: boolean): void;
-  setUser(user: unknown | null): void;
+  setUser(user: UserInfo | null): void;
   setIsRestoringOAuthSession(v: boolean): void;
   setOAuthError(error: unknown | null): void;
   markOAuthSuccess(provider?: string | null): void;

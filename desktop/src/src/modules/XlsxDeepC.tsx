@@ -1221,7 +1221,8 @@ export var SurfaceChartPanel = reactInterop.memo(
     e.overlay === t.overlay &&
     e.fallback === t.fallback,
 );
-export function chartSeriesDataAttrs(e: any, t: any, n: any) {
+// A0-S2b：t/n 改可选（类型唯一，发射不变）——原 bundle 调用点即 1–3 参（XlsxDeepA 728–7854 群）
+export function chartSeriesDataAttrs(e: any, t?: any, n?: any) {
   return {
     "data-xlsx-chart-point-index": typeof t == `number` ? String(t) : void 0,
     "data-xlsx-chart-selection-mode": n?.selectionMode,

@@ -145,43 +145,32 @@
  */
 
 import * as React from "react";
+/* ── A0-S2d 接线（B5-11）：原 declare 挂接替换为真实 import；混淆名注释随迁 ── */
+/** 原 u（logger-PFDwl5Yq 的 t 导出）：日志器。 */
+import { t as logger } from './logger';
+/* ── src-HCld2afU.js 8 导入（内部名经该 chunk 导出表逐一核对；实体在 SrcSharedA/B） ── */
+import {
+  buildCustomModelRef as formatCustomQualifiedModelId, // 原 n（src 的 F 导出 = 内部 rS）：`custom:<providerId>[:<modelName>]` 拼装
+  nativeProviderRef as formatNativeSupplierKey, // 原 r（src 的 M 导出 = 内部 cS）：`native:<provider>` 供应商键
+  parseCustomModelRef as parseCustomQualifiedModelId, // 原 i（src 的 P 导出 = 内部 iS）：解析 `custom:` 限定模型 ID
+  listSessionModeOptions as getDefaultModeOptions, // 原 a（src 的 Y 导出 = 内部 kx）：缺省模式选项表（build/plan/yolo…）
+  generateUuid as createUuid, // 原 s（src 的 ot 导出 = 内部 cx）：uuid（crypto.randomUUID 回退手写 v4）
+  buildStableModelId as formatBuiltinQualifiedModelId // 原 c（src 的 q 导出 = 内部 Fx）：`<providerSlug>/<modelName>` 内建限定 ID
+} from './SrcSharedB';
+import {
+  resolveDefaultAgentCliProvider as resolveAgentProvider, // 原 o（src 的 ds 导出 = 内部 Es）：代理供应商归一（3.7.6 恒返回 `glm`）
+  isGlmAgentCliProvider as isGlmProvider // 原 l（src 的 us 导出 = 内部 Ds）：`provider === 'glm'`
+} from './SrcSharedA';
+
+/* logger 再导出：Lane-1 UNIQUE_ADDEXPORT（a0-wiring-plan）——域内 Bots/Composer/
+ * Modals/PaymentDeep 经 `import { logger } from './SkillStore'` 消费。 */
+export { logger };
 
 /* ============================================================================
- * 0. 外部依赖接口（跨 chunk，declare 挂接）
+ * 0. 外部依赖接口（跨 chunk）—— 原 logger + 8 条 src-HCld2afU declare 已由
+ *    A0-S2d 接线为上方真实 import（B5-11）；SubagentsService/SkillsService/
+ *    Descriptor 接口为调用面契约，按已落地形状保留于本文件下半。
  * ==========================================================================*/
-
-/** 原 u（logger-PFDwl5Yq 的 t 导出）：日志器。 */
-declare const logger: {
-  info(msg: string, meta?: unknown): void;
-  warn(msg: string, meta?: unknown): void;
-  error(msg: string, meta?: unknown): void;
-};
-
-/* ── src-HCld2afU.js 8 导入（内部名经该 chunk 导出表逐一核对） ── */
-
-/** 原 n（src 的 F 导出 = 内部 rS）：`custom:<providerId>[:<modelName>]` 拼装。 */
-declare function formatCustomQualifiedModelId(providerId: string, modelName?: string | null): string;
-
-/** 原 r（src 的 M 导出 = 内部 cS）：`native:<provider>` 供应商键。 */
-declare function formatNativeSupplierKey(provider: string): string;
-
-/** 原 i（src 的 P 导出 = 内部 iS）：解析 `custom:` 限定模型 ID。 */
-declare function parseCustomQualifiedModelId(value: string): { providerId: string; modelName?: string } | null;
-
-/** 原 a（src 的 Y 导出 = 内部 kx）：缺省模式选项表（build/plan/yolo…）。 */
-declare function getDefaultModeOptions(): Array<{ value: string; name: string; description?: string }>;
-
-/** 原 o（src 的 ds 导出 = 内部 Es）：代理供应商归一（3.7.6 恒返回 `glm`）。 */
-declare function resolveAgentProvider(provider: string | null | undefined): string;
-
-/** 原 s（src 的 ot 导出 = 内部 cx）：uuid（crypto.randomUUID 回退手写 v4）。 */
-declare function createUuid(): string;
-
-/** 原 c（src 的 q 导出 = 内部 Fx）：`<providerSlug>/<modelName>` 内建限定 ID。 */
-declare function formatBuiltinQualifiedModelId(providerId: string, modelName: string): string;
-
-/** 原 l（src 的 us 导出 = 内部 Ds）：`provider === 'glm'`。 */
-declare function isGlmProvider(provider: string): boolean;
 
 /* ── E2E 桥 window 挂载点（与 e2eStoreBridgeBootstrap.tsx 同一组全局名） ── */
 

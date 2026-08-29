@@ -62,6 +62,30 @@
  */
 
 import * as React from "react";
+/* ── A0-S2d 接线（B5-14）：隙段 declare 组改指 RemoteGapSegments 实体；混淆名注释随迁 ── */
+import {
+  useRemoteWizardState, // 原 mEt（隙段 a，原 123535–123746）：远程向导状态总钩（表单字段 + 运行时选项 + setters）
+  useRemoteConnectionLogs, // 原 bEt（隙段 a，原 123789–123837）：连接日志钩（订阅 onRemoteConnectionLog + 进度行去重）
+  resolveWizardStepCopy, // 原 xEt（隙段 a，原 123838–123867）：步文案（remote.kindStepTitle / settingsStepDescription{method} / connectingStep* / selectDirectory*）
+  validateAndBuildRemoteTarget, // 原 SEt（隙段 a，原 123868–123928）：按 kind 校验并构建目标（ssh.validation.* / docker.validation.required / wsl.validation.invalidUser / server.validation.*）
+  attachSelectedResourcePackages, // 原 CEt（隙段 a，原 123929）：ssh 目标附加 resourcePackages（vne 选中包 id）
+  isWizardFlowActive, // 原 wEt（隙段 a，原 123932）：流活动（loading 或已连）
+  isWizardFlowIdle, // 原 TEt（隙段 a，原 123935）
+  wizardResultToOpenState, // 原 EEt（隙段 a，原 123938）：连接结果 → {open:!0, step: success?directory:connecting}
+  resolveDirectorySelectFallback, // 原 DEt（隙段 a，原 123941）：目录选择失败回退（sessionStillRegistered?directory:settings）
+  RemoteKindStep, // 原 oOt（127539）：类型步
+  RemoteSettingsStep, // 原 sOt（127616）：设置步壳（内嵌 REt + 返回/连接脚部）
+  RemoteConnectingStep, // 原 rOt（127357）：连接日志步
+  RemoteDirectoryStep // 原 cOt（127782）：目录步（内嵌 MEt embedded + 三同步卡）
+} from './RemoteGapSegments';
+import { isValidWslUser as isValidWslUsername } from './SrcSharedA'; // 原 lee（src chunk Cc 4299）：WSL 用户名合法性（1–64、无冒号、非保留名）
+import { generateUuid as generateRequestId } from './SrcSharedB'; // 原 xi（src chunk cx）：请求 id（crypto.randomUUID 回退链）
+import { extractErrorMessage as toErrorMessage } from './FeedbackCenter'; // 原 MC（本 chunk 37651，横切错误文本）
+import { useSessionRegistryStore as useSessionStore } from './stores-core'; // 原 Zs：会话 store（sessionsById 选择器 + getState）
+import { useBaseServices } from './services'; // 原 Ec（本 chunk 4897）：基础服务（skillSync/mcpSync/pluginSync/zcodeAgent）
+import { t as logger } from './logger';
+import { useConfirmDialog } from './Modals'; // 原 U2（Modals.tsx useConfirmDialog，js 123510）
+import { Input } from './ImeComposition'; // 原 P（imeComposition y 导出）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
@@ -72,32 +96,16 @@ interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
 declare function useIntlContext(): { intl: IntlShape; locale: string };
-declare const logger: {
-  debug(msg: string, ...meta: unknown[]): void;
-  info(msg: string, ...meta: unknown[]): void;
-  warn(msg: string, ...meta: unknown[]): void;
-  error(msg: string, ...meta: unknown[]): void;
-};
+/* ── tombstone（A0-S2d）：logger declare 删除 → canonical 在 logger.tsx（t 导出）；
+ *    P Input declare 删除 → canonical 在 ImeComposition.tsx（y 导出）；
+ *    U2 useConfirmDialog declare 删除 → canonical 在 Modals.tsx（已导出），
+ *    均经文件头真实 import 消费。 ── */
 
 interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
   variant?: "default" | "ghost" | "outline" | "destructive" | "link" | string;
   size?: "default" | "sm" | "lg" | "xs" | "icon-sm" | "icon-lg" | string;
 }
 declare const Button: React.ForwardRefExoticComponent<ButtonProps & React.RefAttributes<HTMLButtonElement>>;
-/** 原 P（imeComposition y 导出） */
-declare const Input: React.ForwardRefExoticComponent<
-  Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> & {
-    size?: "default" | "sm" | "lg";
-  } & { ref?: React.Ref<HTMLInputElement> }
->;
-
-/** 原 U2（Modals.tsx useConfirmDialog，js 123510） */
-declare function useConfirmDialog(): (args: {
-  title: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-}) => Promise<boolean>;
 /** 原 l（imeComposition M 导出） */
 interface PlatformServiceLike {
   selectFile?(): Promise<string | null>;
@@ -230,137 +238,17 @@ interface RemoteWorkspaceSessionLike {
   services?: unknown;
 }
 
-/** 原 mEt（隙段 a，原 123535–123746）：远程向导状态总钩（表单字段 + 运行时选项 + setters） */
-declare function useRemoteWizardState(args: {
-  open: boolean;
-  isWindowsDesktop: boolean;
-  preferredKind?: RemoteKind;
-  preferredWslDistro?: string;
-}): {
-  kind: RemoteKind;
-  host: string;
-  port: string;
-  username: string;
-  sshAuthMethod: "password" | "privateKey";
-  assetInstallMode: string;
-  password: string;
-  privateKeyPath: string;
-  privateKeyPassphrase: string;
-  wslDistro: string;
-  wslUser: string;
-  dockerContainer: string;
-  manualDockerContainer: string;
-  serverUrl: string;
-  serverName: string;
-  serverToken: string;
-  serverWorkspacePath: string;
-  sshConfigAliases: SshConfigAlias[];
-  sshConfigAliasesLoading: boolean;
-  sshConfigAliasesError: string;
-  selectedSshConfigAlias: string | null;
-  dockerAvailable: boolean | undefined;
-  wslDistros: WslDistroRef[];
-  dockerContainers: DockerContainerRef[];
-  availableKinds: RemoteKind[];
-  setKind: (v: RemoteKind) => void;
-  setHost: (v: string) => void;
-  setPort: (v: string) => void;
-  setUsername: (v: string) => void;
-  setSshAuthMethod: (v: "password" | "privateKey") => void;
-  setAssetInstallMode: (v: string) => void;
-  setPassword: (v: string) => void;
-  setPrivateKeyPath: (v: string) => void;
-  setPrivateKeyPassphrase: (v: string) => void;
-  setWslDistro: (v: string) => void;
-  setWslUser?: (v: string) => void;
-  setDockerContainer: (v: string) => void;
-  setManualDockerContainer: (v: string) => void;
-  setServerUrl: (v: string) => void;
-  setServerName: (v: string) => void;
-  setServerToken: (v: string) => void;
-  setServerWorkspacePath: (v: string) => void;
-  refreshDockerContainers?: () => void;
-  applySshConfigAlias: (alias: SshConfigAlias) => void;
-  clearSelectedSshConfigAlias: () => void;
-  currentRuntimeOptionsLoading: boolean;
-  currentRuntimeOptionsError: string;
-};
-/** 原 bEt（隙段 a，原 123789–123837）：连接日志钩（订阅 onRemoteConnectionLog + 进度行去重） */
-declare function useRemoteConnectionLogs(requestId: string | null): {
-  connectionLogs: Array<{ id: string; level: string; message: string; timestamp: string }>;
-  resetConnectionLogs: () => void;
-  appendConnectionLog: (level: string, message: string) => void;
-};
-/** 原 xEt（隙段 a，原 123838–123867）：步文案（remote.kindStepTitle / settingsStepDescription{method} /
- *  connectingStep* / selectDirectory*） */
-declare function resolveWizardStepCopy(
-  intl: IntlShape,
-  step: WizardStep,
-  kind: RemoteKind,
-): { title: string; description: string };
-/** 原 SEt（隙段 a，原 123868–123928）：按 kind 校验并构建目标（ssh.validation.* / docker.validation.required /
- *  wsl.validation.invalidUser / server.validation.*） */
-declare function validateAndBuildRemoteTarget(
-  intl: IntlShape,
-  form: Record<string, unknown>,
-): { target?: RemoteTarget; errorMessage?: string };
-/** 原 CEt（隙段 a，原 123929）：ssh 目标附加 resourcePackages（vne 选中包 id） */
-declare function attachSelectedResourcePackages(e: RemoteTarget): RemoteTarget;
-/** 原 wEt（隙段 a，原 123932）：流活动（loading 或已连） */
-declare function isWizardFlowActive(e: { loading: boolean; connectedSessionId: string | null }): boolean;
-/** 原 TEt（隙段 a，原 123935） */
-declare function isWizardFlowIdle(e: { loading: boolean; connectedSessionId: string | null }): boolean;
-/** 原 EEt（隙段 a，原 123938）：连接结果 → {open:!0, step: success?directory:connecting} */
-declare function wizardResultToOpenState(e: "success" | "error"): { open: boolean; step: WizardStep };
-/** 原 DEt（隙段 a，原 123941）：目录选择失败回退（sessionStillRegistered?directory:settings） */
-declare function resolveDirectorySelectFallback(e: {
-  sessionStillRegistered: boolean;
-  connectedSessionId: string | null;
-}): { connectedSessionId: string | null; step: WizardStep };
+/* ── tombstone（A0-S2d）：mEt/bEt/xEt/SEt/CEt/wEt/TEt/EEt/DEt 九钩与
+ *    rOt/oOt/sOt/cOt 四步骤组件的 declare 挂接已删除，canonical 实体在
+ *    RemoteGapSegments.tsx（§3.2/§3.3 实体化），经文件头真实 import 消费。
+ *    xi→SrcSharedB generateUuid | MC→FeedbackCenter extractErrorMessage |
+ *    lee→SrcSharedA isValidWslUser | Zs→stores-core useSessionRegistryStore |
+ *    Ec→services useBaseServices。 ── */
 /** 原 uEt（F09 段 123484 区，未抽取）：取消在途连接钩 */
 declare function useCancelRemoteConnection(): (requestId?: string) => Promise<void> | void;
-/** 原 xi（src chunk cx）：请求 id（crypto.randomUUID 回退链） */
-declare function generateRequestId(): string;
-/** 原 MC（本 chunk 37651，横切错误文本） */
-declare function toErrorMessage(e: unknown): string;
-/** 原 lee（src chunk Cc 4299）：WSL 用户名合法性（1–64、无冒号、非保留名） */
-declare function isValidWslUsername(e: string): boolean;
-/** 原 Zs：会话 store（sessionsById 选择器 + getState） */
-declare const useSessionStore: {
-  <T>(selector: (state: { sessionsById: Record<string, { services?: unknown } | undefined> }) => T): T;
-  getState(): { sessionsById: Record<string, unknown> };
-};
-/** 原 Ec（本 chunk 4897）：基础服务（skillSync/mcpSync/pluginSync/zcodeAgent） */
-interface BaseServicesLike {
-  skillSyncService?: unknown;
-  mcpSyncService?: unknown;
-  pluginSyncService?: unknown;
-  zcodeAgentService?: unknown;
-}
-declare function useBaseServices(): BaseServicesLike;
 
-/* ---- 隙段 b：四步骤组件（原 rOt/oOt/sOt/cOt，原 127340–127925，未分配） ---- */
-/** 原 oOt（127539）：类型步 */
-declare const RemoteKindStep: React.FC<{
-  kind: RemoteKind;
-  availableKinds: RemoteKind[];
-  onKindChange: (v: RemoteKind) => void;
-  onCancel: () => void;
-  onNext: () => void;
-}>;
-/** 原 sOt（127616）：设置步壳（内嵌 REt + 返回/连接脚部） */
-declare const RemoteSettingsStep: React.FC<Record<string, unknown>>;
-/** 原 rOt（127357）：连接日志步 */
-declare const RemoteConnectingStep: React.FC<{
-  kind: RemoteKind;
-  logs: Array<{ id: string; level: string; message: string; timestamp: string }>;
-  errorMessage: string;
-  loading: boolean;
-  onBack: () => void;
-  onRetry: () => void;
-}>;
-/** 原 cOt（127782）：目录步（内嵌 MEt embedded + 三同步卡） */
-declare const RemoteDirectoryStep: React.FC<Record<string, unknown>>;
+/** A0-S2d 类型垫片：目录步 props 面自 RGS 实体推导（原 declare 为 Record<string, unknown> 接口） */
+type RemoteDirectoryStepPropsLike = React.ComponentProps<typeof RemoteDirectoryStep>;
 
 /** 原 W2（账实差异段，当前 124152–124259；SuggestionInput：Popover+cmdk 历史建议输入）
  *  辅助：NEt（124144，interactOutside 判定透传）/ PEt（124147，建议过滤 includes） */
@@ -1580,16 +1468,16 @@ export function RemoteWizardDialog({
                 {O === `directory` ? (
                   <div data-testid={TESTID_SSH_SUCCESS} className={`h-full`}>
                     <RemoteDirectoryStep
-                      services={Ge}
+                      services={Ge as RemoteDirectoryStepPropsLike["services"]}
                       remoteTarget={F}
-                      localSkillSyncService={Ke.skillSyncService}
-                      remoteSkillSyncService={(Ge as { skillSyncService?: unknown } | null)?.skillSyncService ?? null}
-                      localMcpSyncService={Ke.mcpSyncService}
-                      remoteMcpSyncService={(Ge as { mcpSyncService?: unknown } | null)?.mcpSyncService ?? null}
-                      localPluginSyncService={Ke.pluginSyncService}
-                      remotePluginSyncService={(Ge as { pluginSyncService?: unknown } | null)?.pluginSyncService ?? null}
-                      localZCodeAgentService={Ke.zcodeAgentService}
-                      remoteZCodeAgentService={(Ge as { zcodeAgentService?: unknown } | null)?.zcodeAgentService ?? null}
+                      localSkillSyncService={Ke.skillSyncService as RemoteDirectoryStepPropsLike["localSkillSyncService"]}
+                      remoteSkillSyncService={((Ge as { skillSyncService?: unknown } | null)?.skillSyncService ?? null) as RemoteDirectoryStepPropsLike["remoteSkillSyncService"]}
+                      localMcpSyncService={Ke.mcpSyncService as RemoteDirectoryStepPropsLike["localMcpSyncService"]}
+                      remoteMcpSyncService={((Ge as { mcpSyncService?: unknown } | null)?.mcpSyncService ?? null) as RemoteDirectoryStepPropsLike["remoteMcpSyncService"]}
+                      localPluginSyncService={Ke.pluginSyncService as RemoteDirectoryStepPropsLike["localPluginSyncService"]}
+                      remotePluginSyncService={((Ge as { pluginSyncService?: unknown } | null)?.pluginSyncService ?? null) as RemoteDirectoryStepPropsLike["remotePluginSyncService"]}
+                      localZCodeAgentService={Ke.zcodeAgentService as RemoteDirectoryStepPropsLike["localZCodeAgentService"]}
+                      remoteZCodeAgentService={((Ge as { zcodeAgentService?: unknown } | null)?.zcodeAgentService ?? null) as RemoteDirectoryStepPropsLike["remoteZCodeAgentService"]}
                       localWorkspacePath={r}
                       selecting={L}
                       onSelect={(e: string) => {

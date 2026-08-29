@@ -77,7 +77,7 @@
  */
 
 import * as React from "react";
-import { ClassNamesContext } from './MarkdownContext';
+import { ClassNamesContext, StreamdownContext as StreamdownOptionsContext, StreamdownPluginsContext as CodeHighlighterContext } from './MarkdownContext'; // 原 Xb / ty
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于宿主 chunk；此处为重建接口）
@@ -132,14 +132,12 @@ export interface StreamdownOptions {
 /* --- 宿主 chunk 上下文（重建；运行时从宿主 chunk 取得） --- */
 
 /** 原 Xb：全局选项上下文（默认 shikiTheme=Jb、controls、lineNumbers=true、mode=streaming） */
-declare const StreamdownOptionsContext: React.Context<StreamdownOptions>;
 
 /** 原 ty：代码高亮器上下文（默认 null；顶层 Streamdown 组件注入 {code, mermaid}） */
 interface CodeHighlighterContextValue {
   code?: CodeHighlighter | null;
   mermaid?: unknown;
 }
-declare const CodeHighlighterContext: React.Context<CodeHighlighterContextValue | null>;
 
 /** 原 ry（js 19612）：取高亮器实例 */
 function useCodeHighlighter(): CodeHighlighter | null {
@@ -148,7 +146,7 @@ function useCodeHighlighter(): CodeHighlighter | null {
 
 /** 原 Ev/Q：类名合并器上下文（默认 = clsx+twMerge） */
 function useClassNames(): ClassNamesMerger {
-  return React.useContext(ClassNamesContext);
+  return React.useContext(ClassNamesContext) as ClassNamesMerger;
 }
 
 /* ============================================================================

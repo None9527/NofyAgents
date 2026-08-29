@@ -82,20 +82,16 @@
 
 import * as React from 'react';
 
-// ─── 跨 chunk 依赖（真实构建产物，minified 无类型） ───────────────────────────
+// ─── 跨 chunk 依赖（改接重建模块 / npm 依赖） ───────────────────────────
 // utils-CEEH0K_K.js 导出 t = cn（见 UtilsCn.tsx 重建）。
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明
-import { t as cnMin } from '../../out/renderer/assets/utils-CEEH0K_K.js';
+import { cn as cnMin } from './UtilsCn'; // 原 utils-CEEH0K_K t
 // chart-iT2j9K3u.js 导出：
 //   i = UT = xb = recharts component/Tooltip.js（ChartTooltip 即其再导出）
 //   n = GT = Ju = recharts component/Legend.js （ChartLegend 即其再导出）
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明
-import { i as RechartsTooltip, n as RechartsLegend } from '../../out/renderer/assets/chart-iT2j9K3u.js';
+import { Tooltip as RechartsTooltip, Legend as RechartsLegend } from 'recharts'; // 原 chart-iT2j9K3u i, n
 // ResponsiveContainer 在原 chunk 为内部符号 `Zc`（未导出）；vendored 本体即
 // recharts@3.8.0 component/ResponsiveContainer.js（结构逐节比对一致：
 // initialDimension / SizeDetectorContainer / ResponsiveContainerContextProvider）。
-// 本地 recharts 安装不含 .d.ts，故抑制类型错误。
-// @ts-expect-error zcode-restored/node_modules/recharts 安装无类型声明文件
 import { ResponsiveContainer } from 'recharts';
 
 /** 类名合并（ZCode 定制 tailwind-merge 版，见 UtilsCn.tsx）。 */

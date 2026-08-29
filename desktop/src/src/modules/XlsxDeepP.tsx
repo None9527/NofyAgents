@@ -5372,7 +5372,8 @@ function parseWorkbookMetadata(e: any, t?: any) {
     workbookSheets: r,
   };
 }
-export function parseWorkbookImageAssets(e: any, t: any) {
+// A0-S2b：t 改可选（类型唯一，发射不变）——原 bundle 调用点即单参（XlsxDeepA 728）
+export function parseWorkbookImageAssets(e: any, t?: any) {
   let n = M(e),
     {
       contentTypes: r,
@@ -5794,7 +5795,7 @@ export function loadDukeSheetsWasmModule() {
   return (
     (cachedWasmModulePromise ||= o(
       () =>
-        // @ts-expect-error TS2307 同级 chunk 资产动态 import，tsc 无法解析（整行可剥离）
+        // 原 @ts-expect-error（TS2307）：A0-S2b 新增 duke_sheets_wasm-WTFY9Nh4.d.ts 垫片后已可解析，指令移除
         import(`./duke_sheets_wasm-WTFY9Nh4.js`).then(
           async (e) => (
             rawWasmSource === void 0 ? await e.default() : await e.default({ module_or_path: rawWasmSource }),
@@ -6397,12 +6398,13 @@ function normalizeColorSpec(e: any) {
   let t: any = e.hex?.replace(/^#/, ``);
   switch (
     e.colorType ??
-    (t?.length === 8 ? `argb` : t?.length === 6 ? `rgb` : (void 0 as undefined)) ??
+    // 末支原 `void 0`：TS 5.9 判其型变（TS2881），改 `undefined`（运行时等价，发射语义不变）
+    (t?.length === 8 ? `argb` : t?.length === 6 ? `rgb` : undefined) ??
     (e.r !== void 0 && e.g !== void 0 && e.b !== void 0
       ? e.a === void 0
         ? `rgb`
         : `argb`
-      : (void 0 as undefined)) ??
+      : undefined) ??
     (e.themeIndex === void 0 ? (e.paletteIndex === void 0 ? void 0 : `indexed`) : `theme`)
   ) {
     case `auto`:

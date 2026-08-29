@@ -69,326 +69,304 @@ import type {
 import type { DocxEditorState } from "./LegacyDocEngineBEditorState";
 import type { DocxEditorViewInteractionCore } from "./LegacyDocEngineC3";
 
+/* §0 接线（A0-S2c）：原 declare 改指域内实体导出；行尾注原混淆名。 */
+import * as jsxRuntime from "react/jsx-runtime"; // 原 $（(0, jsxRuntime.jsx) 消费面）
+import {
+  paragraphIsCheckboxYesNoRow, // 原 up
+  imageChildKey, // 原 sp
+  scheduleFrame, // 原 Ru
+  elementToPlainText, // 原 Sf
+  elementToClipboardText, // 原 Cf
+  renderStaticMarkup, // 原 Ef
+  paragraphText, // 原 _f
+  cellSelectionContains, // 原 rf
+  isCollapsedCellSelection, // 原 tf
+  paragraphsOf, // 原 jf
+  collectParagraphsRecursive, // 原 Mf
+  nodesContainImage, // 原 Nf
+  rangeTouchesTable, // 原 af
+  compareLocations, // 原 uf
+  compareTextPositions, // 原 df
+  normalizeTextRange, // 原 ff
+  firstTextRunStyle, // 原 Of
+  collectLetterheadRun, // 原 nu
+  letterheadGridStyle, // 原 ru
+  letterheadColumnStyle, // 原 iu
+  letterheadContainerStyle, // 原 au
+  clampNumber, // 原 ou
+  joinDefined, // 原 pu
+  imageIsFullPageCover, // 原 tp
+  floatingLayerStyle, // 原 lp
+  normalizeMeasuredHeight, // 原 zu
+  formFieldDisplayText, // 原 Df
+  isBehindDocImageOf, // 原 Bf
+  resolveDocumentFontFamily, // 原 bf
+  PAGE_SURFACE_BASE_STYLE, // 原 Ou
+  PAGE_THEME_STYLES, // 原 du
+  isParagraph, // 原 kf
+  paragraphHasImage, // 原 Pf
+  paragraphHasPageAnchoredImage, // 原 Hf
+  paragraphHasPageBackground, // 原 ip
+  parseDropCap, // 原 Zl
+  twipsToPxRounded, // 原 ld
+  TABLE_HANDLE_BORDER_PX, // 原 Tu
+  TABLE_CORNER_HANDLE_STYLE, // 原 Eu
+  TABLE_MOVE_HANDLE_STYLE, // 原 Du
+  TABLE_RESIZE_HIT_TOP_PX, // 原 bu
+  TABLE_RESIZE_HIT_RIGHT_PX, // 原 xu
+  TABLE_CORNER_HIT_INSET_PX, // 原 Su
+  TABLE_CORNER_HIT_SIZE_PX, // 原 Cu
+  TABLE_HANDLE_HIT_PX, // 原 hu
+  TABLE_RESIZE_HANDLE_PX, // 原 vu
+  TABLE_HANDLE_LINE_OFFSET_PX, // 原 wu
+  TABLE_HANDLE_LINE_PX, // 原 gu
+} from "./LegacyDocEngineBModel";
+import {
+  sectionImageKey, // 原 Jx
+  cellParagraphDraftKey, // 原 Yx
+  normalizeDateToIso, // 原 wv
+  locationNodeIndex, // 原 cx
+  isCompositionKey, // 原 Ax
+  isNavigationOrEditKey, // 原 jx
+  cellParagraphsSignature, // 原 vy
+  htmlInsertionContract, // 原 kx
+  selectionCoversCell, // 原 kb
+  renderParagraphRuns, // 原 Tv
+  noteReferenceMark, // 原 Cv
+  isNumberedParagraph, // 原 Qv
+  numberingKindOf, // 原 Zv
+  paragraphHasNumbering, // 原 Xv
+  listPrefixLength, // 原 ey
+  previousEditableParagraphLocation, // 原 px
+  nextEditableParagraphLocation, // 原 mx
+  resolveLocation, // 原 Fx
+  cloneLocationContract, // 原 xx
+  sameLocationContract, // 原 ax
+  locationBaseContract, // 原 Rx
+  imageLocationKeyContract, // 原 jb
+  paragraphLocationOfImage, // 原 Px
+  childLocationKey, // 原 Mb
+  locationKeyContract, // 原 Ab
+  rangeOffsetsInParagraph, // 原 bx
+  behindDocImageFrameSize, // 原 Gg
+  imageIsPageAnchoredFloating, // 原 Jg
+  floatingAbsoluteStyle, // 原 Rg
+  floatingWrapStyle, // 原 Lg
+  floatingTableLayout, // 原 Sy
+  floatingTableStyle, // 原 Cy
+  floatingTableWidthPx, // 原 xy
+  tableMaxColumnCount, // 原 yy
+  tableOuterBorderWidthPx, // 原 ub
+  cellBorderCss, // 原 lb
+  diagonalBordersBackground, // 原 db
+  cellPaddingStyle, // 原 Ry
+  tableBorderCollapseStyle, // 原 Yy
+  effectiveColumnWidthsPx, // 原 Iy
+  clampTableContentWidthPx, // 原 Ny
+  tableBorderSpacingPx, // 原 Jy
+  tableUsesCellBorders, // 原 qy
+  scaleGridWidthsToPx, // 原 Py
+  normalizeGridWidthsPx, // 原 jy
+  locateNestedTable, // 原 wy
+  cellMarginsPx, // 原 Ly
+  effectiveCellMarginTwips, // 原 zy
+} from "./LegacyDocEngineC2";
+import {
+  paragraphEstimatedLineCount, // 原 Eh
+  tableRowStyle, // 原 tg
+  tabLayoutKindOf, // 原 j_
+  paragraphHasTocTab, // 原 E_
+  paragraphLineLayout, // 原 Hp
+  paragraphLayoutText, // 原 Mp
+  paragraphLineHeight, // 原 Rh
+  paragraphContentWidth, // 原 Th
+  nodeLayoutHeight, // 原 Tg
+  shapeTransformCss, // 原 av
+  renderTextBoxSvg, // 原 tv
+  isInlineImageNode, // 原 Ng
+  isFloatingImageNode, // 原 Kg
+  tableIsTableGrid, // 原 Qh
+  syntheticTextBoxIsGraphicShape, // 原 nv
+  textBoxRenderLines, // 原 $_
+  textBoxPlainText, // 原 Q_
+  parseTextBoxShapeStyle, // 原 Z_
+  textBoxZIndex, // 原 ev
+  estimateCellContentHeight, // 原 Wh
+  snapToGridModeOf, // 原 Ih
+  applyDefaultSpacingForGrid, // 原 Hh
+  paragraphOuterHeight, // 原 zh
+  spacingBeforeAbsent, // 原 Uh
+  twipsToPxNonNegative, // 原 Br
+  layoutHeightPx, // 原 Ah
+  segmentRenderBottomPx, // 原 vg
+  segmentCoversWholeParagraph, // 原 yg
+  lineRangeForBand, // 原 _g
+  lineRangeIsPartial, // 原 gg
+  splitEdgePadding, // 原 bg
+  splitEdgeSmoothingPadding, // 原 xg
+  measureTextWidth, // 原 uh
+  paragraphFontSizePx, // 原 Ym
+  runFontString, // 原 ch
+  isPlainPageBreakSpacer, // 原 pg
+  segmentMatchesLineRange, // 原 wg
+  spacingBeforeForPagination, // 原 _m
+  spacingAfterForPagination, // 原 gm
+} from "./LegacyDocEngineC1";
+import {
+  checkboxGapPx, // 原 Zp
+  isInteractiveElement, // 原 xm
+  isTableCellParagraphHost, // 原 Sm
+  dragPreviewHeight, // 原 gp
+  paragraphFloatingLayout, // 原 Yp
+  wrapBandLayout, // 原 bp
+  layoutWrappedLines as layoutWrappedLinesBLayout, // 原 xp
+  floatingImageGeometry, // 原 Jp
+  imageCropMetrics, // 原 $g
+  advanceAfterText, // 原 im
+  nextTabStopDistance, // 原 am
+  applyNumberingFontStyle, // 原 g_
+  scriptFontSpans, // 原 h_
+  runStyleToCssDefaults, // 原 v_
+  runStyleToCss, // 原 __
+  numberingLabelContainerStyle, // 原 u_
+  paragraphCssStyle, // 原 d_
+  checkboxLeadingSpace, // 原 Qp
+  formFieldWidthPx, // 原 om
+  checkboxWidthPx, // 原 sm
+  borderTotalPx, // 原 o_
+  numberingLabelWidthPx, // 原 l_
+  wordBreakOf, // 原 Lp
+  emptyBeforeDeletedMark, // 原 um
+  formFieldHeightPx, // 原 tm
+  formFieldBoxHeightPx, // 原 nm
+  alignedFloatingLayout, // 原 Xp
+  paragraphLineHeightCss, // 原 t_
+  collectNodeNoteReferences, // 原 bm
+} from "./LegacyDocEngineBLayout";
+import {
+  unscaleDelta, // 原 zg
+  isPageOrMarginAnchoredFloating, // 原 qg
+  inlineImageIsPageOrMarginAnchored, // 原 Pg
+  unscaleRect, // 原 Bg
+  floatingMovePatch, // 原 Hg
+  sectionFloatingMovePatch, // 原 Vg
+  paragraphHostStyle, // 原 f_
+  normalizeFontFamily, // 原 m_
+  themeAwareColor, // 原 p_
+  paragraphHasUnanchoredFloatingImage, // 原 Xg
+  paragraphHasAnchoredImage, // 原 Yg
+} from "./LegacyDocEngineC5";
+import {
+  THUMBNAIL_EXCLUDE_ATTR, // 原 Xs
+  selectionRangeRects, // 原 Is
+  caretRectForOffset, // 原 Fs
+  hitTestTextOffset, // 原 Ps
+  sliceLayoutLines, // 原 Ls
+  layoutPlainTextBlock, // 原 Ms
+} from "./LegacyDocEngine4";
+import {
+  resolvePrimaryFontFamily, // 原 Mi
+} from "./LegacyDocEngine3";
+import {
+  MIN_BLOCK_HEIGHT_PX, // 原 pc
+  ROW_HEIGHT_TOLERANCE_PX, // 原 tc
+  KEY_CODE_MIN_LAYOUT, // 原 kc
+  ANNOTATION_GUTTER_WIDTH_PX, // 原 Zc
+} from "./LegacyDocEngineBThumbnails";
+import {
+  renderSectionNode as renderSectionNodeRegistry, // 原 TS
+} from "./LegacyDocEngineBPageRegistry";
+import {
+  resolveImageSrc, // 原 _i
+  needsImageConversion, // 原 li
+  imagePlaceholderLabel, // 原 ui
+} from "./previewPaneOfficeLegacyDocContent";
+
+/* ============================================================================
+ * A0-S2c 接合适配器（调用面时序/形参面差异，仅重排传参，不改发射语义）
+ * ==========================================================================*/
+
+/**
+ * 原 TS 适配：C4 消费点按 jsx 原式 17 参时序传参
+ * （node, key, theme, numberingDefs, headingStyles, contentWidthPx, scrollToBookmark,
+ *  s8, footnoteMarks, l10, sectionContext, baseRenderOptions, sectionRenderState,
+ *  imageInteraction, draftContext, sectionNodeIndex, resizeController）；
+ * BPageRegistry.renderSectionNode 转录面为 15 参（jsx 参 7/8 无承接槽：其内部
+ * renderParagraph 不收 scrollToBookmark/s；jsx 参 13 兼作 sectionLocation/
+ * sectionRenderState，参 16 用作 Number.isFinite 守卫）。按语义映射，
+ * 参 7 scrollToBookmark 暂弃（遗留，见报告 §6）。
+ */
+const renderSectionNode = (
+  node: any,
+  nodeKey: string,
+  documentTheme: `light` | `dark`,
+  numberingDefinitions: unknown,
+  headingStyles: any,
+  contentWidthPx: number | undefined,
+  _scrollToBookmark: unknown,
+  _s8: unknown,
+  footnoteMarks: any,
+  _l10: unknown,
+  sectionContext: unknown,
+  baseRenderOptions: any,
+  sectionRenderState: any,
+  imageInteraction: unknown,
+  draftContext: any,
+  sectionNodeIndex: unknown,
+  resizeController: any,
+): React.ReactElement =>
+  renderSectionNodeRegistry(
+    node,
+    nodeKey,
+    documentTheme,
+    numberingDefinitions,
+    headingStyles,
+    contentWidthPx,
+    footnoteMarks,
+    sectionNodeIndex as number | undefined,
+    sectionContext,
+    baseRenderOptions,
+    void 0,
+    sectionRenderState,
+    imageInteraction,
+    draftContext,
+    resizeController,
+  );
+
+/**
+ * 原 xp 适配：C4 消费点按 jsx 原式 8 参时序传参
+ * （segments, model, defaultWidthPx, numberingDefs, gridPitch, widthOverrides,
+ *  pageGeometry, options）；BLayout.layoutWrappedLines 转录面为 7 参且
+ * 4-6 参顺序不同、无 pageGeometry 槽（占位体不读页边距）。按语义映射重排。
+ */
+const layoutWrappedLines = (
+  segments: any,
+  model: any,
+  defaultContentWidthPx: number,
+  numberingDefinitions: unknown,
+  gridPitchByNodeIndex: Map<number, number>,
+  contentWidthOverrides: Map<number, number>,
+  _pageGeometry: unknown,
+  options?: any,
+) => layoutWrappedLinesBLayout(segments, model, defaultContentWidthPx, contentWidthOverrides, numberingDefinitions, gridPitchByNodeIndex, options);
+
 /* ============================================================================
  * §0 跨段/跨模块助手契约（源混淆名挂接，集成时注入；详见报告）
- * 说明：本区段渲染器对下列绑定的调用保持源逐字，故以 any 契约声明。
+ * A0-S2c 接线：本节原 316 项 declare 中 191 项改指域内实体导出（顶部导入，
+ * 消费点已改用语义名）、64 项改经 core 解构（C3 交互簇面）、57 项无消费删除
+ *（含 td/id 改判：代码中仅 <td> 内联标签/对象键消费，非常量消费点）；
+ * 余 4 项属主未转录（保留）。jsx 运行时 `$` 改指 react/jsx-runtime。
+ * 逐件归属见 A0-S2c.report.md §3。
  * ==========================================================================*/
-declare const $: any; // jsx 运行时（(0,$.jsx)/(0,$.jsxs)）
-declare const fa: any; // 点位边界（boundaryAtPoint，C3）
-declare const Jx: any; // 节区图片键（jsx 24230 模块级）
-declare const Eh: any; // 单元格行切片几何（jsx 18454 模块级）
-declare const Yx: any; // 表格几何助手（jsx 24241 模块级）
-declare const tg: any; // 表格助手（jsx 18759 模块级）
-declare const wv: any; // 表格助手（jsx 21104 模块级）
-declare const up: any; // run 字体判定（jsx 16809 模块级）
-declare const Zp: any; // run 字体解析（jsx 17686 模块级）
-declare const sp: any; // run 助手（jsx 16791 模块级）
-declare const cx: any; // run 助手（jsx 23791 模块级）
-declare const j_: any; // 表单域助手（jsx 20269 模块级）
-declare const E_: any; // 表单域助手（jsx 20244 模块级）
-declare const Xs: string; // data-docx-thumbnail-exclude 属性名（jsx 14902 模块级）
-declare const sa: any; // 应用 DOM 选区（applyDomSelection，C3）
-declare const xa: any; // 设置包裹段落文本范围（C3）
-declare const ya: any; // 选区同步入队（C3）
-declare const Sa: any; // 包裹段落选区提交（C3）
-declare const Ca: any; // 包裹段落草稿提交（C3）
-declare const za: any; // 段落定位光标（focusParagraphAtOffset，C3）
-declare const Ru: any; // 帧调度（scheduleFrame）
-declare const Ri: any; // 清空表格选区（clearTableSelection，C3）
-declare const pa: any; // 读取 DOM 选区（selectionFromDom，C3）
-declare const Ji: any; // 设置右键菜单（setContextMenu）
-declare const Yi: any; // 设置表格右键菜单（setTableContextMenu）
-declare const Ao: any; // 图片指针移动（beginImagePointerMove，C3）
-declare const ko: any; // 图片缩放（beginImageResize，C3）
-declare const Do: any; // 列缩放（beginColumnResize，C3）
-declare const Oo: any; // 行缩放（beginRowResize，C3）
-declare const xo: any; // 草稿列宽解析（resolveColumnWidthsDraft，C3）
-declare const So: any; // 草稿行高解析（resolveRowHeightsDraft，C3）
-declare const To: any; // 列缩放（渲染侧，beginColumnResize）
-declare const Eo: any; // 行缩放（渲染侧，beginRowResize）
-declare const Gi: any; // 表格移动（beginTableMove）
-declare const Qi: any; // 表格边界→单元格定位
-declare const Ui: any; // 表格选区锚点
-declare const Wi: any; // 表格移动目标命中
-declare const Li: any; // 表格选区锚点设置
-declare const ka: any; // 表格单元格拖选（beginTableCellDragSelection，C3）
-declare const qa: any; // 表格单元格文本范围同步
-declare const Ba: any; // 单元格段落定位
-declare const Ya: any; // 单元格草稿刷新
-declare const Ta: any; // 首字下沉选中（setSelectedDropCap）
-declare const Va: any; // 段落端点定位
-declare const Ha: any; // 包裹行命中判定
-declare const Ga: any; // 折叠光标点
-declare const Ja: any; // 光标导航同步
-declare const Ma: any; // 快捷键判定（导航）
-declare const Fa: any; // 快捷键判定（编辑）
-declare const _o: any; // 撤销/重做键
-declare const Ia: any; // 输入拦截判定
-declare const Ax: any; // 合成键判定（isCompositionKey）
-declare const jx: any; // 方向键判定（导航）
-declare const xm: any; // 交互元素判定（isInteractiveElement）
-declare const Sm: any; // 表格上下文元素判定
-declare const wa: any; // 选区会话辅助
-declare const na: any; // 部分行选区记录
-declare const ba: any; // 段落聚焦
-declare const va: any; // 点位光标放置
-declare const ha: any; // 光标放置回调
-declare const ma: any; // 选区同步
-declare const ga: any; // 全选判定
-declare const Wa: any; // 宿主选区偏移（selectionOffsetsInHost，C3）
-declare const Sf: any; // 元素纯文本（elementToPlainText）
-declare const Cf: any; // 元素剪贴板文本（elementToClipboardText）
-declare const Ef: any; // 静态标记渲染（renderStaticMarkup）
-declare const _f: any; // 段落文本（paragraphEditText）
-declare const vy: any; // 段落数组文本
-declare const kx: any; // HTML 插入缓存（htmlInsertionContract）
-declare const $i: any; // 元素点位光标（placeCaretInHost）
-declare const ea: any; // 文本范围设置（setTextRangeInElement）
-declare const ca: any; // 编辑后选区恢复
-declare const zi: any; // 表格边缘命中
-declare const rf: any; // 表格选区断言
-declare const kb: any; // 单元格选区判定
-declare const tf: any; // 表格选区折叠判定
-declare const jf: any; // 单元格段落集
-declare const Mf: any; // 单元格段落索引表
-declare const Nf: any; // 嵌套表格判定
-declare const af: any; // 表格内活动文本范围
-declare const Xa: any; // 草稿元素注册
-declare const Za: any; // 草稿读取
-declare const Qa: any; // 草稿写入
-declare const eo: any; // 草稿清除
-declare const no: any; // 单元格文本提交
-declare const ao: any; // 节区草稿注册
-declare const oo: any; // 节区草稿读取
-declare const so: any; // 节区草稿写入
-declare const co: any; // 节区草稿清除
-declare const lo: any; // 节区文本提交
-declare const TS: any; // 嵌套表格静态渲染
-declare const Tv: any; // 段落静态渲染（runs 静态）
-declare const Cv: any; // 脚注/尾注引用标记
-declare const Qv: any; // 列表项判定
-declare const Zv: any; // 列表样式名解析
-declare const Xv: any; // 列表首项判定
-declare const ey: any; // 列表缩进偏移
-declare const ty: any; // 段落插入偏移
-declare const px: any; // 上一可编辑段落位置
-declare const mx: any; // 下一可编辑段落位置
-declare const Fx: any; // 位置解析（resolveLocationContract）
-declare const xx: any; // 位置克隆（cloneLocationContract）
-declare const ax: any; // 位置比较（sameLocationContract）
-declare const Rx: any; // 位置基（locationBaseContract）
-declare const jb: any; // 图片位置键（imageLocationKeyContract）
-declare const Px: any; // 图片所在段落位置（paragraphLocationOfImage）
-declare const Mb: any; // 拖放区键（imageDropZoneKey）
-declare const Ab: any; // 位置键（locationKeyContract）
-declare const uf: any; // 位置比较向量
-declare const df: any; // 文本位置比较（compareTextPositions）
-declare const ff: any; // 文本范围规范化（normalizeTextRange）
-declare const bx: any; // 范围偏移（rangeOffsetsInParagraph）
-declare const Is: any; // 部分行片段（partialLineRangeIsProper 族）
-declare const Fs: any; // 行命中（wrappedLayoutHitOffset 族）
-declare const Ps: any; // 布局命中偏移
-declare const Kp: any; // 双击词范围
-declare const Ip: any; // 草稿文本合并
-declare const Hp: any; // 文本布局（layout 文本）
-declare const Mp: any; // 预排版文本（pretext source）
-declare const Ls: any; // 布局行切片
-declare const gp: any; // 布局块高（含障碍）
-declare const Sp: any; // 段落源（runs 规范化）
-declare const Of: any; // 段落基础样式
-declare const Rh: any; // 行高（lineHeightPx）
-declare const Th: any; // 编号/制表位上下文
-declare const Yp: any; // 页流浮动布局（手动环绕）
-declare const bp: any; // 页流浮动布局（自动环绕）
-declare const xp: any; // 页流分段（page flow segments）
-declare const wp: any; // 页流辅助
-declare const Tg: any; // 页流块高
-declare const nu: any; // 信头双栏分段
-declare const ru: any; // 信头组样式
-declare const iu: any; // 信头列样式
-declare const au: any; // 信头浮动侧样式
-declare const ou: any; // 数值夹取（clampNumber）
-declare const zg: any; // 去缩放增量（unscaleDelta）
-declare const Fr: any; // 缩放解析（resolveZoomScale）
-declare const Jp: any; // 浮动锚点布局（floatingAnchorLayout）
-declare const Gg: any; // 图片尺寸归一
-declare const $g: any; // 图片帧尺寸
-declare const av: any; // 图片帧样式
-declare const tv: any; // 图片 src 解析
-declare const _i: any; // 图片内联 src
-declare const li: any; // 图片占位判定
-declare const ui: any; // 图片占位标签
-declare const pu: any; // 图片滤镜（cssFilter）
-declare const Ng: any; // 内联图片判定
-declare const Kg: any; // 浮动图片判定
-declare const Jg: any; // 手动环绕图片判定
-declare const qg: any; // 页绝对图片判定
-declare const Pg: any; // 图片环绕判定
-declare const tp: any; // 整页覆盖图片判定
-declare const lp: any; // 页绝对图片定位
-declare const Rg: any; // 浮动图片定位
-declare const Lg: any; // 内联浮动图片定位
-declare const Bg: any; // 矩形去缩放（unscaleRect）
-declare const Hg: any; // 节区浮动移动补丁（宽高位移）
-declare const Vg: any; // 节区浮动移动补丁（包装矩形）
-declare const Ug: any; // 节区浮动辅助
-declare const Wg: any; // 节区浮动辅助
-declare const Sy: any; // 浮动表格定位
-declare const Cy: any; // 表格缩进样式
-declare const xy: any; // 表格宽度
-declare const yy: any; // 表格列数（tableGridColumnCount）
-declare const ub: any; // 表格边距
-declare const lb: any; // 单元格边框样式
-declare const db: any; // 单元格边框辅助
-declare const Ry: any; // 单元格外边距样式
-declare const Yy: any; // 表格对齐样式
-declare const Iy: any; // 列宽解析（渲染）
-declare const Ny: any; // 表格有效宽度
-declare const Jy: any; // 表格边框宽
-declare const qy: any; // 表格边框判定
-declare const bo: any; // 行高解析（渲染）
-declare const Qh: any; // 表格默认值应用判定
-declare const wo: any; // 行高分配（distributeRowHeights）
-declare const Py: any; // 列宽缩放
-declare const jy: any; // 列宽规范化（normalizeColumnWidths）
-declare const Co: any; // 行高解析（角缩放）
-declare const zu: any; // 行高取整
-declare const wy: any; // 内嵌表宿主解析
-declare const im: any; // 制表位累加
-declare const am: any; // 制表位宽度
-declare const g_: any; // 运行样式（justify 段）
-declare const h_: any; // 运行文本渲染
-declare const v_: any; // 链接运行样式
-declare const __: any; // 运行样式（run style）
-declare const u_: any; // 编号标签样式
-declare const f_: any; // 段落宿主样式
-declare const d_: any; // 段落宿主样式（节区）
-declare const Rp: any; // 文本片段规范化
-declare const Qp: any; // 制表符文本
-declare const om: any; // 表单域宽度
-declare const sm: any; // 复选框尺寸
-declare const cm: any; // 表单域辅助
-declare const Df: any; // 表单域文本
-declare const Mi: any; // 表单域字体
-declare const m_: any; // 字体族规范化
-declare const p_: any; // 颜色解析
-declare const Bf: any; // 图片穿透判定
-declare const nv: any; // 合成文本框禁用判定
-declare const $_: any; // 合成文本框段落
-declare const Q_: any; // 合成文本框纯文本
-declare const Z_: any; // 合成文本框样式解析
-declare const ev: any; // 图片层序（zIndex）
-declare const bf: any; // 文档字体族
-declare const Ou: any; // 页面基础样式
-declare const du: any; // 主题样式表
-declare const kf: any; // 段落节点判定
-declare const Wh: any; // 单元格内容高
-declare const Ly: any; // 单元格边距解析
-declare const zy: any; // 单元格边距合并
-declare const Ih: any; // 网格对齐判定
-declare const Hh: any; // 段落布局规范化
-declare const zh: any; // 段落高
-declare const Uh: any; // 首段判定
-declare const Br: any; // twips 取整
-declare const o_: any; // 边框宽
-declare const pc: any; // 最小块高（MIN_BLOCK_HEIGHT_PX）
-declare const Ah: any; // 布局高
-declare const vg: any; // 段落底边
-declare const yg: any; // 整段命中判定
-declare const _g: any; // 行范围切片
-declare const tc: any; // 切片容差
-declare const gg: any; // 部分行判定（partialLineRangeIsProper）
-declare const bg: any; // 部分行边界（起）
-declare const xg: any; // 部分行边界（终）
-declare const l_: any; // 编号标签宽
-declare const uh: any; // 文本宽测量
-declare const Ym: any; // 字体尺寸（px）
-declare const ch: any; // 字体回退
-declare const Ms: any; // 文本布局（包裹）
-declare const Lp: any; // 断词策略
-declare const um: any; // 段落合并判定
-declare const Pf: any; // 段落渲染判定
-declare const pg: any; // 段落占位判定
-declare const wg: any; // 部分行跟踪判定
-declare const _m: any; // 段前距
-declare const gm: any; // 段后距
-declare const Hf: any; // 节区分隔判定
-declare const ip: any; // 新页判定
-declare const Xg: any; // 相对定位判定
-declare const Yg: any; // 静态定位判定
-declare const Zl: any; // 首字下沉模型（dropCapOfParagraph）
-declare const tm: any; // 首字下沉字号
-declare const nm: any; // 首字下沉高
-declare const Xp: any; // 首字下沉环绕布局
-declare const t_: any; // 段落行高
-declare const bm: any; // 脚注引用收集
-declare const Ai: any; // 脚注运行样式
-declare const hn: any; // 浮动表格移动预览辅助
-declare const Bu: any; // 表格手柄常量
-declare const Hu: any; // 表格手柄常量
-declare const Ju: any; // 表格手柄常量
-declare const Vu: any; // 表格手柄常量
-declare const Ku: any; // 表格手柄常量
-declare const Xu: any; // 表格手柄常量
-declare const Yu: any; // 表格手柄常量
-declare const Zu: any; // 表格手柄常量
-declare const ed: any; // 表格手柄常量
-declare const td: any; // 图片层序常量
-declare const nd: any; // 图片层序常量
-declare const rd: any; // 图片层序常量
-declare const id: any; // 图片层序常量
-declare const ad: any; // 表格手柄样式
-declare const od: any; // 表格手柄样式
-declare const sd: any; // 表格角手柄样式
-declare const cd: any; // 表格角手柄样式
-declare const ld: any; // twips→px（可空）
-declare const ud: any; // 表格辅助
-declare const dd: any; // 表格辅助
-declare const fd: any; // 表格辅助
-declare const md: any; // 表格辅助
-declare const hd: any; // 表格辅助
-declare const gd: any; // 表格辅助
-declare const _d: any; // 表格辅助
-declare const pd: any; // 表格辅助
-declare const bd: any; // 表格辅助
-declare const xd: any; // 表格辅助
-declare const Sd: any; // 表格辅助
-declare const Cd: any; // 表格辅助
-declare const wd: any; // 表格辅助
-declare const Td: any; // 节区规范化
-declare const Ed: any; // 表格辅助
-declare const Dd: any; // 表格辅助
-declare const Od: any; // 表格辅助
-declare const kd: any; // 表格辅助
-declare const Ad: any; // 表格辅助
-declare const Pd: any; // 表格辅助
-declare const Bd: any; // 表格辅助
-declare const Vd: any; // 表格辅助
-declare const Hd: any; // 表格辅助
-declare const Ud: any; // 表格辅助
-declare const Wd: any; // 表格辅助
-declare const Gd: any; // 表格辅助
-declare const Kd: any; // 表格辅助
-declare const Xd: any; // 表格辅助
-declare const Yd: any; // 表格辅助
-declare const Zd: any; // 表格辅助
-declare const ef: any; // 表格辅助
-declare const tf2: any; // 占位（避免与 tf 冲突，未用）
-declare const ec: any; // 页栅格间距（PAGE_GRID_GAP_PX）
-declare const kc: any; // 表格切片内边距
-declare const Zc: any; // 默认运行源
-declare const Tu: any; // 表格移动阈值
-declare const Eu: any; // 角手柄样式
-declare const Du: any; // 移动手柄样式
-declare const bu: any; // 表格命中区常量
-declare const xu: any; // 表格命中区常量
-declare const Su: any; // 表格命中区常量
-declare const Cu: any; // 表格命中区常量
-declare const hu: any; // 表格边框宽常量
-declare const vu: any; // 表格手柄尺寸
-declare const wu: any; // 表格边框偏移
-declare const gu: any; // 表格边框命中宽
-declare const yu: any; // 表格辅助常量
+
+/** 原 Kp：双击词范围——属主未转录（双击选词助手），保留 */
+declare const Kp: any;
+/** 原 Ip：草稿文本合并——属主未转录（草稿合并助手），保留 */
+declare const Ip: any;
+/** 原 Sp：段落源（runs 规范化）——属主未转录（runs 规范化助手），保留 */
+declare const Sp: any;
+/** 原 Rp：文本片段规范化——属主未转录（片段规范化助手），保留 */
+declare const Rp: any;
 
 /* ============================================================================
  * §3 交互回调簇后半 hook（原 ES 函数体交互段 jsx 31874-35407 实体化）
@@ -520,6 +498,71 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     wrappedParagraphPointerSessionRef: Ot,
     paginationKick: Pn,
     scheduleAnnotationEpoch: Fn,
+    /* §0 接线（A0-S2c）：C3 交互簇面 64 项经 core 解构；行尾注原混淆名 */
+    boundaryAtPoint, // 原 fa
+    applyDomSelection, // 原 sa
+    beginWrappedEditing, // 原 xa
+    cancelPointerSession, // 原 ya
+    focusWrappedTextarea, // 原 Sa
+    commitWrappedText, // 原 Ca
+    focusParagraphAtOffset, // 原 za
+    clearTableSelection, // 原 Ri
+    selectionFromDom, // 原 pa
+    openTextContextMenu, // 原 Ji
+    openTableContextMenu, // 原 Yi
+    beginImagePointerMove, // 原 Ao
+    beginImageResize, // 原 ko
+    beginColumnResizeDraft, // 原 Do
+    beginRowResizeDraft, // 原 Oo
+    resolveColumnWidthsDraft, // 原 xo
+    resolveRowHeightsDraft, // 原 So
+    beginColumnResize, // 原 To
+    beginRowResize, // 原 Eo
+    beginTableMove, // 原 Gi
+    resolveTableMenuCell, // 原 Qi
+    selectWholeTable, // 原 Ui
+    computeTableDropTarget, // 原 Wi
+    setTableSelectionAnchor, // 原 Li
+    beginTableCellDragSelection, // 原 ka
+    syncTableCellTextRange, // 原 qa
+    focusTableCellParagraph, // 原 Ba
+    commitTableCellDraft, // 原 Ya
+    selectDropCap, // 原 Ta
+    focusLocationAtOffset, // 原 Va
+    placeCaretAtPointInLocation, // 原 Ha
+    caretPointOfCollapsed, // 原 Ga
+    syncParagraphTextRange, // 原 Ja
+    handleTableSelectionDelete, // 原 Ma
+    deleteExpandedSelectionFromKey, // 原 Fa
+    handleUndoRedoKeys, // 原 _o
+    replaceSelectionWithText, // 原 Ia
+    focusParagraphNode, // 原 wa
+    recordPartialLineSelection, // 原 na
+    clearTransientSelections, // 原 ba
+    ensureSelectionAfterTap, // 原 va
+    scheduleSelectionSync, // 原 ha
+    syncActiveTextRangeFromDom, // 原 ma
+    hasSelectionInside, // 原 ga
+    selectionOffsetsInHost, // 原 Wa
+    placeCaretInHost, // 原 $i
+    setTextRangeInElement, // 原 ea
+    restoreSelectionAfterEdit, // 原 ca
+    tableHitTest, // 原 zi
+    registerCellDraftElement, // 原 Xa
+    cellParagraphDraftElement, // 原 Za
+    registerCellParagraphDraftElement, // 原 Qa
+    unregisterCellParagraphDraftElement, // 原 eo
+    commitCellParagraphDraft, // 原 no
+    registerSectionDraftElement, // 原 ao
+    sectionParagraphDraft, // 原 oo
+    setSectionParagraphDraft, // 原 so
+    deleteSectionParagraphDraft, // 原 co
+    commitSectionParagraphDraft, // 原 lo
+    resolveZoomScale, // 原 Fr
+    resolveRowHeightsRender, // 原 bo
+    distributeRowHeights, // 原 wo
+    normalizeRowHeightsForResize, // 原 Co
+    footnotePageNumberBase, // 原 Ai
     resolveColumnWidthsRender: yo,
     tableParagraphUnderSelection: Ka,
     beginDropCapMove: Mo,
@@ -531,7 +574,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
   const Fo = React.useCallback((t: any, n: any, r: any, i: any, a: any) => {
     if (k || !bn || bn.region !== n.region || bn.partName !== n.partName || t.button !== 0 || t.target.closest(`[data-image-resize-handle='true']`) || !i && !a) return;
     t.preventDefault(), t.stopPropagation();
-    let o = Jx(n);
+    let o = sectionImageKey(n);
     Fe(void 0), Le(o);
     let s = t.clientX,
       c = t.clientY,
@@ -540,7 +583,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       d = l.closest(`[data-docx-page-surface='true']`),
       f = d?.getBoundingClientRect(),
       p = l.closest(`[data-docx-section-paragraph-host='true']`)?.getBoundingClientRect(),
-      m = Fr(l, 1),
+      m = resolveZoomScale(l, 1),
       h = r.floating ? {
         ...r.floating
       } : {},
@@ -559,7 +602,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         });
       },
       b = (e: any) => {
-        g = zg(e.clientX - s, m), _ = zg(e.clientY - c, m), v !== void 0 && window.cancelAnimationFrame(v), v = window.requestAnimationFrame(y);
+        g = unscaleDelta(e.clientX - s, m), _ = unscaleDelta(e.clientY - c, m), v !== void 0 && window.cancelAnimationFrame(v), v = window.requestAnimationFrame(y);
       },
       x = () => {
         if (window.removeEventListener(`pointermove`, b), window.removeEventListener(`pointerup`, x), window.removeEventListener(`pointercancel`, x), v !== void 0 && window.cancelAnimationFrame(v), qe(void 0), !(Math.abs(g) < 1 && Math.abs(_) < 1)) {
@@ -567,7 +610,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             let t = p ? p.width / m : Hn.pageWidthPx,
               i = r.widthPx ?? Math.max(24, Math.round(u.width / m)),
               a = r.heightPx ?? Math.max(24, Math.round(u.height / m)),
-              o = Jp(r, t, {
+              o = floatingImageGeometry(r, t, {
                 widthPx: i,
                 heightPx: a,
                 ...(p ? {
@@ -575,9 +618,9 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                   baseTopPx: Math.round((u.top - p.top) / m)
                 } : void 0)
               }),
-              s = Math.round(ou((o?.imageLeftPx ?? 0) + g, 0, Math.max(0, t - i))),
+              s = Math.round(clampNumber((o?.imageLeftPx ?? 0) + g, 0, Math.max(0, t - i))),
               c = Math.round((o?.imageTopPx ?? 0) + _);
-            e.moveSectionFloatingImage(n, Hg(r, t, s, c, {
+            e.moveSectionFloatingImage(n, floatingMovePatch(r, t, s, c, {
               widthPx: i,
               heightPx: a
             }));
@@ -585,9 +628,9 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           }
           if (a) {
             let t = d && d.isConnected ? d.getBoundingClientRect() : f;
-            e.moveSectionFloatingImage(n, Vg(h, Hn, {
-              wrapperRect: Bg(u, m),
-              pageSurfaceRect: t ? Bg(t, m) : void 0,
+            e.moveSectionFloatingImage(n, sectionFloatingMovePatch(h, Hn, {
+              wrapperRect: unscaleRect(u, m),
+              pageSurfaceRect: t ? unscaleRect(t, m) : void 0,
               deltaX: g,
               deltaY: _
             }));
@@ -599,10 +642,10 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     }), window.addEventListener(`pointercancel`, x, {
       once: !0
     });
-  }, [bn, Hn, e, k, Fr]),
+  }, [bn, Hn, e, k, resolveZoomScale]),
   /* 原 zo（jsx 31949）：节区图片点选 */
   zo = React.useCallback((e: any) => {
-    k || !bn || bn.region !== e.region || bn.partName !== e.partName || (Fe(void 0), Le(Jx(e)));
+    k || !bn || bn.region !== e.region || bn.partName !== e.partName || (Fe(void 0), Le(sectionImageKey(e)));
   }, [bn, k]),
   /* 原 Vo（jsx 31952）：图片 dragstart */
   Vo = React.useCallback((e: any, t: any) => {
@@ -610,7 +653,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       e.preventDefault();
       return;
     }
-    Z.current = t, je(!0), Fe(t), Ne(void 0), e.dataTransfer.effectAllowed = `move`, e.dataTransfer.setData(`text/plain`, jb(t));
+    Z.current = t, je(!0), Fe(t), Ne(void 0), e.dataTransfer.effectAllowed = `move`, e.dataTransfer.setData(`text/plain`, imageLocationKeyContract(t));
   }, [k]),
   /* 原 Ho（jsx 31959）：图片 dragend */
   Ho = React.useCallback(() => {
@@ -624,12 +667,12 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     if (o.setPointerCapture) try {
       o.setPointerCapture(s);
     } catch {}
-    let c = jy(r, r.length, n, 1),
-      l = Co(i),
+    let c = normalizeGridWidthsPx(r, r.length, n, 1),
+      l = normalizeRowHeightsForResize(i),
       u = Math.max(24 * Math.max(1, l.length), 1),
       d = l.reduce((e: any, t: any) => e + t, 0);
     if (!Number.isFinite(d) || d <= 0) return;
-    let f = Py(c, n).reduce((e: any, t: any) => e + t, 0),
+    let f = scaleGridWidthsToPx(c, n).reduce((e: any, t: any) => e + t, 0),
       p = e.clientY,
       m = e.clientX,
       h = c,
@@ -650,9 +693,9 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       y = (e: any) => {
         let t = e.clientX - m,
           n = e.clientY - p,
-          r = Math.max(120, ou(f + t, 0, Number.isFinite(a) ? a : 1 / 0)),
+          r = Math.max(120, clampNumber(f + t, 0, Number.isFinite(a) ? a : 1 / 0)),
           i = Math.max(u, d + n);
-        h = Py(c, r), g = wo(l, i), _ !== void 0 && window.cancelAnimationFrame(_), _ = window.requestAnimationFrame(v);
+        h = scaleGridWidthsToPx(c, r), g = distributeRowHeights(l, i), _ !== void 0 && window.cancelAnimationFrame(_), _ = window.requestAnimationFrame(v);
       },
       b = (e: any) => {
         if (window.removeEventListener(`pointermove`, y), window.removeEventListener(`pointerup`, b), window.removeEventListener(`pointercancel`, b), _ !== void 0 && window.cancelAnimationFrame(_), v(), o.releasePointerCapture) try {
@@ -674,12 +717,12 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     if (o.setPointerCapture) try {
       o.setPointerCapture(s);
     } catch {}
-    let c = jy(r, r.length, n, 1),
-      l = Co(i),
+    let c = normalizeGridWidthsPx(r, r.length, n, 1),
+      l = normalizeRowHeightsForResize(i),
       u = Math.max(24 * Math.max(1, l.length), 1),
       d = l.reduce((e: any, t: any) => e + t, 0);
     if (!Number.isFinite(d) || d <= 0) return;
-    let f = Py(c, n).reduce((e: any, t: any) => e + t, 0),
+    let f = scaleGridWidthsToPx(c, n).reduce((e: any, t: any) => e + t, 0),
       p = e.clientY,
       m = e.clientX,
       h = c,
@@ -700,9 +743,9 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       y = (e: any) => {
         let t = e.clientX - m,
           n = e.clientY - p,
-          r = Math.max(120, ou(f + t, 0, Number.isFinite(a) ? a : 1 / 0)),
+          r = Math.max(120, clampNumber(f + t, 0, Number.isFinite(a) ? a : 1 / 0)),
           i = Math.max(u, d + n);
-        h = Py(c, r), g = wo(l, i), _ !== void 0 && window.cancelAnimationFrame(_), _ = window.requestAnimationFrame(v);
+        h = scaleGridWidthsToPx(c, r), g = distributeRowHeights(l, i), _ !== void 0 && window.cancelAnimationFrame(_), _ = window.requestAnimationFrame(v);
       },
       b = (e: any) => {
         if (window.removeEventListener(`pointermove`, y), window.removeEventListener(`pointerup`, b), window.removeEventListener(`pointercancel`, b), _ !== void 0 && window.cancelAnimationFrame(_), v(), o.releasePointerCapture) try {
@@ -715,12 +758,12 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     }), window.addEventListener(`pointercancel`, b, {
       once: !0
     });
-  }, [wo, k, Co]),
+  }, [distributeRowHeights, k, normalizeRowHeightsForResize]),
   /* 原 Go（jsx 32060）：内嵌表移动 */
   Go = React.useCallback((t: any, n: any) => {
     if (k || t.button !== 0 && t.button !== void 0) return;
     t.preventDefault(), t.stopPropagation(), an(n), nn(n);
-    let r = wy(n);
+    let r = locateNestedTable(n);
     if (!r) return;
     Qt(r.hostTableIndex), cn.current = {
       pointerId: t.pointerId,
@@ -732,7 +775,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     };
     let i = (e: any) => {
         let t = cn.current;
-        !t || t.embeddedTableKey !== n || e.pointerId !== t.pointerId || Math.abs(e.clientX - t.startX) + Math.abs(e.clientY - t.startY) < Tu || (t.hasMoved = !0, pn(Wi(t.tableIndex, {
+        !t || t.embeddedTableKey !== n || e.pointerId !== t.pointerId || Math.abs(e.clientX - t.startX) + Math.abs(e.clientY - t.startY) < TABLE_HANDLE_BORDER_PX || (t.hasMoved = !0, pn(computeTableDropTarget(t.tableIndex, {
           x: e.clientX,
           y: e.clientY
         })?.preview), e.preventDefault());
@@ -744,7 +787,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         let o = document.elementFromPoint(t.clientX, t.clientY),
           s = G.current.get(r.tableIndex);
         if (Qt(o && s?.contains(o) ? r.tableIndex : void 0), !r.hasMoved) return;
-        let c = Wi(r.tableIndex, {
+        let c = computeTableDropTarget(r.tableIndex, {
           x: t.clientX,
           y: t.clientY
         });
@@ -755,15 +798,15 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     }), window.addEventListener(`pointercancel`, a, {
       once: !0
     });
-  }, [e, k, Wi]),
+  }, [e, k, computeTableDropTarget]),
   /* 原 Ko（jsx 32099）：表格交互上下文 */
   Ko = React.useMemo(() => ({
     isReadOnly: k,
     hoveredTableKey: tn,
     focusedTableKey: rn,
     hoveredHandle: $t,
-    resolveColumnWidths: (e: any, t: any, n: any) => xo(e, t, n),
-    resolveRowHeights: (e: any, t: any) => So(e, t),
+    resolveColumnWidths: (e: any, t: any, n: any) => resolveColumnWidthsDraft(e, t, n),
+    resolveRowHeights: (e: any, t: any) => resolveRowHeightsDraft(e, t),
     isTableResizing: (e: any) => at?.tableKey === e || Ut?.tableKey === e || qt?.tableKey === e,
     isColumnResizing: (e: any, t: any) => at?.tableKey === e && at.boundaryColumnIndex === t,
     isRowResizing: (e: any, t: any) => Ut?.tableKey === e && Ut.boundaryRowIndex === t,
@@ -772,10 +815,10 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     setFocusedTableKey: an,
     setHoveredHandle: en,
     beginColumnResize: (e: any, t: any, n: any, r: any, i: any) => {
-      Do(e, t, n, r, i);
+      beginColumnResizeDraft(e, t, n, r, i);
     },
     beginRowResize: (e: any, t: any, n: any, r: any) => {
-      Oo(e, t, n, r);
+      beginRowResizeDraft(e, t, n, r);
     },
     beginCornerResize: (e: any, t: any, n: any, r: any, i: any, a: any) => {
       Wo(e, t, n, r, i, a);
@@ -783,14 +826,14 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     beginTableMove: (e: any, t: any) => {
       Go(e, t);
     }
-  }), [at, Ut, qt, Do, Wo, Go, Oo, rn, tn, $t, k, xo, So]),
+  }), [at, Ut, qt, beginColumnResizeDraft, Wo, Go, beginRowResizeDraft, rn, tn, $t, k, resolveColumnWidthsDraft, resolveRowHeightsDraft]),
   /* 原 qo（jsx 32126）：图片拖放提交 */
   qo = React.useCallback((t: any) => {
     if (k) return;
     let n = Z.current;
     if (!n) return;
     e.moveImage(n, t);
-    let r = ax(Px(n), t.kind === `paragraph` ? {
+    let r = sameLocationContract(paragraphLocationOfImage(n), t.kind === `paragraph` ? {
       kind: `paragraph`,
       nodeIndex: t.nodeIndex
     } : {
@@ -808,7 +851,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
   /* 原 Jo（jsx 32146）：图片拖放占位渲染 */
   Jo = React.useCallback((e: any, t: any) => {
     if (k || !Ae) return null;
-    let n = Me ? Mb(Me) === Mb(e) : !1;
+    let n = Me ? childLocationKey(Me) === childLocationKey(e) : !1;
     return <span key={t} contentEditable={!1} style={{
       display: `inline-block`,
       width: 0,
@@ -847,17 +890,17 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         obstacleNodes: l,
         pageAbsoluteObstacleNodes: u
       } = t,
-      d = Ab(n),
+      d = locationKeyContract(n),
       f = He?.locationKey === d ? He : void 0,
-      p = Fx(e.model, n).paragraph,
-      m = e.activeTextRange ? ff(e.activeTextRange) : void 0,
-      h = !!(p && m && uf(Rx(m.start.location), n) <= 0 && uf(n, Rx(m.end.location)) <= 0),
-      g = p && m && h ? bx(n, m.start, m.end, p) : void 0,
+      p = resolveLocation(e.model, n).paragraph,
+      m = e.activeTextRange ? normalizeTextRange(e.activeTextRange) : void 0,
+      h = !!(p && m && compareLocations(locationBaseContract(m.start.location), n) <= 0 && compareLocations(n, locationBaseContract(m.end.location)) <= 0),
+      g = p && m && h ? rangeOffsetsInParagraph(n, m.start, m.end, p) : void 0,
       _ = f?.selectionStart ?? g?.[0],
       v = f?.selectionEnd ?? g?.[1],
-      y = _ !== void 0 && v !== void 0 ? Is(a, _, v) : [],
-      b = f ? Fs(a, f.selectionEnd) ?? Fs(a, f.selectionStart) : m && g && df(m.start, m.end) === 0 ? Fs(a, g[1]) : void 0,
-      x = f && f.selectionStart === f.selectionEnd || !f && m && g && df(m.start, m.end) === 0 ? b : void 0,
+      y = _ !== void 0 && v !== void 0 ? selectionRangeRects(a, _, v) : [],
+      b = f ? caretRectForOffset(a, f.selectionEnd) ?? caretRectForOffset(a, f.selectionStart) : m && g && compareTextPositions(m.start, m.end) === 0 ? caretRectForOffset(a, g[1]) : void 0,
+      x = f && f.selectionStart === f.selectionEnd || !f && m && g && compareTextPositions(m.start, m.end) === 0 ? b : void 0,
       S = (e: any, t: any) => {
         let n = i.runs.map((n: any) => {
           let i = Math.max(e.startOffset, n.startOffset),
@@ -865,13 +908,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           if (i >= a) return;
           if (n.kind === `image` && n.image) {
             if (i !== n.startOffset) return;
-            let e = tv(n.image, void 0, void 0, void 0, void 0) ?? _i(n.image);
+            let e = renderTextBoxSvg(n.image, void 0, void 0, void 0, void 0) ?? resolveImageSrc(n.image);
             return e ? <img key={`${r}-fragment-image-${t}-${n.key}-${i}`} src={e} alt={n.image.alt ?? `DOCX image`} draggable={!1} style={{
               width: n.image.widthPx ? `${n.image.widthPx}px` : void 0,
               height: n.image.heightPx ? `${n.image.heightPx}px` : void 0,
               verticalAlign: `middle`,
               display: `inline-block`,
-              filter: pu(n.image.cssFilter, M),
+              filter: joinDefined(n.image.cssFilter, M),
               opacity: n.image.cssOpacity
             }} /> : void 0;
           }
@@ -879,7 +922,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             let e = n.endOffset > n.startOffset ? (a - i) / (n.endOffset - n.startOffset) : 1,
               o = Math.max(1, Math.round(n.tabWidthPx * e));
             return <span key={`${r}-fragment-tab-${t}-${n.key}-${i}`} data-docx-tab-char="true" style={{
-              ...__(n.style, j),
+              ...runStyleToCss(n.style, j),
               display: `inline-block`,
               width: o,
               minWidth: o,
@@ -890,17 +933,17 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           let o = Rp(n.text.slice(i - n.startOffset, a - n.startOffset));
           if (!o) return;
           let s = n.link ? {
-            ...v_(n.style, j, o),
+            ...runStyleToCssDefaults(n.style, j, o),
             whiteSpace: `pre`
           } : {
-            ...__(n.style, j, o),
+            ...runStyleToCss(n.style, j, o),
             whiteSpace: `pre`
           };
-          return f ? <span key={`${r}-active-${t}-${n.key}-${i}`} style={s}>{h_(o, n.style, `${r}-active-${t}-${n.key}-${i}`)}</span> : n.link ? <a key={`${r}-fragment-${t}-${n.key}-${i}`} href={n.link} target={n.link.startsWith(`#`) ? void 0 : `_blank`} rel={n.link.startsWith(`#`) ? void 0 : `noreferrer noopener`} onMouseDown={e => {
+          return f ? <span key={`${r}-active-${t}-${n.key}-${i}`} style={s}>{scriptFontSpans(o, n.style, `${r}-active-${t}-${n.key}-${i}`)}</span> : n.link ? <a key={`${r}-fragment-${t}-${n.key}-${i}`} href={n.link} target={n.link.startsWith(`#`) ? void 0 : `_blank`} rel={n.link.startsWith(`#`) ? void 0 : `noreferrer noopener`} onMouseDown={e => {
             n.link?.startsWith(`#`) && (e.preventDefault(), e.stopPropagation());
           }} onClick={e => {
             n.link?.startsWith(`#`) && (e.preventDefault(), e.stopPropagation(), Pi(n.link.slice(1)));
-          }} style={s}>{h_(o, n.style, `${r}-fragment-${t}-${n.key}-${i}`)}</a> : <span key={`${r}-fragment-${t}-${n.key}-${i}`} style={s}>{h_(o, n.style, `${r}-fragment-${t}-${n.key}-${i}`)}</span>;
+          }} style={s}>{scriptFontSpans(o, n.style, `${r}-fragment-${t}-${n.key}-${i}`)}</a> : <span key={`${r}-fragment-${t}-${n.key}-${i}`} style={s}>{scriptFontSpans(o, n.style, `${r}-fragment-${t}-${n.key}-${i}`)}</span>;
         }).filter(Boolean);
         return <span key={`${r}-frag-${t}-${e.startOffset}-${e.endOffset}`} style={{
           position: `absolute`,
@@ -917,10 +960,10 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         if (k) return;
         let r = t.currentTarget.getBoundingClientRect(),
           o = f?.text ?? i.text,
-          s = Ps(a, t.clientX - r.left, t.clientY - r.top),
+          s = hitTestTextOffset(a, t.clientX - r.left, t.clientY - r.top),
           c = t.shiftKey && f != null ? f.anchorOffset : s,
           l = {
-            location: xx(n),
+            location: cloneLocationContract(n),
             offset: c
           };
         Ot.current = {
@@ -930,13 +973,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           anchorBoundary: l,
           startX: t.clientX,
           startY: t.clientY
-        }, ya(), e.beginSelectionSession(`pointer`, {
+        }, cancelPointerSession(), e.beginSelectionSession(`pointer`, {
           settleAfterMs: 320
-        }), t.currentTarget.setPointerCapture(t.pointerId), xa(n, c, s, {
+        }), t.currentTarget.setPointerCapture(t.pointerId), beginWrappedEditing(n, c, s, {
           textOverride: o,
           textLength: o.length,
           anchorOffset: c
-        }), Sa();
+        }), focusWrappedTextarea();
       };
     return <span data-docx-wrapped-paragraph-root="true" data-docx-wrapped-paragraph-location-key={d} contentEditable={!1} ref={e => {
       e ? kt.current.set(d, {
@@ -954,51 +997,51 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       WebkitUserSelect: `none`
     }} onPointerDown={e => {
       let t = e.target;
-      xm(t) || t instanceof Element && t.closest(`[data-docx-image-location],[data-docx-drop-cap='true'],[data-docx-table-move-handle='true'],[data-image-resize-handle='true'],[data-docx-form-field='true']`) || (e.preventDefault(), e.stopPropagation(), C(e));
+      isInteractiveElement(t as Element) || t instanceof Element && t.closest(`[data-docx-image-location],[data-docx-drop-cap='true'],[data-docx-table-move-handle='true'],[data-image-resize-handle='true'],[data-docx-form-field='true']`) || (e.preventDefault(), e.stopPropagation(), C(e));
     }} onPointerMove={e => {
       let t = Ot.current;
       if (!t || t.pointerId !== e.pointerId || t.locationKey !== d) return;
       let r = e.clientY < t.startY || e.clientY === t.startY && e.clientX < t.startX ? `start` : `end`,
-        a = fa({
+        a = boundaryAtPoint({
           x: e.clientX,
           y: e.clientY
         }, r) ?? t.anchorBoundary;
-      if (ax(Rx(t.anchorBoundary.location), n) && ax(Rx(a.location), n)) {
+      if (sameLocationContract(locationBaseContract(t.anchorBoundary.location), n) && sameLocationContract(locationBaseContract(a.location), n)) {
         let e = f?.text ?? i.text;
-        xa(n, t.anchorOffset, a.offset, {
+        beginWrappedEditing(n, t.anchorOffset, a.offset, {
           textOverride: e,
           textLength: e.length,
           anchorOffset: t.anchorOffset
         });
         return;
       }
-      Dt.current = void 0, Ue(void 0), sa(t.anchorBoundary, a);
+      Dt.current = void 0, Ue(void 0), applyDomSelection(t.anchorBoundary, a);
     }} onPointerUp={t => {
-      Ot.current?.pointerId === t.pointerId && (Ot.current = void 0, t.currentTarget.releasePointerCapture(t.pointerId)), We.current && We.current.locationKey === d ? Sa() : e.clearSelectionSession(`pointer`);
+      Ot.current?.pointerId === t.pointerId && (Ot.current = void 0, t.currentTarget.releasePointerCapture(t.pointerId)), We.current && We.current.locationKey === d ? focusWrappedTextarea() : e.clearSelectionSession(`pointer`);
     }} onDoubleClick={e => {
       if (k) return;
       let t = e.currentTarget.getBoundingClientRect(),
         r = f?.text ?? i.text,
-        o = Kp(r, Ps(a, e.clientX - t.left, e.clientY - t.top));
-      xa(n, o.start, o.end, {
+        o = Kp(r, hitTestTextOffset(a, e.clientX - t.left, e.clientY - t.top));
+      beginWrappedEditing(n, o.start, o.end, {
         textOverride: r,
         textLength: r.length
-      }), Sa();
+      }), focusWrappedTextarea();
     }} onClick={e => {
       if (k || e.detail < 3) return;
       e.preventDefault(), e.stopPropagation();
       let t = f?.text ?? i.text;
-      xa(n, 0, t.length, {
+      beginWrappedEditing(n, 0, t.length, {
         textOverride: t,
         textLength: t.length
-      }), Sa();
+      }), focusWrappedTextarea();
     }}>{u}<span style={{
         display: `block`,
         position: `relative`,
         minHeight: c ?? a.height
-      }}>{l}{y.map((e: any, t: any) => (0, $.jsx)(`span`, {
+      }}>{l}{y.map((e: any, t: any) => (0, jsxRuntime.jsx)(`span`, {
           contentEditable: !1,
-          [Xs]: `true`,
+          [THUMBNAIL_EXCLUDE_ATTR]: `true`,
           style: {
             position: `absolute`,
             left: e.left,
@@ -1009,9 +1052,9 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             pointerEvents: `none`,
             zIndex: 2
           }
-        }, `${r}-sel-${t}`))}{a.lines.map((e: any, t: any) => e.fragments.map((e: any) => S(e, t)))}{f && x ? (0, $.jsx)(`span`, {
+        }, `${r}-sel-${t}`))}{a.lines.map((e: any, t: any) => e.fragments.map((e: any) => S(e, t)))}{f && x ? (0, jsxRuntime.jsx)(`span`, {
           contentEditable: !1,
-          [Xs]: `true`,
+          [THUMBNAIL_EXCLUDE_ATTR]: `true`,
           style: {
             position: `absolute`,
             left: x.left,
@@ -1033,13 +1076,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             } catch {}
           }
         }} value={f.text} spellCheck={!1} aria-label="Wrapped paragraph text" onChange={t => {
-          ya();
+          cancelPointerSession();
           let r = t.currentTarget.value.replace(/\r\n?/g, `
 `),
             i = t.currentTarget.selectionStart ?? r.length,
             a = t.currentTarget.selectionEnd ?? i;
           if ((t.nativeEvent as any)?.isComposing || xe.current) {
-            e.beginSelectionSession(`composition`), xa(n, i, a, {
+            e.beginSelectionSession(`composition`), beginWrappedEditing(n, i, a, {
               textOverride: r,
               textLength: r.length
             });
@@ -1047,14 +1090,14 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           }
           e.beginSelectionSession(`keyboard`, {
             settleAfterMs: 220
-          }), xa(n, i, a, {
+          }), beginWrappedEditing(n, i, a, {
             textOverride: r,
             textLength: r.length
-          }), Ca(n, r), Pn();
+          }), commitWrappedText(n, r), Pn();
         }} onSelect={e => {
-          ya();
+          cancelPointerSession();
           let t = e.currentTarget.selectionStart ?? 0;
-          xa(n, t, e.currentTarget.selectionEnd ?? t, {
+          beginWrappedEditing(n, t, e.currentTarget.selectionEnd ?? t, {
             textOverride: e.currentTarget.value,
             textLength: e.currentTarget.value.length
           });
@@ -1070,13 +1113,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           let r = t.currentTarget.value.replace(/\r\n?/g, `
 `),
             i = t.currentTarget.selectionStart ?? r.length;
-          xa(n, i, t.currentTarget.selectionEnd ?? i, {
+          beginWrappedEditing(n, i, t.currentTarget.selectionEnd ?? i, {
             textOverride: r,
             textLength: r.length,
             isComposing: !1
-          }), Ca(n, r), Pn();
+          }), commitWrappedText(n, r), Pn();
         }} onKeyDown={t => {
-          if (ya(), Ax(t)) {
+          if (cancelPointerSession(), isCompositionKey(t)) {
             e.beginSelectionSession(`composition`);
             return;
           }
@@ -1086,23 +1129,23 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           let r = t.currentTarget,
             i = r.value.replace(/\r\n?/g, `
 `),
-            c = Fx(e.model, n).paragraph,
+            c = resolveLocation(e.model, n).paragraph,
             l = r.selectionStart ?? 0,
             u = r.selectionEnd ?? l,
             d = l === u,
-            p = a.font ?? ch(s, c ? Ym(c) : 16, i),
-            m = a.text === i && a.font === p && a.containerWidthPx !== void 0 && a.lineHeightPx !== void 0 ? a : Ms(i, p, a.containerWidthPx ?? 1, a.lineHeightPx ?? o, a.exclusions, {
-              wordBreak: Lp(i)
+            p = a.font ?? runFontString(s, c ? paragraphFontSizePx(c) : 16, i),
+            m = a.text === i && a.font === p && a.containerWidthPx !== void 0 && a.lineHeightPx !== void 0 ? a : layoutPlainTextBlock(i, p, a.containerWidthPx ?? 1, a.lineHeightPx ?? o, a.exclusions, {
+              wordBreak: wordBreakOf(i)
             }) ?? a,
-            h = Fs(m, u),
+            h = caretRectForOffset(m, u),
             g = t.key === `Enter` && !t.metaKey && !t.ctrlKey && !t.altKey,
-            _ = n.kind === `paragraph` && c ? Qv(c, i) : !1,
+            _ = n.kind === `paragraph` && c ? isNumberedParagraph(c, i) : !1,
             v = (e: any, t: any) => {
-              xa(n, e, t, {
+              beginWrappedEditing(n, e, t, {
                 textOverride: i,
                 textLength: i.length,
                 preferredCaretX: h?.left
-              }), Ru(() => {
+              }), scheduleFrame(() => {
                 let n = Et.current;
                 n && n.setSelectionRange(e, t);
               });
@@ -1117,8 +1160,8 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           if ((t.key === `ArrowUp` || t.key === `ArrowDown`) && !t.metaKey && !t.ctrlKey && !t.altKey) {
             t.preventDefault();
             let e = d ? u : t.key === `ArrowUp` ? l : u,
-              n = d ? h : Fs(m, e),
-              r = Ps(m, (d ? f?.preferredCaretX : void 0) ?? n?.left ?? 0, (n?.top ?? 0) + (t.key === `ArrowUp` ? -(m.lineHeightPx ?? o) : m.lineHeightPx ?? o) + Math.max(1, (m.lineHeightPx ?? o) / 2));
+              n = d ? h : caretRectForOffset(m, e),
+              r = hitTestTextOffset(m, (d ? f?.preferredCaretX : void 0) ?? n?.left ?? 0, (n?.top ?? 0) + (t.key === `ArrowUp` ? -(m.lineHeightPx ?? o) : m.lineHeightPx ?? o) + Math.max(1, (m.lineHeightPx ?? o) / 2));
             v(r, r);
             return;
           }
@@ -1129,17 +1172,17 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           if (g && !t.shiftKey && n.kind === `paragraph` && _) {
             t.preventDefault();
             let r = e.insertListItemAfterSelection(i, l, u, n);
-            r && (Ue(void 0), za(r.paragraphIndex, r.caretOffset));
+            r && (Ue(void 0), focusParagraphAtOffset(r.paragraphIndex, r.caretOffset));
             return;
           }
           if (g && !t.shiftKey && n.kind === `paragraph` && !_) {
             t.preventDefault();
             let r = e.splitParagraphAtSelection(i, l, u, n);
-            r && (Ue(void 0), za(r.paragraphIndex, r.caretOffset));
+            r && (Ue(void 0), focusParagraphAtOffset(r.paragraphIndex, r.caretOffset));
             return;
           }
         }} onBlur={e => {
-          xe.current && (xe.current = !1, Ca(n, e.currentTarget.value.replace(/\r\n?/g, `
+          xe.current && (xe.current = !1, commitWrappedText(n, e.currentTarget.value.replace(/\r\n?/g, `
 `)));
           let t = e.currentTarget,
             r = t.closest(`[data-docx-wrapped-paragraph-root='true']`);
@@ -1170,22 +1213,22 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
   /* 原 Xo（jsx 32506）：段落 runs 渲染器 */
   Xo = React.useCallback((t: any, n: any, r: any, i?: any) => {
     let a = [],
-      o = up(t) ? Zp(t) : Zc,
-      s = (t.style?.tabStops ?? []).map((e: any) => Br(e.positionTwips)).filter((e: any) => Number.isFinite(e) && e > 0).sort((e: any, t: any) => e - t),
+      o = paragraphIsCheckboxYesNoRow(t) ? checkboxGapPx(t) : ANNOTATION_GUTTER_WIDTH_PX,
+      s = (t.style?.tabStops ?? []).map((e: any) => twipsToPxNonNegative(e.positionTwips)).filter((e: any) => Number.isFinite(e) && e > 0).sort((e: any, t: any) => e - t),
       c = s.length > 0,
       l = 0,
       u = (e: any, t: any) => {
-        l = im(l, e, t);
+        l = advanceAfterText(l, e, t);
       },
       d = (e: any) => {
         l += Math.max(0, Math.round(e));
       },
-      f = () => am(s, l, o),
+      f = () => nextTabStopDistance(s, l, o),
       p = (e: any, n: any, r: any, i: any) => {
         if (!(t.style?.align === `justify` && n.includes(`
 `))) {
-          let t = g_(r, n, i);
-          a.push(<span key={e} style={t}>{h_(n, i, e)}</span>), u(n, i);
+          let t = applyNumberingFontStyle(r, n, i);
+          a.push(<span key={e} style={t}>{scriptFontSpans(n, i, e)}</span>), u(n, i);
           return;
         }
         let o = n.split(`
@@ -1193,14 +1236,14 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         o.forEach((t: any, n: any) => {
           let s = n === o.length - 1;
           if (n > 0 && a.push(<br key={`${e}-soft-break-${n}`} />), t.length > 0) {
-            let o = g_(r, t, i);
+            let o = applyNumberingFontStyle(r, t, i);
             a.push(<span key={`${e}-segment-${n}`} style={s ? {
               ...o,
               display: `inline-block`,
               maxWidth: `100%`,
               whiteSpace: `pre-wrap`,
               verticalAlign: `baseline`
-            } : o}>{h_(t, i, `${e}-segment-${n}`)}</span>);
+            } : o}>{scriptFontSpans(t, i, `${e}-segment-${n}`)}</span>);
           }
           u(t, i), s || (l = 0);
         });
@@ -1214,11 +1257,11 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     }), e.model.metadata.endnotes?.forEach((e: any, t: any) => {
       m.endnote.set(e.id, t + 1);
     });
-    let h = Yn.get(Ab(r)),
+    let h = Yn.get(locationKeyContract(r)),
       g = i?.pageLayout ?? Hn,
       _ = r.kind === `paragraph` ? Kn.get(r.nodeIndex) ?? ns : ns,
-      v = t.children.some((e: any) => e.type === `image` && Kg(e) && tp(e, _, g.pageHeightPx - g.marginsPx.top - g.marginsPx.bottom)),
-      y = Yg(t) || Hf(t) || v ? {
+      v = t.children.some((e: any) => e.type === `image` && isFloatingImageNode(e) && imageIsFullPageCover(e, _, g.pageHeightPx - g.marginsPx.top - g.marginsPx.bottom)),
+      y = paragraphHasAnchoredImage(t) || paragraphHasPageAnchoredImage(t) || v ? {
         left: 0,
         top: 0,
         marginLeft: g.marginsPx.left,
@@ -1227,16 +1270,16 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         columnTop: g.marginsPx.top,
         pageWidth: g.pageWidthPx
       } : void 0,
-      b = Th(t, _, e.model.metadata.numberingDefinitions),
+      b = paragraphContentWidth(t, _, e.model.metadata.numberingDefinitions),
       S = Math.max(0, Math.round(i?.pageFlowTopPx ?? 0)),
       C = y ? g.marginsPx.left : void 0,
-      T = y ? ip(t, g) ? g.marginsPx.top + S : 0 : void 0,
+      T = y ? paragraphHasPageBackground(t, g) ? g.marginsPx.top + S : 0 : void 0,
       D = new Map(),
       O = new Map(),
       A = new Map();
     t.children.forEach((e: any, t: any) => {
       if (e.type !== `image`) return;
-      let n = jb({
+      let n = imageLocationKeyContract({
           ...r,
           childIndex: t
         }),
@@ -1247,7 +1290,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       ({
         widthPx: o,
         heightPx: s
-      } = Gg(e, o, s, y)), Number.isFinite(o) && D.set(t, Math.round(o)), Number.isFinite(s) && O.set(t, Math.round(s)), a && A.set(t, {
+      } = behindDocImageFrameSize(e, o, s, y)), Number.isFinite(o) && D.set(t, Math.round(o)), Number.isFinite(s) && O.set(t, Math.round(s)), a && A.set(t, {
         deltaX: Math.round(a.deltaX),
         deltaY: Math.round(a.deltaY),
         ...(Number.isFinite(a.baseLeftPx) ? {
@@ -1262,11 +1305,11 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         floatingMovePreview: Q,
         resizePreview: Ge
       }),
-      P = j_(t),
-      I = E_(t) || P === `center-right` || P === `center` || P === `right`,
-      L = t.children.some((e: any) => e.type === `image` && Pg(e)),
+      P = tabLayoutKindOf(t),
+      I = paragraphHasTocTab(t) || P === `center-right` || P === `center` || P === `right`,
+      L = t.children.some((e: any) => e.type === `image` && inlineImageIsPageOrMarginAnchored(e)),
       R = E && /commentRange|commentReference/i.test(t.sourceXml ?? ``);
-    if ((w || I || R) && !L) return Tv(t, n, j, h, Pi, y, m, void 0, void 0, {
+    if ((w || I || R) && !L) return renderParagraphRuns(t, n, j, h, Pi, y, m, void 0, void 0, {
       showTrackedChanges: w,
       showCommentHighlights: E,
       numberingDefinitions: e.model.metadata.numberingDefinitions,
@@ -1274,8 +1317,8 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       paragraphOriginLeftPx: C,
       paragraphOriginTopPx: T
     });
-    let z = Rh(t),
-      B = h ? void 0 : Yp(t, b, z, {
+    let z = paragraphLineHeight(t),
+      B = h ? void 0 : paragraphFloatingLayout(t, b, z, {
         widthPxByImageIndex: D,
         heightPxByImageIndex: O,
         paragraphTopPx: S,
@@ -1284,7 +1327,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         movePreviewByImageIndex: A,
         allowNegativeImageTop: A.size > 0
       }),
-      ee = !h && !B ? bp(t, b, z, i?.pageFlowForeignExclusions ?? []) : void 0,
+      ee = !h && !B ? wrapBandLayout(t, b, z, i?.pageFlowForeignExclusions ?? []) : void 0,
       V = B ?? ee;
     if (V) {
       let e = new Set(V.geometries.map((e: any) => e.imageIndex)),
@@ -1295,13 +1338,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               ...r,
               childIndex: e.imageIndex
             },
-            a = jb(i),
-            o = Pe ? jb(Pe) === a : !1,
+            a = imageLocationKeyContract(i),
+            o = Pe ? imageLocationKeyContract(Pe) === a : !1,
             s = e.imageWidthPx,
             c = e.imageHeightPx,
-            l = tv(t, void 0, void 0, void 0, void 0) ?? _i(t),
-            u = li(t) || t.src && !l,
-            d = Ng(t) || !t.floating;
+            l = renderTextBoxSvg(t, void 0, void 0, void 0, void 0) ?? resolveImageSrc(t),
+            u = needsImageConversion(t) || t.src && !l,
+            d = isInlineImageNode(t) || !t.floating;
           return <span key={`${n}-manual-image-${e.imageIndex}`} contentEditable={!1} data-docx-image-location={a} style={{
             display: `inline-block`,
             position: `absolute`,
@@ -1310,13 +1353,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             width: s ? `${s}px` : void 0,
             height: c ? `${c}px` : void 0,
             zIndex: 3
-          }} onPointerDown={e => k ? void 0 : Ao(e, i, t, d, !1)} onClick={e => {
+          }} onPointerDown={e => k ? void 0 : beginImagePointerMove(e, i, t, d, !1)} onClick={e => {
             e.stopPropagation(), k || Fe(i);
           }} onContextMenu={e => {
-            k || (e.preventDefault(), e.stopPropagation(), Ri(), Le(void 0), Fe(i), Ji({
+            k || (e.preventDefault(), e.stopPropagation(), clearTableSelection(), Le(void 0), Fe(i), openTextContextMenu({
               kind: `image`,
-              activeTextRange: pa(),
-              location: xx(Px(i)),
+              activeTextRange: selectionFromDom(),
+              location: cloneLocationContract(paragraphLocationOfImage(i)),
               image: {
                 location: i,
                 floating: t.floating ? {
@@ -1328,12 +1371,12 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               y: e.clientY
             }));
           }}>{l && !u ? (() => {
-              let e = $g(t, s, c),
+              let e = imageCropMetrics(t, s, c),
                 n = {
-                  filter: pu(t.cssFilter, M),
+                  filter: joinDefined(t.cssFilter, M),
                   opacity: t.cssOpacity
                 },
-                r = av(t, {
+                r = shapeTransformCss(t, {
                   frameWidthPx: e?.frameWidthPx ?? s,
                   frameHeightPx: e?.frameHeightPx ?? c,
                   baseTransform: e ? `translate(${-e.offsetXPx}px, ${-e.offsetYPx}px)` : void 0
@@ -1359,7 +1402,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                 display: `block`,
                 cursor: k ? `default` : `move`,
                 ...n,
-                ...av(t, {
+                ...shapeTransformCss(t, {
                   frameWidthPx: s,
                   frameHeightPx: c
                 })
@@ -1381,7 +1424,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               textTransform: `lowercase`,
               fontFamily: `Arial, sans-serif`,
               lineHeight: 1
-            }}>{ui(t, s, c)}</span> : null}{!k && o ? <>{[{
+            }}>{imagePlaceholderLabel(t, s, c)}</span> : null}{!k && o ? <>{[{
                 key: `top-left`,
                 left: -5,
                 top: -5,
@@ -1431,7 +1474,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                   bottom: t.bottom
                 })
               }} onPointerDown={e => {
-                ko(e, i, s, c, t.xDirection, t.yDirection);
+                beginImageResize(e, i, s, c, t.xDirection, t.yDirection);
               }} />)}</> : null}</span>;
         },
         a = (e: any) => {
@@ -1441,16 +1484,16 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               ...r,
               childIndex: e.imageIndex
             },
-            a = jb(i),
-            o = Pe ? jb(Pe) === a : !1,
+            a = imageLocationKeyContract(i),
+            o = Pe ? imageLocationKeyContract(Pe) === a : !1,
             s = A.get(e.imageIndex),
             c = e.imageWidthPx,
             l = e.imageHeightPx,
-            u = tp(t, ns, g.pageHeightPx - g.marginsPx.top - g.marginsPx.bottom) ? lp(t, g, {
+            u = imageIsFullPageCover(t, ns, g.pageHeightPx - g.marginsPx.top - g.marginsPx.bottom) ? floatingLayerStyle(t, g, {
               deltaX: s?.deltaX ?? 0,
               deltaY: s?.deltaY ?? 0,
               anchorToPageSurface: !0
-            }) : Rg(t, {
+            }) : floatingAbsoluteStyle(t, {
               pageOriginLeft: y?.left ?? 0,
               pageOriginTop: y?.top ?? 0,
               marginOriginLeft: y?.marginLeft ?? 0,
@@ -1462,21 +1505,21 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               deltaX: s?.deltaX ?? 0,
               deltaY: s?.deltaY ?? 0
             }),
-            d = tv(t, void 0, void 0, void 0, void 0) ?? _i(t),
-            f = li(t) || t.src && !d;
+            d = renderTextBoxSvg(t, void 0, void 0, void 0, void 0) ?? resolveImageSrc(t),
+            f = needsImageConversion(t) || t.src && !d;
           return <span key={`${n}-manual-fixed-wrap-image-${e.imageIndex}`} contentEditable={!1} data-docx-image-location={a} style={{
             display: `inline-block`,
             position: `absolute`,
             width: c ? `${c}px` : void 0,
             height: l ? `${l}px` : void 0,
             ...u
-          }} onPointerDown={e => k ? void 0 : Ao(e, i, t, !0, !1)} onClick={e => {
+          }} onPointerDown={e => k ? void 0 : beginImagePointerMove(e, i, t, !0, !1)} onClick={e => {
             e.stopPropagation(), k || Fe(i);
           }} onContextMenu={e => {
-            k || (e.preventDefault(), e.stopPropagation(), Ri(), Le(void 0), Fe(i), Ji({
+            k || (e.preventDefault(), e.stopPropagation(), clearTableSelection(), Le(void 0), Fe(i), openTextContextMenu({
               kind: `image`,
-              activeTextRange: pa(),
-              location: xx(Px(i)),
+              activeTextRange: selectionFromDom(),
+              location: cloneLocationContract(paragraphLocationOfImage(i)),
               image: {
                 location: i,
                 floating: t.floating ? {
@@ -1494,7 +1537,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               verticalAlign: `middle`,
               display: `block`,
               cursor: k ? `default` : `move`,
-              filter: pu(t.cssFilter, M),
+              filter: joinDefined(t.cssFilter, M),
               opacity: t.cssOpacity
             }} /> : f ? <span role="img" aria-label={t.alt ?? `DOCX image`} style={{
               display: `inline-flex`,
@@ -1513,7 +1556,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               textTransform: `lowercase`,
               fontFamily: `Arial, sans-serif`,
               lineHeight: 1
-            }}>{ui(t, c, l)}</span> : null}{!k && o ? <>{[{
+            }}>{imagePlaceholderLabel(t, c, l)}</span> : null}{!k && o ? <>{[{
                 key: `top-left`,
                 left: -5,
                 top: -5,
@@ -1563,7 +1606,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                   bottom: t.bottom
                 })
               }} onPointerDown={e => {
-                ko(e, i, c, l, t.xDirection, t.yDirection);
+                beginImageResize(e, i, c, l, t.xDirection, t.yDirection);
               }} />)}</> : null}</span>;
         },
         o = (e: any, t: any) => {
@@ -1571,16 +1614,16 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               ...r,
               childIndex: t
             },
-            a = jb(i),
-            o = Pe ? jb(Pe) === a : !1,
+            a = imageLocationKeyContract(i),
+            o = Pe ? imageLocationKeyContract(Pe) === a : !1,
             s = A.get(t),
             c = D.get(t) ?? e.widthPx,
             l = O.get(t) ?? e.heightPx,
-            u = tp(e, ns, g.pageHeightPx - g.marginsPx.top - g.marginsPx.bottom) ? lp(e, g, {
+            u = imageIsFullPageCover(e, ns, g.pageHeightPx - g.marginsPx.top - g.marginsPx.bottom) ? floatingLayerStyle(e, g, {
               deltaX: s?.deltaX ?? 0,
               deltaY: s?.deltaY ?? 0,
               anchorToPageSurface: !0
-            }) : Rg(e, {
+            }) : floatingAbsoluteStyle(e, {
               pageOriginLeft: y?.left ?? 0,
               pageOriginTop: y?.top ?? 0,
               marginOriginLeft: y?.marginLeft ?? 0,
@@ -1592,21 +1635,21 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               deltaX: s?.deltaX ?? 0,
               deltaY: s?.deltaY ?? 0
             }),
-            d = tv(e, void 0, void 0, void 0, void 0) ?? _i(e),
-            f = li(e) || e.src && !d;
+            d = renderTextBoxSvg(e, void 0, void 0, void 0, void 0) ?? resolveImageSrc(e),
+            f = needsImageConversion(e) || e.src && !d;
           return <span key={`${n}-manual-absolute-${t}`} contentEditable={!1} data-docx-image-location={a} style={{
             display: `inline-block`,
             position: `absolute`,
             width: c ? `${c}px` : void 0,
             height: l ? `${l}px` : void 0,
             ...u
-          }} onPointerDown={t => k ? void 0 : Ao(t, i, e, !1, !0)} onClick={e => {
+          }} onPointerDown={t => k ? void 0 : beginImagePointerMove(t, i, e, !1, !0)} onClick={e => {
             e.stopPropagation(), k || Fe(i);
           }} onContextMenu={t => {
-            k || (t.preventDefault(), t.stopPropagation(), Ri(), Le(void 0), Fe(i), Ji({
+            k || (t.preventDefault(), t.stopPropagation(), clearTableSelection(), Le(void 0), Fe(i), openTextContextMenu({
               kind: `image`,
-              activeTextRange: pa(),
-              location: xx(Px(i)),
+              activeTextRange: selectionFromDom(),
+              location: cloneLocationContract(paragraphLocationOfImage(i)),
               image: {
                 location: i,
                 floating: e.floating ? {
@@ -1624,7 +1667,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               verticalAlign: `middle`,
               display: `block`,
               cursor: k ? `default` : `move`,
-              filter: pu(e.cssFilter, M),
+              filter: joinDefined(e.cssFilter, M),
               opacity: e.cssOpacity
             }} /> : f ? <span role="img" aria-label={e.alt ?? `DOCX image`} style={{
               display: `inline-flex`,
@@ -1643,7 +1686,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               textTransform: `lowercase`,
               fontFamily: `Arial, sans-serif`,
               lineHeight: 1
-            }}>{ui(e, c, l)}</span> : null}{!k && o ? <>{[{
+            }}>{imagePlaceholderLabel(e, c, l)}</span> : null}{!k && o ? <>{[{
                 key: `top-left`,
                 left: -5,
                 top: -5,
@@ -1694,31 +1737,31 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                 })
               }} onPointerDown={t => {
                 let n = c ?? e.widthPx ?? 240;
-                ko(t, i, n, l ?? e.heightPx ?? Math.round(n * 0.62), r.xDirection, r.yDirection);
+                beginImageResize(t, i, n, l ?? e.heightPx ?? Math.round(n * 0.62), r.xDirection, r.yDirection);
               }} />)}</> : null}</span>;
         },
-        s = He?.locationKey === Ab(r) ? He : void 0,
+        s = He?.locationKey === locationKeyContract(r) ? He : void 0,
         c = new Set(V.geometries.filter((e: any) => {
           let t = N.children[e.imageIndex];
-          return t?.type === `image` && Jg(t);
+          return t?.type === `image` && imageIsPageAnchoredFloating(t);
         }).map((e: any) => e.imageIndex)),
-        l = s ? Ip(s.text, Of(N)) : V.source,
+        l = s ? Ip(s.text, firstTextRunStyle(N)) : V.source,
         u = [...(i?.pageFlowForeignExclusions ?? []), ...V.geometries.map((e: any) => e.exclusion)],
-        d = s ? Hp(N, l, b, V.lineHeightPx, u) ?? V.layout : V.layout;
+        d = s ? paragraphLineLayout(N, l, b, V.lineHeightPx, u) ?? V.layout : V.layout;
       return Yo({
         location: r,
         keyPrefix: `${n}-dual-wrap-manual`,
         source: l,
         layout: d,
         lineHeightPx: V.lineHeightPx,
-        blockHeightPx: gp(d, V.geometries, i?.pageFlowForeignExclusions),
-        obstacleNodes: <>{V.geometries.map((e: any) => c.has(e.imageIndex) ? null : t(e))}{N.children.map((t: any, n: any) => t.type === `image` && !e.has(n) && Kg(t) && !qg(t) ? o(t, n) : null)}</>,
-        pageAbsoluteObstacleNodes: <>{V.geometries.map((e: any) => c.has(e.imageIndex) ? a(e) : null)}{N.children.map((t: any, n: any) => t.type === `image` && !e.has(n) && Kg(t) && qg(t) ? o(t, n) : null)}</>
+        blockHeightPx: dragPreviewHeight(d, V.geometries, i?.pageFlowForeignExclusions),
+        obstacleNodes: <>{V.geometries.map((e: any) => c.has(e.imageIndex) ? null : t(e))}{N.children.map((t: any, n: any) => t.type === `image` && !e.has(n) && isFloatingImageNode(t) && !isPageOrMarginAnchoredFloating(t) ? o(t, n) : null)}</>,
+        pageAbsoluteObstacleNodes: <>{V.geometries.map((e: any) => c.has(e.imageIndex) ? a(e) : null)}{N.children.map((t: any, n: any) => t.type === `image` && !e.has(n) && isFloatingImageNode(t) && isPageOrMarginAnchoredFloating(t) ? o(t, n) : null)}</>
       });
     }
     if (h) {
-      let r = h.style ? __(h.style, j) : void 0;
-      a.push(<span key={`${n}-numbering`} contentEditable={!1} data-docx-numbering-label="true" style={u_(t, e.model.metadata.numberingDefinitions, h, r, j)}>{h.imageSrc ? <><img src={h.imageSrc} alt="" aria-hidden="true" draggable={!1} style={{
+      let r = h.style ? runStyleToCss(h.style, j) : void 0;
+      a.push(<span key={`${n}-numbering`} contentEditable={!1} data-docx-numbering-label="true" style={numberingLabelContainerStyle(t, e.model.metadata.numberingDefinitions, h, r, j)}>{h.imageSrc ? <><img src={h.imageSrc} alt="" aria-hidden="true" draggable={!1} style={{
             display: `inline-block`,
             verticalAlign: `text-bottom`,
             width: h.imageWidthPx ?? 12,
@@ -1732,19 +1775,19 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
     }, `${n}-drop-0`)), N.children.forEach((o: any, s: any) => {
       let l = `${n}-run-${s}`;
       if (o.type === `image`) {
-        let t = sp(cx(r), s),
+        let t = imageChildKey(locationNodeIndex(r), s),
           n = {
             ...r,
             childIndex: s
           },
-          c = jb(n),
-          u = Pe ? jb(Pe) === c : !1,
-          f = Bf(o, N),
+          c = imageLocationKeyContract(n),
+          u = Pe ? imageLocationKeyContract(Pe) === c : !1,
+          f = isBehindDocImageOf(o, N),
           p = Ge?.imageKey === c ? Ge : void 0,
           m = Q?.imageKey === c ? Q : void 0,
-          h = Ng(o),
-          _ = Kg(o),
-          v = _ && tp(o, ns, g.pageHeightPx - g.marginsPx.top - g.marginsPx.bottom);
+          h = isInlineImageNode(o),
+          _ = isFloatingImageNode(o),
+          v = _ && imageIsFullPageCover(o, ns, g.pageHeightPx - g.marginsPx.top - g.marginsPx.bottom);
         if (v && i?.suppressLikelyFullPageCoverImageKeys?.has(t)) return;
         h && (m?.deltaX, m?.deltaY);
         let x = p?.widthPx ?? o.widthPx,
@@ -1752,16 +1795,16 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         ({
           widthPx: x,
           heightPx: S
-        } = Gg(o, x, S, y));
-        let w = h ? Lg(o, {
+        } = behindDocImageFrameSize(o, x, S, y));
+        let w: React.CSSProperties = h ? floatingWrapStyle(o, {
             containerWidthPx: b,
             deltaX: m?.deltaX ?? 0,
             deltaY: m?.deltaY ?? 0
-          }) : _ ? v ? lp(o, g, {
+          }) : _ ? v ? floatingLayerStyle(o, g, {
             deltaX: m?.deltaX ?? 0,
             deltaY: m?.deltaY ?? 0,
             anchorToPageSurface: !0
-          }) : Rg(o, {
+          }) : floatingAbsoluteStyle(o, {
             pageOriginLeft: y?.left ?? 0,
             pageOriginTop: y?.top ?? 0,
             marginOriginLeft: y?.marginLeft ?? 0,
@@ -1777,16 +1820,16 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             position: `relative`,
             zIndex: 4
           } : {},
-          E = tv(o, void 0, void 0, void 0, void 0) ?? _i(o),
-          D = o.syntheticTextBox && !nv(o),
-          O = D ? $_(o) : void 0,
-          A = D ? Q_(o) ?? `` : ``,
-          P = D ? Z_(o.sourceXml ?? ``) : void 0,
-          F = li(o) || o.src && !E,
+          E = renderTextBoxSvg(o, void 0, void 0, void 0, void 0) ?? resolveImageSrc(o),
+          D = o.syntheticTextBox && !syntheticTextBoxIsGraphicShape(o),
+          O = D ? textBoxRenderLines(o) : void 0,
+          A = D ? textBoxPlainText(o) ?? `` : ``,
+          P = D ? parseTextBoxShapeStyle(o.sourceXml ?? ``) : void 0,
+          F = needsImageConversion(o) || o.src && !E,
           I = D && o.floating?.behindDocument === !0,
           L = _ && o.floating?.behindDocument === !0 && !I,
           R = v,
-          z = {
+          z: React.CSSProperties = {
             display: `inline-block`,
             position: _ ? `absolute` : `relative`,
             verticalAlign: `middle`,
@@ -1827,19 +1870,19 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           ...z,
           ...w,
           ...(I ? {
-            zIndex: ev(o)
+            zIndex: textBoxZIndex(o)
           } : void 0),
           ...(L || f ? {
             pointerEvents: `none`,
             userSelect: `none`
           } : void 0)
-        }} onPointerDown={e => k || f || e.target instanceof Element && e.target.closest(`[data-docx-textbox-editor='true']`) ? void 0 : Ao(e, n, o, h, _)} onClick={e => {
+        }} onPointerDown={e => k || f || e.target instanceof Element && e.target.closest(`[data-docx-textbox-editor='true']`) ? void 0 : beginImagePointerMove(e, n, o, h, _)} onClick={e => {
           e.stopPropagation(), !k && !f && Fe(n);
         }} onContextMenu={e => {
-          k || f || (e.preventDefault(), e.stopPropagation(), Ri(), Le(void 0), Fe(n), Ji({
+          k || f || (e.preventDefault(), e.stopPropagation(), clearTableSelection(), Le(void 0), Fe(n), openTextContextMenu({
             kind: `image`,
-            activeTextRange: pa(),
-            location: xx(Px(n)),
+            activeTextRange: selectionFromDom(),
+            location: cloneLocationContract(paragraphLocationOfImage(n)),
             image: {
               location: n,
               floating: o.floating ? {
@@ -1882,13 +1925,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               lineHeight: `${Math.max(1, e.lineHeightPx)}px`,
               textAlign: e.align ?? `left`,
               whiteSpace: `pre-wrap`
-            }}>{e.segments.map((e: any, n: any) => <span key={`${l}-textbox-paragraph-${t}-segment-${n}`} style={e.style ? __(e.style, j) : void 0}>{e.text}</span>)}</div>) : A}</div> : E && !F ? (() => {
-            let e = $g(o, x, S),
+            }}>{e.segments.map((e: any, n: any) => <span key={`${l}-textbox-paragraph-${t}-segment-${n}`} style={e.style ? runStyleToCss(e.style, j) : void 0}>{e.text}</span>)}</div>) : A}</div> : E && !F ? (() => {
+            let e = imageCropMetrics(o, x, S),
               t = {
-                filter: pu(o.cssFilter, M),
+                filter: joinDefined(o.cssFilter, M),
                 opacity: o.cssOpacity
               },
-              r = av(o, {
+              r = shapeTransformCss(o, {
                 frameWidthPx: R && x ? x : e?.frameWidthPx ?? x,
                 frameHeightPx: R && S ? S : e?.frameHeightPx ?? S,
                 fillFrame: R,
@@ -1927,7 +1970,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                 userSelect: `none`
               } : void 0),
               ...t,
-              ...av(o, {
+              ...shapeTransformCss(o, {
                 frameWidthPx: x,
                 frameHeightPx: S,
                 fillFrame: R
@@ -1951,7 +1994,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             fontFamily: `Arial, sans-serif`,
             lineHeight: 1,
             verticalAlign: `middle`
-          }}>{ui(o, x, S)}</span> : <span style={{
+          }}>{imagePlaceholderLabel(o, x, S)}</span> : <span style={{
             display: `inline-flex`,
             minWidth: 112,
             minHeight: 80,
@@ -1985,7 +2028,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               })
             }} onPointerDown={t => {
               let r = t.currentTarget.parentElement?.querySelector(`img`);
-              ko(t, n, r ? Math.round(r.getBoundingClientRect().width) : o.widthPx ?? 240, r ? Math.round(r.getBoundingClientRect().height) : o.heightPx ?? Math.round((o.widthPx ?? 240) * 0.62), e.xDirection, e.yDirection);
+              beginImageResize(t, n, r ? Math.round(r.getBoundingClientRect().width) : o.widthPx ?? 240, r ? Math.round(r.getBoundingClientRect().height) : o.heightPx ?? Math.round((o.widthPx ?? 240) * 0.62), e.xDirection, e.yDirection);
             }} />)}</> : null}</span>), L && !k && !f && a.push(<span key={`${l}-hit-target`} contentEditable={!1} aria-hidden="true" style={{
           ...z,
           ...w,
@@ -1995,13 +2038,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           ...(u ? {
             boxShadow: `inset 0 0 0 1px rgba(37, 99, 235, 0.8)`
           } : void 0)
-        }} onPointerDown={e => Ao(e, n, o, h, _)} onClick={e => {
+        }} onPointerDown={e => beginImagePointerMove(e, n, o, h, _)} onClick={e => {
           e.stopPropagation(), Fe(n);
         }} onContextMenu={e => {
-          e.preventDefault(), e.stopPropagation(), Ri(), Le(void 0), Fe(n), Ji({
+          e.preventDefault(), e.stopPropagation(), clearTableSelection(), Le(void 0), Fe(n), openTextContextMenu({
             kind: `image`,
-            activeTextRange: pa(),
-            location: xx(Px(n)),
+            activeTextRange: selectionFromDom(),
+            location: cloneLocationContract(paragraphLocationOfImage(n)),
             image: {
               location: n,
               floating: o.floating ? {
@@ -2035,22 +2078,22 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             })
           }} onPointerDown={t => {
             let r = x ?? o.widthPx ?? 240;
-            ko(t, n, r, S ?? o.heightPx ?? Math.round((r ?? 240) * 0.62), e.xDirection, e.yDirection);
+            beginImageResize(t, n, r, S ?? o.heightPx ?? Math.round((r ?? 240) * 0.62), e.xDirection, e.yDirection);
           }} />) : null}</span>), !h && !_ && d(x ?? 0);
       } else if (o.type === `form-field`) {
         let t = {
             ...r,
             childIndex: s
           },
-          n = om(o),
+          n = formFieldWidthPx(o),
           i = c || o.sourceKind === `legacy`,
           f = o.fieldType === `text` || o.fieldType === `date`,
-          p = Df(o),
+          p = formFieldDisplayText(o),
           m = {
-            ...__(o.style, j, p),
-            fontFamily: m_(Mi(p, o.style)) ?? `inherit`,
+            ...runStyleToCss(o.style, j, p),
+            fontFamily: normalizeFontFamily(resolvePrimaryFontFamily(p, o.style)) ?? `inherit`,
             fontSize: o.style?.fontSizePt ? `${o.style.fontSizePt}pt` : `inherit`,
-            color: p_(o.style?.color, j) ?? `inherit`,
+            color: themeAwareColor(o.style?.color, j) ?? `inherit`,
             backgroundColor: f ? `rgba(148, 163, 184, 0.16)` : i ? `transparent` : `#ffffff`,
             border: f ? `1px solid rgba(148, 163, 184, 0.6)` : i ? `none` : `1px solid #d4d4d8`,
             borderRadius: f ? 4 : i ? 0 : 6,
@@ -2067,7 +2110,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           };
         if (o.fieldType === `checkbox`) {
           let n = o.checked ?? o.widget?.checkbox?.defaultChecked ? o.checkedSymbol ?? `☒` : o.uncheckedSymbol ?? `☐`,
-            r = sm(o);
+            r = checkboxWidthPx(o);
           a.push(<span key={l} contentEditable={!1} data-docx-form-field="true" data-docx-form-field-type="checkbox" role="checkbox" aria-checked={!!o.checked} tabIndex={k ? -1 : 0} onMouseDown={e => {
             e.preventDefault(), e.stopPropagation();
           }} onClick={n => {
@@ -2088,8 +2131,8 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             cursor: k ? `default` : `pointer`,
             userSelect: `none`,
             outline: `none`,
-            ...__(o.style, j, n)
-          }}>{h_(n, o.style, l)}</span>), u(n, o.style);
+            ...runStyleToCss(o.style, j, n)
+          }}>{scriptFontSpans(n, o.style, l)}</span>), u(n, o.style);
         } else if (o.fieldType === `dropdown`) {
           let r = o.options ?? [],
             i = o.value ?? r[0]?.value ?? r[0]?.displayText ?? ``;
@@ -2101,9 +2144,9 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             k || e.selectFormField(t);
           }} onDoubleClick={n => {
             k || (n.preventDefault(), n.stopPropagation(), e.selectFormField(t), x?.(t));
-          }} disabled={k} style={m}>{r.length > 0 ? r.map((e: any, t: any) => <option key={`${l}-option-${t}`} value={e.value ?? e.displayText}>{e.displayText}</option>) : <option value={i}>{i}</option>}</select>), d(n);
+          }} disabled={k} style={m as any}>{r.length > 0 ? r.map((e: any, t: any) => <option key={`${l}-option-${t}`} value={e.value ?? e.displayText}>{e.displayText}</option>) : <option value={i}>{i}</option>}</select>), d(n);
         } else if (o.fieldType === `date`) {
-          let r = wv(o.value);
+          let r = normalizeDateToIso(o.value);
           r ? (a.push(<input key={l} contentEditable={!1} data-docx-form-field="true" data-docx-form-field-type="date" type={i ? `text` : `date`} value={r} onClick={e => {
             e.stopPropagation();
           }} onChange={n => {
@@ -2112,7 +2155,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             k || e.selectFormField(t);
           }} onDoubleClick={n => {
             k || (n.preventDefault(), n.stopPropagation(), e.selectFormField(t), x?.(t));
-          }} readOnly={k} style={m} />), d(n)) : (a.push(<input key={l} contentEditable={!1} data-docx-form-field="true" data-docx-form-field-type="date" type="text" value={o.value ?? ``} placeholder={o.placeholder ?? o.title ?? `Enter date`} onClick={e => {
+          }} readOnly={k} style={m as any} />), d(n)) : (a.push(<input key={l} contentEditable={!1} data-docx-form-field="true" data-docx-form-field-type="date" type="text" value={o.value ?? ``} placeholder={o.placeholder ?? o.title ?? `Enter date`} onClick={e => {
             e.stopPropagation();
           }} onChange={n => {
             k || e.setFormFieldValue(t, n.currentTarget.value);
@@ -2120,7 +2163,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             k || e.selectFormField(t);
           }} onDoubleClick={n => {
             k || (n.preventDefault(), n.stopPropagation(), e.selectFormField(t), x?.(t));
-          }} readOnly={k} style={m} />), d(n));
+          }} readOnly={k} style={m as any} />), d(n));
         } else a.push(<input key={l} contentEditable={!1} data-docx-form-field="true" data-docx-form-field-type="text" type="text" value={o.value ?? ``} placeholder={o.placeholder ?? o.title ?? ``} onClick={e => {
           e.stopPropagation();
         }} onChange={n => {
@@ -2129,15 +2172,15 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           k || e.selectFormField(t);
         }} onDoubleClick={n => {
           k || (n.preventDefault(), n.stopPropagation(), e.selectFormField(t), x?.(t));
-        }} readOnly={k} style={m} />), d(n);
+        }} readOnly={k} style={m as any} />), d(n);
       } else {
-        let e = Cv(o.noteReference, m.footnote, m.endnote);
+        let e = noteReferenceMark(o.noteReference, m.footnote, m.endnote);
         if (e) {
           a.push(<span key={l} style={{
-            ...__(o.style, j, e),
+            ...runStyleToCss(o.style, j, e),
             verticalAlign: `super`,
             fontSize: `0.75em`
-          }}>{h_(e, o.style, l)}</span>), u(e, o.style), a.push(Jo({
+          }}>{scriptFontSpans(e, o.style, l)}</span>), u(e, o.style), a.push(Jo({
             ...r,
             childIndex: s + 1
           }, `${n}-drop-${s + 1}`));
@@ -2150,14 +2193,14 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             t && (e.preventDefault(), e.stopPropagation());
           }} onClick={n => {
             t && (n.preventDefault(), n.stopPropagation(), Pi(e.slice(1)));
-          }} style={v_(o.style, j, o.text)}>{h_(o.text, o.style, l)}</a>), u(o.text, o.style), a.push(Jo({
+          }} style={runStyleToCssDefaults(o.style, j, o.text)}>{scriptFontSpans(o.text, o.style, l)}</a>), u(o.text, o.style), a.push(Jo({
             ...r,
             childIndex: s + 1
           }, `${n}-drop-${s + 1}`));
           return;
         }
-        let i = Qp(t, s, o.text),
-          c = __(o.style, j, i);
+        let i = checkboxLeadingSpace(t, s, o.text),
+          c = runStyleToCss(o.style, j, i);
         if (i === `	`) {
           let e = f();
           a.push(<span key={l} data-docx-tab-char="true" style={{
@@ -2166,7 +2209,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             width: e,
             minWidth: e,
             whiteSpace: `pre`,
-            textDecoration: o.style?.underline ? `none` : c.textDecoration,
+            textDecoration: o.style?.underline ? `none` : c.textDecoration as string,
             borderBottom: o.style?.underline ? `1px solid currentColor` : void 0,
             lineHeight: `1em`
           }}>{`\xA0`}</span>), d(e);
@@ -2177,7 +2220,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         childIndex: s + 1
       }, `${n}-drop-${s + 1}`));
     }), a;
-  }, [Ao, ko, Ri, Q, Ae, Ji, Ho, Vo, Jo, pa, Ge, Pe, Le, M, j, e.selectFormField, e.setFormFieldValue, e.toggleFormCheckbox, nt, x, k, Yn, Pi, Hn, F, w]),
+  }, [beginImagePointerMove, beginImageResize, clearTableSelection, Q, Ae, openTextContextMenu, Ho, Vo, Jo, selectionFromDom, Ge, Pe, Le, M, j, e.selectFormField, e.setFormFieldValue, e.toggleFormCheckbox, nt, x, k, Yn, Pi, Hn, F, w]),
   /* 原 Zo（jsx 33516）：dataTransfer 文件检测 */
   Zo = React.useCallback((e: any) => Array.from(e?.types ?? []).includes(`Files`), []),
   /* 原 Qo（jsx 33517）：docx 文件过滤 */
@@ -2243,11 +2286,11 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
   /* 原 ns（jsx 33572）：页内容最小宽度 */
   let ns = Math.max(120, Hn.pageWidthPx - Hn.marginsPx.left - Hn.marginsPx.right),
   /* 原 rs（jsx 33573）：文档字体族 */
-    rs = React.useMemo(() => bf(e.model), [e.model]),
+    rs = React.useMemo(() => resolveDocumentFontFamily(e.model), [e.model]),
   /* 原 is（jsx 33574）：页容器样式 */
     is = {
-      ...Ou,
-      ...du[e.documentTheme],
+      ...PAGE_SURFACE_BASE_STYLE,
+      ...PAGE_THEME_STYLES[e.documentTheme as `light` | `dark`],
       ...(rs ? {
         fontFamily: rs
       } : void 0),
@@ -2271,7 +2314,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       let t = e,
         n = cs.current.get(t);
       if (n) return n;
-      let r = [JSON.stringify(e.style ?? null), ...e.nodes.map((e: any, t: any) => kf(e) ? `${t}:${e.sourceXml ?? _f(e)}` : `${t}:${e.type}`)].join(``);
+      let r = [JSON.stringify(e.style ?? null), ...e.nodes.map((e: any, t: any) => isParagraph(e) ? `${t}:${e.sourceXml ?? paragraphText(e)}` : `${t}:${e.type}`)].join(``);
       return cs.current.set(t, r), r;
     },
   /* 原 us（jsx 33600）：单元格切片布局项 */
@@ -2286,35 +2329,35 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         applyWordTableDefaults: c,
         docGridLinePitchPx: l
       } = t;
-      if (!n.nodes.every(kf)) return;
+      if (!n.nodes.every(isParagraph)) return;
       let u = e.model.metadata.numberingDefinitions,
         d = ls(n),
         f = [o, JSON.stringify(s ?? null), +!!c, l ?? 0, d].join(`:`),
         p = os.current.get(f);
       if (!p) {
-        let e = Wh(n.nodes, o, u, c, l),
-          t = Ly(zy(s, n.style?.marginTwips)),
+        let e = estimateCellContentHeight(n.nodes, o, u, c, l),
+          t = cellMarginsPx(effectiveCellMarginTwips(s, n.style?.marginTwips)),
           r = t.top,
           i = [];
         for (let e = 0; e < n.nodes.length; e += 1) {
           let t = n.nodes[e];
           if (!t) continue;
-          let a = Ih(t) === `disable`,
-            s = `${o}:${+!!c}:${l ?? 0}:${e}:${t.sourceXml ?? _f(t)}`,
+          let a = snapToGridModeOf(t) === `disable`,
+            s = `${o}:${+!!c}:${l ?? 0}:${e}:${t.sourceXml ?? paragraphText(t)}`,
             d = as_.current.get(s);
           if (!d) {
-            let n = Hh(t, c),
-              r = zh(n, o, u, l, a),
-              i = e === 0 && Uh(t) ? 0 : Br(n.style?.spacing?.beforeTwips) ?? 0,
-              f = o_(n.style?.borders?.top),
-              p = Math.max(pc, Rh(n, l, a)),
-              m = Mp(n, {
+            let n = applyDefaultSpacingForGrid(t, c),
+              r = paragraphOuterHeight(n, o, u, l, a),
+              i = e === 0 && spacingBeforeAbsent(t) ? 0 : twipsToPxNonNegative(n.style?.spacing?.beforeTwips) ?? 0,
+              f = borderTotalPx(n.style?.borders?.top),
+              p = Math.max(MIN_BLOCK_HEIGHT_PX, paragraphLineHeight(n, l, a)),
+              m = paragraphLayoutText(n, {
                 allowExplicitLineBreakText: !0,
                 expandTabsForLayout: !0
               }),
-              h = Th(n, o, u),
-              g = m ? Hp(n, m, h, p, []) : void 0,
-              _ = Math.max(1, g?.lineCount ?? Eh(n, o, u));
+              h = paragraphContentWidth(n, o, u),
+              g = m ? paragraphLineLayout(n, m, h, p, []) : void 0,
+              _ = Math.max(1, g?.lineCount ?? paragraphEstimatedLineCount(n, o, u));
             d = {
               paragraphForLayout: n,
               paragraphHeightPx: r,
@@ -2329,8 +2372,8 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           }
           let f = d.paragraphHeightPx,
             p = r + d.textTopOffsetPx,
-            m = p + (d.pretextLayout ? Ah(d.pretextLayout) : d.lineHeightPx * d.lineTopOffsetsPx.length),
-            h = vg({
+            m = p + (d.pretextLayout ? layoutHeightPx(d.pretextLayout) : d.lineHeightPx * d.lineTopOffsetsPx.length),
+            h = segmentRenderBottomPx({
               paragraphTopPx: r,
               paragraphHeightPx: f,
               textBottomPx: m
@@ -2363,7 +2406,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         C = p.entries.length;
       for (; S < C;) {
         let e = Math.floor((S + C) / 2);
-        (p.entries[e]?.paragraphBottomPx ?? 0) + g <= i + tc ? S = e + 1 : C = e;
+        (p.entries[e]?.paragraphBottomPx ?? 0) + g <= i + ROW_HEIGHT_TOLERANCE_PX ? S = e + 1 : C = e;
       }
       x = S;
       for (let e = x; e < p.entries.length; e += 1) {
@@ -2372,9 +2415,9 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         let n = t.paragraphTopPx + g,
           r = t.textTopPx + g,
           a = t.paragraphBottomPx + g;
-        if (n >= _ - tc) break;
-        if (!(_ > n + tc && i < a - tc)) continue;
-        if (yg({
+        if (n >= _ - ROW_HEIGHT_TOLERANCE_PX) break;
+        if (!(_ > n + ROW_HEIGHT_TOLERANCE_PX && i < a - ROW_HEIGHT_TOLERANCE_PX)) continue;
+        if (segmentCoversWholeParagraph({
           sliceStartPx: i,
           sliceBottomPx: _,
           paragraphTopPx: n,
@@ -2388,7 +2431,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           });
           continue;
         }
-        let o = _g(t.layoutEntry.lineTopOffsetsPx, t.layoutEntry.lineHeightPx, i - r, _ - r);
+        let o = lineRangeForBand(t.layoutEntry.lineTopOffsetsPx, t.layoutEntry.lineHeightPx, i - r, _ - r);
         if (!o) continue;
         let s = o.startLineIndex > 0 ? r + t.layoutEntry.lineTopOffsetsPx[o.startLineIndex] : n;
         b.push({
@@ -2418,36 +2461,36 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         } = t,
         m = e.model.metadata.numberingDefinitions,
         h = d.paragraphForLayout,
-        g = gg(f),
+        g = lineRangeIsPartial(f),
         _ = Math.max(1, f?.lineHeightPx ?? d.lineHeightPx),
         v = f?.startLineIndex ?? 0,
         y = f?.endLineIndex ?? f?.totalLineCount ?? 1,
         b = f?.totalLineCount ?? Math.max(1, y),
         x = Math.max(1, y - v) * _,
         S = v * _,
-        C = {
+        C: DocxLocation = {
           kind: `table-cell`,
           tableIndex: i,
           rowIndex: a,
           cellIndex: o,
           paragraphIndex: r
         },
-        w = Yn.get(Ab(C)),
-        T = Th(h, c, m),
-        E = g && d.pretextSource ? d.pretextLayout && Math.abs(_ - d.lineHeightPx) <= 1 ? d.pretextLayout : Hp(h, d.pretextSource, T, _, []) : void 0,
+        w = Yn.get(locationKeyContract(C)),
+        T = paragraphContentWidth(h, c, m),
+        E = g && d.pretextSource ? d.pretextLayout && Math.abs(_ - d.lineHeightPx) <= 1 ? d.pretextLayout : paragraphLineLayout(h, d.pretextSource, T, _, []) : void 0,
         D = Math.max(0, E?.lineCount ?? 0),
         O = g && f && D > 0 ? Math.max(0, Math.min(f.startLineIndex, D)) : void 0,
         k = g && f && D > 0 && O !== void 0 ? Math.max(O, Math.min(f.endLineIndex, D)) : void 0,
-        A = g && E && O !== void 0 && k !== void 0 && E.lineCount > 0 ? Ls(E, O, k) : void 0,
+        A = g && E && O !== void 0 && k !== void 0 && E.lineCount > 0 ? sliceLayoutLines(E, O, k) : void 0,
         N = g && !!d.pretextSource && !!E && D > 0,
-        P = N ? bg(f) : xg(h, f),
+        P = N ? splitEdgePadding(f) : splitEdgeSmoothingPadding(h, f),
         F = P.topPx,
         I = P.bottomPx,
-        L = w && v === 0 ? l_(n, m, w) ?? Math.max(16, Math.ceil(uh(w.imageSrc ? w.trailingText ?? `` : w.text ?? ``, w.style, Ym(n))) + (w.imageSrc ? Math.ceil(w.imageWidthPx ?? 12) + 2 : 0) + 4) : void 0,
+        L = w && v === 0 ? numberingLabelWidthPx(n, m, w) ?? Math.max(16, Math.ceil(measureTextWidth(w.imageSrc ? w.trailingText ?? `` : w.text ?? ``, w.style, paragraphFontSizePx(n))) + (w.imageSrc ? Math.ceil(w.imageWidthPx ?? 12) + 2 : 0) + 4) : void 0,
         R = N && w && v === 0 && Number.isFinite(L) ? <span key={`table-cell-${i}-${a}-${o}-${r}-numbering-marker-${v}`} contentEditable={!1} data-docx-numbering-label="true" style={{
-          ...u_(n, m, w, w.style ? __(w.style, j) : void 0, j),
+          ...numberingLabelContainerStyle(n, m, w, w.style ? runStyleToCss(w.style, j) : void 0, j),
           position: `absolute`,
-          left: -Math.round(L),
+          left: -Math.round(L as number),
           top: 0,
           marginRight: 0,
           justifyContent: `flex-start`,
@@ -2461,7 +2504,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               marginRight: 2,
               filter: M
             }} />{w.trailingText ?? ``}</> : w.text ?? ``}</span> : void 0,
-        z = f_(n, m, p, r, l, u),
+        z = paragraphHostStyle(n, m, p, r, l, u),
         B = {
           ...z,
           ...(g ? {
@@ -2475,7 +2518,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         },
         ee: any,
         V = () => (ee === void 0 && (ee = Xo(n, `body-cell-${i}-${a}-${o}-${s}`, C)), ee);
-      return <div key={`body-cell-slice-${i}-${a}-${o}-${s}`} data-docx-paragraph-host="true" data-docx-paragraph-kind="table-cell" data-docx-table-index={i} data-docx-row-index={a} data-docx-cell-index={o} data-docx-paragraph-index={r} data-docx-table-paragraph-index={r} style={B}>{N ? <div style={{
+      return <div key={`body-cell-slice-${i}-${a}-${o}-${s}`} data-docx-paragraph-host="true" data-docx-paragraph-kind="table-cell" data-docx-table-index={i} data-docx-row-index={a} data-docx-cell-index={o} data-docx-paragraph-index={r} data-docx-table-paragraph-index={r} style={B as any}>{N ? <div style={{
           minHeight: x + F + I,
           marginTop: -F,
           marginBottom: -I,
@@ -2488,7 +2531,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             source: d.pretextSource,
             layout: A,
             lineHeightPx: _,
-            baseTextStyle: Of(n),
+            baseTextStyle: firstTextRunStyle(n),
             blockHeightPx: A.height,
             obstacleNodes: R
           }) : null}</div> : g ? <div style={{
@@ -2505,40 +2548,40 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       let s = Gn.get(n),
         c = Math.max(120, Math.round(o?.contentWidthPxOverride ?? Kn.get(n) ?? ns));
       if (t.type === `paragraph`) {
-        if (um(t, e.model.nodes[n - 1])) return null;
-        let r = Pf(t),
-          i = gg(a),
+        if (emptyBeforeDeletedMark(t, e.model.nodes[n - 1])) return null;
+        let r = paragraphHasImage(t),
+          i = lineRangeIsPartial(a),
           l = Yn.get(`p:${n}`),
           u = a?.startLineIndex ?? 0,
           d = a?.endLineIndex ?? a?.totalLineCount ?? 1,
           f = a?.totalLineCount ?? Math.max(1, d),
-          m = Math.max(1, a?.lineHeightPx ?? Rh(t, s)),
+          m = Math.max(1, a?.lineHeightPx ?? paragraphLineHeight(t, s)),
           h = Math.max(1, d - u) * m,
           g = u * m,
-          _ = wg(wt, n, a),
+          _ = segmentMatchesLineRange(wt, n, a),
           v = wt?.nodeIndex === n,
           y = o?.suppressParagraphElementTracking === !0 ? !1 : !i || _ || !v && u === 0,
-          b = pg(t),
+          b = isPlainPageBreakSpacer(t),
           x = c,
-          S = Th(t, x, e.model.metadata.numberingDefinitions),
-          C = i ? Mp(t, {
+          S = paragraphContentWidth(t, x, e.model.metadata.numberingDefinitions),
+          C = i ? paragraphLayoutText(t, {
             allowExplicitLineBreakText: !0,
             expandTabsForLayout: !0
           }) : void 0,
-          w = i && C ? Hp(t, C, S, m, []) : void 0,
+          w = i && C ? paragraphLineLayout(t, C, S, m, []) : void 0,
           T = Math.max(0, w?.lineCount ?? 0),
           E = i && a && T > 0 ? Math.max(0, Math.min(a.startLineIndex, T)) : void 0,
           D = i && a && T > 0 && E !== void 0 ? Math.max(E, Math.min(a.endLineIndex, T)) : void 0,
-          O = i && w && E !== void 0 && D !== void 0 && w.lineCount > 0 ? Ls(w, E, D) : void 0,
+          O = i && w && E !== void 0 && D !== void 0 && w.lineCount > 0 ? sliceLayoutLines(w, E, D) : void 0,
           A = i && !!C && !!w && T > 0,
-          N = A ? bg(a) : xg(t, a),
+          N = A ? splitEdgePadding(a) : splitEdgeSmoothingPadding(t, a),
           P = N.topPx,
           F = N.bottomPx,
-          I = l && u === 0 ? l_(t, e.model.metadata.numberingDefinitions, l) ?? Math.max(16, Math.ceil(uh(l.imageSrc ? l.trailingText ?? `` : l.text ?? ``, l.style, Ym(t))) + (l.imageSrc ? Math.ceil(l.imageWidthPx ?? 12) + 2 : 0) + 4) : void 0,
+          I = l && u === 0 ? numberingLabelWidthPx(t, e.model.metadata.numberingDefinitions, l) ?? Math.max(16, Math.ceil(measureTextWidth(l.imageSrc ? l.trailingText ?? `` : l.text ?? ``, l.style, paragraphFontSizePx(t))) + (l.imageSrc ? Math.ceil(l.imageWidthPx ?? 12) + 2 : 0) + 4) : void 0,
           L = A && l && u === 0 && Number.isFinite(I) ? <span key={`node-${n}-numbering-marker-${u}`} contentEditable={!1} data-docx-numbering-label="true" style={{
-            ...u_(t, e.model.metadata.numberingDefinitions, l, l.style ? __(l.style, j) : void 0, j),
+            ...numberingLabelContainerStyle(t, e.model.metadata.numberingDefinitions, l, l.style ? runStyleToCss(l.style, j) : void 0, j),
             position: `absolute`,
-            left: -Math.round(I),
+            left: -Math.round(I as number),
             top: 0,
             marginRight: 0,
             justifyContent: `flex-start`,
@@ -2556,22 +2599,22 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           V = Number.isFinite(o?.overrideAfterSpacingPx) ? Math.max(0, Math.round(o?.overrideAfterSpacingPx)) : void 0,
           H = !r && !k && o?.forceReadOnly !== !0 && (!i || _) && !b,
           ne = o?.pageLayout ?? Hn,
-          re = t.children.some((e: any) => e.type === `image` && Kg(e) && tp(e, x, ne.pageHeightPx - ne.marginsPx.top - ne.marginsPx.bottom)),
-          ie = Yg(t) || re,
-          ae = Xg(t),
+          re = t.children.some((e: any) => e.type === `image` && isFloatingImageNode(e) && imageIsFullPageCover(e, x, ne.pageHeightPx - ne.marginsPx.top - ne.marginsPx.bottom)),
+          ie = paragraphHasAnchoredImage(t) || re,
+          ae = paragraphHasUnanchoredFloatingImage(t),
           W = Math.max(0, Math.round(o?.pageFlowTopPx ?? 0)),
-          oe = !!(Yp(t, S, m, {
+          oe = !!(paragraphFloatingLayout(t, S, m, {
             paragraphTopPx: W,
             pageMarginTopPx: ne.marginsPx.top,
             foreignExclusions: o?.pageFlowForeignExclusions
-          }) ?? bp(t, S, m, o?.pageFlowForeignExclusions ?? [])),
-          G = _m(e.model, n, t, +(n > 0), !1),
-          K = gm(e.model, n, t),
-          se = Hf(t),
-          ce = ip(t, ne);
+          }) ?? wrapBandLayout(t, S, m, o?.pageFlowForeignExclusions ?? [])),
+          G = spacingBeforeForPagination(e.model, n, t, +(n > 0), !1),
+          K = spacingAfterForPagination(e.model, n, t),
+          se = paragraphHasPageAnchoredImage(t),
+          ce = paragraphHasPageBackground(t, ne);
         (ie || se) && (ne.marginsPx.left, ne.marginsPx.top, ne.pageWidthPx);
-        let le = d_(t, e.model.metadata.numberingDefinitions, p, s),
-          q = o?.letterheadFloatSide ? au(o.letterheadFloatSide, o.oppositeLetterheadFloatSide, {
+        let le = paragraphCssStyle(t, e.model.metadata.numberingDefinitions, p, s),
+          q = o?.letterheadFloatSide ? letterheadContainerStyle(o.letterheadFloatSide, o.oppositeLetterheadFloatSide, {
             suppressLetterheadColumnLayout: o.suppressLetterheadColumnLayout === !0
           }) : void 0,
           ue = {
@@ -2592,7 +2635,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             } : void 0),
             ...(q ?? void 0),
             ...(o?.normalizeParagraphHostFontSize ? {
-              fontSize: `${Ym(t)}px`
+              fontSize: `${paragraphFontSizePx(t)}px`
             } : void 0),
             ...(o?.suppressLetterheadColumnLayout && o?.isFirstInLetterheadColumn ? {
               marginTop: 0
@@ -2616,7 +2659,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               position: `relative`
             } : void 0),
             ...(() => {
-              let e = m_(Of(t)?.fontFamily);
+              let e = normalizeFontFamily(firstTextRunStyle(t)?.fontFamily);
               return e ? {
                 fontFamily: e
               } : {};
@@ -2649,7 +2692,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               source: C,
               layout: O,
               lineHeightPx: m,
-              baseTextStyle: Of(t),
+              baseTextStyle: firstTextRunStyle(t),
               blockHeightPx: O.height,
               obstacleNodes: L
             }) : null}</div> : i ? <div style={{
@@ -2660,21 +2703,21 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           }}><div style={{
               transform: `translateY(-${g - P}px)`
             }}>{de()}</div></div> : de(),
-          X = Ef(Y);
-        return <div key={a ? `epoch-${wn}-node-${n}-lines-${u}-${d}${o?.syntheticKeySuffix ? `-${o.syntheticKeySuffix}` : ``}` : `epoch-${wn}-node-${n}${o?.syntheticKeySuffix ? `-${o.syntheticKeySuffix}` : ``}`} data-docx-paragraph-host="true" data-docx-paragraph-kind="paragraph" data-docx-paragraph-node-index={n} data-docx-paragraph-start-line={u} data-docx-paragraph-end-line={d} data-docx-paragraph-partial-line-range={i ? `true` : void 0} style={ue} dangerouslySetInnerHTML={H ? kx(z.current, n, X) : void 0} ref={e => {
-          if (y && (e ? te.current.set(n, e) : te.current.delete(n)), !(!e || !H) && gg(a) && wg(U.current, n, a)) {
+          X = renderStaticMarkup(Y);
+        return <div key={a ? `epoch-${wn}-node-${n}-lines-${u}-${d}${o?.syntheticKeySuffix ? `-${o.syntheticKeySuffix}` : ``}` : `epoch-${wn}-node-${n}${o?.syntheticKeySuffix ? `-${o.syntheticKeySuffix}` : ``}`} data-docx-paragraph-host="true" data-docx-paragraph-kind="paragraph" data-docx-paragraph-node-index={n} data-docx-paragraph-start-line={u} data-docx-paragraph-end-line={d} data-docx-paragraph-partial-line-range={i ? `true` : void 0} style={ue as any} dangerouslySetInnerHTML={H ? htmlInsertionContract(z.current, n, X) : void 0} ref={e => {
+          if (y && (e ? te.current.set(n, e) : te.current.delete(n)), !(!e || !H) && lineRangeIsPartial(a) && segmentMatchesLineRange(U.current, n, a)) {
             let t = U.current;
-            U.current = void 0, Ru(() => {
-              e!.isConnected && (t?.point ? $i(e, t.point) : $i(e));
+            U.current = void 0, scheduleFrame(() => {
+              e!.isConnected && (t?.point ? placeCaretInHost(e, t.point) : placeCaretInHost(e));
             });
           }
         }} onPointerDown={e => {
-          xm(e.target) || !H || (i && na(n, a), ba(n));
+          isInteractiveElement(e.target as Element) || !H || (i && recordPartialLineSelection(n, a), clearTransientSelections(n));
         }} onClick={t => {
-          if (xm(t.target)) return;
-          if (ba(n), !H) {
+          if (isInteractiveElement(t.target as Element)) return;
+          if (clearTransientSelections(n), !H) {
             if (!k && i && !r && !b) {
-              na(n, a, {
+              recordPartialLineSelection(n, a, {
                 x: t.clientX,
                 y: t.clientY
               });
@@ -2684,57 +2727,57 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             return;
           }
           if (t.detail > 1) return;
-          i && na(n, a);
+          i && recordPartialLineSelection(n, a);
           let o = t.currentTarget;
-          va(o, {
+          ensureSelectionAfterTap(o, {
             x: t.clientX,
             y: t.clientY
-          }, ha);
+          }, scheduleSelectionSync);
         }} onDoubleClick={e => {
-          if (xm(e.target) || !H) return;
-          i && na(n, a);
+          if (isInteractiveElement(e.target as Element) || !H) return;
+          i && recordPartialLineSelection(n, a);
           let t = e.currentTarget;
-          va(t, {
+          ensureSelectionAfterTap(t, {
             x: e.clientX,
             y: e.clientY
-          }, ha);
+          }, scheduleSelectionSync);
         }} contentEditable={H} suppressContentEditableWarning={!0} onMouseUp={e => {
           if (!H) return;
-          let t = Wa(e.currentTarget);
+          let t = selectionOffsetsInHost(e.currentTarget);
           if (t && (ve.current = {
             nodeIndex: n,
             start: t.start,
             end: t.end
-          }), ga(e.currentTarget)) {
-            ma(), ya();
+          }), hasSelectionInside(e.currentTarget)) {
+            syncActiveTextRangeFromDom(), cancelPointerSession();
             return;
           }
-          i && na(n, a);
+          i && recordPartialLineSelection(n, a);
           let r = e.currentTarget;
-          va(r, {
+          ensureSelectionAfterTap(r, {
             x: e.clientX,
             y: e.clientY
-          }, ha);
+          }, scheduleSelectionSync);
         }} onKeyUp={e => {
-          !H || !jx(e) || (i && na(n, a), Ja(e.currentTarget, {
+          !H || !isNavigationOrEditKey(e) || (i && recordPartialLineSelection(n, a), syncParagraphTextRange(e.currentTarget, {
             kind: `paragraph`,
             nodeIndex: n
           }));
         }} onInput={t => {
           if (!H) return;
-          if (ya(), (t.nativeEvent as any)?.isComposing || xe.current) {
+          if (cancelPointerSession(), (t.nativeEvent as any)?.isComposing || xe.current) {
             e.beginSelectionSession(`composition`);
             return;
           }
-          let r = Sf(t.currentTarget),
+          let r = elementToPlainText(t.currentTarget),
             i = e.model.nodes[n];
-          if (!i || i.type !== `paragraph` || r === _f(i)) return;
+          if (!i || i.type !== `paragraph` || r === paragraphText(i)) return;
           let a = be.current;
           if (a && a.key === `p:${n}` && a.text !== r) return;
           e.beginSelectionSession(`keyboard`, {
             settleAfterMs: 220
           }), Pn();
-          let o = Wa(t.currentTarget),
+          let o = selectionOffsetsInHost(t.currentTarget),
             s = o?.end ?? r.length;
           e.commitParagraphTextAtRange({
             kind: `paragraph`,
@@ -2748,14 +2791,14 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             caret: s
           };
         }} onCompositionStart={() => {
-          H && (ya(), xe.current = !0, e.beginSelectionSession(`composition`));
+          H && (cancelPointerSession(), xe.current = !0, e.beginSelectionSession(`composition`));
         }} onCompositionEnd={t => {
           if (!H) return;
           xe.current = !1, e.beginSelectionSession(`keyboard`, {
             settleAfterMs: 260
           }), Pn();
-          let r = Sf(t.currentTarget),
-            i = Wa(t.currentTarget),
+          let r = elementToPlainText(t.currentTarget),
+            i = selectionOffsetsInHost(t.currentTarget),
             a = i?.end ?? r.length;
           e.commitParagraphTextAtRange({
             kind: `paragraph`,
@@ -2774,73 +2817,73 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           } : null;
         }} onPaste={e => {
           let t = e.clipboardData.getData(`text/plain`);
-          t && Ia(t) && (e.preventDefault(), e.stopPropagation());
+          t && replaceSelectionWithText(t) && (e.preventDefault(), e.stopPropagation());
         }} onKeyDown={r => {
           if (!H) return;
-          if (ya(), Ax(r)) {
+          if (cancelPointerSession(), isCompositionKey(r)) {
             e.beginSelectionSession(`composition`);
             return;
           }
           if (e.beginSelectionSession(`keyboard`, {
             settleAfterMs: 220
-          }), i && na(n, a), Ma(r) || Fa(r) || _o(r, () => {})) return;
-          if (r.key.length === 1 && !r.metaKey && !r.ctrlKey && !r.altKey && Ia(r.key)) {
+          }), i && recordPartialLineSelection(n, a), handleTableSelectionDelete(r) || deleteExpandedSelectionFromKey(r) || handleUndoRedoKeys(r, () => {})) return;
+          if (r.key.length === 1 && !r.metaKey && !r.ctrlKey && !r.altKey && replaceSelectionWithText(r.key)) {
             r.preventDefault(), r.stopPropagation();
             return;
           }
           let o = r.key === `Enter` && !r.metaKey && !r.ctrlKey && !r.altKey;
-          if (o && r.shiftKey && Ia(`
+          if (o && r.shiftKey && replaceSelectionWithText(`
   `)) {
             r.preventDefault(), r.stopPropagation();
             return;
           }
-          let s = Sf(r.currentTarget),
-            c = {
+          let s = elementToPlainText(r.currentTarget),
+            c: DocxLocation = {
               kind: `paragraph`,
               nodeIndex: n
             },
-            l = Wa(r.currentTarget) ?? (() => {
-              let t = e.activeTextRange ? ff(e.activeTextRange) : void 0;
-              if (!t || !ax(t.start.location, c) || !ax(t.end.location, c)) return;
+            l = selectionOffsetsInHost(r.currentTarget) ?? (() => {
+              let t = e.activeTextRange ? normalizeTextRange(e.activeTextRange) : void 0;
+              if (!t || !sameLocationContract(t.start.location, c) || !sameLocationContract(t.end.location, c)) return;
               let n = Math.max(0, Math.min(Math.round(t.start.offset), s.length));
               return {
                 start: n,
                 end: Math.max(n, Math.min(Math.round(t.end.offset), s.length))
               };
             })(),
-            u = Qv(t, s),
+            u = isNumberedParagraph(t, s),
             d = l !== void 0 && l.start === l.end,
             f = l?.start ?? -1,
-            p = Xv(t) ? 0 : ey(s),
+            p = paragraphHasNumbering(t) ? 0 : listPrefixLength(s),
             m = (r.key === `Backspace` || r.key === `Delete`) && !r.metaKey && !r.ctrlKey && !r.altKey && !r.shiftKey;
           if ((r.key === `ArrowUp` || r.key === `ArrowDown`) && !r.metaKey && !r.ctrlKey && !r.altKey && !r.shiftKey && d && f >= 0) {
             if (r.key === `ArrowUp` && f === 0) {
               let t;
               for (let r = n - 1; r >= 0; --r) {
-                let n = px(e.model, r);
+                let n = previousEditableParagraphLocation(e.model, r);
                 if (n) {
                   t = n;
                   break;
                 }
               }
-              let i = t ? Fx(e.model, t).paragraph : void 0;
+              let i = t ? resolveLocation(e.model, t).paragraph : void 0;
               if (t && i) {
                 r.preventDefault(), r.stopPropagation(), be.current = void 0;
-                let e = Ga(r.currentTarget);
-                if (e && Ha(t, e, 0)) return;
-                Va(t, 0);
+                let e = caretPointOfCollapsed(r.currentTarget);
+                if (e && placeCaretAtPointInLocation(t, e, 0)) return;
+                focusLocationAtOffset(t, 0);
                 return;
               }
             }
             if (r.key === `ArrowDown` && f === s.length) {
-              let t = mx(e.model, c),
-                n = t ? Fx(e.model, t).paragraph : void 0;
+              let t = nextEditableParagraphLocation(e.model, c),
+                n = t ? resolveLocation(e.model, t).paragraph : void 0;
               if (t && n) {
                 r.preventDefault(), r.stopPropagation(), be.current = void 0;
-                let e = Ga(r.currentTarget),
-                  i = _f(n).length;
-                if (e && Ha(t, e, i)) return;
-                Va(t, _f(n).length);
+                let e = caretPointOfCollapsed(r.currentTarget),
+                  i = paragraphText(n).length;
+                if (e && placeCaretAtPointInLocation(t, e, i)) return;
+                focusLocationAtOffset(t, paragraphText(n).length);
                 return;
               }
             }
@@ -2849,45 +2892,45 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             if (r.key === `Backspace` && f === 0) {
               let t;
               for (let r = n - 1; r >= 0; --r) {
-                let n = px(e.model, r);
+                let n = previousEditableParagraphLocation(e.model, r);
                 if (n) {
                   t = n;
                   break;
                 }
               }
-              let i = t ? Fx(e.model, t).paragraph : void 0;
+              let i = t ? resolveLocation(e.model, t).paragraph : void 0;
               if (t && i) {
                 r.preventDefault(), r.stopPropagation(), be.current = void 0;
                 let n = e.deleteExpandedSelection({
                   start: {
-                    location: xx(t),
-                    offset: _f(i).length
+                    location: cloneLocationContract(t),
+                    offset: paragraphText(i).length
                   },
                   end: {
-                    location: xx(c),
+                    location: cloneLocationContract(c),
                     offset: 0
                   }
                 });
-                n && ca(n);
+                n && restoreSelectionAfterEdit(n);
                 return;
               }
             }
             if (r.key === `Delete` && f === s.length) {
-              let t = mx(e.model, c),
-                n = t ? Fx(e.model, t).paragraph : void 0;
+              let t = nextEditableParagraphLocation(e.model, c),
+                n = t ? resolveLocation(e.model, t).paragraph : void 0;
               if (t && n) {
                 r.preventDefault(), r.stopPropagation(), be.current = void 0;
                 let n = e.deleteExpandedSelection({
                   start: {
-                    location: xx(c),
+                    location: cloneLocationContract(c),
                     offset: s.length
                   },
                   end: {
-                    location: xx(t),
+                    location: cloneLocationContract(t),
                     offset: 0
                   }
                 });
-                n && ca(n);
+                n && restoreSelectionAfterEdit(n);
                 return;
               }
             }
@@ -2895,11 +2938,11 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           if (r.key === `Backspace` && !r.metaKey && !r.ctrlKey && !r.altKey && !r.shiftKey && u && d && f >= 0 && f <= p) {
             let i = e.adjustSelectedListDepth(-1, s);
             if (!i) {
-              let n = Zv(t, e.model.metadata.numberingDefinitions);
+              let n = numberingKindOf(t, e.model.metadata.numberingDefinitions);
               n && (e.toggleList(n), i = !0);
             }
             if (i) {
-              r.preventDefault(), r.stopPropagation(), be.current = void 0, za(n, 0);
+              r.preventDefault(), r.stopPropagation(), be.current = void 0, focusParagraphAtOffset(n, 0);
               return;
             }
           }
@@ -2909,11 +2952,11 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               i = Math.max(t, Math.min(l?.end ?? t, s.length)),
               a = `${s.slice(0, t)}
   ${s.slice(i)}`;
-            be.current = void 0, e.commitParagraphText(n, a), za(n, t + 1);
+            be.current = void 0, e.commitParagraphText(n, a), focusParagraphAtOffset(n, t + 1);
             return;
           }
           if (r.key === `Tab` && !r.metaKey && !r.ctrlKey && !r.altKey && u) {
-            r.preventDefault(), e.adjustSelectedListDepth(r.shiftKey ? -1 : 1, s) && (be.current = void 0, za(n, l?.end ?? s.length));
+            r.preventDefault(), e.adjustSelectedListDepth(r.shiftKey ? -1 : 1, s) && (be.current = void 0, focusParagraphAtOffset(n, l?.end ?? s.length));
             return;
           }
           if (r.key === `Enter` && !r.shiftKey && u) {
@@ -2925,7 +2968,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               kind: `paragraph`,
               nodeIndex: n
             });
-            a !== void 0 && za(a.paragraphIndex, a.caretOffset);
+            a !== void 0 && focusParagraphAtOffset(a.paragraphIndex, a.caretOffset);
             return;
           }
           if (o && !r.shiftKey && !u) {
@@ -2937,30 +2980,30 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               kind: `paragraph`,
               nodeIndex: n
             });
-            a !== void 0 && za(a.paragraphIndex, a.caretOffset);
+            a !== void 0 && focusParagraphAtOffset(a.paragraphIndex, a.caretOffset);
             return;
           }
         }} onBlur={r => {
           if (H && xe.current) {
             xe.current = !1;
-            let i = Sf(r.currentTarget);
-            i !== _f(t) && (e.suppressNextDomSelectionRestore(), e.commitParagraphText(n, i));
+            let i = elementToPlainText(r.currentTarget);
+            i !== paragraphText(t) && (e.suppressNextDomSelectionRestore(), e.commitParagraphText(n, i));
           }
         }}>{H ? null : Y}</div>;
       }
       let l = i ? Math.max(0, Math.round(i.startOffsetPx)) : 0,
-        u = i && l > 0 ? kc : 0,
-        d = i ? kc : 0,
+        u = i && l > 0 ? KEY_CODE_MIN_LAYOUT : 0,
+        d = i ? KEY_CODE_MIN_LAYOUT : 0,
         f = o?.pageLayout ?? Hn,
-        m = t.style?.floating && !r && !i ? Sy(t, c, {
-          tableWidthPx: xy(t, c),
+        m = t.style?.floating && !r && !i ? floatingTableLayout(t, c, {
+          tableWidthPx: floatingTableWidthPx(t, c),
           tableHeightPx: 0,
-          indentPx: ld(t.style?.indentTwips) ?? 0,
+          indentPx: twipsToPxRounded(t.style?.indentTwips) ?? 0,
           flowTopPx: o?.pageFlowTopPx ?? 0,
           pageMarginTopPx: f.marginsPx.top,
           pageMarginLeftPx: f.marginsPx.left
         }) : void 0,
-        h = <div key={r ? `node-${n}-rows-${r.startRowIndex}-${r.endRowIndex}${i ? `-slice-${Math.max(0, Math.round(i.startOffsetPx))}-${Math.max(pc, Math.round(i.sliceHeightPx))}` : ``}` : `node-${n}`} ref={e => {
+        h = <div key={r ? `node-${n}-rows-${r.startRowIndex}-${r.endRowIndex}${i ? `-slice-${Math.max(0, Math.round(i.startOffsetPx))}-${Math.max(MIN_BLOCK_HEIGHT_PX, Math.round(i.sliceHeightPx))}` : ``}` : `node-${n}`} ref={e => {
           (!r || r.startRowIndex === 0) && (e ? G.current.set(n, e) : G.current.delete(n));
         }} style={{
           ...(m ? {
@@ -2969,14 +3012,14 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             top: m.topPx,
             maxWidth: c,
             zIndex: 2
-          } : Cy(t, ld(t.style?.indentTwips) ?? 0)),
+          } : floatingTableStyle(t, twipsToPxRounded(t.style?.indentTwips) ?? 0)),
           ...(mn?.tableIndex === n ? {
             transform: `translate(${mn.deltaX}px, ${mn.deltaY}px)`,
             zIndex: 30,
             opacity: 0.9
           } : void 0),
           ...(i ? {
-            height: Math.max(pc, Math.round(i.sliceHeightPx) + u + d),
+            height: Math.max(MIN_BLOCK_HEIGHT_PX, Math.round(i.sliceHeightPx) + u + d),
             paddingTop: u,
             paddingBottom: d,
             boxSizing: `border-box`,
@@ -2985,27 +3028,27 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         }} onPointerEnter={() => {
           k || Qt(n);
         }} onPointerLeave={e => {
-          if (k || cn.current?.tableIndex === n || zi(n, e.clientX, e.clientY)) return;
+          if (k || cn.current?.tableIndex === n || tableHitTest(n, e.clientX, e.clientY)) return;
           let t = e.relatedTarget;
           t instanceof Node && e.currentTarget.contains(t) || Qt((e: any) => e === n ? void 0 : e);
         }}>{(() => {
-            let a = ld(t.style?.indentTwips) ?? 0,
-              o = yy(t),
-              l = ub(t, o),
+            let a = twipsToPxRounded(t.style?.indentTwips) ?? 0,
+              o = tableMaxColumnCount(t),
+              l = tableOuterBorderWidthPx(t, o),
               u = Math.max(120, c - a - l),
-              d = Br(t.style?.widthTwips),
+              d = twipsToPxNonNegative(t.style?.widthTwips),
               f = (Qe[n]?.length ?? 0) === o,
               m = yo(n, t, d),
-              h = Ny(f ? m.reduce((e: any, t: any) => e + t, 0) : d ?? m.reduce((e: any, t: any) => e + t, 0), u),
-              g = Jy(t),
+              h = clampTableContentWidthPx(f ? m.reduce((e: any, t: any) => e + t, 0) : d ?? m.reduce((e: any, t: any) => e + t, 0), u),
+              g = tableBorderSpacingPx(t),
               {
                 columnWidthsPx: _,
                 effectiveColumnCount: v
-              } = Iy(t, m, qy(t) ? Math.max(1, h - g * Math.max(0, o + 1)) : h),
-              y = bo(n, t),
+              } = effectiveColumnWidthsPx(t, m, tableUsesCellBorders(t) ? Math.max(1, h - g * Math.max(0, o + 1)) : h),
+              y = resolveRowHeightsRender(n, t),
               b = t.style?.cellMarginTwips,
               x = t.style?.borders,
-              S = Qh(t),
+              S = tableIsTableGrid(t),
               C = Math.max(0, r?.startRowIndex ?? 0),
               w = Math.min(t.rows.length, r?.endRowIndex ?? t.rows.length),
               T = t.rows.slice(C, w),
@@ -3017,7 +3060,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               N = !O && Vt?.tableIndex === n,
               P = cn.current?.tableIndex === n,
               F = gn?.tableIndex === n,
-              L = e.selection.kind === `table-cell` && e.selection.tableIndex === n || un?.tableIndex === n || af(e.activeTextRange, n),
+              L = e.selection.kind === `table-cell` && e.selection.tableIndex === n || un?.tableIndex === n || rangeTouchesTable(e.activeTextRange, n),
               z = !k && !E && (Zt === n || L || P || M || N || A || F),
               V = _.reduce((e: any, t: any) => {
                 let n = e[e.length - 1] ?? 0;
@@ -3046,26 +3089,26 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               };
             return <>{z ? <><span contentEditable={!1} data-docx-pagination-ignore="true" style={{
                   position: `absolute`,
-                  top: -bu,
-                  left: -xu,
-                  width: xu,
-                  height: bu,
+                  top: -TABLE_RESIZE_HIT_TOP_PX,
+                  left: -TABLE_RESIZE_HIT_RIGHT_PX,
+                  width: TABLE_RESIZE_HIT_RIGHT_PX,
+                  height: TABLE_RESIZE_HIT_TOP_PX,
                   backgroundColor: `transparent`,
                   zIndex: 4
                 }} onPointerEnter={() => Qt(n)} onMouseEnter={() => Qt(n)} /><span contentEditable={!1} data-docx-pagination-ignore="true" style={{
                   position: `absolute`,
-                  right: -Su,
-                  bottom: -Cu,
-                  width: hu + Su,
-                  height: hu + Cu,
+                  right: -TABLE_CORNER_HIT_INSET_PX,
+                  bottom: -TABLE_CORNER_HIT_SIZE_PX,
+                  width: TABLE_HANDLE_HIT_PX + TABLE_CORNER_HIT_INSET_PX,
+                  height: TABLE_HANDLE_HIT_PX + TABLE_CORNER_HIT_SIZE_PX,
                   backgroundColor: `transparent`,
                   zIndex: 4
                 }} onPointerEnter={() => Qt(n)} onMouseEnter={() => Qt(n)} /></> : null}{W ? <span contentEditable={!1} data-docx-table-move-handle="true" title="Select or drag to move table" style={{
                 position: `absolute`,
-                top: -vu - 4,
-                left: -vu - 4,
-                width: vu,
-                height: vu,
+                top: -TABLE_RESIZE_HANDLE_PX - 4,
+                left: -TABLE_RESIZE_HANDLE_PX - 4,
+                width: TABLE_RESIZE_HANDLE_PX,
+                height: TABLE_RESIZE_HANDLE_PX,
                 display: `grid`,
                 placeItems: `center`,
                 cursor: `move`,
@@ -3073,20 +3116,20 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                 touchAction: `none`,
                 userSelect: `none`
               }} onPointerDown={e => {
-                Gi(e, n);
+                beginTableMove(e, n);
               }} onContextMenu={e => {
                 e.preventDefault(), e.stopPropagation();
-                let t = Qi(n, 0, 0);
-                Ui(n), Yi(t, {
+                let t = resolveTableMenuCell(n, 0, 0);
+                selectWholeTable(n), openTableContextMenu(t, {
                   x: e.clientX,
                   y: e.clientY
                 });
               }}><span style={{
-                  ...Du,
+                  ...TABLE_MOVE_HANDLE_STYLE,
                   ...oe
                 }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2v20" /><path d="m7 7 5-5 5 5" /><path d="m7 17 5 5 5-5" /><path d="M2 12h20" /><path d="m7 7-5 5 5 5" /><path d="m17 7 5 5-5 5" /></svg></span></span> : null}<table style={{
                 width: h > 0 ? `${h}px` : `100%`,
-                ...Yy(t, g),
+                ...tableBorderCollapseStyle(t, g),
                 tableLayout: t.style?.layout === `autofit` ? `auto` : `fixed`
               }}><colgroup>{_.map((e: any, t: any) => <col key={`table-col-${n}-${t}`} style={{
                     width: `${e}px`
@@ -3096,20 +3139,20 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                       u = y[c],
                       d = st[n]?.[c] !== void 0,
                       f = typeof u == `number` && Number.isFinite(u) && u > 0,
-                      m = l && i ? Math.max(pc, Math.round(i.sliceHeightPx)) : void 0,
+                      m = l && i ? Math.max(MIN_BLOCK_HEIGHT_PX, Math.round(i.sliceHeightPx)) : void 0,
                       h = m ? {
                         height: `${m}px`,
                         maxHeight: `${m}px`,
                         overflow: `hidden`
-                      } : f ? tg(r, u) : void 0,
+                      } : f ? tableRowStyle(r, u) : void 0,
                       g = 0;
                     return <tr key={`row-${n}-${c}`} data-docx-table-index={n} data-docx-row-index={c} data-docx-row-sliced={l ? `true` : void 0} style={h}>{r.cells.map((a: any, m: any) => {
-                        rf(un, n, c, m);
-                        let v = kb(e.selection, n, c, m),
-                          C = !!(un && un.tableIndex === n && !tf(un)),
-                          w = jf(a.nodes),
-                          T = Mf(a.nodes),
-                          E = Nf(a.nodes),
+                        cellSelectionContains(un, n, c, m);
+                        let v = selectionCoversCell(e.selection, n, c, m),
+                          C = !!(un && un.tableIndex === n && !isCollapsedCellSelection(un)),
+                          w = paragraphsOf(a.nodes),
+                          T = collectParagraphsRecursive(a.nodes),
+                          E = nodesContainImage(a.nodes),
                           O = v && !l && !C && !E && !k && w.length > 0,
                           A = new Map();
                         T.forEach((e: any, t: any) => {
@@ -3120,12 +3163,12 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                             draftKeyPrefix: `${n}:${c}:${m}`,
                             paragraphIndexesByNode: A,
                             handlers: {
-                              registerElement: Xa,
-                              readDraftHtml: Za,
-                              writeDraftHtml: Qa,
-                              clearDraftHtml: eo,
+                              registerElement: registerCellDraftElement,
+                              readDraftHtml: cellParagraphDraftElement,
+                              writeDraftHtml: registerCellParagraphDraftElement,
+                              clearDraftHtml: unregisterCellParagraphDraftElement,
                               commitText: (e: any, t: any) => {
-                                no(n, c, m, e, t);
+                                commitCellParagraphDraft(n, c, m, e, t);
                               }
                             }
                           } : void 0,
@@ -3140,19 +3183,19 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                           ne = U.length > 0 && U.every((e: any, t: any) => {
                             let n = y[c + t];
                             return e.style?.heightRule === `exact` && Number.isFinite(n) && n > 0;
-                          }) ? U.reduce((e: any, t: any, n: any) => e + Math.max(pc, Math.round(y[c + n])), 0) : void 0,
+                          }) ? U.reduce((e: any, t: any, n: any) => e + Math.max(MIN_BLOCK_HEIGHT_PX, Math.round(y[c + n])), 0) : void 0,
                           re = g,
                           ie = re + L - 1;
                         if (g += L, a.style?.vMergeContinuation) return null;
-                        let W = Br(a.style?.widthTwips),
+                        let W = twipsToPxNonNegative(a.style?.widthTwips),
                           oe = _.slice(re, re + L).reduce((e: any, t: any) => e + t, 0),
                           G = a.style?.backgroundColor ?? r.style?.backgroundColor,
                           K = d || f,
-                          se = zy(b, a.style?.marginTwips),
-                          ce = Ly(se),
+                          se = effectiveCellMarginTwips(b, a.style?.marginTwips),
+                          ce = cellMarginsPx(se),
                           le = Math.max(1, (W ?? oe) - ce.left - ce.right),
-                          q = Math.max(pc, Math.round(te[c] ?? u ?? pc)),
-                          ue = l && i ? Math.max(pc, Math.round(i.sliceHeightPx)) : void 0,
+                          q = Math.max(MIN_BLOCK_HEIGHT_PX, Math.round(te[c] ?? u ?? MIN_BLOCK_HEIGHT_PX)),
+                          ue = l && i ? Math.max(MIN_BLOCK_HEIGHT_PX, Math.round(i.sliceHeightPx)) : void 0,
                           J = l && i && !O && ue ? us({
                             cell: a,
                             rowHeightPx: q,
@@ -3168,7 +3211,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                             return a.nodes.map((r: any, i: any) => {
                               if (r.type === `paragraph`) {
                                 let a = t;
-                                return t += 1, <div key={`active-cell-p-${n}-${c}-${m}-${i}`} data-docx-paragraph-host="true" data-docx-paragraph-kind="table-cell" data-docx-table-index={n} data-docx-row-index={c} data-docx-cell-index={m} data-docx-paragraph-index={a} data-docx-table-paragraph-index={a} style={f_(r, e.model.metadata.numberingDefinitions, p, a, S, s)}>{Xo(r, `active-cell-${n}-${c}-${m}-${i}`, {
+                                return t += 1, <div key={`active-cell-p-${n}-${c}-${m}-${i}`} data-docx-paragraph-host="true" data-docx-paragraph-kind="table-cell" data-docx-table-index={n} data-docx-row-index={c} data-docx-cell-index={m} data-docx-paragraph-index={a} data-docx-table-paragraph-index={a} style={paragraphHostStyle(r, e.model.metadata.numberingDefinitions, p, a, S, s)}>{Xo(r, `active-cell-${n}-${c}-${m}-${i}`, {
                                     kind: `table-cell`,
                                     tableIndex: n,
                                     rowIndex: c,
@@ -3176,17 +3219,17 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                                     paragraphIndex: a
                                   })}</div>;
                               }
-                              return <div key={`active-cell-nested-${n}-${c}-${m}-${i}`} contentEditable={!1} suppressContentEditableWarning={!0}>{TS(r, `active-cell-nested-table-${n}-${c}-${m}-${i}`, j, e.model.metadata.numberingDefinitions, p, oe > 0 ? oe : void 0, Pi, void 0, void 0, void 0, void 0, I, void 0, void 0, void 0, void 0, Ko)}</div>;
+                              return <div key={`active-cell-nested-${n}-${c}-${m}-${i}`} contentEditable={!1} suppressContentEditableWarning={!0}>{renderSectionNode(r, `active-cell-nested-table-${n}-${c}-${m}-${i}`, j, e.model.metadata.numberingDefinitions, p, oe > 0 ? oe : void 0, Pi, void 0, void 0, void 0, void 0, I, void 0, void 0, void 0, void 0, Ko)}</div>;
                             });
                           })() : void 0,
                           Y = R.current.get(N),
-                          X = O ? typeof Y == `string` ? Y : Ef(de) : void 0,
+                          X = O ? typeof Y == `string` ? Y : renderStaticMarkup(de) : void 0,
                           pe = () => {
                             let t = 0;
                             return a.nodes.map((r: any, i: any) => {
                               if (r.type === `paragraph`) {
                                 let a = t;
-                                return t += 1, <div key={`body-cell-p-${n}-${c}-${m}-${i}`} data-docx-paragraph-host="true" data-docx-paragraph-kind="table-cell" data-docx-table-index={n} data-docx-row-index={c} data-docx-cell-index={m} data-docx-paragraph-index={a} data-docx-table-paragraph-index={a} style={f_(r, e.model.metadata.numberingDefinitions, p, a, S, s)}>{Xo(r, `body-cell-${n}-${c}-${m}-${i}`, {
+                                return t += 1, <div key={`body-cell-p-${n}-${c}-${m}-${i}`} data-docx-paragraph-host="true" data-docx-paragraph-kind="table-cell" data-docx-table-index={n} data-docx-row-index={c} data-docx-cell-index={m} data-docx-paragraph-index={a} data-docx-table-paragraph-index={a} style={paragraphHostStyle(r, e.model.metadata.numberingDefinitions, p, a, S, s)}>{Xo(r, `body-cell-${n}-${c}-${m}-${i}`, {
                                     kind: `table-cell`,
                                     tableIndex: n,
                                     rowIndex: c,
@@ -3194,13 +3237,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                                     paragraphIndex: a
                                   })}</div>;
                               }
-                              return TS(r, `body-cell-nested-table-${n}-${c}-${m}-${i}`, j, e.model.metadata.numberingDefinitions, p, oe > 0 ? oe : void 0, Pi, void 0, void 0, void 0, void 0, I, void 0, void 0, M, void 0, Ko);
+                              return renderSectionNode(r, `body-cell-nested-table-${n}-${c}-${m}-${i}`, j, e.model.metadata.numberingDefinitions, p, oe > 0 ? oe : void 0, Pi, void 0, void 0, void 0, void 0, I, void 0, void 0, M, void 0, Ko);
                             });
                           };
                         return <td key={`cell-${n}-${c}-${m}`} data-docx-table-cell="true" data-docx-table-index={n} data-docx-row-index={c} data-docx-row-sliced={l ? `true` : void 0} data-docx-cell-index={m} colSpan={V} rowSpan={H} style={{
-                          ...lb(x, a.style?.borders, c, t.rows.length, re, ie, o),
-                          ...db(x, a.style?.borders),
-                          ...Ry(se),
+                          ...cellBorderCss(x, a.style?.borders, c, t.rows.length, re, ie, o),
+                          ...diagonalBordersBackground(x, a.style?.borders),
+                          ...cellPaddingStyle(se),
                           backgroundColor: G,
                           verticalAlign: a.style?.verticalAlign ?? `top`,
                           minWidth: W ? `${W}px` : oe > 0 ? `${oe}px` : 0,
@@ -3211,12 +3254,12 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                           wordBreak: `break-word`,
                           position: `relative`
                         }} onClick={t => {
-                          if (k || (t.target instanceof Element ? t.target : t.target instanceof Node ? t.target.parentElement : null)?.closest(`[data-docx-cell-key='${P}']`) || Sm(t.target)) return;
+                          if (k || (t.target instanceof Element ? t.target : t.target instanceof Node ? t.target.parentElement : null)?.closest(`[data-docx-cell-key='${P}']`) || isTableCellParagraphHost(t.target as Element)) return;
                           if (ln.current) {
                             ln.current = !1, t.preventDefault(), t.stopPropagation();
                             return;
                           }
-                          Ri(), Li(n, c, m), e.selectTableCell(n, c, m);
+                          clearTableSelection(), setTableSelectionAnchor(n, c, m), e.selectTableCell(n, c, m);
                           let r = {
                               x: t.clientX,
                               y: t.clientY
@@ -3246,10 +3289,10 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                                   a = Math.abs(r.y - (n.top + n.height / 2));
                                 return Math.abs(r.y - (i.top + i.height / 2)) < a ? t : e;
                               }, i[0]) : void 0;
-                            $i(a ?? o ?? s ?? e, r), qa(e, n, c, m);
+                            placeCaretInHost(a ?? o ?? s ?? e, r), syncTableCellTextRange(e, n, c, m);
                           });
                         }} onContextMenu={t => {
-                          k || xm(t.target) || Sm(t.target) || (t.preventDefault(), t.stopPropagation(), Ri(), Li(n, c, m), e.selectTableCell(n, c, m), Yi({
+                          k || isInteractiveElement(t.target as Element) || isTableCellParagraphHost(t.target as Element) || (t.preventDefault(), t.stopPropagation(), clearTableSelection(), setTableSelectionAnchor(n, c, m), e.selectTableCell(n, c, m), openTableContextMenu({
                             tableIndex: n,
                             rowIndex: c,
                             cellIndex: m
@@ -3263,18 +3306,18 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                             fe.current = void 0;
                             return;
                           }
-                          if (Sm(e.target) || e.button !== 0 && e.button !== void 0 || xm(e.target)) return;
-                          let t = fa({
+                          if (isTableCellParagraphHost(e.target as Element) || e.button !== 0 && e.button !== void 0 || isInteractiveElement(e.target as Element)) return;
+                          let t = boundaryAtPoint({
                             x: e.clientX,
                             y: e.clientY
                           });
-                          ka(e.pointerId, {
+                          beginTableCellDragSelection(e.pointerId, {
                             tableIndex: n,
                             rowIndex: c,
                             cellIndex: m
                           }, e.clientX, e.clientY, t);
                           let r = t?.location.kind === `table-cell` && t.location.tableIndex === n && t.location.rowIndex === c && t.location.cellIndex === m ? {
-                              location: xx(t.location),
+                              location: cloneLocationContract(t.location),
                               offset: t.offset
                             } : void 0,
                             i = `[data-docx-paragraph-kind='table-cell'][data-docx-table-index='${n}'][data-docx-row-index='${c}'][data-docx-cell-index='${m}'][data-docx-table-paragraph-index]`,
@@ -3308,27 +3351,27 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                             wordWrap: `break-word`,
                             overflowWrap: `break-word`,
                             wordBreak: `break-word`
-                          }} dangerouslySetInnerHTML={X ? kx(B.current, N, X) : void 0} ref={t => {
+                          }} dangerouslySetInnerHTML={X ? htmlInsertionContract(B.current, N, X) : void 0} ref={t => {
                             if (t ? ae.current.set(N, t) : ae.current.delete(N), !t || !O) return;
                             let r = R.current.get(N);
                             if (!xe.current && typeof r == `string`) {
                               let i = r;
-                              Ru(() => {
+                              scheduleFrame(() => {
                                 if (!t!.isConnected || xe.current || R.current.get(N) !== i) return;
                                 if (t!.innerHTML !== i) {
                                   let e = document.activeElement,
                                     n = e === t || e instanceof Element && t!.contains(e),
-                                    r = n ? Wa(t) : void 0;
+                                    r = n ? selectionOffsetsInHost(t) : void 0;
                                   if (t!.innerHTML = i, n) if (r) {
-                                    let e = Cf(t).length,
+                                    let e = elementToClipboardText(t!).length,
                                       n = Math.max(0, Math.min(r.start, e));
-                                    ea(t, n, Math.max(n, Math.min(r.end, e)));
-                                  } else $i(t);
+                                    setTextRangeInElement(t, n, Math.max(n, Math.min(r.end, e)));
+                                  } else placeCaretInHost(t);
                                 }
                                 let r = e.model.nodes[n];
                                 if (!r || r.type !== `table`) return;
                                 let a = r.rows[c]?.cells[m];
-                                a && Cf(t) === vy(jf(a.nodes)) && R.current.delete(N);
+                                a && elementToClipboardText(t!) === cellParagraphsSignature(paragraphsOf(a.nodes)) && R.current.delete(N);
                               });
                             }
                             let i = fe.current;
@@ -3354,11 +3397,11 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                                     return Math.abs(e.point.y - (i.top + i.height / 2)) < a ? n : t;
                                   }, s[0]) : void 0,
                                   d = a ?? l ?? u;
-                                i && r ? sa(r, r) : d ? $i(d, e.point) : e.point ? $i(t, e.point) : $i(t), qa(t, n, c, m), fe.current = void 0;
+                                i && r ? applyDomSelection(r, r) : d ? placeCaretInHost(d, e.point) : e.point ? placeCaretInHost(t, e.point) : placeCaretInHost(t), syncTableCellTextRange(t, n, c, m), fe.current = void 0;
                               });
                             }
                           }} onInput={t => {
-                            if (ya(), (t.nativeEvent as any)?.isComposing || xe.current) {
+                            if (cancelPointerSession(), (t.nativeEvent as any)?.isComposing || xe.current) {
                               e.beginSelectionSession(`composition`);
                               return;
                             }
@@ -3371,15 +3414,15 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                             let r = Ka(t.currentTarget),
                               i = r ? w[r.paragraphIndex] : void 0;
                             if (!r || !i) return;
-                            let a = Sf(r.paragraphElement);
-                            if (a === _f(i)) return;
+                            let a = elementToPlainText(r.paragraphElement);
+                            if (a === paragraphText(i)) return;
                             let o = `c:${n}:${c}:${m}:${r.paragraphIndex}`,
                               s = be.current;
                             if (s && s.key === o && s.text !== a) return;
                             e.beginSelectionSession(`keyboard`, {
                               settleAfterMs: 220
                             }), Pn();
-                            let l = Wa(r.paragraphElement),
+                            let l = selectionOffsetsInHost(r.paragraphElement),
                               u = l?.end ?? a.length;
                             e.commitParagraphTextAtRange({
                               kind: `table-cell`,
@@ -3396,7 +3439,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                               caret: u
                             };
                           }} onCompositionStart={() => {
-                            ya(), xe.current = !0, e.beginSelectionSession(`composition`);
+                            cancelPointerSession(), xe.current = !0, e.beginSelectionSession(`composition`);
                           }} onCompositionEnd={t => {
                             if (xe.current = !1, e.beginSelectionSession(`keyboard`, {
                               settleAfterMs: 260
@@ -3406,8 +3449,8 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                             }
                             let r = Ka(t.currentTarget);
                             if (r && w[r.paragraphIndex]) {
-                              let t = Sf(r.paragraphElement),
-                                i = Wa(r.paragraphElement),
+                              let t = elementToPlainText(r.paragraphElement),
+                                i = selectionOffsetsInHost(r.paragraphElement),
                                 a = i?.end ?? t.length;
                               e.commitParagraphTextAtRange({
                                 kind: `table-cell`,
@@ -3425,9 +3468,9 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                               };
                               return;
                             }
-                            e.commitTableCellText(n, c, m, Cf(t.currentTarget));
+                            e.commitTableCellText(n, c, m, elementToClipboardText(t.currentTarget));
                           }} onClick={e => {
-                            if (xm(e.target) || Sm(e.target) || e.detail > 1) return;
+                            if (isInteractiveElement(e.target as Element) || isTableCellParagraphHost(e.target as Element) || e.detail > 1) return;
                             let t = e.currentTarget,
                               r = `[data-docx-paragraph-kind='table-cell'][data-docx-table-index='${n}'][data-docx-row-index='${c}'][data-docx-cell-index='${m}'][data-docx-table-paragraph-index]`,
                               i = e.target instanceof Element ? e.target : e.target instanceof Node ? e.target.parentElement : null,
@@ -3442,25 +3485,25 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                                   return Math.abs(e.clientY - (i.top + i.height / 2)) < a ? n : t;
                                 }, t[0]);
                               })();
-                            o && va(o, {
+                            o && ensureSelectionAfterTap(o, {
                               x: e.clientX,
                               y: e.clientY
                             }, () => {
-                              qa(t, n, c, m);
+                              syncTableCellTextRange(t, n, c, m);
                             });
                           }} onDoubleClick={e => {
                             let t = e.currentTarget,
                               r = `[data-docx-paragraph-kind='table-cell'][data-docx-table-index='${n}'][data-docx-row-index='${c}'][data-docx-cell-index='${m}'][data-docx-table-paragraph-index]`,
                               i = (e.target instanceof Element ? e.target : e.target instanceof Node ? e.target.parentElement : null)?.closest(r) ?? void 0;
-                            i && va(i, {
+                            i && ensureSelectionAfterTap(i, {
                               x: e.clientX,
                               y: e.clientY
                             }, () => {
-                              qa(t, n, c, m);
+                              syncTableCellTextRange(t, n, c, m);
                             });
                           }} onPaste={e => {
                             let t = e.clipboardData.getData(`text/plain`);
-                            t && Ia(t) && (e.preventDefault(), e.stopPropagation(), R.current.delete(N));
+                            t && replaceSelectionWithText(t) && (e.preventDefault(), e.stopPropagation(), R.current.delete(N));
                           }} onMouseUp={e => {
                             let t = e.currentTarget,
                               r = `[data-docx-paragraph-kind='table-cell'][data-docx-table-index='${n}'][data-docx-row-index='${c}'][data-docx-cell-index='${m}'][data-docx-table-paragraph-index]`,
@@ -3471,33 +3514,33 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                                   a = Math.abs(e.clientY - (r.top + r.height / 2));
                                 return Math.abs(e.clientY - (i.top + i.height / 2)) < a ? n : t;
                               }, i[0]) : void 0;
-                            if (a && ga(a)) {
-                              qa(t, n, c, m), ya();
+                            if (a && hasSelectionInside(a)) {
+                              syncTableCellTextRange(t, n, c, m), cancelPointerSession();
                               return;
                             }
-                            a && va(a, {
+                            a && ensureSelectionAfterTap(a, {
                               x: e.clientX,
                               y: e.clientY
                             }, () => {
-                              qa(t, n, c, m);
+                              syncTableCellTextRange(t, n, c, m);
                             });
                           }} onKeyUp={e => {
-                            jx(e) && qa(e.currentTarget, n, c, m);
+                            isNavigationOrEditKey(e) && syncTableCellTextRange(e.currentTarget, n, c, m);
                           }} onKeyDown={t => {
-                            if (ya(), Ax(t)) {
+                            if (cancelPointerSession(), isCompositionKey(t)) {
                               e.beginSelectionSession(`composition`);
                               return;
                             }
                             if (e.beginSelectionSession(`keyboard`, {
                               settleAfterMs: 220
-                            }), Ma(t) || Fa(t) || _o(t, () => {
-                              F && Ya(n, c, m, w, N, t.currentTarget);
+                            }), handleTableSelectionDelete(t) || deleteExpandedSelectionFromKey(t) || handleUndoRedoKeys(t, () => {
+                              F && commitTableCellDraft(n, c, m, w, N, t.currentTarget);
                             })) return;
-                            if (t.key.length === 1 && !t.metaKey && !t.ctrlKey && !t.altKey && Ia(t.key)) {
+                            if (t.key.length === 1 && !t.metaKey && !t.ctrlKey && !t.altKey && replaceSelectionWithText(t.key)) {
                               t.preventDefault(), t.stopPropagation(), R.current.delete(N);
                               return;
                             }
-                            if (t.key === `Enter` && !t.metaKey && !t.ctrlKey && !t.altKey && Ia(`
+                            if (t.key === `Enter` && !t.metaKey && !t.ctrlKey && !t.altKey && replaceSelectionWithText(`
   `)) {
                               t.preventDefault(), t.stopPropagation(), R.current.delete(N);
                               return;
@@ -3506,9 +3549,9 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                               i = r?.paragraphIndex ?? 0,
                               a = w[i];
                             if (!a || !r?.paragraphElement) return;
-                            let o = Sf(r.paragraphElement),
-                              s = Qv(a, o),
-                              l = Wa(r.paragraphElement),
+                            let o = elementToPlainText(r.paragraphElement),
+                              s = isNumberedParagraph(a, o),
+                              l = selectionOffsetsInHost(r.paragraphElement),
                               u = l !== void 0 && l.start === l.end;
                             if (t.key === `Enter` && !t.metaKey && !t.ctrlKey && !t.altKey && !s) {
                               t.preventDefault(), t.stopPropagation();
@@ -3516,31 +3559,31 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                                 a = Math.max(r, Math.min(l?.end ?? r, o.length)),
                                 s = `${o.slice(0, r)}
   ${o.slice(a)}`;
-                              be.current = void 0, R.current.delete(N), ee.current.delete(Yx(n, c, m, i)), e.commitTableCellParagraphTextRecursive(n, c, m, i, s), Ba(N, i, r + 1);
+                              be.current = void 0, R.current.delete(N), ee.current.delete(cellParagraphDraftKey(n, c, m, i)), e.commitTableCellParagraphTextRecursive(n, c, m, i, s), focusTableCellParagraph(N, i, r + 1);
                               return;
                             }
                             if (t.key === `Backspace` && !t.metaKey && !t.ctrlKey && !t.altKey && !t.shiftKey && s && u && (l?.start ?? -1) === 0) {
                               let n = e.adjustSelectedListDepth(-1, o);
                               if (!n) {
-                                let t = Zv(a, e.model.metadata.numberingDefinitions);
+                                let t = numberingKindOf(a, e.model.metadata.numberingDefinitions);
                                 t && (e.toggleList(t), n = !0);
                               }
                               if (n) {
-                                t.preventDefault(), t.stopPropagation(), be.current = void 0, R.current.delete(N), Ba(N, i, 0);
+                                t.preventDefault(), t.stopPropagation(), be.current = void 0, R.current.delete(N), focusTableCellParagraph(N, i, 0);
                                 return;
                               }
                             }
-                            t.key === `Tab` && !t.metaKey && !t.ctrlKey && !t.altKey && s && (t.preventDefault(), e.adjustSelectedListDepth(t.shiftKey ? -1 : 1, o) && (be.current = void 0, R.current.delete(N), Ba(N, i, l?.end ?? o.length)));
+                            t.key === `Tab` && !t.metaKey && !t.ctrlKey && !t.altKey && s && (t.preventDefault(), e.adjustSelectedListDepth(t.shiftKey ? -1 : 1, o) && (be.current = void 0, R.current.delete(N), focusTableCellParagraph(N, i, l?.end ?? o.length)));
                           }} onBlur={t => {
                             if (!F) {
                               if (xe.current) {
                                 xe.current = !1;
-                                let r = Cf(t.currentTarget);
-                                r !== vy(w) && (e.suppressNextDomSelectionRestore(), e.commitTableCellText(n, c, m, r));
+                                let r = elementToClipboardText(t.currentTarget);
+                                r !== cellParagraphsSignature(w) && (e.suppressNextDomSelectionRestore(), e.commitTableCellText(n, c, m, r));
                               }
                               return;
                             }
-                            xe.current && (xe.current = !1, R.current.set(N, t.currentTarget.innerHTML)), R.current.has(N) && Ya(n, c, m, w, N, t.currentTarget);
+                            xe.current && (xe.current = !1, R.current.set(N, t.currentTarget.innerHTML)), R.current.has(N) && commitTableCellDraft(n, c, m, w, N, t.currentTarget);
                           }} /> : J && ue ? <div style={{
                             position: `relative`,
                             height: ue,
@@ -3592,8 +3635,8 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                   position: `absolute`,
                   top: 0,
                   bottom: 0,
-                  left: `${i - hu / 2 + wu}px`,
-                  width: hu,
+                  left: `${i - TABLE_HANDLE_HIT_PX / 2 + TABLE_HANDLE_LINE_OFFSET_PX}px`,
+                  width: TABLE_HANDLE_HIT_PX,
                   cursor: `col-resize`,
                   zIndex: 5,
                   touchAction: `none`,
@@ -3614,20 +3657,20 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                 }} onContextMenu={t => {
                   if (k) return;
                   t.preventDefault(), t.stopPropagation();
-                  let i = Qi(n, 0, r);
-                  Ri(), Li(i.tableIndex, i.rowIndex, i.cellIndex), e.selectTableCell(i.tableIndex, i.rowIndex, i.cellIndex), Yi(i, {
+                  let i = resolveTableMenuCell(n, 0, r);
+                  clearTableSelection(), setTableSelectionAnchor(i.tableIndex, i.rowIndex, i.cellIndex), e.selectTableCell(i.tableIndex, i.rowIndex, i.cellIndex), openTableContextMenu(i, {
                     x: t.clientX,
                     y: t.clientY
                   });
                 }} onPointerDown={e => {
                   let t = e.currentTarget.parentElement?.querySelector(`table`);
-                  To(e, n, r, t ? t.getBoundingClientRect().width : 0, _), Xt(void 0);
+                  beginColumnResize(e, n, r, t ? t.getBoundingClientRect().width : 0, _), Xt(void 0);
                 }}><span style={{
                     position: `absolute`,
                     left: `50%`,
                     top: 0,
                     transform: `translateX(-50%)`,
-                    width: gu,
+                    width: TABLE_HANDLE_LINE_PX,
                     height: `100%`,
                     backgroundColor: s ? `#3b82f6` : `transparent`
                   }} /></span>;
@@ -3641,8 +3684,8 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                   position: `absolute`,
                   left: 0,
                   width: `${h}px`,
-                  top: `${i - hu / 2 + wu}px`,
-                  height: hu,
+                  top: `${i - TABLE_HANDLE_HIT_PX / 2 + TABLE_HANDLE_LINE_OFFSET_PX}px`,
+                  height: TABLE_HANDLE_HIT_PX,
                   cursor: `row-resize`,
                   zIndex: 5,
                   touchAction: `none`,
@@ -3663,15 +3706,15 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                 }} onContextMenu={t => {
                   if (k) return;
                   t.preventDefault(), t.stopPropagation();
-                  let i = Qi(n, r, 0);
-                  Ri(), Li(i.tableIndex, i.rowIndex, i.cellIndex), e.selectTableCell(i.tableIndex, i.rowIndex, i.cellIndex), Yi(i, {
+                  let i = resolveTableMenuCell(n, r, 0);
+                  clearTableSelection(), setTableSelectionAnchor(i.tableIndex, i.rowIndex, i.cellIndex), e.selectTableCell(i.tableIndex, i.rowIndex, i.cellIndex), openTableContextMenu(i, {
                     x: t.clientX,
                     y: t.clientY
                   });
                 }} onPointerDown={e => {
                   let t = e.currentTarget.parentElement?.querySelector(`table`),
-                    i = t ? Array.from(t.querySelectorAll(`tbody > tr`)).map(e => zu(e.getBoundingClientRect().height)) : [];
-                  Eo(e, n, r, i.length > 0 ? i : te), Xt(void 0);
+                    i = t ? Array.from(t.querySelectorAll(`tbody > tr`)).map(e => normalizeMeasuredHeight(e.getBoundingClientRect().height)) : [];
+                  beginRowResize(e, n, r, i.length > 0 ? i : te), Xt(void 0);
                 }}><span style={{
                     position: `absolute`,
                     top: `50%`,
@@ -3679,15 +3722,15 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                     right: 0,
                     transform: `translateY(-50%)`,
                     width: `100%`,
-                    height: gu,
+                    height: TABLE_HANDLE_LINE_PX,
                     backgroundColor: s ? `#3b82f6` : `transparent`
                   }} /></span>;
               }) : null}{z && !O ? <span contentEditable={!1} style={{
                 position: `absolute`,
-                left: `${Math.max(0, h - hu / 2 + wu)}px`,
+                left: `${Math.max(0, h - TABLE_HANDLE_HIT_PX / 2 + TABLE_HANDLE_LINE_OFFSET_PX)}px`,
                 bottom: -8,
-                width: hu,
-                height: hu,
+                width: TABLE_HANDLE_HIT_PX,
+                height: TABLE_HANDLE_HIT_PX,
                 display: `flex`,
                 alignItems: `flex-start`,
                 justifyContent: `flex-start`,
@@ -3698,18 +3741,18 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               }} onPointerDown={e => {
                 let t = e.currentTarget.parentElement?.querySelector(`table`),
                   r = t ? t.getBoundingClientRect().width : 0,
-                  i = t ? Array.from(t.querySelectorAll(`tbody > tr`)).map(e => zu(e.getBoundingClientRect().height)) : [];
+                  i = t ? Array.from(t.querySelectorAll(`tbody > tr`)).map(e => normalizeMeasuredHeight(e.getBoundingClientRect().height)) : [];
                 Uo(e, n, r, _, i.length > 0 ? i : y.map((e: any) => e ?? 24), u);
               }} onContextMenu={t => {
                 if (k) return;
                 t.preventDefault(), t.stopPropagation();
-                let r = Qi(n, 0, 0);
-                Ri(), Li(r.tableIndex, r.rowIndex, r.cellIndex), e.selectTableCell(r.tableIndex, r.rowIndex, r.cellIndex), Yi(r, {
+                let r = resolveTableMenuCell(n, 0, 0);
+                clearTableSelection(), setTableSelectionAnchor(r.tableIndex, r.rowIndex, r.cellIndex), e.selectTableCell(r.tableIndex, r.rowIndex, r.cellIndex), openTableContextMenu(r, {
                   x: t.clientX,
                   y: t.clientY
                 });
               }}><span style={{
-                  ...Eu,
+                  ...TABLE_CORNER_HANDLE_STYLE,
                   position: `absolute`,
                   right: 0,
                   bottom: 0
@@ -3726,18 +3769,18 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       let r = [],
         i = 0,
         a = n?.pageLayout ?? Hn,
-        o = xp(t, e.model, ns, e.model.metadata.numberingDefinitions, Gn, Kn, a, {
+        o = layoutWrappedLines(t, e.model, ns, e.model.metadata.numberingDefinitions, Gn, Kn, a, {
           floatingMovePreview: Q,
           resizePreview: Ge,
           measuredWrapBands: On
         });
       for (let a = 0; a < t.length; a += 1) {
-        let s = nu(e.model.nodes, t, a);
+        let s = collectLetterheadRun(e.model.nodes, t, a);
         if (s) {
           let t = (t: any, r: any, i: any, a: any) => {
               let o = e.model.nodes[t.nodeIndex];
               if (!o) return null;
-              let s = t.tableRowRange ? `rows-${t.tableRowRange.startRowIndex}-${t.tableRowRange.endRowIndex}${t.tableRowSlice ? `-slice-${Math.max(0, Math.round(t.tableRowSlice.startOffsetPx))}-${Math.max(pc, Math.round(t.tableRowSlice.sliceHeightPx))}` : ``}` : t.paragraphLineRange ? `lines-${t.paragraphLineRange.startLineIndex}-${t.paragraphLineRange.endLineIndex}` : `all`;
+              let s = t.tableRowRange ? `rows-${t.tableRowRange.startRowIndex}-${t.tableRowRange.endRowIndex}${t.tableRowSlice ? `-slice-${Math.max(0, Math.round(t.tableRowSlice.startOffsetPx))}-${Math.max(MIN_BLOCK_HEIGHT_PX, Math.round(t.tableRowSlice.sliceHeightPx))}` : ``}` : t.paragraphLineRange ? `lines-${t.paragraphLineRange.startLineIndex}-${t.paragraphLineRange.endLineIndex}` : `all`;
               return <>{fs(o, t.nodeIndex, t.tableRowRange, t.tableRowSlice, t.paragraphLineRange, {
                   letterheadFloatSide: r,
                   oppositeLetterheadFloatSide: i,
@@ -3752,14 +3795,14 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
             l = Math.max(o.length, c.length),
             u = (t: any) => {
               let n = e.model.nodes[t.nodeIndex];
-              return n ? Tg(n, t, e.model, ns, e.model.metadata.numberingDefinitions, Gn.get(t.nodeIndex)) : 0;
+              return n ? nodeLayoutHeight(n, t, e.model, ns, e.model.metadata.numberingDefinitions, Gn.get(t.nodeIndex)) : 0;
             };
-          r.push(<div key={`letterhead-group-${s.startOffset}-${s.endOffset}`} style={ru()}>{Array.from({
+          r.push(<div key={`letterhead-group-${s.startOffset}-${s.endOffset}`} style={letterheadGridStyle()}>{Array.from({
               length: l
             }, (e, n) => {
               let r = o[n],
                 i = c[n];
-              return <><div style={iu()}>{r ? t(r, `left`, `right`, n === 0) : null}</div><div style={iu()}>{i ? t(i, `right`, `left`, n === 0) : null}</div></>;
+              return <><div style={letterheadColumnStyle()}>{r ? t(r, `left`, `right`, n === 0) : null}</div><div style={letterheadColumnStyle()}>{i ? t(i, `right`, `left`, n === 0) : null}</div></>;
             })}</div>), i += Array.from({
             length: l
           }, (e, t) => {
@@ -3774,58 +3817,58 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           u = e.model.nodes[l];
         if (!u) continue;
         if (u.type === `paragraph` && !c.tableRowRange) {
-          let i = gg(c.paragraphLineRange),
-            o = Zl(u),
+          let i = lineRangeIsPartial(c.paragraphLineRange),
+            o = parseDropCap(u),
             s = t[a + 1],
-            d = gg(s?.paragraphLineRange),
+            d = lineRangeIsPartial(s?.paragraphLineRange),
             f = s?.nodeIndex,
             p = f === void 0 ? void 0 : e.model.nodes[f];
           if (o?.type === `drop` && p?.type === `paragraph` && !s?.tableRowRange && !i && !d) {
             let t = Je?.nodeIndex === l ? Je : void 0,
               i = Xe?.nodeIndex === l ? Xe : void 0,
-              c = _f(u).replace(/\s+/g, ` `).trim(),
-              d = Of(u),
-              m = Th(p, ns, e.model.metadata.numberingDefinitions),
-              h = t_(p, f === void 0 ? void 0 : Gn.get(f)),
-              g = typeof h == `number` ? Math.max(pc, Math.round(h * Ym(p))) : typeof h == `string` && h.endsWith(`px`) ? Math.max(pc, Math.round(Number.parseFloat(h))) : Rh(p, f === void 0 ? void 0 : Gn.get(f)),
+              c = paragraphText(u).replace(/\s+/g, ` `).trim(),
+              d = firstTextRunStyle(u),
+              m = paragraphContentWidth(p, ns, e.model.metadata.numberingDefinitions),
+              h = paragraphLineHeightCss(p, f === void 0 ? void 0 : Gn.get(f)),
+              g = typeof h == `number` ? Math.max(MIN_BLOCK_HEIGHT_PX, Math.round(h * paragraphFontSizePx(p))) : typeof h == `string` && h.endsWith(`px`) ? Math.max(MIN_BLOCK_HEIGHT_PX, Math.round(Number.parseFloat(h))) : paragraphLineHeight(p, f === void 0 ? void 0 : Gn.get(f)),
               _ = Math.max(2, Math.round(o.lines ?? 3)),
-              v = tm(d, g, _, i?.fontSizePx),
-              y = nm(d, g, _, v),
+              v = formFieldHeightPx(d, g, _, i?.fontSizePx),
+              y = formFieldBoxHeightPx(d, g, _, v),
               b = {
                 ...(d ?? {}),
                 fontSizePt: Math.max(1, v * 72 / 96)
               },
-              x = Math.max(g, Math.round(uh(c || `A`, b, v) + v * 0.18)),
-              S = Math.max(4, Br(o.horizontalSpaceTwips) ?? 6),
-              C = Math.max(0, Br(o.xTwips) ?? 0),
-              w = Math.max(0, Br(o.yTwips) ?? 0),
-              T = ou(C + Math.round(t?.deltaX ?? 0), 0, Math.max(0, m - x)),
+              x = Math.max(g, Math.round(measureTextWidth(c || `A`, b, v) + v * 0.18)),
+              S = Math.max(4, twipsToPxNonNegative(o.horizontalSpaceTwips) ?? 6),
+              C = Math.max(0, twipsToPxNonNegative(o.xTwips) ?? 0),
+              w = Math.max(0, twipsToPxNonNegative(o.yTwips) ?? 0),
+              T = clampNumber(C + Math.round(t?.deltaX ?? 0), 0, Math.max(0, m - x)),
               E = Math.max(0, w + Math.round(t?.deltaY ?? 0)),
               D = T + x / 2 > m / 2,
               O = Math.max(0, m - x - T),
               A = Re === l,
               M = !k && (A || Be === l || Je?.nodeIndex === l || Xe?.nodeIndex === l),
-              N = Mp(p),
+              N = paragraphLayoutText(p),
               P = D ? {
                 left: Math.max(0, T - S),
                 right: Math.min(m, T + x),
                 top: E,
-                bottom: E + y + Math.max(0, Br(o.verticalSpaceTwips) ?? 0)
+                bottom: E + y + Math.max(0, twipsToPxNonNegative(o.verticalSpaceTwips) ?? 0)
               } : {
                 left: Math.max(0, T),
                 right: Math.min(m, T + x + S),
                 top: E,
-                bottom: E + y + Math.max(0, Br(o.verticalSpaceTwips) ?? 0)
+                bottom: E + y + Math.max(0, twipsToPxNonNegative(o.verticalSpaceTwips) ?? 0)
               },
-              F = N ? Xp(p, N, m, g, [P]) : void 0,
-              I = Math.max(F?.height ?? 0, P.bottom);
+              F = N ? alignedFloatingLayout(p, N, m, g, [P]) : void 0,
+              I = Math.max((F?.height as number) ?? 0, P.bottom);
             r.push(<div key={`dropcap-${l}-${f}`} style={{
               display: `flow-root`,
               position: `relative`
             }}>{!F && c.length > 0 ? <span data-docx-drop-cap="true" data-docx-drop-cap-node-index={l} contentEditable={!1} style={{
                 float: D ? `right` : `left`,
                 marginTop: E,
-                marginBottom: Math.max(0, Br(o.verticalSpaceTwips) ?? 0),
+                marginBottom: Math.max(0, twipsToPxNonNegative(o.verticalSpaceTwips) ?? 0),
                 ...(D ? {
                   marginLeft: S,
                   marginRight: O
@@ -3842,7 +3885,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                 touchAction: `none`,
                 userSelect: `none`
               }} onClick={e => {
-                e.stopPropagation(), Ta(l);
+                e.stopPropagation(), selectDropCap(l);
               }} onPointerEnter={() => {
                 k || Ve(l);
               }} onPointerLeave={() => {
@@ -3850,15 +3893,15 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
               }}><input type="text" value={c} readOnly={k} spellCheck={!1} aria-label="Drop cap text" onChange={t => {
                   k || e.setParagraphDropCapText(l, t.currentTarget.value);
                 }} onPointerDown={e => {
-                  e.stopPropagation(), Ta(l);
+                  e.stopPropagation(), selectDropCap(l);
                 }} onClick={e => {
                   e.stopPropagation();
                 }} onFocus={() => {
-                  Ta(l);
+                  selectDropCap(l);
                 }} onKeyDown={e => {
                   e.key === `Enter` && e.preventDefault();
                 }} style={{
-                  ...__(b, j),
+                  ...runStyleToCss(b, j),
                   width: `100%`,
                   minHeight: y,
                   border: A ? `1px solid rgba(37, 99, 235, 0.8)` : `1px solid transparent`,
@@ -3872,14 +3915,14 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                   overflow: `visible`,
                   boxSizing: `border-box`,
                   boxShadow: A ? `0 0 0 2px rgba(191, 219, 254, 0.65)` : void 0,
-                  color: p_(b.color, j) ?? void 0,
-                  fontFamily: m_(b.fontFamily) ?? void 0
+                  color: themeAwareColor(b.color, j) ?? void 0,
+                  fontFamily: normalizeFontFamily(b.fontFamily) ?? void 0
                 }} />{M ? <span contentEditable={!1} data-docx-table-move-handle="true" title="Move drop cap" style={{
                   position: `absolute`,
-                  top: -vu - 4,
-                  left: -vu - 4,
-                  width: vu,
-                  height: vu,
+                  top: -TABLE_RESIZE_HANDLE_PX - 4,
+                  left: -TABLE_RESIZE_HANDLE_PX - 4,
+                  width: TABLE_RESIZE_HANDLE_PX,
+                  height: TABLE_RESIZE_HANDLE_PX,
                   display: `grid`,
                   placeItems: `center`,
                   cursor: `move`,
@@ -3887,13 +3930,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                   touchAction: `none`,
                   userSelect: `none`
                 }} onPointerDown={e => Mo(e, l, o)}><span style={{
-                    ...Du
+                    ...TABLE_MOVE_HANDLE_STYLE
                   }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2v20" /><path d="m7 7 5-5 5 5" /><path d="m7 17 5 5 5-5" /><path d="M2 12h20" /><path d="m7 7-5 5 5 5" /><path d="m17 7 5 5-5 5" /></svg></span></span> : null}{M ? <span contentEditable={!1} data-image-resize-handle="true" title="Resize drop cap" style={{
                   position: `absolute`,
-                  right: -Su,
-                  bottom: -Cu,
-                  width: hu + Su,
-                  height: hu + Cu,
+                  right: -TABLE_CORNER_HIT_INSET_PX,
+                  bottom: -TABLE_CORNER_HIT_SIZE_PX,
+                  width: TABLE_HANDLE_HIT_PX + TABLE_CORNER_HIT_INSET_PX,
+                  height: TABLE_HANDLE_HIT_PX + TABLE_CORNER_HIT_SIZE_PX,
                   display: `grid`,
                   placeItems: `end`,
                   zIndex: 7,
@@ -3901,12 +3944,12 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                   touchAction: `none`,
                   userSelect: `none`
                 }} onPointerDown={e => No(e, l, v, x, y)}><span style={{
-                    ...Eu,
+                    ...TABLE_CORNER_HANDLE_STYLE,
                     pointerEvents: `auto`
                   }} /></span> : null}</span> : null}{F && N ? (() => {
                 let t = He?.locationKey === `p:${f}` ? He : void 0,
-                  n = t ? Ip(t.text, Of(p)) : N,
-                  r = t ? Hp(p, n, m, g, [P]) ?? F : F;
+                  n = t ? Ip(t.text, firstTextRunStyle(p)) : N,
+                  r = t ? paragraphLineLayout(p, n, m, g, [P]) ?? F : F;
                 return Yo({
                   location: {
                     kind: `paragraph`,
@@ -3929,7 +3972,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                     touchAction: `none`,
                     userSelect: `none`
                   }} onClick={e => {
-                    e.stopPropagation(), Ta(l);
+                    e.stopPropagation(), selectDropCap(l);
                   }} onPointerEnter={() => {
                     k || Ve(l);
                   }} onPointerLeave={() => {
@@ -3937,15 +3980,15 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                   }}><input type="text" value={c} readOnly={k} spellCheck={!1} aria-label="Drop cap text" onChange={t => {
                       k || e.setParagraphDropCapText(l, t.currentTarget.value);
                     }} onPointerDown={e => {
-                      e.stopPropagation(), Ta(l);
+                      e.stopPropagation(), selectDropCap(l);
                     }} onClick={e => {
                       e.stopPropagation();
                     }} onFocus={() => {
-                      Ta(l);
+                      selectDropCap(l);
                     }} onKeyDown={e => {
                       e.key === `Enter` && e.preventDefault();
                     }} style={{
-                      ...__(b, j),
+                      ...runStyleToCss(b, j),
                       width: `100%`,
                       minHeight: y,
                       border: A ? `1px solid rgba(37, 99, 235, 0.8)` : `1px solid transparent`,
@@ -3959,14 +4002,14 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                       overflow: `visible`,
                       boxSizing: `border-box`,
                       boxShadow: A ? `0 0 0 2px rgba(191, 219, 254, 0.65)` : void 0,
-                      color: p_(b.color, j) ?? void 0,
-                      fontFamily: m_(b.fontFamily) ?? void 0
+                      color: themeAwareColor(b.color, j) ?? void 0,
+                      fontFamily: normalizeFontFamily(b.fontFamily) ?? void 0
                     }} />{M ? <span contentEditable={!1} data-docx-table-move-handle="true" title="Move drop cap" style={{
                       position: `absolute`,
-                      top: -vu - 4,
-                      left: -vu - 4,
-                      width: vu,
-                      height: vu,
+                      top: -TABLE_RESIZE_HANDLE_PX - 4,
+                      left: -TABLE_RESIZE_HANDLE_PX - 4,
+                      width: TABLE_RESIZE_HANDLE_PX,
+                      height: TABLE_RESIZE_HANDLE_PX,
                       display: `grid`,
                       placeItems: `center`,
                       cursor: `move`,
@@ -3974,13 +4017,13 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                       touchAction: `none`,
                       userSelect: `none`
                     }} onPointerDown={e => Mo(e, l, o)}><span style={{
-                        ...Du
+                        ...TABLE_MOVE_HANDLE_STYLE
                       }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2v20" /><path d="m7 7 5-5 5 5" /><path d="m7 17 5 5-5 5" /><path d="M2 12h20" /><path d="m7 7-5 5 5 5" /><path d="m17 7 5 5-5 5" /></svg></span></span> : null}{M ? <span contentEditable={!1} data-image-resize-handle="true" title="Resize drop cap" style={{
                       position: `absolute`,
-                      right: -Su,
-                      bottom: -Cu,
-                      width: hu + Su,
-                      height: hu + Cu,
+                      right: -TABLE_CORNER_HIT_INSET_PX,
+                      bottom: -TABLE_CORNER_HIT_SIZE_PX,
+                      width: TABLE_HANDLE_HIT_PX + TABLE_CORNER_HIT_INSET_PX,
+                      height: TABLE_HANDLE_HIT_PX + TABLE_CORNER_HIT_SIZE_PX,
                       display: `grid`,
                       placeItems: `end`,
                       zIndex: 7,
@@ -3988,7 +4031,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
                       touchAction: `none`,
                       userSelect: `none`
                     }} onPointerDown={e => No(e, l, v, x, y)}><span style={{
-                        ...Eu,
+                        ...TABLE_CORNER_HANDLE_STYLE,
                         pointerEvents: `auto`
                       }} /></span> : null}</span> : void 0
                 });
@@ -4004,18 +4047,18 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         r.push(fs(u, l, c.tableRowRange, c.tableRowSlice, c.paragraphLineRange, {
           pageLayout: n?.pageLayout,
           pageFlowTopPx: f ?? i,
-          pageFlowForeignExclusions: o[a],
+          pageFlowForeignExclusions: (o as any)[a],
           suppressLikelyFullPageCoverImageKeys: n?.suppressLikelyFullPageCoverImageKeys
-        })), i += Tg(u, c, e.model, ns, e.model.metadata.numberingDefinitions, Gn.get(l));
+        })), i += nodeLayoutHeight(u, c, e.model, ns, e.model.metadata.numberingDefinitions, Gn.get(l));
       }
       return r;
-    }, [wt, Mo, No, ba, Gn, ns, Hn, Je, Xe, e, Q, wa, Be, k, On, Kn, fs, Ge, Re]),
+    }, [wt, Mo, No, clearTransientSelections, Gn, ns, Hn, Je, Xe, e, Q, focusParagraphNode, Be, k, On, Kn, fs, Ge, Re]),
   /* 原 ms/hs（jsx 35332-35333）：脚注/尾注数据 */
     ms = e.model.metadata.footnotes ?? [],
     hs = e.model.metadata.endnotes ?? [],
   /* 原 gs/_s/vs/ys（jsx 35334-35337）：脚注/尾注索引 */
-    gs = React.useMemo(() => new Map(ms.map((e: any, t: any) => [e.id, t + 1])), [ms]),
-    _s = React.useMemo(() => new Map(hs.map((e: any, t: any) => [e.id, t + 1])), [hs]),
+    gs = React.useMemo(() => new Map<number, number>(ms.map((e: any, t: any) => [e.id, t + 1])), [ms]),
+    _s = React.useMemo(() => new Map<number, number>(hs.map((e: any, t: any) => [e.id, t + 1])), [hs]),
     vs = React.useMemo(() => new Map(ms.map((e: any) => [e.id, e])), [ms]),
     ys = React.useMemo(() => new Map(hs.map((e: any) => [e.id, e])), [hs]),
   /* 原 bs（jsx 35338）：逐页脚注分布 */
@@ -4024,7 +4067,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
         r = new Set();
       return t.forEach((t: any) => {
         let i = e.model.nodes[t.nodeIndex];
-        i && bm(i, `footnote`, t.tableRowRange, t.paragraphLineRange).forEach((e: any) => {
+        i && collectNodeNoteReferences(i, `footnote`, t.tableRowRange, t.paragraphLineRange).forEach((e: any) => {
           r.has(e) || (r.add(e), n.push(e));
         });
       }), n.map(e => vs.get(e)).filter(e => !!e);
@@ -4035,7 +4078,7 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
       let t: any[] = [],
         n = new Set();
       e.model.nodes.forEach((e: any) => {
-        bm(e, `endnote`).forEach((e: any) => {
+        collectNodeNoteReferences(e, `endnote`).forEach((e: any) => {
           n.has(e) || (n.add(e), t.push(e));
         });
       });
@@ -4068,33 +4111,33 @@ export function useDocxEditorViewRenderCallbacks(core: DocxEditorViewInteraction
           ...(t === `endnote` ? {
             opacity: 0.75
           } : void 0)
-        }}>{Cv({
+        }}>{noteReferenceMark({
             kind: t,
             id: e.id
-          }, gs, _s) ?? e.id}{t === `endnote` ? `.` : null}</sup> : null}{Tv(a, `${n}-runs`, j, void 0, Pi, void 0, {
+          }, gs, _s) ?? e.id}{t === `endnote` ? `.` : null}</sup> : null}{renderParagraphRuns(a, `${n}-runs`, j, void 0, Pi, void 0, {
           footnote: gs,
           endnote: _s
-        }, r, Ai, i)}</span>);
-    }, [j, _s, gs, Tv, Pi, Ai]),
+        }, r, footnotePageNumberBase, i)}</span>);
+    }, [j, _s, gs, renderParagraphRuns, Pi, footnotePageNumberBase]),
   /* 原 Ts（jsx 35391）：节区草稿编辑句柄 */
     Ts = React.useMemo(() => ({
-      registerElement: ao,
-      readDraftHtml: oo,
-      writeDraftHtml: so,
-      clearDraftHtml: co,
-      commitText: lo
-    }), [co, lo, oo, ao, so]),
+      registerElement: registerSectionDraftElement,
+      readDraftHtml: sectionParagraphDraft,
+      writeDraftHtml: setSectionParagraphDraft,
+      clearDraftHtml: deleteSectionParagraphDraft,
+      commitText: commitSectionParagraphDraft
+    }), [deleteSectionParagraphDraft, commitSectionParagraphDraft, sectionParagraphDraft, registerSectionDraftElement, setSectionParagraphDraft]),
   /* 原 Es（jsx 35398）：页眉页脚编辑入口 */
     Es = React.useCallback((t: any, n: any, r: any, i: any) => {
       k || !n || (i?.draftKey ? pe.current = {
         draftKey: i.draftKey,
         point: i.point
-      } : pe.current = void 0, Ri(), e.setActiveTextRange(void 0), xn({
+      } : pe.current = void 0, clearTableSelection(), e.setActiveTextRange(void 0), xn({
         region: t,
         partName: n,
         pageIndex: r
       }));
-    }, [Ri, e, k]);
+    }, [clearTableSelection, e, k]);
 
   return {
     Fo, zo, Vo, Ho, Uo, Wo, Go, Ko, qo, Jo, Yo, Xo, Zo, Qo, $o, es, ts,

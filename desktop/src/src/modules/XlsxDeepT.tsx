@@ -52,8 +52,10 @@
  *   py  → PreviewPaneOfficeXlsxContent     (js 199478 / jsx 49691) ·export
  *
  * ----------------------------------------------------------------------------
- * 二、外部依赖清单（跨段/跨 chunk；本文件以 `declare const _: any` 挂接，
- *     括号内 = 定义处行号；均不属本批 199292–199508 范围）
+ * 二、外部依赖清单（跨段/跨 chunk；括号内 = 定义处行号；均不属本批
+ *     199292–199508 范围。A0-S2b：15 组 declare 全部已接线为真实 import：
+ *     1–4 → ./XlsxDeepP；5–10 → ./XlsxDeepC；11 → ./XlsxDeepA；
+ *     12 → ./XlsxDeepB；13 → ./I18n；14 → ./logger；15 → ./UtilsCn）
  * ----------------------------------------------------------------------------
  *  同 chunk 跨段（B5-12p 导出，实体在 XlsxDeepP.tsx）：
  *   1. G  = React interop（js 9111 var 链首成员）
@@ -214,7 +216,8 @@ function SpreadsheetWithOwnedController(e: any) {
   let t = useSpreadsheetController(e);
   return (0, jsxRuntime.jsx)(SpreadsheetViewer, { ...e, controller: t });
 }
-function Spreadsheet(e: any) {
+// A0-S2b 补导出：供 XlsxPreview.tsx（D8 语义口径）import；不改实现
+export function Spreadsheet(e: any) {
   let t = reactInterop.useContext(SpreadsheetControllerContext);
   return e.controller
     ? (0, jsxRuntime.jsx)(SpreadsheetViewer, { ...e, controller: e.controller })

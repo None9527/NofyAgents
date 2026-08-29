@@ -85,7 +85,21 @@
  * ============================================================================
  */
 import * as React from "react";
-import { THOUGHT_LEVEL_RANKS } from './Composer';
+/* ── A0-S2d 接线（§2 裁决去重 76848–77167 / 76034–76156）：原本地重复转录与
+ *    declare 挂接删除，canonical 在 Composer.tsx，真实 import 消费；混淆名注释随迁 ── */
+import {
+  ConfigSelect, // 原 Mq（76911）：工具条配置 Select（mode/thought_level/通用）
+  ContextUsageProvider as ContextUsagePopoverRoot, // 原 J4e（76079）
+  ContextRingTrigger as ContextUsagePopoverTrigger, // 原 X4e（76125）
+  ContextRingTooltipContent as ContextUsagePopoverContent, // 原 Z4e（76139）
+  ContextRingTooltipBody as ContextUsagePopoverBody, // 原 Q4e（76147）
+  SegmentedProgress as SegmentedProgressBar, // 原 yq（76034）
+  isDisabledThoughtOption as isThoughtOffOption, // 原 K3e（77130）：off 系选项判定
+  nextThoughtLevelValue, // 原 Y3e（77155）：下一思考级别值（循环）
+  sortThoughtOptions, // 原 J3e（77141）：秩稳定排序
+  thoughtOptionLabel as thoughtOptionLabelOf // 原 X3e（77163）：思考选项标签
+} from './Composer';
+import type { ConfigSelectOption, ConfigSelectSpec } from './Composer'; // 类型垫片引用（A0-S2d）
 import { Spinner } from './Home';
 import { Input, PopoverContent, toast } from './ImeComposition';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
@@ -148,11 +162,11 @@ declare function testidOf(prefix: string, value: string): string; // qr
 declare const MODEL_OPTION_TESTID_PREFIX: string; // Xt
 declare const MODE_OPTION_TESTID_PREFIX: string; // rn
 declare const MODEL_MENU_TESTID: string; // Fr
-declare const THOUGHT_TRIGGER_TESTID: string; // wn（P3e 用）
+/* ── tombstone（A0-S2d）：wn THOUGHT_TRIGGER_TESTID / av ModeIconDefault /
+ *    Sv ModeIconPlan / Bv ModeIconAgent declare 删除——唯一消费面在 §2 重复转录段
+ *    （canonical 在 Composer.tsx），随段删除后无引用。zv ModeIconFullAccess 保留
+ *    （§5/§7 等正文章节仍有消费）。 ── */
 declare const ModeIconFullAccess: React.FC<React.SVGProps<SVGSVGElement>>; // zv
-declare const ModeIconDefault: React.FC<React.SVGProps<SVGSVGElement>>; // av
-declare const ModeIconPlan: React.FC<React.SVGProps<SVGSVGElement>>; // Sv
-declare const ModeIconAgent: React.FC<React.SVGProps<SVGSVGElement>>; // Bv
 declare const ThoughtLevelIcon: React.FC<React.SVGProps<SVGSVGElement>>; // O_
 declare const TruncateLabel: React.FC<{ label: string }>; // _q
 declare const KNOWN_MODEL_FORMATS: string[]; // Di
@@ -177,26 +191,12 @@ declare function refreshProviders(getter: () => Promise<ModelProvider[]>): Promi
 declare function isProvidersSnapshotHydrated(): boolean; // pM
 declare function subscribeProviders(listener: (providers: ModelProvider[]) => void): () => void; // hM
 declare function withProvidersHydration<T>(getter: () => Promise<T>): Promise<T>; // _M
-/** F08 认领段（旧账 77014–77079 / 本机 77062–77126）：思考级别表，双归属注记 */
-declare const THOUGHT_OFF_VALUES: Set<string>; // U3e
-declare const THOUGHT_LEVEL_LABEL_KEYS: Record<string, string>; // G3e
-/** 用量弹层原语（76034–76156，未抽取；B5-01/F08 与 UsageDeep 段交界，注记） */
-declare const SegmentedProgressBar: React.FC<{
-  className?: string;
-  indicatorClassName?: string;
-  segments?: Array<{ id: string; percent: number; className?: string; style?: React.CSSProperties }>;
-  value: number;
-}>; // yq
-declare const ContextUsagePopoverRoot: React.FC<{
-  usedTokens: number;
-  maxTokens: number;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  children?: React.ReactNode;
-}>; // J4e
-declare const ContextUsagePopoverTrigger: React.FC<Record<string, unknown> & { children?: React.ReactNode }>; // X4e
-declare const ContextUsagePopoverContent: React.FC<{ className?: string; side?: string; sideOffset?: number; children?: React.ReactNode }>; // Z4e
-declare const ContextUsagePopoverBody: React.FC<{ className?: string; children?: React.ReactNode }>; // Q4e
+/* ── tombstone（A0-S2d · 去重 c）：U3e THOUGHT_OFF_VALUES / G3e THOUGHT_LEVEL_LABEL_KEYS
+ *    declare 删除（唯一消费面 Nq…X3e 重复转录段已删，接线空转）；
+ *    yq/J4e/X4e/Z4e/Q4e 用量弹层原语（76034–76156）declare 删除，
+ *    canonical 在 Composer.tsx（SegmentedProgress / ContextUsageProvider /
+ *    ContextRingTrigger / ContextRingTooltipContent / ContextRingTooltipBody），
+ *    经文件头真实 import 消费。 ── */
 /** UsageDeep.tsx 已抽取件（s3e/v3e 侧栏件，76294/76540） */
 /** UsageDeep 已抽取：hasPlanWidgetModel/hasStartPlanBalance（i3e/g3e，76230 区/76455 区） */
 declare function hasPlanWidgetModel(config: any): boolean; // i3e
@@ -572,302 +572,34 @@ export function ContextUsagePopover({
 }
 
 /* ----------------------------------------------------------------------------
- * §2 工具条配置选择（原 M3e…Mq，76844–77061 / jsx 67907）
+ * §2 tombstone（A0-S2d · §2 裁决「重复转录件删除」，76848–77167）：
+ *    原 M3e…Mq ConfigSelect 整闭包（isOptionValuePresent / FULL_ACCESS_MODES /
+ *    categoryTestidOf / optionTestidOf / ApiRetryStatusChip / MODE_LABEL_KEYS /
+ *    MODE_DESCRIPTION_KEYS / modeOptionLabelOf / modeLabelKeyOf /
+ *    modeDescriptionKeyOf / optionLabelOf / optionDescriptionOf /
+ *    isFullAccessMode / modeIconOf / ConfigSelect，242 行）为 PaymentDeep
+ *    重复转录；canonical 在 Composer.tsx [D] 段（isOptionValue /
+ *    DANGEROUS_MODE_VALUES / configSelectTestId / configOptionTestId /
+ *    ApiRetryIndicator / modeOptionLabel / modeLabelI18nId /
+ *    modeDescriptionI18nId / configOptionLabel / configOptionDescription /
+ *    isDangerousModeValue / modeOptionIcon / ConfigSelect，js 76849–77167）。
+ *    消费面（ModePickerTrigger 的 <ConfigSelect>）改自 Composer 真实 import，
+ *    语义不变。
  * -------------------------------------------------------------------------- */
-
-/** 原 M3e（76844）：值域内含判定 */
-export function isOptionValuePresent(option: ConfigOptionEntry, value: string): boolean {
-  return option.options?.some((item) => String(item.value) === value) ?? !1;
-}
-
-/** 原 N3e（76847）：全权模式集 */
-export const FULL_ACCESS_MODES = new Set([`bypassPermissions`, `full-access`, `agent-full-access`, `yolo`]);
-
-/** 原 P3e（76848）：类别触发器 testid */
-export function categoryTestidOf(option: ConfigOptionEntry): string | undefined {
-  if (option.category === `thought_level`) return THOUGHT_TRIGGER_TESTID;
-  if (option.category === `mode`) return MODE_OPTION_TESTID_PREFIX as unknown as string;
-  return undefined;
-}
-
-/** 原 F3e（76852）：选项 testid */
-export function optionTestidOf(option: ConfigOptionEntry, item: { value: string }): string | null {
-  if (option.category === `thought_level`) return testidOf(MODEL_OPTION_TESTID_PREFIX as unknown as string, item.value) as unknown as string;
-  if (option.category === `mode`) return testidOf(MODE_OPTION_TESTID_PREFIX as unknown as string, item.value) as unknown as string;
-  return null;
-}
-
-/** 原 I3e（76856）：API 重试状态 chip */
-export function ApiRetryStatusChip({ apiRetry, intl, locale }: { apiRetry: { attempt: number; maxRetries: number; errorStatus?: number | null } | null; intl: IntlShape; locale: string }) {
-  const label = React.useMemo(() => {
-    if (!apiRetry) return null;
-    const formatter = new Intl.NumberFormat(locale);
-    return intl.formatMessage(
-      { id: `chat.apiRetryStatus` },
-      { attempt: formatter.format(apiRetry.attempt), maxRetries: formatter.format(apiRetry.maxRetries) },
-    );
-  }, [apiRetry, intl, locale]);
-  return !apiRetry || !label ? null : (
-    <span
-      className={`inline-flex h-7 items-center whitespace-nowrap px-1 text-ui-base`}
-      title={apiRetry.errorStatus == null ? label : `${label} · HTTP ${apiRetry.errorStatus}`}
-    >
-      <span className={`animated-gradient-text animated-gradient-text-subtle font-medium`}>{label}</span>
-    </span>
-  );
-}
-
-/** 原 R3e（76877）：mode 标签 i18n 键（V4e 表，外部常量） */
-declare const MODE_LABEL_KEYS: Record<string, Record<string, string>>; // V4e
-/** 原 z3e（76880）：mode 描述 i18n 键（H4e 表，外部常量） */
-declare const MODE_DESCRIPTION_KEYS: Record<string, Record<string, string>>; // H4e
-
-/** 原 L3e（76874）：mode 选项标签（键 ?? name） */
-export function modeOptionLabelOf(intl: IntlShape, providerId: string | null | undefined, option: { value: string; name?: string }) {
-  const key = modeLabelKeyOf(providerId, option);
-  return key ? intl.formatMessage({ id: key }) : option.name as string;
-}
-export function modeLabelKeyOf(providerId: string | null | undefined, option: { value: string }) {
-  return providerId ? (MODE_LABEL_KEYS[providerId]?.[option.value] ?? null) : null;
-}
-export function modeDescriptionKeyOf(providerId: string | null | undefined, option: { value: string }) {
-  return providerId ? (MODE_DESCRIPTION_KEYS[providerId]?.[option.value] ?? null) : null;
-}
-
-/** 原 jq（76883）：选项标签分派 */
-export function optionLabelOf(intl: IntlShape, providerId: string | null | undefined, option: ConfigOptionEntry, item: { value: string; name?: string }) {
-  return option.category === `mode` ? modeOptionLabelOf(intl, providerId, item) : item.name as string;
-}
-
-/** 原 B3e（76886）：选项描述（mode 键 ?? description） */
-export function optionDescriptionOf(intl: IntlShape, providerId: string | null | undefined, option: ConfigOptionEntry, item: { value: string; description?: string }) {
-  if (option.category !== `mode`) return item.description;
-  const key = modeDescriptionKeyOf(providerId, item);
-  return key ? intl.formatMessage({ id: key }) : item.description;
-}
-
-/** 原 V3e（76892）：全权模式判定 */
-export function isFullAccessMode(value: unknown): boolean {
-  return typeof value == `string` && FULL_ACCESS_MODES.has(value);
-}
-
-/** 原 H3e（76895）：mode 图标分派 */
-export function modeIconOf(value: unknown): React.FC<React.SVGProps<SVGSVGElement>> {
-  return isFullAccessMode(value)
-    ? ModeIconFullAccess
-    : typeof value == `string` && /^(default|build)$/i.test(value)
-      ? ModeIconDefault
-      : typeof value == `string` && value.toLocaleLowerCase() === `plan`
-        ? ModeIconPlan
-        : typeof value == `string` && /^(auto|acceptEdits|agent|autoEdit|dontAsk|edit)$/i.test(value)
-          ? ModeIconAgent
-          : ModeIconDefault;
-}
-
-/** 原 Mq（76912 / 67907）：工具条配置 Select（mode/thought_level/通用） */
-export function ConfigSelect({
-  option,
-  onValueChange,
-  open,
-  onOpenChange,
-  disabled,
-  tooltipTitle,
-  shortcutLabel,
-  triggerRef,
-  triggerClassName,
-  indicatorClassName,
-  triggerVariant = `ghost`,
-  triggerSize = `lg`,
-  leadingIcon,
-  labelVisibilityClassName = `hidden @xl/composer:inline-flex`,
-  provider,
-  restoreFocusSelector = `[data-testid="chat-input"]`,
-}: {
-  option: ConfigOptionEntry;
-  onValueChange: (value: string) => void;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  disabled?: boolean;
-  tooltipTitle?: string;
-  shortcutLabel?: string;
-  triggerRef?: React.RefObject<unknown> | null;
-  triggerClassName?: string;
-  indicatorClassName?: string;
-  triggerVariant?: string;
-  triggerSize?: string;
-  leadingIcon?: React.FC<React.SVGProps<SVGSVGElement>> | null;
-  labelVisibilityClassName?: string;
-  provider?: string | null;
-  restoreFocusSelector?: string;
-}) {
-  const { intl } = useZCodeIntl();
-  const handleContentKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== `Tab`) return;
-    const target =
-      event.currentTarget.querySelector(`[data-slot="select-item"][data-highlighted]`) ??
-      event.currentTarget.querySelector(`[data-slot="select-item"][data-state="checked"]`) ??
-      event.currentTarget.querySelector(`[data-slot="select-item"]`);
-    target && (event.preventDefault(), (target as HTMLElement).click());
-  }, []);
-  if (option.type !== `select` || !option.options?.length) return null;
-  const isModeOrThought = option.category === `mode` || option.category === `thought_level`;
-  const isFullAccess = option.category === `mode` && isFullAccessMode(option.currentValue);
-  const LeadingIcon = option.category === `mode` ? modeIconOf(option.currentValue) : leadingIcon;
-  const triggerClass = cn(triggerClassName, isFullAccess && `text-warning hover:text-warning aria-expanded:text-warning`);
-  const iconClass = cn(`pointer-events-none size-4 text-current`, isFullAccess && `text-warning`);
-  const contentProps = isModeOrThought
-    ? {
-        position: `popper`,
-        side: `top`,
-        align: `start`,
-        sideOffset: 4,
-        collisionPadding: 8,
-        className: option.category === `mode` ? `w-64` : void 0,
-      }
-    : void 0;
-  const triggerTestid = categoryTestidOf(option);
-  const currentOption = option.options.find((item) => item.value === option.currentValue);
-  const label = currentOption ? optionLabelOf(intl, provider, option, currentOption) : String(option.currentValue ?? ``);
-  const labelClass = option.category === `thought_level` ? `first-letter:uppercase` : void 0;
-  return (
-    <SelectRoot
-      open={open}
-      onOpenChange={onOpenChange}
-      value={String(option.currentValue)}
-      onValueChange={(value) => {
-        if (!isOptionValuePresent(option, value)) {
-          logger.warn(`[ConfigSelect] 忽略值域外的选择回调`, { category: option.category, value });
-          return;
-        }
-        onValueChange(value);
-      }}
-      disabled={disabled}
-    >
-      <TooltipTriggerWrap title={tooltipTitle} shortcut={shortcutLabel} triggerRef={triggerRef}>
-        <SelectTrigger
-          variant={triggerVariant}
-          size={triggerSize}
-          className={triggerClass}
-          indicator={<ChevronDownIcon className={cn(`pointer-events-none size-3.5 text-foreground-subtle`, indicatorClassName)} />}
-          aria-label={tooltipTitle}
-          data-testid={triggerTestid}
-        >
-          {LeadingIcon ? <LeadingIcon className={iconClass} /> : null}
-          <span className={labelVisibilityClassName}>
-            {option.category === `mode` ? (
-              <TruncateLabel label={label} />
-            ) : (
-              <SelectValue>
-                <span className={labelClass}>{label}</span>
-              </SelectValue>
-            )}
-          </span>
-        </SelectTrigger>
-      </TooltipTriggerWrap>
-      <SelectContent
-        {...contentProps}
-        onKeyDown={handleContentKeyDown}
-        onCloseAutoFocus={(event: Event) => {
-          if (!restoreFocusSelector || (event.preventDefault(), !isCoarseTouchDeviceGuard({ isCoarseTouchDevice: detectCoarseTouchDevice() }))) return;
-          const target = document.querySelector(restoreFocusSelector);
-          (logger.debug(`[ConfigSelect] picker focus handoff`, {
-            category: option.category,
-            restoreFocusSelector,
-            targetFound: !!target,
-          }),
-            (target as HTMLElement | null)?.focus());
-        }}
-      >
-        {option.category === `mode`
-          ? option.options.map((item) => {
-              const Icon = modeIconOf(item.value);
-              const itemLabel = optionLabelOf(intl, provider, option, item);
-              const itemDescription = optionDescriptionOf(intl, provider, option, item);
-              return (
-                <SelectItem
-                  key={item.value}
-                  value={item.value}
-                  className={`min-h-13 items-start gap-3 py-2 pl-2 pr-8`}
-                  data-testid={optionTestidOf(option, item)}
-                >
-                  <span className={`flex min-w-0 items-start gap-3`}>
-                    <Icon className={`mt-0.5 size-4.5 shrink-0 text-foreground`} />
-                    <span className={`flex min-w-0 flex-col gap-0.5`}>
-                      <span className={`truncate text-ui-base/relaxed text-foreground`}>{itemLabel}</span>
-                      {itemDescription?.trim() ? (
-                        <span className={`line-clamp-2 text-ui-sm/relaxed text-foreground-subtle whitespace-nowrap`}>
-                          {itemDescription}
-                        </span>
-                      ) : null}
-                    </span>
-                  </span>
-                </SelectItem>
-              );
-            })
-          : option.options.map((item) => (
-              <SelectItem key={item.value} value={item.value} data-testid={optionTestidOf(option, item)}>
-                <span className={labelClass}>{optionLabelOf(intl, provider, option, item)}</span>
-              </SelectItem>
-            ))}
-      </SelectContent>
-    </SelectRoot>
-  );
-}
 
 /* ----------------------------------------------------------------------------
- * §3 思考级别机制（原 Nq…$3e，77127–77451；U3e/W3e/G3e 为 F08 段，§0 declare）
+ * §3 思考级别机制（原 Pq…$3e，77164–77451；Nq…X3e 前半已去重删除，见下方 tombstone）
  * -------------------------------------------------------------------------- */
 
-/** 原 Nq（77127） */
-export function normalizeOptionKey(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-/** 原 K3e（77130）：off 系选项判定 */
-export function isThoughtOffOption(option: { value: string; name?: string }): boolean {
-  return THOUGHT_OFF_VALUES.has(normalizeOptionKey(option.value)) || THOUGHT_OFF_VALUES.has(normalizeOptionKey(option.name ?? ``));
-}
-
-/** 原 q3e（77133）：思考级别秩（value/name 双查） */
-export function thoughtRankOf(option: { value: string; name?: string }): number | null {
-  const candidates = [option.value, option.name ?? ``];
-  for (const candidate of candidates) {
-    const rank = THOUGHT_LEVEL_RANKS[normalizeOptionKey(candidate)];
-    if (rank !== void 0) return rank;
-  }
-  return null;
-}
-
-/** 原 J3e（77141）：秩稳定排序（无秩保持原序） */
-export function sortThoughtOptions<T extends { value: string; name?: string }>(options: T[]): T[] {
-  return options
-    .map((entry, index) => ({ entry, index, rank: thoughtRankOf(entry) }))
-    .sort((left, right) =>
-      left.rank !== null && right.rank !== null && left.rank !== right.rank
-        ? left.rank - right.rank
-        : left.rank !== null && right.rank === null
-          ? -1
-          : left.rank === null && right.rank !== null
-            ? 1
-            : left.index - right.index,
-    )
-    .map((wrapped) => wrapped.entry);
-}
-
-/** 原 Y3e（77153）：下一思考级别值（循环） */
-export function nextThoughtLevelValue(option: ConfigOptionEntry): string | null {
-  if (option.type !== `select` || !option.options || option.options.length < 2) return null;
-  const sorted = sortThoughtOptions(option.options);
-  const current = String(option.currentValue);
-  const index = sorted.findIndex((item) => item.value === current);
-  return sorted[index === -1 ? 0 : (index + 1) % sorted.length]?.value ?? null;
-}
-
-/** 原 X3e（77160）：思考选项标签（G3e 键 ?? 通用标签） */
-export function thoughtOptionLabelOf(intl: IntlShape, providerId: string | null | undefined, option: ConfigOptionEntry, item: { value: string; name?: string }) {
-  const key = THOUGHT_LEVEL_LABEL_KEYS[normalizeOptionKey(item.value)];
-  return key ? intl.formatMessage({ id: key }) : optionLabelOf(intl, providerId, option, item);
-}
+/* ── tombstone（A0-S2d · 去重 b/c，77127–77163）：Nq normalizeOptionKey /
+ *    K3e isThoughtOffOption / q3e thoughtRankOf / J3e sortThoughtOptions /
+ *    Y3e nextThoughtLevelValue / X3e thoughtOptionLabelOf 为重复转录，
+ *    canonical 在 Composer.tsx（normalizeThoughtLevelKey /
+ *    isDisabledThoughtOption / thoughtOptionRank / sortThoughtOptions /
+ *    nextThoughtLevelValue / thoughtOptionLabel）；消费面（sortThoughtOptions /
+ *    thoughtOptionLabelOf / isThoughtOffOption / nextThoughtLevelValue 调用点）
+ *    改自 Composer 真实 import。W3e THOUGHT_LEVEL_RANKS 的 import（原 88 行）
+ *    随段删除（唯一消费为 q3e thoughtRankOf）。 ── */
 
 /** 原 Pq（77164 / 68111）：思考级别三态触发器（固定/Select/循环按钮） */
 export function ThoughtLevelControl({
@@ -919,14 +651,14 @@ export function ThoughtLevelControl({
         ((frame = null), measureVisibility(labelRef.current));
       }));
   };
-  const sorted = option.type === `select` ? sortThoughtOptions(option.options ?? []) : [];
+  const sorted = option.type === `select` ? sortThoughtOptions((option.options ?? []) as ConfigSelectOption[]) : [];
   const currentIndex = sorted.findIndex((item) => item.value === option.currentValue);
   const hasCurrent = currentIndex >= 0;
   const showInvalid = showInvalidCurrentValue && !hasCurrent;
   const effectiveIndex = Math.max(0, currentIndex);
   const effectiveOption = sorted[effectiveIndex] ?? sorted[0];
   const singleFixed = sorted.length === 1 && hasCurrent;
-  const label = showInvalid ? String(option.currentValue) : effectiveOption ? thoughtOptionLabelOf(intl, provider, option, effectiveOption) : ``;
+  const label = showInvalid ? String(option.currentValue) : effectiveOption ? thoughtOptionLabelOf(intl, provider ?? undefined, option as unknown as ConfigSelectSpec, effectiveOption) : ``;
   const tooltipDefault = intl.formatMessage({ id: `chat.toolbar.thoughtLevel.tooltip` });
   const tooltipTitle = disabledReason ?? (labelVisible ? tooltipDefault : label);
   React.useEffect(() => {
@@ -1031,7 +763,7 @@ export function ThoughtLevelControl({
       >
         {sorted.map((item) => (
           <SelectItem key={item.value} value={item.value} data-testid={testidOf(MODEL_OPTION_TESTID_PREFIX as unknown as string, item.value) as unknown as string}>
-            <span className={`first-letter:uppercase`}>{thoughtOptionLabelOf(intl, provider, option, item)}</span>
+            <span className={`first-letter:uppercase`}>{thoughtOptionLabelOf(intl, provider ?? undefined, option as unknown as ConfigSelectSpec, item)}</span>
           </SelectItem>
         ))}
       </SelectContent>

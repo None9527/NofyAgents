@@ -340,115 +340,110 @@
  */
 
 /* ============================================================================
- * §0 跨批次 import 面 —— 以下 52 个符号定义于上半部（SrcSharedA.tsx，jsx 1–4900，
- *    B5-10a 批次）。本文件按任务约定以 import 处理；为保证单文件独立通过 strict
- *    校验，此处以 declare 挂接（等价 `import { ... } from "./SrcSharedA"`），
- *    逐项注明原混淆名与 jsx 行号。整合期替换为真实 import 即可。
+ * §0 跨批次 import 面 —— 以下 91 个符号定义于上半部（SrcSharedA.tsx，jsx 1–4900，
+ *    B5-10a 批次）。A0-S2d 接线：原 declare 挂接已替换为真实 import
+ *    （B5-10b 登记：接口级依赖，不影响发射代码）。逐项注明原混淆名与 jsx 行号；
+ *    所需补导出已由 A0-S2d 在 SrcSharedA §15 export 块落地（含 B5-14 的
+ *    DEFAULT_ASSET_INSTALL_MODE）。
  * ==========================================================================*/
-
-// -- zod-mini 运行时工厂（vendored zod v4 变体，上半部 jsx 3044–3300 区） --
-declare const w: (...args: any[]) => any; // zodString（jsx 3044）
-declare const E: (...args: any[]) => any; // zodNumber（jsx 3112）
-declare const D: (...args: any[]) => any; // zodBoolean（jsx 3124）
-declare const O: (...args: any[]) => any; // zodUnknown（jsx 3136）
-declare const Ua: (...args: any[]) => any; // zodUndefined（jsx 3130）
-declare const Ja: (...args: any[]) => any; // zodDate（jsx 3150）
-declare const k: (element: any, params?: any) => any; // zodArray（jsx 3156）
-declare const A: (shape: Record<string, any>, params?: any) => any; // zodObject（jsx 3177）
-declare const j: (options: any[], params?: any) => any; // zodUnion（jsx 3187）
-declare const M: (discriminator: string, options: any[], params?: any) => any; // zodDiscriminatedUnion（jsx 3197）
-declare const N: (keyType: any, valueType: any, params?: any) => any; // zodRecord（jsx 3218）
-declare const no: (keyType: any, valueType: any, params?: any) => any; // zodRecord 变体（jsx 3226）
+import {
+  zString as w, // zodString（jsx 3044）
+  zNumber as E, // zodNumber（jsx 3112）
+  zBoolean as D, // zodBoolean（jsx 3124）
+  zUnknown as O, // zodUnknown（jsx 3136）
+  zUndefined as Ua, // zodUndefined（jsx 3130）
+  zDate as Ja, // zodDate（jsx 3150）
+  zArray as k, // zodArray（jsx 3156）
+  zObject as A, // zodObject（jsx 3177）
+  zUnion as j, // zodUnion（jsx 3187）
+  zDiscriminatedUnion as M, // zodDiscriminatedUnion（jsx 3197）
+  zRecord as N, // zodRecord（jsx 3218）
+  looseRecord as no, // zodRecord 变体（jsx 3226）
+  zEnum as P, // zodEnum（jsx 3260）
+  zLiteral as F, // zodLiteral（jsx 3275）
+  ISSUE_CODES as Ao, // zod issue code 常量表（jsx 3403；styles 侧经别名 gs 消费）
+  clientModeEnum as Fo, // clientMode 枚举（desktop-continuous/web-remote-replayable，jsx 3433）
+  browserRequestSchema as Ko, // 浏览器执行命令判别并集（jsx 3524）
+  browserDescriptorSchema as Yo, // 浏览器实例条目 schema（jsx 3729）
+  sessionContextEnum as Xo, // 会话上下文枚举（live/cached，jsx 3741）
+  browserResultSchema as as, // 浏览器执行结果 schema（jsx 3829）
+  ASSET_INSTALL_MODES as os, // 资产安装模式列表（jsx 3851）
+  isFileTransferCapability as ps, // 资源包 id 判定（jsx 3862）
+  agentCliProviderEnum as I, // agent 供应商枚举（claude/opencode/gemini/codex/glm，jsx 3865）
+  USAGE_REPORT_RANGES as ms, // 用量区间列表（7d/30d，jsx 3866）
+  clientModeEnum2 as Os, // 投递类型枚举（jsx 3953）
+  messageVisibilityEnum as ks, // 输入可见性枚举（jsx 3954）
+  syntheticSourceEnum as As, // 消息输入来源枚举（jsx 3955）
+  workspaceRefSchema as B, // 工作区引用 schema（jsx 3956）
+  permissionDecisionEnum as js, // 权限决定枚举（allow/deny/escalate/modify，jsx 3962）
+  addRulesUpdateSchema as Ps, // 权限规则更新 schema（jsx 3968）
+  permissionResponseSchema as Fs, // 权限应答载荷 schema（jsx 3973）
+  modelRefSchema as V, // 模型引用 schema（providerId/modelId/variant，jsx 3979）
+  sessionModeEnum as Is, // 会话模式枚举（plan/build/edit/yolo/auto，jsx 3984）
+  sessionStatusEnum as Ls, // 会话状态枚举（jsx 3985）
+  goalTargetSchema as zs, // goal 目标引用 schema（jsx 3987）
+  sessionDescriptorSchema as Hs, // 会话元信息 schema（jsx 4022）
+  subagentOriginSchema as Us, // 交互来源 schema（subagent，jsx 4038）
+  messagePartSchema as Qs, // 消息部件判别并集 schema（jsx 4180）
+  messageWithPartsSchema as $s, // 会话消息（info+parts）schema（jsx 4239）
+  sessionStateEventSchema as ic, // 会话运行时游标 schema（jsx 4276）
+  extractTextFromParts as ac, // 部件文本拼接（jsx 4288）
+  imBindingSchema as sc, // bot 投递目标 schema（feishu/lark/weixin，jsx 4292）
+  wslUserSchema as Tc, // WSL 用户名 schema（jsx 4423）
+  integratedTerminalShellSchema as Jc, // 集成终端 shell 模式判别并集（jsx 4516）
+  extractErrorInfo as ee, // 错误归一化（jsx 115）
+  approvalPolicyEnum as hl, // 会话模式全枚举（含 dontAsk/bypassPermissions 等，jsx 4831）
+  providerIds as W, // builtin 供应商 id 常量表（jsx 4833；styles 侧 providerIds(q) 经别名 mo 消费）
+  modelAliasOverrideSchema as Dl, // 供应商映射 schema（jsx 4871）
+  apiFormatEnum as Ol, // 模型支持格式枚举（jsx 4879）
+  wireFormatEnum as kl, // API 格式枚举（jsx 4880）
+  providerKindEnum as Al, // 供应商种类枚举（jsx 4881）
+  devProviderIdEnum as jl, // 目录来源枚举（jsx 4882）
+  modalityEnum as Ml, // 模态枚举（text/image/video/audio/pdf，jsx 4883）
+  reasoningLevelConfigSchema as Fl, // 推理分级 schema（defaultLevel/levels，jsx 4893）
+  endpointsByKindSchema as Il, // 种类→路径记录 schema（jsx 4897）
+  providerEndpointsSchema as Ll, // 端点 schema（baseURL/paths，jsx 4898）
+  RESOLVED_BUILD_ENV as s, // 运行环境（production/test，jsx 92）
+  DEFAULT_LOCALE as e, // 默认语言 `zh-CN`（jsx 1）
+  sanitizeWorkspaceDescriptor as t, // 远程描述脱敏（ssh 口令/服务器令牌，jsx 2）
+  sshTargetIdentityKey as a, // ssh 连接缓存键（jsx 86）
+  isFileLockTimeoutError as te, // 特定错误码判定（jsx 136）
+  zNever as Ka, // zodNever 工厂（jsx 3142）
+  BROWSER_VIEWPORT_LIMITS as Mo, // 浏览器响应式视口尺寸范围（jsx 3418）
+  DEFAULT_AGENT_NAME as ws, // agent 标识 `zcodeAgent`（jsx 3942）
+  resolveDefaultAgentCliProvider as Es, // 供应商→glm 归一（jsx 3944）
+  isGlmAgentCliProvider as Ds, // 是否 glm 供应商（jsx 3947）
+  cacheStatsSchema as tc, // bot 用量 token schema（jsx 4251）
+  contextBreakdownSchema as nc, // 系统提示分段字符统计 schema 列表（jsx 4262）
+  isFeishuOrLark as cc, // 飞书/lark 判定（jsx 4298）
+  BOTS_STREAM_TIMEOUT_MS as uc, // bot 轮询间隔 3e4（jsx 4302）
+  BOTS_TASK_CHANNEL as dc, // bot IPC 主题 `bots:task`（jsx 4303）
+  BOTS_TASK_STREAM_CHANNEL as fc, // bot IPC 主题 `bots:task-stream`（jsx 4304）
+  listFileTransferCapabilities as fs, // 资源包 id 列表副本（jsx 3859）
+  DEFAULT_ASSET_INSTALL_MODE as ss, // 默认资产安装模式 `local-download-upload`（jsx 3852）
+  DEFAULT_BOT_REPLY_MODE as bc, // 卡片类型 `assistant_changes`（jsx 4403）
+  availableReplyModesForProvider as xc, // bot 卡片能力列表（jsx 4404）
+  resolveBotReplyMode as Sc, // bot 卡片类型解析（jsx 4407）
+  isValidWslUser as Cc, // WSL 用户名校验（jsx 4412）
+  resolveZcodeEndpointConfig as Lc, // 编码计划概览页 URL 组装（jsx 4474）
+  buildBigmodelApiUrl as zc, // 编码计划基址+路径（jsx 4483）
+  codingPlanPersonalOverviewUrl as Bc, // 编码计划个人概览 URL（jsx 4487）
+  codingPlanTeamPlansUrl as Vc, // 编码计划团队方案 URL（jsx 4490）
+  isRepoSnapshotIndexingUserEnabled as $c, // 仓库快照索引用户开关判定（jsx 4535）
+  isBuiltinProviderId as _l, // 是否 Z.ai/BigModel 家族供应商（jsx 4842）
+  isZaiPlanProviderId as vl, // 是否 coding-plan 供应商（jsx 4845）
+  isStartPlanProviderId as yl, // 是否 start-plan 供应商（jsx 4848）
+  isCodingPlanProviderId as bl, // 是否 coding/start-plan 供应商（jsx 4851）
+  isGlmModelId as Tl, // 是否 GLM-5 系模型（jsx 4858）
+  GLM_MODEL_IDS as xl, // GLM-5 系模型名列表（jsx 4854）
+  GLM_REASONING_LEVELS as Sl, // GLM 思考档位（max/high/nothink，jsx 4855）
+  CLAUDE_TO_GLM_MODEL_MAP as El // claude→GLM 模型映射表（jsx 4863，边界链头）
+} from './SrcSharedA';
 
 // 宿主全局（运行时以 typeof 守卫访问；原块未 import，属浏览器/Node 环境探测）
 declare global {
   var process: any;
 }
-declare const P: (entries: any, params?: any) => any; // zodEnum（jsx 3260）
-declare const F: (values: any, params?: any) => any; // zodLiteral（jsx 3275）
-declare const Ao: any; // zod issue code 常量表（jsx 3403；styles 侧经别名 gs 消费）
-
-// -- 上半部协议/领域 schema（first-party，jsx 3400–4900 区） --
-declare const Fo: any; // clientMode 枚举（desktop-continuous/web-remote-replayable，jsx 3433）
-declare const Ko: any; // 浏览器执行命令判别并集（jsx 3524）
-declare const Yo: any; // 浏览器实例条目 schema（jsx 3729）
-declare const Xo: any; // 会话上下文枚举（live/cached，jsx 3741）
-declare const as: any; // 浏览器执行结果 schema（jsx 3829）
-declare const os: any; // 资产安装模式列表（jsx 3851）
-declare const ps: (id: any) => boolean; // 资源包 id 判定（jsx 3862）
-declare const I: any; // agent 供应商枚举（claude/opencode/gemini/codex/glm，jsx 3865）
-declare const ms: any; // 用量区间列表（7d/30d，jsx 3866）
-declare const Os: any; // 投递类型枚举（jsx 3953）
-declare const ks: any; // 输入可见性枚举（jsx 3954）
-declare const As: any; // 消息输入来源枚举（jsx 3955）
-declare const B: any; // 工作区引用 schema（jsx 3956）
-declare const js: any; // 权限决定枚举（allow/deny/escalate/modify，jsx 3962）
-declare const Ps: any; // 权限规则更新 schema（jsx 3968）
-declare const Fs: any; // 权限应答载荷 schema（jsx 3973）
-declare const V: any; // 模型引用 schema（providerId/modelId/variant，jsx 3979）
-declare const Is: any; // 会话模式枚举（plan/build/edit/yolo/auto，jsx 3984）
-declare const Ls: any; // 会话状态枚举（jsx 3985）
-declare const zs: any; // goal 目标引用 schema（jsx 3987）
-declare const Hs: any; // 会话元信息 schema（jsx 4022）
-declare const Us: any; // 交互来源 schema（subagent，jsx 4038）
-declare const Qs: any; // 消息部件判别并集 schema（jsx 4180）
-declare const $s: any; // 会话消息（info+parts）schema（jsx 4239）
-declare const ic: any; // 会话运行时游标 schema（jsx 4276）
-declare const ac: (parts: any[]) => string; // 部件文本拼接（jsx 4288）
-declare const sc: any; // bot 投递目标 schema（feishu/lark/weixin，jsx 4292）
-declare const Tc: any; // WSL 用户名 schema（jsx 4423）
-declare const Jc: any; // 集成终端 shell 模式判别并集（jsx 4516）
-declare const ee: (err: any) => any; // 错误归一化（jsx 115）
-
-// -- 上半部模型目录层（jsx 4830–4900，B5-10a 边界链成员） --
-declare const hl: any; // 会话模式全枚举（含 dontAsk/bypassPermissions 等，jsx 4831）
-declare const W: any; // builtin 供应商 id 常量表（jsx 4833；styles 侧 providerIds(q) 经别名 mo 消费）
-declare const Dl: any; // 供应商映射 schema（jsx 4871）
-declare const Ol: any; // 模型支持格式枚举（jsx 4879）
-declare const kl: any; // API 格式枚举（jsx 4880）
-declare const Al: any; // 供应商种类枚举（jsx 4881）
-declare const jl: any; // 目录来源枚举（jsx 4882）
-declare const Ml: any; // 模态枚举（text/image/video/audio/pdf，jsx 4883）
-declare const Fl: any; // 推理分级 schema（defaultLevel/levels，jsx 4893）
-declare const Il: any; // 种类→路径记录 schema（jsx 4897）
-declare const Ll: any; // 端点 schema（baseURL/paths，jsx 4898）
-
-// -- 上半部环境常量与其余经 export 块转出的符号（本文件正文未直接引用） --
-declare const s: string; // 运行环境（production/test，jsx 14）
-declare const e: string; // 默认语言 `zh-CN`（jsx 1）
-declare const t: (descriptor: any) => any; // 远程描述脱敏（ssh 口令/服务器令牌，jsx 2）
-declare const a: (descriptor: any) => string; // ssh 连接缓存键（jsx 86）
-declare const te: (err: any) => boolean; // 特定错误码判定（jsx 136）
-declare const Ka: (...args: any[]) => any; // zodNever 工厂（jsx 3142）
-declare const Mo: any; // 浏览器响应式视口尺寸范围（jsx 3418）
-declare const ws: string; // agent 标识 `zcodeAgent`（jsx 3942）
-declare const Es: (provider: any) => string; // 供应商→glm 归一（jsx 3944）
-declare const Ds: (provider: any) => boolean; // 是否 glm 供应商（jsx 3947）
-declare const tc: any; // bot 用量 token schema（jsx 4251）
-declare const nc: any; // 系统提示分段字符统计 schema 列表（jsx 4262）
-declare const cc: (provider: any) => boolean; // 飞书/lark 判定（jsx 4298）
-declare const uc: number; // bot 轮询间隔 3e4（jsx 4302）
-declare const dc: string; // bot IPC 主题 `bots:task`（jsx 4303）
-declare const fc: string; // bot IPC 主题 `bots:task-stream`（jsx 4304）
-declare const fs: () => any[]; // 资源包 id 列表副本（jsx 3859）
-declare const ss: string; // 默认资产安装模式 `local-download-upload`（jsx 3852）
-declare const bc: string; // 卡片类型 `assistant_changes`（jsx 4403）
-declare const xc: (provider: any) => string[]; // bot 卡片能力列表（jsx 4404）
-declare const Sc: (provider: any, fallback?: any) => any; // bot 卡片类型解析（jsx 4407）
-declare const Cc: (user: any) => boolean; // WSL 用户名校验（jsx 4412）
-declare const Lc: (opts?: any) => string; // 编码计划概览页 URL 组装（jsx 4474）
-declare const zc: (opts: any, path: string) => string; // 编码计划基址+路径（jsx 4483）
-declare const Bc: (opts?: any) => string; // 编码计划个人概览 URL（jsx 4487）
-declare const Vc: (opts?: any) => string; // 编码计划团队方案 URL（jsx 4490）
-declare const $c: (prefs: any) => boolean; // 仓库快照索引用户开关判定（jsx 4535）
-declare const _l: (id: any) => boolean; // 是否 Z.ai/BigModel 家族供应商（jsx 4842）
-declare const vl: (id: any) => boolean; // 是否 coding-plan 供应商（jsx 4845）
-declare const yl: (id: any) => boolean; // 是否 start-plan 供应商（jsx 4848）
-declare const bl: (id: any) => boolean; // 是否 coding/start-plan 供应商（jsx 4851）
-declare const Tl: (modelId: any) => boolean; // 是否 GLM-5 系模型（jsx 4858）
-declare const xl: string[]; // GLM-5 系模型名列表（jsx 4854）
-declare const Sl: string[]; // GLM 思考档位（max/high/nothink，jsx 4855）
-declare const El: any; // claude→GLM 模型映射表（jsx 4863，边界链头）
 
 
 /* ============================================================================

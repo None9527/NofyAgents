@@ -26,10 +26,9 @@
  * ════════════════════════════════════════════════════════════════════════════
  */
 
-// ─── 依赖：./src-HCld2afU.js 的 K 导出（内部名 Lx） ───
+// ─── 依赖：./src-HCld2afU.js 的 K 导出（内部名 Lx）→ SrcSharedB formatLogLinePrefix ───
 // Lx(tag, pid?) => `[${formatTimestamp(new Date())}]${pid == null ? '' : ` [pid:${pid}]`} [${tag}]`
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明；类型契约由下方 cast 约束
-import { K } from '../../out/renderer/assets/src-HCld2afU.js';
+import { formatLogLinePrefix } from './SrcSharedB'; // 原 src-HCld2afU K（内部名 Lx）
 
 /* ─────────────────────────── 类型声明（推断） ─────────────────────────── */
 
@@ -48,22 +47,20 @@ interface ZCodeRendererEnv {
   VITE_ZCODE_ENDPOINT_ORIGIN: string;
 }
 
-/** preload 注入的桌面桥（可选）。此处只建模本模块用到的 `log` 方法。 */
+/**
+ * 测试/调试用全局开关：true 时禁用渲染进程日志。
+ * 以 `var` 声明使其落在 typeof globalThis 上（原码经 globalThis 读取）。
+ * 注：window.zcode 的 Window 声明由 Sidebar.tsx 统一给出（合并类型），
+ * 本模块不再重复声明，仅在调用处按 `log` 方法契约 cast。
+ */
 declare global {
-  interface Window {
-    zcode?: {
-      /** 主进程日志旁路：非 debug 级别的渲染进程日志会转发到这里。 */
-      log?: (level: LogLevel, args: unknown[]) => void;
-    };
-    /** 测试/调试用全局开关：true 时禁用渲染进程日志。 */
-    __ZCODE_RENDERER_DISABLE_LOGGING__?: boolean;
-  }
+  var __ZCODE_RENDERER_DISABLE_LOGGING__: boolean | undefined;
 }
 
 /* ──────── src chunk 符号的类型化绑定（minified 别名 -> 语义名） ──────── */
 
 /** 日志前缀格式化器：`[时间戳] [pid:N] [tag]`（本模块以 tag='ui'、无 pid 调用）。 */
-const formatLogPrefix = K as (tag: string, pid?: number) => string;
+const formatLogPrefix = formatLogLinePrefix as (tag: string, pid?: number) => string;
 
 /* ─────────────────────────── 1. 禁用判定 ─────────────────────────── */
 
@@ -125,7 +122,8 @@ function logAtLevel(level: LogLevel, ...args: unknown[]): void {
   if (!shouldLog(level)) return;
   CONSOLE_METHODS[level](formatLogPrefix(`ui`), ...args);
   if (level !== `debug` && typeof window !== `undefined`) {
-    window.zcode?.log?.(level, args);
+    // 主进程日志旁路（window.zcode 合并类型见 Sidebar.tsx；此处按 log 方法契约 cast）。
+    (window.zcode?.log as ((level: LogLevel, args: unknown[]) => void) | undefined)?.(level, args);
   }
 }
 

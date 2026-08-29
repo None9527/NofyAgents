@@ -61,13 +61,13 @@
  * ----------------------------------------------------------------------------
  *   Mg → paginateDocument            jsx 19190-19541（352 行；分页主循环：
  *        节度量/断页提示/表格行拆分/段落行拆分/测量高回灌；本文件保留签名
- *        与外层控制流，内层逐节点推进算法登记于此）
- *   lh/uh/ch → 文本测量原语          jsx 18184-18193（字体分段/宽度测量）
- *   Ns/Ms → 断行引擎                 jsx 18200±（排除带断行/兜底断行）
- *   Nh/Fh/Lh/Rh → 行高换算           jsx 18523-18556
- *   zh/lg/Tg → 节点高度/布局高        jsx 18571/18913/19002
- *   Ng/Kg → 图片内联/浮动判定         jsx 19542/19817
- *   Ym/Qm/th/nh → 字号/字体解析       jsx 18106-18160
+ *        与外层控制流（paginateDocumentReconstructed），canonical 实体在 C1）
+ *   A0-S2c 已接线（§0）：lh/uh/ch→C1 splitTextByFont/measureTextWidth/runFontString；
+ *   Ns/Ms/Fs→Engine4 layoutTextItemsBlock/layoutPlainTextBlock/caretRectForOffset；
+ *   Nh/Fh/Lh/Rh→C1 lineTwipsToMultiple/lineHeightFromMultiple/gridSnapHeight/paragraphLineHeight；
+ *   zh/lg/Tg→C1 paragraphOuterHeight/estimateNodeHeight/nodeLayoutHeight；
+ *   Ng/Kg/ov→C1 isInlineImageNode/isFloatingImageNode/isTopAnchoredFloating；
+ *   Ym/Qm/th/nh→C1 paragraphFontSizePx/paragraphDefaultFontFamily/paragraphIsCjkLike/lineSpacingFactorFor
  * ============================================================================
  */
 
@@ -121,8 +121,6 @@ import {
   paragraphIsFloatingImageOnly,
   paragraphHasSectionBreak,
   paragraphIsCheckboxYesNoRow,
-  normalizeFontFamily,
-  themeAwareColor,
   textChildren,
   firstTextRunStyle,
   formFieldDisplayText,
@@ -131,98 +129,110 @@ import {
   isBorderVisible,
   cloneParagraphStyle,
 } from "./LegacyDocEngineBModel";
+/** A0-S2c 条目4：m_/p_ canonical = C5（BModel 459/473 为批 B 重复转录副本，
+ * 保留不改；本文件消费点改指 C5 导出。C5→BLayout 环：双方均函数体内消费，
+ * 时序安全） */
+import { normalizeFontFamily, themeAwareColor } from "./LegacyDocEngineC5"; // 原 m_/p_
 
 /* ============================================================================
- * §0 测量原语契约（[E2] 区段，锚点登记；本层按用法声明）
+ * §0 测量原语契约（[E2] 区段；A0-S2c 接线：declare → 真实导入）
+ * 混淆名归属按各属主文件映射表（obfmap）；本地语义名保留，
+ * 契约与实体签名分歧者以类型桥接并逐件注明。
  * ==========================================================================*/
 
-/** 原 Ym（jsx 18106）：段落字号 px */
-declare function paragraphFontSizePx(paragraph: DocxParagraphNode): number;
-/** 原 Qm（jsx 18126）：段落缺省字体族 */
-declare function paragraphDefaultFontFamily(paragraph: DocxParagraphNode): string | undefined;
-/** 原 th（jsx 18157）：CJK 文本判定 */
-declare function isCjkText(text: string): boolean;
-/** 原 nh（jsx 18160）：字体族回退解析 */
-declare function resolveFontStack(paragraph: DocxParagraphNode, fontFamily: string | undefined): string;
-/** 原 ch（jsx 18184）：run 字体串构造 */
-declare function runFontString(style: DocxRunStyle | undefined, fontSizePx: number, text: string): string;
-/** 原 lh（jsx 18187）：按字体分段 */
-declare function splitTextByFont(text: string, style: DocxRunStyle | undefined, fontSizePx: number): { text: string; font: string; startOffset: number; endOffset: number }[];
-/** 原 uh（jsx 18193）：文本宽度测量 */
-declare function measureTextWidth(text: string, style: DocxRunStyle | undefined, fontSizePx: number): number;
-/** 原 Nh（jsx 18523）：twips 行距 → 倍数 */
-declare function lineTwipsToMultiple(lineTwips: number, base: number): number;
-/** 原 Fh（jsx 18533）：倍数 × 字号 → 行高 */
-declare function lineHeightFromMultiple(multiple: number, fontFamily: string | undefined, fontSizePx: number): number;
-/** 原 Lh（jsx 18548）：段落行高（精确判定） */
-declare function paragraphLineHeight(paragraph: DocxParagraphNode, gridPitchPx: number | undefined, exact?: boolean): number;
-/** 原 Rh（jsx 18552）：段落行高（渲染用） */
-declare function paragraphRenderLineHeight(paragraph: DocxParagraphNode, gridPitchPx: number | undefined, exact?: boolean): number;
-/** 原 zh（jsx 18571）：段落外层高度 */
-declare function paragraphOuterHeight(paragraph: DocxParagraphNode, contentWidthPx: number, gridPitchPx?: number, extra?: unknown, exact?: boolean): number;
-/** 原 lg（jsx 18913）：节点高度估算 */
-declare function estimateNodeHeight(node: DocxNode, contentWidthPx: number, gridPitchPx?: number, extra?: unknown): number;
-/** 原 Tg（jsx 19002）：节点布局高度（分段感知） */
-declare function nodeLayoutHeight(
-  node: DocxNode,
-  segment: PageSegment,
-  model: DocxEditorModel,
-  contentWidthPx: number,
-  numberingDefinitions: unknown,
-  gridPitchPx: number | undefined,
-  options?: { excludeWrappedFloatingImageFootprint?: boolean },
-): number;
-/** 原 Ng（jsx 19542）：内联图片判定 */
-declare function isInlineImageNode(image: DocxImageNode): boolean;
-/** 原 Kg（jsx 19817）：浮动图片判定 */
-declare function isFloatingImageNode(image: DocxImageNode): boolean;
-/** 原 Ns/Ms（jsx 18200±）：排除带断行 / 兜底断行 */
-declare function breakLinesWithExclusions(
+/** [E2] 测量/行高/图片/断页原语 → C1 实体导出（同 BModel 类型族） */
+import {
+  paragraphFontSizePx, // 原 Ym（jsx 18106）
+  paragraphDefaultFontFamily, // 原 Qm（jsx 18124）
+  runFontString, // 原 ch（jsx 18183）
+  splitTextByFont, // 原 lh（jsx 18185）
+  measureTextWidth, // 原 uh（jsx 18192）
+  lineTwipsToMultiple, // 原 Nh（jsx 18523）
+  lineHeightFromMultiple, // 原 Fh（jsx 18532）
+  paragraphLineHeight as paragraphRenderLineHeight, // 原 Rh（jsx 18553）
+  estimateNodeHeight, // 原 lg（jsx 18915；void 锚定消费）
+  nodeLayoutHeight, // 原 Tg（jsx 19003）
+  isInlineImageNode, // 原 Ng（jsx 19542）
+  isFloatingImageNode, // 原 Kg（jsx 19817）
+  isTopAnchoredFloating, // 原 ov（jsx 20726）
+  nodePageBreakStarts, // 原 Mo（jsx 14061）
+  pageBreakHintMap, // 原 Gm（jsx 18049；实体返回 number[]，原 declare 之 Map 登记有误，消费点仅 void 锚定）
+  paragraphIsCjkLike as paragraphIsCjkLikeC1, // 原 th（jsx 18158）
+  lineSpacingFactorFor as lineSpacingFactorForC1, // 原 nh（jsx 18161）
+  gridSnapHeight as gridSnapHeightC1, // 原 Lh（jsx 18548）
+  paragraphOuterHeight as paragraphOuterHeightC1, // 原 zh（jsx 18572）
+  paragraphHasTocTab as paragraphTabContext, // 原 E_（jsx 20242；boolean，消费按真值/unknown 用）
+  tabLayoutKindOf as paragraphTabLayoutKind, // 原 j_（jsx 20269；void 锚定）
+  paragraphPageFieldKinds as paragraphFootnoteRefs, // 原 hv（jsx 20930；void 锚定）
+  tocTabStopOf as paragraphTabStopDefault, // 原 D_（jsx 20245；void 锚定）
+  parseParagraphRevisions, // 原 dv（jsx 20746；void 锚定）
+} from "./LegacyDocEngineC1";
+/** [E4]/字段辅助 → C2 实体导出 */
+import {
+  paragraphHasNumbering as isNumberedParagraph, // 原 Xv（jsx 21895）
+  numberingKindOf, // 原 Zv（jsx 21898；void 锚定）
+  effectiveNumIdOfParagraph as effectiveNumIdOfParagraphC2, // 原 Pv（jsx 21746）
+  numberingLevelOf as numberingLevelOfC2, // 原 Av（jsx 21732）
+  imageLocationKeyContract as imageLocationKeyContractC2, // 原 jb（jsx 23294）
+  paragraphPageFieldResults as paragraphEndnoteRefs, // 原 _v（jsx 20945；void 锚定）
+  paragraphStyleRefFieldResults as paragraphTocEntries, // 原 yv（jsx 20999；void 锚定）
+  borderTypeNormalized as borderKindCss, // 原 By（jsx 22408）
+  LIST_INDENT_TWIPS as NUMBERING_INDENT_STEP_TWIPS, // 原 Wv（jsx 21878；A0-S2c 条目5 接线，原 declare 删）
+} from "./LegacyDocEngineC2";
+/** 断行引擎/光标 → Engine4 实体导出（原 Ns/Ms/Fs；类型族不同，按本地契约桥接） */
+import {
+  layoutTextItemsBlock as layoutTextItemsBlockE4, // 原 Ns（jsx 14656）
+  layoutPlainTextBlock as layoutPlainTextBlockE4, // 原 Ms（jsx 14573）
+  caretRectForOffset as caretRectForOffsetE4, // 原 Fs（jsx 14767）
+} from "./LegacyDocEngine4";
+/** 脚本分段/字体解析 → Engine3 实体导出（类型族不同，按本地契约桥接） */
+import {
+  splitTextByScriptRuns as splitTextByScriptRunsE3, // 原 ji（jsx 12296）
+  resolvePrimaryFontFamily as resolvePrimaryFontFamilyE3, // 原 Mi（jsx 12337）
+} from "./LegacyDocEngine3";
+
+/* --- 类型桥接：本地契约与实体签名存在分歧（重建期猜测），运行时为同一实体 --- */
+/** 原 th：本地契约 (text) => boolean；实体 paragraphIsCjkLike(paragraph) —— 参数语义分歧 */
+const isCjkText = paragraphIsCjkLikeC1 as unknown as (text: string) => boolean;
+/** 原 nh：本地契约返回 string（字体栈猜测）；实体 lineSpacingFactorFor 返回 number（行距因子），消费点仅 void */
+const resolveFontStack = lineSpacingFactorForC1 as unknown as (paragraph: DocxParagraphNode, fontFamily: string | undefined) => string;
+/** 原 Lh：本地契约 (paragraph, gridPitchPx, exact?) => number；实体 gridSnapHeight(paragraph, lineHeightPx, skipSnap?) => number | undefined */
+const paragraphLineHeight = gridSnapHeightC1 as unknown as (paragraph: DocxParagraphNode, gridPitchPx: number | undefined, exact?: boolean) => number;
+/** 原 zh：本地第 3 参按 gridPitchPx 登记；实体第 3 参为 numberingDefinitions */
+const paragraphOuterHeight = paragraphOuterHeightC1 as unknown as (paragraph: DocxParagraphNode, contentWidthPx: number, gridPitchPx?: number, extra?: unknown, exact?: boolean) => number;
+/** 原 Ns：实体 layoutTextItemsBlock(text, items: TextLayoutItem[], width, lineHeight, exclusions?, fallbackFont?) => TextBlockLayout | undefined */
+const breakLinesWithExclusions = layoutTextItemsBlockE4 as unknown as (
   text: string,
   fragments: { text: string; font: string; startOffset: number; endOffset: number; break?: string; wordBreak?: string }[],
   widthPx: number,
   lineHeightPx: number,
   exclusions: { left: number; right: number; top: number; bottom: number }[] | undefined,
   baseFont: string,
-): LineLayoutResult | undefined;
-declare function breakLinesFallback(
+) => LineLayoutResult | undefined;
+/** 原 Ms：实体 layoutPlainTextBlock(text, font, width, lineHeight, exclusions?, options?) => TextBlockLayout | undefined */
+const breakLinesFallback = layoutPlainTextBlockE4 as unknown as (
   text: string,
   baseFont: string,
   widthPx: number,
   lineHeightPx: number,
   exclusions: { left: number; right: number; top: number; bottom: number }[] | undefined,
   options: { wordBreak: string },
-): LineLayoutResult;
-/** 原 Fs（jsx 18200±）：行布局中偏移处的行信息 */
-declare function lineAtOffset(layout: LineLayoutResult, offset: number): { top: number; bottom?: number } | undefined;
-/** 原 ov（jsx 20726）：图片为顶部锚定浮动判定 */
-declare function isTopAnchoredFloating(image: DocxImageNode): boolean;
-/** 原 ji（jsx 20100±）：按脚本分段 */
-declare function splitTextByScript(text: string, style: DocxRunStyle | undefined): { text: string; fontFamily?: string }[];
-/** 原 Mi（jsx 20100±）：编号标签字体解析 */
-declare function numberingLabelFont(style: DocxRunStyle | undefined, paragraph: DocxParagraphNode): string | undefined;
-/** 原 E_/j_/hv/_v/yv/D_（jsx 21000±）：制表/脚注辅助（渲染层；锚点登记） */
-declare function paragraphTabContext(paragraph: DocxParagraphNode): unknown;
-declare function paragraphTabLayoutKind(paragraph: DocxParagraphNode, options?: { withinHeaderFooter?: boolean }): string | undefined;
-declare function paragraphFootnoteRefs(paragraph: DocxParagraphNode): unknown[];
-declare function paragraphEndnoteRefs(paragraph: DocxParagraphNode): unknown[];
-declare function paragraphTocEntries(paragraph: DocxParagraphNode): unknown[];
-declare function paragraphTabStopDefault(paragraph: DocxParagraphNode): number;
-/** 原 dv（jsx 20746）：段落修订标记解析 */
-declare function parseParagraphRevisions(paragraph: DocxParagraphNode): { changes: { id: string; revisionId: string; kind: `insertion` | `deletion` | `move-to` | `move-from`; author?: string; date?: string; text?: string }[] } | undefined;
-/** 原 Zv/Xv（[E4]）：编号种类/编号段落判定 */
-declare function numberingKindOf(paragraph: DocxParagraphNode, definitions: unknown): `unordered` | `ordered` | undefined;
-declare function isNumberedParagraph(paragraph: DocxParagraphNode): boolean;
-/** 原 Pv/Av/Wv（[E4]）：编号实例解析/级别解析/缺进 */
-declare function resolveNumberingInstanceId(paragraph: DocxParagraphNode, definitions: unknown): number | undefined;
-declare function resolveNumberingLevel(definitions: unknown, numId: number, ilvl: number): { text?: string; indent?: { leftTwips?: number; firstLineTwips?: number; hangingTwips?: number }; pictureBullet?: { src?: string } } | undefined;
-declare const NUMBERING_INDENT_STEP_TWIPS: number;
-/** 原 Mo（[E4] jsx 14061）：节点断页起点集 */
-declare function nodePageBreakStarts(nodes: DocxNode[]): Set<number>;
-/** 原 Gm（[E4] 附近）：断页提示 → 节点索引映射 */
-declare function pageBreakHintMap(nodeCount: number, breaks: Set<number>): Map<number, number>;
-/** 原 jb（渲染层）：图片键构造 */
-declare function imageLocationKey(location: unknown): string;
+) => LineLayoutResult;
+/** 原 Fs：实体 caretRectForOffset(layout: TextBlockLayout, offset) => CaretRect | undefined */
+const lineAtOffset = caretRectForOffsetE4 as unknown as (layout: LineLayoutResult, offset: number) => { top: number; bottom?: number } | undefined;
+/** 原 ji：实体 splitTextByScriptRuns(text, style) => DocxScriptRun[]（Engine3 类型族） */
+const splitTextByScript = splitTextByScriptRunsE3 as unknown as (text: string, style: DocxRunStyle | undefined) => { text: string; fontFamily?: string }[];
+/** 原 Mi：本地契约 (style, paragraph)；实体 resolvePrimaryFontFamily(text, style) —— 参数序/语义分歧 */
+const numberingLabelFont = resolvePrimaryFontFamilyE3 as unknown as (style: DocxRunStyle | undefined, paragraph: DocxParagraphNode) => string | undefined;
+/** 原 Pv：实体 effectiveNumIdOfParagraph(paragraph, definitions: NumberingDefinitionsView | undefined) */
+const resolveNumberingInstanceId = effectiveNumIdOfParagraphC2 as unknown as (paragraph: DocxParagraphNode, definitions: unknown) => number | undefined;
+/** 原 Av：实体 numberingLevelOf(definitions: NumberingDefinitionsView, numId, levelIndex) => NumberingLevelView | undefined */
+const resolveNumberingLevel = numberingLevelOfC2 as unknown as (definitions: unknown, numId: number, ilvl: number) => { text?: string; indent?: { leftTwips?: number; firstLineTwips?: number; hangingTwips?: number }; pictureBullet?: { src?: string } } | undefined;
+/** 原 jb：实体 imageLocationKeyContract(location: DocxLocation) */
+const imageLocationKey = imageLocationKeyContractC2 as unknown as (location: unknown) => string;
+
+/* 原 Wv：编号缺进常量——A0-S2c 条目5 已接线 C2 LIST_INDENT_TWIPS（jsx 21878 同主），
+ * 经顶部 C2 导入块以 NUMBERING_INDENT_STEP_TWIPS 名引入 */
 
 /* --- 行布局结果类型（原 Ns/Ms 返回面） --- */
 export interface LineLayoutFragment {
@@ -265,9 +275,11 @@ export function exclusionAwareHeight(paragraph: DocxParagraphNode, exclusions: {
   return minTop < -4 || maxBottom > naturalBottom + 4 ? Math.max(MIN_BLOCK_HEIGHT_PX, naturalBottom) : naturalTop;
 }
 
-/** 原 gp：拖拽预览高度（取行高/排除带/既有段底的最大者，封顶自然高） */
+/** 原 gp：拖拽预览高度（取行高/排除带/既有段底的最大者，封顶自然高）。
+ * A0-S2c：jsx 调用面传入行布局对象（TextBlockLayout/LineLayoutResult，
+ * 见 C4 dragPreview 消费点），非段落节点；参数放宽为 any 保持原调用面。 */
 export function dragPreviewHeight(
-  paragraph: DocxParagraphNode,
+  paragraph: any,
   exclusions: { exclusion: { top: number; bottom: number } }[],
   extraBoxes?: { bottom: number; fromDragPreview?: boolean }[],
 ): number {
@@ -1011,9 +1023,10 @@ export function spacingBeforeWithContext(model: DocxEditorModel, index: number, 
   return previous?.type === `paragraph` && contextualSpacingApplies(previous as DocxParagraphNode, paragraph) ? 0 : before;
 }
 
-/** [E2] 契约：段前/段后距计算（原 dg/mg；锚点登记） */
-declare function paragraphSpacingAfterLocal(paragraph: DocxParagraphNode): number;
-declare function paragraphSpacingBeforeLocal(model: DocxEditorModel, index: number, paragraph: DocxParagraphNode, gridPitchPx: number | undefined): number;
+/** [E2] 契约：段前/段后距计算（原 dg/mg → C1 paragraphSpacingAfterRaw/spacingBeforeAfterPageBreak） */
+import { paragraphSpacingAfterRaw as paragraphSpacingAfterLocal, spacingBeforeAfterPageBreak as spacingBeforeAfterPageBreakC1 } from "./LegacyDocEngineC1";
+/** 原 mg：本地契约 4 参；实体第 4/5 参为 (consumedHeightPx: number, suppress: boolean) —— 参数分歧 */
+const paragraphSpacingBeforeLocal = spacingBeforeAfterPageBreakC1 as unknown as (model: DocxEditorModel, index: number, paragraph: DocxParagraphNode, gridPitchPx: number | undefined) => number;
 
 /* ============================================================================
  * §9 书签/脚注引用提取（原 vm..bm，jsx 17858-17885）
@@ -1555,8 +1568,7 @@ function borderWidthPx(spacePt: number | undefined): number | undefined {
   if (Number.isFinite(spacePt)) return Math.max(0, Number((((spacePt as number) * 96) / 72).toFixed(2)));
 }
 
-/** 边框类型 → CSS（原 By 语义；[E4] 锚点） */
-declare function borderKindCss(type: string | undefined): string | undefined;
+/** 边框类型归一（原 By）→ C2 borderTypeNormalized（§0 以 borderKindCss 名导入） */
 
 /** 原 i_：边框间距（磅 → px） */
 export function borderSpacePx(border: DocxBorderSpec | undefined): number | undefined {
@@ -1812,7 +1824,8 @@ export function paragraphCssStyle(
  * ==========================================================================*/
 
 /** 原 __：run 样式 → CSS（字重/字形/装饰线/颜色/字号/字体/字距/上下标/边框） */
-export function runStyleToCss(style: DocxRunStyle | undefined, theme: `light` | `dark` = `light`, paragraph?: DocxParagraphNode): Record<string, unknown> {
+// A0-S2c：第三参原式亦收表单域展示文本等字符串（jsx 33385 等），放宽为 unknown
+export function runStyleToCss(style: DocxRunStyle | undefined, theme: `light` | `dark` = `light`, paragraph?: unknown): Record<string, unknown> {
   const scriptScaled = style?.verticalAlign === `superscript` || style?.verticalAlign === `subscript`;
   const verticalAlign = style?.verticalAlign === `superscript` ? `super` : style?.verticalAlign === `subscript` ? `sub` : void 0;
   const decorations = [style?.underline ? `underline` : ``, style?.strike ? `line-through` : ``].filter(Boolean);
@@ -1847,7 +1860,7 @@ export function runStyleToCss(style: DocxRunStyle | undefined, theme: `light` | 
 }
 
 /** 原 v_：run CSS 缺省补全（颜色 inherit / 装饰线 none） */
-export function runStyleToCssDefaults(style: DocxRunStyle | undefined, theme: `light` | `dark` = `light`, paragraph?: DocxParagraphNode): Record<string, unknown> {
+export function runStyleToCssDefaults(style: DocxRunStyle | undefined, theme: `light` | `dark` = `light`, paragraph?: unknown): Record<string, unknown> {
   const css = runStyleToCss(style, theme, paragraph);
   const decoration = typeof css.textDecoration == `string` && (css.textDecoration as string).trim().length > 0 ? css.textDecoration : `none`;
   return { ...css, color: css.color ?? `inherit`, textDecoration: decoration };

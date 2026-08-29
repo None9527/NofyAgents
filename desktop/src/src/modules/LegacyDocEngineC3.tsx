@@ -22,7 +22,9 @@
  * 重建口径：
  *  - 类名/字符串常量/data-* 属性/分支结构零改动（逐句对照转录，把握度高）；
  *  - 顶层回调符号按语义命名（映射见下），函数体内局部变量名从源（保持逐字保真）；
- *  - 外部段符号（[E1]-[E6] 与渲染助手）以 declare 契约挂接（§0）。
+ *  - 外部段符号（[E1]-[E6] 与渲染助手）：A0-S2c 已将 §0 的 85 项接线至域内实体导出
+ *    （C1/C2/C5/B 系/Engine4/BPageRegistry），余 11 项保留 declare（属主未转录/他批），
+ *    契约面分歧以类型面桥接（§0a）；逐件见 A0-S2c.report.md §2。
  *
  * ----------------------------------------------------------------------------
  * §A 混淆名 → 语义名 映射（本件实体化符号，jsx 行）
@@ -201,6 +203,115 @@ import {
 } from "./LegacyDocEngineBLayout";
 import type { DocxEditorState } from "./LegacyDocEngineBEditorState";
 
+/* ============================================================================
+ * §0 接线（A0-S2c）：原 declare 改指域内实体导出。行尾注原混淆名；
+ * 契约面分歧者以 `as unknown as` 桥接（类型面、零运行时）或参数序适配器，
+ * 逐件见 A0-S2c.report.md §2。
+ * ==========================================================================*/
+import {
+  locationKeyContract, // 原 Ab
+  imageLocationKeyContract, // 原 jb
+  sameLocation as sameLocationContract, // 原 ax
+  cloneLocation as cloneLocationContract, // 原 xx
+  paragraphLocationOfImage, // 原 Px
+  locationBase as locationBaseContract, // 原 Rx
+  pageIndexForLocation, // 原 Yb
+  trackedChangeIsAnnotatable, // 原 Kb
+  locationSortVector, // 原 qb
+  annotationAnchorElement, // 原 tx
+  annotationAnchorRect as annotationAnchorRectSource, // 原 Zb（锚点 Element 面 → 下方桥接）
+  layoutGutterAnnotations as layoutGutterAnnotationsContract, // 原 ix
+  paragraphBorderVisible, // 原 Wy
+  enumerateRangeLocations as enumerateRangeLocationsContract, // 原 _x
+  rangeOffsetsInParagraph, // 原 bx
+  caretOffsetIn as paragraphInsertOffset, // 原 vx
+  resolveLocation as resolveLocationContract, // 原 Fx
+  tocFieldFallback, // 原 xv
+  normalizeStyleName, // 原 bv
+  selectionRestoreArbitration, // 原 Ox
+  caretXOutOfRange, // 原 Nx
+  sameTextRange as sameTextRangeApprox, // 原 Ex
+  cloneTextRange as collapsedRangeToRestore, // 原 Sx
+  isNavigationOrEditKey, // 原 jx
+  previousEditableParagraphLocation, // 原 px
+  nextEditableParagraphLocation, // 原 mx
+  isNumberedParagraph as paragraphIsListItem, // 原 Qv
+  cellParagraphDraftKey, // 原 Yx
+  sectionParagraphDraftKey, // 原 qx
+  parseSectionDraftKey, // 原 Xx
+  sectionNodeTextAt, // 原 Zx
+  replaceSectionParagraphText, // 原 $x
+  cloneRunStyle as cloneRunStyleContract, // 原 fb
+  cellParagraphsSignature, // 原 vy
+  tableMaxColumnCount as tableGridColumnCount, // 原 yy
+  tableGridWidthsCached as tableGridColumnsCached, // 原 Ey
+  normalizeGridWidthsPx as normalizeGridWidthsPxSource, // 原 jy（宽度可含 undefined → 下方桥接）
+  evenGridWidthsPx as defaultColumnWidths, // 原 My
+  locationFromDataset as parseImageDropZoneDataset, // 原 Nb
+  childLocationKey as imageDropZoneKey, // 原 Mb
+} from "./LegacyDocEngineC2";
+import {
+  positiveNumber as normalizeZoomScaleProp, // 原 uu
+  measureHeaderHeight as estimateHeaderHeight, // 原 Pd
+  minFloatingImageTop as minFloatingImageTopSource, // 原 Md（返回可 undefined；消费经 Number.isFinite 守卫 → 下方桥接）
+  maxRenderedBottomPx as measureBodyRenderedBottom, // 原 Ld
+  resolvePageBodyHeight as arbitratePageContentHeight, // 原 Id
+  buildPaginationSnapshot, // 原 Hu（BModel 参数序 nodes/segments；消费点经适配器）
+  samePaginationSnapshot, // 原 Uu
+  reconcilePageHeights as mergeMeasuredPageHeights, // 原 Rd
+  sameCellSelection as sameTableSelection, // 原 nf
+  tableFirstLastCell, // 原 sf
+  parseTableCellDomLocation as tableCellLocationFromElement, // 原 $d
+  enumerateSelectedCells as tableSelectionCells, // 原 of
+  selectionCoversTable as tableSelectionIsWholeTable, // 原 cf
+  isCollapsedCellSelection as tableSelectionCollapsed, // 原 tf
+  TABLE_CONTEXT_MENU_ITEMS as TABLE_CONTEXT_MENU_ACTIONS_SOURCE, // 原 Yu
+  CLIPBOARD_MENU_ITEMS as TEXT_CONTEXT_MENU_ACTIONS_SOURCE, // 原 Qu
+  IMAGE_WRAP_MENU_ITEMS as IMAGE_WRAP_MENU_ITEMS_SOURCE, // 原 ed
+  IMAGE_ORDER_MENU_ITEMS as IMAGE_ZORDER_MENU_SOURCE, // 原 $u
+  paragraphText as paragraphTextContract, // 原 _f
+  rangeOffsetsWithin as domRangeToOffsets, // 原 qu
+  sectionBreakType as sectionBreakTypeOf, // 原 xd
+  sectionStartPageNumber as startingPageNumberOfSection, // 原 vd
+  sectionStartPageNumberOrUndefined as explicitPageStartOfSection, // 原 yd
+  twipsToPxRounded as twipsToPx, // 原 ld
+  rangeTextLength as rangePlainTextLength, // 原 lf
+  parseDropCap as dropCapOfParagraph, // 原 Zl
+  paragraphHasImage as paragraphHasDropCap, // 原 Pf（调用点旧注误标首字下沉；混淆名为准）
+  paragraphHasVisibleText as paragraphIsTextBox, // 原 Yf（同上，实为可见文本判定）
+  paragraphHasFormField as paragraphIsFramed, // 原 qf（同上，实为表单域判定）
+} from "./LegacyDocEngineBModel";
+import {
+  updateOverlapStability as updateOverlapStabilitySource, // 原 Io（targetPageCount 可 undefined → 下方桥接）
+  mapBeforeInputEvent as mapBeforeInputEventSource, // 原 ro（指令面分歧 → 下方桥接）
+  applyPlainTextInputCommand as applyPlainTextInputCommandSource, // 原 mo（同上）
+  inputCommandCategory as inputCommandCategorySource, // 原 io（同上）
+  mergeCellParagraphsAtBoundary as mergeCellParagraphDelete, // 原 go
+  replaceTableCellParagraphTextDeep as replaceCellParagraphText, // 原 to
+  replaceTableCellText as replaceCellTextContract, // 原 $a
+  hitTestTextOffset as wrappedLayoutHitOffset, // 原 Ps
+} from "./LegacyDocEngine4";
+import {
+  isInlineImageNode as floatingImageCreatesExclusion, // 原 Ng
+  lineRangeIsPartial as partialLineRangeIsProper, // 原 gg
+  segmentMatchesLineRange as samePartialLineSelection, // 原 wg
+  twipsToPxNonNegative as twipsToPxRounded, // 原 Br
+  tableRowHeights as tableRowHeightsC1, // 原 $h（contentWidthPx 可 undefined → 下方桥接）
+} from "./LegacyDocEngineC1";
+import { floatingImageGeometry } from "./LegacyDocEngineBLayout"; // 原 Jp（消费面经适配器）
+import {
+  buildPageThumbnailSnapshots as buildPageThumbnailSnapshotsSource, // 原 wS（输入面含 undefined 元素 → 下方桥接）
+  publishPageSnapshots as publishPageSnapshotsSource, // 原 aS（快照面桥接，与 wS 配套）
+} from "./LegacyDocEngineBPageRegistry";
+import {
+  unscaleDelta, // 原 zg
+  unscaleRect, // 原 Bg
+  sectionFloatingMovePatch, // 原 Vg
+  floatingMovePatch, // 原 Hg
+  paragraphHostPointHit, // 原 Ug
+  floatingWrapIsInlineLike, // 原 Wg
+} from "./LegacyDocEngineC5";
+
 /* 批 B 常量语义裁决（值同源 jsx 15383-15391；批 B 以表格域命名登记，
    本件按 [E7] 批注槽实际用途起本地别名——见报告 §3）：
    ku=300 批注槽带宽度 | Au=48 卡片左偏移 | ju=12 卡片右收进 | Mu=4 卡片顶间隙
@@ -216,29 +327,67 @@ const INITIAL_PAINT_DELAY_MS = TABLE_ANNOTATION_MAX_MS; // 原 Lu=240
 
 /* ============================================================================
  * §0 外部契约声明（其他段/层提供；锚点登记）
+ * A0-S2c 接线：本节原 105 项 declare 中 85 项已改指域内实体导出（顶部导入），
+ * 9 项无消费删除；余 11 项为跨批/未转录锚点（保留），另设契约面桥接 13 件。
+ * 逐件归属见 A0-S2c.report.md §2。
  * ==========================================================================*/
 
-/** 原 Ab（jsx 23291）：位置 → 稳定键（`p:<nodeIndex>` / `t:...`） */
-declare function locationKeyContract(location: DocxLocation): string;
-/** 原 jb（jsx 23294）：图片位置键（含 childIndex） */
-declare function imageLocationKeyContract(location: DocxLocation & { childIndex?: number }): string;
-/** 原 ax（jsx 23754）：位置相等 */
-declare function sameLocationContract(a: DocxLocation | undefined, b: DocxLocation | undefined): boolean;
-/** 原 xx（jsx 23965）：位置克隆（去 childIndex 规整） */
-declare function cloneLocationContract(location: DocxLocation): DocxLocation;
-/** 原 kx（jsx 24022）：dangerouslySetInnerHTML 缓存包装 */
-declare function htmlInsertionContract(cache: Map<string, string>, key: string, html: string): { __html: string };
-/** 原 Px（jsx 24056）：图片位置 → 宿主段落位置 */
-declare function paragraphLocationOfImage(location: DocxLocation & { childIndex?: number }): DocxLocation;
-/** 原 Rx（jsx 24108）：位置基座（单元格位置 → 段落索引位） */
-declare function locationBaseContract(location: DocxLocation): DocxLocation;
-/** 原 vi（jsx 12247）：首帧调度（微任务/rAF 兜底） */
-declare function scheduleFirstFrame(callback: () => void): void;
-/** 原 uu（jsx 27882 消费）：zoomScale prop 归一 */
-declare function normalizeZoomScaleProp(value: unknown): number | undefined;
-/** 原 l（@tanstack/react-virtual useVirtualizer 契约，jsx 28204） */
+/* --- §0a 契约面桥接（类型面、零运行时；参数序适配器另注） --- */
+
+/** 原 Zb 桥接：C2 锚点参数为 HTMLElement 面，消费侧传 Element（类型面） */
+const annotationAnchorRect = annotationAnchorRectSource as unknown as (anchor: Element, pageElement: HTMLElement) => { top: number; left: number; right: number; bottom: number; width: number; height: number } | undefined;
+/** 原 Md 桥接：实际返回可 undefined，消费侧均经 Number.isFinite 守卫；旧 declare 登记 number 面（类型面） */
+const estimateFooterHeight = minFloatingImageTopSource as unknown as (footerNodes: DocxNode[], layout: PageLayoutContract) => number;
+/** 原 Io 桥接：targetPageCount 消费侧可 undefined（类型面） */
+const measurementStabilityArbitration = updateOverlapStabilitySource as unknown as (input: {
+  pageCount: number;
+  targetPageCount: number | undefined;
+  overlappingPageIndexes: number[];
+  previousSignature: string | undefined;
+  previousConsecutivePasses: number;
+  stabilityThreshold: number;
+}) => { signature: string; consecutivePasses: number; shouldLatch: boolean };
+/** 原 Hu 适配器：BModel 参数序 (nodes, segments, key)，jsx 消费面 (segments, nodes, key)，
+ *  交换参数序保持原语义；返回实为快照对象，本地面按旧 declare 登记为 string
+ *  （消费侧仅经 samePaginationSnapshot 相等比较） */
+const pageContentIdentityKey = (segments: PageSegment[], nodes: DocxNode[], geometryIdentityKey: string): string =>
+  buildPaginationSnapshot(nodes, segments, geometryIdentityKey) as unknown as string;
+/** 原 Uu 桥接：实际比较对象为 Hu 快照；旧 declare 登记 string 面（类型面） */
+const sameIdentityKeyList = samePaginationSnapshot as unknown as (a: string | undefined, b: string | undefined) => boolean;
+/** 原 jy 桥接：列宽数组可含 undefined 元素（类型面） */
+const normalizeColumnWidths = normalizeGridWidthsPxSource as unknown as (widths: (number | undefined)[], count: number, totalWidthPx: number, minWidthPx?: number) => number[];
+/** 原 $h 桥接：消费侧 contentWidthPx 可 undefined（类型面） */
+const estimateTableRowHeights = tableRowHeightsC1 as unknown as (table: DocxTableNode, contentWidthPx: number | undefined, numberingDefinitions: unknown, docGridLinePitchPx: number | undefined, contentHeightPx: number | undefined) => (number | undefined)[];
+/** 原 Jp 桥接：消费面（图节点、内容宽、frame）→ BLayout floatingImageGeometry（类型面；
+ *  调用点参数已按 jsx 31767 校正为图节点 r） */
+const floatingAnchorLayout = floatingImageGeometry as unknown as (image: Record<string, unknown>, contentWidthPx: number, frame: { widthPx: number; heightPx: number; baseLeftPx?: number; baseTopPx?: number }) => { imageLeftPx?: number; imageTopPx?: number } | undefined;
+/** 原 ro 桥接：Engine4 指令面（DocxInputCommand）与旧 declare 登记面分歧（类型面） */
+const classifyBeforeInput = mapBeforeInputEventSource as unknown as (input: { inputType: string; data: string | null; dataTransferText: string | undefined }) =>
+  | { kind: `blocked` | `historyUndo` | `historyRedo` | `insertParagraph` | `insertText` | `replaceText` | `insertLineBreak` | `deleteContent` | `deleteRange`; direction?: `backward` | `forward` }
+  | undefined;
+/** 原 mo 桥接：同上（类型面） */
+const applyInputEdit = applyPlainTextInputCommandSource as unknown as (text: string, start: number, end: number, operation: NonNullable<ReturnType<typeof classifyBeforeInput>>) => { text: string; caret: number } | undefined;
+/** 原 io 桥接：同上（类型面） */
+const coalesceSuffixForInput = inputCommandCategorySource as unknown as (operation: NonNullable<ReturnType<typeof classifyBeforeInput>>) => string | undefined;
+/** 原 wS 桥接：pageSectionInfoByIndex 含 undefined 元素，输入面按旧 declare 登记（类型面） */
+const buildPageThumbnailSnapshotBatch = buildPageThumbnailSnapshotsSource as unknown as (input: {
+  model: DocxEditorModel;
+  pageNodeSegmentsByPage: PageSegment[][];
+  pageSectionInfoByIndex: (PageSectionInfoContract | undefined)[];
+  contentKeysByPage: string[];
+  fallbackLayout: PageLayoutContract;
+  documentTheme: unknown;
+  docGridLinePitchPxByNodeIndex: Map<number, number>;
+  numberingDefinitions: unknown;
+}) => ({ key: string; getSnapshot(): unknown } | undefined)[];
+/** 原 aS 桥接：与 wS 桥接面配套（类型面） */
+const publishPageSnapshots = publishPageSnapshotsSource as unknown as (editor: DocxEditorState, contentKeys: string[], sizes: { widthPx: number; heightPx: number }[], snapshots: ({ key: string; getSnapshot(): unknown } | undefined)[]) => void;
+
+/* --- §0b 保留 declare（属主未转录/属他批；锚点登记） --- */
+
+/** 原 l（@tanstack/react-virtual useVirtualizer 契约，jsx 28204）——vendor 库面，保留 */
 declare function useVirtualizerContract(options: { count: number; getScrollElement: () => HTMLElement | null; estimateSize: (index: number) => number; overscan: number }): VirtualizerContract;
-/** 原 c（@tanstack/react-virtual useWindowVirtualizer 契约，jsx 28210） */
+/** 原 c（@tanstack/react-virtual useWindowVirtualizer 契约，jsx 28210）——vendor 库面，保留 */
 declare function useWindowVirtualizerContract(options: { count: number; getScrollElement: () => Window | null; estimateSize: (index: number) => number; overscan: number }): VirtualizerContract;
 interface VirtualizerContract {
   getVirtualItems(): { index: number; start: number; end: number; size: number }[];
@@ -248,240 +397,24 @@ interface VirtualizerContract {
   scrollRect?: { height: number };
   scrollDirection?: `forward` | `backward`;
 }
-/** 原 Yb（jsx 28491）：位置 → 页索引 */
-declare function pageIndexForLocation(location: DocxLocation, pages: PageSegment[][]): number;
-/** 原 Kb（jsx 28495）：修订是否可布告 */
-declare function trackedChangeIsAnnotatable(change: unknown): boolean;
-/** 原 qb（jsx 28506）：位置排序向量 */
-declare function locationSortVector(location: DocxLocation): number[];
-/** 原 tx（jsx 28531）：批注锚点元素解析 */
-declare function annotationAnchorElement(pageElement: HTMLElement, annotation: { location?: unknown }): Element | undefined;
-/** 原 Zb（jsx 28533）：锚点元素 → 页内矩形 */
-declare function annotationAnchorRect(anchor: Element, pageElement: HTMLElement): { top: number; left: number; right: number; bottom: number; width: number; height: number } | undefined;
-/** 原 ix（jsx 28581）：批注槽布局（锚点/卡高 → 顶偏移/泳道） */
-declare function layoutGutterAnnotationsContract(
-  annotations: { id: string; location?: unknown; trackedChange?: unknown; comment?: unknown }[],
-  anchorPoints: Map<string, { x: number; y: number }>,
-  cardHeights: Map<string, number>,
-  pageWidthPx: number,
-  pageHeightPx: number,
-): { top: number; heightPx: number; annotation: { id: string; trackedChange?: unknown; comment?: unknown }; anchorX: number; anchorY: number; connectorLane: number }[];
-/** 原 Wy（jsx 28646）：段落边框可见判定 */
-declare function paragraphBorderVisible(border: unknown): boolean;
-/** 原 Pf（jsx 28647 消费）：首字下沉判定 */
-declare function paragraphHasDropCap(paragraph: DocxParagraphNode): boolean;
-/** 原 Yf（jsx 28647 消费）：文本框段落判定 */
-declare function paragraphIsTextBox(paragraph: DocxParagraphNode): boolean;
-/** 原 qf（jsx 28647 消费）：框架段落判定 */
-declare function paragraphIsFramed(paragraph: DocxParagraphNode): boolean;
-/** 原 Pd（jsx 28661）：页眉节点高度估算 */
-declare function estimateHeaderHeight(headerSections: { partName?: string; referenceType?: string; nodes: DocxNode[] }[], layout: PageLayoutContract): number;
-/** 原 Md（jsx 28745）：页脚节点高度估算 */
-declare function estimateFooterHeight(footerNodes: DocxNode[], layout: PageLayoutContract): number;
-/** 原 Ld（jsx 28767）：正文底边测量（忽略图片/分页忽略元素） */
-declare function measureBodyRenderedBottom(rects: { bottomPx: number; widthPx: number; heightPx: number; ignore: boolean }[]): number | undefined;
-/** 原 Id（jsx 28777）：页内容高度仲裁（页眉/正文/页脚重叠） */
-declare function arbitratePageContentHeight(input: {
-  pageLayout: PageLayoutContract;
-  fallbackHeightPx: number;
-  headerHeightPx: number;
-  currentMeasuredHeightPx: number | undefined;
-  bodyTopPx: number | undefined;
-  bodyRenderedBottomPx: number | undefined;
-  footerTopPx: number | undefined;
-  skipBodyBottomAdjustment: boolean;
-}): { heightPx: number; bodyOverrunsFooter: boolean };
-/** 原 Hu（jsx 28792）：页内容身份键 */
-declare function pageContentIdentityKey(segments: PageSegment[], nodes: DocxNode[], geometryIdentityKey: string): string;
-/** 原 Io（jsx 28796）：测量稳定闩锁仲裁 */
-declare function measurementStabilityArbitration(input: {
-  pageCount: number;
-  targetPageCount: number | undefined;
-  overlappingPageIndexes: number[];
-  previousSignature: string | undefined;
-  previousConsecutivePasses: number;
-  stabilityThreshold: number;
-}): { signature: string; consecutivePasses: number; shouldLatch: boolean };
-/** 原 Rd（jsx 28808）：测量页高合并（身份键变更 → 重置） */
-declare function mergeMeasuredPageHeights(previous: number[], next: number[], options: { currentPageIdentityKeys: string[]; nextPageIdentityKeys: string[] }): number[];
-/** 原 Uu（jsx 28837）：身份键数组相等 */
-declare function sameIdentityKeyList(a: string | undefined, b: string | undefined): boolean;
-/** 原 nf（jsx 28914）：表格选区相等 */
-declare function sameTableSelection(a: TableSelectionContract | undefined, b: TableSelectionContract): boolean;
-/** 原 sf（jsx 28952）：表格首尾单元格 */
-declare function tableFirstLastCell(table: DocxTableNode): { first: { rowIndex: number; cellIndex: number }; last: { rowIndex: number; cellIndex: number } } | undefined;
-/** 原 $d（jsx 30089）：元素 → 表格单元格位置 */
-declare function tableCellLocationFromElement(element: Element | null): { tableIndex: number; rowIndex: number; cellIndex: number } | undefined;
-/** 原 of（jsx 30200）：表格选区 → 单元格列表 */
-declare function tableSelectionCells(table: DocxTableNode, selection: TableSelectionContract): { rowIndex: number; cellIndex: number }[];
-/** 原 cf（jsx 30205）：选区是否整表 */
-declare function tableSelectionIsWholeTable(table: DocxTableNode, selection: TableSelectionContract): boolean;
-/** 原 tf（jsx 30197）：表格选区折叠（单格无文本） */
-declare function tableSelectionCollapsed(selection: TableSelectionContract): boolean;
-/** 原 Yu（jsx 29114）：表格右键菜单动作表 */
-declare const TABLE_CONTEXT_MENU_ACTIONS_SOURCE: { id: string; label: string; destructive?: boolean }[];
-/** 原 Qu（jsx 30313）：文本右键菜单动作表 */
-declare const TEXT_CONTEXT_MENU_ACTIONS_SOURCE: { id: string; label: string; shortcut?: string; destructive?: boolean }[];
-/** 原 ed（jsx 30339）：图片环绕菜单项表 */
-declare const IMAGE_WRAP_MENU_ITEMS_SOURCE: { actionId: string; mode: string; label: string; separatorBefore?: boolean }[];
-/** 原 $u（jsx 30367）：图片层序菜单表 */
-declare const IMAGE_ZORDER_MENU_SOURCE: { id: string; label: string; children?: { id: string; label: string }[] }[];
-/** 原 Op（jsx 30317）：浮动图 → 环绕语义模型 */
+/** 原 Op（jsx 30317）：浮动图 → 环绕语义模型——属主未转录，保留 */
 declare function imageWrapModel(floating: unknown): { mode: string; moveWithText: boolean; fixedPositionOnPage: boolean };
-/** 原 kp（jsx 30623）：菜单动作 → 环绕模式 */
+/** 原 kp（jsx 30623）：菜单动作 → 环绕模式——属主未转录，保留 */
 declare function wrapModeForAction(actionId: string): string | undefined;
-/** 原 _x（jsx 30415）：范围位置枚举 */
-declare function enumerateRangeLocationsContract(model: DocxEditorModel, start: DocxLocation, end: DocxLocation): { location: DocxLocation }[];
-/** 原 bx（jsx 29830 消费）：段落内范围偏移 */
-declare function rangeOffsetsInParagraph(location: DocxLocation, start: DocxTextRange[`start`], end: DocxTextRange[`end`], paragraph: DocxParagraphNode): [number, number];
-/** 原 vx（jsx 30452）：段落文本插入偏移（含换行规整） */
-declare function paragraphInsertOffset(paragraph: DocxParagraphNode, offset: number): number;
-/** 原 Fx（jsx 29161 消费）：位置 → 段落/表格节点解析 */
-declare function resolveLocationContract(model: DocxEditorModel, location: DocxLocation): { paragraph?: DocxParagraphNode };
-/** 原 _f（jsx 28007 消费）：段落纯文本 */
-declare function paragraphTextContract(paragraph: DocxParagraphNode): string;
-/** 原 Up（jsx 29829 消费）：段落编辑文本（含显式换行） */
+/** 原 Up（jsx 29829 消费）：段落编辑文本（含显式换行）——属主未转录，保留 */
 declare function paragraphEditText(paragraph: DocxParagraphNode): string;
-/** 原 xv（jsx 27997）：TOC 链接字段回退解析 */
-declare function tocFieldFallback(paragraph: DocxParagraphNode, nodeIndex: number): string | undefined;
-/** 原 bv（jsx 27992）：样式名归一 */
-declare function normalizeStyleName(name: string | undefined): string;
-/** 原 Wf（jsx 27376）：TOC 链接色表 */
-declare function tocLinkColorsContract(model: DocxEditorModel): Record<number, string>;
-/** 原 Ox（jsx 29741）：选区恢复仲裁 */
-declare function selectionRestoreArbitration(input: { hasLiveRange: boolean; isCollapsed: boolean; anchorIsElement: boolean; rangeInsideFocusedHost: boolean; rangeInsideViewer: boolean }): boolean;
-/** 原 Nx（jsx 29782）：光标 X 越界判定 */
-declare function caretXOutOfRange(element: HTMLElement, range: Range, clientX: number): boolean;
-/** 原 Ex（jsx 29752）：文本范围近似相等 */
-declare function sameTextRangeApprox(a: DocxTextRange | undefined, b: DocxTextRange | undefined): boolean;
-/** 原 Sx（jsx 29706）：折叠选区恢复模型 */
-declare function collapsedRangeToRestore(range: DocxTextRange | undefined): DocxTextRange | undefined;
-/** 原 jx（jsx 30253）：导航/编辑键判定 */
-declare function isNavigationOrEditKey(event: React.KeyboardEvent): boolean;
-/** 原 Ax（jsx 32413 消费）：输入法合成键判定 */
-declare function isCompositionKey(event: React.KeyboardEvent): boolean;
-/** 原 ro（jsx 31087）：beforeinput 分类 */
-declare function classifyBeforeInput(input: { inputType: string; data: string | null; dataTransferText: string | undefined }):
-  | { kind: `blocked` | `historyUndo` | `historyRedo` | `insertParagraph` | `insertText` | `replaceText` | `insertLineBreak` | `deleteContent` | `deleteRange`; direction?: `backward` | `forward` }
-  | undefined;
-/** 原 mo（jsx 31160 消费）：编辑操作 → 文本/光标 */
-declare function applyInputEdit(text: string, start: number, end: number, operation: NonNullable<ReturnType<typeof classifyBeforeInput>>): { text: string; caret: number } | undefined;
-/** 原 io（jsx 31212 消费）：合并键后缀 */
-declare function coalesceSuffixForInput(operation: NonNullable<ReturnType<typeof classifyBeforeInput>>): string | undefined;
-/** 原 qu（jsx 31095）：DOM Range → 宿主偏移 */
-declare function domRangeToOffsets(element: HTMLElement, range: Range): { start: number; end: number } | undefined;
-/** 原 px（jsx 31168 消费）：前一可编辑段落位置 */
-declare function previousEditableParagraphLocation(model: DocxEditorModel, nodeIndex: number): DocxLocation | undefined;
-/** 原 mx（jsx 31191 消费）：后一可编辑段落位置 */
-declare function nextEditableParagraphLocation(model: DocxEditorModel, location: DocxLocation): DocxLocation | undefined;
-/** 原 Qv（jsx 31143 消费）：列表段落判定 */
-declare function paragraphIsListItem(paragraph: DocxParagraphNode, text?: string): boolean;
-/** 原 go（jsx 31308）：跨段落删除合并（单元格） */
-declare function mergeCellParagraphDelete(paragraphTexts: string[], deleteIndex: number): { cellText: string; caretParagraphIndex: number; caretOffset: number } | undefined;
-/** 原 Yx（jsx 30944）：单元格段落草稿键 */
-declare function cellParagraphDraftKey(tableIndex: number, rowIndex: number, cellIndex: number, paragraphIndex: number): string;
-/** 原 qx（jsx 30964）：节区段落草稿键 */
-declare function sectionParagraphDraftKey(location: { region: string; partName: string; nodeIndex: number; rowIndex?: number; cellIndex?: number; paragraphIndex?: number }): string;
-/** 原 Xx（jsx 30989）：草稿键 → 节区位置 */
-declare function parseSectionDraftKey(key: string): { region: `header` | `footer`; partName: string; nodeIndex: number; rowIndex?: number; cellIndex?: number; paragraphIndex?: number } | undefined;
-/** 原 Zx（jsx 30967）：节区节点 → 段落文本定位 */
-declare function sectionNodeTextAt(nodes: DocxNode[], location: { nodeIndex: number; rowIndex?: number; cellIndex?: number; paragraphIndex?: number }): unknown;
-/** 原 to（jsx 31033）：单元格段落文本替换（模型变换） */
-declare function replaceCellParagraphText(model: DocxEditorModel, tableIndex: number, rowIndex: number, cellIndex: number, paragraphIndex: number, text: string, options?: { insertedStyle?: unknown }): DocxEditorModel;
-/** 原 $a（jsx 31052）：单元格文本替换（模型变换） */
-declare function replaceCellTextContract(model: DocxEditorModel, tableIndex: number, rowIndex: number, cellIndex: number, text: string, options?: { insertedStyle?: unknown }): DocxEditorModel;
-/** 原 $x（jsx 31061）：节区段落文本替换（模型变换） */
-declare function replaceSectionParagraphText(model: DocxEditorModel, location: { region: `header` | `footer`; partName: string; nodeIndex: number; rowIndex?: number; cellIndex?: number; paragraphIndex?: number }, text: string, options?: { insertedStyle?: unknown }): DocxEditorModel;
-/** 原 fb（jsx 31016）：运行样式克隆 */
-declare function cloneRunStyleContract(style: unknown): unknown;
-/** 原 Mf（jsx 27624 消费）：单元格节点 → 段落列表 */
+/** 原 Mf（jsx 27624 消费）：单元格节点 → 段落列表——属主未转录，保留 */
 declare function cellParagraphs(nodes: DocxNode[]): DocxParagraphNode[];
-/** 原 jf（jsx 31251 消费）：单元格节点 → 段落数组（含空段） */
+/** 原 jf（jsx 31251 消费）：单元格节点 → 段落数组（含空段）——属主未转录，保留 */
 declare function cellParagraphArray(nodes: DocxNode[]): DocxParagraphNode[];
-/** 原 vy（jsx 30927）：单元格段落数组 → 签名文本 */
-declare function cellParagraphsSignature(paragraphs: DocxParagraphNode[]): string;
-/** 原 Jx（jsx 31880 消费）：节区图片键 */
-declare function sectionImageKey(location: { region: string; partName: string; nodeIndex: number; rowIndex?: number; cellIndex?: number; paragraphIndex?: number; childIndex: number }): string;
-/** 原 Ce.flushSync（react-dom，jsx 31077） */
+/** 原 Ce.flushSync（react-dom，jsx 31077）——react-dom 面，保留 */
 declare function flushSyncContract(callback: () => void): void;
-/** 原 af（jsx 34340）：活动文本范围是否落在表格内 */
-declare function activeTextRangeInTable(range: DocxTextRange | undefined, tableIndex: number): boolean;
-/** 原 kb（jsx 34425）：选区覆盖单元格判定 */
-declare function selectionCoversCell(selection: DocxSelection, tableIndex: number, rowIndex: number, cellIndex: number): boolean;
-/** 原 rf（jsx 34422）：表格选区断言钩（无副作用登记） */
-declare function tableSelectionAssertion(selection: TableSelectionContract | undefined, tableIndex: number, rowIndex: number, cellIndex: number): void;
-/** 原 Nf（jsx 34430）：单元格含嵌套表格判定 */
-declare function cellContainsNestedTable(nodes: DocxNode[]): boolean;
-
-/** 原 xd（jsx 15884）：节区分隔类型（sectPr w:type，小写） */
-declare function sectionBreakTypeOf(sectionPropertiesXml: string | undefined): string | undefined;
-/** 原 vd（jsx 15861）：节区起始页码（pgNumType w:start，缺省 1） */
-declare function startingPageNumberOfSection(sectionPropertiesXml: string | undefined): number;
-/** 原 yd（jsx 15870）：节区显式起始页码（无则 undefined） */
-declare function explicitPageStartOfSection(sectionPropertiesXml: string | undefined): number | undefined;
-/** 原 Yr（jsx 15900± 消费）：sectPr → 页几何（版式契约） */
+/** 原 Yr（jsx 15900± 消费）：sectPr → 页几何（版式契约）——属主未转录，保留 */
 declare function pageGeometryOfSection(sectionPropertiesXml: string | undefined): PageLayoutContract;
-/** 原 Ys（jsx 14893）：metadata 身份哈希（sections/headers/numbering 等） */
+/** 原 Ys（jsx 14893）：metadata 身份哈希（sections/headers/numbering 等）——属主未转录，保留 */
 declare function metadataIdentityHash(metadata: unknown): string;
-/** 原 wS（jsx 26909）：逐页缩略图快照批（懒 getSnapshot） */
-declare function buildPageThumbnailSnapshotBatch(input: {
-  model: DocxEditorModel;
-  pageNodeSegmentsByPage: PageSegment[][];
-  pageSectionInfoByIndex: (PageSectionInfoContract | undefined)[];
-  contentKeysByPage: string[];
-  fallbackLayout: PageLayoutContract;
-  documentTheme: unknown;
-  docGridLinePitchPxByNodeIndex: Map<number, number>;
-  numberingDefinitions: unknown;
-}): ({ key: string; getSnapshot(): unknown } | undefined)[];
-/** 原 aS（jsx 26676）：页快照发布（内容键/尺寸/缩略图 → 登记库） */
-declare function publishPageSnapshots(editor: DocxEditorState, contentKeys: string[], sizes: { widthPx: number; heightPx: number }[], snapshots: ({ key: string; getSnapshot(): unknown } | undefined)[]): void;
-/** 原 Ng（jsx 19542）：浮动图是否产生环绕排除 */
-declare function floatingImageCreatesExclusion(image: DocxImageNode): boolean;
-/** 原 zg（jsx 19680）：像素增量 → 去缩放增量 */
-declare function unscaleDelta(deltaPx: number, zoomScale: number): number;
-/** 原 ld（jsx 15727）：twips → px */
-declare function twipsToPx(twips: number | undefined): number | undefined;
-/** 原 qp（jsx 17543）：px → twips */
+/** 原 qp（jsx 17543）：px → twips——属主未转录，保留 */
 declare function pxToTwips(px: number): number;
-/** 原 lf（jsx 16329）：Range 纯文本长度（剔除编号标签） */
-declare function rangePlainTextLength(range: Range): number;
-/** 原 gg（jsx 18937）：部分行范围是否为真子范围 */
-declare function partialLineRangeIsProper(range: { startLineIndex: number; endLineIndex: number; totalLineCount: number } | undefined): boolean;
-/** 原 wg（jsx 18999）：部分行选区相等 */
-declare function samePartialLineSelection(current: { nodeIndex: number; startLineIndex: number; endLineIndex: number } | undefined, nodeIndex: number, range: { startLineIndex: number; endLineIndex: number }): boolean;
-/** 原 Ps（jsx 29519 消费）：包裹段落版式点命中 → 文本偏移 */
-declare function wrappedLayoutHitOffset(layout: unknown, xPx: number, yPx: number): number;
-/** 原 Zl（jsx 15151）：段落首字下沉解析（style/sourceXml 缓存） */
-declare function dropCapOfParagraph(paragraph: DocxParagraphNode): unknown;
-/** 原 Br（jsx 12019）：twips → px（非负取整） */
-declare function twipsToPxRounded(twips: number | undefined): number | undefined;
-/** 原 yy（jsx 22103）：表格网格列数（行最大 gridSpan 和） */
-declare function tableGridColumnCount(table: DocxTableNode): number;
-/** 原 Ey（jsx 22208）：表格网格列宽（缓存） */
-declare function tableGridColumnsCached(table: DocxTableNode, columnCount: number): (number | undefined)[] | undefined;
-/** 原 jy（jsx 22276）：列宽数组归一（缺省均分/下限） */
-declare function normalizeColumnWidths(widths: (number | undefined)[], count: number, totalWidthPx: number, minWidthPx?: number): number[];
-/** 原 My（jsx 22285）：缺省等宽列数组 */
-declare function defaultColumnWidths(count: number, totalWidthPx: number): number[];
-/** 原 $h（jsx 18709）：表格行高估算（逐行） */
-declare function estimateTableRowHeights(table: DocxTableNode, contentWidthPx: number | undefined, numberingDefinitions: unknown, docGridLinePitchPx: number | undefined, contentHeightPx: number | undefined): (number | undefined)[];
-/** 原 Jp（jsx 17546）：浮动图锚定布局解析 */
-declare function floatingAnchorLayout(floating: Record<string, unknown>, contentWidthPx: number, frame: { widthPx: number; heightPx: number; baseLeftPx?: number; baseTopPx?: number }): { imageLeftPx?: number; imageTopPx?: number } | undefined;
-/** 原 Bg（jsx 19683）：矩形去缩放 */
-declare function unscaleRect(rect: { left: number; top: number; right: number; bottom: number; width: number; height: number }, zoomScale: number): { left: number; top: number; right: number; bottom: number; width: number; height: number };
-/** 原 Vg（jsx 19696）：节区浮动图位移补丁 */
-declare function sectionFloatingMovePatch(floating: Record<string, unknown>, layout: PageLayoutContract, input: { wrapperRect: unknown; pageSurfaceRect: unknown; deltaX: number; deltaY: number }): Record<string, unknown>;
-/** 原 Hg（jsx 19724）：浮动图位移补丁（页内坐标） */
-declare function floatingMovePatch(floating: Record<string, unknown>, contentWidthPx: number, leftPx: number, topPx: number, frame: { widthPx: number; heightPx: number }): Record<string, unknown>;
-/** 原 Ug（jsx 19761）：段落宿主点命中（浮动图重挂宿主） */
-declare function paragraphHostPointHit(element: HTMLElement, topPx: number, leftPx: number): { nodeIndex: number; rect: DOMRect } | undefined;
-/** 原 Wg（jsx 19783）：浮动环绕是否行内语义 */
-declare function floatingWrapIsInlineLike(floating: Record<string, unknown>): boolean;
-/** 原 Nb（jsx 23300）：图片拖放区 dataset 解析（B5-08 行区） */
-declare function parseImageDropZoneDataset(dataset: DOMStringMap): (DocxLocation & { childIndex: number }) | undefined;
-/** 原 Mb（jsx 23297）：图片拖放区键（B5-08 行区） */
-declare function imageDropZoneKey(location: DocxLocation & { childIndex: number }): string;
 
 /* 图片层序常量（原 jsx 15686-15689，图片环绕域；本簇右键菜单消费，原值照录） */
 const IMAGE_ZINDEX_MIN = 0; // 原 td
@@ -5004,7 +4937,8 @@ export function useDocxEditorViewInteractionCallbacks(core: DocxEditorViewIntera
             let t = m ? m.width / h : CONTENT_WIDTH_FALLBACK_PX,
               i = r.widthPx ?? Math.max(24, Math.round(d.width / h)),
               a = r.heightPx ?? Math.max(24, Math.round(d.height / h)),
-              o = floatingAnchorLayout(g, t, {
+              // A0-S2c：原式 jsx 31767 `Jp(r, …)` 传图节点 r；旧转录误传浮动面 g，按原式校正
+              o = floatingAnchorLayout(r, t, {
                 widthPx: i,
                 heightPx: a,
                 ...(m ? {

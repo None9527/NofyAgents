@@ -35,8 +35,13 @@
 //   Gn (行 2161) : zustand store，state 含 agents[] / initialize 报
 //                  'subagentsService is required'                  → 子代理 store
 //   In (行 1923) : zustand store，state 含 createBoard / defaultNamePrefix → 白板 store
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明；类型契约由下方 cast 约束
-import { K, h, o, r, t } from '../../out/renderer/assets/skillStore-BmeKHDBI.js';
+import {
+  isE2EStoreBridgeEnabled, // 原 skillStore-BmeKHDBI K（内部名 v）
+  useTaskStore as useSessionStore, // 原 skillStore-BmeKHDBI h（内部名 yn）
+  useWhiteboardStore, // 原 skillStore-BmeKHDBI o（内部名 In）
+  useSubagentsStore, // 原 skillStore-BmeKHDBI r（内部名 Gn）
+  useSkillsStore as useSkillStore, // 原 skillStore-BmeKHDBI t（内部名 Yn）
+} from './SkillStore';
 
 /* ─────────────────────────── 类型声明（推断） ─────────────────────────── */
 
@@ -56,40 +61,16 @@ export interface ZCodeRendererEnv {
   VITE_ZCODE_ENDPOINT_ORIGIN: string;
 }
 
-/**
- * zustand store hook 的最小公共形状。
- * // TODO(infer): 各 store 的完整 state/action 类型未建模（它们定义在
- * // skillStore chunk 内部，恢复它们不在本模块范围内）。
- */
-type AnyZustandStore = {
-  (): unknown;
-  getState: () => unknown;
-  setState: (partial: unknown) => void;
-  subscribe: (listener: () => void) => () => void;
-};
-
-/** 挂载到 window 上的 E2E 桥全局对象（Playwright 等测试工具读取它们）。 */
-declare global {
-  interface Window {
-    __zcodeSessionStoreE2E?: AnyZustandStore;
-    __skillStoreE2E?: AnyZustandStore;
-    __subagentsStoreE2E?: AnyZustandStore;
-    __whiteboardStoreE2E?: AnyZustandStore;
-  }
-}
-
-/* ──────── skillStore chunk 符号的类型化绑定（minified 别名 -> 语义名） ──────── */
-
-/** 门控：仅当运行在浏览器且 VITE_ZCODE_E2E_STORE_BRIDGE === '1' 时返回 true。 */
-const isE2EStoreBridgeEnabled = K as (env?: ZCodeRendererEnv) => boolean;
-/** 会话（任务）store：workspaces 状态 + getWorkspaceState。 */
-const useSessionStore = h as AnyZustandStore;
-/** 技能 store：skills[] + initialize(skillsService)。 */
-const useSkillStore = t as AnyZustandStore;
-/** 子代理 store：agents[] + initialize(subagentsService)。 */
-const useSubagentsStore = r as AnyZustandStore;
-/** 白板 store：createBoard 等。 */
-const useWhiteboardStore = o as AnyZustandStore;
+/* ──────── skillStore chunk 符号说明（minified 别名 -> 语义名） ────────
+ * 门控 isE2EStoreBridgeEnabled：仅当运行在浏览器且
+ * VITE_ZCODE_E2E_STORE_BRIDGE === '1' 时返回 true。
+ * useSessionStore（会话/任务 store）：workspaces 状态 + getWorkspaceState。
+ * useSkillStore（技能 store）：skills[] + initialize(skillsService)。
+ * useSubagentsStore（子代理 store）：agents[] + initialize(subagentsService)。
+ * useWhiteboardStore（白板 store）：createBoard 等。
+ * 四个 window 挂载点的全局声明由 SkillStore.tsx 统一给出（类型为 unknown，
+ * Playwright 等测试工具读取它们）。
+ * ─────────────────────────────────────────────────────────────────────── */
 
 /* ─────────────────────────── registerE2EStoreBridges ─────────────────────────── */
 

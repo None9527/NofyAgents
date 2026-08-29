@@ -115,7 +115,6 @@
  */
 
 import * as React from "react";
-import { OffPeakCreateButton, SCHEDULED_TEMPLATES, buildAutomationModelSelectGroups } from './ExtendedViews';
 import { registerWorkspaceTask } from './FileTreePanel';
 import { Input, Textarea, toast } from './ImeComposition';
 import { splitCommandsByScope, splitSkillsByScope } from './McpHelpers';
@@ -124,21 +123,38 @@ import { Badge } from './PaymentDeep';
 import { BackLinkButton, ResourceGroupHeader, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger } from './Settings';
 import { AddMarketplaceDialog, AutomationEditor, CreateSplitButton, KeepAwakeRow, OffPeakTaskEditor, PluginAdvancedSection, PluginDetail, PluginHookDetailsList, PluginInfoRow, PluginManageList, PluginSourcesDialog, PluginStoreGrid, PluginUninstallDialog, SubagentConfigForm, SubagentRow, buildPluginChatPrompt, buildStoreItems, builtInSubagentName, groupSubagents, isUserManagedSubagent, useUninstallFlow } from './SettingsLeaves';
 import { CommandsImportDialog, SkillsImportDialog } from './SettingsPanels';
-import { logger, useTaskStore } from './SkillStore';
+import { useTaskStore, useTaskStore as taskStoreStatic } from './SkillStore'; // xe.getState()
 import { useBaseServices, useServices } from './services';
 import { useAutomationsStore } from './stores-tasks';
 import { useCommandsStore, useHooksStore, usePluginsStore } from './stores-workspace';
+import { cn } from './UtilsCn';
+import { useZCodeIntl as useIntlContext } from './I18n';
+import { t as logger } from './logger';
+import { useConfirmDialog } from './Modals'; // U2
+import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
+import { useMcpStore as useMcpStoreStatic } from './stores-workspace'; // Ug（静态调用形态）
+import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from './Settings'; // H3 容器类
+import { DEFAULT_AGENT_NAME as COMMANDS_AGENT_SOURCE } from './SrcSharedA'; // Kte（`zcodeAgent`）
+import {
+  isUserPreferenceSource as isFileBasedCommand, // ki（跨 chunk）
+  isPluginPreferenceSource as isPluginCommand, // ft（跨 chunk）
+  automationsWorkspaceKey as automationWorkspaceKey, // Ti
+  OFFICIAL_PLUGIN_MARKETPLACE_IDS as OFFICIAL_MARKETPLACE_IDS, // cre（jsx 159308）
+  automationCardMenuTestid as AUTOMATIONS_MORE_ACTIONS_TESTID, // at（src chunk）
+  automationActionToggleTestid as AUTOMATIONS_TOGGLE_TESTID, // Xn
+  automationActionDeleteTestid as AUTOMATIONS_DELETE_TESTID, // Et
+  automationsListTestid as AUTOMATIONS_GRID_TESTID, // jr
+  automationCardTestid as AUTOMATIONS_CARD_TESTID, // Bte
+  offpeakTabTestid as AUTOMATIONS_TABS_TESTID, // on
+} from './SrcSharedB';
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 
 interface PlatformService {
@@ -157,16 +173,6 @@ interface ToastOptions {
   dismissLabel?: string;
 }
 
-declare function useConfirmDialog(): (options: {
-  presentation?: string;
-  title: string;
-  description?: string;
-  confirmLabel: string;
-  cancelLabel?: string;
-  confirmVariant?: "default" | "destructive";
-  showKeyboardHints?: boolean;
-}) => Promise<boolean>;
-
 /* --- UI 原语 --- */
 
 declare const Button: React.FC<
@@ -176,13 +182,6 @@ declare const Button: React.FC<
   }
 >;
 declare const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>>;
-declare const Tooltip: React.FC<{
-  title: string;
-  description?: string;
-  side?: "top" | "bottom" | "left" | "right";
-  align?: "start" | "center" | "end";
-  children: React.ReactNode;
-}>;
 declare const SelectRoot: React.FC<{
   value: string;
   onValueChange: (v: string) => void;
@@ -370,7 +369,6 @@ interface TaskStoreState {
   setActiveTaskId: (workspacePath: string, taskId: string, identity?: string | null) => void;
   getState?: unknown;
 }
-declare const taskStoreStatic: { getState: () => TaskStoreState }; // xe.getState()
 declare function useWorkspaceTabsStore<T>(selector: (state: WorkspaceTabsStoreState) => T): T; // pc
 interface WorkspaceTabsStoreState {
   tabs: Array<{ id: string; [key: string]: unknown }>;
@@ -378,10 +376,6 @@ interface WorkspaceTabsStoreState {
   activateTabByPath: (workspacePath: string, opts?: { workspaceIdentity?: string | null }) => void;
 }
 declare function isWorkspaceTab(tab: { id: string } | undefined): boolean; // oc
-declare function useMcpStoreStatic(): {
-  ensureLoadedForWorkspace: (workspacePath: string, mcpSyncService: unknown, identity?: string | null) => Promise<void>;
-  getEnabledMcpServersForZCode: (provider: string) => unknown[];
-}; // Ug（静态调用形态）
 
 /* ============================================================================
  * 1. 技能分区（原 y1t，js 195992–197541 / jsx 157604–157969）
@@ -703,7 +697,7 @@ export function SkillsSettingsSection(props: SkillsSettingsSectionProps) {
     }
     void (async () => {
       try {
-        const mcpStore = useMcpStoreStatic();
+        const mcpStore = useMcpStoreStatic((state) => state);
         await mcpStore.ensureLoadedForWorkspace(effectiveWorkspacePath, services.mcpSyncService, effectiveWorkspaceIdentity);
         const enabledMcpServers = mcpStore.getEnabledMcpServersForZCode("glm");
         const task = await workspaceAgentService.createTask({
@@ -1672,7 +1666,6 @@ declare function formatPluginSource(opts: {
   formatFromMarketplace: (marketplace: string) => string;
 }): string; // p0t（jsx 159332）
 declare function buildPluginChatMention(opts: { item: PluginItem; locale: string }): string; // P0t（159955）
-declare const OFFICIAL_MARKETPLACE_IDS: string[]; // cre（jsx 159308）
 declare const CLAUDE_CODE_PLUGINS_MARKETPLACE_ID: string; // c9（jsx 159313）
 
 interface PluginStoreActions {
@@ -2254,10 +2247,6 @@ interface CommandsStoreState {
     commandsService: unknown
   ) => Promise<void>;
 }
-
-declare function isFileBasedCommand(command: CommandItem): boolean; // ki（跨 chunk）
-declare function isPluginCommand(command: CommandItem): boolean; // ft（跨 chunk）
-declare const COMMANDS_AGENT_SOURCE: string; // Kte（src chunk，`zcodeAgent`）
 
 /** 原 L0t（js 200503）：命令 store 桥 hook（初始化 + 动作封装） */
 export function useCommandsStoreBridge(opts: {
@@ -3818,6 +3807,21 @@ declare const OffPeakTaskList: React.FC<{
 }>; // cMt（jsx 113500）
 declare const AutomationStatusChip: React.FC<{ text: string; icon?: React.ReactNode; dimmed?: boolean }>; // ANt（jsx 115689）
 declare const OFF_PEAK_TEMPLATES: Array<{ id: string; cronExpr?: string }>; // Pjt（jsx 112762）
+/** 原 INt（jsx 115771）：闲时创建按钮 —— 属主 ExtendedViews.tsx 未导出，登记需要的 export 后保留 declare */
+declare const OffPeakCreateButton: React.FC<{ greyReason: string | null; greyTooltip?: string; onCreate: () => void }>; // INt（jsx 115771）
+/** 原 LNt（jsx 115784）：定时模板表 —— 属主 ExtendedViews.tsx 未导出，登记需要的 export 后保留 declare */
+declare const SCHEDULED_TEMPLATES: Array<{ id: string; cronExpr: string; icon?: string }>; // LNt（jsx 115784）
+/** 原 AMt（jsx 113829）：自动化模型选择分组 —— 属主 ExtendedViews.tsx 未导出，登记需要的 export 后保留 declare */
+declare function buildAutomationModelSelectGroups(opts: {
+  selectedProvider: string;
+  providers: ModelProvider[];
+  labels: Record<string, string>;
+  displayOrder: { providerIds: string[]; updatedAt?: number } | null;
+  familyModes?: Record<string, string>;
+  familySelectedKeys?: Record<string, string>;
+  providerFamilyDomain?: string | null;
+  getEntitlementSnapshot: (providerId: string) => unknown;
+}): SelectGroupEntry[]; // AMt（jsx 113829）
 declare function activeWorkspaceTabOf(
   selector: (state: WorkspaceTabsStoreState) => { id: string } | undefined
 ): { id: string } | undefined; // zMt（jsx 113941）
@@ -3846,19 +3850,11 @@ declare function offPeakDraftTelemetry(opts: { source?: unknown; model?: unknown
 declare function trackOffPeakCreateFailed(platform: PlatformService, telemetry: unknown, result: unknown): void; // Ujt（jsx 113330）
 declare function trackOffPeakCreate(platform: PlatformService, telemetry: unknown, create: () => Promise<{ ok: boolean }>): Promise<{ ok: boolean }>; // Wjt
 declare function offPeakCreateFailureMessageId(result: { ok: boolean; [key: string]: unknown }): string; // Dit（78941）
-declare function automationWorkspaceKey(opts: { workspacePath: string; workspaceIdentity?: string | null }): string; // Ti
 declare function automationLifecycleOf(automation: AutomationTask): "active" | "paused" | "completed" | "failed"; // qht（93279）
 declare function automationHasFailedRun(automation: AutomationTask): boolean; // Kht（93276）
 declare function automationScheduleLabel(automation: AutomationTask, intl: IntlShape): string; // rgt（93602）
 declare function automationNextRunLabel(nextRunAt: number | undefined, now: number, intl: IntlShape): string | null; // egt（93576）
 declare function hasCodingPlanEntitlement(codingPlanSupport: unknown, settings: unknown): boolean; // Tit（78933）
-declare const AUTOMATIONS_CONTENT_CLASS: string; // H3 容器类
-declare const AUTOMATIONS_MORE_ACTIONS_TESTID: string; // at（src chunk）
-declare const AUTOMATIONS_TOGGLE_TESTID: string; // Xn
-declare const AUTOMATIONS_DELETE_TESTID: string; // Et
-declare const AUTOMATIONS_GRID_TESTID: string; // jr
-declare const AUTOMATIONS_CARD_TESTID: string; // Bte
-declare const AUTOMATIONS_TABS_TESTID: string; // on
 declare function showToastWithAction(message: string, opts?: ToastOptions): string; // l6（toast 变体）
 
 /** 原 BNt（jsx 115803）：可见标签页（有任务且闲时可见 → 双标签） */

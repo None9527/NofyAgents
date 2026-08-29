@@ -31,28 +31,22 @@
 
 import * as React from 'react';
 import { clsx } from 'clsx';
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明
-import { t as invariant } from '../../out/renderer/assets/tiny-invariant-Dm49c6Qj.js';
-// @ts-expect-error IntlProvider chunk 导出 n = useZCodeIntl
-import { n as useZCodeIntl } from '../../out/renderer/assets/IntlProvider-C321H7m8.js';
-// @ts-expect-error usageStatsUiParts 导出：a=紧凑数字格式化, c=模型名兜底, o=日期格式化, t=空态卡片
+import invariant from 'tiny-invariant'; // 原 tiny-invariant-Dm49c6Qj t
+import { useZCodeIntl } from './I18n'; // 原 IntlProvider-C321H7m8 n
+// usageStatsUiParts 导出：a=紧凑数字格式化, c=模型名兜底, o=日期格式化, t=空态卡片
 import {
-  a as formatCompactNumber,
-  c as getModelLabel,
-  o as formatUsageDate,
-  t as UsageEmptyState,
-} from '../../out/renderer/assets/usageStatsUiParts-CiR7YEhh.js';
-// @ts-expect-error CartesianChart chunk：a=useNeedsClip, i=GraphicalItemClipPath, n=YAxis, o=SetErrorBarContext, r=XAxis, s=CartesianGrid, t=CartesianChart
-import {
-  a as useNeedsClip,
-  i as GraphicalItemClipPath,
-  n as YAxis,
-  o as SetErrorBarContext,
-  r as XAxis,
-  s as CartesianGrid,
-  t as CartesianChart,
-} from '../../out/renderer/assets/CartesianChart-nORn-0bc.js';
-// @ts-expect-error 已恢复的调色板模块（Cell / 事件 hooks / 取色）
+  formatTokens as formatCompactNumber, // 原 usageStatsUiParts-CiR7YEhh a
+  resolveModelLabel as getModelLabel, // 原 usageStatsUiParts-CiR7YEhh c
+  formatUtcDateShort as formatUsageDate, // 原 usageStatsUiParts-CiR7YEhh o
+  UsageEmptyState, // 原 usageStatsUiParts-CiR7YEhh t
+} from './UsageStatsUiParts';
+// CartesianChart chunk = 纯 recharts 3.8.0 vendor：a=useNeedsClip, i=GraphicalItemClipPath,
+// n=YAxis, o=SetErrorBarContext, r=XAxis, s=CartesianGrid, t=CartesianChart
+import { CartesianChart } from 'recharts/es6/chart/CartesianChart.js'; // 原 CartesianChart-nORn-0bc t
+import { useNeedsClip, GraphicalItemClipPath } from 'recharts/es6/cartesian/GraphicalItemClipPath.js'; // 原 CartesianChart-nORn-0bc a, i
+import { XAxis, YAxis, CartesianGrid } from 'recharts'; // 原 CartesianChart-nORn-0bc r, n, s
+import { SetErrorBarContext } from 'recharts/es6/context/ErrorBarContext.js'; // 原 CartesianChart-nORn-0bc o
+// 已恢复的调色板模块（Cell / 事件 hooks / 取色）
 import {
   Cell,
   useMouseLeaveItemDispatch,
@@ -60,67 +54,39 @@ import {
   useMouseEnterItemDispatch,
   getUsageChartColor,
 } from './appUsageChartPalette';
-// @ts-expect-error chart-iT2j9K3u.js = recharts@3.8.0 bundle（+ chart.tsx 封装），别名映射见尾符号表
-import {
-  $t as selectChartLayout,
-  A as SetTooltipEntrySettings,
-  An as getPercentValue,
-  Bt as selectRootBarSize,
-  Cn as isNumber,
-  D as RegisterGraphicalItemId,
-  Dn as resolveDefaultProps,
-  En as useAppSelector,
-  F as CartesianLabelListContextProvider,
-  Fn as mathSign,
-  G as ZIndexLayer,
-  Hn as svgPropertiesNoEventsFromUnknown,
-  I as LabelListFromLabelProp,
-  In as noop,
-  J as selectActiveTooltipIndex,
-  Jt as useAnimationId,
-  K as selectActiveTooltipDataKey,
-  Lt as DefaultZIndexes,
-  M as findAllByType,
-  Mn as isNan,
-  Mt as isStacked,
-  Nn as isNullish,
-  Nt as getStackSeriesIdentifier,
-  O as SetLegendPayload,
-  Pn as isFunction,
-  Qt as propsAreEqual,
-  Rn as Layer,
-  Rt as selectBarGap,
-  St as selectUnfilteredCartesianItems,
-  T as SetCartesianGraphicalItem,
-  Vn as svgPropertiesNoEvents,
-  Vt as selectRootMaxBarSize,
-  W as arrayTooltipSearcher,
-  Wt as selectChartDataWithIndexesIfNotInPanoramaPosition3,
-  Yt as JavascriptAnimate,
-  a as ChartTooltip,
-  cn as selectChartOffsetInternal,
-  dn as getBandSizeOfAxis,
-  fn as getBaseValueOfBar,
-  ft as selectAxisWithScale,
-  gn as getNormalizedStackId,
-  i as Tooltip,
-  j as Shape,
-  jn as interpolate,
-  kn as adaptEventsOfChild,
-  mt as selectCartesianAxisSize,
-  nn as useChartLayout,
-  on as useIsPanorama,
-  pn as getCateCoordinateOfBar,
-  sn as selectAxisViewBox,
-  t as ChartContainer,
-  vn as getTooltipNameProp,
-  wn as createSelector,
-  xn as truncateByDomain,
-  xt as selectTicksOfGraphicalItem,
-  yn as getValueByDataKey,
-  yt as selectStackGroups,
-  zt as selectBarCategoryGap,
-} from '../../out/renderer/assets/chart-iT2j9K3u.js';
+// chart-iT2j9K3u.js = recharts@3.8.0 bundle（+ chart.tsx 封装），别名映射见尾符号表。
+// 改接 npm recharts@3.8.0（根导出 / 深路径，深路径类型环境见 ../lib/recharts-deep.d.ts）
+// + reselect + ./ChartShadcn（shadcn 图表层）。
+import { DefaultZIndexes, Layer, Tooltip, ZIndexLayer } from 'recharts'; // 原 chart-iT2j9K3u Lt, Rn, i, G
+import { createSelector } from 'reselect'; // 原 chart-iT2j9K3u wn
+import { ChartContainer, ChartTooltip } from './ChartShadcn'; // 原 chart-iT2j9K3u t, a
+import { selectChartLayout, useChartLayout } from 'recharts/es6/context/chartLayoutContext.js'; // 原 chart-iT2j9K3u $t, nn
+import { SetTooltipEntrySettings } from 'recharts/es6/state/SetTooltipEntrySettings.js'; // 原 chart-iT2j9K3u A
+import { getPercentValue, mathSign, isNan, isNullish, noop, interpolate, isNumber as isFunction } from 'recharts/es6/util/DataUtils.js'; // 原 chart-iT2j9K3u An, Fn, Mn, Nn, In, jn, Pn（Pn 局部名 isFunction，实为 isNumber）
+import { isWellBehavedNumber as isNumber } from 'recharts/es6/util/isWellBehavedNumber.js'; // 原 chart-iT2j9K3u Cn（局部名 isNumber，实为 isWellBehavedNumber）
+import { selectRootBarSize, selectBarGap, selectRootMaxBarSize, selectBarCategoryGap } from 'recharts/es6/state/selectors/rootPropsSelectors.js'; // 原 chart-iT2j9K3u Bt, Rt, Vt, zt
+import { RegisterGraphicalItemId } from 'recharts/es6/context/RegisterGraphicalItemId.js'; // 原 chart-iT2j9K3u D
+import { resolveDefaultProps } from 'recharts/es6/util/resolveDefaultProps.js'; // 原 chart-iT2j9K3u Dn
+import { useAppSelector } from 'recharts/es6/state/hooks.js'; // 原 chart-iT2j9K3u En
+import { CartesianLabelListContextProvider, LabelListFromLabelProp } from 'recharts/es6/component/LabelList.js'; // 原 chart-iT2j9K3u F, I
+import { svgPropertiesNoEvents, svgPropertiesNoEventsFromUnknown } from 'recharts/es6/util/svgPropertiesNoEvents.js'; // 原 chart-iT2j9K3u Vn, Hn
+import { selectActiveTooltipIndex, selectActiveTooltipDataKey } from 'recharts/es6/state/selectors/tooltipSelectors.js'; // 原 chart-iT2j9K3u J, K
+import { useAnimationId } from 'recharts/es6/util/useAnimationId.js'; // 原 chart-iT2j9K3u Jt
+import { findAllByType } from 'recharts/es6/util/ReactUtils.js'; // 原 chart-iT2j9K3u M
+import { isStacked } from 'recharts/es6/state/types/StackedGraphicalItem.js'; // 原 chart-iT2j9K3u Mt
+import { getStackSeriesIdentifier } from 'recharts/es6/util/stacks/getStackSeriesIdentifier.js'; // 原 chart-iT2j9K3u Nt
+import { SetLegendPayload } from 'recharts/es6/state/SetLegendPayload.js'; // 原 chart-iT2j9K3u O
+import { propsAreEqual } from 'recharts/es6/util/propsAreEqual.js'; // 原 chart-iT2j9K3u Qt
+import { selectUnfilteredCartesianItems, selectAxisWithScale, selectCartesianAxisSize, selectTicksOfGraphicalItem, selectStackGroups } from 'recharts/es6/state/selectors/axisSelectors.js'; // 原 chart-iT2j9K3u St, ft, mt, xt, yt
+import { SetCartesianGraphicalItem } from 'recharts/es6/state/SetGraphicalItem.js'; // 原 chart-iT2j9K3u T
+import { arrayTooltipSearcher } from 'recharts/es6/state/optionsSlice.js'; // 原 chart-iT2j9K3u W
+import { selectChartDataWithIndexesIfNotInPanoramaPosition3 } from 'recharts/es6/state/selectors/dataSelectors.js'; // 原 chart-iT2j9K3u Wt
+import { JavascriptAnimate } from 'recharts/es6/animation/JavascriptAnimate.js'; // 原 chart-iT2j9K3u Yt
+import { selectChartOffsetInternal, selectAxisViewBox } from 'recharts/es6/state/selectors/selectChartOffsetInternal.js'; // 原 chart-iT2j9K3u cn, sn
+import { getBandSizeOfAxis, getBaseValueOfBar, getNormalizedStackId, getCateCoordinateOfBar, getTooltipNameProp, truncateByDomain, getValueByDataKey } from 'recharts/es6/util/ChartUtils.js'; // 原 chart-iT2j9K3u dn, fn, gn, pn, vn, xn, yn
+import { Shape } from 'recharts/es6/util/ActiveShapeUtils.js'; // 原 chart-iT2j9K3u j
+import { adaptEventsOfChild } from 'recharts/es6/util/types.js'; // 原 chart-iT2j9K3u kn
+import { useIsPanorama } from 'recharts/es6/context/PanoramaContext.js'; // 原 chart-iT2j9K3u on
 
 /* ─────────────────────────── 公共类型（推断） ─────────────────────────── */
 
@@ -228,7 +194,7 @@ function _objectSpread(target: any, ...sources: any[]) {
     } else if (Object.getOwnPropertyDescriptors) {
       Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
     } else {
-      _ownKeys(Object(source)).forEach((key: any) => Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)));
+      _ownKeys(Object(source)).forEach((key: any) => Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)!));
     }
   }
   return target;
@@ -237,8 +203,8 @@ function _ownKeys(object: any, enumerableOnly?: boolean) {
   const keys = Object.keys(object);
   if (Object.getOwnPropertySymbols) {
     let symbols = Object.getOwnPropertySymbols(object);
-    if (enumerableOnly) symbols = symbols.filter((sym) => Object.getOwnPropertyDescriptor(object, sym).enumerable);
-    keys.push.apply(keys, symbols);
+    if (enumerableOnly) symbols = symbols.filter((sym) => Object.getOwnPropertyDescriptor(object, sym)?.enumerable);
+    keys.push.apply(keys, symbols as unknown as string[]);
   }
   return keys;
 }
@@ -287,7 +253,7 @@ function getBarPositions(
       if (bandSize - 2 * categoryOffset - (len - 1) * realBarGap <= 0) realBarGap = 0;
       let originalSize = (bandSize - 2 * categoryOffset - (len - 1) * realBarGap) / len;
       if (originalSize > 1) originalSize >>= 0;
-      const size = isNumber(maxBarSize) ? Math.min(originalSize, maxBarSize) : originalSize;
+      const size = isNumber(maxBarSize) ? Math.min(originalSize, maxBarSize!) : originalSize;
       result = sizeList.reduce(
         (res, entry, i) => [
           ...res,
@@ -312,7 +278,7 @@ const combineAllBarPositions = (
   barGap: number | string,
   barCategoryGap: number | string,
   bandSize: number,
-  axisBandSize: number,
+  axisBandSize: number | undefined, // selectAxisBandSize 可返回 undefined（与 recharts barSelectors 一致）
   userMaxBarSize?: number,
 ): BarPosition[] | undefined => {
   const effectiveMaxBarSize = isNullish(userMaxBarSize) ? maxBarSize : userMaxBarSize;
@@ -956,7 +922,7 @@ function computeBarRectangles(args: any): any[] {
     dataStartIndex,
   } = args;
   const numericAxis = layout === 'horizontal' ? yAxis : xAxis;
-  // @ts-expect-error 假定数值轴域恒为数值（与上游一致）
+  // 假定数值轴域恒为数值（与上游一致）
   const stackedDomain = stackedData ? numericAxis.scale.domain() : null;
   const baseValue = getBaseValueOfBar({ numericAxis });
   const stackedBarStart = numericAxis.scale.map(baseValue);

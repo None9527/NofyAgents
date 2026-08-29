@@ -100,7 +100,8 @@ declare function wasmBuildDocModelFromPackage(input: {
 }): Promise<DocxCoreModel>;
 
 /** 原 `import('./src-2FP7IUE6-ahbsNOoE.js')`（docx-core wasm parseDocx 再导出
- *  模块，9 行；该 chunk 不在本产物内，动态 import 契约化，一行结构偏差留痕） */
+ *  模块，9 行；该 chunk 不在本产物内，动态 import 契约化，一行结构偏差留痕）。
+ *  A0-S2c 注记：src-2FP7IUE6 属他批 chunk，本批保留 declare 不接线（遗留）。 */
 declare function loadParseDocxModule(): Promise<{
   parseDocx(buffer: ArrayBuffer): Promise<DocxCorePackage>;
 }>;
@@ -919,7 +920,7 @@ export async function buildDocModelFromBytes(bytes: ArrayBuffer | Uint8Array): P
       import.meta.url,
     );
   const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  const pkg = await parseDocx(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
+  const pkg = await parseDocx(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer);
   return { package: pkg, model: await buildDocModel(pkg) };
 }
 

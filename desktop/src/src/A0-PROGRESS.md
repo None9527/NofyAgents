@@ -33,18 +33,37 @@
 - **Lane 4（vendored→npm，S3 前保留 declare）**：lucide 图标 286 名、shadcn/radix 原语 109 名、lexical 28 名、useVirtualizer、qrcode、Stripe Elements 组件。分类快照：/tmp/a0-lane4-classify.json（待入库）。
 - **已知未决名**（SYMBOL-INDEX 误归属，勿再按索引接线）：useTaskListItems / applyOptimisticTaskMutation / buildTaskFeedbackDescription / sshDecoratedProjectName（索引记 TopBar，实为使用方）；useHeroTextSizes / useModelProviders / TooltipRoot / useControllableState / Slot / SearchResultsStore（styles chunk 未重建区）。
 
+## S3 npm 可达性（2026-08-29 核验）
+
+| vendored | npm 目标 | 状态 |
+|---|---|---|
+| zod（SrcSharedA §2–§8 ~3,260 行） | zod@4.3.6 | ✓ 精确版本 |
+| recharts（CartesianChart） | recharts@3.8.0 | ✓ 精确版本 |
+| Lexical（styles 57652–63592） | lexical/@lexical/react（latest 0.49.0） | ✓ 可达；**vendored 版本号需先从 bundle 锚定再定 npm 版本** |
+| resizable-panels（131439–131820） | react-resizable-panels（latest 4.12.3） | ✓ 可达；同上需锚定版本 |
+| qrcode（78456–79690） | qrcode@1.5.4 | ✓ |
+| useVirtualizer | @tanstack/react-virtual@3.14.10 | ✓ |
+| 图标（286 名） | lucide-react@1.35.0（自定义 Icon* 除外，属 first-party） | ✓ |
+| shadcn/radix 原语（109 名） | @radix-ui/*（dialog 1.1.23 等）+ 自建 shadcn 层 | ✓ |
+| Stripe（80955–81731，6.4.0/9.6.0 双版本） | @stripe/stripe-js / react-stripe-js | 待核版本 |
+| xterm 3.7.8 | `xterm@3.7.8` 不可达（包已改名）→ @xterm/xterm 或锁旧版 | ⚠ 需裁决 |
+
 ## 批次台账
 
 | 批次 | 域 | 状态 | 结果 |
 |---|---|---|---|
-| S2-a | 13 接缝文件脱 out/ | 运行中 | — |
-| S2-b | xlsx declare 接线 | 运行中 | XlsxDeepC 已开始接线 |
-| S2-c | legacy-doc 接线 | 运行中 | — |
+| S2-a | 13 接缝文件脱 out/ | **完工已验证** | 13/13 改接（react-dom/client、./I18n、SrcSharedA/B、recharts npm+深路径、radix/clsx/tailwind-merge/reselect/tiny-invariant）；新增 lib/{preloadHelper,recharts-deep.d,rechartsChunkInternals}；button.tsx 双轨导出 9 语义名；A/B 净 −320；遗留 rendererEntry 的 styles 44 符号导入（未重建区）；报告 A0-S2a.report.md |
+| S2-b | xlsx declare 接线 | **完工已验证** | 270 declares→import（A 94/B 151/C 6/T 15/Preview 4）+ 使用点改名 1,301 处 + d.ts 垫片 duke_sheets_wasm；域错 3→0；报告 A0-S2b.report.md |
+| S2-c | legacy-doc 接线 | **完工已验证** | ≈330 接线/17 文件（C4 255 含 937 使用点改名；C3 85；C2 5 含 deepCloneModel←cloneDocModel/newBlockId←allocateBlockId；C1 11；BModel 17；Engine3/4 3+3；previewPane 3）+ 7 组 C5 正典消费侧切换 + 补导出 2；批次 tsc 0；域错 0；项目净 −21（→773）；out/ md5 复验一致（含 legacy-doc 块 cfa4…）；报告 A0-S2c.report.md |
 | S2-e | pptx office 接线 | **完工已验证** | 2 副作用 import；删 2 DEFERRED 表+FALLBACK_RECT；buildMultiRegionPaths 改忠实包装；域内 0 错；报告 A0-S2e.report.md |
-| D-Settings | Settings 族 5 文件 | 运行中 | — |
-| D-Viewers | CodeViewer 族 8 文件 | 运行中 | — |
-| S2-d | SrcSharedA/B ambient 90、SkillStore 8、RemoteWizard→RGS、$2/DEFAULT_ASSET_INSTALL_MODE 补导出、双归属去重 | **待 S2-a 落地后启动** | — |
-| D-Shell / D-Conversation / D-Services / D-Misc | 族文件第二波 | 待启动 | — |
+| D-Settings | Settings 族 5 文件 | **完工已验证** | 101 接线（含 32 TESTID_*→SrcSharedB 逐条核验）+ 修破损 logger import 5；错 315→272（SettingsLeaves 25→2）；保留 395（Lane-4 ~190 + 14 组属主未导出 + 5 组接线会增错附因保留）；需要的 export 14 项；报告 A0-D-Settings.report.md |
+| D-Viewers | CodeViewer 族 8 文件 | **完工已验证** | 56 接线 + 域内补导出 20 + 退回误接 5 + 修坏 import 4；错 159→1（GitReview popoverSide 待 TopBar 域）；纠正前批单字母碰撞误接（TS2693×26）；需要的 export 7 项；报告 A0-D-Viewers.report.md |
+| S2-d | SrcSharedA/B ambient、SkillStore、Remote 改指、补导出、双归属去重 | **完工已验证** | 152 接线（SrcSharedB 91 ambient 全接）+ 去重删 ≈520 行（Bots 204/PaymentDeep 292/popover 族，均留 tombstone）+ SrcSharedA 新导出块 40 符号（含 DEFAULT_ASSET_INSTALL_MODE）+ Modals $2 再导出；域错 76→66 零新增；diff +364/−923；报告 A0-S2d.report.md |
+| D-Shell | WorkspaceShell/Sidebar 族 7 文件 | **完工已验证** | 11 组接线 + 域内补导出 8 + 回退前批误接 3；错 342→286（逐文件不增）；需要的 export 16 项；报告 A0-D-Shell.report.md |
+| D-Services | services/stores-*/StoresDeep/AppRootLeaves | **完工已验证** | 35 接线 + 6 logger 改接 + 4 组类型收敛；**域错 135→0 全清零**；workspaceKey 属主落实 = SkillStore.resolveWorkspaceKey（bundle b/H）；保留 114 逐条登记；需要的 export 9 项 + 未重建属主一批；报告 A0-D-Services.report.md |
+| D-Conversation | Conversation 族 + Composer/Modals（6 文件，518 declares，75 错） | 运行中 | — |
+| D-Misc | Bots/QuickPick/Cmdk/Usage/Onboarding 等（13 文件，489 declares，139 错） | 运行中 | — |
+| 收尾接线 pass | Button 族（29 文件）/Tooltip 族 declare → ./button、./UsageStatsUiParts（导出面已就绪：button.tsx 9 名 + UsageStatsUiParts 补 4 名） | 待当前波次落地（避开在编文件） | — |
 
 ## 事故与教训（本阶段）
 

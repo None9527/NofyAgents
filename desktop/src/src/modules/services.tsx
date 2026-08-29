@@ -64,16 +64,17 @@ import { INITIAL_SESSION_INDEX_STATE, RUNTIME_RESTART_BASE_DELAY_MS, RUNTIME_RES
 import { logger } from './SkillStore';
 import { SessionSnapshotSchema, crc32Hex } from './SrcSharedB';
 import { buildCompactionDetail, buildMessageCompletionDetail, buildPromptSeedDetail, clearConversationWaitState, currentConversationModel, extractPromptSeedFromTurnStarted, extractStepSourceDetail, finalizeConversationSteps, lastReportedMessageId, purgeConversationTiming, purgePromptSeedTiming, recordComposerFocusSink, recordComposerTextChangeSink, recordConversationResult, recordDuration, recordModelRequestStatus, recordPermissionRequested, recordPermissionResolved, recordProviderTtft, recordStreamChunkForeground, recordSubagentToolAttribution, recordToolPerformance, recordTtft, recordTurnStarted, recordUsageDelta, reportTelemetry, reportVisibleChatErrorSink, resolveBusinessRecoveryAction, resolveCompactionModelName } from './StoresDeep';
+import { resolveWorkspaceKey as workspaceKey } from './SkillStore'; // 原 Io
+import { automationsWorkspaceKey as providerSyncScopeKey, ZCODE_AGENT_PROVIDER_NOT_READY as PROVIDER_NOT_READY_CODE } from './SrcSharedB'; // 原 Ti | 原 Hr
+import { extractErrorInfo as normalizeRpcError } from './SrcSharedA'; // 原 it
+import { ConversationDataLayer as ConversationLayer, acquireConversationDataLayer as leaseConversationTransport } from './FeedbackCenter'; // 原 mw/_w | 原 mNe
+import { unsubscribeTransportSafe as unsubscribeTransport } from './QuickPickDeep'; // 原 IS
+import type { AgentServiceV4, AttachmentPutInput, AttachmentPutOptions } from './FeedbackCenter';
+import type { TelemetryPlatform, TelemetryReport, TurnStartedFact } from './StoresDeep';
+export type { TelemetryPlatform, TelemetryReport };
 
-
-/** 原 Io：工作区键 */
-declare function workspaceKey(workspacePath: string, workspaceIdentity?: string | null): string;
-/** 原 Ti：provider 同步作用域键 */
-declare function providerSyncScopeKey(scope: { workspacePath: string; workspaceIdentity?: string | null }): string;
-/** 原 Hr：provider 未就绪错误码 */
-declare const PROVIDER_NOT_READY_CODE: string;
-/** 原 it：错误规范化（取 code/message） */
-declare function normalizeRpcError(error: unknown): { code?: string; message: string };
+/* 原 Io/Ti/Hr/it 已接线（SkillStore.resolveWorkspaceKey；SrcSharedB.automationsWorkspaceKey/
+   ZCODE_AGENT_PROVIDER_NOT_READY；SrcSharedA.extractErrorInfo；别名见文件头 import） */
 
 /* ============================================================================
  * A. 事件/可释放原语（原 3551–3842）
@@ -1910,20 +1911,16 @@ export function useIsTelemetryForeground(scope: TelemetryScope): boolean {
 export interface V4ConversationApi {
   layer: unknown;
   sendCommand(command: unknown): unknown;
-  fileChanges(args: unknown): unknown;
-  fileRewindPreview(args: unknown): unknown;
-  attachmentPut(id: string, data: unknown): unknown;
-  attachmentRead(id: string): unknown;
-  onRuntimeRestart(listener: () => void): Disposable;
+  fileChanges(args: Record<string, unknown>): unknown;
+  fileRewindPreview(args: Record<string, unknown>): unknown;
+  attachmentPut(input: AttachmentPutInput, options?: AttachmentPutOptions): unknown;
+  attachmentRead(args: { sessionId: string; ref: string }): unknown;
+  onRuntimeRestart(listener: () => void): () => void;
 }
 
 const V4ConversationContext = React.createContext<V4ConversationApi | null>(null); // 原 TT
 
-/** 原 mw/_w：会话传输与层（F03 域；此处声明） */
-declare class ConversationLayer {
-  constructor(args: { transport: unknown });
-  dispose(): void;
-}
+/* 原 mw/_w（ConversationLayer）已接线 FeedbackCenter.ConversationDataLayer（见文件头 import） */
 
 /** 原 CFe：V4ConversationProvider 内层（装配传输+层，卸载即释放） */
 export function V4ConversationProviderInner({
@@ -1939,14 +1936,14 @@ export function V4ConversationProviderInner({
 }) {
   const { zcodeAgentService } = services;
   const api = React.useMemo(() => {
-    const transport = createConversationTransport(zcodeAgentService, { workspacePath, workspaceIdentity });
+    const transport = createConversationTransport(zcodeAgentService as AgentServiceV4, { workspacePath, workspaceIdentity });
     return {
       layer: new ConversationLayer({ transport }),
       sendCommand: (command: unknown) => transport.sendCommand(command),
-      fileChanges: (args: unknown) => transport.fileChanges(args),
-      fileRewindPreview: (args: unknown) => transport.fileRewindPreview(args),
-      attachmentPut: (id: string, data: unknown) => transport.attachmentPut(id, data),
-      attachmentRead: (id: string) => transport.attachmentRead(id),
+      fileChanges: (args: Record<string, unknown>) => transport.fileChanges(args),
+      fileRewindPreview: (args: Record<string, unknown>) => transport.fileRewindPreview(args),
+      attachmentPut: (input: AttachmentPutInput, options?: AttachmentPutOptions) => transport.attachmentPut(input, options),
+      attachmentRead: (args: { sessionId: string; ref: string }) => transport.attachmentRead(args),
       onRuntimeRestart: (listener: () => void) => transport.onRuntimeRestart(listener),
     };
   }, [workspacePath, workspaceIdentity, zcodeAgentService]);
@@ -1985,22 +1982,7 @@ export function useV4Conversation(): V4ConversationApi {
 
 /* --- E.4 面板作用域 provider（原 DT/TFe） --- */
 
-/** 原 mNe：带租约的会话传输（面板作用域；声明） */
-declare function leaseConversationTransport(
-  scope: { workspacePath: string; workspaceIdentity?: string; remoteSessionId?: string },
-  agentService: unknown,
-): {
-  layer: unknown;
-  transport: {
-    sendCommand(command: unknown): unknown;
-    fileChanges(args: unknown): unknown;
-    fileRewindPreview(args: unknown): unknown;
-    attachmentPut(id: string, data: unknown): unknown;
-    attachmentRead(id: string): unknown;
-    onRuntimeRestart(listener: () => void): Disposable;
-  };
-  release(): void;
-};
+/* 原 mNe（leaseConversationTransport）已接线 FeedbackCenter.acquireConversationDataLayer（见文件头 import） */
 
 /** 原 DT：PanelScopeProvider（按作用域解析服务，就绪才渲染） */
 export function PanelScopeProvider({ scope, children }: { scope: TelemetryScope; children: React.ReactNode }) {
@@ -2015,17 +1997,17 @@ function PanelScopeProviderInner({ scope, services, children }: { scope: Telemet
   const lease = React.useMemo(() => {
     const leased = leaseConversationTransport(
       { workspacePath: scope.workspacePath, ...(scope.workspaceIdentity ? { workspaceIdentity: scope.workspaceIdentity } : {}), ...(scope.remoteSessionId ? { remoteSessionId: scope.remoteSessionId } : {}) },
-      agentService,
+      agentService as AgentServiceV4,
     );
     return {
       lease: leased,
       value: {
         layer: leased.layer,
         sendCommand: (command: unknown) => leased.transport.sendCommand(command),
-        fileChanges: (args: unknown) => leased.transport.fileChanges(args),
-        fileRewindPreview: (args: unknown) => leased.transport.fileRewindPreview(args),
-        attachmentPut: (id: string, data: unknown) => leased.transport.attachmentPut(id, data),
-        attachmentRead: (id: string) => leased.transport.attachmentRead(id),
+        fileChanges: (args: Record<string, unknown>) => leased.transport.fileChanges(args),
+        fileRewindPreview: (args: Record<string, unknown>) => leased.transport.fileRewindPreview(args),
+        attachmentPut: (input: AttachmentPutInput, options?: AttachmentPutOptions) => leased.transport.attachmentPut(input, options),
+        attachmentRead: (args: { sessionId: string; ref: string }) => leased.transport.attachmentRead(args),
         onRuntimeRestart: (listener: () => void) => leased.transport.onRuntimeRestart(listener),
       } as V4ConversationApi,
     };
@@ -2099,12 +2081,11 @@ export interface AgentFact {
   [key: string]: unknown;
 }
 
-export interface TelemetryPlatform {
-  [method: string]: unknown;
-}
+/* TelemetryPlatform 已收敛至 StoresDeep 规范型（文件头 import type + re-export；
+   本地原索引签名型缺 reportTelemetryEvent/reportArmsCustomEvent，故按规范型收敛） */
 
 /** 原 dT：model.request.status → task_network_debug_status 明细 */
-function buildNetworkDebugStatus(fact: AgentFact): Record<string, unknown> {
+function buildNetworkDebugStatus(fact: AgentFact): { statusType: string; [key: string]: unknown } {
   return {
     type: "task_network_debug_status",
     taskId: fact.sessionId,
@@ -2113,7 +2094,7 @@ function buildNetworkDebugStatus(fact: AgentFact): Record<string, unknown> {
     ...(fact.queryId ? { queryId: fact.queryId } : {}),
     eventKey: fact.eventId,
     eventId: fact.eventId,
-    statusType: fact.status,
+    statusType: fact.status as string,
     requestId: fact.requestId,
     providerId: fact.providerId,
     modelId: fact.modelId,
@@ -2201,14 +2182,8 @@ function finiteNumber(value: unknown): number | undefined {
 /* --- 遥测下沉函数（原实现分散于 41500–41800 区；接口级声明） --- */
 
 
-export interface TelemetryReport {
-  elementName: string;
-  eventRegion: string;
-  eventType: string;
-  eventExtraDetail: Record<string, string>;
-  talkId?: string;
-  messageId?: string;
-}
+/* TelemetryReport 已收敛至 StoresDeep 规范型（文件头 import type + re-export；
+   本地原 eventExtraDetail 必填收窄由规范型可选 + 索引签名覆盖） */
 
 interface PromptLifecycle {
   sessionId: string;
@@ -2255,7 +2230,7 @@ export class ConversationTelemetrySupervisor {
   private acceptedCommandIds = new BoundedStringSet();
   private terminalKeys = new BoundedStringSet();
   private compactionKeys = new BoundedStringSet();
-  private foregroundOwnerSessions = new Map<string, string>();
+  private foregroundOwnerSessions = new Map<Record<string, unknown>, string>();
   private foregroundSessionCounts = new Map<string, number>();
   private lifecyclesByCommandId = new Map<string, PromptLifecycle>();
   private activeCommandBySessionId = new Map<string, string>();
@@ -2276,11 +2251,11 @@ export class ConversationTelemetrySupervisor {
     if (!this.disposed) recordComposerFocusSink(this.workspaceScopeKey, this.now());
   }
 
-  recordComposerTextChange(change: unknown): void {
+  recordComposerTextChange(change: { length: number }): void {
     if (!this.disposed) recordComposerTextChangeSink(this.workspaceScopeKey, change, this.now());
   }
 
-  acceptPromptSeed(seed: { sourceCommandId: string; sessionId: string; sendTime: number; extraDetail?: unknown }, options: { reportSendButton?: boolean } = {}): void {
+  acceptPromptSeed(seed: { sourceCommandId: string; sessionId: string; sendTime: number; extraDetail?: Record<string, string> }, options: { reportSendButton?: boolean } = {}): void {
     if (this.disposed || !this.acceptedCommandIds.remember(seed.sourceCommandId)) return;
     const taskKey = this.taskKey(seed.sessionId);
     const detail = buildPromptSeedDetail({
@@ -2321,7 +2296,7 @@ export class ConversationTelemetrySupervisor {
     this.drainPendingFacts(seed.sourceCommandId);
   }
 
-  attachForeground(paneKey: string, sessionId: string): () => void {
+  attachForeground(paneKey: Record<string, unknown>, sessionId: string): () => void {
     if (this.disposed) return () => undefined;
     const owner = this.foregroundOwnerSessions.get(paneKey);
     if (owner === sessionId) return () => this.detachForeground(paneKey);
@@ -2351,7 +2326,7 @@ export class ConversationTelemetrySupervisor {
       return;
     }
     if (fact.kind === "turn.started") {
-      const seed = extractPromptSeedFromTurnStarted(fact);
+      const seed = extractPromptSeedFromTurnStarted(fact as unknown as TurnStartedFact);
       if (seed) this.acceptPromptSeed(seed, { reportSendButton: false });
     }
     const commandId = this.resolveCommandId(fact);
@@ -2480,7 +2455,12 @@ export class ConversationTelemetrySupervisor {
 
   reportVisibleChatError(payload: Record<string, unknown> & { error?: unknown }): void {
     if (this.disposed) return;
-    reportVisibleChatErrorSink(this.platform, { ...payload, providerBusinessRecoveryAction: resolveBusinessRecoveryAction(payload.error) });
+    reportVisibleChatErrorSink(
+      this.platform,
+      { ...payload, providerBusinessRecoveryAction: resolveBusinessRecoveryAction(payload.error as { code?: string | null; message?: string | null }) } as unknown as Parameters<
+        typeof reportVisibleChatErrorSink
+      >[1],
+    );
   }
 
   getPendingCommandCountForTest(): number {
@@ -2529,7 +2509,7 @@ export class ConversationTelemetrySupervisor {
     return (this.foregroundSessionCounts.get(sessionId) ?? 0) > 0;
   }
 
-  private detachForeground(paneKey: string): void {
+  private detachForeground(paneKey: Record<string, unknown>): void {
     const owner = this.foregroundOwnerSessions.get(paneKey);
     if (!owner) return;
     this.foregroundOwnerSessions.delete(paneKey);
@@ -2622,7 +2602,7 @@ export class ConversationTelemetrySupervisor {
       case "stream.chunk": {
         lifecycle.legacyFirstTokenObserved = true;
         if (foreground && lifecycle.foregroundFirstTokenAt === null) lifecycle.foregroundFirstTokenAt = receivedAt;
-        const event: Record<string, unknown> = {
+        const event: { type: string; [key: string]: unknown } = {
           type: fact.channel === "thought" ? "agent_thought_chunk" : "agent_message_chunk",
           taskId: fact.sessionId,
           traceId: fact.eventId,
@@ -2641,7 +2621,7 @@ export class ConversationTelemetrySupervisor {
             talkId: fact.sessionId,
             waitingTool: false,
             model: currentConversationModel(lifecycle.taskKey),
-            messageId: fact.assistantMessageId,
+            messageId: fact.assistantMessageId as string | undefined,
             chunkType: fact.channel === "thought" ? "thought" : "message",
           });
         }
@@ -2691,7 +2671,7 @@ export class ConversationTelemetrySupervisor {
           }
         : undefined;
     const alreadyStarted = lifecycle.startedToolCallIds.has(fact.toolCallId as string);
-    let event: Record<string, unknown>;
+    let event: { type: string; [key: string]: unknown };
     if (!alreadyStarted && fact.phase !== "completed" && fact.phase !== "failed") {
       lifecycle.startedToolCallIds.add(fact.toolCallId as string);
       event = {
@@ -2762,20 +2742,44 @@ export class ConversationTelemetrySupervisor {
       this.reportFinalizedSteps(lifecycle, steps, automationDetail);
     }
     if (fact.errorMessage) lifecycle.lastErrorMessage = fact.errorMessage as string;
-    const performance = fact.performance as Record<string, unknown> | undefined;
+    const performance = fact.performance as
+      | {
+          totalMs?: number;
+          permissionWaitMs?: number;
+          commandRunMs?: number;
+          firstOutputMs?: number;
+          noOutputMs?: number;
+          exitCode?: number;
+          timedOut?: boolean;
+          outputBytes?: number;
+          commandCategory?: string;
+          commandName?: string;
+          commandCount?: number;
+          commandStatus?: string;
+          fsReadMs?: number;
+          fsWriteMs?: number;
+          patchMatchMs?: number;
+          fileCount?: number;
+          totalBytes?: number;
+          maxFileBytes?: number;
+          hunkCount?: number;
+          matchAttempts?: number;
+          workspaceKind?: string;
+        }
+      | undefined;
     if (!foreground || !terminal || !performance || Object.keys(performance).length === 0) return;
     recordToolPerformance({
-      toolName: fact.toolName,
+      toolName: fact.toolName as string,
       status: fact.phase === "completed" ? "completed" : "failed",
       talkId: fact.sessionId,
-      messageId: lastReportedMessageId(lifecycle.taskKey),
-      toolCallId: fact.toolCallId,
-      parentToolCallId: fact.parentToolCallId,
-      childSessionId: fact.childSessionId,
-      childToolCallId: fact.childToolCallId,
-      agentId: fact.agentId,
-      agentType: fact.agentType,
-      totalMs: performance.totalMs ?? fact.durationMs,
+      messageId: lastReportedMessageId(lifecycle.taskKey) as string,
+      toolCallId: fact.toolCallId as string | undefined,
+      parentToolCallId: fact.parentToolCallId as string | undefined,
+      childSessionId: fact.childSessionId as string | undefined,
+      childToolCallId: fact.childToolCallId as string | undefined,
+      agentId: fact.agentId as string | undefined,
+      agentType: fact.agentType as string | undefined,
+      totalMs: performance.totalMs ?? (fact.durationMs as number | undefined),
       permissionWaitMs: performance.permissionWaitMs,
       commandRunMs: performance.commandRunMs,
       firstOutputMs: performance.firstOutputMs,
@@ -2808,7 +2812,7 @@ export class ConversationTelemetrySupervisor {
     const terminalKey = `${fact.sessionId}\u0000${lifecycle.sourceCommandId}\u0000message_completion`;
     if (!this.terminalKeys.remember(terminalKey)) return;
     const status = mapTerminalStatus(fact.status as string);
-    const terminalEvent: Record<string, unknown> =
+    const terminalEvent: { type: string; [key: string]: unknown } =
       fact.status === "success" || fact.resultType !== undefined
         ? { type: "task_complete", taskId: fact.sessionId, traceId: fact.eventId, inputId: lifecycle.sourceCommandId, stopReason: fact.resultType ?? "complete" }
         : {
@@ -2904,19 +2908,19 @@ export class ConversationTelemetrySupervisor {
         version: 1,
         kind: "synthetic",
         type: "context_compaction",
-        operationId: fact.operationId,
-        status: fact.status,
-        trigger: fact.trigger,
+        operationId: fact.operationId as string | undefined,
+        status: fact.status as string,
+        trigger: fact.trigger as string,
         display: "separator",
-        reason: fact.reason,
-        summaryMessageId: fact.summaryMessageId,
-        preCompactTokenCount: fact.preCompactTokenCount,
-        postCompactTokenCount: fact.postCompactTokenCount,
-        truePostCompactTokenCount: fact.truePostCompactTokenCount,
-        attempt: fact.attempt,
-        maxAttempts: fact.maxAttempts,
-        startedAt: fact.startedAt,
-        endedAt: fact.endedAt,
+        reason: fact.reason as string | undefined,
+        summaryMessageId: fact.summaryMessageId as string | undefined,
+        preCompactTokenCount: fact.preCompactTokenCount as number | undefined,
+        postCompactTokenCount: fact.postCompactTokenCount as number | undefined,
+        truePostCompactTokenCount: fact.truePostCompactTokenCount as number | undefined,
+        attempt: fact.attempt as number | undefined,
+        maxAttempts: fact.maxAttempts as number | undefined,
+        startedAt: fact.startedAt as number | undefined,
+        endedAt: fact.endedAt as number | undefined,
       },
       modelName: resolveCompactionModelName({ configProvider: fact.modelProvider as string | undefined, modelName: fact.modelName as string | undefined }),
       modelProvider: fact.modelProvider as string | undefined,
@@ -3701,7 +3705,7 @@ interface SessionIndexRecovery {
   frameDeadline: ReturnType<typeof setTimeout> | null;
 }
 
-declare function unsubscribeTransport(transport: SessionIndexTransport, subscriptionId: string): void; // 原 IS
+/* 原 IS（unsubscribeTransport）已接线 QuickPickDeep.unsubscribeTransportSafe（见文件头 import） */
 
 /**
  * 原 XAe：会话索引订阅状态机。
@@ -3710,7 +3714,7 @@ declare function unsubscribeTransport(transport: SessionIndexTransport, subscrip
  * 运行时重启 → 指数退避重连（突发计数 2^min(n-1,16)，封顶）。
  */
 export class SessionIndexStore {
-  private state: SessionIndexState = INITIAL_SESSION_INDEX_STATE;
+  private state: SessionIndexState = INITIAL_SESSION_INDEX_STATE as unknown as SessionIndexState;
   private listeners = new Set<() => void>();
   private cachedList: SessionIndexEntry[] | null = null;
   private transport: SessionIndexTransport | null = null;
@@ -4040,7 +4044,7 @@ export class SessionIndexStore {
       clearTimeout(this.runtimeRestartReconnectTimer);
       this.runtimeRestartReconnectTimer = null;
     }
-    this.state = INITIAL_SESSION_INDEX_STATE;
+    this.state = INITIAL_SESSION_INDEX_STATE as unknown as SessionIndexState;
     this.cachedList = null;
     this.status = "dormant";
     this.emit();
@@ -4081,10 +4085,13 @@ export class SessionIndexStore {
 
   /** 返回 true 表示帧断档 */
   private applyFrame(frame: { payload: unknown; toSeq: number }): boolean {
-    const { state, gap } = applyFrameToIndexState(this.state, frame);
+    const { state, gap } = applyFrameToIndexState(
+      this.state as unknown as typeof INITIAL_SESSION_INDEX_STATE,
+      frame as unknown as Parameters<typeof applyFrameToIndexState>[1],
+    );
     if (gap) return true;
     if (state !== this.state) {
-      this.state = state;
+      this.state = state as unknown as SessionIndexState;
       this.cachedList = null;
       this.emit();
     }
@@ -4094,7 +4101,7 @@ export class SessionIndexStore {
   reset(): void {
     this.discardRecovery();
     this.subscriptionHasAppliedBase = false;
-    this.state = INITIAL_SESSION_INDEX_STATE;
+    this.state = INITIAL_SESSION_INDEX_STATE as unknown as SessionIndexState;
     this.cachedList = null;
     this.emit();
   }

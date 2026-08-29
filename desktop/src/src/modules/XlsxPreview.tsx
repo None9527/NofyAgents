@@ -41,14 +41,15 @@
  *   Dl  → XlsxFileSizeLimitExceededError 文件超限错误 (14726 / —)
  *
  * ----------------------------------------------------------------------------
- * 二、外部依赖清单（跨 chunk 导入；标注来源 chunk 与导出字母）
+ * 二、外部依赖清单（跨 chunk 导入；标注来源 chunk 与导出字母。
+ *     A0-S2b：2–5 已接线为真实 import）
  * ----------------------------------------------------------------------------
  *  1. react / jsx-runtime            react-BQLj9xdT.js、jsx-runtime-B5yMD3-t.js
- *                                    （chunk 内别名 G / K）
- *  2. useIntlContext (r)             IntlProvider-C321H7m8.js（n 导出）→ {intl, locale}
- *  3. logger (a)                     logger-PFDwl5Yq.js（t 导出）
- *  4. cn() 类名合并 (s)              utils-CEEH0K_K.js（t 导出）
- *  5. react-xlsx Spreadsheet (ly)    本 chunk 内 vendored 段（见上表）
+ *                                    （chunk 内别名 G / K；本文件用 react 包直连）
+ *  2. useIntlContext (r)             〔已接线 → useZCodeIntl @ ./I18n〕
+ *  3. logger (a)                     〔已接线 → t as logger @ ./logger〕
+ *  4. cn() 类名合并 (s)              〔已接线 → cn @ ./UtilsCn〕
+ *  5. react-xlsx Spreadsheet (ly)    〔已接线 → Spreadsheet @ ./XlsxDeepT（补导出）〕
  * 调用方（上游）：styles-CdEGpc2x.js 160608-160619 处
  *   `yVt = React.lazy(() => import('./previewPaneOfficeXlsxContent-XeHwYdMn.js')
  *      .then(m => m.PreviewPaneOfficeXlsxContent))`，
@@ -62,23 +63,15 @@
 import * as React from "react";
 
 /* ============================================================================
- * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
+ * 0. 外部依赖（A0-S2b 已接线：原 declare 改真实 import）
  * ==========================================================================*/
 
-/** 类名合并（原 s，utils-CEEH0K_K.js） */
-declare function cn(...inputs: Array<string | false | null | undefined>): string;
-
-/** react-intl 风格 intl 对象（原 r()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape; locale: string };
-
-/** 日志器（原 a，logger-PFDwl5Yq.js） */
-declare const logger: {
-  debug(msg: string, meta?: unknown): void;
-  error(msg: string, meta?: unknown): void;
-};
+/** 类名合并（原 s，utils-CEEH0K_K.js 导出 t） */
+import { cn } from "./UtilsCn";
+/** intl 上下文钩子（原 r，IntlProvider-C321H7m8.js 导出 n；调用点原 useIntlContext） */
+import { useZCodeIntl } from "./I18n";
+/** 日志器（原 a，logger-PFDwl5Yq.js 导出 t） */
+import { t as logger } from "./logger";
 
 /* --- vendored react-xlsx 接触面（原 ly/sy/cy/Ru/rg/ig/Dl；接口级登记） --- */
 
@@ -173,12 +166,15 @@ export interface SpreadsheetProps {
 }
 
 /**
- * react-xlsx 顶层组件（原 ly，js 199406 / jsx 49630；vendored，接口级登记）。
+ * react-xlsx 顶层组件（原 ly，js 199406 / jsx 49630）。
  * 控制器三分支：props.controller → 用之；否则 rg 上下文 → 用之；
  * 否则 cy 自建（Ru hook + xlsx-worker + duke-sheets wasm，
  * 见 XlsxPreviewWasmBridge.tsx）。
+ * A0-S2b 已接线：实体 = XlsxDeepT.tsx 的 Spreadsheet（补导出）；
+ * 导入侧按本文件 SpreadsheetProps 口径标注（实体形参为 any，不改发射语义）。
  */
-declare const Spreadsheet: React.FC<SpreadsheetProps>;
+import { Spreadsheet as SpreadsheetImpl } from "./XlsxDeepT";
+const Spreadsheet = SpreadsheetImpl as React.FC<SpreadsheetProps>; // 原 ly
 
 /* ============================================================================
  * 1. resolveSheetTabTargetIndex（原 uy，js 199415-199427 / jsx 49643-49649）
@@ -346,7 +342,7 @@ export function PreviewPaneOfficeXlsxContent({
   isDark,
   sourcePath,
 }: PreviewPaneOfficeXlsxContentProps) {
-  const { intl } = useIntlContext();
+  const { intl } = useZCodeIntl(); // 原 useIntlContext（r()）
   const sheetTabsLabel = intl.formatMessage({ id: "codeViewer.excel.sheetTabs" });
 
   return (

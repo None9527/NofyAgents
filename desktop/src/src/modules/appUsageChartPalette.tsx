@@ -34,13 +34,13 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 //   X  -> 内部 C_ -> setActiveClickItemIndex      (recharts/state/tooltipSlice.js)
 //   Y  -> 内部 x_ -> mouseLeaveItem               (recharts/state/tooltipSlice.js)
 //   Z  -> 内部 b_ -> setActiveMouseOverItemIndex  (recharts/state/tooltipSlice.js)
-// @ts-expect-error 原始构建产物为 minified JS、无类型声明；类型契约由下方 cast 约束
+// 改接 npm recharts@3.8.0 深路径（类型环境见 ../lib/recharts-deep.d.ts）。
+import { useAppDispatch } from 'recharts/es6/state/hooks.js'; // 原 chart-iT2j9K3u Tn
 import {
-  Tn,
-  X,
-  Y,
-  Z,
-} from '../../out/renderer/assets/chart-iT2j9K3u.js';
+  setActiveClickItemIndex, // 原 chart-iT2j9K3u X
+  mouseLeaveItem, // 原 chart-iT2j9K3u Y
+  setActiveMouseOverItemIndex, // 原 chart-iT2j9K3u Z
+} from 'recharts/es6/state/tooltipSlice.js';
 
 /* ─────────────────────────── 类型声明（推断） ─────────────────────────── */
 
@@ -106,14 +106,23 @@ type ActionCreatorWithoutPayload = () => ChartAction;
 
 /* ──────── chart chunk 符号的类型化绑定（minified 别名 -> 语义名） ──────── */
 
+/* ──────── recharts 符号的类型化绑定（语义名 -> 本模块契约） ────────
+ * useAppDispatch：取当前图表 Redux store 的 dispatch。
+ * setActiveClickItemIndex：标记「点击了某个数据项」。
+ * mouseLeaveItem：标记「鼠标离开了数据项」。
+ * setActiveMouseOverItemIndex：标记「鼠标悬停在某个数据项上」。
+ * 深路径导入为 any 类型（见 ../lib/recharts-deep.d.ts），
+ * 下方绑定把调用面约束到本模块建模的契约。
+ * ─────────────────────────────────────────────────────────────────── */
+
 /** recharts useAppDispatch：取当前图表 Redux store 的 dispatch。 */
-const useAppDispatch = Tn as () => ChartDispatch;
+const useAppDispatchTyped = useAppDispatch as unknown as () => ChartDispatch;
 /** recharts tooltipSlice action：标记「点击了某个数据项」。 */
-const setActiveClickItemIndex = X as ActionCreatorWithPayload<ActiveItemPayload>;
+const setActiveClickItemIndexTyped = setActiveClickItemIndex as unknown as ActionCreatorWithPayload<ActiveItemPayload>;
 /** recharts tooltipSlice action：标记「鼠标离开了数据项」。 */
-const mouseLeaveItem = Y as ActionCreatorWithoutPayload;
+const mouseLeaveItemTyped = mouseLeaveItem as unknown as ActionCreatorWithoutPayload;
 /** recharts tooltipSlice action：标记「鼠标悬停在某个数据项上」。 */
-const setActiveMouseOverItemIndex = Z as ActionCreatorWithPayload<ActiveItemPayload>;
+const setActiveMouseOverItemIndexTyped = setActiveMouseOverItemIndex as unknown as ActionCreatorWithPayload<ActiveItemPayload>;
 
 /* ─────────────────────────── 1. Cell 占位组件 ─────────────────────────── */
 
@@ -156,11 +165,11 @@ export const useMouseEnterItemDispatch = (
   dataKey: DataKey,
   graphicalItemId: string | undefined,
 ) => {
-  const dispatch = useAppDispatch();
+  const dispatch = useAppDispatchTyped();
   return (data: UsageChartDataItem, index: number) => (event: ReactMouseEvent) => {
     onMouseEnterFromProps?.(data, index, event);
     dispatch(
-      setActiveMouseOverItemIndex({
+      setActiveMouseOverItemIndexTyped({
         activeIndex: String(index),
         activeDataKey: dataKey,
         activeCoordinate: data.tooltipPosition,
@@ -177,10 +186,10 @@ export const useMouseEnterItemDispatch = (
 export const useMouseLeaveItemDispatch = (
   onMouseLeaveFromProps: ItemEventCallback | null | undefined,
 ) => {
-  const dispatch = useAppDispatch();
+  const dispatch = useAppDispatchTyped();
   return (data: UsageChartDataItem, index: number) => (event: ReactMouseEvent) => {
     onMouseLeaveFromProps?.(data, index, event);
-    dispatch(mouseLeaveItem());
+    dispatch(mouseLeaveItemTyped());
   };
 };
 
@@ -193,11 +202,11 @@ export const useMouseClickItemDispatch = (
   dataKey: DataKey,
   graphicalItemId: string | undefined,
 ) => {
-  const dispatch = useAppDispatch();
+  const dispatch = useAppDispatchTyped();
   return (data: UsageChartDataItem, index: number) => (event: ReactMouseEvent) => {
     onMouseClickFromProps?.(data, index, event);
     dispatch(
-      setActiveClickItemIndex({
+      setActiveClickItemIndexTyped({
         activeIndex: String(index),
         activeDataKey: dataKey,
         activeCoordinate: data.tooltipPosition,

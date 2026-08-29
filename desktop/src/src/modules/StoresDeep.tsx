@@ -136,17 +136,20 @@
  */
 
 import * as React from "react";
-import { logger } from './SkillStore';
+import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { normalizeProviderId } from './SrcSharedB';
-import { skillContextKey } from './stores-workspace';
+import { skillContextKey, useSkillContextStore as useSkillContextStoreStatic } from './stores-workspace'; // 原 UB
+import { resolveWorkspaceKey as workspaceKey, formatCustomModelId as joinModelName, useStore as useStoreSelector } from './SkillStore'; // 原 U | 原 we | 原 ne
+import { isZaiPlanProviderId as isZaiPlanFamily, isBuiltinProviderId as isZaiProviderFamily } from './SrcSharedA'; // 原 tr | 原 jt
+import { parseCustomModelRef as parseCustomModelKey, countLineDiffChanges as countDiffLines, generateUuid as generateRandomId, resolveClientTelemetryContext as telemetryClientContext } from './SrcSharedB'; // 原 Zn | 原 Xr | 原 xi | 原 Qne
+import type { SkillsService } from './stores-workspace';
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
 
-/** 原 U（skillStore `b`）：工作区键（身份优先） */
-declare function workspaceKey(workspacePath: string, workspaceIdentity?: string | null): string;
+/* 原 U（workspaceKey）已接线 SkillStore.resolveWorkspaceKey（见文件头 import） */
 
 /** 原 q（skillStore 供应商 id 枚举，此处按消费面列出字段） */
 declare const PROVIDER_IDS: {
@@ -159,29 +162,9 @@ declare const PROVIDER_IDS: {
   bigmodelStartPlan: string;
 };
 
-/** 原 tr（src vl）：zai Coding/Start Plan 族判定 */
-declare function isZaiPlanFamily(providerId: string | null | undefined): boolean;
-/** 原 jt（src _l）：zai 全族判定 */
-declare function isZaiProviderFamily(providerId: string | null | undefined): boolean;
-/** 原 Zn（src iS）：`custom:…` 模型键解析 */
-declare function parseCustomModelKey(key: string): { providerId: string; modelName?: string } | null;
-/** 原 Xr（src bS）：前后文本差异行数统计 */
-declare function countDiffLines(before: string, after: string): { added: number; removed: number };
-/** 原 xi（src cx）：随机 id（crypto.randomUUID 兜底） */
-declare function generateRandomId(): string;
-/** 原 Qne（src tx）：遥测客户端上下文（时区/语言/分辨率） */
-declare function telemetryClientContext(opts?: {
-  timeZone?: string;
-  intlLocale?: string;
-  screen?: { width: number; height: number };
-}): { clientTimezone: string; clientLanguage: string; screenResolution: string };
-/** 原 we（skillStore rt）：`provider/model` 名合成 */
-declare function joinModelName(provider: string, model: string): string;
-/** 原 ne（skillStore J）：zustand 选择器订阅钩子 */
-declare function useStoreSelector<TState, TSlice>(
-  store: StoreApi<TState>,
-  selector: (state: TState) => TSlice,
-): TSlice;
+/* 原 tr/jt/Zn/Xr/xi/Qne/we/ne 已接线（SrcSharedA isZaiPlanProviderId/isBuiltinProviderId；
+   SrcSharedB parseCustomModelRef/countLineDiffChanges/generateUuid/resolveClientTelemetryContext；
+   SkillStore formatCustomModelId/useStore；别名见文件头 import） */
 /** 原 xe（skillStore h）：useTaskStore（静态面消费） */
 declare const useTaskStoreStatic: {
   getState(): {
@@ -215,18 +198,7 @@ declare const useSkillsStoreStatic: {
     refresh(skillsService: unknown, workspaceIdentity?: string): Promise<void>;
   };
 };
-/** 原 UB（本 chunk 63592，stores-workspace.tsx 已重建）：技能上下文 store 静态面 */
-declare const useSkillContextStoreStatic: {
-  getState(): {
-    contexts: Record<string, unknown>;
-    refresh(
-      workspacePath: string,
-      provider: string,
-      skillsService: unknown,
-      workspaceIdentity?: string,
-    ): Promise<void>;
-  };
-};
+/* 原 UB（useSkillContextStoreStatic）已接线 stores-workspace.useSkillContextStore（见文件头 import） */
 /** 原 ni（本 chunk 供应商归一，F12 域；接口级） */
 /** 原 BB（技能上下文键构造，F08 域；接口级） */
 
@@ -607,7 +579,7 @@ export function mergeTaskMetaEntry(args: {
 }
 
 /** 原 Yie（1510）：查询结果等价判断（键序/分片/摘要全量比对） */
-export function isQueryResultEquivalent(args: { previousResult: QueryResult | null } & Omit<QueryResult, "fetchedAt" | "invalidationVersion" | "stale" | "descriptor">): boolean {
+export function isQueryResultEquivalent(args: { previousResult: QueryResult | null | undefined } & Omit<QueryResult, "fetchedAt" | "invalidationVersion" | "stale" | "descriptor">): boolean {
   const previous = args.previousResult;
   if (
     !previous ||
@@ -630,7 +602,7 @@ export function isQueryResultEquivalent(args: { previousResult: QueryResult | nu
 
 /** 原 Xie（1532）：非搜索支保留本地新变更键（updatedAt > 上次 fetchedAt），重排后按可见上限截断 */
 export function mergeIncomingTaskKeys(args: {
-  previousResult: QueryResult | null;
+  previousResult: QueryResult | null | undefined;
   descriptor: SearchDescriptor;
   incomingTaskKeys: string[];
   taskMetaByEntityKey: Record<string, TaskMeta | undefined>;
@@ -782,7 +754,7 @@ export function automationRunNowInFlight(): Set<string> {
 
 /** 原 S3（134089）：工作区是否仍是当前工作区（路径 ∧ 身份） */
 export function isSameAutomationWorkspace(
-  state: AutomationsStoreSnapshot,
+  state: { workspacePath: string | null; workspaceIdentity: string | null },
   workspacePath: string,
   workspaceIdentity: string | null,
 ): boolean {
@@ -790,7 +762,7 @@ export function isSameAutomationWorkspace(
 }
 
 /** 原 C3（134092）：按 id 查找自动化 */
-export function findAutomation(state: AutomationsStoreSnapshot, automationId: string): Automation | undefined {
+export function findAutomation(state: { automations: Automation[] }, automationId: string): Automation | undefined {
   return state.automations.find((automation) => automation.automationId === automationId);
 }
 
@@ -799,8 +771,8 @@ export function findAutomation(state: AutomationsStoreSnapshot, automationId: st
  * 失败路径：日志 `[automations] load failed` + error 落盘。
  */
 export async function loadAutomationsIntoStore(
-  set: (partial: Partial<AutomationsStoreSnapshot>) => void,
-  get: () => AutomationsStoreSnapshot,
+  set: (partial: { automations?: Automation[]; loading?: boolean; error?: string | null }) => void,
+  get: () => { workspacePath: string | null; workspaceIdentity: string | null; automations: Automation[] },
   args: { workspacePath: string; workspaceIdentity: string | null; agentService: AutomationsAgentService; requestId: number },
 ): Promise<void> {
   const { workspacePath, workspaceIdentity, agentService, requestId } = args;
@@ -934,8 +906,8 @@ export function mergeHookPatch(hook: HookDescriptor, patch: Partial<HookDescript
 
 /** 原 X0t（201229）：重载钩子列表（落盘工作区键） */
 export async function reloadHooks(
-  get: () => HooksStoreSnapshot,
-  set: (partial: Partial<HooksStoreSnapshot>) => void,
+  get: () => { workspacePath: string | null; workspaceIdentity: string | null },
+  set: (partial: { hooks?: HookDescriptor[]; loadedWorkspaceKey?: string | null }) => void,
   service: HooksService,
 ): Promise<void> {
   const { workspacePath, workspaceIdentity } = get();
@@ -950,8 +922,8 @@ export async function reloadHooks(
 /** 原 v9（201238）：落盘（无工作区抛错；成功后重载；失败抛出供乐观更新回滚） */
 export async function saveHooksList(
   hooks: HookDescriptor[],
-  get: () => HooksStoreSnapshot,
-  set: (partial: Partial<HooksStoreSnapshot>) => void,
+  get: () => { workspacePath: string | null; workspaceIdentity: string | null },
+  set: (partial: { hooks?: HookDescriptor[]; loadedWorkspaceKey?: string | null }) => void,
   service: HooksService,
 ): Promise<void> {
   const { workspacePath, workspaceIdentity } = get();
@@ -1039,7 +1011,7 @@ export async function refreshSkillsAfterCommandsChange(args: {
   workspacePath?: string | null;
   workspaceIdentity?: string | null;
   provider?: string;
-  skillsService: unknown;
+  skillsService: SkillsService;
 }): Promise<void> {
   const workspacePath = args.workspacePath;
   if (!workspacePath) return;
@@ -1418,7 +1390,7 @@ export function resolveTelemetryProviderHost(providerId: string | null | undefin
  */
 export async function reportTelemetry(platform: TelemetryPlatform, report: TelemetryReport, scope: string): Promise<void> {
   try {
-    const payload = { context: telemetryClientContext(), ...report };
+    const payload = { context: telemetryClientContext(undefined), ...report };
     if (report.elementName === "message_completion" || report.elementName === "agent_step") {
       logger.info(`[${scope}] ${report.elementName} payload:`, payload);
     }
@@ -2208,10 +2180,17 @@ export function isCompactionTerminal(status: string): boolean {
 /** 原 sPe（40986）：压缩载荷（非终端 → null；压缩比 4 位小数；模型字段按供应商有无两支） */
 export function buildCompactionDetail(args: {
   timeline: {
+    version?: number;
+    kind?: string;
+    type?: string;
+    operationId?: string;
     status: string;
     trigger: string;
+    display?: string;
     reason?: string;
+    summaryMessageId?: string;
     attempt?: number;
+    maxAttempts?: number;
     startedAt?: number;
     endedAt?: number;
     preCompactTokenCount?: number;
