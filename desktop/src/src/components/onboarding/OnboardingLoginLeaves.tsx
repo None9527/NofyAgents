@@ -100,6 +100,21 @@
  *   removeSessionsByWorkspaceKeys←oEt(removeRemoteSessionEntries)；别名保持，调用面逐字不变。
  *   cancelPendingRemoteConnection 面（K3t/Y3t，209263–209809）为 platform 服务方法直消费，
  *   与 RemoteConnectionDeep uEt 钩子（fOt 专用）无涉，不改指（裁决见 A1-R6.report.md §4）。〕
+ * 〔A1-R7 改指（余量 declare 族，tombstone 各就其位）：
+ *   serializeRemoteTarget←SrcSharedA.sanitizeWorkspaceDescriptor（R6 误录 SplitLayoutDeep
+ *     §F-R6 更正——canonical 为 A0-S4-1 lib/workspaceUtils，facade 登记在案）
+ *   sshHostKeyOfTarget←SrcSharedA.sshTargetIdentityKey（Pn，src a/Ms 两跳）
+ *   createRequestId←SrcSharedB.generateUuid（xi，src cx/ot 两跳）
+ *   normalizeConnectionError←FeedbackCenter.extractErrorMessage（MC 37651）
+ *   getRemoteWorkspaceSession←sessionRegistryStore.getSessionById（tc 4428）
+ *   unregisterRemoteSession←modules/services.unregisterSessionAndPurgeSyncState（Qs 4404）
+ *   bind/unbind 注册族四枚←sessionRegistryStore bindWorkspacePath/…（$s/ec/Cse/wse 4416–4425）
+ *   persistableWorkspaceTabs←SplitLayoutDeep.persistedWorkspaceSessions（V2 123475）
+ *   normalizePersistedRemoteSessions←SplitLayoutDeep.persistedRemoteSessions（cEt 123478）
+ *   resolveLastActiveTabIndex←SplitLayoutDeep 同名（Bne，src VC/BC 两跳）
+ *   normalizeTaskBroadcastSessions=幻影删除（O3t 校正）；persistTabsPatch=死声明删除。
+ *   附带：connectionTarget 链精化（RemoteSessionTarget）+ RegisteredSession/BaseServices
+ *   消费面具型（见 sessionRegistryStore A1-R7 注）。〕
  * [F] provider family 迁移域：
  *   e6t → presetSelectedKey               (209943 / 166688)
  *   V9  → codingPlanSelectedKey           (209946 / 166691)
@@ -207,16 +222,19 @@ import { AppDialogHost, ConfirmDialog, DirectoryBrowserDialog, OnboardingDialog,
 import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, SettingsView } from '../../modules/Settings';
 import { logger, resolveWorkspaceKey as workspaceScopeKey } from '../../modules/SkillStore'; // workspaceScopeKey（原 Io，js 1368：两参实体键；前波误接 stores-session.workspaceScopeKey 单参形，A0-D-Misc 按 bundle R6t 裁决改接 resolveWorkspaceKey）
 import { MemoizedWorkspaceRoot, type WorkspaceServices } from '../../modules/WorkspaceShell'; // A0-CLEANUP3 #36：Y4t=memo(XJt)=WorkspaceRoot 属主接线（原误包 yJt=WorkspaceShell）
-import { type FeedbackService } from '../../modules/FeedbackCenter';
+import { extractErrorMessage as normalizeConnectionError, type FeedbackService } from '../../modules/FeedbackCenter'; // A1-R7：MC=extractErrorMessage 改指（原 normalizeConnectionError declare）
 import { type MobileHomeResult, type WebRemoteSwitcherService } from '../../modules/WebRemote';
-import { ConversationTelemetrySupervisor, registerBaseServices, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）
+import { ConversationTelemetrySupervisor, registerBaseServices, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指
 import { useSettingsStore } from '../../modules/stores-core';
 import { DEFAULT_CODE_PREVIEW_SETTINGS as defaultCodePreviewSettings } from '../../modules/MarkdownIntegration'; // 默认代码预览设置（原 lo，1040）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // intl 上下文（原 G()）
 import { Button } from '../../modules/button'; // Button（原 X，button-laUijeDG.js）
 import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
-import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup, sessionEntryWorkspaceKey as remoteWorkspaceKey, buildRemoteWorkspaceKey as workspaceIdentityOf, resolveEntryWorkspaceIdentity as entryIdentity, stripRemoteTargetSecrets as serializeRemoteTarget, remoteTargetWithSecrets as withRemoteCredentials, applyRemoteConnectionResult as commitRemoteSessionsMutation, removeRemoteSessionEntries as removeSessionsByWorkspaceKeys, type RemoteSessionTarget } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）+ A1-R6：R2/I2/L2/Hn/z2/B2/oEt 远程条目域改指（tombstone 见原 declare 位）
+import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup, sessionEntryWorkspaceKey as remoteWorkspaceKey, buildRemoteWorkspaceKey as workspaceIdentityOf, resolveEntryWorkspaceIdentity as entryIdentity, remoteTargetWithSecrets as withRemoteCredentials, applyRemoteConnectionResult as commitRemoteSessionsMutation, removeRemoteSessionEntries as removeSessionsByWorkspaceKeys, persistedWorkspaceSessions as persistableWorkspaceTabs, persistedRemoteSessions as normalizePersistedRemoteSessions, resolveLastActiveTabIndex, type PersistedWorkspaceTabRecord, type RemoteSessionTarget } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）+ A1-R6：R2/I2/L2/z2/B2/oEt 远程条目域改指 + A1-R7：V2/cEt/Bne 恢复条目域改指（Hn 改指更正迁 SrcSharedA；tombstone 见原 declare 位）
+import { sanitizeWorkspaceDescriptor as serializeRemoteTarget, sshTargetIdentityKey as sshHostKeyOfTarget } from '../../modules/SrcSharedA'; // A1-R7：Hn（R6 误录更正，canonical 见 lib/workspaceUtils）+ Pn=sshTargetIdentityKey 改指
+import { generateUuid as createRequestId } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）
+import { bindWorkspacePath as bindRemoteWorkspacePath, bindWorkspaceIdentity as bindRemoteWorkspaceIdentity, unbindWorkspacePath as unbindRemoteWorkspacePath, unbindWorkspaceIdentity as unbindRemoteWorkspaceIdentity, getSessionById as getRemoteWorkspaceSession, type RegisteredSession } from '../../stores/sessionRegistryStore'; // A1-R7：$s/ec/Cse/wse/tc registry 包装族改指（环安全：该文件值导入仅 ./zustand，type-only 边无运行时环）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（跨 chunk / 它族已重建者，此处声明接口）
@@ -633,9 +651,10 @@ declare const codeCommentsStore: {
  *    参型/返回逐字同形：`workspaceIdentity?.trim() || workspacePath`）。 ── */
 /* ── tombstone（A1-R6）：workspaceIdentityOf（原 I2=buildRemoteWorkspaceKey，js 123297）/
  *    entryIdentity（原 L2=resolveEntryWorkspaceIdentity，js 123305）/
- *    serializeRemoteTarget（原 Hn=stripRemoteTargetSecrets，src-HCld2afU.js 2–13）/
+ *    serializeRemoteTarget（原 Hn，src-HCld2afU.js 2–13；A1-R6 改指 SplitLayoutDeep，
+ *    A1-R7 更正为 SrcSharedA.sanitizeWorkspaceDescriptor——重复 canonical 删除，见 SplitLayoutDeep §F-R6 更正注）/
  *    withRemoteCredentials（原 z2=remoteTargetWithSecrets，js 123362）declare 删除 →
- *    真实 import from '../../modules/SplitLayoutDeep'（§F canonical，别名保持调用面，见文件头）。
+ *    真实 import（SplitLayoutDeep §F canonical / SrcSharedA，别名保持调用面，见文件头）。
  *    型别注：L2 参型含 target: RemoteSessionTarget——本文件消费面多传含 target 之条目
  *    （本地 RemoteSessionEntry.target: any），可赋值；唯一 WorkspaceTab 面无具名 target 之
  *    消费点（restoreCombinedWorkspaceSessions 远程分支）以行注 cast 达参型（见调用点）；
@@ -656,8 +675,8 @@ export interface RemoteSessionMutation {
  *    （entry?: unknown / nextRemoteSessions 经索引签名回收）。 ── */
 /** A1-R6 型别精化：按 bundle 真实面补 kind/lastOpenedAt 二必具面（与 SplitLayoutDeep §E
  *  RemoteSessionEntry 基准对齐），满足 B2/oEt canonical 参型可赋值性；树内无字面量构造点
- *  （值皆自 declare 归一化器与 canonical 返回流入），精化安全。target 仍 A0 期 any——
- *  2523 connectionTarget?: unknown 链未精化，候选下批。 */
+ *  （值皆自 declare 归一化器与 canonical 返回流入），精化安全。target 仍 A0 期 any
+ *  （connectionTarget 链已于 A1-R7 精化，见各调用点行注；本接口 target 精化仍候选）。 */
 export interface RemoteSessionEntry {
   kind: `remote`;
   workspacePath: string;
@@ -669,29 +688,52 @@ export interface RemoteSessionEntry {
   lastConnectionError?: string;
   [key: string]: any;
 }
-declare function sshHostKeyOfTarget(target: any): string;
-declare function getRemoteWorkspaceSession(sessionId: string): RemoteWorkspaceSession | null;
-declare function unregisterRemoteSession(sessionId: string): void;
-declare function bindRemoteWorkspacePath(path: string, sessionId: string): void;
-declare function bindRemoteWorkspaceIdentity(identity: string, sessionId: string): void;
-declare function unbindRemoteWorkspacePath(path: string): void;
-declare function unbindRemoteWorkspaceIdentity(identity: string): void;
-export interface RemoteWorkspaceSession {
-  services: { fileService: FileServiceLike; zcodeSessionService: any };
-  target: any;
-  [key: string]: any;
-}
-declare function createRequestId(): string;
-declare function normalizeConnectionError(error: string | undefined): string;
-declare function normalizeTaskBroadcastSessions(sessions: RemoteSessionEntry[]): RemoteSessionEntry[];
-declare function normalizePersistedRemoteSessions(settings: AppSettings): RemoteSessionEntry[];
+/* ── tombstone（A1-R7）：sshHostKeyOfTarget（原 Pn=sshTargetIdentityKey，src-HCld2afU.js
+ *    60–68 本地 a，导出 a as Ms@9758，styles `Ms as Pn`@527 两跳）declare 删除 →
+ *    真实 import（SrcSharedA re-export lib/workspaceUtils，A0-S4-1 已转录；别名保持）。 ── */
+/* ── tombstone（A1-R7）：getRemoteWorkspaceSession（原 tc，js 4428）declare 删除 →
+ *    真实 import（sessionRegistryStore.getSessionById as …）。返回 RegisteredSession | null：
+ *    A1-R7 具型 RegisteredSession.target?: RemoteSessionTarget + BaseServices.fileService?
+ *    （均按消费面，见 sessionRegistryStore 注）。原局部 RemoteWorkspaceSession 接口
+ *    （A0 期本地代理型）随之删除——消费面型别改以 RegisteredSession 为准。 ── */
+/* ── tombstone（A1-R7）：unregisterRemoteSession（原 Qs，js 4404）declare 删除 →
+ *    真实 import（modules/services unregisterSessionAndPurgeSyncState as …；
+ *    实现在 services/providerRegistrySync.ts，Qs+_se 逐字同形）。 ── */
+/* ── tombstone（A1-R7）：bindRemoteWorkspacePath/bindRemoteWorkspaceIdentity/
+ *    unbindRemoteWorkspacePath/unbindRemoteWorkspaceIdentity（原 $s/ec/Cse/wse，
+ *    js 4416/4422/4419/4425，皆 Zs registry store 之薄包装）declare 删除 →
+ *    真实 import（sessionRegistryStore bindWorkspacePath/bindWorkspaceIdentity/
+ *    unbindWorkspacePath/unbindWorkspaceIdentity as …，A0-S4-3 已转录；别名保持）。 ── */
+/* ── tombstone（A1-R7）：createRequestId（原 xi=generateUuid，src-HCld2afU.js 8710–8719
+ *    本地 cx，导出 cx as ot@9982，styles `ot as xi`@743 两跳；sx/ox 助手随）declare 删除 →
+ *    真实 import（SrcSharedB re-export lib/uuid，A0-S4-1 已转录；别名保持）。 ── */
+/* ── tombstone（A1-R7）：normalizeConnectionError（原 MC，js 37651）declare 删除 →
+ *    真实 import（FeedbackCenter.extractErrorMessage as …，A0 期已转录）。
+ *    型别注：canonical 参型 unknown 宽于旧 declare（string | undefined），调用面兼容。 ── */
+/* ── tombstone（A1-R7）：normalizeTaskBroadcastSessions declare 删除——幻影符号：
+ *    bundle O3t（js 208830）真形无此归一化步（直以原始 sessions 入 lEt/filter），
+ *    A0 期转录误插。buildPersistedTabPatch 已按 bundle 校正（本批），
+ *    该 declare 无对应 bundle 符号，不立改指。 ── */
+/* ── tombstone（A1-R7）：normalizePersistedRemoteSessions（原 cEt，js 123478）declare 删除 →
+ *    真实 import（SplitLayoutDeep.persistedRemoteSessions as …，本批 §F-R7 转录）。 ── */
 /* ── tombstone（A1-R6）：removeSessionsByWorkspaceKeys（原 oEt=removeRemoteSessionEntries，
  *    js 123403）declare 删除 → 真实 import（removeRemoteSessionEntries as …，见文件头）。
  *    参型/返回同形（条目数组 + 工作区键列表 → {nextRemoteSessions, credentialKeysToDelete}）；
  *    条目可赋值性同 commitRemoteSessionsMutation 碑注。 ── */
-declare function persistableWorkspaceTabs(settings: AppSettings): WorkspaceTab[];
-declare function resolveLastActiveTabIndex(entries: unknown[], lastIndex: number | undefined): number;
-declare function persistTabsPatch(state: TabStoreState, sessions: RemoteSessionEntry[]): { lastWorkspaceSession: unknown[]; lastActiveTabIndex: number };
+/* ── tombstone（A1-R7）：persistableWorkspaceTabs（原 V2，js 123475）declare 删除 →
+ *    真实 import（SplitLayoutDeep.persistedWorkspaceSessions as …，本批 §F-R7 转录）。
+ *    型别注：返回 PersistedWorkspaceTabRecord[]（A0 declare 作 WorkspaceTab[]）；
+ *    恢复循环消费面（kind/workspacePath/workspacePurpose/workspaceIdentity/
+ *    remoteTarget）皆在记录面具名，1983 行 entryIdentity 调用以交叉 cast 达参型。
+ *    附带裁决（R6 §7 项 4 疑点）：V2 ≢ sEt——V2 读 lastWorkspaceSession，
+ *    sEt=persistableTabEntries 为页签→条目映射，两符号不同源。 ── */
+/* ── tombstone（A1-R7）：resolveLastActiveTabIndex（原 Bne，src 9624–9628 VC，
+ *    经 t-as-Bne 两跳；BC 助手随）declare 删除 → 真实 import（SplitLayoutDeep
+ *    本批 §F-R7 转录，同名无需别名）。型别注：返回 number | null（A0 declare 误作
+ *    number；bundle 空数组返 null），调用面皆相等比较，兼容。 ── */
+/* ── tombstone（A1-R7）：persistTabsPatch declare 删除——死声明：A0 期对 O3t 之
+ *    冗余前置声明，O3t 真形已以 buildPersistedTabPatch 转录在案（本文件，208830），
+ *    此 declare 从未被消费。 ── */
 /* ── tombstone（A1-R2）：persistableTabEntries（原 sEt js 123457）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。
  *    改指附带校正：bundle sEt 第二参为 Map（调用方 O3t 先以 lEt 建键值映射），
  *    旧 declare 误作数组面；调用点按 bundle js 208830 补 sessionEntryMapByKey（原 lEt js 123481）包裹。 ── */
@@ -1922,12 +1964,13 @@ export function workspaceKeyOfRestoreEntry(entry: string | { workspaceIdentity?:
   return typeof entry == `string` ? entry : entry.workspaceIdentity?.trim() || entry.workspacePath;
 }
 
-/** 原 O3t（208830 / 165635）：构建持久化 tab 补丁（最近会话 + 活动索引） */
+/** 原 O3t（208830 / 165635）：构建持久化 tab 补丁（最近会话 + 活动索引）
+ *  A1-R7 逐字校正：bundle O3t 直以原始 sessions 入 lEt/filter，无归一化步；
+ *  A0 期误插之 normalizeTaskBroadcastSessions（幻影符号）调用删除。 */
 export function buildPersistedTabPatch(state: TabStoreState, sessions: RemoteSessionEntry[]): { lastWorkspaceSession: unknown[]; lastActiveTabIndex: number } {
-  const normalized = normalizeTaskBroadcastSessions(sessions);
-  const persisted = persistableTabEntries(state.tabs, sessionEntryMapByKey(normalized)); // A1-R2：bundle O3t（js 208830）先 lEt 建 Map 再传 sEt
+  const persisted = persistableTabEntries(state.tabs, sessionEntryMapByKey(sessions)); // A1-R2：bundle O3t（js 208830）先 lEt 建 Map 再传 sEt
   const remoteKeys = new Set(persisted.flatMap((entry: any) => (entry.kind === `remote` ? [remoteWorkspaceKey(entry)] : [])));
-  const remaining = normalized.filter((entry) => !remoteKeys.has(remoteWorkspaceKey(entry)));
+  const remaining = sessions.filter((entry) => !remoteKeys.has(remoteWorkspaceKey(entry)));
   const workspaceTabs = state.tabs.filter((tab) => tab.kind === `workspace`);
   const activeIndex = state.activeWorkspacePath ? workspaceTabs.findIndex((tab) => tab.workspacePath === state.activeWorkspacePath) : 0;
   return { lastWorkspaceSession: [...persisted, ...remaining], lastActiveTabIndex: Math.max(activeIndex, 0) };
@@ -1979,8 +2022,8 @@ export function restoreCombinedWorkspaceSessions(options: {
       (isConversation && (conversationIndex = restoreIndex), (index === lastActiveIndex || (isConversation && conversationSkipped)) && (activeRestoreIndex = restoreIndex));
       continue;
     }
-    // A1-R6 宽化行注：局部 WorkspaceTab 无具名 target 面，远程恢复条目运行时有 target（bundle 209045 L2 直参），交叉 cast 达 canonical 参型。
-    const identity = entryIdentity(entry as WorkspaceTab & { target: RemoteSessionTarget });
+    // A1-R6 宽化行注（A1-R7 随 V2 改指更新：entry 型随 persistedWorkspaceSessions 为 PersistedWorkspaceTabRecord）：持久化远程条目运行时有 target（bundle 209045 L2 直参），交叉 cast 达 canonical 参型。
+    const identity = entryIdentity(entry as PersistedWorkspaceTabRecord & { target: RemoteSessionTarget });
     const dedupeKey = identity?.trim() || entry.workspacePath;
     if (remoteIdentities.has(dedupeKey)) {
       logger.warn(`[Root] 跳过身份冲突的远程 workspace 恢复`, {
@@ -2143,7 +2186,7 @@ export async function reconnectRemoteWorkspaceEntry(options: {
   activateTabByPath: (path: string, options?: { workspaceIdentity?: string | null }) => boolean;
   setReconnectingRemoteWorkspaceKeys: React.Dispatch<React.SetStateAction<string[]>>;
   loadCredential: (key: string) => Promise<string | null>;
-  connectRemoteWorkspaceTarget: (target: unknown, requestId?: string, context?: Record<string, unknown>) => Promise<string>;
+  connectRemoteWorkspaceTarget: (target: RemoteSessionTarget, requestId?: string, context?: Record<string, unknown>) => Promise<string>; // A1-R7 链精化：bundle k 参为 x=RemoteSessionTarget
   resolveRemoteWorkspaceCanonicalPath: (sessionId: string, path: string) => Promise<string>;
   syncRemoteWorkspaceModelProviders: (sessionId: string, path: string, identity: string) => Promise<void>;
   disposeRemoteWorkspaceSession: (sessionId: string) => Promise<void>;
@@ -2450,7 +2493,7 @@ export async function openRemoteWorkspaceFromHistory(options: {
   activateTabByPath: (path: string, opts?: any) => boolean;
   setReconnectingRemoteWorkspaceKeys: React.Dispatch<React.SetStateAction<string[]>>;
   loadCredential: (key: string) => Promise<string | null>;
-  connectRemoteWorkspaceTarget: (target: unknown, requestId?: string, context?: Record<string, unknown>) => Promise<string>;
+  connectRemoteWorkspaceTarget: (target: RemoteSessionTarget, requestId?: string, context?: Record<string, unknown>) => Promise<string>; // A1-R7 链精化：bundle k 参为 x=RemoteSessionTarget
   resolveRemoteWorkspaceCanonicalPath: (sessionId: string, path: string) => Promise<string>;
   syncRemoteWorkspaceModelProviders: (sessionId: string, path: string, identity: string) => Promise<void>;
   disposeRemoteWorkspaceSession: (sessionId: string) => Promise<void>;
@@ -2509,8 +2552,8 @@ export async function completeRemoteProjectSelection(options: {
   path: string;
   localWorkspacePath?: string;
   loadingMessage: string;
-  getRemoteWorkspaceSession: (sessionId: string) => RemoteWorkspaceSession | null;
-  connectionTarget?: unknown;
+  getRemoteWorkspaceSession: (sessionId: string) => RegisteredSession | null; // A1-R7：tc 改指 getSessionById，参型随 canonical（原局部 RemoteWorkspaceSession 已删）
+  connectionTarget?: RemoteSessionTarget; // A1-R7 链精化（bundle J3t：o ?? b.target，二者皆 RemoteSessionTarget 面）
   getWorkspaceTabs: () => WorkspaceTab[];
   resolveRemoteWorkspaceCanonicalPath: (sessionId: string, path: string) => Promise<string>;
   activateTabByPath: (path: string, opts?: any) => boolean;
@@ -2588,7 +2631,7 @@ export function useRemoteWorkspaceOrchestrator(options: {
   const [reconnectingKeys, setReconnectingKeys] = React.useState<string[]>([]);
   const inflightKeysRef = React.useRef(new Set<string>());
   const pendingRequestIdsRef = React.useRef(new Map<string, string>());
-  const connectTargetBySessionRef = React.useRef(new Map<string, unknown>());
+  const connectTargetBySessionRef = React.useRef(new Map<string, RemoteSessionTarget>()); // A1-R7 链精化：Map 值型随 connectionTarget 链
   React.useRef(null);
   const { logsByWorkspaceKey, resetLogsForWorkspaceKey } = useRemoteConnectionLogs({
       platform,
@@ -2632,7 +2675,8 @@ export function useRemoteWorkspaceOrchestrator(options: {
         }));
     }, []);
   const connectRemoteTarget = React.useCallback(
-      async (target: unknown, credentials: unknown, context?: Record<string, unknown>) => {
+      // A1-R7 链精化：target unknown → RemoteSessionTarget（bundle k 消费 x=connectionTarget ?? session.target）
+      async (target: RemoteSessionTarget, credentials: unknown, context?: Record<string, unknown>) => {
         const result = await platform.connectRemote(target, credentials, context);
         if (!result.success) throw Error(normalizeConnectionError(result.error || `Connection failed`));
         if (!result.sessionId) throw Error(`Remote session was not created`);
@@ -2644,7 +2688,8 @@ export function useRemoteWorkspaceOrchestrator(options: {
       const session = getRemoteWorkspaceSession(sessionId);
       if (!session) return path;
       try {
-        return await session.services.fileService.resolvePath({ path });
+        // A1-R7 行注：fileService 于 BaseServices 为可选面（消费面具型），运行期缺失时抛错入 catch 返 path，与 bundle 209465–209470 try/catch 行为逐字一致，故非空断言。
+        return await session.services.fileService!.resolvePath({ path });
       } catch {
         return path;
       }
@@ -2797,7 +2842,8 @@ export function useRemoteWorkspaceOrchestrator(options: {
       [activateTabByPath, addTab, tabStoreApi, commitWithCredentials, disposeRemoteSession, intl, onWorkspaceActivated, resolveCanonicalPath, syncModelProviders, canUseRemoteWorkspace],
     );
   const connectRemote = React.useCallback(
-      async (target: unknown, credentials: unknown, context?: Record<string, unknown>) => {
+      // A1-R7 链精化：同 connectRemoteTarget（包装层透传面）
+      async (target: RemoteSessionTarget, credentials: unknown, context?: Record<string, unknown>) => {
         if (!canUseRemoteWorkspace) throw Error(`Remote workspace is disabled in this mode`);
         return connectRemoteTarget(target, credentials, context);
       },

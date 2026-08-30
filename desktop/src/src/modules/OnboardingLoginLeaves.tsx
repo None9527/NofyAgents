@@ -374,7 +374,6 @@ export type {
   SessionRouterGroup,
   RemoteSessionMutation,
   RemoteSessionEntry,
-  RemoteWorkspaceSession,
   PaneWorkspaceScope,
   PaneLayoutState,
   QuotaBannerModel,

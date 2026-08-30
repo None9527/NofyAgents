@@ -10,6 +10,7 @@ import type { McpSyncService } from './mcpStore';
 import type { PluginService } from './pluginsStore';
 import type { SkillsService } from './skillContextStore';
 import type { MemoryService, SettingService, SystemService } from '../modules/Settings';
+import type { RemoteSessionTarget } from '../modules/SplitLayoutDeep'; // A1-R7：RegisteredSession.target 具型（type-only，无运行时环）
 import type { UseBoundStore } from './storeTypes';
 
 /* ============================================================================
@@ -100,6 +101,8 @@ export interface BaseServices {
     [method: string]: unknown;
   };
   credentialService?: { load(key: string): Promise<any>; [method: string]: unknown };
+  /** A1-R7 具型（原 tc 消费面）：远程编排域 resolveCanonicalPath（js 209465–209470 services.fileService.resolvePath）*/
+  fileService?: { resolvePath(options: { path: string }): Promise<string>; [method: string]: unknown };
   oauthService?: { logout(providerId: string): Promise<any>; [method: string]: unknown };
   settingsSyncService?: { detect(args: unknown): Promise<any>; importSelected(args: unknown): Promise<any>; [method: string]: unknown };
   [serviceName: string]: unknown;
@@ -138,6 +141,8 @@ export type ResolvedBaseServices = BaseServices &
 export interface RegisteredSession {
   sessionId: string;
   services: BaseServices;
+  /** A1-R7 具型（原 tc 消费面）：远程会话注册时携带连接目标（bundle 209358 b.target 读取面）；非远程会话无此面 */
+  target?: RemoteSessionTarget;
   [key: string]: unknown;
 }
 

@@ -1,57 +1,28 @@
-// A0-S4-3: 自 modules/stores-core.tsx §6 原样迁入（AlertDialogStore + useAlert；原文件现为薄 re-export shim）。
-import { t as logger } from '../modules/logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
-import { create as createStore } from './zustand'; // 原 Ae（skillStore chunk q 导出）
-import type { UseBoundStore } from './storeTypes';
-
 /* ============================================================================
- * 6. AlertDialogStore（原 N9，js 206514–206560 / jsx 164300）
+ * alertDialogStore.ts — 薄 re-export shim（A1-R7 双实例收敛）
  * ----------------------------------------------------------------------------
- * 全局警告对话框：单请求槽位 + 无参结算（原 G4t 呈现层：标题/描述/确认按钮 ⏎）。
- * state 字段表：pendingRequest: AlertRequest \| undefined（1 个）
- * actions：requestAlert/settleAlert（2 个）
- * selectors 使用方：206529–206530（G4t 呈现层）、209651（useAlert 钩子）。
- * 持久化：无。
+ * A0-S4-3 本文件原持并行 zustand 实例（自 stores-core §6 迁入）。A1-R7 裁决：
+ * bundle 唯一 N9（js 206804–206816 / jsx 164300），树内 live 实例 =
+ * components/modals/ConfirmDialog.tsx 之 AlertDialogStore——bundle 206819–206820
+ * G4t 呈现层直接消费 N9（pendingRequest/settleAlert 选择器，与 ConfirmDialog.tsx
+ * 124–125 区逐字对应），且全树 requestAlert 消费面（OnboardingLoginLeaves
+ * useAlertDialog，经 Modals.tsx 再导出）归一于该实例。本文件并行实例经实测
+ * 唯一引用面为 modules/stores-core.tsx 之 import/re-export shim 链，零终端
+ * 消费者（休眠），然跨实例请求不可见之潜在风险不可留 → 降为 shim，旧实例删除
+ * （原实现见 git 历史，检查点 1152e9a）。
+ * 导出面不变（stores-core.tsx 之 import 面：useAlertDialogStore/useAlert +
+ * AlertRequest/AlertRequestInput/AlertDialogState 三型，逐一维系）。
+ * 型别对应：AlertRequest←AlertDialogRequest | AlertDialogState←
+ * AlertDialogStoreState | AlertRequestInput = Omit<…, "resolve">（同形）。
+ * 环安全：ConfirmDialog.tsx 仅 import React/ui-dialog/button/UtilsCn/SkillStore/
+ * I18n，不 import 任何 stores → 本文件 → ConfirmDialog 新边无成环（同 R6 H2/U2）。
+ * 同型先例：stores/confirmDialogStore.ts（A1-R6 收敛）。
  * ==========================================================================*/
 
-export interface AlertRequest {
-  title: string;
-  description?: string;
-  actionLabel?: string;
-  resolve?: () => void;
-  [key: string]: unknown;
-}
+import type { AlertDialogRequest } from '../components/modals/ConfirmDialog';
 
-/** requestAlert 的入参（不含 resolve，由 store 注入） */
-export interface AlertRequestInput {
-  title: string;
-  description?: string;
-  actionLabel?: string;
-  [key: string]: unknown;
-}
+export { useAlertDialogStore, useAlertDialog as useAlert } from '../components/modals/ConfirmDialog';
+export type { AlertDialogRequest as AlertRequest, AlertDialogStoreState as AlertDialogState } from '../components/modals/ConfirmDialog';
 
-export interface AlertDialogState {
-  pendingRequest: AlertRequest | undefined;
-  requestAlert(request: AlertRequestInput): Promise<void>;
-  settleAlert(): void;
-}
-
-export const useAlertDialogStore: UseBoundStore<AlertDialogState> = createStore<AlertDialogState>((set, get) => ({
-  pendingRequest: undefined,
-  requestAlert: (request) =>
-    get().pendingRequest
-      ? (logger.warn("[AlertDialogStore] alert already in progress"), Promise.resolve())
-      : new Promise<void>((resolve) => {
-          set({ pendingRequest: { ...request, resolve } });
-        }),
-  settleAlert: () => {
-    const pending = get().pendingRequest;
-    if (!pending) return;
-    set({ pendingRequest: undefined });
-    pending.resolve?.();
-  },
-}));
-
-/** 原 209651 无名钩子：useAlert —— 返回 requestAlert 动作 */
-export function useAlert(): AlertDialogState["requestAlert"] {
-  return useAlertDialogStore((state) => state.requestAlert);
-}
+/** 原 ConfirmRequestInput 之 alert 对应面（requestAlert 入参，不含 resolve，由 store 注入）。 */
+export type AlertRequestInput = Omit<AlertDialogRequest, "resolve">;

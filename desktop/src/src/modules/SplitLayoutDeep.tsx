@@ -167,7 +167,11 @@
  *   B2  → applyRemoteConnectionResult    (123416)
  *   RBt → sshHostLabel                   (158183)  A1-R5：Sidebar 会话行消费面
  *   zBt → resolveSshConnectionInfo       (158186)  A1-R5：同上；RBt ≢ ZTt（含 username、port 恒在）
- *   Hn  → stripRemoteTargetSecrets       (src-HCld2afU.js 2–13；styles 导入名 Hn ← src Ns)  A1-R6：z2 之逆
+ *   Hn  →（A1-R7 更正：canonical = SrcSharedA/lib workspaceUtils.sanitizeWorkspaceDescriptor，
+ *         A0-S4-1 已落地；R6 §F-R6 重复转录已删除）
+ *   V2  → persistedWorkspaceSessions     (styles 123475)  A1-R7：恢复条目读取
+ *   cEt → persistedRemoteSessions        (styles 123478)  A1-R7：恢复条目远程过滤
+ *   Bne → resolveLastActiveTabIndex      (src 9624–9628 VC，t-as-Bne 两跳；BC 9620–9623 内部助手)  A1-R7
  *
  * ----------------------------------------------------------------------------
  * 二、跨 chunk / 跨区依赖（全部经真实 import，无本文件内 declare）
@@ -1523,8 +1527,9 @@ export function sessionEntryMapByKey<T extends { workspacePath: string; workspac
  * Je=buildRemoteServerWorkspaceKey 自此真实消费（§尾空引用占位随删）。
  * A1-R5 增补：RBt/zBt（js 158183–158195）SSH 连接信息——同域异址（Sidebar
  * 会话行消费面），体例并入本节（见 §F-R5 分节注）。
- * A1-R6 增补：Hn（src-HCld2afU.js 2–13）远端目标秘密剥离——z2 之逆运算，
- * 远程编排域消费面（见 §F-R6 分节注）。
+ * A1-R6 增补 Hn 已于 A1-R7 更正删除（重复 canonical，见 §F-R6 更正注）。
+ * A1-R7 增补：V2/cEt（恢复条目读取/远程过滤）+ BC/Bne（活动本地页签索引解析），
+ * 见 §F-R7 分节注。
  * ==========================================================================*/
 
 /** 原 GTt：ssh 密码凭据键。 */
@@ -1884,27 +1889,63 @@ export function resolveSshConnectionInfo(e: {
 }
 
 /* ----------------------------------------------------------------------------
- * §F-R6. 远端目标秘密剥离（Hn，src-HCld2afU.js 2–13；A1-R6 转录）
+ * §F-R6 → A1-R7 更正：stripRemoteTargetSecrets 重复转录已删除
  * ----------------------------------------------------------------------------
- * 真形在 src chunk（styles 导入名 Hn ← src 导出 Ns ← src 本地函数 t，2–13 行）；
- * z2=remoteTargetWithSecrets 之逆运算：ssh 去 password/privateKeyPassphrase，
- * server 去 token，余 kind 透传。消费面：远程编排域（OnboardingLoginLeaves，
- * 原 serializeRemoteTarget declare 改指；bundle 209089/209386 `remoteTarget: Hn(S)`
- * 页签 patch 落库面）+ MarkdownIntegration（原 formatRemoteTarget declare，
- * 经 SrcSharedB.sanitizeRemoteTargetForRestore 消费 $b 族，非本符号）。
+ * A1-R6 曾于此转录 Hn（src-HCld2afU.js 2–13）；A1-R7 侦查发现该符号 canonical
+ * 早在 A0-S4-1 已落地：lib/workspaceUtils.ts sanitizeWorkspaceDescriptor
+ * （src 本地 t → 导出 Ns → styles 导入 Hn@535，同源符号），经 SrcSharedA/B
+ * re-export、facade/srcChunkFacade.ts 登记（Ns→sanitizeWorkspaceDescriptor）。
+ * R6 转录属重复 canonical（侦查漏检），本批删除；OnboardingLoginLeaves 之
+ * serializeRemoteTarget 改指 SrcSharedA.sanitizeWorkspaceDescriptor。
  * ==========================================================================*/
 
-/** 原 Hn（src-HCld2afU.js 2–13）：剥离远端目标秘密字段（持久化/落库面）。 */
-export function stripRemoteTargetSecrets(e: RemoteSessionTarget): RemoteSessionTarget {
-  if (e.kind === `ssh`) {
-    let { password: t, privateKeyPassphrase: n, ...r } = e;
-    return r;
-  }
-  if (e.kind === `server`) {
-    let { token: t, ...n } = e;
-    return n;
-  }
-  return e;
+/* ----------------------------------------------------------------------------
+ * §F-R7. 恢复条目读取/解析（V2/cEt + BC/Bne；A1-R7 转录）
+ * ----------------------------------------------------------------------------
+ * V2（styles 123475）/cEt（styles 123478）：settings.lastWorkspaceSession 之
+ * 读取与远程过滤——与本节 sEt(123457)/lEt(123481) 同 bundle 块（123457–123481），
+ * 归此成簇。BC/Bne 真形在 src chunk（BC=9620–9623，Bne=VC 9624–9628；styles 经
+ * `t as Bne`@774 导入，src 导出 `VC as t`@10014，两跳）——编排域 k3t 恢复流
+ * 独消费（208852），与 V2 输出成对，故并入本节。
+ * 消费面：OnboardingLoginLeaves 原 persistableWorkspaceTabs /
+ * normalizePersistedRemoteSessions / resolveLastActiveTabIndex declare 改指。
+ * ==========================================================================*/
+
+/** 原 V2 读取面：持久化页签记录（lastWorkspaceSession 条目，local/remote 混存）。 */
+export interface PersistedWorkspaceTabRecord {
+  kind?: string;
+  workspacePath: string;
+  workspaceIdentity?: string | null;
+  workspacePurpose?: string;
+  remoteSessionId?: string;
+  remoteTarget?: unknown;
+  [key: string]: unknown;
+}
+
+/** 原 V2（styles 123475）：读取 settings.lastWorkspaceSession（缺省空数组）。
+ *  型别注：参型带索引签名以纳 AppSettings 面（弱型检查豁免）。 */
+export function persistedWorkspaceSessions(e: { lastWorkspaceSession?: PersistedWorkspaceTabRecord[]; [key: string]: unknown }): PersistedWorkspaceTabRecord[] {
+  return e.lastWorkspaceSession ?? [];
+}
+
+/** 原 cEt（styles 123478）：过滤持久化条目中的远程条目。
+ *  A1-R7 宽化行注：持久化远程条目运行期按 RemoteSessionEntry 面消费
+ *  （target/lastOpenedAt 由落库面保证；A0 declare 原主张），结构 cast。 */
+export function persistedRemoteSessions(e: { lastWorkspaceSession?: PersistedWorkspaceTabRecord[]; [key: string]: unknown }): RemoteSessionEntry[] {
+  return (e.lastWorkspaceSession ?? []).flatMap((entry) => (entry.kind === `remote` ? [entry as RemoteSessionEntry] : []));
+}
+
+/** 原 BC（src-HCld2afU.js 9620–9623）：区间内寻首个 local 条目索引。 */
+function findLocalEntryIndexInRange(e: Array<{ kind?: string }>, t: number, n: number): number | null {
+  for (let r = t; r < n; r += 1) if (e[r]?.kind === `local`) return r;
+  return null;
+}
+
+/** 原 Bne（src-HCld2afU.js 9624–9628 VC，经 t-as-Bne 两跳）：钳位后双向寻活动本地页签索引。 */
+export function resolveLastActiveTabIndex(e: Array<{ kind?: string }>, t: number | null | undefined): number | null {
+  if (e.length === 0) return null;
+  let n = Math.min(Math.max(t ?? 0, 0), e.length - 1);
+  return findLocalEntryIndexInRange(e, n, e.length) ?? findLocalEntryIndexInRange(e, 0, n);
 }
 
 /* ============================================================================
@@ -1967,7 +2008,9 @@ void React;
  *     iEt=normalizeRemoteTargetForConnection(123316) z2=remoteTargetWithSecrets(123362)
  *     aEt=touchRemoteSessionEntry(123397) oEt=removeRemoteSessionEntries(123403) B2=applyRemoteConnectionResult(123416)
  *     RBt=sshHostLabel(158183) zBt=resolveSshConnectionInfo(158186)（A1-R5：Sidebar 会话行消费面）
- *     Hn=stripRemoteTargetSecrets(src-HCld2afU.js 2–13)（A1-R6：远程编排域 serializeRemoteTarget 改指）
+ *     Hn：A1-R7 更正——canonical = SrcSharedA sanitizeWorkspaceDescriptor（A0-S4-1），R6 重复转录删除。
+ *     V2=persistedWorkspaceSessions(123475) cEt=persistedRemoteSessions(123478)
+ *     Bne=resolveLastActiveTabIndex(src 9624–9628)（A1-R7：恢复条目域，§F-R7）
  * —— uEt(123484) 已于 A1-R5 转录至 modules/RemoteConnectionDeep.tsx（useCancelPendingRemoteConnection）。
  *    H2/U2(123497/123510) canonical 在他域：components/modals/ConfirmDialog.tsx（live 路径，
  *    Modals.tsx 再导出）+ stores/confirmDialogStore.ts（A0-S4-3 并行）——R4 §5「远程域专用确认」

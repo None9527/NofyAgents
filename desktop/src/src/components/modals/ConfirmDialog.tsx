@@ -89,13 +89,18 @@ export interface AlertDialogRequest {
   resolve?: () => void;
 }
 
-interface AlertDialogStoreState {
+export interface AlertDialogStoreState {
   pendingRequest: AlertDialogRequest | undefined;
   requestAlert(req: Omit<AlertDialogRequest, "resolve">): Promise<void>;
   settleAlert(): void;
 }
 
-/** 原 N9（js 206514-206526 / jsx 164300）：警告对话框 store */
+/** 原 N9（js 206804-206816 / jsx 164300）：警告对话框 store
+ *  A1-R7 双实例收敛：本 store 为 N9 唯一 live canonical（bundle 206819–206820
+ *  G4t 呈现层直接消费 pendingRequest/settleAlert 选择器 + 全树 requestAlert 消费面
+ *  皆经此实例）；stores/alertDialogStore.ts 之 A0-S4-3 并行实例实测零终端消费者
+ *  （仅 stores-core shim 链引用），已降为 re-export shim（见该文件头注）。
+ *  A1-R7 行号更正：A0 期 js 行号系统性偏移 +290（误作 206514-206526），jsx 号无误。 */
 const AlertDialogStore = zustandCreate<AlertDialogStoreState>((set, get) => ({
   pendingRequest: undefined,
   requestAlert: (request) =>
@@ -113,12 +118,15 @@ const AlertDialogStore = zustandCreate<AlertDialogStoreState>((set, get) => ({
   },
 }));
 
-/** 原 $3t（js 209650-209652 / jsx 166685）：useAlertDialog */
+/** A1-R7：N9 canonical 导出面（供 stores/alertDialogStore.ts shim 再导出；stores-core 消费面名） */
+export { AlertDialogStore as useAlertDialogStore };
+
+/** 原 $3t（js 209940-209942 / jsx 166685）：useAlertDialog（A1-R7 js 行号更正，原误 209650-209652） */
 export function useAlertDialog(): (request: Omit<AlertDialogRequest, "resolve">) => Promise<void> {
   return AlertDialogStore((state) => state.requestAlert);
 }
 
-/** 原 G4t（js 206527-206570 / jsx 164317）：警告对话框（单按钮 + ⏎ 提示） */
+/** 原 G4t（js 206817-206860 / jsx 164317）：警告对话框（单按钮 + ⏎ 提示）（A1-R7 js 行号更正，原误 206527-206570） */
 function AlertDialog() {
   const { intl } = useIntlContext();
   const pending = AlertDialogStore((state) => state.pendingRequest);
@@ -147,11 +155,11 @@ function AlertDialog() {
   );
 }
 
-/** 原 K4t（js 206571 / jsx 164352） */
+/** 原 K4t（js 206861 / jsx 164352）（A1-R7 js 行号更正，原误 206571） */
 const AUTOMATION_CONFIRM_DIALOG_CLASS = `min-h-[180px] w-[min(448px,calc(100vw-2rem))] max-w-none`;
 
 /**
- * 原 q4t（js 206572-206703 / jsx 164353）：确认对话框。
+ * 原 q4t（js 206862-206991 / jsx 164353）：确认对话框（A1-R7 js 行号更正，原误 206572-206703）。
  * 打开期间 window 级 Enter 捕获确认；esc/⏎ 键帽提示可关（showKeyboardHints）。
  * presentation=`automation-confirmation` 时加宽 + 描述 line-clamp-3。
  */
@@ -268,7 +276,7 @@ export function ConfirmDialog() {
   );
 }
 
-/** 原 P9（js 206704-206710 / jsx 164396）：模态宿主——全窗口壳挂 G4t + q4t */
+/** 原 P9（js 206992-206997 / jsx 164396）：模态宿主——全窗口壳挂 G4t + q4t（A1-R7 js 行号更正，原误 206704-206710） */
 export function AppDialogHost({ children }: { children?: React.ReactNode }) {
   return (
     <div className={`relative h-dvh`}>
