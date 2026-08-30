@@ -163,10 +163,11 @@ import { CircleAlert as IconError, LoaderCircle as IconSpinner, RefreshCw as Ico
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button, ChevronRight as IconChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { Input, toast, usePlatform } from '../../modules/ImeComposition';
-import { baseName, relativePathFromWorkspace, useRemoteWorkspaceInfo } from '../../modules/MarkdownIntegration';
+import { baseName, parentDirectoryPath, relativePathFromWorkspace, useRemoteWorkspaceInfo } from '../../modules/MarkdownIntegration'; // +parentDirectoryPath（A1-R10 2b：原 sae（1932）declare 改指 canonical = components/markdown 同段 1928–1948 逐字转录；695 调用点逐字不变）
 import { imageMimeTypeOfPath } from '../../modules/PreviewCards';
 import { t as logger } from '../../modules/logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
-import { taskEntityKey } from '../../modules/StoresDeep';
+import { taskEntityKey, type TaskMeta } from '../../modules/StoresDeep'; // +type TaskMeta（A1-R10 2b：本地 TaskRecord 面收敛改指）
+import { useSearchResultsStore, upsertSearchTaskMeta, updateSearchTaskMetaPreservingMembership, applySearchTaskMutation, removeSearchTask } from '../../stores/searchResultsStore'; // A1-R10 2b：原 Vo/$ie/eae/Uo/rae（1553/1889/1892/1895/1914）declare 改指 canonical = R9 shim（bundle 1881–1927 逐字）。环安全：shim 值闭包 = QuickPick + helpers/taskStore + zustand；QuickPick 导入面（StoresDeep/SkillStore/stores-core/ModalsLeaves/services 等）不达 components/code-viewer
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip；aria-pressed 见 B-28）
 import { FileIconImg as FileIconImage, resolveFileDisplayInfo as getFileMeta } from '../../modules/ModalsLeaves'; // 原 Vc / zc
@@ -263,7 +264,9 @@ interface VirtualItem {
  *    scrollDirection 均吻合）。VirtualItem 接口保留（行 1319/1358/1844 组件 prop 仍消费）。 ── */
 
 /* 路径助手（横切 1925–1975，未归本批，接口挂接） */
-declare function parentDirectoryPath(path: string): string | null; // 原 sae（1932）
+/* ── tombstone（A1-R10 2b）：declare function parentDirectoryPath(path: string): string | null（原 sae，1932）删除，
+ *    改经文件头 modules/MarkdownIntegration import 消费（canonical = components/markdown 同段逐字转录；
+ *    落点依据：Go/Ko/qo（1928/1941/1944）既在同文件 823/931/841，sae 居 1932 为同连续段）。 ── */
 declare function pathToFileUrl(path: string): string; // 原 Yo（1958）
 
 /* PreviewCards.tsx 已重建件（接口挂接） */
@@ -2482,14 +2485,11 @@ export function FileTreePanel({
  * ==========================================================================*/
 
 /* 任务态符号（F01 域 / 跨块，接口级声明；实现不在本批） */
-interface TaskRecord {
-  taskId: string;
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  createdAt: number;
-  updatedAt: number;
-  [key: string]: unknown;
-}
+/** A1-R10 2b：本地 TaskRecord 面收敛 = canonical TaskMeta（StoresDeep 再导出）。原面
+ *  {taskId; workspacePath; workspaceIdentity?; createdAt; updatedAt; [key:string]: unknown} 缺 title，
+ *  与 Vo 域真形不符：oLt 以 $ie/eae/Uo 上送之任务对象皆 task-service 全量对象（title 必有；
+ *  SkillsSettingsSection 534 传 any 无级联；mergeTaskWithState 2580 断言面不变）。 */
+type TaskRecord = TaskMeta;
 interface TaskMembership {
   pinned: boolean;
   archived: boolean;
@@ -2507,20 +2507,17 @@ interface TaskListStoreState {
 declare const taskListStore: { getState(): TaskListStoreState }; // 原 xe（跨块）
 declare function taskStateOf(state: TaskWorkspaceState, taskId: string): unknown; // 原 ce（跨块）
 declare function mergeTaskWithState(task: TaskRecord, state: unknown, meta: unknown): TaskRecord | null; // 原 pe（跨块）
-declare const taskMetaStore: {
-  getState(): {
-    taskMetaByEntityKey: Record<string, unknown>;
-  };
-}; // 原 Vo（1553）
-declare function notifyTaskMetaUpsert(task: TaskRecord): void; // 原 $ie（1889）
-declare function notifyTaskMetaPreservingMembership(task: TaskRecord): void; // 原 eae（1892）
-declare function applyTaskQueryCacheMutation(args: {
-  previousTask: TaskRecord;
-  nextTask: TaskRecord;
-  previousState: TaskMembership;
-  nextState?: TaskMembership;
-}): void; // 原 Uo（1895）
-declare function removeTaskAndNotify(args: { workspacePath: string; workspaceIdentity?: string | null; taskId: string }): void; // 原 rae（1914）
+/* ── tombstone（A1-R10 2b）：taskMetaStore（Vo 1553）/notifyTaskMetaUpsert（$ie 1889）/
+ *    notifyTaskMetaPreservingMembership（eae 1892）/applyTaskQueryCacheMutation（Uo 1895）/
+ *    removeTaskAndNotify（rae 1914）declare 五连删除，改指 canonical = stores/searchResultsStore R9 shim
+ *    （bundle 1881–1927 逐字）。型缝：Uo 调用面 2579–2583 之 previousState/nextState 经 `args.membership &&`
+ *    窄化为非空，与 canonical 必填面吻合（bundle oLt 146817–146824 同形）；rae 参型经 shim 精化收至
+ *    WorkspaceScope & {taskId}（sLt 2603 薄对象真形，bundle 146841 同证）。 ── */
+const taskMetaStore = useSearchResultsStore; // 原 Vo（1553）：调用面 2554 逐字不变
+const notifyTaskMetaUpsert = upsertSearchTaskMeta; // 原 $ie（1889）
+const notifyTaskMetaPreservingMembership = updateSearchTaskMetaPreservingMembership; // 原 eae（1892）
+const applyTaskQueryCacheMutation = applySearchTaskMutation; // 原 Uo（1895）
+const removeTaskAndNotify = removeSearchTask; // 原 rae（1914）
 
 /** 原 iLt：默认任务归属（置顶且未归档） */
 export const DEFAULT_TASK_MEMBERSHIP: TaskMembership = { pinned: true, archived: true };
@@ -2584,12 +2581,13 @@ export function upsertTaskInWorkspaceCache(args: {
         }));
 }
 
-/** 原 sLt：删除归档任务后的状态清理 */
+/** 原 sLt：删除归档任务后的状态清理。A1-R10 2b 精化：返回 boolean——bundle sLt（146827–146842）
+ *  return 逗号链末位 = rae 结果；rae 经 shim 精化后返回 boolean（store removeTask 真形） */
 export function cleanupDeletedTaskState(args: {
   workspacePath: string;
   workspaceIdentity?: string | null;
   taskId: string;
-}): void {
+}): boolean {
   let store = taskListStore.getState(),
     workspaceState = store.getWorkspaceState(args.workspacePath, args.workspaceIdentity);
   return (

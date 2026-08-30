@@ -47,12 +47,13 @@
 // ----------------------------------------------------------------------------
 // 外部依赖挂接（行号在案，见上 §二；类型从宽）
 // ----------------------------------------------------------------------------
-declare const Q: any; // React interop（chunk 996）
+import * as React from "react"; // A1-R10 2f：原 Q（chunk 996 `var Q = r(F(), 1)`）= React interop——canonical 即 React 命名空间；Q.lazy 调用面改 React.lazy 逐字语义（下两处 BODY）
+/* ── tombstone（A1-R10 2f）：declare const Q: any（React interop，chunk 996）删除，改指 React（上行 import）。 ── */
 declare const Y: any; // 动态 import 预载包装（chunk import 856；preload-helper-BHSF1fZ9.js）
 declare const __vite__mapDeps: (idx: number[]) => string[]; // vite 运行时（chunk 1）
 
 // [B5-15b BODY1 START js 160672]
-var LazyPdfViewer = (0, Q.lazy)(() =>
+var LazyPdfViewer = (0, React.lazy)(() =>
   Y(
     () => import(`./pdf-viewer-m6YcRb_5.js`).then((e: any) => ({ default: e.PdfViewer })),
     __vite__mapDeps([293, 1, 112, 294, 295, 296, 297, 298, 299, 300, 301, 302]),
@@ -62,7 +63,7 @@ var LazyPdfViewer = (0, Q.lazy)(() =>
 // [B5-15b BODY1 END js 160678]
 
 // [B5-15b BODY2 START js 160688]
-var LazyPptxPreviewViewer = (0, Q.lazy)(() =>
+var LazyPptxPreviewViewer = (0, React.lazy)(() =>
   Y(
     () =>
       import(`./pptx-preview-viewer-B1z6CWke.js`).then((e: any) => ({ default: e.PptxPreviewViewer })),

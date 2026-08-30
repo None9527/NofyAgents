@@ -11,6 +11,7 @@ import { useServices } from '../../modules/services';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
 import { useConfirmDialog } from '../../modules/Modals';
+import { useSettingsStore as useAppPreferenceStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppPreferenceStore=useSettingsStore（symbol-index x6）；选择器面 1512–1516 五字段（requestLoginEntry/setUser/oauthError/setOAuthError/markModelProviderFamilyConnectionTransition）= SettingsState 实有字段（bundle 192134–192138 同面）。环安全：stores-core 值闭包不达 components/settings
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { isStartPlanProviderId as isStartPlanPreset, providerIds as PROVIDER_IDS } from '../../modules/SrcSharedA'; // Bn / q=mo
 import {
@@ -165,14 +166,12 @@ declare function useAppSettings(): {
   update: (patch: Partial<AppSettingsSnapshot>) => Promise<void>;
 }; // JM（53440）
 
-interface AppPreferenceStoreState {
-  requestLoginEntry: (oauthProviderId: string) => void;
-  setUser: (user: unknown) => void;
-  oauthError: string | null;
-  setOAuthError: (error: string | null) => void;
-  markModelProviderFamilyConnectionTransition: (familyId: string) => void;
-}
-declare function useAppPreferenceStore<T>(selector: (s: AppPreferenceStoreState) => T): T; // ko（1296）
+/* ── tombstone（A1-R10 2a）：interface AppPreferenceStoreState + declare function useAppPreferenceStore<T>（原 ko，1296）删除，
+ *    改经文件头 stores-core import 消费（canonical = useSettingsStore）。型缝精化（bundle 真形）：
+ *    requestLoginEntry (providerId, purpose?) => number（bundle 1215/88869 单参调用）；
+ *    setUser (UserInfo | null) => void（bundle 1186）；oauthError string | null（读面 1070/1308/1374 真形）；
+ *    setOAuthError (string | null) => void；markModelProviderFamilyConnectionTransition (unknown) => void（bundle 1207）。
+ *    1512–1516 选择器逐字不变。 ── */
 
 interface BigModelProductsState {
   snapshot: { productList: BigModelProduct[] } | null;

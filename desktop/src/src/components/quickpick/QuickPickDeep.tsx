@@ -125,7 +125,7 @@
 import * as React from "react";
 import { workspaceKeyOf } from '../../modules/CodeViewer';
 import { logger, useTaskStore } from '../../modules/SkillStore';
-import { dedupeWorkspaceScopes, sessionActivityOf } from '../../modules/StoresDeep';
+import { dedupeWorkspaceScopes, sessionActivityOf, compareTasks as compareTaskRecency, taskEntityKey as entityKeyOf } from '../../modules/StoresDeep'; // +compareTaskRecency/entityKeyOf（A1-R10 2e：原 Fo（1365）/Lo（1371）declare 改指 canonical = helpers compareTasks/taskEntityKey 逐字；调用点 849/1326 与 471/607/720/760/762 逐字不变）
 import { SessionIndexStore, WorkspaceSubscriptionSet, sessionIndexPoolKey, useBaseServices, type SessionIndexScope } from '../../modules/services';
 /* ── A0-D-Misc 接线：Vo 搜索结果 store 属主 = QuickPick（useSearchResultsStore，QuickPick.tsx 1553–1878） ── */
 import { useSearchResultsStore as SearchResultsStore } from '../../modules/QuickPick'; // 原 Vo（QuickPick.tsx 已实体化）：搜索结果/未读覆盖 store
@@ -232,8 +232,8 @@ declare function readTaskUnreadIndicator(state: WorkspaceStateLike, taskId: stri
 
 /* StoresDeep.tsx §A 已实体化的 Vo 合并助手族 */
 declare function attachSessionActivity(meta: TaskMeta, activity: unknown): TaskMeta; // 原 jo
-declare function compareTaskRecency(a: TaskMeta, b: TaskMeta, sortBy: string): number; // 原 Fo
-declare function entityKeyOf(entity: WorkspaceScope & { taskId: string }): string; // 原 Lo
+/* ── tombstone（A1-R10 2e）：declare compareTaskRecency（原 Fo，1365）/entityKeyOf（原 Lo，1371）删除，
+ *    改经文件头 StoresDeep import 消费（canonical = helpers compareTasks/taskEntityKey 逐字）。 ── */
 
 /* services.tsx §G.1 已实体化：未读修订自增（原 sx） */
 declare function bumpUnreadRevision(): void; // 原 sx

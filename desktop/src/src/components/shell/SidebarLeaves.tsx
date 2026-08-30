@@ -117,7 +117,11 @@ import { workspaceKeyOf } from '../../modules/CodeViewer';
 import { toast } from '../../modules/ImeComposition';
 import { RemoteSyncingRow, TaskListLoadingRow } from '../../modules/Sidebar';
 import { logger, useTaskStore } from '../../modules/SkillStore';
-import { taskEntityKey } from '../../modules/StoresDeep';
+import { taskEntityKey, mergeMetaPreservingActivity as mergeTaskWithActivity, compareTasksActiveFirst as compareTasksForList } from '../../modules/StoresDeep'; // +mergeTaskWithActivity/compareTasksForList（A1-R10 2e：原 Po（1324）/Lie（1353）declare 改指 canonical——helpers mergeMetaPreservingActivity/compareTasksActiveFirst 逐字；调用点 1233/1248/3537 逐字不变）
+import { applySearchTaskMutation as applyOptimisticTaskMutation } from '../../stores/searchResultsStore'; // A1-R10 2e：原 Uo（1895）declare 改指 canonical = R9 shim；调用点 3227 逐字不变。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/shell（QuickPick 导入面实测无 shell 边）
+import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 2e：原 Go（1928）declare 改指 canonical = components/markdown baseName 逐字；调用点 3124/3154 逐字不变。环安全：MarkdownIntegration 闭包不达 components/shell（实测在案）
+import { useSearchResultsStore, type SearchResultsState } from '../../modules/QuickPick'; // A1-R10 项 1a：原 Vo（bundle 1553）declare 改指 canonical = QuickPick 1254 区（A1-R9 收敛完成；modules/QuickPick 为再导出 shim，QuickPickDeep 同源先例）。环安全：QuickPick 值闭包（modules/ImeComposition/SkillStore/StoresDeep/services/stores-core 族 + components/ui）不达 components/shell
+import { normalizeSearchDescriptor as buildTaskListQueryDescriptor, descriptorCacheKey as queryDescriptorKey, type SearchDescriptor } from '../../stores/searchResultsHelpers'; // A1-R10 项 1a：原 zie/Bie（bundle 1385/1396）declare 改指 canonical（searchResultsHelpers 逐字转录在案）；入参 workspaceScopes → 出参 workspaceKeys 真形（1386–1395 实测）。环安全：helpers 值闭包 = react + stores/taskStore，不达 components/shell
 import { useBaseServices } from '../../modules/services';
 import { useSessionRegistryStore, type BaseServices } from '../../modules/stores-core'; // BaseServices：buildScopedServices 实参形
 import { formatRelativeTime } from '../../modules/SidePanel'; // $S
@@ -166,7 +170,7 @@ interface WorkspaceTab {
   remoteSessionId?: string | null;
   [key: string]: unknown;
 }
-type TaskSortBy = "updated" | "created" | "manual" | string;
+type TaskSortBy = "created" | "updated"; // A1-R10 精化：原 "updated"|"created"|"manual"|string 宽面 → bundle 真形二值（Iie@1456 `n === "created"`、140393/140601 消费面实测；与 Sidebar 334 同形）
 interface TaskMeta {
   taskId: string;
   title: string;
@@ -176,8 +180,8 @@ interface TaskMeta {
   updatedAt: number;
   pinned?: boolean;
   archived?: boolean;
-  unreadAt?: number;
-  provider?: string;
+  unreadAt?: number | null; // A1-R10 2e 精化：补 null 支 = canonical 真形（store 以 null 清未读；本地消费 3390/3574/3713 皆真值/typeof 判定，兼容）
+  provider?: string | null; // A1-R10 2e 精化：补 null 支 = canonical 真形（本地无 .provider 消费点，零影响）
   workspaceLabel?: string;
   workspaceKind?: "local" | "remote" | string;
   remoteSessionId?: string;
@@ -212,13 +216,13 @@ interface SessionRegistryState {
 interface SessionRecord { [key: string]: unknown }
 
 /** 搜索结果 store（原 Vo）：任务元数据缓存与失效 */
-interface SearchResultsState {
-  setQueryResults: (results: Array<WorkspaceTaskQueryResult>) => void;
-  resultsByQueryKey: Record<string, { stale?: boolean; invalidationVersion?: number } | undefined>;
-  taskMetaByEntityKey: Record<string, TaskMeta | undefined>;
-  taskUnreadOverlayByEntityKey: Record<string, number | undefined>;
-}
-declare function useSearchResultsStore<T>(selector: (s: SearchResultsState) => T): T; // A1-R8 普查留批：bundle 唯一 Vo@1553，canonical 裁决 = QuickPick.tsx 1254 区（A1-R9 收敛完成，stores/ 侧降 shim）；本 declare 消费面（559–562/773 = bundle 144478–144481 簇）型缝合不拢（本地 TaskListQueryDescriptor.workspaceScopes vs canonical QueryDescriptor.workspaceKeys 等必填面缺失），接线留待型面对齐专批
+/* ── tombstone（A1-R10）：本地 SearchResultsState 近似面 + useSearchResultsStore
+ *    declare 删除，改经文件头真实 import（../../modules/QuickPick canonical，
+ *    A1-R9 收敛完成）。R8/R9 留批型缝已按 bundle 真形消解：本簇消费面
+ *    （559–562/775 = bundle 144478–144481 簇）传入之描述符实为 zie 出参
+ *    （workspaceKeys 真形，bundle 1386–1395），非本地旧面之 workspaceScopes；
+ *    SearchDescriptor 精化（kind/sortBy 收窄，见 searchResultsHelpers A1-R10 注）
+ *    后与 canonical QueryDescriptor 结构一致，setQueryResults 缝合通过。 ── */
 
 /** 基础服务（原 Ec）：当前窗口的 WorkspaceServices */
 interface ZCodeTaskServiceLike {
@@ -260,16 +264,12 @@ interface SessionRegistrySnapshot {
 }
 
 /** 任务列表查询描述符与键（原 zie/Bie，jsx 425/436） */
-interface TaskListQueryDescriptor {
-  kind: "workspace" | "archived" | "pinned" | "timeline" | string;
-  workspaceScopes: WorkspaceScope[];
-  sortBy: TaskSortBy;
-  search: string;
-  expanded: boolean;
-  visibleLimit: number;
-}
-declare function buildTaskListQueryDescriptor(args: TaskListQueryDescriptor): TaskListQueryDescriptor;
-declare function queryDescriptorKey(descriptor: TaskListQueryDescriptor): string;
+/* ── tombstone（A1-R10）：本地 TaskListQueryDescriptor 近似面 +
+ *    buildTaskListQueryDescriptor/queryDescriptorKey declare 删除，改经文件头
+ *    真实 import 别名改指（searchResultsHelpers normalizeSearchDescriptor/
+ *    descriptorCacheKey，原 zie/Bie 逐字转录）。bundle 真形：zie 入参含
+ *    workspaceScopes、出参为 workspaceKeys 归一面（1386–1395）；本地旧面
+ *    出入同形（皆 workspaceScopes）属 A0 近似误差。消费面 605/620 逐字不变。 ── */
 
 /** 会话水合（原 JS，jsx 32603）：任务行 + 水合中的端点键 + 作用域修订号 */
 declare function useSessionItems(scopes: Array<WorkspaceScope & { remoteSessionId?: string }>): {
@@ -318,13 +318,9 @@ declare function invalidateWorkspaceEvent(event: DynamicWorkspaceEvent): void;
 /** 确认对话框（原 U2，TopBar.tsx 已还原） */
 declare function useConfirmDialog(): (args: { title: string; description?: string; confirmLabel?: string }) => Promise<boolean>;
 
-/** 乐观任务变更（原 Uo，TopBar.tsx 已还原） */
-declare function applyOptimisticTaskMutation(args: {
-  previousTask: TaskMeta;
-  nextTask: TaskMeta;
-  previousState: { pinned: boolean; archived: boolean };
-  nextState: { pinned: boolean; archived: boolean };
-}): void;
+/* ── tombstone（A1-R10 2e）：declare function applyOptimisticTaskMutation（原 Uo，1895）删除，
+ *    改经文件头 stores/searchResultsStore import 消费（canonical = applySearchTaskMutation；
+ *    3227 调用点逐字不变）。 ── */
 
 /** 任务列表数据钩子（原 ZS，jsx 32810；接口级，Sidebar.tsx 已声明） */
 declare function useTaskListItems(args: {
@@ -345,8 +341,9 @@ declare function buildWorkspaceServicesMap(
 
 /** 横切展示助手（Sidebar.tsx 同族已还原） */
 declare function taskChangeSummary(task: TaskMeta): { added: number; removed: number } | null; // vg
-declare function workspaceBaseName(workspacePath: string): string; // Go
-declare function mergeTaskWithActivity(task: TaskMeta, overlay: TaskMeta): TaskMeta; // Po
+/* ── tombstone（A1-R10 2e）：declare workspaceBaseName（Go 1928）/mergeTaskWithActivity（Po 1324）删除，
+ *    改经文件头 import 消费（canonical = components/markdown baseName 逐字 / helpers mergeMetaPreservingActivity
+ *    逐字；调用点 3124/3154 与 1233/1248 逐字不变；本地 TaskMeta.unreadAt 同步精化 number | null）。 ── */
 declare function activityOverlayOf(task: TaskMeta, overlay: TaskMeta): TaskMeta; // ee
 
 /** 加载行 / 远控同步行（Sidebar.tsx 已还原） */
@@ -510,7 +507,7 @@ interface WorkspaceTaskQueryConfig {
   remoteSessionId: string | null;
   isRemoteWorkspace: boolean;
   visibleLimit: number;
-  descriptor: TaskListQueryDescriptor;
+  descriptor: SearchDescriptor; // A1-R10：zie 出参真形（原本地 TaskListQueryDescriptor 已删碑）
   queryKey: string;
 }
 interface WorkspaceTaskShard {
@@ -528,7 +525,7 @@ interface WorkspaceTaskGroup {
 }
 interface WorkspaceTaskQueryResult {
   queryKey: string;
-  descriptor: TaskListQueryDescriptor;
+  descriptor: SearchDescriptor; // A1-R10：zie 出参真形；与 canonical SetQueryResultArgs.descriptor（QueryDescriptor 同构）缝合
   items: TaskMeta[];
   total: number;
   hasMore: boolean;
@@ -3534,7 +3531,9 @@ function applyRemoteTaskMembership(args: { result: WebRemoteTaskIndex; target: T
 }
 
 /** 原 SPt/g6/EPt/_6（— / 117117–117152）：排序与搜索过滤 */
-declare function compareTasksForList(a: TaskMeta, b: TaskMeta, sortBy: TaskSortBy, isRunning: (task: TaskMeta) => boolean): number; // Lie
+/* ── tombstone（A1-R10 2e）：declare compareTasksForList 四参面（原 Lie，1353）删除，改经文件头
+ *    StoresDeep import 消费（canonical = compareTasksActiveFirst；3537 调用点及其 isRunningRuntimeStatus
+ *    投射逐字不变）。 ── */
 function taskRowComparator(sortBy: TaskSortBy): (a: TaskMeta, b: TaskMeta) => number {
   return (a, b) => compareTasksForList(a, b, sortBy, isRunningRuntimeStatus as unknown as (task: TaskMeta) => boolean);
 }

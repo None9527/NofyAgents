@@ -55,6 +55,7 @@ import type { UseBoundStore } from '../stores/storeTypes';
 import {
   applyUiFontSizePx, loadUiFontSizePx, watchUiFontSizeStorageChanges,
   createSettingsStore, SettingsStoreProvider, useSettingsStore, useSettingsStoreValue,
+  isStartupSoundEnabled, // A1-R10 2a：Eie canonical（settingsStore yo/bo/Eie，js 1085–1091 逐字）再导出，供 AppRootLeaves 2604 消费
 } from '../stores/settingsStore';
 import type { ThemeId, CodePreviewSettings, LoginEntryRequest, LoginEntryAttempt, SettingsState, BroadcastService } from '../stores/settingsStore';
 import {
@@ -81,6 +82,7 @@ export type { UseBoundStore };
 export {
   applyUiFontSizePx, loadUiFontSizePx, watchUiFontSizeStorageChanges,
   createSettingsStore, SettingsStoreProvider, useSettingsStore, useSettingsStoreValue,
+  isStartupSoundEnabled,
 };
 export type { ThemeId, CodePreviewSettings, LoginEntryRequest, LoginEntryAttempt, SettingsState, BroadcastService };
 

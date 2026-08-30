@@ -206,11 +206,11 @@ import { WorkspaceSelectionRow } from '../../modules/Home';
 import { toast } from '../../modules/ImeComposition';
 import { type FileLinkModel } from '../../modules/MarkdownIntegration'; // A0-CLEANUP4：markdown 文件链接回调面（原 MHe 模型，js 51430）
 import { pathBasename } from '../../modules/ModalsLeaves';
-import { QuickPick, buildQuickPickCommands } from '../../modules/QuickPick';
+import { QuickPick, buildQuickPickCommands, useSearchResultsStore, type SearchResultsState } from '../../modules/QuickPick'; // +useSearchResultsStore/type SearchResultsState（A1-R10 2f：原 Vo（1553）declare 与本地薄面改指 canonical——QuickPick 1254 区实体；调用点 4372/4439/4481/4704/4724/5505 逐字不变）。既有边（209），环安全：QuickPick 值闭包不达 components/shell
 import { type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // A0-CLEANUP B-24：远端会话形（Home/RemoteWizardDialog 调用面对齐）
 import { resolveThemeMode } from '../../modules/Settings';
 import { SidePanel, useSidePaneState, type BrowserMetadataPatch, type BrowserNavigationRequest, type BrowserResidencyEvent, type BrowserUseOperationEvent, type BrowserUseTabDescriptor, type BrowserUseVisibilityEvent, type CodeViewerSource as SidePanelCodeViewerSource, type PlatformService as SidePanelPlatformService, type RecentClosedSidePaneTab, type ScreenshotSurfaceRequest, type SidePaneState, type SidePaneTab, type SubagentListResponse, type SubagentOpenRequest } from '../../modules/SidePanel'; // 侧面板态型以 SidePanel 导出为准
-import { logger, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from '../../modules/SkillStore'; // +TaskStore（A0-CLEANUP B-3：选择器改指真 store 型）；+workspaceKey（原 Io/Lo，A0-CLEANUP 族清理）
+import { isE2EStoreBridgeEnabled, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from '../../modules/SkillStore'; // +TaskStore（A0-CLEANUP B-3：选择器改指真 store 型）；+workspaceKey（原 Io/Lo，A0-CLEANUP 族清理）；+isE2EStoreBridgeEnabled（A1-R10 项 1b：原 re = skillStore chunk K 导出，w_e 门控，bundle styles 382 `K as re` 实证在案）
 import { taskEntityKey } from '../../modules/StoresDeep';
 import { type TerminalService } from '../../modules/TerminalPane'; // A0-CLEANUP4：WorkspaceServices.terminalService 型（注册表透传面）
 import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle, type UpdateState } from '../../modules/TopBar';
@@ -522,33 +522,13 @@ declare function readLocalPreferenceForDraft(
 
 /* --- 搜索结果域（原 Vo） --- */
 
-interface SearchResultsState {
-  resultsByQueryKey: Record<
-    string,
-    {
-      descriptor: {
-        kind: string;
-        search: string;
-        workspaceKeys: string[];
-        visibleLimit: number | null;
-      };
-      taskKeys: string[];
-      fetchedAt: number;
-      stale: boolean;
-    }
-  >;
-  taskMetaByEntityKey: Record<
-    string,
-    {
-      taskId: string;
-      workspacePath: string;
-      workspaceIdentity?: string;
-      unreadAt?: number | null;
-      status?: string;
-    }
-  >;
-}
-declare const searchResultsStore: { getState(): SearchResultsState };
+/* ── tombstone（A1-R10 2f）：本地 interface SearchResultsState 薄面（resultsByQueryKey/taskMetaByEntityKey
+ *    五字段摘形）+ declare const searchResultsStore: { getState(): SearchResultsState }（原 Vo，1553）删除，
+ *    改经文件头 modules/QuickPick import 消费（canonical = QuickPick SearchResultsState 全实面 +
+ *    useSearchResultsStore 实体 store）。型缝：旧面 taskMetaByEntityKey 值五字段薄形 → canonical TaskMeta
+ *    富面（消费点仅读 taskId/unreadAt/status，4310/4372/4439/4481 皆兼容）；workspaceIdentity 旧面
+ *    string → canonical string | null（消费仅透传）。 ── */
+const searchResultsStore = useSearchResultsStore; // 原 Vo（1553）：getState() 调用面逐字不变
 
 /* --- 未读状态助手（原 tae/nae/Wo/Ho/sx） --- */
 
@@ -746,7 +726,7 @@ interface ActiveTaskMeta {
    * A1-R9 E6/k6 收敛精化：按 bundle 真形补全富面（e_e@24771 = Vo taskMetaByEntityKey
    * 实体 ⊕ Pge@24501 会话回退，两支恒含 title/createdAt/updatedAt；Qge@24740
    * 比较器枚举全字段面）；TopBar.TaskMeta 同形，upsertTask 消费面合拢。 */
-  resolvedActiveTaskMeta: { taskId: string; workspacePath: string; title: string; createdAt: number; updatedAt: number; status?: string; unreadAt?: number | null; provider?: string; model?: string; forkedFromTaskId?: string | null; pinned?: boolean; archived?: boolean; cronAutomationId?: string | null; automationId?: string | null; offPeakTaskId?: string | null; pendingInteraction?: { interactionId: string; kind?: string; toolName?: string; autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null } | null; changeSummary?: { files: unknown[]; added: number; removed: number } | null; __zcodeSessionActivity?: { phase: string; lastActivityAt: number; pendingInteractions?: { permissionCount: number; userInputCount: number } | null } | null; [key: string]: unknown } | null;
+  resolvedActiveTaskMeta: { taskId: string; workspacePath: string; title: string; createdAt: number; updatedAt: number; status?: string; unreadAt?: number | null; provider?: string; model?: string; forkedFromTaskId?: string | null; pinned?: boolean; archived?: boolean; cronAutomationId?: string | null; automationId?: string | null; offPeakTaskId?: string | null; pendingInteraction?: { interactionId: string; kind?: string; toolName?: string; autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null } | null; changeSummary?: { fileCount: number; added: number; removed: number; files: Array<{ path: string; added: number; removed: number; writeCount: number; lastTurnIndex: number; [key: string]: unknown }>; [key: string]: unknown } | null; __zcodeSessionActivity?: { phase: string; lastActivityAt: number; pendingInteractions?: { permissionCount: number; userInputCount: number }; [key: string]: unknown } | null; [key: string]: unknown } | null; // A1-R10 2c：changeSummary/__zcodeSessionActivity 精化 = canonical 真形（np@6874 strict / helpers SessionActivity 面）
   activeTraceId: string | null;
   activeSessionId: string | null;
   activeTaskProvider: string | null;
@@ -1799,7 +1779,7 @@ interface WorkspaceShellProps {
   activeTraceId?: string | null;
   activeSessionId?: string | null;
   activeTaskProvider?: string | null;
-  resolvedActiveTaskMeta?: { taskId: string; workspacePath: string; title: string; createdAt: number; updatedAt: number; status?: string; unreadAt?: number | null; provider?: string; model?: string; forkedFromTaskId?: string | null; pinned?: boolean; archived?: boolean; cronAutomationId?: string | null; automationId?: string | null; offPeakTaskId?: string | null; pendingInteraction?: { interactionId: string; kind?: string; toolName?: string; autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null } | null; changeSummary?: { files: unknown[]; added: number; removed: number } | null; __zcodeSessionActivity?: { phase: string; lastActivityAt: number; pendingInteractions?: { permissionCount: number; userInputCount: number } | null } | null; [key: string]: unknown } | null; // A0-CLEANUP4：补 workspacePath（束 e_e 恒含）；A1-R9 E6/k6 收敛：富面精化（真形见上方 ActiveTaskMeta 注）
+  resolvedActiveTaskMeta?: { taskId: string; workspacePath: string; title: string; createdAt: number; updatedAt: number; status?: string; unreadAt?: number | null; provider?: string; model?: string; forkedFromTaskId?: string | null; pinned?: boolean; archived?: boolean; cronAutomationId?: string | null; automationId?: string | null; offPeakTaskId?: string | null; pendingInteraction?: { interactionId: string; kind?: string; toolName?: string; autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null } | null; changeSummary?: { fileCount: number; added: number; removed: number; files: Array<{ path: string; added: number; removed: number; writeCount: number; lastTurnIndex: number; [key: string]: unknown }>; [key: string]: unknown } | null; __zcodeSessionActivity?: { phase: string; lastActivityAt: number; pendingInteractions?: { permissionCount: number; userInputCount: number }; [key: string]: unknown } | null; [key: string]: unknown } | null; // A0-CLEANUP4：补 workspacePath（束 e_e 恒含）；A1-R9 E6/k6 收敛：富面精化（真形见上方 ActiveTaskMeta 注）；A1-R10 2c：changeSummary/__zcodeSessionActivity = canonical 真形
   activeTaskTitle?: string | null;
   activeTaskChangeSummary?: string | null;
   gitWorktreeReviewSourceId?: string | null;
@@ -5795,8 +5775,28 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
   );
 }
 
-/** 原 w_e（js 25374）：e2e 模式下挂载 window.__testActions（接口级，语义保留） */
-declare function registerTestActions(actions: Record<string, unknown>): void;
+/* ── A1-R10 项 1b：w_e declare → B5 转录。bundle 唯一真形 w_e@25422（A0 标签
+ *    25374 漂移更正）：re() 门控之 useEffect 挂卸 window.__testActions，卸载清理
+ *    释放成员刷新 hold。re = isE2EStoreBridgeEnabled（R9 实证链在案）。调用点
+ *    5440（= bundle 186970）逐字不变；形参面增 releaseTaskMembershipRefreshHold
+ *    必选（cleanup 25429 直调，GJt 探针簇 4685 已含）。 ── */
+declare global {
+  interface Window {
+    __testActions?: { releaseTaskMembershipRefreshHold(): void; [key: string]: unknown };
+  }
+}
+/** 原 w_e（js 25422）：e2e 模式下挂载 window.__testActions（re 门控；卸载即释放 hold 并摘除） */
+function registerTestActions(actions: { releaseTaskMembershipRefreshHold(): void; [key: string]: unknown }): void {
+  React.useEffect(() => {
+    if (isE2EStoreBridgeEnabled())
+      return (
+        (window.__testActions = actions),
+        () => {
+          (actions.releaseTaskMembershipRefreshHold(), delete window.__testActions);
+        }
+      );
+  }, [actions]);
+}
 
 /** 原 Y4t（js 206773 / jsx 164452）：memo 化工作区根，供远控壳/应用根挂载 */
 export const MemoizedWorkspaceRoot = React.memo(WorkspaceRoot);

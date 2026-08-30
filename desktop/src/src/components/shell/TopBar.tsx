@@ -140,6 +140,7 @@ import { CommandEmpty, CommandGroup, CommandList } from '../../modules/QuickPick
 import { type SubagentOpenRequest } from '../../modules/SidePanel'; // A0-CLEANUP4：子代理会话打开请求（原 Dlt 构造面，js 98874）
 import { logger, useTaskStore } from '../../modules/SkillStore';
 import { useBaseServices, useWorkspaceServices } from '../../modules/services';
+import { applySearchTaskMutation as applyOptimisticTaskMutation } from '../../stores/searchResultsStore'; // A1-R10 项 2b：原 Uo（1895 / 959）declare 改指 canonical = R9 shim（bundle 逐字）；调用点 2141/2173/2372/2389 逐字不变，本地面与 canonical 面全同（非空 TaskMeta 四元组）。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/shell
 import { useFeedbackStore } from '../../modules/stores-core';
 import { useTrajectoryViewerStore, useTuiEditRequestStore } from '../../modules/stores-session';
 import { usePinnedTaskListStore, useWorkspaceTaskListStore } from '../../modules/stores-tasks';
@@ -1528,11 +1529,12 @@ interface TaskMeta {
     toolName?: string;
     autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null;
   } | null;
-  changeSummary?: { files: unknown[]; added: number; removed: number } | null;
+  changeSummary?: { fileCount: number; added: number; removed: number; files: Array<{ path: string; added: number; removed: number; writeCount: number; lastTurnIndex: number; [key: string]: unknown }>; [key: string]: unknown } | null; // A1-R10 2c 精化：canonical 真形（np@6874 strict；helpers TaskChangeSummary 同面）
   __zcodeSessionActivity?: {
     phase: string;
     lastActivityAt: number;
-    pendingInteractions?: { permissionCount: number; userInputCount: number } | null;
+    pendingInteractions?: { permissionCount: number; userInputCount: number }; // A1-R10 2c 精化：去 | null（canonical helpers SessionActivity 面）
+    [key: string]: unknown;
   } | null;
   [key: string]: unknown;
 }
@@ -2444,7 +2446,8 @@ declare function resolveEffectiveProvider(taskProvider: string | null | undefine
  *    （js 123241；XTt 唯一 bundle 调用点 128568 yOt → Home.remoteTabSearchHaystack）。import 已改 ZTt。
  *    型别宽化：canonical 参型为结构面、返回 string | undefined（bundle 未知 kind 无 default 分支）；
  *    本文件调用面皆真值判定/插值渲染，兼容（2034–2037/2192/2203）。 ── */
-declare function applyOptimisticTaskMutation(mutation: { previousTask: TaskMeta; nextTask: TaskMeta; previousState: { pinned: boolean; archived: boolean }; nextState: { pinned: boolean; archived: boolean } }): void;
+/* ── tombstone（A1-R10 2b）：declare function applyOptimisticTaskMutation（原 Uo，1895 / 959）删除，
+ *    改经文件头 stores/searchResultsStore import 消费（canonical = applySearchTaskMutation）。 ── */
 declare function buildTaskFeedbackDescription(args: { taskTitle: string; taskId?: string; workspacePath: string; taskSessionPath?: string | null; taskLogPath?: string | null; formatMessage: (id: string, values?: Record<string, unknown>) => string }): string;
 
 /* ============================================================================

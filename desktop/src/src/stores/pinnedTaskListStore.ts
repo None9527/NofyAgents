@@ -35,7 +35,9 @@ import type { TimelineTask } from './workspaceTaskListStore';
  * sFt@142380 排序直用 updatedAt/createdAt 数值（运行期恒有值）；侧栏渲染面读
  * title/changeSummary/__zcodeSessionActivity 等（151805–151806 簇）。成员面与
  * Sidebar TaskMeta 逐一对齐（双向可指派，upsertTask(item) 与渲染合并两用）；
- * 索引签名删除。provider/model 按 Sidebar 面收窄为 string（不含 null）。 */
+ * 索引签名删除。provider/model 按 Sidebar 面收窄为 string（不含 null）。
+ * A1-R10 2c/2e 再精化：索引签名复原、provider/model 补 null 支、changeSummary/
+ * __zcodeSessionActivity 对 canonical 真形——随 Vo 域收敛（helpers TaskMeta 面）双向复原。 */
 export interface PinnedTask {
   taskId: string;
   workspacePath: string;
@@ -45,8 +47,8 @@ export interface PinnedTask {
   updatedAt: number;
   status?: string;
   unreadAt?: number | null;
-  provider?: string;
-  model?: string;
+  provider?: string | null; // A1-R10 2e 精化：补 null 支 = canonical 真形（R9 期收窄随 Sidebar 面复原）
+  model?: string | null; // A1-R10 2e 精化：补 null 支 = canonical 真形
   forkedFromTaskId?: string | null;
   pinned?: boolean;
   archived?: boolean;
@@ -59,12 +61,16 @@ export interface PinnedTask {
     toolName?: string;
     autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null;
   } | null;
-  changeSummary?: { files: unknown[]; added: number; removed: number } | null;
+  changeSummary?: { fileCount: number; added: number; removed: number; files: Array<{ path: string; added: number; removed: number; writeCount: number; lastTurnIndex: number; [key: string]: unknown }>; [key: string]: unknown } | null; // A1-R10 2c 精化：canonical 真形（np@6874 strict；helpers TaskChangeSummary 同面）——原 {files: unknown[]; added; removed} 宽面与 Vo 域 mutation/比较器面不符
   __zcodeSessionActivity?: {
     phase: string;
     lastActivityAt: number;
-    pendingInteractions?: { permissionCount: number; userInputCount: number } | null;
+    pendingInteractions?: { permissionCount: number; userInputCount: number }; // A1-R10 2c 精化：去 | null（canonical helpers SessionActivity 面；bundle No@1318 仅判 !pending）
+    [key: string]: unknown; // A1-R10 2c：canonical SessionActivity 索引签名面
   } | null;
+  /* A1-R10 2c 精化：索引签名复原——canonical TaskMeta 面（[key:string]: unknown）要求，
+     Vo 域 mutation/比较器消费面吻合；R9 期删除系当时本地面对齐所需，今随收敛复原 */
+  [key: string]: unknown;
 }
 
 export interface ZCodeTaskService {

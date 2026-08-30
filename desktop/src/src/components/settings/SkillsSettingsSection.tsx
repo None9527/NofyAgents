@@ -121,7 +121,7 @@ interface ZcodeAgentService {
     workspaceIdentity?: string;
     provider: string;
     mcpServers?: unknown[];
-  }): Promise<{ taskId: string; provider?: string; initialSlashCommands?: unknown[]; workspacePath: string; createdAt: number; updatedAt: number; [key: string]: unknown }>; // A0-CLEANUP3 3b：创建结果为完整任务记录（流入 FileTreePanel.TaskRecord）
+  }): Promise<{ taskId: string; title: string; provider?: string; initialSlashCommands?: unknown[]; workspacePath: string; createdAt: number; updatedAt: number; [key: string]: unknown }>; // A0-CLEANUP3 3b：创建结果为完整任务记录（流入 FileTreePanel.TaskRecord）；+title（A1-R10 2c：TaskRecord 收敛 = canonical TaskMeta，title 必有真形——创建任务经 cLt/oLt 上送 Vo taskMeta 域，titleMatchesSearch 等消费面皆读 title）
 }
 
 /* --- 跨 chunk 助手（接口级） --- */

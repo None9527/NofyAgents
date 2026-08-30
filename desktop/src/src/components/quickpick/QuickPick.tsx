@@ -134,7 +134,8 @@ import { Check as IconCheck, Search as IconSearch, List as IconList, Rocket as I
 import { toast } from '../../modules/ImeComposition';
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { getWorkspaceTaskStateAlias as getWorkspaceState, logger, mergeTaskMeta as mergeTaskMetaBase, resolveWorkspaceKey as workspaceKey, useTaskStore } from '../../modules/SkillStore'; // getWorkspaceState（原 fe，skillStore 的 U 导出 = 内部 _e；B5-11 规范名 getWorkspaceTaskStateAlias）；workspaceKey（原 Io/Lo，js 1368/1371）
-import { sessionActivityOf, taskEntityKey } from '../../modules/StoresDeep';
+import { sessionActivityOf, taskEntityKey, compareTasks as compareTasksForList } from '../../modules/StoresDeep'; // +compareTasksForList（A1-R10 2e：原 Fo（1365）declare 改指 canonical = helpers compareTasks（= Lie(…, Fie) 逐字）；1588 调用点逐字不变）
+import { normalizeSearchDescriptor as buildQueryDescriptor, descriptorCacheKey as buildQueryKey } from '../../stores/searchResultsHelpers'; // A1-R10 项 2 收尾：原 zie（1385）/Bie（1396）declare 改指 canonical（R9 逐字转录在案；入参 workspaceScopes → 出参 workspaceKeys 真形 1386–1395）。本地 QueryDescriptor 面与 SearchDescriptor 结构全同（kind/sortBy/search/expanded/visibleLimit/workspaceKeys），1746/1756 调用点逐字不变。环安全：helpers 值闭包 = react + stores/taskStore，不达 components/quickpick
 import { useBaseServices, useServices } from '../../modules/services';
 import { useSessionRegistryStore } from '../../modules/stores-core';
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z，utils-CEEH0K_K.js）
@@ -238,7 +239,13 @@ interface SessionActivity {
   [key: string]: unknown;
 }
 
+/* A1-R10 2e 精化：补 fileCount/added/removed 具名必填 = bundle 真形（np@6874 strict schema；
+   vg@23753 读 changeSummary.files.length、Bhe@23757 读顶层 added/removed）——原仅 files + 索引签名，
+   与 helpers TaskChangeSummary 双向吻合所需 */
 interface TaskChangeSummary {
+  fileCount: number;
+  added: number;
+  removed: number;
   files: RecentChangeFile[];
   [key: string]: unknown;
 }
@@ -249,6 +256,7 @@ interface RecentChangeFile {
   removed: number;
   lastTurnIndex: number;
   writeCount: number;
+  [key: string]: unknown; // A1-R10 2e：canonical 面索引签名（helpers files 项同面）
 }
 
 /** 工作区标签（workspaceTabs 项；命令中心据此跨工作区搜索） */
@@ -1167,12 +1175,15 @@ export interface QueryResult {
   searchSnippetListsByTaskKey?: Record<string, string[]>;
   total: number;
   hasMore: boolean;
-  fetchedAt?: number;
+  /* A1-R10 2f 精化：五字段去可选——bundle 真形：入库恒经 Uie（1414）固化
+     （fetchedAt=Date.now()/stale=false/partial??false/shardKeys??[]），
+     失效路径仅置 stale=true，无 undefined 态；与 helpers QueryResult 面吻合 */
+  fetchedAt: number;
   invalidationVersion: number;
-  stale?: boolean;
-  partial?: boolean;
-  loadingShardKeys?: string[];
-  failedShardKeys?: string[];
+  stale: boolean;
+  partial: boolean;
+  loadingShardKeys: string[];
+  failedShardKeys: string[];
 }
 
 interface SetQueryResultArgs {
@@ -1236,7 +1247,7 @@ declare function isQueryResultUnchanged(args: {
   failedShardKeys: string[];
 }): boolean;
 /** 原 Uie（js 1414）：结果落库整形（fetchedAt/stale=false 等） */
-declare function finalizeQueryResult(result: Omit<QueryResult, "fetchedAt" | "stale"> & Partial<QueryResult>): QueryResult;
+declare function finalizeQueryResult(result: Omit<QueryResult, "fetchedAt" | "stale" | "partial" | "loadingShardKeys" | "failedShardKeys"> & Partial<QueryResult>): QueryResult;
 /** 原 Bo（js 1453）：按描述符排序任务键 */
 declare function sortTaskKeys(args: { taskKeys: string[]; taskMetaByEntityKey: Record<string, TaskMeta>; descriptor: QueryDescriptor }): string[];
 /** 原 Kie（js 1449）：任务是否属于描述符（工作区+成员+搜索词） */
@@ -1288,7 +1299,7 @@ export const useSearchResultsStore = createZustandStore<SearchResultsState>((set
         taskMetaByEntityKey: nextMeta,
         descriptor,
       });
-      const result: Omit<QueryResult, "fetchedAt" | "stale"> & Partial<QueryResult> = {
+      const result: Omit<QueryResult, "fetchedAt" | "stale" | "partial" | "loadingShardKeys" | "failedShardKeys"> & Partial<QueryResult> = {
         descriptor,
         taskKeys,
         unreadTaskKeys,
@@ -1369,7 +1380,7 @@ export const useSearchResultsStore = createZustandStore<SearchResultsState>((set
           taskMetaByEntityKey: nextMeta,
           descriptor: entry.descriptor,
         });
-        const result: Omit<QueryResult, "fetchedAt" | "stale"> & Partial<QueryResult> = {
+        const result: Omit<QueryResult, "fetchedAt" | "stale" | "partial" | "loadingShardKeys" | "failedShardKeys"> & Partial<QueryResult> = {
           descriptor: entry.descriptor,
           taskKeys,
           unreadTaskKeys: entry.unreadTaskKeys,
@@ -1597,8 +1608,8 @@ export function mergeTaskListShards(args: {
   };
 }
 
-/** 原 Fo（js 1365）：任务列表比较器（运行中优先，其次按 created/updated） */
-declare function compareTasksForList(a: TaskMeta, b: TaskMeta, sortBy: TaskSortBy): number;
+/* ── tombstone（A1-R10 2e）：declare function compareTasksForList（原 Fo，js 1365）删除，
+ *    改经文件头 StoresDeep import 消费（canonical = helpers compareTasks 逐字）。 ── */
 
 interface TaskListShard {
   shardKey: string;
@@ -1631,15 +1642,9 @@ declare function resolveTaskListShards(
   baseServices: TaskListShardServices,
   registry: { sessionsById: Record<string, unknown>; sessionIdByWorkspaceIdentity: Record<string, string>; sessionIdByWorkspacePath: Record<string, string> },
 ): { shards: TaskListShard[]; missingSessionIds: string[] }; // 原 sje（35652）
-declare function buildQueryDescriptor(args: {
-  kind: TaskListKind;
-  workspaceScopes: WorkspaceScope[];
-  sortBy: TaskSortBy;
-  search: string;
-  expanded: boolean;
-  visibleLimit: number;
-}): QueryDescriptor; // 原 zie（1385）
-declare function buildQueryKey(descriptor: QueryDescriptor): string; // 原 Bie（1396）
+/* ── tombstone（A1-R10）：buildQueryDescriptor（原 zie，js 1385）/buildQueryKey（原 Bie，js 1396）
+ *    declare 删除，改经文件头 stores/searchResultsHelpers import 消费
+ *    （canonical = normalizeSearchDescriptor/descriptorCacheKey，R9 逐字转录在案）。 ── */
 declare function reusePreviousResult(snapshot: { descriptor: QueryDescriptor; items: TaskMeta[]; total: number; hasMore: boolean }, descriptor: QueryDescriptor): { items: TaskMeta[]; total: number; hasMore: boolean } | null; // 原 cje（35682）
 declare function subscribeWorkspaceTaskList(args: {
   service: ZCodeTaskService;

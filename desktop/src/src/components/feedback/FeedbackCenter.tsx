@@ -2897,7 +2897,7 @@ interface SearchResultsSnapshot {
   >;
   taskMetaByEntityKey: Record<
     string,
-    { taskId: string; workspacePath: string; workspaceIdentity?: string } | undefined
+    { taskId: string; workspacePath: string; workspaceIdentity?: string | null } | undefined // A1-R10 2f 精化：workspaceIdentity 补 null 支 = canonical TaskMeta 真形（Vo taskMetaByEntityKey 值面）
   >;
 }
 

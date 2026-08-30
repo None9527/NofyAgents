@@ -116,7 +116,6 @@ import type {
   ModelProviderRecord,
   ModelProviderServiceLike,
   BroadcastMessage,
-  BroadcastServiceLike,
   ServicesBundle,
   WorkspaceTab,
   TabStoreState,
@@ -125,7 +124,8 @@ import type {
   UserInfo,
   LoginEntryRequest,
 } from "./OnboardingLoginLeaves";
-import { CaptchaHostContainer } from './ConversationLeaves';
+import { CaptchaHostContainer, injectArmsReporter as setArmsReportPlatform } from './ConversationLeaves'; // +setArmsReportPlatform（A1-R10 项 1c：原 BSt@118240 = y0 置入；canonical = ConversationLeaves injectArmsReporter（RSt/zSt/BSt/VSt/HSt 簇 999–1031 逐字在案；HSt 消费面 118420 = uCt 验证完成簇已接线 1187）；既有边）
+import { setMcpSyncServiceHandle as setTelemetryReportPlatform } from '../stores/mcpStore'; // A1-R10 项 1c：原 b_e@25049 = Hg 置入；canonical = mcpStore setMcpSyncServiceHandle（Hg/mcpSyncServiceHandle 143–149 逐字；Lg=persistMcpChange 225 消费在案）。根装配 212931 以 platform 兼 MCP 同步句柄。环安全：mcpStore 值闭包 = logger/modules-services/zustand，不达本文件（全树无本文件 import 源）
 import { PlatformProvider } from './ImeComposition';
 import { AppDialogHost, DirectoryBrowserDialog, OnboardingDialog, type BaseServices } from './Modals'; // +type BaseServices（A0-CLEANUP2 item 16：DirectoryBrowserDialog services 断言改具名型）
 import { CodingPlanUpgradeDialogProvider } from './PaymentDeep'; // 原 krt（89089；A0-CLEANUP B-30 接线）
@@ -133,7 +133,7 @@ import { SettingsView } from './Settings';
 import { useTaskStore, type GroupedDraftPlacement } from './SkillStore';
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { ConversationTelemetrySupervisor, useWorkspaceServices } from './services';
-import { useSettingsStore } from './stores-core';
+import { useSettingsStore, SettingsStoreProvider as StoreProvider, isStartupSoundEnabled } from './stores-core'; // +StoreProvider/isStartupSoundEnabled（A1-R10 项 2a：原 Nie（1289）/Eie（1091）declare 改指 canonical——SettingsStoreProvider = settingsStore 373 逐字（Oo context/Nie/ko/Ao 1287–1298），isStartupSoundEnabled = yo&&bo 1085–1091；调用点 1893/2604 逐字不变）。环安全：stores-core 值闭包（stores/* + zustand）不达本文件反向，既有边
 import { useCodeCommentsStore as codeCommentsStore } from './Composer'; // A1-R8：FH 双实例收敛接线（原 declare 改指 canonical = Composer 6716 区；本文件 2009/2014 消费面 = bundle 212998/213003 广播监听簇）
 import { TooltipProvider } from './UsageStatsUiParts'; // 原 Na（A0-CLEANUP 族清理接线）
 import { CLOSE_ACTIVE_CONTEXT_EVENT } from './WorkspaceShell'; // 原 r7（A0-CLEANUP B-32 接线）
@@ -192,8 +192,14 @@ declare function useAppSettings(): { settings: AppSettings | null; refresh: () =
  *    stores-workspace/SkillStore/stores-*）不达本文件（全树无本文件 import 源）。 ── */
 
 /* --- 根装配杂项 --- */
-declare function setArmsReportPlatform(platform: PlatformService | null): void; // 原 BSt（js 118240；y0.reportArmsCustomEvent）
-declare function setTelemetryReportPlatform(platform: PlatformService | null): void; // 原 b_e（js 25049；Lg(Hg,…) 遥测上报平台引用）
+/* ── tombstone（A1-R10）：setArmsReportPlatform（原 BSt）/setTelemetryReportPlatform
+ *    （原 b_e）declare 删除，改经文件头真实 import 别名改指（./ConversationLeaves
+ *    injectArmsReporter；../stores/mcpStore setMcpSyncServiceHandle）。bundle 唯一
+ *    真形：BSt@118240 = `y0 = e`（captcha ARMS 平台引用，HSt@118261 消费）；
+ *    b_e@25049 = `Hg = e`（mcpSyncService 句柄，Lg@25090 持久化消费）——R8 注
+ *    「遥测上报平台引用」更正为 MCP 同步句柄注入。消费面 1956–1961（根装配注入/
+ *    卸载置空）逐字不变；PlatformService 双法（reportArmsCustomEvent 必选、
+ *    索引面）对两 canonical 形参均可赋。 ── */
 /* ── tombstone（A1-R9）：setTelemetryPlatform（原 iT）/disposeStartupServiceRegistry
  *    （原 vFe）declare 删除，改经文件头真实 import 别名改指（./StoresDeep
  *    setUiPerfPlatform；./services disposeAllSupervisors）。bundle 唯一真形：iT 置
@@ -266,13 +272,18 @@ declare function recordCaptchaFailure(gatekeeper: CaptchaGatekeeper, keys: strin
 declare function isCaptchaDecisionHandled(entry: { commandId: string; status: string; revisionAtDecision: number }): boolean; // 原 M0
 
 /* --- 启动音 / 渲染器 id --- */
-declare function isStartupSoundEnabled(): boolean; // 原 Eie（js 1091）
+/* ── tombstone（A1-R10 2a）：declare function isStartupSoundEnabled(): boolean（原 Eie，js 1091）删除，
+ *    改经文件头 stores-core import 消费（canonical = settingsStore yo/bo/Eie 逐字转录；
+ *    2604 调用点逐字不变）。 ── */
 declare function createRandomId(): string; // 原 xi
 
 /* --- provider 树组件（各家族批次，接口级消费面）--- */
 declare const LucideProvider: React.FC<{ strokeWidth?: number; children?: React.ReactNode }>; // 原 qre（button-laUijeDG.js l）
 declare const ServicesProvider: React.FC<{ services: ServicesBundle; children?: React.ReactNode }>; // 原 ds（2672）
-declare const StoreProvider: React.FC<{ broadcastService: BroadcastServiceLike; initialIsRestoringOAuthSession?: boolean; children?: React.ReactNode }>; // 原 Nie（1289）
+/* ── tombstone（A1-R10 2a）：declare const StoreProvider: React.FC<{ broadcastService: BroadcastServiceLike; … }>（原 Nie，1289）删除，
+ *    改经文件头 stores-core import 消费（canonical = SettingsStoreProvider，settingsStore 373 逐字）。
+ *    型缝精化：broadcastService 真形 = BroadcastService（send + onMessage→{dispose}）——bundle 212887 根注入、
+ *    Mie 1259/1261 消费；OnboardingLoginLeaves BroadcastServiceLike 已补 send 同形。1893/1904 JSX 逐字不变。 ── */
 declare const TabStoreProvider: React.FC<{ children?: React.ReactNode }>; // 原 Vse（4784）
 declare const WebRemoteControlFeatureGate: React.FC<{ enabled?: boolean; children?: React.ReactNode }>; // 原 oRt（150149）
 declare const RemoteConnectionDialog: React.FC<Record<string, any>>; // 原 pOt

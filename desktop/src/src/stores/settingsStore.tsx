@@ -22,7 +22,7 @@ import type { UseBoundStore } from './storeTypes';
  *  | notificationSoundEnabled | boolean | 通知音开关，持久化 zcode-notification-sound-enabled |
  *  | user | User \| null | 当前登录用户 |
  *  | isRestoringOAuthSession | boolean | OAuth 会话恢复中（初始值由 provider 注入） |
- *  | oauthError | OAuthError \| null | 最近 OAuth 错误 |
+ *  | oauthError | string \| null | 最近 OAuth 错误（文案字符串；A1-R10 2a 精化） |
  *  | oauthSuccessSeq / lastOAuthSuccessProvider | number / string\|null | OAuth 成功事件序号与供应商 |
  *  | apiKeyLoginSuccessSeq / lastApiKeyLoginModel | number / string\|null | API key 登录成功序号与模型 |
  *  | modelProviderFamilyConnectionTransitionSeq / last…Transition | number / object\|null | 供应商族连接迁移事件 |
@@ -50,7 +50,7 @@ export interface CodePreviewSettings {
   fontSizePx: number;
 }
 
-export interface LoginEntryRequest { id: number; providerId: string; purpose: string }
+export interface LoginEntryRequest { id: number; providerId: string; purpose?: string } // A1-R10 2a 精化：purpose 可选——bundle 1215 实现 (t,n) 无缺省、88869 调用点仅传 providerId；OnboardingLoginLeaves 本地面 490 同形
 export interface LoginEntryAttempt extends LoginEntryRequest { status: "requested" | "pending" | "settled" | string }
 
 export interface SettingsState {
@@ -63,7 +63,7 @@ export interface SettingsState {
   notificationSoundEnabled: boolean;
   user: UserInfo | null;
   isRestoringOAuthSession: boolean;
-  oauthError: unknown | null;
+  oauthError: string | null; // A1-R10 2a 精化：全树写点仅 string|null（OnboardingLoginLeaves 3778 LOGIN_FAILED_MESSAGE/各 null 清零），读面按文案字符串渲染（1531）或 string|null 面消费（ModelProviderSettingsSection 1070）；原 unknown 面迫使 1358 断言
   oauthSuccessSeq: number;
   lastOAuthSuccessProvider: string | null;
   apiKeyLoginSuccessSeq: number;
@@ -83,11 +83,11 @@ export interface SettingsState {
   setNotificationSoundEnabled(enabled: boolean): void;
   setUser(user: UserInfo | null): void;
   setIsRestoringOAuthSession(v: boolean): void;
-  setOAuthError(error: unknown | null): void;
+  setOAuthError(error: string | null): void;
   markOAuthSuccess(provider?: string | null): void;
   markApiKeyLoginSuccess(model?: string | null): void;
   markModelProviderFamilyConnectionTransition(transition: unknown): void;
-  requestLoginEntry(providerId: string, purpose: string): number;
+  requestLoginEntry(providerId: string, purpose?: string): number; // A1-R10 2a 精化：purpose 可选（bundle 1215 实现 (t,n) 无缺省、88869 仅传单参；树内三调用点均单参）
   clearLoginEntryRequest(id?: number): void;
   markLoginEntryAttemptStatus(id: number, status: string): void;
   requestOnboardingDialog(): void;
@@ -97,7 +97,8 @@ export interface SettingsState {
 /** 跨窗口广播服务（原参数 e：send/onMessage；由 App 根 provider 注入） */
 export interface BroadcastService {
   send(message: { channel: string; payload: unknown }): void;
-  onMessage(handler: (message: { channel: string; payload: unknown }) => void): () => void;
+  /** A1-R10 2a 精化：真形返回可 dispose 句柄——根装配同一真实服务在 AppRootLeaves 2014/2040 以 subscription.dispose() 释放；Mie（bundle 1261）丢弃返回值。旧 () => void 面为 A0 误判 */
+  onMessage(handler: (message: { channel: string; payload: unknown }) => void): { dispose(): void };
 }
 
 /* --- 主题/字号/通知 助手（原 So/xo/Co/fo/mo/po/lo/Aie/jie/yo/bo/Die/Oie，js 1040–1139） --- */
@@ -204,6 +205,21 @@ function writeBooleanSetting(key: string, value: boolean): void {
   } catch {
     /* 静默 */
   }
+}
+
+/** 原 yo（js 1085）：读 zcode-notification-enabled（缺省 true） */
+function readNotificationEnabled(): boolean {
+  return readBooleanSetting(NOTIFICATION_ENABLED_KEY, true);
+}
+
+/** 原 bo（js 1088）：读 zcode-notification-sound-enabled（缺省 true） */
+function readNotificationSoundEnabled(): boolean {
+  return readBooleanSetting(NOTIFICATION_SOUND_ENABLED_KEY, true);
+}
+
+/** 原 Eie（js 1091）：启动提示音开关 = 通知开 && 提示音开（AppRootLeaves 2604 消费） */
+export function isStartupSoundEnabled(): boolean {
+  return readNotificationEnabled() && readNotificationSoundEnabled();
 }
 
 /**

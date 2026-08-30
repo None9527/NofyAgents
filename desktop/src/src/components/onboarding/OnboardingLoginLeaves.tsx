@@ -379,6 +379,7 @@ export interface BroadcastMessage {
   [key: string]: any;
 }
 export interface BroadcastServiceLike {
+  send(message: BroadcastMessage): Promise<unknown>; // A1-R10 2a 精化：bundle 真形——212886–212888 根装配以 services.broadcastService 注入 Nie（StoreProvider），Mie 1259 消费 e.send({channel,payload})；I18n BroadcastServiceLike 231–234 同面
   onMessage(handler: (message: BroadcastMessage) => void): { dispose(): void };
 }
 export interface ServicesBundle {

@@ -42,8 +42,8 @@ export interface TimelineTask {
   updatedAt: number;
   status?: string;
   unreadAt?: number | null;
-  provider?: string;
-  model?: string;
+  provider?: string | null; // A1-R10 2e 精化：补 null 支 = canonical 真形
+  model?: string | null; // A1-R10 2e 精化：补 null 支 = canonical 真形
   forkedFromTaskId?: string | null;
   pinned?: boolean;
   archived?: boolean;
@@ -56,12 +56,15 @@ export interface TimelineTask {
     toolName?: string;
     autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null;
   } | null;
-  changeSummary?: { files: unknown[]; added: number; removed: number } | null;
+  changeSummary?: { fileCount: number; added: number; removed: number; files: Array<{ path: string; added: number; removed: number; writeCount: number; lastTurnIndex: number; [key: string]: unknown }>; [key: string]: unknown } | null; // A1-R10 2c 精化：canonical 真形（np@6874 strict；helpers TaskChangeSummary 同面）
   __zcodeSessionActivity?: {
     phase: string;
     lastActivityAt: number;
-    pendingInteractions?: { permissionCount: number; userInputCount: number } | null;
+    pendingInteractions?: { permissionCount: number; userInputCount: number }; // A1-R10 2c 精化：去 | null（canonical helpers SessionActivity 面）
+    [key: string]: unknown; // A1-R10 2c：canonical SessionActivity 索引签名面
   } | null;
+  /* A1-R10 2c 精化：索引签名复原 = canonical TaskMeta 面（Vo 域 mutation/比较器消费面要求） */
+  [key: string]: unknown;
 }
 
 export interface WorkspaceTaskListState {

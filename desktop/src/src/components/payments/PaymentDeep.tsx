@@ -119,6 +119,7 @@ import { Input, PopoverContent, toast } from '../../modules/ImeComposition';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../modules/Settings';
 import { resolveModelTriggerLabelParts } from '../../modules/SettingsLeaves'; // A0-CLEANUP4：原 nWe（styles jsx 48452）三元面，非 $7 单串面
 import { logger } from '../../modules/SkillStore';
+import { useSettingsStore as useAppStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
 import { SidebarCodingPlanWidget, SidebarStartPlanWidget, formatGrantUnits, useBillingDiscount } from '../../modules/UsageDeep';
 import { useServices } from '../../modules/services';
 
@@ -239,7 +240,9 @@ declare const NETWORK_BLOCKED_ERROR_CODE: string; // Pne（跨 chunk 导入的�
 
 
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：CloseIcon/TrashIcon/CheckIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare function useAppStore<T>(selector: (state: any) => T): T; // ko（同一 store：theme + OAuth/user 状态）
+/* ── tombstone（A1-R10 2a）：declare function useAppStore<T>(selector: (state: any) => T): T（原 ko，1296）删除，
+ *    改经文件头 stores-core import 消费（canonical = useSettingsStore；theme/user/OAuth 状态同一 settings store，
+ *    bundle 206446–206448/212950 等 ko 消费面同证）。 ── */
 /* ── tombstone（A0-S3a）：vendored @stripe/react-stripe-js 6.4.0 + @stripe/stripe-js 9.6.0
  *    原语（80955–81731，u7e/v7e/f7e/y7e/b7e/x7e/F7e）declare 删除，改 npm 真实 import（文件头）：
  *    StripeElementsProvider=Elements、useStripe/useElements、CardNumberElement/CardExpiryElement/

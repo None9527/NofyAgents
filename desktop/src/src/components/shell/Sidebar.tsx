@@ -208,7 +208,10 @@ import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStor
 import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, type TaskActionMenuItemsProps } from '../../modules/TopBar';
 import { WebRemoteControlDialog, useWebRemoteControlEnabled } from '../../modules/WebRemote';
 import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useWorkspaceServices } from '../../modules/services';
+import { applySearchTaskMutation as applyOptimisticTaskMutation, invalidateWorkspaceResults as forgetRecentWorkspaces } from '../../stores/searchResultsStore'; // A1-R10 项 2b：原 Uo（1895）/Qie（1881）declare 改指 canonical = R9 shim（bundle 逐字）。型缝：本地旧面 previousTask/nextTask 可空，canonical 面必填——调用点 1980–2986 皆传非空实对象，吻合；forgetRecentWorkspaces 面 = Array<{workspacePath; workspaceIdentity?}> 同形（2892 逐字不变）。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/shell
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../../modules/stores-core';
+import { sessionActivityOf as taskSessionActivity, pendingInteractionOf as taskPendingAttention, compareTasks as compareTasksForList } from '../../modules/StoresDeep'; // A1-R10 项 2d：原 Mo/No/Fo（jsx 369/376/405）本地转录改指 canonical = helpers sessionActivityOf/pendingInteractionOf/compareTasks（Mo@1311/No@1318/Fo@1365 逐字）；调用点 1506/1507/1958/2248/2699 逐字不变。环安全：StoresDeep 值闭包（stores/* + SkillStore + SrcShared 族）不达 components/shell
+import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 项 2d：原 Go（jsx 986）本地转录改指 canonical = components/markdown baseName（Go@1928 逐字）；调用点 1561 逐字不变。环安全：MarkdownIntegration 值闭包（markdown 渲染族 + FileTreePanel resolveAvailableEditors）不达 components/shell（实测在案）
 import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 import { useSidebarSessionDrop as useSessionOpenability, SESSION_DRAG_MIME, serializeSessionDragPayload, setSessionDragFallbackPayload as setCurrentSessionDrag, clearSessionDragFallbackPayload as clearCurrentSessionDrag, createSessionDragPreview as createDragImageUpdater, type SessionDragPayload } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）+ u2/Iwt/Lwt/Rwt/PRt（A1-R4：拖放源侧改指，tombstone 见原声明位）
@@ -275,8 +278,8 @@ interface TaskMeta {
      消费仅 === 比较（388）与透传（364） */
   status?: string;
   unreadAt?: number | null;
-  provider?: string;
-  model?: string;
+  provider?: string | null;
+  model?: string | null;
   forkedFromTaskId?: string | null;
   pinned?: boolean;
   archived?: boolean;
@@ -287,13 +290,23 @@ interface TaskMeta {
   changeSummary?: TaskChangeSummary | null;
   /** 会话活动附着（原 __zcodeSessionActivity，Mo 读取） */
   __zcodeSessionActivity?: SessionActivity | null;
+  /* A1-R10 2b/2c 精化：补索引签名——canonical helpers 面（sessionActivityOf/mergeMetaPreservingActivity
+     参型 Record<string, unknown>）要求；Sidebar 体内无未声明属性读取，零行为影响 */
+  [key: string]: unknown;
 }
 interface SessionActivity {
   phase: "prewarming" | "running" | "completedSuccess" | "completedInterrupted" | "error" | "draft" | string;
   lastActivityAt: number;
-  pendingInteractions?: { permissionCount: number; userInputCount: number } | null;
+  /* A1-R10 2b 精化：去 | null——canonical helpers 面 pendingInteractions? 无 null 支（bundle No@1318 仅判 !pending）；
+     本地消费 365 `?.` + `if (!pending)` 兼容 */
+  pendingInteractions?: { permissionCount: number; userInputCount: number };
+  /* A1-R10 2b 精化：补索引签名 = canonical helpers SessionActivity 面 */
+  [key: string]: unknown;
 }
-interface TaskChangeSummary { files: unknown[]; added: number; removed: number }
+/* A1-R10 2b 精化：原 { files: unknown[]; added; removed } → canonical 真形（np@6874 strict schema；
+   R9 helpers TaskChangeSummary 同面在案）——applySearchTaskMutation 参型要求；本地消费 420/435 仅
+   files.length/added/removed，兼容 */
+interface TaskChangeSummary { fileCount: number; added: number; removed: number; files: Array<{ path: string; added: number; removed: number; writeCount: number; lastTurnIndex: number; [key: string]: unknown }>; [key: string]: unknown }
 /** 待处理交互（原 pendingInteraction：askUserQuestion / 权限请求） */
 interface TaskInteraction {
   interactionId: string;
@@ -347,57 +360,17 @@ type TaskAttention = { kind: "userInput" | "permission"; count: number } | null;
  * ==========================================================================*/
 
 /* ── tombstone（A0-CLEANUP 族清理）：workspaceKey（原 Io）declare 删除 → import { resolveWorkspaceKey as workspaceKey } from './SkillStore'。 ── */
-/** 原 Lo（jsx 411）：任务实体键 `workspaceKey::taskId` */
-function taskEntityKey(task: Pick<TaskMeta, "workspacePath" | "workspaceIdentity" | "taskId">): string {
-  return `${workspaceKey(task.workspacePath, task.workspaceIdentity)}::${task.taskId}`;
-}
-/** 原 Mo（jsx 369）：读取附着的会话活动 */
-function taskSessionActivity(task: TaskMeta): SessionActivity | null {
-  return task.__zcodeSessionActivity ?? null;
-}
-/** 原 Fie（jsx 373）：活动进行中（预热/运行） */
-function isTaskActivityRunning(task: TaskMeta): boolean {
-  const phase = taskSessionActivity(task)?.phase;
-  return phase === "prewarming" || phase === "running";
-}
-/** 原 No（jsx 376）：待关注交互摘要（用户输入优先于权限） */
-function taskPendingAttention(task: TaskMeta): TaskAttention {
-  const pending = taskSessionActivity(task)?.pendingInteractions;
-  if (!pending) return null;
-  const count = pending.permissionCount + pending.userInputCount;
-  return count === 0 ? null : { kind: pending.userInputCount > 0 ? "userInput" : "permission", count };
-}
-/** 原 Po（jsx 385）：把乐观任务补丁与会话活动合并（保留活动附着） */
-function mergeTaskWithActivity(base: TaskMeta, patch: Partial<TaskMeta>): TaskMeta {
-  const activity = taskSessionActivity(base);
-  if (!activity) return patch as TaskMeta;
-  const hasUnread = Object.prototype.hasOwnProperty.call(patch, "unreadAt");
-  return {
-    ...base, ...patch,
-    createdAt: base.createdAt,
-    updatedAt: activity.lastActivityAt,
-    status: base.status,
-    unreadAt: hasUnread ? patch.unreadAt : base.unreadAt,
-    __zcodeSessionActivity: activity,
-  } as TaskMeta;
-}
+/* ── tombstone（A1-R10 2d）：本地 taskEntityKey（原 Lo，jsx 411）/isTaskActivityRunning（原 Fie，jsx 373）/
+ *    mergeTaskWithActivity（原 Po，jsx 385）/compareTasksForList（原 Iie+Lie+Fo，jsx 396–405）删除。
+ *    taskEntityKey、mergeTaskWithActivity 文件内零消费点（死转录）——canonical = StoresDeep taskEntityKey
+ *    （helpers Lo@1371）/ helpers mergeMetaPreservingActivity（Po@1324）逐字在案；
+ *    isTaskActivityRunning 唯一消费 = 本地 compareTasksForList，随别名改指一并退役
+ *    （canonical = helpers isSessionActivityActive，Fie@1314）；
+ *    compareTasksForList 改指 canonical = helpers compareTasks（Fo@1365 = Lie(…, Fie)），
+ *    调用点 1958/2248/2699 逐字不变。 ── */
+/** 原 Mo（jsx 369）：读取附着的会话活动——A1-R10 2d 改指 canonical = helpers sessionActivityOf（Mo@1311 逐字），别名经文件头 StoresDeep import；调用点 1506 逐字不变 */
+/** 原 No（jsx 376）：待关注交互摘要（用户输入优先于权限）——A1-R10 2d 改指 canonical = helpers pendingInteractionOf（No@1318 逐字），别名经文件头 StoresDeep import；调用点 1507 逐字不变 */
 /** 原 ee（skillStore 导出 G）：任务元数据合并（接口） */
-/** 原 Iie/Lie/Fo（jsx 396–405）：列表排序比较器——运行中任务恒在前，其余按 updated/created */
-function compareTasksForList(a: TaskMeta, b: TaskMeta, sortBy: TaskSortBy): number {
-  const aRunning = isTaskActivityRunning(a);
-  const bRunning = isTaskActivityRunning(b);
-  if (aRunning !== bRunning) return aRunning ? -1 : 1;
-  if (aRunning) {
-    return b.createdAt === a.createdAt ? b.taskId.localeCompare(a.taskId) : b.createdAt - a.createdAt;
-  }
-  return sortBy === "created"
-    ? b.createdAt === a.createdAt
-      ? b.updatedAt === a.updatedAt ? b.taskId.localeCompare(a.taskId) : b.updatedAt - a.updatedAt
-      : b.createdAt - a.createdAt
-    : b.updatedAt === a.updatedAt
-      ? b.createdAt === a.createdAt ? b.taskId.localeCompare(a.taskId) : b.createdAt - a.createdAt
-      : b.updatedAt - a.updatedAt;
-}
 /** 原 QS（jsx 33105）：任务行指示解析——错误 > 未读 > 运行中 > 无 */
 function resolveTaskIndicator(task: TaskMeta, activity: SessionActivity | null): TaskIndicator {
   if (activity?.phase === "error" || (!activity && task.status === "error")) return "error";
@@ -424,11 +397,9 @@ function titleWithChangeStats(title: string, summary: TaskChangeSummary | null, 
     ? `${title} (${intl.formatMessage({ id: "taskList.changeStats" }, { added: String(summary.added), removed: String(summary.removed) })})`
     : title;
 }
-/** 原 Go（jsx 986）：路径末段名 */
-function workspaceBaseName(path: string): string {
-  const parts = path.replace(/\\/g, "/").replace(/\/+$/, "").split("/").filter(Boolean);
-  return parts[parts.length - 1] ?? path;
-}
+/* ── tombstone（A1-R10 2d）：本地 workspaceBaseName（原 Go，jsx 986）删除，改指 canonical =
+ *    components/markdown baseName（Go@1928 逐字，A0 期既在案），别名经文件头 modules/MarkdownIntegration
+ *    import；调用点 1561 逐字不变。 ── */
 /** 原 pi（src chunk fx 8726）：定时任务 */
 declare function isCronTask(task: TaskMeta): boolean;
 /** 原 Yr（src chunk px 8729）：闲时任务 */
@@ -1158,9 +1129,10 @@ declare function remoteSessionIdOfTab(tab: Pick<WorkspaceTab, "workspaceIdentity
 declare function taskQueryScopeOfTab(tab: WorkspaceTab, remoteSessionId?: string): { workspacePath: string; workspaceIdentity?: string | null };
 /** 原 zie（jsx 425）：任务查询键构造 */
 declare function buildTaskQueryKey(args: { kind: string; workspaceScopes: Array<{ workspacePath: string; workspaceIdentity?: string | null }>; sortBy: TaskSortBy; search: string; expanded: boolean; collapsedLimit?: number }): string;
-/** 原 Uo（1895 / 959，TopBar 已登记）：乐观任务变更广播 */
-declare function applyOptimisticTaskMutation(mutation: { previousTask: TaskMeta | null; nextTask: TaskMeta | null; previousState: { pinned: boolean; archived: boolean }; nextState: { pinned: boolean; archived: boolean } }): void;
 /** 原 C6（TopBar 已登记）：任务文件动作钩子 */
+/* ── tombstone（A1-R10 2b）：declare function applyOptimisticTaskMutation（原 Uo，1895）删除，
+ *    改经文件头 stores/searchResultsStore import 消费（canonical = applySearchTaskMutation；
+ *    调用点 1980/2003/2015/2021… 逐字不变）。 ── */
 /** 原 w6（TopBar 已登记）：任务反馈描述构造 */
 declare function buildTaskFeedbackDescription(args: { taskTitle: string; taskId?: string; workspacePath: string; taskSessionPath?: string | null; taskLogPath?: string | null; formatMessage: (id: string, values?: Record<string, unknown>) => string }): string;
 /** 原 n4/r4（TopBar.tsx 已还原）：远程同步菜单项 / 对话框组 */
@@ -1172,8 +1144,9 @@ declare function buildTaskFeedbackDescription(args: { taskTitle: string; taskId?
 declare function refreshAfterSkillSync(args: { zcodeSessionService: WorkspaceServices["zcodeSessionService"]; workspacePath: string; workspaceIdentity?: string | null; reason: string }): Promise<void>;
 declare function refreshSkillStoresAfterSync(args: { workspacePath: string; workspaceIdentity?: string | null; skillsService: unknown; provider?: string }): Promise<void>;
 declare function refreshAfterPluginSync(args: Record<string, unknown>): Promise<void>;
-/** 原 Qie（jsx 945）：从最近工作区移除 */
-declare function forgetRecentWorkspaces(entries: Array<{ workspacePath: string; workspaceIdentity?: string | null }>): void;
+/* ── tombstone（A1-R10 2b）：declare function forgetRecentWorkspaces（原 Qie，jsx 945 / js 1881）删除，
+ *    改经文件头 stores/searchResultsStore import 消费（canonical = invalidateWorkspaceResults；
+ *    2892 调用点逐字不变）。 ── */
 /** 原 aw（jsx 35396）：记录「进入用量页」意图（sessionStorage） */
 declare function markUsageEntryIntent(): void;
 /** 原 xw：遥测事件上报 */

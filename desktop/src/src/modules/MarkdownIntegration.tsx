@@ -157,6 +157,7 @@ export {
   LINK_SAFETY_DISABLED,
   STREAMDOWN_CONTROLS,
   baseName,
+  parentDirectoryPath, // A1-R10 2b：sae（js 1932）转录于 components/markdown 同段，再导出供 FileTreePanel 695
   decodeUriSafe,
   normalizeRelativeSegments,
   joinWorkspacePath,

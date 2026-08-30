@@ -36,7 +36,7 @@
 import { useSearchResultsStore, selectQueryResult } from '../components/quickpick/QuickPick';
 import type { SearchResultsState } from '../components/quickpick/QuickPick';
 import { broadcastSessionActivity as broadcastTaskListEvent } from './searchResultsHelpers'; // 原 Hie
-import type { TaskMeta } from './searchResultsHelpers';
+import type { TaskMeta, WorkspaceScope } from './searchResultsHelpers';
 import { resolveWorkspaceKey as workspaceKey } from './taskStore'; // 原 Io=U
 
 export { useSearchResultsStore, selectQueryResult };
@@ -84,8 +84,10 @@ export function rollbackSearchTaskUnread(task: TaskMeta, unreadAt: number | unde
   useSearchResultsStore.getState().rollbackTaskUnread(task, unreadAt);
 }
 
-/** 原 rae：删除任务并广播 deleted 事件 */
-export function removeSearchTask(task: TaskMeta): boolean {
+/** 原 rae：删除任务并广播 deleted 事件。A1-R10 2b 精化：参型收至真形最小面
+ *  （bundle 1914 仅读 taskId/workspacePath/workspaceIdentity；store removeTask 面 = WorkspaceScope & {taskId}；
+ *  消费面 FileTreePanel sLt 2603 即传薄对象 {workspacePath, workspaceIdentity?, taskId}，bundle 146841 同证） */
+export function removeSearchTask(task: WorkspaceScope & { taskId: string }): boolean {
   const removed = useSearchResultsStore.getState().removeTask(task);
   broadcastTaskListEvent({ type: "deleted", taskId: task.taskId, workspaceKey: workspaceKey(task.workspacePath, task.workspaceIdentity) });
   return removed;

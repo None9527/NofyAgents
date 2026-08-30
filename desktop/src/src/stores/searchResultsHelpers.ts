@@ -69,9 +69,15 @@ export interface SessionActivity {
   [key: string]: unknown;
 }
 
+/** A1-R10 精化：kind/sortBy 原为 string 宽面，按 bundle 真形收窄为枚举联合——
+ *  kind 五值 = Wie@1433 switch 全集（pinned/archived/active/timeline/workspace）；
+ *  sortBy 二值 = Iie@1456（`n === "created"`）+ 140393/140601 消费面实测。
+ *  收窄后与 canonical 面 components/quickpick/QuickPick.tsx QueryDescriptor
+ *  （TaskListKind/TaskSortBy 同形）结构一致，供 SidebarLeaves Vo 接线
+ *  （setQueryResults 之 SetQueryResultArgs.descriptor 必填面）缝合。 */
 export interface SearchDescriptor {
-  kind: string;
-  sortBy: string;
+  kind: "active" | "pinned" | "archived" | "timeline" | "workspace";
+  sortBy: "updated" | "created";
   search: string;
   expanded: boolean;
   visibleLimit: number | null;
@@ -227,10 +233,11 @@ export function normalizeSearchTerm(term: string | null | undefined): string {
   return term?.trim().toLocaleLowerCase() ?? "";
 }
 
-/** 原 zie（1385）：描述符归一（域去重排序 + 搜索词归一 + 展开态决定可见上限） */
+/** 原 zie（1385）：描述符归一（域去重排序 + 搜索词归一 + 展开态决定可见上限）
+ *  A1-R10 精化：入参 kind/sortBy 随 SearchDescriptor 收窄（bundle 真形，见上方注） */
 export function normalizeSearchDescriptor(descriptor: {
-  kind: string;
-  sortBy: string;
+  kind: SearchDescriptor["kind"];
+  sortBy: SearchDescriptor["sortBy"];
   search?: string | null;
   expanded: boolean;
   visibleLimit?: number;

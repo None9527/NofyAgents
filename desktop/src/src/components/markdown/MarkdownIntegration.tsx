@@ -825,6 +825,18 @@ export function baseName(path: string): string {
   return parts[parts.length - 1] ?? path;
 }
 
+/** 原 sae：父目录路径（js 1932，逐字；A1-R10 项 2b 转录——与 Go/Ko/qo 同连续段 1928–1948，落点随段；
+ *  消费面 FileTreePanel 695。根路径/裸盘符按真形返回 null / 保留盘符尾斜杠） */
+export function parentDirectoryPath(path: string): string | null {
+  let t = path.trim().replace(/[\\/]+$/, ``);
+  if (!t) return null;
+  let n = Math.max(t.lastIndexOf(`/`), t.lastIndexOf(`\\`));
+  if (n < 0) return null;
+  if (n === 0) return t[0] ?? null;
+  let r = t.slice(0, n);
+  return /^[A-Za-z]:$/.test(r) ? `${r}${t[n] ?? `\\`}` : r || null;
+}
+
 /** 原 hA 依赖正则（js 50455–50466） */
 const LINE_COLUMN_SUFFIX_REGEX = /^(?<path>.+):(?<line>\d+):(?<column>\d+)$/; // 原 QBe
 const LINE_SUFFIX_REGEX = /^(?<path>.+):(?<line>\d+)$/; // 原 $Be

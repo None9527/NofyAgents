@@ -7,6 +7,7 @@ import { AlertTitle } from '../ui/alert'; // A0-S3c
 import { Button } from '../../modules/button';
 import { Input } from '../../modules/ImeComposition';
 import { MIGRATION_DEFAULT_LIMIT, modifiedSinceOfRange, parseScanLimit, resolveWorkspaceFilterMode } from '../../modules/McpHelpers';
+import { invalidateWorkspaceResults as notifySessionsImported } from '../../stores/searchResultsStore'; // A1-R10 2f：原 Qie（jsx 945 / js 1881）declare 改指 canonical = R9 shim（entries → workspaceKey 映射后 invalidateWorkspaceKeys，bundle 1881–1884 逐字）。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/settings。型缝纠偏见原 declare 位 tombstone
 import { Badge } from '../../modules/PaymentDeep';
 import { Alert, AlertDescription, Select as SelectRoot, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../modules/Settings';
 import { SettingsCard as Card, SettingsCardContent as CardContent } from '../../modules/Settings'; // B3 / V3
@@ -46,7 +47,11 @@ export interface MigrationImportResult {
 export type MigrationSupportState = { supported: true } | { supported: false; reason: "desktopOnly" };
 
 /* 迁移助手（接口级；行号见头部映射 §B） */
-declare function notifySessionsImported(workspaceTabsStore: unknown): void; // Qie（945）
+/* ── tombstone（A1-R10 2f）：declare function notifySessionsImported(workspaceTabsStore: unknown): void（原 Qie，945）删除，
+ *    改经文件头 stores/searchResultsStore import 消费（canonical = invalidateWorkspaceResults）。
+ *    束形纠偏：A0 期实参误译为 store 对象——bundle 真形 203528–203533：
+ *    `t = r.imported.map((e) => ({ workspacePath: e.workspacePath })); … Qie(t)`，
+ *    即 Qie 消费「导入条目 → {workspacePath} 数组」；调用面同步按真形复原（下 167 区）。 ── */
 declare function useWorkspaceTabsStoreForMigration(): { getState: () => { ensureWorkspaceTab: (opts: { workspacePath?: string }) => void } }; // hc（3609）
 declare function useZcodeSessionServiceForMigration(workspacePath?: string, unused?: undefined, workspaceIdentity?: string | null): {
   scanImportableClaudeSessions: (request: {
@@ -161,10 +166,11 @@ export function useClaudeMigration(opts: {
         setSelectedSessionIds((previous) => previous.filter((id) => !settledIds.has(id)));
         if (result.imported.length > 0) {
           const workspacePaths = new Set(result.imported.map((entry) => entry.workspacePath));
+          const importedWorkspaceScopes = result.imported.flatMap((entry) => (entry.workspacePath ? [{ workspacePath: entry.workspacePath }] : [])); // A1-R10 2f：bundle 203529–203531 真形（Qie 实参 = 导入条目工作区数组）；无 workspacePath 条目在 bundle 中经 Io(undefined) 产无效键为空操作，此处 flatMap 收口同义
           for (const path of workspacePaths) {
             workspaceTabsStore.getState().ensureWorkspaceTab({ workspacePath: path });
           }
-          notifySessionsImported(workspaceTabsStore);
+          notifySessionsImported(importedWorkspaceScopes);
         }
         logger.info(
           `[Migration] Claude 原生历史导入完成 workspaceFilter=${scanWorkspacePath ?? "all"} imported=${result.imported.length} skipped=${result.skipped.length} failed=${result.failed.length}`

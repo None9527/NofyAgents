@@ -109,7 +109,7 @@ interface TaskMeta {
   createdAt: number;
   updatedAt: number;
   mode?: string;
-  provider?: string;
+  provider?: string | null; // A1-R10 2e 精化：补 null 支 = canonical 真形（消费点 266 `??` 链兼容）
   model?: string | null;
   thoughtLevel?: string | null;
   status?: string;
