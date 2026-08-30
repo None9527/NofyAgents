@@ -35,8 +35,9 @@ ws.on('open', async () => {
   console.log('== EVENTS (' + events.length + ') ==');
   for (const e of events.slice(0, 60)) console.log(e);
   const shot = await send('Page.captureScreenshot', { format: 'png' });
-  fs.writeFileSync('/tmp/a0-s5-boot/boot-shot-1.png', Buffer.from(shot.data, 'base64'));
-  console.log('screenshot saved /tmp/a0-s5-boot/boot-shot-1.png');
+  const shotPath = process.env.BOOT_SHOT || '/tmp/a1-f1-boot/boot-shot.png';
+  fs.writeFileSync(shotPath, Buffer.from(shot.data, 'base64'));
+  console.log('screenshot saved', shotPath);
   ws.close(); process.exit(0);
 });
 setTimeout(() => { console.error('timeout'); process.exit(2); }, 30000);
