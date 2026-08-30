@@ -159,6 +159,7 @@ import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
 import { AutomationsMain } from './SettingsPanelsCapability'; // F15 族（d6）
 import { providerIds as ModelProviderId } from './SrcSharedA'; // q=mo（A0-CLEANUP B-7：ModelProviderId declare 改指 providerIds）
 import { t as logger } from './logger';
+import { useWorkspaceTabStore as useWorkspaceTabsStore, isWorkspaceKindTab as isConversationTab } from './WorkspaceTabsDeep'; // A1-R3：pc/oc declare 与本地 WorkspaceTab/WorkspaceTabsStoreState 型改指 R1 canonical（tombstone 见原声明位）
 import type { ChromeImportResult } from '../components/settings/BrowserSettingsSection'; // A0-S4-4a：§0 PlatformService 签名经 type import 消费（原 §12 本文件内型别）
 // A0-S4-4a：原 §6–§13 组件单元已迁入 components/settings/；§15 就地消费并经下方再导出
 import { SettingsSidebarItem, SettingsCaptionLogo, UsageSectionTabBar } from '../components/settings/SettingsShellParts';
@@ -346,23 +347,12 @@ interface ZCodeStoreState {
   setNotificationSoundEnabled(v: boolean): void;
   requestOnboardingDialog(): void;
 }
-interface WorkspaceTab {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  remoteSessionId?: string | null;
-  remoteTarget?: RemoteTarget | null;
-  localWorkspacePath?: string | null;
-  [key: string]: unknown;
-}
-interface WorkspaceTabsStoreState {
-  activeWorkspacePath: string | null;
-  activeWorkspaceIdentity: string | null;
-  tabs: WorkspaceTab[];
-}
-/** 原 pc（js 4753）：工作区标签页 store 选择器 */
-declare function useWorkspaceTabsStore<T>(selector: (s: WorkspaceTabsStoreState) => T): T;
-/** 原 oc：过滤出会话类标签页的谓词（工作区标签页筛选） */
-declare function isConversationTab(tab: WorkspaceTab): boolean;
+/* ── tombstone（A1-R3）：本地 WorkspaceTab/WorkspaceTabsStoreState 型 + useWorkspaceTabsStore（pc 4753）/
+ *    isConversationTab（oc）declare 删除 → 真实 import { useWorkspaceTabStore as useWorkspaceTabsStore,
+ *    isWorkspaceKindTab as isConversationTab } from './WorkspaceTabsDeep'（R1 canonical 属主；文件头导入块）。
+ *    型别宽化：canonical WorkspaceTab.workspacePath?: string（本地原必具）——选择器面（活动工作区上下文）
+ *    皆 === 比较/真值读，兼容；remoteTarget 由 RemoteTarget|null 宽为 unknown（R1 RemoteTarget=unknown），
+ *    流入三分区 prop 处按站点边界 cast（见各渲染点行注）。 ── */
 
 /* --- 模型供应商 / Coding Plan（F12 族，接口级） --- */
 
@@ -1860,7 +1850,7 @@ export function SettingsView({
                         workspacePath={activeWorkspacePath}
                         workspaceIdentity={activeWorkspaceIdentity}
                         remoteSessionId={activeWorkspaceTab?.remoteSessionId}
-                        remoteTarget={activeWorkspaceTab?.remoteTarget}
+                        remoteTarget={activeWorkspaceTab?.remoteTarget as RemoteTarget | null} /* 边界（A1-R3）：canonical WorkspaceTab.remoteTarget=unknown（R1 不透明），此处出 tab-store 域入远程同步域（分区 prop 面本地 RemoteTarget）；bundle 原样透传 */
                         localWorkspacePath={activeWorkspaceTab?.localWorkspacePath}
                         isWebRemoteControl={isWebRemoteControl}
                       />
@@ -1869,7 +1859,7 @@ export function SettingsView({
                         workspacePath={activeWorkspacePath}
                         workspaceIdentity={activeWorkspaceIdentity}
                         remoteSessionId={activeWorkspaceTab?.remoteSessionId}
-                        remoteTarget={activeWorkspaceTab?.remoteTarget}
+                        remoteTarget={activeWorkspaceTab?.remoteTarget as RemoteTarget | null} /* 边界（A1-R3）：同 Mcp 分区渲染点，remoteTarget 由 unknown 收窄至分区 prop 面 */
                         localWorkspacePath={activeWorkspaceTab?.localWorkspacePath}
                         isWebRemoteControl={isWebRemoteControl}
                         onCreateTask={onCreateTask}
@@ -1894,7 +1884,7 @@ export function SettingsView({
                         workspacePath={activeWorkspacePath}
                         workspaceIdentity={activeWorkspaceIdentity}
                         remoteSessionId={activeWorkspaceTab?.remoteSessionId}
-                        remoteTarget={activeWorkspaceTab?.remoteTarget}
+                        remoteTarget={activeWorkspaceTab?.remoteTarget as RemoteTarget | null} /* 边界（A1-R3）：同 Mcp 分区渲染点，remoteTarget 由 unknown 收窄至分区 prop 面 */
                         isWebRemoteControl={isWebRemoteControl}
                       />
                     ) : activeSectionId === "subagents" ? (

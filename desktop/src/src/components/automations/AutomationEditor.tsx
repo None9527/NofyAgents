@@ -18,6 +18,7 @@ import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { parseCustomModelId as parseModelValue } from '../../modules/SkillStore'; // se（src chunk）
 import { isGlmModelId as isMaxThinkingModel, GLM_REASONING_LEVELS as MAX_THINKING_LEVELS } from '../../modules/SrcSharedA'; // qn（F12）/ ui=Sl（A0-CLEANUP B-8：MAX_THINKING_LEVELS declare 改指 GLM_REASONING_LEVELS）
 import type { SelectItemEntry, SelectGroupEntry, ConfigOption, ModelProvider } from '../settings/SubagentLeaves';
+import { useWorkspaceTabStore as useWorkspaceTabsStore, isWorkspaceKindTab as isUsableWorkspaceTab, type WorkspaceTab } from '../../modules/WorkspaceTabsDeep'; // A1-R3：pc/oc declare 与本地 WorkspaceTab 型改指 R1 canonical（tombstone 见 §0 声明群）
 import {
   automationsWorkspaceKey as workspaceKey, // Ti（src chunk ip，6913；A0-CLEANUP 族清理：对象参工作区键）
   joinTestidParts as testidTemplate, // Xa
@@ -72,8 +73,9 @@ declare function useAppSettings(): {
   settings: { keepAwakeWhileRunning?: boolean; [key: string]: unknown } | null;
   update(patch: Record<string, unknown>): Promise<void> | void;
 }; // JM 53440
-declare function useWorkspaceTabsStore<T>(selector: (state: { tabs: WorkspaceTab[] }) => T): T; // pc 4753
-declare function isUsableWorkspaceTab(tab: WorkspaceTab): boolean; // oc
+/* ── tombstone（A1-R3）：useWorkspaceTabsStore（pc 4753）/ isUsableWorkspaceTab（oc）declare 删除
+ *    → 真实 import { useWorkspaceTabStore as useWorkspaceTabsStore, isWorkspaceKindTab as isUsableWorkspaceTab }
+ *    from '../../modules/WorkspaceTabsDeep'（R1 canonical 属主；文件头导入块）。 ── */
 declare const WorkspaceSelectRow: React.FC<{
   workspacePath: string;
   workspaceTabs: Array<{ workspacePath: string; label: string; workspaceIdentity?: string; workspacePurpose?: string }>;
@@ -133,16 +135,10 @@ declare function resolveModelGroupLabel(args: {
 }): string; // iN（F08）
 declare function normalizeSettingsOptions(options: unknown[]): ConfigOption[]; // oee（F12）
 
-interface WorkspaceTab {
-  workspacePath: string;
-  label?: string;
-  workspaceIdentity?: string | null;
-  workspacePurpose?: string;
-  availability?: string;
-  remoteSessionId?: string | null;
-  remoteTarget?: string | null;
-  [key: string]: unknown;
-}
+/* ── tombstone（A1-R3）：本地 WorkspaceTab 型（workspacePath 必具、remoteTarget?: string|null、
+ *    workspacePurpose?: string、带索引签名）删除 → type import { WorkspaceTab } from '../../modules/WorkspaceTabsDeep'
+ *    （R1 canonical：workspacePath?: string、remoteTarget?: RemoteTarget=unknown、workspacePurpose?: string|null）。
+ *    宽化影响面：仅 collectWorkspaceOptions 直读 workspacePath（该处补守卫，见行注）；余皆真值/等值读。 ── */
 interface AgentService {
   createSession(args: {
     workspacePath: string;
@@ -1116,6 +1112,7 @@ export function collectWorkspaceOptions(tabs: WorkspaceTab[], options: { include
   let conversationIncluded = false;
   for (const tab of tabs) {
     if (tab.availability === "unavailable-local-directory") continue;
+    if (!tab.workspacePath) continue; // A1-R3 型别宽化：canonical workspacePath?: string（本地型原必具）。bundle BMt 无此守卫；oc 预滤（kind==='workspace'）与 store addTab 必具路径保证行为一致
     if (tab.workspacePurpose === "conversation") {
       if (!options.includeConversationWorkspace || conversationIncluded) continue;
       conversationIncluded = true;

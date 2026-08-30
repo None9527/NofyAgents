@@ -19,7 +19,9 @@ import type { AgentFact } from './conversationTelemetry';
 
 export interface TelemetryScope {
   workspacePath: string;
-  workspaceIdentity?: string;
+  /** A1-R3 宽化：string → string | null（与 PaneWorkspaceScope 对齐；本文件所有
+   *  读取面均以 ?.trim()/?? 防御，零行为差；供 SplitLayoutUiDeep $wt 传入面） */
+  workspaceIdentity?: string | null;
   remoteSessionId?: string;
 }
 
@@ -170,7 +172,7 @@ export function TelemetryScopeProvider({
   foregroundEnabled?: boolean;
   services: { zcodeAgentService: unknown };
   workspacePath: string;
-  workspaceIdentity?: string;
+  workspaceIdentity?: string | null; // A1-R3 宽化：同 TelemetryScope（下行读取均经条件展开/? 防御）
   remoteSessionId?: string;
   children: React.ReactNode;
 }) {

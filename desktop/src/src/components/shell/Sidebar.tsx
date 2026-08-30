@@ -211,6 +211,7 @@ import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, us
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../../modules/stores-core';
 import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
+import { useSidebarSessionDrop as useSessionOpenability } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 
@@ -1246,8 +1247,10 @@ interface SearchResultsState {
 /** 原 yC：反馈 store（TopBar.tsx 已登记） */
 interface FeedbackDraft { title: string; type: string; module: string; severity: string; includeLogs: boolean; description: string; screenshots: Blob[] }
 /** 原 ls：轨迹查看 store（TopBar.tsx 已登记） */
-/** 原 LTt（jsx 104823）：会话可打开性上下文（分屏打开能力） */
-declare function useSessionOpenability(): { enabled: boolean; canOpenSession(scope: SessionScope): boolean; openSession(scope: SessionScope): void };
+/* ── tombstone（A1-R3）：useSessionOpenability declare（原 LTt 消费面）已删除——
+ *    FTt/ITt/LTt 逐字重建于 modules/SplitLayoutUiDeep.tsx，改经文件头
+ *    `useSidebarSessionDrop as useSessionOpenability` 真实 import 消费；
+ *    载荷面 SessionScope 与 SidebarSessionDropTarget 同形（bundle js 151680 构造面）。 ── */
 interface SessionScope { workspacePath: string; workspaceIdentity?: string; remoteSessionId?: string; sessionId: string }
 /** 工作区服务集合（侧栏用到的调用面） */
 interface WorkspaceServices {

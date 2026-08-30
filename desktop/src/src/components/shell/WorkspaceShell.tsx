@@ -199,7 +199,10 @@ import * as React from "react";
 import { X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, createLucideIcon } from '../../modules/button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { workspaceKeyOf } from '../../modules/CodeViewer';
-import { ConversationOrchestrator } from '../../modules/Conversation';
+/* ── tombstone（A1-R3）：ConversationOrchestrator 自 ../../modules/Conversation 的
+ *    import 已删除——PTt 域 A1-R3 逐字重建于 modules/SplitLayoutUiDeep.tsx，
+ *    改自该模块消费（同行 StackedConversationPane=owt + FTt/ITt/LTt 面）。 ── */
+import { ConversationOrchestrator, StackedConversationPane, SidebarSessionDropProvider, useSidebarSessionDrop, type SidebarSessionDropTarget } from '../../modules/SplitLayoutUiDeep'; // 原 PTt/owt/FTt/ITt/LTt（A1-R3：styles js 121301–123136 表现层逐字重建改指）
 import { type InstalledEditor } from '../../modules/FileTreePanel';
 import { APP_LOGO_DATA_URL, FeedbackCenter, collectWorkspaceTaskIds, resolveAdjacentTasks, runWithWorkspaceVisibility, type FeedbackService } from '../../modules/FeedbackCenter';
 import { WorkspaceSelectionRow } from '../../modules/Home';
@@ -220,7 +223,7 @@ import { useFeedbackStore, useSettingsStore } from '../../modules/stores-core';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { AutomationsMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）
 import { type GitDataset, type GitPaneState, type GitSourceOption, type GitSummary } from '../../modules/GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
-import { openSessionBesideDraft, sessionRouterStore, splitLayoutStore } from '../../modules/SplitLayoutDeep'; // 原 MTt/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）
+import { canOpenSessionInSplit, openSessionBesideDraft, openSessionInSplit, sessionRouterStore, splitLayoutStore, type PaneWorkspaceScope, type SessionBinding } from '../../modules/SplitLayoutDeep'; // 原 ATt/MTt/jTt/A2/s2 + 型（A1-R2 引擎重建；A1-R3：ATt/jTt 缓改指解除——第二参按 bundle 扁平形改指）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -664,30 +667,12 @@ declare function countDirtyFiles(datasets: GitState["datasets"]): number;
 
 /* --- 会话编排 / 分屏路由（原 PTt/owt 叶子 + A2/s2/MTt/ATt/jTt） --- */
 
-interface SessionBinding {
-  workspaceScope: {
-    workspacePath: string;
-    workspaceIdentity?: string;
-    remoteSessionId?: string;
-  };
-  sessionId: string;
-}
-/* ── tombstone（A1-R2）：sessionRouterStore（原 A2 js 122714）/splitLayoutStore（原 s2 js 121720）/
- *    openSessionBesideDraft（原 MTt js 122791）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
-/* R2 缓改指：canOpenSessionInSplit（原 ATt js 122759）/openSessionInSplit（原 jTt js 122762）
- * 暂留 declare——bundle 第二参为扁平 scope+sessionId（ETt 解构面，js 122716），
- * 本文件 SidebarSessionDrop*（FTt/ITt/LTt）prop 面为本地嵌套 SessionBinding，
- * 型别冲突；须待 PTt 编排器跨度（122820–123136）重建时统一改形，不得强扭。 */
-declare function canOpenSessionInSplit(
-  draftScope: SessionBinding | null,
-  target: SessionBinding,
-  options: { mode: string; side: string },
-): boolean;
-declare function openSessionInSplit(
-  draftScope: SessionBinding | null,
-  target: SessionBinding,
-  options: { mode: string; side: string },
-): boolean;
+/* ── tombstone（A1-R2/R3）：本地嵌套 SessionBinding 接口 + canOpenSessionInSplit
+ *    （原 ATt js 122759）/openSessionInSplit（原 jTt js 122762）declare 已删除——
+ *    SessionBinding 型与两函数改经文件头真实 import（../../modules/SplitLayoutDeep）
+ *    消费；R2 缓改指随 A1-R3 PTt 域重建解除：第二参按 bundle 扁平形
+ *    （PaneWorkspaceScope & { sessionId }，ETt 解构面 js 122716 / NTt 返回面）改指，
+ *    侧栏投放载荷面 = SidebarSessionDropTarget（SplitLayoutUiDeep 导出，同形）。 ── */
 
 /* --- 辅助对话 / 选择域（原 $ae/_oe/woe/rXe） --- */
 
@@ -1708,51 +1693,13 @@ function useLastSessionPersistence(input: {
  * 10. 侧栏会话投放上下文（原 FTt/ITt/LTt，js 123103-123120 / jsx 104799-104814）
  * ----------------------------------------------------------------------------
  * 侧栏内任务行拖拽到聊天区时的"能否投放/如何打开"能力注入。
+ * A1-R3：本地实现（嵌套 SessionBinding 载荷面）删除——FTt/ITt/LTt 逐字重建于
+ * modules/SplitLayoutUiDeep.tsx（载荷面 = SidebarSessionDropTarget 扁平形，
+ * bundle js 151680 构造面），此处仅保留对外导出面（modules/WorkspaceShell.tsx
+ * shim 再导出不变）。
  * ==========================================================================*/
 
-interface SidebarSessionDropValue {
-  enabled: boolean;
-  canOpenSession(target: SessionBinding): boolean;
-  openSession(target: SessionBinding): void;
-}
-
-const SidebarSessionDropContext = React.createContext<SidebarSessionDropValue>({
-  enabled: false,
-  canOpenSession: () => false,
-  openSession: () => {},
-}); // 原 FTt
-
-/** 原 ITt（js 123104-123117） */
-export function SidebarSessionDropProvider({
-  enabled,
-  canOpenSession,
-  onOpenSession,
-  children,
-}: {
-  enabled: boolean;
-  canOpenSession: (target: SessionBinding) => boolean;
-  onOpenSession: (target: SessionBinding) => void;
-  children?: React.ReactNode;
-}) {
-  const latestRef = React.useRef({ canOpenSession, onOpenSession });
-  latestRef.current = { canOpenSession, onOpenSession };
-  const value = React.useMemo<SidebarSessionDropValue>(
-    () => ({
-      enabled,
-      canOpenSession: (target) => enabled && latestRef.current.canOpenSession(target),
-      openSession: (target) => {
-        if (enabled) latestRef.current.onOpenSession(target);
-      },
-    }),
-    [enabled],
-  );
-  return <SidebarSessionDropContext.Provider value={value}>{children}</SidebarSessionDropContext.Provider>;
-}
-
-/** 原 LTt（js 123118） */
-export function useSidebarSessionDrop(): SidebarSessionDropValue {
-  return React.useContext(SidebarSessionDropContext);
-}
+export { SidebarSessionDropProvider, useSidebarSessionDrop, type SidebarSessionDropTarget } from '../../modules/SplitLayoutUiDeep';
 
 /* ============================================================================
  * 11. 叶子组件接口（其它族根组件；完整 JSX 见各自行号或已抽取模块）
@@ -1786,9 +1733,9 @@ declare const DockTerminalBrowserPanel: React.FC<Record<string, unknown>>;
 /** 原 PTt ConversationOrchestrator（F03 编排器，js 122803-123102 / jsx 104572）：
  *  会话面板编排（消息流/草稿/摘要栏装配；内嵌 R0 会话面板 + hit 草稿头） */
 
-/** 原 owt StackedConversationPane（F03 变体，js 121284）：
- *  Web 远控堆叠形态用的会话面板（chatContent 插槽） */
-declare const StackedConversationPane: React.FC<Record<string, unknown>>;
+/* ── tombstone（A1-R3）：StackedConversationPane（原 owt，js 121284/121301）declare 已删除——
+ *    薄壳（wFe 包裹单主面板 R0）逐字重建于 modules/SplitLayoutUiDeep.tsx，
+ *    改经文件头真实 import 消费。 ── */
 
 /** 原 nPt TaskFindDialog（F05 副根，js 139949 / jsx 116646）：
  *  任务内查找对话框（placement: chat/side-pane） */
@@ -2833,28 +2780,31 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
     [handleSelectTask, intl, isWebRemoteControlShell, activeSessionScope, switchToChatView, workspaceTabsStore, workspaceTabs],
   );
 
-  /** 原 fr（184496）：分屏面板活动会话变化回调 */
+  /** 原 fr（184496）：分屏面板活动会话变化回调（A1-R3：参面改指 bundle 真形
+   *  PaneWorkspaceScope——PTt 域 Ce 以 (e.workspaceScope, e.sessionId) 调用，
+   *  js 123000；workspaceIdentity 之 null 面经 ?? undefined 归一（行注）。 */
   const handlePaneActiveSessionChange = React.useCallback(
-    (binding: { workspacePath: string; workspaceIdentity?: string; sessionId?: string; remoteSessionId?: string }, sessionId: string) => {
-      handleSelectTaskAcrossWorkspaces(binding.workspacePath, sessionId, binding.workspaceIdentity, binding.remoteSessionId);
+    (scope: PaneWorkspaceScope, sessionId: string) => {
+      handleSelectTaskAcrossWorkspaces(scope.workspacePath, sessionId, scope.workspaceIdentity ?? undefined, scope.remoteSessionId); // 型注：string | null → string | undefined 归一
     },
     [handleSelectTaskAcrossWorkspaces],
   );
 
-  /** 原 pr（184504）：侧栏任务拖入聊天区 → 能否右侧分屏（context-menu/right） */
+  /** 原 pr（184504）：侧栏任务拖入聊天区 → 能否右侧分屏（context-menu/right）。
+   *  A1-R3：参面改指 bundle 扁平形 SidebarSessionDropTarget（ATt 第二参 = NTt 面）。 */
   const handleCanOpenSessionInSplit = React.useCallback(
-    (binding: SessionBinding) => canOpenSessionInSplit(activeSessionScope, binding, { mode: "context-menu", side: "right" }),
+    (binding: SidebarSessionDropTarget) => canOpenSessionInSplit(activeSessionScope, binding, { mode: "context-menu", side: "right" }),
     [activeSessionScope],
   );
 
-  /** 原 mr（184507）：投放打开：先分屏，成功才切换活动任务 */
+  /** 原 mr（184507）：投放打开：先分屏，成功才切换活动任务（扁平 binding 面）。 */
   const handleOpenSessionFromSidebarDrop = React.useCallback(
-    (binding: SessionBinding) => {
+    (binding: SidebarSessionDropTarget) => {
       switchToChatView();
       if (
         openSessionInSplit(activeSessionScope, binding, { mode: "context-menu", side: "right" })
       ) {
-        handleSelectTask(binding.workspaceScope.workspacePath, binding.sessionId, binding.workspaceScope.workspaceIdentity);
+        handleSelectTask(binding.workspacePath, binding.sessionId, binding.workspaceIdentity);
       }
     },
     [handleSelectTask, activeSessionScope, switchToChatView],
@@ -3289,7 +3239,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
                     onOpenSubagentSession={handleOpenSubagentSession}
                     onOpenSubagentDirectory={handleOpenSubagentDirectory}
                     onSyncSubagentSessionTabs={handleSyncSubagentSessionTabs}
-                    onOpenPlanDetail={handleOpenPlanDetail}
+                    onOpenPlanDetail={handleOpenPlanDetail as (plan?: unknown) => void} /* 边界：同桌面形态渲染点，plan 链保 unknown */
                     conversationFindQuery={conversationFindQuery}
                     conversationFindActiveIndex={conversationFindActiveIndex}
                     onConversationFindMatchStateChange={onConversationFindMatchStateChange}
@@ -3599,15 +3549,15 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
                             onSummaryPanelVariantOverrideChange={onSummaryPanelVariantOverrideChange}
                             onRefreshGit={handleRefreshGit}
                             onOpenGitReview={handleOpenGitReview}
-                            onPaneActiveSessionChange={handlePaneActiveSessionChange as (scope: unknown, sessionId: string) => void} /* 边界：Conversation 侧 SplitPaneBinding.workspaceScope 为弱型，运行时恒含 workspacePath */
+                            onPaneActiveSessionChange={handlePaneActiveSessionChange} /* A1-R3：R2 边界 cast 已删——PTt 域重建后 prop 面 = (PaneWorkspaceScope, string)，与 handlePaneActiveSessionChange 同形 */
                             onOpenBrowserUrl={handleOpenBrowserUrl}
                             onOpenAutomationsMain={handleOpenAutomations}
                             onOpenCodeViewer={handleOpenCodeViewer}
                             onOpenSubagentSession={handleOpenSubagentSession}
                             onOpenSubagentDirectory={handleOpenSubagentDirectory}
                             onSyncSubagentSessionTabs={handleSyncSubagentSessionTabs}
-                            onOpenSelectionSideChat={handleOpenSelectionSideChat}
-                            onOpenPlanDetail={handleOpenPlanDetail}
+                            onOpenSelectionSideChat={handleOpenSelectionSideChat as (reference: unknown) => void} /* 边界：bundle R0 内 en 包装（js 119645–119695）本地未转录，选区引用链保 unknown；处理面参形仅此处收窄 */
+                            onOpenPlanDetail={handleOpenPlanDetail as (plan?: unknown) => void} /* 边界：bundle wlt（js 98818）构造面与处理面（workspacePath 必具）互斥，plan 链保 unknown；收窄留独立批次 */
                             onOpenFileLink={handleOpenFileLink}
                             conversationFindQuery={conversationFindQuery}
                             conversationFindActiveIndex={conversationFindActiveIndex}

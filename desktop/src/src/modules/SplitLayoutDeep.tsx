@@ -148,8 +148,12 @@
  *   oc → ./WorkspaceTabsDeep `isWorkspaceKindTab`（A1-R1 重建，styles js 4487）
  *   J  → ./logger `t`（logger-PFDwl5Yq.js t 导出）
  *   Je → ./SrcSharedB `buildRemoteServerWorkspaceKey`（src chunk xh，js 7963）
- *   环安全：本文件仅被消费侧（AppRootLeaves/WorkspaceShell/OnboardingLoginLeaves）
- *   单向引用；上述依赖方均不反向 import 本文件，无成环。
+ *   环安全：本文件仅被消费侧（AppRootLeaves/WorkspaceShell/OnboardingLoginLeaves；
+ *   R3 追加 SplitLayoutUiDeep/stores-session shim 两消费面）单向引用；上述依赖方
+ *   均不反向 import 本文件，无成环。
+ *   R3 导出宽化（行注各就其位）：H0/W0/q0/J0/Y0/X0/gwt/bwt/xwt/nTt/y2/b2/E2/dTt
+ *   由内部转导出，供 stores/splitLayoutStore.ts、stores/sessionRouterStore.ts 之
+ *   re-export shim 与 SplitLayoutUiDeep（PTt 域）消费；函数体未动。
  * ============================================================================
  */
 
@@ -303,8 +307,8 @@ var MIN_SPLIT_RATIO = 0.25, // 原 cwt
   MAX_SPLIT_RATIO = 0.75, // 原 lwt
   DEFAULT_SPLIT_RATIO = 0.5; // 原 V0
 
-/** 原 H0：分割比例钳制（非有限值 → 0.5）。 */
-function clampSplitRatio(e: number): number {
+/** 原 H0：分割比例钳制（非有限值 → 0.5）。（R3 导出：供 stores shim/UI 族消费） */
+export function clampSplitRatio(e: number): number {
   return Number.isFinite(e) ? Math.min(MAX_SPLIT_RATIO, Math.max(MIN_SPLIT_RATIO, e)) : DEFAULT_SPLIT_RATIO;
 }
 
@@ -313,8 +317,8 @@ export function workspaceScopeKey(e: PaneWorkspaceScope): string {
   return e.workspaceIdentity?.trim() || e.workspacePath;
 }
 
-/** 原 W0：面板绑定是否匹配（作用域键 + 会话 id）。 */
-function paneBindingMatchesSession(e: PaneBinding | null | undefined, t: PaneWorkspaceScope, n: string | null): boolean {
+/** 原 W0：面板绑定是否匹配（作用域键 + 会话 id）。（R3 导出） */
+export function paneBindingMatchesSession(e: PaneBinding | null | undefined, t: PaneWorkspaceScope, n: string | null): boolean {
   return e?.sessionId === n && workspaceScopeKey(e!.workspaceScope) === workspaceScopeKey(t);
 }
 
@@ -324,23 +328,23 @@ export const PRIMARY_PANE_LEAF: PaneNode = { type: `leaf`, paneId: MAIN_PANE_ID 
 /** 原 K0：空分割布局。 */
 export const EMPTY_PANE_LAYOUT: PaneLayoutState = { root: PRIMARY_PANE_LEAF, panes: {}, focusedPaneId: MAIN_PANE_ID };
 
-/** 原 q0：收集叶面板 id（深度优先）。 */
-function collectLeafPaneIds(e: PaneNode): string[] {
+/** 原 q0：收集叶面板 id（深度优先）。（R3 导出） */
+export function collectLeafPaneIds(e: PaneNode): string[] {
   return e.type === `leaf` ? [e.paneId] : [...collectLeafPaneIds(e.first), ...collectLeafPaneIds(e.second)];
 }
 
-/** 原 J0：布局面板数。 */
-function countLayoutPanes(e: PaneLayoutState): number {
+/** 原 J0：布局面板数。（R3 导出） */
+export function countLayoutPanes(e: PaneLayoutState): number {
   return collectLeafPaneIds(e.root).length;
 }
 
-/** 原 Y0：是否还能加面板（<4）。 */
-function canAddLayoutPane(e: PaneLayoutState): boolean {
+/** 原 Y0：是否还能加面板（<4）。（R3 导出） */
+export function canAddLayoutPane(e: PaneLayoutState): boolean {
   return countLayoutPanes(e) < 4;
 }
 
-/** 原 X0：布局是否含指定面板。 */
-function layoutHasPaneId(e: PaneNode, t: string): boolean {
+/** 原 X0：布局是否含指定面板。（R3 导出） */
+export function layoutHasPaneId(e: PaneNode, t: string): boolean {
   return e.type === `leaf` ? e.paneId === t : layoutHasPaneId(e.first, t) || layoutHasPaneId(e.second, t);
 }
 
@@ -459,8 +463,8 @@ function replacePaneBindingInLayout(e: PaneLayoutState, t: string, n: PaneBindin
     : { ...e, panes: { ...e.panes, [t]: n }, focusedPaneId: t };
 }
 
-/** 原 gwt：按（作用域+会话）找面板 id。 */
-function findPaneIdBySessionInLayout(e: PaneLayoutState, t: PaneWorkspaceScope, n: string | null): string | null {
+/** 原 gwt：按（作用域+会话）找面板 id。（R3 导出） */
+export function findPaneIdBySessionInLayout(e: PaneLayoutState, t: PaneWorkspaceScope, n: string | null): string | null {
   for (let [r, i] of Object.entries(e.panes)) if (paneBindingMatchesSession(i, t, n)) return r;
   return null;
 }
@@ -499,8 +503,8 @@ function openSessionInLayout(e: PaneLayoutState, t: PaneWorkspaceScope, n: strin
  * §B. 布局持久化 + splitLayoutStore（js 121529–121720）
  * ==========================================================================*/
 
-var PANE_LAYOUT_STORAGE_KEY_V2 = `zcode-v4-pane-layout:v2`, // 原 bwt
-  PANE_LAYOUT_STORAGE_KEY_V1 = `zcode-v4-pane-layout:v1`, // 原 xwt
+export var PANE_LAYOUT_STORAGE_KEY_V2 = `zcode-v4-pane-layout:v2`, // 原 bwt（R3 导出）
+  PANE_LAYOUT_STORAGE_KEY_V1 = `zcode-v4-pane-layout:v1`, // 原 xwt（R3 导出）
   LEGACY_SPLIT_PANE_ID = `split`; // 原 i2
 
 /** 原 a2：解析面板树节点（非法 → null）。 */
@@ -719,18 +723,18 @@ splitLayoutStore.subscribe((e) => {
  * §C. 会话路由模型 + sessionRouterStore（js 122201 尾 + 122309–122714）
  * ==========================================================================*/
 
-var ROUTER_STORAGE_KEY = `zcode-v4-session-workbench-groups:v1`, // 原 nTt
+export var ROUTER_STORAGE_KEY = `zcode-v4-session-workbench-groups:v1`, // 原 nTt（R3 导出）
   EMPTY_ROUTER_STATE: SessionRouterData = { activeGroupId: null, groups: {}, sessionIndex: {} }, // 原 g2
   workbenchClientMode = `desktop-continuous`, // 原 _2（模块级可变）
   routerStateHydrated = !1; // 原 v2（模块级可变）
 
-/** 原 y2：路由是否启用（web-remote-replayable 下禁用）。 */
-function isWorkbenchRouterEnabled(): boolean {
+/** 原 y2：路由是否启用（web-remote-replayable 下禁用）。（R3 导出） */
+export function isWorkbenchRouterEnabled(): boolean {
   return workbenchClientMode !== `web-remote-replayable`;
 }
 
-/** 原 b2：（作用域+会话）索引键。 */
-function sessionBindingIndexKey(e: PaneWorkspaceScope, t: string): string {
+/** 原 b2：（作用域+会话）索引键。（R3 导出） */
+export function sessionBindingIndexKey(e: PaneWorkspaceScope, t: string): string {
   return `${workspaceScopeKey(e)}::${t}`;
 }
 
@@ -782,8 +786,8 @@ export function paneBindingById(e: SessionRouterGroup, t: string): SessionBindin
   return t === `workspace-main` ? e.primaryBinding : e.panes[t] ?? null;
 }
 
-/** 原 E2：组的聚焦绑定。 */
-function focusedGroupBinding(e: SessionRouterGroup): SessionBinding | null {
+/** 原 E2：组的聚焦绑定。（R3 导出：供 PTt 域关闭面板时解析下一活动绑定） */
+export function focusedGroupBinding(e: SessionRouterGroup): SessionBinding | null {
   return paneBindingById(e, e.focusedPaneId);
 }
 
@@ -878,8 +882,8 @@ function splitGroupPaneBeside(
   return { ...e, root: a.root, panes: o, focusedPaneId: a.focusedPaneId, updatedAt: i };
 }
 
-/** 原 dTt：关闭组内面板（剩 <2 → null，调用方删组）。 */
-function closeGroupPane(e: SessionRouterGroup, t: string, n: number = Date.now()): SessionRouterGroup | null {
+/** 原 dTt：关闭组内面板（剩 <2 → null，调用方删组）。（R3 导出：同上，PTt 关闭预览用纯函数面） */
+export function closeGroupPane(e: SessionRouterGroup, t: string, n: number = Date.now()): SessionRouterGroup | null {
   if (t === `workspace-main`) return null;
   let r = closePaneInLayout(e, t);
   if (r === e) return e;

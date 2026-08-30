@@ -2932,7 +2932,7 @@ interface ConversationSummaryAsideProps {
   onOpenPlanDetail?: () => void;
   onCancelBackgroundWork?: (workId: string) => void;
   onOpenSubagentSession?: (request: SubagentOpenRequest) => void;
-  onOpenSubagentDirectory?: () => void;
+  onOpenSubagentDirectory?: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; rootSessionId?: string; parentSessionId: string }) => void; // A1-R3 宽化：原 () => void；bundle 真形含 req（ConversationPaneProps 同形收敛；壳层 handleOpenSubagentDirectory 面）
   className?: string;
 }
 
@@ -3208,5 +3208,5 @@ declare const SummaryGoalSection: React.FC<{ model: unknown; separated: boolean;
 declare const SummaryPlansSection: React.FC<{ model: unknown; parentSessionId?: string | null; onOpenPlanDetail?: () => void; separated: boolean }>;
 declare const SummaryPlanSection: React.FC<{ model: unknown; separated: boolean }>;
 declare const SummaryTerminalsSection: React.FC<{ section: string; title: string; works: BackgroundWork[]; open?: boolean; onOpenChange?: (v: boolean) => void; separated: boolean; onCancelBackgroundWork?: (workId: string) => void }>;
-declare const SummaryAgentsSection: React.FC<{ title: string; subagents: RunningSubagent[]; endedSubagentCount: number; onCancelBackgroundWork?: (workId: string) => void; open?: boolean; onOpenChange?: (v: boolean) => void; separated: boolean; parentSessionId?: string | null; rootSessionId?: string | null; onOpenSubagentSession?: (request: SubagentOpenRequest) => void; onOpenSubagentDirectory?: () => void }>;
+declare const SummaryAgentsSection: React.FC<{ title: string; subagents: RunningSubagent[]; endedSubagentCount: number; onCancelBackgroundWork?: (workId: string) => void; open?: boolean; onOpenChange?: (v: boolean) => void; separated: boolean; parentSessionId?: string | null; rootSessionId?: string | null; onOpenSubagentSession?: (request: SubagentOpenRequest) => void; onOpenSubagentDirectory?: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; rootSessionId?: string; parentSessionId: string }) => void }>; // A1-R3 宽化：onOpenSubagentDirectory 原 () => void，同上
 declare const SummaryMiniCard: React.FC<{ model: unknown; gitWorktreeChangeSummary?: unknown; onVariantChange?: (variant: SummaryPanelVariant | null) => void }>;

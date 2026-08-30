@@ -21,7 +21,7 @@
  * 〇、子族总览（混淆名 → 语义名 → js 行 / jsx 行；完整清单见 Conversation.report.md §1）
  * ----------------------------------------------------------------------------
  *  [Pane]    R0  → ConversationPane            (119219 / 101388)
- *            PTt → ConversationOrchestrator    (122803 / 104572)
+ *            PTt → ConversationOrchestrator    (122803 / 104572) 〔A1-R3 迁出 → modules/SplitLayoutUiDeep.tsx〕
  *            Ait/jit → PaneFloatingHeader      (91755,91801 / 79344,79371)
  *            Ubt/Wbt → PluginIconProvider/Gate (115538,115559 / 98326,98347)
  *            k0  → useSessionSnapshot          (118675 / 100929)
@@ -134,7 +134,9 @@ import { InfoTooltip as Tooltip, useControllableState } from './UsageStatsUiPart
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
 import { Button, ChevronRight as IconChevronRight, ChevronLeft as IconChevronLeft } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）；A0-S3b 增补：ChevronRight as IconChevronRight, ChevronLeft as IconChevronLeft（button chunk 图标，pass-1 同源）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
-import { PRIMARY_PANE_ID, useSessionRouterStore, useSplitLayoutStore, workspaceScopeKey, type SessionBinding, type WorkspaceScope } from './stores-session'; // +SessionBinding/WorkspaceScope（A0-D 类型收敛）
+/* ── tombstone（A1-R3）：stores-session import（PRIMARY_PANE_ID/useSessionRouterStore/
+ *    useSplitLayoutStore/workspaceScopeKey + SessionBinding/WorkspaceScope 型）已删除——
+ *    唯一消费面 9.6 A0 编排器随 PTt 域迁出（SplitLayoutUiDeep.tsx）而删除。 ── */
 import { SessionQuotaBanner, PendingCommandBanner, type QuotaBannerState } from '../components/conversation/SessionBanners'; // 〔A0-S4-4b〕§9 渲染点（7528/7538）+ QuotaBannerState 型别（6979）消费回取（函数声明提升/型别擦除，环安全）
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
@@ -3240,14 +3242,14 @@ function useConversationFind({
   conversationFindQuery: string;
   conversationFindActiveIndex: number;
   onConversationFindMatchStateChange?: (state: { matchCount: number; activeIndex: number }) => void;
-  searchResultHighlightRequest?: { requestId: string; query: string; snippet?: string; snippetIndex?: number } | null;
-  onSearchResultHighlightDone?: (requestId: string) => void;
+  searchResultHighlightRequest?: { taskId?: string; requestId?: number; query?: string; snippet?: string; snippetIndex?: number; [key: string]: unknown } | null; // A1-R3 收敛：bundle requestId = Ze.current++（js 120309，number 面）；query 运行期恒在而 shell 面未声明，宽为可选
+  onSearchResultHighlightDone?: (requestId: number) => void; // A1-R3 收敛：同上 number 面
   scrollToUnit: (unitIndex: number) => void;
 }) {
   const findEnabled = sessionPhase !== `running` && sessionPhase !== `prewarming`;
   const findIndex = React.useMemo(() => (findEnabled ? buildFindIndex(renderUnits, conversationFindQuery) : buildFindIndex([], ``)), [conversationFindQuery, findEnabled, renderUnits]);
   const searchIndex = React.useMemo(
-    () => (findEnabled && searchResultHighlightRequest ? buildFindIndex(renderUnits, searchResultHighlightRequest.query) : buildFindIndex([], ``)),
+    () => (findEnabled && searchResultHighlightRequest ? buildFindIndex(renderUnits, searchResultHighlightRequest.query ?? ``) : buildFindIndex([], ``)), // A1-R3：query 宽化后空串兜底
     [findEnabled, renderUnits, searchResultHighlightRequest],
   );
   const [activeIndex, setActiveIndex] = React.useState(-1);
@@ -3257,7 +3259,7 @@ function useConversationFind({
   const lastFindSignature = React.useRef(``);
   const lastLoadOlderSignature = React.useRef(``);
   const lastSearchLoadSignature = React.useRef(``);
-  const lastSearchRequestId = React.useRef<string | null>(null);
+  const lastSearchRequestId = React.useRef<number | null>(null); // A1-R3 收敛：requestId number 面（bundle js 120309）
   const searchClearTimer = React.useRef<number | undefined>(undefined);
   const activeMatch = activeIndex >= 0 ? findIndex.matches[activeIndex] ?? null : null;
   React.useEffect(() => {
@@ -3340,24 +3342,24 @@ function useConversationFind({
     const canLoadMore = canLoadOlder && rows.length < FIND_MAX_LOADED_ROWS && !loadingOlder;
     if (snippet && !covered && (canLoadMore || loadingOlder)) return;
     if (!match) {
-      if (!canLoadMore) onSearchResultHighlightDone?.(request.requestId);
+      if (!canLoadMore) onSearchResultHighlightDone?.(request.requestId as number); // A1-R3：生产面恒赋值（js 120309），可选面非 any 收窄
       return;
     }
-    if (lastSearchRequestId.current !== request.requestId) {
-      lastSearchRequestId.current = request.requestId;
+    if (lastSearchRequestId.current !== (request.requestId ?? null)) {
+      lastSearchRequestId.current = request.requestId ?? null; // A1-R3：可选面 → ref 空合归一
       scrollToUnit(match.unitIndex);
     }
     const frame = window.requestAnimationFrame(() => {
       const root = rootRef.current;
       if (!root) return;
-      const range = applySearchResultHighlight({ root, query: request.query, match });
+      const range = applySearchResultHighlight({ root, query: request.query ?? ``, match }); // A1-R3：query 宽化后空串兜底
       if (range) {
-        lastSearchRequestId.current = request.requestId;
+        lastSearchRequestId.current = request.requestId ?? null; // A1-R3：可选面 → ref 空合归一
         scrollRangeToCenter(range);
         if (searchClearTimer.current !== undefined) window.clearTimeout(searchClearTimer.current);
         searchClearTimer.current = window.setTimeout(() => {
           clearSearchResultHighlight();
-          onSearchResultHighlightDone?.(request.requestId);
+          onSearchResultHighlightDone?.(request.requestId as number); // A1-R3：生产面恒赋值（js 120309），可选面非 any 收窄
           searchClearTimer.current = undefined;
         }, SEARCH_RESULT_HIGHLIGHT_TTL_MS);
       }
@@ -3785,8 +3787,8 @@ interface MessageListProps {
   conversationFindQuery?: string;
   conversationFindActiveIndex?: number;
   onConversationFindMatchStateChange?: (state: { matchCount: number; activeIndex: number }) => void;
-  searchResultHighlightRequest?: { requestId: string; query: string; snippet?: string; snippetIndex?: number } | null;
-  onSearchResultHighlightDone?: (requestId: string) => void;
+  searchResultHighlightRequest?: { taskId?: string; requestId?: number; query?: string; snippet?: string; snippetIndex?: number; [key: string]: unknown } | null; // A1-R3 收敛：requestId number 面（bundle js 120309）
+  onSearchResultHighlightDone?: (requestId: number) => void; // A1-R3 收敛：同上
   sessionPhase?: string;
   scrollToBottomActionRef?: React.MutableRefObject<(() => void) | null>;
   selectionActions?: {
@@ -4961,6 +4963,7 @@ interface ConversationPaneProps {
   compactForRemoteControl?: boolean;
   provider?: string;
   onSessionCreated?: (sessionId: string, groupedDraftTask?: unknown) => void;
+  onSessionDeleted?: () => void; // A1-R3：bundle 调用面（$wt 之 E / owt 之 s，js 122165/121345）传入；R0 本体不解构（束 119236 面），保留以合调用面
   onSelectionSideChatUnavailable?: () => void;
   focused?: boolean;
   telemetryVisible?: boolean;
@@ -4969,7 +4972,7 @@ interface ConversationPaneProps {
   onClosePane?: () => void;
   workspaceBadge?: WorkspaceBadge | null;
   draftComposerHeader?: React.ReactNode;
-  onDropTargetControllerChange?: (controller: unknown) => void;
+  onDropTargetControllerChange?: (controller: PrimaryDraftDropTargetController | null) => void; // A1-R3 收窄：原 (controller: unknown)；bundle $wt 透传面（js 122168）为草稿投放控制器 setter 面
   gitSummary?: GitSummary | null;
   gitDirtyFileCount?: number | null;
   gitWorktreeReviewSourceId?: string | null;
@@ -4984,15 +4987,15 @@ interface ConversationPaneProps {
   onOpenCodeViewer?: OpenCodeViewerFn;
   onOpenFileLink?: (link: FileLinkModel) => void;
   onOpenSubagentSession?: (session: SubagentOpenRequest) => void;
-  onOpenSubagentDirectory?: () => void;
-  onSyncSubagentSessionTabs?: (tabs: unknown) => void;
+  onOpenSubagentDirectory?: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; rootSessionId?: string; parentSessionId: string }) => void; // A1-R3 宽化：原 () => void；bundle 真形含 req（壳层 handleOpenSubagentDirectory 面；Flt 域 js 99505 消费）
+  onSyncSubagentSessionTabs?: (req: { rootSessionId: string; parentSessionId: string; validChildSessionIds: string[] }) => void; // A1-R3 收窄：原 (tabs: unknown)；本件 5279 调用面即此形
   onOpenSelectionSideChat?: (reference: unknown) => void;
   onOpenPlanDetail?: (plan?: unknown) => void;
   conversationFindQuery?: string;
   conversationFindActiveIndex?: number;
   onConversationFindMatchStateChange?: (state: { matchCount: number; activeIndex: number }) => void;
-  searchResultHighlightRequest?: { requestId: string; query: string; snippet?: string; snippetIndex?: number } | null;
-  onSearchResultHighlightDone?: (requestId: string) => void;
+  searchResultHighlightRequest?: { taskId?: string; requestId?: number; query?: string; snippet?: string; snippetIndex?: number; [key: string]: unknown } | null; // A1-R3 收敛：与 useConversationFind 参面同步（bundle js 120309 number 面）
+  onSearchResultHighlightDone?: (requestId: number) => void; // A1-R3 收敛：同上
 }
 
 /**
@@ -5617,366 +5620,20 @@ declare const ConversationInteractionsSlot: React.FC<{
 }>;
 /** 运行时认证头控制器（真实实现 = ConversationOverlays.tsx 的 RuntimeAuthHeadersController） */
 
-/* --- 9.6 编排器（原 PTt，js 122803–123102 / jsx 104572–104760） --- */
-
-/** 分屏布局 store（原 s2，F07 族 jsx 103518）与路由 store（原 A2，jsx 104365） */
-interface SplitPaneBinding {
-  workspaceScope: { workspacePath?: string; workspaceIdentity?: string; remoteSessionId?: string };
-  sessionId: string;
-  readOnly?: boolean;
-}
-interface SplitPaneDescriptor {
-  paneId: string;
-  rect: unknown;
-  workspaceScope?: unknown;
-  sessionId?: string;
-  readOnly?: boolean;
-}
-declare function flattenPaneTree(root: unknown): { leaves: { paneId: string; rect: unknown }[]; dividers: { splitId: string; direction: string; ratio: number; regionFraction: number }[] };
-declare function dividerStyle(divider: { direction: string; ratio: number }): React.CSSProperties;
-declare const SplitPaneHost: React.FC<{
-  paneId: string;
-  rect: unknown;
-  focused: boolean;
-  showFocusIndicator: boolean;
-  canSplit: boolean;
-  shellWorkspaceKey: string;
-  binding: SplitPaneBinding | null;
-  primaryBinding: SplitPaneBinding | null;
-  shell: Record<string, unknown>;
-  onFocusRequest: (paneId: string) => void;
-  /** bundle 122015/122163：内部 C/w 回调按 onSplit(paneId, `row`|`column`, workspaceScope) 调用（与 stores-session.splitPane 同签） */
-  onSplit?: (paneId: string, direction: "row" | "column", workspaceScope: WorkspaceScope) => void;
-  onClosePane: (paneId: string) => void;
-  onConfirmRestoredSession: (paneId: string) => void;
-  onBindSession: (paneId: string, sessionId: string) => boolean;
-  onPaneActiveSessionChange?: (scope: unknown, sessionId: string) => void;
-  canDropSession?: (paneId: string) => boolean;
-  onDropSession?: (paneId: string, side: "right" | "down", sessionId: string) => void;
-}>;
-declare const SplitDivider: React.FC<{
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  splitId: string;
-  direction: string;
-  ratio: number;
-  regionFraction: number;
-  style: React.CSSProperties;
-  onCommitRatio: (splitId: string, ratio: number) => void;
-}>;
-
-/**
- * 会话编排器（原 PTt，js 122803 / jsx 104572）。
- * v4 分屏的会话列装配环境：把分屏树（s2 store 或会话组 A2）展平成
- * 面板叶 + 分隔条，为每个叶渲染 SplitPaneHost（内部按绑定渲染 R0）。
- * 主面板（workspace-main）承载当前会话或草稿；草稿首次发送可提升为会话组
- * （promotePaneLayoutToGroup）。远程远控模式（compactForRemoteControl）
- * 固定单面板。
- */
-function ConversationOrchestrator({
-  workspacePath,
-  workspaceIdentity,
-  readOnly = false,
-  remoteSessionId,
-  compactForRemoteControl = false,
-  sessionId,
-  activeSelectionSideChatSessionId = null,
-  provider,
-  onSessionCreated,
-  onSessionDeleted,
-  draftComposerHeader,
-  onPrimaryDraftDropTargetControllerChange,
-  gitSummary,
-  gitDirtyFileCount,
-  gitWorktreeReviewSourceId,
-  gitWorktreeChangeSummary,
-  activeTaskChangeSummary,
-  summaryPanelVariantOverride,
-  onSummaryPanelVariantOverrideChange,
-  onRefreshGit,
-  onOpenGitReview,
-  onPaneActiveSessionChange,
-  onOpenBrowserUrl,
-  onOpenAutomationsMain,
-  onOpenCodeViewer,
-  onOpenFileLink,
-  onOpenSubagentSession,
-  onOpenSubagentDirectory,
-  onSyncSubagentSessionTabs,
-  onOpenSelectionSideChat,
-  onOpenPlanDetail,
-  conversationFindQuery = ``,
-  conversationFindActiveIndex = -1,
-  onConversationFindMatchStateChange,
-  searchResultHighlightRequest,
-  onSearchResultHighlightDone,
-}: {
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  readOnly?: boolean;
-  remoteSessionId?: string | null;
-  compactForRemoteControl?: boolean;
-  sessionId: string | null;
-  activeSelectionSideChatSessionId?: string | null;
-  provider?: string;
-  onSessionCreated?: (sessionId: string, groupedDraftTask?: unknown) => void;
-  onSessionDeleted?: (sessionId: string) => void;
-  draftComposerHeader?: React.ReactNode;
-  onPrimaryDraftDropTargetControllerChange?: (controller: PrimaryDraftDropTargetController | null) => void;
-  gitSummary?: GitSummary | null;
-  gitDirtyFileCount?: number | null;
-  gitWorktreeReviewSourceId?: string | null;
-  gitWorktreeChangeSummary?: unknown;
-  activeTaskChangeSummary?: unknown;
-  summaryPanelVariantOverride?: string | null;
-  onSummaryPanelVariantOverrideChange?: (variant: "mini" | "panel" | "auto" | null) => void;
-  onRefreshGit?: () => void;
-  onOpenGitReview?: () => void;
-  onPaneActiveSessionChange?: (scope: unknown, sessionId: string) => void;
-  onOpenBrowserUrl?: (url: string) => void;
-  onOpenAutomationsMain?: () => void;
-  onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (link: FileLinkModel) => void;
-  onOpenSubagentSession?: (session: SubagentOpenRequest) => void;
-  onOpenSubagentDirectory?: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; rootSessionId?: string; parentSessionId: string }) => void;
-  onSyncSubagentSessionTabs?: (req: { rootSessionId: string; parentSessionId: string; validChildSessionIds: string[] }) => void;
-  onOpenSelectionSideChat?: (reference: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; parentSessionId: string; childSessionId: string; replacesChildSessionId?: string }) => void;
-  onOpenPlanDetail?: (plan: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; parentSessionId: string; toolCallId: string; markdown?: string; planFilePath?: string }) => void;
-  conversationFindQuery?: string;
-  conversationFindActiveIndex?: number;
-  onConversationFindMatchStateChange?: (state: { matchCount: number; activeIndex: number }) => void;
-  searchResultHighlightRequest?: { taskId?: string; workspacePath?: string; workspaceIdentity?: string | null; requestId?: number; query?: string; snippet?: string; snippetIndex?: number; [key: string]: unknown } | null;
-  onSearchResultHighlightDone?: (requestId: number) => void;
-}) {
-  const shellWorkspaceKey = workspaceIdentity?.trim() || workspacePath;
-  const rootLayout = useSplitLayoutStore((state) => state.root);
-  const rootPanes = useSplitLayoutStore((state) => state.panes);
-  const focusedRootPaneId = useSplitLayoutStore((state) => state.focusedPaneId ?? PRIMARY_PANE_ID);
-  const splitPane = useSplitLayoutStore((state) => state.splitPane);
-  const closeRootPane = useSplitLayoutStore((state) => state.closePane);
-  const confirmRootRestoredSession = useSplitLayoutStore((state) => state.confirmRestoredPaneSession);
-  const focusRootPane = useSplitLayoutStore((state) => state.focusPane);
-  const bindRootPaneSession = useSplitLayoutStore((state) => state.bindPaneSession);
-  const setRootSplitRatio = useSplitLayoutStore((state) => state.setSplitRatio);
-  const resetToPrimaryPane = useSplitLayoutStore((state) => state.resetToPrimaryPane);
-  const activeGroup = useSessionRouterStore((state) => (compactForRemoteControl || !state.activeGroupId ? null : state.groups[state.activeGroupId] ?? null));
-  const focusGroupPane = useSessionRouterStore((state) => state.focusPane);
-  const closeGroupPane = useSessionRouterStore((state) => state.closePane);
-  const confirmGroupRestoredSession = useSessionRouterStore((state) => state.confirmRestoredPaneSession);
-  const bindGroupPaneSession = useSessionRouterStore((state) => state.bindPaneSession);
-  const setGroupSplitRatio = useSessionRouterStore((state) => state.setSplitRatio);
-  const promotePaneLayoutToGroup = useSessionRouterStore((state) => state.promotePaneLayoutToGroup);
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const layoutRoot = compactForRemoteControl ? PRIMARY_PANE_ID : activeGroup?.root ?? rootLayout;
-  const layoutPanes = compactForRemoteControl ? {} : activeGroup?.panes ?? rootPanes;
-  const focusedPaneId = compactForRemoteControl ? PRIMARY_PANE_ID : activeGroup?.focusedPaneId ?? focusedRootPaneId;
-  const flattened = React.useMemo(() => flattenPaneTree(layoutRoot), [layoutRoot]);
-  const sessionAlreadyBound = React.useMemo(
-    () =>
-      compactForRemoteControl || activeGroup || !sessionId
-        ? false
-        : Object.values(rootPanes).some((pane) => pane.sessionId === sessionId && workspaceScopeKey(pane.workspaceScope as WorkspaceScope) === shellWorkspaceKey),
-    [activeGroup, compactForRemoteControl, rootPanes, sessionId, shellWorkspaceKey],
-  );
-  const primarySessionId = sessionAlreadyBound ? null : sessionId;
-  const dividerCssVars = React.useMemo(() => {
-    const vars: Record<string, string> = {};
-    for (const divider of flattened.dividers) vars[`--v4-split-${divider.splitId}`] = String(divider.ratio);
-    return vars;
-  }, [flattened]);
-  const leafCount = flattened.leaves.length;
-  const hasMultiplePanes = leafCount > 1;
-  const canSplit = leafCount < 4;
-  const workspaceScope = React.useMemo(
-    () => ({
-      workspacePath,
-      ...(workspaceIdentity ? { workspaceIdentity } : {}),
-      ...(remoteSessionId ? { remoteSessionId } : {}),
-    }),
-    [remoteSessionId, workspaceIdentity, workspacePath],
-  );
-  const primaryBinding = React.useMemo(
-    () => (primarySessionId ? { workspaceScope, sessionId: primarySessionId } : null),
-    [primarySessionId, workspaceScope],
-  );
-  const shellProps: Record<string, unknown> = React.useMemo(
-    () => ({
-      workspacePath,
-      workspaceIdentity,
-      remoteSessionId,
-      compactForRemoteControl,
-      readOnly,
-      sessionId: primarySessionId,
-      activeSessionId: sessionId,
-      activeSelectionSideChatSessionId,
-      provider,
-      onSessionCreated,
-      onSessionDeleted,
-      draftComposerHeader,
-      onPrimaryDraftDropTargetControllerChange,
-      gitSummary,
-      gitDirtyFileCount,
-      gitWorktreeReviewSourceId,
-      gitWorktreeChangeSummary,
-      activeTaskChangeSummary: primarySessionId ? activeTaskChangeSummary : null,
-      summaryPanelVariantOverride,
-      onSummaryPanelVariantOverrideChange,
-      onRefreshGit,
-      onOpenGitReview,
-      onOpenBrowserUrl,
-      onOpenAutomationsMain,
-      onOpenCodeViewer,
-      onOpenFileLink,
-      onOpenSubagentSession,
-      onOpenSubagentDirectory,
-      onSyncSubagentSessionTabs,
-      onOpenSelectionSideChat,
-      onOpenPlanDetail,
-      conversationFindQuery,
-      conversationFindActiveIndex,
-      onConversationFindMatchStateChange,
-      searchResultHighlightRequest,
-      onSearchResultHighlightDone,
-    }),
-    [
-      workspacePath, workspaceIdentity, remoteSessionId, compactForRemoteControl, readOnly, primarySessionId, activeSelectionSideChatSessionId, provider,
-      onSessionCreated, onSessionDeleted, draftComposerHeader, onPrimaryDraftDropTargetControllerChange, gitSummary, gitDirtyFileCount,
-      gitWorktreeReviewSourceId, gitWorktreeChangeSummary, activeTaskChangeSummary, summaryPanelVariantOverride, onSummaryPanelVariantOverrideChange,
-      onRefreshGit, onOpenGitReview, onOpenBrowserUrl, onOpenAutomationsMain, onOpenCodeViewer, onOpenFileLink, onOpenSubagentSession,
-      onOpenSubagentDirectory, onSyncSubagentSessionTabs, onOpenSelectionSideChat, onOpenPlanDetail, conversationFindQuery, conversationFindActiveIndex,
-      onConversationFindMatchStateChange, searchResultHighlightRequest, onSearchResultHighlightDone,
-    ],
-  );
-  const resolvePaneBinding = React.useMemo(
-    () => (paneId: string): SplitPaneBinding | null => {
-      if (activeGroup) return null; /* 原 T2：组内绑定解析 */
-      if (paneId === PRIMARY_PANE_ID) return primaryBinding;
-      const pane = rootPanes[paneId];
-      return pane?.sessionId
-        ? { workspaceScope: pane.workspaceScope as SplitPaneBinding["workspaceScope"], sessionId: pane.sessionId, ...(pane.readOnly ? { readOnly: true } : {}) }
-        : null;
-    },
-    [activeGroup, primaryBinding, rootPanes],
-  );
-  const notifyActiveSession = React.useCallback(
-    (binding: SplitPaneBinding | null) => {
-      if (!binding || binding.readOnly) return;
-      onPaneActiveSessionChange?.(binding.workspaceScope, binding.sessionId);
-    },
-    [onPaneActiveSessionChange],
-  );
-  const handleFocusRequest = React.useMemo(
-    () => (paneId: string) => {
-      if (activeGroup) {
-        focusGroupPane(activeGroup.id, paneId);
-      } else {
-        focusRootPane(paneId);
-      }
-      notifyActiveSession(resolvePaneBinding(paneId));
-    },
-    [activeGroup, focusGroupPane, focusRootPane, notifyActiveSession, resolvePaneBinding],
-  );
-  const handleClosePane = React.useMemo(
-    () => (paneId: string) => {
-      if (activeGroup) {
-        closeGroupPane(activeGroup.id, paneId);
-      } else {
-        closeRootPane(paneId);
-      }
-      notifyActiveSession(null);
-    },
-    [activeGroup, closeGroupPane, closeRootPane, notifyActiveSession],
-  );
-  const handleConfirmRestoredSession = React.useMemo(
-    () => (paneId: string) => {
-      if (activeGroup) {
-        confirmGroupRestoredSession(activeGroup.id, paneId);
-      } else {
-        confirmRootRestoredSession(paneId);
-      }
-    },
-    [activeGroup, confirmGroupRestoredSession, confirmRootRestoredSession],
-  );
-  const handleCommitRatio = React.useMemo(
-    () => (splitId: string, ratio: number) => {
-      if (activeGroup) {
-        setGroupSplitRatio(activeGroup.id, splitId, ratio);
-      } else {
-        setRootSplitRatio(splitId, ratio);
-      }
-    },
-    [activeGroup, setGroupSplitRatio, setRootSplitRatio],
-  );
-  const handleBindSession = React.useMemo(
-    () => (paneId: string, newSessionId: string): boolean => {
-      if (activeGroup) {
-        bindGroupPaneSession(activeGroup.id, paneId, newSessionId);
-        return true;
-      }
-      if (paneId === PRIMARY_PANE_ID) {
-        const state = rootPanes;
-        if (Object.keys(state).length > 0 && primaryBinding && promotePaneLayoutToGroup(primaryBinding as SessionBinding, useSplitLayoutStore.getState())) {
-          resetToPrimaryPane();
-          logger.info(`[v4-workbench] primary draft promoted to session group`, {
-            createdSessionId: newSessionId,
-            workspaceKey: shellWorkspaceKey,
-          });
-        }
-        return true;
-      }
-      bindRootPaneSession(paneId, newSessionId);
-      if (!sessionId) return false;
-      const promoted = primaryBinding ? promotePaneLayoutToGroup({ ...primaryBinding, sessionId } as SessionBinding, useSplitLayoutStore.getState()) : false;
-      if (promoted) resetToPrimaryPane();
-      return promoted;
-    },
-    [activeGroup, bindGroupPaneSession, bindRootPaneSession, primaryBinding, promotePaneLayoutToGroup, resetToPrimaryPane, rootPanes, sessionId, shellWorkspaceKey],
-  );
-  return (
-    <div ref={containerRef} style={dividerCssVars} className="relative h-full min-h-0 w-full">
-      {flattened.leaves.map((leaf) => (
-        <SplitPaneHost
-          key={leaf.paneId}
-          paneId={leaf.paneId}
-          rect={leaf.rect}
-          focused={focusedPaneId === leaf.paneId}
-          showFocusIndicator={hasMultiplePanes}
-          canSplit={canSplit}
-          shellWorkspaceKey={shellWorkspaceKey ?? ``}
-          binding={leaf.paneId === PRIMARY_PANE_ID ? null : (layoutPanes as Record<string, SplitPaneBinding>)[leaf.paneId] ?? null}
-          primaryBinding={leaf.paneId === PRIMARY_PANE_ID ? activeGroup?.primaryBinding ?? null : null}
-          shell={shellProps}
-          onFocusRequest={handleFocusRequest}
-          onSplit={compactForRemoteControl || activeGroup ? undefined : splitPane}
-          onClosePane={handleClosePane}
-          onConfirmRestoredSession={handleConfirmRestoredSession}
-          onBindSession={handleBindSession}
-          onPaneActiveSessionChange={onPaneActiveSessionChange}
-          canDropSession={compactForRemoteControl ? undefined : () => true}
-          onDropSession={compactForRemoteControl ? undefined : () => {}}
-        />
-      ))}
-      {flattened.dividers.map((divider) => (
-        <SplitDivider
-          key={divider.splitId}
-          containerRef={containerRef}
-          splitId={divider.splitId}
-          direction={divider.direction}
-          ratio={divider.ratio}
-          regionFraction={divider.regionFraction}
-          style={dividerStyle(divider)}
-          onCommitRatio={handleCommitRatio}
-        />
-      ))}
-    </div>
-  );
-}
+/* ── tombstone（A1-R3）：9.6 编排器（原 PTt 之 A0 近似实现，含本地
+ *    SplitPaneBinding/SplitPaneDescriptor 型 + flattenPaneTree/dividerStyle/
+ *    SplitPaneHost/SplitDivider 四 declare）已删除——A1-R3 以
+ *    modules/SplitLayoutUiDeep.tsx 逐字重建 PTt 域（B5；含 $wt/tTt/Xwt/Zwt 等
+ *    全部叶子），WorkspaceShell 改指新模块消费。已知偏差（resolvePaneBinding
+ *    组面返回 null、关闭面板不解析下一活动绑定、拖放 stub）随删除一并消除。 ── */
 
 /* --- 9.7 导出（本文件对外接口；〔A0-S4-4b〕迁出符号改经上方/下方 re-export 面，留守符号仍走本块） --- */
 
 export {
   /* Pane */
   ConversationPane,
-  ConversationOrchestrator,
+  /* ── tombstone（A1-R3）：ConversationOrchestrator 导出已删除——PTt 逐字重建
+   *    迁至 modules/SplitLayoutUiDeep.tsx（消费侧 WorkspaceShell 改指该模块）。 ── */
   PaneFloatingHeader,
   useSessionSnapshot,
   CLOSED_SESSION_STATE,
