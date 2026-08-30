@@ -209,7 +209,7 @@ interface RemoteTargetFormState {
 
 /** 连接日志行（bEt 状态；timestamp 订阅来源为数值、手工追加为时间串，故并集） */
 interface ConnectionLogRow {
-  id: string;
+  id?: string; // A1-R8 宽化：OnboardingLoginLeaves.RemoteConnectionLogEntry（id? 面）改指 mergeRemoteLogProgressEntry 所需；消费面实测（展开追加 543 / t.at(-1)?.id 772 / React key 818）皆容缺失
   level: string;
   message: string;
   timestamp: string | number;
@@ -518,8 +518,10 @@ function classifyProgressLogMessage(e: string) {
   return t ? `upload:${t[1]?.trim() ?? ``}:${t[2]?.trim() ?? ``}` : null;
 }
 
-/** 原 vEt（当前 123762–123784，内部）：同键进度行就地替换（保序追加） */
-function mergeRemoteLogProgressEntry(e: ConnectionLogRow[], t: ConnectionLogRow) {
+/** 原 vEt（当前 123762–123784，内部）：同键进度行就地替换（保序追加）
+ * A1-R8 导出宽化：bundle vEt 虽为块内局部，然 OnboardingLoginLeaves 之 appendRemoteLog
+ * 改指（原调用点 209002 直消 vEt）需跨文件消费，故导出；函数体逐字不变。 */
+export function mergeRemoteLogProgressEntry(e: ConnectionLogRow[], t: ConnectionLogRow) {
   let n = classifyProgressLogMessage(t.message);
   if (n) {
     let r = -1;

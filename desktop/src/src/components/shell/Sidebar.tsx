@@ -1237,13 +1237,10 @@ declare function useOptionalTabStore<T>(selector: (state: WorkspaceTabStore) => 
 /* ── tombstone（A1-R1）：isLocalDirectoryUnavailableSelector（原 sc js 4493 / jsx 3324）declare 已删除，改经文件头真实 import（hasUnavailableLocalDirectoryTab as …，../../modules/WorkspaceTabsDeep）消费。 ── */
 /** 原 Zs：会话注册表 store */
 /** 原 Vo：搜索结果 store（任务列表查询缓存） */
-declare function useSearchResultsStore<T>(selector: (state: SearchResultsState) => T): T;
-interface SearchResultsState {
-  setQueryResults(payload: unknown): void;
-  resultsByQueryKey: Record<string, { taskKeys: string[]; total: number; unreadTaskKeys: string[] } | undefined>;
-  taskMetaByEntityKey: Record<string, TaskMeta>;
-  taskUnreadOverlayByEntityKey: Record<string, number | null>;
-}
+/* ── tombstone（A1-R8）：useSearchResultsStore（原 Vo js 1553）死 declare 删除——本文件零调用点
+ *    （实测 grep 仅余声明位与尾表登记 5497 行）；Vo 真实消费面在 SidebarLeaves
+ *    （144478 簇，同批普查留批注在案）与 QuickPick（35831 簇，canonical 属主）。
+ *    本地 SearchResultsState 脚手架型随删（零余引用）。 ── */
 /** 原 A2（jsx 104365）：会话路由 store（sessionIndex 用于「可在分屏打开」判定） */
 /** 原 yC：反馈 store（TopBar.tsx 已登记） */
 interface FeedbackDraft { title: string; type: string; module: string; severity: string; includeLogs: boolean; description: string; screenshots: Blob[] }

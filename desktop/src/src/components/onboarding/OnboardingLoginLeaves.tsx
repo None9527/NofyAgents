@@ -115,6 +115,18 @@
  *   normalizeTaskBroadcastSessions=幻影删除（O3t 校正）；persistTabsPatch=死声明删除。
  *   附带：connectionTarget 链精化（RemoteSessionTarget）+ RegisteredSession/BaseServices
  *   消费面具型（见 sessionRegistryStore A1-R7 注）。〕
+ * 〔A1-R8 改指（log 族余量 declare，tombstone 各就其位；platform 族侦查留批）：
+ *   normalizeRemoteLogMessage←RemoteGapSegments.stripRemoteLogPrefixes（hEt 123747）
+ *   appendRemoteLog←RemoteGapSegments.mergeRemoteLogProgressEntry（vEt 123762；RGS 导出宽化
+ *     + ConnectionLogRow.id? 宽化在案；调用点 209002 无铸，A0 补铸随型面精化删除归真）
+ *   syncRemoteWorkspaceModelProviders←modules/services.syncProviderRegistryAndReturn
+ *     （Ks 4164 = async (e) => await vse(e)，vse 4237；旧 declare 之 any 面随删归零）
+ *   setCurrentPlatform/setCurrentServices=死声明删除（全树零调用点）
+ *   codeCommentsStore（FH 68562）死 declare 删除（真实消费面在 AppRootLeaves 广播簇，
+ *     同批改指 Composer canonical——A1-R8 stores 普查 FH 四实例收敛）
+ *   附带：RemoteConnectionLogEntry 精化（+id?、timestamp 宽化 string|number）
+ *   platform/遥测引擎族（xw/re/iT/TPe/YPe/vFe + disposeStartupServiceRegistry 等）
+ *   侦查在案、整体留待专批（独立引擎，跨 40457–42700 区）。〕
  * [F] provider family 迁移域：
  *   e6t → presetSelectedKey               (209943 / 166688)
  *   V9  → codingPlanSelectedKey           (209946 / 166691)
@@ -224,7 +236,8 @@ import { logger, resolveWorkspaceKey as workspaceScopeKey } from '../../modules/
 import { MemoizedWorkspaceRoot, type WorkspaceServices } from '../../modules/WorkspaceShell'; // A0-CLEANUP3 #36：Y4t=memo(XJt)=WorkspaceRoot 属主接线（原误包 yJt=WorkspaceShell）
 import { extractErrorMessage as normalizeConnectionError, type FeedbackService } from '../../modules/FeedbackCenter'; // A1-R7：MC=extractErrorMessage 改指（原 normalizeConnectionError declare）
 import { type MobileHomeResult, type WebRemoteSwitcherService } from '../../modules/WebRemote';
-import { ConversationTelemetrySupervisor, registerBaseServices, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指
+import { ConversationTelemetrySupervisor, registerBaseServices, syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指 + A1-R8：Ks@4164（async (e) => await vse(e)，vse@4237）= syncProviderRegistryAndReturn 改指
+import { mergeRemoteLogProgressEntry as appendRemoteLog, stripRemoteLogPrefixes as normalizeRemoteLogMessage } from '../remote/RemoteGapSegments'; // A1-R8：hEt@123747=stripRemoteLogPrefixes、vEt@123762=mergeRemoteLogProgressEntry 改指（环安全：RemoteGapSegments 仅 import React/button/RemoteWizard/Modals/SrcSharedA/B/stores-core，不反入 onboarding）
 import { useSettingsStore } from '../../modules/stores-core';
 import { DEFAULT_CODE_PREVIEW_SETTINGS as defaultCodePreviewSettings } from '../../modules/MarkdownIntegration'; // 默认代码预览设置（原 lo，1040）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
@@ -396,12 +409,16 @@ export interface BotRemoteWorkspaceReconnectedEvent {
   workspacePath: string;
   workspaceIdentity?: string | null;
 }
+/** A1-R8 精化：+id?（bundle 209002 追加点以 `${label}-${timestamp}-${len}` 自造 id，型面须容缺失）、
+ * timestamp 宽化 number → string | number（与 RemoteGapSegments.ConnectionLogRow 并集面对齐，
+ * 双向可指派，改指 appendRemoteLog=mergeRemoteLogProgressEntry 所需）；消费面实测仅 2162/2165 两处。 */
 export interface RemoteConnectionLogEntry {
   label?: string;
   level: string;
   message: string;
-  timestamp: number;
+  timestamp: string | number;
   requestId?: string;
+  id?: string;
 }
 export interface UpdateStateSnapshot {
   [key: string]: any;
@@ -640,12 +657,9 @@ export interface SessionRouterGroup {
   [key: string]: any;
 }
 /* ── tombstone（A1-R2）：splitLayoutStore（原 s2 js 121720）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
-declare const codeCommentsStore: {
-  getState(): {
-    restoreCommentFromAttachment(payload: { id: string; [key: string]: any }): void;
-    removeCommentBySource(payload: unknown): void;
-  };
-};
+/* ── tombstone（A1-R8）：codeCommentsStore（原 FH js 68562）死 declare 删除——本文件零调用点
+ *    （实测 grep 仅余声明位）；FH 真实消费面在 AppRootLeaves 广播监听簇（212998/213003），
+ *    该处已改指 canonical（modules/Composer useCodeCommentsStore，A1-R8 双实例收敛）。 ── */
 /* ── tombstone（A1-R6）：remoteWorkspaceKey（原 R2=sessionEntryWorkspaceKey，js 123306，
  *    §E 邻接域）declare 删除 → 真实 import（sessionEntryWorkspaceKey as remoteWorkspaceKey，
  *    参型/返回逐字同形：`workspaceIdentity?.trim() || workspacePath`）。 ── */
@@ -737,15 +751,15 @@ export interface RemoteSessionEntry {
 /* ── tombstone（A1-R2）：persistableTabEntries（原 sEt js 123457）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。
  *    改指附带校正：bundle sEt 第二参为 Map（调用方 O3t 先以 lEt 建键值映射），
  *    旧 declare 误作数组面；调用点按 bundle js 208830 补 sessionEntryMapByKey（原 lEt js 123481）包裹。 ── */
-declare function normalizeRemoteLogMessage(message: string): string | null;
-declare function appendRemoteLog(entries: RemoteConnectionLogEntry[], entry: RemoteConnectionLogEntry): RemoteConnectionLogEntry[];
-declare function syncRemoteWorkspaceModelProviders(options: {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  remoteSessionId: string;
-  localModelProviderService: ModelProviderServiceLike;
-  remoteZCodeSessionService: any;
-}): Promise<void>;
+/* ── tombstone（A1-R8）：normalizeRemoteLogMessage（原 hEt js 123747）declare 删除 → 真实 import
+ *    stripRemoteLogPrefixes as normalizeRemoteLogMessage（../remote/RemoteGapSegments，canonical 已就位）。 ── */
+/* ── tombstone（A1-R8）：appendRemoteLog（原 vEt js 123762）declare 删除 → 真实 import
+ *    mergeRemoteLogProgressEntry as appendRemoteLog（../remote/RemoteGapSegments；RGS 侧导出宽化 + 行注在案）。
+ *    调用点附带校正：bundle 209002 无 `as RemoteConnectionLogEntry` 铸（A0 期补铸，型面精化后删除归真）。 ── */
+/* ── tombstone（A1-R8）：syncRemoteWorkspaceModelProviders（原 Ks js 4164 = async (e) => await vse(e)，
+ *    vse@4237）declare 删除 → 真实 import syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders
+ *    （../../modules/services 105 行 re-export，实体在 services/providerRegistrySync.ts，A0-S4-3 逐字转录）。
+ *    附带收益：旧 declare 之 remoteZCodeSessionService: any 随删归零。 ── */
 declare function refreshPinnedTasks(options: { sessionId: string; workspacePath: string; workspaceIdentity?: string | null }): Promise<void>;
 declare function refreshTimelineTasks(options: { sessionId: string; workspacePath: string; workspaceIdentity?: string | null }): Promise<void>;
 declare function isSameWorkspace(state: TabStoreState, workspacePath: string, workspaceIdentity?: string): boolean;
@@ -839,8 +853,9 @@ declare function reportLaunchMarks(payload: {
 }): void;
 
 /* --- 根装配杂项 --- */
-declare function setCurrentPlatform(platform: PlatformService | null): void;
-declare function setCurrentServices(services: ServicesBundle | null): void;
+/* ── tombstone（A1-R8）：setCurrentPlatform / setCurrentServices 两枚死 declare 删除——全树零调用点
+ *    （实测：本文件及全仓 grep 仅余声明位）；其 bundle 对应面属根装配 currentPlatform/currentServices
+ *    模块槽（iT@41604 族），本文件从未消费。平台/遥测引擎族（xw/re/iT/TPe/YPe/vFe）整体留待专批。 ── */
 declare function disposeStartupServiceRegistry(): void;
 declare function useAppSettings(): { settings: AppSettings | null; refresh: () => Promise<void>; update: (patch: Partial<AppSettings>) => Promise<void> };
 declare function useWebRemoteControlFeatureEnabled(): boolean;
@@ -2163,7 +2178,7 @@ export function useRemoteConnectionLogs(options: {
                     level: entry.level,
                     message,
                     timestamp: entry.timestamp,
-                  } as RemoteConnectionLogEntry).slice(-MAX_REMOTE_LOGS_PER_WORKSPACE);
+                  }).slice(-MAX_REMOTE_LOGS_PER_WORKSPACE);
                 (next === current && (next = { ...current }), (next[key] = appended));
               }
               return next;

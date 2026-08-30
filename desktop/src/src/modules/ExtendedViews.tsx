@@ -676,11 +676,10 @@ interface OffPeakStoreState {
   deleteHistory(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
   consumePendingCreateDraft(): OffPeakCreateDraft | null;
 }
-interface OffPeakStoreHook {
-  <T>(selector: (state: OffPeakStoreState) => T): T;
-  getState(): OffPeakStoreState;
-}
-declare const useOffPeakTaskStore: OffPeakStoreHook;
+/* ── tombstone（A1-R8）：useOffPeakTaskStore（原 bX js 91416）死 declare 删除——本文件零调用点
+ *    （实测 grep 仅余声明位）；OffPeakStoreHook 脚手架随删。bX 真实消费面：
+ *    Home kit 簇（bundle 91645–91650，canonical 属主）+ AutomationsMainView
+ *    （138876 簇，普查留批注在案）。OffPeakStoreState 型面留用（687 行 isCodingPlanConnectionActive 助手仍引）。 ── */
 
 /** 原 Tit（js 91347）：coding plan 支持判定 */
 declare function isCodingPlanConnectionActive(

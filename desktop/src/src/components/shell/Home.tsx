@@ -634,9 +634,13 @@ export interface OffPeakTaskStoreState {
 let offPeakInitializeInFlight: Promise<void> | null = null;
 
 /**
- * 原 bX（js 91368 / jsx 78945）：off-peak 闲时任务 store（zustand）。
+ * 原 bX（js 91416；A0 期误标 91368 / jsx 78945）：off-peak 闲时任务 store（zustand）。
  * 横幅可见性（grayConfig.enabled + newTaskBannerDismissed）与 3 张建议卡的
  * pendingCreateDraft 投递都在这里。
+ * A1-R8 双实例收敛 canonical：bundle 唯一 bX（@91416，紧邻 kit@91639 定义区属主）。
+ * 本文件消费面 896–901 = bundle 91645–91650 钩子簇；stores/offPeakTaskStore.ts
+ * 并行实例休眠降 shim；AutomationsMainView 之 bX 消费面（bundle 138876 簇）
+ * 普查裁决接线归一，型面对齐留批（见其留批注）。
  */
 export const useOffPeakTaskStore = create<OffPeakTaskStoreState>()((set, get) => ({
   tasks: [],

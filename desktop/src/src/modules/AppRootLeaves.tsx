@@ -134,6 +134,7 @@ import { useTaskStore, type GroupedDraftPlacement } from './SkillStore';
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { ConversationTelemetrySupervisor, useWorkspaceServices } from './services';
 import { useSettingsStore } from './stores-core';
+import { useCodeCommentsStore as codeCommentsStore } from './Composer'; // A1-R8：FH 双实例收敛接线（原 declare 改指 canonical = Composer 6716 区；本文件 2009/2014 消费面 = bundle 212998/213003 广播监听簇）
 import { TooltipProvider } from './UsageStatsUiParts'; // 原 Na（A0-CLEANUP 族清理接线）
 import { CLOSE_ACTIVE_CONTEXT_EVENT } from './WorkspaceShell'; // 原 r7（A0-CLEANUP B-32 接线）
 import { hasUnavailableLocalDirectoryTab, isSettingsTab, isWorkspaceKindTab } from './WorkspaceTabsDeep'; // 原 sc/Pse/oc（A1-R1：styles js 4493/4497/4487 逐字重建改指）
@@ -195,15 +196,12 @@ declare function syncRemoteTabsE2E(tabs: Array<{ workspacePath: string; workspac
 declare const runtimePreferencesSchema: {
   safeParse(payload: unknown): { success: true; data: any; error?: undefined } | { success: false; error: { issues: unknown } };
 }; // 原 Dt
-declare function isCodeCommentRestorePayload(payload: unknown): payload is { id?: string; [key: string]: any }; // 原 NH
+declare function isCodeCommentRestorePayload(payload: unknown): payload is { id: string; workspacePath: string; workspaceIdentity?: string | null; sourcePath: string; sourceTitle: string; startLine: number; endLine: number; selectedText: string; comment: string }; // 原 NH；A1-R8 精化：谓词型面对齐 canonical restoreCommentFromAttachment 形参（Composer CodeCommentAttachment & { sourcePath: string } 结构面；原 { id?: string; [key: string]: any } 近似面改指后缝合不拢）
 declare function isCodeCommentRemovePayload(payload: unknown): boolean; // 原 MH
 declare function normalizeCodeCommentRemovePayload(payload: unknown): void; // 原 jH
-declare const codeCommentsStore: {
-  getState(): {
-    restoreCommentFromAttachment(payload: { id: string; [key: string]: any }): void;
-    removeCommentBySource(payload: unknown): void;
-  };
-}; // 原 FH
+/* ── tombstone（A1-R8）：codeCommentsStore（原 FH js 68562）declare 删除 → 真实 import
+ *    useCodeCommentsStore as codeCommentsStore（./Composer，A1-R8 双实例收敛之 canonical）。
+ *    本文件广播监听消费面（2009/2014 = bundle 212998/213003）调用点逐字不变。 ── */
 declare function subscribeModelProviders(listener: (providers: ModelProviderRecord[]) => void): () => void; // 原 hM
 declare function getModelProvidersCached(): ModelProviderRecord[]; // 原 fM
 declare function isModelProviderSnapshotHydrated(): boolean; // 原 pM

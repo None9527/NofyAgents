@@ -1090,6 +1090,10 @@ interface SkillContextStoreState {
 }
 
 /** 原 UB（js 63640 / jsx 56751）：技能上下文 store（zustand） */
+/** A1-R8 双实例收敛 canonical：bundle 唯一 UB（@63640，本文件转录域 63571–63704）。
+ * 树内原两并行实例（本文件 + stores/skillContextStore.ts 80）；本文件消费面
+ * 1173–1176 = bundle 63708–63711 钩子簇。stores/ 侧降 re-export shim（其 →本文件
+ * 边 A0-CLEANUP2 item 13 既成，零新边）。 */
 export const useSkillContextStore = createStore<SkillContextStoreState>((set, get) => ({
   contexts: {},
   async initialize(workspacePath, provider, skillsService, workspaceIdentity) {
@@ -6382,7 +6386,7 @@ function useComposerAttachments(args: {
 /** 代码评论形状（语义归纳；中把握度） */
 interface CodeCommentEntry {
   id: string;
-  sourcePath?: string;
+  sourcePath: string; // A1-R8 精化：?→必填（bundle 真形：EXe 解析缺 sourcePath 即返 null，FH 各写点必携；CodeViewer 改指缝合所需）
   sourceTitle: string;
   startLine: number;
   endLine: number;
@@ -6712,8 +6716,16 @@ interface CodeCommentsStoreState {
   clearSource(bucket: { workspacePath: string; workspaceIdentity?: string | null; sourcePath: string }): void;
 }
 
-/** FH → useCodeCommentsStore（js 68562） */
-const useCodeCommentsStore = createStore<CodeCommentsStoreState>((set, get) => ({
+/** FH → useCodeCommentsStore（js 68562）
+ * A1-R8 双实例收敛 canonical：bundle 唯一 FH（@68562，定义于本文件转录域 68558–68628，
+ * 尾表在案）。树内原四并行实例（本文件 + CodeViewer.tsx 325 + GitReview.tsx 2202 +
+ * stores/codeCommentsStore.ts 58）实测消费面：本文件 6793（jXe 转录 = bundle 68634）；
+ * CodeViewer 1604–1606（= bundle 161450–161452 钩子簇）；GitReview 2290/2606/2676/2681
+ * （jXe/Ue-We/g8t 助手转录）；AppRootLeaves 2009/2014（= bundle 212998/213003 广播监听，
+ * 原 declare 改指）。裁决本实例为 canonical：FH 定义区属主 + 环安全唯一可行向
+ * （CodeViewer 88 / GitReview 215 已 import 本文件；反向 Composer→CodeViewer 与
+ * Composer→GitReview 皆成二环）。余三实例降 re-export shim/改指，证据链各就其位。 */
+export const useCodeCommentsStore = createStore<CodeCommentsStoreState>((set, get) => ({
   commentsByBucketKey: {},
   getComments: (bucket) => get().commentsByBucketKey[commentBucketKey(bucket)] ?? EMPTY_COMMENTS,
   addComment: (args) => {

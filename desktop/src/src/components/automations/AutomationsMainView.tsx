@@ -292,7 +292,7 @@ interface OffPeakStoreHook {
   getState(): OffPeakStoreState;
 }
 
-declare const useOffPeakTaskStore: OffPeakStoreHook;
+declare const useOffPeakTaskStore: OffPeakStoreHook; // A1-R8 普查留批：bundle 唯一 bX@91416（A0 误标 91368），canonical 裁决 = components/shell/Home.tsx 641 区（定义区属主 + 唯一 live 实例；stores/offPeakTaskStore 已降 shim）。本 declare 消费面（1155–1173/1573–1600 = bundle 138876/139287 簇）与 canonical 型面缝合不拢（OffPeakCreateResult 双名型、grayConfig 索引面等 10 处），接线留待型面对齐专批
 
 interface WorkspaceTab {
   id: string;

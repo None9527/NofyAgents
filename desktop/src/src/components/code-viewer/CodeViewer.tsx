@@ -85,7 +85,7 @@ import * as React from "react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Ellipsis as IconEllipsis, ExternalLink as IconOpenExternal, FileCode as IconFileCode, Eye as IconEye, Copy as IconCopy, ChevronDown as IconChevronDown } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, ChevronRight as IconChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
-import { nanoid as uid } from '../../modules/Composer'; // 原 QV（js 67278；A0-CLEANUP2 item 12 接线：uid declare → Composer 属主导出 nanoid）
+import { nanoid as uid, useCodeCommentsStore } from '../../modules/Composer'; // 原 QV（js 67278；A0-CLEANUP2 item 12 接线：uid declare → Composer 属主导出 nanoid）+ A1-R8：FH 双实例收敛改指（canonical = Composer 6716 区）
 import { toast, usePlatform as usePlatformService } from '../../modules/ImeComposition'; // 原 m / 平台服务钩子（imeComposition chunk 导出 M=usePlatform）
 import { LazyPdfViewer, LazyPptxPreviewViewer } from '../../modules/LazyPreviewViewers';
 import { MarkdownRenderer, baseName as basename, isAbsolutePath, relativePathFromWorkspace as relativePath, useRemoteWorkspaceInfo } from '../../modules/MarkdownIntegration'; // 原 Go / Ko / zA / $A
@@ -321,76 +321,13 @@ interface CodeCommentsStoreState {
 /** zustand create（原 Ae，skillStore chunk；set 支持局部更新） */
 
 
-/** 原 FH：行级代码评论 store（按 工作区\0源路径 分桶） */
-export const useCodeCommentsStore = createZustandStore<CodeCommentsStoreState>((set, get) => ({
-  commentsByBucketKey: {},
-  getComments: (bucket) => get().commentsByBucketKey[commentBucketKey(bucket)] ?? EMPTY_COMMENTS,
-  addComment: (args) => {
-    const key = commentBucketKey(args);
-    set((state) => {
-      const existing = state.commentsByBucketKey[key] ?? [];
-      return {
-        commentsByBucketKey: {
-          ...state.commentsByBucketKey,
-          [key]: [...existing.filter((c) => c.id !== args.comment.id), args.comment],
-        },
-      };
-    });
-  },
-  removeComment: (args) => {
-    const key = commentBucketKey(args);
-    set((state) => {
-      const existing = state.commentsByBucketKey[key] ?? [];
-      const next = existing.filter((c) => c.id !== args.id);
-      return next.length === existing.length ? state : { commentsByBucketKey: { ...state.commentsByBucketKey, [key]: next } };
-    });
-  },
-  removeCommentBySource: (args) => {
-    const prefix = `${workspaceKeyOf(args.workspacePath, args.workspaceIdentity)}\0`;
-    set((state) => {
-      let changed = false;
-      const next = Object.fromEntries(
-        Object.entries(state.commentsByBucketKey).map(([key, comments]) => {
-          if (!key.startsWith(prefix)) return [key, comments];
-          const filtered = comments.filter((c) => c.id !== args.id);
-          changed ||= filtered.length !== comments.length;
-          return [key, filtered];
-        }),
-      );
-      return changed ? { commentsByBucketKey: next } : state;
-    });
-  },
-  restoreCommentFromAttachment: (comment) => {
-    if (!comment.sourcePath) return;
-    markCodeCommentAttachmentRestored({
-      id: comment.id,
-      workspacePath: comment.workspacePath,
-      workspaceIdentity: comment.workspaceIdentity,
-    });
-    get().addComment({
-      workspacePath: comment.workspacePath,
-      workspaceIdentity: comment.workspaceIdentity,
-      sourcePath: comment.sourcePath,
-      comment: {
-        id: comment.id,
-        sourcePath: comment.sourcePath,
-        sourceTitle: comment.sourceTitle,
-        startLine: comment.startLine,
-        endLine: comment.endLine,
-        selectedText: comment.selectedText,
-        comment: comment.comment,
-      },
-    });
-  },
-  clearSource: (bucket) => {
-    const key = commentBucketKey(bucket);
-    set((state) => {
-      if (!state.commentsByBucketKey[key]) return state;
-      const { [key]: _removed, ...rest } = state.commentsByBucketKey;
-      return { commentsByBucketKey: rest };
-    });
-  },
-}));
+/** 原 FH：行级代码评论 store（按 工作区\0源路径 分桶）
+ * ── tombstone（A1-R8 双实例收敛）：本地 create（325–393 区）删除 → 改指 canonical
+ *    modules/Composer.tsx useCodeCommentsStore（bundle 唯一 FH@68562）。本文件消费面
+ *    1604–1606 = bundle 161450–161452 钩子簇（getComments/addComment/removeComment 逐字对应）。
+ *    导出面维系：modules/CodeViewer.tsx 91 行 re-export 不破（零终端拉取，留面备查）。
+ *    本地 CodeCommentsStoreState 型面（307）随 create 删除失引，保留备查。 ── */
+export { useCodeCommentsStore };
 
 /** 原 OXe/_Xe/kXe/vXe：代码评论 ↔ 聊天附件同步（Composer 域横切） */
 declare function addCodeCommentAttachmentToChat(args: {

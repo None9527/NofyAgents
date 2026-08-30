@@ -1,19 +1,31 @@
-// A0-S4-3: 自 modules/stores-workspace.tsx §2 原样迁入（UB SkillContextStore；原文件现为薄 re-export shim）。
-import { loadSkillContext } from '../modules/Composer'; // 原 HB（js 63581；A0-CLEANUP2 item 13 接线：declare → Composer 属主导出）
-import { resolveDefaultAgentCliProvider as normalizeProvider } from '../modules/SrcSharedA'; // 原 ni
-import { create as createStore } from './zustand'; // 原 Ae（skillStore chunk q 导出）
-import type { UseBoundStore } from './storeTypes';
-
 /* ============================================================================
- * 2. SkillContextStore（原 UB，js 63592–63845 / jsx 56751）
+ * skillContextStore.ts — 薄 re-export shim（A1-R8 双实例收敛）+ 属主助手
  * ----------------------------------------------------------------------------
- * 按 工作区×供应商×身份 缓存技能上下文（技能列表/能力/加载态）。
- * state 字段表：contexts: Record<contextKey, SkillContextEntry>（1 个）
- *   contextKey = `${identity?.trim() || workspacePath}::${provider}`（原 BB，63517）
- * actions：initialize/refresh/setEnabled（3 个）
- * 消费：WB useSkillContext 钩子（63636–63704）——与技能主 store（Ne，skillStore
- *   chunk）双源合流：主 store 已载同一工作区时优先其数据，否则用本缓存。
+ * A0-S4-3 本文件原持并行 zustand 实例之一（自 stores-workspace §2 迁入）。
+ * A1-R8 普查：bundle 唯一 UB（@63640，定义于 Composer 转录域 63571–63704，
+ * Composer 尾表在案）。树内两并行实例：modules/Composer.tsx 1093 / 本文件 80。
+ * 实测消费面：Composer 实例 1173–1176（= bundle 63708–63711 钩子簇，
+ * contexts[key]/initialize/refresh/setEnabled 逐字对应）；本文件实例经
+ * stores-workspace 77 行 re-export → StoresDeep 146 行 + commandsHelpers 3 行
+ * （后者 = bundle N6@142724 UB.getState() 簇）。两实例皆 live → 择一收敛。
+ * 裁决：Composer 为 canonical——UB 定义区属主 + 环安全唯一可行向（本文件
+ * A0-CLEANUP2 item 13 已 import Composer 之 loadSkillContext，边既成；反向
+ * Composer→本文件则与本边成二环）。本文件实例删除（原实现见 git 历史，
+ * 检查点 153547a）。
+ * 导出面维系：useSkillContextStore（改 re-export）+ skillContextKey（原 BB，
+ * 纯函数助手非 store 实例，保留属主位）+ SkillDescriptor/SkillContextEntry/
+ * SkillsService/SkillContextState 四型（stores-workspace 63–64 / commandsHelpers
+ * 3–4 行 import 面逐一不破）。
+ * 环安全：本文件 → modules/Composer 为既有边（loadSkillContext 接线在案），
+ * 本批仅扩其导入面，零新边。
+ * 同型先例：stores/confirmDialogStore.ts（A1-R6）、stores/alertDialogStore.ts（A1-R7）、
+ * stores/codeCommentsStore.ts（A1-R8 同批）。
  * ==========================================================================*/
+
+import { useSkillContextStore } from '../modules/Composer'; // A1-R8 canonical re-export（原 UB js 63640）；本文件 → Composer 边 A0-CLEANUP2 item 13 既成（原载 loadSkillContext，随实例删除并入同一边）
+import { resolveDefaultAgentCliProvider as normalizeProvider } from '../modules/SrcSharedA'; // 原 ni
+
+export { useSkillContextStore };
 
 export interface SkillDescriptor {
   id: string;
@@ -68,53 +80,3 @@ export interface SkillContextState {
 export function skillContextKey(workspacePath: string, provider: string, workspaceIdentity?: string | null): string {
   return `${workspaceIdentity?.trim() || workspacePath}::${normalizeProvider(provider)}`;
 }
-
-/* A0-CLEANUP2 item 13：原 HB declare 删除 → 改用 Composer 属实导出。
-   本文件 SkillContextEntry/SkillsService 为接口级镜像（缺 workspacePath/provider/loaded 等属主侧字段），
-   故调用面按 Composer 自身先例（Composer useSkillContextStore，js UB 63640）以 as never 桥接。 */
-
-function patchSkillContextEntry(state: SkillContextState, key: string, entry: SkillContextEntry): Partial<SkillContextState> {
-  return { contexts: { ...state.contexts, [key]: entry } };
-}
-
-export const useSkillContextStore: UseBoundStore<SkillContextState> = createStore<SkillContextState>((set, get) => ({
-  contexts: {},
-  async initialize(workspacePath, provider, skillsService, workspaceIdentity) {
-    const key = skillContextKey(workspacePath, provider, workspaceIdentity);
-    if (get().contexts[key]) return;
-    await loadSkillContext(
-      { workspacePath, provider, skillsService: skillsService as never, workspaceIdentity: workspaceIdentity ?? undefined, bypassCache: false },
-      set as never,
-      get as never,
-    );
-  },
-  async refresh(workspacePath, provider, skillsService, workspaceIdentity) {
-    await loadSkillContext(
-      { workspacePath, provider, skillsService: skillsService as never, workspaceIdentity: workspaceIdentity ?? undefined, bypassCache: true },
-      set as never,
-      get as never,
-    );
-  },
-  async setEnabled(workspacePath, provider, skillId, scope, enabled, skillsService, workspaceIdentity) {
-    const normalized = normalizeProvider(provider);
-    try {
-      await skillsService.setEnabled({
-        workspacePath,
-        workspaceIdentity: workspaceIdentity?.trim() || undefined,
-        provider: normalized,
-        scope,
-        skillId,
-        enabled,
-      });
-      await get().refresh(workspacePath, normalized, skillsService, workspaceIdentity);
-    } catch (error) {
-      const key = skillContextKey(workspacePath, normalized, workspaceIdentity);
-      const message = error instanceof Error ? error.message : String(error);
-      set((state) => {
-        const entry = state.contexts[key];
-        return entry ? patchSkillContextEntry(state, key, { ...entry, loading: false, error: message }) : {};
-      });
-    }
-  },
-}));
-

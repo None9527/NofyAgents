@@ -212,7 +212,7 @@ import { Button, ChevronRight as IconChevronRight } from '../../modules/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb）
 import { resolveBranchDisplayLabel } from '../../modules/CmdkPaletteDeep';
 import { DiffViewer, readLastEditorId as getPreferredEditorId } from '../../modules/CodeViewer'; // 原 OA
-import { appendWebElementsToContent, type WebElementContext } from '../../modules/Composer'; // 原 zXe 族（A0-CLEANUP2 item 11 接线：declare → Composer 属主导出）
+import { appendWebElementsToContent, useCodeCommentsStore, type WebElementContext } from '../../modules/Composer'; // 原 zXe 族（A0-CLEANUP2 item 11 接线：declare → Composer 属主导出）+ A1-R8：FH 双实例收敛改指（canonical = Composer 6716 区）
 import { orderEditorsForFileManager as normalizeInstalledEditors, useFileContextActions } from '../../modules/FileTreePanel'; // 原 GA / QA
 import { Popover as PopoverRoot, PopoverAnchor, PopoverContent, PopoverTrigger, Textarea, toast, usePlatform as usePlatformService } from '../../modules/ImeComposition'; // 原 平台钩子（imeComposition 导出 M=usePlatform）
 import { FilePathInline, PlainTextDiffPreview as LightweightDiffPreview, pathBasename } from '../../modules/ModalsLeaves'; // 原 gut
@@ -2198,75 +2198,13 @@ const EMPTY_COMMENTS: CodeComment[] = [];
  * commentsByBucketKey 按「工作区键 \0 文件路径」分桶；同 id 覆盖写；
  * removeCommentBySource 跨桶按 id 清除；restoreCommentFromAttachment 先解除
  * 「已回流」标记再写回（发送后重新打开查看器时恢复显示）。
- */
-export const useCodeCommentsStore = createStore<CodeCommentsStoreState>((set, get) => ({
-  commentsByBucketKey: {},
-  getComments: (scope) => get().commentsByBucketKey[codeCommentBucketKey(scope)] ?? EMPTY_COMMENTS,
-  addComment: (req) => {
-    const bucketKey = codeCommentBucketKey(req);
-    set((state) => {
-      const bucket = state.commentsByBucketKey[bucketKey] ?? [];
-      return {
-        commentsByBucketKey: {
-          ...state.commentsByBucketKey,
-          [bucketKey]: [...bucket.filter((comment) => comment.id !== req.comment.id), req.comment],
-        },
-      };
-    });
-  },
-  removeComment: (req) => {
-    const bucketKey = codeCommentBucketKey(req);
-    set((state) => {
-      const bucket = state.commentsByBucketKey[bucketKey] ?? [];
-      const next = bucket.filter((comment) => comment.id !== req.id);
-      return next.length === bucket.length
-        ? state
-        : { commentsByBucketKey: { ...state.commentsByBucketKey, [bucketKey]: next } };
-    });
-  },
-  removeCommentBySource: (req) => {
-    const workspaceKey = commentWorkspaceKey(req.workspacePath, req.workspaceIdentity);
-    set((state) => {
-      let changed = false;
-      const nextBuckets = Object.fromEntries(
-        Object.entries(state.commentsByBucketKey).map(([key, bucket]) => {
-          if (!key.startsWith(`${workspaceKey}\0`)) return [key, bucket];
-          const next = bucket.filter((comment) => comment.id !== req.id);
-          changed ||= next.length !== bucket.length;
-          return [key, next];
-        }),
-      );
-      return changed ? { commentsByBucketKey: nextBuckets } : state;
-    });
-  },
-  restoreCommentFromAttachment: (attachment) => {
-    if (attachment.sourcePath) {
-      unmarkCommentRemovedFromChat({ id: attachment.id, workspacePath: attachment.workspacePath, workspaceIdentity: attachment.workspaceIdentity });
-      get().addComment({
-        workspacePath: attachment.workspacePath,
-        workspaceIdentity: attachment.workspaceIdentity,
-        sourcePath: attachment.sourcePath,
-        comment: {
-          id: attachment.id,
-          sourcePath: attachment.sourcePath,
-          sourceTitle: attachment.sourceTitle,
-          startLine: attachment.startLine,
-          endLine: attachment.endLine,
-          selectedText: attachment.selectedText,
-          comment: attachment.comment,
-        },
-      });
-    }
-  },
-  clearSource: (scope) => {
-    const bucketKey = codeCommentBucketKey(scope);
-    set((state) => {
-      if (!state.commentsByBucketKey[bucketKey]) return state;
-      const { [bucketKey]: _removed, ...rest } = state.commentsByBucketKey;
-      return { commentsByBucketKey: rest };
-    });
-  },
-}));
+ * ── tombstone（A1-R8 双实例收敛）：本地 create 删除 → 改指 canonical
+ *    modules/Composer.tsx useCodeCommentsStore（bundle 唯一 FH@68562；A0 期行号
+ *    68514 为 TXe 助手位，FH 实体在 68562，更正登记）。本文件消费面 2290/2606/
+ *    2676/2681（jXe/Ue-We/g8t 助手转录）经 import 改指逐字不变。导出面维系：
+ *    modules/GitReview.tsx 277 行 re-export 不破（零终端拉取，留面备查）。
+ *    本地 CodeCommentsStoreState 型面（2178）随 create 删除失引，保留备查。 ── */
+export { useCodeCommentsStore };
 
 /** 广播服务（原 ie?.broadcastService，横切层；仅列本族用到的面） */
 interface BroadcastService {
