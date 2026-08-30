@@ -7,7 +7,11 @@
    ok 分支透传、失败分支 errorCategory/errorCode/failureStage 全字段读取；
    stores-tasks transportFailure 字面量满足失败分支） */
 export type OffPeakCreateResult =
-  | { ok: true; task?: unknown; [key: string]: unknown }
+  /* A1-R9 精化：ok 支 task 原为 task?: unknown → 按运行期真形（创建成功恒含
+   * 任务记录）具型为任务记录最小面并改必填——与 Home bX canonical 面双向对齐
+   * （Home ok 支 task: OffPeakTaskSummary 必填；shim OffPeakTaskService.createTask
+   * 返回面 → Home OffPeakTaskService 指派合拢，bX 接线所需）。 */
+  | { ok: true; task: { offPeakTaskId: string; prompt: string; status: string; title?: string; [key: string]: unknown }; [key: string]: unknown }
   | {
       ok: false;
       failureStage: string;

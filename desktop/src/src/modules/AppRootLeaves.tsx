@@ -140,6 +140,9 @@ import { CLOSE_ACTIVE_CONTEXT_EVENT } from './WorkspaceShell'; // 原 r7（A0-CL
 import { hasUnavailableLocalDirectoryTab, isSettingsTab, isWorkspaceKindTab } from './WorkspaceTabsDeep'; // 原 sc/Pse/oc（A1-R1：styles js 4493/4497/4487 逐字重建改指）
 import { EMPTY_PANE_LAYOUT, hasSplitLayoutBindings, isReloadNavigationEntry, sessionRouterStore, splitLayoutStore } from './SplitLayoutDeep'; // 原 K0/jwt/z0/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）
 import type { AgentFact, TelemetryPlatform } from './services';
+import { reportTelemetry as trackTelemetryEvent, reportLaunchToInputPerf as reportLaunchMarks, setUiPerfPlatform as setTelemetryPlatform, clearAllTelemetryTiming as resetTelemetryParityState } from './StoresDeep'; // A1-R9 条件项：platform/遥测引擎族别名改指——原 xw（bundle 40457；StoresDeep H.1 reportTelemetry 逐字）/原 YPe（ui_perf 域 reportLaunchToInputPerf）/原 iT（ui_perf 域 setUiPerfPlatform）/原 TPe（tracker 域 clearAllTelemetryTiming）；调用点 422/1708/2280/1745/1751/1941/1943/1470 逐字不变（PlatformService→TelemetryPlatform 方法双变可赋；launchMarks.marks { createdAt; [key:string]: any }→marks 具形索引可赋）
+import { isE2EStoreBridgeEnabled as isTelemetryEnabled } from './SkillStore'; // A1-R9 条件项：原 re = skillStore chunk 之 K 导出（bundle styles 382 `K as re`；消费点 l8t 212526/C8t 213911/uNe 40331 实测），canonical = stores/e2eStoreBridge isE2EStoreBridgeEnabled（原 v jsx 50 逐字）；同型先例 FeedbackCenter isE2eStoreBridgeMode 别名
+import { disposeAllSupervisors as disposeStartupServiceRegistry } from './services'; // A1-R9 条件项：原 vFe（bundle 42698）= services/telemetryScopes E.1 disposeAllSupervisors（vT 注册表逐项 xT）；调用点 1951 逐字不变
 /* ── tombstone（A0-CLEANUP）：CodingPlanUpgradeDialogProvider（PaymentDeep krt）/
  *    CLOSE_ACTIVE_CONTEXT_EVENT（WorkspaceShell r7）declare 已删除，改经文件头
  *    真实 import 消费。 ── */
@@ -176,20 +179,27 @@ interface SettingsStoreSlice {
 declare function useAppSettings(): { settings: AppSettings | null; refresh: () => Promise<void>; update: (patch: Record<string, unknown>) => Promise<void> }; // 原 JM
 
 /* --- 遥测 / 启动标记 --- */
-interface TelemetryPlatformLike {
-  reportTelemetryEvent?(...args: unknown[]): Promise<void>;
-  reportArmsCustomEvent?(...args: unknown[]): Promise<void>;
-  [key: string]: any;
-}
-declare function trackTelemetryEvent(platform: TelemetryPlatformLike | null, payload: Record<string, unknown>, source: string): Promise<void>; // 原 xw
-declare function isTelemetryEnabled(): boolean; // 原 re
-declare function reportLaunchMarks(payload: { marks: unknown; rendererStart: number; reactCommit: number; inputReady: number; sessionId: string }): void; // 原 YPe
+/* ── tombstone（A1-R9）：TelemetryPlatformLike 局部近似面删除——原供 xw/iT 两枚
+ *    declare 使用，declare 改指 canonical 后全树零消费（1542 改具 TelemetryPlatform）。 ── */
+/* ── tombstone（A1-R9）：trackTelemetryEvent（原 xw）/isTelemetryEnabled（原 re）/
+ *    reportLaunchMarks（原 YPe）declare 删除，改经文件头真实 import 别名改指
+ *    （./StoresDeep reportTelemetry/reportLaunchToInputPerf；./SkillStore
+ *    isE2EStoreBridgeEnabled）。bundle 唯一真形：xw@40457 即 reportTelemetry(platform,
+ *    report, scope)；re = skillStore chunk K 导出（styles 382 `K as re`）= E2E 桥门控
+ *    isE2EStoreBridgeEnabled（R8 裁决在案）；YPe = ui_perf 域 reportLaunchToInputPerf
+ *    （负段/超 300s 整批丢弃真形）。消费面 422（logout 上报）/1456+2592（E2E 门控）/
+ *    2280（启动标记）实测逐字通过。环安全：StoresDeep 值导入闭包（logger/SrcSharedA/B/
+ *    stores-workspace/SkillStore/stores-*）不达本文件（全树无本文件 import 源）。 ── */
 
 /* --- 根装配杂项 --- */
 declare function setArmsReportPlatform(platform: PlatformService | null): void; // 原 BSt（js 118240；y0.reportArmsCustomEvent）
 declare function setTelemetryReportPlatform(platform: PlatformService | null): void; // 原 b_e（js 25049；Lg(Hg,…) 遥测上报平台引用）
-declare function setTelemetryPlatform(platform: TelemetryPlatformLike | null): void; // 原 iT
-declare function disposeStartupServiceRegistry(): void; // 原 vFe
+/* ── tombstone（A1-R9）：setTelemetryPlatform（原 iT）/disposeStartupServiceRegistry
+ *    （原 vFe）declare 删除，改经文件头真实 import 别名改指（./StoresDeep
+ *    setUiPerfPlatform；./services disposeAllSupervisors）。bundle 唯一真形：iT 置
+ *    ui_perf 平台引用 rT（StoresDeep H.4 逐字）；vFe@42698 迭代 vT 注册表逐项
+ *    xT（telemetryScopes E.1 逐字）。消费面 1745/1751（parity web no-op 置空/还原）/
+ *    1941/1943（根装配注入/卸载）/1951（应用退出释放）实测逐字通过。 ── */
 declare function registerBaseServices(services: ServicesBundle): void; // 原 Sse
 declare function setActiveWorkspacePathE2E(path: string | null): void; // 原 $se
 declare function syncRemoteTabsE2E(tabs: Array<{ workspacePath: string; workspaceIdentity?: string; remoteSessionId?: string }>): void; // 原 yFe
@@ -228,7 +238,11 @@ declare function taskRuntimeByWorkspaceKey(workspaces: Record<string, unknown>):
 declare function mapTasksToListItems(options: { workspaceTabs: WorkspaceTab[]; tasks: Array<{ taskId: string; [key: string]: any }>; taskRuntimeByWorkspaceKey: Record<string, unknown>; pinned?: boolean; archived?: boolean }): Array<{ taskId: string; updatedAt: number; createdAt: number; [key: string]: any }>; // 原 h6
 
 /* --- TDP 对测域外部件 --- */
-declare function resetTelemetryParityState(): void; // 原 TPe
+/* ── tombstone（A1-R9）：resetTelemetryParityState（原 TPe）declare 删除，改经文件头
+ *    真实 import 别名改指（./StoresDeep clearAllTelemetryTiming）。bundle 唯一真形：
+ *    u8t@212536 次行即 TPe()（本文件 1470 调用点逐字对应）；TPe@41453 =
+ *    Ow/kw/Aw/jw 四图清空 = StoresDeep TPe 逐字（inputTimingByWorkspace/
+ *    promptLifecyclesByTask/activeLifecycleByTask/stepStateByTask）。 ── */
 declare const planProviderIds: { zaiStartPlan: string; bigmodelStartPlan: string; [key: string]: string }; // 原 q
 interface QuotaAssertion {
   visible: boolean;
@@ -1522,7 +1536,11 @@ interface ParityOperationContext {
   caseId: string;
   getScope: (scopeName?: string) => ParityScope;
   operation: any;
-  platform: TelemetryPlatformLike;
+  /** A1-R9 精化：TelemetryPlatformLike → TelemetryPlatform（canonical 型面，'./services'
+   *  已导入）。bundle 真形：d8t 之 context.platform 均自 u8t/f8t 传入（PlatformService
+   *  实体或 f8t noopPlatform 双法具足），reportTelemetryEvent/reportArmsCustomEvent
+   *  必选；1726/1768 调用点（xw 改指 reportTelemetry）实测通过。 */
+  platform: TelemetryPlatform;
   stateAssertions: string[];
   visibleErrorKeys: Set<string>;
 }

@@ -7,7 +7,8 @@ import type { UseBoundStore } from './storeTypes';
 import type { ZCodeTaskService } from './pinnedTaskListStore';
 
 /* ============================================================================
- * 4. WorkspaceTaskListStore（原 k6，js 142464–142556 / jsx 118392）
+ * 4. WorkspaceTaskListStore（原 k6，js 142481–142581 / jsx 118392；A0 期行号
+ *    142464 为系统性误标，A1-R8 普查更正）
  * ----------------------------------------------------------------------------
  * 远端时间线任务列表（按工作区键分桶，含总数/hasMore 分页态）。
  * state 字段表：
@@ -19,16 +20,48 @@ import type { ZCodeTaskService } from './pinnedTaskListStore';
  *  | loadingByWorkspaceKey | Record<workspaceKey, boolean> | 加载态 |
  *  | errorByWorkspaceKey | Record<workspaceKey, string> | 错误 |
  * actions：refreshWorkspace/upsertTask/removeTask/clearWorkspace（4 个）
- * 消费：152320–152323（侧栏时间线段）；A6 会话注册后刷新（142558）。
+ * 消费：152320–152323（侧栏时间线段）；A6 会话注册后刷新（142572；A0 期行号
+ * 142558 同批更正）。
+ * A1-R8 普查裁决（canonical）：bundle 唯一 k6（@142481）。树内两并行实例：
+ * 本文件与 components/shell/Sidebar.tsx 1004 区（live：152320–152323 侧栏时间线
+ * 段消费）。裁决本实例为 canonical（反向成环实证同 E6，见 pinnedTaskListStore
+ * 头注）。R9 完成正向收敛：本侧型面按 bundle 真形精化（TimelineTask 富面），
+ * Sidebar 本地实例删除改指本实例（证据链见其 tombstone）。
  * ==========================================================================*/
 
+/* A1-R9 正向型缝精化（k6 收敛）：与 PinnedTask 同理——原弱型面与 Sidebar 富
+ * TaskMeta 渲染级联（152320–152323 簇）双向不合；按 bundle 真形精化为同形富面
+ * （运行期 pinned/timeline 两店条目同为任务元数据，cFt@142466 排序直用
+ * createdAt/updatedAt 数值）。详见 stores/pinnedTaskListStore.ts PinnedTask 宽化注。 */
 export interface TimelineTask {
   taskId: string;
   workspacePath: string;
   workspaceIdentity?: string | null;
-  createdAt?: number;
-  updatedAt?: number;
-  [key: string]: unknown;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  status?: string;
+  unreadAt?: number | null;
+  provider?: string;
+  model?: string;
+  forkedFromTaskId?: string | null;
+  pinned?: boolean;
+  archived?: boolean;
+  cronAutomationId?: string | null;
+  automationId?: string | null;
+  offPeakTaskId?: string | null;
+  pendingInteraction?: {
+    interactionId: string;
+    kind?: string;
+    toolName?: string;
+    autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null;
+  } | null;
+  changeSummary?: { files: unknown[]; added: number; removed: number } | null;
+  __zcodeSessionActivity?: {
+    phase: string;
+    lastActivityAt: number;
+    pendingInteractions?: { permissionCount: number; userInputCount: number } | null;
+  } | null;
 }
 
 export interface WorkspaceTaskListState {
@@ -139,7 +172,7 @@ export const useWorkspaceTaskListStore: UseBoundStore<WorkspaceTaskListState> = 
   },
 }));
 
-/** 原 A6（142558–142581）：会话注册后按会话服务刷新时间线列表 */
+/** 原 A6（142572；A0 期行号 142558 系统性误标，A1-R9 更正）：会话注册后按会话服务刷新时间线列表 */
 export async function refreshTimelineTasksForSession(args: {
   sessionId: string;
   workspacePath: string;

@@ -170,33 +170,67 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /* A0-CLEANUP4：与 stores-tasks.OffPeakTask 双向对齐（bundle js 134720/134426 消费面
    offPeakTaskId 恒有值；title 可选）。原 id/title 必填为重建偏差。 */
-interface OffPeakTaskSummary {
+export interface OffPeakTaskSummary {
   offPeakTaskId: string;
   prompt: string;
   status: string;
   title?: string;
+  /* A1-R9 bX 消费面接線精化：AutomationsMainView（bundle 138876/139287 簇）与
+   * OffPeakTaskEditor（SL.OffPeakTaskRecord 同族）消费面按运行期真形补足——
+   * shim OffPeakTask / SL.OffPeakTaskRecord / EV 本地面三方对齐在案
+   * （A0-CLEANUP3 3b）。新增皆可选，既有指派面（shim OffPeakTask → 本型等）不破。 */
+  queuePosition?: number;
+  permissionMode?: string | null;
+  model?: string | null;
+  thoughtLevel?: string | null;
+  startedAt?: number;
+  endedAt?: number;
+  historyDeletedAt?: number;
+  sessionId?: string | null;
+  workspacePath?: string;
+  workspaceIdentity?: string | null;
   [key: string]: unknown;
 }
-interface OffPeakGrayConfig {
+export interface OffPeakGrayConfig {
   enabled?: boolean;
   codingPlanActive?: boolean;
+  /* A1-R9 精化：AutomationsMainView OffPeakTaskEditor props 消费面读
+   * allowedModels/allowedModelConfigs（1673/1674）；Tit 消费面读
+   * providerFamily/selectedConnectionKey（本文件 isCodingPlanConnectionSelected
+   * 参数面已具型）。getOffPeakClientConfig 灰度配置运行期真形。 */
+  allowedModels?: string[];
+  allowedModelConfigs?: Array<{ id: string; modelIdByKind?: Record<string, string>; reasoning?: { levels: Record<string, unknown>; defaultLevel?: string } }>;
+  providerFamily?: string;
+  selectedConnectionKey?: string;
   [key: string]: unknown;
 }
-interface OffPeakCodingPlanSupport {
+export interface OffPeakCodingPlanSupport {
   supported?: boolean;
+  providerFamily?: string; // A1-R9 精化：Tit（isCodingPlanConnectionSelected 参数面）消费
+  selectedConnectionKey?: string;
   [key: string]: unknown;
 }
-interface OffPeakTakeNumberAvailability {
+export interface OffPeakTakeNumberAvailability {
+  /* A1-R9 精化：AutomationsMainView 消费面（1203/1215/1292/1303 = bundle 138876 簇）
+   * 读 canTakeNumber/nextTakeAt——getTakeNumberAvailability 取号可用性真形。 */
+  canTakeNumber?: boolean;
+  nextTakeAt?: number;
   [key: string]: unknown;
 }
-type OffPeakCreateResult =
-  | { ok: true; [key: string]: unknown }
+/* A1-R9 精化（判别联合，与 offPeakHelpers 同型族双向对齐）：ok 支补 task 必填
+ * （运行期创建成功恒含任务记录；AutomationsMainView 遥测 965 行无守卫直读
+ * result.task.offPeakTaskId = bundle 138876 簇真形）+ ticketInitialState/
+ * queuePosition/providerName 可选面；失败支补索引签名（客户端校验字面量含
+ * task 附挂，1618–1628 行）。 */
+export type OffPeakCreateResult =
+  | { ok: true; task: OffPeakTaskSummary; ticketInitialState?: string; queuePosition?: number; providerName?: string; [key: string]: unknown }
   | {
       ok: false;
       failureStage: string;
       errorCategory: "quota_3103" | "network" | "invalid_response" | "unknown" | string;
       errorCode: string;
       providerName: string;
+      [key: string]: unknown;
     };
 
 interface OffPeakTaskService {

@@ -742,8 +742,11 @@ interface ActiveTaskMeta {
    * taskId/title/forkedFromTaskId，TopBar.TaskMeta 同形）；activeTaskChangeSummary
    * 束真恒 null（e_e 字面返回），型收 null（SessionHeader string|null /
    * QuickPick TaskChangeSummary|null 双向可赋）。
-   * A0-CLEANUP4：补 workspacePath（束 js 24501/24737/24794 实体与回退均恒含）。 */
-  resolvedActiveTaskMeta: { taskId: string; workspacePath: string; title?: string | null; forkedFromTaskId?: string | null; [key: string]: unknown } | null;
+   * A0-CLEANUP4：补 workspacePath（束 js 24501/24737/24794 实体与回退均恒含）。
+   * A1-R9 E6/k6 收敛精化：按 bundle 真形补全富面（e_e@24771 = Vo taskMetaByEntityKey
+   * 实体 ⊕ Pge@24501 会话回退，两支恒含 title/createdAt/updatedAt；Qge@24740
+   * 比较器枚举全字段面）；TopBar.TaskMeta 同形，upsertTask 消费面合拢。 */
+  resolvedActiveTaskMeta: { taskId: string; workspacePath: string; title: string; createdAt: number; updatedAt: number; status?: string; unreadAt?: number | null; provider?: string; model?: string; forkedFromTaskId?: string | null; pinned?: boolean; archived?: boolean; cronAutomationId?: string | null; automationId?: string | null; offPeakTaskId?: string | null; pendingInteraction?: { interactionId: string; kind?: string; toolName?: string; autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null } | null; changeSummary?: { files: unknown[]; added: number; removed: number } | null; __zcodeSessionActivity?: { phase: string; lastActivityAt: number; pendingInteractions?: { permissionCount: number; userInputCount: number } | null } | null; [key: string]: unknown } | null;
   activeTraceId: string | null;
   activeSessionId: string | null;
   activeTaskProvider: string | null;
@@ -1796,7 +1799,7 @@ interface WorkspaceShellProps {
   activeTraceId?: string | null;
   activeSessionId?: string | null;
   activeTaskProvider?: string | null;
-  resolvedActiveTaskMeta?: { taskId: string; workspacePath: string; title?: string | null; forkedFromTaskId?: string | null; [key: string]: unknown } | null; // A0-CLEANUP4：补 workspacePath（束 e_e 恒含）
+  resolvedActiveTaskMeta?: { taskId: string; workspacePath: string; title: string; createdAt: number; updatedAt: number; status?: string; unreadAt?: number | null; provider?: string; model?: string; forkedFromTaskId?: string | null; pinned?: boolean; archived?: boolean; cronAutomationId?: string | null; automationId?: string | null; offPeakTaskId?: string | null; pendingInteraction?: { interactionId: string; kind?: string; toolName?: string; autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null } | null; changeSummary?: { files: unknown[]; added: number; removed: number } | null; __zcodeSessionActivity?: { phase: string; lastActivityAt: number; pendingInteractions?: { permissionCount: number; userInputCount: number } | null } | null; [key: string]: unknown } | null; // A0-CLEANUP4：补 workspacePath（束 e_e 恒含）；A1-R9 E6/k6 收敛：富面精化（真形见上方 ActiveTaskMeta 注）
   activeTaskTitle?: string | null;
   activeTaskChangeSummary?: string | null;
   gitWorktreeReviewSourceId?: string | null;

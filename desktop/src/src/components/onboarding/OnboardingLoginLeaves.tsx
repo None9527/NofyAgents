@@ -126,7 +126,11 @@
  *     同批改指 Composer canonical——A1-R8 stores 普查 FH 四实例收敛）
  *   附带：RemoteConnectionLogEntry 精化（+id?、timestamp 宽化 string|number）
  *   platform/遥测引擎族（xw/re/iT/TPe/YPe/vFe + disposeStartupServiceRegistry 等）
- *   侦查在案、整体留待专批（独立引擎，跨 40457–42700 区）。〕
+ *   侦查在案；A1-R9 条件项收敛完成——六符号 bundle 真形均已有树内 canonical
+ *   （xw=StoresDeep reportTelemetry、re=stores/e2eStoreBridge isE2EStoreBridgeEnabled、
+ *   iT=setUiPerfPlatform、TPe=clearAllTelemetryTiming、YPe=reportLaunchToInputPerf、
+ *   vFe=telemetryScopes disposeAllSupervisors），本文件 trackTelemetryEvent declare
+ *   已改指、余四枚死 declare 删除。〕
  * [F] provider family 迁移域：
  *   e6t → presetSelectedKey               (209943 / 166688)
  *   V9  → codingPlanSelectedKey           (209946 / 166691)
@@ -237,6 +241,7 @@ import { MemoizedWorkspaceRoot, type WorkspaceServices } from '../../modules/Wor
 import { extractErrorMessage as normalizeConnectionError, type FeedbackService } from '../../modules/FeedbackCenter'; // A1-R7：MC=extractErrorMessage 改指（原 normalizeConnectionError declare）
 import { type MobileHomeResult, type WebRemoteSwitcherService } from '../../modules/WebRemote';
 import { ConversationTelemetrySupervisor, registerBaseServices, syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指 + A1-R8：Ks@4164（async (e) => await vse(e)，vse@4237）= syncProviderRegistryAndReturn 改指
+import { reportTelemetry as trackTelemetryEvent } from '../../modules/StoresDeep'; // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）
 import { mergeRemoteLogProgressEntry as appendRemoteLog, stripRemoteLogPrefixes as normalizeRemoteLogMessage } from '../remote/RemoteGapSegments'; // A1-R8：hEt@123747=stripRemoteLogPrefixes、vEt@123762=mergeRemoteLogProgressEntry 改指（环安全：RemoteGapSegments 仅 import React/button/RemoteWizard/Modals/SrcSharedA/B/stores-core，不反入 onboarding）
 import { useSettingsStore } from '../../modules/stores-core';
 import { DEFAULT_CODE_PREVIEW_SETTINGS as defaultCodePreviewSettings } from '../../modules/MarkdownIntegration'; // 默认代码预览设置（原 lo，1040）
@@ -474,8 +479,12 @@ export interface TelemetryEventPayload {
   messageId?: string;
   [key: string]: any;
 }
-declare function trackTelemetryEvent(platform: PlatformService | null, payload: TelemetryEventPayload, source: string): Promise<void>;
-declare function isTelemetryEnabled(): boolean;
+/* ── tombstone（A1-R9）：trackTelemetryEvent（原 xw）declare 删除，改经文件头真实
+ *    import 别名改指（../../modules/StoresDeep reportTelemetry）；isTelemetryEnabled
+ *    （原 re）死 declare 一并删除（全树零调用点；本文件之 re 消费面不存在，canonical
+ *    isE2EStoreBridgeEnabled 消费面在 AppRootLeaves/WorkspaceTabsDeep/WorkspaceShell/
+ *    FeedbackCenter）。TelemetryEventPayload 型面保留（modules/OnboardingLoginLeaves
+ *    shim 362 仍在再导出）。 ── */
 
 /* --- 设置 store（ko，stores-core.tsx）--- */
 export interface LoginEntryRequest {
@@ -842,21 +851,20 @@ declare function recordCaptchaFailure(gatekeeper: CaptchaGatekeeper, keys: strin
 declare function isCaptchaDecisionHandled(entry: { commandId: string; status: string; revisionAtDecision: number }): boolean;
 
 /* --- 遥测监督器（横切 services）--- */
-declare function resetTelemetryParityState(): void;
-declare function setTelemetryPlatform(platform: PlatformService | null): void;
-declare function reportLaunchMarks(payload: {
-  marks: unknown;
-  rendererStart: number;
-  reactCommit: number;
-  inputReady: number;
-  sessionId: string;
-}): void;
+/* ── tombstone（A1-R9）：resetTelemetryParityState（原 TPe）/setTelemetryPlatform
+ *    （原 iT）/reportLaunchMarks（原 YPe）三枚死 declare 删除——本文件零调用点
+ *    （实测 grep 仅余声明位）；各符号 bundle 唯一真形之消费面均在 AppRootLeaves
+ *    （A1-R9 条件项已改指 StoresDeep clearAllTelemetryTiming/setUiPerfPlatform/
+ *    reportLaunchToInputPerf）。 ── */
 
 /* --- 根装配杂项 --- */
 /* ── tombstone（A1-R8）：setCurrentPlatform / setCurrentServices 两枚死 declare 删除——全树零调用点
  *    （实测：本文件及全仓 grep 仅余声明位）；其 bundle 对应面属根装配 currentPlatform/currentServices
- *    模块槽（iT@41604 族），本文件从未消费。平台/遥测引擎族（xw/re/iT/TPe/YPe/vFe）整体留待专批。 ── */
-declare function disposeStartupServiceRegistry(): void;
+ *    模块槽（iT@41604 族），本文件从未消费。 ── */
+/* ── tombstone（A1-R9）：disposeStartupServiceRegistry（原 vFe）死 declare 删除——
+ *    本文件零调用点；canonical = services/telemetryScopes disposeAllSupervisors，
+ *    消费面在 AppRootLeaves 1951（A1-R9 条件项已改指）。R8 留批之 platform/遥测
+ *    引擎族（xw/re/iT/TPe/YPe/vFe）至此全部落位（侦查+改指，见 A1-R9 报告）。 ── */
 declare function useAppSettings(): { settings: AppSettings | null; refresh: () => Promise<void>; update: (patch: Partial<AppSettings>) => Promise<void> };
 declare function useWebRemoteControlFeatureEnabled(): boolean;
 declare function useWebRemoteControlFeatureFlag(): boolean;
@@ -957,7 +965,7 @@ declare global {
   interface Window {
     __ZCODE_RENDERER_START__?: number;
     __ZCODE_REACT_COMMIT_AT__?: number;
-    __ZCODE_LAUNCH_MARKS__?: { createdAt: number; [key: string]: any } | null;
+    __ZCODE_LAUNCH_MARKS__?: { createdAt: number; mainStart: number; appReady: number; loadUrl: number; [key: string]: any } | null; // A1-R9 精化：四键必选（写端 SrcSharedB parseLaunchMarks 逐键校验 number/finite，缺一即 null；读端 YPe@41625 逐段消费）
     __zcodeArmsCustomEventsE2E?: Array<Record<string, unknown>>;
   }
 }
@@ -1637,9 +1645,12 @@ export function shouldReportLaunchMarks(options: { alreadyReported: boolean; isS
   return !options.alreadyReported && !options.isStartupRenderBlocked && !options.welcomeScreenOpen;
 }
 
-/** 原 L4t（206761 / 164260）：读取 window 上的渲染器启动标记 */
+/** 原 L4t（206761 / 164260）：读取 window 上的渲染器启动标记
+ *  A1-R9 精化：marks 型面 { createdAt } + any 索引 → 增列 mainStart/appReady/loadUrl
+ *  必选（bundle 唯一真形：YPe@41625 逐段消费 t.createdAt/mainStart/appReady/loadUrl；
+ *  消费点 AppRootLeaves reportLaunchMarks 改指 reportLaunchToInputPerf 后 2298 实测通过）。 */
 export function readRendererLaunchMarks(): {
-  marks: { createdAt: number; [key: string]: any } | null;
+  marks: { createdAt: number; mainStart: number; appReady: number; loadUrl: number; [key: string]: any } | null;
   rendererStart: number;
   reactCommit: number;
 } | null {

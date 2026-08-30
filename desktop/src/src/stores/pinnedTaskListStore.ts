@@ -7,7 +7,8 @@ import type { UseBoundStore } from './storeTypes';
 import type { TimelineTask } from './workspaceTaskListStore';
 
 /* ============================================================================
- * 3. PinnedTaskListStore（原 E6，js 142372–142463 / jsx 118266）
+ * 3. PinnedTaskListStore（原 E6，js 142389–142444 / jsx 118266；A0 期行号 142372
+ *    为系统性误标，A1-R8 普查更正）
  * ----------------------------------------------------------------------------
  * 远端置顶任务列表（按工作区键分桶）。
  * state 字段表：
@@ -18,15 +19,52 @@ import type { TimelineTask } from './workspaceTaskListStore';
  *  | errorByWorkspaceKey | Record<workspaceKey, string> | 错误 |
  * actions：refreshWorkspace/upsertTask/removeTask/clearWorkspace（4 个）
  * 消费：151805–151806（侧栏置顶段）；D6 会话注册后刷新（142430）。
+ * A1-R8 普查裁决（canonical）：bundle 唯一 E6（@142389）。树内两并行实例：
+ * 本文件（A0-S4-3 自 stores-tasks §3 迁入）与 components/shell/Sidebar.tsx 941
+ * 区（live：151805–151806 侧栏置顶段消费）。裁决本实例为 canonical——反向
+ * （Sidebar 为属主、stores/ 改指）成环实证：stores/ → Sidebar → modules/TopBar
+ * → stores-tasks → stores/ 二环。R9 完成正向收敛：本侧型面按 bundle 真形精化
+ * （PinnedTask 富面 + sFt 实体转录），Sidebar 本地实例删除改指本实例
+ * （证据链见其 tombstone）。
  * ==========================================================================*/
 
+/* A1-R9 正向型缝精化（E6 收敛）：原弱型面（taskId/workspacePath/createdAt?/updatedAt? +
+ * 索引签名）与消费侧 components/shell/Sidebar.tsx 富 TaskMeta 渲染级联（title/
+ * createdAt/updatedAt 必填、无索引签名）双向皆不合：弱面 → 富级联缺必填成员，
+ * 富面（interface）→ 索引签名目标面不合 TS 指派规则。按 bundle 真形精化：
+ * sFt@142380 排序直用 updatedAt/createdAt 数值（运行期恒有值）；侧栏渲染面读
+ * title/changeSummary/__zcodeSessionActivity 等（151805–151806 簇）。成员面与
+ * Sidebar TaskMeta 逐一对齐（双向可指派，upsertTask(item) 与渲染合并两用）；
+ * 索引签名删除。provider/model 按 Sidebar 面收窄为 string（不含 null）。 */
 export interface PinnedTask {
   taskId: string;
   workspacePath: string;
   workspaceIdentity?: string | null;
-  createdAt?: number;
-  updatedAt?: number;
-  [key: string]: unknown;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  status?: string;
+  unreadAt?: number | null;
+  provider?: string;
+  model?: string;
+  forkedFromTaskId?: string | null;
+  pinned?: boolean;
+  archived?: boolean;
+  cronAutomationId?: string | null;
+  automationId?: string | null;
+  offPeakTaskId?: string | null;
+  pendingInteraction?: {
+    interactionId: string;
+    kind?: string;
+    toolName?: string;
+    autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null;
+  } | null;
+  changeSummary?: { files: unknown[]; added: number; removed: number } | null;
+  __zcodeSessionActivity?: {
+    phase: string;
+    lastActivityAt: number;
+    pendingInteractions?: { permissionCount: number; userInputCount: number } | null;
+  } | null;
 }
 
 export interface ZCodeTaskService {
@@ -67,8 +105,18 @@ export interface PinnedTaskListState {
   clearWorkspace(workspacePath: string, workspaceIdentity?: string | null): void;
 }
 
-/** 原 sFt：置顶任务排序（接口级，142400 区） */
-declare function sortPinnedTasks(tasks: PinnedTask[]): PinnedTask[];
+/** 原 sFt（142380）：置顶任务排序（updated 序；平手 createdAt，再平手 taskId）。
+ * A1-R9：原接口级 declare 按 bundle 逐字转录为实体——本实例升 live 后
+ * （Sidebar E6 消费面改指）无实体会致运行期 ReferenceError。 */
+function sortPinnedTasks(tasks: PinnedTask[]): PinnedTask[] {
+  return [...tasks].sort((a, b) =>
+    b.updatedAt === a.updatedAt
+      ? b.createdAt === a.createdAt
+        ? b.taskId.localeCompare(a.taskId)
+        : b.createdAt - a.createdAt
+      : b.updatedAt - a.updatedAt,
+  );
+}
 
 export const usePinnedTaskListStore: UseBoundStore<PinnedTaskListState> = createStore<PinnedTaskListState>((set) => ({
   itemsByWorkspaceKey: {},

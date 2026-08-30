@@ -1503,8 +1503,37 @@ interface SessionHeaderProps {
 interface TaskMeta {
   taskId: string;
   workspacePath: string; // A0-CLEANUP4：束 e_e 返回面恒含 workspacePath（store 实体 + Pge 会话回退，js 24501/24737/24794）
-  title?: string | null;
+  /* A1-R9 E6/k6 收敛精化：原弱型面（title?/forkedFromTaskId? + 索引签名）与 canonical
+   * stores/ PinnedTask/TimelineTask 富面不合（upsertTask 消费面 2336–2394 = bundle
+   * 143674–143928 簇）。按 bundle 真形精化：e_e@24771 返回任务元对象（Vo
+   * taskMetaByEntityKey 实体 ⊕ Pge@24501 会话回退，两支均恒含 title/createdAt/
+   * updatedAt；Qge@24740 比较器枚举全字段面）。成员面与 stores/ PinnedTask 对齐
+   * （可指派）；索引签名保留（本文件消费面读动态字段）。 */
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  status?: string;
+  unreadAt?: number | null;
+  provider?: string;
+  model?: string;
   forkedFromTaskId?: string | null;
+  pinned?: boolean;
+  archived?: boolean;
+  cronAutomationId?: string | null;
+  automationId?: string | null;
+  offPeakTaskId?: string | null;
+  pendingInteraction?: {
+    interactionId: string;
+    kind?: string;
+    toolName?: string;
+    autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null;
+  } | null;
+  changeSummary?: { files: unknown[]; added: number; removed: number } | null;
+  __zcodeSessionActivity?: {
+    phase: string;
+    lastActivityAt: number;
+    pendingInteractions?: { permissionCount: number; userInputCount: number } | null;
+  } | null;
   [key: string]: unknown;
 }
 

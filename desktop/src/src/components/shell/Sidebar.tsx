@@ -212,6 +212,8 @@ import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../
 import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 import { useSidebarSessionDrop as useSessionOpenability, SESSION_DRAG_MIME, serializeSessionDragPayload, setSessionDragFallbackPayload as setCurrentSessionDrag, clearSessionDragFallbackPayload as clearCurrentSessionDrag, createSessionDragPreview as createDragImageUpdater, type SessionDragPayload } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）+ u2/Iwt/Lwt/Rwt/PRt（A1-R4：拖放源侧改指，tombstone 见原声明位）
+import { usePinnedTaskListStore as useRemotePinnedTaskListStore } from '../../stores/pinnedTaskListStore'; // A1-R9 E6 收敛改指（原 E6 本地并行实例删除；canonical 属主 = stores/，tombstone 见原声明位）
+import { useWorkspaceTaskListStore as useRemoteWorkspaceTaskListStore } from '../../stores/workspaceTaskListStore'; // A1-R9 k6 收敛改指（同上）
 import { resolveSshConnectionInfo, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4：QTt（js 123267）；A1-R5：zBt（js 158186）改指（tombstone 见原位）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
@@ -902,22 +904,13 @@ function isDefaultGroup(groupId: string): boolean {
   return groupId === DEFAULT_GROUP_ID_CRON || groupId === DEFAULT_GROUP_ID_OFF_PEAK;
 }
 
-/** zustand create（原 Ae，skillStore-BmeKHDBI.js 导出 q） */
-declare function createStore<T>(initializer: (set: (partial: Partial<T> | ((state: T) => Partial<T>)) => void, get: () => T) => T): {
-  (): T;
-  <U>(selector: (state: T) => U): U;
-  getState(): T;
-  setState(partial: Partial<T>): void;
-};
-
-/** 原 T6/O6（142360/144446）：store 工作区键 */
-function storeWorkspaceKey(workspacePath: string, workspaceIdentity?: string | null): string {
-  return workspaceKey(workspacePath, workspaceIdentity);
-}
-/** 原 sFt（142363）：置顶列表排序（委托 cFt 的 updated 序） */
-function sortPinnedTasks(tasks: TaskMeta[]): TaskMeta[] {
-  return sortTasksBy(tasks, "updated");
-}
+/* ── tombstone（A1-R9）：本地 E6/k6 附属脚手架删除——zustand create declare（原 Ae）、
+ *    storeWorkspaceKey（原 T6/O6，canonical 侧以 workspaceKey=Io 内联）、本地
+ *    sortPinnedTasks（原 sFt 重复转录——canonical 侧 stores/pinnedTaskListStore.ts
+ *    已按 bundle 142380 逐字转录为实体）。删除因 E6/k6 双实例收敛：canonical =
+ *    stores/pinnedTaskListStore.ts（E6@142389）/ stores/workspaceTaskListStore.ts
+ *    （k6@142481，cFt@142466 = sortTimelineTasks 在案）；本文件经文件头别名
+ *    import 改指（见下方 export 位 tombstone）。 ── */
 /** 远端任务服务调用面（zcodeTaskService 的侧栏相关方法） */
 interface ZCodeTaskServiceLike {
   listPinnedTasks(args: { workspacePath: string; workspaceIdentity?: string }): Promise<TaskMeta[]>;
@@ -928,145 +921,25 @@ interface ZCodeTaskServiceLike {
   archiveTask(args: { taskId: string; workspacePath: string; workspaceIdentity?: string }): Promise<TaskMeta>;
 }
 
-/** 原 E6（142372 / 118266）：远端置顶任务列表 store（按工作区键索引） */
-interface RemotePinnedTaskListState {
-  itemsByWorkspaceKey: Record<string, TaskMeta[]>;
-  loadingByWorkspaceKey: Record<string, boolean>;
-  errorByWorkspaceKey: Record<string, string>;
-  refreshWorkspace(args: { workspacePath: string; workspaceIdentity?: string | null; zcodeTaskService: ZCodeTaskServiceLike }): Promise<void>;
-  upsertTask(task: TaskMeta): void;
-  removeTask(workspacePath: string, taskId: string, workspaceIdentity?: string | null): void;
-  clearWorkspace(workspacePath: string, workspaceIdentity?: string | null): void;
-}
-export const useRemotePinnedTaskListStore = createStore<RemotePinnedTaskListState>((set) => ({
-  itemsByWorkspaceKey: {},
-  loadingByWorkspaceKey: {},
-  errorByWorkspaceKey: {},
-  async refreshWorkspace({ workspacePath, workspaceIdentity, zcodeTaskService }) {
-    const key = storeWorkspaceKey(workspacePath, workspaceIdentity);
-    set((state) => ({
-      loadingByWorkspaceKey: { ...state.loadingByWorkspaceKey, [key]: true },
-      errorByWorkspaceKey: { ...state.errorByWorkspaceKey, [key]: "" },
-    }));
-    try {
-      const items = await zcodeTaskService.listPinnedTasks({ workspacePath, ...(workspaceIdentity ? { workspaceIdentity } : {}) });
-      set((state) => ({
-        itemsByWorkspaceKey: { ...state.itemsByWorkspaceKey, [key]: sortPinnedTasks(items) },
-        loadingByWorkspaceKey: { ...state.loadingByWorkspaceKey, [key]: false },
-      }));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.warn("[remotePinnedTaskStore] 读取远端 pinned task 失败", { workspacePath, workspaceIdentity, error: message });
-      set((state) => ({
-        loadingByWorkspaceKey: { ...state.loadingByWorkspaceKey, [key]: false },
-        errorByWorkspaceKey: { ...state.errorByWorkspaceKey, [key]: message },
-      }));
-    }
-  },
-  upsertTask(task) {
-    const key = storeWorkspaceKey(task.workspacePath, task.workspaceIdentity);
-    set((state) => {
-      const items = state.itemsByWorkspaceKey[key] ?? [];
-      const next = items.some((item) => item.taskId === task.taskId)
-        ? items.map((item) => (item.taskId === task.taskId ? task : item))
-        : [...items, task];
-      return { itemsByWorkspaceKey: { ...state.itemsByWorkspaceKey, [key]: sortPinnedTasks(next) } };
-    });
-  },
-  removeTask(workspacePath, taskId, workspaceIdentity) {
-    const key = storeWorkspaceKey(workspacePath, workspaceIdentity);
-    set((state) => ({
-      itemsByWorkspaceKey: { ...state.itemsByWorkspaceKey, [key]: (state.itemsByWorkspaceKey[key] ?? []).filter((item) => item.taskId !== taskId) },
-    }));
-  },
-  clearWorkspace(workspacePath, workspaceIdentity) {
-    const key = storeWorkspaceKey(workspacePath, workspaceIdentity);
-    set((state) => {
-      const { [key]: _items, ...itemsRest } = state.itemsByWorkspaceKey;
-      const { [key]: _loading, ...loadingRest } = state.loadingByWorkspaceKey;
-      const { [key]: _error, ...errorRest } = state.errorByWorkspaceKey;
-      return { itemsByWorkspaceKey: itemsRest, loadingByWorkspaceKey: loadingRest, errorByWorkspaceKey: errorRest };
-    });
-  },
-}));
-/** 原 k6（142464 / 118392）：远端工作区时间线任务列表 store */
-interface RemoteWorkspaceTaskListState {
-  itemsByWorkspaceKey: Record<string, TaskMeta[]>;
-  totalByWorkspaceKey: Record<string, number>;
-  hasMoreByWorkspaceKey: Record<string, boolean>;
-  loadingByWorkspaceKey: Record<string, boolean>;
-  errorByWorkspaceKey: Record<string, string>;
-  refreshWorkspace(args: { workspacePath: string; workspaceIdentity?: string | null; zcodeTaskService: ZCodeTaskServiceLike; sortBy: TaskSortBy; limit: number }): Promise<void>;
-  upsertTask(task: TaskMeta, sortBy?: TaskSortBy): void;
-  removeTask(workspacePath: string, taskId: string, workspaceIdentity?: string | null): void;
-  clearWorkspace(workspacePath: string, workspaceIdentity?: string | null): void;
-}
-export const useRemoteWorkspaceTaskListStore = createStore<RemoteWorkspaceTaskListState>((set) => ({
-  itemsByWorkspaceKey: {},
-  totalByWorkspaceKey: {},
-  hasMoreByWorkspaceKey: {},
-  loadingByWorkspaceKey: {},
-  errorByWorkspaceKey: {},
-  async refreshWorkspace({ workspacePath, workspaceIdentity, zcodeTaskService, sortBy, limit }) {
-    const key = storeWorkspaceKey(workspacePath, workspaceIdentity);
-    set((state) => ({
-      loadingByWorkspaceKey: { ...state.loadingByWorkspaceKey, [key]: true },
-      errorByWorkspaceKey: { ...state.errorByWorkspaceKey, [key]: "" },
-    }));
-    try {
-      const result = await zcodeTaskService.listTaskList({
-        kind: "timeline",
-        workspaceScopes: [{ workspacePath, ...(workspaceIdentity ? { workspaceIdentity } : {}) }],
-        sortBy,
-        limit,
-      });
-      set((state) => ({
-        itemsByWorkspaceKey: { ...state.itemsByWorkspaceKey, [key]: sortTasksBy(result.items, sortBy) },
-        totalByWorkspaceKey: { ...state.totalByWorkspaceKey, [key]: result.total },
-        hasMoreByWorkspaceKey: { ...state.hasMoreByWorkspaceKey, [key]: result.hasMore },
-        loadingByWorkspaceKey: { ...state.loadingByWorkspaceKey, [key]: false },
-      }));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.warn("[remoteTimelineTaskStore] 读取远端 timeline task 失败", { workspacePath, workspaceIdentity, error: message });
-      set((state) => ({
-        loadingByWorkspaceKey: { ...state.loadingByWorkspaceKey, [key]: false },
-        errorByWorkspaceKey: { ...state.errorByWorkspaceKey, [key]: message },
-      }));
-    }
-  },
-  upsertTask(task, sortBy = "updated") {
-    const key = storeWorkspaceKey(task.workspacePath, task.workspaceIdentity);
-    set((state) => {
-      const items = state.itemsByWorkspaceKey[key] ?? [];
-      const next = items.some((item) => item.taskId === task.taskId)
-        ? items.map((item) => (item.taskId === task.taskId ? task : item))
-        : [...items, task];
-      return {
-        itemsByWorkspaceKey: { ...state.itemsByWorkspaceKey, [key]: sortTasksBy(next, sortBy) },
-        totalByWorkspaceKey: { ...state.totalByWorkspaceKey, [key]: Math.max(state.totalByWorkspaceKey[key] ?? 0, next.length) },
-      };
-    });
-  },
-  removeTask(workspacePath, taskId, workspaceIdentity) {
-    const key = storeWorkspaceKey(workspacePath, workspaceIdentity);
-    set((state) => ({
-      itemsByWorkspaceKey: { ...state.itemsByWorkspaceKey, [key]: (state.itemsByWorkspaceKey[key] ?? []).filter((item) => item.taskId !== taskId) },
-      totalByWorkspaceKey: { ...state.totalByWorkspaceKey, [key]: Math.max(0, (state.totalByWorkspaceKey[key] ?? state.itemsByWorkspaceKey[key]?.length ?? 0) - 1) },
-    }));
-  },
-  clearWorkspace(workspacePath, workspaceIdentity) {
-    const key = storeWorkspaceKey(workspacePath, workspaceIdentity);
-    set((state) => {
-      const { [key]: _i, ...itemsRest } = state.itemsByWorkspaceKey;
-      const { [key]: _t, ...totalRest } = state.totalByWorkspaceKey;
-      const { [key]: _h, ...hasMoreRest } = state.hasMoreByWorkspaceKey;
-      const { [key]: _l, ...loadingRest } = state.loadingByWorkspaceKey;
-      const { [key]: _e, ...errorRest } = state.errorByWorkspaceKey;
-      return { itemsByWorkspaceKey: itemsRest, totalByWorkspaceKey: totalRest, hasMoreByWorkspaceKey: hasMoreRest, loadingByWorkspaceKey: loadingRest, errorByWorkspaceKey: errorRest };
-    });
-  },
-}));
+/* ── tombstone（A1-R9）：E6/k6 本地并行实例删除（原 E6@142372 / k6@142464 两录，
+ *    bundle 唯一真形 E6@142389 / k6@142481）→ 改指 canonical 实例。
+ *    裁决与证据链（A1-R8 普查 + R9 收敛）：
+ *    - 双实例：本文件 941/1004 区（live：151805–151806 / 152320–152323 侧栏簇）
+ *      vs stores/pinnedTaskListStore.ts / stores/workspaceTaskListStore.ts（休眠：
+ *      仅 stores-tasks 59–62 行 shim 链 + TopBar 145 行消费面）。
+ *    - canonical = stores/ 侧：反向（本文件为属主）成环实证——stores/ → Sidebar
+ *      → modules/TopBar → stores-tasks → stores/ 二环；正向（本文件 → stores/）
+ *      唯一可行，且 stores/ 闭包（logger/taskStore/sessionRegistryStore/zustand）
+ *      实测不反入 components/shell。
+ *    - 正向型缝（弱型面 vs 本文件富 TaskMeta 渲染级联）R9 按 bundle 真形精化
+ *      stores/ 侧导出面合拢：PinnedTask/TimelineTask 富面与本文件 TaskMeta 双向
+ *      可指派（upsertTask(item)/upsertTask(updated) 入面与 itemsByWorkspaceKey
+ *      合并渲染出面两用）；本文件消费面（selector/removeTask 三参/upsertTask 两形）
+ *      逐一实测不破，调用点逐字不变。
+ *    - 本地脚手架（createStore declare/storeWorkspaceKey/本地 sortPinnedTasks）
+ *      随删，tombstone 见上方；sFt/cFt 实体在 canonical 侧（142380/142466）。
+ *    原实现见 git 历史（检查点 34f0240）。 ── */
+export { useRemotePinnedTaskListStore, useRemoteWorkspaceTaskListStore };
 
 /* ============================================================================
  * 7. UI 原语与横切依赖声明（真实实现见头注清单）
@@ -5282,23 +5155,9 @@ function sessionIndexKey(workspaceScope: Pick<WorkspaceTab, "workspacePath" | "w
  *    username 且 port 恒在（缺省 22），ZTt ssh 支为 `host[:port]`（port 仅非 22 时在）；
  *    R4 §8-5「zBt 改指 ZTt」前提经 bundle 对照作废，RBt/zBt 独立转录。调用点逐字不变。 ── */
 
-/** 原 cFt（142449）：任务双序排序——`created` 按创建时间倒序，`updated`（默认）按更新时间倒序，
- *  同级再按另一时间倒序，最后按 taskId 字典序稳定兜底 */
-function sortTasksBy(tasks: TaskMeta[], sortBy: TaskSortBy = "updated"): TaskMeta[] {
-  return [...tasks].sort((a, b) =>
-    sortBy === "created"
-      ? b.createdAt === a.createdAt
-        ? b.updatedAt === a.updatedAt
-          ? b.taskId.localeCompare(a.taskId)
-          : b.updatedAt - a.updatedAt
-        : b.createdAt - a.createdAt
-      : b.updatedAt === a.updatedAt
-        ? b.createdAt === a.createdAt
-          ? b.taskId.localeCompare(a.taskId)
-          : b.createdAt - a.createdAt
-        : b.updatedAt - a.updatedAt,
-  );
-}
+/* ── tombstone（A1-R9）：sortTasksBy（原 cFt 重复转录，A0 期行号 142449 为误标，
+ *    bundle 真位 142466）删除——唯一消费面为同批删除的本地 k6 并行实例；
+ *    cFt 规范转录在 canonical 侧 stores/workspaceTaskListStore.ts sortTimelineTasks。 ── */
 
 /** 原 dIt（144983）：有效组 id 均不在折叠集合中（=全部展开；供「全部展开/收起」开关判定） */
 function areAllGroupsCollapsed(groupIds: string[], collapsedGroupIds: Set<string>): boolean {

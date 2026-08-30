@@ -27,16 +27,43 @@ export interface TaskMeta {
   unreadAt?: number | null;
   pinned?: boolean;
   archived?: boolean;
-  changeSummary?: string | null;
+  /* A1-R9 型缝裁决（宽化→精化）：changeSummary 原为 string 面，与 bundle 真形不符。
+   * bundle 唯一真形：vg@23753 读 e.changeSummary.files.length；np@6874
+   * （TaskChangeSummarySchema，strict）= { fileCount, added, removed, files[] }；
+   * Bhe@23757 读顶层 added/removed。精化为对象面（下 TaskChangeSummary），
+   * 与 canonical 面 components/quickpick/QuickPick.tsx TaskChangeSummary 结构相容
+   * （files 项五字段必填 = RecentChangeFile 真形；fileCount/added/removed 经其
+   * 索引签名吸收）。消费面实测：本文件 365/469 皆透传（型无关）；taskStore.ts 117
+   * 为 unknown 宽面不受影响；Sidebar/QuickPick 各自本地富面同形。 */
+  changeSummary?: TaskChangeSummary | null;
+  lastError?: { message?: string } | null; // A1-R9：按 canonical 面（QuickPick TaskMeta）补足；运行期任务镜像 lastError 真形（np@6874 同族）
   model?: string | null;
   provider?: string | null;
   searchSnippet?: string;
   searchSnippets?: string[];
+  /** 会话活动附着（原 Pie@1307 `__zcodeSessionActivity`；jo@1308 附挂）；A1-R9 按 canonical 面补足 */
+  __zcodeSessionActivity?: SessionActivity | null;
+  [key: string]: unknown;
+}
+
+/** A1-R9：changeSummary 对象真形（bundle np@6874 strict；vg@23753 / Bhe@23757 消费面在案） */
+export interface TaskChangeSummary {
+  fileCount: number;
+  added: number;
+  removed: number;
+  files: Array<{
+    path: string;
+    added: number;
+    removed: number;
+    writeCount: number;
+    lastTurnIndex: number;
+    [key: string]: unknown;
+  }>;
   [key: string]: unknown;
 }
 
 export interface SessionActivity {
-  phase?: string;
+  phase: string; // A1-R9 精化：原可选面 → 必填（bundle Fie@1314 读 phase；jo@1308 附着恒含 phase；canonical 面 QuickPick SessionActivity 同必填）
   lastActivityAt: number;
   pendingInteractions?: { permissionCount: number; userInputCount: number };
   [key: string]: unknown;

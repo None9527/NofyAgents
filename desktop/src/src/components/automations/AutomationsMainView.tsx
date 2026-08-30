@@ -12,7 +12,7 @@ import { providerIds } from '../../modules/SrcSharedA';
 import { automationsWorkspaceKey } from '../../modules/SrcSharedB';
 import { reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
 import { useServices } from '../../modules/services';
-import { useAutomationsStore } from '../../modules/stores-tasks';
+import { useAutomationsStore, useOffPeakTaskStore } from '../../modules/stores-tasks'; // A1-R9 bX 接线改指：本地死 declare 删除 → 真实 import（canonical = components/shell/Home.tsx 641 区 bX@91416，经 stores/offPeakTaskStore shim 链）；tombstone 见原声明位
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import {
@@ -81,13 +81,10 @@ interface ModelProviderInfo {
   [key: string]: unknown;
 }
 
-interface OffPeakTaskService {
-  [key: string]: unknown;
-}
-
-interface CodingPlanSubscriptionService {
-  [key: string]: unknown;
-}
+/* ── tombstone（A1-R9）：OffPeakTaskService/CodingPlanSubscriptionService 本地弱型面
+ *    （纯索引签名桩）删除——唯一消费面为同批删除的本地 OffPeakStoreState 接口；
+ *    bX 接线后消费面经 canonical 型面（Home OffPeakTaskStoreState）走真实服务型
+ *    （useServices() 的 shim OffPeakTaskService 面 → canonical 面指派合拢）。 ── */
 
 interface ZCodeSettings {
   keepAwakeWhileRunning?: boolean;
@@ -253,46 +250,34 @@ interface OffPeakCreateDraft {
   [key: string]: unknown;
 }
 
-interface OffPeakCreateResult {
-  ok: boolean;
-  task: OffPeakTask;
-  errorCategory?: string;
-  errorCode?: string;
-  ticketInitialState?: string;
-  queuePosition?: number;
-  failureStage?: string;
-  providerName?: string;
-}
+/* A1-R9 精化：原单接口面（ok: boolean + task 必填平铺）→ 判别联合。
+ * bundle 真形（138876 簇消费面实测）：ok 支恒含 task（965 行遥测无守卫直读
+ * result.task.offPeakTaskId）+ ticketInitialState/queuePosition 可选；失败支
+ * failureStage/errorCategory/errorCode 全字段 + 客户端校验字面量附挂 task
+ * （1618–1628 行）。与 canonical 面 Home bX OffPeakCreateResult 双向可指派。 */
+type OffPeakCreateResult =
+  | { ok: true; task: OffPeakTask; ticketInitialState?: string; queuePosition?: number; providerName?: string; [key: string]: unknown }
+  | { ok: false; task?: OffPeakTask; errorCategory?: string; errorCode?: string; failureStage?: string; providerName?: string; [key: string]: unknown };
 
-interface OffPeakStoreState {
-  tasks: OffPeakTask[];
-  loading: boolean;
-  error: string | null;
-  grayConfig: { enabled?: boolean; codingPlanActive?: boolean; allowedModels?: string[]; allowedModelConfigs?: Array<{ id: string; modelIdByKind?: Record<string, string>; reasoning?: { levels: Record<string, unknown>; defaultLevel?: string } }>; providerFamily?: string; selectedConnectionKey?: string } | null; // A0-CLEANUP3 3b：allowedModelConfigs 按消费面（OffPeakTaskEditor props）具型
-  codingPlanSupport: { supported?: boolean; providerFamily?: string; selectedConnectionKey?: string } | null;
-  takeNumberAvailability: { canTakeNumber?: boolean; nextTakeAt?: number } | null;
-  takeNumberAvailabilityStatus: "loading" | "ready" | "error" | string;
-  operationId: string | null;
-  initialize(params: { offPeakTaskService: OffPeakTaskService; codingPlanSubscriptionService: CodingPlanSubscriptionService }): void;
-  refresh(offPeakTaskService: OffPeakTaskService): Promise<void>;
-  refreshCodingPlanSupport(offPeakTaskService: OffPeakTaskService): Promise<void>;
-  refreshTakeNumberAvailability(offPeakTaskService: OffPeakTaskService): Promise<void>;
-  createTask(input: OffPeakCreateInput, offPeakTaskService: OffPeakTaskService): Promise<OffPeakCreateResult>;
-  updateTask(id: string, patch: Partial<OffPeakCreateInput>, offPeakTaskService: OffPeakTaskService): Promise<boolean>;
-  pauseTask(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
-  continueTask(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
-  cancelTask(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
-  deleteTask(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
-  deleteHistory(id: string, offPeakTaskService: OffPeakTaskService): Promise<void>;
-  consumePendingCreateDraft(): OffPeakCreateDraft | null;
-}
-
-interface OffPeakStoreHook {
-  <T>(selector: (state: OffPeakStoreState) => T): T;
-  getState(): OffPeakStoreState;
-}
-
-declare const useOffPeakTaskStore: OffPeakStoreHook; // A1-R8 普查留批：bundle 唯一 bX@91416（A0 误标 91368），canonical 裁决 = components/shell/Home.tsx 641 区（定义区属主 + 唯一 live 实例；stores/offPeakTaskStore 已降 shim）。本 declare 消费面（1155–1173/1573–1600 = bundle 138876/139287 簇）与 canonical 型面缝合不拢（OffPeakCreateResult 双名型、grayConfig 索引面等 10 处），接线留待型面对齐专批
+/* ── tombstone（A1-R9）：OffPeakStoreState/OffPeakStoreHook 本地接口与
+ *    `declare const useOffPeakTaskStore` 死声明删除 → 文件头真实 import
+ *    （modules/stores-tasks re-export 链 → stores/offPeakTaskStore shim →
+ *    canonical components/shell/Home.tsx 641 区 bX@91416）。
+ *    裁决与证据链（A1-R8 普查 + R9 接线）：
+ *    - bundle 唯一 bX（@91416；A0 误标 91368，jsx 78945 孪生验证无误）。
+ *    - canonical = Home 实例（定义区属主 + 唯一 live：896–901 = bundle
+ *      91645–91650 钩子簇）；stores/offPeakTaskStore 并行实例 R8 已降 shim。
+ *    - 本 declare 消费面（1155–1173 选择器簇 / 1573–1600 getState().error /
+ *      = bundle 138876/139287 簇）R8 回滚之 10 处型缝，R9 逐一点修：
+ *      canonical 侧按 bundle 真形精化四型（OffPeakTaskSummary 富面 /
+ *      OffPeakGrayConfig.allowedModels(+Configs) / OffPeakCodingPlanSupport.
+ *      providerFamily(+Key) / OffPeakTakeNumberAvailability.canTakeNumber
+ *      (+nextTakeAt) / OffPeakCreateResult ok 支 task 必填，宽化注各在其位），
+ *      本文件消费面（OffPeakCreateResult 判别联合化 + 服务弱型面随删）对齐；
+ *      调用点逐字不变。
+ *    - 环安全：本文件 → modules/stores-tasks（既有边，15 行）；stores-tasks →
+ *      stores/offPeakTaskStore shim → Home 链为 R8 既有，Home 闭包实测不反入
+ *      components/automations → 无新边、无成环。 ── */
 
 interface WorkspaceTab {
   id: string;
@@ -1033,7 +1018,7 @@ function resolveOffPeakErrorLabelId(result: OffPeakCreateResult | null): string 
 
 /** 原 Tit（js 91347 / jsx 78933）：coding plan 连接是否激活（按家族域 + oauth + 选中连接键） */
 function isCodingPlanConnectionActiveImpl(
-  support: OffPeakStoreState["codingPlanSupport"],
+  support: { supported?: boolean; providerFamily?: string; selectedConnectionKey?: string } | null, // A1-R9：原 OffPeakStoreState["codingPlanSupport"] 索引面随删；结构面与 canonical OffPeakCodingPlanSupport（R9 精化后）同形
   settings: ZCodeSettings | null,
 ): boolean {
   if (!support?.supported || !settings) return false;

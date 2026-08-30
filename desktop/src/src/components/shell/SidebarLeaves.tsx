@@ -218,7 +218,7 @@ interface SearchResultsState {
   taskMetaByEntityKey: Record<string, TaskMeta | undefined>;
   taskUnreadOverlayByEntityKey: Record<string, number | undefined>;
 }
-declare function useSearchResultsStore<T>(selector: (s: SearchResultsState) => T): T; // A1-R8 普查留批：bundle 唯一 Vo@1553，canonical 裁决 = QuickPick.tsx 1248 区（收敛留批，见其普查注）；本 declare 消费面（559–562/773 = bundle 144478–144481 簇）型缝合不拢（本地 TaskListQueryDescriptor.workspaceScopes vs canonical QueryDescriptor.workspaceKeys 等必填面缺失），接线留待型面对齐专批
+declare function useSearchResultsStore<T>(selector: (s: SearchResultsState) => T): T; // A1-R8 普查留批：bundle 唯一 Vo@1553，canonical 裁决 = QuickPick.tsx 1254 区（A1-R9 收敛完成，stores/ 侧降 shim）；本 declare 消费面（559–562/773 = bundle 144478–144481 簇）型缝合不拢（本地 TaskListQueryDescriptor.workspaceScopes vs canonical QueryDescriptor.workspaceKeys 等必填面缺失），接线留待型面对齐专批
 
 /** 基础服务（原 Ec）：当前窗口的 WorkspaceServices */
 interface ZCodeTaskServiceLike {

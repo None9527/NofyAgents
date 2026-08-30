@@ -1245,12 +1245,14 @@ declare function descriptorMatchesTask(descriptor: QueryDescriptor, task: TaskMe
 /** 原 Po（js 1324）：以会话活动为准合并元数据 */
 declare function mergeWithSessionActivity(base: TaskMeta, patch: TaskMeta): TaskMeta;
 
-/** A1-R8 普查裁决（收敛留批）：bundle 唯一 Vo（@1553）。树内两并行实例：
- * 本文件 1248 区（live：1739–1741 = bundle 35831–35833 钩子簇；modules/QuickPick
- * 176 行 re-export → QuickPickDeep 131 行终端消费）与 stores/searchResultsStore.ts 78
- * （休眠：仅 stores-session 74–79 行 shim 链，零终端拉取）。canonical 裁决 = 本实例；
- * stores/ 侧降 shim 之收敛因模块级助手型缝合不拢（helpers.TaskMeta.changeSummary
- * string 面 vs 本文件 TaskChangeSummary 对象面等，bundle 23754 以 files 面为真）留待型面对齐专批。 */
+/** A1-R8 普查裁决 / A1-R9 收敛完成：bundle 唯一 Vo（@1553）。树内两并行实例：
+ * 本文件 1254 区（live：1745 行 useSearchResultsStore(selectQueryResult(queryKey))
+ * = bundle 35831–35833 钩子簇；modules/QuickPick 176 行 re-export → QuickPickDeep
+ * 131 行终端消费）与 stores/searchResultsStore.ts 78（休眠：仅 stores-session
+ * 74–79 行 shim 链，零终端拉取）。canonical 裁决 = 本实例；R9 先裁决模块级助手
+ * 型缝（helpers.TaskMeta.changeSummary string 面 → 按 bundle 23754 / np@6874 真形
+ * 精化为对象面，见 stores/searchResultsHelpers.ts 宽化注），stores/ 侧已降 shim
+ * （证据链见其头注；原实现见 git 历史，检查点 34f0240）。 */
 export const useSearchResultsStore = createZustandStore<SearchResultsState>((set) => ({
   resultsByQueryKey: {},
   taskMetaByEntityKey: {},
