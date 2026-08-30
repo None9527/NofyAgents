@@ -209,6 +209,7 @@ import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // intl 上下文（原 G()）
 import { Button } from '../../modules/button'; // Button（原 X，button-laUijeDG.js）
 import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
+import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（跨 chunk / 它族已重建者，此处声明接口）
@@ -607,25 +608,13 @@ export interface TaskUsage {
   [key: string]: any;
 }
 declare const taskStore: { getState(): TaskStoreState };
-declare const sessionRouterStore: {
-  getState(): {
-    configureClientMode(mode: string): void;
-    deactivateActiveGroup(): void;
-    activeGroupId: string | null;
-    groups: Record<string, SessionRouterGroup>;
-  };
-};
+/* ── tombstone（A1-R2）：sessionRouterStore（原 A2 js 122714）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
 export interface SessionRouterGroup {
   primaryBinding: { restoredUnvalidated?: boolean; [key: string]: any };
   panes: Record<string, { restoredUnvalidated?: boolean; [key: string]: any }>;
   [key: string]: any;
 }
-declare const splitLayoutStore: {
-  getState(): {
-    resetToPrimaryPane(): void;
-    [key: string]: any;
-  };
-};
+/* ── tombstone（A1-R2）：splitLayoutStore（原 s2 js 121720）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
 declare const codeCommentsStore: {
   getState(): {
     restoreCommentFromAttachment(payload: { id: string; [key: string]: any }): void;
@@ -685,7 +674,9 @@ declare function removeSessionsByWorkspaceKeys(sessions: RemoteSessionEntry[], k
 declare function persistableWorkspaceTabs(settings: AppSettings): WorkspaceTab[];
 declare function resolveLastActiveTabIndex(entries: unknown[], lastIndex: number | undefined): number;
 declare function persistTabsPatch(state: TabStoreState, sessions: RemoteSessionEntry[]): { lastWorkspaceSession: unknown[]; lastActiveTabIndex: number };
-declare function persistableTabEntries(tabs: WorkspaceTab[], sessions: RemoteSessionEntry[]): Array<{ kind: string; [key: string]: any }>; // 原 sEt（js 123457）
+/* ── tombstone（A1-R2）：persistableTabEntries（原 sEt js 123457）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。
+ *    改指附带校正：bundle sEt 第二参为 Map（调用方 O3t 先以 lEt 建键值映射），
+ *    旧 declare 误作数组面；调用点按 bundle js 208830 补 sessionEntryMapByKey（原 lEt js 123481）包裹。 ── */
 declare function normalizeRemoteLogMessage(message: string): string | null;
 declare function appendRemoteLog(entries: RemoteConnectionLogEntry[], entry: RemoteConnectionLogEntry): RemoteConnectionLogEntry[];
 declare function syncRemoteWorkspaceModelProviders(options: {
@@ -701,20 +692,19 @@ declare function isSameWorkspace(state: TabStoreState, workspacePath: string, wo
 declare function persistDraftSnippet(workspacePath: string, workspaceIdentity: string | undefined, kind: string, payload: { text: string }): void;
 declare const DRAFT_SNIPPET_KIND_NEW_TASK: string;
 declare function isWebRemoteControlRuntime(): boolean;
-declare function hasSplitLayoutBindings(): boolean;
+/* ── tombstone（A1-R2）：hasSplitLayoutBindings（原 jwt js 121716）/paneById（原 T2 js 121528，改指经别名 paneBindingById as paneById）/
+ *    focusedPaneId（原 Z0 js 121533）/EMPTY_PANE_LAYOUT（原 K0 js 121527）declare 已删除，
+ *    改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
 declare function isKeyCombo(event: React.KeyboardEvent | KeyboardEvent, key: string): boolean;
 declare const DESKTOP_COMMANDS: { RelaunchApp: string; CloseWindow: string; [key: string]: string };
-declare function paneById(group: SessionRouterGroup, paneId: string): { workspaceScope: PaneWorkspaceScope; [key: string]: any } | null;
 export interface PaneWorkspaceScope {
   workspacePath: string;
   workspaceIdentity?: string | null;
 }
-declare function focusedPaneId(layout: PaneLayoutState): string;
 export interface PaneLayoutState {
   panes: Record<string, { workspaceScope: PaneWorkspaceScope; [key: string]: any }>;
   [key: string]: any;
 }
-declare const EMPTY_PANE_LAYOUT: PaneLayoutState;
 
 /* --- 模型 provider 快照 / 权益 --- */
 declare function getModelProvidersCached(): ModelProviderRecord[];
@@ -841,7 +831,7 @@ declare function useWebRemoteControlTaskSyncFeature(): boolean;
 
 /* --- B5-02 §G–§I 追加声明 --- */
 /* ── tombstone（A1-R1）：isWorkspaceKindTab（原 oc js 4487）declare 已删除，改经文件头真实 import（../../modules/WorkspaceTabsDeep）消费。 ── */
-declare function isReloadNavigationEntry(): boolean; // 原 z0（js 121382）
+/* ── tombstone（A1-R2）：isReloadNavigationEntry（原 z0 js 121382）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
 declare function normalizeTaskBroadcastError(
   body: { message?: unknown; detail?: unknown; code?: unknown },
   context: { fallbackCode: string; traceId?: string; taskId?: string },
@@ -1917,7 +1907,7 @@ export function workspaceKeyOfRestoreEntry(entry: string | { workspaceIdentity?:
 /** 原 O3t（208830 / 165635）：构建持久化 tab 补丁（最近会话 + 活动索引） */
 export function buildPersistedTabPatch(state: TabStoreState, sessions: RemoteSessionEntry[]): { lastWorkspaceSession: unknown[]; lastActiveTabIndex: number } {
   const normalized = normalizeTaskBroadcastSessions(sessions);
-  const persisted = persistableTabEntries(state.tabs, normalized);
+  const persisted = persistableTabEntries(state.tabs, sessionEntryMapByKey(normalized)); // A1-R2：bundle O3t（js 208830）先 lEt 建 Map 再传 sEt
   const remoteKeys = new Set(persisted.flatMap((entry: any) => (entry.kind === `remote` ? [remoteWorkspaceKey(entry)] : [])));
   const remaining = normalized.filter((entry) => !remoteKeys.has(remoteWorkspaceKey(entry)));
   const workspaceTabs = state.tabs.filter((tab) => tab.kind === `workspace`);
@@ -4116,8 +4106,8 @@ export function resolveActiveWorkspaceScope({
 }: {
   activeWorkspacePath: string | null;
   activeWorkspaceIdentity: string | null;
-  activeGroup: SessionRouterGroup | null;
-  paneLayout: PaneLayoutState;
+  activeGroup: SplitSessionRouterGroup | null; // A1-R2 型注：改指 SplitLayoutDeep 严格面（唯一调用方 AppRootLeaves 以 A2/s2 严格态流入）
+  paneLayout: SplitPaneLayoutState; // A1-R2 型注：同上
 }) {
   if (activeGroup) {
     let focusedPane = paneById(activeGroup, activeGroup.focusedPaneId);

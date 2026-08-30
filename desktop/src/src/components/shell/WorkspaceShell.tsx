@@ -220,6 +220,7 @@ import { useFeedbackStore, useSettingsStore } from '../../modules/stores-core';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { AutomationsMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）
 import { type GitDataset, type GitPaneState, type GitSourceOption, type GitSummary } from '../../modules/GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
+import { openSessionBesideDraft, sessionRouterStore, splitLayoutStore } from '../../modules/SplitLayoutDeep'; // 原 MTt/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -671,27 +672,12 @@ interface SessionBinding {
   };
   sessionId: string;
 }
-declare const sessionRouterStore: {
-  getState(): {
-    activeGroupId: string | null;
-    deactivateActiveGroup(): void;
-    openSessionFromSidebar(binding: SessionBinding): void;
-    splitSessionIntoGroup(anchorPaneId: string, side: string, binding: SessionBinding, primary?: SessionBinding): void;
-    promotePaneLayoutToGroup(binding: SessionBinding, splitStore: unknown): boolean;
-  };
-};
-declare const splitLayoutStore: {
-  getState(): {
-    resetToPrimaryPane(): void;
-    focusPane(paneId: string): void;
-    splitPaneWithBinding(anchorPaneId: string, side: string, binding: SessionBinding): void;
-    replacePaneBinding(paneId: string, binding: SessionBinding): void;
-  };
-};
-declare function openSessionBesideDraft(
-  draftScope: SessionBinding | null,
-  target: { workspacePath: string; workspaceIdentity?: string; remoteSessionId?: string; sessionId: string },
-): void;
+/* ── tombstone（A1-R2）：sessionRouterStore（原 A2 js 122714）/splitLayoutStore（原 s2 js 121720）/
+ *    openSessionBesideDraft（原 MTt js 122791）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
+/* R2 缓改指：canOpenSessionInSplit（原 ATt js 122759）/openSessionInSplit（原 jTt js 122762）
+ * 暂留 declare——bundle 第二参为扁平 scope+sessionId（ETt 解构面，js 122716），
+ * 本文件 SidebarSessionDrop*（FTt/ITt/LTt）prop 面为本地嵌套 SessionBinding，
+ * 型别冲突；须待 PTt 编排器跨度（122820–123136）重建时统一改形，不得强扭。 */
 declare function canOpenSessionInSplit(
   draftScope: SessionBinding | null,
   target: SessionBinding,

@@ -12,6 +12,7 @@ import { cn } from '../../modules/UtilsCn';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
 import { useConfirmDialog } from '../../modules/Modals'; // U2
+import { isWorkspaceKindTab as isWorkspaceTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R2：styles js 4487 改指 R1 既有导出；别名保留本地调用名）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modules/Settings'; // H3 容器类
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
@@ -198,13 +199,15 @@ interface TaskStoreState {
   setActiveTaskId: (workspacePath: string, taskId: string, identity?: string | null) => void;
   getState?: unknown;
 }
-declare function useWorkspaceTabsStore<T>(selector: (state: WorkspaceTabsStoreState) => T): T; // pc
+/* ── tombstone（A1-R2）：useWorkspaceTabsStore（原 pc js 4753）declare 已删除：本文件无调用点（死声明）。
+ *    isWorkspaceTab（原 oc js 4487）declare 已删除，改经文件头真实 import
+ *    （../../modules/WorkspaceTabsDeep 之 isWorkspaceKindTab，别名保留本地调用名）消费。
+ *    本地宽松 WorkspaceTabsStoreState 保留：activeWorkspaceTabOf（zMt）declare 仍引用。 ── */
 interface WorkspaceTabsStoreState {
   tabs: Array<{ id: string; [key: string]: unknown }>;
   activeTabId: string | null;
   activateTabByPath: (workspacePath: string, opts?: { workspaceIdentity?: string | null }) => void;
 }
-declare function isWorkspaceTab(tab: { id: string } | undefined): boolean; // oc
 
 
 /* ============================================================================

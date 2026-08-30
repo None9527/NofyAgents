@@ -186,13 +186,9 @@ interface TaskStoreState {
   setActiveTaskId: (workspacePath: string, taskId: string, identity?: string | null) => void;
   getState?: unknown;
 }
-declare function useWorkspaceTabsStore<T>(selector: (state: WorkspaceTabsStoreState) => T): T; // pc
-interface WorkspaceTabsStoreState {
-  tabs: Array<{ id: string; [key: string]: unknown }>;
-  activeTabId: string | null;
-  activateTabByPath: (workspacePath: string, opts?: { workspaceIdentity?: string | null }) => void;
-}
-declare function isWorkspaceTab(tab: { id: string } | undefined): boolean; // oc
+/* ── tombstone（A1-R2）：useWorkspaceTabsStore（原 pc js 4753）/isWorkspaceTab（原 oc js 4487）declare
+ *    一并删除：本文件无调用点（死声明）；本地宽松 WorkspaceTabsStoreState 随删。
+ *    真实实现见 ../../modules/WorkspaceTabsDeep（useWorkspaceTabStore/isWorkspaceKindTab）。 ── */
 
 
 /* ============================================================================

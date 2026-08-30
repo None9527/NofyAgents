@@ -122,8 +122,6 @@ import type {
   TabStoreState,
   WorkspaceTaskState,
   TaskStoreState,
-  SessionRouterGroup,
-  PaneLayoutState,
   UserInfo,
   LoginEntryRequest,
 } from "./OnboardingLoginLeaves";
@@ -139,6 +137,7 @@ import { useSettingsStore } from './stores-core';
 import { TooltipProvider } from './UsageStatsUiParts'; // 原 Na（A0-CLEANUP 族清理接线）
 import { CLOSE_ACTIVE_CONTEXT_EVENT } from './WorkspaceShell'; // 原 r7（A0-CLEANUP B-32 接线）
 import { hasUnavailableLocalDirectoryTab, isSettingsTab, isWorkspaceKindTab } from './WorkspaceTabsDeep'; // 原 sc/Pse/oc（A1-R1：styles js 4493/4497/4487 逐字重建改指）
+import { EMPTY_PANE_LAYOUT, hasSplitLayoutBindings, isReloadNavigationEntry, sessionRouterStore, splitLayoutStore } from './SplitLayoutDeep'; // 原 K0/jwt/z0/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）
 import type { AgentFact, TelemetryPlatform } from './services';
 /* ── tombstone（A0-CLEANUP）：CodingPlanUpgradeDialogProvider（PaymentDeep krt）/
  *    CLOSE_ACTIVE_CONTEXT_EVENT（WorkspaceShell r7）declare 已删除，改经文件头
@@ -157,23 +156,11 @@ declare const DESKTOP_COMMANDS: { RelaunchApp: string; CloseWindow: string; [key
 /* --- stores（模块级句柄）--- */
 declare function useTabStoreSelector<T>(selector: (state: TabStoreState) => T): T; // 原 pc
 declare function useTabStoreApi(): { getState(): TabStoreState; setState(mutator: (state: TabStoreState) => Partial<TabStoreState>): void }; // 原 hc
-declare const sessionRouterStore: {
-  getState(): {
-    configureClientMode(mode: string): void;
-    deactivateActiveGroup(): void;
-    activeGroupId: string | null;
-    groups: Record<string, SessionRouterGroup>;
-  };
-}; // 原 A2
-declare const splitLayoutStore: {
-  getState(): PaneLayoutState & { resetToPrimaryPane(): void };
-}; // 原 s2
-declare const EMPTY_PANE_LAYOUT: PaneLayoutState; // 原 K0
-declare function paneById(group: SessionRouterGroup, paneId: string): { workspaceScope: { workspacePath: string; workspaceIdentity?: string | null }; [key: string]: any } | null;
-declare function focusedPaneId(layout: PaneLayoutState): string;
 /* ── tombstone（A1-R1）：isWorkspaceKindTab（原 oc js 4487）/hasUnavailableLocalDirectoryTab（原 sc js 4493）declare 已删除，改经文件头真实 import（./WorkspaceTabsDeep）消费。 ── */
-declare function isReloadNavigationEntry(): boolean; // 原 z0（js 121382）
-declare function hasSplitLayoutBindings(): boolean; // 原 jwt
+/* ── tombstone（A1-R2）：sessionRouterStore（原 A2 js 122714）/splitLayoutStore（原 s2 js 121720）/
+ *    EMPTY_PANE_LAYOUT（原 K0 js 121527）/isReloadNavigationEntry（原 z0 js 121382）/
+ *    hasSplitLayoutBindings（原 jwt js 121716）declare 已删除，改经文件头真实 import（./SplitLayoutDeep）消费。
+ *    paneById（原 T2 js 121528）/focusedPaneId（原 Z0 js 121533）declare 一并删除：本文件无调用点（死声明）。 ── */
 interface SettingsStoreSlice {
   theme: string;
   user: UserInfo | null;

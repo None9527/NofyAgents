@@ -321,9 +321,11 @@ export function workspaceTabMatchesTarget(
 export const SETTINGS_TAB_ID = `__settings__`;
 
 /** 原 oc：kind === workspace。
- * 参型放宽为 { kind?: unknown }：bundle 各调用面均传标签对象（含
- * remoteServices.ts 的 WorkspaceTabLike 索引签名型）；运行期比较语义逐字。 */
-export function isWorkspaceKindTab(e: { kind?: unknown }): boolean {
+ * 参型放宽为 { kind?: unknown; [key: string]: unknown }：bundle 各调用面均传标签对象（含
+ * remoteServices.ts 的 WorkspaceTabLike 索引签名型）；运行期比较语义逐字。
+ * 行注（A1-R2 宽化）：追加索引签名以避弱型检测（TS2559）——AutomationsMain 改指面
+ * 以 { id: string; [key: string]: unknown } 流入，源侧索引签名不计入弱型重叠。 */
+export function isWorkspaceKindTab(e: { kind?: unknown; [key: string]: unknown }): boolean {
   return e.kind === `workspace`;
 }
 

@@ -12,6 +12,7 @@ import { RemoteSyncDialogs } from '../../modules/Modals';
 import { ResourceGroupHeader, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch } from '../../modules/Settings';
 import { SkillsImportDialog } from '../../modules/SettingsPanels';
 import { useTaskStore as taskStoreStatic } from '../../modules/SkillStore'; // xe.getState()
+import { useWorkspaceTabStore as useWorkspaceTabsStore } from '../../modules/WorkspaceTabsDeep'; // 原 pc（A1-R2：styles js 4753 改指 R1 既有导出；别名保留本地调用名）
 import { useBaseServices, useServices } from '../../modules/services';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
@@ -190,13 +191,10 @@ interface TaskStoreState {
   setActiveTaskId: (workspacePath: string, taskId: string, identity?: string | null) => void;
   getState?: unknown;
 }
-declare function useWorkspaceTabsStore<T>(selector: (state: WorkspaceTabsStoreState) => T): T; // pc
-interface WorkspaceTabsStoreState {
-  tabs: Array<{ id: string; [key: string]: unknown }>;
-  activeTabId: string | null;
-  activateTabByPath: (workspacePath: string, opts?: { workspaceIdentity?: string | null }) => void;
-}
-declare function isWorkspaceTab(tab: { id: string } | undefined): boolean; // oc
+/* ── tombstone（A1-R2）：useWorkspaceTabsStore（原 pc js 4753）declare 已删除，改经文件头真实 import
+ *    （../../modules/WorkspaceTabsDeep 之 useWorkspaceTabStore，别名保留本地调用名）消费；
+ *    本地宽松 WorkspaceTabsStoreState 随删（改指后无引用）。
+ *    isWorkspaceTab（原 oc js 4487）declare 一并删除：本文件无调用点（死声明）。 ── */
 
 
 /* ============================================================================
