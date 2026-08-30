@@ -87,7 +87,7 @@
  *
  * §H 遥测下沉函数块（js 40397–41807；services.tsx §遥测下沉函数 29 声明实体化）：
  *   供应商域：bw/hNe 供应商主机归一 (40397/40406)、xw reportTelemetry (40409)、
- *     gNe/_Ne/vNe 供应商业务错误表 (40419)、Sw/yNe/bNe 错误码→i18n/恢复动作 (40446–40452)、
+ *     gNe/_Ne/vNe 供应商业务错误表 (40467；A1-R13 行校正，旧注 40419)、Sw/yNe/bNe 错误码→i18n/恢复动作 (40494–40500；A1-R13 行校正，旧注 40446–40452)、
  *     SNe 配额耗尽归一 (40456)、DNe 并发限流归一 (40492)、ONe 13xx 码归一 (40501)、
  *     kNe busy 子类 (40553)、ANe/Cw 验证码失败归一 (40559/40570；A1-R12 实测校正，旧注 40505/40511/40522 行漂移)、jNe 空响应判定 (40573)、
  *     MNe…GNe chat_error_banner 常量族 (40532–40615)、KNe/qNe 供应商作用域/模型脱敏 (40616/40623)、
@@ -361,16 +361,16 @@ const PROVIDER_BUSINESS_ACTIONS: Record<string, string | null> = {
   429: "retry-later",
 };
 
-/** 原 Sw（40446）：是否供应商业务错误码 */
+/** 原 Sw（40494；A1-R13 行校正，旧注 40446）：是否供应商业务错误码 */
 export function isProviderBusinessCode(code: string | null | undefined): boolean {
   return code ? PROVIDER_BUSINESS_CODES.includes(code) : false;
 }
-/** 原 yNe（40449）：错误码 → i18n key */
+/** 原 yNe（40497；A1-R13 行校正，旧注 40449）：错误码 → i18n key */
 export function providerBusinessI18nId(code: string | null | undefined): string | undefined {
   if (isProviderBusinessCode(code)) return PROVIDER_BUSINESS_I18N[code as string];
   return undefined;
 }
-/** 原 bNe（40452）：错误码 → 恢复动作 */
+/** 原 bNe（40500；A1-R13 行校正，旧注 40452）：错误码 → 恢复动作 */
 export function providerBusinessRecoveryAction(code: string | null | undefined): string | null {
   return isProviderBusinessCode(code) ? PROVIDER_BUSINESS_ACTIONS[code as string] : null;
 }
@@ -446,7 +446,7 @@ export function normalizeCaptchaCode(code: string | null | undefined, message: s
   return void 0;
 }
 
-/** 原 jNe（40525）：模型空响应判定 */
+/** 原 jNe（40573；A1-R13 行校正，旧注 40525）：模型空响应判定 */
 export function isEmptyModelResponse(message: string | null | undefined): boolean {
   return message
     ? message.includes("Model returned no text, no tool calls, and no usage before completing the turn.") ||

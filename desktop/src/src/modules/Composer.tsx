@@ -93,7 +93,7 @@
  *   Kqe  → toSlashPanelMention                (64243)
  *   qqe  → useSessionSlashCommands            (64275)
  *  [B4] 提及节点（Lexical TextNode 派生）：
- *   oV   → isHttpUrl                          (64278)
+ *   oV   → isHttpUrl                          (64277；A1-R13 行校正，旧注 64278)
  *   sV   → MENTION_NODE_BASE_CLASS            (64279)
  *   cV   → mentionCategoryClass               (64280)
  *   Jqe  → unescapeMarkdownLinkLabel          (64294)
@@ -212,8 +212,8 @@
  *   TYe  → PassthroughErrorBoundary           (66808)
  *  [B10] ComposerInput 根 + 动作菜单 + 拖拽：
  *   YV   → applyWorkspaceFileMentionDrop      (66811)
- *   EYe  → hasExternalFiles                   (66823)
- *   XV   → useComposerFileDragDetection       (66827；Home.report 拖拽检测)
+ *   EYe  → hasExternalFiles                   (66822；A1-R13 行校正，旧注 66823)
+ *   XV   → useComposerFileDragDetection       (66828；Home.report 拖拽检测；A1-R13 行校正，旧注 66827)
  *   DYe  → buildActionMenuShortcuts           (66887)
  *   OYe  → onNextFrame                        (66893)
  *   kYe  → appendTriggerText                  (66899)
@@ -1932,15 +1932,16 @@ interface SuggestionSectionModel {
  * [B4] 提及节点（js 64278–64640；Lexical TextNode 派生，渲染为内联图标+文本）
  * ==========================================================================*/
 
-/** 原 oV（js 64278）：http(s) URL 判定（插件图标用） */
-function isHttpUrl(value: unknown): value is string {
+/** 原 oV（js 64277）：https URL 判定（插件图标用）。A1-R13 补 export + 行校正（旧注 64278）：
+ *  oV 三归属收敛 canonical（PluginLeaves isHttpsUrl 副本、Conversation isPluginIconUrl declare 改指）。 */
+export function isHttpUrl(value: unknown): value is string {
   return typeof value == `string` && value.startsWith(`https://`);
 }
 
-/** 原 sV（js 64279）：提及节点基类名 */
+/** 原 sV（js 64280；A1-R13 行校正，旧注 64279）：提及节点基类名 */
 const MENTION_NODE_BASE_CLASS = `inline-flex cursor-default items-center gap-1 align-top text-ui-base leading-5 font-medium`;
 
-/** 原 cV（js 64280）：提及类别前景色类名 */
+/** 原 cV（js 64281；A1-R13 行校正，旧注 64280）：提及类别前景色类名 */
 function mentionCategoryClass(category: string): string {
   return category === `skills`
     ? `text-skill-node-foreground`
@@ -4613,7 +4614,7 @@ export function applyWorkspaceFileMentionDrop(args: {
   );
 }
 
-/** EYe → hasExternalFiles（js 66823） */
+/** EYe → hasExternalFiles（js 66822） */
 function hasExternalFiles(dataTransfer: DataTransfer): boolean {
   return (
     Array.from(dataTransfer.types).includes(`Files`) ||
@@ -4621,8 +4622,9 @@ function hasExternalFiles(dataTransfer: DataTransfer): boolean {
   );
 }
 
-/** XV → useComposerFileDragDetection（js 66827） */
-function useComposerFileDragDetection({ enableWorkspaceFileDrop, enableExternalFileDrop }: { enableWorkspaceFileDrop: boolean; enableExternalFileDrop: boolean }): {
+/** XV → useComposerFileDragDetection（js 66828）。A1-R13 补 export：Home useFileDragDetection declare
+ *  （66828 同一真身）改指本函数，一符一家；体内消费 tUe/Nj/EYe（R12 叶子化后不变）。 */
+export function useComposerFileDragDetection({ enableWorkspaceFileDrop, enableExternalFileDrop }: { enableWorkspaceFileDrop: boolean; enableExternalFileDrop: boolean }): {
   externalFileDragging: boolean;
   internalDragging: boolean;
   setExternalFileDragging: (value: boolean) => void;
@@ -7392,7 +7394,7 @@ export type { ConfigSelectOption, ConfigSelectSpec } from '../components/compose
  * [B9] hYe→SubmitOnEnterPlugin 66333 | gYe→EditorChangeLogger 66411 | _Ye→EditableSyncPlugin 66451 | vYe→E2ELexicalBridgePlugin 66463 |
  * yYe→PromptHistoryNavigationPlugin 66507 | JV→isCaretAtEditorStart 66575 | bYe→CjkCommaSlashPlugin 66588 | xYe→PasteCapturePlugin 66623 |
  * SYe→EditorApiPlugin 66639 | CYe→LEXICAL_CHAT_INPUT_THEME 66666 | wYe→LexicalChatInput 66668 | TYe→PassthroughErrorBoundary 66808
- * [B10] YV→applyWorkspaceFileMentionDrop 66811 | EYe→hasExternalFiles 66823 | XV→useComposerFileDragDetection 66827 | DYe→buildActionMenuShortcuts 66887 |
+ * [B10] YV→applyWorkspaceFileMentionDrop 66811 | EYe→hasExternalFiles 66822 | XV→useComposerFileDragDetection 66828 | DYe→buildActionMenuShortcuts 66886 |
  * OYe→onNextFrame 66893 | kYe→appendTriggerText 66899 | AYe→preventDefaultOnMouseDown 66904 | jYe→ComposerActionMenu 66907 | MYe→runOnNextFrame 67000 | ZV→ComposerInput 67007
  * [B11] NYe→NANOID_ALPHABET 67277 | QV→nanoid 67278 | PYe→LARGE_PASTED_TEXT_THRESHOLD 67282 | $V→MAX_INLINE_IMAGE_BYTES 67283 |
  * eH→TEXT_ATTACHMENT_PREVIEW_LIMIT 67284 | FYe→OversizedInlineImageAttachmentError 67285 | IYe→readFileAsDataUrl 67299 | LYe→createFileAttachment 67315 |

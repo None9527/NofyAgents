@@ -16,6 +16,7 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { isComposingText as imeGuard } from '../../modules/ImeComposition'; // A
 import { pluginMentionMarkdown } from '../composer/FileMentionDragHelpers'; // A1-R11：Dj（52138）转录改指（纯函数叶子，环安全）；调用点 1746 逐字不变
+import { isHttpUrl as isHttpsUrl } from '../../modules/Composer'; // A1-R13：oV（64277）三归属收敛改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；本地调用点 1246/1325 逐字不变。环安全：Composer 不反引本文件
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
@@ -1301,10 +1302,10 @@ export function extractComponentsFromDescribe(data: { components?: Array<{ kind:
   return ["agent", "command", "skill", "hook", "mcp"].map((kind) => byKind.get(kind)).filter((entry): entry is NonNullable<typeof entry> => entry !== undefined);
 }
 
-/** 原 oV（64229）：https URL 判定 */
-export function isHttpsUrl(value: string | undefined | null): value is string {
-  return typeof value === "string" && value.startsWith("https://");
-}
+/* ── tombstone（A1-R13）：export function isHttpsUrl（原 oV，64277；旧注 64229 行漂移）删除 →
+ *    文件头 ../../modules/Composer import 别名消费（canonical = isHttpUrl，bundle 唯一真身，
+ *    位 B4 提及节点块 64277；本文件调用点逐字不变，SettingsLeaves re-export 面经下方再导出维持）。 ── */
+export { isHttpsUrl };
 
 /** 原 C0t（199415）：市场条目卡（英雄图 + 悬浮示例提示词；图失败降级为普通卡） */
 export function MarketEntryCard({

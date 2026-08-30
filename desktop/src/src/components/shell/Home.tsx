@@ -130,13 +130,14 @@ import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphon
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb/Vb）
-import { BackgroundWorksCapsule, ComposerInput, applyWorkspaceFileMentionDrop as insertAddToChatPayload, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）。A1-R12：insertAddToChatPayload declare（原 YV，66811）改指 Composer 属主导出（bundle 唯一真身；消费点 2440/2947 逐字不变）
+import { BackgroundWorksCapsule, ComposerInput, applyWorkspaceFileMentionDrop as insertAddToChatPayload, useComposerFileDragDetection as useFileDragDetection, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）。A1-R12：insertAddToChatPayload declare（原 YV，66811）改指 Composer 属主导出（bundle 唯一真身；消费点 2440/2947 逐字不变）。A1-R13：useFileDragDetection declare（原 XV，66828）改指 Composer 属主导出（bundle 唯一真身；消费点 2418 逐字不变）
 import { countContextAttachments, useCodeCommentContexts, type CodeCommentAttachment } from '../../modules/GitReview'; // A1-R12：isAddToChatEvent 移出（原 yXe，68430 = code-comment-add-to-chat 域，与 2945 消费面事件名不符 → 改指工作区域守卫，见下）
 import { readWorkspaceFilePayload as parseAddToChatPayload, ADD_WORKSPACE_FILE_TO_CHAT_EVENT as ADD_TO_CHAT_EVENT_NAME, isAddWorkspaceFileToChatEvent as isAddToChatEvent, type WorkspaceFileDragPayload } from '../composer/FileMentionDragHelpers'; // A1-R12：Mj（52248）/Aj（52211）/nUe（52260）declare 改指纯函数叶子（本批逐字转录）；消费点 2436/2945/2957/2959 逐字不变。nUe 此前误接 GitReview yXe（code-comment 域），bundle 90733 真身 = 工作区域守卫
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from '../../modules/ImeComposition';
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
 import { create, logger, useTaskStore } from '../../modules/SkillStore';
+import { providerBusinessI18nId, normalizeCaptchaCode, isEmptyModelResponse } from '../../modules/StoresDeep'; // A1-R13：lN 簇依赖改指（原 yNe 40497 / Cw 40570（stub）/ jNe 40573，§H 逐字真身）；环安全：StoresDeep 不反引本文件
 import { providerIds } from '../../modules/SrcSharedA';
 import { useServices } from '../../modules/services';
 import { workspaceScopeKey } from '../../modules/stores-session';
@@ -1927,10 +1928,10 @@ declare function useWhiteboardAttachmentScope(args: {
   composerDragKind: "attachment" | "workspace" | null;
   isDraggingOverComposer: boolean;
 };
-declare function useFileDragDetection(opts: { enableExternalFileDrop: boolean; enableWorkspaceFileDrop: boolean }): {
-  externalFileDragging: boolean;
-  workspaceFileDragging: boolean;
-};
+/* ── tombstone（A1-R13）：declare useFileDragDetection（原 XV，66828）删除 → 文件头
+ *    ../../modules/Composer import 别名消费（canonical = useComposerFileDragDetection，
+ *    bundle 唯一真身，Composer B10 区已逐字转录；返回 6 字段面，本文件解构 2 字段；
+ *    原 declare 2 字段窄面仅 declare 时代产物）。 ── */
 /* ── tombstone（A1-R12）：declare parseAddToChatPayload（原 Mj，52248）删除 → 文件头
  *    ../composer/FileMentionDragHelpers import 别名消费（canonical = readWorkspaceFilePayload，
  *    本批逐字转录；调用点 2436 逐字不变）。 ── */
@@ -1981,7 +1982,7 @@ declare function buildOutgoingMessage(
   },
 ): string;
 
-/** 错误展示（原 uN/lN，js 54254/54232） */
+/** 错误展示（原 uN/lN，js 54302/54280；A1-R13 行校正，旧注 54254/54232） */
 interface ChatError {
   message: string;
   code?: string;
@@ -1989,8 +1990,79 @@ interface ChatError {
   traceId?: string;
   [key: string]: unknown;
 }
-declare function isIgnorableChatError(error: ChatError): boolean;
-declare function formatChatError(error: ChatError, intl: IntlShape): string;
+
+/* --- A1-R13：聊天错误消息 i18n 解析簇（js 54260–54304，逐字转录；vWe 消费面随
+ *     ChatErrorBanner declare 留批，本簇终端消费 = 3046（displayError）/3054（displayMessage） ---
+ *   mWe → LEGACY_TASK_MODEL_UNAVAILABLE_MESSAGES (54260)  uN 依赖
+ *   hWe → CHAT_ERROR_I18N_FALLBACK_CODES          (54264)  lN 末段 `zcode.error.${code}` 回退集
+ *   gWe → MODEL_CONFIG_MISSING_CODES              (54272)  cN 依赖
+ *   cN  → isModelConfigMissingError               (54273)  lN 首段
+ *   _We → parseClaudeUnknownCommand               (54276)  lN CLAUDE_UNKNOWN_COMMAND 段
+ *   lN  → formatChatError                         (54280)  消费 yNe/Cw/jNe（StoresDeep 改指）
+ *   uN  → isIgnorableChatError                    (54302)  ZCODE_RUNTIME_MODEL_UNAVAILABLE 文案判定
+ * ========================================================================== */
+/* ── tombstone（A1-R13）：declare isIgnorableChatError（原 uN，54302）删除 → 本段逐字转录。 ── */
+/* ── tombstone（A1-R13）：declare formatChatError（原 lN，54280）删除 → 本段逐字转录
+ *    （Cw 54293 消费面经 StoresDeep normalizeCaptchaCode stub 承接，行为与 bundle 归约一致）。 ── */
+
+/** 原 mWe（54260）：历史任务模型不可用文案（中英） */
+const LEGACY_TASK_MODEL_UNAVAILABLE_MESSAGES = [
+  `历史任务使用的模型已不可用`,
+  `The model used by this historical task is no longer available`,
+];
+
+/** 原 hWe（54264）：错误码直拼 i18n key 回退集 */
+const CHAT_ERROR_I18N_FALLBACK_CODES = new Set([
+  `TASK_OWNED_BY_OTHER_HOST`,
+  `STALE_TASK_OWNER_COMMAND`,
+  `NO_ACTIVE_TASK_OWNER`,
+  `OWNER_COMMAND_FAILED`,
+  `ZCODE_RUNTIME_MODEL_UNAVAILABLE`,
+  `ZCODE_BIGMODEL_TEAM_PLAN_MEMBER_REQUIRED`,
+]);
+
+/** 原 gWe（54272）：模型配置缺失码集 */
+const MODEL_CONFIG_MISSING_CODES = new Set([`model_config_missing`, `MODEL_CONFIG_MISSING`, `ModelConfigMissing`]);
+
+/** 原 cN（54273）：模型配置缺失判定 */
+function isModelConfigMissingError(e: ChatError): boolean {
+  return !!(e.code && MODEL_CONFIG_MISSING_CODES.has(e.code));
+}
+
+/** 原 _We（54276）：Claude Code 未知命令文案解析 */
+function parseClaudeUnknownCommand(e: string): { command: string; args?: string } | null {
+  let t = e.match(/Claude Code 未知命令\s+(\S+?)(?:（参数：([^）]+)）)?。/u);
+  return t?.[1] ? { command: t[1], ...(t[2]?.trim() ? { args: t[2].trim() } : {}) } : null;
+}
+
+/** 原 lN（54280）：聊天错误消息格式化（配置缺失 → 未知命令 → 业务码 i18n → 空响应 → 回退码 → 原文） */
+function formatChatError(e: ChatError, t: IntlShape): string {
+  if (isModelConfigMissingError(e)) return t.formatMessage({ id: `chat.error.noAvailableModel` });
+  if (e.code === `CLAUDE_UNKNOWN_COMMAND`) {
+    let n = parseClaudeUnknownCommand(e.message);
+    return n
+      ? n.args
+        ? t.formatMessage(
+            { id: `zcode.error.CLAUDE_UNKNOWN_COMMAND_WITH_ARGS` },
+            { command: n.command, args: n.args },
+          )
+        : t.formatMessage({ id: `zcode.error.CLAUDE_UNKNOWN_COMMAND` }, { command: n.command })
+      : e.message;
+  }
+  let n = providerBusinessI18nId(normalizeCaptchaCode(e.code, e.message) ?? e.code);
+  return n
+    ? t.formatMessage({ id: n })
+    : isEmptyModelResponse(e.message)
+      ? t.formatMessage({ id: `zcode.error.modelSuspiciousEmpty` })
+      : e.code && CHAT_ERROR_I18N_FALLBACK_CODES.has(e.code)
+        ? t.formatMessage({ id: `zcode.error.${e.code}` })
+        : e.message;
+}
+
+/** 原 uN（54302）：可忽略聊天错误判定（历史任务模型不可用文案） */
+function isIgnorableChatError(e: ChatError): boolean {
+  return !!(e.code === `ZCODE_RUNTIME_MODEL_UNAVAILABLE` && LEGACY_TASK_MODEL_UNAVAILABLE_MESSAGES.some((t) => e.message.includes(t)));
+}
 
 /** 遥测（原 wT js 42717 / oFe js 41744） */
 interface ComposerTelemetry {
@@ -2070,7 +2142,7 @@ declare function ConversationSelectionChipRow(props: {
   onRemove: (id: string) => void;
   onRemoveAll: () => void;
 }): React.ReactElement | null;
-/** 错误横幅（原 vWe，js 54257） */
+/** 错误横幅（原 vWe，js 54305；A1-R13 行校正，旧注 54257） */
 declare function ChatErrorBanner(props: {
   error: ChatError;
   onDismiss?: () => void;

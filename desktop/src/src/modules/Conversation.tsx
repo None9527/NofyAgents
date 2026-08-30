@@ -139,6 +139,7 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
  *    唯一消费面 9.6 A0 编排器随 PTt 域迁出（SplitLayoutUiDeep.tsx）而删除。 ── */
 import { SessionQuotaBanner, PendingCommandBanner, type QuotaBannerState } from '../components/conversation/SessionBanners'; // 〔A0-S4-4b〕§9 渲染点（7528/7538）+ QuotaBannerState 型别（6979）消费回取（函数声明提升/型别擦除，环安全）
 import { splitUserInputParts, formatSkillMentionLabel, type MentionToken } from '../components/composer/FileMentionDragHelpers'; // A1-R12：ZHe（52182）/YHe（52147）declare 改指纯函数叶子（本批逐字转录）；调用点 767/688 逐字不变。环安全：叶子零 import
+import { isHttpUrl as isPluginIconUrl } from './Composer'; // A1-R13：oV（64277）declare 改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；调用点 740 逐字不变。环安全：Composer 不反引本文件
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
 import { TurnNavigator, findActiveQueryRow, shouldHydrateFullHistory, hydrateRetryDelayMs } from '../components/conversation/TurnNavigator'; // 〔A0-S4-4b〕§8 渲染点（6549）+ activeQueryRowId（6238）+ §5 水合判定（3957/3991）消费回取
@@ -647,7 +648,9 @@ function usePluginIcons(): PluginIconContextValue | null {
 type UserInputPart = MentionToken;
 /* ── tombstone（A1-R12）：declare splitUserInputParts（原 ZHe，52182）删除 → 文件头
  *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录；调用点 767 逐字不变）。 ── */
-declare function isPluginIconUrl(src: string | undefined): boolean;
+/* ── tombstone（A1-R13）：declare isPluginIconUrl（原 oV，64277）删除 → 文件头 ./Composer
+ *    import 别名消费（canonical = isHttpUrl，bundle 唯一真身；三归属收敛：Composer 本地转录 +
+ *    PluginLeaves isHttpsUrl 副本 + 本 declare → Composer 一家；调用点 740 逐字不变）。 ── */
 /* ── tombstone（A1-R12）：declare formatSkillMentionLabel（原 YHe，52147）删除 → 文件头
  *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录；调用点 688 逐字不变）。 ── */
 
