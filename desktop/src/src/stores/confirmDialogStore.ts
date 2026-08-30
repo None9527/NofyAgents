@@ -1,60 +1,24 @@
-// A0-S4-3: 自 modules/stores-core.tsx §5 原样迁入（ConfirmDialogStore + useConfirmDialog；原文件现为薄 re-export shim）。
-import { t as logger } from '../modules/logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
-import { create as createStore } from './zustand'; // 原 Ae（skillStore chunk q 导出）
-import type { UseBoundStore } from './storeTypes';
-
 /* ============================================================================
- * 5. ConfirmDialogStore（原 H2，js 123480–123492 / jsx 105205）
+ * confirmDialogStore.ts — 薄 re-export shim（A1-R6 双实例收敛）
  * ----------------------------------------------------------------------------
- * 全局确认对话框：单请求槽位 + Promise 结算。
- * state 字段表：pendingRequest: ConfirmRequest \| undefined（1 个）
- * actions：requestConfirmation/settleConfirmation（2 个）
- * selectors 使用方：123494（U2 useConfirmDialog）、206574–206575（对话框呈现层）。
- * 持久化：无。
+ * A0-S4-3 本文件原持并行 zustand 实例（自 stores-core §5 迁入）。A1-R6 裁决：
+ * bundle 唯一 H2（js 123497–123509），树内 live 实例 = components/modals/
+ * ConfirmDialog.tsx 之 ConfirmDialogStore——bundle 206864–206865 对话框呈现层
+ * 直接消费 H2（pendingRequest/settleConfirmation 选择器，与 ConfirmDialog.tsx
+ * 155–156 区逐字对应），且全树 requestConfirmation 消费面（Bots/settings 六节/
+ * TopBar/OnboardingDialog/RemoteWizard，皆经 Modals.tsx 再导出）归一于该实例。
+ * 本文件并行实例经实测无任何下游消费者（休眠），然跨实例请求不可见之潜在风险
+ * 不可留 → 降为 shim，旧实例删除（原实现见 git 历史，检查点 2046aaa）。
+ * 导出面不变（stores-core.tsx 之 import 面：useConfirmDialogStore/useConfirmDialog
+ * + ConfirmRequest/ConfirmRequestInput/ConfirmDialogState 三型，逐一维系）。
+ * 邻接登记：AlertDialogStore（原 N9）同型并行问题（stores/alertDialogStore.ts）
+ * 本批未动，见 A1-R6.report.md §下批候选。
  * ==========================================================================*/
 
-export interface ConfirmRequest {
-  title: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  resolve?: (confirmed: boolean) => void;
-  [key: string]: unknown;
-}
+import type { ConfirmDialogRequest } from '../components/modals/ConfirmDialog';
 
-/** requestConfirmation 的入参（不含 resolve，由 store 注入） */
-export interface ConfirmRequestInput {
-  title: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  [key: string]: unknown;
-}
+export { useConfirmDialogStore, useConfirmDialog } from '../components/modals/ConfirmDialog';
+export type { ConfirmDialogRequest as ConfirmRequest, ConfirmDialogStoreState as ConfirmDialogState } from '../components/modals/ConfirmDialog';
 
-export interface ConfirmDialogState {
-  pendingRequest: ConfirmRequest | undefined;
-  requestConfirmation(request: ConfirmRequestInput): Promise<boolean>;
-  settleConfirmation(confirmed: boolean): void;
-}
-
-export const useConfirmDialogStore: UseBoundStore<ConfirmDialogState> = createStore<ConfirmDialogState>((set, get) => ({
-  pendingRequest: undefined,
-  requestConfirmation: (request) =>
-    get().pendingRequest
-      ? (logger.warn("[ConfirmDialogStore] confirmation already in progress"), Promise.resolve(false))
-      : new Promise<boolean>((resolve) => {
-          set({ pendingRequest: { ...request, resolve } });
-        }),
-  settleConfirmation: (confirmed) => {
-    const pending = get().pendingRequest;
-    if (!pending) return;
-    set({ pendingRequest: undefined });
-    pending.resolve?.(confirmed);
-  },
-}));
-
-/** 原 U2：useConfirmDialog —— 返回 requestConfirmation 动作 */
-export function useConfirmDialog(): ConfirmDialogState["requestConfirmation"] {
-  return useConfirmDialogStore((state) => state.requestConfirmation);
-}
-
+/** 原 ConfirmRequestInput（requestConfirmation 入参面，不含 resolve，由 store 注入）。 */
+export type ConfirmRequestInput = Omit<ConfirmDialogRequest, "resolve">;

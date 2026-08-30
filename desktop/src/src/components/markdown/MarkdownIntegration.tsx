@@ -100,6 +100,7 @@
  *   EA/DA/OA/kA → zcode-last-editor-id 记忆 (50846–50856 / 45668)
  *   zA  → relativePathFromWorkspace (50919) | JA → resolveAvailableEditors (51052) | QA → useWorkspaceFileServices (51093，接口)
  *   $A/QVe → useRemoteWorkspaceInfo     tabs store → isRemoteWorkspace/remoteTarget (51166–51174)
+ *                                        〔A1-R6：内嵌 yne（$b）declare 改指 SrcSharedB.sanitizeRemoteTargetForRestore〕
  *
  *  Conversation 耦合点：
  *   hvt → AssistantMessageRow (memo)  cj 的消费方：streaming=row.state==='streaming'，children=row.text (112357 / 95832)
@@ -151,6 +152,7 @@ import { resolveAvailableEditors } from '../../modules/FileTreePanel';
 import { HighlightedCodeBlock } from '../../modules/HighlightedCodeBlock';
 import { ImageGalleryGroup, ImageLightbox, MarkdownTableStickyScrollbar, MermaidFullscreenDialog } from '../../modules/PreviewCards';
 import { cn as Z } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
+import { sanitizeRemoteTargetForRestore as formatRemoteTarget } from '../../modules/SrcSharedB'; // 原 yne（$b，src-HCld2afU.js 8611–8629）：A1-R6 declare 改指（tombstone 见原 declare 位）
 import { t as J } from '../../modules/logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
 import { useServicesOptional as ps } from '../../modules/services'; // 原 ps（services.tsx 导出 useServicesOptional）
 import { usePlatform as l } from '../../modules/ImeComposition'; // 原 l（imeComposition chunk 导出 M=usePlatform）
@@ -232,8 +234,12 @@ interface WorkspaceTabLike {
 }
 /** 原 oc：工作区 tab 形态判定 */
 declare function isWorkspaceTabLike(tab: unknown): tab is WorkspaceTabLike;
-/** 原 yne：remoteTarget 展示模型 */
-declare function formatRemoteTarget(target: unknown): unknown;
+/* ── tombstone（A1-R6）：formatRemoteTarget（原 yne = $b，src-HCld2afU.js 8611–8629，
+ *    pt→yne 跨 chunk 导出；唯一另调用点 styles 143262 已于 A1-R5 归 TopBar）declare 删除 →
+ *    真实 import（sanitizeRemoteTargetForRestore as formatRemoteTarget，见文件头）。
+ *    canonical 参型 (e: any)、返回 三 kind 净化目标 | undefined（server 支 void）；
+ *    本位调用面 `target ? formatRemoteTarget(target) : undefined`（1222 区）返回型
+ *    归入 { remoteTarget: unknown }，兼容。 ── */
 
 /** 原 wA：in-app browser 主机名白名单判定 */
 declare function isInAppBrowserHost(hostname: string): boolean;
