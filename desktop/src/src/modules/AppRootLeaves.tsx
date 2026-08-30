@@ -124,7 +124,7 @@ import type {
   UserInfo,
   LoginEntryRequest,
 } from "./OnboardingLoginLeaves";
-import { CaptchaHostContainer, injectArmsReporter as setArmsReportPlatform, buildCaptchaAssertionKeys, captchaAssertionStatus, createCaptchaGatekeeper, isCaptchaDecisionHandled, recordCaptchaFailure, type CaptchaGatekeeper } from './ConversationLeaves'; // +setArmsReportPlatform（A1-R10 项 1c：原 BSt@118240 = y0 置入；canonical = ConversationLeaves injectArmsReporter（RSt/zSt/BSt/VSt/HSt 簇 999–1031 逐字在案；HSt 消费面 118420 = uCt 验证完成簇已接线 1187）；既有边）+A1-R14：ACt/A0/kCt/j0/M0/CaptchaGatekeeper 六 declare 改指（§5b 实体，c8t 消费）
+import { CaptchaHostContainer, injectArmsReporter as setArmsReportPlatform, buildCaptchaAssertionKeys, captchaAssertionStatus, createCaptchaGatekeeper, isCaptchaDecisionHandled, recordCaptchaFailure, captchaProviderOfTaskMeta, type CaptchaGatekeeper } from './ConversationLeaves'; // A1-R16：+captchaProviderOfTaskMeta（原 KSt declare 删碑改指） // +setArmsReportPlatform（A1-R10 项 1c：原 BSt@118240 = y0 置入；canonical = ConversationLeaves injectArmsReporter（RSt/zSt/BSt/VSt/HSt 簇 999–1031 逐字在案；HSt 消费面 118420 = uCt 验证完成簇已接线 1187）；既有边）+A1-R14：ACt/A0/kCt/j0/M0/CaptchaGatekeeper 六 declare 改指（§5b 实体，c8t 消费）
 import { setMcpSyncServiceHandle as setTelemetryReportPlatform } from '../stores/mcpStore'; // A1-R10 项 1c：原 b_e@25049 = Hg 置入；canonical = mcpStore setMcpSyncServiceHandle（Hg/mcpSyncServiceHandle 143–149 逐字；Lg=persistMcpChange 225 消费在案）。根装配 212931 以 platform 兼 MCP 同步句柄。环安全：mcpStore 值闭包 = logger/modules-services/zustand，不达本文件（全树无本文件 import 源）
 import { PlatformProvider } from './ImeComposition';
 import { AppDialogHost, DirectoryBrowserDialog, OnboardingDialog, type BaseServices } from './Modals'; // +type BaseServices（A0-CLEANUP2 item 16：DirectoryBrowserDialog services 断言改具名型）
@@ -270,7 +270,10 @@ interface QuotaAssertion {
 }
 declare function resolveQuotaAssertion(options: Record<string, unknown>): QuotaAssertion; // 原 I0
 declare function quotaDismissKey(assertion: QuotaAssertion, instance: string): string; // 原 L0
-declare function captchaProviderOfTaskMeta(options: { taskMeta: { model: string } }): string; // 原 KSt
+/* ── tombstone（A1-R16）：declare function captchaProviderOfTaskMeta（原 KSt，js 118284）删除——
+ *    canonical = ConversationLeaves captchaProviderOfTaskMeta（原 resolveTaskProviderId 改名导出，
+ *    bundle 唯一真身 118284；GSt/WSt/Ie/Uq 依赖面 Leaves §5 在案）。c8t 1451 消费点逐字不变，
+ *    经文件头既有 import 边取回。 ── */
 /* ── tombstone（A1-R14）：buildCaptchaAssertionKeys（原 ACt，118738）/ CaptchaGatekeeper 接口（kCt 返回面）/
  *    createCaptchaGatekeeper（原 kCt，118735）/ captchaAssertionStatus（原 A0，118765）/
  *    recordCaptchaFailure（原 j0，118772）/ isCaptchaDecisionHandled（原 M0，118776）六枚 declare 删除——

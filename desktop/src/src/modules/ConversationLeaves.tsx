@@ -72,18 +72,20 @@
  *   Fvt  → AutomationCardList        (— / 96229)
  *   fgt  → AutomationCard            (107448 区 / 93676)
  *   sgt/cgt/lgt/ugt/dgt → cron 工具判定/JSON 宽松解析/自动化模型归一/多源抽取 (— / 93617–93666)
- *  [Captcha] Aliyun captcha 部件：
- *   ASt  → handleAliyunSdkFail       (117919 / 100205)
- *   jSt  → initAliyunCaptchaInstance (— / 100280)
- *   MSt  → awaitCaptchaInstance      (— / 100322)
- *   NSt  → waitCaptchaScriptSettle   (— / 100335)
- *   PSt  → runAliyunCaptchaVerification (— / 100344)
- *   kSt  → loadAliyunCaptchaScript   (— / 100160)
- *   wSt  → CaptchaHostContainer      (— / 100110)
- *   v0/TSt/ESt/DSt/OSt → 在途拒绝/重置/配置键/挂载校验/按钮查询 (— / 100130–100190)
- *   r0/i0/_St/vSt/a0/o0/ySt/bSt/s0/c0/xSt/SSt → 失败载荷解析族 (— / 100045–100100)
- *   FSt/ISt/LSt → 验证头名/区域头名/头构建 (— / 100470–100478)
- *   RSt/zSt/BSt/VSt/HSt → ARMS 事件名/组/注入/构建/上报 (— / 100480–100500)
+ *  [Captcha] Aliyun captcha 部件（A1-R16 真身行全勘，旧 jsx 视图注保留对照）：
+ *   ASt  → handleAliyunSdkFail       (117936 / 100205；旧注 117919 误读，R15 勘误)
+ *   jSt  → initAliyunCaptchaInstance (117983 / 100280)
+ *   MSt  → awaitCaptchaInstance      (118055 / 100322)
+ *   NSt  → waitCaptchaScriptSettle   (118070 / 100335)
+ *   PSt  → runAliyunCaptchaVerification (118080 / 100344)
+ *   kSt  → rejectCaptchaRemoved      (117929；A1-R16 实体化；loadAliyunCaptchaScript 束内无对应，删碑)
+ *   wSt  → CaptchaHostContainer      (117871 / 100110；消费 212894 = AppRootLeaves 1910)
+ *   v0/TSt/ESt/DSt/OSt → 在途拒绝/重置/配置键/挂载校验/按钮查询 (117934/117899/117904/117915/117924)
+ *   r0/i0/_St/vSt/a0/o0/ySt/bSt/s0/c0/xSt/SSt → 失败载荷解析族 (117763–117867)
+ *   FSt/ISt/LSt → 验证头名/区域头名/头构建 (118231–118233)
+ *   RSt/zSt/BSt/VSt/HSt → ARMS 事件名/组/注入/构建/上报 (118237–118270)
+ *   USt/WSt/GSt/KSt → 基址常量/前缀/label 解析/任务供应商 (118271/118272/118279/118284；KSt canonical=captchaProviderOfTaskMeta，A1-R16 导出收敛)
+ *   pCt  → resolveCodingPlanProviderHeaders (118459；A1-R16 实体化)
  *   b0   → isCaptchaProtectedProvider (118309 / 100548)
  *   nCt/w0/T0/rCt/iCt/aCt → 验证参数缓存/运行时头账本 (— / 100560–100590)
  *   E0/D0/oCt/sCt/cCt/lCt/uCt/dCt/fCt → 配置缓存/可用性/语言/串行队列/预检/发送前恢复 (— / 100590–100680)
@@ -452,7 +454,7 @@ export type { AutomationModel, AutomationCardModel } from '../components/convers
  * 5. Aliyun captcha 部件（原 mSt…fCt，jsx 100034–100680）
  * ==========================================================================*/
 
-const ALIYUN_CAPTCHA_SCRIPT_URL = "https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"; // mSt
+const ALIYUN_CAPTCHA_SCRIPT_URL = "https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"; // mSt（A1-R16：束内 117754 声明后零消费，死常量，与束同构保留）
 const CAPTCHA_INSTANCE_TIMEOUT_MS = 10000; // t0
 const CAPTCHA_SCRIPT_SETTLE_MS = 2000; // hSt
 const CAPTCHA_VERIFICATION_TIMEOUT_MS = 120000; // gSt
@@ -628,11 +630,13 @@ declare global {
   }
 }
 
-let scriptLoadPromise: Promise<void> | null = null; // d0
+/* ── tombstone（A1-R16）：let scriptLoadPromise（declare 期误映 d0）删除——styles chunk 无脚本加载
+ *    实体（d0 束内 117887 声明后零读写，死态）；前批 loadAliyunCaptchaScript 系 jsx 视图转录残留，
+ *    同批删碑（见下 kSt 位）。 ── */
 let instanceEntry: CaptchaInstanceEntry | null = null; // f0
 let inFlight: CaptchaInFlight | null = null; // p0
 let verificationRunning = false; // m0
-let scriptLoadedAt = 0; // h0
+let scriptLoadedAt = 0; // h0（A1-R16：束内 117892 声明后零赋值，waitCaptchaScriptSettle 恒早退——与束同构）
 const CAPTCHA_LOGO_URL = ""; // g0（icon 资源占位）
 
 function captchaDebug(event: string, meta?: unknown): void {
@@ -664,38 +668,13 @@ function requireCaptchaButton(): { buttonElement: HTMLButtonElement; buttonSelec
   if (!(button instanceof HTMLButtonElement)) throw Error("Captcha fallback button is not mounted.");
   return { buttonElement: button, buttonSelector: `#${CAPTCHA_BUTTON_ID}` };
 }
-/** 原 kSt（— / 100160）：脚本加载（去重 + 在途共享） */
-function loadAliyunCaptchaScript(): Promise<void> {
-  if (scriptLoadPromise) return scriptLoadPromise;
-  scriptLoadPromise = new Promise<void>((resolve, reject) => {
-    if (typeof window > "u" || typeof document > "u") {
-      reject(Error("Captcha requires browser environment."));
-      return;
-    }
-    if (typeof window.initAliyunCaptcha == "function") {
-      resolve();
-      return;
-    }
-    const existing = document.querySelector(`script[src="${ALIYUN_CAPTCHA_SCRIPT_URL}"]`);
-    if (existing) {
-      existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(Error("Failed to load captcha script.")), { once: true });
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = ALIYUN_CAPTCHA_SCRIPT_URL;
-    script.async = true;
-    script.onload = () => {
-      scriptLoadedAt = Date.now();
-      resolve();
-    };
-    script.onerror = () => reject(Error("Failed to load captcha script."));
-    document.head.appendChild(script);
-  }).catch((error) => {
-    scriptLoadPromise = null;
-    throw error;
-  });
-  return scriptLoadPromise;
+/* ── tombstone（A1-R16）：function loadAliyunCaptchaScript（declare 期误映 kSt）删除——styles chunk
+ *    无脚本加载实体：kSt 真身 117929 = 恒拒门（`Promise.reject(Error(\`Captcha has been removed.\`))`），
+ *    jSt 117986 唯一消费 = `await kSt()`（本构建 captcha SDK 初始化恒抛 removed）；createElement(`script`)
+ *    束内 81615/83192 均属异域。前批按 jsx 视图转录引入偏差，本批收敛回束逐字行为。 ── */
+/** 原 kSt（js 117929）— 逐字；移除门（本构建 captcha SDK 初始化恒拒） */
+function rejectCaptchaRemoved(): Promise<never> {
+  return Promise.reject(Error(`Captcha has been removed.`));
 }
 /** 原 v0：拒绝在途 */
 function rejectInFlight(error: unknown): void {
@@ -707,8 +686,8 @@ function rejectInFlight(error: unknown): void {
 /** 原 ASt（117919 / 100205）：SDK fail 回调分派（终态通过/延迟交互/重复提交/通用失败） */
 function handleAliyunSdkFail(fail: unknown, rejectInstance: (error: unknown) => void): void {
   const summary = summarizeCaptchaFail(fail);
-  if (!scriptLoadPromise && isDeferredInteractiveFail(fail)) {
-    // 原 p0 && bSt 分支：无在途且延迟失败 → 记录 stale
+  if (!inFlight && isDeferredInteractiveFail(fail)) {
+    // A1-R16 收敛：原 !p0 && bSt 分支（束 117938 逐字；前批误映 scriptLoadPromise）→ 无在途且延迟失败 → 记录 stale
     captchaDebug("sdk.fail.stale_after_success", summary);
     return;
   }
@@ -762,7 +741,7 @@ function handleAliyunSdkFail(fail: unknown, rejectInstance: (error: unknown) => 
 async function initAliyunCaptchaInstance(config: CaptchaConfig): Promise<CaptchaInstanceEntry> {
   const configKey = captchaConfigKey(config);
   if (instanceEntry && instanceEntry.configKey === configKey) return instanceEntry;
-  await loadAliyunCaptchaScript();
+  await rejectCaptchaRemoved(); // A1-R16：原 kSt 117986 逐字（恒拒门；前批误接脚本加载）
   const init = window.initAliyunCaptcha;
   if (typeof init != "function") throw Error("Captcha SDK is unavailable.");
   requireCaptchaHostElements();
@@ -848,7 +827,7 @@ async function awaitCaptchaInstance(promise: Promise<AliyunCaptchaInstance>, opt
     }),
   ]);
 }
-/** 原 NSt（— / 100335）：脚本加载后 2s 稳定等待 */
+/** 原 NSt（js 118070 / 旧注 — / 100335）：脚本加载后 2s 稳定等待（A1-R16：h0 束内零赋值，恒早退，与束同构） */
 async function waitCaptchaScriptSettle(): Promise<void> {
   if (!scriptLoadedAt) return;
   const elapsed = Date.now() - scriptLoadedAt;
@@ -1036,7 +1015,7 @@ function reportCaptchaArmsEvent(event: { result: string; source: string; provide
   });
 }
 
-/** 原 USt/WSt/GSt/KSt/qSt/JSt/YSt/b0：zcode-plan 供应商判定 */
+/** 原 USt/WSt/GSt/KSt/qSt/JSt/YSt/b0：zcode-plan 供应商判定（A1-R16 真身行：USt 118271 / WSt 118272 / GSt 118279 / KSt 118284） */
 declare const ZCODE_PLAN_OPENAI_BASE_URL: string; // USt（Gnt.zcodePlanOpenAiBaseUrl）
 declare function resolveProviderEndpoint(provider: unknown, format: string): string; // YSt/Ir
 declare function normalizeProviderConfig(value: unknown): { providerId?: string } | null; // se
@@ -1053,7 +1032,8 @@ function resolveProviderIdFromLabel(label?: string | null): string | null {
   const normalized = normalizeProviderConfig(trimmed);
   return normalized?.providerId ? normalized.providerId : providerPrefix(trimmed);
 }
-function resolveTaskProviderId(entry: { configOptions?: unknown; selectedSupplierKey?: string | null; taskMeta?: { model?: string } | null }): string | null {
+/** A1-R16 收敛：原 resolveTaskProviderId 改名导出——canonical 语义名取 declare 期既用名（AppRootLeaves c8t 1451 消费逐字不变） */
+export function captchaProviderOfTaskMeta(entry: { configOptions?: unknown; selectedSupplierKey?: string | null; taskMeta?: { model?: string } | null }): string | null {
   return (
     resolveProviderIdFromLabel(entry.configOptions ? providerConfigFromOptions(entry.configOptions) : null) ||
     (entry.selectedSupplierKey ? resolveSupplierProvider(entry.selectedSupplierKey) : null) ||
@@ -1233,6 +1213,18 @@ export async function restoreCaptchaVerificationForSend(e: {
     forgetCaptchaParam(e.providerId),
     { captchaVerifyParam: n, headers: r }
   );
+}
+
+/** 原 pCt（js 118459）— 逐字；fCt 的 .headers 投影包装（A1-R16 实体化；消费面 = ModelProviderSettingsSection
+ *  handleTestModel 1987 = bundle 192570 ze 回调，declare 删碑改指本导出）。
+ *  型缝：codingPlanSubscriptionService 带索引签名（消费面 1991 传 useServices 弱型面，循 R14 弱型缝先例） */
+export async function resolveCodingPlanProviderHeaders(e: {
+  providerId: string;
+  providerConfig: unknown;
+  codingPlanSubscriptionService: { getCaptchaConfig?(): Promise<CaptchaConfig | null>; [method: string]: unknown };
+  modelProviderService?: unknown;
+}): Promise<Record<string, string> | undefined> {
+  return (await restoreCaptchaVerificationForSend(e))?.headers;
 }
 
 /* --- 5b. 3007 自动恢复链（原 mCt/kCt/ACt/jCt/A0/j0/MCt/M0/NCt，js 118462–118867；A1-R14 实体化）

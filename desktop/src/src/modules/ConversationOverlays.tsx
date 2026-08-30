@@ -74,11 +74,11 @@
  *   fSt → createSnoozeLedger                (117536 / 99884)
  *   pSt → ConversationInteractionsOverlay   (117551 / 99899)
  *  [Captcha / provider 运行时头]（js 117754–118640 / jsx 100034–100891；A1-R15 行校正，旧注 117706–118608）
- *   mSt → ALIYUN_CAPTCHA_SCRIPT_URL         (117754 / 100034；A1-R15 行校正，旧注 117706)
- *   ASt → AliyunCaptchaWidget（接口级）      (A1-R15 勘误：ASt 真身 117936 = SDK fail 处理器非部件；部件真身 = wSt@117871 宿主容器 + SDK 编排域 117754–118290，留批；旧注 117919)
- *   CSt → ALIYUN_CAPTCHA_CONTAINER_ID       (jsx 100132；真身 117868)
- *   FSt → CAPTCHA_VERIFY_PARAM_HEADER       (jsx 100474；真身 118231)
- *   RSt → CAPTCHA_SESSION_STORAGE_KEY       (A1-R15 勘误：RSt 真身 118237 = ARMS 事件名（VSt 118247 消费），非会话存储键)
+ *   mSt → ALIYUN_CAPTCHA_SCRIPT_URL         (117754；A1-R16 本文件副本删碑，canonical = Leaves；旧注 117706)
+ *   ASt → handleAliyunSdkFail（Leaves §5）   (117936；A1-R16：AliyunCaptchaWidget declare 删碑，部件真身 wSt=CaptchaHostContainer Leaves 591，消费 212894；旧注 117919)
+ *   CSt → CAPTCHA_CONTAINER_ID（Leaves）    (117868；A1-R16 本文件副本删碑)
+ *   FSt → CAPTCHA_VERIFY_HEADER（Leaves）   (118231；A1-R16 本文件副本删碑)
+ *   RSt → CAPTCHA_ARMS_EVENT_NAME（Leaves）  (118237；A1-R16 本文件误命名副本删碑；R15 勘误在案：ARMS 事件名非存储键)
  *   XSt → CAPTCHA_VERIFY_FAILED             (jsx 100551)
  *   b0  → isCaptchaProvider                 (118309 / 100548；A1-R14 删碑改指 ConversationLeaves，行校正 118292→118309)
  *   aCt → consumeRecoveredCaptchaHeader     (118344 / 100582；A1-R15 删碑改指 ConversationLeaves takeRuntimeProviderHeaders，行校正 118327→118344)
@@ -183,36 +183,26 @@ export {
   snoozeInteractionAutoResolution,
 } from '../components/conversation/ConversationInteractionsOverlay';
 /* ============================================================================
- * 4. Captcha / provider 运行时头（js 117706–118608 / jsx 100034–100891）
+ * 4. Captcha / provider 运行时头（js 117754–118640 / jsx 100034–100891；A1-R16 行校正，旧注 117706–118608）
  * ==========================================================================*/
 
-/** 原 mSt（js 117706 / jsx 100034）：Aliyun 验证码脚本地址 */
-const ALIYUN_CAPTCHA_SCRIPT_URL = `https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js`;
-/** 原 CSt（jsx 100132） */
-const ALIYUN_CAPTCHA_CONTAINER_ID = `zcode-aliyun-captcha-container`;
-/** 原 FSt（jsx 100474） */
-const CAPTCHA_VERIFY_PARAM_HEADER = `X-Aliyun-Captcha-Verify-Param`;
-/** 原 RSt（jsx 100485） */
-const CAPTCHA_SESSION_STORAGE_KEY = `aliyun_captcha_verification`;
+/* ── tombstone（A1-R16）：const ALIYUN_CAPTCHA_SCRIPT_URL（原 mSt）/ ALIYUN_CAPTCHA_CONTAINER_ID（原 CSt）/
+ *    CAPTCHA_VERIFY_PARAM_HEADER（原 FSt）/ CAPTCHA_SESSION_STORAGE_KEY（原 RSt，误命名；真身 = ARMS
+ *    事件名）四枚本文件副本删除——bundle 各唯一真身 117754/117868/118231/118237，消费面全在 Leaves §5
+ *    （wSt/DSt/LSt/VSt）；本文件副本零外部消费（modules/components/stores/lib/services grep 实证，
+ *    含导出面），双实例收敛，canonical = ConversationLeaves（ALIYUN_CAPTCHA_SCRIPT_URL /
+ *    CAPTCHA_CONTAINER_ID / CAPTCHA_VERIFY_HEADER / CAPTCHA_ARMS_EVENT_NAME）。 ── */
 /* ── tombstone（A1-R14）：const CAPTCHA_VERIFY_FAILED_CODE（原 XSt，js 118312 / jsx 100551）删除——
  *    本文件零代码引用（实测 grep 仅注释提及）；canonical = ConversationLeaves §5
  *    CAPTCHA_VERIFY_FAILED_CODE（与 ZSt 同 var 声明位，A1-R14 NCt 批置入并导出）。
- *    本文件 AliyunCaptchaWidget declare 实体化时经 ConversationLeaves import 取回。 ── */
+ *    （A1-R16 注：原「AliyunCaptchaWidget 实体化时取回」之约随该 declare 删碑作废——见下碑。） ── */
 
-/**
- * Aliyun 验证码部件（原 ASt，js 117919 / jsx 100205–100473；接口级）。
- * A1-R15 勘误：ASt 真身 117936 = SDK fail 处理器（s0/bSt/o0/a0/_St/TSt 族），非 React 部件；
- * 部件真身 = wSt@117871 宿主容器（CSt/l0/u0 三元素）+ jSt@117983 SDK 初始化编排等
- * 整域 117754–118290（约 25 函数，含 Promise 编排/遥测 HSt/ARMS 事件 VSt），体量另批实体化。
- * declare 期「RSt 会话存储键」描述亦误读——RSt 118237 为 ARMS 事件名（VSt 118247 消费）。
- * 本树零调用点（grep 实证仅头表/碑文提及），维持接口级 declare 留批。
- */
-declare const AliyunCaptchaWidget: React.FC<{
-  providerId: string;
-  sessionId: string | null;
-  onSuccess: (verifyParam: string) => void;
-  onError: (error: { code: string; message?: string }) => void;
-}>;
+/* ── tombstone（A1-R16）：declare const AliyunCaptchaWidget（declare 期误映 ASt，jsx 100205–100473 视图
+ *    幻影）删除——styles chunk 无该 props 面（providerId/sessionId/onSuccess/onError）对应实体：
+ *    部件真身 = wSt@117871 宿主容器 = ConversationLeaves CaptchaHostContainer（591 导出；终端消费
+ *    bundle 212894 = AppRootLeaves 1910，既有边在案）；SDK 编排整域 117754–118290 已全勘收敛
+ *    （A1-R16：kSt 117929 恒拒门实体化、d0/scriptLoadPromise 删碑）。本树零调用点（grep 实证仅头表/
+ *    碑文提及），按死 declare 先例（A1-R8/R9/R14）删碑改指。 ── */
 
 /* ── tombstone（A1-R14）：declare function isCaptchaProvider（原 b0，js 118309 / jsx 100548；旧注 118292 漂移）
  *    删除——本文件零调用点（实测 grep 仅余声明位与头表）；canonical = ConversationLeaves §5
@@ -447,8 +437,6 @@ function useSessionSubscriptionErrorReporterImpl({
 export {
   /* Captcha / runtime auth */
   RuntimeAuthHeadersControllerImpl as RuntimeAuthHeadersController,
-  ALIYUN_CAPTCHA_SCRIPT_URL,
-  CAPTCHA_VERIFY_PARAM_HEADER,
   /* Session errors */
   useSessionSubscriptionErrorReporterImpl as useSessionSubscriptionErrorReporter,
   parseFaultKey,

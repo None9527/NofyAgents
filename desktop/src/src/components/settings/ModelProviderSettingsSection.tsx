@@ -8,6 +8,7 @@ import { subscribeSettingsSectionIntent } from '../../modules/Settings';
 import { consumeModelProviderIntent as readSettingsSectionIntent } from '../../modules/Settings'; // sw（39377）
 import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, nullSafe as toManagedProvider, upgradeFunnelContext, entryPlanStateOf, useAppSettings, useSubscriptionSnapshot, useZapiEnabled, type AddProviderDraft, type CodingPlanDisplayStatus, type CodingPlanViewState, type EntitlementQuotaLimit, type FunnelContext, type ModelMetadata, type ProviderEndpoints } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/PM（53253）/IM（53277）/JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2b/§2c）
 import { useServices } from '../../modules/services';
+import { resolveCodingPlanProviderHeaders, type CaptchaConfig } from '../../modules/ConversationLeaves'; // A1-R16：pCt declare 删碑改指（118459 逐字实体）+ 型缝 CaptchaConfig
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
 import { useConfirmDialog } from '../../modules/Modals';
@@ -221,6 +222,8 @@ interface CredentialService {
   load(key: string): Promise<string | null>;
 }
 interface CodingPlanSubscriptionService {
+  /** A1-R16 型缝（pCt 118459 → fCt 118446 → E0 118473 消费面）：captcha 配置取回面 */
+  getCaptchaConfig?(): Promise<CaptchaConfig | null>;
   [key: string]: unknown;
 }
 
@@ -310,12 +313,10 @@ declare function mergeItemWithSubscription(
 ): ModelProviderNavItem; // kZt（190363）
 declare const PRESET_SUBSCRIPTION_LOGIN_TIMEOUT_MS: number; // qnt（88170）
 declare const BIGMODEL_REGISTRATION_URL: string; // Jnt（跨 chunk）
-declare function resolveCodingPlanProviderHeaders(opts: {
-  providerId: string;
-  providerConfig: ModelProvider;
-  codingPlanSubscriptionService: CodingPlanSubscriptionService;
-  modelProviderService: ModelProviderService;
-}): Promise<Record<string, string> | null>; // pCt（F12 族）
+/* ── tombstone（A1-R16）：declare function resolveCodingPlanProviderHeaders（原 pCt，js 118459）删除——
+ *    canonical = ConversationLeaves resolveCodingPlanProviderHeaders（逐字实体化：`(await fCt(e))?.headers`
+ *    投影；bundle 唯一真身 118459，本文件 handleTestModel 1987 = bundle 192570 ze 回调唯一消费）。
+ *    经新 import 边取回（环安全：ConversationLeaves 不引 components/settings，grep 实证）。 ── */
 declare function planStateOfProviders(opts: { providers: ModelProvider[]; loading: boolean }): string; // LM
 declare function buildUpgradeFunnelForAutomations(opts: { providerId: string; eventText: string; entryPlanState: string }): string; // FM
 
