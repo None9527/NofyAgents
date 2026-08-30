@@ -117,7 +117,7 @@
 |---|---|---|---|
 | A | PORTING-PLAN 阶段 A：main 内原生 ACP 单例 | **完工已验证** | nofy-kernel-client.js 单例（WS JSON-RPC；cancel=notification + pending-permission 清理、clientIdentifier=nofy-desktop、ext() 幂等前缀、modelState/agentVersion 活形、rpc 超时）；kernel-bridge.js host IPC（index.js +2 行加性）；workspace-registry 二连接收编（枚举纯函数化入 workspace-enum.js，renderer 通道形状不变）；acp-probe5 17/17（含负对照：无下划线 ext −32601、cancel-as-request −32601）；**全进程单 WS**（会话生命周期后仍 1）；旧路不拆（host/renderer/adapter 零改动 git 实证）；报告 A1-A1.report.md；检查点 40e5871 |
 | F | src-chunk facade + IntlProvider facade | **完工已验证** | srcChunkFacade 412/412 全重建 0 passthrough（属主 SrcSharedB 359 / SrcSharedA 53）；IntlProvider facade 7/7 别名 → modules/I18n（单一重建 i18n 上下文）；gen-facade.mjs 幂等生成；boot-harness 三阶段 bundle + symlink farm（out/ 零写入）；独立复跑验证：三阶段 0 警告、CDP root children=2 / innerHTML 50,593 / React commit、**零控制台异常**、截图与 S5 基线同壳、http 日志实证 renderer 加载的是 facade 产物（src 425,055B vs 原件 294,147B；IntlProvider 736,955B vs 648,819B）；tsc 0、narrowed manifest diff 空；报告 A1-F1.report.md |
-| R | styles chunk 源码化（R0 清点 + 首批解码） | 运行中 | — |
+| R | styles chunk 源码化（R0 清点 + 首批解码） | **R0+R1 完工已验证**（续批待开） | R0：census 1,437 名（firstparty 1,353 / icon-custom 59 / other 16 / radix 8 / lexical 1）+ 39 区域簇；R1：簇 3660–6068 之 tab-store 引擎重建 modules/WorkspaceTabsDeep.tsx 930 行（43 bundle 符号 + 8 型导出，B5 规约），4 消费侧文件 8 declare→import；独立复验：esbuild 扫荡 291/291、tsc 双 tsconfig 0、md5 双主 chunk 逐字、diff 8 删 0 增、零新增抑制、post-R1 boot 零异常同壳；报告 A1-R1.report.md；腰带残留（pc/hc/mc 改指受阻于消费侧 workspacePath 必填松型）留型别收敛批 |
 
 ## 事故与教训（本阶段）
 

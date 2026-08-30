@@ -209,6 +209,7 @@ import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, type TaskAc
 import { WebRemoteControlDialog, useWebRemoteControlEnabled } from '../../modules/WebRemote';
 import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useWorkspaceServices } from '../../modules/services';
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../../modules/stores-core';
+import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
@@ -1231,8 +1232,7 @@ interface WorkspaceTabStore {
 declare function useTabStore<T>(selector: (state: WorkspaceTabStore) => T): T;
 /** 原 mc（jsx 3606）：可空版 useTabStore */
 declare function useOptionalTabStore<T>(selector: (state: WorkspaceTabStore) => T): T;
-/** 原 sc（3324）：本地目录不可用判定（选择器作用于 tab store） */
-declare function isLocalDirectoryUnavailableSelector(state: WorkspaceTabStore, workspacePath: string, workspaceIdentity?: string | null): boolean;
+/* ── tombstone（A1-R1）：isLocalDirectoryUnavailableSelector（原 sc js 4493 / jsx 3324）declare 已删除，改经文件头真实 import（hasUnavailableLocalDirectoryTab as …，../../modules/WorkspaceTabsDeep）消费。 ── */
 /** 原 Zs：会话注册表 store */
 /** 原 Vo：搜索结果 store（任务列表查询缓存） */
 declare function useSearchResultsStore<T>(selector: (state: SearchResultsState) => T): T;

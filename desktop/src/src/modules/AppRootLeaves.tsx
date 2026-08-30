@@ -138,6 +138,7 @@ import { ConversationTelemetrySupervisor, useWorkspaceServices } from './service
 import { useSettingsStore } from './stores-core';
 import { TooltipProvider } from './UsageStatsUiParts'; // 原 Na（A0-CLEANUP 族清理接线）
 import { CLOSE_ACTIVE_CONTEXT_EVENT } from './WorkspaceShell'; // 原 r7（A0-CLEANUP B-32 接线）
+import { hasUnavailableLocalDirectoryTab, isSettingsTab, isWorkspaceKindTab } from './WorkspaceTabsDeep'; // 原 sc/Pse/oc（A1-R1：styles js 4493/4497/4487 逐字重建改指）
 import type { AgentFact, TelemetryPlatform } from './services';
 /* ── tombstone（A0-CLEANUP）：CodingPlanUpgradeDialogProvider（PaymentDeep krt）/
  *    CLOSE_ACTIVE_CONTEXT_EVENT（WorkspaceShell r7）declare 已删除，改经文件头
@@ -170,8 +171,7 @@ declare const splitLayoutStore: {
 declare const EMPTY_PANE_LAYOUT: PaneLayoutState; // 原 K0
 declare function paneById(group: SessionRouterGroup, paneId: string): { workspaceScope: { workspacePath: string; workspaceIdentity?: string | null }; [key: string]: any } | null;
 declare function focusedPaneId(layout: PaneLayoutState): string;
-declare function isWorkspaceKindTab(tab: WorkspaceTab): boolean; // 原 oc（js 4487）
-declare function hasUnavailableLocalDirectoryTab(state: TabStoreState, workspacePath: string, workspaceIdentity?: string | null): boolean; // 原 sc（js 4492）
+/* ── tombstone（A1-R1）：isWorkspaceKindTab（原 oc js 4487）/hasUnavailableLocalDirectoryTab（原 sc js 4493）declare 已删除，改经文件头真实 import（./WorkspaceTabsDeep）消费。 ── */
 declare function isReloadNavigationEntry(): boolean; // 原 z0（js 121382）
 declare function hasSplitLayoutBindings(): boolean; // 原 jwt
 interface SettingsStoreSlice {
@@ -228,7 +228,7 @@ declare function useSessionRestoreBridge(options: {
   buildPersistPatch: (state: TabStoreState) => { lastWorkspaceSession: unknown[]; lastActiveTabIndex: number };
 }): { isRestoring: boolean; hasCompletedInitialRestore: boolean; hasCompletedFullRestore: boolean }; // 原 rYt
 declare function useOAuthCredentialsRefresher(): { tryRefresh: (...args: unknown[]) => unknown; clearCredentials: (...args: unknown[]) => unknown }; // 原 iYt
-declare function isSettingsTab(tab: WorkspaceTab | null): boolean; // 原 Pse
+/* ── tombstone（A1-R1）：isSettingsTab（原 Pse js 4497）declare 已删除，改经文件头真实 import（./WorkspaceTabsDeep）消费。 ── */
 declare function useConfirmDialog(): (options: { title: string; description: string; confirmLabel: string; cancelLabel: string }) => Promise<boolean>; // 原 U2
 declare function resolveFamilyDomainAfterLogout(options: { currentDomain: string | null | undefined; modelProviders: ModelProviderRecord[] }): string | null; // 原 yQt
 declare function persistDraftSnippet(workspacePath: string, workspaceIdentity: string | null | undefined, kind: string, payload: { text: string }): void; // 原 hH

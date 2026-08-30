@@ -5,6 +5,8 @@ import type { BaseServices, RegisteredSession, ResolvedBaseServices } from '../m
 import { ServiceProxy } from './ipcBridge';
 import { EventUtil } from './eventPrimitives';
 import { useServices, useServicesOptional } from './serviceContext';
+// 原 pc/oc（styles js 4801/4487）：canonical 属主 = modules/WorkspaceTabsDeep（A1-R1 双归属裁决）
+import { useWorkspaceTabStore as useTabStoreSelector, isWorkspaceKindTab as isWorkspaceTab } from '../modules/WorkspaceTabsDeep';
 /* --- C.4 远端服务解析与钩子（原 4834–4960） --- */
 
 export const REMOTE_WORKSPACE_DISCONNECTED = "ZCODE_REMOTE_WORKSPACE_DISCONNECTED"; // 原 xc
@@ -97,9 +99,7 @@ export interface WorkspaceTabLike {
   [key: string]: unknown;
 }
 
-/** TabStore（F04 域）的最小消费面；原 pc/oc/co */
-declare function useTabStoreSelector<R>(selector: (state: { activeTabId: string | null; tabs: WorkspaceTabLike[]; activeWorkspacePath?: string | null; activeWorkspaceIdentity?: string | null }) => R): R;
-declare function isWorkspaceTab(tab: WorkspaceTabLike | null | undefined): boolean;
+/** TabStore（F04 域）的最小消费面：原 pc/oc declare 已改指 modules/WorkspaceTabsDeep（见头注 import）。 */
 
 /** 原 gc：按注册表解析工作区对应的远端会话 id */
 function resolveSessionIdForWorkspace(

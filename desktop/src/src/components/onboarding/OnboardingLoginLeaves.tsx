@@ -208,6 +208,7 @@ import { DEFAULT_CODE_PREVIEW_SETTINGS as defaultCodePreviewSettings } from '../
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // intl 上下文（原 G()）
 import { Button } from '../../modules/button'; // Button（原 X，button-laUijeDG.js）
+import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（跨 chunk / 它族已重建者，此处声明接口）
@@ -805,7 +806,7 @@ declare function useSessionRestoreBridge(options: {
 declare function useOAuthCredentialsRefresher(): { tryRefresh: (...args: unknown[]) => unknown; clearCredentials: (...args: unknown[]) => unknown };
 declare function syncRemoteTabsE2E(tabs: Array<{ workspacePath: string; workspaceIdentity?: string; remoteSessionId?: string }>): void;
 declare function setActiveWorkspacePathE2E(path: string | null): void;
-declare function isSettingsTab(tab: WorkspaceTab | null): boolean;
+/* ── tombstone（A1-R1）：isSettingsTab（原 Pse js 4497）declare 已删除；本文件无调用点，canonical 属主 = modules/WorkspaceTabsDeep。 ── */
 declare const runtimePreferencesSchema: { safeParse(payload: unknown): { success: boolean; data?: any; error?: { issues: unknown } } };
 declare function isCodeCommentRestorePayload(payload: unknown): payload is { id?: string; [key: string]: any };
 declare function isCodeCommentRemovePayload(payload: unknown): boolean;
@@ -839,7 +840,7 @@ declare function resolveThemeForTitleBar(theme: string): string; // 原 xo（js 
 declare function useWebRemoteControlTaskSyncFeature(): boolean;
 
 /* --- B5-02 §G–§I 追加声明 --- */
-declare function isWorkspaceKindTab(tab: WorkspaceTab): boolean; // 原 oc（js 4487）：tab.kind === 'workspace'
+/* ── tombstone（A1-R1）：isWorkspaceKindTab（原 oc js 4487）declare 已删除，改经文件头真实 import（../../modules/WorkspaceTabsDeep）消费。 ── */
 declare function isReloadNavigationEntry(): boolean; // 原 z0（js 121382）
 declare function normalizeTaskBroadcastError(
   body: { message?: unknown; detail?: unknown; code?: unknown },

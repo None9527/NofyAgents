@@ -1,0 +1,1438 @@
+name	kind	class	statements	consumers	consumer_files	obf_hints	obf	source_chunk	current_line	b5_owner	b5_sem	attr_via	attr_status	worktree_defn
+A	const	firstparty	1	1	components/xlsx/XlsxDeepP.tsx		A	src-HCld2afU.js	3152			name-is-obf+bundle-def	ATTRIBUTED	no
+ADD_MODEL_BUTTON_TESTID	const	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+ADD_TO_CHAT_EVENT_NAME	const	firstparty	1	1	components/shell/Home.tsx	Aj	Aj	pptxRendererPreviewEngine-BIIRLBue.js	36761			obf-hint+bundle-def	ATTRIBUTED	no
+AGENT_FRAMEWORK_ID	const	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+API_KEY_INPUT_TESTID	const	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+APP_HEADER_TEST_ID	const	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+AUTOMATIONS_MAIN_TOAST_ANCHOR_ID	const	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+AgentChildToolList	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+AgentColorBadge	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+AgentIcon	const	icon-custom	1	1	components/composer/BackgroundWorksCapsule.tsx								UNATTRIBUTED	no
+AgentLabeledBlock	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+AgentMessageKind	const	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+AgentOutputFileCard	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+AgentPromptBlock	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+AliyunCaptchaWidget	const	firstparty	1	1	modules/ConversationOverlays.tsx		ASt	styles-CdEGpc2x.js	117936	ConversationOverlays.tsx	AliyunCaptchaWidget	exact-sem	ATTRIBUTED	no
+An	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		An	previewPaneOfficeXlsxContent-XeHwYdMn.js	1705			name-is-obf+bundle-def	ATTRIBUTED	no
+AnimatePresence	const	firstparty	1	1	components/composer/ModelSelector.tsx								UNATTRIBUTED	no
+ApiRetryView	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+AppErrorFallback	const	firstparty	1	1	components/shell/WorkspaceShell.tsx		QOt	styles-CdEGpc2x.js	129749	WorkspaceShell.tsx	AppErrorFallback	exact-sem	ATTRIBUTED	no
+AttachmentCard	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+AttachmentCardIcon	function	icon-custom	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+AttachmentCardName	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+AttachmentCardRemoveButton	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+AttachmentChip	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+AttachmentChipGroup	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+AttachmentChipIcon	const	icon-custom	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+AttachmentChipName	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+AttachmentChipRemoveButton	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+AttachmentIcon	const	icon-custom	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+AttachmentList	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+AttachmentPreviewDialog	const	firstparty	2	2	components/shell/Home.tsx;modules/Conversation.tsx								UNATTRIBUTED	no
+AutomationStatusActiveIcon	const	icon-custom	6	6	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+AutomationStatusChip	const	firstparty	1	1	components/automations/AutomationsMain.tsx	ANt	ANt	styles-CdEGpc2x.js	138530	ExtendedViews.tsx	AutomationSchedulePill	obf-hint+symbol-index	ATTRIBUTED	no
+AutomationStatusPausedIcon	const	icon-custom	6	6	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+Avatar	function	firstparty	1	1	components/shell/Sidebar.tsx		_Lt	styles-CdEGpc2x.js	147762	Sidebar.tsx	Avatar	exact-sem	ATTRIBUTED	no
+AvatarFallback	const	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+AvatarImage	const	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+BIGMODEL_OAUTH_PROVIDER_ID	const	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+BIGMODEL_PROVIDER_ID	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+BIGMODEL_REGION	const	firstparty	1	1	components/usage/UsageDeep.tsx	Ri	Ri	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18718	LegacyDocEngine3.tsx	childElements	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+BIGMODEL_REGION_ID	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+BIGMODEL_REGISTRATION_URL	const	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	Jnt	Jnt	styles-CdEGpc2x.js		PaymentDeep.tsx	LOGIN_URL	obf-hint+symbol-index	ATTRIBUTED	no
+BUILTIN_MODEL_CONTEXT_WINDOW	const	firstparty	1	1	components/usage/UsageDeep.tsx	si	si	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18354	LegacyDocEngineC3.tsx	initialRenderSpan	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+BUNDLED_LANGUAGE_ALIASES	const	firstparty	1	1	components/markdown/MarkdownIntegration.tsx	bIe							UNATTRIBUTED	no
+BillingDiscountBanner	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+BillingDiscountNote	const	firstparty	1	1	components/conversation/SessionBanners.tsx								UNATTRIBUTED	no
+BrandWordmarkSvg	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx	s4t	s4t	styles-CdEGpc2x.js	205975			obf-hint+bundle-def	ATTRIBUTED	no
+Bu	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		Bu	styles-CdEGpc2x.js	9381			name-is-obf+bundle-def	ATTRIBUTED	no
+Buffer	const	firstparty	1	1	modules/previewPaneOfficeLegacyDocContent.tsx								UNATTRIBUTED	no
+C	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		C	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	31			name-is-obf+bundle-def	ATTRIBUTED	no
+CLAUDE_CODE_PLUGINS_MARKETPLACE_ID	const	firstparty	1	1	components/settings/PluginsSettingsSection.tsx	c9	c9	styles-CdEGpc2x.js		SettingsLeaves.tsx	精选配置	obf-hint+symbol-index	ATTRIBUTED	no
+CLOSE_ACTIVE_CONTEXT_EVENT	const	other-registered	1	1	components/onboarding/OnboardingLoginLeaves.tsx		r7	styles-CdEGpc2x.js		WorkspaceShell.tsx	CLOSE_ACTIVE_CONTEXT_EVENT	exact-sem	ATTRIBUTED	yes
+CODING_PLAN_PRESETS	const	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	oX	oX	styles-CdEGpc2x.js		PaymentDeep.tsx	CODING_PLAN_PROVIDER_ENTRIES	obf-hint+symbol-index	ATTRIBUTED	no
+CONNECTION_MODE_ITEM_TESTID_PREFIX	const	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+CONNECTION_MODE_TRIGGER_TESTID	const	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+CONTEXT_USAGE_TRIGGER_TESTID	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	yes
+CalendarIcon	const	icon-custom	1	1	components/settings/UsageSettingsSection.tsx								UNATTRIBUTED	no
+ChatErrorBanner	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+Checkbox	const	radix-deferred	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	yes
+ClassNamesMerger	type	other-registered	1	1	components/code-viewer/HighlightedCodeBlock.tsx								UNATTRIBUTED	no
+CodeCommentChipRow	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+CodeCommentChips	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+CodeCommentIcon	const	icon-custom	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+CodeSurface	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+CodeSurfaceActions	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+CodeSurfaceCopyButton	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+CodeSurfaceHeader	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+CodeSurfaceTitle	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+CodeSurfaceWrapButton	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+CodingPlanPurchaseDialog	const	firstparty	1	1	components/usage/UsageDeep.tsx	zet	zet	styles-CdEGpc2x.js	84460	PaymentDeep.tsx	CodingPlanPurchasePanel	obf-hint+symbol-index	ATTRIBUTED	no
+CodingPlanUpgradeDialogProvider	const	other-registered	1	1	components/onboarding/OnboardingLoginLeaves.tsx		krt	styles-CdEGpc2x.js	89089	PaymentDeep.tsx	CodingPlanUpgradeDialogProvider	exact-sem	ATTRIBUTED	yes
+CommentGlyphIcon	const	icon-custom	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+Composer	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+ComposerConfigToolbar	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+ComposerModeToolbar	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+ContextMenuItem	const	other-registered	5	5	components/code-viewer/FileTreePanel.tsx;components/code-viewer/GitReview.tsx;components/markdown/MarkdownIntegration.tsx;components/shell/Sidebar.tsx;components/terminal/TerminalPane.tsx								UNATTRIBUTED	yes
+ConversationInteractionsSlot	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+ConversationSelectionChipRow	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+ConversationSelectionChips	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+D	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		D	src-HCld2afU.js	3085			name-is-obf+bundle-def	ATTRIBUTED	no
+DEFAULT_FILE_ICON_NAME	const	firstparty	1	1	components/modals/FilePathInline.tsx								UNATTRIBUTED	no
+DEFAULT_MCP_CONFIG	const	firstparty	1	1	stores/mcpStore.ts	i_e							UNATTRIBUTED	no
+DEFAULT_MODEL_CONTEXT_WINDOW	const	firstparty	1	1	components/usage/UsageDeep.tsx	kee							UNATTRIBUTED	no
+DEFAULT_THOUGHT_LEVELS	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+DESKTOP_COMMANDS	const	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx								UNATTRIBUTED	no
+DIRECTORY_ICON_SRC	const	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+DOCUMENT_FALLBACK_ICON_SRC	const	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+DOCUMENT_ICON_SRC	const	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+DRAFT_SNIPPET_KIND_NEW_TASK	const	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	eXe	eXe	styles-CdEGpc2x.js		Composer.tsx	DRAFT_SCOPE_ID	obf-hint+symbol-index	ATTRIBUTED	no
+DesktopCommand	enum	firstparty	3	3	components/shell/Sidebar.tsx;components/shell/TopBar.tsx;components/shell/WorkspaceShell.tsx		ex	index-ABImDspU.js		rendererEntry.tsx	DesktopCommand	exact-sem	ATTRIBUTED	no
+DetailRow	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+DiffFilePairViewer	const	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+DiffPatchViewer	const	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+DiffViewer	const	other-registered	1	1	components/modals/FileRewindDialogDeep.tsx								UNATTRIBUTED	yes
+DiffsWorkerPoolProviderElement	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+DismissableLayer	const	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		u	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	DismissableLayer	exact-sem	ATTRIBUTED	no
+DndContext	const	firstparty	3	3	components/conversation/QueuePanel.tsx;components/shell/Sidebar.tsx;components/usage/UsageDeep.tsx	_Z	_Z	styles-CdEGpc2x.js	93521			obf-hint+bundle-def	ATTRIBUTED	no
+DndContextShim	const	firstparty	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+DockTerminalBrowserPanel	const	firstparty	1	1	components/shell/WorkspaceShell.tsx		Mqt	styles-CdEGpc2x.js	183898	WorkspaceShell.tsx	DockTerminalBrowserPanel	exact-sem	ATTRIBUTED	no
+DragOverlay	const	firstparty	2	2	components/shell/SidePanel.tsx;components/shell/Sidebar.tsx								UNATTRIBUTED	no
+E	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		E	src-HCld2afU.js	3073			name-is-obf+bundle-def	ATTRIBUTED	no
+EMPTY_PANE_LAYOUT	const	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	K0	Ps?	styles-CdEGpc2x.js	3785			r1-belt-candidate	CANDIDATE	no
+EditConflictDialog	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+EmptyStateGreeting	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+En	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		En	src-HCld2afU.js	1286			name-is-obf+bundle-def	ATTRIBUTED	no
+EquityCheckIcon	const	icon-custom	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+FILE_TREE_DRAG_MIME	const	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	kj	kj	styles-CdEGpc2x.js	52210			obf-hint+bundle-def	ATTRIBUTED	no
+FORGIVING_ONIG_ENGINE	const	firstparty	1	1	components/markdown/MarkdownIntegration.tsx		yIe	styles-CdEGpc2x.js		MarkdownIntegration.tsx	FORGIVING_ONIG_ENGINE	exact-sem	ATTRIBUTED	no
+FileIcon	function	icon-custom	3	3	components/conversation/ConversationToolViews.tsx;components/conversation/PreviewCards.tsx;components/shell/Home.tsx								UNATTRIBUTED	no
+FileIconImg	const	firstparty	1	1	modules/ExtendedViews.tsx		Vc	styles-CdEGpc2x.js	5243	ModalsLeaves.tsx	FileIconImg	exact-sem	ATTRIBUTED	yes
+FilePath	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+FileRow	const	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+G	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx		G	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	510			name-is-obf+bundle-def	ATTRIBUTED	no
+GHOST_MODEL_PREFIX	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+GenericProviderIcon	const	icon-custom	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+GlobalWorkerOptions	const	firstparty	1	1	components/pdf/PdfViewer.tsx								UNATTRIBUTED	no
+HelpIcon	const	icon-custom	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+HeroCardShell	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx	C4t	C4t	styles-CdEGpc2x.js	206384	ModalsLeaves.tsx	HeroCard	obf-hint+symbol-index	ATTRIBUTED	no
+HighlightedCodeBlockBody	const	firstparty	1	1	components/markdown/MarkdownCodeBlock.tsx		c	chunk-BO2N2NFS-CSNAeaxF.js		HighlightedCodeBlock.tsx	HighlightedCodeBlockBody	exact-sem	ATTRIBUTED	yes
+HighlightedCodeBlockWithComments	const	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+HighlightedCodeLines	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+HomeDraftHeader	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+HookIcon	const	icon-custom	6	6	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+HoverCardRoot	const	radix-deferred	3	3	components/composer/ModelSelector.tsx;components/composer/PptxReferencesChip.tsx;modules/Composer.tsx								UNATTRIBUTED	no
+INTRANET_PROBE_PRESET_CONFIG	const	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+Ia	const	firstparty	1	1	components/markdown/MarkdownIntegration.tsx		Ia	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	19449			name-is-obf+bundle-def	ATTRIBUTED	no
+IconCalendar	const	icon-custom	1	1	components/automations/AutomationEditor.tsx								UNATTRIBUTED	no
+IconCollapseScrollMode	const	icon-custom	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+IconCompact	const	icon-custom	1	1	modules/Conversation.tsx	x_	x_	src-HCld2afU.js		SrcSharedB.tsx	sidebarTestid	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+IconComponent	const	icon-custom	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+IconEmptyFolder	const	icon-custom	1	1	components/code-viewer/FileTreePanel.tsx								UNATTRIBUTED	no
+IconExpandScrollMode	const	icon-custom	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+IconExternalSession	const	icon-custom	1	1	components/automations/AutomationEditor.tsx								UNATTRIBUTED	no
+IconFilterChanges	const	icon-custom	1	1	components/code-viewer/FileTreePanel.tsx								UNATTRIBUTED	no
+IconFork	const	icon-custom	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+IconListTodoLike	const	icon-custom	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+IconMermaid	const	icon-custom	1	1	components/markdown/MarkdownIntegration.tsx								UNATTRIBUTED	no
+IconMermaidZoomIn	const	icon-custom	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+IconMermaidZoomOut	const	icon-custom	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+IconQuestion	const	icon-custom	2	2	components/conversation/ConversationToolViews.tsx;modules/Conversation.tsx	vye							UNATTRIBUTED	no
+IconRepoWiki	const	icon-custom	1	1	components/code-viewer/FileTreePanel.tsx								UNATTRIBUTED	no
+IconSparklesLike	const	icon-custom	1	1	components/conversation/ConversationToolViews.tsx	dht	dht	styles-CdEGpc2x.js	108310			obf-hint+bundle-def	ATTRIBUTED	no
+IconSpinnerAlt	const	icon-custom	1	1	components/automations/AutomationEditor.tsx	EN	EN	styles-CdEGpc2x.js	54837	Sidebar.tsx	SpinnerStatus	obf-hint+symbol-index	ATTRIBUTED	no
+IconStar	const	icon-custom	1	1	components/automations/AutomationEditor.tsx								UNATTRIBUTED	no
+IconTablePreview	const	icon-custom	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+IconWrap	const	icon-custom	1	1	components/markdown/MarkdownIntegration.tsx								UNATTRIBUTED	no
+IconX	const	firstparty	14	14	components/automations/AutomationEditor.tsx;components/cmdk/CmdkPaletteDeep.tsx;components/code-viewer/GitReview.tsx;components/conversation/QueuePanel.tsx;components/conversation/SessionBanners.tsx;components/feedback/FeedbackCenter.tsx;components/modals/ConfirmDialog.tsx;components/remote/RemoteWizard.tsx;components/remote/WebRemote.tsx;components/shell/Sidebar.tsx;components/shell/SidebarLeaves.tsx;components/terminal/TerminalPane.tsx;modules/Conversation.tsx;modules/Modals.tsx								UNATTRIBUTED	yes
+IconZap	const	icon-custom	1	1	components/conversation/SessionBanners.tsx	Pv	Pv	chunk-BO2N2NFS-CSNAeaxF.js		HighlightedCodeBlock.tsx	trimTrailingNewlines	obf-hint+symbol-index(x5)	ATTRIBUTED	no
+ImportSelectionView	const	firstparty	1	1	components/modals/OnboardingDialog.tsx								UNATTRIBUTED	no
+IntlProviderShell	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+Ip	const	firstparty	1	1	modules/LegacyDocEngineC4.tsx		Ip	styles-CdEGpc2x.js	16051			name-is-obf+bundle-def	ATTRIBUTED	no
+KNOWN_MODEL_FORMATS	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+KeyboardSensor	const	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+Kp	const	firstparty	1	1	modules/LegacyDocEngineC4.tsx		Kp	styles-CdEGpc2x.js	16173			name-is-obf+bundle-def	ATTRIBUTED	no
+LANGUAGE_DISPLAY_KEYS	const	firstparty	1	1	components/markdown/MarkdownIntegration.tsx								UNATTRIBUTED	no
+LazyAppUsageDailyModelBarChart	const	other-registered	1	1	components/settings/UsageSettingsSection.tsx		Q$t	styles-CdEGpc2x.js	195620	SettingsPanelsData.tsx	LazyAppUsageDailyModelBarChart	exact-sem	ATTRIBUTED	no
+LazyAppUsageModelUsagePieChart	const	other-registered	1	1	components/settings/UsageSettingsSection.tsx		$$t	styles-CdEGpc2x.js		SettingsPanelsData.tsx	LazyAppUsageModelUsagePieChart	exact-sem	ATTRIBUTED	no
+LazyCodingPlanUsageLineChart	const	other-registered	1	1	components/settings/UsageSettingsSection.tsx		i1t	styles-CdEGpc2x.js	195813	SettingsPanelsData.tsx	LazyCodingPlanUsageLineChart	exact-sem	ATTRIBUTED	no
+LazyOfficeDocxContent	const	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+LazyOfficeLegacyDocContent	const	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+LazyOfficeXlsxContent	const	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+Ln	const	firstparty	1	1	components/xlsx/XlsxDeepP.tsx		Ln	src-HCld2afU.js	1421			name-is-obf+bundle-def	ATTRIBUTED	no
+LoadingSkeleton	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+LoginIcon	const	icon-custom	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+LucideProvider	const	firstparty	1	1	modules/AppRootLeaves.tsx	qre	m	button-laUijeDG.js	36	button.tsx	LucideProvider	exact-sem	ATTRIBUTED	yes
+M	const	firstparty	1	1	components/xlsx/XlsxDeepP.tsx		M	src-HCld2afU.js	3167			name-is-obf+bundle-def	ATTRIBUTED	no
+MCP_OAUTH_FOLLOWUP_MAX_ATTEMPTS	const	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+MCP_OAUTH_POLL_INTERVAL_MS	const	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+MENTION_CHIP_BASE_CLASS	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+MODEL_DELETE_TESTID_PREFIX	const	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+MODEL_INPUT_TESTID_PREFIX	const	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+MODEL_MENU_TESTID	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+MODEL_OPTION_TESTID_PREFIX	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+MODEL_TOOLBAR_TESTID	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+MODE_OPTION_TESTID_PREFIX	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+MODE_TRIGGER_TESTID	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	yes
+MermaidIcon	const	icon-custom	1	1	components/settings/SettingsCodeBlock.tsx								UNATTRIBUTED	no
+MessageIcon	const	icon-custom	1	1	components/settings/UsageSettingsSection.tsx								UNATTRIBUTED	no
+ModeIconFullAccess	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+ModeLeadingIcon	const	icon-custom	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+ModeSelector	const	firstparty	1	1	components/automations/AutomationEditor.tsx	Mq	Mq	styles-CdEGpc2x.js	76912	Composer.tsx	ConfigSelect	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+ModelSelectMenu	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+MotionPresence	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+N	const	firstparty	1	1	components/xlsx/XlsxDeepP.tsx		N	src-HCld2afU.js	3183			name-is-obf+bundle-def	ATTRIBUTED	no
+NAV_ITEM_TESTID_PREFIX	const	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+NETWORK_BLOCKED_ERROR_CODE	const	firstparty	1	1	components/payments/PaymentDeep.tsx	Pne							UNATTRIBUTED	no
+NestedTooltipContent	const	firstparty	1	1	components/composer/ModelSelector.tsx								UNATTRIBUTED	no
+NestedTooltipProvider	const	firstparty	1	1	components/composer/ModelSelector.tsx								UNATTRIBUTED	no
+NestedTooltipRoot	const	firstparty	1	1	components/composer/ModelSelector.tsx								UNATTRIBUTED	no
+NestedTooltipTrigger	const	firstparty	1	1	components/composer/ModelSelector.tsx								UNATTRIBUTED	no
+NodeReplImageList	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+O	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		O	src-HCld2afU.js	3097			name-is-obf+bundle-def	ATTRIBUTED	no
+OFFPEAK_TELEMETRY_DEFAULT_PROVIDER	const	firstparty	2	2	components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+OFF_PEAK_TEMPLATES	const	firstparty	1	1	components/automations/AutomationsMain.tsx	Pjt	Pjt	styles-CdEGpc2x.js	134016	ExtendedViews.tsx	OFFPEAK_TEMPLATE_IDS	obf-hint+symbol-index	ATTRIBUTED	no
+ONIGURUMA_WASM_BINARY	const	firstparty	1	1	components/code-viewer/DiffsWorker.tsx								UNATTRIBUTED	no
+OffPeakTaskList	const	firstparty	3	3	components/automations/AutomationsMain.tsx;components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx	cMt	cMt	styles-CdEGpc2x.js	134696			obf-hint+bundle-def	ATTRIBUTED	no
+On	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		On	previewPaneOfficeXlsxContent-XeHwYdMn.js	1658			name-is-obf+bundle-def	ATTRIBUTED	no
+OrbitSpinnerIcon	const	icon-custom	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+PDFDataRangeTransport	class	firstparty	1	1	components/pdf/PdfViewer.tsx								UNATTRIBUTED	no
+PPTX_ELEMENT_ADD_EVENT_TYPE	const	firstparty	1	1	components/composer/PptxReferencesChip.tsx								UNATTRIBUTED	no
+PRESET_PROVIDERS	const	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	iX	iX	styles-CdEGpc2x.js		PaymentDeep.tsx	API_KEY_PROVIDER_ENTRIES	obf-hint+symbol-index	ATTRIBUTED	no
+PRESET_SUBSCRIPTION_LOGIN_TIMEOUT_MS	const	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	qnt	qnt	styles-CdEGpc2x.js	88218	PaymentDeep.tsx	PURCHASE_TOKEN_TTL	obf-hint+symbol-index	ATTRIBUTED	no
+PROVIDER_IDS	const	firstparty	6	6	components/onboarding/OnboardingLoginLeaves.tsx;components/payments/PaymentDeep.tsx;components/settings/UsageSettingsSection.tsx;components/shell/SidebarLeaves.tsx;components/usage/UsageDeep.tsx;modules/StoresDeep.tsx								UNATTRIBUTED	no
+Panel	const	firstparty	3	3	components/shell/SidePanel.tsx;components/terminal/TerminalPane.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+PanelGroup	const	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+PanelResizeHandle	const	firstparty	3	3	components/shell/SidePanel.tsx;components/terminal/TerminalPane.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+PatchPlainTextPreview	const	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+PdfDocument	const	firstparty	1	1	components/pdf/PdfViewer.tsx								UNATTRIBUTED	no
+PdfPage	const	firstparty	1	1	components/pdf/PdfViewer.tsx								UNATTRIBUTED	no
+PlainCodeBlock	const	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+PlanIcon	const	icon-custom	1	1	components/composer/ConfigSelect.tsx								UNATTRIBUTED	no
+PluginConfigForm	const	firstparty	1	1	components/settings/PluginsSettingsSection.tsx	U1t	U1t	styles-CdEGpc2x.js	198349			obf-hint+bundle-def	ATTRIBUTED	no
+PluginFallbackIcon	const	icon-custom	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+PluginMcpServerList	const	firstparty	1	1	components/settings/McpSettingsSection.tsx		W$t	styles-CdEGpc2x.js	194799	Settings.tsx	PluginMcpServerList	exact-sem	ATTRIBUTED	no
+Pn	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		Pn	src-HCld2afU.js	1395			name-is-obf+bundle-def	ATTRIBUTED	no
+PointerSensor	class	firstparty	2	2	components/shell/SidePanel.tsx;components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+PopoverRoot	const	radix-deferred	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+PopperArrow	const	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		f	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	PopperArrow	exact-sem	ATTRIBUTED	no
+PopperContent	const	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		m	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	PopperContent	exact-sem	ATTRIBUTED	no
+PopperRoot	const	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		l	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	PopperRoot	exact-sem	ATTRIBUTED	no
+Portal	const	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		s	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	Portal	exact-sem	ATTRIBUTED	no
+PptxElementIcon	const	icon-custom	1	1	components/composer/PptxReferencesChip.tsx								UNATTRIBUTED	no
+PptxReferenceChipRow	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+PptxReferenceChips	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+Presence	const	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		h	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	Presence	exact-sem	ATTRIBUTED	no
+PreviewCardItem	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+Primitive	const	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		c	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	Primitive	exact-sem	ATTRIBUTED	no
+ProgressIndicator	const	radix-deferred	1	1	components/composer/ModelSelector.tsx								UNATTRIBUTED	no
+ProgressRoot	const	radix-deferred	1	1	components/composer/ModelSelector.tsx								UNATTRIBUTED	no
+ProtoBufferWriter	class	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+ProviderIcon	function	icon-custom	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+Q	const	firstparty	1	1	modules/LazyPreviewViewers.ts		Q	styles-CdEGpc2x.js	996			name-is-obf+bundle-def	ATTRIBUTED	no
+QA	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx		QA	styles-CdEGpc2x.js	51141			name-is-obf+bundle-def	ATTRIBUTED	no
+Qb	const	firstparty	1	1	components/remote/RemoteDirectorySuggestInput.tsx		Qb	styles-CdEGpc2x.js	32206			name-is-obf+bundle-def	ATTRIBUTED	no
+Qq	const	firstparty	1	1	components/remote/WebRemote.tsx								UNATTRIBUTED	no
+QueueItemSchema	const	firstparty	1	1	services/commandQueueProtocol.ts	qOe							UNATTRIBUTED	no
+RAW_RUNTIME_ENV	const	firstparty	1	1	components/usage/UsageDeep.tsx	hi	hi	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18404	LegacyDocEngineC3.tsx	pageWindowSpacers	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+RadixCollapsibleContent	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+RadixCollapsibleRoot	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+RadixCollapsibleTrigger	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+ReadSummaryLabel	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+RemoteConnectionDialog	const	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	pOt	pOt	styles-CdEGpc2x.js	128542	Home.tsx	= fOt RemoteWizardDialog	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+RemoteIconAvatar	const	firstparty	1	1	components/settings/PluginLeaves.tsx								UNATTRIBUTED	no
+RemoteSyncMenuItemsInner	const	firstparty	1	1	components/modals/RemoteSyncDialogs.tsx								UNATTRIBUTED	no
+RepoWikiMain	const	firstparty	1	1	components/shell/WorkspaceShell.tsx		l3	styles-CdEGpc2x.js	132323	WorkspaceShell.tsx	RepoWikiMain	exact-sem	ATTRIBUTED	no
+ResizablePanel	const	radix-deferred	1	1	components/shell/WorkspaceShell.tsx		pAt	styles-CdEGpc2x.js	131732	WorkspaceShell.tsx	ResizablePanel	exact-sem	ATTRIBUTED	no
+ResizablePanelGroup	const	radix-deferred	1	1	components/shell/WorkspaceShell.tsx		cAt	styles-CdEGpc2x.js	131439	WorkspaceShell.tsx	ResizablePanelGroup	exact-sem	ATTRIBUTED	no
+Rp	const	firstparty	1	1	modules/LegacyDocEngineC4.tsx		Rp	styles-CdEGpc2x.js	16059			name-is-obf+bundle-def	ATTRIBUTED	no
+S	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		S	src-HCld2afU.js	2838			name-is-obf+bundle-def	ATTRIBUTED	no
+SECURITY_VERIFICATION_REQUIRED_CODE	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+SUPPORTED_LANGUAGE_IDS	const	firstparty	1	1	components/markdown/MarkdownIntegration.tsx	$T							UNATTRIBUTED	no
+ScheduledTemplateIcon	const	icon-custom	6	6	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+ScopeBoundary	const	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	p4	p4	styles-CdEGpc2x.js		WorkspaceShell.tsx	ScopedErrorBoundary	obf-hint+symbol-index	ATTRIBUTED	no
+ScopedErrorFallback	const	firstparty	1	1	components/shell/WorkspaceShell.tsx		$Ot	styles-CdEGpc2x.js	129822	WorkspaceShell.tsx	ScopedErrorFallback	exact-sem	ATTRIBUTED	no
+SecondaryWindowShell	const	firstparty	1	1	modules/Settings.tsx								UNATTRIBUTED	no
+SelectionIcon	const	icon-custom	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+ServiceScopeProvider	const	firstparty	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+ServicesProvider	const	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	ds	ds	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	20489	LegacyDocEngineC4.tsx	renderTableCellSlice	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+SessionCommandSchemas	const	firstparty	1	1	services/commandQueueProtocol.ts	Yke							UNATTRIBUTED	no
+SessionIcon	const	icon-custom	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+SessionRowOpSchema	const	firstparty	1	1	services/commandQueueProtocol.ts	cke							UNATTRIBUTED	no
+SessionSnapshotClientImpl	const	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+Sidebar	const	firstparty	1	1	components/shell/WorkspaceShell.tsx		rVt	styles-CdEGpc2x.js	159423	WorkspaceShell.tsx	Sidebar	exact-sem	ATTRIBUTED	no
+SkillIcon	const	icon-custom	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+SnapshotRefsLoader	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+SortableContext	const	firstparty	4	4	components/conversation/QueuePanel.tsx;components/shell/SidePanel.tsx;components/shell/Sidebar.tsx;components/usage/UsageDeep.tsx	EZ	EZ	styles-CdEGpc2x.js	94289			obf-hint+bundle-def	ATTRIBUTED	no
+Sp	const	firstparty	1	1	modules/LegacyDocEngineC4.tsx		Sp	styles-CdEGpc2x.js	15677			name-is-obf+bundle-def	ATTRIBUTED	no
+SplitDivider	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+SplitPaneHost	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+StackedConversationPane	const	firstparty	1	1	components/shell/WorkspaceShell.tsx		owt	styles-CdEGpc2x.js	121301	WorkspaceShell.tsx	StackedConversationPane	exact-sem	ATTRIBUTED	no
+StoreProvider	const	firstparty	1	1	modules/AppRootLeaves.tsx	Nie	Nie	styles-CdEGpc2x.js	1289			obf-hint+bundle-def	ATTRIBUTED	no
+SubagentGlyphIcon	const	icon-custom	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+SubagentGroupRow	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+SuggestionInput	const	firstparty	1	1	components/remote/RemoteWizard.tsx		W2	styles-CdEGpc2x.js	124152	RemoteDirectorySuggestInput.tsx	SuggestionInput	exact-sem	ATTRIBUTED	yes
+SummaryAgentsSection	const	firstparty	1	1	components/shell/TopBar.tsx								UNATTRIBUTED	no
+SummaryGoalSection	const	firstparty	1	1	components/shell/TopBar.tsx								UNATTRIBUTED	no
+SummaryMiniCard	const	firstparty	1	1	components/shell/TopBar.tsx								UNATTRIBUTED	no
+SummaryPlanSection	const	firstparty	1	1	components/shell/TopBar.tsx								UNATTRIBUTED	no
+SummaryPlansSection	const	firstparty	1	1	components/shell/TopBar.tsx								UNATTRIBUTED	no
+SummaryTerminalsSection	const	firstparty	1	1	components/shell/TopBar.tsx								UNATTRIBUTED	no
+SwitchModeHint	const	radix-deferred	1	1	components/conversation/PermissionApprovalOverlay.tsx		Hpt	styles-CdEGpc2x.js	106453	ConversationOverlays.tsx	SwitchModeHint	exact-sem	ATTRIBUTED	no
+T	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		T	src-HCld2afU.js	2987			name-is-obf+bundle-def	ATTRIBUTED	no
+TESTID_LOGIN_API_KEY_CANCEL	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+TESTID_LOGIN_API_KEY_CONTINUE	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+TESTID_LOGIN_API_KEY_ERROR	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+TESTID_LOGIN_API_KEY_INPUT	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+TESTID_LOGIN_API_KEY_OPTION_BASE	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+TESTID_LOGIN_API_KEY_PROVIDER	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+TESTID_LOGIN_API_KEY_SKIP	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+TODO_STATUS_CLASSES	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+TOOL_STATUS_DISPLAY_MAP	const	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+TabStoreProvider	const	firstparty	1	1	modules/AppRootLeaves.tsx	Vse	Vse	styles-CdEGpc2x.js	4784			obf-hint+bundle-def	ATTRIBUTED	no
+TaskFindDialog	const	firstparty	1	1	components/shell/WorkspaceShell.tsx		nPt	styles-CdEGpc2x.js	139966	WorkspaceShell.tsx	TaskFindDialog	exact-sem	ATTRIBUTED	no
+TemplateIcon	const	icon-custom	6	6	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+ThoughtLevelSelector	const	firstparty	2	2	components/automations/AutomationEditor.tsx;components/settings/SubagentLeaves.tsx	Pq	Pq	styles-CdEGpc2x.js	77166	PaymentDeep.tsx	ThoughtLevelControl	obf-hint+symbol-index	ATTRIBUTED	no
+TodoStatusIcon	const	icon-custom	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+TokensIcon	const	icon-custom	1	1	components/settings/UsageSettingsSection.tsx								UNATTRIBUTED	no
+ToolCallExpandedContent	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+ToolErrorSurface	const	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+ToolSnapshotRefs	const	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+TruncateLabel	const	firstparty	1	1	components/payments/PaymentDeep.tsx		kp	previewPaneOfficeXlsxContent-XeHwYdMn.js	185244	XlsxDeepA.tsx	truncateLabel	ci-sem	ATTRIBUTED	no
+UpdateStatusWindow	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx		v8t	index-ABImDspU.js		rendererEntry.tsx	UpdateStatusWindow	exact-sem	ATTRIBUTED	no
+UsageErrorBoundary	const	firstparty	1	1	components/settings/UsageSettingsSection.tsx	p4	p4	styles-CdEGpc2x.js		WorkspaceShell.tsx	ScopedErrorBoundary	obf-hint+symbol-index	ATTRIBUTED	no
+WHITEBOARD_DEFAULT_COLOR	const	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+WHITEBOARD_MENTION_ADD_EVENT_TYPE	const	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+WINDOWS_CAPTION_MENU_MARGIN	const	firstparty	1	1	modules/Settings.tsx								UNATTRIBUTED	no
+WORKSPACE_FILE_DRAG_EVENT_TYPE	const	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+WORKSPACE_LOGO_PALETTES	const	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+WebContextChipRow	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+WebElementChips	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+WebElementIcon	const	icon-custom	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+WebRemoteControlFeatureGate	const	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	oRt	oRt	styles-CdEGpc2x.js	150149	WebRemote.tsx	WebRemoteControlEnabledProvider	obf-hint+symbol-index	ATTRIBUTED	no
+WhiteboardIcon	const	icon-custom	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+WindowsCaptionControls	const	firstparty	1	1	modules/Settings.tsx								UNATTRIBUTED	no
+WorksCompactIcon	const	icon-custom	1	1	components/composer/BackgroundWorksCapsule.tsx								UNATTRIBUTED	no
+WorkspaceSelectRow	const	firstparty	1	1	components/automations/AutomationEditor.tsx	a4	a4	styles-CdEGpc2x.js	128585	Home.tsx	WorkspaceSelectionRow	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+WorkspaceTelemetryProvider	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+WrapLinesIcon	const	icon-custom	1	1	components/settings/SettingsCodeBlock.tsx								UNATTRIBUTED	no
+X	const	other-registered	1	1	components/markdown/MarkdownIntegration.tsx		X	src-HCld2afU.js	6859			name-is-obf+bundle-def	ATTRIBUTED	no
+Y	const	firstparty	1	1	modules/LazyPreviewViewers.ts		Y	src-HCld2afU.js	5919			name-is-obf+bundle-def	ATTRIBUTED	no
+Yb	const	firstparty	1	1	components/remote/RemoteDirectorySuggestInput.tsx		Yb	styles-CdEGpc2x.js	32140			name-is-obf+bundle-def	ATTRIBUTED	no
+ZCODE_ENV_VALUE	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+ZCODE_LOGO_DATA_URL	const	firstparty	2	2	components/settings/SettingsShellParts.tsx;modules/Settings.tsx								UNATTRIBUTED	no
+ZCODE_PLAN_OPENAI_BASE_URL	const	firstparty	1	1	modules/ConversationLeaves.tsx	USt	USt	styles-CdEGpc2x.js	118272			obf-hint+bundle-def	ATTRIBUTED	no
+ZapiProviderIcon	const	icon-custom	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+Zb	const	firstparty	1	1	components/remote/RemoteDirectorySuggestInput.tsx		Zb	styles-CdEGpc2x.js	32196			name-is-obf+bundle-def	ATTRIBUTED	no
+_	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		_	previewPaneOfficeDocxContent-3JqWt7cf.js	5654			name-is-obf+bundle-def	ATTRIBUTED	no
+__vite__mapDeps	const	firstparty	1	1	modules/LazyPreviewViewers.ts		—	chunk-YE7GQOST-DVtn9d8T.js		DocxWasmGlue.tsx	__vite__mapDeps	exact-sem	ATTRIBUTED	yes
+activeProvidersOf	function	firstparty	1	1	components/usage/UsageDeep.tsx	kr	kr	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18107	LegacyDocEngineC3.tsx	effectiveOverscan	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+activeTaskRuntimeOf	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+activeWorkspaceTabOf	function	firstparty	1	1	components/automations/AutomationsMain.tsx	zMt	zMt	styles-CdEGpc2x.js	135518	ExtendedViews.tsx	远程标签判定	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+activityOverlayOf	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+addCodeCommentAttachmentToChat	function	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+addFileTreeEntryToChat	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	rUe	rUe	styles-CdEGpc2x.js	52263			obf-hint+bundle-def	ATTRIBUTED	no
+addWhiteboardToChat	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+agentEventSurface	function	firstparty	1	1	services/telemetryScopes.tsx								UNATTRIBUTED	no
+agentHasCategory	function	firstparty	1	1	components/settings/ExternalAgentImportDialog.tsx	I7	I7	styles-CdEGpc2x.js	193583	McpHelpers.tsx	categoryOfAgentResult	obf-hint+symbol-index	ATTRIBUTED	no
+apiFormatOfKind	function	firstparty	1	1	components/usage/UsageDeep.tsx	Zt	Zt	AppUsageModelUsagePieChart-_KCE1AAL.js		appUsageModelUsagePieChart.tsx	PIE_CHART_MARGIN	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+apiFormatOfProvider	function	firstparty	1	1	components/usage/UsageDeep.tsx	hr	hr	pptxRendererPreviewEngine-BIIRLBue.js		pptxEngineText.ts	+mj/+mn 主题字体令牌与脚本映射	obf-hint+symbol-index(x6)	ATTRIBUTED	no
+appendConversationSelections	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+appendPptxElementsToContent	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+appendPromptHistoryEntry	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+appendRemoteLog	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+appendSelectionsToContent	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+appendTaskToGroupTail	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	bIt	bIt	styles-CdEGpc2x.js	145117			obf-hint+bundle-def	ATTRIBUTED	no
+applyOptimisticMembershipEvent	function	firstparty	1	1	components/quickpick/QuickPick.tsx	ux	ux	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	30787	LegacyDocEngineC2.tsx	tableFullTextRange	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+applyOptimisticTaskMutation	function	firstparty	3	3	components/shell/Sidebar.tsx;components/shell/SidebarLeaves.tsx;components/shell/TopBar.tsx		Uo	styles-CdEGpc2x.js	1895	TopBar.tsx	applyOptimisticTaskMutation	exact-sem	ATTRIBUTED	no
+applyRuntimeStateFromTaskMeta	function	firstparty	1	1	components/quickpick/QuickPick.tsx	lje	lje	styles-CdEGpc2x.js	35745	QuickPickDeep.tsx	applyRuntimeStateEvent	obf-hint+symbol-index	ATTRIBUTED	no
+applySelectedModelToConfigOptions	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+applySnapshotDeltas	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+applyStatusSnapshots	function	firstparty	1	1	stores/mcpStore.ts	v_e	v_e	styles-CdEGpc2x.js	25021			obf-hint+bundle-def	ATTRIBUTED	no
+applyTaskQueryCacheMutation	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	Uo	Uo	styles-CdEGpc2x.js	1895	TopBar.tsx	applyOptimisticTaskMutation	obf-hint+symbol-index(x7)	ATTRIBUTED	no
+applyTaskUnreadAt	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+arrayMove	function	firstparty	1	1	components/usage/UsageDeep.tsx	xZ	xZ	styles-CdEGpc2x.js	94173			obf-hint+bundle-def	ATTRIBUTED	no
+assemblyRouteKey	function	firstparty	1	1	services/commandQueueProtocol.ts	_S	_S	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	34019	LegacyDocEngineBPageRegistry.tsx	headingMetricsOf	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+attachSessionActivity	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	jo	jo	chunk-BO2N2NFS-CSNAeaxF.js	8230	MarkdownVendored.tsx	rehype	obf-hint+symbol-index(x6)	ATTRIBUTED	no
+authSessionOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+autoScrollToBottom	function	firstparty	1	1	components/shell/Sidebar.tsx		NBt/PBt	styles-CdEGpc2x.js		Sidebar.tsx	autoScrollToBottom	exact-sem	ATTRIBUTED	no
+automationHasFailedRun	function	firstparty	1	1	components/automations/AutomationsMain.tsx	Kht	Kht	styles-CdEGpc2x.js	109291	ExtendedViews.tsx	提示词归一/失败态/可操作态/生命周期档位	obf-hint+symbol-index	ATTRIBUTED	no
+automationLifecycleOf	function	firstparty	1	1	components/automations/AutomationsMain.tsx	qht	qht	styles-CdEGpc2x.js	109298	ExtendedViews.tsx	提示词归一/失败态/可操作态/生命周期档位	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+automationModelTelemetryFields	function	firstparty	1	1	components/automations/AutomationsMain.tsx	MNt	MNt	styles-CdEGpc2x.js	138580	ExtendedViews.tsx	自动化遥测	obf-hint+symbol-index	ATTRIBUTED	no
+automationNextRunLabel	function	firstparty	1	1	components/automations/AutomationsMain.tsx	egt	egt	styles-CdEGpc2x.js	109547	ExtendedViews.tsx	频率/下次运行文案	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+automationScheduleLabel	function	firstparty	1	1	components/automations/AutomationsMain.tsx	rgt	rgt	styles-CdEGpc2x.js	109573	ExtendedViews.tsx	频率/下次运行文案	obf-hint+symbol-index	ATTRIBUTED	no
+automationsStoreStatic	const	firstparty	1	1	components/automations/AutomationsMain.tsx								UNATTRIBUTED	no
+auxiliaryChatRegistryKey	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+b	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		b	src-HCld2afU.js	2311			name-is-obf+bundle-def	ATTRIBUTED	no
+base64ToArrayBuffer	function	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+baseUrlOfProvider	function	firstparty	1	1	components/usage/UsageDeep.tsx	Vi	Vi	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18751	LegacyDocEngineC3.tsx	handlePointerMoveCapture	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+basename	function	firstparty	1	1	components/terminal/TerminalPane.tsx								UNATTRIBUTED	no
+bigmodelTeamPlanKey	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+bindRemoteWorkspaceIdentity	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+bindRemoteWorkspacePath	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+bm	const	firstparty	1	1	components/xlsx/XlsxDeepC.tsx		bm	styles-CdEGpc2x.js	17301			name-is-obf+bundle-def	ATTRIBUTED	no
+broadcastContextRemoved	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+browserUrlFromPath	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+buildAssistantPreviewCards	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+buildAutomationModelSelectGroups	function	other-registered	1	1	components/automations/AutomationsMain.tsx	AMt	AMt	styles-CdEGpc2x.js	135401	ExtendedViews.tsx	buildAutomationModelSelectGroups	obf-hint+symbol-index	ATTRIBUTED	yes
+buildCaptchaAssertionKeys	function	firstparty	1	1	modules/AppRootLeaves.tsx	ACt	ACt	styles-CdEGpc2x.js	118738			obf-hint+bundle-def	ATTRIBUTED	no
+buildCodingPlanFunnelContext	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+buildCommand	function	firstparty	2	2	components/conversation/ConversationInteractionsOverlay.tsx;modules/ConversationLeaves.tsx	OS	OS	src-HCld2afU.js	9112	SrcSharedB.tsx	resolvePlatformBinaryName	obf-hint+symbol-index	ATTRIBUTED	no
+buildComposerTelemetryExtraDetail	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+buildConfigOptionModels	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+buildConfigOptionsFromTaskMeta	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+buildConversationSelectionReference	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+buildEnterpriseTeamGroups	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	HY	HY	styles-CdEGpc2x.js	87643	PaymentDeep.tsx	teamPlanGroupsOf	obf-hint+symbol-index	ATTRIBUTED	no
+buildEntitledProviderList	function	firstparty	2	2	components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+buildFileTreeDragText	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	wj	wj	styles-CdEGpc2x.js	52124			obf-hint+bundle-def	ATTRIBUTED	no
+buildFloatingForWrapMode	function	firstparty	1	1	modules/LegacyDocEngineBEditorState.tsx								UNATTRIBUTED	no
+buildIdleUpgradeFunnelContext	function	firstparty	2	2	components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+buildImportSelections	function	firstparty	1	1	components/settings/ExternalAgentImportDialog.tsx	i$t	i$t	styles-CdEGpc2x.js	193494	McpHelpers.tsx	groupImportPlans	obf-hint+symbol-index	ATTRIBUTED	no
+buildMermaidConfig	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx	zze	zze	styles-CdEGpc2x.js	47837			obf-hint+bundle-def	ATTRIBUTED	no
+buildModelSelectGroups	function	firstparty	3	3	components/automations/AutomationsMainView.tsx;components/settings/SubagentsSettingsSection.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+buildNodeReplModel	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+buildOutgoingMessage	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+buildPlanResultMarkdown	function	firstparty	2	2	components/conversation/ToolCallBlock.tsx;modules/Conversation.tsx								UNATTRIBUTED	no
+buildPluginChatMention	function	firstparty	1	1	components/settings/PluginsSettingsSection.tsx	P0t	P0t	styles-CdEGpc2x.js	200274			obf-hint+bundle-def	ATTRIBUTED	no
+buildPluginIconMap	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+buildPluginMcpItems	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+buildPptxElementsMarkdown	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+buildPurchaseBannerItems	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	BZt	BZt	styles-CdEGpc2x.js	191246	UsageDeep.tsx	resolveBannerPriceState	obf-hint+symbol-index	ATTRIBUTED	no
+buildQueryDescriptor	function	firstparty	1	1	components/quickpick/QuickPick.tsx	zie	zie	styles-CdEGpc2x.js	1385	StoresDeep.tsx	normalizeSearchDescriptor	obf-hint+symbol-index	ATTRIBUTED	no
+buildQueryKey	function	firstparty	1	1	components/quickpick/QuickPick.tsx	Bie	Bie	styles-CdEGpc2x.js	1396	StoresDeep.tsx	descriptorCacheKey	obf-hint+symbol-index	ATTRIBUTED	no
+buildRenderSegments	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+buildRenderUnits	function	firstparty	1	1	modules/Conversation.tsx		Fyt	styles-CdEGpc2x.js	113988	Conversation.tsx	buildRenderUnits	exact-sem	ATTRIBUTED	no
+buildScopedServices	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+buildSessionErrorKey	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+buildSessionPhaseNotification	function	firstparty	1	1	modules/ConversationLeaves.tsx								UNATTRIBUTED	no
+buildTaskFeedbackDescription	function	firstparty	2	2	components/shell/Sidebar.tsx;components/shell/TopBar.tsx		w6	styles-CdEGpc2x.js	142351	TopBar.tsx	buildTaskFeedbackDescription	exact-sem	ATTRIBUTED	no
+buildTaskListFromSnapshot	function	firstparty	1	1	components/quickpick/QuickPick.tsx	Ox	Ox	styles-CdEGpc2x.js	32648	QuickPickDeep.tsx	projectTaskIndex	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+buildTaskListQueryDescriptor	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+buildTaskQueryKey	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+buildTeamPlanNavItems	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	urt	urt	styles-CdEGpc2x.js	88655	PaymentDeep.tsx	injectTeamPlanMenuItems	obf-hint+symbol-index	ATTRIBUTED	no
+buildTeamPlanSources	function	firstparty	1	1	modules/Settings.tsx								UNATTRIBUTED	no
+buildUnifiedDiffText	function	firstparty	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+buildUpgradeFunnel	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+buildUpgradeFunnelForAutomations	function	firstparty	2	2	components/automations/AutomationsMain.tsx;components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+buildWebRemoteControlEventProps	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+buildWorkspaceFileMentionPayload	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+buildWorkspaceServicesMap	function	firstparty	2	2	components/shell/Sidebar.tsx;components/shell/SidebarLeaves.tsx		yc	styles-CdEGpc2x.js	4834	Sidebar.tsx	buildWorkspaceServicesMap	exact-sem	ATTRIBUTED	no
+bumpUnreadRevision	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	sx	sx	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	30742	LegacyDocEngineC2.tsx	lastEditableCellLocation	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+bytesEqual	function	firstparty	1	1	services/commandQueueProtocol.ts	qke	qke	styles-CdEGpc2x.js	33875			obf-hint+bundle-def	ATTRIBUTED	no
+c	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		c	src-HCld2afU.js	75			name-is-obf+bundle-def	ATTRIBUTED	no
+canCoalesceTyping	function	firstparty	1	1	modules/LegacyDocEngineBEditorState.tsx								UNATTRIBUTED	no
+canLoadOlderRows	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+canOpenPathInEmbeddedBrowser	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+canOpenSessionInSplit	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+canTaskNavBack	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+canTaskNavForward	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+canonicalProviderIdOf	function	other-registered	1	1	components/settings/SubagentLeaves.tsx								UNATTRIBUTED	no
+captchaAssertionStatus	function	firstparty	1	1	modules/AppRootLeaves.tsx	A0	A0	styles-CdEGpc2x.js	118765			obf-hint+bundle-def	ATTRIBUTED	no
+captchaEventKeys	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+captchaPhase	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+captchaProviderOfTaskMeta	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	KSt	KSt	styles-CdEGpc2x.js	118284			obf-hint+bundle-def	ATTRIBUTED	no
+cellParagraphArray	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+cellParagraphs	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+cjkMicromarkExtension	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx	cIe	cIe	styles-CdEGpc2x.js	43523			obf-hint+bundle-def	ATTRIBUTED	no
+cjkRemarkSpacingPlugin	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx	sIe	sIe	styles-CdEGpc2x.js	43519			obf-hint+bundle-def	ATTRIBUTED	no
+classVariance	function	firstparty	1	1	components/payments/PaymentDeep.tsx	Ta	Ta	pptxRendererPreviewEngine-BIIRLBue.js	15183	pptxEngineRender.ts	图片填充区域/裁剪	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+classifyToolCall	function	firstparty	3	3	components/conversation/PermissionApprovalOverlay.tsx;components/conversation/ToolCallBlock.tsx;components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+classifyToolFamily	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+cleanupDeletedTaskState	function	firstparty	1	1	components/shell/SidebarLeaves.tsx		sLt	styles-CdEGpc2x.js	146825	SidebarLeaves.tsx	cleanupDeletedTaskState	exact-sem	ATTRIBUTED	yes
+clearComposerDraft	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+clearCurrentSessionDrag	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+clearLocalModelPreference	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+clearPromotedGroupedDraftTaskSelector	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+clearSessionScopedLimitReason	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+closestCenterCollision	const	firstparty	4	4	components/conversation/QueuePanel.tsx;components/shell/SidePanel.tsx;components/shell/Sidebar.tsx;components/usage/UsageDeep.tsx	KX	KX	styles-CdEGpc2x.js	92249			obf-hint+bundle-def	ATTRIBUTED	no
+cn	function	firstparty	6	6	components/charts/UsageStatsUiParts.tsx;components/payments/PaymentDeep.tsx;components/remote/RemoteGapSegments.tsx;components/remote/RemoteWizard.tsx;components/remote/WebRemote.tsx;modules/pptxPreviewViewer.tsx		cn	previewPaneOfficeXlsxContent-XeHwYdMn.js	1165			name-is-obf+bundle-def	ATTRIBUTED	yes
+coalescedRuntimeHeadersResponse	function	firstparty	1	1	modules/ConversationOverlays.tsx		_Ct	styles-CdEGpc2x.js	118589	ConversationOverlays.tsx	coalescedRuntimeHeadersResponse	exact-sem	ATTRIBUTED	no
+codeCommentsStore	const	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	FH	FH	styles-CdEGpc2x.js	68562	GitReview.tsx	useCodeCommentsStore	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+codingPlanNavKey	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	nrt	nrt	styles-CdEGpc2x.js	88484	PaymentDeep.tsx	codingPlan	obf-hint+symbol-index	ATTRIBUTED	no
+codingPlanViewState	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	_Zt	_Zt	styles-CdEGpc2x.js	190477	UsageDeep.tsx	resolveViewState	obf-hint+symbol-index	ATTRIBUTED	no
+commandsStoreStatic	const	firstparty	1	1	stores/pluginsHelpers.ts								UNATTRIBUTED	no
+commentsWorkspaceKey	function	firstparty	1	1	stores/codeCommentsStore.ts								UNATTRIBUTED	no
+commitRemoteSessionsMutation	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+commonJsModule	function	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		t	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	commonJsModule	exact-sem	ATTRIBUTED	no
+compareTaskRecency	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	Fo	Fo	styles-CdEGpc2x.js	1365	Sidebar.tsx	compareTasksForList	obf-hint+symbol-index(x7)	ATTRIBUTED	no
+compareTasksForList	function	firstparty	2	2	components/quickpick/QuickPick.tsx;components/shell/SidebarLeaves.tsx		Fo	styles-CdEGpc2x.js	1365	Sidebar.tsx	compareTasksForList	exact-sem	ATTRIBUTED	yes
+compareViewNodes	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+composeEventHandlers	function	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		_	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	composeEventHandlers	exact-sem	ATTRIBUTED	no
+composeModelValue	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+composeWorkspaceTaskGroups	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+computeLoadOlderScrollDelta	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+computeOfficeFitMetrics	function	firstparty	2	2	modules/previewPaneOfficeDocxContent.tsx;modules/previewPaneOfficeLegacyDocContent.tsx								UNATTRIBUTED	no
+computePendingOAuthKey	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+computePrependScrollDelta	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+computeScrollMask	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+computeVisiblePages	function	firstparty	1	1	modules/LegacyDocEngineBPageRenderer.tsx								UNATTRIBUTED	no
+connectionModeContextOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+consumeDraftCarryOver	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+consumeRecoveredCaptchaHeader	function	firstparty	1	1	modules/ConversationOverlays.tsx		aCt	styles-CdEGpc2x.js	118344	ConversationOverlays.tsx	consumeRecoveredCaptchaHeader	exact-sem	ATTRIBUTED	no
+contextMenuActionsFor	function	firstparty	1	1	modules/LegacyDocEngineBPageRenderer.tsx		La	previewPaneOfficeLegacyDocContent-HWD4EOEM.js		LegacyDocEngineC3.tsx	contextMenuActionsFor	exact-sem	ATTRIBUTED	no
+contextWindowOf	function	firstparty	1	1	components/usage/UsageDeep.tsx	lt	lt	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	16718	LegacyDocEngine1.tsx	firstNonMarkChar	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+conversationLayerKey	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+countDirtyFiles	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+createCaptchaGatekeeper	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	kCt	kCt	styles-CdEGpc2x.js	118735			obf-hint+bundle-def	ATTRIBUTED	no
+createContextScope	function	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		a	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	createContextScope	exact-sem	ATTRIBUTED	no
+createDragImageUpdater	function	firstparty	1	1	components/shell/Sidebar.tsx		PRt	styles-CdEGpc2x.js	151164	Sidebar.tsx	createDragImageUpdater	exact-sem	ATTRIBUTED	no
+createEmptyProviderDraft	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+createExternalStore	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx	Ae	Ae	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	16530	LegacyDocEngine1.tsx	mapBidiLevelsToSegmentStarts	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+createFrameAssemblerStub	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+createFrameCompletionTracker	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+createFrameRouter	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+createHighlighter	function	firstparty	1	1	components/code-viewer/DiffsWorker.tsx								UNATTRIBUTED	no
+createJavaScriptRegexEngine	function	firstparty	1	1	components/code-viewer/DiffsWorker.tsx								UNATTRIBUTED	no
+createModel	function	firstparty	1	1	components/usage/UsageDeep.tsx	Qr	Qr	previewPaneOfficeLegacyDocContent-HWD4EOEM.js		LegacyDocEngineC3.tsx	virtualItems	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+createOnigurumaEngine	function	firstparty	1	1	components/code-viewer/DiffsWorker.tsx								UNATTRIBUTED	no
+createPopperScope	function	firstparty	1	1	components/charts/UsageStatsUiParts.tsx								UNATTRIBUTED	no
+createPortal	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+createRandomId	function	firstparty	1	1	modules/AppRootLeaves.tsx	xi	xi	previewPaneOfficeLegacyDocContent-HWD4EOEM.js		LegacyDocEngine3.tsx	MARK_SEPARATOR_PUNCT_RE	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+createRequestId	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+createSerialMutex	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+createSessionTransport	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+createShallowSelectorFactory	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+createShikiHighlighter	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx								UNATTRIBUTED	no
+createSlottable	function	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		y	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	createSlottable	exact-sem	ATTRIBUTED	no
+createStore	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+createWorkspaceSessionIndexTransport	function	firstparty	2	2	components/quickpick/QuickPickDeep.tsx;services/sessionIndex.ts	zS	zS	src-HCld2afU.js	9192	SrcSharedB.tsx	isFileWriteToolName	obf-hint+symbol-index	ATTRIBUTED	no
+createZustandStore	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+ctrlAltShortcutLabel	function	firstparty	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+ctrlShiftShortcutOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+customNavKey	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	rrt	rrt	styles-CdEGpc2x.js	88487	PaymentDeep.tsx	customSourceIdOf	obf-hint+symbol-index	ATTRIBUTED	no
+d	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		d	src-HCld2afU.js	88			name-is-obf+bundle-def	ATTRIBUTED	no
+decodeFrameBase64	function	firstparty	1	1	services/commandQueueProtocol.ts	Tte							UNATTRIBUTED	no
+decodeUrlPathname	function	firstparty	1	1	components/conversation/PreviewCards.tsx								UNATTRIBUTED	no
+defaultKindOfProvider	function	firstparty	1	1	components/usage/UsageDeep.tsx	Vr	Vr	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18229	LegacyDocEngineC3.tsx	windowScrollPending	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+defaultPathOfKind	function	firstparty	1	1	components/usage/UsageDeep.tsx	Pi	Pi	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18612	LegacyDocEngineC3.tsx	scrollToBookmark	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+defaultSessionModeOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+defaultSupplierKeyForProvider	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+defaultSupplierKeyOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+deriveDraftStateSlice	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+deriveMcpServers	function	firstparty	1	1	stores/mcpStore.ts	Vg	Vg	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	26247	LegacyDocEngineC5.tsx	sectionFloatingMovePatch	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+deriveTaskStateSlice	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+describeCronExpression	function	firstparty	1	1	components/automations/AutomationsMainView.tsx								UNATTRIBUTED	no
+describeFarRunTime	function	firstparty	1	1	components/automations/AutomationsMainView.tsx								UNATTRIBUTED	no
+describeMermaidError	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx	Hze	Hze	styles-CdEGpc2x.js	47892			obf-hint+bundle-def	ATTRIBUTED	no
+describeNearRunTime	function	firstparty	1	1	components/automations/AutomationsMainView.tsx								UNATTRIBUTED	no
+describePluginUpdateState	function	firstparty	1	1	components/settings/PluginsSettingsSection.tsx	W1t	W1t	styles-CdEGpc2x.js	198446	SettingsLeaves.tsx	isUpdatable	obf-hint+symbol-index	ATTRIBUTED	no
+describeScheduleRule	function	firstparty	1	1	components/automations/AutomationsMainView.tsx								UNATTRIBUTED	no
+describeTaskActivity	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+descriptorMatchesTask	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+detectCoarseTouchDevice	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+detectFileType	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+detectOutputLanguage	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+detectRendererReload	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+diffChars	function	firstparty	1	1	components/code-viewer/DiffsWorker.tsx								UNATTRIBUTED	no
+diffTaskScopes	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+diffWordsWithSpace	function	firstparty	1	1	components/code-viewer/DiffsWorker.tsx								UNATTRIBUTED	no
+disposeStartupServiceRegistry	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	vFe	vFe	styles-CdEGpc2x.js	42698			obf-hint+bundle-def	ATTRIBUTED	no
+distanceFromBottomOf	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+dividerStyle	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+dndBaselineCollision	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx								UNATTRIBUTED	no
+dndTransform	const	firstparty	2	2	components/shell/Sidebar.tsx;components/usage/UsageDeep.tsx	BX	BX	styles-CdEGpc2x.js	92004			obf-hint+bundle-def	ATTRIBUTED	no
+drawWhiteboard	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+e	const	firstparty	1	1	components/xlsx/XlsxDeepP.tsx		e	src-HCld2afU.js	1			name-is-obf+bundle-def	ATTRIBUTED	no
+encodePng	function	firstparty	1	1	modules/previewPaneOfficeLegacyDocContent.tsx								UNATTRIBUTED	no
+endpointKindsOf	function	firstparty	1	1	components/usage/UsageDeep.tsx	Sr	Sr	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18085	LegacyDocEngineC3.tsx	resolvedScrollElement	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+endpointsOfProvider	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+ensureConversationRuntimeReady	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+enterpriseTeamGroupsOf	function	firstparty	1	1	components/usage/UsageDeep.tsx	HY	HY	styles-CdEGpc2x.js	87643	PaymentDeep.tsx	teamPlanGroupsOf	obf-hint+symbol-index	ATTRIBUTED	no
+entitlementCacheKey	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+entitlementCacheKeyOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+entityKeyOf	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	Lo	Lo	styles-CdEGpc2x.js	1371	Sidebar.tsx	taskEntityKey	obf-hint+symbol-index(x6)	ATTRIBUTED	no
+entryIdentity	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+entryPlanStateOf	function	firstparty	3	3	components/payments/PaymentDeep.tsx;components/settings/ModelProviderSettingsSection.tsx;components/usage/UsageDeep.tsx	IM	IM	styles-CdEGpc2x.js	53277			obf-hint+bundle-def	ATTRIBUTED	no
+envConsoleUrlOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+envPathUrlOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+envSiteUrlOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+ex	const	firstparty	1	1	components/remote/RemoteDirectorySuggestInput.tsx		ex	styles-CdEGpc2x.js	32223			name-is-obf+bundle-def	ATTRIBUTED	no
+expandedWorkspaceKeySet	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+exportWhiteboardToPngFile	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+extractAgentOutputFile	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractAgentOutputText	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractAgentPrompt	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractAnswers	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractBeforeAfterEdit	function	firstparty	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+extractConversationSelections	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+extractFileChangeCandidates	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+extractMcpOutputText	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractMcpToolInfo	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractOutputText	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractPlanMarkdown	function	firstparty	2	2	components/conversation/ConversationToolViews.tsx;components/shell/SidePanel.tsx								UNATTRIBUTED	no
+extractPptxElementReferencesFromContent	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+extractRawFileSummaries	function	firstparty	2	2	components/conversation/PermissionApprovalOverlay.tsx;components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+extractSessionCommandLabel	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractSessionQuery	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractSessionResultText	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractShellOutput	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+extractSkillArgs	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractSkillName	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractTaskOutputInputId	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractTodoItems	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+extractToolCallRow	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+extractToolErrorText	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	yes
+f	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		f	src-HCld2afU.js	89			name-is-obf+bundle-def	ATTRIBUTED	no
+fallbackMessage	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+fallbackProviderId	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+familyConnectionModeOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+familyConnectionSettingsOf	function	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+familyDomainOfProvider	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+familyDomainOfProviderId	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+familyModesPatch	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+familyOfPresetId	function	firstparty	1	1	components/usage/UsageDeep.tsx	ot	ot	src-HCld2afU.js		SrcSharedA.tsx	ulidRegex	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+familySpecOfProviderId	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+feedbackStorage	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	yes
+fetchDraftConfigOptions	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+fetchTaskIndex	function	firstparty	1	1	components/shell/SidebarLeaves.tsx		Cx	styles-CdEGpc2x.js	32477	SidebarLeaves.tsx	fetchTaskIndex	exact-sem	ATTRIBUTED	no
+fetchWorkspaceTaskShards	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+fileMentionMarkdown	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+filterMcpServersByQuery	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+finalizeQueryResult	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+findBrowserUseTabForSurface	function	firstparty	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+findModelGroupItemLabel	function	firstparty	1	1	components/settings/SubagentLeaves.tsx								UNATTRIBUTED	no
+findSelectionSideChatTab	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+flattenImportResults	function	firstparty	1	1	components/settings/ExternalAgentImportDialog.tsx	o$t	o$t	styles-CdEGpc2x.js	193528	McpHelpers.tsx	taskResultsOfCategory	obf-hint+symbol-index	ATTRIBUTED	no
+flattenPaneTree	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+flushSyncContract	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+flushUnreadPersistence	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+focusAuxiliaryChat	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+focusedPaneId	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx		?pane-region	styles-CdEGpc2x.js	3660			r1-belt-candidate	CANDIDATE	no
+forgetRecentWorkspaces	function	firstparty	1	1	components/shell/Sidebar.tsx		Qie	styles-CdEGpc2x.js	1881	Sidebar.tsx	forgetRecentWorkspaces	exact-sem	ATTRIBUTED	no
+formatAnswerText	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+formatChatError	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+formatCompactNumber	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+formatCronSchedule	function	firstparty	1	1	components/conversation/AutomationCards.tsx								UNATTRIBUTED	no
+formatKbd	function	firstparty	1	1	components/modals/FileRewindDialogDeep.tsx	$i	$i	pptxRendererPreviewEngine-BIIRLBue.js	14985	pptxEngineText.ts	文本体谓词	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+formatModelDisplayName	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+formatNextTakeAt	function	firstparty	1	1	components/automations/AutomationsMain.tsx	Ljt	Ljt	styles-CdEGpc2x.js	134031	ExtendedViews.tsx	闲时可用性/剩余时间文案	obf-hint+symbol-index	ATTRIBUTED	no
+formatPluginSource	function	firstparty	1	1	components/settings/PluginsSettingsSection.tsx	p0t	p0t	styles-CdEGpc2x.js	199170			obf-hint+bundle-def	ATTRIBUTED	no
+formatProductPrice	function	firstparty	1	1	components/usage/UsageDeep.tsx	iJ	iJ	styles-CdEGpc2x.js	79739	PaymentDeep.tsx	formatMoney	obf-hint+symbol-index	ATTRIBUTED	no
+formatRemoteTarget	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx								UNATTRIBUTED	no
+formatRowTimestamp	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+formatSkillMentionLabel	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+formatStartPlanPreview	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	MXt	MXt	styles-CdEGpc2x.js	189676	UsageDeep.tsx	startPlanPreviewSummary	obf-hint+symbol-index	ATTRIBUTED	no
+formatsOfEndpoints	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+formatsOfModelName	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+frameEnvelopeMaxBytes	function	firstparty	1	1	services/commandQueueProtocol.ts	pS	pS	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	33984	LegacyDocEngineBPageRegistry.tsx	cssNumber	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+frameMetadataMatches	function	firstparty	1	1	services/commandQueueProtocol.ts	vS	vS	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	34023	LegacyDocEngineBPageRegistry.tsx	paragraphThumbnailRuns	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+g	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		g	src-HCld2afU.js	275			name-is-obf+bundle-def	ATTRIBUTED	no
+getActiveSidePaneTab	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+getGlobalAgents	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+getLocalStorage	function	firstparty	1	1	components/shell/Sidebar.tsx	Be	Be	previewPaneOfficeLegacyDocContent-HWD4EOEM.js		LegacyDocEngineBEditorState.tsx	applyEdit	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+getModelProviderRegistry	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+getModelProvidersCached	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	fM	fM	styles-CdEGpc2x.js	52681	UsageDeep.tsx	listCodingPlanSources	obf-hint+symbol-index	ATTRIBUTED	no
+getProviderEndpointsSnapshot	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+getRemoteSessionRegistryEntry	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+getRemoteWorkspaceSession	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+getTaskMembershipRefreshHoldState	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+getVisibleTasks	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+getWorkspaceInitSlice	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+getWorkspaceSlice	function	firstparty	2	2	components/shell/Sidebar.tsx;components/shell/SidebarLeaves.tsx		fe	styles-CdEGpc2x.js		Sidebar.tsx	getWorkspaceSlice	exact-sem	ATTRIBUTED	no
+getWorkspaceStateSelector	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+groupDiscoveryByScope	function	firstparty	1	1	components/settings/ExternalAgentImportDialog.tsx	m$t	m$t	styles-CdEGpc2x.js	193623	McpHelpers.tsx	scopeRowsOfAgents	obf-hint+symbol-index	ATTRIBUTED	no
+groupSkillsByProvider	function	firstparty	1	1	components/settings/SkillsSettingsSection.tsx	XB	XB	styles-CdEGpc2x.js	63890	Composer.tsx	filterGlmSkills	obf-hint+symbol-index	ATTRIBUTED	no
+groupTasksByTimelineBucket	function	firstparty	1	1	components/remote/WebRemote.tsx								UNATTRIBUTED	no
+groupTasksByWorkspace	function	firstparty	1	1	components/remote/WebRemote.tsx		TPt	styles-CdEGpc2x.js	140508	SidebarLeaves.tsx	groupTasksByWorkspace	exact-sem	ATTRIBUTED	yes
+groupedAutoScrollThreshold	const	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+groupedDropAnimation	const	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+groupedNodeFingerprint	function	firstparty	1	1	components/shell/Sidebar.tsx		z8	styles-CdEGpc2x.js	155400	Sidebar.tsx	groupedNodeFingerprint	exact-sem	ATTRIBUTED	no
+groupedTaskKeyOf	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	n8	n8	styles-CdEGpc2x.js	144952	Sidebar.tsx	groupedTaskKey	obf-hint+symbol-index	ATTRIBUTED	no
+groupedTaskSortKey	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+h	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		h	src-HCld2afU.js	271			name-is-obf+bundle-def	ATTRIBUTED	no
+handleIncrementalWorkspaceEvent	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+handoffCrossWorkspaceConversation	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+hasActiveEntitlementCore	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+hasCodeCommentAttachment	function	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+hasCodingPlanEntitlement	function	firstparty	1	1	components/automations/AutomationsMain.tsx	Tit	Tit	styles-CdEGpc2x.js	91395	Home.tsx	isCodingPlanConnectionSelected	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+hasCompleteFrameShape	function	firstparty	1	1	services/commandQueueProtocol.ts	hS	hS	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	33996	LegacyDocEngineBPageRegistry.tsx	sameThumbnailRun	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+hasFragmentFrameShape	function	firstparty	1	1	services/commandQueueProtocol.ts	Kke	Kke	styles-CdEGpc2x.js	33856			obf-hint+bundle-def	ATTRIBUTED	no
+hasOptimisticTaskMeta	function	firstparty	1	1	components/quickpick/QuickPick.tsx	sOe	sOe	styles-CdEGpc2x.js	32285	QuickPickDeep.tsx	hasMembershipIntent	obf-hint+symbol-index	ATTRIBUTED	no
+hasPlanEntitlement	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+hasPlanWidgetModel	function	firstparty	1	1	components/payments/PaymentDeep.tsx		i3e	styles-CdEGpc2x.js	76249	UsageDeep.tsx	hasPlanWidgetModel	exact-sem	ATTRIBUTED	yes
+hasRawShellOutput	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+hasSplitLayoutBindings	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	jwt	jwt	styles-CdEGpc2x.js	121683			obf-hint+bundle-def	ATTRIBUTED	no
+hasStartPlanBalance	function	firstparty	1	1	components/payments/PaymentDeep.tsx		g3e	styles-CdEGpc2x.js	76502	UsageDeep.tsx	hasStartPlanBalance	exact-sem	ATTRIBUTED	yes
+hasUnavailableLocalDirectoryTab	function	firstparty	1	1	modules/AppRootLeaves.tsx	sc	sc	styles-CdEGpc2x.js	4493	Sidebar.tsx	isLocalDirectoryUnavailableSelector	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+hasUsableProvider	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+hasWorkspaceFilePayload	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+hitTestSlideElement	function	firstparty	1	1	modules/pptxPreviewViewer.tsx								UNATTRIBUTED	no
+holdTaskMembershipRefresh	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+hydrateTaskIndex	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+i	const	firstparty	1	1	components/xlsx/XlsxDeepP.tsx		i	src-HCld2afU.js	52			name-is-obf+bundle-def	ATTRIBUTED	no
+imageWrapModel	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+incrementVisibleLimit	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+inferPatchLanguage	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+initDocxWasmSync	function	firstparty	1	1	modules/previewPaneOfficeLegacyDocContent.tsx								UNATTRIBUTED	no
+initialFollowing	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+insertAddToChatPayload	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+insertCreatedTaskFromBroadcast	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx	cLt	cLt	styles-CdEGpc2x.js	146839	FileTreePanel.tsx	registerWorkspaceTask	obf-hint+symbol-index	ATTRIBUTED	no
+invalidateModelProviderSnapshot	function	firstparty	1	1	components/modals/OnboardingDialog.tsx								UNATTRIBUTED	no
+invalidateSettingsCache	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+invalidateSkillCaches	function	firstparty	1	1	components/settings/BrowserSettingsSection.tsx								UNATTRIBUTED	no
+invalidateTaskScopes	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+invalidateWorkspaceEvent	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+isAbsolutePath	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	yes
+isAltShortcut	function	firstparty	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+isApiKeyMissing	function	firstparty	1	1	components/usage/UsageDeep.tsx	srt	srt	styles-CdEGpc2x.js	88509	PaymentDeep.tsx	isEmptyText	obf-hint+symbol-index	ATTRIBUTED	no
+isApiRetryEligible	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+isApplePlatform	function	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		i	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	isApplePlatform	exact-sem	ATTRIBUTED	no
+isAutomationToolCall	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx	Vmt	Vmt	styles-CdEGpc2x.js	107496			obf-hint+bundle-def	ATTRIBUTED	no
+isAutomationsNavEntry	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+isBenignRemoteError	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isBuiltInModelId	function	firstparty	1	1	components/usage/UsageDeep.tsx	Mn	Mn	src-HCld2afU.js		SrcSharedA.tsx	$ZodNever	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+isBuiltInProviderId	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx		_l	src-HCld2afU.js	4742	SrcSharedA.tsx	isBuiltinProviderId	ci-sem	ATTRIBUTED	no
+isCaptchaDecisionHandled	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	M0	M0	styles-CdEGpc2x.js	118776			obf-hint+bundle-def	ATTRIBUTED	no
+isCaptchaProvider	function	firstparty	1	1	modules/ConversationOverlays.tsx		b0	styles-CdEGpc2x.js	118309	ConversationOverlays.tsx	isCaptchaProvider	exact-sem	ATTRIBUTED	no
+isCoarseTouchDeviceGuard	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isCodeCommentRemovePayload	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	MH	MH	styles-CdEGpc2x.js	68446	GitReview.tsx	isCommentScopePayload	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+isCodeCommentRestorePayload	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	NH	NH	styles-CdEGpc2x.js	68457	GitReview.tsx	isCommentAttachmentPayload	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+isCodingPlanConnectionActive	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+isCodingPlanLikeItem	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	DZt	DZt	styles-CdEGpc2x.js	190649	UsageDeep.tsx	isPlanNavItem	obf-hint+symbol-index	ATTRIBUTED	no
+isConversationTab	function	firstparty	1	1	modules/Settings.tsx								UNATTRIBUTED	no
+isCreateLimitError	function	firstparty	2	2	components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+isCronTask	function	firstparty	1	1	components/shell/Sidebar.tsx		pi/Yr	styles-CdEGpc2x.js		Sidebar.tsx	isCronTask	exact-sem	ATTRIBUTED	no
+isE2eTestMode	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+isEmbeddableBrowserUrl	function	firstparty	1	1	components/conversation/PreviewCards.tsx								UNATTRIBUTED	no
+isExternalAgentName	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isFileBasedCommand	function	firstparty	1	1	modules/McpHelpers.tsx								UNATTRIBUTED	no
+isFullModelEntry	function	firstparty	1	1	components/usage/UsageDeep.tsx	nt	nt	previewPaneOfficeLegacyDocContent-HWD4EOEM.js		LegacyDocEngine1.tsx	CLOSING_QUOTE_SET	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+isGhostSupplierId	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+isIgnorableChatError	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+isImeComposing	function	firstparty	3	3	components/conversation/ElicitationDialog.tsx;modules/ConversationOverlays.tsx;modules/pptxPreviewViewer.tsx								UNATTRIBUTED	no
+isImeEnter	function	firstparty	2	2	components/shell/Sidebar.tsx;components/shell/TopBar.tsx								UNATTRIBUTED	no
+isInAppBrowserHost	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx								UNATTRIBUTED	no
+isKeyCombo	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+isLocalBuiltinProvider	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+isLocalDirectoryUnavailableSelector	function	firstparty	1	1	components/shell/Sidebar.tsx		sc	styles-CdEGpc2x.js	4493	Sidebar.tsx	isLocalDirectoryUnavailableSelector	exact-sem	ATTRIBUTED	no
+isLocalWebsiteCard	function	firstparty	1	1	modules/Conversation.tsx	D_t	D_t	styles-CdEGpc2x.js	111203	ConversationLeaves.tsx	卡签名/同步可见/异步存在性校验/预览源/可点击判定/路径解析	obf-hint+symbol-index	ATTRIBUTED	no
+isLockFileExistsError	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	zte							UNATTRIBUTED	no
+isMacKeyboard	function	firstparty	1	1	components/modals/FileRewindDialogDeep.tsx	Lre							UNATTRIBUTED	no
+isMediaPath	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx								UNATTRIBUTED	yes
+isMissingCredentialsError	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+isModAltKey	function	firstparty	2	2	components/quickpick/QuickPick.tsx;services/workspaceServiceHooks.ts	Rre							UNATTRIBUTED	no
+isModKey	function	firstparty	2	2	components/quickpick/QuickPick.tsx;services/workspaceServiceHooks.ts	ta	ta	pptxRendererPreviewEngine-BIIRLBue.js	14996	pptxEngineText.ts	文本体谓词	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+isModShiftKey	function	firstparty	2	2	components/quickpick/QuickPick.tsx;services/workspaceServiceHooks.ts	Qi	Qi	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18862	LegacyDocEngine3.tsx	buildRunProvenance	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+isModelEntry	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isModelMenuStructured	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isModelProviderRegistryReady	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+isModelProviderSnapshotHydrated	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	pM	pM	styles-CdEGpc2x.js	52684	UsageDeep.tsx	hasLoadedSources	obf-hint+symbol-index	ATTRIBUTED	no
+isModelRuntimeRestarting	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+isOAuthFamilyProvider	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isOffPeakTask	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+isOptimisticCoveredEvent	function	firstparty	1	1	components/quickpick/QuickPick.tsx	oOe	oOe	styles-CdEGpc2x.js	32273	QuickPickDeep.tsx	shouldInvalidateShardCache	obf-hint+symbol-index	ATTRIBUTED	no
+isOptimisticMembershipEvent	function	firstparty	1	1	components/quickpick/QuickPick.tsx	rx	rx	styles-CdEGpc2x.js	32265	QuickPickDeep.tsx	isListMembershipChanged	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+isPastDeadline	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+isPathWithin	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+isPathWithinWorkspace	function	firstparty	2	2	components/composer/PptxReferencesChip.tsx;modules/Composer.tsx								UNATTRIBUTED	no
+isPlainObjectLike	function	firstparty	1	1	components/conversation/AutomationCards.tsx								UNATTRIBUTED	no
+isPlainRecord	function	firstparty	1	1	components/conversation/PermissionApprovalOverlay.tsx								UNATTRIBUTED	yes
+isPlainTextLanguage	function	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+isPlainTextOutput	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+isPlanExpiring	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+isPluginCommand	function	firstparty	1	1	modules/McpHelpers.tsx								UNATTRIBUTED	no
+isPluginIconUrl	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+isPluginMcpListVisible	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+isPptxElementAddDetail	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+isPptxElementAddEvent	function	firstparty	1	1	components/composer/PptxReferencesChip.tsx								UNATTRIBUTED	no
+isPresetProvider	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+isPresetProviderId	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isPresetVisible	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	Qnt	Qnt	styles-CdEGpc2x.js	88279	PaymentDeep.tsx	isPresetEntryEnabled	obf-hint+symbol-index	ATTRIBUTED	no
+isPrimaryShortcut	function	firstparty	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+isProviderConfigurable	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isProviderEnabledForFamily	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+isProviderFamilyModeAllowed	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isProviderOAuthGateActive	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isProviderSelected	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+isProviderSystemEnabled	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isProviderUsable	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+isProviderVisible	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+isProvidersSnapshotHydrated	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isQueryResultUnchanged	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+isRawRecord	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+isReasoningRowVisible	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+isReloadNavigationEntry	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	z0	z0	styles-CdEGpc2x.js	121382			obf-hint+bundle-def	ATTRIBUTED	no
+isRemoteAwarePath	function	firstparty	1	1	components/conversation/PreviewCards.tsx								UNATTRIBUTED	no
+isRemoteScopedTab	function	firstparty	2	2	components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+isRemoteWorkspace	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+isSamePath	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+isSameTeamPlanKey	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+isSameWorkspace	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+isSessionMissing	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	_c	_c	styles-CdEGpc2x.js	4822	services.tsx	远端会话解析	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+isSessionScopedReferencesChangedEvent	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+isSettingsTab	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	Pse	Pse	styles-CdEGpc2x.js	4497			obf-hint+bundle-def	ATTRIBUTED	no
+isShiftShortcut	function	firstparty	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+isShortPlainOutput	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+isStartupSoundEnabled	function	firstparty	1	1	modules/AppRootLeaves.tsx	Eie	Eie	styles-CdEGpc2x.js	1091			obf-hint+bundle-def	ATTRIBUTED	no
+isStructuredSelection	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isSwitchModePermissionRequest	function	firstparty	1	1	components/conversation/PermissionApprovalOverlay.tsx		Xpt	styles-CdEGpc2x.js	106652	ConversationOverlays.tsx	isSwitchModePermissionRequest	exact-sem	ATTRIBUTED	no
+isTaskRuntimeFailed	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+isTaskRuntimeStopped	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+isTaskWorkspaceTab	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+isTeamPlanNavItem	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	OZt	OZt	styles-CdEGpc2x.js	190652	UsageDeep.tsx	isResolvedTeamPlanItem	obf-hint+symbol-index	ATTRIBUTED	no
+isTelemetryEnabled	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	re	re	pptx-preview-viewer-B1z6CWke.js	31	pptxPreviewViewer.tsx	IconFileDown	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+isTerminalTaskStatus	function	firstparty	1	1	components/automations/AutomationEditor.tsx								UNATTRIBUTED	no
+isThoughtCapableModel	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+isTodoToolByName	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+isToolCallRunningByDisplayStatus	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+isUpdateAvailableStatus	function	firstparty	1	1	components/settings/PluginsSettingsSection.tsx	i9	i9	styles-CdEGpc2x.js	198443	SettingsLeaves.tsx	hasUpdate	obf-hint+symbol-index	ATTRIBUTED	no
+isUsableWorkspaceTab	function	firstparty	1	1	components/automations/AutomationEditor.tsx								UNATTRIBUTED	no
+isWebRemoteControlRuntime	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+isWhiteboardMentionAddEvent	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+isWorkspaceFileDragEvent	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+isWorkspaceKindTab	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	oc	oc	src-HCld2afU.js	4180	SrcSharedA.tsx	BOT_PROVIDER_IDS	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+isWorkspaceTab	function	firstparty	12	12	components/automations/AutomationsMain.tsx;components/onboarding/OnboardingLoginLeaves.tsx;components/payments/PaymentDeep.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx;components/shell/WorkspaceShell.tsx;modules/Composer.tsx;modules/stores-session.tsx;services/remoteServices.ts		oc?	styles-CdEGpc2x.js	4487			r1-belt-candidate	CANDIDATE	no
+isWorkspaceTabLike	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx								UNATTRIBUTED	no
+isWorkspaceTabUsable	function	firstparty	2	2	components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+isWorkspaceUnavailableLocalDirectory	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+isZaiCodingPlanProvider	function	firstparty	1	1	components/payments/PaymentDeep.tsx	tr	tr	imeComposition-DEYFkwWm.js	12414	ImeComposition.tsx	fallbackTo	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+j	const	firstparty	1	1	components/xlsx/XlsxDeepP.tsx		j	src-HCld2afU.js	3161			name-is-obf+bundle-def	ATTRIBUTED	no
+joinPath	function	firstparty	1	1	components/code-viewer/GitReview.tsx	Jo	Jo	previewPaneOfficeLegacyDocContent-HWD4EOEM.js		LegacyDocEngineC4.tsx	renderImageDropZone	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+joinTestId	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;components/usage/UsageDeep.tsx	qr	qr	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18269	LegacyDocEngineC3.tsx	containerVirtualizer	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+k	function	firstparty	1	1	components/xlsx/XlsxDeepB.tsx		k	src-HCld2afU.js	3130			name-is-obf+bundle-def	ATTRIBUTED	no
+keyboardSensorFactory	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+kindOfApiFormat	function	firstparty	1	1	components/usage/UsageDeep.tsx	Lt	Lt	src-HCld2afU.js		SrcSharedA.tsx	$ZodCheckGreaterThan	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+kn	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		kn	previewPaneOfficeXlsxContent-XeHwYdMn.js	1661			name-is-obf+bundle-def	ATTRIBUTED	no
+l	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		l	src-HCld2afU.js	78			name-is-obf+bundle-def	ATTRIBUTED	no
+listCachedProviders	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+listImportableResources	function	firstparty	1	1	components/settings/ExternalAgentImportDialog.tsx	L7	L7	styles-CdEGpc2x.js	193591	McpHelpers.tsx	itemsOfCategory	obf-hint+symbol-index	ATTRIBUTED	no
+listNativeMcpServers	function	firstparty	1	1	stores/mcpStore.ts	Rg	Rg	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	26165	LegacyDocEngineC2.tsx	floatingAbsoluteStyle	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+loadComposerDraft	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+loadParseDocxModule	function	firstparty	1	1	modules/DocxWasmGlue.tsx								UNATTRIBUTED	no
+logger	const	firstparty	2	2	modules/pptxPreviewViewer.tsx;modules/previewPaneOfficeLegacyDocContent.tsx		a	logger-PFDwl5Yq.js	24	logger.tsx	logger	exact-sem	ATTRIBUTED	yes
+looksLikeJson	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+m	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		m	src-HCld2afU.js	214			name-is-obf+bundle-def	ATTRIBUTED	no
+makeSensors	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+mapTasksToListItems	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	h6	h6	styles-CdEGpc2x.js	140450	SidebarLeaves.tsx	mapRemoteTasksToRows	obf-hint+symbol-index	ATTRIBUTED	no
+markCodeCommentAttachmentRestored	function	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+markCommentRestoredFromAttachment	function	firstparty	1	1	stores/codeCommentsStore.ts								UNATTRIBUTED	no
+markTaskUnreadLocally	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+markUsageEntryIntent	function	firstparty	1	1	components/shell/Sidebar.tsx		aw	styles-CdEGpc2x.js	39378	Sidebar.tsx	markUsageEntryIntent	exact-sem	ATTRIBUTED	no
+matchesPptxElementScope	function	firstparty	1	1	components/composer/PptxReferencesChip.tsx								UNATTRIBUTED	no
+mc	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx		mc	styles-CdEGpc2x.js	4806			name-is-obf+bundle-def	ATTRIBUTED	no
+mcpScopePriority	function	firstparty	1	1	stores/mcpStore.ts	p_e	p_e	styles-CdEGpc2x.js	24926			obf-hint+bundle-def	ATTRIBUTED	no
+mcpServerToPayload	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+mcpServersFingerprint	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+memoJson	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+mentionChipColorClass	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+mergeConfigOptions	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+mergeIncomingTaskMeta	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+mergeItemWithSubscription	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	kZt	kZt	styles-CdEGpc2x.js	190659	UsageDeep.tsx	mergeTeamPlanSnapshot	obf-hint+symbol-index	ATTRIBUTED	no
+mergePptxElementReference	function	firstparty	1	1	components/composer/PptxReferencesChip.tsx								UNATTRIBUTED	no
+mergeTaskWithActivity	function	firstparty	1	1	components/shell/SidebarLeaves.tsx		Po	styles-CdEGpc2x.js	1324	Sidebar.tsx	mergeTaskWithActivity	exact-sem	ATTRIBUTED	yes
+mergeTaskWithState	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	pe	pe	styles-CdEGpc2x.js		StoresDeep.tsx	pickBestTaskMetadata	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+mergeWithSessionActivity	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+mergeWorkspaceNativeServers	function	firstparty	1	1	stores/mcpStore.ts	g_e	g_e	styles-CdEGpc2x.js	24990			obf-hint+bundle-def	ATTRIBUTED	no
+mermaidCore	const	firstparty	1	1	components/markdown/MarkdownIntegration.tsx								UNATTRIBUTED	no
+metadataIdentityHash	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+migrateLegacyCommonMcpServers	function	firstparty	1	1	stores/mcpStore.ts	h_e	h_e	styles-CdEGpc2x.js	24936			obf-hint+bundle-def	ATTRIBUTED	no
+modelEntryOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+modelGroupsOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+modelIdOfEntry	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+modelKindsOfProvider	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+motion	const	firstparty	2	2	components/composer/ModelSelector.tsx;components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+moveGroupOver	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	xIt	xIt	styles-CdEGpc2x.js	145128			obf-hint+bundle-def	ATTRIBUTED	no
+moveTaskIntoGroupStart	function	firstparty	1	1	components/shell/SidebarLeaves.tsx	d8	d8	styles-CdEGpc2x.js	145109			obf-hint+bundle-def	ATTRIBUTED	yes
+moveTaskOverTask	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	vIt	vIt	styles-CdEGpc2x.js	145090			obf-hint+bundle-def	ATTRIBUTED	no
+n	const	firstparty	1	1	components/xlsx/XlsxDeepP.tsx		n	src-HCld2afU.js	13			name-is-obf+bundle-def	ATTRIBUTED	no
+navItemIcon	function	icon-custom	1	1	components/usage/UsageDeep.tsx	crt	crt	styles-CdEGpc2x.js	88512	PaymentDeep.tsx	providerEntryIconOf	obf-hint+symbol-index	ATTRIBUTED	no
+navigateToSettingsSection	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	iw	iw	styles-CdEGpc2x.js	39375			obf-hint+bundle-def	ATTRIBUTED	no
+nestedRecord	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+nestedStringField	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+newProviderId	function	firstparty	1	1	components/usage/UsageDeep.tsx	Knt	Knt	styles-CdEGpc2x.js	88215	PaymentDeep.tsx	authSessionSnapshotOf	obf-hint+symbol-index	ATTRIBUTED	no
+nextAutoResolutionTickDelay	function	firstparty	1	1	components/conversation/ElicitationDialog.tsx								UNATTRIBUTED	no
+normalizeAgentName	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+normalizeAskQuestions	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+normalizeCodeCommentRemovePayload	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	jH	jH	styles-CdEGpc2x.js	68424	GitReview.tsx	isCommentRemovedFromChat	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+normalizeCodingPlanProviders	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+normalizeConnectionError	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+normalizeDeliveryKind	function	firstparty	1	1	services/commandQueueProtocol.ts	gS	gS	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	34006	LegacyDocEngineBPageRegistry.tsx	appendThumbnailRuns	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+normalizeFormat	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+normalizeModelProviders	function	firstparty	1	1	modules/Settings.tsx								UNATTRIBUTED	no
+normalizeModelSelectionValue	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+normalizeOAuthDomain	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+normalizePersistedRemoteSessions	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+normalizeProviderConfig	function	firstparty	1	1	modules/ConversationLeaves.tsx								UNATTRIBUTED	no
+normalizeReloadError	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+normalizeRemoteLogMessage	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+normalizeRemoteTarget	function	firstparty	1	1	components/shell/TopBar.tsx								UNATTRIBUTED	no
+normalizeScheduleRule	function	firstparty	1	1	components/conversation/AutomationCards.tsx								UNATTRIBUTED	no
+normalizeSettingsOptions	function	firstparty	1	1	components/automations/AutomationEditor.tsx	oee							UNATTRIBUTED	no
+normalizeTaskBroadcastError	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx	DM	DM	styles-CdEGpc2x.js	52886			obf-hint+bundle-def	ATTRIBUTED	no
+normalizeTaskBroadcastSessions	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+normalizeTaskOutputRaw	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+normalizeTaskStopRaw	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+normalizeToolCallNode	function	firstparty	2	2	components/conversation/AutomationCards.tsx;modules/Conversation.tsx								UNATTRIBUTED	no
+normalizeToolCallStatusRaw	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+normalizeWorkspaceScopes	function	other-registered	1	1	components/quickpick/QuickPick.tsx	oje	oje	styles-CdEGpc2x.js	35695	QuickPickDeep.tsx	normalizeShardScopes	obf-hint+symbol-index	ATTRIBUTED	yes
+normalizedModelOptionsOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+notificationBodyFallback	function	firstparty	1	1	modules/ConversationLeaves.tsx								UNATTRIBUTED	no
+notifySessionsImported	function	firstparty	1	1	components/settings/MigrationSettingsSection.tsx	Qie	Qie	styles-CdEGpc2x.js	1881	Sidebar.tsx	forgetRecentWorkspaces	obf-hint+symbol-index	ATTRIBUTED	no
+notifyTaskMetaPreservingMembership	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	eae	eae	styles-CdEGpc2x.js	1892			obf-hint+bundle-def	ATTRIBUTED	no
+notifyTaskMetaUpsert	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	$ie	$ie	styles-CdEGpc2x.js	1889			obf-hint+bundle-def	ATTRIBUTED	no
+o	const	firstparty	1	1	components/xlsx/XlsxDeepP.tsx		o	src-HCld2afU.js	70			name-is-obf+bundle-def	ATTRIBUTED	no
+oauthPollDeadline	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+observePanelElement	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+offPeakCreateFailureMessageId	function	firstparty	1	1	components/automations/AutomationsMain.tsx	Dit	Dit	styles-CdEGpc2x.js	91405	Home.tsx	resolveOffPeakErrorI18nId	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+offPeakDraftTelemetry	function	firstparty	1	1	components/automations/AutomationsMain.tsx	Vjt	Vjt	styles-CdEGpc2x.js	134402	ExtendedViews.tsx	闲时创建遥测	obf-hint+symbol-index	ATTRIBUTED	no
+offPeakStoreStatic	const	firstparty	1	1	components/automations/AutomationsMain.tsx								UNATTRIBUTED	no
+officeKindOfPath	function	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+openFileChangeInViewer	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+openSessionBesideDraft	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+openSessionInSplit	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+openSettingsSection	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+openSkillsSettingsIntent	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+p	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		p	src-HCld2afU.js	117			name-is-obf+bundle-def	ATTRIBUTED	no
+packageToPlainInput	function	firstparty	1	1	modules/DocxWasmGlue.tsx		n	chunk-YE7GQOST-DVtn9d8T.js		DocxWasmGlue.tsx	packageToPlainInput	exact-sem	ATTRIBUTED	no
+packageToWireFormat	function	firstparty	1	1	modules/LegacyDocEngine4.tsx								UNATTRIBUTED	no
+pageGeometryOfSection	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+pageSectionInfoFor	function	firstparty	1	1	modules/LegacyDocEngineBPageRenderer.tsx								UNATTRIBUTED	no
+paneById	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx		?pane-region	styles-CdEGpc2x.js	3660			r1-belt-candidate	CANDIDATE	no
+paragraphEditText	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+parentDirectoryPath	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	sae	sae	styles-CdEGpc2x.js	1932			obf-hint+bundle-def	ATTRIBUTED	no
+parseAddToChatPayload	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+parseDocx	function	firstparty	1	1	modules/previewPaneOfficeLegacyDocContent.tsx								UNATTRIBUTED	no
+parseModelProjection	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+parseModelRef	function	firstparty	2	2	components/settings/SubagentLeaves.tsx;components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+parseModelString	function	firstparty	2	2	components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+parsePatchIntoLines	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+parsePatchLines	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+parseRemoteIdentityKind	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+parseSelectionReferences	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+parseTeamPlanKey	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+parseToolCallRaw	function	firstparty	1	1	components/conversation/PermissionApprovalOverlay.tsx								UNATTRIBUTED	no
+parseToolRawPayload	function	firstparty	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+parseUserInputContext	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+patchToPlainTextLines	function	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+pathDirname	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+pathToFileUrl	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	Yo	Yo	previewPaneOfficeLegacyDocContent-HWD4EOEM.js		LegacyDocEngineC4.tsx	renderWrappedParagraph	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+pendingCommandLedger	const	firstparty	3	3	components/conversation/ConversationInteractionsOverlay.tsx;modules/Conversation.tsx;modules/ConversationLeaves.tsx	K1	K1	styles-CdEGpc2x.js	115758			obf-hint+bundle-def	ATTRIBUTED	no
+perTaskUiStateKey	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+persistDraftSnippet	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	hH	hH	styles-CdEGpc2x.js	67573	Composer.tsx	writeDraftScope	obf-hint+symbol-index	ATTRIBUTED	no
+persistMcpChange	function	firstparty	1	1	stores/mcpStore.ts	Lg	Lg	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	26082	LegacyDocEngineC2.tsx	floatingWrapStyle	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+persistProviderFamilyDomain	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+persistTabsPatch	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+persistableTabEntries	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx	sEt	sEt	styles-CdEGpc2x.js	123457			obf-hint+bundle-def	ATTRIBUTED	no
+persistableWorkspaceTabs	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+phaseAutoRefreshModeOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+pickFeaturedTeamProducts	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	PZt	PZt	styles-CdEGpc2x.js	191218	UsageDeep.tsx	hasSubscribedProduct	obf-hint+symbol-index	ATTRIBUTED	no
+pickStatusRefreshServers	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+pickWebsiteCards	function	firstparty	1	1	modules/Conversation.tsx	w_t	w_t	styles-CdEGpc2x.js	111175	ConversationLeaves.tsx	卡签名/同步可见/异步存在性校验/预览源/可点击判定/路径解析	obf-hint+symbol-index	ATTRIBUTED	no
+placeTaskAtGroupHead	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	d8	d8	styles-CdEGpc2x.js	145109			obf-hint+bundle-def	ATTRIBUTED	no
+placeTaskOutsideGroup	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	u8	u8	styles-CdEGpc2x.js	145103			obf-hint+bundle-def	ATTRIBUTED	no
+planDomainsOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+planEntryState	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+planProviderIds	const	firstparty	1	1	modules/AppRootLeaves.tsx								UNATTRIBUTED	no
+planStateOfProviders	function	firstparty	2	2	components/automations/AutomationsMain.tsx;components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+planUpgradeFunnelArgs	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+pluginMentionMarkdown	function	firstparty	2	2	components/settings/PluginLeaves.tsx;modules/Composer.tsx	Dj	Dj	styles-CdEGpc2x.js	52138			obf-hint+bundle-def	ATTRIBUTED	no
+pluginsFingerprint	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+pluginsStoreStatic	const	firstparty	2	2	components/settings/PluginsSettingsSection.tsx;stores/pluginsHelpers.ts								UNATTRIBUTED	no
+pointerSensorFactory	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+postMessage	function	firstparty	1	1	components/code-viewer/DiffsWorker.tsx								UNATTRIBUTED	no
+pptxScopeKey	function	firstparty	1	1	components/composer/PptxReferencesChip.tsx								UNATTRIBUTED	no
+prefetchTriggerPx	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+preloadModule	function	firstparty	2	2	components/xlsx/XlsxPreviewWasmBridge.tsx;modules/DocxWasmGlue.tsx		e	chunk-YE7GQOST-DVtn9d8T.js		DocxWasmGlue.tsx	preloadModule	exact-sem	ATTRIBUTED	yes
+preloadServerKey	function	firstparty	1	1	stores/mcpStore.ts	Bg	Bg	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	26236	LegacyDocEngineC5.tsx	unscaleRect	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+presetApiKeyUrl	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+presetNavKey	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	cX	cX	styles-CdEGpc2x.js	88481	PaymentDeep.tsx	preset	obf-hint+symbol-index	ATTRIBUTED	no
+presetRegistrationUrl	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+prettifyMcpServerName	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+prettifyMcpToolName	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+previewCardSignature	function	firstparty	1	1	modules/Conversation.tsx	C_t	C_t	styles-CdEGpc2x.js	111166	ConversationLeaves.tsx	卡签名/同步可见/异步存在性校验/预览源/可点击判定/路径解析	obf-hint+symbol-index	ATTRIBUTED	no
+productPriceOf	function	firstparty	1	1	components/usage/UsageDeep.tsx	nJ	nJ	styles-CdEGpc2x.js	79733	PaymentDeep.tsx	primaryAmountOf	obf-hint+symbol-index	ATTRIBUTED	no
+productsProviderIdOf	function	firstparty	1	1	components/usage/UsageDeep.tsx	EY	EY	styles-CdEGpc2x.js	83815			obf-hint+bundle-def	ATTRIBUTED	no
+protocolLimits	const	firstparty	2	2	components/feedback/FeedbackCenter.tsx;services/sessionIndex.ts								UNATTRIBUTED	no
+providerById	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+providerConfigFromOptions	function	firstparty	1	1	modules/ConversationLeaves.tsx								UNATTRIBUTED	no
+providerDisplayName	function	firstparty	1	1	components/usage/UsageDeep.tsx	Znt	Znt	styles-CdEGpc2x.js	88270	PaymentDeep.tsx	providerDisplayNameOfEntry	obf-hint+symbol-index	ATTRIBUTED	no
+providerEntryOrNull	function	firstparty	1	1	components/payments/PaymentDeep.tsx	tM	tM	styles-CdEGpc2x.js	52642	UsageDeep.tsx	nullSafe	obf-hint+symbol-index	ATTRIBUTED	no
+providerFamiliesOfList	function	firstparty	1	1	components/usage/UsageDeep.tsx	jte							UNATTRIBUTED	no
+providerFamilyDefinitionOf	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+providerFamilyDomainOf	function	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+providerFamilyFromDomain	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+providerFamilyRegistry	const	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+providerFingerprintKeyOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx	nM	nM	styles-CdEGpc2x.js	52645	UsageDeep.tsx	providerApiKeyFingerprint	obf-hint+symbol-index	ATTRIBUTED	no
+providerLogoOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+providerModelKey	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+proxyModelValueOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+pruneCollapsedGroupIds	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+pruneVisibleLimits	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+publishProviders	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+purchaseBannerCopy	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	GZt	GZt	styles-CdEGpc2x.js	191319	UsageDeep.tsx	statusTitleDescriptionOf	obf-hint+symbol-index	ATTRIBUTED	no
+pxToTwips	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+queryDescriptorKey	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+queueUnreadPersistence	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+quotaDismissKey	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	L0	L0	styles-CdEGpc2x.js	119069			obf-hint+bundle-def	ATTRIBUTED	no
+quotaDismissedKeysStore	const	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+readDeletedPreloadServers	function	firstparty	1	1	stores/mcpStore.ts	a_e	a_e	styles-CdEGpc2x.js	24845			obf-hint+bundle-def	ATTRIBUTED	no
+readLegacyCommonMcp	function	firstparty	1	1	stores/mcpStore.ts	n_e	n_e	styles-CdEGpc2x.js	24832			obf-hint+bundle-def	ATTRIBUTED	no
+readLocalMcpConfig	function	firstparty	1	1	stores/mcpStore.ts	s_e	s_e	styles-CdEGpc2x.js	24859			obf-hint+bundle-def	ATTRIBUTED	no
+readLocalModelPreference	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+readLocalPreferenceForDraft	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+readPerTaskUiState	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+readPreferredEditorId	function	firstparty	1	1	components/shell/TopBar.tsx								UNATTRIBUTED	no
+readPromptHistory	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+readScrollMemory	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+readSessionScopedLimitReason	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+readSessionScopedReferences	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+readTaskSnapshotCache	function	firstparty	1	1	components/quickpick/QuickPick.tsx	Ex	Ex	styles-CdEGpc2x.js	32536	QuickPickDeep.tsx	acquireTaskIndexSnapshot	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+readTaskUnreadIndicator	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx								UNATTRIBUTED	no
+readWorkspaceFilePayload	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+reconcileFollowing	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+reconcileIncomingTaskKeys	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+recordCaptchaFailure	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	j0	j0	styles-CdEGpc2x.js	118772			obf-hint+bundle-def	ATTRIBUTED	no
+recordDragPosition	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+rectSortingStrategy	const	firstparty	2	2	components/shell/SidePanel.tsx;components/shell/Sidebar.tsx								UNATTRIBUTED	no
+refreshAfterHookChange	function	firstparty	6	6	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+refreshAfterPluginSync	function	firstparty	7	7	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx;components/shell/Sidebar.tsx								UNATTRIBUTED	no
+refreshAfterSkillSync	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+refreshCaptchaRuntimeHeaders	function	firstparty	1	1	modules/ConversationOverlays.tsx		fCt	styles-CdEGpc2x.js	118446	ConversationOverlays.tsx	refreshCaptchaRuntimeHeaders	exact-sem	ATTRIBUTED	no
+refreshMcpServerStatuses	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+refreshMcpStoreAfterSync	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+refreshModelProviderSnapshot	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+refreshPinnedTasks	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+refreshProviders	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+refreshSessionAfterPluginSync	function	firstparty	1	1	stores/pluginsHelpers.ts								UNATTRIBUTED	no
+refreshSessionCapabilities	function	firstparty	6	6	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+refreshSkillCapabilities	function	firstparty	6	6	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+refreshSkillContexts	function	firstparty	1	1	components/modals/OnboardingDialog.tsx								UNATTRIBUTED	no
+refreshSkillStoresAfterSync	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+refreshSubagentCapabilities	function	firstparty	1	1	components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+refreshTimelineTasks	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+registerBaseServices	function	firstparty	1	1	modules/AppRootLeaves.tsx	Sse	Sse	index-ABImDspU.js		rendererEntry.tsx	registerBaseServices	obf-hint+symbol-index	ATTRIBUTED	yes
+registerSessionRefresh	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+registerTestActions	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+registerWorkspaceNotifier	function	firstparty	1	1	modules/ConversationLeaves.tsx								UNATTRIBUTED	no
+rehypeKatex	const	firstparty	1	1	components/markdown/MarkdownIntegration.tsx	XIe	XIe	styles-CdEGpc2x.js	44034			obf-hint+bundle-def	ATTRIBUTED	no
+relativePathFrom	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+releaseTaskMembershipRefreshHold	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+remarkMath	const	firstparty	1	1	components/markdown/MarkdownIntegration.tsx	sLe	sLe	styles-CdEGpc2x.js	44412			obf-hint+bundle-def	ATTRIBUTED	no
+rememberPreferredEditorId	function	firstparty	1	1	components/shell/TopBar.tsx								UNATTRIBUTED	no
+remoteScopeKey	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+remoteSessionIdOfTab	function	firstparty	2	2	components/payments/PaymentDeep.tsx;components/shell/Sidebar.tsx								UNATTRIBUTED	no
+remoteTargetDisplayLabel	function	firstparty	4	4	components/settings/McpSettingsSection.tsx;components/shell/Home.tsx;components/shell/TopBar.tsx;modules/Settings.tsx								UNATTRIBUTED	no
+remoteTargetDisplayName	function	firstparty	6	6	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+remoteWorkspaceKey	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+removeCodeCommentAttachment	function	firstparty	1	1	components/code-viewer/CodeViewer.tsx								UNATTRIBUTED	no
+removeSessionsByWorkspaceKeys	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+removeTaskAndNotify	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	rae	rae	styles-CdEGpc2x.js	1914			obf-hint+bundle-def	ATTRIBUTED	no
+removeTaskElicitationFormDraft	function	firstparty	1	1	components/conversation/ConversationInteractionsOverlay.tsx								UNATTRIBUTED	no
+renderDocumentNode	function	firstparty	1	1	modules/LegacyDocEngineBPageRenderer.tsx								UNATTRIBUTED	no
+renderDocxAsync	function	firstparty	1	1	modules/previewPaneOfficeDocxContent.tsx								UNATTRIBUTED	no
+renderStaticMarkupLocal	function	firstparty	1	1	modules/LegacyDocEngineBPageRegistry.tsx								UNATTRIBUTED	no
+renderToStaticMarkupContract	function	firstparty	1	1	modules/LegacyDocEngineBModel.ts								UNATTRIBUTED	no
+replaceCellText	function	firstparty	1	1	modules/LegacyDocEngineBEditorState.tsx								UNATTRIBUTED	no
+replaceParagraphText	function	firstparty	1	1	modules/LegacyDocEngineBEditorState.tsx								UNATTRIBUTED	no
+reportLaunchMarks	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	YPe	YPe	styles-CdEGpc2x.js	41625			obf-hint+bundle-def	ATTRIBUTED	no
+reportLexicalInputTelemetry	function	lexical-firstparty-telemetry	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+requiresFullRefresh	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+resetDragPositionTracking	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+resetTelemetryParityState	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	TPe	TPe	styles-CdEGpc2x.js	41453			obf-hint+bundle-def	ATTRIBUTED	no
+resolveAgentColorHash	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+resolveAgentFallbackName	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+resolveAgentTypeLabel	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+resolveAutoFocusPolicy	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+resolveAutoResolutionCountdown	function	firstparty	1	1	components/conversation/ElicitationDialog.tsx								UNATTRIBUTED	no
+resolveBudgetLimit	function	firstparty	1	1	services/commandQueueProtocol.ts	yS	yS	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	34054	LegacyDocEngineBPageRegistry.tsx	firstNonEmptyCellRuns	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+resolveCodingPlanProviderFamily	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+resolveCodingPlanProviderHeaders	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	pCt	pCt	styles-CdEGpc2x.js	118459			obf-hint+bundle-def	ATTRIBUTED	no
+resolveCodingPlanStatus	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+resolveDraftBaseUrl	function	firstparty	1	1	components/usage/UsageDeep.tsx	Tn	Tn	pptxRendererPreviewEngine-BIIRLBue.js	8270	pptxEngineColor.ts	主题 fillStyles/bgFillStyles 解析	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+resolveEffectiveProvider	function	other-registered	1	1	components/shell/TopBar.tsx	Zge	Zge	styles-CdEGpc2x.js	24734	TopBar.tsx	resolveEffectiveProvider	obf-hint+symbol-index	ATTRIBUTED	no
+resolveEnterpriseVisibility	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	NZt	NZt	styles-CdEGpc2x.js	191209	UsageDeep.tsx	shouldShowGenericTeamCard	obf-hint+symbol-index	ATTRIBUTED	no
+resolveEntryPlanState	function	firstparty	3	3	components/automations/AutomationsMainView.tsx;components/shell/Home.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+resolveFamilyConnectionSettings	function	firstparty	1	1	components/usage/UsageDeep.tsx	jee							UNATTRIBUTED	no
+resolveFamilyDomainAfterLogout	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	yQt	yQt	styles-CdEGpc2x.js	191972	SettingsPanels.tsx	resolveDomainAfterLogout	obf-hint+symbol-index	ATTRIBUTED	no
+resolveFamilyMode	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+resolveFileIcon	function	icon-custom	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+resolveFileIconInfo	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+resolveFileIconMeta	function	firstparty	2	2	components/conversation/ConversationToolViews.tsx;components/conversation/PreviewCards.tsx								UNATTRIBUTED	no
+resolveFileIconName	function	firstparty	1	1	components/modals/FilePathInline.tsx								UNATTRIBUTED	no
+resolveFileInfo	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+resolveFileOperation	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+resolveFileReadEntry	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+resolveHighlightTheme	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+resolveIconFallback	function	firstparty	1	1	components/quickpick/QuickPick.tsx	Lc	Lc	pptxRendererPreviewEngine-BIIRLBue.js	18856	pptxEngineCharts.ts	数字格式代码解析与数值格式化	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+resolveLastActiveTabIndex	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+resolveMermaidConfigBase	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx	Bze	Bze	styles-CdEGpc2x.js	47875			obf-hint+bundle-def	ATTRIBUTED	no
+resolveMermaidThemeVars	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx	Vze	Vze	styles-CdEGpc2x.js	47878			obf-hint+bundle-def	ATTRIBUTED	no
+resolveModelCatalogEntry	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+resolveModelGroupLabel	function	firstparty	2	2	components/automations/AutomationEditor.tsx;modules/ExtendedViews.tsx	iN	iN	styles-CdEGpc2x.js	53795			obf-hint+bundle-def	ATTRIBUTED	no
+resolveModelRef	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+resolveNodeReplStatus	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+resolveNotificationPhase	function	firstparty	1	1	modules/ConversationLeaves.tsx								UNATTRIBUTED	no
+resolveOAuthFollowup	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+resolvePathAgainst	function	firstparty	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+resolvePathTitle	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+resolvePlanProviderId	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	zZt	zZt	styles-CdEGpc2x.js	191243	UsageDeep.tsx	productsProviderIdOf	obf-hint+symbol-index	ATTRIBUTED	no
+resolvePreferredRemoteSessionId	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+resolveProfilePlanAudience	function	firstparty	2	2	components/shell/Sidebar.tsx;components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+resolveProviderEndpoint	function	firstparty	1	1	modules/ConversationLeaves.tsx								UNATTRIBUTED	no
+resolveProviderFamilyAuthMode	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+resolveProviderFamilyDomain	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+resolveProviderForDraft	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+resolveProviderThoughtOption	function	firstparty	1	1	components/settings/SubagentLeaves.tsx								UNATTRIBUTED	no
+resolveQuotaAssertion	function	firstparty	1	1	modules/AppRootLeaves.tsx	I0	I0	styles-CdEGpc2x.js	118978			obf-hint+bundle-def	ATTRIBUTED	no
+resolveQuotaBannerModel	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+resolveRefreshKeyChange	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+resolveRemoteSessionId	function	firstparty	2	2	components/quickpick/QuickPickDeep.tsx;components/shell/SidebarLeaves.tsx	gc	gc	styles-CdEGpc2x.js	4814	services.tsx	远端会话解析	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+resolveRemoteSessionKey	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+resolveRemoteSessionServices	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+resolveRemoteSyncTarget	function	firstparty	6	6	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+resolveRuntimeProvider	function	firstparty	1	1	components/settings/SkillsSettingsSection.tsx								UNATTRIBUTED	no
+resolveSelectedSupplierKey	function	other-registered	1	1	components/shell/SidebarLeaves.tsx	Uq	Uq	styles-CdEGpc2x.js	77975	PaymentDeep.tsx	ghost	obf-hint+symbol-index	ATTRIBUTED	yes
+resolveServicesByWorkspaceIdentity	function	firstparty	1	1	components/shell/Sidebar.tsx		Tse	styles-CdEGpc2x.js	4431	Sidebar.tsx	resolveServicesByWorkspaceIdentity	exact-sem	ATTRIBUTED	no
+resolveSessionServices	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	vc	vc	styles-CdEGpc2x.js	4825	services.tsx	远端会话解析	obf-hint+symbol-index(x5)	ATTRIBUTED	no
+resolveShellExecution	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+resolveStickToBottomAction	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+resolveStopResultText	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+resolveStreamingChildSummary	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+resolveSummaryPanelContentClass	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+resolveSummaryPanelEmptyLayout	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+resolveSupplierProvider	function	firstparty	1	1	modules/ConversationLeaves.tsx								UNATTRIBUTED	no
+resolveSystemThemeIsDark	function	firstparty	1	1	components/modals/HeroCard.tsx								UNATTRIBUTED	no
+resolveTabServices	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+resolveTakeNumberBlockReason	function	firstparty	1	1	components/automations/AutomationsMain.tsx	Ijt	Ijt	styles-CdEGpc2x.js	134018	ExtendedViews.tsx	闲时可用性/剩余时间文案	obf-hint+symbol-index	ATTRIBUTED	no
+resolveTaskListShards	function	firstparty	1	1	components/quickpick/QuickPick.tsx	sje	sje	styles-CdEGpc2x.js	35700	QuickPickDeep.tsx	buildShardPlan	obf-hint+symbol-index	ATTRIBUTED	no
+resolveTeamSources	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+resolveThemeForTitleBar	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx	xo	xo	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	20127	LegacyDocEngine4.tsx	hasPageBreakRun	obf-hint+symbol-index(x5)	ATTRIBUTED	no
+resolveToolDisplayModel	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+resolveUpgradeTargetSource	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+resolveUsageState	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+resolveWorkspaceRelativePath	function	firstparty	1	1	components/conversation/PreviewCards.tsx								UNATTRIBUTED	no
+resolveWorkspaceRemoteSessionId	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+resolveWorkspaceServicesEntry	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+resolveWorkspaceSessionService	function	firstparty	1	1	components/settings/BrowserSettingsSection.tsx								UNATTRIBUTED	no
+resolveWrapMode	function	firstparty	1	1	modules/LegacyDocEngineBEditorState.tsx								UNATTRIBUTED	no
+resolveZapiEnvironment	function	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+respondProviderRuntimeHeadersOnce	function	firstparty	1	1	modules/ConversationOverlays.tsx		gCt	styles-CdEGpc2x.js	118536	ConversationOverlays.tsx	respondProviderRuntimeHeadersOnce	exact-sem	ATTRIBUTED	no
+restoreApiKeyProviderState	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+restrictToVerticalAxisModifier	const	firstparty	1	1	components/conversation/QueuePanel.tsx								UNATTRIBUTED	no
+reusePreviousResult	function	firstparty	1	1	components/quickpick/QuickPick.tsx	cje	cje	styles-CdEGpc2x.js	35730	QuickPickDeep.tsx	narrowCachedShardToDescriptor	obf-hint+symbol-index	ATTRIBUTED	no
+rn	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx	geoPath	rn	previewPaneOfficeXlsxContent-XeHwYdMn.js	1075			name-is-obf+bundle-def	ATTRIBUTED	no
+rollbackTaskUnread	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+runtimePreferencesSchema	const	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	Dt	Dt	pptxRendererPreviewEngine-BIIRLBue.js	7403	pptxEngineColor.ts	hex/rgb/hsl 互转	obf-hint+symbol-index(x5)	ATTRIBUTED	no
+saveComposerDraft	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+scrollMaskStyle	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+searchResultsStore	const	firstparty	1	1	components/shell/WorkspaceShell.tsx		Vo	styles-CdEGpc2x.js	1553	stores-session.tsx	SearchResultsStore	ci-sem	ATTRIBUTED	no
+selectProviderConfigState	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+selectSessionByTask	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+selectWorkspaceSlice	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+self	const	firstparty	1	1	components/code-viewer/DiffsWorker.tsx		self	pptxRendererPreviewEngine-BIIRLBue.js	17045			name-is-obf+bundle-def	ATTRIBUTED	no
+serializeDocxWithWasm	function	firstparty	1	1	modules/LegacyDocEngine4.tsx								UNATTRIBUTED	no
+serializeFileTreeDragPayload	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	$He	$He	styles-CdEGpc2x.js	52216			obf-hint+bundle-def	ATTRIBUTED	no
+serializeHast	function	firstparty	1	1	modules/ModalsLeaves.tsx		Tl	styles-CdEGpc2x.js	6068	ModalsLeaves.tsx	serializeHast	exact-sem	ATTRIBUTED	no
+serializeMcpServers	function	firstparty	1	1	components/settings/McpSettingsSection.tsx								UNATTRIBUTED	no
+serializeRemoteTarget	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+serializeSessionDragPayload	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+serviceGenerationOf	function	firstparty	1	1	components/quickpick/QuickPickDeep.tsx	Xs	Xs	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	21041	LegacyDocEngineBThumbnails.ts	THUMBNAIL_EXCLUDE_ATTR	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+sessionIdFromTopic	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+sessionMentionMarkdown	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+sessionModeCatalog	function	firstparty	1	1	components/payments/PaymentDeep.tsx	cn	cn	previewPaneOfficeLegacyDocContent-HWD4EOEM.js		LegacyDocEngine2.tsx	表情过绘修正缓存/测量	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+sessionRouterStore	const	firstparty	3	3	components/onboarding/OnboardingLoginLeaves.tsx;components/shell/WorkspaceShell.tsx;modules/AppRootLeaves.tsx	A2	A2	styles-CdEGpc2x.js	122636	Sidebar.tsx	useSessionRouterStore	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+sessionScopedReferencesChangedEventType	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+setActiveWorkspacePathE2E	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	$se	$se	styles-CdEGpc2x.js	5161	ModalsLeaves.tsx	setMaterialIconsBase	obf-hint+symbol-index	ATTRIBUTED	no
+setArmsReportPlatform	function	firstparty	1	1	modules/AppRootLeaves.tsx	BSt	BSt	styles-CdEGpc2x.js	118240	ConversationLeaves.tsx	ARMS	obf-hint+symbol-index	ATTRIBUTED	no
+setCurrentPlatform	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+setCurrentServices	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+setCurrentSessionDrag	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+setDefaultModelChoice	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+setGlobalFileTreeDragging	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	Pj	Pj	styles-CdEGpc2x.js	52257			obf-hint+bundle-def	ATTRIBUTED	no
+setModelProvidersFallback	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+setProviderRegistryRevision	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+setSelectionSideChatBusy	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+setSettingsTabTarget	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+setTaskElicitationFormDraft	function	firstparty	1	1	components/conversation/ConversationInteractionsOverlay.tsx								UNATTRIBUTED	no
+setTelemetryPlatform	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	iT	iT	styles-CdEGpc2x.js	41604			obf-hint+bundle-def	ATTRIBUTED	no
+setTelemetryReportPlatform	function	firstparty	1	1	modules/AppRootLeaves.tsx	b_e	b_e	styles-CdEGpc2x.js	25049			obf-hint+bundle-def	ATTRIBUTED	no
+settingsConfigOptionsOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+settleVisibleCards	function	firstparty	1	1	modules/Conversation.tsx	T_t	T_t	styles-CdEGpc2x.js	111178	ConversationLeaves.tsx	卡签名/同步可见/异步存在性校验/预览源/可点击判定/路径解析	obf-hint+symbol-index	ATTRIBUTED	no
+shallowSelector	function	firstparty	2	2	components/shell/WorkspaceShell.tsx;modules/Composer.tsx								UNATTRIBUTED	no
+shardFingerprint	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+shortcutLabel	function	firstparty	6	6	components/code-viewer/GitReview.tsx;components/quickpick/QuickPick.tsx;components/shell/SidePanel.tsx;components/shell/Sidebar.tsx;components/shell/TopBar.tsx;components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+shortcutLabelOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+shortcutLabelVariant	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+shortcutMatches	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+shortcutOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+shouldAdjustScrollPosition	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+shouldAutoLoadOlderOnColdSnapshot	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+shouldForceLoginEntry	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+shouldPrefetchOlder	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+shouldProbeStartPlanEntitlement	function	firstparty	1	1	components/payments/PaymentDeep.tsx	aM	aM	styles-CdEGpc2x.js	52661	UsageDeep.tsx	shouldProbeStartPlanEntitlement	obf-hint+symbol-index	ATTRIBUTED	yes
+shouldShowBackToBottom	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+shouldShowSessionError	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+shouldShowSummaryPanel	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+showToastWithAction	function	firstparty	1	1	components/automations/AutomationsMain.tsx	l6	l6	styles-CdEGpc2x.js	138648	ExtendedViews.tsx	自动化主视图 toast 锚点/带锚点 toast	obf-hint+symbol-index	ATTRIBUTED	no
+skillCreatorPrompt	function	firstparty	1	1	components/settings/SkillsSettingsSection.tsx								UNATTRIBUTED	no
+skillMentionMarkdown	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+sortPinnedTasks	function	firstparty	1	1	stores/pinnedTaskListStore.ts								UNATTRIBUTED	yes
+sortProvidersByDisplayOrder	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+sortSubagents	function	firstparty	1	1	components/settings/SubagentsSettingsSection.tsx	w1t	w1t	styles-CdEGpc2x.js	196957	SettingsLeaves.tsx	collectEditableAgents	obf-hint+symbol-index	ATTRIBUTED	no
+sortTaskKeys	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+sortTaskRows	function	firstparty	1	1	components/remote/WebRemote.tsx		g6	styles-CdEGpc2x.js	140488	SidebarLeaves.tsx	sortTaskRows	exact-sem	ATTRIBUTED	yes
+sortableKeyboardCoordinates	const	firstparty	2	2	components/shell/Sidebar.tsx;components/usage/UsageDeep.tsx	ist							UNATTRIBUTED	no
+splitLayoutStore	const	firstparty	3	3	components/onboarding/OnboardingLoginLeaves.tsx;components/shell/WorkspaceShell.tsx;modules/AppRootLeaves.tsx	s2	s2	styles-CdEGpc2x.js	121686	stores-session.tsx	SplitLayoutStore	obf-hint+symbol-index	ATTRIBUTED	no
+splitPptxElementReferences	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+splitUserInputParts	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+splitVirtualizedUnits	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+splitWebElementContexts	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+sshDecoratedProjectName	function	firstparty	2	2	components/shell/Sidebar.tsx;components/shell/TopBar.tsx		QTt	styles-CdEGpc2x.js	123268	TopBar.tsx	sshDecoratedProjectName	exact-sem	ATTRIBUTED	no
+sshHostKeyOfTarget	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+startOfLocalDay	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+startOfMonthLocal	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+startOfWeekLocal	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+streamdownCn	function	firstparty	1	1	components/markdown/MarkdownContext.tsx		Sv	chunk-BO2N2NFS-CSNAeaxF.js		MarkdownContext.tsx	streamdownCn	exact-sem	ATTRIBUTED	no
+stringField	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+stripTrailingSlash	function	firstparty	1	1	components/quickpick/QuickPick.tsx								UNATTRIBUTED	no
+subagentContextKey	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+subagentMentionMarkdown	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+subscribeModelProviders	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	hM	hM	styles-CdEGpc2x.js	52695	UsageDeep.tsx	subscribeCodingPlanSources	obf-hint+symbol-index	ATTRIBUTED	no
+subscribeProviderEndpoints	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+subscribeProviders	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+subscribeTaskEnded	function	firstparty	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+subscribeWorkspaceTaskList	function	firstparty	1	1	components/quickpick/QuickPick.tsx	aje	aje	styles-CdEGpc2x.js	35663	QuickPickDeep.tsx	subscribeDynamicWorkspaceEvents	obf-hint+symbol-index	ATTRIBUTED	no
+subscriptionCacheKey	function	firstparty	1	1	modules/Settings.tsx								UNATTRIBUTED	no
+summarizeModelTestResults	function	firstparty	1	1	components/usage/UsageDeep.tsx	trt	trt	styles-CdEGpc2x.js	88470	PaymentDeep.tsx	mergeRefreshResults	obf-hint+symbol-index	ATTRIBUTED	no
+summarizeShellCommand	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+summarizeSource	function	firstparty	1	1	components/markdown/MarkdownIntegration.tsx								UNATTRIBUTED	no
+supplierKeyFromProviderId	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+supplierKeyOfModel	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+supplierProviderId	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+syncProviderRegistryToWorkspace	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+syncRemoteTabsE2E	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	yFe	yFe	styles-CdEGpc2x.js	42702			obf-hint+bundle-def	ATTRIBUTED	no
+syncRemoteWorkspaceModelProviders	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+syncTaskStatusUnread	function	firstparty	1	1	components/quickpick/QuickPick.tsx	px	px	styles-CdEGpc2x.js	32364	QuickPickDeep.tsx	syncBackgroundTerminalUnread	obf-hint+symbol-index(x3)	ATTRIBUTED	no
+tableSpannedRowIndexes	function	firstparty	1	1	modules/LegacyDocEngineBPageRenderer.tsx								UNATTRIBUTED	no
+taskChangeSummary	function	firstparty	1	1	components/shell/SidebarLeaves.tsx		vg	styles-CdEGpc2x.js	23753	Sidebar.tsx	taskChangeSummary	exact-sem	ATTRIBUTED	yes
+taskElicitationDraftKeys	function	firstparty	1	1	components/conversation/ConversationInteractionsOverlay.tsx								UNATTRIBUTED	no
+taskListOfWorkspaceState	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+taskListStore	const	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	xe	xe	styles-CdEGpc2x.js		TopBar.tsx	useTaskStore	obf-hint+symbol-index(x5)	ATTRIBUTED	no
+taskMetaOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+taskMetaStore	const	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	Vo	Vo	styles-CdEGpc2x.js	1553	Sidebar.tsx	useSearchResultsStore	obf-hint+symbol-index(x8)	ATTRIBUTED	no
+taskQueryScopeOfTab	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+taskRuntimeByWorkspaceKey	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	yPt	yPt	styles-CdEGpc2x.js	140418			obf-hint+bundle-def	ATTRIBUTED	no
+taskScopeSelector	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+taskStateOf	function	firstparty	1	1	components/code-viewer/FileTreePanel.tsx	ce	ce	pptx-preview-viewer-B1z6CWke.js	406	pptxPreviewViewer.tsx	useElementSize	obf-hint+symbol-index(x5)	ATTRIBUTED	no
+taskStore	const	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+taskStoreApi	const	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+teamPlanKeyOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+teamPlanKeysPrefixEqual	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+telemetryLoginProviderName	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+telemetryPresetId	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx								UNATTRIBUTED	no
+testidOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	yes
+timelineBucketLabel	function	firstparty	1	1	components/remote/WebRemote.tsx								UNATTRIBUTED	no
+toErrorMessage	function	firstparty	1	1	components/remote/WebRemote.tsx		vX	styles-CdEGpc2x.js	91385	Home.tsx	toErrorMessage	exact-sem	ATTRIBUTED	yes
+toManagedProvider	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	tM	tM	styles-CdEGpc2x.js	52642	UsageDeep.tsx	nullSafe	obf-hint+symbol-index	ATTRIBUTED	no
+toWorkspaceRelativePath	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+toZCodeMcpServer	function	firstparty	1	1	stores/mcpStore.ts	Ii	Ii	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	18624	LegacyDocEngine3.tsx	scanXmlElements	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+toast	function	firstparty	1	1	modules/pptxPreviewViewer.tsx		Un	imeComposition-DEYFkwWm.js	12355	ImeComposition.tsx	toast	exact-sem	ATTRIBUTED	yes
+toolCallStatusI18nId	function	firstparty	1	1	components/conversation/ToolCallBlock.tsx								UNATTRIBUTED	no
+toolContentFamilyOf	function	firstparty	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+toolEditFamilyOf	function	firstparty	1	1	components/preview/PreviewCards.tsx								UNATTRIBUTED	no
+topLevelTaskOrderKey	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+touchScrollIntent	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+trackAutomationAction	function	firstparty	1	1	components/automations/AutomationsMain.tsx	FNt	FNt	styles-CdEGpc2x.js	138629	ExtendedViews.tsx	自动化遥测	obf-hint+symbol-index	ATTRIBUTED	no
+trackAutomationCreated	function	firstparty	1	1	components/automations/AutomationsMain.tsx	PNt	PNt	styles-CdEGpc2x.js	138608	ExtendedViews.tsx	自动化遥测	obf-hint+symbol-index	ATTRIBUTED	no
+trackEvent	function	firstparty	3	3	components/settings/ModelProviderSettingsSection.tsx;components/shell/Sidebar.tsx;modules/Conversation.tsx		xw	styles-CdEGpc2x.js	40457	Sidebar.tsx	trackEvent	exact-sem	ATTRIBUTED	no
+trackFunnelStart	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+trackOffPeakCreate	function	firstparty	1	1	components/automations/AutomationsMain.tsx								UNATTRIBUTED	no
+trackOffPeakCreateFailed	function	firstparty	1	1	components/automations/AutomationsMain.tsx	Ujt	Ujt	styles-CdEGpc2x.js	134438	ExtendedViews.tsx	闲时创建遥测	obf-hint+symbol-index	ATTRIBUTED	no
+trackPlanCardEvent	function	firstparty	1	1	components/usage/UsageDeep.tsx	PM	PM	styles-CdEGpc2x.js	53253			obf-hint+bundle-def	ATTRIBUTED	no
+trackPlanSelectEvent	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+trackTelemetry	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+trackTelemetryEvent	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	xw	xw	styles-CdEGpc2x.js	40457	Sidebar.tsx	trackEvent	obf-hint+symbol-index	ATTRIBUTED	no
+transformToString	function	firstparty	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+transformerStyleToClass	function	firstparty	1	1	components/code-viewer/DiffsWorker.tsx								UNATTRIBUTED	no
+u	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		u	src-HCld2afU.js	81			name-is-obf+bundle-def	ATTRIBUTED	no
+uid	function	firstparty	2	2	components/shell/SidePanel.tsx;components/terminal/TerminalPane.tsx								UNATTRIBUTED	no
+unbindRemoteWorkspaceIdentity	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+unbindRemoteWorkspacePath	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+unregisterRemoteSession	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+unregisterWorkspaceNotifier	function	firstparty	1	1	modules/ConversationLeaves.tsx								UNATTRIBUTED	no
+unwrapToolCallRow	function	firstparty	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+updateFollowing	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+upgradeFunnelContext	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	PM	PM	styles-CdEGpc2x.js	53253			obf-hint+bundle-def	ATTRIBUTED	no
+upsertTaskFromBroadcast	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx	oLt	oLt	styles-CdEGpc2x.js	146788	FileTreePanel.tsx	upsertTaskInWorkspaceCache	obf-hint+symbol-index	ATTRIBUTED	no
+useActiveTaskMeta	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+useAppPreferenceStore	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	ko	ko	styles-CdEGpc2x.js	1296	Sidebar.tsx	useSettingsStore	obf-hint+symbol-index(x6)	ATTRIBUTED	no
+useAppSettings	function	firstparty	12	12	components/automations/AutomationEditor.tsx;components/automations/AutomationsMain.tsx;components/onboarding/OnboardingLoginLeaves.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/IndexingSettingsSection.tsx;components/settings/ModelProviderSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx;modules/AppRootLeaves.tsx;modules/Settings.tsx	JM	JM	styles-CdEGpc2x.js	53488			obf-hint+bundle-def	ATTRIBUTED	no
+useAppStore	function	firstparty	1	1	components/payments/PaymentDeep.tsx	ko	ko	styles-CdEGpc2x.js	1296	Sidebar.tsx	useSettingsStore	obf-hint+symbol-index(x6)	ATTRIBUTED	no
+useBaseServicesAny	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+useBaseServicesContext	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useBigModelProducts	function	firstparty	2	2	components/settings/ModelProviderSettingsSection.tsx;modules/Settings.tsx	TY	TY	styles-CdEGpc2x.js	83745			obf-hint+bundle-def	ATTRIBUTED	no
+useCancelRemoteConnection	function	firstparty	1	1	components/remote/RemoteWizard.tsx								UNATTRIBUTED	no
+useCodeCommentOpener	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+useCodingPlanEntitlement	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+useCodingPlanEntitlementsForAutomations	function	firstparty	1	1	components/automations/AutomationsMain.tsx	sX	sX	styles-CdEGpc2x.js	88303	PaymentDeep.tsx	useCodingPlanEntitlements	obf-hint+symbol-index	ATTRIBUTED	no
+useCodingPlanUpgrade	function	firstparty	4	4	components/automations/AutomationsMainView.tsx;components/shell/Sidebar.tsx;modules/ExtendedViews.tsx;modules/Settings.tsx								UNATTRIBUTED	no
+useComposedRefs	function	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		v	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	useComposedRefs	exact-sem	ATTRIBUTED	no
+useComposerTelemetry	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+useConfirmDialog	function	firstparty	4	4	components/automations/AutomationsMainView.tsx;components/shell/SidebarLeaves.tsx;modules/AppRootLeaves.tsx;modules/ExtendedViews.tsx	U2	U2	styles-CdEGpc2x.js	123510	TopBar.tsx	useConfirmDialog	obf-hint+symbol-index	ATTRIBUTED	yes
+useConversationCommandLayer	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useConversationSelections	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+useCoreServices	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+useDiffsWorkerPool	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+useDraggable	function	firstparty	1	1	components/usage/UsageDeep.tsx	DZ	DZ	styles-CdEGpc2x.js	94379			obf-hint+bundle-def	ATTRIBUTED	no
+useDraggableSensor	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+useDroppableBinding	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+useEnterpriseTeamProducts	function	firstparty	1	1	components/usage/UsageDeep.tsx	TY	TY	styles-CdEGpc2x.js	83745			obf-hint+bundle-def	ATTRIBUTED	no
+useEntitlementSubscription	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+useEntitlements	function	firstparty	2	2	components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+useFileDragDetection	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+useFileService	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useFunnelDiagnostics	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	dj	dj	styles-CdEGpc2x.js	51910	UsageDeep.tsx	useBillingDiscount	obf-hint+symbol-index	ATTRIBUTED	no
+useGitState	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+useGitSummarySync	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+useGlobalAgents	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+useHydratingSessions	function	firstparty	1	1	components/quickpick/QuickPick.tsx	JS	JS	styles-CdEGpc2x.js	35552	QuickPickDeep.tsx	useSessionIndexShards	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+useId	function	firstparty	1	1	components/charts/UsageStatsUiParts.tsx		d	usageStatsUiParts-CiR7YEhh.js		UsageStatsUiParts.tsx	useId	exact-sem	ATTRIBUTED	no
+useImportSelections	function	firstparty	1	1	components/modals/OnboardingDialog.tsx								UNATTRIBUTED	no
+useIntlContext	function	firstparty	16	16	components/automations/AutomationsMainView.tsx;components/code-viewer/CodeViewer.tsx;components/code-viewer/FileTreePanel.tsx;components/code-viewer/GitReview.tsx;components/preview/PreviewCards.tsx;components/remote/RemoteGapSegments.tsx;components/remote/RemoteWizard.tsx;components/remote/WebRemote.tsx;components/shell/Home.tsx;components/shell/SidePanel.tsx;components/shell/Sidebar.tsx;components/shell/SidebarLeaves.tsx;components/shell/TopBar.tsx;components/shell/WorkspaceShell.tsx;modules/AppRootLeaves.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+useIntlFormatDate	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	JY	JY	styles-CdEGpc2x.js	87763	PaymentDeep.tsx	tierMessageFormatterOf	obf-hint+symbol-index	ATTRIBUTED	no
+useManageModelsAvailable	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+useMcpSyncForRemote	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+useMembershipVersion	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+useMessageFormatter	function	firstparty	1	1	components/usage/UsageDeep.tsx	JY	JY	styles-CdEGpc2x.js	87763	PaymentDeep.tsx	tierMessageFormatterOf	obf-hint+symbol-index	ATTRIBUTED	no
+useMobileTextInputViewport	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+useModelProviderRegistry	function	firstparty	2	2	components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+useModelProviders	function	firstparty	4	4	components/payments/PaymentDeep.tsx;components/shell/Home.tsx;components/shell/SidebarLeaves.tsx;modules/Settings.tsx		qq	styles-CdEGpc2x.js	78243	PaymentDeep.tsx	useModelProviders	exact-sem	ATTRIBUTED	no
+useModelProvidersStore	function	firstparty	7	7	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/ModelProviderSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx	qq	qq	styles-CdEGpc2x.js	78243	PaymentDeep.tsx	useModelProviders	obf-hint+symbol-index	ATTRIBUTED	no
+useModelRegistrySnapshot	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useNotificationEnabled	function	firstparty	1	1	components/conversation/ConversationInteractionsOverlay.tsx								UNATTRIBUTED	no
+useOAuthCredentialsRefresher	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	iYt	iYt	styles-CdEGpc2x.js	187469			obf-hint+bundle-def	ATTRIBUTED	no
+useOffPeakStore	function	firstparty	1	1	components/automations/AutomationsMain.tsx								UNATTRIBUTED	no
+useOffPeakTaskStore	const	firstparty	2	2	components/automations/AutomationsMainView.tsx;modules/ExtendedViews.tsx		bX	styles-CdEGpc2x.js		Home.tsx	useOffPeakTaskStore	exact-sem	ATTRIBUTED	yes
+useOpenCodeViewerForReference	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useOptimisticTaskOverlays	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+useOptionalTabStore	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+useOverlayCommandEnvironment	function	firstparty	1	1	components/conversation/ConversationInteractionsOverlay.tsx								UNATTRIBUTED	no
+useOverlayServices	function	firstparty	1	1	modules/ConversationOverlays.tsx								UNATTRIBUTED	no
+usePaneCommandEnvironment	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+usePanelScope	function	other-registered	1	1	components/shell/SidePanel.tsx								UNATTRIBUTED	no
+usePlanProductsSnapshot	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	s5e	s5e	styles-CdEGpc2x.js	80369	PaymentDeep.tsx	useCodingPlanProducts	obf-hint+symbol-index	ATTRIBUTED	no
+usePlatformBridge	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+usePlatformContext	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+usePlatformService	function	firstparty	26	26	components/automations/AutomationsMain.tsx;components/automations/AutomationsMainView.tsx;components/bots/Bots.tsx;components/browser/BrowserPane.tsx;components/conversation/ConversationToolViews.tsx;components/payments/PaymentDeep.tsx;components/remote/RemoteGapSegments.tsx;components/remote/RemoteWizard.tsx;components/remote/WebRemote.tsx;components/settings/BrowserSettingsSection.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/McpSettingsSection.tsx;components/settings/ModelProviderSettingsSection.tsx;components/settings/PluginLeaves.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx;components/shell/SidePanel.tsx;components/shell/Sidebar.tsx;components/shell/TopBar.tsx;components/shell/WorkspaceShell.tsx;modules/Composer.tsx;modules/ExtendedViews.tsx;modules/Settings.tsx;modules/pptxPreviewViewer.tsx								UNATTRIBUTED	yes
+usePluginManifests	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+usePointerSensor	function	firstparty	1	1	components/conversation/QueuePanel.tsx								UNATTRIBUTED	no
+usePptxReferences	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+useProviderConfigFile	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+useProviderConfigFilePath	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+useProviderEntitlements	function	firstparty	1	1	modules/Settings.tsx								UNATTRIBUTED	no
+useRecoverablePendingCommands	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useRemoteConnectionLogsBridge	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	bEt	bEt	styles-CdEGpc2x.js	123789	RemoteGapSegments.tsx	useRemoteConnectionLogs	obf-hint+symbol-index	ATTRIBUTED	no
+useResolvedServices	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+useScopedWorkspaceTabs	function	firstparty	2	2	components/shell/Sidebar.tsx;components/shell/SidebarLeaves.tsx		J3	styles-CdEGpc2x.js	135515	Sidebar.tsx	useScopedWorkspaceTabs	exact-sem	ATTRIBUTED	no
+useSearchResultsStore	function	firstparty	2	2	components/shell/Sidebar.tsx;components/shell/SidebarLeaves.tsx		Vo	styles-CdEGpc2x.js	1553	Sidebar.tsx	useSearchResultsStore	exact-sem	ATTRIBUTED	yes
+useSensor	function	firstparty	2	2	components/shell/SidePanel.tsx;components/usage/UsageDeep.tsx	UX	UX	styles-CdEGpc2x.js	92193			obf-hint+bundle-def	ATTRIBUTED	no
+useSensors	function	firstparty	3	3	components/conversation/QueuePanel.tsx;components/shell/SidePanel.tsx;components/usage/UsageDeep.tsx	WX	WX	styles-CdEGpc2x.js	92196			obf-hint+bundle-def	ATTRIBUTED	no
+useSessionErrorRecovery	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useSessionItems	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+useSessionListsHydrator	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+useSessionMigrationScanner	function	firstparty	1	1	components/modals/OnboardingDialog.tsx								UNATTRIBUTED	no
+useSessionOpenability	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+useSessionQuotaViewModel	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useSessionRegistry	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+useSessionRestoreBridge	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	rYt	rYt	styles-CdEGpc2x.js	187356			obf-hint+bundle-def	ATTRIBUTED	no
+useSessionSnapshotRef	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+useSessionSupervisor	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useSettingsContext	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+useSettingsSnapshot	function	firstparty	3	3	components/automations/AutomationsMainView.tsx;components/shell/Home.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+useSettingsState	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+useSettingsStoreValue	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	yes
+useShallowSkillLoadedState	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+useShallowSubagentLoadedState	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+useSkillsStoreStatic	const	firstparty	1	1	stores/commandsHelpers.ts								UNATTRIBUTED	no
+useSnapshotInteractionToasts	function	firstparty	1	1	components/conversation/ConversationInteractionsOverlay.tsx		tSt	styles-CdEGpc2x.js	117394	ConversationOverlays.tsx	useSnapshotInteractionToasts	exact-sem	ATTRIBUTED	no
+useSnoozeInteractionCountdown	function	firstparty	1	1	components/shell/Sidebar.tsx		ERt	styles-CdEGpc2x.js	150972	Sidebar.tsx	useSnoozeInteractionCountdown	exact-sem	ATTRIBUTED	no
+useSortable	function	firstparty	2	2	components/conversation/QueuePanel.tsx;components/shell/SidePanel.tsx								UNATTRIBUTED	no
+useSortableBinding	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+useSubagentStore	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+useTabStore	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;components/shell/Sidebar.tsx		pc	styles-CdEGpc2x.js	4801			r1-belt-forensics	ATTRIBUTED	no
+useTabStoreApi	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	hc	hc	src-HCld2afU.js		SrcSharedA.tsx	botDraftOptionsSchema	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+useTabStoreSelector	function	firstparty	2	2	modules/AppRootLeaves.tsx;services/remoteServices.ts	pc	pc	src-HCld2afU.js		SrcSharedA.tsx	botAllowedCommandsSchema	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+useTabsStore	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+useTabsStoreActions	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+useTaskCompletionNotifications	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+useTaskElicitationDraft	function	firstparty	1	1	components/conversation/ConversationInteractionsOverlay.tsx								UNATTRIBUTED	no
+useTaskElicitationFormDraft	function	firstparty	1	1	components/conversation/ConversationInteractionsOverlay.tsx								UNATTRIBUTED	no
+useTaskListItems	function	firstparty	5	5	components/onboarding/OnboardingLoginLeaves.tsx;components/shell/Sidebar.tsx;components/shell/SidebarLeaves.tsx;components/shell/TopBar.tsx;modules/AppRootLeaves.tsx	ZS	ZS	styles-CdEGpc2x.js	35775	TopBar.tsx	useTaskListItems	obf-hint+symbol-index(x4)	ATTRIBUTED	no
+useTaskMembershipVersion	function	firstparty	1	1	components/quickpick/QuickPick.tsx	dx	dx	previewPaneOfficeLegacyDocContent-HWD4EOEM.js	30799	LegacyDocEngineC2.tsx	emptiedTableIndexes	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+useTaskNativeSessionLogFilePath	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+useTaskSessionFilePath	function	firstparty	1	1	components/code-viewer/GitReview.tsx								UNATTRIBUTED	no
+useTaskStoreStatic	const	firstparty	1	1	stores/pluginsHelpers.ts								UNATTRIBUTED	no
+useTeamProducts	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+useTelemetryPlatform	function	firstparty	3	3	components/conversation/ConversationInteractionsOverlay.tsx;modules/Conversation.tsx;services/telemetryScopes.tsx								UNATTRIBUTED	no
+useUpgradeActions	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+useUpgradeEntry	function	firstparty	1	1	components/settings/ModelProviderSettingsSection.tsx	fX	fX	styles-CdEGpc2x.js	89100	PaymentDeep.tsx	useCodingPlanUpgradeDialog	obf-hint+symbol-index	ATTRIBUTED	no
+useUpgradeEntryForAutomations	function	firstparty	1	1	components/automations/AutomationsMain.tsx	fX	fX	styles-CdEGpc2x.js	89100	PaymentDeep.tsx	useCodingPlanUpgradeDialog	obf-hint+symbol-index	ATTRIBUTED	no
+useUsageSupervisor	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useVirtualizer	function	other-registered	1	1	components/shell/Sidebar.tsx		to	styles-CdEGpc2x.js		Sidebar.tsx	useVirtualizer	exact-sem	ATTRIBUTED	no
+useVirtualizerContract	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+useWebContexts	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+useWebRemoteControlFeatureEnabled	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+useWebRemoteControlFeatureFlag	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	y8	y8	styles-CdEGpc2x.js	150152	Sidebar.tsx	useWebRemoteControlEnabled	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+useWebRemoteControlSession	function	firstparty	2	2	components/onboarding/OnboardingLoginLeaves.tsx;modules/AppRootLeaves.tsx	G6	G6	styles-CdEGpc2x.js	144779			obf-hint+bundle-def	ATTRIBUTED	no
+useWebRemoteControlStatus	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+useWebRemoteControlStatusPolling	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+useWebRemoteControlTaskSyncFeature	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+useWebRemoteTaskSwitcher	function	firstparty	1	1	components/remote/WebRemote.tsx		aPt	styles-CdEGpc2x.js	140286	SidebarLeaves.tsx	useWebRemoteTaskSwitcher	exact-sem	ATTRIBUTED	yes
+useWhiteboardAttachmentScope	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+useWindowVirtualizerContract	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+useWorkspaceAgentService	function	firstparty	7	7	components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+useWorkspaceAgents	function	firstparty	1	1	components/conversation/ConversationToolViews.tsx								UNATTRIBUTED	no
+useWorkspaceBaseServices	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+useWorkspaceConfigOptions	function	firstparty	3	3	components/automations/AutomationEditor.tsx;components/payments/PaymentDeep.tsx;components/settings/SubagentsSettingsSection.tsx	Jq	Jq	styles-CdEGpc2x.js	78437	PaymentDeep.tsx	任务驱动刷新与配置选项钩	obf-hint+symbol-index	ATTRIBUTED	no
+useWorkspaceKeyboardShortcuts	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+useWorkspaceScopedServices	function	firstparty	2	2	components/code-viewer/FileTreePanel.tsx;components/conversation/PreviewCards.tsx								UNATTRIBUTED	no
+useWorkspaceServicesResolver	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+useWorkspaceServicesStore	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+useWorkspaceStore	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+useWorkspaceTabStore	const	firstparty	3	3	components/automations/AutomationsMainView.tsx;components/feedback/FeedbackCenter.tsx;modules/ExtendedViews.tsx								UNATTRIBUTED	no
+useWorkspaceTabs	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+useWorkspaceTabsSelector	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+useWorkspaceTabsStore	function	firstparty	10	10	components/automations/AutomationEditor.tsx;components/automations/AutomationsMain.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/McpSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx;components/shell/WorkspaceShell.tsx;modules/Settings.tsx		dc?	styles-CdEGpc2x.js	4551			r1-belt-candidate	CANDIDATE	no
+useWorkspaceTabsStoreForMigration	function	firstparty	1	1	components/settings/MigrationSettingsSection.tsx	hc	hc	src-HCld2afU.js		SrcSharedA.tsx	botDraftOptionsSchema	obf-hint+symbol-index(x2)	ATTRIBUTED	no
+useZCodeIntl	function	firstparty	1	1	components/payments/PaymentDeep.tsx		D	IntlProvider-C321H7m8.js	9254	I18n.tsx	useZCodeIntl	exact-sem	ATTRIBUTED	yes
+useZCodeStore	function	firstparty	2	2	components/settings/MemorySettingsSection.tsx;modules/Settings.tsx								UNATTRIBUTED	no
+useZcodeSessionService	function	firstparty	7	7	components/automations/AutomationsMain.tsx;components/modals/OnboardingDialog.tsx;components/settings/CommandsSettingsSection.tsx;components/settings/HooksSettingsSection.tsx;components/settings/PluginsSettingsSection.tsx;components/settings/SkillsSettingsSection.tsx;components/settings/SubagentsSettingsSection.tsx								UNATTRIBUTED	no
+useZcodeSessionServiceForMigration	function	firstparty	1	1	components/settings/MigrationSettingsSection.tsx								UNATTRIBUTED	no
+utifCodec	const	firstparty	1	1	modules/previewPaneOfficeLegacyDocContent.tsx								UNATTRIBUTED	no
+v	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		v	previewPaneOfficeDocxContent-3JqWt7cf.js	5660			name-is-obf+bundle-def	ATTRIBUTED	no
+verticalListSortingStrategy	const	firstparty	3	3	components/conversation/QueuePanel.tsx;components/shell/Sidebar.tsx;components/usage/UsageDeep.tsx	TZ							UNATTRIBUTED	no
+viewNodeCompareKey	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+vitePreload	function	firstparty	1	1	modules/pptxPreviewViewer.tsx								UNATTRIBUTED	no
+w	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		w	src-HCld2afU.js	2984			name-is-obf+bundle-def	ATTRIBUTED	no
+wasDroppedOutsideSidebar	function	firstparty	1	1	components/shell/Sidebar.tsx								UNATTRIBUTED	no
+wasmBuildDocModelFromPackage	function	firstparty	1	1	modules/DocxWasmGlue.tsx		t	chunk-YE7GQOST-DVtn9d8T.js		DocxWasmGlue.tsx	wasmBuildDocModelFromPackage	exact-sem	ATTRIBUTED	no
+webRemoteTaskKey	function	firstparty	1	1	components/remote/WebRemote.tsx		f6	styles-CdEGpc2x.js	140200	SidebarLeaves.tsx	webRemoteTaskKey	exact-sem	ATTRIBUTED	yes
+wheelScrollIntent	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+whiteboardScopeKey	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+whiteboardStore	const	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+whiteboardWorkspaceKey	function	firstparty	1	1	modules/ExtendedViews.tsx								UNATTRIBUTED	no
+withProvidersHydration	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+withRemoteCredentials	function	firstparty	1	1	components/onboarding/OnboardingLoginLeaves.tsx								UNATTRIBUTED	no
+wn	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		wn	previewPaneOfficeXlsxContent-XeHwYdMn.js	1479			name-is-obf+bundle-def	ATTRIBUTED	no
+workspaceBaseLabel	function	firstparty	1	1	components/modals/OnboardingDialog.tsx								UNATTRIBUTED	no
+workspaceBaseName	function	firstparty	1	1	components/shell/SidebarLeaves.tsx		Go	styles-CdEGpc2x.js	1928	Sidebar.tsx	workspaceBaseName	exact-sem	ATTRIBUTED	yes
+workspaceExpansionFlags	function	firstparty	1	1	components/shell/Sidebar.tsx		W6	styles-CdEGpc2x.js	144405	Sidebar.tsx	workspaceExpansionFlags	exact-sem	ATTRIBUTED	no
+workspaceIdentityOf	function	firstparty	3	3	components/onboarding/OnboardingLoginLeaves.tsx;components/quickpick/QuickPickDeep.tsx;services/sessionIndex.ts	WS	WS	src-HCld2afU.js	9241	SrcSharedB.tsx	extractJsonStringField	obf-hint+symbol-index	ATTRIBUTED	no
+workspaceKeyOf2	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+workspaceScopeCacheKey	function	firstparty	1	1	components/shell/SidebarLeaves.tsx								UNATTRIBUTED	no
+workspaceStateOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+workspaceStore	const	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+workspaceTargetKeyOf	function	firstparty	1	1	components/payments/PaymentDeep.tsx								UNATTRIBUTED	no
+wrapModeForAction	function	firstparty	1	1	modules/LegacyDocEngineC3.tsx								UNATTRIBUTED	no
+writeDeletedPreloadServers	function	firstparty	1	1	stores/mcpStore.ts	o_e	o_e	styles-CdEGpc2x.js	24854			obf-hint+bundle-def	ATTRIBUTED	no
+writePerTaskUiState	function	firstparty	1	1	components/shell/WorkspaceShell.tsx								UNATTRIBUTED	no
+writePromptHistory	function	firstparty	1	1	components/shell/Home.tsx								UNATTRIBUTED	no
+writeProtoValues	function	firstparty	1	1	components/feedback/FeedbackCenter.tsx								UNATTRIBUTED	no
+writeScrollMemory	function	firstparty	1	1	modules/Conversation.tsx								UNATTRIBUTED	no
+writeSessionScopedReferences	function	firstparty	1	1	modules/Composer.tsx								UNATTRIBUTED	no
+x	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		x	src-HCld2afU.js	2501			name-is-obf+bundle-def	ATTRIBUTED	no
+y	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		y	previewPaneOfficeDocxContent-3JqWt7cf.js	5663			name-is-obf+bundle-def	ATTRIBUTED	no
+ym	const	firstparty	1	1	components/xlsx/XlsxDeepC.tsx		ym	styles-CdEGpc2x.js	17248			name-is-obf+bundle-def	ATTRIBUTED	no
+zapiEnabledOf	function	firstparty	1	1	components/usage/UsageDeep.tsx								UNATTRIBUTED	no
+zu	const	firstparty	1	1	components/xlsx/XlsxDeepA.tsx		zu	previewPaneOfficeXlsxContent-XeHwYdMn.js	17818			name-is-obf+bundle-def	ATTRIBUTED	no
