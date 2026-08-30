@@ -140,7 +140,7 @@ import * as React from "react";
 import * as $ from "react/jsx-runtime"; // A1-R15：vWe=ChatErrorBanner 编译形 JSX 消费面（原 $，jsx-runtime-B5yMD3-t.js）
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { InputGroup, InputGroupAddon } from '../ui/input-group'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphone, Moon as IconMoon, RotateCcw as IconRotateCcw, ClipboardPenLine as IconClipboardPenLine, House as IconHouse, Folder as IconFolder, Cloud as IconCloud, FolderPlus as IconFolderPlus, MessageCircle as IconMessageCircle, Search as IconSearch, ChevronDown as IconChevronDown, Loader as IconLoader, Info as IconInfo, X as IconClose, Rocket as IconRocket, Settings as IconSettings, Copy as IconCopy, SlidersHorizontal as IconSlidersHorizontal, ChevronUp as IconChevronUp, Check as IconCheck, ShieldAlert as IconShieldAlert, Hand as IconHand, NotepadText as IconNotepadText, ShieldCheck as IconShieldCheck } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）。A1-R15：+IconRocket/IconSettings/IconCopy（原 Pv/Rv/W_，Sa('rocket'/'settings'/'copy') 27735/27806/26974；vWe 54394/54404/54462 消费）。A1-R17：+7 件（原 bbe=sliders-horizontal 27837 / P_=chevron-up / M_=check / zv=shield-alert 27816 / av=hand 27244 / Sv=notepad-text 27549 / Bv=shield-check 27827；§T 模式工具条簇消费）
+import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphone, Moon as IconMoon, RotateCcw as IconRotateCcw, ClipboardPenLine as IconClipboardPenLine, House as IconHouse, Folder as IconFolder, Cloud as IconCloud, FolderPlus as IconFolderPlus, MessageCircle as IconMessageCircle, Search as IconSearch, ChevronDown as IconChevronDown, Loader as IconLoader, Info as IconInfo, X as IconClose, Rocket as IconRocket, Settings as IconSettings, Copy as IconCopy, SlidersHorizontal as IconSlidersHorizontal, ChevronUp as IconChevronUp, Check as IconCheck, ShieldAlert as IconShieldAlert, Hand as IconHand, NotepadText as IconNotepadText, ShieldCheck as IconShieldCheck, Brain as IconBrain } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）。A1-R15：+IconRocket/IconSettings/IconCopy（原 Pv/Rv/W_，Sa('rocket'/'settings'/'copy') 27735/27806/26974；vWe 54394/54404/54462 消费）。A1-R17：+7 件（原 bbe=sliders-horizontal 27837 / P_=chevron-up / M_=check / zv=shield-alert 27816 / av=hand 27244 / Sv=notepad-text 27549 / Bv=shield-check 27827；§T 模式工具条簇消费）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button, cva } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk。A1-R17：+cva（原 Ta = button chunk 导出 r，styles 897 导入；§T configSelectTriggerVariants 46035 消费）
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb/Vb）
@@ -150,17 +150,18 @@ import { readWorkspaceFilePayload as parseAddToChatPayload, ADD_WORKSPACE_FILE_T
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService } from '../../modules/ImeComposition'; // +usePlatformService（A1-R15：原 l=M，vWe 54317 截图面消费）
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
-import { create, logger, useTaskStore } from '../../modules/SkillStore';
+import { create, logger, useTaskStore, parseCustomModelId, formatCustomModelId, filterNativeModelOptions, type ConfigOption } from '../../modules/SkillStore'; // A1-R18：+parseCustomModelId（原 D=se，skillStore 881/386 导入别名；§U Ee/k6e/D6e 消费）/formatCustomModelId（原 rt=we，skillStore 900；§U xe 消费）/filterNativeModelOptions（原 it=L，skillStore 906；§U _e 消费）
 import { providerBusinessI18nId, normalizeCaptchaCode, isEmptyModelResponse } from '../../modules/StoresDeep'; // A1-R13：lN 簇依赖改指（原 yNe 40497 / Cw 40570（stub）/ jNe 40573，§H 逐字真身）；环安全：StoresDeep 不反引本文件
-import { providerIds } from '../../modules/SrcSharedA';
+import { providerIds, isGlmModelId, GLM_REASONING_LEVELS, isBuiltinProviderId, isZaiPlanProviderId, isStartPlanProviderId } from '../../modules/SrcSharedA'; // A1-R18：+5 件（原 qn=Tl=Oo 4858 / ui=Sl=ho 4855 / jt=_l=Eo 4842 / tr=Po 4845 / HM=No 4848；§U zrt/Ee/GUe/IM 消费）
 import { useServices } from '../../modules/services';
 import { workspaceScopeKey } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { useFeedbackStore } from '../../modules/stores-core'; // A1-R15：原 yC（js 37040）反馈中心 store——vWe openSubmit 消费（TopBar 144 同源边）
-import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, chatAssistantHistoryContentTestid, automationYearDayOptionTestid, browserForwardButtonTestid, v4ComposerInputTestid } from '../../modules/SrcSharedB'; // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）
+import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, chatAssistantHistoryContentTestid, automationYearDayOptionTestid, browserForwardButtonTestid, v4ComposerInputTestid, v4ModelConfigTestid, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, isProviderEnabled } from '../../modules/SrcSharedB'; // A1-R17 及以前：见尾注。A1-R18：+5 件（原 Uee=ca=ky 8513 / vi=mt 8631 / li=gt 8638 / fi=ht 8658 / gi=ko 5001；§U iit/nit/mX/hX 消费） // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { Root as RadixSelectRoot, Value as RadixSelectValue, Trigger as RadixSelectTrigger, Icon as RadixSelectIcon, Portal as RadixSelectPortal, Content as RadixSelectContent, Viewport as RadixSelectViewport, Item as RadixSelectItem, ItemText as RadixSelectItemText, ItemIndicator as RadixSelectItemIndicator, ScrollUpButton as RadixSelectScrollUpButton, ScrollDownButton as RadixSelectScrollDownButton } from '@radix-ui/react-select'; // A1-R17：vendored radix select（原 CDe=PEe/TDe=REe/wDe=IEe/EDe=BEe/DDe=HEe/ODe=UEe/kDe=QEe/ADe=sDe/MDe/jDe/NDe/PDe，styles 30850–31745 区）→ npm @radix-ui/react-select@2.3.7（A0-S3c 先例 SettingsRowPrimitives）
-import { AnimatedLabel, MODE_LABEL_I18N, MODE_DESCRIPTION_I18N } from '../composer/ModelSelector'; // A1-R17：原 _q（75520）/V4e（75972）/H4e（76003）——A0-S4-4b 已属主导出（[D] ConfigSelect 消费预案），本批 §T 接线
+import { AnimatedLabel, MODE_LABEL_I18N, MODE_DESCRIPTION_I18N, ModelSelector, type ModelGroup } from '../composer/ModelSelector'; // A1-R17：原 _q（75520）/V4e（75972）/H4e（76003）——A0-S4-4b 已属主导出（[D] ConfigSelect 消费预案），本批 §T 接线。A1-R18：+ModelSelector（原 vq，js 75575 memo；§U iit 消费，props 面逐字兼容）+type ModelGroup（Hq declare 返回面）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // A1-R18：useIntlContext declare（原 G，IntlProvider-C321H7m8 D 9254）收敛 I18n canonical（Composer.tsx:517 先例；ZCodeIntl 与旧本地 IntlShape 同形）
 import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（js 123241）远端条目域改指（tombstone 见原声明位）
 
 /* ============================================================================
@@ -168,11 +169,9 @@ import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-
  * ==========================================================================*/
 
 
-/** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+/* ── tombstone（A1-R18）：interface IntlShape + declare function useIntlContext（原 G，IntlProvider-C321H7m8.js D 9254–9258）
+ *    删除 → 文件头 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'
+ *    （Composer.tsx:517 先例；ZCodeIntl 与旧本地接口同形：formatMessage(descriptor, values?) => string）。消费面逐字不变。 ── */
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
@@ -281,13 +280,135 @@ interface SettingsSnapshot {
 declare function useSettingsSnapshot(): { settings: SettingsSnapshot | null };
 
 /** 模型供应商列表（原 qq()，ProviderPlanUsage 族提供） */
+interface ModelCatalogEntryLike { // A1-R18：模型目录条目（zrt/Rrt 89219–89241 消费面）
+  id?: string;
+  modelIdByKind?: Record<string, string>;
+  reasoning?: { levels: Record<string, unknown>; defaultLevel?: string } | null;
+  [key: string]: unknown;
+}
+interface QuotaLimitLike { // A1-R18：配额限制条目（c3e/l3e/h3e 76439–76501 消费面）
+  number?: number;
+  unit?: number;
+  remaining?: number;
+  percentage?: number;
+  type?: string;
+  nextResetTime?: string | number;
+  usageDetails?: Array<{ modelCode: string; displayName?: string | null }>;
+  [key: string]: unknown;
+}
 interface ModelProviderEntry {
   id: string;
+  name?: string;
+  apiKey: string;
+  models: Array<string | ModelCatalogEntryLike>;
   enabled?: boolean;
   systemDisabledReason?: string | null;
   [key: string]: unknown;
 }
-declare function useModelProviders(): { modelProviders: ModelProviderEntry[]; loading: boolean };
+declare function useModelProviders(): { modelProviders: ModelProviderEntry[]; displayOrder: string[]; loading: boolean }; // A1-R18：+displayOrder（bundle qq 78243 返回面 { modelProviders, displayOrder, loading }；§U iit C 消费）
+
+/** 工作区配置目录（原 Jq，js 78437；skillStore 配置选项选择器族，深依赖 xe store——declare 分层） */
+declare function useCatalogConfigOptions(workspacePath: string, taskId: string | null, workspaceIdentity?: string | null): { configOptions: ConfigOption[]; status: string; loading: boolean; error: boolean };
+
+/** 权益中心（原 sX，js 88303；entitlements hub，深依赖 $j/tM/nM 服务族——declare 分层） */
+interface EntitlementSnapshotLike {
+  provider?: { id?: string } | null;
+  quota?: { level?: string | null; limits?: QuotaLimitLike[] } | null;
+  subscription?: { details: Array<{ productId?: string; productName?: string; renewTime?: string }> } | null;
+  remaining?: unknown;
+  unavailableReason?: string | null;
+  context?: { scope?: string; organizationId?: string | null; projectId?: string | null; productId?: string | null; displayName?: string | null } | null;
+  [key: string]: unknown;
+}
+interface EntitlementSlotLike { snapshot?: EntitlementSnapshotLike | null; loading?: boolean; error?: string | null }
+declare function useEntitlementsHub(opts: {
+  autoRefreshMode: string;
+  modelProviders: ModelProviderEntry[];
+  loading: boolean;
+  modelProviderFamilySelectedKeys?: Record<string, string | undefined>;
+}): { entitlements: Record<string, EntitlementSlotLike | undefined>; refresh: (e?: unknown) => Promise<void> };
+
+/** 标签页 store 选择器（原 pc，js 4801；useTabStore 必须在 TabStoreProvider 内使用——AppRootLeaves 162 同源 declare） */
+interface TabStoreStateLike { openSettingsTab: (section?: string) => void; [key: string]: unknown }
+declare function useTabStoreSelector<T>(selector: (state: TabStoreStateLike) => T): T;
+
+/** Coding Plan 升级对话框 context（原 fX，js 89100；dX context  throwing 变体，Art 89106 同 context 非 throwing 变体） */
+declare function useCodingPlanUpgradeDialog(): {
+  openCodingPlanUpgrade: (opts: { providerId: string; funnelContext: unknown }) => void;
+};
+
+/** 团队产品订阅查询（原 TY，js 83745；codingPlanSubscriptionService 深依赖——declare 分层） */
+declare function useTeamProductSubscriptions(opts: { enabled: boolean; authenticated: boolean }): {
+  snapshot: { productList: SubscribedTeamProductLike[] } | null;
+  loading: boolean;
+  error: string | null;
+};
+
+/** 组织权益查询（原 $j，js 52497；usageStatsService eM 族深依赖——declare 分层） */
+declare function useOrganizationEntitlementQuery(opts: {
+  autoRefreshMode?: string;
+  enabled?: boolean;
+  includeSubscription?: boolean;
+  preferredProviderId?: string;
+  allowDisabledPreferredProvider?: boolean;
+  requirePreferredProvider?: boolean;
+  allowEnvApiKey?: boolean;
+  organizationId?: string | null;
+  projectId?: string | null;
+  cacheKey?: string | null;
+}): { snapshot: EntitlementSnapshotLike | null; loading: boolean; error: string | null; refresh: (e?: unknown) => Promise<void> };
+
+/** 权益模型供应商过滤（原 N6e，js 77910；j6e/M6e/iM/Bq 模型组域——declare 分层，R18 留批） */
+declare function filterEntitledModelProviders(opts: {
+  providers: ModelProviderEntry[];
+  selectedProvider: string;
+  getEntitlementSnapshot: (providerId: string) => EntitlementSnapshotLike | null;
+  modelProviderFamilySelectedKeys?: Record<string, string | undefined>;
+}): ModelProviderEntry[];
+
+/** 模型选择分组构建（原 Hq，js 77850；S6e/C6e/Ei 模型组域——declare 分层，R18 留批） */
+declare function buildModelSelectGroups(
+  selectedProvider: string,
+  modelOptions: unknown[],
+  entitlementSnapshot: unknown,
+  labels: Record<string, string>,
+  displayOrder: string[],
+  familyModes: unknown,
+  familySelectedKeys: unknown,
+  extraGroups: unknown[],
+  flag: boolean,
+  fallbackProvider?: unknown,
+  reserved?: unknown,
+  opts?: { providerFamilyDomain?: string | null },
+): ModelGroup[];
+
+/** 模型触发器标签解析（原 nWe，js 53806；iN/dr 模型组域——declare 分层，R18 留批） */
+declare function resolveModelTriggerLabels(opts: {
+  modelGroups: ModelGroup[];
+  normalizedValue: string;
+  fallbackLabel: string;
+  providerId?: string | null;
+  providerName?: string;
+}): { fullLabel: string; providerPrefix?: string; modelLabel: string };
+
+/** 工具条快捷键标签（原 Zi，keyboardShortcuts-BGHopxr9.js 导出 i；chunk 外依赖，不转录——同 §T 三件先例） */
+declare function formatToolbarShortcutLabel(key: string): string;
+
+/** 用量工具条（原 j3e，js 76678–76847；usage 域主体——R18 勘毕留批：s3e/v3e 拖 dj/gj/hj/_j 计费折扣胶囊域（ps/Ao/markdown 深依赖），按 declare-for-deep-deps 分层） */
+interface CodingPlanUsageRemainingLike {
+  onUsageClick?: (() => void) | null;
+  [key: string]: unknown;
+}
+declare function CodingPlanUsageToolbar(props: {
+  codingPlanUsageRemaining?: CodingPlanUsageRemainingLike | null | undefined;
+  taskUsage: unknown;
+  startPlanBalance?: unknown;
+  selectedProvider: string;
+  intl: IntlShape;
+  locale: string;
+  onSendCompressionCommand?: (() => void) | null;
+  compressionDisabled?: boolean;
+}): React.ReactElement;
 
 /** 升级动作（原 Art()，ProviderPlanUsage 族提供） */
 declare function useUpgradeActions(): {
@@ -2124,6 +2245,9 @@ export interface ComposerConfig {
   mode?: string | null;
   model?: string | null;
   provider?: string | null;
+  thought?: string | null; // A1-R18 型缝：§U Urt/Grt 投影面（bundle Vrt 89246 返回面含 thought/thoughtLevels/followupMode）
+  thoughtLevels?: string[];
+  followupMode?: string;
   [key: string]: unknown;
 }
 export type ComposerConfigPicker = "model" | "thought" | "mode" | null;
@@ -3136,33 +3260,1474 @@ function ComposerModeToolbarBody({
       : null
   );
 }
-var ComposerModeToolbar = (0, React.memo)(ComposerModeToolbarBody); // Zrt 89415
+var ComposerModeToolbar = (0, React.memo)(ComposerModeToolbarBody), // Zrt 89415
+  COMPOSER_MODE_TRIGGER_FOCUS_SELECTOR = `[data-testid="${v4ComposerInputTestid}"]`; // Qrt 89416（与 Zrt 同 var 句；原 un=v4-composer-input，src-HCld2afU Ji；同 Yrt 89342 形；§U.10 iit focusSelectorOnClose / §U.2 Pq restoreFocusSelector 消费）
 
 /* ── tombstone（A1-R17）：declare function ComposerModeToolbar（原 Zrt，js 89415 = memo(Xrt 89343)；
  *    旧注 js 89295 为行漂移）删除——本文件 §T 模式工具条簇逐字实体化；消费面 91036 逐字不变。 ── */
 
-/** 工具条（原 ait 配置 js 89455 / iZe 后台工作胶囊 js 69225；Zrt 已 §T 实体化） */
-declare function ComposerConfigToolbar(props: {
+/* ============================================================================
+ * §U 配置工具条簇（原 ait/iit 89503–89978 + 助手域；A1-R18 逐字转录）
+ *  映射表（minified → 语义 → bundle 行）：
+ *   U3e→THOUGHT_LEVEL_OFF_VALUES 77062 | W3e→THOUGHT_LEVEL_RANK_BY_VALUE 77063 | G3e→THOUGHT_LEVEL_VALUE_I18N_IDS 77095
+ *   Nq→normalizeThoughtLevelToken 77127 | K3e→isThoughtLevelOptionDisabled 77130 | q3e→rankThoughtLevelOption 77133
+ *   J3e→sortThoughtLevelOptions 77141 | Y3e→cycleThoughtLevelSelectValue 77155 | X3e→resolveThoughtLevelOptionLabel 77162
+ *   Pq→ComposerThoughtToolbar 77166
+ *   c3e→quotaLimitTotal 76439 | l3e→quotaLimitRemaining 76442 | h3e→listActiveQuotaLimits 76495 | g3e→hasStartPlanBalanceDisplay 76502
+ *   Eq→entitlementEntrySourceId 76197 | Dq→hasUsableEntitlementSnapshot 76200 | n3e→codingPlanProviderFallbackLabel 76194
+ *   Oq→resolveCodingPlanUsageRemaining 76207 | i3e→hasCodingPlanUsageRemaining 76249
+ *   Prt→SIDEBAR_USAGE_CODING_PLAN_PROVIDER_KEY 89186 | Frt→CODING_PLAN_PREFERENCE_PROVIDER_IDS 89187 | hX→listConfiguredCodingPlanProviders 89188
+ *   Irt→getSidebarUsagePreferenceStorage 89195 | Lrt→writeSidebarUsageCodingPlanProviderPreference 89208 | Rrt→modelCatalogEntryMatchesModelId 89219
+ *   zrt→buildThoughtLevelOptionFromCatalog 89222 | Wrt→buildThoughtLevelOptionForDraft 89291 | Brt→readConfigOptionCurrentValue 89242
+ *   Vrt→projectDraftConfigFromOptions 89246 | Hrt→configMatchesProviderModel 89260 | Urt→resolveDraftEffectiveConfig 89263 | Grt→resolveEffectiveThoughtLevel 89292
+ *   Mg→parseLooseModelValue 24406
+ *   pX→listCodingPlanAudienceSources 89109 | jrt→teamSourcesFromSubscribedProducts 89120 | Nrt→teamSourceDisplayName 89182
+ *   mX→codingPlanSourceIdsMatch 89171 | nit→teamSourceFromEntitlementSnapshot 89469 | rit→resolveSelectedTeamSource 89490
+ *   eit→classifyCodingPlanProviderId 89418 | tit→resolveCodingPlanFamilySelection 89438
+ *   Qrt→COMPOSER_MODE_TRIGGER_FOCUS_SELECTOR 89416（bundle 与 Zrt 89415 同 var 句，实体在 §T.5 ComposerModeToolbar 声明处） | $rt→composerSessionModeCycleNoop 89417
+ *   c8e→isSessionPhaseRunning 78404 | l8e→entitlementAutoRefreshModeOfPhase 78407 | u8e→shouldForceRefreshOnPhaseChange 78410 | d8e→useEntitlementRefreshOnTaskTransition 78418
+ *   JC→SETTINGS_SECTION_INTENT_KEY 39299 | YC→SETTINGS_USAGE_TAB_INTENT_KEY 39300 | XC→SETTINGS_MODEL_PROVIDER_INTENT_KEY 39301 | ZC→SETTINGS_SECTION_INTENT_EVENT 39302
+ *   QC→SETTINGS_LAST_SECTION_KEY 39303 | VMe→AUTOMATION_SETTINGS_SECTION_VALUES 39304（同 var 句补齐；$C/ew/tw/nw 39305–39342 留批）
+ *   aw→openSettingsUsageSection 39378 | ow→requestSettingsSectionOpen 39381（HMe/UMe/WMe 39343–39396 留批）
+ *   UUe→newCodingPlanFunnelId 53250 | qUe→fallbackCodingPlanFunnelId 53409 | GUe→normalizeCodingPlanFunnelFamily 53387 | KUe→codingPlanFunnelChannelOfFamily 53397
+ *   UM→isStartPlanLevelLabel 53406 | PM→buildCodingPlanPurchaseFunnelContext 53253 | IM→resolveEntryPlanStateFromSnapshot 53277
+ *   （HM 53403 = 双实例收敛 → SrcSharedA isStartPlanProviderId@2026（原 No，jsx 4848）：逐字同形 `e===q.zaiStartPlan||e===q.bigmodelStartPlan`；IM 消费点直用真身。VM 53400/FM 53267/LM 53299 留批）
+ *   T6e→isManageModelsActionVisible 77864 | E6e→isSyntheticModelValue 77867 | D6e→shortLabelOfModelValue 77870 | O6e→modelGroupsContainValue 77881 | k6e→normalizeModelSelectState 77884
+ *   iit→ComposerConfigToolbarBody 89503 | ait→ComposerConfigToolbar 89978
+ *  导入面接线：q=providerIds / qn=isGlmModelId / ui=GLM_REASONING_LEVELS / jt=isBuiltinProviderId / tr=isZaiPlanProviderId / HM=isStartPlanProviderId（SrcSharedA）；
+ *   Uee=v4ModelConfigTestid / vi=buildCodingPlanScope / li=parseCodingPlanScope / fi=codingPlanScopesOverlap / gi=isProviderEnabled（SrcSharedB）；
+ *   se=parseCustomModelId / we=formatCustomModelId / L=filterNativeModelOptions（SkillStore）；vq=ModelSelector（ModelSelector.tsx）；
+ *   O_=IconBrain / N_=IconChevronDown（lucide）；_q=AnimatedLabel、Ia=Tooltip、iO/oO/sO/cO=ConfigSelect 族（§T）、ZH/XH=shouldRestoreFocus/isCoarseTouchDevice、
+ *   un=v4ComposerInputTestid、Xt=automationYearDayOptionTestid、Fr=offpeakFormTitleTestid、qr=testidOf、jq=resolveConfigOptionLabel、$3e=useComposerToolbarShortcuts（本文件）。
+ *  declare 分层（深依赖，不转录）：Jq/sX/pc/fX/TY/$j/N6e/Hq/nWe/Zi/j3e——见上方 declare 块。
+ * ========================================================================== */
+
+/* --- §U.1 思考级选择助手族（原 77062–77165） --- */
+
+var THOUGHT_LEVEL_OFF_VALUES = new Set([`disabled`, `false`, `no`, `none`, `nothink`, `no-think`, `no_think`, `off`]), // U3e
+  THOUGHT_LEVEL_RANK_BY_VALUE: Record<string, number> = { // W3e
+    disabled: 0,
+    false: 0,
+    no: 0,
+    none: 0,
+    nothink: 0,
+    "no-think": 0,
+    no_think: 0,
+    off: 0,
+    low: 1,
+    light: 1,
+    minimal: 1,
+    shallow: 1,
+    balanced: 2,
+    default: 2,
+    medium: 2,
+    normal: 2,
+    standard: 2,
+    deep: 3,
+    high: 3,
+    enable: 4,
+    enabled: 4,
+    on: 4,
+    true: 4,
+    "extra-high": 5,
+    extra_high: 5,
+    "very-high": 5,
+    very_high: 5,
+    xhigh: 5,
+    max: 6,
+    maximum: 6,
+  },
+  THOUGHT_LEVEL_VALUE_I18N_IDS: Record<string, string> = { // G3e
+    disabled: `chat.toolbar.thoughtLevel.value.off`,
+    false: `chat.toolbar.thoughtLevel.value.off`,
+    no: `chat.toolbar.thoughtLevel.value.off`,
+    none: `chat.toolbar.thoughtLevel.value.off`,
+    nothink: `chat.toolbar.thoughtLevel.value.noThink`,
+    "no-think": `chat.toolbar.thoughtLevel.value.noThink`,
+    no_think: `chat.toolbar.thoughtLevel.value.noThink`,
+    off: `chat.toolbar.thoughtLevel.value.off`,
+    enable: `chat.toolbar.thoughtLevel.value.on`,
+    enabled: `chat.toolbar.thoughtLevel.value.on`,
+    on: `chat.toolbar.thoughtLevel.value.on`,
+    true: `chat.toolbar.thoughtLevel.value.on`,
+    low: `chat.toolbar.thoughtLevel.value.low`,
+    light: `chat.toolbar.thoughtLevel.value.low`,
+    minimal: `chat.toolbar.thoughtLevel.value.low`,
+    shallow: `chat.toolbar.thoughtLevel.value.low`,
+    balanced: `chat.toolbar.thoughtLevel.value.medium`,
+    default: `chat.toolbar.thoughtLevel.value.medium`,
+    medium: `chat.toolbar.thoughtLevel.value.medium`,
+    normal: `chat.toolbar.thoughtLevel.value.medium`,
+    standard: `chat.toolbar.thoughtLevel.value.medium`,
+    deep: `chat.toolbar.thoughtLevel.value.high`,
+    high: `chat.toolbar.thoughtLevel.value.high`,
+    "extra-high": `chat.toolbar.thoughtLevel.value.xhigh`,
+    extra_high: `chat.toolbar.thoughtLevel.value.xhigh`,
+    "very-high": `chat.toolbar.thoughtLevel.value.xhigh`,
+    very_high: `chat.toolbar.thoughtLevel.value.xhigh`,
+    xhigh: `chat.toolbar.thoughtLevel.value.xhigh`,
+    max: `chat.toolbar.thoughtLevel.value.max`,
+    maximum: `chat.toolbar.thoughtLevel.value.max`,
+  };
+function normalizeThoughtLevelToken(e: string) { // Nq
+  return e.trim().toLowerCase();
+}
+function isThoughtLevelOptionDisabled(e: ConfigSelectOptionItem) { // K3e
+  return THOUGHT_LEVEL_OFF_VALUES.has(normalizeThoughtLevelToken(e.value)) || THOUGHT_LEVEL_OFF_VALUES.has(normalizeThoughtLevelToken(e.name));
+}
+function rankThoughtLevelOption(e: ConfigSelectOptionItem) { // q3e
+  let t = [e.value, e.name];
+  for (let e of t) {
+    let t = THOUGHT_LEVEL_RANK_BY_VALUE[normalizeThoughtLevelToken(e)];
+    if (t !== void 0) return t;
+  }
+  return null;
+}
+function sortThoughtLevelOptions(e: ConfigSelectOptionItem[]) { // J3e
+  return e
+    .map((e, t) => ({ entry: e, index: t, rank: rankThoughtLevelOption(e) }))
+    .sort((e, t) =>
+      e.rank !== null && t.rank !== null && e.rank !== t.rank
+        ? e.rank - t.rank
+        : e.rank !== null && t.rank === null
+          ? -1
+          : e.rank === null && t.rank !== null
+            ? 1
+            : e.index - t.index,
+    )
+    .map((e) => e.entry);
+}
+function cycleThoughtLevelSelectValue(e: ConfigSelectOption) { // Y3e
+  if (e.type !== `select` || !e.options || e.options.length < 2) return null;
+  let t = sortThoughtLevelOptions(e.options),
+    n = String(e.currentValue),
+    r = t.findIndex((e) => e.value === n);
+  return t[r === -1 ? 0 : (r + 1) % t.length]?.value ?? null;
+}
+function resolveThoughtLevelOptionLabel(e: IntlShape, t: string | null | undefined, n: ConfigSelectOption, r: ConfigSelectOptionItem) { // X3e
+  let i = THOUGHT_LEVEL_VALUE_I18N_IDS[normalizeThoughtLevelToken(r.value)];
+  return i ? e.formatMessage({ id: i }) : resolveConfigOptionLabel(e, t, n, r);
+}
+
+/* --- §U.2 思考级工具条（原 Pq 77166–77347） --- */
+
+function ComposerThoughtToolbar({
+  disabled: e,
+  disabledReason: t,
+  interactionMode: n = `select`,
+  indicatorClassName: r,
+  intl: i,
+  labelVisibilityClassName: a = `hidden @xl/composer:inline-flex`,
+  option: o,
+  provider: s,
+  showInvalidCurrentValue: c = !1,
+  restoreFocusSelector: l = `[data-testid="chat-input"]`,
+  shortcutLabel: u,
+  triggerClassName: d,
+  triggerRef: f,
+  open: p,
+  onOpenChange: m,
+  onValueChange: h,
+}: {
+  disabled?: boolean;
+  disabledReason?: string | null;
+  interactionMode?: string;
+  indicatorClassName?: string;
+  intl: IntlShape;
+  labelVisibilityClassName?: string;
+  option: ConfigSelectOption;
+  provider?: string | null;
+  showInvalidCurrentValue?: boolean;
+  restoreFocusSelector?: string;
+  shortcutLabel?: string;
+  triggerClassName?: string;
+  triggerRef?: React.Ref<HTMLSpanElement>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onValueChange: (value: string) => void;
+}) { // Pq
+  let g = React.useRef<HTMLSpanElement | null>(null),
+    [_, v] = (0, React.useState)(!0),
+    y = (0, React.useCallback)((e: HTMLSpanElement | null) => {
+      if (!e) return;
+      let t = window.getComputedStyle(e);
+      v(t.display !== `none` && t.visibility !== `hidden` && e.getClientRects().length > 0);
+    }, []),
+    b: number | null = null,
+    x = () => {
+      b === null &&
+        (b = requestAnimationFrame(() => {
+          ((b = null), y(g.current));
+        }));
+    },
+    S = o.type === `select` ? sortThoughtLevelOptions(o.options ?? []) : [],
+    C = S.findIndex((e) => e.value === o.currentValue),
+    w = C >= 0,
+    T = c && !w,
+    E = Math.max(0, C),
+    D = S[E] ?? S[0],
+    O = S.length === 1 && w,
+    k = T ? String(o.currentValue) : D ? resolveThoughtLevelOptionLabel(i, s, o, D) : ``,
+    A = i.formatMessage({ id: `chat.toolbar.thoughtLevel.tooltip` }),
+    j = t ?? (_ ? A : k);
+  (0, React.useEffect)(() => {
+    let e = g.current;
+    if (!e) return;
+    y(e);
+    let t =
+      typeof ResizeObserver > `u`
+        ? null
+        : new ResizeObserver(() => {
+            x();
+          });
+    return (
+      t?.observe(e),
+      e.parentElement && t?.observe(e.parentElement),
+      window.addEventListener(`resize`, x),
+      () => {
+        (t?.disconnect(),
+          window.removeEventListener(`resize`, x),
+          b !== null && cancelAnimationFrame(b));
+      }
+    );
+  }, [k, a]);
+  let M = S.filter(isThoughtLevelOptionDisabled).length,
+    N = ((T ? 0 : Math.max(0, E + 1 - M)) / Math.max(1, S.length - M)) * 100;
+  if (o.type !== `select` || S.length === 0 || !D) return null;
+  let P = () => {
+      let e = S[T ? 0 : (E + 1) % S.length];
+      e && h(e.value);
+    },
+    F = (0, $.jsxs)($.Fragment, {
+      children: [
+        (0, $.jsx)(IconBrain, { className: cn(`pointer-events-none size-4 text-current`) }),
+        (0, $.jsx)(`span`, {
+          className: cn(
+            `relative w-1 self-stretch overflow-hidden rounded-full bg-current/10`,
+            `hidden @sm/composer:inline-flex @xl/composer:hidden`,
+          ),
+          "aria-hidden": `true`,
+          children: (0, $.jsx)(`span`, {
+            className: cn(
+              `absolute bottom-0 left-0 w-full rounded-full bg-success transition-[height] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]`,
+              N > 0 ? `min-h-1` : void 0,
+            ),
+            style: { height: `${N}%` },
+          }),
+        }),
+        (0, $.jsx)(`span`, {
+          ref: g,
+          className: cn(`min-w-0 whitespace-nowrap`, a),
+          children: (0, $.jsx)(AnimatedLabel, { label: k }),
+        }),
+      ],
+    });
+  return O
+    ? (0, $.jsx)(Tooltip, {
+        title: j,
+        triggerRef: f,
+        children: (0, $.jsx)(`span`, {
+          className: cn(
+            `inline-flex h-7 items-center gap-1 rounded-lg px-1.5 py-1.5 text-ui-base text-foreground`,
+            d,
+          ),
+          "aria-label": k,
+          "data-thought-level-fixed": `true`,
+          "data-testid": offpeakFormTitleTestid,
+          children: F,
+        }),
+      })
+    : n === `select`
+      ? (0, $.jsxs)(ConfigSelectRoot, {
+          open: p,
+          onOpenChange: m,
+          value: String(o.currentValue),
+          onValueChange: (e: string) => {
+            S.some((t) => t.value === e) && h(e);
+          },
+          disabled: e,
+          children: [
+            (0, $.jsx)(Tooltip, {
+              title: j,
+              shortcut: u,
+              triggerRef: f,
+              children: (0, $.jsx)(ConfigSelectTrigger, {
+                variant: `ghost`,
+                size: `default`,
+                indicator: (0, $.jsx)(IconChevronDown, {
+                  className: cn(`pointer-events-none size-3.5 text-foreground-subtle`, r),
+                }),
+                className: cn(`gap-1 rounded-lg px-1.5 py-1.5 text-ui-base`, d),
+                "aria-label": k,
+                "data-chat-toolbar-popover-trigger": `true`,
+                "data-testid": offpeakFormTitleTestid,
+                children: F,
+              }),
+            }),
+            (0, $.jsx)(ConfigSelectContent, {
+              position: `popper`,
+              side: `top`,
+              align: `start`,
+              sideOffset: 4,
+              collisionPadding: 8,
+              onCloseAutoFocus: (e: Event) => {
+                l &&
+                  (e.preventDefault(),
+                  shouldRestoreFocus({ isCoarseTouchDevice: isCoarseTouchDevice() }) && (document.querySelector(l) as HTMLElement | null)?.focus());
+              },
+              children: S.map((e) =>
+                (0, $.jsx)(
+                  ConfigSelectItem,
+                  {
+                    value: e.value,
+                    "data-testid": testidOf(automationYearDayOptionTestid, e.value),
+                    children: (0, $.jsx)(`span`, {
+                      className: `first-letter:uppercase`,
+                      children: resolveThoughtLevelOptionLabel(i, s, o, e),
+                    }),
+                  },
+                  e.value,
+                ),
+              ),
+            }),
+          ],
+        })
+      : (0, $.jsx)(Tooltip, {
+          title: j,
+          shortcut: u,
+          triggerRef: f,
+          children: (0, $.jsx)(Button, {
+            type: `button`,
+            variant: `ghost`,
+            size: `default`,
+            disabled: e,
+            "data-chat-toolbar-popover-trigger": `true`,
+            "data-testid": offpeakFormTitleTestid,
+            className: cn(`gap-1 rounded-lg px-1.5 py-1.5 text-ui-base`, d),
+            "aria-label": k,
+            onClick: P,
+            children: F,
+          }),
+        });
+}
+
+/* --- §U.3 usage 守卫族（原 76194–76251 + 76439–76504；iit re/ge 消费面所需最小子集；u3e/d3e/f3e/p3e/m3e/r3e + a3e/o3e/s3e/kq 展示域留批） --- */
+
+function codingPlanProviderFallbackLabel(e: string) { // n3e
+  return e === providerIds.zaiCodingPlan ? `Z.ai Coding Plan` : `BigModel Coding Plan`;
+}
+function entitlementEntrySourceId(e: { sourceId?: string; providerId: string }): string { // Eq
+  return e.sourceId ?? e.providerId;
+}
+function hasUsableEntitlementSnapshot(e: EntitlementSnapshotLike | null | undefined, t: string): boolean { // Dq
+  return (
+    e?.provider?.id === t &&
+    e.unavailableReason !== `no_plan` &&
+    (!!e.quota || !!e.subscription || !!e.remaining)
+  );
+}
+interface CodingPlanUsageViewLike {
+  activeProviderId?: string;
+  displayedEntitlement: { id?: string; providerId: string; label?: string; loading?: boolean; snapshot?: EntitlementSnapshotLike | null; error?: string | null } | null;
+  displayedProviderId?: string;
+  hasAnyActiveCodingPlan: boolean;
+  loading: boolean;
+  providerEntitlements: unknown[];
+  tabProviders: Array<{ id: string; providerId: string; label: string }>;
+  visibleSnapshot: EntitlementSnapshotLike | null | undefined;
+}
+function resolveCodingPlanUsageRemaining(e: {
+  entitlements: Array<{ id?: string; providerId: string; label?: string; loading?: boolean; snapshot?: EntitlementSnapshotLike | null; sourceId?: string }>;
+  availableProviders: ModelProviderEntry[];
+  selectedProviderId?: string;
+  modelProvidersLoading: boolean;
+}): CodingPlanUsageViewLike | null { // Oq
+  let t = e.entitlements.filter(
+      (t) =>
+        entitlementEntrySourceId(t).startsWith(`team-plan:`) || e.availableProviders.some((e) => e.id === t.providerId),
+    ),
+    n = t.find((t) => entitlementEntrySourceId(t) === e.selectedProviderId),
+    r =
+      (n && hasUsableEntitlementSnapshot(n.snapshot, n.providerId) ? n : void 0) ??
+      t.find((e) => hasUsableEntitlementSnapshot(e.snapshot, e.providerId)),
+    i = r ?? n ?? t[0] ?? null,
+    a = r ? entitlementEntrySourceId(r) : void 0,
+    o = a ?? e.selectedProviderId,
+    s = e.modelProvidersLoading || t.some((e) => e.loading),
+    c = i && hasUsableEntitlementSnapshot(i.snapshot, i.providerId) ? i.snapshot : null,
+    l = t.filter((e) => hasUsableEntitlementSnapshot(e.snapshot, e.providerId)).map((e) => entitlementEntrySourceId(e)),
+    u = !!r,
+    d = t
+      .filter((e) => l.includes(entitlementEntrySourceId(e)))
+      .map((t) => {
+        let n = e.availableProviders.find((e) => e.id === t.providerId);
+        return {
+          id: entitlementEntrySourceId(t),
+          providerId: t.providerId,
+          label: t.label ?? n?.name ?? codingPlanProviderFallbackLabel(t.providerId),
+        };
+      });
+  return (!e.modelProvidersLoading && t.length === 0) || (!s && !u)
+    ? null
+    : {
+        activeProviderId: a,
+        displayedEntitlement: i,
+        displayedProviderId: o,
+        hasAnyActiveCodingPlan: u,
+        loading: s,
+        providerEntitlements: t,
+        tabProviders: d,
+        visibleSnapshot: c,
+      };
+}
+function hasCodingPlanUsageRemaining(e: {
+  entitlements: Array<{ id?: string; providerId: string; label?: string; loading?: boolean; snapshot?: EntitlementSnapshotLike | null; sourceId?: string }>;
+  availableProviders: ModelProviderEntry[];
+  selectedProviderId?: string;
+  modelProvidersLoading: boolean;
+}): boolean { // i3e
+  return !!resolveCodingPlanUsageRemaining(e);
+}
+function quotaLimitTotal(e: QuotaLimitLike) { // c3e
+  return e.number ?? e.unit ?? 0;
+}
+function quotaLimitRemaining(e: QuotaLimitLike) { // l3e
+  return e.remaining ?? 0;
+}
+function listActiveQuotaLimits(e: EntitlementSnapshotLike | null | undefined) { // h3e
+  return (e?.quota?.limits ?? []).filter((e) => {
+    let t = quotaLimitTotal(e),
+      n = quotaLimitRemaining(e);
+    return t > 0 || n > 0;
+  });
+}
+function hasStartPlanBalanceDisplay(e: { loading?: boolean; snapshot?: EntitlementSnapshotLike | null } | undefined): boolean { // g3e
+  return e ? e.loading || listActiveQuotaLimits(e.snapshot).length > 0 : !1;
+}
+
+/* --- §U.4 sidebar usage 偏好族 + 草稿投影族（原 89186–89303 + Mg 24406） --- */
+
+var SIDEBAR_USAGE_CODING_PLAN_PROVIDER_KEY = `zcode:sidebar-usage-coding-plan-provider`, // Prt
+  CODING_PLAN_PREFERENCE_PROVIDER_IDS = [providerIds.zaiCodingPlan, providerIds.bigmodelCodingPlan]; // Frt
+function listConfiguredCodingPlanProviders(e: ModelProviderEntry[]) { // hX
+  return CODING_PLAN_PREFERENCE_PROVIDER_IDS.flatMap((t) => {
+    let n = e.find((e) => e.id === t),
+      r = n?.systemDisabledReason === `coding_plan_not_entitled`;
+    return n && (isProviderEnabled(n) || r) && n.apiKey.trim().length > 0 ? [n] : [];
+  });
+}
+function getSidebarUsagePreferenceStorage() { // Irt
+  if (typeof window > `u`) return null;
+  try {
+    return window.localStorage;
+  } catch (e) {
+    return (
+      logger.warn(`[sidebarUsageCodingPlanProviderPreference] localStorage 不可用`, {
+        error: e instanceof Error ? e.message : String(e),
+      }),
+      null
+    );
+  }
+}
+function writeSidebarUsageCodingPlanProviderPreference(e: string) { // Lrt
+  let t = getSidebarUsagePreferenceStorage();
+  if (t)
+    try {
+      t.setItem(SIDEBAR_USAGE_CODING_PLAN_PROVIDER_KEY, e);
+    } catch (e) {
+      logger.warn(`[sidebarUsageCodingPlanProviderPreference] 写入偏好失败`, {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+}
+function modelCatalogEntryMatchesModelId(e: ModelCatalogEntryLike, t: string) { // Rrt
+  return e.id === t || Object.values(e.modelIdByKind ?? {}).includes(t);
+}
+function buildThoughtLevelOptionFromCatalog(e: ModelProviderEntry[], t: string | null | undefined, n: string | null | undefined) { // zrt
+  let r = e.find((e) => e.id === t)?.models.find((e): e is ModelCatalogEntryLike => typeof e != `string` && modelCatalogEntryMatchesModelId(e, n ?? ``)),
+    i = r?.reasoning ? Object.keys(r.reasoning.levels) : [],
+    a = i.length > 0 ? i : isGlmModelId(n as string) ? [...GLM_REASONING_LEVELS] : [];
+  return a.length === 0
+    ? null
+    : {
+        id: `thought_level`,
+        name: `Thought Level`,
+        category: `thought_level`,
+        type: `select`,
+        currentValue:
+          r?.reasoning?.defaultLevel && a.includes(r.reasoning.defaultLevel)
+            ? r.reasoning.defaultLevel
+            : isGlmModelId(n as string)
+              ? `max`
+              : (a[0] ?? ``),
+        options: a.map((e) => ({ value: e, name: e })),
+      };
+}
+var buildThoughtLevelOptionForDraft = buildThoughtLevelOptionFromCatalog; // Wrt
+function readConfigOptionCurrentValue(e: ConfigOption[], t: string) { // Brt
+  let n = e.find((e) => e.category === t && e.type === `select`);
+  return String(n?.currentValue ?? ``).trim();
+}
+interface DraftConfigProjectionLike {
+  provider: string;
+  model: string;
+  thought: string;
+  thoughtLevels: string[];
+  followupMode: string;
+  mode: string;
+}
+function projectDraftConfigFromOptions(e: ConfigOption[]): DraftConfigProjectionLike | null { // Vrt
+  let t = readConfigOptionCurrentValue(e, `model`);
+  if (!t) return null;
+  let n = parseLooseModelValue(t),
+    r = readConfigOptionCurrentValue(e, `thought_level`);
+  return {
+    provider: n.providerId,
+    model: n.modelId,
+    thought: r || n.variant || ``,
+    thoughtLevels: [],
+    followupMode: `queue`,
+    mode: `build`,
+  };
+}
+function configMatchesProviderModel(e: DraftConfigProjectionLike | ComposerConfig | null | undefined, t: string, n: string) { // Hrt
+  return e?.provider === t && e.model === n;
+}
+function resolveDraftEffectiveConfig(e: { configOptions: ConfigOption[]; projectionConfig: ComposerConfig | null; desiredConfig: ComposerConfig }): DraftConfigProjectionLike | null { // Urt
+  let { configOptions: t, projectionConfig: n, desiredConfig: r } = e,
+    i = projectDraftConfigFromOptions(t),
+    a = r.provider?.trim() ?? ``,
+    o = r.model?.trim() ?? ``;
+  if (a && o) {
+    let e = configMatchesProviderModel(n, a, o) ? n : configMatchesProviderModel(i, a, o) ? i : null;
+    return {
+      provider: a,
+      model: o,
+      thought: Object.prototype.hasOwnProperty.call(r, `thought`)
+        ? (r.thought ?? ``)
+        : (e?.thought ?? ``),
+      thoughtLevels: r.thoughtLevels ?? e?.thoughtLevels ?? [],
+      followupMode: r.followupMode ?? e?.followupMode ?? `queue`,
+      mode: r.mode ?? e?.mode ?? `build`,
+    };
+  }
+  let s = n ?? i;
+  return s
+    ? ({
+        ...s,
+        ...(Object.prototype.hasOwnProperty.call(r, `thought`) ? { thought: r.thought ?? `` } : {}),
+        ...(r.followupMode ? { followupMode: r.followupMode } : {}),
+        ...(r.mode ? { mode: r.mode } : {}),
+      } as DraftConfigProjectionLike)
+    : null;
+}
+function resolveEffectiveThoughtLevel(e: { thought?: string | null; thoughtLevels: string[]; modelThoughtOption?: ConfigSelectOption | null }) { // Grt
+  let t = e.thought?.trim() ?? ``;
+  return t && e.thoughtLevels.includes(t)
+    ? t
+    : (e.modelThoughtOption?.type === `select` &&
+      typeof e.modelThoughtOption.currentValue == `string` &&
+      e.thoughtLevels.includes(e.modelThoughtOption.currentValue)
+        ? e.modelThoughtOption.currentValue
+        : ``) ||
+        (e.thoughtLevels[0] ?? ``);
+}
+function parseLooseModelValue(e: string): { providerId: string; modelId: string; variant?: string } { // Mg（Zn=parseCustomModelId，src chunk P=iS）
+  let t = parseCustomModelId(e);
+  if (t?.providerId && t.modelName) return { providerId: t.providerId, modelId: t.modelName };
+  let n = e.trim(),
+    r = n.indexOf(`/`);
+  if (r <= 0) return { providerId: `glm`, modelId: n || `default` };
+  let i = n.slice(0, r),
+    a = n.slice(r + 1),
+    o = a.indexOf(`$`);
+  return o <= 0 || o >= a.length - 1
+    ? { providerId: i, modelId: a }
+    : { providerId: i, modelId: a.slice(0, o), variant: a.slice(o + 1) };
+}
+
+/* --- §U.5 coding plan 族模式解析（原 89109–89185 + 89416–89502） --- */
+
+interface TeamCodingPlanSourceLike {
+  id: string;
+  providerId: string;
+  label?: string;
+  organizationId?: string | null;
+  projectId?: string | null;
+}
+interface SubscribedTeamProductLike {
+  productId?: string;
+  subscribed?: boolean;
+  organizationId?: string | null;
+  organizationName?: string | null;
+  projectId?: string | null;
+  projectName?: string | null;
+  teamProjects?: Array<{
+    organizationId?: string | null;
+    organizationName?: string | null;
+    projectId?: string | null;
+    projectName?: string | null;
+  }>;
+  [key: string]: unknown;
+}
+function listCodingPlanAudienceSources({
+  activeCodingPlanProviderIds: e,
+  availableCodingPlanProviders: t,
+  subscribedTeamProducts: n,
+}: {
+  activeCodingPlanProviderIds: string[];
+  availableCodingPlanProviders: ModelProviderEntry[];
+  subscribedTeamProducts: SubscribedTeamProductLike[];
+}): TeamCodingPlanSourceLike[] { // pX
+  let r = t
+      .filter((t) => e.includes(t.id))
+      .map((e) => ({ id: e.id, providerId: e.id, label: e.name })),
+    i = teamSourcesFromSubscribedProducts(n);
+  return [...r, ...i];
+}
+function teamSourcesFromSubscribedProducts(e: SubscribedTeamProductLike[]) { // jrt
+  let t = new Set<string>();
+  return e.flatMap((e) =>
+    (e.teamProjects && e.teamProjects.length > 0
+      ? e.teamProjects
+      : [
+          {
+            organizationId: e.organizationId ?? null,
+            organizationName: e.organizationName ?? null,
+            projectId: e.projectId ?? null,
+            projectName: e.projectName ?? null,
+          },
+        ]
+    ).flatMap((n, r) => {
+      let i = n.organizationId?.trim() ?? ``,
+        a = n.projectId?.trim() ?? ``;
+      if (!i || !a) return [];
+      let o = teamSourceDisplayName({
+        product: e,
+        organizationId: i,
+        organizationName: n.organizationName ?? e.organizationName,
+        projectId: a,
+        projectName: n.projectName ?? e.projectName,
+      });
+      if (!o) return [];
+      let s = a || String(r),
+        c = buildCodingPlanScope({ productId: e.productId, organizationId: i, projectId: s });
+      return t.has(c)
+        ? []
+        : (t.add(c),
+          [{ id: c, providerId: providerIds.bigmodelCodingPlan, label: o, organizationId: i, projectId: a }]);
+    }),
+  );
+}
+function teamSourceOrganizationLabel(e: { organizationName?: string | null; [key: string]: unknown }): string | null { // Lq
+  return (e.organizationName?.trim() ?? ``) || null;
+}
+function teamSourceDisplayName({ product: e, organizationId: t, organizationName: n, projectId: r, projectName: i }: { product: SubscribedTeamProductLike; organizationId: string; organizationName?: string | null; projectId: string; projectName?: string | null }) { // Nrt
+  let a = teamSourceOrganizationLabel({ ...e, organizationId: t, organizationName: n, projectId: r, projectName: i });
+  return a ? `BigModel - ${a}` : null;
+}
+function codingPlanSourceIdsMatch(e: string, t: string) { // mX
+  if (codingPlanScopesOverlap(e, t)) return !0;
+  let n = parseCodingPlanScope(e),
+    r = parseCodingPlanScope(t);
+  return !!(
+    n?.projectId &&
+    r?.projectId &&
+    n.projectId === r.projectId &&
+    (!n.organizationId || !r.organizationId || n.organizationId === r.organizationId)
+  );
+}
+function teamSourceFromEntitlementSnapshot({ selectedSourceKey: e, snapshot: t }: { selectedSourceKey: string; snapshot: EntitlementSnapshotLike | null | undefined }) { // nit
+  if (t?.context?.scope !== `team`) return null;
+  let n = t.context.organizationId?.trim() ?? ``,
+    r = t.context.projectId?.trim() ?? ``;
+  if (!n || !r) return null;
+  let i = t.subscription?.details[0] ?? null,
+    a = buildCodingPlanScope({
+      productId: t.context.productId?.trim() || i?.productId?.trim() || `current`,
+      organizationId: n,
+      projectId: r,
+    });
+  if (!codingPlanSourceIdsMatch(a, e)) return null;
+  let o = t.context.displayName?.trim() || i?.productName?.trim() || `Team`;
+  return {
+    id: a,
+    providerId: providerIds.bigmodelCodingPlan,
+    label: `BigModel - ${o}`,
+    organizationId: n,
+    projectId: r,
+  };
+}
+function resolveSelectedTeamSource(e: {
+  cachedTeamSources?: TeamCodingPlanSourceLike[];
+  entitlementSnapshot?: EntitlementSnapshotLike | null;
+  providerId: string;
+  selectedSourceKey?: string;
+  subscribedTeamProducts: SubscribedTeamProductLike[];
+}) { // rit
+  let t = e.selectedSourceKey?.trim() ?? ``;
+  return e.providerId !== providerIds.bigmodelCodingPlan ||
+    !t.startsWith(`team-plan:${providerIds.bigmodelCodingPlan}:`)
+    ? null
+    : (listCodingPlanAudienceSources({
+        activeCodingPlanProviderIds: [],
+        availableCodingPlanProviders: [],
+        subscribedTeamProducts: e.subscribedTeamProducts,
+      }).find((e) => codingPlanSourceIdsMatch(e.id, t)) ??
+        e.cachedTeamSources?.find((e) => codingPlanSourceIdsMatch(e.id, t)) ??
+        teamSourceFromEntitlementSnapshot({ selectedSourceKey: t, snapshot: e.entitlementSnapshot }));
+}
+function classifyCodingPlanProviderId(e: string | undefined | null) { // eit
+  switch (e?.trim()) {
+    case providerIds.zai:
+      return { family: `zai`, kind: `apiKey` };
+    case providerIds.zaiCodingPlan:
+      return { family: `zai`, kind: `personalCoding` };
+    case providerIds.zaiStartPlan:
+      return { family: `zai`, kind: `start` };
+    case providerIds.bigmodel:
+      return { family: `bigmodel`, kind: `apiKey` };
+    case providerIds.bigmodelCodingPlan:
+      return { family: `bigmodel`, kind: `personalCoding` };
+    case providerIds.bigmodelStartPlan:
+      return { family: `bigmodel`, kind: `start` };
+    case providerIds.zapi:
+      return { family: `zai`, kind: `zapi` };
+    default:
+      return null;
+  }
+}
+interface CodingPlanFamilySelectionLike {
+  kind: string;
+  family?: string;
+  providerId?: string;
+  selectedSourceKey?: string;
+}
+function resolveCodingPlanFamilySelection(e: {
+  providerId?: string | null;
+  modelProviderFamilyModes?: Record<string, string>;
+  modelProviderFamilySelectedKeys?: Record<string, string>;
+}): CodingPlanFamilySelectionLike { // tit
+  let t = classifyCodingPlanProviderId(e.providerId);
+  if (
+    !t ||
+    t.kind === `apiKey` ||
+    t.kind === `zapi` ||
+    resolveProviderFamilyAuthMode(t.family, e.modelProviderFamilyModes ?? {}) !== `oauth`
+  )
+    return { kind: `none` };
+  let n = e.modelProviderFamilySelectedKeys?.[t.family]?.trim() ?? ``;
+  if (!n) return { kind: `none` };
+  if (t.kind === `start`) {
+    let r = e.providerId?.trim();
+    return (r !== providerIds.zaiStartPlan && r !== providerIds.bigmodelStartPlan) || n !== `coding-plan:${r}`
+      ? { kind: `none` }
+      : { family: t.family, kind: `start`, providerId: r };
+  }
+  let r = e.providerId?.trim();
+  return r !== providerIds.zaiCodingPlan && r !== providerIds.bigmodelCodingPlan
+    ? { kind: `none` }
+    : r === providerIds.bigmodelCodingPlan && n.startsWith(`team-plan:${providerIds.bigmodelCodingPlan}:`)
+      ? {
+          family: `bigmodel`,
+          kind: `teamCoding`,
+          providerId: providerIds.bigmodelCodingPlan,
+          selectedSourceKey: n,
+        }
+      : n === `coding-plan:${r}`
+        ? { family: t.family, kind: `personalCoding`, providerId: r }
+        : { kind: `none` };
+}
+/* Qrt（COMPOSER_MODE_TRIGGER_FOCUS_SELECTOR）89416：bundle 与 Zrt 89415 同 var 句，已并入 §T.5 ComposerModeToolbar 声明处。 */
+function composerSessionModeCycleNoop() {} // $rt
+
+/* --- §U.6 会话相位刷新族（原 78404–78429） --- */
+
+function isSessionPhaseRunning(e: string | null) { // c8e
+  return e === `prewarming` || e === `running`;
+}
+function entitlementAutoRefreshModeOfPhase(e: string | null) { // l8e
+  return isSessionPhaseRunning(e) ? `active` : `idle`;
+}
+function shouldForceRefreshOnPhaseChange(e: { current: { running: boolean; sessionId: string | null }; previous: { running: boolean; sessionId: string | null } }) { // u8e
+  let { current: t, previous: n } = e;
+  if (!t.sessionId) return !1;
+  let r = n.sessionId === t.sessionId,
+    i = t.running && (!r || !n.running),
+    a = r && n.running && !t.running;
+  return i || a;
+}
+interface EntitlementRefreshOptionsLike { force: boolean; silent: boolean; reason: string }
+function useEntitlementRefreshOnTaskTransition(e: {
+  phase: string | null;
+  refresh: (e: EntitlementRefreshOptionsLike) => void;
+  sessionId: string | null;
+}) { // d8e
+  let t = e.refresh,
+    n = e.sessionId?.trim() || null,
+    r = isSessionPhaseRunning(e.phase),
+    i = (0, React.useRef)({ running: r, sessionId: n });
+  (0, React.useEffect)(() => {
+    let e = { running: r, sessionId: n },
+      a = i.current;
+    ((i.current = e),
+      shouldForceRefreshOnPhaseChange({ current: e, previous: a }) && t({ force: !0, silent: !0, reason: `task` }));
+  }, [t, r, n]);
+}
+
+/* --- §U.7 设置跳转意图（原 39299–39396） --- */
+
+var SETTINGS_SECTION_INTENT_KEY = `zcode-settings-section-intent`, // JC
+  SETTINGS_USAGE_TAB_INTENT_KEY = `zcode-settings-usage-tab-intent`, // YC
+  SETTINGS_MODEL_PROVIDER_INTENT_KEY = `zcode-settings-model-provider-id-intent`, // XC
+  SETTINGS_SECTION_INTENT_EVENT = `zcode:settings-section-intent`, // ZC
+  SETTINGS_LAST_SECTION_KEY = `zcode-settings-last-section`, // QC
+  AUTOMATION_SETTINGS_SECTION_VALUES = new Set([`automations`]); // VMe（$C/ew/tw/nw + HMe/UMe/WMe 设置导航域 39305–39396 留批）
+function openSettingsUsageSection() { // aw
+  requestSettingsSectionOpen(`usage`);
+}
+function requestSettingsSectionOpen(e: string, t: { usageTab?: string; modelProviderId?: string } = {}) { // ow
+  if (!(typeof window > `u`)) {
+    try {
+      (window.sessionStorage.setItem(SETTINGS_SECTION_INTENT_KEY, e),
+        t.usageTab && window.sessionStorage.setItem(SETTINGS_USAGE_TAB_INTENT_KEY, t.usageTab),
+        t.modelProviderId
+          ? window.sessionStorage.setItem(SETTINGS_MODEL_PROVIDER_INTENT_KEY, t.modelProviderId)
+          : window.sessionStorage.removeItem(SETTINGS_MODEL_PROVIDER_INTENT_KEY));
+    } catch {}
+    window.dispatchEvent(
+      new CustomEvent(SETTINGS_SECTION_INTENT_EVENT, {
+        detail: { section: e, usageTab: t.usageTab, modelProviderId: t.modelProviderId },
+      }),
+    );
+  }
+}
+
+/* --- §U.8 购买漏斗上下文族（原 53250–53412） --- */
+
+function newCodingPlanFunnelId() { // UUe
+  return globalThis.crypto?.randomUUID?.() ?? fallbackCodingPlanFunnelId();
+}
+function fallbackCodingPlanFunnelId() { // qUe
+  return (
+    logger.warn(`[codingPlanFunnelTelemetry] crypto.randomUUID unavailable, using fallback id`),
+    `funnel_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  );
+}
+function normalizeCodingPlanFunnelFamily(e: string) { // GUe
+  return e === `bigmodel` ||
+    e === providerIds.bigmodel ||
+    e === providerIds.bigmodelCodingPlan ||
+    e === providerIds.bigmodelStartPlan
+    ? `bigmodel`
+    : e === `zai` || e === providerIds.zai || isZaiPlanProviderId(e)
+      ? `zai`
+      : `unknown`;
+}
+function codingPlanFunnelChannelOfFamily(e: string) { // KUe
+  return ({ bigmodel: `MaaS`, zai: `Z_AI`, unknown: `` } as Record<string, string>)[e];
+}
+function isStartPlanLevelLabel(e: string) { // UM
+  return /\bstart\b/i.test(e.trim());
+}
+interface EntryPlanStateLike { entryPlanStatus?: string; entryPlanLevel?: string }
+function buildCodingPlanPurchaseFunnelContext(e: {
+  providerId: string;
+  upgradeSource: string;
+  eventRegion: string;
+  eventText: string;
+  entryPlanState?: EntryPlanStateLike | null;
+  purchaseAudience?: string;
+}) { // PM
+  let t = normalizeCodingPlanFunnelFamily(e.providerId);
+  return {
+    purchaseFunnelId: newCodingPlanFunnelId(),
+    upgradeSource: e.upgradeSource,
+    eventRegion: e.eventRegion,
+    eventText: e.eventText,
+    entryPlanStatus: e.entryPlanState?.entryPlanStatus ?? `unknown`,
+    entryPlanLevel: e.entryPlanState?.entryPlanLevel ?? ``,
+    purchaseAudience: e.purchaseAudience ?? ``,
+    providerFamily: t,
+    channel: codingPlanFunnelChannelOfFamily(t),
+  };
+}
+function resolveEntryPlanStateFromSnapshot(e: {
+  providerId?: string;
+  planLevel?: string;
+  snapshot?: EntitlementSnapshotLike | null;
+  displayStatus?: string;
+}): EntryPlanStateLike { // IM
+  let t = e.planLevel?.trim() ?? ``,
+    n =
+      e.snapshot?.subscription?.details?.[0]?.productName?.trim() ||
+      e.snapshot?.subscription?.details?.[0]?.productId?.trim() ||
+      e.snapshot?.quota?.level?.trim() ||
+      ``,
+    r = t || n;
+  if (e.snapshot) {
+    if (e.snapshot.unavailableReason === `no_plan`)
+      return { entryPlanStatus: `no_plan`, entryPlanLevel: `` };
+    if (e.snapshot.subscription || e.snapshot.quota || e.snapshot.remaining)
+      return { entryPlanStatus: isStartPlanLevelLabel(r) ? `start_plan` : `coding_plan`, entryPlanLevel: r };
+  }
+  return e.displayStatus === `notPurchased`
+    ? { entryPlanStatus: `no_plan`, entryPlanLevel: `` }
+    : e.displayStatus === `purchased`
+      ? { entryPlanStatus: isStartPlanLevelLabel(r) ? `start_plan` : `coding_plan`, entryPlanLevel: r }
+      : e.providerId && isStartPlanProviderId(e.providerId) && r
+        ? { entryPlanStatus: `start_plan`, entryPlanLevel: r }
+        : { entryPlanStatus: `unknown`, entryPlanLevel: `` };
+}
+
+/* --- §U.9 模型选择小助手族（原 77864–77897） --- */
+
+function isManageModelsActionVisible(e: unknown, t: { isWebRemoteControl?: boolean } = {}) { // T6e
+  return t.isWebRemoteControl ? !1 : typeof e == `function`;
+}
+function isSyntheticModelValue(e: string) { // E6e
+  return e.trim().toLocaleLowerCase() === `<synthetic>`;
+}
+function shortLabelOfModelValue(e: string) { // D6e
+  let t = parseCustomModelId(e);
+  if (t?.modelName?.trim()) return t.modelName.trim();
+  let n = e.trim(),
+    r = n.indexOf(`/`);
+  if (r > 0 && r < n.length - 1) {
+    let e = n.slice(r + 1).trim();
+    if (e) return e;
+  }
+  return n;
+}
+function modelGroupsContainValue(e: ModelGroup[], t: string) { // O6e
+  return e.some((e) => e.items.some((e) => e.value === t));
+}
+function normalizeModelSelectState(e: string, t: ModelGroup[], n: boolean, r: string, i?: { allowUnavailableCustomModelPlaceholder?: boolean; allowUnavailableModelPlaceholder?: boolean }) { // k6e
+  if (isSyntheticModelValue(e)) return { value: void 0, placeholder: void 0 };
+  if (modelGroupsContainValue(t, e)) return { value: e, placeholder: void 0 };
+  let a = parseCustomModelId(e);
+  return i?.allowUnavailableCustomModelPlaceholder && a?.modelName?.trim()
+    ? { value: void 0, placeholder: a.modelName.trim() }
+    : i?.allowUnavailableModelPlaceholder && e.trim()
+      ? { value: void 0, placeholder: shortLabelOfModelValue(e) }
+      : t.length === 0 && n
+        ? { value: void 0, placeholder: r }
+        : { value: void 0, placeholder: void 0 };
+}
+function isModelSelectConnectionModeEnabled(e: string) { // r6e
+  return !1;
+}
+
+/* --- §U.10 配置工具条（原 iit 89503–89977 / ait 89978） --- */
+
+interface ComposerUsageSnapshot {
+  contextWindow?: {
+    usedTokens: number;
+    maxTokens: number;
+    cache?: { hitRate?: number | null } | null;
+    breakdown?: Array<{ source: string; chars: number }> | null;
+  } | null;
+}
+interface ComposerConfigToolbarProps {
   workspacePath: string;
   workspaceIdentity?: string | null;
   sessionId: string | null;
   phase: string | null;
   provider?: string | null;
-  isWebRemoteControl: boolean;
-  isMobileViewport: boolean;
+  isWebRemoteControl?: boolean;
+  isMobileViewport?: boolean;
   config: ComposerConfig | null;
-  draftMode: boolean;
+  draftMode?: boolean;
   draftConfig?: ComposerConfig | null;
-  usage: unknown;
-  disabled: boolean;
+  usage?: ComposerUsageSnapshot | null;
+  disabled?: boolean;
   activeConfigPicker: ComposerConfigPicker;
   onConfigPickerOpenChange: (picker: ComposerConfigPicker, open: boolean) => void;
-  onSelectModel: (model: string) => void;
-  onSelectThought: (thought: string) => void;
-  onSwitchMode: (mode: string) => void;
-  onRecoverCustomModelSelection?: () => void;
+  onSelectModel: (providerId: string, model: string, previous: { provider?: string | null; model?: string | null } | null) => void;
+  onSelectThought: (thought: string, current: { provider?: string | null; model?: string | null }) => void;
+  onSwitchMode?: (mode: string) => void;
+  onRecoverCustomModelSelection?: (value: string, previous: { provider: string; model: string } | null) => unknown;
   onSendCompressionCommand?: () => void;
-}): React.ReactElement;
+}
+function ComposerConfigToolbarBody({
+  workspacePath: e,
+  workspaceIdentity: t,
+  sessionId: n,
+  phase: r,
+  provider: i,
+  config: a,
+  draftMode: o = !1,
+  draftConfig: s,
+  usage: c,
+  disabled: l,
+  activeConfigPicker: u,
+  onConfigPickerOpenChange: d,
+  onSelectModel: f,
+  onSelectThought: p,
+  onSendCompressionCommand: m,
+  onRecoverCustomModelSelection: h,
+}: ComposerConfigToolbarProps) { // iit
+  let { intl: g, locale: _ } = useIntlContext(),
+    { openCodingPlanUpgrade: v } = useCodingPlanUpgradeDialog(),
+    y = i ?? `glm`,
+    { configOptions: b, error: x } = useCatalogConfigOptions(e, null, t),
+    { modelProviders: S, displayOrder: C, loading: w } = useModelProviders(),
+    { settings: T } = useSettingsSnapshot(),
+    E = entitlementAutoRefreshModeOfPhase(r),
+    { entitlements: D, refresh: O } = useEntitlementsHub({
+      autoRefreshMode: E,
+      modelProviders: S,
+      loading: w,
+      modelProviderFamilySelectedKeys: T?.modelProviderFamilySelectedKeys,
+    }),
+    k = useTabStoreSelector((e) => e.openSettingsTab),
+    A = (0, React.useCallback)((e: string) => D[e]?.snapshot ?? null, [D]),
+    j = React.useRef<HTMLSpanElement | null>(null),
+    M = React.useRef<HTMLSpanElement | null>(null),
+    [N, P] = (0, React.useState)(0),
+    [F, I] = (0, React.useState)(!1),
+    R = (0, React.useCallback)(() => {
+      P((e) => e + 1);
+    }, []),
+    z = (0, React.useCallback)(
+      (e: boolean) => {
+        d(`model`, e);
+      },
+      [d],
+    ),
+    B = (0, React.useCallback)(
+      (e: boolean) => {
+        d(`thought`, e);
+      },
+      [d],
+    ),
+    V = b.find((e) => e.category === `model`),
+    H = (0, React.useMemo)(
+      () => (o ? resolveDraftEffectiveConfig({ configOptions: b, projectionConfig: a, desiredConfig: s ?? {} }) : a),
+      [a, b, s, o],
+    ),
+    ee = (0, React.useCallback)(
+      (e: string) => {
+        v({
+          providerId: e,
+          funnelContext: buildCodingPlanPurchaseFunnelContext({
+            providerId: e,
+            upgradeSource: `session_token_usage`,
+            eventRegion: `app.session`,
+            eventText: g.formatMessage({ id: `chat.quota.action.upgrade` }),
+            entryPlanState: resolveEntryPlanStateFromSnapshot({ providerId: e, displayStatus: `purchased`, planLevel: `start` }),
+          }),
+        });
+      },
+      [g, v],
+    ),
+    U = (0, React.useCallback)(
+      (e: string | undefined) => {
+        (e && writeSidebarUsageCodingPlanProviderPreference(e), openSettingsUsageSection(), k());
+      },
+      [k],
+    ),
+    te = (0, React.useMemo)(
+      () =>
+        resolveCodingPlanFamilySelection({
+          modelProviderFamilyModes: T?.modelProviderFamilyModes,
+          modelProviderFamilySelectedKeys: T?.modelProviderFamilySelectedKeys,
+          providerId: H?.provider,
+        }),
+      [H?.provider, T?.modelProviderFamilyModes, T?.modelProviderFamilySelectedKeys],
+    ),
+    ne = (0, React.useMemo)(() => {
+      if (te.kind !== `start`) return;
+      let e = D[te.providerId as string];
+      return {
+        loading: e?.loading ?? w,
+        onUpgradeClick: () => ee(te.providerId as string),
+        snapshot: e?.snapshot?.provider?.id === te.providerId ? e?.snapshot ?? null : null,
+      };
+    }, [te, D, ee, w]),
+    re = hasStartPlanBalanceDisplay(ne) ? ne : void 0,
+    ie = (0, React.useMemo)(() => listConfiguredCodingPlanProviders(S), [S]),
+    ae = useTeamProductSubscriptions({ enabled: !w && te.kind === `teamCoding`, authenticated: !0 }),
+    oe = (0, React.useMemo)(
+      () => ae.snapshot?.productList.filter((e) => e.subscribed === !0) ?? [],
+      [ae.snapshot?.productList],
+    ),
+    ce = React.useRef<TeamCodingPlanSourceLike[]>([]),
+    le = te.kind === `personalCoding` || te.kind === `teamCoding` ? te.providerId : void 0,
+    ue = (0, React.useMemo)(
+      () =>
+        te.kind === `teamCoding`
+          ? resolveSelectedTeamSource({
+              cachedTeamSources: ce.current,
+              entitlementSnapshot: D[providerIds.bigmodelCodingPlan]?.snapshot ?? null,
+              providerId: te.providerId as string,
+              selectedSourceKey: te.selectedSourceKey,
+              subscribedTeamProducts: oe,
+            })
+          : null,
+      [te, D, oe],
+    );
+  (0, React.useEffect)(() => {
+    if (!ue) return;
+    let e = ce.current.filter((e) => !codingPlanSourceIdsMatch(e.id, ue.id));
+    (e.unshift(ue), (ce.current = e.slice(0, 8)));
+  }, [ue]);
+  let de = te.kind === `teamCoding` ? ue?.id : le,
+    fe = useOrganizationEntitlementQuery({
+      autoRefreshMode: E,
+      enabled: !w && !!ue,
+      includeSubscription: !0,
+      preferredProviderId: providerIds.bigmodelCodingPlan,
+      allowDisabledPreferredProvider: !0,
+      requirePreferredProvider: !0,
+      allowEnvApiKey: !1,
+      organizationId: ue?.organizationId,
+      projectId: ue?.projectId,
+      cacheKey: ue?.id,
+    });
+  useEntitlementRefreshOnTaskTransition({
+    phase: r,
+    refresh: (0, React.useCallback)(
+      async (e: EntitlementRefreshOptionsLike) => {
+        await Promise.all([O(e), fe.refresh(e)]);
+      },
+      [O, fe.refresh],
+    ),
+    sessionId: n,
+  });
+  let W = (0, React.useMemo)(
+      () => (te.kind === `personalCoding` && le ? ie.filter((e) => e.id === le) : []),
+      [ie, le, te.kind],
+    ),
+    pe = (0, React.useMemo)(() => {
+      if (ue)
+        return [
+          {
+            sourceId: ue.id,
+            providerId: ue.providerId,
+            label: ue.label,
+            snapshot: fe.snapshot,
+            loading: fe.loading,
+            error: fe.error,
+          },
+        ];
+      if (te.kind !== `personalCoding` || !le) return [];
+      let e = le,
+        t = D[e];
+      return [
+        {
+          sourceId: e,
+          providerId: e,
+          snapshot: t?.snapshot ?? null,
+          loading: t?.loading ?? w,
+          error: t?.error ?? null,
+        },
+      ];
+    }, [le, ue, te.kind, D, w, fe.error, fe.loading, fe.snapshot]),
+    me = (0, React.useCallback)(() => U(de), [de, U]),
+    he = (0, React.useMemo)(() => {
+      if (!(te.kind !== `personalCoding` && !ue))
+        return {
+          availableProviders: W,
+          entitlements: pe,
+          modelProvidersLoading: w,
+          onUsageClick: me,
+          selectedProviderId: de,
+        };
+    }, [W, de, ue, te.kind, pe, me, w]),
+    ge = he && hasCodingPlanUsageRemaining(he) ? he : void 0;
+  (0, React.useEffect)(() => {
+    o &&
+      logger.debug(`[v4-toolbar] draft effectiveConfig changed`, {
+        provider: H?.provider ?? null,
+        model: H?.model ?? null,
+        thought: H?.thought ?? null,
+        catalogModelCurrentValue: String(
+          b.find((e) => e.category === `model` && e.type === `select`)?.currentValue ?? ``,
+        ),
+        catalogOptionCount: b.length,
+      });
+  }, [b, o, H]);
+  let _e = (0, React.useMemo)(() => {
+      let e = filterEntitledModelProviders({
+          providers: S,
+          selectedProvider: y,
+          getEntitlementSnapshot: A,
+          modelProviderFamilySelectedKeys: T?.modelProviderFamilySelectedKeys,
+        }),
+        t = V?.type === `select` ? filterNativeModelOptions(V.options ?? [], V.currentValue, e) : [];
+      return buildModelSelectGroups(
+        y,
+        V?.type === `select` && isModelSelectConnectionModeEnabled(y) ? t : [],
+        e,
+        {
+          apiKeyLabel: g.formatMessage({ id: `settings.modelProvider.apiKey` }),
+          apiKeyBadgeLabel: g.formatMessage({
+            id: `settings.modelProvider.connectionMode.apiKeyBadge`,
+          }),
+          codingPlanLabel: g.formatMessage({
+            id: `settings.modelProvider.connectionMode.codingPlan`,
+          }),
+          codingPlanBadgeLabel: g.formatMessage({
+            id: `settings.modelProvider.connectionMode.codingPlanBadge`,
+          }),
+          startPlanLabel: g.formatMessage({
+            id: `settings.modelProvider.connectionMode.startPlan`,
+          }),
+          startPlanBadgeLabel: g.formatMessage({
+            id: `settings.modelProvider.connectionMode.startPlanBadge`,
+          }),
+          teamPlanBadgeLabel: g.formatMessage({
+            id: `settings.modelProvider.connectionMode.teamPlanBadge`,
+          }),
+          teamPlanFallbackLabel: g.formatMessage({
+            id: `settings.modelProvider.connectionMode.teamPlan`,
+          }),
+        },
+        C,
+        T?.modelProviderFamilyModes,
+        T?.modelProviderFamilySelectedKeys,
+        [],
+        !1,
+        void 0,
+        void 0,
+        { providerFamilyDomain: T?.providerFamilyDomain },
+      );
+    }, [
+      C,
+      y,
+      A,
+      g,
+      V,
+      S,
+      T?.modelProviderFamilyModes,
+      T?.modelProviderFamilySelectedKeys,
+      T?.providerFamilyDomain,
+    ]),
+    ve = (0, React.useCallback)(() => {
+      (requestSettingsSectionOpen(`modelProvider`), k());
+    }, [k]),
+    ye = isManageModelsActionVisible(ve),
+    be = g.formatMessage({ id: `chat.toolbar.model.manageModels` }),
+    xe = (0, React.useMemo)(
+      () =>
+        !H || !H.model
+          ? ``
+          : S.some((e) => e.id === H.provider)
+            ? formatCustomModelId(H.provider as string, H.model)
+            : H.model,
+      [H, S],
+    ),
+    Se = (0, React.useMemo)(() => normalizeModelSelectState(xe, _e, ye, be), [be, _e, xe, ye]),
+    Ce = Se.value ?? ``,
+    Te = (0, React.useMemo)(() => {
+      let e = Se.placeholder ?? g.formatMessage({ id: `chat.toolbar.model.label` }),
+        t = S.find((e) => e.id === H?.provider)?.name;
+      return resolveModelTriggerLabels({
+        modelGroups: _e,
+        normalizedValue: Ce,
+        fallbackLabel: e,
+        providerId: H?.provider,
+        providerName: t,
+      });
+    }, [H?.provider, g, S, _e, Ce, Se.placeholder]),
+    Ee = (0, React.useCallback)(
+      (e: string) => {
+        let t = parseCustomModelId(e),
+          n = H?.provider && H.model ? { provider: H.provider, model: H.model } : null;
+        logger.debug(`[v4-toolbar] model select onValueChange`, {
+          value: e,
+          decodedProviderId: t?.providerId ?? null,
+          decodedModelName: t?.modelName ?? null,
+          draftMode: o,
+        });
+        let r = t?.providerId ? S.find((e) => e.id === t.providerId) : void 0,
+          i = !!(r && !isBuiltinProviderId(r.id) && r.source !== `builtin`);
+        if (x && t?.providerId && i && h) {
+          (I(!0),
+            Promise.resolve(h(e, n))
+              .catch((e: unknown) => {
+                logger.warn(`[v4-toolbar] custom provider recovery failed`, {
+                  error: e instanceof Error ? e.message : String(e),
+                  providerId: t.providerId,
+                });
+              })
+              .finally(() => {
+                I(!1);
+              }));
+          return;
+        }
+        if (t) {
+          f(t.providerId, t.modelName ?? ``, n);
+          return;
+        }
+        let a = e.indexOf(`/`);
+        if (a > 0) {
+          f(e.slice(0, a), e.slice(a + 1), n);
+          return;
+        }
+        f(``, e, n);
+      },
+      [x, y, o, H?.model, H?.provider, h, f, S, t, e],
+    ),
+    De = (0, React.useMemo)(() => (o && H ? buildThoughtLevelOptionForDraft(S, H.provider, H.model) : null), [o, H, S]),
+    Oe = (0, React.useMemo)(
+      () =>
+        H
+          ? (H.thoughtLevels ?? []).length > 0
+            ? {
+                id: `thought_level`,
+                name: `Thought Level`,
+                category: `thought_level`,
+                type: `select`,
+                currentValue: resolveEffectiveThoughtLevel({
+                  thought: H.thought,
+                  thoughtLevels: H.thoughtLevels ?? [],
+                  modelThoughtOption: De,
+                }),
+                options: (H.thoughtLevels ?? []).map((e) => ({ value: e, name: e })),
+              }
+            : !o || !De
+              ? null
+              : { ...De, currentValue: H.thought || De.currentValue }
+          : null,
+      [o, De, H],
+    ),
+    ke = (0, React.useCallback)(
+      (e: string) => {
+        if (H) {
+          if (!e.trim()) {
+            logger.debug(`[v4-toolbar] ignore synthetic empty thought change`, {
+              model: H.model,
+              provider: H.provider,
+            });
+            return;
+          }
+          p(e, { provider: H.provider, model: H.model });
+        }
+      },
+      [H, p],
+    ),
+    Ae = (0, React.useCallback)(() => {
+      if (!Oe || Oe.type !== `select`) return;
+      let e = cycleThoughtLevelSelectValue(Oe);
+      e != null && H && p(e, { provider: H.provider, model: H.model });
+    }, [H, p, Oe]),
+    je = (0, React.useMemo)(() => {
+      let e = c?.contextWindow;
+      return e
+        ? {
+            used: e.usedTokens,
+            size: e.maxTokens,
+            ...(e.cache ? { cache: e.cache } : {}),
+            ...(e.breakdown ? { breakdown: e.breakdown } : {}),
+          }
+        : null;
+    }, [c?.contextWindow]),
+    Me = (0, React.useMemo)(() => formatToolbarShortcutLabel(`M`), []),
+    Ne = (0, React.useMemo)(() => formatToolbarShortcutLabel(`T`), []),
+    Pe = (0, React.useCallback)(() => !1, []),
+    Fe = (!!H || o) && (_e.length > 0 || ye);
+  return (
+    useComposerToolbarShortcuts({
+      hasAnyOption: !!V || !!Oe,
+      toolbarDisabled: l || F,
+      modelMenuDisabled: l || F || !Fe,
+      modelOption: V,
+      thoughtOption: Oe ?? void 0,
+      onOpenModelMenu: R,
+      onCycleThoughtLevel: Ae,
+      onCycleSessionMode: composerSessionModeCycleNoop,
+    }),
+    (0, $.jsxs)($.Fragment, {
+      children: [
+        (0, $.jsx)(`span`, {
+          "data-testid": v4ModelConfigTestid,
+          "data-source": o
+            ? s?.provider && s.model
+              ? `draft-intent`
+              : a
+                ? `prewarm-projection`
+                : H
+                  ? `workspace-default`
+                  : ``
+            : a
+              ? `projection`
+              : ``,
+          "data-provider": H?.provider ?? ``,
+          "data-model": H?.model ?? ``,
+          "data-thought": H?.thought ?? ``,
+          "data-thought-levels":
+            Oe?.type === `select` ? (Oe.options ?? []).map((e) => e.value).join(`,`) : ``,
+          "data-mode": H?.mode ?? ``,
+          "data-usage-used": c?.contextWindow?.usedTokens ?? ``,
+          "data-usage-max": c?.contextWindow?.maxTokens ?? ``,
+          className: `hidden`,
+        }),
+        (0, $.jsx)(CodingPlanUsageToolbar, {
+          codingPlanUsageRemaining: ge,
+          taskUsage: je,
+          startPlanBalance: re,
+          selectedProvider: y,
+          intl: g,
+          locale: _,
+          onSendCompressionCommand: m,
+          compressionDisabled: l || F,
+        }),
+        Fe
+          ? (0, $.jsx)(ModelSelector, {
+              modelGroups: _e,
+              normalizedValue: Ce,
+              triggerLabel: Te.fullLabel,
+              triggerLabelPrefix: Te.providerPrefix,
+              triggerLabelValue: Te.modelLabel,
+              triggerLabelPrefixClassName: `hidden @xl/composer:inline`,
+              showManageModelsAction: ye,
+              manageModelsLabel: be,
+              onManageModels: ve,
+              lockReasonMessage: g.formatMessage({
+                id: `chat.toolbar.modelSwitch.lockedByRunningTask`,
+              }),
+              isItemLocked: Pe,
+              onValueChange: Ee,
+              disabled: l || F,
+              tooltipTitle: g.formatMessage({ id: `chat.toolbar.model.label` }),
+              shortcutLabel: Me,
+              triggerRef: j,
+              open: u === `model`,
+              onOpenChange: z,
+              openRequestKey: N,
+              labelVisibilityClassName: `hidden @sm/composer:inline-flex`,
+              indicatorClassName: `hidden @sm/composer:block`,
+              triggerClassName: `@max-sm/composer:size-7 @max-sm/composer:justify-center @max-sm/composer:gap-0 @max-sm/composer:p-0`,
+              triggerIconClassName: `inline-flex @sm/composer:hidden`,
+              focusSelectorOnClose: COMPOSER_MODE_TRIGGER_FOCUS_SELECTOR,
+            })
+          : null,
+        Oe
+          ? (0, $.jsx)(ComposerThoughtToolbar, {
+              indicatorClassName: `hidden @xl/composer:block`,
+              triggerClassName: `@max-sm/composer:size-7 @max-sm/composer:justify-center @max-sm/composer:p-0`,
+              option: Oe,
+              onValueChange: ke,
+              disabled: l || F,
+              intl: g,
+              provider: y,
+              shortcutLabel: Ne,
+              triggerRef: M,
+              open: u === `thought`,
+              onOpenChange: B,
+              restoreFocusSelector: COMPOSER_MODE_TRIGGER_FOCUS_SELECTOR,
+            })
+          : null,
+      ],
+    })
+  );
+}
+var ComposerConfigToolbar = (0, React.memo)(ComposerConfigToolbarBody); // ait 89978
+
+/* ── tombstone（A1-R18）：declare function ComposerConfigToolbar（原 ait，js 89978 = memo(iit 89503)；
+ *    iZe 后台工作胶囊 js 69225 仍留批）删除——本文件 §U 配置工具条簇逐字实体化；消费面 90971 逐字不变。 ── */
 
 /**
  * composer 输入区（原 ZV，F08 根组件，js 66959–~69297；接口保留）。
@@ -4221,7 +5786,7 @@ export function DraftComposerRegion({
             config={snapshotConfig}
             draftMode={draftMode}
             draftConfig={draftConfig}
-            usage={snapshotUsage}
+            usage={snapshotUsage as ComposerUsageSnapshot | null}
             disabled={disabled}
             activeConfigPicker={activeConfigPicker}
             onConfigPickerOpenChange={handleConfigPickerOpenChange}

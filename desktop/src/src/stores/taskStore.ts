@@ -1419,7 +1419,7 @@ function parseCustomModelId(value: string): { providerId: string; modelName?: st
 }
 
 /** 原 it（jsx 884）：过滤自定义模型选项（导出 A）。 */
-function filterNativeModelOptions(options: unknown[], _provider?: string, _workspaceIdentity?: string | null): unknown[] {
+function filterNativeModelOptions(options: unknown[], _provider?: unknown, _workspaceIdentity?: unknown): unknown[] { // A1-R18 型缝宽化：bundle it(e,t,n) 二三参未使用；styles L 消费面（iit 89600 附近）传 (options, currentValue, entitlementSnapshot)
   return options.filter((option) => !isCustomModelOption(option as { value: string; origin?: string; description?: string }));
 }
 
