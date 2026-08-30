@@ -127,10 +127,11 @@
  * ==========================================================================*/
 import * as React from "react";
 import type { CodePreviewSettings, FileLinkModel } from './MarkdownIntegration'; // 〔A0-S4-4b〕§0 共享类型 ToolCallViewProps 签名所需二型别（原导入块余量，type-only）
-import { logger } from './SkillStore';
+import { logger, parseCustomModelId, getCurrentModelValue, type ConfigOption } from './SkillStore'; // A1-R17：+parseCustomModelId（原 se=skillStore D@903 导出 O）+getCurrentModelValue（原 Ie=skillStore I@982 导出 w）+ConfigOption 型——KSt 簇 118281/118285 消费改指属主导出
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 import { useServices, useBaseServices } from './services'; // 原 eSt 内 fs()（bundle 117331）= context 面 useServices（A0-D 裁决：基线误名 useWorkspaceServices）；+useBaseServices（原 Ec，4945；A1-R14 §5b NCt 消费）
 import { normalizeCaptchaCode } from './StoresDeep'; // A1-R14：原 Cw（40570，R12 收敛 stub）——§5b NCt 3007 判定消费；环安全：StoresDeep 不反引本文件（grep 实证）
+import { resolveProviderKindEndpointUrl, GHOST_PROVIDER_REF_PREFIX } from './SrcSharedB'; // A1-R17：原 Ir=src chunk vu@5076（导出 Uo）属主导出 + Pte=src chunk sS@8980（导出 k）——YSt/Uq 逐字消费
 
 /* ── tombstone（A0-D）：FileOpenWithMenu（原 v_t，110427 / 94447）的跨文件 import
  *    已回退为下方 declare——属主 FileRewindDialogDeep.tsx 本地定义未导出（全文件
@@ -1016,11 +1017,45 @@ function reportCaptchaArmsEvent(event: { result: string; source: string; provide
 }
 
 /** 原 USt/WSt/GSt/KSt/qSt/JSt/YSt/b0：zcode-plan 供应商判定（A1-R16 真身行：USt 118271 / WSt 118272 / GSt 118279 / KSt 118284） */
-declare const ZCODE_PLAN_OPENAI_BASE_URL: string; // USt（Gnt.zcodePlanOpenAiBaseUrl）
-declare function resolveProviderEndpoint(provider: unknown, format: string): string; // YSt/Ir
-declare function normalizeProviderConfig(value: unknown): { providerId?: string } | null; // se
-declare function providerConfigFromOptions(options: unknown): string | null; // Ie
-declare function resolveSupplierProvider(value: string | null | undefined): string | null; // Uq
+declare const ZCODE_PLAN_OPENAI_BASE_URL: string; // USt（Gnt.zcodePlanOpenAiBaseUrl；Gnt@88214 = hee(Wnt()) 惰性配置，深依赖留 declare）
+/* ── tombstone（A1-R17）：declare function resolveProviderEndpoint（原 YSt，js 118303；Ir=src chunk vu@5076
+ *    导出 Uo → SrcSharedB resolveProviderKindEndpointUrl 属主导出）删除——下方逐字实现。 ── */
+/** 原 YSt（js 118303）：供应商种类端点解析（apiFormat 缺省补 anthropic-messages；endpoints 直读兜底） */
+export function resolveProviderEndpoint(e: unknown, t: string): string | undefined {
+  const provider = e as { apiFormat?: string; endpoints: { anthropic?: string; openai?: string } };
+  return (
+    resolveProviderKindEndpointUrl({ ...provider, apiFormat: provider.apiFormat ?? `anthropic-messages` }, t) ||
+    (t === `anthropic` ? provider.endpoints.anthropic : provider.endpoints.openai)
+  );
+}
+/* ── tombstone（A1-R17）：declare function normalizeProviderConfig（原 se = skillStore D@903 包裹 i，导出 O；
+ *    属主 = stores/taskStore parseCustomModelId，原 D jsx 881）删除——调用面改指属主导出（下方）。 ── */
+/* ── tombstone（A1-R17）：declare function providerConfigFromOptions（原 Ie = skillStore I@982，导出 w；
+ *    属主 = stores/taskStore getCurrentModelValue，原 I jsx 958）删除——调用面改指属主导出（下方）。 ── */
+/** 原 Uq（js 77975）：supplier key 供应商解析（custom: 前缀直取；ghost: 双段冒号后 payload 取 provider= 段，decodeURIComponent 容错） */
+export function resolveSupplierProvider(e: string): string | null {
+  let t = e.trim();
+  if (t.startsWith(`custom:`)) return t.slice(7).trim() || null;
+  if (!t.startsWith(`ghost:`)) return null;
+  let n = t.indexOf(`:`, GHOST_PROVIDER_REF_PREFIX.length),
+    r = n >= 0 ? t.indexOf(`:`, n + 1) : -1;
+  if (r < 0) return null;
+  let i = t.slice(r + 1),
+    a = i;
+  try {
+    a = decodeURIComponent(i);
+  } catch {
+    a = i;
+  }
+  return (
+    a
+      .split(`,`)
+      .map((e) => e.trim())
+      .find((e) => e.startsWith(`provider=`))
+      ?.slice(9)
+      .trim() || null
+  );
+}
 function providerPrefix(value: string): string | null {
   const trimmed = value.trim();
   const slash = trimmed.indexOf("/");
@@ -1029,13 +1064,14 @@ function providerPrefix(value: string): string | null {
 function resolveProviderIdFromLabel(label?: string | null): string | null {
   const trimmed = label?.trim() ?? "";
   if (!trimmed) return null;
-  const normalized = normalizeProviderConfig(trimmed);
+  const normalized = parseCustomModelId(trimmed);
   return normalized?.providerId ? normalized.providerId : providerPrefix(trimmed);
 }
-/** A1-R16 收敛：原 resolveTaskProviderId 改名导出——canonical 语义名取 declare 期既用名（AppRootLeaves c8t 1451 消费逐字不变） */
-export function captchaProviderOfTaskMeta(entry: { configOptions?: unknown; selectedSupplierKey?: string | null; taskMeta?: { model?: string } | null }): string | null {
+/** A1-R16 收敛：原 resolveTaskProviderId 改名导出——canonical 语义名取 declare 期既用名（AppRootLeaves c8t 1451 消费逐字不变）。
+ * A1-R17：configOptions 收 ConfigOption[] 真型（bundle KSt 118285 传 configOptions 即选项数组；唯一调用面 1454 仅传 taskMeta，宽化安全） */
+export function captchaProviderOfTaskMeta(entry: { configOptions?: ConfigOption[] | null; selectedSupplierKey?: string | null; taskMeta?: { model?: string } | null }): string | null {
   return (
-    resolveProviderIdFromLabel(entry.configOptions ? providerConfigFromOptions(entry.configOptions) : null) ||
+    resolveProviderIdFromLabel(entry.configOptions ? getCurrentModelValue(entry.configOptions) : null) ||
     (entry.selectedSupplierKey ? resolveSupplierProvider(entry.selectedSupplierKey) : null) ||
     resolveProviderIdFromLabel(entry.taskMeta?.model)
   );

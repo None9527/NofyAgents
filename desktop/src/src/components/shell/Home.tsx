@@ -97,6 +97,15 @@
  *   Ut=composer-project-detach | Cne=composer-workspace-trigger
  *   _n=composer-remote-connection | dn=composer-work-outside-project
  *
+ *  模式工具条簇（A1-R17 逐字转录；逐名映射详见 §T 区头横幅）：
+ *   YM/XM/ZUe/ZM/QM/$M → 末稿协作模式族（53562–53577）| Krt→getLastDraftCollaborationMode 89303
+ *   zRe→configSelectTriggerVariants 46035 | iO/aO/oO/sO/cO/BRe/VRe→ConfigSelect 封装族 46057–46160
+ *   M3e/N3e/P3e/F3e/R3e/L3e/z3e/jq/B3e/V3e/H3e→ConfigSelect 助手族 76848–76901 | Mq→ConfigSelect 76912
+ *   Fq→shortcutKeyOfConfigCategory 77348 | Z3e→cycleSelectOptionValue 77360
+ *   Q3e→resolveComposerToolbarShortcutAction 77367 | $3e→useComposerToolbarShortcuts 77393
+ *   Jrt→composerToolbarShortcutNoop 89341 | Yrt→COMPOSER_INPUT_FOCUS_SELECTOR 89342
+ *   qrt→ComposerModeTrigger 89306 | Xrt→ComposerModeToolbarBody 89343 | Zrt→ComposerModeToolbar(memo) 89415
+ *
  * ----------------------------------------------------------------------------
  * 二、外部依赖清单（跨 chunk 导入；标注来源 chunk 与导出字母）
  * ----------------------------------------------------------------------------
@@ -118,8 +127,12 @@
  * 10. useVirtualizer (to)           esm-BY6T6pIH.js（@tanstack/react-virtual）
  * 11. 本 chunk 内：Radix DropdownMenu 原语（VO…JO，TopBar.tsx 已还原）、
  *     Dialog 原语（zb/Hb/Ub/Gb/Kb/Vb/Wb）、InputGroup（qb/Jb）、
- *     Composer 族（ZV/ait/Zrt/iZe/TH/lit/JH/uit/vN/yN/xN/bN/SN/DN/KJe/SJe，F08）、
+ *     Composer 族（ZV/ait/iZe/TH/lit/JH/uit/vN/yN/xN/bN/SN/DN/KJe/SJe，F08；
+ *     Zrt 已于 A1-R17 §T 逐字实体化）、
  *     远程向导 fOt（F10）、GitBranchChip zZ（TopBar 族）
+ * 12. keyboardShortcuts-BGHopxr9.js：Bre（导出 r=内部 l，Ctrl/Cmd+Shift 快捷键标签）、
+ *     ea（导出 s=内部 m，Ctrl 匹配）、zre（导出 o=内部 h，Ctrl+Shift 匹配）
+ *     —— A1-R17 §T declare 三件（chunk 外依赖，不转录）
  * ============================================================================
  */
 
@@ -127,11 +140,11 @@ import * as React from "react";
 import * as $ from "react/jsx-runtime"; // A1-R15：vWe=ChatErrorBanner 编译形 JSX 消费面（原 $，jsx-runtime-B5yMD3-t.js）
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { InputGroup, InputGroupAddon } from '../ui/input-group'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphone, Moon as IconMoon, RotateCcw as IconRotateCcw, ClipboardPenLine as IconClipboardPenLine, House as IconHouse, Folder as IconFolder, Cloud as IconCloud, FolderPlus as IconFolderPlus, MessageCircle as IconMessageCircle, Search as IconSearch, ChevronDown as IconChevronDown, Loader as IconLoader, Info as IconInfo, X as IconClose, Rocket as IconRocket, Settings as IconSettings, Copy as IconCopy } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）。A1-R15：+IconRocket/IconSettings/IconCopy（原 Pv/Rv/W_，Sa('rocket'/'settings'/'copy') 27735/27806/26974；vWe 54394/54404/54462 消费）
+import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphone, Moon as IconMoon, RotateCcw as IconRotateCcw, ClipboardPenLine as IconClipboardPenLine, House as IconHouse, Folder as IconFolder, Cloud as IconCloud, FolderPlus as IconFolderPlus, MessageCircle as IconMessageCircle, Search as IconSearch, ChevronDown as IconChevronDown, Loader as IconLoader, Info as IconInfo, X as IconClose, Rocket as IconRocket, Settings as IconSettings, Copy as IconCopy, SlidersHorizontal as IconSlidersHorizontal, ChevronUp as IconChevronUp, Check as IconCheck, ShieldAlert as IconShieldAlert, Hand as IconHand, NotepadText as IconNotepadText, ShieldCheck as IconShieldCheck } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）。A1-R15：+IconRocket/IconSettings/IconCopy（原 Pv/Rv/W_，Sa('rocket'/'settings'/'copy') 27735/27806/26974；vWe 54394/54404/54462 消费）。A1-R17：+7 件（原 bbe=sliders-horizontal 27837 / P_=chevron-up / M_=check / zv=shield-alert 27816 / av=hand 27244 / Sv=notepad-text 27549 / Bv=shield-check 27827；§T 模式工具条簇消费）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
-import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
+import { Button, cva } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk。A1-R17：+cva（原 Ta = button chunk 导出 r，styles 897 导入；§T configSelectTriggerVariants 46035 消费）
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb/Vb）
-import { BackgroundWorksCapsule, ComposerInput, applyWorkspaceFileMentionDrop as insertAddToChatPayload, useComposerFileDragDetection as useFileDragDetection, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）。A1-R12：insertAddToChatPayload declare（原 YV，66811）改指 Composer 属主导出（bundle 唯一真身；消费点 2440/2947 逐字不变）。A1-R13：useFileDragDetection declare（原 XV，66828）改指 Composer 属主导出（bundle 唯一真身；消费点 2418 逐字不变）
+import { BackgroundWorksCapsule, ComposerInput, applyWorkspaceFileMentionDrop as insertAddToChatPayload, useComposerFileDragDetection as useFileDragDetection, isCoarseTouchDevice, shouldRestoreFocus, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）。A1-R12：insertAddToChatPayload declare（原 YV，66811）改指 Composer 属主导出（bundle 唯一真身；消费点 2440/2947 逐字不变）。A1-R13：useFileDragDetection declare（原 XV，66828）改指 Composer 属主导出（bundle 唯一真身；消费点 2418 逐字不变）。A1-R17：+isCoarseTouchDevice/shouldRestoreFocus（原 XH 69346 / ZH 69351 属主导出；§T ConfigSelect 77025 消费）
 import { countContextAttachments, useCodeCommentContexts, type CodeCommentAttachment } from '../../modules/GitReview'; // A1-R12：isAddToChatEvent 移出（原 yXe，68430 = code-comment-add-to-chat 域，与 2945 消费面事件名不符 → 改指工作区域守卫，见下）
 import { readWorkspaceFilePayload as parseAddToChatPayload, ADD_WORKSPACE_FILE_TO_CHAT_EVENT as ADD_TO_CHAT_EVENT_NAME, isAddWorkspaceFileToChatEvent as isAddToChatEvent, type WorkspaceFileDragPayload } from '../composer/FileMentionDragHelpers'; // A1-R12：Mj（52248）/Aj（52211）/nUe（52260）declare 改指纯函数叶子（本批逐字转录）；消费点 2436/2945/2957/2959 逐字不变。nUe 此前误接 GitReview yXe（code-comment 域），bundle 90733 真身 = 工作区域守卫
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService } from '../../modules/ImeComposition'; // +usePlatformService（A1-R15：原 l=M，vWe 54317 截图面消费）
@@ -144,8 +157,10 @@ import { useServices } from '../../modules/services';
 import { workspaceScopeKey } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { useFeedbackStore } from '../../modules/stores-core'; // A1-R15：原 yC（js 37040）反馈中心 store——vWe openSubmit 消费（TopBar 144 同源边）
-import { chatErrorBannerTestid } from '../../modules/SrcSharedB'; // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费
+import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, chatAssistantHistoryContentTestid, automationYearDayOptionTestid, browserForwardButtonTestid, v4ComposerInputTestid } from '../../modules/SrcSharedB'; // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
+import { Root as RadixSelectRoot, Value as RadixSelectValue, Trigger as RadixSelectTrigger, Icon as RadixSelectIcon, Portal as RadixSelectPortal, Content as RadixSelectContent, Viewport as RadixSelectViewport, Item as RadixSelectItem, ItemText as RadixSelectItemText, ItemIndicator as RadixSelectItemIndicator, ScrollUpButton as RadixSelectScrollUpButton, ScrollDownButton as RadixSelectScrollDownButton } from '@radix-ui/react-select'; // A1-R17：vendored radix select（原 CDe=PEe/TDe=REe/wDe=IEe/EDe=BEe/DDe=HEe/ODe=UEe/kDe=QEe/ADe=sDe/MDe/jDe/NDe/PDe，styles 30850–31745 区）→ npm @radix-ui/react-select@2.3.7（A0-S3c 先例 SettingsRowPrimitives）
+import { AnimatedLabel, MODE_LABEL_I18N, MODE_DESCRIPTION_I18N } from '../composer/ModelSelector'; // A1-R17：原 _q（75520）/V4e（75972）/H4e（76003）——A0-S4-4b 已属主导出（[D] ConfigSelect 消费预案），本批 §T 接线
 import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（js 123241）远端条目域改指（tombstone 见原声明位）
 
 /* ============================================================================
@@ -2417,19 +2432,716 @@ function ChatErrorBanner({
     }),
   });
 }
-/** 工具条（原 Zrt 模式 js 89295 / ait 配置 js 89455 / iZe 后台工作胶囊 js 69225） */
-declare function ComposerModeToolbar(props: {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
+/* ============================================================================
+ * §T 模式工具条簇（A1-R17 逐字转录；ComposerModeToolbar declare 实体化）
+ * ----------------------------------------------------------------------------
+ * 混淆名 → 语义名 → bundle 行（styles-CdEGpc2x.js）：
+ *  快捷键匹配/标签（keyboardShortcuts-BGHopxr9.js，chunk 外 declare 三件）：
+ *   ea→matchCtrlKeyOnly（导出 s=内部 m，chunk 62）| zre→matchCtrlShiftKeyOnly（导出 o=内部 h，chunk 65）
+ *   Bre→formatCtrlShiftShortcut（导出 r=内部 l，chunk 47）
+ *  末稿协作模式（$M 族，53562–53585）：
+ *   YM→LAST_DRAFT_COLLABORATION_MODE_DEFAULT 53562 | XM→LAST_DRAFT_COLLABORATION_MODE_STORAGE_KEY 53563
+ *   ZUe→LAST_DRAFT_COLLABORATION_MODE_IDS 53564 | ZM→safeGlobalLocalStorage 53565
+ *   QM→parseCollaborationModeId 53572 | $M→readLastDraftCollaborationMode 53577
+ *   QUe（配对写入器 53585）本簇未消费，留批
+ *  ConfigSelect 封装族（46035–46175；vendored radix 原语按 A0-S3c 先例 → npm @radix-ui/react-select）：
+ *   zRe→configSelectTriggerVariants 46035 | iO→ConfigSelectRoot 46057 | aO→ConfigSelectValue 46060
+ *   oO→ConfigSelectTrigger 46063 | DDe(=HEe 31033)→ConfigSelectPortal | sO→ConfigSelectContent 46087
+ *   cO→ConfigSelectItem 46120 | BRe→ConfigSelectScrollUpButton 46149 | VRe→ConfigSelectScrollDownButton 46160
+ *  ConfigSelect 原语族（76848–77061）：
+ *   M3e→isSelectValueInRange 76848 | N3e→FULL_ACCESS_MODE_VALUES 76851
+ *   P3e→resolveConfigSelectTestId 76852 | F3e→resolveConfigSelectOptionTestId 76856
+ *   I3e（apiRetry 状态件 76860）本簇未消费，留批
+ *   L3e→resolveModeOptionLabel 76880 | R3e→resolveModeLabelI18nId 76884 | z3e→resolveModeDescriptionI18nId 76887
+ *   jq→resolveConfigOptionLabel 76890 | B3e→resolveConfigOptionDescription 76893
+ *   V3e→isFullAccessModeValue 76898 | H3e→resolveModeIndicatorIcon 76901 | Mq→ConfigSelect 76912
+ *  快捷键环（77348–77440）：
+ *   Fq→shortcutKeyOfConfigCategory 77348 | Z3e→cycleSelectOptionValue 77360
+ *   Q3e→resolveComposerToolbarShortcutAction 77367 | $3e→useComposerToolbarShortcuts 77393
+ *  模式工具条（89303–89415）：
+ *   Krt→getLastDraftCollaborationMode 89303 | Jrt→composerToolbarShortcutNoop 89341
+ *   Yrt→COMPOSER_INPUT_FOCUS_SELECTOR 89342 | qrt→ComposerModeTrigger 89306
+ *   Xrt→ComposerModeToolbarBody 89343 | Zrt→ComposerModeToolbar(memo) 89415
+ *  跨域改指（属主导出，零新增转录）：
+ *   cn()→listSessionModePresets（SrcSharedB，原 src chunk Ax 导出 J）| qr→testidOf（本文件局部 383）|
+ *   XH→isCoarseTouchDevice / ZH→shouldRestoreFocus（Composer）|
+ *   _q→AnimatedLabel / V4e→MODE_LABEL_I18N / H4e→MODE_DESCRIPTION_I18N
+ *   （ModelSelector A0-S4-4b 属主导出）| Fr→offpeakFormTitleTestid / wn→chatAssistantHistoryContentTestid /
+ *   Xt→automationYearDayOptionTestid / rn→browserForwardButtonTestid / un→v4ComposerInputTestid（SrcSharedB）
+ *   Ta→cva（button）| zv/av/Sv/Bv/bbe/P_/M_/N_→lucide-react（文件头导入块）
+ * ==========================================================================*/
+
+/** 原 ea（keyboardShortcuts-BGHopxr9.js 导出 s=内部 m，chunk 62）：Ctrl-only 键匹配（chunk 外依赖，不转录） */
+declare function matchCtrlKeyOnly(event: KeyboardEvent, key: string): boolean;
+/** 原 zre（keyboardShortcuts-BGHopxr9.js 导出 o=内部 h，chunk 65）：Ctrl+Shift 键匹配（chunk 外依赖，不转录） */
+declare function matchCtrlShiftKeyOnly(event: KeyboardEvent, key: string): boolean;
+/** 原 Bre（keyboardShortcuts-BGHopxr9.js 导出 r=内部 l，chunk 47）：Ctrl/Cmd+Shift 快捷键标签（chunk 外依赖，不转录） */
+declare function formatCtrlShiftShortcut(key: string): string;
+
+/* --- §T.1 末稿协作模式（原 $M 族，js 53562–53585） --- */
+
+var LAST_DRAFT_COLLABORATION_MODE_DEFAULT = `build`, // YM
+  LAST_DRAFT_COLLABORATION_MODE_STORAGE_KEY = `zcode-last-draft-collaboration-mode`, // XM
+  LAST_DRAFT_COLLABORATION_MODE_IDS = [`build`, `edit`, `plan`, `yolo`]; // ZUe
+function safeGlobalLocalStorage() { // ZM
+  try {
+    return globalThis.localStorage === void 0 ? null : globalThis.localStorage;
+  } catch {
+    return null;
+  }
+}
+function parseCollaborationModeId(e: unknown) { // QM
+  if (typeof e != `string`) return null;
+  let t = e.trim();
+  return LAST_DRAFT_COLLABORATION_MODE_IDS.includes(t) ? t : null;
+}
+function readLastDraftCollaborationMode(e: Storage | null = safeGlobalLocalStorage()) { // $M
+  if (!e) return LAST_DRAFT_COLLABORATION_MODE_DEFAULT;
+  try {
+    return parseCollaborationModeId(e.getItem(LAST_DRAFT_COLLABORATION_MODE_STORAGE_KEY)) ?? `build`;
+  } catch {
+    return LAST_DRAFT_COLLABORATION_MODE_DEFAULT;
+  }
+}
+function getLastDraftCollaborationMode(e?: Storage | null) { // Krt
+  return readLastDraftCollaborationMode(e);
+}
+
+/* --- §T.2 ConfigSelect 封装族（原 46035–46175；vendored radix → npm 替代，A0-S3c 先例） --- */
+
+var configSelectTriggerVariants = cva( // zRe
+  `flex w-fit items-center justify-between gap-1.5 border whitespace-nowrap transition-colors outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-foreground-subtlest *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0`,
+  {
+    variants: {
+      variant: {
+        input: `border-input-border bg-input text-foreground hover:border-input-border-hover focus-visible:border-input-border-focused focus-visible:bg-input-focused focus-visible:ring-0`,
+        default: `border-transparent bg-primary text-primary-foreground hover:bg-primary/80`,
+        outline: `border-border bg-transparent text-foreground hover:bg-input/50 hover:text-foreground aria-expanded:bg-selected aria-expanded:text-foreground`,
+        secondary: `border-transparent bg-secondary text-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-foreground`,
+        ghost: `border-transparent bg-transparent text-foreground hover:bg-hover hover:text-foreground aria-expanded:bg-hover aria-expanded:text-foreground`,
+        destructive: `border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 aria-expanded:bg-destructive aria-expanded:text-destructive-foreground`,
+      },
+      size: {
+        xs: `h-5 rounded-sm pl-2 pr-1 text-ui-base [&_svg:not([class*='size-'])]:size-2.5`,
+        sm: `h-6 rounded-md pl-2 pr-1 text-ui-base/relaxed [&_svg:not([class*='size-'])]:size-3`,
+        default: `h-7 rounded-md pl-2 pr-1 text-ui-base/relaxed [&_svg:not([class*='size-'])]:size-3.5`,
+        lg: `h-8 rounded-lg pl-3 pr-2 text-ui-base [&_svg:not([class*='size-'])]:size-4`,
+      },
+    },
+    defaultVariants: { variant: `input`, size: `default` },
+  },
+);
+
+interface ConfigSelectOptionItem {
+  value: string;
+  name: string;
+  description?: string;
+}
+interface ConfigSelectOption {
+  id: string;
+  name: string;
+  category: string;
+  type: string;
+  currentValue?: string;
+  options?: ConfigSelectOptionItem[];
+}
+
+function ConfigSelectRoot({ ...e }: React.ComponentProps<typeof RadixSelectRoot>) { // iO
+  return (0, $.jsx)(RadixSelectRoot, { "data-slot": `select`, ...e });
+}
+function ConfigSelectValue({ ...e }: React.ComponentProps<typeof RadixSelectValue>) { // aO
+  return (0, $.jsx)(RadixSelectValue, { "data-slot": `select-value`, ...e });
+}
+function ConfigSelectTrigger({
+  className: e,
+  variant: t = `input`,
+  size: n = `default`,
+  children: r,
+  indicator: i,
+  ...a
+}: { variant?: string; size?: string; indicator?: React.ReactNode } & React.ComponentProps<typeof RadixSelectTrigger>) { // oO
+  return (0, $.jsxs)(RadixSelectTrigger, {
+    "data-slot": `select-trigger`,
+    "data-variant": t,
+    "data-size": n,
+    className: cn(configSelectTriggerVariants({ variant: t, size: n }), e),
+    ...a,
+    children: [
+      r,
+      (0, $.jsx)(RadixSelectIcon, {
+        asChild: !0,
+        children:
+          i ?? (0, $.jsx)(IconChevronDown, { className: `pointer-events-none size-3.5 text-foreground-subtle` }),
+      }),
+    ],
+  });
+}
+function ConfigSelectPortal(e: { children?: React.ReactNode }) { // DDe=HEe 31033（asChild:!0 透传，npm radix Portal 面 A0-S3c 替代）
+  return (0, $.jsx)(RadixSelectPortal, { ...{ asChild: !0 }, ...e });
+}
+function ConfigSelectContent({
+  className: e,
+  children: t,
+  position: n = `item-aligned`,
+  align: r = `center`,
+  ...i
+}: React.ComponentProps<typeof RadixSelectContent>) { // sO
+  return (0, $.jsx)(ConfigSelectPortal, {
+    children: (0, $.jsxs)(RadixSelectContent, {
+      "data-slot": `select-content`,
+      "data-align-trigger": n === `item-aligned`,
+      className: cn(
+        `relative z-[60] max-h-(--radix-select-content-available-height) min-w-32 origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-xl border border-popover-border bg-menu p-1 text-foreground shadow-md duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 [app-region:no-drag]`,
+        e,
+      ),
+      position: n,
+      align: r,
+      ...i,
+      children: [
+        (0, $.jsx)(ConfigSelectScrollUpButton, {}),
+        (0, $.jsx)(RadixSelectViewport, {
+          "data-position": n,
+          className: cn(
+            `flex flex-col gap-0.5 data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)`,
+            n === `popper` && ``,
+          ),
+          children: t,
+        }),
+        (0, $.jsx)(ConfigSelectScrollDownButton, {}),
+      ],
+    }),
+  });
+}
+var ConfigSelectItem = React.forwardRef<HTMLDivElement, { className?: string; children?: React.ReactNode; trailing?: React.ReactNode } & Omit<React.ComponentProps<typeof RadixSelectItem>, "className" | "children">>(({ className: e, children: t, trailing: n, ...r }, i) => // cO
+  (0, $.jsxs)(RadixSelectItem, {
+    ref: i,
+    "data-slot": `select-item`,
+    className: cn(
+      `relative flex min-h-7 w-full cursor-default items-center gap-2 rounded-lg px-2 py-1 text-ui-base/relaxed text-foreground outline-hidden select-none data-[highlighted]:bg-menu-hover data-[highlighted]:text-foreground data-disabled:pointer-events-none data-disabled:text-foreground-subtlest data-disabled:opacity-100 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2`,
+      e,
+    ),
+    ...r,
+    children: [
+      n
+        ? (0, $.jsx)(`span`, {
+            className: `pointer-events-auto absolute right-2 flex items-center justify-center`,
+            children: n,
+          })
+        : null,
+      (0, $.jsx)(`span`, {
+        className: `pointer-events-none absolute right-2 flex items-center justify-center`,
+        children: (0, $.jsx)(RadixSelectItemIndicator, {
+          children: (0, $.jsx)(IconCheck, {
+            className: `pointer-events-none size-4 text-foreground-subtle`,
+          }),
+        }),
+      }),
+      (0, $.jsx)(RadixSelectItemText, { children: t }),
+    ],
+  }),
+);
+ConfigSelectItem.displayName = `SelectItem`;
+function ConfigSelectScrollUpButton({ className: e, ...t }: React.ComponentProps<typeof RadixSelectScrollUpButton>) { // BRe
+  return (0, $.jsx)(RadixSelectScrollUpButton, {
+    "data-slot": `select-scroll-up-button`,
+    className: cn(
+      `z-10 flex cursor-default items-center justify-center bg-menu py-1 text-foreground-subtle [&_svg:not([class*='size-'])]:size-3.5`,
+      e,
+    ),
+    ...t,
+    children: (0, $.jsx)(IconChevronUp, {}),
+  });
+}
+function ConfigSelectScrollDownButton({ className: e, ...t }: React.ComponentProps<typeof RadixSelectScrollDownButton>) { // VRe
+  return (0, $.jsx)(RadixSelectScrollDownButton, {
+    "data-slot": `select-scroll-down-button`,
+    className: cn(
+      `z-10 flex cursor-default items-center justify-center bg-menu py-1 text-foreground-subtle [&_svg:not([class*='size-'])]:size-3.5`,
+      e,
+    ),
+    ...t,
+    children: (0, $.jsx)(IconChevronDown, {}),
+  });
+}
+
+/* --- §T.3 ConfigSelect 原语族（原 76848–77061） --- */
+
+function isSelectValueInRange(e: ConfigSelectOption, t: string) { // M3e
+  return e.options?.some((e) => String(e.value) === t) ?? !1;
+}
+var FULL_ACCESS_MODE_VALUES = new Set([`bypassPermissions`, `full-access`, `agent-full-access`, `yolo`]); // N3e
+function resolveConfigSelectTestId(e: ConfigSelectOption) { // P3e
+  if (e.category === `thought_level`) return offpeakFormTitleTestid;
+  if (e.category === `mode`) return chatAssistantHistoryContentTestid;
+}
+function resolveConfigSelectOptionTestId(e: ConfigSelectOption, t: ConfigSelectOptionItem) { // F3e
+  if (e.category === `thought_level`) return testidOf(automationYearDayOptionTestid, t.value);
+  if (e.category === `mode`) return testidOf(browserForwardButtonTestid, t.value);
+}
+function resolveModeOptionLabel(e: IntlShape, t: string | null | undefined, n: ConfigSelectOptionItem) { // L3e
+  let r = resolveModeLabelI18nId(t, n);
+  return r ? e.formatMessage({ id: r }) : n.name;
+}
+function resolveModeLabelI18nId(e: string | null | undefined, t: ConfigSelectOptionItem) { // R3e
+  return e ? (MODE_LABEL_I18N[e]?.[t.value] ?? null) : null;
+}
+function resolveModeDescriptionI18nId(e: string | null | undefined, t: ConfigSelectOptionItem) { // z3e
+  return e ? (MODE_DESCRIPTION_I18N[e]?.[t.value] ?? null) : null;
+}
+function resolveConfigOptionLabel(e: IntlShape, t: string | null | undefined, n: ConfigSelectOption, r: ConfigSelectOptionItem) { // jq
+  return n.category === `mode` ? resolveModeOptionLabel(e, t, r) : r.name;
+}
+function resolveConfigOptionDescription(e: IntlShape, t: string | null | undefined, n: ConfigSelectOption, r: ConfigSelectOptionItem) { // B3e
+  if (n.category !== `mode`) return r.description;
+  let i = resolveModeDescriptionI18nId(t, r);
+  return i ? e.formatMessage({ id: i }) : r.description;
+}
+function isFullAccessModeValue(e: unknown) { // V3e
+  return typeof e == `string` && FULL_ACCESS_MODE_VALUES.has(e);
+}
+function resolveModeIndicatorIcon(e: unknown) { // H3e
+  return isFullAccessModeValue(e)
+    ? IconShieldAlert
+    : typeof e == `string` && /^(default|build)$/i.test(e)
+      ? IconHand
+      : typeof e == `string` && e.toLocaleLowerCase() === `plan`
+        ? IconNotepadText
+        : typeof e == `string` && /^(auto|acceptEdits|agent|autoEdit|dontAsk|edit)$/i.test(e)
+          ? IconShieldCheck
+          : IconHand;
+}
+function ConfigSelect({
+  option: e,
+  onValueChange: t,
+  open: n,
+  onOpenChange: r,
+  disabled: i,
+  tooltipTitle: a,
+  shortcutLabel: o,
+  triggerRef: s,
+  triggerClassName: c,
+  indicatorClassName: l,
+  triggerVariant: u = `ghost`,
+  triggerSize: d = `lg`,
+  leadingIcon: f,
+  labelVisibilityClassName: p = `hidden @xl/composer:inline-flex`,
+  provider: m,
+  restoreFocusSelector: h = `[data-testid="chat-input"]`,
+}: {
+  option: ConfigSelectOption;
+  onValueChange: (value: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  tooltipTitle?: string;
+  shortcutLabel?: string;
+  triggerRef?: React.Ref<HTMLSpanElement>;
+  triggerClassName?: string;
+  indicatorClassName?: string;
+  triggerVariant?: string;
+  triggerSize?: string;
+  leadingIcon?: React.ComponentType<{ className?: string }>;
+  labelVisibilityClassName?: string;
+  provider?: string | null;
+  restoreFocusSelector?: string;
+}) { // Mq
+  let { intl: g } = useIntlContext(),
+    _ = (0, React.useCallback)((e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key !== `Tab`) return;
+      let t =
+        e.currentTarget.querySelector(`[data-slot="select-item"][data-highlighted]`) ??
+        e.currentTarget.querySelector(`[data-slot="select-item"][data-state="checked"]`) ??
+        e.currentTarget.querySelector(`[data-slot="select-item"]`);
+      t && (e.preventDefault(), (t as HTMLElement).click());
+    }, []);
+  if (e.type !== `select` || !e.options?.length) return null;
+  let v = e.category === `mode` || e.category === `thought_level`,
+    y = e.category === `mode` && isFullAccessModeValue(e.currentValue),
+    b = e.category === `mode` ? resolveModeIndicatorIcon(e.currentValue) : f,
+    x = cn(c, y && `text-warning hover:text-warning aria-expanded:text-warning`),
+    S = cn(`pointer-events-none size-4 text-current`, y && `text-warning`),
+    C: {
+      position: `popper`;
+      side: `top`;
+      align: `start`;
+      sideOffset: number;
+      collisionPadding: number;
+      className: string | undefined;
+    } | undefined = v
+      ? {
+          position: `popper`,
+          side: `top`,
+          align: `start`,
+          sideOffset: 4,
+          collisionPadding: 8,
+          className: e.category === `mode` ? `w-64` : void 0,
+        }
+      : void 0,
+    w = resolveConfigSelectTestId(e),
+    T = e.options.find((t) => t.value === e.currentValue),
+    E = T ? resolveConfigOptionLabel(g, m, e, T) : String(e.currentValue ?? ``),
+    D = e.category === `thought_level` ? `first-letter:uppercase` : void 0;
+  return (0, $.jsxs)(ConfigSelectRoot, {
+    open: n,
+    onOpenChange: r,
+    value: String(e.currentValue),
+    onValueChange: (n: string) => {
+      if (!isSelectValueInRange(e, n)) {
+        logger.warn(`[ConfigSelect] 忽略值域外的选择回调`, { category: e.category, value: n });
+        return;
+      }
+      t(n);
+    },
+    disabled: i,
+    children: [
+      (0, $.jsx)(Tooltip, {
+        title: a,
+        shortcut: o,
+        triggerRef: s,
+        children: (0, $.jsxs)(ConfigSelectTrigger, {
+          variant: u,
+          size: d,
+          className: x,
+          indicator: (0, $.jsx)(IconChevronDown, {
+            className: cn(`pointer-events-none size-3.5 text-foreground-subtle`, l),
+          }),
+          "aria-label": a,
+          "data-testid": w,
+          children: [
+            b ? (0, $.jsx)(b, { className: S }) : null,
+            (0, $.jsx)(`span`, {
+              className: p,
+              children:
+                e.category === `mode`
+                  ? (0, $.jsx)(AnimatedLabel, { label: E })
+                  : (0, $.jsx)(ConfigSelectValue, { children: (0, $.jsx)(`span`, { className: D, children: E }) }),
+            }),
+          ],
+        }),
+      }),
+      (0, $.jsx)(ConfigSelectContent, {
+        ...C,
+        onKeyDown: _,
+        onCloseAutoFocus: (t: Event) => {
+          if (!h || (t.preventDefault(), !shouldRestoreFocus({ isCoarseTouchDevice: isCoarseTouchDevice() }))) return;
+          let n = document.querySelector(h);
+          (logger.debug(`[ConfigSelect] picker focus handoff`, {
+            category: e.category,
+            restoreFocusSelector: h,
+            targetFound: !!n,
+          }),
+            (n as HTMLElement | null)?.focus());
+        },
+        children:
+          e.category === `mode`
+            ? e.options.map((t) => {
+                let n = resolveModeIndicatorIcon(t.value),
+                  r = resolveConfigOptionLabel(g, m, e, t),
+                  i = resolveConfigOptionDescription(g, m, e, t);
+                return (0, $.jsx)(
+                  ConfigSelectItem,
+                  {
+                    value: t.value,
+                    className: `min-h-13 items-start gap-3 py-2 pl-2 pr-8`,
+                    "data-testid": resolveConfigSelectOptionTestId(e, t),
+                    children: (0, $.jsxs)(`span`, {
+                      className: `flex min-w-0 items-start gap-3`,
+                      children: [
+                        (0, $.jsx)(n, { className: `mt-0.5 size-4.5 shrink-0 text-foreground` }),
+                        (0, $.jsxs)(`span`, {
+                          className: `flex min-w-0 flex-col gap-0.5`,
+                          children: [
+                            (0, $.jsx)(`span`, {
+                              className: `truncate text-ui-base/relaxed text-foreground`,
+                              children: r,
+                            }),
+                            i?.trim()
+                              ? (0, $.jsx)(`span`, {
+                                  className: `line-clamp-2 text-ui-sm/relaxed text-foreground-subtle whitespace-nowrap`,
+                                  children: i,
+                                })
+                              : null,
+                          ],
+                        }),
+                      ],
+                    }),
+                  },
+                  t.value,
+                );
+              })
+            : e.options.map((t) =>
+                (0, $.jsx)(
+                  ConfigSelectItem,
+                  {
+                    value: t.value,
+                    "data-testid": resolveConfigSelectOptionTestId(e, t),
+                    children: (0, $.jsx)(`span`, { className: D, children: resolveConfigOptionLabel(g, m, e, t) }),
+                  },
+                  t.value,
+                ),
+              ),
+      }),
+    ],
+  });
+}
+
+/* --- §T.4 快捷键环（原 77348–77440） --- */
+
+function shortcutKeyOfConfigCategory(e: string | undefined) { // Fq
+  switch (e) {
+    case `model`:
+      return `m`;
+    case `mode`:
+      return `ctrlShiftM`;
+    case `thought_level`:
+      return `t`;
+    default:
+      return null;
+  }
+}
+function cycleSelectOptionValue(e: ConfigSelectOption) { // Z3e
+  if (e.type !== `select` || !e.options?.length) return null;
+  let t = String(e.currentValue),
+    n = e.options.findIndex((e) => e.value === t),
+    r = n === -1 ? 0 : (n + 1) % e.options.length;
+  return e.options[r]?.value ?? null;
+}
+function resolveComposerToolbarShortcutAction(
+  e: KeyboardEvent,
+  {
+    hasAnyOption: t,
+    toolbarDisabled: n,
+    modelMenuDisabled: r,
+    modelOption: i,
+    modeOption: a,
+    thoughtOption: o,
+  }: {
+    hasAnyOption: boolean;
+    toolbarDisabled: boolean;
+    modelMenuDisabled: boolean;
+    modelOption?: ConfigSelectOption | null;
+    modeOption?: ConfigSelectOption | null;
+    thoughtOption?: ConfigSelectOption | null;
+  },
+) { // Q3e
+  if (!t || n || e.defaultPrevented || e.repeat || e.isComposing) return null;
+  if (matchCtrlKeyOnly(e, `m`)) {
+    let e = shortcutKeyOfConfigCategory(i?.category);
+    return !i || e !== `m` || r ? null : `openModelMenu`;
+  }
+  if (matchCtrlShiftKeyOnly(e, `m`)) {
+    let e = shortcutKeyOfConfigCategory(a?.category);
+    return !a || e !== `ctrlShiftM` ? null : `cycleSessionMode`;
+  }
+  if (matchCtrlKeyOnly(e, `t`)) {
+    let e = shortcutKeyOfConfigCategory(o?.category);
+    return !o || e !== `t` ? null : `cycleThoughtLevel`;
+  }
+  return null;
+}
+function useComposerToolbarShortcuts(e: {
+  hasAnyOption: boolean;
+  toolbarDisabled: boolean;
+  modelMenuDisabled: boolean;
+  modelOption?: ConfigSelectOption | null;
+  modeOption?: ConfigSelectOption | null;
+  thoughtOption?: ConfigSelectOption | null;
+  onOpenModelMenu: () => void;
+  onCycleSessionMode: () => void;
+  onCycleThoughtLevel: () => void;
+}) { // $3e
+  let {
+    hasAnyOption: t,
+    toolbarDisabled: n,
+    modelMenuDisabled: r,
+    modelOption: i,
+    modeOption: a,
+    thoughtOption: o,
+    onOpenModelMenu: s,
+    onCycleSessionMode: c,
+    onCycleThoughtLevel: l,
+  } = e;
+  (0, React.useEffect)(() => {
+    if (!t) return;
+    function e(e: KeyboardEvent) {
+      let u = resolveComposerToolbarShortcutAction(e, {
+        hasAnyOption: t,
+        toolbarDisabled: n,
+        modelMenuDisabled: r,
+        modelOption: i,
+        modeOption: a,
+        thoughtOption: o,
+      });
+      if (!u) {
+        matchCtrlKeyOnly(e, `m`) &&
+          logger.debug(`[V4ComposerToolbar] Ctrl+M 未打开模型菜单`, {
+            hasModelOption: !!i,
+            shortcutKey: shortcutKeyOfConfigCategory(i?.category),
+            modelMenuDisabled: r,
+          });
+        return;
+      }
+      if ((e.preventDefault(), u === `openModelMenu`)) {
+        (logger.debug(`[V4ComposerToolbar] Ctrl+M 打开模型菜单`), s());
+        return;
+      }
+      if (u === `cycleSessionMode`) {
+        c();
+        return;
+      }
+      u === `cycleThoughtLevel` && l();
+    }
+    return (
+      window.addEventListener(`keydown`, e, !0),
+      () => {
+        window.removeEventListener(`keydown`, e, !0);
+      }
+    );
+  }, [t, n, r, a, i, s, c, l, o]);
+}
+
+/* --- §T.5 模式工具条（原 89303–89415） --- */
+
+function composerToolbarShortcutNoop() {} // Jrt
+var COMPOSER_INPUT_FOCUS_SELECTOR = `[data-testid="${v4ComposerInputTestid}"]`; // Yrt（原 un=v4-composer-input，src-HCld2afU Ji）
+function ComposerModeTrigger({
+  compactIconOnly: e = !1,
+  disabled: t,
+  disabledReason: n,
+  intl: r,
+  labelVisibilityClassName: i,
+  modeOption: a,
+  modeShortcutLabel: o,
+  modeTriggerRef: s,
+  onConfigValueChange: c,
+  open: l,
+  onOpenChange: u,
+  restoreFocusSelector: d,
+  selectedProvider: f,
+}: {
+  compactIconOnly?: boolean;
+  disabled?: boolean;
+  disabledReason?: string | null;
+  intl: IntlShape;
+  labelVisibilityClassName?: string;
+  modeOption: ConfigSelectOption;
+  modeShortcutLabel: string;
+  modeTriggerRef: React.Ref<HTMLSpanElement>;
+  onConfigValueChange: (option: ConfigSelectOption, value: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  restoreFocusSelector?: string;
+  selectedProvider: string;
+}) { // qrt
+  return (0, $.jsx)(ConfigSelect, {
+    option: a,
+    onValueChange: (e: string) => c(a, e),
+    open: l,
+    onOpenChange: u,
+    disabled: t,
+    tooltipTitle: n ?? r.formatMessage({ id: `chat.toolbar.mode.label` }),
+    shortcutLabel: o,
+    triggerRef: s,
+    triggerSize: `default`,
+    triggerClassName: e
+      ? `size-7 justify-center gap-0 rounded-lg p-0 text-ui-base @xl/composer:h-7 @xl/composer:w-fit @xl/composer:justify-between @xl/composer:gap-1 @xl/composer:pl-2 @xl/composer:pr-1.5`
+      : `gap-1 rounded-lg pl-2 pr-1.5 text-ui-base`,
+    indicatorClassName: e ? `hidden @xl/composer:block` : void 0,
+    leadingIcon: IconSlidersHorizontal,
+    labelVisibilityClassName: i,
+    provider: f,
+    restoreFocusSelector: d,
+  });
+}
+function ComposerModeToolbarBody({
+  provider: e,
+  config: t,
+  draftMode: n = !1,
+  draftConfig: r,
+  disabled: i,
+  activeConfigPicker: a,
+  onConfigPickerOpenChange: o,
+  onSwitchMode: s,
+}: {
+  workspacePath: string; // 调用面 91037 透传，Xrt 体不读
+  workspaceIdentity?: string | null; // 调用面 91038 透传，Xrt 体不读
   provider?: string | null;
   config: ComposerConfig | null;
-  draftMode: boolean;
+  draftMode?: boolean;
   draftConfig?: ComposerConfig | null;
   disabled: boolean;
   activeConfigPicker: ComposerConfigPicker;
   onConfigPickerOpenChange: (picker: ComposerConfigPicker, open: boolean) => void;
   onSwitchMode: (mode: string) => void;
-}): React.ReactElement;
+}) { // Xrt
+  let { intl: c } = useIntlContext(),
+    l = e ?? `glm`,
+    u = (0, React.useRef)(null),
+    d = (0, React.useMemo)(() => formatCtrlShiftShortcut(`M`), []),
+    f = (0, React.useMemo)(
+      () =>
+        !t && !n
+          ? null
+          : {
+              id: `mode`,
+              name: `Mode`,
+              category: `mode`,
+              type: `select`,
+              currentValue: n ? (r?.mode ?? getLastDraftCollaborationMode()) : t?.mode || `build`,
+              options: listSessionModePresets().map((e) => ({ value: e.id, name: e.name, description: e.description })),
+            },
+      [t, r?.mode, n],
+    ),
+    p = (0, React.useCallback)(
+      (e: ConfigSelectOption, t: string) => {
+        s(t);
+      },
+      [s],
+    ),
+    m = (0, React.useCallback)(
+      (e: boolean) => {
+        o(`mode`, e);
+      },
+      [o],
+    ),
+    h = (0, React.useCallback)(() => {
+      if (!f || f.type !== `select`) return;
+      let e = cycleSelectOptionValue(f);
+      e != null && s(e);
+    }, [f, s]);
+  return (
+    useComposerToolbarShortcuts({
+      hasAnyOption: !!f,
+      toolbarDisabled: i,
+      modelMenuDisabled: !0,
+      modeOption: f ?? void 0,
+      onCycleSessionMode: h,
+      onOpenModelMenu: composerToolbarShortcutNoop,
+      onCycleThoughtLevel: composerToolbarShortcutNoop,
+    }),
+    f
+      ? (0, $.jsx)(ComposerModeTrigger, {
+          compactIconOnly: !0,
+          disabled: i,
+          intl: c,
+          modeOption: f,
+          modeShortcutLabel: d,
+          modeTriggerRef: u,
+          onConfigValueChange: p,
+          open: a === `mode`,
+          onOpenChange: m,
+          restoreFocusSelector: COMPOSER_INPUT_FOCUS_SELECTOR,
+          selectedProvider: l,
+        })
+      : null
+  );
+}
+var ComposerModeToolbar = (0, React.memo)(ComposerModeToolbarBody); // Zrt 89415
+
+/* ── tombstone（A1-R17）：declare function ComposerModeToolbar（原 Zrt，js 89415 = memo(Xrt 89343)；
+ *    旧注 js 89295 为行漂移）删除——本文件 §T 模式工具条簇逐字实体化；消费面 91036 逐字不变。 ── */
+
+/** 工具条（原 ait 配置 js 89455 / iZe 后台工作胶囊 js 69225；Zrt 已 §T 实体化） */
 declare function ComposerConfigToolbar(props: {
   workspacePath: string;
   workspaceIdentity?: string | null;
@@ -3784,7 +4496,7 @@ export function resolveComposerPlaceholderI18nId({
  *    - KJe MentionSelector          F08（js 65605）：@→files/plugins、#→sessions、
  *      $→skills 的 Lexical 接线（段数据钩子 AJe/WJe/HJe/PJe/Nqe）
  *    - SJe SlashPanel               F08（js 65002）：/→commands/skills/subagents
- *    - ait/Zrt/iZe 工具条           F08/F12（js 89455/89295/69225）
+ *    - ait/iZe 工具条               F08/F12（js 89455/69225）；Zrt 已 A1-R17 §T 逐字实体化
  *    - TH/lit/JH/uit chip 行        F08（js 68250/89941/68988/90039）
  *    - vN/yN/bN/xN/SN/DN 附件件     F08（js 54555–54830）
  *    - fOt RemoteWizardDialog       F10（js 128093–128525）

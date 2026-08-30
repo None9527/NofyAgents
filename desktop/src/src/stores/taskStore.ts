@@ -2996,4 +2996,4 @@ export {
   clearLastAgentModelConfig,
   getActiveTaskStatusError,
 };
-export type { TaskMeta, TaskStore, TaskStoreState, WorkspaceTaskState, GroupedDraftPlacement };
+export type { TaskMeta, TaskStore, TaskStoreState, WorkspaceTaskState, GroupedDraftPlacement, ConfigOption }; // A1-R17：+ConfigOption（KSt 簇 captchaProviderOfTaskMeta configOptions 真型）

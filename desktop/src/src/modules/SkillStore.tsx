@@ -170,7 +170,7 @@ import {
   applyStoredModelToOptions, getCurrentModelValue, writeLastAgentConfig,
   clearLastAgentModelConfig, getActiveTaskStatusError,
 } from '../stores/taskStore';
-import type { TaskMeta, TaskStore, TaskStoreState, WorkspaceTaskState, GroupedDraftPlacement } from '../stores/taskStore';
+import type { TaskMeta, TaskStore, TaskStoreState, WorkspaceTaskState, GroupedDraftPlacement, ConfigOption } from '../stores/taskStore'; // A1-R17：+ConfigOption 随 export type 面
 import {
   WHITEBOARD_DARK_COLOR, createWhiteboardStroke, dispatchWhiteboardAddToChat,
   resolveWhiteboardWorkspaceKey, isWhiteboardAddToChatEvent, useWhiteboardStore,
@@ -190,7 +190,7 @@ export { logger };
  * getWorkspaceState 返回型（消费侧命名依赖）；WhiteboardStroke/WhiteboardBoard
  * 供 ExtendedViews 白板域改指（消 TS2719 同名异型）；GroupedDraftPlacement 供
  * AppRootLeaves 具名化；SkillsService 供 StoresDeep 静态面对齐前置。 */
-export type { TaskMeta, TaskStore, TaskStoreState, WorkspaceTaskState, WhiteboardStroke, WhiteboardBoard, GroupedDraftPlacement, SkillsService };
+export type { TaskMeta, TaskStore, TaskStoreState, WorkspaceTaskState, WhiteboardStroke, WhiteboardBoard, GroupedDraftPlacement, SkillsService, ConfigOption }; // A1-R17：+ConfigOption（stores/taskStore 属主型，Leaves KSt 簇消费）
 
 /* ============================================================================
  * 0. 外部依赖接口（跨 chunk）—— 原 logger + 8 条 src-HCld2afU declare 已由
