@@ -148,8 +148,18 @@ function spawnKernel() {
 /**
  * 发现序：NOFY_SOCKET → 应用数据 socket → ws 9800 → spawn。
  * 返回 { url, secret, mode, child }；mode ∈ env-unix|appdata-unix|attach-9800|spawned。
+ * A1-A：single-flight——多调用方（index.js 启动序 / NofyKernelClient 单例）共享
+ * 同一次发现，避免并发 ensure 双 spawn。
  */
-export async function ensureKernel() {
+let ensureInflight = null;
+export function ensureKernel() {
+  ensureInflight ??= doEnsureKernel().finally(() => {
+    ensureInflight = null;
+  });
+  return ensureInflight;
+}
+
+async function doEnsureKernel() {
   if (disposed) return { url: KERNEL_WS_URL, secret: KERNEL_SECRET, mode: "disposed", child: null };
 
   // 1. env NOFY_SOCKET

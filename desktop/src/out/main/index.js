@@ -1,5 +1,6 @@
 import { ensureKernel, KERNEL_WS_URL, KERNEL_SECRET } from "./seam/kernel-supervisor.js";
 import { registerWorkspaceRegistry } from "./seam/workspace-registry.js"; // WS-ENUM：全量 workspace 枚举 IPC
+import { attachKernelHost } from "./seam/kernel-bridge.js"; // A1-A：host 经 main↔host IPC 使用内核 ACP 单例
 import { fileURLToPath as nofySeamFilePath } from "node:url";
 // ── nofy D5c seam：kernel supervisor（发现-否则-启动）+ ACP agent adapter ──
 // host 的 ZCodeAgentProcessManager 经 ZCODE_AGENT_SERVER_COMMAND spawn 适配器；
@@ -28385,6 +28386,7 @@ function spawnHostProcess(e, t, n, o, r) {
         ...(process.platform === "darwin" ? { ZCODE_CUA_LAUNCHER_PID: String(process.pid) } : {}),
       },
     });
+  attachKernelHost(d); // A1-A：内核 ACP 单例的 main↔host IPC（阶段 B 由 host 消费）
   (o.logger.info(`[spawnHostProcess] forked host process for (${t}), pid=${d.pid}`),
     o.logger.info(`[spawnHostProcess] host module path: ${Nv}`),
     o.logger.info(`[spawnHostProcess] glm binary path: ${a ?? "<not found>"}`),
