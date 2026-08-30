@@ -116,13 +116,10 @@
  *   _Jt  → consumeCollapseNavigationOnce (183882 / 148375)
  *   vJt  → armCollapseNavigationOnce (183890 / 148382)
  *
- *  会话持久化 / 侧栏投放上下文（本文件完整还原）：
- *   RTt  → LAST_SESSION_STORAGE_PREFIX = 'zcode-v4-last-session:v1:' (123122 / 104862)
- *   j2   → lastSessionStorageKey    (123124 / 104864)
- *   zTt  → readLastSessionId        (123127 / 104867)
- *   BTt  → writeLastSessionId       (123133 / 104873)
- *   VTt  → shouldRestoreLastSession (123139 / 104879)
- *   HTt  → useLastSessionPersistence (123141-123177 / 104845-104880)
+ *  会话持久化 / 侧栏投放上下文：
+ *   RTt/j2/zTt/BTt/VTt/HTt → last-session 域（123139–123196）〔A1-R4 迁出 →
+ *     modules/SplitLayoutUiDeep.tsx §8b 逐字重建；本文件经 useLastSessionRestore
+ *     as useLastSessionPersistence 真实 import 消费（调用面不变）〕
  *   FTt  → SidebarSessionDropContext (123103 / 104799)
  *   ITt  → SidebarSessionDropProvider (123104-123117 / 104800-104813)
  *   LTt  → useSidebarSessionDrop    (123118 / 104814)
@@ -202,7 +199,7 @@ import { workspaceKeyOf } from '../../modules/CodeViewer';
 /* ── tombstone（A1-R3）：ConversationOrchestrator 自 ../../modules/Conversation 的
  *    import 已删除——PTt 域 A1-R3 逐字重建于 modules/SplitLayoutUiDeep.tsx，
  *    改自该模块消费（同行 StackedConversationPane=owt + FTt/ITt/LTt 面）。 ── */
-import { ConversationOrchestrator, StackedConversationPane, SidebarSessionDropProvider, useSidebarSessionDrop, type SidebarSessionDropTarget } from '../../modules/SplitLayoutUiDeep'; // 原 PTt/owt/FTt/ITt/LTt（A1-R3：styles js 121301–123136 表现层逐字重建改指）
+import { ConversationOrchestrator, StackedConversationPane, SidebarSessionDropProvider, useSidebarSessionDrop, useLastSessionRestore as useLastSessionPersistence, type SidebarSessionDropTarget } from '../../modules/SplitLayoutUiDeep'; // 原 PTt/owt/FTt/ITt/LTt（A1-R3：styles js 121301–123136 表现层逐字重建改指）+ HTt（A1-R4：js 123139–123196 last-session 域改指）
 import { type InstalledEditor } from '../../modules/FileTreePanel';
 import { APP_LOGO_DATA_URL, FeedbackCenter, collectWorkspaceTaskIds, resolveAdjacentTasks, runWithWorkspaceVisibility, type FeedbackService } from '../../modules/FeedbackCenter';
 import { WorkspaceSelectionRow } from '../../modules/Home';
@@ -835,7 +832,9 @@ declare function useTaskCompletionNotifications(input: {
 /* --- 供应商注册表修订 / 渲染器重载探测（原 hse/z0） --- */
 
 declare function setProviderRegistryRevision(revision: number): void;
-declare function detectRendererReload(): boolean;
+/* ── tombstone（A1-R4）：detectRendererReload（原 z0）declare 删除——z0=isReloadNavigationEntry
+ *    已为 SplitLayoutDeep 真实导出（R2），HTt 域（useLastSessionRestore）经
+ *    modules/SplitLayoutUiDeep.tsx 直接消费，本文件无余调用点。 ── */
 
 /* --- 内嵌浏览器可打开判定（原 Ogt，js 109814） --- */
 
@@ -1594,100 +1593,11 @@ function windowRoundedCornerClasses(input: {
       : "rounded-l-xl border border-border";
 }
 
-/* ============================================================================
- * 9. 会话持久化（原 RTt/j2/zTt/BTt/VTt/HTt，js 123122-123177 / jsx 104862-104880）
- * ----------------------------------------------------------------------------
- * 'zcode-v4-last-session:v1:{workspaceKey}' 记忆每工作区最后会话；
- * 渲染器重载（非热切换）且当前无活动会话、无草稿焦点时自动恢复。
- * ==========================================================================*/
-
-const LAST_SESSION_STORAGE_PREFIX = "zcode-v4-last-session:v1:"; // 原 RTt
-
-/** 原 j2 */
-function lastSessionStorageKey(workspaceKey: string): string {
-  return `${LAST_SESSION_STORAGE_PREFIX}${workspaceKey}`;
-}
-
-/** 原 zTt */
-function readLastSessionId(workspaceKey: string): string | null {
-  try {
-    return localStorage.getItem(lastSessionStorageKey(workspaceKey));
-  } catch {
-    return null;
-  }
-}
-
-/** 原 BTt：sessionId 为 null/空 时删除键 */
-function writeLastSessionId(workspaceKey: string, sessionId: string | null): void {
-  try {
-    if (sessionId) localStorage.setItem(lastSessionStorageKey(workspaceKey), sessionId);
-    else localStorage.removeItem(lastSessionStorageKey(workspaceKey));
-  } catch { /* ignore */ }
-}
-
-/** 原 VTt：仅在"渲染器重载 + 无活动会话 + 草稿焦点版本为 0"时恢复 */
-function shouldRestoreLastSession(input: {
-  enabled: boolean;
-  rendererReload: boolean;
-  activeSessionId: string | null;
-  draftFocusVersion: number;
-}): boolean {
-  return (
-    input.enabled &&
-    input.rendererReload &&
-    input.activeSessionId === null &&
-    input.draftFocusVersion === 0
-  );
-}
-
-/** 原 HTt（js 123141-123177）：每工作区只恢复一次；之后持续写回当前会话 */
-function useLastSessionPersistence(input: {
-  workspaceKey: string;
-  activeSessionId: string | null;
-  draftFocusVersion: number;
-  enabled?: boolean;
-  selectSession: (sessionId: string) => void;
-}): void {
-  const { workspaceKey, activeSessionId, draftFocusVersion, enabled = true, selectSession } = input;
-  const attemptedWorkspaceKeysRef = React.useRef(new Set<string>());
-  const isRendererReloadRef = React.useRef(detectRendererReload());
-  const pendingRestoreRef = React.useRef<{ workspaceKey: string; sessionId: string } | null>(null);
-  const selectSessionRef = React.useRef(selectSession);
-  selectSessionRef.current = selectSession;
-
-  React.useEffect(() => {
-    if (!enabled || attemptedWorkspaceKeysRef.current.has(workspaceKey)) return;
-    attemptedWorkspaceKeysRef.current.add(workspaceKey);
-    const wasRendererReload = isRendererReloadRef.current;
-    isRendererReloadRef.current = false;
-    if (
-      !shouldRestoreLastSession({
-        activeSessionId,
-        draftFocusVersion,
-        enabled,
-        rendererReload: wasRendererReload,
-      })
-    ) {
-      if (activeSessionId === null) writeLastSessionId(workspaceKey, null);
-      return;
-    }
-    const lastSessionId = readLastSessionId(workspaceKey);
-    if (lastSessionId) {
-      pendingRestoreRef.current = { workspaceKey, sessionId: lastSessionId };
-      selectSessionRef.current(lastSessionId);
-    }
-  }, [enabled, workspaceKey]);
-
-  React.useEffect(() => {
-    if (enabled && attemptedWorkspaceKeysRef.current.has(workspaceKey)) {
-      if (pendingRestoreRef.current?.workspaceKey === workspaceKey) {
-        if (activeSessionId === null) return;
-        pendingRestoreRef.current = null;
-      }
-      writeLastSessionId(workspaceKey, activeSessionId);
-    }
-  }, [activeSessionId, enabled, workspaceKey]);
-}
+/* ── tombstone（A1-R4）：§9 会话持久化本地实现（RTt/j2/zTt/BTt/VTt/HTt，94 行）删除——
+ *    A1-R4 以 modules/SplitLayoutUiDeep.tsx §8b 逐字重建 last-session 域
+ *    （js 123139–123196，B5 体例：局部混淆名保留），本文件经真实 import 消费：
+ *    useLastSessionRestore as useLastSessionPersistence（文件头导入块）。
+ *    附带：本地 detectRendererReload declare 同批删除（原 z0，R2 已真实化）。 ── */
 
 /* ============================================================================
  * 10. 侧栏会话投放上下文（原 FTt/ITt/LTt，js 123103-123120 / jsx 104799-104814）

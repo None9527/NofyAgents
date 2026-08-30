@@ -144,6 +144,7 @@ import { useTrajectoryViewerStore, useTuiEditRequestStore } from '../../modules/
 import { usePinnedTaskListStore, useWorkspaceTaskListStore } from '../../modules/stores-tasks';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia=u（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
+import { remoteTargetDisplayLabel, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt/QTt（js 123241/123267）远端条目域改指（tombstone 见原声明位）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -2391,8 +2392,10 @@ export function SessionHeaderLeft({
 /** D5c：TUI 编辑打开请求信箱（实现见 stores-session.tsx TuiEditRequestStore） */
 declare function useTaskListItems(query: { kind: "pinned"; workspaceTabs: unknown[]; sortBy: "updated"; searchQuery: string; expanded: boolean; collapsedLimit: number }): { items: Array<{ taskId: string }>; loading: boolean };
 declare function resolveEffectiveProvider(taskProvider: string | null | undefined, selectedProvider: string | null | undefined): string; // 原 Zge（jsx 21359；前批次误作 './21359' import，复原为 declare）
-declare function remoteTargetDisplayLabel(target: RemoteTarget): string;
-declare function sshDecoratedProjectName(name: string, target: RemoteTarget | null | undefined): string;
+/* ── tombstone（A1-R4）：remoteTargetDisplayLabel（原 XTt）/sshDecoratedProjectName（原 QTt）
+ *    declare 删除 → 真实 import from './SplitLayoutDeep'（§F 远端条目域，js 123241/123267）。
+ *    型别宽化：canonical 参型为结构面、返回 string | undefined（bundle 未知 kind 无 default 分支）；
+ *    本文件调用面皆真值判定/插值渲染，兼容（2017–2020/2175/2182/2186）。 ── */
 declare function applyOptimisticTaskMutation(mutation: { previousTask: TaskMeta; nextTask: TaskMeta; previousState: { pinned: boolean; archived: boolean }; nextState: { pinned: boolean; archived: boolean } }): void;
 declare function buildTaskFeedbackDescription(args: { taskTitle: string; taskId?: string; workspacePath: string; taskSessionPath?: string | null; taskLogPath?: string | null; formatMessage: (id: string, values?: Record<string, unknown>) => string }): string;
 

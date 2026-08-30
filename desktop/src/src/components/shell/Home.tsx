@@ -141,6 +141,7 @@ import { useServices } from '../../modules/services';
 import { workspaceScopeKey } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
+import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（js 123241）远端条目域改指（tombstone 见原声明位）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -1060,8 +1061,9 @@ interface RemoteTarget {
 }
 /** 工作区作用域 key（原 Ti，src-HCld2afU.js 导出） */
 /** 路径末段名（原 Go，横切层 1928） */
-/** 远程目标显示标签（原 XTt，TopBar 族已登记 remoteTargetDisplayLabel） */
-declare function remoteTargetDisplayLabel(target: RemoteTarget): string;
+/* ── tombstone（A1-R4）：remoteTargetDisplayLabel（原 XTt）declare 删除 → 真实 import
+ *    from '../../modules/SplitLayoutDeep'（§F 远端条目域，js 123241）。
+ *    型别宽化：返回 string | undefined；remoteTabSearchHaystack 之 filter(Boolean) 兼容。 ── */
 
 /** 原 UTt：远程工作区入口开关（当前恒 true） */
 export function useRemoteWorkspaceEnabled(): boolean {

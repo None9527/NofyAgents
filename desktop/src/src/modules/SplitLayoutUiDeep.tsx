@@ -2,7 +2,8 @@
  * SplitLayoutUiDeep.tsx —— A1-R3：v4 分屏表现层（PTt 域）逐字重建
  * ----------------------------------------------------------------------------
  * 属主：styles-CdEGpc2x.js（md5 48d71d48…）js 121301–121372 + 121722–122305 +
- *       122820–123136（jsx 孪生无此表现层跨度，行号以 js 为准）。
+ *       122820–123136 + 123139–123196（RTt…HTt）+ 151164–151184（PRt）+
+ *       155248–155280（Lzt/Rzt）（jsx 孪生无此表现层跨度，行号以 js 为准）。
  *
  * 立模块自裁说明（任务项 1「并入 SplitLayoutDeep.tsx 或立新模块」）：
  *   立新模块。SplitLayoutDeep.tsx 为纯逻辑域（无 React UI、无 Conversation 依赖），
@@ -62,6 +63,17 @@
  *   ITt  → SidebarSessionDropProvider      (123122)
  *   LTt  → useSidebarSessionDrop           (123136)
  *   owt  → StackedConversationPane         (121301)
+ *   ── A1-R4 增补（拖放源侧 + last-session 域）──
+ *   PRt  → createSessionDragPreview        (151164)
+ *   Lzt  → dragPointerPositionOf           (155248)
+ *   Rzt  → trackSessionDragPointer         (155253)
+ *   RTt  → LAST_SESSION_STORAGE_PREFIX     (123139)
+ *   j2   → lastSessionStorageKey           (123140)
+ *   zTt  → readLastSessionId               (123143)
+ *   BTt  → writeLastSessionId              (123150)
+ *   VTt  → isLastSessionRestorable         (123155)
+ *   HTt  → useLastSessionRestore           (123158)
+ *   （UTt 123194 属主在 components/shell/Home.tsx useRemoteWorkspaceEnabled，不重复）
  *
  *   跨域改指（真实 import，无新 declare）：
  *   s2→splitLayoutStore | A2→sessionRouterStore | B0→MAIN_PANE_ID |
@@ -101,13 +113,14 @@ import {
   canOpenSessionInSplit,
   openSessionInSplit,
   toPersistableSessionBinding,
+  isReloadNavigationEntry,
   splitLayoutStore,
   sessionRouterStore,
   type PaneNode,
   type PaneBinding,
   type PaneWorkspaceScope,
   type SessionBinding,
-} from "./SplitLayoutDeep"; // 原 s2/A2/B0/G0/H0/U0/Z0/T2/E2/dTt/ATt/jTt/NTt（A1-R2 重建）
+} from "./SplitLayoutDeep"; // 原 s2/A2/B0/G0/H0/U0/Z0/T2/E2/dTt/ATt/jTt/NTt（A1-R2 重建）+ z0（A1-R4：HTt 消费）
 import { ConversationPane } from "./Conversation"; // 原 R0（js 119236）
 import { PanelScopeProvider, V4ConversationProvider, useServices, acquireSessionIndexStore, releaseSessionIndexStore } from "./services"; // 原 DT/wFe/fs/VS/HS
 import { joinTestidParts, v4PaneShellTestid, v4SplitDividerTestid } from "./SrcSharedB"; // 原 qr/Hte/Er
@@ -1476,6 +1489,169 @@ export function StackedConversationPane({
 }
 
 /* ============================================================================
+ * §8a. 会话拖拽源侧助手（原 PRt/Lzt/Rzt，js 151164–151184 + 155248–155280）
+ * ----------------------------------------------------------------------------
+ * A1-R4 补全 PTt 域消费面：PRt 为任务行 dragstart 之影像生成（Sidebar 消费）；
+ * Lzt/Rzt 为拖拽指针跟踪（壳层分组视图以 getPosition 喂 Wwt/Gwt 预览/落点）。
+ * 归入本模块自裁说明：三者皆会话拖放机制件（Wwt/Gwt/Kwt 之供给面），集中域内；
+ * Sidebar 保持纯消费。无新值依赖（纯 DOM/React），环安全不变。
+ * ==========================================================================*/
+
+/** 原 PRt（js 151164）：HTML5 拖拽影像——克隆行节点离屏挂载并 setDragImage，返回清理。
+ * 行注：cloneNode 返回 Node，源为 HTMLElement 行节点，收窄为 HTMLElement（非 any）。 */
+export function createSessionDragPreview({
+  clientX: e,
+  clientY: t,
+  dataTransfer: n,
+  source: r,
+}: {
+  clientX: number;
+  clientY: number;
+  dataTransfer: DataTransfer;
+  source: HTMLElement;
+}): () => void {
+  let i = r.ownerDocument,
+    a = r.getBoundingClientRect(),
+    o = r.cloneNode(!0) as HTMLElement;
+  return (
+    (o.dataset.taskWorkbenchDragPreview = `true`),
+    o.classList.add(`border`, `border-border`, `bg-background`, `shadow-lg`),
+    (o.style.position = `fixed`),
+    (o.style.left = `-10000px`),
+    (o.style.top = `-10000px`),
+    (o.style.pointerEvents = `none`),
+    (o.style.width = `${a.width}px`),
+    i.body.append(o),
+    n.setDragImage(
+      o,
+      Math.max(0, Math.min(e - a.left, a.width)),
+      Math.max(0, Math.min(t - a.top, a.height)),
+    ),
+    () => o.remove()
+  );
+}
+
+/** 原 Lzt（js 155248）：指针事件面取 client 坐标（缺面/非数 → null）。
+ * 行注：参型 unknown 承 nativeEvent；bundle 仅 `in` 守卫，此处先 typeof 对象收窄
+ * （TS `in` 运算所需；nativeEvent 恒为对象，行为一致），再 in 守卫 + 结构面收窄（非 any）。 */
+export function dragPointerPositionOf(e: unknown): { x: number; y: number } | null {
+  if (typeof e !== `object` || e === null || !(`clientX` in e) || !(`clientY` in e)) return null;
+  let { clientX: t, clientY: n } = e as { clientX?: unknown; clientY?: unknown };
+  return typeof t == `number` && typeof n == `number` ? { x: t, y: n } : null;
+}
+
+/** 原 Rzt（js 155253）：拖拽期指针位置跟踪（capture 三件，可 dispose）。 */
+export function trackSessionDragPointer(e: Document, t: unknown): { dispose(): void; getPosition(): { x: number; y: number } } | null {
+  let n = dragPointerPositionOf(t);
+  if (!n) return null;
+  let r = n,
+    i = !1,
+    a = () => {
+      i ||
+        ((i = !0),
+        e.removeEventListener(`pointermove`, o, !0),
+        e.removeEventListener(`pointerup`, s, !0),
+        e.removeEventListener(`pointercancel`, c, !0));
+    },
+    o = (e: PointerEvent) => {
+      r = { x: e.clientX, y: e.clientY };
+    },
+    s = (e: PointerEvent) => {
+      ((r = { x: e.clientX, y: e.clientY }), a());
+    },
+    c = () => {
+      a();
+    };
+  return (
+    e.addEventListener(`pointermove`, o, !0),
+    e.addEventListener(`pointerup`, s, !0),
+    e.addEventListener(`pointercancel`, c, !0),
+    { dispose: a, getPosition: () => r }
+  );
+}
+
+/* ============================================================================
+ * §8b. 最后会话恢复域（原 RTt/j2/zTt/BTt/VTt/HTt，js 123139–123196）
+ * ----------------------------------------------------------------------------
+ * A1-R4 转录（R3 尾注登记项）；UTt（123194）已有属主（components/shell/Home.tsx
+ * useRemoteWorkspaceEnabled，逐字），不重复。z0=isReloadNavigationEntry 经
+ * ./SplitLayoutDeep 真实 import（R2 重建）。
+ * ==========================================================================*/
+
+/** 原 RTt：最后会话存储前缀。 */
+export const LAST_SESSION_STORAGE_PREFIX = `zcode-v4-last-session:v1:`;
+
+/** 原 j2：存储键。 */
+export function lastSessionStorageKey(e: string): string {
+  return `${LAST_SESSION_STORAGE_PREFIX}${e}`;
+}
+
+/** 原 zTt：读最后会话 id。 */
+export function readLastSessionId(e: string): string | null {
+  try {
+    return localStorage.getItem(lastSessionStorageKey(e));
+  } catch {
+    return null;
+  }
+}
+
+/** 原 BTt：写/删最后会话 id（空值删键）。 */
+export function writeLastSessionId(e: string, t: string | null): void {
+  try {
+    t ? localStorage.setItem(lastSessionStorageKey(e), t) : localStorage.removeItem(lastSessionStorageKey(e));
+  } catch {}
+}
+
+/** 原 VTt：可恢复判定（启用 + 渲染器重载 + 无活动会话 + 草稿焦点版本 0）。 */
+export function isLastSessionRestorable(e: { enabled: boolean; rendererReload: boolean; activeSessionId: string | null; draftFocusVersion: number }): boolean {
+  return e.enabled && e.rendererReload && e.activeSessionId === null && e.draftFocusVersion === 0;
+}
+
+/** 原 HTt（js 123158）：每工作区只恢复一次最后会话（渲染器重载场景），其后持续写回。 */
+export function useLastSessionRestore({
+  workspaceKey: e,
+  activeSessionId: t,
+  draftFocusVersion: n,
+  enabled: r = !0,
+  selectSession: i,
+}: {
+  workspaceKey: string;
+  activeSessionId: string | null;
+  draftFocusVersion: number;
+  enabled?: boolean;
+  selectSession: (sessionId: string) => void;
+}): void {
+  let a = React.useRef(new Set<string>()),
+    o = React.useRef(isReloadNavigationEntry()),
+    s = React.useRef<{ workspaceKey: string; sessionId: string } | null>(null),
+    c = React.useRef(i);
+  ((c.current = i),
+    React.useEffect(() => {
+      if (!r || a.current.has(e)) return;
+      a.current.add(e);
+      let i = o.current;
+      if (
+        ((o.current = !1),
+        !isLastSessionRestorable({ activeSessionId: t, draftFocusVersion: n, enabled: r, rendererReload: i }))
+      ) {
+        t === null && writeLastSessionId(e, null);
+        return;
+      }
+      let l = readLastSessionId(e);
+      l && ((s.current = { workspaceKey: e, sessionId: l }), c.current(l));
+    }, [r, e]),
+    React.useEffect(() => {
+      if (r && a.current.has(e)) {
+        if (s.current?.workspaceKey === e) {
+          if (t === null) return;
+          s.current = null;
+        }
+        writeLastSessionId(e, t);
+      }
+    }, [t, r, e]));
+}
+
+/* ============================================================================
  * §9. 尾表（符号台账）
  * ----------------------------------------------------------------------------
  *   语义名                          原混淆名   bundle js 行   导出
@@ -1516,9 +1692,18 @@ export function StackedConversationPane({
  *   SidebarSessionDropProvider      ITt       123122        ✓
  *   useSidebarSessionDrop           LTt       123136        ✓
  *   StackedConversationPane         owt       121301        ✓
+ *   createSessionDragPreview        PRt       151164        ✓（A1-R4）
+ *   dragPointerPositionOf           Lzt       155248        ✓（A1-R4）
+ *   trackSessionDragPointer         Rzt       155253        ✓（A1-R4）
+ *   LAST_SESSION_STORAGE_PREFIX     RTt       123139        ✓（A1-R4）
+ *   lastSessionStorageKey           j2        123140        ✓（A1-R4）
+ *   readLastSessionId               zTt       123143        ✓（A1-R4）
+ *   writeLastSessionId              BTt       123150        ✓（A1-R4）
+ *   isLastSessionRestorable         VTt       123155        ✓（A1-R4）
+ *   useLastSessionRestore           HTt       123158        ✓（A1-R4）
  *
  * 未转录（他域，后续批次）：
- *   - 拖放源侧接线（js 151323/151336 Sidebar 任务行 dragstart/dragend）；
- *   - 全局拖放监视（js 155580/155969/155985/156026 壳层 preview/commit/cancel）；
- *   - RTt…HTt（js 123139–123196）last-session 域余量。
+ *   - 壳层分组视图（sBt）之 DnD 编排对 Wwt/Gwt/Kwt/Rzt 的消费现场
+ *     （js 155580/155969/155985/156026）——分组视图已退役（HOME-SEG），
+ *     机制件本模块在位，随视图重建接线。
  * ==========================================================================*/

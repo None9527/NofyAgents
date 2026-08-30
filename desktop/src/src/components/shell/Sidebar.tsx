@@ -61,7 +61,7 @@
  *   m8/h8 → RemoteSyncingRow / TaskListLoadingRow (146803/146813 / 122299/122307)
  *   w8   → OverflowMarqueeText       溢出跑马灯文本 (150996 / 125026)
  *   C8/DRt/S8/NRt/ORt/kRt/x8/ARt/jRt/MRt → 跑马灯常量/助手 (150984–150993 / 125010–125025)
- *   PRt  → createDragImageUpdater    (151118 / 125117)
+ *   PRt  → createDragImageUpdater    (151118 / 125117) 〔A1-R4 改指 → SplitLayoutUiDeep createSessionDragPreview〕
  *
  *  分组域（色板 / 视图操作 / 持久化）：
  *   $6   → GROUP_COLORS [gray red orange yellow green blue purple] (144872 / 120648)
@@ -211,7 +211,8 @@ import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, us
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../../modules/stores-core';
 import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
-import { useSidebarSessionDrop as useSessionOpenability } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）
+import { useSidebarSessionDrop as useSessionOpenability, SESSION_DRAG_MIME, serializeSessionDragPayload, setSessionDragFallbackPayload as setCurrentSessionDrag, clearSessionDragFallbackPayload as clearCurrentSessionDrag, createSessionDragPreview as createDragImageUpdater, type SessionDragPayload } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）+ u2/Iwt/Lwt/Rwt/PRt（A1-R4：拖放源侧改指，tombstone 见原声明位）
+import { sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4：QTt（js 123267）远端条目域改指（tombstone 见原声明位）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 
@@ -1294,8 +1295,9 @@ declare function applyOptimisticTaskMutation(mutation: { previousTask: TaskMeta 
 declare function buildTaskFeedbackDescription(args: { taskTitle: string; taskId?: string; workspacePath: string; taskSessionPath?: string | null; taskLogPath?: string | null; formatMessage: (id: string, values?: Record<string, unknown>) => string }): string;
 /** 原 n4/r4（TopBar.tsx 已还原）：远程同步菜单项 / 对话框组 */
 /** 原 $2（TopBar 已登记）：远程会话源可打开性检查 */
-/** 原 QTt（TopBar 已登记）：SSH 装饰项目名 */
-declare function sshDecoratedProjectName(label: string | undefined, remoteTarget: RemoteTarget | null | undefined): string;
+/* ── tombstone（A1-R4）：sshDecoratedProjectName（原 QTt）declare 删除 → 真实 import
+ *    from '../../modules/SplitLayoutDeep'（§F 远端条目域，js 123267）。
+ *    型别宽化：返回 string | undefined；调用面（2978/3137）为插值渲染，兼容。 ── */
 /** 原 M6/N6/V6（142670–142719/119312）：同步完成后的缓存刷新 */
 declare function refreshAfterSkillSync(args: { zcodeSessionService: WorkspaceServices["zcodeSessionService"]; workspacePath: string; workspaceIdentity?: string | null; reason: string }): Promise<void>;
 declare function refreshSkillStoresAfterSync(args: { workspacePath: string; workspaceIdentity?: string | null; skillsService: unknown; provider?: string }): Promise<void>;
@@ -1310,28 +1312,14 @@ declare function buildWebRemoteControlEventProps(args: { workspaceKind: "local" 
 declare function parseRemoteIdentityKind(identity: string): { kind: string } | null;
 declare function resolveWorkspaceRemoteSessionId(workspacePath: string, remoteSessionId: string | null | undefined, workspaceIdentity?: string | null): string | null;
 /* ---- 会话拖拽（HTML5 DnD，原 u2/Iwt/Lwt/Rwt/PRt/Wwt/Gwt/Kwt，jsx 103642–103717） ---- */
-
-/** 原 u2（jsx 103642）：会话拖拽 MIME */
-const SESSION_DRAG_MIME = "application/x-zcode-session";
-interface SessionDragPayload {
-  kind: "zcode/session";
-  workspacePath: string;
-  workspaceIdentity?: string;
-  remoteSessionId?: string;
-  sessionId: string;
-}
-/** 原 Iwt（jsx 103644）：拖拽载荷序列化 */
-declare function serializeSessionDragPayload(payload: SessionDragPayload): string;
-/** 原 Lwt（jsx 103647）：记录当前拖拽中的会话 */
-declare function setCurrentSessionDrag(payload: SessionDragPayload): void;
-/** 原 Rwt（jsx 103650）：清除当前拖拽 */
-declare function clearCurrentSessionDrag(): void;
-/** 原 Wwt/Gwt/Kwt（jsx 103709–103717）：拖拽位置记录/落点判定/清理 */
-declare function recordDragPosition(payload: SessionDragPayload, x: number, y: number): void;
-declare function wasDroppedOutsideSidebar(payload: SessionDragPayload, x: number, y: number): boolean;
-declare function resetDragPositionTracking(): void;
-/** 原 PRt（151118 / 125117）：生成 HTML5 拖拽影像更新器 */
-declare function createDragImageUpdater(args: { clientX: number; clientY: number; dataTransfer: DataTransfer; source: HTMLElement }): () => void;
+/* ── tombstone（A1-R4）：本地 SESSION_DRAG_MIME 常量 + SessionDragPayload 型 +
+ *    serializeSessionDragPayload(Iwt)/setCurrentSessionDrag(Lwt)/clearCurrentSessionDrag(Rwt)/
+ *    createDragImageUpdater(PRt) declare 删除 → modules/SplitLayoutUiDeep.tsx 真实 import
+ *    （u2/Iwt/Lwt/Rwt 为 R3 逐字重建，PRt 为 R4 §8a 转录；别名保持调用面逐字不变）。
+ *    死声明删除（无调用点）：recordDragPosition/wasDroppedOutsideSidebar/resetDragPositionTracking
+ *    ——A0 期对 Wwt/Gwt/Kwt 之近似；canonical previewSessionDropAt/commitSessionDropAt/
+ *    cancelSessionDropPreview 在 SplitLayoutUiDeep（R3），真实消费面为分组视图 sBt 之
+ *    DnD 编排（js 155580–156026），该视图已退役（HOME-SEG），随视图重建接线。 ── */
 
 /** 原 j6（TopBar.tsx 已还原，142581 / 118551）：任务重命名对话框 */
 
@@ -5519,7 +5507,7 @@ interface GroupedTaskViewController {
  *   n4→RemoteSyncMenuItems | r4→RemoteSyncDialogs | $2→canOpenRemoteSessionSourceCheck
  *   QTt→sshDecoratedProjectName | yC→useFeedbackStore | ls→useTrajectoryViewerStore
  *   J3→useScopedWorkspaceTabs | yc→buildWorkspaceServicesMap | ZS→useTaskListItems | Tse→resolveServicesByWorkspaceIdentity
- *   u2/Iwt/Lwt/Rwt→会话拖拽 | PRt→createDragImageUpdater | Wwt/Gwt/Kwt→拖拽位置跟踪
+ *   u2/Iwt/Lwt/Rwt→会话拖拽 | PRt→createDragImageUpdater（A1-R4 起经 SplitLayoutUiDeep 真实 import）| Wwt/Gwt/Kwt→canonical 在 SplitLayoutUiDeep（分组视图退役，未接线）
  *   M6/N6/V6→同步后刷新 | Qie→forgetRecentWorkspaces | aw→markUsageEntryIntent | xw→trackEvent
  *   EN→SpinnerStatus 54789 | LTt→useSessionOpenability | b2→sessionIndexKey
  *   hC/gC/_C→Tabs 原语 36949 | VO…$O→DropdownMenu 原语 47926 | yk…Ck→ContextMenu 原语 43966

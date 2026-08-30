@@ -140,6 +140,29 @@
  *   V2  → lastWorkspaceSessionEntries    (123475 / 105186)
  *   cEt → lastRemoteSessionEntries       (123478 / 105189)
  *   lEt → sessionEntryMapByKey           (123481 / 105192)
+ * [F] 远端条目域余量（js 123200–123456；A1-R4）：
+ *   GTt → remotePasswordCredentialKey    (123200)
+ *   KTt → remotePrivateKeyPassphraseCredentialKey (123201)
+ *   qTt → remoteServerTokenCredentialKey (123204)
+ *   P2  → trimmedRemoteUser              (123219)
+ *   JTt → wslConnectionKey               (123222)
+ *   YTt → serverDisplayName              (123231)
+ *   F2  → serverUrlHost                  (123234)
+ *   XTt → remoteTargetDisplayLabel       (123241)  消费侧 declare 名同（TopBar/Home）
+ *   ZTt → remoteTargetConnectionAddress  (123255)
+ *   QTt → sshDecoratedProjectName        (123267)  消费侧 declare 名同（TopBar/Sidebar）
+ *   $Tt → normalizeRemoteEntryPath       (123273)
+ *   eEt → remoteTargetConnectionKey      (123277)  server 支真实消费 Je
+ *   I2  → buildRemoteWorkspaceKey        (123297)  server 支真实消费 Je
+ *   tEt → resolveServerIdentity          (123302)
+ *   L2  → resolveEntryWorkspaceIdentity  (123305)
+ *   nEt → trimmedOrUndefined             (123308)
+ *   rEt → findRemoteSessionEntry         (123312)
+ *   iEt → normalizeRemoteTargetForConnection (123316)
+ *   z2  → remoteTargetWithSecrets        (123362)
+ *   aEt → touchRemoteSessionEntry        (123397)
+ *   oEt → removeRemoteSessionEntries     (123403)
+ *   B2  → applyRemoteConnectionResult    (123416)
  *
  * ----------------------------------------------------------------------------
  * 二、跨 chunk / 跨区依赖（全部经真实 import，无本文件内 declare）
@@ -269,14 +292,60 @@ export type RemoteSessionEntry = {
   lastConnectionError?: string;
 };
 
-/** 远端目标（联合型，按 M2/iEt/z2 调用面归纳最小公共面）。 */
-export type RemoteSessionTarget = {
-  kind: `ssh` | `wsl` | `docker` | `server`;
+/** 远端目标（判别联合；A1-R4 由最小公共面精化为 bundle 四 kind 真实形状，
+ * 依据 iEt/z2/XTt/eEt 逐字段调用面）。 */
+export type SshRemoteTarget = {
+  kind: `ssh`;
+  host: string;
+  port?: number;
+  username: string;
+  sshConfigAlias?: string;
+  assetInstallMode?: string;
+  privateKeyPath?: string;
   passwordCredentialKey?: string;
   privateKeyPassphraseCredentialKey?: string;
-  tokenCredentialKey?: string;
-  [key: string]: unknown;
+  password?: string;
+  privateKeyPassphrase?: string;
 };
+export type WslRemoteTarget = { kind: `wsl`; distro?: string; user?: string };
+export type DockerRemoteTarget = { kind: `docker`; container: string };
+export type ServerRemoteTarget = {
+  kind: `server`;
+  url: string;
+  name?: string;
+  workspacePath?: string;
+  serverId?: string;
+  tokenCredentialKey?: string;
+  token?: string;
+};
+export type RemoteSessionTarget = SshRemoteTarget | WslRemoteTarget | DockerRemoteTarget | ServerRemoteTarget;
+
+/** z2 的凭据入参面（bundle 调用面：密码/密钥口令/令牌可空）。 */
+export interface RemoteSessionSecrets {
+  password?: string | null;
+  privateKeyPassphrase?: string | null;
+  token?: string | null;
+}
+
+/** B2 的入参面（远程连接结果应用）。 */
+export interface RemoteConnectionResultInput {
+  remoteSessions: RemoteSessionEntry[];
+  workspacePath: string;
+  workspaceIdentity?: string | null;
+  target: RemoteSessionTarget;
+  localWorkspacePath?: string | null;
+  lastConnectionStatus?: string;
+  lastConnectionError?: string | null;
+  touchOpenedAt?: boolean;
+}
+
+/** B2 的返回面。 */
+export interface RemoteConnectionResult {
+  entry: RemoteSessionEntry;
+  nextRemoteSessions: RemoteSessionEntry[];
+  credentialsToSave: Array<{ key: string; value: string }>;
+  credentialKeysToDelete: string[];
+}
 
 /* ============================================================================
  * §A. 面板布局模型（js 121373–121528）
@@ -1442,12 +1511,345 @@ export function sessionEntryMapByKey<T extends { workspacePath: string; workspac
 }
 
 /* ============================================================================
- * §尾、未用导入与远端键引用占位（保持与 bundle 依赖面一致）
+ * §F. 远端条目域余量（js 123200–123456；A1-R4 转录，与 §E 选段合域）
+ * ----------------------------------------------------------------------------
+ * 凭据键 builder（GTt/KTt/qTt）+ 目标显示/键面（P2…QTt）+ 工作区键
+ * （$Tt/eEt/I2/tEt/L2/nEt）+ 条目运算（rEt/iEt/z2/aEt/oEt/B2）。
+ * Je=buildRemoteServerWorkspaceKey 自此真实消费（§尾空引用占位随删）。
  * ==========================================================================*/
 
-/** 原 Je（buildRemoteServerWorkspaceKey）在远端条目域（iEt/B2，本批未转录）消费；
- * 此处保留引用以免 import 悬空，随远端条目域批次迁走。 */
-void buildRemoteServerWorkspaceKey;
+/** 原 GTt：ssh 密码凭据键。 */
+export function remotePasswordCredentialKey(e: string): string {
+  return `remote-workspace:${e}:password`;
+}
+
+/** 原 KTt：ssh 私钥口令凭据键。 */
+export function remotePrivateKeyPassphraseCredentialKey(e: string): string {
+  return `remote-workspace:${e}:private-key-passphrase`;
+}
+
+/** 原 qTt：server 令牌凭据键。 */
+export function remoteServerTokenCredentialKey(e: string): string {
+  return `remote-workspace:${e}:server-token`;
+}
+
+/** 原 P2：wsl 用户（修剪后，空则 undefined）。 */
+export function trimmedRemoteUser(e: { user?: string | null }): string | undefined {
+  return e.user?.trim() || void 0;
+}
+
+/** 原 JTt：wsl 连接键（distro/user 缺省归一）。 */
+export function wslConnectionKey(e: { distro?: string; user?: string | null }): string {
+  let t = trimmedRemoteUser(e);
+  return e.distro
+    ? t
+      ? `wsl:${e.distro}:${t}`
+      : `wsl:${e.distro}`
+    : t
+      ? `wsl:default:${t}`
+      : `wsl`;
+}
+
+/** 原 YTt：server 显示名（name→serverId→url host）。 */
+export function serverDisplayName(e: { name?: string | null; serverId?: string | null; url: string }): string {
+  return e.name?.trim() || e.serverId?.trim() || serverUrlHost(e);
+}
+
+/** 原 F2：server url 之 host（解析失败回退原串）。 */
+export function serverUrlHost(e: { url: string }): string {
+  try {
+    return new URL(e.url.trim()).host;
+  } catch {
+    return e.url.trim();
+  }
+}
+
+/** 原 XTt：远端目标展示标签。
+ * 行注（宽化）：参型为结构面——bundle 仅读 kind/username/host/port/distro/user/
+ * container/name/serverId/url；消费侧（TopBar/Home 本地 RemoteTarget 面）皆可赋值。
+ * 未知 kind 时 bundle 返回 undefined（无 default 分支），返回面含 undefined。 */
+export function remoteTargetDisplayLabel(e: {
+  kind?: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  distro?: string;
+  user?: string | null;
+  container?: string;
+  name?: string | null;
+  serverId?: string | null;
+  url?: string;
+}): string | undefined {
+  switch (e.kind) {
+    case `ssh`:
+      return `SSH · ${e.username}@${e.host}${e.port ? `:${e.port}` : ``}`;
+    case `wsl`: {
+      let t = trimmedRemoteUser(e);
+      return [`WSL`, e.distro, t].filter(Boolean).join(` · `);
+    }
+    case `docker`:
+      return `Docker · ${e.container}`;
+    case `server`:
+      return `Server · ${serverDisplayName(e as ServerRemoteTarget)}`; // 分支内 kind 已判别；结构面→联合成员收窄（bundle 仅读 name/serverId/url）
+  }
+}
+
+/** 原 ZTt：远端目标连接地址。行注（宽化）：参型同 remoteTargetDisplayLabel 结构面。 */
+export function remoteTargetConnectionAddress(e: {
+  kind?: string;
+  host?: string;
+  port?: number;
+  distro?: string;
+  user?: string | null;
+  container?: string;
+  name?: string | null;
+  serverId?: string | null;
+  url?: string;
+}): string | undefined {
+  switch (e.kind) {
+    case `ssh`:
+      return e.port && e.port !== 22 ? `${e.host}:${e.port}` : e.host;
+    case `wsl`:
+      return wslConnectionKey(e);
+    case `docker`:
+      return `docker:${e.container}`;
+    case `server`:
+      return serverUrlHost(e as ServerRemoteTarget); // 分支内 kind 已判别；结构面→联合成员收窄（bundle 仅读 url）
+  }
+}
+
+/** 原 QTt：ssh 别名装饰项目名。
+ * 行注（宽化）：第二参结构面（仅读 kind/sshConfigAlias）；label 面消费侧可空。 */
+export function sshDecoratedProjectName(
+  e: string | undefined,
+  t: { kind?: unknown; sshConfigAlias?: string | null } | null | undefined,
+): string | undefined {
+  if (t?.kind !== `ssh`) return e;
+  let n = t.sshConfigAlias?.trim();
+  return n ? `${e} [SSH: ${n}]` : e;
+}
+
+/** 原 $Tt：远端路径归一（反斜杠→斜杠、去尾部斜杠、裸根 `/`）。 */
+export function normalizeRemoteEntryPath(e: string): string {
+  let t = e.replace(/\\/g, `/`).replace(/\/+$/, ``);
+  return t.length > 0 ? t : `/`;
+}
+
+/** 原 eEt：远端目标连接键（server 支经 Je 键去前缀/尾 `:/`）。 */
+export function remoteTargetConnectionKey(e: RemoteSessionTarget): string {
+  switch (e.kind) {
+    case `ssh`: {
+      let t = e.host.trim().toLowerCase(),
+        n = e.username.trim();
+      return [`ssh`, t, e.port ?? 22, n].join(`:`);
+    }
+    case `wsl`: {
+      let t = trimmedRemoteUser(e),
+        n = [`wsl`, e.distro ?? `default`];
+      return t ? [...n, t].join(`:`) : n.join(`:`);
+    }
+    case `docker`:
+      return [`docker`, e.container].join(`:`);
+    case `server`:
+      return buildRemoteServerWorkspaceKey({ serverId: resolveServerIdentity(e), workspacePath: `/` }).slice(7, -2);
+  }
+}
+
+/** 原 I2：远端工作区键（server 支走 Je 全键，余者 `remote:<连接键>:<归一路径>`）。 */
+export function buildRemoteWorkspaceKey(e: string, t: RemoteSessionTarget): string {
+  return t.kind === `server`
+    ? buildRemoteServerWorkspaceKey({ serverId: resolveServerIdentity(t), workspacePath: e })
+    : `remote:${remoteTargetConnectionKey(t)}:${normalizeRemoteEntryPath(e)}`;
+}
+
+/** 原 tEt：server 身份解析（serverId→name→url host）。 */
+export function resolveServerIdentity(e: ServerRemoteTarget): string {
+  return e.serverId?.trim() || e.name?.trim() || serverUrlHost(e);
+}
+
+/** 原 L2：条目工作区身份（identity 优先，其次远端工作区键）。 */
+export function resolveEntryWorkspaceIdentity(e: {
+  workspaceIdentity?: string | null;
+  workspacePath: string;
+  target: RemoteSessionTarget;
+}): string {
+  return e.workspaceIdentity || buildRemoteWorkspaceKey(e.workspacePath, e.target);
+}
+
+/** 原 nEt：修剪或 undefined。 */
+export function trimmedOrUndefined(e: string | null | undefined): string | undefined {
+  return e?.trim() || void 0;
+}
+
+/** 原 rEt：按远端工作区键查条目。
+ * 行注（宽化）：同 lEt 之泛化口径，以 T 承条目面。 */
+export function findRemoteSessionEntry<T extends { workspaceIdentity?: string | null; workspacePath: string; target: RemoteSessionTarget }>(
+  e: T[],
+  t: string,
+  n: RemoteSessionTarget,
+): T | null {
+  let r = buildRemoteWorkspaceKey(t, n);
+  return e.find((e) => resolveEntryWorkspaceIdentity(e) === r) ?? null;
+}
+
+/** 原 iEt：连接用远端目标归一（凭据键承继：既有键优先，否则按工作区键派生）。 */
+export function normalizeRemoteTargetForConnection(e: string, t: RemoteSessionTarget, n: RemoteSessionTarget | null | undefined): RemoteSessionTarget {
+  switch (t.kind) {
+    case `ssh`:
+      return {
+        kind: `ssh`,
+        host: t.host,
+        port: t.port,
+        username: t.username,
+        ...(t.sshConfigAlias?.trim() ? { sshConfigAlias: t.sshConfigAlias.trim() } : {}),
+        assetInstallMode: t.assetInstallMode,
+        privateKeyPath: t.privateKeyPath,
+        passwordCredentialKey:
+          t.password && t.password.length > 0
+            ? n?.kind === `ssh` && n.passwordCredentialKey
+              ? n.passwordCredentialKey
+              : remotePasswordCredentialKey(e)
+            : void 0,
+        privateKeyPassphraseCredentialKey:
+          t.privateKeyPassphrase && t.privateKeyPassphrase.length > 0
+            ? n?.kind === `ssh` && n.privateKeyPassphraseCredentialKey
+              ? n.privateKeyPassphraseCredentialKey
+              : remotePrivateKeyPassphraseCredentialKey(e)
+            : void 0,
+      };
+    case `wsl`: {
+      let e = t.user?.trim();
+      return { kind: `wsl`, distro: t.distro, ...(e ? { user: e } : {}) };
+    }
+    case `docker`:
+      return { kind: `docker`, container: t.container };
+    case `server`:
+      return {
+        kind: `server`,
+        url: t.url,
+        ...(t.name?.trim() ? { name: t.name.trim() } : {}),
+        ...(t.workspacePath?.trim() ? { workspacePath: t.workspacePath.trim() } : {}),
+        ...(t.serverId?.trim() ? { serverId: t.serverId.trim() } : {}),
+        tokenCredentialKey:
+          t.token && t.token.length > 0
+            ? n?.kind === `server` && n.tokenCredentialKey
+              ? n.tokenCredentialKey
+              : remoteServerTokenCredentialKey(e)
+            : void 0,
+      };
+  }
+}
+
+/** 原 z2：远端目标并凭据明文（条件展开）。 */
+export function remoteTargetWithSecrets(e: RemoteSessionTarget, t: RemoteSessionSecrets): RemoteSessionTarget {
+  switch (e.kind) {
+    case `ssh`:
+      return {
+        kind: `ssh`,
+        host: e.host,
+        port: e.port,
+        username: e.username,
+        ...(e.sshConfigAlias ? { sshConfigAlias: e.sshConfigAlias } : {}),
+        ...(e.assetInstallMode ? { assetInstallMode: e.assetInstallMode } : {}),
+        ...(e.privateKeyPath ? { privateKeyPath: e.privateKeyPath } : {}),
+        ...(t.password ? { password: t.password } : {}),
+        ...(t.privateKeyPassphrase ? { privateKeyPassphrase: t.privateKeyPassphrase } : {}),
+      };
+    case `wsl`:
+      return { kind: `wsl`, distro: e.distro, ...(e.user ? { user: e.user } : {}) };
+    case `docker`:
+      return { kind: `docker`, container: e.container };
+    case `server`:
+      return {
+        kind: `server`,
+        url: e.url,
+        ...(e.name ? { name: e.name } : {}),
+        ...(e.workspacePath ? { workspacePath: e.workspacePath } : {}),
+        ...(e.serverId ? { serverId: e.serverId } : {}),
+        ...(t.token ? { token: t.token } : {}),
+      };
+  }
+}
+
+/** 原 aEt：触达条目（置顶 + 按 lastOpenedAt 降序 + 历史上限）。 */
+export function touchRemoteSessionEntry(e: RemoteSessionEntry[], t: RemoteSessionEntry): RemoteSessionEntry[] {
+  let n = sessionEntryWorkspaceKey(t);
+  return [t, ...e.filter((e) => sessionEntryWorkspaceKey(e) !== n)]
+    .sort((e, t) => t.lastOpenedAt - e.lastOpenedAt)
+    .slice(0, REMOTE_SESSION_HISTORY_LIMIT);
+}
+
+/** 原 oEt：移除条目并收集待删凭据键。 */
+export function removeRemoteSessionEntries(e: RemoteSessionEntry[], t: string[]): { nextRemoteSessions: RemoteSessionEntry[]; credentialKeysToDelete: string[] } {
+  let n = new Set(t.map((e) => e.trim()).filter(Boolean)),
+    r = new Set<string>(),
+    i: RemoteSessionEntry[] = [];
+  for (let t of e) {
+    let e = sessionEntryWorkspaceKey(t);
+    if (!n.has(e)) {
+      i.push(t);
+      continue;
+    }
+    for (let e of remoteTargetCredentialKeys(t.target)) r.add(e);
+  }
+  return { nextRemoteSessions: i, credentialKeysToDelete: [...r] };
+}
+
+/** 原 B2：应用远程连接结果（条目触达 + 凭据增删清单）。 */
+export function applyRemoteConnectionResult(e: RemoteConnectionResultInput): RemoteConnectionResult {
+  let t = findRemoteSessionEntry(e.remoteSessions, e.workspacePath, e.target) ?? null,
+    n = e.workspaceIdentity ?? t?.workspaceIdentity ?? buildRemoteWorkspaceKey(e.workspacePath, e.target),
+    r = n?.trim() || e.workspacePath,
+    i = e.lastConnectionStatus === `failed` && t ? t.target : normalizeRemoteTargetForConnection(r, e.target, t?.target),
+    a = trimmedOrUndefined(e.localWorkspacePath ?? t?.localWorkspacePath),
+    o: RemoteSessionEntry = {
+      kind: `remote`,
+      workspacePath: e.workspacePath,
+      ...(a ? { localWorkspacePath: a } : {}),
+      workspaceIdentity: n,
+      target: i,
+      lastOpenedAt: e.touchOpenedAt ? Date.now() : (t?.lastOpenedAt ?? Date.now()),
+      lastConnectionStatus: e.lastConnectionStatus,
+      lastConnectionError:
+        e.lastConnectionStatus === `failed`
+          ? (e.lastConnectionError ?? t?.lastConnectionError)
+          : void 0,
+    },
+    s = touchRemoteSessionEntry(e.remoteSessions, o),
+    c = new Set(s.map((e) => sessionEntryWorkspaceKey(e))),
+    l = new Set<string>(),
+    u = new Set(t ? remoteTargetCredentialKeys(t.target) : []),
+    d = new Set(remoteTargetCredentialKeys(i));
+  for (let e of u) d.has(e) || l.add(e);
+  for (let t of e.remoteSessions) if (!c.has(sessionEntryWorkspaceKey(t))) for (let e of remoteTargetCredentialKeys(t.target)) l.add(e);
+  let f: Array<{ key: string; value: string }> = [];
+  return (
+    e.target.kind === `ssh` &&
+      i.kind === `ssh` &&
+      e.target.password &&
+      i.passwordCredentialKey &&
+      f.push({ key: i.passwordCredentialKey, value: e.target.password }),
+    e.target.kind === `ssh` &&
+      i.kind === `ssh` &&
+      e.target.privateKeyPassphrase &&
+      i.privateKeyPassphraseCredentialKey &&
+      f.push({ key: i.privateKeyPassphraseCredentialKey, value: e.target.privateKeyPassphrase }),
+    e.target.kind === `server` &&
+      i.kind === `server` &&
+      e.target.token &&
+      i.tokenCredentialKey &&
+      f.push({ key: i.tokenCredentialKey, value: e.target.token }),
+    { entry: o, nextRemoteSessions: s, credentialsToSave: f, credentialKeysToDelete: [...l] }
+  );
+}
+
+/* ============================================================================
+ * §尾、未用导入占位（保持与 bundle 依赖面一致）
+ * ==========================================================================*/
+
+/* ── tombstone（A1-R4）：Je（buildRemoteServerWorkspaceKey）空引用占位（原 `void buildRemoteServerWorkspaceKey;`）
+ *    迁除——§F 之 remoteTargetConnectionKey(eEt)/buildRemoteWorkspaceKey(I2) 已真实消费该 import
+ *    （js 123290/123298，server 支）。实证：本文件内 `buildRemoteServerWorkspaceKey(` 调用点 ×2。 ── */
 void React;
 
 /* ============================================================================
@@ -1492,8 +1894,15 @@ void React;
  * [E] WTt=REMOTE_SESSION_HISTORY_LIMIT(123197) M2=remoteTargetCredentialKeys(123207)
  *     N2=isRemoteSessionEntry(123216) R2=sessionEntryWorkspaceKey(123306) sEt=persistableTabEntries(123457)
  *     V2=lastWorkspaceSessionEntries(123475) cEt=lastRemoteSessionEntries(123478) lEt=sessionEntryMapByKey(123481)
- * —— 未转录（表现层/他域）：owt(121301) c2…Ywt(121722-908) Xwt/Zwt/Qwt/$wt/eTt(121909-122198)
- *    tTt(122201) PTt/FTt/ITt/LTt(122820-123136) RTt…HTt(123139-123196) 远端条目域余量(123222-123411)
- *    uEt/H2/U2(123487+) —— 见头注与 A1-R2.report.md §尾。 ——
+ * [F] GTt=remotePasswordCredentialKey(123200) KTt=remotePrivateKeyPassphraseCredentialKey(123201)
+ *     qTt=remoteServerTokenCredentialKey(123204) P2=trimmedRemoteUser(123219) JTt=wslConnectionKey(123222)
+ *     YTt=serverDisplayName(123231) F2=serverUrlHost(123234) XTt=remoteTargetDisplayLabel(123241)
+ *     ZTt=remoteTargetConnectionAddress(123255) QTt=sshDecoratedProjectName(123267) $Tt=normalizeRemoteEntryPath(123273)
+ *     eEt=remoteTargetConnectionKey(123277) I2=buildRemoteWorkspaceKey(123297) tEt=resolveServerIdentity(123302)
+ *     L2=resolveEntryWorkspaceIdentity(123305) nEt=trimmedOrUndefined(123308) rEt=findRemoteSessionEntry(123312)
+ *     iEt=normalizeRemoteTargetForConnection(123316) z2=remoteTargetWithSecrets(123362)
+ *     aEt=touchRemoteSessionEntry(123397) oEt=removeRemoteSessionEntries(123403) B2=applyRemoteConnectionResult(123416)
+ * —— 未转录（他域）：uEt/H2/U2(123487+，SSH 对话框/确认 store，属主评估见 A1-R4.report.md §5)。
+ *    RTt…HTt(123139-123196) 已于 A1-R4 转录至 modules/SplitLayoutUiDeep.tsx（表现层域）。 ——
  */
 
