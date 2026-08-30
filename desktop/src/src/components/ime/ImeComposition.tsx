@@ -137,6 +137,8 @@ export interface PlatformService {
   syncAppSettings?(patch: unknown): void;
   /** A1-R11（JM 53505 真形）：宿主设置变更订阅；返回取消函数（McpSettingsSection 40/BrowserSettingsSection 31 本地面同形） */
   onSettingsChanged?(callback: () => void): () => void;
+  /** A1-R15 型缝（vWe 54319 消费面）：窗口截图（宿主桥接；rendererEntry 534 提供面同形，TopBar 187 本地面已列） */
+  captureWindowScreenshot?(): Promise<Blob | null>;
   /** 其余方法由其他族消费，此处以索引签名兜底。 */
   [method: string]: unknown;
 }

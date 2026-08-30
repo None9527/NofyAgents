@@ -124,16 +124,17 @@
  */
 
 import * as React from "react";
+import * as $ from "react/jsx-runtime"; // A1-R15：vWe=ChatErrorBanner 编译形 JSX 消费面（原 $，jsx-runtime-B5yMD3-t.js）
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { InputGroup, InputGroupAddon } from '../ui/input-group'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphone, Moon as IconMoon, RotateCcw as IconRotateCcw, ClipboardPenLine as IconClipboardPenLine, House as IconHouse, Folder as IconFolder, Cloud as IconCloud, FolderPlus as IconFolderPlus, MessageCircle as IconMessageCircle, Search as IconSearch, ChevronDown as IconChevronDown, Loader as IconLoader, Info as IconInfo, X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphone, Moon as IconMoon, RotateCcw as IconRotateCcw, ClipboardPenLine as IconClipboardPenLine, House as IconHouse, Folder as IconFolder, Cloud as IconCloud, FolderPlus as IconFolderPlus, MessageCircle as IconMessageCircle, Search as IconSearch, ChevronDown as IconChevronDown, Loader as IconLoader, Info as IconInfo, X as IconClose, Rocket as IconRocket, Settings as IconSettings, Copy as IconCopy } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）。A1-R15：+IconRocket/IconSettings/IconCopy（原 Pv/Rv/W_，Sa('rocket'/'settings'/'copy') 27735/27806/26974；vWe 54394/54404/54462 消费）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb/Vb）
 import { BackgroundWorksCapsule, ComposerInput, applyWorkspaceFileMentionDrop as insertAddToChatPayload, useComposerFileDragDetection as useFileDragDetection, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）。A1-R12：insertAddToChatPayload declare（原 YV，66811）改指 Composer 属主导出（bundle 唯一真身；消费点 2440/2947 逐字不变）。A1-R13：useFileDragDetection declare（原 XV，66828）改指 Composer 属主导出（bundle 唯一真身；消费点 2418 逐字不变）
 import { countContextAttachments, useCodeCommentContexts, type CodeCommentAttachment } from '../../modules/GitReview'; // A1-R12：isAddToChatEvent 移出（原 yXe，68430 = code-comment-add-to-chat 域，与 2945 消费面事件名不符 → 改指工作区域守卫，见下）
 import { readWorkspaceFilePayload as parseAddToChatPayload, ADD_WORKSPACE_FILE_TO_CHAT_EVENT as ADD_TO_CHAT_EVENT_NAME, isAddWorkspaceFileToChatEvent as isAddToChatEvent, type WorkspaceFileDragPayload } from '../composer/FileMentionDragHelpers'; // A1-R12：Mj（52248）/Aj（52211）/nUe（52260）declare 改指纯函数叶子（本批逐字转录）；消费点 2436/2945/2957/2959 逐字不变。nUe 此前误接 GitReview yXe（code-comment 域），bundle 90733 真身 = 工作区域守卫
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from '../../modules/ImeComposition';
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService } from '../../modules/ImeComposition'; // +usePlatformService（A1-R15：原 l=M，vWe 54317 截图面消费）
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
 import { create, logger, useTaskStore } from '../../modules/SkillStore';
@@ -142,6 +143,8 @@ import { providerIds } from '../../modules/SrcSharedA';
 import { useServices } from '../../modules/services';
 import { workspaceScopeKey } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { useFeedbackStore } from '../../modules/stores-core'; // A1-R15：原 yC（js 37040）反馈中心 store——vWe openSubmit 消费（TopBar 144 同源边）
+import { chatErrorBannerTestid } from '../../modules/SrcSharedB'; // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（js 123241）远端条目域改指（tombstone 见原声明位）
 
@@ -1988,6 +1991,8 @@ interface ChatError {
   code?: string;
   taskId?: string;
   traceId?: string;
+  /** A1-R15 型缝（vWe 54332/54352 消费面）：错误详情文本（Conversation lastError 4629 同面） */
+  detail?: string;
   [key: string]: unknown;
 }
 
@@ -2142,13 +2147,276 @@ declare function ConversationSelectionChipRow(props: {
   onRemove: (id: string) => void;
   onRemoveAll: () => void;
 }): React.ReactElement | null;
-/** 错误横幅（原 vWe，js 54305；A1-R13 行校正，旧注 54257） */
-declare function ChatErrorBanner(props: {
+/* --- A1-R15：聊天错误横幅族（js 54305–54540，逐字转录；lN/cN/uN 簇 R13 已就位） ---
+ * 映射表（minified → 语义名 → bundle 行）：
+ *   vWe → ChatErrorBanner               (54305)  消费面 = 本文件 hit 作曲区（本树 3630 = bundle 91075）
+ *   yWe → buildChatErrorCopyText        (54505)  复制全文模板（vWe 独家消费 54347）
+ *   bWe → buildChatErrorBugDescription  (54520)  bug 反馈描述模板（vWe 独家消费 54330）
+ * 行内消费：G=useIntlContext / l=usePlatformService（M）/ yC=useFeedbackStore / m=toast / Z=cn /
+ *   X=Button / p=IconInfo（T）/ g=IconClose（b）/ Pv=IconRocket / Rv=IconSettings / W_=IconCopy /
+ *   zb/Hb/Ub/Gb/Kb=Dialog/DialogContent/DialogHeader/DialogTitle/DialogDescription（A0-S3c 既有 import）/
+ *   Ate=chatErrorBannerTestid（N_，SrcSharedB）。JSX 保持编译形态（$=react/jsx-runtime）。 ── */
+
+/** 原 yWe（js 54505）— 逐字；复制全文模板 */
+function buildChatErrorCopyText({ message: e, detail: t, traceId: n, formatMessage: r }: {
+  message: string;
+  detail?: string;
+  traceId?: string;
+  formatMessage: (id: string, values?: Record<string, unknown>) => string;
+}): string {
+  return [
+    r(`feedback.submit.template.section.copyErrorHeading`),
+    ``,
+    r(`feedback.submit.template.section.errorSummary`),
+    e,
+    ``,
+    n ? r(`feedback.submit.template.section.errorTraceId`, { traceId: n }) : null,
+    t
+      ? [``, r(`feedback.submit.template.section.errorDetail`), t].join(`
+`)
+      : null,
+  ].filter((e) => e != null).join(`
+`);
+}
+
+/** 原 bWe（js 54520）— 逐字；bug 反馈描述模板 */
+function buildChatErrorBugDescription({ message: e, detail: t, traceId: n, formatMessage: r }: {
+  message: string;
+  detail?: string;
+  traceId?: string;
+  formatMessage: (id: string, values?: Record<string, unknown>) => string;
+}): string {
+  return [
+    r(`feedback.submit.template.section.errorSummaryLine`, { message: e }),
+    ``,
+    n ? r(`feedback.submit.template.section.errorTraceId`, { traceId: n }) : null,
+    t
+      ? [``, r(`feedback.submit.template.section.errorDetail`), t].join(`
+`)
+      : null,
+    ``,
+    r(`feedback.submit.template.section.whatDoing`),
+    r(`feedback.submit.template.section.supplement`),
+    ``,
+    r(`feedback.submit.template.section.expectedResult`),
+    r(`feedback.submit.template.section.supplement`),
+  ].filter((e) => e != null).join(`
+`);
+}
+
+/* ── tombstone（A1-R15）：declare function ChatErrorBanner（原 vWe，js 54305）删除 →
+ *    本位逐字实体化（编译形 JSX；7 参全量真身——declare 期 4 参为窄面，bundle 消费点 91075
+ *    传 error/onDismiss/onOpenModelSettings/onOpenUpgrade，onRetry/retryLabel/retryDisabled 为
+ *    可选面，本树消费点 3630 逐字不变）。 ── */
+/** 原 vWe（js 54305）— 逐字；聊天错误横幅（配置缺失 → 升级/设置双动作；其余 → 详情展开/复制全文/反馈/重试/关闭） */
+function ChatErrorBanner({
+  error: e,
+  onRetry: t,
+  retryLabel: n,
+  retryDisabled: r,
+  onDismiss: i,
+  onOpenModelSettings: a,
+  onOpenUpgrade: o,
+}: {
   error: ChatError;
+  onRetry?: () => void;
+  retryLabel?: string;
+  retryDisabled?: boolean;
   onDismiss?: () => void;
   onOpenModelSettings?: () => void;
   onOpenUpgrade?: () => void;
-}): React.ReactElement;
+}): React.ReactElement | null {
+  let { intl: s } = useIntlContext(),
+    c = usePlatformService(),
+    u = useFeedbackStore((e) => e.openSubmit),
+    [d, f] = (0, React.useState)(!1),
+    h = `shrink-0`,
+    _ = formatChatError(e, s),
+    v = isModelConfigMissingError(e);
+  if (isIgnorableChatError(e)) return null;
+  let y = async () => {
+      let t = await c.captureWindowScreenshot?.().catch(() => null);
+      (u({
+        title: _.slice(0, 80),
+        type: `bug`,
+        module: `模型调用报错`,
+        severity: `P2-中`,
+        includeLogs: !0,
+        description: buildChatErrorBugDescription({
+          message: _,
+          detail: e.detail,
+          traceId: e.traceId,
+          formatMessage: (e, t) => s.formatMessage({ id: e }, t),
+        }),
+        screenshots: t ? [t] : [],
+      }),
+        toast(s.formatMessage({ id: `chat.error.feedbackOpened` })));
+    },
+    b = async () => {
+      if (typeof navigator > `u` || !navigator.clipboard?.writeText) {
+        toast(s.formatMessage({ id: `chat.error.copyFailed` }, { error: `clipboard-unavailable` }));
+        return;
+      }
+      try {
+        (await navigator.clipboard.writeText(
+          buildChatErrorCopyText({
+            message: _,
+            detail: e.detail,
+            traceId: e.traceId,
+            formatMessage: (e, t) => s.formatMessage({ id: e }, t),
+          }),
+        ),
+          toast(s.formatMessage({ id: `chat.error.copyFull.copied` })));
+      } catch (e) {
+        toast(
+          s.formatMessage(
+            { id: `chat.error.copyFailed` },
+            { error: e instanceof Error ? e.message : String(e) },
+          ),
+        );
+      }
+    };
+  return (0, $.jsx)(`div`, {
+    className: `flex w-full justify-center`,
+    children: (0, $.jsxs)(`div`, {
+      "data-testid": chatErrorBannerTestid,
+      "data-error-code": e.code,
+      className: cn(
+        `w-full flex flex-wrap items-center gap-2 rounded-xl bg-surface backdrop-blur-md border border-border px-3 py-2`,
+      ),
+      children: [
+        (0, $.jsxs)(`div`, {
+          className: `flex min-w-0 flex-1 items-center gap-2 text-ui-base text-foreground`,
+          children: [
+            (0, $.jsx)(IconInfo, { className: `size-4 shrink-0` }),
+            (0, $.jsx)(`div`, { className: `min-w-0 truncate font-medium`, children: _ }),
+          ],
+        }),
+        v
+          ? (0, $.jsxs)($.Fragment, {
+              children: [
+                (0, $.jsxs)(Button, {
+                  type: `button`,
+                  variant: `default`,
+                  size: `sm`,
+                  onClick: o,
+                  className: cn(
+                    h,
+                    `button-gradient gap-1.5 text-white hover:bg-transparent hover:opacity-90 dark:bg-[#484A58] dark:hover:bg-[#484A58]`,
+                  ),
+                  "aria-label": s.formatMessage({ id: `chat.quota.action.upgrade` }),
+                  children: [
+                    (0, $.jsx)(IconRocket, { className: `size-3.5` }),
+                    s.formatMessage({ id: `chat.quota.action.upgrade` }),
+                  ],
+                }),
+                (0, $.jsxs)(Button, {
+                  type: `button`,
+                  variant: `outline`,
+                  size: `sm`,
+                  onClick: a,
+                  className: cn(h, `gap-1.5`),
+                  "aria-label": s.formatMessage({ id: `chat.error.setModels` }),
+                  children: [
+                    (0, $.jsx)(IconSettings, { className: `size-3.5` }),
+                    s.formatMessage({ id: `chat.error.setModels` }),
+                  ],
+                }),
+              ],
+            })
+          : null,
+        !v && e.detail
+          ? (0, $.jsxs)($.Fragment, {
+              children: [
+                (0, $.jsx)(Button, {
+                  type: `button`,
+                  variant: `outline`,
+                  size: `sm`,
+                  className: h,
+                  onClick: () => {
+                    f(!0);
+                  },
+                  children: s.formatMessage({ id: `chat.error.expandDetails` }),
+                }),
+                (0, $.jsx)(Dialog, {
+                  open: d,
+                  onOpenChange: f,
+                  children: (0, $.jsxs)(DialogContent, {
+                    className: `max-w-2xl`,
+                    children: [
+                      (0, $.jsxs)(DialogHeader, {
+                        children: [
+                          (0, $.jsx)(DialogTitle, { className: `whitespace-pre-wrap`, children: _ }),
+                          (0, $.jsx)(DialogDescription, {
+                            children: s.formatMessage({ id: `chat.error.expandDetails` }),
+                          }),
+                        ],
+                      }),
+                      (0, $.jsx)(`pre`, {
+                        className: `max-h-[60vh] overflow-auto rounded-xl border border-border bg-surface px-3 py-2 text-ui-base whitespace-pre-wrap text-foreground-subtle`,
+                        children: e.detail,
+                      }),
+                    ],
+                  }),
+                }),
+              ],
+            })
+          : null,
+        v
+          ? null
+          : (0, $.jsxs)(Button, {
+              type: `button`,
+              variant: `outline`,
+              size: `sm`,
+              onClick: () => {
+                b();
+              },
+              className: cn(h, `gap-1.5`),
+              "aria-label": s.formatMessage({ id: `chat.error.copyFull` }),
+              children: [
+                (0, $.jsx)(IconCopy, { className: `size-3.5` }),
+                s.formatMessage({ id: `chat.error.copyFull` }),
+              ],
+            }),
+        v
+          ? null
+          : (0, $.jsx)(Button, {
+              type: `button`,
+              variant: `outline`,
+              size: `sm`,
+              onClick: () => {
+                y();
+              },
+              className: cn(h),
+              "aria-label": s.formatMessage({ id: `chat.error.feedback` }),
+              title: e.traceId,
+              children: s.formatMessage({ id: `chat.error.feedback` }),
+            }),
+        !v && t
+          ? (0, $.jsx)(Button, {
+              variant: `outline`,
+              size: `sm`,
+              onClick: t,
+              disabled: r,
+              children: n ?? s.formatMessage({ id: `chat.error.retry` }),
+            })
+          : null,
+        i
+          ? (0, $.jsx)(Button, {
+              type: `button`,
+              variant: `outline`,
+              size: `icon-sm`,
+              onClick: i,
+              className: cn(`shrink-0`),
+              title: s.formatMessage({ id: `chat.error.dismiss` }),
+              "aria-label": s.formatMessage({ id: `chat.error.dismiss` }),
+              children: (0, $.jsx)(IconClose, { className: `size-4` }),
+            })
+          : null,
+      ],
+    }),
+  });
+}
 /** 工具条（原 Zrt 模式 js 89295 / ait 配置 js 89455 / iZe 后台工作胶囊 js 69225） */
 declare function ComposerModeToolbar(props: {
   workspacePath: string;

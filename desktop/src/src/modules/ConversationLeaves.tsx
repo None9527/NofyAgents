@@ -466,7 +466,7 @@ export class CaptchaInteractiveRequiredError extends Error {
   }
 }
 
-interface CaptchaConfig { enabled?: boolean; region: string; prefix: string; sceneId: string; mode?: string; language?: string; captchaLogoImg?: string }
+export interface CaptchaConfig { enabled?: boolean; region: string; prefix: string; sceneId: string; mode?: string; language?: string; captchaLogoImg?: string } // A1-R15 补 export：ConversationOverlays useOverlayServices declare 面型引用（type-only，无运行时环）
 interface CaptchaVerifyPayloadLike {
   success?: boolean;
   verifyResult?: boolean;
@@ -1209,21 +1209,30 @@ export function noteCaptchaCertifyIdForSend(providerId: string, verifyParam: str
   certifyIdByProvider.set(providerId, certifyId);
   logger.debug("[captcha] prepared certifyId for send", { providerId, certifyId, reusedFromPrevious: previous === certifyId });
 }
-/** 原 fCt（— / 100666）：受保护供应商发送前恢复（b0 门控 + 配置/验证/参数三段） */
-export async function restoreCaptchaVerificationForSend(args: {
+/** 原 fCt（js 118446 / jsx ~100618）— 逐字（A1-R15 校正：前代为 declare 期接口级近似面（string 返回、
+ * 缺 dCt/w0/LSt 三段），改回 bundle 逐字真身；全树零终端消费（grep 实证），改面不破坏既有接线；
+ * gCt 转录面（ConversationOverlays respondProviderRuntimeHeadersOnce）消费 .headers 面。
+ * pCt（118459，`.headers` 投影包装）消费面 192570 属发送域，留批。 */
+export async function restoreCaptchaVerificationForSend(e: {
   providerConfig: unknown;
   codingPlanSubscriptionService: { getCaptchaConfig?(): Promise<CaptchaConfig | null> };
-  providerId?: string;
+  providerId: string;
   modelProviderService?: unknown;
-}): Promise<string> {
-  if (!isCaptchaProtectedProvider(args.providerConfig)) return "";
-  const config = await getCachedCaptchaConfig(args.codingPlanSubscriptionService);
-  if (!config || isCaptchaConfigUnusable(config)) throw Error(CAPTCHA_VERIFY_FAILED_MESSAGE);
-  const param = await runSendPreflightCaptcha(args.codingPlanSubscriptionService, {
-    providerId: args.providerId,
+}): Promise<{ captchaVerifyParam: string; headers: Record<string, string> } | undefined> {
+  if (!isCaptchaProtectedProvider(e.providerConfig)) return;
+  let t = await getCachedCaptchaConfig(e.codingPlanSubscriptionService);
+  if (!t || isCaptchaConfigUnusable(t)) throw Error(CAPTCHA_VERIFY_FAILED_MESSAGE);
+  let n = await runSendPreflightCaptcha(e.codingPlanSubscriptionService, {
+    providerId: e.providerId,
+    modelProviderService: e.modelProviderService,
   });
-  if (!param?.trim()) throw Error(CAPTCHA_VERIFY_FAILED_MESSAGE);
-  return param;
+  if (!n?.trim()) throw Error(CAPTCHA_VERIFY_FAILED_MESSAGE);
+  noteCaptchaCertifyIdForSend(e.providerId, n);
+  let r = buildCaptchaHeaders({ providerId: e.providerId, captchaVerifyParam: n, captchaRegion: t.region });
+  return (
+    forgetCaptchaParam(e.providerId),
+    { captchaVerifyParam: n, headers: r }
+  );
 }
 
 /* --- 5b. 3007 自动恢复链（原 mCt/kCt/ACt/jCt/A0/j0/MCt/M0/NCt，js 118462–118867；A1-R14 实体化）

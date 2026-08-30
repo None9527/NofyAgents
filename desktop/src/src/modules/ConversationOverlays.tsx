@@ -73,21 +73,21 @@
  *   lSt/uSt/dSt → 快照定位/请求覆盖/草稿键    (117527,117530,117533 / 99875,99878,99881)
  *   fSt → createSnoozeLedger                (117536 / 99884)
  *   pSt → ConversationInteractionsOverlay   (117551 / 99899)
- *  [Captcha / provider 运行时头]（js 117706–118608 / jsx 100034–100891）
- *   mSt → ALIYUN_CAPTCHA_SCRIPT_URL         (117706 / 100034)
- *   ASt → AliyunCaptchaWidget（接口级）      (117919 / 100205)
- *   CSt → ALIYUN_CAPTCHA_CONTAINER_ID       (jsx 100132)
- *   FSt → CAPTCHA_VERIFY_PARAM_HEADER       (jsx 100474)
- *   RSt → CAPTCHA_SESSION_STORAGE_KEY       (jsx 100485)
+ *  [Captcha / provider 运行时头]（js 117754–118640 / jsx 100034–100891；A1-R15 行校正，旧注 117706–118608）
+ *   mSt → ALIYUN_CAPTCHA_SCRIPT_URL         (117754 / 100034；A1-R15 行校正，旧注 117706)
+ *   ASt → AliyunCaptchaWidget（接口级）      (A1-R15 勘误：ASt 真身 117936 = SDK fail 处理器非部件；部件真身 = wSt@117871 宿主容器 + SDK 编排域 117754–118290，留批；旧注 117919)
+ *   CSt → ALIYUN_CAPTCHA_CONTAINER_ID       (jsx 100132；真身 117868)
+ *   FSt → CAPTCHA_VERIFY_PARAM_HEADER       (jsx 100474；真身 118231)
+ *   RSt → CAPTCHA_SESSION_STORAGE_KEY       (A1-R15 勘误：RSt 真身 118237 = ARMS 事件名（VSt 118247 消费），非会话存储键)
  *   XSt → CAPTCHA_VERIFY_FAILED             (jsx 100551)
  *   b0  → isCaptchaProvider                 (118309 / 100548；A1-R14 删碑改指 ConversationLeaves，行校正 118292→118309)
- *   aCt → consumeRecoveredCaptchaHeader     (118327 / 100582)
- *   fCt → refreshCaptchaRuntimeHeaders      (118429 / 100618 附近)
- *   dCt → useCaptchaRecovery（接口级）       (118412 / 100659)
- *   hCt → runtimeHeadersRequestKey          (118512 / 100763)
- *   gCt → respondProviderRuntimeHeadersOnce (118519 / 100766 附近)
- *   _Ct → coalescedRuntimeHeadersResponse   (118572 / 100800 附近)
- *   vCt → RuntimeAuthHeadersController      (118608 / 100853)
+ *   aCt → consumeRecoveredCaptchaHeader     (118344 / 100582；A1-R15 删碑改指 ConversationLeaves takeRuntimeProviderHeaders，行校正 118327→118344)
+ *   fCt → refreshCaptchaRuntimeHeaders      (118446 / 100618 附近；A1-R15 删碑改指 ConversationLeaves restoreCaptchaVerificationForSend 逐字真身，行校正 118429→118446)
+ *   dCt → noteCaptchaCertifyIdForSend（ConversationLeaves §5 既转录；旧注 useCaptchaRecovery 118412 为误读，真身 118429；A1-R15 注释校正)
+ *   hCt → runtimeHeadersRequestKey          (118529 / 100763；A1-R15 行校正，旧注 118512)
+ *   gCt → respondProviderRuntimeHeadersOnce (118536 / 100766 附近；A1-R15 实体化，行校正 118519→118536)
+ *   _Ct → coalescedRuntimeHeadersResponse   (118589 / 100800 附近；A1-R15 实体化，行校正 118572→118589)
+ *   vCt → RuntimeAuthHeadersController      (118625 / 100853；A1-R15 行校正，旧注 118608)
  *  [Session 错误]（js 118641–118660 / jsx 100891–100899）
  *   yCt/bCt/xCt/SCt → 订阅错误面/缺省 fault 键/正则 (jsx 100891–100894)
  *   CCt → parseFaultKey                     (118643 / 100895)
@@ -112,6 +112,7 @@
 
 import * as React from "react";
 import { logger } from './SkillStore';
+import { isCaptchaProtectedProvider, takeRuntimeProviderHeaders, restoreCaptchaVerificationForSend, type CaptchaConfig } from './ConversationLeaves'; // A1-R15：§4 gCt/_Ct 实体化消费（原 b0 118309 / aCt 118344 / fCt 118446 真身）；环安全：ConversationLeaves 不反引本文件（grep 实证），新边叶向单向
 
 /* ============================================================================
  * 〔A0-S4-4b：components 拆分（conversation/composer 域）——本文件现为薄 re-export shim〕
@@ -200,9 +201,11 @@ const CAPTCHA_SESSION_STORAGE_KEY = `aliyun_captcha_verification`;
 
 /**
  * Aliyun 验证码部件（原 ASt，js 117919 / jsx 100205–100473；接口级）。
- * 动态加载 AliyunCaptcha.js → 容器内渲染滑块/无痕验证 → 成功后把
- * 验证参数写入会话存储（CAPTCHA_SESSION_STORAGE_KEY）并回调
- * （头部注入 CAPTCHA_VERIFY_PARAM_HEADER）。失败回调 CAPTCHA_VERIFY_FAILED_CODE。
+ * A1-R15 勘误：ASt 真身 117936 = SDK fail 处理器（s0/bSt/o0/a0/_St/TSt 族），非 React 部件；
+ * 部件真身 = wSt@117871 宿主容器（CSt/l0/u0 三元素）+ jSt@117983 SDK 初始化编排等
+ * 整域 117754–118290（约 25 函数，含 Promise 编排/遥测 HSt/ARMS 事件 VSt），体量另批实体化。
+ * declare 期「RSt 会话存储键」描述亦误读——RSt 118237 为 ARMS 事件名（VSt 118247 消费）。
+ * 本树零调用点（grep 实证仅头表/碑文提及），维持接口级 declare 留批。
  */
 declare const AliyunCaptchaWidget: React.FC<{
   providerId: string;
@@ -214,44 +217,133 @@ declare const AliyunCaptchaWidget: React.FC<{
 /* ── tombstone（A1-R14）：declare function isCaptchaProvider（原 b0，js 118309 / jsx 100548；旧注 118292 漂移）
  *    删除——本文件零调用点（实测 grep 仅余声明位与头表）；canonical = ConversationLeaves §5
  *    isCaptchaProtectedProvider（既有逐字实体，A1-R14 NCt 批消费面在案）。 ── */
-/** 原 aCt（js 118327 / jsx 100582）：读取已恢复的 captcha 头（会话存储） */
-declare function consumeRecoveredCaptchaHeader(args: {
-  providerId: string;
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  sessionId: string | null;
-}): Record<string, string> | null;
-/** 原 fCt（js 118429 / jsx ~100618）：刷新 captcha 运行时头（订阅服务） */
-declare function refreshCaptchaRuntimeHeaders(args: {
-  providerId: string;
-  providerConfig: unknown;
-  codingPlanSubscriptionService: unknown;
-  modelProviderService: unknown;
-}): Promise<{ headers: Record<string, string> } | null>;
+/* ── tombstone（A1-R15）：declare function consumeRecoveredCaptchaHeader（原 aCt，js 118344 / jsx 100582；
+ *    declare 期旧注 118327 漂移、「会话存储」描述为误读——真身读取 C0 运行时头账本并取出即清）删除——
+ *    canonical = ConversationLeaves takeRuntimeProviderHeaders（既有逐字实体），本文件
+ *    respondProviderRuntimeHeadersOnce 转录体经文件头 import 直接消费（调用点 = bundle 118545）。 ── */
+/* ── tombstone（A1-R15）：declare function refreshCaptchaRuntimeHeaders（原 fCt，js 118446 / jsx ~100618；
+ *    declare 期旧注 118429 漂移、`{ headers } | null` 返回面为近似）删除——canonical = ConversationLeaves
+ *    restoreCaptchaVerificationForSend（A1-R15 校正回逐字真身：{ captchaVerifyParam, headers } | undefined，
+ *    含 dCt/w0/LSt 三段），经文件头 import 消费（调用点 = bundle 118559）。 ── */
 
-/** 原 hCt（js 118512 / jsx 100763）：请求合并键 */
+/** 原 hCt（js 118529 / jsx 100763；A1-R15 行校正，旧注 118512）：请求合并键 */
 function runtimeHeadersRequestKey(request: { workspace: { workspacePath?: string; workspaceIdentity?: string | null }; sessionId: string | null; requestId: string }): string {
   return [request.workspace.workspaceIdentity?.trim() || request.workspace.workspacePath, request.sessionId, request.requestId].join(`::`);
 }
 /** 原 O0（jsx 100762）：在途请求表（按键合并，避免重复验证） */
 const runtimeHeadersInFlight = new Map<string, Promise<void>>();
 
-/**
- * 原 gCt（js 118519 / jsx ~100766）：处理一次 provider 运行时头请求：
+/* --- A1-R15：gCt/_Ct 实体化（js 118536–118624，逐字转录） ---
+ * 映射表（minified → 语义名 → bundle 行）：
+ *   gCt → respondProviderRuntimeHeadersOnce (118536)  处理一次 provider 运行时头请求
+ *   _Ct → coalescedRuntimeHeadersResponse   (118589)  按键合并在途请求
+ * 行内消费：b0=isCaptchaProtectedProvider / aCt=takeRuntimeProviderHeaders /
+ *   fCt=restoreCaptchaVerificationForSend（ConversationLeaves 改指）；hCt=runtimeHeadersRequestKey /
+ *   O0=runtimeHeadersInFlight（本文件既转录）；J=logger。
+ * 终端消费：本文件 RuntimeAuthHeadersControllerImpl（vCt 实体，= bundle 118635 _Ct 调用点）。 ── */
+
+/** 原 gCt（js 118536 / jsx ~100766）— 逐字；处理一次 provider 运行时头请求：
  * 需要 captcha 的 provider → 优先用已恢复的验证头，否则刷新获取 →
- * respondProviderRuntimeHeaders 回执（headersApplied/errorMessage/runtimeProviderHeaders）。
- */
-declare function respondProviderRuntimeHeadersOnce(args: {
+ * respondProviderRuntimeHeaders 回执（headersApplied/errorMessage/runtimeProviderHeaders）。 */
+async function respondProviderRuntimeHeadersOnce(e: {
   request: { providerId: string; workspace: { workspacePath?: string; workspaceIdentity?: string | null }; sessionId: string | null; requestId: string };
   zcodeSessionService: { respondProviderRuntimeHeaders(args: object): Promise<void> };
-  codingPlanSubscriptionService: unknown;
+  codingPlanSubscriptionService: { getCaptchaConfig?(): Promise<CaptchaConfig | null>; [method: string]: unknown };
   modelProviderService: { getAllCached(): Promise<{ id: string }[]> };
-}): Promise<void>;
-/** 原 _Ct（js 118572 / jsx ~100800）：按键合并在途请求 */
-declare function coalescedRuntimeHeadersResponse(args: Parameters<typeof respondProviderRuntimeHeadersOnce>[0]): Promise<void>;
+}): Promise<void> {
+  let t = !1,
+    n,
+    r;
+  try {
+    let n = (await e.modelProviderService.getAllCached()).find(
+      (t) => t.id === e.request.providerId,
+    );
+    if (isCaptchaProtectedProvider(n)) {
+      let i = takeRuntimeProviderHeaders({
+        providerId: e.request.providerId,
+        workspacePath: e.request.workspace.workspacePath,
+        workspaceIdentity: e.request.workspace.workspaceIdentity,
+        sessionId: e.request.sessionId,
+      });
+      if (i)
+        ((r = i),
+          logger.info(`[captcha] provider runtime headers consumed recovered captcha header`, {
+            providerId: e.request.providerId,
+            requestId: e.request.requestId,
+            sessionId: e.request.sessionId,
+          }));
+      else {
+        let t = await restoreCaptchaVerificationForSend({
+          providerId: e.request.providerId,
+          providerConfig: n,
+          codingPlanSubscriptionService: e.codingPlanSubscriptionService,
+          modelProviderService: e.modelProviderService,
+        });
+        t && (r = t.headers);
+      }
+      t = !!r;
+    }
+  } catch (t) {
+    ((n = t instanceof Error ? t.message : String(t)),
+      logger.warn(`[captcha] provider runtime headers refresh failed`, {
+        providerId: e.request.providerId,
+        requestId: e.request.requestId,
+        error: n,
+      }));
+  }
+  await e.zcodeSessionService.respondProviderRuntimeHeaders({
+    workspacePath: e.request.workspace.workspacePath,
+    workspaceIdentity: e.request.workspace.workspaceIdentity,
+    sessionId: e.request.sessionId,
+    requestId: e.request.requestId,
+    response: {
+      headersApplied: t,
+      ...(n ? { errorMessage: n } : {}),
+      ...(r ? { runtimeProviderHeaders: r } : {}),
+    },
+  });
+}
+
+/** 原 _Ct（js 118589 / jsx ~100800；A1-R15 行校正，旧注 118587）— 逐字；按键合并在途请求 */
+async function coalescedRuntimeHeadersResponse(e: Parameters<typeof respondProviderRuntimeHeadersOnce>[0]): Promise<void> {
+  let t = runtimeHeadersRequestKey(e.request),
+    n = runtimeHeadersInFlight.get(t);
+  if (n) {
+    logger.info(`[captcha] provider runtime headers request coalesced`, {
+      providerId: e.request.providerId,
+      requestId: e.request.requestId,
+      sessionId: e.request.sessionId,
+    });
+    try {
+      await n;
+    } catch (t) {
+      logger.warn(`[captcha] provider runtime headers coalesced response failed`, {
+        error: t instanceof Error ? t.message : String(t),
+        providerId: e.request.providerId,
+        requestId: e.request.requestId,
+        sessionId: e.request.sessionId,
+      });
+    }
+    return;
+  }
+  let r = respondProviderRuntimeHeadersOnce(e).finally(() => {
+    runtimeHeadersInFlight.delete(t);
+  });
+  runtimeHeadersInFlight.set(t, r);
+  try {
+    await r;
+  } catch (t) {
+    logger.warn(`[captcha] provider runtime headers response failed`, {
+      error: t instanceof Error ? t.message : String(t),
+      providerId: e.request.providerId,
+      requestId: e.request.requestId,
+      sessionId: e.request.sessionId,
+    });
+  }
+}
 
 /**
- * 运行时认证头控制器（原 vCt，js 118608 / jsx 100853）。
+ * 运行时认证头控制器（原 vCt，js 118625 / jsx 100853；A1-R15 行校正，旧注 118608）。
  * 渲染为 null：仅订阅 onDynamicProviderRuntimeHeadersRequest 事件，
  * 把 provider 运行时头请求转交 captcha 流程处理。
  * 由 ConversationPane（R0）在会话激活时挂载。
@@ -294,7 +386,7 @@ function RuntimeAuthHeadersControllerImpl({
   return null;
 }
 declare function useOverlayServices(): {
-  codingPlanSubscriptionService: unknown;
+  codingPlanSubscriptionService: { getCaptchaConfig?(): Promise<CaptchaConfig | null>; [method: string]: unknown }; // A1-R15 型缝：gCt 118561 → fCt codingPlanSubscriptionService 消费面（原 unknown 过窄）
   modelProviderService: { getAllCached(): Promise<{ id: string }[]> };
   zcodeAgentService: {
     onDynamicProviderRuntimeHeadersRequest(scope: object): (handler: (request: Parameters<typeof respondProviderRuntimeHeadersOnce>[0]["request"]) => void) => { dispose(): void };
