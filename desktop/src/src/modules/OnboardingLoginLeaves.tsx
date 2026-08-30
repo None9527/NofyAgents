@@ -377,7 +377,8 @@ export type {
   PaneWorkspaceScope,
   PaneLayoutState,
   QuotaBannerModel,
-  CaptchaGatekeeper,
+  // CaptchaGatekeeper type import 撤除（A1-R14）：本文件零使用；原导出面（components/onboarding
+  // OnboardingLoginLeaves）随死 declare 批删除，canonical = ConversationLeaves §5b。
   DiffsHighlighterOptions,
   TaskBroadcastPayload,
   TaskStreamPayload,

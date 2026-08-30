@@ -76,6 +76,8 @@ export interface BaseServices {
     onDidChangeProviderRegistry(cb: (event: any) => void): { dispose(): void };
     refreshCodingPlanApiKey(providerId: string): Promise<any>;
     getAllCached(): Promise<any>;
+    /** A1-R14 型缝（NCt 118808 消费面）：3007 自动恢复按 id 查 provider（缓存未中回源） */
+    getAll(): Promise<any>;
     [method: string]: unknown;
   };
   repoWikiService?: {

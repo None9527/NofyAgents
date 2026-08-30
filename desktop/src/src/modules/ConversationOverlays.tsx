@@ -80,7 +80,7 @@
  *   FSt → CAPTCHA_VERIFY_PARAM_HEADER       (jsx 100474)
  *   RSt → CAPTCHA_SESSION_STORAGE_KEY       (jsx 100485)
  *   XSt → CAPTCHA_VERIFY_FAILED             (jsx 100551)
- *   b0  → isCaptchaProvider                 (118292 / 100548)
+ *   b0  → isCaptchaProvider                 (118309 / 100548；A1-R14 删碑改指 ConversationLeaves，行校正 118292→118309)
  *   aCt → consumeRecoveredCaptchaHeader     (118327 / 100582)
  *   fCt → refreshCaptchaRuntimeHeaders      (118429 / 100618 附近)
  *   dCt → useCaptchaRecovery（接口级）       (118412 / 100659)
@@ -193,8 +193,10 @@ const ALIYUN_CAPTCHA_CONTAINER_ID = `zcode-aliyun-captcha-container`;
 const CAPTCHA_VERIFY_PARAM_HEADER = `X-Aliyun-Captcha-Verify-Param`;
 /** 原 RSt（jsx 100485） */
 const CAPTCHA_SESSION_STORAGE_KEY = `aliyun_captcha_verification`;
-/** 原 XSt（jsx 100551） */
-const CAPTCHA_VERIFY_FAILED_CODE = `CAPTCHA_VERIFY_FAILED`;
+/* ── tombstone（A1-R14）：const CAPTCHA_VERIFY_FAILED_CODE（原 XSt，js 118312 / jsx 100551）删除——
+ *    本文件零代码引用（实测 grep 仅注释提及）；canonical = ConversationLeaves §5
+ *    CAPTCHA_VERIFY_FAILED_CODE（与 ZSt 同 var 声明位，A1-R14 NCt 批置入并导出）。
+ *    本文件 AliyunCaptchaWidget declare 实体化时经 ConversationLeaves import 取回。 ── */
 
 /**
  * Aliyun 验证码部件（原 ASt，js 117919 / jsx 100205–100473；接口级）。
@@ -209,8 +211,9 @@ declare const AliyunCaptchaWidget: React.FC<{
   onError: (error: { code: string; message?: string }) => void;
 }>;
 
-/** 原 b0（js 118292 / jsx 100548）：provider 是否需要 captcha（配置判定） */
-declare function isCaptchaProvider(provider: unknown): boolean;
+/* ── tombstone（A1-R14）：declare function isCaptchaProvider（原 b0，js 118309 / jsx 100548；旧注 118292 漂移）
+ *    删除——本文件零调用点（实测 grep 仅余声明位与头表）；canonical = ConversationLeaves §5
+ *    isCaptchaProtectedProvider（既有逐字实体，A1-R14 NCt 批消费面在案）。 ── */
 /** 原 aCt（js 118327 / jsx 100582）：读取已恢复的 captcha 头（会话存储） */
 declare function consumeRecoveredCaptchaHeader(args: {
   providerId: string;

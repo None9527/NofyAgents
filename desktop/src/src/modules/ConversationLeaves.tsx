@@ -84,9 +84,11 @@
  *   r0/i0/_St/vSt/a0/o0/ySt/bSt/s0/c0/xSt/SSt → 失败载荷解析族 (— / 100045–100100)
  *   FSt/ISt/LSt → 验证头名/区域头名/头构建 (— / 100470–100478)
  *   RSt/zSt/BSt/VSt/HSt → ARMS 事件名/组/注入/构建/上报 (— / 100480–100500)
- *   b0   → isCaptchaProtectedProvider (118292 / 100548)
+ *   b0   → isCaptchaProtectedProvider (118309 / 100548)
  *   nCt/w0/T0/rCt/iCt/aCt → 验证参数缓存/运行时头账本 (— / 100560–100590)
  *   E0/D0/oCt/sCt/cCt/lCt/uCt/dCt/fCt → 配置缓存/可用性/语言/串行队列/预检/发送前恢复 (— / 100590–100680)
+ *   XSt/ZSt → CAPTCHA_VERIFY_FAILED_CODE/CAPTCHA_VERIFY_FAILED_MESSAGE (118312–118313)
+ *   mCt/kCt/ACt/jCt/A0/j0/MCt/M0/NCt → 3007 自动恢复链（§5b：retryCaptchaForRecovery/createCaptchaGatekeeper/buildCaptchaAssertionKeys/findCaptchaRecoveryEditTarget/captchaAssertionStatus/recordCaptchaFailure/sharedCaptchaRecoveryGatekeeper/isCaptchaDecisionHandled/useSessionErrorRecovery，118462–118867；A1-R14）
  *  [Interaction] 交互通知 toast：
  *   eSt  → useWorkspaceInteractionNotifier (117283 / 99619)
  *   tSt  → useSnapshotInteractionNotifier  (117346 / 99703)
@@ -125,7 +127,8 @@ import * as React from "react";
 import type { CodePreviewSettings, FileLinkModel } from './MarkdownIntegration'; // 〔A0-S4-4b〕§0 共享类型 ToolCallViewProps 签名所需二型别（原导入块余量，type-only）
 import { logger } from './SkillStore';
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
-import { useServices } from './services'; // 原 eSt 内 fs()（bundle 117331）= context 面 useServices（A0-D 裁决：基线误名 useWorkspaceServices）
+import { useServices, useBaseServices } from './services'; // 原 eSt 内 fs()（bundle 117331）= context 面 useServices（A0-D 裁决：基线误名 useWorkspaceServices）；+useBaseServices（原 Ec，4945；A1-R14 §5b NCt 消费）
+import { normalizeCaptchaCode } from './StoresDeep'; // A1-R14：原 Cw（40570，R12 收敛 stub）——§5b NCt 3007 判定消费；环安全：StoresDeep 不反引本文件（grep 实证）
 
 /* ── tombstone（A0-D）：FileOpenWithMenu（原 v_t，110427 / 94447）的跨文件 import
  *    已回退为下方 declare——属主 FileRewindDialogDeep.tsx 本地定义未导出（全文件
@@ -987,7 +990,8 @@ async function runAliyunCaptchaVerification(
 /** 原 FSt/ISt/LSt：验证头 */
 export const CAPTCHA_VERIFY_HEADER = "X-Aliyun-Captcha-Verify-Param";
 export const CAPTCHA_REGION_HEADER = "X-Aliyun-Captcha-Verify-Region";
-export function buildCaptchaHeaders(args: { captchaVerifyParam: string; captchaRegion?: string | null }): Record<string, string> {
+export function buildCaptchaHeaders(args: { providerId?: string; captchaVerifyParam: string; captchaRegion?: string | null }): Record<string, string> {
+  // A1-R14 型缝：providerId 为 mCt 118508 调用面携带字段（LSt 体内不读，bundle 逐字如此）
   const region = args.captchaRegion?.trim();
   return {
     [CAPTCHA_VERIFY_HEADER]: args.captchaVerifyParam,
@@ -1068,7 +1072,7 @@ function isZcodePlanBaseUrl(value?: string | null): boolean {
         normalized.endsWith("/zcode-plan/anthropic")
     : false;
 }
-/** 原 b0（118292 / 100548）：供应商是否受 captcha 保护（zcode-plan 基址判定） */
+/** 原 b0（118309 / 100548；A1-R14 行校正，旧注 118292）：供应商是否受 captcha 保护（zcode-plan 基址判定） */
 export function isCaptchaProtectedProvider(provider: unknown): boolean {
   return (
     isZcodePlanBaseUrl(provider ? resolveProviderEndpoint(provider, "openai-compatible") : undefined) ||
@@ -1077,8 +1081,10 @@ export function isCaptchaProtectedProvider(provider: unknown): boolean {
 }
 
 export const CAPTCHA_VERIFY_FAILED_MESSAGE = "Captcha verification failed. Please try again."; // ZSt
+/** 原 XSt（js 118312）：captcha 验证失败错误码（A1-R14 canonical：ConversationOverlays 私有副本删碑改归本文件，与 ZSt 同 var 声明位） */
+export const CAPTCHA_VERIFY_FAILED_CODE = `CAPTCHA_VERIFY_FAILED`;
 
-/** 原 nCt/w0/T0/rCt/iCt/aCt：验证参数缓存 + 运行时头账本 */
+/** 原 nCt/w0/T0/rCt/iCt/aCt：验证参数缓存 + 运行时头账本（A1-R14：workspacePath 放宽为可选——bundle T0 118331 `e.workspaceIdentity?.trim() || e.workspacePath` 容忍 undefined；mCt/NCt 消费面 118503/118856 传可选值） */
 const captchaParamCache = new Map<string, { param: string; obtainedAt: number }>(); // QSt
 const certifyIdByProvider = new Map<string, string>(); // $St
 const runtimeHeadersBySession = new Map<string, Record<string, string>>(); // C0
@@ -1089,19 +1095,19 @@ function cacheCaptchaParam(providerId: string, param: string): void {
 function forgetCaptchaParam(providerId: string): void {
   captchaParamCache.delete(providerId.trim());
 }
-function runtimeHeadersKey(entry: { workspaceIdentity?: string | null; workspacePath: string; sessionId?: string | null; providerId: string }): string {
+function runtimeHeadersKey(entry: { workspaceIdentity?: string | null; workspacePath?: string; sessionId?: string | null; providerId: string }): string {
   return [entry.workspaceIdentity?.trim() || entry.workspacePath, entry.sessionId?.trim() ?? "", entry.providerId.trim()].join("::");
 }
-function rememberRuntimeHeaders(entry: { workspaceIdentity?: string | null; workspacePath: string; sessionId?: string | null; providerId: string; runtimeProviderHeaders: Record<string, string> }): void {
+function rememberRuntimeHeaders(entry: { workspaceIdentity?: string | null; workspacePath?: string; sessionId?: string | null; providerId: string; runtimeProviderHeaders: Record<string, string> }): void {
   if (!entry.providerId.trim()) return;
   runtimeHeadersBySession.set(runtimeHeadersKey(entry), entry.runtimeProviderHeaders);
 }
-function forgetRuntimeHeaders(entry: { workspaceIdentity?: string | null; workspacePath: string; sessionId?: string | null; providerId: string; runtimeProviderHeaders: Record<string, string> }): void {
+function forgetRuntimeHeaders(entry: { workspaceIdentity?: string | null; workspacePath?: string; sessionId?: string | null; providerId: string; runtimeProviderHeaders: Record<string, string> }): void {
   const key = runtimeHeadersKey(entry);
   if (runtimeHeadersBySession.get(key) === entry.runtimeProviderHeaders) runtimeHeadersBySession.delete(key);
 }
 /** 原 aCt（— / 100585）：取出并清除运行时头 */
-export function takeRuntimeProviderHeaders(entry: { workspaceIdentity?: string | null; workspacePath: string; sessionId?: string | null; providerId: string }): Record<string, string> | undefined {
+export function takeRuntimeProviderHeaders(entry: { workspaceIdentity?: string | null; workspacePath?: string; sessionId?: string | null; providerId: string }): Record<string, string> | undefined {
   const key = runtimeHeadersKey(entry);
   const headers = runtimeHeadersBySession.get(key);
   runtimeHeadersBySession.delete(key);
@@ -1167,7 +1173,7 @@ async function withVerificationQueue<T>(providerId: string | undefined, run: () 
 /** 原 uCt：发送前预检（配置可用 → 重置 → 验证 → 缓存参数 + ARMS） */
 async function runSendPreflightCaptcha(
   service: { getCaptchaConfig?(): Promise<CaptchaConfig | null> },
-  options: { providerId?: string; source?: string } = {},
+  options: { providerId?: string; source?: string; modelProviderService?: unknown } = {}, // A1-R14 型缝：modelProviderService 为 mCt 118494 调用面携带字段（uCt 体内不读）
 ): Promise<string | undefined> {
   const config = await getCachedCaptchaConfig(service);
   if (!config || isCaptchaConfigUnusable(config)) return undefined;
@@ -1218,6 +1224,283 @@ export async function restoreCaptchaVerificationForSend(args: {
   });
   if (!param?.trim()) throw Error(CAPTCHA_VERIFY_FAILED_MESSAGE);
   return param;
+}
+
+/* --- 5b. 3007 自动恢复链（原 mCt/kCt/ACt/jCt/A0/j0/MCt/M0/NCt，js 118462–118867；A1-R14 实体化）
+ * 映射表（minified → 语义名 → bundle 行）：
+ *   mCt → retryCaptchaForRecovery        (118462)  私有（调用点仅 NCt 118818）
+ *   kCt → createCaptchaGatekeeper        (118735)  导出（AppRootLeaves c8t 212506 消费）
+ *   ACt → buildCaptchaAssertionKeys      (118738)  导出（NCt 118793 + c8t 212493；返回 ::连接串，旧 declare 面 string[] 为 declare 期近似）
+ *   jCt → findCaptchaRecoveryEditTarget  (118747)  私有（调用点仅 NCt 118785）
+ *   A0  → captchaAssertionStatus         (118765)  导出（NCt 118801 + c8t）
+ *   j0  → recordCaptchaFailure           (118772)  导出（NCt 118862 + c8t）
+ *   MCt → sharedCaptchaRecoveryGatekeeper(118775)  私有模块实例（NCt 专用）
+ *   M0  → isCaptchaDecisionHandled       (118776)  导出（NCt 118838 + c8t）
+ *   NCt → useSessionErrorRecovery        (118779)  导出（Conversation.tsx ConversationPane 5328 = bundle 120963 消费）
+ * 行内消费：b0=isCaptchaProtectedProvider / E0=getCachedCaptchaConfig / D0=isCaptchaConfigUnusable /
+ *   w0=forgetCaptchaParam / uCt=runSendPreflightCaptcha / dCt=noteCaptchaCertifyIdForSend /
+ *   LSt=buildCaptchaHeaders / rCt=rememberRuntimeHeaders / iCt=forgetRuntimeHeaders（本文件 §5）；
+ *   Cw=normalizeCaptchaCode（StoresDeep，R12 收敛 stub——stub 语义下 3007 判定恒不成立，自动恢复为死路，逐字保留）；
+ *   Ec=useBaseServices（services/remoteServices 177）；XSt=CAPTCHA_VERIFY_FAILED_CODE（本文件 §5）。
+ */
+/** 原 mCt（js 118462）— 逐字；3007 恢复再验证（b0 门控 → 配置可用 → 验证 → 头入账） */
+async function retryCaptchaForRecovery(e: {
+  scope: string;
+  workspacePath?: string;
+  workspaceIdentity?: string | null;
+  taskId: string | null;
+  providerId: string;
+  providerConfig: unknown;
+  codingPlanSubscriptionService: { getCaptchaConfig?(): Promise<CaptchaConfig | null>; [method: string]: unknown }; // 型缝：索引签名承载 ResolvedBaseServices 面（弱型检查需共有成员，getCaptchaConfig 为 E0 118473 消费面）
+  modelProviderService?: unknown;
+}): Promise<{ captchaVerifyParam: string; headers: Record<string, string> } | undefined> {
+  if (!isCaptchaProtectedProvider(e.providerConfig)) {
+    logger.info(`[captcha] retry-captcha skipped: provider is not zcode-plan`, {
+      providerId: e.providerId,
+      scope: e.scope,
+      taskId: e.taskId ?? null,
+      workspacePath: e.workspacePath,
+    });
+    return;
+  }
+  let t = await getCachedCaptchaConfig(e.codingPlanSubscriptionService);
+  if (!t || isCaptchaConfigUnusable(t)) {
+    logger.info(`[captcha] retry-captcha skipped: captcha config unavailable`, {
+      enabled: t?.enabled ?? null,
+      hasPrefix: !!t?.prefix,
+      hasRegion: !!t?.region,
+      hasSceneId: !!t?.sceneId,
+      providerId: e.providerId,
+      scope: e.scope,
+      taskId: e.taskId ?? null,
+      workspacePath: e.workspacePath,
+    });
+    return;
+  }
+  (logger.info(`[captcha] retry-captcha verification start`, {
+    providerId: e.providerId,
+    scope: e.scope,
+    taskId: e.taskId ?? null,
+    workspacePath: e.workspacePath,
+  }),
+    forgetCaptchaParam(e.providerId));
+  let n = await runSendPreflightCaptcha(e.codingPlanSubscriptionService, {
+    providerId: e.providerId,
+    modelProviderService: e.modelProviderService,
+    source: `captcha_retry`,
+  });
+  if (!n?.trim()) {
+    logger.warn(`[captcha] retry-captcha verification returned empty param`, {
+      providerId: e.providerId,
+      scope: e.scope,
+      taskId: e.taskId ?? null,
+      workspacePath: e.workspacePath,
+    });
+    return;
+  }
+  noteCaptchaCertifyIdForSend(e.providerId, n);
+  let r = buildCaptchaHeaders({ providerId: e.providerId, captchaVerifyParam: n, captchaRegion: t.region });
+  return (
+    forgetCaptchaParam(e.providerId),
+    rememberRuntimeHeaders({
+      providerId: e.providerId,
+      workspacePath: e.workspacePath,
+      workspaceIdentity: e.workspaceIdentity,
+      sessionId: e.taskId,
+      runtimeProviderHeaders: r,
+    }),
+    logger.info(`[captcha] retry-captcha request-scoped runtime header staged`, {
+      paramLength: n.length,
+      providerId: e.providerId,
+      scope: e.scope,
+      taskId: e.taskId ?? null,
+      workspacePath: e.workspacePath,
+    }),
+    { captchaVerifyParam: n, headers: r }
+  );
+}
+
+/** captcha 恢复去重门闩（原 kCt 返回面；bundle 118735） */
+export interface CaptchaGatekeeper {
+  handledKeys: Set<string>;
+  inFlightKeys: Set<string>;
+}
+/** 原 kCt（js 118735）— 逐字 */
+export function createCaptchaGatekeeper(): CaptchaGatekeeper {
+  return { handledKeys: new Set(), inFlightKeys: new Set() };
+}
+/** 原 ACt（js 118738）— 逐字；五段 ::连接断言键（树名沿用 declare 期 buildCaptchaAssertionKeys） */
+export function buildCaptchaAssertionKeys(e: {
+  workspaceIdentity?: string | null;
+  workspacePath?: string;
+  sessionId: string | null;
+  providerId: string;
+  providerBusinessCode: string;
+  rootSourceCommandId: string;
+}): string {
+  return [
+    e.workspaceIdentity?.trim() || e.workspacePath,
+    e.sessionId,
+    e.providerId,
+    e.providerBusinessCode,
+    e.rootSourceCommandId,
+  ].join(`::`);
+}
+
+/** 3007 恢复行窄面（bundle jCt 118747 读取面；与 Conversation.tsx ConversationRow 联合结构兼容：
+ *  userInput 变体 text 必有，其余六种行归入第二成员；rootSourceCommandId 为 proto 真存字段，
+ *  declare 期 UserInputRow 未列，经可选面结构承载） */
+type CaptchaRecoveryRow =
+  | { kind: `userInput`; rowId: number; origin?: string; actions?: { canEdit?: boolean }; entityId?: string | null; rootSourceCommandId?: string | null; text: string }
+  | { kind: `assistantText` | `reasoning` | `turnHeader` | `timelineMarker` | `toolCall` | `subagent`; rowId: number; origin?: string; actions?: { canEdit?: boolean }; entityId?: string | null; rootSourceCommandId?: string | null; text?: string };
+
+/** 原 jCt（js 118747）— 逐字；末条可编辑真实用户输入解析（权威 edit target） */
+function findCaptchaRecoveryEditTarget(e: CaptchaRecoveryRow[]): {
+  target: { rowId: number; entityId: string };
+  newText: string;
+  rootSourceCommandId: string;
+} | null {
+  for (let t = e.length - 1; t >= 0; --t) {
+    let n = e[t];
+    if (!(
+      n?.kind !== `userInput` ||
+      n.origin !== `realUser` ||
+      n.actions?.canEdit !== !0 ||
+      !n.entityId ||
+      !n.rootSourceCommandId?.trim()
+    ))
+      return {
+        target: { rowId: n.rowId, entityId: n.entityId },
+        newText: n.text,
+        rootSourceCommandId: n.rootSourceCommandId.trim(),
+      };
+  }
+  return null;
+}
+
+/** 原 A0（js 118765）— 逐字；键状态机（首触 started → 在途 in-flight → 了结 handled） */
+export function captchaAssertionStatus(e: CaptchaGatekeeper, t: string): `handled` | `in-flight` | `started` {
+  return e.handledKeys.has(t)
+    ? `handled`
+    : e.inFlightKeys.has(t)
+      ? `in-flight`
+      : (e.inFlightKeys.add(t), `started`);
+}
+/** 原 j0（js 118772）— 逐字；在途了结（成功记 handled，失败释出允许重试） */
+export function recordCaptchaFailure(e: CaptchaGatekeeper, t: string, n: boolean): void {
+  (e.inFlightKeys.delete(t), n && e.handledKeys.add(t));
+}
+/** 原 MCt（js 118775）：NCt 专用共享门闩（模块级单例） */
+const sharedCaptchaRecoveryGatekeeper = createCaptchaGatekeeper();
+/** 原 M0（js 118776）— 逐字；edit 回执是否视为了结（accepted/duplicate） */
+export function isCaptchaDecisionHandled(e: { status: string }): boolean {
+  return e.status === `accepted` || e.status === `duplicate`;
+}
+
+/** 原 NCt（js 118779 / jsx 100999）— 逐字；会话错误自动恢复（3007 → 末条用户输入重编辑）。
+ *  消费面：Conversation.tsx ConversationPane（本树 5328 = bundle 120963）。 */
+export function useSessionErrorRecovery(e: {
+  enabled: boolean;
+  error: { code?: string; message?: string } | null;
+  errorVisible: boolean;
+  sessionId: string | null;
+  providerId?: string | null;
+  rows: CaptchaRecoveryRow[];
+  workspacePath?: string;
+  workspaceIdentity?: string | null;
+  dispatchEdit: (target: { rowId: number; entityId: string }, newText: string) => Promise<{ status: string; reasonCode?: string }>;
+  onRecoveryStart?: () => void;
+  onRecoveryError: (error: { code: string; message: string }) => void;
+}): void {
+  let t = useBaseServices();
+  React.useEffect(() => {
+    let n = e.providerId?.trim() ?? ``,
+      r = normalizeCaptchaCode(e.error?.code, e.error?.message);
+    if (!e.enabled || !e.errorVisible || r !== `3007` || !e.sessionId || !n) return;
+    let i = findCaptchaRecoveryEditTarget(e.rows);
+    if (!i) {
+      logger.warn(`[v4-captcha] 3007 自动恢复跳过：缺少权威 edit target`, {
+        providerId: n,
+        sessionId: e.sessionId,
+      });
+      return;
+    }
+    let a = buildCaptchaAssertionKeys({
+      workspacePath: e.workspacePath,
+      workspaceIdentity: e.workspaceIdentity,
+      sessionId: e.sessionId,
+      providerId: n,
+      providerBusinessCode: `3007`,
+      rootSourceCommandId: i.rootSourceCommandId,
+    });
+    captchaAssertionStatus(sharedCaptchaRecoveryGatekeeper, a) === `started` &&
+      (async () => {
+        let r = !1,
+          o;
+        e.onRecoveryStart?.();
+        try {
+          let a = (await t.modelProviderService.getAllCached()).find((e: { id: string }) => e.id === n);
+          if (((a ||= (await t.modelProviderService.getAll()).find((e: { id: string }) => e.id === n)), !a))
+            throw Error(`captcha_provider_not_found:${n}`);
+          if (!isCaptchaProtectedProvider(a)) {
+            (logger.info(`[v4-captcha] 3007 自动恢复跳过：当前 provider 不使用阿里云验证码`, {
+              providerId: n,
+              sessionId: e.sessionId,
+            }),
+              (r = !0));
+            return;
+          }
+          let s = await retryCaptchaForRecovery({
+            scope: `V4Conversation.autoRetry`,
+            workspacePath: e.workspacePath,
+            workspaceIdentity: e.workspaceIdentity,
+            taskId: e.sessionId,
+            providerId: n,
+            providerConfig: a,
+            codingPlanSubscriptionService: t.codingPlanSubscriptionService,
+            modelProviderService: t.modelProviderService,
+          });
+          if (!s?.captchaVerifyParam.trim()) throw Error(`captcha_runtime_header_empty`);
+          o = s.headers;
+          let c = await e.dispatchEdit(i.target, i.newText);
+          if (((r = isCaptchaDecisionHandled(c)), !r))
+            throw Error(`captcha_edit_not_accepted:${c.status}:${c.reasonCode ?? ``}`);
+        } catch (t) {
+          (logger.warn(`[v4-captcha] 3007 自动恢复失败，保留当前 key 允许后续重试`, {
+            error: t instanceof Error ? t.message : String(t),
+            providerId: n,
+            sessionId: e.sessionId,
+          }),
+            e.onRecoveryError({ code: CAPTCHA_VERIFY_FAILED_CODE, message: t instanceof Error ? t.message : String(t) }));
+        } finally {
+          (!r &&
+            o &&
+            forgetRuntimeHeaders({
+              providerId: n,
+              workspacePath: e.workspacePath,
+              workspaceIdentity: e.workspaceIdentity,
+              sessionId: e.sessionId,
+              runtimeProviderHeaders: o,
+            }),
+            recordCaptchaFailure(sharedCaptchaRecoveryGatekeeper, a, r));
+        }
+      })();
+  }, [
+    t.codingPlanSubscriptionService,
+    t.modelProviderService,
+    e.dispatchEdit,
+    e.enabled,
+    e.error?.code,
+    e.error?.message,
+    e.errorVisible,
+    e.onRecoveryError,
+    e.onRecoveryStart,
+    e.providerId,
+    e.rows,
+    e.sessionId,
+    e.workspaceIdentity,
+    e.workspacePath,
+  ]);
 }
 
 /* ============================================================================
@@ -1467,8 +1750,10 @@ export function useSnapshotInteractionNotifier(args: {
  *   kSt 100160 | wSt 100110 | v0/TSt/ESt/DSt/OSt 100130–100190
  *   r0/i0/_St/vSt/a0/o0/ySt/bSt/s0/c0/xSt/SSt 100045–100100
  *   FSt/ISt/LSt 100470–100478 | RSt/zSt/BSt/VSt/HSt 100480–100500
- *   b0 118292/100548 | nCt/w0/T0/rCt/iCt/aCt 100560–100590
+ *   b0 118309/100548 | nCt/w0/T0/rCt/iCt/aCt 100560–100590
  *   E0/D0/oCt/sCt/cCt/lCt/uCt/dCt/fCt 100590–100680
+ *   XSt/ZSt 118312–118313 | mCt 118462 | kCt 118735 | ACt 118738 | jCt 118747 | A0 118765
+ *   j0 118772 | MCt 118775 | M0 118776 | NCt 118779（§5b 3007 自动恢复链，A1-R14）
  *  toast：eSt 117283/99619 | tSt 117346/99703 | Gxt 99539 | Kxt 99549 | qxt 99552
  *   Jxt 99555 | Yxt 99592 | Xxt 99599 | Zxt 99602 | Qxt 99605 | $xt 99608
  * ============================================================================

@@ -124,7 +124,7 @@ import type {
   UserInfo,
   LoginEntryRequest,
 } from "./OnboardingLoginLeaves";
-import { CaptchaHostContainer, injectArmsReporter as setArmsReportPlatform } from './ConversationLeaves'; // +setArmsReportPlatform（A1-R10 项 1c：原 BSt@118240 = y0 置入；canonical = ConversationLeaves injectArmsReporter（RSt/zSt/BSt/VSt/HSt 簇 999–1031 逐字在案；HSt 消费面 118420 = uCt 验证完成簇已接线 1187）；既有边）
+import { CaptchaHostContainer, injectArmsReporter as setArmsReportPlatform, buildCaptchaAssertionKeys, captchaAssertionStatus, createCaptchaGatekeeper, isCaptchaDecisionHandled, recordCaptchaFailure, type CaptchaGatekeeper } from './ConversationLeaves'; // +setArmsReportPlatform（A1-R10 项 1c：原 BSt@118240 = y0 置入；canonical = ConversationLeaves injectArmsReporter（RSt/zSt/BSt/VSt/HSt 簇 999–1031 逐字在案；HSt 消费面 118420 = uCt 验证完成簇已接线 1187）；既有边）+A1-R14：ACt/A0/kCt/j0/M0/CaptchaGatekeeper 六 declare 改指（§5b 实体，c8t 消费）
 import { setMcpSyncServiceHandle as setTelemetryReportPlatform } from '../stores/mcpStore'; // A1-R10 项 1c：原 b_e@25049 = Hg 置入；canonical = mcpStore setMcpSyncServiceHandle（Hg/mcpSyncServiceHandle 143–149 逐字；Lg=persistMcpChange 225 消费在案）。根装配 212931 以 platform 兼 MCP 同步句柄。环安全：mcpStore 值闭包 = logger/modules-services/zustand，不达本文件（全树无本文件 import 源）
 import { PlatformProvider } from './ImeComposition';
 import { AppDialogHost, DirectoryBrowserDialog, OnboardingDialog, type BaseServices } from './Modals'; // +type BaseServices（A0-CLEANUP2 item 16：DirectoryBrowserDialog services 断言改具名型）
@@ -271,14 +271,13 @@ interface QuotaAssertion {
 declare function resolveQuotaAssertion(options: Record<string, unknown>): QuotaAssertion; // 原 I0
 declare function quotaDismissKey(assertion: QuotaAssertion, instance: string): string; // 原 L0
 declare function captchaProviderOfTaskMeta(options: { taskMeta: { model: string } }): string; // 原 KSt
-declare function buildCaptchaAssertionKeys(options: Record<string, unknown>): string[]; // 原 ACt
-interface CaptchaGatekeeper {
-  [key: string]: any;
-}
-declare function createCaptchaGatekeeper(): CaptchaGatekeeper; // 原 kCt
-declare function captchaAssertionStatus(gatekeeper: CaptchaGatekeeper, keys: string[]): string; // 原 A0
-declare function recordCaptchaFailure(gatekeeper: CaptchaGatekeeper, keys: string[], retryable: boolean): void; // 原 j0
-declare function isCaptchaDecisionHandled(entry: { commandId: string; status: string; revisionAtDecision: number }): boolean; // 原 M0
+/* ── tombstone（A1-R14）：buildCaptchaAssertionKeys（原 ACt，118738）/ CaptchaGatekeeper 接口（kCt 返回面）/
+ *    createCaptchaGatekeeper（原 kCt，118735）/ captchaAssertionStatus（原 A0，118765）/
+ *    recordCaptchaFailure（原 j0，118772）/ isCaptchaDecisionHandled（原 M0，118776）六枚 declare 删除——
+ *    canonical = ConversationLeaves §5b 逐字实体（A1-R14 NCt 3007 恢复链批），经文件头既有边 import；
+ *    c8t（captchaParityAssertions，1449–1479 = bundle 212490–212517）调用点逐字不变。
+ *    型面校正：ACt 真身返回 ::连接串（string），旧 declare string[] 为 declare 期近似；
+ *    A0/j0 第二参真身为单键 string，旧 declare string[] 同属近似——c8t 消费面（单串传参）两形兼容。 ── */
 
 /* --- 启动音 / 渲染器 id --- */
 /* ── tombstone（A1-R10 2a）：declare function isStartupSoundEnabled(): boolean（原 Eie，js 1091）删除，

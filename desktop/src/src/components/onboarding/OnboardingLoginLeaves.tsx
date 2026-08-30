@@ -852,22 +852,14 @@ declare function resolveQuotaBannerModel(options: {
   serverProviderLimitedMessage?: string;
 }): QuotaBannerModel;
 declare function quotaDismissKey(banner: QuotaBannerModel, instance: string): string;
-declare function captchaProviderOfTaskMeta(options: { taskMeta: { model: string } }): string;
-declare function captchaEventKeys(options: {
-  workspacePath: string;
-  workspaceIdentity?: string;
-  sessionId: string;
-  providerId: string;
-  providerBusinessCode: string;
-  rootSourceCommandId: string;
-}): string[];
-export interface CaptchaGatekeeper {
-  [key: string]: any;
-}
-declare function createCaptchaGatekeeper(): CaptchaGatekeeper;
-declare function captchaPhase(gatekeeper: CaptchaGatekeeper, keys: string[]): string;
-declare function recordCaptchaFailure(gatekeeper: CaptchaGatekeeper, keys: string[], retryable: boolean): void;
-declare function isCaptchaDecisionHandled(entry: { commandId: string; status: string; revisionAtDecision: number }): boolean;
+/* ── tombstone（A1-R14）：captchaProviderOfTaskMeta（原 KSt，118284）/ captchaEventKeys（ACt 118738 之
+ *    declare 期误读面：真身返回 ::连接串而非键数组）/ CaptchaGatekeeper 接口（kCt 返回面）/
+ *    createCaptchaGatekeeper（原 kCt，118735）/ captchaPhase（原 A0，118765）/
+ *    recordCaptchaFailure（原 j0，118772）/ isCaptchaDecisionHandled（原 M0，118776）——
+ *    六 declare + 一接口全删：本文件零调用点（实测 grep 仅余声明位，A1-R8/R9 死 declare 先例同律）。
+ *    kCt/ACt/A0/j0/M0/CaptchaGatekeeper canonical = ConversationLeaves §5b 逐字实体（A1-R14）；
+ *    KSt 真身未转录（依赖 GSt/Ie/Uq），活 declare 面独存于 AppRootLeaves（c8t 212492 消费），留批。
+ *    modules/OnboardingLoginLeaves.tsx 对本文件 CaptchaGatekeeper 的 type import 同批撤除（零用）。 ── */
 
 /* --- 遥测监督器（横切 services）--- */
 /* ── tombstone（A1-R9）：resetTelemetryParityState（原 TPe）/setTelemetryPlatform

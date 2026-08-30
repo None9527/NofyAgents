@@ -117,7 +117,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/
 import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Copy as IconCopy, Pencil as IconPencil, GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, ArrowDownToLine as IconArrowDownToLine, SquareTerminal as IconSquareTerminal, File as IconFile, Bot as IconBot, Sparkles as IconSparkles, Target as IconTarget, GitBranch as IconGitBranch, Lightbulb as IconLightbulb, Eye as IconModelChange, Shield as IconShield, ThumbsUp as IconThumbsUp, ThumbsDown as IconThumbsDown, Rewind as IconRewind, Loader as IconLoader, LoaderCircle as IconSpinner, Info as IconInfo, Upload as IconUpload, Globe as IconGlobe, Gauge as IconGauge, Clock as IconClock, ListTodo as IconListTodo, MessageSquare as IconMessageSquare, Calendar as IconCalendar } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import * as ReactDOM from "react-dom";
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
-import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）
+import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, useSessionErrorRecovery, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）；+useSessionErrorRecovery（A1-R14：原 NCt 118779 实体化改指，消费点 5328）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
 import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep'; // 原 v_t/__t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
 import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）
@@ -4874,20 +4874,12 @@ declare function useRecoverablePendingCommands(args: {
 }): PendingCommandEntry[];
 
 /** 原 wCt（js 118647 / jsx 100899）：订阅错误上报（fault.* 键解析后去重） */
-/** 原 NCt（js 118762 / jsx 100999）：会话错误自动恢复（末条用户输入重编辑） */
-declare function useSessionErrorRecovery(args: {
-  enabled: boolean;
-  error: unknown;
-  errorVisible: boolean;
-  sessionId: string | null;
-  providerId?: string | null;
-  rows: ConversationRow[];
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  dispatchEdit: (target: { rowId: number; entityId?: string | null }, newText: string) => Promise<CommandAck>;
-  onRecoveryStart: () => void;
-  onRecoveryError: (error: { code: string; message: string; detail?: string; taskId?: string }) => void;
-}): void;
+/* ── tombstone（A1-R14）：declare function useSessionErrorRecovery（原 NCt，js 118779 / jsx 100999；
+ *    declare 期旧注 118762 漂移）删除——canonical = ConversationLeaves useSessionErrorRecovery
+ *    （§5b 逐字实体化；3007 自动恢复链 mCt/kCt/ACt/jCt/A0/j0/MCt/M0 同段落位），经文件头
+ *    ConversationLeaves import 消费。本文件消费点 5328（= bundle 120963）逐字不变；
+ *    Cw=normalizeCaptchaCode 为 StoresDeep R12 收敛 stub，stub 语义下 3007 判定恒不成立，
+ *    自动恢复为死路——与 declare 期（擦除=未接线）行为等价，转录逐字保留。 ── */
 /** 原 XCt（js 119084 / jsx 101245）：配额横幅视图模型（用量快照 + 服务端错误码合成） */
 declare function useSessionQuotaViewModel(args: {
   error: { code?: string; message?: string } | null;
