@@ -89,7 +89,7 @@
  *   供应商域：bw/hNe 供应商主机归一 (40397/40406)、xw reportTelemetry (40409)、
  *     gNe/_Ne/vNe 供应商业务错误表 (40419)、Sw/yNe/bNe 错误码→i18n/恢复动作 (40446–40452)、
  *     SNe 配额耗尽归一 (40456)、DNe 并发限流归一 (40492)、ONe 13xx 码归一 (40501)、
- *     kNe busy 子类 (40505)、ANe/Cw 验证码失败归一 (40511/40522)、jNe 空响应判定 (40525)、
+ *     kNe busy 子类 (40553)、ANe/Cw 验证码失败归一 (40559/40570；A1-R12 实测校正，旧注 40505/40511/40522 行漂移)、jNe 空响应判定 (40573)、
  *     MNe…GNe chat_error_banner 常量族 (40532–40615)、KNe/qNe 供应商作用域/模型脱敏 (40616/40623)、
  *     JNe resolveBusinessRecoveryAction (40631)、YNe 截断 (40636)、XNe 失败原因归类 (40639)、
  *     Dw/ZNe/QNe 错误键构造 (40677–40706)、$Ne banner 载荷 (40707)、ePe reportVisibleChatError (40745)
@@ -439,9 +439,11 @@ export function isCaptchaVerificationFailure(message: string | null | undefined)
   );
 }
 
-/** 原 Cw（40522）：验证码归一（3007 码 | CAPTCHA_VERIFY_FAILED | 文案判定） */
+/** 原 Cw（40570）：验证码归一。A1-R12 收敛：bundle 真身 = stub（`return void 0`，3007 归一在此构建被禁用）；
+ *  此前转录为前代语义体（3007 | CAPTCHA_VERIFY_FAILED | 文案判定），与 bundle 行为不符，今改回逐字。
+ *  下游 resolveBusinessRecoveryAction（JNe，40680 消费面）与 bundle 归约一致（`!Sw(code)` 分支独占）。 */
 export function normalizeCaptchaCode(code: string | null | undefined, message: string | null | undefined): string | undefined {
-  return code === "3007" || code === "CAPTCHA_VERIFY_FAILED" || isCaptchaVerificationFailure(message) ? "3007" : undefined;
+  return void 0;
 }
 
 /** 原 jNe（40525）：模型空响应判定 */

@@ -12,6 +12,7 @@ import {
   joinTestidParts as testidTemplate, // Xa
   subagentRowTestid as TESTID_SUBAGENT_ROW, // Ite
   subagentBuiltInModelTriggerTestid as TESTID_SUBAGENT_MODEL, // Gn
+  getOAuthFamilyIdByProviderId as canonicalProviderIdOf, // A1-R12：原 dr（src chunk Jx，js 8930 / jsx 9036）declare 改指（SrcSharedB §30 逐字真身；调用点 304/338 逐字不变）
 } from '../../modules/SrcSharedB';
 /* ============================================================================
  * 0. 外部依赖的类型声明
@@ -293,8 +294,10 @@ export function resolveModelTriggerLabel(args: {
 /** 组内条目标签查找（原 w6e，F08 域；接口级） */
 declare function findModelGroupItemLabel(groups: SelectGroupEntry[], value: string): string | null;
 
-/** 原 dr（src chunk Jx，9036；Wx 别名→规范供应商表，9025）：已知供应商别名解析 */
-declare function canonicalProviderIdOf(providerId: string): string | null;
+/* ── tombstone（A1-R12）：declare canonicalProviderIdOf（原 dr，src chunk Jx js 8930 / jsx 9036；
+ *    Wx 别名→规范供应商表 js 8911）删除 → 文件头 ../../modules/SrcSharedB import 别名消费
+ *    （canonical = getOAuthFamilyIdByProviderId，SrcSharedB §30 逐字真身 `Wx.get(e) ?? null`；
+ *    调用点 304/338 逐字不变）。 ── */
 
 /** 原 rN（styles jsx 48436）：供应商前缀模型名——已知别名供应商不加前缀，否则 `供应商名/模型名` */
 function composeProviderModelLabel(providerId: string | null | undefined, providerName: string | null | undefined, modelName: string | undefined): string | undefined {

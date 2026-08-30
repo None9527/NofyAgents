@@ -6,6 +6,7 @@ import { Dialog as DialogRoot, DialogContent, DialogHeader, DialogTitle } from '
 import { RefreshCw as RefreshIcon, PlusIcon, Trash2 as TrashIcon, ExternalLinkIcon, ChevronDownIcon, DownloadIcon, SearchIcon, TriangleAlert as AlertIcon, Sparkles as SkillIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { registerWorkspaceTask } from '../../modules/FileTreePanel';
+import { skillMentionMarkdown as skillCreatorPrompt } from '../composer/FileMentionDragHelpers'; // A1-R12：原 Tj（52128）declare 改指纯函数叶子（本批逐字转录）；调用点 505 逐字不变。环安全：叶子零 import
 import { Input, toast } from '../../modules/ImeComposition';
 import { splitSkillsByScope } from '../../modules/McpHelpers';
 import { RemoteSyncDialogs } from '../../modules/Modals';
@@ -312,7 +313,9 @@ export function ResourceEnabledFilterSelect(props: {
 
 /* 技能分组/远程同步依赖（接口级） */
 declare function groupSkillsByProvider(skills: SkillItem[], provider: string): SkillItem[]; // XB（skillStore chunk）
-declare function skillCreatorPrompt(skillName: string, existingPath?: string): string; // Tj
+/* ── tombstone（A1-R12）：declare skillCreatorPrompt（原 Tj，52128）删除 → 文件头
+ *    ../composer/FileMentionDragHelpers import 别名消费（canonical = skillMentionMarkdown，
+ *    本批逐字转录；调用点 505 逐字不变）。 ── */
 
 export interface SkillsSettingsSectionProps {
   workspacePath: string | null;

@@ -130,8 +130,9 @@ import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphon
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb/Vb）
-import { BackgroundWorksCapsule, ComposerInput, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）
-import { countContextAttachments, isAddToChatEvent, useCodeCommentContexts, type CodeCommentAttachment } from '../../modules/GitReview';
+import { BackgroundWorksCapsule, ComposerInput, applyWorkspaceFileMentionDrop as insertAddToChatPayload, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）。A1-R12：insertAddToChatPayload declare（原 YV，66811）改指 Composer 属主导出（bundle 唯一真身；消费点 2440/2947 逐字不变）
+import { countContextAttachments, useCodeCommentContexts, type CodeCommentAttachment } from '../../modules/GitReview'; // A1-R12：isAddToChatEvent 移出（原 yXe，68430 = code-comment-add-to-chat 域，与 2945 消费面事件名不符 → 改指工作区域守卫，见下）
+import { readWorkspaceFilePayload as parseAddToChatPayload, ADD_WORKSPACE_FILE_TO_CHAT_EVENT as ADD_TO_CHAT_EVENT_NAME, isAddWorkspaceFileToChatEvent as isAddToChatEvent, type WorkspaceFileDragPayload } from '../composer/FileMentionDragHelpers'; // A1-R12：Mj（52248）/Aj（52211）/nUe（52260）declare 改指纯函数叶子（本批逐字转录）；消费点 2436/2945/2957/2959 逐字不变。nUe 此前误接 GitReview yXe（code-comment 域），bundle 90733 真身 = 工作区域守卫
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from '../../modules/ImeComposition';
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
@@ -1843,6 +1844,9 @@ export interface ComposerInputApi {
   getEditorState(): { toJSON(): unknown } | null;
   setEditorStateJson(json: string): void;
   setMention?(mention: ComposerMentionPayload, restText: string): void;
+  /** 型缝精化（A1-R12）：bundle YV（66811）在 Ce=inputApiRef 上消费 appendFileMention（90348/90735）；
+   *  运行时对象 = ComposerInput api（ComposerEditorApi，modules/Composer 4377），A0 注释面缺此成员。 */
+  appendFileMention(label: string, filePath: string, markdown: string, data: Record<string, unknown> | undefined, trailingText?: string): void;
 }
 export interface ComposerMentionPayload {
   markdown: string;
@@ -1927,17 +1931,18 @@ declare function useFileDragDetection(opts: { enableExternalFileDrop: boolean; e
   externalFileDragging: boolean;
   workspaceFileDragging: boolean;
 };
-declare function parseAddToChatPayload(dataTransfer: DataTransfer): AddToChatPayload | null;
-interface AddToChatPayload { [key: string]: unknown }
-declare function insertAddToChatPayload(args: {
-  inputApiRef: React.RefObject<ComposerInputApi | null>;
-  currentMarkdown: string;
-  payload: AddToChatPayload;
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  onTextChange: (text: string) => void;
-}): void;
-declare const ADD_TO_CHAT_EVENT_NAME: string; // 原 Aj = `zcode:add-workspace-file-to-chat`（js 52163）
+/* ── tombstone（A1-R12）：declare parseAddToChatPayload（原 Mj，52248）删除 → 文件头
+ *    ../composer/FileMentionDragHelpers import 别名消费（canonical = readWorkspaceFilePayload，
+ *    本批逐字转录；调用点 2436 逐字不变）。 ── */
+/* ── tombstone（A1-R12）：interface AddToChatPayload（索引形）删除 → 别名指向
+ *    FileMentionDragHelpers.WorkspaceFileDragPayload（bundle eUe 52219 解析输出；
+ *    事件 detail = rUe 52263 派发载荷，形状逐字段吻合）。 ── */
+type AddToChatPayload = WorkspaceFileDragPayload;
+/* ── tombstone（A1-R12）：declare insertAddToChatPayload（原 YV，66811）删除 → 文件头
+ *    ../../modules/Composer import 别名消费（canonical = applyWorkspaceFileMentionDrop，
+ *    bundle 唯一真身；调用点 2440/2947 逐字不变）。 ── */
+/* ── tombstone（A1-R12）：declare ADD_TO_CHAT_EVENT_NAME（原 Aj，52211）删除 → 文件头
+ *    ADD_WORKSPACE_FILE_TO_CHAT_EVENT 别名 import（调用点 2957/2959 逐字不变）。 ── */
 declare function useWebContexts(args: {
   workspacePath: string;
   workspaceIdentity?: string | null;

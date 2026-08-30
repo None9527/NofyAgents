@@ -208,7 +208,8 @@
  *   $9  → sharedNotificationAudio         (213897 / —)
  *   b8t → getNotificationAudio            (213898 / 170366)
  * [J] A1-R11 携入：任务广播错误归一族（域外行段 52799–52924，DM 簇逐字转录）：
- *   Cw  → messageErrorCodeOverride        (40570)  bundle stub（return void 0）；余 3 消费 40680/54293/118783 属域外簇
+ *   Cw  → messageErrorCodeOverride        (40570)  bundle stub（return void 0）；A1-R12 收敛改指 StoresDeep
+ *                                                  normalizeCaptchaCode（唯一真身）；余 3 消费 40680/54293/118783 属域外簇
  *   bM  → GENERIC_ERROR_MESSAGES          (52799)
  *   xM  → isPlainObjectValue              (52806)
  *   SM  → trimmedTextOrNull               (52809)
@@ -252,7 +253,7 @@ import { MemoizedWorkspaceRoot, type WorkspaceServices } from '../../modules/Wor
 import { extractErrorMessage as normalizeConnectionError, type FeedbackService } from '../../modules/FeedbackCenter'; // A1-R7：MC=extractErrorMessage 改指（原 normalizeConnectionError declare）
 import { type MobileHomeResult, type WebRemoteSwitcherService } from '../../modules/WebRemote';
 import { ConversationTelemetrySupervisor, registerBaseServices, syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指 + A1-R8：Ks@4164（async (e) => await vse(e)，vse@4237）= syncProviderRegistryAndReturn 改指
-import { reportTelemetry as trackTelemetryEvent } from '../../modules/StoresDeep'; // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）
+import { reportTelemetry as trackTelemetryEvent, normalizeCaptchaCode as messageErrorCodeOverride } from '../../modules/StoresDeep'; // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）。A1-R12：原 Cw（40570）私有转录删除 → 别名改指 StoresDeep normalizeCaptchaCode（本批改回逐字 stub；DM 调用点逐字不变）
 import { mergeRemoteLogProgressEntry as appendRemoteLog, stripRemoteLogPrefixes as normalizeRemoteLogMessage } from '../remote/RemoteGapSegments'; // A1-R8：hEt@123747=stripRemoteLogPrefixes、vEt@123762=mergeRemoteLogProgressEntry 改指（环安全：RemoteGapSegments 仅 import React/button/RemoteWizard/Modals/SrcSharedA/B/stores-core，不反入 onboarding）
 import { useSettingsStore } from '../../modules/stores-core';
 import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSources as isModelProviderSnapshotHydrated } from '../../modules/UsageDeep'; // A1-R11：fM（52681）/pM（52684）改指 canonical（components/usage/UsageDeep.tsx 注册表，返回 ModelProvider[]——fetcher 证据 78266/78272/206174/209921 = modelProviderService.getAllCached/getAll）；4757 消费点经 ModelProviderRecord any 索引面双变可赋
@@ -941,10 +942,11 @@ declare function useWebRemoteControlTaskSyncFeature(): boolean;
  *      CM → parseJsonCandidate (52813) | wM → readNestedField (52822) | TM → collectErrorTextsByPaths (52829)
  *      IUe → collectErrorMessageCandidates (52853) | EM → firstErrorTextByPaths (52877) | DM → normalizeTaskBroadcastError (52886)
  *    域外携入：Cw（40570）= bundle stub（`return void 0`），DM 52906 唯一本簇消费；其余三消费 40680/54293/118783
- *    属域外簇，随其属簇处置（此处转录为文件内私有实现，逐字不变）。 ── */
-function messageErrorCodeOverride(e: unknown, t: string): string | undefined {
-  return void 0;
-}
+ *    属域外簇。A1-R12 收敛：Cw 双归属（本文件私有副本 + StoresDeep normalizeCaptchaCode 前代语义体）
+ *    → StoresDeep 唯一真身（本批改回逐字 stub）；本文件经文件头别名 import 消费，私有副本删除。 ── */
+/* ── tombstone（A1-R12）：私有 messageErrorCodeOverride（原 Cw，40570）删除 → 文件头
+ *    ../../modules/StoresDeep import 别名消费（canonical = normalizeCaptchaCode，bundle 唯一真身；
+ *    DM 调用点逐字不变）。 ── */
 const GENERIC_ERROR_MESSAGES = new Set([
   `Internal error`,
   `Turn execution failed`,

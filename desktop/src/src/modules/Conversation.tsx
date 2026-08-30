@@ -138,6 +138,7 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
  *    useSplitLayoutStore/workspaceScopeKey + SessionBinding/WorkspaceScope 型）已删除——
  *    唯一消费面 9.6 A0 编排器随 PTt 域迁出（SplitLayoutUiDeep.tsx）而删除。 ── */
 import { SessionQuotaBanner, PendingCommandBanner, type QuotaBannerState } from '../components/conversation/SessionBanners'; // 〔A0-S4-4b〕§9 渲染点（7528/7538）+ QuotaBannerState 型别（6979）消费回取（函数声明提升/型别擦除，环安全）
+import { splitUserInputParts, formatSkillMentionLabel, type MentionToken } from '../components/composer/FileMentionDragHelpers'; // A1-R12：ZHe（52182）/YHe（52147）declare 改指纯函数叶子（本批逐字转录）；调用点 767/688 逐字不变。环安全：叶子零 import
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
 import { TurnNavigator, findActiveQueryRow, shouldHydrateFullHistory, hydrateRetryDelayMs } from '../components/conversation/TurnNavigator'; // 〔A0-S4-4b〕§8 渲染点（6549）+ activeQueryRowId（6238）+ §5 水合判定（3957/3991）消费回取
@@ -641,19 +642,14 @@ function usePluginIcons(): PluginIconContextValue | null {
 
 /* --- 5.4 用户输入富文本（原 rvt/tvt/nvt，js 111783/111712/111769 / jsx 95375/95335/95366） --- */
 
-/** 用户输入解析后的部件（原 ZHe：text/file/directory/skill/session/plugin/subagent/command） */
-type UserInputPart =
-  | { type: "text"; text: string }
-  | { type: "file"; label: string }
-  | { type: "directory"; label: string }
-  | { type: "skill"; label: string }
-  | { type: "session"; label: string }
-  | { type: "plugin"; label: string; pluginId?: string }
-  | { type: "subagent"; label: string }
-  | { type: "command"; label: string };
-declare function splitUserInputParts(text: string): UserInputPart[];
+/** 用户输入解析后的部件（原 ZHe：text/file/directory/skill/session/plugin/subagent/command）。
+ *  A1-R12：本地联合删除 → 别名指向 FileMentionDragHelpers.MentionToken（bundle 唯一真身，一符一家）。 */
+type UserInputPart = MentionToken;
+/* ── tombstone（A1-R12）：declare splitUserInputParts（原 ZHe，52182）删除 → 文件头
+ *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录；调用点 767 逐字不变）。 ── */
 declare function isPluginIconUrl(src: string | undefined): boolean;
-declare function formatSkillMentionLabel(label: string): string;
+/* ── tombstone（A1-R12）：declare formatSkillMentionLabel（原 YHe，52147）删除 → 文件头
+ *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录；调用点 688 逐字不变）。 ── */
 
 /**
  * 提及/命令部件渲染（原 tvt，js 111712 / jsx 95335）。

@@ -518,7 +518,7 @@ import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I
 import { Button } from './button'; // 原 H，button-laUijeDG.js（A0-D 接线：declare → button canonical）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 import { SuggestionPanel, type PanelSection } from '../components/composer/SuggestionPanel'; // 〔A0-S4-4b〕留守面消费回取：B6 SlashPanel 段型别 + 建议面板渲染点（函数声明提升/型别擦除，环安全）
-import { buildFileTreeDragText as fileMentionMarkdown, pluginMentionMarkdown } from '../components/composer/FileMentionDragHelpers'; // A1-R11：wj（52124）/Dj（52138）转录改指（纯函数叶子，环安全同 SuggestionPanel 先例）；调用点 2779/2998 逐字不变。wj 双归属：FileTreePanel 经名 buildFileTreeDragText、本文件经名 fileMentionMarkdown，bundle 唯一真身
+import { buildFileTreeDragText as fileMentionMarkdown, pluginMentionMarkdown, skillMentionMarkdown, subagentMentionMarkdown, sessionMentionMarkdown, hasWorkspaceFilePayload, readWorkspaceFilePayload, isWorkspaceFileDragEvent, buildWorkspaceFileMentionPayload, WORKSPACE_FILE_DRAG_STATE_EVENT as WORKSPACE_FILE_DRAG_EVENT_TYPE, type WorkspaceFileDragPayload } from '../components/composer/FileMentionDragHelpers'; // A1-R11：wj（52124）/Dj（52138）转录改指（纯函数叶子，环安全同 SuggestionPanel 先例）；调用点 2779/2998 逐字不变。wj 双归属：FileTreePanel 经名 buildFileTreeDragText、本文件经名 fileMentionMarkdown，bundle 唯一真身。A1-R12：§17/§18 declares 全量改指（Tj/Ej/KHe 52128/52131/52134、Mj/Nj/tUe/aUe 52248/52251/52254/52271、jj 52212），调用点 1391/1591/1856/1866/3096/4653/4657/4663/4671/4986/5003/4605 逐字不变
 
 /* ============================================================================
  * 0. 外部依赖类型声明（未重建依赖以 declare 挂接；来源见上方清单）
@@ -787,28 +787,29 @@ declare const DOCUMENT_FALLBACK_ICON_SRC: string;
 /* ── tombstone（A1-R11）：declare fileMentionMarkdown（原 wj，52124）删除，改经文件头
  *    ../components/composer/FileMentionDragHelpers import 别名消费（canonical = buildFileTreeDragText，
  *    本批逐字转录；与 FileTreePanel 消费面同符双归属，bundle 唯一真身）。 ── */
-declare function skillMentionMarkdown(name: string, path?: string): string;
-declare function subagentMentionMarkdown(name: string): string;
-declare function sessionMentionMarkdown(taskId: string, title?: string | null): string;
+/* ── tombstone（A1-R12）：declare skillMentionMarkdown（原 Tj，52128）删除 → 文件头
+ *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录；调用点 1591/1856 逐字不变）。 ── */
+/* ── tombstone（A1-R12）：declare subagentMentionMarkdown（原 Ej，52131）删除 → 文件头
+ *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录；调用点 1391/1866 逐字不变）。 ── */
+/* ── tombstone（A1-R12）：declare sessionMentionMarkdown（原 KHe，52134）删除 → 文件头
+ *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录；调用点 3096 逐字不变）。 ── */
 /* ── tombstone（A1-R11）：declare pluginMentionMarkdown（原 Dj，52138）删除，改经文件头
  *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录）。 ── */
 
 /** 18. 工作区文件拖拽（本 chunk 52248–52271） */
-declare const WORKSPACE_FILE_DRAG_EVENT_TYPE: string;
-declare function hasWorkspaceFilePayload(dataTransfer: DataTransfer): boolean;
-declare function readWorkspaceFilePayload(dataTransfer: DataTransfer): WorkspaceFileDragPayload | null;
-declare function isWorkspaceFileDragEvent(event: Event): event is CustomEvent<{ dragging: boolean }>;
-declare function buildWorkspaceFileMentionPayload(
-  payload: WorkspaceFileDragPayload,
-  workspacePath: string,
-  workspaceIdentity?: string | null,
-): { value: string; markdown: string; data: Record<string, unknown> };
-interface WorkspaceFileDragPayload {
-  name: string;
-  relativePath: string;
-  path: string;
-  type: "file" | "directory";
-}
+/* ── tombstone（A1-R12）：declare WORKSPACE_FILE_DRAG_EVENT_TYPE（原 jj，52212）删除 → 文件头
+ *    WORKSPACE_FILE_DRAG_STATE_EVENT 别名 import（调用点 4663/4671 逐字不变）。 ── */
+/* ── tombstone（A1-R12）：declare hasWorkspaceFilePayload（原 Nj，52251）删除 → 文件头
+ *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录；调用点 4657/4986 逐字不变）。 ── */
+/* ── tombstone（A1-R12）：declare readWorkspaceFilePayload（原 Mj，52248）删除 → 文件头
+ *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录；调用点 5003 逐字不变）。 ── */
+/* ── tombstone（A1-R12）：declare isWorkspaceFileDragEvent（原 tUe，52254）删除 → 文件头
+ *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录，谓词签名沿用原 declare；调用点 4653 逐字不变）。 ── */
+/* ── tombstone（A1-R12）：declare buildWorkspaceFileMentionPayload（原 aUe，52271）删除 → 文件头
+ *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录；唯一消费 = applyWorkspaceFileMentionDrop 4605）。 ── */
+/* ── tombstone（A1-R12）：interface WorkspaceFileDragPayload（本地 4 字段窄化形）删除 → type import
+ *    FileMentionDragHelpers.WorkspaceFileDragPayload（bundle eUe 52219 解析输出含 workspacePath/
+ *    workspaceIdentity，aUe 52269 实测消费 e.workspacePath；本地窄形仅 declare 时代产物）。 ── */
 
 /** 19. 会话引用装配/会话域引用存取（本 chunk 2741–2819，F03 域） */
 declare function appendConversationSelections(content: string, selections: ConversationSelection[]): string;
@@ -4590,9 +4591,11 @@ function PassthroughErrorBoundary({ children }: { children?: React.ReactNode }):
  * [B10] js 66811–67276 —— ComposerInput 根组件 + 动作菜单 + 文件拖拽
  * ========================================================================== */
 
-/** YV → applyWorkspaceFileMentionDrop（js 66811） */
-function applyWorkspaceFileMentionDrop(args: {
-  inputApiRef: { current: ComposerEditorApi | null };
+/** YV → applyWorkspaceFileMentionDrop（js 66811）。A1-R12 补 export：Home insertAddToChatPayload
+ *  declare（90348/90735 消费面）改指本函数，一符一家。型缝：inputApiRef 宽化为结构最小面
+ *  （bundle 66811 体内仅消费 appendFileMention/focus），Home Ce=ComposerInputApi 面可赋。 */
+export function applyWorkspaceFileMentionDrop(args: {
+  inputApiRef: { current: { appendFileMention(label: string, filePath: string, markdown: string, data: Record<string, unknown> | undefined): void; focus(): void } | null };
   currentMarkdown: string;
   payload: WorkspaceFileDragPayload;
   workspacePath: string;
