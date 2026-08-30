@@ -116,7 +116,7 @@
  *   V8/uBt/B8 → 工作区 logo 色板/光束参数（数据，接口级）(156306/128919 / 128990/128919)
  *   FBt  → RemoteConnectionLogsPopover (158029 / 131404)
  *   IBt  → EMPTY_PINNED_TASKS (158132 / 131438)；LBt → isUserHomeDirectory (158133 / 131439)
- *   zBt  → resolveSshConnectionInfo (158140 / 131446)；R2 → workspaceTabKey (104991 / 88177)
+ *   zBt  → resolveSshConnectionInfo (158140 / 131446)〔A1-R5 迁出 → modules/SplitLayoutDeep.tsx §F-R5（现行 js 158183–158195，RBt+zBt 逐字）〕；R2 → workspaceTabKey (104991 / 88177)
  *
  *  横切助手（本 chunk 内、族外）：
  *   Io workspaceKey (jsx 408) | Lo taskEntityKey (jsx 411) | Fo compareTasksForList (jsx 405)
@@ -212,7 +212,7 @@ import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../
 import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 import { useSidebarSessionDrop as useSessionOpenability, SESSION_DRAG_MIME, serializeSessionDragPayload, setSessionDragFallbackPayload as setCurrentSessionDrag, clearSessionDragFallbackPayload as clearCurrentSessionDrag, createSessionDragPreview as createDragImageUpdater, type SessionDragPayload } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）+ u2/Iwt/Lwt/Rwt/PRt（A1-R4：拖放源侧改指，tombstone 见原声明位）
-import { sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4：QTt（js 123267）远端条目域改指（tombstone 见原声明位）
+import { resolveSshConnectionInfo, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4：QTt（js 123267）；A1-R5：zBt（js 158186）改指（tombstone 见原位）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 
@@ -5279,18 +5279,11 @@ function sessionIndexKey(workspaceScope: Pick<WorkspaceTab, "workspacePath" | "w
   return `${resolveWorkspaceTabKey(workspaceScope)}::${sessionId}`;
 }
 
-/** 原 RBt（158137）+ zBt（158140）：SSH 远端目标 → 连接信息（别名/`user@host:port`/工作区路径） */
-function resolveSshConnectionInfo(tab: WorkspaceTab): { alias: string | null; hostLabel: string; workspacePath: string } | null {
-  if (tab.remoteTarget?.kind !== "ssh") return null;
-  const target = tab.remoteTarget;
-  const username = typeof target.username === "string" ? target.username.trim() : "";
-  const host = typeof target.host === "string" ? target.host.trim() : "";
-  return {
-    alias: typeof target.sshConfigAlias === "string" && target.sshConfigAlias.trim() ? target.sshConfigAlias.trim() : null,
-    hostLabel: `${username}@${host}:${target.port ?? 22}`,
-    workspacePath: tab.workspacePath,
-  };
-}
+/* ── tombstone（A1-R5）：resolveSshConnectionInfo（原 RBt+zBt，js 158183–158195；本位 A0 期
+ *    语义化转录，含 RBt 内联 hostLabel 与 typeof 防御）删除 → 真实 import
+ *    from '../../modules/SplitLayoutDeep'（§F-R5，B5 逐字）。裁决：RBt ≢ ZTt——RBt 恒含
+ *    username 且 port 恒在（缺省 22），ZTt ssh 支为 `host[:port]`（port 仅非 22 时在）；
+ *    R4 §8-5「zBt 改指 ZTt」前提经 bundle 对照作废，RBt/zBt 独立转录。调用点逐字不变。 ── */
 
 /** 原 cFt（142449）：任务双序排序——`created` 按创建时间倒序，`updated`（默认）按更新时间倒序，
  *  同级再按另一时间倒序，最后按 taskId 字典序稳定兜底 */
@@ -5493,7 +5486,7 @@ interface GroupedTaskViewController {
  *   MBt→WorkspaceTaskList 157550块/131192 | FBt→RemoteConnectionLogsPopover 158029/131404
  *   ABt→BeamBorderAnimation★ 157550/131107 | TBt…wBt→光束 CSS 生成★ 156793–157547
  *   V8/uBt/B8→logo 色板数据★ 156306/128919 | IBt→EMPTY_PINNED_TASKS 158132
- *   LBt→isUserHomeDirectory 158133/131439 | zBt→resolveSshConnectionInfo★ 158140/131446
+ *   LBt→isUserHomeDirectory 158133/131439 | zBt→resolveSshConnectionInfo★ 158140/131446〔A1-R5 迁出 → SplitLayoutDeep §F-R5〕
  *   R2→resolveWorkspaceTabKey★ 104991 | NBt/PBt→autoScrollToBottom★ 158017/158020
  *  横切（本 chunk 族外，按调用面声明）：
  *   Io→workspaceKey | Lo→taskEntityKey | Fo→compareTasksForList | Mo→taskSessionActivity

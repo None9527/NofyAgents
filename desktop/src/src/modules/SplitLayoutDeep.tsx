@@ -27,7 +27,9 @@
  *   js 122820–123136  PTt 工作台 Provider UI + FTt/ITt/LTt context
  *   js 123139–123196  RTt…HTt last-session 恢复钩子域
  *   js 123222–123306、123362–123405、123411 以外远端条目域余量（JTt…B2、iEt/z2/aEt/oEt）
- *   js 123487 起      uEt/H2/U2 = SSH 对话框 + ConfirmDialog（他域属主）
+ *   js 123487 起      uEt/H2/U2 = SSH 对话框 + ConfirmDialog（他域属主；A1-R5 裁决：
+ *                     uEt → modules/RemoteConnectionDeep.tsx 转录；H2/U2 canonical =
+ *                     components/modals/ConfirmDialog.tsx + stores/confirmDialogStore.ts）
  *
  * ----------------------------------------------------------------------------
  * 一、混淆名 → 语义名 映射表（行号格式：现行 out js 行 / jsx 行）
@@ -163,6 +165,8 @@
  *   aEt → touchRemoteSessionEntry        (123397)
  *   oEt → removeRemoteSessionEntries     (123403)
  *   B2  → applyRemoteConnectionResult    (123416)
+ *   RBt → sshHostLabel                   (158183)  A1-R5：Sidebar 会话行消费面
+ *   zBt → resolveSshConnectionInfo       (158186)  A1-R5：同上；RBt ≢ ZTt（含 username、port 恒在）
  *
  * ----------------------------------------------------------------------------
  * 二、跨 chunk / 跨区依赖（全部经真实 import，无本文件内 declare）
@@ -1516,6 +1520,8 @@ export function sessionEntryMapByKey<T extends { workspacePath: string; workspac
  * 凭据键 builder（GTt/KTt/qTt）+ 目标显示/键面（P2…QTt）+ 工作区键
  * （$Tt/eEt/I2/tEt/L2/nEt）+ 条目运算（rEt/iEt/z2/aEt/oEt/B2）。
  * Je=buildRemoteServerWorkspaceKey 自此真实消费（§尾空引用占位随删）。
+ * A1-R5 增补：RBt/zBt（js 158183–158195）SSH 连接信息——同域异址（Sidebar
+ * 会话行消费面），体例并入本节（见 §F-R5 分节注）。
  * ==========================================================================*/
 
 /** 原 GTt：ssh 密码凭据键。 */
@@ -1843,6 +1849,37 @@ export function applyRemoteConnectionResult(e: RemoteConnectionResultInput): Rem
   );
 }
 
+/* ----------------------------------------------------------------------------
+ * §F-R5. SSH 连接信息（RBt/zBt，js 158183–158195；A1-R5 转录）
+ * ----------------------------------------------------------------------------
+ * Sidebar 会话行 SSH 详情面（alias / `user@host:port` / workspacePath）。
+ * RBt ≢ ZTt（remoteTargetConnectionAddress）：RBt 恒含 username 与 port（缺省 22），
+ * ZTt ssh 支为 `host[:port]`（port 仅非 22 时在）——R4 §8-5「zBt 改指 ZTt」前提
+ * 经 bundle 对照作废，RBt/zBt 独立转录。
+ * 型别宽化：zBt 参型为结构面（消费侧传本地 RemoteTarget 形）；kind 判定后
+ * `as SshRemoteTarget` 收窄（同 XTt/ZTt server 支体例，行注在调用处）。
+ * ==========================================================================*/
+
+/** 原 RBt（js 158183）：ssh 连接显示标签 `user@host:port`（port 缺省 22）。 */
+export function sshHostLabel(e: { username: string; host: string; port?: number }): string {
+  return `${e.username.trim()}@${e.host.trim()}:${e.port ?? 22}`;
+}
+
+/** 原 zBt（js 158186）：工作区页签 → SSH 连接信息；非 ssh 返回 null。 */
+export function resolveSshConnectionInfo(e: {
+  remoteTarget?: { kind?: string; host?: string | null; port?: number | null; username?: string | null; sshConfigAlias?: string | null } | null;
+  workspacePath: string;
+}): { alias: string | null; hostLabel: string; workspacePath: string } | null {
+  return e.remoteTarget?.kind === `ssh`
+    ? {
+        alias: e.remoteTarget.sshConfigAlias?.trim() || null,
+        // A1-R5 型别宽化：kind 已判别，结构面 → SshRemoteTarget 收窄（非 any cast）。
+        hostLabel: sshHostLabel(e.remoteTarget as SshRemoteTarget),
+        workspacePath: e.workspacePath,
+      }
+    : null;
+}
+
 /* ============================================================================
  * §尾、未用导入占位（保持与 bundle 依赖面一致）
  * ==========================================================================*/
@@ -1902,7 +1939,11 @@ void React;
  *     L2=resolveEntryWorkspaceIdentity(123305) nEt=trimmedOrUndefined(123308) rEt=findRemoteSessionEntry(123312)
  *     iEt=normalizeRemoteTargetForConnection(123316) z2=remoteTargetWithSecrets(123362)
  *     aEt=touchRemoteSessionEntry(123397) oEt=removeRemoteSessionEntries(123403) B2=applyRemoteConnectionResult(123416)
- * —— 未转录（他域）：uEt/H2/U2(123487+，SSH 对话框/确认 store，属主评估见 A1-R4.report.md §5)。
+ *     RBt=sshHostLabel(158183) zBt=resolveSshConnectionInfo(158186)（A1-R5：Sidebar 会话行消费面）
+ * —— uEt(123484) 已于 A1-R5 转录至 modules/RemoteConnectionDeep.tsx（useCancelPendingRemoteConnection）。
+ *    H2/U2(123497/123510) canonical 在他域：components/modals/ConfirmDialog.tsx（live 路径，
+ *    Modals.tsx 再导出）+ stores/confirmDialogStore.ts（A0-S4-3 并行）——R4 §5「远程域专用确认」
+ *    归属作废：bundle 206864–206865 对话框呈现层直接消费 H2，实为全局 ConfirmDialogStore。
  *    RTt…HTt(123139-123196) 已于 A1-R4 转录至 modules/SplitLayoutUiDeep.tsx（表现层域）。 ——
  */
 

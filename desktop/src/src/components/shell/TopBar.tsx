@@ -56,8 +56,9 @@
  *   lw   → PRODUCT_DOCS_URL = https://zcode.z.ai/docs (39410 / 35469)
  *   C6   → useTaskFileActions        (142068 / 118006)
  *   CFt/$2 → canOpenRemoteSessionSource (143482,127125 / 119494,107556)
- *   ZTt  → remoteTargetLabel         (123239 / 104935)
+ *   ZTt  → remoteTargetLabel         (123239 / 104935)  〔A1-R5：R4 误归 XTt，已更正为 ZTt 真实 import〕
  *   QTt  → sshDecoratedProjectName   (123251 / 104947)
+ *   $b   → sanitizeRemoteTargetForRestore（src-HCld2afU.js 8611；本 chunk 导入名 yne）〔A1-R5：normalizeRemoteTarget 改指 SrcSharedB〕
  *   Zge  → resolveEffectiveProvider  (jsx 21359)
  *   U2   → useConfirmDialog          (123493 / 105222)
  *   Oc   → useWorkspaceServices      (4945 / 3754)
@@ -144,7 +145,8 @@ import { useTrajectoryViewerStore, useTuiEditRequestStore } from '../../modules/
 import { usePinnedTaskListStore, useWorkspaceTaskListStore } from '../../modules/stores-tasks';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia=u（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
-import { remoteTargetDisplayLabel, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt/QTt（js 123241/123267）远端条目域改指（tombstone 见原声明位）
+import { remoteTargetConnectionAddress, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4 QTt（js 123267）；A1-R5 归属更正：XTt→ZTt（js 123256），tombstone 见原声明位
+import { sanitizeRemoteTargetForRestore } from '../../modules/SrcSharedB'; // 原 $b（src-HCld2afU.js 8611，pt→yne 导出）：A1-R5 normalizeRemoteTarget 改指
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -1802,7 +1804,12 @@ function OpenInEditorButtonGroup({
     rememberPreferredEditorId(editor.id); // 原 KVe(`explicit`) && kA(editor.id)
     const remoteOpts =
       remoteTarget || workspaceIdentity
-        ? { remoteTarget: remoteTarget ? normalizeRemoteTarget(remoteTarget) : undefined, workspaceIdentity: workspaceIdentity ?? undefined }
+        ? {
+            // A1-R5 边界转型：$b 返回三 kind 净化目标 | undefined（server 支 void）；
+            // 本文件局部 RemoteTarget 三面收边（非 any cast；openInEditor opts 面）。
+            remoteTarget: remoteTarget ? (sanitizeRemoteTargetForRestore(remoteTarget) as RemoteTarget | undefined) : undefined,
+            workspaceIdentity: workspaceIdentity ?? undefined,
+          }
         : undefined;
     platform.openInEditor(editor.id, workspaceAbsPath, remoteOpts).then((result) => {
       if (!result.success) {
@@ -1863,7 +1870,13 @@ function OpenInEditorButtonGroup({
 
 declare function readPreferredEditorId(): string | null;
 declare function rememberPreferredEditorId(id: string): void;
-declare function normalizeRemoteTarget(target: RemoteTarget): RemoteTarget;
+/* ── tombstone（A1-R5）：normalizeRemoteTarget declare 删除 → 真实 import
+ *    sanitizeRemoteTargetForRestore（原 $b，src-HCld2afU.js 8611–8629，pt 导出 → 本 chunk
+ *    yne，bundle 调用点 143262）from './SrcSharedB'。裁决：$b 为 1 参净化器（ssh 留
+ *    sshConfigAlias、wsl 留 user、server 支 return void），与 iEt（3 参
+ *    normalizeRemoteTargetForConnection，唯一调用点 123415 B2 内部）无涉——
+ *    R4 §8-4「1 参 vs 3 参」疑点经 bundle 对照裁决为异符号。A0 declare 返回型
+ *    `RemoteTarget` 不确（server 支 undefined），canonical 返回型以推断为准。 ── */
 
 /* ============================================================================
  * 5.3 SessionHeaderLeft（原 wFt，js 143485-144007 / jsx 119493-119937）
@@ -2014,8 +2027,11 @@ export function SessionHeaderLeft({
     intl,
   });
 
-  // 远程目标展示：`项目名 @ host`（cloud 图标）；本地为 folder 图标
-  const remoteTargetLabel = remoteTarget ? remoteTargetDisplayLabel(remoteTarget) : null;
+  // 远程目标展示：`项目名 @ host[:port]`（cloud 图标）；本地为 folder 图标
+  // A1-R5 归属更正：bundle wFt 143599 `je = i ? ZTt(i) : null` = 连接地址（ZTt，host[:port]），
+  // 非 XTt 显示标签（XTt 唯一 bundle 调用点 128568 yOt → Home.remoteTabSearchHaystack）；
+  // R4 改指误作 XTt，此处更正为 ZTt=remoteTargetConnectionAddress（返回 string | undefined 兼容）。
+  const remoteTargetLabel = remoteTarget ? remoteTargetConnectionAddress(remoteTarget) : null;
   const decoratedProjectName = sshDecoratedProjectName(projectName, remoteTarget);
   const showRemoteSuffix = !!(remoteTargetLabel && decoratedProjectName === projectName);
   const isRemoteWorkspace = !!(remoteTargetLabel || workspaceIdentity?.trim() || remoteSessionId);
@@ -2392,10 +2408,13 @@ export function SessionHeaderLeft({
 /** D5c：TUI 编辑打开请求信箱（实现见 stores-session.tsx TuiEditRequestStore） */
 declare function useTaskListItems(query: { kind: "pinned"; workspaceTabs: unknown[]; sortBy: "updated"; searchQuery: string; expanded: boolean; collapsedLimit: number }): { items: Array<{ taskId: string }>; loading: boolean };
 declare function resolveEffectiveProvider(taskProvider: string | null | undefined, selectedProvider: string | null | undefined): string; // 原 Zge（jsx 21359；前批次误作 './21359' import，复原为 declare）
-/* ── tombstone（A1-R4）：remoteTargetDisplayLabel（原 XTt）/sshDecoratedProjectName（原 QTt）
- *    declare 删除 → 真实 import from './SplitLayoutDeep'（§F 远端条目域，js 123241/123267）。
+/* ── tombstone（A1-R4；A1-R5 更正）：remoteTargetDisplayLabel（A1-R4 误归 XTt）/
+ *    sshDecoratedProjectName（原 QTt）declare 删除 → 真实 import from './SplitLayoutDeep'（§F 远端条目域）。
+ *    A1-R5 归属更正：SessionHeaderLeft remoteTargetLabel 位（2034）对应 bundle wFt 143599
+ *    `je = i ? ZTt(i) : null`——真形为 ZTt=remoteTargetConnectionAddress（js 123256），非 XTt
+ *    （js 123241；XTt 唯一 bundle 调用点 128568 yOt → Home.remoteTabSearchHaystack）。import 已改 ZTt。
  *    型别宽化：canonical 参型为结构面、返回 string | undefined（bundle 未知 kind 无 default 分支）；
- *    本文件调用面皆真值判定/插值渲染，兼容（2017–2020/2175/2182/2186）。 ── */
+ *    本文件调用面皆真值判定/插值渲染，兼容（2034–2037/2192/2203）。 ── */
 declare function applyOptimisticTaskMutation(mutation: { previousTask: TaskMeta; nextTask: TaskMeta; previousState: { pinned: boolean; archived: boolean }; nextState: { pinned: boolean; archived: boolean } }): void;
 declare function buildTaskFeedbackDescription(args: { taskTitle: string; taskId?: string; workspacePath: string; taskSessionPath?: string | null; taskLogPath?: string | null; formatMessage: (id: string, values?: Record<string, unknown>) => string }): string;
 

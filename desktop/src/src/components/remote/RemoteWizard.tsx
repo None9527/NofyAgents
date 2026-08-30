@@ -55,7 +55,8 @@
  * 三、外部依赖清单（跨 chunk / 它批已还原者，此处声明接口）
  * ----------------------------------------------------------------------------
  *  1. react (Q) / jsx-runtime ($)；2. cn (Z)；3. Button (X)；4. Input (P，imeComposition y)；
- *  5. useIntlContext (G)；6. logger (J)；7. useConfirmDialog (U2，Modals.tsx)；
+ *  5. useIntlContext (G)；6. logger (J)；7. useConfirmDialog (U2, Modals.tsx) +
+ *     useCancelRemoteConnection（原 uEt，A1-R5 → modules/RemoteConnectionDeep.tsx）；
  *  8. usePlatformService (l，selectFile 面)；9. useBaseServices (Ec，本 chunk 4897)；
  *  10. 会话 store (Zs，stores-session)；11. Dialog 原语族 (zb/Hb/Ub/Gb/Kb)；
  *  12. Popover 原语族 (T/h/x/O)；13. Command/cmdk 原语族 (Yb/Zb/Xb/Qb/$b/ex)；
@@ -93,6 +94,7 @@ import { useSessionRegistryStore as useSessionStore } from '../../modules/stores
 import { useBaseServices } from '../../modules/services'; // 原 Ec（本 chunk 4897）：基础服务（skillSync/mcpSync/pluginSync/zcodeAgent）
 import { t as logger } from '../../modules/logger';
 import { useConfirmDialog } from '../../modules/Modals'; // 原 U2（Modals.tsx useConfirmDialog，js 123510）
+import { useCancelPendingRemoteConnection as useCancelRemoteConnection } from '../../modules/RemoteConnectionDeep'; // 原 uEt（js 123484）：A1-R5 转录改指（tombstone 见原 declare 位）
 import { Input } from '../../modules/ImeComposition'; // 原 P（imeComposition y 导出）
 
 /* ============================================================================
@@ -227,8 +229,10 @@ export interface RemoteWorkspaceSessionLike {
  *    xi→SrcSharedB generateUuid | MC→FeedbackCenter extractErrorMessage |
  *    lee→SrcSharedA isValidWslUser | Zs→stores-core useSessionRegistryStore |
  *    Ec→services useBaseServices。 ── */
-/** 原 uEt（F09 段 123484 区，未抽取）：取消在途连接钩 */
-declare function useCancelRemoteConnection(): (requestId?: string) => Promise<void> | void;
+/* ── tombstone（A1-R5）：useCancelRemoteConnection（原 uEt，js 123484–123496）declare 删除 →
+ *    真实 import from '../../modules/RemoteConnectionDeep'（useCancelPendingRemoteConnection as …，
+ *    见文件头导入块）。A0 近似签名 `(requestId?: string) => Promise<void> | void` 收敛为
+ *    canonical `(requestId?: string) => Promise<void>`；调用点（1094/1193/1446）逐字不变。 ── */
 
 /** A0-S2d 类型垫片：目录步 props 面自 RGS 实体推导（原 declare 为 Record<string, unknown> 接口） */
 type RemoteDirectoryStepPropsLike = React.ComponentProps<typeof RemoteDirectoryStep>;
