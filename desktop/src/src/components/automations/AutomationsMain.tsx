@@ -17,6 +17,7 @@ import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modules/Settings'; // H3 容器类
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
+import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 548 解构 {settings, update}，552/655–657 读取面（具名 + 既有 as 窄化）与 1179/1341 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
 import {
   automationsWorkspaceKey as automationWorkspaceKey, // Ti
   automationCardMenuTestid as AUTOMATIONS_MORE_ACTIONS_TESTID, // at（src chunk）
@@ -190,7 +191,8 @@ interface ModelProvidersStoreState {
   loading: boolean;
 }
 declare function useModelProvidersStore(): ModelProvidersStoreState; // qq
-declare function useAppSettings(): { settings: { modelProviderFamilyModes?: Record<string, string>; keepAwakeWhileRunning?: boolean; [key: string]: unknown } | null; update: (patch: Record<string, unknown>) => Promise<void> }; // JM
+/* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488）删除，改经文件头 modules/UsageDeep import 消费
+ *    （canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字；update 形参 AppRuntimeSettingsPatch 索引面对 1179/1341 补丁可赋）。 ── */
 interface TaskStoreState {
   getWorkspaceState: (workspacePath: string, identity?: string | null) => { activeTaskId: string | null };
   startDraft: (workspacePath: string, draft?: unknown, identity?: string | null) => void;

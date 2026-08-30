@@ -46,6 +46,14 @@ export interface BaseServices {
   };
   fileWatcherService?: unknown;
   localModelProviderService?: unknown;
+  /** A1-R11（JM 53489/53532 真形）：Bot 运行时偏好同步面（AppRootLeaves 2029 同面消费） */
+  botsService?: { syncAppRuntimePreferences(preferences: Record<string, unknown>): Promise<void>; [method: string]: unknown };
+  /** A1-R11（JM 53489/53535 真形）：跨窗口广播面（send/onMessage→dispose；OnboardingLoginLeaves.BroadcastServiceLike 2018 同面消费） */
+  broadcastService?: {
+    send(message: { channel: string; payload: unknown }): Promise<unknown>;
+    onMessage(handler: (message: { channel: string; payload: unknown }) => void): { dispose(): void };
+    [method: string]: unknown;
+  };
   /* A0-CLEANUP3 3b：属主已重建的服务面（field → owner 见 A0-CLEANUP3.report.md） */
   skillsService?: SkillsService;
   commandsService?: CommandsService;
@@ -114,6 +122,8 @@ export type ResolvedBaseServices = BaseServices &
   Pick<
     Required<BaseServices>,
     | "settingService"
+    | "botsService" // A1-R11：JM 53489 无条件解构真形
+    | "broadcastService" // A1-R11：JM 53489 无条件解构真形
     | "systemService"
     | "memoryService"
     | "mcpSyncService"

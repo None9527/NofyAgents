@@ -120,7 +120,7 @@ import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../mod
 import { resolveModelTriggerLabelParts } from '../../modules/SettingsLeaves'; // A0-CLEANUP4：原 nWe（styles jsx 48452）三元面，非 $7 单串面
 import { logger } from '../../modules/SkillStore';
 import { useSettingsStore as useAppStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
-import { SidebarCodingPlanWidget, SidebarStartPlanWidget, formatGrantUnits, useBillingDiscount } from '../../modules/UsageDeep';
+import { SidebarCodingPlanWidget, SidebarStartPlanWidget, formatGrantUnits, useBillingDiscount, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, entryPlanStateOf } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）
 import { useServices } from '../../modules/services';
 
 /* ----------------------------------------------------------------------------
@@ -291,17 +291,23 @@ declare function useCoreServices(): { modelProviderService: any; credentialServi
 declare function openSettingsSection(section: string): void; // ow
 declare function invalidateSettingsCache(): void; // aw
 declare function buildUpgradeFunnel(args: Record<string, unknown>): any; // PM
-declare function entryPlanStateOf(args: Record<string, unknown>): string; // IM
+/* ── tombstone（A1-R11）：declare entryPlanStateOf（原 IM，53277）删除，改经文件头 modules/UsageDeep import 消费
+ *    （canonical 逐字 IM 53277；返回 EntryPlanState 对象——11056 消费点仅透传 buildUpgradeFunnel（any 面），逐字不变）。 ── */
 declare const ModelSelectMenu: React.FC<Record<string, any>>; // vq
-declare function providerEntryOrNull(entry: ModelProvider | null): ModelProvider | null; // tM（UsageDeep 52642，双归属）
-declare function providerFingerprintKeyOf(entry: any): string; // nM（UsageDeep 52645，双归属；指纹串 id:hash）
+/* ── tombstone（A1-R11）：declare providerEntryOrNull（原 tM，52642）删除，改指 nullSafe as providerEntryOrNull。
+ *    双实例收敛证据：bundle tM 唯一真身 52642（`return e ?? null`），本名与 MPSS toManagedProvider 同符双归属；
+ *    终端消费实测 9668–9671/10325（单参，返回 ModelProvider | null）。 ── */
+/* ── tombstone（A1-R11）：declare providerFingerprintKeyOf（原 nM，52645）删除，改指 providerApiKeyFingerprint as providerFingerprintKeyOf。
+ *    双实例收敛证据：bundle nM 唯一真身 52645（`${e.id}:${jUe(e.apiKey.trim())}`，!e 守卫），终端消费实测 9672–9675（返回 string）。 ── */
 declare function connectionModeContextOf(args: Record<string, unknown>): any; // N6e
 declare function normalizedModelOptionsOf(options: any[], currentValue: unknown, context: any): any[]; // L
 declare function modelGroupsOf(provider: string, options: any[], context: any, labels: Record<string, string>, displayOrder: string[] | undefined, familyModes: unknown, selectedKeys: unknown, extra: unknown[], flag: boolean, a: unknown, b: unknown, opts: Record<string, unknown>): any[]; // Hq
 declare function isModelMenuStructured(provider: string): boolean; // r6e
 declare function useManageModelsAvailable(onManage: () => void): boolean; // T6e
 declare function normalizeModelSelectionValue(value: string, groups: any[], manageAvailable: boolean, manageLabel: string): { value?: string; placeholder?: string }; // k6e
-declare function shouldProbeStartPlanEntitlement(args: { codingPlanProviderFingerprint: string | null; codingPlanProviderId: string; codingPlanSnapshot: any; codingPlanLoading: boolean; codingPlanError: unknown }): boolean; // aM（UsageDeep/F08 已抽取，双归属）
+/* ── tombstone（A1-R11）：declare shouldProbeStartPlanEntitlement（原 aM，52661）删除，改经文件头 modules/UsageDeep import 消费
+ *    （canonical = components/usage/UsageDeep.tsx aM 52661 逐字）。双实例收敛证据：bundle aM 唯一真身 52661；
+ *    终端消费实测 9704/9714（codingPlanSnapshot 传 zai/bigmodelCodingSubscription.snapshot——$j 面 any，对 EntitlementSnapshot | null 双变可赋）。 ── */
 declare function useEntitlementSubscription(args: Record<string, unknown>): { snapshot: any; loading: boolean; error: unknown; refresh: (opts?: any) => Promise<void> }; // $j
 declare function entitlementCacheKeyOf(args: { providerId: string; providerFingerprint: string | null }): string; // Bj
 declare function parseModelProjection(value: string): { providerId?: string; modelId?: string; variant?: string } | null; // Mg

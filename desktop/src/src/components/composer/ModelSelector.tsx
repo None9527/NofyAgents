@@ -73,7 +73,7 @@ function usePrefersReducedMotion(): boolean {
 
 /** _q → AnimatedLabel（js 75520） */
 export function AnimatedLabel({ label, className, prefix, prefixClassName, value }: { // 〔A0-S4-4b〕补 export：[D] ConfigSelect 消费（函数声明提升，环安全）
-  label: string;
+  label: string | undefined; // A1-R11 型缝宽化：上游 iN 53795 真形可产 undefined（NMt 135453 透传）；渲染面 title/key/JSX 对 undefined 安全
   className?: string;
   prefix?: string;
   prefixClassName?: string;
@@ -212,7 +212,7 @@ export const ModelSelector = React.memo(function ModelSelector({
 }: {
   modelGroups: ModelGroup[];
   normalizedValue: string;
-  triggerLabel: string;
+  triggerLabel: string | undefined; // A1-R11 型缝宽化：AutomationEditor 3447 消费面 = NMt 135453 → iN 53795 真形 string | undefined；既有 string 消费面（SubagentLeaves/ExtendedViews/Composer）对宽面可赋
   triggerLabelPrefix?: string;
   triggerLabelValue?: string;
   triggerLabelPrefixClassName?: string;
@@ -235,7 +235,7 @@ export const ModelSelector = React.memo(function ModelSelector({
   triggerClassName?: string;
   triggerIconClassName?: string;
   triggerLabelClassName?: string;
-  formatTriggerLabel?: (label: string) => string;
+  formatTriggerLabel?: (label: string | undefined) => string; // A1-R11 型缝宽化：随 triggerLabel 宽面（全树无外部传入点，负证据在案）
   showProviderLevel?: boolean;
   footerActions?: ModelFooterAction[];
   manageModelsLabel?: string;

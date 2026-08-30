@@ -171,6 +171,7 @@ import { useSearchResultsStore, upsertSearchTaskMeta, updateSearchTaskMetaPreser
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip；aria-pressed 见 B-28）
 import { FileIconImg as FileIconImage, resolveFileDisplayInfo as getFileMeta } from '../../modules/ModalsLeaves'; // 原 Vc / zc
+import { FILE_TREE_DRAG_MIME, serializeFileTreeDragPayload, buildFileTreeDragText, setGlobalFileTreeDragging, addFileTreeEntryToChat } from '../composer/FileMentionDragHelpers'; // A1-R11：kj（52210）/$He（52216）/wj（52124）/Pj（52257）/rUe（52263）转录改指（纯函数叶子，零 import，环安全）；调用点 1701–1707/1802 逐字不变（rUe 返回布尔，1802 消费点丢弃返回值）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
@@ -273,12 +274,8 @@ declare function pathToFileUrl(path: string): string; // 原 Yo（1958）
 
 /* MarkdownIntegration.tsx 已重建件（接口挂接） */
 
-/* 拖拽助手（Composer 域，接口挂接） */
-declare const FILE_TREE_DRAG_MIME: string; // 原 kj
-declare function serializeFileTreeDragPayload(payload: unknown): string; // 原 $He
-declare function buildFileTreeDragText(relativePath: string, name: string, type: string): string; // 原 wj
-declare function setGlobalFileTreeDragging(dragging: boolean): void; // 原 Pj
-declare function addFileTreeEntryToChat(entry: FileTreeChatEntry): void; // 原 rUe
+/* ── tombstone（A1-R11）：拖拽助手五枚 declare（原 kj 52210 / $He 52216 / wj 52124 / Pj 52257 / rUe 52263）删除，
+ *    改经文件头 ../composer/FileMentionDragHelpers import 消费（本批逐字转录；映射/边界裁决见该文件头表）。 ── */
 
 /* testid（src-HCld2afU.js 反查值；原 eee/Gv、_re/Uv、st/Wv、qr/Nb） */
 const TESTID_FILE_TREE_ROW_BASE = `workspace-file-tree-row`;

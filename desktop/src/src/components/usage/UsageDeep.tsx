@@ -318,6 +318,22 @@
  *   eQt → ModelProviderNavRail            导航轨根（preset 组 + custom 拖拽组）(191183 / 154042)
  *   tQt → isProviderSectionRefreshing     presetLoading || customLoading (191286 / 154088)
  *
+ * Q. A1-R11 转录簇（R0 簇 51141–53795 之 UsageDeep 属主成员；行号为 bundle 真身）：
+ *   tM → nullSafe                          (52642) 双归属：MPSS 经名 toManagedProvider / PaymentDeep 经名 providerEntryOrNull
+ *   nM → providerApiKeyFingerprint        (52645) PaymentDeep 经名 providerFingerprintKeyOf
+ *   aM → shouldProbeStartPlanEntitlement  (52661)
+ *   fM → listCodingPlanSources            (52681) 消费面经名 getModelProvidersCached（Onboarding/AppRootLeaves）
+ *   pM → hasLoadedCodingPlanSources       (52684) 消费面经名 isModelProviderSnapshotHydrated
+ *   hM → subscribeCodingPlanSources       (52695) 消费面经名 subscribeModelProviders（AppRootLeaves）
+ *   UUe → newPurchaseFunnelId             (53249) | qUe → fallbackPurchaseFunnelId (53417)
+ *   PM → upgradeFunnelContext             (53253) 别名 trackPlanCardEvent（本文件 513 区墓碑）
+ *   GUe → providerFamilyOfFunnelProvider  (53387) | KUe → funnelChannelOfFamily (53397)
+ *   IM → entryPlanStateOf                 (53277) | UM → isStartPlanLevelWordBoundary (53406)
+ *   WM/GM/KM/qM/YUe → §2c 模块态/监听/单飞  (53465/53468/53471)
+ *   JM → useAppSettings                   (53488)
+ *   rN/iN（53790/53795）→ §2d 删碑：双实例收敛至 SubagentLeaves
+ *   composeProviderModelLabel/resolveModelFullLabel（A0 期既有转录，jsx 48436/48441）
+ *
  * （接口级，行号登记，不在本批重建）：
  *   zet CodingPlanPurchaseDialog (84412)、Zet 结账面板 (85948)、e5e 支付 QR (79979)、
  *   Xrt/Zrt 计划源选择 (89295)、Mq 供应商选择 (76864)、j3e 配额弹层内容 (76630)、
@@ -327,7 +343,7 @@
  *   nJ productPriceOf (79685)、iJ formatProductPrice (79691)、
  *   Znt providerDisplayName (88222)、trt summarizeModelTestResults (88422)、
  *   srt isApiKeyMissing (88461)、crt navItemIcon (88464)、
- *   PM trackPlanCardEvent (53205)、IM entryPlanStateOf (53229)、
+ *   （PM 53253/IM 53277 已于 A1-R11 转录 §2b，旧登记行 53205/53229 为漂移标注）、
  *   xZ arrayMove (94125)、cj MarkdownRenderer（Markdown.tsx 已抽取）、
  *   Ao useSettingsStoreValue (1301)、fs useServices (2638)、ps useOptionalServices (2643)、
  *   qse useBaseServices（services.tsx 已抽取）；
@@ -369,7 +385,8 @@ import { useCodingPlanProducts, useStartPlanPreview } from '../../modules/Paymen
 import { CommandEmpty, CommandList } from '../../modules/QuickPick';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../modules/Settings';
 import { logger } from '../../modules/SkillStore';
-import { isStartPlanProviderId } from '../../modules/SrcSharedA';
+import { isStartPlanProviderId, isZaiPlanProviderId } from '../../modules/SrcSharedA'; // +isZaiPlanProviderId（A1-R11：GUe 53391 消费，原 vl/tr）
+import { APP_RUNTIME_PREFERENCES_STORAGE_KEY } from '../../modules/SrcSharedB'; // A1-R11：JM 53535 消费 fS 广播道（styles `T as Tr` ← src 导出表 `APP_RUNTIME_PREFERENCES_STORAGE_KEY as T`）；原 rN 53791 之 dr 依赖随 §2d 删碑收敛至 SubagentLeaves（其自持 canonicalProviderIdOf declare = Jx）
 import { useBaseServices, useServices, useServicesOptional as useOptionalServices } from '../../modules/services'; // A0-CLEANUP3 #44：ps useOptionalServices 属主为 services.useServicesOptional
 import { useSettingsStoreValue } from '../../modules/stores-core'; // A0-CLEANUP3 #44：Ao useSettingsStoreValue 属主为 stores-core（具名导出）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
@@ -510,14 +527,11 @@ declare function summarizeModelTestResults(
 ): { success: boolean; failureReason?: string; noEndpointResult?: boolean }; // trt（88422）
 declare function isApiKeyMissing(apiKey: string): boolean; // srt（88461）
 declare function navItemIcon(item: ModelProviderNavItem): React.ReactNode; // crt（88464）
-declare function trackPlanCardEvent(opts: {
-  providerId: string;
-  upgradeSource: string;
-  eventRegion: string;
-  eventText: string;
-  entryPlanState: string;
-}): string; // PM（53205）
-declare function entryPlanStateOf(opts: { displayStatus: string; providerId: string; planLevel?: string }): string; // IM（53229）
+/* ── tombstone（A1-R11）：trackPlanCardEvent（原 PM，js 53253——普查行 53205 为漂移标注）/
+ *    entryPlanStateOf（原 IM，js 53277——普查行 53229 同漂移）declare 删除：
+ *    PM/IM 真形已逐字转录本文件 §2b（upgradeFunnelContext/entryPlanStateOf，返回 FunnelContext/
+ *    EntryPlanState 对象面，非旧注之 string 近似）。190053 区调用面经下方别名逐字不变。 ── */
+const trackPlanCardEvent = upgradeFunnelContext; // 原 PM（53253）：本文件 De 调用面（190053 区）别称
 declare function arrayMove<T>(items: T[], from: number, to: number): T[]; // xZ（94125）
 declare function productsProviderIdOf(providerId: string): string; // EY（83767）
 declare function useEnterpriseTeamProducts(opts: { enabled: boolean; authenticated: boolean }): {
@@ -544,7 +558,7 @@ declare const CodingPlanPurchaseDialog: React.FC<{
   accountRequirementVisible?: boolean;
   autoRecoverAuthOnOAuthRequired?: boolean;
   initialAudience?: "personal" | "team";
-  funnelContext?: string | null;
+  funnelContext?: FunnelContext | null; // A1-R11 精化：PM 53253 返回对象真形（原 string 近似删除）
   onLogin?: () => void;
   onOpenChange: (open: boolean) => void;
   onPurchaseComplete?: () => void;
@@ -680,7 +694,8 @@ export interface EntitlementSnapshot {
   provider?: { id: string; name?: string } | null;
   context?: { scope?: string; organizationId?: string; projectId?: string } | null;
   quota?: { level?: string; limits?: EntitlementQuotaLimit[] } | null;
-  subscription?: { details?: Array<{ renewTime?: string; expireTime?: string }> } | null;
+  // A1-R11 精化：details 元素补 productName/productId（bundle IM 53280–53281 读面真形）
+  subscription?: { details?: Array<{ renewTime?: string; expireTime?: string; productName?: string; productId?: string }> } | null;
   remaining?: { nextResetTime?: number } | null;
   unavailableReason?: string | null;
   [key: string]: unknown;
@@ -1315,7 +1330,7 @@ export function useUsageEntitlementCore(
 }
 
 /** 原 tM（js 52597）：null 兜底 */
-function nullSafe<T>(value: T | null | undefined): T | null {
+export function nullSafe<T>(value: T | null | undefined): T | null {
   return value ?? null;
 }
 
@@ -1327,7 +1342,8 @@ function hashApiKey(apiKey: string): string {
 }
 
 /** 原 nM（js 52599）：供应商指纹（无效供应商/空 key → 空串） */
-function providerApiKeyFingerprint(provider: ModelProvider | undefined): string {
+// A1-R11 宽化：入参补 null（bundle nM 52645 `!e` 守卫真形；PaymentDeep 9672 传 ModelProvider | null）
+export function providerApiKeyFingerprint(provider: ModelProvider | null | undefined): string {
   if (!provider || !provider.id || provider.apiKey.trim().length === 0) return ``;
   return `${provider.id}:${hashApiKey(provider.apiKey.trim())}`;
 }
@@ -1349,13 +1365,15 @@ function isNoPlanEntitlement(snapshot: EntitlementSnapshot | null, providerId: s
   return snapshot.unavailableReason === `no_plan` && !snapshot.quota && !snapshot.subscription && !snapshot.remaining;
 }
 
-/** 原 aM（js 52612）：是否应继续探测 Start Plan（指纹缺失→是；codingPlan 活跃→否；no_plan→是；加载中/错误→否） */
-function shouldProbeStartPlanEntitlement(opts: {
-  codingPlanProviderFingerprint: string;
+/** 原 aM（js 52612）：是否应继续探测 Start Plan（指纹缺失→是；codingPlan 活跃→否；no_plan→是；加载中/错误→否）
+ *  A1-R11 宽化：codingPlanLoading/codingPlanError 在 bundle 52668 仅 `(…, …, !1)` 并读真形，
+ *  故 loading 保留 boolean、error 宽化 unknown（PaymentDeep 305 declare error: unknown 消费面兼容）。 */
+export function shouldProbeStartPlanEntitlement(opts: {
+  codingPlanProviderFingerprint: string | null;
   codingPlanProviderId: string;
   codingPlanSnapshot: EntitlementSnapshot | null;
   codingPlanLoading: boolean;
-  codingPlanError: string | null;
+  codingPlanError: unknown;
 }): boolean {
   if (!opts.codingPlanProviderFingerprint) return true;
   if (hasActiveEntitlement(opts.codingPlanSnapshot, opts.codingPlanProviderId)) return false;
@@ -1366,23 +1384,26 @@ function shouldProbeStartPlanEntitlement(opts: {
 }
 
 /* --- 供应商源注册表（原 oM…NUe，js 52626–52660） --- */
-let codingPlanSources: unknown[] = [];
+// A1-R11：oM 元素真形 = modelProviderService.getAll()/getAllCached() 之供应商记录
+// （bundle 78266/78272/206174/209921 fetcher 实测；LM 53300 读 id/enabled/systemDisabledReason），
+// 故注册表全链由 unknown[] 精化为 ModelProvider[]（消费侧 OnboardingLoginLeaves/AppRootLeaves 真形）。
+let codingPlanSources: ModelProvider[] = [];
 let codingPlanSourcesLoaded = false;
 let codingPlanSourcesInvalidation = 0;
 let forcedRefreshInFlight: Promise<unknown> | null = null;
 let ensureSourcesInFlight: Promise<unknown> | null = null;
-const codingPlanSourcesListeners = new Set<(sources: unknown[]) => void>();
+const codingPlanSourcesListeners = new Set<(sources: ModelProvider[]) => void>();
 
 /** 原 fM（js 52641） */
-function listCodingPlanSources(): unknown[] {
+export function listCodingPlanSources(): ModelProvider[] {
   return codingPlanSources;
 }
 /** 原 pM（js 52644） */
-function hasLoadedCodingPlanSources(): boolean {
+export function hasLoadedCodingPlanSources(): boolean {
   return codingPlanSourcesLoaded;
 }
 /** 原 mM（js 52646）：提交源列表（可选作废在途刷新）并广播 */
-function setCodingPlanSources(sources: unknown[], opts?: { invalidateInFlightRefresh?: boolean }): void {
+function setCodingPlanSources(sources: ModelProvider[], opts?: { invalidateInFlightRefresh?: boolean }): void {
   if (opts?.invalidateInFlightRefresh) codingPlanSourcesInvalidation += 1;
   codingPlanSources = sources;
   codingPlanSourcesLoaded = true;
@@ -1391,7 +1412,7 @@ function setCodingPlanSources(sources: unknown[], opts?: { invalidateInFlightRef
   });
 }
 /** 原 hM（js 52654） */
-function subscribeCodingPlanSources(listener: (sources: unknown[]) => void): () => void {
+export function subscribeCodingPlanSources(listener: (sources: ModelProvider[]) => void): () => void {
   codingPlanSourcesListeners.add(listener);
   return () => {
     codingPlanSourcesListeners.delete(listener);
@@ -1403,7 +1424,7 @@ function nextSourcesInvalidationToken(): number {
   return codingPlanSourcesInvalidation;
 }
 /** 原 NUe（js 52662）：令牌仍有效才提交 */
-function commitSourcesIfCurrent(token: number, sources: unknown[]): boolean {
+function commitSourcesIfCurrent(token: number, sources: ModelProvider[]): boolean {
   if (token === codingPlanSourcesInvalidation) {
     setCodingPlanSources(sources);
     return true;
@@ -1412,10 +1433,10 @@ function commitSourcesIfCurrent(token: number, sources: unknown[]): boolean {
 }
 
 /** 原 gM（js 52665）：强制刷新源列表（force 缺省且已有结果 → 直接复用；单飞合并） */
-function refreshCodingPlanSourcesForced(fetcher: () => Promise<unknown[]>, opts?: { force?: boolean }): Promise<unknown[]> {
-  if (opts?.force !== true && forcedRefreshInFlight) return forcedRefreshInFlight as Promise<unknown[]>;
+function refreshCodingPlanSourcesForced(fetcher: () => Promise<ModelProvider[]>, opts?: { force?: boolean }): Promise<ModelProvider[]> {
+  if (opts?.force !== true && forcedRefreshInFlight) return forcedRefreshInFlight as Promise<ModelProvider[]>;
   const token = nextSourcesInvalidationToken();
-  let request!: Promise<unknown[]>;
+  let request!: Promise<ModelProvider[]>;
   request = (async () => {
     try {
       const sources = await fetcher();
@@ -1430,10 +1451,10 @@ function refreshCodingPlanSourcesForced(fetcher: () => Promise<unknown[]>, opts?
 }
 
 /** 原 _M（js 52681）：惰性确保源列表已加载（单飞合并） */
-function ensureCodingPlanSources(fetcher: () => Promise<unknown[]>): Promise<unknown[]> {
+function ensureCodingPlanSources(fetcher: () => Promise<ModelProvider[]>): Promise<ModelProvider[]> {
   if (codingPlanSourcesLoaded) return Promise.resolve(codingPlanSources);
-  if (ensureSourcesInFlight) return ensureSourcesInFlight as Promise<unknown[]>;
-  let request!: Promise<unknown[]>;
+  if (ensureSourcesInFlight) return ensureSourcesInFlight as Promise<ModelProvider[]>;
+  let request!: Promise<ModelProvider[]>;
   request = (async () => {
     try {
       const sources = await fetcher();
@@ -1514,6 +1535,271 @@ function activeProvidersOfList(providers: unknown[] | undefined): unknown {
 export function hasNoUserOrProviders(state: { user?: unknown; providers?: unknown[] }): boolean {
   return !state.user && !activeProvidersOfList(state.providers);
 }
+
+/* ============================================================================
+ * 2b. 购买漏斗簇（原 PM/IM/GUe/KUe/UUe/qUe/UM，js 53249–53420；A1-R11 项 2 转录）
+ *     消费面：本文件 trackUpgradeEvent（190053 区）、ModelProviderSettingsSection 1254、
+ *     PaymentDeep 11049（entryPlanState 对象真形）。
+ * ==========================================================================*/
+
+/** 漏斗上下文（原 PM 返回面，js 53254–53265） */
+export interface FunnelContext {
+  purchaseFunnelId: string;
+  upgradeSource: string;
+  eventRegion: string;
+  eventText: string;
+  entryPlanStatus: string;
+  entryPlanLevel: string;
+  purchaseAudience: string;
+  providerFamily: string;
+  channel: string;
+}
+
+/** 入口计划态（原 IM 返回面，js 53283–53296） */
+export interface EntryPlanState {
+  entryPlanStatus: string;
+  entryPlanLevel: string;
+}
+
+/** 原 qUe（js 53417）：crypto.randomUUID 缺省时的兜底漏斗 id */
+function fallbackPurchaseFunnelId(): string {
+  return (
+    logger.warn(`[codingPlanFunnelTelemetry] crypto.randomUUID unavailable, using fallback id`),
+    `funnel_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  );
+}
+
+/** 原 UUe（js 53249）：漏斗 id（crypto.randomUUID，缺省兜底） */
+function newPurchaseFunnelId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? fallbackPurchaseFunnelId();
+}
+
+/** 原 GUe（js 53387）：供应商 id → 漏斗族域（bigmodel|zai|unknown） */
+function providerFamilyOfFunnelProvider(providerId: string): "bigmodel" | "zai" | "unknown" {
+  return providerId === `bigmodel` ||
+    providerId === PROVIDER_IDS.bigmodel ||
+    providerId === PROVIDER_IDS.bigmodelCodingPlan ||
+    providerId === PROVIDER_IDS.bigmodelStartPlan
+    ? `bigmodel`
+    : providerId === `zai` || providerId === PROVIDER_IDS.zai || isZaiPlanProviderId(providerId)
+      ? `zai`
+      : `unknown`;
+}
+
+/** 原 KUe（js 53397）：族域 → 渠道标 */
+function funnelChannelOfFamily(family: "bigmodel" | "zai" | "unknown"): string {
+  return { bigmodel: `MaaS`, zai: `Z_AI`, unknown: `` }[family];
+}
+
+/** 原 UM（js 53406）：计划级别含 start 词界（大小写不敏感）。
+ *  与 aZt isStartPlanLevel（190002，精确三判）为 bundle 并存双真身，各自逐字。 */
+function isStartPlanLevelWordBoundary(planLevel: string): boolean {
+  return /\bstart\b/i.test(planLevel.trim());
+}
+
+/** 原 IM（js 53277）：入口计划态（snapshot 优先 → displayStatus/providerId 兜底） */
+export function entryPlanStateOf(opts: {
+  displayStatus?: string;
+  providerId?: string;
+  planLevel?: string;
+  snapshot?: EntitlementSnapshot | null;
+}): EntryPlanState {
+  let t = opts.planLevel?.trim() ?? ``,
+    n =
+      opts.snapshot?.subscription?.details?.[0]?.productName?.trim() ||
+      opts.snapshot?.subscription?.details?.[0]?.productId?.trim() ||
+      opts.snapshot?.quota?.level?.trim() ||
+      ``,
+    r = t || n;
+  if (opts.snapshot) {
+    if (opts.snapshot.unavailableReason === `no_plan`) return { entryPlanStatus: `no_plan`, entryPlanLevel: `` };
+    if (opts.snapshot.subscription || opts.snapshot.quota || opts.snapshot.remaining)
+      return { entryPlanStatus: isStartPlanLevelWordBoundary(r) ? `start_plan` : `coding_plan`, entryPlanLevel: r };
+  }
+  return opts.displayStatus === `notPurchased`
+    ? { entryPlanStatus: `no_plan`, entryPlanLevel: `` }
+    : opts.displayStatus === `purchased`
+      ? { entryPlanStatus: isStartPlanLevelWordBoundary(r) ? `start_plan` : `coding_plan`, entryPlanLevel: r }
+      : opts.providerId && isStartPlanProviderId(opts.providerId) && r
+        ? { entryPlanStatus: `start_plan`, entryPlanLevel: r }
+        : { entryPlanStatus: `unknown`, entryPlanLevel: `` };
+}
+
+/** 原 PM（js 53253）：构造购买漏斗上下文（entryPlanState 展平入面）。
+ *  消费侧别名：本文件 trackUpgradeEvent 调用面（原 De，190053）、
+ *  ModelProviderSettingsSection upgradeFunnelContext（1254）。 */
+export function upgradeFunnelContext(opts: {
+  providerId: string;
+  upgradeSource: string;
+  eventRegion: string;
+  eventText: string;
+  entryPlanState?: EntryPlanState | null;
+  purchaseAudience?: string;
+}): FunnelContext {
+  let t = providerFamilyOfFunnelProvider(opts.providerId);
+  return {
+    purchaseFunnelId: newPurchaseFunnelId(),
+    upgradeSource: opts.upgradeSource,
+    eventRegion: opts.eventRegion,
+    eventText: opts.eventText,
+    entryPlanStatus: opts.entryPlanState?.entryPlanStatus ?? `unknown`,
+    entryPlanLevel: opts.entryPlanState?.entryPlanLevel ?? ``,
+    purchaseAudience: opts.purchaseAudience ?? ``,
+    providerFamily: t,
+    channel: funnelChannelOfFamily(t),
+  };
+}
+
+/* ============================================================================
+ * 2c. 应用设置钩子（原 WM/GM/KM/qM/YUe/JM，js 53465–53548；A1-R11 项 2 转录）
+ *     消费面 12 域：settings 六分区 + automations×2 + OnboardingLoginLeaves +
+ *     AppRootLeaves + modules/Settings（declare 改指在案）。
+ * ==========================================================================*/
+
+/** 应用设置快照（bundle settingService.get() 真形消费面：JM 53488 起、12 消费域读面） */
+export interface AppRuntimeSettings {
+  modelProviderFamilyModes?: Record<string, string>;
+  modelProviderFamilySelectedKeys?: Record<string, string>;
+  providerFamilyDomain?: string | null;
+  providerFamilyDomainUpdatedAt?: number;
+  providerFamilyDomainMigrated?: boolean;
+  keepAwakeWhileRunning?: boolean;
+  askUserQuestionAutoResolutionEnabled?: boolean;
+  // A1-R11 型缝精化：JM get() 真形 = settingService 全量快照；modules/Settings.tsx 1372–1377 具型消费面（受控态初值）
+  optimizeAgentExperienceEnabled?: boolean;
+  messageStreamShowReasoning?: boolean;
+  messageStreamShowTodos?: boolean;
+  zcodeInteractionBehavior?: "queue" | "guide";
+  receivePreviewUpdates?: boolean;
+  autoDownloadAndInstallUpdates?: boolean;
+  [key: string]: unknown;
+}
+
+/** 应用设置更新补丁（JM update 入参真形：53516 读 askUserQuestionAutoResolutionEnabled，余键透传） */
+export interface AppRuntimeSettingsPatch {
+  askUserQuestionAutoResolutionEnabled?: boolean;
+  [key: string]: unknown;
+}
+
+interface AppRuntimeSettingsState {
+  settings: AppRuntimeSettings | null;
+  loading: boolean;
+  error: unknown;
+}
+
+/** 原 WM（js 53465）：模块级快照初态 */
+let appSettingsState: AppRuntimeSettingsState = { settings: null, loading: true, error: null };
+/** 原 GM（js 53466）：刷新单飞槽 */
+let appSettingsRefreshInFlight: Promise<void> | null = null;
+/** 原 KM（js 53467）：监听集 */
+const appSettingsListeners = new Set<(state: AppRuntimeSettingsState) => void>();
+
+/** 原 qM（js 53468）：广播当前快照 */
+function notifyAppSettingsListeners(): void {
+  for (const listener of appSettingsListeners) listener(appSettingsState);
+}
+
+/** 原 YUe（js 53471）：单飞合并刷新（loading/error 态迁移 + 广播） */
+function refreshAppSettingsDeduped(fetchSettings: () => Promise<AppRuntimeSettings>): Promise<void> {
+  return (
+    appSettingsRefreshInFlight ||
+    ((appSettingsState = { ...appSettingsState, loading: true, error: null }),
+    notifyAppSettingsListeners(),
+    (appSettingsRefreshInFlight = (async () => {
+      try {
+        ((appSettingsState = { settings: await fetchSettings(), loading: false, error: null }), notifyAppSettingsListeners());
+      } catch (e) {
+        ((appSettingsState = { settings: appSettingsState.settings, loading: false, error: e }), notifyAppSettingsListeners());
+      }
+    })().finally(() => {
+      appSettingsRefreshInFlight = null;
+    })),
+    appSettingsRefreshInFlight)
+  );
+}
+
+/** 原 JM（js 53488）：应用设置钩子（模块级快照 + 平台变更订阅 + 运行时偏好同步广播）。
+ *  环安全：值闭包 = modules/services + ImeComposition(usePlatformService) + SrcSharedB 常量 + react，
+ *  12 消费域经 modules/UsageDeep shim import 本函数不构成新环（函数声明提升）。 */
+export function useAppSettings(): {
+  settings: AppRuntimeSettings | null;
+  loading: boolean;
+  error: unknown;
+  update: (patch: AppRuntimeSettingsPatch) => Promise<void>;
+  refresh: () => Promise<void>;
+} {
+  const { botsService, broadcastService, settingService, zcodeAgentService } = useServices();
+  const platform = usePlatformService();
+  const [state, setState] = React.useState(appSettingsState);
+  const refresh = React.useCallback(async () => {
+    await refreshAppSettingsDeduped(() => settingService.get());
+  }, [settingService]);
+  React.useEffect(() => {
+    const listener = (next: AppRuntimeSettingsState) => {
+      setState(next);
+    };
+    return (
+      appSettingsListeners.add(listener),
+      setState(appSettingsState),
+      void refresh(),
+      () => {
+        appSettingsListeners.delete(listener);
+      }
+    );
+  }, [refresh]);
+  React.useEffect(
+    () =>
+      platform.onSettingsChanged?.(() => {
+        void refresh();
+      }) ?? (() => {}),
+    [platform, refresh],
+  );
+  const update = React.useCallback(
+    async (patch: AppRuntimeSettingsPatch) => {
+      if (
+        (await settingService.update(patch),
+        platform.syncAppSettings?.(patch),
+        await refresh(),
+        typeof patch.askUserQuestionAutoResolutionEnabled == `boolean`)
+      ) {
+        let n = (
+          await Promise.allSettled([
+            zcodeAgentService.syncAppRuntimePreferences({
+              askUserQuestionAutoResolutionEnabled: patch.askUserQuestionAutoResolutionEnabled,
+            }),
+            botsService.syncAppRuntimePreferences({
+              askUserQuestionAutoResolutionEnabled: patch.askUserQuestionAutoResolutionEnabled,
+            }),
+          ])
+        ).find((e) => e.status === `rejected`)?.reason;
+        if (
+          (await broadcastService.send({
+            channel: APP_RUNTIME_PREFERENCES_STORAGE_KEY,
+            payload: {
+              askUserQuestionAutoResolutionEnabled: patch.askUserQuestionAutoResolutionEnabled,
+            },
+          }),
+          n)
+        )
+          throw n;
+      }
+    },
+    [botsService, broadcastService, settingService, zcodeAgentService, platform, refresh],
+  );
+  return { settings: state.settings, loading: state.loading, error: state.error, update: update, refresh: refresh };
+}
+
+/* ============================================================================
+ * 2d. 模型组标签（原 rN/iN，js 53790–53795）
+ * ==========================================================================*/
+
+/* ── tombstone（A1-R11）：prefixModelLabelWithProvider（rN，53790）/resolveModelGroupLabel（iN，53795）
+ *    本批转录删除——双实例收敛：rN/iN 之既有属主 = components/settings/SubagentLeaves.tsx
+ *    composeProviderModelLabel / resolveModelFullLabel（A0 期转录，注 jsx 48436/48441 = 本簇 js 53790/53795，
+ *    逐字同构：dr 守卫 + 前缀拼接 / 组×项定位 + 回退）。本 §2d 为 R11 期不知既有转录而作之重复，
+ *    依「一符一家」删碑改指：AutomationEditor 1015 消费面改经 SubagentLeaves resolveModelFullLabel
+ *    （别名保留 resolveModelGroupLabel，调用点逐字不变）。ExtendedViews 438 之双参面真形为
+ *    w6e（77856，wiki 域），不属本簇，维持留批。 ── */
 
 /* ============================================================================
  * 3. 计费折扣簇（原 dj 簇，js 51857–52041 / jsx 46612–46764）
@@ -4946,14 +5232,14 @@ export interface CodingPlanStatusSectionProps {
   onOpenPurchase?: (url: string) => void;
   onDisconnect?: () => void;
   onPurchaseComplete?: () => void;
-  onOpenUpgradePlans?: (opts: { initialAudience: "personal" | "team"; funnelContext: string | null }) => void;
+  onOpenUpgradePlans?: (opts: { initialAudience: "personal" | "team"; funnelContext: FunnelContext | null }) => void; // A1-R11 精化：同上
   loginActionPlacement?: "inline" | "trailing";
   loginActionVisible?: boolean;
   usageDetailsVisible?: boolean;
   upgradePlansVisible?: boolean;
   onUpgradePlansVisibleChange?: (visible: boolean) => void;
   purchaseInitialAudience?: "personal" | "team";
-  funnelContext?: string | null;
+  funnelContext?: FunnelContext | null; // A1-R11 精化：同上
   startPlanPreviewVisible?: boolean;
   pricingCardsVisible?: boolean;
   statusLabelId?: string;
@@ -4999,7 +5285,7 @@ export function CodingPlanStatusSection(props: CodingPlanStatusSectionProps): Re
   const { intl } = useIntlContext();
   const billingDiscount = useBillingDiscount();
   const [upgradePlansLocal, setUpgradePlansLocal] = React.useState(false);
-  const [funnelContextLocal, setFunnelContextLocal] = React.useState<string | null>(null);
+  const [funnelContextLocal, setFunnelContextLocal] = React.useState<FunnelContext | null>(null); // A1-R11 精化：同上
   const upgradePlansVisible = upgradePlansVisibleProp ?? upgradePlansLocal;
   const setUpgradePlansVisible = onUpgradePlansVisibleChange ?? setUpgradePlansLocal;
   const funnelContext = funnelContextProp ?? funnelContextLocal;
@@ -5051,7 +5337,7 @@ export function CodingPlanStatusSection(props: CodingPlanStatusSectionProps): Re
       eventText,
       entryPlanState: entryPlanStateOf({ displayStatus: state.displayStatus, providerId, planLevel }),
     });
-  const openUpgradePlans = (audience: "personal" | "team", context: string | null) => {
+  const openUpgradePlans = (audience: "personal" | "team", context: FunnelContext | null) => { // A1-R11 精化：同上
     setFunnelContextLocal(context);
     if (onOpenUpgradePlans) {
       onOpenUpgradePlans({ initialAudience: audience, funnelContext: context });

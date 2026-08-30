@@ -518,6 +518,7 @@ import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I
 import { Button } from './button'; // 原 H，button-laUijeDG.js（A0-D 接线：declare → button canonical）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 import { SuggestionPanel, type PanelSection } from '../components/composer/SuggestionPanel'; // 〔A0-S4-4b〕留守面消费回取：B6 SlashPanel 段型别 + 建议面板渲染点（函数声明提升/型别擦除，环安全）
+import { buildFileTreeDragText as fileMentionMarkdown, pluginMentionMarkdown } from '../components/composer/FileMentionDragHelpers'; // A1-R11：wj（52124）/Dj（52138）转录改指（纯函数叶子，环安全同 SuggestionPanel 先例）；调用点 2779/2998 逐字不变。wj 双归属：FileTreePanel 经名 buildFileTreeDragText、本文件经名 fileMentionMarkdown，bundle 唯一真身
 
 /* ============================================================================
  * 0. 外部依赖类型声明（未重建依赖以 declare 挂接；来源见上方清单）
@@ -783,11 +784,14 @@ declare const DOCUMENT_ICON_SRC: string;
 declare const DOCUMENT_FALLBACK_ICON_SRC: string;
 
 /** 17. 提及 markdown 构造（本 chunk 52124–52142，F02 域） */
-declare function fileMentionMarkdown(relativePath: string, name: string, kind?: string): string;
+/* ── tombstone（A1-R11）：declare fileMentionMarkdown（原 wj，52124）删除，改经文件头
+ *    ../components/composer/FileMentionDragHelpers import 别名消费（canonical = buildFileTreeDragText，
+ *    本批逐字转录；与 FileTreePanel 消费面同符双归属，bundle 唯一真身）。 ── */
 declare function skillMentionMarkdown(name: string, path?: string): string;
 declare function subagentMentionMarkdown(name: string): string;
 declare function sessionMentionMarkdown(taskId: string, title?: string | null): string;
-declare function pluginMentionMarkdown(name: string, pluginId: string): string;
+/* ── tombstone（A1-R11）：declare pluginMentionMarkdown（原 Dj，52138）删除，改经文件头
+ *    ../components/composer/FileMentionDragHelpers import 消费（本批逐字转录）。 ── */
 
 /** 18. 工作区文件拖拽（本 chunk 52248–52271） */
 declare const WORKSPACE_FILE_DRAG_EVENT_TYPE: string;

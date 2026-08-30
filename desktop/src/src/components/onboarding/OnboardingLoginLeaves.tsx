@@ -207,6 +207,17 @@
  *   y8t → TASK_NOTIFICATION_SOUND_URL     (213896 / 170364)
  *   $9  → sharedNotificationAudio         (213897 / —)
  *   b8t → getNotificationAudio            (213898 / 170366)
+ * [J] A1-R11 携入：任务广播错误归一族（域外行段 52799–52924，DM 簇逐字转录）：
+ *   Cw  → messageErrorCodeOverride        (40570)  bundle stub（return void 0）；余 3 消费 40680/54293/118783 属域外簇
+ *   bM  → GENERIC_ERROR_MESSAGES          (52799)
+ *   xM  → isPlainObjectValue              (52806)
+ *   SM  → trimmedTextOrNull               (52809)
+ *   CM  → parseJsonCandidate              (52813)
+ *   wM  → readNestedField                 (52822)
+ *   TM  → collectErrorTextsByPaths        (52829)
+ *   IUe → collectErrorMessageCandidates   (52853)
+ *   EM  → firstErrorTextByPaths           (52877)
+ *   DM  → normalizeTaskBroadcastError     (52886)  消费点 4461/4480（task_error/task_warning）
  *
  * ----------------------------------------------------------------------------
  * 二、边界裁决（范围内已抽取段，只注记不转录）
@@ -244,6 +255,7 @@ import { ConversationTelemetrySupervisor, registerBaseServices, syncProviderRegi
 import { reportTelemetry as trackTelemetryEvent } from '../../modules/StoresDeep'; // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）
 import { mergeRemoteLogProgressEntry as appendRemoteLog, stripRemoteLogPrefixes as normalizeRemoteLogMessage } from '../remote/RemoteGapSegments'; // A1-R8：hEt@123747=stripRemoteLogPrefixes、vEt@123762=mergeRemoteLogProgressEntry 改指（环安全：RemoteGapSegments 仅 import React/button/RemoteWizard/Modals/SrcSharedA/B/stores-core，不反入 onboarding）
 import { useSettingsStore } from '../../modules/stores-core';
+import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSources as isModelProviderSnapshotHydrated } from '../../modules/UsageDeep'; // A1-R11：fM（52681）/pM（52684）改指 canonical（components/usage/UsageDeep.tsx 注册表，返回 ModelProvider[]——fetcher 证据 78266/78272/206174/209921 = modelProviderService.getAllCached/getAll）；4757 消费点经 ModelProviderRecord any 索引面双变可赋
 import { DEFAULT_CODE_PREVIEW_SETTINGS as defaultCodePreviewSettings } from '../../modules/MarkdownIntegration'; // 默认代码预览设置（原 lo，1040）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // intl 上下文（原 G()）
@@ -302,7 +314,7 @@ export interface ModelProviderRecord {
   id: string;
   apiKey: string;
   enabled?: boolean;
-  systemDisabledReason?: string | undefined;
+  systemDisabledReason?: string | null; // A1-R11 型缝精化（bundle 真形）：对齐 UsageDeep.ModelProvider 及各族本地面（均 string | null）；fM 52681 返回 ModelProvider[] 对本面可赋
   updatedAt?: number;
   [key: string]: any;
 }
@@ -791,9 +803,14 @@ export interface PaneLayoutState {
 }
 
 /* --- 模型 provider 快照 / 权益 --- */
-declare function getModelProvidersCached(): ModelProviderRecord[];
-declare function isModelProviderSnapshotHydrated(): boolean;
-declare function subscribeModelProviders(listener: (providers: ModelProviderRecord[]) => void): () => void;
+/* ── tombstone（A1-R11）：declare getModelProvidersCached（原 fM，52681）删除，改经文件头 modules/UsageDeep import 消费
+ *    （canonical = components/usage/UsageDeep.tsx listCodingPlanSources，`return oM` 逐字；返回 ModelProvider[]）。
+ *    双实例收敛证据：bundle fM 唯一真身 52681；终端消费实测 4757（forceRefresh 分支）。 ── */
+/* ── tombstone（A1-R11）：declare isModelProviderSnapshotHydrated（原 pM，52684）删除，改经文件头 modules/UsageDeep import 消费
+ *    （canonical = components/usage/UsageDeep.tsx hasLoadedCodingPlanSources，`return sM` 逐字）。
+ *    双实例收敛证据：bundle pM 唯一真身 52684；终端消费实测 3179/3194。 ── */
+/* ── tombstone（A1-R11）：declare subscribeModelProviders（原 hM，52695）删除。负证据：本文件无活调用点（仅存 declare）；
+ *    canonical = components/usage/UsageDeep.tsx subscribeCodingPlanSources（hM 52695 逐字），活消费面在 modules/AppRootLeaves（本批另行改指）。 ── */
 declare function setModelProvidersFallback(providers: ModelProviderRecord[]): void;
 declare function hasUsableProvider(providers: ModelProviderRecord[]): boolean;
 declare function shouldForceLoginEntry(options: { providers: ModelProviderRecord[]; user: UserInfo | null }): boolean;
@@ -866,7 +883,9 @@ declare function isCaptchaDecisionHandled(entry: { commandId: string; status: st
  *    本文件零调用点；canonical = services/telemetryScopes disposeAllSupervisors，
  *    消费面在 AppRootLeaves 1951（A1-R9 条件项已改指）。R8 留批之 platform/遥测
  *    引擎族（xw/re/iT/TPe/YPe/vFe）至此全部落位（侦查+改指，见 A1-R9 报告）。 ── */
-declare function useAppSettings(): { settings: AppSettings | null; refresh: () => Promise<void>; update: (patch: Partial<AppSettings>) => Promise<void> };
+/* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488）删除。负证据：本文件无活调用点（仅存 declare；
+ *    refreshAppSettings 一律经 props 传入，见 3553/3626/3701）。canonical = components/usage/UsageDeep.tsx §2c useAppSettings（JM 53488 逐字），
+ *    活消费面在 AppRootLeaves/settings 六区/AutomationEditor/AutomationsMain/IndexingSettingsSection/modules/Settings（本批另行改指）。 ── */
 declare function useWebRemoteControlFeatureEnabled(): boolean;
 declare function useWebRemoteControlFeatureFlag(): boolean;
 declare function useWebRemoteControlSession(options: { enabled: boolean }): { status: string };
@@ -916,10 +935,147 @@ declare function useWebRemoteControlTaskSyncFeature(): boolean;
 /* --- B5-02 §G–§I 追加声明 --- */
 /* ── tombstone（A1-R1）：isWorkspaceKindTab（原 oc js 4487）declare 已删除，改经文件头真实 import（../../modules/WorkspaceTabsDeep）消费。 ── */
 /* ── tombstone（A1-R2）：isReloadNavigationEntry（原 z0 js 121382）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
-declare function normalizeTaskBroadcastError(
-  body: { message?: unknown; detail?: unknown; code?: unknown },
-  context: { fallbackCode: string; traceId?: string; taskId?: string },
-): { message: string; [key: string]: any }; // 原 DM（js 52886）
+/* ── tombstone（A1-R11）：declare normalizeTaskBroadcastError（原 DM，js 52886）删除——本批逐字转录（见下）。
+ *    转录族（bundle 52799–52924 逐字；顶层语义名，函数体内局部变量保留混淆名）：
+ *      bM → GENERIC_ERROR_MESSAGES (52799) | xM → isPlainObjectValue (52806) | SM → trimmedTextOrNull (52809)
+ *      CM → parseJsonCandidate (52813) | wM → readNestedField (52822) | TM → collectErrorTextsByPaths (52829)
+ *      IUe → collectErrorMessageCandidates (52853) | EM → firstErrorTextByPaths (52877) | DM → normalizeTaskBroadcastError (52886)
+ *    域外携入：Cw（40570）= bundle stub（`return void 0`），DM 52906 唯一本簇消费；其余三消费 40680/54293/118783
+ *    属域外簇，随其属簇处置（此处转录为文件内私有实现，逐字不变）。 ── */
+function messageErrorCodeOverride(e: unknown, t: string): string | undefined {
+  return void 0;
+}
+const GENERIC_ERROR_MESSAGES = new Set([
+  `Internal error`,
+  `Turn execution failed`,
+  `Compact failed`,
+  `Rewind failed`,
+  `ZCode session failed`,
+]);
+function isPlainObjectValue(e: unknown): e is Record<string, unknown> {
+  return typeof e == `object` && !!e && !Array.isArray(e);
+}
+function trimmedTextOrNull(e: unknown): string | null {
+  if (typeof e != `string`) return null;
+  let t = e.trim();
+  return t.length > 0 ? t : null;
+}
+function parseJsonCandidate(e: string): unknown {
+  let t = e.trim();
+  if (!t.startsWith(`{`) && !t.startsWith(`[`)) return null;
+  try {
+    return JSON.parse(t);
+  } catch {
+    return null;
+  }
+}
+function readNestedField(e: unknown, t: string[]): unknown {
+  let n = e;
+  for (let e of t) {
+    if (!isPlainObjectValue(n)) return;
+    n = n[e];
+  }
+  return n;
+}
+function collectErrorTextsByPaths(e: Record<string, unknown>): string[] {
+  let t: string[] = [],
+    n = (e: unknown) => {
+      let n = trimmedTextOrNull(e);
+      !n || t.includes(n) || t.push(n);
+    };
+  for (let t of [
+    [`message`],
+    [`detail`],
+    [`data`, `message`],
+    [`data`, `detail`],
+    [`data`, `details`],
+    [`data`, `reason`],
+    [`data`, `error`, `message`],
+    [`data`, `error`, `detail`],
+    [`data`, `error`, `details`],
+    [`data`, `zcode`, `error`, `message`],
+    [`data`, `zcode`, `error`, `detail`],
+    [`data`, `zcode`, `error`, `details`],
+  ])
+    n(readNestedField(e, t));
+  return t;
+}
+function collectErrorMessageCandidates(e: unknown): string[] {
+  let t: string[] = [],
+    n = (e: unknown) => {
+      let n = trimmedTextOrNull(e);
+      !n || t.includes(n) || t.push(n);
+    };
+  if ((e instanceof Error && n(e.message), typeof e == `string`)) {
+    let r = parseJsonCandidate(e);
+    if (isPlainObjectValue(r)) {
+      for (let e of collectErrorTextsByPaths(r)) n(e);
+      if (t.length > 0) return t;
+    }
+    return (n(e), t);
+  }
+  if (isPlainObjectValue(e)) {
+    for (let t of collectErrorTextsByPaths(e)) {
+      n(t);
+      let e = parseJsonCandidate(t);
+      if (isPlainObjectValue(e)) for (let t of collectErrorTextsByPaths(e)) n(t);
+    }
+    return t;
+  }
+  return (n(String(e)), t);
+}
+function firstErrorTextByPaths(e: unknown, t: string[][]): string | undefined {
+  let n = isPlainObjectValue(e) ? e : typeof e == `string` ? parseJsonCandidate(e) : null;
+  if (isPlainObjectValue(n))
+    for (let e of t) {
+      let t = trimmedTextOrNull(readNestedField(n, e));
+      if (t) return t;
+    }
+}
+export function normalizeTaskBroadcastError(
+  e: unknown,
+  t: { fallbackCode?: string; fallbackMessage?: string; traceId?: string; taskId?: string } = {},
+): { code: string; message: string; detail: string | undefined; traceId: string | undefined; taskId: string | undefined } {
+  let n = collectErrorMessageCandidates(e),
+    r = n.find((e) => !GENERIC_ERROR_MESSAGES.has(e)) ?? n[0] ?? t.fallbackMessage ?? `Internal error`,
+    i = n.find((e) => e !== r && !GENERIC_ERROR_MESSAGES.has(e)),
+    a = firstErrorTextByPaths(e, [
+      [`code`],
+      [`providerCode`],
+      [`data`, `code`],
+      [`data`, `error`, `code`],
+      [`data`, `zcode`, `error`, `code`],
+      [`data`, `zcode`, `error`, `context`, `providerCode`],
+      [`data`, `error`, `context`, `providerCode`],
+      [`context`, `providerCode`],
+    ]),
+    o = firstErrorTextByPaths(e, [
+      [`detail`],
+      [`data`, `detail`],
+      [`data`, `error`, `detail`],
+      [`data`, `zcode`, `error`, `detail`],
+    ])?.match(/provider_code=([0-9]+)/)?.[1],
+    s = messageErrorCodeOverride(a ?? o, r),
+    c = firstErrorTextByPaths(e, [
+      [`traceId`],
+      [`data`, `traceId`],
+      [`data`, `error`, `traceId`],
+      [`data`, `zcode`, `error`, `traceId`],
+    ]),
+    l = firstErrorTextByPaths(e, [
+      [`taskId`],
+      [`data`, `taskId`],
+      [`data`, `error`, `taskId`],
+      [`data`, `zcode`, `error`, `taskId`],
+    ]);
+  return {
+    code: s ?? o ?? a ?? t.fallbackCode ?? `UNKNOWN`,
+    message: r,
+    detail: i,
+    traceId: t.traceId ?? c,
+    taskId: t.taskId ?? l,
+  };
+}
 declare function createExternalStore<T>(
   initializer: (set: (partial: Partial<T>) => void, get: () => T) => T,
 ): { getState(): T }; // 原 Ae（外部 skillStore chunk 之 zustand create）
@@ -5415,6 +5571,8 @@ export function getNotificationAudio() {
  *   q9 211570/168159 | J9 211573/168162 | Y9 211666/168257
  *  欢迎门/尾段：v8t 213554/170001 | Q9 213619/170031 | （匿名 Ae store）213621–213895/170035
  *   y8t 213896/170364 | $9 213897 | b8t 213898/170366
+ *  A1-R11 DM 簇（域外携入）：Cw 40570 | bM 52799 | xM 52806 | SM 52809 | CM 52813
+ *   wM 52822 | TM 52829 | IUe 52853 | EM 52877 | DM 52886
  *  排除（只注记）：s4t 205975–205994 | x4t/S4t/C4t 206344–206409
  *   m3t 207780–207806 | $4t…E3t 207217–208826 | N9/G4t/K4t/q4t/P9/$3t | j6t 210776–211054（→AppRootLeaves）
  * ============================================================================

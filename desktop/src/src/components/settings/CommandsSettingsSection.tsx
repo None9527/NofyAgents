@@ -182,7 +182,8 @@ interface ModelProvidersStoreState {
   loading: boolean;
 }
 declare function useModelProvidersStore(): ModelProvidersStoreState; // qq
-declare function useAppSettings(): { settings: { modelProviderFamilyModes?: Record<string, string>; keepAwakeWhileRunning?: boolean; [key: string]: unknown } | null; update: (patch: Record<string, unknown>) => Promise<void> }; // JM
+/* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488）删除。负证据：本文件无活调用点（§0 声明群随族整段迁入之死声明）；
+ *    canonical = components/usage/UsageDeep.tsx §2c useAppSettings（JM 53488 逐字），活消费面见 Subagents/AutomationsMain/MPSS 等（本批另行改指）。 ── */
 interface TaskStoreState {
   getWorkspaceState: (workspacePath: string, identity?: string | null) => { activeTaskId: string | null };
   startDraft: (workspacePath: string, draft?: unknown, identity?: string | null) => void;

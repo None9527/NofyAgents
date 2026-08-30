@@ -325,7 +325,7 @@
  *   nJ productPriceOf (79685)、iJ formatProductPrice (79691)、
  *   Znt providerDisplayName (88222)、trt summarizeModelTestResults (88422)、
  *   srt isApiKeyMissing (88461)、crt navItemIcon (88464)、
- *   PM trackPlanCardEvent (53205)、IM entryPlanStateOf (53229)、
+ *   （PM 53253/IM 53277 已于 A1-R11 转录 components/usage/UsageDeep.tsx §2b 并经本 shim 导出；旧登记 53205/53229 为漂移标注）、
  *   xZ arrayMove (94125)、cj MarkdownRenderer（Markdown.tsx 已抽取）、
  *   Ao useSettingsStoreValue (1301)、fs useServices (2638)、ps useOptionalServices (2643)、
  *   qse useBaseServices（services.tsx 已抽取）；
@@ -426,8 +426,22 @@ export {
   NavRailDraggableItem,
   ModelProviderNavRail,
   isProviderSectionRefreshing,
-} from '../components/usage/UsageDeep';
+  // A1-R11（R0 簇 51141–53795 收敛）：供应商源注册表 + 漏斗簇 + 应用设置钩子
+  nullSafe,
+  providerApiKeyFingerprint,
+  shouldProbeStartPlanEntitlement,
+  listCodingPlanSources,
+  hasLoadedCodingPlanSources,
+  subscribeCodingPlanSources,
+  upgradeFunnelContext,
+  entryPlanStateOf,
+  useAppSettings,
+} from '../components/usage/UsageDeep'; // resolveModelGroupLabel（iN 53795）A1-R11 删碑：双实例收敛至 SubagentLeaves resolveModelFullLabel（A0 期既有转录）
 export type {
+  FunnelContext,
+  EntryPlanState,
+  AppRuntimeSettings,
+  AppRuntimeSettingsPatch,
   ModelMetadata,
   ProviderEndpoints,
   ModelProvider,

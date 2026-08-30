@@ -6,7 +6,7 @@ import { Button } from '../../modules/button';
 import { providerFamilyOf, useCodingPlanEntitlements, useStartPlanPreview } from '../../modules/PaymentDeep';
 import { subscribeSettingsSectionIntent } from '../../modules/Settings';
 import { consumeModelProviderIntent as readSettingsSectionIntent } from '../../modules/Settings'; // sw（39377）
-import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, useSubscriptionSnapshot, useZapiEnabled, type AddProviderDraft, type CodingPlanDisplayStatus, type CodingPlanViewState, type EntitlementQuotaLimit, type ModelMetadata, type ProviderEndpoints } from '../../modules/UsageDeep';
+import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, nullSafe as toManagedProvider, upgradeFunnelContext, entryPlanStateOf, useAppSettings, useSubscriptionSnapshot, useZapiEnabled, type AddProviderDraft, type CodingPlanDisplayStatus, type CodingPlanViewState, type EntitlementQuotaLimit, type FunnelContext, type ModelMetadata, type ProviderEndpoints } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/PM（53253）/IM（53277）/JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2b/§2c）
 import { useServices } from '../../modules/services';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
@@ -150,21 +150,10 @@ interface ModelProvidersStoreState {
 }
 declare function useModelProvidersStore(): ModelProvidersStoreState; // qq（78195）
 
-interface AppSettingsSnapshot {
-  modelProviderFamilyModes?: Record<string, string>;
-  modelProviderFamilySelectedKeys?: Record<string, string>;
-  providerFamilyDomain?: string | null;
-  providerFamilyDomainUpdatedAt?: number;
-  providerFamilyDomainMigrated?: boolean;
-  keepAwakeWhileRunning?: boolean;
-  [key: string]: unknown;
-}
-declare function useAppSettings(): {
-  settings: AppSettingsSnapshot | null;
-  loading: boolean;
-  error: unknown;
-  update: (patch: Partial<AppSettingsSnapshot>) => Promise<void>;
-}; // JM（53440）
+/* ── tombstone（A1-R11）：interface AppSettingsSnapshot + declare function useAppSettings（原 JM，53440——普查行漂移，bundle 真身 53488）删除，
+ *    改经文件头 modules/UsageDeep import 消费（canonical = components/usage/UsageDeep.tsx §2c useAppSettings，JM 53488 逐字）。
+ *    型缝：返回面 {settings: AppRuntimeSettings | null; loading; error; update; refresh}；1516 解构四字段与 1526–1537 读取字段
+ *    （modelProviderFamilyModes/modelProviderFamilySelectedKeys/providerFamilyDomain）均在 AppRuntimeSettings 具名面内。 ── */
 
 /* ── tombstone（A1-R10 2a）：interface AppPreferenceStoreState + declare function useAppPreferenceStore<T>（原 ko，1296）删除，
  *    改经文件头 stores-core import 消费（canonical = useSettingsStore）。型缝精化（bundle 真形）：
@@ -214,7 +203,7 @@ declare function useUpgradeEntry(): {
     providerId: string;
     initialAudience?: "personal" | "team";
     initialTeamPlanKey?: string;
-    funnelContext?: string;
+    funnelContext?: FunnelContext | null; // A1-R11 型缝精化（bundle 真形）：fX 89052 读 e?.funnelContext?.purchaseAudience 并传 e.funnelContext ?? null——对象面非字符串
   }) => void;
 }; // fX（89052）
 
@@ -266,21 +255,15 @@ declare function buildTeamPlanNavItems(opts: {
   showPurchasedTeamPlanFallback: boolean;
   selectedTeamPlanKey?: string;
 }): ModelProviderNavItem[]; // urt（88607）
-declare function toManagedProvider(provider: ModelProvider | null): ModelProvider | null; // tM（52594）
-declare function upgradeFunnelContext(opts: {
-  providerId: string;
-  upgradeSource: string;
-  eventRegion: string;
-  eventText: string;
-  entryPlanState?: string;
-  purchaseAudience?: string;
-}): string; // PM（53205）
-declare function entryPlanStateOf(opts: {
-  displayStatus: string;
-  providerId: string;
-  planLevel?: string;
-}): string; // IM（53229）
-declare function useFunnelDiagnostics(): unknown; // dj（51862）
+/* ── tombstone（A1-R11）：declare toManagedProvider（原 tM，52594——普查行漂移，bundle 真身 52642）删除，
+ *    改指 nullSafe as toManagedProvider（canonical = components/usage/UsageDeep.tsx；双归属 tM 同符，854 消费实测单参返回 ModelProvider | null）。 ── */
+/* ── tombstone（A1-R11）：declare upgradeFunnelContext（原 PM，53205——普查行漂移，bundle 真身 53253）删除，
+ *    改经文件头 import 消费（canonical 逐字 PM 53253；返回 FunnelContext 对象，1254–1275 消费面逐字不变）。 ── */
+/* ── tombstone（A1-R11）：declare entryPlanStateOf（原 IM，53229——普查行漂移，bundle 真身 53277）删除，
+ *    改经文件头 import 消费（canonical 逐字 IM 53277；返回 EntryPlanState 对象，1267–1271 消费面逐字不变）。 ── */
+/* ── tombstone（A1-R11）：declare useFunnelDiagnostics（原 dj，51862——普查行漂移，bundle 真身 51910）删除。
+ *    负证据：本文件无活调用点（仅存 declare）；bundle dj 调用实测 76295/76541/84520/190007 均落于已重建组件域，
+ *    各该处已直调 canonical useBillingDiscount（components/usage/UsageDeep.tsx:1892，dj 51910 逐字）。无改指对象，纯删碑。 ── */
 declare function usePlanProductsSnapshot(
   providerId: string,
   opts: { remotePreviewEnabled: boolean }
@@ -1121,7 +1104,7 @@ export function ModelProviderPanel(props: {
   const loadingLabel = intl.formatMessage({ id: "common.loading" });
   const [upgradePlansProviderId, setUpgradePlansProviderId] = React.useState<string | null>(null);
   const [purchaseAudience, setPurchaseAudience] = React.useState<"personal" | "team">("personal");
-  const [funnelContext, setFunnelContext] = React.useState<string | null>(null);
+  const [funnelContext, setFunnelContext] = React.useState<FunnelContext | null>(null); // A1-R11 型缝精化：PM 53253 返回 FunnelContext 对象（1276 setFunnelContext(context) 实测）
   const selectedKey = selectedNavItem?.key ?? null;
   const teamPlanScope = React.useMemo(
     () =>
@@ -1330,7 +1313,7 @@ export function ModelProviderPanel(props: {
                 )
               }
               onPurchaseComplete={onCodingPlanPurchaseComplete}
-              onOpenUpgradePlans={(request: { initialAudience: "personal" | "team"; funnelContext?: string | null }) => {
+              onOpenUpgradePlans={(request: { initialAudience: "personal" | "team"; funnelContext: FunnelContext | null }) => { // A1-R11 型缝精化：对齐 CodingPlanStatusSection.onOpenUpgradePlans 真形面（PM 53253 对象面）
                 openCodingPlanUpgrade({
                   providerId: item.presetId ?? "",
                   initialAudience: request.initialAudience,
@@ -1385,7 +1368,7 @@ export function ModelProviderPanel(props: {
             }
             disconnectLoading={codingPlanDisconnectProviderId === item.presetId}
             onPurchaseComplete={onCodingPlanPurchaseComplete}
-            onOpenUpgradePlans={(request: { initialAudience: "personal" | "team"; funnelContext?: string | null }) => {
+            onOpenUpgradePlans={(request: { initialAudience: "personal" | "team"; funnelContext: FunnelContext | null }) => { // A1-R11 型缝精化：对齐 CodingPlanStatusSection.onOpenUpgradePlans 真形面（PM 53253 对象面）
               openCodingPlanUpgrade({
                 providerId: item.presetId ?? "",
                 initialAudience: request.initialAudience,

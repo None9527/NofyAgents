@@ -15,6 +15,7 @@ import { cn } from '../../modules/UtilsCn';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { isComposingText as imeGuard } from '../../modules/ImeComposition'; // A
+import { pluginMentionMarkdown } from '../composer/FileMentionDragHelpers'; // A1-R11：Dj（52138）转录改指（纯函数叶子，环安全）；调用点 1746 逐字不变
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
@@ -38,7 +39,8 @@ declare function usePlatformService(): {
   getPathForFile?: (file: File) => string | null;
 } | null; // l
 
-declare function pluginMentionMarkdown(displayName: string, pluginId: string): string; // Dj（F19，js 52090）
+/* ── tombstone（A1-R11）：declare pluginMentionMarkdown（原 Dj，js 52138——旧注 52090 为子族区段首行）删除，
+ *    改经文件头 ../composer/FileMentionDragHelpers import 消费（本批逐字转录）。 ── */
 
 /* ============================================================================
  * §B. 插件分区深层叶子（原 js 198144–199993）

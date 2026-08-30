@@ -303,8 +303,10 @@ function composeProviderModelLabel(providerId: string | null | undefined, provid
   return trimmedName ? `${trimmedName}/${modelName}` : modelName;
 }
 
-/** 原 iN（styles jsx 48441）：规范值全标签——组内命中走 rN 拼接，未命中回退 */
-function resolveModelFullLabel(args: {
+/** 原 iN（styles jsx 48441 = js 53795）：规范值全标签——组内命中走 rN 拼接，未命中回退。
+ * A1-R11 补 export：R0 簇 51141–53795 之 resolveModelGroupLabel（iN）双实例收敛属主——
+ * AutomationEditor 1015 消费面改指本函数（别名保留 resolveModelGroupLabel，调用点逐字不变）。 */
+export function resolveModelFullLabel(args: {
   modelGroups: SelectGroupEntry[];
   normalizedValue: string;
   fallbackLabel: string;

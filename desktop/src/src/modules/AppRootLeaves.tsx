@@ -143,6 +143,7 @@ import type { AgentFact, TelemetryPlatform } from './services';
 import { reportTelemetry as trackTelemetryEvent, reportLaunchToInputPerf as reportLaunchMarks, setUiPerfPlatform as setTelemetryPlatform, clearAllTelemetryTiming as resetTelemetryParityState } from './StoresDeep'; // A1-R9 条件项：platform/遥测引擎族别名改指——原 xw（bundle 40457；StoresDeep H.1 reportTelemetry 逐字）/原 YPe（ui_perf 域 reportLaunchToInputPerf）/原 iT（ui_perf 域 setUiPerfPlatform）/原 TPe（tracker 域 clearAllTelemetryTiming）；调用点 422/1708/2280/1745/1751/1941/1943/1470 逐字不变（PlatformService→TelemetryPlatform 方法双变可赋；launchMarks.marks { createdAt; [key:string]: any }→marks 具形索引可赋）
 import { isE2EStoreBridgeEnabled as isTelemetryEnabled } from './SkillStore'; // A1-R9 条件项：原 re = skillStore chunk 之 K 导出（bundle styles 382 `K as re`；消费点 l8t 212526/C8t 213911/uNe 40331 实测），canonical = stores/e2eStoreBridge isE2EStoreBridgeEnabled（原 v jsx 50 逐字）；同型先例 FeedbackCenter isE2eStoreBridgeMode 别名
 import { disposeAllSupervisors as disposeStartupServiceRegistry } from './services'; // A1-R9 条件项：原 vFe（bundle 42698）= services/telemetryScopes E.1 disposeAllSupervisors（vT 注册表逐项 xT）；调用点 1951 逐字不变
+import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSources as isModelProviderSnapshotHydrated, subscribeCodingPlanSources as subscribeModelProviders, useAppSettings, type AppRuntimeSettingsPatch, type ModelProvider } from './UsageDeep'; // A1-R11：fM（52681）/pM（52684）/hM（52695）/JM（53488）改指 canonical（components/usage/UsageDeep.tsx 注册表 + §2c）。双实例收敛证据：bundle 各唯一真身；终端消费实测 1992/1996/1997/2065–2069。注册表返回 ModelProvider[]（fetcher 证据 78266/78272/206174/209921）；环安全：UsageDeep 值闭包不达本文件
 /* ── tombstone（A0-CLEANUP）：CodingPlanUpgradeDialogProvider（PaymentDeep krt）/
  *    CLOSE_ACTIVE_CONTEXT_EVENT（WorkspaceShell r7）declare 已删除，改经文件头
  *    真实 import 消费。 ── */
@@ -176,7 +177,11 @@ interface SettingsStoreSlice {
   markOAuthSuccess(provider: string): void;
   [key: string]: any;
 }
-declare function useAppSettings(): { settings: AppSettings | null; refresh: () => Promise<void>; update: (patch: Record<string, unknown>) => Promise<void> }; // 原 JM
+/* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488——普查行漂移，旧注 53440）删除，
+ *    改经文件头 ./UsageDeep import 消费（canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字）。
+ *    型缝：1992 解构 {settings, refresh, update} 三字段逐字不变；settings 读取面 2051/2058
+ *    （askUserQuestionAutoResolutionEnabled）与 2130（providerFamilyDomain）均在 AppRuntimeSettings 具名面内；
+ *    update 形参 AppRuntimeSettingsPatch（索引面）对 461 补丁（providerFamilyDomain 三键）可赋。 ── */
 
 /* --- 遥测 / 启动标记 --- */
 /* ── tombstone（A1-R9）：TelemetryPlatformLike 局部近似面删除——原供 xw/iT 两枚
@@ -218,9 +223,13 @@ declare function normalizeCodeCommentRemovePayload(payload: unknown): void; // �
 /* ── tombstone（A1-R8）：codeCommentsStore（原 FH js 68562）declare 删除 → 真实 import
  *    useCodeCommentsStore as codeCommentsStore（./Composer，A1-R8 双实例收敛之 canonical）。
  *    本文件广播监听消费面（2009/2014 = bundle 212998/213003）调用点逐字不变。 ── */
-declare function subscribeModelProviders(listener: (providers: ModelProviderRecord[]) => void): () => void; // 原 hM
-declare function getModelProvidersCached(): ModelProviderRecord[]; // 原 fM
-declare function isModelProviderSnapshotHydrated(): boolean; // 原 pM
+/* ── tombstone（A1-R11）：declare subscribeModelProviders（原 hM，52695）/getModelProvidersCached（原 fM，52681）/
+ *    isModelProviderSnapshotHydrated（原 pM，52684）删除，改经文件头 ./UsageDeep import 别名消费
+ *    （canonical = components/usage/UsageDeep.tsx subscribeCodingPlanSources/listCodingPlanSources/hasLoadedCodingPlanSources，
+ *    hM/fM/pM 52695/52681/52684 逐字）。双实例收敛证据：bundle 各唯一真身（注册表 oM/sM/dM 模块态）；
+ *    终端消费实测 1996/1997（useState 初值）/2065–2069（快照订阅效应）。型缝：注册表元素精化为 ModelProvider[]
+ *    （fetcher = modelProviderService.getAllCached/getAll，78266/78272/206174/209921 实测），
+ *    对 ModelProviderRecord[] 消费面（2131 登录守卫）经 systemDisabledReason 精化（string | null）可赋。 ── */
 declare function useSessionRestoreBridge(options: {
   settingService: SettingServiceLike | undefined;
   restoreSession: boolean;
@@ -335,7 +344,7 @@ export function useWorkspaceActions({
   preferDirectoryBrowser: boolean;
   openDirectoryBrowser: () => void;
   refreshModelProviderSnapshot: (options?: { force?: boolean }) => Promise<void>;
-  updateAppSettings: (patch: Record<string, unknown>) => Promise<void>;
+  updateAppSettings: (patch: AppRuntimeSettingsPatch) => Promise<void>; // A1-R11 型缝精化：对齐 JM canonical update 面（索引补丁面；461 消费逐字不变）
   setOAuthError: (error: string | null) => void;
   setUser: (user: UserInfo | null) => void;
   onProviderFamilyDomainClearedAfterLogout?: () => void;
@@ -2062,7 +2071,7 @@ export function AppRootContent({
           }));
     }, [settings?.askUserQuestionAutoResolutionEnabled, services.botsService, services.zcodeAgentService]),
     (0, React.useEffect)(() => {
-      let handleSnapshot = (providers: ModelProviderRecord[]) => {
+      let handleSnapshot = (providers: ModelProvider[]) => { // A1-R11 型缝精化：hM 监听器收注册表真形 ModelProvider[]（对 2131 ModelProviderRecord[] 面可赋）
           (setModelProviders(providers), setModelProvidersHydrated(isModelProviderSnapshotHydrated()));
         },
         unsubscribe = subscribeModelProviders(handleSnapshot);

@@ -18,6 +18,8 @@ import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { parseCustomModelId as parseModelValue } from '../../modules/SkillStore'; // se（src chunk）
 import { isGlmModelId as isMaxThinkingModel, GLM_REASONING_LEVELS as MAX_THINKING_LEVELS } from '../../modules/SrcSharedA'; // qn（F12）/ ui=Sl（A0-CLEANUP B-8：MAX_THINKING_LEVELS declare 改指 GLM_REASONING_LEVELS）
 import type { SelectItemEntry, SelectGroupEntry, ConfigOption, ModelProvider } from '../settings/SubagentLeaves';
+import { resolveModelFullLabel as resolveModelGroupLabel } from '../settings/SubagentLeaves'; // A1-R11：iN（js 53795 = jsx 48441）改指既有属主（A0 期转录；一符一家——UsageDeep §2d 重复转录已删碑）。环安全：SubagentLeaves 值闭包（modules/* + lucide）不反入 automations
+import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 2113 解构 {settings, update}，2197 读 keepAwakeWhileRunning 具名面、2252 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
 import { useWorkspaceTabStore as useWorkspaceTabsStore, isWorkspaceKindTab as isUsableWorkspaceTab, type WorkspaceTab } from '../../modules/WorkspaceTabsDeep'; // A1-R3：pc/oc declare 与本地 WorkspaceTab 型改指 R1 canonical（tombstone 见 §0 声明群）
 import {
   automationsWorkspaceKey as workspaceKey, // Ti（src chunk ip，6913；A0-CLEANUP 族清理：对象参工作区键）
@@ -69,10 +71,9 @@ declare const IconExternalSession: IconComponent; // P3 包装 = q_
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconSpinner → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconSpinnerAlt: React.FC<{ className?: string }>; // EN（运行历史加载）
 
-declare function useAppSettings(): {
-  settings: { keepAwakeWhileRunning?: boolean; [key: string]: unknown } | null;
-  update(patch: Record<string, unknown>): Promise<void> | void;
-}; // JM 53440
+/* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53440——普查行漂移，bundle 真身 53488）删除，
+ *    改经文件头 modules/UsageDeep import 消费（canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字）。
+ *    型缝：2113 解构 {settings, update} 逐字不变；update 形参 AppRuntimeSettingsPatch 对 2252 补丁可赋。 ── */
 /* ── tombstone（A1-R3）：useWorkspaceTabsStore（pc 4753）/ isUsableWorkspaceTab（oc）declare 删除
  *    → 真实 import { useWorkspaceTabStore as useWorkspaceTabsStore, isWorkspaceKindTab as isUsableWorkspaceTab }
  *    from '../../modules/WorkspaceTabsDeep'（R1 canonical 属主；文件头导入块）。 ── */
@@ -126,13 +127,10 @@ declare function useWorkspaceConfigOptions(
 ): { configOptions: ConfigOption[]; status: string }; // Jq（F12，js 78389）
 /* ── tombstone（A0-CLEANUP B-8）：MAX_THINKING_LEVELS declare 删除 → import
  *    { GLM_REASONING_LEVELS as MAX_THINKING_LEVELS } from './SrcSharedA'（原 ui=Sl）。 ── */
-declare function resolveModelGroupLabel(args: {
-  modelGroups: SelectGroupEntry[];
-  normalizedValue: string;
-  fallbackLabel: string;
-  providerId?: string;
-  providerName?: string;
-}): string; // iN（F08）
+/* ── tombstone（A1-R11）：declare resolveModelGroupLabel（原 iN，F08——bundle 真身 53795）删除，
+ *    改经文件头 ../settings/SubagentLeaves import 别名消费（canonical = resolveModelFullLabel，
+ *    A0 期既有逐字转录，jsx 48441 = js 53795）。型缝精化：真形返回 string | undefined
+ *    （item.name 缺失时 rN 53790 透传 undefined——bundle 无注记之诚实面），1015 消费点逐字不变。 ── */
 declare function normalizeSettingsOptions(options: unknown[]): ConfigOption[]; // oee（F12）
 
 /* ── tombstone（A1-R3）：本地 WorkspaceTab 型（workspacePath 必具、remoteTarget?: string|null、
@@ -1007,7 +1005,7 @@ export function resolveModelLabel(args: {
   modelProviders: ModelProvider[];
   modelValue: string;
   fallbackLabel: string;
-}): string {
+}): string | undefined { // A1-R11 型缝精化：真形 NMt（135453）透传 iN 53795 之 string | undefined 面
   const item = resolveModelGroupItem(args.modelGroups, args.modelValue);
   if (!item) return args.fallbackLabel;
   const providerId = parseModelValue(item.value)?.providerId;

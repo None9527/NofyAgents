@@ -98,7 +98,8 @@
  *   FHe → isHttpUrl (51453) | nj/tHe → 链接类名 (51188–51189) | nHe → 标题类名表 (51190)
  *   kVe → isInAppBrowserUrl (50817)
  *   EA/DA/OA/kA → zcode-last-editor-id 记忆 (50846–50856 / 45668)
- *   zA  → relativePathFromWorkspace (50919) | JA → resolveAvailableEditors (51052) | QA → useWorkspaceFileServices (51093，接口)
+ *   zA  → relativePathFromWorkspace (50919) | JA → resolveAvailableEditors (51052)
+ *   ZVe → revealPathOfEntry (51138) | QA → useFileContextActions (51141)  ←A1-R11 转录（旧注「useWorkspaceFileServices 51093 接口」为误标，删碑见原 declare 位）
  *   $A/QVe → useRemoteWorkspaceInfo     tabs store → isRemoteWorkspace/remoteTarget (51166–51174)
  *                                        〔A1-R6：内嵌 yne（$b）declare 改指 SrcSharedB.sanitizeRemoteTargetForRestore〕
  *
@@ -123,7 +124,7 @@
  * 11. Dialog 原语 (zb/Hb/Ub/Gb/Kb/Bb)     横切原语
  * 12. 图标：M_ check / W_ copy / q_ external / mv mermaid / Tbe wrap /
  *     cv loader / zye image-off / f sparkle / wa chevron-right / Vc FileIcon / Fc folderIconSrc
- * 13. 文件元数据 zc（fileIconSrc/fileName）/ 编辑器目录 JA / 服务 QA / tabs store mc
+ * 13. 文件元数据 zc（fileIconSrc/fileName）/ 编辑器目录 JA / 文件上下文动作 QA（A1-R11 转录 useFileContextActions）/ tabs store mc
  * 14. mermaid 本体 tO + 主题助手 Vze/Bze/zze/Hze（X10 库层）
  * 15. remark-math (sLe) / rehype-katex (XIe)（katex-fHRr5Rbn.js 懒加载分包）
  * 16. cjk micromark 扩展 (sIe/cIe)（@streamdown/cjk 宿主侧）
@@ -155,7 +156,7 @@ import { cn as Z } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js �
 import { sanitizeRemoteTargetForRestore as formatRemoteTarget } from '../../modules/SrcSharedB'; // 原 yne（$b，src-HCld2afU.js 8611–8629）：A1-R6 declare 改指（tombstone 见原 declare 位）
 import { t as J } from '../../modules/logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
 import { useServicesOptional as ps } from '../../modules/services'; // 原 ps（services.tsx 导出 useServicesOptional）
-import { usePlatform as l } from '../../modules/ImeComposition'; // 原 l（imeComposition chunk 导出 M=usePlatform）
+import { toast, usePlatform as l } from '../../modules/ImeComposition'; // 原 l（imeComposition chunk 导出 M=usePlatform）；A1-R11 +toast（原 m，imeComposition 347 `_ as m`）——QA 51187 打开失败提示消费
 import { FileIconImg as FileIcon, FOLDER_ICON_DATA_URI as FOLDER_ICON_SRC, resolveFileDisplayInfo as resolveFileMeta } from '../../modules/ModalsLeaves'; // 原 Vc / Fc / zc
 
 /* ============================================================================
@@ -184,6 +185,7 @@ interface PlatformServiceLike {
     path: string,
     options: { pathKind?: string; remoteTarget?: unknown; workspaceIdentity?: string | null },
   ): Promise<{ success: boolean; error?: string }>;
+  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>; // A1-R11 型缝精化（bundle 真形）：QA 51183 消费面（非 wsl 分支）
 }
 /** 原 l：usePlatformService */
 
@@ -194,8 +196,9 @@ interface WorkspaceServicesLike {
   };
 }
 /** 原 ps：useWorkspaceServices */
-/** 原 QA：工作区文件服务钩子（RHe 内类型确认用） */
-declare function QA(options?: Record<string, unknown>): WorkspaceServicesLike | null;
+/* ── tombstone（A1-R11）：declare QA（旧注 useWorkspaceFileServices 51093——误标）删除。
+ *    bundle 真形：QA@51141 = 文件上下文动作钩子（复制路径/资源管理器定位），非工作区文件服务；
+ *    本批逐字转录为 useFileContextActions（见 §7 FileLinkWithContextMenu 前），RHe 消费面同步接线。 ── */
 
 /** 原 J：logger */
 
@@ -1345,6 +1348,94 @@ export const FileLinkButton = React.forwardRef<HTMLButtonElement, FileLinkButton
   );
 });
 
+/* ============================================================================
+ * 7b. 文件上下文动作（原 ZVe/QA，js 51138–51197；A1-R11 转录）
+ *     映射：ZVe → revealPathOfEntry (51138) | QA → useFileContextActions (51141)
+ *     依赖：l=usePlatform（ImeComposition）、G=intl 上下文（171 declare）、J=logger、
+ *     m=toast（ImeComposition）、sae=parentDirectoryPath（830）。
+ *     消费面：RHe（FileLinkWithContextMenu）51589 + bundle 110437/145916/161403/178858
+ *     （后四者属已重建组件域，各自域内既有消费面不涉本钩子者维持原状）。
+ * ==========================================================================*/
+
+interface FileContextActionsOptions {
+  canOpenLocalFileManager?: boolean;
+  isRemoteWorkspace?: boolean;
+  remoteTarget?: { kind?: string; [key: string]: unknown } | null;
+  workspaceIdentity?: string | null;
+  openFailedMessage?: string;
+}
+interface FileContextActionEntry {
+  path: string;
+  kind?: string;
+  deleted?: boolean;
+  relativePath?: string;
+  [key: string]: unknown;
+}
+
+/** 原 ZVe（js 51138）：条目揭示路径（目录取自身，文件取父目录） */
+function revealPathOfEntry(e: FileContextActionEntry): string {
+  return e.kind === `directory` ? e.path : (parentDirectoryPath(e.path) ?? e.path);
+}
+
+/** 原 QA（js 51141）：文件上下文动作钩子（复制绝对/相对路径 + 资源管理器揭示） */
+export function useFileContextActions(e: FileContextActionsOptions = {}) {
+  let t = l() as unknown as PlatformServiceLike,
+    { intl: n } = G(),
+    r = !!e.canOpenLocalFileManager,
+    i = !!e.isRemoteWorkspace,
+    a = e.remoteTarget,
+    o = e.workspaceIdentity,
+    s = e.openFailedMessage ?? n.formatMessage({ id: `appHeader.openInFileManagerFailed` }),
+    c = React.useCallback((e: FileContextActionEntry) => r && !e.deleted && (!i || a?.kind === `wsl`), [r, i, a?.kind]),
+    u = React.useCallback(async (e: string) => {
+      if (typeof navigator > `u` || !navigator.clipboard?.writeText) {
+        J.warn(`[FileContextActions] 复制文件路径失败`, {
+          path: e,
+          error: `clipboard-unavailable`,
+        });
+        return;
+      }
+      try {
+        (await navigator.clipboard.writeText(e),
+          J.info(`[FileContextActions] 文件路径已复制`, { path: e }));
+      } catch (t) {
+        J.warn(`[FileContextActions] 复制文件路径失败`, {
+          path: e,
+          error: t instanceof Error ? t.message : String(t),
+        });
+      }
+    }, []),
+    d = React.useCallback((e: { path: string }) => u(e.path), [u]);
+  return {
+    canRevealInFileManager: c,
+    copyAbsolutePath: d,
+    copyPath: d,
+    copyRelativePath: React.useCallback((e: { path: string; relativePath?: string }) => u(e.relativePath ?? e.path), [u]),
+    revealInFileManager: React.useCallback(
+      async (e: FileContextActionEntry) => {
+        if (!c(e)) return;
+        let n = revealPathOfEntry(e),
+          r =
+            a?.kind === `wsl`
+              ? await t.openInEditor(`explorer`, n, {
+                  pathKind: `directory`,
+                  remoteTarget: a,
+                  workspaceIdentity: o,
+                })
+              : await t.openInFileManager(n);
+        r.success ||
+          (J.warn(`[FileContextActions] 在文件管理器中显示条目失败`, {
+            path: e.path,
+            openPath: n,
+            error: r.error ?? `unknown-error`,
+          }),
+          toast(s));
+      },
+      [c, s, t, a, o],
+    ),
+  };
+}
+
 interface FileLinkWithMenuProps {
   className?: string;
   fileIconSrc: string;
@@ -1357,6 +1448,7 @@ export function FileLinkWithContextMenu({ className, fileIconSrc, fileLink, onOp
   const { intl } = G();
   const platform = l() as unknown as PlatformServiceLike;
   const services = ps() as WorkspaceServicesLike | null;
+  const fileActions = useFileContextActions(); // A1-R11：bundle RHe 51589 `s = QA()`（无参面）——复制路径二项消费
   const remote = useRemoteWorkspaceInfo({
     workspacePath: fileLink.workspacePath,
     workspaceIdentity: fileLink.workspaceIdentity,
@@ -1448,6 +1540,16 @@ export function FileLinkWithContextMenu({ className, fileIconSrc, fileLink, onOp
             {intl.formatMessage({ id: loading ? `common.loading` : `chat.previewCards.noOpenApps` })}
           </ContextMenuItem>
         )}
+        {/* A1-R11：bundle RHe 51700–51716 复制路径二项（W_ = lucide Copy = IconCopy）逐字接线 */}
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => void fileActions.copyAbsolutePath({ path: fileLink.path })}>
+          <IconCopy className={`size-4`} />
+          {intl.formatMessage({ id: `fileActions.copyAbsolutePath` })}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => void fileActions.copyRelativePath({ path: fileLink.path, relativePath: fileLink.relativePath ?? fileLink.label })}>
+          <IconCopy className={`size-4`} />
+          {intl.formatMessage({ id: `fileActions.copyRelativePath` })}
+        </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   );

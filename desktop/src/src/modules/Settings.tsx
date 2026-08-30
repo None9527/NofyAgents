@@ -151,7 +151,7 @@ import { CommandsSettingsSection, HooksSettingsSection, PluginsSettingsSection, 
 import { MigrationSettingsSection, UsageSettingsSection } from './SettingsPanelsData';
 import { SidebarFooter } from './Sidebar';
 import { HelpMenu, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle } from './TopBar';
-import { useSubscriptionSnapshot, type ModelMetadata, type ProviderEndpoints } from './UsageDeep'; // A0-CLEANUP3 3b：ModelProvider 面对齐
+import { useSubscriptionSnapshot, useAppSettings, type ModelMetadata, type ProviderEndpoints } from './UsageDeep'; // A0-CLEANUP3 3b：ModelProvider 面对齐；A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）——既有边，无新增环（JM 为组件体内运行时消费）
 import { useBaseServices, useServices } from './services';
 import { cn } from './UtilsCn'; // Z（utils chunk）
 import { useZCodeIntl as useIntlContext } from './I18n'; // G（IntlProvider chunk）
@@ -231,24 +231,8 @@ type IntegratedTerminalShellSetting =
   | { mode: "auto" }
   | { mode: "shell"; id: string; label: string; path: string; dialect?: string };
 
-interface AppSettingsSnapshot {
-  memoryEnabled?: boolean;
-  nativeSearchEnhancementsEnabled?: boolean;
-  askUserQuestionAutoResolutionEnabled?: boolean;
-  keepAwakeWhileRunning?: boolean;
-  messageStreamShowReasoning?: boolean;
-  messageStreamShowTodos?: boolean;
-  zcodeInteractionBehavior?: "queue" | "guide";
-  optimizeAgentExperienceEnabled?: boolean;
-  receivePreviewUpdates?: boolean;
-  autoDownloadAndInstallUpdates?: boolean;
-  modelProviderFamilyModes?: Record<string, string>;
-  modelProviderFamilySelectedKeys?: Record<string, string>;
-  providerFamilyDomain?: string;
-  instantGrepIndexingEnabled?: boolean;
-  repoSnapshotIndexingEnabled?: boolean;
-  repoSnapshotIndexingUserConfigured?: boolean;
-}
+/* ── tombstone（A1-R11）：interface AppSettingsSnapshot（原 JM declare 之本地快照面）删除——
+ *    declare 改指后全树零消费；具名键面由 canonical AppRuntimeSettings 承接（六键精化入册，余键经索引面）。 ── */
 interface RendererSettingsSnapshot {
   dataBaseDir?: string;
   terminalInheritSystemProfile?: boolean;
@@ -267,10 +251,15 @@ interface RendererSettingsSnapshot {
   messageStreamShowTodos?: boolean;
   zcodeInteractionBehavior?: "queue" | "guide";
   optimizeAgentExperienceEnabled?: boolean;
+  // A1-R11 精化：宿主设置快照为单对象（JM 53488 settingService.get() 真形），
+  // 12 消费域经 useAppSettings 读 provider family/indexing/运行时偏好等键，索引签名兜底
+  [key: string]: unknown;
 }
 export interface SettingService {
   get(): Promise<RendererSettingsSnapshot>;
-  update(patch: Partial<RendererSettingsSnapshot>): Promise<void>;
+  // A1-R11 宽化：JM（53516）透传任意补丁键（askUserQuestionAutoResolutionEnabled 具名读，余键透传宿主），
+  // 消费面仅 JM 一处（useServices().settingService），Record 面与 AppRuntimeSettingsPatch 索引签名互容
+  update(patch: Record<string, unknown>): Promise<void>;
   updateDataBaseDir(dir: string | undefined): Promise<void>;
 }
 export interface SystemService {
@@ -314,13 +303,11 @@ interface BaseServices {
   [key: string]: unknown;
 }
 
-/** 原 JM()（js 53440）：应用设置快照 + 更新器（带广播/监听刷新） */
-declare function useAppSettings(): {
-  settings: AppSettingsSnapshot | null;
-  loading: boolean;
-  error: unknown;
-  update(patch: Partial<AppSettingsSnapshot>): Promise<void>;
-};
+/* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53440——普查行漂移，bundle 真身 53488）删除，
+ *    改经文件头 ./UsageDeep import 消费（canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字）。
+ *    型缝：1254 解构 {settings, update} 逐字不变；1255–1257 比较面（=== true / !== false）与 1354–1359
+ *    受控态初值读取面均在 AppRuntimeSettings 具名面内（六键本批精化入册）；1399–1527 update 补丁十键
+ *    对 AppRuntimeSettingsPatch 索引面可赋。本地 AppSettingsSnapshot 面随删（见本段上方墓碑）。 ── */
 
 /* --- zustand stores（本 chunk 创建点） --- */
 

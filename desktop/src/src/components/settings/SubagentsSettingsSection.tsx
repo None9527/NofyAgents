@@ -12,6 +12,7 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { useConfirmDialog } from '../../modules/Modals'; // U2
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
+import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 273 解构 {settings}，297 读 modelProviderFamilyModes 具名面逐字不变。环安全：UsageDeep 值闭包不达本文件
 import type { SkillItem, SkillCapability, SkillDiagnostic } from './SkillsSettingsSection'; // §0 SkillsService 接口签名引用（属主：技能族文件）
 
 /* ============================================================================
@@ -188,7 +189,8 @@ interface ModelProvidersStoreState {
   loading: boolean;
 }
 declare function useModelProvidersStore(): ModelProvidersStoreState; // qq
-declare function useAppSettings(): { settings: { modelProviderFamilyModes?: Record<string, string>; keepAwakeWhileRunning?: boolean; [key: string]: unknown } | null; update: (patch: Record<string, unknown>) => Promise<void> }; // JM
+/* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488）删除，改经文件头 modules/UsageDeep import 消费
+ *    （canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字；返回面五字段，本文件消费 {settings}）。 ── */
 interface TaskStoreState {
   getWorkspaceState: (workspacePath: string, identity?: string | null) => { activeTaskId: string | null };
   startDraft: (workspacePath: string, draft?: unknown, identity?: string | null) => void;

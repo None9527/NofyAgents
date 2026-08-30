@@ -2,34 +2,13 @@
 // 迁出体 = 原文件 3074–3119；§0 useAppSettings 声明随族迁入。
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // G（IntlProvider chunk）
 import { isRepoSnapshotIndexingUserEnabled as resolveRepoSnapshotIndexingEnabled } from '../../modules/SrcSharedA'; // Go（4535）
+import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 23 解构 {settings, update}，update 补丁（39/51）对 AppRuntimeSettingsPatch 索引面可赋。环安全：UsageDeep 值闭包不达本文件
 import { SettingsRow, SettingsSectionCard, Switch } from './SettingsRowPrimitives';
 
-/* §0 声明群随族迁入（原 317–325） */
-interface AppSettingsSnapshot {
-  memoryEnabled?: boolean;
-  nativeSearchEnhancementsEnabled?: boolean;
-  askUserQuestionAutoResolutionEnabled?: boolean;
-  keepAwakeWhileRunning?: boolean;
-  messageStreamShowReasoning?: boolean;
-  messageStreamShowTodos?: boolean;
-  zcodeInteractionBehavior?: "queue" | "guide";
-  optimizeAgentExperienceEnabled?: boolean;
-  receivePreviewUpdates?: boolean;
-  autoDownloadAndInstallUpdates?: boolean;
-  modelProviderFamilyModes?: Record<string, string>;
-  modelProviderFamilySelectedKeys?: Record<string, string>;
-  providerFamilyDomain?: string;
-  instantGrepIndexingEnabled?: boolean;
-  repoSnapshotIndexingEnabled?: boolean;
-  repoSnapshotIndexingUserConfigured?: boolean;
-}
-/** 原 JM()（js 53440）：应用设置快照 + 更新器（带广播/监听刷新） */
-declare function useAppSettings(): {
-  settings: AppSettingsSnapshot | null;
-  loading: boolean;
-  error: unknown;
-  update(patch: Partial<AppSettingsSnapshot>): Promise<void>;
-};
+/* ── tombstone（A1-R11）：interface AppSettingsSnapshot + declare useAppSettings（原 JM，53440——普查行漂移，bundle 真身 53488）删除，
+ *    改经文件头 modules/UsageDeep import 消费（canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字）。
+ *    型缝：本地快照面十六键一律经 AppRuntimeSettings 索引面（unknown）读取——24 消费点 resolveRepoSnapshotIndexingEnabled
+ *    形参 any 面、25 消费点 `=== true` 比较均逐字不变。 ── */
 
 /* --- zustand stores（本 chunk 创建点） --- */
 

@@ -41,6 +41,8 @@ export interface AutomationRun {
 
 export interface AutomationsAgentService {
   /* A0-CLEANUP3 3b：宿主 agent 服务会话面（SettingsLeaves.AgentService 消费：思考项预览等） */
+  /** A1-R11（JM 53528 / AppRootLeaves 2026 真形）：跨窗口运行时偏好同步 */
+  syncAppRuntimePreferences(preferences: Record<string, unknown>): Promise<void>;
   createSession(args: unknown): Promise<any>;
   closeSession(args: unknown): Promise<any>;
   listAllAutomations(): Promise<Automation[]>;

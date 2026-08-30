@@ -133,6 +133,10 @@ export interface PlatformService {
   /* A0-CLEANUP3 3b：同一平台服务兼遥测面（StoresDeep.TelemetryPlatform 消费面；bundle 真值） */
   reportTelemetryEvent(report: Record<string, unknown>): Promise<void> | void;
   reportArmsCustomEvent(event: { name: string; group?: string; value?: number | string; [key: string]: unknown }): Promise<void> | void;
+  /** A1-R11（JM 53511 真形）：运行时偏好同步（settingService.update 之后随补丁广播） */
+  syncAppSettings?(patch: unknown): void;
+  /** A1-R11（JM 53505 真形）：宿主设置变更订阅；返回取消函数（McpSettingsSection 40/BrowserSettingsSection 31 本地面同形） */
+  onSettingsChanged?(callback: () => void): () => void;
   /** 其余方法由其他族消费，此处以索引签名兜底。 */
   [method: string]: unknown;
 }
