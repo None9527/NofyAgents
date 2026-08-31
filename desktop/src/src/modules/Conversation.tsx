@@ -144,6 +144,7 @@ import { PptxReferencesChip, usePptxPreviewOpener } from '../components/composer
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
 import { TurnNavigator, findActiveQueryRow, shouldHydrateFullHistory, hydrateRetryDelayMs } from '../components/conversation/TurnNavigator'; // 〔A0-S4-4b〕§8 渲染点（6549）+ activeQueryRowId（6238）+ §5 水合判定（3957/3991）消费回取
+import { EMPTY_SUBAGENT_DIRECTORY, buildSessionErrorKey, buildSessionErrorBannerModel } from '../components/conversation/ConversationPaneHelpers'; // 〔A1-P1〕R0 簇卫星域逐字真身（原 $Ct/QCt/twt，js 119197/119194/119199）；叶仅依赖 SrcSharedA，环安全（本文件单向消费）
 
 /* ── tombstone（A0-D → A0-CLEANUP2 items 45+46 已接线）：FileOpenWithMenu/buildFilePreviewSource
  *    （原 v_t/__t，FileRewindDialogDeep 110427/110410）与 buildSummaryPanelModel/resolveSummaryPanelVariant
@@ -553,8 +554,8 @@ const CopyRowButton = React.memo(function CopyRowButton({
 
 /* --- 5.2 /goal /compact 命令解析（原 m1/X_t/Z_t/$_t/evt/h1，jsx 95272–95332） --- */
 
-/** 原 Y_t（jsx 95272） */
-const GOAL_COMMAND_REGEX = /^\/(?:goal|target)(?:\s|$)/i;
+/* ── tombstone（A1-P1）：原 Y_t 本地副本删除——canonical = components/conversation/ConversationPaneHelpers
+ *    GOAL_COMMAND_REGEX（js 111720 逐字）；本副本树内零消费（负证据：仅旧 prefixGoalCommand 互引，同批删）。 ── */
 
 type GoalCommandParse =
   | { kind: "compact"; displayText: string }
@@ -592,13 +593,9 @@ function parseGoalCommand(
   return objective ? { kind: `sendGoalCommand`, objective, displayText: trimmed } : { kind: `emptyGoal`, displayText: trimmed };
 }
 
-/** 原 X_t（jsx 95310）：sendGoalCommand 时确保文本带 /goal 前缀 */
-function prefixGoalCommand(kind: GoalCommandParse["kind"], text: string): string {
-  if (kind !== `sendGoalCommand`) return text;
-  const trimmed = text.trim();
-  if (!trimmed) return text;
-  return GOAL_COMMAND_REGEX.test(trimmed) ? text : `/goal ${trimmed}`;
-}
+/* ── tombstone（A1-P1）：原 X_t 语义副本（D8 期 prefixGoalCommand）删除——bundle 唯一真身 =
+ *    components/conversation/ConversationPaneHelpers prefixGoalCommand（js 111741 逐字，iwt 119229 消费）；
+ *    双实例裁定：本副本树内零终端消费（负证据），bundle 111741 为唯一真身。 ── */
 
 /** 原 Z_t（jsx 95315） */
 const GOAL_PREFIX_REGEX = /^(\s*)(\/(?:goal|target))(?=\s|$)([\s\S]*)$/i;
@@ -4683,8 +4680,9 @@ function useSessionSnapshot(handle: { store: SessionStoreHandle } | null): Sessi
   );
 }
 
-/** 原 $Ct（jsx 101340）：空子代理目录 */
-const EMPTY_SUBAGENT_DIRECTORY = { revision: 0, childSessionIds: [], running: [], endedTotal: 0 };
+/* ── tombstone（A1-P1）：原 $Ct 本地副本（jsx 101340 注）删除——canonical =
+ *    components/conversation/ConversationPaneHelpers EMPTY_SUBAGENT_DIRECTORY
+ *    （js 119197 逐字真身）；消费点（subagents ?? 兜底）经文件头 import 改指，逐字不变。 ── */
 
 /** 原 hw（js 39766 / jsx 35820）：窗口首行不属于当前首 turn → 可加载更早 */
 declare function canLoadOlderRows(snapshot: SessionSnapshot | null): boolean;
@@ -4880,7 +4878,7 @@ declare function useRecoverablePendingCommands(args: {
  *    ConversationLeaves import 消费。本文件消费点 5328（= bundle 120963）逐字不变；
  *    Cw=normalizeCaptchaCode 为 StoresDeep R12 收敛 stub，stub 语义下 3007 判定恒不成立，
  *    自动恢复为死路——与 declare 期（擦除=未接线）行为等价，转录逐字保留。 ── */
-/** 原 XCt（js 119084 / jsx 101245）：配额横幅视图模型（用量快照 + 服务端错误码合成） */
+/** 原 XCt（js 119101 / jsx 101245；〔A1-P1〕行漂校正：旧注 js 119084 失实，bundle 实测 119101）：配额横幅视图模型（用量快照 + 服务端错误码合成；深闭包 eM/I0/ICt/LCt 留批） */
 declare function useSessionQuotaViewModel(args: {
   error: { code?: string; message?: string } | null;
   errorKey: string | null;
@@ -4898,12 +4896,12 @@ declare function useSessionQuotaViewModel(args: {
   upgradeActionLabelId: string;
   blocksSubmit?: boolean;
 };
-/** 原 QCt（jsx 101337）：错误去重键 */
-declare function buildSessionErrorKey(sessionId: string | null | undefined, error: { code: string; at: number; message: string; traceId?: string; detail?: string }): string;
-/** 原 twt（jsx 101347）：错误是否显示（会话错误 → 横幅） */
-declare function shouldShowSessionError(sessionId: string | null | undefined, error: unknown): boolean;
-/** 原 br/XCt 的 blocksSubmit 判定归纳 */
-declare const quotaDismissedKeysStore: string[];
+/* ── tombstone（A1-P1）：declare buildSessionErrorKey（原 QCt，js 119194；declare 期旧注 jsx 101337）删除——
+ *    逐字真身本批落地 components/conversation/ConversationPaneHelpers，消费点（errorKey 装配）经文件头 import 改指，逐字不变。
+ *    declare shouldShowSessionError（原 twt，js 119199；declare 期旧注 jsx 101347）删除——D8 期误读：
+ *    bundle 真身 = 横幅模型构造器（非可见性谓词）；改指 buildSessionErrorBannerModel，消费点最小适配
+ *    （可见性 ≡ bundle 120966 `vr !== null` 门；dismissed-keys 面 De 为 R0 域状态，随 R0 体留批）。
+ *    declare quotaDismissedKeysStore 删除——全树零消费（负证据）；bundle 无对应顶层符号（D8 归纳占位）。 ── */
 
 /* --- 9.5 ConversationPane（原 R0，js 119219–121283 / jsx 101388–103090） --- */
 
@@ -5318,7 +5316,10 @@ function ConversationPane({
     modelId: snapshot?.config.model ?? null,
     usageStatsService: useBaseServicesContext().usageStatsService,
   });
-  const errorBannerVisible = shouldShowSessionError(snapshot?.sessionId ?? sessionId, controlLastError);
+  // 〔A1-P1〕twt 119199 逐字真身改指：bundle R0 120936 `vr = gr && _r && !De.includes(_r) ? twt(...) : null`；
+  // D8 无 dismissed-keys 面（De，R0 域状态留批），可见性收敛 ≡ bundle 120966 `vr !== null` 门。
+  const errorBannerModel = controlLastError && errorKey !== null ? buildSessionErrorBannerModel(snapshot?.sessionId ?? sessionId, controlLastError) : null;
+  const errorBannerVisible = errorBannerModel !== null;
   useSessionSubscriptionErrorReporter({
     supervisor: usageSupervisor ? { reportVisibleChatError: () => {} } : null,
     sessionId,
