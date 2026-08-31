@@ -149,6 +149,7 @@ import { countContextAttachments, buildOutboundContentWithAttachments, useCodeCo
 import { readWorkspaceFilePayload as parseAddToChatPayload, ADD_WORKSPACE_FILE_TO_CHAT_EVENT as ADD_TO_CHAT_EVENT_NAME, isAddWorkspaceFileToChatEvent as isAddToChatEvent, type WorkspaceFileDragPayload } from '../composer/FileMentionDragHelpers'; // A1-R12：Mj（52248）/Aj（52211）/nUe（52260）declare 改指纯函数叶子（本批逐字转录）；消费点 2436/2945/2957/2959 逐字不变。nUe 此前误接 GitReview yXe（code-comment 域），bundle 90733 真身 = 工作区域守卫
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService } from '../../modules/ImeComposition'; // +usePlatformService（A1-R15：原 l=M，vWe 54317 截图面消费）
 import { pathBasename } from '../../modules/ModalsLeaves';
+import { useCodingPlanUpgradeDialog } from '../../modules/PaymentDeep'; // A1-R23：原 fX（89100）declare 改指 canonical（components/payments/PaymentDeep 〔A1-R23〕补 export）；消费面 §U.10 ComposerConfigToolbarBody 4243 ≡ bundle 89522。环安全：函数声明提升，渲染期调用（二环 Home→PaymentDeep shim→components/payments→modules/Home）
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
 import { create, logger, useTaskStore, parseCustomModelId, formatCustomModelId, filterNativeModelOptions, type ConfigOption } from '../../modules/SkillStore'; // A1-R18：+parseCustomModelId（原 D=se，skillStore 881/386 导入别名；§U Ee/k6e/D6e 消费）/formatCustomModelId（原 rt=we，skillStore 900；§U xe 消费）/filterNativeModelOptions（原 it=L，skillStore 906；§U _e 消费）
 import { providerBusinessI18nId, normalizeCaptchaCode, isEmptyModelResponse } from '../../modules/StoresDeep'; // A1-R13：lN 簇依赖改指（原 yNe 40497 / Cw 40570（stub）/ jNe 40573，§H 逐字真身）；环安全：StoresDeep 不反引本文件
@@ -315,7 +316,8 @@ declare function useModelProviders(): { modelProviders: ModelProviderEntry[]; di
 declare function useCatalogConfigOptions(workspacePath: string, taskId: string | null, workspaceIdentity?: string | null): { configOptions: ConfigOption[]; status: string; loading: boolean; error: boolean };
 
 /** 权益中心（原 sX，js 88303；entitlements hub，深依赖 $j/tM/nM 服务族——declare 分层） */
-interface EntitlementSnapshotLike {
+// 〔A1-R23〕补 export：Oq 叠层专项——SidebarLeaves PlanEntitlementSnapshot 收敛为本型别名（经 modules/Home 转导出）
+export interface EntitlementSnapshotLike {
   provider?: { id?: string } | null;
   quota?: { level?: string | null; limits?: QuotaLimitLike[] } | null;
   subscription?: { details: Array<{ productId?: string; productName?: string; renewTime?: string }> } | null;
@@ -336,10 +338,11 @@ declare function useEntitlementsHub(opts: {
 interface TabStoreStateLike { openSettingsTab: (section?: string) => void; [key: string]: unknown }
 declare function useTabStoreSelector<T>(selector: (state: TabStoreStateLike) => T): T;
 
-/** Coding Plan 升级对话框 context（原 fX，js 89100；dX context  throwing 变体，Art 89106 同 context 非 throwing 变体） */
-declare function useCodingPlanUpgradeDialog(): {
-  openCodingPlanUpgrade: (opts: { providerId: string; funnelContext: unknown }) => void;
-};
+/* ── tombstone（A1-R23）：declare useCodingPlanUpgradeDialog（原 fX，js 89100）删除——canonical 属主
+ *    components/payments/PaymentDeep.tsx（A0 重建，体 ≡ bundle：useContext(dX) + throwing 守卫），
+ *    改指文件头 import（modules/PaymentDeep，〔A1-R23〕补 export）；消费面 §U.10
+ *    ComposerConfigToolbarBody 4243（≡ bundle 89522）逐字不变。环安全：函数声明提升，
+ *    调用在渲染期（Home→modules/PaymentDeep→components/payments→modules/Home 二环，bundle 本同模块）。 ── */
 
 /** 团队产品订阅查询（原 TY，js 83745；codingPlanSubscriptionService 深依赖——declare 分层） */
 declare function useTeamProductSubscriptions(opts: { enabled: boolean; authenticated: boolean }): {
@@ -3598,20 +3601,24 @@ function hasUsableEntitlementSnapshot(e: EntitlementSnapshotLike | null | undefi
     (!!e.quota || !!e.subscription || !!e.remaining)
   );
 }
-interface CodingPlanUsageViewLike {
+// 〔A1-R23〕补 export：Oq 叠层专项——SidebarLeaves SidebarUsageStateModel.usageState 收敛为本型（经 modules/Home 转导出）
+export interface CodingPlanUsageViewLike {
   activeProviderId?: string;
   displayedEntitlement: { id?: string; providerId: string; label?: string; loading?: boolean; snapshot?: EntitlementSnapshotLike | null; error?: string | null } | null;
-  displayedProviderId?: string;
+  displayedProviderId?: string | null; // 〔A1-R23〕型缝：bundle Oq `a ?? e.selectedProviderId`——mRt 150396 面 selectedProviderId 可 null（原 string）
   hasAnyActiveCodingPlan: boolean;
   loading: boolean;
   providerEntitlements: unknown[];
   tabProviders: Array<{ id: string; providerId: string; label: string }>;
   visibleSnapshot: EntitlementSnapshotLike | null | undefined;
 }
-function resolveCodingPlanUsageRemaining(e: {
+// 〔A1-R23〕补 export：Oq 叠层专项裁定——bundle Oq 唯一真身 76207–76245，消费三面 76250（i3e）/76296（§V 族）/150396（mRt useSidebarUsageState，SidebarLeaves）；
+// 150396 面经 modules/Home 改接本函数（原 SidebarLeaves resolveUsageState declare 删除）。
+// 型缝二处（body 逐字不变，checker 剥离型注在证）：availableProviders 宽化为 { id; name? } 数组（bundle body 仅读 e.id/e.name；mRt 面传 CodingPlanProvider[]），selectedProviderId 受 null（mRt 面传 string | null）。
+export function resolveCodingPlanUsageRemaining(e: {
   entitlements: Array<{ id?: string; providerId: string; label?: string; loading?: boolean; snapshot?: EntitlementSnapshotLike | null; sourceId?: string }>;
-  availableProviders: ModelProviderEntry[];
-  selectedProviderId?: string;
+  availableProviders: Array<{ id: string; name?: string }>; // 〔A1-R23〕型缝（原 ModelProviderEntry[]）
+  selectedProviderId?: string | null; // 〔A1-R23〕型缝（原 string）
   modelProvidersLoading: boolean;
 }): CodingPlanUsageViewLike | null { // Oq
   let t = e.entitlements.filter(
@@ -6725,7 +6732,10 @@ export function resolveComposerPlaceholderI18nId({
  * 213930 无面；唯一消费 = j3e@76837/76840）。树内逐字真身 = 本文件 §V.3 CodingPlanUsagePanel /
  * §V.5 StartPlanBalancePanel（R19 转录，机械校验在案）；UsageDeep A0 并行副本（SidebarCodingPlanWidget/
  * SidebarStartPlanWidget）降 shim，经 modules/UsageDeep 再导出本面（函数声明提升，环安全），
- * PaymentDeep 581/584 消费面不变。证据链见 A1-R21.report.md §三。 */
+ * PaymentDeep 581/584 消费面不变。证据链见 A1-R21.report.md §三。
+ * 〔A1-R23〕补注：PaymentDeep §1 消费面 581/584 已随 j3e 叠层专项删除（A0 副本簇全删，见
+ * components/payments/PaymentDeep §1 墓碑）；modules/UsageDeep 再导出面同批移除（末位消费已逝）。
+ * §V.3/§V.5 逐字 canonical 本体不变。 */
 export { CodingPlanUsagePanel, StartPlanBalancePanel };
 
 /* ============================================================================

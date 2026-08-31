@@ -107,6 +107,8 @@
  * 10. useTaskListItems (ZS) / buildWorkspaceServicesMap (yc) / useScopedWorkspaceTabs (J3)
  *                                    src-HCld2afU.js（接口声明，见 §0）
  * 11. 用量域 F12（JM/xn/qq/hX/q/Uq/dr/TY/pX/Mrt/$j/rM/Oq/PCt）  接口声明，见 §0
+ *     〔A1-R23〕Oq 叠层专项：resolveUsageState declare 删除，改接 Home §U.3 resolveCodingPlanUsageRemaining
+ *     逐字真身（bundle Oq 76207–76245 唯一真身；消费三面 76250/76296/150396，本文件 mRt 调用点 996 即 150396 面）
  * ============================================================================
  */
 
@@ -127,6 +129,7 @@ import { useSessionRegistryStore, type BaseServices } from '../../modules/stores
 import { formatRelativeTime } from '../../modules/SidePanel'; // $S
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
+import { resolveCodingPlanUsageRemaining as resolveUsageState, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上述 chunk；此处为重建接口）
@@ -374,7 +377,7 @@ declare function useSettingsContext(): { settings: SettingsSnapshot | null };
 declare function resolveProviderFamilyDomain(domain: string | null | undefined): string; // xn
 declare function useModelProviders(): { modelProviders: unknown[]; loading: boolean }; // qq
 declare function normalizeCodingPlanProviders(providers: unknown[]): CodingPlanProvider[]; // hX
-interface CodingPlanProvider { id: string; [key: string]: unknown }
+interface CodingPlanProvider { id: string; name?: string; [key: string]: unknown } // 〔A1-R23〕型缝：+name——Home Oq 入参面 Array<{ id; name? }>（bundle Oq body 仅读 e.id/e.name）
 declare const PROVIDER_IDS: { zaiCodingPlan: string; bigmodelCodingPlan: string }; // q
 declare function resolveSelectedSupplierKey(key: string | null | undefined): string | null; // Uq（与 WorkspaceShell kJt 同名异函数：此处为供应商键前缀解析）
 declare function supplierProviderId(key: string): string | null; // dr
@@ -404,19 +407,24 @@ declare function useCodingPlanEntitlement(args: {
   projectId?: string;
   cacheKey?: string | null;
 }): { snapshot: PlanEntitlementSnapshot | null; loading: boolean }; // $j
-interface PlanEntitlementSnapshot { [key: string]: unknown }
+// 〔A1-R23〕型缝：原 `interface PlanEntitlementSnapshot { [key: string]: unknown }` 收敛为 Home EntitlementSnapshotLike 别名——
+// Oq 76207 入参面 snapshot?: EntitlementSnapshotLike | null（Home §U.3 逐字）；本型原形仅索引签名，别名后结构兼容（含索引签名）
+type PlanEntitlementSnapshot = EntitlementSnapshotLike;
 declare function entitlementCacheKey(provider: CodingPlanProvider | null | undefined): string | null; // rM
 declare function resolveProfilePlanAudience(args: {
   hasTeamPlanEntitlement: boolean;
   individualEntitlements: Array<{ snapshot: PlanEntitlementSnapshot | null; providerId: string; loading?: boolean }>;
   teamEntitlementLoading: boolean;
 }): { audience: "individual" | "team"; snapshot?: PlanEntitlementSnapshot } | null; // uRt
-declare function resolveUsageState(args: {
-  availableProviders: CodingPlanProvider[];
-  entitlements: ProviderEntitlement[];
-  modelProvidersLoading: boolean;
-  selectedProviderId: string | null;
-}): { hasAnyActiveCodingPlan: boolean; [key: string]: unknown } | null; // Oq
+/* 墓碑（A1-R23 · Oq 叠层专项裁定，R21 模式直接套用）：原 `declare function resolveUsageState(args: {
+ *   availableProviders: CodingPlanProvider[]; entitlements: ProviderEntitlement[];
+ *   modelProvidersLoading: boolean; selectedProviderId: string | null;
+ * }): { hasAnyActiveCodingPlan: boolean; [key: string]: unknown } | null; // Oq`
+ * 删除。证据链：bundle Oq 唯一真身 76207–76245（grep 全 bundle 仅一处定义）；消费三面——
+ * 76250（i3e = !!Oq(e)）、76296（Home §V 族）、150396（mRt useSidebarUsageState，即本文件下方调用点）；
+ * 树内逐字真身 = Home §U.3 resolveCodingPlanUsageRemaining（A1-R19 转录，机械校验器在证，覆盖 76250/76296 两面）。
+ * 本批改经顶部 `import { resolveCodingPlanUsageRemaining as resolveUsageState } from '../../modules/Home'` 接线，调用点逐字不变。
+ * 同批删除的并行副本：components/usage/UsageDeep resolvePlanWidgetModel（同异取证：body ≡ Oq，判同身）。 */
 declare function fallbackProviderId(domain: string): string | undefined; // PCt
 
 interface ProviderEntitlement {
@@ -882,7 +890,7 @@ export interface SidebarUsageStateModel {
   profilePlanBadge: { audience?: "individual" | "team"; snapshot?: PlanEntitlementSnapshot | null } | null;
   selectedProviderId: string | null;
   upgradeTargetProviderId: string | undefined;
-  usageState: { hasAnyActiveCodingPlan: boolean; [key: string]: unknown } | null;
+  usageState: CodingPlanUsageViewLike | null; // 〔A1-R23〕型缝：Oq 出参面（原 { hasAnyActiveCodingPlan: boolean; [key: string]: unknown } | null）——Home CodingPlanUsageViewLike 逐字型，含 hasAnyActiveCodingPlan 字段，下方 1002 消费不变
 }
 
 export function useSidebarUsageState(args: {

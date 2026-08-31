@@ -108,22 +108,22 @@
  *   wq  → formatQuotaResetTime            date/dateTime（compactToday）(76115 / 67406)
  *   e3e/t3e → bigmodel/zai logo dataURI 表 (76133 / 67426)
  *   Tq  → RegionLogo                      区域 logo img（缺省 log-in 图标）(76135 / 67431)
- *   n3e → codingPlanProviderFallbackName  (76158 / 67437)
- *   Eq  → entitlementSourceId             sourceId ?? providerId
- *   Dq  → hasActiveEntitlementForProvider
- *   Oq  → resolvePlanWidgetModel          多源权益 → 展示模型 (76168 / 67446)
+ *   〔A1-R23 Oq 叠层专项裁定〕n3e/Eq/Dq/Oq/i3e + c3e/l3e/h3e/g3e 并行副本删除：
+ *     bundle 各唯一真身（n3e 76194 / Eq 76197 / Dq 76200 / Oq 76207–76245 / i3e 76249 /
+ *     c3e 76439 / l3e 76442 / h3e 76495 / g3e 76502），树内逐字真身 = Home §U.3
+ *     codingPlanProviderFallbackLabel/entitlementEntrySourceId/hasUsableEntitlementSnapshot/
+ *     resolveCodingPlanUsageRemaining/hasCodingPlanUsageRemaining + §V quotaLimitTotal/
+ *     quotaLimitRemaining/listActiveQuotaLimits/hasStartPlanBalanceDisplay（A1-R19，机械校验器在证）；
+ *     Oq 150396 面（mRt 设置域）改指 SidebarLeaves → Home 逐字真身（见 SidebarLeaves 墓碑）。
+ *     旧行（n3e/Eq/Dq/Oq/i3e/c3e/l3e/h3e/g3e）随批删除，见下方各墓碑。
  *   〔A1-R21 双实例叠层专项裁定〕r3e/a3e/o3e/s3e + u3e/d3e/f3e/p3e/m3e/_3e/v3e 并行副本删除：
  *     bundle 唯一真身 s3e@76294 / v3e@76540（唯一消费 j3e@76837/76840），树内逐字真身 = Home §V.3/§V.5
- *     CodingPlanUsagePanel/StartPlanBalancePanel（A1-R19）；本表旧行降 shim 改指——SidebarCodingPlanWidget/
+ *     CodingPlanUsagePanel/StartPlanBalancePanel（A1-R19）；SidebarCodingPlanWidget/
  *     SidebarStartPlanWidget 名经 modules/UsageDeep 再导出 Home 面（行号旧注 76246/76492 为漂移行）。
+ *     〔A1-R23〕该 shim 别名再导出随最后消费面（PaymentDeep §1）删除而同步移除。
  *     闭包助手逐字真身同在 Home §V：r3e=76246/a3e=76252/o3e=76262/u3e=76445/d3e=76451/f3e=76465/
  *     p3e=76482/m3e=76486/_3e=76505。证据链见 A1-R21.report.md §三。
- *   i3e → hasPlanWidgetModel              （保留，A1-R21 补 export）
  *   kq  → modelDisplayName                GLM 特判 + 词首大写 (76370 / 67594)
- *   c3e → limitTotalOf                    number ?? unit ?? 0
- *   l3e → limitRemainingOf                remaining ?? 0
- *   h3e → visibleStartPlanLimits          total>0 || remaining>0 过滤
- *   g3e → hasStartPlanBalance             （保留，A1-R21 补 export）
  *
  * E. 供应商环境/内网探测助手（js 187188–187304 / jsx 151029–151160）
  *   i7  → trimmedOrUndefined              (187289 / 151029)
@@ -2064,91 +2064,21 @@ export function RegionLogo(props: { region: string; className?: string }): React
   );
 }
 
-/** 原 n3e（js 76158）：Coding Plan 供应商缺省名 */
-function codingPlanProviderFallbackName(providerId: string): string {
-  return providerId === PROVIDER_IDS.zaiCodingPlan ? `Z.ai Coding Plan` : `BigModel Coding Plan`;
-}
-
-/** 原 Eq（js 76161）：权益源 id（sourceId 优先） */
-function entitlementSourceId(entitlement: { sourceId?: string; providerId: string }): string {
-  return entitlement.sourceId ?? entitlement.providerId;
-}
-
-/** 原 Dq（js 76163）：供应商匹配且活跃（非 no_plan + 有额度） */
-function hasActiveEntitlementForProvider(snapshot: EntitlementSnapshot | null | undefined, providerId: string): boolean {
-  return (
-    snapshot?.provider?.id === providerId &&
-    snapshot.unavailableReason !== `no_plan` &&
-    (!!snapshot.quota || !!snapshot.subscription || !!snapshot.remaining)
-  );
-}
-
-export interface PlanWidgetEntitlementEntry {
-  providerId: string;
-  sourceId?: string;
-  label?: string;
-  loading: boolean;
-  /** 〔A1-R21〕型缝：放宽为 unknown——bundle Oq 不读 error，s3e 渲染面直出 JSX child；
-   *  消费面 PaymentDeep 11162/11175 构造源为 unknown（teamSubscription.error 等）。 */
-  error?: unknown;
-  snapshot: EntitlementSnapshot | null;
-}
-export interface PlanWidgetConfig {
-  selectedProviderId: string;
-  availableProviders: Array<{ id: string; name?: string }>;
-  entitlements: PlanWidgetEntitlementEntry[];
-  modelProvidersLoading: boolean;
-  onUsageClick?: () => void;
-}
-export interface PlanWidgetModel {
-  activeProviderId: string | undefined;
-  displayedEntitlement: PlanWidgetEntitlementEntry | null;
-  displayedProviderId: string | undefined;
-  hasAnyActiveCodingPlan: boolean;
-  loading: boolean;
-  providerEntitlements: PlanWidgetEntitlementEntry[];
-  tabProviders: Array<{ id: string; providerId: string; label: string }>;
-  visibleSnapshot: EntitlementSnapshot | null;
-}
-
-/** 原 Oq（js 76168）：多源权益 → 展示模型（选中源活跃优先；否则任一活跃源；标签回退链） */
-export function resolvePlanWidgetModel(config: PlanWidgetConfig): PlanWidgetModel | null {
-  const entries = config.entitlements.filter(
-    (entry) => entitlementSourceId(entry).startsWith(`team-plan:`) || config.availableProviders.some((provider) => provider.id === entry.providerId)
-  );
-  const selectedEntry = entries.find((entry) => entitlementSourceId(entry) === config.selectedProviderId);
-  const activeEntry =
-    (selectedEntry && hasActiveEntitlementForProvider(selectedEntry.snapshot, selectedEntry.providerId) ? selectedEntry : void 0) ??
-    entries.find((entry) => hasActiveEntitlementForProvider(entry.snapshot, entry.providerId));
-  const displayedEntitlement = activeEntry ?? selectedEntry ?? entries[0] ?? null;
-  const activeProviderId = activeEntry ? entitlementSourceId(activeEntry) : void 0;
-  const displayedProviderId = activeProviderId ?? config.selectedProviderId;
-  const loading = config.modelProvidersLoading || entries.some((entry) => entry.loading);
-  const visibleSnapshot = displayedEntitlement && hasActiveEntitlementForProvider(displayedEntitlement.snapshot, displayedEntitlement.providerId) ? displayedEntitlement.snapshot : null;
-  const activeProviderIds = entries.filter((entry) => hasActiveEntitlementForProvider(entry.snapshot, entry.providerId)).map((entry) => entitlementSourceId(entry));
-  const hasAnyActiveCodingPlan = !!activeEntry;
-  const tabProviders = entries
-    .filter((entry) => activeProviderIds.includes(entitlementSourceId(entry)))
-    .map((entry) => {
-      const provider = config.availableProviders.find((candidate) => candidate.id === entry.providerId);
-      return {
-        id: entitlementSourceId(entry),
-        providerId: entry.providerId,
-        label: entry.label ?? provider?.name ?? codingPlanProviderFallbackName(entry.providerId),
-      };
-    });
-  if ((!config.modelProvidersLoading && entries.length === 0) || (!loading && !hasAnyActiveCodingPlan)) return null;
-  return {
-    activeProviderId,
-    displayedEntitlement,
-    displayedProviderId,
-    hasAnyActiveCodingPlan,
-    loading,
-    providerEntitlements: entries,
-    tabProviders,
-    visibleSnapshot,
-  };
-}
+/* ── tombstone（A1-R23 · Oq 叠层专项裁定，R21 模式直接套用）：
+ *    n3e codingPlanProviderFallbackName（76194）/Eq entitlementSourceId（76197）/
+ *    Dq hasActiveEntitlementForProvider（76200）/Oq resolvePlanWidgetModel（76207–76245）/
+ *    i3e hasPlanWidgetModel（76249）+ PlanWidgetEntitlementEntry/PlanWidgetConfig/PlanWidgetModel
+ *    型别删除——与 Home §U.3 逐字族并行重建叠层。
+ *    裁定证据：bundle n3e/Eq/Dq/Oq/i3e 各唯一真身（76194/76197/76200/76207/76249）；
+ *    Oq 消费面 4 处：76250（i3e=!!Oq）/76296（s3e useMemo）/150396（mRt 设置域）+ 76250 同身；
+ *    树内逐字真身 = Home §U.3 codingPlanProviderFallbackLabel（n3e）/entitlementEntrySourceId（Eq）/
+ *    hasUsableEntitlementSnapshot（Dq）/resolveCodingPlanUsageRemaining（Oq 76207–76245）/
+ *    hasCodingPlanUsageRemaining（i3e）（A1-R19 转录，机械校验器在证；76250/76296 两面覆盖）；
+ *    150396 面 = mRt useSidebarUsageState（SidebarLeaves A0 重建），其 resolveUsageState declare
+ *    同批改指 Home 逐字真身（见 SidebarLeaves 墓碑）；本副本族消费面仅 PaymentDeep §1/§9
+ *    死簇（494/495/11103/11193，同批删除）= 死代码，负证据记录。
+ *    同异取证：resolvePlanWidgetModel 体 ≡ Oq 体（字段名异、结构同：team-plan: 前缀过滤 +
+ *    选中活跃优先 + 标签回退链 + 双空守卫），判同身。 ── */
 
 /* ── tombstone（A1-R21 · 双实例叠层专项裁定，编排方委托）：
  *    r3e planWidgetGridCols（76246）/a3e formatResetTimeHm（76252）/o3e PlanWidgetLimitRow（76262）/
@@ -2159,10 +2089,9 @@ export function resolvePlanWidgetModel(config: PlanWidgetConfig): PlanWidgetMode
  *    三助手 r3e/a3e/o3e 树内唯二消费面即本副本；逐字真身 = Home §V resolveUsageGridColumnsClass（76246）/
  *    formatUsageResetClockTime（76252）/UsagePlanLimitRow（76262），随主件删除。 ── */
 
-/** 原 i3e（js 76249）：展示模型存在判定 */
-export function hasPlanWidgetModel(config: PlanWidgetConfig): boolean { // 〔A1-R21〕补 export：PaymentDeep hasPlanWidgetModel declare（76249 同身）收敛消费
-  return !!resolvePlanWidgetModel(config);
-}
+/* ── tombstone（A1-R23）：i3e hasPlanWidgetModel 副本删除（原 76249）——真身 = Home §U.3
+ *    hasCodingPlanUsageRemaining 逐字（!!resolveCodingPlanUsageRemaining 同构）；A1-R21 补 export
+ *    面随 modules/UsageDeep shim 同步移除（消费面 PaymentDeep 494/11193 同批删除）。 ── */
 
 /** 原 kq（js 76418）：模型展示名（GLM-* 保留；turbo→Turbo；GLM/API/MCP/AI 大写；词首大写） */
 export function modelDisplayName(rawName: string): string {
@@ -2187,35 +2116,18 @@ export function modelDisplayName(rawName: string): string {
     : ``;
 }
 
-/** 原 c3e（js 76398）：限额总量（number ?? unit ?? 0） */
-function limitTotalOf(limit: EntitlementQuotaLimit): number {
-  return limit.number ?? limit.unit ?? 0;
-}
-
-/** 原 l3e（js 76401）：限额剩余（remaining ?? 0） */
-function limitRemainingOf(limit: EntitlementQuotaLimit): number {
-  return limit.remaining ?? 0;
-}
+/* ── tombstone（A1-R23）：c3e limitTotalOf（76439）/l3e limitRemainingOf（76442）/
+ *    h3e visibleStartPlanLimits（76495）/g3e hasStartPlanBalance（76502）副本链删除——
+ *    真身 = Home §V 逐字族 quotaLimitTotal（c3e）/quotaLimitRemaining（l3e）/
+ *    listActiveQuotaLimits（h3e）/hasStartPlanBalanceDisplay（g3e，§V.5 3676）；
+ *    消费面仅本链互引 + PaymentDeep 495/11103（同批删除），负证据记录；
+ *    A1-R21 补 export 面随 modules/UsageDeep shim 同步移除。 ── */
 
 /* ── tombstone（A1-R21 · 双实例叠层专项裁定续）：
  *    u3e formatUsedPercent（76445）/d3e startPlanNextResetTimeOf（76451）/f3e formatResetDateTimeCompact（76465）/
  *    p3e normalizeStartPlanModelCode（76482）/m3e limitModelLabel（76486）删除——v3e 副本闭包链式失消；
  *    逐字真身 = Home §V formatUsageFractionPercent（76445）/resolveSnapshotEarliestRenewTime（76451）/
  *    formatSnapshotRenewTime（76465）/formatUsageModelCode（76482）/resolveUsageDetailLabel（76486）。 ── */
-
-/** 原 h3e（js 76495）：可见限额过滤（总量>0 或 剩余>0） */
-function visibleStartPlanLimits(snapshot: EntitlementSnapshot | null): EntitlementQuotaLimit[] {
-  return (snapshot?.quota?.limits ?? []).filter((limit) => {
-    const total = limitTotalOf(limit);
-    const remaining = limitRemainingOf(limit);
-    return total > 0 || remaining > 0;
-  });
-}
-
-/** 原 g3e（js 76502）：余额件可见判定 */
-export function hasStartPlanBalance(state: { loading: boolean; snapshot: EntitlementSnapshot | null } | undefined): boolean { // 〔A1-R21〕补 export：PaymentDeep hasStartPlanBalance declare（76502 同身）收敛消费
-  return state ? state.loading || visibleStartPlanLimits(state.snapshot).length > 0 : false;
-}
 
 /* ── tombstone（A1-R21 · 双实例叠层专项裁定续）：
  *    _3e StartPlanBalanceRow（76505）/StartPlanWidgetConfig 型/v3e SidebarStartPlanWidget（76540–76611）删除——

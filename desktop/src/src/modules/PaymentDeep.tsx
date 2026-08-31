@@ -25,20 +25,8 @@
  * ----------------------------------------------------------------------------
  * 一、混淆名 → 语义名 映射表（行号格式：js 行 / jsx 行）
  * ----------------------------------------------------------------------------
- *  A. 上下文用量弹层（76612–76843 / jsx 67694 区）：
- *   y3e → closeThenRun                 先关弹层再执行动作 (76612 / 67694)
- *   Aq  → USAGE_CHART_COLORS           5 段用量图色 (76615)
- *   b3e → PERCENT_SCALE=100 / x3e → CACHE_HIT_DISPLAY_THRESHOLD=0.78 (76621/76622)
- *   S3e → formatCompactNumberLocale    ja 包装 (76623)
- *   C3e → formatUsedOfTotal            `used/total (pct)` (76626)
- *   w3e → formatPercentOrNull          阈值下隐 (76630 区)
- *   T3e → segmentStyleOfIndex          Aq 取色 (76637)
- *   E3e → CONTEXT_BREAKDOWN_LABEL_KEYS 7 源 i18n 键 (76640)
- *   D3e → CONTEXT_BREAKDOWN_ORDER      7 源序 (76648)
- *   O3e → aggregateContextBreakdown    chars 聚合+排序 (76656)
- *   k3e → toBreakdownSegments          → id/percent/style (76667)
- *   A3e → validTaskUsageOrNull         used/size 正数守卫 (76670)
- *   j3e → ContextUsagePopover          弹层根 (76678 / 67769)
+ *  A. 上下文用量弹层（76612–76843 / jsx 67694 区）：〔A1-R23〕副本族删除 → 逐字 canonical
+ *     Home §V.6/§V.7（y3e…A3e/j3e，见 components 侧 §1 墓碑）
  *  B. 工具条配置选择（76844–77061 / jsx 67907 区）：
  *   M3e → isOptionValuePresent (76844) | N3e → FULL_ACCESS_MODES (76847)
  *   P3e → categoryTestidOf (76848) | F3e → optionTestidOf (76852)
@@ -47,13 +35,9 @@
  *   jq  → optionLabelOf (76883) | B3e → optionDescriptionOf (76886)
  *   V3e → isFullAccessMode (76892) | H3e → modeIconOf (76895)
  *   Mq  → ConfigSelect                 工具条 select 触发器 (76912 / 67907)
- *  C. 思考级别机制（77127–77325；U3e/W3e/G3e 见排除注记）：
- *   Nq → normalizeOptionKey (77127) | K3e → isThoughtOffOption (77130)
- *   q3e → thoughtRankOf (77133) | J3e → sortThoughtOptions (77141)
- *   Y3e → nextThoughtLevelValue (77153) | X3e → thoughtOptionLabelOf (77160)
- *   Pq  → ThoughtLevelControl          三态触发器 (77164 / 68111)
- *   Fq  → shortcutKeyOfCategory (77337 区) | Z3e → nextSelectValue
- *   Q3e → resolveToolbarShortcut | $3e → useToolbarShortcuts (Ctrl+M 族)
+ *  C. 思考级别机制（77127–77325；U3e/W3e/G3e 见排除注记）：〔A1-R23〕Pq/Fq/Z3e/Q3e/$3e 副本删除
+ *     → 逐字 canonical Home §U.2 ComposerThoughtToolbar + §T 快捷键族（见 components 侧 §3 墓碑）；
+ *     Nq…X3e 前半 A0-S2d 已去重（canonical Composer.tsx）
  *  D. 供应商/模型菜单机制（77452–78455）：
  *   e6e → PROVIDER_FAMILY_ORDER (77452 区) | t6e → providerFamilyRankOf
  *   Iq  → sortProvidersByFamilyAndOrder | Lq → teamOrganizationLabelOf
@@ -80,7 +64,8 @@
  *  F. Stripe 卡/验证码/PayPal/产品/订单（81732–84459）：见 §6 头注
  *  G. zet Coding Plan 对话框（84460–85995 / jsx 74125）：见 §7 头注
  *  H. Zet 结账面板+政策子组件群（85996–88046）：见 §8 头注
- *  I. xnt 用量格式化+计划源选择（88047–89988 / jsx 76242/77471）：见 §9 头注
+ *  I. xnt 用量格式化+计划源选择（88047–89988 / jsx 76242/77471）：见 components 侧 §9 头注；
+ *     〔A1-R23〕pX…oit 工具条死簇 33 件删除 → 逐字 canonical Home §T/§U（见 components 侧 §9 墓碑）
  *  J. lit/uit 上下文 chip（89989–90179 / jsx 78047/78080）：〔A1-R22〕副本删除 → 逐字 canonical
  *     modules/Composer.tsx [B17]（消费面在 Home/Conversation，非支付域；见 components 侧 §10 墓碑）
  * ============================================================================
@@ -92,25 +77,13 @@
  * ────────────────────────────────────────────────────────────────────────────────────────────── */
 
 export {
-  closeThenRun,
-  USAGE_CHART_COLORS,
-  PERCENT_SCALE,
-  CACHE_HIT_DISPLAY_THRESHOLD,
-  formatCompactNumberLocale,
-  formatUsedOfTotal,
-  formatPercentOrNull,
-  segmentStyleOfIndex,
-  CONTEXT_BREAKDOWN_LABEL_KEYS,
-  CONTEXT_BREAKDOWN_ORDER,
-  aggregateContextBreakdown,
-  toBreakdownSegments,
-  validTaskUsageOrNull,
-  ContextUsagePopover,
-  ThoughtLevelControl,
-  shortcutKeyOfCategory,
-  nextSelectValue,
-  resolveToolbarShortcut,
-  useToolbarShortcuts,
+  /* ── 〔A1-R23〕移出 19 符：closeThenRun/USAGE_CHART_COLORS/PERCENT_SCALE/CACHE_HIT_DISPLAY_THRESHOLD/
+   *    formatCompactNumberLocale/formatUsedOfTotal/formatPercentOrNull/segmentStyleOfIndex/
+   *    CONTEXT_BREAKDOWN_LABEL_KEYS/CONTEXT_BREAKDOWN_ORDER/aggregateContextBreakdown/
+   *    toBreakdownSegments/validTaskUsageOrNull/ContextUsagePopover（§1，y3e…j3e）+
+   *    ThoughtLevelControl/shortcutKeyOfCategory/nextSelectValue/resolveToolbarShortcut/
+   *    useToolbarShortcuts（§3，Pq…$3e）——j3e 叠层专项裁定：真身逐字 canonical = Home §V.6/§V.7 +
+   *    §U.2/§T 族；本再导出面全树零消费（负证据在案），随 components 侧副本删除。见 components 侧墓碑。 ── */
   PROVIDER_FAMILY_ORDER,
   providerFamilyRankOf,
   sortProvidersByFamilyAndOrder,
@@ -340,4 +313,5 @@ export {
   CodingPlanPurchasePanel,
   useCodingPlanEntitlements,
   CodingPlanUpgradeDialogProvider,
+  useCodingPlanUpgradeDialog, // 〔A1-R23〕补 export：Home declare useCodingPlanUpgradeDialog 收敛（原 fX，89100；消费面 Home §U.10 ComposerConfigToolbarBody ≡ bundle 89522）
 } from '../components/payments/PaymentDeep';

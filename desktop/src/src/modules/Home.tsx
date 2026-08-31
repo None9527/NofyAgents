@@ -174,6 +174,7 @@ export {
   DraftComposerRegion,
   DraftComposerRegionMemo,
   resolveComposerPlaceholderI18nId,
+  resolveCodingPlanUsageRemaining, // 〔A1-R23〕Oq 叠层专项：SidebarLeaves mRt 面（150396）改接 Home §U.3 逐字真身（bundle Oq 76207–76245 唯一真身，消费三面 76250/76296/150396）
 } from '../components/shell/Home';
 export type {
   GreetingHeroProps,
@@ -193,4 +194,6 @@ export type {
   ComposerConfig,
   ComposerConfigPicker,
   DraftComposerRegionProps,
+  EntitlementSnapshotLike, // 〔A1-R23〕Oq 叠层专项：SidebarLeaves PlanEntitlementSnapshot 别名所依
+  CodingPlanUsageViewLike, // 〔A1-R23〕Oq 叠层专项：SidebarLeaves SidebarUsageStateModel.usageState 型缝所依
 } from '../components/shell/Home';

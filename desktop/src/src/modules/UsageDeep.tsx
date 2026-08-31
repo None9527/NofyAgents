@@ -106,19 +106,16 @@
  *   wq  → formatQuotaResetTime            date/dateTime（compactToday）(76115 / 67406)
  *   e3e/t3e → bigmodel/zai logo dataURI 表 (76133 / 67426)
  *   Tq  → RegionLogo                      区域 logo img（缺省 log-in 图标）(76135 / 67431)
- *   n3e → codingPlanProviderFallbackName  (76158 / 67437)
- *   Eq  → entitlementSourceId             sourceId ?? providerId
- *   Dq  → hasActiveEntitlementForProvider
- *   Oq  → resolvePlanWidgetModel          多源权益 → 展示模型 (76168 / 67446)
+ *   〔A1-R23 Oq 叠层专项裁定〕n3e/Eq/Dq/Oq/i3e/c3e/l3e/h3e/g3e 并行副本删除：真身逐字 canonical =
+ *     Home §U.3（codingPlanProviderFallbackLabel/entitlementEntrySourceId/hasUsableEntitlementSnapshot/
+ *     resolveCodingPlanUsageRemaining/hasCodingPlanUsageRemaining）+ §V（quotaLimitTotal/
+ *     quotaLimitRemaining/listActiveQuotaLimits/hasStartPlanBalanceDisplay）；本 shim 再导出面
+ *     resolvePlanWidgetModel/hasPlanWidgetModel/hasStartPlanBalance 同步移除（全树零消费，负证据在案）。
  *   〔A1-R21 双实例叠层专项裁定〕s3e/v3e 并行副本（含闭包 r3e/a3e/o3e/u3e/d3e/f3e/p3e/m3e/_3e）删除：
- *     bundle 唯一真身 76294/76540（唯一消费 j3e@76837/76840），逐字真身 = Home §V.3/§V.5；
- *     SidebarCodingPlanWidget/SidebarStartPlanWidget 名改由本 shim 再导出 Home 面（见文件尾）。
- *   i3e → hasPlanWidgetModel              （保留，A1-R21 补 export）
+ *     bundle 唯一真身 76294/76540（唯一消费 j3e@76837/76840），逐字真身 = Home §V.3/§V.5。
+ *     〔A1-R23〕SidebarCodingPlanWidget/SidebarStartPlanWidget shim 别名再导出随最后消费面
+ *     （PaymentDeep §1）删除而同步移除（见文件尾墓碑）。
  *   kq  → modelDisplayName                GLM 特判 + 词首大写 (76370 / 67594)
- *   c3e → limitTotalOf                    number ?? unit ?? 0
- *   l3e → limitRemainingOf                remaining ?? 0
- *   h3e → visibleStartPlanLimits          total>0 || remaining>0 过滤
- *   g3e → hasStartPlanBalance             （保留，A1-R21 补 export）
  *
  * E. 供应商环境/内网探测助手（js 187188–187304 / jsx 151029–151160）
  *   i7  → trimmedOrUndefined              (187289 / 151029)
@@ -372,10 +369,9 @@ export {
   formatQuotaUsage,
   formatQuotaResetTime,
   RegionLogo,
-  resolvePlanWidgetModel,
-  hasPlanWidgetModel, // 〔A1-R21〕补 export：PaymentDeep declare 收敛（i3e 76249）
+  /* 〔A1-R23〕resolvePlanWidgetModel/hasPlanWidgetModel/hasStartPlanBalance 移出——Oq 叠层裁定：
+   * 真身逐字 canonical = Home §U.3/§V（见 components/usage/UsageDeep.tsx 墓碑）。 */
   modelDisplayName,
-  hasStartPlanBalance, // 〔A1-R21〕补 export：PaymentDeep declare 收敛（g3e 76502）
   useIntranetProbe,
   useZapiEnabled,
   providerDraftDiff,
@@ -450,9 +446,8 @@ export type {
   ModelProviderNavigationGroup,
   UseSubscriptionSnapshotOptions,
   UseSubscriptionSnapshotResult,
-  PlanWidgetEntitlementEntry,
-  PlanWidgetConfig,
-  PlanWidgetModel,
+  // 〔A1-R23〕PlanWidgetEntitlementEntry/PlanWidgetConfig/PlanWidgetModel 移出——Oq 叠层裁定：三型随
+  // components/usage/UsageDeep resolvePlanWidgetModel 副本簇同批删除（全树零消费，负证据在案）
   ProviderFormDraft,
   ModelDraft,
   ProviderConfigCardFormProps,
@@ -467,5 +462,8 @@ export type {
  * （唯一消费 j3e@76837/76840），树内逐字真身 = Home §V.3/§V.5（A1-R19 机械校验在案）。
  * components/usage/UsageDeep A0 副本（SidebarCodingPlanWidget/SidebarStartPlanWidget）删除，
  * 本 shim 改指 Home 逐字面；别名与导出形不变，PaymentDeep 581/584 消费面零改动
- * （函数声明提升，环安全：Home→本文件→Home 二环，渲染期访问）。证据见 A1-R21.report.md §三。 */
-export { CodingPlanUsagePanel as SidebarCodingPlanWidget, StartPlanBalancePanel as SidebarStartPlanWidget } from '../components/shell/Home';
+ * （函数声明提升，环安全：Home→本文件→Home 二环，渲染期访问）。证据见 A1-R21.report.md §三。
+ * 〔A1-R23〕j3e 叠层专项续：PaymentDeep §1（581/584 消费面）随批删除后，SidebarCodingPlanWidget/
+ * SidebarStartPlanWidget shim 别名再导出全树零消费，同批移除（Home CodingPlanUsagePanel/
+ * StartPlanBalancePanel 逐字导出面不变；s3e/v3e 的 bundle 消费链 = j3e 76837/76840 → iit 89918，
+ * 树内对应 Home §U.10 逐字族直连本面）。 */
