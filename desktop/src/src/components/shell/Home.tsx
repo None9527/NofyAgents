@@ -159,7 +159,7 @@ import { useServices } from '../../modules/services';
 import { workspaceScopeKey } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { useFeedbackStore } from '../../modules/stores-core'; // A1-R15：原 yC（js 37040）反馈中心 store——vWe openSubmit 消费（TopBar 144 同源边）
-import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, chatAssistantHistoryContentTestid, automationYearDayOptionTestid, browserForwardButtonTestid, v4ComposerInputTestid, v4ModelConfigTestid, chatContextUsageTriggerTestid, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, isProviderEnabled, normalizeProviderFamilyDomain } from '../../modules/SrcSharedB'; // A1-R17 及以前：见尾注。A1-R18：+5 件（原 Uee=ca=ky 8513 / vi=mt 8631 / li=gt 8638 / fi=ht 8658 / gi=ko 5001；§U iit/nit/mX/hX 消费）+A1-R19：+chatContextUsageTriggerTestid（原 Lte=Fv，jsx 8465 / js 8358；§V j3e 76752 data-testid 消费） // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）。〔A1-R27〕+normalizeProviderFamilyDomain（xn 真身 ≡ Xx 8937 / src 9745 `Xx as L` / styles 514 `L as xn`；Tit @761 declare providerFamilyFromDomain 收敛改指，见下墓碑）
+import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, chatAssistantHistoryContentTestid, automationYearDayOptionTestid, browserForwardButtonTestid, v4ComposerInputTestid, v4ModelConfigTestid, chatContextUsageTriggerTestid, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, isProviderEnabled, normalizeProviderFamilyDomain, resolveProviderFamilyMode } from '../../modules/SrcSharedB'; // A1-R17 及以前：见尾注。A1-R18：+5 件（原 Uee=ca=ky 8513 / vi=mt 8631 / li=gt 8638 / fi=ht 8658 / gi=ko 5001；§U iit/nit/mX/hX 消费）+A1-R19：+chatContextUsageTriggerTestid（原 Lte=Fv，jsx 8465 / js 8358；§V j3e 76752 data-testid 消费） // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）。〔A1-R27〕+normalizeProviderFamilyDomain（xn 真身 ≡ Xx 8937 / src 9745 `Xx as L` / styles 514 `L as xn`；Tit @761 declare providerFamilyFromDomain 收敛改指，见下墓碑）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555；@767/@4056 declare resolveProviderFamilyAuthMode 收敛改指，见下墓碑）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { Root as RadixSelectRoot, Value as RadixSelectValue, Trigger as RadixSelectTrigger, Icon as RadixSelectIcon, Portal as RadixSelectPortal, Content as RadixSelectContent, Viewport as RadixSelectViewport, Item as RadixSelectItem, ItemText as RadixSelectItemText, ItemIndicator as RadixSelectItemIndicator, ScrollUpButton as RadixSelectScrollUpButton, ScrollDownButton as RadixSelectScrollDownButton } from '@radix-ui/react-select'; // A1-R17：vendored radix select（原 CDe=PEe/TDe=REe/wDe=IEe/EDe=BEe/DDe=HEe/ODe=UEe/kDe=QEe/ADe=sDe/MDe/jDe/NDe/PDe，styles 30850–31745 区）→ npm @radix-ui/react-select@2.3.7（A0-S3c 先例 SettingsRowPrimitives）
 import { AnimatedLabel, MODE_LABEL_I18N, MODE_DESCRIPTION_I18N, ModelSelector, ContextUsageProvider, ContextRingTrigger, ContextRingTooltipContent, ContextRingTooltipBody, SegmentedProgress, type ModelGroup } from '../composer/ModelSelector'; // A1-R17：原 _q（75520）/V4e（75972）/H4e（76003）——A0-S4-4b 已属主导出（[D] ConfigSelect 消费预案），本批 §T 接线。A1-R18：+ModelSelector（原 vq，js 75575 memo；§U iit 消费，props 面逐字兼容）+type ModelGroup（Hq declare 返回面）。A1-R19：+5 件（原 J4e/X4e/Z4e/Q4e/yq = ContextUsageProvider 76079/ContextRingTrigger 76125/ContextRingTooltipContent 76139/ContextRingTooltipBody 76147/SegmentedProgress 76034，A0-S2d 已属主导出；§V j3e 76741–76794 消费）
@@ -424,8 +424,12 @@ declare function formatToolbarShortcutLabel(key: string): string;
 
 /** 供应商 id 枚举（原 q，横切层） */
 
-/** 供应商族×模式→认证方式（原 zi，src chunk z 导出 ≡ SrcSharedB resolveProviderFamilyMode；declare 分层留批） */
-declare function resolveProviderFamilyAuthMode(family: string, modes: Record<string, string> | undefined): string;
+/* ── tombstone〔A1-R28〕：declare resolveProviderFamilyAuthMode（原 zi）删除 → 改指 resolveProviderFamilyMode
+ *    （zi 真身：styles 820 `z as zi` ← src 10062 `Gx as z` ≡ Gx ≡ SrcSharedB@5555 `return t?.[e] ?? \`oauth\``，链闭合）。
+ *    bundle zi 消费 9 处：本文件 @767（Tit isCodingPlanConnectionSelected）≡ 91398、@4056（tit
+ *    resolveCodingPlanFamilySelection 内）≡ 89444，本批改名改指；PD@749 ≡ 77699 / OLL@3521 ≡ 210066 /
+ *    OLL@3553 ≡ 210094 同批收敛（见各墓碑）；191804/191836/191855/192364 属 settings R0 域留批。
+ *    负证据：bundle 内 zi 无第二真身。 ── */
 
 /* ── tombstone（A1-R27）：declare resolveCodingPlanProviderFamily（A0 误标「原 li：coding plan 供应商族」）删除 →
  *    改指 parseCodingPlanScope（li 真身：styles 680 `gt as li` ← src `parseCodingPlanScope as gt` ≡ Gb 8533 ≡
@@ -760,7 +764,7 @@ export function isCodingPlanConnectionSelected(
   if (!support?.supported || !settings) return false;
   const family = normalizeProviderFamilyDomain(settings.providerFamilyDomain);
   if (!family || family !== support.providerFamily) return false;
-  if (resolveProviderFamilyAuthMode(family, settings.modelProviderFamilyModes) !== "oauth") return false;
+  if (resolveProviderFamilyMode(family, settings.modelProviderFamilyModes) !== "oauth") return false;
   return settings.modelProviderFamilySelectedKeys?.[family]?.trim() === support.selectedConnectionKey;
 }
 
@@ -3918,7 +3922,7 @@ function teamSourcesFromSubscribedProducts(e: SubscribedTeamProductLike[]) { // 
     }),
   );
 }
-function teamSourceOrganizationLabel(e: { organizationName?: string | null; [key: string]: unknown }): string | null { // Lq
+export function teamSourceOrganizationLabel(e: { organizationName?: string | null; [key: string]: unknown }): string | null { // Lq〔A1-R28〕补 export：Lq 77476 逐字 canonical 收敛面——PaymentDeep teamOrganizationLabelOf A0 副本删除改指（见该处墓碑）；校验器 jrt/Lq 段行依据同步
   return (e.organizationName?.trim() ?? ``) || null;
 }
 function teamSourceDisplayName({ product: e, organizationId: t, organizationName: n, projectId: r, projectName: i }: { product: SubscribedTeamProductLike; organizationId: string; organizationName?: string | null; projectId: string; projectName?: string | null }) { // Nrt
@@ -4049,7 +4053,7 @@ function resolveCodingPlanFamilySelection(e: {
     !t ||
     t.kind === `apiKey` ||
     t.kind === `zapi` ||
-    resolveProviderFamilyAuthMode(t.family, e.modelProviderFamilyModes ?? {}) !== `oauth`
+    resolveProviderFamilyMode(t.family, e.modelProviderFamilyModes ?? {}) !== `oauth`
   )
     return { kind: `none` };
   let n = e.modelProviderFamilySelectedKeys?.[t.family]?.trim() ?? ``;

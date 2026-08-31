@@ -183,6 +183,7 @@ export {
   trackCodingPlanProductSelect, // 〔A1-R26〕RM 53328 实体化：PaymentDeep trackPlanSelectEvent 合并面分流改接点（5679/5716）
   trackCodingPlanBillingCycleSelect, // 〔A1-R26〕zM 53349 实体化：PaymentDeep trackPlanSelectEvent 合并面分流改接点（5979/6012）
   resolveUpgradeTargetSource, // 〔A1-R26〕Mrt 89154 实体化（裁量件）：SidebarLeaves resolveUpgradeTargetSource declare 收敛改接点
+  teamSourceOrganizationLabel, // 〔A1-R28〕Lq 77476 逐字 canonical 收敛面：PaymentDeep teamOrganizationLabelOf A0 副本删除改接点（消费面 77608/88723，负证据见 components 侧墓碑）
 } from '../components/shell/Home';
 export type {
   GreetingHeroProps,

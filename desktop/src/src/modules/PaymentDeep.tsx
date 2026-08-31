@@ -40,7 +40,7 @@
  *     Nq…X3e 前半 A0-S2d 已去重（canonical Composer.tsx）
  *  D. 供应商/模型菜单机制（77452–78455）：
  *   e6e → PROVIDER_FAMILY_ORDER (77452 区) | t6e → providerFamilyRankOf
- *   Iq  → sortProvidersByFamilyAndOrder | Lq → teamOrganizationLabelOf
+ *   Iq  → sortProvidersByFamilyAndOrder | Lq → teamSourceOrganizationLabel（〔A1-R28〕收敛改指 Home §U.5 逐字 canonical）
  *   n6e → providerDisplayLabelsOf | r6e → alwaysFalse | i6e → agentModelFormatsOf
  *   a6e → isModelEntryWithModified | Rq → modelsForAgent | o6e → hasProviderCredentials
  *   s6e → providerSupportsFormat | zq → providerSupportsAnyFormat | Bq → providerUsableForAgent
@@ -87,7 +87,8 @@ export {
   PROVIDER_FAMILY_ORDER,
   providerFamilyRankOf,
   sortProvidersByFamilyAndOrder,
-  teamOrganizationLabelOf,
+  /* ── 〔A1-R28〕移出 1 符：teamOrganizationLabelOf（Lq A0 副本删除 → Home §U.5 teamSourceOrganizationLabel
+   *    逐字 canonical；本转导出面全树零消费，负证据在案，见 components 侧墓碑）。 ── */
   providerDisplayLabelsOf,
   alwaysFalse,
   agentModelFormatsOf,

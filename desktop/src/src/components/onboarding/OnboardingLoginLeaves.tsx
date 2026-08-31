@@ -265,7 +265,7 @@ import { Button } from '../../modules/button'; // Button（原 X，button-laUije
 import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
 import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup, sessionEntryWorkspaceKey as remoteWorkspaceKey, buildRemoteWorkspaceKey as workspaceIdentityOf, resolveEntryWorkspaceIdentity as entryIdentity, remoteTargetWithSecrets as withRemoteCredentials, applyRemoteConnectionResult as commitRemoteSessionsMutation, removeRemoteSessionEntries as removeSessionsByWorkspaceKeys, persistedWorkspaceSessions as persistableWorkspaceTabs, persistedRemoteSessions as normalizePersistedRemoteSessions, resolveLastActiveTabIndex, type PersistedWorkspaceTabRecord, type RemoteSessionTarget } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）+ A1-R6：R2/I2/L2/z2/B2/oEt 远程条目域改指 + A1-R7：V2/cEt/Bne 恢复条目域改指（Hn 改指更正迁 SrcSharedA；tombstone 见原 declare 位）
 import { sanitizeWorkspaceDescriptor as serializeRemoteTarget, sshTargetIdentityKey as sshHostKeyOfTarget } from '../../modules/SrcSharedA'; // A1-R7：Hn（R6 误录更正，canonical 见 lib/workspaceUtils）+ Pn=sshTargetIdentityKey 改指
-import { generateUuid as createRequestId } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）
+import { generateUuid as createRequestId, resolveProviderFamilyMode } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555）：resolveFamilyMode declare 收敛改指，见下墓碑
 import { bindWorkspacePath as bindRemoteWorkspacePath, bindWorkspaceIdentity as bindRemoteWorkspaceIdentity, unbindWorkspacePath as unbindRemoteWorkspacePath, unbindWorkspaceIdentity as unbindRemoteWorkspaceIdentity, getSessionById as getRemoteWorkspaceSession, type RegisteredSession } from '../../stores/sessionRegistryStore'; // A1-R7：$s/ec/Cse/wse/tc registry 包装族改指（环安全：该文件值导入仅 ./zustand，type-only 边无运行时环）
 
 /* ============================================================================
@@ -831,7 +831,11 @@ declare function providerById(id: string): ModelProviderRecord | undefined;
 declare function bigmodelTeamPlanKey(parts: { productId: string; organizationId: string; projectId: string }): string;
 declare function parseTeamPlanKey(key: string): { productId: string; organizationId?: string; projectId?: string } | null;
 declare function isSameTeamPlanKey(a: string, b: string): boolean;
-declare function resolveFamilyMode(domain: string, modes: Record<string, string> | undefined): "apiKey" | "oauth";
+/* ── tombstone〔A1-R28〕：declare resolveFamilyMode（原 zi）删除 → 改指 resolveProviderFamilyMode（zi 真身：
+ *    styles 820 `z as zi` ← src 10062 `Gx as z` ≡ Gx ≡ SrcSharedB@5555 `return t?.[e] ?? \`oauth\``，链闭合）。
+ *    消费面实测：@3521（s6t migrateDefaultFamilySelectedKeys）≡ bundle 210066、@3553（l6t
+ *    maybeUpgradeBigModelTeamPlan）≡ bundle 210094，改名改指。负证据：bundle 内 zi 无第二真身
+ *    （其余消费面分流见 Home 侧 zi 墓碑）。 ── */
 declare function familyModesPatch(domain: string, modes: Record<string, string> | undefined): Record<string, string>;
 declare function familyDomainOfProvider(provider: string | null): "zai" | "bigmodel" | null;
 declare function familyDomainOfProviderId(providerId: string): "zai" | "bigmodel" | null;
@@ -3513,7 +3517,8 @@ export async function migrateDefaultFamilySelectedKeys(options: { services: Serv
   if (unusable.length === 0) return [];
   const selectedKeys = { ...settings.modelProviderFamilySelectedKeys };
   for (const domain of unusable) {
-    const mode = resolveFamilyMode(domain, settings.modelProviderFamilyModes);
+    // 〔A1-R28〕型缝：zi canonical 返回 any（`t?.[e] ?? \`oauth\``）；旧 declare 面为 "apiKey" | "oauth"，bundle family-mode 值域仅二值（行依据：本行 + 下键表索引）。
+    const mode = resolveProviderFamilyMode(domain, settings.modelProviderFamilyModes) as "apiKey" | "oauth";
     selectedKeys[domain] = FAMILY_DEFAULT_SELECTED_KEYS[domain][mode];
   }
   return (
@@ -3545,7 +3550,7 @@ export async function maybeUpgradeBigModelTeamPlan(options: { allowUpgrade: bool
   if (!options.allowUpgrade) return !1;
   const settings = await options.services.settingService.get();
   if (
-    resolveFamilyMode(`bigmodel`, settings.modelProviderFamilyModes) !== `oauth` ||
+    resolveProviderFamilyMode(`bigmodel`, settings.modelProviderFamilyModes) !== `oauth` ||
     (settings.modelProviderFamilySelectedKeys?.bigmodel?.trim() ?? ``) !== FAMILY_DEFAULT_SELECTED_KEYS.bigmodel.oauth
   )
     return !1;

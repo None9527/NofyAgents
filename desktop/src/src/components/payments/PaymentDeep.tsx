@@ -42,7 +42,7 @@
  *     Nq…X3e 前半 A0-S2d 已去重（canonical Composer.tsx）
  *  D. 供应商/模型菜单机制（77452–78455）：
  *   e6e → PROVIDER_FAMILY_ORDER (77452 区) | t6e → providerFamilyRankOf
- *   Iq  → sortProvidersByFamilyAndOrder | Lq → teamOrganizationLabelOf
+ *   Iq  → sortProvidersByFamilyAndOrder | Lq → teamSourceOrganizationLabel（〔A1-R28〕收敛改指 Home §U.5 逐字 canonical）
  *   n6e → providerDisplayLabelsOf | r6e → alwaysFalse | i6e → agentModelFormatsOf
  *   a6e → isModelEntryWithModified | Rq → modelsForAgent | o6e → hasProviderCredentials
  *   s6e → providerSupportsFormat | zq → providerSupportsAnyFormat | Bq → providerUsableForAgent
@@ -98,11 +98,13 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
 // 〔A1-R26〕§U.8 漏斗遥测族收敛：trackFunnelStart（WUe）/trackPlanSelectEvent（RM/zM 合并面）declare 删除，
 // 改接 Home §U.8 逐字真身（bundle WUe 53313/RM 53328/zM 53349 唯一真身；RM/zM 分流依据见原 declare 位墓碑）。
 // 环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用）。
-import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect } from '../../modules/Home';
+import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect, teamSourceOrganizationLabel } from '../../modules/Home'; // 〔A1-R28〕+teamSourceOrganizationLabel（Lq 77476 逐字 canonical；teamOrganizationLabelOf A0 副本删除改指，见下墓碑）。环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用），本行不新增环边
+import { resolveProviderFamilyMode } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。环安全：SrcSharedB 值闭包不达 components/payments
+import { isStartPlanProviderId } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。环安全：SrcSharedA 值闭包不达 components/payments
 import type { TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）
 import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 52651 收敛型缝所依（A6e/j6e/M6e/N6e 快照流由 unknown 精化，行依据见各函数注）
 import { Input, PopoverContent, toast } from '../../modules/ImeComposition';
-import { logger } from '../../modules/SkillStore';
+import { logger, formatCustomModelId } from '../../modules/SkillStore'; // 〔A1-R28〕+formatCustomModelId（we 真身：styles 404 `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412，SkillStore@169 转导出；StoresDeep@147 joinModelName 别名先例）：composeModelValue declare 收敛改指，见下墓碑
 import { useSettingsStore as useAppStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
 import { formatGrantUnits, useBillingDiscount, BillingDiscountCard, RegionLogo, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, hasActiveEntitlement } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical，declare hasActiveEntitlementCore 收敛改指，见下墓碑）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）。A1-R21：+RegionLogo（原 Tq 76183 收敛，见下墓碑）。〔A1-R23〕SidebarCodingPlanWidget/SidebarStartPlanWidget（s3e/v3e）/hasPlanWidgetModel（i3e）/hasStartPlanBalance（g3e）/entryPlanStateOf（IM）移出——消费面 §1/§9 死簇同批删除；Oq/i3e/g3e 真身裁定见 components/usage/UsageDeep.tsx 墓碑（Home §U.3/§V 逐字 canonical）
 import { useServices } from '../../modules/services';
@@ -136,7 +138,10 @@ declare function isProviderFamilyModeAllowed(args: { providerId: string; familyM
 declare function isProviderOAuthGateActive(args: { providerId: string; activeOAuthProvider: string | null }): boolean; // qt
 declare function isExternalAgentName(name: string): boolean; // Ei
 declare function modelEntryOf(value: string): { providerId?: string; modelName?: string } | null; // se
-declare function composeModelValue(providerId: string, modelName: string): string; // we
+/* ── tombstone〔A1-R28〕：declare composeModelValue（原 we）删除 → 改指 formatCustomModelId（we 真身：styles 404
+ *    `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412 formatCustomModelId，modules/SkillStore@169 转导出）。
+ *    消费面实测：@581（l6e modelItemsOfProvider）/ @1265（Z6e retargetModelValue）/ @1302（$6e
+ *    reconcileConfigOptionsModel）改名改指。负证据：bundle 内 we 无第二真身。 ── */
 declare function modelKindsOfProvider(provider: ModelProvider): string[]; // Ai
 declare function formatsOfModelName(args: { provider: ModelProvider; modelName: string }): string[]; // Wr
 declare function normalizeFormat(format: string): string | null; // an
@@ -149,7 +154,10 @@ declare function isPresetProviderId(id: string): boolean; // jt
 declare function teamPlanKeyOf(args: { productId?: string | null; organizationId?: string | null; projectId?: string | null }): string; // vi
 declare function parseTeamPlanKey(key: string): { organizationId?: string; productId?: string; projectId?: string } | null; // li
 declare function teamPlanKeysPrefixEqual(left: string, right: string): boolean; // fi
-declare function familyConnectionModeOf(familyId: string, familyModes: unknown): string; // zi
+/* ── tombstone〔A1-R28〕：declare familyConnectionModeOf（原 zi）删除 → 改指 resolveProviderFamilyMode（zi 真身：
+ *    styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555 `return t?.[e] ?? \`oauth\``，链闭合）。
+ *    消费面实测：@749（_6e resolveFamilyDefaultOption 内）≡ bundle 77699，改名改指。
+ *    负证据：bundle 内 zi 无第二真身（其余消费面分流见 Home 侧 zi 墓碑）。 ── */
 declare function resolveModelCatalogEntry(value: string): unknown; // Ie
 declare function settingsConfigOptionsOf(settings: unknown): unknown[]; // Ng
 declare function workspaceTargetKeyOf(target: { workspacePath: string; workspaceIdentity?: string | null }): string; // Ti
@@ -174,7 +182,10 @@ declare const ModeIconFullAccess: React.FC<React.SVGProps<SVGSVGElement>>; // zv
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：ThoughtLevelIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const TruncateLabel: React.FC<{ label: string }>; // _q
 declare const KNOWN_MODEL_FORMATS: string[]; // Di
-declare function isProviderSystemEnabled(id: string): boolean; // Bn
+/* ── tombstone〔A1-R28〕：declare isProviderSystemEnabled（原 Bn）删除 → 改指 isStartPlanProviderId（Bn 真身：
+ *    styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026；与 HM 53403 面 body-identical）。
+ *    消费面实测：@523（Rq modelsForAgent isAllowed）≡ bundle 77514、@9579（drt filterStartPlanMenuItems）
+ *    ≡ bundle 88673，经文件头 SrcSharedA import 改名消费。负证据：bundle 内 Bn 无第二真身。 ── */
 /* ── tombstone（A1-R27）：declare hasActiveEntitlementCore（原 iM，52651–52655）删除，改经文件头 modules/UsageDeep
  *    import hasActiveEntitlement 消费（canonical = components/usage/UsageDeep.tsx hasActiveEntitlement，A1-R11 转录）。
  *    双实例收敛证据：bundle iM 唯一真身 52651（定义 1 处）；消费 4 处全实测——52663 aM 内（≡ UsageDeep
@@ -458,10 +469,12 @@ export function sortProvidersByFamilyAndOrder(providers: ModelProvider[], displa
     .map(({ provider }) => provider);
 }
 
-/** 原 Lq（77486 区）：团队组织标签 */
-export function teamOrganizationLabelOf(product: { organizationName?: string | null }): string | null {
-  return (product.organizationName?.trim() ?? ``) || null;
-}
+/* ── tombstone〔A1-R28〕：teamOrganizationLabelOf（原 Lq，A0 语义副本）删除 → 收敛改指 Home §U.5 逐字 canonical
+ *    teamSourceOrganizationLabel（components/shell/Home.tsx，bundle Lq 77476–77478 唯一真身；本副本 body 逐字
+ *    同形 `(e.organizationName?.trim() ?? \`\`) || null`）。双实例收敛证据：消费面实测——@645（p6e
+ *    teamPlanOptionsOf）≡ bundle 77608、@9631（frt mergeTeamPlanMenuItems）≡ bundle 88723（其 prt 面为
+ *    同体内联调用，见下 prt 墓碑），本批改名改指；modules/PaymentDeep 转导出面全树零消费（负证据在案，
+ *    随删）。负证据：bundle 内 Lq 无第二定义。改指经 modules/Home（二环判例，见文件头导入行注）。 ── */
 
 /** 原 n6e（77489 区）：供应商展示标签（Z.ai/BigModel + 徽章） */
 export function providerDisplayLabelsOf(provider: ModelProvider, options: { codingPlanBadgeLabel?: string } = {}) {
@@ -507,7 +520,7 @@ export function modelsForAgent(agent: string, provider: ModelProvider): string[]
   const formats = agentModelFormatsOf(agent),
     known = new Set(KNOWN_MODEL_FORMATS),
     isAllowed = (format: string) =>
-      isProviderSystemEnabled(provider.id) ? known.has(format) || provider.models.some((model) => isModelEntry(model) && (model as any).id.trim() === format && isModelEntryWithModified(model)) : !0,
+      isStartPlanProviderId(provider.id) ? known.has(format) || provider.models.some((model) => isModelEntry(model) && (model as any).id.trim() === format && isModelEntryWithModified(model)) : !0,
     retarget = (format: string) => {
       const entry = provider.models.find((model) => isModelEntry(model) && (model as any).id.trim() === format);
       if (!entry) return format;
@@ -565,7 +578,7 @@ export function isPresetDirectProvider(id: string): boolean {
 export function modelItemsOfProvider(context: { selectedProvider: string; provider: ModelProvider }) {
   return modelsForAgent(context.selectedProvider, context.provider).map((model, index) => ({
     key: `provider:${context.provider.id}:${index}:${model}`,
-    value: composeModelValue(context.provider.id, model),
+    value: formatCustomModelId(context.provider.id, model),
     name: model,
   }));
 }
@@ -629,7 +642,7 @@ export function teamPlanOptionsOf(context: {
           organizationId = project.organizationId?.trim() || void 0,
           dedupeKey = `${product.productId}:${organizationId ?? `current`}:${projectId ?? `current`}`;
         if (seen.has(dedupeKey)) return [];
-        const label = teamOrganizationLabelOf({
+        const label = teamSourceOrganizationLabel({
           ...product,
           organizationId,
           projectId,
@@ -733,7 +746,7 @@ export function resolveFamilyDefaultOption(context: {
   familyModes: unknown;
   familySelectedKeys?: Record<string, string> | null;
 }) {
-  if (familyConnectionModeOf(context.familyId, context.familyModes) === `apiKey`)
+  if (resolveProviderFamilyMode(context.familyId, context.familyModes) === `apiKey`)
     return context.options.find((option) => option.mode === `apiKey`) ?? context.options[0] ?? null;
   const saved = context.familySelectedKeys?.[context.familyId]?.trim();
   if (saved) {
@@ -1249,7 +1262,7 @@ export function retargetModelValue(value: string, modelName: string) {
   const trimmed = value.trim();
   if (trimmed.length === 0) return null;
   const catalog = modelEntryOf(trimmed);
-  return catalog?.providerId ? (catalog.modelName ? trimmed : composeModelValue(catalog.providerId, modelName)) : trimmed;
+  return catalog?.providerId ? (catalog.modelName ? trimmed : formatCustomModelId(catalog.providerId, modelName)) : trimmed;
 }
 
 /** 原 Q6e（78048 区）：agent 模型值匹配（opencode 代理宽匹配） */
@@ -1286,7 +1299,7 @@ export function reconcileConfigOptionsModel(configOptions: ConfigOptionEntry[] |
           !next && agent === `claude` && modelEntryOf(currentValue)?.providerId && isClaudeAliasModel(option as unknown as string) && (next = currentValue.trim()),
           !next && !crossProvider && currentCanonical && optionCanonical && modelValuesMatchForAgent(currentCanonical, optionCanonical, currentValue, agent)
             ? (next = retargetModelValue(currentValue, optionCanonical))
-            : currentCatalog?.providerId && !currentCatalog.modelName && optionCanonical && (next = composeModelValue(currentCatalog.providerId, optionCanonical)),
+            : currentCatalog?.providerId && !currentCatalog.modelName && optionCanonical && (next = formatCustomModelId(currentCatalog.providerId, optionCanonical)),
           next && next !== option.currentValue ? ((changed = !0), { ...option, currentValue: next }) : option
         );
       }
@@ -9563,7 +9576,7 @@ function injectTeamPlanMenuItems({
 function filterStartPlanMenuItems({ items, codingPlanEntitlements, subscribedTeamProducts }: any) {
   const teamScoped = hasTeamScopedEntitlement(codingPlanEntitlements) || subscribedTeamProducts.length > 0;
   return items.filter((item: any) => {
-    if (!isProviderSystemEnabled(item.presetId)) return true;
+    if (!isStartPlanProviderId(item.presetId)) return true;
     const family = familySpecOfProviderId(item.presetId);
     if (!family) return false;
     const codingPlanItem = items.find((entry: any) => entry.presetId === family.codingPlanProviderId);
@@ -9615,7 +9628,7 @@ function mergeTeamPlanMenuItems({
       const dedupeKey = `${product.productId}:${organizationId}:${projectId}`;
       if (seen.has(dedupeKey)) return [];
       seen.add(dedupeKey);
-      const organizationLabel = teamOrganizationLabelOf({
+      const organizationLabel = teamSourceOrganizationLabel({
         ...product,
         organizationName: project.organizationName ?? product.organizationName,
         projectName: project.projectName ?? product.projectName,
@@ -9657,10 +9670,8 @@ function mergeTeamPlanMenuItems({
   return anchorIndex < 0 ? [...items, ...injected] : [...items.slice(0, anchorIndex + 1), ...injected, ...items.slice(anchorIndex + 1)];
 }
 
-// prt → teamPlanOrganizationOf（本地 88767，委托 Lq）
-function teamPlanOrganizationOf(product: any) {
-  return teamOrganizationLabelOf(product);
-}
+// ── tombstone〔A1-R28〕：teamPlanOrganizationOf（原 prt，88764–88766 `return Lq(e)`）删除——树内零消费
+//    （负证据在案；唯一 bundle 消费 88723 ≡ 本文件 frt@9631 已为同体内联调用）。死码删除按 R25 nWe 判例。 ──
 
 // mrt → hasTeamScopedEntitlement（本地 88770）
 function hasTeamScopedEntitlement(entitlements: any) {

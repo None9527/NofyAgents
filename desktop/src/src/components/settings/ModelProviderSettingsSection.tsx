@@ -3,7 +3,7 @@
 import * as React from "react";
 import { RefreshCw as RefreshIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button } from '../../modules/button';
-import { providerFamilyOf, useCodingPlanEntitlements, useStartPlanPreview } from '../../modules/PaymentDeep';
+import { providerFamilyOf, sortProvidersByFamilyAndOrder, useCodingPlanEntitlements, useStartPlanPreview } from '../../modules/PaymentDeep'; // 〔A1-R28〕+sortProvidersByFamilyAndOrder（Iq 77456 canonical，原 declare sortProvidersByDisplayOrder 收敛改指，见下墓碑）
 import { subscribeSettingsSectionIntent } from '../../modules/Settings';
 import { consumeModelProviderIntent as readSettingsSectionIntent } from '../../modules/Settings'; // sw（js 39425；A1-R24 行漂校正，旧注 39377 为漂移）
 import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, nullSafe as toManagedProvider, upgradeFunnelContext, entryPlanStateOf, useAppSettings, useSubscriptionSnapshot, useZapiEnabled, type AddProviderDraft, type CodingPlanDisplayStatus, type CodingPlanViewState, type EntitlementQuotaLimit, type FunnelContext, type ModelMetadata, type ProviderEndpoints } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/PM（53253）/IM（53277）/JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2b/§2c）
@@ -112,10 +112,11 @@ interface ProviderFamilyDescriptor {
 }
 declare function isPresetProvider(provider: ModelProvider): boolean; // lX
 declare function isProviderUsable(provider: ModelProvider): boolean; // vM
-declare function sortProvidersByDisplayOrder(
-  providers: ModelProvider[],
-  displayOrder: { providerIds: string[]; updatedAt?: number } | null
-): ModelProvider[]; // Iq
+/* ── tombstone〔A1-R28〕：declare sortProvidersByDisplayOrder（原 Iq，77456–77475）删除 → 改指 PaymentDeep §D 既有
+ *    实化 sortProvidersByFamilyAndOrder（components/payments/PaymentDeep.tsx@451，modules/PaymentDeep@89 转导出）。
+ *    双实例收敛证据：bundle Iq 唯一真身 77456（定义 1 处）；消费 3 处全实测——77812 S6e 内（≡ PaymentDeep
+ *    modelMenuGroupsForAgent@891，A0 已消费 canonical）、191667（≡ 本文件 @833）、192558（≡ 本文件 @1976），
+ *    后二处本批改名改指。负证据：bundle 内 Iq 无第二定义；全树无其他展示序排序面。 ── */
 declare function isBuiltInProviderId(providerId: string): boolean; // irt
 declare function presetApiKeyUrl(presetId: string): string | null; // ort
 declare function presetRegistrationUrl(presetId: string): string | null; // ort 族
@@ -827,7 +828,9 @@ export function useModelProviderNavigationModel(opts: {
   } = opts;
 
   const customProviders = React.useMemo(
-    () => sortProvidersByDisplayOrder(modelProviders.filter((provider) => !isBuiltInProviderId(provider.id)), displayOrder),
+    // 〔A1-R28〕型缝：canonical 签名依 PaymentDeep ModelProvider（models: unknown[]）；本文件本地面 models: ModelMetadata[]。
+    // Iq 77456 为纯重排语义（同批对象返回），窄化回本地面安全（行依据：本行 + 本地 ModelProvider@84）。
+    () => sortProvidersByFamilyAndOrder(modelProviders.filter((provider) => !isBuiltInProviderId(provider.id)), displayOrder) as ModelProvider[],
     [displayOrder, modelProviders]
   );
 
@@ -1970,7 +1973,7 @@ export function ModelProviderSettingsSection({
   const handleReorderProviderIds = React.useCallback(
     (movedIds: string[]) => {
       const moved = new Set(movedIds);
-      const orderedIds = sortProvidersByDisplayOrder(modelProviders, displayOrder).map((provider) => provider.id);
+      const orderedIds = sortProvidersByFamilyAndOrder(modelProviders, displayOrder).map((provider) => provider.id);
       const firstMovedIndex = orderedIds.findIndex((id) => moved.has(id));
       if (firstMovedIndex < 0) return;
       const remaining = orderedIds.filter((id) => !moved.has(id));
