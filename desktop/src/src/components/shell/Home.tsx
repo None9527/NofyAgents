@@ -368,15 +368,15 @@ declare function useOrganizationEntitlementQuery(opts: {
 }): { snapshot: EntitlementSnapshotLike | null; loading: boolean; error: string | null; refresh: (e?: unknown) => Promise<void> };
 
 /* ── tombstone〔A1-R29〕：declare filterEntitledModelProviders（原 N6e）删除 → 改指 filterUsableProviders
- *    （N6e 真身：bundle 77910–77929 唯一真身 ≡ PaymentDeep@1080 A0 逐字实化，modules/PaymentDeep@128 转导出）。
+ *    （N6e 真身：bundle 77910–77929 唯一真身 ≡ PaymentDeep@1097 A0 逐字实化，modules/PaymentDeep@128 转导出）。
  *    消费面实测：@4809（iit _e 内）≡ bundle 89703，改名改指（型缝见该处注）；另一消费 135402 ≡
  *    Automations buildEntitledProviderList 面同批收敛。负证据：bundle 内 N6e 无第二真身。 ── */
 
 /* ── tombstone〔A1-R29〕：declare buildModelSelectGroups（原 Hq）删除 → 改指 modelMenuGroupsOf
- *    （Hq 真身：bundle 77850 唯一真身 ≡ PaymentDeep@976 A0 逐字实化，modules/PaymentDeep@118 转导出）。
+ *    （Hq 真身：bundle 77850 唯一真身 ≡ PaymentDeep@993 A0 逐字实化，modules/PaymentDeep@118 转导出）。
  *    消费面实测：@4818（iit _e 内）≡ bundle 89710，改名改指（参数重排 + configModels 位删除——
  *    bundle Hq 体内从不读第二参 t，负证据在案；型缝见该处注）。其余三脸（Automations@151/
- *    ExtendedViews@425/SubagentsSettingsSection@248）同批收敛；PD@339 文件内第二脸零消费删碑。
+ *    ExtendedViews@427/SubagentsSettingsSection@248）同批收敛；PD@356 文件内第二脸零消费删碑。
  *    负证据：bundle 内 Hq 无第二真身。 ── */
 
 /** 模型触发器标签解析（原 nWe，js 53806；iN/dr 模型组域——declare 分层，R18 留批） */
@@ -415,8 +415,8 @@ declare function formatToolbarShortcutLabel(key: string): string;
 /* ── tombstone〔A1-R28〕：declare resolveProviderFamilyAuthMode（原 zi）删除 → 改指 resolveProviderFamilyMode
  *    （zi 真身：styles 820 `z as zi` ← src 10062 `Gx as z` ≡ Gx ≡ SrcSharedB@5555 `return t?.[e] ?? \`oauth\``，链闭合）。
  *    bundle zi 消费 9 处：本文件 @767（Tit isCodingPlanConnectionSelected）≡ 91398、@4056（tit
- *    resolveCodingPlanFamilySelection 内）≡ 89444，本批改名改指；PD@749 ≡ 77699 / OLL@3521 ≡ 210066 /
- *    OLL@3553 ≡ 210094 同批收敛（见各墓碑）；191804/191836/191855/192364 属 settings R0 域留批。
+ *    resolveCodingPlanFamilySelection 内）≡ 89444，本批改名改指；PD@787 ≡ 77699 / OLL@3509 ≡ 210066 /
+ *    OLL@3541 ≡ 210094 同批收敛（见各墓碑）；191804/191836/191855/192364 属 settings R0 域留批。
  *    负证据：bundle 内 zi 无第二真身。 ── */
 
 /* ── tombstone（A1-R27）：declare resolveCodingPlanProviderFamily（A0 误标「原 li：coding plan 供应商族」）删除 →

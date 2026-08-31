@@ -149,13 +149,13 @@ interface ModelSelectGroup {
 }
 
 /* ── tombstone〔A1-R29〕：declare buildModelSelectGroups（原 Hq）删除 → 改指 modelMenuGroupsOf（Hq 真身：
- *    bundle 77850 唯一真身 ≡ PaymentDeep@976 A0 逐字实化，modules/PaymentDeep@118 转导出）。双实例收敛证据：
+ *    bundle 77850 唯一真身 ≡ PaymentDeep@993 A0 逐字实化，modules/PaymentDeep@118 转导出）。双实例收敛证据：
  *    消费面实测：@1043（AMt buildAutomationModelSelectGroups 体内）≡ bundle 135408（AMt 135384 体内
  *    `Hq(e.selectedProvider, [], t, e.labels, e.displayOrder, ...)`），改名改指（configModels 位 = bundle
  *    第二参，Hq 体内从不读，负证据在案，删位）。负证据：bundle 内 Hq 无第二真身。 ── */
 
 /* ── tombstone〔A1-R29〕：declare buildEntitledProviderList（原 N6e）删除 → 改指 filterUsableProviders
- *    （N6e 真身：bundle 77910–77929 唯一真身 ≡ PaymentDeep@1080 A0 逐字实化，modules/PaymentDeep@128 转导出）。消费面实测：@1036（AMt 体内）
+ *    （N6e 真身：bundle 77910–77929 唯一真身 ≡ PaymentDeep@1097 A0 逐字实化，modules/PaymentDeep@128 转导出）。消费面实测：@1036（AMt 体内）
  *    ≡ bundle 135402，改名改指（型缝见 AMt 体内注）。负证据：bundle 内 N6e 无第二真身。 ── */
 
 /** 原 Mg（js 24358）/ Zn（src chunk P 导出）：`provider/model[$variant]` 解析 */

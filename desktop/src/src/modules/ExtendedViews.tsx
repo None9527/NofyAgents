@@ -165,7 +165,7 @@ import { FilePathInline, pathBasename, resolveFileDisplayInfo } from './ModalsLe
 import { Badge, modelMenuGroupsOf, providerUsableForAgent, type ModelProvider as PaymentModelProvider } from './PaymentDeep'; // 〔A1-R29〕+modelMenuGroupsOf（Hq 77850 canonical）/providerUsableForAgent（Bq 77541 canonical）/type ModelProvider（型缝所依）：hjt 域 declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 modules/ExtendedViews
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
 import { AutomationEditor, OffPeakTaskEditor, type ScheduleRule } from './SettingsLeaves'; // A0-CLEANUP3 3b：Automation 三型 scheduleRule 统一
-import { createWhiteboardStroke, logger, useTaskStore, useWhiteboardStore, type TaskStore, type WhiteboardBoard, type WhiteboardStroke, type WorkspaceTaskState } from './SkillStore';
+import { createWhiteboardStroke, filterNativeModelOptions, logger, useTaskStore, useWhiteboardStore, type TaskStore, type WhiteboardBoard, type WhiteboardStroke, type WorkspaceTaskState } from './SkillStore'; // 〔A1-R30〕+filterNativeModelOptions（L ≡ skillStore 导出 A ≡ taskStore@1422 canonical）：buildConfigOptionModels declare 收敛改指，见下墓碑。环安全：本行不新增环边（EV→SkillStore 既有）
 // 〔A1-R25〕w6e 77856 实体化：resolveModelGroupLabel declare 收敛——改接 Home §U.9 逐字真身（经 modules/Home 转导出）
 import { resolveModelGroupLabel } from './Home';
 import { providerIds } from './SrcSharedA';
@@ -411,24 +411,26 @@ interface ModelSelectGroup {
 /** 原 hjt 依赖的 F12 分组构造器（Mr/Bq/L/Hq/N6e/Hq 族，js 76xxx–77xxx）——接口保留 */
 /* ── tombstone〔A1-R29〕：declare isProviderVisible（原 Mr 面）删除 → 改指 isProviderAllowedForFamilyMode
  *    （Mr 真身：styles 579 `U as Mr` ← src 9814 `Kx as U` ≡ Kx 8919 ≡ SrcSharedB@5560，链闭合）。
- *    消费面实测：@1370（hjt buildWikiModelSelectGroups@1362 体内）≡ bundle 133906，改名改指。
- *    负证据：bundle 内 Mr 消费仅 77817/133906 两处（前者 ≡ PD@930 同批收敛）。 ── */
+ *    消费面实测：@1372（hjt buildWikiModelSelectGroups@1364 体内）≡ bundle 133906，改名改指。
+ *    负证据：bundle 内 Mr 消费仅 77817/133906 两处（前者 ≡ PD@947 同批收敛）。 ── */
 /* ── tombstone〔A1-R29〕：declare isProviderSelected（原 Bq 面）删除 → 改指 providerUsableForAgent
- *    （Bq 真身：bundle 77541 唯一真身 ≡ PaymentDeep@579 A0 逐字实化）。消费面实测：@1370（hjt 体内）
+ *    （Bq 真身：bundle 77541 唯一真身 ≡ PaymentDeep@596 A0 逐字实化）。消费面实测：@1372（hjt 体内）
  *    ≡ bundle 133906，改名改指（型缝见该处注）。负证据：bundle 内 Bq 消费 4 处全闭
- *    （77818/77927 ≡ PD@931/@1102 既消费 canonical）。 ── */
-declare function buildConfigOptionModels(
-  options: Array<{ value: string; name?: string }>,
-  currentValue: unknown,
-  providers: ModelProviderInfo[],
-): Array<{ value: string; name?: string }>; // L 面留批（真身 = SkillStore filterNativeModelOptions，Home iit 既接；本面消费 @1372 随下批收敛）
+ *    （77818/77927 ≡ PD@948/@1119 既消费 canonical）。 ── */
+/* ── tombstone〔A1-R30〕：declare buildConfigOptionModels（原 L 面）删除 → 改指 filterNativeModelOptions
+ *    （L 真身：styles 372 `A as L` ← skillStore-BmeKHDBI.js 导出 A ≡ it 884 ≡ taskStore@1422
+ *    filterNativeModelOptions，modules/SkillStore@163/@218 转导出，链闭合；Home@154 既接 canonical（R18））。
+ *    消费面实测：@1374（hjt buildWikiModelSelectGroups@1364 体内）≡ bundle 133908
+ *    （`n = e.modelOption ? L(e.modelOption.options ?? [], e.modelOption.currentValue, t) : []`，t = 过滤面），
+ *    改名改指。负证据：styles 内进口 L 消费仅 89709/133908 两处（前者 ≡ Home iit R18 既收敛；
+ *    其余 L( 命中皆为局部作用域遮蔽单参面）。 ── */
 /* ── tombstone〔A1-R29〕：declare buildModelSelectGroups（原 Hq）删除 → 改指 modelMenuGroupsOf（Hq 真身：
- *    bundle 77850 唯一真身 ≡ PaymentDeep@976 A0 逐字实化，modules/PaymentDeep@118 转导出）。消费面实测：@1374（hjt 体内）≡ bundle 133909
+ *    bundle 77850 唯一真身 ≡ PaymentDeep@993 A0 逐字实化，modules/PaymentDeep@118 转导出）。消费面实测：@1376（hjt 体内）≡ bundle 133909
  *    （`Hq(e.selectedProvider, n, e.modelProviders, {}, null, e.familyModes)`），改名改指；providers 位改传
  *    未过滤 e.modelProviders 与 bundle 逐字对齐（过滤面仅供 configModels，bundle 本如此）。 ── */
 /* ── tombstone〔A1-R29〕：declare buildEntitledProviderList（原 N6e 面）删除——树内零消费（负证据在案；
  *    唯一 bundle 消费 135402 ≡ Automations@1036 面，该面自有 declare 同批收敛）；N6e 真身 = PaymentDeep
- *    filterUsableProviders@1080。死 declare 删除按 R25 nWe 判例。 ── */
+ *    filterUsableProviders@1097。死 declare 删除按 R25 nWe 判例。 ── */
 
 /* ── tombstone（A1-R25）：declare resolveModelGroupLabel（原 w6e：模型组内查显示名）删除 →
  *    import from './Home'（bundle w6e 77856–77863 唯一真身；终端消费实测：本文件 2267 调用点
@@ -1369,7 +1371,7 @@ function buildWikiModelSelectGroups(params: {
   const providers = params.modelProviders.filter(
     (t) => isProviderAllowedForFamilyMode({ providerId: t.id, familyModes: params.familyModes }) && providerUsableForAgent(params.selectedProvider, t as PaymentModelProvider),
   );
-  const configModels = params.modelOption ? buildConfigOptionModels(params.modelOption.options ?? [], params.modelOption.currentValue, providers) : [];
+  const configModels = params.modelOption ? filterNativeModelOptions(params.modelOption.options ?? [], params.modelOption.currentValue, providers) : []; // 〔A1-R30〕L 收敛改名（碑见 declare 位；行依据：本行）
   // 〔A1-R29〕Hq 收敛：providers 位改传未过滤 params.modelProviders，与 bundle 133909 逐字对齐（过滤面仅供 configModels）；configModels 位 Hq 体内不读，删位（负证据在案）。
   return modelMenuGroupsOf(params.selectedProvider, params.modelProviders as PaymentModelProvider[], {}, null, params.familyModes, undefined);
 }

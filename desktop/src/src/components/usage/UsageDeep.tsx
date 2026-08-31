@@ -381,7 +381,7 @@ import { CommandEmpty, CommandList } from '../../modules/QuickPick';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../modules/Settings';
 import { logger } from '../../modules/SkillStore';
 import { isStartPlanProviderId, isZaiPlanProviderId } from '../../modules/SrcSharedA'; // +isZaiPlanProviderId（A1-R11：GUe 53391 消费，原 vl/tr）
-import { APP_RUNTIME_PREFERENCES_STORAGE_KEY } from '../../modules/SrcSharedB'; // A1-R11：JM 53535 消费 fS 广播道（styles `T as Tr` ← src 导出表 `APP_RUNTIME_PREFERENCES_STORAGE_KEY as T`）；原 rN 53791 之 dr 依赖随 §2d 删碑收敛至 SubagentLeaves（其自持 canonicalProviderIdOf declare = Jx）
+import { APP_RUNTIME_PREFERENCES_STORAGE_KEY, getOAuthProviderFamilyByProviderId } from '../../modules/SrcSharedB'; // A1-R11：JM 53535 消费 fS 广播道（styles `T as Tr` ← src 导出表 `APP_RUNTIME_PREFERENCES_STORAGE_KEY as T`）；原 rN 53791 之 dr 依赖随 §2d 删碑收敛至 SubagentLeaves（其自持 canonicalProviderIdOf declare = Jx）。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：familyOfPresetId declare 收敛改指，见下墓碑。环安全：本行不新增环边（本文件→SrcSharedB 既有）
 import { useBaseServices, useServices, useServicesOptional as useOptionalServices } from '../../modules/services'; // A0-CLEANUP3 #44：ps useOptionalServices 属主为 services.useServicesOptional
 import { useSettingsStoreValue } from '../../modules/stores-core'; // A0-CLEANUP3 #44：Ao useSettingsStoreValue 属主为 stores-core（具名导出）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
@@ -463,7 +463,13 @@ interface ModelProviderFamily {
   codingPlanProviderId?: string;
   [key: string]: unknown;
 }
-declare function familyOfPresetId(presetId: string): ModelProviderFamily | null; // ot（src 块 B）
+/* ── tombstone〔A1-R30〕：declare familyOfPresetId（原 ot 面）删除 → 改指 getOAuthProviderFamilyByProviderId
+ *    （ot 真身：styles 445 `B as ot` ← src 9672 `Yx as B` ≡ Yx 8933 ≡ SrcSharedB@5576，链闭合（R29 立链））。
+ *    消费面实测（本文件 5 处改名改指）：@2382（CYt autoEnableApiKeyProviderDraft 体内）≡ bundle 187624、
+ *    @5438（yZt ProviderCardHeader 体内）≡ 190496、@5473（bZt ConnectionModeNav 体内）≡ 190538、
+ *    @5545（xZt connectionModeOptionsOf 体内）≡ 190614、@5987（YZt navItemDisplayLabel 体内）≡ 191342。
+ *    型缝：canonical 返回 any，各消费点依原 declare 契据（ModelProviderFamily@457 | null）窄化（见各点注）。
+ *    负证据：本文件无第二 ot 面；styles 进口 ot 消费全集 23 处经 R29/R30 全部分流在案。 ── */
 declare function apiFormatOfProvider(provider: ModelProvider): string; // hr（Ro）
 declare function baseUrlOfProvider(provider: ModelProvider): string; // Vi（zo）
 declare function isFullModelEntry(model: unknown): model is ModelMetadata; // nt（Ao）
@@ -1349,8 +1355,8 @@ export function providerCacheKey(provider: ModelProvider | undefined): string {
 }
 
 /** 原 iM（js 52651–52655）：权益是否活跃（供应商匹配 + 非 no_plan + 有 quota/subscription/remaining）
- *  〔A1-R27〕导出 + providerId 可选：iM 双实例裁决收敛点（PaymentDeep@178 hasActiveEntitlementCore /
- *  OnboardingLoginLeaves@824 hasPlanEntitlement declares 删除改指）。单参形依据 A6e 77897 `return iM(e)`；
+ *  〔A1-R27〕导出 + providerId 可选：iM 双实例裁决收敛点（PaymentDeep@214 hasActiveEntitlementCore /
+ *  OnboardingLoginLeaves@831 hasPlanEntitlement declares 删除改指）。单参形依据 A6e 77897 `return iM(e)`；
  *  双参形依据 aM 52663、i6t 210023/210032。 */
 export function hasActiveEntitlement(snapshot: EntitlementSnapshot | null, providerId?: string): boolean {
   if (!snapshot || (providerId && snapshot.provider?.id && snapshot.provider.id !== providerId)) return false;
@@ -2373,7 +2379,7 @@ function autoEnableApiKeyProviderDraft(opts: {
 }): ModelProvider | null {
   const { provider, mode, now } = opts;
   if (!provider || mode !== `apiKey` || provider.apiKey.trim().length === 0) return null;
-  const family = familyOfPresetId(provider.id);
+  const family = getOAuthProviderFamilyByProviderId(provider.id) as ModelProviderFamily | null; // 〔A1-R30〕型缝：canonical 返回 any，消费面依原 declare 契据窄化（行依据：本行 + ModelProviderFamily@457）
   if (
     !family ||
     provider.id !== family.apiKeyProviderId ||
@@ -5429,7 +5435,7 @@ export function ProviderCardHeader(props: { selectedNavItem: ModelProviderNavIte
   const presetId =
     selectedNavItem.type === `preset` || selectedNavItem.type === `codingPlan` || selectedNavItem.type === `teamPlan` ? selectedNavItem.presetId : null;
   if (!presetId) return null;
-  const family = familyOfPresetId(presetId);
+  const family = getOAuthProviderFamilyByProviderId(presetId) as ModelProviderFamily | null; // 〔A1-R30〕型缝：同上（原 declare 契据窄化）
   if (!family) return null;
   const statusActive = `statusActive` in selectedNavItem && selectedNavItem.statusActive === true;
   return (
@@ -5464,7 +5470,7 @@ export function ConnectionModeNav(props: {
   const presetId =
     selectedNavItem.type === `preset` || selectedNavItem.type === `codingPlan` || selectedNavItem.type === `teamPlan` ? selectedNavItem.presetId : null;
   if (!presetId) return null;
-  const family = familyOfPresetId(presetId);
+  const family = getOAuthProviderFamilyByProviderId(presetId) as ModelProviderFamily | null; // 〔A1-R30〕型缝：同上（原 declare 契据窄化）
   if (!family) return null;
   const options = connectionModeOptionsOf({
     familyId: family.id,
@@ -5536,7 +5542,7 @@ function connectionModeOptionsOf(opts: {
   for (const item of opts.navigationItems) {
     if (item.type !== `preset` && item.type !== `codingPlan` && item.type !== `teamPlan`) continue;
     if (!item.presetId) continue;
-    const family = familyOfPresetId(item.presetId);
+    const family = getOAuthProviderFamilyByProviderId(item.presetId) as ModelProviderFamily | null; // 〔A1-R30〕型缝：同上（原 declare 契据窄化）
     if (!family || family.id !== opts.familyId) continue;
     if (item.type === `preset`) {
       if (item.presetId !== family.apiKeyProviderId) continue;
@@ -5978,7 +5984,7 @@ function addCustomLoadingOf(opts: { item: ModelProviderNavItem; customLoading: b
 
 /** 原 YZt（js 191045）：导航项显示标签（preset → 族 label 覆盖） */
 function navItemDisplayLabel(item: ModelProviderNavItem): string {
-  if (item.type === `preset`) return familyOfPresetId(item.presetId ?? ``)?.label ?? item.label;
+  if (item.type === `preset`) return (getOAuthProviderFamilyByProviderId(item.presetId ?? ``) as ModelProviderFamily | null)?.label ?? item.label; // 〔A1-R30〕型缝：同上（原 declare 契据窄化）
   return item.label;
 }
 

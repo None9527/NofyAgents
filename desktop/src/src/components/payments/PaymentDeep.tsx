@@ -100,7 +100,7 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
 // 环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用）。
 import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect, teamSourceOrganizationLabel } from '../../modules/Home'; // 〔A1-R28〕+teamSourceOrganizationLabel（Lq 77476 逐字 canonical；teamOrganizationLabelOf A0 副本删除改指，见下墓碑）。环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用），本行不新增环边
 import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。环安全：SrcSharedB 值闭包不达 components/payments
-import { isStartPlanProviderId } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。环安全：SrcSharedA 值闭包不达 components/payments
+import { isStartPlanProviderId, isZaiPlanProviderId, GLM_MODEL_IDS } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。〔A1-R30〕+isZaiPlanProviderId（tr ≡ vl 4753 ≡ SrcSharedA@2022）：isOAuthFamilyProvider/isZaiCodingPlanProvider 双 tr 脸收敛改指，见各墓碑。环安全：SrcSharedA 值闭包不达 components/payments
 import type { TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）
 import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 52651 收敛型缝所依（A6e/j6e/M6e/N6e 快照流由 unknown 精化，行依据见各函数注）
 import { Input, PopoverContent, toast } from '../../modules/ImeComposition';
@@ -134,26 +134,34 @@ declare const usePlatformService: () => TelemetryPlatform & { openExternal(url: 
 declare const PROVIDER_IDS: Record<string, string>; // q（zai/bigmodel/… 族 id 表）
 /* ── tombstone〔A1-R29〕：declare familySpecOfProviderId（原 ot）删除 → 改指 getOAuthProviderFamilyByProviderId
  *    （ot 真身：styles 445 `B as ot` ← src 9672 `Yx as B` ≡ Yx 8933 ≡ SrcSharedB@5576，链闭合）。
- *    消费面实测（本文件 5 处改名改指）：@798（v6e familyGroupOf@788）≡ bundle 77716、@926/@935/@942（S6e
- *    modelMenuGroupsForAgent@912 体内）≡ bundle 77813/77822/77829、@9614（drt filterStartPlanMenuItems@9610）≡ bundle 88674。
- *    其余 bundle ot 消费：MPSS familyDescriptorOf 面 7 处既接 canonical（modules/SrcSharedB 真实 import）、
- *    CYt declare 体 187624 随 declare 留批；128519 `await ot()` 为作用域遮蔽局部符（负证据：无参异步，非本 ot）。
- *    FamilySpec 型别保留（familyOptionBadgeOf@861 仍消费）。型缝：canonical 返回 any，五消费点各依原 declare
- *    契据（FamilySpec | null）窄化（行依据见各点注；@942 点随 flatMap@941 由 AgentModelMenuGroup@903 定锚，见该型缝注）。
+ *    消费面实测（本文件 5 处改名改指）：@815（v6e familyGroupOf@805）≡ bundle 77716、@943/@952/@959（S6e
+ *    modelMenuGroupsForAgent@929 体内）≡ bundle 77813/77822/77829、@9631（drt filterStartPlanMenuItems@9627）≡ bundle 88674。
+ *    其余 bundle ot 消费：MPSS familyDescriptorOf 面 8 处既接 canonical（190758/191803/191831/191841/191861/
+ *    191864/192072/192470，SrcSharedB 真实 import）；CYt 簇 5 消费（187624/190496/190538/190614/191342 ≡ UsageDeep familyOfPresetId 面）R30 已收敛；128519 `await ot()` 遮蔽局部符（无参异步，非本 ot）。
+ *    FamilySpec 型别保留（familyOptionBadgeOf@878 仍消费）。型缝：canonical 返回 any，五消费点各依原 declare
+ *    契据（FamilySpec | null）窄化（行依据见各点注；@959 点随 flatMap@958 由 AgentModelMenuGroup@920 定锚，见该型缝注）。
  *    负证据：bundle 内 ot 无第二真身。 ── */
-declare function isOAuthFamilyProvider(id: string): boolean; // tr
+/* ── tombstone〔A1-R30〕：declare isOAuthFamilyProvider（原 tr 脸 A）删除 → 改指 isZaiPlanProviderId
+ *    （tr 真身：styles 548 `Po as tr` ← src 9780 `vl as Po` ≡ vl 4753 ≡ SrcSharedA@2022 isZaiPlanProviderId，
+ *    体逐字同形（`e === zaiCodingPlan || e === zaiStartPlan`），链闭合）。
+ *    取证（R28 §6.3 疑 bl 形误标，本批逐点 bundle 取证全 = tr，零 bl 形，疑销）：
+ *    消费面实测（本文件 10 处改名改指）：@522（n6e providerDisplayLabelsOf）≡ 77483、@581（o6e hasProviderCredentials）≡ 77532、
+ *    @1080（j6e isProviderEntitlementVisible）≡ 77900、@1941（s5e useCodingPlanProducts，`=== bigmodelCodingPlan || tr` 内联析取形）≡ 80371、
+ *    @3751（h9e providerFamilyOf）≡ 83001、@3947（M9e captchaAppIdOf）≡ 83178、@4087（H9e useCodingPlanPurchase）≡ 83303、
+ *    @4515（Z9e needsStatusPollAfterStripe）≡ 83708、@5483/@5919（zet CodingPlanPurchasePanel）≡ 84552/84979。
+ *    负证据：styles tr 消费全集 17 处全分流（本文件 B 脸 5 处 + GUe 53393 R11 既收敛 + bw 40446 留批归属）。 ── */
 /* ── tombstone〔A1-R29〕：declare isProviderFamilyModeAllowed（原 Mr）删除 → 改指 isProviderAllowedForFamilyMode
  *    （Mr 真身：styles 579 `U as Mr` ← src 9814 `Kx as U` ≡ Kx 8919 ≡ SrcSharedB@5560，链闭合；体逐字同形）。
- *    消费面实测：@930（S6e 体内）≡ bundle 77817，改名改指；另一消费 133906（hjt 体内）≡ ExtendedViews@1370
+ *    消费面实测：@947（S6e 体内）≡ bundle 77817，改名改指；另一消费 133906（hjt 体内）≡ ExtendedViews@1372
  *    isProviderVisible declare 面，同批收敛（见该处墓碑）。负证据：bundle 内 Mr 无第二真身。 ── */
 /* ── tombstone〔A1-R29〕：declare isProviderOAuthGateActive（原 qt）删除 → 改指 activeOAuthProviderMatchesFamily
  *    （qt 真身：styles 487 `H as qt` ← src 9717 `eS as H` ≡ eS 8951 ≡ SrcSharedB@5607，链闭合；体逐字同形）。
- *    消费面实测：@929（S6e 体内）≡ bundle 77816（唯一消费），改名改指。负证据：bundle 内 qt 无第二真身。 ── */
+ *    消费面实测：@946（S6e 体内）≡ bundle 77816（唯一消费），改名改指。负证据：bundle 内 qt 无第二真身。 ── */
 declare function isExternalAgentName(name: string): boolean; // Ei
 declare function modelEntryOf(value: string): { providerId?: string; modelName?: string } | null; // se
 /* ── tombstone〔A1-R28〕：declare composeModelValue（原 we）删除 → 改指 formatCustomModelId（we 真身：styles 404
  *    `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412 formatCustomModelId，modules/SkillStore@169 转导出）。
- *    消费面实测：@581（l6e modelItemsOfProvider）/ @1265（Z6e retargetModelValue）/ @1302（$6e
+ *    消费面实测：@619（l6e modelItemsOfProvider）/ @1316（Z6e retargetModelValue）/ @1353（$6e
  *    reconcileConfigOptionsModel）改名改指。负证据：bundle 内 we 无第二真身。 ── */
 declare function modelKindsOfProvider(provider: ModelProvider): string[]; // Ai
 declare function formatsOfModelName(args: { provider: ModelProvider; modelName: string }): string[]; // Wr
@@ -169,7 +177,7 @@ declare function parseTeamPlanKey(key: string): { organizationId?: string; produ
 declare function teamPlanKeysPrefixEqual(left: string, right: string): boolean; // fi
 /* ── tombstone〔A1-R28〕：declare familyConnectionModeOf（原 zi）删除 → 改指 resolveProviderFamilyMode（zi 真身：
  *    styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555 `return t?.[e] ?? \`oauth\``，链闭合）。
- *    消费面实测：@749（_6e resolveFamilyDefaultOption 内）≡ bundle 77699，改名改指。
+ *    消费面实测：@787（_6e resolveFamilyDefaultOption 内）≡ bundle 77699，改名改指。
  *    负证据：bundle 内 zi 无第二真身（其余消费面分流见 Home 侧 zi 墓碑）。 ── */
 declare function resolveModelCatalogEntry(value: string): unknown; // Ie
 declare function settingsConfigOptionsOf(settings: unknown): unknown[]; // Ng
@@ -194,16 +202,20 @@ declare function testidOf(prefix: string, value: string): string; // qr
 declare const ModeIconFullAccess: React.FC<React.SVGProps<SVGSVGElement>>; // zv
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：ThoughtLevelIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const TruncateLabel: React.FC<{ label: string }>; // _q
-declare const KNOWN_MODEL_FORMATS: string[]; // Di
+/* ── tombstone〔A1-R30〕：declare const KNOWN_MODEL_FORMATS（原 Di）删除 → 改指 GLM_MODEL_IDS
+ *    （Di 真身：styles 794 `vo as Di` ← src 10034 `xl as vo` ≡ xl 4762 [`GLM-5.2`, `GLM-5-Turbo`] ≡
+ *    SrcSharedA@2034 GLM_MODEL_IDS（A0 既实化，jsx 4854 vo 同表），链闭合）。
+ *    消费面实测（本文件 2 处改名改指）：@559（Rq 体内 `new Set(Di)` 面）≡ bundle 77512、
+ *    @9186（Knt 体内 `[...Di]` 面）≡ 88268。负证据：styles Di 消费全集 2 处（460 `Di as xt` 为转出面，非消费）。 ── */
 /* ── tombstone〔A1-R28〕：declare isProviderSystemEnabled（原 Bn）删除 → 改指 isStartPlanProviderId（Bn 真身：
  *    styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026；与 HM 53403 面 body-identical）。
- *    消费面实测：@523（Rq modelsForAgent isAllowed）≡ bundle 77514、@9579（drt filterStartPlanMenuItems）
+ *    消费面实测：@561（Rq modelsForAgent isAllowed）≡ bundle 77514、@9630（drt filterStartPlanMenuItems）
  *    ≡ bundle 88673，经文件头 SrcSharedA import 改名消费。负证据：bundle 内 Bn 无第二真身。 ── */
 /* ── tombstone（A1-R27）：declare hasActiveEntitlementCore（原 iM，52651–52655）删除，改经文件头 modules/UsageDeep
  *    import hasActiveEntitlement 消费（canonical = components/usage/UsageDeep.tsx hasActiveEntitlement，A1-R11 转录）。
  *    双实例收敛证据：bundle iM 唯一真身 52651（定义 1 处）；消费 4 处全实测——52663 aM 内（≡ UsageDeep
- *    shouldProbeStartPlanEntitlement，R11 已收敛）、77897 A6e `return iM(e)`（≡ 本文件 hasActiveEntitlementAlias@1009，
- *    单参形）、210023/210032 i6t 内（≡ OnboardingLoginLeaves resolveOAuthFamilySelection@3445，本批同收敛其
+ *    shouldProbeStartPlanEntitlement，R11 已收敛）、77897 A6e `return iM(e)`（≡ 本文件 hasActiveEntitlementAlias@1072，
+ *    单参形）、210023/210032 i6t 内（≡ OnboardingLoginLeaves resolveOAuthFamilySelection@3448，本批同收敛其
  *    hasPlanEntitlement declare）。负证据：bundle 内 iM 无第二定义；全树无其他 iM 面。 ── */
 declare const BIGMODEL_REGION_ID: string; // Ri
 /* ── tombstone（A1-R23）：declare workspaceStore（xe）/selectWorkspaceSlice（co）/useWorkspaceStore（Zs）/
@@ -314,7 +326,12 @@ declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe
  *    5979/6012 → trackCodingPlanBillingCycleSelect、5507 → trackCodingPlanFunnelStart），参数逐字不变。 ── */
 /* ── tombstone（A1-R22）：declare isStructuredSelection（原 Ds，2827）删除——唯一消费面 §10 uit 副本同批删除；
  *    真身逐字 canonical = modules/Composer.tsx [B17] isConversationSelectionReference（型别守护形）。 ── */
-declare function isZaiCodingPlanProvider(providerId: string): boolean; // tr（跨 chunk 导入，Z.ai 编码计划供应商判定）
+/* ── tombstone〔A1-R30〕：declare isZaiCodingPlanProvider（原 tr 脸 B）删除 → 改指 isZaiPlanProviderId
+ *    （tr 真身：同脸 A 墓碑，styles 548 `Po as tr` ← src 9780 `vl as Po` ≡ SrcSharedA@2022，链闭合）。
+ *    消费面实测（本文件 5 处改名改指）：@7484（dtt PersonalPaymentConfirm）≡ 86696、@8731（dnt subscribeUrlOf）≡ 87912、
+ *    @8881（bnt startPlanCardCopyOf）≡ 88035、@9060（znt providerDisplayNameOf）≡ 88166、@9477（lrt codingPlanEntryStatusOf）≡ 88524。
+ *    行为更正注：原 A0 语义名示「仅判 codingPlan」，bundle tr 实测兼判 zaiStartPlan（vl 体双判）；
+ *    收敛改指 canonical，运行时行为回归 bundle 逐字。负证据：本文件该 declare 无第二消费。 ── */
 /** 供应商/工具条横切机制（接口级） */
 declare function useModelProviders(): { modelProviders: ModelProvider[]; displayOrder?: string[]; loading: boolean; refresh: (opts?: any) => Promise<void> }; // qq
 /* ── tombstone（A1-R23）：declare useSettingsState（JM）/useTabsStoreActions（pc）/useWorkspaceConfigOptions（Jq）/
@@ -332,13 +349,13 @@ declare function useCoreServices(): { modelProviderService: any; credentialServi
 /* ── tombstone（A1-R11）：declare providerFingerprintKeyOf（原 nM，52645）删除，改指 providerApiKeyFingerprint as providerFingerprintKeyOf。
  *    双实例收敛证据：bundle nM 唯一真身 52645（`${e.id}:${jUe(e.apiKey.trim())}`，!e 守卫），终端消费实测 9672–9675（返回 string）。 ── */
 /* ── tombstone〔A1-R29〕：declare connectionModeContextOf（A0 误标「原 N6e」）删除——树内零消费（负证据在案）；
- *    N6e 真身 = 本文件 filterUsableProviders@1080（A0 已逐字实化，bundle N6e 77910–77929 唯一真身；
+ *    N6e 真身 = 本文件 filterUsableProviders@1097（A0 已逐字实化，bundle N6e 77910–77929 唯一真身；
  *    消费 89703 ≡ Home filterEntitledModelProviders 面 / 135402 ≡ Automations buildEntitledProviderList 面，
  *    同批收敛，见各墓碑）。误标依据：签名 (args: Record<string, unknown>): any 与 N6e 对象参形不合。 ── */
 declare function normalizedModelOptionsOf(options: any[], currentValue: unknown, context: any): any[]; // L
 /* ── tombstone〔A1-R29〕：declare modelGroupsOf（原 Hq，A0 文件内第二脸）删除——树内零消费（负证据在案）；
- *    Hq 真身 = 本文件 modelMenuGroupsOf@976（A0 已逐字实化，bundle Hq 77850 唯一真身）；bundle Hq 消费 4 处
- *    （89710/135408/133909/197861）全属文件外四面（Home@375/Automations@151/ExtendedViews@425/
+ *    Hq 真身 = 本文件 modelMenuGroupsOf@993（A0 已逐字实化，bundle Hq 77850 唯一真身）；bundle Hq 消费 4 处
+ *    （89710/135408/133909/197861）全属文件外四面（Home@375/Automations@151/ExtendedViews@427/
  *    SubagentsSettingsSection@248），同批收敛改指，见各墓碑。 ── */
 declare function isModelMenuStructured(provider: string): boolean; // r6e
 declare function useManageModelsAvailable(onManage: () => void): boolean; // T6e
@@ -492,8 +509,8 @@ export function sortProvidersByFamilyAndOrder(providers: ModelProvider[], displa
 
 /* ── tombstone〔A1-R28〕：teamOrganizationLabelOf（原 Lq，A0 语义副本）删除 → 收敛改指 Home §U.5 逐字 canonical
  *    teamSourceOrganizationLabel（components/shell/Home.tsx，bundle Lq 77476–77478 唯一真身；本副本 body 逐字
- *    同形 `(e.organizationName?.trim() ?? \`\`) || null`）。双实例收敛证据：消费面实测——@645（p6e
- *    teamPlanOptionsOf）≡ bundle 77608、@9631（frt mergeTeamPlanMenuItems）≡ bundle 88723（其 prt 面为
+ *    同形 `(e.organizationName?.trim() ?? \`\`) || null`）。双实例收敛证据：消费面实测——@683（p6e
+ *    teamPlanOptionsOf）≡ bundle 77608、@9682（frt mergeTeamPlanMenuItems）≡ bundle 88723（其 prt 面为
  *    同体内联调用，见下 prt 墓碑），本批改名改指；modules/PaymentDeep 转导出面全树零消费（负证据在案，
  *    随删）。负证据：bundle 内 Lq 无第二定义。改指经 modules/Home（二环判例，见文件头导入行注）。 ── */
 
@@ -502,7 +519,7 @@ export function providerDisplayLabelsOf(provider: ModelProvider, options: { codi
   const codingPlanBadgeLabel = options.codingPlanBadgeLabel ?? `Individual`;
   return provider.id === PROVIDER_IDS.zai
     ? { label: `Z.ai` }
-    : isOAuthFamilyProvider(provider.id)
+    : isZaiPlanProviderId(provider.id)
       ? { label: `Z.ai`, labelBadge: codingPlanBadgeLabel }
       : provider.id === PROVIDER_IDS.bigmodel
         ? { label: `BigModel` }
@@ -539,7 +556,7 @@ export function isModelEntryWithModified(entry: unknown): boolean {
 /** 原 Rq（77518 区）：agent 可用模型（格式过滤+kind 重定向） */
 export function modelsForAgent(agent: string, provider: ModelProvider): string[] {
   const formats = agentModelFormatsOf(agent),
-    known = new Set(KNOWN_MODEL_FORMATS),
+    known = new Set(GLM_MODEL_IDS),
     isAllowed = (format: string) =>
       isStartPlanProviderId(provider.id) ? known.has(format) || provider.models.some((model) => isModelEntry(model) && (model as any).id.trim() === format && isModelEntryWithModified(model)) : !0,
     retarget = (format: string) => {
@@ -561,7 +578,7 @@ export function modelsForAgent(agent: string, provider: ModelProvider): string[]
 
 /** 原 o6e（77541 区）：凭据就绪（apiKey 或预设端点） */
 export function hasProviderCredentials(provider: ModelProvider): boolean {
-  return provider.apiKey.trim().length > 0 ? !0 : isOAuthFamilyProvider(provider.id) ? endpointsOfProvider(provider).length > 0 : !1;
+  return provider.apiKey.trim().length > 0 ? !0 : isZaiPlanProviderId(provider.id) ? endpointsOfProvider(provider).length > 0 : !1;
 }
 
 /** 原 s6e（77544 区）：供应商支持单格式 */
@@ -795,7 +812,7 @@ export function familyGroupOf(context: {
   teamPlanProducts: any[];
   showPurchasedTeamPlanFallback: boolean;
 }) {
-  const familySpec = getOAuthProviderFamilyByProviderId(context.familyId === `zai` ? PROVIDER_IDS.zai : PROVIDER_IDS.bigmodel) as FamilySpec | null; // 〔A1-R29〕型缝：canonical 返回 any，消费面依原 declare 契据（FamilySpec | null）窄化（行依据：本行 + FamilySpec@377）
+  const familySpec = getOAuthProviderFamilyByProviderId(context.familyId === `zai` ? PROVIDER_IDS.zai : PROVIDER_IDS.bigmodel) as FamilySpec | null; // 〔A1-R29〕型缝：canonical 返回 any，消费面依原 declare 契据（FamilySpec | null）窄化（行依据：本行 + FamilySpec@394）
   if (!familySpec) return [];
   const byId = new Map(context.providers.map((provider) => [provider.id, provider])),
     startPlanProvider = byId.get(familySpec.startPlanProviderId),
@@ -896,10 +913,10 @@ export function inactiveOAuthFamilyOf(providers: ModelProvider[]): string | null
 }
 
 /** ── 型缝〔A1-R29〕：AgentModelMenuGroup——S6e flatMap 返回面分组元素公共上界（familyGroupOf 面 labelBadge any /
- *    directItems 必备；providerGroupOf 面 labelBadge?: string / directItems 可选）。引入缘由：tsc 对 flatMap@941
+ *    directItems 必备；providerGroupOf 面 labelBadge?: string / directItems 可选）。引入缘由：tsc 对 flatMap@958
  *    `[] | A[] | (B1|B2)[]` → `U | ReadonlyArray<U>` 的 U 推断在文件微扰下不稳（实测：本批收敛 SrcSharedB 导入行
  *    即令 U 钉死 familyGroupOf 面报 TS2345；HEAD 插入无关语句亦复现，负证据在案）。显式 flatMap<AgentModelMenuGroup>
- *    定锚 U；仅类型面，零运行时影响。行依据：本接口 + flatMap@941。 ── */
+ *    定锚 U；仅类型面，零运行时影响。行依据：本接口 + flatMap@958。 ── */
 interface AgentModelMenuGroup {
   key: string;
   label: string;
@@ -939,7 +956,7 @@ export function modelMenuGroupsForAgent(
   }
   const emitted = new Set<string>();
   return usable.flatMap<AgentModelMenuGroup>((provider) => {
-    const spec = getOAuthProviderFamilyByProviderId(provider.id) as FamilySpec | null; // 〔A1-R29〕型缝：同上（原 declare 契据窄化；flatMap U 由 AgentModelMenuGroup@903 定锚，见该型缝注）
+    const spec = getOAuthProviderFamilyByProviderId(provider.id) as FamilySpec | null; // 〔A1-R29〕型缝：同上（原 declare 契据窄化；flatMap U 由 AgentModelMenuGroup@920 定锚，见该型缝注）
     return spec
       ? emitted.has(spec.id)
         ? []
@@ -1060,7 +1077,7 @@ export function hasActiveEntitlementAlias(snapshot: EntitlementSnapshot | null) 
  *  〔A1-R27〕entitlementSnapshot 型缝精化 unknown → EntitlementSnapshot | null（行依据：bundle j6e 消费面仅 N6e 77918，
  *  快照流经 getEntitlementSnapshot ≡ 下方 filterUsableProviders 型缝；canonical iM 52651 读面 provider/unavailableReason/quota/subscription/remaining 全合）。 */
 export function isProviderEntitlementVisible({ providerId, entitlementSnapshot, modelProviderFamilySelectedKeys }: { providerId: string; entitlementSnapshot: EntitlementSnapshot | null; modelProviderFamilySelectedKeys?: Record<string, string> | null }) {
-  return isOAuthFamilyProvider(providerId)
+  return isZaiPlanProviderId(providerId)
     ? (entitlementSnapshot as any)?.authenticated === !0 || entitlementSnapshot === null
     : providerId !== PROVIDER_IDS.bigmodelCodingPlan ||
         (modelProviderFamilySelectedKeys?.bigmodel?.trim() ?? ``).startsWith(`team-plan:${PROVIDER_IDS.bigmodelCodingPlan}:`)
@@ -1075,7 +1092,7 @@ export function isStartPlanVisible({ providerId, codingPlanEntitlementSnapshot }
 }
 
 /** 原 N6e（77910–77929）：可用供应商过滤
- *  〔A1-R27〕getEntitlementSnapshot 返回面型缝精化 unknown → EntitlementSnapshot | null（行依据：bundle N6e 消费 89703 ≡ Home@371 declare 面
+ *  〔A1-R27〕getEntitlementSnapshot 返回面型缝精化 unknown → EntitlementSnapshot | null（行依据：bundle N6e 消费 89703 ≡ Home@370 declare 面
  *  EntitlementSnapshotLike | null、135402 ≡ AMt R0 域留批；快照读面与 EntitlementSnapshot 全合）。 */
 export function filterUsableProviders({
   providers,
@@ -1921,7 +1938,7 @@ let staticProductsInFlight: Promise<any> | null = null; // _J
 /** 原 s5e（80369 / jsx 区）：useCodingPlanProducts */
 export function useCodingPlanProducts(providerId: string, options?: { remotePreviewEnabled?: boolean }) {
   let service = useServices()?.codingPlanSubscriptionService,
-    isSupported = providerId === PROVIDER_IDS.bigmodelCodingPlan || isOAuthFamilyProvider(providerId),
+    isSupported = providerId === PROVIDER_IDS.bigmodelCodingPlan || isZaiPlanProviderId(providerId),
     isRemote = isSupported && options?.remotePreviewEnabled !== !1,
     fallback = React.useMemo(() => emptySnapshotOf(providerId), [providerId]),
     [state, setState] = React.useState<{ snapshot: any; loading: boolean; error: string | null }>(() => ({
@@ -3731,7 +3748,7 @@ export function providerFamilyOf(providerId: string): string {
     providerId === PROVIDER_IDS.bigmodelCodingPlan ||
     providerId === PROVIDER_IDS.bigmodelStartPlan
     ? `bigmodel`
-    : providerId === `zai` || providerId === PROVIDER_IDS.zai || isOAuthFamilyProvider(providerId)
+    : providerId === `zai` || providerId === PROVIDER_IDS.zai || isZaiPlanProviderId(providerId)
       ? `zai`
       : `unknown`;
 }
@@ -3927,7 +3944,7 @@ export function captchaAppIdOf(providerId: string): string | null {
     VITE_ZCODE_ENDPOINT_ORIGIN: `https://zcode.z.ai`,
   };
   return (
-    (isOAuthFamilyProvider(providerId)
+    (isZaiPlanProviderId(providerId)
       ? envStringOf(env, `VITE_ZAI_CODING_PLAN_CAPTCHA_APP_ID`)
       : envStringOf(env, `VITE_BIGMODEL_CODING_PLAN_CAPTCHA_APP_ID`)) ||
     envStringOf(env, `VITE_CODING_PLAN_CAPTCHA_APP_ID`) ||
@@ -4067,7 +4084,7 @@ export function useCodingPlanPurchase({
         try {
           let preview = previewOverride ?? (await preparePaymentPreview(product));
           if (!preview) return;
-          if (isOAuthFamilyProvider(providerId)) {
+          if (isZaiPlanProviderId(providerId)) {
             setOverseasPaymentDialog({ product, preview, submittingAction: null, error: null });
             return;
           }
@@ -4495,7 +4512,7 @@ export function isSuccessLikeStatus(status: string): boolean {
 }
 /** 原 Z9e（83657 区）：stripe 后需轮询（oauth 族除外） */
 export function needsStatusPollAfterStripe(providerId: string, status: string | undefined): boolean {
-  return isOAuthFamilyProvider(providerId) ? !1 : !isSuccessLikeStatus(status ?? ``);
+  return isZaiPlanProviderId(providerId) ? !1 : !isSuccessLikeStatus(status ?? ``);
 }
 /** 原 CY（83660 区） */
 export function isFailureLikeStatus(status: string): boolean {
@@ -5463,7 +5480,7 @@ export function CodingPlanPurchasePanel({
     }),
     productsOAuthRequired = isOAuthRequiredError(products.error ?? ``),
     systemBusyError = products.error && isSystemBusyError(products.error) ? products.error : null,
-    authRecoverySubscribeAvailable = isOAuthFamilyProvider(providerId) && codingPlanPurchaseTokenAuthenticated === !0 && productsOAuthRequired && !!onLogin,
+    authRecoverySubscribeAvailable = isZaiPlanProviderId(providerId) && codingPlanPurchaseTokenAuthenticated === !0 && productsOAuthRequired && !!onLogin,
     accountRequirementActive = isAccountRequirementVisible({
       accountRequirementVisible: accountRequirementVisible === !0,
       productsOAuthRequired,
@@ -5899,7 +5916,7 @@ export function CodingPlanPurchasePanel({
           }
         : null,
     panelMaxWidth = `max-w-5xl`;
-  return effectiveProviderId !== PROVIDER_IDS.bigmodelCodingPlan && !isOAuthFamilyProvider(effectiveProviderId) ? null : (
+  return effectiveProviderId !== PROVIDER_IDS.bigmodelCodingPlan && !isZaiPlanProviderId(effectiveProviderId) ? null : (
     <>
       {open ? (
         <section className={`fixed inset-0 z-50 flex flex-col overflow-hidden bg-background pt-12 text-foreground`}>
@@ -7464,7 +7481,7 @@ function PersonalPaymentConfirm({
   onConfirm,
 }: any) {
   const { intl, locale } = useZCodeIntl();
-  const overseas = isZaiCodingPlanProvider(providerId);
+  const overseas = isZaiPlanProviderId(providerId);
   const currency = normalizeCurrency(preview?.priceCurrency ?? selectedProduct?.priceCurrency);
   const summaryLocale = overseas ? locale : `zh-CN`;
   const labels = overseas
@@ -8711,7 +8728,7 @@ function subscriptionGateActionOf({ subscriptionBusy, authenticated }: any) {
 
 // dnt → subscribeUrlOf（本地 87935）
 function subscribeUrlOf(providerId: string) {
-  return isZaiCodingPlanProvider(providerId) ? `https://z.ai/subscribe` : `https://bigmodel.cn/glm-coding`;
+  return isZaiPlanProviderId(providerId) ? `https://z.ai/subscribe` : `https://bigmodel.cn/glm-coding`;
 }
 
 // XY → groupAvailabilityOf（本地 87938）
@@ -8861,7 +8878,7 @@ function planCardCopyOf(group: any, providerId: string) {
 
 // bnt → startPlanCardCopyOf（本地 88064）
 function startPlanCardCopyOf(providerId: string, preview: any, locale: any) {
-  const overseas = isZaiCodingPlanProvider(providerId);
+  const overseas = isZaiPlanProviderId(providerId);
   const summaryLocale = locale ? (locale.startsWith(`zh`) ? `zh-CN` : `en-US`) : overseas ? `en-US` : `zh-CN`;
   const title = preview?.name.trim() ?? ``;
   const detailRows = preview ? startPlanEntitlementRowsOf(preview, summaryLocale) : [];
@@ -9040,7 +9057,7 @@ function isGroupCurrentOf(group: any, currentPlanLevel: any, currentProduct: any
 
 // znt → providerDisplayNameOf（本地 88178）
 function providerDisplayNameOf(providerId: string) {
-  return isZaiCodingPlanProvider(providerId) ? `Z.ai` : `BigModel`;
+  return isZaiPlanProviderId(providerId) ? `Z.ai` : `BigModel`;
 }
 
 // Bnt → isBigmodelCodingPlanProvider（本地 88181）
@@ -9166,7 +9183,7 @@ const CODING_PLAN_PROVIDER_ENTRIES = [
 ];
 
 // 源 88289：模块装载期遗留的逗号表达式（无副作用，逐字保留）
-(PROVIDER_IDS.zaiStartPlan, PLAN_DOMAINS.zcodePlanAnthropicBaseUrl, [...KNOWN_MODEL_FORMATS]);
+(PROVIDER_IDS.zaiStartPlan, PLAN_DOMAINS.zcodePlanAnthropicBaseUrl, [...GLM_MODEL_IDS]);
 
 // Xnt → KNOWN_PROVIDER_ENTRY_IDS（本地 88290）
 const KNOWN_PROVIDER_ENTRY_IDS = new Set([
@@ -9457,7 +9474,7 @@ function providerEntryIconOf(item: any) {
 
 // lrt → codingPlanEntryStatusOf（本地 88501）
 function codingPlanEntryStatusOf({ provider, entitlement, modelProvidersLoading }: any) {
-  const zaiCoding = !!(provider && isZaiCodingPlanProvider(provider.id));
+  const zaiCoding = !!(provider && isZaiPlanProviderId(provider.id));
   const ready = !!(provider && (isCustomProviderReady(provider) || (zaiCoding && endpointsOfProvider(provider).length > 0 && provider.models.length > 0)));
   if (!ready && modelProvidersLoading)
     return {
@@ -9705,7 +9722,7 @@ function mergeTeamPlanMenuItems({
 }
 
 // ── tombstone〔A1-R28〕：teamPlanOrganizationOf（原 prt，88764–88766 `return Lq(e)`）删除——树内零消费
-//    （负证据在案；唯一 bundle 消费 88723 ≡ 本文件 frt@9631 已为同体内联调用）。死码删除按 R25 nWe 判例。 ──
+//    （负证据在案；唯一 bundle 消费 88723 ≡ 本文件 frt@9648 已为同体内联调用）。死码删除按 R25 nWe 判例。 ──
 
 // mrt → hasTeamScopedEntitlement（本地 88770）
 function hasTeamScopedEntitlement(entitlements: any) {

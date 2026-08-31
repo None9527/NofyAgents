@@ -265,7 +265,7 @@ import { Button } from '../../modules/button'; // Button（原 X，button-laUije
 import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
 import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup, sessionEntryWorkspaceKey as remoteWorkspaceKey, buildRemoteWorkspaceKey as workspaceIdentityOf, resolveEntryWorkspaceIdentity as entryIdentity, remoteTargetWithSecrets as withRemoteCredentials, applyRemoteConnectionResult as commitRemoteSessionsMutation, removeRemoteSessionEntries as removeSessionsByWorkspaceKeys, persistedWorkspaceSessions as persistableWorkspaceTabs, persistedRemoteSessions as normalizePersistedRemoteSessions, resolveLastActiveTabIndex, type PersistedWorkspaceTabRecord, type RemoteSessionTarget } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）+ A1-R6：R2/I2/L2/z2/B2/oEt 远程条目域改指 + A1-R7：V2/cEt/Bne 恢复条目域改指（Hn 改指更正迁 SrcSharedA；tombstone 见原 declare 位）
 import { sanitizeWorkspaceDescriptor as serializeRemoteTarget, sshTargetIdentityKey as sshHostKeyOfTarget } from '../../modules/SrcSharedA'; // A1-R7：Hn（R6 误录更正，canonical 见 lib/workspaceUtils）+ Pn=sshTargetIdentityKey 改指
-import { generateUuid as createRequestId, resolveProviderFamilyMode } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555）：resolveFamilyMode declare 收敛改指，见下墓碑
+import { generateUuid as createRequestId, getOAuthProviderFamilyByProviderId, resolveProviderFamilyMode } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555）：resolveFamilyMode declare 收敛改指，见下墓碑。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：providerById declare 收敛改指，见下墓碑。环安全：本行不新增环边（本文件→SrcSharedB 既有）
 import { bindWorkspacePath as bindRemoteWorkspacePath, bindWorkspaceIdentity as bindRemoteWorkspaceIdentity, unbindWorkspacePath as unbindRemoteWorkspacePath, unbindWorkspaceIdentity as unbindRemoteWorkspaceIdentity, getSessionById as getRemoteWorkspaceSession, type RegisteredSession } from '../../stores/sessionRegistryStore'; // A1-R7：$s/ec/Cse/wse/tc registry 包装族改指（环安全：该文件值导入仅 ./zustand，type-only 边无运行时环）
 
 /* ============================================================================
@@ -363,7 +363,7 @@ export interface TeamProduct {
   [key: string]: any;
 }
 export interface UsageStatsServiceLike {
-  // 〔A1-R27〕型缝精化 Promise<unknown> → Promise<EntitlementSnapshot>（行依据：同一 bundle 服务面 UsageDeep@574
+  // 〔A1-R27〕型缝精化 Promise<unknown> → Promise<EntitlementSnapshot>（行依据：同一 bundle 服务面 UsageDeep@580
   // `getEntitlementSnapshot(opts): Promise<EntitlementSnapshot>`；W9 210134 直返其结果，catch 归 null）。
   getEntitlementSnapshot(options: Record<string, unknown>): Promise<EntitlementSnapshot>;
 }
@@ -822,18 +822,23 @@ declare function setModelProvidersFallback(providers: ModelProviderRecord[]): vo
 declare function hasUsableProvider(providers: ModelProviderRecord[]): boolean;
 declare function shouldForceLoginEntry(options: { providers: ModelProviderRecord[]; user: UserInfo | null }): boolean;
 declare function refreshModelProviderSnapshot(loader: () => Promise<ModelProviderRecord[]> | ModelProviderRecord[], options?: { force?: boolean; cachedOnly?: boolean }): Promise<void>;
-declare function providerById(id: string): ModelProviderRecord | undefined;
+/* ── tombstone〔A1-R30〕：declare providerById（原 ot 面）删除 → 改指 getOAuthProviderFamilyByProviderId
+ *    （ot 真身：styles 445 `B as ot` ← src 9672 `Yx as B` ≡ Yx 8933 ≡ SrcSharedB@5576，链闭合（R29 立链））。
+ *    消费面实测：@3455（i6t resolveOAuthFamilySelection 体内）≡ bundle 210021
+ *    （`let t = ot(e.providerFamilyDomain === \`zai\` ? q.zai : q.bigmodel)`），改名改指。
+ *    型缝：canonical 返回 any，消费面依原 declare 契据（ModelProviderRecord | undefined）窄化（见该点注）。
+ *    负证据：本文件 providerById 无第二消费。 ── */
 /* ── tombstone（A1-R27）：declare hasPlanEntitlement（原 iM 双参面，52651–52655）删除，改经文件头
  *    modules/UsageDeep import hasActiveEntitlement 消费（canonical = components/usage/UsageDeep.tsx，A1-R11 转录）。
  *    双实例收敛证据：bundle iM 唯一真身 52651；本面消费实测 = i6t 210023/210032 ≡ 本文件
- *    resolveOAuthFamilySelection@3456 两处（3465/3474，双参形）；同批 PaymentDeep@178 墓碑（A6e 单参面）同收敛。
+ *    resolveOAuthFamilySelection@3448 两处（3457/3466，双参形）；同批 PaymentDeep@214 墓碑（A6e 单参面）同收敛。
  *    负证据：bundle 内 iM 无第二定义。 ── */
 declare function bigmodelTeamPlanKey(parts: { productId: string; organizationId: string; projectId: string }): string;
 declare function parseTeamPlanKey(key: string): { productId: string; organizationId?: string; projectId?: string } | null;
 declare function isSameTeamPlanKey(a: string, b: string): boolean;
 /* ── tombstone〔A1-R28〕：declare resolveFamilyMode（原 zi）删除 → 改指 resolveProviderFamilyMode（zi 真身：
  *    styles 820 `z as zi` ← src 10062 `Gx as z` ≡ Gx ≡ SrcSharedB@5555 `return t?.[e] ?? \`oauth\``，链闭合）。
- *    消费面实测：@3521（s6t migrateDefaultFamilySelectedKeys）≡ bundle 210066、@3553（l6t
+ *    消费面实测：@3509（s6t migrateDefaultFamilySelectedKeys）≡ bundle 210066、@3541（l6t
  *    maybeUpgradeBigModelTeamPlan）≡ bundle 210094，改名改指。负证据：bundle 内 zi 无第二真身
  *    （其余消费面分流见 Home 侧 zi 墓碑）。 ── */
 declare function familyModesPatch(domain: string, modes: Record<string, string> | undefined): Record<string, string>;
@@ -3439,7 +3444,7 @@ export function isTeamPlanKeySubscribed(options: { selectedKey: string | null | 
 /** 原 i6t（210020 / 166747）：OAuth 侧 family selectedKey 解析
  *  〔A1-R27〕codingPlanEntitlement/startPlanEntitlement 型缝精化 unknown → EntitlementSnapshot | null
  *  （行依据：实参来源 W9 ≡ 下方 fetchEntitlementSnapshot，bundle W9 210134 返回 service 快照或 null；
- *  iM 消费 210023/210032 改指 canonical，见 @824 墓碑）。 */
+ *  iM 消费 210023/210032 改指 canonical，见 @831 墓碑）。 */
 export function resolveOAuthFamilySelection(options: {
   providerFamilyDomain: string;
   modelProviders: ModelProviderRecord[];
@@ -3447,7 +3452,7 @@ export function resolveOAuthFamilySelection(options: {
   startPlanEntitlement: EntitlementSnapshot | null;
   teamProducts?: TeamProduct[];
 }): { mode: string; selectedKey: string } | null {
-  const provider = providerById(options.providerFamilyDomain === `zai` ? PROVIDER_IDS.zai : PROVIDER_IDS.bigmodel);
+  const provider = getOAuthProviderFamilyByProviderId(options.providerFamilyDomain === `zai` ? PROVIDER_IDS.zai : PROVIDER_IDS.bigmodel) as ModelProviderRecord | undefined; // 〔A1-R30〕型缝：canonical 返回 any，消费面依原 declare 契据窄化（行依据：本行 + 碑 @825）
   if (!provider) return null;
   if (hasActiveEntitlement(options.codingPlanEntitlement, provider.codingPlanProviderId))
     return { mode: `oauth`, selectedKey: codingPlanSelectedKey(provider.codingPlanProviderId) };
@@ -3582,7 +3587,7 @@ export function codingPlanProviderFromKey(selectedKey: string): string | null {
 
 /** 原 W9（210134 / 166866）：权益快照刷新（失败归 null）
  *  〔A1-R27〕返回面型缝精化 Promise<unknown> → Promise<EntitlementSnapshot | null>（行依据：bundle W9 直返
- *  usageStatsService.getEntitlementSnapshot 结果（≡ UsageDeep@574 Promise<EntitlementSnapshot> 面），catch 归 null；
+ *  usageStatsService.getEntitlementSnapshot 结果（≡ UsageDeep@580 Promise<EntitlementSnapshot> 面），catch 归 null；
  *  消费面仅本文件 3650/3651/3683/3684 → resolveOAuthFamilySelection 型缝）。 */
 export async function fetchEntitlementSnapshot(options: { services: ServicesBundle; providerId: string }): Promise<EntitlementSnapshot | null> {
   try {
