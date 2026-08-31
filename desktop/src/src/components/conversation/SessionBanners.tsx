@@ -36,10 +36,13 @@ export interface QuotaBannerState { // 〔A0-S4-4b〕补 export：shim 留守 §
   modelName?: string | null;
   remainingTokens?: number | null;
   remainingPercent?: number | null;
-  dismissible?: boolean;
+  dismissible: boolean; // 〔A1-P1-B2〕精化：RCt/I0 全字面量实写 boolean（js 118918/118990–119066）；s8t 断言面直传（212458）
   providerLimitedMessage?: string | null;
-  concurrentLimitReason?: "retry-exhausted-busy" | string;
-  blocksSubmit?: boolean;
+  concurrentLimitReason?: "retry-exhausted-busy" | string | null; // 〔A1-P1-B2〕精化：RCt/I0 null 面（js 118912/118983/119003/119024/119041）
+  concurrentLimitBusinessCode?: string | null; // 〔A1-P1-B2〕补登：RCt/I0 写面 + L0 读面（js 118911/118982/119002/119023/119040/119074）
+  providerLimitedBusinessCode?: string | null; // 〔A1-P1-B2〕补登：RCt/I0 写面 + L0 读面（js 118913/118984/119004/119025/119042/119076）
+  blocksSubmit: boolean; // 〔A1-P1-B2〕精化：RCt/I0 全字面量实写（js 118919/118991–119067）；L0 三元读面（119081）
+  priority: number; // 〔A1-P1-B2〕补登：RCt 0（118920）+ I0 五路优先级（118992/119005/119026/119043/119055–119057）+ s8t ===60 断言面（212458）
 }
 
 /** 原 pst（jsx 82880）：并发受限细分两种文案 */

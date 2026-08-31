@@ -376,7 +376,8 @@ export type {
   RemoteSessionEntry,
   PaneWorkspaceScope,
   PaneLayoutState,
-  QuotaBannerModel,
+  // QuotaBannerModel 撤除（A1-P1-B2）：components/onboarding/OnboardingLoginLeaves 侧型别已随死 declare
+  // 批删除（零消费负证据见该叶 tombstone）；canonical 面 = ConversationQuotaModel QuotaBannerState。
   // CaptchaGatekeeper type import 撤除（A1-R14）：本文件零使用；原导出面（components/onboarding
   // OnboardingLoginLeaves）随死 declare 批删除，canonical = ConversationLeaves §5b。
   DiffsHighlighterOptions,

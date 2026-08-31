@@ -145,6 +145,7 @@ import { MemoQueuePanel, type QueueState } from '../components/conversation/Queu
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
 import { TurnNavigator, findActiveQueryRow, shouldHydrateFullHistory, hydrateRetryDelayMs } from '../components/conversation/TurnNavigator'; // 〔A0-S4-4b〕§8 渲染点（6549）+ activeQueryRowId（6238）+ §5 水合判定（3957/3991）消费回取
 import { EMPTY_SUBAGENT_DIRECTORY, buildSessionErrorKey, buildSessionErrorBannerModel } from '../components/conversation/ConversationPaneHelpers'; // 〔A1-P1〕R0 簇卫星域逐字真身（原 $Ct/QCt/twt，js 119197/119194/119199）；叶仅依赖 SrcSharedA，环安全（本文件单向消费）
+import { useSessionQuotaViewModel } from '../components/conversation/ConversationQuotaModel'; // 〔A1-P1-B2〕原 XCt（js 119101）逐字真身（配额块闭包全簇）；环安全：叶不反引本文件（UsageDeep 依赖面负证据在案）
 
 /* ── tombstone（A0-D → A0-CLEANUP2 items 45+46 已接线）：FileOpenWithMenu/buildFilePreviewSource
  *    （原 v_t/__t，FileRewindDialogDeep 110427/110410）与 buildSummaryPanelModel/resolveSummaryPanelVariant
@@ -4878,24 +4879,10 @@ declare function useRecoverablePendingCommands(args: {
  *    ConversationLeaves import 消费。本文件消费点 5328（= bundle 120963）逐字不变；
  *    Cw=normalizeCaptchaCode 为 StoresDeep R12 收敛 stub，stub 语义下 3007 判定恒不成立，
  *    自动恢复为死路——与 declare 期（擦除=未接线）行为等价，转录逐字保留。 ── */
-/** 原 XCt（js 119101 / jsx 101245；〔A1-P1〕行漂校正：旧注 js 119084 失实，bundle 实测 119101）：配额横幅视图模型（用量快照 + 服务端错误码合成；深闭包 eM/I0/ICt/LCt 留批） */
-declare function useSessionQuotaViewModel(args: {
-  error: { code?: string; message?: string } | null;
-  errorKey: string | null;
-  phase: string | null;
-  providerId: string | null;
-  modelId: string | null;
-  usageStatsService: unknown;
-}): {
-  state: QuotaBannerState;
-  dismissKey: string | null;
-  dismissed: boolean;
-  dismiss: () => void;
-  takesOverError: boolean;
-  upgradeProviderId: string | null;
-  upgradeActionLabelId: string;
-  blocksSubmit?: boolean;
-};
+/* ── tombstone（A1-P1-B2）：declare useSessionQuotaViewModel（原 XCt，js 119101）删除——
+ *    逐字真身本批落地 components/conversation/ConversationQuotaModel（配额块闭包 I0/L0/ICt/LCt/
+ *    SNe/DNe/ONe/kNe 全簇逐字；eM 改指 UsageDeep useUsageEntitlementCore、Bn 改指 SrcSharedA
+ *    isStartPlanProviderId，跨 chunk 证据链见叶头表）；消费点（quota 装配）经文件头 import 改指，逐字不变。 ── */
 /* ── tombstone（A1-P1）：declare buildSessionErrorKey（原 QCt，js 119194；declare 期旧注 jsx 101337）删除——
  *    逐字真身本批落地 components/conversation/ConversationPaneHelpers，消费点（errorKey 装配）经文件头 import 改指，逐字不变。
  *    declare shouldShowSessionError（原 twt，js 119199；declare 期旧注 jsx 101347）删除——D8 期误读：

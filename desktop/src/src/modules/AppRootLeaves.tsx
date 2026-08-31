@@ -133,6 +133,7 @@ import { SettingsView } from './Settings';
 import { useTaskStore, type GroupedDraftPlacement } from './SkillStore';
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
 import { ConversationTelemetrySupervisor, useWorkspaceServices } from './services';
+import { resolveQuotaAssertion, quotaDismissKey } from '../components/conversation/ConversationQuotaModel'; // 〔A1-P1-B2〕原 I0/L0（js 118978/119069）逐字真身改指（parity s8t 域消费面逐字不变）；环安全：叶不反引本文件
 import { useSettingsStore, SettingsStoreProvider as StoreProvider, isStartupSoundEnabled } from './stores-core'; // +StoreProvider/isStartupSoundEnabled（A1-R10 项 2a：原 Nie（1289）/Eie（1091）declare 改指 canonical——SettingsStoreProvider = settingsStore 373 逐字（Oo context/Nie/ko/Ao 1287–1298），isStartupSoundEnabled = yo&&bo 1085–1091；调用点 1893/2604 逐字不变）。环安全：stores-core 值闭包（stores/* + zustand）不达本文件反向，既有边
 import { useCodeCommentsStore as codeCommentsStore } from './Composer'; // A1-R8：FH 双实例收敛接线（原 declare 改指 canonical = Composer 6716 区；本文件 2009/2014 消费面 = bundle 212998/213003 广播监听簇）
 import { TooltipProvider } from './UsageStatsUiParts'; // 原 Na（A0-CLEANUP 族清理接线）
@@ -259,17 +260,10 @@ declare function mapTasksToListItems(options: { workspaceTabs: WorkspaceTab[]; t
  *    Ow/kw/Aw/jw 四图清空 = StoresDeep TPe 逐字（inputTimingByWorkspace/
  *    promptLifecyclesByTask/activeLifecycleByTask/stepStateByTask）。 ── */
 declare const planProviderIds: { zaiStartPlan: string; bigmodelStartPlan: string; [key: string]: string }; // 原 q
-interface QuotaAssertion {
-  visible: boolean;
-  kind: string;
-  dismissible: boolean;
-  blocksSubmit: boolean;
-  priority: number;
-  providerLimitedMessage?: string;
-  [key: string]: any;
-}
-declare function resolveQuotaAssertion(options: Record<string, unknown>): QuotaAssertion; // 原 I0
-declare function quotaDismissKey(assertion: QuotaAssertion, instance: string): string; // 原 L0
+/* ── tombstone（A1-P1-B2）：declare resolveQuotaAssertion（原 I0，js 118978）/ quotaDismissKey（原 L0，js 119069）
+ *    + QuotaAssertion 接口删除——bundle 唯一真身本批逐字落地 components/conversation/ConversationQuotaModel
+ *    （resolveQuotaAssertion/quotaDismissKey）；本文件 parity 消费面（s8t 域 1418/1420/1433/1446 ≡ bundle
+ *    212458/212460/212486）经文件头 import 改指，逐字不变。双实例裁定：OnboardingLoginLeaves 同族死 declare 同批删碑。 ── */
 /* ── tombstone（A1-R16）：declare function captchaProviderOfTaskMeta（原 KSt，js 118284）删除——
  *    canonical = ConversationLeaves captchaProviderOfTaskMeta（原 resolveTaskProviderId 改名导出，
  *    bundle 唯一真身 118284；GSt/WSt/Ie/Uq 依赖面 Leaves §5 在案）。c8t 1451 消费点逐字不变，

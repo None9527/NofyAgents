@@ -845,27 +845,10 @@ declare function persistProviderFamilyDomain(settingService: SettingServiceLike,
 declare function telemetryLoginProviderName(provider: string): string | null;
 
 /* --- quota / captcha 助手（i8t 断言消费，它族已建）--- */
-export interface QuotaBannerModel {
-  visible: boolean;
-  kind: string;
-  dismissible: boolean;
-  blocksSubmit?: boolean;
-  priority?: number;
-  providerLimitedMessage?: string;
-  [key: string]: any;
-}
-declare function resolveQuotaBannerModel(options: {
-  activeProviderId: string;
-  snapshot: unknown;
-  modelId: string;
-  serverQuotaExhausted?: boolean;
-  serverConcurrentLimited?: boolean;
-  serverConcurrentLimitBusinessCode?: string;
-  serverConcurrentLimitReason?: string;
-  serverProviderLimitedBusinessCode?: string;
-  serverProviderLimitedMessage?: string;
-}): QuotaBannerModel;
-declare function quotaDismissKey(banner: QuotaBannerModel, instance: string): string;
+/* ── tombstone（A1-P1-B2）：declare resolveQuotaBannerModel（原 I0，js 118978）/ quotaDismissKey（原 L0，js 119069）
+ *    + QuotaBannerModel 接口删除——双实例裁定：bundle 唯一真身 = components/conversation/ConversationQuotaModel
+ *    resolveQuotaAssertion/quotaDismissKey（本批逐字）；本件双 declare 全树零消费（负证据），
+ *    parity 消费面在 AppRootLeaves（s8t 域，同批改指真身）。 ── */
 /* ── tombstone（A1-R14）：captchaProviderOfTaskMeta（原 KSt，118284）/ captchaEventKeys（ACt 118738 之
  *    declare 期误读面：真身返回 ::连接串而非键数组）/ CaptchaGatekeeper 接口（kCt 返回面）/
  *    createCaptchaGatekeeper（原 kCt，118735）/ captchaPhase（原 A0，118765）/
