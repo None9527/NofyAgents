@@ -142,7 +142,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { InputGroup, InputGroupAddon } from '../ui/input-group'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphone, Moon as IconMoon, RotateCcw as IconRotateCcw, ClipboardPenLine as IconClipboardPenLine, House as IconHouse, Folder as IconFolder, Cloud as IconCloud, FolderPlus as IconFolderPlus, MessageCircle as IconMessageCircle, Search as IconSearch, ChevronDown as IconChevronDown, Loader as IconLoader, Info as IconInfo, X as IconClose, Rocket as IconRocket, Settings as IconSettings, Copy as IconCopy, SlidersHorizontal as IconSlidersHorizontal, ChevronUp as IconChevronUp, Check as IconCheck, ShieldAlert as IconShieldAlert, Hand as IconHand, NotepadText as IconNotepadText, ShieldCheck as IconShieldCheck, Brain as IconBrain } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）。A1-R15：+IconRocket/IconSettings/IconCopy（原 Pv/Rv/W_，Sa('rocket'/'settings'/'copy') 27735/27806/26974；vWe 54394/54404/54462 消费）。A1-R17：+7 件（原 bbe=sliders-horizontal 27837 / P_=chevron-up / M_=check / zv=shield-alert 27816 / av=hand 27244 / Sv=notepad-text 27549 / Bv=shield-check 27827；§T 模式工具条簇消费）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
-import { Button, cva } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk。A1-R17：+cva（原 Ta = button chunk 导出 r，styles 897 导入；§T configSelectTriggerVariants 46035 消费）
+import { Button, cva, ChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk。A1-R17：+cva（原 Ta = button chunk 导出 r，styles 897 导入；§T configSelectTriggerVariants 46035 消费）。A1-R19：+ChevronRight（原 wa = button chunk 导出 o=ChevronRight，styles 896 导入；§V s3e 76375 消费）
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb/Vb）
 import { BackgroundWorksCapsule, ComposerInput, applyWorkspaceFileMentionDrop as insertAddToChatPayload, useComposerFileDragDetection as useFileDragDetection, isCoarseTouchDevice, shouldRestoreFocus, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）。A1-R12：insertAddToChatPayload declare（原 YV，66811）改指 Composer 属主导出（bundle 唯一真身；消费点 2440/2947 逐字不变）。A1-R13：useFileDragDetection declare（原 XV，66828）改指 Composer 属主导出（bundle 唯一真身；消费点 2418 逐字不变）。A1-R17：+isCoarseTouchDevice/shouldRestoreFocus（原 XH 69346 / ZH 69351 属主导出；§T ConfigSelect 77025 消费）
 import { countContextAttachments, useCodeCommentContexts, type CodeCommentAttachment } from '../../modules/GitReview'; // A1-R12：isAddToChatEvent 移出（原 yXe，68430 = code-comment-add-to-chat 域，与 2945 消费面事件名不符 → 改指工作区域守卫，见下）
@@ -157,12 +157,14 @@ import { useServices } from '../../modules/services';
 import { workspaceScopeKey } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { useFeedbackStore } from '../../modules/stores-core'; // A1-R15：原 yC（js 37040）反馈中心 store——vWe openSubmit 消费（TopBar 144 同源边）
-import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, chatAssistantHistoryContentTestid, automationYearDayOptionTestid, browserForwardButtonTestid, v4ComposerInputTestid, v4ModelConfigTestid, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, isProviderEnabled } from '../../modules/SrcSharedB'; // A1-R17 及以前：见尾注。A1-R18：+5 件（原 Uee=ca=ky 8513 / vi=mt 8631 / li=gt 8638 / fi=ht 8658 / gi=ko 5001；§U iit/nit/mX/hX 消费） // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）
+import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, chatAssistantHistoryContentTestid, automationYearDayOptionTestid, browserForwardButtonTestid, v4ComposerInputTestid, v4ModelConfigTestid, chatContextUsageTriggerTestid, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, isProviderEnabled } from '../../modules/SrcSharedB'; // A1-R17 及以前：见尾注。A1-R18：+5 件（原 Uee=ca=ky 8513 / vi=mt 8631 / li=gt 8638 / fi=ht 8658 / gi=ko 5001；§U iit/nit/mX/hX 消费）+A1-R19：+chatContextUsageTriggerTestid（原 Lte=Fv，jsx 8465 / js 8358；§V j3e 76752 data-testid 消费） // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { Root as RadixSelectRoot, Value as RadixSelectValue, Trigger as RadixSelectTrigger, Icon as RadixSelectIcon, Portal as RadixSelectPortal, Content as RadixSelectContent, Viewport as RadixSelectViewport, Item as RadixSelectItem, ItemText as RadixSelectItemText, ItemIndicator as RadixSelectItemIndicator, ScrollUpButton as RadixSelectScrollUpButton, ScrollDownButton as RadixSelectScrollDownButton } from '@radix-ui/react-select'; // A1-R17：vendored radix select（原 CDe=PEe/TDe=REe/wDe=IEe/EDe=BEe/DDe=HEe/ODe=UEe/kDe=QEe/ADe=sDe/MDe/jDe/NDe/PDe，styles 30850–31745 区）→ npm @radix-ui/react-select@2.3.7（A0-S3c 先例 SettingsRowPrimitives）
-import { AnimatedLabel, MODE_LABEL_I18N, MODE_DESCRIPTION_I18N, ModelSelector, type ModelGroup } from '../composer/ModelSelector'; // A1-R17：原 _q（75520）/V4e（75972）/H4e（76003）——A0-S4-4b 已属主导出（[D] ConfigSelect 消费预案），本批 §T 接线。A1-R18：+ModelSelector（原 vq，js 75575 memo；§U iit 消费，props 面逐字兼容）+type ModelGroup（Hq declare 返回面）
+import { AnimatedLabel, MODE_LABEL_I18N, MODE_DESCRIPTION_I18N, ModelSelector, ContextUsageProvider, ContextRingTrigger, ContextRingTooltipContent, ContextRingTooltipBody, SegmentedProgress, type ModelGroup } from '../composer/ModelSelector'; // A1-R17：原 _q（75520）/V4e（75972）/H4e（76003）——A0-S4-4b 已属主导出（[D] ConfigSelect 消费预案），本批 §T 接线。A1-R18：+ModelSelector（原 vq，js 75575 memo；§U iit 消费，props 面逐字兼容）+type ModelGroup（Hq declare 返回面）。A1-R19：+5 件（原 J4e/X4e/Z4e/Q4e/yq = ContextUsageProvider 76079/ContextRingTrigger 76125/ContextRingTooltipContent 76139/ContextRingTooltipBody 76147/SegmentedProgress 76034，A0-S2d 已属主导出；§V j3e 76741–76794 消费）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // A1-R18：useIntlContext declare（原 G，IntlProvider-C321H7m8 D 9254）收敛 I18n canonical（Composer.tsx:517 先例；ZCodeIntl 与旧本地 IntlShape 同形）
 import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（js 123241）远端条目域改指（tombstone 见原声明位）
+import { LoaderCircle } from '../../modules/ImeComposition'; // A1-R19：原 M = imeComposition-DEYFkwWm.js 导出 w（内名 Ut = lucide loader-circle 11786）；§V s3e 76365 / v3e 76563 loading 消费
+import { formatNumberCompact } from '../../modules/UsageStatsUiParts'; // A1-R19：原 ja = usageStatsUiParts-CiR7YEhh.js 导出 l（styles 910 导入）；§V S3e 76625 消费
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -293,7 +295,7 @@ interface QuotaLimitLike { // A1-R18：配额限制条目（c3e/l3e/h3e 76439–
   percentage?: number;
   type?: string;
   nextResetTime?: string | number;
-  usageDetails?: Array<{ modelCode: string; displayName?: string | null }>;
+  usageDetails: Array<{ modelCode: string; displayName?: string | null }>; // A1-R19 型缝：m3e 76487 直接消费 e.usageDetails.map（bundle 无 ?.）
   [key: string]: unknown;
 }
 interface ModelProviderEntry {
@@ -315,7 +317,7 @@ interface EntitlementSnapshotLike {
   provider?: { id?: string } | null;
   quota?: { level?: string | null; limits?: QuotaLimitLike[] } | null;
   subscription?: { details: Array<{ productId?: string; productName?: string; renewTime?: string }> } | null;
-  remaining?: unknown;
+  remaining?: { nextResetTime?: number } | null; // A1-R19 型缝宽化：d3e 76457 消费 e?.remaining?.nextResetTime（原 unknown）
   unavailableReason?: string | null;
   context?: { scope?: string; organizationId?: string | null; projectId?: string | null; productId?: string | null; displayName?: string | null } | null;
   [key: string]: unknown;
@@ -394,21 +396,28 @@ declare function resolveModelTriggerLabels(opts: {
 /** 工具条快捷键标签（原 Zi，keyboardShortcuts-BGHopxr9.js 导出 i；chunk 外依赖，不转录——同 §T 三件先例） */
 declare function formatToolbarShortcutLabel(key: string): string;
 
-/** 用量工具条（原 j3e，js 76678–76847；usage 域主体——R18 勘毕留批：s3e/v3e 拖 dj/gj/hj/_j 计费折扣胶囊域（ps/Ao/markdown 深依赖），按 declare-for-deep-deps 分层） */
-interface CodingPlanUsageRemainingLike {
-  onUsageClick?: (() => void) | null;
-  [key: string]: unknown;
-}
-declare function CodingPlanUsageToolbar(props: {
-  codingPlanUsageRemaining?: CodingPlanUsageRemainingLike | null | undefined;
-  taskUsage: unknown;
-  startPlanBalance?: unknown;
-  selectedProvider: string;
-  intl: IntlShape;
-  locale: string;
-  onSendCompressionCommand?: (() => void) | null;
-  compressionDisabled?: boolean;
-}): React.ReactElement;
+/* ── tombstone（A1-R19）：declare function CodingPlanUsageToolbar + interface CodingPlanUsageRemainingLike（原 j3e，js 76678–76847）
+ *    删除——§V usage 展示域逐字实体化（j3e 本体 + s3e/v3e + 30 件助手）；消费面 iit 89918 逐字不变。 ── */
+
+/** Coding Plan 计费折扣活动配置（原 lj.value 形，pj 51943 消费面：locale → 文案五字段） */
+type BillingDiscountConfigLike = Record<string, unknown>;
+
+/** Coding Plan 计费折扣活动态（原 dj，js 51910；fj 51913 深依赖：ps 服务 context 2680 + UHe 缓存 52073 + lj/uj 模块态 51905–51909——declare 分层，R19 留批） */
+declare function useCodingPlanBillingDiscount(): {
+  active: boolean;
+  config: BillingDiscountConfigLike | undefined;
+  loading: boolean;
+  refresh: () => Promise<void>;
+};
+
+/** 计费折扣徽章（原 gj，js 51980；组合 hj+_j——declare 分层，R19 留批） */
+declare function CodingPlanBillingDiscountBadge(props: { config: BillingDiscountConfigLike | undefined; size?: string; variant?: string }): React.ReactElement | null;
+
+/** 计费折扣徽章体（原 hj，js 51959；kbe=trending-up vendored 图标 27943——declare 分层，R19 留批） */
+declare function CodingPlanBillingDiscountBadgeLabel(props: { config: BillingDiscountConfigLike | undefined; iconVisible?: boolean; size?: string; variant?: string }): React.ReactElement | null;
+
+/** 计费折扣信息气泡（原 _j，js 52034；cj=MessageResponse markdown 51736 + Ao store 选择器 1301 + zb/Bb/Hb popover 31991+——declare 分层，R19 留批） */
+declare function CodingPlanBillingDiscountInfoPopover(props: { config: BillingDiscountConfigLike | undefined; tone?: string }): React.ReactElement | null;
 
 /** 升级动作（原 Art()，ProviderPlanUsage 族提供） */
 declare function useUpgradeActions(): {
@@ -4728,6 +4737,701 @@ var ComposerConfigToolbar = (0, React.memo)(ComposerConfigToolbarBody); // ait 8
 
 /* ── tombstone（A1-R18）：declare function ComposerConfigToolbar（原 ait，js 89978 = memo(iit 89503)；
  *    iZe 后台工作胶囊 js 69225 仍留批）删除——本文件 §U 配置工具条簇逐字实体化；消费面 90971 逐字不变。 ── */
+
+/* ── §V usage 展示域（原 styles js 76149–76180 + 76246–76293 + 76294–76494 中本批段 + 76505–76847）A1-R19 逐字实体化 ──
+ * 映射表（minified → 语义 → bundle 行）：
+ *   Sq=findUsageLimit 76149 / Cq=resolveUsageLimitRemainingPercent 76152 / $4e=formatUsageLimitPercentLabel 76157 /
+ *   wq=formatUsageResetDateTime 76162–76180 / r3e=resolveUsageGridColumnsClass 76246 / a3e=formatUsageResetClockTime 76252 /
+ *   o3e=UsagePlanLimitRow 76262 / s3e=CodingPlanUsagePanel 76294 / kq=normalizeUsageDetailDisplayName 76418 /
+ *   u3e=formatUsageFractionPercent 76445 / d3e=resolveSnapshotEarliestRenewTime 76451 / f3e=formatSnapshotRenewTime 76465 /
+ *   p3e=formatUsageModelCode 76482 / m3e=resolveUsageDetailLabel 76486 / _3e=StartPlanUsageLimitRow 76505 /
+ *   v3e=StartPlanBalancePanel 76540 / y3e=runActionAndClose 76612 / Aq=USAGE_CHART_SEGMENT_COLORS 76615 /
+ *   b3e=USAGE_CONTEXT_PROGRESS_MAX 76621 / x3e=CACHE_HIT_RATE_DISPLAY_THRESHOLD 76622 / S3e=formatUsageTokenCountCompact 76624 /
+ *   C3e=formatContextUsageSummary 76627 / w3e=formatCacheHitRatePercent 76631 / T3e=resolveUsageChartSegmentStyle 76638 /
+ *   E3e=CONTEXT_USAGE_BREAKDOWN_LABEL_I18N_IDS 76641 / D3e=CONTEXT_USAGE_BREAKDOWN_SOURCE_ORDER 76650 /
+ *   O3e=aggregateContextUsageBreakdown 76659 / k3e=buildContextUsageProgressSegments 76670 / A3e=sanitizeContextTaskUsage 76673 /
+ *   j3e=CodingPlanUsageToolbar 76678–76847。
+ * 跨 chunk 真身：J4e/X4e/Z4e/Q4e/yq=ContextUsageProvider/ContextRingTrigger/ContextRingTooltipContent/ContextRingTooltipBody/
+ *   SegmentedProgress（ModelSelector.tsx，A0-S2d 属主导出）/ wa=ChevronRight（button chunk 导出 o）/
+ *   M=LoaderCircle（imeComposition chunk 导出 w）/ Pv=IconRocket（R15）/ ja=formatNumberCompact（UsageStatsUiParts）/
+ *   Lte=chatContextUsageTriggerTestid（SrcSharedB）/ X=Button / Z=cn / Q=React / $=jsx-runtime。
+ * 胶囊层 declare（本文件头，本批新增）：dj/gj/hj/_j=useCodingPlanBillingDiscount/CodingPlanBillingDiscountBadge/
+ *   CodingPlanBillingDiscountBadgeLabel/CodingPlanBillingDiscountInfoPopover（深依赖 ps 2680/Ao 1301/cj 51736/popover 31991+，留批）。
+ * JSX 保持编译形态；函数体内局部变量保留混淆名。 ── */
+
+/* --- §V.1 限额查找 + 百分比 + 重置时刻格式化（原 76149–76180） --- */
+
+function findUsageLimit(e: QuotaLimitLike[] | null | undefined, t: string, n: number, r?: number) { // Sq
+  return e?.find((e) => e.type === t && e.unit === n && (r == null || e.number === r)) ?? null;
+}
+function resolveUsageLimitRemainingPercent(e: QuotaLimitLike | null | undefined) { // Cq
+  return typeof e?.percentage != `number` || !Number.isFinite(e.percentage)
+    ? null
+    : Math.max(0, Math.min(100, 100 - e.percentage));
+}
+function formatUsageLimitPercentLabel(e: string, t: QuotaLimitLike | null | undefined) { // $4e
+  let n = resolveUsageLimitRemainingPercent(t);
+  return n == null
+    ? `--`
+    : `${new Intl.NumberFormat(e, { maximumFractionDigits: n >= 10 ? 0 : 1 }).format(n)}%`;
+}
+function formatUsageResetDateTime(e: { locale: string; value: string | number | undefined; format?: string; compactToday?: boolean }) { // wq
+  if (!e.value) return;
+  let t = new Date(e.value);
+  if (Number.isNaN(t.getTime())) return;
+  if (e.format === `date`)
+    return new Intl.DateTimeFormat(e.locale, { month: `short`, day: `numeric` }).format(t);
+  let n = new Date(),
+    r =
+      t.getFullYear() === n.getFullYear() &&
+      t.getMonth() === n.getMonth() &&
+      t.getDate() === n.getDate();
+  return new Intl.DateTimeFormat(e.locale, {
+    ...(e.compactToday && r ? {} : { month: `short`, day: `numeric` }),
+    hour: `2-digit`,
+    minute: `2-digit`,
+    hourCycle: `h23`,
+  }).format(t);
+}
+
+/* --- §V.2 网格列类 + 时钟时刻 + 计划限额行（原 76246–76293） --- */
+
+function resolveUsageGridColumnsClass(e: number) { // r3e
+  return e <= 1 ? `grid-cols-1` : e === 2 ? `grid-cols-2` : `grid-cols-3`;
+}
+function formatUsageResetClockTime({ locale: e, value: t }: { locale: string; value: string | number }) { // a3e
+  if (!t) return;
+  let n = new Date(t);
+  if (!Number.isNaN(n.getTime()))
+    return new Intl.DateTimeFormat(e, {
+      hour: `2-digit`,
+      minute: `2-digit`,
+      hourCycle: `h23`,
+    }).format(n);
+}
+function UsagePlanLimitRow({ color: e, label: t, percentage: n, resetTime: r, value: i }: { color: string; label: string; percentage: number | null; resetTime: string | undefined; value: string }) { // o3e
+  return (0, $.jsxs)(`div`, {
+    className: `min-w-0 space-y-1.5`,
+    children: [
+      (0, $.jsxs)(`div`, {
+        className: `min-w-0 space-y-0.5 text-ui-sm`,
+        children: [
+          (0, $.jsx)(`div`, { className: `min-w-0 truncate text-foreground-subtle`, children: t }),
+          (0, $.jsxs)(`div`, {
+            className: `min-w-0 text-ui-sm tabular-nums`,
+            children: [
+              (0, $.jsx)(`span`, { className: `font-mono text-foreground`, children: i }),
+              r
+                ? (0, $.jsxs)(`span`, { className: `text-foreground-subtle`, children: [` · `, r] })
+                : null,
+            ],
+          }),
+        ],
+      }),
+      (0, $.jsx)(`div`, {
+        className: `h-1.5 overflow-hidden rounded-full bg-surface-hover`,
+        children: (0, $.jsx)(`div`, {
+          className: `h-full rounded-full`,
+          style: {
+            backgroundColor: e,
+            width: `${Number.isFinite(n) ? Math.max(0, Math.min(100, n ?? 0)) : 0}%`,
+          },
+        }),
+      }),
+    ],
+  });
+}
+
+/* --- §V.3 Coding Plan usage 面板（原 s3e 76294–76417） --- */
+
+interface CodingPlanUsagePlanLimitRow {
+  color: string;
+  key: string;
+  label: string;
+  limit: QuotaLimitLike;
+  resetTime: string | undefined;
+}
+/** Coding Plan usage 余量入参（原 j3e prop e / s3e config 面；iit 89600 区 ge 构造同形） */
+interface CodingPlanUsageRemainingLike {
+  entitlements: Array<{ id?: string; providerId: string; label?: string; loading?: boolean; snapshot?: EntitlementSnapshotLike | null; sourceId?: string }>;
+  availableProviders: ModelProviderEntry[];
+  selectedProviderId?: string;
+  modelProvidersLoading: boolean;
+  onUsageClick?: (() => void) | null;
+}
+function CodingPlanUsagePanel({ config: e, intl: t, locale: n, separated: r = !1 }: { config: CodingPlanUsageRemainingLike; intl: IntlShape; locale: string; separated?: boolean }) { // s3e
+  let i = useCodingPlanBillingDiscount(),
+    a = (0, React.useMemo)(() => resolveCodingPlanUsageRemaining(e), [e]);
+  if (!a) return null;
+  let o = a.visibleSnapshot?.quota?.level ?? null,
+    s = a.visibleSnapshot?.remaining,
+    c = a.visibleSnapshot?.unavailableReason,
+    l = a.visibleSnapshot?.quota?.limits ?? [],
+    u = findUsageLimit(l, `TOKENS_LIMIT`, 3, 5),
+    d = findUsageLimit(l, `TOKENS_LIMIT`, 6),
+    f = findUsageLimit(l, `TIME_LIMIT`, 5, 1),
+    p = u?.nextResetTime ? formatUsageResetClockTime({ locale: n, value: u.nextResetTime }) : void 0,
+    m = d?.nextResetTime ? formatUsageResetDateTime({ locale: n, value: d.nextResetTime, format: `date` }) : void 0,
+    h = f?.nextResetTime ? formatUsageResetDateTime({ locale: n, value: f.nextResetTime, format: `date` }) : void 0,
+    g =
+      c === `not_configured`
+        ? t.formatMessage({ id: `sidebar.usage.plan.notConfigured` })
+        : c === `not_authenticated`
+          ? t.formatMessage({ id: `sidebar.usage.plan.loginRequired` })
+          : c === `no_plan`
+            ? t.formatMessage({ id: `sidebar.usage.plan.noPlan` })
+            : t.formatMessage({ id: `sidebar.usage.plan.unavailable` }),
+    _ = !a.loading && !s && l.length === 0 && !o,
+    v = [
+      u
+        ? {
+            color: `var(--color-usage-chart-1)`,
+            key: `fiveHour`,
+            label: t.formatMessage({ id: `sidebar.usage.plan.fiveHour` }),
+            limit: u,
+            resetTime: p,
+          }
+        : null,
+      d
+        ? {
+            color: `var(--color-usage-chart-2)`,
+            key: `weekly`,
+            label: t.formatMessage({ id: `sidebar.usage.plan.weekly` }),
+            limit: d,
+            resetTime: m,
+          }
+        : null,
+      f
+        ? {
+            color: `var(--color-usage-chart-3)`,
+            key: `monthlyTool`,
+            label: t.formatMessage({ id: `sidebar.usage.plan.toolCalls` }),
+            limit: f,
+            resetTime: h,
+          }
+        : null,
+    ].filter((e): e is CodingPlanUsagePlanLimitRow => e !== null);
+  return (0, $.jsxs)(`div`, {
+    className: r ? `border-t border-border pt-2` : void 0,
+    children: [
+      (0, $.jsxs)(`div`, {
+        className: `flex min-w-0 items-center mb-2 gap-3`,
+        children: [
+          (0, $.jsxs)(`div`, {
+            className: `flex min-w-0 flex-1 items-center gap-1`,
+            children: [
+              (0, $.jsx)(`span`, {
+                className: `min-w-0 truncate text-ui-base font-medium text-foreground`,
+                children: t.formatMessage({ id: `sidebar.usage.plan.title` }),
+              }),
+              i.active ? (0, $.jsx)(CodingPlanBillingDiscountBadge, { config: i.config, size: `compact` }) : null,
+            ],
+          }),
+          e.onUsageClick
+            ? (0, $.jsxs)(`button`, {
+                type: `button`,
+                "aria-label": t.formatMessage({ id: `sidebar.usage.plan.open` }),
+                className: `inline-flex h-6 shrink-0 items-center gap-0.5 text-ui-sm text-foreground-subtle hover:text-foreground hover:underline`,
+                onClick: (t: React.MouseEvent<HTMLButtonElement>) => {
+                  (t.preventDefault(), t.stopPropagation(), e.onUsageClick?.());
+                },
+                children: [
+                  (0, $.jsx)(`span`, {
+                    children: t.formatMessage({ id: `sidebar.usage.plan.open` }),
+                  }),
+                  (0, $.jsx)(ChevronRight, { className: `size-3.5` }),
+                ],
+              })
+            : null,
+        ],
+      }),
+      (0, $.jsx)(`div`, {
+        className: cn(`grid gap-2`, resolveUsageGridColumnsClass(v.length)),
+        children:
+          a.loading && !a.visibleSnapshot
+            ? (0, $.jsxs)(`div`, {
+                className: `flex items-center gap-2 p-2 text-ui-base text-foreground-subtle`,
+                children: [
+                  (0, $.jsx)(LoaderCircle, { className: `size-3.5 animate-spin` }),
+                  t.formatMessage({ id: `sidebar.usage.plan.loading` }),
+                ],
+              })
+            : a.displayedEntitlement?.error
+              ? (0, $.jsx)(`div`, {
+                  className: `rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-ui-base text-destructive`,
+                  children: a.displayedEntitlement.error,
+                })
+              : _
+                ? (0, $.jsx)(`div`, {
+                    className: `p-2 text-ui-base leading-relaxed text-foreground-subtle`,
+                    children: g,
+                  })
+                : v.map((e) =>
+                    (0, $.jsx)(
+                      UsagePlanLimitRow,
+                      {
+                        color: e.color,
+                        label: e.label,
+                        percentage: resolveUsageLimitRemainingPercent(e.limit),
+                        value: formatUsageLimitPercentLabel(n, e.limit),
+                        resetTime: e.resetTime,
+                      },
+                      e.key,
+                    ),
+                  ),
+      }),
+    ],
+  });
+}
+
+/* --- §V.4 展示名归一 + 分数百分比 + 最早续费时刻 + 模型码 + 明细标签（原 76418–76494 本批段） --- */
+
+function normalizeUsageDetailDisplayName(e: string) { // kq
+  let t = e.replace(/\s+/g, ` `).trim();
+  if (/^GLM-\S+$/i.test(t))
+    return t
+      .split(`-`)
+      .map((e, t) => (t === 0 ? `GLM` : /^turbo$/i.test(e) ? `Turbo` : e))
+      .join(`-`);
+  let n = t.replace(/[_-]+/g, ` `);
+  return n
+    ? n
+        .split(` `)
+        .map((e) =>
+          /^(GLM|API|MCP|AI)$/i.test(e)
+            ? e.toUpperCase()
+            : /^\d+(\.\d+)?$/.test(e)
+              ? e
+              : e.charAt(0).toUpperCase() + e.slice(1).toLowerCase(),
+        )
+        .join(` `)
+    : ``;
+}
+function formatUsageFractionPercent(e: number, t: string | undefined) { // u3e
+  let n = Number.isFinite(e) ? Math.max(0, Math.min(1, e)) : 0;
+  return new Intl.NumberFormat(t || void 0, { maximumFractionDigits: 0, style: `percent` }).format(
+    n,
+  );
+}
+function resolveSnapshotEarliestRenewTime(e: EntitlementSnapshotLike | null | undefined) { // d3e
+  let t = e?.subscription?.details[0]?.renewTime?.trim();
+  if (t) {
+    let e = Date.parse(t);
+    if (Number.isFinite(e)) return e;
+  }
+  let n = e?.remaining?.nextResetTime;
+  return typeof n == `number` && Number.isFinite(n)
+    ? n
+    : (e?.quota?.limits ?? [])
+        .map((e) => e.nextResetTime)
+        .filter((e): e is number => typeof e == `number` && Number.isFinite(e))
+        .sort((e, t) => e - t)[0];
+}
+function formatSnapshotRenewTime(e: number | undefined, t: string) { // f3e
+  if (!e) return;
+  let n = new Date(e);
+  if (Number.isNaN(n.getTime())) return;
+  let r = new Intl.DateTimeFormat(t || void 0, { month: `short`, day: `numeric` }).format(n),
+    i = new Intl.DateTimeFormat(t || void 0, {
+      hour: `2-digit`,
+      minute: `2-digit`,
+      hourCycle: `h23`,
+    }).format(n),
+    a = new Date();
+  return n.getFullYear() === a.getFullYear() &&
+    n.getMonth() === a.getMonth() &&
+    n.getDate() === a.getDate()
+    ? i
+    : `${r} ${i}`;
+}
+function formatUsageModelCode(e: string) { // p3e
+  let t = e.replace(/^model:/i, ``);
+  return t.toLowerCase() === `glm-5-turbo` ? `GLM-5Turbo` : t.toUpperCase();
+}
+function resolveUsageDetailLabel(e: QuotaLimitLike) { // m3e
+  let t = e.usageDetails
+    .map((e) => {
+      let t = e.displayName?.trim();
+      return normalizeUsageDetailDisplayName(t || formatUsageModelCode(e.modelCode.trim()));
+    })
+    .filter((e) => e.length > 0);
+  return t.length === 0 ? e.type : t.join(` / `);
+}
+
+/* --- §V.5 Start Plan 余额行 + 面板（原 _3e 76505 / v3e 76540） --- */
+
+function StartPlanUsageLimitRow({ limit: e, locale: t, renewTime: n }: { limit: QuotaLimitLike; locale: string; renewTime: string | undefined }) { // _3e
+  let r = quotaLimitTotal(e),
+    i = quotaLimitRemaining(e),
+    a = r > 0 ? Math.max(0, Math.min(1, i / r)) : 0;
+  return (0, $.jsxs)(`div`, {
+    className: `min-w-0 space-y-1.5`,
+    children: [
+      (0, $.jsxs)(`div`, {
+        className: `min-w-0 space-y-0.5 text-ui-sm`,
+        children: [
+          (0, $.jsx)(`div`, {
+            className: `min-w-0 truncate text-foreground-subtle`,
+            children: resolveUsageDetailLabel(e),
+          }),
+          (0, $.jsxs)(`div`, {
+            className: `min-w-0 text-ui-sm tabular-nums`,
+            children: [
+              (0, $.jsx)(`span`, { className: `font-mono text-foreground`, children: formatUsageFractionPercent(a, t) }),
+              n
+                ? (0, $.jsxs)(`span`, { className: `text-foreground-subtle`, children: [` · `, n] })
+                : null,
+            ],
+          }),
+        ],
+      }),
+      (0, $.jsx)(`div`, {
+        className: `h-1.5 overflow-hidden rounded-full bg-surface-hover`,
+        children: (0, $.jsx)(`div`, {
+          className: `h-full rounded-full bg-success`,
+          style: { width: `${a * 100}%` },
+        }),
+      }),
+    ],
+  });
+}
+/** Start Plan 余额视图入参（原 j3e prop t / v3e config 面；iit 4348 区 ne 构造同形） */
+interface StartPlanBalanceLike {
+  loading?: boolean;
+  onUpgradeClick?: (() => void) | null;
+  snapshot?: EntitlementSnapshotLike | null;
+}
+function StartPlanBalancePanel({ config: e, intl: t, locale: n, separated: r = !1 }: { config: StartPlanBalanceLike; intl: IntlShape; locale: string; separated?: boolean }) { // v3e
+  let i = useCodingPlanBillingDiscount(),
+    a = i.active === !0,
+    o = listActiveQuotaLimits(e.snapshot),
+    s = formatSnapshotRenewTime(resolveSnapshotEarliestRenewTime(e.snapshot), n);
+  return !e.loading && o.length === 0
+    ? null
+    : (0, $.jsxs)(`div`, {
+        className: r ? `border-t border-border pt-2` : void 0,
+        children: [
+          (0, $.jsxs)(`div`, {
+            className: `mb-2 flex min-w-0 items-center gap-3`,
+            children: [
+              (0, $.jsxs)(`div`, {
+                className: `flex min-w-0 flex-1 items-center gap-1.5`,
+                children: [
+                  (0, $.jsx)(`span`, {
+                    className: `min-w-0 truncate text-ui-base font-medium text-foreground`,
+                    children: t.formatMessage({
+                      id: `settings.modelProvider.startPlan.balance.title`,
+                    }),
+                  }),
+                  e.loading
+                    ? (0, $.jsx)(LoaderCircle, {
+                        className: `size-3.5 shrink-0 animate-spin text-foreground-subtle`,
+                      })
+                    : null,
+                ],
+              }),
+              e.onUpgradeClick
+                ? (0, $.jsxs)(`div`, {
+                    className: `inline-flex shrink-0 items-center gap-1`,
+                    children: [
+                      (0, $.jsxs)(Button, {
+                        type: `button`,
+                        size: `xs`,
+                        className: cn(
+                          `h-6 shrink-0 gap-1 px-2 text-ui-sm`,
+                          a &&
+                            `button-gradient rounded-full pr-[5px] text-white hover:bg-transparent hover:opacity-90 dark:bg-[#484A58] dark:hover:bg-[#484A58]`,
+                        ),
+                        onClick: (t: React.MouseEvent<HTMLButtonElement>) => {
+                          (t.preventDefault(), t.stopPropagation(), e.onUpgradeClick?.());
+                        },
+                        children: [
+                          (0, $.jsx)(IconRocket, { className: `size-3` }),
+                          t.formatMessage({ id: `chat.quota.action.upgrade` }),
+                          a
+                            ? (0, $.jsx)(CodingPlanBillingDiscountBadgeLabel, {
+                                config: i.config,
+                                iconVisible: !1,
+                                size: `compact`,
+                                variant: `surface`,
+                              })
+                            : null,
+                        ],
+                      }),
+                      a ? (0, $.jsx)(CodingPlanBillingDiscountInfoPopover, { config: i.config }) : null,
+                    ],
+                  })
+                : null,
+            ],
+          }),
+          (0, $.jsx)(`div`, {
+            className: cn(`grid gap-2`, resolveUsageGridColumnsClass(o.length)),
+            children: o.map((e) =>
+              (0, $.jsx)(StartPlanUsageLimitRow, { limit: e, locale: n, renewTime: s }, `${e.type}:${resolveUsageDetailLabel(e)}`),
+            ),
+          }),
+        ],
+      });
+}
+
+/* --- §V.6 上下文用量助手族（原 76612–76677） --- */
+
+function runActionAndClose({ action: e, close: t }: { action?: (() => void) | null; close: () => void }) { // y3e
+  (t(), e?.());
+}
+var USAGE_CHART_SEGMENT_COLORS = [
+    `var(--color-usage-chart-1)`,
+    `color-mix(in oklab, var(--color-usage-chart-1) 78%, var(--color-surface))`,
+    `color-mix(in oklab, var(--color-usage-chart-1) 58%, var(--color-surface))`,
+    `color-mix(in oklab, var(--color-usage-chart-1) 42%, var(--color-surface))`,
+    `color-mix(in oklab, var(--color-usage-chart-1) 28%, var(--color-surface))`,
+  ],
+  USAGE_CONTEXT_PROGRESS_MAX = 100,
+  CACHE_HIT_RATE_DISPLAY_THRESHOLD = 0.78;
+function formatUsageTokenCountCompact(e: number, t: string, n: { maximumFractionDigits?: number } = {}) { // S3e
+  return formatNumberCompact(t, e, n);
+}
+function formatContextUsageSummary({ locale: e, percent: t, size: n, used: r }: { locale: string; percent: number; size: number; used: number }) { // C3e
+  let i = new Intl.NumberFormat(e, { maximumFractionDigits: 1, style: `percent` });
+  return `${formatUsageTokenCountCompact(r, e)}/${formatUsageTokenCountCompact(n, e, { maximumFractionDigits: 0 })} (${i.format(t)})`;
+}
+function formatCacheHitRatePercent(e: number | null | undefined, t: string, n: { showBelowThreshold?: boolean } = {}) { // w3e
+  return e == null || !Number.isFinite(e) || (!n.showBelowThreshold && e < CACHE_HIT_RATE_DISPLAY_THRESHOLD)
+    ? null
+    : new Intl.NumberFormat(t, { maximumFractionDigits: 1, style: `percent` }).format(
+        Math.max(0, e),
+      );
+}
+function resolveUsageChartSegmentStyle(e: number) { // T3e
+  return { backgroundColor: USAGE_CHART_SEGMENT_COLORS[Math.min(e, USAGE_CHART_SEGMENT_COLORS.length - 1)] ?? USAGE_CHART_SEGMENT_COLORS[0] };
+}
+var CONTEXT_USAGE_BREAKDOWN_LABEL_I18N_IDS: Record<string, string> = {
+    messages: `chat.contextUsage.breakdown.messages`,
+    system_prompt: `chat.contextUsage.breakdown.systemPrompt`,
+    meta_user_context: `chat.contextUsage.breakdown.metaUserContext`,
+    skills: `chat.contextUsage.breakdown.skills`,
+    tool_prompt: `chat.contextUsage.breakdown.toolPrompt`,
+    system_tool_schemas: `chat.contextUsage.breakdown.systemTools`,
+    mcp_tool_schemas: `chat.contextUsage.breakdown.mcpTools`,
+  },
+  CONTEXT_USAGE_BREAKDOWN_SOURCE_ORDER: Record<string, number> = {
+    messages: 0,
+    system_prompt: 1,
+    meta_user_context: 2,
+    skills: 3,
+    tool_prompt: 4,
+    system_tool_schemas: 5,
+    mcp_tool_schemas: 6,
+  };
+function aggregateContextUsageBreakdown(e: Array<{ source: string; chars: number }> | null | undefined) { // O3e
+  let t = new Map();
+  for (let n of e ?? [])
+    !Number.isFinite(n.chars) || n.chars <= 0 || t.set(n.source, (t.get(n.source) ?? 0) + n.chars);
+  let n = [...t.values()].reduce((e, t) => e + t, 0);
+  return n <= 0
+    ? []
+    : [...t.entries()]
+        .map(([e, t]) => ({ chars: t, percent: t / n, source: e }))
+        .sort((e, t) => t.chars - e.chars || CONTEXT_USAGE_BREAKDOWN_SOURCE_ORDER[e.source] - CONTEXT_USAGE_BREAKDOWN_SOURCE_ORDER[t.source]);
+}
+function buildContextUsageProgressSegments(e: Array<{ chars: number; percent: number; source: string }>) { // k3e
+  return e.map((e, t) => ({ id: e.source, percent: e.percent, style: resolveUsageChartSegmentStyle(t) }));
+}
+/** 任务上下文用量（原 j3e prop n / iit 4625 区 je 构造同形） */
+interface ContextTaskUsageLike {
+  used: number;
+  size: number;
+  cache?: { hitRate?: number | null } | null;
+  breakdown?: Array<{ source: string; chars: number }> | null;
+}
+function sanitizeContextTaskUsage(e: ContextTaskUsageLike | null | undefined) { // A3e
+  return !e || !Number.isFinite(e.used) || !Number.isFinite(e.size) || e.used <= 0 || e.size <= 0
+    ? null
+    : e;
+}
+
+/* --- §V.7 usage 工具条本体（原 j3e 76678–76847） --- */
+
+interface CodingPlanUsageToolbarProps {
+  codingPlanUsageRemaining?: CodingPlanUsageRemainingLike | null;
+  startPlanBalance?: StartPlanBalanceLike | null;
+  taskUsage?: ContextTaskUsageLike | null;
+  selectedProvider?: unknown;
+  intl: IntlShape;
+  locale: string;
+  onSendCompressionCommand?: (() => void) | null; // iit 89918 透传面；bundle j3e 不解构
+  compressionDisabled?: boolean; // 同上
+}
+function CodingPlanUsageToolbar({
+  codingPlanUsageRemaining: e,
+  startPlanBalance: t,
+  taskUsage: n,
+  selectedProvider: r,
+  intl: i,
+  locale: a,
+}: CodingPlanUsageToolbarProps) { // j3e
+  let [o, s] = (0, React.useState)(!1),
+    c = sanitizeContextTaskUsage(n),
+    l = (0, React.useMemo)(
+      () =>
+        e?.onUsageClick
+          ? { ...e, onUsageClick: () => runActionAndClose({ action: e.onUsageClick, close: () => s(!1) }) }
+          : e,
+      [e],
+    ),
+    u = (0, React.useMemo)(() => {
+      if (t)
+        return t.onUpgradeClick
+          ? {
+              ...t,
+              onUpgradeClick: () => {
+                (s(!1), t.onUpgradeClick?.());
+              },
+            }
+          : t;
+    }, [t]),
+    d = l ? hasCodingPlanUsageRemaining(l) : !1,
+    f = hasStartPlanBalanceDisplay(u),
+    p = (0, React.useMemo)(() => new Intl.NumberFormat(a), [a]),
+    m = (0, React.useMemo)(
+      () =>
+        c
+          ? i.formatMessage(
+              { id: `chat.contextUsage` },
+              { used: p.format(c.used), total: p.format(c.size) },
+            )
+          : null,
+      [i, p, c],
+    ),
+    h = (0, React.useMemo)(() => formatCacheHitRatePercent(c?.cache?.hitRate, a, { showBelowThreshold: !1 }), [a, c]),
+    g = (0, React.useMemo)(() => aggregateContextUsageBreakdown(c?.breakdown), [c?.breakdown]),
+    _ = (0, React.useMemo)(() => buildContextUsageProgressSegments(g), [g]),
+    v = (0, React.useMemo)(
+      () => new Intl.NumberFormat(a, { maximumFractionDigits: 1, style: `percent` }),
+      [a],
+    );
+  if ((!c || !m) && !d && !f) return null;
+  let y = c ? Math.min(Math.max(c.used / c.size, 0), 1) : 0,
+    b = c ? formatContextUsageSummary({ locale: a, percent: y, size: c.size, used: c.used }) : null,
+    x =
+      m ??
+      (d
+        ? i.formatMessage({ id: `sidebar.usage.plan.title` })
+        : i.formatMessage({ id: `settings.modelProvider.startPlan.balance.title` }));
+  return (0, $.jsxs)(ContextUsageProvider, {
+    usedTokens: c?.used ?? 0,
+    maxTokens: c?.size ?? 1,
+    open: o,
+    onOpenChange: s,
+    children: [
+      (0, $.jsx)(ContextRingTrigger, {
+        "aria-label": x,
+        className: `text-foreground-subtle`,
+        "data-chat-toolbar-popover-trigger": `true`,
+        "data-testid": chatContextUsageTriggerTestid,
+      }),
+      (0, $.jsx)(ContextRingTooltipContent, {
+        className: `!w-80 !rounded-xl !shadow-md`,
+        side: `top`,
+        sideOffset: 2,
+        children: (0, $.jsxs)(ContextRingTooltipBody, {
+          className: `space-y-3`,
+          children: [
+            c && b
+              ? (0, $.jsxs)(`div`, {
+                  className: `space-y-2`,
+                  children: [
+                    (0, $.jsxs)(`div`, {
+                      className: `flex min-w-0 mb-3 items-center gap-3`,
+                      children: [
+                        (0, $.jsx)(`span`, {
+                          className: `shrink-0 text-ui-base font-medium text-foreground`,
+                          children: i.formatMessage({ id: `chat.contextUsage.title` }),
+                        }),
+                        (0, $.jsx)(`span`, {
+                          className: `ml-auto shrink-0 text-right font-mono text-ui-sm text-foreground-subtle`,
+                          children: b,
+                        }),
+                      ],
+                    }),
+                    (0, $.jsx)(SegmentedProgress, {
+                      className: `h-2 bg-surface`,
+                      indicatorClassName: `min-w-2`,
+                      segments: _,
+                      value: y * USAGE_CONTEXT_PROGRESS_MAX,
+                    }),
+                  ],
+                })
+              : null,
+            c && (g.length > 0 || h)
+              ? (0, $.jsxs)($.Fragment, {
+                  children: [
+                    g.length > 0
+                      ? (0, $.jsx)(`div`, {
+                          "aria-label": i.formatMessage({ id: `chat.contextUsage.breakdown` }),
+                          className: `space-y-1.5`,
+                          children: (0, $.jsx)(`div`, {
+                            className: `grid gap-1.5`,
+                            children: g.map((e, t) =>
+                              (0, $.jsxs)(
+                                `div`,
+                                {
+                                  className: `flex min-w-0 items-center gap-2 text-ui-sm`,
+                                  children: [
+                                    (0, $.jsx)(`span`, {
+                                      "aria-hidden": `true`,
+                                      className: `size-2 shrink-0 rounded-sm border border-border`,
+                                      style: resolveUsageChartSegmentStyle(t),
+                                    }),
+                                    (0, $.jsx)(`span`, {
+                                      className: `min-w-0 truncate text-foreground-subtle`,
+                                      children: i.formatMessage({ id: CONTEXT_USAGE_BREAKDOWN_LABEL_I18N_IDS[e.source] }),
+                                    }),
+                                    (0, $.jsx)(`span`, {
+                                      className: `ml-auto min-w-10 shrink-0 text-right font-mono text-ui-sm tabular-nums text-foreground`,
+                                      children: v.format(e.percent),
+                                    }),
+                                  ],
+                                },
+                                e.source,
+                              ),
+                            ),
+                          }),
+                        })
+                      : null,
+                    h
+                      ? (0, $.jsxs)(`div`, {
+                          className: cn(
+                            `flex items-center justify-between gap-3 text-ui-sm`,
+                            g.length > 0 && `border-t border-border pt-3`,
+                          ),
+                          children: [
+                            (0, $.jsx)(`span`, {
+                              className: `text-foreground-subtle`,
+                              children: i.formatMessage({ id: `chat.contextUsage.cacheHitRate` }),
+                            }),
+                            (0, $.jsx)(`span`, {
+                              className: `font-mono text-ui-sm text-foreground`,
+                              children: h,
+                            }),
+                          ],
+                        })
+                      : null,
+                  ],
+                })
+              : null,
+            l && d
+              ? (0, $.jsx)(CodingPlanUsagePanel, { config: l, intl: i, locale: a, separated: !!(c && b) })
+              : null,
+            u && f
+              ? (0, $.jsx)(StartPlanBalancePanel, { config: u, intl: i, locale: a, separated: !!((c && b) || d) })
+              : null,
+          ],
+        }),
+      }),
+    ],
+  });
+}
 
 /**
  * composer 输入区（原 ZV，F08 根组件，js 66959–~69297；接口保留）。
