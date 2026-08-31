@@ -76,14 +76,18 @@
  *   _2t=60000, v2t=30                (202377 附近)
  *   T2t  → errorMessageOf (202644 / 161838)；T9 → hasErrorCode (202647)
  *
- *  设置导航 / 意图（跨分区跳转的状态机）：
- *   $C   → isSettingsSectionId (39257)；ew → isSettingsSectionVisible (39276)
- *   tw   → resolveVisibleSettingsSection (39279)；rw → persistLastSettingsSection (39311)
- *   UMe  → readInitialSettingsSection (39323)；KMe → consumeUsageTabIntent (39365)
- *   sw   → consumeModelProviderIntent (39377)；qMe → shouldResetUsageTabToApp (39386)
- *   cw   → subscribeSettingsSectionIntent (39394)；ow/iw/aw → requestSettingsSectionNavigation (39330)
- *   JC/YC/XC/ZC/QC → sessionStorage/localStorage/事件 键 (39251–39255)
- *   VMe  → HIDDEN_SETTINGS_SECTIONS = {automations} (39256)
+ *  设置导航 / 意图（跨分区跳转的状态机）：〔A1-R24〕全域收敛 Home §U.7 逐字 canonical，
+ *  本文件仅再导出（墓碑见 §2 位；旧注行号 39251–39405 为漂移值，实测如下）：
+ *   $C   → isSettingsSectionId (39305)；ew → isSettingsSectionVisible (39324)
+ *   tw   → resolveVisibleSettingsSection (39327)；nw → tryGetSettingsStorage (39330)
+ *   HMe  → readLastSettingsSection (39343)；rw → persistLastSettingsSection (39359)
+ *   UMe  → readInitialSettingsSection (39371)；iw → openSettingsSection (39375)
+ *   aw   → openSettingsUsageSection (39378)；ow → requestSettingsSectionOpen (39381，本面别名 requestSettingsSectionNavigation)
+ *   WMe  → clearSettingsSectionIntents (39397)；GMe → consumeSectionIntent (39405)
+ *   KMe  → consumeUsageTabIntent (39413)；sw → consumeModelProviderIntent (39425)
+ *   qMe  → shouldResetUsageTabToApp (39434)；cw → subscribeSettingsSectionIntent (39442)
+ *   JC/YC/XC/ZC/QC → sessionStorage/localStorage/事件 键 (39299–39303)
+ *   VMe  → AUTOMATION_SETTINGS_SECTION_VALUES = {automations} (39304)
  *   A9/n4t → codingPlanTabId/parseCodingPlanTabId (204819/204822)
  *   t4t/r4t/i4t/a4t → 团队计划判定/标签/个人源构造/快照可用性 (204813/204825/204832/204839)
  *
@@ -169,6 +173,23 @@ import { formatWeekday, formatShortDate, formatMemoryUpdatedLabel, errorMessageO
 import { IndexingSettingsSection } from '../components/settings/IndexingSettingsSection';
 import { BrowserSettingsSection } from '../components/settings/BrowserSettingsSection';
 import { McpSettingsSection } from '../components/settings/McpSettingsSection';
+// 〔A1-R24〕设置导航域收敛：原 §2 A0 副本删除，真身 = Home §U.7 逐字（墓碑见原 §2 位）。
+// 环安全：Home 顶层 hoisted function 族，本文件全为组件体/渲染期消费；模块级唯一调用面
+// SETTINGS_SECTION_REGISTRY 的 filter 只调 hoisted function（无 var/const TDZ 面）。
+import {
+  isSettingsSectionId,
+  isSettingsSectionVisible,
+  resolveVisibleSettingsSection,
+  readInitialSettingsSection,
+  persistLastSettingsSection,
+  consumeUsageTabIntent,
+  consumeModelProviderIntent,
+  requestSettingsSectionOpen as requestSettingsSectionNavigation, // A0 别名：iw/aw 并入本面（iw≡ow 单参；aw≡ow(`usage`)）
+  shouldResetUsageTabToApp,
+  subscribeSettingsSectionIntent,
+  type SettingsSectionId,
+  type SettingsSectionIntentDetail,
+} from '../components/shell/Home';
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -397,7 +418,7 @@ declare function buildTeamPlanSources(input: {
   availableCodingPlanProviders: ModelProvider[];
   subscribedTeamProducts: Array<{ subscribed: boolean; [key: string]: unknown }>;
 }): CodingPlanSource[];
-/** 原 fX()（js 89052）：Coding Plan 升级入口上下文 */
+/** 原 fX()（js 89100；A1-R24 行漂校正，旧注 89052 为漂移）：Coding Plan 升级入口上下文 */
 declare function useCodingPlanUpgrade(): {
   openCodingPlanUpgrade(input: { providerId: string; funnelContext: string }): void;
 };
@@ -496,232 +517,36 @@ export function testidOf(prefix: string, value: string): string {
 
 
 /* ============================================================================
- * 2. 设置导航状态机（原 js 39251–39405：分区持久化 + 跨窗口意图事件）
+ * 2. tombstone（A1-R24 · 设置导航域裁定，R21/R23 模式直接套用）
+ * ----------------------------------------------------------------------------
+ * 原 §2 A0 语义重建（JC/YC/XC/ZC/QC 五键常量 + VMe 隐藏集 + $C/ew/tw/nw/HMe/rw/UMe/
+ * GMe/KMe/sw/WMe/ow/cw/qMe 全族；旧注行号 39251–39405 为漂移值）删除。
+ * 逐字 canonical = Home §U.7（components/shell/Home.tsx，A1-R24 全域补齐：
+ * JC..VMe 39299–39304 | $C 39305 | ew 39324 | tw 39327 | nw 39330 | HMe 39343 |
+ * rw 39359 | UMe 39371 | iw 39375 | aw 39378 | ow 39381 | WMe 39397 | GMe 39405 |
+ * KMe 39413 | sw 39425 | qMe 39434 | cw 39442；机械逐字校验器段在证）。
+ * 裁定证据：bundle 各符唯一真身（39299–39451 区各仅一定义）；终端消费实测——
+ * UMe 205200 / rw 205201+205285 / KMe 205239 / sw 205269 / qMe 205338 / cw 205347 /
+ * tw 205284 = 本文件设置页（下方调用点逐字不变）；sw 192102 / cw 192121 =
+ * ModelProviderSettingsSection；iw 195613 ≡ UsageSettingsSection navigateToSettingsSection；
+ * aw 89577 = Home §U.10 4305；ow 89759 = Home §U.10 4487。A0 副本消费面全在本文件内
+ * 或已归属面 = 并行重建叠层，判同身；导出面经文件头 import + 下方再导出维持（别名不变）。
  * ==========================================================================*/
 
-/** 原 JC/YC/XC/ZC/QC（js 39251–39255）：意图与记忆的存储键 */
-const SETTINGS_SECTION_INTENT_STORAGE_KEY = "zcode-settings-section-intent";
-const SETTINGS_USAGE_TAB_INTENT_STORAGE_KEY = "zcode-settings-usage-tab-intent";
-const SETTINGS_MODEL_PROVIDER_INTENT_STORAGE_KEY = "zcode-settings-model-provider-id-intent";
-const SETTINGS_SECTION_INTENT_EVENT = "zcode:settings-section-intent";
-const SETTINGS_LAST_SECTION_STORAGE_KEY = "zcode-settings-last-section";
-
-/** 设置分区 id 全集（原 $C，js 39257） */
-export type SettingsSectionId =
-  | "general"
-  | "appearance"
-  | "migration"
-  | "indexing"
-  | "browser"
-  | "modelProvider"
-  | "memory"
-  | "mcp"
-  | "plugins"
-  | "usage"
-  | "skills"
-  | "subagents"
-  | "commands"
-  | "hooks"
-  | "automations";
-
-/** 原 $C（js 39257） */
-export function isSettingsSectionId(value: unknown): value is SettingsSectionId {
-  return (
-    value === "general" ||
-    value === "appearance" ||
-    value === "migration" ||
-    value === "indexing" ||
-    value === "browser" ||
-    value === "modelProvider" ||
-    value === "memory" ||
-    value === "mcp" ||
-    value === "plugins" ||
-    value === "usage" ||
-    value === "skills" ||
-    value === "subagents" ||
-    value === "commands" ||
-    value === "hooks" ||
-    value === "automations"
-  );
-}
-
-/** 原 VMe（js 39256）：隐藏分区集合。
- *  注意：`automations` 在 3.7.6 被门控隐藏——注册表 K2t 的 `.filter(ew)` 会把它过滤掉，
- *  但 j9 的分区渲染分支仍保留 `automations → d6`（深链接/意图仍可进入）。 */
-const HIDDEN_SETTINGS_SECTIONS = new Set<SettingsSectionId>(["automations"]);
-
-/** 原 ew（js 39276） */
-export function isSettingsSectionVisible(id: SettingsSectionId): boolean {
-  return !HIDDEN_SETTINGS_SECTIONS.has(id);
-}
-
-/** 原 tw（js 39279）：不可见分区回落到缺省分区 */
-export function resolveVisibleSettingsSection(
-  id: SettingsSectionId,
-  fallback: SettingsSectionId = "general",
-): SettingsSectionId {
-  return isSettingsSectionVisible(id) ? id : fallback;
-}
-
-function tryGetSettingsStorage(): Storage | null {
-  if (typeof window > "u") return null;
-  try {
-    return window.localStorage;
-  } catch (error) {
-    logger.warn("[settingsNavigation] localStorage 不可用", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
-  }
-}
-
-/** 原 HMe（js 39294）：读取上次分区（含历史名 `codePreview` → `appearance` 迁移） */
-function readLastSettingsSection(fallback: SettingsSectionId = "general"): SettingsSectionId {
-  const storage = tryGetSettingsStorage();
-  if (!storage) return fallback;
-  try {
-    const raw = storage.getItem(SETTINGS_LAST_SECTION_STORAGE_KEY);
-    if (raw === "codePreview") {
-      storage.setItem(SETTINGS_LAST_SECTION_STORAGE_KEY, "appearance");
-      return "appearance";
-    }
-    if (raw && isSettingsSectionId(raw)) return resolveVisibleSettingsSection(raw, fallback);
-    if (raw !== null) storage.removeItem(SETTINGS_LAST_SECTION_STORAGE_KEY);
-  } catch (error) {
-    logger.warn("[settingsNavigation] 读取上次设置分区失败", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-  return fallback;
-}
-
-/** 原 rw（js 39311）：持久化当前分区 */
-export function persistLastSettingsSection(id: SettingsSectionId): void {
-  const visible = resolveVisibleSettingsSection(id);
-  const storage = tryGetSettingsStorage();
-  if (!storage) return;
-  try {
-    storage.setItem(SETTINGS_LAST_SECTION_STORAGE_KEY, visible);
-  } catch (error) {
-    logger.warn("[settingsNavigation] 写入上次设置分区失败", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-}
-
-/** 原 GMe（js 39355）：消费一次性分区跳转意图（sessionStorage，读后即删） */
-function consumeSectionIntent(fallback: SettingsSectionId = "general"): SettingsSectionId {
-  if (typeof window > "u") return fallback;
-  try {
-    const raw = window.sessionStorage.getItem(SETTINGS_SECTION_INTENT_STORAGE_KEY);
-    if (raw !== null) window.sessionStorage.removeItem(SETTINGS_SECTION_INTENT_STORAGE_KEY);
-    if (raw && isSettingsSectionId(raw)) return raw;
-  } catch {
-    /* 忽略：隐私模式等场景 sessionStorage 不可用 */
-  }
-  return fallback;
-}
-
-/** 原 UMe（js 39323）：初始分区 = 意图 > 上次记忆 > general（均过可见性过滤） */
-export function readInitialSettingsSection(fallback: SettingsSectionId = "general"): SettingsSectionId {
-  const remembered = readLastSettingsSection(fallback);
-  return resolveVisibleSettingsSection(consumeSectionIntent(remembered), remembered);
-}
-
-/** 原 KMe（js 39365）：消费用量标签页意图（`app` | `codingPlan`，读后即删） */
-export function consumeUsageTabIntent(): "app" | "codingPlan" | undefined {
-  if (typeof window > "u") return undefined;
-  try {
-    const raw = window.sessionStorage.getItem(SETTINGS_USAGE_TAB_INTENT_STORAGE_KEY);
-    if (raw !== null) window.sessionStorage.removeItem(SETTINGS_USAGE_TAB_INTENT_STORAGE_KEY);
-    return raw === "app" || raw === "codingPlan" ? raw : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** 原 sw（js 39377）：消费模型供应商深链接意图（读后即删） */
-export function consumeModelProviderIntent(): { providerId: string } | undefined {
-  if (typeof window > "u") return undefined;
-  try {
-    const raw = window.sessionStorage.getItem(SETTINGS_MODEL_PROVIDER_INTENT_STORAGE_KEY);
-    window.sessionStorage.removeItem(SETTINGS_MODEL_PROVIDER_INTENT_STORAGE_KEY);
-    return raw?.trim() ? { providerId: raw.trim() } : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** 原 WMe（js 39349）：清空全部意图 */
-function clearSettingsNavigationIntents(): void {
-  if (typeof window > "u") return;
-  try {
-    window.sessionStorage.removeItem(SETTINGS_SECTION_INTENT_STORAGE_KEY);
-    window.sessionStorage.removeItem(SETTINGS_USAGE_TAB_INTENT_STORAGE_KEY);
-    window.sessionStorage.removeItem(SETTINGS_MODEL_PROVIDER_INTENT_STORAGE_KEY);
-  } catch {
-    /* 忽略 */
-  }
-}
-
-export interface SettingsSectionIntentDetail {
-  section: SettingsSectionId;
-  usageTab?: "app" | "codingPlan";
-  modelProviderId?: string;
-}
-
-/** 原 ow（js 39332）：发起跨窗口设置跳转（写意图 + 广播事件）。
- *  iw=任意分区入口；aw=直达用量（ow('usage')）。 */
-export function requestSettingsSectionNavigation(
-  section: SettingsSectionId,
-  detail: { usageTab?: "app" | "codingPlan"; modelProviderId?: string } = {},
-): void {
-  if (typeof window > "u") return;
-  try {
-    window.sessionStorage.setItem(SETTINGS_SECTION_INTENT_STORAGE_KEY, section);
-    if (detail.usageTab) window.sessionStorage.setItem(SETTINGS_USAGE_TAB_INTENT_STORAGE_KEY, detail.usageTab);
-    if (detail.modelProviderId) {
-      window.sessionStorage.setItem(SETTINGS_MODEL_PROVIDER_INTENT_STORAGE_KEY, detail.modelProviderId);
-    } else {
-      window.sessionStorage.removeItem(SETTINGS_MODEL_PROVIDER_INTENT_STORAGE_KEY);
-    }
-  } catch {
-    /* 忽略 */
-  }
-  window.dispatchEvent(
-    new CustomEvent<SettingsSectionIntentDetail>(SETTINGS_SECTION_INTENT_EVENT, {
-      detail: { section, usageTab: detail.usageTab, modelProviderId: detail.modelProviderId },
-    }),
-  );
-}
-
-/** 原 cw（js 39394）：订阅设置跳转意图（返回取消订阅函数） */
-export function subscribeSettingsSectionIntent(
-  handler: (section: SettingsSectionId, detail: SettingsSectionIntentDetail) => void,
-): () => void {
-  if (typeof window > "u") return () => {};
-  const listener = (event: Event) => {
-    const detail = (event as CustomEvent<SettingsSectionIntentDetail>).detail;
-    if (detail?.section && isSettingsSectionId(detail.section)) {
-      clearSettingsNavigationIntents();
-      handler(detail.section, detail);
-    }
-  };
-  window.addEventListener(SETTINGS_SECTION_INTENT_EVENT, listener);
-  return () => {
-    window.removeEventListener(SETTINGS_SECTION_INTENT_EVENT, listener);
-  };
-}
-
-/** 原 qMe（js 39386）：codingPlan 标签页不可用时应回落 app */
-export function shouldResetUsageTabToApp(input: {
-  activeTab: string;
-  checkingCodingPlanTab: boolean;
-  loadingModelProviders: boolean;
-  showCodingPlanTab: boolean;
-}): boolean {
-  return input.activeTab === "codingPlan" && !input.showCodingPlanTab && !input.loadingModelProviders && !input.checkingCodingPlanTab;
-}
+export {
+  isSettingsSectionId,
+  isSettingsSectionVisible,
+  resolveVisibleSettingsSection,
+  readInitialSettingsSection,
+  persistLastSettingsSection,
+  consumeUsageTabIntent,
+  consumeModelProviderIntent,
+  requestSettingsSectionNavigation,
+  shouldResetUsageTabToApp,
+  subscribeSettingsSectionIntent,
+  type SettingsSectionId,
+  type SettingsSectionIntentDetail,
+};
 
 /* ============================================================================
  * 3. Coding Plan 标签页助手（原 js 204813–204845）

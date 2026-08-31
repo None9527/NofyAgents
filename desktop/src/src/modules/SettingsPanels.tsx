@@ -118,13 +118,15 @@
  *  5. usePlatformService (l)、toast (m)、useConfirmDialog (U2)
  *  6. logger (J)                     logger-PFDwl5Yq.js
  *  7. 供应商 id 枚举 (q)、useModelProvidersStore (qq 78195)、
- *     useAppSettingsStore (ko 1296)、useAppSettings (JM 53440)、
- *     useBigModelProducts (TY 83697)、useSubscriptionSnapshot ($j 52449)、
- *     useCodingPlanEntitlements (sX 88255)、useUpgradeEntry (fX 89052)、
- *     useZapiEnabled (gYt 187295)
+ *     useAppSettingsStore (ko 1296)、useAppSettings (JM 53488)、
+ *     useBigModelProducts (TY 83745)、useSubscriptionSnapshot ($j 52497)、
+ *     useCodingPlanEntitlements (sX 88303)、useUpgradeEntry (fX 89100)、
+ *     useZapiEnabled (gYt 187591)
+ *     （A1-R24 cn 行漂移专项：JM/TY/$j/sX/fX/gYt 行号按当前 bundle 实测校正）
  *  8. 服务 context fs()（modelProviderService/oauthService/credentialService/
  *     codingPlanSubscriptionService/settingsSyncService/mcpSyncService）
- *  9. 导航意图：sw() 读 (39377)、cw() 订阅 (39394)、iw() 跳转分区 (35393)
+ *  9. 导航意图：sw() 读 (js 39425)、cw() 订阅 (js 39442)、iw() 跳转分区 (js 39375 / jsx 35393)
+ *     （A1-R24 cn 行漂移专项：旧注 39377/39394 为漂移）
  * 10. F12 族助手（接口级）：iX 预设表 (88174)、oX Coding Plan 预设表 (88190)、
  *     Qnt (88231)、Iq 排序 (77408)、cX/nrt/rrt 键构造 (88433/88436/88439)、
  *     irt (88452)、lX (88442)、lrt (88475)、urt (88607)、tM (52594)、vM (52742)、

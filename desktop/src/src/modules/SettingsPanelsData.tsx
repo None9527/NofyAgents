@@ -44,8 +44,8 @@
  *   i1t  → LazyCodingPlanUsageLineChart    ← CodingPlanUsageLineChart-BpNLwqMV.js (jsx 157256)
  *   （接口级）：p4 ErrorBoundary (129952 / jsx 109217)、q$t useAppUsageStats (jsx 156996)、
  *    J$t useCodingPlanUsageStats (jsx 157047)、Fa LoadingPlaceholder、Pa StatCard、
- *    Zre UsageHeatmap、Da/Aa/Qre/Jre 格式化、$j 订阅快照、rM 缓存键 (47401)、
- *    Sq/Cq/wq/$4e 配额助手、iw 分区跳转 (35393)、ai 区间枚举、
+ *    Zre UsageHeatmap、Da/Aa/Qre/Jre 格式化、$j 订阅快照、rM 缓存键 (52648；A1-R24 行漂校正，旧注 47401)、
+ *    Sq/Cq/wq/$4e 配额助手、iw 分区跳转 (js 39375 / jsx 35393；A1-R24 补 js 行)、ai 区间枚举、
  *    Mye/yv/vv/j_/cye/y_/Mv 图标
  *
  * B. 迁移分区（V2t，js 203587–203929 / jsx 162409–162541；z9 导入族）

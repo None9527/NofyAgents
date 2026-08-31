@@ -17,6 +17,7 @@ import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modules/Settings'; // H3 容器类
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
+import type { ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 548 解构 {settings, update}，552/655–657 读取面（具名 + 既有 as 窄化）与 1179/1341 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
 import {
   automationsWorkspaceKey as automationWorkspaceKey, // Ti
@@ -94,6 +95,7 @@ interface ModelProvider {
   id: string;
   name: string;
   apiKey: string;
+  models: Array<string | ModelCatalogEntryLike>; // 〔A1-R24〕zrt 197021 面联动型缝：qq store 真身含 models（AutomationEditor → SubagentLeaves 链透传面）
   [key: string]: unknown;
 }
 
@@ -1478,7 +1480,7 @@ declare function useUpgradeEntryForAutomations(): {
     initialTeamPlanKey?: string;
     funnelContext?: string;
   }) => void;
-}; // fX（89052）
+}; // fX（js 89100；A1-R24 行漂校正，旧注 89052 为漂移）
 declare function useCodingPlanEntitlementsForAutomations(opts: {
   modelProviders: ModelProvider[];
   loading: boolean;

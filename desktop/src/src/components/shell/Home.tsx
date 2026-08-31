@@ -149,7 +149,7 @@ import { countContextAttachments, buildOutboundContentWithAttachments, useCodeCo
 import { readWorkspaceFilePayload as parseAddToChatPayload, ADD_WORKSPACE_FILE_TO_CHAT_EVENT as ADD_TO_CHAT_EVENT_NAME, isAddWorkspaceFileToChatEvent as isAddToChatEvent, type WorkspaceFileDragPayload } from '../composer/FileMentionDragHelpers'; // A1-R12：Mj（52248）/Aj（52211）/nUe（52260）declare 改指纯函数叶子（本批逐字转录）；消费点 2436/2945/2957/2959 逐字不变。nUe 此前误接 GitReview yXe（code-comment 域），bundle 90733 真身 = 工作区域守卫
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService } from '../../modules/ImeComposition'; // +usePlatformService（A1-R15：原 l=M，vWe 54317 截图面消费）
 import { pathBasename } from '../../modules/ModalsLeaves';
-import { useCodingPlanUpgradeDialog } from '../../modules/PaymentDeep'; // A1-R23：原 fX（89100）declare 改指 canonical（components/payments/PaymentDeep 〔A1-R23〕补 export）；消费面 §U.10 ComposerConfigToolbarBody 4243 ≡ bundle 89522。环安全：函数声明提升，渲染期调用（二环 Home→PaymentDeep shim→components/payments→modules/Home）
+import { useCodingPlanUpgradeDialog, useCodingPlanUpgradeDialogOptional as useUpgradeActions } from '../../modules/PaymentDeep'; // A1-R23：原 fX（89100）declare 改指 canonical（components/payments/PaymentDeep 〔A1-R23〕补 export）；消费面 §U.10 ComposerConfigToolbarBody 4243 ≡ bundle 89522。〔A1-R24〕useUpgradeActions 别名并入：原 Art（89106）declare 收敛改接（消费面 1078 ≡ bundle 91644）。环安全：函数声明提升，渲染期调用（二环 Home→PaymentDeep shim→components/payments→modules/Home）
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
 import { create, logger, useTaskStore, parseCustomModelId, formatCustomModelId, filterNativeModelOptions, type ConfigOption } from '../../modules/SkillStore'; // A1-R18：+parseCustomModelId（原 D=se，skillStore 881/386 导入别名；§U Ee/k6e/D6e 消费）/formatCustomModelId（原 rt=we，skillStore 900；§U xe 消费）/filterNativeModelOptions（原 it=L，skillStore 906；§U _e 消费）
 import { providerBusinessI18nId, normalizeCaptchaCode, isEmptyModelResponse } from '../../modules/StoresDeep'; // A1-R13：lN 簇依赖改指（原 yNe 40497 / Cw 40570（stub）/ jNe 40573，§H 逐字真身）；环安全：StoresDeep 不反引本文件
@@ -285,7 +285,8 @@ interface SettingsSnapshot {
 declare function useSettingsSnapshot(): { settings: SettingsSnapshot | null };
 
 /** 模型供应商列表（原 qq()，ProviderPlanUsage 族提供） */
-interface ModelCatalogEntryLike { // A1-R18：模型目录条目（zrt/Rrt 89219–89241 消费面）
+// 〔A1-R24〕补 export：zrt 197021 面联动——SubagentLeaves ModelProvider.models 型缝所依（经 modules/Home 转导出）
+export interface ModelCatalogEntryLike { // A1-R18：模型目录条目（zrt/Rrt 89219–89241 消费面）
   id?: string;
   modelIdByKind?: Record<string, string>;
   reasoning?: { levels: Record<string, unknown>; defaultLevel?: string } | null;
@@ -413,14 +414,12 @@ declare function formatToolbarShortcutLabel(key: string): string;
  *    （76295/76359/76541/76588/76597 + 域外 84520/94923/94926/189595/189601/190007/190212/191010/191156/85417 留批域）。
  *    改指文件头 import（modules/UsageDeep）；§V 消费面逐字不变。 ── */
 
-/** 升级动作（原 Art()，ProviderPlanUsage 族提供） */
-declare function useUpgradeActions(): {
-  openCodingPlanUpgrade?(opts: {
-    providerId: string;
-    initialAudience: "personal" | "team";
-    funnelContext: unknown;
-  }): void;
-} | null;
+/** 墓碑〔A1-R24〕：declare useUpgradeActions 删除——双实例收敛至 PaymentDeep 逐字真身 useCodingPlanUpgradeDialogOptional（原 Art）。
+ *  证据：bundle Art 定义唯一（styles 89106 `function Art() { return (0, Q.useContext)(dX); }`；dX ≡ CodingPlanUpgradeDialogContext）；
+ *  PaymentDeep useCodingPlanUpgradeDialogOptional ≡ Art（return useContext(context)，逐字同形）；
+ *  终端消费实测：91644 面 ≡ 本文件 OffPeakNewTaskBanner（1078 调用点，别名 useUpgradeActions 保留）；
+ *  119444 面属 R0 ConversationPane（119219，未重建）留批。改指文件头 import（modules/PaymentDeep 转导出）。
+ *  原注：「升级动作（原 Art()，ProviderPlanUsage 族提供）」。 */
 
 /** 供应商 id 枚举（原 q，横切层） */
 
@@ -3262,8 +3261,12 @@ var ComposerModeToolbar = (0, React.memo)(ComposerModeToolbarBody), // Zrt 89415
  *   Qrt→COMPOSER_MODE_TRIGGER_FOCUS_SELECTOR 89416（bundle 与 Zrt 89415 同 var 句，实体在 §T.5 ComposerModeToolbar 声明处） | $rt→composerSessionModeCycleNoop 89417
  *   c8e→isSessionPhaseRunning 78404 | l8e→entitlementAutoRefreshModeOfPhase 78407 | u8e→shouldForceRefreshOnPhaseChange 78410 | d8e→useEntitlementRefreshOnTaskTransition 78418
  *   JC→SETTINGS_SECTION_INTENT_KEY 39299 | YC→SETTINGS_USAGE_TAB_INTENT_KEY 39300 | XC→SETTINGS_MODEL_PROVIDER_INTENT_KEY 39301 | ZC→SETTINGS_SECTION_INTENT_EVENT 39302
- *   QC→SETTINGS_LAST_SECTION_KEY 39303 | VMe→AUTOMATION_SETTINGS_SECTION_VALUES 39304（同 var 句补齐；$C/ew/tw/nw 39305–39342 留批）
- *   aw→openSettingsUsageSection 39378 | ow→requestSettingsSectionOpen 39381（HMe/UMe/WMe 39343–39396 留批）
+ *   QC→SETTINGS_LAST_SECTION_KEY 39303 | VMe→AUTOMATION_SETTINGS_SECTION_VALUES 39304
+ *   $C→isSettingsSectionId 39305 | ew→isSettingsSectionVisible 39324 | tw→resolveVisibleSettingsSection 39327 | nw→tryGetSettingsStorage 39330
+ *   HMe→readLastSettingsSection 39343 | rw→persistLastSettingsSection 39359 | UMe→readInitialSettingsSection 39371 | iw→openSettingsSection 39375
+ *   aw→openSettingsUsageSection 39378 | ow→requestSettingsSectionOpen 39381 | WMe→clearSettingsSectionIntents 39397 | GMe→consumeSectionIntent 39405
+ *   KMe→consumeUsageTabIntent 39413 | sw→consumeModelProviderIntent 39425 | qMe→shouldResetUsageTabToApp 39434 | cw→subscribeSettingsSectionIntent 39442
+ *   （A1-R24 设置导航域全域补齐：§U.7 逐字 canonical；modules/Settings §2 A0 副本收敛为再导出，见其墓碑）
  *   UUe→newCodingPlanFunnelId 53250 | qUe→fallbackCodingPlanFunnelId 53409 | GUe→normalizeCodingPlanFunnelFamily 53387 | KUe→codingPlanFunnelChannelOfFamily 53397
  *   UM→isStartPlanLevelLabel 53406 | PM→buildCodingPlanPurchaseFunnelContext 53253 | IM→resolveEntryPlanStateFromSnapshot 53277
  *   （HM 53403 = 双实例收敛 → SrcSharedA isStartPlanProviderId@2026（原 No，jsx 4848）：逐字同形 `e===q.zaiStartPlan||e===q.bigmodelStartPlan`；IM 消费点直用真身。VM 53400/FM 53267/LM 53299 留批）
@@ -3722,7 +3725,9 @@ function writeSidebarUsageCodingPlanProviderPreference(e: string) { // Lrt
 function modelCatalogEntryMatchesModelId(e: ModelCatalogEntryLike, t: string) { // Rrt
   return e.id === t || Object.values(e.modelIdByKind ?? {}).includes(t);
 }
-function buildThoughtLevelOptionFromCatalog(e: ModelProviderEntry[], t: string | null | undefined, n: string | null | undefined) { // zrt
+// 〔A1-R24〕型缝：首参宽化至最小消费面（body 仅取 id/models；原 R19 缝 ModelProviderEntry[] 收口）——N1t 197021 面联动：SubagentLeaves 链 ModelProvider[]（无 apiKey 面）可直传
+// 〔A1-R24〕补 export：N1t 197021 面收敛——SubagentLeaves resolveProviderThoughtOption declare 改接（经 modules/Home 转导出）
+export function buildThoughtLevelOptionFromCatalog(e: Array<{ id: string; models: Array<string | ModelCatalogEntryLike>; [key: string]: unknown }>, t: string | null | undefined, n: string | null | undefined) { // zrt
   let r = e.find((e) => e.id === t)?.models.find((e): e is ModelCatalogEntryLike => typeof e != `string` && modelCatalogEntryMatchesModelId(e, n ?? ``)),
     i = r?.reasoning ? Object.keys(r.reasoning.levels) : [],
     a = i.length > 0 ? i : isGlmModelId(n as string) ? [...GLM_REASONING_LEVELS] : [];
@@ -4054,18 +4059,118 @@ function useEntitlementRefreshOnTaskTransition(e: {
   }, [t, r, n]);
 }
 
-/* --- §U.7 设置跳转意图（原 39299–39396） --- */
+/* --- §U.7 设置导航状态机（原 39299–39454；A1-R24 全域补齐：$C–cw 逐字，canonical 收口） --- */
+
+// 〔A1-R24〕型缝：设置分区 id 全集（bundle $C 39305 运行期判定面的编译期镜像；原 modules/Settings SettingsSectionId 同面）
+export type SettingsSectionId =
+  | `general`
+  | `appearance`
+  | `migration`
+  | `indexing`
+  | `browser`
+  | `modelProvider`
+  | `memory`
+  | `mcp`
+  | `plugins`
+  | `usage`
+  | `skills`
+  | `subagents`
+  | `commands`
+  | `hooks`
+  | `automations`;
+// 〔A1-R24〕型缝：意图事件 detail 面（bundle ow 39381 dispatch 面 / cw 39442 消费面）
+export interface SettingsSectionIntentDetail {
+  section: SettingsSectionId;
+  usageTab?: string;
+  modelProviderId?: string;
+}
 
 var SETTINGS_SECTION_INTENT_KEY = `zcode-settings-section-intent`, // JC
   SETTINGS_USAGE_TAB_INTENT_KEY = `zcode-settings-usage-tab-intent`, // YC
   SETTINGS_MODEL_PROVIDER_INTENT_KEY = `zcode-settings-model-provider-id-intent`, // XC
   SETTINGS_SECTION_INTENT_EVENT = `zcode:settings-section-intent`, // ZC
   SETTINGS_LAST_SECTION_KEY = `zcode-settings-last-section`, // QC
-  AUTOMATION_SETTINGS_SECTION_VALUES = new Set([`automations`]); // VMe（$C/ew/tw/nw + HMe/UMe/WMe 设置导航域 39305–39396 留批）
+  AUTOMATION_SETTINGS_SECTION_VALUES: Set<string | null> = new Set([`automations`]); // VMe 〔A1-R24〕型缝：has() 入参含 null 面（ew 39324 消费面）
+export function isSettingsSectionId(e: unknown): e is SettingsSectionId { // $C
+  return (
+    e === `general` ||
+    e === `appearance` ||
+    e === `migration` ||
+    e === `indexing` ||
+    e === `browser` ||
+    e === `modelProvider` ||
+    e === `memory` ||
+    e === `mcp` ||
+    e === `plugins` ||
+    e === `usage` ||
+    e === `skills` ||
+    e === `subagents` ||
+    e === `commands` ||
+    e === `hooks` ||
+    e === `automations`
+  );
+}
+// 〔A1-R24〕型缝：入参宽化为 string | null + 守护返回（bundle 无类型；tw 消费面 GMe 39373 传 string | null——
+// TS 收窄不过逗号表达式，GMe 守卫面无法编译期回收；运行期各消费面均传已验分区串，守护使三元返回收窄回 SettingsSectionId）
+export function isSettingsSectionVisible(e: string | null): e is SettingsSectionId { // ew
+  return !AUTOMATION_SETTINGS_SECTION_VALUES.has(e);
+}
+export function resolveVisibleSettingsSection(e: string | null, t: SettingsSectionId = `general`) { // tw
+  return isSettingsSectionVisible(e) ? e : t;
+}
+function tryGetSettingsStorage() { // nw
+  if (typeof window > `u`) return null;
+  try {
+    return window.localStorage;
+  } catch (e) {
+    return (
+      logger.warn(`[settingsNavigation] localStorage 不可用`, {
+        error: e instanceof Error ? e.message : String(e),
+      }),
+      null
+    );
+  }
+}
+export function readLastSettingsSection(e: SettingsSectionId = `general`) { // HMe
+  let t = tryGetSettingsStorage();
+  if (!t) return e;
+  try {
+    let n = t.getItem(SETTINGS_LAST_SECTION_KEY);
+    if (n === `codePreview`) return (t.setItem(SETTINGS_LAST_SECTION_KEY, `appearance`), `appearance`);
+    if (n === `codePreview`) return `appearance`;
+    if (n && isSettingsSectionId(n)) return resolveVisibleSettingsSection(n, e);
+    n !== null && t.removeItem(SETTINGS_LAST_SECTION_KEY);
+  } catch (e) {
+    logger.warn(`[settingsNavigation] 读取上次设置分区失败`, {
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+  return e;
+}
+export function persistLastSettingsSection(e: SettingsSectionId) { // rw
+  let t = resolveVisibleSettingsSection(e),
+    n = tryGetSettingsStorage();
+  if (n)
+    try {
+      n.setItem(SETTINGS_LAST_SECTION_KEY, t);
+    } catch (e) {
+      logger.warn(`[settingsNavigation] 写入上次设置分区失败`, {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+}
+export function readInitialSettingsSection(e: SettingsSectionId = `general`) { // UMe
+  let t = readLastSettingsSection(e);
+  return resolveVisibleSettingsSection(consumeSectionIntent(t), t);
+}
+export function openSettingsSection(e: SettingsSectionId) { // iw
+  requestSettingsSectionOpen(e);
+}
 function openSettingsUsageSection() { // aw
   requestSettingsSectionOpen(`usage`);
 }
-function requestSettingsSectionOpen(e: string, t: { usageTab?: string; modelProviderId?: string } = {}) { // ow
+// 〔A1-R24〕补 export：modules/Settings 再导出别名 requestSettingsSectionNavigation 所依（A0 iw/aw 并入面）
+export function requestSettingsSectionOpen(e: SettingsSectionId, t: { usageTab?: string; modelProviderId?: string } = {}) { // ow
   if (!(typeof window > `u`)) {
     try {
       (window.sessionStorage.setItem(SETTINGS_SECTION_INTENT_KEY, e),
@@ -4080,6 +4185,72 @@ function requestSettingsSectionOpen(e: string, t: { usageTab?: string; modelProv
       }),
     );
   }
+}
+function clearSettingsSectionIntents() { // WMe
+  if (!(typeof window > `u`))
+    try {
+      (window.sessionStorage.removeItem(SETTINGS_SECTION_INTENT_KEY),
+        window.sessionStorage.removeItem(SETTINGS_USAGE_TAB_INTENT_KEY),
+        window.sessionStorage.removeItem(SETTINGS_MODEL_PROVIDER_INTENT_KEY));
+    } catch {}
+}
+// 〔A1-R24〕型缝：返回宽化 string | null——bundle 守卫在逗号表达式内（`(..., e && $C(e))`），TS 收窄不过逗号，body 逐字不改；消费面仅 UMe 39373（经 tw 守护回收窄）
+function consumeSectionIntent(e: SettingsSectionId = `general`): string | null { // GMe
+  if (typeof window > `u`) return e;
+  try {
+    let e = window.sessionStorage.getItem(SETTINGS_SECTION_INTENT_KEY);
+    if ((e !== null && window.sessionStorage.removeItem(SETTINGS_SECTION_INTENT_KEY), e && isSettingsSectionId(e))) return e;
+  } catch {}
+  return e;
+}
+export function consumeUsageTabIntent() { // KMe
+  if (!(typeof window > `u`))
+    try {
+      let e = window.sessionStorage.getItem(SETTINGS_USAGE_TAB_INTENT_KEY);
+      return (
+        e !== null && window.sessionStorage.removeItem(SETTINGS_USAGE_TAB_INTENT_KEY),
+        e === `app` || e === `codingPlan` ? e : void 0
+      );
+    } catch {
+      return;
+    }
+}
+export function consumeModelProviderIntent() { // sw
+  if (!(typeof window > `u`))
+    try {
+      let e = window.sessionStorage.getItem(SETTINGS_MODEL_PROVIDER_INTENT_KEY);
+      return (window.sessionStorage.removeItem(SETTINGS_MODEL_PROVIDER_INTENT_KEY), e?.trim() ? { providerId: e.trim() } : void 0);
+    } catch {
+      return;
+    }
+}
+export function shouldResetUsageTabToApp({
+  activeTab: e,
+  checkingCodingPlanTab: t,
+  loadingModelProviders: n,
+  showCodingPlanTab: r,
+}: {
+  activeTab: string;
+  checkingCodingPlanTab: boolean;
+  loadingModelProviders: boolean;
+  showCodingPlanTab: boolean;
+}) { // qMe
+  return e === `codingPlan` && !r && !n && !t;
+}
+export function subscribeSettingsSectionIntent(
+  e: (section: SettingsSectionId, detail: SettingsSectionIntentDetail) => void, // 〔A1-R24〕型缝：handler 形（bundle cw 39449 调用面 e(n.section, n)）
+) { // cw
+  if (typeof window > `u`) return () => {};
+  let t = (t: { type: string; detail?: SettingsSectionIntentDetail | null }) => { // 〔A1-R24〕型缝：CustomEvent 消费面（type 为 Event 共有面，避弱型检测；detail 可选）
+    let n = t.detail;
+    n?.section && isSettingsSectionId(n.section) && (clearSettingsSectionIntents(), e(n.section, n));
+  };
+  return (
+    window.addEventListener(SETTINGS_SECTION_INTENT_EVENT, t),
+    () => {
+      window.removeEventListener(SETTINGS_SECTION_INTENT_EVENT, t);
+    }
+  );
 }
 
 /* --- §U.8 购买漏斗上下文族（原 53250–53412） --- */
@@ -6704,9 +6875,9 @@ export const DraftComposerRegionMemo = React.memo(DraftComposerRegion);
 
 /* --- 5.2 hit 内的两个小推导函数（原文件其他位置，随族登记） --- */
 
-/** 原 oit：配置选择器开合合并（作用域内单开） */
-function mergeConfigPickerState(current: ComposerConfigPicker, picker: ComposerConfigPicker, open: boolean): ComposerConfigPicker {
-  return open ? picker : current === picker ? null : current;
+/** 原 oit（89979–89981；A1-R24 归属实证：消费面 5842 ≡ bundle 90293 hit 内 oit(n.activePicker, e, t)）：配置选择器开合合并（作用域内单开） */
+function mergeConfigPickerState(e: ComposerConfigPicker, t: ComposerConfigPicker, n: boolean): ComposerConfigPicker { // oit
+  return n ? t : e === t ? null : e;
 }
 
 /**

@@ -130,7 +130,7 @@
  *   u2/Iwt/Lwt/Rwt 会话拖拽 MIME/载荷 (jsx 103642–103650) | Wwt/Gwt/Kwt 拖拽位置跟踪 (jsx 103709–103717)
  *   J3 useScopedWorkspaceTabs (jsx 113936) | yc buildWorkspaceServicesMap (jsx 3637)
  *   ZS useTaskListItems (35727 / 32810) | Tse resolveRemoteSessionServices (jsx 3269)
- *   EN SpinnerIcon (54789) | aw markUsageEntryIntent (jsx 35396)
+ *   EN SpinnerIcon (54789) | aw markUsageEntryIntent (js 39378 / jsx 35396；A1-R24 补 js 行)
  *   M6/N6/V6 同步后刷新 (142670–142719/119312) | Qie forgetRecentWorkspaces (jsx 945)
  *
  *  已在 TopBar.tsx 抽取、此处仅引用接口：
@@ -1147,7 +1147,7 @@ declare function refreshAfterPluginSync(args: Record<string, unknown>): Promise<
 /* ── tombstone（A1-R10 2b）：declare function forgetRecentWorkspaces（原 Qie，jsx 945 / js 1881）删除，
  *    改经文件头 stores/searchResultsStore import 消费（canonical = invalidateWorkspaceResults；
  *    2892 调用点逐字不变）。 ── */
-/** 原 aw（jsx 35396）：记录「进入用量页」意图（sessionStorage） */
+/** 原 aw（js 39378 / jsx 35396；A1-R24 补 js 行——逐字真身已在本树 Home §U.7 openSettingsUsageSection，收敛候选留批）：记录「进入用量页」意图（sessionStorage） */
 declare function markUsageEntryIntent(): void;
 /** 原 xw：遥测事件上报 */
 declare function trackEvent(platformService: PlatformService | null, eventName: string, source: string): void;
@@ -4497,7 +4497,7 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconPlus → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /** 原 oc：工作区标签是否承载任务（排除设置/预览类标签） */
 declare function isTaskWorkspaceTab(tab: WorkspaceTab): boolean;
-/** 原 fX（77235）：Coding Plan 升级入口钩子 */
+/** 原 fX（js 89100；A1-R24 行漂校正，旧注 77235 为漂移）：Coding Plan 升级入口钩子 */
 declare function useCodingPlanUpgrade(): { openCodingPlanUpgrade(args: { providerId: string | null | undefined; funnelContext: unknown }): void };
 /** 原 G6 的页脚用法：远控状态轮询（含 mobileViewState） */
 declare function useWebRemoteControlStatusPolling(args: { enabled: boolean }): WebRemoteControlStatus & { mobileConnected: boolean; mobileViewState?: { activeWorkspaceKey?: string; activeTaskId?: string } | null };

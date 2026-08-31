@@ -10009,7 +10009,7 @@ export function CodingPlanUpgradeDialogProvider({ children }: any) {
   );
 }
 
-// fX → useCodingPlanUpgradeDialog（本地 89153）
+// fX → useCodingPlanUpgradeDialog（js 89100；A1-R24 行漂校正，旧注「本地 89153」为漂移）
 // 〔A1-R23〕补 export：Home declare useCodingPlanUpgradeDialog 收敛（原 fX，js 89100；消费面 Home §U.10
 // ComposerConfigToolbarBody 4243 ≡ bundle 89522），经 modules/PaymentDeep shim 再导出；环安全：函数声明
 // 提升，调用在渲染期（bundle 本同模块）。
@@ -10020,8 +10020,10 @@ export function useCodingPlanUpgradeDialog() {
   return context;
 }
 
-// Art → useCodingPlanUpgradeDialogOptional（本地 89159）
-function useCodingPlanUpgradeDialogOptional() {
+// Art → useCodingPlanUpgradeDialogOptional（js 89106；A1-R24 行号校正，旧注「本地 89159」为漂移）
+// 〔A1-R24〕补 export：Home declare useUpgradeActions 收敛（bundle Art 89106 唯一真身；消费面 91644
+// ≡ Home OffPeakNewTaskBanner；119444 面属 R0 ConversationPane 119219 未重建，留批），经 modules/PaymentDeep shim 再导出
+export function useCodingPlanUpgradeDialogOptional() {
   return React.useContext(CodingPlanUpgradeDialogContext);
 }
 

@@ -15,20 +15,20 @@
  * ----------------------------------------------------------------------------
  * 一、混淆名 → 语义名 映射表（js 行号为融合 chunk 行）
  * ----------------------------------------------------------------------------
- * §A 子代理分区深层叶子（F06；SettingsPanelsCapability §1.4 接口级，js 196654–197541）：
- *   q7/b1t/x1t/J7/Y7/S1t/C1t → 颜色表/色类映射/锁判定常量/inherit/全工具表/关注工具集 (196654–196660)
- *   w1t → collectEditableAgents (196661) | X7 → isUserManagedSubagent (196667)
- *   T1t → isBuiltInSubagent (196670)      | E1t → builtInSubagentName (196673)
- *   D1t/O1t → 工具表拆分（已知/保留）(196676/196679) | k1t → mergeToolSelections (196682)
- *   A1t → isInheritAllTools (196686)     | j1t → normalizeSelectedModel (196689)
- *   M1t → isSameModelRef (196693)        | N1t → resolveThoughtLevelOption (196697)
- *   P1t → isThoughtLevelAvailable (196730) | Z7 → isModelAvailableInGroups (196736)
- *   Q7 → subagentFormDraftOf (196740)    | F1t → subagentFormKeyOf (196754)
- *   $7 → resolveModelTriggerLabel (196757) | e9 → SubagentFormLabel (196765)
- *   I1t → SubagentColorDot (196771)      | t9 → SubagentBadge (196777)
- *   L1t → groupSubagents (196786)        | R1t → subagentScopeI18nId (196792)
- *   z1t → ToolCheckboxRow (196801)       | n9 → SubagentRow (196839)
- *   B1t → BuiltInModelOverrideControl (196982) | V1t → SubagentConfigForm (197122)
+ * §A 子代理分区深层叶子（F06；SettingsPanelsCapability §1.4 接口级，js 196950–197837；A1-R24 cn 行漂移专项：全表 +296 校正）：
+ *   q7/b1t/x1t/J7/Y7/S1t/C1t → 颜色表/色类映射/锁判定常量/inherit/全工具表/关注工具集 (196950–196956)
+ *   w1t → collectEditableAgents (196957) | X7 → isUserManagedSubagent (196963)
+ *   T1t → isBuiltInSubagent (196966)     | E1t → builtInSubagentName (196969)
+ *   D1t/O1t → 工具表拆分（已知/保留）(196972/196975) | k1t → mergeToolSelections (196978)
+ *   A1t → isInheritAllTools (196982)     | j1t → normalizeSelectedModel (196985)
+ *   M1t → isSameModelRef (196989)        | N1t → resolveThoughtLevelOption (196993)
+ *   P1t → isThoughtLevelAvailable (197026) | Z7 → isModelAvailableInGroups (197032)
+ *   Q7 → subagentFormDraftOf (197036)    | F1t → subagentFormKeyOf (197050)
+ *   $7 → resolveModelTriggerLabel (197053) | e9 → SubagentFormLabel (197061)
+ *   I1t → SubagentColorDot (197067)      | t9 → SubagentBadge (197073)
+ *   L1t → groupSubagents (197082)        | R1t → subagentScopeI18nId (197088)
+ *   z1t → ToolCheckboxRow (197097)       | n9 → SubagentRow (197135)
+ *   B1t → BuiltInModelOverrideControl (197278) | V1t → SubagentConfigForm (197418)
  *
  * §B 插件分区深层叶子（F06；SettingsPanelsCapability §1.5 接口级，js 198144–199993）：
  *   r9 → PluginIcon (198144) | i9 → hasUpdate (198171) | W1t → isUpdatable (198174)

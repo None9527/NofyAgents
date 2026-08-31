@@ -14,6 +14,7 @@ import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 273 解构 {settings}，297 读 modelProviderFamilyModes 具名面逐字不变。环安全：UsageDeep 值闭包不达本文件
 import type { SkillItem, SkillCapability, SkillDiagnostic } from './SkillsSettingsSection'; // §0 SkillsService 接口签名引用（属主：技能族文件）
+import type { ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
@@ -80,6 +81,7 @@ interface ModelProvider {
   id: string;
   name: string;
   apiKey: string;
+  models: Array<string | ModelCatalogEntryLike>; // 〔A1-R24〕zrt 197021 面联动型缝：qq store 真身含 models（SubagentLeaves 链透传面）
   [key: string]: unknown;
 }
 

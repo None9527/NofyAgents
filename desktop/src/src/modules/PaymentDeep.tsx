@@ -314,4 +314,5 @@ export {
   useCodingPlanEntitlements,
   CodingPlanUpgradeDialogProvider,
   useCodingPlanUpgradeDialog, // 〔A1-R23〕补 export：Home declare useCodingPlanUpgradeDialog 收敛（原 fX，89100；消费面 Home §U.10 ComposerConfigToolbarBody ≡ bundle 89522）
+  useCodingPlanUpgradeDialogOptional, // 〔A1-R24〕补 export：Home declare useUpgradeActions 收敛（原 Art，89106；消费面 91644 ≡ Home OffPeakNewTaskBanner）
 } from '../components/payments/PaymentDeep';

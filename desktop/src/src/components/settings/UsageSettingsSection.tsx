@@ -4,7 +4,7 @@ import * as React from "react";
 import { LoaderCircle as SpinnerIcon, BoltIcon, FlameIcon, StarIcon, RefreshCcw as RefreshIcon, TriangleAlert as AlertIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button } from '../../modules/button';
 import { Tabs, TabsList, TabsTrigger } from '../../modules/Settings';
-import { requestSettingsSectionNavigation as navigateToSettingsSection } from '../../modules/Settings'; // iw（35393）
+import { requestSettingsSectionNavigation as navigateToSettingsSection } from '../../modules/Settings'; // ow（js 39381；A1-R24 归属+行漂校正：旧注 iw 35393 失实——本别名 ≡ Home requestSettingsSectionOpen ≡ ow）
 import { USAGE_REPORT_RANGES as APP_USAGE_RANGES } from '../../modules/SrcSharedA'; // ai=ms（A0-CLEANUP B-9）
 import { findQuotaLimit, formatQuotaResetTime, formatQuotaUsage, providerCacheKey, quotaPercent, useAppUsageStats, useCodingPlanUsageStats, useSubscriptionSnapshot, type EntitlementQuotaLimit, type ModelProvider } from '../../modules/UsageDeep';
 import { UsageHeatmap, formatPercent } from '../../modules/UsageStatsUiParts';

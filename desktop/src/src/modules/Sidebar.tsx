@@ -128,7 +128,7 @@
  *   u2/Iwt/Lwt/Rwt 会话拖拽 MIME/载荷 (jsx 103642–103650) | Wwt/Gwt/Kwt 拖拽位置跟踪 (jsx 103709–103717)
  *   J3 useScopedWorkspaceTabs (jsx 113936) | yc buildWorkspaceServicesMap (jsx 3637)
  *   ZS useTaskListItems (35727 / 32810) | Tse resolveRemoteSessionServices (jsx 3269)
- *   EN SpinnerIcon (54789) | aw markUsageEntryIntent (jsx 35396)
+ *   EN SpinnerIcon (54789) | aw markUsageEntryIntent (js 39378 / jsx 35396；A1-R24 补 js 行)
  *   M6/N6/V6 同步后刷新 (142670–142719/119312) | Qie forgetRecentWorkspaces (jsx 945)
  *
  *  已在 TopBar.tsx 抽取、此处仅引用接口：

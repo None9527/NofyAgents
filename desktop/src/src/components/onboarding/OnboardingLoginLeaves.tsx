@@ -575,8 +575,11 @@ export interface ConfirmDialogOptions {
   cancelLabel: string;
 }
 /* ── tombstone（A0-CLEANUP2 item 35）：ConfirmDialog（原 q4t）declare 删除 → import { ConfirmDialog } from './Modals'。 ── */
-declare const CodingPlanUpgradeDialogProvider: React.FC<{ children?: React.ReactNode }>; // 基线 declare：PaymentDeep 未导出，需要的 export 已登记
-declare const CLOSE_ACTIVE_CONTEXT_EVENT: string; // 基线 declare：WorkspaceShell 未导出，需要的 export 已登记
+/* ── 墓碑〔A1-R24〕：declare CodingPlanUpgradeDialogProvider / CLOSE_ACTIVE_CONTEXT_EVENT 删除（基线残留）。
+ *    证据：本文件零消费（grep 仅 247 回滚注记与本两位；无调用面）；属主 export 已落地——
+ *    CodingPlanUpgradeDialogProvider ≡ components/payments/PaymentDeep.tsx 9998（原 krt，89141，已 export）；
+ *    CLOSE_ACTIVE_CONTEXT_EVENT ≡ components/shell/WorkspaceShell.tsx 4736（原 r7，186215/150092，已 export）。
+ *    原注：「基线 declare：PaymentDeep/WorkspaceShell 未导出，需要的 export 已登记」（247 回滚注记同证）。 ── */
 declare const RemoteConnectionDialog: React.FC<Record<string, any>>;
 declare const UpdateStatusWindow: React.FC<{
   platform: PlatformService;

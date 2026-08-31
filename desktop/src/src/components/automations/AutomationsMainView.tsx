@@ -10,6 +10,7 @@ import { AutomationEditor, OffPeakTaskEditor, type ScheduleRule } from '../../mo
 import { logger } from '../../modules/SkillStore';
 import { providerIds } from '../../modules/SrcSharedA';
 import { automationsWorkspaceKey } from '../../modules/SrcSharedB';
+import type { ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：ModelProviderInfo.models 型缝所依
 import { reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
 import { useServices } from '../../modules/services';
 import { useAutomationsStore, useOffPeakTaskStore } from '../../modules/stores-tasks'; // A1-R9 bX 接线改指：本地死 declare 删除 → 真实 import（canonical = components/shell/Home.tsx 641 区 bX@91416，经 stores/offPeakTaskStore shim 链）；tombstone 见原声明位
@@ -78,6 +79,7 @@ interface ModelProviderInfo {
   enabled?: boolean;
   systemDisabledReason?: string | null;
   endpoints?: { baseURL?: string };
+  models: Array<string | ModelCatalogEntryLike>; // 〔A1-R24〕zrt 197021 面联动型缝：经 AutomationEditor → SubagentLeaves resolveThoughtLevelOption 链透传至 buildThoughtLevelOptionFromCatalog
   [key: string]: unknown;
 }
 

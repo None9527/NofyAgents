@@ -140,11 +140,12 @@
  *     DropdownMenu (VO… 47926)、Collapsible (kZ/AZ/jZ 94925)、Badge (uJ 80303)、
  *     ScrollArea (Y3 136026)、Panel 布局 (X4/Z4/Q4 131934–131944)、
  *     Markdown 渲染器 (cj，F19)、文件显示 (zc/Vc/Bc)、basename (Go 1928)、
- *     isAbsolute (Ko 1941)、dirname (sae 1932)、模型解析 (Mg 24358)、
- *     设置钩子 (JM 53440)、模型注册表 (qq 78195)、权益 (sX 88255)、
- *     coding plan 升级 (fX 89052)、漏斗助手 (FM 53219 / LM 53251 / PM 53205)、
+ *     isAbsolute (Ko 1941)、dirname (sae 1932)、模型解析 (Mg 24406)、
+ *     设置钩子 (JM 53488)、模型注册表 (qq 78243)、权益 (sX 88303)、
+ *     coding plan 升级 (fX 89100)、漏斗助手 (FM 53267 / LM 53299 / PM 53253)、
  *     浅比较选择器工厂 (co 1033)、设置 store 上下文钩子 (Ao 1301)、
  *     代码预览默认 (lo 1040)
+ *     （A1-R24 cn 行漂移专项：Mg/JM/qq/sX/fX/FM/LM/PM 行号按当前 bundle 实测校正）
  * ============================================================================
  */
 

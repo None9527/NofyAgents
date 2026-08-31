@@ -1,5 +1,6 @@
 // A0-S4-4a: 自 modules/SettingsLeaves.tsx §A 子代理深层叶子 原样迁入（组件单元；原文件现为薄 re-export shim）。
 // 迁出体 = §0 声明群子集（SelectItemEntry/SelectGroupEntry/ThoughtLevelSelector/ConfigOption + ModelSelector tombstone）+ §A 全段（373–1352）。导入路径按 components/settings/ 深度改指 ../../modules/。
+// 〔A1-R24〕cn 行漂移专项：§A 族全部行号注 +296 校正（196957–197418 区，逐处实测；旧注为上一代构建值）。
 import * as React from "react";
 import { Check as IconCheck, Trash2 as IconTrash, Pencil as IconPencil, Info as IconInfo, Users as IconUsers } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button } from '../../modules/button';
@@ -14,6 +15,8 @@ import {
   subagentBuiltInModelTriggerTestid as TESTID_SUBAGENT_MODEL, // Gn
   getOAuthFamilyIdByProviderId as canonicalProviderIdOf, // A1-R12：原 dr（src chunk Jx，js 8930 / jsx 9036）declare 改指（SrcSharedB §30 逐字真身；调用点 304/338 逐字不变）
 } from '../../modules/SrcSharedB';
+// 〔A1-R24〕zrt 197021 面联动：resolveProviderThoughtOption declare 收敛——改接 Home §U.4 逐字真身（bundle zrt 89222 唯一真身；经 modules/Home 转导出）
+import { buildThoughtLevelOptionFromCatalog, type ModelCatalogEntryLike } from '../../modules/Home';
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
@@ -116,7 +119,7 @@ const SUBAGENT_TOOL_OPTION_SET = new Set(SUBAGENT_TOOL_OPTIONS);
 /** 原 C1t（196660）：高关注工具（红点） */
 const SUBAGENT_ATTENTION_TOOLS = new Set(["Bash", "Edit", "Write"]);
 
-/** 原 w1t（196661）：可编辑代理集（用户域非插件 + 插件域非工作区） */
+/** 原 w1t（196957）：可编辑代理集（用户域非插件 + 插件域非工作区） */
 export function collectEditableAgents(args: { agents: SubagentItem[]; pluginAgents: SubagentItem[] }): SubagentItem[] {
   return [
     ...args.agents.filter((agent) => agent.scope !== "workspace" && agent.source !== "plugin"),
@@ -124,49 +127,49 @@ export function collectEditableAgents(args: { agents: SubagentItem[]; pluginAgen
   ];
 }
 
-/** 原 X7（196667）：用户管理判定（user 域 ∧ user 源 ∧ 非只读） */
+/** 原 X7（196963）：用户管理判定（user 域 ∧ user 源 ∧ 非只读） */
 export function isUserManagedSubagent(agent: SubagentItem): boolean {
   return agent.scope === "user" && agent.source === "user" && agent.readOnly !== true;
 }
 
-/** 原 T1t（196670）：内置判定 */
+/** 原 T1t（196966）：内置判定 */
 export function isBuiltInSubagent(agent: SubagentItem): boolean {
   return agent.scope === "built-in" || agent.source === "built-in";
 }
 
-/** 原 E1t（196673）：内置名（仅 general-purpose/Explore） */
+/** 原 E1t（196969）：内置名（仅 general-purpose/Explore） */
 export function builtInSubagentName(agent: SubagentItem): string | null {
   return isBuiltInSubagent(agent) && (agent.name === "general-purpose" || agent.name === "Explore") ? agent.name : null;
 }
 
-/** 原 D1t（196676）：已知工具过滤 */
+/** 原 D1t（196972）：已知工具过滤 */
 export function filterKnownTools(tools: string[] | undefined): string[] {
   return tools?.filter((tool) => SUBAGENT_TOOL_OPTION_SET.has(tool)) ?? [];
 }
 
-/** 原 O1t（196679）：保留工具过滤（未知工具） */
+/** 原 O1t（196975）：保留工具过滤（未知工具） */
 export function filterPreservedTools(tools: string[] | undefined): string[] {
   return tools?.filter((tool) => !SUBAGENT_TOOL_OPTION_SET.has(tool)) ?? [];
 }
 
-/** 原 k1t（196682）：工具选择合并（去空去重；空 → undefined） */
+/** 原 k1t（196978）：工具选择合并（去空去重；空 → undefined） */
 export function mergeToolSelections(selected: string[], preserved: string[]): string[] | undefined {
   const merged = [...selected, ...preserved].filter((tool, index, all) => tool.length > 0 && all.indexOf(tool) === index);
   return merged.length > 0 ? merged : undefined;
 }
 
-/** 原 A1t（196686）：全工具继承判定（空/缺省/含 `*`） */
+/** 原 A1t（196982）：全工具继承判定（空/缺省/含 `*`） */
 export function isInheritAllTools(tools: string[] | undefined): boolean {
   return !tools || tools.length === 0 || tools.some((tool) => tool.trim() === "*");
 }
 
-/** 原 j1t（196689）：选中模型归一（非 inherit 的有效值） */
+/** 原 j1t（196985；A1-R24 行漂校正，旧注 196689）：选中模型归一（非 inherit 的有效值） */
 export function normalizeSelectedModel(model: string | null | undefined): string | undefined {
   const normalized = (model ?? "").trim();
   return normalized && normalized !== SUBAGENT_MODEL_INHERIT ? normalized : undefined;
 }
 
-/** 原 M1t（196693）：模型引用等价（供应商 ∧ 模型 id；原用 Mg 解析，恒非空） */
+/** 原 M1t（196989；A1-R24 行漂校正，旧注 196693）：模型引用等价（供应商 ∧ 模型 id；原用 Mg 解析，恒非空） */
 export function isSameModelRef(value: string, ref: { providerId?: string; modelId?: string }): boolean {
   const parsed = parseModelRef(value);
   return parsed.providerId === ref.providerId && parsed.modelId === ref.modelId;
@@ -177,11 +180,11 @@ export interface ThoughtLevelResolution {
   option: ConfigOption | null;
 }
 
-/** 原 N1t（196697）：思考级别选项解析（工作区域走配置项；无工作区走供应商模型表） */
+/** 原 N1t（196993；A1-R24 行号校正，旧注 196697 为漂移）：思考级别选项解析（工作区域走配置项；无工作区走供应商模型表） */
 export function resolveThoughtLevelOption(args: {
   hasWorkspace: boolean;
   model: string | undefined;
-  modelProviders: Array<{ id: string; [key: string]: unknown }>;
+  modelProviders: ModelProvider[]; // 〔A1-R24〕zrt 收敛型缝：原 Array<{ id: string; [key: string]: unknown }>，收口至本文件 ModelProvider（ModelProviderEntry 同面）
   modelProvidersLoading: boolean;
   thoughtLevel?: string;
   workspaceConfigOptions: ConfigOption[];
@@ -214,20 +217,18 @@ export function resolveThoughtLevelOption(args: {
     };
   }
   if (args.modelProvidersLoading) return { kind: "unknown", option: null };
-  const providerOption = resolveProviderThoughtOption(args.modelProviders, parsed.providerId, parsed.modelId);
+  const providerOption = buildThoughtLevelOptionFromCatalog(args.modelProviders, parsed.providerId, parsed.modelId); // 〔A1-R24〕原 resolveProviderThoughtOption declare 面（≡ bundle N1t 197021 zrt 调用面）
   return providerOption
     ? { kind: "supported", option: thoughtLevel ? { ...providerOption, currentValue: thoughtLevel } : providerOption }
     : { kind: "unsupported", option: null };
 }
 
-/** F12 域助手（原 zrt，89174；接口级）：供应商模型 → 思考级别选项 */
-declare function resolveProviderThoughtOption(
-  providers: Array<{ id: string; [key: string]: unknown }>,
-  providerId: string | undefined,
-  modelId: string | undefined,
-): ConfigOption | null;
+/** 墓碑〔A1-R24〕：declare resolveProviderThoughtOption 删除——双实例收敛至 Home §U.4 逐字真身 buildThoughtLevelOptionFromCatalog。
+ *  证据：bundle zrt 定义唯一（styles 89222 `function zrt(e, t, n)`；旧注 89174 为行漂，89171–89181 实为 mX 面）；
+ *  终端消费实测：N1t 197021（本文件 resolveThoughtLevelOption 面，调用点已改接）+ Home 4722（Wrt 别名面）；
+ *  真身经 modules/Home 转导出，本文件顶部 import 改接。原注：「F12 域助手（原 zrt，89174；接口级）：供应商模型 → 思考级别选项」。 */
 
-/** 原 P1t（196730）：思考级别可用性（未知态恒可；选项集成员判定） */
+/** 原 P1t（197026；A1-R24 行漂校正，旧注 196730）：思考级别可用性（未知态恒可；选项集成员判定） */
 export function isThoughtLevelAvailable(resolution: ThoughtLevelResolution, thoughtLevel: string | undefined): boolean {
   const normalized = thoughtLevel?.trim();
   return !normalized || resolution.kind === "unknown"
@@ -235,7 +236,7 @@ export function isThoughtLevelAvailable(resolution: ThoughtLevelResolution, thou
     : !!(resolution.option?.type === "select" && resolution.option.options?.some((option) => option.value === normalized));
 }
 
-/** 原 Z7（196736）：模型在组内可用（继承/加载中恒真） */
+/** 原 Z7（197032）：模型在组内可用（继承/加载中恒真） */
 export function isModelAvailableInGroups(groups: SelectGroupEntry[], model: string | null | undefined, loading = false): boolean {
   const normalized = model?.trim();
   return !normalized || normalized === SUBAGENT_MODEL_INHERIT || loading ? true : groups.some((group) => group.items.some((item) => item.value === normalized));
@@ -254,7 +255,7 @@ export interface SubagentFormDraft {
   systemPrompt: string;
 }
 
-/** 原 Q7（196740）：表单草稿（缺省：黄/inherit/注入 AGENTS.md/全工具） */
+/** 原 Q7（197036）：表单草稿（缺省：黄/inherit/注入 AGENTS.md/全工具） */
 export function subagentFormDraftOf(initial: SubagentItem | undefined): SubagentFormDraft {
   return {
     name: initial?.name ?? "",
@@ -270,12 +271,12 @@ export function subagentFormDraftOf(initial: SubagentItem | undefined): Subagent
   };
 }
 
-/** 原 F1t（196754）：表单键（id + 草稿序列化；重置侦测用） */
+/** 原 F1t（197050）：表单键（id + 草稿序列化；重置侦测用） */
 export function subagentFormKeyOf(initial: SubagentItem | undefined): string {
   return JSON.stringify({ id: initial?.id ?? null, ...subagentFormDraftOf(initial) });
 }
 
-/** 原 $7（196757）：模型触发器标签（inherit/可用/不可用三支） */
+/** 原 $7（197053）：模型触发器标签（inherit/可用/不可用三支） */
 export function resolveModelTriggerLabel(args: {
   inheritLabel: string;
   modelGroups: SelectGroupEntry[];
@@ -340,12 +341,12 @@ export function resolveModelTriggerLabelParts(args: {
     : { fullLabel: fullLabel, providerPrefix: `${providerName}/`, modelLabel: modelLabel };
 }
 
-/** 原 e9（196765）：表单标签 */
+/** 原 e9（197061）：表单标签 */
 export function SubagentFormLabel({ children }: { children: React.ReactNode }) {
   return <label className="mb-1.5 block text-ui-base font-medium text-foreground-subtle">{children}</label>;
 }
 
-/** 原 I1t（196771）：颜色点 */
+/** 原 I1t（197067）：颜色点 */
 export function SubagentColorDot({ color }: { color?: string }) {
   return (
     <span
@@ -355,7 +356,7 @@ export function SubagentColorDot({ color }: { color?: string }) {
   );
 }
 
-/** 原 t9（196777）：次级徽章 */
+/** 原 t9（197073）：次级徽章 */
 export function SubagentBadge({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <span
@@ -369,7 +370,7 @@ export function SubagentBadge({ children, className }: { children: React.ReactNo
   );
 }
 
-/** 原 L1t（196786）：三组分组（user/plugin/builtIn） */
+/** 原 L1t（197082）：三组分组（user/plugin/builtIn） */
 export function groupSubagents(agents: SubagentItem[]): { user: SubagentItem[]; plugin: SubagentItem[]; builtIn: SubagentItem[] } {
   const groups: { user: SubagentItem[]; plugin: SubagentItem[]; builtIn: SubagentItem[] } = { builtIn: [], plugin: [], user: [] };
   for (const agent of agents) {
@@ -380,7 +381,7 @@ export function groupSubagents(agents: SubagentItem[]): { user: SubagentItem[]; 
   return groups;
 }
 
-/** 原 R1t（196792）：作用域 i18n key */
+/** 原 R1t（197088）：作用域 i18n key */
 export function subagentScopeI18nId(agent: SubagentItem): string {
   return agent.scope === "built-in"
     ? "settings.subagents.scope.builtIn"
@@ -391,7 +392,7 @@ export function subagentScopeI18nId(agent: SubagentItem): string {
         : "settings.scope.user";
 }
 
-/** 原 z1t（196801）：工具复选行（自绘 checkbox；高关注工具红点） */
+/** 原 z1t（197097）：工具复选行（自绘 checkbox；高关注工具红点） */
 export function ToolCheckboxRow({
   checked,
   disabled,
@@ -433,18 +434,19 @@ export function ToolCheckboxRow({
   );
 }
 
-/** 原 Mg（24358，模型域；接口级）：模型引用解析（Zn custom: 前缀 → providerId/modelId；否则按 `/` 拆分，`$` 变体） */
+/** 原 Mg（24406，模型域；接口级；A1-R24 行漂校正，旧注 24358 为漂移——canonical 逐字真身已在本树 Home §U.4 parseLooseModelValue，收敛候选留批）：模型引用解析（Zn custom: 前缀 → providerId/modelId；否则按 `/` 拆分，`$` 变体） */
 declare function parseModelRef(value: string): { providerId?: string; modelId?: string; variant?: string };
 
 export interface ModelProvider {
   id: string;
   name?: string;
   source?: string;
+  models: Array<string | ModelCatalogEntryLike>; // 〔A1-R24〕zrt 197021 面联动型缝：buildThoughtLevelOptionFromCatalog 首参最小消费面（qq store 真身含 models）
   [key: string]: unknown;
 }
 
 /**
- * 原 n9（196839）：SubagentRow。
+ * 原 n9（197135）：SubagentRow。
  * 头像（颜色点）+ 名称/作用域/模型/工具徽章 + 描述 + 路径；
  * 内置行 → B1t 覆盖控件；用户行 → 开关/编辑/删除。
  */
@@ -565,7 +567,7 @@ export function SubagentRow({
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconUsers → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /**
- * 原 B1t（196982）：内置代理模型覆盖控件。
+ * 原 B1t（197278）：内置代理模型覆盖控件。
  * 乐观更新（失败回滚）+ 模型/思考双选择 + 思考不可用红字。
  */
 export function BuiltInModelOverrideControl({
@@ -715,7 +717,7 @@ function findModelGroupEntry(groups: SelectGroupEntry[], value: string, loading:
 }
 
 /**
- * 原 V1t（197122）：SubagentConfigForm。
+ * 原 V1t（197418）：SubagentConfigForm。
  * 名称/颜色/模型/描述/工具/系统提示词/AGENTS.md 注入；校验四段（名 3–50 英数横线、描述、提示词、模型可用）。
  */
 export function SubagentConfigForm({

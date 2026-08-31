@@ -5,7 +5,7 @@ import { RefreshCw as RefreshIcon } from 'lucide-react'; // A0-S3b：vendored lu
 import { Button } from '../../modules/button';
 import { providerFamilyOf, useCodingPlanEntitlements, useStartPlanPreview } from '../../modules/PaymentDeep';
 import { subscribeSettingsSectionIntent } from '../../modules/Settings';
-import { consumeModelProviderIntent as readSettingsSectionIntent } from '../../modules/Settings'; // sw（39377）
+import { consumeModelProviderIntent as readSettingsSectionIntent } from '../../modules/Settings'; // sw（js 39425；A1-R24 行漂校正，旧注 39377 为漂移）
 import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, nullSafe as toManagedProvider, upgradeFunnelContext, entryPlanStateOf, useAppSettings, useSubscriptionSnapshot, useZapiEnabled, type AddProviderDraft, type CodingPlanDisplayStatus, type CodingPlanViewState, type EntitlementQuotaLimit, type FunnelContext, type ModelMetadata, type ProviderEndpoints } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/PM（53253）/IM（53277）/JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2b/§2c）
 import { useServices } from '../../modules/services';
 import { resolveCodingPlanProviderHeaders, type CaptchaConfig } from '../../modules/ConversationLeaves'; // A1-R16：pCt declare 删碑改指（118459 逐字实体）+ 型缝 CaptchaConfig
@@ -204,11 +204,11 @@ declare function useUpgradeEntry(): {
     providerId: string;
     initialAudience?: "personal" | "team";
     initialTeamPlanKey?: string;
-    funnelContext?: FunnelContext | null; // A1-R11 型缝精化（bundle 真形）：fX 89052 读 e?.funnelContext?.purchaseAudience 并传 e.funnelContext ?? null——对象面非字符串
+    funnelContext?: FunnelContext | null; // A1-R11 型缝精化（bundle 真形）：fX 89100 读 e?.funnelContext?.purchaseAudience 并传 e.funnelContext ?? null——对象面非字符串（A1-R24 行漂校正，旧注 89052）
   }) => void;
-}; // fX（89052）
+}; // fX（js 89100；A1-R24 行漂校正，旧注 89052 为漂移）
 
-/** 分区导航意图（原 sw 39377 / cw 39394 / iw 35393） */
+/** 分区导航意图（原 sw js 39425 / cw js 39442 / iw js 39375；A1-R24 行漂校正，旧注 39377/39394/35393 为漂移） */
 declare function navigateToSettingsSection(section: string): void; // iw（本文件无调用点，保留 declare）
 
 /** 服务 context（原 fs()，2638） */
