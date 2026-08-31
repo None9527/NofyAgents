@@ -361,6 +361,12 @@
  *   iZe  → BackgroundWorksCapsuleMemo          (69345；MODULE-MAP 后台工作胶囊)
  *   XH   → isCoarseTouchDevice                 (69346；登记终点 69297 外，裁决 §R2)
  *   ZH   → shouldRestoreFocus                  (69351；同上)
+ *  [B17] 上下文 chip 行（js 2827 + 89982–90178；A1-R22 逐字；归属裁定见区段头注）：
+ *   sit  → webElementAccessibleLabel          (89982)
+ *   cit  → webElementDescriptor               (89985)
+ *   lit  → WebElementsChip                    (89989；Home/Conversation declare 收敛)
+ *   Ds   → isConversationSelectionReference   (2827；F03 选择引用守护)
+ *   uit  → SelectionsChip                     (90087；Home/Conversation declare 收敛)
  *  [C] 模型选择器段：
  *   N4e  → LABEL_ANIMATION_TRANSITION          (75495；登记 75527 前 32 行，随族收录)
  *   P4e  → usePrefersReducedMotion             (75496)
@@ -477,9 +483,10 @@
  * ==========================================================================*/
 import * as React from "react";
 import { DropdownMenu as DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { X as CloseIcon, PlusIcon, SlashIcon, AtSignIcon, PaperclipIcon, ArrowUpIcon, HandIcon, Trash2 as TrashIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A0-S4-4b〕InfoIcon/LoaderIcon/ShieldCheckIcon/SparkleIcon/ChevronDownIcon/CheckIcon/LockIcon/BrainIcon/ShieldAlertIcon/TerminalIcon 随迁出族移入 components/composer/
+import { HoverCardTooltip, HoverCardTooltipContent, HoverCardTooltipTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import；〔A1-R22〕HoverCardContent/HoverCardTrigger 消费面（A0 版 CodeCommentsChip）随 TH 逐字化删除，收敛为 CN/wN/TN=HoverCardTooltip 三面（54832–54836）：[B17] chip 行消费
+import { CodeXml as CodeCommentIcon, Earth as WebElementIcon, MessageSquareText as CommentGlyphIcon, MousePointer2 as WebElementPointerIcon, Quote as SelectionGlyphIcon, X as CloseIcon, PlusIcon, SlashIcon, AtSignIcon, PaperclipIcon, ArrowUpIcon, HandIcon, Trash2 as TrashIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A0-S4-4b〕InfoIcon/LoaderIcon/ShieldCheckIcon/SparkleIcon/ChevronDownIcon/CheckIcon/LockIcon/BrainIcon/ShieldAlertIcon/TerminalIcon 随迁出族移入 components/composer/；〔A1-R22〕+CodeXml/Earth/MessageSquareText/MousePointer2/Quote（原 Cye 26969 / wye 26983 / _v 27447 / o=imeComposition C 导出 Wt 11787 / fbe 27690）：[B17] chip 行消费
 import * as ReactDOM from "react-dom";
+import * as $ from "react/jsx-runtime"; // A1-R22：[B14]/[B17] chip 行编译形 JSX 消费面（原 $，jsx-runtime-B5yMD3-t.js）
 import {
   $applyNodeReplacement,
   $createParagraphNode,
@@ -743,7 +750,9 @@ declare const PopoverRoot: React.ComponentType<Record<string, unknown> & { child
 
 
 
-declare const HoverCardRoot: React.ComponentType<{ openDelay?: number; closeDelay?: number; children?: React.ReactNode } & Record<string, unknown>>; // dN 透传面（bundle 54538）：radix HoverCard openDelay/closeDelay 收 J4e 调用面（76086）
+/* ── tombstone（A1-R22）：HoverCardRoot declare 删除（原 dN 54538 透传面）——本文件最后消费面
+ *    A0 版 CodeCommentsChip 随 TH（68298）逐字化改指 HoverCardTooltip（CN 54832）；[C] J4e 调用面
+ *    （76086）由 components/composer/ModelSelector.tsx 自带复制件消费（该文件 18 行），不留运行期洞。 ── */
 
 
 
@@ -757,9 +766,9 @@ declare const SkillIcon: React.ComponentType<{ className?: string }>;
 declare const WhiteboardIcon: React.ComponentType<{ className?: string }>;
 declare const SessionIcon: React.ComponentType<{ className?: string }>;
 declare const PluginFallbackIcon: React.ComponentType<{ className?: string }>;
-declare const CodeCommentIcon: React.ComponentType<{ className?: string }>;
+/* ── tombstone（A1-R22）：CodeCommentIcon declare 删除（原 Cye，Sa('code-xml') vendored，js 26969）→ npm lucide-react CodeXml as CodeCommentIcon 真实 import（文件头导入块）；消费面 [B14] CodeCommentsChip 本批逐字化，调用面逐字不变。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：TrashIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const CommentGlyphIcon: React.ComponentType<{ className?: string }>;
+/* ── tombstone（A1-R22）：CommentGlyphIcon declare 删除（原 _v，Sa('message-square-text') vendored，js 27447）→ npm lucide-react MessageSquareText as CommentGlyphIcon 真实 import（文件头导入块）；消费面 [B14] CodeCommentsChip 本批逐字化，调用面逐字不变。 ── */
 declare const LoginIcon: React.ComponentType<{ className?: string }>;
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：TerminalIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const SubagentGlyphIcon: React.ComponentType<{ className?: string }>;
@@ -817,7 +826,14 @@ declare function extractConversationSelections(content: string): {
   visibleContent: string;
   references: ConversationSelection[];
 };
-interface ConversationSelection {
+export interface ConversationSelection { // 〔A1-R22〕补 export：Conversation ParsedUserInput 型别收敛消费（型别擦除，环安全）
+  /* 〔A1-R22〕型缝：koe（2720）构建面携 id/text/sourceSessionId/sourceRowId/contentType（Ds 2827 守护窄化所依）；
+   * 原开放索引签名保留（uit 90087 消费面按束真渲染 e.text/e.id）。 */
+  id?: string;
+  text?: string;
+  sourceSessionId?: string;
+  sourceRowId?: number;
+  contentType?: string;
   [key: string]: unknown;
 }
 /* 〔A1-R21〕型缝：sessionId 放宽为 string | null——bundle 消费面（composer 90400 tZe({ sessionId: t, … })）
@@ -832,6 +848,12 @@ interface SessionScopedReference {
   id: string;
   status?: string;
   kind?: string;
+  /* 〔A1-R22〕型缝：存取面（F03 readSessionScopedReferences）回读的引用由 koe（2720）构建，
+   * 携 text/sourceSessionId/sourceRowId/contentType；uit（90087）chip 行经 Ds（2827）守护消费。 */
+  text?: string;
+  sourceSessionId?: string;
+  sourceRowId?: number;
+  contentType?: string;
   [key: string]: unknown;
 }
 
@@ -6414,107 +6436,136 @@ function codeCommentKey(comment: { id: string; workspacePath: string; workspaceI
   return `${comment.workspaceIdentity?.trim() || comment.workspacePath}\0${comment.id}`;
 }
 
+/* --- A1-R22：[B14] CodeCommentsChip 逐字化（js 68298–68410）。A0 时代语义局部变量 + JSX 源形
+ *   副本删除，换编译形逐字；消费面 = composer topContent（bundle 90781）+ 用户消息行
+ *   （112241，contentAlign=end）。双副本裁定见 A1-R22.report.md §三。
+ *   映射表（minified → 语义名 → bundle 行）：
+ *     TH  → CodeCommentsChip  (68298)  补 export：Home CodeCommentChipRow / Conversation CodeCommentChips
+ *                                        declare 收敛 + code-viewer/GitReview A1-R12 副本降 re-export
+ *     hXe → codeCommentKey    (68295)  行键（本文件既有 A0 转录，复用）
+ *   行内消费：G=useIntlContext / Z=cn / X=Button / g=CloseIcon（X）/ _v=CommentGlyphIcon
+ *     （MessageSquareText）/ Cye=CodeCommentIcon（CodeXml）/ Kv=TrashIcon（Trash2）/
+ *     CN=HoverCardTooltip / wN=HoverCardTooltipTrigger / TN=HoverCardTooltipContent
+ *     （components/ui/hover-card）/ $=react/jsx-runtime。JSX 保持编译形态。 ── */
+
 /** TH → CodeCommentsChip（js 68298） */
-function CodeCommentsChip({ comments, contentAlign = `start`, onRemove, onRemoveAll }: {
+export function CodeCommentsChip({ comments: e, contentAlign: t = `start`, onRemove: n, onRemoveAll: r }: {
   comments: CodeCommentAttachment[];
   contentAlign?: `start` | `center` | `end`;
   onRemove?: (comment: CodeCommentAttachment) => void;
   onRemoveAll?: () => void;
 }): React.ReactElement | null {
-  const { intl } = useIntlContext();
-  if (comments.length === 0) return null;
-  const chipLabel = intl.formatMessage(
-      { id: comments.length === 1 ? `chat.codeComments.one` : `chat.codeComments.many` },
-      { count: String(comments.length) },
+  let { intl: i } = useIntlContext();
+  if (e.length === 0) return null;
+  let a = i.formatMessage(
+      { id: e.length === 1 ? `chat.codeComments.one` : `chat.codeComments.many` },
+      { count: String(e.length) },
     ),
-    removeLabel = intl.formatMessage({ id: `chat.codeComments.remove` });
-  return (
-    <HoverCardRoot>
-      <HoverCardTrigger asChild>
-        <div
-          className={cn(
+    o = i.formatMessage({ id: `chat.codeComments.remove` });
+  return (0, $.jsxs)(HoverCardTooltip, {
+    children: [
+      (0, $.jsx)(HoverCardTooltipTrigger, {
+        asChild: !0,
+        children: (0, $.jsxs)(`div`, {
+          className: cn(
             `group flex h-8 max-w-full cursor-pointer select-none items-center gap-1.5`,
             `rounded-md border border-border bg-surface p-1`,
             `text-ui-base font-medium text-foreground transition-all hover:bg-surface-hover`,
             `outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused`,
-          )}
-          aria-label={chipLabel}
-          role={`button`}
-          tabIndex={0}
-        >
-          <span className={`flex min-w-0 items-center gap-1.5 rounded-sm px-1`}>
-            <CommentGlyphIcon className={`size-4 shrink-0 text-foreground-subtle`} />
-            <span className={`truncate`}>{chipLabel}</span>
-          </span>
-          {onRemoveAll
-            ? (
-              <Button
-                type={`button`}
-                variant={`ghost`}
-                size={`icon-xs`}
-                className={`size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100`}
-                aria-label={removeLabel}
-                title={removeLabel}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                  (event.stopPropagation(), onRemoveAll());
-                }}
-              >
-                <CloseIcon className={`size-3.5`} />
-              </Button>
-            )
-            : null}
-        </div>
-      </HoverCardTrigger>
-      <HoverCardContent
-        align={contentAlign}
-        side={`top`}
-        className={`w-80 rounded-xl border border-popover-border bg-menu p-1 text-foreground shadow-md ring-0`}
-      >
-        <div className={`max-h-64 overflow-y-auto`}>
-          {comments.map((comment) => {
-            const lineRange = comment.startLine === comment.endLine ? `L${comment.startLine}` : `L${comment.startLine}-L${comment.endLine}`;
-            return (
-              <div
-                key={codeCommentKey(comment)}
-                className={`group/comment flex min-h-7 cursor-default gap-2 rounded-lg px-2 py-1 text-ui-base/relaxed text-foreground hover:bg-menu-hover`}
-              >
-                <CodeCommentIcon className={`mt-1 size-4 shrink-0 text-foreground-subtle`} />
-                <div className={`min-w-0 flex-1`}>
-                  <div className={`flex min-w-0 items-center gap-2`}>
-                    <span className={`truncate font-medium`}>{comment.sourceTitle}</span>
-                    <span className={`shrink-0 font-mono text-ui-base text-foreground-subtle`}>{lineRange}</span>
-                  </div>
-                  <div className={`truncate font-mono text-ui-base text-foreground-subtlest`}>{comment.sourcePath ?? comment.sourceTitle}</div>
-                  {comment.comment.trim()
-                    ? (
-                      <div className={`line-clamp-2 text-ui-base/relaxed text-foreground-subtle`}>{comment.comment}</div>
-                    )
-                    : null}
-                </div>
-                {onRemove
-                  ? (
-                    <Button
-                      type={`button`}
-                      variant={`ghost`}
-                      size={`icon-xs`}
-                      className={`mt-0.5 size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover/comment:opacity-100`}
-                      aria-label={removeLabel}
-                      title={removeLabel}
-                      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                        (event.stopPropagation(), onRemove(comment));
-                      }}
-                    >
-                      <TrashIcon className={`size-3.5`} />
-                    </Button>
-                  )
-                  : null}
-              </div>
+          ),
+          "aria-label": a,
+          role: `button`,
+          tabIndex: 0,
+          children: [
+            (0, $.jsxs)(`span`, {
+              className: `flex min-w-0 items-center gap-1.5 rounded-sm px-1`,
+              children: [
+                (0, $.jsx)(CommentGlyphIcon, { className: `size-4 shrink-0 text-foreground-subtle` }),
+                (0, $.jsx)(`span`, { className: `truncate`, children: a }),
+              ],
+            }),
+            r
+              ? (0, $.jsx)(Button, {
+                  type: `button`,
+                  variant: `ghost`,
+                  size: `icon-xs`,
+                  className: `size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100`,
+                  "aria-label": o,
+                  title: o,
+                  onClick: (e: React.MouseEvent<HTMLButtonElement>) => { // 〔A1-R22〕型缝注参（Home §V 同约定）：Button 面上下文推不出参数形
+                    (e.stopPropagation(), r());
+                  },
+                  children: (0, $.jsx)(CloseIcon, { className: `size-3.5` }),
+                })
+              : null,
+          ],
+        }),
+      }),
+      (0, $.jsx)(HoverCardTooltipContent, {
+        align: t,
+        side: `top`,
+        className: `w-80 rounded-xl border border-popover-border bg-menu p-1 text-foreground shadow-md ring-0`,
+        children: (0, $.jsx)(`div`, {
+          className: `max-h-64 overflow-y-auto`,
+          children: e.map((e) => {
+            let t = e.startLine === e.endLine ? `L${e.startLine}` : `L${e.startLine}-L${e.endLine}`;
+            return (0, $.jsxs)(
+              `div`,
+              {
+                className: `group/comment flex min-h-7 cursor-default gap-2 rounded-lg px-2 py-1 text-ui-base/relaxed text-foreground hover:bg-menu-hover`,
+                children: [
+                  (0, $.jsx)(CodeCommentIcon, { className: `mt-1 size-4 shrink-0 text-foreground-subtle` }),
+                  (0, $.jsxs)(`div`, {
+                    className: `min-w-0 flex-1`,
+                    children: [
+                      (0, $.jsxs)(`div`, {
+                        className: `flex min-w-0 items-center gap-2`,
+                        children: [
+                          (0, $.jsx)(`span`, {
+                            className: `truncate font-medium`,
+                            children: e.sourceTitle,
+                          }),
+                          (0, $.jsx)(`span`, {
+                            className: `shrink-0 font-mono text-ui-base text-foreground-subtle`,
+                            children: t,
+                          }),
+                        ],
+                      }),
+                      (0, $.jsx)(`div`, {
+                        className: `truncate font-mono text-ui-base text-foreground-subtlest`,
+                        children: e.sourcePath ?? e.sourceTitle,
+                      }),
+                      e.comment.trim()
+                        ? (0, $.jsx)(`div`, {
+                            className: `line-clamp-2 text-ui-base/relaxed text-foreground-subtle`,
+                            children: e.comment,
+                          })
+                        : null,
+                    ],
+                  }),
+                  n
+                    ? (0, $.jsx)(Button, {
+                        type: `button`,
+                        variant: `ghost`,
+                        size: `icon-xs`,
+                        className: `mt-0.5 size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover/comment:opacity-100`,
+                        "aria-label": o,
+                        title: o,
+                        onClick: (t: React.MouseEvent<HTMLButtonElement>) => { // 〔A1-R22〕型缝注参（同上）
+                          (t.stopPropagation(), n(e));
+                        },
+                        children: (0, $.jsx)(TrashIcon, { className: `size-3.5` }),
+                      })
+                    : null,
+                ],
+              },
+              codeCommentKey(e),
             );
-          })}
-        </div>
-      </HoverCardContent>
-    </HoverCardRoot>
-  );
+          }),
+        }),
+      }),
+    ],
+  });
 }
 
 /** EH → CODE_COMMENT_ADD_EVENT（js 68411） */
@@ -7136,12 +7187,12 @@ function createCodeCommentId(): string {
 }
 
 /** KH → codeCommentContextKey（js 68857） */
-function codeCommentContextKey(comment: { id: string; workspacePath: string; workspaceIdentity?: string | null }): string {
+export function codeCommentContextKey(comment: { id: string; workspacePath: string; workspaceIdentity?: string | null }): string { // 〔A1-R22〕补 export：code-viewer/GitReview hXe/KH 双副本降 re-export 收敛（函数声明提升，环安全）
   return `${commentWorkspaceKey(comment.workspacePath, comment.workspaceIdentity)}\0${comment.id}`;
 }
 
 /** JXe → useCodeCommentContexts（js 68860） */
-function useCodeCommentContexts({ listenAddToChatEvents = true, onContextRemoved, requestFocus, scopeKey }: {
+export function useCodeCommentContexts({ listenAddToChatEvents = true, onContextRemoved, requestFocus, scopeKey }: { // 〔A1-R22〕补 export：JXe 双副本裁定——bundle 唯一真身 68860，本转录为逐字副本（canonical）；code-viewer/GitReview A1-R12 副本降 re-export（见该墓碑），Home 经 modules/GitReview 消费链不变
   listenAddToChatEvents?: boolean;
   onContextRemoved?: (comment: CodeCommentAttachment) => void;
   requestFocus?: () => void;
@@ -7229,7 +7280,7 @@ function isWebElementRemoveDetail(detail: unknown): detail is { id: string; work
 }
 
 /** XXe → normalizeWebElementDetail（js 68936） */
-function normalizeWebElementDetail(detail: unknown): WebElementContext | null {
+function normalizeWebElementDetail(detail: unknown): (WebElementContext & { id: string }) | null { // 〔A1-R22〕型缝：归一面必携 id（`id ?? NXe()` 补齐，束真）；[B17] WebElementsChip 行键/移除面消费
   return isWebElementAddDetail(detail) ? { ...detail, id: detail.id ?? createWebElementId() } : null;
 }
 
@@ -7245,7 +7296,7 @@ export function useWebElementContexts({ // 〔A1-R21〕补 export：Home useWebC
   listenAddToChatEvents?: boolean;
   scopeId?: string | null;
 }) {
-  const [contexts, setContexts] = React.useState<WebElementContext[]>([]);
+  const [contexts, setContexts] = React.useState<Array<WebElementContext & { id: string }>>([]); // 〔A1-R22〕型缝：状态面仅收 XXe 归一条目（必携 id）；[B17] WebElementsChip 消费契约
   const workspaceKey = webElementWorkspaceKey(workspacePath, workspaceIdentity);
   React.useEffect(() => {
     setContexts([]);
@@ -7292,6 +7343,260 @@ export function useWebElementContexts({ // 〔A1-R21〕补 export：Home useWebC
   );
 }
 
+/* ============================================================================
+ * [B17] 上下文 chip 行（js 2827 + 89982–90178；A1-R22 逐字转录）
+ *   bundle 区域 89982–90178 位于 composer 工具条（ait 89977）与草稿恢复（dit 90181）之间；
+ *   消费面 = composer topContent（90781–90789）+ 用户消息行（112241–112244）。
+ *   A0 时代 PaymentDeep §10 归属（pay_range 13378–13568）为误登——其本地副本零消费面，
+ *   本批删除（见该处墓碑）；属主收归 Composer（[B14]/[B15]/[B16] 上下文域同族）。
+ *   映射表（minified → 语义名 → bundle 行）：
+ *     sit → webElementAccessibleLabel         (89982)
+ *     cit → webElementDescriptor              (89985)
+ *     lit → WebElementsChip                   (89989)  补 export：Home WebContextChipRow /
+ *                                                        Conversation WebElementChips declare 收敛
+ *     Ds  → isConversationSelectionReference  (2827)   F03 选择引用守护（koe 2720 同区）
+ *     uit → SelectionsChip                    (90087)  补 export：Home ConversationSelectionChipRow /
+ *                                                        Conversation ConversationSelectionChips declare 收敛
+ *   行内消费：G=useIntlContext / Z=cn / X=Button / g=CloseIcon（X）/ o=WebElementPointerIcon
+ *     （MousePointer2，imeComposition C 导出 Wt 11787）/ wye=WebElementIcon（Earth）/
+ *     fbe=SelectionGlyphIcon（Quote）/ Kv=TrashIcon（Trash2）/ CN=HoverCardTooltip /
+ *     wN=HoverCardTooltipTrigger / TN=HoverCardTooltipContent / $=react/jsx-runtime。
+ *   JSX 保持编译形态。
+ * ==========================================================================*/
+
+/** sit → webElementAccessibleLabel（js 89982） */
+function webElementAccessibleLabel(e: WebElementContext): string {
+  return e.accessibleName || e.text || e.selector || e.tagName.toLowerCase();
+}
+
+/** cit → webElementDescriptor（js 89985） */
+function webElementDescriptor(e: WebElementContext): string {
+  let t = e.role ? `role=${e.role}` : null;
+  return [e.tagName.toLowerCase(), t].filter(Boolean).join(` · `);
+}
+
+/** lit → WebElementsChip（js 89989） */
+export function WebElementsChip({ contexts: e, contentAlign: t = `start`, onRemove: n, onRemoveAll: r }: {
+  contexts: Array<WebElementContext & { id: string }>; // 〔A1-R22〕型缝：chip 契约——消费面均经 XXe 归一（90782）或 HXe 解析（112242，必携 parsed-web-element-* id）；行键/移除面按束真消费 e.id
+  contentAlign?: `start` | `center` | `end`;
+  onRemove?: (id: string) => void;
+  onRemoveAll?: () => void;
+}): React.ReactElement | null {
+  let { intl: i } = useIntlContext();
+  if (e.length === 0) return null;
+  let a = i.formatMessage(
+      { id: e.length === 1 ? `chat.webElements.one` : `chat.webElements.many` },
+      { count: String(e.length) },
+    ),
+    s = i.formatMessage({ id: `chat.webElements.remove` });
+  return (0, $.jsxs)(HoverCardTooltip, {
+    children: [
+      (0, $.jsx)(HoverCardTooltipTrigger, {
+        asChild: !0,
+        children: (0, $.jsxs)(`div`, {
+          className: cn(
+            `group flex h-8 max-w-full cursor-pointer select-none items-center gap-1.5`,
+            `rounded-md border border-border bg-surface p-1`,
+            `font-medium text-ui-base text-foreground transition-all hover:bg-surface-hover`,
+            `outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused`,
+          ),
+          "aria-label": a,
+          role: `button`,
+          tabIndex: 0,
+          children: [
+            (0, $.jsxs)(`span`, {
+              className: `flex min-w-0 items-center gap-1.5 rounded-sm px-1`,
+              children: [
+                (0, $.jsx)(WebElementPointerIcon, { className: `size-4 shrink-0 text-foreground-subtle` }),
+                (0, $.jsx)(`span`, { className: `truncate`, children: a }),
+              ],
+            }),
+            r
+              ? (0, $.jsx)(Button, {
+                  type: `button`,
+                  variant: `ghost`,
+                  size: `icon-xs`,
+                  className: `size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100`,
+                  "aria-label": s,
+                  title: s,
+                  onClick: (e: React.MouseEvent<HTMLButtonElement>) => { // 〔A1-R22〕型缝注参（Home §V 同约定）：Button 面上下文推不出参数形
+                    (e.stopPropagation(), r());
+                  },
+                  children: (0, $.jsx)(CloseIcon, { className: `size-3.5` }),
+                })
+              : null,
+          ],
+        }),
+      }),
+      (0, $.jsx)(HoverCardTooltipContent, {
+        align: t,
+        side: `top`,
+        className: `w-80 rounded-xl border border-popover-border bg-menu p-1 text-foreground shadow-md ring-0`,
+        children: (0, $.jsx)(`div`, {
+          className: `max-h-64 overflow-y-auto`,
+          children: e.map((e) =>
+            (0, $.jsxs)(
+              `div`,
+              {
+                className: `group/context flex min-h-7 cursor-default gap-2 rounded-lg px-2 py-1 text-ui-base/relaxed text-foreground hover:bg-menu-hover`,
+                children: [
+                  (0, $.jsx)(WebElementIcon, { className: `mt-1 size-4 shrink-0 text-foreground-subtle` }),
+                  (0, $.jsxs)(`div`, {
+                    className: `min-w-0 flex-1`,
+                    children: [
+                      (0, $.jsx)(`div`, { className: `truncate font-medium`, children: webElementAccessibleLabel(e) }),
+                      (0, $.jsx)(`div`, {
+                        className: `truncate font-mono text-ui-base text-foreground-subtle`,
+                        children: webElementDescriptor(e),
+                      }),
+                      (0, $.jsx)(`div`, {
+                        className: `truncate text-ui-base text-foreground-subtlest`,
+                        children: e.pageTitle || e.pageUrl,
+                      }),
+                    ],
+                  }),
+                  n
+                    ? (0, $.jsx)(Button, {
+                        type: `button`,
+                        variant: `ghost`,
+                        size: `icon-xs`,
+                        className: `mt-0.5 size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover/context:opacity-100`,
+                        "aria-label": s,
+                        title: s,
+                        onClick: (t: React.MouseEvent<HTMLButtonElement>) => { // 〔A1-R22〕型缝注参（同上）
+                          (t.stopPropagation(), n(e.id));
+                        },
+                        children: (0, $.jsx)(TrashIcon, { className: `size-3.5` }),
+                      })
+                    : null,
+                ],
+              },
+              e.id,
+            ),
+          ),
+        }),
+      }),
+    ],
+  });
+}
+
+/** Ds → isConversationSelectionReference（js 2827） */
+function isConversationSelectionReference(e: ConversationSelection): e is ConversationSelection & {
+  id: string;
+  sourceSessionId: string;
+  sourceRowId: number;
+  text: string;
+  contentType: string;
+} {
+  if (!e || typeof e != `object`) return !1;
+  let t = e;
+  return (
+    typeof t.id == `string` &&
+    typeof t.sourceSessionId == `string` &&
+    typeof t.sourceRowId == `number` &&
+    typeof t.text == `string` &&
+    [`user`, `assistant`, `reasoning`, `tool`].includes(t.contentType ?? ``)
+  );
+}
+
+/** uit → SelectionsChip（js 90087） */
+export function SelectionsChip({ references: e, onRemove: t, onRemoveAll: n }: {
+  references: ConversationSelection[];
+  onRemove?: (id: string) => void;
+  onRemoveAll?: () => void;
+}): React.ReactElement | null {
+  let { intl: r } = useIntlContext();
+  if (e.length === 0) return null;
+  let i = r.formatMessage({ id: `chat.selections.count` }, { count: String(e.length) }),
+    a = r.formatMessage({ id: `chat.selections.remove` });
+  return (0, $.jsxs)(HoverCardTooltip, {
+    children: [
+      (0, $.jsx)(HoverCardTooltipTrigger, {
+        asChild: !0,
+        children: (0, $.jsxs)(`div`, {
+          role: `button`,
+          tabIndex: 0,
+          "aria-label": i,
+          "data-conversation-selection-reference-count": e.length,
+          className: `group flex h-8 max-w-full cursor-pointer select-none items-center gap-1.5 rounded-md border border-border bg-surface p-1 text-ui-base font-medium text-foreground transition-all hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused`,
+          children: [
+            (0, $.jsxs)(`span`, {
+              className: `flex min-w-0 items-center gap-1.5 rounded-sm px-1`,
+              children: [
+                (0, $.jsx)(SelectionGlyphIcon, { className: `size-4 shrink-0 text-foreground-subtle` }),
+                (0, $.jsx)(`span`, { className: `truncate`, children: i }),
+              ],
+            }),
+            n
+              ? (0, $.jsx)(Button, {
+                  type: `button`,
+                  variant: `ghost`,
+                  size: `icon-xs`,
+                  className: `size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity group-hover:opacity-100`,
+                  "aria-label": a,
+                  onClick: (e: React.MouseEvent<HTMLButtonElement>) => { // 〔A1-R22〕型缝注参（同上）
+                    (e.stopPropagation(), n());
+                  },
+                  children: (0, $.jsx)(CloseIcon, { className: `size-3.5` }),
+                })
+              : null,
+          ],
+        }),
+      }),
+      (0, $.jsx)(HoverCardTooltipContent, {
+        align: `start`,
+        side: `top`,
+        className: `w-80 rounded-xl border border-popover-border bg-menu p-1 text-foreground shadow-md ring-0`,
+        children: (0, $.jsx)(`div`, {
+          className: `max-h-64 overflow-y-auto`,
+          children: e.map((e, n) =>
+            (0, $.jsxs)(
+              `div`,
+              {
+                className: `group/reference flex gap-2 rounded-lg px-2 py-1.5 text-ui-base hover:bg-menu-hover`,
+                children: [
+                  (0, $.jsx)(SelectionGlyphIcon, { className: `mt-0.5 size-4 shrink-0 text-foreground-subtle` }),
+                  (0, $.jsxs)(`div`, {
+                    className: `min-w-0 flex-1`,
+                    children: [
+                      (0, $.jsx)(`div`, {
+                        className: `line-clamp-3 whitespace-pre-wrap break-words`,
+                        children: e.text,
+                      }),
+                      isConversationSelectionReference(e)
+                        ? (0, $.jsxs)(`div`, {
+                            className: `mt-0.5 text-ui-sm text-foreground-subtlest`,
+                            children: [
+                              r.formatMessage({ id: `chat.selections.type.${e.contentType}` }),
+                              ` `,
+                              `· #`,
+                              e.sourceRowId,
+                            ],
+                          })
+                        : null,
+                    ],
+                  }),
+                  t && isConversationSelectionReference(e)
+                    ? (0, $.jsx)(Button, {
+                        type: `button`,
+                        variant: `ghost`,
+                        size: `icon-xs`,
+                        className: `size-5 shrink-0 text-foreground-subtle opacity-0 group-hover/reference:opacity-100`,
+                        "aria-label": a,
+                        onClick: () => t(e.id),
+                        children: (0, $.jsx)(TrashIcon, { className: `size-3.5` }),
+                      })
+                    : null,
+                ],
+              },
+              isConversationSelectionReference(e) ? e.id : `${n}:${e.text}`,
+            ),
+          ),
+        }),
+      }),
+    ],
+  });
+}
 /* 〔A0-S4-4b〕[B16] PPTX 引用 chip 六实体（usePptxElementReferences/pptxReferenceLabel/PptxReferencesChip/
  * buildPptxPreviewNavigation/toPptxViewerTarget/usePptxPreviewOpener，原 7612–7852）整体迁出 →
  * components/composer/PptxReferencesChip.tsx。六实体原即模块私有，无 re-export 面。
@@ -7413,7 +7718,7 @@ export type { ConfigSelectOption, ConfigSelectSpec } from '../components/compose
  * sXe→estimateBase64Bytes 67623 | cXe→putAttachmentContent 67627 | lXe→EMPTY_ATTACHMENTS 67646 | xH→REMOTE_ATTACHMENT_NOT_STAGED 67647 | uXe→selectAttachmentPaths 67648 |
  * dXe→attachmentScopeKey 67653 | SH→isAbortError 67656 | fXe→RemoteAttachmentNotStagedError 67663 | pXe→isTransientUploadError 67666 | CH→uploadProgressPercent 67673 |
  * wH→isRemoteAttachmentTarget 67676 | mXe→useComposerAttachments 67679
- * [B14] hXe→codeCommentKey 68295 | TH→CodeCommentsChip 68298 | EH→CODE_COMMENT_ADD_EVENT 68411 | DH→CODE_COMMENT_REMOVE_EVENT 68412 |
+ * [B14] hXe→codeCommentKey 68295 | TH→CodeCommentsChip 68298（A1-R22 逐字化 + 补 export） | EH→CODE_COMMENT_ADD_EVENT 68411 | DH→CODE_COMMENT_REMOVE_EVENT 68412 |
  * gXe→CODE_COMMENT_REMOVE_CHANNEL 68413 | OH→suppressedCodeCommentIds 68414 | kH→commentWorkspaceKey 68415 | AH→codeCommentIdentityKey 68418 | _Xe→isCodeCommentSuppressed 68421 |
  * jH→suppressCodeComment 68424 | vXe→unsuppressCodeComment 68427 | yXe→isCodeCommentAddEvent 68430 | bXe→isCodeCommentRemoveEvent 68438 | MH→isCodeCommentRemoveDetail 68446 |
  * NH→isCodeCommentAddDetail 68457 | xXe→formatCodeCommentMarkdown 68475 | SXe→formatCodeCommentsMarkdown 68479 | CXe→appendCodeCommentsToContent 68486 | wXe→pathBasename 68499 |
@@ -7425,10 +7730,11 @@ export type { ConfigSelectOption, ConfigSelectSpec } from '../components/compose
  * zXe→appendWebElementsToContent 68737 | UH→readWebElementField 68749 | WH→readWebElementCodeField 68752 | BXe→parseWebElementFont 68761 | VXe→parseWebElementStyle 68766 |
  * HXe→parseWebElementMarkdown 68781 | UXe→extractWebElementsFromContent 68805 | WXe→dispatchWebElementAddEvent 68824
  * [B16] GH→countComposerContexts 68825 | GXe→buildComposerContextMarkdown 68833 | KXe→parseComposerContextContent 68839 | qXe→createCodeCommentId 68852 |
- * KH→codeCommentContextKey 68857 | JXe→useCodeCommentContexts 68860 | YXe→isWebElementRemoveDetail 68926 | XXe→normalizeWebElementDetail 68936 | ZXe→useWebElementContexts 68940 |
+ * KH→codeCommentContextKey 68857（A1-R22 补 export） | JXe→useCodeCommentContexts 68860（A1-R22 补 export，JXe 双副本裁定 canonical） | YXe→isWebElementRemoveDetail 68926 | XXe→normalizeWebElementDetail 68936 | ZXe→useWebElementContexts 68940 |
  * QXe→usePptxElementReferences 68996 | qH→pptxReferenceLabel 69033 | JH→PptxReferencesChip 69036 | $Xe→buildPptxPreviewNavigation 69181 | eZe→toPptxViewerTarget 69194 |
  * YH→usePptxPreviewOpener 69207 | tZe→useSessionScopedReferences 69225 | nZe→countBackgroundWorks 69266 | rZe→BackgroundWorksCapsule 69273 | iZe→BackgroundWorksCapsuleMemo 69345 |
  * XH→isCoarseTouchDevice 69346 | ZH→shouldRestoreFocus 69351
+ * [B17] sit→webElementAccessibleLabel 89982 | cit→webElementDescriptor 89985 | lit→WebElementsChip 89989（补 export） | Ds→isConversationSelectionReference 2827 | uit→SelectionsChip 90087（补 export）
  * [C] N4e→LABEL_ANIMATION_TRANSITION 75494 | P4e→usePrefersReducedMotion 75496 | _q→AnimatedLabel 75520 | F4e→EMPTY_FOOTER_ACTIONS 75556 | I4e→hasMultipleGroups 75557 |
  * L4e→hasGroupDecoration 75560 | R4e→needsGroupSeparator 75565 | z4e→groupContainsValue 75568 | B4e→resolveTriggerLabelClass 75571 | vq→ModelSelector 75575 |
  * V4e→MODE_LABEL_I18N 75972 | H4e→MODE_DESCRIPTION_I18N 76002 | yq→SegmentedProgress 76034 | bq→CONTEXT_RING_RADIUS 76066 | U4e→CONTEXT_RING_VIEWBOX 76067 |

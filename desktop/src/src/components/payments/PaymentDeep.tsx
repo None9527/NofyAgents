@@ -83,7 +83,8 @@
  *  G. zet Coding Plan 对话框（84460–85995 / jsx 74125）：见 §7 头注
  *  H. Zet 结账面板+政策子组件群（85996–88046）：见 §8 头注
  *  I. xnt 用量格式化+计划源选择（88047–89988 / jsx 76242/77471）：见 §9 头注
- *  J. lit/uit 上下文 chip（89989–90179 / jsx 78047/78080）：见 §10 头注
+ *  J. lit/uit 上下文 chip（89989–90179 / jsx 78047/78080）：〔A1-R22〕副本删除 → 逐字 canonical
+ *     modules/Composer.tsx [B17]（消费面在 Home/Conversation，非支付域；见 §10 墓碑）
  * ============================================================================
  */
 import * as React from "react";
@@ -93,7 +94,7 @@ import { Slot } from '@radix-ui/react-slot'; // A0-S3c：vendored 原语 declare
 import { Dialog as DialogRoot, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { HoverCardTooltip as PopoverRoot, HoverCardTooltipTrigger as PopoverTriggerAsChild } from '../ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { DropdownMenu as SelectShell, DropdownMenuContent as SelectPopup, DropdownMenuRadioGroup as SelectControl, DropdownMenuRadioItem as SelectOption, DropdownMenuTrigger as SelectTriggerAsChild } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { ChevronDownIcon, Lightbulb as ThoughtLevelIcon, RefreshCw as RefreshIcon, X as CloseIcon, Trash2 as TrashIcon, CheckIcon, ArrowLeft as BackIcon, CircleCheck as SuccessIcon, MinusIcon, PlusIcon, GlobeIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { ChevronDownIcon, Lightbulb as ThoughtLevelIcon, RefreshCw as RefreshIcon, X as CloseIcon, Trash2 as TrashIcon, CheckIcon, ArrowLeft as BackIcon, CircleCheck as SuccessIcon, MinusIcon, PlusIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A1-R22〕GlobeIcon 随 §10 chip 副本删除移出（唯一消费面已删）
 import * as qrcode from 'qrcode'; // A0-S3a：vendored qrcode（78456–79690，Qq）→ npm qrcode@1.5.4
 // A0-S3a：vendored Stripe（80955–81731）→ npm @stripe/react-stripe-js@6.4.0 + @stripe/stripe-js@9.6.0（bundle 双版本锚定）
 import { Elements as StripeElementsProvider, useStripe, useElements, CardNumberElement, CardExpiryElement, CardCvcElement } from '@stripe/react-stripe-js';
@@ -271,8 +272,10 @@ declare function usePlatformBridge(): any; // S（openExternal/onPaymentCallback
 declare const EquityCheckIcon: React.FC<React.SVGProps<SVGSVGElement>>; // E_
 declare const HelpIcon: React.FC<React.SVGProps<SVGSVGElement>>; // p
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（4）：SuccessIcon/MinusIcon/PlusIcon/GlobeIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const WebElementIcon: React.FC<React.SVGProps<SVGSVGElement>>; // wye
-declare const SelectionIcon: React.FC<React.SVGProps<SVGSVGElement>>; // fbe
+/* ── tombstone（A1-R22）：WebElementIcon declare 删除（原 wye，Sa('earth') vendored，js 26983）——唯一消费面
+ *    §10 lit 副本同批删除；真身逐字 canonical = modules/Composer.tsx [B17]（lucide Earth as WebElementIcon）。 ── */
+/* ── tombstone（A1-R22）：SelectionIcon declare 删除（原 fbe，Sa('quote') vendored，js 27690）——唯一消费面
+ *    §10 uit 副本同批删除；真身逐字 canonical = modules/Composer.tsx [B17]（lucide Quote as SelectionGlyphIcon）。 ── */
 declare const GenericProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Cv
 declare const ZapiProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // zbe
 declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe
@@ -287,7 +290,8 @@ declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe
  *    bundle HHe 唯一真身，消费面 85417（本文件 6719 区）逐字不变，改指文件头 import（modules/UsageDeep）。 ── */
 declare function trackFunnelStart(platform: any, funnel: any): void; // WUe
 declare function trackPlanSelectEvent(platform: any, funnel: any, meta: Record<string, unknown>): void; // RM/zM
-declare function isStructuredSelection(entry: any): boolean; // Ds
+/* ── tombstone（A1-R22）：declare isStructuredSelection（原 Ds，2827）删除——唯一消费面 §10 uit 副本同批删除；
+ *    真身逐字 canonical = modules/Composer.tsx [B17] isConversationSelectionReference（型别守护形）。 ── */
 declare function isZaiCodingPlanProvider(providerId: string): boolean; // tr（跨 chunk 导入，Z.ai 编码计划供应商判定）
 /** 供应商/工具条横切机制（接口级） */
 declare function useModelProviders(): { modelProviders: ModelProvider[]; displayOrder?: string[]; loading: boolean; refresh: (opts?: any) => Promise<void> }; // qq
@@ -11487,189 +11491,16 @@ function diffValueOf(previous: any, current: any, hasOverride: any) {
   return hasOverride ? current : previous === current ? null : previous;
 }
 
-// sit → accessibleLabelOf（本地 89962）
-function accessibleLabelOf(element: any) {
-  return element.accessibleName || element.text || element.selector || element.tagName.toLowerCase();
-}
+/* ── tombstone（A1-R22）：sit/cit 本地副本删除（原 accessibleLabelOf/elementDescriptorOf，A0 语义重建形；
+ *    唯一消费面 §10 chip 副本同批删除）。真身 sit 89982 / cit 89985 逐字 canonical =
+ *    modules/Composer.tsx [B17] webElementAccessibleLabel/webElementDescriptor。 ── */
 
-// cit → elementDescriptorOf（本地 89965）
-function elementDescriptorOf(element: any) {
-  const role = element.role ? `role=${element.role}` : null;
-  return [element.tagName.toLowerCase(), role].filter(Boolean).join(` · `);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// §10 本地 89989–90179（pay_range 13378–13568）：会话上下文芯片（Web 元素 / 选区引用）
-// 归属：F08 Home 族双归属（消费方在 Home/Composer 场景）
-// 把握度：高（逐字转录）
-// ─────────────────────────────────────────────────────────────────────────────
-
-// lit → WebElementsChip（本地 89989）
-function WebElementsChip({ contexts, contentAlign = `start`, onRemove, onRemoveAll }: any) {
-  const { intl } = useZCodeIntl();
-  if (contexts.length === 0) return null;
-  const countLabel = intl.formatMessage(
-    { id: contexts.length === 1 ? `chat.webElements.one` : `chat.webElements.many` },
-    { count: String(contexts.length) },
-  );
-  const removeLabel = intl.formatMessage({ id: `chat.webElements.remove` });
-  return (
-    <PopoverRoot>
-      <PopoverTriggerAsChild asChild={true}>
-        <div
-          className={cn(
-            `group flex h-8 max-w-full cursor-pointer select-none items-center gap-1.5`,
-            `rounded-md border border-border bg-surface p-1`,
-            `font-medium text-ui-base text-foreground transition-all hover:bg-surface-hover`,
-            `outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused`,
-          )}
-          aria-label={countLabel}
-          role={`button`}
-          tabIndex={0}
-        >
-          <span className={`flex min-w-0 items-center gap-1.5 rounded-sm px-1`}>
-            <GlobeIcon className={`size-4 shrink-0 text-foreground-subtle`} />
-            <span className={`truncate`}>{countLabel}</span>
-          </span>
-          {onRemoveAll ? (
-            <Button
-              type={`button`}
-              variant={`ghost`}
-              size={`icon-xs`}
-              className={`size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100`}
-              aria-label={removeLabel}
-              title={removeLabel}
-              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                (event.stopPropagation(), onRemoveAll());
-              }}
-            >
-              <CloseIcon className={`size-3.5`} />
-            </Button>
-          ) : null}
-        </div>
-      </PopoverTriggerAsChild>
-      <PopoverContent
-        align={contentAlign}
-        side={`top`}
-        className={`w-80 rounded-xl border border-popover-border bg-menu p-1 text-foreground shadow-md ring-0`}
-      >
-        <div className={`max-h-64 overflow-y-auto`}>
-          {contexts.map((context: any) => (
-            <div
-              key={context.id}
-              className={`group/context flex min-h-7 cursor-default gap-2 rounded-lg px-2 py-1 text-ui-base/relaxed text-foreground hover:bg-menu-hover`}
-            >
-              <WebElementIcon className={`mt-1 size-4 shrink-0 text-foreground-subtle`} />
-              <div className={`min-w-0 flex-1`}>
-                <div className={`truncate font-medium`}>{accessibleLabelOf(context)}</div>
-                <div className={`truncate font-mono text-ui-base text-foreground-subtle`}>
-                  {elementDescriptorOf(context)}
-                </div>
-                <div className={`truncate text-ui-base text-foreground-subtlest`}>
-                  {context.pageTitle || context.pageUrl}
-                </div>
-              </div>
-              {onRemove ? (
-                <Button
-                  type={`button`}
-                  variant={`ghost`}
-                  size={`icon-xs`}
-                  className={`mt-0.5 size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover/context:opacity-100`}
-                  aria-label={removeLabel}
-                  title={removeLabel}
-                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                    (event.stopPropagation(), onRemove(context.id));
-                  }}
-                >
-                  <TrashIcon className={`size-3.5`} />
-                </Button>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </PopoverContent>
-    </PopoverRoot>
-  );
-}
-
-// uit → SelectionsChip（本地 90097）
-function SelectionsChip({ references, onRemove, onRemoveAll }: any) {
-  const { intl } = useZCodeIntl();
-  if (references.length === 0) return null;
-  const countLabel = intl.formatMessage({ id: `chat.selections.count` }, { count: String(references.length) });
-  const removeLabel = intl.formatMessage({ id: `chat.selections.remove` });
-  return (
-    <PopoverRoot>
-      <PopoverTriggerAsChild asChild={true}>
-        <div
-          role={`button`}
-          tabIndex={0}
-          aria-label={countLabel}
-          data-conversation-selection-reference-count={references.length}
-          className={`group flex h-8 max-w-full cursor-pointer select-none items-center gap-1.5 rounded-md border border-border bg-surface p-1 text-ui-base font-medium text-foreground transition-all hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused`}
-        >
-          <span className={`flex min-w-0 items-center gap-1.5 rounded-sm px-1`}>
-            <SelectionIcon className={`size-4 shrink-0 text-foreground-subtle`} />
-            <span className={`truncate`}>{countLabel}</span>
-          </span>
-          {onRemoveAll ? (
-            <Button
-              type={`button`}
-              variant={`ghost`}
-              size={`icon-xs`}
-              className={`size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity group-hover:opacity-100`}
-              aria-label={removeLabel}
-              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                (event.stopPropagation(), onRemoveAll());
-              }}
-            >
-              <CloseIcon className={`size-3.5`} />
-            </Button>
-          ) : null}
-        </div>
-      </PopoverTriggerAsChild>
-      <PopoverContent
-        align={`start`}
-        side={`top`}
-        className={`w-80 rounded-xl border border-popover-border bg-menu p-1 text-foreground shadow-md ring-0`}
-      >
-        <div className={`max-h-64 overflow-y-auto`}>
-          {references.map((reference: any, index: number) => (
-            <div
-              key={isStructuredSelection(reference) ? reference.id : `${index}:${reference.text}`}
-              className={`group/reference flex gap-2 rounded-lg px-2 py-1.5 text-ui-base hover:bg-menu-hover`}
-            >
-              <SelectionIcon className={`mt-0.5 size-4 shrink-0 text-foreground-subtle`} />
-              <div className={`min-w-0 flex-1`}>
-                <div className={`line-clamp-3 whitespace-pre-wrap break-words`}>{reference.text}</div>
-                {isStructuredSelection(reference) ? (
-                  <div className={`mt-0.5 text-ui-sm text-foreground-subtlest`}>
-                    {intl.formatMessage({ id: `chat.selections.type.${reference.contentType}` })}
-                    {` `}
-                    {`· #`}
-                    {reference.sourceRowId}
-                  </div>
-                ) : null}
-              </div>
-              {onRemove && isStructuredSelection(reference) ? (
-                <Button
-                  type={`button`}
-                  variant={`ghost`}
-                  size={`icon-xs`}
-                  className={`size-5 shrink-0 text-foreground-subtle opacity-0 group-hover/reference:opacity-100`}
-                  aria-label={removeLabel}
-                  onClick={() => onRemove(reference.id)}
-                >
-                  <TrashIcon className={`size-3.5`} />
-                </Button>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </PopoverContent>
-    </PopoverRoot>
-  );
-}
+/* ── tombstone（A1-R22）：§10 lit/uit 本地副本删除（原 WebElementsChip/SelectionsChip，
+ *    A0 语义重建形，非逐字；本文件内零消费面 = 死代码，负证据：grep 全文件仅定义无调用）。
+ *    真身归属裁定：bundle 唯一真身 lit 89989 / uit 90087（+sit 89982 / cit 89985 / Ds 2827），
+ *    消费面 = composer topContent（90782/90789）+ 用户消息行（112242/112244），
+ *    逐字 canonical 收归 modules/Composer.tsx [B17]（本批转录并补 export）。
+ *    原「pay_range 13378–13568 / F08 Home 族双归属」登记作废（区域实为 composer 域 89982–90178）。 ── */
 
 /* ============================================================================
  * 尾符号表（混淆名 → 语义名 → 本机 js 行；A 段 76612–90179 全量）
@@ -11803,9 +11634,9 @@ function SelectionsChip({ references, onRemove, onRemoveAll }: any) {
  *   $rt → noopSessionModeCycle | eit → providerFamilyKindOf | tit → purchaseAudienceStateOf
  *   nit → teamSourceOfEntitlementSnapshot | rit → resolveTeamSourceSelection
  *   iit → SessionModelToolbar 89503 | ait → SessionModelToolbarMemo
- *   oit → diffValueOf | sit → accessibleLabelOf | cit → elementDescriptorOf
- *  §10 上下文芯片（89989–90179）：
- *   lit → WebElementsChip 89989 | uit → SelectionsChip 90097
+ *   oit → diffValueOf（sit/cit 副本 A1-R22 删除，改指 Composer [B17]）
+ *  §10 上下文芯片（89989–90179）：〔A1-R22〕lit/uit/sit/cit/Ds 副本删除 → 逐字 canonical
+ *   modules/Composer.tsx [B17]（lit→WebElementsChip / uit→SelectionsChip / Ds→守护）；见墓碑
  *  排除（只注记）：77062–77126 U3e/W3e/G3e（F08）| 78456–79690 qrcode vendored
  *   | 80955–81731 Stripe vendored | 90180–90227 dit/fit/pit/mit（Home.tsx）
  * ============================================================================

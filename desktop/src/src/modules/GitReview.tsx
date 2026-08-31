@@ -59,8 +59,8 @@
  *
  *  D. 代码评论（FH 消费面：行内评论 → 回流对话）：
  *   FH   → useCodeCommentsStore       commentsByBucketKey 行级评论 store (68514 / 60720)
- *   TH   → CodeCommentsChip           「N 条评论」chip + 悬停列表 + 逐条移除 (68250 / 60559)
- *   hXe  → codeCommentContextKey      (68246 / 60556)
+ *   TH   → CodeCommentsChip           「N 条评论」chip + 悬停列表 + 逐条移除 (68298；A1-R22 降 re-export → Composer 逐字 canonical)
+ *   hXe  → codeCommentContextKey      (68295；A1-R22 降 re-export → Composer KH 68857 同身)
  *   EH   → CODE_COMMENT_ADD_TO_CHAT_EVENT = `zcode:code-comment-add-to-chat` (68362 / 60591)
  *   DH   → CODE_COMMENT_REMOVE_FROM_CHAT_EVENT = `zcode:code-comment-remove-from-chat` (68363 / 60592)
  *   gXe  → CODE_COMMENT_REMOVE_BROADCAST_CHANNEL = `code-comment:remove-from-chat` (68364 / 60593)
@@ -85,8 +85,8 @@
  *   GXe  → buildOutboundContentWithAttachments (68787 / 60967)
  *   KXe  → parseDraftContentIntoAttachments (68792 / 60970)
  *   qXe  → newCodeCommentId            (68804 / 60983)
- *   KH   → codeCommentIdentityKey      (68809 / 60986)
- *   JXe  → useCodeCommentContexts      composer 侧事件桥钩子 (68812 / 60989)
+ *   KH   → codeCommentIdentityKey      (68857；A1-R22 降 re-export → Composer codeCommentContextKey 别名，同身)
+ *   JXe  → useCodeCommentContexts      composer 侧事件桥钩子 (68860；A1-R22 降 re-export → Composer 逐字 canonical)
  *   （代码查看器侧提交/删除回调 = tHt 内 Ue/We，js 161313–161360，见 useCodeViewerCommentActions；
  *     gutter 行选择机制 El js 6062–6881 属 F14 基建，仅登记）
  *

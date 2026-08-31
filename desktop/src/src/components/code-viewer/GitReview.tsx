@@ -61,8 +61,8 @@
  *
  *  D. 代码评论（FH 消费面：行内评论 → 回流对话）：
  *   FH   → useCodeCommentsStore       commentsByBucketKey 行级评论 store (68514 / 60720)
- *   TH   → CodeCommentsChip           「N 条评论」chip + 悬停列表 + 逐条移除 (68250 / 60559)
- *   hXe  → codeCommentContextKey      (68246 / 60556)
+ *   TH   → CodeCommentsChip           「N 条评论」chip + 悬停列表 + 逐条移除 (68298；A1-R22 降 re-export → Composer 逐字 canonical)
+ *   hXe  → codeCommentContextKey      (68295；A1-R22 降 re-export → Composer KH 68857 同身)
  *   EH   → CODE_COMMENT_ADD_TO_CHAT_EVENT = `zcode:code-comment-add-to-chat` (68362 / 60591)
  *   DH   → CODE_COMMENT_REMOVE_FROM_CHAT_EVENT = `zcode:code-comment-remove-from-chat` (68363 / 60592)
  *   gXe  → CODE_COMMENT_REMOVE_BROADCAST_CHANNEL = `code-comment:remove-from-chat` (68364 / 60593)
@@ -87,8 +87,8 @@
  *   GXe  → buildOutboundContentWithAttachments (68787 / 60967)
  *   KXe  → parseDraftContentIntoAttachments (68792 / 60970)
  *   qXe  → newCodeCommentId            (68804 / 60983)
- *   KH   → codeCommentIdentityKey      (68809 / 60986)
- *   JXe  → useCodeCommentContexts      composer 侧事件桥钩子 (68812 / 60989)
+ *   KH   → codeCommentIdentityKey      (68857；A1-R22 降 re-export → Composer codeCommentContextKey 别名，同身)
+ *   JXe  → useCodeCommentContexts      composer 侧事件桥钩子 (68860；A1-R22 降 re-export → Composer 逐字 canonical)
  *   （代码查看器侧提交/删除回调 = tHt 内 Ue/We，js 161313–161360，见 useCodeViewerCommentActions；
  *     gutter 行选择机制 El js 6062–6881 属 F14 基建，仅登记）
  *
@@ -212,7 +212,7 @@ import { Button, ChevronRight as IconChevronRight } from '../../modules/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb）
 import { resolveBranchDisplayLabel } from '../../modules/CmdkPaletteDeep';
 import { DiffViewer, readLastEditorId as getPreferredEditorId } from '../../modules/CodeViewer'; // 原 OA
-import { appendWebElementsToContent, useCodeCommentsStore, type WebElementContext } from '../../modules/Composer'; // 原 zXe 族（A0-CLEANUP2 item 11 接线：declare → Composer 属主导出）+ A1-R8：FH 双实例收敛改指（canonical = Composer 6716 区）
+import { appendWebElementsToContent, useCodeCommentsStore, type ConversationSelection, type WebElementContext } from '../../modules/Composer'; // 原 zXe 族（A0-CLEANUP2 item 11 接线：declare → Composer 属主导出）+ A1-R8：FH 双实例收敛改指（canonical = Composer 6716 区）；〔A1-R22〕+type ConversationSelection（ConversationSelectionRef 本地镜像删除，同 item 11 模式）
 import { orderEditorsForFileManager as normalizeInstalledEditors, useFileContextActions } from '../../modules/FileTreePanel'; // 原 GA / QA
 import { Popover as PopoverRoot, PopoverAnchor, PopoverContent, PopoverTrigger, Textarea, toast, usePlatform as usePlatformService } from '../../modules/ImeComposition'; // 原 平台钩子（imeComposition 导出 M=usePlatform）
 import { FilePathInline, PlainTextDiffPreview as LightweightDiffPreview, pathBasename } from '../../modules/ModalsLeaves'; // 原 gut
@@ -1964,7 +1964,7 @@ export interface CodeCommentScope {
 export interface CodeCommentAttachment {
   id: string;
   workspacePath: string;
-  workspaceIdentity?: string;
+  workspaceIdentity?: string | null; // 〔A1-R22〕型缝：null 放宽——bundle 真形（kH 68415 `workspaceIdentity?.trim()` 消费面；Composer 侧同身型 R8 已含 null），与 Composer.CodeCommentAttachment 结构同一化（chip 行收敛所需）
   sourcePath: string;
   sourceTitle: string;
   startLine: number;
@@ -2245,10 +2245,19 @@ export function newCodeCommentId(): string {
     : `code-comment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** 原 KH（js 68809）：上下文去重键（工作区键 \0 id） */
-export function codeCommentIdentityKey(comment: { workspacePath: string; workspaceIdentity?: string | null; id: string }): string {
-  return `${commentWorkspaceKey(comment.workspacePath, comment.workspaceIdentity)}\0${comment.id}`;
-}
+/* ── tombstone（A1-R22）：JXe/TH/hXe/KH 双副本裁定——bundle 唯一真身 JXe 68860 / TH 68298 /
+ *    hXe 68295 / KH 68857（本文件旧注 68812/68250/68246/68809 为漂移行）。本文件 A1-R12 并行重建
+ *    四副本（codeCommentIdentityKey/useCodeCommentContexts/codeCommentContextKey/CodeCommentsChip）
+ *    降为 Composer 逐字 canonical 的 re-export（modules/Composer.tsx [B14]/[B16]）；
+ *    modules/GitReview 导出面不变。终端消费实测：Home 经 modules/GitReview 消费
+ *    useCodeCommentContexts + type CodeCommentAttachment（bundle 90781 面）；余三符全树零消费
+ *    （负证据，grep 实证）。 ── */
+export {
+  useCodeCommentContexts,
+  CodeCommentsChip,
+  codeCommentContextKey,
+  codeCommentContextKey as codeCommentIdentityKey,
+} from '../../modules/Composer';
 
 /** JXe 返回形（原 js 68866） */
 export interface CodeCommentContextsApi {
@@ -2259,234 +2268,26 @@ export interface CodeCommentContextsApi {
   getContexts: () => CodeCommentAttachment[];
 }
 
-/**
- * 原 JXe（js 68812 / jsx 60989）：useCodeCommentContexts —— composer 侧事件桥。
- * 监听 add 事件（cancelable：preventDefault 成功才收，收时补 id、去重合并、
- * 请求聚焦输入框）与 remove 事件；scopeKey 变化（切会话/工作区）时清空；
- * onContextRemoved 回调用于跨窗口广播移除。
- */
-export function useCodeCommentContexts(props: {
-  listenAddToChatEvents?: boolean;
-  onContextRemoved?: (context: CodeCommentAttachment) => void;
-  requestFocus?: () => void;
-  scopeKey?: string;
-}): CodeCommentContextsApi {
-  const { listenAddToChatEvents = true, onContextRemoved, requestFocus, scopeKey } = props;
-  const [contexts, setContexts] = React.useState<CodeCommentAttachment[]>([]);
-  const contextsRef = React.useRef(contexts);
-  const callbacksRef = React.useRef({ onContextRemoved, requestFocus });
-  const scopeKeyRef = React.useRef(scopeKey);
-  callbacksRef.current = { onContextRemoved, requestFocus };
-
-  const replaceContexts = React.useCallback((next: CodeCommentAttachment[]) => {
-    const nextKeys = new Set(next.map(codeCommentIdentityKey));
-    for (const existing of contextsRef.current) if (!nextKeys.has(codeCommentIdentityKey(existing))) callbacksRef.current.onContextRemoved?.(existing);
-    contextsRef.current = next;
-    setContexts(next);
-  }, []);
-
-  const removeContext = React.useCallback(
-    (scope: { id: string; workspacePath: string; workspaceIdentity?: string | null }) => {
-      const key = codeCommentIdentityKey(scope);
-      const next = contextsRef.current.filter((context) => codeCommentIdentityKey(context) !== key);
-      if (next.length !== contextsRef.current.length) replaceContexts(next);
-    },
-    [replaceContexts],
-  );
-
-  const clearContexts = React.useCallback(() => {
-    if (contextsRef.current.length > 0) replaceContexts([]);
-  }, [replaceContexts]);
-
-  const getContexts = React.useCallback(() => contextsRef.current, []);
-
-  // 切作用域（会话/工作区）→ 清空上一作用域的评论上下文
-  React.useEffect(() => {
-    if (scopeKeyRef.current !== scopeKey) {
-      scopeKeyRef.current = scopeKey;
-      clearContexts();
-    }
-  }, [clearContexts, scopeKey]);
-
-  React.useEffect(() => {
-    if (!listenAddToChatEvents || typeof window > `u`) return;
-    const handleAdd = (event: Event) => {
-      if (
-        !isAddToChatEvent(event) ||
-        !isCommentAttachmentPayload(event.detail) ||
-        event.defaultPrevented ||
-        !event.cancelable ||
-        (event.preventDefault(), !event.defaultPrevented)
-      )
-        return;
-      const incoming: CodeCommentAttachment = { ...(event.detail as CodeCommentAttachment), id: (event.detail as CodeCommentAttachment).id ?? newCodeCommentId() };
-      const key = codeCommentIdentityKey(incoming);
-      const existingIndex = contextsRef.current.findIndex((context) => codeCommentIdentityKey(context) === key);
-      replaceContexts(
-        existingIndex < 0
-          ? [...contextsRef.current, incoming]
-          : contextsRef.current.map((context, index) => (index === existingIndex ? incoming : context)),
-      );
-      callbacksRef.current.requestFocus?.();
-    };
-    const handleRemove = (event: Event) => {
-      if (!isRemoveFromChatEvent(event) || !isCommentScopePayload(event.detail)) return;
-      removeContext(event.detail as { id: string; workspacePath: string; workspaceIdentity?: string | null });
-    };
-    window.addEventListener(CODE_COMMENT_ADD_TO_CHAT_EVENT, handleAdd);
-    window.addEventListener(CODE_COMMENT_REMOVE_FROM_CHAT_EVENT, handleRemove);
-    return () => {
-      window.removeEventListener(CODE_COMMENT_ADD_TO_CHAT_EVENT, handleAdd);
-      window.removeEventListener(CODE_COMMENT_REMOVE_FROM_CHAT_EVENT, handleRemove);
-    };
-  }, [replaceContexts, listenAddToChatEvents, removeContext]);
-
-  return React.useMemo(
-    () => ({
-      contexts,
-      hasContexts: contexts.length > 0,
-      removeContext,
-      clearContexts,
-      getContexts,
-    }),
-    [clearContexts, contexts, getContexts, removeContext],
-  );
-}
-
-/** TH 列表键（原 hXe，js 68246） */
-export function codeCommentContextKey(context: CodeCommentAttachment): string {
-  return `${context.workspaceIdentity?.trim() || context.workspacePath}\0${context.id}`;
-}
-
-/**
- * 原 TH（js 68250 / jsx 60559）：CodeCommentsChip —— 「N 条评论」芯片。
- * composer 上方（可移除）与用户消息行（contentAlign=end，只读）两处消费。
- * 悬停/聚焦展开 tooltip 列表：code-xml 图标 + 文件名 + L 行号 + 路径 +
- * 评论预览（line-clamp-2）+ 逐条移除（trash-2，group-hover/comment 显形）。
- */
-export function CodeCommentsChip({
-  comments,
-  contentAlign = `start`,
-  onRemove,
-  onRemoveAll,
-}: {
-  comments: CodeCommentAttachment[];
-  contentAlign?: "start" | "end";
-  onRemove?: (context: CodeCommentAttachment) => void;
-  onRemoveAll?: () => void;
-}) {
-  const { intl } = useIntlContext();
-  if (comments.length === 0) return null;
-  const chipLabel = intl.formatMessage(
-    { id: comments.length === 1 ? `chat.codeComments.one` : `chat.codeComments.many` },
-    { count: String(comments.length) },
-  );
-  const removeLabel = intl.formatMessage({ id: `chat.codeComments.remove` });
-  return (
-    <TooltipRoot>
-      <TooltipTrigger asChild>
-        <div
-          className={cn(
-            `group flex h-8 max-w-full cursor-pointer select-none items-center gap-1.5`,
-            `rounded-md border border-border bg-surface p-1`,
-            `text-ui-base font-medium text-foreground transition-all hover:bg-surface-hover`,
-            `outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused`,
-          )}
-          aria-label={chipLabel}
-          role="button"
-          tabIndex={0}
-        >
-          <span className="flex min-w-0 items-center gap-1.5 rounded-sm px-1">
-            <IconMessageSquareText className="size-4 shrink-0 text-foreground-subtle" />
-            <span className="truncate">{chipLabel}</span>
-          </span>
-          {onRemoveAll ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              className="size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-              aria-label={removeLabel}
-              title={removeLabel}
-              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                onRemoveAll();
-              }}
-            >
-              <IconX className="size-3.5" />
-            </Button>
-          ) : null}
-        </div>
-      </TooltipTrigger>
-      <TooltipContent
-        align={contentAlign}
-        side="top"
-        className="w-80 rounded-xl border border-popover-border bg-menu p-1 text-foreground shadow-md ring-0"
-      >
-        <div className="max-h-64 overflow-y-auto">
-          {comments.map((comment) => {
-            const lineLabel = comment.startLine === comment.endLine ? `L${comment.startLine}` : `L${comment.startLine}-L${comment.endLine}`;
-            return (
-              <div
-                key={codeCommentContextKey(comment)}
-                className="group/comment flex min-h-7 cursor-default gap-2 rounded-lg px-2 py-1 text-ui-base/relaxed text-foreground hover:bg-menu-hover"
-              >
-                <IconCodeXml className="mt-1 size-4 shrink-0 text-foreground-subtle" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate font-medium">{comment.sourceTitle}</span>
-                    <span className="shrink-0 font-mono text-ui-base text-foreground-subtle">{lineLabel}</span>
-                  </div>
-                  <div className="truncate font-mono text-ui-base text-foreground-subtlest">{comment.sourcePath ?? comment.sourceTitle}</div>
-                  {comment.comment.trim() ? (
-                    <div className="line-clamp-2 text-ui-base/relaxed text-foreground-subtle">{comment.comment}</div>
-                  ) : null}
-                </div>
-                {onRemove ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    className="mt-0.5 size-5 shrink-0 rounded-sm text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover/comment:opacity-100"
-                    aria-label={removeLabel}
-                    title={removeLabel}
-                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                      event.stopPropagation();
-                      onRemove(comment);
-                    }}
-                  >
-                    <IconTrash2 className="size-3.5" />
-                  </Button>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </TooltipContent>
-    </TooltipRoot>
-  );
-}
-
 /* --- 发送管线助手（原 68778–68803；conversationSelections/webElements/pptxElements
        的序列化器属 Composer 族，此处按接口声明） --- */
 
-/** 会话引用选择（原 Moe 消费面，composer 族） */
-interface ConversationSelectionRef { [key: string]: unknown }
+/* ── tombstone（A1-R22）：interface ConversationSelectionRef（本地开放索引签名镜像）删除 → type import
+ *    Composer.ConversationSelection（属主 F03 域；A0-CLEANUP2 item 11 同模式）。 ── */
 // A0-CLEANUP2 item 11：WebElementContext 本地镜像删除 → 改自 Composer 类型导入（属主 zXe 族）。
 /** pptx 元素引用（原 _ 消费面） */
 interface PptxElementRef { [key: string]: unknown }
 
-declare function appendSelectionsToContent(content: string, selections: ConversationSelectionRef[]): string;
+declare function appendSelectionsToContent(content: string, selections: ConversationSelection[]): string;
 // A0-CLEANUP2 item 11：appendWebElementsToContent declare 删除 → import { appendWebElementsToContent } from './Composer'（属主导出，原注释「属主未导出，待登记」）。
 declare function appendPptxElementsToContent(content: string, pptxElements: PptxElementRef[]): string;
-declare function parseSelectionReferences(content: string): { visibleContent: string; references: ConversationSelectionRef[] };
+declare function parseSelectionReferences(content: string): { visibleContent: string; references: ConversationSelection[] };
 declare function splitWebElementContexts(content: string, workspace: { workspacePath: string; workspaceIdentity?: string | null }): { visibleContent: string; webElementContexts: WebElementContext[] };
 declare function splitPptxElementReferences(content: string): { visibleContent: string; pptxElementReferences: PptxElementRef[] };
 
 /** 附件上下文集合（原 GH/KXe 的消费形） */
 export interface AttachmentContextBundle {
   codeComments: CodeCommentAttachment[];
-  conversationSelections: ConversationSelectionRef[];
+  conversationSelections: ConversationSelection[];
   webElements: WebElementContext[];
   pptxElements: PptxElementRef[];
 }

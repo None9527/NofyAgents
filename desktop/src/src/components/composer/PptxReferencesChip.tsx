@@ -27,7 +27,7 @@ declare function pptxScopeKey(workspacePath: string, workspaceIdentity?: string 
 declare function isPptxElementAddEvent(event: Event): boolean;
 declare function matchesPptxElementScope(
   detail: PptxElementAddDetail,
-  scope: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null },
+  scope: { workspacePath?: string; workspaceIdentity?: string | null; remoteSessionId?: string | null }, // 〔A1-R22〕型缝：workspacePath 放宽可缺省——Conversation 消息行消费面（bundle 112093）透传 t.workspacePath（RowRenderContext 可缺省形）
 ): boolean;
 declare function mergePptxElementReference(
   existing: PptxElementAddDetail[],
@@ -233,7 +233,7 @@ function buildPptxPreviewNavigation(reference: PptxElementAddDetail): {
 }
 
 /** eZe → toPptxViewerTarget（js 69194） */
-function toPptxViewerTarget(reference: PptxElementAddDetail, scope: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null }): {
+function toPptxViewerTarget(reference: PptxElementAddDetail, scope: { workspacePath?: string; workspaceIdentity?: string | null; remoteSessionId?: string | null }): { // 〔A1-R22〕型缝：workspacePath 放宽可缺省（同 matchesPptxElementScope 注；输出面 workspacePath 取自 reference，不受影响）
   type: `pptx`;
   title: string;
   path: string;
@@ -256,8 +256,8 @@ function toPptxViewerTarget(reference: PptxElementAddDetail, scope: { workspaceP
 }
 
 /** YH → usePptxPreviewOpener（js 69207） */
-export function usePptxPreviewOpener(args: { // 〔A1-R21〕补 export：Home useCodeCommentOpener declare（69207 同身）收敛消费（函数声明提升，环安全）
-  workspacePath: string;
+export function usePptxPreviewOpener(args: { // 〔A1-R21〕补 export：Home useCodeCommentOpener declare（69207 同身）收敛消费（函数声明提升，环安全）。〔A1-R22〕workspacePath 放宽可缺省：Conversation 消息行 declare（useOpenCodeViewerForReference）收敛消费（bundle 112093 透传 t.workspacePath）
+  workspacePath?: string;
   workspaceIdentity?: string | null;
   remoteSessionId?: string | null;
   onOpenCodeViewer?: (target: ReturnType<typeof toPptxViewerTarget>) => void;

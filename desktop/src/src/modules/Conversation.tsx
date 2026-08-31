@@ -120,7 +120,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored u
 import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, useSessionErrorRecovery, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）；+useSessionErrorRecovery（A1-R14：原 NCt 118779 实体化改指，消费点 5328）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
 import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep'; // 原 v_t/__t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
-import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）
+import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type CodeCommentAttachment, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）；〔A1-R22〕+type CodeCommentAttachment（ParsedUserInput 型别精化）
 import { OffPeakNewTaskBanner } from './Home';
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
@@ -139,7 +139,8 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
  *    唯一消费面 9.6 A0 编排器随 PTt 域迁出（SplitLayoutUiDeep.tsx）而删除。 ── */
 import { SessionQuotaBanner, PendingCommandBanner, type QuotaBannerState } from '../components/conversation/SessionBanners'; // 〔A0-S4-4b〕§9 渲染点（7528/7538）+ QuotaBannerState 型别（6979）消费回取（函数声明提升/型别擦除，环安全）
 import { splitUserInputParts, formatSkillMentionLabel, type MentionToken } from '../components/composer/FileMentionDragHelpers'; // A1-R12：ZHe（52182）/YHe（52147）declare 改指纯函数叶子（本批逐字转录）；调用点 767/688 逐字不变。环安全：叶子零 import
-import { isHttpUrl as isPluginIconUrl } from './Composer'; // A1-R13：oV（64277）declare 改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；调用点 740 逐字不变。环安全：Composer 不反引本文件
+import { CodeCommentsChip, SelectionsChip, WebElementsChip, isHttpUrl as isPluginIconUrl, type ConversationSelection, type PptxElementAddDetail, type WebElementContext } from './Composer'; // A1-R13：oV（64277）declare 改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；调用点 740 逐字不变。环安全：Composer 不反引本文件。〔A1-R22〕+CodeCommentsChip/WebElementsChip/SelectionsChip（原 TH 68298 / lit 89989 / uit 90087 逐字 canonical；消息行 112241–112244 四 chip declare 收敛）+三型别（ParsedUserInput 精化）
+import { PptxReferencesChip, usePptxPreviewOpener } from '../components/composer/PptxReferencesChip'; // 〔A1-R22〕原 PptxReferenceChips/useOpenCodeViewerForReference declare（JH 69036 / YH 69207）改指（A1-R21 补 export；消息行 112243 消费面）。环安全：该叶不反引本文件
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
 import { TurnNavigator, findActiveQueryRow, shouldHydrateFullHistory, hydrateRetryDelayMs } from '../components/conversation/TurnNavigator'; // 〔A0-S4-4b〕§8 渲染点（6549）+ activeQueryRowId（6238）+ §5 水合判定（3957/3991）消费回取
@@ -228,29 +229,28 @@ declare const FilePath: React.FC<{
 /** 用户输入上下文解析（原 KXe：拆分可见文本/代码评论/网页元素/pptx/会话引用） */
 interface ParsedUserInput {
   visibleContent: string;
-  codeComments: unknown[];
-  webElements: unknown[];
-  pptxElements: unknown[];
-  conversationSelections: unknown[];
+  /* 〔A1-R22〕型缝：四类附件字段自 unknown[] 精化为真形——消费面 bundle 112241–112244 逐 chip 渲染；
+   * webElements 解析面 HXe（68781）必携 parsed-web-element-* id；conversationSelections 经 Ds（2827）守护窄化。 */
+  codeComments: CodeCommentAttachment[];
+  webElements: Array<WebElementContext & { id: string }>;
+  pptxElements: PptxElementAddDetail[];
+  conversationSelections: ConversationSelection[];
 }
 declare function parseUserInputContext(
   text: string,
   scope: { workspacePath?: string; workspaceIdentity?: string | null },
 ): ParsedUserInput;
 
-/** 代码评论/网页/pptx/引用 芯片（原 TH/lit/JH/uit，F08/F14 交界） */
-declare const CodeCommentChips: React.FC<{ comments: unknown[]; contentAlign?: "start" | "end" }>;
-declare const WebElementChips: React.FC<{ contexts: unknown[]; contentAlign?: "start" | "end" }>;
-declare const PptxReferenceChips: React.FC<{ references: unknown[]; onOpen?: (ref: unknown) => void }>;
-declare const ConversationSelectionChips: React.FC<{ references: unknown[] }>;
-
-/** 打开代码查看钩子（原 YH） */
-declare function useOpenCodeViewerForReference(scope: {
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  workspaceRemoteSessionId?: string | null;
-  onOpenCodeViewer?: OpenCodeViewerFn;
-}): (ref: unknown) => void;
+/* ── tombstone（A1-R22）：declare CodeCommentChips/WebElementChips/PptxReferenceChips/
+ *    ConversationSelectionChips（原 TH/lit/JH/uit，js 68298/89989/69036/90087）删除 → 文件头真实
+ *    import：CodeCommentsChip/WebElementsChip/SelectionsChip（modules/Composer [B14]/[B17] 逐字
+ *    canonical）+ PptxReferencesChip（components/composer/PptxReferencesChip，A1-R21 补 export）；
+ *    消费面 bundle 112241–112244 渲染形 props 逐字同构（{comments, contentAlign=end} /
+ *    {contexts, contentAlign=end} / {references, onOpen 条件传递} / {references}）。 ── */
+/* ── tombstone（A1-R22）：declare useOpenCodeViewerForReference（原 YH，69207）删除 → 文件头
+ *    usePptxPreviewOpener 真实 import（components/composer/PptxReferencesChip，A1-R21 补 export）；
+ *    bundle 112093 调用面 {workspacePath: t.workspacePath, workspaceIdentity: t.workspaceIdentity,
+ *    remoteSessionId: t.workspaceRemoteSessionId, onOpenCodeViewer: t.onOpenCodeViewer} 逐字同构。 ── */
 
 /* --- 会话流运行时类型（proto schema 归纳；真实 zod schema 在 js 32246–36438 命令队列运行时） --- */
 
@@ -1122,10 +1122,10 @@ const UserQueryRow = React.memo(function UserQueryRow({
     [context.workspaceIdentity, context.workspacePath, row.text],
   );
   const visibleContent = parsed.visibleContent;
-  const openCommentInViewer = useOpenCodeViewerForReference({
+  const openCommentInViewer = usePptxPreviewOpener({ // A1-R22：原 useOpenCodeViewerForReference declare 改指（YH 69207；bundle 112093 参数形逐字同构）
     workspacePath: context.workspacePath,
     workspaceIdentity: context.workspaceIdentity,
-    workspaceRemoteSessionId: context.workspaceRemoteSessionId,
+    remoteSessionId: context.workspaceRemoteSessionId,
     onOpenCodeViewer: context.onOpenCodeViewer,
   });
   React.useEffect(() => {
@@ -1269,10 +1269,10 @@ const UserQueryRow = React.memo(function UserQueryRow({
           readAttachment={context.readAttachment}
         />
         <div className="flex flex-wrap justify-end gap-2 empty:hidden">
-          <CodeCommentChips comments={parsed.codeComments} contentAlign="end" />
-          <WebElementChips contexts={parsed.webElements} contentAlign={`end`} />
-          <PptxReferenceChips references={parsed.pptxElements} onOpen={context.onOpenCodeViewer ? openCommentInViewer : undefined} />
-          <ConversationSelectionChips references={parsed.conversationSelections} />
+          <CodeCommentsChip /* A1-R22：原 CodeCommentChips declare 改指（TH 68298） */ comments={parsed.codeComments} contentAlign="end" />
+          <WebElementsChip /* A1-R22：原 WebElementChips declare 改指（lit 89989） */ contexts={parsed.webElements} contentAlign={`end`} />
+          <PptxReferencesChip /* A1-R22：原 PptxReferenceChips declare 改指（JH 69036） */ references={parsed.pptxElements} onOpen={context.onOpenCodeViewer ? openCommentInViewer : undefined} />
+          <SelectionsChip /* A1-R22：原 ConversationSelectionChips declare 改指（uit 90087） */ references={parsed.conversationSelections} />
         </div>
         {visibleContent ? (
           <UserInputCollapsibleText contentText={visibleContent} rowId={row.rowId}>
