@@ -99,12 +99,12 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
 // 改接 Home §U.8 逐字真身（bundle WUe 53313/RM 53328/zM 53349 唯一真身；RM/zM 分流依据见原 declare 位墓碑）。
 // 环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用）。
 import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect, teamSourceOrganizationLabel } from '../../modules/Home'; // 〔A1-R28〕+teamSourceOrganizationLabel（Lq 77476 逐字 canonical；teamOrganizationLabelOf A0 副本删除改指，见下墓碑）。环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用），本行不新增环边
-import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily, isObjectRecord, normalizeProviderId, listProviderModelIds, mapModelFormatToKind, resolveModelSupportedKinds, resolveProviderKindEndpointUrl, listEndpointKinds } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。〔A1-R31〕+base family 七件（nt/gt/an/Ai/Wr/Ir/Sr ≡ tu/eu/ou/ru/Tu/vu/yu ≡ SrcSharedB §1 逐字实体）：七 declare 收敛改指，见下墓碑。环安全：SrcSharedB 值闭包不达 components/payments
-import { isStartPlanProviderId, isZaiPlanProviderId, GLM_MODEL_IDS } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。〔A1-R30〕+isZaiPlanProviderId（tr ≡ vl 4753 ≡ SrcSharedA@2022）：isOAuthFamilyProvider/isZaiCodingPlanProvider 双 tr 脸收敛改指，见各墓碑。环安全：SrcSharedA 值闭包不达 components/payments
+import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily, isObjectRecord, normalizeProviderId, listProviderModelIds, mapModelFormatToKind, resolveModelSupportedKinds, resolveProviderKindEndpointUrl, listEndpointKinds, isProviderEnabled, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。〔A1-R31〕+base family 七件（nt/gt/an/Ai/Wr/Ir/Sr ≡ tu/eu/ou/ru/Tu/vu/yu ≡ SrcSharedB §1 逐字实体）：七 declare 收敛改指，见下墓碑。〔A1-R32〕+isProviderEnabled（gi ≡ ko ≡ 612）/buildCodingPlanScope（vi ≡ mt ≡ Wb）/parseCodingPlanScope（li ≡ gt ≡ Gb）/codingPlanScopesOverlap（fi ≡ ht ≡ Kb）：残件四 declare 收敛改指，见各墓碑。环安全：SrcSharedB 值闭包不达 components/payments
+import { isStartPlanProviderId, isZaiPlanProviderId, GLM_MODEL_IDS, providerIds, isBuiltinProviderId, isGlmAgentCliProvider } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。〔A1-R30〕+isZaiPlanProviderId（tr ≡ vl 4753 ≡ SrcSharedA@2022）：isOAuthFamilyProvider/isZaiCodingPlanProvider 双 tr 脸收敛改指，见各墓碑。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）/isBuiltinProviderId（jt ≡ Eo ≡ _l 4833）/isGlmAgentCliProvider（Ei ≡ us ≡ Ds 3844）：q 实体化 + 残件双 declare 收敛改指，见各墓碑。环安全：SrcSharedA 值闭包不达 components/payments
 import type { TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）
 import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 52651 收敛型缝所依（A6e/j6e/M6e/N6e 快照流由 unknown 精化，行依据见各函数注）
 import { Input, PopoverContent, toast } from '../../modules/ImeComposition';
-import { logger, formatCustomModelId } from '../../modules/SkillStore'; // 〔A1-R28〕+formatCustomModelId（we 真身：styles 404 `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412，SkillStore@169 转导出；StoresDeep@147 joinModelName 别名先例）：composeModelValue declare 收敛改指，见下墓碑
+import { logger, formatCustomModelId, parseCustomModelId } from '../../modules/SkillStore'; // 〔A1-R28〕+formatCustomModelId（we 真身：styles 404 `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412，SkillStore@169 转导出；StoresDeep@147 joinModelName 别名先例）：composeModelValue declare 收敛改指，见下墓碑。〔A1-R32〕+parseCustomModelId（se 真身：styles 386 `O as se` ← skillStore-BmeKHDBI.js 导出 2497 `D as O` ≡ D 903 ≡ taskStore@1418，SkillStore 转导出）：modelEntryOf declare 收敛改指，见下墓碑
 import { useSettingsStore as useAppStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
 import { formatGrantUnits, useBillingDiscount, BillingDiscountCard, RegionLogo, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, hasActiveEntitlement } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical，declare hasActiveEntitlementCore 收敛改指，见下墓碑）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）。A1-R21：+RegionLogo（原 Tq 76183 收敛，见下墓碑）。〔A1-R23〕SidebarCodingPlanWidget/SidebarStartPlanWidget（s3e/v3e）/hasPlanWidgetModel（i3e）/hasStartPlanBalance（g3e）/entryPlanStateOf（IM）移出——消费面 §1/§9 死簇同批删除；Oq/i3e/g3e 真身裁定见 components/usage/UsageDeep.tsx 墓碑（Home §U.3/§V 逐字 canonical）
 import { useServices } from '../../modules/services';
@@ -131,7 +131,7 @@ declare const usePlatformService: () => TelemetryPlatform & { openExternal(url: 
  *    唯一消费面 §3 ThoughtLevelControl（Pq 77166 A0 副本）同批删除；真身 = Home §U.2 ComposerThoughtToolbar
  *    逐字（其 isCoarseTouchDevice/shouldRestoreFocus 消费面经 modules/Composer 真实 import，XH 69346/ZH 69351 属主）。 ── */
 /** src-HCld2afU / skillStore / stores 横切助手（按调用面接口级） */
-declare const PROVIDER_IDS: Record<string, string>; // q（zai/bigmodel/… 族 id 表）
+/* ── tombstone〔A1-R32〕：declare PROVIDER_IDS（原 q）删除 → 改指 SrcSharedA@2008 providerIds（q 真身：styles 725 `mo as q` ← src 9963 `W as mo` ≡ W 4733，体逐字同构：builtin: 前缀 7 键；链闭合；本文件 98 消费点改名改指。负证据：styles 213969 `po as q` 为遮蔽，po=McpServerConfigSchema 别 import 块）。 ── */
 /* ── tombstone〔A1-R29〕：declare familySpecOfProviderId（原 ot）删除 → 改指 getOAuthProviderFamilyByProviderId
  *    （ot 真身：styles 445 `B as ot` ← src 9672 `Yx as B` ≡ Yx 8933 ≡ SrcSharedB@5576，链闭合）。
  *    消费面实测（本文件 5 处改名改指）：@815（v6e familyGroupOf@805）≡ bundle 77716、@943/@952/@959（S6e
@@ -157,8 +157,8 @@ declare const PROVIDER_IDS: Record<string, string>; // q（zai/bigmodel/… 族 
 /* ── tombstone〔A1-R29〕：declare isProviderOAuthGateActive（原 qt）删除 → 改指 activeOAuthProviderMatchesFamily
  *    （qt 真身：styles 487 `H as qt` ← src 9717 `eS as H` ≡ eS 8951 ≡ SrcSharedB@5607，链闭合；体逐字同形）。
  *    消费面实测：@946（S6e 体内）≡ bundle 77816（唯一消费），改名改指。负证据：bundle 内 qt 无第二真身。 ── */
-declare function isExternalAgentName(name: string): boolean; // Ei
-declare function modelEntryOf(value: string): { providerId?: string; modelName?: string } | null; // se
+/* ── tombstone〔A1-R32〕：declare isExternalAgentName（原 Ei）删除 → 改指 SrcSharedA@994 isGlmAgentCliProvider（Ei 真身：styles 788 `us as Ei` ← src 10028 `Ds as us` ≡ Ds 3844，体逐字同构 `e === \`glm\``；链闭合；消费 @1006 改名改指。负证据：bundle 余 Ei 消费 54156/120735/185925 属外部域留批）。 ── */
+/* ── tombstone〔A1-R32〕：declare modelEntryOf（原 se）删除 → 改指 taskStore@1418 parseCustomModelId（modules/SkillStore 转导出；se 真身：styles 386 `O as se` ← skillStore-BmeKHDBI.js 导出 2497 `D as O` ≡ D 903 `return i(e)`，与 taskStore 实体同形（同委 parseCustomQualifiedModelId）；链闭合；消费 @1017/1033/1059/1280/1315/1323/1345/1346/1350 共 9 处改名改指。型缝：canonical 返 {providerId: string; modelName?: string} | null，较原 declare 双可选契据窄化，消费面仅 ?. 访问，安全。 ── */
 /* ── tombstone〔A1-R28〕：declare composeModelValue（原 we）删除 → 改指 formatCustomModelId（we 真身：styles 404
  *    `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412 formatCustomModelId，modules/SkillStore@169 转导出）。
  *    消费面实测：@619（l6e modelItemsOfProvider）/ @1316（Z6e retargetModelValue）/ @1353（$6e
@@ -170,11 +170,11 @@ declare function modelEntryOf(value: string): { providerId?: string; modelName?:
  *    Sr endpointsOfProvider→listEndpointKinds（@869；消费 @581/@9478 改传 provider.endpoints）
  *    Sr 签名分歧定形：yu 真身参为端点对象 {baseURL?, paths?}（src 5083 体取证），bundle 消费形 Sr(e.endpoints) 实证 o6e 77532/lrt 88525/HYt 188211；树 declare 单 provider 参形为 A0 误读面，同批收敛对齐，分歧一次闭合
  *    负证据：bundle 内 tu/eu/ou/ru/Tu/vu/yu 各唯一真身；外部消费 118305（Ir）/120695（Ai）/188211（Sr+nt）/188652（nt）域留批。 ── */
-declare function isProviderConfigurable(provider: ModelProvider): boolean; // gi
-declare function isPresetProviderId(id: string): boolean; // jt
-declare function teamPlanKeyOf(args: { productId?: string | null; organizationId?: string | null; projectId?: string | null }): string; // vi
-declare function parseTeamPlanKey(key: string): { organizationId?: string; productId?: string; projectId?: string } | null; // li
-declare function teamPlanKeysPrefixEqual(left: string, right: string): boolean; // fi
+/* ── tombstone〔A1-R32〕：PD declare 块残件五件删除 → 改指（逐件链闭合，消费面改名改指）：
+ *    gi isProviderConfigurable→isProviderEnabled（SrcSharedB@612；gi 真身：styles 709 `ko as gi` ← src `isProviderEnabled as ko` ≡ 612，体逐字同构 `e?.enabled !== !1`；消费 @597）
+ *    jt isPresetProviderId→isBuiltinProviderId（SrcSharedA@2018；jt 真身：styles 470 `Eo as jt` ≡ _l 4833 七键析取；消费 @612）
+ *    vi teamPlanKeyOf→buildCodingPlanScope（SrcSharedB@5097；vi 真身：styles 728 `mt as vi` ≡ Wb jsx 8631/js 8526；消费 @649/9692/9754/9778）｜li parseTeamPlanKey→parseCodingPlanScope（SrcSharedB@5106；li 真身：styles 680 `gt as li` ≡ Gb js 8533；消费 @731/895/896/9213/9772/9795）
+ *    fi teamPlanKeysPrefixEqual→codingPlanScopesOverlap（SrcSharedB@5128；fi 真身：styles 688 `ht as fi` ≡ Kb js 8545；消费 @894；语义证：CODING_PLAN_SCOPE_PREFIX@5094 = `team-plan:${W.bigmodelCodingPlan}:` 与 teamPlanKey 契据前缀形吻合）。 ── */
 /* ── tombstone〔A1-R28〕：declare familyConnectionModeOf（原 zi）删除 → 改指 resolveProviderFamilyMode（zi 真身：
  *    styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555 `return t?.[e] ?? \`oauth\``，链闭合）。
  *    消费面实测：@787（_6e resolveFamilyDefaultOption 内）≡ bundle 77699，改名改指。
@@ -470,13 +470,13 @@ interface ConfigOptionEntry {
 
 /** 原 e6e（77452 区）：供应商族序 */
 export const PROVIDER_FAMILY_ORDER = new Map<string, number>([
-  [PROVIDER_IDS.zaiStartPlan, 0],
-  [PROVIDER_IDS.zaiCodingPlan, 1],
-  [PROVIDER_IDS.zai, 2],
-  [PROVIDER_IDS.bigmodelStartPlan, 3],
-  [PROVIDER_IDS.bigmodelCodingPlan, 4],
-  [PROVIDER_IDS.bigmodel, 5],
-  [PROVIDER_IDS.zapi, 6],
+  [providerIds.zaiStartPlan, 0],
+  [providerIds.zaiCodingPlan, 1],
+  [providerIds.zai, 2],
+  [providerIds.bigmodelStartPlan, 3],
+  [providerIds.bigmodelCodingPlan, 4],
+  [providerIds.bigmodel, 5],
+  [providerIds.zapi, 6],
 ]);
 
 /** 原 t6e（77461 区）：族秩（缺省 200） */
@@ -517,13 +517,13 @@ export function sortProvidersByFamilyAndOrder(providers: ModelProvider[], displa
 /** 原 n6e（77489 区）：供应商展示标签（Z.ai/BigModel + 徽章） */
 export function providerDisplayLabelsOf(provider: ModelProvider, options: { codingPlanBadgeLabel?: string } = {}) {
   const codingPlanBadgeLabel = options.codingPlanBadgeLabel ?? `Individual`;
-  return provider.id === PROVIDER_IDS.zai
+  return provider.id === providerIds.zai
     ? { label: `Z.ai` }
     : isZaiPlanProviderId(provider.id)
       ? { label: `Z.ai`, labelBadge: codingPlanBadgeLabel }
-      : provider.id === PROVIDER_IDS.bigmodel
+      : provider.id === providerIds.bigmodel
         ? { label: `BigModel` }
-        : provider.id === PROVIDER_IDS.bigmodelCodingPlan || provider.id === PROVIDER_IDS.bigmodelStartPlan
+        : provider.id === providerIds.bigmodelCodingPlan || provider.id === providerIds.bigmodelStartPlan
           ? { label: `BigModel`, labelBadge: codingPlanBadgeLabel }
           : { label: provider.name };
 }
@@ -594,7 +594,7 @@ export function providerSupportsAnyFormat(provider: ModelProvider, formats: stri
 
 /** 原 Bq（77551 区）：agent × 供应商可用性 */
 export function providerUsableForAgent(agent: string, provider: ModelProvider): boolean {
-  return !isProviderConfigurable(provider) || modelsForAgent(agent, provider).length === 0 || !hasProviderCredentials(provider)
+  return !isProviderEnabled(provider) || modelsForAgent(agent, provider).length === 0 || !hasProviderCredentials(provider)
     ? !1
     : agent === `claude`
       ? providerSupportsAnyFormat(provider, [`anthropic`])
@@ -609,7 +609,7 @@ export function providerUsableForAgent(agent: string, provider: ModelProvider): 
 
 /** 原 c6e（77563 区）：预设直连供应商（非 zapi） */
 export function isPresetDirectProvider(id: string): boolean {
-  return isPresetProviderId(id) && id !== PROVIDER_IDS.zapi;
+  return isBuiltinProviderId(id) && id !== providerIds.zapi;
 }
 
 /** 原 l6e（77566 区）：供应商模型项（key/value/name） */
@@ -646,7 +646,7 @@ export function codingPlanOptionKey(id: string): string {
 }
 /** 原 Vq（77592 区）：team-plan 选项键 */
 export function teamPlanOptionKey(product: { productId: string; organizationId?: string | null; projectKey?: string | null }) {
-  return teamPlanKeyOf({ productId: product.productId, organizationId: product.organizationId, projectId: product.projectKey });
+  return buildCodingPlanScope({ productId: product.productId, organizationId: product.organizationId, projectId: product.projectKey });
 }
 
 /** 原 p6e（77595 区）：团队计划选项（项目级去重+回退链） */
@@ -728,7 +728,7 @@ export function teamPlanOptionsOf(context: {
 
 /** 原 m6e（77646 区）：键全 unavailable 判定 */
 export function isTeamPlanKeyAllUnavailable(savedKey: string, products: any[]): boolean {
-  if (!parseTeamPlanKey(savedKey)) return !1;
+  if (!parseCodingPlanScope(savedKey)) return !1;
   let hasUnavailable = !1,
     hasAvailable = !1;
   for (const product of products) {
@@ -766,14 +766,14 @@ export function isTeamPlanKeyAllUnavailable(savedKey: string, products: any[]): 
 /** 原 h6e（77677 区）：已存 bigmodel 团队键 */
 export function savedBigmodelTeamPlanKeyOf(selectedKeys?: Record<string, string> | null): string | null {
   const saved = selectedKeys?.bigmodel?.trim() ?? ``;
-  return saved.startsWith(`team-plan:${PROVIDER_IDS.bigmodelCodingPlan}:`) ? saved : null;
+  return saved.startsWith(`team-plan:${providerIds.bigmodelCodingPlan}:`) ? saved : null;
 }
 
 /** 原 g6e（77681 区）：bigmodel 团队计划选中态 */
 export function isBigmodelTeamPlanSelected(context: { providerId: string; familySelectedKeys?: Record<string, string> | null }): boolean {
   const saved = context.familySelectedKeys?.bigmodel?.trim() ?? ``;
   return (
-    context.providerId === PROVIDER_IDS.bigmodelCodingPlan && saved.startsWith(`team-plan:${PROVIDER_IDS.bigmodelCodingPlan}:`)
+    context.providerId === providerIds.bigmodelCodingPlan && saved.startsWith(`team-plan:${providerIds.bigmodelCodingPlan}:`)
   );
 }
 
@@ -812,7 +812,7 @@ export function familyGroupOf(context: {
   teamPlanProducts: any[];
   showPurchasedTeamPlanFallback: boolean;
 }) {
-  const familySpec = getOAuthProviderFamilyByProviderId(context.familyId === `zai` ? PROVIDER_IDS.zai : PROVIDER_IDS.bigmodel) as FamilySpec | null; // 〔A1-R29〕型缝：canonical 返回 any，消费面依原 declare 契据（FamilySpec | null）窄化（行依据：本行 + FamilySpec@394）
+  const familySpec = getOAuthProviderFamilyByProviderId(context.familyId === `zai` ? providerIds.zai : providerIds.bigmodel) as FamilySpec | null; // 〔A1-R29〕型缝：canonical 返回 any，消费面依原 declare 契据（FamilySpec | null）窄化（行依据：本行 + FamilySpec@394）
   if (!familySpec) return [];
   const byId = new Map(context.providers.map((provider) => [provider.id, provider])),
     startPlanProvider = byId.get(familySpec.startPlanProviderId),
@@ -889,11 +889,11 @@ export function familyOptionBadgeOf(context: { familySpec: FamilySpec; labels: R
 
 /** 原 b6e（77771 区）：团队键匹配（前缀+productId 宽匹配） */
 export function teamPlanOptionKeysMatch({ optionKey, savedKey }: { optionKey: string; savedKey: string }) {
-  const prefix = `team-plan:${PROVIDER_IDS.bigmodelCodingPlan}:`;
+  const prefix = `team-plan:${providerIds.bigmodelCodingPlan}:`;
   if (!optionKey.startsWith(prefix) || !savedKey.startsWith(prefix)) return !1;
-  if (teamPlanKeysPrefixEqual(optionKey, savedKey)) return !0;
-  const optionParsed = parseTeamPlanKey(optionKey),
-    savedParsed = parseTeamPlanKey(savedKey);
+  if (codingPlanScopesOverlap(optionKey, savedKey)) return !0;
+  const optionParsed = parseCodingPlanScope(optionKey),
+    savedParsed = parseCodingPlanScope(savedKey);
   return !!(optionParsed?.productId && savedParsed?.projectId === `0` && optionParsed.productId === savedParsed.productId);
 }
 
@@ -902,12 +902,12 @@ export function inactiveOAuthFamilyOf(providers: ModelProvider[]): string | null
   const zaiInactive = providers.some(
       (provider) =>
         provider.systemDisabledReason === `oauth_provider_inactive` &&
-        (provider.id === PROVIDER_IDS.zai || provider.id === PROVIDER_IDS.zaiStartPlan || provider.id === PROVIDER_IDS.zaiCodingPlan),
+        (provider.id === providerIds.zai || provider.id === providerIds.zaiStartPlan || provider.id === providerIds.zaiCodingPlan),
     ),
     bigmodelInactive = providers.some(
       (provider) =>
         provider.systemDisabledReason === `oauth_provider_inactive` &&
-        (provider.id === PROVIDER_IDS.bigmodel || provider.id === PROVIDER_IDS.bigmodelStartPlan || provider.id === PROVIDER_IDS.bigmodelCodingPlan),
+        (provider.id === providerIds.bigmodel || provider.id === providerIds.bigmodelStartPlan || provider.id === providerIds.bigmodelCodingPlan),
     );
   return bigmodelInactive && !zaiInactive ? `zai` : zaiInactive && !bigmodelInactive ? BIGMODEL_REGION_ID : null;
 }
@@ -1003,7 +1003,7 @@ export function modelMenuGroupsOf(
   options: { providerFamilyDomain?: string | null } = {},
 ) {
   const groups: any[] = [];
-  if (isExternalAgentName(agent)) return glmMenuGroupsOf(providers, labels, displayOrder, familyModes, familySelectedKeys, teamPlanProducts, showPurchasedTeamPlanFallback, options.providerFamilyDomain);
+  if (isGlmAgentCliProvider(agent)) return glmMenuGroupsOf(providers, labels, displayOrder, familyModes, familySelectedKeys, teamPlanProducts, showPurchasedTeamPlanFallback, options.providerFamilyDomain);
   const own = modelMenuGroupsForAgent(agent, providers, labels, displayOrder, familyModes, familySelectedKeys, teamPlanProducts, showPurchasedTeamPlanFallback, options.providerFamilyDomain);
   return (groups.push(...own), groups);
 }
@@ -1014,7 +1014,7 @@ export function modelNameOfValue(groups: any[], value: string): string | null {
     const item = group.items.find((item: any) => item.value === value);
     if (item) return item.name;
   }
-  const catalog = modelEntryOf(value);
+  const catalog = parseCustomModelId(value);
   return catalog?.modelName ? catalog.modelName : null;
 }
 
@@ -1030,7 +1030,7 @@ export function isSyntheticModel(value: string) {
 
 /** 原 D6e（77854 区）：短模型名（目录 ?? 斜杠后段） */
 export function shortModelNameOf(value: string) {
-  const catalog = modelEntryOf(value);
+  const catalog = parseCustomModelId(value);
   if (catalog?.modelName?.trim()) return catalog.modelName.trim();
   const trimmed = value.trim(),
     slash = trimmed.indexOf(`/`);
@@ -1056,7 +1056,7 @@ export function resolveModelSelectState(
 ) {
   if (isSyntheticModel(value)) return { value: void 0, placeholder: void 0 };
   if (groupsContainValue(groups, value)) return { value, placeholder: void 0 };
-  const catalog = modelEntryOf(value);
+  const catalog = parseCustomModelId(value);
   return options?.allowUnavailableCustomModelPlaceholder && catalog?.modelName?.trim()
     ? { value: void 0, placeholder: catalog.modelName.trim() }
     : options?.allowUnavailableModelPlaceholder && value.trim()
@@ -1079,8 +1079,8 @@ export function hasActiveEntitlementAlias(snapshot: EntitlementSnapshot | null) 
 export function isProviderEntitlementVisible({ providerId, entitlementSnapshot, modelProviderFamilySelectedKeys }: { providerId: string; entitlementSnapshot: EntitlementSnapshot | null; modelProviderFamilySelectedKeys?: Record<string, string> | null }) {
   return isZaiPlanProviderId(providerId)
     ? (entitlementSnapshot as any)?.authenticated === !0 || entitlementSnapshot === null
-    : providerId !== PROVIDER_IDS.bigmodelCodingPlan ||
-        (modelProviderFamilySelectedKeys?.bigmodel?.trim() ?? ``).startsWith(`team-plan:${PROVIDER_IDS.bigmodelCodingPlan}:`)
+    : providerId !== providerIds.bigmodelCodingPlan ||
+        (modelProviderFamilySelectedKeys?.bigmodel?.trim() ?? ``).startsWith(`team-plan:${providerIds.bigmodelCodingPlan}:`)
       ? !0
       : hasActiveEntitlementAlias(entitlementSnapshot);
 }
@@ -1088,7 +1088,7 @@ export function isProviderEntitlementVisible({ providerId, entitlementSnapshot, 
 /** 原 M6e（77907–77909）：Start Plan 可见性（权益未激活才显）
  *  〔A1-R27〕codingPlanEntitlementSnapshot 型缝精化 unknown → EntitlementSnapshot | null（行依据：bundle M6e 唯一消费 N6e 77927，快照来源同 j6e 注）。 */
 export function isStartPlanVisible({ providerId, codingPlanEntitlementSnapshot }: { providerId: string; codingPlanEntitlementSnapshot: EntitlementSnapshot | null }) {
-  return providerId !== PROVIDER_IDS.zaiStartPlan && providerId !== PROVIDER_IDS.bigmodelStartPlan ? !0 : !hasActiveEntitlementAlias(codingPlanEntitlementSnapshot);
+  return providerId !== providerIds.zaiStartPlan && providerId !== providerIds.bigmodelStartPlan ? !0 : !hasActiveEntitlementAlias(codingPlanEntitlementSnapshot);
 }
 
 /** 原 N6e（77910–77929）：可用供应商过滤
@@ -1111,10 +1111,10 @@ export function filterUsableProviders({
     )
       return !1;
     const codingPlanSnapshot =
-      provider.id === PROVIDER_IDS.zaiStartPlan
-        ? getEntitlementSnapshot(PROVIDER_IDS.zaiCodingPlan)
-        : provider.id === PROVIDER_IDS.bigmodelStartPlan
-          ? getEntitlementSnapshot(PROVIDER_IDS.bigmodelCodingPlan)
+      provider.id === providerIds.zaiStartPlan
+        ? getEntitlementSnapshot(providerIds.zaiCodingPlan)
+        : provider.id === providerIds.bigmodelStartPlan
+          ? getEntitlementSnapshot(providerIds.bigmodelCodingPlan)
           : null;
     return isStartPlanVisible({ providerId: provider.id, codingPlanEntitlementSnapshot: codingPlanSnapshot }) ? providerUsableForAgent(selectedProvider, provider) : !1;
   });
@@ -1277,7 +1277,7 @@ export function proxyModelNameOf(value: string): string | null {
 export function canonicalModelNameOf(value: string): string | null {
   const trimmed = value.trim();
   if (trimmed.length === 0) return null;
-  const catalog = modelEntryOf(trimmed);
+  const catalog = parseCustomModelId(trimmed);
   if (!catalog) return proxyModelNameOf(trimmed) || trimmed;
   if (!catalog.modelName) return null;
   const modelName = catalog.modelName.trim();
@@ -1312,7 +1312,7 @@ export function claudeAliasKindOf(value: string) {
 export function retargetModelValue(value: string, modelName: string) {
   const trimmed = value.trim();
   if (trimmed.length === 0) return null;
-  const catalog = modelEntryOf(trimmed);
+  const catalog = parseCustomModelId(trimmed);
   return catalog?.providerId ? (catalog.modelName ? trimmed : formatCustomModelId(catalog.providerId, modelName)) : trimmed;
 }
 
@@ -1320,7 +1320,7 @@ export function retargetModelValue(value: string, modelName: string) {
 export function modelValuesMatchForAgent(left: string, right: string, originalValue: string, agent: string) {
   if (left === right) return !0;
   if (agent === `opencode`) {
-    const catalog = modelEntryOf(originalValue.trim());
+    const catalog = parseCustomModelId(originalValue.trim());
     if (catalog?.providerId && catalog.modelName)
       try {
         if (right === proxyModelValueOf(catalog.providerId, catalog.modelName)) return !0;
@@ -1342,12 +1342,12 @@ export function reconcileConfigOptionsModel(configOptions: ConfigOptionEntry[] |
       if (trimmed.length > 0) {
         const currentCanonical = canonicalModelNameOf(currentValue),
           optionCanonical = canonicalModelNameOf(trimmed),
-          currentCatalog = modelEntryOf(currentValue),
-          optionCatalog = modelEntryOf(trimmed),
+          currentCatalog = parseCustomModelId(currentValue),
+          optionCatalog = parseCustomModelId(trimmed),
           crossProvider = !!(currentCatalog?.providerId && optionCatalog?.providerId) && currentCatalog?.providerId !== optionCatalog?.providerId;
         let next: string | null = null;
         return (
-          !next && agent === `claude` && modelEntryOf(currentValue)?.providerId && isClaudeAliasModel(option as unknown as string) && (next = currentValue.trim()),
+          !next && agent === `claude` && parseCustomModelId(currentValue)?.providerId && isClaudeAliasModel(option as unknown as string) && (next = currentValue.trim()),
           !next && !crossProvider && currentCanonical && optionCanonical && modelValuesMatchForAgent(currentCanonical, optionCanonical, currentValue, agent)
             ? (next = retargetModelValue(currentValue, optionCanonical))
             : currentCatalog?.providerId && !currentCatalog.modelName && optionCanonical && (next = formatCustomModelId(currentCatalog.providerId, optionCanonical)),
@@ -1938,7 +1938,7 @@ let staticProductsInFlight: Promise<any> | null = null; // _J
 /** 原 s5e（80369 / jsx 区）：useCodingPlanProducts */
 export function useCodingPlanProducts(providerId: string, options?: { remotePreviewEnabled?: boolean }) {
   let service = useServices()?.codingPlanSubscriptionService,
-    isSupported = providerId === PROVIDER_IDS.bigmodelCodingPlan || isZaiPlanProviderId(providerId),
+    isSupported = providerId === providerIds.bigmodelCodingPlan || isZaiPlanProviderId(providerId),
     isRemote = isSupported && options?.remotePreviewEnabled !== !1,
     fallback = React.useMemo(() => emptySnapshotOf(providerId), [providerId]),
     [state, setState] = React.useState<{ snapshot: any; loading: boolean; error: string | null }>(() => ({
@@ -2119,8 +2119,8 @@ export function hydrateStaticProducts(products: any[]) {
 export async function remoteStaticProductsOf(providerId: string, service: any): Promise<any[]> {
   try {
     let byProvider = (await staticProductsConfigOf(service))[providerId] ?? [];
-    if (providerId === PROVIDER_IDS.zaiCodingPlan) return filterStartFreeForProvider(providerId, byProvider);
-    if (providerId !== PROVIDER_IDS.zaiStartPlan) return byProvider;
+    if (providerId === providerIds.zaiCodingPlan) return filterStartFreeForProvider(providerId, byProvider);
+    if (providerId !== providerIds.zaiStartPlan) return byProvider;
     let startPreview = typeof service.getStartPlanPreview == `function` ? await service.getStartPlanPreview() : null;
     if (!startPreview) return byProvider;
     let seen = new Set<string>();
@@ -2139,7 +2139,7 @@ export async function remoteStaticProductsOf(providerId: string, service: any): 
 }
 /** 原 bJ（80550）：zaiCodingPlan 过滤免费档 */
 export function filterStartFreeForProvider(providerId: string, products: any[]) {
-  return providerId === PROVIDER_IDS.zaiCodingPlan ? products.filter((product) => !isZaiStartFreeProductId(product.productId)) : products;
+  return providerId === providerIds.zaiCodingPlan ? products.filter((product) => !isZaiStartFreeProductId(product.productId)) : products;
 }
 /** 原 y5e（80553）：静态产品配置（TTL 缓存+在途去重） */
 export async function staticProductsConfigOf(service: any) {
@@ -3744,11 +3744,11 @@ export function stringifyFunnelDetail(detail: Record<string, unknown>) {
 /** 原 h9e（82911 区）：供应商族归一 */
 export function providerFamilyOf(providerId: string): string {
   return providerId === `bigmodel` ||
-    providerId === PROVIDER_IDS.bigmodel ||
-    providerId === PROVIDER_IDS.bigmodelCodingPlan ||
-    providerId === PROVIDER_IDS.bigmodelStartPlan
+    providerId === providerIds.bigmodel ||
+    providerId === providerIds.bigmodelCodingPlan ||
+    providerId === providerIds.bigmodelStartPlan
     ? `bigmodel`
-    : providerId === `zai` || providerId === PROVIDER_IDS.zai || isZaiPlanProviderId(providerId)
+    : providerId === `zai` || providerId === providerIds.zai || isZaiPlanProviderId(providerId)
       ? `zai`
       : `unknown`;
 }
@@ -4594,8 +4594,8 @@ export function useEnterpriseCodingPlanProducts({ enabled, authenticated }: { en
             ]),
             staticCatalog =
               staticResult.status === `fulfilled` &&
-              Object.prototype.hasOwnProperty.call(staticResult.value, PROVIDER_IDS.bigmodelCodingPlan)
-                ? (staticResult.value as any)[PROVIDER_IDS.bigmodelCodingPlan]
+              Object.prototype.hasOwnProperty.call(staticResult.value, providerIds.bigmodelCodingPlan)
+                ? (staticResult.value as any)[providerIds.bigmodelCodingPlan]
                 : void 0,
             pricing = pricingResult.status === `fulfilled` ? pricingResult.value : { productList: [] },
             pricingError = pricingResult.status === `rejected` ? pricingResult.reason : null;
@@ -4649,10 +4649,10 @@ export function useEnterpriseCodingPlanProducts({ enabled, authenticated }: { en
 }
 /** 原 EY（83815 / jsx 73477）：Start → Coding 计划源映射 */
 export function codingPlanProviderOfStart(providerId: string): string {
-  return providerId === PROVIDER_IDS.zaiStartPlan
-    ? PROVIDER_IDS.zaiCodingPlan
-    : providerId === PROVIDER_IDS.bigmodelStartPlan
-      ? PROVIDER_IDS.bigmodelCodingPlan
+  return providerId === providerIds.zaiStartPlan
+    ? providerIds.zaiCodingPlan
+    : providerId === providerIds.bigmodelStartPlan
+      ? providerIds.bigmodelCodingPlan
       : providerId;
 }
 /** 原 DY（83824 区）：oauth 强制恢复选项 */
@@ -5916,7 +5916,7 @@ export function CodingPlanPurchasePanel({
           }
         : null,
     panelMaxWidth = `max-w-5xl`;
-  return effectiveProviderId !== PROVIDER_IDS.bigmodelCodingPlan && !isZaiPlanProviderId(effectiveProviderId) ? null : (
+  return effectiveProviderId !== providerIds.bigmodelCodingPlan && !isZaiPlanProviderId(effectiveProviderId) ? null : (
     <>
       {open ? (
         <section className={`fixed inset-0 z-50 flex flex-col overflow-hidden bg-background pt-12 text-foreground`}>
@@ -9062,7 +9062,7 @@ function providerDisplayNameOf(providerId: string) {
 
 // Bnt → isBigmodelCodingPlanProvider（本地 88181）
 function isBigmodelCodingPlanProvider(providerId: string) {
-  return providerId === PROVIDER_IDS.bigmodelCodingPlan;
+  return providerId === providerIds.bigmodelCodingPlan;
 }
 
 // Vnt → isPendingRequestCurrent（本地 88184）
@@ -9083,7 +9083,7 @@ function panelTitleOf(stage: string, intl: any, enterprise = false, providerId?:
           : `settings.modelProvider.codingPlan.purchase.billingCycleTitle`,
       })
     : stage === `paymentConfirm`
-      ? !enterprise && providerId === PROVIDER_IDS.bigmodelCodingPlan
+      ? !enterprise && providerId === providerIds.bigmodelCodingPlan
         ? `确认支付`
         : intl.formatMessage({ id: `settings.modelProvider.codingPlan.purchase.paymentConfirmTitle` })
       : stage === `payment`
@@ -9133,18 +9133,18 @@ const SITE_URL_FOR_PURCHASE = envSiteUrlOf({ ZCODE_ENV: ZCODE_ENV_VALUE }); // r
 // iX → API_KEY_PROVIDER_ENTRIES（本地 88239）
 const API_KEY_PROVIDER_ENTRIES = [
   {
-    id: PROVIDER_IDS.zai,
+    id: providerIds.zai,
     displayName: `Z.ai - API Key`,
     oauthProviderId: `zai`,
     apiKeyUrl: `https://z.ai/manage-apikey/apikey-list`,
   },
   {
-    id: PROVIDER_IDS.bigmodel,
+    id: providerIds.bigmodel,
     displayName: `BigModel - API Key`,
     oauthProviderId: BIGMODEL_REGION_ID,
     apiKeyUrl: envPathUrlOf({ ZCODE_ENV: ZCODE_ENV_VALUE }, `/apikey/platform`),
   },
-  { id: PROVIDER_IDS.zapi, displayName: `ZAPI` },
+  { id: providerIds.zapi, displayName: `ZAPI` },
 ];
 
 // aX → API_KEY_PROVIDER_ENTRY_MAP（本地 88255）
@@ -9153,28 +9153,28 @@ const API_KEY_PROVIDER_ENTRY_MAP = new Map(API_KEY_PROVIDER_ENTRIES.map((entry) 
 // oX → CODING_PLAN_PROVIDER_ENTRIES（本地 88256）
 const CODING_PLAN_PROVIDER_ENTRIES = [
   {
-    id: PROVIDER_IDS.zaiStartPlan,
+    id: providerIds.zaiStartPlan,
     oauthProviderId: `zai`,
     label: `Z.ai - Coding Plan`,
     providerName: `Z.ai`,
     purchaseUrl: `https://z.ai/manage-apikey/subscription`,
   },
   {
-    id: PROVIDER_IDS.zaiCodingPlan,
+    id: providerIds.zaiCodingPlan,
     oauthProviderId: `zai`,
     label: `Z.ai - Coding Plan`,
     providerName: `Z.ai`,
     purchaseUrl: `https://z.ai/manage-apikey/subscription`,
   },
   {
-    id: PROVIDER_IDS.bigmodelCodingPlan,
+    id: providerIds.bigmodelCodingPlan,
     oauthProviderId: BIGMODEL_REGION_ID,
     label: `BigModel - Coding Plan`,
     providerName: `BigModel`,
     purchaseUrl: CONSOLE_URL_FOR_PURCHASE,
   },
   {
-    id: PROVIDER_IDS.bigmodelStartPlan,
+    id: providerIds.bigmodelStartPlan,
     oauthProviderId: BIGMODEL_REGION_ID,
     label: `BigModel- Coding Plan`,
     providerName: `BigModel`,
@@ -9183,7 +9183,7 @@ const CODING_PLAN_PROVIDER_ENTRIES = [
 ];
 
 // 源 88289：模块装载期遗留的逗号表达式（无副作用，逐字保留）
-(PROVIDER_IDS.zaiStartPlan, PLAN_DOMAINS.zcodePlanAnthropicBaseUrl, [...GLM_MODEL_IDS]);
+(providerIds.zaiStartPlan, PLAN_DOMAINS.zcodePlanAnthropicBaseUrl, [...GLM_MODEL_IDS]);
 
 // Xnt → KNOWN_PROVIDER_ENTRY_IDS（本地 88290）
 const KNOWN_PROVIDER_ENTRY_IDS = new Set([
@@ -9193,24 +9193,24 @@ const KNOWN_PROVIDER_ENTRY_IDS = new Set([
 
 // Znt → providerDisplayNameOfEntry（本地 88291）
 function providerDisplayNameOfEntry(entry: any) {
-  return entry.id === PROVIDER_IDS.zai
+  return entry.id === providerIds.zai
     ? `Z.ai - API Key`
-    : entry.id === PROVIDER_IDS.zaiCodingPlan || entry.id === PROVIDER_IDS.zaiStartPlan
+    : entry.id === providerIds.zaiCodingPlan || entry.id === providerIds.zaiStartPlan
       ? `Z.ai - Coding Plan`
-      : entry.id === PROVIDER_IDS.bigmodelStartPlan
+      : entry.id === providerIds.bigmodelStartPlan
         ? `BigModel- Coding Plan`
         : entry.name;
 }
 
 // Qnt → isPresetEntryEnabled（本地 88301）
 function isPresetEntryEnabled(entry: any) {
-  return entry.presetId === PROVIDER_IDS.zapi ? entry.zapiEnabled : true;
+  return entry.presetId === providerIds.zapi ? entry.zapiEnabled : true;
 }
 
 // $nt → teamPlanSelectionOf（本地 88304）
 function teamPlanSelectionOf(selectedKeys: any = {}) {
   const raw = selectedKeys.bigmodel?.trim() ?? ``;
-  const parsed = parseTeamPlanKey(raw);
+  const parsed = parseCodingPlanScope(raw);
   const organizationId = parsed?.organizationId?.trim() ?? ``;
   const projectId = parsed?.projectId?.trim() ?? ``;
   return !organizationId || !projectId ? null : { organizationId: organizationId, projectId: projectId, cacheKey: raw };
@@ -9241,10 +9241,10 @@ export function useCodingPlanEntitlements({
   suppressProviderFingerprintAutoRefresh = false,
 }: any) {
   const skippedRef = React.useRef(``);
-  const zaiCodingEntry = modelProviders.find((entry: any) => entry.id === PROVIDER_IDS.zaiCodingPlan);
-  const zaiStartEntry = modelProviders.find((entry: any) => entry.id === PROVIDER_IDS.zaiStartPlan);
-  const bigmodelCodingEntry = modelProviders.find((entry: any) => entry.id === PROVIDER_IDS.bigmodelCodingPlan);
-  const bigmodelStartEntry = modelProviders.find((entry: any) => entry.id === PROVIDER_IDS.bigmodelStartPlan);
+  const zaiCodingEntry = modelProviders.find((entry: any) => entry.id === providerIds.zaiCodingPlan);
+  const zaiStartEntry = modelProviders.find((entry: any) => entry.id === providerIds.zaiStartPlan);
+  const bigmodelCodingEntry = modelProviders.find((entry: any) => entry.id === providerIds.bigmodelCodingPlan);
+  const bigmodelStartEntry = modelProviders.find((entry: any) => entry.id === providerIds.bigmodelStartPlan);
   const zaiCodingEntryResolved = providerEntryOrNull(zaiCodingEntry);
   const zaiStartEntryResolved = providerEntryOrNull(zaiStartEntry);
   const bigmodelCodingEntryResolved = providerEntryOrNull(bigmodelCodingEntry);
@@ -9261,29 +9261,29 @@ export function useCodingPlanEntitlements({
     enabled: zaiCodingEnabled,
     autoRefreshMode: autoRefreshMode,
     includeSubscription: true,
-    preferredProviderId: zaiCodingEntryResolved?.id ?? PROVIDER_IDS.zaiCodingPlan,
+    preferredProviderId: zaiCodingEntryResolved?.id ?? providerIds.zaiCodingPlan,
     allowDisabledPreferredProvider: true,
     requirePreferredProvider: true,
     allowEnvApiKey: false,
-    cacheKey: entitlementCacheKeyOf({ providerId: PROVIDER_IDS.zaiCodingPlan, providerFingerprint: zaiCodingFingerprint }),
+    cacheKey: entitlementCacheKeyOf({ providerId: providerIds.zaiCodingPlan, providerFingerprint: zaiCodingFingerprint }),
   });
   const bigmodelCodingSubscription = useEntitlementSubscription({
     enabled: bigmodelCodingEnabled,
     autoRefreshMode: autoRefreshMode,
     includeSubscription: true,
-    preferredProviderId: bigmodelCodingEntryResolved?.id ?? PROVIDER_IDS.bigmodelCodingPlan,
+    preferredProviderId: bigmodelCodingEntryResolved?.id ?? providerIds.bigmodelCodingPlan,
     allowDisabledPreferredProvider: true,
     requirePreferredProvider: true,
     allowEnvApiKey: false,
     organizationId: teamSelection?.organizationId,
     projectId: teamSelection?.projectId,
-    cacheKey: entitlementCacheKeyOf({ providerId: PROVIDER_IDS.bigmodelCodingPlan, providerFingerprint: teamCacheKey || bigmodelCodingFingerprint }),
+    cacheKey: entitlementCacheKeyOf({ providerId: providerIds.bigmodelCodingPlan, providerFingerprint: teamCacheKey || bigmodelCodingFingerprint }),
   });
   const zaiStartEnabled =
     !!zaiStartFingerprint &&
     shouldProbeStartPlanEntitlement({
       codingPlanProviderFingerprint: zaiCodingFingerprint,
-      codingPlanProviderId: PROVIDER_IDS.zaiCodingPlan,
+      codingPlanProviderId: providerIds.zaiCodingPlan,
       codingPlanSnapshot: zaiCodingSubscription.snapshot,
       codingPlanLoading: zaiCodingSubscription.loading,
       codingPlanError: zaiCodingSubscription.error,
@@ -9293,7 +9293,7 @@ export function useCodingPlanEntitlements({
     !!bigmodelStartFingerprint &&
     shouldProbeStartPlanEntitlement({
       codingPlanProviderFingerprint: bigmodelCodingFingerprint,
-      codingPlanProviderId: PROVIDER_IDS.bigmodelCodingPlan,
+      codingPlanProviderId: providerIds.bigmodelCodingPlan,
       codingPlanSnapshot: bigmodelCodingSubscription.snapshot,
       codingPlanLoading: bigmodelCodingSubscription.loading,
       codingPlanError: bigmodelCodingSubscription.error,
@@ -9302,21 +9302,21 @@ export function useCodingPlanEntitlements({
     enabled: zaiStartEnabled,
     autoRefreshMode: autoRefreshMode,
     includeSubscription: true,
-    preferredProviderId: zaiStartEntryResolved?.id ?? PROVIDER_IDS.zaiStartPlan,
+    preferredProviderId: zaiStartEntryResolved?.id ?? providerIds.zaiStartPlan,
     allowDisabledPreferredProvider: true,
     requirePreferredProvider: true,
     allowEnvApiKey: false,
-    cacheKey: entitlementCacheKeyOf({ providerId: PROVIDER_IDS.zaiStartPlan, providerFingerprint: zaiStartFingerprint }),
+    cacheKey: entitlementCacheKeyOf({ providerId: providerIds.zaiStartPlan, providerFingerprint: zaiStartFingerprint }),
   });
   const bigmodelStartSubscription = useEntitlementSubscription({
     enabled: bigmodelStartEnabled,
     autoRefreshMode: autoRefreshMode,
     includeSubscription: true,
-    preferredProviderId: bigmodelStartEntryResolved?.id ?? PROVIDER_IDS.bigmodelStartPlan,
+    preferredProviderId: bigmodelStartEntryResolved?.id ?? providerIds.bigmodelStartPlan,
     allowDisabledPreferredProvider: true,
     requirePreferredProvider: true,
     allowEnvApiKey: false,
-    cacheKey: entitlementCacheKeyOf({ providerId: PROVIDER_IDS.bigmodelStartPlan, providerFingerprint: bigmodelStartFingerprint }),
+    cacheKey: entitlementCacheKeyOf({ providerId: providerIds.bigmodelStartPlan, providerFingerprint: bigmodelStartFingerprint }),
   });
   const refresh = React.useCallback(
     (opts: any = {}) => {
@@ -9333,16 +9333,16 @@ export function useCodingPlanEntitlements({
   );
   const fingerprintKey = React.useMemo(
     () =>
-      [PROVIDER_IDS.zaiCodingPlan, PROVIDER_IDS.zaiStartPlan, PROVIDER_IDS.bigmodelCodingPlan, PROVIDER_IDS.bigmodelStartPlan]
+      [providerIds.zaiCodingPlan, providerIds.zaiStartPlan, providerIds.bigmodelCodingPlan, providerIds.bigmodelStartPlan]
         .flatMap((id: string) => {
           const part =
-            id === PROVIDER_IDS.zaiCodingPlan
+            id === providerIds.zaiCodingPlan
               ? zaiCodingFingerprint
-              : id === PROVIDER_IDS.zaiStartPlan
+              : id === providerIds.zaiStartPlan
                 ? zaiStartEnabled
                   ? zaiStartFingerprint
                   : ``
-                : id === PROVIDER_IDS.bigmodelCodingPlan
+                : id === providerIds.bigmodelCodingPlan
                   ? teamCacheKey || bigmodelCodingFingerprint
                   : bigmodelStartEnabled
                     ? bigmodelStartFingerprint
@@ -9364,14 +9364,14 @@ export function useCodingPlanEntitlements({
   return React.useMemo(
     () => ({
       entitlements: {
-        [PROVIDER_IDS.zaiCodingPlan]: { snapshot: zaiCodingSubscription.snapshot, loading: zaiCodingSubscription.loading, error: zaiCodingSubscription.error },
-        [PROVIDER_IDS.zaiStartPlan]: {
+        [providerIds.zaiCodingPlan]: { snapshot: zaiCodingSubscription.snapshot, loading: zaiCodingSubscription.loading, error: zaiCodingSubscription.error },
+        [providerIds.zaiStartPlan]: {
           snapshot: zaiStartEnabled ? zaiStartSubscription.snapshot : null,
           loading: zaiStartEnabled ? zaiStartSubscription.loading : false,
           error: zaiStartEnabled ? zaiStartSubscription.error : null,
         },
-        [PROVIDER_IDS.bigmodelCodingPlan]: { snapshot: bigmodelCodingSubscription.snapshot, loading: bigmodelCodingSubscription.loading, error: bigmodelCodingSubscription.error },
-        [PROVIDER_IDS.bigmodelStartPlan]: {
+        [providerIds.bigmodelCodingPlan]: { snapshot: bigmodelCodingSubscription.snapshot, loading: bigmodelCodingSubscription.loading, error: bigmodelCodingSubscription.error },
+        [providerIds.bigmodelStartPlan]: {
           snapshot: bigmodelStartEnabled ? bigmodelStartSubscription.snapshot : null,
           loading: bigmodelStartEnabled ? bigmodelStartSubscription.loading : false,
           error: bigmodelStartEnabled ? bigmodelStartSubscription.error : null,
@@ -9463,7 +9463,7 @@ function isEmptyText(text: string) {
 function providerEntryIconOf(item: any) {
   if (item.type === `addCustom`) return <PlusIcon className={`size-4 shrink-0`} />;
   if (item.type === `preset` || item.type === `codingPlan`) {
-    if (item.presetId === PROVIDER_IDS.zapi) return <ZapiProviderIcon className={`size-4 shrink-0`} />;
+    if (item.presetId === providerIds.zapi) return <ZapiProviderIcon className={`size-4 shrink-0`} />;
     const oauthProviderId = oauthProviderIdOfEntry(item.presetId);
     return oauthProviderId ? <RegionLogo region={oauthProviderId} className={`size-4`} /> : <GenericProviderIcon className={`size-4 shrink-0`} />; // A1-R21：providerLogoOf declare 改指（Tq 76183，组件形）
   }
@@ -9652,7 +9652,7 @@ function mergeTeamPlanMenuItems({
   showPurchasedTeamPlanFallback,
   subscribedTeamProducts,
 }: any) {
-  const anchor = items.find((item: any) => item.presetId === PROVIDER_IDS.bigmodelCodingPlan);
+  const anchor = items.find((item: any) => item.presetId === providerIds.bigmodelCodingPlan);
   if (!anchor) return items;
   const entitlementItems = teamMenuItemsOfEntitlement(anchor, codingPlanEntitlements);
   const fallbackItems = fallbackTeamMenuItemOf({ codingPlanItem: anchor, selectedTeamPlanKey: selectedTeamPlanKey, showPurchasedTeamPlanFallback: showPurchasedTeamPlanFallback });
@@ -9689,7 +9689,7 @@ function mergeTeamPlanMenuItems({
       return [
         {
           ...anchor,
-          key: teamPlanKeyOf({ productId: product.productId, organizationId: organizationId, projectId: projectId }),
+          key: buildCodingPlanScope({ productId: product.productId, organizationId: organizationId, projectId: projectId }),
           type: `teamPlan`,
           label: `${anchor.providerName} - ${organizationLabel}`,
           teamPlanName: organizationLabel,
@@ -9736,7 +9736,7 @@ function hasTeamScopedEntitlement(entitlements: any) {
 
 // hrt → teamMenuItemsOfEntitlement（本地 88778）
 function teamMenuItemsOfEntitlement(item: any, entitlements: any) {
-  const snapshot = entitlements[PROVIDER_IDS.bigmodelCodingPlan]?.snapshot ?? null;
+  const snapshot = entitlements[providerIds.bigmodelCodingPlan]?.snapshot ?? null;
   if (snapshot?.context?.scope !== `team`) return [];
   const organizationId = snapshot.context.organizationId?.trim() ?? ``;
   const projectId = snapshot.context.projectId?.trim() ?? ``;
@@ -9751,7 +9751,7 @@ function teamMenuItemsOfEntitlement(item: any, entitlements: any) {
   return [
     {
       ...item,
-      key: teamPlanKeyOf({ productId: productId, organizationId: organizationId, projectId: projectId }),
+      key: buildCodingPlanScope({ productId: productId, organizationId: organizationId, projectId: projectId }),
       type: `teamPlan`,
       label: `${item.providerName} - ${planName}`,
       teamPlanName: planName,
@@ -9769,13 +9769,13 @@ function teamMenuItemsOfEntitlement(item: any, entitlements: any) {
 // grt → fallbackTeamMenuItemOf（本地 88807）
 function fallbackTeamMenuItemOf({ codingPlanItem, selectedTeamPlanKey, showPurchasedTeamPlanFallback }: any) {
   if (!showPurchasedTeamPlanFallback) return [];
-  const parsed = parseTeamPlanKey(selectedTeamPlanKey);
+  const parsed = parseCodingPlanScope(selectedTeamPlanKey);
   if (!parsed?.organizationId || !parsed.projectId) return [];
   const planName = codingPlanItem.planLevel?.trim() || `Team`;
   return [
     {
       ...codingPlanItem,
-      key: teamPlanKeyOf({ productId: parsed.productId, organizationId: parsed.organizationId, projectId: parsed.projectId }),
+      key: buildCodingPlanScope({ productId: parsed.productId, organizationId: parsed.organizationId, projectId: parsed.projectId }),
       type: `teamPlan`,
       label: `${codingPlanItem.providerName} - ${planName}`,
       teamPlanName: planName,
@@ -9792,7 +9792,7 @@ function fallbackTeamMenuItemOf({ codingPlanItem, selectedTeamPlanKey, showPurch
 
 // uX → teamMenuItemKeyOf（本地 88831）
 function teamMenuItemKeyOf(item: any) {
-  const parsed = parseTeamPlanKey(item.key);
+  const parsed = parseCodingPlanScope(item.key);
   const organizationId = item.organizationId?.trim() || parsed?.organizationId || ``;
   const projectId = item.projectId?.trim() || parsed?.projectId || ``;
   return organizationId && projectId ? `${organizationId}:${projectId}` : item.key;
@@ -9825,10 +9825,10 @@ async function loadPurchaseAuthState(credentialService: any) {
   ]);
   const provider = activeProvider === `zai` || activeProvider === `bigmodel` ? activeProvider : null;
   return {
-    [PROVIDER_IDS.zaiCodingPlan]: provider === `zai` && !!zaiToken?.trim(),
-    [PROVIDER_IDS.zaiStartPlan]: provider === `zai` && !!zaiToken?.trim(),
-    [PROVIDER_IDS.bigmodelCodingPlan]: provider === `bigmodel` && !!bigmodelToken?.trim(),
-    [PROVIDER_IDS.bigmodelStartPlan]: provider === `bigmodel` && !!bigmodelToken?.trim(),
+    [providerIds.zaiCodingPlan]: provider === `zai` && !!zaiToken?.trim(),
+    [providerIds.zaiStartPlan]: provider === `zai` && !!zaiToken?.trim(),
+    [providerIds.bigmodelCodingPlan]: provider === `bigmodel` && !!bigmodelToken?.trim(),
+    [providerIds.bigmodelStartPlan]: provider === `bigmodel` && !!bigmodelToken?.trim(),
   };
 }
 
@@ -9845,7 +9845,7 @@ function isNonEmpty(value: any) {
 
 // wrt → oauthProviderIdOfCodingPlan（本地 88870）
 function oauthProviderIdOfCodingPlan(providerId: string) {
-  return providerId === PROVIDER_IDS.zaiCodingPlan || providerId === PROVIDER_IDS.zaiStartPlan ? `zai` : BIGMODEL_REGION_ID;
+  return providerId === providerIds.zaiCodingPlan || providerId === providerIds.zaiStartPlan ? `zai` : BIGMODEL_REGION_ID;
 }
 
 // Trt → beginUpgradeLoginAttempt（本地 88873）
@@ -9899,7 +9899,7 @@ function CodingPlanUpgradeDialog({ target, onClose, onReopen }: any) {
   const pendingLoginRef = React.useRef<any>(null);
   const providerId = codingPlanProviderIdOfTarget(target?.providerId);
   const productsProviderId = providerId ? codingPlanProviderOfStart(providerId) : null;
-  const enterpriseProducts = useEnterpriseCodingPlanProducts({ enabled: !!target && productsProviderId === PROVIDER_IDS.bigmodelCodingPlan, authenticated: true });
+  const enterpriseProducts = useEnterpriseCodingPlanProducts({ enabled: !!target && productsProviderId === providerIds.bigmodelCodingPlan, authenticated: true });
   const providerEntry = providerEntryOrNull(providerId ? (modelProviders.find((entry: any) => entry.id === providerId) ?? null) : null);
   const entryStatus = providerId ? codingPlanEntryStatusOf({ provider: providerEntry, entitlement: entitlements[providerId], modelProvidersLoading: loading }) : null;
   const oauthProviderId = providerId ? oauthProviderIdOfCodingPlan(providerId) : null;
@@ -10035,7 +10035,7 @@ function CodingPlanUpgradeDialog({ target, onClose, onReopen }: any) {
         refreshModelProviders: refresh,
         refreshPurchaseTokenState: refreshAuthState,
         refreshTeamPlanProducts:
-          productsProviderId === PROVIDER_IDS.bigmodelCodingPlan ? () => enterpriseProducts.refresh({ force: true }) : undefined,
+          productsProviderId === providerIds.bigmodelCodingPlan ? () => enterpriseProducts.refresh({ force: true }) : undefined,
       });
     } catch (error) {
       logger.warn(`[CodingPlanUpgradeDialog] 刷新 Coding Plan 购买状态失败`, {

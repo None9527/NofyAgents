@@ -145,7 +145,7 @@ import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出�
 import { normalizeProviderId } from './SrcSharedB';
 import { skillContextKey, useSkillContextStore as useSkillContextStoreStatic } from './stores-workspace'; // 原 UB
 import { resolveWorkspaceKey as workspaceKey, formatCustomModelId as joinModelName, useStore as useStoreSelector } from './SkillStore'; // 原 U | 原 we | 原 ne
-import { isZaiPlanProviderId as isZaiPlanFamily, isBuiltinProviderId as isZaiProviderFamily } from './SrcSharedA'; // 原 tr | 原 jt
+import { isZaiPlanProviderId as isZaiPlanFamily, isBuiltinProviderId as isZaiProviderFamily, providerIds } from './SrcSharedA'; // 原 tr | 原 jt。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）：PROVIDER_IDS declare 收敛改指，见 @160 墓碑
 import { parseCustomModelRef as parseCustomModelKey, countLineDiffChanges as countDiffLines, generateUuid as generateRandomId, resolveClientTelemetryContext as telemetryClientContext } from './SrcSharedB'; // 原 Zn | 原 Xr | 原 xi | 原 Qne
 import type { SkillsService } from './stores-workspace';
 import type { ScheduleRule } from './SettingsLeaves'; // A0-CLEANUP3 3b：Automation 三型 scheduleRule 统一
@@ -157,16 +157,16 @@ import type { ScheduleRule } from './SettingsLeaves'; // A0-CLEANUP3 3b：Automa
 
 /* 原 U（workspaceKey）已接线 SkillStore.resolveWorkspaceKey（见文件头 import） */
 
-/** 原 q（skillStore 供应商 id 枚举，此处按消费面列出字段） */
-declare const PROVIDER_IDS: {
-  zai: string;
-  bigmodel: string;
-  zapi: string;
-  zaiCodingPlan: string;
-  zaiStartPlan: string;
-  bigmodelCodingPlan: string;
-  bigmodelStartPlan: string;
-};
+/* ── tombstone〔A1-R32〕：declare PROVIDER_IDS（原 q）删除 → 改指 SrcSharedA@2008 providerIds
+ *    （q 真身：styles 725 `mo as q` ← src 9963 `W as mo` ≡ W 4733-4741，体逐字同构：
+ *    builtin: 前缀 7 键 zai/bigmodel/zapi/zaiCodingPlan/zaiStartPlan/bigmodelCodingPlan/
+ *    bigmodelStartPlan；链闭合；本 declare 面按消费面列字段，与 canonical 7 键吻合）。
+ *    消费面实测（本文件 9 处改名改指）：@310/@312/@314（resolveTelemetryProviderHost@308
+ *    体内，R31 bw 收敛面不变）+ @463-468（供应商 id 数组面）。
+ *    零动态索引，收敛安全。
+ *    负证据：styles 213969 `po as q` 为遮蔽（po=McpServerConfigSchema，别 import 块，
+ *    异体）。
+ *    ── */
 
 /* 原 tr/jt/Zn/Xr/xi/Qne/we/ne 已接线（SrcSharedA isZaiPlanProviderId/isBuiltinProviderId；
    SrcSharedB parseCustomModelRef/countLineDiffChanges/generateUuid/resolveClientTelemetryContext；
@@ -307,11 +307,11 @@ export interface TokenUsage {
 /** 原 bw/hNe（40445/40454；A1-R31 行号更正：旧注 40397/40406 为 -48 漂移误引，实测 styles 40445/40454）：供应商 → 上报主机名归一（zai 族→z.ai；bigmodel 族→bigmodel；zapi 保留） */
 export function resolveTelemetryProviderHost(providerId: string | null | undefined): string {
   const id = providerId ?? "";
-  return id === "zai" || id === PROVIDER_IDS.zai || isZaiPlanFamily(id)
+  return id === "zai" || id === providerIds.zai || isZaiPlanFamily(id)
     ? "z.ai"
-    : id === "bigmodel" || id === PROVIDER_IDS.bigmodel || id === PROVIDER_IDS.bigmodelCodingPlan
+    : id === "bigmodel" || id === providerIds.bigmodel || id === providerIds.bigmodelCodingPlan
       ? "bigmodel"
-      : id === PROVIDER_IDS.zapi
+      : id === providerIds.zapi
         ? "zapi"
         : id;
 }
@@ -460,12 +460,12 @@ const UI_ERROR_GROUP = "ui_error";
 const DISPLAY_MESSAGE_LIMIT = 500;
 const UNKNOWN_FAILURE_REASON = "unknown";
 const BUILTIN_BANNER_PROVIDERS = new Set([
-  PROVIDER_IDS.zai,
-  PROVIDER_IDS.zaiCodingPlan,
-  PROVIDER_IDS.zaiStartPlan,
-  PROVIDER_IDS.bigmodel,
-  PROVIDER_IDS.bigmodelCodingPlan,
-  PROVIDER_IDS.bigmodelStartPlan,
+  providerIds.zai,
+  providerIds.zaiCodingPlan,
+  providerIds.zaiStartPlan,
+  providerIds.bigmodel,
+  providerIds.bigmodelCodingPlan,
+  providerIds.bigmodelStartPlan,
 ]);
 const PROVIDER_CODE_FAILURE_REASONS: Record<string, string> = {
   1005: "quota_exhausted",

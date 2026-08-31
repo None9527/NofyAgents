@@ -264,7 +264,7 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // intl 上
 import { Button } from '../../modules/button'; // Button（原 X，button-laUijeDG.js）
 import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
 import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup, sessionEntryWorkspaceKey as remoteWorkspaceKey, buildRemoteWorkspaceKey as workspaceIdentityOf, resolveEntryWorkspaceIdentity as entryIdentity, remoteTargetWithSecrets as withRemoteCredentials, applyRemoteConnectionResult as commitRemoteSessionsMutation, removeRemoteSessionEntries as removeSessionsByWorkspaceKeys, persistedWorkspaceSessions as persistableWorkspaceTabs, persistedRemoteSessions as normalizePersistedRemoteSessions, resolveLastActiveTabIndex, type PersistedWorkspaceTabRecord, type RemoteSessionTarget } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）+ A1-R6：R2/I2/L2/z2/B2/oEt 远程条目域改指 + A1-R7：V2/cEt/Bne 恢复条目域改指（Hn 改指更正迁 SrcSharedA；tombstone 见原 declare 位）
-import { sanitizeWorkspaceDescriptor as serializeRemoteTarget, sshTargetIdentityKey as sshHostKeyOfTarget } from '../../modules/SrcSharedA'; // A1-R7：Hn（R6 误录更正，canonical 见 lib/workspaceUtils）+ Pn=sshTargetIdentityKey 改指
+import { sanitizeWorkspaceDescriptor as serializeRemoteTarget, sshTargetIdentityKey as sshHostKeyOfTarget, providerIds } from '../../modules/SrcSharedA'; // A1-R7：Hn（R6 误录更正，canonical 见 lib/workspaceUtils）+ Pn=sshTargetIdentityKey 改指。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）：PROVIDER_IDS declare 收敛改指，见 @552 墓碑
 import { generateUuid as createRequestId, getOAuthProviderFamilyByProviderId, resolveProviderFamilyMode } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555）：resolveFamilyMode declare 收敛改指，见下墓碑。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：providerById declare 收敛改指，见下墓碑。环安全：本行不新增环边（本文件→SrcSharedB 既有）
 import { bindWorkspacePath as bindRemoteWorkspacePath, bindWorkspaceIdentity as bindRemoteWorkspaceIdentity, unbindWorkspacePath as unbindRemoteWorkspacePath, unbindWorkspaceIdentity as unbindRemoteWorkspaceIdentity, getSessionById as getRemoteWorkspaceSession, type RegisteredSession } from '../../stores/sessionRegistryStore'; // A1-R7：$s/ec/Cse/wse/tc registry 包装族改指（环安全：该文件值导入仅 ./zustand，type-only 边无运行时环）
 
@@ -549,15 +549,15 @@ declare const TESTID_LOGIN_API_KEY_SKIP: string;
 declare const TESTID_LOGIN_API_KEY_OPTION_BASE: string;
 
 /* --- provider 常量与注册表 --- */
-declare const PROVIDER_IDS: {
-  zai: string;
-  bigmodel: string;
-  zaiCodingPlan: string;
-  bigmodelCodingPlan: string;
-  zaiStartPlan: string;
-  bigmodelStartPlan: string;
-  [key: string]: string;
-};
+/* ── tombstone〔A1-R32〕：declare PROVIDER_IDS（原 q）删除 → 改指 SrcSharedA@2008 providerIds
+ *    （q 真身：styles 725 `mo as q` ← src 9963 `W as mo` ≡ W 4733-4741，体逐字同构：
+ *    builtin: 前缀 7 键 zai/zaiCodingPlan/zaiStartPlan/bigmodel/bigmodelCodingPlan/
+ *    bigmodelStartPlan/zapi；链闭合）。
+ *    本 declare 面 6 具名键 + [key: string] 索引契；canonical 无索引契，惟本文件消费
+ *    全为静态键取（@1218/3369/3455/3473/3474/3480/3546/3572/3574/3583/3584 共 11 行
+ *    17 处改名改指），零动态索引，收敛安全。
+ *    负证据：styles 213969 `po as q` 为遮蔽（po=McpServerConfigSchema，别 import 块，
+ *    异体）。 ── */
 declare const BIGMODEL_PROVIDER_ID: string;
 export interface ProviderFamilyDefinition {
   apiKeyUrl?: string;
@@ -1215,7 +1215,7 @@ export function useOAuth() {
 
 /** 原 M9（206077 / 163794）：family domain → providerId */
 export function familyDomainToProviderId(domain: string): string {
-  return domain === `zai` ? PROVIDER_IDS.zai : PROVIDER_IDS.bigmodel;
+  return domain === `zai` ? providerIds.zai : providerIds.bigmodel;
 }
 
 /** 原 u4t（206080 / 163797）：family domain → 展示名 */
@@ -3366,7 +3366,7 @@ export function codingPlanSelectedKey(providerId: string): string {
 
 /** 原 t6t（209949 / 166694）：team-plan selectedKey（bigmodel 走 vi() 编码） */
 export function teamPlanSelectedKey(options: { providerId: string; productId: string; organizationId: string; projectKey: string }): string {
-  return options.providerId === PROVIDER_IDS.bigmodelCodingPlan
+  return options.providerId === providerIds.bigmodelCodingPlan
     ? bigmodelTeamPlanKey({ productId: options.productId, organizationId: options.organizationId, projectId: options.projectKey })
     : options.projectKey
       ? `team-plan:${options.providerId}:${options.productId}:${options.projectKey}`
@@ -3452,7 +3452,7 @@ export function resolveOAuthFamilySelection(options: {
   startPlanEntitlement: EntitlementSnapshot | null;
   teamProducts?: TeamProduct[];
 }): { mode: string; selectedKey: string } | null {
-  const provider = getOAuthProviderFamilyByProviderId(options.providerFamilyDomain === `zai` ? PROVIDER_IDS.zai : PROVIDER_IDS.bigmodel) as ModelProviderRecord | undefined; // 〔A1-R30〕型缝：canonical 返回 any，消费面依原 declare 契据窄化（行依据：本行 + 碑 @825）
+  const provider = getOAuthProviderFamilyByProviderId(options.providerFamilyDomain === `zai` ? providerIds.zai : providerIds.bigmodel) as ModelProviderRecord | undefined; // 〔A1-R30〕型缝：canonical 返回 any，消费面依原 declare 契据窄化（行依据：本行 + 碑 @825）
   if (!provider) return null;
   if (hasActiveEntitlement(options.codingPlanEntitlement, provider.codingPlanProviderId))
     return { mode: `oauth`, selectedKey: codingPlanSelectedKey(provider.codingPlanProviderId) };
@@ -3470,14 +3470,14 @@ export function resolveOAuthFamilySelection(options: {
 
 /** 原 H9（210036 / 166772）：family 缺省 selectedKey 表 */
 export const FAMILY_DEFAULT_SELECTED_KEYS: Record<string, { apiKey: string; oauth: string }> = {
-  zai: { apiKey: presetSelectedKey(PROVIDER_IDS.zai), oauth: codingPlanSelectedKey(PROVIDER_IDS.zaiCodingPlan) },
-  bigmodel: { apiKey: presetSelectedKey(PROVIDER_IDS.bigmodel), oauth: codingPlanSelectedKey(PROVIDER_IDS.bigmodelCodingPlan) },
+  zai: { apiKey: presetSelectedKey(providerIds.zai), oauth: codingPlanSelectedKey(providerIds.zaiCodingPlan) },
+  bigmodel: { apiKey: presetSelectedKey(providerIds.bigmodel), oauth: codingPlanSelectedKey(providerIds.bigmodelCodingPlan) },
 };
 
 /** 原 a6t（210040 / 166782）：family 选择是否可用 */
 export function isFamilySelectionUsable(options: { domain: string; mode: string; selectedKey: string }): boolean {
   if (options.mode === `apiKey`) return options.selectedKey === FAMILY_DEFAULT_SELECTED_KEYS[options.domain].apiKey;
-  const startPlanProviderId = options.domain === `zai` ? PROVIDER_IDS.zaiStartPlan : PROVIDER_IDS.bigmodelStartPlan;
+  const startPlanProviderId = options.domain === `zai` ? providerIds.zaiStartPlan : providerIds.bigmodelStartPlan;
   if (options.selectedKey === codingPlanSelectedKey(startPlanProviderId) || options.selectedKey === FAMILY_DEFAULT_SELECTED_KEYS[options.domain].oauth) return !0;
   if (options.domain !== `bigmodel`) return !1;
   const parsed = parseTeamPlanKey(options.selectedKey);
@@ -3543,7 +3543,7 @@ export async function maybeUpgradeBigModelTeamPlan(options: { allowUpgrade: bool
   )
     return !1;
   const products = await fetchBigModelTeamProducts(options.services, BIGMODEL_PROVIDER_ID);
-  const teamKey = firstSubscribedTeamPlanKey({ codingPlanProviderId: PROVIDER_IDS.bigmodelCodingPlan, teamProducts: products });
+  const teamKey = firstSubscribedTeamPlanKey({ codingPlanProviderId: providerIds.bigmodelCodingPlan, teamProducts: products });
   if (!teamKey) return !1;
   const latest = await options.services.settingService.get();
   return (latest.modelProviderFamilySelectedKeys?.bigmodel?.trim() ?? ``) === FAMILY_DEFAULT_SELECTED_KEYS.bigmodel.oauth
@@ -3569,9 +3569,9 @@ export async function migrateFamilySelectionWithUpgrade(options: { services: Ser
 /** 原 U9（210119 / 166859）：family → 计划 providerId 对 */
 export function planProviderIdsForDomain(domain: string): string[] {
   return domain === `zai`
-    ? [PROVIDER_IDS.zaiCodingPlan, PROVIDER_IDS.zaiStartPlan]
+    ? [providerIds.zaiCodingPlan, providerIds.zaiStartPlan]
     : domain === `bigmodel`
-      ? [PROVIDER_IDS.bigmodelCodingPlan, PROVIDER_IDS.bigmodelStartPlan]
+      ? [providerIds.bigmodelCodingPlan, providerIds.bigmodelStartPlan]
       : [];
 }
 
@@ -3580,8 +3580,8 @@ export function codingPlanProviderFromKey(selectedKey: string): string | null {
   const trimmed = selectedKey.trim();
   return trimmed.startsWith(`coding-plan:`)
     ? trimmed.slice(12).trim() || null
-    : trimmed.startsWith(`team-plan:${PROVIDER_IDS.bigmodelCodingPlan}:`)
-      ? PROVIDER_IDS.bigmodelCodingPlan
+    : trimmed.startsWith(`team-plan:${providerIds.bigmodelCodingPlan}:`)
+      ? providerIds.bigmodelCodingPlan
       : null;
 }
 
