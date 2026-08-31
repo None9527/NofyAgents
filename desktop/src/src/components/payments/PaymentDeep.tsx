@@ -180,7 +180,7 @@ declare const usePlatformService: () => TelemetryPlatform & { openExternal(url: 
  *    消费面实测：@787（_6e resolveFamilyDefaultOption 内）≡ bundle 77699，改名改指。
  *    负证据：bundle 内 zi 无第二真身（其余消费面分流见 Home 侧 zi 墓碑）。 ── */
 /* ── tombstone〔A1-R33〕：declare resolveModelCatalogEntry（原 Ie）删除 → 改指 taskStore@1543 getCurrentModelValue（SkillStore 转导出；Ie 真身：styles 416 `w as Ie` ← skillStore-BmeKHDBI 导出 2527 `I as w` ≡ I 982，与 taskStore 实体逐字同形；链闭合；SkillStore@143 `w=I getCurrentModelValue(Ie)` 登记在案。消费 @1334 改名改指 + `as unknown as string` 误铸剥离（canonical 参为选项数组，bundle $6e 78091 `Ie(e)` e=configOptions 实证）。 ── */
-declare function settingsConfigOptionsOf(settings: unknown): unknown[]; // Ng〔A1-R33 留批〕真身 = styles-local 24440-24494（非 import 符）；形似 jx≡SrcSharedB@5425 buildSessionSettingsViewModel 但 thoughtLevel 支政策异（Ng `Nge(e.thoughtLevel) ?? \`\`` vs jx current??defaultLevel??[0]?.value??`` + Set 裁决），真身归属待裁，不强收；本树零消费，负证据在案
+/* ── tombstone〔A1-R34〕：declare settingsConfigOptionsOf（原 Ng）删除 → 实体化新叶 modules/SettingsConfigOptions.ts（styles 24440-24494 逐字转录 + Nge 24495-24500 resolveThoughtLevelCurrentValue，checker 新段在案）。裁决异构（R33 留批闭合）：thoughtLevel 现值经 Set 成员裁决（Nge：current∈available → defaultLevel∈available → 首项），jx≡SrcSharedB@5425 buildSessionSettingsViewModel 取原值不校验，政策实异，见报告 §二；助手族值同构（Tge/Dge/Ege≡MODEL/MODE/THOUGHT_LEVEL_SETTING_ID、jg≡buildModelSettingOptionValue、Lge≡normalizeSessionModeId、Rge≡listSessionModeOptions）。bundle 消费 53106/53145/53204/53221（HUe 52984）/53438（qUe 53409）/78157（e8e 78119）属他域/未转录。 ── */
 /* ── tombstone〔A1-R33〕：declare workspaceTargetKeyOf（原 Ti）删除（本树零消费死 declare；Ti 真身：styles 778 `to as Ti` ← src 10018 `ip as to` ≡ ip 6913 ≡ SrcSharedB@3079 automationsWorkspaceKey「原 ip（jsx 7034 / js 6913）」，体逐字同形，链闭合；bundle 消费 4174/4230/4238/78124/128564/136105/137110/137242/138988/139095 属他域）。 ── */
 /* ── tombstone〔A1-R33〕：declare syncProviderRegistryToWorkspace（原 Ks）删除（本树零消费死 declare；Ks 真身：styles 4164 `async (e) => await vse(e)` ≡ services/providerRegistrySync syncProviderRegistryAndReturn，OLL@255 A1-R8 改指先例 + ConversationPaneCore@22 登记在案，链闭合；bundle 消费 78137/78327/120417 属他域）。 ── */
 /* ── tombstone〔A1-R33〕：declare proxyModelValueOf（原 bne）删除 → 改指 lib/stableIds@23 buildStableModelId（bne 真身：styles 752 `q as bne` ← src 9991 `Fx as q` ≡ Fx 8857 ≡ stableIds「原 Fx（jsx 8967 / js 8857）」逐字同形，链闭合；消费 @1326 改名改指（try/catch 守卫面与 bundle Q6e 78085 同形）。负证据：styles q 符三用——725 mo（providerIds）/752 Fx（本件）/213969 po 遮蔽，各属别 import 块。 ── */
@@ -224,13 +224,13 @@ declare const BIGMODEL_REGION_ID: string; // Ri
  *    iit 工具条域 store 选择器族，消费面 §9 iit/Xrt 死簇同批删除（此前已零消费，负证据在案）；
  *    真身 = Home §U.10 ComposerConfigToolbarBody 逐字（其 useTabStoreSelector/useCatalogConfigOptions 等
  *    消费面经 Home §0 declare 分层）。 ── */
-/** 模型供应商缓存模块助手（fM/mM/gM/pM/hM/_M，F12 域模块态，接口级）〔A1-R33 留批〕真身 = styles-local 52675-52745 模块态（oM/sM/cM/lM/uM/dM + MUe/NUe/PUe），树内未转录，需新实体化重件，不强收；本树零消费（六 declare 全量 grep 负证据在案），bundle 消费 52745/78193-78281/90281/206174/209921/209926 属他域 */
-declare function listCachedProviders(): ModelProvider[]; // fM
-declare function publishProviders(providers: ModelProvider[], opts?: { invalidateInFlightRefresh?: boolean }): void; // mM
-declare function refreshProviders(getter: () => Promise<ModelProvider[]>): Promise<void>; // gM
-declare function isProvidersSnapshotHydrated(): boolean; // pM
-declare function subscribeProviders(listener: (providers: ModelProvider[]) => void): () => void; // hM
-declare function withProvidersHydration<T>(getter: () => Promise<T>): Promise<T>; // _M
+/* ── tombstone〔A1-R34〕：provider 注册表簇六 declare（fM/mM/gM/pM/hM/_M）删除——真身 = UsageDeep@1392-1476 供应商源注册表（A1-R11 转录；oM/sM/cM/lM/uM/dM 模块态 + MUe/NUe 内部件），bundle styles 52675-52742 自包含块（MUe 52703/NUe 52706 仅块内消费，负证据在案）。R11 注引行漂登记：注释层 52626-52660/52641 等 → 实际 52675-52742/52681 等（UsageDeep@320 头注 52681 为正）。本树零消费（六 declare 全量 grep 负证据在案）；bundle 消费属主：a8e 78189/qq 78243（PD-local 未转录面）、hit 90228/R0 119236/AJt 185910/b4t 206116/s3t 207309/Q3t 209916/t8t 211481/_8t 212905（他域）。逐字子证：fM/pM 二件 checker 新段 PASS；余四件 R11 语义归一（逗号表达式→语句形），见报告 §一。 ── */
+/* ── tombstone〔A1-R34〕：declare listCachedProviders（原 fM）删除 → 改指 UsageDeep@1404 listCodingPlanSources（bundle 52681-52683 逐字同形，checker 新段在案）。 ── */
+/* ── tombstone〔A1-R34〕：declare publishProviders（原 mM）删除 → 改指 UsageDeep@1412 setCodingPlanSources（bundle 52687-52694；R11 语义归一：逗号表达式→语句形，见簇头注）。 ── */
+/* ── tombstone〔A1-R34〕：declare refreshProviders（原 gM）删除 → 改指 UsageDeep@1442 refreshCodingPlanSourcesForced（bundle 52709-52725 单飞去重同形；R11 语义归一，见簇头注）。 ── */
+/* ── tombstone〔A1-R34〕：declare isProvidersSnapshotHydrated（原 pM）删除 → 改指 UsageDeep@1408 hasLoadedCodingPlanSources（bundle 52684-52686 逐字同形，checker 新段在案）。 ── */
+/* ── tombstone〔A1-R34〕：declare subscribeProviders（原 hM）删除 → 改指 UsageDeep@1421 subscribeCodingPlanSources（bundle 52695-52702；R11 语义归一，见簇头注）。 ── */
+/* ── tombstone〔A1-R34〕：declare withProvidersHydration（原 _M）删除 → 改指 UsageDeep@1460 ensureCodingPlanSources（bundle 52726-52742 单飞水合同形；R11 语义归一，见簇头注）。 ── */
 /* ── tombstone（A0-S2d · 去重 c）：U3e THOUGHT_OFF_VALUES / G3e THOUGHT_LEVEL_LABEL_KEYS
  *    declare 删除（唯一消费面 Nq…X3e 重复转录段已删，接线空转）；
  *    yq/J4e/X4e/Z4e/Q4e 用量弹层原语（76034–76156）declare 删除，
@@ -357,15 +357,15 @@ declare function normalizedModelOptionsOf(options: any[], currentValue: unknown,
  *    Hq 真身 = 本文件 modelMenuGroupsOf@993（A0 已逐字实化，bundle Hq 77850 唯一真身）；bundle Hq 消费 4 处
  *    （89710/135408/133909/197861）全属文件外四面（Home@375/Automations@151/ExtendedViews@427/
  *    SubagentsSettingsSection@248），同批收敛改指，见各墓碑。 ── */
-declare function isModelMenuStructured(provider: string): boolean; // r6e
-declare function useManageModelsAvailable(onManage: () => void): boolean; // T6e
-declare function normalizeModelSelectionValue(value: string, groups: any[], manageAvailable: boolean, manageLabel: string): { value?: string; placeholder?: string }; // k6e
+/* ── tombstone〔A1-R34〕：declare isModelMenuStructured（原 r6e）删除 → 改指 Home@4572 isModelSelectConnectionModeEnabled（bundle 77491；消费 89712 属 iit/Home 转录面；本树零消费，负证据在案）。 ── */
+/* ── tombstone〔A1-R34〕：declare useManageModelsAvailable（原 T6e）删除 → 改指 Home@4540 isManageModelsActionVisible（bundle 77864；消费 89761 属 Home 转录面；A0 误名 hook 形，本树零消费，负证据在案）。 ── */
+/* ── tombstone〔A1-R34〕：declare normalizeModelSelectionValue（原 k6e）删除 → 改指 Home@4560 normalizeModelSelectState（bundle 77884；消费 89772 属 Home 转录面；本树零消费，负证据在案）。 ── */
 /* ── tombstone（A1-R11）：declare shouldProbeStartPlanEntitlement（原 aM，52661）删除，改经文件头 modules/UsageDeep import 消费
  *    （canonical = components/usage/UsageDeep.tsx aM 52661 逐字）。双实例收敛证据：bundle aM 唯一真身 52661；
  *    终端消费实测 9704/9714（codingPlanSnapshot 传 zai/bigmodelCodingSubscription.snapshot——$j 面 any，对 EntitlementSnapshot | null 双变可赋）。 ── */
 declare function useEntitlementSubscription(args: Record<string, unknown>): { snapshot: any; loading: boolean; error: unknown; refresh: (opts?: any) => Promise<void> }; // $j
 declare function entitlementCacheKeyOf(args: { providerId: string; providerFingerprint: string | null }): string; // Bj
-declare function parseModelProjection(value: string): { providerId?: string; modelId?: string; variant?: string } | null; // Mg
+/* ── tombstone〔A1-R34〕：declare parseModelProjection（原 Mg）删除 → 改指 Home@3826 parseLooseModelValue（bundle 24406；R25 行漂校正在案（ExtendedViews@442 declare 层同族注）；消费 53061/53096/53180/53418/53648/53757/89249 属他域；本树零消费，负证据在案）。 ── */
 /* ── tombstone（A1-R23）：declare defaultSessionModeOf（$M/Krt）/sessionModeCatalog（cn 无参）/
  *    shortcutLabelOf（Bre/Zi）/isThoughtCapableModel（qn）/DEFAULT_THOUGHT_LEVELS（ui）删除——
  *    消费面 §3/§9 死簇（10780/10855/10844/11382/11383/10687/10698）同批删除；真身 = Home §T
