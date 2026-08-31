@@ -256,7 +256,8 @@ import { ConversationTelemetrySupervisor, registerBaseServices, syncProviderRegi
 import { reportTelemetry as trackTelemetryEvent, normalizeCaptchaCode as messageErrorCodeOverride } from '../../modules/StoresDeep'; // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）。A1-R12：原 Cw（40570）私有转录删除 → 别名改指 StoresDeep normalizeCaptchaCode（本批改回逐字 stub；DM 调用点逐字不变）
 import { mergeRemoteLogProgressEntry as appendRemoteLog, stripRemoteLogPrefixes as normalizeRemoteLogMessage } from '../remote/RemoteGapSegments'; // A1-R8：hEt@123747=stripRemoteLogPrefixes、vEt@123762=mergeRemoteLogProgressEntry 改指（环安全：RemoteGapSegments 仅 import React/button/RemoteWizard/Modals/SrcSharedA/B/stores-core，不反入 onboarding）
 import { useSettingsStore } from '../../modules/stores-core';
-import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSources as isModelProviderSnapshotHydrated } from '../../modules/UsageDeep'; // A1-R11：fM（52681）/pM（52684）改指 canonical（components/usage/UsageDeep.tsx 注册表，返回 ModelProvider[]——fetcher 证据 78266/78272/206174/209921 = modelProviderService.getAllCached/getAll）；4757 消费点经 ModelProviderRecord any 索引面双变可赋
+import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSources as isModelProviderSnapshotHydrated, hasActiveEntitlement } from '../../modules/UsageDeep'; // A1-R11：fM（52681）/pM（52684）改指 canonical（components/usage/UsageDeep.tsx 注册表，返回 ModelProvider[]——fetcher 证据 78266/78272/206174/209921 = modelProviderService.getAllCached/getAll）；4757 消费点经 ModelProviderRecord any 索引面双变可赋。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical；declare hasPlanEntitlement 收敛改指，见下墓碑）
+import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 收敛型缝所依（W9/i6t 快照流精化，行依据见各函数注）
 import { DEFAULT_CODE_PREVIEW_SETTINGS as defaultCodePreviewSettings } from '../../modules/MarkdownIntegration'; // 默认代码预览设置（原 lo，1040）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // intl 上下文（原 G()）
@@ -362,7 +363,9 @@ export interface TeamProduct {
   [key: string]: any;
 }
 export interface UsageStatsServiceLike {
-  getEntitlementSnapshot(options: Record<string, unknown>): Promise<unknown>;
+  // 〔A1-R27〕型缝精化 Promise<unknown> → Promise<EntitlementSnapshot>（行依据：同一 bundle 服务面 UsageDeep@574
+  // `getEntitlementSnapshot(opts): Promise<EntitlementSnapshot>`；W9 210134 直返其结果，catch 归 null）。
+  getEntitlementSnapshot(options: Record<string, unknown>): Promise<EntitlementSnapshot>;
 }
 export interface PluginsServiceLike {
   getOverview(options: { workspacePath: string; workspaceIdentity?: string }): Promise<{
@@ -820,7 +823,11 @@ declare function hasUsableProvider(providers: ModelProviderRecord[]): boolean;
 declare function shouldForceLoginEntry(options: { providers: ModelProviderRecord[]; user: UserInfo | null }): boolean;
 declare function refreshModelProviderSnapshot(loader: () => Promise<ModelProviderRecord[]> | ModelProviderRecord[], options?: { force?: boolean; cachedOnly?: boolean }): Promise<void>;
 declare function providerById(id: string): ModelProviderRecord | undefined;
-declare function hasPlanEntitlement(snapshot: unknown, providerId: string): boolean;
+/* ── tombstone（A1-R27）：declare hasPlanEntitlement（原 iM 双参面，52651–52655）删除，改经文件头
+ *    modules/UsageDeep import hasActiveEntitlement 消费（canonical = components/usage/UsageDeep.tsx，A1-R11 转录）。
+ *    双实例收敛证据：bundle iM 唯一真身 52651；本面消费实测 = i6t 210023/210032 ≡ 本文件
+ *    resolveOAuthFamilySelection@3456 两处（3465/3474，双参形）；同批 PaymentDeep@178 墓碑（A6e 单参面）同收敛。
+ *    负证据：bundle 内 iM 无第二定义。 ── */
 declare function bigmodelTeamPlanKey(parts: { productId: string; organizationId: string; projectId: string }): string;
 declare function parseTeamPlanKey(key: string): { productId: string; organizationId?: string; projectId?: string } | null;
 declare function isSameTeamPlanKey(a: string, b: string): boolean;
@@ -3442,17 +3449,20 @@ export function isTeamPlanKeySubscribed(options: { selectedKey: string | null | 
   return !1;
 }
 
-/** 原 i6t（210020 / 166747）：OAuth 侧 family selectedKey 解析 */
+/** 原 i6t（210020 / 166747）：OAuth 侧 family selectedKey 解析
+ *  〔A1-R27〕codingPlanEntitlement/startPlanEntitlement 型缝精化 unknown → EntitlementSnapshot | null
+ *  （行依据：实参来源 W9 ≡ 下方 fetchEntitlementSnapshot，bundle W9 210134 返回 service 快照或 null；
+ *  iM 消费 210023/210032 改指 canonical，见 @824 墓碑）。 */
 export function resolveOAuthFamilySelection(options: {
   providerFamilyDomain: string;
   modelProviders: ModelProviderRecord[];
-  codingPlanEntitlement: unknown;
-  startPlanEntitlement: unknown;
+  codingPlanEntitlement: EntitlementSnapshot | null;
+  startPlanEntitlement: EntitlementSnapshot | null;
   teamProducts?: TeamProduct[];
 }): { mode: string; selectedKey: string } | null {
   const provider = providerById(options.providerFamilyDomain === `zai` ? PROVIDER_IDS.zai : PROVIDER_IDS.bigmodel);
   if (!provider) return null;
-  if (hasPlanEntitlement(options.codingPlanEntitlement, provider.codingPlanProviderId))
+  if (hasActiveEntitlement(options.codingPlanEntitlement, provider.codingPlanProviderId))
     return { mode: `oauth`, selectedKey: codingPlanSelectedKey(provider.codingPlanProviderId) };
   if (provider.id === `bigmodel`) {
     const teamKey = firstSubscribedTeamPlanKey({
@@ -3461,7 +3471,7 @@ export function resolveOAuthFamilySelection(options: {
     });
     if (teamKey) return { mode: `oauth`, selectedKey: teamKey };
   }
-  return hasPlanEntitlement(options.startPlanEntitlement, provider.startPlanProviderId)
+  return hasActiveEntitlement(options.startPlanEntitlement, provider.startPlanProviderId)
     ? { mode: `oauth`, selectedKey: codingPlanSelectedKey(provider.startPlanProviderId) }
     : { mode: `oauth`, selectedKey: codingPlanSelectedKey(provider.codingPlanProviderId) };
 }
@@ -3582,8 +3592,11 @@ export function codingPlanProviderFromKey(selectedKey: string): string | null {
       : null;
 }
 
-/** 原 W9（210134 / 166866）：权益快照刷新（失败归 null） */
-export async function fetchEntitlementSnapshot(options: { services: ServicesBundle; providerId: string }): Promise<unknown> {
+/** 原 W9（210134 / 166866）：权益快照刷新（失败归 null）
+ *  〔A1-R27〕返回面型缝精化 Promise<unknown> → Promise<EntitlementSnapshot | null>（行依据：bundle W9 直返
+ *  usageStatsService.getEntitlementSnapshot 结果（≡ UsageDeep@574 Promise<EntitlementSnapshot> 面），catch 归 null；
+ *  消费面仅本文件 3650/3651/3683/3684 → resolveOAuthFamilySelection 型缝）。 */
+export async function fetchEntitlementSnapshot(options: { services: ServicesBundle; providerId: string }): Promise<EntitlementSnapshot | null> {
   try {
     return await options.services.usageStatsService.getEntitlementSnapshot({
       includeSubscription: !0,

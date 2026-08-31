@@ -418,6 +418,7 @@ export {
   nullSafe,
   providerApiKeyFingerprint,
   shouldProbeStartPlanEntitlement,
+  hasActiveEntitlement, // 〔A1-R27〕iM 52651 canonical 导出：PaymentDeep A6e 面 / OnboardingLoginLeaves i6t 面双实例收敛改指
   listCodingPlanSources,
   hasLoadedCodingPlanSources,
   subscribeCodingPlanSources,

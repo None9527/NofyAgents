@@ -1348,21 +1348,26 @@ export function providerCacheKey(provider: ModelProvider | undefined): string {
   return entitlementFreshnessKey({ providerId: provider?.id ?? ``, providerFingerprint: providerApiKeyFingerprint(provider) });
 }
 
-/** 原 iM（js 52604）：权益是否活跃（供应商匹配 + 非 no_plan + 有 quota/subscription/remaining） */
-function hasActiveEntitlement(snapshot: EntitlementSnapshot | null, providerId: string | undefined): boolean {
+/** 原 iM（js 52651–52655）：权益是否活跃（供应商匹配 + 非 no_plan + 有 quota/subscription/remaining）
+ *  〔A1-R27〕导出 + providerId 可选：iM 双实例裁决收敛点（PaymentDeep@178 hasActiveEntitlementCore /
+ *  OnboardingLoginLeaves@824 hasPlanEntitlement declares 删除改指）。单参形依据 A6e 77897 `return iM(e)`；
+ *  双参形依据 aM 52663、i6t 210023/210032。 */
+export function hasActiveEntitlement(snapshot: EntitlementSnapshot | null, providerId?: string): boolean {
   if (!snapshot || (providerId && snapshot.provider?.id && snapshot.provider.id !== providerId)) return false;
   return snapshot.unavailableReason !== `no_plan` && (!!snapshot.quota || !!snapshot.subscription || !!snapshot.remaining);
 }
 
-/** 原 AUe（js 52608）：是否 no_plan 且无任何额度 */
-function isNoPlanEntitlement(snapshot: EntitlementSnapshot | null, providerId: string | undefined): boolean {
+/** 原 AUe（js 52656–52660）：是否 no_plan 且无任何额度
+ *  〔A1-R27〕AUe 裁决：bundle 唯一真身 52656，唯一消费 52665（aM 内 ≡ 下方 shouldProbeStartPlanEntitlement）；
+ *  全树无 declare、无第二面（负证据）。私有保留。 */
+function isNoPlanEntitlement(snapshot: EntitlementSnapshot | null, providerId?: string): boolean {
   if (!snapshot || (providerId && snapshot.provider?.id && snapshot.provider.id !== providerId)) return false;
   return snapshot.unavailableReason === `no_plan` && !snapshot.quota && !snapshot.subscription && !snapshot.remaining;
 }
 
-/** 原 aM（js 52612）：是否应继续探测 Start Plan（指纹缺失→是；codingPlan 活跃→否；no_plan→是；加载中/错误→否）
- *  A1-R11 宽化：codingPlanLoading/codingPlanError 在 bundle 52668 仅 `(…, …, !1)` 并读真形，
- *  故 loading 保留 boolean、error 宽化 unknown（PaymentDeep 305 declare error: unknown 消费面兼容）。 */
+/** 原 aM（js 52661–52669）：是否应继续探测 Start Plan（指纹缺失→是；codingPlan 活跃→否；no_plan→是；加载中/错误→否）
+ *  A1-R11 宽化：codingPlanLoading/codingPlanError 在 bundle 52667 仅 `(…, …, !1)` 并读真形，
+ *  故 loading 保留 boolean、error 宽化 unknown（PaymentDeep 319 declare error: unknown 消费面兼容）。 */
 export function shouldProbeStartPlanEntitlement(opts: {
   codingPlanProviderFingerprint: string | null;
   codingPlanProviderId: string;

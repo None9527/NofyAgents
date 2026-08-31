@@ -100,10 +100,11 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
 // 环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用）。
 import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect } from '../../modules/Home';
 import type { TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）
+import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 52651 收敛型缝所依（A6e/j6e/M6e/N6e 快照流由 unknown 精化，行依据见各函数注）
 import { Input, PopoverContent, toast } from '../../modules/ImeComposition';
 import { logger } from '../../modules/SkillStore';
 import { useSettingsStore as useAppStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
-import { formatGrantUnits, useBillingDiscount, BillingDiscountCard, RegionLogo, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）。A1-R21：+RegionLogo（原 Tq 76183 收敛，见下墓碑）。〔A1-R23〕SidebarCodingPlanWidget/SidebarStartPlanWidget（s3e/v3e）/hasPlanWidgetModel（i3e）/hasStartPlanBalance（g3e）/entryPlanStateOf（IM）移出——消费面 §1/§9 死簇同批删除；Oq/i3e/g3e 真身裁定见 components/usage/UsageDeep.tsx 墓碑（Home §U.3/§V 逐字 canonical）
+import { formatGrantUnits, useBillingDiscount, BillingDiscountCard, RegionLogo, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, hasActiveEntitlement } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical，declare hasActiveEntitlementCore 收敛改指，见下墓碑）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）。A1-R21：+RegionLogo（原 Tq 76183 收敛，见下墓碑）。〔A1-R23〕SidebarCodingPlanWidget/SidebarStartPlanWidget（s3e/v3e）/hasPlanWidgetModel（i3e）/hasStartPlanBalance（g3e）/entryPlanStateOf（IM）移出——消费面 §1/§9 死簇同批删除；Oq/i3e/g3e 真身裁定见 components/usage/UsageDeep.tsx 墓碑（Home §U.3/§V 逐字 canonical）
 import { useServices } from '../../modules/services';
 
 /* ----------------------------------------------------------------------------
@@ -174,7 +175,12 @@ declare const ModeIconFullAccess: React.FC<React.SVGProps<SVGSVGElement>>; // zv
 declare const TruncateLabel: React.FC<{ label: string }>; // _q
 declare const KNOWN_MODEL_FORMATS: string[]; // Di
 declare function isProviderSystemEnabled(id: string): boolean; // Bn
-declare function hasActiveEntitlementCore(snapshot: unknown): boolean; // iM
+/* ── tombstone（A1-R27）：declare hasActiveEntitlementCore（原 iM，52651–52655）删除，改经文件头 modules/UsageDeep
+ *    import hasActiveEntitlement 消费（canonical = components/usage/UsageDeep.tsx hasActiveEntitlement，A1-R11 转录）。
+ *    双实例收敛证据：bundle iM 唯一真身 52651（定义 1 处）；消费 4 处全实测——52663 aM 内（≡ UsageDeep
+ *    shouldProbeStartPlanEntitlement，R11 已收敛）、77897 A6e `return iM(e)`（≡ 本文件 hasActiveEntitlementAlias@1009，
+ *    单参形）、210023/210032 i6t 内（≡ OnboardingLoginLeaves resolveOAuthFamilySelection@3445，本批同收敛其
+ *    hasPlanEntitlement declare）。负证据：bundle 内 iM 无第二定义；全树无其他 iM 面。 ── */
 declare const BIGMODEL_REGION_ID: string; // Ri
 /* ── tombstone（A1-R23）：declare workspaceStore（xe）/selectWorkspaceSlice（co）/useWorkspaceStore（Zs）/
  *    useTabsStore（pc）/useBaseServicesAny（Ec）/workspaceStateOf（fe）/taskMetaOf（ce）/
@@ -274,7 +280,7 @@ declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe
  *    providerEntryIconOf=crt 88512 区）改 `<RegionLogo region={…} className={…}/>`，语义不变。 ── */
 /* ── tombstone（A1-R20）：declare const BillingDiscountBanner（原 HHe，js 51994–52033）删除——canonical 属主
  *    components/usage/UsageDeep.tsx BillingDiscountCard（A0 已重建；A1-R20 sparkles 图标勘误后与 bundle 逐字一致）；
- *    bundle HHe 唯一真身，消费面 85417（本文件 6719 区）逐字不变，改指文件头 import（modules/UsageDeep）。 ── */
+ *    bundle HHe 唯一真身，消费面 85417（本文件 6229）逐字不变，改指文件头 import（modules/UsageDeep）。 ── */
 /* ── tombstone（A1-R26）：declare trackFunnelStart（原 WUe 53313–53327）+ declare trackPlanSelectEvent
  *    （原 RM 53328–53348 / zM 53349–53375 合并面）删除 → 文件头 ../../modules/Home import 改接
  *    Home §U.8 逐字真身（bundle 三符唯一真身；负证据：bundle 内无第二定义）。
@@ -996,13 +1002,17 @@ export function resolveModelSelectState(
         : { value: void 0, placeholder: void 0 };
 }
 
-/** 原 A6e（77882 区） */
-export function hasActiveEntitlementAlias(snapshot: unknown) {
-  return hasActiveEntitlementCore(snapshot);
+/** 原 A6e（77896–77898）：iM 单参包装（77897 `return iM(e)`）
+ *  〔A1-R27〕declare hasActiveEntitlementCore 收敛改指 UsageDeep canonical（见上墓碑）；
+ *  snapshot 由 unknown 精化为 EntitlementSnapshot | null（bundle A6e 唯一消费 j6e 77905 / M6e 77908 均传权益快照流）。 */
+export function hasActiveEntitlementAlias(snapshot: EntitlementSnapshot | null) {
+  return hasActiveEntitlement(snapshot);
 }
 
-/** 原 j6e（77885 区）：供应商权益可见性 */
-export function isProviderEntitlementVisible({ providerId, entitlementSnapshot, modelProviderFamilySelectedKeys }: { providerId: string; entitlementSnapshot: unknown; modelProviderFamilySelectedKeys?: Record<string, string> | null }) {
+/** 原 j6e（77899–77906）：供应商权益可见性
+ *  〔A1-R27〕entitlementSnapshot 型缝精化 unknown → EntitlementSnapshot | null（行依据：bundle j6e 消费面仅 N6e 77918，
+ *  快照流经 getEntitlementSnapshot ≡ 下方 filterUsableProviders 型缝；canonical iM 52651 读面 provider/unavailableReason/quota/subscription/remaining 全合）。 */
+export function isProviderEntitlementVisible({ providerId, entitlementSnapshot, modelProviderFamilySelectedKeys }: { providerId: string; entitlementSnapshot: EntitlementSnapshot | null; modelProviderFamilySelectedKeys?: Record<string, string> | null }) {
   return isOAuthFamilyProvider(providerId)
     ? (entitlementSnapshot as any)?.authenticated === !0 || entitlementSnapshot === null
     : providerId !== PROVIDER_IDS.bigmodelCodingPlan ||
@@ -1011,12 +1021,15 @@ export function isProviderEntitlementVisible({ providerId, entitlementSnapshot, 
       : hasActiveEntitlementAlias(entitlementSnapshot);
 }
 
-/** 原 M6e（77894 区）：Start Plan 可见性（权益未激活才显） */
-export function isStartPlanVisible({ providerId, codingPlanEntitlementSnapshot }: { providerId: string; codingPlanEntitlementSnapshot: unknown }) {
+/** 原 M6e（77907–77909）：Start Plan 可见性（权益未激活才显）
+ *  〔A1-R27〕codingPlanEntitlementSnapshot 型缝精化 unknown → EntitlementSnapshot | null（行依据：bundle M6e 唯一消费 N6e 77927，快照来源同 j6e 注）。 */
+export function isStartPlanVisible({ providerId, codingPlanEntitlementSnapshot }: { providerId: string; codingPlanEntitlementSnapshot: EntitlementSnapshot | null }) {
   return providerId !== PROVIDER_IDS.zaiStartPlan && providerId !== PROVIDER_IDS.bigmodelStartPlan ? !0 : !hasActiveEntitlementAlias(codingPlanEntitlementSnapshot);
 }
 
-/** 原 N6e（77897 区）：可用供应商过滤 */
+/** 原 N6e（77910–77929）：可用供应商过滤
+ *  〔A1-R27〕getEntitlementSnapshot 返回面型缝精化 unknown → EntitlementSnapshot | null（行依据：bundle N6e 消费 89703 ≡ Home@371 declare 面
+ *  EntitlementSnapshotLike | null、135402 ≡ AMt R0 域留批；快照读面与 EntitlementSnapshot 全合）。 */
 export function filterUsableProviders({
   providers,
   selectedProvider,
@@ -1025,7 +1038,7 @@ export function filterUsableProviders({
 }: {
   providers: ModelProvider[];
   selectedProvider: string;
-  getEntitlementSnapshot: (providerId: string) => unknown;
+  getEntitlementSnapshot: (providerId: string) => EntitlementSnapshot | null;
   modelProviderFamilySelectedKeys?: Record<string, string> | null;
 }) {
   return providers.filter((provider) => {

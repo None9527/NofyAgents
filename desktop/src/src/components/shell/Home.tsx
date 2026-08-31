@@ -159,7 +159,7 @@ import { useServices } from '../../modules/services';
 import { workspaceScopeKey } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { useFeedbackStore } from '../../modules/stores-core'; // A1-R15：原 yC（js 37040）反馈中心 store——vWe openSubmit 消费（TopBar 144 同源边）
-import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, chatAssistantHistoryContentTestid, automationYearDayOptionTestid, browserForwardButtonTestid, v4ComposerInputTestid, v4ModelConfigTestid, chatContextUsageTriggerTestid, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, isProviderEnabled } from '../../modules/SrcSharedB'; // A1-R17 及以前：见尾注。A1-R18：+5 件（原 Uee=ca=ky 8513 / vi=mt 8631 / li=gt 8638 / fi=ht 8658 / gi=ko 5001；§U iit/nit/mX/hX 消费）+A1-R19：+chatContextUsageTriggerTestid（原 Lte=Fv，jsx 8465 / js 8358；§V j3e 76752 data-testid 消费） // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）
+import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, chatAssistantHistoryContentTestid, automationYearDayOptionTestid, browserForwardButtonTestid, v4ComposerInputTestid, v4ModelConfigTestid, chatContextUsageTriggerTestid, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, isProviderEnabled, normalizeProviderFamilyDomain } from '../../modules/SrcSharedB'; // A1-R17 及以前：见尾注。A1-R18：+5 件（原 Uee=ca=ky 8513 / vi=mt 8631 / li=gt 8638 / fi=ht 8658 / gi=ko 5001；§U iit/nit/mX/hX 消费）+A1-R19：+chatContextUsageTriggerTestid（原 Lte=Fv，jsx 8465 / js 8358；§V j3e 76752 data-testid 消费） // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）。〔A1-R27〕+normalizeProviderFamilyDomain（xn 真身 ≡ Xx 8937 / src 9745 `Xx as L` / styles 514 `L as xn`；Tit @761 declare providerFamilyFromDomain 收敛改指，见下墓碑）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { Root as RadixSelectRoot, Value as RadixSelectValue, Trigger as RadixSelectTrigger, Icon as RadixSelectIcon, Portal as RadixSelectPortal, Content as RadixSelectContent, Viewport as RadixSelectViewport, Item as RadixSelectItem, ItemText as RadixSelectItemText, ItemIndicator as RadixSelectItemIndicator, ScrollUpButton as RadixSelectScrollUpButton, ScrollDownButton as RadixSelectScrollDownButton } from '@radix-ui/react-select'; // A1-R17：vendored radix select（原 CDe=PEe/TDe=REe/wDe=IEe/EDe=BEe/DDe=HEe/ODe=UEe/kDe=QEe/ADe=sDe/MDe/jDe/NDe/PDe，styles 30850–31745 区）→ npm @radix-ui/react-select@2.3.7（A0-S3c 先例 SettingsRowPrimitives）
 import { AnimatedLabel, MODE_LABEL_I18N, MODE_DESCRIPTION_I18N, ModelSelector, ContextUsageProvider, ContextRingTrigger, ContextRingTooltipContent, ContextRingTooltipBody, SegmentedProgress, type ModelGroup } from '../composer/ModelSelector'; // A1-R17：原 _q（75520）/V4e（75972）/H4e（76003）——A0-S4-4b 已属主导出（[D] ConfigSelect 消费预案），本批 §T 接线。A1-R18：+ModelSelector（原 vq，js 75575 memo；§U iit 消费，props 面逐字兼容）+type ModelGroup（Hq declare 返回面）。A1-R19：+5 件（原 J4e/X4e/Z4e/Q4e/yq = ContextUsageProvider 76079/ContextRingTrigger 76125/ContextRingTooltipContent 76139/ContextRingTooltipBody 76147/SegmentedProgress 76034，A0-S2d 已属主导出；§V j3e 76741–76794 消费）
@@ -424,16 +424,26 @@ declare function formatToolbarShortcutLabel(key: string): string;
 
 /** 供应商 id 枚举（原 q，横切层） */
 
-/** 供应商族判定（原 li：coding plan 供应商族；xn：域名→族；zi：族×模式→认证方式） */
-declare function resolveCodingPlanProviderFamily(providerId: string): string | null;
-declare function providerFamilyFromDomain(domain: string): string | null;
+/** 供应商族×模式→认证方式（原 zi，src chunk z 导出 ≡ SrcSharedB resolveProviderFamilyMode；declare 分层留批） */
 declare function resolveProviderFamilyAuthMode(family: string, modes: Record<string, string> | undefined): string;
 
+/* ── tombstone（A1-R27）：declare resolveCodingPlanProviderFamily（A0 误标「原 li：coding plan 供应商族」）删除 →
+ *    改指 parseCodingPlanScope（li 真身：styles 680 `gt as li` ← src `parseCodingPlanScope as gt` ≡ Gb 8533 ≡
+ *    SrcSharedB@5106；R26 §U.8 取证闭环，返回 scope object|null，非 A0 所标 family string|null）。
+ *    消费面实测：本文件 @749（wit ≡ hasCodingPlanProviderEntry）≡ bundle wit 91390 `li(e.id) !== null`——
+ *    仅判 !== null，行为不变；LM ≡ resolveEntryPlanState@4405 已按真身消费（R26）。
+ *    负证据：bundle 内 li 无第二真身。 ── */
+/* ── tombstone（A1-R27）：declare providerFamilyFromDomain（A0 误标「原 xn：域名→族」）删除 →
+ *    改指 normalizeProviderFamilyDomain（xn 真身：styles 514 `L as xn` ← src 9745 `Xx as L` ≡ Xx 8937 ≡
+ *    SrcSharedB@5582，`e === 'zai' || e === 'bigmodel' ? e : null`）。
+ *    消费面实测：本文件 @761（Tit ≡ isCodingPlanConnectionSelected）≡ bundle Tit 91397 `xn(t.providerFamilyDomain)`
+ *    （bundle 无 `?? ''` 兜底，同批对齐）；52744 PUe / 150303 R0 域留批。负证据：bundle 内 xn 无第二真身。 ── */
+
 /* ── tombstone（A1-R25）：declare buildCodingPlanFunnelContext（原 FM，ProviderPlanUsage 族）删除 →
- *    §U.8 逐字真身（bundle FM 53267–53276 唯一真身；终端消费实测：本文件 1124 ≡ bundle 91685、
+ *    §U.8 逐字真身（bundle FM 53267–53276 唯一真身；终端消费实测：本文件 1134 ≡ bundle 91685、
  *    139073 R0 域留批；负证据：bundle 内 FM 无第二定义）。调用点逐字不变。 ── */
 /* ── tombstone（A1-R26）：declare resolveEntryPlanState（原 LM，ProviderPlanUsage 族）删除 →
- *    §U.8 逐字真身（bundle LM 53299–53312 唯一真身；终端消费实测：本文件 1127 ≡ bundle 91688、
+ *    §U.8 逐字真身（bundle LM 53299–53312 唯一真身；终端消费实测：本文件 1137 ≡ bundle 91688、
  *    139076 R0 域留批；负证据：bundle 内 LM 无第二定义）。调用点逐字不变。
  *    （A1-R25 型缝注：返回面 EntryPlanStateLike——LM 全部 return 均为 IM(...)，本批实体化直接吻合。） ── */
 
@@ -736,7 +746,7 @@ export function hasCodingPlanProviderEntry(providers: ModelProviderEntry[]): boo
   return providers.some((provider) =>
     provider.id === providerIds.zaiCodingPlan ||
     provider.id === providerIds.bigmodelCodingPlan ||
-    resolveCodingPlanProviderFamily(provider.id) !== null
+    parseCodingPlanScope(provider.id) !== null
       ? !(provider.enabled === false && provider.systemDisabledReason)
       : false,
   );
@@ -748,7 +758,7 @@ export function isCodingPlanConnectionSelected(
   settings: SettingsSnapshot | null,
 ): boolean {
   if (!support?.supported || !settings) return false;
-  const family = providerFamilyFromDomain(settings.providerFamilyDomain ?? "");
+  const family = normalizeProviderFamilyDomain(settings.providerFamilyDomain);
   if (!family || family !== support.providerFamily) return false;
   if (resolveProviderFamilyAuthMode(family, settings.modelProviderFamilyModes) !== "oauth") return false;
   return settings.modelProviderFamilySelectedKeys?.[family]?.trim() === support.selectedConnectionKey;
@@ -2098,7 +2108,7 @@ type AddToChatPayload = WorkspaceFileDragPayload;
  *    broadcastContextRemoved （原 jXe，68628）→ removeCodeCommentEverywhere（modules/Composer 属主导出）
  *    buildOutgoingMessage    （原 GXe，68833；旧注 68785/68777 为 +48 漂移行）→ buildOutboundContentWithAttachments（modules/GitReview 属主导出，与 countContextAttachments=GH 68825 配对）
  *    证据：六真身 styles chunk 各仅 1 份定义且均不在导出块（213930 仅 EAe/kAe/jAe/lAe 四名）；
- *    消费面（本文件 5781/5787/5794/5800/5864/6140 区）改指后语义不变。闭包助手（XXe/YXe/IH/LH/BH
+ *    消费面（本文件 6151/6158/6164/6228/6504/6510 区）改指后语义不变。闭包助手（XXe/YXe/IH/LH/BH
  *    属 Composer；pptx 五件 v/y/D/k/E 属 imeComposition 域外）随钩子收敛，无余留。 ── */
 
 /** 错误展示（原 uN/lN，js 54302/54280；A1-R13 行校正，旧注 54254/54232） */
@@ -3820,7 +3830,7 @@ function resolveEffectiveThoughtLevel(e: { thought?: string | null; thoughtLevel
         : ``) ||
         (e.thoughtLevels[0] ?? ``);
 }
-// 〔A1-R25〕补 export：SubagentLeaves parseModelRef declare 收敛改接点（bundle Mg 24406 唯一真身；终端消费实测：本文件 3770 ≡ bundle 89249 Vrt 89246 面、SubagentLeaves 176/197 ≡ bundle 196989/196993 域 M1t/N1t 面）
+// 〔A1-R25〕补 export：SubagentLeaves parseModelRef declare 收敛改接点（bundle Mg 24406 唯一真身；终端消费实测：本文件 3780 ≡ bundle 89249 Vrt 89246 面、SubagentLeaves 176/197 ≡ bundle 196989/196993 域 M1t/N1t 面）
 export function parseLooseModelValue(e: string): { providerId: string; modelId: string; variant?: string } { // Mg（Zn=parseCustomModelId，src chunk P=iS）
   let t = parseCustomModelId(e);
   if (t?.providerId && t.modelName) return { providerId: t.providerId, modelId: t.modelName };
@@ -3917,7 +3927,7 @@ function teamSourceDisplayName({ product: e, organizationId: t, organizationName
 }
 // 〔A1-R26〕Mrt 89154–89170 逐字实体化（裁量件）：SidebarLeaves resolveUpgradeTargetSource declare 收敛
 // （bundle Mrt 唯一真身；终端消费实测：SidebarLeaves 932 ≡ bundle 150329，useSidebarUsageState mRt 域；
-// 负证据：bundle 内 Mrt 无第二定义；PaymentDeep@10045 旧注「零消费」为 A0 期误记——150329 实测在案）。
+// 负证据：bundle 内 Mrt 无第二定义；PaymentDeep@10058 旧注「零消费」为 A0 期误记——150329 实测在案）。
 // 型缝：解构参型按消费面——teamSources 元素取 SidebarLeaves TeamSource 同面（下游 966–968/994–996
 // 消费 organizationId/projectId/providerId/label）；返回面命名标注（audience 字面量联合——
 // SidebarLeaves 1017 消费面要求 `individual` | `team`，推导宽化 string 不可赋，实测在案）。
@@ -4208,7 +4218,7 @@ export function readInitialSettingsSection(e: SettingsSectionId = `general`) { /
 export function openSettingsSection(e: SettingsSectionId) { // iw
   requestSettingsSectionOpen(e);
 }
-// 〔A1-R25〕补 export：Sidebar markUsageEntryIntent declare 收敛改接点（bundle aw 39378 唯一真身；终端消费实测：本文件 4679 ≡ bundle 89577、Sidebar 4769 ≡ bundle 150430）
+// 〔A1-R25〕补 export：Sidebar markUsageEntryIntent declare 收敛改接点（bundle aw 39378 唯一真身；终端消费实测：本文件 4689 ≡ bundle 89577、Sidebar 4769 ≡ bundle 150430）
 export function openSettingsUsageSection() { // aw
   requestSettingsSectionOpen(`usage`);
 }
@@ -4389,7 +4399,7 @@ function resolveEntryPlanStateFromSnapshot(e: {
         : { entryPlanStatus: `unknown`, entryPlanLevel: `` };
 }
 // 〔A1-R26〕LM 53299–53312 逐字实体化：resolveEntryPlanState declare 收敛（bundle LM 唯一真身；
-// 终端消费实测：本文件 1127 ≡ bundle 91688、139076 R0 域留批；负证据：bundle 内 LM 无第二定义）。
+// 终端消费实测：本文件 1137 ≡ bundle 91688、139076 R0 域留批；负证据：bundle 内 LM 无第二定义）。
 // 依赖接线：IM≡resolveEntryPlanStateFromSnapshot / q≡providerIds / li≡parseCodingPlanScope（SrcSharedB；
 // styles 680 `gt as li` ← src `parseCodingPlanScope as gt` ≡ Gb 8533）/ HM≡isStartPlanProviderId（SrcSharedA）。
 function resolveEntryPlanState(e: { providers: ModelProviderEntry[]; loading: boolean }): EntryPlanStateLike { // LM
