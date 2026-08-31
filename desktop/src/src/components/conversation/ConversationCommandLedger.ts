@@ -164,7 +164,7 @@ export const pendingCommandLedger = new (class {
   subscribe(e: any): () => void {
     return (this.listeners.add(e), () => this.listeners.delete(e));
   }
-  record(e: any, t: any) {
+  record(e: any, t?: any) { // 〔A1-P1-B6〕型缝 D2：clientContext 可选面（bundle JS 元数宽容；调用面 1 参 117420/117628 vs 2 参 119487，t 消费为条件 spread）
     this.pruneExpired();
     let n = commandReplayOf(e);
     if (!n) return null;
@@ -392,4 +392,81 @@ export function useRecoverablePendingCommands({
   let l = pendingCommandLedger.listRecoverable(t),
     u = pendingCommandLedger.listRecoverable(null).filter((e) => matchesRecoverableWorkspace(e, a, o));
   return t === null ? u : [...l, ...u];
+}
+
+/* ── 〔A1-P1-B6〕命令工厂闭包（styles 34315–34338 + 34598–34645，72 行逐字；OS buildCommand 真身 + CAS/row-target 集 + UUIDv7/clientId 装配）。
+ *    映射：Zke→CAS_COMMAND_TYPES | Qke→ROW_TARGET_COMMAND_TYPES | nAe→HEX_BYTE_TABLE | wS→generateUuidV7
+ *          TS→CLIENT_ID_STORAGE_KEY | ES→cachedClientId | DS→getClientId | OS→buildCommand。
+ *    逐字证明：/tmp/a1r0-p1/r6-roundtrip.js（R6 ROUNDTRIP EXACT 72 lines）。型缝：见 r6-seam-log.txt。 ── */
+export const CAS_COMMAND_TYPES = new Set([
+    `applyFileRewind`,
+    `forkAssistant`,
+    `editUserQuery`,
+    `retryTurn`,
+    `setAssistantFeedback`,
+    `sendQueuedNow`,
+    `editQueueItem`,
+    `reorderQueueItem`,
+    `deleteQueueItem`,
+    `setAutoDrain`,
+    `switchModelConfig`,
+    `switchCollaborationMode`,
+    `setFollowupMode`,
+    `pauseGoal`,
+    `resumeGoal`,
+  ]),
+  ROW_TARGET_COMMAND_TYPES = new Set([
+    `applyFileRewind`,
+    `forkAssistant`,
+    `editUserQuery`,
+    `retryTurn`,
+    `setAssistantFeedback`,
+  ]);
+export const HEX_BYTE_TABLE = Array.from({ length: 256 }, (e, t) => t.toString(16).padStart(2, `0`));
+export function generateUuidV7(e = Date.now()) {
+  let t = new Uint8Array(16);
+  crypto.getRandomValues(t);
+  let n = BigInt(e);
+  ((t[0] = Number((n >> 40n) & 255n)),
+    (t[1] = Number((n >> 32n) & 255n)),
+    (t[2] = Number((n >> 24n) & 255n)),
+    (t[3] = Number((n >> 16n) & 255n)),
+    (t[4] = Number((n >> 8n) & 255n)),
+    (t[5] = Number(n & 255n)),
+    (t[6] = 112 | (t[6] & 15)),
+    (t[8] = 128 | (t[8] & 63)));
+  let r = ``;
+  for (let e of t) r += HEX_BYTE_TABLE[e];
+  return `${r.slice(0, 8)}-${r.slice(8, 12)}-${r.slice(12, 16)}-${r.slice(16, 20)}-${r.slice(20)}`;
+}
+export let CLIENT_ID_STORAGE_KEY = `zcode-v4-client-id:v1`,
+  cachedClientId: string | null = null;
+export function getClientId() {
+  if (cachedClientId) return cachedClientId;
+  let e = null;
+  try {
+    e = localStorage.getItem(CLIENT_ID_STORAGE_KEY);
+  } catch {}
+  let t = e ?? `client-${generateUuidV7()}`;
+  if (!e)
+    try {
+      localStorage.setItem(CLIENT_ID_STORAGE_KEY, t);
+    } catch {}
+  return ((cachedClientId = t), t);
+}
+export function buildCommand(e: any) {
+  if (CAS_COMMAND_TYPES.has(e.type) && e.baseRevision === void 0)
+    throw Error(`command ${e.type} 是 CAS 命令，必须携带 baseRevision（10-protocol-spec §6.4）`);
+  if (ROW_TARGET_COMMAND_TYPES.has(e.type) && !e.baseLogEpoch)
+    throw Error(`command ${e.type} 是 row target 命令，必须携带 baseLogEpoch`);
+  return {
+    commandId: generateUuidV7(),
+    clientId: getClientId(),
+    sessionId: e.sessionId,
+    ...(e.baseRevision === void 0 ? {} : { baseRevision: e.baseRevision }),
+    ...(e.baseLogEpoch ? { baseLogEpoch: e.baseLogEpoch } : {}),
+    type: e.type,
+    payload: e.payload,
+    issuedAt: Date.now(),
+  };
 }

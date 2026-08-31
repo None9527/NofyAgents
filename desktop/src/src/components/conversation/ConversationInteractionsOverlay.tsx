@@ -11,6 +11,7 @@ import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../
 import { Button } from '../../modules/button'; // 原 H（A0-D 接线：declare → button canonical）
 import { PermissionApprovalOverlay, type InteractionOrigin, type PermissionOption, type PermissionRequest } from './PermissionApprovalOverlay'; // §1 族属主（组件为渲染期值引用，型别 type-only）
 import { ElicitationDialogKeyed, type AnswerDraftMap, type ElicitationRequest } from './ElicitationDialog'; // §2 族属主（同上）
+import { pendingCommandLedger } from './ConversationCommandLedger'; // 原 K1（styles 115758–115963 class 单例；〔A1-P1-B6〕跨域改指——R25 基线 declare 删，真身同域叶）
 
 /* --- 命令协议 --- */
 
@@ -24,10 +25,8 @@ declare function buildCommand(args: { type: string; sessionId: string | null; pa
   sessionId: string | null;
   payload: unknown;
 }; // OS（js 34582）
-declare const pendingCommandLedger: {
-  record(command: unknown): void;
-  applyAck(command: unknown, ack: CommandAck): void;
-}; // K1（js 115710）
+/* K1：〔A1-P1-B6〕跨域改指——R25 基线 declare const pendingCommandLedger（record/applyAck，ack: CommandAck 面）删，
+   真 import 见文件头（./ConversationCommandLedger 真身叶）；消费面 195/198/307/310 逐字不变。 */
 
 /* --- 交互/快照模型（本族所有子集） --- */
 

@@ -4685,8 +4685,8 @@ function useSessionSnapshot(handle: { store: SessionStoreHandle } | null): Sessi
  *    components/conversation/ConversationPaneHelpers EMPTY_SUBAGENT_DIRECTORY
  *    （js 119197 逐字真身）；消费点（subagents ?? 兜底）经文件头 import 改指，逐字不变。 ── */
 
-/** 原 hw（js 39766 / jsx 35820）：窗口首行不属于当前首 turn → 可加载更早 */
-declare function canLoadOlderRows(snapshot: SessionSnapshot | null): boolean;
+/* hw（js 39766 / jsx 35820）：〔A1-P1-B6〕死 declare 删碑——本面零消费（grep 实证）；真身 components/feedback/FeedbackCenter
+   hasOlderRows（js 39814 逐字、语义局部名实体化），消费面 ConversationPaneCore 经 modules/FeedbackCenter shim 255 import 收敛。 */
 
 /* --- 9.2 面板浮动头（原 Ait/jit，js 91755/91801 / jsx 79344/79371） --- */
 

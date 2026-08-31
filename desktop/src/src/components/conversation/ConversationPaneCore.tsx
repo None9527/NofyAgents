@@ -45,6 +45,10 @@
 //   OM→isProviderNotReadyError | NM→prepareWorkspaceModelInit | JUe→applyWorkspaceDefaultModel | tWe→useDraftModelConfigSession
 //   rWe→resolveExplicitIntentTransition | iWe→isExplicitIntentTargetSession | aWe→matchExplicitIntentConfig | oWe→resolveConfigModelTarget
 //   fWe→useRuntimeModelBinding | pWe→useModelProviderGate
+//   【A1-P1-B6 收敛】hw→import hasOlderRows（modules/FeedbackCenter shim）| OS→./ConversationCommandLedger 段 2 |
+//   OM/Wct/rWe/iWe/aWe/oWe→./ConversationPaneHelpers 实体化（+aN 内链 resolveModelValueForProvider）
+//   【declare 群（留批）】mc→useOptionalTabStore | NM→prepareWorkspaceModelInit | JUe→applyWorkspaceDefaultModel |
+//   tWe→useDraftModelConfigSession | fWe→useRuntimeModelBinding | pWe→useModelProviderGate（留批证各注）
 /* eslint-disable */
 import * as React from "react";
 import * as $ from "react/jsx-runtime"; // 原 $（jsx-runtime-B5yMD3-t.js；A1-R15 判例：编译形 JSX 消费面）
@@ -60,7 +64,7 @@ import { useSettingsStoreValue } from '../../stores/settingsStore'; // 原 Ao（
 import { useAppSettings, useProviderFamilyConnectionSettings, listCodingPlanSources } from '../../modules/UsageDeep'; // 原 JM/PUe/fM（53487/52742/52680）
 import { useIsMobileTextInputViewport } from '../../modules/Composer'; // 原 VV（66154）
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from '../../modules/MarkdownIntegration'; // 原 lo（1040）
-import { isFirstTurnHeaderMissing } from '../../modules/FeedbackCenter'; // 原 oNe（39818）
+import { isFirstTurnHeaderMissing, hasOlderRows as canLoadOlderRows } from '../../modules/FeedbackCenter'; // 原 oNe（39818）/ hw（39814；〔A1-P1-B6〕import 收敛——真身 components/feedback/FeedbackCenter hasOlderRows，modules shim 255 再导出）
 import { useSessionErrorRecovery } from '../../modules/ConversationLeaves'; // 原 NCt（118778；A1-R14 实体化）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from '../../modules/ConversationOverlays'; // 原 vCt/wCt（118624/118663）
 import { buildSummaryPanelModel, resolveSummaryPanelVariant, ConversationSummaryAside } from '../../modules/TopBar'; // 原 tlt/Uct/Ilt（98180/98063/99533=Flt memo 面）
@@ -71,9 +75,9 @@ import { useSessionSnapshot, ConversationMessageList, parseGoalCommand, PaneFloa
 import { SessionQuotaBanner, PendingCommandBanner } from './SessionBanners'; // 原 gst/_st（94875/94945）
 import { MemoQueuePanel } from './QueuePanel'; // 原 dst（94849 memo 面）
 import { ConversationInteractionsOverlay } from './ConversationInteractionsOverlay'; // 原 pSt（117598）
-import { dataTransferContainsFiles, isProviderNotInRegistryFailure, buildQueueItemEditDraft, isAckAcceptedOrDuplicate, isImmediateInputRouting, buildSessionErrorKey, buildSessionErrorBannerModel, EMPTY_SUBAGENT_DIRECTORY, INFLIGHT_COMMAND_CACHE_LIMIT, hasBlockingInteractions, hasCompactOrGoalRows, buildTelemetryScopeKey, resolveInteractionBehaviorMode, packFollowupModeConfig, isLiveSessionMatch, hasPluginUserInputRows } from './ConversationPaneHelpers'; // 原 nwt/rwt/iwt/awt/ZCt/QCt/twt/$Ct/ewt（A1-P1 批 1）+ Vgt/Hgt（〔A1-P1-B4〕实体化收敛）+ sUe/eN/nN/Bbt/Vbt（〔A1-P1-B5〕实体化收敛）
+import { dataTransferContainsFiles, isProviderNotInRegistryFailure, buildQueueItemEditDraft, isAckAcceptedOrDuplicate, isImmediateInputRouting, buildSessionErrorKey, buildSessionErrorBannerModel, EMPTY_SUBAGENT_DIRECTORY, INFLIGHT_COMMAND_CACHE_LIMIT, hasBlockingInteractions, hasCompactOrGoalRows, buildTelemetryScopeKey, resolveInteractionBehaviorMode, packFollowupModeConfig, isLiveSessionMatch, hasPluginUserInputRows, isProviderNotReadyError, shouldShowSummaryPanel, resolveExplicitIntentTransition, isExplicitIntentTargetSession, matchExplicitIntentConfig, resolveConfigModelTarget } from './ConversationPaneHelpers'; // 原 nwt/rwt/iwt/awt/ZCt/QCt/twt/$Ct/ewt（A1-P1 批 1）+ Vgt/Hgt（〔A1-P1-B4〕实体化收敛）+ sUe/eN/nN/Bbt/Vbt（〔A1-P1-B5〕实体化收敛）+ OM/Wct/rWe/iWe/aWe/oWe（〔A1-P1-B6〕实体化收敛；aN 唯一消费为四联内链，不出本导入面）
 import { selectionScopeKey, dedupeSelectionLoad, unregisterSelectionSubscriber, setSelectionSubscribed, hasSelectionSubscriber, onSelectionsChanged, registerSelectionDialogState, clearSessionSelections, addSelectionReference } from './ConversationSelectionCore'; // 原 _oe/voe/yoe/boe/xoe/Soe/Coe/Ts/Es（styles 2683–2837；〔A1-P1-B4〕选择域真身叶，declare 群收敛）
-import { CONFIG_COMMAND_SUPERSEDED, isStaleProtocolAck, createSerialQueue, createSupersedingCommandScheduler, recordCommandAckE2E, pendingCommandLedger, useRecoverablePendingCommands } from './ConversationCommandLedger'; // 原 B1/z1/qbt/Jbt/V1/K1/OCt（styles 115634–115758 + 118709；〔A1-P1-B5〕命令协议真身叶，declare 群收敛）
+import { CONFIG_COMMAND_SUPERSEDED, isStaleProtocolAck, createSerialQueue, createSupersedingCommandScheduler, recordCommandAckE2E, pendingCommandLedger, useRecoverablePendingCommands, buildCommand } from './ConversationCommandLedger'; // 原 B1/z1/qbt/Jbt/V1/K1/OCt（styles 115634–115758 + 118709；〔A1-P1-B5〕命令协议真身叶，declare 群收敛）+ OS（〔A1-P1-B6〕命令工厂真身收敛，styles 34315–34338+34598–34645）
 import { buildCodingPlanPurchaseFunnelContext, resolveEntryPlanStateFromSnapshot } from '../../components/shell/Home'; // 原 PM/IM（styles 53253/53277；A1-R25 逐字实体化；〔A1-P1-B5〕export 收敛——编排方合并时补 export，详墓碑）
 import { isSlashPanelAvailable } from '../../modules/Composer'; // 原 Bqe（64184；modules/Composer 1796；〔A1-P1-B4〕export 收敛）
 import { useBillingDiscountCore } from '../usage/UsageDeep'; // 原 fj（51912；components/usage/UsageDeep 1861；〔A1-P1-B4〕export 收敛）
@@ -85,40 +89,32 @@ import { useSessionQuotaViewModel } from './ConversationQuotaModel'; // 原 XCt�
 /* ── declare 群（〔A1-P1-B3〕§0）：真身未实体化或属主未导出；各注属主与留批去向。
  *    型面一律宽化 any（真身缺位，调用面逐字优先；真身落地批按属主型面收窄）。 ── */
 
-/** 原 hw（js 39813）：窗口首行不属当前首 turn → 可加载更早；canonical 同面 declare modules/Conversation.tsx:4689（该面文件内消费，本面 R0 121260 消费） */
-declare function canLoadOlderRows(snapshot: any): boolean;
+/* hw：〔A1-P1-B6〕import 收敛——真身 components/feedback/FeedbackCenter hasOlderRows（js 39814 逐字、语义局部名实体化），
+   modules/FeedbackCenter shim 255 再导出，见导入面，declare 删；canonical 同面死 declare modules/Conversation.tsx:4689 同步删碑（树内零消费）。 */
 /* K1/OCt + qbt/B1/z1/Jbt/V1：〔A1-P1-B5〕实体化收敛——真身 ./ConversationCommandLedger（styles 115625–115963 + 118700–118734 逐字），见导入面，declare 删。
-   注：K1 canonical 同面 declare 余 ConversationLeaves.tsx:255 / ConversationInteractionsOverlay.tsx:27（跨域面，留批收敛）。 */
-/** 原 OS（js 34629）：命令工厂（CAS/row-target 校验 + commandId/clientId/issuedAt 装配）；canonical 同面 declare ConversationInteractionsOverlay.tsx:21 */
-declare function buildCommand(args: any): any;
-/** 原 Wct（js 98066）：摘要面板布局门控（hasContent && variant!=='mini'）；原 declare modules/Conversation.tsx:4926 随 R0 迁出 */
-declare function shouldShowSummaryPanel(args: any): boolean;
-/** 原 mc（jsx 3606）：可选 tab store 选择器；canonical 同面 declare components/shell/Sidebar.tsx:1082（未导出） */
+   注：K1 canonical 同面 declare 余 ConversationLeaves.tsx:255 / ConversationInteractionsOverlay.tsx:27——〔A1-P1-B6〕两处改指真 import。 */
+/* OS：〔A1-P1-B6〕实体化收敛——真身 ./ConversationCommandLedger 段 2（styles 34315–34338+34598–34645，72 行逐字，R6 ROUNDTRIP EXACT），见导入面，declare 删。
+   注：同面 declare 余 ConversationInteractionsOverlay.tsx:21（本批申报范围外，原样留存）。 */
+/* Wct：〔A1-P1-B6〕实体化收敛——真身 ./ConversationPaneHelpers（js 98067 逐字），见导入面，declare 删 */
+/** 原 mc（jsx 3606）：可选 tab store 选择器；canonical 同面 declare components/shell/Sidebar.tsx:1082（未导出）。
+ *  〔A1-P1-B6〕留批证：体 = ne((0, Q.useContext)(fc) ?? Bse, e)（jsx 4806–4808）→ dc tab store 工厂（jsx 4551–4781，230 行）+ ne 跨 chunk 面，长链留批。 */
 declare function useOptionalTabStore(selector: any): any;
 /* Bqe/fj/rN：〔A1-P1-B4〕export 收敛——真身 import 见导入面（modules/Composer 1796 / components/usage/UsageDeep 1861 / components/settings/SubagentLeaves 310），declare 删 */
 /* sUe：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 52293 逐字），见导入面，declare 删 */
-/** 原 OM（js 52930）：供应商未就绪错误判定（it 归一化面 + Hr=ZCODE_AGENT_PROVIDER_NOT_READY；无树属主，留批） */
-declare function isProviderNotReadyError(error: any): boolean;
-/** 原 NM（js 52997）：[zcode-model-init] workspace prepare 编排器（无树属主，留批） */
+/* OM：〔A1-P1-B6〕实体化收敛——真身 ./ConversationPaneHelpers（js 52931 逐字；it→lib/errorUtils extractErrorInfo、Hr→modules/SrcSharedB ZCODE_AGENT_PROVIDER_NOT_READY 树内导出改指），见导入面，declare 删 */
+/** 原 NM（js 52997）：[zcode-model-init] workspace prepare 编排器。〔A1-P1-B6〕留批证：@52998+ 大型 async 编排（多段 await + 服务门控），长链留批 */
 declare function prepareWorkspaceModelInit(args: any): any;
-/** 原 JUe（js 53414）：工作区默认模型应用（setWorkspaceDefaultModel + 草稿面；无树属主，留批） */
+/** 原 JUe（js 53414）：工作区默认模型应用（setWorkspaceDefaultModel + 草稿面）。〔A1-P1-B6〕留批证：@53415–53464 → Ng @24440 settings 面板构建器，长链留批 */
 declare function applyWorkspaceDefaultModel(args: any): any;
 /* eN：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 53594 逐字），见导入面，declare 删 */
-/** 原 tWe（js 53605）：草稿模型配置会话钩子（draftConfig 族 / handleDraftSelect 族面；无树属主，留批） */
+/** 原 tWe（js 53605）：草稿模型配置会话钩子（draftConfig 族 / handleDraftSelect 族面）。〔A1-P1-B6〕留批证：@53606–53785 180 行钩子（Ag/JM/$M 依赖族），长链留批 */
 declare function useDraftModelConfigSession(args: any): any;
 /* nN：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 53786 逐字），见导入面，declare 删 */
 /* Vgt/Hgt：〔A1-P1-B4〕实体化收敛——真身 import 见 ./ConversationPaneHelpers 导入面（js 110053/110060），declare 删 */
-/** 原 rWe（js 53831）：显式意图迁移解析（无树属主，留批） */
-declare function resolveExplicitIntentTransition(args: any): any;
-/** 原 iWe（js 53851）：显式意图目标会话判定（无树属主，留批） */
-declare function isExplicitIntentTargetSession(e: any, t: any, n: any): any;
-/** 原 aWe（js 53856）：显式意图配置匹配（无树属主，留批） */
-declare function matchExplicitIntentConfig(e: any, t: any): any;
-/** 原 oWe（js 53865）：配置 → {model, thoughtLevel}|null（无树属主，留批） */
-declare function resolveConfigModelTarget(e: any): any;
-/** 原 fWe（js 54100）：运行时模型绑定钩子（acquire/onBinding；无树属主，留批） */
+/* rWe/iWe/aWe/oWe：〔A1-P1-B6〕实体化收敛——真身 ./ConversationPaneHelpers（js 53832–53868 逐字；内链 aN 53829 → resolveModelValueForProvider 同叶），见导入面，declare 删 */
+/** 原 fWe（js 54100）：运行时模型绑定钩子（acquire/onBinding）。〔A1-P1-B6〕留批证：@54101–54142 → dWe/cWe 链（cWe @53872+），长链留批 */
 declare function useRuntimeModelBinding(args: any): any;
-/** 原 pWe（js 54145）：模型供应商门控钩子（gateKey/status checking|ready；无树属主，留批） */
+/** 原 pWe（js 54145）：模型供应商门控钩子（gateKey/status checking|ready）。〔A1-P1-B6〕留批证：@54146+ Ei + 服务门控面，长链留批 */
 declare function useModelProviderGate(args: any): any;
 /* PM/IM：〔A1-P1-B5〕export 收敛——真身 components/shell/Home（A1-R25 逐字实体化，js 53253/53277），见导入面，declare 删。
    主树该二符未导出：编排方照批 4 模式于合并时补 export；本 worktree 该面为泄漏件旧态（禁动），面内 tsc 预期 TS2305×2，主树补 export 即解。 */

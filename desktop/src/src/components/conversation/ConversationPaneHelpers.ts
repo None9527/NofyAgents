@@ -21,10 +21,22 @@
 //   nN → packFollowupModeConfig           53786–53789（R0 120033/120075/120476 消费；〔A1-P1-B5〕）
 //   Bbt → isLiveSessionMatch              115574–115576（R0 119311 消费；〔A1-P1-B5〕）
 //   Vbt → hasPluginUserInputRows          115577–115579（R0 119311 消费；〔A1-P1-B5〕）
+//   OM → isProviderNotReadyError          52931–52933（R0 119509/120024/120067/120135/120388/120459 消费；〔A1-P1-B6〕）
+//   Wct → shouldShowSummaryPanel          98067–98069（R0 120929 消费；〔A1-P1-B6〕）
+//   aN → resolveModelValueForProvider     53829–53831（唯一消费 = 本域意图四联；〔A1-P1-B6〕）
+//   rWe → resolveExplicitIntentTransition 53832–53851（R0 119849 消费；〔A1-P1-B6〕）
+//   iWe → isExplicitIntentTargetSession   53852–53856（R0 119379 消费；〔A1-P1-B6〕）
+//   aWe → matchExplicitIntentConfig       53857–53865（R0 119380 消费；〔A1-P1-B6〕）
+//   oWe → resolveConfigModelTarget        53866–53868（R0 119395 消费；〔A1-P1-B6〕）
 // 函数体内局部变量保留混淆名（B5 约定）；型缝带〔A1-P1〕注释。
-// 环安全：本叶仅 import modules/SrcSharedA（zod 单依赖叶子）；modules/Conversation 单向消费本叶。
+// 环安全：本叶 import modules/SrcSharedA（zod 单依赖叶子）/ lib/errorUtils（自含叶）/
+//   modules/SrcSharedB（re-export shim，仅 SrcSharedA+lib/* 依赖）/ modules/SkillStore（store 叶）；
+//   modules/Conversation 单向消费本叶。
 /* eslint-disable */
 import { providerIds } from '../../modules/SrcSharedA'; // 原 q（styles q=mo；A0-CLEANUP B-7 判例：providerIds canonical）
+import { extractErrorInfo } from '../../lib/errorUtils'; // 原 it（styles it←src As←ee；〔A1-P1-B6〕OM 归一化面）
+import { ZCODE_AGENT_PROVIDER_NOT_READY } from '../../modules/SrcSharedB'; // 原 Hr（styles Hr←src W；〔A1-P1-B6〕OM 比较常量）
+import { formatCustomModelId } from '../../modules/SkillStore'; // 原 we（styles we←skillStore k；〔A1-P1-B6〕aN 拼接面）
 
 /** 原 qCt（js 119085）：基础供应商 → 对应 coding-plan 供应商（非两族直通；XCt 升级流 119139 消费） */
 export function resolveCodingPlanCounterpartId(e: string | null): string | null { // 〔A1-P1〕型缝：XCt 119126 首参 t=providerId?.trim()||null
@@ -149,4 +161,57 @@ export function isLiveSessionMatch(e: string | null | undefined, t: string | nul
 /** 原 Vbt（js 115577）：行含插件用户输入（R0 119311 消费）〔A1-P1-B5〕逐字实体化 */
 export function hasPluginUserInputRows(e: Array<{ kind: string; text?: string | null }>): boolean { // 〔A1-P1-B5〕型缝：行最小消费面 kind/text
   return e.some((e) => e.kind === `userInput` && e.text?.includes(`(plugin://`));
+}
+/** 原 OM（js 52931）：供应商未就绪错误判定（it=extractErrorInfo 归一 + Hr=ZCODE_AGENT_PROVIDER_NOT_READY；R0 119509/120024/120067/120135/120388/120459 消费）〔A1-P1-B6〕逐字实体化 */
+export function isProviderNotReadyError(e: unknown): boolean { // 〔A1-P1-B6〕型缝：extractErrorInfo(value: any) 归一面，入参 unknown 收
+  return extractErrorInfo(e).code === ZCODE_AGENT_PROVIDER_NOT_READY;
+}
+/** 原 Wct（js 98067）：摘要面板布局门控（R0 120929 消费）〔A1-P1-B6〕逐字实体化 */
+export function shouldShowSummaryPanel(e: { hasContent: boolean; variant: string }): boolean { // 〔A1-P1-B6〕型缝：R0 120929 调用面两键
+  return e.hasContent && e.variant !== `mini`;
+}
+/** 原 aN（js 53829）：glm 直通 / 余族 custom-model ref 拼接（we=formatCustomModelId；唯一消费 = 下方意图四联）〔A1-P1-B6〕逐字实体化 */
+export function resolveModelValueForProvider(e: string, t: string): string { // 〔A1-P1-B6〕型缝：(providerId, modelName) 串面（formatCustomModelId 同面）
+  return e === `glm` ? t : formatCustomModelId(e, t);
+}
+/** 原 rWe（js 53832）：显式意图迁移解析（R0 119849 消费）〔A1-P1-B6〕逐字实体化 */
+export function resolveExplicitIntentTransition(e: any): any { // 〔A1-P1-B6〕型缝：四键解构 + config/transition 深面宽化 any（PaneCore declare 同面）
+  let { targetSessionId: t, current: n, transition: r, hasPendingExplicitIntent: i } = e;
+  return i ||
+    !t ||
+    !n ||
+    n.sessionId !== t ||
+    !n.config.provider ||
+    !n.config.model ||
+    n.config.provider !== r.to.provider ||
+    n.config.model !== r.to.model ||
+    (r.from.provider === n.config.provider && r.from.model === n.config.model)
+    ? null
+    : {
+        source: r.from,
+        target: {
+          model: resolveModelValueForProvider(n.config.provider, n.config.model),
+          thoughtLevel: n.config.thought.trim() || null,
+        },
+      };
+}
+/** 原 iWe（js 53852）：显式意图目标会话判定（R0 119379 消费）〔A1-P1-B6〕逐字实体化 */
+export function isExplicitIntentTargetSession(e: any, t: any, n: any): any { // 〔A1-P1-B6〕型缝：PaneCore declare 同面 any
+  return e.targetSessionId
+    ? t === e.targetSessionId
+    : n === null && t !== e.sourceSnapshotSessionId;
+}
+/** 原 aWe（js 53857）：显式意图配置匹配（R0 119380 消费）〔A1-P1-B6〕逐字实体化 */
+export function matchExplicitIntentConfig(e: any, t: any): any { // 〔A1-P1-B6〕型缝：provider/model/thought 配置面宽化 any
+  return !e ||
+    !t ||
+    t.provider !== e.provider ||
+    t.model !== e.model ||
+    (e.thought !== void 0 && t.thought !== e.thought)
+    ? null
+    : { model: resolveModelValueForProvider(t.provider, t.model), thoughtLevel: t.thought.trim() || null };
+}
+/** 原 oWe（js 53866）：配置 → {model, thoughtLevel}|null（R0 119395 消费）〔A1-P1-B6〕逐字实体化 */
+export function resolveConfigModelTarget(e: any): any { // 〔A1-P1-B6〕型缝：同上 any 面
+  return e ? { model: resolveModelValueForProvider(e.provider, e.model), thoughtLevel: e.thought?.trim() || null } : null;
 }

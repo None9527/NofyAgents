@@ -132,6 +132,7 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
 import { useServices, useBaseServices } from './services'; // 原 eSt 内 fs()（bundle 117331）= context 面 useServices（A0-D 裁决：基线误名 useWorkspaceServices）；+useBaseServices（原 Ec，4945；A1-R14 §5b NCt 消费）
 import { normalizeCaptchaCode } from './StoresDeep'; // A1-R14：原 Cw（40570，R12 收敛 stub）——§5b NCt 3007 判定消费；环安全：StoresDeep 不反引本文件（grep 实证）
 import { resolveProviderKindEndpointUrl, GHOST_PROVIDER_REF_PREFIX } from './SrcSharedB'; // A1-R17：原 Ir=src chunk vu@5076（导出 Uo）属主导出 + Pte=src chunk sS@8980（导出 k）——YSt/Uq 逐字消费
+import { pendingCommandLedger } from '../components/conversation/ConversationCommandLedger'; // 原 K1（styles 115758–115963 class 单例；〔A1-P1-B6〕跨域改指——R25 基线 declare 删，真身 components/conversation 叶；本文件消费面零，import 仅属主归指）
 
 /* ── tombstone（A0-D）：FileOpenWithMenu（原 v_t，110427 / 94447）的跨文件 import
  *    已回退为下方 declare——属主 FileRewindDialogDeep.tsx 本地定义未导出（全文件
@@ -252,10 +253,8 @@ interface WorkspaceServicesLike { zcodeAgentService: unknown; fileService: unkno
 /** 打开 with 菜单（原 v_t，Conversation.tsx 接口级） */
 /** 命令队列（原 OS/K1） */
 declare function buildCommand(args: { type: string; sessionId: string | null; payload: unknown }): { commandId: string; [key: string]: unknown };
-declare const pendingCommandLedger: {
-  record(command: unknown): void;
-  applyAck(command: unknown, ack: unknown): void;
-};
+/* K1：〔A1-P1-B6〕跨域改指——R25 基线 declare const pendingCommandLedger（record/applyAck 二方法面）删，
+   真 import 见文件头（./ConversationCommandLedger 真身叶，styles 115758–115963 逐字）；本文件消费面零，属主归指。 */
 /** 交互通知登记（原 VS/HS，jsx 32468/32498） */
 interface InteractionNotifierRegistry {
   getSessions(): AgentSessionSnapshot[];
