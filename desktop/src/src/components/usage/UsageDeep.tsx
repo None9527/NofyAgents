@@ -1869,7 +1869,7 @@ async function getCachedBillingDiscount(service: CodingPlanSubscriptionService):
 }
 
 /** 原 fj（js 51865）：折扣配置 hook 主体（服务缺省/无 getBillingDiscount → 静默关闭） */
-function useBillingDiscountCore(service: CodingPlanSubscriptionService | undefined): {
+export function useBillingDiscountCore(service: CodingPlanSubscriptionService | undefined): { // 〔A1-P1-B4〕补 export：R0 簇 ConversationPaneCore 389 消费面回取（原 fj 51912）
   active: boolean;
   config: BillingDiscountConfig | undefined;
   loading: boolean;

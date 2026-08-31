@@ -93,6 +93,18 @@ export function buildQueueItemEditDraft(e: { revision: number; queue: { items: A
 export function isAckAcceptedOrDuplicate(e: string | null | undefined): boolean { // 〔A1-P1〕型缝：ack.status 面
   return e === `accepted` || e === `duplicate`;
 }
+/** 原 Vgt（js 110053）：交互阻塞判定（permission 或 userInput+AskUserQuestion；R0 119722 消费）〔A1-P1-B4〕逐字实体化 */
+export function hasBlockingInteractions(e: Array<{ payload: { kind: string; toolName?: string } }>): boolean { // 〔A1-P1-B4〕型缝：交互列最小消费面
+  return e.some(
+    (e) =>
+      e.payload.kind === `permission` ||
+      (e.payload.kind === `userInput` && e.payload.toolName === `AskUserQuestion`),
+  );
+}
+/** 原 Hgt（js 110060）：compact/goalVerifier 行判定（R0 119723 消费）〔A1-P1-B4〕逐字实体化 */
+export function hasCompactOrGoalRows(e: Array<{ kind: string }>): boolean { // 〔A1-P1-B4〕型缝：行列最小消费面
+  return e.some((e) => e.kind === `compact` || e.kind === `goalVerifier`);
+}
 /** 原 Y_t（js 111720） */
 export const GOAL_COMMAND_REGEX = /^\/(?:goal|target)(?:\s|$)/i;
 /** 原 X_t（js 111741）：sendGoalCommand 时确保文本带 /goal 前缀（iwt 119229 消费）；〔A1-P1〕modules/Conversation 旧语义副本（prefixGoalCommand/GOAL_COMMAND_REGEX，树内零消费）删碑，本叶为 bundle 唯一真身 */

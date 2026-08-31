@@ -307,7 +307,7 @@ export function resolveModelTriggerLabel(args: {
 
 /** 原 rN（styles jsx 48436 = js 53790–53794；A1-R25 A0 体 → 逐字升级）：供应商前缀模型名——已知别名供应商不加前缀，否则 `供应商名/模型名`
  * 终端消费实测：本文件 resolveModelFullLabel 面 ≡ bundle 53804、112607/112618/119829/119830 R0/composer 域留批；dr≡canonicalProviderIdOf（A1-R12 判例）。 */
-function composeProviderModelLabel(e: string | null | undefined, t: string | null | undefined, n: string | undefined): string | undefined { // rN
+export function composeProviderModelLabel(e: string | null | undefined, t: string | null | undefined, n: string | undefined): string | undefined { // rN；〔A1-P1-B4〕补 export：R0 簇 ConversationPaneCore 772/773 消费面回取（原 rN 53789）
   if (e && canonicalProviderIdOf(e)) return n;
   let r = t?.trim();
   return r ? `${r}/${n}` : n;

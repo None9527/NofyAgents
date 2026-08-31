@@ -1793,7 +1793,7 @@ function isAppSlashSuggestion(item: MentionSuggestionItem): boolean {
 }
 
 /** 原 Bqe（js 64182）：斜杠面板可用条件（非草稿/非引用侧栏/非只读/非移动端） */
-function isSlashPanelAvailable(state: {
+export function isSlashPanelAvailable(state: { // 〔A1-P1-B4〕补 export：R0 簇 ConversationPaneCore 652 消费面回取（原 Bqe 64184）
   isDraft: boolean;
   selectionSideChat: boolean;
   readOnly: boolean;

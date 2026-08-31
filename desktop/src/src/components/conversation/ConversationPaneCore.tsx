@@ -74,7 +74,11 @@ import { useSessionSnapshot, ConversationMessageList, parseGoalCommand, PaneFloa
 import { SessionQuotaBanner, PendingCommandBanner } from './SessionBanners'; // 原 gst/_st（94875/94945）
 import { MemoQueuePanel } from './QueuePanel'; // 原 dst（94849 memo 面）
 import { ConversationInteractionsOverlay } from './ConversationInteractionsOverlay'; // 原 pSt（117598）
-import { dataTransferContainsFiles, isProviderNotInRegistryFailure, buildQueueItemEditDraft, isAckAcceptedOrDuplicate, isImmediateInputRouting, buildSessionErrorKey, buildSessionErrorBannerModel, EMPTY_SUBAGENT_DIRECTORY, INFLIGHT_COMMAND_CACHE_LIMIT } from './ConversationPaneHelpers'; // 原 nwt/rwt/iwt/awt/ZCt/QCt/twt/$Ct/ewt（A1-P1 批 1）
+import { dataTransferContainsFiles, isProviderNotInRegistryFailure, buildQueueItemEditDraft, isAckAcceptedOrDuplicate, isImmediateInputRouting, buildSessionErrorKey, buildSessionErrorBannerModel, EMPTY_SUBAGENT_DIRECTORY, INFLIGHT_COMMAND_CACHE_LIMIT, hasBlockingInteractions, hasCompactOrGoalRows } from './ConversationPaneHelpers'; // 原 nwt/rwt/iwt/awt/ZCt/QCt/twt/$Ct/ewt（A1-P1 批 1）+ Vgt/Hgt（〔A1-P1-B4〕实体化收敛）
+import { selectionScopeKey, dedupeSelectionLoad, unregisterSelectionSubscriber, setSelectionSubscribed, hasSelectionSubscriber, onSelectionsChanged, registerSelectionDialogState, clearSessionSelections, addSelectionReference } from './ConversationSelectionCore'; // 原 _oe/voe/yoe/boe/xoe/Soe/Coe/Ts/Es（styles 2683–2837；〔A1-P1-B4〕选择域真身叶，declare 群收敛）
+import { isSlashPanelAvailable } from '../../modules/Composer'; // 原 Bqe（64184；modules/Composer 1796；〔A1-P1-B4〕export 收敛）
+import { useBillingDiscountCore } from '../usage/UsageDeep'; // 原 fj（51912；components/usage/UsageDeep 1861；〔A1-P1-B4〕export 收敛）
+import { composeProviderModelLabel } from '../settings/SubagentLeaves'; // 原 rN（53789；components/settings/SubagentLeaves 310；〔A1-P1-B4〕export 收敛）
 import { useSessionQuotaViewModel } from './ConversationQuotaModel'; // 原 XCt（119101；A1-P1-B2）
 
 /* ── declare 群（〔A1-P1-B3〕§0）：真身未实体化或属主未导出；各注属主与留批去向。 ── */
@@ -104,12 +108,7 @@ declare function useRecoverablePendingCommands(args: any): any[];
 declare function shouldShowSummaryPanel(args: any): boolean;
 /** 原 mc（jsx 3606）：可选 tab store 选择器；canonical 同面 declare components/shell/Sidebar.tsx:1082（未导出） */
 declare function useOptionalTabStore(selector: any): any;
-/** 原 Bqe（js 64184）：slash 面板可用性；canonical modules/Composer.tsx:1796（未导出，导出后收敛） */
-declare function isSlashPanelAvailable(state: any): boolean;
-/** 原 fj（js 51912）：折扣配置核心钩子；canonical components/usage/UsageDeep.tsx:1861（未导出，导出后收敛） */
-declare function useBillingDiscountCore(service: any): any;
-/** 原 rN（js 53789）：供应商前缀模型名；canonical components/settings/SubagentLeaves.tsx:310 composeProviderModelLabel（未导出，导出后收敛） */
-declare function composeProviderModelLabel(e: any, t: any, n: any): any;
+/* Bqe/fj/rN：〔A1-P1-B4〕export 收敛——真身 import 见导入面（modules/Composer 1796 / components/usage/UsageDeep 1861 / components/settings/SubagentLeaves 310），declare 删 */
 /** 原 sUe（js 52292）：遥测作用域键（workspace::pane::session|task；无树属主，留批） */
 declare function buildTelemetryScopeKey(args: any): any;
 /** 原 OM（js 52930）：供应商未就绪错误判定（it 归一化面 + Hr=ZCODE_AGENT_PROVIDER_NOT_READY；无树属主，留批） */
@@ -124,8 +123,7 @@ declare function resolveInteractionBehaviorMode(settings: any): any;
 declare function useDraftModelConfigSession(args: any): any;
 /** 原 nN（js 53785）：followup 模式配置打包（{config}|{}；无树属主，留批） */
 declare function packFollowupModeConfig(e: any, t: any, n?: any): any;
-declare function hasBlockingInteractions(e: any): any; // 〔A1-P1-B3〕Vgt @110053 bundle 真身（permission/AskUserQuestion 阻塞判定）；树无属主，declare 留收敛
-declare function hasCompactOrGoalRows(e: any): any; // 〔A1-P1-B3〕Hgt @110060 bundle 真身（compact/goalVerifier 行判定）；树无属主，declare 留收敛
+/* Vgt/Hgt：〔A1-P1-B4〕实体化收敛——真身 import 见 ./ConversationPaneHelpers 导入面（js 110053/110060），declare 删 */
 /** 原 rWe（js 53831）：显式意图迁移解析（无树属主，留批） */
 declare function resolveExplicitIntentTransition(args: any): any;
 /** 原 iWe（js 53851）：显式意图目标会话判定（无树属主，留批） */
@@ -142,25 +140,7 @@ declare function useModelProviderGate(args: any): any;
 declare function buildCodingPlanPurchaseFunnelContext(args: any): any;
 /** 原 IM（js 53276）：入口计划态（快照 → no_plan|start_plan|coding_plan）；canonical components/shell/Home.tsx:4364（§U.8 R25 逐字，未导出，导出后收敛） */
 declare function resolveEntryPlanStateFromSnapshot(args: any): any;
-/* 选区域（bundle 2686–2805；userselect 块/选区引用族，无树属主，留批） */
-/** 原 _oe（js 2686） */
-declare function selectionScopeKey(e: any, t: any): any;
-/** 原 voe（js 2689） */
-declare function dedupeSelectionLoad(e: any, t: any): any;
-/** 原 yoe（js 2697） */
-declare function unregisterSelectionSubscriber(e: any): void;
-/** 原 boe（js 2700） */
-declare function setSelectionSubscribed(e: any, t: any): void;
-/** 原 xoe（js 2703） */
-declare function hasSelectionSubscriber(e: any): boolean;
-/** 原 Soe（js 2706） */
-declare function onSelectionsChanged(e: any): any;
-/** 原 Coe（js 2709） */
-declare function registerSelectionDialogState(e: any, t: any, n: any): any;
-/** 原 Ts（js 2750） */
-declare function clearSessionSelections(e: any, t: any): void;
-/** 原 Es（js 2805） */
-declare function addSelectionReference(e: any): any;
+/* 选区域（bundle 2683–2837）：〔A1-P1-B4〕真身已实体化于 ./ConversationSelectionCore（155 行逐字），九符 declare 群收敛为真实 import */
 /* 命令协议谓词族（bundle 115573–115684；无树属主，留批） */
 /** 原 Bbt（js 115573） */
 declare function isLiveSessionMatch(e: any, t: any, n: any): any;
@@ -386,7 +366,7 @@ function ConversationPane({
     { intl: Ot } = useIntlContext(),
     kt = useCodingPlanUpgradeDialogOptional(),
     At = useOptionalTabStore((e: any) => e.openSettingsTab),
-    jt = useBillingDiscountCore(he.codingPlanSubscriptionService),
+    jt = useBillingDiscountCore(he.codingPlanSubscriptionService as any),
     [Mt, K] = React.useState<any>(null),
     Nt = useTaskStore((e) => e.promoteGroupedDraftTask),
     Pt = (0, React.useCallback)(
