@@ -165,6 +165,7 @@ import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../
 import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（js 123241）远端条目域改指（tombstone 见原声明位）
 import { LoaderCircle } from '../../modules/ImeComposition'; // A1-R19：原 M = imeComposition-DEYFkwWm.js 导出 w（内名 Ut = lucide loader-circle 11786）；§V s3e 76365 / v3e 76563 loading 消费
 import { formatNumberCompact } from '../../modules/UsageStatsUiParts'; // A1-R19：原 ja = usageStatsUiParts-CiR7YEhh.js 导出 l（styles 910 导入）；§V S3e 76625 消费
+import { useBillingDiscount, BillingDiscountBadge, BillingDiscountBadgeWithInfo, BillingDiscountInfoDialog, type BillingDiscountConfig } from '../../modules/UsageDeep'; // A1-R20：胶囊域收敛——原 dj/hj/gj/_j=useBillingDiscount/BillingDiscountBadge/BillingDiscountBadgeWithInfo/BillingDiscountInfoDialog（styles 51910/51959/51980/52034；canonical 属主 components/usage/UsageDeep.tsx A0 已重建）；§V s3e 76295/76359 + v3e 76541/76588/76597 消费
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -399,25 +400,14 @@ declare function formatToolbarShortcutLabel(key: string): string;
 /* ── tombstone（A1-R19）：declare function CodingPlanUsageToolbar + interface CodingPlanUsageRemainingLike（原 j3e，js 76678–76847）
  *    删除——§V usage 展示域逐字实体化（j3e 本体 + s3e/v3e + 30 件助手）；消费面 iit 89918 逐字不变。 ── */
 
-/** Coding Plan 计费折扣活动配置（原 lj.value 形，pj 51943 消费面：locale → 文案五字段） */
-type BillingDiscountConfigLike = Record<string, unknown>;
-
-/** Coding Plan 计费折扣活动态（原 dj，js 51910；fj 51913 深依赖：ps 服务 context 2680 + UHe 缓存 52073 + lj/uj 模块态 51905–51909——declare 分层，R19 留批） */
-declare function useCodingPlanBillingDiscount(): {
-  active: boolean;
-  config: BillingDiscountConfigLike | undefined;
-  loading: boolean;
-  refresh: () => Promise<void>;
-};
-
-/** 计费折扣徽章（原 gj，js 51980；组合 hj+_j——declare 分层，R19 留批） */
-declare function CodingPlanBillingDiscountBadge(props: { config: BillingDiscountConfigLike | undefined; size?: string; variant?: string }): React.ReactElement | null;
-
-/** 计费折扣徽章体（原 hj，js 51959；kbe=trending-up vendored 图标 27943——declare 分层，R19 留批） */
-declare function CodingPlanBillingDiscountBadgeLabel(props: { config: BillingDiscountConfigLike | undefined; iconVisible?: boolean; size?: string; variant?: string }): React.ReactElement | null;
-
-/** 计费折扣信息气泡（原 _j，js 52034；cj=MessageResponse markdown 51736 + Ao store 选择器 1301 + zb/Bb/Hb popover 31991+——declare 分层，R19 留批） */
-declare function CodingPlanBillingDiscountInfoPopover(props: { config: BillingDiscountConfigLike | undefined; tone?: string }): React.ReactElement | null;
+/* ── tombstone（A1-R20）：type BillingDiscountConfigLike + declare useCodingPlanBillingDiscount/CodingPlanBillingDiscountBadge/
+ *    CodingPlanBillingDiscountBadgeLabel/CodingPlanBillingDiscountInfoPopover（原 dj/gj/hj/_j，js 51910/51980/51959/52034；
+ *    R19 登记深依赖 ps 2680/Ao 1301/cj 51736/zb·Bb·Hb 31991+/lj·uj·zHe·UHe 51905–52073/kbe 27943）删除——
+ *    勘验结论：canonical 属主 components/usage/UsageDeep.tsx（A0 已重建：useBillingDiscount/BillingDiscountBadgeWithInfo/
+ *    BillingDiscountBadge/BillingDiscountInfoDialog + BillingDiscountConfig 型，深依赖已收敛 useOptionalServices/
+ *    useSettingsStoreValue/MarkdownRenderer/Dialog 族）；bundle 胶囊簇唯一真身（51905–52090），消费面 5 处
+ *    （76295/76359/76541/76588/76597 + 域外 84520/94923/94926/189595/189601/190007/190212/191010/191156/85417 留批域）。
+ *    改指文件头 import（modules/UsageDeep）；§V 消费面逐字不变。 ── */
 
 /** 升级动作（原 Art()，ProviderPlanUsage 族提供） */
 declare function useUpgradeActions(): {
@@ -4755,8 +4745,8 @@ var ComposerConfigToolbar = (0, React.memo)(ComposerConfigToolbarBody); // ait 8
  *   SegmentedProgress（ModelSelector.tsx，A0-S2d 属主导出）/ wa=ChevronRight（button chunk 导出 o）/
  *   M=LoaderCircle（imeComposition chunk 导出 w）/ Pv=IconRocket（R15）/ ja=formatNumberCompact（UsageStatsUiParts）/
  *   Lte=chatContextUsageTriggerTestid（SrcSharedB）/ X=Button / Z=cn / Q=React / $=jsx-runtime。
- * 胶囊层 declare（本文件头，本批新增）：dj/gj/hj/_j=useCodingPlanBillingDiscount/CodingPlanBillingDiscountBadge/
- *   CodingPlanBillingDiscountBadgeLabel/CodingPlanBillingDiscountInfoPopover（深依赖 ps 2680/Ao 1301/cj 51736/popover 31991+，留批）。
+ * 胶囊层（A1-R20 收敛）：dj/gj/hj/_j=useBillingDiscount/BillingDiscountBadgeWithInfo/BillingDiscountBadge/
+ *   BillingDiscountInfoDialog——canonical 属主 components/usage/UsageDeep.tsx（A0 已重建，深依赖已收敛），文件头 import 改指。
  * JSX 保持编译形态；函数体内局部变量保留混淆名。 ── */
 
 /* --- §V.1 限额查找 + 百分比 + 重置时刻格式化（原 76149–76180） --- */
@@ -4860,7 +4850,7 @@ interface CodingPlanUsageRemainingLike {
   onUsageClick?: (() => void) | null;
 }
 function CodingPlanUsagePanel({ config: e, intl: t, locale: n, separated: r = !1 }: { config: CodingPlanUsageRemainingLike; intl: IntlShape; locale: string; separated?: boolean }) { // s3e
-  let i = useCodingPlanBillingDiscount(),
+  let i = useBillingDiscount(),
     a = (0, React.useMemo)(() => resolveCodingPlanUsageRemaining(e), [e]);
   if (!a) return null;
   let o = a.visibleSnapshot?.quota?.level ?? null,
@@ -4924,7 +4914,7 @@ function CodingPlanUsagePanel({ config: e, intl: t, locale: n, separated: r = !1
                 className: `min-w-0 truncate text-ui-base font-medium text-foreground`,
                 children: t.formatMessage({ id: `sidebar.usage.plan.title` }),
               }),
-              i.active ? (0, $.jsx)(CodingPlanBillingDiscountBadge, { config: i.config, size: `compact` }) : null,
+              i.active ? (0, $.jsx)(BillingDiscountBadgeWithInfo, { config: i.config, size: `compact` }) : null,
             ],
           }),
           e.onUsageClick
@@ -5102,7 +5092,7 @@ interface StartPlanBalanceLike {
   snapshot?: EntitlementSnapshotLike | null;
 }
 function StartPlanBalancePanel({ config: e, intl: t, locale: n, separated: r = !1 }: { config: StartPlanBalanceLike; intl: IntlShape; locale: string; separated?: boolean }) { // v3e
-  let i = useCodingPlanBillingDiscount(),
+  let i = useBillingDiscount(),
     a = i.active === !0,
     o = listActiveQuotaLimits(e.snapshot),
     s = formatSnapshotRenewTime(resolveSnapshotEarliestRenewTime(e.snapshot), n);
@@ -5149,7 +5139,7 @@ function StartPlanBalancePanel({ config: e, intl: t, locale: n, separated: r = !
                           (0, $.jsx)(IconRocket, { className: `size-3` }),
                           t.formatMessage({ id: `chat.quota.action.upgrade` }),
                           a
-                            ? (0, $.jsx)(CodingPlanBillingDiscountBadgeLabel, {
+                            ? (0, $.jsx)(BillingDiscountBadge, {
                                 config: i.config,
                                 iconVisible: !1,
                                 size: `compact`,
@@ -5158,7 +5148,7 @@ function StartPlanBalancePanel({ config: e, intl: t, locale: n, separated: r = !
                             : null,
                         ],
                       }),
-                      a ? (0, $.jsx)(CodingPlanBillingDiscountInfoPopover, { config: i.config }) : null,
+                      a ? (0, $.jsx)(BillingDiscountInfoDialog, { config: i.config }) : null,
                     ],
                   })
                 : null,

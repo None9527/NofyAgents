@@ -378,7 +378,7 @@ import { Command as CommandRoot, CommandItem } from '../../modules/QuickPick'; /
 import { CommandInput } from '../ui/command'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Select as SelectRoot } from '../../modules/Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Collapsible as CollapsibleRoot, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { ChevronDownIcon, PencilIcon, Trash2 as TrashIcon, UnplugIcon, RadioTowerIcon, EyeOffIcon, EyeIcon, AstroidIcon, ArrowRightIcon, UsersIcon, CircleIcon, GripVerticalIcon, ArrowLeftIcon, RocketIcon, TrendingUpIcon, LogInIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { ChevronDownIcon, PencilIcon, Trash2 as TrashIcon, UnplugIcon, RadioTowerIcon, EyeOffIcon, EyeIcon, AstroidIcon, ArrowRightIcon, UsersIcon, CircleIcon, GripVerticalIcon, ArrowLeftIcon, RocketIcon, Sparkles as SparklesIcon, TrendingUpIcon, LogInIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）。A1-R20：+SparklesIcon（原 HHe 52013 消费 f=S=Gt=x('sparkles')，imeComposition 11796/styles 345 导入链实证；A0-S3b 误映 RocketIcon）
 import { InfoIcon, Input, Popover as PopoverRoot, PopoverContent, PopoverTrigger, SpinnerIcon, usePlatformService } from '../../modules/ImeComposition'; // PopoverRoot（原 n=T 根）；A0-CLEANUP3 #38：SpinnerIcon/InfoIcon/usePlatformService 改由属主导出
 import { MarkdownRenderer, type CodePreviewSettings } from '../../modules/MarkdownIntegration';
 import { useCodingPlanProducts, useStartPlanPreview } from '../../modules/PaymentDeep';
@@ -1990,7 +1990,8 @@ export function BillingDiscountCard(props: { config: BillingDiscountConfig | und
       <div className={`flex min-w-0 items-center justify-between gap-3`}>
         <div className={`flex min-w-0 items-start gap-2`}>
           <div className={`flex h-6 shrink-0 items-center`}>
-            <RocketIcon className={`size-4 text-white`} />
+            {/* A1-R20 图标勘误：bundle HHe 52013 = f = sparkles（非 rocket） */}
+            <SparklesIcon className={`size-4 text-white`} />
           </div>
           <div className={`min-w-0`}>
             <div className={`text-ui-lg font-medium leading-6 text-white`}>{copy.cardTitle}</div>

@@ -120,7 +120,7 @@ import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../mod
 import { resolveModelTriggerLabelParts } from '../../modules/SettingsLeaves'; // A0-CLEANUP4：原 nWe（styles jsx 48452）三元面，非 $7 单串面
 import { logger } from '../../modules/SkillStore';
 import { useSettingsStore as useAppStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
-import { SidebarCodingPlanWidget, SidebarStartPlanWidget, formatGrantUnits, useBillingDiscount, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, entryPlanStateOf } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）
+import { SidebarCodingPlanWidget, SidebarStartPlanWidget, formatGrantUnits, useBillingDiscount, BillingDiscountCard, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, entryPlanStateOf } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）
 import { useServices } from '../../modules/services';
 
 /* ----------------------------------------------------------------------------
@@ -277,7 +277,9 @@ declare const GenericProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // C
 declare const ZapiProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // zbe
 declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe
 declare function providerLogoOf(providerId: string, className: string): React.ReactNode; // Tq
-declare const BillingDiscountBanner: React.FC<{ config: any }>; // HHe
+/* ── tombstone（A1-R20）：declare const BillingDiscountBanner（原 HHe，js 51994–52033）删除——canonical 属主
+ *    components/usage/UsageDeep.tsx BillingDiscountCard（A0 已重建；A1-R20 sparkles 图标勘误后与 bundle 逐字一致）；
+ *    bundle HHe 唯一真身，消费面 85417（本文件 6719 区）逐字不变，改指文件头 import（modules/UsageDeep）。 ── */
 declare function trackFunnelStart(platform: any, funnel: any): void; // WUe
 declare function trackPlanSelectEvent(platform: any, funnel: any, meta: Record<string, unknown>): void; // RM/zM
 declare function isStructuredSelection(entry: any): boolean; // Ds
@@ -6716,7 +6718,7 @@ function PlanSelectSections({
   const { intl } = useZCodeIntl();
   const personalSection = (
     <section className={`flex flex-col gap-3`}>
-      {billingDiscountActive ? <BillingDiscountBanner config={billingDiscountConfig} /> : null}
+      {billingDiscountActive ? <BillingDiscountCard config={billingDiscountConfig} /> : null}
       <h3 className={`text-lg font-medium text-foreground`}>
         {intl.formatMessage({
           id: `settings.modelProvider.codingPlan.purchase.individualsSectionTitle`,
