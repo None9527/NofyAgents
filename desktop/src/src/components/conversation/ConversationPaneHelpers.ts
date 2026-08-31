@@ -15,6 +15,12 @@
 //   awt → isAckAcceptedOrDuplicate        119233–119235（R0 120291 消费）
 //   Y_t → GOAL_COMMAND_REGEX              111720（X_t 111744 消费）
 //   X_t → prefixGoalCommand               111741–111745（iwt 119229 消费）
+//   Ij → trimOrNull                       52280–52282（sUe 52294–52297 消费；〔A1-P1-B5〕）
+//   sUe → buildTelemetryScopeKey          52293–52301（R0 119414 消费；〔A1-P1-B5〕）
+//   eN → resolveInteractionBehaviorMode   53594–53596（R0 119463 消费；53618 域留批；〔A1-P1-B5〕）
+//   nN → packFollowupModeConfig           53786–53789（R0 120033/120075/120476 消费；〔A1-P1-B5〕）
+//   Bbt → isLiveSessionMatch              115574–115576（R0 119311 消费；〔A1-P1-B5〕）
+//   Vbt → hasPluginUserInputRows          115577–115579（R0 119311 消费；〔A1-P1-B5〕）
 // 函数体内局部变量保留混淆名（B5 约定）；型缝带〔A1-P1〕注释。
 // 环安全：本叶仅 import modules/SrcSharedA（zod 单依赖叶子）；modules/Conversation 单向消费本叶。
 /* eslint-disable */
@@ -112,4 +118,35 @@ export function prefixGoalCommand(e: string, t: string): string {
   if (e !== `sendGoalCommand`) return t;
   let n = t.trim();
   return n ? (GOAL_COMMAND_REGEX.test(n) ? t : `/goal ${n}`) : t;
+}
+/** 原 Ij（js 52280）：trim → null（sUe 52294–52297 消费）〔A1-P1-B5〕逐字实体化 */
+export function trimOrNull(e: string | null | undefined): string | null { // 〔A1-P1-B5〕型缝：可空串面
+  return e?.trim() || null;
+}
+/** 原 sUe（js 52293）：遥测作用域键（workspace::pane::session|task；R0 119414 消费）〔A1-P1-B5〕逐字实体化 */
+export function buildTelemetryScopeKey({ workspacePath: e, workspaceIdentity: t, paneId: n, sessionId: r, taskId: i }: { workspacePath?: string | null; workspaceIdentity?: string | null; paneId?: string | null; sessionId?: string | null; taskId?: string | null }): string | null { // 〔A1-P1-B5〕型缝：五键可空串解构面
+  let a = trimOrNull(t) ?? trimOrNull(e),
+    o = trimOrNull(n),
+    s = trimOrNull(r),
+    c = trimOrNull(i);
+  if (!a) return null;
+  let l = o ? `${a}::pane:${o}` : a;
+  return s ? `${l}::session:${s}` : c ? `${l}::task:${c}` : null;
+}
+/** 原 eN（js 53594）：交互行为模式（guide|queue|null；R0 119463 消费）〔A1-P1-B5〕逐字实体化 */
+export function resolveInteractionBehaviorMode(e: { zcodeInteractionBehavior?: string } | null | undefined): string | null { // 〔A1-P1-B5〕型缝：settings 最小消费面
+  return e ? (e.zcodeInteractionBehavior === `guide` ? `guide` : `queue`) : null;
+}
+/** 原 nN（js 53786）：followup 模式配置打包（{config}|{}；R0 120033/120075/120476 消费）〔A1-P1-B5〕逐字实体化 */
+export function packFollowupModeConfig(e: Record<string, unknown> | null | undefined, t: string | null | undefined, n?: Record<string, unknown> | null): { config?: Record<string, unknown> } { // 〔A1-P1-B5〕型缝：spread 源宽化面
+  let r = { ...n, ...e };
+  return (t && (r.followupMode = t), Object.keys(r).length > 0 ? { config: r } : {});
+}
+/** 原 Bbt（js 115574）：live 会话匹配（status live + sessionId 同；R0 119311 消费）〔A1-P1-B5〕逐字实体化 */
+export function isLiveSessionMatch(e: string | null | undefined, t: string | null | undefined, n: string | null | undefined): boolean { // 〔A1-P1-B5〕型缝：三元可空串面
+  return !!(e === `live` && t && n === t);
+}
+/** 原 Vbt（js 115577）：行含插件用户输入（R0 119311 消费）〔A1-P1-B5〕逐字实体化 */
+export function hasPluginUserInputRows(e: Array<{ kind: string; text?: string | null }>): boolean { // 〔A1-P1-B5〕型缝：行最小消费面 kind/text
+  return e.some((e) => e.kind === `userInput` && e.text?.includes(`(plugin://`));
 }

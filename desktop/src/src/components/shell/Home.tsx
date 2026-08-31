@@ -4326,7 +4326,7 @@ function isStartPlanLevelLabel(e: string) { // UM
   return /\bstart\b/i.test(e.trim());
 }
 interface EntryPlanStateLike { entryPlanStatus?: string; entryPlanLevel?: string }
-function buildCodingPlanPurchaseFunnelContext(e: {
+export function buildCodingPlanPurchaseFunnelContext(e: { // 〔A1-P1-B5〕补 export：R0 簇 ConversationPaneCore 消费面回取（原 PM 53253）
   providerId: string;
   upgradeSource: string;
   eventRegion: string;
@@ -4363,7 +4363,7 @@ function buildCodingPlanFunnelContext(e: {
     purchaseAudience: `personal`,
   });
 }
-function resolveEntryPlanStateFromSnapshot(e: {
+export function resolveEntryPlanStateFromSnapshot(e: { // 〔A1-P1-B5〕补 export：R0 簇 ConversationPaneCore 消费面回取（原 IM 53277）
   providerId?: string;
   planLevel?: string;
   snapshot?: EntitlementSnapshotLike | null;

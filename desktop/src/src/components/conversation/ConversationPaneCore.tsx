@@ -35,19 +35,16 @@
 //   pSt→ConversationInteractionsOverlay（./ConversationInteractionsOverlay）
 //   nwt/rwt/iwt/awt/ZCt/QCt/twt/$Ct/ewt（./ConversationPaneHelpers，A1-P1 批 1）| XCt→useSessionQuotaViewModel（./ConversationQuotaModel，A1-P1-B2）
 //   av→Hand（lucide-react）
+//   B1→CONFIG_COMMAND_SUPERSEDED | z1→isStaleProtocolAck | qbt→createSerialQueue | Jbt→createSupersedingCommandScheduler
+//   V1→recordCommandAckE2E | K1→pendingCommandLedger | OCt→useRecoverablePendingCommands（./ConversationCommandLedger，〔A1-P1-B5〕）
+//   sUe→buildTelemetryScopeKey | eN→resolveInteractionBehaviorMode | nN→packFollowupModeConfig
+//   Bbt→isLiveSessionMatch | Vbt→hasPluginUserInputRows（./ConversationPaneHelpers，〔A1-P1-B5〕）
+//   PM→buildCodingPlanPurchaseFunnelContext | IM→resolveEntryPlanStateFromSnapshot（components/shell/Home，〔A1-P1-B5〕export 收敛，编排方合并时补 export）
 //   【declare 群（属主未导出 / 无树属主，见下方各注）】
-//   hw→canLoadOlderRows | K1→pendingCommandLedger | OS→buildCommand | OCt→useRecoverablePendingCommands
-//   Wct→shouldShowSummaryPanel | mc→useOptionalTabStore | Bqe→isSlashPanelAvailable | fj→useBillingDiscountCore
-//   rN→composeProviderModelLabel | sUe→buildTelemetryScopeKey | OM→isProviderNotReadyError | NM→prepareWorkspaceModelInit
-//   JUe→applyWorkspaceDefaultModel | eN→resolveInteractionBehaviorMode | tWe→useDraftModelConfigSession
-//   nN→packFollowupModeConfig | rWe→resolveExplicitIntentTransition | iWe→isExplicitIntentTargetSession
-//   aWe→matchExplicitIntentConfig | oWe→resolveConfigModelTarget | fWe→useRuntimeModelBinding | pWe→useModelProviderGate
-//   PM→buildCodingPlanPurchaseFunnelContext | IM→resolveEntryPlanStateFromSnapshot
-//   _oe→selectionScopeKey | voe→dedupeSelectionLoad | yoe→unregisterSelectionSubscriber | boe→setSelectionSubscribed
-//   xoe→hasSelectionSubscriber | Soe→onSelectionsChanged | Coe→registerSelectionDialogState
-//   Ts→clearSessionSelections | Es→addSelectionReference
-//   Bbt→isLiveSessionMatch | Vbt→hasPluginUserInputRows | qbt→createSerialQueue | B1→CONFIG_COMMAND_SUPERSEDED
-//   z1→isStaleProtocolAck | Jbt→createSupersedingCommandScheduler | V1→recordCommandAckE2E
+//   hw→canLoadOlderRows | OS→buildCommand | Wct→shouldShowSummaryPanel | mc→useOptionalTabStore
+//   OM→isProviderNotReadyError | NM→prepareWorkspaceModelInit | JUe→applyWorkspaceDefaultModel | tWe→useDraftModelConfigSession
+//   rWe→resolveExplicitIntentTransition | iWe→isExplicitIntentTargetSession | aWe→matchExplicitIntentConfig | oWe→resolveConfigModelTarget
+//   fWe→useRuntimeModelBinding | pWe→useModelProviderGate
 /* eslint-disable */
 import * as React from "react";
 import * as $ from "react/jsx-runtime"; // 原 $（jsx-runtime-B5yMD3-t.js；A1-R15 判例：编译形 JSX 消费面）
@@ -74,8 +71,10 @@ import { useSessionSnapshot, ConversationMessageList, parseGoalCommand, PaneFloa
 import { SessionQuotaBanner, PendingCommandBanner } from './SessionBanners'; // 原 gst/_st（94875/94945）
 import { MemoQueuePanel } from './QueuePanel'; // 原 dst（94849 memo 面）
 import { ConversationInteractionsOverlay } from './ConversationInteractionsOverlay'; // 原 pSt（117598）
-import { dataTransferContainsFiles, isProviderNotInRegistryFailure, buildQueueItemEditDraft, isAckAcceptedOrDuplicate, isImmediateInputRouting, buildSessionErrorKey, buildSessionErrorBannerModel, EMPTY_SUBAGENT_DIRECTORY, INFLIGHT_COMMAND_CACHE_LIMIT, hasBlockingInteractions, hasCompactOrGoalRows } from './ConversationPaneHelpers'; // 原 nwt/rwt/iwt/awt/ZCt/QCt/twt/$Ct/ewt（A1-P1 批 1）+ Vgt/Hgt（〔A1-P1-B4〕实体化收敛）
+import { dataTransferContainsFiles, isProviderNotInRegistryFailure, buildQueueItemEditDraft, isAckAcceptedOrDuplicate, isImmediateInputRouting, buildSessionErrorKey, buildSessionErrorBannerModel, EMPTY_SUBAGENT_DIRECTORY, INFLIGHT_COMMAND_CACHE_LIMIT, hasBlockingInteractions, hasCompactOrGoalRows, buildTelemetryScopeKey, resolveInteractionBehaviorMode, packFollowupModeConfig, isLiveSessionMatch, hasPluginUserInputRows } from './ConversationPaneHelpers'; // 原 nwt/rwt/iwt/awt/ZCt/QCt/twt/$Ct/ewt（A1-P1 批 1）+ Vgt/Hgt（〔A1-P1-B4〕实体化收敛）+ sUe/eN/nN/Bbt/Vbt（〔A1-P1-B5〕实体化收敛）
 import { selectionScopeKey, dedupeSelectionLoad, unregisterSelectionSubscriber, setSelectionSubscribed, hasSelectionSubscriber, onSelectionsChanged, registerSelectionDialogState, clearSessionSelections, addSelectionReference } from './ConversationSelectionCore'; // 原 _oe/voe/yoe/boe/xoe/Soe/Coe/Ts/Es（styles 2683–2837；〔A1-P1-B4〕选择域真身叶，declare 群收敛）
+import { CONFIG_COMMAND_SUPERSEDED, isStaleProtocolAck, createSerialQueue, createSupersedingCommandScheduler, recordCommandAckE2E, pendingCommandLedger, useRecoverablePendingCommands } from './ConversationCommandLedger'; // 原 B1/z1/qbt/Jbt/V1/K1/OCt（styles 115634–115758 + 118709；〔A1-P1-B5〕命令协议真身叶，declare 群收敛）
+import { buildCodingPlanPurchaseFunnelContext, resolveEntryPlanStateFromSnapshot } from '../../components/shell/Home'; // 原 PM/IM（styles 53253/53277；A1-R25 逐字实体化；〔A1-P1-B5〕export 收敛——编排方合并时补 export，详墓碑）
 import { isSlashPanelAvailable } from '../../modules/Composer'; // 原 Bqe（64184；modules/Composer 1796；〔A1-P1-B4〕export 收敛）
 import { useBillingDiscountCore } from '../usage/UsageDeep'; // 原 fj（51912；components/usage/UsageDeep 1861；〔A1-P1-B4〕export 收敛）
 import { composeProviderModelLabel } from '../settings/SubagentLeaves'; // 原 rN（53789；components/settings/SubagentLeaves 310；〔A1-P1-B4〕export 收敛）
@@ -88,41 +87,26 @@ import { useSessionQuotaViewModel } from './ConversationQuotaModel'; // 原 XCt�
 
 /** 原 hw（js 39813）：窗口首行不属当前首 turn → 可加载更早；canonical 同面 declare modules/Conversation.tsx:4689（该面文件内消费，本面 R0 121260 消费） */
 declare function canLoadOlderRows(snapshot: any): boolean;
-/** 原 K1（js 115758）：待恢复命令账本（跨会话单例）；canonical 同面 declare modules/Conversation.tsx:4839 / ConversationInteractionsOverlay.tsx:27（各自文件内消费；本面 R0 119487–120297 消费） */
-declare const pendingCommandLedger: {
-  record(command: any, clientContext?: any): void;
-  applyAck(command: any, ack: any): void;
-  settle(sessionId: any, sourceCommandId: any): void;
-  subscribe(listener: any): any;
-  reconcileSnapshot(snapshot: any): void;
-  reconcileSession(sessionId: any, queryCommands: any): any;
-  listRecoverable(sessionId: any): any[];
-  dismissRecovery(sessionId: any, commandId: any): void;
-  consumeReplay(args: any): any;
-};
+/* K1/OCt + qbt/B1/z1/Jbt/V1：〔A1-P1-B5〕实体化收敛——真身 ./ConversationCommandLedger（styles 115625–115963 + 118700–118734 逐字），见导入面，declare 删。
+   注：K1 canonical 同面 declare 余 ConversationLeaves.tsx:255 / ConversationInteractionsOverlay.tsx:27（跨域面，留批收敛）。 */
 /** 原 OS（js 34629）：命令工厂（CAS/row-target 校验 + commandId/clientId/issuedAt 装配）；canonical 同面 declare ConversationInteractionsOverlay.tsx:21 */
 declare function buildCommand(args: any): any;
-/** 原 OCt（js 118709）：可恢复命令列表钩子（当前会话 + 本工作区草稿会话）；原 declare modules/Conversation.tsx:4865 随 R0 迁出（该面消费仅在 §9.5 A0 体，收敛随删） */
-declare function useRecoverablePendingCommands(args: any): any[];
 /** 原 Wct（js 98066）：摘要面板布局门控（hasContent && variant!=='mini'）；原 declare modules/Conversation.tsx:4926 随 R0 迁出 */
 declare function shouldShowSummaryPanel(args: any): boolean;
 /** 原 mc（jsx 3606）：可选 tab store 选择器；canonical 同面 declare components/shell/Sidebar.tsx:1082（未导出） */
 declare function useOptionalTabStore(selector: any): any;
 /* Bqe/fj/rN：〔A1-P1-B4〕export 收敛——真身 import 见导入面（modules/Composer 1796 / components/usage/UsageDeep 1861 / components/settings/SubagentLeaves 310），declare 删 */
-/** 原 sUe（js 52292）：遥测作用域键（workspace::pane::session|task；无树属主，留批） */
-declare function buildTelemetryScopeKey(args: any): any;
+/* sUe：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 52293 逐字），见导入面，declare 删 */
 /** 原 OM（js 52930）：供应商未就绪错误判定（it 归一化面 + Hr=ZCODE_AGENT_PROVIDER_NOT_READY；无树属主，留批） */
 declare function isProviderNotReadyError(error: any): boolean;
 /** 原 NM（js 52997）：[zcode-model-init] workspace prepare 编排器（无树属主，留批） */
 declare function prepareWorkspaceModelInit(args: any): any;
 /** 原 JUe（js 53414）：工作区默认模型应用（setWorkspaceDefaultModel + 草稿面；无树属主，留批） */
 declare function applyWorkspaceDefaultModel(args: any): any;
-/** 原 eN（js 53593）：交互行为模式（zcodeInteractionBehavior guide|queue|null；无树属主，留批） */
-declare function resolveInteractionBehaviorMode(settings: any): any;
+/* eN：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 53594 逐字），见导入面，declare 删 */
 /** 原 tWe（js 53605）：草稿模型配置会话钩子（draftConfig 族 / handleDraftSelect 族面；无树属主，留批） */
 declare function useDraftModelConfigSession(args: any): any;
-/** 原 nN（js 53785）：followup 模式配置打包（{config}|{}；无树属主，留批） */
-declare function packFollowupModeConfig(e: any, t: any, n?: any): any;
+/* nN：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 53786 逐字），见导入面，declare 删 */
 /* Vgt/Hgt：〔A1-P1-B4〕实体化收敛——真身 import 见 ./ConversationPaneHelpers 导入面（js 110053/110060），declare 删 */
 /** 原 rWe（js 53831）：显式意图迁移解析（无树属主，留批） */
 declare function resolveExplicitIntentTransition(args: any): any;
@@ -136,26 +120,11 @@ declare function resolveConfigModelTarget(e: any): any;
 declare function useRuntimeModelBinding(args: any): any;
 /** 原 pWe（js 54145）：模型供应商门控钩子（gateKey/status checking|ready；无树属主，留批） */
 declare function useModelProviderGate(args: any): any;
-/** 原 PM（js 53252）：购买漏斗上下文；canonical components/shell/Home.tsx:4327（§U.8 R25 逐字，未导出，导出后收敛） */
-declare function buildCodingPlanPurchaseFunnelContext(args: any): any;
-/** 原 IM（js 53276）：入口计划态（快照 → no_plan|start_plan|coding_plan）；canonical components/shell/Home.tsx:4364（§U.8 R25 逐字，未导出，导出后收敛） */
-declare function resolveEntryPlanStateFromSnapshot(args: any): any;
+/* PM/IM：〔A1-P1-B5〕export 收敛——真身 components/shell/Home（A1-R25 逐字实体化，js 53253/53277），见导入面，declare 删。
+   主树该二符未导出：编排方照批 4 模式于合并时补 export；本 worktree 该面为泄漏件旧态（禁动），面内 tsc 预期 TS2305×2，主树补 export 即解。 */
 /* 选区域（bundle 2683–2837）：〔A1-P1-B4〕真身已实体化于 ./ConversationSelectionCore（155 行逐字），九符 declare 群收敛为真实 import */
-/* 命令协议谓词族（bundle 115573–115684；无树属主，留批） */
-/** 原 Bbt（js 115573） */
-declare function isLiveSessionMatch(e: any, t: any, n: any): any;
-/** 原 Vbt（js 115576） */
-declare function hasPluginUserInputRows(e: any): any;
-/** 原 qbt（js 115637） */
-declare function createSerialQueue(): any;
-/** 原 B1（js 115637） */
-declare const CONFIG_COMMAND_SUPERSEDED: any;
-/** 原 z1（js 115633） */
-declare function isStaleProtocolAck(e: any): any;
-/** 原 Jbt（js 115655） */
-declare function createSupersedingCommandScheduler(e: any): any;
-/** 原 V1（js 115684） */
-declare function recordCommandAckE2E(e: any): void;
+/* Bbt/Vbt：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 115574/115577 逐字），见导入面，declare 删
+   （命令协议族 qbt/B1/z1/Jbt/V1/K1/OCt 真身 ./ConversationCommandLedger，见上方 K1 墓碑与导入面） */
 function ConversationPane({
   paneId: e,
   sessionId: t,
