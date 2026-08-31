@@ -76,7 +76,7 @@ export function isProviderNotInRegistryFailure(e: { status?: string; reasonCode?
   return e?.status === `failed` && e.reasonCode === `provider.notInRegistry`;
 }
 /** 原 iwt（js 119220）：队列项 → 撤回编辑草稿（compact 项 null；R0 120282 消费） */
-export function buildQueueItemEditDraft(e: { revision: number; queue: { items: Array<{ queueItemId: string; sourceCommandId?: string; kind: string; text: string; attachments: Array<Record<string, unknown>> }> } }, t: string): object | null { // 〔A1-P1〕型缝：queue 快照最小消费面；返回面宽化（R0 域消费留批）
+export function buildQueueItemEditDraft(e: { revision: number; queue: { items: Array<{ queueItemId: string; sourceCommandId?: string; kind: string; text: string; attachments: Array<Record<string, unknown>> }> } }, t: string): { baseRevision: number; queueItemId: string; sourceCommandId?: string; inputKind: string; text: string; attachments: Array<Record<string, unknown>> } | null { // 〔A1-P1-B3〕型缝宽化：返回面由 object 收敛为撤回编辑草稿真面（baseRevision/sourceCommandId/inputKind/text/attachments，R0 120290–120310 消费）
   let n = e.queue.items.find((e) => e.queueItemId === t);
   return !n || n.kind === `compact`
     ? null
