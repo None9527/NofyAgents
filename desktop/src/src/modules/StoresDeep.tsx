@@ -304,7 +304,7 @@ export interface TokenUsage {
 
 /* --- H.1 供应商域（40397–40744） --- */
 
-/** 原 bw/hNe（40397/40406）：供应商 → 上报主机名归一（zai 族→z.ai；bigmodel 族→bigmodel；zapi 保留） */
+/** 原 bw/hNe（40445/40454；A1-R31 行号更正：旧注 40397/40406 为 -48 漂移误引，实测 styles 40445/40454）：供应商 → 上报主机名归一（zai 族→z.ai；bigmodel 族→bigmodel；zapi 保留） */
 export function resolveTelemetryProviderHost(providerId: string | null | undefined): string {
   const id = providerId ?? "";
   return id === "zai" || id === PROVIDER_IDS.zai || isZaiPlanFamily(id)

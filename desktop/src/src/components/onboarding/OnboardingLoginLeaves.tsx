@@ -253,7 +253,7 @@ import { MemoizedWorkspaceRoot, type WorkspaceServices } from '../../modules/Wor
 import { extractErrorMessage as normalizeConnectionError, type FeedbackService } from '../../modules/FeedbackCenter'; // A1-R7：MC=extractErrorMessage 改指（原 normalizeConnectionError declare）
 import { type MobileHomeResult, type WebRemoteSwitcherService } from '../../modules/WebRemote';
 import { ConversationTelemetrySupervisor, registerBaseServices, syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指 + A1-R8：Ks@4164（async (e) => await vse(e)，vse@4237）= syncProviderRegistryAndReturn 改指
-import { reportTelemetry as trackTelemetryEvent, normalizeCaptchaCode as messageErrorCodeOverride } from '../../modules/StoresDeep'; // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）。A1-R12：原 Cw（40570）私有转录删除 → 别名改指 StoresDeep normalizeCaptchaCode（本批改回逐字 stub；DM 调用点逐字不变）
+import { reportTelemetry as trackTelemetryEvent, normalizeCaptchaCode as messageErrorCodeOverride, resolveTelemetryProviderHost } from '../../modules/StoresDeep'; // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）。A1-R12：原 Cw（40570）私有转录删除 → 别名改指 StoresDeep normalizeCaptchaCode（本批改回逐字 stub；DM 调用点逐字不变）。〔A1-R31〕+resolveTelemetryProviderHost（bw 40445/hNe 40454 canonical，StoresDeep@308）：telemetryLoginProviderName declare 收敛改指，见下墓碑
 import { mergeRemoteLogProgressEntry as appendRemoteLog, stripRemoteLogPrefixes as normalizeRemoteLogMessage } from '../remote/RemoteGapSegments'; // A1-R8：hEt@123747=stripRemoteLogPrefixes、vEt@123762=mergeRemoteLogProgressEntry 改指（环安全：RemoteGapSegments 仅 import React/button/RemoteWizard/Modals/SrcSharedA/B/stores-core，不反入 onboarding）
 import { useSettingsStore } from '../../modules/stores-core';
 import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSources as isModelProviderSnapshotHydrated, hasActiveEntitlement } from '../../modules/UsageDeep'; // A1-R11：fM（52681）/pM（52684）改指 canonical（components/usage/UsageDeep.tsx 注册表，返回 ModelProvider[]——fetcher 证据 78266/78272/206174/209921 = modelProviderService.getAllCached/getAll）；4757 消费点经 ModelProviderRecord any 索引面双变可赋。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical；declare hasPlanEntitlement 收敛改指，见下墓碑）
@@ -847,7 +847,7 @@ declare function familyDomainOfProviderId(providerId: string): "zai" | "bigmodel
 declare function isProviderEnabledForFamily(provider: ModelProviderRecord): boolean;
 declare function resolveFamilyDomainAfterLogout(options: { currentDomain: string | null | undefined; modelProviders: ModelProviderRecord[] }): string | null;
 declare function persistProviderFamilyDomain(settingService: SettingServiceLike, domain: string): Promise<void>;
-declare function telemetryLoginProviderName(provider: string): string | null;
+/* ── tombstone〔A1-R31〕：declare telemetryLoginProviderName（原 bw）删除 → 改指 StoresDeep resolveTelemetryProviderHost（bw 真身：styles 40445，q=PROVIDER_IDS declare 面 + tr≡isZaiPlanProviderId 消费；StoresDeep@308 A0 实体逐字同构，含 ??`` 空串型缝；消费 @3791 改指，@3841/@3848 面不变。负证据：bundle 内 bw 唯一真身）。 ── */
 
 /* --- quota / captcha 助手（i8t 断言消费，它族已建）--- */
 /* ── tombstone（A1-P1-B2）：declare resolveQuotaBannerModel（原 I0，js 118978）/ quotaDismissKey（原 L0，js 119069）
@@ -3788,7 +3788,7 @@ export async function applyOAuthCallbackSuccess(options: {
   setUser: (user: UserInfo | null) => void;
   setOAuthError: (error: string | null) => void;
 }): Promise<void> {
-  const telemetryProvider = telemetryLoginProviderName(options.result.provider);
+  const telemetryProvider = resolveTelemetryProviderHost(options.result.provider); // 〔A1-R31〕bw 收敛改指（原 declare telemetryLoginProviderName，见 @850 墓碑）
   (options.setUser(options.result.userInfo),
     options.setOAuthError(null),
     await options.setProviderFamilyDomain(options.result.provider));

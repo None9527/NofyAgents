@@ -15,6 +15,7 @@ import { useConfirmDialog } from '../../modules/Modals';
 import { useSettingsStore as useAppPreferenceStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppPreferenceStore=useSettingsStore（symbol-index x6）；选择器面 1512–1516 五字段（requestLoginEntry/setUser/oauthError/setOAuthError/markModelProviderFamilyConnectionTransition）= SettingsState 实有字段（bundle 192134–192138 同面）。环安全：stores-core 值闭包不达 components/settings
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { isStartPlanProviderId as isStartPlanPreset, providerIds as PROVIDER_IDS } from '../../modules/SrcSharedA'; // Bn / q=mo
+import { resolveTelemetryProviderHost } from '../../modules/StoresDeep'; // 〔A1-R31〕hNe 40454（= bw 40445 直通）：telemetryPresetId declare 收敛改指，见下墓碑。环安全：StoresDeep 已在本文件 import 闭包内（ConversationLeaves@133），其值闭包不反达 components/settings（grep 实证）
 import {
   resolveProviderFamilyMode as familyModeOf, // zi
   getOAuthProviderFamilyByProviderId as familyDescriptorOf, // ot
@@ -130,7 +131,7 @@ declare function trackEvent(
   },
   scope: string
 ): Promise<void>; // xw
-declare function telemetryPresetId(presetId: string): string; // hNe
+/* ── tombstone〔A1-R31〕：declare telemetryPresetId（原 hNe）删除 → 改指 StoresDeep resolveTelemetryProviderHost（hNe 真身：styles 40454 `return bw(e)` 直通形 ≡ bw 40445 canonical；消费 @543 改指。负证据：bundle 内 hNe 唯一真身）。 ── */
 
 /* --- stores / hooks（本 chunk 或跨 chunk） --- */
 
@@ -539,7 +540,7 @@ async function trackAddModelSuccess(opts: { platform: PlatformService; presetId:
       eventType: "ck",
       eventExtraDetail: {
         login_default: "1",
-        model_provider: telemetryPresetId(opts.presetId),
+        model_provider: resolveTelemetryProviderHost(opts.presetId), // 〔A1-R31〕hNe 收敛改指（原 declare telemetryPresetId，见 @134 墓碑）
       },
     },
     "ModelProviderSection"

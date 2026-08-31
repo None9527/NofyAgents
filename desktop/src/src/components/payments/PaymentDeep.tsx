@@ -99,7 +99,7 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
 // 改接 Home §U.8 逐字真身（bundle WUe 53313/RM 53328/zM 53349 唯一真身；RM/zM 分流依据见原 declare 位墓碑）。
 // 环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用）。
 import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect, teamSourceOrganizationLabel } from '../../modules/Home'; // 〔A1-R28〕+teamSourceOrganizationLabel（Lq 77476 逐字 canonical；teamOrganizationLabelOf A0 副本删除改指，见下墓碑）。环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用），本行不新增环边
-import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。环安全：SrcSharedB 值闭包不达 components/payments
+import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily, isObjectRecord, normalizeProviderId, listProviderModelIds, mapModelFormatToKind, resolveModelSupportedKinds, resolveProviderKindEndpointUrl, listEndpointKinds } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。〔A1-R31〕+base family 七件（nt/gt/an/Ai/Wr/Ir/Sr ≡ tu/eu/ou/ru/Tu/vu/yu ≡ SrcSharedB §1 逐字实体）：七 declare 收敛改指，见下墓碑。环安全：SrcSharedB 值闭包不达 components/payments
 import { isStartPlanProviderId, isZaiPlanProviderId, GLM_MODEL_IDS } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。〔A1-R30〕+isZaiPlanProviderId（tr ≡ vl 4753 ≡ SrcSharedA@2022）：isOAuthFamilyProvider/isZaiCodingPlanProvider 双 tr 脸收敛改指，见各墓碑。环安全：SrcSharedA 值闭包不达 components/payments
 import type { TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）
 import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 52651 收敛型缝所依（A6e/j6e/M6e/N6e 快照流由 unknown 精化，行依据见各函数注）
@@ -163,13 +163,13 @@ declare function modelEntryOf(value: string): { providerId?: string; modelName?:
  *    `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412 formatCustomModelId，modules/SkillStore@169 转导出）。
  *    消费面实测：@619（l6e modelItemsOfProvider）/ @1316（Z6e retargetModelValue）/ @1353（$6e
  *    reconcileConfigOptionsModel）改名改指。负证据：bundle 内 we 无第二真身。 ── */
-declare function modelKindsOfProvider(provider: ModelProvider): string[]; // Ai
-declare function formatsOfModelName(args: { provider: ModelProvider; modelName: string }): string[]; // Wr
-declare function normalizeFormat(format: string): string | null; // an
-declare function isModelEntry(value: unknown): value is Record<string, unknown>; // nt
-declare function modelIdOfEntry(entry: Record<string, unknown>): string; // gt
-declare function endpointsOfProvider(provider: ModelProvider): string[]; // Sr
-declare function formatsOfEndpoints(provider: ModelProvider, format: string): unknown[]; // Ir
+/* ── tombstone〔A1-R31〕：base family 七 declare 删除 → 改指 SrcSharedB §1 canonical（链：styles 441/455/498/802/597/583/569 ← src 9668/9683/9728/10042/9832/9818/9802 ≡ tu/eu/ou/ru/Tu/vu/yu，链闭合；体逐字同形，校验器新段取证）。
+ *    nt isModelEntry→isObjectRecord（SrcSharedB@659；消费 @553/@561/@563）｜gt modelIdOfEntry→normalizeProviderId（@654；消费 @1142）｜an normalizeFormat→mapModelFormatToKind（@685；消费 @566/@586/@9435；@566 型缝 !== null→!= null：canonical 返回含 undefined 面，真值表逐字等价）
+ *    Ai modelKindsOfProvider→listProviderModelIds（@669；消费 @569/@571/@9432）｜Wr formatsOfModelName→resolveModelSupportedKinds（@915；消费 @565/@573/@9434，对象参 {provider, modelName} 与 Tu 同形）
+ *    Ir formatsOfEndpoints→resolveProviderKindEndpointUrl（@862；消费 @587/@9436；canonical 返回 string（种类端点 URL），消费面 .length>0 与 bundle Ir 面逐字同效）
+ *    Sr endpointsOfProvider→listEndpointKinds（@869；消费 @581/@9478 改传 provider.endpoints）
+ *    Sr 签名分歧定形：yu 真身参为端点对象 {baseURL?, paths?}（src 5083 体取证），bundle 消费形 Sr(e.endpoints) 实证 o6e 77532/lrt 88525/HYt 188211；树 declare 单 provider 参形为 A0 误读面，同批收敛对齐，分歧一次闭合
+ *    负证据：bundle 内 tu/eu/ou/ru/Tu/vu/yu 各唯一真身；外部消费 118305（Ir）/120695（Ai）/188211（Sr+nt）/188652（nt）域留批。 ── */
 declare function isProviderConfigurable(provider: ModelProvider): boolean; // gi
 declare function isPresetProviderId(id: string): boolean; // jt
 declare function teamPlanKeyOf(args: { productId?: string | null; organizationId?: string | null; projectId?: string | null }): string; // vi
@@ -550,7 +550,7 @@ export function agentModelFormatsOf(agent: string): string[] | null {
 
 /** 原 a6e（77515 区）：模型条目 modified 布尔守卫 */
 export function isModelEntryWithModified(entry: unknown): boolean {
-  return isModelEntry(entry) && ((entry as any).modified === !1 || (entry as any).modified === !0);
+  return isObjectRecord(entry) && ((entry as any).modified === !1 || (entry as any).modified === !0);
 }
 
 /** 原 Rq（77518 区）：agent 可用模型（格式过滤+kind 重定向） */
@@ -558,19 +558,19 @@ export function modelsForAgent(agent: string, provider: ModelProvider): string[]
   const formats = agentModelFormatsOf(agent),
     known = new Set(GLM_MODEL_IDS),
     isAllowed = (format: string) =>
-      isStartPlanProviderId(provider.id) ? known.has(format) || provider.models.some((model) => isModelEntry(model) && (model as any).id.trim() === format && isModelEntryWithModified(model)) : !0,
+      isStartPlanProviderId(provider.id) ? known.has(format) || provider.models.some((model) => isObjectRecord(model) && (model as any).id.trim() === format && isModelEntryWithModified(model)) : !0,
     retarget = (format: string) => {
-      const entry = provider.models.find((model) => isModelEntry(model) && (model as any).id.trim() === format);
+      const entry = provider.models.find((model) => isObjectRecord(model) && (model as any).id.trim() === format);
       if (!entry) return format;
-      const entryFormats = formatsOfModelName({ provider, modelName: format });
-      const matched = (formats ?? entryFormats).map(normalizeFormat).find((normalized) => normalized !== null && ((entry as any).kinds as string[]).includes(normalized));
-      return (matched && ((entry as any).modelIdByKind as Record<string, string> | undefined)?.[matched]?.trim()) || format;
+      const entryFormats = resolveModelSupportedKinds({ provider, modelName: format });
+      const matched = (formats ?? entryFormats).map(mapModelFormatToKind).find((normalized) => normalized != null && ((entry as any).kinds).includes(normalized)); // 〔A1-R31〕型缝：canonical mapModelFormatToKind 返回面含 undefined，!== null→!= null（真值表逐字等价，见 @166 墓碑）；kinds 面 string[] cast 随 nt 谓词收窄删除移出
+      return (matched && ((entry as any).modelIdByKind)?.[matched]?.trim()) || format; // 〔A1-R31〕modelIdByKind 面 cast 随 nt 谓词收窄删除移出
     },
-    all = modelKindsOfProvider(provider).filter(isAllowed).map(retarget);
+    all = listProviderModelIds(provider).filter(isAllowed).map(retarget);
   return formats
-    ? modelKindsOfProvider(provider).flatMap((format) => {
+    ? listProviderModelIds(provider).flatMap((format) => {
         if (!isAllowed(format)) return [];
-        const entryFormats = formatsOfModelName({ provider, modelName: format });
+        const entryFormats = resolveModelSupportedKinds({ provider, modelName: format });
         return formats.some((wanted) => entryFormats.includes(wanted)) ? [retarget(format)] : [];
       })
     : all;
@@ -578,13 +578,13 @@ export function modelsForAgent(agent: string, provider: ModelProvider): string[]
 
 /** 原 o6e（77541 区）：凭据就绪（apiKey 或预设端点） */
 export function hasProviderCredentials(provider: ModelProvider): boolean {
-  return provider.apiKey.trim().length > 0 ? !0 : isZaiPlanProviderId(provider.id) ? endpointsOfProvider(provider).length > 0 : !1;
+  return provider.apiKey.trim().length > 0 ? !0 : isZaiPlanProviderId(provider.id) ? listEndpointKinds(provider.endpoints).length > 0 : !1; // 〔A1-R31〕Sr 收敛：参改 provider.endpoints（yu 真身签名，见 @166 墓碑）
 }
 
 /** 原 s6e（77544 区）：供应商支持单格式 */
 export function providerSupportsFormat(provider: ModelProvider, format: string): boolean {
-  const normalized = normalizeFormat(format);
-  return normalized ? formatsOfEndpoints(provider, normalized).length > 0 : !1;
+  const normalized = mapModelFormatToKind(format);
+  return normalized ? resolveProviderKindEndpointUrl(provider, normalized).length > 0 : !1;
 }
 
 /** 原 zq（77548 区）：任一格式支持 */
@@ -1139,7 +1139,7 @@ export function normalizeModelMetadata(provider: ModelProvider) {
     .map((model) => ({
       contextWindow: positiveIntegerOrNull((model as any).contextWindow),
       maxOutputTokens: positiveIntegerTokensOrNullSafe((model as any).maxOutputTokens),
-      modelId: modelIdOfEntry(model as Record<string, unknown>),
+      modelId: normalizeProviderId(model as Record<string, unknown>),
       ...((model as any).reasoning ? { reasoning: (model as any).reasoning } : {}),
       ...((model as any).supportsStructuredOutput === void 0
         ? {}
@@ -9429,11 +9429,11 @@ function customSourceIdOf(providerId: string) {
 
 // lX → isCustomProviderReady（本地 88466）
 function isCustomProviderReady(provider: any) {
-  const kinds = modelKindsOfProvider(provider);
+  const kinds = listProviderModelIds(provider);
   const hasFormatEndpoint = kinds.some((kind: any) =>
-    formatsOfModelName({ provider: provider, modelName: kind }).some((format: any) => {
-      const normalized = normalizeFormat(format);
-      return normalized ? formatsOfEndpoints(provider, normalized).length > 0 : false;
+    resolveModelSupportedKinds({ provider: provider, modelName: kind }).some((format: any) => {
+      const normalized = mapModelFormatToKind(format);
+      return normalized ? resolveProviderKindEndpointUrl(provider, normalized).length > 0 : false;
     }),
   );
   return provider.apiKey.trim().length > 0 && kinds.length > 0 && hasFormatEndpoint;
@@ -9475,7 +9475,7 @@ function providerEntryIconOf(item: any) {
 // lrt → codingPlanEntryStatusOf（本地 88501）
 function codingPlanEntryStatusOf({ provider, entitlement, modelProvidersLoading }: any) {
   const zaiCoding = !!(provider && isZaiPlanProviderId(provider.id));
-  const ready = !!(provider && (isCustomProviderReady(provider) || (zaiCoding && endpointsOfProvider(provider).length > 0 && provider.models.length > 0)));
+  const ready = !!(provider && (isCustomProviderReady(provider) || (zaiCoding && listEndpointKinds(provider.endpoints).length > 0 && provider.models.length > 0))); // 〔A1-R31〕Sr 收敛：参改 provider.endpoints（yu 真身签名，见 @166 墓碑）
   if (!ready && modelProvidersLoading)
     return {
       status: `checking`,
