@@ -99,12 +99,12 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
 // 改接 Home §U.8 逐字真身（bundle WUe 53313/RM 53328/zM 53349 唯一真身；RM/zM 分流依据见原 declare 位墓碑）。
 // 环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用）。
 import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect, teamSourceOrganizationLabel } from '../../modules/Home'; // 〔A1-R28〕+teamSourceOrganizationLabel（Lq 77476 逐字 canonical；teamOrganizationLabelOf A0 副本删除改指，见下墓碑）。环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用），本行不新增环边
-import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily, isObjectRecord, normalizeProviderId, listProviderModelIds, mapModelFormatToKind, resolveModelSupportedKinds, resolveProviderKindEndpointUrl, listEndpointKinds, isProviderEnabled, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。〔A1-R31〕+base family 七件（nt/gt/an/Ai/Wr/Ir/Sr ≡ tu/eu/ou/ru/Tu/vu/yu ≡ SrcSharedB §1 逐字实体）：七 declare 收敛改指，见下墓碑。〔A1-R32〕+isProviderEnabled（gi ≡ ko ≡ 612）/buildCodingPlanScope（vi ≡ mt ≡ Wb）/parseCodingPlanScope（li ≡ gt ≡ Gb）/codingPlanScopesOverlap（fi ≡ ht ≡ Kb）：残件四 declare 收敛改指，见各墓碑。环安全：SrcSharedB 值闭包不达 components/payments
+import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily, isObjectRecord, normalizeProviderId, listProviderModelIds, mapModelFormatToKind, resolveModelSupportedKinds, resolveProviderKindEndpointUrl, listEndpointKinds, isProviderEnabled, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, buildStableModelId, nativeProviderRef, resolveProviderRefFromCustomModelRef } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。〔A1-R31〕+base family 七件（nt/gt/an/Ai/Wr/Ir/Sr ≡ tu/eu/ou/ru/Tu/vu/yu ≡ SrcSharedB §1 逐字实体）：七 declare 收敛改指，见下墓碑。〔A1-R32〕+isProviderEnabled（gi ≡ ko ≡ 612）/buildCodingPlanScope（vi ≡ mt ≡ Wb）/parseCodingPlanScope（li ≡ gt ≡ Gb）/codingPlanScopesOverlap（fi ≡ ht ≡ Kb）：残件四 declare 收敛改指，见各墓碑。〔A1-R33〕+buildStableModelId（bne ≡ q ≡ Fx 8857 ≡ stableIds §28）/nativeProviderRef（On ≡ M ≡ cS 8981）/resolveProviderRefFromCustomModelRef（In ≡ N ≡ uS 8987）（§28/§31/§32 实体已迁 lib/，SrcSharedB@475 具名转导出）：三 declare 收敛改指，见各墓碑。环安全：SrcSharedB 值闭包不达 components/payments
 import { isStartPlanProviderId, isZaiPlanProviderId, GLM_MODEL_IDS, providerIds, isBuiltinProviderId, isGlmAgentCliProvider } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。〔A1-R30〕+isZaiPlanProviderId（tr ≡ vl 4753 ≡ SrcSharedA@2022）：isOAuthFamilyProvider/isZaiCodingPlanProvider 双 tr 脸收敛改指，见各墓碑。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）/isBuiltinProviderId（jt ≡ Eo ≡ _l 4833）/isGlmAgentCliProvider（Ei ≡ us ≡ Ds 3844）：q 实体化 + 残件双 declare 收敛改指，见各墓碑。环安全：SrcSharedA 值闭包不达 components/payments
 import type { TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）
 import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 52651 收敛型缝所依（A6e/j6e/M6e/N6e 快照流由 unknown 精化，行依据见各函数注）
 import { Input, PopoverContent, toast } from '../../modules/ImeComposition';
-import { logger, formatCustomModelId, parseCustomModelId } from '../../modules/SkillStore'; // 〔A1-R28〕+formatCustomModelId（we 真身：styles 404 `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412，SkillStore@169 转导出；StoresDeep@147 joinModelName 别名先例）：composeModelValue declare 收敛改指，见下墓碑。〔A1-R32〕+parseCustomModelId（se 真身：styles 386 `O as se` ← skillStore-BmeKHDBI.js 导出 2497 `D as O` ≡ D 903 ≡ taskStore@1418，SkillStore 转导出）：modelEntryOf declare 收敛改指，见下墓碑
+import { logger, formatCustomModelId, parseCustomModelId, getCurrentModelValue } from '../../modules/SkillStore'; // 〔A1-R28〕+formatCustomModelId（we 真身：styles 404 `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412，SkillStore@169 转导出；StoresDeep@147 joinModelName 别名先例）：composeModelValue declare 收敛改指，见下墓碑。〔A1-R32〕+parseCustomModelId（se 真身：styles 386 `O as se` ← skillStore-BmeKHDBI.js 导出 2497 `D as O` ≡ D 903 ≡ taskStore@1418，SkillStore 转导出）：modelEntryOf declare 收敛改指，见下墓碑。〔A1-R33〕+getCurrentModelValue（Ie 真身：styles 416 `w as Ie` ← skillStore-BmeKHDBI 导出 2527 `I as w` ≡ I 982 ≡ taskStore@1543，SkillStore@262 转导出）：resolveModelCatalogEntry declare 收敛改指，见下墓碑
 import { useSettingsStore as useAppStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
 import { formatGrantUnits, useBillingDiscount, BillingDiscountCard, RegionLogo, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, hasActiveEntitlement } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical，declare hasActiveEntitlementCore 收敛改指，见下墓碑）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）。A1-R21：+RegionLogo（原 Tq 76183 收敛，见下墓碑）。〔A1-R23〕SidebarCodingPlanWidget/SidebarStartPlanWidget（s3e/v3e）/hasPlanWidgetModel（i3e）/hasStartPlanBalance（g3e）/entryPlanStateOf（IM）移出——消费面 §1/§9 死簇同批删除；Oq/i3e/g3e 真身裁定见 components/usage/UsageDeep.tsx 墓碑（Home §U.3/§V 逐字 canonical）
 import { useServices } from '../../modules/services';
@@ -179,13 +179,13 @@ declare const usePlatformService: () => TelemetryPlatform & { openExternal(url: 
  *    styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555 `return t?.[e] ?? \`oauth\``，链闭合）。
  *    消费面实测：@787（_6e resolveFamilyDefaultOption 内）≡ bundle 77699，改名改指。
  *    负证据：bundle 内 zi 无第二真身（其余消费面分流见 Home 侧 zi 墓碑）。 ── */
-declare function resolveModelCatalogEntry(value: string): unknown; // Ie
-declare function settingsConfigOptionsOf(settings: unknown): unknown[]; // Ng
-declare function workspaceTargetKeyOf(target: { workspacePath: string; workspaceIdentity?: string | null }): string; // Ti
-declare function syncProviderRegistryToWorkspace(args: Record<string, unknown>): Promise<Record<string, any>>; // Ks
-declare function proxyModelValueOf(providerId: string, modelName: string): string; // bne
-declare function defaultSupplierKeyOf(provider: string): string | null; // On
-declare function supplierKeyOfModel(configOptions: unknown, model: string): string | null; // In
+/* ── tombstone〔A1-R33〕：declare resolveModelCatalogEntry（原 Ie）删除 → 改指 taskStore@1543 getCurrentModelValue（SkillStore 转导出；Ie 真身：styles 416 `w as Ie` ← skillStore-BmeKHDBI 导出 2527 `I as w` ≡ I 982，与 taskStore 实体逐字同形；链闭合；SkillStore@143 `w=I getCurrentModelValue(Ie)` 登记在案。消费 @1334 改名改指 + `as unknown as string` 误铸剥离（canonical 参为选项数组，bundle $6e 78091 `Ie(e)` e=configOptions 实证）。 ── */
+declare function settingsConfigOptionsOf(settings: unknown): unknown[]; // Ng〔A1-R33 留批〕真身 = styles-local 24440-24494（非 import 符）；形似 jx≡SrcSharedB@5425 buildSessionSettingsViewModel 但 thoughtLevel 支政策异（Ng `Nge(e.thoughtLevel) ?? \`\`` vs jx current??defaultLevel??[0]?.value??`` + Set 裁决），真身归属待裁，不强收；本树零消费，负证据在案
+/* ── tombstone〔A1-R33〕：declare workspaceTargetKeyOf（原 Ti）删除（本树零消费死 declare；Ti 真身：styles 778 `to as Ti` ← src 10018 `ip as to` ≡ ip 6913 ≡ SrcSharedB@3079 automationsWorkspaceKey「原 ip（jsx 7034 / js 6913）」，体逐字同形，链闭合；bundle 消费 4174/4230/4238/78124/128564/136105/137110/137242/138988/139095 属他域）。 ── */
+/* ── tombstone〔A1-R33〕：declare syncProviderRegistryToWorkspace（原 Ks）删除（本树零消费死 declare；Ks 真身：styles 4164 `async (e) => await vse(e)` ≡ services/providerRegistrySync syncProviderRegistryAndReturn，OLL@255 A1-R8 改指先例 + ConversationPaneCore@22 登记在案，链闭合；bundle 消费 78137/78327/120417 属他域）。 ── */
+/* ── tombstone〔A1-R33〕：declare proxyModelValueOf（原 bne）删除 → 改指 lib/stableIds@23 buildStableModelId（bne 真身：styles 752 `q as bne` ← src 9991 `Fx as q` ≡ Fx 8857 ≡ stableIds「原 Fx（jsx 8967 / js 8857）」逐字同形，链闭合；消费 @1326 改名改指（try/catch 守卫面与 bundle Q6e 78085 同形）。负证据：styles q 符三用——725 mo（providerIds）/752 Fx（本件）/213969 po 遮蔽，各属别 import 块。 ── */
+/* ── tombstone〔A1-R33〕：declare defaultSupplierKeyOf（原 On）删除 → 改指 lib/providerRefs@52 nativeProviderRef（On 真身：styles 521 `M as On` ← src 9752 `cS as M` ≡ cS 8981 ≡ providerRefs「原 cS（jsx 9100 / js 8981）」逐字同形 `native:${e}`，链闭合；taskStore@6 `nativeProviderRef as formatNativeSupplierKey` 别名先例在案。消费 @1251 改名改指；型缝：canonical 返 string，原契据 string | null，消费面 supplierKey 联合字段宽化兼容。 ── */
+/* ── tombstone〔A1-R33〕：declare supplierKeyOfModel（原 In）删除 → 改指 lib/providerRefs@62 resolveProviderRefFromCustomModelRef（In 真身：styles 529 `N as In` ← src 9760 `uS as N` ≡ uS 8987 ≡ providerRefs「原 uS（jsx 9106 / js 8987）」逐字同形，链闭合。消费 @1218 改名改指 + 参形定形：bundle H6e 78003 `In(t, n)` t=provider/n=currentModelValue，A0 误录首参 configOptions，见 supplierKeyOfConfigOptions 行注。 ── */
 /* ── tombstone（A1-R23）：declare shortcutOf（ea）/ctrlShiftShortcutOf（zre）删除——唯一消费面 §3
  *    resolveToolbarShortcut/useToolbarShortcuts（Q3e/$3e A0 副本）同批删除；真身 = Home §T
  *    resolveComposerToolbarShortcutAction/useComposerToolbarShortcuts 逐字（快捷键判定内联同构）。 ── */
@@ -224,7 +224,7 @@ declare const BIGMODEL_REGION_ID: string; // Ri
  *    iit 工具条域 store 选择器族，消费面 §9 iit/Xrt 死簇同批删除（此前已零消费，负证据在案）；
  *    真身 = Home §U.10 ComposerConfigToolbarBody 逐字（其 useTabStoreSelector/useCatalogConfigOptions 等
  *    消费面经 Home §0 declare 分层）。 ── */
-/** 模型供应商缓存模块助手（fM/mM/gM/pM/hM/_M，F12 域模块态，接口级） */
+/** 模型供应商缓存模块助手（fM/mM/gM/pM/hM/_M，F12 域模块态，接口级）〔A1-R33 留批〕真身 = styles-local 52675-52745 模块态（oM/sM/cM/lM/uM/dM + MUe/NUe/PUe），树内未转录，需新实体化重件，不强收；本树零消费（六 declare 全量 grep 负证据在案），bundle 消费 52745/78193-78281/90281/206174/209921/209926 属他域 */
 declare function listCachedProviders(): ModelProvider[]; // fM
 declare function publishProviders(providers: ModelProvider[], opts?: { invalidateInFlightRefresh?: boolean }): void; // mM
 declare function refreshProviders(getter: () => Promise<ModelProvider[]>): Promise<void>; // gM
@@ -1213,9 +1213,9 @@ export function isGhostModelValue(value: string) {
 }
 
 /** 原 H6e（77979 区）：配置选项 → 任务供应商键 */
-export function supplierKeyOfConfigOptions(configOptions: ConfigOptionEntry[] | undefined, modelValue: string) {
+export function supplierKeyOfConfigOptions(configOptions: ConfigOptionEntry[] | undefined, provider: string) { // 〔A1-R33〕二参定形：bundle H6e(e, t) 次参 t=provider（W6e 78017 `H6e(e.configOptions, t)` t=taskProvider 实证），A0 误名 modelValue/误传 configOptions，同批对齐
   const current = currentModelValueOf(configOptions);
-  return current ? supplierKeyOfModel(configOptions, current) : null;
+  return current ? resolveProviderRefFromCustomModelRef(provider, current) : null;
 }
 
 /** 原 U6e（77983 区）：活动任务供应商 */
@@ -1248,7 +1248,7 @@ export function resolveTaskProviderAndSupplier(context: {
         : { provider: taskProvider, supplierKey: context.selectedSupplierKey }
       : supplierKey
         ? { provider: taskProvider, supplierKey }
-        : { provider: taskProvider, supplierKey: defaultSupplierKeyOf(taskProvider) };
+        : { provider: taskProvider, supplierKey: nativeProviderRef(taskProvider) };
 }
 
 /** 原 G6e（78006 区）：当前模型值 */
@@ -1323,7 +1323,7 @@ export function modelValuesMatchForAgent(left: string, right: string, originalVa
     const catalog = parseCustomModelId(originalValue.trim());
     if (catalog?.providerId && catalog.modelName)
       try {
-        if (right === proxyModelValueOf(catalog.providerId, catalog.modelName)) return !0;
+        if (right === buildStableModelId(catalog.providerId, catalog.modelName)) return !0;
       } catch {}
   }
   return !1;
@@ -1331,7 +1331,7 @@ export function modelValuesMatchForAgent(left: string, right: string, originalVa
 
 /** 原 $6e（78058 区）：配置选项模型值调和 */
 export function reconcileConfigOptionsModel(configOptions: ConfigOptionEntry[] | undefined, nextOptions: ConfigOptionEntry[], agent: string) {
-  const catalog = resolveModelCatalogEntry(configOptions as unknown as string);
+  const catalog = getCurrentModelValue(configOptions);
   if (!catalog) return [...nextOptions];
   const currentValue = String(configOptions?.find((option) => option.category === `model` && option.type === `select`)?.currentValue ?? ``);
   let changed = !1;
@@ -1347,7 +1347,7 @@ export function reconcileConfigOptionsModel(configOptions: ConfigOptionEntry[] |
           crossProvider = !!(currentCatalog?.providerId && optionCatalog?.providerId) && currentCatalog?.providerId !== optionCatalog?.providerId;
         let next: string | null = null;
         return (
-          !next && agent === `claude` && parseCustomModelId(currentValue)?.providerId && isClaudeAliasModel(option as unknown as string) && (next = currentValue.trim()),
+          !next && agent === `claude` && parseCustomModelId(currentValue)?.providerId && isClaudeAliasModel(trimmed) && (next = currentValue.trim()), // 〔A1-R33〕参形定形：bundle $6e 78107 `Y6e(t)` t=option.currentValue.trim() 实证，A0 误传 option 对象（as unknown as string 铸），同批对齐
           !next && !crossProvider && currentCanonical && optionCanonical && modelValuesMatchForAgent(currentCanonical, optionCanonical, currentValue, agent)
             ? (next = retargetModelValue(currentValue, optionCanonical))
             : currentCatalog?.providerId && !currentCatalog.modelName && optionCanonical && (next = formatCustomModelId(currentCatalog.providerId, optionCanonical)),

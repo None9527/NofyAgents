@@ -1540,7 +1540,7 @@ function isQualifiedProviderModel(provider: string, modelValue: string): boolean
 }
 
 /** 原 I（jsx 958）：当前模型值（导出 w）。 */
-function getCurrentModelValue(options: ConfigOption[]): string | null {
+function getCurrentModelValue(options: any): string | null { // 〔A1-R33〕型缝：参 ConfigOption[]→any 宽化（PD reconcileConfigOptionsModel 传 ConfigOptionEntry[] | undefined；bundle I 982 无型契，findModelSelectOption 消费面不变）
   const modelOption = findModelSelectOption(options);
   return !modelOption || typeof modelOption.currentValue != `string` || modelOption.currentValue.length === 0 ? null : modelOption.currentValue;
 }
