@@ -129,7 +129,7 @@ import { useSessionRegistryStore, type BaseServices } from '../../modules/stores
 import { formatRelativeTime } from '../../modules/SidePanel'; // $S
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
-import { resolveCodingPlanUsageRemaining as resolveUsageState, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除
+import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上述 chunk；此处为重建接口）
@@ -391,11 +391,10 @@ declare function resolveTeamSources(args: {
   subscribedTeamProducts: Array<{ [key: string]: unknown }>;
 }): TeamSource[]; // pX
 interface TeamSource { id: string; providerId: string; label?: string; organizationId?: string; projectId?: string; [key: string]: unknown }
-declare function resolveUpgradeTargetSource(args: {
-  bigmodelSelectedKey?: string | null;
-  selectedProviderId: string | null;
-  teamSources: TeamSource[];
-}): { sourceId?: string; providerId?: string; audience?: "individual" | "team"; teamSource?: TeamSource } | null; // Mrt
+/* ── tombstone（A1-R26）：declare resolveUpgradeTargetSource（原 Mrt，89154–89170）删除 →
+ *    文件头 ../../modules/Home import 改接（canonical = Home §U.5 逐字真身，bundle Mrt 唯一真身；
+ *    终端消费实测：本文件 932 ≡ bundle 150329；负证据：bundle 内 Mrt 无第二定义）。
+ *    调用点逐字不变；型缝：真身参型/返回面按消费面推导（下游 960–996 兼容实测）。 ── */
 declare function useCodingPlanEntitlement(args: {
   enabled: boolean;
   includeSubscription: boolean;

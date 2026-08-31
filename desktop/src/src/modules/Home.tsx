@@ -179,6 +179,10 @@ export {
   resolveModelGroupLabel, // 〔A1-R25〕w6e 77856 实体化：SubagentLeaves findModelGroupItemLabel / ExtendedViews resolveModelGroupLabel 双 declare 收敛改接点
   parseLooseModelValue, // 〔A1-R25〕Mg 24406 收敛：SubagentLeaves parseModelRef declare 改接点（真身 §U.4，bundle 唯一真身）
   openSettingsUsageSection, // 〔A1-R25〕aw 39378 收敛：真身 §U.7 导出面同步（终端消费 Sidebar 直连 ./Home）
+  trackCodingPlanFunnelStart, // 〔A1-R26〕WUe 53313 实体化：PaymentDeep trackFunnelStart declare 收敛改接点
+  trackCodingPlanProductSelect, // 〔A1-R26〕RM 53328 实体化：PaymentDeep trackPlanSelectEvent 合并面分流改接点（5679/5716）
+  trackCodingPlanBillingCycleSelect, // 〔A1-R26〕zM 53349 实体化：PaymentDeep trackPlanSelectEvent 合并面分流改接点（5979/6012）
+  resolveUpgradeTargetSource, // 〔A1-R26〕Mrt 89154 实体化（裁量件）：SidebarLeaves resolveUpgradeTargetSource declare 收敛改接点
 } from '../components/shell/Home';
 export type {
   GreetingHeroProps,

@@ -338,7 +338,7 @@ export function resolveModelFullLabel({
 /* ── tombstone（A1-R25）：resolveModelTriggerLabelParts（原 nWe，styles jsx 48452 = js 53806–53828；
  *    A0 双实例叠层）删除——按既有判例（并行重建择一删除降 shim）：
  *    bundle 唯一真身 nWe 53806，唯一终端消费 iit 89777 ≡ 本树 Home declare resolveModelTriggerLabels
- *    （iit 逐字真身消费面 4676 ≡ bundle 89777，opaque 深依赖留批）；
+ *    （iit 逐字真身消费面 4879 ≡ bundle 89777，opaque 深依赖留批）；
  *    负证据：全树 grep 本函数零 import 消费者（PaymentDeep@80 仅墓碑注释提及，其消费面 R23 已删；
  *    modules/SettingsLeaves 转导出同批删除）。 ── */
 

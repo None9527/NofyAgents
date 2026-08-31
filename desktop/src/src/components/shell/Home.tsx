@@ -152,7 +152,8 @@ import { pathBasename } from '../../modules/ModalsLeaves';
 import { useCodingPlanUpgradeDialog, useCodingPlanUpgradeDialogOptional as useUpgradeActions } from '../../modules/PaymentDeep'; // A1-R23：原 fX（89100）declare 改指 canonical（components/payments/PaymentDeep 〔A1-R23〕补 export）；消费面 §U.10 ComposerConfigToolbarBody 4243 ≡ bundle 89522。〔A1-R24〕useUpgradeActions 别名并入：原 Art（89106）declare 收敛改接（消费面 1078 ≡ bundle 91644）。环安全：函数声明提升，渲染期调用（二环 Home→PaymentDeep shim→components/payments→modules/Home）
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
 import { create, logger, useTaskStore, parseCustomModelId, formatCustomModelId, filterNativeModelOptions, type ConfigOption } from '../../modules/SkillStore'; // A1-R18：+parseCustomModelId（原 D=se，skillStore 881/386 导入别名；§U Ee/k6e/D6e 消费）/formatCustomModelId（原 rt=we，skillStore 900；§U xe 消费）/filterNativeModelOptions（原 it=L，skillStore 906；§U _e 消费）
-import { providerBusinessI18nId, normalizeCaptchaCode, isEmptyModelResponse } from '../../modules/StoresDeep'; // A1-R13：lN 簇依赖改指（原 yNe 40497 / Cw 40570（stub）/ jNe 40573，§H 逐字真身）；环安全：StoresDeep 不反引本文件
+// 〔A1-R26〕§U.8 漏斗遥测族实体化：+reportTelemetry/TelemetryPlatform（原 xw 40457 ≡ StoresDeep@323 逐字，A1-R9 判例；环安全：StoresDeep 值闭包不达 components/shell）
+import { providerBusinessI18nId, normalizeCaptchaCode, isEmptyModelResponse, reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // A1-R13：lN 簇依赖改指（原 yNe 40497 / Cw 40570（stub）/ jNe 40573，§H 逐字真身）；环安全：StoresDeep 不反引本文件
 import { providerIds, isGlmModelId, GLM_REASONING_LEVELS, isBuiltinProviderId, isZaiPlanProviderId, isStartPlanProviderId } from '../../modules/SrcSharedA'; // A1-R18：+5 件（原 qn=Tl=Oo 4858 / ui=Sl=ho 4855 / jt=_l=Eo 4842 / tr=Po 4845 / HM=No 4848；§U zrt/Ee/GUe/IM 消费）
 import { useServices } from '../../modules/services';
 import { workspaceScopeKey } from '../../modules/stores-session';
@@ -429,12 +430,12 @@ declare function providerFamilyFromDomain(domain: string): string | null;
 declare function resolveProviderFamilyAuthMode(family: string, modes: Record<string, string> | undefined): string;
 
 /* ── tombstone（A1-R25）：declare buildCodingPlanFunnelContext（原 FM，ProviderPlanUsage 族）删除 →
- *    §U.8 逐字真身（bundle FM 53267–53276 唯一真身；终端消费实测：本文件 1123 ≡ bundle 91685、
+ *    §U.8 逐字真身（bundle FM 53267–53276 唯一真身；终端消费实测：本文件 1124 ≡ bundle 91685、
  *    139073 R0 域留批；负证据：bundle 内 FM 无第二定义）。调用点逐字不变。 ── */
-/** 遥测漏斗助手（原 LM，ProviderPlanUsage 族）
- * 〔A1-R25〕型缝：返回面 unknown → EntryPlanStateLike——bundle LM 53299–53312 全部 return 均为
- * IM(...)（IM 53277 返回 EntryPlanStateLike 面），消费面 FM entryPlanState 直通 PM 同型。 */
-declare function resolveEntryPlanState(opts: { providers: ModelProviderEntry[]; loading: boolean }): EntryPlanStateLike;
+/* ── tombstone（A1-R26）：declare resolveEntryPlanState（原 LM，ProviderPlanUsage 族）删除 →
+ *    §U.8 逐字真身（bundle LM 53299–53312 唯一真身；终端消费实测：本文件 1127 ≡ bundle 91688、
+ *    139076 R0 域留批；负证据：bundle 内 LM 无第二定义）。调用点逐字不变。
+ *    （A1-R25 型缝注：返回面 EntryPlanStateLike——LM 全部 return 均为 IM(...)，本批实体化直接吻合。） ── */
 
 /** 平台 context（原 ps()，横切层；hit 用其 broadcastService） */
 declare function usePlatformContext(): { broadcastService?: { send(message: { channel: string; payload: unknown }): unknown } } | null; // 〔A1-R21〕型缝校正：broadcastService 消费面为 .send({channel, payload})（bundle jXe 68634 实测），旧注 postMessage 为 A0 占位
@@ -3257,6 +3258,7 @@ var ComposerModeToolbar = (0, React.memo)(ComposerModeToolbarBody), // Zrt 89415
  *   Mg→parseLooseModelValue 24406
  *   pX→listCodingPlanAudienceSources 89109 | jrt→teamSourcesFromSubscribedProducts 89120 | Nrt→teamSourceDisplayName 89182
  *   mX→codingPlanSourceIdsMatch 89171 | nit→teamSourceFromEntitlementSnapshot 89469 | rit→resolveSelectedTeamSource 89490
+ *   Mrt→resolveUpgradeTargetSource 89154（A1-R26 逐字实体化，SidebarLeaves declare 收敛）
  *   eit→classifyCodingPlanProviderId 89418 | tit→resolveCodingPlanFamilySelection 89438
  *   Qrt→COMPOSER_MODE_TRIGGER_FOCUS_SELECTOR 89416（bundle 与 Zrt 89415 同 var 句，实体在 §T.5 ComposerModeToolbar 声明处） | $rt→composerSessionModeCycleNoop 89417
  *   c8e→isSessionPhaseRunning 78404 | l8e→entitlementAutoRefreshModeOfPhase 78407 | u8e→shouldForceRefreshOnPhaseChange 78410 | d8e→useEntitlementRefreshOnTaskTransition 78418
@@ -3269,7 +3271,9 @@ var ComposerModeToolbar = (0, React.memo)(ComposerModeToolbarBody), // Zrt 89415
  *   （A1-R24 设置导航域全域补齐：§U.7 逐字 canonical；modules/Settings §2 A0 副本收敛为再导出，见其墓碑）
  *   UUe→newCodingPlanFunnelId 53250 | qUe→fallbackCodingPlanFunnelId 53409 | GUe→normalizeCodingPlanFunnelFamily 53387 | KUe→codingPlanFunnelChannelOfFamily 53397
  *   UM→isStartPlanLevelLabel 53406 | PM→buildCodingPlanPurchaseFunnelContext 53253 | FM→buildCodingPlanFunnelContext 53267（A1-R25 逐字实体化） | IM→resolveEntryPlanStateFromSnapshot 53277
- *   （HM 53403 = 双实例收敛 → SrcSharedA isStartPlanProviderId@2026（原 No，jsx 4848）：逐字同形 `e===q.zaiStartPlan||e===q.bigmodelStartPlan`；IM 消费点直用真身。VM 53400/LM 53299 留批）
+ *   LM→resolveEntryPlanState 53299 | WUe→trackCodingPlanFunnelStart 53313 | RM→trackCodingPlanProductSelect 53328 | zM→trackCodingPlanBillingCycleSelect 53349
+ *   BM→codingPlanFunnelExtrasOf 53376 | VM→stringifyCodingPlanFunnelExtras 53400（A1-R26 逐字实体化，§U.8 漏斗族全绿；xw≡reportTelemetry StoresDeep@323）
+ *   （HM 53403 = 双实例收敛 → SrcSharedA isStartPlanProviderId@2026（原 No，jsx 4848）：逐字同形 `e===q.zaiStartPlan||e===q.bigmodelStartPlan`；IM 消费点直用真身）
  *   T6e→isManageModelsActionVisible 77864 | E6e→isSyntheticModelValue 77867 | D6e→shortLabelOfModelValue 77870 | O6e→modelGroupsContainValue 77881 | k6e→normalizeModelSelectState 77884
  *   iit→ComposerConfigToolbarBody 89503 | ait→ComposerConfigToolbar 89978
  *  导入面接线：q=providerIds / qn=isGlmModelId / ui=GLM_REASONING_LEVELS / jt=isBuiltinProviderId / tr=isZaiPlanProviderId / HM=isStartPlanProviderId（SrcSharedA）；
@@ -3816,7 +3820,7 @@ function resolveEffectiveThoughtLevel(e: { thought?: string | null; thoughtLevel
         : ``) ||
         (e.thoughtLevels[0] ?? ``);
 }
-// 〔A1-R25〕补 export：SubagentLeaves parseModelRef declare 收敛改接点（bundle Mg 24406 唯一真身；终端消费实测：本文件 3766 ≡ bundle 89249 Vrt 89246 面、SubagentLeaves 176/197 ≡ bundle 196989/196993 域 M1t/N1t 面）
+// 〔A1-R25〕补 export：SubagentLeaves parseModelRef declare 收敛改接点（bundle Mg 24406 唯一真身；终端消费实测：本文件 3770 ≡ bundle 89249 Vrt 89246 面、SubagentLeaves 176/197 ≡ bundle 196989/196993 域 M1t/N1t 面）
 export function parseLooseModelValue(e: string): { providerId: string; modelId: string; variant?: string } { // Mg（Zn=parseCustomModelId，src chunk P=iS）
   let t = parseCustomModelId(e);
   if (t?.providerId && t.modelName) return { providerId: t.providerId, modelId: t.modelName };
@@ -3910,6 +3914,43 @@ function teamSourceOrganizationLabel(e: { organizationName?: string | null; [key
 function teamSourceDisplayName({ product: e, organizationId: t, organizationName: n, projectId: r, projectName: i }: { product: SubscribedTeamProductLike; organizationId: string; organizationName?: string | null; projectId: string; projectName?: string | null }) { // Nrt
   let a = teamSourceOrganizationLabel({ ...e, organizationId: t, organizationName: n, projectId: r, projectName: i });
   return a ? `BigModel - ${a}` : null;
+}
+// 〔A1-R26〕Mrt 89154–89170 逐字实体化（裁量件）：SidebarLeaves resolveUpgradeTargetSource declare 收敛
+// （bundle Mrt 唯一真身；终端消费实测：SidebarLeaves 932 ≡ bundle 150329，useSidebarUsageState mRt 域；
+// 负证据：bundle 内 Mrt 无第二定义；PaymentDeep@10045 旧注「零消费」为 A0 期误记——150329 实测在案）。
+// 型缝：解构参型按消费面——teamSources 元素取 SidebarLeaves TeamSource 同面（下游 966–968/994–996
+// 消费 organizationId/projectId/providerId/label）；返回面命名标注（audience 字面量联合——
+// SidebarLeaves 1017 消费面要求 `individual` | `team`，推导宽化 string 不可赋，实测在案）。
+interface CodingPlanUpgradeTargetSource {
+  audience: `individual` | `team`;
+  providerId: string;
+  sourceId: string;
+  teamSource?: { id: string; providerId: string; label?: string; organizationId?: string; projectId?: string; [key: string]: unknown };
+}
+export function resolveUpgradeTargetSource({
+  bigmodelSelectedKey: e,
+  selectedProviderId: t,
+  teamSources: n
+}: {
+  bigmodelSelectedKey?: string | null;
+  selectedProviderId: string | null;
+  teamSources: Array<{ id: string; providerId: string; label?: string; organizationId?: string; projectId?: string; [key: string]: unknown }>;
+}): CodingPlanUpgradeTargetSource | null { // Mrt
+  if (t === providerIds.zaiCodingPlan)
+    return { audience: `individual`, providerId: providerIds.zaiCodingPlan, sourceId: providerIds.zaiCodingPlan };
+  if (t !== providerIds.bigmodelCodingPlan) return null;
+  let r = e?.trim() ?? ``;
+  if (r.startsWith(`team-plan:${providerIds.bigmodelCodingPlan}:`)) {
+    let e = n.find((e) => codingPlanSourceIdsMatch(e.id, r));
+    return e
+      ? { audience: `team`, providerId: providerIds.bigmodelCodingPlan, sourceId: e.id, teamSource: e }
+      : null;
+  }
+  return {
+    audience: `individual`,
+    providerId: providerIds.bigmodelCodingPlan,
+    sourceId: providerIds.bigmodelCodingPlan,
+  };
 }
 function codingPlanSourceIdsMatch(e: string, t: string) { // mX
   if (codingPlanScopesOverlap(e, t)) return !0;
@@ -4167,7 +4208,7 @@ export function readInitialSettingsSection(e: SettingsSectionId = `general`) { /
 export function openSettingsSection(e: SettingsSectionId) { // iw
   requestSettingsSectionOpen(e);
 }
-// 〔A1-R25〕补 export：Sidebar markUsageEntryIntent declare 收敛改接点（bundle aw 39378 唯一真身；终端消费实测：本文件 4507 ≡ bundle 89577、Sidebar 4769 ≡ bundle 150430）
+// 〔A1-R25〕补 export：Sidebar markUsageEntryIntent declare 收敛改接点（bundle aw 39378 唯一真身；终端消费实测：本文件 4679 ≡ bundle 89577、Sidebar 4769 ≡ bundle 150430）
 export function openSettingsUsageSection() { // aw
   requestSettingsSectionOpen(`usage`);
 }
@@ -4305,7 +4346,7 @@ function buildCodingPlanPurchaseFunnelContext(e: {
   };
 }
 // 〔A1-R25〕FM 53267–53276 逐字实体化：buildCodingPlanFunnelContext declare 收敛（bundle FM 唯一真身；
-// 终端消费实测：本文件 1123 OffPeakNewTaskBanner ≡ bundle 91685、139073 R0 域留批；负证据：bundle 内 FM 无第二定义）
+// 终端消费实测：本文件 1124 OffPeakNewTaskBanner ≡ bundle 91685、139073 R0 域留批；负证据：bundle 内 FM 无第二定义）
 function buildCodingPlanFunnelContext(e: {
   providerId: string;
   eventText: string;
@@ -4346,6 +4387,137 @@ function resolveEntryPlanStateFromSnapshot(e: {
       : e.providerId && isStartPlanProviderId(e.providerId) && r
         ? { entryPlanStatus: `start_plan`, entryPlanLevel: r }
         : { entryPlanStatus: `unknown`, entryPlanLevel: `` };
+}
+// 〔A1-R26〕LM 53299–53312 逐字实体化：resolveEntryPlanState declare 收敛（bundle LM 唯一真身；
+// 终端消费实测：本文件 1127 ≡ bundle 91688、139076 R0 域留批；负证据：bundle 内 LM 无第二定义）。
+// 依赖接线：IM≡resolveEntryPlanStateFromSnapshot / q≡providerIds / li≡parseCodingPlanScope（SrcSharedB；
+// styles 680 `gt as li` ← src `parseCodingPlanScope as gt` ≡ Gb 8533）/ HM≡isStartPlanProviderId（SrcSharedA）。
+function resolveEntryPlanState(e: { providers: ModelProviderEntry[]; loading: boolean }): EntryPlanStateLike { // LM
+  if (e.loading) return resolveEntryPlanStateFromSnapshot({});
+  let t = e.providers.filter((e) => !(e.enabled === !1 && e.systemDisabledReason)),
+    n = t.find(
+      (e) => e.id === providerIds.zaiCodingPlan || e.id === providerIds.bigmodelCodingPlan || parseCodingPlanScope(e.id) !== null,
+    );
+  if (n) return resolveEntryPlanStateFromSnapshot({ displayStatus: `purchased`, providerId: n.id });
+  let r = t.find((e) => isStartPlanProviderId(e.id));
+  return resolveEntryPlanStateFromSnapshot(
+    r
+      ? { displayStatus: `purchased`, providerId: r.id, planLevel: `start` }
+      : { displayStatus: `notPurchased` },
+  );
+}
+// 〔A1-R26〕WUe/RM/zM/BM/VM 53313–53386/53400 漏斗遥测族逐字实体化（§U.8 收尾）：
+// 终端消费实测——WUe：PaymentDeep 5507 ≡ bundle 84644；RM：PaymentDeep 5679/5716 ≡ bundle 84816/84853；
+// zM：PaymentDeep 5979/6012 ≡ bundle 85159/85191；BM/VM 仅族内消费（53324/53342/53363/53377）。
+// 负证据：bundle 内五符均无第二定义。xw≡reportTelemetry（StoresDeep@323 逐字，A1-R9 判例）。
+// 型缝：n 取结构面（消费字段逐字列出）；t=PM 返回面（CodingPlanFunnelContextLike）；e 可空守卫后窄化；
+// zM n.seatCount/n.durationMonths 可选——bundle 85191 personal 路径不传，体 `?? ''` 兜底（85159 team 路径传）。
+interface CodingPlanFunnelContextLike {
+  purchaseFunnelId: string;
+  upgradeSource: string;
+  eventRegion: string;
+  eventText: string;
+  entryPlanStatus: string;
+  entryPlanLevel: string;
+  purchaseAudience: string;
+  providerFamily: string;
+  channel: string;
+}
+export function trackCodingPlanFunnelStart(e: TelemetryPlatform | null | undefined, t: CodingPlanFunnelContextLike) { // WUe
+  !e ||
+    !t ||
+    reportTelemetry(
+      e,
+      {
+        eventType: `ck`,
+        eventRegion: t.eventRegion,
+        elementName: `coding_plan_upgrade_ck`,
+        eventText: t.eventText,
+        eventExtraDetail: codingPlanFunnelExtrasOf(t),
+      },
+      `codingPlanFunnelTelemetry`,
+    );
+}
+export function trackCodingPlanProductSelect(e: TelemetryPlatform | null | undefined, t: CodingPlanFunnelContextLike, n: {
+  eventText: string;
+  purchaseAudience: string;
+  productGroupId: string;
+  productName: string;
+  planTier: string;
+}) { // RM（补 export：PaymentDeep 5679/5716 消费面）
+  !e ||
+    !t ||
+    reportTelemetry(
+      e,
+      {
+        eventType: `ck`,
+        eventRegion: `app.purchase`,
+        elementName: `purchase_product_select_ck`,
+        eventText: n.eventText,
+        eventExtraDetail: stringifyCodingPlanFunnelExtras({
+          ...codingPlanFunnelExtrasOf({ ...t, purchaseAudience: n.purchaseAudience }),
+          product_group_id: n.productGroupId,
+          product_id: ``,
+          product_name: n.productName,
+          plan_tier: n.planTier || `unknown`,
+        }),
+      },
+      `codingPlanFunnelTelemetry`,
+    );
+}
+export function trackCodingPlanBillingCycleSelect(e: TelemetryPlatform | null | undefined, t: CodingPlanFunnelContextLike, n: {
+  eventText: string;
+  purchaseAudience: string;
+  productId: string;
+  productName: string;
+  planTier: string;
+  billingPeriod: string;
+  purchaseMethod: string;
+  paymentMethod: string;
+  seatCount?: string;
+  durationMonths?: string;
+  currency: string;
+  amount: string;
+}) { // zM（补 export：PaymentDeep 5979/6012 消费面）
+  !e ||
+    !t ||
+    reportTelemetry(
+      e,
+      {
+        eventType: `ck`,
+        eventRegion: `app.purchase`,
+        elementName: `purchase_billing_cycle_select_ck`,
+        eventText: n.eventText,
+        eventExtraDetail: stringifyCodingPlanFunnelExtras({
+          ...codingPlanFunnelExtrasOf({ ...t, purchaseAudience: n.purchaseAudience }),
+          product_id: n.productId,
+          product_name: n.productName,
+          plan_tier: n.planTier || `unknown`,
+          billing_period: n.billingPeriod || `unknown`,
+          purchase_method: n.purchaseMethod || `unknown`,
+          payment_method: n.paymentMethod,
+          seat_count: n.seatCount ?? ``,
+          duration_months: n.durationMonths ?? ``,
+          currency: n.currency,
+          amount: n.amount,
+        }),
+      },
+      `codingPlanFunnelTelemetry`,
+    );
+}
+function codingPlanFunnelExtrasOf(e: CodingPlanFunnelContextLike) { // BM
+  return stringifyCodingPlanFunnelExtras({
+    purchase_funnel_id: e.purchaseFunnelId,
+    upgrade_source: e.upgradeSource,
+    entry_plan_status: e.entryPlanStatus,
+    entry_plan_level: e.entryPlanLevel,
+    purchase_audience: e.purchaseAudience,
+    provider_family: e.providerFamily,
+    channel: e.channel,
+  });
+}
+function stringifyCodingPlanFunnelExtras(e: Record<string, unknown>) { // VM
+  return Object.fromEntries(Object.entries(e).map(([e, t]) => [e, t == null ? `` : String(t)]));
 }
 
 /* --- §U.9 模型选择小助手族（原 77856–77897；A1-R25 w6e 实体化并入） --- */

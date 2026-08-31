@@ -95,7 +95,11 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
  *    isDisabledThoughtOption（K3e）/nextThoughtLevelValue（Y3e）/sortThoughtOptions（J3e）/
  *    thoughtOptionLabel（X3e）+ ConfigSelectOption/ConfigSelectSpec 型别 import 全数移出——
  *    唯一消费面 §1/§3/§9 副本族同批删除（见各墓碑）；Composer canonical 导出面不变。 ── */
-import { Spinner } from '../../modules/Home';
+// 〔A1-R26〕§U.8 漏斗遥测族收敛：trackFunnelStart（WUe）/trackPlanSelectEvent（RM/zM 合并面）declare 删除，
+// 改接 Home §U.8 逐字真身（bundle WUe 53313/RM 53328/zM 53349 唯一真身；RM/zM 分流依据见原 declare 位墓碑）。
+// 环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用）。
+import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect } from '../../modules/Home';
+import type { TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）
 import { Input, PopoverContent, toast } from '../../modules/ImeComposition';
 import { logger } from '../../modules/SkillStore';
 import { useSettingsStore as useAppStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
@@ -111,7 +115,9 @@ interface IntlShape {
   formatMessage(desc: { id: string }, values?: Record<string, string | number>): string;
 }
 declare function useZCodeIntl(): { intl: IntlShape; locale: string }; // G
-declare const usePlatformService: () => { openExternal(url: string): void }; // l
+// 〔A1-R26〕型缝：漏斗遥测族消费面 5504/5676/5713/5976/6009 将 platform 直通 reportTelemetry（xw≡StoresDeep@323），
+// 消费 reportTelemetryEvent——bundle l 返回完整 platform 服务（xw 40457 `e.reportTelemetryEvent(r)` 实测），旧注仅 A0 部分面（openExternal）
+declare const usePlatformService: () => TelemetryPlatform & { openExternal(url: string): void }; // l
 /* ── tombstone（A1-R23）：declare formatCompactNumber（usageStatsUiParts ja 紧凑数字）删除——唯一消费面
  *    §1 formatCompactNumberLocale（S3e 76623 A0 副本）同批删除；真身 = Home §V.6 formatUsageTokenCountCompact 逐字。 ── */
 /** 本 chunk 原语：Tooltip 触发包装（Ia）/Select 五件（iO/oO/aO/sO/cO）/chevron（N_）/弹层关闭守卫（ZH/XH） */
@@ -269,8 +275,13 @@ declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe
 /* ── tombstone（A1-R20）：declare const BillingDiscountBanner（原 HHe，js 51994–52033）删除——canonical 属主
  *    components/usage/UsageDeep.tsx BillingDiscountCard（A0 已重建；A1-R20 sparkles 图标勘误后与 bundle 逐字一致）；
  *    bundle HHe 唯一真身，消费面 85417（本文件 6719 区）逐字不变，改指文件头 import（modules/UsageDeep）。 ── */
-declare function trackFunnelStart(platform: any, funnel: any): void; // WUe
-declare function trackPlanSelectEvent(platform: any, funnel: any, meta: Record<string, unknown>): void; // RM/zM
+/* ── tombstone（A1-R26）：declare trackFunnelStart（原 WUe 53313–53327）+ declare trackPlanSelectEvent
+ *    （原 RM 53328–53348 / zM 53349–53375 合并面）删除 → 文件头 ../../modules/Home import 改接
+ *    Home §U.8 逐字真身（bundle 三符唯一真身；负证据：bundle 内无第二定义）。
+ *    终端消费实测：WUe 5507 ≡ bundle 84644；RM/zM 分流实测——5679/5716 传 productGroupId 面 ≡ bundle
+ *    84816/84853 RM 调用，5979/6012 传 productId/billingPeriod/purchaseMethod/paymentMethod 面 ≡ bundle
+ *    85159/85191 zM 调用；四处调用点按分流改名（5679/5716 → trackCodingPlanProductSelect、
+ *    5979/6012 → trackCodingPlanBillingCycleSelect、5507 → trackCodingPlanFunnelStart），参数逐字不变。 ── */
 /* ── tombstone（A1-R22）：declare isStructuredSelection（原 Ds，2827）删除——唯一消费面 §10 uit 副本同批删除；
  *    真身逐字 canonical = modules/Composer.tsx [B17] isConversationSelectionReference（型别守护形）。 ── */
 declare function isZaiCodingPlanProvider(providerId: string): boolean; // tr（跨 chunk 导入，Z.ai 编码计划供应商判定）
@@ -5493,7 +5504,7 @@ export function CodingPlanPurchasePanel({
     React.useEffect(() => {
       !open ||
         !funnelContext ||
-        (funnelIdRef.current !== funnelContext.purchaseFunnelId && ((funnelIdRef.current = funnelContext.purchaseFunnelId), trackFunnelStart(platform, funnelContext)));
+        (funnelIdRef.current !== funnelContext.purchaseFunnelId && ((funnelIdRef.current = funnelContext.purchaseFunnelId), trackCodingPlanFunnelStart(platform, funnelContext)));
     }, [funnelContext, open, platform]),
     React.useEffect(() => {
       if (!open) {
@@ -5665,7 +5676,7 @@ export function CodingPlanPurchasePanel({
       }
       let group = planGroups.find((candidate) => candidate.key === planKey);
       (group &&
-        trackPlanSelectEvent(platform, funnelContext, {
+        trackCodingPlanProductSelect(platform, funnelContext, {
           eventText: actionLabelOf(personalPlanActionStateOf(group, planGroups, currentPlanLevel, currentProduct, !!systemBusyError), intl),
           purchaseAudience: `personal`,
           productGroupId: group.key,
@@ -5702,7 +5713,7 @@ export function CodingPlanPurchasePanel({
     }
     let group = teamPlanGroups.find((candidate) => candidate.key === planKey);
     (group &&
-      trackPlanSelectEvent(platform, funnelContext, {
+      trackCodingPlanProductSelect(platform, funnelContext, {
         eventText: intl.formatMessage({ id: `settings.modelProvider.codingPlan.purchase.selectPlan` }),
         purchaseAudience: `team`,
         productGroupId: group.key,
@@ -5965,7 +5976,7 @@ export function CodingPlanPurchasePanel({
                           onUseCashBalanceChange={setUseCashBalance}
                           onContinue={() => {
                             (pendingOrderProduct &&
-                              trackPlanSelectEvent(platform, funnelContext, {
+                              trackCodingPlanBillingCycleSelect(platform, funnelContext, {
                                 eventText: intl.formatMessage({
                                   id: `settings.modelProvider.codingPlan.purchase.continueToPayment`,
                                 }),
@@ -5998,7 +6009,7 @@ export function CodingPlanPurchasePanel({
                           locale={locale}
                           onSelectProduct={(product: any) => {
                             let current = currentPlanEntryOf(productList, currentPlanLevel, currentProduct);
-                            (trackPlanSelectEvent(platform, funnelContext, {
+                            (trackCodingPlanBillingCycleSelect(platform, funnelContext, {
                               eventText: billingCycleActionLabelOf(product, personalActionStateOf(product, !!current, current, currentProduct), intl),
                               purchaseAudience: `personal`,
                               productId: product.productId,
