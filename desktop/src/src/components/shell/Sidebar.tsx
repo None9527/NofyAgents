@@ -130,7 +130,7 @@
  *   u2/Iwt/Lwt/Rwt 会话拖拽 MIME/载荷 (jsx 103642–103650) | Wwt/Gwt/Kwt 拖拽位置跟踪 (jsx 103709–103717)
  *   J3 useScopedWorkspaceTabs (jsx 113936) | yc buildWorkspaceServicesMap (jsx 3637)
  *   ZS useTaskListItems (35727 / 32810) | Tse resolveRemoteSessionServices (jsx 3269)
- *   EN SpinnerIcon (54789) | aw markUsageEntryIntent (js 39378 / jsx 35396；A1-R24 补 js 行)
+ *   EN SpinnerIcon (54789) | aw markUsageEntryIntent (js 39378 / jsx 35396；A1-R24 补 js 行；A1-R25 declare 收敛 → Home §U.7 openSettingsUsageSection 逐字真身 import 别名)
  *   M6/N6/V6 同步后刷新 (142670–142719/119312) | Qie forgetRecentWorkspaces (jsx 945)
  *
  *  已在 TopBar.tsx 抽取、此处仅引用接口：
@@ -214,6 +214,8 @@ import { sessionActivityOf as taskSessionActivity, pendingInteractionOf as taskP
 import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 项 2d：原 Go（jsx 986）本地转录改指 canonical = components/markdown baseName（Go@1928 逐字）；调用点 1561 逐字不变。环安全：MarkdownIntegration 值闭包（markdown 渲染族 + FileTreePanel resolveAvailableEditors）不达 components/shell（实测在案）
 import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
+// 〔A1-R25〕aw 39378 收敛：markUsageEntryIntent declare 改接 Home §U.7 逐字真身（别名保留，调用点 4769 逐字不变；环安全：Home 顶层 hoisted function，本文件仅渲染期事件回调消费）
+import { openSettingsUsageSection as markUsageEntryIntent } from './Home';
 import { useSidebarSessionDrop as useSessionOpenability, SESSION_DRAG_MIME, serializeSessionDragPayload, setSessionDragFallbackPayload as setCurrentSessionDrag, clearSessionDragFallbackPayload as clearCurrentSessionDrag, createSessionDragPreview as createDragImageUpdater, type SessionDragPayload } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）+ u2/Iwt/Lwt/Rwt/PRt（A1-R4：拖放源侧改指，tombstone 见原声明位）
 import { usePinnedTaskListStore as useRemotePinnedTaskListStore } from '../../stores/pinnedTaskListStore'; // A1-R9 E6 收敛改指（原 E6 本地并行实例删除；canonical 属主 = stores/，tombstone 见原声明位）
 import { useWorkspaceTaskListStore as useRemoteWorkspaceTaskListStore } from '../../stores/workspaceTaskListStore'; // A1-R9 k6 收敛改指（同上）
@@ -1147,8 +1149,11 @@ declare function refreshAfterPluginSync(args: Record<string, unknown>): Promise<
 /* ── tombstone（A1-R10 2b）：declare function forgetRecentWorkspaces（原 Qie，jsx 945 / js 1881）删除，
  *    改经文件头 stores/searchResultsStore import 消费（canonical = invalidateWorkspaceResults；
  *    2892 调用点逐字不变）。 ── */
-/** 原 aw（js 39378 / jsx 35396；A1-R24 补 js 行——逐字真身已在本树 Home §U.7 openSettingsUsageSection，收敛候选留批）：记录「进入用量页」意图（sessionStorage） */
-declare function markUsageEntryIntent(): void;
+/* ── tombstone（A1-R25）：declare markUsageEntryIntent（原 aw，js 39378 / jsx 35396：记录「进入用量页」
+ *    意图 sessionStorage）删除 → 文件头 ./Home import 别名消费（canonical = Home §U.7 逐字真身
+ *    openSettingsUsageSection，bundle aw 39378–39380 唯一真身 `ow('usage')`；终端消费实测：
+ *    4769 ≡ bundle 150430 `(aw(), t?.())`、Home 4507 ≡ bundle 89577；负证据：bundle 内 aw 无第二定义）。
+ *    调用点逐字不变。 ── */
 /** 原 xw：遥测事件上报 */
 declare function trackEvent(platformService: PlatformService | null, eventName: string, source: string): void;
 declare function buildWebRemoteControlEventProps(args: { workspaceKind: "local" | "remote"; remoteKind?: string }): string;

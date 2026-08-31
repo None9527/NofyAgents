@@ -166,6 +166,8 @@ import { Badge } from './PaymentDeep';
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
 import { AutomationEditor, OffPeakTaskEditor, type ScheduleRule } from './SettingsLeaves'; // A0-CLEANUP3 3b：Automation 三型 scheduleRule 统一
 import { createWhiteboardStroke, logger, useTaskStore, useWhiteboardStore, type TaskStore, type WhiteboardBoard, type WhiteboardStroke, type WorkspaceTaskState } from './SkillStore';
+// 〔A1-R25〕w6e 77856 实体化：resolveModelGroupLabel declare 收敛——改接 Home §U.9 逐字真身（经 modules/Home 转导出）
+import { resolveModelGroupLabel } from './Home';
 import { providerIds } from './SrcSharedA';
 import { automationsWorkspaceKey, repoWikiWorkspaceKey } from './SrcSharedB';
 import { reportTelemetry, type TelemetryPlatform } from './StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
@@ -435,10 +437,14 @@ declare function buildEntitledProviderList(params: {
   modelProviderFamilySelectedKeys?: Record<string, string>;
 }): ModelProviderInfo[];
 
-/** 原 w6e：模型组内查显示名 */
-declare function resolveModelGroupLabel(groups: ModelSelectGroup[], value: string): string | null;
+/* ── tombstone（A1-R25）：declare resolveModelGroupLabel（原 w6e：模型组内查显示名）删除 →
+ *    import from './Home'（bundle w6e 77856–77863 唯一真身；终端消费实测：本文件 2267 调用点
+ *    逐字不变、SubagentLeaves 293 ≡ bundle 197058 同批收敛、132407 repoWiki 域外留批；
+ *    负证据：bundle 内 w6e 无第二定义）。
+ *    型缝：真身首参宽化至最小消费面（items.value/items.name），ModelSelectGroup[] 经
+ *    [key: string]: unknown 索引签名可赋；返回 string | null | undefined，调用点 ?? 兜底。 ── */
 
-/** 原 Mg（js 24358）/ Zn（src chunk P 导出）：`provider/model[$variant]` 解析 */
+/** 原 Mg（js 24406；A1-R25 行漂校正，旧注 24358 为漂移）/ Zn（src chunk P 导出）：`provider/model[$variant]` 解析 */
 declare function parseModelString(value: string): { providerId?: string; modelName?: string } | null;
 declare function resolveModelRef(value: string): { providerId: string; modelId: string; variant?: string };
 

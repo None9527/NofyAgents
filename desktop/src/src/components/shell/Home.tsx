@@ -428,13 +428,13 @@ declare function resolveCodingPlanProviderFamily(providerId: string): string | n
 declare function providerFamilyFromDomain(domain: string): string | null;
 declare function resolveProviderFamilyAuthMode(family: string, modes: Record<string, string> | undefined): string;
 
-/** 遥测漏斗助手（原 FM/LM，ProviderPlanUsage 族） */
-declare function buildCodingPlanFunnelContext(opts: {
-  providerId: string;
-  eventText: string;
-  entryPlanState: unknown;
-}): unknown;
-declare function resolveEntryPlanState(opts: { providers: ModelProviderEntry[]; loading: boolean }): unknown;
+/* ── tombstone（A1-R25）：declare buildCodingPlanFunnelContext（原 FM，ProviderPlanUsage 族）删除 →
+ *    §U.8 逐字真身（bundle FM 53267–53276 唯一真身；终端消费实测：本文件 1123 ≡ bundle 91685、
+ *    139073 R0 域留批；负证据：bundle 内 FM 无第二定义）。调用点逐字不变。 ── */
+/** 遥测漏斗助手（原 LM，ProviderPlanUsage 族）
+ * 〔A1-R25〕型缝：返回面 unknown → EntryPlanStateLike——bundle LM 53299–53312 全部 return 均为
+ * IM(...)（IM 53277 返回 EntryPlanStateLike 面），消费面 FM entryPlanState 直通 PM 同型。 */
+declare function resolveEntryPlanState(opts: { providers: ModelProviderEntry[]; loading: boolean }): EntryPlanStateLike;
 
 /** 平台 context（原 ps()，横切层；hit 用其 broadcastService） */
 declare function usePlatformContext(): { broadcastService?: { send(message: { channel: string; payload: unknown }): unknown } } | null; // 〔A1-R21〕型缝校正：broadcastService 消费面为 .send({channel, payload})（bundle jXe 68634 实测），旧注 postMessage 为 A0 占位
@@ -3268,8 +3268,8 @@ var ComposerModeToolbar = (0, React.memo)(ComposerModeToolbarBody), // Zrt 89415
  *   KMe→consumeUsageTabIntent 39413 | sw→consumeModelProviderIntent 39425 | qMe→shouldResetUsageTabToApp 39434 | cw→subscribeSettingsSectionIntent 39442
  *   （A1-R24 设置导航域全域补齐：§U.7 逐字 canonical；modules/Settings §2 A0 副本收敛为再导出，见其墓碑）
  *   UUe→newCodingPlanFunnelId 53250 | qUe→fallbackCodingPlanFunnelId 53409 | GUe→normalizeCodingPlanFunnelFamily 53387 | KUe→codingPlanFunnelChannelOfFamily 53397
- *   UM→isStartPlanLevelLabel 53406 | PM→buildCodingPlanPurchaseFunnelContext 53253 | IM→resolveEntryPlanStateFromSnapshot 53277
- *   （HM 53403 = 双实例收敛 → SrcSharedA isStartPlanProviderId@2026（原 No，jsx 4848）：逐字同形 `e===q.zaiStartPlan||e===q.bigmodelStartPlan`；IM 消费点直用真身。VM 53400/FM 53267/LM 53299 留批）
+ *   UM→isStartPlanLevelLabel 53406 | PM→buildCodingPlanPurchaseFunnelContext 53253 | FM→buildCodingPlanFunnelContext 53267（A1-R25 逐字实体化） | IM→resolveEntryPlanStateFromSnapshot 53277
+ *   （HM 53403 = 双实例收敛 → SrcSharedA isStartPlanProviderId@2026（原 No，jsx 4848）：逐字同形 `e===q.zaiStartPlan||e===q.bigmodelStartPlan`；IM 消费点直用真身。VM 53400/LM 53299 留批）
  *   T6e→isManageModelsActionVisible 77864 | E6e→isSyntheticModelValue 77867 | D6e→shortLabelOfModelValue 77870 | O6e→modelGroupsContainValue 77881 | k6e→normalizeModelSelectState 77884
  *   iit→ComposerConfigToolbarBody 89503 | ait→ComposerConfigToolbar 89978
  *  导入面接线：q=providerIds / qn=isGlmModelId / ui=GLM_REASONING_LEVELS / jt=isBuiltinProviderId / tr=isZaiPlanProviderId / HM=isStartPlanProviderId（SrcSharedA）；
@@ -3816,7 +3816,8 @@ function resolveEffectiveThoughtLevel(e: { thought?: string | null; thoughtLevel
         : ``) ||
         (e.thoughtLevels[0] ?? ``);
 }
-function parseLooseModelValue(e: string): { providerId: string; modelId: string; variant?: string } { // Mg（Zn=parseCustomModelId，src chunk P=iS）
+// 〔A1-R25〕补 export：SubagentLeaves parseModelRef declare 收敛改接点（bundle Mg 24406 唯一真身；终端消费实测：本文件 3766 ≡ bundle 89249 Vrt 89246 面、SubagentLeaves 176/197 ≡ bundle 196989/196993 域 M1t/N1t 面）
+export function parseLooseModelValue(e: string): { providerId: string; modelId: string; variant?: string } { // Mg（Zn=parseCustomModelId，src chunk P=iS）
   let t = parseCustomModelId(e);
   if (t?.providerId && t.modelName) return { providerId: t.providerId, modelId: t.modelName };
   let n = e.trim(),
@@ -4166,7 +4167,8 @@ export function readInitialSettingsSection(e: SettingsSectionId = `general`) { /
 export function openSettingsSection(e: SettingsSectionId) { // iw
   requestSettingsSectionOpen(e);
 }
-function openSettingsUsageSection() { // aw
+// 〔A1-R25〕补 export：Sidebar markUsageEntryIntent declare 收敛改接点（bundle aw 39378 唯一真身；终端消费实测：本文件 4507 ≡ bundle 89577、Sidebar 4769 ≡ bundle 150430）
+export function openSettingsUsageSection() { // aw
   requestSettingsSectionOpen(`usage`);
 }
 // 〔A1-R24〕补 export：modules/Settings 再导出别名 requestSettingsSectionNavigation 所依（A0 iw/aw 并入面）
@@ -4302,6 +4304,22 @@ function buildCodingPlanPurchaseFunnelContext(e: {
     channel: codingPlanFunnelChannelOfFamily(t),
   };
 }
+// 〔A1-R25〕FM 53267–53276 逐字实体化：buildCodingPlanFunnelContext declare 收敛（bundle FM 唯一真身；
+// 终端消费实测：本文件 1123 OffPeakNewTaskBanner ≡ bundle 91685、139073 R0 域留批；负证据：bundle 内 FM 无第二定义）
+function buildCodingPlanFunnelContext(e: {
+  providerId: string;
+  eventText: string;
+  entryPlanState?: EntryPlanStateLike | null;
+}) { // FM
+  return buildCodingPlanPurchaseFunnelContext({
+    providerId: e.providerId,
+    upgradeSource: `session_idle_time`,
+    eventRegion: `app.session`,
+    eventText: e.eventText,
+    entryPlanState: e.entryPlanState,
+    purchaseAudience: `personal`,
+  });
+}
 function resolveEntryPlanStateFromSnapshot(e: {
   providerId?: string;
   planLevel?: string;
@@ -4330,8 +4348,21 @@ function resolveEntryPlanStateFromSnapshot(e: {
         : { entryPlanStatus: `unknown`, entryPlanLevel: `` };
 }
 
-/* --- §U.9 模型选择小助手族（原 77864–77897） --- */
+/* --- §U.9 模型选择小助手族（原 77856–77897；A1-R25 w6e 实体化并入） --- */
 
+// 〔A1-R25〕w6e 实体化（补 export）：双实例 declare 收敛 canonical（bundle w6e 77856 唯一真身；终端消费实测：
+// 197058 ≡ SubagentLeaves resolveModelTriggerLabel（findModelGroupItemLabel declare 面）、
+// ExtendedViews 2267（resolveModelGroupLabel declare 面）、132407 repoWiki 域外留批）。
+// 型缝：首参宽化至最小消费面（body 仅取 items.value/items.name；消费侧传 ModelGroup[]、
+// SelectGroupEntry[]、ModelSelectGroup[] 三型，name 可选面 → 返回宽化 string | null | undefined，调用面均 ?? 兜底）
+export function resolveModelGroupLabel(e: Array<{ items: Array<{ value: string; name?: string; [key: string]: unknown }>; [key: string]: unknown }>, t: string): string | null | undefined { // w6e
+  for (let n of e) {
+    let e = n.items.find((e) => e.value === t);
+    if (e) return e.name;
+  }
+  let n = parseCustomModelId(t);
+  return n?.modelName ? n.modelName : null;
+}
 function isManageModelsActionVisible(e: unknown, t: { isWebRemoteControl?: boolean } = {}) { // T6e
   return t.isWebRemoteControl ? !1 : typeof e == `function`;
 }

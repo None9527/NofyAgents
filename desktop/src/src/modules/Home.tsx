@@ -176,6 +176,9 @@ export {
   resolveComposerPlaceholderI18nId,
   resolveCodingPlanUsageRemaining, // 〔A1-R23〕Oq 叠层专项：SidebarLeaves mRt 面（150396）改接 Home §U.3 逐字真身（bundle Oq 76207–76245 唯一真身，消费三面 76250/76296/150396）
   buildThoughtLevelOptionFromCatalog, // 〔A1-R24〕zrt 197021 面联动：SubagentLeaves resolveProviderThoughtOption declare 收敛改接点（bundle zrt 89222 唯一真身）
+  resolveModelGroupLabel, // 〔A1-R25〕w6e 77856 实体化：SubagentLeaves findModelGroupItemLabel / ExtendedViews resolveModelGroupLabel 双 declare 收敛改接点
+  parseLooseModelValue, // 〔A1-R25〕Mg 24406 收敛：SubagentLeaves parseModelRef declare 改接点（真身 §U.4，bundle 唯一真身）
+  openSettingsUsageSection, // 〔A1-R25〕aw 39378 收敛：真身 §U.7 导出面同步（终端消费 Sidebar 直连 ./Home）
 } from '../components/shell/Home';
 export type {
   GreetingHeroProps,

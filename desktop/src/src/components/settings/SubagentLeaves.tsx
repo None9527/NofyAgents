@@ -16,7 +16,9 @@ import {
   getOAuthFamilyIdByProviderId as canonicalProviderIdOf, // A1-R12：原 dr（src chunk Jx，js 8930 / jsx 9036）declare 改指（SrcSharedB §30 逐字真身；调用点 304/338 逐字不变）
 } from '../../modules/SrcSharedB';
 // 〔A1-R24〕zrt 197021 面联动：resolveProviderThoughtOption declare 收敛——改接 Home §U.4 逐字真身（bundle zrt 89222 唯一真身；经 modules/Home 转导出）
-import { buildThoughtLevelOptionFromCatalog, type ModelCatalogEntryLike } from '../../modules/Home';
+// 〔A1-R25〕w6e 77856 实体化：findModelGroupItemLabel declare 收敛——改接 Home §U.9 逐字真身 resolveModelGroupLabel
+// 〔A1-R25〕Mg 24406 收敛：parseModelRef declare 改接 Home §U.4 逐字真身 parseLooseModelValue（别名保留，调用点 176/197 逐字不变）
+import { buildThoughtLevelOptionFromCatalog, parseLooseModelValue as parseModelRef, resolveModelGroupLabel, type ModelCatalogEntryLike } from '../../modules/Home';
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
@@ -288,58 +290,57 @@ export function resolveModelTriggerLabel(args: {
   return !normalized || normalized === SUBAGENT_MODEL_INHERIT
     ? args.inheritLabel
     : isModelAvailableInGroups(args.modelGroups, normalized, args.modelProvidersLoading)
-      ? findModelGroupItemLabel(args.modelGroups, normalized) ?? normalized
+      ? resolveModelGroupLabel(args.modelGroups, normalized) ?? normalized
       : args.selectModelLabel;
 }
 
-/** 组内条目标签查找（原 w6e，F08 域；接口级） */
-declare function findModelGroupItemLabel(groups: SelectGroupEntry[], value: string): string | null;
+/* ── tombstone（A1-R25）：declare findModelGroupItemLabel（原 w6e，F08 域；接口级）删除 →
+ *    改接 Home §U.9 逐字真身 resolveModelGroupLabel（bundle w6e 77856–77863 唯一真身；
+ *    终端消费实测：本文件 293 ≡ bundle 197058、ExtendedViews 2267 declare 面同批收敛、
+ *    132407 repoWiki 域外留批；负证据：bundle 内 w6e 无第二定义）。
+ *    型缝：真身返回 string | null | undefined，调用点 ?? 兜底逐字不变。 ── */
 
 /* ── tombstone（A1-R12）：declare canonicalProviderIdOf（原 dr，src chunk Jx js 8930 / jsx 9036；
  *    Wx 别名→规范供应商表 js 8911）删除 → 文件头 ../../modules/SrcSharedB import 别名消费
  *    （canonical = getOAuthFamilyIdByProviderId，SrcSharedB §30 逐字真身 `Wx.get(e) ?? null`；
  *    调用点 304/338 逐字不变）。 ── */
 
-/** 原 rN（styles jsx 48436）：供应商前缀模型名——已知别名供应商不加前缀，否则 `供应商名/模型名` */
-function composeProviderModelLabel(providerId: string | null | undefined, providerName: string | null | undefined, modelName: string | undefined): string | undefined {
-  if (providerId && canonicalProviderIdOf(providerId)) return modelName;
-  const trimmedName = providerName?.trim();
-  return trimmedName ? `${trimmedName}/${modelName}` : modelName;
+/** 原 rN（styles jsx 48436 = js 53790–53794；A1-R25 A0 体 → 逐字升级）：供应商前缀模型名——已知别名供应商不加前缀，否则 `供应商名/模型名`
+ * 终端消费实测：本文件 resolveModelFullLabel 面 ≡ bundle 53804、112607/112618/119829/119830 R0/composer 域留批；dr≡canonicalProviderIdOf（A1-R12 判例）。 */
+function composeProviderModelLabel(e: string | null | undefined, t: string | null | undefined, n: string | undefined): string | undefined { // rN
+  if (e && canonicalProviderIdOf(e)) return n;
+  let r = t?.trim();
+  return r ? `${r}/${n}` : n;
 }
 
-/** 原 iN（styles jsx 48441 = js 53795）：规范值全标签——组内命中走 rN 拼接，未命中回退。
+/** 原 iN（styles jsx 48441 = js 53795–53805；A1-R25 A0 体 → 逐字升级）：规范值全标签——组内命中走 rN 拼接，未命中回退。
+ * 终端消费实测：bundle 53813（nWe 内，真身域留批）、AutomationEditor 1013 ≡ R0 簇 51141–53795 消费面。
  * A1-R11 补 export：R0 簇 51141–53795 之 resolveModelGroupLabel（iN）双实例收敛属主——
  * AutomationEditor 1015 消费面改指本函数（别名保留 resolveModelGroupLabel，调用点逐字不变）。 */
-export function resolveModelFullLabel(args: {
+export function resolveModelFullLabel({
+  modelGroups: e,
+  normalizedValue: t,
+  fallbackLabel: n,
+  providerId: r,
+  providerName: i,
+}: {
   modelGroups: SelectGroupEntry[];
   normalizedValue: string;
   fallbackLabel: string;
   providerId?: string | null;
   providerName?: string | null;
-}): string | undefined {
-  const group = args.modelGroups.find((entry) => entry.items.some((item) => item.value === args.normalizedValue));
-  const item = group?.items.find((entry) => entry.value === args.normalizedValue);
-  return !group || !item ? args.fallbackLabel : composeProviderModelLabel(args.providerId, args.providerName, item.name);
+}): string | undefined { // iN
+  let a = e.find((e) => e.items.some((e) => e.value === t)),
+    o = a?.items.find((e) => e.value === t);
+  return !a || !o ? n : composeProviderModelLabel(r, i, o.name);
 }
 
-/** 原 nWe（styles jsx 48452）：composer 模型触发器标签三元面（PaymentDeep ModelSelectMenu 消费） */
-export function resolveModelTriggerLabelParts(args: {
-  modelGroups: SelectGroupEntry[];
-  normalizedValue: string;
-  fallbackLabel: string;
-  providerId?: string | null;
-  providerName?: string | null;
-}): { fullLabel: string | undefined; providerPrefix?: string; modelLabel: string | undefined } {
-  const fullLabel = resolveModelFullLabel(args);
-  const group = args.modelGroups.find((entry) => entry.items.some((item) => item.value === args.normalizedValue));
-  const item = group?.items.find((entry) => entry.value === args.normalizedValue);
-  if (!group || !item) return { fullLabel: fullLabel, modelLabel: args.fallbackLabel };
-  const modelLabel = item.name;
-  const providerName = args.providerName?.trim();
-  return !providerName || (args.providerId && canonicalProviderIdOf(args.providerId))
-    ? { fullLabel: fullLabel, modelLabel: modelLabel }
-    : { fullLabel: fullLabel, providerPrefix: `${providerName}/`, modelLabel: modelLabel };
-}
+/* ── tombstone（A1-R25）：resolveModelTriggerLabelParts（原 nWe，styles jsx 48452 = js 53806–53828；
+ *    A0 双实例叠层）删除——按既有判例（并行重建择一删除降 shim）：
+ *    bundle 唯一真身 nWe 53806，唯一终端消费 iit 89777 ≡ 本树 Home declare resolveModelTriggerLabels
+ *    （iit 逐字真身消费面 4676 ≡ bundle 89777，opaque 深依赖留批）；
+ *    负证据：全树 grep 本函数零 import 消费者（PaymentDeep@80 仅墓碑注释提及，其消费面 R23 已删；
+ *    modules/SettingsLeaves 转导出同批删除）。 ── */
 
 /** 原 e9（197061）：表单标签 */
 export function SubagentFormLabel({ children }: { children: React.ReactNode }) {
@@ -434,8 +435,13 @@ export function ToolCheckboxRow({
   );
 }
 
-/** 原 Mg（24406，模型域；接口级；A1-R24 行漂校正，旧注 24358 为漂移——canonical 逐字真身已在本树 Home §U.4 parseLooseModelValue，收敛候选留批）：模型引用解析（Zn custom: 前缀 → providerId/modelId；否则按 `/` 拆分，`$` 变体） */
-declare function parseModelRef(value: string): { providerId?: string; modelId?: string; variant?: string };
+/* ── tombstone（A1-R25）：declare parseModelRef（原 Mg，24406，模型域；接口级：模型引用解析——
+ *    Zn custom: 前缀 → providerId/modelId；否则按 `/` 拆分，`$` 变体）删除 → 文件头 ../../modules/Home
+ *    import 别名消费（canonical = Home §U.4 逐字真身 parseLooseModelValue，bundle Mg 24406–24418 唯一真身；
+ *    终端消费实测：本文件 176/197 ≡ bundle 196990/196996 M1t/N1t 面、Home 3766 ≡ bundle 89249 Vrt 面；
+ *    负证据：bundle 内 Mg 无第二定义；A1-R24 行漂校正旧注 24358 在案）。
+ *    型缝：真身返回 { providerId: string; modelId: string; variant?: string } 较旧 declare 面收严，
+ *    调用点 176 等值比较与 197 传参面（含 222 zrt 调用）均兼容实测。 ── */
 
 export interface ModelProvider {
   id: string;

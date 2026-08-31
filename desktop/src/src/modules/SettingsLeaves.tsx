@@ -187,7 +187,6 @@ export {
   subagentFormDraftOf,
   subagentFormKeyOf,
   resolveModelTriggerLabel,
-  resolveModelTriggerLabelParts,
   SubagentFormLabel,
   SubagentColorDot,
   SubagentBadge,
@@ -198,6 +197,8 @@ export {
   BuiltInModelOverrideControl,
   SubagentConfigForm,
 } from '../components/settings/SubagentLeaves';
+/* ── tombstone（A1-R25）：resolveModelTriggerLabelParts 转导出行删除——属主面（SubagentLeaves
+ *    A0 双实例）同批删除，墓碑见该文件原 §A nWe 位。 ── */
 export type {
   SelectItemEntry,
   SelectGroupEntry,
