@@ -112,23 +112,18 @@
  *   Eq  → entitlementSourceId             sourceId ?? providerId
  *   Dq  → hasActiveEntitlementForProvider
  *   Oq  → resolvePlanWidgetModel          多源权益 → 展示模型 (76168 / 67446)
- *   r3e → planWidgetGridCols              1/2/3 列
- *   i3e → hasPlanWidgetModel
- *   a3e → formatResetTimeHm               HH:mm（h23）
- *   o3e → PlanWidgetLimitRow              标签+数值+进度条
- *   s3e → SidebarCodingPlanWidget         侧栏 Coding Plan 配额件 (76246 / 67506)
+ *   〔A1-R21 双实例叠层专项裁定〕r3e/a3e/o3e/s3e + u3e/d3e/f3e/p3e/m3e/_3e/v3e 并行副本删除：
+ *     bundle 唯一真身 s3e@76294 / v3e@76540（唯一消费 j3e@76837/76840），树内逐字真身 = Home §V.3/§V.5
+ *     CodingPlanUsagePanel/StartPlanBalancePanel（A1-R19）；本表旧行降 shim 改指——SidebarCodingPlanWidget/
+ *     SidebarStartPlanWidget 名经 modules/UsageDeep 再导出 Home 面（行号旧注 76246/76492 为漂移行）。
+ *     闭包助手逐字真身同在 Home §V：r3e=76246/a3e=76252/o3e=76262/u3e=76445/d3e=76451/f3e=76465/
+ *     p3e=76482/m3e=76486/_3e=76505。证据链见 A1-R21.report.md §三。
+ *   i3e → hasPlanWidgetModel              （保留，A1-R21 补 export）
  *   kq  → modelDisplayName                GLM 特判 + 词首大写 (76370 / 67594)
  *   c3e → limitTotalOf                    number ?? unit ?? 0
  *   l3e → limitRemainingOf                remaining ?? 0
- *   u3e → formatUsedPercent               0–1 → 百分比
- *   d3e → startPlanNextResetTimeOf        subscription.details[0].renewTime → remaining → limits
- *   f3e → formatResetDateTimeCompact      今天=HH:mm，否则 `Mon d HH:mm`
- *   p3e → normalizeModelCode              `model:` 前缀；glm-5-turbo→GLM-5Turbo；其余大写
- *   m3e → limitModelLabel                 usageDetails → 展示名 `/` 连接
  *   h3e → visibleStartPlanLimits          total>0 || remaining>0 过滤
- *   g3e → hasStartPlanBalance
- *   _3e → StartPlanBalanceRow             剩余比进度条
- *   v3e → SidebarStartPlanWidget          侧栏 Start Plan 余额件 (76492 / 67671)
+ *   g3e → hasStartPlanBalance             （保留，A1-R21 补 export）
  *
  * E. 供应商环境/内网探测助手（js 187188–187304 / jsx 151029–151160）
  *   i7  → trimmedOrUndefined              (187289 / 151029)
@@ -2093,7 +2088,9 @@ export interface PlanWidgetEntitlementEntry {
   sourceId?: string;
   label?: string;
   loading: boolean;
-  error?: string | null;
+  /** 〔A1-R21〕型缝：放宽为 unknown——bundle Oq 不读 error，s3e 渲染面直出 JSX child；
+   *  消费面 PaymentDeep 11162/11175 构造源为 unknown（teamSubscription.error 等）。 */
+  error?: unknown;
   snapshot: EntitlementSnapshot | null;
 }
 export interface PlanWidgetConfig {
@@ -2153,161 +2150,21 @@ export function resolvePlanWidgetModel(config: PlanWidgetConfig): PlanWidgetMode
   };
 }
 
-/** 原 r3e（js 76227）：1/2/3 列网格 */
-function planWidgetGridCols(count: number): string {
-  return count <= 1 ? `grid-cols-1` : count === 2 ? `grid-cols-2` : `grid-cols-3`;
-}
+/* ── tombstone（A1-R21 · 双实例叠层专项裁定，编排方委托）：
+ *    r3e planWidgetGridCols（76246）/a3e formatResetTimeHm（76252）/o3e PlanWidgetLimitRow（76262）/
+ *    s3e SidebarCodingPlanWidget（76294–76417）删除——s3e 双实例并行重建设定：
+ *    bundle 唯一真身 s3e@76294（styles 导出块 213930 无面；唯一消费 = j3e@76837，j3e 唯一消费 = iit@89918）；
+ *    树内逐字真身 = Home §V.3 CodingPlanUsagePanel（A1-R19 转录，机械校验在案），本 A0 副本降 shim：
+ *    modules/UsageDeep 再导出 Home 面（SidebarCodingPlanWidget 名保留），PaymentDeep 581 消费面不变。
+ *    三助手 r3e/a3e/o3e 树内唯二消费面即本副本；逐字真身 = Home §V resolveUsageGridColumnsClass（76246）/
+ *    formatUsageResetClockTime（76252）/UsagePlanLimitRow（76262），随主件删除。 ── */
 
-/** 原 i3e（js 76230）：展示模型存在判定 */
-function hasPlanWidgetModel(config: PlanWidgetConfig): boolean {
+/** 原 i3e（js 76249）：展示模型存在判定 */
+export function hasPlanWidgetModel(config: PlanWidgetConfig): boolean { // 〔A1-R21〕补 export：PaymentDeep hasPlanWidgetModel declare（76249 同身）收敛消费
   return !!resolvePlanWidgetModel(config);
 }
 
-/** 原 a3e（js 76232）：HH:mm（h23） */
-function formatResetTimeHm(opts: { locale: string; value: unknown }): string | undefined {
-  if (!opts.value) return;
-  const date = new Date(opts.value as number | string | Date);
-  if (!Number.isNaN(date.getTime()))
-    return new Intl.DateTimeFormat(opts.locale, {
-      hour: `2-digit`,
-      minute: `2-digit`,
-      hourCycle: `h23`,
-    }).format(date);
-}
-
-/** 原 o3e（js 76241）：侧栏配额行（标签+数值·重置时间+进度条） */
-function PlanWidgetLimitRow(props: { color: string; label: string; percentage: number | null; resetTime?: string; value: string }): React.ReactElement {
-  return (
-    <div className={`min-w-0 space-y-1.5`}>
-      <div className={`min-w-0 space-y-0.5 text-ui-sm`}>
-        <div className={`min-w-0 truncate text-foreground-subtle`}>{props.label}</div>
-        <div className={`min-w-0 text-ui-sm tabular-nums`}>
-          <span className={`font-mono text-foreground`}>{props.value}</span>
-          {props.resetTime ? <span className={`text-foreground-subtle`}>{` · `}{props.resetTime}</span> : null}
-        </div>
-      </div>
-      <div className={`h-1.5 overflow-hidden rounded-full bg-surface-hover`}>
-        <div
-          className={`h-full rounded-full`}
-          style={{
-            backgroundColor: props.color,
-            width: `${Number.isFinite(props.percentage) ? Math.max(0, Math.min(100, props.percentage ?? 0)) : 0}%`,
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/** 原 s3e（js 76246）：侧栏 Coding Plan 配额件（标题+折扣徽章+用量入口+三限额网格） */
-export function SidebarCodingPlanWidget(props: { config: PlanWidgetConfig; intl: IntlShape; locale: string; separated?: boolean }): React.ReactElement | null {
-  const { config, intl, locale, separated = false } = props;
-  const billingDiscount = useBillingDiscount();
-  const model = React.useMemo(() => resolvePlanWidgetModel(config), [config]);
-  if (!model) return null;
-  const planLevel = model.visibleSnapshot?.quota?.level ?? null;
-  const remaining = model.visibleSnapshot?.remaining;
-  const unavailableReason = model.visibleSnapshot?.unavailableReason;
-  const limits = model.visibleSnapshot?.quota?.limits ?? [];
-  const fiveHourLimit = findQuotaLimit(limits, `TOKENS_LIMIT`, 3, 5);
-  const weeklyLimit = findQuotaLimit(limits, `TOKENS_LIMIT`, 6);
-  const monthlyToolLimit = findQuotaLimit(limits, `TIME_LIMIT`, 5, 1);
-  const fiveHourReset = fiveHourLimit?.nextResetTime ? formatResetTimeHm({ locale, value: fiveHourLimit.nextResetTime }) : void 0;
-  const weeklyReset = weeklyLimit?.nextResetTime ? formatQuotaResetTime({ locale, value: weeklyLimit.nextResetTime, format: `date` }) : void 0;
-  const monthlyToolReset = monthlyToolLimit?.nextResetTime ? formatQuotaResetTime({ locale, value: monthlyToolLimit.nextResetTime, format: `date` }) : void 0;
-  const unavailableLabel =
-    unavailableReason === `not_configured`
-      ? intl.formatMessage({ id: `sidebar.usage.plan.notConfigured` })
-      : unavailableReason === `not_authenticated`
-        ? intl.formatMessage({ id: `sidebar.usage.plan.loginRequired` })
-        : unavailableReason === `no_plan`
-          ? intl.formatMessage({ id: `sidebar.usage.plan.noPlan` })
-          : intl.formatMessage({ id: `sidebar.usage.plan.unavailable` });
-  const isEmptyState = !model.loading && !remaining && limits.length === 0 && !planLevel;
-  const rows = [
-    fiveHourLimit
-      ? {
-          color: `var(--color-usage-chart-1)`,
-          key: `fiveHour`,
-          label: intl.formatMessage({ id: `sidebar.usage.plan.fiveHour` }),
-          limit: fiveHourLimit,
-          resetTime: fiveHourReset,
-        }
-      : null,
-    weeklyLimit
-      ? {
-          color: `var(--color-usage-chart-2)`,
-          key: `weekly`,
-          label: intl.formatMessage({ id: `sidebar.usage.plan.weekly` }),
-          limit: weeklyLimit,
-          resetTime: weeklyReset,
-        }
-      : null,
-    monthlyToolLimit
-      ? {
-          color: `var(--color-usage-chart-3)`,
-          key: `monthlyTool`,
-          label: intl.formatMessage({ id: `sidebar.usage.plan.toolCalls` }),
-          limit: monthlyToolLimit,
-          resetTime: monthlyToolReset,
-        }
-      : null,
-  ].filter((row): row is NonNullable<typeof row> => row !== null);
-  return (
-    <div className={separated ? `border-t border-border pt-2` : void 0}>
-      <div className={`flex min-w-0 items-center mb-2 gap-3`}>
-        <div className={`flex min-w-0 flex-1 items-center gap-1`}>
-          <span className={`min-w-0 truncate text-ui-base font-medium text-foreground`}>
-            {intl.formatMessage({ id: `sidebar.usage.plan.title` })}
-          </span>
-          {billingDiscount.active ? <BillingDiscountBadgeWithInfo config={billingDiscount.config} size={`compact`} /> : null}
-        </div>
-        {config.onUsageClick ? (
-          <button
-            type={`button`}
-            aria-label={intl.formatMessage({ id: `sidebar.usage.plan.open` })}
-            className={`inline-flex h-6 shrink-0 items-center gap-0.5 text-ui-sm text-foreground-subtle hover:text-foreground hover:underline`}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              config.onUsageClick?.();
-            }}
-          >
-            <span>{intl.formatMessage({ id: `sidebar.usage.plan.open` })}</span>
-            <ArrowRightIcon className={`size-3.5`} />
-          </button>
-        ) : null}
-      </div>
-      <div className={cn(`grid gap-2`, planWidgetGridCols(rows.length))}>
-        {model.loading && !model.visibleSnapshot ? (
-          <div className={`flex items-center gap-2 p-2 text-ui-base text-foreground-subtle`}>
-            <SpinnerIcon className={`size-3.5 animate-spin`} />
-            {intl.formatMessage({ id: `sidebar.usage.plan.loading` })}
-          </div>
-        ) : model.displayedEntitlement?.error ? (
-          <div className={`rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-ui-base text-destructive`}>
-            {model.displayedEntitlement.error}
-          </div>
-        ) : isEmptyState ? (
-          <div className={`p-2 text-ui-base leading-relaxed text-foreground-subtle`}>{unavailableLabel}</div>
-        ) : (
-          rows.map((row) => (
-            <PlanWidgetLimitRow
-              key={row.key}
-              color={row.color}
-              label={row.label}
-              percentage={quotaPercent(row.limit)}
-              value={formatQuotaUsage(locale, row.limit)}
-              resetTime={row.resetTime}
-            />
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** 原 kq（js 76370）：模型展示名（GLM-* 保留；turbo→Turbo；GLM/API/MCP/AI 大写；词首大写） */
+/** 原 kq（js 76418）：模型展示名（GLM-* 保留；turbo→Turbo；GLM/API/MCP/AI 大写；词首大写） */
 export function modelDisplayName(rawName: string): string {
   const normalized = rawName.replace(/\s+/g, ` `).trim();
   if (/^GLM-\S+$/i.test(normalized))
@@ -2340,62 +2197,13 @@ function limitRemainingOf(limit: EntitlementQuotaLimit): number {
   return limit.remaining ?? 0;
 }
 
-/** 原 u3e（js 76403）：0–1 比值 → 整数百分比 */
-function formatUsedPercent(ratio: number, locale: string): string {
-  const clamped = Number.isFinite(ratio) ? Math.max(0, Math.min(1, ratio)) : 0;
-  return new Intl.NumberFormat(locale || void 0, { maximumFractionDigits: 0, style: `percent` }).format(clamped);
-}
+/* ── tombstone（A1-R21 · 双实例叠层专项裁定续）：
+ *    u3e formatUsedPercent（76445）/d3e startPlanNextResetTimeOf（76451）/f3e formatResetDateTimeCompact（76465）/
+ *    p3e normalizeStartPlanModelCode（76482）/m3e limitModelLabel（76486）删除——v3e 副本闭包链式失消；
+ *    逐字真身 = Home §V formatUsageFractionPercent（76445）/resolveSnapshotEarliestRenewTime（76451）/
+ *    formatSnapshotRenewTime（76465）/formatUsageModelCode（76482）/resolveUsageDetailLabel（76486）。 ── */
 
-/** 原 d3e（js 76613 区 / jsx 67613）：Start Plan 下一重置时间（renewTime → remaining → limits 最早） */
-function startPlanNextResetTimeOf(snapshot: EntitlementSnapshot | null): number | undefined {
-  const renewTime = snapshot?.subscription?.details?.[0]?.renewTime?.trim();
-  if (renewTime) {
-    const parsed = Date.parse(renewTime);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  const remainingReset = snapshot?.remaining?.nextResetTime;
-  if (typeof remainingReset == `number` && Number.isFinite(remainingReset)) return remainingReset;
-  return (snapshot?.quota?.limits ?? [])
-    .map((limit) => limit.nextResetTime)
-    .filter((value): value is number => typeof value == `number` && Number.isFinite(value))
-    .sort((a, b) => a - b)[0];
-}
-
-/** 原 f3e（js 76417 区）：重置时间紧凑格式（今天=HH:mm，否则 `Mon d HH:mm`） */
-function formatResetDateTimeCompact(value: number | undefined, locale: string): string | undefined {
-  if (!value) return;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return;
-  const datePart = new Intl.DateTimeFormat(locale || void 0, { month: `short`, day: `numeric` }).format(date);
-  const timePart = new Intl.DateTimeFormat(locale || void 0, {
-    hour: `2-digit`,
-    minute: `2-digit`,
-    hourCycle: `h23`,
-  }).format(date);
-  const now = new Date();
-  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
-    ? timePart
-    : `${datePart} ${timePart}`;
-}
-
-/** 原 p3e（js 76437 区）：`model:` 前缀剥离；glm-5-turbo 特判；其余大写 */
-function normalizeStartPlanModelCode(modelCode: string): string {
-  const stripped = modelCode.replace(/^model:/i, ``);
-  return stripped.toLowerCase() === `glm-5-turbo` ? `GLM-5Turbo` : stripped.toUpperCase();
-}
-
-/** 原 m3e（js 76440 区）：限额模型标签（usageDetails 展示名 `/` 连接；空 → type） */
-function limitModelLabel(limit: EntitlementQuotaLimit): string {
-  const names = (limit.usageDetails ?? [])
-    .map((detail) => {
-      const displayName = detail.displayName?.trim();
-      return modelDisplayName(displayName || normalizeStartPlanModelCode(detail.modelCode.trim()));
-    })
-    .filter((name) => name.length > 0);
-  return names.length === 0 ? limit.type : names.join(` / `);
-}
-
-/** 原 h3e（js 76449 区）：可见限额过滤（总量>0 或 剩余>0） */
+/** 原 h3e（js 76495）：可见限额过滤（总量>0 或 剩余>0） */
 function visibleStartPlanLimits(snapshot: EntitlementSnapshot | null): EntitlementQuotaLimit[] {
   return (snapshot?.quota?.limits ?? []).filter((limit) => {
     const total = limitTotalOf(limit);
@@ -2404,88 +2212,17 @@ function visibleStartPlanLimits(snapshot: EntitlementSnapshot | null): Entitleme
   });
 }
 
-/** 原 g3e（js 76456 区）：余额件可见判定 */
-function hasStartPlanBalance(state: { loading: boolean; snapshot: EntitlementSnapshot | null } | undefined): boolean {
+/** 原 g3e（js 76502）：余额件可见判定 */
+export function hasStartPlanBalance(state: { loading: boolean; snapshot: EntitlementSnapshot | null } | undefined): boolean { // 〔A1-R21〕补 export：PaymentDeep hasStartPlanBalance declare（76502 同身）收敛消费
   return state ? state.loading || visibleStartPlanLimits(state.snapshot).length > 0 : false;
 }
 
-/** 原 _3e（js 76458 区）：Start Plan 余额行（剩余比进度条，bg-success） */
-function StartPlanBalanceRow(props: { limit: EntitlementQuotaLimit; locale: string; renewTime?: string }): React.ReactElement {
-  const total = limitTotalOf(props.limit);
-  const remaining = limitRemainingOf(props.limit);
-  const usedRatio = total > 0 ? Math.max(0, Math.min(1, remaining / total)) : 0;
-  return (
-    <div className={`min-w-0 space-y-1.5`}>
-      <div className={`min-w-0 space-y-0.5 text-ui-sm`}>
-        <div className={`min-w-0 truncate text-foreground-subtle`}>{limitModelLabel(props.limit)}</div>
-        <div className={`min-w-0 text-ui-sm tabular-nums`}>
-          <span className={`font-mono text-foreground`}>{formatUsedPercent(usedRatio, props.locale)}</span>
-          {props.renewTime ? <span className={`text-foreground-subtle`}>{` · `}{props.renewTime}</span> : null}
-        </div>
-      </div>
-      <div className={`h-1.5 overflow-hidden rounded-full bg-surface-hover`}>
-        <div className={`h-full rounded-full bg-success`} style={{ width: `${usedRatio * 100}%` }} />
-      </div>
-    </div>
-  );
-}
-
-export interface StartPlanWidgetConfig {
-  loading: boolean;
-  snapshot: EntitlementSnapshot | null;
-  onUpgradeClick?: () => void;
-}
-
-/** 原 v3e（js 76492）：侧栏 Start Plan 余额件（标题+升级按钮（折扣渐变态）+限额网格） */
-export function SidebarStartPlanWidget(props: { config: StartPlanWidgetConfig; intl: IntlShape; locale: string; separated?: boolean }): React.ReactElement | null {
-  const { config, intl, locale, separated = false } = props;
-  const billingDiscount = useBillingDiscount();
-  const discountActive = billingDiscount.active === true;
-  const limits = visibleStartPlanLimits(config.snapshot);
-  const renewLabel = formatResetDateTimeCompact(startPlanNextResetTimeOf(config.snapshot), locale);
-  if (!config.loading && limits.length === 0) return null;
-  return (
-    <div className={separated ? `border-t border-border pt-2` : void 0}>
-      <div className={`mb-2 flex min-w-0 items-center gap-3`}>
-        <div className={`flex min-w-0 flex-1 items-center gap-1.5`}>
-          <span className={`min-w-0 truncate text-ui-base font-medium text-foreground`}>
-            {intl.formatMessage({ id: `settings.modelProvider.startPlan.balance.title` })}
-          </span>
-          {config.loading ? <SpinnerIcon className={`size-3.5 shrink-0 animate-spin text-foreground-subtle`} /> : null}
-        </div>
-        {config.onUpgradeClick ? (
-          <div className={`inline-flex shrink-0 items-center gap-1`}>
-            <Button
-              type={`button`}
-              size={`xs`}
-              className={cn(
-                `h-6 shrink-0 gap-1 px-2 text-ui-sm`,
-                discountActive && `button-gradient rounded-full pr-[5px] text-white hover:bg-transparent hover:opacity-90 dark:bg-[#484A58] dark:hover:bg-[#484A58]`
-              )}
-              onClick={(event: any) => {
-                event.preventDefault();
-                event.stopPropagation();
-                config.onUpgradeClick?.();
-              }}
-            >
-              <RocketIcon className={`size-3`} />
-              {intl.formatMessage({ id: `chat.quota.action.upgrade` })}
-              {discountActive ? (
-                <BillingDiscountBadge config={billingDiscount.config} iconVisible={false} size={`compact`} variant={`surface`} />
-              ) : null}
-            </Button>
-            {discountActive ? <BillingDiscountInfoDialog config={billingDiscount.config} /> : null}
-          </div>
-        ) : null}
-      </div>
-      <div className={cn(`grid gap-2`, planWidgetGridCols(limits.length))}>
-        {limits.map((limit) => (
-          <StartPlanBalanceRow key={`${limit.type}:${limitModelLabel(limit)}`} limit={limit} locale={locale} renewTime={renewLabel} />
-        ))}
-      </div>
-    </div>
-  );
-}
+/* ── tombstone（A1-R21 · 双实例叠层专项裁定续）：
+ *    _3e StartPlanBalanceRow（76505）/StartPlanWidgetConfig 型/v3e SidebarStartPlanWidget（76540–76611）删除——
+ *    v3e 双实例并行重建设定：bundle 唯一真身 v3e@76540（导出块无面；唯一消费 = j3e@76840）；
+ *    树内逐字真身 = Home §V.5 StartPlanBalancePanel（A1-R19 转录），本 A0 副本降 shim：
+ *    modules/UsageDeep 再导出 Home 面（SidebarStartPlanWidget 名保留），PaymentDeep 584 消费面不变。
+ *    _3e 树内唯一消费面即本副本；逐字真身 = Home §V StartPlanUsageLimitRow（76505），随主件删除。 ── */
 
 /* ============================================================================
  * 5. 供应商环境/内网探测助手（原 i7…gYt，js 187188–187304 / jsx 151029–151160）

@@ -820,10 +820,12 @@ declare function extractConversationSelections(content: string): {
 interface ConversationSelection {
   [key: string]: unknown;
 }
-declare function readSessionScopedReferences(sessionId: string, workspaceKey: string): SessionScopedReference[];
-declare function readSessionScopedLimitReason(sessionId: string, workspaceKey: string): string | null;
-declare function writeSessionScopedReferences(sessionId: string, workspaceKey: string, refs: SessionScopedReference[]): void;
-declare function clearSessionScopedLimitReason(sessionId: string, workspaceKey: string): void;
+/* 〔A1-R21〕型缝：sessionId 放宽为 string | null——bundle 消费面（composer 90400 tZe({ sessionId: t, … })）
+ * 透传 composer sessionId prop（Home 5590 面 string | null）；F03 域存取函数为 ambient declare，编译期擦除。 */
+declare function readSessionScopedReferences(sessionId: string | null, workspaceKey: string): SessionScopedReference[];
+declare function readSessionScopedLimitReason(sessionId: string | null, workspaceKey: string): string | null;
+declare function writeSessionScopedReferences(sessionId: string | null, workspaceKey: string, refs: SessionScopedReference[]): void;
+declare function clearSessionScopedLimitReason(sessionId: string | null, workspaceKey: string): void;
 declare function isSessionScopedReferencesChangedEvent(event: Event): boolean;
 declare function sessionScopedReferencesChangedEventType(): string;
 interface SessionScopedReference {
@@ -6802,7 +6804,7 @@ export const useCodeCommentsStore = createStore<CodeCommentsStoreState>((set, ge
 }));
 
 /** jXe → removeCodeCommentEverywhere（js 68628） */
-function removeCodeCommentEverywhere(
+export function removeCodeCommentEverywhere( // 〔A1-R21〕补 export：Home broadcastContextRemoved declare（68628 同身）收敛消费（函数声明提升，环安全）
   comment: { id: string; workspacePath: string; workspaceIdentity?: string | null },
   broadcaster?: { send(message: { channel: string; payload: unknown }): unknown } | null,
 ): void {
@@ -7232,7 +7234,7 @@ function normalizeWebElementDetail(detail: unknown): WebElementContext | null {
 }
 
 /** ZXe → useWebElementContexts（js 68940） */
-function useWebElementContexts({
+export function useWebElementContexts({ // 〔A1-R21〕补 export：Home useWebContexts declare（68940 同身）收敛消费（函数声明提升，环安全）
   workspacePath,
   workspaceIdentity,
   listenAddToChatEvents = true,
@@ -7299,7 +7301,7 @@ function useWebElementContexts({
  * PptxElementAddDetail 留守（留守面消费）。 */
 
 /** tZe → useSessionScopedReferences（js 69225） */
-export function useSessionScopedReferences(args: { sessionId: string; workspaceKey: string }) { // 〔A0-S4-4b〕补 export：pptx 族迁出后消费（函数声明提升，环安全）
+export function useSessionScopedReferences(args: { sessionId: string | null; workspaceKey: string }) { // 〔A0-S4-4b〕补 export：pptx 族迁出后消费（函数声明提升，环安全）。〔A1-R21〕sessionId 型缝放宽（见上方 F03 declare 注）：Home useConversationSelections declare 收敛消费
   const [references, setReferences] = React.useState(() => readSessionScopedReferences(args.sessionId, args.workspaceKey));
   const [limitReason, setLimitReason] = React.useState(() => readSessionScopedLimitReason(args.sessionId, args.workspaceKey));
   React.useEffect(() => {

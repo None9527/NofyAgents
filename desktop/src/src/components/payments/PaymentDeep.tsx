@@ -120,7 +120,7 @@ import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../mod
 import { resolveModelTriggerLabelParts } from '../../modules/SettingsLeaves'; // A0-CLEANUP4：原 nWe（styles jsx 48452）三元面，非 $7 单串面
 import { logger } from '../../modules/SkillStore';
 import { useSettingsStore as useAppStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
-import { SidebarCodingPlanWidget, SidebarStartPlanWidget, formatGrantUnits, useBillingDiscount, BillingDiscountCard, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, entryPlanStateOf } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）
+import { SidebarCodingPlanWidget, SidebarStartPlanWidget, formatGrantUnits, useBillingDiscount, BillingDiscountCard, RegionLogo, hasPlanWidgetModel, hasStartPlanBalance, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, entryPlanStateOf } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）。A1-R21：+RegionLogo/hasPlanWidgetModel/hasStartPlanBalance（原 Tq 76183 / i3e 76249 / g3e 76502 收敛，见下墓碑；Sidebar*Widget 经 shim 改指 Home §V 逐字真身，导入面不变）
 import { useServices } from '../../modules/services';
 
 /* ----------------------------------------------------------------------------
@@ -212,10 +212,10 @@ declare function withProvidersHydration<T>(getter: () => Promise<T>): Promise<T>
  *    canonical 在 Composer.tsx（SegmentedProgress / ContextUsageProvider /
  *    ContextRingTrigger / ContextRingTooltipContent / ContextRingTooltipBody），
  *    经文件头真实 import 消费。 ── */
-/** UsageDeep.tsx 已抽取件（s3e/v3e 侧栏件，76294/76540） */
-/** UsageDeep 已抽取：hasPlanWidgetModel/hasStartPlanBalance（i3e/g3e，76230 区/76455 区） */
-declare function hasPlanWidgetModel(config: any): boolean; // i3e
-declare function hasStartPlanBalance(config: any): boolean; // g3e
+/* ── tombstone（A1-R21）：declare hasPlanWidgetModel/hasStartPlanBalance（原 i3e/g3e，76249/76502；
+ *    旧注 76230 区/76455 区为漂移行）删除——canonical 属主 components/usage/UsageDeep.tsx
+ *    （A0 已重建，本批补 export），改指文件头 import（modules/UsageDeep）；
+ *    消费面 485/486/11094/11184 逐字不变。 ── */
 /** src-HCld2afU testid 常量：Lte（上下文用量触发器） */
 declare const CONTEXT_USAGE_TRIGGER_TESTID: string; // Lte
 /* ── tombstone（A0-S3a）：vendored qrcode（78456–79690，Qq）declare 删除，
@@ -276,7 +276,12 @@ declare const SelectionIcon: React.FC<React.SVGProps<SVGSVGElement>>; // fbe
 declare const GenericProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Cv
 declare const ZapiProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // zbe
 declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe
-declare function providerLogoOf(providerId: string, className: string): React.ReactNode; // Tq
+/* ── tombstone（A1-R21）：declare providerLogoOf（原 Tq，76183）删除——canonical 属主
+ *    components/usage/UsageDeep.tsx RegionLogo（A0 已重建；bundle Tq 二参函数形
+ *    `Tq(providerId, className)` 与本 declare 同形，收敛改组件形消费）。
+ *    证据：bundle Tq 体 = REGION_LOGO_BY_ID 查表 → img(`shrink-0 object-contain`+cn 合并) |
+ *    缺省 pv=log-in 图标(`shrink-0`)，与 RegionLogo 体逐字同构；消费面 88517/88520（本文件
+ *    providerEntryIconOf=crt 88512 区）改 `<RegionLogo region={…} className={…}/>`，语义不变。 ── */
 /* ── tombstone（A1-R20）：declare const BillingDiscountBanner（原 HHe，js 51994–52033）删除——canonical 属主
  *    components/usage/UsageDeep.tsx BillingDiscountCard（A0 已重建；A1-R20 sparkles 图标勘误后与 bundle 逐字一致）；
  *    bundle HHe 唯一真身，消费面 85417（本文件 6719 区）逐字不变，改指文件头 import（modules/UsageDeep）。 ── */
@@ -9893,10 +9898,10 @@ function providerEntryIconOf(item: any) {
   if (item.type === `preset` || item.type === `codingPlan`) {
     if (item.presetId === PROVIDER_IDS.zapi) return <ZapiProviderIcon className={`size-4 shrink-0`} />;
     const oauthProviderId = oauthProviderIdOfEntry(item.presetId);
-    return oauthProviderId ? providerLogoOf(oauthProviderId, `size-4`) : <GenericProviderIcon className={`size-4 shrink-0`} />;
+    return oauthProviderId ? <RegionLogo region={oauthProviderId} className={`size-4`} /> : <GenericProviderIcon className={`size-4 shrink-0`} />; // A1-R21：providerLogoOf declare 改指（Tq 76183，组件形）
   }
   return item.type === `codingPlanLoading` && item.oauthProviderId
-    ? providerLogoOf(item.oauthProviderId, `size-4`)
+    ? <RegionLogo region={item.oauthProviderId} className={`size-4`} /> // A1-R21：同上
     : <GenericProviderIcon className={`size-4 shrink-0`} />;
 }
 

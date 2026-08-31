@@ -37,7 +37,7 @@ declare const PPTX_ELEMENT_ADD_EVENT_TYPE: string;
 declare function isPathWithinWorkspace(workspacePath: string, sourcePath: string): boolean; // 留守面共用 ambient declare，按消费方复制（编译期擦除，emit 中立）
 
 /** QXe → usePptxElementReferences（js 68996） */
-function usePptxElementReferences(args: {
+export function usePptxElementReferences(args: { // 〔A1-R21〕补 export：Home usePptxReferences declare（68996 同身）收敛消费（函数声明提升，环安全）
   workspacePath: string;
   workspaceIdentity?: string | null;
   remoteSessionId?: string | null;
@@ -89,7 +89,7 @@ function pptxReferenceLabel(reference: PptxElementAddDetail): string {
 }
 
 /** JH → PptxReferencesChip（js 69036） */
-function PptxReferencesChip({ references, onOpen, onRemove, onRemoveAll }: {
+export function PptxReferencesChip({ references, onOpen, onRemove, onRemoveAll }: { // 〔A1-R21〕补 export：Home PptxReferenceChipRow declare（69036 同身）收敛消费（函数声明提升，环安全）
   references: PptxElementAddDetail[];
   onOpen?: (reference: PptxElementAddDetail) => void;
   onRemove?: (id: string) => void;
@@ -256,7 +256,7 @@ function toPptxViewerTarget(reference: PptxElementAddDetail, scope: { workspaceP
 }
 
 /** YH → usePptxPreviewOpener（js 69207） */
-function usePptxPreviewOpener(args: {
+export function usePptxPreviewOpener(args: { // 〔A1-R21〕补 export：Home useCodeCommentOpener declare（69207 同身）收敛消费（函数声明提升，环安全）
   workspacePath: string;
   workspaceIdentity?: string | null;
   remoteSessionId?: string | null;

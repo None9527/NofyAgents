@@ -110,23 +110,15 @@
  *   Eq  → entitlementSourceId             sourceId ?? providerId
  *   Dq  → hasActiveEntitlementForProvider
  *   Oq  → resolvePlanWidgetModel          多源权益 → 展示模型 (76168 / 67446)
- *   r3e → planWidgetGridCols              1/2/3 列
- *   i3e → hasPlanWidgetModel
- *   a3e → formatResetTimeHm               HH:mm（h23）
- *   o3e → PlanWidgetLimitRow              标签+数值+进度条
- *   s3e → SidebarCodingPlanWidget         侧栏 Coding Plan 配额件 (76246 / 67506)
+ *   〔A1-R21 双实例叠层专项裁定〕s3e/v3e 并行副本（含闭包 r3e/a3e/o3e/u3e/d3e/f3e/p3e/m3e/_3e）删除：
+ *     bundle 唯一真身 76294/76540（唯一消费 j3e@76837/76840），逐字真身 = Home §V.3/§V.5；
+ *     SidebarCodingPlanWidget/SidebarStartPlanWidget 名改由本 shim 再导出 Home 面（见文件尾）。
+ *   i3e → hasPlanWidgetModel              （保留，A1-R21 补 export）
  *   kq  → modelDisplayName                GLM 特判 + 词首大写 (76370 / 67594)
  *   c3e → limitTotalOf                    number ?? unit ?? 0
  *   l3e → limitRemainingOf                remaining ?? 0
- *   u3e → formatUsedPercent               0–1 → 百分比
- *   d3e → startPlanNextResetTimeOf        subscription.details[0].renewTime → remaining → limits
- *   f3e → formatResetDateTimeCompact      今天=HH:mm，否则 `Mon d HH:mm`
- *   p3e → normalizeModelCode              `model:` 前缀；glm-5-turbo→GLM-5Turbo；其余大写
- *   m3e → limitModelLabel                 usageDetails → 展示名 `/` 连接
  *   h3e → visibleStartPlanLimits          total>0 || remaining>0 过滤
- *   g3e → hasStartPlanBalance
- *   _3e → StartPlanBalanceRow             剩余比进度条
- *   v3e → SidebarStartPlanWidget          侧栏 Start Plan 余额件 (76492 / 67671)
+ *   g3e → hasStartPlanBalance             （保留，A1-R21 补 export）
  *
  * E. 供应商环境/内网探测助手（js 187188–187304 / jsx 151029–151160）
  *   i7  → trimmedOrUndefined              (187289 / 151029)
@@ -381,9 +373,9 @@ export {
   formatQuotaResetTime,
   RegionLogo,
   resolvePlanWidgetModel,
-  SidebarCodingPlanWidget,
+  hasPlanWidgetModel, // 〔A1-R21〕补 export：PaymentDeep declare 收敛（i3e 76249）
   modelDisplayName,
-  SidebarStartPlanWidget,
+  hasStartPlanBalance, // 〔A1-R21〕补 export：PaymentDeep declare 收敛（g3e 76502）
   useIntranetProbe,
   useZapiEnabled,
   providerDraftDiff,
@@ -461,7 +453,6 @@ export type {
   PlanWidgetEntitlementEntry,
   PlanWidgetConfig,
   PlanWidgetModel,
-  StartPlanWidgetConfig,
   ProviderFormDraft,
   ModelDraft,
   ProviderConfigCardFormProps,
@@ -471,3 +462,10 @@ export type {
   CodingPlanViewState,
   CodingPlanStatusSectionProps,
 } from '../components/usage/UsageDeep';
+
+/* 〔A1-R21〕双实例叠层专项裁定（编排方委托）：s3e/v3e 并行重建——bundle 唯一真身 76294/76540
+ * （唯一消费 j3e@76837/76840），树内逐字真身 = Home §V.3/§V.5（A1-R19 机械校验在案）。
+ * components/usage/UsageDeep A0 副本（SidebarCodingPlanWidget/SidebarStartPlanWidget）删除，
+ * 本 shim 改指 Home 逐字面；别名与导出形不变，PaymentDeep 581/584 消费面零改动
+ * （函数声明提升，环安全：Home→本文件→Home 二环，渲染期访问）。证据见 A1-R21.report.md §三。 */
+export { CodingPlanUsagePanel as SidebarCodingPlanWidget, StartPlanBalancePanel as SidebarStartPlanWidget } from '../components/shell/Home';

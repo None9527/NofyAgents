@@ -144,8 +144,8 @@ import { ArrowUp as IconArrowUp, Square as IconSquare, Megaphone as IconMegaphon
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { Button, cva, ChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk。A1-R17：+cva（原 Ta = button chunk 导出 r，styles 897 导入；§T configSelectTriggerVariants 46035 消费）。A1-R19：+ChevronRight（原 wa = button chunk 导出 o=ChevronRight，styles 896 导入；§V s3e 76375 消费）
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Wb/Vb）
-import { BackgroundWorksCapsule, ComposerInput, applyWorkspaceFileMentionDrop as insertAddToChatPayload, useComposerFileDragDetection as useFileDragDetection, isCoarseTouchDevice, shouldRestoreFocus, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）。A1-R12：insertAddToChatPayload declare（原 YV，66811）改指 Composer 属主导出（bundle 唯一真身；消费点 2440/2947 逐字不变）。A1-R13：useFileDragDetection declare（原 XV，66828）改指 Composer 属主导出（bundle 唯一真身；消费点 2418 逐字不变）。A1-R17：+isCoarseTouchDevice/shouldRestoreFocus（原 XH 69346 / ZH 69351 属主导出；§T ConfigSelect 77025 消费）
-import { countContextAttachments, useCodeCommentContexts, type CodeCommentAttachment } from '../../modules/GitReview'; // A1-R12：isAddToChatEvent 移出（原 yXe，68430 = code-comment-add-to-chat 域，与 2945 消费面事件名不符 → 改指工作区域守卫，见下）
+import { BackgroundWorksCapsule, ComposerInput, applyWorkspaceFileMentionDrop as insertAddToChatPayload, useComposerFileDragDetection as useFileDragDetection, isCoarseTouchDevice, shouldRestoreFocus, useWebElementContexts, removeCodeCommentEverywhere, useSessionScopedReferences, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）。A1-R12：insertAddToChatPayload declare（原 YV，66811）改指 Composer 属主导出（bundle 唯一真身；消费点 2440/2947 逐字不变）。A1-R13：useFileDragDetection declare（原 XV，66828）改指 Composer 属主导出（bundle 唯一真身；消费点 2418 逐字不变）。A1-R17：+isCoarseTouchDevice/shouldRestoreFocus（原 XH 69346 / ZH 69351 属主导出；§T ConfigSelect 77025 消费）。A1-R21：+useWebElementContexts/removeCodeCommentEverywhere/useSessionScopedReferences（原 ZXe 68940 / jXe 68628 / tZe 69225 属主导出；附件域双钩子+余量 declare 收敛，见下墓碑）
+import { countContextAttachments, buildOutboundContentWithAttachments, useCodeCommentContexts, type CodeCommentAttachment } from '../../modules/GitReview'; // A1-R12：isAddToChatEvent 移出（原 yXe，68430 = code-comment-add-to-chat 域，与 2945 消费面事件名不符 → 改指工作区域守卫，见下）。A1-R21：+buildOutboundContentWithAttachments（原 GXe，68833；buildOutgoingMessage declare 收敛，与 countContextAttachments=GH 68825 同族配对）
 import { readWorkspaceFilePayload as parseAddToChatPayload, ADD_WORKSPACE_FILE_TO_CHAT_EVENT as ADD_TO_CHAT_EVENT_NAME, isAddWorkspaceFileToChatEvent as isAddToChatEvent, type WorkspaceFileDragPayload } from '../composer/FileMentionDragHelpers'; // A1-R12：Mj（52248）/Aj（52211）/nUe（52260）declare 改指纯函数叶子（本批逐字转录）；消费点 2436/2945/2957/2959 逐字不变。nUe 此前误接 GitReview yXe（code-comment 域），bundle 90733 真身 = 工作区域守卫
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService } from '../../modules/ImeComposition'; // +usePlatformService（A1-R15：原 l=M，vWe 54317 截图面消费）
 import { pathBasename } from '../../modules/ModalsLeaves';
@@ -161,6 +161,7 @@ import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, 
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { Root as RadixSelectRoot, Value as RadixSelectValue, Trigger as RadixSelectTrigger, Icon as RadixSelectIcon, Portal as RadixSelectPortal, Content as RadixSelectContent, Viewport as RadixSelectViewport, Item as RadixSelectItem, ItemText as RadixSelectItemText, ItemIndicator as RadixSelectItemIndicator, ScrollUpButton as RadixSelectScrollUpButton, ScrollDownButton as RadixSelectScrollDownButton } from '@radix-ui/react-select'; // A1-R17：vendored radix select（原 CDe=PEe/TDe=REe/wDe=IEe/EDe=BEe/DDe=HEe/ODe=UEe/kDe=QEe/ADe=sDe/MDe/jDe/NDe/PDe，styles 30850–31745 区）→ npm @radix-ui/react-select@2.3.7（A0-S3c 先例 SettingsRowPrimitives）
 import { AnimatedLabel, MODE_LABEL_I18N, MODE_DESCRIPTION_I18N, ModelSelector, ContextUsageProvider, ContextRingTrigger, ContextRingTooltipContent, ContextRingTooltipBody, SegmentedProgress, type ModelGroup } from '../composer/ModelSelector'; // A1-R17：原 _q（75520）/V4e（75972）/H4e（76003）——A0-S4-4b 已属主导出（[D] ConfigSelect 消费预案），本批 §T 接线。A1-R18：+ModelSelector（原 vq，js 75575 memo；§U iit 消费，props 面逐字兼容）+type ModelGroup（Hq declare 返回面）。A1-R19：+5 件（原 J4e/X4e/Z4e/Q4e/yq = ContextUsageProvider 76079/ContextRingTrigger 76125/ContextRingTooltipContent 76139/ContextRingTooltipBody 76147/SegmentedProgress 76034，A0-S2d 已属主导出；§V j3e 76741–76794 消费）
+import { usePptxElementReferences, usePptxPreviewOpener, PptxReferencesChip } from '../composer/PptxReferencesChip'; // A1-R21：附件域双钩子收敛——原 QXe/YH/JH=usePptxElementReferences/usePptxPreviewOpener/PptxReferencesChip（styles 68996/69207/69036；canonical 属主 A0-S4-4b 迁出件，本批补 export）；六实体 bundle 原即模块私有（styles 导出块 213930 无面），树内补 export 为收敛面（Composer 补 export 先例）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // A1-R18：useIntlContext declare（原 G，IntlProvider-C321H7m8 D 9254）收敛 I18n canonical（Composer.tsx:517 先例；ZCodeIntl 与旧本地 IntlShape 同形）
 import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（js 123241）远端条目域改指（tombstone 见原声明位）
 import { LoaderCircle } from '../../modules/ImeComposition'; // A1-R19：原 M = imeComposition-DEYFkwWm.js 导出 w（内名 Ut = lucide loader-circle 11786）；§V s3e 76365 / v3e 76563 loading 消费
@@ -434,7 +435,7 @@ declare function buildCodingPlanFunnelContext(opts: {
 declare function resolveEntryPlanState(opts: { providers: ModelProviderEntry[]; loading: boolean }): unknown;
 
 /** 平台 context（原 ps()，横切层；hit 用其 broadcastService） */
-declare function usePlatformContext(): { broadcastService?: { postMessage?(payload: unknown): void } } | null;
+declare function usePlatformContext(): { broadcastService?: { send(message: { channel: string; payload: unknown }): unknown } } | null; // 〔A1-R21〕型缝校正：broadcastService 消费面为 .send({channel, payload})（bundle jXe 68634 实测），旧注 postMessage 为 A0 占位
 
 /* --- UI 原语 --- */
 
@@ -2030,8 +2031,10 @@ function isImageAttachment(attachment: ComposerAttachment): boolean {
 }
 
 /** 提及/引用/上下文钩子群（F08，js 行登记） */
-interface WebContextItem { id: string; [key: string]: unknown }
-interface PptxReferenceItem { id: string; [key: string]: unknown }
+/* 〔A1-R21〕本地型 WebContextItem/PptxReferenceItem 删除：附件域双钩子收敛后，消费面型别改自
+ * canonical 属主——webContexts: WebElementContext[]（Composer ZXe 返回面）、pptxReferences:
+ * PptxElementAddDetail[]（PptxReferencesChip QXe 返回面）；原二型（{id; [key: string]: unknown}）
+ * 为 A0 期占位，无独立 bundle 对应物。 */
 interface ConversationSelectionItem { id: string; [key: string]: unknown }
 /** 代码评论条目统一采用 GitReview 导出的 CodeCommentAttachment（原 DXe 族类型） */
 type CodeCommentItem = CodeCommentAttachment;
@@ -2082,43 +2085,16 @@ type AddToChatPayload = WorkspaceFileDragPayload;
  *    bundle 唯一真身；调用点 2440/2947 逐字不变）。 ── */
 /* ── tombstone（A1-R12）：declare ADD_TO_CHAT_EVENT_NAME（原 Aj，52211）删除 → 文件头
  *    ADD_WORKSPACE_FILE_TO_CHAT_EVENT 别名 import（调用点 2957/2959 逐字不变）。 ── */
-declare function useWebContexts(args: {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  listenAddToChatEvents: boolean;
-  scopeId: string;
-}): { contexts: WebContextItem[]; hasContexts: boolean; removeContext(id: string): void; clearContexts(): void };
-declare function usePptxReferences(args: {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  remoteSessionId?: string | null;
-  listenAddToChatEvents: boolean;
-  scopeId: string;
-}): { references: PptxReferenceItem[]; hasReferences: boolean; removeReference(id: string): void; clearReferences(): void };
-declare function useCodeCommentOpener(args: {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  remoteSessionId?: string | null;
-  onOpenCodeViewer?: (args: unknown) => void;
-}): ((comment: unknown) => void) | undefined;
-declare function useConversationSelections(args: { sessionId: string | null; workspaceKey: string }): {
-  references: ConversationSelectionItem[];
-  limitReason: string | null;
-  removeReference(id: string): void;
-  clearReferences(): void;
-};
-declare function broadcastContextRemoved(item: CodeCommentItem, broadcastService?: { postMessage?(payload: unknown): void }): void;
-
-/** 上下文 → 外发消息装配（原 GXe/GH，js 68785/68777） */
-declare function buildOutgoingMessage(
-  text: string,
-  contexts: {
-    codeComments: CodeCommentItem[];
-    conversationSelections: ConversationSelectionItem[];
-    webElements: WebContextItem[];
-    pptxElements: PptxReferenceItem[];
-  },
-): string;
+/* ── tombstone（A1-R21）：附件域双钩子 + 余量 6 件 declare 删除——bundle 唯一真身改指收敛：
+ *    useWebContexts          （原 ZXe，68940）→ useWebElementContexts（modules/Composer 属主导出）
+ *    usePptxReferences       （原 QXe，68996）→ usePptxElementReferences（components/composer/PptxReferencesChip 属主导出）
+ *    useCodeCommentOpener    （原 YH，69207）→ usePptxPreviewOpener（同上；A0 旧名误作 code-comment，实为 pptx 预览开启器）
+ *    useConversationSelections（原 tZe，69225）→ useSessionScopedReferences（modules/Composer 属主导出）
+ *    broadcastContextRemoved （原 jXe，68628）→ removeCodeCommentEverywhere（modules/Composer 属主导出）
+ *    buildOutgoingMessage    （原 GXe，68833；旧注 68785/68777 为 +48 漂移行）→ buildOutboundContentWithAttachments（modules/GitReview 属主导出，与 countContextAttachments=GH 68825 配对）
+ *    证据：六真身 styles chunk 各仅 1 份定义且均不在导出块（213930 仅 EAe/kAe/jAe/lAe 四名）；
+ *    消费面（本文件 5781/5787/5794/5800/5864/6140 区）改指后语义不变。闭包助手（XXe/YXe/IH/LH/BH
+ *    属 Composer；pptx 五件 v/y/D/k/E 属 imeComposition 域外）随钩子收敛，无余留。 ── */
 
 /** 错误展示（原 uN/lN，js 54302/54280；A1-R13 行校正，旧注 54254/54232） */
 interface ChatError {
@@ -2271,15 +2247,12 @@ declare function AttachmentPreviewDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }): React.ReactElement;
-/** 上下文/引用 chip 行（原 TH lit JH uit，js 68250/89941/68988/90039） */
+/** 上下文/引用 chip 行（原 TH lit uit，js 68298/89989/90087；旧注 68250/89941/90039 为漂移行） */
 declare function CodeCommentChipRow(props: { comments: CodeCommentItem[]; onRemove: (scope: { id: string; workspacePath: string; workspaceIdentity?: string | null }) => void; onRemoveAll: () => void }): React.ReactElement | null;
-declare function WebContextChipRow(props: { contexts: WebContextItem[]; onRemove: (id: string) => void; onRemoveAll: () => void }): React.ReactElement | null;
-declare function PptxReferenceChipRow(props: {
-  references: PptxReferenceItem[];
-  onOpen?: (reference: PptxReferenceItem) => void;
-  onRemove: (id: string) => void;
-  onRemoveAll: () => void;
-}): React.ReactElement | null;
+declare function WebContextChipRow(props: { contexts: WebElementContext[]; onRemove: (id: string) => void; onRemoveAll: () => void }): React.ReactElement | null; // 〔A1-R21〕型缝：contexts 改 WebElementContext[]（ZXe 返回面；原 WebContextItem 占位型删除）
+/* ── tombstone（A1-R21）：declare PptxReferenceChipRow（原 JH，69036）删除 → 文件头
+ *    PptxReferencesChip import（canonical 属主 components/composer/PptxReferencesChip；
+ *    props 面 {references/onOpen?/onRemove?/onRemoveAll?} 与 bundle 90783 渲染形逐字同构）。 ── */
 declare function ConversationSelectionChipRow(props: {
   references: ConversationSelectionItem[];
   onRemove: (id: string) => void;
@@ -5778,26 +5751,26 @@ export function DraftComposerRegion({
 
   const attachmentOpenLabel = intl.formatMessage({ id: "chat.attachments.preview.open" });
   const hasAttachments = whiteboardScope.hasAttachments;
-  const { contexts: webContexts, hasContexts: hasWebContexts, removeContext: removeWebContext, clearContexts: clearWebContexts } = useWebContexts({
+  const { contexts: webContexts, hasContexts: hasWebContexts, removeContext: removeWebContext, clearContexts: clearWebContexts } = useWebElementContexts({ // A1-R21：原 useWebContexts declare 改指（ZXe 68940）
     workspacePath,
     workspaceIdentity,
     listenAddToChatEvents: listenAddToChatEvents && !disabled,
     scopeId: scopeSessionId,
   });
-  const { references: pptxReferences, hasReferences: hasPptxReferences, removeReference: removePptxReference, clearReferences: clearPptxReferences } = usePptxReferences({
+  const { references: pptxReferences, hasReferences: hasPptxReferences, removeReference: removePptxReference, clearReferences: clearPptxReferences } = usePptxElementReferences({ // A1-R21：原 usePptxReferences declare 改指（QXe 68996）
     workspacePath,
     workspaceIdentity,
     remoteSessionId,
     listenAddToChatEvents: listenAddToChatEvents && !disabled,
     scopeId: scopeSessionId,
   });
-  const openCodeCommentViewer = useCodeCommentOpener({ workspacePath, workspaceIdentity, remoteSessionId, onOpenCodeViewer });
+  const openCodeCommentViewer = usePptxPreviewOpener({ workspacePath, workspaceIdentity, remoteSessionId, onOpenCodeViewer }); // A1-R21：原 useCodeCommentOpener declare 改指（YH 69207）
   const {
     references: conversationSelections,
     limitReason: selectionLimitReason,
     removeReference: removeConversationSelection,
     clearReferences: clearConversationSelections,
-  } = useConversationSelections({ sessionId, workspaceKey });
+  } = useSessionScopedReferences({ sessionId, workspaceKey }); // A1-R21：原 useConversationSelections declare 改指（tZe 69225）
   const hasConversationSelections = conversationSelections.length > 0;
 
   /* --- 草稿持久化（350ms 防抖；页签隐藏/失焦时立即落盘） --- */
@@ -5861,7 +5834,7 @@ export function DraftComposerRegion({
   }, [applyPendingFocus]);
   const handleContextRemoved = React.useCallback(
     (item: CodeCommentItem) => {
-      broadcastContextRemoved(item, platformContext?.broadcastService);
+      removeCodeCommentEverywhere(item, platformContext?.broadcastService); // A1-R21：原 broadcastContextRemoved declare 改指（jXe 68628）
     },
     [platformContext?.broadcastService],
   );
@@ -6137,7 +6110,7 @@ export function DraftComposerRegion({
       try {
         const preparedAttachments = await whiteboardScope.prepareForSend();
         if (preparedAttachments === null) return;
-        const outgoingText = buildOutgoingMessage(draftText, {
+        const outgoingText = buildOutboundContentWithAttachments(draftText, { // A1-R21：原 buildOutgoingMessage declare 改指（GXe 68833）
           codeComments: codeCommentsToSend,
           conversationSelections: selectionsToSend,
           webElements: webElementsToSend,
@@ -6146,7 +6119,7 @@ export function DraftComposerRegion({
         const contextAttachmentCount = countContextAttachments({
           codeComments: codeCommentsToSend,
           conversationSelections: selectionsToSend,
-          webElements: webElementsToSend as unknown as WebElementContext[],
+          webElements: webElementsToSend, // 〔A1-R21〕双钩子收敛后 webContexts 即 WebElementContext[]，原 `as unknown as WebElementContext[]` 强转删除
           pptxElements: pptxElementsToSend,
         });
         if (draftText) {
@@ -6308,7 +6281,7 @@ export function DraftComposerRegion({
             <div className="flex max-w-full flex-wrap items-center gap-2">
               <CodeCommentChipRow comments={codeComments} onRemove={removeCodeComment} onRemoveAll={clearCodeComments} />
               <WebContextChipRow contexts={webContexts} onRemove={removeWebContext} onRemoveAll={clearWebContexts} />
-              <PptxReferenceChipRow
+              <PptxReferencesChip /* A1-R21：原 PptxReferenceChipRow declare 改指（JH 69036） */
                 references={pptxReferences}
                 onOpen={onOpenCodeViewer ? openCodeCommentViewer : undefined}
                 onRemove={removePptxReference}
@@ -6748,6 +6721,13 @@ export function resolveComposerPlaceholderI18nId({
   return compactNewTask ? "chat.placeholder.newTaskMobile" : "chat.placeholder.newTask";
 }
 
+/* 〔A1-R21〕双实例叠层专项裁定（编排方委托）：s3e/v3e bundle 唯一真身（76294/76540，styles 导出块
+ * 213930 无面；唯一消费 = j3e@76837/76840）。树内逐字真身 = 本文件 §V.3 CodingPlanUsagePanel /
+ * §V.5 StartPlanBalancePanel（R19 转录，机械校验在案）；UsageDeep A0 并行副本（SidebarCodingPlanWidget/
+ * SidebarStartPlanWidget）降 shim，经 modules/UsageDeep 再导出本面（函数声明提升，环安全），
+ * PaymentDeep 581/584 消费面不变。证据链见 A1-R21.report.md §三。 */
+export { CodingPlanUsagePanel, StartPlanBalancePanel };
+
 /* ============================================================================
  * 6. 接口保留清单（属其他族 / 体量大，未逐行展开；行号见 MODULE-MAP.md）
  *    - ZV  ComposerInput            F08 根组件（js 66959–~69297）：Lexical 引擎、
@@ -6756,7 +6736,7 @@ export function resolveComposerPlaceholderI18nId({
  *      $→skills 的 Lexical 接线（段数据钩子 AJe/WJe/HJe/PJe/Nqe）
  *    - SJe SlashPanel               F08（js 65002）：/→commands/skills/subagents
  *    - ait/iZe 工具条               F08/F12（js 89455/69225）；Zrt 已 A1-R17 §T 逐字实体化
- *    - TH/lit/JH/uit chip 行        F08（js 68250/89941/68988/90039）
+ *    - TH/lit/uit chip 行           F08（js 68298/89989/90087；JH 69036 已 A1-R21 收敛 PptxReferencesChip）
  *    - vN/yN/bN/xN/SN/DN 附件件     F08（js 54555–54830）
  *    - fOt RemoteWizardDialog       F10（js 128093–128525）
  *    - zZ  GitBranchChip            TopBar 族（contextHeader 右件，已还原）
