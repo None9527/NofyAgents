@@ -99,7 +99,7 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
 // 改接 Home §U.8 逐字真身（bundle WUe 53313/RM 53328/zM 53349 唯一真身；RM/zM 分流依据见原 declare 位墓碑）。
 // 环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用）。
 import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect, teamSourceOrganizationLabel } from '../../modules/Home'; // 〔A1-R28〕+teamSourceOrganizationLabel（Lq 77476 逐字 canonical；teamOrganizationLabelOf A0 副本删除改指，见下墓碑）。环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用），本行不新增环边
-import { resolveProviderFamilyMode } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。环安全：SrcSharedB 值闭包不达 components/payments
+import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。环安全：SrcSharedB 值闭包不达 components/payments
 import { isStartPlanProviderId } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。环安全：SrcSharedA 值闭包不达 components/payments
 import type { TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）
 import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 52651 收敛型缝所依（A6e/j6e/M6e/N6e 快照流由 unknown 精化，行依据见各函数注）
@@ -132,10 +132,23 @@ declare const usePlatformService: () => TelemetryPlatform & { openExternal(url: 
  *    逐字（其 isCoarseTouchDevice/shouldRestoreFocus 消费面经 modules/Composer 真实 import，XH 69346/ZH 69351 属主）。 ── */
 /** src-HCld2afU / skillStore / stores 横切助手（按调用面接口级） */
 declare const PROVIDER_IDS: Record<string, string>; // q（zai/bigmodel/… 族 id 表）
-declare function familySpecOfProviderId(id: string): FamilySpec | null; // ot
+/* ── tombstone〔A1-R29〕：declare familySpecOfProviderId（原 ot）删除 → 改指 getOAuthProviderFamilyByProviderId
+ *    （ot 真身：styles 445 `B as ot` ← src 9672 `Yx as B` ≡ Yx 8933 ≡ SrcSharedB@5576，链闭合）。
+ *    消费面实测（本文件 5 处改名改指）：@798（v6e familyGroupOf@788）≡ bundle 77716、@926/@935/@942（S6e
+ *    modelMenuGroupsForAgent@912 体内）≡ bundle 77813/77822/77829、@9614（drt filterStartPlanMenuItems@9610）≡ bundle 88674。
+ *    其余 bundle ot 消费：MPSS familyDescriptorOf 面 7 处既接 canonical（modules/SrcSharedB 真实 import）、
+ *    CYt declare 体 187624 随 declare 留批；128519 `await ot()` 为作用域遮蔽局部符（负证据：无参异步，非本 ot）。
+ *    FamilySpec 型别保留（familyOptionBadgeOf@861 仍消费）。型缝：canonical 返回 any，五消费点各依原 declare
+ *    契据（FamilySpec | null）窄化（行依据见各点注；@942 点随 flatMap@941 由 AgentModelMenuGroup@903 定锚，见该型缝注）。
+ *    负证据：bundle 内 ot 无第二真身。 ── */
 declare function isOAuthFamilyProvider(id: string): boolean; // tr
-declare function isProviderFamilyModeAllowed(args: { providerId: string; familyModes: unknown }): boolean; // Mr
-declare function isProviderOAuthGateActive(args: { providerId: string; activeOAuthProvider: string | null }): boolean; // qt
+/* ── tombstone〔A1-R29〕：declare isProviderFamilyModeAllowed（原 Mr）删除 → 改指 isProviderAllowedForFamilyMode
+ *    （Mr 真身：styles 579 `U as Mr` ← src 9814 `Kx as U` ≡ Kx 8919 ≡ SrcSharedB@5560，链闭合；体逐字同形）。
+ *    消费面实测：@930（S6e 体内）≡ bundle 77817，改名改指；另一消费 133906（hjt 体内）≡ ExtendedViews@1370
+ *    isProviderVisible declare 面，同批收敛（见该处墓碑）。负证据：bundle 内 Mr 无第二真身。 ── */
+/* ── tombstone〔A1-R29〕：declare isProviderOAuthGateActive（原 qt）删除 → 改指 activeOAuthProviderMatchesFamily
+ *    （qt 真身：styles 487 `H as qt` ← src 9717 `eS as H` ≡ eS 8951 ≡ SrcSharedB@5607，链闭合；体逐字同形）。
+ *    消费面实测：@929（S6e 体内）≡ bundle 77816（唯一消费），改名改指。负证据：bundle 内 qt 无第二真身。 ── */
 declare function isExternalAgentName(name: string): boolean; // Ei
 declare function modelEntryOf(value: string): { providerId?: string; modelName?: string } | null; // se
 /* ── tombstone〔A1-R28〕：declare composeModelValue（原 we）删除 → 改指 formatCustomModelId（we 真身：styles 404
@@ -318,9 +331,15 @@ declare function useCoreServices(): { modelProviderService: any; credentialServi
  *    终端消费实测 9668–9671/10325（单参，返回 ModelProvider | null）。 ── */
 /* ── tombstone（A1-R11）：declare providerFingerprintKeyOf（原 nM，52645）删除，改指 providerApiKeyFingerprint as providerFingerprintKeyOf。
  *    双实例收敛证据：bundle nM 唯一真身 52645（`${e.id}:${jUe(e.apiKey.trim())}`，!e 守卫），终端消费实测 9672–9675（返回 string）。 ── */
-declare function connectionModeContextOf(args: Record<string, unknown>): any; // N6e
+/* ── tombstone〔A1-R29〕：declare connectionModeContextOf（A0 误标「原 N6e」）删除——树内零消费（负证据在案）；
+ *    N6e 真身 = 本文件 filterUsableProviders@1080（A0 已逐字实化，bundle N6e 77910–77929 唯一真身；
+ *    消费 89703 ≡ Home filterEntitledModelProviders 面 / 135402 ≡ Automations buildEntitledProviderList 面，
+ *    同批收敛，见各墓碑）。误标依据：签名 (args: Record<string, unknown>): any 与 N6e 对象参形不合。 ── */
 declare function normalizedModelOptionsOf(options: any[], currentValue: unknown, context: any): any[]; // L
-declare function modelGroupsOf(provider: string, options: any[], context: any, labels: Record<string, string>, displayOrder: string[] | undefined, familyModes: unknown, selectedKeys: unknown, extra: unknown[], flag: boolean, a: unknown, b: unknown, opts: Record<string, unknown>): any[]; // Hq
+/* ── tombstone〔A1-R29〕：declare modelGroupsOf（原 Hq，A0 文件内第二脸）删除——树内零消费（负证据在案）；
+ *    Hq 真身 = 本文件 modelMenuGroupsOf@976（A0 已逐字实化，bundle Hq 77850 唯一真身）；bundle Hq 消费 4 处
+ *    （89710/135408/133909/197861）全属文件外四面（Home@375/Automations@151/ExtendedViews@425/
+ *    SubagentsSettingsSection@248），同批收敛改指，见各墓碑。 ── */
 declare function isModelMenuStructured(provider: string): boolean; // r6e
 declare function useManageModelsAvailable(onManage: () => void): boolean; // T6e
 declare function normalizeModelSelectionValue(value: string, groups: any[], manageAvailable: boolean, manageLabel: string): { value?: string; placeholder?: string }; // k6e
@@ -344,7 +363,9 @@ declare function parseModelProjection(value: string): { providerId?: string; mod
 declare function planDomainsOf(cfg: any): any; // hee
 declare function authSessionOf(): any; // xi
 
-interface ModelProvider {
+// 〔A1-R29〕补 export：Hq/N6e/ot 簇收敛型缝所依（Home/Subagents/Automations/ExtendedViews 各脸本地供应商型面
+// 依此窄化；行依据：本接口为 canonical 各函数签名所依，导出为类型面，零运行时影响）。
+export interface ModelProvider {
   id: string;
   name: string;
   models: unknown[];
@@ -774,7 +795,7 @@ export function familyGroupOf(context: {
   teamPlanProducts: any[];
   showPurchasedTeamPlanFallback: boolean;
 }) {
-  const familySpec = familySpecOfProviderId(context.familyId === `zai` ? PROVIDER_IDS.zai : PROVIDER_IDS.bigmodel);
+  const familySpec = getOAuthProviderFamilyByProviderId(context.familyId === `zai` ? PROVIDER_IDS.zai : PROVIDER_IDS.bigmodel) as FamilySpec | null; // 〔A1-R29〕型缝：canonical 返回 any，消费面依原 declare 契据（FamilySpec | null）窄化（行依据：本行 + FamilySpec@377）
   if (!familySpec) return [];
   const byId = new Map(context.providers.map((provider) => [provider.id, provider])),
     startPlanProvider = byId.get(familySpec.startPlanProviderId),
@@ -874,6 +895,19 @@ export function inactiveOAuthFamilyOf(providers: ModelProvider[]): string | null
   return bigmodelInactive && !zaiInactive ? `zai` : zaiInactive && !bigmodelInactive ? BIGMODEL_REGION_ID : null;
 }
 
+/** ── 型缝〔A1-R29〕：AgentModelMenuGroup——S6e flatMap 返回面分组元素公共上界（familyGroupOf 面 labelBadge any /
+ *    directItems 必备；providerGroupOf 面 labelBadge?: string / directItems 可选）。引入缘由：tsc 对 flatMap@941
+ *    `[] | A[] | (B1|B2)[]` → `U | ReadonlyArray<U>` 的 U 推断在文件微扰下不稳（实测：本批收敛 SrcSharedB 导入行
+ *    即令 U 钉死 familyGroupOf 面报 TS2345；HEAD 插入无关语句亦复现，负证据在案）。显式 flatMap<AgentModelMenuGroup>
+ *    定锚 U；仅类型面，零运行时影响。行依据：本接口 + flatMap@941。 ── */
+interface AgentModelMenuGroup {
+  key: string;
+  label: string;
+  labelBadge?: unknown;
+  directItems?: boolean;
+  items: { key: string; value: string; name: string }[];
+}
+
 /** 原 S6e（77794 区）：agent 模型菜单分组主装配 */
 export function modelMenuGroupsForAgent(
   agent: string,
@@ -889,23 +923,23 @@ export function modelMenuGroupsForAgent(
   const inactiveFamily = inactiveOAuthFamilyOf(providers),
     domain = providerFamilyDomain?.trim() || null,
     usable = sortProvidersByFamilyAndOrder(providers, displayOrder).filter((provider) => {
-      const spec = familySpecOfProviderId(provider.id);
+      const spec = getOAuthProviderFamilyByProviderId(provider.id) as FamilySpec | null; // 〔A1-R29〕型缝：同上（原 declare 契据窄化）
       return spec && domain && spec.id !== domain
         ? !1
-        : isProviderOAuthGateActive({ providerId: provider.id, activeOAuthProvider: inactiveFamily }) &&
-            isProviderFamilyModeAllowed({ providerId: provider.id, familyModes }) &&
+        : activeOAuthProviderMatchesFamily({ providerId: provider.id, activeOAuthProvider: inactiveFamily }) &&
+            isProviderAllowedForFamilyMode({ providerId: provider.id, familyModes }) &&
             (providerUsableForAgent(agent, provider) || (isBigmodelTeamPlanSelected({ providerId: provider.id, familySelectedKeys }) && modelsForAgent(agent, provider).length > 0));
     }),
     byFamily = new Map<string, ModelProvider[]>();
   for (const provider of usable) {
-    const spec = familySpecOfProviderId(provider.id);
+    const spec = getOAuthProviderFamilyByProviderId(provider.id) as FamilySpec | null; // 〔A1-R29〕型缝：同上（原 declare 契据窄化）
     if (!spec) continue;
     const group = byFamily.get(spec.id) ?? [];
     (group.push(provider), byFamily.set(spec.id, group));
   }
   const emitted = new Set<string>();
-  return usable.flatMap((provider) => {
-    const spec = familySpecOfProviderId(provider.id);
+  return usable.flatMap<AgentModelMenuGroup>((provider) => {
+    const spec = getOAuthProviderFamilyByProviderId(provider.id) as FamilySpec | null; // 〔A1-R29〕型缝：同上（原 declare 契据窄化；flatMap U 由 AgentModelMenuGroup@903 定锚，见该型缝注）
     return spec
       ? emitted.has(spec.id)
         ? []
@@ -9577,7 +9611,7 @@ function filterStartPlanMenuItems({ items, codingPlanEntitlements, subscribedTea
   const teamScoped = hasTeamScopedEntitlement(codingPlanEntitlements) || subscribedTeamProducts.length > 0;
   return items.filter((item: any) => {
     if (!isStartPlanProviderId(item.presetId)) return true;
-    const family = familySpecOfProviderId(item.presetId);
+    const family = getOAuthProviderFamilyByProviderId(item.presetId) as FamilySpec | null; // 〔A1-R29〕型缝：同上（原 declare 契据窄化）
     if (!family) return false;
     const codingPlanItem = items.find((entry: any) => entry.presetId === family.codingPlanProviderId);
     const purchased = item.status === `purchased`;

@@ -149,7 +149,7 @@ import { countContextAttachments, buildOutboundContentWithAttachments, useCodeCo
 import { readWorkspaceFilePayload as parseAddToChatPayload, ADD_WORKSPACE_FILE_TO_CHAT_EVENT as ADD_TO_CHAT_EVENT_NAME, isAddWorkspaceFileToChatEvent as isAddToChatEvent, type WorkspaceFileDragPayload } from '../composer/FileMentionDragHelpers'; // A1-R12：Mj（52248）/Aj（52211）/nUe（52260）declare 改指纯函数叶子（本批逐字转录）；消费点 2436/2945/2957/2959 逐字不变。nUe 此前误接 GitReview yXe（code-comment 域），bundle 90733 真身 = 工作区域守卫
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService } from '../../modules/ImeComposition'; // +usePlatformService（A1-R15：原 l=M，vWe 54317 截图面消费）
 import { pathBasename } from '../../modules/ModalsLeaves';
-import { useCodingPlanUpgradeDialog, useCodingPlanUpgradeDialogOptional as useUpgradeActions } from '../../modules/PaymentDeep'; // A1-R23：原 fX（89100）declare 改指 canonical（components/payments/PaymentDeep 〔A1-R23〕补 export）；消费面 §U.10 ComposerConfigToolbarBody 4243 ≡ bundle 89522。〔A1-R24〕useUpgradeActions 别名并入：原 Art（89106）declare 收敛改接（消费面 1078 ≡ bundle 91644）。环安全：函数声明提升，渲染期调用（二环 Home→PaymentDeep shim→components/payments→modules/Home）
+import { useCodingPlanUpgradeDialog, useCodingPlanUpgradeDialogOptional as useUpgradeActions, filterUsableProviders, modelMenuGroupsOf, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R29〕+filterUsableProviders（N6e 77910 canonical）/modelMenuGroupsOf（Hq 77850 canonical）/type ModelProvider（型缝所依）：两 declare 收敛改指，见下墓碑 // A1-R23：原 fX（89100）declare 改指 canonical（components/payments/PaymentDeep 〔A1-R23〕补 export）；消费面 §U.10 ComposerConfigToolbarBody 4243 ≡ bundle 89522。〔A1-R24〕useUpgradeActions 别名并入：原 Art（89106）declare 收敛改接（消费面 1078 ≡ bundle 91644）。环安全：函数声明提升，渲染期调用（二环 Home→PaymentDeep shim→components/payments→modules/Home）
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
 import { create, logger, useTaskStore, parseCustomModelId, formatCustomModelId, filterNativeModelOptions, type ConfigOption } from '../../modules/SkillStore'; // A1-R18：+parseCustomModelId（原 D=se，skillStore 881/386 导入别名；§U Ee/k6e/D6e 消费）/formatCustomModelId（原 rt=we，skillStore 900；§U xe 消费）/filterNativeModelOptions（原 it=L，skillStore 906；§U _e 消费）
 // 〔A1-R26〕§U.8 漏斗遥测族实体化：+reportTelemetry/TelemetryPlatform（原 xw 40457 ≡ StoresDeep@323 逐字，A1-R9 判例；环安全：StoresDeep 值闭包不达 components/shell）
@@ -168,7 +168,7 @@ import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../
 import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（js 123241）远端条目域改指（tombstone 见原声明位）
 import { LoaderCircle } from '../../modules/ImeComposition'; // A1-R19：原 M = imeComposition-DEYFkwWm.js 导出 w（内名 Ut = lucide loader-circle 11786）；§V s3e 76365 / v3e 76563 loading 消费
 import { formatNumberCompact } from '../../modules/UsageStatsUiParts'; // A1-R19：原 ja = usageStatsUiParts-CiR7YEhh.js 导出 l（styles 910 导入）；§V S3e 76625 消费
-import { useBillingDiscount, BillingDiscountBadge, BillingDiscountBadgeWithInfo, BillingDiscountInfoDialog, type BillingDiscountConfig } from '../../modules/UsageDeep'; // A1-R20：胶囊域收敛——原 dj/hj/gj/_j=useBillingDiscount/BillingDiscountBadge/BillingDiscountBadgeWithInfo/BillingDiscountInfoDialog（styles 51910/51959/51980/52034；canonical 属主 components/usage/UsageDeep.tsx A0 已重建）；§V s3e 76295/76359 + v3e 76541/76588/76597 消费
+import { useBillingDiscount, BillingDiscountBadge, BillingDiscountBadgeWithInfo, BillingDiscountInfoDialog, type BillingDiscountConfig, type EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R29〕+type EntitlementSnapshot：N6e 收敛型缝所依（A as (id) => EntitlementSnapshot | null，行依据见 iit _e 注） // A1-R20：胶囊域收敛——原 dj/hj/gj/_j=useBillingDiscount/BillingDiscountBadge/BillingDiscountBadgeWithInfo/BillingDiscountInfoDialog（styles 51910/51959/51980/52034；canonical 属主 components/usage/UsageDeep.tsx A0 已重建）；§V s3e 76295/76359 + v3e 76541/76588/76597 消费
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -367,29 +367,17 @@ declare function useOrganizationEntitlementQuery(opts: {
   cacheKey?: string | null;
 }): { snapshot: EntitlementSnapshotLike | null; loading: boolean; error: string | null; refresh: (e?: unknown) => Promise<void> };
 
-/** 权益模型供应商过滤（原 N6e，js 77910；j6e/M6e/iM/Bq 模型组域——declare 分层，R18 留批） */
-declare function filterEntitledModelProviders(opts: {
-  providers: ModelProviderEntry[];
-  selectedProvider: string;
-  getEntitlementSnapshot: (providerId: string) => EntitlementSnapshotLike | null;
-  modelProviderFamilySelectedKeys?: Record<string, string | undefined>;
-}): ModelProviderEntry[];
+/* ── tombstone〔A1-R29〕：declare filterEntitledModelProviders（原 N6e）删除 → 改指 filterUsableProviders
+ *    （N6e 真身：bundle 77910–77929 唯一真身 ≡ PaymentDeep@1080 A0 逐字实化，modules/PaymentDeep@128 转导出）。
+ *    消费面实测：@4809（iit _e 内）≡ bundle 89703，改名改指（型缝见该处注）；另一消费 135402 ≡
+ *    Automations buildEntitledProviderList 面同批收敛。负证据：bundle 内 N6e 无第二真身。 ── */
 
-/** 模型选择分组构建（原 Hq，js 77850；S6e/C6e/Ei 模型组域——declare 分层，R18 留批） */
-declare function buildModelSelectGroups(
-  selectedProvider: string,
-  modelOptions: unknown[],
-  entitlementSnapshot: unknown,
-  labels: Record<string, string>,
-  displayOrder: string[],
-  familyModes: unknown,
-  familySelectedKeys: unknown,
-  extraGroups: unknown[],
-  flag: boolean,
-  fallbackProvider?: unknown,
-  reserved?: unknown,
-  opts?: { providerFamilyDomain?: string | null },
-): ModelGroup[];
+/* ── tombstone〔A1-R29〕：declare buildModelSelectGroups（原 Hq）删除 → 改指 modelMenuGroupsOf
+ *    （Hq 真身：bundle 77850 唯一真身 ≡ PaymentDeep@976 A0 逐字实化，modules/PaymentDeep@118 转导出）。
+ *    消费面实测：@4818（iit _e 内）≡ bundle 89710，改名改指（参数重排 + configModels 位删除——
+ *    bundle Hq 体内从不读第二参 t，负证据在案；型缝见该处注）。其余三脸（Automations@151/
+ *    ExtendedViews@425/SubagentsSettingsSection@248）同批收敛；PD@339 文件内第二脸零消费删碑。
+ *    负证据：bundle 内 Hq 无第二真身。 ── */
 
 /** 模型触发器标签解析（原 nWe，js 53806；iN/dr 模型组域——declare 分层，R18 留批） */
 declare function resolveModelTriggerLabels(opts: {
@@ -4816,16 +4804,19 @@ function ComposerConfigToolbarBody({
       });
   }, [b, o, H]);
   let _e = (0, React.useMemo)(() => {
-      let e = filterEntitledModelProviders({
-          providers: S,
+      // 〔A1-R29〕型缝：旧 declare 面依本地 ModelProviderEntry/EntitlementSnapshotLike；canonical 依 PD ModelProvider/
+      // EntitlementSnapshot（读面全合，行依据：本行 + useModelProviders/useEntitlementsHub declare 面）。
+      let e = filterUsableProviders({
+          providers: S as PaymentModelProvider[],
           selectedProvider: y,
-          getEntitlementSnapshot: A,
+          getEntitlementSnapshot: A as (providerId: string) => EntitlementSnapshot | null,
           modelProviderFamilySelectedKeys: T?.modelProviderFamilySelectedKeys,
         }),
         t = V?.type === `select` ? filterNativeModelOptions(V.options ?? [], V.currentValue, e) : [];
-      return buildModelSelectGroups(
+      // 〔A1-R29〕Hq 收敛：bundle Hq 77850 体内从不读第二参（configModels 位，负证据在案），本行删该位；
+      // displayOrder C 旧 declare 面 string[] 为 A0 近似，真形 {providerIds}（qq store 真面，Iq 77456/MPSS 证据），宽化直通。
+      return modelMenuGroupsOf(
         y,
-        V?.type === `select` && isModelSelectConnectionModeEnabled(y) ? t : [],
         e,
         {
           apiKeyLabel: g.formatMessage({ id: `settings.modelProvider.apiKey` }),
@@ -4851,12 +4842,11 @@ function ComposerConfigToolbarBody({
             id: `settings.modelProvider.connectionMode.teamPlan`,
           }),
         },
-        C,
+        C as unknown as { providerIds: string[] } | null,
         T?.modelProviderFamilyModes,
         T?.modelProviderFamilySelectedKeys,
         [],
         !1,
-        void 0,
         void 0,
         { providerFamilyDomain: T?.providerFamilyDomain },
       );

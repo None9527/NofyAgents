@@ -13,6 +13,7 @@ import { useConfirmDialog } from '../../modules/Modals'; // U2
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 273 解构 {settings}，297 读 modelProviderFamilyModes 具名面逐字不变。环安全：UsageDeep 值闭包不达本文件
+import { modelMenuGroupsOf, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R29〕Hq 77850 canonical + 型缝型别：buildModelSelectGroups declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 components/settings
 import type { SkillItem, SkillCapability, SkillDiagnostic } from './SkillsSettingsSection'; // §0 SkillsService 接口签名引用（属主：技能族文件）
 import type { ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依
 
@@ -244,14 +245,10 @@ declare function useWorkspaceConfigOptions(workspacePath: string, unused: null, 
   configOptions: ConfigOption[];
   status: string;
 }; // Jq；A0-CLEANUP3 3b：返回面按消费端（SubagentRow/SubagentConfigForm props）具型
-declare function buildModelSelectGroups(
-  provider: string,
-  agents: unknown[],
-  modelProviders: ModelProvider[],
-  labels: { apiKeyLabel: string; codingPlanLabel: string },
-  displayOrder: { providerIds: string[]; updatedAt?: number } | null,
-  familyModes?: Record<string, string>
-): SelectGroupEntry[]; // Hq；A0-CLEANUP3 3b：返回面按消费端具型
+/* ── tombstone〔A1-R29〕：declare buildModelSelectGroups（原 Hq）删除 → 改指 modelMenuGroupsOf（Hq 真身：
+ *    bundle 77850 唯一真身 ≡ PaymentDeep@976 A0 逐字实化，modules/PaymentDeep@118 转导出）。双实例收敛证据：
+ *    消费面实测：@292（modelSelectGroups useMemo）≡ bundle 197861（`Hq(\`glm\`, [], s, {labels}, c, h?.modelProviderFamilyModes)`），
+ *    改名改指（agents 位 = bundle 第二参，Hq 体内从不读，负证据在案，删位）。负证据：bundle 内 Hq 无第二真身。 ── */
 declare function refreshSubagentCapabilities(opts: {
   workspacePath: string | null;
   workspaceIdentity?: string | null;
@@ -289,16 +286,18 @@ export function SubagentsSettingsSection(props: SubagentsSettingsSectionProps) {
   const requestSeq = React.useRef(0);
   const modelSelectGroups = React.useMemo(
     () =>
-      buildModelSelectGroups(
+      // 〔A1-R29〕型缝：本地 ModelProvider 面（models: Array<string | ModelCatalogEntryLike>）窄化至 canonical PD 面
+      // （行依据：本行 + 本地 ModelProvider@81）；bundle Hq 第二参（agents 位）体内不读，删位（负证据在案）。
+      modelMenuGroupsOf(
         "glm",
-        [],
-        modelProviders,
+        modelProviders as PaymentModelProvider[],
         {
           apiKeyLabel: intl.formatMessage({ id: "settings.modelProvider.apiKey" }),
           codingPlanLabel: intl.formatMessage({ id: "settings.modelProvider.connectionMode.codingPlan" }),
         },
         displayOrder,
-        settings?.modelProviderFamilyModes
+        settings?.modelProviderFamilyModes,
+        undefined
       ),
     [displayOrder, intl, modelProviders, settings?.modelProviderFamilyModes]
   );

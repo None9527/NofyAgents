@@ -162,14 +162,14 @@ import { ModelSelector, type ModelGroup } from './Composer'; // A0-CLEANUP2 item
 import { Input, Popover, PopoverContent, PopoverTrigger, toast, type ToastOptions } from './ImeComposition'; // ToastOptions 原属 imeComposition chunk（与 toast 同主）
 import { MarkdownRenderer } from './MarkdownIntegration';
 import { FilePathInline, pathBasename, resolveFileDisplayInfo } from './ModalsLeaves';
-import { Badge } from './PaymentDeep';
+import { Badge, modelMenuGroupsOf, providerUsableForAgent, type ModelProvider as PaymentModelProvider } from './PaymentDeep'; // 〔A1-R29〕+modelMenuGroupsOf（Hq 77850 canonical）/providerUsableForAgent（Bq 77541 canonical）/type ModelProvider（型缝所依）：hjt 域 declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 modules/ExtendedViews
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
 import { AutomationEditor, OffPeakTaskEditor, type ScheduleRule } from './SettingsLeaves'; // A0-CLEANUP3 3b：Automation 三型 scheduleRule 统一
 import { createWhiteboardStroke, logger, useTaskStore, useWhiteboardStore, type TaskStore, type WhiteboardBoard, type WhiteboardStroke, type WorkspaceTaskState } from './SkillStore';
 // 〔A1-R25〕w6e 77856 实体化：resolveModelGroupLabel declare 收敛——改接 Home §U.9 逐字真身（经 modules/Home 转导出）
 import { resolveModelGroupLabel } from './Home';
 import { providerIds } from './SrcSharedA';
-import { automationsWorkspaceKey, repoWikiWorkspaceKey } from './SrcSharedB';
+import { automationsWorkspaceKey, repoWikiWorkspaceKey, isProviderAllowedForFamilyMode } from './SrcSharedB'; // 〔A1-R29〕+isProviderAllowedForFamilyMode（Mr ≡ Kx 8919 canonical）：isProviderVisible declare 收敛改指，见下墓碑
 import { reportTelemetry, type TelemetryPlatform } from './StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
 import { useServices } from './services';
 import { useAutomationsStore } from './stores-tasks';
@@ -409,33 +409,26 @@ interface ModelSelectGroup {
 }
 
 /** 原 hjt 依赖的 F12 分组构造器（Mr/Bq/L/Hq/N6e/Hq 族，js 76xxx–77xxx）——接口保留 */
-declare function isProviderVisible(params: { providerId: string; familyModes?: Record<string, string> }): boolean;
-declare function isProviderSelected(selectedProvider: string, provider: ModelProviderInfo): boolean;
+/* ── tombstone〔A1-R29〕：declare isProviderVisible（原 Mr 面）删除 → 改指 isProviderAllowedForFamilyMode
+ *    （Mr 真身：styles 579 `U as Mr` ← src 9814 `Kx as U` ≡ Kx 8919 ≡ SrcSharedB@5560，链闭合）。
+ *    消费面实测：@1370（hjt buildWikiModelSelectGroups@1362 体内）≡ bundle 133906，改名改指。
+ *    负证据：bundle 内 Mr 消费仅 77817/133906 两处（前者 ≡ PD@930 同批收敛）。 ── */
+/* ── tombstone〔A1-R29〕：declare isProviderSelected（原 Bq 面）删除 → 改指 providerUsableForAgent
+ *    （Bq 真身：bundle 77541 唯一真身 ≡ PaymentDeep@579 A0 逐字实化）。消费面实测：@1370（hjt 体内）
+ *    ≡ bundle 133906，改名改指（型缝见该处注）。负证据：bundle 内 Bq 消费 4 处全闭
+ *    （77818/77927 ≡ PD@931/@1102 既消费 canonical）。 ── */
 declare function buildConfigOptionModels(
   options: Array<{ value: string; name?: string }>,
   currentValue: unknown,
   providers: ModelProviderInfo[],
-): Array<{ value: string; name?: string }>;
-declare function buildModelSelectGroups(
-  selectedProvider: string,
-  configModels: Array<{ value: string; name?: string }>,
-  providers: ModelProviderInfo[],
-  labels: Record<string, string>,
-  displayOrder?: string[] | null,
-  familyModes?: Record<string, string>,
-  familySelectedKeys?: Record<string, string>,
-  extra?: unknown,
-  includeManage?: boolean,
-  a?: unknown,
-  b?: unknown,
-  opts?: { providerFamilyDomain?: string | null },
-): ModelSelectGroup[];
-declare function buildEntitledProviderList(params: {
-  providers: ModelProviderInfo[];
-  selectedProvider: string;
-  getEntitlementSnapshot: (providerId: string) => unknown;
-  modelProviderFamilySelectedKeys?: Record<string, string>;
-}): ModelProviderInfo[];
+): Array<{ value: string; name?: string }>; // L 面留批（真身 = SkillStore filterNativeModelOptions，Home iit 既接；本面消费 @1372 随下批收敛）
+/* ── tombstone〔A1-R29〕：declare buildModelSelectGroups（原 Hq）删除 → 改指 modelMenuGroupsOf（Hq 真身：
+ *    bundle 77850 唯一真身 ≡ PaymentDeep@976 A0 逐字实化，modules/PaymentDeep@118 转导出）。消费面实测：@1374（hjt 体内）≡ bundle 133909
+ *    （`Hq(e.selectedProvider, n, e.modelProviders, {}, null, e.familyModes)`），改名改指；providers 位改传
+ *    未过滤 e.modelProviders 与 bundle 逐字对齐（过滤面仅供 configModels，bundle 本如此）。 ── */
+/* ── tombstone〔A1-R29〕：declare buildEntitledProviderList（原 N6e 面）删除——树内零消费（负证据在案；
+ *    唯一 bundle 消费 135402 ≡ Automations@1036 面，该面自有 declare 同批收敛）；N6e 真身 = PaymentDeep
+ *    filterUsableProviders@1080。死 declare 删除按 R25 nWe 判例。 ── */
 
 /* ── tombstone（A1-R25）：declare resolveModelGroupLabel（原 w6e：模型组内查显示名）删除 →
  *    import from './Home'（bundle w6e 77856–77863 唯一真身；终端消费实测：本文件 2267 调用点
@@ -1372,11 +1365,13 @@ function buildWikiModelSelectGroups(params: {
   selectedProvider: string;
   familyModes?: Record<string, string>;
 }): ModelSelectGroup[] {
+  // 〔A1-R29〕Mr/Bq 收敛（bundle hjt 133906 谓词逐字面）；型缝：本地 ModelProviderInfo 面窄化至 canonical PD 面（行依据：本行 + 本地 ModelProviderInfo@212）。
   const providers = params.modelProviders.filter(
-    (t) => isProviderVisible({ providerId: t.id, familyModes: params.familyModes }) && isProviderSelected(params.selectedProvider, t),
+    (t) => isProviderAllowedForFamilyMode({ providerId: t.id, familyModes: params.familyModes }) && providerUsableForAgent(params.selectedProvider, t as PaymentModelProvider),
   );
   const configModels = params.modelOption ? buildConfigOptionModels(params.modelOption.options ?? [], params.modelOption.currentValue, providers) : [];
-  return buildModelSelectGroups(params.selectedProvider, configModels, providers, {}, null, params.familyModes);
+  // 〔A1-R29〕Hq 收敛：providers 位改传未过滤 params.modelProviders，与 bundle 133909 逐字对齐（过滤面仅供 configModels）；configModels 位 Hq 体内不读，删位（负证据在案）。
+  return modelMenuGroupsOf(params.selectedProvider, params.modelProviders as PaymentModelProvider[], {}, null, params.familyModes, undefined);
 }
 
 function normalizeWikiModelValue(params: { modelValue: string; fallbackModelValue: string; modelGroups: ModelSelectGroup[] }): string {

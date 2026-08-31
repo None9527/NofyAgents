@@ -10,6 +10,8 @@ import { AutomationEditor, OffPeakTaskEditor, type ScheduleRule } from '../../mo
 import { logger } from '../../modules/SkillStore';
 import { providerIds } from '../../modules/SrcSharedA';
 import { automationsWorkspaceKey } from '../../modules/SrcSharedB';
+import { modelMenuGroupsOf, filterUsableProviders, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R29〕Hq 77850 / N6e 77910 canonical + 型缝型别：两 declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 components/automations
+import type { EntitlementSnapshot as UsageEntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R29〕N6e 收敛型缝所依（getEntitlementSnapshot 返回面窄化，行依据见 AMt 体内注；别名避本地 EntitlementSnapshot 接口名冲突）
 import type { ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：ModelProviderInfo.models 型缝所依
 import { reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
 import { useServices } from '../../modules/services';
@@ -146,27 +148,15 @@ interface ModelSelectGroup {
   [key: string]: unknown; // A0-CLEANUP3 3b：流入 SL.SelectGroupEntry（接口无隐式索引签名）
 }
 
-declare function buildModelSelectGroups(
-  selectedProvider: string,
-  configModels: Array<{ value: string; name?: string }>,
-  providers: ModelProviderInfo[],
-  labels: Record<string, string>,
-  displayOrder?: string[] | null,
-  familyModes?: Record<string, string>,
-  familySelectedKeys?: Record<string, string>,
-  extra?: unknown,
-  includeManage?: boolean,
-  a?: unknown,
-  b?: unknown,
-  opts?: { providerFamilyDomain?: string | null },
-): ModelSelectGroup[];
+/* ── tombstone〔A1-R29〕：declare buildModelSelectGroups（原 Hq）删除 → 改指 modelMenuGroupsOf（Hq 真身：
+ *    bundle 77850 唯一真身 ≡ PaymentDeep@976 A0 逐字实化，modules/PaymentDeep@118 转导出）。双实例收敛证据：
+ *    消费面实测：@1043（AMt buildAutomationModelSelectGroups 体内）≡ bundle 135408（AMt 135384 体内
+ *    `Hq(e.selectedProvider, [], t, e.labels, e.displayOrder, ...)`），改名改指（configModels 位 = bundle
+ *    第二参，Hq 体内从不读，负证据在案，删位）。负证据：bundle 内 Hq 无第二真身。 ── */
 
-declare function buildEntitledProviderList(params: {
-  providers: ModelProviderInfo[];
-  selectedProvider: string;
-  getEntitlementSnapshot: (providerId: string) => unknown;
-  modelProviderFamilySelectedKeys?: Record<string, string>;
-}): ModelProviderInfo[];
+/* ── tombstone〔A1-R29〕：declare buildEntitledProviderList（原 N6e）删除 → 改指 filterUsableProviders
+ *    （N6e 真身：bundle 77910–77929 唯一真身 ≡ PaymentDeep@1080 A0 逐字实化，modules/PaymentDeep@128 转导出）。消费面实测：@1036（AMt 体内）
+ *    ≡ bundle 135402，改名改指（型缝见 AMt 体内注）。负证据：bundle 内 N6e 无第二真身。 ── */
 
 /** 原 Mg（js 24358）/ Zn（src chunk P 导出）：`provider/model[$variant]` 解析 */
 declare function parseModelString(value: string): { providerId?: string; modelName?: string } | null;
@@ -1041,23 +1031,24 @@ function buildAutomationModelSelectGroups(params: {
   providerFamilyDomain?: string | null;
   getEntitlementSnapshot: (providerId: string) => unknown;
 }): ModelSelectGroup[] {
-  const entitledProviders = buildEntitledProviderList({
-    providers: params.providers,
+  // 〔A1-R29〕型缝：旧 declare 面依本地 ModelProviderInfo/unknown 快照面；canonical 依 PD ModelProvider/EntitlementSnapshot
+  // （行依据：本行 + 本地 ModelProviderInfo@75）；旧 declare displayOrder: string[] 为 A0 近似，真形 {providerIds}（qq store 真面），宽化直通。
+  const entitledProviders = filterUsableProviders({
+    providers: params.providers as PaymentModelProvider[],
     selectedProvider: params.selectedProvider,
-    getEntitlementSnapshot: params.getEntitlementSnapshot,
+    getEntitlementSnapshot: params.getEntitlementSnapshot as (providerId: string) => UsageEntitlementSnapshot | null,
     modelProviderFamilySelectedKeys: params.familySelectedKeys,
   });
-  return buildModelSelectGroups(
+  // 〔A1-R29〕Hq 收敛：bundle Hq 第二参（[] 位）体内不读，删位（负证据在案）。
+  return modelMenuGroupsOf(
     params.selectedProvider,
-    [],
     entitledProviders,
     params.labels,
-    params.displayOrder,
+    params.displayOrder as unknown as { providerIds: string[] } | null,
     params.familyModes,
     params.familySelectedKeys,
     [],
     false,
-    undefined,
     undefined,
     { providerFamilyDomain: params.providerFamilyDomain },
   );
