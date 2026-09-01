@@ -1847,7 +1847,7 @@ section	sem	obf	line	owner
 17	CodeCommentsStore	FH	68514–68579	stores-workspace.tsx
 17	OffPeakTaskStore	bX	91368–91590	stores-tasks.tsx
 17	SplitLayoutStore	s2	121669–121891	stores-session.tsx
-17	SessionRouterStore	A2	122619–122802	stores-session.tsx
+17	SessionRouterStore	A2	122636–122819	stores-session.tsx
 17	ConfirmDialogStore	H2	123497–123509	stores-core.tsx
 17	PinnedTaskListStore	E6	142372–142463	stores-tasks.tsx
 17	CommandsStore	F6	142754–142984	stores-workspace.tsx

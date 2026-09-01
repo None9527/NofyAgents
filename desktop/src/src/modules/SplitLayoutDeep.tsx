@@ -85,9 +85,9 @@
  *   jwt → hasSplitLayoutBindings         (121683 / 103515)  消费侧 declare 名同
  *   s2  → splitLayoutStore               (121686 / 103518)  消费侧 declare 名同
  * [C] 会话路由模型 + store（js 122201 尾 + 122309–122714 / jsx 103975–104445）：
- *   nTt → ROUTER_STORAGE_KEY             (122306 / 103972)  `zcode-v4-session-workbench-groups:v1`
- *   g2  → EMPTY_ROUTER_STATE             (122307 / 103973)
- *   _2  → workbenchClientMode            (122308 / 103974)  模块级（初值 desktop-continuous）
+ *   nTt → ROUTER_STORAGE_KEY             (122305 / 103972)  `zcode-v4-session-workbench-groups:v1`〔A1-R57 行漂纠偏 −1：tTt var 链成员行，122306 为 g2 行〕
+ *   g2  → EMPTY_ROUTER_STATE             (122306 / 103973)
+ *   _2  → workbenchClientMode            (122307 / 103974)  模块级（初值 desktop-continuous）
  *   v2  → routerStateHydrated            (122308 / 103974)  模块级
  *   y2  → isWorkbenchRouterEnabled       (122309 / 103975)
  *   b2  → sessionBindingIndexKey         (122312 / 103978)
@@ -162,9 +162,9 @@
  *   rEt → findRemoteSessionEntry         (123312)
  *   iEt → normalizeRemoteTargetForConnection (123316)
  *   z2  → remoteTargetWithSecrets        (123362)
- *   aEt → touchRemoteSessionEntry        (123397)
- *   oEt → removeRemoteSessionEntries     (123403)
- *   B2  → applyRemoteConnectionResult    (123416)
+ *   aEt → touchRemoteSessionEntry        (123391)
+ *   oEt → removeRemoteSessionEntries     (123397)
+ *   B2  → applyRemoteConnectionResult    (123411)
  *   RBt → sshHostLabel                   (158183)  A1-R5：Sidebar 会话行消费面
  *   zBt → resolveSshConnectionInfo       (158186)  A1-R5：同上；RBt ≢ ZTt（含 username、port 恒在）
  *   Hn  →（A1-R7 更正：canonical = SrcSharedA/lib workspaceUtils.sanitizeWorkspaceDescriptor，
@@ -2006,7 +2006,7 @@ void React;
  *     eEt=remoteTargetConnectionKey(123277) I2=buildRemoteWorkspaceKey(123295) tEt=resolveServerIdentity(123300)
  *     L2=resolveEntryWorkspaceIdentity(123303) nEt=trimmedOrUndefined(123309) rEt=findRemoteSessionEntry(123312)
  *     iEt=normalizeRemoteTargetForConnection(123316) z2=remoteTargetWithSecrets(123362)
- *     aEt=touchRemoteSessionEntry(123397) oEt=removeRemoteSessionEntries(123403) B2=applyRemoteConnectionResult(123416)
+ *     aEt=touchRemoteSessionEntry(123391) oEt=removeRemoteSessionEntries(123397) B2=applyRemoteConnectionResult(123411)
  *     RBt=sshHostLabel(158183) zBt=resolveSshConnectionInfo(158186)（A1-R5：Sidebar 会话行消费面）
  *     Hn：A1-R7 更正——canonical = SrcSharedA sanitizeWorkspaceDescriptor（A0-S4-1），R6 重复转录删除。
  *     V2=persistedWorkspaceSessions(123475) cEt=persistedRemoteSessions(123478)
