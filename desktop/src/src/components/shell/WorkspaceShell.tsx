@@ -211,7 +211,9 @@ import { QuickPick, buildQuickPickCommands, useSearchResultsStore, type SearchRe
 import { type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // A0-CLEANUP B-24：远端会话形（Home/RemoteWizardDialog 调用面对齐）
 import { resolveThemeMode } from '../../modules/Settings';
 import { SidePanel, useSidePaneState, type BrowserMetadataPatch, type BrowserNavigationRequest, type BrowserResidencyEvent, type BrowserUseOperationEvent, type BrowserUseTabDescriptor, type BrowserUseVisibilityEvent, type CodeViewerSource as SidePanelCodeViewerSource, type PlatformService as SidePanelPlatformService, type RecentClosedSidePaneTab, type ScreenshotSurfaceRequest, type SidePaneState, type SidePaneTab, type SubagentListResponse, type SubagentOpenRequest } from '../../modules/SidePanel'; // 侧面板态型以 SidePanel 导出为准
-import { isE2EStoreBridgeEnabled, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from '../../modules/SkillStore'; // +TaskStore（A0-CLEANUP B-3：选择器改指真 store 型）；+workspaceKey（原 Io/Lo，A0-CLEANUP 族清理）；+isE2EStoreBridgeEnabled（A1-R10 项 1b：原 re = skillStore chunk K 导出，w_e 门控，bundle styles 382 `K as re` 实证在案）
+import { isE2EStoreBridgeEnabled, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, getWorkspaceTaskStateAlias, getActiveTaskStatusError, getWorkspaceInit, getMergedTaskList, isTaskNavAutomationsEntry, canGoBackInTaskNav, canGoForwardInTaskNav, readLastAgentModelOnly, applyStoredModelToOptions, clearLastAgentModelConfig, parseCustomModelId, type TaskStore, type WorkspaceTaskState, type TaskMeta, type ConfigOption } from '../../modules/SkillStore'; // +TaskStore（A0-CLEANUP B-3：选择器改指真 store 型）；+workspaceKey（原 Io/Lo，A0-CLEANUP 族清理）；+isE2EStoreBridgeEnabled（A1-R10 项 1b：原 re = skillStore chunk K 导出，w_e 门控，bundle styles 382 `K as re` 实证在案）；〔A1-P2-B1〕+选择器/导航/模型持久化十一件（原 fe/ze/R/oe/Ce/ae/B/D/v/y/O ≡ taskStore 真身，删碑见下各 tombstone）；+WorkspaceTaskState/TaskMeta/ConfigOption 三型 = canonical 真形（本地归纳形删除，见下 tombstone）
+import { isBuiltinProviderId, isGlmAgentCliProvider } from '../../modules/SrcSharedA'; // 〔A1-P2-B1〕jt ≡ Eo ≡ _l（src 4742 七键析取）/ Ei ≡ us ≡ Ds（src 3844 `e === \`glm\``）真身；R32 同源判例在 PaymentDeep
+import { customProviderRef, nativeProviderRef, DesktopMenuActionIds, appHeaderTestid } from '../../modules/SrcSharedB'; // 〔A1-P2-B1〕mi ≡ j ≡ lS（src 8984）/ On ≡ M ≡ cS（src 8981，R33 实证）/ oi ≡ ft ≡ ex（src 8631）/ Mi ≡ wt ≡ bg（src 8235）真身
 import { taskEntityKey } from '../../modules/StoresDeep';
 import { type TerminalService } from '../../modules/TerminalPane'; // A0-CLEANUP4：WorkspaceServices.terminalService 型（注册表透传面）
 import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle, type UpdateState } from '../../modules/TopBar';
@@ -222,6 +224,7 @@ import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { AutomationsMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）
 import { type GitDataset, type GitPaneState, type GitSourceOption, type GitSummary } from '../../modules/GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
 import { canOpenSessionInSplit, openSessionBesideDraft, openSessionInSplit, sessionRouterStore, splitLayoutStore, type PaneWorkspaceScope, type SessionBinding } from '../../modules/SplitLayoutDeep'; // 原 ATt/MTt/jTt/A2/s2 + 型（A1-R2 引擎重建；A1-R3：ATt/jTt 缓改指解除——第二参按 bundle 扁平形改指）
+import { AppErrorFallback, ScopedErrorFallback, AppErrorBoundary, ScopedErrorBoundary } from './ErrorBoundaryCore'; // 〔A1-P2-B1〕原 QOt/$Ot/ekt/p4 逐字真身（styles js 129749–130008 单一连续原子区，ROUNDTRIP EXACT）；删碑见下 §2
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -246,16 +249,13 @@ declare function useIntlContext(): {
 declare function shortcutLabel(key: string): string;
 declare function shortcutLabelVariant(key: string): string;
 
-/** 桌面命令枚举（原 oi，src-HCld2afU.js） */
-declare const DesktopCommand: {
-  MinimizeWindow: "minimize-window";
-  ToggleMaximizeWindow: "toggle-maximize-window";
-  CloseWindow: "close-window";
-};
-type DesktopCommandValue =
-  | "minimize-window"
-  | "toggle-maximize-window"
-  | "close-window";
+/* ── tombstone〔A1-P2-B1〕：declare DesktopCommand（原 oi）删除 → 改名改指 SrcSharedB DesktopMenuActionIds
+ *    （oi 真身：styles 672 `ft as oi` ← src chunk `DesktopMenuActionIds as ft` ≡ SrcSharedB@5231；rendererEntry@43 同改指先例）。
+ *    删碑引混淆名 + bundle 行：oi 130025/130035/130045（tkt 三消费）。
+ *    型缝〔A1-P2-B1〕：A0 误铸 kebab 字面值（"minimize-window" 等）；bundle 真值 camelCase
+ *    （DesktopMenuActionIds.MinimizeWindow = `minimizeWindow`，SrcSharedB@5231 逐字）；tkt 消费面参数收 string
+ *    （executeDesktopCommand@310 参形 string，三值 minimizeWindow/toggleMaximizeWindow/closeWindow 即其子集）。 ── */
+const DesktopCommand = DesktopMenuActionIds;
 
 /* --- 平台服务（原 l()=usePlatformService，imeComposition chunk 的 M 导出） --- */
 
@@ -405,11 +405,12 @@ interface ModelSelectionResolution {
   uiError?: string | null;
   shouldClearLocalPreference: boolean;
 }
-interface ConfigOption {
-  category: string;
-  type: string;
-  currentValue?: unknown;
-}
+/* ── tombstone〔A1-P2-B1〕：本地薄面 interface ConfigOption（仅 category/type/currentValue? 三字段归纳）删除
+ *    → 改指 canonical SkillStore ConfigOption（taskStore ConfigOption 真身：id/name/category/type/
+ *    currentValue?/options?/groupId?）。消费面 EJt/kJt/OJt/AJt/jJt 仅读 category/type/currentValue，
+ *    canonical 面全兼容（currentValue?: string 仍过 typeof === "string" 闸）；setConfigOptions/
+ *    applyStoredModelToOptions 调用面因此与 canonical 参数型对齐（bundle 186052 `u.setConfigOptions(n, a, o)`
+ *    所传 a 即裁决后 canonical 选项列）。 ── */
 declare function getModelProviderRegistry(): ModelProviderInfo[];
 declare function isModelProviderRegistryReady(): boolean;
 declare function fetchDraftConfigOptions(input: {
@@ -424,46 +425,39 @@ declare function mergeConfigOptions(
   provider: string,
 ): ConfigOption[];
 declare function normalizeReloadError(error: unknown, input: { workspacePath: string; provider: string }): Error;
-declare function supplierKeyFromProviderId(providerId: string): string;
-declare function defaultSupplierKeyForProvider(zcodeProvider: string): string;
-declare function isGhostSupplierId(id: string): boolean;
-declare function isLocalBuiltinProvider(zcodeProvider: string): boolean;
-declare function readLocalModelPreference(
-  zcodeProvider: string,
-  workspacePath: string,
-  workspaceIdentity?: string,
-): string | null;
-declare function parseModelRef(modelRef: string): { providerId: string; modelId?: string } | null;
-declare function applySelectedModelToConfigOptions(
-  configOptions: ConfigOption[],
-  model: string,
-  zcodeProvider: string,
-): ConfigOption[];
-declare function clearLocalModelPreference(
-  zcodeProvider: string,
-  workspacePath: string,
-  workspaceIdentity?: string,
-): void;
+/* ── tombstone〔A1-P2-B1〕：declare supplierKeyFromProviderId（原 mi）删除 → 改名改指 SrcSharedB customProviderRef
+ *    （mi 真身：styles 697 `j as mi` ← src `lS as j` ≡ lS 8984 ≡ lib/providerRefs customProviderRef 逐字同形 `${CUSTOM_PROVIDER_REF_PREFIX}${e.trim()}`）。删碑：mi 185903/185907（kJt 消费）。
+ *    declare defaultSupplierKeyForProvider（原 On）删除 → 改名改指 SrcSharedB nativeProviderRef（R33 实证：On ≡ M ≡ cS 8981）。删碑：On 185908。
+ *    declare isGhostSupplierId（原 jt）删除 → 改名改指 SrcSharedA isBuiltinProviderId（R32 实证：jt ≡ Eo  _l 4742 七键析取）。删碑：jt 185890/185896。
+ *    declare isLocalBuiltinProvider（原 Ei）删除 → 改名改指 SrcSharedA isGlmAgentCliProvider（R32 实证：Ei ≡ us ≡ Ds 3844 `e === \`glm\``）。删碑：Ei 185925。
+ *    declare readLocalModelPreference 删除（死件：零消费；与 readLocalPreferenceForDraft 同铸 B 符两脸；B 真身 = readLastAgentModelOnly，见下 tombstone）。
+ *    declare parseModelRef（原 se）删除 → 改名改指 SkillStore parseCustomModelId（R33 实证：se ≡ O ≡ D 903 ≡ taskStore@1417）。
+ *      型缝〔A1-P2-B1〕：canonical 返 {providerId; modelName?}，原 declare 误名 modelId；消费面 e7 仅 ?.providerId，安全。
+ *    declare applySelectedModelToConfigOptions（原 Fe）删除 → 改名改指 SkillStore applyStoredModelToOptions（v ≡ Ot ≡ taskStore@1737 同形）。删碑：Fe 185931/185952。
+ *    declare clearLocalModelPreference（原 Re）删除 → 改名改指 SkillStore clearLastAgentModelConfig（y ≡ Dt ≡ taskStore@1721 同形）。删碑：Re 186046。 ── */
 
 /* --- 任务/工作区状态域（原 xe 及 skillStore 选择器群） --- */
 
-type WorkspaceInitState = "idle" | "initializing" | "ready" | "failed";
-interface WorkspaceZCodeState {
+/* ── tombstone〔A1-P2-B1〕：本地归纳型三件删除 → canonical 真形（SkillStore 导入）：
+ *    type WorkspaceInitState（字符串四态并）/ interface WorkspaceZCodeState / interface TaskStoreState
+ *    （xe store 本地归纳面，A0-CLEANUP B-3 旧注随删）。真形 = taskStore WorkspaceTaskState/TaskStoreState/
+ *    TaskStore。证据：styles 401 `h as xe` = useTaskStore（taskStore@2950）。型缝裁定：
+ *    ① 旧面 workspaceInit.state 为 A0 误铸——canonical workspaceInit = { status; error; attempts }
+ *      （taskStore@23 WorkspaceInitState 真形；本文件消费面 4061 一向读 .status，.state 零消费）；
+ *    ② 旧面 optimisticTaskListByTaskId 值薄形 { provider?: string } → canonical TaskMeta
+ *      （provider?: string | null，null 支 A0 漏铸）；taskListCache 同（TaskMeta[] | null）；
+ *    ③ 旧面 setDraftError(error: Error | null) 参数型保留于调用面型缝注（见下 4014 注），canonical 参数为 string | null。 ── */
+/** LJt 渲染投影面：canonical WorkspaceTaskState 取 11 字段 + ze 派生 taskStatus/taskError（shallow 比较）。 */
+interface WorkspaceStateSlice {
   activeTaskId: string | null;
-  draftSessionId?: string | null;
   draftFocusVersion: number;
   modelSwitchPending: boolean;
-  modelSwitchStage: string | null;
+  modelSwitchStage: string;
   selectedProvider: string;
-  selectedSupplierKey: string | null;
+  selectedSupplierKey: string;
   configOptions: ConfigOption[] | null;
-  optimisticTaskListByTaskId: Record<string, { provider?: string }>;
-  workspaceInit: { state: WorkspaceInitState; error: string | null };
-  taskRuntimeByTaskId?: Record<string, { status: string; provider?: string }>;
-  taskListCache?: Array<{ taskId: string; provider?: string }>;
-  groupedDraftTask?: { placement?: string } | null;
-}
-interface WorkspaceStateSlice extends WorkspaceZCodeState {
+  optimisticTaskListByTaskId: Record<string, TaskMeta>;
+  workspaceInit: { status: string; error: string | null };
   taskStatus: string;
   taskError: string | null;
 }
@@ -476,50 +470,26 @@ interface TaskNavItem {
 interface VisibleTask {
   taskId: string;
 }
-interface TaskStoreState {
-  workspaces: Record<string, { selectedProvider?: string }>;
-  getWorkspaceState(workspacePath: string, workspaceIdentity?: string): WorkspaceZCodeState;
-  setActiveTaskId(workspacePath: string, taskId: string, workspaceIdentity?: string): void;
-  setWorkspaceInitState(workspacePath: string, state: WorkspaceInitState, error: string | null, workspaceIdentity?: string): void;
-  setWorkspaceInitAttempts(workspacePath: string, attempts: number, workspaceIdentity?: string): void;
-  setConfigOptions(workspacePath: string, options: ConfigOption[], workspaceIdentity?: string): void;
-  setConfigOptionsStatus(workspacePath: string, status: string, workspaceIdentity?: string): void;
-  setSlashCommands(workspacePath: string, commands: unknown[], workspaceIdentity?: string): void;
-  setDraftError(workspacePath: string, error: Error | null, workspaceIdentity?: string): void;
-  setTaskState(workspacePath: string, state: string, error: string | null, workspaceIdentity?: string): void;
-  setModelSelectionResolution(workspacePath: string, resolution: { selectedSupplierKey: string | null; isGhostSupplier: boolean; supplierMismatchReason: string | null }, workspaceIdentity?: string): void;
-  startDraft(workspacePath: string, provider: string, workspaceIdentity?: string, options?: { groupedDraftPlacement?: string }): void;
-  clearGroupedDraftTask(workspacePath: string, workspaceIdentity?: string): void;
-  taskNavHistory: unknown;
-  taskNavPushAutomations(workspacePath: string, workspaceIdentity?: string, automationId?: string): void;
-  taskNavGoBack(): TaskNavItem | null;
-  taskNavGoForward(): TaskNavItem | null;
-  removeTaskFromNavHistory(taskId: string): void;
-}
-declare const taskStore: { getState(): TaskStoreState };
-/* A0-CLEANUP B-3：选择器经 useTaskStore 消费真 store（TaskStore），其余调用面
- * 维持本地归纳形；参数收两形并集。 */
-declare function getWorkspaceStateSelector(
-  state: TaskStoreState | TaskStore,
-  workspacePath: string,
-  workspaceIdentity?: string,
-): WorkspaceZCodeState;
-declare function deriveTaskStateSlice(state: WorkspaceZCodeState): {
-  taskStatus: string;
-  taskError: string | null;
-};
-declare function deriveDraftStateSlice(state: WorkspaceZCodeState): { provider: string; supplierKey: string | null };
-declare function getWorkspaceInitSlice(state: WorkspaceZCodeState): { status: string; error?: string | null };
-declare function getVisibleTasks(state: WorkspaceZCodeState): VisibleTask[];
-declare function isAutomationsNavEntry(entry: TaskNavItem): boolean;
-declare function canTaskNavBack(history: unknown): boolean;
-declare function canTaskNavForward(history: unknown): boolean;
-declare function isModelRuntimeRestarting(pending: boolean, stage: string | null): boolean;
-declare function readLocalPreferenceForDraft(
-  zcodeProvider: string,
-  workspacePath: string,
-  workspaceIdentity?: string,
-): string | null;
+/* ── tombstone〔A1-P2-B1〕：下列 declare 删除 → 改名改指 SkillStore canonical 真身（stores/taskStore）。
+ *    双 chunk 链证据 = styles 导入块 373–419 别名 ← skillStore chunk 导出字母 ← taskStore 真身行号：
+ *    declare const taskStore（原 xe）→ useTaskStore（styles 401 `h as xe`；taskStore@2950）。
+ *      删碑：xe.getState() 簇 186012/186042/186052/186055/186072（MJt 重建流）+ zJt/XJt 各调用面。
+ *    declare getWorkspaceStateSelector（原 fe）→ getWorkspaceTaskStateAlias（styles 391 `U as fe`；taskStore@430）。
+ *      删碑：fe 185847–185880（LJt 选择器对）。
+ *    declare deriveTaskStateSlice（原 ze）→ getActiveTaskStatusError（styles 419 `z as ze`；taskStore@390）。
+ *      删碑：ze 185847–185880（LJt）/185785–185824（NJt）。
+ *    declare getWorkspaceInitSlice（原 R）→ getWorkspaceInit（styles 373 `B as R`；taskStore@439）。删碑：R 185808（NJt 预热回退）。
+ *    declare getVisibleTasks（原 le）→ getMergedTaskList（styles 388 `R as le`；taskStore@416）。删碑：le 186025/186038（zJt 导航）/186723（ur 邻接会话）。
+ *    declare isAutomationsNavEntry（原 oe）→ isTaskNavAutomationsEntry（styles 385 `N as oe`；taskStore@477）。删碑：oe 186016/186032（zJt）。
+ *    declare canTaskNavBack（原 Ce）→ canGoBackInTaskNav（styles 403 `j as Ce`；taskStore@539）。删碑：Ce 186052（zJt 尾）。
+ *    declare canTaskNavForward（原 ae）→ canGoForwardInTaskNav（styles 384 `M as ae`；taskStore@544）。删碑：ae 186053（zJt 尾）。
+ *    declare readLocalPreferenceForDraft（原 B）→ readLastAgentModelOnly（styles 375 `D as B`；taskStore@1688）。删碑：B 185624（jJt 裁决首读）。
+ *    declare isModelRuntimeRestarting 删除（死件零消费；与 t7 ≡ isRestartingRuntime 本文件实函数同铸两脸，bundle 185881）。
+ *    型缝〔A1-P2-B1〕W4：canonical getWorkspaceTaskStateAlias 参数 TaskStoreState 收 TaskStore（ze 交叉型含
+ *    TaskStoreState + 索引签名，taskStore@335/2942），useTaskStore 回调 state 直传兼容。 ── */
+/** 原 W6e（src chunk 78014，owner PD 批）：草稿态投影（provider + supplierKey）。
+ *  〔A1-P2-B1〕参数型由本地归纳形改铸 canonical WorkspaceTaskState（调用面 3943/4162 所传即真 store 工作区态）。 */
+declare function deriveDraftStateSlice(state: WorkspaceTaskState): { provider: string; supplierKey: string | null };
 
 /* --- 搜索结果域（原 Vo） --- */
 
@@ -794,7 +764,8 @@ interface QuickPickCommand {
 
 /* --- 可见性守卫 / e2e 桥 / MCP 同步（原 JMe/w_e/re/S_e） --- */
 
-declare function isE2eTestMode(): boolean;
+/* ── tombstone〔A1-P2-B1〕：declare isE2eTestMode 删除（死件零消费；与 re ≡ isE2EStoreBridgeEnabled 同铸两脸——
+ *    e2e 桥门控真身 re（styles 382 `K as re`；本文件 registerTestActions 消费面已在案），A0 另铸本 declare 未接线。 ── */
 declare function useMcpSyncForRemote(
   workspacePath: string,
   workspaceIdentity: string | undefined,
@@ -837,8 +808,9 @@ declare function canOpenPathInEmbeddedBrowser(input: {
 /** 原 uw（js 39411）：18×18 Z 字 logo data-url */
 /** 原 c6（js 138630） */
 declare const AUTOMATIONS_MAIN_TOAST_ANCHOR_ID: string;
-/** 原 Mi（src-HCld2afU.js 8235，导出 wt←bg = 'app-header'） */
-declare const APP_HEADER_TEST_ID: string;
+/* ── tombstone〔A1-P2-B1〕：declare const appHeaderTestid（原 Mi）删除 → 改名改指 SrcSharedB appHeaderTestid
+ *    （双 chunk 链：styles 804 `wt as Mi` ← src 10045 `bg as wt` ← src 8235 `bg = \`app-header\``）。
+ *    删碑：两处消费 `headerTestId={APP_HEADER_TEST_ID}` 改名改指。 ── */
 
 /* --- 图标（原 Sa 工厂；此处按语义命名） --- */
 
@@ -916,12 +888,12 @@ export const WindowShell = React.memo(function WindowShell({
  * ==========================================================================*/
 
 /** 原 d4（js 129708）：任意 thrown 值 → Error */
-function toError(error: unknown): Error {
+export function toError(error: unknown): Error {
   return error instanceof Error ? error : Error(typeof error === "string" ? error : "Unknown error");
 }
 
 /** 原 YOt（js 129711）：日志用错误序列化 */
-function serializeErrorForLog(error: Error): { name: string; message: string; stack?: string } {
+export function serializeErrorForLog(error: Error): { name: string; message: string; stack?: string } {
   return { name: error.name, message: error.message, ...(error.stack ? { stack: error.stack } : {}) };
 }
 
@@ -964,7 +936,7 @@ function buildArmsReactErrorEvent(input: {
 }
 
 /** 原 qOt（js 129690）：react-error ARMS 上报（失败仅 warn，不影响渲染） */
-function reportReactErrorToArms(input: { error: Error; componentStack: string; scope?: string }): void {
+export function reportReactErrorToArms(input: { error: Error; componentStack: string; scope?: string }): void {
   if (!armsTelemetryClient) return;
   try {
     const event = buildArmsReactErrorEvent(input);
@@ -983,7 +955,7 @@ function reportReactErrorToArms(input: { error: Error; componentStack: string; s
 }
 
 /** 原 ZOt（js 129729）：resetKeys 逐项 Object.is 比较，长度不同视为变化 */
-function didResetKeysChange(previous: unknown[] = [], next: unknown[] = []): boolean {
+export function didResetKeysChange(previous: unknown[] = [], next: unknown[] = []): boolean {
   return previous.length === next.length ? previous.some((value, index) => !Object.is(value, next[index])) : true;
 }
 
@@ -1009,111 +981,18 @@ const APP_ERROR_FALLBACK_STRINGS: Record<string, string> = {
   "appError.description": "页面渲染出现异常，可以尝试重置该区域或重新加载窗口。",
   "appError.unknown": "未知错误",
 };
-function translateAppError(key: string): string {
+export function translateAppError(key: string): string {
   return APP_ERROR_FALLBACK_STRINGS[key] ?? key;
 }
 
-/** 原 $Ot：作用域错误降级呈现层（接口保留；完整 JSX 见 js ~129790+） */
-declare const ScopedErrorFallback: React.FC<{
-  error: Error;
-  componentStack: string;
-  onReset: () => void;
-  onReload: () => void;
-  variant?: "panel" | "compact" | "silent" | string;
-  className?: string;
-}>;
-
-interface ScopedErrorBoundaryProps {
-  scope: string;
-  /** 变化时自动清除错误态（如 [workspaceKey, activeTaskId]） */
-  resetKeys?: unknown[];
-  variant?: "panel" | "compact" | "silent" | string;
-  className?: string;
-  onCaughtReactError?: (error: Error, reactErrorInfo: { componentStack?: string }, scope: string) => void;
-  onReset?: () => void;
-  children?: React.ReactNode;
-}
-
-/** 原 p4（js 129952-129991 / jsx 109217-109263） */
-export class ScopedErrorBoundary extends React.Component<
-  ScopedErrorBoundaryProps,
-  { error: Error | null; componentStack: string }
-> {
-  state = { error: null as Error | null, componentStack: "" };
-
-  static getDerivedStateFromError(error: unknown) {
-    return { error: toError(error), componentStack: "" };
-  }
-
-  componentDidCatch(error: unknown, errorInfo: { componentStack?: string }) {
-    const normalized = toError(error);
-    logger.error(
-      `[ScopedErrorBoundary:${this.props.scope}] React subtree crashed:`,
-      serializeErrorForLog(normalized),
-      errorInfo.componentStack,
-    );
-    this.props.onCaughtReactError?.(normalized, errorInfo, this.props.scope);
-    reportReactErrorToArms({
-      error: normalized,
-      componentStack: errorInfo.componentStack ?? "",
-      scope: this.props.scope,
-    });
-    this.setState({ componentStack: errorInfo.componentStack ?? "" });
-  }
-
-  componentDidUpdate(previous: ScopedErrorBoundaryProps) {
-    if (
-      this.state.error &&
-      didResetKeysChange(previous.resetKeys, this.props.resetKeys)
-    ) {
-      this.setState({ error: null, componentStack: "" });
-    }
-  }
-
-  handleReset = () => {
-    this.setState({ error: null, componentStack: "" });
-    this.props.onReset?.();
-  };
-
-  handleReload = () => {
-    if (typeof window < "u") window.location.reload();
-  };
-
-  render() {
-    return this.state.error ? (
-      <ScopedErrorFallback
-        error={this.state.error}
-        componentStack={this.state.componentStack}
-        onReset={this.handleReset}
-        onReload={this.handleReload}
-        variant={this.props.variant}
-        className={this.props.className}
-      />
-    ) : (
-      this.props.children
-    );
-  }
-}
-
-/** 原 QOt（js 129735）：应用级错误降级呈现层（接口保留） */
-declare const AppErrorFallback: React.FC<{
-  error: Error;
-  componentStack: string;
-  onReset: () => void;
-  onReload: () => void;
-  isDesktop?: boolean;
-  isMacDesktop?: boolean;
-  isWindowsDesktop?: boolean;
-}>;
-
-/** 原 ekt（js 129920-129950 / jsx 109184-109216）：应用级错误边界（接口保留，结构同 p4） */
-export declare class AppErrorBoundary extends React.Component<{
-  isDesktop?: boolean;
-  isMacDesktop?: boolean;
-  isWindowsDesktop?: boolean;
-  onCaughtReactError?: (error: Error, errorInfo: { componentStack?: string }) => void;
-  children?: React.ReactNode;
-}> {}
+/* ── tombstone〔A1-P2-B1〕：declare ScopedErrorFallback（原 $Ot）/ declare AppErrorFallback（原 QOt）/
+ *    export declare class AppErrorBoundary（原 ekt）/ A0 语义版 ScopedErrorBoundary 类（原 p4）四件删除 →
+ *    改名改指 components/shell/ErrorBoundaryCore.tsx 逐字真身（styles js 129749–130008 单一连续原子区
+ *    260 行四件整区转录，ROUNDTRIP EXACT；ekt/p4 同处一条 var 语句不拆分）。
+ *    删碑引混淆名 + bundle 行：$Ot 129822 / QOt 129749 / ekt 129937 / p4 129969。
+ *    导出面不变：本文件经顶部 import 再导出四件（modules/WorkspaceShell shim 与
+ *    SidePanel/TerminalPane 经本文件消费 ScopedErrorBoundary）。 ── */
+export { AppErrorFallback, ScopedErrorFallback, AppErrorBoundary, ScopedErrorBoundary };
 
 /* ============================================================================
  * 3. Linux 窗口控制按钮 LinuxWindowControls（原 tkt，js 129992-130033 / jsx 109264-109304）
@@ -1125,7 +1004,7 @@ export declare class AppErrorBoundary extends React.Component<{
 export function LinuxWindowControls() {
   const platform = usePlatformService();
   const { intl } = useIntlContext();
-  const execute = (command: DesktopCommandValue) => {
+  const execute = (command: string) => {
     platform.executeDesktopCommand(command);
   };
   return (
@@ -3061,7 +2940,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
         isDesktop={isDesktop}
         isMacDesktop={isMacDesktop}
         isWindowsDesktop={isWindowsDesktop}
-        headerTestId={APP_HEADER_TEST_ID}
+        headerTestId={appHeaderTestid}
       >
         <WebRemoteMobileShell
           activeTaskId={activeTaskId}
@@ -3159,7 +3038,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
       isDesktop={isDesktop}
       isMacDesktop={isMacDesktop}
       isWindowsDesktop={isWindowsDesktop}
-      headerTestId={APP_HEADER_TEST_ID}
+      headerTestId={appHeaderTestid}
     >
       <div
         ref={shellElementRef}
@@ -3862,7 +3741,7 @@ function pickSelectedModelFromConfigOptions(configOptions: ConfigOption[]): stri
 function parseProviderIdFromModelRef(modelRef: string): string | null {
   const trimmed = modelRef.trim();
   if (!trimmed) return null;
-  const parsed = parseModelRef(trimmed);
+  const parsed = parseCustomModelId(trimmed);
   if (parsed?.providerId.trim()) return parsed.providerId.trim();
   const slashIndex = trimmed.indexOf("/");
   return slashIndex <= 0 || slashIndex >= trimmed.length - 1 ? null : trimmed.slice(0, slashIndex).trim() || null;
@@ -3873,7 +3752,7 @@ function findCustomModelProvider(providers: ModelProviderInfo[], providerId: str
   const trimmed = providerId.trim();
   if (!trimmed) return null;
   const match = providers.find((provider) => provider.id.trim() === trimmed);
-  return !match || match.source === "builtin" || isGhostSupplierId(match.id) ? null : match;
+  return !match || match.source === "builtin" || isBuiltinProviderId(match.id) ? null : match;
 }
 
 /** 原 OJt（js 185598）：configOptions 的供应商 ≠ 本地偏好供应商 且目标可用 → 失配 */
@@ -3885,7 +3764,7 @@ function isProviderMismatch(input: {
   const configProviderId = parseProviderIdFromModelRef(pickSelectedModelFromConfigOptions(input.configOptions) ?? "");
   return !configProviderId || configProviderId === input.localPreferenceProviderId
     ? false
-    : isGhostSupplierId(configProviderId)
+    : isBuiltinProviderId(configProviderId)
       ? true
       : input.modelProviders.some((provider) => provider.id.trim() === configProviderId);
 }
@@ -3903,13 +3782,13 @@ function resolveSelectedSupplierKey(input: {
     (configProviderId && input.modelProviders.some((provider) => provider.id.trim() === configProviderId)) ||
     (configProviderId && findCustomModelProvider(input.modelProviders, configProviderId))
   ) {
-    return supplierKeyFromProviderId(configProviderId);
+    return customProviderRef(configProviderId);
   }
   const preferenceProviderId = parseProviderIdFromModelRef(input.localPreference ?? "");
   return preferenceProviderId &&
     (!input.providersReady || input.modelProviders.some((provider) => provider.id.trim() === preferenceProviderId))
-    ? supplierKeyFromProviderId(preferenceProviderId)
-    : defaultSupplierKeyForProvider(input.zcodeProvider);
+    ? customProviderRef(preferenceProviderId)
+    : nativeProviderRef(input.zcodeProvider);
 }
 
 /** 原 AJt（js 185614）：本地偏好是否应参与裁决（存在且未失配） */
@@ -3942,8 +3821,8 @@ async function resolveWorkspaceModelSelection(input: {
   configOptions: ConfigOption[];
   applySelectedModel?: boolean;
 }): Promise<{ resolvedConfigOptions: ConfigOption[]; resolution: ModelSelectionResolution | null }> {
-  const localPreference = readLocalPreferenceForDraft(input.zcodeProvider, input.workspacePath, input.workspaceIdentity);
-  if (isLocalBuiltinProvider(input.zcodeProvider)) {
+  const localPreference = readLastAgentModelOnly(input.zcodeProvider, input.workspacePath, input.workspaceIdentity);
+  if (isGlmAgentCliProvider(input.zcodeProvider)) {
     const applySelectedModel = input.applySelectedModel ?? true;
     const modelProviders = getModelProviderRegistry();
     const providersReady = isModelProviderRegistryReady();
@@ -3956,7 +3835,7 @@ async function resolveWorkspaceModelSelection(input: {
         providersReady,
       }) &&
       localPreference
-        ? applySelectedModelToConfigOptions(input.configOptions, localPreference, input.zcodeProvider)
+        ? applyStoredModelToOptions(input.configOptions, localPreference, input.zcodeProvider)
         : [...input.configOptions];
     return {
       resolvedConfigOptions,
@@ -3988,7 +3867,7 @@ async function resolveWorkspaceModelSelection(input: {
     return {
       resolvedConfigOptions:
         (input.applySelectedModel ?? true) && resolution.selectedModel
-          ? applySelectedModelToConfigOptions(input.configOptions, resolution.selectedModel, input.zcodeProvider)
+          ? applyStoredModelToOptions(input.configOptions, resolution.selectedModel, input.zcodeProvider)
           : [...input.configOptions],
       resolution,
     };
@@ -4038,7 +3917,7 @@ function useReloadSession(input: {
       }
       lastAttemptAtRef.current = now;
       setReloadSessionPending(true);
-      const store = taskStore.getState();
+      const store = useTaskStore.getState();
       const workspaceState = store.getWorkspaceState(workspaceAbsPath, activeWorkspaceIdentity);
       const draftSlice = deriveDraftStateSlice(workspaceState);
       const provider = options?.provider ?? draftSlice.provider;
@@ -4079,7 +3958,7 @@ function useReloadSession(input: {
                 store.setModelSelectionResolution(
                   workspaceAbsPath,
                   {
-                    selectedSupplierKey: resolution.selectedSupplierKey,
+                    selectedSupplierKey: resolution.selectedSupplierKey as string, // 〔A1-P2-B1〕型缝 W5：bundle 186045 `s.selectedSupplierKey` 直传（可空），canonical setModelSelectionResolution 参形 string（taskStore@2632）为 store 侧归纳；null 支运行时透传，与 bundle 逐字一致
                     isGhostSupplier: resolution.isGhostSupplier,
                     supplierMismatchReason: resolution.supplierMismatchReason,
                   },
@@ -4087,7 +3966,7 @@ function useReloadSession(input: {
                 );
               }
               if (resolution?.shouldClearLocalPreference) {
-                clearLocalModelPreference(provider, workspaceAbsPath, activeWorkspaceIdentity);
+                clearLastAgentModelConfig(provider, workspaceAbsPath, activeWorkspaceIdentity);
               }
               store.setConfigOptions(workspaceAbsPath, resolvedConfigOptions, activeWorkspaceIdentity);
               store.setConfigOptionsStatus(workspaceAbsPath, "ready", activeWorkspaceIdentity);
@@ -4111,7 +3990,7 @@ function useReloadSession(input: {
         store.setWorkspaceInitState(workspaceAbsPath, "failed", normalized.message, activeWorkspaceIdentity);
         if (isFreshDraft) {
           store.setConfigOptionsStatus(workspaceAbsPath, "error", activeWorkspaceIdentity);
-          store.setDraftError(workspaceAbsPath, normalized, activeWorkspaceIdentity);
+          store.setDraftError(workspaceAbsPath, normalized as unknown as string, activeWorkspaceIdentity); // 〔A1-P2-B1〕型缝 W6：bundle 186072 `u.setDraftError(n, r, o)` r=wJt Error 直传；canonical 参形 string | null（taskStore@2700）为 store 侧归纳，运行时即存 Error 对象，与 bundle 逐字一致
         }
         toast(intl.formatMessage({ id: "appHeader.reloadSessionFailed" }));
       } finally {
@@ -4152,20 +4031,20 @@ function useWorkspaceLifecycle(input: {
 
   React.useEffect(
     () => () => {
-      const workspaceState = taskStore.getState().getWorkspaceState(workspaceAbsPath);
-      const taskSlice = deriveTaskStateSlice(workspaceState);
+      const workspaceState = useTaskStore.getState().getWorkspaceState(workspaceAbsPath);
+      const taskSlice = getActiveTaskStatusError(workspaceState);
       if (
         workspaceState.activeTaskId ||
         taskSlice.taskStatus === "creating" ||
         taskSlice.taskStatus === "streaming" ||
-        getWorkspaceInitSlice(workspaceState).status === "idle"
+        getWorkspaceInit(workspaceState).status === "idle"
       ) {
         return;
       }
       const provider = workspaceState.selectedProvider;
       logger.info(`[App] 回退 workspace 预热状态 workspace=${workspaceAbsPath} provider=${provider}`);
-      taskStore.getState().setWorkspaceInitAttempts(workspaceAbsPath, 0, workspaceIdentity);
-      taskStore.getState().setWorkspaceInitState(workspaceAbsPath, "idle", null, workspaceIdentity);
+      useTaskStore.getState().setWorkspaceInitAttempts(workspaceAbsPath, 0, workspaceIdentity);
+      useTaskStore.getState().setWorkspaceInitState(workspaceAbsPath, "idle", null, workspaceIdentity);
       services.zcodeTaskService
         .releaseWorkspacePreparation({
           workspacePath: workspaceAbsPath,
@@ -4191,8 +4070,8 @@ function isTaskRuntimeActive(status: string): boolean {
 
 /** 原 FJt（js 185828）：乐观任务表 + 列表缓存 → taskId→provider 映射 */
 function mergeTaskProviders(
-  optimisticTaskListByTaskId: Record<string, { provider?: string }>,
-  taskListCache: Array<{ taskId: string; provider?: string }>,
+  optimisticTaskListByTaskId: Record<string, { provider?: string | null }>, // 〔A1-P2-B1〕收 canonical TaskMeta 面（provider?: string | null，null 支 truthy 闸兼容）
+  taskListCache: Array<{ taskId: string; provider?: string | null }>,
 ): Record<string, string> {
   const providers: Record<string, string> = {};
   for (const entry of taskListCache ?? []) {
@@ -4208,8 +4087,8 @@ function mergeTaskProviders(
 function hasActiveTaskRuntimeForProvider(
   provider: string,
   taskRuntimeByTaskId: Record<string, { status: string; provider?: string }>,
-  optimisticTaskListByTaskId: Record<string, { provider?: string }>,
-  taskListCache: Array<{ taskId: string; provider?: string }>,
+  optimisticTaskListByTaskId: Record<string, { provider?: string | null }>, // 〔A1-P2-B1〕收 canonical TaskMeta 面（同 mergeTaskProviders 注）
+  taskListCache: Array<{ taskId: string; provider?: string | null }>,
   activeTaskId: string | null,
 ): boolean {
   const providersByTaskId = mergeTaskProviders(optimisticTaskListByTaskId, taskListCache);
@@ -4239,8 +4118,8 @@ function useWorkspaceShellZCodeState(workspaceAbsPath: string, workspaceIdentity
   return {
     workspaceShellZCodeState: useTaskStore(
       shallowSelector((state: TaskStore): WorkspaceStateSlice => {
-        const workspaceState = getWorkspaceStateSelector(state, workspaceAbsPath, workspaceIdentity);
-        const taskSlice = deriveTaskStateSlice(workspaceState);
+        const workspaceState = getWorkspaceTaskStateAlias(state, workspaceAbsPath, workspaceIdentity);
+        const taskSlice = getActiveTaskStatusError(workspaceState);
         return {
           activeTaskId: workspaceState.activeTaskId,
           draftFocusVersion: workspaceState.draftFocusVersion,
@@ -4257,7 +4136,7 @@ function useWorkspaceShellZCodeState(workspaceAbsPath: string, workspaceIdentity
       }),
     ),
     reloadSessionDisabled: useTaskStore((state: TaskStore) => {
-      const workspaceState = getWorkspaceStateSelector(state, workspaceAbsPath, workspaceIdentity);
+      const workspaceState = getWorkspaceTaskStateAlias(state, workspaceAbsPath, workspaceIdentity);
       return hasActiveTaskRuntimeForProvider(
         deriveDraftStateSlice(workspaceState).provider,
         workspaceState.taskRuntimeByTaskId ?? {},
@@ -4326,7 +4205,7 @@ function useTaskNavigation(input: {
   /** 原 h（185907）：选择任务（含未读清除乐观链） */
   const handleSelectTask = React.useCallback(
     (targetWorkspacePath: string, taskId: string, targetIdentity?: string | null) => {
-      const workspaceState = taskStore.getState().getWorkspaceState(targetWorkspacePath, targetIdentity ?? undefined);
+      const workspaceState = useTaskStore.getState().getWorkspaceState(targetWorkspacePath, targetIdentity ?? undefined);
       if (isRestartingRuntime(workspaceState.modelSwitchPending, workspaceState.modelSwitchStage)) {
         logger.info(
           `[App] 模型运行时重建中，忽略 task 切换 workspace=${targetWorkspacePath} taskId=${taskId} stage=${workspaceState.modelSwitchStage}`,
@@ -4408,7 +4287,7 @@ function useTaskNavigation(input: {
 
   /** 原 _（185964）：任务后退 */
   const handleTaskNavBack = React.useCallback(() => {
-    const workspaceState = taskStore.getState().getWorkspaceState(workspaceAbsPath);
+    const workspaceState = useTaskStore.getState().getWorkspaceState(workspaceAbsPath);
     if (isRestartingRuntime(workspaceState.modelSwitchPending, workspaceState.modelSwitchStage)) {
       logger.info(
         `[App] 模型运行时重建中，忽略任务后退导航 workspace=` + workspaceAbsPath + ` stage=` + workspaceState.modelSwitchStage,
@@ -4420,7 +4299,7 @@ function useTaskNavigation(input: {
     const taskMetaByEntityKey = searchResultsStore.getState().taskMetaByEntityKey;
     while (entry) {
       const candidate = entry;
-      if (isAutomationsNavEntry(candidate)) {
+      if (isTaskNavAutomationsEntry(candidate)) {
         activateTabByPath(
           candidate.workspacePath,
           candidate.workspaceIdentity ? { workspaceIdentity: candidate.workspaceIdentity } : undefined,
@@ -4435,7 +4314,7 @@ function useTaskNavigation(input: {
       if (
         isTaskStillVisible({
           entry: candidate,
-          visibleTasks: getVisibleTasks(taskStore.getState().getWorkspaceState(candidate.workspacePath, candidate.workspaceIdentity)),
+          visibleTasks: getMergedTaskList(useTaskStore.getState().getWorkspaceState(candidate.workspacePath, candidate.workspaceIdentity)),
           taskMetaByEntityKey,
         })
       ) {
@@ -4450,7 +4329,7 @@ function useTaskNavigation(input: {
 
   /** 原 v（186004）：任务前进（镜像后退） */
   const handleTaskNavForward = React.useCallback(() => {
-    const workspaceState = taskStore.getState().getWorkspaceState(workspaceAbsPath);
+    const workspaceState = useTaskStore.getState().getWorkspaceState(workspaceAbsPath);
     if (isRestartingRuntime(workspaceState.modelSwitchPending, workspaceState.modelSwitchStage)) {
       logger.info(
         `[App] 模型运行时重建中，忽略任务前进导航 workspace=` + workspaceAbsPath + ` stage=` + workspaceState.modelSwitchStage,
@@ -4462,7 +4341,7 @@ function useTaskNavigation(input: {
     const taskMetaByEntityKey = searchResultsStore.getState().taskMetaByEntityKey;
     while (entry) {
       const candidate = entry;
-      if (isAutomationsNavEntry(candidate)) {
+      if (isTaskNavAutomationsEntry(candidate)) {
         activateTabByPath(
           candidate.workspacePath,
           candidate.workspaceIdentity ? { workspaceIdentity: candidate.workspaceIdentity } : undefined,
@@ -4477,7 +4356,7 @@ function useTaskNavigation(input: {
       if (
         isTaskStillVisible({
           entry: candidate,
-          visibleTasks: getVisibleTasks(taskStore.getState().getWorkspaceState(candidate.workspacePath, candidate.workspaceIdentity)),
+          visibleTasks: getMergedTaskList(useTaskStore.getState().getWorkspaceState(candidate.workspacePath, candidate.workspaceIdentity)),
           taskMetaByEntityKey,
         })
       ) {
@@ -4490,9 +4369,9 @@ function useTaskNavigation(input: {
     toast(intl.formatMessage({ id: "taskNav.noMoreForward" }));
   }, [activateTabByPath, handleSelectTask, intl, onNavigateToAutomations, removeTaskFromNavHistory, taskNavGoForward, workspaceAbsPath]);
 
-  const canGoBack = canTaskNavBack(taskNavHistory);   // 原 y
-  const canGoForward = canTaskNavForward(taskNavHistory); // 原 b
-  const currentWorkspaceState = taskStore.getState().getWorkspaceState(workspaceAbsPath);
+  const canGoBack = canGoBackInTaskNav(taskNavHistory);   // 原 y
+  const canGoForward = canGoForwardInTaskNav(taskNavHistory); // 原 b
+  const currentWorkspaceState = useTaskStore.getState().getWorkspaceState(workspaceAbsPath);
   const isModelRestarting = isRestartingRuntime(currentWorkspaceState.modelSwitchPending, currentWorkspaceState.modelSwitchStage);
 
   return {
@@ -4680,12 +4559,12 @@ const e2eTaskMembershipProbes = {
     workspaceIdentity?: string;
     taskId: string;
   }) => {
-    const workspaceKey = workspaceKeyOf2(workspacePath, workspaceIdentity);
+    const resolvedWorkspaceKey = workspaceKey(workspacePath, workspaceIdentity); // 〔A1-P2-B1〕改名改指：原 workspaceKeyOf2 ≡ Io ≡ resolveWorkspaceKey（SkillStore 导入别名 workspaceKey）
     const entityKey = taskEntityKey({ workspacePath, workspaceIdentity, taskId });
     const searchState = searchResultsStore.getState();
     const membershipKinds = new Set<string>();
     for (const result of Object.values(searchState.resultsByQueryKey)) {
-      if (result.descriptor.workspaceKeys.includes(workspaceKey) && result.taskKeys.includes(entityKey)) {
+      if (result.descriptor.workspaceKeys.includes(resolvedWorkspaceKey) && result.taskKeys.includes(entityKey)) {
         membershipKinds.add(result.descriptor.kind);
       }
     }
@@ -4700,14 +4579,14 @@ const e2eTaskMembershipProbes = {
     workspaceIdentity?: string;
     taskId: string;
   }) => {
-    const workspaceKey = workspaceKeyOf2(workspacePath, workspaceIdentity);
+    const resolvedWorkspaceKey = workspaceKey(workspacePath, workspaceIdentity); // 〔A1-P2-B1〕改名改指：原 workspaceKeyOf2 ≡ Io ≡ resolveWorkspaceKey（SkillStore 导入别名 workspaceKey）
     const entityKey = taskEntityKey({ workspacePath, workspaceIdentity, taskId });
     const searchState = searchResultsStore.getState();
     const matchingQueries = Object.values(searchState.resultsByQueryKey)
       .filter(
         (result) =>
           result.descriptor.kind === "workspace" &&
-          result.descriptor.workspaceKeys.includes(workspaceKey) &&
+          result.descriptor.workspaceKeys.includes(resolvedWorkspaceKey) &&
           result.taskKeys.includes(entityKey),
       )
       .sort((a, b) => b.fetchedAt - a.fetchedAt);
@@ -4730,8 +4609,9 @@ declare function holdTaskMembershipRefresh(): void;
 declare function releaseTaskMembershipRefreshHold(): void;
 declare function getTaskMembershipRefreshHoldState(): unknown;
 declare function describeTaskActivity(meta: { taskId: string; status?: string }): { phase: string } | null;
-/** Io 的局部别名（避免与字符串常量冲突命名） */
-declare function workspaceKeyOf2(workspacePath: string, workspaceIdentity?: string): string;
+/* ── tombstone〔A1-P2-B1〕：declare workspaceKeyOf2（Io 局部别名）删除 → 改名改指 SkillStore resolveWorkspaceKey
+ *    （导入别名 workspaceKey；Io ≡ b ≡ taskStore@155 薄包装 `workspaceIdentity?.trim() || workspacePath` 同形）。
+ *    删碑：GJt 探针簇两处调用（bundle 186170–186214 内）改 `workspaceKey(...)`，局部变量改铸 resolvedWorkspaceKey 避遮蔽。 ── */
 
 /** 原 r7（js 186215）：全局"关闭活动上下文"事件名（Esc 等由宿主派发） */
 export const CLOSE_ACTIVE_CONTEXT_EVENT = "zcode:close-active-context-request";
@@ -5376,7 +5256,7 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
   /** 原 Jn（186642-186666）：在工作区开始草稿（工作区切换核心） */
   const handleStartDraftInWorkspace = React.useCallback(
     (targetWorkspacePath: string, targetIdentity?: string, purpose?: string) => {
-      const store = taskStore.getState();
+      const store = useTaskStore.getState();
       const resolvedIdentity =
         targetIdentity ?? workspaceTabs.filter(isWorkspaceTab).find((tab) => tab.workspacePath === targetWorkspacePath)?.workspaceIdentity ?? undefined;
       if (isWorkspaceUnavailableLocalDirectory({ tabs: workspaceTabs }, targetWorkspacePath, resolvedIdentity)) return;
@@ -5480,7 +5360,7 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
   const handleSelectAdjacentConversation = React.useCallback(
     (direction: "previous" | "next") => {
       runWithVisibility(() => {
-        const visibleTaskIds = getVisibleTasks(taskStore.getState().getWorkspaceState(workspaceAbsPath, workspaceIdentity)).map(
+        const visibleTaskIds = getMergedTaskList(useTaskStore.getState().getWorkspaceState(workspaceAbsPath, workspaceIdentity)).map(
           (task) => task.taskId,
         );
         const searchState = searchResultsStore.getState();
