@@ -381,7 +381,7 @@ import { CommandEmpty, CommandList } from '../../modules/QuickPick';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../modules/Settings';
 import { logger } from '../../modules/SkillStore';
 import { isStartPlanProviderId, isZaiPlanProviderId } from '../../modules/SrcSharedA'; // +isZaiPlanProviderId（A1-R11：GUe 53391 消费，原 vl/tr）
-import { APP_RUNTIME_PREFERENCES_STORAGE_KEY, getOAuthProviderFamilyByProviderId } from '../../modules/SrcSharedB'; // A1-R11：JM 53535 消费 fS 广播道（styles `T as Tr` ← src 导出表 `APP_RUNTIME_PREFERENCES_STORAGE_KEY as T`）；原 rN 53791 之 dr 依赖随 §2d 删碑收敛至 SubagentLeaves（其自持 canonicalProviderIdOf declare = Jx）。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：familyOfPresetId declare 收敛改指，见下墓碑。环安全：本行不新增环边（本文件→SrcSharedB 既有）
+import { APP_RUNTIME_PREFERENCES_STORAGE_KEY, getOAuthProviderFamilyByProviderId, joinTestidParts } from '../../modules/SrcSharedB'; // A1-R11：JM 53535 消费 fS 广播道（styles `T as Tr` ← src 导出表 `APP_RUNTIME_PREFERENCES_STORAGE_KEY as T`）；原 rN 53791 之 dr 依赖随 §2d 删碑收敛至 SubagentLeaves（其自持 canonicalProviderIdOf declare = Jx）。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：familyOfPresetId declare 收敛改指，见下墓碑。〔A1-R41〕+joinTestidParts（原 qr 收敛改指，见下墓碑）。环安全：本行不新增环边（本文件→SrcSharedB 既有）
 import { useBaseServices, useServices, useServicesOptional as useOptionalServices } from '../../modules/services'; // A0-CLEANUP3 #44：ps useOptionalServices 属主为 services.useServicesOptional
 import { useSettingsStoreValue } from '../../modules/stores-core'; // A0-CLEANUP3 #44：Ao useSettingsStoreValue 属主为 stores-core（具名导出）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
@@ -489,7 +489,7 @@ declare const DEFAULT_MODEL_CONTEXT_WINDOW: number; // kee（_o）
 declare const BIGMODEL_REGION: string; // Ri（yt，`bigmodel`）
 declare function endpointKindsOf(endpoints: ProviderEndpoints): string[]; // Sr（So）
 declare function apiFormatOfKind(kind: string): string; // Zt（Ho）
-declare function joinTestId(prefix: string, suffix: string): string; // qr（Xa）
+/* ── tombstone〔A1-R41〕：declare joinTestId（原 qr）删除 → 改指 SrcSharedB@5017 joinTestidParts（qr 真身：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb js 8464 ≡ joinTestidParts 逐字 `${e}-${t}`；SrcSharedB 公共导出在位）。消费面实测 5 处改名改指：@3392/@3393（≡ bundle 188569/188570）/@5514（≡ 190593）/@6017/@6082（≡ 191369/191426）。 ── */
 declare const PROVIDER_IDS: {
   zai: string;
   bigmodel: string;
@@ -3389,8 +3389,8 @@ export function ProviderModelsSection(props: {
             return (
               <ModelRow
                 key={`${index}`}
-                inputTestId={joinTestId(MODEL_INPUT_TESTID_PREFIX, String(index))}
-                deleteTestId={joinTestId(MODEL_DELETE_TESTID_PREFIX, String(index))}
+                inputTestId={joinTestidParts(MODEL_INPUT_TESTID_PREFIX, String(index))}
+                deleteTestId={joinTestidParts(MODEL_DELETE_TESTID_PREFIX, String(index))}
                 model={model}
                 autoFocus={!readOnly && model.id.trim() === ``}
                 allowedKinds={allowedKinds}
@@ -5511,7 +5511,7 @@ export function ConnectionModeNav(props: {
         </SelectTrigger>
         <SelectContent align={`end`} className={`min-w-40 max-w-[calc(100vw-2rem)]`}>
           {options.map((option) => (
-            <SelectItem key={option.key} value={option.key} data-testid={joinTestId(CONNECTION_MODE_ITEM_TESTID_PREFIX, option.key)}>
+            <SelectItem key={option.key} value={option.key} data-testid={joinTestidParts(CONNECTION_MODE_ITEM_TESTID_PREFIX, option.key)}>
               {option.label}
             </SelectItem>
           ))}
@@ -6014,7 +6014,7 @@ export function NavRailItem(props: {
         aria-label={label}
         aria-selected={selected}
         data-state={selected ? `selected` : `idle`}
-        data-testid={joinTestId(NAV_ITEM_TESTID_PREFIX, item.key)}
+        data-testid={joinTestidParts(NAV_ITEM_TESTID_PREFIX, item.key)}
         onClick={() => {
           if (!isCodingPlanLoading) onSelectNavItem(item);
         }}
@@ -6079,7 +6079,7 @@ export function NavRailDraggableItem(props: {
         aria-label={label}
         aria-selected={selected}
         data-state={selected ? `selected` : `idle`}
-        data-testid={joinTestId(NAV_ITEM_TESTID_PREFIX, item.key)}
+        data-testid={joinTestidParts(NAV_ITEM_TESTID_PREFIX, item.key)}
         onClick={() => onSelectNavItem(item)}
         onKeyDown={(event) => handleNavRailItemKey({ event, item, onSelectNavItem })}
         className={`group relative box-border flex h-8 w-full items-center gap-2 rounded-lg border px-2 py-1 text-left text-ui-base font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 max-md:size-8 max-md:justify-center max-md:gap-0 max-md:px-0 ${selected ? `border-border-hover bg-card-selected text-foreground` : `border-transparent text-foreground hover:border-border-hover/60`} ${isDragging ? `z-20 opacity-70` : ``}`}

@@ -138,7 +138,7 @@ import { useSettingsStore, SettingsStoreProvider as StoreProvider, isStartupSoun
 import { useCodeCommentsStore as codeCommentsStore } from './Composer'; // A1-R8：FH 双实例收敛接线（原 declare 改指 canonical = Composer 6716 区；本文件 2009/2014 消费面 = bundle 212998/213003 广播监听簇）
 import { TooltipProvider } from './UsageStatsUiParts'; // 原 Na（A0-CLEANUP 族清理接线）
 import { CLOSE_ACTIVE_CONTEXT_EVENT } from './WorkspaceShell'; // 原 r7（A0-CLEANUP B-32 接线）
-import { hasUnavailableLocalDirectoryTab, isSettingsTab, isWorkspaceKindTab, useWorkspaceTabStore } from './WorkspaceTabsDeep'; // 原 sc/Pse/oc（A1-R1：styles js 4493/4497/4487 逐字重建改指）〔A1-R40〕+useWorkspaceTabStore（原 pc 收敛改指，见下墓碑；环安全既有边）
+import { hasUnavailableLocalDirectoryTab, isSettingsTab, isWorkspaceKindTab, useWorkspaceTabStore, useWorkspaceTabStoreApi } from './WorkspaceTabsDeep'; // 原 sc/Pse/oc（A1-R1：styles js 4493/4497/4487 逐字重建改指）〔A1-R40〕+useWorkspaceTabStore（原 pc 收敛改指，见下墓碑）〔A1-R41〕+useWorkspaceTabStoreApi（原 hc 收敛改指；环安全既有边）
 import { EMPTY_PANE_LAYOUT, hasSplitLayoutBindings, isReloadNavigationEntry, sessionRouterStore, splitLayoutStore } from './SplitLayoutDeep'; // 原 K0/jwt/z0/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）
 import type { AgentFact, TelemetryPlatform } from './services';
 import { reportTelemetry as trackTelemetryEvent, reportLaunchToInputPerf as reportLaunchMarks, setUiPerfPlatform as setTelemetryPlatform, clearAllTelemetryTiming as resetTelemetryParityState } from './StoresDeep'; // A1-R9 条件项：platform/遥测引擎族别名改指——原 xw（bundle 40457；StoresDeep H.1 reportTelemetry 逐字）/原 YPe（ui_perf 域 reportLaunchToInputPerf）/原 iT（ui_perf 域 setUiPerfPlatform）/原 TPe（tracker 域 clearAllTelemetryTiming）；调用点 422/1708/2280/1745/1751/1941/1943/1470 逐字不变（PlatformService→TelemetryPlatform 方法双变可赋；launchMarks.marks { createdAt; [key:string]: any }→marks 具形索引可赋）
@@ -161,7 +161,7 @@ declare const DESKTOP_COMMANDS: { RelaunchApp: string; CloseWindow: string; [key
 
 /* --- stores（模块级句柄）--- */
 /* ── tombstone〔A1-R40〕：declare useTabStoreSelector（原 pc）删除 → 一符一家收敛 WorkspaceTabsDeep useWorkspaceTabStore@686（PD-α 同簇；pc 4801-4805 逐字：useContext(fc) + throw 守卫 + ne(t, e)；A1-R1 重建在案）。消费面实测 7 处 @2076/@2078-2081/@2094/@2095（≡ bundle 213033/213035-213038/213051/213052）改名改指；@141 import 行扩展消费。 ── */
-declare function useTabStoreApi(): { getState(): TabStoreState; setState(mutator: (state: TabStoreState) => Partial<TabStoreState>): void }; // 原 hc（〔A1-R40〕留批：canonical useWorkspaceTabStoreApi@698 在位，惟返回形 BoundStoreHook 与 declare 期 TabStoreState 内嵌 setState/getState 成员面型缝未裁，候补 `as` 投射待专批）
+/* ── tombstone〔A1-R41〕：declare useTabStoreApi（原 hc）删除 → 一符一家收敛 WorkspaceTabsDeep useWorkspaceTabStoreApi@698（hc 4809-4813 逐字：useContext(fc) + throw 守卫 + 返回 store 对象；A1-R1 重建在案）。型缝裁定（R40 留批闭合）：bundle dc@4551-4800 状态成员实况取证 = 状态面**不含** setState/getState 成员（grep 零命中；二者属 zustand store 对象面，非状态面）——declare 期 TabStoreState 内嵌二成员为过近似。消费面 @2096 改名改指（≡ bundle 213053）+ 源点 `as unknown as` 投射保 declare 期下游型面（@334/@2156/@2185/@2231 逐字不变；ARL 本件 1507/2490 同缝先例）。 ── */
 /* ── tombstone（A1-R1）：isWorkspaceKindTab（原 oc js 4487）/hasUnavailableLocalDirectoryTab（原 sc js 4493）declare 已删除，改经文件头真实 import（./WorkspaceTabsDeep）消费。 ── */
 /* ── tombstone（A1-R2）：sessionRouterStore（原 A2 js 122714）/splitLayoutStore（原 s2 js 121720）/
  *    EMPTY_PANE_LAYOUT（原 K0 js 121527）/isReloadNavigationEntry（原 z0 js 121382）/
@@ -2093,7 +2093,7 @@ export function AppRootContent({
     totalUnreadTaskCount = useTaskStore((state) => countTotalUnreadTasks(state.workspaces as Record<string, WorkspaceTaskState>)),
     addTab = useWorkspaceTabStore((state) => state.addTab), // 〔A1-R40〕≡ bundle 213051
     activateTabByPath = useWorkspaceTabStore((state) => state.activateTabByPath), // 〔A1-R40〕≡ bundle 213052
-    tabStoreApi = useTabStoreApi(),
+    tabStoreApi = useWorkspaceTabStoreApi() as unknown as { getState(): TabStoreState; setState(mutator: (state: TabStoreState) => Partial<TabStoreState>): void }, // 〔A1-R41〕原 useTabStoreApi（hc）收敛改指 WorkspaceTabsDeep useWorkspaceTabStoreApi（≡ bundle 213053）；型缝：canonical getState() 返回 WorkspaceTabStoreState（无 setState/getState 成员，dc 实况在案）→ declare 期形投射，下游逐字不变
     webRemoteControlFeatureEnabled = useWebRemoteControlFeatureFlag(),
     webRemoteControlSession = useWebRemoteControlSession({ enabled: !!(webRemoteControlFeatureEnabled && isDesktop && platform.syncWebRemoteControlTasks) }),
     webRemoteControlSessionActive = webRemoteControlSession.status === `running` || webRemoteControlSession.status === `active`,

@@ -265,7 +265,7 @@ import { Button } from '../../modules/button'; // Button（原 X，button-laUije
 import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
 import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup, sessionEntryWorkspaceKey as remoteWorkspaceKey, buildRemoteWorkspaceKey as workspaceIdentityOf, resolveEntryWorkspaceIdentity as entryIdentity, remoteTargetWithSecrets as withRemoteCredentials, applyRemoteConnectionResult as commitRemoteSessionsMutation, removeRemoteSessionEntries as removeSessionsByWorkspaceKeys, persistedWorkspaceSessions as persistableWorkspaceTabs, persistedRemoteSessions as normalizePersistedRemoteSessions, resolveLastActiveTabIndex, type PersistedWorkspaceTabRecord, type RemoteSessionTarget } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）+ A1-R6：R2/I2/L2/z2/B2/oEt 远程条目域改指 + A1-R7：V2/cEt/Bne 恢复条目域改指（Hn 改指更正迁 SrcSharedA；tombstone 见原 declare 位）
 import { sanitizeWorkspaceDescriptor as serializeRemoteTarget, sshTargetIdentityKey as sshHostKeyOfTarget, providerIds } from '../../modules/SrcSharedA'; // A1-R7：Hn（R6 误录更正，canonical 见 lib/workspaceUtils）+ Pn=sshTargetIdentityKey 改指。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）：PROVIDER_IDS declare 收敛改指，见 @552 墓碑
-import { generateUuid as createRequestId, getOAuthProviderFamilyByProviderId, resolveProviderFamilyMode } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555）：resolveFamilyMode declare 收敛改指，见下墓碑。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：providerById declare 收敛改指，见下墓碑。环安全：本行不新增环边（本文件→SrcSharedB 既有）
+import { generateUuid as createRequestId, getOAuthProviderFamilyByProviderId, resolveProviderFamilyMode, joinTestidParts } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555）：resolveFamilyMode declare 收敛改指，见下墓碑。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：providerById declare 收敛改指，见下墓碑。〔A1-R41〕+joinTestidParts（原 qr 收敛改指，见下墓碑）。环安全：本行不新增环边（本文件→SrcSharedB 既有）
 import { bindWorkspacePath as bindRemoteWorkspacePath, bindWorkspaceIdentity as bindRemoteWorkspaceIdentity, unbindWorkspacePath as unbindRemoteWorkspacePath, unbindWorkspaceIdentity as unbindRemoteWorkspaceIdentity, getSessionById as getRemoteWorkspaceSession, type RegisteredSession } from '../../stores/sessionRegistryStore'; // A1-R7：$s/ec/Cse/wse/tc registry 包装族改指（环安全：该文件值导入仅 ./zustand，type-only 边无运行时环）
 
 /* ============================================================================
@@ -539,7 +539,7 @@ export interface CodePreviewSettings {
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：AlertTriangleIcon/SpinnerIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const OrbitSpinnerIcon: React.FC<{ className?: string }>;
 declare function ProviderIcon(providerId: string, className: string): React.ReactNode;
-declare function joinTestId(base: string, suffix: string): string;
+/* ── tombstone〔A1-R41〕：declare joinTestId（原 qr）删除 → 改指 SrcSharedB@5017 joinTestidParts（qr 真身：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb js 8464 ≡ joinTestidParts 逐字 `${e}-${t}`）。消费面实测 3 处改名改指：@1387/@1391（≡ bundle 206238/206247）/@1629（≡ 206590）；@268 导入面 +joinTestidParts。 ── */
 declare const TESTID_LOGIN_API_KEY_PROVIDER: string;
 declare const TESTID_LOGIN_API_KEY_INPUT: string;
 declare const TESTID_LOGIN_API_KEY_ERROR: string;
@@ -620,7 +620,7 @@ export interface WorkspaceTab {
   kind?: string;
   [key: string]: any;
 }
-declare function isWorkspaceTab(tab: WorkspaceTab | null | undefined): tab is WorkspaceTab & { workspacePath: string };
+/* ── tombstone〔A1-R41〕：declare isWorkspaceTab 删除——另形型卫（null 容忍 + workspacePath 窄化）为 declare 期接口近似，非 oc 真身（R40 §四.3 留批闭合）。消费语义取证：10 消费面（2237/2558/2636/2690/2760/2914/3077/3084/3278/3279）全传 WorkspaceTab[] 非空元素（null 容忍为死语义）；窄化面 `& { workspacePath: string }` 空转（WorkspaceTab.workspacePath 本就必填）。bundle 逐点真身 = oc（208915 filter / 209184 flatMap / 209676 filter / 209683 map 等，逐字对照在案）≡ WorkspaceTabsDeep isWorkspaceKindTab@328（A1-R1 逐字重建，res judicata；本文件 @265 既有 import，@3992/@4020/@4198 同式消费先例）→ 一符一家收敛改指：10 消费面改名 isWorkspaceKindTab，不保留 declare、不实体化助手（真身在位，无虚构代码）。 ── */
 export interface TabStoreState {
   tabs: WorkspaceTab[];
   activeTabId: string | null;
@@ -635,8 +635,8 @@ export interface TabStoreState {
   getState(): TabStoreState;
   [key: string]: any;
 }
-declare function useTabStore<T>(selector: (state: TabStoreState) => T): T;
-declare function useTabStoreApi(): { getState(): TabStoreState; setState(mutator: (state: TabStoreState) => Partial<TabStoreState>): void };
+/* ── tombstone〔A1-R41〕：declare useTabStore（原 pc）/useTabStoreApi（原 hc）删除——本文件零消费（死 declare；全文 grep 实测）。
+ * 真身 = WorkspaceTabsDeep useWorkspaceTabStore@686 / useWorkspaceTabStoreApi@698（A1-R1 逐字；一符一家，R40/R41 PD-α 簇同链；Sidebar@1129 死碑先例）。 ── */
 export interface TaskStoreState {
   workspaces: Record<string, WorkspaceTaskState>;
   activeTaskId: string | null;
@@ -1384,11 +1384,11 @@ export function ApiKeyLoginView({ onCancel, onSaved, onSkipped }: { onCancel: ()
                 <SelectValue />
               </SelectTrigger>
               <SelectContent align={`end`} className={`rounded-lg`}>
-                <SelectItem value={`zai`} className={`rounded-md`} data-testid={joinTestId(TESTID_LOGIN_API_KEY_OPTION_BASE, `zai`)}>
+                <SelectItem value={`zai`} className={`rounded-md`} data-testid={joinTestidParts(TESTID_LOGIN_API_KEY_OPTION_BASE, `zai`)}>
                   {ProviderIcon(`zai`, `size-4`)}
                   {intl.formatMessage({ id: `login.apiKey.provider.zai` })}
                 </SelectItem>
-                <SelectItem value={`bigmodel`} className={`rounded-md`} data-testid={joinTestId(TESTID_LOGIN_API_KEY_OPTION_BASE, `bigmodel`)}>
+                <SelectItem value={`bigmodel`} className={`rounded-md`} data-testid={joinTestidParts(TESTID_LOGIN_API_KEY_OPTION_BASE, `bigmodel`)}>
                   {ProviderIcon(BIGMODEL_PROVIDER_ID, `size-4`)}
                   {intl.formatMessage({ id: `login.apiKey.provider.bigmodel` })}
                 </SelectItem>
@@ -1626,7 +1626,7 @@ export function OAuthLoginPanel({ active, onComplete }: { active: boolean; onCom
                       variant={`default`}
                       className={`h-10 w-full text-ui-base`}
                       size={`lg`}
-                      data-testid={entry.id === `bigmodel` ? `oauth-login-button` : joinTestId(`oauth-login-button`, entry.id)}
+                      data-testid={entry.id === `bigmodel` ? `oauth-login-button` : joinTestidParts(`oauth-login-button`, entry.id)}
                       onClick={() => void startLoginTracked(entry.id)}
                     >
                       {ProviderIcon(entry.id, `size-4`)}
@@ -2234,7 +2234,7 @@ export function restoreCombinedWorkspaceSessions(options: {
             deferredRestore: () => {
               const alreadyRestored = tabStoreApi
                   .getState()
-                  .tabs.filter(isWorkspaceTab)
+                  .tabs.filter(isWorkspaceKindTab)
                   .some((tab) => (tab.workspaceIdentity?.trim() || tab.workspacePath) === activeKey);
               const deferred = alreadyRestored ? restoreEntries : restoreEntries.filter((entry) => workspaceKeyOfRestoreEntry(entry as string | { workspaceIdentity?: string | null; workspacePath: string }) !== activeKey);
               (logger.info(`[Root] 首帧后补齐 inactive workspace`, { count: deferred.length - +!!alreadyRestored }),
@@ -2555,7 +2555,7 @@ export async function reconnectRemoteWorkspaceByKey(options: {
 export function resolveSshReconnectGroup(options: { selected: RemoteSessionEntry; sessions: RemoteSessionEntry[]; tabs: WorkspaceTab[] }): RemoteSessionEntry[] {
   if (options.selected.target.kind !== `ssh`) return [options.selected];
   const hostKey = sshHostKeyOfTarget(options.selected.target);
-  const localKeys = new Set(options.tabs.flatMap((tab) => (!isWorkspaceTab(tab) || tab.remoteSessionId ? [] : [remoteWorkspaceKey(tab)])));
+  const localKeys = new Set(options.tabs.flatMap((tab) => (!isWorkspaceKindTab(tab) || tab.remoteSessionId ? [] : [remoteWorkspaceKey(tab)])));
   const sameHost = options.sessions.filter((session) => session.target.kind === `ssh` && sshHostKeyOfTarget(session.target) === hostKey && localKeys.has(remoteWorkspaceKey(session)));
   const selectedKey = remoteWorkspaceKey(options.selected);
   return sameHost.some((session) => remoteWorkspaceKey(session) === selectedKey) ? [options.selected, ...sameHost.filter((session) => remoteWorkspaceKey(session) !== selectedKey)] : [options.selected];
@@ -2633,7 +2633,7 @@ export function isWorkspacePresentInTabs(options: { tabStoreApi: { getState(): T
     .getState()
     .tabs.some(
       (tab) =>
-        isWorkspaceTab(tab) &&
+        isWorkspaceKindTab(tab) &&
         ((tab.workspaceIdentity?.trim() || tab.workspacePath) === key ||
           tab.workspacePath === options.workspacePath),
     );
@@ -2687,7 +2687,7 @@ export async function openRemoteWorkspaceFromHistory(options: {
   const reconnectImpl = options.reconnectImpl ?? reconnectRemoteWorkspaceEntry;
   const entry = options.getRemoteSessions().find((session) => remoteWorkspaceKey(session) === options.workspaceKey);
   if (!entry || options.inflightReconnectWorkspaceKeys.has(options.workspaceKey)) return;
-  const tab = options.tabStoreApi.getState().tabs.find((candidate) => isWorkspaceTab(candidate) && remoteWorkspaceKey(candidate) === options.workspaceKey);
+  const tab = options.tabStoreApi.getState().tabs.find((candidate) => isWorkspaceKindTab(candidate) && remoteWorkspaceKey(candidate) === options.workspaceKey);
   if (tab?.remoteSessionId) {
     options.activateTabByPath(tab.workspacePath, { workspaceIdentity: tab.workspaceIdentity });
     return;
@@ -2757,7 +2757,7 @@ export async function completeRemoteProjectSelection(options: {
   if (
     options.getWorkspaceTabs().find(
       (tab) =>
-        isWorkspaceTab(tab) && tab.workspacePath === canonicalPath && (tab.workspaceIdentity?.trim() || tab.workspacePath) === identity,
+        isWorkspaceKindTab(tab) && tab.workspacePath === canonicalPath && (tab.workspaceIdentity?.trim() || tab.workspacePath) === identity,
     )?.remoteSessionId &&
     options.activateTabByPath(canonicalPath, { workspaceIdentity: identity })
   ) {
@@ -2911,7 +2911,7 @@ export function useRemoteWorkspaceOrchestrator(options: {
       async (entry: RemoteSessionEntry, reconnectOptions?: Record<string, unknown>) => {
         const key = remoteWorkspaceKey(entry);
         if (inflightKeysRef.current.has(key)) return !1;
-        const tab = tabStoreApi.getState().tabs.find((candidate) => isWorkspaceTab(candidate) && remoteWorkspaceKey(candidate) === key);
+        const tab = tabStoreApi.getState().tabs.find((candidate) => isWorkspaceKindTab(candidate) && remoteWorkspaceKey(candidate) === key);
         if (!tab || tab.remoteSessionId) return !1;
         (resetLogsForWorkspaceKey(key), inflightKeysRef.current.add(key));
         const requestId = createRequestId();
@@ -3074,14 +3074,14 @@ export function useRemoteWorkspaceOrchestrator(options: {
       async (event: RemoteSessionClosedEvent) => {
         const sessionId = event.sessionId.trim();
         if (!sessionId) return;
-        const affectedTabs = tabStoreApi.getState().tabs.filter((tab) => isWorkspaceTab(tab) && tab.remoteSessionId === sessionId);
+        const affectedTabs = tabStoreApi.getState().tabs.filter((tab) => isWorkspaceKindTab(tab) && tab.remoteSessionId === sessionId);
         if (affectedTabs.length === 0) {
           unregisterRemoteSession(sessionId);
           return;
         }
         (tabStoreApi.setState((state) => ({
           tabs: state.tabs.map((tab) =>
-            isWorkspaceTab(tab) && tab.remoteSessionId === sessionId ? { ...tab, remoteSessionId: void 0 } : tab,
+            isWorkspaceKindTab(tab) && tab.remoteSessionId === sessionId ? { ...tab, remoteSessionId: void 0 } : tab,
           ),
         })),
           unregisterRemoteSession(sessionId));
@@ -3275,8 +3275,8 @@ export function useRemoteTabSessionDisposal(options: {
 }): void {
   const previousTabsRef = React.useRef<WorkspaceTab[]>([]);
   (React.useEffect(() => {
-    const previousWorkspaceTabs = previousTabsRef.current.filter(isWorkspaceTab);
-    const currentWorkspaceTabs = options.tabs.filter(isWorkspaceTab);
+    const previousWorkspaceTabs = previousTabsRef.current.filter(isWorkspaceKindTab);
+    const currentWorkspaceTabs = options.tabs.filter(isWorkspaceKindTab);
     const removedIdentities = removedRemoteWorkspaceIdentities(previousWorkspaceTabs, currentWorkspaceTabs);
     removedIdentities.length > 0 && options.onRemoteWorkspaceTabsClosed?.(removedIdentities);
     const liveSessionIds = new Set(currentWorkspaceTabs.map((tab) => tab.remoteSessionId).filter((sessionId) => !!sessionId));
