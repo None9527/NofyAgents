@@ -1,4 +1,4 @@
-// A1-P1-B15：plan 工具族逐字重建（styles js 98073–98127 + 99769–99814 + 107721–107815 + 108469–108605，共 333 行，24 处改名）。
+// A1-P1-B15+B16：plan 工具族逐字重建（styles js 98073–98144 + 99769–99814 + 107721–107815 + 108469–108605，共 350 行，25 处改名）。
 // 真身基准（只读）：desktop/src/out/renderer/assets/styles-CdEGpc2x.js（md5 48d71d4874b0868d61fd35a328bf6ad5）。
 // 落点裁定：新叶（B14 留批第 2/3 项：plan-guidance qmt@107754 更正 + switch-mode ght@108476 + qZ 链）。
 //   ① ToolCallBlock `plan-guidance` 分支手写 `return SearchToolView`（注「qmt 复用搜索类摘要视图」）与束真身
@@ -7,9 +7,10 @@
 //   ③ qZ 链（GZ/Kct/qct/KZ/qZ 98073–98114）+ plan 标题段（Jct/Yct/Xct/Zct 98115–98127）同叶实体化；
 //     Jo@1952 → resolveWorkspaceRelativePath 转录于 modules/MarkdownIntegration（Go/sae/qo/Ko 同连续段 1928–1957，落点随段判例 A1-R10 2b）。
 //   ④ 展开区错误/输入面 var 链整句（Klt+aQ 99769–99814，语句不可分）随 qmt/ght 消费携带；oQ 展开区主体留批。
-// 逐字证明：/tmp/a1r0-p1/p15/p15-roundtrip.js（AST 逆映射还原 ≡ bundle 逐字 EXACT）+ p15-leafcheck.js（正则独立路线）。
-// 函数体内局部变量保留混淆名（B5 约定）；型缝 `: any` 参数缝见 p15/seams-PlanToolBlocks.json，均带〔A1-P1-B15〕。
-// 区段切分墓碑：98073 左界 = Gct@98070 会话面板域右界邻接；98127 右界 = Qct@98128 git 摘要域邻接（留批）；
+//   ⑤ 〔A1-P1-B16〕Qct@98128–98144 git 摘要域吸收（98127 右界邻接，B15 留批办结）；消费位 tlt@98181 留批。
+// 逐字证明：/tmp/a1r0-p1/p16/p16-roundtrip.js（AST 逆映射还原 ≡ bundle 逐字 EXACT）+ p16-leafcheck.js（正则独立路线）。
+// 函数体内局部变量保留混淆名（B5 约定）；型缝 `: any` 参数缝见 p16/seams-PlanToolBlocks.json（B15 缝沿用〔A1-P1-B15〕，B16 增缝带〔A1-P1-B16〕）。
+// 区段切分墓碑：98073 左界 = Gct@98070 会话面板域右界邻接；98144 右界 = $ct@98145 todo 显示模型邻接（留批；〔A1-P1-B16〕Qct 吸收）；
 //   99769 左界 = resolveToolDisplayModel 域右界（Wlt，F19 界障续留批）；99814 右界 = oQ@99815 展开区主体（留批）；
 //   107721 左界 = Wmt 闭包右界邻接；107815 右界 = Jmt@107816 Session 族图标 var 邻接（B13 既录）；
 //   108469 左界 = mht Skill 族闭包右界邻接（B13）；108605 右界 = _ht@108606 Task 族图标 var 邻接（B13）。
@@ -22,7 +23,7 @@
 //   Ko→isAbsolutePath | Jo→resolveWorkspaceRelativePath | Go→baseName（均 modules/MarkdownIntegration；Jo 〔A1-P1-B15〕转录 1952）
 //   【qZ 链 98073–98127】GZ→isPlainObjectRecord | Kct→readFirstTrimmedString | qct→resolvePlanFilePathCandidate | KZ→extractPlanMarkdownFromValue
 //   qZ→extractPlanMarkdown（98092）| Jct→PLAN_TITLE_HEADING_PATTERN（98115）| Yct→MARKDOWN_LINE_PREFIX_PATTERN（98116）
-//   Xct→extractPlanTitle（98117）| Zct→planFilePathBaseName（98125）
+//   Xct→extractPlanTitle（98117）| Zct→planFilePathBaseName（98125）| Qct→resolveGitSummaryModel（98128，〔A1-P1-B16〕）
 //   【展开区面 99769–99814】Klt→ToolInputSurface | aQ→ToolErrorSurface
 //   【plan-guidance 107721–107815】Gmt→PLAN_GUIDANCE_TOOL_ICON | D$→isPlainObject | O$→readFirstNonEmptyString
 //   Kmt→extractPlanGuidanceText | qmt→PlanGuidanceToolView（107754）
@@ -40,7 +41,7 @@ import { ToolLayoutMemo as ToolLayout } from './ToolLayoutBlocks'; // 原 lQ（B
 import { ToolSnapshotRefs } from './ToolSnapshotRefs'; // 原 sQ（B12 钥匙 1）
 import { CodeSurface } from './CodeSurfaceBlocks'; // 原 gk（B14 既录 48682；Klt/aQ 错误/输入面 JSON 卡消费）
 
-/* ── plan 工具族（styles 98073–98127 + 99769–99814 + 107721–107815 + 108469–108605） ── */
+/* ── plan 工具族（styles 98073–98144 + 99769–99814 + 107721–107815 + 108469–108605） ── */
 function isPlainObjectRecord(e: any) {
   return typeof e == `object` && !!e && !Array.isArray(e);
 }
@@ -95,6 +96,23 @@ function extractPlanTitle(e: any) {
 }
 function planFilePathBaseName(e: any) {
   return e ? baseName(e) : void 0;
+}
+function resolveGitSummaryModel({ gitSummary: e, gitDirtyFileCount: t = 0, gitWorktreeChangeSummary: n }: any) {
+  if (!e?.isGitAvailable || !e.isRepository) return null;
+  let r = n?.added ?? 0,
+    i = n?.removed ?? 0;
+  if (r + i <= 0) return null;
+  let a = !e.isDirty && t === 0 && r === 0 && i === 0 && e.ahead === 0;
+  return {
+    branchName: e.branchName,
+    headRefType: e.headRefType,
+    dirtyFileCount: t,
+    added: r,
+    removed: i,
+    ahead: e.ahead,
+    behind: e.behind,
+    isClean: a,
+  };
 }
 var ToolInputSurface = ({ className: e, input: t, ...n }: any) =>
     (0, $.jsxs)(`div`, {
@@ -374,5 +392,4 @@ function SwitchModeToolView(e: any) {
         })
       : o;
 }
-
-export { isPlainObjectRecord, readFirstTrimmedString, resolvePlanFilePathCandidate, extractPlanMarkdownFromValue, extractPlanMarkdown, PLAN_TITLE_HEADING_PATTERN, MARKDOWN_LINE_PREFIX_PATTERN, extractPlanTitle, planFilePathBaseName, ToolInputSurface, ToolErrorSurface, PLAN_GUIDANCE_TOOL_ICON, isPlainObject, readFirstNonEmptyString, extractPlanGuidanceText, PlanGuidanceToolView, isInteractiveChildTarget, SwitchModeToolView };
+export { isPlainObjectRecord, readFirstTrimmedString, resolvePlanFilePathCandidate, extractPlanMarkdownFromValue, extractPlanMarkdown, PLAN_TITLE_HEADING_PATTERN, MARKDOWN_LINE_PREFIX_PATTERN, extractPlanTitle, planFilePathBaseName, resolveGitSummaryModel, ToolInputSurface, ToolErrorSurface, PLAN_GUIDANCE_TOOL_ICON, isPlainObject, readFirstNonEmptyString, extractPlanGuidanceText, PlanGuidanceToolView, isInteractiveChildTarget, SwitchModeToolView };

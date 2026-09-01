@@ -6,8 +6,9 @@
 // 逐字证明：/tmp/a1r0-p1/p15/p15-roundtrip.js（AST 逆映射还原 ≡ bundle 逐字 EXACT）+ p15-leafcheck.js（正则独立路线）。
 // 函数体内局部变量保留混淆名（B5 约定）；型缝 `: any` 参数缝见 p15/seams-NodeReplBlocks.json，均带〔A1-P1-B15〕。
 // 区段切分墓碑：左界 = 助手域起 smt var 链@106856（pmt 族 106875+ 同段携带）；右界 Nmt@107431 闭包末
-//   （Pmt@107432 file-read 族图标 var 邻接，留批）；Dmt/Omt/kmt@107112–107114 + w$@107180–107215 既录
-//   CodeSurfaceBlocks（B14），本叶 import 消费（NODE_REPL_TOOL_ICON/PLAIN_TEXT_OUTPUT_MAX_LENGTH/CodeSurfaceCard）。
+//   （Pmt@107432 = MCP 助手域 107432–107519 var 链首，B11 McpToolBlocks 既录——B15 留批注「file-read 族」为误标，〔A1-P1-B16〕更正）；
+//   Dmt/Omt/kmt@107112–107114 + w$@107180–107215 既录
+//   CodeSurfaceBlocks（B14；Omt→EAGER_CONTENT_VISIBILITY_STYLE），本叶 import 消费（NODE_REPL_TOOL_ICON/PLAIN_TEXT_OUTPUT_MAX_LENGTH/CodeSurfaceCard）。
 // 束真身更正披露（CTV 手写期近似 → 束真身）：statusLabel 手写 props.statusLabel → 束 i(`chat.toolCall.nodeRepl.failed`)；
 //   showFailureStatus 手写 `failed` → 束 `failed && !!r.userTitle`；title 手写 toolCall.title → 束 a.title（resolveNodeReplHeader）。
 // 映射表（minified → 语义名 → bundle 定义行）：

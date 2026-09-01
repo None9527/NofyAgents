@@ -1,24 +1,22 @@
 // A0-S4-4b: 自 modules/ConversationLeaves.tsx §3 预览卡单项 原样迁入（组件单元；原文件现为薄 re-export shim）。
 // 迁出体 = §3 全段（2651–2931）+ §0 声明群分配本族子集（useWorkspaceScopedServices/FileServiceLike；FileIcon/resolveFileIconMeta 复制件）。
 // 导入路径按 components/conversation/ 深度改指 ../../modules/。
+// 〔A1-P1-B16〕②③ 收敛：手写 pgt/t1/n1/r1/i1 双实例 + useWorkspaceScopedServices/isRemoteAwarePath 二 declare 删除，
+//   束真身（styles 4993–4995 + 109714–109915）逐字实体化于 ./PreviewCardLinkBlocks，经文件头 import 同名改指（R25 判例）。
 /* eslint-disable */
 import * as React from "react";
 import { Globe as IconGlobe, File as IconFile } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { FileOpenWithMenu } from '../../modules/FileRewindDialogDeep'; // 原 v_t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
-import { decodeUriSafe, resolveWorkspaceFileLink, resolveWorkspaceRelativePath, type FileLinkModel } from '../../modules/MarkdownIntegration'; // 〔A1-P1-B15〕原 qo/gA/Jo 收敛改指（joinWorkspacePath 除名：i1 裸名分支束真身 = Jo，手写期误用）
+import { type FileLinkModel } from '../../modules/MarkdownIntegration'; // 〔A1-P1-B16〕qo/gA/Jo 消费随 i1/r1 收敛入 ./PreviewCardLinkBlocks，本文件仅余 FileLinkModel 类型
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import type { OpenCodeViewerFn } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）
 import { FileIcon, resolveFileIconMeta } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc（styles 5243/5198 逐字实体化；二 declare 复制件收敛）
-import { isEmbeddableBrowserUrl } from './PreviewCardLinkBlocks'; // 〔A1-P1-B15〕原 o1（styles 109827 逐字实体化；declare 收敛）
+import { isEmbeddableBrowserUrl, fileUrlToPath, isRemoteAwarePath, useWorkspaceScopedServices } from './PreviewCardLinkBlocks'; // 〔A1-P1-B15〕o1 + 〔A1-P1-B16〕r1/Ogt/Oc 逐字实体化；declare/手写双实例收敛（R25 判例）
 
 /* ── tombstone〔A1-P1-B15〕：FileIcon/resolveFileIconMeta 二 declare 复制件（原 Vc/zc；§3 迁出位随迁副本）
  * 删除——束真身 5243/5198 已逐字实体化于 ./FileIconBlocks（CTV 三 declare 同批收敛）。消费面逐字不变，改真实 import。 ── */
-/** 工作区服务（原 fs/Oc） */
-declare function useWorkspaceScopedServices(
-  workspacePath?: string,
-  remoteSessionId?: string | null,
-  workspaceIdentity?: string | null,
-): { fileService: FileServiceLike };
+/* ── tombstone〔A1-P1-B16〕：declare useWorkspaceScopedServices（原 fs/Oc，styles 4993–4995）删除——束真身已逐字
+ * 实体化于 ./PreviewCardLinkBlocks（Oc 薄消费逐字；Dc@4955 深链 declare 留批该叶）。消费面逐字不变，改真实 import。 ── */
 interface FileServiceLike {
   checkFilesExist(args: { paths: string[] }): Promise<Array<{ path: string; exists: boolean }>>;
   [key: string]: unknown;
@@ -40,22 +38,9 @@ export interface PreviewCardModel {
   [key: string]: unknown;
 }
 
-/** 原 pgt：扩展名 → 预览种类/副标题 id */
-const PREVIEW_KIND_TABLE: Array<{ extensions: string[]; kind: string; subtitleId: string }> = [
-  { extensions: [".md"], kind: "markdown", subtitleId: "chat.previewCards.markdown" },
-  { extensions: [".html", ".htm"], kind: "html", subtitleId: "chat.previewCards.htmlWebsite" },
-  { extensions: [".docx"], kind: "docx", subtitleId: "chat.previewCards.docx" },
-  { extensions: [".xlsx"], kind: "xlsx", subtitleId: "chat.previewCards.xlsx" },
-  { extensions: [".pptx"], kind: "pptx", subtitleId: "chat.previewCards.pptx" },
-  { extensions: [".pdf"], kind: "pdf", subtitleId: "chat.previewCards.pdf" },
-];
-function stripTrailingPunctuation(value: string): string {
-  return value.trim().replace(/[.,;!?，。！？；：、]+$/, "").replace(/:\d+(?::\d+)?$/, "");
-}
-function matchPreviewKind(value: string): { extensions: string[]; kind: string; subtitleId: string } | null {
-  const lowered = stripTrailingPunctuation(value).toLowerCase();
-  return PREVIEW_KIND_TABLE.find((entry) => entry.extensions.some((extension) => lowered.endsWith(extension))) ?? null;
-}
+/* ── tombstone〔A1-P1-B16〕：手写 PREVIEW_KIND_TABLE/stripTrailingPunctuation/matchPreviewKind（原 pgt/t1/n1，
+ * styles 109714/109727/109733）删除——束真身已逐字实体化于 ./PreviewCardLinkBlocks（pgt var 链整句携带，语句不可分；
+ * R25 双实例收敛判例）。本文件消费面经文件头 import 同名改指，逐字不变。 ── */
 /* ── tombstone〔A1-P1-B15〕：declare isEmbeddableBrowserUrl（原 o1）删除——束真身 109817–109847（Sgt/Cgt/wgt/Tgt/a1
  * 同域携带）已逐字实体化于 ./PreviewCardLinkBlocks（B14 留批「余五件」重评：自闭合零依赖，解锁面可收）。消费面逐字不变。 ── */
 /* ── tombstone〔A1-P1-B15〕：declare decodeUrlPathname（原 qo）删除——canonical 收敛改指 modules/MarkdownIntegration
@@ -65,28 +50,9 @@ function matchPreviewKind(value: string): { extensions: string[]; kind: string; 
  * 均 modules/MarkdownIntegration。消费面 resolveReferencePath（原 i1@109754）同批对齐束真身：首选
  * gA(e,t)?.path，裸名分支 Jo(e,r)（手写期误用 joinWorkspacePath），兜底 gA(e,`./${r}`)?.path ?? null。 ── */
 
-/** 原 r1：file:// URL → 本地路径（含 UNC 主机） */
-function fileUrlToPath(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "file:") return null;
-    const pathname = decodeUriSafe(parsed.pathname);
-    if (/^\/[a-zA-Z]:\//.test(pathname)) return pathname.slice(1);
-    return parsed.hostname && parsed.hostname !== "localhost" ? `//${parsed.hostname}${pathname}` : pathname;
-  } catch {
-    return null;
-  }
-}
-/** 原 i1（109754）：引用文本 → 工作区路径（file:// / 相对 / 裸文件名）；〔A1-P1-B15〕对齐束真身（gA 首选 + Jo 裸名分支） */
-function resolveReferencePath(workspacePath: string | undefined, reference: string): string | null {
-  if (/^file:\/\//i.test(reference)) return fileUrlToPath(reference);
-  const relative = resolveWorkspaceFileLink(workspacePath, reference);
-  if (relative) return relative.path;
-  const cleaned = stripTrailingPunctuation(reference);
-  if (!cleaned || cleaned.startsWith("http://") || cleaned.startsWith("https://")) return null;
-  if (!cleaned.includes("/") && !cleaned.includes("\\")) return resolveWorkspaceRelativePath(workspacePath, cleaned);
-  return resolveWorkspaceFileLink(workspacePath, `./${cleaned}`)?.path ?? null;
-}
+/* ── tombstone〔A1-P1-B16〕：手写 fileUrlToPath/resolveReferencePath（原 r1/i1，styles 109740/109754）删除——
+ * 束真身已逐字实体化于 ./PreviewCardLinkBlocks（B15 手写对齐版被逐字版取代；gA 末行极性⑥同批更正）。
+ * 消费面 previewCardPath 经文件头 import 同名改指，逐字不变。 ── */
 /** 原 c1（94007）：卡片 → 本地路径（website 用 filePath/file:// 解析） */
 function previewCardPath(card: PreviewCardModel): string | null {
   return card.type === "website" ? (card.filePath ?? fileUrlToPath(card.url ?? "")) : (card.path ?? null);
@@ -139,8 +105,9 @@ function buildFilePreviewSource(
     ...(scope.workspaceRemoteSessionId ? { workspaceRemoteSessionId: scope.workspaceRemoteSessionId } : {}),
   };
 }
+/* ── tombstone〔A1-P1-B16〕：declare isRemoteAwarePath（原 Ogt，styles 109862–109868）删除——束真身已逐字实体化于
+ * ./PreviewCardLinkBlocks（vgt 链同叶携带）。消费面 D_t 逐字不变，改真实 import。 ── */
 /** 原 D_t（94870）：website 卡是否按文件打开（file:// 且路径不可远程感知） */
-declare function isRemoteAwarePath(args: { path: string; workspaceIdentity?: string | null; workspaceRemoteSessionId?: string | null }): boolean; // Ogt
 function previewCardOpensAsFile(
   card: PreviewCardModel,
   scope: { workspaceIdentity?: string | null; workspaceRemoteSessionId?: string | null },

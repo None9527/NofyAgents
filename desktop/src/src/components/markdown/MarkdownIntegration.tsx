@@ -964,9 +964,9 @@ function isBareRelativePath(path: string): boolean {
   return !(!path || path.startsWith(`/`) || path.startsWith(`#`) || path.startsWith(`../`) || SCHEME_REGEX.test(path)) &&
     (path.includes(`/`) || path.includes(`\\`));
 }
-/** 原 aVe：任一侧为绝对路径 ⇒ 不可归一 */
-function hasAbsoluteSide(workspacePath: string, path: string): boolean {
-  return isAbsolutePath(workspacePath) || isAbsolutePath(path) || path.startsWith(`//`);
+/** 原 aVe（50465）：首参 = 原始 href（束真身 gA@50555 末行 `aVe(t, n.path)`）；任一侧绝对/UNC ⇒ 绝对链接直返 〔A1-P1-B16〕⑥ 更正 */
+function hasAbsoluteSide(href: string, path: string): boolean {
+  return isAbsolutePath(href) || isAbsolutePath(path) || path.startsWith(`//`);
 }
 /** 原 oVe：系统根目录绝对路径（/usr、/bin…） */
 function isSystemRootPath(path: string): boolean {
@@ -1005,7 +1005,7 @@ export function resolveWorkspaceFileLink(
     const joined = joinWorkspacePath(workspacePath, parsed.path.slice(1));
     return joined ? { ...parsed, path: joined } : null;
   }
-  return hasAbsoluteSide(workspacePath ?? ``, parsed.path) ? null : parsed;
+  return hasAbsoluteSide(href, parsed.path) ? parsed : null; // 〔A1-P1-B16〕⑥ 束真身 gA@50555 末行极性/首参更正（aVe(t, n.path) ? n : null）
 }
 
 /** 原 SHe：工作区链接 → 规范 href（Win 反斜杠转正、补 ./、行号后缀） */

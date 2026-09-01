@@ -121,7 +121,8 @@ import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolV
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
 import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep'; // 原 v_t/__t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
 import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type CodeCommentAttachment, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）；〔A1-R22〕+type CodeCommentAttachment（ParsedUserInput 型别精化）
-import { OffPeakNewTaskBanner, ApiRetryStatusChip as ApiRetryView } from './Home'; // 〔A1-P1-B15〕原 I3e（76860）收敛改指
+import { OffPeakNewTaskBanner } from './Home'; // 〔A1-P1-B15〕原 I3e（76860）收敛改指；〔A1-P1-B16〕ApiRetryView 别名随 x1 收敛入 ChatLoadingSlot 除名
+import { ApiRetryLoadingSlot } from '../components/conversation/ChatLoadingSlot'; // 〔A1-P1-B16〕原 x1（112814）逐字实体化（kvt/Llt 同叶携带；消费位 112823 束体办结）
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
 import { Badge } from './PaymentDeep';
@@ -1919,39 +1920,13 @@ function buildAssistantCopyText(unit: TurnRenderUnit): string | undefined {
   return texts.join(`\n\n`);
 }
 
-/** 原 kvt（jsx 96127）：apiRetry 快照 → 重试视图模型 */
-function toApiRetryViewModel(snapshot: { attempt: number; maxAttempts: number; reasonCode?: string }) {
-  const attempt = Math.max(1, Math.floor(snapshot.attempt));
-  return {
-    kind: `api_retry` as const,
-    attempt,
-    maxRetries: Math.max(Math.floor(snapshot.maxAttempts) - 1, attempt),
-    retryDelayMs: 0,
-    errorStatus: null,
-    error: snapshot.reasonCode,
-  };
-}
-
+/* ── tombstone〔A1-P1-B16〕：手写 toApiRetryViewModel/ApiRetryLoadingSlot（原 kvt/x1，styles 112803/112814）+
+ * declare LoadingSkeleton（原 Llt，99534）删除——束真身已逐字实体化于 components/conversation/ChatLoadingSlot
+ * （I3e 消费位 112823 束体；data-testid 手写期误值 `v4-chat-loading` 随收敛更正为束真身 chatLoadingTestid=`chat-loading`；
+ * R25 双实例收敛判例）。三消费位（原 2670/2712/2796）经文件头 import 同名改指，逐字不变。 ── */
 /* ── tombstone〔A1-P1-B15〕：declare ApiRetryView（原 I3e）删除——束真身 76860–76879 已逐字实体化为
- * components/shell/Home §T.3 ApiRetryStatusChip（modules/Home 转导出；P3-B11 分发归 P1 办结）。
- * 消费面 ApiRetryLoadingSlot（原 x1）逐字不变，经文件头 import 别名改指。 ── */
-/** 加载骨架（原 Llt） */
-declare const LoadingSkeleton: React.FC<{ loading?: boolean; "data-testid"?: string; size?: "sm" | "md" }>;
-
-/**
- * API 重试/加载槽（原 x1，jsx 96138）。
- * 有重试 → 重试进度；否则（资格满足时）显示骨架屏；占位最小高度 20px。
- */
-function ApiRetryLoadingSlot({ apiRetry, eligible }: { apiRetry: { attempt: number; maxAttempts: number; reasonCode?: string } | null; eligible: boolean }) {
-  const { intl, locale } = useIntlContext();
-  const model = React.useMemo(() => (apiRetry ? toApiRetryViewModel(apiRetry) : null), [apiRetry]);
-  if (!model && !eligible) return null;
-  return (
-    <div data-zcode-chat-loading-slot="true" className="min-h-5">
-      {model ? <ApiRetryView apiRetry={model} intl={intl} locale={locale} /> : <LoadingSkeleton loading={true} data-testid="v4-chat-loading" size="sm" />}
-    </div>
-  );
-}
+ * components/shell/Home §T.3 ApiRetryStatusChip（modules/Home 转导出；P3-B11 分发归 P1 办结）；
+ * 〔A1-P1-B16〕x1 收敛后本文件无剩余消费，import 别名同批除名。 ── */
 
 /** 原 S1（jsx 96149）：时长单位拼接（中文后补空格） */
 function joinDurationUnit(value: number, messageId: string, formatMessage: IntlShape["formatMessage"], locale: string): string {

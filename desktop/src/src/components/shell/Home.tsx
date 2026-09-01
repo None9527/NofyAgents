@@ -169,6 +169,7 @@ import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-
 import { LoaderCircle } from '../../modules/ImeComposition'; // A1-R19：原 M = imeComposition-DEYFkwWm.js 导出 w（内名 Ut = lucide loader-circle 11786）；§V s3e 76365 / v3e 76563 loading 消费
 import { formatNumberCompact } from '../../modules/UsageStatsUiParts'; // A1-R19：原 ja = usageStatsUiParts-CiR7YEhh.js 导出 l（styles 910 导入）；§V S3e 76625 消费
 import { useBillingDiscount, BillingDiscountBadge, BillingDiscountBadgeWithInfo, BillingDiscountInfoDialog, type BillingDiscountConfig, type EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R29〕+type EntitlementSnapshot：N6e 收敛型缝所依（A as (id) => EntitlementSnapshot | null，行依据见 iit _e 注） // A1-R20：胶囊域收敛——原 dj/hj/gj/_j=useBillingDiscount/BillingDiscountBadge/BillingDiscountBadgeWithInfo/BillingDiscountInfoDialog（styles 51910/51959/51980/52034；canonical 属主 components/usage/UsageDeep.tsx A0 已重建）；§V s3e 76295/76359 + v3e 76541/76588/76597 消费
+import { readDraftMode as readLastDraftCollaborationMode } from '../conversation/ConversationDraftConfig'; // 〔A1-P1-B16〕原 $M（53577）§T.1 双实例收敛改指（B8 canonical；R25 判例）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -2541,12 +2542,12 @@ function ChatErrorBanner({
  *   ea→matchCtrlKeyOnly（导出 s=内部 m，chunk 62）| zre→matchCtrlShiftKeyOnly（导出 o=内部 h，chunk 65）
  *   Bre→formatCtrlShiftShortcut（导出 r=内部 l，chunk 47）
  *  末稿协作模式（$M 族，53562–53585）：
- *   YM→LAST_DRAFT_COLLABORATION_MODE_DEFAULT 53562 | XM→LAST_DRAFT_COLLABORATION_MODE_STORAGE_KEY 53563
- *   ZUe→LAST_DRAFT_COLLABORATION_MODE_IDS 53564 | ZM→safeGlobalLocalStorage 53565
- *   QM→parseCollaborationModeId 53572 | $M→readLastDraftCollaborationMode 53577
+ *   YM/XM/ZUe/ZM/QM/$M→末稿协作模式族 53562–53577（〔A1-P1-B16〕双实例收敛：R17 本簇重复实例删除，
+ *     改指 B8 canonical ConversationDraftConfig DEFAULT_DRAFT_MODE/DRAFT_MODE_STORAGE_KEY/DRAFT_MODE_VALUES/
+ *     getLocalStorageSafe/validateDraftMode/readDraftMode；R25 判例；墓碑见 §T.1）
  *   QUe→writeDraftMode（53585；〔A1-P1-B15〕重查更正：R17 负证据过期——真身已实体化于
  *     ConversationDraftConfig 66（B8），消费位 = tWe@53606 handleDraftSwitchMode 束 53780（同叶 258）；
- *     本簇（§T 模式工具条）确无消费；§T.1 与 ConversationDraftConfig 双实例收敛留批（R25 判例）
+ *     本簇（§T 模式工具条）确无消费；§T.1 与 ConversationDraftConfig 双实例收敛〔A1-P1-B16〕办结（R25 判例）
  *  ConfigSelect 封装族（46035–46175；vendored radix 原语按 A0-S3c 先例 → npm @radix-ui/react-select）：
  *   zRe→configSelectTriggerVariants 46035 | iO→ConfigSelectRoot 46057 | aO→ConfigSelectValue 46060
  *   oO→ConfigSelectTrigger 46063 | DDe(=HEe 31033)→ConfigSelectPortal | sO→ConfigSelectContent 46087
@@ -2583,29 +2584,11 @@ declare function formatCtrlShiftShortcut(key: string): string;
 
 /* --- §T.1 末稿协作模式（原 $M 族，js 53562–53585） --- */
 
-var LAST_DRAFT_COLLABORATION_MODE_DEFAULT = `build`, // YM
-  LAST_DRAFT_COLLABORATION_MODE_STORAGE_KEY = `zcode-last-draft-collaboration-mode`, // XM
-  LAST_DRAFT_COLLABORATION_MODE_IDS = [`build`, `edit`, `plan`, `yolo`]; // ZUe
-function safeGlobalLocalStorage() { // ZM
-  try {
-    return globalThis.localStorage === void 0 ? null : globalThis.localStorage;
-  } catch {
-    return null;
-  }
-}
-function parseCollaborationModeId(e: unknown) { // QM
-  if (typeof e != `string`) return null;
-  let t = e.trim();
-  return LAST_DRAFT_COLLABORATION_MODE_IDS.includes(t) ? t : null;
-}
-function readLastDraftCollaborationMode(e: Storage | null = safeGlobalLocalStorage()) { // $M
-  if (!e) return LAST_DRAFT_COLLABORATION_MODE_DEFAULT;
-  try {
-    return parseCollaborationModeId(e.getItem(LAST_DRAFT_COLLABORATION_MODE_STORAGE_KEY)) ?? `build`;
-  } catch {
-    return LAST_DRAFT_COLLABORATION_MODE_DEFAULT;
-  }
-}
+/* ── tombstone〔A1-P1-B16〕：§T.1 末稿协作模式双实例（原 YM/XM/ZUe/ZM/QM/$M，js 53562–53577）删除——
+ *    R17 逐字重复实例收敛改指 B8 canonical components/conversation/ConversationDraftConfig（R25 判例）：
+ *    YM→DEFAULT_DRAFT_MODE | XM→DRAFT_MODE_STORAGE_KEY | ZUe→DRAFT_MODE_VALUES | ZM→getLocalStorageSafe |
+ *    QM→validateDraftMode | $M→readDraftMode。Krt@89303 消费面经文件头 import 别名
+ *    （readDraftMode as readLastDraftCollaborationMode）改指，逐字不变。 ── */
 function getLastDraftCollaborationMode(e?: Storage | null) { // Krt
   return readLastDraftCollaborationMode(e);
 }
