@@ -40,13 +40,14 @@
  *   modules/SplitLayoutUiDeep.tsx 表现层域）混属——本簇为 vendored 可缩放面板引擎
  *   （131xxx 独立 bundle 域），与 SplitLayoutDeep 零符号相交。
  *
- * 三、推迟件（留批）：vendored 引擎深区内部件——余 8 枚（余量区 130651–131388）
- *   A1-P2-B3 已替换落于前缀 130051–130650 的 10 枚真身（_4 v4 y4 D4 A4 _kt
- *   S4 w4 T4 j4 → ResizablePanelsEngine.ts 语义名别名导入，调用面保留混淆名，
- *   R1 判例）；余 8 枚续以 declare const : any 留守（编译期擦除，emit 中立），
- *   随余量区转录批替换真身。
- *   M4(130651) jkt(130682) Nkt(130810) L4(130933) Fkt(130936) Rkt(130968)
- *   z4(130969) iAt(131289)
+ * 三、推迟件：vendored 引擎深区内部件 18 枚——已全部转录（域收口）
+ *   A1-P2-B3 替换落于前缀 130051–130650 的 10 枚真身（_4 v4 y4 D4 A4 _kt
+ *   S4 w4 T4 j4 → ResizablePanelsEngine.ts 语义名别名导入）；A1-P2-B4 替换
+ *   落于前缀 130651–131243 的 7 枚真身（M4 jkt Nkt L4 Fkt Rkt z4 →
+ *   ResizablePanelsEngineInteraction.ts 语义名别名导入）；A1-P2-B5 替换
+ *   最后 1 枚 iAt(131289) 真身（→ ResizablePanelsEngineMount.ts 语义名
+ *   registerMountedGroup 别名导入）。调用面均保留混淆名（R1 判例）；本叶
+ *   declare const : any 留守件清零，引擎域 130051–131388 八十六件真身化完毕。
  *
  * 四、型缝（〔A1-P2-B2〕标注，60 处，逐行登记 /tmp/a1r0-p2/split/split-seam-log.txt）
  *   S1 函数/箭头参数 : any ×46（bundle 无型面；纯型层）
@@ -75,15 +76,19 @@ import {
   compareLayouts as j4,
 } from "./ResizablePanelsEngine";
 
-/* 推迟件：vendored 引擎深区内部余量区（130651–131388），留批转录时替换真身 */
-declare const M4: any; // 原 M4（130651）
-declare const jkt: any; // 原 jkt（130682）
-declare const Nkt: any; // 原 Nkt（130810）
-declare const L4: any; // 原 L4（130933）
-declare const Fkt: any; // 原 Fkt（130936）
-declare const Rkt: any; // 原 Rkt（130968）
-declare const z4: any; // 原 z4（130969）
-declare const iAt: any; // 原 iAt（131289）
+/* 〔A1-P2-B4〕深区内部件 7 枚真身已转录（styles js 130651–131243 闭合前缀，
+   ResizablePanelsEngineInteraction.ts，ROUNDTRIP EXACT + LEAFCHECK EXACT）；
+   别名导入保留本地调用名（R1 判例），调用面与 bundle 逐字一致 */
+import {
+  normalizeLayout as M4, createPanelApi as jkt, createGroupApi as Nkt,
+  getDragState as L4, subscribeDragStateChange as Fkt, identityFn as Rkt,
+  noopFn as z4,
+} from "./ResizablePanelsEngineInteraction";
+
+/* 〔A1-P2-B5〕深区内部件最后 1 枚真身已转录（styles js 131244–131388 收官尾段，
+   ResizablePanelsEngineMount.ts，ROUNDTRIP EXACT + LEAFCHECK EXACT）；别名导入
+   保留本地调用名（R1 判例），调用面与 bundle 逐字一致。留守件清零 */
+import { registerMountedGroup as iAt } from "./ResizablePanelsEngineMount";
 
 function useForceUpdate() {
   let [e, t] = (0, React.useState)({} as any);
