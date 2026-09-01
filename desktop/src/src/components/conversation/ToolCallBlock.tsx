@@ -19,6 +19,10 @@ import {
   pruneStreamingEntranceCache, normalizeStreamingEntranceKey, hasSeenStreamingEntrance, markStreamingEntranceSeen,
   shouldPlayStreamingEntrance,
 } from './ToolCardAnimation'; // 〔A1-P1-B11〕入场动画缓存域实体化收敛（styles 109084–109110 逐字）
+import { ToolSnapshotRefs } from './ToolSnapshotRefs'; // 〔A1-P1-B12〕快照引用加载器实体化收敛（styles 99954–100009 逐字；钥匙 1/2）
+import { ToolLayoutMemo as ToolLayout } from './ToolLayoutBlocks'; // 〔A1-P1-B12〕ToolLayout 折叠壳族实体化收敛（styles 100010–100465 逐字；钥匙 2/2；displayName 真身保留）
+import { EMPTY_SCROLL_MASK, computeScrollMask, scrollMaskStyle } from './ToolScrollMask'; // 〔A1-P1-B12〕滚动遮罩域实体化收敛（styles 64639–64657 逐字）
+import { isPendingToolCallStatus, resolveToolCallStatusI18nId } from '../../modules/SrcSharedB'; // 〔A1-P1-B12〕原 $ne/Tee（MS/NS@src-HCld2afU.js 9141/9144）跨 chunk 定位取证 → src 域 canonical 真实 import
 
 /** 工具分类（原 og，js 23084 / jsx 19826；family 枚举按 Wht 分派归纳）——§0 declare 分配：唯一消费（§4）随迁 */
 type ToolFamily =
@@ -65,437 +69,16 @@ declare function extractRawFileSummaries(raw: unknown, toolCall: ToolCall): File
 /** 原 qZ（js 98044 / jsx 85024）：ExitPlanMode 结果 → markdown（供复制文本合并） */
 declare function buildPlanResultMarkdown(toolCall: ToolCall, fallback: string): { markdown: string };
 
-/* --- 4.1 ToolLayout 头部/摘要件（原 aut/sut/cut/lut，jsx 86327–86469） --- */
-
-interface ToolLayoutProps {
-  toolId: string;
-  persistOpenKey?: string;
-  icon?: React.ReactNode;
-  showIcon?: boolean;
-  canToggle?: boolean;
-  forceOpen?: boolean;
-  autoOpen?: boolean;
-  autoCollapseOnComplete?: boolean;
-  kindLabel?: React.ReactNode;
-  expandedKindLabel?: React.ReactNode;
-  kindDetail?: React.ReactNode;
-  expandedKindDetail?: React.ReactNode;
-  sourceLabel?: string;
-  primaryText?: React.ReactNode;
-  expandedPrimaryText?: React.ReactNode;
-  secondaryText?: React.ReactNode;
-  expandedSecondaryText?: React.ReactNode;
-  summaryContentSeparator?: React.ReactNode;
-  animateSummaryContent?: boolean;
-  disableSummaryContentAnimation?: boolean;
-  summaryContentKey?: string;
-  hideSecondaryTextWhenOpen?: boolean;
-  diffCount?: React.ReactNode;
-  hideDiffCountWhenOpen?: boolean;
-  statusLabel?: React.ReactNode;
-  statusTooltip?: string;
-  showFailureStatus?: boolean;
-  isRunning?: boolean;
-  title?: React.ReactNode;
-  expandedTitle?: React.ReactNode;
-  content?: React.ReactNode;
-  renderContent?: () => React.ReactNode;
-  summaryAction?: { testId?: string; ariaLabel: string; onActivate: () => void };
-}
-
-/** 原 aut（jsx 86327）：摘要区主/次文本（可带内容切换动画） */
-function ToolLayoutAnimatedText({
-  contentKey,
-  primaryText,
-  secondaryText,
-  enabled,
-  disableAnimation,
-}: {
-  contentKey: string;
-  primaryText?: React.ReactNode;
-  secondaryText?: React.ReactNode;
-  enabled: boolean;
-  disableAnimation?: boolean;
-}) {
-  // 原实现：主文本优先，次文本截断；内容键变化时做淡入动画（除非禁用）
-  return (
-    <span key={enabled && !disableAnimation ? contentKey : undefined} className="min-w-0 truncate">
-      {primaryText ?? secondaryText}
-    </span>
-  );
-}
-
-/** 原 sut（js 100095 / jsx 86415）：摘要行前段 = 图标 + 种类标签 + 种类细节 + 来源徽章 */
-function ToolLayoutSummaryPrefix({
-  icon,
-  kindDetail,
-  kindLabel,
-  kindLabelClassName,
-  showIcon,
-  sourceLabel,
-}: Pick<ToolLayoutProps, "icon" | "kindDetail" | "kindLabel" | "showIcon" | "sourceLabel"> & { kindLabelClassName?: string }) {
-  return (
-    <>
-      {showIcon ? <span className="shrink-0 text-foreground-subtlest [&_svg]:text-foreground-subtlest">{icon}</span> : null}
-      {kindLabel != null && kindLabel !== false && kindLabel !== `` ? <span className={kindLabelClassName}>{kindLabel}</span> : null}
-      {kindDetail ? <span className="min-w-0 shrink-0">{kindDetail}</span> : null}
-      {sourceLabel ? (
-        <span className="shrink-0 rounded border border-border bg-background-alt px-1.5 py-0.5 text-ui-xs leading-none text-foreground-subtlest">
-          {sourceLabel}
-        </span>
-      ) : null}
-    </>
-  );
-}
-
-/** 原 cut（js 100122 / jsx 86425）：摘要行后段 = 分隔符 + 主/次文本 + diff 计数 + 状态 */
-function ToolLayoutSummaryContent({
-  animateContent,
-  contentKey,
-  diffCount,
-  disableContentAnimation,
-  isExpanded,
-  primaryText,
-  secondaryText,
-  separator,
-  statusNode,
-}: {
-  animateContent?: boolean;
-  contentKey: string;
-  diffCount?: React.ReactNode;
-  disableContentAnimation?: boolean;
-  isExpanded: boolean;
-  primaryText?: React.ReactNode;
-  secondaryText?: React.ReactNode;
-  separator?: React.ReactNode;
-  statusNode?: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0 flex max-w-full items-center gap-2 text-foreground-subtlest">
-      {separator == null ? null : <span className="shrink-0 text-foreground-subtlest">{separator}</span>}
-      <ToolLayoutAnimatedText
-        contentKey={contentKey}
-        primaryText={primaryText}
-        secondaryText={secondaryText}
-        enabled={!!animateContent && !isExpanded}
-        disableAnimation={disableContentAnimation}
-      />
-      {diffCount}
-      {statusNode}
-    </div>
-  );
-}
-
-/** 原 out（jsx 86412）：Enter/Space 激活 */
-function activateOnEnterOrSpace(event: React.KeyboardEvent, onActivate: () => void): boolean {
-  if (event.key !== `Enter` && event.key !== ` `) return false;
-  event.preventDefault();
-  onActivate();
-  return true;
-}
-
-/**
- * 原 lut（js 100151 / jsx 86444）：ToolLayout 头部行。
- * 三态：① summaryAction（整行可点击动作）② canToggle（折叠触发器，悬停显 ▶/⌄）
- * ③ 纯展示。类名逐字保留。
- */
-function ToolLayoutHeader(
-  props: ToolLayoutProps & {
-    isExpanded: boolean;
-    toggleAriaLabel: string;
-    kindLabelClassName?: string;
-    statusNode?: React.ReactNode;
-  },
-) {
-  const { summaryAction: action, canToggle, forceOpen, isExpanded, title, toggleAriaLabel, toolId } = props;
-  const summary = (
-    <>
-      <ToolLayoutSummaryPrefix {...props} />
-      <ToolLayoutSummaryContent
-        animateContent={props.animateSummaryContent}
-        contentKey={props.summaryContentKey ?? ``}
-        diffCount={props.diffCount}
-        disableContentAnimation={props.disableSummaryContentAnimation}
-        isExpanded={isExpanded}
-        primaryText={props.primaryText}
-        secondaryText={props.secondaryText}
-        separator={props.summaryContentSeparator}
-        statusNode={props.statusNode}
-      />
-    </>
-  );
-  if (action) {
-    return (
-      <div
-        data-testid={action.testId ?? `tool-summary-trigger:${toolId}`}
-        role="button"
-        tabIndex={0}
-        aria-label={action.ariaLabel}
-        onClick={action.onActivate}
-        onKeyDown={(event) => activateOnEnterOrSpace(event, action.onActivate)}
-        className="group/tool-summary inline-flex max-w-full cursor-pointer items-center gap-2 self-start text-left text-ui-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
-        title={typeof title === `string` ? title : undefined}
-      >
-        {summary}
-      </div>
-    );
-  }
-  if (canToggle) {
-    return (
-      <CollapsibleTrigger asChild>
-        <div
-          data-testid={`tool-summary-toggle:${toolId}`}
-          role="button"
-          tabIndex={0}
-          aria-expanded={isExpanded}
-          aria-label={toggleAriaLabel}
-          onKeyDown={(event) => {
-            if (event.key !== `Enter` && event.key !== ` `) return;
-            event.preventDefault();
-            event.currentTarget.click();
-          }}
-          className="group/tool-summary inline-flex max-w-full cursor-pointer items-center gap-2 self-start text-left text-ui-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
-          title={typeof title === `string` ? title : undefined}
-        >
-          {summary}
-          <IconChevronRight
-            aria-hidden={true}
-            className={cn(
-              `size-4 text-foreground-subtlest opacity-0 transition-transform transition-opacity duration-200 ease-out will-change-transform group-hover/tool-summary:opacity-100 shrink-0`,
-              isExpanded ? `rotate-90 opacity-100` : `rotate-0`,
-              forceOpen && `opacity-100`,
-            )}
-          />
-        </div>
-      </CollapsibleTrigger>
-    );
-  }
-  return (
-    <div
-      data-testid={`tool-summary-toggle:${toolId}`}
-      className="group/tool-summary cursor-default flex w-full items-center gap-2 text-left text-ui-base transition-colors focus-visible:outline-none"
-      title={typeof title === `string` ? title : undefined}
-    >
-      {summary}
-    </div>
-  );
-}
-
-/** 原 cQ（jsx 86466）：工具卡展开态内存缓存（按 persistOpenKey ?? toolId） */
-const toolLayoutOpenStateStore = new Map<string, boolean>();
-/** 原 uut（jsx 86467）：收起动画延迟 300ms */
-const TOOL_LAYOUT_COLLAPSE_DELAY_MS = 300;
-const TOOL_LAYOUT_CONTENT_TEXT_CLASS = `text-popover-foreground outline-none`; // dut
-const TOOL_LAYOUT_CONTENT_PAD_CLASS = `pt-2`; // fut
-
-/**
- * ToolLayout（原 put，js 100214 / jsx 86470；memo 名 lQ，js 100416 / jsx 86604，
- * displayName=`ToolLayout`）。所有工具折叠块的共享壳：
- * - 展开态持久化在内存 Map（cQ），跨滚动虚拟化复用；
- * - autoOpen：首次出现即展开并记账；autoCollapseOnComplete：运行结束自动收起；
- * - 失败状态（showFailureStatus）的状态文案支持 tooltip + 复制（chat.toolCall.copyError*）；
- * - 展开/收起有 300ms 收起延迟以完成动画。
- */
-function ToolLayoutImpl(props: ToolLayoutProps) {
-  const {
-    toolId,
-    persistOpenKey,
-    icon,
-    showIcon = true,
-    canToggle = true,
-    forceOpen = false,
-    autoOpen = false,
-    autoCollapseOnComplete = false,
-    kindLabel,
-    expandedKindLabel,
-    kindDetail,
-    expandedKindDetail,
-    sourceLabel,
-    primaryText,
-    expandedPrimaryText,
-    secondaryText,
-    expandedSecondaryText,
-    summaryContentSeparator,
-    animateSummaryContent = false,
-    disableSummaryContentAnimation = false,
-    summaryContentKey,
-    hideSecondaryTextWhenOpen = false,
-    diffCount,
-    hideDiffCountWhenOpen = false,
-    statusLabel,
-    statusTooltip,
-    showFailureStatus = false,
-    isRunning = false,
-    title,
-    expandedTitle,
-    content,
-    renderContent,
-    summaryAction,
-  } = props;
-  const { intl } = useIntlContext();
-  const stateKey = persistOpenKey ?? toolId;
-  const [persistedOpen, setPersistedOpen] = React.useState(() => toolLayoutOpenStateStore.get(stateKey) ?? false);
-  const hasSummaryAction = summaryAction !== undefined;
-  const openByProps = !hasSummaryAction && (forceOpen || (canToggle && persistedOpen));
-  const [openLocally, setOpenLocally] = React.useState(openByProps);
-  const [copiedTooltip, setCopiedTooltip] = React.useState(false);
-  const copyResetTimer = React.useRef<number | null>(null);
-  const collapseTimer = React.useRef<number | null>(null);
-  const autoOpenApplied = React.useRef(false);
-  const prevIsRunning = React.useRef(isRunning);
-  const isExpanded = !hasSummaryAction && (openByProps || openLocally);
-  const expandedContent = isExpanded ? renderContent?.() ?? content ?? null : null;
-  const effectivePrimaryText = openByProps && expandedPrimaryText != null ? expandedPrimaryText : primaryText;
-  const effectiveKindLabel = openByProps && expandedKindLabel != null ? expandedKindLabel : kindLabel;
-  const effectiveKindDetail = openByProps && expandedKindDetail !== undefined ? expandedKindDetail : kindDetail;
-  const effectiveSecondaryText =
-    openByProps && expandedSecondaryText !== undefined ? expandedSecondaryText : openByProps && hideSecondaryTextWhenOpen ? null : secondaryText;
-  const effectiveTitle = openByProps && expandedTitle !== undefined ? expandedTitle : title;
-  const contentKey = summaryContentKey ?? `${String(effectiveTitle ?? ``)}:${String(statusLabel ?? ``)}`;
-  const showDiffCount = diffCount != null && !(openByProps && hideDiffCountWhenOpen);
-  const kindLabelClassName = cn(`font-medium whitespace-nowrap shrink-0`, isRunning ? `animated-gradient-text` : `text-foreground-subtlest`);
-
-  React.useEffect(() => {
-    setPersistedOpen(toolLayoutOpenStateStore.get(stateKey) ?? false);
-  }, [stateKey]);
-  React.useEffect(() => {
-    if (!autoOpen || autoOpenApplied.current) return;
-    toolLayoutOpenStateStore.set(stateKey, true);
-    setOpenLocally(true);
-    setPersistedOpen(true);
-    autoOpenApplied.current = true;
-  }, [autoOpen, stateKey]);
-  React.useEffect(() => {
-    const wasRunning = prevIsRunning.current;
-    prevIsRunning.current = isRunning;
-    if (autoCollapseOnComplete && !isRunning && wasRunning) {
-      toolLayoutOpenStateStore.set(stateKey, false);
-      setPersistedOpen(false);
-    }
-  }, [autoCollapseOnComplete, isRunning, stateKey]);
-  React.useEffect(() => {
-    if (openByProps) {
-      if (collapseTimer.current !== null) {
-        window.clearTimeout(collapseTimer.current);
-        collapseTimer.current = null;
-      }
-      setOpenLocally(true);
-      return;
-    }
-    if (openLocally) {
-      collapseTimer.current = window.setTimeout(() => {
-        setOpenLocally(false);
-        collapseTimer.current = null;
-      }, TOOL_LAYOUT_COLLAPSE_DELAY_MS);
-      return () => {
-        if (collapseTimer.current !== null) {
-          window.clearTimeout(collapseTimer.current);
-          collapseTimer.current = null;
-        }
-      };
-    }
-    return undefined;
-  }, [openByProps, openLocally]);
-  React.useEffect(
-    () => () => {
-      if (copyResetTimer.current !== null) window.clearTimeout(copyResetTimer.current);
-      if (collapseTimer.current !== null) window.clearTimeout(collapseTimer.current);
-    },
-    [],
-  );
-
-  const copyStatusTooltip = () => {
-    if (typeof statusTooltip != `string` || statusTooltip.trim().length === 0) return;
-    navigator.clipboard.writeText(statusTooltip).then(() => {
-      setCopiedTooltip(true);
-      if (copyResetTimer.current !== null) window.clearTimeout(copyResetTimer.current);
-      copyResetTimer.current = window.setTimeout(() => {
-        setCopiedTooltip(false);
-        copyResetTimer.current = null;
-      }, 1500);
-    });
-  };
-
-  const showFailure = showFailureStatus && statusLabel != null;
-  const statusNode = showFailure
-    ? statusTooltip != null ? (
-        <Popover>
-          <PopoverAnchor>
-            <PopoverTrigger asChild>
-              <span className="whitespace-nowrap underline decoration-dotted underline-offset-2 cursor-help">{statusLabel}</span>
-            </PopoverTrigger>
-            <PopoverContent side={`top`} align={`start`} className={`max-w-96`}>
-              <div className="flex max-w-96 items-center gap-2">
-                <span className="line-clamp-3 min-w-0 flex-1 whitespace-pre-wrap break-words">{statusTooltip}</span>
-                {typeof statusTooltip == `string` && statusTooltip.trim().length > 0 ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-md"
-                    className="shrink-0"
-                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      copyStatusTooltip();
-                    }}
-                    title={intl.formatMessage({ id: copiedTooltip ? `chat.toolCall.copyError.copied` : `chat.toolCall.copyError` })}
-                    aria-label={intl.formatMessage({ id: copiedTooltip ? `chat.toolCall.copyError.copied` : `chat.toolCall.copyError` })}
-                  >
-                    {copiedTooltip ? <IconCheck className="size-3" /> : <IconCopy className="size-3" />}
-                  </Button>
-                ) : null}
-              </div>
-            </PopoverContent>
-          </PopoverAnchor>
-        </Popover>
-      ) : (
-        <span className="whitespace-nowrap">{statusLabel}</span>
-      )
-    : null;
-
-  const headerProps: ToolLayoutProps & {
-    isExpanded: boolean;
-    toggleAriaLabel: string;
-    statusNode?: React.ReactNode;
-    kindLabelClassName?: string;
-  } = {
-    ...props,
-    isExpanded,
-    kindLabelClassName,
-    kindLabel: effectiveKindLabel,
-    kindDetail: effectiveKindDetail,
-    primaryText: effectivePrimaryText,
-    secondaryText: effectiveSecondaryText,
-    title: effectiveTitle,
-    diffCount: showDiffCount ? diffCount : undefined,
-    statusNode,
-    toggleAriaLabel: intl.formatMessage({ id: openByProps ? `chat.toolCall.collapseDetails` : `chat.toolCall.expandDetails` }),
-  };
-
-  return (
-    <Collapsible
-      open={!hasSummaryAction && (forceOpen || (canToggle && persistedOpen))}
-      onOpenChange={(next) => {
-        if (hasSummaryAction || forceOpen) return;
-        toolLayoutOpenStateStore.set(stateKey, next);
-        if (next) setOpenLocally(true);
-        setPersistedOpen(next);
-      }}
-      className={`w-full flex flex-col`}
-    >
-      <ToolLayoutHeader {...headerProps} icon={icon} showIcon={showIcon} sourceLabel={sourceLabel} />
-      {!hasSummaryAction && canToggle ? (
-        <CollapsibleContent className={TOOL_LAYOUT_CONTENT_TEXT_CLASS}>
-          <div className={TOOL_LAYOUT_CONTENT_PAD_CLASS}>{expandedContent}</div>
-        </CollapsibleContent>
-      ) : !hasSummaryAction && forceOpen ? (
-        <div className={cn(TOOL_LAYOUT_CONTENT_TEXT_CLASS, TOOL_LAYOUT_CONTENT_PAD_CLASS)}>{expandedContent}</div>
-      ) : null}
-    </Collapsible>
-  );
-}
-const ToolLayout = React.memo(ToolLayoutImpl);
-ToolLayout.displayName = `ToolLayout`;
+/* ── tombstone〔A1-P1-B12〕：§4.1 ToolLayout 头部/摘要件手写全族删除（ToolLayoutProps 接口 + ToolLayoutAnimatedText（原 aut）
+ * + ToolLayoutSummaryPrefix（sut）+ ToolLayoutSummaryContent（cut）+ activateOnEnterOrSpace（out）+ ToolLayoutHeader（lut）
+ * + toolLayoutOpenStateStore/TOOL_LAYOUT_COLLAPSE_DELAY_MS/TOOL_LAYOUT_CONTENT_TEXT_CLASS/TOOL_LAYOUT_CONTENT_PAD_CLASS
+ * 四常量（cQ/uut/dut/fut）+ ToolLayoutImpl（put）+ memo 导出（lQ），共约 431 行）——逐字实体化 → ./ToolLayoutBlocks
+ * （styles 100010–100465，456 行；roundtrip+leafcheck 双 EXACT，/tmp/a1r0-p1/p12/）。消费面：文件头真实 import
+ * （ToolLayoutMemo as ToolLayout），尾导出块 re-export 不动，modules/Conversation §4 转导出链与 CTV 消费面零改动。
+ * 束真身更正三处（手写体差异披露）：① testid 构造 qr=Nb@src:8464 `${e}-${t}` 连字符（手写误用冒号）；
+ * ② Bi=Zg@src:8266=`tool-summary-trigger`，三态分支同前缀（手写 canToggle/纯展示分支误作 tool-summary-toggle）；
+ * ③ aut 真身含 framer-motion 队列动画（$K@74135/gq@75493 vendored，declare 面只消费；手写为简化淡入）。
+ * 语义名沿用手写期命名（消费面零改动）；型缝 21 处（17 S16 + 4 S16T）见 p12/ToolLayoutBlocks.seam-log.txt。 ── */
 
 /* --- 4.2 Reasoning 折叠（思考/摘要；原 z_t/B_t/V_t，js 111329–111571 / jsx 95033–95212） --- */
 
@@ -690,14 +273,15 @@ const ReasoningTrigger = React.memo(function ReasoningTrigger({
   );
 });
 
-/** 滚动遮罩状态（原 yV/bV/xV，jsx 95122 附近）：顶部/底部渐隐指示 */
+/** 滚动遮罩状态（原 yV/bV/xV，styles 64639–64657）：顶部/底部渐隐指示——〔A1-P1-B12〕运行体已逐字实体化 →
+ * ./ToolScrollMask；接口为类型面遗留（JS 束无类型），留供 ReasoningContent 状态注记。 */
 interface ScrollMaskState {
   showTop: boolean;
   showBottom: boolean;
 }
-const EMPTY_SCROLL_MASK: ScrollMaskState = { showTop: false, showBottom: false };
-declare function computeScrollMask(metrics: { clientHeight: number; scrollHeight: number; scrollTop: number }): ScrollMaskState;
-declare function scrollMaskStyle(state: ScrollMaskState): React.CSSProperties;
+/* ── tombstone〔A1-P1-B12〕：EMPTY_SCROLL_MASK 手写 const（yV 重复体）+ computeScrollMask/scrollMaskStyle 双 declare
+ * （原 bV/xV）删除——逐字实体化 → ./ToolScrollMask（styles 64639–64657；roundtrip+leafcheck 双 EXACT，
+ * /tmp/a1r0-p1/p12/）。消费面改文件头真实 import，调用面逐字不变。 ── */
 
 /**
  * Reasoning 内容（原 V_t，js 111471 / jsx 95122，displayName=`ReasoningContent`）。
@@ -856,12 +440,15 @@ function resolveToolCallView(props: ToolCallViewProps): React.FC<ToolCallViewPro
   }
 }
 
-/** 原 $ne（jsx 93246 附近）：展示状态 → isRunning（input-streaming/input-available/output-streaming） */
-declare function isToolCallRunningByDisplayStatus(displayStatus: string): boolean;
-/** 原 Tee（jsx 93249 附近）：展示状态 → 状态文案 i18n key（chat.toolCall.status.*） */
-declare function toolCallStatusI18nId(displayStatus: string, rawStatus: string): string;
-/** 原 zlt 的输入：原始状态归一化 */
-declare function normalizeToolCallStatusRaw(status: string): string;
+/* ── tombstone〔A1-P1-B12〕：isToolCallRunningByDisplayStatus/toolCallStatusI18nId 双 declare（原 $ne/Tee）删除——
+ * 跨 chunk 定位取证（正证据，推翻 B11「疑 dist」假设）：真身 = MS/NS@src-HCld2afU.js 9141/9144，
+ * 经 src chunk 导出（10030 `MS as v` / 9856 `NS as _`）→ styles 导入（790 `v as $ne` / 620 `_ as Tee`）；
+ * src 域 canonical 在案 → 真实 import 收敛（SrcSharedB isPendingToolCallStatus / resolveToolCallStatusI18nId），
+ * 消费面（本文件 isRunning/statusLabel 两处）改指 canonical 名，语义逐字等值。 ── */
+/* ── tombstone〔A1-P1-B12〕：normalizeToolCallStatusRaw declare 删除——束无对应实体（负证据）：zlt@99553 真身
+ * `Rlt[e] ?? 'input-streaming'` 直表查询（ToolStatusModel 在案），状态链无 raw 归一化步骤；本 declare 为
+ * A0 假设件，全仓零消费（grep 仅本处）。$ne/Tee 双 declare 同批另行收敛（真身 = MS/NS@src-HCld2afU.js 9141/9144，
+ * 跨 chunk：src 10030/9856 导出 → styles 790/620 导入；src 域 canonical SrcSharedB 在案，见上方墓碑）。 ── */
 
 /**
  * ToolCallBlock（原 Ght，js 109105 / jsx 93180；memo 名 K$，js 109241 / jsx 93274，
@@ -949,8 +536,8 @@ function ToolCallBlockImpl({
       }),
     [toolCall],
   );
-  const isRunning = isToolCallRunningByDisplayStatus(displayStatus);
-  const statusLabel = intl.formatMessage({ id: toolCallStatusI18nId(displayStatus, toolCall.status) });
+  const isRunning = isPendingToolCallStatus(displayStatus); // 〔A1-P1-B12〕原 isToolCallRunningByDisplayStatus（$ne=MS@src:9141）→ SrcSharedB canonical
+  const statusLabel = intl.formatMessage({ id: resolveToolCallStatusI18nId(displayStatus, toolCall.status) }); // 〔A1-P1-B12〕原 toolCallStatusI18nId（Tee=NS@src:9144）→ SrcSharedB canonical
   const errorText = extractToolErrorText(toolCall);
   const isNested = !isAgentToolCall(toolCall) && (depth > 0 || !!toolCall.parentToolUseId);
   const sourceLabel =
@@ -1160,8 +747,9 @@ function ShellToolViewImpl(props: ToolCallViewProps) {
     </>
   );
 }
-/** 原 sQ（jsx 86252）：快照引用脚注（接口保留） */
-declare const ToolSnapshotRefs: React.FC<{ refs: unknown[]; onLoadFullToolCallFields?: () => void }>;
+/* ── tombstone〔A1-P1-B12〕：ToolSnapshotRefs declare（原 sQ）删除——逐字实体化 → ./ToolSnapshotRefs
+ * （styles 99954–100009；roundtrip+leafcheck 双 EXACT，/tmp/a1r0-p1/p12/）。
+ * 消费面改文件头真实 import，调用面逐字不变。 ── */
 
 /* --- 4.6 工具视图登记表（混淆名 → 语义名 → js / jsx 行；接口级，按需补全） ---
  * ept ShellToolView          105266 / 90506  ← 本文全量还原（§4.5）
