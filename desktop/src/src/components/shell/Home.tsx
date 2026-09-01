@@ -336,9 +336,9 @@ declare function useEntitlementsHub(opts: {
   modelProviderFamilySelectedKeys?: Record<string, string | undefined>;
 }): { entitlements: Record<string, EntitlementSlotLike | undefined>; refresh: (e?: unknown) => Promise<void> };
 
-/** 标签页 store 选择器（原 pc，js 4801；useTabStore 必须在 TabStoreProvider 内使用——AppRootLeaves 162 同源 declare） */
-interface TabStoreStateLike { openSettingsTab: (section?: string) => void; [key: string]: unknown }
-declare function useTabStoreSelector<T>(selector: (state: TabStoreStateLike) => T): T;
+/* ── tombstone〔A1-R40〕：interface TabStoreStateLike + declare useTabStoreSelector（原 pc）删除 → 一符一家收敛 WorkspaceTabsDeep useWorkspaceTabStore@686
+ * （pc 真身 4801-4805 逐字：useContext(fc) + throw 守卫 + ne(t, e)；PD-α 同簇，A1-R1 重建在案；TabStoreStateLike 为 declare 期近似型，同批删除）。
+ * 消费面实测 1 处 @4638 改名改指（≡ bundle 89534；回调 `(e) => e.openSettingsTab` 受 WorkspaceTabStoreState 上下文型，openSettingsTab(): void 逐字段吻合）。经尾部导入消费，行引用零漂。 ── */
 
 /* ── tombstone（A1-R23）：declare useCodingPlanUpgradeDialog（原 fX，js 89100）删除——canonical 属主
  *    components/payments/PaymentDeep.tsx（A0 重建，体 ≡ bundle：useContext(dX) + throwing 守卫），
@@ -4635,7 +4635,7 @@ function ComposerConfigToolbarBody({
       loading: w,
       modelProviderFamilySelectedKeys: T?.modelProviderFamilySelectedKeys,
     }),
-    k = useTabStoreSelector((e) => e.openSettingsTab),
+    k = useWorkspaceTabStore((e) => e.openSettingsTab), // 〔A1-R40〕原 useTabStoreSelector（pc）收敛改指 WorkspaceTabsDeep useWorkspaceTabStore（≡ bundle 89534）
     A = (0, React.useCallback)((e: string) => D[e]?.snapshot ?? null, [D]),
     j = React.useRef<HTMLSpanElement | null>(null),
     M = React.useRef<HTMLSpanElement | null>(null),
@@ -7135,3 +7135,6 @@ export { CodingPlanUsagePanel, StartPlanBalancePanel };
  *      （地图备注称「建议卡文案数据」；实际消费方是提及面板技能段，非 3 张模板卡）
  * ============================================================================
  */
+
+/* 〔A1-R40〕尾部导入：useWorkspaceTabStore（原 pc）收敛改指——WorkspaceTabsDeep@686 canonical（bundle 4801-4805 逐字；PD-α 同簇）。尾部导入：ES 模块提升，等价文件头，行引用零漂（R35 @10315 先例）。环安全：WorkspaceTabsDeep 值闭包（zustand/stores/SkillStore/remoteServices）不达本文件反向。 */
+import { useWorkspaceTabStore } from '../../modules/WorkspaceTabsDeep';

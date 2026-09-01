@@ -10298,9 +10298,9 @@ export function useCodingPlanUpgradeDialogOptional() {
  *   a8e → needsProvidersHydration (78189-78191) | o8e → saveProviderToRegistry (78192-78219)
  *   s8e → resolveWorkspaceSyncTargets (78220-78242)
  *   qq → useModelProvidersStore (78243-78403 / jsx 69033；本族唯一导出面)
- * 接口级（declare 层，真身链未闭合留批）：
- *   pc ≡ useTabStoreSelector（Home@341/AppRootLeaves@163 declare 先例）
- *   oc → isWorkspaceTab (4487-4489) | gc → resolveTabSessionId (4814-4821)
+ * 接口级（declare 层）：
+ *   pc ≡ useTabStoreSelector | oc → isWorkspaceTab | gc → resolveTabSessionId —— 〔A1-R40〕PD-α 簇全收，改指 WorkspaceTabsDeep canonical 三件套（见下墓碑）
+ *   （pc 同名两面 Home@341/AppRootLeaves@163 同批收敛；OLL@623 isWorkspaceTab 型卫脸另形，留批）
  *   co → useShallowSelector (1033-1039；〔A1-R36〕真身链 wie/ao/oo/so/Cie 逐字转录 §12 尾部，留批闭合)
  * 横切改指（树内实体）：
  *   Ti ≡ automationsWorkspaceKey（SrcSharedB@3079）| Ks ≡ syncProviderRegistryAndReturn（services@105 转导出）
@@ -10314,9 +10314,9 @@ export function useCodingPlanUpgradeDialogOptional() {
  * -------------------------------------------------------------------------- */
 import { settingsConfigOptionsOf } from '../../modules/SettingsConfigOptions'; // 〔A1-R35〕Ng 真身（R34 实体化新叶，styles 24440-24494 逐字）：t8e 转录面 78157 消费接引（R34 留批 2 闭合）。尾部 import：ES 模块提升，等价文件头，行引用零漂
 
-declare function useTabStoreSelector(selector: (state: any) => any): any; // 原 pc（接口级；Home@341/AppRootLeaves@163 同名 declare 先例）
-declare function isWorkspaceTab(tab: any): boolean; // 原 oc（4487-4489：kind === `workspace`）
-declare function resolveTabSessionId(tab: any, ctx: any): string | undefined; // 原 gc（4814-4821：remoteSessionId/identity/path 三路查表）
+/* ── tombstone〔A1-R40〕PD-α 簇：declare useTabStoreSelector/isWorkspaceTab/resolveTabSessionId（原 pc/oc/gc）删除 → 一符一家收敛 WorkspaceTabsDeep canonical 三件套：
+ *   pc（4801-4805）≡ useWorkspaceTabStore@686 | oc（4487-4489）≡ isWorkspaceKindTab@328（A1-R1 逐字重建）| gc（4814-4821）≡ resolveTabRemoteSessionId@704（A1-R1 转录；?? undefined 型别归一缝既判，运行时无差）。
+ * 消费面实测 3 处改名改指：@10435 isWorkspaceKindTab（≡ bundle 78223）/ @10436 resolveTabRemoteSessionId（≡ bundle 78224）/ @10465 useWorkspaceTabStore（≡ bundle 78252）。pc 同名两面 Home@341/AppRootLeaves@163 同批收敛；经尾部导入 4 消费，行引用零漂。 ── */
 /* ── tombstone〔A1-R36〕：declare useShallowSelector（原 co，1033-1039）删除 → 逐字转录本文件尾部 §12（含真身链 wie/ao/oo/so/Cie 五符，R35 留批闭合；§11 qq 消费面不变）。 ── */
 
 /** 展示序模块态（78172-78175；语义归一，R34 注册表簇先例）：原 n8e/Wq/r8e/Gq */
@@ -10432,8 +10432,8 @@ async function saveProviderToRegistry(e: any) {
 function resolveWorkspaceSyncTargets(e: any) {
   let t = [];
   for (let n of e.tabs) {
-    if (!isWorkspaceTab(n)) continue;
-    let r = resolveTabSessionId(n, e);
+    if (!isWorkspaceKindTab(n)) continue; // 〔A1-R40〕原 isWorkspaceTab（oc）收敛改指 WorkspaceTabsDeep isWorkspaceKindTab（≡ bundle 78223）
+    let r = resolveTabRemoteSessionId(n, e); // 〔A1-R40〕原 resolveTabSessionId（gc）收敛改指 WorkspaceTabsDeep resolveTabRemoteSessionId（≡ bundle 78224）
     if (n.remoteSessionId || n.workspaceIdentity || n.remoteTarget) {
       if (!r) continue;
       t.push({
@@ -10462,7 +10462,7 @@ export function useModelProvidersStore() {
         sessionsById: e.sessionsById,
       })),
     ),
-    r = useTabStoreSelector((e: any) => e.tabs),
+    r = useWorkspaceTabStore((e: any) => e.tabs), // 〔A1-R40〕原 useTabStoreSelector（pc）收敛改指 WorkspaceTabsDeep useWorkspaceTabStore（≡ bundle 78252）
     [i, a] = (0, React.useState)(() => listCodingPlanSources()),
     [o, s] = (0, React.useState)(() => displayOrderSnapshot),
     [c, l] = (0, React.useState)(() => !hasLoadedCodingPlanSources()),
@@ -10700,3 +10700,5 @@ import { cn } from '../../modules/UtilsCn';
 import { useZCodeIntl, type ZCodeIntl as IntlShape } from '../../modules/I18n';
 /* 〔A1-R38〕尾部导入 3：useShallowSelector（原 co）收敛改指——§12 真身链迁公共叶 lib/shallowSelector.ts（裁定见 §12 迁出墓碑；@10459 消费面不变）。 */
 import { useShallowSelector } from '../../lib/shallowSelector';
+/* 〔A1-R40〕尾部导入 4：PD-α 簇 tab-store 三件套收敛改指——WorkspaceTabsDeep canonical（pc≡useWorkspaceTabStore@686 / oc≡isWorkspaceKindTab@328 / gc≡resolveTabRemoteSessionId@704；bundle 4801/4487/4814 逐字，A1-R1 重建在案）。尾部导入：ES 模块提升，等价文件头，行引用零漂（R35 @10315 先例）。环安全：WorkspaceTabsDeep 值闭包（zustand + react）不达本文件反向。 */
+import { isWorkspaceKindTab, resolveTabRemoteSessionId, useWorkspaceTabStore } from '../../modules/WorkspaceTabsDeep';

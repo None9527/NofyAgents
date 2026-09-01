@@ -14,8 +14,8 @@
 //   Mge 24419（≡SettingsConfigOptions parseLooseModeValue）/Ng 24440/Nge 24495 归既有裁定，
 //   本叶仅承 Age/jge（Mg 前）与 Pge 族（Nge 后），互消费为零（Ng 消费 jg/Lge/Rge 经 SrcSharedB 面）。
 // 消费面：簇内互消费（Age←jge←Pge；Fge/Ige/zge←Pge；Vge/Pg/Bge/Fg←zge）；
-//   Pge 唯一域外消费 24587（Uge 24574 会话记录钩子，钩子层留批——涉 Ag≡useSessionService 改指）。
-// 导出面：仅 sessionRecordOf（族头，域外所依）；余符簇内私有（一符一家）。
+//   Pge 唯一域外消费 24587 = Uge（24574-24599）钩子层内〔A1-R40〕已转录本文件尾部；Uge 域外消费 24787 = e_e ≡ WorkspaceShell P2 泳道，接线留该批）。
+// 导出面：sessionRecordOf（族头）+ useTaskSessionRecord（钩子层，R40）；余符簇内私有（一符一家）。
 
 import {
   buildModelSettingOptionValue,
@@ -107,3 +107,51 @@ export function sessionRecordOf(e: any) {
     target: e.projection.target ? sessionTargetRecordOf(e.projection.target) : e.projection.target,
   };
 }
+
+/* ── 〔A1-R40〕Pge 族钩子层（styles-local 24571-24599；R39 §六.1 留批落地） ──
+ * Hge → sessionRecordForTaskOf (24571-24573) | Uge → useTaskSessionRecord (24574-24599)
+ * 跨域依赖改指：Ag ≡ useSessionService（services/workspaceServiceHooks@406，R37 既判；
+ *   modules/services@113 转导出面——经尾部导入消费）。
+ * 消费面实测：Uge 唯一消费 24787 = e_e（任务元解析钩子，24772-；参面 (e, t, n, r, c)
+ *   = (workspaceAbsPath, activeTaskId, workspaceRemoteSessionId, workspaceIdentity, activeTaskMeta)）——
+ *   树属主 WorkspaceShell（P2 泳道在制）；本批仅转录定义面，消费面接引留 P2 批。
+ * 落点裁定：本叶尾部（不立新叶）——Uge 消费本叶 sessionRecordOf≡Pge（24587），
+ *   Hge 为 Uge 私有助手；一符一家，Pge 族不分裂。环安全：本叶 → modules/services
+ *   转导出面 → services/workspaceServiceHooks（值闭包 services/* + react），无反向边达本叶。
+ * 型缝：useSessionService 返回 unknown（R37 接口级形）→ `as any` 投射后消费 readSession
+ *   （PD@10457 先例）；useState 泛型 <any> 承接记录/双变更新器。 ── */
+/** 原 Hge（styles 24571-24573）：任务记录匹配（无 taskId 或旁路置真 → null；taskId 相符 → 记录） */
+function sessionRecordForTaskOf(e: any, t: any, n: any) {
+  return !t || n ? null : e?.taskId === t ? e : null;
+}
+/** 原 Uge（styles 24574-24599）：任务会话记录钩子（readSession 单消息拉取 → sessionRecordOf；失败兜 null；deps [a, t, i, r, e] 逐字） */
+export function useTaskSessionRecord(e: any, t: any, n: any, r: any, i: any) {
+  let a = useSessionService(e, n, r) as any,
+    [o, s] = React.useState<any>(null);
+  return (
+    React.useEffect(() => {
+      let n = !1;
+      return (
+        s((e: any) => sessionRecordForTaskOf(e, t, i)),
+        !t ||
+          i ||
+          a
+            .readSession({ workspacePath: e, workspaceIdentity: r, sessionId: t, messageLimit: 1 })
+            .then((e: any) => {
+              n || s(sessionRecordOf(e));
+            })
+            .catch(() => {
+              n || s(null);
+            }),
+        () => {
+          n = !0;
+        }
+      );
+    }, [a, t, i, r, e]),
+    o
+  );
+}
+/* 〔A1-R40〕尾部导入 1/2：React（钩子层 useState/useEffect 所需）。尾部导入：ES 模块提升，等价文件头，行引用零漂（R35 @10315 先例）。 */
+import * as React from 'react';
+/* 〔A1-R40〕尾部导入 2/2：useSessionService（原 Ag）收敛改指——services/workspaceServiceHooks@406 canonical（R37 既判），经 modules/services@113 转导出面。环安全见钩子层头注。 */
+import { useSessionService } from './services';
