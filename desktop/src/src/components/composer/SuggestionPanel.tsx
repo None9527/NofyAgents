@@ -8,7 +8,8 @@ import * as React from "react";
 import { Loader as LoaderIcon, InfoIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
-import { testidOf, type MentionSuggestionItem } from '../../modules/Composer'; // testid 助手（shim 留守，补 export）；建议项型别 canonical 在 [B3]
+import { type MentionSuggestionItem } from '../../modules/Composer'; // 建议项型别 canonical 在 [B3]；testidOf 重复转录面〔A1-P3-B14〕收敛改指 joinTestidParts（见下）
+import { joinTestidParts } from '../../modules/SrcSharedB'; // 原 qr（R41 既判 ≡ SrcSharedB@5015；B13 Home 同形收敛先例）
 
 /** 15. testid 常量（src-HCld2afU.js，B5-11；值已回代核实，见原文件头） */
 const SUGGESTION_PANEL_TESTID = `prompt-suggestion-panel`;
@@ -239,12 +240,13 @@ export function SuggestionPanel({
   );
 }
 
-/** 原 _Je（js 64822）：段头行 */
+/** 原 _Je（js 64822；〔A1-P3-B14〕bundle 64828 `qr(Lr, e.sectionId)` 逐字改指 joinTestidParts：
+ *  Lr←styles 584 `Ur as Lr`←src 9819 `G_ as Ur`≡G_@8314） */
 function SuggestionSectionHeaderRow({ row }: { row: Extract<SuggestionRow, { kind: `section_header` }> }) {
   return (
     <div
       className={`px-3 pt-2 pb-1 text-ui-xs font-semibold uppercase tracking-wide text-foreground-subtlest`}
-      data-testid={testidOf(SUGGESTION_SECTION_TESTID, row.sectionId)}
+      data-testid={joinTestidParts(SUGGESTION_SECTION_TESTID, row.sectionId)}
       data-section-id={row.sectionId}
     >
       {row.title}
@@ -252,12 +254,13 @@ function SuggestionSectionHeaderRow({ row }: { row: Extract<SuggestionRow, { kin
   );
 }
 
-/** 原 vJe（js 64833）：状态行（loading/error/empty） */
+/** 原 vJe（js 64833；〔A1-P3-B14〕bundle 64837 `qr(Gr, e.sectionId)` 逐字改指 joinTestidParts：
+ *  Gr←styles 598 `Wr as Gr`←src 9833 `q_ as Wr`≡q_@8316） */
 function SuggestionStatusRow({ row }: { row: Extract<SuggestionRow, { kind: `status` }> }) {
   return row.content === `loading` ? (
     <div
       className={`flex items-center gap-2 rounded-xl px-5 py-2 text-ui-base text-foreground-subtle`}
-      data-testid={testidOf(SUGGESTION_STATUS_TESTID, row.sectionId)}
+      data-testid={joinTestidParts(SUGGESTION_STATUS_TESTID, row.sectionId)}
       data-section-id={row.sectionId}
       data-status={`loading`}
     >
@@ -267,7 +270,7 @@ function SuggestionStatusRow({ row }: { row: Extract<SuggestionRow, { kind: `sta
   ) : row.content === `error` ? (
     <div
       className={`rounded-xl bg-destructive px-5 py-2 text-ui-base text-destructive-foreground`}
-      data-testid={testidOf(SUGGESTION_STATUS_TESTID, row.sectionId)}
+      data-testid={joinTestidParts(SUGGESTION_STATUS_TESTID, row.sectionId)} // 〔A1-P3-B14〕bundle 64848 qr(Gr, e.sectionId)
       data-section-id={row.sectionId}
       data-status={`error`}
     >
@@ -276,7 +279,7 @@ function SuggestionStatusRow({ row }: { row: Extract<SuggestionRow, { kind: `sta
   ) : (
     <div
       className={`rounded-xl px-5 py-2 text-ui-base text-foreground-subtlest`}
-      data-testid={testidOf(SUGGESTION_STATUS_TESTID, row.sectionId)}
+      data-testid={joinTestidParts(SUGGESTION_STATUS_TESTID, row.sectionId)} // 〔A1-P3-B14〕bundle 64855 qr(Gr, e.sectionId)
       data-section-id={row.sectionId}
       data-status={`empty`}
     >
@@ -309,7 +312,7 @@ function SuggestionOptionRow({
         aria-selected={isSelected}
         aria-disabled={disabled}
         disabled={disabled}
-        data-testid={testidOf(SUGGESTION_OPTION_TESTID, option.id)}
+        data-testid={joinTestidParts(SUGGESTION_OPTION_TESTID, option.id)} // 〔A1-P3-B14〕bundle 64872 qr(nee, a.id)：nee←styles 591 `Vr as nee`←src 9826 `K_ as Vr`≡K_@8315
         data-section-id={row.sectionId}
         data-option-id={option.id}
         data-option-index={flatOptionIndex}

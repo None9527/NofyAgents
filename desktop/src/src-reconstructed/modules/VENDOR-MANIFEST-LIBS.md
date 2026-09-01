@@ -4,7 +4,7 @@
 - 生成日期: 2026-08-26
 - 范围: `/tmp/chunk-tiers.json` vendor 项中除去 shiki 语法/主题 chunk；另收 4 个被误分到 grammar_data 的 mermaid chunk（tier 纠正）；另收 tiers 标为 first_party 但实际打包/包装第三方库、或任务点名的 chunk（chart-*、pdf-viewer、presentationPdf*、dist/esm/bundle 系）。
 - 版本证据等级: `in-chunk`（chunk 内版本串）> `upstream-path`（与上游 dist 文件名-哈希精确匹配）> `upstream-decl`（上游 package.json 依赖声明）> `node_modules-ref`（zcode-restored/node_modules 参照安装，chunk 内无版本）。
-- 条目数: **147**（JS chunk 143 + wasm 伴随资产 2 + chunk 内嵌 vendor 区 2）
+- 条目数: **148**（JS chunk 143 + wasm 伴随资产 2 + chunk 内嵌 vendor 区 3；〔A1-P3-B14〕条数注记同步：X09 双段条目经 R52 入表后实计 148，原注 147 为 R52 前口径）
 
 ## ⚠ 含 first-party 包装层的 chunk（Stage B 抽取队列）
 

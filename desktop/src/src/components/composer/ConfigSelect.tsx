@@ -12,7 +12,8 @@ import { InfoTooltip as TooltipRoot } from '../../modules/UsageStatsUiParts'; //
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
 import { MODE_LABEL_I18N, MODE_DESCRIPTION_I18N, MODE_SELECT_ITEM_TESTID, AnimatedLabel } from './ModelSelector'; // 原 [C] 段私常量/表，属主补 export 后取回
-import { testidOf, isCoarseTouchDevice, shouldRestoreFocus, MODE_TRIGGER_TESTID } from '../../modules/Composer'; // shim 留守运行时助手/testid（函数声明提升，渲染期访问，环安全）
+import { isCoarseTouchDevice, shouldRestoreFocus, MODE_TRIGGER_TESTID } from '../../modules/Composer'; // shim 留守运行时助手/testid（函数声明提升，渲染期访问，环安全）
+import { joinTestidParts } from '../../modules/SrcSharedB'; // 原 qr（R41 既判 ≡ SrcSharedB@5015；B13 Home/ModelSelector 同形收敛先例）〔A1-P3-B14〕testidOf 重复转录面收敛改指
 
 /** 14. 图标（本 chunk 图标块 = lucide vendored 登记；语义按消费点命名） */
 declare const PlanIcon: React.ComponentType<{ className?: string }>;
@@ -55,10 +56,11 @@ function configSelectTestId(spec: ConfigSelectSpec): string | undefined {
   if (spec.category === `mode`) return MODE_TRIGGER_TESTID;
 }
 
-/** F3e → configOptionTestId（js 76857） */
+/** F3e → configOptionTestId（js 76857；〔A1-P3-B14〕bundle 76857/76858 `qr(Xt|rn, t.value)` 逐字改指 joinTestidParts：
+ *  Xt←styles 490 `Hn as Xt`←src 9720 `Mv as Hn`≡Mv@8355；rn←styles 497 `In as rn`←src 9727 `Pv as In`≡Pv@8357） */
 function configOptionTestId(spec: ConfigSelectSpec, option: ConfigSelectOption): string | undefined {
-  if (spec.category === `thought_level`) return testidOf(THOUGHT_LEVEL_ITEM_TESTID, option.value);
-  if (spec.category === `mode`) return testidOf(MODE_SELECT_ITEM_TESTID, option.value);
+  if (spec.category === `thought_level`) return joinTestidParts(THOUGHT_LEVEL_ITEM_TESTID, option.value);
+  if (spec.category === `mode`) return joinTestidParts(MODE_SELECT_ITEM_TESTID, option.value);
 }
 
 /** I3e → ApiRetryIndicator（js 76862） */

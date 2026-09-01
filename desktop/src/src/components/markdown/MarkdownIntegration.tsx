@@ -125,7 +125,9 @@
  * 12. 图标：M_ check / W_ copy / q_ external / mv mermaid / Tbe wrap /
  *     cv loader / zye image-off / f sparkle / wa chevron-right / Vc FileIcon / Fc folderIconSrc
  * 13. 文件元数据 zc（fileIconSrc/fileName）/ 编辑器目录 JA / 文件上下文动作 QA（A1-R11 转录 useFileContextActions）/ tabs store mc
- * 14. mermaid 本体 tO + 主题助手 Vze/Bze/zze/Hze（X10 库层）
+ * 14. mermaid 本体 tO（X10 库层，declare 留存=vendor 边界）+ 主题助手 Vze/Bze/zze/Hze
+ *     〔A1-P3-B14〕H1 收割逐字转录实体（§4b；私助手 Ize/IO/LO/Rze/zO 同段实体化；
+ *     Bze 之 xo 改指 Settings.resolveThemeMode@736；tombstone 见原 declare 位）
  * 15. remark-math (sLe) / rehype-katex (XIe)（katex-fHRr5Rbn.js 懒加载分包）
  * 16. cjk micromark 扩展 (sIe/cIe)（@streamdown/cjk 宿主侧）
  * ============================================================================
@@ -158,6 +160,7 @@ import { t as J } from '../../modules/logger'; // 原 J（logger-PFDwl5Yq.js 导
 import { useServicesOptional as ps } from '../../modules/services'; // 原 ps（services.tsx 导出 useServicesOptional）
 import { toast, usePlatform as l } from '../../modules/ImeComposition'; // 原 l（imeComposition chunk 导出 M=usePlatform）；A1-R11 +toast（原 m，imeComposition 347 `_ as m`）——QA 51187 打开失败提示消费
 import { FileIconImg as FileIcon, FOLDER_ICON_DATA_URI as FOLDER_ICON_SRC, resolveFileDisplayInfo as resolveFileMeta } from '../../modules/ModalsLeaves'; // 原 Vc / Fc / zc
+import { resolveThemeMode, type ThemeMode } from '../../modules/Settings'; // 原 xo（theme → dark|light；CodeViewer@97 同源导入先例，环已开且仅运行期消费，环安全）〔A1-P3-B14〕H1 收割 Bze 收敛改指
 
 /* ============================================================================
  * 0. 外部依赖声明（横切层 / 跨 chunk；原混淆名见注释）
@@ -255,10 +258,13 @@ declare const mermaidCore: {
   initialize(config: unknown): void;
   render(id: string, code: string): Promise<{ svg: string }>;
 };
-declare function resolveMermaidThemeVars(theme: string): unknown; // 原 Vze
-declare function resolveMermaidConfigBase(theme: string): unknown; // 原 Bze
-declare function buildMermaidConfig(base: unknown): unknown; // 原 zze
-declare function describeMermaidError(error: unknown): string; // 原 Hze
+/* ── tombstone（A1-P3-B14）：declare resolveMermaidThemeVars / resolveMermaidConfigBase /
+ *    buildMermaidConfig / describeMermaidError（原 Vze/Bze/zze/Hze，js 47878/47875/47837/47892，
+ *    app 包装带 47549–47973 收割序 H1）删除 → 逐字转录实体（见 §4b mermaid 主题助手段）。
+ *    消费位实证：MermaidInlinePreview（原 BO@47895）@2339/@2342/@2346/@2370 四调用面；
+ *    私助手 Ize/IO/LO/Rze/zO（js 47783–47836）同段实体化；Bze 之 xo 依赖改指
+ *    Settings.resolveThemeMode（@736，CodeViewer@97 同源先例）。mermaidCore（tO，X10 库层）
+ *    declare 留存 = vendor 边界占位（VENDOR-MANIFEST-LIBS mermaid 11.14.0 族，B10 KX 先例）。 ── */
 
 /* remark-math / rehype-katex（katex 懒加载分包） */
 declare const remarkMath: unknown; // 原 sLe
@@ -794,6 +800,134 @@ export function createMermaidPlugin(options: { config?: Record<string, unknown> 
 export const MERMAID_PLUGIN = createMermaidPlugin();
 /** 原 Fze = rO()（BO 内嵌渲染专用实例，js 47763） */
 const MERMAID_INLINE_PLUGIN = createMermaidPlugin();
+
+/* ============================================================================
+ * 4b. mermaid 主题助手族（原 Vze/Bze/zze/Hze + 私助手 Ize/IO/LO/Rze/zO，
+ *     js 47783–47894；app 包装带 47549–47973 收割序 H1，A1-P3-B14 逐字转录）
+ * ==========================================================================*/
+
+/** 原 Vze（js 47878）：system 主题变化修订计数（驱动 BO configKey 重估） */
+function resolveMermaidThemeVars(theme: string): number {
+  const [revision, bump] = React.useState(0);
+  React.useEffect(() => {
+    if (theme !== `system` || typeof window > `u`) return;
+    const media = window.matchMedia(`(prefers-color-scheme: dark)`);
+    const onChange = () => bump((value) => value + 1);
+    return typeof media.addEventListener == `function`
+      ? (media.addEventListener(`change`, onChange), () => media.removeEventListener(`change`, onChange))
+      : (media.addListener(onChange), () => media.removeListener(onChange));
+  }, [theme]);
+  return revision;
+}
+
+/** 原 Bze（js 47875）：theme → dark|light（SSR 守卫 + canonical resolveThemeMode ≡ xo@1103）
+ *  〔A1-P3-B14〕型缝：BO theme 为宽 string，canonical 参型 ThemeMode，窄化铸接（值域实测同集）。 */
+function resolveMermaidConfigBase(theme: string): string {
+  return typeof window > `u`
+    ? theme === `dark` || theme === `zai-dark`
+      ? `dark`
+      : `light`
+    : resolveThemeMode(theme as ThemeMode);
+}
+
+/** 原 Ize（js 47783）：canvas 探针哨兵色（fillStyle 归一判定基准） */
+const PROBE_SENTINEL_COLOR = `#010203`;
+/** 原 IO（js 47784）：共享探针 span（computed style 颜色解析） */
+const COLOR_PROBE_ELEMENT = typeof document > `u` ? null : document.createElement(`span`);
+/** 原 LO（js 47785–47790）：1×1 canvas 2d 上下文（alpha 探测） */
+const COLOR_PROBE_CONTEXT = (() => {
+  if (typeof document > `u`) return null;
+  const canvas = document.createElement(`canvas`);
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext(`2d`, { willReadFrequently: true });
+  if (context) context.globalCompositeOperation = `copy`;
+  return context;
+})();
+
+/** 原 Rze（js 47807）：computed 颜色 → rgb/rgba 归一串（无效色回退 fallback） */
+function normalizeComputedColor(color: string, fallback: string): string {
+  if (!color || !COLOR_PROBE_ELEMENT || !COLOR_PROBE_CONTEXT || !document.body) return color || fallback;
+  try {
+    document.body.appendChild(COLOR_PROBE_ELEMENT);
+    COLOR_PROBE_ELEMENT.style.color = ``;
+    COLOR_PROBE_ELEMENT.style.color = color;
+    const computed = getComputedStyle(COLOR_PROBE_ELEMENT).color;
+    if (!computed) return fallback;
+    COLOR_PROBE_CONTEXT.clearRect(0, 0, 1, 1);
+    COLOR_PROBE_CONTEXT.fillStyle = PROBE_SENTINEL_COLOR;
+    const sentinel = COLOR_PROBE_CONTEXT.fillStyle;
+    COLOR_PROBE_CONTEXT.fillStyle = computed;
+    if (COLOR_PROBE_CONTEXT.fillStyle === sentinel) return fallback;
+    COLOR_PROBE_CONTEXT.fillRect(0, 0, 1, 1);
+    const [r = 0, g = 0, b = 0, a = 255] = COLOR_PROBE_CONTEXT.getImageData(0, 0, 1, 1).data;
+    const alpha = +(a / 255).toFixed(3);
+    return alpha >= 1 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  } catch {
+    return fallback;
+  } finally {
+    COLOR_PROBE_ELEMENT.remove();
+  }
+}
+
+/** 原 zO（js 47826）：CSS 变量取色（临时 span + computed style → Rze 归一） */
+function readCssVarColor(variable: string, fallback: string): string {
+  if (typeof document > `u` || !document.body) return fallback;
+  const probe = document.createElement(`span`);
+  probe.style.color = `var(${variable})`;
+  probe.style.pointerEvents = `none`;
+  probe.style.position = `absolute`;
+  probe.style.visibility = `hidden`;
+  document.body.appendChild(probe);
+  const computed = getComputedStyle(probe).color;
+  probe.remove();
+  return normalizeComputedColor(computed, fallback);
+}
+
+/** 原 zze（js 47837）：mermaid 主题配置（CSS 变量取色 + strict 安全级 + base 主题） */
+function buildMermaidConfig(base: string): Record<string, unknown> {
+  const card = readCssVarColor(`--color-card`, base === `dark` ? `#18181b` : `#ffffff`);
+  const surface = readCssVarColor(`--color-surface`, base === `dark` ? `#27272a` : `#f4f4f5`);
+  const accent = readCssVarColor(`--color-accent`, base === `dark` ? `#1f2937` : `#f0f9ff`);
+  const foreground = readCssVarColor(`--color-foreground`, base === `dark` ? `#f4f4f5` : `#27272a`);
+  const foregroundSubtle = readCssVarColor(`--color-foreground-subtle`, base === `dark` ? `#a1a1aa` : `#52525b`);
+  const border = readCssVarColor(`--color-border`, base === `dark` ? `#3f3f46` : `#d4d4d8`);
+  return {
+    fontFamily: `ui-sans-serif, system-ui, sans-serif`,
+    securityLevel: `strict`,
+    startOnLoad: false,
+    suppressErrorRendering: true,
+    theme: `base`,
+    themeVariables: {
+      actorBkg: card,
+      actorBorder: border,
+      actorTextColor: foreground,
+      background: card,
+      lineColor: foregroundSubtle,
+      mainBkg: card,
+      nodeBorder: border,
+      noteBkgColor: accent,
+      noteTextColor: foreground,
+      primaryBorderColor: border,
+      primaryColor: surface,
+      primaryTextColor: foreground,
+      secondaryBorderColor: border,
+      secondaryColor: accent,
+      secondaryTextColor: foreground,
+      signalColor: foregroundSubtle,
+      signalTextColor: foreground,
+      tertiaryBorderColor: border,
+      tertiaryColor: card,
+      tertiaryTextColor: foreground,
+      textColor: foreground,
+    },
+  };
+}
+
+/** 原 Hze（js 47892）：error → message 串 */
+function describeMermaidError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 /* ============================================================================
  * 5. 插件表 / 选项 / rehype 文件链接重写（原 $Ve/eHe/hVe/THe/wHe/CHe/SHe）
@@ -2206,7 +2340,9 @@ export function MermaidInlinePreview({
   const uid = React.useId().replace(/[^a-zA-Z0-9_-]/g, ``);
   const source = code.trim();
   const configBase = resolveMermaidConfigBase(theme);
-  const configKey = `${theme}:${configBase as string}:${themeVars as string}`;
+  // 〔A1-P3-B14〕H1 收敛后类型具体化（configBase: string / themeVars: number），去除 declare 期 unknown 铸接；
+  // 模板字面串化与 bundle BO@47907 `d = \`${n}:${u}:${s}\`` 逐字同行为。
+  const configKey = `${theme}:${configBase}:${themeVars}`;
   const config = React.useMemo(() => buildMermaidConfig(configBase), [configBase, configKey]);
   const cacheKey = React.useMemo(() => `${configKey}:${fnv1aBase36(source)}`, [configKey, source]);
   const [state, setState] = React.useState<{ status: `loading` } | { status: `plaintext` } | { status: `ready`; svg: string }>({
