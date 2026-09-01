@@ -203,7 +203,8 @@ import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatf
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from '../../modules/Modals'; // 〔A1-R51〕$2 余消费位闭合实证：本叶 @2952 canSyncRemote ≡ bundle 158248 `oe = $2({ remoteSessionId, remoteTarget, clientMode: f ? 'web-remote-replayable' : 'desktop-continuous', hasLocalSourceService: !!N.skillSyncService })`（158xxx 远程技能卡域）逐字同形；接线 = A0 检查点 17（8382e04）既成，R50 §五-2「属外未录面」留批闭合（台账惯例 = 报告内更正，census 冻结不动）
 import { Badge } from '../../modules/PaymentDeep';
 import { TabsList, TabsTrigger } from '../../modules/Settings';
-import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups, type WebRemoteSwitcher } from '../../modules/SidebarLeaves';
+import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from '../../modules/SidebarLeaves';
+import { type WebRemoteSwitcherService } from '../../modules/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：原 modules/SidebarLeaves WebRemoteSwitcher 本地面删碑，改指生产面 canonical（六点分叉表闭合，A1-P2-B9.report.md §四）
 import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from '../../modules/SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；A0-CLEANUP3 3b：getWorkspaceSlice 形参对齐真 store 面
 import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, type TaskActionMenuItemsProps } from '../../modules/TopBar';
 import { WebRemoteControlDialog, useWebRemoteControlEnabled } from '../../modules/WebRemote';
@@ -3771,17 +3772,12 @@ interface WorkspaceSidebarProps {
   onCreateConversationTask?: () => void;
   onOpenFolderFromWorkspaceMenu?: () => void;
   onOpenRemoteWorkspace?: () => void;
-  /* A0-CLEANUP4：收 SidebarLeaves WebRemoteSwitcher 面——WebRemoteTaskListSection（原 mLt）switcher 同形。
-     〔A1-P2-B7〕留批族：生产面 WebRemoteSwitcherService（components/remote/WebRemote @317：
-     listWorkspaces→Promise<MobileHomeResult>，WebRemoteWorkspaceInfo.workspacePurpose 含 null）
-     与本消费面（SidebarLeaves @3337：Promise<WebRemoteTaskIndex>，workspacePurpose 无 null）
-     型别分叉在属外两叶，非本泳道可闭——证见 A1-P2-B7.report.md §七。
-     〔A1-P2-B8〕证据固化：双路探针实测（逐点修 / 单面别名）均非单叶可闭——分叉四点
-     （workspacePurpose null 支 / WebRemoteWorkspace 索引签名无生产面对应 / TaskMeta.title
-     null 支（WebRemote.TaskMeta vs SkillStore canonical）/ updateMobileViewState 返回
-     Promise<unknown> vs Promise<void>）+ markTaskRead 消费面守卫调用（生产面未声明）+
-     消费面内部态 useState<WebRemoteTaskIndex> 联动——逐字证见 A1-P2-B8.report.md §六。 */
-  webRemoteControlWorkspaceSwitcher?: WebRemoteSwitcher | null;
+  /* 〔A1-R52〕switcher 族属主闭合（A1-P2-B9-XD-1 分发裁定执行）：型面改指生产面 WebRemoteSwitcherService。
+     P2-B7/B8 留批族闭合记录：六点分叉（workspacePurpose null 支 / 索引签名 / TaskMeta.title 可空真形 /
+     updateMobileViewState Promise<unknown> + taskId 可参 / markTaskRead 入生产面声明 / 内部态收 MobileHomeResult）
+     全闭于生产面 components/remote/WebRemote + 消费面 SidebarLeaves §6（墓碑在案）；
+     原证史料 = A1-P2-B7.report.md §七 / A1-P2-B8.report.md §六 / A1-P2-B9.report.md §四。 */
+  webRemoteControlWorkspaceSwitcher?: WebRemoteSwitcherService | null;
   theme: ThemeId;
   /* 〔A1-P2-B7〕远端三回调族收敛：rVt 内零消费（AST 全量取证：无调用、无下传）＝死面透传，
    * 型按 WS 属主调用面（185283-185285 传入真形）放宽登记；RemoteTarget 用本文件 @340 面。 */

@@ -130,7 +130,8 @@ import { formatRelativeTime } from '../../modules/SidePanel'; // $S
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
-import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex } from './TaskIndexCore'; // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
+import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex } from './TaskIndexCore';
+import { type MobileHomeResult, type WebRemoteSwitcherService, type WebRemoteWorkspaceInfo } from '../remote/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：消费面三本地型（WebRemoteWorkspace/WebRemoteTaskIndex/WebRemoteSwitcher）删碑改指生产面（六点分叉表闭合，A1-P2-B9.report.md §四）。环安全：type-only 导入全擦除，WebRemote 值闭包（ui/modules 族）不达 SidebarLeaves // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
 import { joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-P3-B11〕原 scopedTestId（qr/Nb 局部转录）收敛改指 canonical（墓碑见 @361）；消费面 3724/3783。环安全：SrcSharedB 为共享导出叶，无反向 components/shell 边（Sidebar.tsx@220 同边先例）
 
 /* ============================================================================
@@ -3330,29 +3331,15 @@ export function ArchivedTasksSection({
  * 6. 原 mLt（147286 / 122543）+ uLt/aPt/iPt：WebRemoteTaskListSection —— Web 远控列表段
  * ==========================================================================*/
 
-interface WebRemoteWorkspace {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  remoteSessionId?: string | null;
-  label?: string;
-  /* A0-CLEANUP4：kind 必有——与 WebRemote.WebRemoteWorkspaceInfo（kind 必填）同族对齐，
-     供 listWorkspaces 返回面双向可比（消费仅 === "remote" 判定） */
-  kind: "local" | "remote" | string;
-  workspacePurpose?: string;
-  [key: string]: unknown;
-}
-interface WebRemoteTaskIndex {
-  workspaces: WebRemoteWorkspace[];
-  tasks: TaskMeta[];
-}
-/* A0-CLEANUP4：导出——Sidebar webRemoteControlWorkspaceSwitcher prop 同形接线 */
-export interface WebRemoteSwitcher {
-  listWorkspaces(): Promise<WebRemoteTaskIndex>;
-  onWorkspaceListUpdated?(cb: (result: WebRemoteTaskIndex) => void): () => void;
-  markTaskRead?(task: TaskMeta): Promise<void>;
-  updateMobileViewState?(workspaceKey: string, taskId: string): Promise<void>;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R52〕：本地三型 WebRemoteWorkspace/WebRemoteTaskIndex/WebRemoteSwitcher 删除——
+ * switcher 族属主闭合（六点分叉表 A1-P2-B9.report.md §四 全闭）：改指生产面 components/remote/WebRemote
+ * WebRemoteWorkspaceInfo/MobileHomeResult/WebRemoteSwitcherService（文件头 type-only 导入）。
+ * 分叉裁定：①workspacePurpose 收 null 支（生产面 `?: string | null`）②索引签名去（消费面无动态访问实证）
+ * ③TaskMeta.title 生产面可空为远端载荷真形（bundle 1409xx–1416xx `e.title || taskList.untitled` 三处实证；
+ *   本地富化面保留运行时态叠加，载荷缝单断言见 buildWebRemoteTaskViewModel/applyRemoteTaskMembership）
+ * ④updateMobileViewState 收 Promise<unknown> + taskId 可参（bundle 140894 单参面/141662 `e ?? void 0` 面实证）
+ * ⑤markTaskRead 入生产面声明（bundle 140225 typeof 守卫 + 140235 调用实证；本面消费同形守卫）
+ * ⑥内部态联动收 MobileHomeResult（useState 型随动）。 ── */
 
 /** 原 ei：任务的工作区键（identity 优先） */
 function taskWorkspaceKey(task: Pick<WorkspaceTab, "workspacePath" | "workspaceIdentity">): string {
@@ -3381,7 +3368,7 @@ async function openWebRemoteTask(args: {
   onTaskOpen?: (info: { crossWorkspace: boolean }) => void;
   setError: (message: string | null) => void;
   setSwitchingTaskKey: (key: string | null) => void;
-  switcher: WebRemoteSwitcher;
+  switcher: WebRemoteSwitcherService;
   task: TaskMeta;
 }): Promise<void> {
   const {
@@ -3460,7 +3447,7 @@ function useWebRemoteTaskSwitcher(args: {
   onSelectTask?: (workspacePath: string, taskId: string, workspaceIdentity?: string | null) => void;
   onSwitchingChange?: (key: string | null) => void;
   onTaskOpen?: (info: { crossWorkspace: boolean }) => void;
-  switcher: WebRemoteSwitcher;
+  switcher: WebRemoteSwitcherService;
 }) {
   const [switchingTaskKey, setSwitchingTaskKey] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -3516,10 +3503,10 @@ function resolveTaskDisplayStatus(args: { task: TaskMeta; runtimeStatus?: string
 }
 
 /** 原 gPt/_Pt（— / 117026/117029）：远端能力工作区过滤 */
-function isRemoteCapableWorkspace(workspace: WebRemoteWorkspace): boolean {
+function isRemoteCapableWorkspace(workspace: WebRemoteWorkspaceInfo): boolean {
   return !!(workspace.kind === "remote" || workspace.workspaceIdentity?.trim() || workspace.remoteSessionId?.trim());
 }
-function filterRemoteCapableWorkspaces(args: { activeWorkspaceIdentity?: string | null; workspaces: WebRemoteWorkspace[] }): WebRemoteWorkspace[] {
+function filterRemoteCapableWorkspaces(args: { activeWorkspaceIdentity?: string | null; workspaces: WebRemoteWorkspaceInfo[] }): WebRemoteWorkspaceInfo[] {
   return args.activeWorkspaceIdentity?.trim() ? args.workspaces.filter(isRemoteCapableWorkspace) : args.workspaces;
 }
 
@@ -3532,10 +3519,13 @@ function sameTaskRef(a: TaskMeta, b: TaskMeta): boolean {
   return a.taskId === b.taskId && taskWorkspaceKey(a) === taskWorkspaceKey(b);
 }
 /** 原 wPt（— / 117128）：成员变更叠加（先清除 pinned/archived 再按新成员写入） */
-function applyRemoteTaskMembership(args: { result: WebRemoteTaskIndex; target: TaskMeta; membership: { pinned?: boolean; archived?: boolean } }): WebRemoteTaskIndex {
+function applyRemoteTaskMembership(args: { result: MobileHomeResult; target: TaskMeta; membership: { pinned?: boolean; archived?: boolean } }): MobileHomeResult {
+  // 〔A1-R52〕载荷缝（单断言）：MobileHomeResult.tasks 生产面形（可空 title）→ 本地富化面（sameTaskRef 消费）；
+  // 可比性 = 本地面→生产面方向可赋（富化字段全可选 + 可空支兼容），裁定见上墓碑 §③。返回面 TaskMeta[] → 生产面 tasks 同向可赋零断言。
+  const tasks = (args.result.tasks ?? []) as TaskMeta[];
   return {
     ...args.result,
-    tasks: (args.result.tasks ?? []).map((task) => {
+    tasks: tasks.map((task) => {
       if (!sameTaskRef(task, args.target)) return task;
       const next = { ...task };
       delete next.pinned;
@@ -3570,9 +3560,9 @@ function filterTasksBySearch(tasks: TaskMeta[], query: string): TaskMeta[] {
 }
 
 /** 原 TPt（— / 117155）：按工作区分组（含未读标记） */
-function groupTasksByWorkspace(args: { workspaces: WebRemoteWorkspace[]; tasks: TaskMeta[]; sortBy?: TaskSortBy }): Array<{
+function groupTasksByWorkspace(args: { workspaces: WebRemoteWorkspaceInfo[]; tasks: TaskMeta[]; sortBy?: TaskSortBy }): Array<{
   workspaceKey: string;
-  workspace: WebRemoteWorkspace;
+  workspace: WebRemoteWorkspaceInfo;
   tasks: TaskMeta[];
   hasUnread: boolean;
 }> {
@@ -3597,14 +3587,14 @@ function groupTasksByWorkspace(args: { workspaces: WebRemoteWorkspace[]; tasks: 
 
 /** 原 DPt（— / 117181）：视图模型（pinned / groups / timeline / archived + 折叠） */
 function buildWebRemoteTaskViewModel(args: {
-  result: WebRemoteTaskIndex;
+  result: MobileHomeResult;
   viewMode: string;
   sortBy?: TaskSortBy;
   searchQuery?: string;
   collapsedWorkspaceKeys?: Set<string>;
 }): {
   pinnedTasks: TaskMeta[];
-  groups: Array<{ workspaceKey: string; workspace: WebRemoteWorkspace; tasks: TaskMeta[]; hasUnread: boolean; totalTaskCount: number; collapsed: boolean }>;
+  groups: Array<{ workspaceKey: string; workspace: WebRemoteWorkspaceInfo; tasks: TaskMeta[]; hasUnread: boolean; totalTaskCount: number; collapsed: boolean }>;
   timelineTasks: TaskMeta[];
   archivedTasks: TaskMeta[];
   totalTaskCount: number;
@@ -3612,7 +3602,9 @@ function buildWebRemoteTaskViewModel(args: {
   const sortBy = args.sortBy ?? "updated";
   const searchQuery = args.searchQuery ?? "";
   const collapsed = args.collapsedWorkspaceKeys ?? new Set<string>();
-  const tasks = args.result.tasks ?? [];
+  // 〔A1-R52〕载荷缝（单断言）：MobileHomeResult.tasks 生产面形（可空 title，bundle `|| taskList.untitled` 真形）
+  // → 本地富化面（§6 运行时态叠加 sessionActivity/status 消费）；可比性 = 本地面→生产面方向可赋，裁定见 §6 头墓碑 §③。
+  const tasks = (args.result.tasks ?? []) as TaskMeta[];
   const pinnedTasks = sortTaskRows(filterTasksBySearch(tasks.filter((task) => task.pinned && !task.archived), searchQuery), sortBy);
   const regularTasks = filterTasksBySearch(tasks.filter((task) => !task.pinned && !task.archived), searchQuery);
   const archivedTasks = sortTaskRows(filterTasksBySearch(tasks.filter((task) => task.archived), searchQuery), sortBy);
@@ -3852,7 +3844,7 @@ export function WebRemoteTaskListSection({
   onTaskOpen,
   onCrossWorkspaceSwitchingChange,
 }: {
-  switcher: WebRemoteSwitcher;
+  switcher: WebRemoteSwitcherService;
   activeWorkspacePath: string;
   activeWorkspaceIdentity?: string | null;
   activeTaskId: string | null;
@@ -3860,7 +3852,7 @@ export function WebRemoteTaskListSection({
   taskViewMode?: string;
   searchQuery?: string;
   collapsedWorkspaceKeys?: Set<string>;
-  initialResult?: WebRemoteTaskIndex | null;
+  initialResult?: MobileHomeResult | null;
   onToggleWorkspaceCollapsed?: (workspaceKey: string) => void;
   onWorkspaceGroupKeysChange?: (keys: string[]) => void;
   renderBeforePinnedTasks?: () => React.ReactNode;
@@ -3879,7 +3871,7 @@ export function WebRemoteTaskListSection({
     () => ({ sessionsById, sessionIdByWorkspaceIdentity, sessionIdByWorkspacePath }),
     [sessionIdByWorkspaceIdentity, sessionIdByWorkspacePath, sessionsById],
   );
-  const [result, setResult] = React.useState<WebRemoteTaskIndex>(initialResult ?? { workspaces: [], tasks: [] });
+  const [result, setResult] = React.useState<MobileHomeResult>(initialResult ?? { workspaces: [], tasks: [] });
   const [loading, setLoading] = React.useState(false);
   const [pendingArchiveTaskKey, setPendingArchiveTaskKey] = React.useState<string | null>(null);
   const [mutatingTaskKey, setMutatingTaskKey] = React.useState<string | null>(null);

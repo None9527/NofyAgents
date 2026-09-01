@@ -23,11 +23,13 @@
  * ----------------------------------------------------------------------------
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
- *  §1 更新对话框：
- *   xOt → UpdateDialogCheckbox   Radix Checkbox 封装（自动更新开关用）(128776 / 108512)
- *   SOt → UPDATE_DIALOG_LOGO_URL icon_512@2x 资源 URL (128791 / 108522)
- *   COt → UpdateStatusDialog     更新对话框呈现层（三相位 + edgeToEdge 全屏变体）(128795 / 108523)
- *   wOt → splitUpdateDialogTitle 标题按 __ZCODE_UPDATE_VERSION__ 占位符切前/后缀 (129029 / 108590)
+ *  §1 更新对话框（〔A1-R52〕全族行号纠偏：本节 js 行号系 A0 期旧口径漂移，机械批
+ *     纠为 styles 真值——xOt/SOt/COt/POt/DOt/TOt/EOt/kOt/NOt 九件 +17、wOt 起点 +21
+ *     异常（COt 尾界同 +21），10 名逐名对 bundle 定义行实证 10/10，见 A1-R52.report.md）：
+ *   xOt → UpdateDialogCheckbox   Radix Checkbox 封装（自动更新开关用）(128793 / 108512)
+ *   SOt → UPDATE_DIALOG_LOGO_URL icon_512@2x 资源 URL (128808 / 108522)
+ *   COt → UpdateStatusDialog     更新对话框呈现层（三相位 + edgeToEdge 全屏变体）(128812 / 108523)
+ *   wOt → splitUpdateDialogTitle 标题按 __ZCODE_UPDATE_VERSION__ 占位符切前/后缀 (129050 / 108590)
  *
  *  §2 远程同步（〔A1-R51〕全族行号纠偏：本节 js 行号系 A0 期旧口径 −17 漂移，机械批
  *     纠为 styles 真值 +17，77 名逐名实证，抽样见 A1-R51.report.md §三；$2/q2 二件

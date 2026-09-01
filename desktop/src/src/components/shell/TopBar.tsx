@@ -20,13 +20,13 @@
  *   LOt  → UpdateIndicator           更新指示器（下载中/可更新/已下载胶囊）(129385 / 108869)
  *   IOt  → updatePillResponsiveClasses 更新胶囊按平台展开的容器查询类 (129354 / 108851)
  *   FOt  → ReleaseNotesPopover       发行说明弹层 (129296 / 108831)
- *   POt  → UpdateStatusDialogController 更新对话框控制器（下载/跳过/重启安装）(129125 / 108678)
- *   COt  → UpdateStatusDialog        更新对话框呈现层（属主 Modals.tsx，本文件真实 import 调用）(128795 / 108390)
- *   DOt  → resolveUpdateViewModel    更新状态 → 视图模型 (129066 / 108630)
- *   TOt  → pickLocalizedReleaseNotes (129047 / 108612)
- *   EOt  → formatReleaseDate         (129054 / 108620)
- *   kOt  → downloadProgressLabel     (129096 / 108657)
- *   NOt  → formatMegabytes           (129122 / 108680)
+ *   POt  → UpdateStatusDialogController 更新对话框控制器（下载/跳过/重启安装）(129142 / 108678)
+ *   COt  → UpdateStatusDialog        更新对话框呈现层（属主 Modals.tsx，本文件真实 import 调用）(128812 / 108390)
+ *   DOt  → resolveUpdateViewModel    更新状态 → 视图模型 (129083 / 108630)
+ *   TOt  → pickLocalizedReleaseNotes (129064 / 108612)
+ *   EOt  → formatReleaseDate         (129071 / 108620)
+ *   kOt  → downloadProgressLabel     (129113 / 108657)
+ *   NOt  → formatMegabytes           (129139 / 108680)
  *   c4   → windowsCaptionInsetStyle  env(titlebar-area-*) 计算右侧原生控件宽度 (129509 / 108967)
  *   s4   → WINDOWS_CAPTION_RIGHT_INSET_VAR (129507 / 108965)
  *   zOt  → WINDOWS_CAPTION_BUTTON_CLASS   (129515 / 108973)
@@ -817,7 +817,7 @@ export function UpdateIndicator({ platform, version, updateState, isMacDesktop =
       ) : (
         <Tooltip title={tooltipText} side="bottom">{pill}</Tooltip>
       )}
-      {/* 更新对话框（下载/跳过/重启安装）。完整呈现层为原 COt（js 128795），
+      {/* 更新对话框（下载/跳过/重启安装）。完整呈现层为原 COt（styles 128812），
           此处保留控制器接口；详见 UpdateStatusDialogController 注释。 */}
       <UpdateStatusDialogController platform={platform} version={version ?? null} updateState={updateState} open={isDialogOpen} onOpenChange={openDialog} />
     </>
@@ -879,13 +879,13 @@ function ReleaseNotesPopover({
 /* ── tombstone（A0-S3c）：CommandInput、CommandItem、CommandPalette、Dialog、DialogContent、DialogFooter、DialogHeader、DialogTitle、PopoverContentPrimitive、PopoverRoot、PopoverTriggerPrimitive declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
 
 /**
- * 原 POt（js 129142-129312 / jsx 108678-108830）：更新对话框控制器。
+ * 原 POt（styles 129142-129312 / jsx 108678-108830）：更新对话框控制器。
  * 职责：拉取自动更新偏好（getAutoUpdatePreferences + onSettingsChanged 订阅）、
  * 下载/取消/跳过/重启安装四类异步动作（每类带 pending 动作锁 + 1.5s 自动清除）、
  * 重启前若有运行中会话先走 useConfirmDialog 确认、发行说明 LRU 缓存。
  * 最终渲染原 COt（Modals.UpdateStatusDialog）呈现层。
  * 注：bundle 调用面另传 localizedUpdateReleaseNotes / onOpenReleaseNotesExternalUrl 两 prop，
- * COt 解构面（js 128812）不消费，Modals 属主型面亦未声明，故不透传。
+ * COt 解构面（styles 128812）不消费，Modals 属主型面亦未声明，故不透传。
  */
 function UpdateStatusDialogController({
   platform,

@@ -10,14 +10,14 @@ import { type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 原 G，Int
 import { IconCheck, IconCalendarDays } from '../../modules/Modals'; // §0 图标常量（createLucideIcon 产物）留存 shim
 
 /* ============================================================================
- * 1. 更新对话框子族（原 COt，js 128795-129046 / jsx 108523-108611）
+ * 1. 更新对话框子族（原 COt，styles 128812–129063 / jsx 108523-108611）
  * ----------------------------------------------------------------------------
  * POt 控制器与 DOt/TOt/EOt/kOt/NOt 视图模型助手已在 TopBar.tsx 还原；
  * 本节为呈现层本体：三相位（before-download / downloading / downloaded）+
  * edgeToEdge 全屏变体（更新专用次级窗口）。
  * ==========================================================================*/
 
-/** 原 xOt（js 128776-128790 / jsx 108512）：Radix Checkbox 封装 */
+/** 原 xOt（styles 128793–128807 / jsx 108512）：Radix Checkbox 封装 */
 function UpdateDialogCheckbox({
   className,
   ...props
@@ -42,7 +42,7 @@ function UpdateDialogCheckbox({
   );
 }
 
-/** 原 SOt（js 128791 / jsx 108522）：更新对话框 logo 资源 */
+/** 原 SOt（styles 128808 / jsx 108522）：更新对话框 logo 资源 */
 const UPDATE_DIALOG_LOGO_URL = new URL(
   `` + new URL(`icon_512@2x-BnwZhfO-.png`, import.meta.url).href,
   `` + import.meta.url,
@@ -51,7 +51,7 @@ const UPDATE_DIALOG_LOGO_URL = new URL(
 export type UpdateDialogPhase = "before-download" | "downloading" | "downloaded";
 
 /**
- * 原 COt（js 128795-129028 / jsx 108523-108589）：更新对话框呈现层。
+ * 原 COt（styles 128812–129049 / jsx 108523-108589）：更新对话框呈现层。
  * edgeToEdge=false 走 Radix Dialog；=true 时自绘 role=dialog 全屏层（次级更新窗口）。
  */
 export function UpdateStatusDialog({
@@ -268,7 +268,7 @@ export function UpdateStatusDialog({
   );
 }
 
-/** 原 wOt（js 129029-129046 / jsx 108590）：标题按版本占位符切分前缀/后缀 */
+/** 原 wOt（styles 129050–129063 / jsx 108590）：标题按版本占位符切分前缀/后缀 */
 function splitUpdateDialogTitle({
   displayVersion,
   intl,

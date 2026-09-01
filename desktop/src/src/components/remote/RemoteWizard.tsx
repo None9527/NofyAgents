@@ -36,7 +36,7 @@
  *     OEt/kEt/AEt/jEt（原 123929–123945 区）；r4 分派 + ZEt/lDt/XDt 三同步对话框 +
  *     $Dt + preflight 助手（原 125012–127349，含 $2 canOpenRemoteSessionSourceCheck
  *     原 127142——TopBar.report 亦登记，裁决归 Modals）；ZTt/QTt（原 123239/123251，
- *     登记于 TopBar.report）。128795+ 更新窗属 F09/TopBar。
+ *     登记于 TopBar.report）。128812+ 更新窗属 F09/TopBar。
  *  2. **账实差异注记**：COVERAGE-LEDGER 将原 123942–124266 记为「MEt 已抽取」，实测
  *     Modals.tsx 仅含 123929–124126；子段 NEt/PEt/W2/G2/FEt/K2/IEt/LEt（当前
  *     124144–124283）实际未抽取。本文件对 W2（SuggestionInput）等以接口级登记，
@@ -1509,6 +1509,6 @@ export const RemoteWizardDialogAlias = RemoteWizardDialog;
  *     CEt 123929 | wEt 123932 | TEt 123935 | EEt 123938 | DEt 123941 | uEt 123484 区
  *     rOt 127357 | oOt 127539 | sOt 127616 | cOt 127782 | W2/NEt/PEt 124144–124259
  *  —— 已抽取注记：MEt/OEt/kEt/AEt/jEt + r4/ZEt/lDt/XDt/$Dt/preflight（Modals.tsx）
- *     ZTt/QTt（TopBar.report）| mOt…bOt（Home.tsx）| 128795+ 更新窗（F09/TopBar）
+ *     ZTt/QTt（TopBar.report）| mOt…bOt（Home.tsx）| 128812+ 更新窗（F09/TopBar）
  * ============================================================================
  */

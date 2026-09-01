@@ -4,7 +4,7 @@
  * components/ui/checkbox.tsx — Radix Checkbox 封装（shadcn 风格，A0-S3c）
  * ============================================================================
  *
- * 依据 styles-CdEGpc2x.js 128760–128780（xOt，Zxe/$xe 上的封装）逐字重建。
+ * 依据 styles-CdEGpc2x.js 128793–128807（xOt，Zxe/$xe 上的封装；〔A1-R52〕个查纠偏：旧注 128760–128780 非 −17 族漂，实证定义域 128793–128807）逐字重建。
  * raw Root/Indicator 由消费方直接 import '@radix-ui/react-checkbox'。
  */
 import * as React from "react";

@@ -132,5 +132,4 @@ export type {
   SidebarUsageStateModel,
   GroupedTaskViewController,
   BeamBorderAnimationProps,
-  WebRemoteSwitcher,
-} from '../components/shell/SidebarLeaves';
+} from '../components/shell/SidebarLeaves'; // 〔A1-R52〕WebRemoteSwitcher 转导出删除——switcher 族属主闭合，canonical = WebRemote.WebRemoteSwitcherService（消费面改指 modules/WebRemote）

@@ -259,7 +259,7 @@ export interface TaskMeta {
   workspaceIdentity?: string | null;
   workspaceLabel?: string | null;
 }
-interface WebRemoteWorkspaceInfo {
+export interface WebRemoteWorkspaceInfo { // 〔A1-R52〕补 export：switcher 族属主闭合，SidebarLeaves §6 消费面改指（型缝销账）
   kind: "local" | "remote" | string;
   workspacePath: string;
   workspaceIdentity?: string | null;
@@ -313,10 +313,14 @@ declare function groupTasksByTimelineBucket(
  *  登记「需要的 export：SidebarLeaves toErrorMessage(p6)」，保留 declare） */
 declare function toErrorMessage(e: unknown): string;
 
-/** 手机端远控 switcher 服务面（BPt/aPt 共用 props.switcher） */
+/** 手机端远控 switcher 服务面（BPt/aPt 共用 props.switcher）
+ * 〔A1-R52〕属主闭合：+markTaskRead 可选面（bundle 140225 typeof 守卫 + 140235 `.markTaskRead(f).catch` 实证；
+ * 消费面 SidebarLeaves openWebRemoteTask 同形守卫调用）——六点分叉表（A1-P2-B9.report.md §四）闭合，
+ * 消费面 SidebarLeaves §6 本地三型（WebRemoteWorkspace/WebRemoteTaskIndex/WebRemoteSwitcher）同批删碑改指本面。 */
 export interface WebRemoteSwitcherService {
   listWorkspaces(): Promise<MobileHomeResult>;
   onWorkspaceListUpdated?(cb: (result: MobileHomeResult) => void): () => void;
+  markTaskRead?(task: TaskMeta): Promise<void>;
   reconnectWorkspace?(workspaceKey: string): Promise<unknown>;
   startDraft?(workspaceKey: string, options: { mobileNavigationIntent: string }): Promise<unknown>;
   switchWorkspace(workspaceKey: string, options: { mobileNavigationIntent: string }): Promise<unknown>;
