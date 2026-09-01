@@ -285,7 +285,11 @@ export interface SessionCommandMap {
 
 declare const SessionCommandSchemas: { [K in keyof SessionCommandMap]?: { parse(input: unknown): SessionCommandMap[K] } }; // 原 Yke
 
-/* --- G.4 FrameAssembler（原 bS，js 33842–34180） --- */
+/* --- G.4 FrameAssembler（原 bS，js 33842–34180） ---
+ * 〔A1-P3-B4 孪生裁定〕本段为 A0 语义重建孪生（带类型、非逐字）。bS 的 bundle
+ * 逐字真身 = services/conversationWireCore.ts SessionIndexTopicMultiplexer
+ * （styles 33890–34228，ROUNDTRIP+SEAMSTRIP[wire] EXACT 661 行在案）；
+ * 按真身优先原则，逐字方为 canonical，本段保留 A0 接线面、不重复转录。 */
 
 export type FrameDeliveryKind = "initial" | "online" | "recovery";
 

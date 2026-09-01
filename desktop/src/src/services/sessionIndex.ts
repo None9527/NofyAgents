@@ -5,6 +5,7 @@ import { INITIAL_SESSION_INDEX_STATE, RUNTIME_RESTART_BASE_DELAY_MS, RUNTIME_RES
 import { unsubscribeTransportSafe as unsubscribeTransport } from '../modules/QuickPickDeep'; // 原 IS
 import { logger } from '../modules/SkillStore';
 import { serviceGeneration } from '../modules/stores-core';
+import { SessionIndexTopicMultiplexer, sessionTransportHandshake, sessionIndexInflightTracker, sessionFrameAssembly } from './conversationWireCore'; // 〔A1-P3-B4〕原 bS/AS/MS/NS 环境声明四件改指逐字实体（styles 33890/34647/34677/34746；ROUNDTRIP+SEAMSTRIP[wire] EXACT 在案）
 
 /** 协议限额环境声明副本（属主声明在 ./commandQueueProtocol §G.4，原 bi；同 FeedbackCenter 处置） */
 declare const protocolLimits: {
@@ -645,10 +646,11 @@ export class WorkspaceSubscriptionSet {
  *   zS→createWorkspaceSessionIndexTransport(35405)
  *   US→scopeSubscriptionLabel(35443) | ZAe→sameScopeSubscriptionEntry(35446)
  *   （US/ZAe 归一：SessionStoreCore 同形实体改为本段再导出，A1-P3-B3 §四）
- * 区外自由符（协议簇 33505–34804，留批）→ 段内环境声明：
- *   oS→sessionIndexFrameSchema(33505) | bS→SessionIndexTopicMultiplexer(33890)
- *   AS→sessionTransportHandshake(34647) | MS→sessionIndexInflightTracker(34677)
- *   NS→sessionFrameAssembly(34746)
+ * 区外自由符（协议簇 33505–34804）→〔A1-P3-B4〕bS/AS/MS/NS 四件改指
+ *   services/conversationWireCore 逐字实体（本段环境声明删除，头部 import 接线）；
+ *   oS→sessionIndexFrameSchema(33505) 仍留批（aS 链 33493–33529 依赖 iS(33480)/
+ *   oke(33180)/cke(33219)/hke(33313)/gke(33314) 延伸至 33100 以下，超单批预算；
+ *   边界证据见 A1-P3-B4.report.md §七）。
  * 型缝（全型层，禁抑制符）×30：P1 顶层函数参数 :any ×8（5 函）+ P1 返回对象字面量
  *   方法参数 :any ×8（subscribe/activate/resync/unsubscribe/onFrame/onAssemblyFault/
  *   onRuntimeRestart/onRuntimeLifecycle，方法位隐 any 收口）；S5 容器泛型 ×4
@@ -656,11 +658,12 @@ export class WorkspaceSubscriptionSet {
  *   S16 any 接收面回调参数 :any ×6（sessionFrameAssembly 双回调 / sessionIndexInflightTracker
  *   回调 / onDynamicSessionsIndexFrame 回套 / onAgentRuntimeRestarted / onAgentRuntimeLifecycle）。
  * ==========================================================================*/
-declare const sessionIndexFrameSchema: any; // 原 oS（styles 33505，协议簇留批）
-declare class SessionIndexTopicMultiplexer { constructor(e: any); } // 原 bS（styles 33890，协议簇留批）
-declare function sessionTransportHandshake(e: any): any; // 原 AS（styles 34647，协议簇留批）
-declare function sessionIndexInflightTracker(e: any): any; // 原 MS（styles 34677，协议簇留批）
-declare function sessionFrameAssembly(e: any, t: any, n: any): any; // 原 NS（styles 34746，协议簇留批）
+declare const sessionIndexFrameSchema: any; // 原 oS（styles 33505，协议簇留批；A1-P3-B4 边界证据见报告 §七）
+/* ── tombstone（A1-P3-B4）：declare SessionIndexTopicMultiplexer（原 bS）/
+ *    sessionTransportHandshake（原 AS）/ sessionIndexInflightTracker（原 MS）/
+ *    sessionFrameAssembly（原 NS）四件删除——逐字真身已录 services/conversationWireCore.ts
+ *    （styles 33890–34228 / 34646–34670 / 34671–34745 / 34746–34804，
+ *    ROUNDTRIP[wire]+SEAMSTRIP[wire] EXACT 661 行在案），本段改头部 import 接线。 ── */
 
 export function sessionIndexTopicKey(e: any) {
   return `sessions-index/${e}`;

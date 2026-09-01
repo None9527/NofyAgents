@@ -129,7 +129,11 @@ import { dedupeWorkspaceScopes, sessionActivityOf, compareTasks as compareTaskRe
 import { SessionIndexStore, WorkspaceSubscriptionSet, sessionIndexPoolKey, useBaseServices, type SessionIndexScope } from '../../modules/services';
 /* ── A0-D-Misc 接线：Vo 搜索结果 store 属主 = QuickPick（useSearchResultsStore，QuickPick.tsx 1553–1878） ── */
 import { useSearchResultsStore as SearchResultsStore } from '../../modules/QuickPick'; // 原 Vo（QuickPick.tsx 已实体化）：搜索结果/未读覆盖 store
-import { armMembershipRefreshHold, releaseMembershipRefreshHold, readMembershipRefreshHoldState, awaitMembershipRefreshHold } from '../shell/TaskIndexCore'; // 〔A1-P3-B3〕§3 持有臂归一：原 mx/hx/_Oe/vOe/yOe/bOe 语义实体改指逐字 canonical（styles 32411–32438，A1-P3-B2 转录）；环安全见 §3 墓碑注
+import { armMembershipRefreshHold, releaseMembershipRefreshHold, readMembershipRefreshHoldState, awaitMembershipRefreshHold } from '../shell/TaskIndexCore';
+import { pickScopePathIdentity, readListSafe, readListAvailability, collectUnreadAtOverlays, collectTerminalStatusOverlays, collectTitleOverrides, collectCronAutomationIds, dedupeTaskIndexItemsByEntityKey, readTaskIndexShard, serviceIndexOf, readTaskIndexCache, clearTaskIndexCache, mergeTaskIndexEndpoints } from '../shell/TaskIndexCore'; // 〔A1-P3-B4〕§4/§5 孪生余量改指逐字 canonical 之再导出源（本叶无本地调用面，仅供别名再导出；环安全同 B3 §3）
+import { scopeSubscriptionLabel, sameScopeSubscriptionEntry, sessionScopeWorkspaceKey, sessionStoreKey, storeKeyOfRegistrySession, resolveSessionScope, sessionSubscriptionKey, isSessionStoreHydrating } from '../shell/SessionStoreCore'; // 〔A1-P3-B4〕§8 键助手簇 + WS 改指逐字 canonical（styles 35443–35454/35526–35551）。环安全：SessionStoreCore→modules/services→sessionIndex→modules/QuickPickDeep→本叶既有环同构，顶层全函数/再导出，ESM 提升安全
+import { resolveTabRemoteSessionId, tabHasRemoteBacking, resolveTabServicesBinding } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P3-B4〕原 gc/_c/vc declare 改指 canonical（styles 4814/4822/4825，WTBD 头注 §[C]/[D] 双归属裁决在案）。环安全：WTBD 值闭包（zustand/e2eStoreBridge/uuid/SkillStore/sessionRegistryStore/remoteServices→stores-core 族）不达 components/quickpick（实测），无新环
+import type { BaseServices, SessionRegistryState } from '../../stores/sessionRegistryStore'; // 〔A1-P3-B4〕型别导入（零 emit）：gc/vc/_c 改指后 buildShardPlan 参数形 // 〔A1-P3-B3〕§3 持有臂归一：原 mx/hx/_Oe/vOe/yOe/bOe 语义实体改指逐字 canonical（styles 32411–32438，A1-P3-B2 转录）；环安全见 §3 墓碑注
 
 /* ============================================================================
  * 0. 外部依赖类型声明
@@ -259,30 +263,21 @@ export interface SessionIndexRow {
   pendingInteractionSummary?: unknown;
   [key: string]: unknown;
 }
-declare function createWorkspaceSessionIndexTransport(
-  scope: WorkspaceScope,
-  agentService: WorkspaceAgentService,
-): unknown; // 原 zS
-declare function workspaceIdentityOf(scope: WorkspaceScope): string; // 原 WS
-declare function serviceGenerationOf(agentService: object): number; // 原 Xs
-
-/* 会话注册表解析（services/stores-session 层，4814–4825） */
-declare function resolveRemoteSessionId(tab: WorkspaceTabLike, registry: SessionRegistryLike): string | null; // 原 gc
-declare function resolveSessionServices(
-  tab: WorkspaceTabLike,
-  baseServices: { zcodeAgentService: WorkspaceAgentService | null } | null,
-  registry: SessionRegistryLike,
-): { services: { zcodeAgentService: WorkspaceAgentService | null }; remoteSessionId?: string } | null; // 原 vc
-declare function isSessionMissing(tab: WorkspaceTabLike, remoteSessionId: string | null): boolean; // 原 _c
+/* ── tombstone（A1-P3-B4）：六件 declare 删除——
+ *    zS createWorkspaceSessionIndexTransport：零消费（本叶无调用面，shim 未再导出）；
+ *      canonical = services/sessionIndex §B5-transport 逐字（styles 35405，A1-P3-B3 转录）。
+ *    Xs serviceGenerationOf：零消费；canonical = modules/stores-core serviceGeneration（原 4351）。
+ *    WS workspaceIdentityOf：调用面 988/1003/1279 改指 SessionStoreCore.sessionScopeWorkspaceKey
+ *      （styles 35526 逐字，A1-P3-B2）；同形证据见 A1-P3-B4.report.md §五。
+ *    gc resolveRemoteSessionId / _c isSessionMissing / vc resolveSessionServices（styles 4814/4822/4825）：
+ *      改指 WorkspaceTabsDeep canonical resolveTabRemoteSessionId/tabHasRemoteBacking/
+ *      resolveTabServicesBinding（语义重建，双归属裁决见 WTBD 头注）；buildShardPlan 参数形
+ *      随之改型（BaseServices/SessionRegistryState，零消费者，运行时值不变）。
+ *      同形证据见报告 §五；环证据见报告 §四（WTBD 闭包不达本叶，无新环）。 ── */
 interface WorkspaceTabLike {
   workspacePath: string;
   workspaceIdentity?: string | null;
   [key: string]: unknown;
-}
-interface SessionRegistryLike {
-  sessionsById: Map<string, unknown>;
-  sessionIdByWorkspaceIdentity: Map<string, string>;
-  sessionIdByWorkspacePath: Map<string, string>;
 }
 
 /* Sidebar.tsx 接口级声明的分组拖拽状态操作（144952–145128） */
@@ -529,179 +524,24 @@ export { armMembershipRefreshHold, releaseMembershipRefreshHold, awaitMembership
 export { readMembershipRefreshHoldState as getMembershipHoldStats };
 
 /* ============================================================================
- * §4 跨分片任务索引加载（原 32439–32527）
+ * §4 跨分片任务索引加载（原 32439–32527）+ §5 快照缓存（原 32528–32577）
+ * ----------------------------------------------------------------------------
+ * 〔A1-P3-B4〕收敛墓碑：本节语义实体（原 gx/_x/vx/yx/bx/xx/Sx/xOe/Cx +
+ *   wx/SOe/Tx/COe/wOe/Ex/TOe/EOe）与 TaskIndexCore 逐字转录（styles 32439–32577，
+ *   A1-P3-B2）消费面行为实测同形（证据见 A1-P3-B4.report.md §五）：同五路并发读 +
+ *   成员保持等待 + 不完整即抛错（loadTaskIndexShard ≡ readTaskIndexShard），同覆盖四集
+ *   收集序，同实体键去重（后出现者覆盖），同 8 位快照缓存（插入序淘汰 + 失败自删，
+ *   acquireTaskIndexSnapshot ≡ readTaskIndexCache），同服务对象弱引用稳定编号。
+ *   canonical = 逐字方（TaskIndexCore）；本节 13 实体删除，改别名再导出（导出面不变），
+ *   模块状态 wx/SOe/Tx/COe 归 canonical 侧 taskIndexCacheMap/taskIndexCacheCap/
+ *   serviceIndexIds/nextServiceIndexId。外部消费者全树实测为零；本叶内调用面原全在
+ *   本节体内，随删而尽（B3 §3 墓碑「§4/§5 语义孪生余量留批」 hereby 收口）。
+ *   环安全同 B3 §3（TaskIndexCore↔本叶互为环边，双方顶层全函数/var 声明，
+ *   零顶层即刻跨模块调用，fresh boot 实测在案）。
  * ==========================================================================*/
 
-/** 原 gx（32439） */
-export function scopeOf(scope: WorkspaceScope): WorkspaceScope {
-  return {
-    workspacePath: scope.workspacePath,
-    ...(scope.workspaceIdentity ? { workspaceIdentity: scope.workspaceIdentity } : {}),
-  };
-}
-/** 原 _x（32445） */
-export async function listPinnedIdsSafe(fn: () => Promise<string[]>): Promise<string[]> {
-  try {
-    return await fn();
-  } catch {
-    return [];
-  }
-}
-/** 原 vx（32452）：可用性标记包装 */
-export async function listTasksWithAvailability(
-  fn: () => Promise<TaskIndexRow[]>,
-): Promise<{ items: TaskIndexRow[]; available: boolean }> {
-  try {
-    return { items: await fn(), available: !0 };
-  } catch {
-    return { items: [], available: !1 };
-  }
-}
-/** 原 yx（32459） */
-export function collectUnreadAt(target: Map<string, number>, rows: TaskIndexRow[]): void {
-  for (const row of rows) if (typeof row.unreadAt == `number`) target.set(row.taskId, row.unreadAt);
-}
-/** 原 bx（32462） */
-export function collectTerminalStatus(target: Map<string, string>, rows: TaskIndexRow[]): void {
-  for (const row of rows) if (row.status === `completed` || row.status === `error`) target.set(row.taskId, row.status);
-}
-/** 原 xx（32465） */
-export function collectTitleOverrides(target: Map<string, string>, rows: TaskIndexRow[]): void {
-  for (const row of rows)
-    if (row.titleOverridden === !0 && row.title.trim().length > 0) target.set(row.taskId, row.title);
-}
-/** 原 Sx（32469） */
-export function collectCronAutomationIds(target: Map<string, string>, rows: TaskIndexRow[]): void {
-  for (const row of rows) if (row.cronAutomationId) target.set(row.taskId, row.cronAutomationId);
-}
-/** 原 xOe（32472）：按实体键去重（后出现者覆盖） */
-export function dedupeTaskRowsByEntityKey(shards: TaskIndexRow[][]): TaskIndexRow[] {
-  const byKey = new Map<string, TaskIndexRow>();
-  for (const rows of shards.flat()) byKey.set(entityKeyOf(rows), rows);
-  return [...byKey.values()];
-}
-/** 原 Cx（32477）：单端点五路并发读取 + 保持等待 + 不完整即抛错 */
-export async function loadTaskIndexShard(args: {
-  service: WorkspaceAgentService;
-  scopes: WorkspaceScope[];
-}): Promise<TaskIndexShard> {
-  const [pinnedIds, archived, tasks, pinned, deleted] = await Promise.all([
-    listPinnedIdsSafe(() => args.service.listPinnedTaskIds()),
-    Promise.all(args.scopes.map((scope) => listTasksWithAvailability(() => args.service.listArchivedTasks(scopeOf(scope))))),
-    Promise.all(args.scopes.map((scope) => listTasksWithAvailability(() => args.service.listTasks(scopeOf(scope))))),
-    Promise.all(args.scopes.map((scope) => listTasksWithAvailability(() => args.service.listPinnedTasks(scopeOf(scope))))),
-    Promise.all(
-      args.scopes.map((scope) =>
-        args.service.listDeletedTaskIds
-          ? listPinnedIdsSafe(() => args.service.listDeletedTaskIds!(scopeOf(scope)))
-          : Promise.resolve([] as string[]),
-      ),
-    ),
-  ]);
-  await awaitMembershipRefreshHold();
-  if (tasks.some((r) => !r.available) || archived.some((r) => !r.available) || pinned.some((r) => !r.available)) {
-    throw Error(`tasks-index task 行读取不完整`);
-  }
-  const archivedRows = archived.map((r) => r.items);
-  const taskRows = tasks.map((r) => r.items);
-  const pinnedRows = pinned.map((r) => r.items);
-  const unreadAtByTaskId = new Map<string, number>();
-  const terminalStatusByTaskId = new Map<string, string>();
-  const titleOverrideByTaskId = new Map<string, string>();
-  const cronAutomationIdByTaskId = new Map<string, string>();
-  collectUnreadAt(unreadAtByTaskId, archivedRows.flat());
-  collectUnreadAt(unreadAtByTaskId, taskRows.flat());
-  collectUnreadAt(unreadAtByTaskId, pinnedRows.flat());
-  collectTerminalStatus(terminalStatusByTaskId, archivedRows.flat());
-  collectTerminalStatus(terminalStatusByTaskId, taskRows.flat());
-  collectTerminalStatus(terminalStatusByTaskId, pinnedRows.flat());
-  collectTitleOverrides(titleOverrideByTaskId, archivedRows.flat());
-  collectTitleOverrides(titleOverrideByTaskId, taskRows.flat());
-  collectTitleOverrides(titleOverrideByTaskId, pinnedRows.flat());
-  collectCronAutomationIds(cronAutomationIdByTaskId, archivedRows.flat());
-  collectCronAutomationIds(cronAutomationIdByTaskId, taskRows.flat());
-  collectCronAutomationIds(cronAutomationIdByTaskId, pinnedRows.flat());
-  return {
-    taskIndexItems: dedupeTaskRowsByEntityKey([taskRows.flat(), pinnedRows.flat(), archivedRows.flat()]),
-    pinnedIds: new Set([...pinnedIds, ...pinnedRows.flat().map((r) => r.taskId)]),
-    archivedIds: new Set(archivedRows.flat().map((r) => r.taskId)),
-    deletedIds: new Set(deleted.flat()),
-    unreadAtByTaskId,
-    terminalStatusByTaskId,
-    titleOverrideByTaskId,
-    cronAutomationIdByTaskId,
-  };
-}
-
-/* ============================================================================
- * §5 快照缓存（原 32528–32577）
- * ==========================================================================*/
-
-const taskIndexSnapshotCache = new Map<string, Promise<TaskIndexShard>>(); // 原 wx
-const SNAPSHOT_CACHE_MAX = 8; // 原 SOe
-const serviceIdWeakMap = new WeakMap<object, number>(); // 原 Tx
-let nextServiceId = 1; // 原 COe
-
-/** 原 wOe（32532）：服务对象弱引用稳定编号 */
-export function serviceIdOf(service: object): number {
-  let id = serviceIdWeakMap.get(service);
-  if (id === void 0) {
-    id = nextServiceId++;
-    serviceIdWeakMap.set(service, id);
-  }
-  return id;
-}
-/** 原 Ex（32536）：按 cacheKey+服务端点签名取/建快照；满 8 按插入序淘汰；失败自删 */
-export function acquireTaskIndexSnapshot(args: {
-  cacheKey: string;
-  endpoints: TaskIndexEndpoint[];
-}): Promise<TaskIndexShard> {
-  const key = `${args.cacheKey}::svc=${args.endpoints.map((e) => serviceIdOf(e.service)).join(`,`)}`;
-  const cached = taskIndexSnapshotCache.get(key);
-  if (cached) return cached;
-  const promise = loadMergedTaskIndex(args.endpoints);
-  taskIndexSnapshotCache.set(key, promise);
-  promise.catch(() => taskIndexSnapshotCache.delete(key));
-  while (taskIndexSnapshotCache.size > SNAPSHOT_CACHE_MAX) {
-    const oldest = taskIndexSnapshotCache.keys().next().value;
-    if (oldest === void 0) break;
-    taskIndexSnapshotCache.delete(oldest);
-  }
-  return promise;
-}
-/** 原 TOe（32548）：成员保持启动时清空快照 */
-export function clearTaskIndexSnapshots(): void {
-  taskIndexSnapshotCache.clear();
-}
-/** 原 EOe（32551）：多端点分片合并（实体键去重 + 各覆盖集并集） */
-export async function loadMergedTaskIndex(endpoints: TaskIndexEndpoint[]): Promise<TaskIndexShard> {
-  const shards = await Promise.all(
-    endpoints.filter((e) => e.scopes.length > 0).map((e) => loadTaskIndexShard({ service: e.service, scopes: e.scopes })),
-  );
-  const merged: TaskIndexShard = {
-    taskIndexItems: [],
-    pinnedIds: new Set(),
-    archivedIds: new Set(),
-    deletedIds: new Set(),
-    unreadAtByTaskId: new Map(),
-    terminalStatusByTaskId: new Map(),
-    titleOverrideByTaskId: new Map(),
-    cronAutomationIdByTaskId: new Map(),
-  };
-  const rowByEntityKey = new Map<string, TaskIndexRow>();
-  for (const shard of shards) {
-    for (const row of shard.taskIndexItems) rowByEntityKey.set(entityKeyOf(row), row);
-    for (const id of shard.pinnedIds) merged.pinnedIds.add(id);
-    for (const id of shard.archivedIds) merged.archivedIds.add(id);
-    for (const id of shard.deletedIds) merged.deletedIds.add(id);
-    for (const [k, v] of shard.unreadAtByTaskId) merged.unreadAtByTaskId.set(k, v);
-    for (const [k, v] of shard.terminalStatusByTaskId) merged.terminalStatusByTaskId.set(k, v);
-    for (const [k, v] of shard.titleOverrideByTaskId) merged.titleOverrideByTaskId.set(k, v);
-    for (const [k, v] of shard.cronAutomationIdByTaskId) merged.cronAutomationIdByTaskId.set(k, v);
-  }
-  merged.taskIndexItems = [...rowByEntityKey.values()];
-  return merged;
-}
+export { pickScopePathIdentity as scopeOf, readListSafe as listPinnedIdsSafe, readListAvailability as listTasksWithAvailability, collectUnreadAtOverlays as collectUnreadAt, collectTerminalStatusOverlays as collectTerminalStatus, dedupeTaskIndexItemsByEntityKey as dedupeTaskRowsByEntityKey, readTaskIndexShard as loadTaskIndexShard, serviceIndexOf as serviceIdOf, readTaskIndexCache as acquireTaskIndexSnapshot, clearTaskIndexCache as clearTaskIndexSnapshots, mergeTaskIndexEndpoints as loadMergedTaskIndex } from '../shell/TaskIndexCore';
+export { collectTitleOverrides, collectCronAutomationIds } from '../shell/TaskIndexCore';
 
 /* ============================================================================
  * §6 会话合并/水合/过滤投影（原 32578–32721）
@@ -965,61 +805,26 @@ export function applyFrameToIndexState(
  * §8 会话索引键助手 + ZS 深部主钩子（原 35443–35658）
  * ==========================================================================*/
 
-/** 原 US（35443） */
-export function subscriptionScopeKey(scope: { endpointKey?: string; workspaceKey: string }): string {
-  return `${scope.endpointKey ?? `__base__`}:${scope.workspaceKey}`;
-}
-/** 原 ZAe（35446）：订阅条目全字段相等性 */
-export function isSameSubscriptionEntry(
-  a: { agentService: unknown; scope: Partial<SessionIndexScope> },
-  b: { agentService: unknown; scope: Partial<SessionIndexScope> },
-): boolean {
-  return (
-    a.agentService === b.agentService &&
-    a.scope.workspaceKey === b.scope.workspaceKey &&
-    a.scope.workspacePath === b.scope.workspacePath &&
-    a.scope.workspaceIdentity === b.scope.workspaceIdentity &&
-    a.scope.endpointKey === b.scope.endpointKey
-  );
-}
-/** 原 GS（35529） */
-export function scopeStoreKey(tab: { workspacePath: string; workspaceIdentity?: string | null; endpointKey?: string }): string {
-  return sessionIndexPoolKey({
-    workspaceKey: workspaceIdentityOf({ workspacePath: tab.workspacePath, workspaceIdentity: tab.workspaceIdentity }),
-    ...(tab.endpointKey ? { endpointKey: tab.endpointKey } : {}),
-  }); // A0-CLEANUP3 #40：SessionIndexScope.workspacePath 已改可选，断言移除（bundle GS@styles 35529 仅传 workspaceKey(+endpointKey)）
-}
-/** 原 $Ae（35532） */
-export function scopeStoreKeyAlias(tab: { workspacePath: string; workspaceIdentity?: string | null; endpointKey?: string }): string {
-  return scopeStoreKey(tab);
-}
-/** 原 KS（35535） */
-export function toSessionIndexScope(tab: {
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  endpointKey?: string;
-}): SessionIndexScope {
-  return {
-    workspaceKey: workspaceIdentityOf(tab),
-    workspacePath: tab.workspacePath,
-    ...(tab.workspaceIdentity ? { workspaceIdentity: tab.workspaceIdentity } : {}),
-    ...(tab.endpointKey ? { endpointKey: tab.endpointKey } : {}),
-  };
-}
-/** 原 qS（35543）：分片缓存键 = 池键 + \0path */
-export function shardCacheKeyOf(
-  tab: { workspacePath: string; workspaceIdentity?: string | null; endpointKey?: string },
-  agentService: unknown,
-): string {
-  return `${sessionIndexPoolKey(toSessionIndexScope(tab), agentService)}\0path:${tab.workspacePath}`;
-}
-/** 原 eje（35546）：空索引且空闲/连接中 */
-export function isIdleEmptyIndexStore(store: SessionIndexStore): boolean {
-  return (
-    store.getState().workspaceId === null &&
-    (store.getStatus() === `idle` || store.getStatus() === `connecting`)
-  );
-}
+/* ----------------------------------------------------------------------------
+ * 〔A1-P3-B4〕收敛墓碑：§8 键助手孪生簇（原 US/ZAe + GS/$Ae/KS/qS/eje，styles
+ *   35443–35551）改指逐字 canonical：
+ *   US subscriptionScopeKey ≡ scopeSubscriptionLabel | ZAe isSameSubscriptionEntry
+ *     ≡ sameScopeSubscriptionEntry（canonical 位 services/sessionIndex §B5-transport，
+ *     styles 35443–35454；同形已证 A1-P3-B3 §四，五字段比较逐字吻合）；
+ *   GS scopeStoreKey ≡ sessionStoreKey | $Ae scopeStoreKeyAlias ≡ storeKeyOfRegistrySession |
+ *   KS toSessionIndexScope ≡ resolveSessionScope | qS shardCacheKeyOf ≡ sessionSubscriptionKey |
+ *   eje isIdleEmptyIndexStore ≡ isSessionStoreHydrating | WS workspaceIdentityOf
+ *     ≡ sessionScopeWorkspaceKey（canonical 位 components/shell/SessionStoreCore，
+ *     styles 35526–35551，A1-P3-B2 转录；同形证据见 A1-P3-B4.report.md §五）。
+ *   七实体删除，改别名再导出（导出面不变）；内部调用面改直名 canonical
+ *   （resolveSessionScope/sessionStoreKey/sessionSubscriptionKey/
+ *   sessionScopeWorkspaceKey/isSessionStoreHydrating）。
+ *   环安全：SessionStoreCore→modules/services→services/sessionIndex→
+ *   modules/QuickPickDeep→本叶，既有环同构（同 B3 §3 墓碑），双方顶层全函数/再导出，
+ *   零顶层即刻跨模块读，ESM 提升安全。
+ * --------------------------------------------------------------------------*/
+export { scopeSubscriptionLabel as subscriptionScopeKey, sameScopeSubscriptionEntry as isSameSubscriptionEntry, sessionStoreKey as scopeStoreKey, storeKeyOfRegistrySession as scopeStoreKeyAlias, resolveSessionScope as toSessionIndexScope, sessionSubscriptionKey as shardCacheKeyOf, isSessionStoreHydrating as isIdleEmptyIndexStore } from '../shell/SessionStoreCore';
+
 /** 原 YS（35625） */
 export function entityPrevKeyOf(entity: { workspacePath: string; workspaceIdentity?: string | null; taskId: string }): string {
   return `${entity.workspaceIdentity?.trim() || entity.workspacePath}::${entity.taskId}`;
@@ -1130,26 +935,23 @@ export function normalizeShardScopes(scopes: WorkspaceScope[]): string[] {
 /** 原 sje（35700）：标签页 → 分片规划（按远端会话分组 + 缺失会话收集） */
 export function buildShardPlan(
   tabs: WorkspaceTabLike[],
-  baseServices: { zcodeAgentService: WorkspaceAgentService | null } | null,
-  registry: SessionRegistryLike,
+  baseServices: BaseServices,
+  registry: SessionRegistryState,
 ): {
   shards: Array<{
     shardKey: string;
-    services: { zcodeAgentService: WorkspaceAgentService | null };
+    services: BaseServices;
     workspaceScopes: WorkspaceScope[];
   }>;
   missingSessionIds: string[];
 } {
-  const bySession = new Map<
-    string,
-    { services: { zcodeAgentService: WorkspaceAgentService | null }; workspaceScopes: WorkspaceScope[] }
-  >();
+  const bySession = new Map<string, { services: BaseServices; workspaceScopes: WorkspaceScope[] }>();
   const missing = new Set<string>();
   for (const tab of tabs) {
-    const remoteSessionId = resolveRemoteSessionId(tab, registry);
-    const resolved = resolveSessionServices(tab, baseServices, registry);
+    const remoteSessionId = resolveTabRemoteSessionId(tab, registry);
+    const resolved = resolveTabServicesBinding(tab, baseServices, registry);
     if (!resolved) {
-      if (isSessionMissing(tab, remoteSessionId)) {
+      if (tabHasRemoteBacking(tab, remoteSessionId)) {
         missing.add(remoteSessionId ?? workspaceKeyOf(tab.workspacePath, tab.workspaceIdentity));
       }
       continue;
@@ -1237,7 +1039,7 @@ export function useSessionIndexShards(tabs: SessionIndexShardHookTab[]): {
       tabs
         .map((tab) => {
           const service = tab.agentService ?? baseAgentService;
-          return service ? shardCacheKeyOf(tab, service) : `${scopeStoreKey(tab)} ${tab.workspacePath} service-unavailable`;
+          return service ? sessionSubscriptionKey(tab, service) : `${sessionStoreKey(tab)} ${tab.workspacePath} service-unavailable`;
         })
         .sort()
         .join(`|`),
@@ -1254,7 +1056,7 @@ export function useSessionIndexShards(tabs: SessionIndexShardHookTab[]): {
     const entries: { scope: SessionIndexScope; agentService: WorkspaceAgentService }[] = [];
     for (const tab of tabsRef.current) {
       const service = tab.agentService ?? baseAgentService;
-      if (service) entries.push({ scope: toSessionIndexScope(tab), agentService: service });
+      if (service) entries.push({ scope: resolveSessionScope(tab), agentService: service });
     }
     subscriptionSet.reconcile(entries);
   }, [shardsRevision, baseAgentService, subscriptionSet]);
@@ -1272,11 +1074,11 @@ export function useSessionIndexShards(tabs: SessionIndexShardHookTab[]): {
     const sourceRevisionByScopeKey: Record<string, string> = {};
     const prevByKey = new Map(previousRowsRef.current.map((row) => [entityPrevKeyOf(row as TaskMeta & { workspacePath: string }), row]));
     for (const tab of tabsRef.current) {
-      const scopeKey = scopeStoreKey(tab);
+      const scopeKey = sessionStoreKey(tab);
       const service = tab.agentService ?? baseAgentService;
-      const shardKey = service ? shardCacheKeyOf(tab, service) : `${scopeKey} ${tab.workspacePath} service-unavailable`;
+      const shardKey = service ? sessionSubscriptionKey(tab, service) : `${scopeKey} ${tab.workspacePath} service-unavailable`;
       const store = subscriptionSet.getStore({
-        workspaceKey: workspaceIdentityOf(tab),
+        workspaceKey: sessionScopeWorkspaceKey(tab),
         ...(tab.endpointKey ? { endpointKey: tab.endpointKey } : {}),
       }); // A0-CLEANUP3 #40：同 scopeStoreKey，断言移除
       if (!store) {
@@ -1285,7 +1087,7 @@ export function useSessionIndexShards(tabs: SessionIndexShardHookTab[]): {
       }
       const state = store.getState();
       sourceRevisionByScopeKey[scopeKey] = `${shardKey}:${state.logEpoch ?? `none`}:${state.seq}:${store.getStatus()}`;
-      if (isIdleEmptyIndexStore(store)) idleEndpoints.add(tab.endpointKey ?? `__base__`);
+      if (isSessionStoreHydrating(store)) idleEndpoints.add(tab.endpointKey ?? `__base__`);
       for (const session of store.getSessions()) {
         items.push(
           sessionRowToTaskMeta(session as SessionIndexRow, { // services SessionIndexEntry 为弱形（索引签名），按本族行形收敛

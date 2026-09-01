@@ -130,7 +130,7 @@ import { formatRelativeTime } from '../../modules/SidePanel'; // $S
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
-import { readTaskIndexShard as fetchTaskIndex } from './TaskIndexCore'; // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
+import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex } from './TaskIndexCore'; // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上述 chunk；此处为重建接口）
@@ -253,7 +253,11 @@ interface WorkspaceServices {
   [key: string]: unknown;
 }
 
-/** 会话打开/水合助手（原 gc/_c/vc，jsx 3614–3621） */
+/** 会话打开/水合助手（原 gc/_c/vc，jsx 3614–3621）——〔A1-P3-B4〕留批：canonical 已定位 =
+ *  WorkspaceTabsDeep resolveTabRemoteSessionId/tabHasRemoteBacking/resolveTabServicesBinding
+ *  （styles 4814/4822/4825，语义重建），运行时同形；惟 canonical 参数形为全量
+ *  SessionRegistryState，本叶调用面传三字段快照（下方 SessionRegistrySnapshot），型面不接，
+ *  需 canonical 侧参数放宽或快照型归一后改指（证据见 A1-P3-B4.report.md §七）。 */
 declare function resolveRemoteSessionId(tab: WorkspaceTab, registry: SessionRegistrySnapshot): string | null;
 declare function isRemoteWorkspace(tab: WorkspaceTab, remoteSessionId: string | null): boolean;
 declare function buildScopedServices(
@@ -1037,7 +1041,10 @@ declare function groupedTaskSortKey(task: TaskMeta): string; // k8
 declare function topLevelTaskOrderKey(task: TaskMeta): string; // WRt
 declare function viewNodeCompareKey(node: GroupedViewNode): string; // A8
 declare function compareViewNodes(a: GroupedViewNode, b: GroupedViewNode): number; // GRt
-declare function hydrateTaskIndex(args: { taskIndexItems: TaskMeta[]; sessions: SessionItem[] }): TaskMeta[]; // Dx
+/* ── tombstone（A1-P3-B4）：declare hydrateTaskIndex（原 Dx）删除——逐字 canonical =
+ *    TaskIndexCore.applySessionRuntimeToIndexItems（styles 32592，A1-P3-B2 转录），
+ *    头部 import 别名接线（调用点 1081 逐字不变）。环安全同 B3 fetchTaskIndex（TaskIndexCore
+ *    顶层全函数/var 声明，值闭包不达 SidebarLeaves）。 ── */
 
 /** 原 KRt（— / 126406）：组内任务按成员 sortOrder 排序，缺序者按 addedAt 追加 */
 function sortTasksByGroupOrder(tasks: TaskMeta[], memberOrderByKey: Map<string, { sortOrder: number | null; addedAt?: number }>): TaskMeta[] {
@@ -1130,7 +1137,7 @@ function memberKeyOf(member: { workspacePath: string; workspaceIdentity?: string
 }
 
 /** 原 JRt（— / 126470）：草稿提升位置应用（top → 前置；group → 移入组） */
-declare function moveTaskIntoGroupStart(view: GroupedView, args: { activeTaskKey: string; groupId: string }): GroupedView; // d8（Sidebar.tsx 已还原）
+declare function moveTaskIntoGroupStart(view: GroupedView, args: { activeTaskKey: string; groupId: string }): GroupedView; // d8（Sidebar.tsx 已还原）〔A1-P3-B4 留批：canonical = Sidebar.tsx moveTaskIntoGroupStart，运行时同形；惟两叶各持本地 GroupedView/TaskGroup 型族（Sidebar 侧 TaskGroup 带索引签名，本叶无），型面不接，需型别归一后改指（证据见 A1-P3-B4.report.md §七）〕
 function applyDraftPromotions(
   view: GroupedView,
   promotions: Map<string, { placement: { type: "top" } | { type: "group"; groupId: string } }>,
