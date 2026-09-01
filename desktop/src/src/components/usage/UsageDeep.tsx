@@ -887,8 +887,8 @@ function entitlementCacheStorage(): Storage | null {
   return typeof window === `undefined` ? null : (window.localStorage ?? null);
 }
 
-/** 原 Bj（js 52270）：providerId+指纹 → 缓存键（任一为空 → 空键） */
-function entitlementFreshnessKey(opts: { providerId: string; providerFingerprint: string }): string {
+/** 原 Bj（js 52270，实测漂移 52319）：providerId+指纹 → 缓存键（任一为空 → 空键）。〔A1-R38〕补 export：PD §10 useCodingPlanEntitlements 四 cacheKey 面消费接引（styles Bj 消费 88335/88347/88376/88386） */
+export function entitlementFreshnessKey(opts: { providerId: string; providerFingerprint: string }): string {
   const providerId = opts.providerId.trim();
   const fingerprint = opts.providerFingerprint.trim();
   return !providerId || !fingerprint ? `` : `${USAGE_ENTITLEMENT_CACHE_PREFIX}${providerId}:${fingerprint}`;

@@ -428,6 +428,7 @@ export {
   upgradeFunnelContext,
   entryPlanStateOf,
   useAppSettings,
+  entitlementFreshnessKey, // 〔A1-R38〕补转导出：PD entitlementCacheKeyOf（Bj）declare 收敛改指（原 Bj，52319-52323；components 侧同批补 export）
 } from '../components/usage/UsageDeep'; // resolveModelGroupLabel（iN 53795）A1-R11 删碑：双实例收敛至 SubagentLeaves resolveModelFullLabel（A0 期既有转录）
 export type {
   FunnelContext,

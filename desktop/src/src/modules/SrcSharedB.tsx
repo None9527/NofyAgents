@@ -472,6 +472,7 @@ import {
   nativeProviderRef, customProviderRef, resolveProviderRefFromCustomModelRef
 } from '../lib/providerRefs';
 import { LINE_DIFF_LCS_CELL_BUDGET, splitTextIntoLines, countLineDiffChanges } from '../lib/lineDiff';
+import { useShallowSelector } from '../lib/shallowSelector'; // 〔A1-R38〕co 迁公共叶裁定：具名转导出（原 co，styles 1033-1039；settings 63494 区接引预备面）
 export {
   toHexByte, formatUuidFromBytes, generateUuid, newUniqueId,
   slugifyProviderName, fnv1aHash32Hex, buildStableProviderId, buildStableModelId,
@@ -479,7 +480,8 @@ export {
   CUSTOM_MODEL_REF_PREFIX, safeDecodeURIComponent, buildCustomModelRef, parseCustomModelRef,
   NATIVE_PROVIDER_REF_PREFIX, CUSTOM_PROVIDER_REF_PREFIX, GHOST_PROVIDER_REF_PREFIX,
   nativeProviderRef, customProviderRef, resolveProviderRefFromCustomModelRef,
-  LINE_DIFF_LCS_CELL_BUDGET, splitTextIntoLines, countLineDiffChanges
+  LINE_DIFF_LCS_CELL_BUDGET, splitTextIntoLines, countLineDiffChanges,
+  useShallowSelector // 〔A1-R38〕co 迁公共叶裁定：转导出面（真身 lib/shallowSelector.ts）
 };
 /* ============================================================================
  * §1 模型目录 schema 与助手（jsx 4902–5242 / js 4787–5138 区）
