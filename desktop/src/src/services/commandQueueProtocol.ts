@@ -15,7 +15,15 @@ import { crc32Hex } from '../modules/SrcSharedB';
  * zod 本体在 src-HCld2afU.js（K 导出）；此处以 TS 类型 + 声明常量表达 schema。
  * ==========================================================================*/
 
-/* --- G.1 任务未读通知去重（原 ux/dx，js 32262–32306） --- */
+/* --- G.1 任务未读通知去重（原 ux/dx，js 32262–32306） ---
+ * 〔A1-P2-B11 孪生登记 → 编排方裁定〕本段状态面 ax/ox + bump sx（styles 32288–32293）与
+ * TaskIndexCore（A1-P3-B2 逐字 32249–32720：optimisticMembershipVersion/membershipVersionListeners/
+ * bumpMembershipVersion ≡ 32288/32289/32291，ROUNDTRIP EXACT 472 行在案）构成同区孪生
+ * （G.4 FrameAssembler 孪生注先例：逐字方 vs A0 接线面）。R49 既判 sx 消费改指本段
+ * bumpUnreadNotificationVersion（§G.1 单一模块态），孪生关系登记在案，去重改指留批
+ * （P2-B10 DnD 孪生先例）。行漂登记（A1-P2-B11 证据，仅登记不改文）：本段头注
+ * 「32262–32306」为 A0 时代漂移注（sx 实测 32290–32293，R49 在案）；TaskIndexCore 头注
+ * 32249–32307 区行号较实测整体偏前一（实测 cx@32305/uOe@32306/lx@32307/ux@32308–32326）。 */
 
 const UNREAD_NOTIFY_DEDUPE_MS = 500; // 原 cx
 const UNREAD_NOTIFY_DEDUPE_MAX = 256; // 原 uOe

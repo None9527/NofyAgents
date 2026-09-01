@@ -233,6 +233,8 @@ import { type GitDataset, type GitPaneState, type GitSourceOption, type GitSumma
 import { canOpenSessionInSplit, openSessionBesideDraft, openSessionInSplit, sessionRouterStore, splitLayoutStore, type PaneWorkspaceScope, type SessionBinding } from '../../modules/SplitLayoutDeep'; // 原 ATt/MTt/jTt/A2/s2 + 型（A1-R2 引擎重建；A1-R3：ATt/jTt 缓改指解除——第二参按 bundle 扁平形改指）
 import { AppErrorFallback, ScopedErrorFallback, AppErrorBoundary, ScopedErrorBoundary } from './ErrorBoundaryCore'; // 〔A1-P2-B1〕原 QOt/$Ot/ekt/p4 逐字真身（styles js 129749–130008 单一连续原子区，ROUNDTRIP EXACT）；删碑见下 §2
 import { ResizablePanelGroup, ResizablePanel, ResizableSeparator, usePersistentGroupLayout } from './ResizablePanelsCore'; // 〔A1-P2-B2〕原 cAt/pAt/gAt/uAt vendored 引擎真身（styles js 131389–131950 单一连续原子区，ROUNDTRIP EXACT + LEAFCHECK EXACT）；删碑见下 §4
+import { useShallowSelector } from '../../lib/shallowSelector'; // 〔A1-P2-B11〕co 改指（原 co，styles 1033-1039）：真身链主树 R36 逐字闭合（wie/ao/oo/so/Cie/co，PD §12 尾部）→ R38 迁公共叶裁定（lib/shallowSelector.ts，一符一家；SrcSharedB 转导出面同批补，settings 63494 区 R39 接引既闭）；本叶消费 186147/186567 两处改名改指（R36 §12「接引批改指时统一归 useShallowSelector」裁定，无别名）；叶本体 = 主树 da69606 逐字节同拷（合并等值 add/add 收敛），逐字证据链见该叶头注 + 本批报告 §二
+import { bumpUnreadNotificationVersion as flushUnreadPersistence } from '../../services/commandQueueProtocol'; // 〔A1-P2-B11〕sx 改指（原 sx，styles 32290-32293）：R49 既判补导出（commandQueueProtocol §G.1 单一模块态 ax/ox，sx() 归一在案），消费位 186229/186234/186468 三处 ≡ R49 §五-2 余消费全集候本属域批；别名保留调用名（R1 判例 ≡ R49 QuickPickDeep bumpUnreadRevision 别名改指先例）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -544,12 +546,19 @@ const searchResultsStore = useSearchResultsStore; // 原 Vo（1553）：getState
  *    同一性实证：bundle 186220-186246 选择任务清未读流（tae(g, void 0) / nae(g, e.unreadAt)+sx() /
  *    Wo(g, v)+Ho([g])+sx()）与本文件 4450-4466 消费流逐字同形；canonical 包装 = store action 透传
  *    （QuickPick@1211-1213 真 store 面 WorkspaceScope & {taskId}）。 ── */
-/* ── 留批〔A1-P2-B10〕：flushUnreadPersistence（原 sx 32290）declare 保留——
- *    体 = ax 版本自增 + ox 监听集遍历通知；其监听注册面 cOe≡subscribeUnreadNotifications 与版本面
- *    ax/ox 已并入 services/commandQueueProtocol.ts（unreadNotifyVersion/unreadNotifyListeners，原 ax/ox 注在案），
- *    但 sx 独立导出面未立（ux≡notifyTaskUnreadChange 为带去重变体，签名不同不可改指）。
- *    闭合路径：未读持久化域转录时立 sx 真身导出，本 declare 删碑改指。 ── */
-declare function flushUnreadPersistence(): void;
+/* ── tombstone〔A1-P2-B11〕：declare flushUnreadPersistence（原 sx，styles 32290-32293）删除 → 改指
+ *    services/commandQueueProtocol bumpUnreadNotificationVersion（别名导入保调用名，文件头在案）。
+ *    属主归属普查：sx 真身 = ax 版本自增 + ox 监听集快照遍历通知（bundle `for (let e of [...ox]) e()`）；
+ *    状态面 ax/ox = commandQueueProtocol §G.1 单一模块态（unreadNotifyVersion/unreadNotifyListeners，
+ *    R49 既判；cOe/lOe/ux/dx 四导出共享，禁它叶本地转录、零状态双重化）。canonical 导出面
+ *    bumpUnreadNotificationVersion = R49 申请受理补导出（sx 32290-32293 逐字 + 快照遍历语义归正）；
+ *    sx() 归一在案（ux 两分支恢复 bundle 32310/32324 原形 sx() 调用，原内联副本删除）。
+ *    本文件消费位实测三处 ≡ R49 §五-2 余消费全集：@4471（≡ bundle 186229，选择任务清未读成功支
+ *    (nae(g, e.unreadAt), sx())）/ @4476（≡ bundle 186234，catch 回滚支 sx(),）/ @4770（≡ bundle 186468，
+ *    GJt≡e2eTaskMembershipProbes armTaskMembershipRefreshHold 内 (_Oe(), sx())）；调用面逐字零变。
+ *    孪生登记（不涉本改指）：TaskIndexCore（A1-P3-B2 逐字 32249-32720）同区转录 sx≡bumpMembershipVersion
+ *    映射在案，孪生属主裁定属主树侧职权（≡ commandQueueProtocol G.4 FrameAssembler 孪生注先例）；
+ *    本批依 R49 既判执行，改指面与 R49 QuickPickDeep@730（bundle 32402）改指同式。 ── */
 
 /* --- 远程会话注册表（原 tc） --- */
 
@@ -4321,8 +4330,20 @@ function hasActiveTaskRuntimeForProvider(
   return false;
 }
 
-/** 原 co（skillStore chunk）：zustand shallow 选择器包装（接口级） */
-declare function shallowSelector<T>(selector: T): T;
+/* ── tombstone〔A1-P2-B11〕：declare shallowSelector（原 co，styles 1033-1039）删除 → 改指
+ *    lib/shallowSelector useShallowSelector（文件头真实导入在案；改名改指，无别名——R36 §12
+ *    「接引批改指时统一归 useShallowSelector（一符一家，名随真身家主）」裁定）。
+ *    真身链证据：co 真身链主树 R36 既闭（ao/oo/so/Cie/wie/co 六符逐字转录，PD §12 尾部
+ *    10617-10677）→ R38 迁公共叶裁定 lib/shallowSelector.ts（一符一家；SrcSharedB 转导出面
+ *    同批补）→ R39 settings 63494 区 + EV/Composer 域外接引既闭；余 78441（相位刷新族 Jq）
+ *    候属域批。本叶消费位实测两处：下方 useWorkspaceShellZCodeState 内（≡ bundle 186147，
+ *    LJt 内 xe≡useTaskStore 选择器包装 `co((n) => {...})`）+ WorkspaceRoot 内（≡ bundle 186567，
+ *    XJt 内 pc≡useWorkspaceTabs 选择器包装 `co((e) => {...})`）；调用形逐字同。
+ *    负证据补登：主树 R36/leaf 头注 co 消费全集登记 9 处未含 186567（本批实测第 10 处，
+ *    与 186147 同属 XJt/LJt 域）。型缝：原 declare `<T>(selector: T): T` 接口级透传 →
+ *    真身 `(e: any) → (n: any) => any`，两消费位双向可赋（useTaskStore/useWorkspaceTabs
+ *    选择器入参面；≡ R39 Composer/EV 改指先例），函数返回注面 WorkspaceStateSlice 边界不收窄。
+ *    旧属纠名：原注「skillStore chunk」为接口级猜测，styles 998-1039 为 bundle 唯一真身区。 ── */
 
 /** 原 LJt（js 185847-185880）：供 WorkspaceShell 消费的成对选择器。
  *  workspaceShellZCodeState：渲染所需的最小状态投影（shallow 比较）；
@@ -4333,7 +4354,7 @@ function useWorkspaceShellZCodeState(workspaceAbsPath: string, workspaceIdentity
 } {
   return {
     workspaceShellZCodeState: useTaskStore(
-      shallowSelector((state: TaskStore): WorkspaceStateSlice => {
+      useShallowSelector((state: TaskStore): WorkspaceStateSlice => { // 〔A1-P2-B11〕co≡useShallowSelector 改名改指（≡ bundle 186147，LJt 内 xe 选择器包装）
         const workspaceState = getWorkspaceTaskStateAlias(state, workspaceAbsPath, workspaceIdentity);
         const taskSlice = getActiveTaskStatusError(workspaceState);
         return {
@@ -5014,7 +5035,7 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
   /* --- 身份解析：活动工作区 tab 优先（原 186269-186288） --- */
   const activeWorkspaceTarget = resolveActiveWorkspaceTarget({
     activeTarget: useWorkspaceTabs(
-      shallowSelector((state: WorkspaceTabStoreState) => { // 〔A1-P2-B2〕原 WorkspaceTabsState 本地型改指 canonical
+      useShallowSelector((state: WorkspaceTabStoreState) => { // 〔A1-P2-B11〕co≡useShallowSelector 改名改指（≡ bundle 186567，XJt 内 pc 选择器包装）；〔A1-P2-B2〕原 WorkspaceTabsState 本地型改指 canonical
         if (!state.activeTabId) {
           return { workspaceIdentity: undefined, remoteSessionId: undefined, remoteTarget: undefined };
         }
