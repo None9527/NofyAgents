@@ -1,18 +1,19 @@
 /* ============================================================================
- * conversationFrameSchemaCore.ts —— A1-P3-B6：conversation 动态帧 schema 域逐字补面
- * （styles js 32722–33239 六子区 + aS 33493–33496，488 行；aS 链余尾最大闭合安全子簇）
+ * conversationFrameSchemaCore.ts —— A1-P3-B6/B7：conversation 动态帧 schema 域逐字补面
+ * （styles js 32722–33287 六子区 + aS 33493–33496，536 行；aS 链闭合子簇 + 帧操作施用族）
  * 真身基准（只读）：desktop/src/out/renderer/assets/styles-CdEGpc2x.js
  *   （md5 48d71d4874b0868d61fd35a328bf6ad5，行号一律以它为准）。
  * 区段（七子区，非连续；G2 大 var 语句绕批 5 已录六声明位 Px/Vx/Wx/Yx/ike/Xx 切五段）：
  *   32722–32737（kx 行基形）+ 32739–32958（MOe…qOe 行族/队列族）
  *   + 32960–33043（JOe…Bx 控制/可用/路由/模型族）+ 33045–33103（Hx…nke 用量/交互族）
- *   + 33113–33155（Gx…Jx 交互/命令/后台/子代理族）+ 33178–33239（Zx…lke 帧/补丁/操作/行增量族）
+ *   + 33113–33155（Gx…Jx 交互/命令/后台/子代理族）+ 33178–33287（Zx…dke 帧/补丁/操作/行增量/帧操作施用族）
  *   + 33493–33496（aS conversation 帧 schema，S19 自共声明者语句切出）。
- * 消费面：aS 区外消费位 = 39592 new bS(aS)（conversation 传输，P2 域）——本批只立实体，
- *   消费侧改指不越域（§七登记）；oke/cke 等区外消费者零（canonical 立档）。
- * 转录机制：AST 精确改名（541 处），往返核对 ROUNDTRIP[cf] EXACT（488 行）在案
+ * 消费面：aS 区外消费位 = 39592 new bS(aS)（conversation 传输，属主 FeedbackCenter §16，
+ *   A0 域——只立实体，改指跨域登记，见 A1-P3-B7.report.md §六）；
+ *   dke 区外消费位 = 39966（conversation 传输 delta 施用，同域留批）；oke/cke 等区外消费者零。
+ * 转录机制：AST 精确改名（545 处），往返核对 ROUNDTRIP[cf] EXACT（536 行）在案
  *   （/tmp/a1r0-p3/p3b6-roundtrip.js）；缝剥离 SEAMSTRIP[cf] EXACT（p3b6-seamstrip.js）。
- * 映射表（minified → 语义名 → bundle 定义行，50 符）：
+ * 映射表（minified → 语义名 → bundle 定义行，52 符）：
  *   kx→conversationRowBase(32722) | MOe→backgroundWorkOriginMeta(32739) | NOe→workSegmentShape(32740)
  *   POe→turnHeaderRow(32747) | FOe→userInputRow(32767) | IOe→assistantTextRow(32786)
  *   LOe→reasoningRow(32794) | ROe→toolOutputTextShape(32801) | zOe→toolProgressShape(32802)
@@ -29,7 +30,8 @@
  *   Kx→pendingCommandShape(33121) | qx→backgroundWorkShape(33128) | rke→subagentSummaryShape(33140)
  *   Jx→subagentsSnapshotShape(33150) | Zx→planSnapshotShape(33178) | ake→rowsWindowShape(33179)
  *   oke→conversationLogicalFrame(33180) | ske→conversationStatePatch(33202) | cke→conversationOps(33219)
- *   lke→applyRowStreamTextDelta(33226) | aS→conversationFrameSchema(33493)
+ *   lke→applyRowStreamTextDelta(33226) | uke→applyConversationFrameOp(33240)
+ *   dke→applyConversationFrameOps(33283) | aS→conversationFrameSchema(33493)
  * 跨块直连：ji/K/Jr/Fi/Li/Oi/_t/$r/Ar/Yn/Tt→SrcSharedA zod 面；wr→zNever（SrcSharedA，src Ss）；
  *   Ree→contextBreakdownSchema / Jee→cacheStatsSchema / dne→subagentOriginSchema /
  *   zne→permissionResponseSchema（SrcSharedA 已录实体，src as/cs/os/ss）；
@@ -41,11 +43,12 @@
  *   33497–33528 aS var 语句共声明者 Dke/Oke/kke/Ake/sS/jke/Mke——Dke/kke/jke 读 nS
  *     （bi=protocolLimits 模块初始化面，批 6 已实体化接线，见下）但 nS/tS 族（33357–33439）
  *     与 sS 依赖 xke 族（33321–33354）超本批余量，留批；33529 死元组不录；
- *   33240–33287 uke/dke——帧操作施用函数（lke 已收 33226–33239，其唯一消费位 33277 在区内；
- *     uke/dke 自身消费属 nS/tS 留批族），留批。
- * 型缝（全型层，禁抑制符）×10：S19 语句切分 ×5（G2 四内切：var 前缀 + 收尾 ,→; ；
- *   aS 切出：var 前缀 + 末行 ,→;）+ P1 顶层函数参数 :any ×3（applyRowStreamTextDelta e/t/n）
- *   + S16 any 接收面回调参数 :any ×2（aS superRefine e/t）。
+ *   33240–33287 uke/dke——〔A1-P3-B7〕已续收（帧操作施用函数，闭合：仅依赖本叶 lke；
+ *     dke 消费位 39966 conversation 传输域留批）。
+ * 型缝（全型层，禁抑制符）×15：S19 语句切分 ×5（G2 四内切：var 前缀 + 收尾 ,→; ；
+ *   aS 切出：var 前缀 + 末行 ,→;）+ P1 顶层函数参数 :any ×7（applyRowStreamTextDelta e/t/n
+ *   + applyConversationFrameOp e/t + applyConversationFrameOps e/t，〔B7〕+4）
+ *   + S16 any 接收面回调参数 :any ×5（aS superRefine e/t + uke 行族回调 ×3，〔B7〕+3）。
  * ==========================================================================*/
 /* eslint-disable */
 import { zObject, zString, zEnum, zLiteral, zBoolean, zArray, zNumber, zDiscriminatedUnion, zRecord, zUnknown, zUnion, zNever, contextBreakdownSchema, cacheStatsSchema, subagentOriginSchema, permissionResponseSchema } from "../modules/SrcSharedA";
@@ -537,6 +540,54 @@ function applyRowStreamTextDelta(e: any, t: any, n: any) {
       return e.kind === `subagent` ? { ...e, summaryText: e.summaryText + n } : e;
   }
 }
+function applyConversationFrameOp(e: any, t: any) {
+  switch (t.op) {
+    case `row.appended`:
+      return {
+        ...e,
+        rows: {
+          ...e.rows,
+          window: [...e.rows.window, t.row],
+          totalCount: e.rows.totalCount + 1,
+          firstRowId: e.rows.firstRowId ?? t.row.rowId,
+        },
+      };
+    case `row.upserted`: {
+      let n = e.rows.window.findIndex((e: any) => e.rowId === t.row.rowId);
+      if (n === -1) return e;
+      let r = [...e.rows.window];
+      return ((r[n] = t.row), { ...e, rows: { ...e.rows, window: r } });
+    }
+    case `row.removed`: {
+      let n = e.rows.window.filter((e: any) => e.rowId < t.fromRowId),
+        r = e.rows.window.length - n.length,
+        i = e.rows.firstRowId !== null && t.fromRowId <= e.rows.firstRowId;
+      return {
+        ...e,
+        rows: {
+          ...e.rows,
+          window: n,
+          totalCount: i ? 0 : Math.max(0, e.rows.totalCount - r),
+          firstRowId: i ? null : e.rows.firstRowId,
+        },
+      };
+    }
+    case `row.delta`: {
+      let n = e.rows.window.findIndex((e: any) => e.rowId === t.rowId),
+        r = e.rows.window[n];
+      if (n === -1 || r === void 0) return e;
+      let i = [...e.rows.window];
+      return ((i[n] = applyRowStreamTextDelta(r, t.path, t.append)), { ...e, rows: { ...e.rows, window: i } });
+    }
+    case `state.updated`:
+      return { ...e, ...t.patch };
+  }
+}
+function applyConversationFrameOps(e: any, t: any) {
+  let n = e;
+  for (let e of t) n = applyConversationFrameOp(n, e);
+  return n;
+}
 var conversationFrameSchema = buildTopicFrameSchema(conversationLogicalFrame, conversationOps).superRefine((e: any, t: any) => {
     (!e.topic.startsWith(`conversation/`) || e.topic.length === 13) &&
       t.addIssue({ code: `custom`, message: `invalid conversation topic`, path: [`topic`] });
@@ -554,5 +605,6 @@ export {
   userInputInteractionShape, pendingInteractionShape, pendingCommandShape,
   backgroundWorkShape, subagentSummaryShape, subagentsSnapshotShape,
   planSnapshotShape, rowsWindowShape, conversationLogicalFrame, conversationStatePatch,
-  conversationOps, applyRowStreamTextDelta, conversationFrameSchema,
+  conversationOps, applyRowStreamTextDelta, applyConversationFrameOp, applyConversationFrameOps,
+  conversationFrameSchema,
 };
