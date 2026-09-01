@@ -358,7 +358,7 @@ declare const OffPeakTaskList: React.FC<{
 
 const AUTOMATIONS_MAIN_CONTAINER_CLASS = "mx-auto w-full max-w-4xl px-4 pb-8 pt-0 lg:px-8 lg:pb-10"; // 原 H3
 
-const AUTOMATIONS_TOAST_ANCHOR_ID = "automations-main-toast-anchor"; // 原 c6
+export const AUTOMATIONS_TOAST_ANCHOR_ID = "automations-main-toast-anchor"; // 原 c6；〔A1-P2-B10〕导出——WorkspaceShell 锚点 declare 改指消费（main id，WS 3617 区）
 
 /** 原 l6：自动化主视图 toast（统一挂锚点） */
 function automationsToast(message: string, opts?: ToastOptions): number {

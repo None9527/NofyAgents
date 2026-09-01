@@ -207,12 +207,13 @@ import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, re
 import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from '../../modules/SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；A0-CLEANUP3 3b：getWorkspaceSlice 形参对齐真 store 面
 import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, type TaskActionMenuItemsProps } from '../../modules/TopBar';
 import { WebRemoteControlDialog, useWebRemoteControlEnabled } from '../../modules/WebRemote';
-import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useWorkspaceServices } from '../../modules/services';
+import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useServicesOptional as ps, useWorkspaceServices } from '../../modules/services'; // 〔A1-P2-B10〕ps≡useServicesOptional（原 ps 2680，useContext(us) 裸读）——ERt 真身闭包依赖
 import { applySearchTaskMutation as applyOptimisticTaskMutation, invalidateWorkspaceResults as forgetRecentWorkspaces } from '../../stores/searchResultsStore'; // A1-R10 项 2b：原 Uo（1895）/Qie（1881）declare 改指 canonical = R9 shim（bundle 逐字）。型缝：本地旧面 previousTask/nextTask 可空，canonical 面必填——调用点 1980–2986 皆传非空实对象，吻合；forgetRecentWorkspaces 面 = Array<{workspacePath; workspaceIdentity?}> 同形（2892 逐字不变）。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/shell
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../../modules/stores-core';
 import { sessionActivityOf as taskSessionActivity, pendingInteractionOf as taskPendingAttention, compareTasks as compareTasksForList } from '../../modules/StoresDeep'; // A1-R10 项 2d：原 Mo/No/Fo（jsx 369/376/405）本地转录改指 canonical = helpers sessionActivityOf/pendingInteractionOf/compareTasks（Mo@1311/No@1318/Fo@1365 逐字）；调用点 1506/1507/1958/2248/2699 逐字不变。环安全：StoresDeep 值闭包（stores/* + SkillStore + SrcShared 族）不达 components/shell
 import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 项 2d：原 Go（jsx 986）本地转录改指 canonical = components/markdown baseName（Go@1928 逐字）；调用点 1561 逐字不变。环安全：MarkdownIntegration 值闭包（markdown 渲染族 + FileTreePanel resolveAvailableEditors）不达 components/shell（实测在案）
-import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）
+import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector, resolveTabRemoteSessionId as gc } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）；〔A1-P2-B10〕gc≡resolveTabRemoteSessionId（原 gc 4814）——ERt 真身闭包依赖
+import { useSessionRegistryStore as Zs } from '../../stores/sessionRegistryStore'; // 〔A1-P2-B10〕Zs≡useSessionRegistryStore（原 Zs 4357）——ERt 真身闭包依赖（服务注册表选择器）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 // 〔A1-R25〕aw 39378 收敛：markUsageEntryIntent declare 改接 Home §U.7 逐字真身（别名保留，调用点 4769 逐字不变；环安全：Home 顶层 hoisted function，本文件仅渲染期事件回调消费）
 import { openSettingsUsageSection as markUsageEntryIntent } from './Home';
@@ -618,6 +619,19 @@ function saveCollapsedGroupIds(ids: Set<string>, storage: Storage | null = getLo
  * 5. 分组色板与分组视图不可变操作
  *    （原 $6/$Ft/eIt/类名常量/e8/t8/n8 + sIt…TIt，js 144872–145136 / jsx 120648–121000）
  * ==========================================================================*/
+/* ── 〔A1-P2-B10〕孪生登记（项 2；P3-B9 §三 登记，编排方 B10 分发）：
+ *    本簇（27 顶层符号，登记口径 26 符，差额留合并取证对账）≡ 主树 QuickPickDeep DnD 簇
+ *    （P1-B12 已合入主树；groupedTaskKeyOf 等，canonical 既立）。
+ *    bundle 同源实证（styles-CdEGpc2x.js，md5 48d71d48…，当前位行）：
+ *      $6@144918 $Ft@144919 eIt@144928 tIt@144937 nIt@144938 rIt@144939 iIt@144940 aIt@144941
+ *      oIt@144942 e8@144943 t8@144949 n8@144952 sIt@144955 r8@144960 i8@144963 a8@144966
+ *      cIt@144994 s8@145004 pIt@145036 mIt@145041 c8@145044 hIt@145047 l8@145052 gIt@145071
+ *      SIt@145141 CIt@145145 wIt@145157
+ *    本簇符号名对照（本泳道语义名 → 登记 canonical 名示例）：groupedTaskKey → groupedTaskKeyOf（n8）。
+ *    裁定 = 孪生注记（非改指），证据：(a) canonical 主树内容在本工作区不可见，改指不可行；
+ *    (b) 本簇已是逐字实体转录（非 declare），无 declare 面可供改指。
+ *    合并后动作（留批）：编排方取证核对 canonical 导出面 → 本簇整体删除并改指 QuickPickDeep DnD 簇
+ *    别名 import（调用点不变），或按裁定反向保留。详见 A1-P2-B10.report.md §三。 ── */
 
 /** 原 $6（144872）：分组色板（7 色） */
 const GROUP_COLORS: GroupColor[] = ["gray", "red", "orange", "yellow", "green", "blue", "purple"];
@@ -1381,10 +1395,102 @@ function resolveInteractionBadgeModel(
     canSnooze: true,
   };
 }
-/** 原 ERt（150926 / 124970）：侧栏请求暂停自动结束（经会话服务发送暂停命令） */
-declare function useSnoozeInteractionCountdown(args: {
+/** 原 ERt（js 150972–151029；旧录 150926 为 b8 尾区、124970 为旧构建行号——现 bundle 本族无 jsx 孪生）：
+ * 侧栏请求暂停自动结束（经会话服务发送暂停命令）。
+ * 〔A1-P2-B10〕项 1 受理（P3-B9 §四 登记，编排方分发）；属主 = 本文件。
+ * 依赖闭包（调用点保逐字：ps/Zs/gc 经文件头别名 import，J→logger 为 @207 既有 canonical，Q→React）：
+ *  - ps≡useServicesOptional（services/serviceContext.tsx 原 ps 2680）| Zs≡useSessionRegistryStore（stores/sessionRegistryStore 原 Zs 4357）
+ *  - gc≡resolveTabRemoteSessionId（modules/WorkspaceTabsDeep 原 gc 4814）| logger≡J（modules/logger → lib/logger；bundle 828 `import { t as J }` 同形）
+ *  - nSt@117414 / AS@34647 为 wire 域依赖 → 下方两件 tombstone（其一含孪生注记）。
+ * 消费二处：151255 任务行（≡本文件 TaskRow）| 153708 DnD 排序行（域未转录，留批见 A1-P2-B10.report.md §六）。
+ */
+function useSnoozeInteractionCountdown(e: {
   workspacePath: string; workspaceIdentity?: string; remoteSessionId?: string; sessionId: string;
-}): (interactionId: string) => Promise<boolean> | boolean;
+}) {
+  let t = (0, React.useRef)(new Set<string>()),
+    n = ps(),
+    r = e.workspaceIdentity?.trim() || void 0,
+    i = e.remoteSessionId?.trim() || void 0,
+    a = !!(r || i),
+    o = Zs(
+      (0, React.useCallback)(
+        (t) => {
+          if (!a) return t.baseServices ?? n;
+          let o = gc(
+            {
+              workspacePath: e.workspacePath,
+              workspaceIdentity: r,
+              remoteSessionId: i,
+              remoteTarget: i ? !0 : void 0,
+            },
+            t,
+          );
+          return o ? (t.sessionsById[o]?.services ?? null) : null;
+        },
+        [n, a, i, e.workspacePath, r],
+      ),
+    );
+  return (0, React.useCallback)(
+    async (n: string) => {
+      let i = o?.zcodeAgentService as unknown as SnoozeAgentServiceLike | undefined; // 〔A1-P2-B10〕型缝：AutomationsAgentService 与 v4 传输面不重叠，二段收敛（A0-CLEANUP3 3b 例）
+      return i
+        ? (t.current.has(n) ||
+            (t.current.add(n),
+            logger.debug(`[task-interaction] 用户从侧栏请求暂停自动结束`, {
+              interactionId: n,
+              sessionId: e.sessionId,
+              source: `taskBadge`,
+            })),
+          snoozeInteractionAutoResolution({
+            sessionId: e.sessionId,
+            interactionId: n,
+            source: `taskBadge`,
+            sendCommand: async (t) => (
+              await sessionTransportHandshake(i),
+              i.sendConversationCommandV4({
+                workspacePath: e.workspacePath,
+                ...(r ? { workspaceIdentity: r } : {}),
+                envelope: t,
+              })
+            ),
+          }))
+        : (logger.warn(`[task-interaction] 暂停自动结束发生时目标 workspace 未连接`, {
+            interactionId: n,
+            sessionId: e.sessionId,
+            workspaceKey: r ?? e.workspacePath,
+          }),
+          !1);
+    },
+    [e.sessionId, e.workspacePath, o, r],
+  );
+}
+/** 〔A1-P2-B10〕型缝：ERt 消费面归纳的 v4 传输最小服务面（AS@34647–34670 helloConversationV4/initializeConversationV4
+ * + ERt@151007–151015 sendConversationCommandV4）。 */
+type SnoozeAgentServiceLike = {
+  helloConversationV4(): Promise<unknown>;
+  initializeConversationV4(args: unknown): Promise<unknown>;
+  sendConversationCommandV4(args: { workspacePath: string; workspaceIdentity?: string; envelope: unknown }): Promise<unknown>;
+};
+/* ── tombstone（A1-P2-B10）：原 nSt（117414–117444）wire 域暂停分发器 declare——
+ *    体 = OS（34629，CAS 命令封套：commandId/clientId/baseRevision/baseLogEpoch 校验）+ K1.record/applyAck
+ *    + sendCommand + status accepted|duplicate|noop 判定 + onCommandSettled 回调。
+ *    本工作区不在案：闭包 OS/K1（命令台账）属 wire/会话命令域（属主 = P3 泳道 wire 批）；
+ *    域转录后删碑改指 import（调用点 snoozeInteractionAutoResolution(…) 不变）。 ── */
+declare function snoozeInteractionAutoResolution(args: {
+  sessionId: string;
+  interactionId: string;
+  source: string;
+  sendCommand(command: unknown): Promise<unknown>;
+  onCommandSettled?(commandId: string): void;
+}): Promise<boolean>;
+/* ── tombstone + 孪生注记（A1-P2-B10）：原 AS（34647–34670）会话传输握手 declare——
+ *    体 = WeakMap（kS）缓存 helloConversationV4 parse + initializeConversationV4 clientHello（protocolVersion 3），
+ *    失败时清除缓存条目（同一服务的并发握手共享同一 promise）。
+ *    孪生登记：canonical = conversationWireCore::sessionTransportHandshake（主树 P3 泳道，[wire] 669 在案；
+ *    编排方 B10 分发同批）。裁定证据（不录第二份真身）：AS 持模块级 WeakMap 状态——第二份真身合并后
+ *    握手缓存双实例；且 canonical 叶在本工作区不可见 → 改指不可行。合并后动作：删碑改指 import
+ *    （调用点 sessionTransportHandshake(i) 不变）。 ── */
+declare function sessionTransportHandshake(service: SnoozeAgentServiceLike): Promise<unknown>;
 
 /* ============================================================================
  * 11. 任务行（原 E8 + LRt，js 151186–151617 / jsx 125140–125351）

@@ -72,15 +72,15 @@ export function applySearchTaskMutation(mutation: Parameters<SearchResultsState[
   }
 }
 
-export function setSearchTaskUnreadOverlay(task: TaskMeta, unreadAt: number | null | undefined): void {
+export function setSearchTaskUnreadOverlay(task: WorkspaceScope & { taskId: string }, unreadAt: number | null | undefined): void { // 〔A1-P2-B10〕参形 TaskMeta → 真 store 面（QuickPick@1211；bundle tae 1905 透传消费面）
   useSearchResultsStore.getState().setTaskUnreadOverlay(task, unreadAt);
 }
 
-export function reconcileSearchTaskUnread(task: TaskMeta, unreadAt: number | null | undefined): void {
+export function reconcileSearchTaskUnread(task: WorkspaceScope & { taskId: string }, unreadAt: number | null | undefined): void { // 〔A1-P2-B10〕参形 TaskMeta → 真 store 面（QuickPick@1212；bundle nae 1908 透传消费面）
   useSearchResultsStore.getState().reconcileTaskUnread(task, unreadAt);
 }
 
-export function rollbackSearchTaskUnread(task: TaskMeta, unreadAt: number | undefined): void {
+export function rollbackSearchTaskUnread(task: WorkspaceScope & { taskId: string }, unreadAt: number | null | undefined): void { // 〔A1-P2-B10〕参形 TaskMeta → 真 store 面 + unreadAt 宽化 null 支（QuickPick@1213；bundle Wo 1911 透传消费面）
   useSearchResultsStore.getState().rollbackTaskUnread(task, unreadAt);
 }
 

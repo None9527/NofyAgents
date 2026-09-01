@@ -175,6 +175,7 @@ export {
   visibleTabsForOwner,
   syncScopeState,
   findActiveSelectionSideChat,
+  findActiveTab,
   closeTabById,
   closeTabAndRepair,
   activateTab,

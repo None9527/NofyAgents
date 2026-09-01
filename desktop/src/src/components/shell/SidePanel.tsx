@@ -972,8 +972,8 @@ export function upsertTab(state: SidePaneState | null, tab: SidePaneTab): SidePa
   return { tabs: [...state.tabs, tab], activeTabId: tab.id };
 }
 
-/** 原 $o：取激活标签 */
-function findActiveTab(state: SidePaneState | null): SidePaneTab | null {
+/** 原 $o：取激活标签；〔A1-P2-B10〕导出——WorkspaceShell getActiveSidePaneTab declare 改指消费（bundle 186757 rn≡$o 实证） */
+export function findActiveTab(state: SidePaneState | null): SidePaneTab | null {
   return state ? (state.tabs.find((t) => t.id === state.activeTabId) ?? null) : null;
 }
 

@@ -201,30 +201,33 @@ import { workspaceKeyOf } from '../../modules/CodeViewer';
  *    import 已删除——PTt 域 A1-R3 逐字重建于 modules/SplitLayoutUiDeep.tsx，
  *    改自该模块消费（同行 StackedConversationPane=owt + FTt/ITt/LTt 面）。 ── */
 import { ConversationOrchestrator, StackedConversationPane, SidebarSessionDropProvider, useSidebarSessionDrop, useLastSessionRestore as useLastSessionPersistence, type SidebarSessionDropTarget } from '../../modules/SplitLayoutUiDeep'; // 原 PTt/owt/FTt/ITt/LTt（A1-R3：styles js 121301–123136 表现层逐字重建改指）+ HTt（A1-R4：js 123139–123196 last-session 域改指）
-import { type InstalledEditor } from '../../modules/FileTreePanel';
+import { type InstalledEditor, samePath as isSamePath, isPathWithinRoot as isPathWithin } from '../../modules/FileTreePanel'; // 〔A1-P2-B10〕isSamePath/isPathWithin declare 改指（原 BA 50974 / VA 50977；同一性实证见删 declare 处墓碑）
 import { APP_LOGO_DATA_URL, FeedbackCenter, collectWorkspaceTaskIds, resolveAdjacentTasks, runWithWorkspaceVisibility, type FeedbackService } from '../../modules/FeedbackCenter';
-import { WorkspaceSelectionRow } from '../../modules/Home';
+import { WorkspaceSelectionRow, openSettingsSection as setSettingsTabTarget, type SettingsSectionId } from '../../modules/Home'; // 〔A1-P2-B10〕+openSettingsSection as setSettingsTabTarget（原 iw 39375；Home@4210 canonical，A1-R24 settingsNavigation 簇在案）——下方设置域 declare 删碑改指，R1 判例别名保留调用名
 import { toast, usePlatformService as usePlatformServiceCanonical } from '../../modules/ImeComposition'; // 〔A1-P2-B6〕+usePlatformServiceCanonical（原 l ≡ imeComposition chunk M 导出 ≡ usePlatform 域外消费别名，components/ime/ImeComposition.tsx@186；census wt_defn=yes 唯一在案）：下方 declare 删碑改指
 import { type FileLinkModel } from '../../modules/MarkdownIntegration'; // A0-CLEANUP4：markdown 文件链接回调面（原 MHe 模型，js 51430）
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { QuickPick, buildQuickPickCommands, useSearchResultsStore, type SearchResultsState } from '../../modules/QuickPick'; // +useSearchResultsStore/type SearchResultsState（A1-R10 2f：原 Vo（1553）declare 与本地薄面改指 canonical——QuickPick 1254 区实体；调用点 4372/4439/4481/4704/4724/5505 逐字不变）。既有边（209），环安全：QuickPick 值闭包不达 components/shell
+import { setSearchTaskUnreadOverlay as markTaskUnreadLocally, reconcileSearchTaskUnread as applyTaskUnreadAt, rollbackSearchTaskUnread as rollbackTaskUnread, markWorkspaceResultsStale as queueUnreadPersistence } from '../../stores/searchResultsStore'; // 〔A1-P2-B10〕未读四件改指（原 tae 1905 / nae 1908 / Wo 1911 / Ho 1885；bundle 186220-186246 消费流逐字同证；canonical 包装参形同步宽化真 store 面，见该叶注）——下方四 declare 删碑，R1 判例别名保留调用名
 import { type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // A0-CLEANUP B-24：远端会话形（Home/RemoteWizardDialog 调用面对齐）
 import { resolveThemeMode } from '../../modules/Settings';
-import { SidePanel, useSidePaneState, type BrowserMetadataPatch, type BrowserNavigationRequest, type BrowserResidencyEvent, type BrowserUseOperationEvent, type BrowserUseTabDescriptor, type BrowserUseVisibilityEvent, type CodeViewerSource as SidePanelCodeViewerSource, type PlatformService as SidePanelPlatformService, type RecentClosedSidePaneTab, type ScreenshotSurfaceRequest, type SidePaneState, type SidePaneTab, type SubagentListResponse, type SubagentOpenRequest } from '../../modules/SidePanel'; // 侧面板态型以 SidePanel 导出为准
+import { SidePanel, useSidePaneState, normalizeSidePaneState, findActiveSelectionSideChat as findSelectionSideChatTab, findActiveTab as getActiveSidePaneTab, type BrowserMetadataPatch, type BrowserNavigationRequest, type BrowserResidencyEvent, type BrowserUseOperationEvent, type BrowserUseTabDescriptor, type BrowserUseVisibilityEvent, type CodeViewerSource as SidePanelCodeViewerSource, type PlatformService as SidePanelPlatformService, type RecentClosedSidePaneTab, type ScreenshotSurfaceRequest, type SidePaneState, type SidePaneTab, type SubagentListResponse, type SubagentOpenRequest } from '../../modules/SidePanel'; // 侧面板态型以 SidePanel 导出为准；〔A1-P2-B10〕+normalizeSidePaneState（原 fae 1984）——per-task UI 态 moe/ss/cs 真身闭包依赖；+findActiveSelectionSideChat as findSelectionSideChatTab（原 $ae 2440，bundle 184964 wr≡$ae 实证）+findActiveTab as getActiveSidePaneTab（原 $o 2171，bundle 186757 rn≡$o 实证）——下方两 declare 删碑改指，R1 判例别名保留调用名
 import { isE2EStoreBridgeEnabled, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, getWorkspaceTaskStateAlias, getActiveTaskStatusError, getWorkspaceInit, getMergedTaskList, isTaskNavAutomationsEntry, canGoBackInTaskNav, canGoForwardInTaskNav, readLastAgentModelOnly, applyStoredModelToOptions, clearLastAgentModelConfig, parseCustomModelId, getMergedTaskListItem, mergeTaskMetaMany, type TaskStore, type WorkspaceTaskState, type TaskMeta, type ConfigOption } from '../../modules/SkillStore'; // +TaskStore（A0-CLEANUP B-3：选择器改指真 store 型）；+workspaceKey（原 Io/Lo，A0-CLEANUP 族清理）；+isE2EStoreBridgeEnabled（A1-R10 项 1b：原 re = skillStore chunk K 导出，w_e 门控，bundle styles 382 `K as re` 实证在案）；〔A1-P2-B1〕+选择器/导航/模型持久化十一件（原 fe/ze/R/oe/Ce/ae/B/D/v/y/O ≡ taskStore 真身，删碑见下各 tombstone）；+WorkspaceTaskState/TaskMeta/ConfigOption 三型 = canonical 真形（本地归纳形删除，见下 tombstone）；〔A1-P2-B9〕+getMergedTaskListItem/mergeTaskMetaMany（原 ce ≡ E 235 / pe ≡ de 150，skillStore chunk `P as ce`/`W as pe` 进口，本文件头映射表在案）：下方 useActiveTaskMeta declare 删碑改指（e_e 真身转录）
 import { isBuiltinProviderId, isGlmAgentCliProvider } from '../../modules/SrcSharedA'; // 〔A1-P2-B1〕jt ≡ Eo ≡ _l（src 4742 七键析取）/ Ei ≡ us ≡ Ds（src 3844 `e === \`glm\``）真身；R32 同源判例在 PaymentDeep
 import { customProviderRef, nativeProviderRef, DesktopMenuActionIds, appHeaderTestid } from '../../modules/SrcSharedB'; // 〔A1-P2-B1〕mi ≡ j ≡ lS（src 8984）/ On ≡ M ≡ cS（src 8981，R33 实证）/ oi ≡ ft ≡ ex（src 8631）/ Mi ≡ wt ≡ bg（src 8235）真身
-import { taskEntityKey } from '../../modules/StoresDeep';
+import { taskEntityKey, sessionActivityOf as describeTaskActivity } from '../../modules/StoresDeep'; // 〔A1-P2-B10〕+sessionActivityOf as describeTaskActivity（原 Mo 1311 ≡ canonical，删碑见原 declare 处；R1 判例别名保留调用名）
 import { type TerminalService } from '../../modules/TerminalPane'; // A0-CLEANUP4：WorkspaceServices.terminalService 型（注册表透传面）
 import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle, type UpdateState } from '../../modules/TopBar';
 import { toWorkspacePrepareError as normalizeReloadError } from '../conversation/ConversationModelInit'; // 〔A1-P2-B8→编排方合并执行〕原 VUe declare 改指逐字真身（52969-52974；调用面 toReloadSessionError 逐字不变）
 import { WebRemoteMobileShell, type MobileHomeResult, type TaskMeta as WebRemoteTaskMeta, type WebRemoteSwitcherService } from '../../modules/WebRemote';
 import type { CodeViewerSource, FileTreeRequest, RemoteLogsByWorkspaceKey, SidebarUser, ThemeId } from './Sidebar'; // 〔A1-P2-B7〕Sidebar 型收敛五族 canonical 改指（onOpenCodeViewer/fileTreeOpenRequest/logs/user/theme）；值面 rVt 改指待族 5（switcher）闭合——见下方 declare 注
-import { useBaseServices, useServices, useResolvedWorkspaceServices as useWorkspaceServicesResolver } from '../../modules/services'; // 〔A1-P2-B2〕+useWorkspaceServicesResolver（原 Dc ≡ services/remoteServices useResolvedWorkspaceServices 真身，删碑见下 tabs 域）
+import { useBaseServices, useServices, useResolvedWorkspaceServices as useWorkspaceServicesResolver, useWorkspaceProviderConfigFile as useProviderConfigFile, useTaskNativeSessionLogFile, useTaskSessionFilePath, useGlobalKeyboardShortcuts as useWorkspaceKeyboardShortcuts } from '../../modules/services'; // 〔A1-P2-B2〕+useWorkspaceServicesResolver（原 Dc ≡ services/remoteServices useResolvedWorkspaceServices 真身，删碑见下 tabs 域）；〔A1-P2-B10〕+useWorkspaceProviderConfigFile as useProviderConfigFile（原 wge 24288；bundle 186741 en≡wge 实证）——下方 declare 删碑改指，R1 判例别名保留调用名；〔A1-P2-B10〕+useTaskNativeSessionLogFile/useTaskSessionFilePath（原 qge 24612/Xge 24686 真身，services/workspaceServiceHooks D.4，删碑见原 declare 处）；+useGlobalKeyboardShortcuts as useWorkspaceKeyboardShortcuts（原 rge 24063 同符归一，删碑见快捷键绑定层）
 import { useFeedbackStore, useSettingsStore, getSessionById as getRemoteSessionRegistryEntry } from '../../modules/stores-core'; // 〔A1-P2-B2〕+getRemoteSessionRegistryEntry（原 tc ≡ stores/sessionRegistryStore getSessionById 真身，删碑见下）
 import { useWorkspaceTabStore as useWorkspaceTabs, useWorkspaceTabStoreApi as useWorkspaceTabsStore, isWorkspaceKindTab as isWorkspaceTab, hasUnavailableLocalDirectoryTab as isWorkspaceUnavailableLocalDirectory, type WorkspaceTab, type WorkspaceTabStoreState } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P2-B2〕原 pc/hc/oc/sc 四件 + WorkspaceTab/WorkspaceTabsState 二型改指 R1 canonical 属主（删碑见下 tabs 域；别名保留本地调用名，R1/R2/R3 判例）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-P2-B10〕原 G（IntlProvider chunk 导入别名）≡ D@9248–9252 useZCodeIntl——下方 useIntlContext declare 删碑改指（R1 判例别名保留调用名）；同形先例 SkillsSettingsSection@18
 import { AutomationsMain, RepoWikiView as RepoWikiMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）；〔A1-P2-B9〕+RepoWikiView as RepoWikiMain（原 l3，F16 族根，js 132306-133070）：下方 declare 删碑改指——canonical = ExtendedViews §1 A0 代转录（SidePanel@4354 既接同面），R1 判例别名保留调用名；调用点 2969/3257 逐字不变
+import { AUTOMATIONS_TOAST_ANCHOR_ID as AUTOMATIONS_MAIN_TOAST_ANCHOR_ID } from '../automations/AutomationsMainView'; // 〔A1-P2-B10〕原 c6（138647）——下方锚点 declare 删碑改指 canonical（AutomationsMainView@361 同值真身，l6 toast 同锚消费）；R1 判例别名保留调用名，消费面 main id 逐字不变
 import { useTaskSessionRecord as Uge } from '../../modules/SessionRecordCore'; // 〔A1-P2-B9〕R40 §六.4 接线：原 Uge（styles 24574-24599）过渡 declare 删碑改指真实导入（五参签名恰合，本泳道 stand-in 叶；主树 R40 同名叶合并裁定见叶头注）；别名保留束名，e_e 真身调用面 24787 逐字不变
 import { type GitDataset, type GitPaneState, type GitSourceOption, type GitSummary } from '../../modules/GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
 import { canOpenSessionInSplit, openSessionBesideDraft, openSessionInSplit, sessionRouterStore, splitLayoutStore, type PaneWorkspaceScope, type SessionBinding } from '../../modules/SplitLayoutDeep'; // 原 ATt/MTt/jTt/A2/s2 + 型（A1-R2 引擎重建；A1-R3：ATt/jTt 缓改指解除——第二参按 bundle 扁平形改指）
@@ -240,11 +243,10 @@ import { ResizablePanelGroup, ResizablePanel, ResizableSeparator, usePersistentG
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): {
-  intl: IntlShape;
-  locale: string;
-  setLocale(locale: string): void;
-};
+/* ── tombstone〔A1-P2-B10〕：useIntlContext declare（原 G，IntlProvider-C321H7m8.js 导入别名）删除 → 文件头真实导入
+ *    （useZCodeIntl as useIntlContext，../../modules/I18n；canonical ≡ D@9248–9252，I18n 叶头 §105 G()≡useZCodeIntl 同注册）。
+ *    型合证据：ZCodeIntl.formatMessage 面 ≡ 本地 IntlShape（I18n@201 逐字同形）；locale: SupportedLocale ⊂ string；
+ *    setLocale(LocalePreference) 消费面 = registerTestActions 索引签名槽（@5813）。同形改指先例：SkillsSettingsSection@18。 ── */
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
@@ -536,26 +538,17 @@ const searchResultsStore = useSearchResultsStore; // 原 Vo（1553）：getState
 
 /* --- 未读状态助手（原 tae/nae/Wo/Ho/sx） --- */
 
-declare function markTaskUnreadLocally(input: {
-  taskId: string;
-  workspacePath: string;
-  workspaceIdentity?: string;
-}, unreadAt: number | null | undefined): void;
-declare function applyTaskUnreadAt(input: {
-  taskId: string;
-  workspacePath: string;
-  workspaceIdentity?: string;
-}, unreadAt: number | null): void;
-declare function rollbackTaskUnread(input: {
-  taskId: string;
-  workspacePath: string;
-  workspaceIdentity?: string;
-}, unreadAt: number | null): void;
-declare function queueUnreadPersistence(inputs: Array<{
-  taskId: string;
-  workspacePath: string;
-  workspaceIdentity?: string;
-}>): void;
+/* ── tombstone〔A1-P2-B10〕：未读四件 declare 删除 → 文件头真实导入（../../stores/searchResultsStore）：
+ *    markTaskUnreadLocally（原 tae 1905）≡ setSearchTaskUnreadOverlay | applyTaskUnreadAt（原 nae 1908）≡ reconcileSearchTaskUnread
+ *    rollbackTaskUnread（原 Wo 1911）≡ rollbackSearchTaskUnread | queueUnreadPersistence（原 Ho 1885）≡ markWorkspaceResultsStale
+ *    同一性实证：bundle 186220-186246 选择任务清未读流（tae(g, void 0) / nae(g, e.unreadAt)+sx() /
+ *    Wo(g, v)+Ho([g])+sx()）与本文件 4450-4466 消费流逐字同形；canonical 包装 = store action 透传
+ *    （QuickPick@1211-1213 真 store 面 WorkspaceScope & {taskId}）。 ── */
+/* ── 留批〔A1-P2-B10〕：flushUnreadPersistence（原 sx 32290）declare 保留——
+ *    体 = ax 版本自增 + ox 监听集遍历通知；其监听注册面 cOe≡subscribeUnreadNotifications 与版本面
+ *    ax/ox 已并入 services/commandQueueProtocol.ts（unreadNotifyVersion/unreadNotifyListeners，原 ax/ox 注在案），
+ *    但 sx 独立导出面未立（ux≡notifyTaskUnreadChange 为带去重变体，签名不同不可改指）。
+ *    闭合路径：未读持久化域转录时立 sx 真身导出，本 declare 删碑改指。 ── */
 declare function flushUnreadPersistence(): void;
 
 /* --- 远程会话注册表（原 tc） --- */
@@ -592,7 +585,10 @@ type RemoteTarget = {
 
 /* --- 设置域（原 ko / xo / iw） --- */
 
-declare function setSettingsTabTarget(section: string): void;
+/* ── tombstone〔A1-P2-B10〕：setSettingsTabTarget declare（原 iw 39375）删除 → 文件头真实导入
+ *    （openSettingsSection as setSettingsTabTarget，../../modules/Home；canonical = Home@4210，A1-R24 簇注在案）。
+ *    型缝：declare 旧面参形 string，canonical 面 SettingsSectionId——本文件唯一消费面（handleOpenSettingsSection
+ *    下方 5450 区）参形同步收窄 SettingsSectionId；调用点仅 "skills"/"mcp" 字面量（5650/5651），运行期无差。 ── */
 
 /* --- 反馈域（原 yC） --- */
 
@@ -600,9 +596,14 @@ declare function setSettingsTabTarget(section: string): void;
 /* --- 路径 / 工作区键 工具（原 Io/Go/Yo/BA/VA/Lo） --- */
 
 /* ── tombstone（A0-CLEANUP 族清理）：workspaceKey declare 删除 → import { resolveWorkspaceKey as workspaceKey } from './SkillStore'。 ── */
-declare function browserUrlFromPath(path: string): string;
-declare function isPathWithin(parent: string, child: string): boolean;
-declare function isSamePath(a: string, b: string): boolean;
+declare function browserUrlFromPath(path: string): string; // 原 Yo（1958–1966）；canonical 属所 = FileTreePanel pathToFileUrl（components/code-viewer/FileTreePanel.tsx @271 现仍 declare，该域转录后改指）。体依赖 iae@1925/aae@1926 两正则 + encodeURI；消费面实证：bundle 184899 bt(Yo(n.path)) ≡ 本文件 handleOpenBrowserUrl(browserUrlFromPath(link.path))
+
+/* ── tombstone〔A1-P2-B10〕：isPathWithin/isSamePath 两 declare 删除 → 文件头真实导入
+ *    （isPathWithinRoot as isPathWithin、samePath as isSamePath，../../modules/FileTreePanel）。
+ *    同一性实证：VA@50977 体 ≡ isPathWithinRoot 逐字同（r === n || r.startsWith(n+'/')）；
+ *    BA@50974 体 ≡ samePath 逐字同（MA 归一后相等）。
+ *    纠名实证：bundle 184701（ir 过滤）用 VA、184920（revealPath）用 BA——旧转录两调用点名互误，
+ *    本批就地纠名（各调用点注记在案），行为面与 bundle 逐字一致。 ── */
 
 /* --- git 域（原 nge/Yse/yst） --- */
 /* GitSummary/GitDataset/GitSourceOption 已接线 GitReview 导出（原 Yhe 缺省形）；
@@ -641,10 +642,10 @@ declare function countDirtyFiles(datasets: GitState["datasets"]): number;
 /* --- 辅助对话 / 选择域（原 $ae/_oe/woe/rXe） --- */
 
 /* SidePaneTab/SidePaneState 已接线 SidePanel 导出（本地松形已删） */
-declare function findSelectionSideChatTab(
-  sidePaneState: SidePaneState | null | undefined,
-  input: { workspaceKey: string; parentSessionId: string },
-): (SidePaneTab & { childSessionId?: string | null }) | null;
+/* ── tombstone〔A1-P2-B10〕：findSelectionSideChatTab declare（原 $ae 2440）删除 → 文件头真实导入
+ *    （findActiveSelectionSideChat as findSelectionSideChatTab，../../modules/SidePanel）。
+ *    同一性实证：bundle 184964 wr≡$ae 调用形逐字同（{workspaceKey, parentSessionId} + ?.childSessionId 读取）；
+ *    canonical = SidePanel@1251（原 $ae 标注在案）；返回面 SelectionSideChatTab.childSessionId: string 在案。 ── */
 declare function auxiliaryChatRegistryKey(workspaceKey: string, parentSessionId: string): string;
 declare function focusAuxiliaryChat(registryKey: string): boolean;
 declare function handoffCrossWorkspaceConversation(input: {
@@ -694,15 +695,18 @@ interface SidePaneController {
   handleBrowserNavigationRequestHandled(requestId: unknown): void;
   handleBrowserPageMetadataChange(input: unknown): void;
 }
-declare function getActiveSidePaneTab(state: SidePaneState | null | undefined): SidePaneTab | null;
+/* ── tombstone〔A1-P2-B10〕：getActiveSidePaneTab declare（原 $o 2171）删除 → 文件头真实导入
+ *    （findActiveTab as getActiveSidePaneTab，../../modules/SidePanel；canonical = SidePanel@975，原 $o 标注在案）。
+ *    同一性实证：bundle 186757 rn≡$o（useMemo(() => $o(Ce), [Ce]) 同形）；体逐字同（tabs.find(id===activeTabId) ?? null）。 ── */
 
 /* --- 任务元数据 / 日志文件（原 e_e / wge） --- */
 
 interface TaskFileRef {
-  path: string;
+  path: string | null; // 〔A1-P2-B10〕宽化：bundle 真身 Gge/Jge 缺省态 path: null（qge/Xge 真身转录改指后对齐）；消费面 3112–3115 透传 TopBar 1470–1473 可空面型合
   exists: boolean;
   loading: boolean;
-  provider?: string;
+  provider?: string | null; // 〔A1-P2-B10〕宽化：qge 真身返回 provider: string | null
+  error?: string | null; // 〔A1-P2-B10〕+字段：bundle 真身含 error（Gge/Jge 在案），消费面无强依赖
 }
 interface ActiveTaskMeta {
   /* A0-CLEANUP3 #36：束 e_e 返回面 resolvedActiveTaskMeta = 任务元对象（含
@@ -790,8 +794,8 @@ function memoizeResolvedTaskMeta(
  *   Lo → taskEntityKey（StoresDeep 导入，@217）
  *   ce → getMergedTaskListItem / pe → mergeTaskMetaMany（SkillStore 导入，@214）
  *   Uge → useTaskSessionRecord（SessionRecordCore 导入别名，@227）
- *   $ge → memoizeResolvedTaskMeta（上方）/ Zge → firstDefined（下方 declare）
- *   qge → useTaskNativeSessionLogFile / Xge → useTaskSessionFilePath（下方 declare） ── */
+ *   $ge → memoizeResolvedTaskMeta（上方）/ Zge → firstDefined（下方真身，〔A1-P2-B10〕）
+ *   qge → useTaskNativeSessionLogFile / Xge → useTaskSessionFilePath（文件头 services 导入，〔A1-P2-B10〕） ── */
 function useActiveTaskMeta({
   workspaceAbsPath: e,
   activeTaskId: t,
@@ -842,34 +846,23 @@ function useActiveTaskMeta({
 
 /* ── 原 Zge（styles 24734）：空值合并 `e ?? t`。消费面 = 本文件 e_e@24793
  *    `Zge(p, i)` + 143582（任务列表面域 `Ce = Zge(p, D.selectedProvider)`，
- *    C6/TaskListItem 族 142086 区，属外未重建）。 ── */
-declare function firstDefined<T>(primary: T | null | undefined, fallback: T): T;
+ *    C6/TaskListItem 族 142086 区，属外未重建）。
+ *    〔A1-P2-B10〕declare 删除 → 真身逐字转录（styles 24734-24736）。 ── */
+function firstDefined<T>(e: T | null | undefined, t: T): T {
+  return e ?? t;
+}
 
-/* ── 原 qge（styles 24612-24676）：task 原生日志路径 hook（日志串
- *    `[useTaskNativeSessionLogFile]` 自证名）。真形：kg（≡ useCachedTaskService，
- *    services/workspaceServiceHooks@286）服务束 getTaskNativeSessionLogFile +
- *    Wge 错误消息 + Gge@24608 缺省态 {provider, path, exists, loading, error}。
+/* ── tombstone〔A1-P2-B10〕：useTaskNativeSessionLogFile declare（原 qge，styles 24612–24676）删除
+ *    → 文件头真实导入（../../modules/services ≡ services/workspaceServiceHooks D.4 真身）。
+ *    真身依赖全在案：kg ≡ useCachedTaskService（workspaceServiceHooks@286）、
+ *    Wge 错误消息 ≡ pathErrorMessage（Wge/Yge/pathErrorMessage 三体逐字同，注记在案）、Gge@24608/Kge@24609 随迁。
  *    消费面 = 本文件 e_e@24806 + C6@142099（TaskListItem 域 142086，属外未重建）。
- *    型缝：返回收本文件 TaskFileRef 薄面（束真含 error 字段 / path 可空，
- *    消费面 ?? 链兼容）。 ── */
-declare function useTaskNativeSessionLogFile(
-  workspacePath: string,
-  taskId: string | null,
-  provider: string | null,
-  workspaceIdentity?: string,
-  options?: { enabled?: boolean },
-): TaskFileRef;
+ *    型缝：返回全形收本文件 TaskFileRef 宽面（path 可空 + error 字段，本批宽化注记在案）。 ── */
 
-/* ── 原 Xge（styles 24686-24733）：task 会话快照路径 hook（日志串
- *    `[useTaskSessionFilePath]` 自证名）。真形：kg 服务束 getTaskSessionFilePath +
- *    Yge 错误消息 + Jge@24677 缺省态 {path, exists, loading, error}。
+/* ── tombstone〔A1-P2-B10〕：useTaskSessionFilePath declare（原 Xge，styles 24686–24733）删除
+ *    → 文件头真实导入（同上 D.4 真身）。真身依赖：kg 服务束 getTaskSessionFilePath +
+ *    Yge 错误消息（≡ pathErrorMessage）+ Jge@24677 缺省态。
  *    消费面 = 本文件 e_e@24807 + C6@142098（属外未重建）。型缝同上。 ── */
-declare function useTaskSessionFilePath(
-  workspacePath: string,
-  taskId: string | null,
-  workspaceIdentity?: string,
-  options?: { enabled?: boolean },
-): TaskFileRef;
 /* ── 〔A1-P2-B7〕R40 §六.4 跨轨交接预登：Uge ≡ useTaskSessionRecord（主树 R40 已转录至
  *    modules/SessionRecordCore.ts 尾部，导出面在位；本泳道工作区无该叶——泳道不读主树
  *    源码，合并后由编排方核验接线）。bundle 真形 24574-24599 逐字：
@@ -885,41 +878,75 @@ declare function useTaskSessionFilePath(
 /* 〔A1-P2-B9〕过渡 declare 本体删除 → 真实导入（文件头 @227
  * `import { useTaskSessionRecord as Uge } from '../../modules/SessionRecordCore'`，
  * e_e 真身调用面 24787 逐字不变）；上方墓碑保留为交接史料，其余内容未动。 */
-declare function useProviderConfigFile(
-  workspaceAbsPath: string,
-  provider: string | null,
-  remoteSessionId?: string,
-  workspaceIdentity?: string,
-): TaskFileRef;
+/* ── tombstone〔A1-P2-B10〕：useProviderConfigFile declare（原 wge 24288）删除 → 文件头真实导入
+ *    （useWorkspaceProviderConfigFile as useProviderConfigFile，../../modules/services；
+ *    canonical = services/workspaceServiceHooks@335，原 wge 标注在案）。
+ *    同一性实证：bundle 186741 en≡wge 四参同形；返回面 PathState{path: string|null; exists; loading} ⊆ 消费面
+ *    （3114–3116 → TopBar@1475 providerWorkspaceConfigPath?: string | null 型合）。 ── */
 
-/* --- 按任务 UI 状态持久化（原 moe/ss/cs） --- */
+/* --- 按任务 UI 状态持久化（原 moe/ss/cs，js 2577–2610；默认表 as + 缓存 os + LRU 刷新 foe/限汰 poe） --- */
 
+/** 〔A1-P2-B10〕型缝：PerTaskUiState 补足为 bundle as@2577–2583 真形——旧本地面缺
+ * sidePaneState/isSidePaneCollapsed（ss/cs 真身经 fae≡normalizeSidePaneState 归一并读写之）。 */
 interface PerTaskUiState {
-  activeGitSourceId?: string;
-  browserUrl?: string;
-  browserUrls?: Record<string, string>;
+  sidePaneState: SidePaneState | null;
+  isSidePaneCollapsed: boolean;
+  activeGitSourceId: string;
+  browserUrls: Record<string, string>;
+  browserUrl: string | null;
 }
-declare function perTaskUiStateKey(input: {
+/** 原 as（2577）：按任务 UI 状态默认表 */
+const DEFAULT_PER_TASK_UI_STATE: PerTaskUiState = {
+  sidePaneState: null,
+  isSidePaneCollapsed: !0,
+  activeGitSourceId: `unstaged`,
+  browserUrls: {},
+  browserUrl: null,
+};
+/** 原 os（2584）：按任务 UI 状态内存缓存（Map；迭代序 = 插入序，foe 刷新移尾） */
+const perTaskUiStateCache = new Map<string, PerTaskUiState>();
+/** 原 foe（2586）：刷新缓存条目（先删后设 → 迭代序移尾，返回条目值） */
+function refreshPerTaskUiStateCacheEntry(e: string, t: PerTaskUiState): PerTaskUiState {
+  return (perTaskUiStateCache.delete(e), perTaskUiStateCache.set(e, t), t);
+}
+/** 原 poe（2589）：缓存超 50 条时逐条淘汰最旧 */
+function evictPerTaskUiStateCacheOverflow(): void {
+  for (; perTaskUiStateCache.size > 50; ) {
+    let e = perTaskUiStateCache.keys().next().value;
+    if (!e) return;
+    perTaskUiStateCache.delete(e);
+  }
+}
+/** 原 moe（2595）：按任务 UI 状态键——workspaceIdentity 优先、workspacePath 回退；皆空 → null。
+ * taskId 参解构而不入键，bundle 逐字如此。 */
+function perTaskUiStateKey({ workspacePath: e, workspaceIdentity: t, taskId: n }: {
   workspacePath: string;
   workspaceIdentity?: string;
   taskId: string | null;
-}): string | null;
-declare function readPerTaskUiState(key: string | null): PerTaskUiState;
-declare function writePerTaskUiState(key: string | null, patch: Partial<PerTaskUiState>): void;
+}): string | null {
+  let r = t?.trim() || e;
+  return r.trim() ? r : null;
+}
+/** 原 ss（2599）：读按任务 UI 状态（命中 = 刷新条目 + sidePaneState 归一；未中 = 默认表） */
+function readPerTaskUiState(e: string | null): PerTaskUiState {
+  if (!e) return DEFAULT_PER_TASK_UI_STATE;
+  let t = perTaskUiStateCache.get(e);
+  return t ? refreshPerTaskUiStateCacheEntry(e, { ...t, sidePaneState: normalizeSidePaneState(t.sidePaneState) }) : DEFAULT_PER_TASK_UI_STATE;
+}
+/** 原 cs（2604）：写按任务 UI 状态（默认表/缓存/补丁三层合并 + sidePaneState 归一 + 超限淘汰） */
+function writePerTaskUiState(e: string | null, t: Partial<PerTaskUiState>): void {
+  if (!e) return;
+  let n = { ...DEFAULT_PER_TASK_UI_STATE, ...perTaskUiStateCache.get(e), ...t };
+  ((n.sidePaneState = normalizeSidePaneState(n.sidePaneState)), refreshPerTaskUiStateCacheEntry(e, n), evictPerTaskUiStateCacheOverflow());
+}
 
 /* --- 键盘快捷键绑定层（原 rge，js 24015） --- */
 
-declare function useWorkspaceKeyboardShortcuts(handlers: {
-  openQuickPick: () => void;
-  find: () => void;
-  toggleSidebar: () => void;
-  toggleTerminal: () => void;
-  toggleSidePane: () => void;
-  previousConversation: () => void;
-  nextConversation: () => void;
-  navBack: (() => void) | null;
-  navForward: (() => void) | null;
-}): void;
+/* ── tombstone〔A1-P2-B10〕：useWorkspaceKeyboardShortcuts declare（原 rge，styles 24063）删除
+ *    → 文件头真实导入（useGlobalKeyboardShortcuts as useWorkspaceKeyboardShortcuts，../../modules/services
+ *    ≡ services/workspaceServiceHooks D.1 真身，原 rge 标注在案——同一 bundle 符两脸归一）。
+ *    同一性实证：bundle 187047 rge({...}) 调用形与本文件 5601 调用点九键逐字同
+ *    （navBack/navForward `cond ? () => ... : null` 逐字传 null；canonical 侧宽化收 null 注记在案）。 ── */
 
 /* --- QuickPick 命令表（原 O_e，js 25395） --- */
 
@@ -962,7 +989,11 @@ declare function setProviderRegistryRevision(revision: number): void;
  *    modules/SplitLayoutUiDeep.tsx 直接消费，本文件无余调用点。 ── */
 
 /* --- 内嵌浏览器可打开判定（原 Ogt，js 109814） --- */
-
+/* 〔A1-P2-B10〕探针留批：Ogt@109862 体 = vgt(e.path) && compactForRemoteControl !== !0
+ * && !workspaceIdentity?.trim() && !workspaceRemoteSessionId；依赖链 vgt@109737（n1(e)?.kind === 'html'）
+ * → n1@109733 → t1@109727 + pgt@109714（文件类型登记表 ~13 行）——预览/浏览器域簇（109714–109862）
+ * 未转录，canonical 属所 = 未来浏览器/预览叶；消费面实证：bundle 184892 Ogt({path, workspaceIdentity,
+ * workspaceRemoteSessionId, compactForRemoteControl}) ≡ 本文件 handleOpenFileTreeEntry 内调用。 */
 declare function canOpenPathInEmbeddedBrowser(input: {
   path: string;
   workspaceIdentity?: string | null;
@@ -977,7 +1008,9 @@ declare function canOpenPathInEmbeddedBrowser(input: {
 /** 原 lw（js 39409） */
 /** 原 uw（js 39411）：18×18 Z 字 logo data-url */
 /** 原 c6（js 138630） */
-declare const AUTOMATIONS_MAIN_TOAST_ANCHOR_ID: string;
+/* ── tombstone〔A1-P2-B10〕：AUTOMATIONS_MAIN_TOAST_ANCHOR_ID declare（原 c6，138647）删除 → 文件头真实导入
+ *    （AUTOMATIONS_TOAST_ANCHOR_ID as AUTOMATIONS_MAIN_TOAST_ANCHOR_ID，../automations/AutomationsMainView）。
+ *    canonical 同值真身在案（AutomationsMainView@361，l6≡automationsToast 同锚消费 138648）；纯值常量，调用面 main id 逐字不变。 ── */
 /* ── tombstone〔A1-P2-B1〕：declare const appHeaderTestid（原 Mi）删除 → 改名改指 SrcSharedB appHeaderTestid
  *    （双 chunk 链：styles 804 `wt as Mi` ← src 10045 `bg as wt` ← src 8235 `bg = \`app-header\``）。
  *    删碑：两处消费 `headerTestId={APP_HEADER_TEST_ID}` 改名改指。 ── */
@@ -1491,8 +1524,28 @@ interface CollapsiblePanelHandle {
   getSize(): { asPercentage: number };
 }
 
-/** 原 Fqt（js 183698，接口级）：面板元素尺寸观察清理器 */
-declare function observePanelElement(element: HTMLElement): (() => void) | undefined;
+/** 原 Nqt（183992）：面板开合过渡类名（flex-grow 200ms ease-out） */
+const PANEL_TRANSITION_CLASSES = [`transition-[flex-grow]`, `duration-200`, `ease-out`];
+/** 原 Pqt（183993）：面板过渡观察兜底超时（ms） */
+const PANEL_TRANSITION_FALLBACK_MS = 240;
+/** 原 Fqt（183994）：面板元素过渡观察器——挂过渡类，transitionend（propertyName=flex-grow）
+ * 或兜底超时二者先到即摘类；返回清理器。〔A1-P2-B10〕项 3 短链收口（declare → 真身）。 */
+function observePanelElement(e: HTMLElement): () => void {
+  e.classList.add(...PANEL_TRANSITION_CLASSES);
+  let t = !1,
+    n = 0,
+    r = () => {
+      t ||
+        ((t = !0),
+        e.removeEventListener(`transitionend`, i),
+        n && window.clearTimeout(n),
+        e.classList.remove(...PANEL_TRANSITION_CLASSES));
+    },
+    i = (t: TransitionEvent) => {
+      t.target === e && t.propertyName === `flex-grow` && r();
+    };
+  return (e.addEventListener(`transitionend`, i), (n = window.setTimeout(r, PANEL_TRANSITION_FALLBACK_MS)), r);
+}
 
 function useCollapsiblePanel(input: {
   open: boolean;
@@ -1831,7 +1884,7 @@ interface WorkspaceShellProps {
   gitState: GitState;
   browserNavigationRequest: BrowserNavigationRequest | null;
   browserRestoreUrls: Record<string, string>;
-  providerConfigFile: TaskFileRef;
+  providerConfigFile: { path: string | null; exists: boolean; loading: boolean }; // 〔A1-P2-B10〕型缝：TaskFileRef → 结构面宽化（canonical PathState.path: string | null，消费面 3113–3115 透传 SessionHeader/TopBar@1475 型合）
   taskNativeSessionLogFile: TaskFileRef;
   taskSessionFile: TaskFileRef;
   testMessages?: unknown[] | null;
@@ -2594,7 +2647,9 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
     (path: string, identity?: string | null, remoteSessionId?: string | null) => {
       const matches = workspaceTabs.filter(
         (tab) =>
-          isSamePath(tab.workspacePath, path) &&
+          // 〔A1-P2-B10〕纠名：bundle 184701 此处为 VA（within 语义：r === n || r.startsWith(n+'/')），
+          // 旧转录名 isSamePath 属误名；行为面 = 工作区路径含目标路径即匹配。改指 isPathWithin（原 VA 50977）。
+          isPathWithin(tab.workspacePath, path) &&
           (!identity || tab.workspaceIdentity === identity) &&
           (!remoteSessionId || tab.remoteSessionId === remoteSessionId),
       );
@@ -2891,7 +2946,9 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
               workspaceName: existingTab.label,
               workspaceIdentity: existingTab.workspaceIdentity,
               workspaceRemoteSessionId: existingTab.remoteSessionId,
-              revealPath: isPathWithin(existingTab.workspacePath, link.path) ? undefined : link.path,
+              // 〔A1-P2-B10〕纠名：bundle 184920 此处为 BA（相等语义：MA(e) === MA(t)），
+              // 旧转录名 isPathWithin 属误名；行为面 = 仅路径恰为工作区根时免 reveal。改指 isSamePath（原 BA 50974）。
+              revealPath: isSamePath(existingTab.workspacePath, link.path) ? undefined : link.path,
             },
           });
           return;
@@ -4767,11 +4824,17 @@ const e2eTaskMembershipProbes = {
   },
 };
 
-/** 原 _Oe/vOe/yOe（任务成员刷新保持，接口级）与 Mo（活动相位描述，接口级） */
+/** 原 _Oe/vOe/yOe（任务成员刷新保持，接口级）。〔A1-P2-B10〕探针：bundle 32414–32434 持模块态
+ * mx（hold 句柄）/hx（armed/enteredCallCount/released 计数）+ TOe 依赖 + bOe 等待消费面——
+ * 模块态簇不可在 WS 单叶复制，canonical 属所 = 任务成员域（32xxx）未来转录；三 declare 留批。 */
 declare function holdTaskMembershipRefresh(): void;
 declare function releaseTaskMembershipRefreshHold(): void;
 declare function getTaskMembershipRefreshHoldState(): unknown;
-declare function describeTaskActivity(meta: { taskId: string; status?: string }): { phase: string } | null;
+/* ── tombstone〔A1-P2-B10〕：describeTaskActivity declare（原 Mo，styles 1311–1313）删除
+ *    → 文件头真实导入（sessionActivityOf as describeTaskActivity，../../modules/StoresDeep）。
+ *    canonical 同一性：helpers sessionActivityOf ≡ Mo 逐字同（读 __zcodeSessionActivity ?? null，
+ *    原 Mo 1311 标注在案）；返回面 SessionActivity.phase 必填 ≡ 消费面 activity?.phase 型合；
+ *    canonical 侧参形宽化 Record→object 注记在案（接口型 TaskMeta 无隐式索引签名）。 ── */
 /* ── tombstone〔A1-P2-B1〕：declare workspaceKeyOf2（Io 局部别名）删除 → 改名改指 SkillStore resolveWorkspaceKey
  *    （导入别名 workspaceKey；Io ≡ b ≡ taskStore@155 薄包装 `workspaceIdentity?.trim() || workspacePath` 同形）。
  *    删碑：GJt 探针簇两处调用（bundle 186170–186214 内）改 `workspaceKey(...)`，局部变量改铸 resolvedWorkspaceKey 避遮蔽。 ── */
@@ -4811,13 +4874,23 @@ function resolveCloseableSidePaneTab(input: {
  *  9. 渲染：Fragment = [QuickPick(Rje)][FeedbackCenter(RMe)][WorkspaceShell(yJt)]。
  * ==========================================================================*/
 
-/** 原 C_e（js 185826 附近，NJt 相邻）：目标工作区已选供应商解析 */
-declare function resolveProviderForDraft(input: {
+/* ── tombstone〔A1-P2-B10〕：resolveProviderForDraft declare（原 C_e）删除 → 下方真身逐字转录。 ── */
+
+/** 原 C_e（styles 25414–25421）：目标工作区已选供应商解析（身份键优先、路径键兜底、当前供应商回退）。
+ * 消费面实证：bundle 186943 `C_e({...})` ≡ 本文件 Jn 草稿工作区切换内调用（唯一消费点）。 */
+function resolveProviderForDraft({
+  currentSelectedProvider: e,
+  targetWorkspacePath: t,
+  targetWorkspaceIdentity: n,
+  workspaces: r,
+}: {
   currentSelectedProvider: string;
   targetWorkspacePath: string;
   targetWorkspaceIdentity?: string;
   workspaces: Record<string, { selectedProvider?: string }>;
-}): string;
+}): string {
+  return (r[n?.trim() || t] ?? r[t])?.selectedProvider ?? e;
+}
 
 /** 原 Rje QuickPick（F05 根，接口保留） */
 /** 原 RMe FeedbackCenter（F09 根，接口保留） */
@@ -5400,9 +5473,9 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
     setTheme(themeTarget);
   }, [setTheme, themeTarget]); // 原 Wn
 
-  /** 原 Gn（186633）：打开设置指定分区 */
+  /** 原 Gn（186633）：打开设置指定分区。〔A1-P2-B10〕型缝：参形 string → SettingsSectionId（canonical 面收窄，调用点仅 skills/mcp 字面量） */
   const handleOpenSettingsSection = React.useCallback(
-    (section: string) => {
+    (section: SettingsSectionId) => {
       setSettingsTabTarget(section);
       openSettingsTab();
     },

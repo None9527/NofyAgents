@@ -22,8 +22,8 @@ export interface GlobalShortcutHandlers {
   toggleSidePane(): void;
   previousConversation?: () => void;
   nextConversation?: () => void;
-  navBack?: () => void;
-  navForward?: () => void;
+  navBack?: (() => void) | null; // 〔A1-P2-B10〕宽化收 null：bundle 187047 消费面 `cr ? () => vn(ir) : null` 逐字传 null；rge 体内 falsy 守卫兼容
+  navForward?: (() => void) | null; // 〔A1-P2-B10〕宽化同上（`lr ? () => vn(ar) : null`）
 }
 
 /** 原 rge：捕获阶段全局快捷键（⌘K 面板 / ⌘F 查找 / ⌘[ ⌘] 会话切换 / ⌘B 侧栏 / ⌘J 终端 / ⌘⇧B 侧面板 / ⌘[ ⌘] 导航） */
@@ -307,7 +307,7 @@ export interface PathState {
 export const PATH_STATE_DEFAULT: PathState = { path: null, exists: false, loading: true, error: null };
 
 interface ZCodeFileService {
-  getWorkspaceProviderConfigFile(args: { workspacePath: string; workspaceIdentity?: string; provider: string }): Promise<{ path: string | null; exists: boolean }>;
+  getWorkspaceProviderConfigFile(args: { workspacePath: string; workspaceIdentity?: string; provider: string | null }): Promise<{ path: string | null; exists: boolean }>; // 〔A1-P2-B10〕provider 宽化 string | null（bundle wge 24288 透传面，186741 en≡wge 传 WS 头 provider 可空面）
 }
 
 /** 原 Cge：按服务作用域选 zcode 文件服务（远端会话无 base 服务时返回 null=等待） */
@@ -334,7 +334,7 @@ function pathErrorMessage(error: unknown): string {
 /** 原 wge：useWorkspaceProviderConfigFile —— 读供应商配置文件路径（带刷新/竞态守卫） */
 export function useWorkspaceProviderConfigFile(
   workspacePath: string | null,
-  provider: string,
+  provider: string | null, // 〔A1-P2-B10〕宽化 string | null：bundle wge 24288 对 provider 无空守卫（日志模板 + 服务入参透传）；186741 en≡wge 消费面传 WS 头 provider（string | null）
   remoteSessionId?: string | null,
   workspaceIdentity?: string | null,
   options?: { serviceScope?: "workspace" | "base"; enabled?: boolean },
@@ -406,4 +406,169 @@ export function useWorkspaceProviderConfigFile(
 export function useSessionService(workspacePath?: string | null, remoteSessionId?: string | null, workspaceIdentity?: string | null): unknown {
   const services = workspacePath ? useWorkspaceServices(workspacePath, remoteSessionId, workspaceIdentity) : useServices();
   return (services as { zcodeSessionService?: unknown }).zcodeSessionService;
+}
+
+/* --- D.4 task 原生日志 / 会话快照路径钩子（原 Gge/Kge/qge + Jge/Xge，js 24608–24733） ---
+ * 〔A1-P2-B10〕WS 两件 declare（useTaskNativeSessionLogFile/useTaskSessionFilePath）改指真身。
+ * 错误消息复用本文件 pathErrorMessage（原 Wge 24600–24606）：bundle qge 用 Wge、Xge 用 Yge（24678–24684），
+ * Wge/Yge/pathErrorMessage 三体逐字同——bundle 内重复，真身面归一。 */
+
+/** 〔A1-P2-B10〕型缝：qge/Xge 消费的 kg 代理服务两方法最小面（kg 返回 unknown 代理）。 */
+interface TaskSessionFileServiceLike {
+  getTaskNativeSessionLogFile(args: { taskId: string; workspacePath: string; workspaceIdentity?: string }): Promise<{ provider?: string | null; path: string | null; exists: boolean }>;
+  getTaskSessionFilePath(args: { workspacePath: string; taskId: string; workspaceIdentity?: string }): Promise<{ path: string | null; exists: boolean }>;
+}
+
+export interface TaskNativeSessionLogFileState {
+  provider: string | null;
+  path: string | null;
+  exists: boolean;
+  loading: boolean;
+  error: string | null;
+}
+
+/** 原 Gge（24608）：原生日志路径缺省态 */
+const TASK_NATIVE_SESSION_LOG_FILE_DEFAULT: TaskNativeSessionLogFileState = { provider: null, path: null, exists: false, loading: false, error: null };
+
+/** 原 Kge（24609–24611）：provider 门（空 provider 放行，否则四查） */
+function isNativeSessionLogProvider(e: string | null | undefined): boolean {
+  return e ? e === `claude` || e === `codex` || e === `gemini` || e === `glm` : true;
+}
+
+/** 原 qge（24612–24676）：task 原生日志路径 hook（日志串 `[useTaskNativeSessionLogFile]` 自证名） */
+export function useTaskNativeSessionLogFile(
+  e: string,
+  t: string | null,
+  n: string | null,
+  r?: string,
+  i: { enabled?: boolean } = {},
+): TaskNativeSessionLogFileState {
+  let a = useCachedTaskService(e, void 0, r) as TaskSessionFileServiceLike,
+    [o, s] = React.useState<TaskNativeSessionLogFileState>(TASK_NATIVE_SESSION_LOG_FILE_DEFAULT),
+    c = React.useRef(0),
+    l = i.enabled ?? true;
+  return (
+    React.useEffect(() => {
+      let i = false;
+      if (!l || !e || !t)
+        return (
+          (c.current += 1),
+          s(TASK_NATIVE_SESSION_LOG_FILE_DEFAULT),
+          () => {
+            i = true;
+          }
+        );
+      if (!isNativeSessionLogProvider(n))
+        return (
+          (c.current += 1),
+          s({ provider: n ?? null, path: null, exists: false, loading: false, error: null }),
+          () => {
+            i = true;
+          }
+        );
+      let o = c.current + 1;
+      return (
+        (c.current = o),
+        s({ provider: n ?? null, path: null, exists: false, loading: true, error: null }),
+        a
+          .getTaskNativeSessionLogFile({
+            taskId: t,
+            workspacePath: e,
+            ...(r ? { workspaceIdentity: r } : {}),
+          })
+          .then((e) => {
+            i ||
+              c.current !== o ||
+              s({
+                provider: e.provider ?? n ?? null,
+                path: e.path,
+                exists: e.exists,
+                loading: false,
+                error: null,
+              });
+          })
+          .catch((a) => {
+            if (i || c.current !== o) return;
+            let l = pathErrorMessage(a);
+            (logger.warn(`[useTaskNativeSessionLogFile] 读取 task 原生日志路径失败`, {
+              workspacePath: e,
+              taskId: t,
+              providerHint: n,
+              workspaceIdentity: r,
+              error: l,
+            }),
+              s({ provider: n ?? null, path: null, exists: false, loading: false, error: l }));
+          }),
+        () => {
+          i = true;
+        }
+      );
+    }, [l, a, n, t, r, e]),
+    o
+  );
+}
+
+/** 原 Jge（24677）：会话快照路径缺省态 */
+const TASK_SESSION_FILE_DEFAULT: TaskSessionFileState = { path: null, exists: false, loading: false, error: null };
+
+export interface TaskSessionFileState {
+  path: string | null;
+  exists: boolean;
+  loading: boolean;
+  error: string | null;
+}
+
+/** 原 Xge（24686–24733）：task 会话快照路径 hook（日志串 `[useTaskSessionFilePath]` 自证名） */
+export function useTaskSessionFilePath(
+  e: string,
+  t: string | null,
+  n?: string,
+  r: { enabled?: boolean } = {},
+): TaskSessionFileState {
+  let i = useCachedTaskService(e, void 0, n) as TaskSessionFileServiceLike,
+    [a, o] = React.useState<TaskSessionFileState>(TASK_SESSION_FILE_DEFAULT),
+    s = React.useRef(0),
+    c = r.enabled ?? true;
+  return (
+    React.useEffect(() => {
+      let r = false;
+      if (!c || !e || !t)
+        return (
+          (s.current += 1),
+          o(TASK_SESSION_FILE_DEFAULT),
+          () => {
+            r = true;
+          }
+        );
+      let a = s.current + 1;
+      return (
+        (s.current = a),
+        o({ path: null, exists: false, loading: true, error: null }),
+        i
+          .getTaskSessionFilePath({
+            workspacePath: e,
+            taskId: t,
+            ...(n ? { workspaceIdentity: n } : {}),
+          })
+          .then((e) => {
+            r || s.current !== a || o({ path: e.path, exists: e.exists, loading: false, error: null });
+          })
+          .catch((i) => {
+            if (r || s.current !== a) return;
+            let c = pathErrorMessage(i);
+            (logger.warn(`[useTaskSessionFilePath] 读取 task 快照路径失败`, {
+              workspacePath: e,
+              taskId: t,
+              workspaceIdentity: n,
+              error: c,
+            }),
+              o({ path: null, exists: false, loading: false, error: c }));
+          }),
+        () => {
+          r = true;
+        }
+      );
+    }, [c, i, t, n, e]),
+    a
+  );
 }

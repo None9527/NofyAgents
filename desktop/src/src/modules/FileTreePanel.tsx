@@ -170,6 +170,8 @@ export {
   upsertTaskInWorkspaceCache,
   cleanupDeletedTaskState,
   registerWorkspaceTask,
+  samePath,        // 〔A1-P2-B10〕WS isSamePath 改指面（原 BA 50974）
+  isPathWithinRoot, // 〔A1-P2-B10〕WS isPathWithin 改指面（原 VA 50977）
 } from '../components/code-viewer/FileTreePanel';
 export type {
   InstalledEditor,

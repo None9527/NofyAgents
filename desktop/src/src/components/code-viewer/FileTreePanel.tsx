@@ -450,13 +450,13 @@ function mergeDeletedFileRows(args: {
   return merged ?? args.childrenByDirectory;
 }
 
-/** 原 BA：两路径归一化后是否相同 */
-function samePath(a: string, b: string): boolean {
+/** 原 BA：两路径归一化后是否相同。〔A1-P2-B10〕导出：WS isSamePath declare 改指；消费面 = revealPath 判定（bundle 184920 BA(t.workspacePath, n.path) 逐字同形）。 */
+export function samePath(a: string, b: string): boolean {
   return normalizePathSeparators(a) === normalizePathSeparators(b);
 }
 
-/** 原 VA：path 是否在 root 之内（含自身） */
-function isPathWithinRoot(rootPath: string, path: string): boolean {
+/** 原 VA：path 是否在 root 之内（含自身）。〔A1-P2-B10〕导出：WS isPathWithin declare 改指；消费面 = 工作区 tab 路径过滤（bundle 184701 VA(r.workspacePath, e) 逐字同形）。 */
+export function isPathWithinRoot(rootPath: string, path: string): boolean {
   let root = normalizePathSeparators(rootPath),
     target = normalizePathSeparators(path);
   return target === root || target.startsWith(`${root}/`);

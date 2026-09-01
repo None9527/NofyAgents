@@ -108,9 +108,9 @@ import { REMOTE_WORKSPACE_DISCONNECTED, isRemoteDisconnectedError, getDisconnect
 import type { WorkspaceTabLike, ConnectionKind, ResolvedWorkspaceServices } from '../services/remoteServices';
 export { REMOTE_WORKSPACE_DISCONNECTED, isRemoteDisconnectedError, getDisconnectedServices, useResolvedRemoteSessionId, useBaseServices, useBaseServicesOptional, useResolvedWorkspaceServices, useWorkspaceServices };
 export type { WorkspaceTabLike, ConnectionKind, ResolvedWorkspaceServices };
-import { useGlobalKeyboardShortcuts, useCachedTaskService, PATH_STATE_DEFAULT, useWorkspaceProviderConfigFile, useSessionService } from '../services/workspaceServiceHooks';
+import { useGlobalKeyboardShortcuts, useCachedTaskService, PATH_STATE_DEFAULT, useWorkspaceProviderConfigFile, useSessionService, useTaskNativeSessionLogFile, useTaskSessionFilePath } from '../services/workspaceServiceHooks'; // 〔A1-P2-B10〕+两件会话文件路径钩（原 qge/Xge）
 import type { GlobalShortcutHandlers, PathState } from '../services/workspaceServiceHooks';
-export { useGlobalKeyboardShortcuts, useCachedTaskService, PATH_STATE_DEFAULT, useWorkspaceProviderConfigFile, useSessionService };
+export { useGlobalKeyboardShortcuts, useCachedTaskService, PATH_STATE_DEFAULT, useWorkspaceProviderConfigFile, useSessionService, useTaskNativeSessionLogFile, useTaskSessionFilePath };
 export type { GlobalShortcutHandlers, PathState };
 import { isSameTelemetryScope, disposeAllSupervisors, detachSupervisorWorkspaces, TelemetryScopeProvider, InheritedTelemetryScopeProvider, useTelemetrySupervisor, useIsTelemetryForeground, V4ConversationProviderInner, V4ConversationProvider, useV4Conversation, PanelScopeProvider } from '../services/telemetryScopes';
 import type { TelemetryScope, V4ConversationApi } from '../services/telemetryScopes';

@@ -134,8 +134,9 @@ export function withSessionActivity(meta: Record<string, unknown>, activity: Ses
   return { ...meta, [SESSION_ACTIVITY_FIELD]: activity };
 }
 
-/** 原 Mo（1311）：读取会话活动态 */
-export function sessionActivityOf(meta: Record<string, unknown> | null | undefined): SessionActivity | null {
+/** 原 Mo（1311）：读取会话活动态。〔A1-P2-B10〕参形宽化 Record<string, unknown> → object：
+ * WS describeTaskActivity declare 改指（消费面传接口型 TaskMeta，无隐式索引签名）；bundle Mo 对入参零约束。 */
+export function sessionActivityOf(meta: object | null | undefined): SessionActivity | null {
   return (meta as { [SESSION_ACTIVITY_FIELD]?: SessionActivity } | null)?.[SESSION_ACTIVITY_FIELD] ?? null;
 }
 
