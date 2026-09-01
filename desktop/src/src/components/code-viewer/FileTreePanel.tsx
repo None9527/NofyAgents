@@ -281,7 +281,7 @@ declare function pathToFileUrl(path: string): string; // 原 Yo（1958）
 const TESTID_FILE_TREE_ROW_BASE = `workspace-file-tree-row`;
 const TESTID_FILE_TREE_PANEL = `workspace-file-tree-panel`;
 const TESTID_FILE_TREE_REFRESH_BUTTON = `workspace-file-tree-refresh-button`;
-const scopedTestId = (base: string, id: string): string => `${base}-${id}`;
+/* ── tombstone〔A1-R43〕：scopedTestId（原 qr/Nb 局部转录，src 8464）删除 → 一符一家收敛 SrcSharedB@5017 joinTestidParts（逐字同形 `${base}-${id}`；R41 既判链：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb 8464）。消费面实测仅 1 处改名改指：@1669（≡ bundle 145989 qr(eee, t.path)，QIt≡FileTreePanel treeitem 行）；R42 §六 「2 消费点」勘误为 1（modules/FileTreePanel.tsx 仅文档面提及，无运行时消费）。 ── */
 
 /* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）declare 删除 → import { Button } from './button'；
    Tooltip（原 Ia）declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'（aria-pressed 经 B-28 加入 InfoTooltipProps）。 ── */
@@ -1666,7 +1666,7 @@ function FileTreeRow({
     treeItem = (
       <div
         role={`treeitem`}
-        data-testid={scopedTestId(TESTID_FILE_TREE_ROW_BASE, row.path)}
+        data-testid={joinTestidParts(TESTID_FILE_TREE_ROW_BASE, row.path)}
         aria-expanded={isDirectory ? row.expanded : undefined}
         tabIndex={0}
         draggable={!deleted}
@@ -2671,3 +2671,4 @@ export function registerWorkspaceTask(args: {
  *   - sLt↔SidebarLeaves、cLt↔SettingsPanelsCapability 为接口级双归属，本文件为实现方。
  * ============================================================================
  */
+import { joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-R43〕原 scopedTestId（qr/Nb 局部转录）收敛改指 canonical joinTestidParts@5017（R41 既判链）。尾部导入：ES 模块提升，行引用零漂（R35 先例）。环安全：本文件→SrcSharedB 纯助手值闭包，无反向边。

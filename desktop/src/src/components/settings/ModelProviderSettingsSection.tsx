@@ -3,7 +3,7 @@
 import * as React from "react";
 import { RefreshCw as RefreshIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button } from '../../modules/button';
-import { providerFamilyOf, sortProvidersByFamilyAndOrder, useCodingPlanEntitlements, useStartPlanPreview, useModelProvidersStore } from '../../modules/PaymentDeep'; // 〔A1-R28〕+sortProvidersByFamilyAndOrder（Iq 77456 canonical，原 declare sortProvidersByDisplayOrder 收敛改指，见下墓碑）。〔A1-R35〕+useModelProvidersStore（qq 78243-78403 逐字真身 ≡ components/payments/PaymentDeep §11；declare 收敛改指，见下墓碑；消费 @1460 ≡ bundle 192101 FQt 面）
+import { providerFamilyOf, sortProvidersByFamilyAndOrder, useCodingPlanEntitlements, useStartPlanPreview, useModelProvidersStore, useCodingPlanUpgradeDialog } from '../../modules/PaymentDeep'; // 〔A1-R43〕+useCodingPlanUpgradeDialog（原 useUpgradeEntry fX declare 收敛改指，见下墓碑） // 〔A1-R28〕+sortProvidersByFamilyAndOrder（Iq 77456 canonical，原 declare sortProvidersByDisplayOrder 收敛改指，见下墓碑）。〔A1-R35〕+useModelProvidersStore（qq 78243-78403 逐字真身 ≡ components/payments/PaymentDeep §11；declare 收敛改指，见下墓碑；消费 @1460 ≡ bundle 192101 FQt 面）
 import { subscribeSettingsSectionIntent } from '../../modules/Settings';
 import { consumeModelProviderIntent as readSettingsSectionIntent } from '../../modules/Settings'; // sw（js 39425；A1-R24 行漂校正，旧注 39377 为漂移）
 import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, nullSafe as toManagedProvider, upgradeFunnelContext, entryPlanStateOf, useAppSettings, useSubscriptionSnapshot, useZapiEnabled, type AddProviderDraft, type CodingPlanDisplayStatus, type CodingPlanViewState, type EntitlementQuotaLimit, type FunnelContext, type ModelMetadata, type ProviderEndpoints } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/PM（53253）/IM（53277）/JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2b/§2c）
@@ -201,14 +201,14 @@ interface CodingPlanEntitlement {
 /* ── tombstone（A0-CLEANUP B-30）：useCodingPlanEntitlements declare 删除 →
  *    import { useCodingPlanEntitlements } from './PaymentDeep'（sX 88255）。 ── */
 
-declare function useUpgradeEntry(): {
-  openCodingPlanUpgrade: (opts: {
-    providerId: string;
-    initialAudience?: "personal" | "team";
-    initialTeamPlanKey?: string;
-    funnelContext?: FunnelContext | null; // A1-R11 型缝精化（bundle 真形）：fX 89100 读 e?.funnelContext?.purchaseAudience 并传 e.funnelContext ?? null——对象面非字符串（A1-R24 行漂校正，旧注 89052）
-  }) => void;
-}; // fX（js 89100；A1-R24 行漂校正，旧注 89052 为漂移）
+/* ── tombstone〔A1-R43〕：declare useUpgradeEntry（原 fX 89100）删除 → 一符一家收敛 PaymentDeep useCodingPlanUpgradeDialog
+ *    （fX 逐字真身：useContext(dX) + throw 守卫，components/payments/PaymentDeep@10102，A1-R23 补 export；
+ *    本文件 @6 既有 modules/PaymentDeep 导入行扩展取回；Home@152/343 R23 收敛先例同链）。
+ *    消费面实测 @1108 改名改指（解构 openCodingPlanUpgrade；canonical 返回 context any 面，解构逐字兼容）。
+ *    型缝沿革在案：R11 已精化 funnelContext→FunnelContext|null（对象面非字符串）。 ── */
+
+
+
 
 /** 分区导航意图（原 sw js 39425 / cw js 39442 / iw js 39375；A1-R24 行漂校正，旧注 39377/39394/35393 为漂移） */
 declare function navigateToSettingsSection(section: string): void; // iw（本文件无调用点，保留 declare）
@@ -1105,7 +1105,7 @@ export function ModelProviderPanel(props: {
     onSelectNavItem,
   } = props;
   const { intl } = useIntlContext();
-  const { openCodingPlanUpgrade } = useUpgradeEntry();
+  const { openCodingPlanUpgrade } = useCodingPlanUpgradeDialog();
   const loadingLabel = intl.formatMessage({ id: "common.loading" });
   const [upgradePlansProviderId, setUpgradePlansProviderId] = React.useState<string | null>(null);
   const [purchaseAudience, setPurchaseAudience] = React.useState<"personal" | "team">("personal");

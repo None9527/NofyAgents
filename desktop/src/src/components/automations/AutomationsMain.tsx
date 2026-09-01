@@ -79,7 +79,7 @@ declare const AutomationStatusPausedIcon: React.FC<React.SVGProps<SVGSVGElement>
 declare const TemplateIcon: React.FC<{ className?: string; name: string }>; // uMt 闲时模板图标
 declare const ScheduledTemplateIcon: React.FC<{ className?: string; name?: string }>; // Njt 定时模板图标
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：SkillIcon/CommandIcon/SubagentIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const HookIcon: React.FC<React.SVGProps<SVGSVGElement>>; // p（camera-info 占位）
+/* ── tombstone〔A1-R43〕：declare HookIcon（原 p（camera-info 占位））删除——本文件零消费（死 declare；全文 grep 实测仅本声明行），树内无 canonical（全域 grep 实测：仅 6 文件 declare 面，零 export/零消费）；A1-R43 项 3 机械簇收敛，证据见 A1-R43.report.md §四。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：UserScopeIcon/InfoIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* --- 通用领域类型 --- */
@@ -547,7 +547,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
   const platform = usePlatformService();
   const { zcodeAgentService } = useServices();
   const confirmDialog = useConfirmDialog();
-  const { openCodingPlanUpgrade } = useUpgradeEntryForAutomations();
+  const { openCodingPlanUpgrade } = useCodingPlanUpgradeDialog();
   const { modelProviders, displayOrder, loading: modelProvidersLoading } = useModelProvidersStore();
   const { settings, update: updateSettings } = useAppSettings();
   const { entitlements } = useCodingPlanEntitlementsForAutomations({
@@ -1473,14 +1473,14 @@ export function AutomationsMain(props: AutomationsMainProps) {
 }
 
 /** d6 内 fX/q 的局部别名声明（与 SettingsPanels.tsx 同源，避免跨文件导入） */
-declare function useUpgradeEntryForAutomations(): {
-  openCodingPlanUpgrade: (opts: {
-    providerId: string;
-    initialAudience?: "personal" | "team";
-    initialTeamPlanKey?: string;
-    funnelContext?: unknown; // 〔A1-R42〕A0 string 近似裁定改对象面：fX 89100 真形读 e?.funnelContext?.purchaseAudience 并传 e.funnelContext ?? null（MPSS@209 A1-R11 同缝先例）；FM 真身返回 CodingPlanFunnelContextLike 对象
-  }) => void;
-}; // fX（js 89100；A1-R24 行漂校正，旧注 89052 为漂移）
+/* ── tombstone〔A1-R43〕：declare useUpgradeEntryForAutomations（原 fX 89100）删除 → 一符一家收敛 PaymentDeep useCodingPlanUpgradeDialog
+ *    （fX 逐字真身：useContext(dX) + throw 守卫，components/payments/PaymentDeep@10102，A1-R23 补 export；
+ *    modules/PaymentDeep@317 转导出；Home@152/343 R23 收敛先例同链）。
+ *    消费面实测 @550 改名改指（解构 openCodingPlanUpgrade；canonical 返回 context any 面，解构逐字兼容）。
+ *    型缝沿革在案：R42 已裁 funnelContext string→unknown（本碑前身行注）；真形对象面（fX 89100 读 e?.funnelContext?.purchaseAudience）。
+ *    环安全：modules/PaymentDeep→components/payments→modules/Home 既有二环（Home@152 注在案），不达 automations（grep 实证）。
+ *    尾部导入（R35 先例）：import { useCodingPlanUpgradeDialog } from '../../modules/PaymentDeep'。 ── */
+
 declare function useCodingPlanEntitlementsForAutomations(opts: {
   modelProviders: ModelProvider[];
   loading: boolean;
@@ -1491,3 +1491,5 @@ const PROVIDER_IDS_BIGMODEL_CODING_PLAN = providerIds.bigmodelCodingPlan; // 原
 /* ── tombstone〔A1-R42〕：declare buildUpgradeFunnelForAutomations（原 FM）/planStateOfProviders（原 LM）删除 → 改指 components/shell/Home §U.8 canonical：buildCodingPlanFunnelContext（FM 53267-53276，A1-R25 逐字实体化）/resolveEntryPlanState（LM 53299-53312，A1-R26），经尾部导入取回。
  *    消费面实测 @771/@774 改名改指（≡ bundle 139073/139076；R25/R26 注「139073/139076 R0 域留批」闭合）。型缝：funnelContext A0 string 近似 → unknown 对象面（@1481，MPSS@209 A1-R11 先例：fX 89100 读 e?.funnelContext?.purchaseAudience——对象面非字符串）；ModelProvider[]→ModelProviderEntry[] 逐字段相容（索引签名 unknown 对齐）。 ── */
 import { buildCodingPlanFunnelContext, resolveEntryPlanState } from '../shell/Home'; // 〔A1-R42〕原 buildUpgradeFunnelForAutomations/planStateOfProviders（FM/LM declare）收敛改指——Home §U.8 canonical（FM 53267 A1-R25 / LM 53299 A1-R26 逐字实体化；本批补 export）。尾部导入：ES 模块提升，行引用零漂（R35 先例）。环安全：Home 不 import automations 域（grep 实证），值闭包单向。
+
+import { useCodingPlanUpgradeDialog } from '../../modules/PaymentDeep'; // 〔A1-R43〕原 useUpgradeEntryForAutomations（fX declare）收敛改指——canonical useCodingPlanUpgradeDialog（fX 89100 逐字真身，A1-R23 补 export；Home@152 R23 先例同链）。尾部导入：ES 提升，行引用零漂。
