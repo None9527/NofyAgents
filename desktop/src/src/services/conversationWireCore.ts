@@ -742,4 +742,5 @@ export {
   handshakePromiseByEndpoint, sessionTransportHandshake,
   inflightStagingFrameCap, inflightStagingByteCap, inflightStagingOverflowReason, frameJsonUtf8Bytes,
   sessionIndexInflightTracker, sessionFrameAssembly,
+  wireServerTimeSchema, // 〔A1-P3-B5〕sessionsIndexSchemaCore 消费（原 _i，src 块 If=E() 实体接线）
 };
