@@ -9,7 +9,7 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // G（Intl
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { SettingsRow, SettingsSectionCard, Switch, Alert, AlertDescription } from './SettingsRowPrimitives';
 import { BackLinkButton } from './SettingsShellParts';
-import { type SystemService, type ThemeMode, testidOf, SETTINGS_MEMORY_BACK_MEMORIES_TESTID, SETTINGS_MEMORY_BACK_PROJECTS_TESTID, SETTINGS_MEMORY_FILE_TESTID, SETTINGS_MEMORY_PREVIEW_TESTID, SETTINGS_MEMORY_REFRESH_TESTID, SETTINGS_MEMORY_SWITCH_TESTID, SETTINGS_MEMORY_WORKSPACE_TESTID, type MemoryService } from '../../modules/Settings';
+import { type SystemService, type ThemeMode, SETTINGS_MEMORY_BACK_MEMORIES_TESTID, SETTINGS_MEMORY_BACK_PROJECTS_TESTID, SETTINGS_MEMORY_FILE_TESTID, SETTINGS_MEMORY_PREVIEW_TESTID, SETTINGS_MEMORY_REFRESH_TESTID, SETTINGS_MEMORY_SWITCH_TESTID, SETTINGS_MEMORY_WORKSPACE_TESTID, type MemoryService } from '../../modules/Settings';
 
 /* §0 声明群随族迁入（原 178–180 / 280–285 / 310–315 / 335–349） */
 interface IntlShape {
@@ -293,7 +293,7 @@ export function ProjectMemoryViewer({
                 <Tooltip key={file.name} title={file.name} side="right">
                   <button
                     type="button"
-                    data-testid={testidOf(SETTINGS_MEMORY_FILE_TESTID, file.name)}
+                    data-testid={joinTestidParts(SETTINGS_MEMORY_FILE_TESTID, file.name)}
                     className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left outline-none hover:bg-hover focus-visible:bg-hover"
                     onClick={() => onSelectFile(file.name)}
                   >
@@ -316,7 +316,7 @@ export function ProjectMemoryViewer({
               <button
                 key={workspace.id}
                 type="button"
-                data-testid={testidOf(SETTINGS_MEMORY_WORKSPACE_TESTID, workspace.id)}
+                data-testid={joinTestidParts(SETTINGS_MEMORY_WORKSPACE_TESTID, workspace.id)}
                 className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left outline-none hover:bg-hover focus-visible:bg-hover"
                 onClick={() => onSelectWorkspace(workspace)}
               >
@@ -611,3 +611,4 @@ export function MemorySettingsSection({
   );
 }
 
+import { joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-R42〕原 testidOf（经 modules/Settings 转取，qr 局部转录）收敛改指 canonical joinTestidParts@5017（R41 既判链）。尾部导入（R35 先例）；环安全：本文件→SrcSharedB 纯助手值闭包，无反向边。

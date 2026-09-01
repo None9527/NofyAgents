@@ -768,10 +768,10 @@ export function AutomationsMain(props: AutomationsMainProps) {
     openCodingPlanUpgrade({
       providerId,
       initialAudience: "personal",
-      funnelContext: buildUpgradeFunnelForAutomations({
+      funnelContext: buildCodingPlanFunnelContext({
         providerId,
         eventText: intl.formatMessage({ id: "settings.modelProvider.codingPlan.upgrade" }),
-        entryPlanState: planStateOfProviders({ providers: modelProviders, loading: modelProvidersLoading }),
+        entryPlanState: resolveEntryPlanState({ providers: modelProviders, loading: modelProvidersLoading }),
       }),
     });
   }, [intl, modelProviders, modelProvidersLoading, openCodingPlanUpgrade, settings?.providerFamilyDomain]);
@@ -1478,7 +1478,7 @@ declare function useUpgradeEntryForAutomations(): {
     providerId: string;
     initialAudience?: "personal" | "team";
     initialTeamPlanKey?: string;
-    funnelContext?: string;
+    funnelContext?: unknown; // 〔A1-R42〕A0 string 近似裁定改对象面：fX 89100 真形读 e?.funnelContext?.purchaseAudience 并传 e.funnelContext ?? null（MPSS@209 A1-R11 同缝先例）；FM 真身返回 CodingPlanFunnelContextLike 对象
   }) => void;
 }; // fX（js 89100；A1-R24 行漂校正，旧注 89052 为漂移）
 declare function useCodingPlanEntitlementsForAutomations(opts: {
@@ -1488,5 +1488,6 @@ declare function useCodingPlanEntitlementsForAutomations(opts: {
 }): { entitlements: Record<string, { snapshot?: unknown }> }; // sX（88255）
 const PROVIDER_IDS_ZAI_CODING_PLAN = providerIds.zaiCodingPlan; // 原 q.zaiCodingPlan（A0-CLEANUP B-7 接线）
 const PROVIDER_IDS_BIGMODEL_CODING_PLAN = providerIds.bigmodelCodingPlan; // 原 q.bigmodelCodingPlan（A0-CLEANUP B-7 接线）
-declare function buildUpgradeFunnelForAutomations(opts: { providerId: string; eventText: string; entryPlanState: string }): string; // FM
-declare function planStateOfProviders(opts: { providers: ModelProvider[]; loading: boolean }): string; // LM
+/* ── tombstone〔A1-R42〕：declare buildUpgradeFunnelForAutomations（原 FM）/planStateOfProviders（原 LM）删除 → 改指 components/shell/Home §U.8 canonical：buildCodingPlanFunnelContext（FM 53267-53276，A1-R25 逐字实体化）/resolveEntryPlanState（LM 53299-53312，A1-R26），经尾部导入取回。
+ *    消费面实测 @771/@774 改名改指（≡ bundle 139073/139076；R25/R26 注「139073/139076 R0 域留批」闭合）。型缝：funnelContext A0 string 近似 → unknown 对象面（@1481，MPSS@209 A1-R11 先例：fX 89100 读 e?.funnelContext?.purchaseAudience——对象面非字符串）；ModelProvider[]→ModelProviderEntry[] 逐字段相容（索引签名 unknown 对齐）。 ── */
+import { buildCodingPlanFunnelContext, resolveEntryPlanState } from '../shell/Home'; // 〔A1-R42〕原 buildUpgradeFunnelForAutomations/planStateOfProviders（FM/LM declare）收敛改指——Home §U.8 canonical（FM 53267 A1-R25 / LM 53299 A1-R26 逐字实体化；本批补 export）。尾部导入：ES 模块提升，行引用零漂（R35 先例）。环安全：Home 不 import automations 域（grep 实证），值闭包单向。

@@ -113,7 +113,7 @@ import { useSettingsStore } from '../../modules/stores-core'; // 原 ko：设置
 import type { ThemeMode } from '../../modules/Settings'; // A0-CLEANUP B-22：theme 收敛 ThemeMode（type-only）
 import { useConfirmDialog } from '../../modules/Modals'; // 原 U2（Modals.tsx useConfirmDialog，js 123510）
 import { formatRelativeTime } from '../../modules/QuickPick'; // 原 $S（QuickPick.tsx formatRelativeTime，js 36080）
-import { webRemoteWorkspaceKey as taskWorkspaceKey } from '../../modules/SrcSharedB'; // 原 ei（styles 导入块 `c as ei` = SrcSharedB wC 导出）：任务工作区键
+import { webRemoteWorkspaceKey as taskWorkspaceKey, joinTestidParts } from '../../modules/SrcSharedB'; // 原 ei（styles 导入块 `c as ei` = SrcSharedB wC 导出）：任务工作区键〔A1-R42〕+joinTestidParts（原 scopedTestId 收敛改指，见下墓碑）
 import {
   BotsDialog as BotsConfigDialog, // 原 qLt（F11，147767 区）：Bots 配置对话框
   BotProviderIcon as BotProviderAvatar, // 原 _8（F11）：Bot 供应商头像
@@ -239,10 +239,10 @@ declare const Qq: {
 };
 
 /* ---- testid（src-HCld2afU.js；链：styles 别名 ← src 导出 ← 内部常量） ---- */
-/** 原 qr/Nb（src 8464）：作用域拼接 `${base}-${id}` */
-function scopedTestId(base: string, id: string): string {
-  return `${base}-${id}`;
-}
+/* ── tombstone〔A1-R42〕：scopedTestId（原 qr/Nb 局部转录，src 8464）删除 → 一符一家收敛 SrcSharedB@5017
+ * joinTestidParts（qr 真身链：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb js 8464 ≡ joinTestidParts
+ * 逐字 `${e}-${t}`，R41 既判；本件与 canonical 逐字同形）。消费面实测 3 处改名改指：@883/@961/@1139
+ * （≡ bundle 141125/141243/141501，BPt≡WebRemoteMobileTaskHome 内 qr(An, e.taskId)）；@116 导入面扩展。 ── */
 const TESTID_TASK_ITEM = "task-item"; // 原 An ← Mi ← X_
 
 /* ---- 它批已还原的远控助手（SidebarLeaves.tsx / Sidebar.tsx） ---- */
@@ -880,7 +880,7 @@ export function WebRemoteMobileTaskHome({
                   <li key={t}>
                     <button
                       type="button"
-                      data-testid={scopedTestId(TESTID_TASK_ITEM, e.taskId)}
+                      data-testid={joinTestidParts(TESTID_TASK_ITEM, e.taskId)}
                       data-state={a ? `selected` : `idle`}
                       className={cn(
                         `flex min-h-12 w-full min-w-0 items-center gap-2 rounded-lg border border-card-border bg-card px-3 py-2 text-left transition-colors disabled:cursor-wait disabled:opacity-70`,
@@ -958,7 +958,7 @@ export function WebRemoteMobileTaskHome({
                         <li key={t}>
                           <button
                             type="button"
-                            data-testid={scopedTestId(TESTID_TASK_ITEM, e.taskId)}
+                            data-testid={joinTestidParts(TESTID_TASK_ITEM, e.taskId)}
                             data-state={a ? `selected` : `idle`}
                             className={cn(
                               `flex min-h-14 w-full min-w-0 items-center gap-2 rounded-lg border border-card-border bg-card px-3 py-2 text-left transition-colors disabled:cursor-wait disabled:opacity-70`,
@@ -1136,7 +1136,7 @@ export function WebRemoteMobileTaskHome({
                           <li key={t}>
                             <button
                               type="button"
-                              data-testid={scopedTestId(TESTID_TASK_ITEM, e.taskId)}
+                              data-testid={joinTestidParts(TESTID_TASK_ITEM, e.taskId)}
                               data-state={n ? `selected` : `idle`}
                               className={cn(
                                 `flex min-h-12 w-full min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors disabled:cursor-wait disabled:opacity-70`,

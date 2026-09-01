@@ -510,10 +510,10 @@ export const SETTINGS_LOCALE_SELECT_TRIGGER_TESTID = "settings-locale-select-tri
 export const SETTINGS_LOCALE_SELECT_ITEM_TESTID = "settings-locale-select-item"; // wi（8336）
 export const SETTINGS_USAGE_TAB_TESTID = "settings-usage-tab"; // mne（8342）
 
-/** 原 qr（src chunk 的 Nb，8464）：testid 模板 `${prefix}-${value}` */
-export function testidOf(prefix: string, value: string): string {
-  return `${prefix}-${value}`;
-}
+/* ── tombstone〔A1-R42〕：testidOf（原 qr 局部转录）删除 → 一符一家收敛 SrcSharedB@5017 joinTestidParts
+ * （qr 真身链：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb js 8464 ≡ joinTestidParts 逐字 `${e}-${t}`，R41 既判）。
+ * 消费面实测 7 处改名改指：本文件 @1485（≡ bundle 205682）+ MemorySettingsSection @296/@319（≡ 202865/202897）
+ * + GeneralSettingsSection @245/@248/@251（≡ 204404/204409/204414）+ SettingsShellParts @276（≡ 205102）。 ── */
 
 
 /* ============================================================================
@@ -1482,7 +1482,7 @@ export function SettingsView({
                             label={sectionLabel}
                             active={isActive}
                             aria-current={isActive ? "page" : undefined}
-                            data-testid={testidOf(SETTINGS_SECTION_NAV_TESTID, id)}
+                            data-testid={joinTestidParts(SETTINGS_SECTION_NAV_TESTID, id)}
                             onClick={() => navigateToSection(id)}
                           >
                             {sectionLabel}
@@ -1740,3 +1740,4 @@ export default SettingsView;
 
 
 
+import { joinTestidParts } from './SrcSharedB'; // 〔A1-R42〕原 testidOf（qr 局部转录）收敛改指——canonical joinTestidParts@5017（R41 既判链）。尾部导入：ES 模块提升，等价文件头，行引用零漂（R35 @10315 先例）。环安全：Settings→SrcSharedB 值闭包（纯助手），无反向边。

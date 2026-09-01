@@ -7,7 +7,7 @@ import { Input } from '../../modules/ImeComposition';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // G（IntlProvider chunk）
 import { SettingsRow, SettingsSectionCard, SettingsTitleChip, Select, SelectValue, SelectTrigger, SelectContent, SelectItem, Switch } from './SettingsRowPrimitives';
 import { DataBaseDirControl } from './SettingsShellParts';
-import { AUTO_ARCHIVE_DAY_OPTIONS, INTERACTION_BEHAVIOR_OPTIONS, testidOf, SETTINGS_ASK_USER_QUESTION_SWITCH_TESTID, SETTINGS_LOCALE_SELECT_ITEM_TESTID, SETTINGS_LOCALE_SELECT_TRIGGER_TESTID, SETTINGS_NATIVE_SEARCH_SWITCH_TESTID } from '../../modules/Settings';
+import { AUTO_ARCHIVE_DAY_OPTIONS, INTERACTION_BEHAVIOR_OPTIONS, SETTINGS_ASK_USER_QUESTION_SWITCH_TESTID, SETTINGS_LOCALE_SELECT_ITEM_TESTID, SETTINGS_LOCALE_SELECT_TRIGGER_TESTID, SETTINGS_NATIVE_SEARCH_SWITCH_TESTID } from '../../modules/Settings';
 
 /* §0 声明群随族迁入（原 181 / 223–233） */
 type LocalePreference = "system" | "zh-CN" | "en-US";
@@ -242,13 +242,13 @@ export function GeneralSettingsSection({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="system" data-testid={testidOf(SETTINGS_LOCALE_SELECT_ITEM_TESTID, "system")}>
+                <SelectItem value="system" data-testid={joinTestidParts(SETTINGS_LOCALE_SELECT_ITEM_TESTID, "system")}>
                   {intl.formatMessage({ id: "settings.locale.system" })}
                 </SelectItem>
-                <SelectItem value="zh-CN" data-testid={testidOf(SETTINGS_LOCALE_SELECT_ITEM_TESTID, "zh-CN")}>
+                <SelectItem value="zh-CN" data-testid={joinTestidParts(SETTINGS_LOCALE_SELECT_ITEM_TESTID, "zh-CN")}>
                   {intl.formatMessage({ id: "settings.locale.zh-CN" })}
                 </SelectItem>
-                <SelectItem value="en-US" data-testid={testidOf(SETTINGS_LOCALE_SELECT_ITEM_TESTID, "en-US")}>
+                <SelectItem value="en-US" data-testid={joinTestidParts(SETTINGS_LOCALE_SELECT_ITEM_TESTID, "en-US")}>
                   {intl.formatMessage({ id: "settings.locale.en-US" })}
                 </SelectItem>
               </SelectContent>
@@ -660,3 +660,4 @@ export function GeneralSettingsTitleChips({ localePreference }: { localePreferen
   );
 }
 
+import { joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-R42〕原 testidOf（经 modules/Settings 转取，qr 局部转录）收敛改指 canonical joinTestidParts@5017（R41 既判链）。尾部导入（R35 先例）；环安全：本文件→SrcSharedB 纯助手值闭包，无反向边。

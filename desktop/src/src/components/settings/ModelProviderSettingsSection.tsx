@@ -319,8 +319,8 @@ declare const BIGMODEL_REGISTRATION_URL: string; // Jnt（跨 chunk）
  *    canonical = ConversationLeaves resolveCodingPlanProviderHeaders（逐字实体化：`(await fCt(e))?.headers`
  *    投影；bundle 唯一真身 118459，本文件 handleTestModel 1987 = bundle 192570 ze 回调唯一消费）。
  *    经新 import 边取回（环安全：ConversationLeaves 不引 components/settings，grep 实证）。 ── */
-declare function planStateOfProviders(opts: { providers: ModelProvider[]; loading: boolean }): string; // LM
-declare function buildUpgradeFunnelForAutomations(opts: { providerId: string; eventText: string; entryPlanState: string }): string; // FM
+/* ── tombstone〔A1-R42〕：declare planStateOfProviders（原 LM 近似）/buildUpgradeFunnelForAutomations（原 FM 近似）删除——本文件零消费（死 declare；全文 grep 实测）。
+ *    真身 = components/shell/Home §U.8 resolveEntryPlanState（LM 53299，A1-R26）/buildCodingPlanFunnelContext（FM 53267，A1-R25）；活消费面在 AutomationsMain（R42 同批改指，见其墓碑）。 ── */
 
 /* ============================================================================
  * 1. 模型供应商导航模型（原 rQt 及其纯助手，js 191351–191783 / jsx 154111–154556）

@@ -8,9 +8,9 @@ import { Input } from '../../modules/ImeComposition';
 import { cn } from '../../modules/UtilsCn'; // Z（utils chunk）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // G（IntlProvider chunk）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
-import { isDataBaseDirForbiddenError as isForbiddenInstallDirError } from '../../modules/SrcSharedB'; // dS（9110/8991）
+import { isDataBaseDirForbiddenError as isForbiddenInstallDirError, joinTestidParts } from '../../modules/SrcSharedB'; // dS（9110/8991）〔A1-R42〕+joinTestidParts（原 testidOf 经 Settings 转取，qr 收敛改指，见 modules/Settings 墓碑）
 import { Tabs, TabsList, TabsTrigger } from './SettingsRowPrimitives';
-import { isTeamPlanSource, codingPlanTabId, resolveCodingPlanTabLabel, testidOf, SETTINGS_USAGE_TAB_TESTID } from '../../modules/Settings';
+import { isTeamPlanSource, codingPlanTabId, resolveCodingPlanTabLabel, SETTINGS_USAGE_TAB_TESTID } from '../../modules/Settings';
 
 /* §0 声明群随族迁入（原 412–417 / 467–471 / 475 / 479–480） */
 interface CodingPlanSource {
@@ -273,7 +273,7 @@ export function UsageSectionTabBar({
             value={tab.id}
             aria-label={tab.label}
             title={tab.label}
-            data-testid={testidOf(SETTINGS_USAGE_TAB_TESTID, tab.id)}
+            data-testid={joinTestidParts(SETTINGS_USAGE_TAB_TESTID, tab.id)}
             className="h-8 rounded-none px-0 text-ui-base font-medium text-foreground-subtle data-active:text-foreground"
           >
             <span className="whitespace-nowrap">{tab.label}</span>

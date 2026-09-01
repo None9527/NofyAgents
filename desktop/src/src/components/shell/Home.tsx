@@ -4349,7 +4349,7 @@ export function buildCodingPlanPurchaseFunnelContext(e: { // 〔A1-P1-B5〕补 e
 }
 // 〔A1-R25〕FM 53267–53276 逐字实体化：buildCodingPlanFunnelContext declare 收敛（bundle FM 唯一真身；
 // 终端消费实测：本文件 1124 OffPeakNewTaskBanner ≡ bundle 91685、139073 R0 域留批；负证据：bundle 内 FM 无第二定义）
-function buildCodingPlanFunnelContext(e: {
+export function buildCodingPlanFunnelContext(e: { // 〔A1-R42〕补 export：AutomationsMain 139073/139076 消费面接引（P1-B5 补 export 先例；R25 留批闭合）
   providerId: string;
   eventText: string;
   entryPlanState?: EntryPlanStateLike | null;
@@ -4394,7 +4394,7 @@ export function resolveEntryPlanStateFromSnapshot(e: { // 〔A1-P1-B5〕补 expo
 // 终端消费实测：本文件 1137 ≡ bundle 91688、139076 R0 域留批；负证据：bundle 内 LM 无第二定义）。
 // 依赖接线：IM≡resolveEntryPlanStateFromSnapshot / q≡providerIds / li≡parseCodingPlanScope（SrcSharedB；
 // styles 680 `gt as li` ← src `parseCodingPlanScope as gt` ≡ Gb 8533）/ HM≡isStartPlanProviderId（SrcSharedA）。
-function resolveEntryPlanState(e: { providers: ModelProviderEntry[]; loading: boolean }): EntryPlanStateLike { // LM
+export function resolveEntryPlanState(e: { providers: ModelProviderEntry[]; loading: boolean }): EntryPlanStateLike { // LM 〔A1-R42〕补 export：AutomationsMain 139076 消费面接引（参型 ModelProviderEntry[] 与 AutomationsMain ModelProvider[] 逐字段相容，索引签名 unknown 对齐）
   if (e.loading) return resolveEntryPlanStateFromSnapshot({});
   let t = e.providers.filter((e) => !(e.enabled === !1 && e.systemDisabledReason)),
     n = t.find(
