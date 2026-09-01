@@ -310,7 +310,7 @@ interface FileInfo {
 declare function resolveFileInfo(path: string, options?: { basePath?: string; kind?: "directory" | "file" }): FileInfo;
 
 /** 路径助手（原 Go js 1928 / zhe 23702 / yg 23717） */
-declare function stripTrailingSlash(path: string): string;
+/* ── tombstone〔A1-R45〕：declare stripTrailingSlash（原 Go js 1928 族）删除——本文件零消费（grep 实测仅本 declare 行），全树独见。纯删碑（上方 JSDoc 为活面同胞 relativePathFrom 保留），证据见 A1-R45.report.md §二。 ── */
 declare function relativePathFrom(rootPath: string, absPath: string): string;
 
 /** 实体键（原 Io/Lo，js 1368/1371）——A0-D-Misc：已接线 SkillStore.resolveWorkspaceKey */

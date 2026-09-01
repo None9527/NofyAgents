@@ -908,7 +908,7 @@ declare function useWebRemoteControlFeatureEnabled(): boolean;
 
 
 
-declare function taskRuntimeByWorkspaceKey(workspaces: Record<string, WorkspaceTaskState>): Record<string, unknown>;
+/* ── tombstone〔A1-R45〕：declare taskRuntimeByWorkspaceKey（原 yPt 族）删除——本文件零消费（grep 实测仅本 declare 行；R44 扫描因 mapTasksToListItems 签名参数名同形误判活面，本批勘误收）。活消费面 = modules/AppRootLeaves@1849（其本地 declare@253 + 消费暂代式）。纯删碑，证据见 A1-R45.report.md §二。 ── */
 /* ── tombstone〔A1-R44〕：declare mapTasksToListItems（原 h6 族）删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
 
 

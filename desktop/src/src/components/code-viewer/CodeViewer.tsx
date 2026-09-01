@@ -345,11 +345,11 @@ declare function addCodeCommentAttachmentToChat(args: {
 }): void;
 declare function hasCodeCommentAttachment(args: { id: string; workspacePath: string; workspaceIdentity?: string | null }): boolean;
 declare function removeCodeCommentAttachment(args: { id: string; workspacePath: string; workspaceIdentity?: string | null }): void;
-declare function markCodeCommentAttachmentRestored(args: {
-  id: string;
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-}): void;
+/* ── tombstone〔A1-R45〕：declare markCodeCommentAttachmentRestored 删除——本文件零消费（grep 实测仅本 declare 行），全树独见。
+ * 纯删碑；未来消费面出现 → 经 bundle 取证定真身后重新引入。A1-R45 项 2 杂项微批，证据见 A1-R45.report.md §二。 ── */
+
+
+
 
 /* ============================================================================
  * 2. source 类型与投影助手（原 160966–161140）

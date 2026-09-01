@@ -322,7 +322,7 @@ declare const ContextMenuItem: React.FC<React.HTMLAttributes<HTMLDivElement> & {
 
 /* --- lucide 图标（原 Sa 工厂，js 26575–28020；语义名 = lucide 图标名） --- */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（20）：IconFolderOpen/IconCopy/IconRefreshCw/IconFileText/IconChevronDown/IconChevronRight/IconListTree/IconFileDiff/IconArrowUpFromLine/IconGitCommitHorizontal/IconCloudUpload/IconCircleAlert/IconCheck/IconLoader/IconGitBranch/IconTrash2/IconCodeXml/IconMessageSquareText/IconUndo2/IconSparkles → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // g（imeComposition b）
+/* ── tombstone〔A1-R45〕：declare IconX（原 g，imeComposition b）删除——本文件零消费（grep 实测仅本 declare 行）。IconX 全树 16 文件分布皆各文件自有 declare/lucide 面，与本文件死面无涉。纯删碑，证据见 A1-R45.report.md §二。 ── */
 
 /* --- 横切助手（本 chunk 他处定义，本族引用） --- */
 

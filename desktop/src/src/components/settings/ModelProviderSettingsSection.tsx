@@ -120,7 +120,7 @@ declare function isProviderUsable(provider: ModelProvider): boolean; // vM
  *    后二处本批改名改指。负证据：bundle 内 Iq 无第二定义；全树无其他展示序排序面。 ── */
 declare function isBuiltInProviderId(providerId: string): boolean; // irt
 declare function presetApiKeyUrl(presetId: string): string | null; // ort
-declare function presetRegistrationUrl(presetId: string): string | null; // ort 族
+/* ── tombstone〔A1-R45〕：declare presetRegistrationUrl（ort 族）删除——本文件零消费（grep 实测仅本 declare 行），全树独见（无他文件面）。纯删碑，证据见 A1-R45.report.md §二。 ── */
 declare function trackEvent(
   platform: PlatformService,
   event: {
@@ -210,8 +210,8 @@ interface CodingPlanEntitlement {
 
 
 
-/** 分区导航意图（原 sw js 39425 / cw js 39442 / iw js 39375；A1-R24 行漂校正，旧注 39377/39394/35393 为漂移） */
-declare function navigateToSettingsSection(section: string): void; // iw（本文件无调用点，保留 declare）
+/* ── tombstone〔A1-R45〕：declare navigateToSettingsSection（原 iw）删除——本文件零消费（grep 实测仅本 declare 行；旧注「保留 declare」被本批集群裁定覆盖）。
+ * 真身 = modules/Settings requestSettingsSectionNavigation（ow js 39381；A1-R24 归属 + 行漂校正既判；UsageSettingsSection@7 别名导入改指先例）。纯删碑，证据见 A1-R45.report.md §二。 ── */
 
 /** 服务 context（原 fs()，2638） */
 interface ModelProviderService {
@@ -269,33 +269,33 @@ declare function buildTeamPlanNavItems(opts: {
 /* ── tombstone（A1-R11）：declare useFunnelDiagnostics（原 dj，51862——普查行漂移，bundle 真身 51910）删除。
  *    负证据：本文件无活调用点（仅存 declare）；bundle dj 调用实测 76295/76541/84520/190007 均落于已重建组件域，
  *    各该处已直调 canonical useBillingDiscount（components/usage/UsageDeep.tsx:1892，dj 51910 逐字）。无改指对象，纯删碑。 ── */
-declare function usePlanProductsSnapshot(
-  providerId: string,
-  opts: { remotePreviewEnabled: boolean }
-): { snapshot: { productList: BigModelProduct[] } | null; loading: boolean }; // s5e（80321）
-declare function useIntlFormatDate(): (value: unknown) => string; // JY（87715）
-declare function buildEnterpriseTeamGroups(
-  products: BigModelProduct[],
-  opts: { locale: string; formatMessage: (d: { id: string }, v?: Record<string, unknown>) => string }
-): unknown[]; // HY（87595）
-declare function formatStartPlanPreview(
-  preview: unknown,
-  intl: IntlShape,
-  locale: string
-): { title: string; description: string }; // MXt（189380）
-declare function resolvePlanProviderId(providerId: string): string; // zZt（190947）
-declare function buildPurchaseBannerItems(opts: {
-  providerId: string;
-  audience: "personal" | "team";
-  products: BigModelProduct[];
-  soldOutVisible: boolean;
-}): unknown[]; // BZt（190950）
-declare function resolveEnterpriseVisibility(opts: {
-  teamVisible: boolean;
-  enterpriseTeamGroupCount: number;
-  enterpriseProductsLoading: boolean;
-}): unknown; // NZt（190913）
-declare function pickFeaturedTeamProducts(products: BigModelProduct[]): unknown[]; // PZt（190922）
+/* ── tombstone〔A1-R45〕：死 declare 簇（8 件）删除：usePlanProductsSnapshot（原 s5e，80321）/ useIntlFormatDate（原 JY，87715）/ buildEnterpriseTeamGroups（原 HY，87595）/ formatStartPlanPreview（原 MXt，189380）/
+ * resolvePlanProviderId（原 zZt，190947）/ buildPurchaseBannerItems（原 BZt，190950）/ resolveEnterpriseVisibility（原 NZt，190913）/ pickFeaturedTeamProducts（原 PZt，190922）。
+ * 逐件零消费实测（全文 grep 每名出现次数 = 1，仅本 declare 行）；全树独见，无他文件面。
+ * 无改指对象，纯删碑（同文件 A1-R11 useFunnelDiagnostics 墓碑同式先例）；未来消费面出现 → 经 bundle 取证定真身后重新引入。
+ * A1-R45 项 1 整族收敛（R44 §六.1 留批续收），证据见 A1-R45.report.md §二。 ── */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 declare function purchaseBannerCopy(
   displayStatus: string,
   intl: IntlShape

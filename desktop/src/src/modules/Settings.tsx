@@ -422,13 +422,13 @@ declare function buildTeamPlanSources(input: {
 declare function useCodingPlanUpgrade(): {
   openCodingPlanUpgrade(input: { providerId: string; funnelContext: string }): void;
 };
-/** 原 sX：供应商权益（entitlements）钩子（F12） */
-declare function useProviderEntitlements(input: {
-  modelProviders: ModelProvider[];
-  loading: boolean;
-  modelProviderFamilySelectedKeys?: Record<string, string>;
-  suppressProviderFingerprintAutoRefresh?: boolean;
-}): { entitlements: unknown; refresh(): Promise<void> };
+/* ── tombstone〔A1-R45〕：declare useProviderEntitlements（原 sX 供应商权益钩子，F12）删除——本文件零消费（grep 实测仅本 declare 行），全树独见。
+ * 纯删碑；未来消费面出现 → 经 bundle 取证定真身后重新引入。A1-R45 项 2 杂项微批，证据见 A1-R45.report.md §二。 ── */
+
+
+
+
+
 
 /* --- 跨族已抽取组件（TopBar.tsx / 窗口壳族 / 侧栏族） --- */
 
@@ -456,8 +456,8 @@ declare const WINDOWS_CAPTION_MENU_MARGIN: string;
 /** 原 r4（js 127248，TopBar.tsx RemoteSyncDialogs）：远程同步对话框组 */
 /* ── tombstone（A0-CLEANUP2 item 14）：canOpenRemoteSessionSource（原 $2）declare 删除
  *    → import { canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource } from './Modals'。 ── */
-/** 原 q2：远程目标展示标签 */
-declare function remoteTargetDisplayLabel(target: RemoteTarget, workspacePath: string): string;
+/* ── tombstone〔A1-R45〕：declare remoteTargetDisplayLabel 删除——本文件零消费（grep 实测仅本 declare 行）。真身 = modules/SplitLayoutDeep@1585（原 XTt，js 123241；A1-R4 既判；
+ * 旧注「原 q2」为早期误归——q2 实为 remoteTargetDisplayName（R44 簇在案）；Home@168 改指先例；McpSettingsSection@62 为其自有活面，与本文件死面无涉。纯删碑，证据见 A1-R45.report.md §二。 ── */
 
 /* --- UI 原语（跨 chunk） --- */
 
@@ -473,8 +473,8 @@ type IconComponent = React.FC<{ className?: string; "aria-hidden"?: boolean | "t
 /* 图标（原 Sa=createLucideIcon 工厂产物，行号见头部映射表） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（30）：IconGeneral/IconAppearance/IconModelProvider/IconMemory/IconPlugins/IconSkills/IconSubagents/IconAutomations/IconMcp/IconCommands/IconHooks/IconIndexing/IconBrowser/IconUsage/IconOnboarding/IconFolderOpen/IconRefresh/IconFileText/IconFolder/IconSkillRow/IconPlus/IconDownload/IconCloudUpload/IconArrowLeft/IconChevronRight/IconChevronDown/IconCheck/IconThemeSystem/IconThemeDark/IconThemeLight → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
-/** ZCode logo data-url（原 uw，js 39411）：Win caption 左上 logo */
-declare const ZCODE_LOGO_DATA_URL: string;
+/* ── tombstone〔A1-R45〕：declare ZCODE_LOGO_DATA_URL（原 uw，js 39411：Win caption 左上 logo）删除——本文件零消费（grep 实测仅本 declare 行）。
+ * 活消费面 = SettingsShellParts@80（其本地 declare@29 + 消费，暂代式）；真身 uw 待转录。纯删碑，证据见 A1-R45.report.md §二。 ── */
 
 /* --- Radix 底层原语（打包进本 chunk；此处声明行为接口） --- */
 
