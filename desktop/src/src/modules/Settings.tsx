@@ -149,7 +149,7 @@
 import * as React from "react";
 import { Settings2 as IconGeneral, Palette as IconAppearance, Server as IconModelProvider, Brain as IconMemory, Puzzle as IconPlugins, WandSparkles as IconSkills, Bot as IconSubagents, AlarmClock as IconAutomations, Cable as IconMcp, Terminal as IconCommands, Anchor as IconHooks, ShieldCheck as IconIndexing, Earth as IconBrowser, ChartColumn as IconUsage, Rocket as IconOnboarding, ArrowLeft as IconArrowLeft, Monitor as IconThemeSystem, Moon as IconThemeDark, Sun as IconThemeLight } from 'lucide-react'; // A0-S3b（留存面）：§4 注册表/主题选项图标 + §15 视图图标
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
-import { toast, useSelectDirectory, usePlatformService } from './ImeComposition'; // 〔A1-R49〕+usePlatformService（原 l declare 改指 canonical 富面，本地九员面 + 孤儿型碑化）
+import { toast, useSelectDirectory, usePlatformService, type RemoteTarget } from './ImeComposition'; // 〔A1-R49〕+usePlatformService（原 l declare 改指 canonical 富面，本地九员面 + 孤儿型碑化）；〔A1-R50〕+type RemoteTarget（统一属主改指，本地同形副本删除）
 import { ModelProviderSettingsSection } from './SettingsPanels';
 import { CommandsSettingsSection, HooksSettingsSection, PluginsSettingsSection, SkillsSettingsSection, SubagentsSettingsSection } from './SettingsPanelsCapability';
 import { MigrationSettingsSection, UsageSettingsSection } from './SettingsPanelsData';
@@ -201,13 +201,11 @@ interface IntlShape {
 }
 type LocalePreference = "system" | "zh-CN" | "en-US";
 
-interface RemoteTarget {
-  kind: "ssh" | "wsl" | "docker" | "server";
-  host?: string;
-  port?: number;
-  container?: string;
-  sshConfigAlias?: string;
-}
+/* ── tombstone〔A1-R50〕：本地 RemoteTarget 副本（6 员 family-A 形，A0-CLEANUP3 3b 期
+ *    曾为「对齐基准」——六分区 port 行注所引 Settings.RemoteTarget 即本面）删除 →
+ *    统一属主改指 components/ime/ImeComposition::RemoteTarget（canonical openInEditor
+ *    opts.remoteTarget 内联抽出；经 ./ImeComposition type import，既有边）。消费位
+ *    @1658/@1667/@1692 三处 `as RemoteTarget | null` 边界 cast 逐字不变。 ── */
 interface AppUser {
   id?: string;
   name?: string;

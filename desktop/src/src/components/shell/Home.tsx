@@ -147,7 +147,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { BackgroundWorksCapsule, CodeCommentsChip, ComposerInput, SelectionsChip, WebElementsChip, applyWorkspaceFileMentionDrop as insertAddToChatPayload, useComposerFileDragDetection as useFileDragDetection, isCoarseTouchDevice, shouldRestoreFocus, useWebElementContexts, removeCodeCommentEverywhere, useSessionScopedReferences, type AppSlashCommand, type BackgroundWork, type ComposerEditorApi, type WebElementContext } from '../../modules/Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 rZe/ZV）。A1-R12：insertAddToChatPayload declare（原 YV，66811）改指 Composer 属主导出（bundle 唯一真身；消费点 2440/2947 逐字不变）。A1-R13：useFileDragDetection declare（原 XV，66828）改指 Composer 属主导出（bundle 唯一真身；消费点 2418 逐字不变）。A1-R17：+isCoarseTouchDevice/shouldRestoreFocus（原 XH 69346 / ZH 69351 属主导出；§T ConfigSelect 77025 消费）。A1-R21：+useWebElementContexts/removeCodeCommentEverywhere/useSessionScopedReferences（原 ZXe 68940 / jXe 68628 / tZe 69225 属主导出；附件域双钩子+余量 declare 收敛，见下墓碑）。A1-R22：+CodeCommentsChip/WebElementsChip/SelectionsChip（原 TH 68298 / lit 89989 / uit 90087 逐字 canonical；chip 行三 declare 收敛，见下墓碑）
 import { countContextAttachments, buildOutboundContentWithAttachments, useCodeCommentContexts, type CodeCommentAttachment } from '../../modules/GitReview'; // A1-R12：isAddToChatEvent 移出（原 yXe，68430 = code-comment-add-to-chat 域，与 2945 消费面事件名不符 → 改指工作区域守卫，见下）。A1-R21：+buildOutboundContentWithAttachments（原 GXe，68833；buildOutgoingMessage declare 收敛，与 countContextAttachments=GH 68825 同族配对）
 import { readWorkspaceFilePayload as parseAddToChatPayload, ADD_WORKSPACE_FILE_TO_CHAT_EVENT as ADD_TO_CHAT_EVENT_NAME, isAddWorkspaceFileToChatEvent as isAddToChatEvent, type WorkspaceFileDragPayload } from '../composer/FileMentionDragHelpers'; // A1-R12：Mj（52248）/Aj（52211）/nUe（52260）declare 改指纯函数叶子（本批逐字转录）；消费点 2436/2945/2957/2959 逐字不变。nUe 此前误接 GitReview yXe（code-comment 域），bundle 90733 真身 = 工作区域守卫
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService } from '../../modules/ImeComposition'; // +usePlatformService（A1-R15：原 l=M，vWe 54317 截图面消费）
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService, type RemoteTarget } from '../../modules/ImeComposition'; // +usePlatformService（A1-R15：原 l=M，vWe 54317 截图面消费）；〔A1-R50〕+type RemoteTarget（统一属主改指，本地同形副本删除）
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { useCodingPlanUpgradeDialog, useCodingPlanUpgradeDialogOptional as useUpgradeActions, filterUsableProviders, modelMenuGroupsOf, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R29〕+filterUsableProviders（N6e 77910 canonical）/modelMenuGroupsOf（Hq 77850 canonical）/type ModelProvider（型缝所依）：两 declare 收敛改指，见下墓碑 // A1-R23：原 fX（89100）declare 改指 canonical（components/payments/PaymentDeep 〔A1-R23〕补 export）；消费面 §U.10 ComposerConfigToolbarBody 4243 ≡ bundle 89522。〔A1-R24〕useUpgradeActions 别名并入：原 Art（89106）declare 收敛改接（消费面 1078 ≡ bundle 91644）。环安全：函数声明提升，渲染期调用（二环 Home→PaymentDeep shim→components/payments→modules/Home）
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
@@ -1236,13 +1236,10 @@ export interface WorkspaceTab {
   workspacePurpose?: "project" | "conversation";
   label?: string;
 }
-interface RemoteTarget {
-  kind: "ssh" | "wsl" | "docker" | "server";
-  host?: string;
-  port?: number;
-  container?: string;
-  sshConfigAlias?: string;
-}
+/* ── tombstone〔A1-R50〕：本地 RemoteTarget 副本（6 员 family-A 形）删除 → 统一属主
+ *    改指 components/ime/ImeComposition::RemoteTarget（canonical openInEditor opts.remoteTarget
+ *    内联抽出；经 modules/ImeComposition type import，既有边）。消费位 @1235（本地
+ *    WorkspaceTab.remoteTarget 面）/ @1350（onConnectRemote 参型）逐字不变。 ── */
 /** 工作区作用域 key（原 Ti，src-HCld2afU.js 导出） */
 /** 路径末段名（原 Go，横切层 1928） */
 /* ── tombstone（A1-R4）：remoteTargetDisplayLabel（原 XTt）declare 删除 → 真实 import

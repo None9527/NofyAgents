@@ -204,7 +204,7 @@ import { ConversationOrchestrator, StackedConversationPane, SidebarSessionDropPr
 import { type InstalledEditor, samePath as isSamePath, isPathWithinRoot as isPathWithin } from '../../modules/FileTreePanel'; // 〔A1-P2-B10〕isSamePath/isPathWithin declare 改指（原 BA 50974 / VA 50977；同一性实证见删 declare 处墓碑）
 import { APP_LOGO_DATA_URL, FeedbackCenter, collectWorkspaceTaskIds, resolveAdjacentTasks, runWithWorkspaceVisibility, type FeedbackService } from '../../modules/FeedbackCenter';
 import { WorkspaceSelectionRow, openSettingsSection as setSettingsTabTarget, type SettingsSectionId } from '../../modules/Home'; // 〔A1-P2-B10〕+openSettingsSection as setSettingsTabTarget（原 iw 39375；Home@4210 canonical，A1-R24 settingsNavigation 簇在案）——下方设置域 declare 删碑改指，R1 判例别名保留调用名
-import { toast, usePlatformService as usePlatformServiceCanonical } from '../../modules/ImeComposition'; // 〔A1-P2-B6〕+usePlatformServiceCanonical（原 l ≡ imeComposition chunk M 导出 ≡ usePlatform 域外消费别名，components/ime/ImeComposition.tsx@186；census wt_defn=yes 唯一在案）：下方 declare 删碑改指
+import { toast, usePlatformService as usePlatformServiceCanonical, type RemoteTarget as RemoteTargetBase } from '../../modules/ImeComposition'; // 〔A1-P2-B6〕+usePlatformServiceCanonical（原 l ≡ imeComposition chunk M 导出 ≡ usePlatform 域外消费别名，components/ime/ImeComposition.tsx@186；census wt_defn=yes 唯一在案）：下方 declare 删碑改指；〔A1-R50〕+type RemoteTarget as RemoteTargetBase（统一属主改指，本地同形副本删除，下方派生别名保留 null 支）
 import { type FileLinkModel } from '../../modules/MarkdownIntegration'; // A0-CLEANUP4：markdown 文件链接回调面（原 MHe 模型，js 51430）
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { QuickPick, buildQuickPickCommands, useSearchResultsStore, type SearchResultsState } from '../../modules/QuickPick'; // +useSearchResultsStore/type SearchResultsState（A1-R10 2f：原 Vo（1553）declare 与本地薄面改指 canonical——QuickPick 1254 区实体；调用点 4372/4439/4481/4704/4724/5505 逐字不变）。既有边（209），环安全：QuickPick 值闭包不达 components/shell
@@ -575,13 +575,9 @@ declare function flushUnreadPersistence(): void;
  *   declare isWorkspaceUnavailableLocalDirectory（原 sc）→ hasUnavailableLocalDirectoryTab。
  * 〔A1-P2-B2〕型缝×2：canonical WorkspaceTab.remoteTarget: unknown 流入本地
  * RemoteTarget 型面（resolveActiveWorkspaceTarget）——束真同值透传，型层 cast 登记在案。 */
-type RemoteTarget = {
-  kind: "ssh" | "wsl" | "docker" | "server";
-  host?: string;
-  port?: number;
-  container?: string;
-  sshConfigAlias?: string;
-} | null;
+/* 〔A1-R50〕6 员形删除 → 统一属主改指 ImeComposition::RemoteTarget（RemoteTargetBase）；
+ * 本别名保留 null 支（原形即带 | null，消费位 @615/@1791/@1809/@2606/@4676/@4921/@5027/@5235 逐字不变）。 */
+type RemoteTarget = RemoteTargetBase | null;
 
 /* --- 设置域（原 ko / xo / iw） --- */
 

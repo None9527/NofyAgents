@@ -112,6 +112,7 @@ export {
 } from '../components/ime/ImeComposition';
 export type {
   PlatformService,
+  RemoteTarget, // 〔A1-R50〕RemoteTarget 统一属主（family-A 规范形；canonical openInEditor 内联抽出），树内副本改指
   PlatformProviderProps,
   InputProps,
   CompositionStateProbe,

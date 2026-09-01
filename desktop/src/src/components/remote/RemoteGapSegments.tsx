@@ -85,7 +85,7 @@
 
 import * as React from "react";
 import { Button, ChevronRight as IconChevronRight, createLucideIcon } from '../../modules/button'; // A0-CLEANUP 族清理：Button/IconChevronRight（原 wa=o）/createLucideIcon declare 改指 button chunk
-import { RemoteSettingsForm } from "../../modules/RemoteWizard";
+import { RemoteSettingsForm, type RemoteTarget } from "../../modules/RemoteWizard"; // 〔A1-R50〕+type RemoteTarget（富形属主改指：本地同构副本删除，原注「RemoteWizard.tsx 209 行同构」既证）
 import { canOpenRemoteSessionSourceCheck, DirectoryBrowserDialog, RemoteSyncDialogs, RemoteSyncDropdownButton } from "../../modules/Modals"; // +$2（A0-S2d/B5-14 接线）
 import { DEFAULT_ASSET_INSTALL_MODE, isValidWslUser, listFileTransferCapabilities } from "../../modules/SrcSharedA"; // +$te（A0-S2d/B5-14 接线）
 import {
@@ -164,26 +164,12 @@ interface SshConfigAlias {
   privateKeyPath?: string | null;
 }
 
-/** 原 RemoteTarget（RemoteWizard.tsx 209 行同构） */
-interface RemoteTarget {
-  kind: RemoteKind;
-  host?: string;
-  port?: number;
-  username?: string;
-  sshConfigAlias?: string;
-  assetInstallMode?: string;
-  password?: string;
-  privateKeyPath?: string;
-  privateKeyPassphrase?: string;
-  container?: string;
-  distro?: string;
-  user?: string;
-  url?: string;
-  name?: string;
-  token?: string;
-  workspacePath?: string;
-  resourcePackages?: { selectedPackageIds: string[] };
-}
+/* ── tombstone〔A1-R50〕：本地 RemoteTarget 富形副本（18 员，原注「RemoteWizard.tsx 209 行
+ *    同构」既证）删除 → 富形属主改指 components/remote/RemoteWizard::RemoteTarget
+ *    （经 modules/RemoteWizard type import，既有边）。消费位 @630（validateAndBuildRemoteTarget
+ *    返回面）/ @693（attachSelectedResourcePackages 参型）逐字不变。
+ *    与 family-A 属主（ImeComposition::RemoteTarget）之判：本形为向导域连接表单全量面
+ *    （含 password/privateKey/token 等凭据员 + RemoteKind），超集异形，各域其主。 ── */
 
 /** 向导表单快照（原 mEt 返回面对象，供 SEt 校验消费） */
 interface RemoteTargetFormState {

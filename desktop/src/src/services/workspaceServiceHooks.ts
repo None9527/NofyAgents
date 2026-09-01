@@ -435,12 +435,15 @@ function isNativeSessionLogProvider(e: string | null | undefined): boolean {
   return e ? e === `claude` || e === `codex` || e === `gemini` || e === `glm` : true;
 }
 
-/** 原 qge（24612–24676）：task 原生日志路径 hook（日志串 `[useTaskNativeSessionLogFile]` 自证名） */
+/** 原 qge（24612–24676）：task 原生日志路径 hook（日志串 `[useTaskNativeSessionLogFile]` 自证名）。
+ * 〔A1-R50〕型缝：workspaceIdentity 参 `r?: string` 宽化为 `r?: string | null`——
+ * GitReview 活面（UseTaskFileActionsProps.workspaceIdentity?: string | null）改指所需；
+ * 束真 `...(r ? { workspaceIdentity: r } : {})` 真值守卫 null 安全，运行期零变。 */
 export function useTaskNativeSessionLogFile(
   e: string,
   t: string | null,
   n: string | null,
-  r?: string,
+  r?: string | null,
   i: { enabled?: boolean } = {},
 ): TaskNativeSessionLogFileState {
   let a = useCachedTaskService(e, void 0, r) as TaskSessionFileServiceLike,
@@ -518,11 +521,14 @@ export interface TaskSessionFileState {
   error: string | null;
 }
 
-/** 原 Xge（24686–24733）：task 会话快照路径 hook（日志串 `[useTaskSessionFilePath]` 自证名） */
+/** 原 Xge（24686–24733）：task 会话快照路径 hook（日志串 `[useTaskSessionFilePath]` 自证名）。
+ * 〔A1-R50〕型缝：workspaceIdentity 参 `n?: string` 宽化为 `n?: string | null`——
+ * 同 qge 宽化注记（GitReview 活面改指所需；束真 `...(n ? { workspaceIdentity: n } : {})`
+ * 真值守卫 null 安全，运行期零变）。 */
 export function useTaskSessionFilePath(
   e: string,
   t: string | null,
-  n?: string,
+  n?: string | null,
   r: { enabled?: boolean } = {},
 ): TaskSessionFileState {
   let i = useCachedTaskService(e, void 0, n) as TaskSessionFileServiceLike,

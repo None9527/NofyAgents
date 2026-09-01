@@ -4,8 +4,8 @@ import * as React from "react";
 import { DropdownMenu as DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { RefreshCw as RefreshIcon, PlusIcon, ChevronDownIcon, Settings2 as SettingsIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
-import { toast } from '../../modules/ImeComposition';
-import { RemoteSyncDialogs } from '../../modules/Modals';
+import { toast, type RemoteTarget } from '../../modules/ImeComposition'; // 〔A1-R50〕+type RemoteTarget（统一属主改指，本地同形副本删除）
+import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck as resolveRemoteSyncTarget, remoteSyncTargetLabel as remoteTargetDisplayName } from '../../modules/Modals'; // 〔A1-R50〕+$2/q2（原二 declare）：canonical = RemoteSyncDialogs::canOpenRemoteSessionSourceCheck（styles 127142）/remoteSyncTargetLabel（styles 125207），别名保留调用名，消费位逐字不变
 import { AddMarketplaceDialog, PluginAdvancedSection, PluginDetail, PluginHookDetailsList, PluginInfoRow, PluginManageList, PluginSourcesDialog, PluginStoreGrid, PluginUninstallDialog, buildPluginChatPrompt, buildStoreItems, useUninstallFlow, type PluginHookDetail } from '../../modules/SettingsLeaves'; // A0-CLEANUP3 3b：PluginHookDetail 属主为 SettingsLeaves（导出）
 import { useBaseServices, useServices, useSessionService } from '../../modules/services'; // A1-R47：+useSessionService（原 Ag 收敛改指）
 import { usePluginsStore } from '../../modules/stores-workspace';
@@ -68,13 +68,10 @@ interface ToastOptions {
 
 /* --- 通用领域类型 --- */
 
-interface RemoteTarget {
-  kind: "ssh" | "wsl" | "docker" | "server";
-  host?: string;
-  port?: number; // A0-CLEANUP3 3b：与 Settings.RemoteTarget 对齐（跨模块传参同型）
-  container?: string;
-  sshConfigAlias?: string;
-}
+/* ── tombstone〔A1-R50〕：本地 RemoteTarget 副本（6 员 family-A 形）删除 → 统一属主
+ *    改指 components/ime/ImeComposition::RemoteTarget（canonical openInEditor opts.remoteTarget
+ *    内联抽出；经 modules/ImeComposition type import，既有边）。消费位 @289 props 面 +
+ *    原 $2/q2 declare 参型面逐字不变。 ── */
 interface ModelProvider {
   id: string;
   name: string;
@@ -120,15 +117,16 @@ interface PluginManagementService {
 
 /* --- 跨 chunk 助手（接口级） --- */
 
-/** 原 $2：远程目标可用性判定 */
-declare function resolveRemoteSyncTarget(opts: {
-  remoteSessionId?: string | null;
-  remoteTarget?: RemoteTarget | null;
-  clientMode: "web-remote-replayable" | "desktop-continuous";
-  hasLocalSourceService: boolean;
-}): boolean;
-/** 原 q2：远程目标显示名 */
-declare function remoteTargetDisplayName(target: RemoteTarget, workspacePath: string): string;
+/* ── tombstone〔A1-R50〕：declare resolveRemoteSyncTarget（原 $2，styles 127142–127149）/
+ *    remoteTargetDisplayName（原 q2，styles 125207–125214）二件删除——逐字真身在案：
+ *    components/modals/RemoteSyncDialogs::canOpenRemoteSessionSourceCheck（A0-S2d 转录）/
+ *    remoteSyncTargetLabel（同叶转录），改经文件头 modules/Modals 别名 import 接线
+ *    （既有边；Mcp@8/TopBar@138/RemoteGapSegments@89 同式先例）。消费位 @351
+ *    （`resolveRemoteSyncTarget({ remoteSessionId, remoteTarget, clientMode, hasLocalSourceService })`）/
+ *    @359（`remoteTargetDisplayName(remoteSyncTarget, workspacePath ?? "")`）逐字不变。
+ *    型相容：canonical 参型 clientMode: string ⊇ 字面并、remoteTarget?: { kind?: string } | null
+ *    ⊇ 属主 RemoteTarget（kind 四并 ⊆ string）；q2 参型 { kind: string; host?; port?; username?;
+ *    distro?; user? } ⊇ 属主形（结构可赋）；返回 boolean/string 同契。 ── */
 /* ── tombstone〔A1-R44〕：declare useZcodeSessionService（原 kg zcodeSessionService 工厂）删除——PluginsSettingsSection 零消费（grep 实测仅本 declare 行）。
  * 树内 kg 全域 declare 占位相，唯一活消费面 = OnboardingDialog@289（其本地 declare@23 + 消费）。纯删碑，证据见 A1-R44.report.md §二。 ── */
 /* ── tombstone〔A1-R47〕：declare useWorkspaceAgentService（原 Ag）删除——收敛改指 services/workspaceServiceHooks useSessionService@406（Ag 真身 styles 24368-24370，

@@ -176,7 +176,7 @@ import { Button, createLucideIcon } from '../../modules/button'; // 原 X（butt
 import { parseCustomModelRef as parseCustomModelKey } from '../../modules/SrcSharedB'; // 原 Zn（src-HCld2afU.js 的 P 导出）
 import { isE2EStoreBridgeEnabled as isE2eStoreBridgeMode } from '../../modules/SkillStore'; // 原 re（skillStore chunk 的 K 导出）
 import { resolveWorkspaceKey as workspaceEntityKey } from '../../modules/SkillStore'; // 原 Io（工作区实体键）
-import { sessionFrameAssembly as createFrameRouter, SessionIndexTopicMultiplexer, conversationTopicKey as conversationLayerKey, parseConversationTopicKey as sessionIdFromTopic } from '../../services/conversationWireCore'; // 〔A1-R49〕原 NS/bS/Bke/dS 环境声明四件改指逐字实体（styles 34746/33890/33777/33780；conversationWireCore A1-P3-B4/B8 逐字，ROUNDTRIP+SEAMSTRIP[wire] EXACT 在案）；接线镜像 sessionIndex §B5-transport 652-660 先例（孪生位 34819-34830 已闭环）
+import { sessionFrameAssembly as createFrameRouter, SessionIndexTopicMultiplexer, conversationTopicKey as conversationLayerKey, parseConversationTopicKey as sessionIdFromTopic, sessionTransportHandshake as ensureConversationRuntimeReady, sessionIndexInflightTracker as createFrameCompletionTracker } from '../../services/conversationWireCore'; // 〔A1-R49〕原 NS/bS/Bke/dS 环境声明四件改指逐字实体（styles 34746/33890/33777/33780；conversationWireCore A1-P3-B4/B8 逐字，ROUNDTRIP+SEAMSTRIP[wire] EXACT 在案）；接线镜像 sessionIndex §B5-transport 652-660 先例（孪生位 34819-34830 已闭环）〔A1-R50〕续接 AS/MS 余二件（34647/34677，R49 §五-1 留批闭合）
 import { conversationFrameSchema, applyConversationFrameOps as applySnapshotDeltas } from '../../services/conversationFrameSchemaCore'; // 〔A1-R49〕原 aS/dke 环境声明改指逐字实体（styles 33493/33283；conversationFrameSchemaCore A1-P3-B6/B7 逐字）；消费位 39592/39966 逐字证据见 §16 墓碑
 
 /* ============================================================================
@@ -279,25 +279,21 @@ declare function resolveWorkspaceServicesEntry(
  *    包容实参（SessionSnapshot/SessionDelta[]/string），返回型同契
  *    （dke 返回快照形 → spread 后补 seq；Bke 返回 string；dS 返回 string|null，
  *    各位点均有 !guard 收窄）。 ── */
-/** RPC 就绪握手（hello+initialize，带缓存；原 AS，本 chunk 34647） */
-declare function ensureConversationRuntimeReady(agentService: AgentServiceV4): Promise<unknown>;
-/** 帧装配完成跟踪器（原 MS，本 chunk 34677） */
-declare function createFrameCompletionTracker(callback: (frame: unknown) => void): {
-  begin(topic: string): FrameTicket;
-  bind(ticket: FrameTicket, subscriptionId: string): void;
-  cancel(ticket: FrameTicket): void;
-  activate(subscriptionId: string): { topic: string; previousSubscriptionId: string | null } | null;
-  accept(frame: unknown): void;
-  forget(subscriptionId: string): void;
-  clear(): void;
-};
-interface FrameTicket {
-  topic: string;
-  subscriptionId: string | null;
-  frames: unknown[];
-  stagedBytes: number;
-  overflowReason: string | null;
-}
+/* ── tombstone（A1-R50）：declare ensureConversationRuntimeReady（原 AS，styles 34647）/
+ *    createFrameCompletionTracker（原 MS，styles 34677）+ interface FrameTicket
+ *    （MS 返回面 ticket 占位型，随 declare 删）三件删除——逐字真身在案：
+ *    conversationWireCore::sessionTransportHandshake（34647，kS→handshakePromiseByEndpoint
+ *    34646 握手缓存同收）/ sessionIndexInflightTracker（34677–34745，A1-P3-B4 逐字，
+ *    ROUNDTRIP+SEAMSTRIP[wire] EXACT 在案），改经文件头别名 import 接线
+ *    （A1-R49 §二 先例四连续：别名导入 + declare 删碑 + 消费位逐字不变 + 型缝注记）。
+ *    消费位 39587（`r = () => AS(e)`，mw.ensureReady）/ 39600–39602
+ *    （`c = MS((e) => { s.accept(e); })`，mw.completionTracker）逐字不变。
+ *    型缝〔A1-R50〕：canonical 形参 `: any` 致回调失上下文型推 → 消费位回调参数
+ *    显式注型 `(frame: unknown)`（与删碑前 declare 回调契逐字同；证据 39600–39602
+ *    回调体）；ticket 返回面改推断窄字面型（subscriptionId: null / frames: never[]），
+ *    消费位仅作实参透传 tracker 各法，canonical 各法形参均 `: any` 包容。
+ *    R49 §五-1 留批闭合：至此 FeedbackCenter §16 协议底座 declare 清零
+ *    （AS/MS/NS/bS + dke/Bke/dS 七符全改指）。 ── */
 /* ── tombstone（A1-R49）：declare createFrameRouter（原 NS，styles 34746）+
  *    interface FrameAssemblerLike（NS 首参占位型，随 declare 删）删除——逐字真身
  *    = conversationWireCore::sessionFrameAssembly（34746–34804，A1-P3-B4 逐字，
@@ -3323,7 +3319,9 @@ export function createConversationTransport(
         for (const listener of assemblyFaultListeners) listener(fault);
       },
     ),
-    completionTracker = createFrameCompletionTracker((frame) => {
+    // 〔A1-R50〕型缝：canonical sessionIndexInflightTracker 形参 `: any` 致回调失上下文型推，
+    // 回调参数显式注型（镜像 R49 S16 接收面；证据 39600–39602 `c = MS((e) => { s.accept(e); })`）。
+    completionTracker = createFrameCompletionTracker((frame: unknown) => {
       router.accept(frame);
     }),
     topicBySubscriptionId = new Map<string, string>();

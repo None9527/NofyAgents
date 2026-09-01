@@ -133,7 +133,7 @@ import { Button, createLucideIcon } from '../../modules/button'; // A0-CLEANUP �
 import { CommitGraphDialog as CommitGraphViewer, CreateBranchDialog, SwitchAssistDialog, resolveBranchDisplayLabel, useGitBranchSwitcher } from '../../modules/CmdkPaletteDeep'; // CommitGraphViewer 原 fct
 import { resolveAvailableEditors, type InstalledEditor } from '../../modules/FileTreePanel'; // +InstalledEditor（A0-CLEANUP B-21：本地别名删除改指属主型）
 import { SummaryGitSection, useTaskFileActions, type GitSummary } from '../../modules/GitReview'; // A0-CLEANUP4：GitSummary 属主为 GitReview（原 Yhe 缺省形），本地镜像删除后转手导出
-import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, dismissToast, toast, usePlatformService, type PlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService/type PlatformService（原 l ≡ M 导出域外别名）：本地 21 员面碑化改指，参型面 @399/@623/@902/@1117/@1148/@1154 同名解析，见下墓碑
+import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, dismissToast, toast, usePlatformService, type PlatformService, type RemoteTarget } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService/type PlatformService（原 l ≡ M 导出域外别名）：本地 21 员面碑化改指，参型面 @399/@623/@902/@1117/@1148/@1154 同名解析，见下墓碑；〔A1-R50〕+type RemoteTarget（统一属主改指，本地同形副本删除）
 import { MarkdownRenderer } from '../../modules/MarkdownIntegration';
 import { RemoteSyncDialogs, UpdateStatusDialog, canOpenRemoteSessionSourceCheck, useConfirmDialog } from '../../modules/Modals'; // A0-TOPBAR-MATER：useConfirmDialog（原 U2）declare 删除 → Modals 属主真实 import
 import { CommandEmpty, CommandGroup, CommandList } from '../../modules/QuickPick';
@@ -163,7 +163,7 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 /* ── tombstone〔A1-R48〕：本地 PlatformService 面（21 员，A0 转录 = 本批 canonical 增补签名源）+ declare usePlatformService（原 l）
  *    删除 → 改指 canonical = components/ime/ImeComposition PlatformService 富面 + 真导出（modules/ImeComposition shim 再导出）。
  *    面覆核对（21 员全覆盖）：openExternal✓（canonical 既有）/openInFileManager✓（增补·必选，直调 @1252）/
- *    openInEditor✓（增补·必选，直调 @1845；opts 之 remoteTarget 于 canonical 结构化内联，与本文件 RemoteTarget 局部面逐字同形，结构相容）/
+ *    openInEditor✓（增补·必选，直调 @1845；opts 之 remoteTarget 于 canonical 原结构化内联，〔A1-R50〕抽出为属主型 RemoteTarget，与本文件局部面逐字同形）/
  *    getInstalledEditors✓（增补·必选，直调 @1807）/canOpenCommunity✓（增补·必选，直调 @1243）/
  *    openCommunity✓（增补·必选，直调 @1427）/executeDesktopCommand✓（增补·必选，直调 @1258/@1330；参型 DesktopCommand 收敛见下墓碑）/
  *    getUpdateState?✓（增补，真值守卫 @1211 + 直调 @1213）/onUpdateStateChanged?✓（增补，?. 调用 @1237）/
@@ -179,7 +179,7 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
  *    参型面 @399（UpdateIndicator props）/@623（props）/@902（props）/@1117（useHelpActions）/@1148（captureFeedbackScreenshots）/
  *    @1154（exportLogsWithToast）之 PlatformService 同名解析 canonical；hook 消费位 @1198/@1397/@1801/@1998 逐字不变。
  *    型依赖处置：UpdateState@212/ReleaseNotesPayload@218 属主留本文件（导出链 WorkspaceShell@219 经 modules/TopBar@152 不动）；
- *    RemoteTarget@224 本文件局部面保留（@1459/@1714/@1797/@1927 props 面 + @1841 型缝；统一属主裁定留批，树内 10+ 副本）；
+ *    RemoteTarget@224 本文件局部面〔A1-R50〕已删碑改指属主 ImeComposition::RemoteTarget（@1456/@1711/@1794/@1924 props 面 + @1838 型缝逐字不变；统一属主裁定闭合）；
  *    InstalledEditor 属主 = FileTreePanel（@134 既导入；A0-CLEANUP B-21 既判）。
  *    Provider 链核验：本面碑化不影响 PlatformProvider 注入链（rendererEntry@454 desktopPlatformBridge → ZCodeApp →
  *    AppRootLeaves@1901；AppRootLeaves props 型 = OnboardingLoginLeaves.PlatformService，[key: string]: any 索引签名
@@ -221,13 +221,10 @@ interface ReleaseNotesPayload {
   releaseDate?: string;
   releaseNotesByLocale?: Record<string, { title: string; markdown: string }>;
 }
-interface RemoteTarget {
-  kind: "ssh" | "wsl" | "docker" | "server";
-  host?: string;
-  port?: number;
-  container?: string;
-  sshConfigAlias?: string;
-}
+/* ── tombstone〔A1-R50〕：本地 RemoteTarget 副本（6 员 family-A 形）删除 → 统一属主
+ *    改指 components/ime/ImeComposition::RemoteTarget（canonical openInEditor opts.remoteTarget
+ *    内联抽出，与本局部面逐字同形；经 modules/ImeComposition type import，既有边）。
+ *    消费位 @1456/@1711/@1794/@1924 props 面 + @1838 型缝 cast 逐字不变。 ── */
 /* ── tombstone（A0-CLEANUP B-21）：本地 InstalledEditor 别名删除 → import type
  *    { InstalledEditor } from './FileTreePanel'（iconDataUrl 为平台实返可选字段）。 ── */
 /* ── tombstone（A0-CLEANUP4）：本地 4 字段 GitSummary 镜像删除 → 接线 git 域属主

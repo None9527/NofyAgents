@@ -214,7 +214,7 @@ import { resolveBranchDisplayLabel } from '../../modules/CmdkPaletteDeep';
 import { DiffViewer, readLastEditorId as getPreferredEditorId } from '../../modules/CodeViewer'; // 原 OA
 import { appendWebElementsToContent, useCodeCommentsStore, type ConversationSelection, type WebElementContext } from '../../modules/Composer'; // 原 zXe 族（A0-CLEANUP2 item 11 接线：declare → Composer 属主导出）+ A1-R8：FH 双实例收敛改指（canonical = Composer 6716 区）；〔A1-R22〕+type ConversationSelection（ConversationSelectionRef 本地镜像删除，同 item 11 模式）
 import { orderEditorsForFileManager as normalizeInstalledEditors, useFileContextActions } from '../../modules/FileTreePanel'; // 原 GA / QA
-import { Popover as PopoverRoot, PopoverAnchor, PopoverContent, PopoverTrigger, Textarea, toast, usePlatform as usePlatformService } from '../../modules/ImeComposition'; // 原 平台钩子（imeComposition 导出 M=usePlatform）
+import { Popover as PopoverRoot, PopoverAnchor, PopoverContent, PopoverTrigger, Textarea, toast, usePlatform as usePlatformService, type RemoteTarget } from '../../modules/ImeComposition'; // 原 平台钩子（imeComposition 导出 M=usePlatform）；〔A1-R50〕+type RemoteTarget（统一属主改指，本地同形副本删除）
 import { FilePathInline, PlainTextDiffPreview as LightweightDiffPreview, pathBasename } from '../../modules/ModalsLeaves'; // 原 gut
 import { Command, CommandItem, CommandList, CommandShortcut } from '../../modules/QuickPick';
 import { resolveThemeMode as resolveTheme, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../modules/Settings'; // 原 xo
@@ -226,7 +226,7 @@ import { countLineDiffChanges as countDiffLines } from '../../modules/SrcSharedB
 import { extractErrorMessage } from '../../modules/FeedbackCenter';
 import { isAbsolutePath, relativePathFromWorkspace as toRelativePath, useRemoteWorkspaceInfo as useWorkspaceRemoteInfo } from '../../modules/MarkdownIntegration'; // 原 Ko / zA / $A
 import { useSettingsStore as useSettingsSelector } from '../../modules/stores-core'; // 原 ko（zustand 设置 store）
-import { useServices } from '../../modules/services';
+import { useServices, useTaskSessionFilePath, useTaskNativeSessionLogFile as useTaskNativeSessionLogFilePath } from '../../modules/services'; // 〔A1-R50〕+qge/Xge 两钩（原 useTaskNativeSessionLogFilePath/useTaskSessionFilePath 二 declare）：canonical = services/workspaceServiceHooks D.4（styles 24612/24686，A1-P2-B10 逐字），别名保留调用名，消费位逐字不变
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -245,13 +245,11 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 /** toast（原 m，imeComposition chunk 的 _ 导出） */
 
 /** 桌面平台服务（原 l()，imeComposition chunk 的 M 导出）——仅列本族用到的面 */
-interface RemoteTarget {
-  kind: "ssh" | "wsl" | "docker" | "server";
-  host?: string;
-  port?: number;
-  container?: string;
-  sshConfigAlias?: string;
-}
+/* ── tombstone〔A1-R50〕：本地 RemoteTarget 副本（6 员 family-A 形）删除 → 统一属主
+ *    改指 components/ime/ImeComposition::RemoteTarget（canonical openInEditor opts.remoteTarget
+ *    内联抽出；经 modules/ImeComposition type import，既有边）。消费位 @260（本地
+ *    PlatformService.openInEditor opts 面）/ @579/@588/@858/@955 props 面 + @1366/@3963
+ *    useWorkspaceRemoteInfo cast 面逐字不变。 ── */
 interface InstalledEditor { id: string; name: string; iconDataUrl?: string; [key: string]: unknown }
 interface OpenResult { success: boolean; error?: string }
 interface PlatformService {
@@ -388,21 +386,20 @@ interface FileContextActions {
 /** 路径助手（原 Ko/Jo/Go/zA，js 1941/1952/1928/50919） */
 declare function joinPath(base: string, sub: string): string; // 原 Jo（待实体化）
 
-/** 任务路径钩子群（原 Xge/qge/wge，js 24638/24564/24240；横切 services 层） */
+/** 任务路径钩子群（原 Xge/qge/wge，styles 24686/24612/24288；横切 services 层；〔A1-R50〕行号纠偏，原注 24638/24564/24240 为 −48 漂移旧口径） */
 interface TaskPathState { path: string | null; exists: boolean; loading: boolean; error: string | null }
-declare function useTaskSessionFilePath(
-  workspacePath: string,
-  taskId: string | null,
-  workspaceIdentity: string | null | undefined,
-  opts?: { enabled?: boolean },
-): TaskPathState;
-declare function useTaskNativeSessionLogFilePath(
-  workspacePath: string,
-  taskId: string | null,
-  provider: string | null,
-  workspaceIdentity: string | null | undefined,
-  opts?: { enabled?: boolean },
-): TaskPathState;
+/* ── tombstone〔A1-R50〕：declare useTaskSessionFilePath（原 Xge，styles 24686–24733）/
+ *    useTaskNativeSessionLogFilePath（原 qge，styles 24612–24676）二件删除——逐字真身在案：
+ *    services/workspaceServiceHooks D.4::useTaskSessionFilePath/useTaskNativeSessionLogFile
+ *    （A1-P2-B10 转录；Wge/Yge ≡ pathErrorMessage 三体归一注记在案），改经文件头
+ *    modules/services 别名 import 接线（既有边；WorkspaceShell@224 同式先例）。
+ *    消费位 @3965（`useTaskSessionFilePath(workspacePath, taskId, workspaceIdentity, { enabled: loadTaskPaths })`）/
+ *    @3966（`useTaskNativeSessionLogFilePath(workspacePath, taskId, provider ?? null, workspaceIdentity, { enabled: loadTaskPaths })`）
+ *    逐字不变。型相容：返回 TaskSessionFileState ≡ TaskPathState 逐字同形；
+ *    TaskNativeSessionLogFileState 多 provider 员（超集可赋）；workspaceIdentity 实参
+ *    `string | null | undefined` 纳 canonical 宽化参型（〔A1-R50〕型缝，D.4 注记在案）。
+ *    余面披露：useProviderConfigFilePath declare（原 wge 24288，WS 已接线
+ *    useWorkspaceProviderConfigFile）为本簇第三活面，非本批对象，续留。 ── */
 declare function useProviderConfigFilePath(
   workspacePath: string,
   provider: string,

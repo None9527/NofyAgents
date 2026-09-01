@@ -84,13 +84,10 @@ declare const ScheduledTemplateIcon: React.FC<{ className?: string; name?: strin
 
 /* --- 通用领域类型 --- */
 
-interface RemoteTarget {
-  kind: "ssh" | "wsl" | "docker" | "server";
-  host?: string;
-  port?: number; // A0-CLEANUP3 3b：与 Settings.RemoteTarget 对齐（跨模块传参同型）
-  container?: string;
-  sshConfigAlias?: string;
-}
+/* ── tombstone〔A1-R50〕：本地 RemoteTarget 副本（6 员 family-A 形）删除——本文件零消费
+ *    （grep 实测仅本声明行；$2/q2 declare 簇 R44 已碑化）。统一属主裁定 =
+ *    components/ime/ImeComposition::RemoteTarget（canonical openInEditor opts.remoteTarget
+ *    内联抽出）；未来出现消费面 → 经 modules/ImeComposition type import 引入。 ── */
 interface ModelProvider {
   id: string;
   name: string;

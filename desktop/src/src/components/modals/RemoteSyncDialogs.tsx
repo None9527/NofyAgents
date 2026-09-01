@@ -33,8 +33,11 @@ class RemoteSyncPreflightTimeoutError extends Error {
 function isRemoteSyncPreflightTimeoutError(e: unknown): e is RemoteSyncPreflightTimeoutError {
   return e instanceof RemoteSyncPreflightTimeoutError;
 }
-/** 原 $2（js 127125-127132 / jsx 107556）：仅 ssh/wsl 远端会话且有本地源服务才可同步
- *  （A0-S2d/B5-14 补导出：RemoteGapSegments.tsx 经真实 import 消费） */
+/** 原 $2（styles 127142-127149 / jsx 107556）：仅 ssh/wsl 远端会话且有本地源服务才可同步
+ *  （A0-S2d/B5-14 补导出：RemoteGapSegments.tsx 经真实 import 消费）。
+ *  〔A1-R50〕行号纠偏：原注「js 127125-127132」较真相源 styles-CdEGpc2x.js 漂移 −17
+ *  （A0 期旧版口径；本族 ZDt/QDt/Q2/e4/t4 注记同漂，全族纠偏留批）；
+ *  +Skills/Plugins 活面 declare 改指本实体（别名保留调用名）。 */
 export function canOpenRemoteSessionSourceCheck(e: {
   clientMode: string;
   hasLocalSourceService: boolean;
@@ -70,7 +73,10 @@ async function withRemoteSyncPreflightTimeout<T>(
   }
 }
 
-/** 远程目标显示标签（原 q2，js 125190-125198 / jsx 106293） */
+/** 远程目标显示标签（原 q2，styles 125207-125214 / jsx 106293；〔A1-R50〕行号纠偏，
+ *  原注「js 125190-125198」同 −17 漂移。补导出：Skills/Plugins/Mcp 三活面 declare
+ *  改指本实体，别名保留调用名——q2 参型面 = 下方本叶 RemoteTarget（kind: string 宽形，
+ *  与 family-A 属主 ImeComposition::RemoteTarget 异形各主））。 */
 export interface RemoteTarget {
   kind: string;
   host?: string;
@@ -79,7 +85,7 @@ export interface RemoteTarget {
   distro?: string;
   user?: string;
 }
-function remoteSyncTargetLabel(target: RemoteTarget, workspacePath?: string): string {
+export function remoteSyncTargetLabel(target: RemoteTarget, workspacePath?: string): string {
   const label =
     target.kind === `ssh`
       ? `${target.username}@${target.host}${target.port ? `:${target.port}` : ``}`

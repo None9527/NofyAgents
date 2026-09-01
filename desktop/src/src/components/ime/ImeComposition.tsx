@@ -129,6 +129,22 @@ const cva = cvaMin as (
 type DesktopCommand = (typeof DesktopMenuActionIds)[keyof typeof DesktopMenuActionIds];
 
 /**
+ * 远程同步目标（family-A 规范形）。〔A1-R50〕RemoteTarget 统一属主裁定：
+ * 本型 = canonical openInEditor opts.remoteTarget 原结构化内联之抽出（逐字同形，
+ * 签名源 = TopBar@164-190 本地面 A0 转录 + 宿主桥接真值，A1-R48 富面在案）。
+ * 树内 10+ 同形副本（settings 六件/TopBar/Home/GitReview/AutomationsMain/
+ * modules/Settings/WorkspaceShell 派生）改指本属主；异形副本（RemoteWizard 富形/
+ * RemoteSyncDialogs q2 参形/Sidebar 宽形等）各留属域，披露见 A1-R50.report.md §三。
+ */
+export interface RemoteTarget {
+  kind: "ssh" | "wsl" | "docker" | "server";
+  host?: string;
+  port?: number;
+  container?: string;
+  sshConfigAlias?: string;
+}
+
+/**
  * 桌面平台服务（调用面归纳）。本 chunk 仅消费 selectDirectory()；
  * 完整服务面：A1-R48 富面增补已括（签名源 = TopBar@164-190 本地面 A0 转录 + 宿主桥接真值 index-ABImDspU.js X@~337-474/Pe@201-234）。
  * // TODO(infer): 返回类型按 `await a.selectDirectory()` 的字符串路径用法推断。
@@ -152,13 +168,13 @@ export interface PlatformService {
    *    必选七员 = 直消费无守卫（TopBar/Commands/Skills/Subagents 实测）；余皆可选（守卫/可空链消费）。 ── */
   /** 文件管理器打开（TopBar@1252/Commands@619/Skills@559/Subagents@352 直消费） */
   openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-  /** 外部编辑器打开（TopBar@1845；remoteTarget 结构化内联——RemoteTarget 统一属主裁定留批） */
+  /** 外部编辑器打开（TopBar@1845；remoteTarget 原结构化内联，〔A1-R50〕抽出为属主型 RemoteTarget，逐字同形） */
   openInEditor(
     editorId: string,
     path: string,
     opts?: {
       pathKind?: "directory";
-      remoteTarget?: { kind: "ssh" | "wsl" | "docker" | "server"; host?: string; port?: number; container?: string; sshConfigAlias?: string };
+      remoteTarget?: RemoteTarget;
       workspaceIdentity?: string | null;
     },
   ): Promise<{ success: boolean; error?: string }>;

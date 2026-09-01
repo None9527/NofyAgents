@@ -33,7 +33,7 @@
  *   ZDt → REMOTE_SYNC_PREFLIGHT_TIMEOUT_MS = 15000 (127114 / 107547)
  *   QDt → RemoteSyncPreflightTimeoutError (127115 / 107548)
  *   Q2  → isRemoteSyncPreflightTimeoutError (127122 / 107553)
- *   $2  → canOpenRemoteSessionSourceCheck (127125 / 107556)
+ *   $2  → canOpenRemoteSessionSourceCheck (styles 127142 / 107556；〔A1-R50〕纠偏，原注 127125 为 −17 漂移旧口径)
  *   e4  → canSubmitRemoteSync (127133 / 107559)
  *   t4  → withRemoteSyncPreflightTimeout (127136 / 107562)
  *   $Dt → RemoteSyncDropdownButton 「同步到远端」下拉按钮 (127201 / 107599)
@@ -44,7 +44,7 @@
  *   HEt → SkillSyncResultView      技能同步结果 (125107 / 106254)
  *   UEt → SkillSyncTitle           标题 + 警告 tooltip (125151 / 106266)
  *   WEt → mergeSkillRows (125180 / 106280)  GEt → defaultSkillSelection (125184 / 106287)
- *   KEt → filterSkillRows (125187 / 106290) q2  → remoteSyncTargetLabel (125190 / 106293)
+ *   KEt → filterSkillRows (125187 / 106290) q2  → remoteSyncTargetLabel (styles 125207 / 106293；〔A1-R50〕纠偏，原注 125190 为 −17 漂移旧口径)
  *   qEt → resolveSelectAllState (125199 / 106297) JEt → SkillSyncShowExisting (125202 / 106307)
  *   YEt → SkillSyncHeader (125219 / 106318) XEt → SkillSyncSelectAll (125242 / 106333)
  *   ZEt → SkillSyncDialog          技能同步对话框 (125271 / 106355)
@@ -231,6 +231,7 @@ export type { UpdateDialogPhase } from '../components/modals/UpdateStatusDialog'
 
 export {
   canOpenRemoteSessionSourceCheck,
+  remoteSyncTargetLabel, // 〔A1-R50〕+q2（styles 125207）：Skills/Plugins/Mcp 三活面 declare 改指
   RemoteSyncDropdownButton,
   RemoteSyncDialogs,
 } from '../components/modals/RemoteSyncDialogs';

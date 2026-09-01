@@ -4,8 +4,8 @@
 import * as React from "react";
 import { Plus as IconPlus, Download as IconDownload, CloudUpload as IconCloudUpload } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
-import { Input, toast, usePlatformService } from '../../modules/ImeComposition'; // 〔A1-R46〕+usePlatformService（活面 declare 改指；canonical ImeComposition@186 = usePlatform@168，bundle l ≡ chunk 导出 M；R45 专裁既判，型交叉检查见 A1-R46.report.md §二）
-import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource } from '../../modules/Modals'; // +$2（A0-CLEANUP2 item 14 接线：原别名保留）
+import { Input, toast, usePlatformService, type RemoteTarget } from '../../modules/ImeComposition'; // 〔A1-R46〕+usePlatformService（活面 declare 改指；canonical ImeComposition@186 = usePlatform@168，bundle l ≡ chunk 导出 M；R45 专裁既判，型交叉检查见 A1-R46.report.md §二）；〔A1-R50〕+type RemoteTarget（统一属主改指，本地同形副本删除）
+import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource, remoteSyncTargetLabel as remoteTargetDisplayLabel } from '../../modules/Modals'; // +$2（A0-CLEANUP2 item 14 接线：原别名保留）；〔A1-R50〕+q2（原 remoteTargetDisplayLabel declare；canonical = RemoteSyncDialogs::remoteSyncTargetLabel，styles 125207；本叶命名与 XTt 单相——XTt 单参真身在 SplitLayoutDeep@1585，A1-R4 既判，此处双参形实为 q2，R47 普查误漏更正）
 import { McpImportDialog, McpServerEditor, McpServerRow, type McpFormDraft } from '../../modules/SettingsPanels'; // A0-CLEANUP3 3b：编辑器保存草稿面
 import { useBaseServices, useServices } from '../../modules/services';
 import { useMcpStore, usePluginsStore, type McpServerConfig, type McpSource } from '../../modules/stores-workspace'; // A0-CLEANUP3 3b：McpServer 面对齐派生型
@@ -18,13 +18,10 @@ import { BackLinkButton, ResourceGroupHeader } from './SettingsShellParts';
 import type { PluginRecord, ChromeImportResult } from './BrowserSettingsSection';
 
 /* §0 声明群随族迁入（原 183–189 / 202–213 / 290–292 / 358–364 / 462–463） */
-interface RemoteTarget {
-  kind: "ssh" | "wsl" | "docker" | "server";
-  host?: string;
-  port?: number;
-  container?: string;
-  sshConfigAlias?: string;
-}
+/* ── tombstone〔A1-R50〕：本地 RemoteTarget 副本（6 员 family-A 形，§0 随族迁入件）删除
+ *    → 统一属主改指 components/ime/ImeComposition::RemoteTarget（canonical openInEditor
+ *    opts.remoteTarget 内联抽出；经 modules/ImeComposition type import，既有边）。
+ *    消费位 @47（本地 WorkspaceTab.remoteTarget 面）/ @284 props 面逐字不变。 ── */
 interface WindowControlsOverlayMetrics {
   rightPaddingPx?: number;
 }
@@ -58,8 +55,15 @@ interface WorkspaceTabsStoreState {
 }
 /** 原 pc（js 4753）：工作区标签页 store 选择器 */
 declare function useWorkspaceTabsStore<T>(selector: (s: WorkspaceTabsStoreState) => T): T;
-/** 原 q2：远程目标展示标签 */
-declare function remoteTargetDisplayLabel(target: RemoteTarget, workspacePath: string): string;
+/* ── tombstone〔A1-R50〕：declare remoteTargetDisplayLabel（原 q2，styles 125207–125214）删除
+ *    ——逐字真身 = components/modals/RemoteSyncDialogs::remoteSyncTargetLabel（A0 转录），
+ *    改经文件头 modules/Modals 别名 import 接线（既有边；$2 同式先例 @8）。消费位 @628
+ *    （`remoteTargetDisplayLabel(effectiveRemoteTarget, effectiveWorkspacePath ?? "")`）逐字不变。
+ *    型相容：canonical 参型 { kind: string; host?; port?; username?; distro?; user? } ⊇ 属主
+ *    RemoteTarget（结构可赋）；返 string 同契。bundle 消费位实证 = 195227（mcp 域，
+ *    `Ae = Ee ? q2(Ee, x ?? ``) : ```；mcpSyncService 判别 @195220 在案）。
+ *    命名披露：本叶旧名 remoteTargetDisplayLabel 与 XTt（单参，SplitLayoutDeep@1585，A1-R4）
+ *    撞名不同符——双参形实为 q2，R47 §108 活面普查（Skills/Plugins 二件）更正为三件。 ── */
 
 /* ============================================================================
  * 13. MCP 分区（原 G$t，js 194645–195889 / jsx 156627）
