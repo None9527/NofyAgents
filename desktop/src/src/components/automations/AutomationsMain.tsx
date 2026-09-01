@@ -4,7 +4,7 @@ import * as React from "react";
 import { DropdownMenu as DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { LoaderCircle as SpinnerIcon, RefreshCw as RefreshIcon, Trash2 as TrashIcon, EllipsisIcon, PlayIcon, RotateCcw as RotateIcon, PauseIcon, PlayCircle as ResumeIcon, SquarePen as EditIcon, CircleCheck as AutomationStatusCompletedIcon, TriangleAlert as AutomationStatusFailedIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
-import { toast } from '../../modules/ImeComposition';
+import { toast, usePlatformService, type PlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService/type PlatformService（原 l ≡ imeComposition M 导出 ≡ usePlatform 域外别名）：本地 2 员面碑化改指，见下墓碑
 import { AutomationEditor, CreateSplitButton, KeepAwakeRow, OffPeakTaskEditor, type SelectGroupEntry } from '../../modules/SettingsLeaves'; // A0-CLEANUP3 3b：SelectGroupEntry 属主为 SettingsLeaves（导出）
 import { useServices } from '../../modules/services';
 import { useAutomationsStore } from '../../modules/stores-tasks';
@@ -39,11 +39,11 @@ interface IntlShape {
 }
 
 
-interface PlatformService {
-  openExternal(url: string): void | Promise<void>;
-  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-}
-declare function usePlatformService(): PlatformService;
+/* ── tombstone〔A1-R48〕：本地 PlatformService 面（openExternal/openInFileManager 2 员）+ declare usePlatformService（原 l）
+ *    删除 → 改指 canonical = components/ime/ImeComposition PlatformService 富面（A1-R48 增补已括 2 员）
+ *    + usePlatformService 真导出（modules/ImeComposition shim 再导出）。共同根因 = canonical 富面未括宿主桥接成员，
+ *    增补证据见 A1-R47.report §四.6。
+ *    track* declares（PNt/FNt/Ujt/Wjt）参型 PlatformService 同名解析 canonical；消费 @547 逐字不变。 ── */
 
 interface ToastOptions {
   durationMs?: number;

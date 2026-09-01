@@ -3,7 +3,7 @@
 // ChromeImportResult/PluginRecord 补 export：前者供 shim §0 PlatformService 签名 type import，后者供 MCP 分区族 type import（型别面，零运行时影响）。
 import * as React from "react";
 import { LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
-import { toast } from '../../modules/ImeComposition';
+import { toast, usePlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService（原 l）：本地 10 员面碑化改指，见下墓碑
 import { useSkillsStore } from '../../modules/SkillStore';
 import { useServices, useSessionService } from '../../modules/services'; // A1-R47：+useSessionService（原 Ag 收敛改指）
 import { usePluginsStore } from '../../modules/stores-workspace';
@@ -16,21 +16,21 @@ import { PendingOperationButton } from './SettingsShellParts';
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-interface WindowControlsOverlayMetrics {
-  rightPaddingPx?: number;
-}
-interface PlatformService {
-  openExternal(url: string): void | Promise<void>;
-  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-  selectDirectory(): Promise<string | null>;
-  syncAppSettings?(patch: { closeToTrayOnWindows?: boolean }): void;
-  getWindowControlsOverlayMetrics?(): WindowControlsOverlayMetrics | null;
-  onWindowControlsOverlayChanged?(cb: (m: WindowControlsOverlayMetrics) => void): () => void;
-  importChromeBrowserData?(): Promise<ChromeImportResult>;
-  clearEmbeddedBrowserData?(mode: "cache" | "all"): Promise<{ success: boolean }>;
-  onSettingsChanged?(cb: () => void): () => void;
-}
-declare function usePlatformService(): PlatformService;
+/* ── tombstone〔A1-R48〕：本地 WindowControlsOverlayMetrics 型删除——随 PlatformService 面碑化孤儿（本文件无余引用）；
+ *    canonical 富面 getWindowControlsOverlayMetrics?/onWindowControlsOverlayChanged? 以结构内联
+ *    { rightPaddingPx?: number } 收边（型面逐字同形）。 ── */
+/* ── tombstone〔A1-R48〕：本地 PlatformService 面（10 员）+ declare usePlatformService（原 l）删除 → 改指 canonical =
+ *    components/ime/ImeComposition PlatformService 富面 + 真导出。面覆核对：openExternal✓/openInFileManager✓（增补）/
+ *    selectDirectory✓（canonical 返型 string|null|undefined 既判形，本件零消费）/syncAppSettings?✓（canonical patch 参
+ *    unknown 放宽，本件零消费）/getWindowControlsOverlayMetrics?✓（增补，结构内联）/onWindowControlsOverlayChanged?✓（增补）/
+ *    importChromeBrowserData?✓（增补，返型 type import 本文件 ChromeImportResult@49 属主）/
+ *    clearEmbeddedBrowserData?✓（增补，mode: "cache"|"all" 同形）/onSettingsChanged?✓（既判 R11）。
+ *    消费 @157（hook 位）/@175-176（typeof 守卫）/@213-216（导入调用）/@232-235（清理调用）逐字不变。
+ *    负证据：syncAppSettings?/getWindowControlsOverlayMetrics?/onWindowControlsOverlayChanged? 为面仅成员（全文 grep 零消费位）；
+ *    本面 10 员与 canonical 富面签名逐项同形（A0 转录源 = modules/Settings §12 同族，均 O2t 迁出体）。
+ *    本件 PluginManagementService/ZcodeSessionService 索引签名面不受影响（保留）。
+ *    ChromeImportResult@49 export 保留（canonical 签名经 type import 消费，本文件@3 注记既判）。
+ *    增补证据见 A1-R47.report §四.6。 ── */
 interface PluginManagementService {
   [key: string]: unknown;
 }

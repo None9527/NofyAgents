@@ -7,7 +7,7 @@ import { RefreshCw as RefreshIcon, PlusIcon, Trash2 as TrashIcon, ExternalLinkIc
 import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { registerWorkspaceTask } from '../../modules/FileTreePanel';
 import { skillMentionMarkdown as skillCreatorPrompt } from '../composer/FileMentionDragHelpers'; // A1-R12：原 Tj（52128）declare 改指纯函数叶子（本批逐字转录）；调用点 505 逐字不变。环安全：叶子零 import
-import { Input, toast } from '../../modules/ImeComposition';
+import { Input, toast, usePlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService（原 l）：本地 2 员面碑化改指，见下墓碑
 import { splitSkillsByScope } from '../../modules/McpHelpers';
 import { RemoteSyncDialogs } from '../../modules/Modals';
 import { ResourceGroupHeader, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch } from '../../modules/Settings';
@@ -30,11 +30,11 @@ interface IntlShape {
 }
 
 
-interface PlatformService {
-  openExternal(url: string): void | Promise<void>;
-  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-}
-declare function usePlatformService(): PlatformService;
+/* ── tombstone〔A1-R48〕：本地 PlatformService 面（openExternal/openInFileManager 2 员）+ declare usePlatformService（原 l）
+ *    删除 → 改指 canonical = components/ime/ImeComposition PlatformService 富面（A1-R48 增补已括 2 员）+ 真导出。
+ *    消费 @332（hook 位）/@559（openInFileManager 直调，无守卫 → canonical 必选员）逐字不变。
+ *    本件无余 PlatformService 型参。
+ *    增补证据见 A1-R47.report §四.6。 ── */
 
 interface ToastOptions {
   durationMs?: number;

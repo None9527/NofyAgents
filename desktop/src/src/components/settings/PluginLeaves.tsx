@@ -7,7 +7,7 @@ import { AlertDialog as AlertDialogRoot } from '../ui/alert-dialog'; // A0-S3c�
 import { Plus as IconPlus, Ellipsis as IconEllipsis, Trash2 as IconTrash, ExternalLink as IconExternalLink, RefreshCw as IconRefresh, CloudUpload as IconCloudUpload, Search as IconSearch, Settings as IconSettings, MessageSquarePlus as IconMessageSquarePlus, TriangleAlert as IconAlertTriangle, LoaderCircle as IconSpinner, FolderOpen as IconFolderOpen, Power as IconPower, Server as IconServer, Sparkle as IconSparkle, TerminalSquare as IconTerminalSquare, Bot as IconBot, Webhook as IconWebhook, ArrowUpRight as IconArrowUpRight } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button, ChevronRight as IconChevronRight } from '../../modules/button';
 import { SubagentBadge } from './SubagentLeaves';
-import { Input } from '../../modules/ImeComposition';
+import { Input, useOptionalPlatform as usePlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+useOptionalPlatform as usePlatformService（原 l 可空面 ≡ canonical useOptionalPlatform ≡ useContext(PlatformContext)）：inline declare 碑化改指，见下墓碑
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, BackLinkButton, Switch } from '../../modules/Settings';
 import { ResourceEnabledFilterSelect } from '../../modules/SettingsPanelsCapability';
 import { usePluginsStore, type PluginService } from '../../modules/stores-workspace'; // A0-CLEANUP3 3b：useUninstallFlow 服务面具型
@@ -33,12 +33,12 @@ type IconComponent = React.FC<React.SVGProps<SVGSVGElement> & { size?: number }>
 
 /* ── tombstone（A0-S3c）：AlertDialogRoot、Dialog、DialogClose、DialogContent、DialogDescription、DialogFooter、DialogHeader、DialogTitle、DropdownMenu、DropdownMenuContent、DropdownMenuItem、DropdownMenuSeparator、DropdownMenuTrigger、ScrollAreaCorner、ScrollAreaRoot、ScrollAreaScrollbar、ScrollAreaThumb、ScrollAreaViewport declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：Button（原 X）declare 删除 → import { Button } from './button'。 ── */
-declare function usePlatformService(): {
-  openExternal(url: string): void;
-  selectDirectory(): Promise<string | null>;
-  canSelectFilePath?: boolean;
-  getPathForFile?: (file: File) => string | null;
-} | null; // l
+/* ── tombstone〔A1-R48〕：inline declare usePlatformService（原 l，可空面 4 员）删除 → 改指 canonical =
+ *    useOptionalPlatform（别名导入保消费位 @500/@1395 逐字；别名先例 rendererEntry@43 / WorkspaceShell@207）。
+ *    面覆核对：openExternal✓（canonical 返 void|Promise<void>，消费 @1434 直弃返值相容）/
+ *    selectDirectory✓（canonical 返 string|null|undefined，消费 @522-525 非空守卫+真值窄化相容）/
+ *    canSelectFilePath?✓（增补，宿主桥接常量 !0 面，消费 @501 ?? 相容）/getPathForFile?✓（增补，消费 @557 可空链相容）。
+ *    增补证据见 A1-R47.report §四.6。 ── */
 
 /* ── tombstone（A1-R11）：declare pluginMentionMarkdown（原 Dj，js 52138——旧注 52090 为子族区段首行）删除，
  *    改经文件头 ../composer/FileMentionDragHelpers import 消费（本批逐字转录）。 ── */

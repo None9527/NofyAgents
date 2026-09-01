@@ -253,7 +253,8 @@ import { MemoizedWorkspaceRoot, type WorkspaceServices } from '../../modules/Wor
 import { extractErrorMessage as normalizeConnectionError, type FeedbackService } from '../../modules/FeedbackCenter'; // A1-R7：MC=extractErrorMessage 改指（原 normalizeConnectionError declare）
 import { type MobileHomeResult, type WebRemoteSwitcherService } from '../../modules/WebRemote';
 import { ConversationTelemetrySupervisor, registerBaseServices, syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指 + A1-R8：Ks@4164（async (e) => await vse(e)，vse@4237）= syncProviderRegistryAndReturn 改指
-import { reportTelemetry as trackTelemetryEvent, normalizeCaptchaCode as messageErrorCodeOverride, resolveTelemetryProviderHost } from '../../modules/StoresDeep'; // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）。A1-R12：原 Cw（40570）私有转录删除 → 别名改指 StoresDeep normalizeCaptchaCode（本批改回逐字 stub；DM 调用点逐字不变）。〔A1-R31〕+resolveTelemetryProviderHost（bw 40445/hNe 40454 canonical，StoresDeep@308）：telemetryLoginProviderName declare 收敛改指，见下墓碑
+import { reportTelemetry as trackTelemetryEvent, normalizeCaptchaCode as messageErrorCodeOverride, resolveTelemetryProviderHost } from '../../modules/StoresDeep';
+import type { UpdateState } from '../shell/TopBar'; // A1-R48：根面 getUpdateState?/onUpdateStateChanged? 改型同形 canonical（属主 TopBar@212；type-only 边，环安全） // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）。A1-R12：原 Cw（40570）私有转录删除 → 别名改指 StoresDeep normalizeCaptchaCode（本批改回逐字 stub；DM 调用点逐字不变）。〔A1-R31〕+resolveTelemetryProviderHost（bw 40445/hNe 40454 canonical，StoresDeep@308）：telemetryLoginProviderName declare 收敛改指，见下墓碑
 import { mergeRemoteLogProgressEntry as appendRemoteLog, stripRemoteLogPrefixes as normalizeRemoteLogMessage } from '../remote/RemoteGapSegments'; // A1-R8：hEt@123747=stripRemoteLogPrefixes、vEt@123762=mergeRemoteLogProgressEntry 改指（环安全：RemoteGapSegments 仅 import React/button/RemoteWizard/Modals/SrcSharedA/B/stores-core，不反入 onboarding）
 import { useSettingsStore } from '../../modules/stores-core';
 import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSources as isModelProviderSnapshotHydrated, hasActiveEntitlement } from '../../modules/UsageDeep'; // A1-R11：fM（52681）/pM（52684）改指 canonical（components/usage/UsageDeep.tsx 注册表，返回 ModelProvider[]——fetcher 证据 78266/78272/206174/209921 = modelProviderService.getAllCached/getAll）；4757 消费点经 ModelProviderRecord any 索引面双变可赋。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical；declare hasPlanEntitlement 收敛改指，见下墓碑）
@@ -475,9 +476,23 @@ export interface PlatformService {
   selectDirectory(): Promise<string | null>;
   activateOrSetWorkspace(path: string): Promise<{ activated: boolean }>;
   executeDesktopCommand(command: string): Promise<void>;
-  getDesktopSessionActivity?(): Promise<{ runningAgentSessionCount?: number }>;
-  getUpdateState?(): Promise<UpdateStateSnapshot>;
-  onUpdateStateChanged?(handler: (state: UpdateStateSnapshot) => void): () => void;
+  /* A1-R48：canonical 富面增补联动——根 props 面须覆 canonical 必选员（AppRootLeaves@1901 PlatformProvider
+   * 赋值链；索引签名不具名补足）。签名同形 canonical（源 = TopBar@164-190 转录；桥接字面量
+   * desktopPlatformBridge@454- 全员在案，rendererEntry@107 DesktopBridge=any 推断）。 */
+  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
+  openInEditor(editorId: string, path: string, opts?: unknown): Promise<{ success: boolean; error?: string }>;
+  getInstalledEditors(): Promise<{ id: string; name: string; iconDataUrl?: string; [key: string]: unknown }[]>;
+  canOpenCommunity(locale: string): Promise<boolean>;
+  openCommunity(): void;
+  exportLogs(): Promise<{ success: boolean; error?: string }>;
+  /* A1-R48：canonical 富面增补联动——三员改型同形 canonical（赋值链 AppRootLeaves@1901）：
+   * getDesktopSessionActivity 原弱形 {runningAgentSessionCount?} 窄于 canonical 全形（消费
+   * AppRootLeaves@432-433 typeof 守卫相容）；getUpdateState/onUpdateStateChanged 原 UpdateStateSnapshot
+   * 弱形与 canonical UpdateState 判别并不相赋，改型后 WelcomeGate@5141 useState<UpdateStateSnapshot | null>
+   * 消费仍相容（UpdateState 对象形 → {[key: string]: any} 可赋；null 支同名）。 */
+  getDesktopSessionActivity?(): Promise<{ runningAgentSessionCount: number; runningRepoWikiTaskCount: number }>;
+  getUpdateState?(): Promise<UpdateState | null>;
+  onUpdateStateChanged?(handler: (state: UpdateState | null) => void): () => void;
   onUpdateReady(handler: (version: string | null) => void): () => void;
   onApplicationLocaleChanged?(handler: (locale: string) => void): () => void;
   reportTelemetryEvent(...args: unknown[]): Promise<void>;

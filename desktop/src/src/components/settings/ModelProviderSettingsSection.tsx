@@ -24,6 +24,7 @@ import {
   buildCodingPlanScope as buildTeamPlanKey, // vi
   codingPlanScopesOverlap as isSameTeamPlanKey, // fi
 } from '../../modules/SrcSharedB';
+import { usePlatformService, type PlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕原 l ≡ imeComposition M 导出 ≡ usePlatform 域外别名：本地 2 员面碑化改指，见下墓碑
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -35,12 +36,12 @@ interface IntlShape {
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
-/** 桌面平台服务（原 l()） */
-interface PlatformService {
-  openExternal(url: string): void | Promise<void>;
-  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-}
-declare function usePlatformService(): PlatformService;
+/* ── tombstone〔A1-R48〕：本地 PlatformService 面（openExternal/openInFileManager 2 员）+ declare usePlatformService（原 l）
+ *    删除 → 改指 canonical = components/ime/ImeComposition PlatformService 富面（A1-R48 增补已括 2 员）+ 真导出。
+ *    本件无 ImeComposition 既有导入，新增一行（尾部导入先例 R35；ES 提升安全）。
+ *    trackEvent declare（xw 注）/trackAddModelSuccess/openPresetApiKeyUrl 参型 PlatformService 同名解析 canonical。
+ *    消费 @553（openExternal）/@1447（hook 位）/@1806/@2067（openExternal）逐字不变。
+ *    增补证据见 A1-R47.report §四.6。 ── */
 
 /** toast（原 m） */
 interface ToastOptions {

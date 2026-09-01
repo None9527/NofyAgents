@@ -310,6 +310,15 @@ interface PlatformService extends SidePanelPlatformService {
   getInstalledEditors(): Promise<InstalledEditor[]>;
   exportLogs(): Promise<{ success: boolean; error?: string }>;
   executeDesktopCommand(command: string): Promise<void>;
+  /* A1-R48：canonical 富面增补联动——TopBar props 面（@399）改指 canonical 后，本面经
+   * @3539 `platform={platform}` 赋值须覆 canonical 三必选员；运行期平台对象 = 宿主桥接
+   * （cast 缝@321 源），三员真实在案（selectDirectory 桥接 X 直裹；遥测双员 A0-CLEANUP3 3b 既判）。 */
+  selectDirectory(): Promise<string | null>;
+  reportTelemetryEvent(report: Record<string, unknown>): Promise<void> | void;
+  reportArmsCustomEvent(event: { name: string; group?: string; value?: number | string; [key: string]: unknown }): Promise<void> | void;
+  /* A1-R48：canonical 富面带 [method: string]: unknown 索引签名，赋值链（@3539 → TopBar props 面）
+   * 要求源面同带索引签名；本面消费位皆具名成员，加签名零行为影响。 */
+  [key: string]: unknown;
 }
 /* ── tombstone〔A1-P2-B6〕：declare usePlatformService（原 l）删除 → 改指文件头
  *    modules/ImeComposition 真身导出（usePlatformServiceCanonical；真身 = usePlatform

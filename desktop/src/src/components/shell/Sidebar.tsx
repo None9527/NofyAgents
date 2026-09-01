@@ -199,7 +199,7 @@ import { Hash as IconHash, Folder as IconFolder, FolderOpen as IconFolderOpen, C
 import { Button, buttonVariants, ZoomIn as IconZoomIn, ZoomOut as IconZoomOut, ChevronRight as IconChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button/buttonVariants declare 改指 button chunk；A0-S3b 增补：ZoomIn as IconZoomIn, ZoomOut as IconZoomOut, ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { FileTreePanel } from '../../modules/FileTreePanel';
 import { useTaskFileActions } from '../../modules/GitReview';
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from '../../modules/ImeComposition';
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService, type PlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService/type PlatformService（原 l；P2 转交件收割）：本地 7 员面碑化改指，@1167 trackEvent 参型同名解析，见下墓碑
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from '../../modules/Modals';
 import { Badge } from '../../modules/PaymentDeep';
 import { TabsList, TabsTrigger } from '../../modules/Settings';
@@ -240,18 +240,18 @@ type LocalePreference = "system" | "zh-CN" | "en-US";
  * modules/Settings @335 逐字同族）；与 WorkspaceShell 双面收敛（theme 族）。 */
 export type ThemeId = "light" | "dark" | "zai-light" | "zai-dark" | "system";
 
-/** 桌面平台服务（原 l()，imeComposition chunk）——侧栏用到的子集 */
-interface PlatformService {
-  executeDesktopCommand(command: DesktopCommand): Promise<void> | void;
-  getDesktopZoomLevel?(): Promise<{ zoomLevel: number }>;
-  onDesktopZoomLevelChanged?(cb: (e: { zoomLevel: number }) => void): () => void;
-  getInstalledEditors(): Promise<InstalledEditor[]>;
-  captureWindowScreenshot?(): Promise<Blob | null>;
-  getWebRemoteControlStatus?(): Promise<WebRemoteControlStatus>;
-  onWebRemoteControlStatusChanged?(cb: (s: WebRemoteControlStatus) => void): () => void;
-}
-declare function usePlatformService(): PlatformService;
-interface InstalledEditor { id: string; name: string; [key: string]: unknown }
+/* ── tombstone〔A1-R48〕：本地 PlatformService 面（7 员）+ declare usePlatformService（原 l）+ 本地 InstalledEditor 面
+ *    （随面孤儿，本文件零消费）删除 → 改指 canonical = components/ime/ImeComposition PlatformService 富面 + 真导出。
+ *    面覆核对：executeDesktopCommand✓（canonical 返 Promise<void>，本地面返 Promise<void>|void；消费 @4920 `void` 运算符两相容；
+ *    参型 DesktopCommand = @268 别名 ≡ canonical 参型同源 = DesktopMenuActionIds 成员值并）/
+ *    getDesktopZoomLevel?✓（增补，消费 @4927 ?. + .then）/onDesktopZoomLevelChanged?✓（增补，消费 @4930 ?. 调用）/
+ *    getInstalledEditors✓（增补；返型属主 FileTreePanel.InstalledEditor，本面局部形 {id, name, [key: string]: unknown} 为其子形，
+ *    且本文件零消费该员，仅面覆）/captureWindowScreenshot?✓（canonical 既判 R15，消费 @1819 可空链）/
+ *    getWebRemoteControlStatus?✓+onWebRemoteControlStatusChanged?✓（增补，结构内联
+ *    { status: 6 值并 + [key: string]: unknown }，与本文件 WebRemoteControlStatus 型逐字同形；本文件经
+ *    useWebRemoteControlStatus@4753 declare 独立面消费，平台二员零消费仅面覆）。
+ *    WebRemoteControlStatus 型保留（@4564/@4684/@4753 消费在案）。消费 @1794/@4701/@4879 逐字不变。
+ *    P2 转交件收割完毕（编排方 R48 任务书「可收则收」条款）；SidePanel 浏览器视图族 12 员 + 导出链件留批。 ── */
 type WebRemoteControlStatus =
   | { status: "idle" | "starting" | "connecting" | "running" | "active" | "error"; [key: string]: unknown };
 

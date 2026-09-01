@@ -133,7 +133,7 @@ import { Button, createLucideIcon } from '../../modules/button'; // A0-CLEANUP �
 import { CommitGraphDialog as CommitGraphViewer, CreateBranchDialog, SwitchAssistDialog, resolveBranchDisplayLabel, useGitBranchSwitcher } from '../../modules/CmdkPaletteDeep'; // CommitGraphViewer 原 fct
 import { resolveAvailableEditors, type InstalledEditor } from '../../modules/FileTreePanel'; // +InstalledEditor（A0-CLEANUP B-21：本地别名删除改指属主型）
 import { SummaryGitSection, useTaskFileActions, type GitSummary } from '../../modules/GitReview'; // A0-CLEANUP4：GitSummary 属主为 GitReview（原 Yhe 缺省形），本地镜像删除后转手导出
-import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, dismissToast, toast } from '../../modules/ImeComposition';
+import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, dismissToast, toast, usePlatformService, type PlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService/type PlatformService（原 l ≡ M 导出域外别名）：本地 21 员面碑化改指，参型面 @399/@623/@902/@1117/@1148/@1154 同名解析，见下墓碑
 import { MarkdownRenderer } from '../../modules/MarkdownIntegration';
 import { RemoteSyncDialogs, UpdateStatusDialog, canOpenRemoteSessionSourceCheck, useConfirmDialog } from '../../modules/Modals'; // A0-TOPBAR-MATER：useConfirmDialog（原 U2）declare 删除 → Modals 属主真实 import
 import { CommandEmpty, CommandGroup, CommandList } from '../../modules/QuickPick';
@@ -147,7 +147,7 @@ import { usePinnedTaskListStore, useWorkspaceTaskListStore } from '../../modules
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia=u（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { remoteTargetConnectionAddress, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4 QTt（js 123267）；A1-R5 归属更正：XTt→ZTt（js 123256），tombstone 见原声明位
-import { sanitizeRemoteTargetForRestore } from '../../modules/SrcSharedB'; // 原 $b（src-HCld2afU.js 8611，pt→yne 导出）：A1-R5 normalizeRemoteTarget 改指
+import { sanitizeRemoteTargetForRestore, DesktopMenuActionIds as DesktopCommand } from '../../modules/SrcSharedB'; // 原 $b（src-HCld2afU.js 8611，pt→yne 导出）：A1-R5 normalizeRemoteTarget 改指；〔A1-R48〕+DesktopMenuActionIds as DesktopCommand（oi 收敛改指，WorkspaceShell@263 A1-P2-B1 / Sidebar@220 A1-P3-B1 同式先例），见下墓碑
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -160,35 +160,35 @@ interface IntlShape {
 }
 declare function useIntlContext(): { intl: IntlShape; locale: string };
 
-/** 桌面平台服务（原 l()，imeComposition chunk 的 M 导出）——IPC 桥 */
-interface PlatformService {
-  openExternal(url: string): void | Promise<void>;
-  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-  openInEditor(
-    editorId: string,
-    path: string,
-    opts?: { pathKind?: "directory"; remoteTarget?: RemoteTarget; workspaceIdentity?: string | null },
-  ): Promise<{ success: boolean; error?: string }>;
-  getInstalledEditors(): Promise<InstalledEditor[]>;
-  canOpenCommunity(locale: string): Promise<boolean>;
-  openCommunity(): void;
-  executeDesktopCommand(command: DesktopCommand): Promise<void>;
-  getUpdateState?(): Promise<UpdateState | null>;
-  onUpdateStateChanged?(cb: (s: UpdateState | null) => void): () => void;
-  downloadUpdate?(): Promise<void>;
-  cancelUpdateDownload?(): Promise<void>;
-  skipUpdateVersion?(version: string): Promise<void>;
-  quitAndInstallUpdate?(): Promise<void>;
-  openUpdateStatusWindow?(): void;
-  getAutoUpdatePreferences?(): Promise<{ autoDownloadAndInstallUpdates: boolean }>;
-  setAutoDownloadAndInstallUpdates?(v: boolean): Promise<void>;
-  getZCodeStdioTapDevState?(): Promise<{ enabled: boolean; visible: boolean }>;
-  getDesktopSessionActivity?(): Promise<{ runningAgentSessionCount: number; runningRepoWikiTaskCount: number }>;
-  captureWindowScreenshot?(): Promise<Blob | null>;
-  exportLogs(): Promise<{ success: boolean; error?: string }>;
-  onSettingsChanged?(cb: () => void): () => void;
-}
-declare function usePlatformService(): PlatformService;
+/* ── tombstone〔A1-R48〕：本地 PlatformService 面（21 员，A0 转录 = 本批 canonical 增补签名源）+ declare usePlatformService（原 l）
+ *    删除 → 改指 canonical = components/ime/ImeComposition PlatformService 富面 + 真导出（modules/ImeComposition shim 再导出）。
+ *    面覆核对（21 员全覆盖）：openExternal✓（canonical 既有）/openInFileManager✓（增补·必选，直调 @1252）/
+ *    openInEditor✓（增补·必选，直调 @1845；opts 之 remoteTarget 于 canonical 结构化内联，与本文件 RemoteTarget 局部面逐字同形，结构相容）/
+ *    getInstalledEditors✓（增补·必选，直调 @1807）/canOpenCommunity✓（增补·必选，直调 @1243）/
+ *    openCommunity✓（增补·必选，直调 @1427）/executeDesktopCommand✓（增补·必选，直调 @1258/@1330；参型 DesktopCommand 收敛见下墓碑）/
+ *    getUpdateState?✓（增补，真值守卫 @1211 + 直调 @1213）/onUpdateStateChanged?✓（增补，?. 调用 @1237）/
+ *    downloadUpdate?✓（增补，?. @965）/cancelUpdateDownload?✓（增补，?. @983）/skipUpdateVersion?✓（增补，?. @993）/
+ *    quitAndInstallUpdate?✓（增补，?. @1015）/openUpdateStatusWindow?✓（增补，真值守卫 @763 + 直调 @764）/
+ *    getAutoUpdatePreferences?✓（增补，?. @935）/setAutoDownloadAndInstallUpdates?✓（增补，?. @974）/
+ *    getZCodeStdioTapDevState?✓（增补，真值守卫 @1220 + 直调 @1225）/getDesktopSessionActivity?✓（增补，?. @1002）/
+ *    captureWindowScreenshot?✓（canonical 既判 R15，?. @1149/@2085）/exportLogs✓（增补·必选，直调 @1157）/
+ *    onSettingsChanged?✓（canonical 既判 R11，?. @944）。
+ *    UpdateState null 支：canonical getUpdateState 返 Promise<UpdateState | null>，与本文件 @1204 useState<UpdateState | null> 及 @1237 setUpdateState(state) 逐字相容（本地面@176 原形即带 null 支）。
+ *    消费位普查（grep platform[?]?\. 全 27 位皆覆；余 @760 openExternal useCallback 裹、@1129 openExternal 直调）。
+ *    负证据：普查位外无余消费；本面型参引用仅 @399/@623/@902/@1117/@1148/@1154，无余本地面引用。
+ *    参型面 @399（UpdateIndicator props）/@623（props）/@902（props）/@1117（useHelpActions）/@1148（captureFeedbackScreenshots）/
+ *    @1154（exportLogsWithToast）之 PlatformService 同名解析 canonical；hook 消费位 @1198/@1397/@1801/@1998 逐字不变。
+ *    型依赖处置：UpdateState@212/ReleaseNotesPayload@218 属主留本文件（导出链 WorkspaceShell@219 经 modules/TopBar@152 不动）；
+ *    RemoteTarget@224 本文件局部面保留（@1459/@1714/@1797/@1927 props 面 + @1841 型缝；统一属主裁定留批，树内 10+ 副本）；
+ *    InstalledEditor 属主 = FileTreePanel（@134 既导入；A0-CLEANUP B-21 既判）。
+ *    Provider 链核验：本面碑化不影响 PlatformProvider 注入链（rendererEntry@454 desktopPlatformBridge → ZCodeApp →
+ *    AppRootLeaves@1901；AppRootLeaves props 型 = OnboardingLoginLeaves.PlatformService，[key: string]: any 索引签名
+ *    满足 canonical 全部必选员，赋值成立；OnboardingLoginLeaves@1136/@1284 二段断言缝件互不干涉）。
+ *    WorkspaceShell@321 二段断言缝件（A1-P2-B6 既判）本地面 extends SidePanelPlatformService，源为 `as unknown as`，
+ *    canonical 本批增补不改其可赋性（cast 缝隔离）；SidePanel 浏览器视图族 12 员不在本批（留批）。
+ *    同域余面披露：Composer@548/ExtendedViews@196/ConversationLeaves@242/Settings §0 等本地 PlatformService 面
+ *    非本批范围（R46 §四.2 清单仅八件），留批。
+ *    增补证据见 A1-R47.report §四.6（宿主桥接真值字面量 X@~337-474 + Pe@201-234；缺失成员 6 组清单；签名源 = 本文件@164-190）。 ── */
 
 /** toast（原 m / b：弹出 / 关闭，imeComposition chunk 的 _ 导出） */
 
@@ -197,16 +197,16 @@ declare function shortcutLabel(key: string): string;
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
-/** 桌面命令枚举（原 oi，src-HCld2afU.js 的 ft 导出） */
-declare enum DesktopCommand {
-  ShowAbout = "ShowAbout",
-  CheckForUpdates = "CheckForUpdates",
-  OpenProcessMonitor = "OpenProcessMonitor",
-  OpenCommunity = "OpenCommunity",
-  ToggleDevTools = "ToggleDevTools",
-  ToggleZCodeStdioTapDevProxy = "ToggleZCodeStdioTapDevProxy",
-  CloseWindow = "CloseWindow",
-}
+/* ── tombstone〔A1-R48〕：declare enum DesktopCommand（原 oi）删除 → 收敛改指 canonical = modules/SrcSharedB DesktopMenuActionIds
+ *    （src ex@8631 / export ft，SrcSharedB@5233 逐字；收敛既判：WorkspaceShell@263 A1-P2-B1、Sidebar@220/268 A1-P3-B1、
+ *    rendererEntry@43）。原 declare 成员值为 PascalCase（"ShowAbout" 等）≠ bundle 真值 camelCase（"showAbout" 等）——误铸；
+ *    改指后值回 bundle 真形（行为向真身收敛）。原 declare 为 ambient 无运行时实体，消费位 1300–1343 潜悬空引用，本收敛并除之。
+ *    七用点成员（ShowAbout/CheckForUpdates/OpenProcessMonitor/OpenCommunity/ToggleDevTools/
+ *    ToggleZCodeStdioTapDevProxy/CloseWindow）DesktopMenuActionIds 全括（实测）。
+ *    型面：canonical 为 plain object（非 enum），补同名型别名（成员值并；Sidebar@268 同形先例）。
+ *    消费位 @1256-1259/@1300/@1304/@1308/@1316/@1330/@1337/@1343 逐字不变。
+ *    负证据：全树 declare enum DesktopCommand 唯本处与 Sidebar 已碑处（A1-P3-B1），无第三副本。 ── */
+type DesktopCommand = (typeof DesktopCommand)[keyof typeof DesktopCommand];
 
 type Platform = "mac" | "windows" | "linux" | "web";
 export type UpdateState =

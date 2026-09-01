@@ -4,7 +4,7 @@ import * as React from "react";
 import { Select as SelectRoot } from '../../modules/Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { RefreshCw as RefreshIcon, PlusIcon, Trash2 as TrashIcon, PencilIcon, DownloadIcon, FolderOpenIcon, SquareTerminal as CommandIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
-import { Input, Textarea, toast } from '../../modules/ImeComposition';
+import { Input, Textarea, toast, usePlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService（原 l）：本地 2 员面碑化改指，见下墓碑
 import { splitCommandsByScope } from '../../modules/McpHelpers';
 import { BackLinkButton, ResourceGroupHeader, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch } from '../../modules/Settings';
 import { CommandsImportDialog } from '../../modules/SettingsPanels';
@@ -29,11 +29,11 @@ interface IntlShape {
 }
 
 
-interface PlatformService {
-  openExternal(url: string): void | Promise<void>;
-  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-}
-declare function usePlatformService(): PlatformService;
+/* ── tombstone〔A1-R48〕：本地 PlatformService 面（openExternal/openInFileManager 2 员）+ declare usePlatformService（原 l）
+ *    删除 → 改指 canonical = components/ime/ImeComposition PlatformService 富面（A1-R48 增补已括 2 员）+ 真导出。
+ *    消费 @585（hook 位）/@619（openInFileManager 直调，无守卫 → canonical 必选员）逐字不变。
+ *    本件无余 PlatformService 型参（与 AutomationsMain/MPSS 异）。
+ *    增补证据见 A1-R47.report §四.6。 ── */
 
 interface ToastOptions {
   durationMs?: number;

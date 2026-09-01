@@ -81,6 +81,10 @@ import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { cn as cnMin } from '../../modules/UtilsCn'; // 原 utils-CEEH0K_K t
 // button-laUijeDG.js 导出 c = createLucideIcon、r = cva（见 button.tsx 重建）。
 import { createLucideIcon as createLucideIconMin, cva as cvaMin } from '../../modules/button'; // 原 button-laUijeDG c, r
+import type { InstalledEditor } from '../../modules/FileTreePanel'; // A1-R48：getInstalledEditors 返回型属主（A0-CLEANUP B-21 既判；TopBar@134 同向 type import 先例）
+import type { DesktopMenuActionIds } from '../../modules/SrcSharedB'; // A1-R48：executeDesktopCommand 参型源（src ex@8631 / export ft；oi 收敛既判 = WorkspaceShell@263 A1-P2-B1 / Sidebar@220 A1-P3-B1）
+import type { UpdateState } from '../shell/TopBar'; // A1-R48：更新态型属主（TopBar@212 export；WorkspaceShell@219 消费链在案）
+import type { ChromeImportResult } from '../settings/BrowserSettingsSection'; // A1-R48：Chrome 导入结果型属主（Browser@49 export；modules/Settings@167 type import 先例）
 
 /* ─────────────────────────── 依赖的类型化绑定 ─────────────────────────── */
 
@@ -120,9 +124,12 @@ const cva = cvaMin as (
  * 包裹全树；platform 对象由主进程 IPC 桥注入。
  * ════════════════════════════════════════════════════════════════════════ */
 
+/** A1-R48：桌面命令值并 = DesktopMenuActionIds 成员值并（Sidebar@268 同形别名先例；oi 收敛既判 A1-P2-B1/A1-P3-B1）。 */
+type DesktopCommand = (typeof DesktopMenuActionIds)[keyof typeof DesktopMenuActionIds];
+
 /**
  * 桌面平台服务（调用面归纳）。本 chunk 仅消费 selectDirectory()；
- * 完整服务面（openExternal/openInEditor/…）见 TopBar.tsx 的 PlatformService 登记。
+ * 完整服务面：A1-R48 富面增补已括（签名源 = TopBar@164-190 本地面 A0 转录 + 宿主桥接真值 index-ABImDspU.js X@~337-474/Pe@201-234）。
  * // TODO(infer): 返回类型按 `await a.selectDirectory()` 的字符串路径用法推断。
  */
 export interface PlatformService {
@@ -139,6 +146,48 @@ export interface PlatformService {
   onSettingsChanged?(callback: () => void): () => void;
   /** A1-R15 型缝（vWe 54319 消费面）：窗口截图（宿主桥接；rendererEntry 534 提供面同形，TopBar 187 本地面已列） */
   captureWindowScreenshot?(): Promise<Blob | null>;
+  /* ── A1-R48 富面增补（宿主桥接真值 = index-ABImDspU.js X@~337-474 window.zcode 直裹 + ...Pe@201-234；
+   *    签名源 = TopBar 本地面@164-190（A0 转录）+ 子批 2 八件与 Sidebar 本地面既判形；增补式 = R11/R15 既判例。
+   *    必选七员 = 直消费无守卫（TopBar/Commands/Skills/Subagents 实测）；余皆可选（守卫/可空链消费）。 ── */
+  /** 文件管理器打开（TopBar@1252/Commands@619/Skills@559/Subagents@352 直消费） */
+  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
+  /** 外部编辑器打开（TopBar@1845；remoteTarget 结构化内联——RemoteTarget 统一属主裁定留批） */
+  openInEditor(
+    editorId: string,
+    path: string,
+    opts?: {
+      pathKind?: "directory";
+      remoteTarget?: { kind: "ssh" | "wsl" | "docker" | "server"; host?: string; port?: number; container?: string; sshConfigAlias?: string };
+      workspaceIdentity?: string | null;
+    },
+  ): Promise<{ success: boolean; error?: string }>;
+  getInstalledEditors(): Promise<InstalledEditor[]>;
+  canOpenCommunity(locale: string): Promise<boolean>;
+  openCommunity(): void;
+  executeDesktopCommand(command: DesktopCommand): Promise<void>;
+  exportLogs(): Promise<{ success: boolean; error?: string }>;
+  getUpdateState?(): Promise<UpdateState | null>;
+  onUpdateStateChanged?(cb: (s: UpdateState | null) => void): () => void;
+  downloadUpdate?(): Promise<void>;
+  cancelUpdateDownload?(): Promise<void>;
+  skipUpdateVersion?(version: string): Promise<void>;
+  quitAndInstallUpdate?(): Promise<void>;
+  openUpdateStatusWindow?(): void;
+  getAutoUpdatePreferences?(): Promise<{ autoDownloadAndInstallUpdates: boolean }>;
+  setAutoDownloadAndInstallUpdates?(v: boolean): Promise<void>;
+  getZCodeStdioTapDevState?(): Promise<{ enabled: boolean; visible: boolean }>;
+  getDesktopSessionActivity?(): Promise<{ runningAgentSessionCount: number; runningRepoWikiTaskCount: number }>;
+  /** 宿主桥接常量面（桥接为 !0 常量，非函数；PluginLeaves@501 消费） */
+  canSelectFilePath?: boolean;
+  getPathForFile?(file: File): string | null;
+  importChromeBrowserData?(): Promise<ChromeImportResult>;
+  clearEmbeddedBrowserData?(mode: "cache" | "all"): Promise<{ success: boolean }>;
+  getWindowControlsOverlayMetrics?(): { rightPaddingPx?: number } | null;
+  onWindowControlsOverlayChanged?(cb: (m: { rightPaddingPx?: number }) => void): () => void;
+  getDesktopZoomLevel?(): Promise<{ zoomLevel: number }>;
+  onDesktopZoomLevelChanged?(cb: (e: { zoomLevel: number }) => void): () => void;
+  getWebRemoteControlStatus?(): Promise<{ status: "idle" | "starting" | "connecting" | "running" | "active" | "error"; [key: string]: unknown }>;
+  onWebRemoteControlStatusChanged?(cb: (s: { status: "idle" | "starting" | "connecting" | "running" | "active" | "error"; [key: string]: unknown }) => void): () => void;
   /** 其余方法由其他族消费，此处以索引签名兜底。 */
   [method: string]: unknown;
 }
