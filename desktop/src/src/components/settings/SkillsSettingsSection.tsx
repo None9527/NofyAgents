@@ -14,7 +14,7 @@ import { ResourceGroupHeader, SelectContent, SelectItem, SelectTrigger, SelectVa
 import { SkillsImportDialog } from '../../modules/SettingsPanels';
 import { useTaskStore as taskStoreStatic } from '../../modules/SkillStore'; // xe.getState()
 import { useWorkspaceTabStore as useWorkspaceTabsStore } from '../../modules/WorkspaceTabsDeep'; // 原 pc（A1-R2：styles js 4753 改指 R1 既有导出；别名保留本地调用名）
-import { useBaseServices, useServices } from '../../modules/services';
+import { useBaseServices, useCachedTaskService, useServices, useSessionService } from '../../modules/services'; // A1-R47：+useCachedTaskService/useSessionService（原 kg/Ag 双角色拆分改指）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
 import { useConfirmDialog } from '../../modules/Modals'; // U2
@@ -138,10 +138,10 @@ declare function resolveRemoteSyncTarget(opts: {
 declare function remoteTargetDisplayName(target: RemoteTarget, workspacePath: string): string;
 /* ── tombstone〔A1-R44〕：declare useZcodeSessionService（原 kg zcodeSessionService 工厂）删除——SkillsSettingsSection 零消费（grep 实测仅本 declare 行）。
  * 树内 kg 全域 declare 占位相，唯一活消费面 = OnboardingDialog@289（其本地 declare@23 + 消费）。纯删碑，证据见 A1-R44.report.md §二。 ── */
-/** 原 Ag：workspace 服务工厂 */
-declare function useWorkspaceAgentService(workspacePath?: string, unused?: undefined, workspaceIdentity?: string | null): {
-  createTask: ZcodeAgentService["createTask"];
-};
+/* ── tombstone〔A1-R47〕：declare useWorkspaceAgentService 删除——本文件孪 y1t（Skills 视图）在 bundle 实调双钩：h = kg@196303（createTask 消费 @527）与
+ *  g = Ag@196304（zcodeSessionService 直通 @453/@482/@866/@889），A0 期误并为一 declare。本批拆分改指：createTask → useCachedTaskService（kg 真身，型缝投射），
+ *  直通 → useSessionService（Ag 真身，unknown 直通无缝）。R44「原 Ag」标注部分更正（createTask 面实为 kg）。ZcodeAgentService 接口留存（投射型所依）。
+ *  证据 A1-R47.report.md §二/§四。 ── */
 /** 原 M6：会话能力刷新（技能/命令变更后） */
 declare function refreshSessionCapabilities(opts: {
   zcodeSessionService: unknown;
@@ -337,7 +337,8 @@ export function SkillsSettingsSection(props: SkillsSettingsSectionProps) {
   const effectiveWorkspacePath = workspacePath ?? null;
   const effectiveWorkspaceIdentity = workspaceIdentity;
   const workspaceFolder = workspaceFolderName(effectiveWorkspacePath ?? undefined);
-  const workspaceAgentService = useWorkspaceAgentService(effectiveWorkspacePath ?? undefined, undefined, effectiveWorkspaceIdentity);
+  const cachedTaskService = useCachedTaskService(effectiveWorkspacePath ?? undefined, undefined, effectiveWorkspaceIdentity) as { createTask: ZcodeAgentService["createTask"] }; // A1-R47：原 kg 收敛改指（型缝 unknown → createTask 面）
+  const workspaceSessionService = useSessionService(effectiveWorkspacePath ?? undefined, undefined, effectiveWorkspaceIdentity); // A1-R47：原 Ag 收敛改指（unknown 直通，无型缝）
   const activateTabByPath = useWorkspaceTabsStore((state) => state.activateTabByPath);
   const [skills, setSkills] = React.useState<SkillItem[]>([]);
   const [capability, setCapability] = React.useState<SkillCapability | null>(null);
@@ -450,7 +451,7 @@ export function SkillsSettingsSection(props: SkillsSettingsSectionProps) {
           enabled,
         });
         await refreshSessionCapabilities({
-          zcodeSessionService: workspaceAgentService,
+          zcodeSessionService: workspaceSessionService,
           workspacePath: effectiveWorkspacePath,
           workspaceIdentity: effectiveWorkspaceIdentity,
           reason: "settings-skill-enabled",
@@ -460,7 +461,7 @@ export function SkillsSettingsSection(props: SkillsSettingsSectionProps) {
         setLoadError(error instanceof Error ? error.message : String(error));
       }
     },
-    [effectiveWorkspaceIdentity, effectiveWorkspacePath, loadSkills, handleRefreshCapabilities, skills, skillsService, workspaceAgentService]
+    [effectiveWorkspaceIdentity, effectiveWorkspacePath, loadSkills, handleRefreshCapabilities, skills, skillsService, workspaceSessionService]
   );
 
   const handleDeleteSkill = React.useCallback(
@@ -479,7 +480,7 @@ export function SkillsSettingsSection(props: SkillsSettingsSectionProps) {
           skillId: skill.id,
         });
         await refreshSessionCapabilities({
-          zcodeSessionService: workspaceAgentService,
+          zcodeSessionService: workspaceSessionService,
           workspacePath: effectiveWorkspacePath,
           workspaceIdentity: effectiveWorkspaceIdentity,
           reason: "settings-skill-delete",
@@ -490,7 +491,7 @@ export function SkillsSettingsSection(props: SkillsSettingsSectionProps) {
         setLoadError(error instanceof Error ? error.message : String(error));
       }
     },
-    [effectiveWorkspaceIdentity, effectiveWorkspacePath, confirmDialog, intl, loadSkills, detailSkill, skillsService, workspaceAgentService]
+    [effectiveWorkspaceIdentity, effectiveWorkspacePath, confirmDialog, intl, loadSkills, detailSkill, skillsService, workspaceSessionService]
   );
 
   const groupedSkills = React.useMemo(
@@ -524,7 +525,7 @@ export function SkillsSettingsSection(props: SkillsSettingsSectionProps) {
         const mcpStore = useMcpStoreStatic((state) => state);
         await mcpStore.ensureLoadedForWorkspace(effectiveWorkspacePath, services.mcpSyncService, effectiveWorkspaceIdentity);
         const enabledMcpServers = mcpStore.getEnabledMcpServersForZCode("glm");
-        const task = await workspaceAgentService.createTask({
+        const task = await cachedTaskService.createTask({
           workspacePath: effectiveWorkspacePath,
           ...(effectiveWorkspaceIdentity ? { workspaceIdentity: effectiveWorkspaceIdentity } : {}),
           provider: "glm",
@@ -863,7 +864,7 @@ export function SkillsSettingsSection(props: SkillsSettingsSectionProps) {
         onOpenChange={setImportOpen}
         onImported={async () => {
           await refreshSessionCapabilities({
-            zcodeSessionService: workspaceAgentService,
+            zcodeSessionService: workspaceSessionService,
             workspacePath: effectiveWorkspacePath,
             workspaceIdentity: effectiveWorkspaceIdentity,
             reason: "settings-skill-import",
@@ -886,7 +887,7 @@ export function SkillsSettingsSection(props: SkillsSettingsSectionProps) {
         workspaceIdentity={effectiveWorkspaceIdentity}
         onSkillsSynced={async () => {
           await refreshSessionCapabilities({
-            zcodeSessionService: workspaceAgentService,
+            zcodeSessionService: workspaceSessionService,
             workspacePath: effectiveWorkspacePath,
             workspaceIdentity: effectiveWorkspaceIdentity,
             reason: "settings-remote-skill-sync",

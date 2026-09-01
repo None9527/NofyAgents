@@ -14,6 +14,7 @@ import { SettingsCard as Card, SettingsCardContent as CardContent } from '../../
 import { cn } from '../../modules/UtilsCn';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
+import { useCachedTaskService } from '../../modules/services'; // A1-R47：+useCachedTaskService（原 kg 收敛改指；canonical ≡ workspaceServiceHooks@287）
 
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
@@ -53,7 +54,7 @@ export type MigrationSupportState = { supported: true } | { supported: false; re
  *    `t = r.imported.map((e) => ({ workspacePath: e.workspacePath })); … Qie(t)`，
  *    即 Qie 消费「导入条目 → {workspacePath} 数组」；调用面同步按真形复原（下 167 区）。 ── */
 declare function useWorkspaceTabsStoreForMigration(): { getState: () => { ensureWorkspaceTab: (opts: { workspacePath?: string }) => void } }; // hc（3609）
-declare function useZcodeSessionServiceForMigration(workspacePath?: string, unused?: undefined, workspaceIdentity?: string | null): {
+interface MigrationSessionService { // A1-R47 收敛改指：原 kg declare useZcodeSessionServiceForMigration → canonical services/workspaceServiceHooks useCachedTaskService@287（kg 真身 styles 24262-24269：zcodeTaskService 记忆化 + 快照缓存代理，A0-S4-5 已转录；本 declare 原为 useClaudeMigration（原 I2t）内部 kg 调用 @203442 的本地占位）。返回型保留为接口，供 @79 消费面投射目标型（bundle I2t 消费 t.scanImportableClaudeSessions / t.importClaudeSessions）。证据 A1-R47.report.md §二
   scanImportableClaudeSessions: (request: {
     workspacePath?: string;
     workspaceIdentity?: string;
@@ -65,7 +66,7 @@ declare function useZcodeSessionServiceForMigration(workspacePath?: string, unus
     workspaceIdentity?: string;
     sessionIds: string[];
   }) => Promise<MigrationImportResult>;
-}; // kg
+}
 
 /** 原 B2t（jsx 162408）：扫描时间范围 */
 export const MIGRATION_RANGES = ["7d", "30d", "90d", "all"];
@@ -76,7 +77,7 @@ export function useClaudeMigration(opts: {
   workspaceIdentity?: string | null;
   isDesktop: boolean;
 }) {
-  const sessionService = useZcodeSessionServiceForMigration(opts.workspacePath ?? undefined, undefined, opts.workspaceIdentity);
+  const sessionService = useCachedTaskService(opts.workspacePath ?? undefined, undefined, opts.workspaceIdentity) as MigrationSessionService; // A1-R47：原 kg 收敛改指（型缝 unknown → MigrationSessionService）
   const workspaceTabsStore = useWorkspaceTabsStoreForMigration();
   const [filterMode, setFilterMode] = React.useState("all");
   const [range, setRange] = React.useState("30d");

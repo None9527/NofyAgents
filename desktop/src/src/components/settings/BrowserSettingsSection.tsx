@@ -5,7 +5,7 @@ import * as React from "react";
 import { LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { toast } from '../../modules/ImeComposition';
 import { useSkillsStore } from '../../modules/SkillStore';
-import { useServices } from '../../modules/services';
+import { useServices, useSessionService } from '../../modules/services'; // A1-R47：+useSessionService（原 Ag 收敛改指）
 import { usePluginsStore } from '../../modules/stores-workspace';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // G（IntlProvider chunk）
 import { t as logger } from '../../modules/logger';
@@ -106,12 +106,12 @@ export function resolveBrowserImportResultMessage(
     : formatMessage({ id: "settings.browser.import.success" }, values);
 }
 
-/** 原 Ag：工作区会话服务解析（zcodeSessionService，横切层 24015–25006 段） */
-declare function resolveWorkspaceSessionService(
-  workspacePath: string | undefined,
-  unused: undefined,
-  workspaceIdentity: string | undefined,
-): ZcodeSessionService;
+/* ── tombstone〔A1-R47〕：declare resolveWorkspaceSessionService（原 Ag）删除——收敛改指 services/workspaceServiceHooks useSessionService@406（Ag 真身 styles 24368-24370，
+ *  A0-S4-5 已转录；R37 既判）。消费面 @159 改 `useSessionService(...) as ZcodeSessionService`（型缝：unknown → 本地索引签名接口，
+ *  invalidateSkillCaches（原 M6）zcodeSessionService 参数型所依）。bundle 证据：O2t（BrowserSettingsSection 孪）@203204 `c = Ag(n ?? void 0, void 0, r)` →
+ *  @203227 `zcodeSessionService: c` 形合（browser-use 插件开关广播）。
+ *  证据 A1-R47.report.md §二。 ── */
+
 
 /** 原 B6：插件 store（js 142985，横切层） */
 export interface PluginRecord { // A0-S4-4a：补 export（型别面）——MCP 分区族经 type import 消费
@@ -156,7 +156,7 @@ export function BrowserSettingsSection({
   const { intl } = useIntlContext();
   const platform = usePlatformService();
   const { pluginManagementService, skillsService } = useServices();
-  const zcodeSessionService = resolveWorkspaceSessionService(workspacePath ?? undefined, undefined, workspaceIdentity ?? undefined);
+  const zcodeSessionService = useSessionService(workspacePath ?? undefined, undefined, workspaceIdentity ?? undefined) as ZcodeSessionService; // A1-R47：原 Ag 收敛改指（型缝 unknown → ZcodeSessionService）
   const browserUsePlugin = usePluginsStore((state) => state.plugins.find((plugin) => plugin.id === BROWSER_USE_PLUGIN_ID));
   const pluginsLoading = usePluginsStore((state) => state.loading);
   const pluginsError = usePluginsStore((state) => state.error);

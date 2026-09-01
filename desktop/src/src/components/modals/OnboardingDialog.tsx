@@ -8,7 +8,7 @@ import { HeroCard, useHeroThemeStyles as useHeroTextSizes } from '../../modules/
 import { Badge } from '../../modules/PaymentDeep';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../modules/Settings';
 import { logger } from '../../modules/SkillStore';
-import { useServices } from '../../modules/services';
+import { useServices, useSessionService } from '../../modules/services'; // A1-R47：+useSessionService（原 Ag 收敛改指）
 import { useSettingsStore } from '../../modules/stores-core';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
 import { Button } from '../../modules/button'; // 原 X，button-laUijeDG.js（A0-D 接线：declare → button canonical）
@@ -19,12 +19,12 @@ import type { BaseServices } from './DirectoryBrowserDialog';
 import { IconCheck, IconArrowRight, IconFolder, IconRefreshCw, IconFileText, IconTriangleAlert } from '../../modules/Modals'; // §0 图标常量（createLucideIcon 产物）留存 shim
 
 /* §0 声明群随族迁入（原 243–310） */
-/** 会话服务钩子（原 Ag，本 chunk 24320） */
-declare function useZcodeSessionService(
-  workspacePath: string | undefined,
-  unused: undefined,
-  workspaceIdentity: string | undefined,
-): ZcodeSessionService;
+/* ── tombstone〔A1-R47〕：declare useZcodeSessionService（原 Ag，本 chunk 24320 → styles 24368-24370）删除——收敛改指 services/workspaceServiceHooks useSessionService@406
+ *  （Ag 真身，A0-S4-5 已转录；R37 既判）。消费面 @289 改 `useSessionService(...) as ZcodeSessionService`；ZcodeSessionService/SessionImportResult 接口
+ *  留存于下（refreshSkillContexts declare 参数型所依）。bundle 证据：s3t（useOnboardingDialogController 孪）@207311 `r = Ag(e.workspacePath, void 0, e.workspaceIdentity)`，
+ *  下游唯一消费 = M6 refreshSkillContexts({ zcodeSessionService: r, ... }) 形合。历史标注更正：R44 碑文曾称本簇「原 kg」——实测 kg ≡ zcodeTaskService 记忆化工厂
+ *  （useCachedTaskService@287，zcodeSessionService 非其所返），本面为 Ag。证据 A1-R47.report.md §二/§四。 ── */
+
 interface ZcodeSessionService {
   importSessions(sessionIds: string[]): Promise<SessionImportResult | null> | null;
   importError?: string | null;
@@ -76,10 +76,10 @@ interface SessionMigrationState {
   importSessions(sessionIds: string[]): Promise<SessionImportResult | null> | null;
   importError?: string | null;
 }
-declare function useSessionMigrationScanner(args: {
-  workspacePath: string | null;
-  isDesktop: boolean;
-}): SessionMigrationState;
+/* ── tombstone〔A1-R47〕：declare useSessionMigrationScanner（原 I2t，本 chunk 203145 → styles 203441-203600）删除——收敛改指 settings/MigrationSettingsSection
+ *  useClaudeMigration（I2t 真身，R10 期已转录；其内部 kg 消费本批改指 useCachedTaskService）。消费面 @1395 改 useClaudeMigration；
+ *  bundle E3t@208546 `I2t({ workspacePath: e.workspacePath ?? null, isDesktop: e.isDesktop })` 实参形合。SessionMigrationState 接口留存（OnboardingSessionStep 属性型），消费面经二段断言投射。
+ *  证据 A1-R47.report.md §二。 ── */
 
 /** 设置导入选择视图（原 v$t，本 chunk 193680；Settings 迁移页共用） */
 declare const ImportSelectionView: React.FC<{
@@ -286,7 +286,7 @@ function useOnboardingDialogController(e: { workspacePath?: string; workspaceIde
   const { settingsSyncService, modelProviderService } = useServices() as unknown as BaseServices & {
     settingsSyncService: SettingsSyncService;
   }; // A0-D：BaseServices 索引签名收敛需经 unknown 二段断言
-  const sessionService = useZcodeSessionService(e.workspacePath, undefined, e.workspaceIdentity);
+  const sessionService = useSessionService(e.workspacePath, undefined, e.workspaceIdentity) as ZcodeSessionService; // A1-R47：原 Ag 收敛改指（型缝 unknown → ZcodeSessionService）
   const importRunRef = React.useRef(0);
   const [state, setState] = React.useState<OnboardingControllerState>(initialOnboardingState);
   const reloadDiscovery = React.useCallback(
@@ -1392,10 +1392,10 @@ export function OnboardingDialog(e: {
     workspacePath: e.workspacePath,
     workspaceIdentity: e.workspaceIdentity ?? undefined,
   });
-  const migration = useSessionMigrationScanner({
+  const migration = useClaudeMigration({
     workspacePath: e.workspacePath ?? null,
     isDesktop: e.isDesktop,
-  });
+  }) as unknown as SessionMigrationState; // A1-R47：二段断言（useClaudeMigration 返回形 → 接口级 SessionMigrationState；MigrationCandidate.workspacePath 保守可选，运行时扫描条目恒带 workspacePath，bundle E3t 原形直取）
   const dialogRequested = useSettingsStore((s) => s.onboardingDialogRequested);
   const clearDialogRequest = useSettingsStore((s) => s.clearOnboardingDialogRequest);
   const [view, setView] = React.useState<"welcome" | "wizard">(`welcome`);
@@ -1695,3 +1695,5 @@ export function OnboardingDialog(e: {
   );
 }
 
+/* A1-R47 尾部导入（ES hoisting，R35 既判例）：原 I2t useSessionMigrationScanner declare 收敛改指 → useClaudeMigration canonical。环安全：MigrationSettingsSection 值闭包（lucide/ui/McpHelpers/stores）不达 components/modals。 */
+import { useClaudeMigration } from '../settings/MigrationSettingsSection';

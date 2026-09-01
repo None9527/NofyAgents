@@ -171,7 +171,7 @@ import { resolveModelGroupLabel } from './Home';
 import { providerIds } from './SrcSharedA';
 import { automationsWorkspaceKey, repoWikiWorkspaceKey, isProviderAllowedForFamilyMode, useShallowSelector } from './SrcSharedB'; // 〔A1-R29〕+isProviderAllowedForFamilyMode（Mr ≡ Kx 8919 canonical）：isProviderVisible declare 收敛改指，见下墓碑
 import { reportTelemetry, type TelemetryPlatform } from './StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
-import { useServices } from './services';
+import { useServices, useCachedTaskService } from './services'; // A1-R47：+useCachedTaskService（原 kg 收敛改指）
 import { useAutomationsStore } from './stores-tasks';
 import { cn } from './UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
@@ -782,12 +782,12 @@ declare const FileIconImg: React.FC<{ src?: string | null; size?: number; classN
 declare function isAbsolutePath(path: string): boolean;
 declare function pathDirname(path: string): string | null;
 
-/** 原 kg：工作区代理服务解析钩子（轨迹读取用） */
-declare function useWorkspaceAgentService(
-  workspacePath: string,
-  remoteSessionId?: string,
-  workspaceIdentity?: string | null,
-): ZCodeAgentService;
+/* ── tombstone〔A1-R47〕：declare useWorkspaceAgentService（原 kg，轨迹读取用）删除——收敛改指 services/workspaceServiceHooks useCachedTaskService@287
+ *  （kg 真身 styles 24262-24269，A0-S4-5 已转录）。消费面 useModelTrajectory@4129 改 `useCachedTaskService(...) as ZCodeAgentService`
+ *  （型缝：unknown → ZCodeAgentService 本地接口，getModelTrajectory 成员消费）。bundle 证据：RGt（useModelTrajectory 孪）@180407 `r = kg(e, void 0, n)` →
+ *  r.getModelTrajectory({ taskId }) 形合。校验器段界：本文件仅锁 buildWikiModelSelectGroups 段，本编辑在段外。
+ *  证据 A1-R47.report.md §二。 ── */
+
 
 /* --- 遥测 / 杂项（原 xw/ri/vee 等，src chunk） --- */
 
@@ -4126,7 +4126,7 @@ function describeTrajectoryError(error: unknown): string {
 }
 
 function useModelTrajectory(workspacePath: string, taskId: string | null, workspaceIdentity?: string | null) {
-  const agentService = useWorkspaceAgentService(workspacePath, undefined, workspaceIdentity);
+  const agentService = useCachedTaskService(workspacePath, undefined, workspaceIdentity) as ZCodeAgentService; // A1-R47：原 kg 收敛改指（型缝 unknown → ZCodeAgentService）
   const [state, setState] = React.useState(TRAJECTORY_INITIAL_STATE);
   const [reloadCount, setReloadCount] = React.useState(0);
   const generationRef = React.useRef(0);

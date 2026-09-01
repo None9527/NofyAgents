@@ -7,7 +7,7 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
 import { Input, Textarea, toast } from '../../modules/ImeComposition';
 import { Badge } from '../../modules/PaymentDeep';
 import { BackLinkButton, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tabs, TabsList, TabsTrigger } from '../../modules/Settings';
-import { useServices } from '../../modules/services';
+import { useServices, useSessionService } from '../../modules/services'; // A1-R47：+useSessionService（原 Ag 收敛改指）
 import { useHooksStore, usePluginsStore } from '../../modules/stores-workspace';
 import { cn } from '../../modules/UtilsCn';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
@@ -110,14 +110,14 @@ interface HooksService {
 interface PluginManagementService {
   [key: string]: unknown;
 }
-interface ZcodeAgentService {
-  createTask(request: {
-    workspacePath: string;
-    workspaceIdentity?: string;
-    provider: string;
-    mcpServers?: unknown[];
-  }): Promise<{ taskId: string; provider?: string; initialSlashCommands?: unknown[]; workspacePath: string; createdAt: number; updatedAt: number; [key: string]: unknown }>; // A0-CLEANUP3 3b：创建结果为完整任务记录（流入 FileTreePanel.TaskRecord）
-}
+/* ── tombstone〔A1-R47〕：interface ZcodeAgentService 删除——唯一引用者为本批改指的 useWorkspaceAgentService declare（原 Ag → services/workspaceServiceHooks
+ *  useSessionService@406 canonical，R37 既判），改指后本文件对该接口零引用（grep 实测：改前 2 处 = 定义 + declare 返回型引用），孤儿型块。
+ *  历史角色：A0 期 declare 返回型 `{ createTask: ZcodeAgentService["createTask"] }` 占位——本文件实际消费仅 zcodeSessionService 直通
+ *  （refreshAfterHookChange（原 lFt）zcodeSessionService 参数为 unknown 型，无成员消费），createTask 型面在本文件从未被消费（grep 实测零成员调用）。
+ *  同块 useWorkspaceAgentService declare 收敛改指见下方墓碑。未来如需 createTask 型面 → 经 bundle 取证重新引入。
+ *  证据 A1-R47.report.md §三。 ── */
+
+
 
 /* --- 跨 chunk 助手（接口级） --- */
 
@@ -132,10 +132,10 @@ interface ZcodeAgentService {
 
 
 
-/** 原 Ag：workspace 服务工厂 */
-declare function useWorkspaceAgentService(workspacePath?: string, unused?: undefined, workspaceIdentity?: string | null): {
-  createTask: ZcodeAgentService["createTask"];
-};
+/* ── tombstone〔A1-R47〕：declare useWorkspaceAgentService（原 Ag）删除——收敛改指 services/workspaceServiceHooks useSessionService@406（Ag 真身 styles 24368-24370，
+ *  A0-S4-5 已转录；R37 既判）。消费面 @819 改 useSessionService（返回 unknown，本文件消费仅 zcodeSessionService 直通 → 无型缝）。
+ *  bundle 证据：p2t（HooksSettingsSection 孪）@202331 `a = Ag(e ?? void 0, void 0, t)` → @202388 `zcodeSessionService: a` 形合。
+ *  证据 A1-R47.report.md §二。 ── */
 /* ── tombstone〔A1-R44〕：死 declare 簇（3 件）删除：refreshSessionCapabilities（原 M6 会话能力刷新）/ refreshSkillCapabilities（原 N6 技能能力刷新）/ refreshAfterPluginSync（原 V6 插件远程同步后全量刷新）。
  * 零消费实测：全文 grep 每名出现次数 = 1（仅本 declare 行），非 export、文件本地死面。树内无 canonical（全域 grep）：仅本簇 6 文件同形 declare 面；他文件活面（ExtendedViews useWorkspaceAgentService、Sidebar refreshAfterPluginSync、OnboardingDialog useZcodeSessionService@289 本地 declare+消费）皆各该文件自有 declare+消费暂代式，与本文件死面无涉。无改指对象，纯删碑；未来本文件出现消费面 → 经 bundle 取证定真身后重新引入。证据见 A1-R44.report.md §二/§四。
  * A1-R44 项 1 机械簇收敛，证据见 A1-R44.report.md。 ── */
@@ -816,7 +816,7 @@ export function HooksSettingsSection(props: HooksSettingsSectionProps) {
   const { workspacePath, workspaceIdentity } = props;
   const { intl } = useIntlContext();
   const { hooksService, pluginManagementService } = useServices();
-  const workspaceAgentService = useWorkspaceAgentService(workspacePath ?? undefined, undefined, workspaceIdentity);
+  const workspaceAgentService = useSessionService(workspacePath ?? undefined, undefined, workspaceIdentity); // A1-R47：原 Ag 收敛改指（unknown 直通，无型缝）
   const confirmDialog = useConfirmDialog();
   const hooksStore = useHooksStore();
   const plugins = usePluginsStore((state) => state.plugins);

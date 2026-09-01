@@ -7,7 +7,7 @@ import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button 
 import { toast } from '../../modules/ImeComposition';
 import { RemoteSyncDialogs } from '../../modules/Modals';
 import { AddMarketplaceDialog, PluginAdvancedSection, PluginDetail, PluginHookDetailsList, PluginInfoRow, PluginManageList, PluginSourcesDialog, PluginStoreGrid, PluginUninstallDialog, buildPluginChatPrompt, buildStoreItems, useUninstallFlow, type PluginHookDetail } from '../../modules/SettingsLeaves'; // A0-CLEANUP3 3b：PluginHookDetail 属主为 SettingsLeaves（导出）
-import { useBaseServices, useServices } from '../../modules/services';
+import { useBaseServices, useServices, useSessionService } from '../../modules/services'; // A1-R47：+useSessionService（原 Ag 收敛改指）
 import { usePluginsStore } from '../../modules/stores-workspace';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
@@ -109,14 +109,14 @@ interface HooksService {
 interface PluginManagementService {
   [key: string]: unknown;
 }
-interface ZcodeAgentService {
-  createTask(request: {
-    workspacePath: string;
-    workspaceIdentity?: string;
-    provider: string;
-    mcpServers?: unknown[];
-  }): Promise<{ taskId: string; provider?: string; initialSlashCommands?: unknown[]; workspacePath: string; createdAt: number; updatedAt: number; [key: string]: unknown }>; // A0-CLEANUP3 3b：创建结果为完整任务记录（流入 FileTreePanel.TaskRecord）
-}
+/* ── tombstone〔A1-R47〕：interface ZcodeAgentService 删除——唯一引用者为本批改指的 useWorkspaceAgentService declare（原 Ag → services/workspaceServiceHooks
+ *  useSessionService@406 canonical，R37 既判），改指后本文件对该接口零引用（grep 实测：改前 2 处 = 定义 + declare 返回型引用），孤儿型块。
+ *  历史角色：A0 期 declare 返回型 `{ createTask: ZcodeAgentService["createTask"] }` 占位——本文件实际消费仅 zcodeSessionService 直通
+ *  （M6/V6 刷新簇zcodeSessionService 参数为 unknown 型，无成员消费），createTask 型面在本文件从未被消费（grep 实测零成员调用）。
+ *  同块 useWorkspaceAgentService declare 收敛改指见下方墓碑（本文件消费 = M6/N6/V6 刷新簇 zcodeSessionService 直通）。未来如需 createTask 型面 → 经 bundle 取证重新引入。
+ *  证据 A1-R47.report.md §三。 ── */
+
+
 
 /* --- 跨 chunk 助手（接口级） --- */
 
@@ -131,10 +131,10 @@ declare function resolveRemoteSyncTarget(opts: {
 declare function remoteTargetDisplayName(target: RemoteTarget, workspacePath: string): string;
 /* ── tombstone〔A1-R44〕：declare useZcodeSessionService（原 kg zcodeSessionService 工厂）删除——PluginsSettingsSection 零消费（grep 实测仅本 declare 行）。
  * 树内 kg 全域 declare 占位相，唯一活消费面 = OnboardingDialog@289（其本地 declare@23 + 消费）。纯删碑，证据见 A1-R44.report.md §二。 ── */
-/** 原 Ag：workspace 服务工厂 */
-declare function useWorkspaceAgentService(workspacePath?: string, unused?: undefined, workspaceIdentity?: string | null): {
-  createTask: ZcodeAgentService["createTask"];
-};
+/* ── tombstone〔A1-R47〕：declare useWorkspaceAgentService（原 Ag）删除——收敛改指 services/workspaceServiceHooks useSessionService@406（Ag 真身 styles 24368-24370，
+ *  A0-S4-5 已转录；R37 既判）。消费面 @318 改 useSessionService（返回 unknown，本文件消费仅 zcodeSessionService 直通 → 无型缝）。
+ *  bundle 证据：I0t（PluginsSettingsSection 孪）@200309 `_ = Ag(e ?? void 0, void 0, t)` → @200415/@200431 `zcodeSessionService: _` 形合。
+ *  证据 A1-R47.report.md §二。 ── */
 /** 原 M6：会话能力刷新（技能/命令变更后） */
 declare function refreshSessionCapabilities(opts: {
   zcodeSessionService: unknown;
@@ -315,7 +315,7 @@ export function PluginsSettingsSection(props: PluginsSettingsSectionProps) {
     skillsService,
     zcodeAgentService,
   } = useServices();
-  const workspaceAgentService = useWorkspaceAgentService(workspacePath ?? undefined, undefined, workspaceIdentity);
+  const workspaceAgentService = useSessionService(workspacePath ?? undefined, undefined, workspaceIdentity); // A1-R47：原 Ag 收敛改指（unknown 直通，无型缝）
   const plugins = usePluginsStore((state) => state.plugins);
   const marketplaces = usePluginsStore((state) => state.marketplaces);
   const marketplaceAvailabilityKnown = usePluginsStore((state) => state.marketplaceAvailabilityKnown);
