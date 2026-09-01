@@ -1,19 +1,21 @@
 /* ============================================================================
- * conversationWireCore.ts —— A1-P3-B4：会话线协议簇逐字补面（styles js 33441–34804 七子区，661 行）
+ * conversationWireCore.ts —— A1-P3-B4：会话线协议簇逐字补面（styles js 33441–34804 八子区，669 行；〔A1-P3-B8〕续收 Bke/dS）
  * 真身基准（只读）：desktop/src/out/renderer/assets/styles-CdEGpc2x.js
  *   （md5 48d71d4874b0868d61fd35a328bf6ad5，行号一律以它为准）。
- * 区段（七子区，非连续；中间死码/留批区段见下墓碑）：
- *   33441–33466（wke/Tke hello 能力/握手 schema）+ 33785–33889（Vke 族帧形/预算助手）
+ * 区段（八子区，非连续；中间死码/留批区段见下墓碑）：
+ *   33441–33466（wke/Tke hello 能力/握手 schema）+ 33777–33784（Bke/dS 会话主题编解码）
+ *   + 33785–33889（Vke 族帧形/预算助手）
  *   + 33890–34228（bS 帧装配类）+ 34598–34629（nAe 族 uuidv7/clientId）
  *   + 34646–34670（kS/AS 握手缓存）+ 34671–34745（rAe 族在途帧暂存）
  *   + 34746–34804（NS 帧装配包装）
  * 消费面：services/sessionIndex §B5-transport 段（sessionIndexTransportFactory，A1-P3-B3）
  *   之 bS/AS/MS/NS 环境声明四件改指本叶实体；oS 仍留批（见下）。
- * 转录机制：AST 精确改名（106 处：跨块自由符引用 10 名 + 顶层声明锚 33 + 顶层引用 27 +
- *   声明锚同址 36），往返核对 ROUNDTRIP[wire] EXACT（661 行）在案
+ * 转录机制：AST 精确改名（108 处：跨块自由符引用 10 名 + 顶层声明锚 35 + 顶层引用 27 +
+ *   声明锚同址 36），往返核对 ROUNDTRIP[wire] EXACT（669 行）在案
  *   （/tmp/a1r0-p3/p3b4-roundtrip.js）；体内 62 局部保留混淆名（B5 约定）。
  * 映射表（minified → 语义名 → bundle 定义行）：
  *   wke→sessionWireCapabilitiesSchema(33441) | Tke→sessionHelloSchema(33447)
+ *   Bke→conversationTopicKey(33777) | dS→parseConversationTopicKey(33780)〔A1-P3-B8〕
  *   Vke→frameEnvelopeHeadroomBytes(33785) | Hke→frameEnvelopeFramingBytes(33786)
  *   fS→varintByteLength(33787) | pS→frameEnvelopeBudgets(33792) | mS→jsonUtf8ByteLength(33822)
  *   Uke→completeFrameRequiredFields(33825) | Wke→fragmentFrameRequiredFields(33835)
@@ -34,17 +36,20 @@
  *     二跳 styles 693 `io as Tte` ← facade io=decodeBase64ToBytes）|
  *   _i→wireServerTimeSchema（src 块 If=E()，模块初始化读 → 本叶 zNumber() 实体）|
  *   ji/K/Jr/Fi/Li→SrcSharedA zod 面（zObject/zString/zEnum/zLiteral/zBoolean）。
- * 墓碑（同区留批，边界证据见 A1-P3-B4.report.md §七）：
+ * 墓碑（同区死码/留批，边界证据见 A1-P3-B4.report.md §七 + A1-P3-B8.report.md §三/§四）：
  *   33467–33473 / 34339–34348 丢弃式死码（ji({...}) 孤调用，无赋值无导出）——不录；
- *   34229–34338 Jke/Yke/Xke/Zke/Qke——bS 同 var 语句共声明者（§G.3 SessionCommandSchemas
- *     属域），模块初始化读 src 块 schema（Ci/gne/Qee/Dte/_i/ii 等）未实体化，declare 即启动崩，
- *     整链留批；本叶 bS 类以 S19 缝（`, `→`;`）自该语句切出，类表达式本体逐字不变；
- *   34630–34645 OS——依赖 Zke/Qke（留批共声明者），同步留批；
- *   34349–34597 $ke/eAe/xS 族 + SS——命令回执/会话状态表，依赖面（cS/Fi/Tt 族）超本批，留批；
- *   33505 oS（sessionIndexFrameSchema）——aS 链（33493–33529）依赖 iS(33480)/oke(33180)/
- *     cke(33219)/hke(33313)/gke(33314) 延伸至 33100 以下，超单批预算，留批
- *     （sessionIndex §B5-transport 段 declare 保留）。
- * 型缝（全型层，禁抑制符）×70：P1 顶层函数参数 :any ×23 + P1 类构造/方法参数 :any ×17 +
+ *   34229–34338 Jke/Yke/Xke/Zke/Qke + 34630–34645 OS——〔A1-P3-B7〕已录
+ *     services/sessionCommandSchemaCore.ts（前置六符二跳全落实体，带证据链收），碑注更新；
+ *     本叶 bS 类以 S19 缝（`, `→`;`）自该语句切出，类表达式本体逐字不变；
+ *   33505 oS（sessionIndexFrameSchema）——〔A1-P3-B5〕已录 services/sessionsIndexSchemaCore.ts，碑注更新；
+ *   〔A1-P3-B8 删碑取证〕33529 Tt 三元组 + 33531–33565 丢弃元组（消费 Nke/Eke/rS；批 7 边界
+ *     33553 实测修正至 33565）/ Pke（33566–33572，仅 33591 死元组消费）/ 33573–33600 丢弃元组 /
+ *     Fke/Ike/Lke/cS（33601–33633，cS 仅 $ke 34358/34364 消费，而 $ke→eAe→34379 死元组，传递死）/
+ *     33634–33653 丢弃元组 / Rke/lS/zke（33654–33659，仅 33662–33739 死元组消费）/ 33660–33693 丢弃元组 /
+ *     uS（33694–33712，仅 33722/33755 死元组消费）/ 33713–33776 丢弃元组——全弃值或死仅，不录（B5 Tt 族例）；
+ *   〔A1-P3-B8 删碑取证〕34349–34597：$ke/eAe/xS（34349–34376）仅 34377–34393 死元组消费；
+ *     SS/CS/tAe（34394–34443）仅 34444–34597 丢弃式 $r 事件流表达式消费——传递死仅，不录。
+ * 型缝（全型层，禁抑制符）×72：P1 顶层函数参数 :any ×25 + P1 类构造/方法参数 :any ×17 +
  *   P1 返回对象字面量方法参数 :any ×12（MS begin/bind/cancel/activate/forget/accept +
  *   NS accept/recover/discard）+ S16 any 接收面回调参数 :any ×7（Tke.superRefine 双参 /
  *   NS a 双参箭头 / o 单参箭头 / MS a 清理箭头 / MS filter 单参）+ S6 声明位宽化 ×1
@@ -85,6 +90,14 @@ var sessionWireCapabilitiesSchema = zObject({
           path: [`deliveryProfile`],
         });
     });
+function conversationTopicKey(e: any) {
+  return `conversation/${e}`;
+}
+function parseConversationTopicKey(e: any) {
+  if (!e.startsWith(`conversation/`)) return null;
+  let t = e.slice(13);
+  return t.length > 0 ? t : null;
+}
 var frameEnvelopeHeadroomBytes = 204,
   frameEnvelopeFramingBytes = 13;
 function varintByteLength(e: any) {
@@ -724,6 +737,7 @@ function sessionFrameAssembly(e: any, t: any, n: any) {
 
 export {
   sessionWireCapabilitiesSchema, sessionHelloSchema,
+  conversationTopicKey, parseConversationTopicKey, // 〔A1-P3-B8〕原 Bke/dS（33777/33780）；消费面 39617/40135/40176/40267/40349（mw/sNe/_w，FeedbackCenter §16 A0 域，跨域登记见 A1-P3-B8.report.md §二）
   frameEnvelopeHeadroomBytes, frameEnvelopeFramingBytes, varintByteLength, frameEnvelopeBudgets,
   jsonUtf8ByteLength, completeFrameRequiredFields, fragmentFrameRequiredFields, frameChecksumFields,
   keysWithinFieldSet, normalizeDeliveryKind, hasFragmentFrameShape, assemblyRouteKey, bytesEqual,
