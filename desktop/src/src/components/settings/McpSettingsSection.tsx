@@ -2,7 +2,7 @@
 // 迁出体 = 原文件 3465–4278；§0 RemoteTarget/PlatformService/usePlatformService/McpSyncService/WorkspaceTabsStoreState/useWorkspaceTabsStore/remoteTargetDisplayLabel 声明随族迁入。
 // PluginRecord 型别取自浏览器分区族文件（原同文件 §12 定义）。
 import * as React from "react";
-import { Plus as IconPlus, Download as IconDownload, CloudUpload as IconCloudUpload } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
+import { Plus as IconPlus, Download as IconDownload, CloudUpload as IconCloudUpload, Cable as IconCable, ExternalLink as IconExternalLink } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0。〔A1-P3-B13〕+IconCable（原 A_ = Sa('cable')@26798）/IconExternalLink（原 q_ = Sa('external-link')@27013）：W$t 转录消费
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { Input, toast, usePlatformService, type RemoteTarget } from '../../modules/ImeComposition'; // 〔A1-R46〕+usePlatformService（活面 declare 改指；canonical ImeComposition@186 = usePlatform@168，bundle l ≡ chunk 导出 M；R45 专裁既判，型交叉检查见 A1-R46.report.md §二）；〔A1-R50〕+type RemoteTarget（统一属主改指，本地同形副本删除）
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource, remoteSyncTargetLabel as remoteTargetDisplayLabel } from '../../modules/Modals'; // +$2（A0-CLEANUP2 item 14 接线：原别名保留）；〔A1-R50〕+q2（原 remoteTargetDisplayLabel declare；canonical = RemoteSyncDialogs::remoteSyncTargetLabel，styles 125207；本叶命名与 XTt 单相——XTt 单参真身在 SplitLayoutDeep@1585，A1-R4 既判，此处双参形实为 q2，R47 普查误漏更正）
@@ -10,6 +10,7 @@ import { McpImportDialog, McpServerEditor, McpServerRow, type McpFormDraft } fro
 import { useBaseServices, useServices } from '../../modules/services';
 import { useMcpStore, usePluginsStore, type McpServerConfig, type McpSource } from '../../modules/stores-workspace'; // A0-CLEANUP3 3b：McpServer 面对齐派生型
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // G（IntlProvider chunk）
+import { joinTestidParts, pluginMcpServerRowTestid, mcpOpenAuthorizationButtonTestid } from '../../modules/SrcSharedB'; // 〔A1-P3-B13〕W$t 转录：qr 真身收敛改指（styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb 8464 ≡ SrcSharedB@5015，R41 既判）+ 前缀实体 ≡ hv@8338/gv@8339。环安全：SrcSharedB 值闭包不达 components/settings（B11/B12 同边先例）
 import { useConfirmDialog } from '../../modules/Modals';
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { t as logger } from '../../modules/logger';
@@ -175,12 +176,12 @@ declare function refreshMcpServerStatuses(input: {
 declare function filterMcpServersByQuery(servers: McpServer[], query: string): McpServer[];
 /** 原 V$t：插件 MCP 列表可见性 */
 declare function isPluginMcpListVisible(remote: boolean): boolean;
-/** 原 $Qt：插件托管 MCP 条目 */
+/** 原 $Qt：插件托管 MCP 条目。〔A1-P3-B13〕返回型 unknown[] → PluginMcpItem[]（W$t 转录实体化所需；item 面 ≡ bundle 194799–194947 消费面归纳，型缝由 A0 弱型细化，非行为变更） */
 declare function buildPluginMcpItems(
   plugins: PluginRecord[],
   query: string,
   snapshots: Record<string, unknown>, // A0-CLEANUP3 3b：对齐 store 弱型
-): unknown[];
+): PluginMcpItem[];
 /** 原 L$t：互斥锁工厂（串行化状态刷新） */
 declare function createSerialMutex(): { request<T>(task: () => Promise<T>): Promise<T> } | null;
 /** 原 H7（js 194440）：服务器序列化（刷新参数） */
@@ -274,8 +275,140 @@ export function McpEditorModeTabs({
 /** 原 _$t（js 193344）：MCP 导入对话框 —— 外部 agent 配置一键导入
  *  （settingsSync：Claude Code/Codex/OpenCode…18 种，settingsSync.* 28 处 193248–207980）。接口级。 */
 
-/** 原 W$t（js 194503）：插件托管 MCP 列表（testid：plugin-mcp-server-row，src chunk 8338）。接口级。 */
-declare const PluginMcpServerList: React.FC<{ items: unknown[]; onOpenAuthorization: (server: McpServer) => void }>;
+/** 插件托管 MCP 条目形状（原 W$t item 面，js 194799–194947 消费面归纳；〔A1-P3-B13〕buildPluginMcpItems 返回型由 unknown[] 细化，型缝注记见该 declare） */
+export interface PluginMcpItem {
+  id: string;
+  name: string;
+  pluginName: string;
+  pluginMarketplace?: string;
+  runtimeServerName: string;
+  status?: string;
+  error?: string;
+  active?: boolean;
+  pluginEnabled?: boolean;
+  hostProvided?: boolean;
+  toolCount?: number;
+  authorization?: { authorizationUrl?: string } | null;
+}
+
+/** 原 W$t（js 194799–194947，登记段起点 194503）：插件托管 MCP 列表。
+ *  〔A1-P3-B13〕declare（接口级）转录实体化：qr 2 点 194869 `qr(En, e.runtimeServerName)` / 194918 `qr(Qte, e.runtimeServerName)`
+ *  收敛改指 joinTestidParts（En = styles 519 `Lr as En` ← src 9750 `hv as Lr` ≡ hv@8338 plugin-mcp-server-row ≡ pluginMcpServerRowTestid；
+ *  Qte = styles 726 `mr as Qte` ← src 9964 `gv as mr` ≡ gv@8339 mcp-open-authorization-button ≡ mcpOpenAuthorizationButtonTestid）。
+ *  依赖：G=useIntlContext / X=Button（modules/button）/ A_=lucide Cable / q_=lucide ExternalLink（A0-S3b 先例）。 */
+export function PluginMcpServerList({ items, onOpenAuthorization }: { items: PluginMcpItem[]; onOpenAuthorization: (server: McpServer) => void }) {
+  const { intl } = useIntlContext();
+  const openAuthorizationLabel = intl.formatMessage({ id: "settings.mcp.oauth.openAuthorization" });
+  function resolveStatusView(item: PluginMcpItem) { // 原 i（W$t 内嵌，194802）
+    return item.authorization?.authorizationUrl
+      ? {
+          label: intl.formatMessage({ id: "settings.mcp.plugin.authorizationRequired" }),
+          description: intl.formatMessage({
+            id: "settings.mcp.plugin.authorizationRequiredDescription",
+          }),
+        }
+      : item.status === "error"
+        ? {
+            label: intl.formatMessage({ id: "settings.mcp.plugin.unavailable" }),
+            description:
+              item.error ?? intl.formatMessage({ id: "settings.mcp.plugin.unavailableDescription" }),
+          }
+        : item.active
+          ? item.status === "connecting"
+            ? {
+                label: intl.formatMessage({ id: "settings.mcp.plugin.connecting" }),
+                description: intl.formatMessage({ id: "settings.mcp.plugin.connectingDescription" }),
+              }
+            : item.status === "connected"
+              ? {
+                  label: intl.formatMessage({ id: "settings.mcp.plugin.connected" }),
+                  description: intl.formatMessage({ id: "settings.mcp.plugin.connectedDescription" }),
+                }
+              : item.status === "disconnected"
+                ? {
+                    label: intl.formatMessage({ id: "settings.mcp.plugin.disconnected" }),
+                    description: intl.formatMessage({
+                      id: "settings.mcp.plugin.disconnectedDescription",
+                    }),
+                  }
+                : {
+                    label: intl.formatMessage({
+                      id: item.hostProvided
+                        ? "settings.mcp.host.active"
+                        : "settings.mcp.plugin.active",
+                    }),
+                    description: item.hostProvided
+                      ? intl.formatMessage(
+                          { id: "settings.mcp.host.activeDescription" },
+                          { pluginName: item.pluginName },
+                        )
+                      : intl.formatMessage({ id: "settings.mcp.plugin.activeDescription" }),
+                  }
+          : item.pluginEnabled
+            ? {
+                label: intl.formatMessage({ id: "settings.mcp.plugin.unavailable" }),
+                description: intl.formatMessage({ id: "settings.mcp.plugin.unavailableDescription" }),
+              }
+            : {
+                label: intl.formatMessage({ id: "settings.mcp.plugin.disabled" }),
+                description: intl.formatMessage({ id: "settings.mcp.plugin.disabledDescription" }),
+              };
+  }
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="divide-y divide-border">
+        {items.map((item) => {
+          const statusView = resolveStatusView(item);
+          return (
+            <div
+              key={item.id}
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
+              data-mcp-status={item.status ?? ""}
+              data-mcp-tool-count={item.toolCount}
+              data-testid={joinTestidParts(pluginMcpServerRowTestid, item.runtimeServerName)}
+            >
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-foreground-subtle" aria-hidden="true">
+                <IconCable className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-ui-base font-medium text-foreground">{item.name}</span>
+                  <span className="rounded-md bg-secondary px-1.5 py-0.5 text-ui-xs font-medium text-foreground-subtle">{item.pluginName}</span>
+                  <span className="rounded-md bg-surface px-1.5 py-0.5 text-ui-xs text-foreground-subtle ring-1 ring-border">{statusView.label}</span>
+                  {typeof item.toolCount == "number" && (
+                    <span className="inline-flex rounded-md bg-surface px-1.5 py-0.5 text-ui-xs text-foreground-subtle ring-1 ring-border">
+                      {intl.formatMessage(
+                        { id: "settings.mcp.status.toolCount" },
+                        { count: String(item.toolCount) },
+                      )}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-0.5 truncate text-ui-base text-foreground-subtlest">{statusView.description}</div>
+              </div>
+              <div className="flex min-w-0 max-w-full shrink-0 items-center gap-2">
+                {item.authorization?.authorizationUrl ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={openAuthorizationLabel}
+                    data-testid={joinTestidParts(mcpOpenAuthorizationButtonTestid, item.runtimeServerName)}
+                    title={openAuthorizationLabel}
+                    onClick={() => onOpenAuthorization?.(item as unknown as McpServer)} /* 〔A1-P3-B13〕型缝：bundle 194922 `() => t?.(e)` 以 item 回传；item ≡ McpServer authorization 面（A0 弱型） */
+                  >
+                    <IconExternalLink className="size-3" aria-hidden="true" />
+                    <span className="hidden sm:inline">{openAuthorizationLabel}</span>
+                  </Button>
+                ) : null}
+                <span className="max-w-24 truncate text-ui-base text-foreground-subtle sm:max-w-40">{item.pluginMarketplace}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export interface McpSettingsSectionProps {
   workspacePath?: string | null;

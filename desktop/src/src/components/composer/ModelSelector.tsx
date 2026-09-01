@@ -12,7 +12,8 @@ import { Loader as LoaderIcon, SparkleIcon, ChevronDown as ChevronDownIcon, Chec
 import { InfoTooltip as TooltipRoot, TooltipContent, TooltipTrigger } from '../../modules/UsageStatsUiParts'; // 原 fN/pN + Ia（A0-D 接线 + A0-CLEANUP2 item 47）
 import { Button } from '../../modules/button'; // 原 H（A0-D 接线：declare → button canonical）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
-import { testidOf, isCoarseTouchDevice, shouldRestoreFocus } from '../../modules/Composer'; // shim 留守运行时助手（函数声明提升，渲染期访问，环安全）
+import { isCoarseTouchDevice, shouldRestoreFocus } from '../../modules/Composer'; // shim 留守运行时助手（函数声明提升，渲染期访问，环安全）。〔A1-P3-B13〕testidOf 取回删除 → 收敛改指 SrcSharedB joinTestidParts（见下注）
+import { joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-P3-B13〕qr 真身（styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb 8464 ≡ SrcSharedB@5015，R41 既判）：B4e 4 点（282/401/503/520 ≡ bundle 75645/75775/75887/75909 `qr(er, e.value)`/`qr(zn, …key)`；er ← src Av@8353 chat-model-select-item ≡ MODEL_SELECT_ITEM_TESTID / zn ← src kv@8352 chat-model-select-group ≡ MODEL_SELECT_GROUP_TESTID，值链 B12 点表实证）收敛改指。环安全：SrcSharedB 值闭包不达 components/composer（B11/B12 同边先例）
 
 /** 13. Radix 悬浮卡原语（HoverCardRoot 三面共用复制件；shim 亦保留） */
 declare const HoverCardRoot: React.ComponentType<{ openDelay?: number; closeDelay?: number; children?: React.ReactNode } & Record<string, unknown>>; // dN 透传面（bundle 54538）：radix HoverCard openDelay/closeDelay 收 J4e 调用面（76086）
@@ -279,7 +280,7 @@ export const ModelSelector = React.memo(function ModelSelector({
         const dataAttributes = {
           "data-model-option-locked": locked ? `true` : void 0,
           "data-model-option-selected": selected ? `true` : void 0,
-          "data-testid": testidOf(MODEL_SELECT_ITEM_TESTID, option.value),
+          "data-testid": joinTestidParts(MODEL_SELECT_ITEM_TESTID, option.value),
           "data-checked": selected ? `true` : void 0,
         };
         const optionContent = (
@@ -398,7 +399,7 @@ export const ModelSelector = React.memo(function ModelSelector({
                   size={`xs`}
                   variant={`outline`}
                   className={`min-w-0 shrink-0 gap-0.5 rounded-full pr-1.5 text-ui-sm text-foreground-subtle [&_svg]:size-3`}
-                  data-testid={testidOf(MODEL_SELECT_GROUP_TESTID, group.key)}
+                  data-testid={joinTestidParts(MODEL_SELECT_GROUP_TESTID, group.key)}
                   data-model-provider-key={group.key}
                   onPointerDown={(event: React.PointerEvent<HTMLButtonElement>) => event.stopPropagation()}
                   onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => event.stopPropagation()}
@@ -500,7 +501,7 @@ export const ModelSelector = React.memo(function ModelSelector({
                         <div>
                           <DropdownMenuLabel
                             className={`flex min-h-8 items-center px-2 py-1`}
-                            data-testid={testidOf(MODEL_SELECT_GROUP_TESTID, group.key)}
+                            data-testid={joinTestidParts(MODEL_SELECT_GROUP_TESTID, group.key)}
                             data-model-provider-key={group.key}
                           >
                             {renderGroupLabel(group)}
@@ -517,7 +518,7 @@ export const ModelSelector = React.memo(function ModelSelector({
                       <DropdownMenuSub>{/* A0-S3c：原误名 DropdownMenuGroup，bundle ZO@75905 为 Sub 封装（包 SubTrigger+SubContent） */}
                         <DropdownMenuSubTrigger
                           className={`min-h-8`}
-                          data-testid={testidOf(MODEL_SELECT_GROUP_TESTID, group.key)}
+                          data-testid={joinTestidParts(MODEL_SELECT_GROUP_TESTID, group.key)}
                           data-model-provider-key={group.key}
                           data-model-provider-selected={groupSelected ? `true` : void 0}
                         >

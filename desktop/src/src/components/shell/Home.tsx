@@ -159,7 +159,7 @@ import { useServices } from '../../modules/services';
 import { workspaceScopeKey } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { useFeedbackStore } from '../../modules/stores-core'; // A1-R15：原 yC（js 37040）反馈中心 store——vWe openSubmit 消费（TopBar 144 同源边）
-import { chatErrorBannerTestid, listSessionModePresets, offpeakFormTitleTestid, chatAssistantHistoryContentTestid, automationYearDayOptionTestid, browserForwardButtonTestid, v4ComposerInputTestid, v4ModelConfigTestid, chatContextUsageTriggerTestid, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, isProviderEnabled, normalizeProviderFamilyDomain, resolveProviderFamilyMode } from '../../modules/SrcSharedB'; // A1-R17 及以前：见尾注。A1-R18：+5 件（原 Uee=ca=ky 8513 / vi=mt 8631 / li=gt 8638 / fi=ht 8658 / gi=ko 5001；§U iit/nit/mX/hX 消费）+A1-R19：+chatContextUsageTriggerTestid（原 Lte=Fv，jsx 8465 / js 8358；§V j3e 76752 data-testid 消费） // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）。〔A1-R27〕+normalizeProviderFamilyDomain（xn 真身 ≡ Xx 8937 / src 9745 `Xx as L` / styles 514 `L as xn`；Tit @761 declare providerFamilyFromDomain 收敛改指，见下墓碑）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555；@767/@4056 declare resolveProviderFamilyAuthMode 收敛改指，见下墓碑）
+import { chatErrorBannerTestid, listSessionModePresets, chatThoughtLevelSelectTriggerTestid, chatModeSelectTriggerTestid, chatThoughtLevelSelectItemTestid, chatModeSelectItemTestid, promptSuggestionSectionTestid, promptSuggestionStatusTestid, promptSuggestionOptionTestid, joinTestidParts, v4ComposerInputTestid, v4ModelConfigTestid, chatContextUsageTriggerTestid, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, isProviderEnabled, normalizeProviderFamilyDomain, resolveProviderFamilyMode } from '../../modules/SrcSharedB'; // A1-R17 及以前：见尾注。A1-R18：+5 件（原 Uee=ca=ky 8513 / vi=mt 8631 / li=gt 8638 / fi=ht 8658 / gi=ko 5001；§U iit/nit/mX/hX 消费）+A1-R19：+chatContextUsageTriggerTestid（原 Lte=Fv，jsx 8465 / js 8358；§V j3e 76752 data-testid 消费） // A1-R15：原 N_（js 8302）= bundle 作用域 Ate（jn 700）——vWe data-testid 54367 消费。A1-R17：+listSessionModePresets（原 cn()=src chunk Ax 导出 J，styles 501；Xrt 89366 消费）+4 testid（原 Fr=tb/wn=V_/Xt=Eb/rn=Dg；P3e/F3e 76852/76856 消费）+v4ComposerInputTestid（原 un=Ji；Yrt 89342 消费）。〔A1-R27〕+normalizeProviderFamilyDomain（xn 真身 ≡ Xx 8937 / src 9745 `Xx as L` / styles 514 `L as xn`；Tit @761 declare providerFamilyFromDomain 收敛改指，见下墓碑）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555；@767/@4056 declare resolveProviderFamilyAuthMode 收敛改指，见下墓碑）。〔A1-P3-B13〕§U.7 前缀值漂移更正（B12 升级事项 1）：−offpeakFormTitleTestid/chatAssistantHistoryContentTestid/automationYearDayOptionTestid/browserForwardButtonTestid（R17 误链——styles 局部 Fr/wn/Xt/rn 实为导入改名 `Un as Fr`@582/`Ln as wn`@517/`Hn as Xt`@490/`In as rn`@497 ← src 9817 `jv as Un`/9748 `Nv as Ln`/9720 `Mv as Hn`/9727 `Pv as In` ≡ jv/Nv/Mv/Pv@8354-8357，非 src 导出 Fr/wn/Xt/rn（tb/V_/Eb/Dg@9708/10041/9841/10001））；+chatThoughtLevelSelectTriggerTestid/chatModeSelectTriggerTestid/chatThoughtLevelSelectItemTestid/chatModeSelectItemTestid 更替。+joinTestidParts（qr 真身：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb 8464 ≡ SrcSharedB@5015，R41 既判）：局部 testidOf 收敛改指，墓碑见 @509。+promptSuggestionSection/Status/OptionTestid（≡ G_/q_/K_@8314/8316/8315；_Je/vJe/yJe 5 点收敛）。环安全：SrcSharedB 值闭包不达 components/shell（B11/B12 同边先例）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { Root as RadixSelectRoot, Value as RadixSelectValue, Trigger as RadixSelectTrigger, Icon as RadixSelectIcon, Portal as RadixSelectPortal, Content as RadixSelectContent, Viewport as RadixSelectViewport, Item as RadixSelectItem, ItemText as RadixSelectItemText, ItemIndicator as RadixSelectItemIndicator, ScrollUpButton as RadixSelectScrollUpButton, ScrollDownButton as RadixSelectScrollDownButton } from '@radix-ui/react-select'; // A1-R17：vendored radix select（原 CDe=PEe/TDe=REe/wDe=IEe/EDe=BEe/DDe=HEe/ODe=UEe/kDe=QEe/ADe=sDe/MDe/jDe/NDe/PDe，styles 30850–31745 区）→ npm @radix-ui/react-select@2.3.7（A0-S3c 先例 SettingsRowPrimitives）
 import { AnimatedLabel, MODE_LABEL_I18N, MODE_DESCRIPTION_I18N, ModelSelector, ContextUsageProvider, ContextRingTrigger, ContextRingTooltipContent, ContextRingTooltipBody, SegmentedProgress, type ModelGroup } from '../composer/ModelSelector'; // A1-R17：原 _q（75520）/V4e（75972）/H4e（76003）——A0-S4-4b 已属主导出（[D] ConfigSelect 消费预案），本批 §T 接线。A1-R18：+ModelSelector（原 vq，js 75575 memo；§U iit 消费，props 面逐字兼容）+type ModelGroup（Hq declare 返回面）。A1-R19：+5 件（原 J4e/X4e/Z4e/Q4e/yq = ContextUsageProvider 76079/ContextRingTrigger 76125/ContextRingTooltipContent 76139/ContextRingTooltipBody 76147/SegmentedProgress 76034，A0-S2d 已属主导出；§V j3e 76741–76794 消费）
@@ -509,10 +509,7 @@ const PROJECT_DETACH_TESTID = "composer-project-detach"; // Ut
 const WORKSPACE_TRIGGER_TESTID = "composer-workspace-trigger"; // Cne
 const REMOTE_CONNECTION_TESTID = "composer-remote-connection"; // _n
 const WORK_OUTSIDE_PROJECT_TESTID = "composer-work-outside-project"; // dn
-/** testid 拼接（原 qr = Nb：`${e}-${t}`） */
-function testidOf(base: string, suffix: string): string {
-  return `${base}-${suffix}`;
-}
+/* ── tombstone〔A1-P3-B13〕：局部 testidOf（原 qr）删除 → 一符一家收敛改指 modules/SrcSharedB@5015 joinTestidParts（qr 真身：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb 8464 `return \`${e}-${t}\`` ≡ joinTestidParts 逐字同形，R41 既判；B11 Sidebar/SidebarLeaves 7 点、B12 PD Ket 2 点同形先例在案）。消费面实测 12 处全改指：_Je/vJe/yJe 5 点（1849/1863/1876/1887/1920 ≡ bundle 64828/64837/64848/64855/64872，前缀字面量实体化 promptSuggestionSection/Status/OptionTestid ≡ G_/q_/K_@8314/8316/8315）+ F3e 2 点 + Pq 1 点（2779/2780/3567 ≡ bundle 76857/76858/77318，前缀漂移更正在案）+ hit 4 点（6702/6738/6764/6778 ≡ bundle 90822/90867/90919/90933，ATTACHMENT_*_TESTID 局部常量保留）。负证据：本文件 qr 消费仅此 12 处；余 bundle 消费属他域（qr 总盘点表见 A1-P3-B12.report.md §三）。 ── */
 
 /* ============================================================================
  * 1. 问候 hero（原 vit/gX/_X/yit/bit/xit/Sit/Cit，js 91182–91336 / jsx 78837–78935）
@@ -1847,7 +1844,7 @@ export function SuggestionSectionHeaderRow({ row }: { row: Extract<SuggestionRow
   return (
     <div
       className="px-3 pt-2 pb-1 text-ui-xs font-semibold uppercase tracking-wide text-foreground-subtlest"
-      data-testid={testidOf("prompt-suggestion-section", row.sectionId)}
+      data-testid={joinTestidParts(promptSuggestionSectionTestid, row.sectionId)}
       data-section-id={row.sectionId}
     >
       {row.title}
@@ -1861,7 +1858,7 @@ export function SuggestionStatusRow({ row }: { row: Extract<SuggestionRow, { kin
     return (
       <div
         className="flex items-center gap-2 rounded-xl px-5 py-2 text-ui-base text-foreground-subtle"
-        data-testid={testidOf("prompt-suggestion-status", row.sectionId)}
+        data-testid={joinTestidParts(promptSuggestionStatusTestid, row.sectionId)}
         data-section-id={row.sectionId}
         data-status="loading"
       >
@@ -1874,7 +1871,7 @@ export function SuggestionStatusRow({ row }: { row: Extract<SuggestionRow, { kin
     return (
       <div
         className="rounded-xl bg-destructive px-5 py-2 text-ui-base text-destructive-foreground"
-        data-testid={testidOf("prompt-suggestion-status", row.sectionId)}
+        data-testid={joinTestidParts(promptSuggestionStatusTestid, row.sectionId)}
         data-section-id={row.sectionId}
         data-status="error"
       >
@@ -1885,7 +1882,7 @@ export function SuggestionStatusRow({ row }: { row: Extract<SuggestionRow, { kin
   return (
     <div
       className="rounded-xl px-5 py-2 text-ui-base text-foreground-subtlest"
-      data-testid={testidOf("prompt-suggestion-status", row.sectionId)}
+      data-testid={joinTestidParts(promptSuggestionStatusTestid, row.sectionId)}
       data-section-id={row.sectionId}
       data-status="empty"
     >
@@ -1918,7 +1915,7 @@ export function SuggestionOptionRow({
         aria-selected={isSelected}
         aria-disabled={disabled}
         disabled={disabled}
-        data-testid={testidOf("prompt-suggestion-option", option.id)}
+        data-testid={joinTestidParts(promptSuggestionOptionTestid, option.id)}
         data-section-id={row.sectionId}
         data-option-id={option.id}
         data-option-index={flatOptionIndex}
@@ -2567,11 +2564,13 @@ function ChatErrorBanner({
  *   Yrt→COMPOSER_INPUT_FOCUS_SELECTOR 89342 | qrt→ComposerModeTrigger 89306
  *   Xrt→ComposerModeToolbarBody 89343 | Zrt→ComposerModeToolbar(memo) 89415
  *  跨域改指（属主导出，零新增转录）：
- *   cn()→listSessionModePresets（SrcSharedB，原 src chunk Ax 导出 J）| qr→testidOf（本文件局部 383）|
+ *   cn()→listSessionModePresets（SrcSharedB，原 src chunk Ax 导出 J）| qr→joinTestidParts（SrcSharedB@5015；原局部 testidOf 碑化，〔A1-P3-B13〕）|
  *   XH→isCoarseTouchDevice / ZH→shouldRestoreFocus（Composer）|
  *   _q→AnimatedLabel / V4e→MODE_LABEL_I18N / H4e→MODE_DESCRIPTION_I18N
- *   （ModelSelector A0-S4-4b 属主导出）| Fr→offpeakFormTitleTestid / wn→chatAssistantHistoryContentTestid /
- *   Xt→automationYearDayOptionTestid / rn→browserForwardButtonTestid / un→v4ComposerInputTestid（SrcSharedB）
+ *   （ModelSelector A0-S4-4b 属主导出）| Fr→chatThoughtLevelSelectTriggerTestid / wn→chatModeSelectTriggerTestid /
+ *   Xt→chatThoughtLevelSelectItemTestid / rn→chatModeSelectItemTestid / un→v4ComposerInputTestid（SrcSharedB）
+ *   （〔A1-P3-B13〕§U.7 漂移更正：R17 旧链 Fr→offpeakFormTitleTestid / wn→chatAssistantHistoryContentTestid /
+ *    Xt→automationYearDayOptionTestid / rn→browserForwardButtonTestid 为误链，链证见 @162 〔A1-P3-B13〕注）
  *   Ta→cva（button）| zv/av/Sv/Bv/bbe/P_/M_/N_→lucide-react（文件头导入块）
  * ==========================================================================*/
 
@@ -2757,12 +2756,14 @@ function isSelectValueInRange(e: ConfigSelectOption, t: string) { // M3e
 }
 var FULL_ACCESS_MODE_VALUES = new Set([`bypassPermissions`, `full-access`, `agent-full-access`, `yolo`]); // N3e
 function resolveConfigSelectTestId(e: ConfigSelectOption) { // P3e
-  if (e.category === `thought_level`) return offpeakFormTitleTestid;
-  if (e.category === `mode`) return chatAssistantHistoryContentTestid;
+  // 〔A1-P3-B13〕前缀值漂移更正（B12 升级事项 1）：束 76853/76854 返 Fr/wn = styles 局部（582 `Un as Fr`/517 `Ln as wn` ← src jv@8354/Nv@8356），非 R17 所链 tb/V_
+  if (e.category === `thought_level`) return chatThoughtLevelSelectTriggerTestid;
+  if (e.category === `mode`) return chatModeSelectTriggerTestid;
 }
 function resolveConfigSelectOptionTestId(e: ConfigSelectOption, t: ConfigSelectOptionItem) { // F3e
-  if (e.category === `thought_level`) return testidOf(automationYearDayOptionTestid, t.value);
-  if (e.category === `mode`) return testidOf(browserForwardButtonTestid, t.value);
+  // 〔A1-P3-B13〕前缀值漂移更正 + qr 收敛（bundle 76857/76858 `qr(Xt, t.value)`/`qr(rn, t.value)`；Xt/rn = styles 局部（490 `Hn as Xt`/497 `In as rn` ← src Mv@8355/Pv@8357），非 R17 所链 Eb/Dg；qr ≡ joinTestidParts，R41 既判）
+  if (e.category === `thought_level`) return joinTestidParts(chatThoughtLevelSelectItemTestid, t.value);
+  if (e.category === `mode`) return joinTestidParts(chatModeSelectItemTestid, t.value);
 }
 /** 原 I3e（76860）：apiRetry 状态件——attempt/maxRetries i18n 数字格式化 + 渐变文本 chip；〔A1-P1-B15〕转录。
  *  消费位 112823（chat 加载槽域，kvt/Llt 未实体化）留批；modules/Conversation ApiRetryView declare 同批收敛。
@@ -3290,7 +3291,7 @@ var ComposerModeToolbar = (0, React.memo)(ComposerModeToolbarBody), // Zrt 89415
  *   Uee=v4ModelConfigTestid / vi=buildCodingPlanScope / li=parseCodingPlanScope / fi=codingPlanScopesOverlap / gi=isProviderEnabled（SrcSharedB）；
  *   se=parseCustomModelId / we=formatCustomModelId / L=filterNativeModelOptions（SkillStore）；vq=ModelSelector（ModelSelector.tsx）；
  *   O_=IconBrain / N_=IconChevronDown（lucide）；_q=AnimatedLabel、Ia=Tooltip、iO/oO/sO/cO=ConfigSelect 族（§T）、ZH/XH=shouldRestoreFocus/isCoarseTouchDevice、
- *   un=v4ComposerInputTestid、Xt=automationYearDayOptionTestid、Fr=offpeakFormTitleTestid、qr=testidOf、jq=resolveConfigOptionLabel、$3e=useComposerToolbarShortcuts（本文件）。
+ *   un=v4ComposerInputTestid、Xt=chatThoughtLevelSelectItemTestid、Fr=chatThoughtLevelSelectTriggerTestid（〔A1-P3-B13〕漂移更正，原误链 automationYearDayOptionTestid/offpeakFormTitleTestid）、qr=joinTestidParts（SrcSharedB）、jq=resolveConfigOptionLabel、$3e=useComposerToolbarShortcuts（本文件）。
  *  declare 分层（深依赖，不转录）：Jq/sX/pc/fX/TY/$j/N6e/Hq/nWe/Zi/j3e——见上方 declare 块。
  * ========================================================================== */
 
@@ -3525,7 +3526,7 @@ function ComposerThoughtToolbar({
           ),
           "aria-label": k,
           "data-thought-level-fixed": `true`,
-          "data-testid": offpeakFormTitleTestid,
+          "data-testid": chatThoughtLevelSelectTriggerTestid, // 〔A1-P3-B13〕漂移更正：束 77271/77298/77340 = Fr（styles 局部 ← src jv@8354 chat-thought-level-select-trigger）
           children: F,
         }),
       })
@@ -3552,7 +3553,7 @@ function ComposerThoughtToolbar({
                 className: cn(`gap-1 rounded-lg px-1.5 py-1.5 text-ui-base`, d),
                 "aria-label": k,
                 "data-chat-toolbar-popover-trigger": `true`,
-                "data-testid": offpeakFormTitleTestid,
+                "data-testid": chatThoughtLevelSelectTriggerTestid, // 〔A1-P3-B13〕漂移更正：束 77271/77298/77340 = Fr（styles 局部 ← src jv@8354 chat-thought-level-select-trigger）
                 children: F,
               }),
             }),
@@ -3572,7 +3573,7 @@ function ComposerThoughtToolbar({
                   ConfigSelectItem,
                   {
                     value: e.value,
-                    "data-testid": testidOf(automationYearDayOptionTestid, e.value),
+                    "data-testid": joinTestidParts(chatThoughtLevelSelectItemTestid, e.value), // 〔A1-P3-B13〕Pq 77318 `qr(Xt, e.value)` 漂移更正 + qr 收敛（Xt ← src Mv@8355）
                     children: (0, $.jsx)(`span`, {
                       className: `first-letter:uppercase`,
                       children: resolveThoughtLevelOptionLabel(i, s, o, e),
@@ -3594,7 +3595,7 @@ function ComposerThoughtToolbar({
             size: `default`,
             disabled: e,
             "data-chat-toolbar-popover-trigger": `true`,
-            "data-testid": offpeakFormTitleTestid,
+            "data-testid": chatThoughtLevelSelectTriggerTestid, // 〔A1-P3-B13〕漂移更正：束 77271/77298/77340 = Fr（styles 局部 ← src jv@8354 chat-thought-level-select-trigger）
             className: cn(`gap-1 rounded-lg px-1.5 py-1.5 text-ui-base`, d),
             "aria-label": k,
             onClick: P,
@@ -6747,7 +6748,7 @@ export function DraftComposerRegion({
                     return (
                       <AttachmentCard
                         key={attachment.id}
-                        data-testid={testidOf(ATTACHMENT_ITEM_TESTID, attachment.id)}
+                        data-testid={joinTestidParts(ATTACHMENT_ITEM_TESTID, attachment.id)}
                         data-upload-status={attachment.uploadStatus}
                         data={{
                           id: attachment.id,
@@ -6783,7 +6784,7 @@ export function DraftComposerRegion({
                           />
                           {showUploadOverlay && isImage ? (
                             <span
-                              data-testid={testidOf(ATTACHMENT_UPLOAD_PROGRESS_TESTID, attachment.id)}
+                              data-testid={joinTestidParts(ATTACHMENT_UPLOAD_PROGRESS_TESTID, attachment.id)}
                               role={attachment.uploadStatus === "failed" ? "alert" : "status"}
                               aria-label={uploadStatusLabel}
                               className="absolute inset-0 grid place-items-center rounded bg-background/85 text-[7px] font-semibold text-foreground"
@@ -6809,7 +6810,7 @@ export function DraftComposerRegion({
                         <AttachmentCardName className="max-w-48 text-ui-base text-foreground" />
                         {showUploadOverlay && !isImage ? (
                           <span
-                            data-testid={testidOf(ATTACHMENT_UPLOAD_PROGRESS_TESTID, attachment.id)}
+                            data-testid={joinTestidParts(ATTACHMENT_UPLOAD_PROGRESS_TESTID, attachment.id)}
                             role={attachment.uploadStatus === "failed" ? "alert" : "status"}
                             title={uploadStatusLabel}
                             className={cn(
@@ -6823,7 +6824,7 @@ export function DraftComposerRegion({
                         {attachment.uploadStatus === "failed" ? (
                           <button
                             type="button"
-                            data-testid={testidOf(ATTACHMENT_UPLOAD_RETRY_TESTID, attachment.id)}
+                            data-testid={joinTestidParts(ATTACHMENT_UPLOAD_RETRY_TESTID, attachment.id)}
                             aria-label={intl.formatMessage({ id: "chat.attachments.upload.retry" })}
                             title={uploadStatusLabel}
                             className="grid size-5 shrink-0 place-items-center rounded-md text-destructive hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"

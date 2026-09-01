@@ -129,7 +129,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { PopoverContent as PopoverContentPrimitive, PopoverTrigger as PopoverTriggerPrimitive } from '../../modules/ImeComposition'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Command as CommandPalette, CommandItem } from '../../modules/QuickPick'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { CommandInput } from '../ui/command'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { Button, createLucideIcon } from '../../modules/button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
+import { Button, createLucideIcon, ChevronRight as IconChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk。〔A1-P3-B13〕+IconChevronRight（原 wa = button chunk y 导出 = chevron-right@102；plt/jlt 转录消费；button chunk 图标 pass-1 canonical 先例 SkillsSettingsSection）
 import { CommitGraphDialog as CommitGraphViewer, CreateBranchDialog, SwitchAssistDialog, resolveBranchDisplayLabel, useGitBranchSwitcher } from '../../modules/CmdkPaletteDeep'; // CommitGraphViewer 原 fct
 import { resolveAvailableEditors, type InstalledEditor } from '../../modules/FileTreePanel'; // +InstalledEditor（A0-CLEANUP B-21：本地别名删除改指属主型）
 import { SummaryGitSection, useTaskFileActions, type GitSummary } from '../../modules/GitReview'; // A0-CLEANUP4：GitSummary 属主为 GitReview（原 Yhe 缺省形），本地镜像删除后转手导出
@@ -147,7 +147,8 @@ import { usePinnedTaskListStore, useWorkspaceTaskListStore } from '../../modules
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia=u（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { remoteTargetConnectionAddress, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4 QTt（styles 123268）；A1-R5 归属更正：XTt→ZTt（styles 123256），tombstone 见原声明位
-import { sanitizeRemoteTargetForRestore, DesktopMenuActionIds as DesktopCommand } from '../../modules/SrcSharedB'; // 原 $b（src-HCld2afU.js 8611，pt→yne 导出）：A1-R5 normalizeRemoteTarget 改指；〔A1-R48〕+DesktopMenuActionIds as DesktopCommand（oi 收敛改指，WorkspaceShell@263 A1-P2-B1 / Sidebar@220 A1-P3-B1 同式先例），见下墓碑
+import { sanitizeRemoteTargetForRestore, DesktopMenuActionIds as DesktopCommand, joinTestidParts, v4BackgroundWorkCancelTestid, v4BackgroundWorkItemTestid } from '../../modules/SrcSharedB'; // 原 $b（src-HCld2afU.js 8611，pt→yne 导出）：A1-R5 normalizeRemoteTarget 改指；〔A1-R48〕+DesktopMenuActionIds as DesktopCommand（oi 收敛改指，WorkspaceShell@263 A1-P2-B1 / Sidebar@220 A1-P3-B1 同式先例），见下墓碑。〔A1-P3-B13〕+joinTestidParts（qr 真身：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb 8464 ≡ SrcSharedB@5015，R41 既判）+v4BackgroundWorkCancelTestid（≡ Oy@8405；Elt 98863 收敛）+v4BackgroundWorkItemTestid（≡ Dy@8404；Olt 98888 / Alt 99041 收敛）。环安全：SrcSharedB 值闭包不达 components/shell（B11/B12 同边先例）
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'; // 〔A1-P3-B13〕原 kZ/AZ/jZ（js 94973/94976/94979）A0-S3c 既重建：XZ/plt 段壳转录消费
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -337,6 +338,9 @@ const IconPanelLeftOpen = createLucideIcon("panel-left-open", []);   // 原 Ev�
 const IconPanelRightClose = createLucideIcon("panel-right-close", []); // 原 ibe（js 27545）
 const IconPanelRightOpen = createLucideIcon("panel-right-open", []); // 原 abe（js 27550）
 const IconSquareTerminal = createLucideIcon("square-terminal", []);  // 原 Uv（js 27818）
+const IconSquare = createLucideIcon("square", []);                   // 原 Wv（js 27871）〔A1-P3-B13〕Elt 停止钮
+const IconBot = createLucideIcon("bot", []);                         // 原 D_（js 26756）〔A1-P3-B13〕Alt 子代理行
+const IconCircleCheck = createLucideIcon("circle-check", []);        // 原 I_（js 26869）〔A1-P3-B13〕jlt 已结束条目
 const IconCircleQuestionMark = createLucideIcon("circle-question-mark", []); // 原 vye（js 26859）
 const IconChevronDown = createLucideIcon("chevron-down", []);        // 原 N_（js 26802）
 const IconEllipsis = createLucideIcon("ellipsis", []);               // 原 K_（js 26950）
@@ -3258,6 +3262,438 @@ export const MemoizedConversationSummaryAside = React.memo(ConversationSummaryAs
 declare const SummaryGoalSection: React.FC<{ model: unknown; separated: boolean; onPauseGoal?: () => void; onResumeGoal?: () => void }>;
 declare const SummaryPlansSection: React.FC<{ model: unknown; parentSessionId?: string | null; onOpenPlanDetail?: () => void; separated: boolean }>;
 declare const SummaryPlanSection: React.FC<{ model: unknown; separated: boolean }>;
-declare const SummaryTerminalsSection: React.FC<{ section: string; title: string; works: BackgroundWork[]; open?: boolean; onOpenChange?: (v: boolean) => void; separated: boolean; onCancelBackgroundWork?: (workId: string) => void }>;
-declare const SummaryAgentsSection: React.FC<{ title: string; subagents: RunningSubagent[]; endedSubagentCount: number; onCancelBackgroundWork?: (workId: string) => void; open?: boolean; onOpenChange?: (v: boolean) => void; separated: boolean; parentSessionId?: string | null; rootSessionId?: string | null; onOpenSubagentSession?: (request: SubagentOpenRequest) => void; onOpenSubagentDirectory?: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; rootSessionId?: string; parentSessionId: string }) => void }>; // A1-R3 宽化：onOpenSubagentDirectory 原 () => void，同上
+/* ── tombstone〔A1-P3-B13〕：declare SummaryTerminalsSection（原 klt，js 98919）/SummaryAgentsSection（原 Alt，js 98981）删除 → 转录实体化，见文件尾 Flt 分段组件转录区。qr 3 点收敛在案：Elt 98863 `qr(Pr, e)`（Pr = styles 581 `Ui as Pr` ← src 9816 `Oy as Ui` ≡ Oy@8405 v4-background-work-cancel）/ Olt 98888 `qr(Ur, n.workId)` / Alt 99041 `qr(Ur, e.controlWorkId)`（Ur = styles 595 `Wi as Ur` ← src 9830 `Dy as Wi` ≡ Dy@8404 v4-background-work-item）。P1 转交件（B12 点表 #8）。 ── */
 declare const SummaryMiniCard: React.FC<{ model: unknown; gitWorktreeChangeSummary?: unknown; onVariantChange?: (variant: SummaryPanelVariant | null) => void }>;
+
+/* ============================================================================
+ * Flt 分段组件转录区〔A1-P3-B13〕（原 flt/plt/XZ + vst/JZ/llt/ult/dlt/YZ + Elt/Dlt/Olt/klt/Alt/jlt，
+ *      js 98318–98325 / 98326–98360 / 98361–98400 / 94998 / 98274–98315 / 98850–98884 /
+ *      98885–98915 / 98919–98980 / 98981–99102 / 99103–99126）：
+ *      klt→SummaryTerminalsSection / Alt→SummaryAgentsSection declare 实体化（墓碑见 declare 块）；
+ *      qr 3 点 98863/98888/99041 收敛改指 joinTestidParts（P1 转交件，B12 点表 #8）。
+ *      依赖：kZ/AZ/jZ = Collapsible 族（ui/collapsible，A0-S3c 既重建）/ G = useIntlContext /
+ *      Z = cn / X = Button / Wv = IconSquare / Uv = IconSquareTerminal / D_ = IconBot /
+ *      N_ = IconChevronDown / wa = IconChevronRight（button chunk）/ I_ = IconCircleCheck。
+ * ==========================================================================*/
+
+/** 原 flt（js 98318）：分段滚动封顶表（environment 无封顶） */
+const SUMMARY_SECTION_MAX_HEIGHT: Record<string, string | null> = {
+  environment: null,
+  goal: "max-h-48",
+  sessionPlans: "max-h-48",
+  plan: "max-h-80",
+  terminal: "max-h-48",
+  agent: "max-h-48",
+};
+
+/** 原 vst（js 94998）：已运行时长文案（分:秒 / 秒） */
+function formatWorkElapsed(elapsedMs: number, formatMessage: IntlShape["formatMessage"]) {
+  const totalSeconds = Math.max(1, Math.floor(elapsedMs / 1e3));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0
+    ? formatMessage(
+        { id: "chat.longRunning.elapsedMinutesSeconds" },
+        { minutes: String(minutes), seconds: String(seconds) },
+      )
+    : formatMessage({ id: "chat.longRunning.elapsedSeconds" }, { seconds: String(totalSeconds) });
+}
+
+/** 原 JZ（js 98274）：时分秒短格式（zh 用中文单位） */
+function formatDurationShort(totalSeconds: number, locale = "en-US") {
+  const clampedSeconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(clampedSeconds / 3600);
+  const minutes = Math.floor((clampedSeconds % 3600) / 60);
+  const restSeconds = clampedSeconds % 60;
+  const units = locale.startsWith("zh")
+    ? { hours: "小时", minutes: "分", seconds: "秒" }
+    : { hours: "h", minutes: "m", seconds: "s" };
+  const parts: string[] = [];
+  if (hours > 0) parts.push(`${hours}${units.hours}`);
+  if (minutes > 0) parts.push(`${minutes}${units.minutes}`);
+  if (restSeconds > 0 || parts.length === 0) parts.push(`${restSeconds}${units.seconds}`);
+  return parts.join(" ");
+}
+
+/** 原 llt（js 98290）：单工作已运行毫秒。〔A1-P3-B13〕型缝：BackgroundWork.startedAt 可选，bundle 径取；缺省按 now 计 0（与 Alt bundle `?? p` 守卫同形） */
+function workElapsedMs(work: BackgroundWork, now: number) {
+  return Math.max(0, now - (work.startedAt ?? now));
+}
+
+/** 原 ult（js 98293）：列表最大已运行毫秒 */
+function maxWorkElapsedMs(works: BackgroundWork[], now: number) {
+  return works.reduce((max, work) => Math.max(max, workElapsedMs(work, now)), 0);
+}
+
+/** 原 dlt（js 98296）：运行中任务数文案（单/复） */
+function formatRunningTasksCount(formatMessage: IntlShape["formatMessage"], count: number) {
+  return formatMessage(
+    {
+      id:
+        count === 1
+          ? "chat.summaryPanel.runningBackgroundTasksMiniValue"
+          : "chat.summaryPanel.runningBackgroundTasksMiniValuePlural",
+    },
+    { count: String(count) },
+  );
+}
+
+/** 原 YZ（js 98307）：运行中子代理数文案（单/复） */
+function formatRunningAgentsCount(formatMessage: IntlShape["formatMessage"], count: number) {
+  return formatMessage(
+    {
+      id:
+        count === 1
+          ? "chat.statusPanel.runningAgentsValue"
+          : "chat.statusPanel.runningAgentsValuePlural",
+    },
+    { count: String(count) },
+  );
+}
+
+/** 原 plt（js 98326）：分段头（CollapsibleTrigger asChild；展开 chevron-down / 收起 chevron-right，hover 显形） */
+function SummarySectionHeader({ children, isOpen, section, title }: { children?: React.ReactNode; isOpen: boolean; section: string; title: string }) {
+  return (
+    <div className="mb-0.5 flex h-8 min-w-0 shrink-0 items-center gap-1.5 px-2 pr-8">
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          data-status-section-trigger={section}
+          className="group flex min-w-0 shrink-0 items-center gap-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-input-border-focused)]"
+        >
+          <span className="shrink-0 text-ui-base text-[var(--color-foreground-subtle)]">{title}</span>
+          {isOpen ? (
+            <IconChevronDown className="size-3.5 shrink-0 text-[var(--color-foreground-subtle)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+          ) : (
+            <IconChevronRight className="size-3.5 shrink-0 text-[var(--color-foreground-subtle)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+          )}
+        </button>
+      </CollapsibleTrigger>
+      {children ? (
+        <div className="inline-flex min-w-0 max-w-full shrink items-center gap-1.5 text-ui-sm text-[var(--color-foreground-subtlest)]">{children}</div>
+      ) : null}
+    </div>
+  );
+}
+
+/** 原 XZ（js 98361）：分段壳（Collapsible 受控/非受控双模 + 滚动封顶） */
+function SummarySectionShell({
+  children,
+  defaultOpen = true,
+  onOpenChange,
+  open,
+  separated = false,
+  section,
+  title,
+  trailing,
+}: {
+  children?: React.ReactNode;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  open?: boolean;
+  separated?: boolean;
+  section: string;
+  title: string;
+  trailing?: (open: boolean) => React.ReactNode;
+}) {
+  const [internalOpen, setInternalOpen] = React.useState(defaultOpen);
+  const isControlled = open !== void 0;
+  const effectiveOpen = open ?? internalOpen;
+  const maxHeightClass = SUMMARY_SECTION_MAX_HEIGHT[section];
+  return (
+    <Collapsible
+      open={effectiveOpen}
+      onOpenChange={React.useCallback(
+        (nextOpen: boolean) => {
+          if (!isControlled) setInternalOpen(nextOpen);
+          onOpenChange?.(nextOpen);
+        },
+        [isControlled, onOpenChange],
+      )}
+      data-status-section={section}
+      className={cn("min-w-0 flex-none", separated && "border-t border-[var(--color-border)] pt-2")}
+    >
+      <section className="min-w-0 flex-none">
+        <SummarySectionHeader isOpen={effectiveOpen} section={section} title={title}>
+          {trailing?.(effectiveOpen)}
+        </SummarySectionHeader>
+        <CollapsibleContent>
+          {maxHeightClass ? (
+            <div data-status-section-scroll={section} className={cn(maxHeightClass, "min-h-0 overflow-x-hidden overflow-y-auto pr-1")}>
+              {children}
+            </div>
+          ) : (
+            children
+          )}
+        </CollapsibleContent>
+      </section>
+    </Collapsible>
+  );
+}
+
+/** 原 Elt（js 98850）：后台工作取消钮（stopRunningBackgroundTask）。qr 点 98863 `qr(Pr, e)` 收敛改指（Pr ≡ v4BackgroundWorkCancelTestid）。 */
+function BackgroundWorkCancelButton({ workId, onCancel }: { workId: string; onCancel?: (workId: string) => void }) {
+  const { intl } = useIntlContext();
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation();
+      onCancel?.(workId);
+    },
+    [onCancel, workId],
+  );
+  return onCancel ? (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      data-testid={joinTestidParts(v4BackgroundWorkCancelTestid, workId)}
+      aria-label={intl.formatMessage({ id: "chat.summaryPanel.stopRunningBackgroundTask" })}
+      onClick={handleClick}
+      className="pointer-events-auto relative z-[2] ml-auto h-6 shrink-0 px-1.5 text-ui-base text-[var(--color-foreground)]"
+    >
+      <IconSquare aria-hidden={true} className="size-3 fill-current" />
+      {intl.formatMessage({ id: "chat.statusPanel.runningStop" })}
+    </Button>
+  ) : null;
+}
+
+/** 原 Dlt（js 98874）：子代理会话打开请求构造（parentSessionId 缺省返 null）；型别属主 SidePanel.SubagentOpenRequest */
+function buildSubagentOpenRequest({ parentSessionId, rootSessionId, subagent }: { parentSessionId?: string | null; rootSessionId?: string | null; subagent: RunningSubagent }): SubagentOpenRequest | null {
+  return parentSessionId
+    ? ({
+        rootSessionId: rootSessionId ?? parentSessionId,
+        parentSessionId,
+        childSessionId: subagent.childSessionId,
+        subagentType: subagent.subagentType,
+        title: subagent.title,
+      } as unknown as SubagentOpenRequest) // 〔A1-P3-B13〕型缝：RunningSubagent.subagentType/title 可选，bundle 98879–98881 径透传（SidePanel 消费面容忍）
+    : null;
+}
+
+/** 原 Olt（js 98885）：后台工作行（终端类）。qr 点 98888 `qr(Ur, n.workId)` 收敛改指（Ur ≡ v4BackgroundWorkItemTestid）。 */
+function BackgroundWorkRow({ now, onCancelBackgroundWork, work }: { now: number; onCancelBackgroundWork?: (workId: string) => void; work: BackgroundWork }) {
+  const { intl } = useIntlContext();
+  return (
+    <li
+      data-testid={joinTestidParts(v4BackgroundWorkItemTestid, work.workId)}
+      data-background-task-kind={work.kind}
+      data-work-id={work.workId}
+      data-work-status={work.status}
+      className="group relative flex min-w-0 items-start gap-2 rounded-lg px-2 py-2 hover:bg-[var(--color-hover)]"
+    >
+      <IconSquareTerminal className="pointer-events-none relative z-[1] mt-0.5 size-4 shrink-0 text-[var(--color-foreground-subtle)]" />
+      <div className="pointer-events-none relative z-[1] flex min-w-0 flex-1 flex-col gap-1.5">
+        <p className="line-clamp-2 text-ui-base leading-5 text-[var(--color-foreground)]">{work.title}</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-ui-base">
+          <span className="shrink-0 tabular-nums text-[var(--color-foreground-subtle)]">
+            {formatWorkElapsed(workElapsedMs(work, now), intl.formatMessage)}
+          </span>
+          {work.cancellable === false ? null : <BackgroundWorkCancelButton workId={work.workId} onCancel={onCancelBackgroundWork} />}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+/** 原 klt（js 98919）：运行中终端段（declare SummaryTerminalsSection 实体化，墓碑见 declare 块） */
+export function SummaryTerminalsSection({
+  onCancelBackgroundWork,
+  onOpenChange,
+  open,
+  separated,
+  section,
+  title,
+  works,
+}: {
+  onCancelBackgroundWork?: (workId: string) => void;
+  onOpenChange?: (open: boolean) => void;
+  open?: boolean;
+  separated: boolean;
+  section: string;
+  title: string;
+  works: BackgroundWork[];
+}) {
+  const { intl, locale } = useIntlContext();
+  const [now, setNow] = React.useState(() => Date.now());
+  const sortedWorks = React.useMemo(() => [...works].sort((a, b) => (a.startedAt ?? 0) - (b.startedAt ?? 0)), [works]);
+  React.useEffect(() => {
+    if (works.length === 0) return;
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 1e3);
+    return () => clearInterval(timer);
+  }, [works.length]);
+  if (works.length === 0) return null;
+  const totalElapsedLabel = formatDurationShort(Math.max(1, Math.floor(maxWorkElapsedMs(works, now) / 1e3)), locale);
+  return (
+    <SummarySectionShell
+      section={section}
+      defaultOpen={false}
+      open={open}
+      onOpenChange={onOpenChange}
+      separated={separated}
+      title={title}
+      trailing={(isOpen) =>
+        isOpen ? (
+          <span>
+            {intl.formatMessage(
+              {
+                id:
+                  works.length === 1
+                    ? "chat.statusPanel.runningStatusValue"
+                    : "chat.statusPanel.runningStatusValuePlural",
+              },
+              { count: String(works.length) },
+            )}
+          </span>
+        ) : (
+          <>
+            <span className="min-w-0 truncate">{totalElapsedLabel}</span>
+            <span className="shrink-0">·</span>
+            <span className="shrink-0">{formatRunningTasksCount(intl.formatMessage, works.length)}</span>
+          </>
+        )
+      }
+    >
+      <ul className="space-y-0">
+        {sortedWorks.map((work) => (
+          <BackgroundWorkRow key={work.workId} work={work} now={now} onCancelBackgroundWork={onCancelBackgroundWork} />
+        ))}
+      </ul>
+    </SummarySectionShell>
+  );
+}
+
+/** 原 jlt（js 99103）：已结束子代理条目（打开目录） */
+function EndedAgentsEntry({ count, onOpen, parentSessionId, rootSessionId, separated }: { count: number; onOpen?: (req: { rootSessionId: string; parentSessionId: string }) => void; parentSessionId?: string | null; rootSessionId?: string | null; separated: boolean }) {
+  const { intl } = useIntlContext();
+  return count <= 0 || !parentSessionId || !onOpen ? null : (
+    <div className={cn(separated && "border-t border-[var(--color-border)] pt-2")}>
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-ui-base text-[var(--color-foreground)] hover:bg-[var(--color-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-input-border-focused)]"
+        onClick={() => onOpen({ rootSessionId: rootSessionId ?? parentSessionId, parentSessionId })}
+      >
+        <IconCircleCheck className="size-4 shrink-0 text-[var(--color-foreground-subtle)]" />
+        <span>{intl.formatMessage({ id: "chat.statusPanel.endedAgents" })}</span>
+        <span className="ml-auto text-[var(--color-foreground-subtle)]">{count}</span>
+        <IconChevronRight className="size-4 text-[var(--color-foreground-subtle)]" />
+      </button>
+    </div>
+  );
+}
+
+/** 原 Alt（js 98981）：运行中子代理段（declare SummaryAgentsSection 实体化，墓碑见 declare 块）。qr 点 99041 `qr(Ur, e.controlWorkId)` 收敛改指（Ur ≡ v4BackgroundWorkItemTestid）。 */
+export function SummaryAgentsSection({
+  endedSubagentCount,
+  onCancelBackgroundWork,
+  onOpenChange,
+  onOpenSubagentDirectory,
+  onOpenSubagentSession,
+  open,
+  parentSessionId,
+  rootSessionId,
+  separated,
+  title,
+  subagents,
+}: {
+  endedSubagentCount: number;
+  onCancelBackgroundWork?: (workId: string) => void;
+  onOpenChange?: (open: boolean) => void;
+  onOpenSubagentDirectory?: (req: { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; rootSessionId?: string; parentSessionId: string }) => void;
+  onOpenSubagentSession?: (request: SubagentOpenRequest) => void;
+  open?: boolean;
+  parentSessionId?: string | null;
+  rootSessionId?: string | null;
+  separated: boolean;
+  title: string;
+  subagents: RunningSubagent[];
+}) {
+  const { intl, locale } = useIntlContext();
+  const [now, setNow] = React.useState(() => Date.now());
+  const sortedSubagents = React.useMemo(() => [...subagents].sort((a, b) => (a.startedAt ?? 0) - (b.startedAt ?? 0)), [subagents]);
+  React.useEffect(() => {
+    if (subagents.length === 0) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1e3);
+    return () => window.clearInterval(timer);
+  }, [subagents.length]);
+  if (subagents.length === 0 && endedSubagentCount <= 0) return null;
+  const maxElapsedMs = subagents.reduce((max, subagent) => Math.max(max, Math.max(0, now - (subagent.startedAt ?? now))), 0);
+  return (
+    <SummarySectionShell
+      section="agent"
+      defaultOpen={false}
+      open={open}
+      onOpenChange={onOpenChange}
+      separated={separated}
+      title={title}
+      trailing={(isOpen) =>
+        subagents.length === 0
+          ? null
+          : isOpen
+            ? (
+              <span>{formatRunningAgentsCount(intl.formatMessage, subagents.length)}</span>
+            )
+            : (
+              <>
+                <span className="min-w-0 truncate">{formatDurationShort(Math.max(1, Math.floor(maxElapsedMs / 1e3)), locale)}</span>
+                <span className="shrink-0">·</span>
+                <span className="shrink-0">{formatRunningAgentsCount(intl.formatMessage, subagents.length)}</span>
+              </>
+            )
+      }
+    >
+      <ul className="space-y-0">
+        {sortedSubagents.map((subagent) => {
+          const openRequest = buildSubagentOpenRequest({ parentSessionId, rootSessionId, subagent });
+          const canOpenSession = !!(openRequest && onOpenSubagentSession);
+          return (
+            <li
+              key={subagent.childSessionId}
+              data-testid={subagent.controlWorkId ? joinTestidParts(v4BackgroundWorkItemTestid, subagent.controlWorkId) : void 0}
+              data-background-task-kind="agent"
+              data-child-session-id={subagent.childSessionId}
+              data-work-id={subagent.controlWorkId}
+              data-work-status="running"
+              className={cn(
+                "group relative flex min-w-0 items-start gap-2 rounded-lg px-2 py-2 hover:bg-[var(--color-hover)]",
+                canOpenSession && "cursor-pointer",
+              )}
+            >
+              {canOpenSession ? (
+                <button
+                  type="button"
+                  data-running-subagent-session-trigger="true"
+                  data-child-session-id={subagent.childSessionId}
+                  aria-label={intl.formatMessage({ id: "chat.summaryPanel.openRunningSubagentSession" })}
+                  onClick={() => openRequest && onOpenSubagentSession?.(openRequest)}
+                  className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-input-border-focused)]"
+                />
+              ) : null}
+              <IconBot className="pointer-events-none relative z-[1] mt-0.5 size-4 shrink-0 text-[var(--color-foreground-subtle)]" />
+              <div className="pointer-events-none relative z-[1] flex min-w-0 flex-1 flex-col gap-1.5">
+                <span className="line-clamp-2 text-ui-base leading-5 text-[var(--color-foreground)]">{subagent.title}</span>
+                <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-ui-base">
+                  <span className="text-ui-base tabular-nums text-[var(--color-foreground-subtle)]">
+                    {formatWorkElapsed(Math.max(0, now - (subagent.startedAt ?? now)), intl.formatMessage)}
+                  </span>
+                  {subagent.controlWorkId && subagent.cancellable !== false ? (
+                    <BackgroundWorkCancelButton workId={subagent.controlWorkId} onCancel={onCancelBackgroundWork} />
+                  ) : null}
+                </span>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <EndedAgentsEntry
+        count={endedSubagentCount}
+        parentSessionId={parentSessionId}
+        rootSessionId={rootSessionId}
+        onOpen={onOpenSubagentDirectory as ((req: { rootSessionId: string; parentSessionId: string }) => void) | undefined} /* 〔A1-P3-B13〕型缝：bundle 99093–99097 jlt 仅回传 rootSessionId/parentSessionId 二字段（A1-R3 declare 宽型为外层闭包面） */
+        separated={subagents.length > 0}
+      />
+    </SummarySectionShell>
+  );
+}
