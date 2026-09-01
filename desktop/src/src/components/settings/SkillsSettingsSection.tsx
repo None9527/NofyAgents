@@ -136,8 +136,8 @@ declare function resolveRemoteSyncTarget(opts: {
 }): boolean;
 /** 原 q2：远程目标显示名 */
 declare function remoteTargetDisplayName(target: RemoteTarget, workspacePath: string): string;
-/** 原 kg：zcodeSessionService 工厂 */
-declare function useZcodeSessionService(workspacePath?: string, unused?: undefined, workspaceIdentity?: string | null): unknown;
+/* ── tombstone〔A1-R44〕：declare useZcodeSessionService（原 kg zcodeSessionService 工厂）删除——SkillsSettingsSection 零消费（grep 实测仅本 declare 行）。
+ * 树内 kg 全域 declare 占位相，唯一活消费面 = OnboardingDialog@289（其本地 declare@23 + 消费）。纯删碑，证据见 A1-R44.report.md §二。 ── */
 /** 原 Ag：workspace 服务工厂 */
 declare function useWorkspaceAgentService(workspacePath?: string, unused?: undefined, workspaceIdentity?: string | null): {
   createTask: ZcodeAgentService["createTask"];
@@ -155,25 +155,25 @@ declare function refreshSkillCapabilities(opts: {
   workspaceIdentity?: string | null;
   skillsService: SkillsService;
 }): Promise<void>;
-/** 原 V6：插件远程同步后全量刷新 */
-declare function refreshAfterPluginSync(opts: {
-  commandsService: unknown;
-  mcpSyncService: unknown;
-  reason: string;
-  skillsService: SkillsService;
-  workspaceIdentity?: string | null;
-  workspacePath: string | null;
-  zcodeAgentService: unknown;
-  zcodeSessionService: unknown;
-}): Promise<void>;
-/** 原 lFt：hooks 能力刷新 */
-declare function refreshAfterHookChange(opts: {
-  logScope: string;
-  reason: string;
-  workspaceIdentity?: string | null;
-  workspacePath: string | null;
-  zcodeSessionService: unknown;
-}): Promise<void>;
+/* ── tombstone〔A1-R44〕：死 declare 簇（2 件）删除：refreshAfterPluginSync（原 V6 插件远程同步后全量刷新）/ refreshAfterHookChange（原 lFt hooks 能力刷新）。
+ * 零消费实测：全文 grep 每名出现次数 = 1（仅本 declare 行），非 export、文件本地死面。树内无 canonical（全域 grep）：仅本簇 6 文件同形 declare 面；他文件活面（ExtendedViews useWorkspaceAgentService、Sidebar refreshAfterPluginSync、OnboardingDialog useZcodeSessionService@289 本地 declare+消费）皆各该文件自有 declare+消费暂代式，与本文件死面无涉。无改指对象，纯删碑；未来本文件出现消费面 → 经 bundle 取证定真身后重新引入。证据见 A1-R44.report.md §二/§四。
+ * A1-R44 项 1 机械簇收敛，证据见 A1-R44.report.md。 ── */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* --- stores --- */
 

@@ -583,7 +583,7 @@ export interface ConfirmDialogOptions {
  *    CodingPlanUpgradeDialogProvider ≡ components/payments/PaymentDeep.tsx 9998（原 krt，89141，已 export）；
  *    CLOSE_ACTIVE_CONTEXT_EVENT ≡ components/shell/WorkspaceShell.tsx 4736（原 r7，186215/150092，已 export）。
  *    原注：「基线 declare：PaymentDeep/WorkspaceShell 未导出，需要的 export 已登记」（247 回滚注记同证）。 ── */
-declare const RemoteConnectionDialog: React.FC<Record<string, any>>;
+/* ── tombstone〔A1-R44〕：declare RemoteConnectionDialog（原 pOt 族）删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
 declare const UpdateStatusWindow: React.FC<{
   platform: PlatformService;
   version: string | null;
@@ -791,15 +791,15 @@ export interface RemoteSessionEntry {
  *    附带收益：旧 declare 之 remoteZCodeSessionService: any 随删归零。 ── */
 declare function refreshPinnedTasks(options: { sessionId: string; workspacePath: string; workspaceIdentity?: string | null }): Promise<void>;
 declare function refreshTimelineTasks(options: { sessionId: string; workspacePath: string; workspaceIdentity?: string | null }): Promise<void>;
-declare function isSameWorkspace(state: TabStoreState, workspacePath: string, workspaceIdentity?: string): boolean;
-declare function persistDraftSnippet(workspacePath: string, workspaceIdentity: string | undefined, kind: string, payload: { text: string }): void;
-declare const DRAFT_SNIPPET_KIND_NEW_TASK: string;
-declare function isWebRemoteControlRuntime(): boolean;
+/* ── tombstone〔A1-R44〕：死 declare 簇（4 件）删除：isSameWorkspace / persistDraftSnippet（原 hH 族）/ DRAFT_SNIPPET_KIND_NEW_TASK / isWebRemoteControlRuntime。
+ * 活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
+
+
 /* ── tombstone（A1-R2）：hasSplitLayoutBindings（原 jwt js 121716）/paneById（原 T2 js 121528，改指经别名 paneBindingById as paneById）/
  *    focusedPaneId（原 Z0 js 121533）/EMPTY_PANE_LAYOUT（原 K0 js 121527）declare 已删除，
  *    改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
 declare function isKeyCombo(event: React.KeyboardEvent | KeyboardEvent, key: string): boolean;
-declare const DESKTOP_COMMANDS: { RelaunchApp: string; CloseWindow: string; [key: string]: string };
+/* ── tombstone〔A1-R44〕：declare DESKTOP_COMMANDS 删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
 export interface PaneWorkspaceScope {
   workspacePath: string;
   workspaceIdentity?: string | null;
@@ -845,7 +845,7 @@ declare function familyModesPatch(domain: string, modes: Record<string, string> 
 declare function familyDomainOfProvider(provider: string | null): "zai" | "bigmodel" | null;
 declare function familyDomainOfProviderId(providerId: string): "zai" | "bigmodel" | null;
 declare function isProviderEnabledForFamily(provider: ModelProviderRecord): boolean;
-declare function resolveFamilyDomainAfterLogout(options: { currentDomain: string | null | undefined; modelProviders: ModelProviderRecord[] }): string | null;
+/* ── tombstone〔A1-R44〕：declare resolveFamilyDomainAfterLogout（原 yQt 族）删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
 declare function persistProviderFamilyDomain(settingService: SettingServiceLike, domain: string): Promise<void>;
 /* ── tombstone〔A1-R31〕：declare telemetryLoginProviderName（原 bw）删除 → 改指 StoresDeep resolveTelemetryProviderHost（bw 真身：styles 40445，q=PROVIDER_IDS declare 面 + tr≡isZaiPlanProviderId 消费；StoresDeep@308 A0 实体逐字同构，含 ??`` 空串型缝；消费 @3791 改指，@3841/@3848 面不变。负证据：bundle 内 bw 唯一真身）。 ── */
 
@@ -882,40 +882,40 @@ declare function persistProviderFamilyDomain(settingService: SettingServiceLike,
  *    refreshAppSettings 一律经 props 传入，见 3553/3626/3701）。canonical = components/usage/UsageDeep.tsx §2c useAppSettings（JM 53488 逐字），
  *    活消费面在 AppRootLeaves/settings 六区/AutomationEditor/AutomationsMain/IndexingSettingsSection/modules/Settings（本批另行改指）。 ── */
 declare function useWebRemoteControlFeatureEnabled(): boolean;
-declare function useWebRemoteControlFeatureFlag(): boolean;
-declare function useWebRemoteControlSession(options: { enabled: boolean }): { status: string };
-declare function useSessionRestoreBridge(options: {
-  settingService: SettingServiceLike | undefined;
-  restoreSession: boolean;
-  persistSession: boolean;
-  restorePersistedSession: (settings: AppSettings) => Promise<{ excludedRecentProjectPaths?: string[]; deferredRestore?: () => void }>;
-  buildPersistPatch: (state: TabStoreState) => { lastWorkspaceSession: unknown[]; lastActiveTabIndex: number };
-}): { isRestoring: boolean; hasCompletedInitialRestore: boolean; hasCompletedFullRestore: boolean };
-declare function useOAuthCredentialsRefresher(): { tryRefresh: (...args: unknown[]) => unknown; clearCredentials: (...args: unknown[]) => unknown };
-declare function syncRemoteTabsE2E(tabs: Array<{ workspacePath: string; workspaceIdentity?: string; remoteSessionId?: string }>): void;
-declare function setActiveWorkspacePathE2E(path: string | null): void;
+/* ── tombstone〔A1-R44〕：死 declare 簇（6 件）删除：useWebRemoteControlFeatureFlag（原 y8 族）/ useWebRemoteControlSession（原 G6 族）/ useSessionRestoreBridge /
+ * useOAuthCredentialsRefresher（原 iYt 族）/ syncRemoteTabsE2E（原 yFe 族）/ setActiveWorkspacePathE2E（原 $se 族）。活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
+
+
+
+
+
+
+
+
+
+
 /* ── tombstone（A1-R1）：isSettingsTab（原 Pse js 4497）declare 已删除；本文件无调用点，canonical 属主 = modules/WorkspaceTabsDeep。 ── */
-declare const runtimePreferencesSchema: { safeParse(payload: unknown): { success: boolean; data?: any; error?: { issues: unknown } } };
-declare function isCodeCommentRestorePayload(payload: unknown): payload is { id?: string; [key: string]: any };
-declare function isCodeCommentRemovePayload(payload: unknown): boolean;
-declare function normalizeCodeCommentRemovePayload(payload: unknown): void;
-declare function useRemoteConnectionLogsBridge(state: unknown): { connectionLogs: RemoteConnectionLogEntry[]; resetConnectionLogs: () => void };
-declare function useTaskListItems(options: {
-  kind: string;
-  workspaceTabs: WorkspaceTab[];
-  sortBy: string;
-  searchQuery: string;
-  expanded: boolean;
-  collapsedLimit: number;
-}): { items: Array<{ taskId: string; updatedAt: number; createdAt: number; [key: string]: any }>; loading: boolean };
+/* ── tombstone〔A1-R44〕：死 declare 簇（5 件）删除：runtimePreferencesSchema / isCodeCommentRestorePayload（原 NH 族）/ isCodeCommentRemovePayload（原 MH 族）/
+ * normalizeCodeCommentRemovePayload（原 jH 族）/ useRemoteConnectionLogsBridge（原 bEt 族）。活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
+
+
+
+/* ── tombstone〔A1-R44〕：declare useTaskListItems（原 ZS 族）删除——本文件零消费（grep 实测仅本 declare 行）。活消费面：modules/AppRootLeaves@1824/1832/1840（本地 declare@252 + 消费）；
+ * shell/TopBar、Sidebar、SidebarLeaves、TaskListQueryCore 等活面属 P2/P3 泳道域，本批不触。纯删碑，证据见 A1-R44.report.md §二。 ── */
+
+
+
+
+
+
 declare function taskRuntimeByWorkspaceKey(workspaces: Record<string, WorkspaceTaskState>): Record<string, unknown>;
-declare function mapTasksToListItems(options: {
-  workspaceTabs: WorkspaceTab[];
-  tasks: Array<{ taskId: string; [key: string]: any }>;
-  taskRuntimeByWorkspaceKey: Record<string, unknown>;
-  pinned?: boolean;
-  archived?: boolean;
-}): Array<{ taskId: string; updatedAt: number; createdAt: number; [key: string]: any }>;
+/* ── tombstone〔A1-R44〕：declare mapTasksToListItems（原 h6 族）删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
+
+
+
+
+
+
 declare function insertCreatedTaskFromBroadcast(options: { workspacePath: string; workspaceIdentity?: string | null; task: any; membership: { pinned: boolean; archived: boolean } }): void; // 原 cLt（js 146839）
 declare function upsertTaskFromBroadcast(options: { workspacePath: string; workspaceIdentity?: string | null; task: any; membership: { pinned: boolean; archived: boolean }; ensureInWorkspaceTaskCache: boolean }): void; // 原 oLt（js 146788）
 declare function useDiffsWorkerPool(): { setRenderOptions(options: Record<string, unknown>): Promise<void> } | null;
@@ -925,7 +925,7 @@ declare const DiffsWorkerPoolProviderElement: React.FC<{
   children?: React.ReactNode;
 }>;
 declare function resolveThemeForTitleBar(theme: string): string; // 原 xo（js 1103）
-declare function useWebRemoteControlTaskSyncFeature(): boolean;
+/* ── tombstone〔A1-R44〕：declare useWebRemoteControlTaskSyncFeature 删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
 
 /* --- B5-02 §G–§I 追加声明 --- */
 /* ── tombstone（A1-R1）：isWorkspaceKindTab（原 oc js 4487）declare 已删除，改经文件头真实 import（../../modules/WorkspaceTabsDeep）消费。 ── */
@@ -1111,7 +1111,7 @@ declare const HeroCardShell: React.FC<{ className?: string; contentClassName?: s
 declare const BrandWordmarkSvg: React.FC<{ className?: string }>; // 原 s4t → 已在 Modals.tsx
 
 /* --- 它族组件（F17/F12/F03 消费面）--- */
-declare const WebRemoteControlFeatureGate: React.FC<{ enabled?: boolean; children?: React.ReactNode }>;
+/* ── tombstone〔A1-R44〕：declare WebRemoteControlFeatureGate（原 oRt 族）删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
 
 /* --- window 全局 --- */
 declare global {
