@@ -169,6 +169,8 @@ import { useServices } from '../../modules/services';
 import { useTrajectoryViewerStore, useTuiEditPendingRequest } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip, TooltipProvider } from '../../modules/UsageStatsUiParts'; // 原 Ia=X / Na=Ce（A0-CLEANUP 族清理：本地 Tooltip/TooltipProvider declare 改指属主导出）
+import { generateUuid as uid } from '../../lib/uuid'; // 〔A1-P3-B1〕原 xi（src cx@8710 / export ot，styles 本地 xi）收敛改指 canonical = lib/uuid generateUuid（cx 逐字）；调用点 799/831 等逐字不变
+import { subscribeSessionActivity as subscribeTaskEnded } from '../../stores/searchResultsHelpers'; // 〔A1-P3-B1〕原 Vie（styles 1408）收敛改指 canonical（R10 登记，StoresDeep 头注 Vie 行）；调用点 2054 逐字不变（S16 缝同批）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -191,8 +193,7 @@ declare function isPrimaryShortcut(event: React.KeyboardEvent | KeyboardEvent, k
 declare function isShiftShortcut(event: React.KeyboardEvent | KeyboardEvent, key: string): boolean;
 declare function isAltShortcut(event: React.KeyboardEvent | KeyboardEvent, key: string): boolean;
 
-/** 随机 id（原 xi） */
-declare function uid(): string;
+/* ── tombstone〔A1-P3-B1〕：declare uid（原 xi）删除 → 改指 canonical = lib/uuid generateUuid（src cx@8710 逐字：crypto.randomUUID 优先 + getRandomValues 兜底）。 ── */
 
 /** 桌面平台服务（原 l()，imeComposition chunk M 导出）——侧面板用到的 IPC 面 */
 export interface PlatformService {
@@ -241,8 +242,8 @@ interface BaseServices {
 
 /** 白板 store（原 Oe）：createBoard 返回 {id, name} */
 
-/** 任务结束事件订阅（原 Vie）：父任务结束时回调（清理辅助对话用） */
-declare function subscribeTaskEnded(cb: (e: { type: string; taskId: string; workspaceKey: string }) => void): () => void;
+/* ── tombstone〔A1-P3-B1〕：declare subscribeTaskEnded（原 Vie）删除 → 改指 canonical = stores/searchResultsHelpers subscribeSessionActivity（Vie@1408 逐字：listener 集订阅/退订）。
+ *    canonical listener 面 (event: unknown)，原 declare 契据 {type;taskId;workspaceKey}；消费面 2054 按 S16 缝宽化（见同号注）。 ── */
 /** D5c：TUI 编辑打开请求只读订阅（不消费；实现见 stores-session.tsx TuiEditRequestStore） */
 
 /** 会话运行时层（原 ET()：usePanelScope → { layer }；layer.acquire(sessionId) → {store, release}，
@@ -2051,7 +2052,7 @@ export function useSidePaneState({
   // 原 3287–3311：父任务结束 → 清理其全部辅助对话（关 runtime + 移除标签）
   React.useEffect(() => {
     const key = workspaceIdentity?.trim() || workspaceAbsPath;
-    return subscribeTaskEnded((event) => {
+    return subscribeTaskEnded((event: any /* 〔A1-P3-B1〕S16 缝：canonical subscribeSessionActivity listener 面 unknown，原 declare 契据 {type;taskId;workspaceKey} */) => {
       if (event.workspaceKey !== key) return;
       const chats =
         latest.current.sidePaneState?.tabs.filter((t) => t.type === "selection-side-chat" && (t as SelectionSideChatTab).parentSessionId === event.taskId) as SelectionSideChatTab[] | undefined ?? [];

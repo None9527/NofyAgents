@@ -216,6 +216,8 @@ import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector 
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 // 〔A1-R25〕aw 39378 收敛：markUsageEntryIntent declare 改接 Home §U.7 逐字真身（别名保留，调用点 4769 逐字不变；环安全：Home 顶层 hoisted function，本文件仅渲染期事件回调消费）
 import { openSettingsUsageSection as markUsageEntryIntent } from './Home';
+import { useTaskListItems } from './TaskListQueryCore'; // 〔A1-P3-B1〕原 ZS（styles 35775–36118）declare 收敛改指逐字真身叶；调用点 1914/2201 逐字不变。环安全：本叶值闭包 = react + modules/SkillStore + stores-core + stores/searchResultsStore + modules/services + stores/searchResultsHelpers，不达 components/shell
+import { isCronAutomationPayload as isCronTask, isOffPeakTaskPayload as isOffPeakTask, DesktopMenuActionIds as DesktopCommand } from '../../modules/SrcSharedB'; // 〔A1-P3-B1〕原 pi/Yr（src fx 8726/px 8729）+ oi（src ex 8631 / export ft，styles 本地 oi）收敛改指；改名先例 rendererEntry.tsx:43；调用点 1522/1523/4937/4942/4947 逐字不变
 import { useSidebarSessionDrop as useSessionOpenability, SESSION_DRAG_MIME, serializeSessionDragPayload, setSessionDragFallbackPayload as setCurrentSessionDrag, clearSessionDragFallbackPayload as clearCurrentSessionDrag, createSessionDragPreview as createDragImageUpdater, type SessionDragPayload } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）+ u2/Iwt/Lwt/Rwt/PRt（A1-R4：拖放源侧改指，tombstone 见原声明位）
 import { usePinnedTaskListStore as useRemotePinnedTaskListStore } from '../../stores/pinnedTaskListStore'; // A1-R9 E6 收敛改指（原 E6 本地并行实例删除；canonical 属主 = stores/，tombstone 见原声明位）
 import { useWorkspaceTaskListStore as useRemoteWorkspaceTaskListStore } from '../../stores/workspaceTaskListStore'; // A1-R9 k6 收敛改指（同上）
@@ -258,8 +260,10 @@ declare function shortcutLabel(key: string): string;
 
 /** 日志器（原 J） */
 
-/** 桌面命令枚举（原 oi，src-HCld2afU.js；页脚界面缩放用） */
-declare enum DesktopCommand { ZoomIn = "ZoomIn", ZoomOut = "ZoomOut", ResetZoom = "ResetZoom" }
+/* ── tombstone〔A1-P3-B1〕：declare enum DesktopCommand（原 oi）删除 → 改指 canonical = modules/SrcSharedB DesktopMenuActionIds（src ex@8631、export ft、styles 本地 oi；改名先例 rendererEntry.tsx:43）。
+ *    原 declare 成员值 "ZoomIn"/"ZoomOut"/"ResetZoom" 系 bundle 真形 `zoomIn`/`zoomOut`/`resetZoom`（8640–8641）之误铸；改指后值回 bundle 真形（行为向真身收敛）。
+ *    型面：canonical 为 plain object（非 enum），补同名型别名（成员值并，即 string 面），242/4867 型注逐字保留。 ── */
+type DesktopCommand = (typeof DesktopCommand)[keyof typeof DesktopCommand];
 
 /** IME 回车守卫（原 A，imeComposition chunk） */
 declare function isImeEnter(args: { compositionActive: boolean; nativeEvent: React.KeyboardEvent["nativeEvent"] }): boolean;
@@ -402,10 +406,8 @@ function titleWithChangeStats(title: string, summary: TaskChangeSummary | null, 
 /* ── tombstone（A1-R10 2d）：本地 workspaceBaseName（原 Go，jsx 986）删除，改指 canonical =
  *    components/markdown baseName（Go@1928 逐字，A0 期既在案），别名经文件头 modules/MarkdownIntegration
  *    import；调用点 1561 逐字不变。 ── */
-/** 原 pi（src chunk fx 8726）：定时任务 */
-declare function isCronTask(task: TaskMeta): boolean;
-/** 原 Yr（src chunk px 8729）：闲时任务 */
-declare function isOffPeakTask(task: TaskMeta): boolean;
+/* ── tombstone〔A1-P3-B1〕：declare isCronTask（原 pi）删除 → 改指 canonical = modules/SrcSharedB isCronAutomationPayload（fx@8726 逐字 `!!(e.cronAutomationId || e.automationId)`）；别名 import，调用点 1522 逐字。 ── */
+/* ── tombstone〔A1-P3-B1〕：declare isOffPeakTask（原 Yr）删除 → 改指 canonical = modules/SrcSharedB isOffPeakTaskPayload（px@8729 逐字 `!!e.offPeakTaskId`）；调用点 1523 逐字。 ── */
 /** 原 fzt（153631 / 127078）：变更统计片段 ["+N", "-N"] */
 function formatChangeStatParts(summary: TaskChangeSummary | null): string[] {
   if (!summary) return [];
@@ -1119,18 +1121,23 @@ declare function buildWorkspaceServicesMap(
 ): Map<string, { services: WorkspaceServices; remoteSessionId?: string; isRemoteWorkspace: boolean }>;
 /** 原 J3（jsx 113936）：按当前能力裁剪工作区标签（远程未连接则排除等） */
 declare function useScopedWorkspaceTabs(args: { workspaceTabs: WorkspaceTab[] }): WorkspaceTab[];
-/** 原 ZS（35727 / 32810）：任务列表查询钩子（置顶/时间线两种 kind） */
-declare function useTaskListItems(query: { kind: "pinned" | "timeline"; workspaceTabs: WorkspaceTab[]; sortBy: TaskSortBy; searchQuery: string; expanded: boolean; collapsedLimit: number }): {
-  items: TaskMeta[]; total: number; hasMore: boolean; loading: boolean; syncingRemoteWorkspaces?: boolean; refresh?: () => void;
-};
+/* ── tombstone〔A1-P3-B1〕：declare useTaskListItems（原 ZS）删除 → 改指 ./TaskListQueryCore 逐字真身
+ *    （styles 35775–36118 整区转录，ROUNDTRIP EXACT 在案 /tmp/a1r0-p3/p3-roundtrip.js）。
+ *    调用点 1914/2201 逐字不变；型缝：真身面 (e: any) 宽于原契据，调用面入参对象同形兼容。 ── */
 /** 原 Tse（jsx 3269）：按工作区身份取远端会话服务 */
 declare function resolveRemoteSessionServices(workspaceIdentity: string): WorkspaceServices | null;
-/** 原 gc（jsx 3614）：标签的远端会话 id */
-declare function remoteSessionIdOfTab(tab: Pick<WorkspaceTab, "workspaceIdentity" | "remoteSessionId">, sessionMaps: unknown): string | undefined;
-/** 原 _c（jsx 3618）：任务查询作用域 */
-declare function taskQueryScopeOfTab(tab: WorkspaceTab, remoteSessionId?: string): { workspacePath: string; workspaceIdentity?: string | null };
-/** 原 zie（jsx 425）：任务查询键构造 */
-declare function buildTaskQueryKey(args: { kind: string; workspaceScopes: Array<{ workspacePath: string; workspaceIdentity?: string | null }>; sortBy: TaskSortBy; search: string; expanded: boolean; collapsedLimit?: number }): string;
+/* ── tombstone〔A1-P3-B1〕：declare remoteSessionIdOfTab（原 gc）删除——本文件零消费（死 declare）；
+ *    真身 = styles 4814 gc（`[remoteSessionId, identity→sessionId, path→sessionId].find(…)`），
+ *    属主 = 工作区标签 store 簇（styles 4397–4997，TabStore/WorkspaceShell 域），留批；
+ *    同面 declare 登记在 components/shell/TaskListQueryCore.ts §0（该区消费面）。 ── */
+/* ── tombstone〔A1-P3-B1〕：declare taskQueryScopeOfTab（原 _c）删除——本文件零消费（死 declare）；
+ *    真身 = styles 4822 _c = `!!(e.workspaceIdentity || e.remoteTarget || t)` 布尔谓词——
+ *    A0 原 declare 返回型 {workspacePath; workspaceIdentity?} 为误铸（bundle 真形布尔），在案；
+ *    属主同上（TabStore/WorkspaceShell 域），留批；同面 declare 登记 TaskListQueryCore.ts §0。 ── */
+/* ── tombstone〔A1-P3-B1〕：declare buildTaskQueryKey（原 zie）删除——本文件零消费（死 declare）；
+ *    canonical = stores/searchResultsHelpers normalizeSearchDescriptor（zie@1385 逐字，R10 登记在案；
+ *    入参 workspaceScopes → 出参 workspaceKeys 真形；A0 原契据「返回 string」亦为误铸，真形描述符对象，
+ *    缓存键经 Bie descriptorCacheKey 二段构造——TaskListQueryCore 35820–35833 消费面实证）。 ── */
 /** 原 C6（TopBar 已登记）：任务文件动作钩子 */
 /* ── tombstone（A1-R10 2b）：declare function applyOptimisticTaskMutation（原 Uo，1895）删除，
  *    改经文件头 stores/searchResultsStore import 消费（canonical = applySearchTaskMutation；
