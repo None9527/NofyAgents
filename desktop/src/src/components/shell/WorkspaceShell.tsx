@@ -218,13 +218,15 @@ import { taskEntityKey } from '../../modules/StoresDeep';
 import { type TerminalService } from '../../modules/TerminalPane'; // A0-CLEANUP4：WorkspaceServices.terminalService 型（注册表透传面）
 import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle, type UpdateState } from '../../modules/TopBar';
 import { WebRemoteMobileShell, type MobileHomeResult, type TaskMeta as WebRemoteTaskMeta, type WebRemoteSwitcherService } from '../../modules/WebRemote';
-import { useBaseServices, useServices } from '../../modules/services';
-import { useFeedbackStore, useSettingsStore } from '../../modules/stores-core';
+import { useBaseServices, useServices, useResolvedWorkspaceServices as useWorkspaceServicesResolver } from '../../modules/services'; // 〔A1-P2-B2〕+useWorkspaceServicesResolver（原 Dc ≡ services/remoteServices useResolvedWorkspaceServices 真身，删碑见下 tabs 域）
+import { useFeedbackStore, useSettingsStore, getSessionById as getRemoteSessionRegistryEntry } from '../../modules/stores-core'; // 〔A1-P2-B2〕+getRemoteSessionRegistryEntry（原 tc ≡ stores/sessionRegistryStore getSessionById 真身，删碑见下）
+import { useWorkspaceTabStore as useWorkspaceTabs, useWorkspaceTabStoreApi as useWorkspaceTabsStore, isWorkspaceKindTab as isWorkspaceTab, hasUnavailableLocalDirectoryTab as isWorkspaceUnavailableLocalDirectory, type WorkspaceTab, type WorkspaceTabStoreState } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P2-B2〕原 pc/hc/oc/sc 四件 + WorkspaceTab/WorkspaceTabsState 二型改指 R1 canonical 属主（删碑见下 tabs 域；别名保留本地调用名，R1/R2/R3 判例）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { AutomationsMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）
 import { type GitDataset, type GitPaneState, type GitSourceOption, type GitSummary } from '../../modules/GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
 import { canOpenSessionInSplit, openSessionBesideDraft, openSessionInSplit, sessionRouterStore, splitLayoutStore, type PaneWorkspaceScope, type SessionBinding } from '../../modules/SplitLayoutDeep'; // 原 ATt/MTt/jTt/A2/s2 + 型（A1-R2 引擎重建；A1-R3：ATt/jTt 缓改指解除——第二参按 bundle 扁平形改指）
 import { AppErrorFallback, ScopedErrorFallback, AppErrorBoundary, ScopedErrorBoundary } from './ErrorBoundaryCore'; // 〔A1-P2-B1〕原 QOt/$Ot/ekt/p4 逐字真身（styles js 129749–130008 单一连续原子区，ROUNDTRIP EXACT）；删碑见下 §2
+import { ResizablePanelGroup, ResizablePanel, ResizableSeparator, usePersistentGroupLayout } from './ResizablePanelsCore'; // 〔A1-P2-B2〕原 cAt/pAt/gAt/uAt vendored 引擎真身（styles js 131389–131950 单一连续原子区，ROUNDTRIP EXACT + LEAFCHECK EXACT）；删碑见下 §4
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -383,12 +385,9 @@ export interface WorkspaceServices {
   /* A0-CLEANUP4：注册表含 terminalService（rendererEntry js 335），SidePanel→TerminalPanel 透传 */
   terminalService: TerminalService;
 }
-declare function useWorkspaceServicesResolver(
-  workspacePath: string,
-  remoteSessionId: string | undefined,
-  workspaceIdentity: string | undefined,
-  remoteTarget: RemoteTarget | undefined,
-): { rpcReady: boolean };
+/* 〔A1-P2-B2〕删碑：declare useWorkspaceServicesResolver（原 Dc）删除 → 改指
+ * modules/services useResolvedWorkspaceServices（canonical 真身 services/remoteServices
+ * Dc，styles js 4907–4944；返回面含 rpcReady，调用点 4803 解构逐字不变）。 */
 
 /* --- 模型供应商域（原 fM/pM/NM/$6e/VUe/mi/On/jt/Ei/B/se/Fe/Re，
        skillStore + src chunk） --- */
@@ -527,17 +526,28 @@ declare function flushUnreadPersistence(): void;
 
 /* --- 远程会话注册表（原 tc） --- */
 
-declare function getRemoteSessionRegistryEntry(
-  remoteSessionId: string,
-): { services: WorkspaceServices | null } | null;
+/* 〔A1-P2-B2〕删碑：declare getRemoteSessionRegistryEntry（原 tc）删除 → 改指
+ * stores/sessionRegistryStore getSessionById（经 modules/stores-core 转导出；
+ * 束真 tc ≡ useSessionRegistryStore.getState().sessionsById[e] ?? null，styles js 4429）。 */
 
 /* --- 工作区 tabs 域（原 pc/hc/oc/sc） --- */
 
 /* A0-CLEANUP3 #36：RemoteTarget 收规范形（TopBar/Home/RemoteWizard 同形；
  * 束 rl schema target=nl 实证），原 {host?;label?}|string 弱形删除。
- * WorkspaceTab：label 改必填（束 Vp schema label: Z 必填）、workspacePurpose
- * 去 scratch（束真仅 project|conversation）、localWorkspacePath 去 null
- * （束 rl schema U.optional()）、补索引签名（QuickPick.WorkspaceTab 消费面）。 */
+ * 〔A1-P2-B2〕本地 WorkspaceTab/WorkspaceTabsState 二型与 pc/hc/oc/sc 四 declare
+ * 删除，改指 modules/WorkspaceTabsDeep R1 canonical（文件头导入块，别名保留调用名）：
+ *   interface WorkspaceTab（本地归纳形：workspacePath 必填/索引签名）删除 →
+ *     type WorkspaceTab（canonical：workspacePath 可选，束 dc store 元素真形）。
+ *   interface WorkspaceTabsState（本地五面归纳形）删除 → WorkspaceTabStoreState
+ *     （canonical 十九面真形）。
+ *   declare useWorkspaceTabs（原 pc）→ useWorkspaceTabStore。
+ *   declare useWorkspaceTabsStore（原 hc）→ useWorkspaceTabStoreApi
+ *     （束真 hc() 返回 store API，消费面经 .getState() 取态，见下三修）。
+ *   declare isWorkspaceTab（原 oc，谓词形）→ isWorkspaceKindTab（束真返 boolean，
+ *     各消费面 activeTab 均先自 state.tabs 取得，无谓词收窄依赖）。
+ *   declare isWorkspaceUnavailableLocalDirectory（原 sc）→ hasUnavailableLocalDirectoryTab。
+ * 〔A1-P2-B2〕型缝×2：canonical WorkspaceTab.remoteTarget: unknown 流入本地
+ * RemoteTarget 型面（resolveActiveWorkspaceTarget）——束真同值透传，型层 cast 登记在案。 */
 type RemoteTarget = {
   kind: "ssh" | "wsl" | "docker" | "server";
   host?: string;
@@ -545,34 +555,6 @@ type RemoteTarget = {
   container?: string;
   sshConfigAlias?: string;
 } | null;
-interface WorkspaceTab {
-  kind: "workspace" | "settings";
-  id: string;
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  remoteSessionId?: string | null;
-  remoteTarget?: RemoteTarget;
-  workspacePurpose?: "project" | "conversation";
-  localWorkspacePath?: string;
-  availability?: string;
-  label: string;
-  [key: string]: unknown;
-}
-interface WorkspaceTabsState {
-  tabs: WorkspaceTab[];
-  activeTabId: string | null;
-  addTab(path: string, options?: { workspaceIdentity?: string; workspacePurpose?: string }): void;
-  activateTabByPath(path: string, options?: { workspaceIdentity?: string }): boolean;
-  openSettingsTab(section?: string): void;
-}
-declare function useWorkspaceTabs<T>(selector: (state: WorkspaceTabsState) => T): T;
-declare function useWorkspaceTabsStore(): WorkspaceTabsState;
-declare function isWorkspaceTab(tab: WorkspaceTab): tab is WorkspaceTab & { kind: "workspace" };
-declare function isWorkspaceUnavailableLocalDirectory(
-  state: { tabs: WorkspaceTab[] },
-  workspacePath: string,
-  workspaceIdentity?: string,
-): boolean;
 
 /* --- 设置域（原 ko / xo / iw） --- */
 
@@ -1047,63 +1029,24 @@ export function LinuxWindowControls() {
 }
 
 /* ============================================================================
- * 4. 分割布局原语（原 cAt/uAt/pAt/X4/Z4，js 131422-131960 / jsx 110732-111283）
+ * 4. 分割布局原语（原 cAt/uAt/pAt/gAt/X4/Z4/Q4，js 131422-131981 / jsx 110732-111283）
  * ----------------------------------------------------------------------------
- * 引擎层（cAt Group / pAt Panel / 分隔条 gAt）是 vendored react-resizable-panels
- * 变体，接口保留；此处还原应用包装层：
+ * 〔A1-P2-B2〕引擎层真身已逐字转录至 ./ResizablePanelsCore（styles js 131389–131950
+ * 单一连续原子区，ROUNDTRIP EXACT + LEAFCHECK EXACT）；本文件保留应用包装层：
  *  - X4 = SplitLayoutGroup：Group + usePersistentGroupLayout（localStorage 记忆
  *    'react-resizable-panels:{layoutId}:{panelIds}' 布局）。
  *  - Z4 = SplitPanel：Panel 直挂。
+ *  - Q4 = SplitSeparator：Separator + cn 样式链（束 131961-131981 逐字）。
  * §13.6 三分布局即由两层 X4 嵌套构成（见 WorkspaceShell 返回段）。
  * ==========================================================================*/
 
-/** 原 J4（js 131599）：持久化键 'react-resizable-panels:{id}:{panelIds}' */
-function persistentLayoutKey(id: string, panelIds: string[]): string {
-  return `react-resizable-panels:${[id, ...panelIds].join(":")}`;
-}
-
-/** 原 uAt（js 131631，接口级）：读取/防抖写回分组布局；返回默认布局与变更回调 */
-declare function usePersistentGroupLayout(input: {
-  id?: string;
-  groupId?: string;
-  panelIds?: string[];
-  debounceSaveMs?: number;
-  storage?: Storage;
-}): {
-  defaultLayout: Record<string, number> | undefined;
-  onLayoutChange: (layout: Record<string, number>) => void;
-};
-
-/** 原 cAt（js 131422，接口级）：可缩放分组引擎（flex 行/列 + 拖拽分隔条注册） */
-declare const ResizablePanelGroup: React.FC<{
-  className?: string;
-  defaultLayout?: Record<string, number>;
-  disableCursor?: boolean;
-  disabled?: boolean;
-  elementRef?: React.Ref<HTMLDivElement>;
-  groupRef?: React.Ref<unknown>;
-  id?: string;
-  onLayoutChange?: (layout: Record<string, number>) => void;
-  onLayoutChanged?: (layout: Record<string, number>) => void;
-  orientation?: "horizontal" | "vertical";
-  resizeTargetMinimumSize?: { coarse: number; fine: number };
-  style?: React.CSSProperties;
-  children?: React.ReactNode;
-}>;
-
-/** 原 pAt（js 131715，接口级）：可缩放面板引擎（minSize/maxSize/defaultSize/collapsible） */
-declare const ResizablePanel: React.FC<{
-  id?: string;
-  className?: string;
-  defaultSize?: string;
-  minSize?: string;
-  maxSize?: string;
-  collapsible?: boolean;
-  disabled?: boolean;
-  elementRef?: React.Ref<HTMLElement>;
-  style?: React.CSSProperties;
-  children?: React.ReactNode;
-}>;
+/* 〔A1-P2-B2〕删碑×4：vendored 引擎三件 + 持久化键改指新叶 ./ResizablePanelsCore：
+ *   persistentLayoutKey 本地实函数（原 J4，束 131616-131618）删除——全树零消费，真身入叶。
+ *   declare usePersistentGroupLayout（原 uAt，束 131648-131707）删除 → 新叶真身。
+ *   declare ResizablePanelGroup（原 cAt，束 131439-131615）删除 → 新叶真身。
+ *   declare ResizablePanel（原 pAt，束 131732-131818）删除 → 新叶真身。
+ * A0-S3 推迟件结案注证：包装面 X4/Z4/Q4 属主在本文件，引擎真身属主在新叶；
+ * 深区 130122–130968 内部件 ×18 以 declare const : any 留守新叶（留批）。 */
 
 interface SplitLayoutGroupProps {
   className?: string;
@@ -1130,6 +1073,33 @@ export function SplitLayoutGroup({ className, layoutId, panelIds, ...rest }: Spl
 
 /** 原 Z4 = pAt（js 131943 / jsx 111283） */
 export const SplitPanel = ResizablePanel;
+
+/** 原 Q4（js 131961-131981）：Separator 应用包装层——cn 样式链逐字（束真 13 段类名）。
+ * 消费面（束 133040 repo-wiki/终端域、183474/183946 工作区域）属推迟重建域，留批接入。 */
+export function SplitSeparator({ className, ...rest }: { className?: string; [key: string]: unknown }) {
+  return (
+    <ResizableSeparator
+      className={cn(
+        "group/handle relative flex shrink-0 items-center justify-center bg-transparent outline-none transition-colors focus:outline-none focus-visible:outline-none focus-visible:bg-border-hover/60 focus-visible:ring-0",
+        "hover:bg-border-hover/60 data-[separator=hover]:bg-border-hover/60 data-[separator=active]:bg-border-hover z-10",
+        "aria-[orientation=vertical]:translate-x-px",
+        "aria-[orientation=vertical]:my-6",
+        "aria-[orientation=vertical]:w-px",
+        "aria-[orientation=vertical]:h-[calc(100%-48px)]",
+        "aria-[orientation=vertical]:[mask-image:linear-gradient(to_bottom,transparent_0%,black_18%,black_82%,transparent_100%)]",
+        "aria-[orientation=vertical]:[-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_18%,black_82%,transparent_100%)]",
+        "aria-[orientation=horizontal]:translate-y-px",
+        "aria-[orientation=horizontal]:mx-6",
+        "aria-[orientation=horizontal]:h-px",
+        "aria-[orientation=horizontal]:w-[calc(100%-48px)]",
+        "aria-[orientation=horizontal]:[mask-image:linear-gradient(to_right,transparent_0%,black_18%,black_82%,transparent_100%)]",
+        "aria-[orientation=horizontal]:[-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_18%,black_82%,transparent_100%)]",
+        className,
+      )}
+      {...rest}
+    />
+  );
+}
 
 /* ============================================================================
  * 5. WorkspaceShell 私有助手：常量与纯函数
@@ -2515,9 +2485,9 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
         const resolution = resolveAutomationsRunTab({
           workspacePath: targetWorkspacePath,
           workspaceIdentity: targetIdentity,
-          activateTabByPath: workspaceTabsStore.activateTabByPath,
+          activateTabByPath: workspaceTabsStore.getState().activateTabByPath, // 〔A1-P2-B2〕束真 184759：zt.getState().activateTabByPath
           addLocalWorkspaceTab: (path) => {
-            workspaceTabsStore.addTab(path);
+            workspaceTabsStore.getState().addTab(path); // 〔A1-P2-B2〕束真 184761：zt.getState().addTab(e)
           },
         });
         if (!resolution.accepted) {
@@ -4214,12 +4184,12 @@ function useTaskNavigation(input: {
         return;
       }
       activateTabByPath(targetWorkspacePath, targetIdentity ? { workspaceIdentity: targetIdentity } : undefined);
-      const activeTab = workspaceTabsStore.tabs.find((tab) => tab.id === workspaceTabsStore.activeTabId);
+      const activeTab = workspaceTabsStore.getState().tabs.find((tab) => tab.id === workspaceTabsStore.getState().activeTabId); // 〔A1-P2-B2〕束真 186212：s.getState().tabs.find((e) => e.id === s.getState().activeTabId)
       const targetKey = workspaceKey(targetWorkspacePath, targetIdentity);
       const isActiveTabSameWorkspace = !!(
         activeTab &&
         isWorkspaceTab(activeTab) &&
-        workspaceKey(activeTab.workspacePath, activeTab.workspaceIdentity) === targetKey
+        workspaceKey(activeTab.workspacePath!, activeTab.workspaceIdentity) === targetKey // 〔A1-P2-B2〕型缝：workspace 类标签必有路径（束 dc addTab 必填面；WorkspaceTabsDeep 526 判例）
       );
       const remoteSessionId = activeTab && isWorkspaceTab(activeTab) && isActiveTabSameWorkspace
         ? activeTab.remoteSessionId ?? undefined
@@ -4243,7 +4213,7 @@ function useTaskNavigation(input: {
             ? null
             : services;
         if (remoteServices) {
-          remoteServices.zcodeTaskService
+          remoteServices.zcodeTaskService! // 〔A1-P2-B2〕型缝：canonical BaseServices 此面可选，束真注册会话服务必含（186234 消费面直取）
             .setTaskUnread({ ...taskRef, unread: false })
             .then((result) => {
               applyTaskUnreadAt(taskRef, result.unreadAt);
@@ -4782,7 +4752,7 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
   /* --- 身份解析：活动工作区 tab 优先（原 186269-186288） --- */
   const activeWorkspaceTarget = resolveActiveWorkspaceTarget({
     activeTarget: useWorkspaceTabs(
-      shallowSelector((state: WorkspaceTabsState) => {
+      shallowSelector((state: WorkspaceTabStoreState) => { // 〔A1-P2-B2〕原 WorkspaceTabsState 本地型改指 canonical
         if (!state.activeTabId) {
           return { workspaceIdentity: undefined, remoteSessionId: undefined, remoteTarget: undefined };
         }
@@ -4792,7 +4762,7 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
           : {
               workspaceIdentity: activeTab.workspaceIdentity,
               remoteSessionId: activeTab.remoteSessionId,
-              remoteTarget: activeTab.remoteTarget,
+              remoteTarget: activeTab.remoteTarget as RemoteTarget | undefined, // 〔A1-P2-B2〕型缝：canonical remoteTarget=unknown → 本地 RemoteTarget 面（束真同值透传）
             };
       }),
     ),
@@ -4997,13 +4967,13 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
   const workspaceTabsSummary = React.useMemo(
     () =>
       workspaceTabs.filter(isWorkspaceTab).map((tab) => ({
-        workspacePath: tab.workspacePath,
+        workspacePath: tab.workspacePath!, // 〔A1-P2-B2〕型缝：workspace 类标签必有路径（束 dc addTab 必填面；WorkspaceTabsDeep 526 判例）
         label: tab.label,
         remoteSessionId: tab.remoteSessionId,
-        remoteTarget: tab.remoteTarget,
+        remoteTarget: tab.remoteTarget as RemoteTarget | undefined, // 〔A1-P2-B2〕型缝：canonical unknown → 本地 RemoteTarget 面（束真同值透传）
         workspaceIdentity: tab.workspaceIdentity,
-        workspacePurpose: tab.workspacePurpose,
-        localWorkspacePath: tab.localWorkspacePath,
+        workspacePurpose: tab.workspacePurpose as "project" | "conversation" | undefined, // 〔A1-P2-B2〕型缝：束真仅 project|conversation（A0-CLEANUP3 #36 实证）
+        localWorkspacePath: tab.localWorkspacePath as string | undefined, // 〔A1-P2-B2〕型缝：canonical 含 null，本地摘要面收 undefined
         availability: tab.availability,
       })),
     [workspaceTabs],
@@ -5502,7 +5472,7 @@ export function WorkspaceRoot(props: WorkspaceRootProps) {
         workspaceIdentity={workspaceIdentity}
         activeTaskId={activeTaskId}
         activeTaskChangeSummary={activeTaskChangeSummary}
-        workspaceTabs={workspaceTabList}
+        workspaceTabs={workspaceTabList as Array<WorkspaceTab & { workspacePath: string }>} // 〔A1-P2-B2〕型缝：QuickPick 消费面收必填路径形（束真 workspace 类标签必有路径）
         onOpenChange={setQuickPickOpen}
         onSelectTask={handleSelectTask}
         onSearchResultHighlightRequest={handleSearchResultHighlightRequest}
