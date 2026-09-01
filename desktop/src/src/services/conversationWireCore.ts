@@ -27,10 +27,11 @@
  *   rAe→inflightStagingFrameCap(34671) | jS→inflightStagingByteCap(34672)
  *   iAe→inflightStagingOverflowReason(34673) | aAe→frameJsonUtf8Bytes(34674)
  *   MS→sessionIndexInflightTracker(34677) | NS→sessionFrameAssembly(34746)
- * 区外自由符 → 段内环境声明（函数体消费，模块初始化不读，declare 安全）：
- *   bi→protocolLimits（src 块 Rf；属主 declare 在 ./commandQueueProtocol §G.4）
- *   Tte→decodeFrameBase64（src 块 Uf）
  * 跨块直连（实体接线）：Ane→crc32Hex（SrcSharedB）| J→logger（SkillStore 转导出）|
+ *   bi→protocolLimits（src 块 Rf=STREAM_TRANSPORT_LIMITS，SrcSharedB；〔A1-P3-B6〕实体化，
+ *     二跳 styles 740 `oo as bi` ← facade oo=STREAM_TRANSPORT_LIMITS，七消费字段全在案）|
+ *   Tte→decodeFrameBase64（src 块 Uf=decodeBase64ToBytes，SrcSharedB；〔A1-P3-B6〕实体化，
+ *     二跳 styles 693 `io as Tte` ← facade io=decodeBase64ToBytes）|
  *   _i→wireServerTimeSchema（src 块 If=E()，模块初始化读 → 本叶 zNumber() 实体）|
  *   ji/K/Jr/Fi/Li→SrcSharedA zod 面（zObject/zString/zEnum/zLiteral/zBoolean）。
  * 墓碑（同区留批，边界证据见 A1-P3-B4.report.md §七）：
@@ -53,19 +54,8 @@
  * ==========================================================================*/
 /* eslint-disable */
 import { zObject, zString, zEnum, zLiteral, zBoolean, zNumber } from '../modules/SrcSharedA';
-import { crc32Hex } from '../modules/SrcSharedB';
+import { crc32Hex, STREAM_TRANSPORT_LIMITS as protocolLimits, decodeBase64ToBytes as decodeFrameBase64 } from '../modules/SrcSharedB'; // 〔A1-P3-B6〕原 bi/Tte 环境声明二件改指逐字实体（styles 740/693 二跳；函数体消费，模块初始化不读，接线安全）
 import { logger } from '../modules/SkillStore';
-
-declare const protocolLimits: {
-  logicalFrameAssemblyMaxBytes: number;
-  logicalFrameAssemblyMaxFragments: number;
-  logicalFrameAssemblyMaxConcurrent: number;
-  logicalFrameAssemblyMaxStagedBytes: number;
-  logicalFrameAssemblyTimeoutMs: number;
-  maxFrameBytes: number;
-  transportEnvelopeIdMaxChars: number;
-}; // 原 bi（src 块 Rf；属主 declare 在 ./commandQueueProtocol §G.4，同 FeedbackCenter 处置）
-declare function decodeFrameBase64(e: any): any; // 原 Tte（src 块 Uf）
 
 const wireServerTimeSchema = zNumber(); // 原 _i（src 块 If=E()，模块初始化读 → 实体接线）
 

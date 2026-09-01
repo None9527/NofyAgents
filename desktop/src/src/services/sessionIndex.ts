@@ -1,22 +1,14 @@
 // A0-S4-5: 自 modules/services.tsx §G.5–G.6 原样迁入（SessionIndexStore 订阅/恢复状态机 + 会话索引 store 池 + WorkspaceSubscriptionSet，原 js 34981–35478；原文件现为薄 re-export shim）。
-// settleRecovery 消费的 protocolLimits 属 §G.4（./commandQueueProtocol 的 declare 环境常量）；
-// esbuild 不允许对环境常量做值引用导入，按 FeedbackCenter L303 既有惯例补本地环境声明副本（零 emit）。
+// settleRecovery 消费的 protocolLimits 原为 §G.4 环境声明副本；〔A1-P3-B6〕实体化改指
+// STREAM_TRANSPORT_LIMITS（styles 740 二跳 `oo as bi` ← src oo，消费字段 logicalFrameAssemblyTimeoutMs 在案）。
 import { INITIAL_SESSION_INDEX_STATE, RUNTIME_RESTART_BASE_DELAY_MS, RUNTIME_RESTART_MAX_DELAY_MS, RUNTIME_RESTART_RESET_MS, SUBSCRIBE_RETRY_BACKOFF_MS, applyFrameToIndexState, isDormantSubscribeError, isTransientSubscribeError, type SessionIndexRow } from '../modules/QuickPickDeep';
 import { unsubscribeTransportSafe as unsubscribeTransport } from '../modules/QuickPickDeep'; // 原 IS
 import { logger } from '../modules/SkillStore';
 import { serviceGeneration } from '../modules/stores-core';
+import { STREAM_TRANSPORT_LIMITS as protocolLimits } from '../modules/SrcSharedB'; // 〔A1-P3-B6〕原 bi 环境声明副本改指逐字实体（styles 740 二跳 `oo as bi` ← src oo=STREAM_TRANSPORT_LIMITS）
 import { SessionIndexTopicMultiplexer, sessionTransportHandshake, sessionIndexInflightTracker, sessionFrameAssembly } from './conversationWireCore'; // 〔A1-P3-B4〕原 bS/AS/MS/NS 环境声明四件改指逐字实体（styles 33890/34647/34677/34746；ROUNDTRIP+SEAMSTRIP[wire] EXACT 在案）
 import { sessionIndexFrameSchema } from './sessionsIndexSchemaCore'; // 〔A1-P3-B5〕原 oS 环境声明改指逐字实体（styles 33505，oS 整链闭合；ROUNDTRIP+SEAMSTRIP[os] EXACT 在案）
 
-/** 协议限额环境声明副本（属主声明在 ./commandQueueProtocol §G.4，原 bi；同 FeedbackCenter 处置） */
-declare const protocolLimits: {
-  logicalFrameAssemblyMaxBytes: number;
-  logicalFrameAssemblyMaxFragments: number;
-  logicalFrameAssemblyMaxConcurrent: number;
-  logicalFrameAssemblyMaxStagedBytes: number;
-  logicalFrameAssemblyTimeoutMs: number;
-  maxFrameBytes: number;
-};
 /* --- G.5 SessionIndexStore（原 XAe，js 34981–34960 区；v4-sessions-index） --- */
 
 export interface SessionIndexEntry {
