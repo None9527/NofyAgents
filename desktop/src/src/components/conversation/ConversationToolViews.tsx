@@ -18,6 +18,11 @@ import {
   normalizeAgentName, resolveAgentColorHash, extractAgentOutputFile, extractAgentOutputText,
   AgentPromptBlock, AgentChildToolList, AgentLabeledBlock, AgentOutputFileCard, AgentColorBadge,
 } from './AgentToolBlocks'; // 〔A1-P1-B10〕agent 族 13 declare 实体化收敛（styles 105957–106290 + 105162–105185）
+import {
+  extractMcpToolInfo, prettifyMcpServerName, prettifyMcpToolName, extractMcpOutputText,
+  isShortPlainOutput, detectOutputLanguage, MCP_TOOL_ICON,
+} from './McpToolBlocks'; // 〔A1-P1-B11〕MCP 六 declare + MCP_TOOL_ICON 实体化收敛（styles 107432–107519 逐字）
+import { hashToAgentPaletteColor } from './ShellCommandBlocks'; // 〔A1-P1-B11〕AgentToolView 调色板兜底链尾（原 Xft，styles 105186）
 import type { ToolCall, ToolCallNode, ToolDisplayModel, OpenCodeViewerFn, ToolCallViewProps, FileSummary, PlatformService } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）；PlatformService 留守 shim（§5/§6 共用）
 
 /** 图标 */
@@ -876,13 +881,9 @@ export function ExploreToolView(props: ToolCallViewProps) {
  * 实体化 → ./AgentToolBlocks（styles 105957–106139 / 106141–106290 逐字 + 卫星 105162–105185；
  * roundtrip 三段 EXACT，/tmp/a1r0-p1/p10/）。c$（AgentDetailRow）随 Bpt 隐依赖同批实体化；
  * Ipt@106140 早以 AGENT_TOOL_ICON 在案（见下），区段切分不重复。消费面改文件头真实 import，调用面逐字不变。 ── */
-/** 原 Xft/Yft：名称哈希色 */
-function hashPaletteColor(name: string): string {
-  const palette = ["yellow", "red", "orange", "green", "cyan", "blue", "purple", "pink"];
-  let hash = 0;
-  for (let index = 0; index < name.length; index += 1) hash = (hash * 31 + name.charCodeAt(index)) >>> 0;
-  return palette[hash % palette.length] ?? "blue";
-}
+/* ── tombstone〔A1-P1-B11〕：手写 hashPaletteColor（原 Xft/Yft 近似，A0 期未接线）删除——
+ * Xft 逐字实体 = hashToAgentPaletteColor ∈ ./ShellCommandBlocks（styles 105186–105190）；
+ * Yft 早已实体化 ∈ ./AgentToolBlocks（isAgentPaletteColor，styles 105183）。调色板兜底链接线见 AgentToolView。 ── */
 const AGENT_TOOL_ICON = <IconBot className="size-4 shrink-0 text-foreground-subtle" />;
 
 export function AgentToolView(props: ToolCallViewProps) {
@@ -904,8 +905,12 @@ export function AgentToolView(props: ToolCallViewProps) {
       return byName === normalized || byId === normalized;
     })?.color;
   }, [typeLabel, agents]);
+  /* 〔A1-P1-B11〕调色板链按束真身接线：f = s ? (d ?? kpt(n) ?? Xft(s)) : null（styles 106315）。 */
+  const resolvedAgentColor = typeLabel
+    ? agentColor ?? resolveAgentColorHash(toolCall) ?? hashToAgentPaletteColor(typeLabel)
+    : null;
   const colorBadge =
-    typeLabel && agentColor ? <AgentColorBadge color={agentColor} name={typeLabel} /> : null;
+    typeLabel && resolvedAgentColor ? <AgentColorBadge color={resolvedAgentColor} name={typeLabel} /> : null;
   const streaming = props.isRunning ? resolveStreamingChildSummary(intl, childToolCalls, props, { includeChildActionKindLabel: true }) : null;
   const outputFile = extractAgentOutputFile(toolCall);
   const outputText = extractAgentOutputText(toolCall);
@@ -1506,15 +1511,12 @@ export function NodeReplToolView(props: ToolCallViewProps) {
 
 /* ---- 原 Wmt（107472 / 92099）：AutomationToolView（MCP 调用面） ---- */
 
-interface McpToolInfo { serverName?: string; toolName?: string; description?: string }
-/** 原 Vmt/Hmt/Umt/Rmt/Lmt/T$：MCP 信息归一/服务器名美化/工具名美化/输出文本/纯文本判定/JSON 判定 */
-declare function extractMcpToolInfo(props: ToolCallViewProps): McpToolInfo | null; // Vmt
-declare function prettifyMcpServerName(serverName: string): string; // Hmt
-declare function prettifyMcpToolName(toolName: string, serverName: string): string; // Umt
-declare function extractMcpOutputText(output: unknown): string | null; // Rmt
-declare function isShortPlainOutput(text: string): boolean; // Lmt
-declare function detectOutputLanguage(text: string): string; // T$
-const MCP_TOOL_ICON = <IconBot className="size-4 shrink-0 text-foreground-subtle" />;
+/* ── tombstone〔A1-P1-B11〕：MCP 六 declare（Vmt/Hmt/Umt/Rmt/Lmt/T$）+ McpToolInfo 接口 + MCP_TOOL_ICON 手写 const 删除——
+ * 逐字实体化 → ./McpToolBlocks（styles 107432–107519；roundtrip EXACT，/tmp/a1r0-p1/p11/）。
+ * 消费面改文件头真实 import，调用面逐字不变。MCP_TOOL_ICON 图标真身 = lbe（Sa('plug')，styles 27645），
+ * A0 手写期误映 IconBot，本批依束真身收敛为 lucide-react Plug（A0-S3b 判例：vendored → npm lucide-react@1.35.0）。
+ * detectOutputLanguage（T$）真身返回 boolean；A0 消费面 `=== "json"` 串比误型一并更正（束 107593/107594：
+ * enableSyntaxHighlighting: T$(p) / language: T$(p) ? `json` : `log`）。 ── */
 
 export function AutomationToolView(props: ToolCallViewProps) {
   const { intl } = useIntlContext();
@@ -1567,8 +1569,8 @@ export function AutomationToolView(props: ToolCallViewProps) {
               appTheme={props.theme}
               className="bg-card"
               code={outputText}
-              enableSyntaxHighlighting={detectOutputLanguage(outputText) === "json"}
-              language={detectOutputLanguage(outputText) === "json" ? "json" : "log"}
+              enableSyntaxHighlighting={detectOutputLanguage(outputText)}
+              language={detectOutputLanguage(outputText) ? "json" : "log"}
               renderMermaid={false}
               wrapLongLines
             >

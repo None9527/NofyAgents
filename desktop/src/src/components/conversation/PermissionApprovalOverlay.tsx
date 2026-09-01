@@ -11,6 +11,7 @@ import { type CodePreviewSettings } from '../../modules/MarkdownIntegration';
 import { Badge } from '../../modules/PaymentDeep';
 import { buildPermissionRequestViewModel } from '../../modules/SrcSharedB';
 import { useSettingsStoreValue as useSettingsSelector } from '../../modules/stores-core'; // A0-CLEANUP3 #49：原 Ao，canonical = stores-core useSettingsStoreValue（styles js 1301）
+import { isSwitchModePermissionRequest } from './PermissionRequestModel'; // 〔A1-P1-B11〕Xpt declare 实体化收敛（styles 106564–106655 逐字）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import { Button } from '../../modules/button'; // 原 H（A0-D 接线：declare → button canonical）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
@@ -380,8 +381,9 @@ function InteractionOriginBadge({ className, origin }: { className?: string; ori
 
 /** 原 Vte（src-HCld2afU.js 的 l 导出）：审批请求 → 视图模型（标题/命令/文件变更/作用域） */
 
-/** 原 Xpt（js 106604 / jsx 91469）：切换权限模式的请求（转圈占位文案） */
-declare function isSwitchModePermissionRequest(request: PermissionRequest): boolean;
+/* ── tombstone〔A1-P1-B11〕：isSwitchModePermissionRequest declare（Xpt）删除——逐字实体化 →
+ * ./PermissionRequestModel（styles 106564–106655；roundtrip EXACT，/tmp/a1r0-p1/p11/）。
+ * 消费面改文件头真实 import，调用面逐字不变。 ── */
 /** 原 Hpt（js 106405 / jsx 91360）：切模式提示（按平台快捷键） */
 declare const SwitchModeHint: React.FC<{ platform: unknown }>;
 

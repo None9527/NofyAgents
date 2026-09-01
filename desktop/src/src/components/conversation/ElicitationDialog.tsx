@@ -11,6 +11,7 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（
 import { Button, ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight } from '../../modules/button'; // 原 H + button chunk 图标（A0-S3b 增补）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
 import { InteractionOriginBadge, type InteractionOrigin } from './PermissionApprovalOverlay'; // §1 族属主（徽章为渲染期值引用，型别 type-only）
+import { PLAN_APPROVAL_OPTION_VALUE, resolveAutoResolutionCountdown, nextAutoResolutionTickDelay } from './InteractionCountdown'; // 〔A1-P1-B11〕倒计时域三件实体化收敛（styles 115978–115992 逐字）
 import type { PendingInteraction } from './ConversationInteractionsOverlay'; // §3 族属主（type-only，编译期擦除）
 
 /** 原 A（imeComposition chunk 的 t 导出）：IME 组词回车守卫 */
@@ -47,15 +48,9 @@ export interface ElicitationRequest {
  * ==========================================================================*/
 
 const AUTO_RESOLUTION_TICK_MS = 6e4; // q1（js 115930 / jsx 98698）
-const PLAN_APPROVAL_OPTION_VALUE = `approve`; // J1（js 115931 / jsx 98699）
-
-/** 原 rxt（js 115932 / jsx 98700）：剩余倒计时秒数（snoozed/过期 → null） */
-declare function resolveAutoResolutionCountdown(
-  autoResolution: PendingInteraction["autoResolution"],
-  nowMs: number,
-): number | null;
-/** 原 ixt（js 115937 / jsx 98705）：下次心跳延迟 */
-declare function nextAutoResolutionTickDelay(autoResolution: NonNullable<PendingInteraction["autoResolution"]>, nowMs: number): number | null;
+/* ── tombstone〔A1-P1-B11〕：PLAN_APPROVAL_OPTION_VALUE 手写 const（J1）+ rxt/ixt 双 declare 删除——
+ * 逐字实体化 → ./InteractionCountdown（styles 115978–115992；roundtrip EXACT，/tmp/a1r0-p1/p11/）。
+ * 消费面改文件头真实 import，调用面逐字不变。 ── */
 
 /**
  * 自动结束倒计时钩子（原 axt，js 115945 / jsx 98713）。

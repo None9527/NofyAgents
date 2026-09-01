@@ -11,6 +11,14 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（
 import { Button, ChevronRight as IconChevronRight } from '../../modules/button'; // 原 t 导出（A0-D 接线）；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../modules/Conversation'; // 〔A0-S4-4b〕§1 共享原语留守面，属主补 export 后取回（函数声明提升，渲染期访问，环安全）
+import { normalizeToolCallStatus, extractToolErrorText } from './ToolStatusModel'; // 〔A1-P1-B11〕状态/错误文案域实体化收敛（styles 99553–99618 + 99630–99640 逐字；TOOL_STATUS_DISPLAY_MAP/unwrapToolUseError/resolveInlinePreview 同叶在案）
+import { extractMcpToolInfo } from './McpToolBlocks'; // 〔A1-P1-B11〕分派点 automation 判定（束 109117：Vmt 真身）
+import { hasRawShellOutput, summarizeShellCommand, resolveShellExecution, extractShellOutput, SHELL_TOOL_ICON } from './ShellCommandBlocks'; // 〔A1-P1-B11〕shell 四 declare + SHELL_TOOL_ICON 实体化收敛（styles 105186–105313 逐字）
+import {
+  TOOL_CHILD_INDENT_CLASS, STREAMING_ENTRANCE_CACHE_LIMIT, STREAMING_ENTRANCE_DURATION_MS, streamingEntranceSeenCache,
+  pruneStreamingEntranceCache, normalizeStreamingEntranceKey, hasSeenStreamingEntrance, markStreamingEntranceSeen,
+  shouldPlayStreamingEntrance,
+} from './ToolCardAnimation'; // 〔A1-P1-B11〕入场动画缓存域实体化收敛（styles 109084–109110 逐字）
 
 /** 工具分类（原 og，js 23084 / jsx 19826；family 枚举按 Wht 分派归纳）——§0 declare 分配：唯一消费（§4）随迁 */
 type ToolFamily =
@@ -41,50 +49,11 @@ declare function classifyToolCall(toolCall: { toolName?: string; kind?: string }
  *    ToolCallBlock + 16 种工具视图：js 104622–109242 / jsx 90046–93275
  * ==========================================================================*/
 
-/** 原 zlt（js 99513 / jsx 85879）：工具状态 → 展示状态（Rlt 映射表，缺省 input-streaming） */
-declare const TOOL_STATUS_DISPLAY_MAP: Record<string, string>;
-function normalizeToolCallStatus(status: string): string {
-  return TOOL_STATUS_DISPLAY_MAP[status] ?? `input-streaming`;
-}
-
-/** 原 nQ（jsx 85900）：剥离 ``` 围栏与 <tool_use_error> 包裹 */
-function unwrapToolUseError(text: string): string {
-  const unwrapped = text.trim().match(/^```[\w-]*\n?([\s\S]*?)\n?```$/)?.[1]?.trim() ?? text.trim();
-  return unwrapped.match(/^<tool_use_error>([\s\S]*?)<\/tool_use_error>$/i)?.[1]?.trim() || unwrapped;
-}
-
-/**
- * 原 rQ（js 99542 / jsx 85908）：从 toolCall 的 error/output/raw 各层
- * 逐级提取错误文案（tool_use_error 包裹、error/message 字段、failed 状态兜底）。
- */
-function extractToolErrorText(toolCall: ToolCall): string | undefined {
-  const direct = typeof toolCall.error === `string` && toolCall.error.trim().length > 0 ? toolCall.error.trim() : undefined;
-  if (direct) return direct;
-  const output = toolCall.output as Record<string, unknown> | undefined;
-  if (output && typeof output === `object` && !Array.isArray(output)) {
-    for (const key of [`error`, `message`]) {
-      const value = output[key];
-      if (typeof value === `string` && value.trim().length > 0) return value.trim();
-    }
-  }
-  // ……（原实现继续检查 raw.rawOutput / raw.status / raw.content[]，
-  //    全部经 unwrapToolUseError 归一；此处按调用面保留接口）
-  return undefined;
-}
-
-/** 原 iQ（js 99582 / jsx 85951）：内联预览类型判定（patch/image/text/none） */
-function resolveInlinePreview(
-  toolCall: ToolCall,
-  allowPatch: boolean,
-): { type: "patch" | "image" | "text" | "none"; source?: unknown } {
-  const preview = (toolCall as { preview?: { type?: string } }).preview;
-  if (allowPatch && preview?.type === `patch`) return { type: `patch`, source: preview };
-  if (preview?.type === `image`) return { type: `image`, source: preview };
-  if (preview?.type === `text`) return { type: `text`, source: preview };
-  const contentPreview = (toolCall as { contentPreview?: unknown }).contentPreview;
-  if (contentPreview) return { type: `text`, source: contentPreview };
-  return { type: `none` };
-}
+/* ── tombstone〔A1-P1-B11〕：TOOL_STATUS_DISPLAY_MAP declare（原 zlt 消费面）+ 三截断手写本地
+ * （normalizeToolCallStatus=zlt / unwrapToolUseError=nQ+Blt / extractToolErrorText=rQ 截断副本）+
+ * 未接线手写 resolveInlinePreview=iQ 删除——逐字实体化 → ./ToolStatusModel（styles 99553–99618 +
+ * 99630–99640；roundtrip EXACT，/tmp/a1r0-p1/p11/）。rQ 真身补全 raw.rawOutput/raw.status/raw.content[]
+ * 各级检查（截断副本所无）。消费面改文件头真实 import，调用面逐字不变。 ── */
 
 /* ── tombstone（A0-D 类型收敛）：本地 ToolDisplayModel 已删除，canonical =
  *    ConversationLeaves 导出（索引签名容宽型），经文件头 type import 消费。 ── */
@@ -827,39 +796,9 @@ const ReasoningContent = React.memo(function ReasoningContent({
 
 /* --- 4.3 ToolCallBlock 与工具视图分派（原 Ght/K$/Wht，js 109066–109242 / jsx 93114–93275） --- */
 
-/** 原子工具卡缩进类（原 Fht，jsx 93114）：子工具调用左竖线缩进 */
-const TOOL_CHILD_INDENT_CLASS = `ml-2 space-y-2 border-border border-l pl-3.5 border-border`;
-/** 原 Iht/Lht（jsx 93115）：流式入场动画缓存上限 800 / 动画时长 1000ms */
-const STREAMING_ENTRANCE_CACHE_LIMIT = 800;
-const STREAMING_ENTRANCE_DURATION_MS = 1e3;
-/** 原 G$（jsx 93117）：已播放过入场动画的工具卡（LRU 按时间戳淘汰） */
-const streamingEntranceSeenCache = new Map<string, number>();
-function pruneStreamingEntranceCache() {
-  if (streamingEntranceSeenCache.size <= STREAMING_ENTRANCE_CACHE_LIMIT) return;
-  const oldest = Array.from(streamingEntranceSeenCache.entries())
-    .sort(([, a], [, b]) => a - b)
-    .slice(0, streamingEntranceSeenCache.size - STREAMING_ENTRANCE_CACHE_LIMIT)
-    .map(([key]) => key);
-  for (const key of oldest) streamingEntranceSeenCache.delete(key);
-}
-function normalizeStreamingEntranceKey(key: string): string | null {
-  const trimmed = key.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-function hasSeenStreamingEntrance(key: string): boolean {
-  const normalized = normalizeStreamingEntranceKey(key);
-  return normalized === null || streamingEntranceSeenCache.has(normalized);
-}
-function markStreamingEntranceSeen(key: string) {
-  const normalized = normalizeStreamingEntranceKey(key);
-  if (normalized !== null) {
-    streamingEntranceSeenCache.set(normalized, Date.now());
-    pruneStreamingEntranceCache();
-  }
-}
-function shouldPlayStreamingEntrance(key: string, active: boolean): boolean {
-  return active && !hasSeenStreamingEntrance(key);
-}
+/* ── tombstone〔A1-P1-B11〕：入场动画缓存域九件手写体（Fht/Iht/Lht/G$/Rht/zht/Bht/Vht/Hht）删除——
+ * 逐字实体化 → ./ToolCardAnimation（styles 109084–109110；roundtrip EXACT，/tmp/a1r0-p1/p11/）。
+ * 语义名全同（手写期即按束真身命名），消费面改文件头真实 import，调用面逐字不变。 ── */
 /** 原 Uht（jsx 93135）：agent 家族工具（子代理）不参与嵌套缩进判定 */
 function isAgentToolCall(toolCall: ToolCall): boolean {
   return classifyToolCall(toolCall).family === `agent`;
@@ -869,7 +808,9 @@ function isAgentToolCall(toolCall: ToolCall): boolean {
  *    canonical = ConversationLeaves 导出，经文件头 type import 消费；
  *    ShellToolView declare 一并删除——本文件 §4.5 ShellToolViewImpl 即 canonical
  *    实体（尾部符号表以 ShellToolView 别名导出），分派点直接引用实现。 ── */
-declare function isAutomationToolCall(props: ToolCallViewProps): boolean; // Vmt (107448 / 92190)
+/* ── tombstone〔A1-P1-B11〕：isAutomationToolCall declare 删除——束真身 = Vmt@107496（= extractMcpToolInfo，
+ *    逐字实体 ∈ ./McpToolBlocks）；分派点按束语义 `if (Vmt(e)) return Wmt`（styles 109117）改指。
+ *    A0 归属注「107448」为 Lmt 束内行号误植，本批以切探真身更正。 ── */
 
 /**
  * 原 Wht（js 109066 / jsx 93141）：按工具家族分派视图组件。
@@ -878,7 +819,7 @@ declare function isAutomationToolCall(props: ToolCallViewProps): boolean; // Vmt
 function resolveToolCallView(props: ToolCallViewProps): React.FC<ToolCallViewProps> {
   const identity = classifyToolCall(props.toolCallNode.toolCall);
   if (identity.family === `node-repl`) return NodeReplToolView;
-  if (isAutomationToolCall(props)) return AutomationToolView;
+  if (extractMcpToolInfo(props)) return AutomationToolView; // 〔A1-P1-B11〕原 isAutomationToolCall declare 改指（束 109117：if (Vmt(e)) return Wmt）
   switch (identity.family) {
     case `plan-guidance`:
       return SearchToolView; // qmt：plan-guidance 复用搜索类摘要视图（93222 附近）
@@ -1147,17 +1088,10 @@ ToolCallBlock.displayName = `ToolCallBlock`;
  * chat.toolCall.execute.running / ran / execute / noOutput
  */
 
-/** 原 Qft（jsx 90400）：bash 命令单行摘要（截断） */
-declare function summarizeShellCommand(input: unknown): string | undefined;
-/** 原 KQ（jsx 90439）：解析执行命令（含包装/转义还原） */
-declare function resolveShellExecution(input: unknown): { executionCommand: string };
-/** 原 qQ（jsx 90481）：输出文本提取 */
-declare function extractShellOutput(output: unknown): string | undefined;
-/** 原 GQ（jsx 90397）：raw 是否含 rawOutput */
-declare function hasRawShellOutput(raw: unknown): boolean;
-
-/** shell 工具图标（原 Zft，jsx 90396） */
-const SHELL_TOOL_ICON = <IconSquareTerminal className="size-4 shrink-0 text-foreground-subtle" />;
+/* ── tombstone〔A1-P1-B11〕：shell 四 declare（Qft/KQ/qQ/GQ）+ SHELL_TOOL_ICON 手写 const 删除——
+ * 逐字实体化 → ./ShellCommandBlocks（styles 105186–105313；roundtrip EXACT，/tmp/a1r0-p1/p11/）。
+ * SHELL_TOOL_ICON 真身 = Zft@105191（jsx(Uv)，Uv=Sa('square-terminal') styles 27866），图标同源不变。
+ * 消费面改文件头真实 import，调用面逐字不变。 ── */
 
 function ShellToolViewImpl(props: ToolCallViewProps) {
   const { intl } = useIntlContext();
