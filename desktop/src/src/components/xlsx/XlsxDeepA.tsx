@@ -403,9 +403,9 @@ declare const p: any; // treemap chunk 附带导出（本批未消费，保留�
 // chunk 内 vendored d3/topojson 片段（28–1834）
 declare const Pn: any; // topojson feature()（1758）
 declare const rn: any; // geoPath（1075）
-declare const En: any; // geoAlbersUsa（1536）
-declare const wn: any; // Miller 投影（1479）
-declare const On: any; // 默认世界投影（1658）
+declare const En: any; // 1536——〔A1-P3-B11〕勘误：非 geoAlbersUsa（体无 insets）；零参投影，具 angle/reflectX/reflectY/clipExtent/fit* 面 = d3-geo geoIdentity 形；消费 189196 us-state 分支
+declare const wn: any; // 1479——〔A1-P3-B11〕勘误：非 Miller；Mercator 原投影 Cn@1473（[λ, ln tan(π/4+φ/2)]）+ scale(961/τ) = d3-geo geoMercator 逐字；「miller」仅 app 侧 projectionType 枚举标（189196）
+declare const On: any; // 1658——〔A1-P3-B11〕精化：geoNaturalEarth（原投影 Dn@1632 多项式系数逐字 + scale(175.295)）；189196 缺省分支（「默认世界投影」）
 declare const kn: any; // partition（1661）
 declare const An: any; // treemapSlice（1705）
 // 地图数据（17818–183063，纯数据外置）

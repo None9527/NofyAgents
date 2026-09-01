@@ -133,6 +133,7 @@ import { useServices, useBaseServices } from './services'; // 原 eSt 内 fs()�
 import { normalizeCaptchaCode } from './StoresDeep'; // A1-R14：原 Cw（40570，R12 收敛 stub）——§5b NCt 3007 判定消费；环安全：StoresDeep 不反引本文件（grep 实证）
 import { resolveProviderKindEndpointUrl, GHOST_PROVIDER_REF_PREFIX } from './SrcSharedB'; // A1-R17：原 Ir=src chunk vu@5076（导出 Uo）属主导出 + Pte=src chunk sS@8980（导出 k）——YSt/Uq 逐字消费
 import { pendingCommandLedger, buildCommand } from '../components/conversation/ConversationCommandLedger'; // 原 K1（styles 115758–115963 class 单例；〔A1-P1-B6〕跨域改指——R25 基线 declare 删，真身 components/conversation 叶；本文件消费面零，import 仅属主归指）+ OS（〔A1-P1-B7〕同收，真身同叶段 2；本面消费零）
+import { PLAN_DOMAINS } from './PaymentDeep'; // 〔A1-P3-B11〕原 USt declare 收敛所依：PLAN_DOMAINS ≡ Gnt（styles 88214 = hee(Wnt())），消费面 @1087/1088。环安全：PaymentDeep 值闭包（modules/Home/UsageDeep/SkillStore/SrcSharedA/B 族 + ui）不达 modules/ConversationLeaves（grep 实证：CL 导入方十件均不在 PD 闭包）
 
 /* ── tombstone（A0-D）：FileOpenWithMenu（原 v_t，110427 / 94447）的跨文件 import
  *    已回退为下方 declare——属主 FileRewindDialogDeep.tsx 本地定义未导出（全文件
@@ -1019,7 +1020,8 @@ function reportCaptchaArmsEvent(event: { result: string; source: string; provide
 }
 
 /** 原 USt/WSt/GSt/KSt/qSt/JSt/YSt/b0：zcode-plan 供应商判定（A1-R16 真身行：USt 118271 / WSt 118272 / GSt 118279 / KSt 118284） */
-declare const ZCODE_PLAN_OPENAI_BASE_URL: string; // USt（Gnt.zcodePlanOpenAiBaseUrl；Gnt@88214 = hee(Wnt()) 惰性配置，深依赖留 declare）
+/* ── tombstone〔A1-P3-B11〕：declare ZCODE_PLAN_OPENAI_BASE_URL（USt）删除 → 下方实体 const 代之：真身链 bundle 118272 `var USt = Gnt.zcodePlanOpenAiBaseUrl`；Gnt@88214 = hee(Wnt())；hee ≡ SrcSharedA@1602 resolveZcodeEndpointConfig（★Yo；PD planDomainsOf 同批改指 @380），Wnt@88207 ≡ PD envConfigOf@9111，Gnt ≡ PD PLAN_DOMAINS@9120（modules/PaymentDeep 转导出，导入面 @135）。 ── */
+const ZCODE_PLAN_OPENAI_BASE_URL = PLAN_DOMAINS.zcodePlanOpenAiBaseUrl; // 原 USt（bundle 118272；〔A1-P3-B11〕实体化）
 /* ── tombstone（A1-R17）：declare function resolveProviderEndpoint（原 YSt，js 118303；Ir=src chunk vu@5076
  *    导出 Uo → SrcSharedB resolveProviderKindEndpointUrl 属主导出）删除——下方逐字实现。 ── */
 /** 原 YSt（js 118303）：供应商种类端点解析（apiFormat 缺省补 anthropic-messages；endpoints 直读兜底） */

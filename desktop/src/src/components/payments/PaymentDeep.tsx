@@ -9117,7 +9117,7 @@ function envConfigOf(env = buildEnvSnapshot()) {
 }
 
 // Gnt → PLAN_DOMAINS（本地 88230）
-const PLAN_DOMAINS = resolveZcodeEndpointConfig(envConfigOf()); // 〔A1-R38〕hee≡resolveZcodeEndpointConfig 改指
+export const PLAN_DOMAINS = resolveZcodeEndpointConfig(envConfigOf()); // 〔A1-R38〕hee≡resolveZcodeEndpointConfig 改指。〔A1-P3-B11〕补 export：USt 收敛所依（原 USt ≡ Gnt.zcodePlanOpenAiBaseUrl，bundle 118272；ConversationLeaves 经 modules/PaymentDeep 接引，消费面 @1087/1088 逐字不变）
 
 // Knt → authSessionOf（本地 88233，xi 的本地别名）
 function authSessionSnapshotOf() {

@@ -218,7 +218,7 @@ import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/s
 // 〔A1-R25〕aw 39378 收敛：markUsageEntryIntent declare 改接 Home §U.7 逐字真身（别名保留，调用点 4769 逐字不变；环安全：Home 顶层 hoisted function，本文件仅渲染期事件回调消费）
 import { openSettingsUsageSection as markUsageEntryIntent } from './Home';
 import { useTaskListItems } from './TaskListQueryCore'; // 〔A1-P3-B1〕原 ZS（styles 35775–36118）declare 收敛改指逐字真身叶；调用点 1914/2201 逐字不变。环安全：本叶值闭包 = react + modules/SkillStore + stores-core + stores/searchResultsStore + modules/services + stores/searchResultsHelpers，不达 components/shell
-import { isCronAutomationPayload as isCronTask, isOffPeakTaskPayload as isOffPeakTask, DesktopMenuActionIds as DesktopCommand } from '../../modules/SrcSharedB'; // 〔A1-P3-B1〕原 pi/Yr（src fx 8726/px 8729）+ oi（src ex 8631 / export ft，styles 本地 oi）收敛改指；改名先例 rendererEntry.tsx:43；调用点 1522/1523/4937/4942/4947 逐字不变
+import { isCronAutomationPayload as isCronTask, isOffPeakTaskPayload as isOffPeakTask, DesktopMenuActionIds as DesktopCommand, joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-P3-B1〕原 pi/Yr（src fx 8726/px 8729）+ oi（src ex 8631 / export ft，styles 本地 oi）收敛改指；改名先例 rendererEntry.tsx:43；调用点 1522/1523/4937/4942/4947 逐字不变。〔A1-P3-B11〕+joinTestidParts（原 scopedTestId 收敛改指，墓碑见 @5122；消费面 1554/1592/3022/3080/3093）
 import { useSidebarSessionDrop as useSessionOpenability, SESSION_DRAG_MIME, serializeSessionDragPayload, setSessionDragFallbackPayload as setCurrentSessionDrag, clearSessionDragFallbackPayload as clearCurrentSessionDrag, createSessionDragPreview as createDragImageUpdater, type SessionDragPayload } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）+ u2/Iwt/Lwt/Rwt/PRt（A1-R4：拖放源侧改指，tombstone 见原声明位）
 import { usePinnedTaskListStore as useRemotePinnedTaskListStore } from '../../stores/pinnedTaskListStore'; // A1-R9 E6 收敛改指（原 E6 本地并行实例删除；canonical 属主 = stores/，tombstone 见原声明位）
 import { useWorkspaceTaskListStore as useRemoteWorkspaceTaskListStore } from '../../stores/workspaceTaskListStore'; // A1-R9 k6 收敛改指（同上）
@@ -397,7 +397,7 @@ function formatRelativeTime(updatedAt: number, intl: IntlShape): string {
   return intl.formatMessage({ id: "taskList.daysAgo" }, { days: String(Math.floor(hours / 24)) });
 }
 /** 原 vg（jsx 20317）：任务变更摘要（无文件则 null） */
-function taskChangeSummary(task: TaskMeta): TaskChangeSummary | null {
+export function taskChangeSummary(task: TaskMeta): TaskChangeSummary | null { // 〔A1-P3-B11〕补 export：SidebarLeaves@352 declare（vg）收敛改指本逐字真身（墓碑见该处）；P1-B5/R42 补 export 先例
   return !task.changeSummary || task.changeSummary.files.length === 0 ? null : task.changeSummary;
 }
 /** 原 Vhe（jsx 20328）：标题 + 变更统计后缀（tooltip 用） */
@@ -1659,7 +1659,7 @@ export function TaskRow({
           size={isArchiveConfirming ? "sm" : "icon-sm"}
           onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }}
           onClick={handleArchiveInline}
-          data-testid={scopedTestId(TESTID_TASK_ARCHIVE, task.taskId)}
+          data-testid={joinTestidParts(TESTID_TASK_ARCHIVE, task.taskId)}
           className={cn("shrink-0", archiveVisibilityClass, isArchiveConfirming ? "border-destructive/20 px-2" : "text-foreground hover:bg-background/90 hover:text-foreground")}
           aria-label={archiveLabel}
         >
@@ -1697,7 +1697,7 @@ export function TaskRow({
   return (
     <li
       ref={rowRef}
-      data-testid={scopedTestId(TESTID_TASK_ITEM, task.taskId)}
+      data-testid={joinTestidParts(TESTID_TASK_ITEM, task.taskId)}
       data-task-item-key={taskItemKey}
       data-mobile-active-task={isMobileActive ? "true" : undefined}
       data-archive-confirming-task-id={isArchiveConfirming ? task.taskId : undefined}
@@ -3130,7 +3130,7 @@ export const WorkspaceSidebarItem = React.memo(function WorkspaceSidebarItem({
               <div
                 role="button"
                 tabIndex={0}
-                data-testid={scopedTestId(TESTID_WORKSPACE_ITEM, tab.workspacePath)}
+                data-testid={joinTestidParts(TESTID_WORKSPACE_ITEM, tab.workspacePath)}
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "default" }),
                   "flex h-8 min-w-0 flex-1 justify-start gap-2 rounded-lg pl-2.5 pr-1 text-left text-foreground aria-expanded:bg-transparent aria-expanded:text-foreground",
@@ -3188,7 +3188,7 @@ export const WorkspaceSidebarItem = React.memo(function WorkspaceSidebarItem({
                           onOpenPluginSync={() => setPluginSyncOpen(true)}
                         />
                         <DropdownMenuItem
-                          data-testid={scopedTestId(TESTID_WORKSPACE_CLOSE, tab.workspacePath)}
+                          data-testid={joinTestidParts(TESTID_WORKSPACE_CLOSE, tab.workspacePath)}
                           onMouseDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
                           onSelect={() => { handleRemoveWorkspace(); }}
                         >
@@ -3201,7 +3201,7 @@ export const WorkspaceSidebarItem = React.memo(function WorkspaceSidebarItem({
                     {canOpenFileTree ? (
                       <Tooltip title={readOnlyReason ?? intl.formatMessage({ id: "workspaceSidebar.showFileTree" })}>
                         <Button type="button" variant="ghost" size="icon-sm"
-                          data-testid={scopedTestId(TESTID_WORKSPACE_FILE_TREE_BUTTON, tab.workspacePath)}
+                          data-testid={joinTestidParts(TESTID_WORKSPACE_FILE_TREE_BUTTON, tab.workspacePath)}
                           className="shrink-0 text-foreground-subtle opacity-0 hover:bg-surface-hover hover:text-foreground group-hover:opacity-100"
                           aria-label={intl.formatMessage({ id: "workspaceSidebar.showFileTree" })}
                           onMouseDown={stopMouseEvent}
@@ -5276,10 +5276,10 @@ declare function workspaceExpansionFlags(current: Record<string, boolean>, paths
  * 22b. 补遗：小助手与跨块依赖（原定义散见于本 chunk 与 src-HCld2afU.js）
  * ==========================================================================*/
 
-/** 原 qr（导入自 src-HCld2afU.js，内部名 Nb，8464）：testid 作用域拼接 `${base}-${id}` */
-function scopedTestId(base: string, id: string): string {
-  return `${base}-${id}`;
-}
+/* ── tombstone〔A1-P3-B11〕：scopedTestId（原 qr/Nb 局部转录，src-HCld2afU.js 8464）删除 → 一符一家收敛 SrcSharedB@5015
+ * joinTestidParts（qr 真身链：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb js 8464，逐字 `${e}-${t}`，R41 既判；本件与 canonical 逐字同形）。
+ * 消费面实测 5 处改名改指：@1554/@1592（≡ bundle 151409/151446，原 E8 memo 任务行 151232+，E8+LRt 段 js 151186–151617；et/An = task-archive/task-item ← Ai/Mi ← Q_/X_ src 8321/8319）
+ * /@3022/@3080/@3093（≡ 158578/158686/158710，zBt JSX 面 158575+，Nr/Sn/fr = workspace-item/workspace-close/workspace-file-tree-button ← Ua/La/Ra ← C_/w_/Hv src 8292/8293/8365）；导入面 @220 原位扩展。 ── */
 
 /** 原 R2（123289）：工作区页签键 = 去空白后的 workspaceIdentity，否则 workspacePath */
 function resolveWorkspaceTabKey(tab: Pick<WorkspaceTab, "workspacePath" | "workspaceIdentity">): string {

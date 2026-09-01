@@ -117,7 +117,7 @@ import { Smartphone as IconSmartphone, Cloud as IconCloud, Folder as IconFolder,
 import { Button, ChevronRight as IconChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { workspaceKeyOf } from '../../modules/CodeViewer';
 import { toast } from '../../modules/ImeComposition';
-import { RemoteSyncingRow, TaskListLoadingRow } from '../../modules/Sidebar';
+import { RemoteSyncingRow, TaskListLoadingRow, taskChangeSummary } from '../../modules/Sidebar'; // 〔A1-P3-B11〕+taskChangeSummary（原 vg declare 收敛改指，墓碑见 @352；消费面 3170 逐字不变）。环安全：本→modules/Sidebar 边既有，拓扑零变
 import { logger, useTaskStore } from '../../modules/SkillStore';
 import { taskEntityKey, mergeMetaPreservingActivity as mergeTaskWithActivity, compareTasksActiveFirst as compareTasksForList } from '../../modules/StoresDeep'; // +mergeTaskWithActivity/compareTasksForList（A1-R10 2e：原 Po（1324）/Lie（1353）declare 改指 canonical——helpers mergeMetaPreservingActivity/compareTasksActiveFirst 逐字；调用点 1233/1248/3537 逐字不变）
 import { applySearchTaskMutation as applyOptimisticTaskMutation } from '../../stores/searchResultsStore'; // A1-R10 2e：原 Uo（1895）declare 改指 canonical = R9 shim；调用点 3227 逐字不变。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/shell（QuickPick 导入面实测无 shell 边）
@@ -131,6 +131,7 @@ import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
 import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex } from './TaskIndexCore'; // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
+import { joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-P3-B11〕原 scopedTestId（qr/Nb 局部转录）收敛改指 canonical（墓碑见 @361）；消费面 3724/3783。环安全：SrcSharedB 为共享导出叶，无反向 components/shell 边（Sidebar.tsx@220 同边先例）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上述 chunk；此处为重建接口）
@@ -348,21 +349,22 @@ declare function buildWorkspaceServicesMap(
 ): Map<string, { services: WorkspaceServices }>;
 
 /** 横切展示助手（Sidebar.tsx 同族已还原） */
-declare function taskChangeSummary(task: TaskMeta): { added: number; removed: number } | null; // vg
+/* ── tombstone〔A1-P3-B11〕：declare taskChangeSummary（vg）删除 → 改指 Sidebar@397 逐字真身（原 vg jsx 20317 ≡ bundle 23753–23755），经 modules/Sidebar 转导出（@120 导入面扩展）；
+ *    消费面 @3170 逐字不变；declare 期窄返型 {added,removed} 为 canonical TaskChangeSummary 富面所涵（消费仅读 added/removed @3220）。 ── */
 /* ── tombstone（A1-R10 2e）：declare workspaceBaseName（Go 1928）/mergeTaskWithActivity（Po 1324）删除，
  *    改经文件头 import 消费（canonical = components/markdown baseName 逐字 / helpers mergeMetaPreservingActivity
  *    逐字；调用点 3124/3154 与 1233/1248 逐字不变；本地 TaskMeta.unreadAt 同步精化 number | null）。 ── */
-declare function activityOverlayOf(task: TaskMeta, overlay: TaskMeta): TaskMeta; // ee
+declare function activityOverlayOf(task: TaskMeta, overlay: TaskMeta): TaskMeta; // ee ——〔A1-P3-B11〕真身普查闭合：styles 378 `G as ee` ← skillStore-BmeKHDBI 2489 `y as G` ← y@141–159 ≡ taskStore.mergeTaskMeta@256（原 y jsx 134，逐字同构）；改指未行 = 型缝：mergeTaskMeta 返型 taskStore.TaskMeta（changeSummary?: unknown、无索引签名）不纳 mergeTaskWithActivity 次参（Partial<helpers.TaskMeta> & Record<string,unknown>）——候 A0 型面裁定（泛型/宽化），登记
 
 /** 加载行 / 远控同步行（Sidebar.tsx 已还原） */
 
-/** testid 作用域拼接（原 qr/Nb，src-HCld2afU.js 8464） */
-function scopedTestId(base: string, id: string): string {
-  return `${base}-${id}`;
-}
-/** 远控任务行 testid 基（原 An / et：web-remote task-open / task-archive） */
-const TESTID_WEB_REMOTE_TASK_OPEN = "web-remote-task-open";
-const TESTID_TASK_ARCHIVE = "task-archive";
+/* ── tombstone〔A1-P3-B11〕：scopedTestId（原 qr/Nb 局部转录，src-HCld2afU.js 8464）删除 → 一符一家收敛 SrcSharedB@5015
+ * joinTestidParts（qr 真身链：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb js 8464，逐字 `${e}-${t}`，R41 既判；本件与 canonical 逐字同形）。
+ * 消费面实测 2 处改名改指：@3723（≡ bundle 147180）/@3782（≡ 147265），均在原 uLt（147124）远控任务行体内；导入面 @134 新增。 ── */
+/* ── tombstone〔A1-P3-B11〕：TESTID_WEB_REMOTE_TASK_OPEN = "web-remote-task-open" 删除——A0 期值误：bundle 147180 实为
+ * qr(An, p.taskId)，An = chunk 导入 `Mi as An`（styles 523）← taskItemTestid ≡ X_ = `task-item`（src 8319）；"web-remote-task-open" 串双 chunk 零命中（负证据）。 ── */
+const TESTID_TASK_ITEM = "task-item"; // 原 An ← Mi ← X_（src 8319）〔A1-P3-B11〕
+const TESTID_TASK_ARCHIVE = "task-archive"; // 原 et ← Ai ← Q_（src 8321）
 
 /** 删除归档任务后的状态清理（原 sLt，122284；依赖 xe.getState / rae） */
 declare function cleanupDeletedTaskState(args: {
@@ -3719,7 +3721,7 @@ function WebRemoteTaskRow({
       <button
         type="button"
         aria-label={intl.formatMessage({ id: "webRemoteControl.openTask" }, { title })}
-        data-testid={scopedTestId(TESTID_WEB_REMOTE_TASK_OPEN, task.taskId)}
+        data-testid={joinTestidParts(TESTID_TASK_ITEM, task.taskId)}
         disabled={isBusy}
         onClick={() => onOpenTask(task)}
         className="flex min-w-0 flex-1 items-center gap-2 rounded-lg py-1 pl-2.5 pr-1 text-left disabled:cursor-wait disabled:opacity-80"
@@ -3778,7 +3780,7 @@ function WebRemoteTaskRow({
               event.stopPropagation();
             }}
             onClick={(event: React.MouseEvent<HTMLButtonElement>) => onArchiveTask(event, task)}
-            data-testid={scopedTestId(TESTID_TASK_ARCHIVE, task.taskId)}
+            data-testid={joinTestidParts(TESTID_TASK_ARCHIVE, task.taskId)}
             className={cn("shrink-0", isPendingArchive ? "flex border-destructive/20 px-2" : "flex")}
             aria-label={archiveLabel}
           >

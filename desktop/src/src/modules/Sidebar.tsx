@@ -233,4 +233,5 @@ export {
   TaskInteractionBadge,
   GroupNodeDragOverlayCard,
   TaskListLoadingRow,
+  taskChangeSummary, // 〔A1-P3-B11〕原 vg（23753）转导出：SidebarLeaves declare 收敛改指面
 } from '../components/shell/Sidebar';
