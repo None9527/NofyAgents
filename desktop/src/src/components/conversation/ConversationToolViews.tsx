@@ -12,6 +12,12 @@ import { logger } from '../../modules/SkillStore';
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
 import { Button, ChevronRight as IconChevronRight } from '../../modules/button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）
 import { cn } from '../../modules/UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
+import { usePlatformService } from '../../modules/ImeComposition'; // 〔A1-P1-B10〕原 declare（S=imeComposition chunk j 导出 → usePlatform）收敛改指：canonical 实体在案（ImeComposition 186）
+import {
+  extractAgentPrompt, fallbackMessage, resolveAgentFallbackName, resolveAgentTypeLabel,
+  normalizeAgentName, resolveAgentColorHash, extractAgentOutputFile, extractAgentOutputText,
+  AgentPromptBlock, AgentChildToolList, AgentLabeledBlock, AgentOutputFileCard, AgentColorBadge,
+} from './AgentToolBlocks'; // 〔A1-P1-B10〕agent 族 13 declare 实体化收敛（styles 105957–106290 + 105162–105185）
 import type { ToolCall, ToolCallNode, ToolDisplayModel, OpenCodeViewerFn, ToolCallViewProps, FileSummary, PlatformService } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）；PlatformService 留守 shim（§5/§6 共用）
 
 /** 图标 */
@@ -76,7 +82,10 @@ declare function resolveStreamingChildSummary(
 declare function extractToolErrorText(toolCall: ToolCall): string | null;
 /** plan markdown 抽取（原 qZ，横切） */
 declare function extractPlanMarkdown(toolCall: ToolCall, workspacePath?: string): { markdown: string | null; planFilePath?: string | null };
-declare function usePlatformService(): PlatformService | null;
+/* ── tombstone〔A1-P1-B10〕：declare usePlatformService 删除——canonical 收敛改指 modules/ImeComposition（再导出
+ * components/ime/ImeComposition 186 `export const usePlatformService = usePlatform`；bundle 消费面 Qpt@106659
+ * `n = S()`，S = styles 头注 `j as S` ← imeComposition-DEYFkwWm.js 导出，同一实体）。原型 `| null` 为 A0 期近似：
+ * 真身 usePlatform 缺省即抛错（Provider 守卫），消费面 FallbackToolView/CuaPermissionOnboardingPanel 型面兼容。 ── */
 /** 代理目录 store（原 he/je） */
 interface AgentDescriptor { id: string; name: string; color?: string }
 declare function useWorkspaceAgents(workspacePath?: string): AgentDescriptor[] | undefined;
@@ -863,39 +872,10 @@ export function ExploreToolView(props: ToolCallViewProps) {
 
 /* ---- 原 Vpt（106243 / 91282）：AgentToolView ---- */
 
-/** 原 Ppt/Npt/Opt/l$/kpt/jpt/Mpt：代理提示/回退名/类型解析/颜色哈希/输出抽取 */
-declare function extractAgentPrompt(toolCall: ToolCall): string | null; // Ppt
-declare function fallbackMessage(intl: IntlShape, id: string, fallback: string): string; // t$
-declare function resolveAgentFallbackName(toolCall: ToolCall, fallback: string): string; // Npt
-declare function resolveAgentTypeLabel(toolCall: ToolCall, fallback: string, authoritative?: string): string | null; // Opt
-declare function normalizeAgentName(value: string): string | null; // l$
-declare function resolveAgentColorHash(toolCall: ToolCall): string | undefined; // kpt
-declare function extractAgentOutputFile(toolCall: ToolCall): { outputFile: string; [key: string]: unknown } | null; // jpt
-declare function extractAgentOutputText(toolCall: ToolCall): string | null; // Mpt
-/** 原 Fpt/Lpt/Rpt：提示/子调用列表/标签段 */
-declare const AgentPromptBlock: React.FC<{
-  prompt: string;
-  workspacePath?: string;
-  theme?: string;
-  codePreviewSettings?: CodePreviewSettings;
-  onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (link: FileLinkModel) => void;
-  onOpenBrowserUrl?: (url: string) => void;
-}>;
-declare const AgentChildToolList: React.FC<ToolCallViewProps & { childToolCalls: ToolCallNode[] }>;
-declare const AgentLabeledBlock: React.FC<{
-  label: string;
-  content: string;
-  workspacePath?: string;
-  theme?: string;
-  codePreviewSettings?: CodePreviewSettings;
-  onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (link: FileLinkModel) => void;
-  onOpenBrowserUrl?: (url: string) => void;
-}>;
-declare const AgentOutputFileCard: React.FC<{ outputFile: string; hasActivity: boolean; isRunning: boolean; status: string }>;
-/** 原 zpt：代理名色点徽章 */
-declare const AgentColorBadge: React.FC<{ color: string; name: string }>;
+/* ── tombstone〔A1-P1-B10〕：agent 族 13 declare（Ppt/t$/Npt/Opt/l$/kpt/jpt/Mpt + Fpt/Lpt/Rpt/Bpt/zpt）
+ * 实体化 → ./AgentToolBlocks（styles 105957–106139 / 106141–106290 逐字 + 卫星 105162–105185；
+ * roundtrip 三段 EXACT，/tmp/a1r0-p1/p10/）。c$（AgentDetailRow）随 Bpt 隐依赖同批实体化；
+ * Ipt@106140 早以 AGENT_TOOL_ICON 在案（见下），区段切分不重复。消费面改文件头真实 import，调用面逐字不变。 ── */
 /** 原 Xft/Yft：名称哈希色 */
 function hashPaletteColor(name: string): string {
   const palette = ["yellow", "red", "orange", "green", "cyan", "blue", "purple", "pink"];
@@ -1191,7 +1171,9 @@ const FALLBACK_TOOL_ICON = <IconShield className="size-4 shrink-0 text-foregroun
 
 export function FallbackToolView(props: ToolCallViewProps) {
   const { intl } = useIntlContext();
-  const platform = usePlatformService();
+  const platform = usePlatformService() as unknown as PlatformService; /* 〔A1-P1-B10〕型缝：二段断言（Bots 1113 判例）。
+    bundle 真值同一平台对象（Qpt@106659 n = S()）；ime 视角型（selectDirectory 族）与本件消费视角型
+    （ConversationLeaves PlatformService，showTaskNotification 族）各为 A0 期近似，互不兼容，断言归一。 */
   const { toolCallNode, isRunning, statusLabel, errorText, childToolList, displayModel } = props;
   const { toolCall } = toolCallNode;
   const kindLabel = toolCall.kind.length > 0 ? toolCall.kind[0].toUpperCase() + toolCall.kind.slice(1) : toolCall.kind;
