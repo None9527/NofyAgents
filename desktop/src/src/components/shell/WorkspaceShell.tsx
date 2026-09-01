@@ -218,6 +218,7 @@ import { taskEntityKey } from '../../modules/StoresDeep';
 import { type TerminalService } from '../../modules/TerminalPane'; // A0-CLEANUP4：WorkspaceServices.terminalService 型（注册表透传面）
 import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle, type UpdateState } from '../../modules/TopBar';
 import { WebRemoteMobileShell, type MobileHomeResult, type TaskMeta as WebRemoteTaskMeta, type WebRemoteSwitcherService } from '../../modules/WebRemote';
+import type { CodeViewerSource, FileTreeRequest, RemoteLogsByWorkspaceKey, SidebarUser, ThemeId } from './Sidebar'; // 〔A1-P2-B7〕Sidebar 型收敛五族 canonical 改指（onOpenCodeViewer/fileTreeOpenRequest/logs/user/theme）；值面 rVt 改指待族 5（switcher）闭合——见下方 declare 注
 import { useBaseServices, useServices, useResolvedWorkspaceServices as useWorkspaceServicesResolver } from '../../modules/services'; // 〔A1-P2-B2〕+useWorkspaceServicesResolver（原 Dc ≡ services/remoteServices useResolvedWorkspaceServices 真身，删碑见下 tabs 域）
 import { useFeedbackStore, useSettingsStore, getSessionById as getRemoteSessionRegistryEntry } from '../../modules/stores-core'; // 〔A1-P2-B2〕+getRemoteSessionRegistryEntry（原 tc ≡ stores/sessionRegistryStore getSessionById 真身，删碑见下）
 import { useWorkspaceTabStore as useWorkspaceTabs, useWorkspaceTabStoreApi as useWorkspaceTabsStore, isWorkspaceKindTab as isWorkspaceTab, hasUnavailableLocalDirectoryTab as isWorkspaceUnavailableLocalDirectory, type WorkspaceTab, type WorkspaceTabStoreState } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P2-B2〕原 pc/hc/oc/sc 四件 + WorkspaceTab/WorkspaceTabsState 二型改指 R1 canonical 属主（删碑见下 tabs 域；别名保留本地调用名，R1/R2/R3 判例）
@@ -704,6 +705,27 @@ declare function useActiveTaskMeta(input: {
   selectedProvider: string;
   intl: IntlShape;
 }): ActiveTaskMeta;
+/* ── 〔A1-P2-B7〕R40 §六.4 跨轨交接预登：Uge ≡ useTaskSessionRecord（主树 R40 已转录至
+ *    modules/SessionRecordCore.ts 尾部，导出面在位；泳道基线早于 R40 不见该叶，故立过渡
+ *    declare 预登。〔编排方合并核验〕：canonical 在位实证 = SessionRecordCore@128
+ *    export function useTaskSessionRecord(e,t,n,r,i) 五参签名与本过渡面恰合（R40 逐字
+ *    24574-24599）；本文件当前零消费（预登面），e_e 转录时改真实导入即成）。bundle 真形 24574-24599 逐字：
+ *    Uge(workspacePath, sessionId, workspaceRemoteSessionId, workspaceIdentity,
+ *    activeTaskMeta) = Ag 服务束 readSession({ workspacePath, workspaceIdentity,
+ *    sessionId, messageLimit: 1 }) → Pge 映射 → Hge taskId 匹配过滤；返回 record|null。
+ *    消费面 = e_e 真身内 24787 `l = Uge(e, t, n, r, c)`（本文件 useActiveTaskMeta
+ *    declare 之真身，长链留批件）；参形逐点对齐 e_e 解构面（24772-24777）与上方
+ *    useActiveTaskMeta 输入型。过渡 declare（最小面）：e_e 转录时改真实导入
+ *    （R1 判例，调用面逐字不变）；返回型复用本文件 resolvedActiveTaskMeta 富面——
+ *    束真 c ?? l 同器互用（24788 $ge(c ?? l)），Pge@24501 会话回退支恒含
+ *    title/createdAt/updatedAt（上方 ActiveTaskMeta 注在案）。 ── */
+declare function useTaskSessionRecord(
+  workspacePath: string,
+  sessionId: string | null,
+  workspaceRemoteSessionId: string | undefined,
+  workspaceIdentity: string | undefined,
+  activeTaskMeta: ActiveTaskMeta["resolvedActiveTaskMeta"],
+): ActiveTaskMeta["resolvedActiveTaskMeta"];
 declare function useProviderConfigFile(
   workspaceAbsPath: string,
   provider: string | null,
@@ -1207,7 +1229,7 @@ const SIDEBAR_KEYBOARD_STEP_PX = 16;  // 原 iJt
 const SIDEBAR_PANEL_WIDTH_VAR = "--workspace-sidebar-panel-width"; // 原 aJt
 const SIDEBAR_WIDTH_VAR = "--workspace-sidebar-width";             // 原 oJt
 const SIDE_PANE_AUTO_COLLAPSE_THRESHOLD_PX = 480; // 原 sJt
-const EMPTY_LOGS_BY_WORKSPACE_KEY: Record<string, unknown> = {}; // 原 cJt
+const EMPTY_LOGS_BY_WORKSPACE_KEY: RemoteLogsByWorkspaceKey = {}; // 原 cJt；〔A1-P2-B7〕logs 族收敛：改指 Sidebar canonical 型（束真与 eVt 同器 = {}）
 const EMPTY_REMOTE_WORKSPACE_SESSIONS: RemoteWorkspaceSessionLike[] = []; // 原 lJt
 const SIDEBAR_AUTO_COLLAPSE_THRESHOLD_PX = 360; // 原 uJt：会话列窄于此自动收侧栏
 const RESIZE_DEBOUNCE_MS = 300; // 原 dJt
@@ -1398,7 +1420,8 @@ function useCollapsiblePanel(input: {
 
 function resolveAutomationsRunTab(input: {
   workspacePath: string;
-  workspaceIdentity?: string;
+  /* 〔A1-P2-B7〕onSelectTask 族收敛：null 支收入（束真 dr 184757 透传 n，体内 ?.trim() 本就 null 安全） */
+  workspaceIdentity?: string | null;
   activateTabByPath(path: string, options?: { workspaceIdentity?: string }): boolean;
   addLocalWorkspaceTab(path: string): void;
 }): { accepted: boolean; openedLocalTab?: boolean; reason?: string } {
@@ -1469,7 +1492,7 @@ export { SidebarSessionDropProvider, useSidebarSessionDrop, type SidebarSessionD
 
 /** 原 rVt Sidebar（F01 根，js 159137-160322 / jsx 132075）：
  *  aside flex h-full flex-col = h-12 drag 条 + 导航 4 行 + 分段行 + 任务/项目列表 + 页脚 */
-declare const Sidebar: React.FC<Record<string, unknown>>; // 属主 Sidebar.tsx 已导出 WorkspaceSidebar（rVt，@3664）；〔A1-P2-B6〕实测改指（WorkspaceSidebar as Sidebar）触发调用面 3052 区 11 处型失配（3067–3087：onSelectTask null 支 / onOpenCodeViewer CodeViewerSource / fileTreeOpenRequest 形 / onCreateTask 形 / WebRemoteSwitcherService≠WebRemoteSwitcher / theme string≠ThemeId / logs Record 值形 / user unknown 等），需 WS↔Sidebar 双面型收敛（跨文件裁定 canonical 面），非改指可闭——长链留批，证存 /tmp/a1r0-p2/tsc-inner-p2b6-sidebar-probe.log
+declare const Sidebar: React.FC<Record<string, unknown>>; // 属主 Sidebar.tsx 已导出 WorkspaceSidebar（rVt，@3664）；〔A1-P2-B6〕实测改指触发 11 处型失配（证存 /tmp/a1r0-p2/tsc-inner-p2b6-sidebar-probe.log）。〔A1-P2-B7〕型收敛探针批：11 失配五族逐族取证，10 族已收敛（onSelectTask 四参 null 支 / onOpenCodeViewer canonical 迁 Sidebar / fileTreeOpenRequest 改指 FileTreeRequest / onCreateTask initialPrompt 形 / theme 改指 ThemeId / 远端三回调死面放宽 / logs 改指 RemoteLogsByWorkspaceKey / user 改指 SidebarUser，双面型缝见文件头导入块与 Sidebar 各注）；残 1 族＝switcher（WebRemoteSwitcherService 生产面 vs WebRemoteSwitcher 消费面，型别分叉在属外两叶 components/remote/WebRemote ↔ components/shell/SidebarLeaves，非本泳道可闭）——改指待该族闭合后一行即成，证存 /tmp/a1r0-p2/tsc-inner-p2b7-sidebar-probe2.log + A1-P2-B7.report.md §七
 
 /** 原 xqt SidePanel（F04 根，js 182519-183363 / jsx 147333）：
  *  右侧多标签面板（文件树/Git/白板/轨迹/子代理目录…）。
@@ -1577,10 +1600,10 @@ interface WorkspaceShellProps {
   onReconnectRemoteWorkspace?: (...args: unknown[]) => void;
   onLogout?: () => void;
   onLogin?: () => void;
-  user?: unknown;
+  user?: SidebarUser | null; // 〔A1-P2-B7〕user 族收敛：改指 Sidebar canonical（生产面 OnboardingLoginLeaves.UserInfo 对本面可赋）
   reconnectingRemoteWorkspaceKeys?: string[];
   remoteWorkspaceErrorByWorkspaceKey?: Record<string, string>;
-  reconnectingRemoteWorkspaceLogsByWorkspaceKey?: Record<string, unknown>;
+  reconnectingRemoteWorkspaceLogsByWorkspaceKey?: RemoteLogsByWorkspaceKey; // 〔A1-P2-B7〕logs 族收敛
   onCreateTask?: (options?: { initialPrompt?: string }) => void;
   onCreateConversationTask?: (options?: { initialPrompt?: string }) => void;
   onResolveConversationWorkspace?: () => Promise<string>;
@@ -1603,7 +1626,7 @@ interface WorkspaceShellProps {
   isMacDesktop: boolean;
   isWindowsDesktop: boolean;
   workspaceShellZCodeState: WorkspaceStateSlice;
-  theme: string;
+  theme: ThemeId; // 〔A1-P2-B7〕theme 族收敛：束真 = settings store ThemeMode（modules/Settings @335，与 ThemeId 逐字同族）
   isMacFullscreen: boolean;
   desktopWindowChromeState: DesktopWindowChromeState | null;
   macWindowControlsLeftPaddingPx?: number;
@@ -1663,7 +1686,9 @@ interface WorkspaceShellProps {
   reloadSessionDisabled: boolean;
   reloadSessionPending: boolean;
   handleReloadSession: (options?: { provider?: string; resumeTaskId?: string }) => void;
-  handleSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string) => void;
+  /* 〔A1-P2-B7〕onSelectTask 族收敛：第三参收 null 支（束真 dr 末行 tt(e, t, n) 之 n 可 null；
+   * 供面 WorkspaceRoot.handleSelectTask 本就 string | null 面） */
+  handleSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string | null) => void;
   handleTaskNavBack: () => void;
   handleTaskNavForward: () => void;
   handleStartDraftInWorkspace: (workspacePath: string, workspaceIdentity?: string, purpose?: string) => void;
@@ -1716,16 +1741,9 @@ interface SearchResultHighlightRequest {
   [key: string]: unknown;
 }
 
-interface CodeViewerSource {
-  type: string;
-  title?: string;
-  path?: string;
-  /* A0-CLEANUP4：workspace 三字段容 null——上游 FileLinkModel（MHe）即 string | null 面 */
-  workspacePath?: string | null;
-  workspaceIdentity?: string | null;
-  workspaceRemoteSessionId?: string | null;
-  [key: string]: unknown;
-}
+/* ── tombstone（〔A1-P2-B7〕onOpenCodeViewer 族收敛）：本地 CodeViewerSource 界面删除 →
+ * 改指 Sidebar 导出面（文件头导入块）——该型为 Sidebar onOpenCodeViewer prop 消费面
+ * 真形（rVt 160550 展布构造），属主＝Sidebar；本文件消费面（641/1705/2685 等）逐字不变。 ── */
 
 interface TaskFindDialogProps {
   open: boolean;
@@ -1920,7 +1938,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
   const [primaryDraftDropTargetController, setPrimaryDraftDropTargetController] =
     React.useState<PrimaryDraftDropTargetController | null>(null); // 原 [Yt, Xt]
   const fileTreeOpenRequestIdRef = React.useRef(0); // 原 Zt
-  const [fileTreeOpenRequest, setFileTreeOpenRequest] = React.useState<{ id: number; target: unknown } | null>(null); // 原 [Qt, $t]
+  const [fileTreeOpenRequest, setFileTreeOpenRequest] = React.useState<{ id: number; target: FileTreeRequest } | null>(null); // 原 [Qt, $t]；〔A1-P2-B7〕fileTreeOpenRequest 族收敛：target 改指 Sidebar FileTreeRequest canonical
   const [isFileTreeOpen, setIsFileTreeOpen] = React.useState(false); // 原 [en, tn]
   const [isMobileViewport, setIsMobileViewport] = React.useState(isMobileViewportNow); // 原 [nn, rn]
   const [isWebRemoteNavDragging, setIsWebRemoteNavDragging] = React.useState(false); // 原 [an, on]
@@ -2428,8 +2446,8 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
     [workspaceIdentity, workspaceTabs],
   );
 
-  /** 原 ar（184419）：文件树打开请求（自增 id） */
-  const requestFileTreeOpen = React.useCallback((request: { target: unknown }) => {
+  /** 原 ar（184419）：文件树打开请求（自增 id）；〔A1-P2-B7〕族收敛：入参 target 改指 FileTreeRequest */
+  const requestFileTreeOpen = React.useCallback((request: { target: FileTreeRequest }) => {
     fileTreeOpenRequestIdRef.current += 1;
     setFileTreeOpenRequest({ id: fileTreeOpenRequestIdRef.current, ...request });
   }, []);
@@ -2487,7 +2505,9 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
    *  非远控壳时先裁决目标工作区 tab（远程未连接 → toast 并保留当前页），
    *  再走 MTt 分屏路由，最后切 chat + handleSelectTask。 */
   const handleSelectTaskAcrossWorkspaces = React.useCallback(
-    (targetWorkspacePath: string, sessionId: string, targetIdentity?: string, explicitRemoteSessionId?: string) => {
+    // 〔A1-P2-B7〕onSelectTask 族收敛：三四参收 null 支（束真 dr：n=workspaceIdentity 可 null——
+    // tt 调用面 P 域；r=explicitRemoteSessionId——fr 184795 传 e.remoteSessionId 可 null）
+    (targetWorkspacePath: string, sessionId: string, targetIdentity?: string | null, explicitRemoteSessionId?: string | null) => {
       if (!isWebRemoteControlShell) {
         const resolution = resolveAutomationsRunTab({
           workspacePath: targetWorkspacePath,
@@ -4669,10 +4689,10 @@ interface WorkspaceRootProps {
   onReconnectRemoteWorkspace?: (...args: unknown[]) => void;
   onLogout?: () => void;
   onLogin?: () => void;
-  user?: unknown;
+  user?: SidebarUser | null; // 〔A1-P2-B7〕user 族收敛（生产面 OnboardingLoginLeaves.UserInfo 对本面可赋——displayName/username/id 同名可容 + index 余面）
   reconnectingRemoteWorkspaceKeys?: string[];
   remoteWorkspaceErrorByWorkspaceKey?: Record<string, string>;
-  reconnectingRemoteWorkspaceLogsByWorkspaceKey?: Record<string, unknown>;
+  reconnectingRemoteWorkspaceLogsByWorkspaceKey?: RemoteLogsByWorkspaceKey; // 〔A1-P2-B7〕logs 族收敛（生产面 RemoteConnectionLogEntry[] 对本面可赋）
   remoteConnectionLogs?: unknown[];
   onCreateTask?: (options?: { initialPrompt?: string }) => void;
   onCreateConversationTask?: (options?: { initialPrompt?: string }) => void;

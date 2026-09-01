@@ -236,7 +236,9 @@ interface IntlShape {
 }
 declare function useIntlContext(): { intl: IntlShape; locale: string; localePreference: LocalePreference; setLocalePreference: (v: LocalePreference) => void };
 type LocalePreference = "system" | "zh-CN" | "en-US";
-type ThemeId = "light" | "dark" | "zai-light" | "zai-dark" | "system";
+/* 〔A1-P2-B7〕export：WS 消费面 theme 参数改指本型（束真 = settings store ThemeMode，
+ * modules/Settings @335 逐字同族）；与 WorkspaceShell 双面收敛（theme 族）。 */
+export type ThemeId = "light" | "dark" | "zai-light" | "zai-dark" | "system";
 
 /** 桌面平台服务（原 l()，imeComposition chunk）——侧栏用到的子集 */
 interface PlatformService {
@@ -2491,8 +2493,11 @@ export function TimelineTasksSection({
 declare const WORKSPACE_LOGO_PALETTES: Record<string, unknown>;
 
 /** 原 FBt（158029 / 131404）：远程重连日志 popover（自动滚底） */
+/* 〔A1-P2-B7〕logs 族收敛：条目型收生产面真形（OnboardingLoginLeaves.RemoteConnectionLogEntry：
+ * id 可选 / timestamp string | number / label、requestId 余面）——本面为消费端，
+ * 渲染仅 key={log.id}（React key 容 undefined）与 {log.timestamp}（number 可渲染），束真不变。 */
 export function RemoteConnectionLogsPopover({ logs, children }: {
-  logs: Array<{ id: string; timestamp: string; level: "info" | "success" | "warn" | "error" | string; message: string }>;
+  logs: Array<RemoteLogEntry>;
   children?: React.ReactNode;
 }) {
   const { intl } = useIntlContext();
@@ -2796,7 +2801,7 @@ interface WorkspaceSidebarItemProps {
   onShowMoreTasks: () => void;
   reconnectingRemoteWorkspaceKeys: string[];
   remoteWorkspaceErrorByWorkspaceKey: Record<string, string | undefined>;
-  reconnectingRemoteWorkspaceLogsByWorkspaceKey: Record<string, Array<{ id: string; timestamp: string; level: string; message: string }>>;
+  reconnectingRemoteWorkspaceLogsByWorkspaceKey: RemoteLogsByWorkspaceKey; // 〔A1-P2-B7〕logs 族收敛：改指下方 canonical 型
   onReconnectRemoteWorkspace: (workspaceKey: string) => void;
   onOpenFileTree?: (request: { workspacePath: string; workspaceName?: string; workspaceIdentity?: string | null; workspaceRemoteSessionId?: string | null }) => void;
   itemRef?: (el: HTMLElement | null) => void;
@@ -3615,34 +3620,70 @@ export function WsEnumSection(props: {
  * ==========================================================================*/
 
 const EMPTY_TASK_ITEMS: TaskMeta[] = []; // 原 $Bt（159112）
-const EMPTY_REMOTE_LOGS: Record<string, Array<{ id: string; timestamp: string; level: string; message: string }>> = {}; // 原 eVt
+/* 〔A1-P2-B7〕logs 族 canonical：条目真形按生产面（OnboardingLoginLeaves.RemoteConnectionLogEntry，
+ * js 域 F12：id 可选 / timestamp string | number / label、requestId 余面不入消费面）；
+ * 消费仅 key={log.id} + {log.timestamp} + level 配色 + message 文本（FBt 158029）。
+ * WS 双面（EMPTY_LOGS_BY_WORKSPACE_KEY / 两级 props）改指本型。 */
+export interface RemoteLogEntry { id?: string; timestamp: string | number; level: string; message: string }
+export type RemoteLogsByWorkspaceKey = Record<string, RemoteLogEntry[]>;
+const EMPTY_REMOTE_LOGS: RemoteLogsByWorkspaceKey = {}; // 原 eVt
+
+/* 〔A1-P2-B7〕onOpenCodeViewer 族 canonical（自 WorkspaceShell 本地面迁入，属主＝本 prop 消费面）：
+ * rVt 文件树滑层包装（160550）构造 {...request, workspacePath, workspaceIdentity,
+ * workspaceRemoteSessionId} 传入——三 workspace 字段容 null（A0-CLEANUP4：上游
+ * FileLinkModel（MHe）即 string | null 面）；index 签名容 FileTreePanel 预览节点余面
+ * （mediaType 等）。WS handleOpenCodeViewer 改指导入本型（调用面逐字不变）。 */
+export interface CodeViewerSource {
+  type: string;
+  title?: string;
+  path?: string;
+  workspacePath?: string | null;
+  workspaceIdentity?: string | null;
+  workspaceRemoteSessionId?: string | null;
+  [key: string]: unknown;
+}
 
 interface WorkspaceSidebarProps {
   workspacePath: string;
   workspaceRemoteSessionId?: string | null;
   activePreviewPath?: string | null;
-  onSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string | null) => void;
+  /* 〔A1-P2-B7〕onSelectTask 族收敛：束真 dr 四参（184753：e=workspacePath / t=sessionId /
+   * n=workspaceIdentity（null 支：n?.trim()）/ r=explicitRemoteSessionId（fr 184795 传
+   * e.remoteSessionId，null 支））；子裔调用面 ≤3 参（159243/159328），第四参可选闭合。 */
+  onSelectTask: (workspacePath: string, sessionId: string, workspaceIdentity?: string | null, explicitRemoteSessionId?: string | null) => void;
   onStartDraftInWorkspace: (workspacePath: string, workspaceIdentity?: string | null) => void;
-  onOpenCodeViewer?: (request: Record<string, unknown>) => void;
+  onOpenCodeViewer?: (source: CodeViewerSource) => void;
   onOpenBrowserUrl?: (url: string) => void;
-  fileTreeOpenRequest?: { target: string } | null;
-  onCreateTask: (opts?: { groupedDraftPlacement: GroupedDraftPlacement }) => void;
+  /* 〔A1-P2-B7〕fileTreeOpenRequest 族收敛：束真 Qt=[id,target]（ar 184419 自增 id），
+   * rVt 消费 s.target（159559 Ne(s.target)），target 真形＝富对象（Me.workspacePath/
+   * Me.workspaceIdentity 159627-159633 + WS 三调用面 2724/2735/2764）——改指 FileTreeRequest。 */
+  fileTreeOpenRequest?: { id: number; target: FileTreeRequest } | null;
+  /* 〔A1-P2-B7〕onCreateTask 族收敛：束真 rVt 内仅 c() 无参调用（160120），真身 cr 收
+   * {initialPrompt}（ur 184747 cr({initialPrompt: e})）；原 groupedDraftPlacement 形属
+   * 任务分组域他面（154061 hzt），非本 prop——误归更正。 */
+  onCreateTask: (options?: { initialPrompt?: string }) => void;
   onCreateConversationTask?: () => void;
   onOpenFolderFromWorkspaceMenu?: () => void;
   onOpenRemoteWorkspace?: () => void;
-  /* A0-CLEANUP4：收 SidebarLeaves WebRemoteSwitcher 面——WebRemoteTaskListSection（原 mLt）switcher 同形 */
+  /* A0-CLEANUP4：收 SidebarLeaves WebRemoteSwitcher 面——WebRemoteTaskListSection（原 mLt）switcher 同形。
+     〔A1-P2-B7〕留批族：生产面 WebRemoteSwitcherService（components/remote/WebRemote @317：
+     listWorkspaces→Promise<MobileHomeResult>，WebRemoteWorkspaceInfo.workspacePurpose 含 null）
+     与本消费面（SidebarLeaves @3337：Promise<WebRemoteTaskIndex>，workspacePurpose 无 null）
+     型别分叉在属外两叶，非本泳道可闭——证见 A1-P2-B7.report.md §七。 */
   webRemoteControlWorkspaceSwitcher?: WebRemoteSwitcher | null;
   theme: ThemeId;
-  onConnectRemote?: () => void;
-  onSelectRemoteProject?: () => void;
-  onCancelRemoteProject?: () => void;
+  /* 〔A1-P2-B7〕远端三回调族收敛：rVt 内零消费（AST 全量取证：无调用、无下传）＝死面透传，
+   * 型按 WS 属主调用面（185283-185285 传入真形）放宽登记；RemoteTarget 用本文件 @340 面。 */
+  onConnectRemote?: (target: RemoteTarget, requestId: string) => Promise<string | null>;
+  onSelectRemoteProject?: (sessionId: string, path: string, localWorkspacePath?: string) => Promise<void>;
+  onCancelRemoteProject?: (sessionId: string) => Promise<void>;
   onReconnectRemoteWorkspace?: (workspaceKey: string) => void;
   onLogout?: () => void;
   onLogin?: () => void;
   user?: SidebarUser | null;
   reconnectingRemoteWorkspaceKeys?: string[];
   remoteWorkspaceErrorByWorkspaceKey?: Record<string, string | undefined>;
-  reconnectingRemoteWorkspaceLogsByWorkspaceKey?: Record<string, Array<{ id: string; timestamp: string; level: string; message: string }>>;
+  reconnectingRemoteWorkspaceLogsByWorkspaceKey?: RemoteLogsByWorkspaceKey;
   isDesktop?: boolean;
   isWebRemoteControl?: boolean;
   isMacDesktop?: boolean;
@@ -3785,7 +3826,8 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
   }, [onOpenAutomations]);
   /* ---- 副作用：文件树请求/偏好持久化/视图模式联动 ---- */
   React.useEffect(() => {
-    if (fileTreeOpenRequest) { setFileTreeRequest(fileTreeOpenRequest.target as unknown as FileTreeRequest); setFileTreeOpen(true); }
+    /* 〔A1-P2-B7〕fileTreeOpenRequest 族收敛：prop target 已改指 FileTreeRequest，原双断言（A0-CLEANUP3 3b）删除 */
+    if (fileTreeOpenRequest) { setFileTreeRequest(fileTreeOpenRequest.target); setFileTreeOpen(true); }
   }, [fileTreeOpenRequest]);
   React.useEffect(() => { onFileTreeOpenChange?.(fileTreeOpen); }, [fileTreeOpen, onFileTreeOpenChange]);
   React.useEffect(() => () => onFileTreeOpenChange?.(false), [onFileTreeOpenChange]);
@@ -4491,7 +4533,9 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
             onOpenRepoWiki={onOpenRepoWiki && !fileTreeRequest.temporaryExternalDirectory ? handleOpenRepoWikiForFileTree : undefined}
             onOpenBrowserUrl={isDesktop ? onOpenBrowserUrl : undefined}
             repoWikiActive={repoWikiActiveForFileTree}
-            onOpenPreview={(request: Record<string, unknown>) => {
+            /* 〔A1-P2-B7〕onOpenCodeViewer 族收敛：入参面改指 FileTreePanel onOpenPreview 真形
+             * （modules/FileTreePanel：{ type; title; path; mediaType? }），展布结果对上 prop CodeViewerSource */
+            onOpenPreview={(request: { type: string; title: string; path: string; mediaType?: string }) => {
               onOpenCodeViewer?.({
                 ...request,
                 workspacePath: fileTreeRequest.workspacePath,
@@ -4513,8 +4557,9 @@ declare function isTaskWorkspaceTab(tab: WorkspaceTab): boolean;
 declare function useCodingPlanUpgrade(): { openCodingPlanUpgrade(args: { providerId: string | null | undefined; funnelContext: unknown }): void };
 /** 原 G6 的页脚用法：远控状态轮询（含 mobileViewState） */
 declare function useWebRemoteControlStatusPolling(args: { enabled: boolean }): WebRemoteControlStatus & { mobileConnected: boolean; mobileViewState?: { activeWorkspaceKey?: string; activeTaskId?: string } | null };
-/** 文件树打开请求（原 fileTreeOpenRequest.target 的结构） */
-interface FileTreeRequest {
+/** 文件树打开请求（原 fileTreeOpenRequest.target 的结构）
+ * 〔A1-P2-B7〕export：WS fileTreeOpenRequest 态 / requestFileTreeOpen 入参改指本型（族收敛） */
+export interface FileTreeRequest {
   workspacePath: string;
   workspaceName?: string;
   workspaceIdentity?: string | null;
@@ -4709,7 +4754,8 @@ export function WebRemoteControlTrigger(props: Parameters<typeof WebRemoteContro
 
 /* ---- 用户名 / 用量（原 yRt/bRt/xRt/uRt/dRt/fRt/mRt/hRt/gRt，js 150230–150434） ---- */
 
-interface SidebarUser { displayName?: string | null; username?: string | null; avatarUrl?: string | null; id?: string; [key: string]: unknown }
+/* 〔A1-P2-B7〕export：WS 两级 user 面改指本型（族收敛；生产面 OnboardingLoginLeaves.UserInfo 对本面可赋） */
+export interface SidebarUser { displayName?: string | null; username?: string | null; avatarUrl?: string | null; id?: string; [key: string]: unknown }
 /** 原 yRt（150426）：用户名解析（displayName > username > ZCode） */
 function resolveUserName(user: SidebarUser | null | undefined): string {
   return user?.displayName?.trim() || user?.username?.trim() || "ZCode";
