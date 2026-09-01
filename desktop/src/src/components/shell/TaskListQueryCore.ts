@@ -11,6 +11,8 @@
 //   （/tmp/a1r0-p3/p3-roundtrip.js）；函数体内 61 局部保留混淆名（B5 约定）。
 // 型缝 14 处全型层（/tmp/a1r0-p3/p3-seam-log.txt）：P1×13 顶层函数参数宽化 :any（真身缺位调用面逐字优先）；
 //   P2×1 WeakMap<object, any>（hydratedItemWeakMap 键面 = 服务对象，宽化）。
+//   〔A1-P3-B2〕+1 S16：useHydratingSessions 内 e.sort 回调参数宽化（mergeSessionTaskIndexItem 真身回面
+//   Record<string,unknown>，原 declare any 契据；见体注）。
 //
 // 映射表（minified → 语义名 → bundle 定义行 → 属主）：
 //   【区内顶层（本叶实体）】
@@ -29,15 +31,16 @@
 //   Ec→useBaseServices（modules/services；styles 4945）
 //   Io→taskWorkspaceKey | Fo→compareTasks | Ro→dedupeWorkspaceScopes | Lo→taskEntityKey
 //   zie→normalizeSearchDescriptor | Bie→descriptorCacheKey（stores/searchResultsHelpers；1368/1365/1374/1371/1385/1396）
-//   【declare 群（属主未实体化，留批；型面宽化 any）】
+//   【declare 群（〔A1-P3-B1〕§0；B2 已闭合 15 件改指真身，见 tombstone；余 3 件留批；型面宽化 any）】
 //   qS→sessionSubscriptionKey(35543) | GS→sessionStoreKey(35529) | KS→resolveSessionScope(35535)
 //   WS→sessionScopeWorkspaceKey(35526) | QAe→SessionStoreReconciler(35455 class) | eje→isSessionStoreHydrating(35546)
-//     ——属主：会话注册表订阅基建（styles 35405–35551，zS/BS/VS/HS/US 族；消费面 159199+ 工作区侧栏域），留批
+//     ——属主：会话注册表订阅基建（styles 35405–35551）；B2 闭合：qS/GS/KS/WS/eje→./SessionStoreCore 逐字、
+//       QAe→modules/services WorkspaceSubscriptionSet（sessionIndex A0-S4-5 语义重建）
 //   jOe→mergeSessionTaskIndexItem(32679) | dx→useOptimisticMembershipVersion(32327)
 //   px→invalidateTaskIndexOnEvent(32364) | rx→isOptimisticMembershipEvent(32265) | ux→syncTaskStatusUnread(32308)
 //   sOe→hasOptimisticTaskMeta(32285) | oOe→isOptimisticCoveredEvent(32273) | Ex→readTaskIndexCache(32536)
 //   Ox→buildTaskListFromIndex(32648)
-//     ——属主：任务索引/乐观事件族（styles 32259–32700；regions.tsv 32140–33875 行 = QuickPickDeep/SidebarLeaves 域），留批
+//     ——属主：任务索引/乐观事件族（styles 32249–32721）；B2 闭合：九件 → ./TaskIndexCore 逐字真身
 //   gc→remoteSessionIdOfTab(4814) | vc→resolveTabServicesEntry(4825) | _c→taskQueryScopeOfTab(4822)
 //     ——属主：工作区标签 store 簇（styles 4397–4997；WorkspaceShell/TabStore 域，P2 泳道邻域），留批
 //     （gc/_c 同面 declare 亦在 components/shell/Sidebar.tsx:1129/1131，双域同注一致）
@@ -48,44 +51,22 @@ import { useSessionRegistryStore } from '../../modules/stores-core'; // 原 Zs�
 import { useSearchResultsStore, selectQueryResult } from '../../stores/searchResultsStore'; // 原 Vo/Zie（styles 1553/1878；canonical 面 components/quickpick/QuickPick 转导出）
 import { useBaseServices } from '../../modules/services'; // 原 Ec（styles 4945；services/remoteServices 真身转导出）
 import { taskWorkspaceKey as workspaceKey, compareTasks, dedupeWorkspaceScopes, taskEntityKey, normalizeSearchDescriptor, descriptorCacheKey } from '../../stores/searchResultsHelpers'; // 原 Io/Fo/Ro/Lo/zie/Bie（styles 1368/1365/1374/1371/1385/1396；R9/R10 逐字转录在案）
+import { sessionSubscriptionKey, sessionStoreKey, resolveSessionScope, sessionScopeWorkspaceKey, isSessionStoreHydrating } from './SessionStoreCore'; // 〔A1-P3-B2〕原 qS/GS/KS/WS/eje（styles 35543/35529/35535/35526/35546）收敛改指逐字真身叶（ROUNDTRIP EXACT 在案）
+import { WorkspaceSubscriptionSet as SessionStoreReconciler } from '../../modules/services'; // 〔A1-P3-B2〕原 QAe（styles 35455）收敛改指 services/sessionIndex（A0-S4-5 语义重建 554；类面同形 reconcile/getStore/size/dispose）
+import { mergeSessionTaskIndexItem, useOptimisticMembershipVersion, invalidateTaskIndexOnEvent, isOptimisticMembershipEvent, syncTaskStatusUnread, hasOptimisticTaskMeta, isOptimisticCoveredEvent, readTaskIndexCache, buildTaskListFromIndex } from './TaskIndexCore'; // 〔A1-P3-B2〕原 jOe/dx/px/rx/ux/sOe/oOe/Ex/Ox（styles 32678/32327/32363/32264/32307/32284/32271/32534/32647）收敛改指逐字真身叶
 
 /* ── declare 群（〔A1-P3-B1〕§0）：真身未实体化；各注属主与留批去向。型面宽化 any。 ── */
 
-/** 原 qS（js 35543）：会话订阅键（scope 键 + \0path: 后缀）；属主 = 会话注册表订阅基建（35405–35551），留批 */
-declare function sessionSubscriptionKey(scope: any, agentService: any): string;
-/** 原 GS（js 35529）：会话 store 键（workspaceKey+endpointKey → BS）；属主同上，留批 */
-declare function sessionStoreKey(scope: any): string;
-/** 原 KS（js 35535）：完整会话作用域对象（workspaceKey/workspacePath/identity/endpointKey）；属主同上，留批 */
-declare function resolveSessionScope(scope: any): any;
-/** 原 WS（js 35526）：作用域工作区键（identity?.trim() || path）；属主同上，留批 */
-declare function sessionScopeWorkspaceKey(scope: any): string;
-/** 原 QAe（js 35455）：会话 store 订阅调谐器（reconcile/getStore/dispose）；属主同上，留批 */
-declare class SessionStoreReconciler {
-  constructor(onStoreChange: () => void);
-  reconcile(entries: any): any;
-  getStore(args: any): any;
-  dispose(): void;
-}
-/** 原 eje（js 35546）：会话 store 水合中判定（workspaceId null 且 idle/connecting）；属主同上，留批 */
-declare function isSessionStoreHydrating(store: any): boolean;
-/** 原 jOe（js 32679）：会话 → 任务索引项合并（标题优先/状态/未读叠加）；属主 = 任务索引族（32259–32700，QuickPickDeep/SidebarLeaves 域），留批 */
-declare function mergeSessionTaskIndexItem(session: any, args: any): any;
-/** 原 dx（js 32327）：乐观成员资格版本钩子（useSyncExternalStore）；属主同上，留批 */
-declare function useOptimisticMembershipVersion(): any;
-/** 原 px（js 32364）：任务索引事件失效（workspace_task_list_changed → 缓存失效）；属主同上，留批 */
-declare function invalidateTaskIndexOnEvent(args: any): void;
-/** 原 rx（js 32265）：乐观成员资格事件判定；属主同上，留批 */
-declare function isOptimisticMembershipEvent(event: any): boolean;
-/** 原 ux（js 32308）：未读态同步（500ms 防抖）；属主同上，留批 */
-declare function syncTaskStatusUnread(event: any): void;
-/** 原 sOe（js 32285）：事件含乐观任务元数据判定；属主同上，留批 */
-declare function hasOptimisticTaskMeta(event: any): boolean;
-/** 原 oOe（js 32273）：乐观覆盖事件判定（跳过刷新）；属主同上，留批 */
-declare function isOptimisticCoveredEvent(event: any): boolean;
-/** 原 Ex（js 32536）：任务索引缓存读取（cacheKey+endpoints → taskIndexItems/pinnedIds/…）；属主同上，留批 */
-declare function readTaskIndexCache(args: any): Promise<any>;
-/** 原 Ox（js 32648）：任务索引 → 列表构建（成员资格×搜索×排序×可见上限）；属主同上，留批 */
-declare function buildTaskListFromIndex(args: any): any;
+/* ── tombstone〔A1-P3-B2〕：declare sessionSubscriptionKey/sessionStoreKey/resolveSessionScope/
+ *    sessionScopeWorkspaceKey/isSessionStoreHydrating（原 qS/GS/KS/WS/eje）删除 → 改指 ./SessionStoreCore
+ *    逐字真身（styles 35526–35551 转录，ROUNDTRIP EXACT 在案 /tmp/a1r0-p3/p3b2-roundtrip.js）。 ── */
+/* ── tombstone〔A1-P3-B2〕：declare class SessionStoreReconciler（原 QAe）删除 → 改指 canonical =
+ *    modules/services WorkspaceSubscriptionSet（services/sessionIndex.ts 554，A0-S4-5 语义重建；
+ *    类面同形 constructor(onStoreChange)/reconcile/getStore/size/dispose）。 ── */
+/* ── tombstone〔A1-P3-B2〕：declare mergeSessionTaskIndexItem/useOptimisticMembershipVersion/
+ *    invalidateTaskIndexOnEvent/isOptimisticMembershipEvent/syncTaskStatusUnread/hasOptimisticTaskMeta/
+ *    isOptimisticCoveredEvent/readTaskIndexCache/buildTaskListFromIndex（原 jOe/dx/px/rx/ux/sOe/oOe/Ex/Ox）
+ *    删除 → 改指 ./TaskIndexCore 逐字真身（styles 32249–32721 转录，ROUNDTRIP EXACT 在案）。 ── */
 /** 原 gc（js 4814）：标签的远端会话 id 解析；属主 = 工作区标签 store 簇（4397–4997，WorkspaceShell/TabStore 域），留批；同面 declare Sidebar.tsx:1129 */
 declare function remoteSessionIdOfTab(tab: any, sessionMaps: any): string | undefined;
 /** 原 vc（js 4825）：标签服务条目解析（远端服务/本地回退）；属主同上，留批 */
@@ -158,7 +139,7 @@ function useHydratingSessions(e: any) {
           }),
         );
     }
-    e.sort((e, t) => compareTasks(e, t, `updated`));
+    e.sort((e: any, t: any /* 〔A1-P3-B2〕S16 缝：mergeSessionTaskIndexItem 真身回面 Record<string,unknown>（withSessionActivity 型面），原 declare any 契据 */) => compareTasks(e, t, `updated`));
     let o = reusePreviousResult(l.current, e);
     l.current = o;
     let s = [...n].sort(),
