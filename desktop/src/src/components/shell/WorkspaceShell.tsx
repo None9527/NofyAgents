@@ -230,6 +230,7 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-P2
 import { AutomationsMain, RepoWikiView as RepoWikiMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）；〔A1-P2-B9〕+RepoWikiView as RepoWikiMain（原 l3，F16 族根，js 132306-133070）：下方 declare 删碑改指——canonical = ExtendedViews §1 A0 代转录（SidePanel@4354 既接同面），R1 判例别名保留调用名；调用点 2969/3257 逐字不变
 import { AUTOMATIONS_TOAST_ANCHOR_ID as AUTOMATIONS_MAIN_TOAST_ANCHOR_ID } from '../automations/AutomationsMainView'; // 〔A1-P2-B10〕原 c6（138647）——下方锚点 declare 删碑改指 canonical（AutomationsMainView@361 同值真身，l6 toast 同锚消费）；R1 判例别名保留调用名，消费面 main id 逐字不变
 import { useTaskSessionRecord as Uge } from '../../modules/SessionRecordCore'; // 〔A1-P2-B9〕R40 §六.4 接线：原 Uge（styles 24574-24599）过渡 declare 删碑改指真实导入（五参签名恰合，本泳道 stand-in 叶；主树 R40 同名叶合并裁定见叶头注）；别名保留束名，e_e 真身调用面 24787 逐字不变
+import { armMembershipRefreshHold as holdTaskMembershipRefresh, releaseMembershipRefreshHold as releaseTaskMembershipRefreshHold, readMembershipRefreshHoldState as getTaskMembershipRefreshHoldState } from './TaskIndexCore'; // 〔A1-P2-B12〕WS 留批三件改指：原 _Oe 32416/vOe 32428/yOe 32432 ≡ TaskIndexCore 真身（主树 P3-B2 叶 32249–32720 逐字域内，泳道逐字节同拷接入）；R1 判例别名保留调用名，GJt 三消费位逐字不变；删碑见原 declare 处
 import { type GitDataset, type GitPaneState, type GitSourceOption, type GitSummary } from '../../modules/GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
 import { canOpenSessionInSplit, openSessionBesideDraft, openSessionInSplit, sessionRouterStore, splitLayoutStore, type PaneWorkspaceScope, type SessionBinding } from '../../modules/SplitLayoutDeep'; // 原 ATt/MTt/jTt/A2/s2 + 型（A1-R2 引擎重建；A1-R3：ATt/jTt 缓改指解除——第二参按 bundle 扁平形改指）
 import { AppErrorFallback, ScopedErrorFallback, AppErrorBoundary, ScopedErrorBoundary } from './ErrorBoundaryCore'; // 〔A1-P2-B1〕原 QOt/$Ot/ekt/p4 逐字真身（styles js 129749–130008 单一连续原子区，ROUNDTRIP EXACT）；删碑见下 §2
@@ -4841,12 +4842,19 @@ const e2eTaskMembershipProbes = {
   },
 };
 
-/** 原 _Oe/vOe/yOe（任务成员刷新保持，接口级）。〔A1-P2-B10〕探针：bundle 32414–32434 持模块态
- * mx（hold 句柄）/hx（armed/enteredCallCount/released 计数）+ TOe 依赖 + bOe 等待消费面——
- * 模块态簇不可在 WS 单叶复制，canonical 属所 = 任务成员域（32xxx）未来转录；三 declare 留批。 */
-declare function holdTaskMembershipRefresh(): void;
-declare function releaseTaskMembershipRefreshHold(): void;
-declare function getTaskMembershipRefreshHoldState(): unknown;
+/* ── tombstone〔A1-P2-B12〕：任务成员刷新保持三 declare 删除 → 文件头真实导入（./TaskIndexCore，R1 判例别名保调用名）。
+ *    逐件取证（束真身皆在 TaskIndexCore 转录域 styles 32249–32720 内，主树 P3-B2 叶 472 行整区 EXACT 在案）：
+ *    ① holdTaskMembershipRefresh ≡ _Oe@32416 ≡ armMembershipRefreshHold（叶@221）——重复启动抛错 +
+ *       mx 句柄铸造 + hx 计态重置 + TOe ≡ clearTaskIndexCache 依赖（叶内闭环）；
+ *    ② releaseTaskMembershipRefreshHold ≡ vOe@32428 ≡ releaseMembershipRefreshHold（叶@233）——mx 空守卫 + 态面展开归位 + release()；
+ *    ③ getTaskMembershipRefreshHoldState ≡ yOe@32432 ≡ readMembershipRefreshHoldState（叶@237）——`{ ...hx }` 快照返回。
+ *    模块态单一性：mx@32414/hx@32415 ≡ 叶 membershipRefreshHold/membershipRefreshHoldState（唯一态面，
+ *    本泳道仅导入不复制）；泳道 QuickPickDeep 旧本地簇（mx/hx 同名语义第二份）= 零消费死面（泳道全树扫描在案），
+ *    主树 QuickPickDeep 已于 P3-B3 收敛删簇改指本叶——合并后自然归一，本批不动该叶（避 DnD 孪生候裁区）。
+ *    型缝按消费面推导：三调用位 = GJt 探针对象（4769 调用 / 4772–4773 引用透传，__testActions 索引签名
+ *    [key: string]: unknown 收容）；①② (): void 恰合；③ 返回 {armed, enteredCallCount, released} 快照面
+ *    → declare 旧型 (): unknown 上兼容（宽型收窄面零抑制）。行漂注：叶头注 32411–32434 较实测 32414–32436
+ *    整体偏前（B11 §三 行漂登记同族），本碑引实测行号。 ── */
 /* ── tombstone〔A1-P2-B10〕：describeTaskActivity declare（原 Mo，styles 1311–1313）删除
  *    → 文件头真实导入（sessionActivityOf as describeTaskActivity，../../modules/StoresDeep）。
  *    canonical 同一性：helpers sessionActivityOf ≡ Mo 逐字同（读 __zcodeSessionActivity ?? null，
