@@ -49,8 +49,8 @@
 //   OM/Wct/rWe/iWe/aWe/oWe→./ConversationPaneHelpers 实体化（+aN 内链 resolveModelValueForProvider）
 //   【A1-P1-B7 收敛】mc→import useWorkspaceTabStoreOptional（modules/WorkspaceTabsDeep 693）|
 //   fWe→./ConversationPaneBinding 实体化（53869–54142 逐字）| pWe→./ConversationPaneHelpers 实体化（52927–52930+54143–54259 逐字）
-//   【declare 群（留批）】NM→prepareWorkspaceModelInit | JUe→applyWorkspaceDefaultModel | tWe→useDraftModelConfigSession
-//   （留批证各注：NM/JUe 阻于 Ng settingsConfigOptionsOf 跨域，tWe 阻于 NM+Ag+XUe 链）
+//   【A1-P1-B8 收敛】NM/JUe→./ConversationModelInit 实体化（52799–52926+52934–53249+53415–53464 逐字，R8A ROUNDTRIP EXACT）|
+//   tWe→./ConversationDraftConfig 实体化（53549–53593+53597–53785 逐字，R8B ROUNDTRIP EXACT；XUe/$M 持久化族同叶）
 /* eslint-disable */
 import * as React from "react";
 import * as $ from "react/jsx-runtime"; // 原 $（jsx-runtime-B5yMD3-t.js；A1-R15 判例：编译形 JSX 消费面）
@@ -87,6 +87,8 @@ import { useBillingDiscountCore } from '../usage/UsageDeep'; // 原 fj（51912�
 import { composeProviderModelLabel } from '../settings/SubagentLeaves'; // 原 rN（53789；components/settings/SubagentLeaves 310；〔A1-P1-B4〕export 收敛）
 import { useSessionQuotaViewModel } from './ConversationQuotaModel'; // 原 XCt（119101；A1-P1-B2）
 import { useRuntimeModelBinding } from './ConversationPaneBinding'; // 原 fWe（54101；〔A1-P1-B7〕实体化收敛——真身叶 styles 53869–54142 逐字，含 cWe/lWe/oN/uWe/dWe/sWe 内链）
+import { prepareWorkspaceModelInit, applyWorkspaceDefaultModel } from './ConversationModelInit'; // 原 NM/JUe（52998/53415；〔A1-P1-B8〕实体化收敛——真身叶 styles 52799–52926+52934–53249+53415–53464 逐字，含 bM…HUe 错误模型+卫星族，R8A ROUNDTRIP EXACT）
+import { useDraftModelConfigSession } from './ConversationDraftConfig'; // 原 tWe（53606；〔A1-P1-B8〕实体化收敛——真身叶 styles 53549–53593+53597–53785 逐字，含 XUe/YM…QUe/tN/$Ue/eWe 内链，R8B ROUNDTRIP EXACT）
 
 /* ── declare 群（〔A1-P1-B3〕§0）：真身未实体化或属主未导出；各注属主与留批去向。 ── */
 
@@ -105,18 +107,14 @@ import { useRuntimeModelBinding } from './ConversationPaneBinding'; // 原 fWe�
 /* Bqe/fj/rN：〔A1-P1-B4〕export 收敛——真身 import 见导入面（modules/Composer 1796 / components/usage/UsageDeep 1861 / components/settings/SubagentLeaves 310），declare 删 */
 /* sUe：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 52293 逐字），见导入面，declare 删 */
 /* OM：〔A1-P1-B6〕实体化收敛——真身 ./ConversationPaneHelpers（js 52931 逐字；it→lib/errorUtils extractErrorInfo、Hr→modules/SrcSharedB ZCODE_AGENT_PROVIDER_NOT_READY 树内导出改指），见导入面，declare 删 */
-/** 原 NM（js 52997）：[zcode-model-init] workspace prepare 编排器。〔A1-P1-B7〕留批证（全量）：@52998–53249 252 行 async 编排；
- *  依赖 Ng×4（settingsConfigOptionsOf @24440——主树 modules/SettingsConfigOptions.ts 实体，本工作区无此文件，跨域 export 申请见 B7 报告）+
- *  卫星族 AM/BUe/VUe/jM/MM/HUe（52948–52997，再牵 kM/DM/zUe）+ ge（styles 396 ← skillStore b，待属主裁定）+ Mg（树内）+ 服务面。长链留批 */
-declare function prepareWorkspaceModelInit(args: any): any;
-/** 原 JUe（js 53414）：工作区默认模型应用（setWorkspaceDefaultModel + 草稿面）。〔A1-P1-B7〕留批证（全量）：@53415–53464 50 行；
- *  依赖 Ng×2（同上跨域阻塞）+ Mg（树内）+ 服务面。与 NM 同批收口（阻点唯一 = Ng 跨域）。长链留批 */
-declare function applyWorkspaceDefaultModel(args: any): any;
+/* NM：〔A1-P1-B8〕实体化收敛——真身 ./ConversationModelInit（styles 52799–52926+52934–53249 段逐字，R8A ROUNDTRIP EXACT；
+   错误模型 bM…DM + 卫星族 zUe/kM/AM/BUe/VUe/jM/MM/HUe 同叶；Ng/Mge→SettingsConfigOptions 播种件、
+   ge→SkillStore hasThoughtLevelOption、Cw→StoresDeep normalizeCaptchaCode 改指），见导入面，declare 删 */
+/* JUe：〔A1-P1-B8〕实体化收敛——真身 ./ConversationModelInit（styles 53415–53464 逐字，同叶 R8A 段），见导入面，declare 删 */
 /* eN：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 53594 逐字），见导入面，declare 删 */
-/** 原 tWe（js 53605）：草稿模型配置会话钩子（draftConfig 族 / handleDraftSelect 族面）。〔A1-P1-B7〕留批证（全量）：@53606–53785 180 行；
- *  依赖 NM（留批）+ Ag @24368（settings 域，同 Ng 跨域）+ XUe @53549（→Ie/de/me 链）+ $M/QUe 草稿模式持久化族（53562–53593，自含可先收）+
- *  JM=useAppSettings（树内）/ eN（树内）。长链留批 */
-declare function useDraftModelConfigSession(args: any): any;
+/* tWe：〔A1-P1-B8〕实体化收敛——真身 ./ConversationDraftConfig（styles 53549–53593+53597–53785 段逐字，R8B ROUNDTRIP EXACT；
+   XUe 播种 + YM/XM/ZUe/ZM/QM/$M/QUe 草稿模式持久化族 + tN/$Ue/eWe 水合卫星同叶；
+   Ag→modules/services useSessionService、V→SkillStore readLastAgentModelConfig 改指），见导入面，declare 删 */
 /* nN：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 53786 逐字），见导入面，declare 删 */
 /* Vgt/Hgt：〔A1-P1-B4〕实体化收敛——真身 import 见 ./ConversationPaneHelpers 导入面（js 110053/110060），declare 删 */
 /* rWe/iWe/aWe/oWe：〔A1-P1-B6〕实体化收敛——真身 ./ConversationPaneHelpers（js 53832–53868 逐字；内链 aN 53829 → resolveModelValueForProvider 同叶），见导入面，declare 删 */
