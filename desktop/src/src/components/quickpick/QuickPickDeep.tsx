@@ -119,13 +119,26 @@
  *     u8 组外放置(145103)/d8 组首放置(145109)/bIt 组尾追加(145117)/
  *     xIt 组级移动(145128)/n8 分组视图任务键(144952)；
  *  10. vendored dnd-kit：KX 基线碰撞检测（92249，VENDOR-MANIFEST-LIBS @dnd-kit）。
+ *
+ * ----------------------------------------------------------------------------
+ * 〔A1-P3-B10〕批 10 改指/登记修订（取证见 A1-P3-B10.report.md）
+ * ----------------------------------------------------------------------------
+ *  - ie → 改指：declare readTaskUnreadIndicator 删除，文件头 SkillStore import
+ *    `isTaskUnread as readTaskUnreadIndicator`（canonical = stores/taskStore::isTaskUnread，jsx 246 逐字）。
+ *  - zte → 改指：declare isLockFileExistsError 删除，文件头 SrcSharedA import
+ *    `isFileLockTimeoutError as isLockFileExistsError`（canonical = lib/errorUtils，jsx 136/js 113 逐字）。
+ *  - jo → 登记→A0：canonical 候选 withSessionActivity 型面不合（见 declare 旁注），declare 暂留。
+ *  - sx → 登记→A0：状态面在 commandQueueProtocol §G.1，sx 单独导出缺（见 declare 旁注），declare 暂留。
+ *  - KX → vendor 裁定：styles 91850–94592 = @dnd-kit/core+sortable vendored 区（取证见报告 §三），
+ *    declare dndBaselineCollision 为 vendor 边界占位，不转录。
  * ============================================================================
  */
 
 import * as React from "react";
 import { workspaceKeyOf } from '../../modules/CodeViewer';
-import { logger, useTaskStore, resolveWorkspaceKey } from '../../modules/SkillStore'; // 〔A1-P3-B9〕+resolveWorkspaceKey（原 skillStore-b/jsx 155，styles U 二跳：`H as U` ← skillStore 出口 `b as H`；DnD 族 workspaceScopeKey 消费）
+import { logger, useTaskStore, resolveWorkspaceKey, isTaskUnread as readTaskUnreadIndicator } from '../../modules/SkillStore'; // 〔A1-P3-B9〕+resolveWorkspaceKey（原 skillStore-b/jsx 155，styles U 二跳：`H as U` ← skillStore 出口 `b as H`；DnD 族 workspaceScopeKey 消费）；〔A1-P3-B10〕+isTaskUnread as readTaskUnreadIndicator（原 ie：styles 383 `L as ie` ← skillStore 2494 `ge as L`；canonical = stores/taskStore::isTaskUnread jsx 246 逐字、A0-S4-3 迁；declare 改指，调用点 682 不变）
 import { dedupeWorkspaceScopes, sessionActivityOf, compareTasks as compareTaskRecency, taskEntityKey as entityKeyOf } from '../../modules/StoresDeep'; // +compareTaskRecency/entityKeyOf（A1-R10 2e：原 Fo（1365）/Lo（1371）declare 改指 canonical = helpers compareTasks/taskEntityKey 逐字；调用点 849/1326 与 471/607/720/760/762 逐字不变）
+import { isFileLockTimeoutError as isLockFileExistsError } from '../../modules/SrcSharedA'; // 〔A1-P3-B10〕原 zte（styles 711 `ks as zte` ← src 9949 `te as ks`）；canonical = lib/errorUtils::isFileLockTimeoutError（jsx 136/js 113 逐字，A0-S4-1 实体迁，SrcSharedA 311 再导出）；declare 改指，调用点 949 不变
 import { SessionIndexStore, WorkspaceSubscriptionSet, sessionIndexPoolKey, useBaseServices, type SessionIndexScope } from '../../modules/services';
 /* ── A0-D-Misc 接线：Vo 搜索结果 store 属主 = QuickPick（useSearchResultsStore，QuickPick.tsx 1553–1878） ── */
 import { useSearchResultsStore as SearchResultsStore } from '../../modules/QuickPick'; // 原 Vo（QuickPick.tsx 已实体化）：搜索结果/未读覆盖 store
@@ -229,19 +242,20 @@ interface TaskStoreApi {
     ): void;
   };
 }
-/** 原 ie（skillStore L 导出）：读工作区状态中的任务未读指示 */
-declare function readTaskUnreadIndicator(state: WorkspaceStateLike, taskId: string): boolean;
+/* ── tombstone（A1-P3-B10）：declare readTaskUnreadIndicator（原 ie，styles 383 `L as ie` ← skillStore 2494 `ge as L`）删除，
+ *    改经文件头 SkillStore import `isTaskUnread as readTaskUnreadIndicator` 消费（canonical = stores/taskStore::isTaskUnread，jsx 246 逐字、A0-S4-3 实体迁；
+ *    调用点 682 不变；实参 workspaceState 实型 = WorkspaceTaskState（taskStore getWorkspaceState 2946 返回型），与 canonical 首参同型，WorkspaceStateLike 窄型仅余 TaskStoreApi 死型面）。 ── */
 
 /* A0-D-Misc：原 SearchResultsStoreApi declare 删除——Vo 已改真实 import
  * （QuickPick.useSearchResultsStore，getState() 面逐方法核验兼容）。 */
 
 /* StoresDeep.tsx §A 已实体化的 Vo 合并助手族 */
-declare function attachSessionActivity(meta: TaskMeta, activity: unknown): TaskMeta; // 原 jo
+declare function attachSessionActivity(meta: TaskMeta, activity: unknown): TaskMeta; // 原 jo〔A1-P3-B10 登记→A0：canonical 候选 = stores/searchResultsHelpers::withSessionActivity（jo 1308 逐字，StoresDeep 转导出），惟其型面 (Record<string,unknown>)→Record<string,unknown> 不纳本叶 TaskMeta 型调用面 766/891（同 mergeMetaPreservingActivity 需 as 收口之例）；待 A0 受理泛型/重载签名后改指，本泳道不碰 stores/〕
 /* ── tombstone（A1-R10 2e）：declare compareTaskRecency（原 Fo，1365）/entityKeyOf（原 Lo，1371）删除，
  *    改经文件头 StoresDeep import 消费（canonical = helpers compareTasks/taskEntityKey 逐字）。 ── */
 
 /* services.tsx §G.1 已实体化：未读修订自增（原 sx） */
-declare function bumpUnreadRevision(): void; // 原 sx
+declare function bumpUnreadRevision(): void; // 原 sx〔A1-P3-B10 登记→A0：状态面 ax/ox canonical 所在 = services/commandQueueProtocol §G.1（A0-S4-5 迁，unreadNotifyVersion/unreadNotifyListeners），惟 sx 单独导出缺（其体被内联于 notifyTaskUnreadChange 两分支）；本地转录将致状态双重化（与 cOe/lOe/ux/dx 共享面分裂）故禁；待 A0 补导出（如 bumpUnreadNotificationVersion）后改指，调用点 695 不变〕
 
 /* services.tsx §G.5/G.6 已实体化（SessionIndexScope 改自 services 类型导入，A0-D-Misc） */
 export interface SessionIndexRow {
@@ -942,8 +956,9 @@ export const RUNTIME_RESTART_MAX_DELAY_MS = 5e3; // 原 WAe（34988）
 export const RUNTIME_RESTART_RESET_MS = 3e4; // 原 GAe（34989）
 export const SUBSCRIBE_RETRY_BACKOFF_MS = [250, 1e3, 3e3]; // 原 KAe（34990）
 
-/** 原 zte（src-HCld2afU.js ks 导出）：锁文件存在类错误前置判定（B5-10 领地） */
-declare function isLockFileExistsError(error: unknown): boolean; // 原 zte
+/* ── tombstone（A1-P3-B10）：declare isLockFileExistsError（原 zte，styles 711 `ks as zte` ← src-HCld2afU 9949 `te as ks`）删除，
+ *    改经文件头 SrcSharedA import `isFileLockTimeoutError as isLockFileExistsError` 消费（canonical = lib/errorUtils::isFileLockTimeoutError，jsx 136/js 113 逐字、A0-S4-1 实体迁；
+ *    调用点 949 不变；canonical 参数 (value: any) 包容 (error: unknown) 调用，返回 boolean 同型）。 ── */
 /** 原 qAe（34991）：休眠态订阅错误（锁类 errno / config.json.lock） */
 export function isDormantSubscribeError(error: unknown): boolean {
   if (isLockFileExistsError(error)) return !0;
