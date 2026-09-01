@@ -80,7 +80,7 @@ import { Dialog as DialogRoot, DialogContent, DialogDescription, DialogHeader, D
  *    唯一消费点在 §6 重复转录段（149473–149599，canonical 在 WebRemote.tsx），
  *    随段删除后无引用（该接线本身即错配：签名 (string, string?) 与调用面不符）。 ── */
 import { Spinner } from '../../modules/Home';
-import { Input, isComposingText, toast } from '../../modules/ImeComposition';
+import { Input, isComposingText, toast, usePlatformService } from '../../modules/ImeComposition'; // 〔A1-R46〕+usePlatformService（活面 declare const 形改指；canonical ImeComposition@186 = usePlatform，bundle l ≡ M；R45 既判，型交叉检查见 A1-R46.report.md §二）
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SettingsRow, SettingsSectionCard, Switch } from '../../modules/Settings';
 import { logger } from '../../modules/SkillStore';
 import { useBaseServices } from '../../modules/services';
@@ -104,7 +104,7 @@ import { useZCodeIntl } from '../../modules/I18n'; // IntlProvider：`G` useZCod
  * -------------------------------------------------------------------------- */
 
 /** imeComposition：`P` Input / `M` Spinner / `l` usePlatformService / `A` IME 回车守卫 / `m` toast */
-declare const usePlatformService: () => { openExternal(url: string): void };
+/* ── tombstone〔A1-R46〕：declare usePlatformService（const 形）删除 → 改指 canonical（modules/ImeComposition ≡ ImeComposition@186 = usePlatform@168，bundle l ≡ M；R45 既判）。型交叉检查：消费面仅 @1678 platform.openExternal（canonical 具体成员；返回 void|Promise<void> 对原 void 面兼容——void 返回宽化规则）。证据见 A1-R46.report.md §二。 ── */
 /** A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown，按 BotsDialog 调用面收敛 botsService。 */
 interface BotsServiceLike {
   getConfig(): Promise<BotsConfig>;

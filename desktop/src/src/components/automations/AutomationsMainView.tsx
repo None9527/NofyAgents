@@ -5,7 +5,7 @@ import { ShadcnTooltipProvider as PopoverRoot } from '../../modules/UsageStatsUi
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button, createLucideIcon } from '../../modules/button';
-import { Popover, PopoverContent, PopoverTrigger, toast, type ToastOptions } from '../../modules/ImeComposition'; // ToastOptions 原属 imeComposition chunk（与 toast 同主）
+import { Popover, PopoverContent, PopoverTrigger, toast, type ToastOptions, usePlatformService } from '../../modules/ImeComposition'; // ToastOptions 原属 imeComposition chunk（与 toast 同主）；〔A1-R46〕+usePlatformService（活面 declare 改指，canonical ImeComposition@186，R45 既判；型交叉检查见 A1-R46.report.md §二）
 import { AutomationEditor, OffPeakTaskEditor, type ScheduleRule } from '../../modules/SettingsLeaves'; // A0-CLEANUP3 3b：Automation 三型 scheduleRule 统一
 import { logger } from '../../modules/SkillStore';
 import { providerIds } from '../../modules/SrcSharedA';
@@ -72,7 +72,7 @@ interface PlatformService {
   reportArmsCustomEvent(event: { name: string; group?: string; value?: number | string; [key: string]: unknown }): Promise<void> | void;
 }
 
-declare function usePlatformService(): PlatformService;
+/* ── tombstone〔A1-R46〕：declare usePlatformService 删除 → 改指 canonical（modules/ImeComposition ≡ ImeComposition@186 = usePlatform@168，bundle l ≡ M；R45 既判）。型交叉检查：消费面仅 @1413/@1467/@1516 pass-through 至 reportAutomationCreateResult/reportAutomationAction（service: TelemetryPlatform，StoresDeep@273）；canonical → TelemetryPlatform 可赋（reportTelemetryEvent 逐字同形；reportArmsCustomEvent 参 ArmsCustomEvent ⊆ canonical 内联面，方法双变成立）。本地 PlatformService 接口孤儿保留。证据见 A1-R46.report.md §二。 ── */
 
 interface ModelProviderInfo {
   id: string;

@@ -4,7 +4,7 @@
 import * as React from "react";
 import { Plus as IconPlus, Download as IconDownload, CloudUpload as IconCloudUpload } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
-import { Input, toast } from '../../modules/ImeComposition';
+import { Input, toast, usePlatformService } from '../../modules/ImeComposition'; // 〔A1-R46〕+usePlatformService（活面 declare 改指；canonical ImeComposition@186 = usePlatform@168，bundle l ≡ chunk 导出 M；R45 专裁既判，型交叉检查见 A1-R46.report.md §二）
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource } from '../../modules/Modals'; // +$2（A0-CLEANUP2 item 14 接线：原别名保留）
 import { McpImportDialog, McpServerEditor, McpServerRow, type McpFormDraft } from '../../modules/SettingsPanels'; // A0-CLEANUP3 3b：编辑器保存草稿面
 import { useBaseServices, useServices } from '../../modules/services';
@@ -39,7 +39,7 @@ interface PlatformService {
   clearEmbeddedBrowserData?(mode: "cache" | "all"): Promise<{ success: boolean }>;
   onSettingsChanged?(cb: () => void): () => void;
 }
-declare function usePlatformService(): PlatformService;
+/* ── tombstone〔A1-R46〕：declare usePlatformService 删除 → 改指 canonical（modules/ImeComposition 再导出 ≡ components/ime/ImeComposition@186 = usePlatform@168，bundle l ≡ chunk 导出 M；R45 专裁既判）。型交叉检查：消费面仅 @677 platform.openExternal（canonical 具体成员，签名逐字同形）；本文件无本地面 pass-through（本地 PlatformService 接口保留为他面型参用）。证据见 A1-R46.report.md §二。 ── */
 interface McpSyncService {
   [key: string]: unknown;
 }
