@@ -99,8 +99,8 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
 // 改接 Home §U.8 逐字真身（bundle WUe 53313/RM 53328/zM 53349 唯一真身；RM/zM 分流依据见原 declare 位墓碑）。
 // 环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用）。
 import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect, teamSourceOrganizationLabel } from '../../modules/Home'; // 〔A1-R28〕+teamSourceOrganizationLabel（Lq 77476 逐字 canonical；teamOrganizationLabelOf A0 副本删除改指，见下墓碑）。环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用），本行不新增环边
-import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily, isObjectRecord, normalizeProviderId, listProviderModelIds, mapModelFormatToKind, resolveModelSupportedKinds, resolveProviderKindEndpointUrl, listEndpointKinds, isProviderEnabled, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, buildStableModelId, nativeProviderRef, resolveProviderRefFromCustomModelRef, automationsWorkspaceKey, GHOST_PROVIDER_REF_PREFIX, CODING_PLAN_SECURITY_VERIFICATION_REQUIRED } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。〔A1-R31〕+base family 七件（nt/gt/an/Ai/Wr/Ir/Sr ≡ tu/eu/ou/ru/Tu/vu/yu ≡ SrcSharedB §1 逐字实体）：七 declare 收敛改指，见下墓碑。〔A1-R32〕+isProviderEnabled（gi ≡ ko ≡ 612）/buildCodingPlanScope（vi ≡ mt ≡ Wb）/parseCodingPlanScope（li ≡ gt ≡ Gb）/codingPlanScopesOverlap（fi ≡ ht ≡ Kb）：残件四 declare 收敛改指，见各墓碑。〔A1-R33〕+buildStableModelId（bne ≡ q ≡ Fx 8857 ≡ stableIds §28）/nativeProviderRef（On ≡ M ≡ cS 8981）/resolveProviderRefFromCustomModelRef（In ≡ N ≡ uS 8987）（§28/§31/§32 实体已迁 lib/，SrcSharedB@475 具名转导出）：三 declare 收敛改指，见各墓碑。〔A1-R35〕+automationsWorkspaceKey（Ti ≡ to ≡ SrcSharedB@3079，尾部 e8e 消费）/GHOST_PROVIDER_REF_PREFIX（Pte 真身：styles 705 `k as Pte` ← src `GHOST_PROVIDER_REF_PREFIX as k` ≡ lib/providerRefs@49，SrcSharedB@471 转导出）/CODING_PLAN_SECURITY_VERIFICATION_REQUIRED（one 真身：styles 736 `o as one` ≡ SrcSharedB@6252）：尾部 hook 族转录 + 双死链 declare 收敛改指，见各墓碑。环安全：SrcSharedB 值闭包不达 components/payments
-import { isStartPlanProviderId, isZaiPlanProviderId, GLM_MODEL_IDS, providerIds, isBuiltinProviderId, isGlmAgentCliProvider } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。〔A1-R30〕+isZaiPlanProviderId（tr ≡ vl 4753 ≡ SrcSharedA@2022）：isOAuthFamilyProvider/isZaiCodingPlanProvider 双 tr 脸收敛改指，见各墓碑。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）/isBuiltinProviderId（jt ≡ Eo ≡ _l 4833）/isGlmAgentCliProvider（Ei ≡ us ≡ Ds 3844）：q 实体化 + 残件双 declare 收敛改指，见各墓碑。环安全：SrcSharedA 值闭包不达 components/payments
+import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily, isObjectRecord, normalizeProviderId, listProviderModelIds, mapModelFormatToKind, resolveModelSupportedKinds, resolveProviderKindEndpointUrl, listEndpointKinds, isProviderEnabled, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, buildStableModelId, nativeProviderRef, resolveProviderRefFromCustomModelRef, automationsWorkspaceKey, GHOST_PROVIDER_REF_PREFIX, CODING_PLAN_SECURITY_VERIFICATION_REQUIRED, CODING_PLAN_SYSTEM_BUSY, joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。〔A1-R31〕+base family 七件（nt/gt/an/Ai/Wr/Ir/Sr ≡ tu/eu/ou/ru/Tu/vu/yu ≡ SrcSharedB §1 逐字实体）：七 declare 收敛改指，见下墓碑。〔A1-R32〕+isProviderEnabled（gi ≡ ko ≡ 612）/buildCodingPlanScope（vi ≡ mt ≡ Wb）/parseCodingPlanScope（li ≡ gt ≡ Gb）/codingPlanScopesOverlap（fi ≡ ht ≡ Kb）：残件四 declare 收敛改指，见各墓碑。〔A1-R33〕+buildStableModelId（bne ≡ q ≡ Fx 8857 ≡ stableIds §28）/nativeProviderRef（On ≡ M ≡ cS 8981）/resolveProviderRefFromCustomModelRef（In ≡ N ≡ uS 8987）（§28/§31/§32 实体已迁 lib/，SrcSharedB@475 具名转导出）：三 declare 收敛改指，见各墓碑。〔A1-R35〕+automationsWorkspaceKey（Ti ≡ to ≡ SrcSharedB@3079，尾部 e8e 消费）/GHOST_PROVIDER_REF_PREFIX（Pte 真身：styles 705 `k as Pte` ← src `GHOST_PROVIDER_REF_PREFIX as k` ≡ lib/providerRefs@49，SrcSharedB@471 转导出）/CODING_PLAN_SECURITY_VERIFICATION_REQUIRED（one 真身：styles 736 `o as one` ≡ SrcSharedB@6252）：尾部 hook 族转录 + 双死链 declare 收敛改指，见各墓碑。〔A1-R36〕+CODING_PLAN_SYSTEM_BUSY（Pne 真身：styles 767 `s as Pne` ← src 10006 `EC as s` ≡ EC 9547 ≡ SrcSharedB@6255）/joinTestidParts（qr 真身：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb 8464 ≡ SrcSharedB@5015）：双 declare 收敛改指，见各墓碑。环安全：SrcSharedB 值闭包不达 components/payments
+import { isStartPlanProviderId, isZaiPlanProviderId, GLM_MODEL_IDS, providerIds, isBuiltinProviderId, isGlmAgentCliProvider, RESOLVED_BUILD_ENV, codingPlanPersonalOverviewUrl, codingPlanTeamPlansUrl, buildBigmodelApiUrl } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。〔A1-R30〕+isZaiPlanProviderId（tr ≡ vl 4753 ≡ SrcSharedA@2022）：isOAuthFamilyProvider/isZaiCodingPlanProvider 双 tr 脸收敛改指，见各墓碑。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）/isBuiltinProviderId（jt ≡ Eo ≡ _l 4833）/isGlmAgentCliProvider（Ei ≡ us ≡ Ds 3844）：q 实体化 + 残件双 declare 收敛改指，见各墓碑。〔A1-R36〕+env 族四件（hi≡RESOLVED_BUILD_ENV（lib/buildEnv@9，SrcSharedA@310 转导出）/Si≡codingPlanPersonalOverviewUrl（SrcSharedA@1618）/fn≡codingPlanTeamPlansUrl（SrcSharedA@1622）/vn≡buildBigmodelApiUrl（SrcSharedA@1613）；★js/★qo/★Jo/★Ko A0 期既判）：四 declare 收敛改指，见各墓碑。环安全：SrcSharedA 值闭包不达 components/payments
 import { reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）。〔A1-R35〕type-only → 值导入 + reportTelemetry：xw declare 收敛改指（xw 真身：styles 40457-40466 ≡ StoresDeep@323 reportTelemetry，StoresDeep@321 行注「原 xw（40409）」为漂移实测 40457；消费 @3651/@3655 改名改指）
 import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 52651 收敛型缝所依（A6e/j6e/M6e/N6e 快照流由 unknown 精化，行依据见各函数注）
 import { Input, PopoverContent, toast } from '../../modules/ImeComposition';
@@ -190,7 +190,7 @@ declare const usePlatformService: () => TelemetryPlatform & { openExternal(url: 
  *    resolveToolbarShortcut/useToolbarShortcuts（Q3e/$3e A0 副本）同批删除；真身 = Home §T
  *    resolveComposerToolbarShortcutAction/useComposerToolbarShortcuts 逐字（快捷键判定内联同构）。 ── */
 /* ── tombstone〔A1-R35〕：declare GHOST_MODEL_PREFIX（原 Pte）删除 → 改指 lib/providerRefs@49 GHOST_PROVIDER_REF_PREFIX（Pte 真身：styles 705 `k as Pte` ← src 9943 `sS as k` ≡ sS 8980 `ghost:` ≡ providerRefs@49 GHOST_PROVIDER_REF_PREFIX 逐字同值，SrcSharedB@471 具名转导出，链闭合）。消费面实测：@1190（ghostModelProviderIdOf 体内）≡ bundle 77979，改名改指。负证据：styles Pte 消费全集 1 处（77979）。 ── */
-declare function testidOf(prefix: string, value: string): string; // qr
+/* ── tombstone〔A1-R36〕：declare testidOf（原 qr）删除 → 改指 modules/SrcSharedB@5015 joinTestidParts（qr 真身：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb 8464 `return \`${e}-${t}\`` ≡ joinTestidParts 逐字同形，链闭合；Home@509/Composer@781 局部同形面双归属在案）。消费面实测：@6568/@6572（PersonalPlanCard 体内）≡ bundle 85736/85739（qr(Net, e.key)），改名改指。负证据：本文件 qr 消费仅 2 处；余 bundle 消费 92 处属他域（settings nav/locale/oauth 等）。 ── */
 /* ── tombstone（A1-R23）：declare MODEL_OPTION_TESTID_PREFIX（Xt）/MODE_OPTION_TESTID_PREFIX（rn）/
  *    MODEL_MENU_TESTID（Fr）删除——消费面 §3 ThoughtLevelControl（751/774/792/806）同批删除（rn 自 A0-S2d
  *    §2 删除后已零消费）；testid 拼装真身 = Home §U.2/§T 逐字族内联（configOptionTestId/configSelectTestId，
@@ -258,11 +258,11 @@ declare function classVariance(
   base: string,
   config: { variants?: Record<string, Record<string, string>>; defaultVariants?: Record<string, string> },
 ): (props?: { variant?: string }) => string; // Ta（cva 风格）
-declare const ZCODE_ENV_VALUE: string; // hi
-declare function envConsoleUrlOf(cfg: { ZCODE_ENV: string }): string; // Si
-declare function envSiteUrlOf(cfg: { ZCODE_ENV: string }): string; // fn
-declare function envPathUrlOf(cfg: { ZCODE_ENV: string }, path: string): string; // vn
-declare const NETWORK_BLOCKED_ERROR_CODE: string; // Pne（跨 chunk 导入的错误码常量）
+/* ── tombstone〔A1-R36〕：declare ZCODE_ENV_VALUE（原 hi）删除 → 改指 lib/buildEnv@9 RESOLVED_BUILD_ENV（SrcSharedA@310 转导出；hi 真身：styles 703 `js as hi` ← src 9941 `s as js` ≡ s 73 `o(\`production\`)` ≡ RESOLVED_BUILD_ENV 逐字同值，链闭合）。消费面实测（本文件 9 处改名改指）：@1654/5259/5260/5261/9113/9129/9130/9131/9145 ≡ bundle 79986/84359-84361/88209/88219-88221/88233。负证据：余 bundle 消费 2 处属他域（141843 $Pt 默认参 / 187593 gYt 内网探针）。 ── */
+/* ── tombstone〔A1-R36〕：declare envConsoleUrlOf（原 Si）删除 → 改指 modules/SrcSharedA@1618 codingPlanPersonalOverviewUrl（Si 真身：styles 756 `qo as Si` ← src 9995 `Bc as qo` ≡ Bc 4391 `zc(e, \`/coding-plan/personal/overview\`)` ≡ codingPlanPersonalOverviewUrl 逐字同形，链闭合）。消费面实测（本文件 3 处改名改指）：@1654/5259/9130 ≡ bundle 79986/84359/88220。负证据：本文件外零消费。 ── */
+/* ── tombstone〔A1-R36〕：declare envSiteUrlOf（原 fn）删除 → 改指 modules/SrcSharedA@1622 codingPlanTeamPlansUrl（fn 真身：styles 505 `Jo as fn` ← src 9735 `Vc as Jo` ≡ Vc 4394 `zc(e, \`/coding-plan/team/plans\`)` ≡ codingPlanTeamPlansUrl 逐字同形，链闭合）。消费面实测（本文件 2 处改名改指）：@5260/9131 ≡ bundle 84360/88221。负证据：余 `fn(` 命中 7373 为属性面（this.fn）、119850 区为局部遮蔽符，皆非本符。 ── */
+/* ── tombstone〔A1-R36〕：declare envPathUrlOf（原 vn）删除 → 改指 modules/SrcSharedA@1613 buildBigmodelApiUrl（vn 真身：styles 511 `Ko as vn` ← src 9742 `zc as Ko` ≡ zc 4387（前导 / 归一 + BigModel 基址拼接）≡ buildBigmodelApiUrl 逐字同形，链闭合）。消费面实测（本文件 3 处改名改指）：@5261/9129/9145 ≡ bundle 84361/88219/88233。负证据：余 `vn(` 命中 119997-120802 为局部遮蔽符（多参面），非本符。 ── */
+/* ── tombstone〔A1-R36〕：declare NETWORK_BLOCKED_ERROR_CODE（原 Pne）删除 → 改指 modules/SrcSharedB@6255 CODING_PLAN_SYSTEM_BUSY（Pne 真身：styles 767 `s as Pne` ← src 10006 `EC as s` ≡ EC 9547 `coding_plan_system_busy` ≡ CODING_PLAN_SYSTEM_BUSY 逐字同值，链闭合；语义名与值域不合为 bundle 实测——xJ 错误归一以系统忙码承载 HTML 拦截面）。消费面实测：@2188（normalizeProductError 体内）≡ bundle 80594 `C5e(t) ? Pne : ...`，改名改指。负证据：styles Pne 消费全集 1 处（80594）。 ── */
 /** §6 Stripe/验证码/遥测 外部依赖 */
 
 
@@ -1175,7 +1175,7 @@ export function providerFingerprintOf(provider: ModelProvider | null | undefined
   return provider ? { endpoints: normalizeEndpoints(provider), apiKey: provider.apiKey, modelMetadata: normalizeModelMetadata(provider) } : null;
 }
 
-/** 原 B6e（77952 区）：指纹差异 */
+/** 原 B6e（77970）：指纹差异（〔A1-R36〕行注清扫：旧注 77952 区为漂移，实测 77970） */
 export function providersDiffer(left: ModelProvider | null, right: ModelProvider | null) {
   const leftFingerprint = providerFingerprintOf(left),
     rightFingerprint = providerFingerprintOf(right);
@@ -1651,7 +1651,7 @@ export function residualCreditOf(originalAmount: unknown, campaignDiscount: numb
   return delta <= 0.005 ? null : Math.round(delta * 100) / 100;
 }
 /** 原 X8e/Z8e/Q8e（79986–79988）：计划总览/服务协议/订阅协议 URL */
-const PLAN_OVERVIEW_URL = envConsoleUrlOf({ ZCODE_ENV: ZCODE_ENV_VALUE });
+const PLAN_OVERVIEW_URL = codingPlanPersonalOverviewUrl({ ZCODE_ENV: RESOLVED_BUILD_ENV });
 const SERVICE_AGREEMENT_URL = `https://docs.bigmodel.cn/cn/terms/service-agreement`;
 const SUBSCRIPTION_AGREEMENT_URL = `https://docs.bigmodel.cn/cn/terms/subscription-agreement`;
 
@@ -2185,7 +2185,7 @@ export function mergePreviewIntoProduct(product: any, preview?: any) {
 /** 原 xJ（80592）：错误归一（HTML 拦截 → 网络码；oauth 族 → oauth 码） */
 export function normalizeProductError(error: unknown): string {
   let message = errorMessageOf(error);
-  return isHtmlBlockedMessage(message) ? NETWORK_BLOCKED_ERROR_CODE : isOAuthLikeMessage(message) ? OAUTH_REQUIRED_ERROR : message;
+  return isHtmlBlockedMessage(message) ? CODING_PLAN_SYSTEM_BUSY : isOAuthLikeMessage(message) ? OAUTH_REQUIRED_ERROR : message; // 〔A1-R36〕Pne declare 收敛改指（≡ bundle 80594）
 }
 /** 原 SJ（80596） */
 export function isOAuthRequiredError(code: string): boolean {
@@ -5256,9 +5256,9 @@ export async function raceWithTimeout(promise: Promise<unknown>, timeout = LOGIN
   }
 }
 /** 原 bet…jet（84359–84368）：结账/政策 URL 表 */
-const CONSOLE_HOME_URL = envConsoleUrlOf({ ZCODE_ENV: ZCODE_ENV_VALUE }); // bet
-const SITE_HOME_URL = envSiteUrlOf({ ZCODE_ENV: ZCODE_ENV_VALUE }); // xet
-const FINANCE_PAY_URL = envPathUrlOf({ ZCODE_ENV: ZCODE_ENV_VALUE }, `/finance-center/finance/pay`); // Cet
+const CONSOLE_HOME_URL = codingPlanPersonalOverviewUrl({ ZCODE_ENV: RESOLVED_BUILD_ENV }); // bet
+const SITE_HOME_URL = codingPlanTeamPlansUrl({ ZCODE_ENV: RESOLVED_BUILD_ENV }); // xet
+const FINANCE_PAY_URL = buildBigmodelApiUrl({ ZCODE_ENV: RESOLVED_BUILD_ENV }, `/finance-center/finance/pay`); // Cet
 const BIGMODEL_USER_AGREEMENT_URL = `https://docs.bigmodel.cn/cn/terms/user-agreement`; // wet
 const BIGMODEL_SERVICE_AGREEMENT_URL = `https://docs.bigmodel.cn/cn/terms/service-agreement`; // Tet
 const BIGMODEL_SUBSCRIPTION_AGREEMENT_URL = `https://docs.bigmodel.cn/cn/terms/subscription-agreement`; // Eet
@@ -6565,11 +6565,11 @@ function PersonalPlanCard({ group, providerId, actionState, onSelect }: any) {
       ) : null}
       <div className={`mt-auto pt-4`}>
         {actionState === `unavailable` ? (
-          <UnavailableProductButton providerId={providerId} buttonTestId={testidOf(PERSONAL_PLAN_BUTTON_TESTID as unknown as string, group.key)} />
+          <UnavailableProductButton providerId={providerId} buttonTestId={joinTestidParts(PERSONAL_PLAN_BUTTON_TESTID as unknown as string, group.key)} />
         ) : (
           <Button
             type={`button`}
-            data-testid={testidOf(PERSONAL_PLAN_BUTTON_TESTID as unknown as string, group.key)}
+            data-testid={joinTestidParts(PERSONAL_PLAN_BUTTON_TESTID as unknown as string, group.key)}
             size={`lg`}
             variant={disabled ? `outline` : `default`}
             disabled={passive}
@@ -9110,7 +9110,7 @@ function buildEnvSnapshot() {
 // Wnt → envConfigOf（本地 88222）
 function envConfigOf(env = buildEnvSnapshot()) {
   return {
-    ZCODE_ENV: ZCODE_ENV_VALUE,
+    ZCODE_ENV: RESOLVED_BUILD_ENV,
     ZCODE_BASE_URL: env.VITE_ZCODE_BASE_URL,
     ZCODE_ENDPOINT_ORIGIN: env.VITE_ZCODE_ENDPOINT_ORIGIN,
   };
@@ -9126,9 +9126,9 @@ function authSessionSnapshotOf() {
 
 // qnt/Jnt/Ynt/rX（本地 88236–88238）
 const PURCHASE_TOKEN_TTL = 120 * 1e3;
-const LOGIN_URL = envPathUrlOf({ ZCODE_ENV: ZCODE_ENV_VALUE }, `/login`);
-const CONSOLE_URL_FOR_PURCHASE = envConsoleUrlOf({ ZCODE_ENV: ZCODE_ENV_VALUE }); // Ynt
-const SITE_URL_FOR_PURCHASE = envSiteUrlOf({ ZCODE_ENV: ZCODE_ENV_VALUE }); // rX
+const LOGIN_URL = buildBigmodelApiUrl({ ZCODE_ENV: RESOLVED_BUILD_ENV }, `/login`);
+const CONSOLE_URL_FOR_PURCHASE = codingPlanPersonalOverviewUrl({ ZCODE_ENV: RESOLVED_BUILD_ENV }); // Ynt
+const SITE_URL_FOR_PURCHASE = codingPlanTeamPlansUrl({ ZCODE_ENV: RESOLVED_BUILD_ENV }); // rX
 
 // iX → API_KEY_PROVIDER_ENTRIES（本地 88239）
 const API_KEY_PROVIDER_ENTRIES = [
@@ -9142,7 +9142,7 @@ const API_KEY_PROVIDER_ENTRIES = [
     id: providerIds.bigmodel,
     displayName: `BigModel - API Key`,
     oauthProviderId: BIGMODEL_REGION_ID,
-    apiKeyUrl: envPathUrlOf({ ZCODE_ENV: ZCODE_ENV_VALUE }, `/apikey/platform`),
+    apiKeyUrl: buildBigmodelApiUrl({ ZCODE_ENV: RESOLVED_BUILD_ENV }, `/apikey/platform`),
   },
   { id: providerIds.zapi, displayName: `ZAPI` },
 ];
@@ -10301,7 +10301,7 @@ export function useCodingPlanUpgradeDialogOptional() {
  * 接口级（declare 层，真身链未闭合留批）：
  *   pc ≡ useTabStoreSelector（Home@341/AppRootLeaves@163 declare 先例）
  *   oc → isWorkspaceTab (4487-4489) | gc → resolveTabSessionId (4814-4821)
- *   co → useShallowSelector (1033-1039；真身链 wie 1018-1032 + ao/oo/so/Cie 留批)
+ *   co → useShallowSelector (1033-1039；〔A1-R36〕真身链 wie/ao/oo/so/Cie 逐字转录 §12 尾部，留批闭合)
  * 横切改指（树内实体）：
  *   Ti ≡ automationsWorkspaceKey（SrcSharedB@3079）| Ks ≡ syncProviderRegistryAndReturn（services@105 转导出）
  *   Ng ≡ settingsConfigOptionsOf（modules/SettingsConfigOptions，R34 新叶；78157 消费面接引，R34 留批 2 闭合）
@@ -10317,7 +10317,7 @@ import { settingsConfigOptionsOf } from '../../modules/SettingsConfigOptions'; /
 declare function useTabStoreSelector(selector: (state: any) => any): any; // 原 pc（接口级；Home@341/AppRootLeaves@163 同名 declare 先例）
 declare function isWorkspaceTab(tab: any): boolean; // 原 oc（4487-4489：kind === `workspace`）
 declare function resolveTabSessionId(tab: any, ctx: any): string | undefined; // 原 gc（4814-4821：remoteSessionId/identity/path 三路查表）
-declare function useShallowSelector(selector: (state: any) => any): (state: any) => any; // 原 co（1033-1039：useRef 浅比较选择器工厂；真身链 wie 1018-1032 留批）
+/* ── tombstone〔A1-R36〕：declare useShallowSelector（原 co，1033-1039）删除 → 逐字转录本文件尾部 §12（含真身链 wie/ao/oo/so/Cie 五符，R35 留批闭合；§11 qq 消费面不变）。 ── */
 
 /** 展示序模块态（78172-78175；语义归一，R34 注册表簇先例）：原 n8e/Wq/r8e/Gq */
 let ENDPOINT_SUGGESTIONS_FALLBACK: Record<string, string[]> = { anthropic: [], openai: [], gemini: [] };
@@ -10613,4 +10613,65 @@ export function useModelProvidersStore() {
       testModelConnectivity: (0, React.useCallback)(async (t: any) => e.testModelConnectivity(t), [e]),
     }
   );
+}
+
+/* ----------------------------------------------------------------------------
+ * §12 co 浅比较选择器工厂真身链（A1-R36：R35 接口级 useShallowSelector 闭合）
+ * ----------------------------------------------------------------------------
+ * 来源：styles-CdEGpc2x.js 998-1039（bundle 唯一真身）。尾部安置，行引用零漂。
+ * 混淆名 → 语义名 映射表（行号 = bundle 行）：
+ *   ao → isIterableValue (998) | oo → hasEntriesMember (999)
+ *   so → entriesMapsEqual (1000-1006) | Cie → iterableSequencesEqual (1007-1017)
+ *   wie → shallowObjectEqual (1018-1032) | co → useShallowSelector (1033-1039)
+ * 消费面实测：ao/oo/so/Cie 仅簇内互消费（1027-1031）；wie 唯一消费 1037（co 内）；
+ *   co 消费 9 处——78246（qq ≡ 本文件 §11）为本树接引面；余 63494/63523/63684/63713
+ *   （settings 域）/78441（相位刷新族）/132376/181126/186147（他域）留批。
+ * -------------------------------------------------------------------------- */
+/** 原 ao（998）：可迭代判定 */
+const isIterableValue = (e: any) => Symbol.iterator in e;
+/** 原 oo（999）：entries 成员判定 */
+const hasEntriesMember = (e: any) => `entries` in e;
+/** 原 so（1000-1006）：Map/entries 逐项相等 */
+const entriesMapsEqual = (e: any, t: any) => {
+  let n = e instanceof Map ? e : new Map(e.entries()),
+    r = t instanceof Map ? t : new Map(t.entries());
+  if (n.size !== r.size) return !1;
+  for (let [e, t] of n) if (!r.has(e) || !Object.is(t, r.get(e))) return !1;
+  return !0;
+};
+/** 原 Cie（1007-1017）：迭代器序列逐项相等 */
+const iterableSequencesEqual = (e: any, t: any) => {
+  let n = e[Symbol.iterator](),
+    r = t[Symbol.iterator](),
+    i = n.next(),
+    a = r.next();
+  for (; !i.done && !a.done;) {
+    if (!Object.is(i.value, a.value)) return !1;
+    ((i = n.next()), (a = r.next()));
+  }
+  return !!i.done && !!a.done;
+};
+/** 原 wie（1018-1032）：浅比较（Object.is → 原型同 → iterable/entries 分支） */
+function shallowObjectEqual(e: any, t: any) {
+  return Object.is(e, t)
+    ? !0
+    : typeof e != `object` ||
+        !e ||
+        typeof t != `object` ||
+        !t ||
+        Object.getPrototypeOf(e) !== Object.getPrototypeOf(t)
+      ? !1
+      : isIterableValue(e) && isIterableValue(t)
+        ? hasEntriesMember(e) && hasEntriesMember(t)
+          ? entriesMapsEqual(e, t)
+          : iterableSequencesEqual(e, t)
+        : entriesMapsEqual({ entries: () => Object.entries(e) }, { entries: () => Object.entries(t) });
+}
+/** 原 co（1033-1039）：useRef 浅比较选择器工厂（§11 qq 消费） */
+function useShallowSelector(e: any) {
+  let t = React.useRef(void 0);
+  return (n: any) => {
+    let r = e(n);
+    return shallowObjectEqual(t.current, r) ? t.current : (t.current = r);
+  };
 }

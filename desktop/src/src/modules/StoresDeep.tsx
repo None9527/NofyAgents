@@ -317,7 +317,7 @@ export function resolveTelemetryProviderHost(providerId: string | null | undefin
 }
 
 /**
- * 原 xw（40409）：遥测上报总入口（附客户端上下文；message_completion/agent_step 打 info 日志；
+ * 原 xw（40457）：遥测上报总入口（附客户端上下文；message_completion/agent_step 打 info 日志；〔A1-R36〕行注清扫：旧注 40409 为漂移，实测 styles-local 40457-40466）
  * 失败仅 warn `[${scope}] telemetry 上报失败:`）。
  */
 export async function reportTelemetry(platform: TelemetryPlatform, report: TelemetryReport, scope: string): Promise<void> {
