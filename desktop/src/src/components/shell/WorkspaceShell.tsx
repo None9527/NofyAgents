@@ -211,7 +211,7 @@ import { QuickPick, buildQuickPickCommands, useSearchResultsStore, type SearchRe
 import { type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // A0-CLEANUP B-24：远端会话形（Home/RemoteWizardDialog 调用面对齐）
 import { resolveThemeMode } from '../../modules/Settings';
 import { SidePanel, useSidePaneState, type BrowserMetadataPatch, type BrowserNavigationRequest, type BrowserResidencyEvent, type BrowserUseOperationEvent, type BrowserUseTabDescriptor, type BrowserUseVisibilityEvent, type CodeViewerSource as SidePanelCodeViewerSource, type PlatformService as SidePanelPlatformService, type RecentClosedSidePaneTab, type ScreenshotSurfaceRequest, type SidePaneState, type SidePaneTab, type SubagentListResponse, type SubagentOpenRequest } from '../../modules/SidePanel'; // 侧面板态型以 SidePanel 导出为准
-import { isE2EStoreBridgeEnabled, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, getWorkspaceTaskStateAlias, getActiveTaskStatusError, getWorkspaceInit, getMergedTaskList, isTaskNavAutomationsEntry, canGoBackInTaskNav, canGoForwardInTaskNav, readLastAgentModelOnly, applyStoredModelToOptions, clearLastAgentModelConfig, parseCustomModelId, type TaskStore, type WorkspaceTaskState, type TaskMeta, type ConfigOption } from '../../modules/SkillStore'; // +TaskStore（A0-CLEANUP B-3：选择器改指真 store 型）；+workspaceKey（原 Io/Lo，A0-CLEANUP 族清理）；+isE2EStoreBridgeEnabled（A1-R10 项 1b：原 re = skillStore chunk K 导出，w_e 门控，bundle styles 382 `K as re` 实证在案）；〔A1-P2-B1〕+选择器/导航/模型持久化十一件（原 fe/ze/R/oe/Ce/ae/B/D/v/y/O ≡ taskStore 真身，删碑见下各 tombstone）；+WorkspaceTaskState/TaskMeta/ConfigOption 三型 = canonical 真形（本地归纳形删除，见下 tombstone）
+import { isE2EStoreBridgeEnabled, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, getWorkspaceTaskStateAlias, getActiveTaskStatusError, getWorkspaceInit, getMergedTaskList, isTaskNavAutomationsEntry, canGoBackInTaskNav, canGoForwardInTaskNav, readLastAgentModelOnly, applyStoredModelToOptions, clearLastAgentModelConfig, parseCustomModelId, getMergedTaskListItem, mergeTaskMetaMany, type TaskStore, type WorkspaceTaskState, type TaskMeta, type ConfigOption } from '../../modules/SkillStore'; // +TaskStore（A0-CLEANUP B-3：选择器改指真 store 型）；+workspaceKey（原 Io/Lo，A0-CLEANUP 族清理）；+isE2EStoreBridgeEnabled（A1-R10 项 1b：原 re = skillStore chunk K 导出，w_e 门控，bundle styles 382 `K as re` 实证在案）；〔A1-P2-B1〕+选择器/导航/模型持久化十一件（原 fe/ze/R/oe/Ce/ae/B/D/v/y/O ≡ taskStore 真身，删碑见下各 tombstone）；+WorkspaceTaskState/TaskMeta/ConfigOption 三型 = canonical 真形（本地归纳形删除，见下 tombstone）；〔A1-P2-B9〕+getMergedTaskListItem/mergeTaskMetaMany（原 ce ≡ E 235 / pe ≡ de 150，skillStore chunk `P as ce`/`W as pe` 进口，本文件头映射表在案）：下方 useActiveTaskMeta declare 删碑改指（e_e 真身转录）
 import { isBuiltinProviderId, isGlmAgentCliProvider } from '../../modules/SrcSharedA'; // 〔A1-P2-B1〕jt ≡ Eo ≡ _l（src 4742 七键析取）/ Ei ≡ us ≡ Ds（src 3844 `e === \`glm\``）真身；R32 同源判例在 PaymentDeep
 import { customProviderRef, nativeProviderRef, DesktopMenuActionIds, appHeaderTestid } from '../../modules/SrcSharedB'; // 〔A1-P2-B1〕mi ≡ j ≡ lS（src 8984）/ On ≡ M ≡ cS（src 8981，R33 实证）/ oi ≡ ft ≡ ex（src 8631）/ Mi ≡ wt ≡ bg（src 8235）真身
 import { taskEntityKey } from '../../modules/StoresDeep';
@@ -224,7 +224,8 @@ import { useBaseServices, useServices, useResolvedWorkspaceServices as useWorksp
 import { useFeedbackStore, useSettingsStore, getSessionById as getRemoteSessionRegistryEntry } from '../../modules/stores-core'; // 〔A1-P2-B2〕+getRemoteSessionRegistryEntry（原 tc ≡ stores/sessionRegistryStore getSessionById 真身，删碑见下）
 import { useWorkspaceTabStore as useWorkspaceTabs, useWorkspaceTabStoreApi as useWorkspaceTabsStore, isWorkspaceKindTab as isWorkspaceTab, hasUnavailableLocalDirectoryTab as isWorkspaceUnavailableLocalDirectory, type WorkspaceTab, type WorkspaceTabStoreState } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P2-B2〕原 pc/hc/oc/sc 四件 + WorkspaceTab/WorkspaceTabsState 二型改指 R1 canonical 属主（删碑见下 tabs 域；别名保留本地调用名，R1/R2/R3 判例）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
-import { AutomationsMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）
+import { AutomationsMain, RepoWikiView as RepoWikiMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）；〔A1-P2-B9〕+RepoWikiView as RepoWikiMain（原 l3，F16 族根，js 132306-133070）：下方 declare 删碑改指——canonical = ExtendedViews §1 A0 代转录（SidePanel@4354 既接同面），R1 判例别名保留调用名；调用点 2969/3257 逐字不变
+import { useTaskSessionRecord as Uge } from '../../modules/SessionRecordCore'; // 〔A1-P2-B9〕R40 §六.4 接线：原 Uge（styles 24574-24599）过渡 declare 删碑改指真实导入（五参签名恰合，本泳道 stand-in 叶；主树 R40 同名叶合并裁定见叶头注）；别名保留束名，e_e 真身调用面 24787 逐字不变
 import { type GitDataset, type GitPaneState, type GitSourceOption, type GitSummary } from '../../modules/GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
 import { canOpenSessionInSplit, openSessionBesideDraft, openSessionInSplit, sessionRouterStore, splitLayoutStore, type PaneWorkspaceScope, type SessionBinding } from '../../modules/SplitLayoutDeep'; // 原 ATt/MTt/jTt/A2/s2 + 型（A1-R2 引擎重建；A1-R3：ATt/jTt 缓改指解除——第二参按 bundle 扁平形改指）
 import { AppErrorFallback, ScopedErrorFallback, AppErrorBoundary, ScopedErrorBoundary } from './ErrorBoundaryCore'; // 〔A1-P2-B1〕原 QOt/$Ot/ekt/p4 逐字真身（styles js 129749–130008 单一连续原子区，ROUNDTRIP EXACT）；删碑见下 §2
@@ -703,7 +704,8 @@ interface ActiveTaskMeta {
    * A1-R9 E6/k6 收敛精化：按 bundle 真形补全富面（e_e@24771 = Vo taskMetaByEntityKey
    * 实体 ⊕ Pge@24501 会话回退，两支恒含 title/createdAt/updatedAt；Qge@24740
    * 比较器枚举全字段面）；TopBar.TaskMeta 同形，upsertTask 消费面合拢。 */
-  resolvedActiveTaskMeta: { taskId: string; workspacePath: string; title: string; createdAt: number; updatedAt: number; status?: string; unreadAt?: number | null; provider?: string; model?: string; forkedFromTaskId?: string | null; pinned?: boolean; archived?: boolean; cronAutomationId?: string | null; automationId?: string | null; offPeakTaskId?: string | null; pendingInteraction?: { interactionId: string; kind?: string; toolName?: string; autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null } | null; changeSummary?: { fileCount: number; added: number; removed: number; files: Array<{ path: string; added: number; removed: number; writeCount: number; lastTurnIndex: number; [key: string]: unknown }>; [key: string]: unknown } | null; __zcodeSessionActivity?: { phase: string; lastActivityAt: number; pendingInteractions?: { permissionCount: number; userInputCount: number }; [key: string]: unknown } | null; [key: string]: unknown } | null; // A1-R10 2c：changeSummary/__zcodeSessionActivity 精化 = canonical 真形（np@6874 strict / helpers SessionActivity 面）
+  resolvedActiveTaskMeta: { taskId: string; workspacePath: string; title: string; createdAt: number; updatedAt: number; traceId?: string | null; status?: string; unreadAt?: number | null; provider?: string; model?: string; forkedFromTaskId?: string | null; pinned?: boolean; archived?: boolean; cronAutomationId?: string | null; automationId?: string | null; offPeakTaskId?: string | null; pendingInteraction?: { interactionId: string; kind?: string; toolName?: string; autoResolution?: { state: string; visibleAt: number; deadlineAt: number; startedAt?: number } | null } | null; changeSummary?: { fileCount: number; added: number; removed: number; files: Array<{ path: string; added: number; removed: number; writeCount: number; lastTurnIndex: number; [key: string]: unknown }>; [key: string]: unknown } | null; __zcodeSessionActivity?: { phase: string; lastActivityAt: number; pendingInteractions?: { permissionCount: number; userInputCount: number }; [key: string]: unknown } | null; [key: string]: unknown } | null; // A1-R10 2c：changeSummary/__zcodeSessionActivity 精化 = canonical 真形（np@6874 strict / helpers SessionActivity 面）；〔A1-P2-B9〕+traceId 精化：束真 Qge@24740 比较器枚举 traceId 字段、e_e@24790 读取面 `u?.traceId ?? null` 实证（两支来源 TaskMeta@104 / Pge@24504 恒含）
+  activeTaskMeta: TaskMeta | null; // 〔A1-P2-B9〕补束真返回字段：e_e@24794 `activeTaskMeta: c`（store 任务元 ⊕ 搜索缓存合并面，c ?? null）；declare 时代消费面未读故缺，真身转录补全（型 = SkillStore TaskMeta canonical）
   activeTraceId: string | null;
   activeSessionId: string | null;
   activeTaskProvider: string | null;
@@ -713,19 +715,155 @@ interface ActiveTaskMeta {
   taskNativeSessionLogFile: TaskFileRef;
   taskSessionFile: TaskFileRef;
 }
-declare function useActiveTaskMeta(input: {
+/* ── 原 Ig（styles 24737）：JSON 深比较（$ge 比较器内属） ── */
+function jsonDeepEqual(e: unknown, t: unknown) {
+  return JSON.stringify(e ?? null) === JSON.stringify(t ?? null);
+}
+
+/* ── 原 Qge（styles 24740-24766）：任务元全字段比较器（枚举面 = A1-R9 富面依据）
+ *    〔A1-P2-B9〕型缝：参形收本文件 resolvedActiveTaskMeta 富面；束真消费面
+ *    c（store 任务元）与 l（会话记录映射元）同器互用，断言登记于下方
+ *    memoizeResolvedTaskMeta 注。 ── */
+function taskMetaFieldsEqual(
+  e: ActiveTaskMeta["resolvedActiveTaskMeta"],
+  t: ActiveTaskMeta["resolvedActiveTaskMeta"],
+) {
+  return e === t
+    ? !0
+    : !e || !t
+      ? !1
+      : e.taskId === t.taskId &&
+        e.traceId === t.traceId &&
+        e.title === t.title &&
+        e.titleOverridden === t.titleOverridden &&
+        e.workspacePath === t.workspacePath &&
+        e.workspaceIdentity === t.workspaceIdentity &&
+        e.createdAt === t.createdAt &&
+        e.updatedAt === t.updatedAt &&
+        e.mode === t.mode &&
+        e.model === t.model &&
+        e.thoughtLevel === t.thoughtLevel &&
+        e.runtimeEpoch === t.runtimeEpoch &&
+        e.provider === t.provider &&
+        e.migrationSource === t.migrationSource &&
+        e.forkedFromTaskId === t.forkedFromTaskId &&
+        e.unreadAt === t.unreadAt &&
+        e.status === t.status &&
+        jsonDeepEqual(e.lastError, t.lastError) &&
+        jsonDeepEqual(e.repairState, t.repairState) &&
+        jsonDeepEqual(e.changeSummary, t.changeSummary) &&
+        jsonDeepEqual(e.target, t.target);
+}
+
+/* ── 原 $ge（styles 24767-24771）：任务元按值比较缓存（引用稳定化）
+ *    〔A1-P2-B9〕型缝（A0-CLEANUP3 3b 体例）：束真参形 = c ?? l 两支——
+ *    TaskMeta（store 合并面，provider/model 含 null 支）⊕ SessionTaskMeta
+ *    （SessionRecordCore Pge 映射面）——与 declare 时代富面非逐字段可比，
+ *    两级断言改指富面；比较器/缓存语义逐字不变。 ── */
+function memoizeResolvedTaskMeta(
+  e: TaskMeta | ActiveTaskMeta["resolvedActiveTaskMeta"] | null,
+): ActiveTaskMeta["resolvedActiveTaskMeta"] | null {
+  let t = (0, React.useRef)(null as ActiveTaskMeta["resolvedActiveTaskMeta"] | null),
+    n = t.current;
+  return (
+    taskMetaFieldsEqual(n, e as ActiveTaskMeta["resolvedActiveTaskMeta"] | null) ||
+      (t.current = e as ActiveTaskMeta["resolvedActiveTaskMeta"] | null),
+    t.current
+  );
+}
+
+/** 原 e_e（styles 24772-24812）：活动任务元数据 hook——store 任务元 ⊕ 搜索缓存
+ *  ⊕ 会话记录回退三支合并，引用稳定化后供壳消费。
+ *  〔A1-P2-B9〕declare 删碑转录真身；改名改指登记（R1 判例，调用面逐字不变）：
+ *   xe → useTaskStore（styles 401 `h as xe`，本文件头 tombstone 在案）
+ *   fe → getWorkspaceTaskStateAlias（styles 391 `U as fe`）
+ *   Vo → searchResultsStore（本文件 @519 既有别名）
+ *   Lo → taskEntityKey（StoresDeep 导入，@217）
+ *   ce → getMergedTaskListItem / pe → mergeTaskMetaMany（SkillStore 导入，@214）
+ *   Uge → useTaskSessionRecord（SessionRecordCore 导入别名，@227）
+ *   $ge → memoizeResolvedTaskMeta（上方）/ Zge → firstDefined（下方 declare）
+ *   qge → useTaskNativeSessionLogFile / Xge → useTaskSessionFilePath（下方 declare） ── */
+function useActiveTaskMeta({
+  workspaceAbsPath: e,
+  activeTaskId: t,
+  workspaceRemoteSessionId: n,
+  workspaceIdentity: r,
+  selectedProvider: i,
+  intl: a,
+}: {
   workspaceAbsPath: string;
   activeTaskId: string | null;
   workspaceRemoteSessionId?: string;
   workspaceIdentity?: string;
   selectedProvider: string;
   intl: IntlShape;
-}): ActiveTaskMeta;
+}): ActiveTaskMeta {
+  let o = useTaskStore((t) => getWorkspaceTaskStateAlias(t, e, r)),
+    s = searchResultsStore((n) =>
+      t
+        ? (n.taskMetaByEntityKey[taskEntityKey({ taskId: t, workspacePath: e, workspaceIdentity: r })] ?? null)
+        : null,
+    ),
+    c = (0, React.useMemo)(() => (t ? (mergeTaskMetaMany(getMergedTaskListItem(o, t), s) ?? null) : null), [t, s, o]),
+    l = Uge(e, t, n, r, c),
+    u = memoizeResolvedTaskMeta(c ?? l),
+    d = u?.traceId ?? null,
+    f = u?.taskId ?? null,
+    p = u?.provider ?? null;
+  return {
+    activeTaskMeta: c,
+    resolvedActiveTaskMeta: u,
+    activeTraceId: d,
+    activeSessionId: f,
+    activeTaskProvider: p,
+    workspaceHeaderProvider: firstDefined(p, i),
+    activeTaskChangeSummary: null,
+    activeTaskTitle: u?.title?.trim()
+      ? u.title
+      : a.formatMessage({
+          id: u?.forkedFromTaskId ? `taskList.forkedUntitled` : `taskList.newThread`,
+        }),
+    taskNativeSessionLogFile: useTaskNativeSessionLogFile(e, t, p, r),
+    taskSessionFile: useTaskSessionFilePath(e, t, r),
+  };
+}
+
+/* ── tombstone〔A1-P2-B9〕：declare useActiveTaskMeta（原 e_e）删除 → 上方真身转录
+ *    （styles 24772-24812 逐字；改名改指登记见上方函数头注）。删碑：e_e 24772。 ── */
+
+/* ── 原 Zge（styles 24734）：空值合并 `e ?? t`。消费面 = 本文件 e_e@24793
+ *    `Zge(p, i)` + 143582（任务列表面域 `Ce = Zge(p, D.selectedProvider)`，
+ *    C6/TaskListItem 族 142086 区，属外未重建）。 ── */
+declare function firstDefined<T>(primary: T | null | undefined, fallback: T): T;
+
+/* ── 原 qge（styles 24612-24676）：task 原生日志路径 hook（日志串
+ *    `[useTaskNativeSessionLogFile]` 自证名）。真形：kg（≡ useCachedTaskService，
+ *    services/workspaceServiceHooks@286）服务束 getTaskNativeSessionLogFile +
+ *    Wge 错误消息 + Gge@24608 缺省态 {provider, path, exists, loading, error}。
+ *    消费面 = 本文件 e_e@24806 + C6@142099（TaskListItem 域 142086，属外未重建）。
+ *    型缝：返回收本文件 TaskFileRef 薄面（束真含 error 字段 / path 可空，
+ *    消费面 ?? 链兼容）。 ── */
+declare function useTaskNativeSessionLogFile(
+  workspacePath: string,
+  taskId: string | null,
+  provider: string | null,
+  workspaceIdentity?: string,
+  options?: { enabled?: boolean },
+): TaskFileRef;
+
+/* ── 原 Xge（styles 24686-24733）：task 会话快照路径 hook（日志串
+ *    `[useTaskSessionFilePath]` 自证名）。真形：kg 服务束 getTaskSessionFilePath +
+ *    Yge 错误消息 + Jge@24677 缺省态 {path, exists, loading, error}。
+ *    消费面 = 本文件 e_e@24807 + C6@142098（属外未重建）。型缝同上。 ── */
+declare function useTaskSessionFilePath(
+  workspacePath: string,
+  taskId: string | null,
+  workspaceIdentity?: string,
+  options?: { enabled?: boolean },
+): TaskFileRef;
 /* ── 〔A1-P2-B7〕R40 §六.4 跨轨交接预登：Uge ≡ useTaskSessionRecord（主树 R40 已转录至
- *    modules/SessionRecordCore.ts 尾部，导出面在位；泳道基线早于 R40 不见该叶，故立过渡
- *    declare 预登。〔编排方合并核验〕：canonical 在位实证 = SessionRecordCore@128
- *    export function useTaskSessionRecord(e,t,n,r,i) 五参签名与本过渡面恰合（R40 逐字
- *    24574-24599）；本文件当前零消费（预登面），e_e 转录时改真实导入即成）。bundle 真形 24574-24599 逐字：
+ *    modules/SessionRecordCore.ts 尾部，导出面在位；本泳道工作区无该叶——泳道不读主树
+ *    源码，合并后由编排方核验接线）。bundle 真形 24574-24599 逐字：
  *    Uge(workspacePath, sessionId, workspaceRemoteSessionId, workspaceIdentity,
  *    activeTaskMeta) = Ag 服务束 readSession({ workspacePath, workspaceIdentity,
  *    sessionId, messageLimit: 1 }) → Pge 映射 → Hge taskId 匹配过滤；返回 record|null。
@@ -735,13 +873,9 @@ declare function useActiveTaskMeta(input: {
  *    （R1 判例，调用面逐字不变）；返回型复用本文件 resolvedActiveTaskMeta 富面——
  *    束真 c ?? l 同器互用（24788 $ge(c ?? l)），Pge@24501 会话回退支恒含
  *    title/createdAt/updatedAt（上方 ActiveTaskMeta 注在案）。 ── */
-declare function useTaskSessionRecord(
-  workspacePath: string,
-  sessionId: string | null,
-  workspaceRemoteSessionId: string | undefined,
-  workspaceIdentity: string | undefined,
-  activeTaskMeta: ActiveTaskMeta["resolvedActiveTaskMeta"],
-): ActiveTaskMeta["resolvedActiveTaskMeta"];
+/* 〔A1-P2-B9〕过渡 declare 本体删除 → 真实导入（文件头 @227
+ * `import { useTaskSessionRecord as Uge } from '../../modules/SessionRecordCore'`，
+ * e_e 真身调用面 24787 逐字不变）；上方墓碑保留为交接史料，其余内容未动。 */
 declare function useProviderConfigFile(
   workspaceAbsPath: string,
   provider: string | null,
@@ -1530,8 +1664,12 @@ declare const DockTerminalBrowserPanel: React.FC<Record<string, unknown>>;
  *  任务内查找对话框（placement: chat/side-pane） */
 declare const TaskFindDialog: React.FC<Record<string, unknown> & { placement: "chat" | "side-pane" }>;
 
-/** 原 l3 RepoWikiMain（F16 根，js 132306-133070 / jsx 111550） */
-declare const RepoWikiMain: React.FC<Record<string, unknown>>;
+/* ── tombstone〔A1-P2-B9〕：declare const RepoWikiMain（原 l3，F16 根，js 132306-133070 /
+ *    jsx 111550）删除 → 改名改指 ExtendedViews.RepoWikiView（文件头导入块，R1 判例别名
+ *    保留调用名；调用点 2969/3257 区逐字不变）。canonical 实证：ExtendedViews §1
+ *    A0 代 F16 族全转录（132042–134110 域图在案）且 SidePanel@4354 既接同面
+ *    （workspacePath/workspaceIdentity/onOpenCodeViewer）。B5 逐字代重转录整域
+ *    （含 RepoWikiCore 接线）留批——见 A1-P2-B9.report.md §六。 ── */
 
 /** 原 d6 AutomationsMain（F15 根，js 138823-139924 / jsx 115911）
  *  已接线：ExtendedViews.tsx §6.10（d6 视图态全量展开） */
