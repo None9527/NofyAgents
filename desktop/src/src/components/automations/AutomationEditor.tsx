@@ -120,11 +120,8 @@ declare const ThoughtLevelSelector: React.FC<{
   interactionMode?: string;
   onValueChange: (value: string) => void;
 }>; // Pq（F08，js 77118）
-declare function useWorkspaceConfigOptions(
-  workspacePath: string,
-  unused: null,
-  workspaceIdentity?: string,
-): { configOptions: ConfigOption[]; status: string }; // Jq（F12，js 78389）
+/* ── tombstone〔A1-R56〕：declare useWorkspaceConfigOptions（原 Jq）删除 → 改指 Home §U.11 useCatalogConfigOptions（Jq 真身：styles 78437–78455，R53 逐字实体化；旧注「js 78389」为 −48 漂移混标，真行 78437，R55 总审偏移类同族实证）。消费面实测：@2685 ≡ bundle 137206（kNt 面 `Jq(He, null, Ue)`），别名导入保调用名（R1 判例），逐字不变。环安全：Home 值闭包不达 components/automations。 ── */
+import { useCatalogConfigOptions as useWorkspaceConfigOptions } from '../../modules/Home'; // 〔A1-R56〕Jq 收敛改指，墓碑见上
 /* ── tombstone（A0-CLEANUP B-8）：MAX_THINKING_LEVELS declare 删除 → import
  *    { GLM_REASONING_LEVELS as MAX_THINKING_LEVELS } from './SrcSharedA'（原 ui=Sl）。 ── */
 /* ── tombstone（A1-R11）：declare resolveModelGroupLabel（原 iN，F08——bundle 真身 53795）删除，

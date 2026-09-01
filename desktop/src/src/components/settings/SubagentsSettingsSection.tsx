@@ -238,10 +238,8 @@ export interface SubagentConfig {
 
 /* 接口级子件（行号见头部映射 §B） */
 declare function sortSubagents(agents: SubagentItem[]): SubagentItem[]; // w1t（157977）
-declare function useWorkspaceConfigOptions(workspacePath: string, unused: null, workspaceIdentity?: string | null): {
-  configOptions: ConfigOption[];
-  status: string;
-}; // Jq；A0-CLEANUP3 3b：返回面按消费端（SubagentRow/SubagentConfigForm props）具型
+/* ── tombstone〔A1-R56〕：declare useWorkspaceConfigOptions（原 Jq）删除 → 改指 Home §U.11 useCatalogConfigOptions（Jq 真身：styles 78437–78455，R53 逐字实体化）。消费面实测：@270 ≡ bundle 197845（H1t 面 `Jq(t ?? \`\`, null, n)`），别名导入保调用名（R1 判例），逐字不变；返回面宽于原 declare（+loading/error），消费仅解构 configOptions/status 不受影响。环安全：本文件 R24 既有 modules/Home 型边，Home 值闭包不达 components/settings。 ── */
+import { useCatalogConfigOptions as useWorkspaceConfigOptions } from '../../modules/Home'; // 〔A1-R56〕Jq 收敛改指，墓碑见上
 /* ── tombstone〔A1-R29〕：declare buildModelSelectGroups（原 Hq）删除 → 改指 modelMenuGroupsOf（Hq 真身：
  *    bundle 77850 唯一真身 ≡ PaymentDeep@993 A0 逐字实化，modules/PaymentDeep@118 转导出）。双实例收敛证据：
  *    消费面实测：@292（modelSelectGroups useMemo）≡ bundle 197861（`Hq(\`glm\`, [], s, {labels}, c, h?.modelProviderFamilyModes)`），

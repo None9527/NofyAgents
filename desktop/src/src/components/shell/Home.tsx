@@ -4602,7 +4602,7 @@ function useActiveTabWorkspaceIdentity(e: string): string | null | undefined { /
     if (!(!n || !isWorkspaceKindTab(n) || n.workspacePath !== e)) return n.workspaceIdentity;
   });
 }
-function useCatalogConfigOptions(e: string, t: string | null, n?: string | null): { configOptions: ConfigOption[]; status: string; loading: boolean; error: boolean } { // Jq
+export function useCatalogConfigOptions(e: string, t: string | null, n?: string | null): { configOptions: ConfigOption[]; status: string; loading: boolean; error: boolean } { // Jq
   let r = useActiveTabWorkspaceIdentity(e),
     i = n ?? r,
     { configOptions: a, configOptionsStatus: o } = useTaskStore(

@@ -128,6 +128,7 @@
  * ────────────────────────────────────────────────────────────────────────────────────────────── */
 
 export {
+  useCatalogConfigOptions, // 〔A1-R56〕Jq 域外消费改指面（AutomationEditor kNt 137206 / SubagentsSettingsSection H1t 197845）
   Spinner,
   GREETING_HOUR_BOUNDARIES,
   GREETING_MIN_FONT_SIZE_PX,
