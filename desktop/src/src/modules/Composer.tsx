@@ -518,7 +518,7 @@ import { RichTextPlugin as LexicalRichTextPlugin } from '@lexical/react/LexicalR
 import { Spinner } from './Home';
 import { toast } from './ImeComposition'; // 〔A0-S4-4b〕PopoverAnchor/PopoverContent/PopoverTrigger 随 pptx 族迁出后留守面仅余 toast
 import { create as createStore, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, useWhiteboardStore } from './SkillStore'; // +createStore（A0-S2d 接线：原 zustand create declare → SkillStore q 导出）；+workspaceKey（A0-D 接线：declare → SkillStore b 导出 resolveWorkspaceKey）
-import { normalizeProviderId } from './SrcSharedB';
+import { normalizeProviderId, useShallowSelector } from './SrcSharedB'; // 〔A1-R39〕+useShallowSelector（co 真身：styles 1033-1039 ≡ lib/shallowSelector，SrcSharedB 转导出面 R38 补）：shallowSelector declare 收敛改指，见下墓碑
 import { useBaseServices, useServices } from './services'; // 原 fs（bundle 2675）= services.tsx useServices（context 面）；基线误名 useWorkspaceServices（= Oc，带参解析面），A0-D 裁决改接 useServices
 import { InfoTooltip as TooltipRoot, TooltipContent, TooltipTrigger } from './UsageStatsUiParts'; // 原 fN/pN + Ia（A0-D 接线 + A0-CLEANUP2 item 47：TooltipRoot declare → InfoTooltip 属主导出）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical）
@@ -659,7 +659,7 @@ interface PromptAttachmentTransferService {
   };
 }
 declare function useWorkspaceTabsSelector(selector: (state: any) => unknown): any;
-declare function shallowSelector<T>(selector: (state: any) => T): (state: any) => T;
+/* ── tombstone〔A1-R39〕：declare shallowSelector（原 co）删除 → 改指 modules/SrcSharedB useShallowSelector（co 真身：styles-local 1033-1039 ≡ lib/shallowSelector.ts 公共叶，A1-R38 迁叶裁定；SrcSharedB 转导出面在位）。消费面实测（4 处改名改指 ≡ bundle settings 63494 区）：@912/@947（useSubagentsContext≡pqe 63490，co 消费 63494/63523）/@1176/@1211（useSkillsContext≡WB 63680，co 消费 63684/63713）。负证据：本文件 co 面全集 4 处；型面 (state: any)→T 与公共叶 (e: any) 双变可赋。 ── */
 declare function isWorkspaceTab(tab: unknown): tab is { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null };
 declare function remoteScopeKey(args: {
   workspaceIdentity?: string | null;
@@ -909,7 +909,7 @@ export function useSubagentsContext(
   const { subagentsService } = useServices();
   const trimmedIdentity = workspaceIdentity?.trim() || void 0;
   const tabResolution = useWorkspaceTabsSelector(
-    shallowSelector((state) => {
+    useShallowSelector((state: any) => { // 〔A1-R39〕co≡useShallowSelector 改指（≡ bundle 63494/63684）
       if (!workspacePath)
         return {
           workspaceIdentity: void 0,
@@ -944,7 +944,7 @@ export function useSubagentsContext(
   const refresh = useSubagentStore((state) => state.refresh);
   const setEnabled = useSubagentStore((state) => state.setEnabled);
   const loadedContext = useShallowSubagentLoadedState(
-    shallowSelector((state) => ({
+    useShallowSelector((state: any) => ({ // 〔A1-R39〕co 改指（≡ bundle 63523/63713）
       workspacePath: state.loadedWorkspacePath,
       workspaceIdentity: state.loadedWorkspaceIdentity,
       provider: state.loadedProvider,
@@ -1173,7 +1173,7 @@ export function useSkillsContext(
   const { skillsService } = useServices() as unknown as { skillsService: SkillsService };
   const trimmedIdentity = workspaceIdentity?.trim() || void 0;
   const tabResolution = useWorkspaceTabsSelector(
-    shallowSelector((state) => {
+    useShallowSelector((state: any) => { // 〔A1-R39〕co≡useShallowSelector 改指（≡ bundle 63494/63684）
       if (!workspacePath)
         return {
           workspaceIdentity: void 0,
@@ -1208,7 +1208,7 @@ export function useSkillsContext(
   const refresh = useSkillContextStore((state) => state.refresh);
   const setEnabled = useSkillContextStore((state) => state.setEnabled);
   const loadedContext = useShallowSkillLoadedState(
-    shallowSelector((state) => ({
+    useShallowSelector((state: any) => ({ // 〔A1-R39〕co 改指（≡ bundle 63523/63713）
       workspacePath: state.loadedWorkspacePath,
       workspaceIdentity: state.loadedWorkspaceIdentity,
       provider: state.loadedProvider,

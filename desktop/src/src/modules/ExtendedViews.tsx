@@ -165,11 +165,11 @@ import { FilePathInline, pathBasename, resolveFileDisplayInfo } from './ModalsLe
 import { Badge, modelMenuGroupsOf, providerUsableForAgent, type ModelProvider as PaymentModelProvider } from './PaymentDeep'; // 〔A1-R29〕+modelMenuGroupsOf（Hq 77850 canonical）/providerUsableForAgent（Bq 77541 canonical）/type ModelProvider（型缝所依）：hjt 域 declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 modules/ExtendedViews
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Settings';
 import { AutomationEditor, OffPeakTaskEditor, type ScheduleRule } from './SettingsLeaves'; // A0-CLEANUP3 3b：Automation 三型 scheduleRule 统一
-import { createWhiteboardStroke, filterNativeModelOptions, logger, useTaskStore, useWhiteboardStore, type TaskStore, type WhiteboardBoard, type WhiteboardStroke, type WorkspaceTaskState } from './SkillStore'; // 〔A1-R30〕+filterNativeModelOptions（L ≡ skillStore 导出 A ≡ taskStore@1422 canonical）：buildConfigOptionModels declare 收敛改指，见下墓碑。环安全：本行不新增环边（EV→SkillStore 既有）
+import { createWhiteboardStroke, filterNativeModelOptions, logger, useTaskStore, useWhiteboardStore, type TaskStore, type WhiteboardBoard, type WhiteboardStroke, type WorkspaceTaskState } from './SkillStore'; // 〔A1-R30〕+filterNativeModelOptions（L ≡ skillStore 导出 A ≡ taskStore@1422 canonical）：buildConfigOptionModels declare 收敛改指，见下墓碑。〔A1-R39〕+useShallowSelector（co 真身 ≡ lib/shallowSelector，SrcSharedB 转导出面 R38 补）：createShallowSelectorFactory declare 收敛改指，见下墓碑。环安全：本行不新增环边（EV→SkillStore 既有）
 // 〔A1-R25〕w6e 77856 实体化：resolveModelGroupLabel declare 收敛——改接 Home §U.9 逐字真身（经 modules/Home 转导出）
 import { resolveModelGroupLabel } from './Home';
 import { providerIds } from './SrcSharedA';
-import { automationsWorkspaceKey, repoWikiWorkspaceKey, isProviderAllowedForFamilyMode } from './SrcSharedB'; // 〔A1-R29〕+isProviderAllowedForFamilyMode（Mr ≡ Kx 8919 canonical）：isProviderVisible declare 收敛改指，见下墓碑
+import { automationsWorkspaceKey, repoWikiWorkspaceKey, isProviderAllowedForFamilyMode, useShallowSelector } from './SrcSharedB'; // 〔A1-R29〕+isProviderAllowedForFamilyMode（Mr ≡ Kx 8919 canonical）：isProviderVisible declare 收敛改指，见下墓碑
 import { reportTelemetry, type TelemetryPlatform } from './StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
 import { useServices } from './services';
 import { useAutomationsStore } from './stores-tasks';
@@ -459,10 +459,10 @@ declare function selectProviderConfigState(
 /* TaskStoreState/WorkspaceTaskState：A0-CLEANUP B-3 改指 SkillStore 类型导出
  * （原本地索引签名形删除；选择器工厂按 TaskStore 全store形收参）。 */
 /** 原 xe（skillStore h 导出） */
-/** 原 co（js 1033）：ref 记忆化浅比较选择器工厂 */
-declare function createShallowSelectorFactory<T>(
-  factory: (state: TaskStore) => T,
-): (state: TaskStore) => T;
+/* ── tombstone〔A1-R39〕：declare createShallowSelectorFactory（原 co，js 1033）删除 → 改指
+ * modules/SrcSharedB useShallowSelector（co 真身：styles-local 1033-1039 ≡ lib/shallowSelector.ts
+ * 公共叶，A1-R38 迁叶裁定；转导出面在位）。消费面实测（2 处改名改指）：@2231（RepoWikiView≡l3
+ * 132306，co 消费 132376）/@4817（DeveloperToolsView≡mKt 180870，co 消费 181126）。 ── */
 
 interface SettingsStoreState {
   theme: string;
@@ -2228,7 +2228,7 @@ export const RepoWikiView: React.FC<{
   const activePage = pageCacheEntry?.page ?? null;
   const pageLoading = !!(activeProject?.wiki && selectedPage && !pagePending && (!pageCacheEntry?.loaded || pageCacheEntry.loading));
   const providerConfig = useTaskStore(
-    createShallowSelectorFactory((state) => {
+    useShallowSelector((state: any) => { // 〔A1-R39〕co≡useShallowSelector 改指（≡ bundle 132376）
       const resolved = selectProviderConfigState(state, activeProject?.workspacePath ?? workspacePath, activeProject?.workspaceIdentity ?? workspaceIdentity);
       return {
         configOptions: resolved.configOptions,
@@ -4814,7 +4814,7 @@ export const DeveloperToolsView: React.FC<{ workspacePath: string; workspaceIden
 }) => {
   const { intl, locale } = useIntlContext();
   const snapshot = useTaskStore(
-    createShallowSelectorFactory((state) =>
+    useShallowSelector((state: any) => // 〔A1-R39〕co≡useShallowSelector 改指（≡ bundle 181126）
       taskId
         ? {
             cache: selectSessionByTask(state.getWorkspaceState(workspacePath, workspaceIdentity), taskId)?.usage?.cache,
@@ -4869,7 +4869,7 @@ export const DeveloperToolsView: React.FC<{ workspacePath: string; workspaceIden
                     </td>
                   </tr>
                 ) : (
-                  snapshot.rounds.map((round) => (
+                  snapshot.rounds.map((round: any) => (
                     <tr key={round.eventKey} className="border-b border-border last:border-b-0">
                       <td className="px-2 py-1.5 font-mono text-foreground">{formatDeveloperNumber(locale, round.requestIndex)}</td>
                       <td className="px-2 py-1.5 text-right font-mono">{formatDeveloperNumber(locale, round.usage.inputTokens)}</td>

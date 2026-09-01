@@ -280,7 +280,7 @@ declare const planProviderIds: { zaiStartPlan: string; bigmodelStartPlan: string
 /* ── tombstone（A1-R10 2a）：declare function isStartupSoundEnabled(): boolean（原 Eie，js 1091）删除，
  *    改经文件头 stores-core import 消费（canonical = settingsStore yo/bo/Eie 逐字转录；
  *    2604 调用点逐字不变）。 ── */
-declare function createRandomId(): string; // 原 xi
+/* ── tombstone〔A1-R39〕：declare createRandomId（原 xi）删除 → 改指 lib/uuid generateUuid（经尾部导入；xi 真身：styles 743 `ot as xi` ← src 9982 `cx as ot` ≡ cx 8710 ≡ lib/uuid@15 generateUuid 逐字；R38 PD@381 同链既判）。消费面实测 @2644（T8t≡setRendererInstanceId ≡ bundle 213922，co ≡ bundle 213925）改名改指，调用面逐字不变。 ── */
 
 /* --- provider 树组件（各家族批次，接口级消费面）--- */
 declare const LucideProvider: React.FC<{ strokeWidth?: number; children?: React.ReactNode }>; // 原 qre（button-laUijeDG.js l）
@@ -2641,7 +2641,7 @@ let rendererInstanceId: string | null = null;
 export function setRendererInstanceId(rawId: string) {
   let trimmedId = rawId.trim();
   if (!trimmedId) {
-    rendererInstanceId ??= `renderer:fallback-${createRandomId()}`;
+    rendererInstanceId ??= `renderer:fallback-${generateUuid()}`; // 〔A1-R39〕原 createRandomId（xi）改指 lib/uuid generateUuid（≡ bundle 213925）
     return;
   }
   rendererInstanceId = `renderer:${trimmedId}`;
@@ -2726,3 +2726,6 @@ export function setRendererInstanceId(rawId: string) {
  *   b6t 210359 | w4t 206410 | X4t/Q4t 207064–207214 | b8t 213898
  * ============================================================================
  */
+
+/* 〔A1-R39〕尾部导入：generateUuid（原 xi）收敛改指——lib/uuid@15 canonical（src cx@8710 逐字；styles 743 `ot as xi` ← src 9982 `cx as ot`；R38 PD@381 同链既判）。尾部导入：ES 模块提升，等价文件头，行引用零漂（R35 @10315 先例）。环安全：lib/uuid 值闭包仅 crypto，不达本文件。 */
+import { generateUuid } from '../lib/uuid';

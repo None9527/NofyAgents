@@ -131,8 +131,8 @@ import { Button } from '../../modules/button'; // 原 X：Button
 
 /** 日志器（原 J） */
 
-/** 随机 id（原 xi） */
-declare function uid(): string;
+/* ── tombstone〔A1-R39〕：declare uid（原 xi）删除 → 改指 lib/uuid generateUuid（经尾部导入；xi 真身：styles 743 `ot as xi` ← src 9982 `cx as ot` ≡ cx 8710 ≡ lib/uuid@15 generateUuid 逐字；R38 PD@381 同链既判；SidePanel A1-P3-B1 同链先例）。
+ * 消费面实测 2 处 @1277（bUt≡TerminalPanel，co ≡ bundle 176230）/ @1325（Sqt≡createTerminalSession，co ≡ bundle 183512）改名改指，调用面逐字不变。 ── */
 
 /** 路径 basename（原 Go） */
 declare function basename(path: string): string;
@@ -1274,7 +1274,7 @@ export interface TerminalPanelProps {
 
 /** 原 bUt：单会话终端面板（独立 uid 会话，无 shellLabel 回显） */
 export function TerminalPanel({ services, cwd, isVisible, isWindowsDesktop = false, onOpenBrowserUrl }: TerminalPanelProps) {
-  const [sessionId] = React.useState(() => uid());
+  const [sessionId] = React.useState(() => generateUuid()); // 〔A1-R39〕原 uid（xi）改指 lib/uuid generateUuid（≡ bundle 176230）
   return (
     <section className="h-full min-h-0 overflow-hidden bg-background p-3">
       <XtermTerminalPane
@@ -1322,7 +1322,7 @@ export function createTerminalSession(args: {
   initialCommand?: string | null;
 }): TerminalSession {
   return {
-    id: uid(),
+    id: generateUuid(), // 〔A1-R39〕原 uid（xi）改指 lib/uuid generateUuid（≡ bundle 183512）
     workspaceKey: args.workspaceKey,
     services: args.services,
     cwd: args.cwd,
@@ -1973,3 +1973,6 @@ export function TerminalDock({
     </>
   );
 }
+
+/* 〔A1-R39〕尾部导入：generateUuid（原 xi）收敛改指——lib/uuid@15 canonical（src cx@8710 逐字；styles 743 `ot as xi` ← src 9982 `cx as ot`；R38 PD@381 同链既判）。尾部导入：ES 模块提升，等价文件头，行引用零漂（R35 @10315 先例）。环安全：lib/uuid 值闭包仅 crypto，不达本文件。 */
+import { generateUuid } from '../../lib/uuid';
