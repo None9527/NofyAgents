@@ -174,41 +174,51 @@ function GenericInteractionDialog({
   );
 }
 
-/** 原 nSt（js 117366 / jsx ~99705）：暂停交互自动结束（snoozeInteractionAutoResolution 命令） */
-async function snoozeInteractionAutoResolution(args: {
-  sessionId: string;
-  interactionId: string;
-  sendCommand: (command: unknown) => Promise<CommandAck>;
-  source: string;
-  onCommandSettled?: (commandId: string) => void;
-}): Promise<boolean> {
-  const command = buildCommand({
+/* ── 交互 snooze 命令域（styles 117414–117447） ── */
+async function sendSnoozeInteractionCommand(e: any) {
+  let t = buildCommand({
     type: `snoozeInteractionAutoResolution`,
-    sessionId: args.sessionId,
-    payload: { interactionId: args.interactionId },
+    sessionId: e.sessionId,
+    payload: { interactionId: e.interactionId },
   });
-  pendingCommandLedger.record(command);
+  pendingCommandLedger.record(t);
   try {
-    const ack = await args.sendCommand(command);
-    pendingCommandLedger.applyAck(command, ack);
-    const accepted = ack.status === `accepted` || ack.status === `duplicate` || ack.status === `noop`;
-    if (!accepted) {
-      logger.warn(`[v4-interaction] 暂停自动结束被拒绝`, {
-        interactionId: args.interactionId,
-        source: args.source,
-        status: ack.status,
-        reasonCode: ack.reasonCode,
-      });
-    }
-    return accepted;
-  } catch (error) {
-    logger.error(`[v4-interaction] 暂停自动结束失败`, { interactionId: args.interactionId, source: args.source, error });
-    return false;
+    let n = await e.sendCommand(t);
+    return (
+      pendingCommandLedger.applyAck(t, n),
+      n.status === `accepted` || n.status === `duplicate` || n.status === `noop`
+        ? !0
+        : (logger.warn(`[v4-interaction] 暂停自动结束被拒绝`, {
+            interactionId: e.interactionId,
+            source: e.source,
+            status: n.status,
+            reasonCode: n.reasonCode,
+          }),
+          !1)
+    );
+  } catch (t) {
+    return (
+      logger.error(`[v4-interaction] 暂停自动结束失败`, {
+        interactionId: e.interactionId,
+        source: e.source,
+        error: t,
+      }),
+      !1
+    );
   } finally {
-    args.onCommandSettled?.(command.commandId);
+    e.onCommandSettled?.(t.commandId);
   }
 }
-
+/* ── tombstone〔A1-P1-B13〕：手写 snoozeInteractionAutoResolution（原 177–209）删除——束真身 nSt@117414 逐字
+ * 实体化于本段。OS/K1/J → buildCommand/pendingCommandLedger/logger 真实 import（B6/B7 在案）。
+ * 语义名 sendSnoozeInteractionCommand：避束字面量 `snoozeInteractionAutoResolution`（命令 type 串）碰撞，
+ *   B12 ToolLayoutMemo 判例同源；调用面（snooze useCallback）改指。
+ * P3-B9 §5 OS 消费侧受理：canonical = sessionCommandSchemaCore::buildSessionCommandEnvelope（OS@34629；
+ *   本 worktree 真身 = ./ConversationCommandLedger::buildCommand，B6 逐字 34598–34645）+ casCommandTypes/
+ *   rowTargetCommandTypes（= CAS_COMMAND_TYPES/ROW_TARGET_COMMAND_TYPES，同叶在案）；declare→import 收敛在案。
+ * pSt@117599 resolveInteraction 应答钩子为 pSt 束体嵌套 useCallback，非顶层声明，不独立转录；其 OS 消费面
+ *   （本叶 resolveInteraction useCallback，buildCommand import）已收敛，受理取证见 A1-P1-B13.report.md §五。
+ * R0@119236 = ./ConversationPaneCore（B3 逐字 2,065 行）OS 消费面 buildCommand import（B6）在案，同受理。 ── */
 /** 原 fSt（js 117536 / jsx 99884）：snooze 账本（交互过才可暂停，且每次交互只暂停一次） */
 function createSnoozeLedger() {
   const interacted = new Set<string>();
@@ -319,7 +329,7 @@ function ConversationInteractionsOverlay({
   );
   const snooze = React.useCallback(
     async (interactionId: string) =>
-      snoozeInteractionAutoResolution({ sessionId, interactionId, sendCommand, source: `dialog`, onCommandSettled }),
+      sendSnoozeInteractionCommand({ sessionId, interactionId, sendCommand, source: `dialog`, onCommandSettled }),
     [onCommandSettled, sendCommand, sessionId],
   );
   const persistFormDraft = React.useCallback(
@@ -428,5 +438,5 @@ export {
   toPermissionRequest,
   toElicitationRequest,
   toGenericInteractionModel,
-  snoozeInteractionAutoResolution,
+  sendSnoozeInteractionCommand, // 〔A1-P1-B13〕原 nSt 束真身逐字（styles 117414–117447），手写 snoozeInteractionAutoResolution 墓碑
 };

@@ -63,7 +63,7 @@
  *  [Interaction 交互调度]（js 117283–117684 / jsx 99619–100033）
  *   eSt → useWorkspaceInteractionToasts     (117283 / 99619)
  *   tSt → useSnapshotInteractionToasts      (117346 / 99703)
- *   nSt → snoozeInteractionAutoResolution   (117366 / 99705 附近)
+ *   nSt → sendSnoozeInteractionCommand      (117414；〔A1-P1-B13〕束真身逐字，手写 snoozeInteractionAutoResolution 墓碑)
  *   rSt → PERMISSION_RULE_FIELDS            (117400 / 99762)
  *   iSt → buildOptionResponse               (117401 / 99763)
  *   aSt → toPermissionRequest               (117419 / 99788)
@@ -180,7 +180,7 @@ export {
   toPermissionRequest,
   toElicitationRequest,
   toGenericInteractionModel,
-  snoozeInteractionAutoResolution,
+  sendSnoozeInteractionCommand, // 〔A1-P1-B13〕原 nSt 束真身逐字改指（手写 snoozeInteractionAutoResolution 墓碑；下游零消费在案）
 } from '../components/conversation/ConversationInteractionsOverlay';
 /* ============================================================================
  * 4. Captcha / provider 运行时头（js 117754–118640 / jsx 100034–100891；A1-R16 行校正，旧注 117706–118608）

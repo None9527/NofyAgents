@@ -5,7 +5,7 @@
 /* eslint-disable */
 import * as React from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { Pencil as IconPencil, Search as IconSearch, Terminal as IconTerminal, Shield as IconShield, Target as IconTarget, Gauge as IconGauge, Calendar as IconCalendar, Clock as IconClock, Bot as IconBot, Globe as IconGlobe, Check as IconCheck, Copy as IconCopy, ArrowUpRight as IconArrowUpRight, ExternalLink as IconExternal } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Pencil as IconPencil, Search as IconSearch, Terminal as IconTerminal, Shield as IconShield, Target as IconTarget, Gauge as IconGauge, Calendar as IconCalendar, Clock as IconClock, Bot as IconBot, Check as IconCheck, Copy as IconCopy, ArrowUpRight as IconArrowUpRight, ExternalLink as IconExternal } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { ToolCallBlock, ToolLayout } from '../../modules/Conversation'; // 原 lQ/K$（A0-D 接线：declare → Conversation §4 canonical）
 import { MarkdownRenderer, baseName, type CodePreviewSettings, type FileLinkModel } from '../../modules/MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
 import { logger } from '../../modules/SkillStore';
@@ -18,10 +18,8 @@ import {
   normalizeAgentName, resolveAgentColorHash, extractAgentOutputFile, extractAgentOutputText,
   AgentPromptBlock, AgentChildToolList, AgentLabeledBlock, AgentOutputFileCard, AgentColorBadge,
 } from './AgentToolBlocks'; // 〔A1-P1-B10〕agent 族 13 declare 实体化收敛（styles 105957–106290 + 105162–105185）
-import {
-  extractMcpToolInfo, prettifyMcpServerName, prettifyMcpToolName, extractMcpOutputText,
-  isShortPlainOutput, detectOutputLanguage, MCP_TOOL_ICON,
-} from './McpToolBlocks'; // 〔A1-P1-B11〕MCP 六 declare + MCP_TOOL_ICON 实体化收敛（styles 107432–107519 逐字）
+/* ── tombstone〔A1-P1-B13〕：McpToolBlocks 导入块删除——唯一消费面手写 AutomationToolView 已墓碑，
+ * 束真身改经 ./AutomationViewBlocks 叶内 import 消费（B11 叶不动）。 ── */
 import { hashToAgentPaletteColor } from './ShellCommandBlocks'; // 〔A1-P1-B11〕AgentToolView 调色板兜底链尾（原 Xft，styles 105186）
 import type { ToolCall, ToolCallNode, ToolDisplayModel, OpenCodeViewerFn, ToolCallViewProps, FileSummary, PlatformService } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）；PlatformService 留守 shim（§5/§6 共用）
 
@@ -1509,320 +1507,21 @@ export function NodeReplToolView(props: ToolCallViewProps) {
   );
 }
 
-/* ---- 原 Wmt（107472 / 92099）：AutomationToolView（MCP 调用面） ---- */
+/* ── tombstone〔A1-P1-B13〕：手写 AutomationToolView（1512–1649，约 138 行）删除——束真身 Wmt@107520–107720
+ * 已逐字实体化于 ./AutomationViewBlocks（四族收割之 MCP-Wmt 族；B11 助手域 107432–107519 邻叶在案）。
+ * 消费面改文件头转导出（./AutomationViewBlocks），调用面（ToolCallBlock 406 派发 extractMcpToolInfo 判定）逐字不变。
+ * 束真身更正披露：手写体为简化卡面；束真身含 CodeSurface 结果面（json/log 双模）+ Collapsible 详情面
+ * （description/parameters 双 section）+ snapshotRefs 加载器，见 AutomationViewBlocks 叶头注。 ── */
 
-/* ── tombstone〔A1-P1-B11〕：MCP 六 declare（Vmt/Hmt/Umt/Rmt/Lmt/T$）+ McpToolInfo 接口 + MCP_TOOL_ICON 手写 const 删除——
- * 逐字实体化 → ./McpToolBlocks（styles 107432–107519；roundtrip EXACT，/tmp/a1r0-p1/p11/）。
- * 消费面改文件头真实 import，调用面逐字不变。MCP_TOOL_ICON 图标真身 = lbe（Sa('plug')，styles 27645），
- * A0 手写期误映 IconBot，本批依束真身收敛为 lucide-react Plug（A0-S3b 判例：vendored → npm lucide-react@1.35.0）。
- * detectOutputLanguage（T$）真身返回 boolean；A0 消费面 `=== "json"` 串比误型一并更正（束 107593/107594：
- * enableSyntaxHighlighting: T$(p) / language: T$(p) ? `json` : `log`）。 ── */
+/* ── tombstone〔A1-P1-B13〕：Session 三 declare（Zmt/Qmt/$mt）+ SESSION_CONTEXT_ICON 手写 const + 手写
+ * SessionContextToolView（1651–1738，约 88 行）删除——束真身 eht@107883 全闭包（107816–107994，含 Jmt 图标/
+ * k$/A$/Ymt/j$/Xmt/M$ 助手）已逐字实体化于 ./SessionToolBlocks。消费面改文件头转导出，调用面逐字不变。
+ * 图标真身更正：aye=Sa('book-open-text')@26732（lucide BookOpenText）；A0 手写期误映 IconGlobe。 ── */
 
-export function AutomationToolView(props: ToolCallViewProps) {
-  const { intl } = useIntlContext();
-  const info = extractMcpToolInfo(props);
-  const { toolCall } = props.toolCallNode;
-  const serverLabel = info?.serverName ? prettifyMcpServerName(info.serverName) : undefined;
-  const primaryLabel = info ? prettifyMcpToolName(info.toolName ?? "", serverLabel ?? "") : toolCall.title;
-  const detailsLabel = intl.formatMessage({ id: "chat.toolCall.mcp.callDetails" });
-  const resultLabel = intl.formatMessage({ id: "chat.toolCall.mcp.result" });
-  const copyResultLabel = intl.formatMessage({ id: "chat.toolCall.mcp.copyResult" });
-  const wrapLabel = intl.formatMessage({ id: "chat.toolCall.mcp.wrapLines" });
-  const descriptionLabel = intl.formatMessage({ id: "chat.toolCall.mcp.description" });
-  const parametersLabel = intl.formatMessage({ id: "chat.toolCall.mcp.parameters" });
-  const hasDetails = !!(info?.description || toolCall.input !== undefined);
-  const outputText = extractMcpOutputText(toolCall.output);
-  const errorText = toolCall.status === "failed" ? (toolCall.error ?? props.errorText) : undefined;
-  const pending = toolCall.status === "pending" || toolCall.status === "stopped";
-  const stoppedSuffix =
-    toolCall.status === "stopped" ? (
-      <span className="inline-flex items-center gap-2">
-        <span className="text-foreground-subtlest">{`·`}</span>
-        <span>{props.statusLabel}</span>
-      </span>
-    ) : undefined;
-  const failedSuffix =
-    toolCall.status === "failed" ? (
-      <span className="inline-flex items-center gap-2">
-        <span className="text-foreground-subtlest">{`·`}</span>
-        <span>{props.statusLabel}</span>
-      </span>
-    ) : undefined;
-  const loadFull = props.onLoadFullToolCallFields;
-  const renderContent = React.useCallback(
-    () => (
-      <div className="mb-2 space-y-3 py-1" data-testid="mcp-expanded-content">
-        {errorText ? (
-          <section className="space-y-1.5">
-            <h4 className="text-ui-base font-medium text-destructive">{resultLabel}</h4>
-            <p className="whitespace-pre-wrap break-words rounded-lg bg-destructive/10 px-3 py-2 text-ui-base text-destructive" data-testid="mcp-error-surface">
-              {errorText}
-            </p>
-          </section>
-        ) : outputText && isShortPlainOutput(outputText) ? (
-          <p className="break-words rounded-xl border border-border bg-card px-3 py-2 text-ui-base text-foreground-subtle" data-testid="mcp-result-surface">
-            {outputText.trim()}
-          </p>
-        ) : outputText ? (
-          <div className="max-h-72 overflow-auto rounded-xl border border-border bg-card" data-testid="mcp-result-surface">
-            <CodeSurface
-              appTheme={props.theme}
-              className="bg-card"
-              code={outputText}
-              enableSyntaxHighlighting={detectOutputLanguage(outputText)}
-              language={detectOutputLanguage(outputText) ? "json" : "log"}
-              renderMermaid={false}
-              wrapLongLines
-            >
-              <CodeSurfaceHeader className="pl-3 pr-2 pt-2">
-                <CodeSurfaceTitle>
-                  <span className="text-ui-base font-medium text-foreground-subtle">{resultLabel}</span>
-                </CodeSurfaceTitle>
-                <CodeSurfaceActions>
-                  <CodeSurfaceWrapButton aria-label={wrapLabel} title={wrapLabel} />
-                  <CodeSurfaceCopyButton aria-label={copyResultLabel} title={copyResultLabel} />
-                </CodeSurfaceActions>
-              </CodeSurfaceHeader>
-            </CodeSurface>
-          </div>
-        ) : toolCall.status === "pending" ? (
-          <p className="break-words rounded-xl border border-border bg-card px-3 py-2 text-ui-base text-foreground-subtle" data-testid="mcp-pending-surface">
-            {props.statusLabel}
-          </p>
-        ) : (
-          <p className="text-ui-base text-foreground-subtle">{props.statusLabel}</p>
-        )}
-        {hasDetails ? (
-          <Collapsible className="group/details">
-            <CollapsibleTrigger asChild>
-              <Button type="button" variant="ghost" size="sm" className="-ml-2 text-foreground-subtlest hover:bg-transparent hover:text-foreground aria-expanded:bg-transparent aria-expanded:text-foreground">
-                <IconChevronRight className="size-3.5 transition-transform group-data-[state=open]/details:rotate-90" />
-                {detailsLabel}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="space-y-3 pt-2">
-                {info?.description ? (
-                  <section className="space-y-1.5">
-                    <h4 className="text-ui-sm font-medium text-foreground-subtlest">{descriptionLabel}</h4>
-                    <p className="whitespace-pre-wrap break-words text-ui-base text-foreground-subtle">{info.description}</p>
-                  </section>
-                ) : null}
-                {toolCall.input === undefined ? null : (
-                  <section className="space-y-1.5">
-                    <h4 className="text-ui-sm font-medium text-foreground-subtlest">{parametersLabel}</h4>
-                    <div className="max-h-72 overflow-auto rounded-xl border border-border bg-card">
-                      <CodeSurface appTheme={props.theme} code={JSON.stringify(toolCall.input, null, 2)} language="json" />
-                    </div>
-                  </section>
-                )}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        ) : null}
-        <SnapshotRefsLoader refs={toolCall.snapshotRefs ?? []} onLoadFullToolCallFields={loadFull ? () => loadFull(toolCall.toolId) : undefined} />
-      </div>
-    ),
-    [detailsLabel, copyResultLabel, props, descriptionLabel, loadFull, hasDetails, parametersLabel, resultLabel, outputText, toolCall, errorText, wrapLabel],
-  );
-  if (!info) return null;
-  return (
-    <ToolLayout
-      toolId={toolCall.toolId}
-      icon={MCP_TOOL_ICON}
-      showIcon={props.showIcon !== false}
-      canToggle={!pending && (props.canToggle ?? true)}
-      forceOpen={!pending && (props.forceOpen ?? false)}
-      kindLabel="MCP"
-      kindDetail={serverLabel ? <span className="text-foreground-subtle">{serverLabel}</span> : undefined}
-      primaryText={primaryLabel}
-      summaryContentSeparator="·"
-      secondaryText={stoppedSuffix}
-      statusLabel={failedSuffix}
-      statusTooltip={toolCall.status === "failed" ? props.errorText : undefined}
-      showFailureStatus={toolCall.status === "failed"}
-      isRunning={props.isRunning}
-      title={info.description ?? info.toolName}
-      renderContent={renderContent}
-    />
-  );
-}
-
-/* ---- 原 eht（107835 / 92325）：SessionContextToolView ---- */
-
-/** 原 Zmt/Qmt/$mt：查询文本/命令标签/结果文本抽取 */
-declare function extractSessionQuery(toolCall: ToolCall): string | null; // Zmt
-declare function extractSessionCommandLabel(toolCall: ToolCall): string | null; // Qmt
-declare function extractSessionResultText(toolCall: ToolCall): string | null; // $mt
-const SESSION_CONTEXT_ICON = <IconGlobe className="size-4 shrink-0 text-foreground-subtle" />;
-
-export function SessionContextToolView(props: ToolCallViewProps) {
-  const { intl } = useIntlContext();
-  const { toolCallNode, isRunning, statusLabel, errorText } = props;
-  const { toolCall } = toolCallNode;
-  const query = extractSessionQuery(toolCall);
-  const commandLabel = extractSessionCommandLabel(toolCall);
-  const resultText = extractSessionResultText(toolCall);
-  const displayedResult = toolCall.status === "failed" ? errorText : resultText;
-  const kindTitle = intl.formatMessage({ id: "chat.toolCall.sessionContext.title" });
-  const primaryText = React.useMemo(
-    () => (
-      <span className="min-w-0 truncate">{query ?? toolCall.title ?? kindTitle}</span>
-    ),
-    [kindTitle, query, toolCall.title],
-  );
-  const secondaryText = React.useMemo(
-    () =>
-      commandLabel ? (
-        <code className="min-w-0 truncate rounded-md bg-surface px-1.5 py-0.5 font-mono text-ui-base text-foreground-subtle">{commandLabel}</code>
-      ) : undefined,
-    [commandLabel],
-  );
-  const renderContent = React.useCallback(
-    () => (
-      <div className="space-y-3 rounded-xl border border-border bg-panel px-4 py-3">
-        {query ? (
-          <section className="space-y-1.5">
-            <h4 className="text-ui-base font-medium uppercase text-foreground-subtle">{intl.formatMessage({ id: "chat.toolCall.sessionContext.query" })}</h4>
-            <p className="whitespace-pre-wrap break-words text-ui-base text-foreground">{query}</p>
-          </section>
-        ) : null}
-        <section className="space-y-1.5">
-          <h4 className="text-ui-base font-medium uppercase text-foreground-subtle">{intl.formatMessage({ id: "chat.toolCall.sessionContext.result" })}</h4>
-          {displayedResult ? (
-            <MarkdownRenderer
-              className="min-w-0 break-words text-ui-base"
-              workspacePath={props.workspacePath}
-              theme={props.theme}
-              codePreviewSettings={props.codePreviewSettings}
-              onOpenCodeViewer={props.onOpenCodeViewer}
-              onOpenFileLink={props.onOpenFileLink}
-              onOpenExternalUrl={props.onOpenBrowserUrl}
-            >
-              {displayedResult}
-            </MarkdownRenderer>
-          ) : (
-            <p className="text-ui-base text-foreground-subtle">{intl.formatMessage({ id: "chat.toolCall.sessionContext.noResult" })}</p>
-          )}
-        </section>
-      </div>
-    ),
-    [props.codePreviewSettings, props.onOpenBrowserUrl, props.onOpenCodeViewer, props.onOpenFileLink, props.theme, props.workspacePath, intl, query, displayedResult],
-  );
-  return (
-    <>
-      <ToolLayout
-        toolId={toolCall.toolId}
-        icon={SESSION_CONTEXT_ICON}
-        showIcon={props.showIcon !== false}
-        canToggle={props.canToggle ?? true}
-        forceOpen={props.forceOpen ?? false}
-        hideSecondaryTextWhenOpen
-        kindLabel={intl.formatMessage({ id: isRunning ? "chat.toolCall.sessionContext.reading" : "chat.toolCall.sessionContext.read" })}
-        sourceLabel={props.sourceLabel}
-        primaryText={primaryText}
-        secondaryText={secondaryText}
-        statusLabel={statusLabel}
-        statusTooltip={toolCall.status === "failed" ? errorText : undefined}
-        showFailureStatus={toolCall.status === "failed"}
-        isRunning={isRunning}
-        title={toolCall.title}
-        renderContent={renderContent}
-      />
-      <SnapshotRefsLoader
-        refs={toolCall.snapshotRefs ?? []}
-        onLoadFullToolCallFields={props.onLoadFullToolCallFields ? () => props.onLoadFullToolCallFields?.(toolCall.toolId) : undefined}
-      />
-    </>
-  );
-}
-
-/* ---- 原 mht（108309 / 92669）：SkillToolView ---- */
-
-/** 原 fht/pht/V$/z$：技能名/参数/输出文本/raw 判定 */
-declare function extractSkillName(toolCall: ToolCall): string | null; // fht
-declare function extractSkillArgs(toolCall: ToolCall): string | null; // pht
-declare function extractOutputText(output: unknown): string | null; // V$
-declare function isRawRecord(value: unknown): value is Record<string, unknown>; // z$
-const SKILL_TOOL_ICON = <IconSparklesLike className="size-4 shrink-0 text-foreground-subtle" />;
-declare const IconSparklesLike: React.FC<React.SVGProps<SVGSVGElement>>; // dht（skill 图标）
-
-export function SkillToolView(props: ToolCallViewProps) {
-  const { intl } = useIntlContext();
-  const { toolCall } = props.toolCallNode;
-  const skillName = extractSkillName(toolCall);
-  const skillArgs = extractSkillArgs(toolCall);
-  const outputText = extractOutputText(toolCall.output);
-  const rawOutput = isRawRecord(toolCall.raw) ? extractOutputText(toolCall.raw.rawOutput) : null;
-  const surfaceText = toolCall.status === "failed" ? (props.errorText ?? outputText ?? rawOutput ?? undefined) : (outputText ?? rawOutput ?? undefined);
-  const label = intl.formatMessage({ id: "chat.toolCall.skill.label" });
-  const unknownLabel = intl.formatMessage({ id: "chat.toolCall.skill.unknown" });
-  const argsLabel = intl.formatMessage({ id: "chat.toolCall.skill.args" });
-  const noOutputLabel = intl.formatMessage({ id: "chat.toolCall.skill.noOutput" });
-  const primaryText = React.useMemo(
-    () => (
-      <span className="truncate font-mono text-foreground-subtlest">{skillName ?? toolCall.title ?? label}</span>
-    ),
-    [label, skillName, toolCall.title],
-  );
-  const secondaryText = React.useMemo(() => (skillArgs ? <code className="truncate font-mono">{skillArgs}</code> : null), [skillArgs]);
-  const renderContent = React.useCallback(
-    () => (
-      <div className="space-y-3 mb-2 rounded-xl border border-border bg-panel px-4 py-3">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2 text-ui-base text-foreground">
-            <span className="text-foreground-subtle">{label}</span>
-            <code className="rounded-md bg-surface px-2 py-1 font-mono text-ui-base text-foreground">{skillName ?? toolCall.title ?? unknownLabel}</code>
-          </div>
-          {skillArgs ? (
-            <div className="flex items-start gap-2 font-mono text-ui-base text-foreground">
-              <span className="shrink-0 text-foreground-subtle">{argsLabel}</span>
-              <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words text-foreground-subtle">{skillArgs}</pre>
-            </div>
-          ) : null}
-        </div>
-        {surfaceText ? (
-          <div className="space-y-1">
-            <pre className="max-h-25 overflow-auto whitespace-pre-wrap break-words font-mono text-ui-base text-foreground-subtle">{surfaceText}</pre>
-          </div>
-        ) : (
-          !props.isRunning && (
-            <div className="space-y-1">
-              <p className="font-mono text-ui-base text-foreground-subtle">{noOutputLabel}</p>
-            </div>
-          )
-        )}
-      </div>
-    ),
-    [props.isRunning, surfaceText, skillArgs, argsLabel, label, skillName, noOutputLabel, unknownLabel, toolCall.title],
-  );
-  return (
-    <>
-      <ToolLayout
-        toolId={toolCall.toolId}
-        icon={SKILL_TOOL_ICON}
-        showIcon={props.showIcon !== false}
-        canToggle={props.canToggle ?? true}
-        forceOpen={props.forceOpen ?? false}
-        hideSecondaryTextWhenOpen
-        kindLabel={(props.kindLabelOverride as string) ?? intl.formatMessage({ id: props.isRunning ? "chat.toolCall.skill.running" : "chat.toolCall.skill.ran" })}
-        sourceLabel={props.sourceLabel}
-        primaryText={primaryText}
-        secondaryText={secondaryText}
-        statusLabel={props.statusLabel}
-        statusTooltip={toolCall.status === "failed" ? surfaceText : undefined}
-        showFailureStatus={toolCall.status === "failed"}
-        isRunning={props.isRunning}
-        title={toolCall.title}
-        renderContent={renderContent}
-      />
-      <SnapshotRefsLoader
-        refs={toolCall.snapshotRefs ?? []}
-        onLoadFullToolCallFields={props.onLoadFullToolCallFields ? () => props.onLoadFullToolCallFields?.(toolCall.toolId) : undefined}
-      />
-    </>
-  );
-}
+/* ── tombstone〔A1-P1-B13〕：Skill 五 declare（fht/pht/V$/z$/dht）+ SKILL_TOOL_ICON 手写 const + 手写
+ * SkillToolView（1740–1825，约 86 行）删除——束真身 mht@108357 全闭包（108310–108468，含 dht 图标/z$/B$ 助手）
+ * 已逐字实体化于 ./SkillToolBlocks。消费面改文件头转导出，调用面逐字不变。
+ * 图标真身更正：Yv=Sa('wand-sparkles')@28014（lucide WandSparkles）；A0 手写期 declare IconSparklesLike 占位销账。 ── */
 
 /* ---- 原 ght（108426 / 92725）：SwitchModeToolView（plan 面板） ---- */
 
@@ -1950,170 +1649,11 @@ export function SwitchModeToolView(props: ToolCallViewProps) {
   return <>{refsLoader}</>;
 }
 
-/* ---- 原 Sht（108581 / 92812）：TaskOutputToolView ---- */
-
-interface TaskOutputRaw { kind?: string; taskStatus?: string; output?: string; retrievalStatus?: string; truncated?: boolean; [key: string]: unknown }
-/** 原 F$/yht/bht/xht：raw 归一/输入 taskId/raw 状态失败判定/停止判定 */
-declare function normalizeTaskOutputRaw(raw: unknown): TaskOutputRaw | null; // F$
-declare function extractTaskOutputInputId(input: unknown): string | null; // yht
-declare function isTaskRuntimeFailed(status?: string): boolean; // bht
-declare function isTaskRuntimeStopped(status?: string): boolean; // xht
-const TASK_OUTPUT_ICON = <IconClock className="size-4 shrink-0 text-foreground-subtle" />;
-
-export function TaskOutputToolView(props: ToolCallViewProps) {
-  const { intl } = useIntlContext();
-  const { toolCall } = props.toolCallNode;
-  const raw = normalizeTaskOutputRaw(toolCall.raw);
-  const info = raw?.kind === "task_output" ? raw : undefined;
-  const inputId = extractTaskOutputInputId(toolCall.input);
-  const taskStatus = info?.taskStatus;
-  const normalizedStatus = taskStatus?.trim().toLowerCase();
-  const denied = toolCall.status === "denied";
-  const stopped = toolCall.status === "stopped";
-  const failed = toolCall.status === "failed";
-  const runtimeFailed = isTaskRuntimeFailed(taskStatus);
-  const showFailed = !denied && !stopped && (failed || runtimeFailed);
-  const output = info?.output;
-  const hasOutput = output !== undefined;
-  let kindLabel: string;
-  if (failed) kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.failed" });
-  else if (denied) kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.denied" });
-  else if (stopped) kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.stopped" });
-  else if (props.isRunning) kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.fetching" });
-  else if (info?.retrievalStatus === "not_ready") kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.running" });
-  else if (info?.retrievalStatus === "timeout") kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.timeout" });
-  else if (runtimeFailed) kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.taskFailed" });
-  else if (isTaskRuntimeStopped(taskStatus)) kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.taskStopped" });
-  else if (normalizedStatus === "pending" || normalizedStatus === "running") kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.running" });
-  else if (normalizedStatus && normalizedStatus !== "completed") kindLabel = taskStatus ?? normalizedStatus;
-  else if (info?.retrievalStatus === "success") kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.retrieved" });
-  else kindLabel = intl.formatMessage({ id: "chat.toolCall.taskOutput.completed" });
-  const primaryText = React.useMemo(
-    () => (
-      <code className="min-w-0 truncate font-mono">{inputId ?? toolCall.title ?? "TaskOutput"}</code>
-    ),
-    [inputId, toolCall.title],
-  );
-  const renderContent = React.useCallback(
-    () => (
-      <div className="rounded-lg border border-border bg-panel px-4 py-3">
-        <pre className="max-h-25 overflow-auto whitespace-pre-wrap break-words font-mono text-ui-base text-foreground-subtle">{output}</pre>
-        {info?.truncated === true ? <p className="mt-3 text-ui-xs text-foreground-subtle">{intl.formatMessage({ id: "chat.toolCall.taskOutput.truncated" })}</p> : null}
-      </div>
-    ),
-    [intl, output, info?.truncated],
-  );
-  return (
-    <>
-      <ToolLayout
-        toolId={toolCall.toolId}
-        icon={TASK_OUTPUT_ICON}
-        showIcon={props.showIcon !== false}
-        canToggle={hasOutput && (props.canToggle ?? true)}
-        forceOpen={hasOutput && (props.forceOpen ?? false)}
-        kindLabel={kindLabel}
-        sourceLabel={props.sourceLabel}
-        primaryText={primaryText}
-        statusLabel={showFailed ? intl.formatMessage({ id: "chat.toolCall.status.failed" }) : undefined}
-        statusTooltip={failed ? props.errorText : undefined}
-        showFailureStatus={showFailed}
-        isRunning={props.isRunning}
-        title={toolCall.title}
-        renderContent={hasOutput ? renderContent : undefined}
-      />
-      <SnapshotRefsLoader
-        refs={toolCall.snapshotRefs ?? []}
-        onLoadFullToolCallFields={props.onLoadFullToolCallFields ? () => props.onLoadFullToolCallFields?.(toolCall.toolId) : undefined}
-      />
-    </>
-  );
-}
-
-/* ---- 原 Dht（108728 / 92920）：TaskControlToolView（task stop） ---- */
-
-interface TaskStopRaw { kind?: string; taskId?: string; taskType?: string; command?: string; message?: string; truncated?: boolean; [key: string]: unknown }
-declare function normalizeTaskStopRaw(raw: unknown): TaskStopRaw | null; // F$ 复用
-declare function stringField(value: unknown, fields: string[]): string | undefined; // U$
-declare function nestedRecord(value: unknown): Record<string, unknown> | null; // H$
-declare function nestedStringField(raw: unknown, path: string[]): string | undefined; // Tht
-declare function resolveStopResultText(message: string | undefined, taskId?: string, command?: string): string | undefined; // Eht
-declare const DetailRow: React.FC<{ label: string; value: string; mono?: boolean }>; // W$
-const TASK_STOP_ICON = <IconCalendar className="size-4 shrink-0 text-foreground-subtle" />;
-
-export function TaskControlToolView(props: ToolCallViewProps) {
-  const { intl } = useIntlContext();
-  const { toolCall } = props.toolCallNode;
-  const raw = normalizeTaskStopRaw(toolCall.raw);
-  const info = raw?.kind === "task_stop" ? raw : undefined;
-  const input = nestedRecord(toolCall.input) ?? nestedStringField(toolCall.raw, ["rawInput", "input"]);
-  const output = nestedRecord(toolCall.output) ?? nestedStringField(toolCall.raw, ["rawOutput", "output"]);
-  const taskId = info?.taskId ?? stringField(output, ["task_id"]) ?? stringField(input, ["task_id", "shell_id"]);
-  const taskType = info?.taskType ?? stringField(output, ["task_type"]);
-  const rawCommand = info?.command;
-  const outputCommand = stringField(output, ["command"]);
-  const isAgent = taskType === "local_agent";
-  const command = isAgent ? rawCommand : (rawCommand ?? outputCommand);
-  const anyCommand = rawCommand ?? outputCommand;
-  const message = info?.message ?? stringField(output, ["message"]);
-  const truncated = info?.truncated === true;
-  const denied = toolCall.status === "denied";
-  const stopped = toolCall.status === "stopped";
-  const failed = toolCall.status === "failed";
-  const resultText = failed || denied || stopped ? (props.errorText ?? message) : resolveStopResultText(message, taskId, anyCommand);
-  const hasContent = !!(taskType || command || resultText || truncated);
-  const kindId = props.isRunning
-    ? "chat.toolCall.taskStop.stopping"
-    : failed
-      ? "chat.toolCall.taskStop.failed"
-      : denied
-        ? "chat.toolCall.taskStop.denied"
-        : stopped
-          ? "chat.toolCall.taskStop.cancelled"
-          : "chat.toolCall.taskStop.stopped";
-  const primaryText = React.useMemo(
-    () => (
-      <code className="min-w-0 truncate font-mono">{taskId ?? toolCall.title ?? "TaskStop"}</code>
-    ),
-    [taskId, toolCall.title],
-  );
-  const renderContent = React.useCallback(
-    () => (
-      <div className="rounded-lg border border-border bg-panel px-4 py-3">
-        <dl className="space-y-3">
-          {taskType ? <DetailRow label={intl.formatMessage({ id: "chat.toolCall.taskStop.taskType" })} value={taskType} mono /> : null}
-          {command ? <DetailRow label={intl.formatMessage({ id: isAgent ? "chat.toolCall.taskStop.description" : "chat.toolCall.taskStop.command" })} value={command} mono={!isAgent} /> : null}
-          {resultText ? <DetailRow label={intl.formatMessage({ id: "chat.toolCall.taskStop.result" })} value={resultText} /> : null}
-        </dl>
-        {truncated ? <p className="mt-3 text-ui-xs text-foreground-subtle">{intl.formatMessage({ id: "chat.toolCall.taskStop.truncated" })}</p> : null}
-      </div>
-    ),
-    [truncated, intl, isAgent, resultText, command, taskType],
-  );
-  return (
-    <>
-      <ToolLayout
-        toolId={toolCall.toolId}
-        icon={TASK_STOP_ICON}
-        showIcon={props.showIcon !== false}
-        canToggle={hasContent && (props.canToggle ?? true)}
-        forceOpen={hasContent && (props.forceOpen ?? false)}
-        kindLabel={intl.formatMessage({ id: kindId })}
-        sourceLabel={props.sourceLabel}
-        primaryText={primaryText}
-        statusLabel={failed ? intl.formatMessage({ id: "chat.toolCall.status.failed" }) : undefined}
-        statusTooltip={failed ? props.errorText : undefined}
-        showFailureStatus={failed}
-        isRunning={props.isRunning}
-        title={toolCall.title}
-        renderContent={hasContent ? renderContent : undefined}
-      />
-      <SnapshotRefsLoader
-        refs={toolCall.snapshotRefs ?? []}
-        onLoadFullToolCallFields={props.onLoadFullToolCallFields ? () => props.onLoadFullToolCallFields?.(toolCall.toolId) : undefined}
-      />
-    </>
-  );
-}
+/* ── tombstone〔A1-P1-B13〕：Task 十 declare（F$/yht/bht/xht/U$/H$/Tht/Eht/W$ + F$ 复用面）+ TaskOutputRaw/
+ * TaskStopRaw 接口 + 手写 TaskOutputToolView/TaskControlToolView（1953–2116，约 164 行）删除——束真身
+ * Sht@108629/Dht@108776 全闭包（107995–108075 归一域 + 108606–108884 双视图族，含 kye/R_ 图标）已逐字实体化于
+ * ./TaskToolBlocks。消费面改文件头转导出，调用面（ToolCallBlock 419 派发）逐字不变。
+ * F$ 跨族共享披露：normalizeTaskOutputRaw 同被 RespondToCoordinator/SendMessage 族消费，留批经本叶 import 收敛。 ── */
 
 /* ---- 原 Mht（108857 / 93007）：TodoToolView ---- */
 
@@ -2249,3 +1789,8 @@ export function AskUserQuestionToolView(props: ToolCallViewProps) {
   );
 }
 
+/* ── 〔A1-P1-B13〕四族束真身转导出（ConversationLeaves 导入面不变）── */
+export { AutomationToolView } from './AutomationViewBlocks'; // 原 Wmt（107520）
+export { SessionContextToolView } from './SessionToolBlocks'; // 原 eht（107883）
+export { SkillToolView } from './SkillToolBlocks'; // 原 mht（108357）
+export { TaskOutputToolView, TaskControlToolView } from './TaskToolBlocks'; // 原 Sht（108629）/ Dht（108776）
