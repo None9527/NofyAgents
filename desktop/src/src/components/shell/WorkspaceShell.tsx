@@ -204,7 +204,7 @@ import { ConversationOrchestrator, StackedConversationPane, SidebarSessionDropPr
 import { type InstalledEditor } from '../../modules/FileTreePanel';
 import { APP_LOGO_DATA_URL, FeedbackCenter, collectWorkspaceTaskIds, resolveAdjacentTasks, runWithWorkspaceVisibility, type FeedbackService } from '../../modules/FeedbackCenter';
 import { WorkspaceSelectionRow } from '../../modules/Home';
-import { toast } from '../../modules/ImeComposition';
+import { toast, usePlatformService as usePlatformServiceCanonical } from '../../modules/ImeComposition'; // 〔A1-P2-B6〕+usePlatformServiceCanonical（原 l ≡ imeComposition chunk M 导出 ≡ usePlatform 域外消费别名，components/ime/ImeComposition.tsx@186；census wt_defn=yes 唯一在案）：下方 declare 删碑改指
 import { type FileLinkModel } from '../../modules/MarkdownIntegration'; // A0-CLEANUP4：markdown 文件链接回调面（原 MHe 模型，js 51430）
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { QuickPick, buildQuickPickCommands, useSearchResultsStore, type SearchResultsState } from '../../modules/QuickPick'; // +useSearchResultsStore/type SearchResultsState（A1-R10 2f：原 Vo（1553）declare 与本地薄面改指 canonical——QuickPick 1254 区实体；调用点 4372/4439/4481/4704/4724/5505 逐字不变）。既有边（209），环安全：QuickPick 值闭包不达 components/shell
@@ -308,7 +308,14 @@ interface PlatformService extends SidePanelPlatformService {
   exportLogs(): Promise<{ success: boolean; error?: string }>;
   executeDesktopCommand(command: string): Promise<void>;
 }
-declare function usePlatformService(): PlatformService;
+/* ── tombstone〔A1-P2-B6〕：declare usePlatformService（原 l）删除 → 改指文件头
+ *    modules/ImeComposition 真身导出（usePlatformServiceCanonical；真身 = usePlatform
+ *    域外消费别名，components/ime/ImeComposition.tsx@186，bundle l = 本 chunk 导出别名 M；
+ *    a1-r0-census wt_defn=yes 全表唯一在案）。型缝：canonical 返回型为索引签名兜底面
+ *    （[method: string]: unknown），与本文件归纳 PlatformService（窗口/社区/通知切片 +
+ *    SidePanel 浏览器切片）互不可比，二段断言收敛（A0-CLEANUP3 3b 判例：Bots 1113 /
+ *    QuickPickDeep 1261 同铸）；消费面 987/4750 逐字不变。 ── */
+const usePlatformService = usePlatformServiceCanonical as unknown as () => PlatformService;
 
 /* --- 服务束（原 e：工作区服务 32 面之一组；fs/Ec/Dc/Oc 解析） --- */
 
@@ -1462,7 +1469,7 @@ export { SidebarSessionDropProvider, useSidebarSessionDrop, type SidebarSessionD
 
 /** 原 rVt Sidebar（F01 根，js 159137-160322 / jsx 132075）：
  *  aside flex h-full flex-col = h-12 drag 条 + 导航 4 行 + 分段行 + 任务/项目列表 + 页脚 */
-declare const Sidebar: React.FC<Record<string, unknown>>; // 属主 Sidebar.tsx 已导出 WorkspaceSidebar（rVt）；调用面 10 处类型未收敛，暂保留 declare
+declare const Sidebar: React.FC<Record<string, unknown>>; // 属主 Sidebar.tsx 已导出 WorkspaceSidebar（rVt，@3664）；〔A1-P2-B6〕实测改指（WorkspaceSidebar as Sidebar）触发调用面 3052 区 11 处型失配（3067–3087：onSelectTask null 支 / onOpenCodeViewer CodeViewerSource / fileTreeOpenRequest 形 / onCreateTask 形 / WebRemoteSwitcherService≠WebRemoteSwitcher / theme string≠ThemeId / logs Record 值形 / user unknown 等），需 WS↔Sidebar 双面型收敛（跨文件裁定 canonical 面），非改指可闭——长链留批，证存 /tmp/a1r0-p2/tsc-inner-p2b6-sidebar-probe.log
 
 /** 原 xqt SidePanel（F04 根，js 182519-183363 / jsx 147333）：
  *  右侧多标签面板（文件树/Git/白板/轨迹/子代理目录…）。
