@@ -151,7 +151,7 @@ import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatf
 import { pathBasename } from '../../modules/ModalsLeaves';
 import { useCodingPlanUpgradeDialog, useCodingPlanUpgradeDialogOptional as useUpgradeActions, filterUsableProviders, modelMenuGroupsOf, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R29〕+filterUsableProviders（N6e 77910 canonical）/modelMenuGroupsOf（Hq 77850 canonical）/type ModelProvider（型缝所依）：两 declare 收敛改指，见下墓碑 // A1-R23：原 fX（89100）declare 改指 canonical（components/payments/PaymentDeep 〔A1-R23〕补 export）；消费面 §U.10 ComposerConfigToolbarBody 4243 ≡ bundle 89522。〔A1-R24〕useUpgradeActions 别名并入：原 Art（89106）declare 收敛改接（消费面 1078 ≡ bundle 91644）。环安全：函数声明提升，渲染期调用（二环 Home→PaymentDeep shim→components/payments→modules/Home）
 import { RemoteWizardDialog, type RemoteWorkspaceSessionLike } from '../../modules/RemoteWizard'; // +RemoteWorkspaceSessionLike（A0-CLEANUP B-24 接线）
-import { create, logger, useTaskStore, parseCustomModelId, formatCustomModelId, filterNativeModelOptions, type ConfigOption } from '../../modules/SkillStore'; // A1-R18：+parseCustomModelId（原 D=se，skillStore 881/386 导入别名；§U Ee/k6e/D6e 消费）/formatCustomModelId（原 rt=we，skillStore 900；§U xe 消费）/filterNativeModelOptions（原 it=L，skillStore 906；§U _e 消费）
+import { create, logger, useTaskStore, parseCustomModelId, formatCustomModelId, filterNativeModelOptions, getWorkspaceTaskStateAlias, getMergedTaskListItem, buildTaskConfigOptionsFromMeta, type ConfigOption, type TaskStoreState } from '../../modules/SkillStore'; // A1-R18：+parseCustomModelId（原 D=se，skillStore 881/386 导入别名；§U Ee/k6e/D6e 消费）/formatCustomModelId（原 rt=we，skillStore 900；§U xe 消费）/filterNativeModelOptions（原 it=L，skillStore 906；§U _e 消费）。〔A1-R53〕+getWorkspaceTaskStateAlias（fe ≡ skillStore 导出面 `U as fe` ← _e@251→S@209）/getMergedTaskListItem（ce ≡ `E as P` ← E@236）/buildTaskConfigOptionsFromMeta（be ≡ `sn as g` ← sn@1300）：§U.11 Jq 体内三依赖改指（canonical 全在 stores/taskStore，SkillStore 转导出面 217-266 在案）
 // 〔A1-R26〕§U.8 漏斗遥测族实体化：+reportTelemetry/TelemetryPlatform（原 xw 40457 ≡ StoresDeep@323 逐字，A1-R9 判例；环安全：StoresDeep 值闭包不达 components/shell）
 import { providerBusinessI18nId, normalizeCaptchaCode, isEmptyModelResponse, reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // A1-R13：lN 簇依赖改指（原 yNe 40497 / Cw 40570（stub）/ jNe 40573，§H 逐字真身）；环安全：StoresDeep 不反引本文件
 import { providerIds, isGlmModelId, GLM_REASONING_LEVELS, isBuiltinProviderId, isZaiPlanProviderId, isStartPlanProviderId } from '../../modules/SrcSharedA'; // A1-R18：+5 件（原 qn=Tl=Oo 4858 / ui=Sl=ho 4855 / jt=_l=Eo 4842 / tr=Po 4845 / HM=No 4848；§U zrt/Ee/GUe/IM 消费）
@@ -314,8 +314,11 @@ interface ModelProviderEntry {
 }
 declare function useModelProviders(): { modelProviders: ModelProviderEntry[]; displayOrder: string[]; loading: boolean }; // A1-R18：+displayOrder（bundle qq 78243 返回面 { modelProviders, displayOrder, loading }；§U iit C 消费）
 
-/** 工作区配置目录（原 Jq，js 78437；skillStore 配置选项选择器族，深依赖 xe store——declare 分层） */
-declare function useCatalogConfigOptions(workspacePath: string, taskId: string | null, workspaceIdentity?: string | null): { configOptions: ConfigOption[]; status: string; loading: boolean; error: boolean };
+/* ── tombstone〔A1-R53〕：declare useCatalogConfigOptions（原 Jq，styles 78437-78455；旧注「js 78437」系 src/styles 混标，
+ *    真身在 styles chunk——R51 §②重标判例同族）删除 → §U.11 逐字实体化（本文件内，消费位 4650 ≡ bundle 89524 逐字不变）。
+ *    体内依赖全链改指（零新增 declare）：f8e 同批转录（§U.11）；xe≡useTaskStore（@154 既导）；co≡useShallowSelector
+ *    （lib/shallowSelector，R36/R38 判例）；fe/ce/be ≡ SkillStore 转导出三件（@154 〔A1-R53〕扩面）。
+ *    域外消费 137206/197845 属他域（各自 declare 留批）。 ── */
 
 /** 权益中心（原 sX，js 88303；entitlements hub，深依赖 $j/tM/nM 服务族——declare 分层） */
 // 〔A1-R23〕补 export：Oq 叠层专项——SidebarLeaves PlanEntitlementSnapshot 收敛为本型别名（经 modules/Home 转导出）
@@ -4595,6 +4598,46 @@ function isModelSelectConnectionModeEnabled(e: string) { // r6e
   return !1;
 }
 
+/* --- §U.11 配置选项钩族（原 78430–78455；A1-R53 逐字实体化） ---
+ * 映射表（行号 = styles-CdEGpc2x.js）：
+ *   f8e → useActiveTabWorkspaceIdentity (78430-78436) | Jq → useCatalogConfigOptions (78437-78455)
+ * 体内依赖改指（canonical 全在案，调用面逐字不变）：
+ *   pc ≡ useWorkspaceTabStore（WorkspaceTabsDeep@686；styles 4801-4805，R1/R2 判例；尾部导入 @7162 既接）
+ *   oc ≡ isWorkspaceKindTab（WorkspaceTabsDeep@328；styles 4487-4489，R1 判例；〔A1-R53〕尾部导入扩面接引）
+ *   xe ≡ useTaskStore（stores/taskStore ≡ skillStore chunk yn@1798；styles 371-420 导入面 `h as xe`）
+ *   co ≡ useShallowSelector（lib/shallowSelector；styles 1033-1039，R36 逐字/R38 迁公共叶判例；〔A1-R53〕尾部导入接引）
+ *   fe ≡ getWorkspaceTaskStateAlias（taskStore@430 ≡ skillStore _e@251→S@209；导入面 `U as fe`）
+ *   ce ≡ getMergedTaskListItem（taskStore@409 ≡ skillStore E@236；导入面 `E as P`）
+ *   be ≡ buildTaskConfigOptionsFromMeta（taskStore@2124 ≡ skillStore sn@1300；导入面 `sn as g`）
+ * 消费面：Jq 本文件 4650（≡ bundle 89524，iit）；域外 137206（workspacePurpose 域）/197845（支付域 qq/JM 面）留批。
+ * f8e 唯一消费 = Jq@78438（全 bundle 负证据在案）；f8e/Jq 皆不在 styles 导出面（chunk 私有，不 export）。 */
+function useActiveTabWorkspaceIdentity(e: string): string | null | undefined { // f8e
+  return useWorkspaceTabStore((t) => {
+    if (!t.activeTabId) return;
+    let n = t.tabs.find((e) => e.id === t.activeTabId);
+    if (!(!n || !isWorkspaceKindTab(n) || n.workspacePath !== e)) return n.workspaceIdentity;
+  });
+}
+function useCatalogConfigOptions(e: string, t: string | null, n?: string | null): { configOptions: ConfigOption[]; status: string; loading: boolean; error: boolean } { // Jq
+  let r = useActiveTabWorkspaceIdentity(e),
+    i = n ?? r,
+    { configOptions: a, configOptionsStatus: o } = useTaskStore(
+      useShallowSelector((n: TaskStoreState) => { // 〔A1-R53〕型缝：选择器参型显式标注（useShallowSelector 参面 any，束真 n = xe 态面 = TaskStoreState；运行期零变）
+        let r = getWorkspaceTaskStateAlias(n, e, i);
+        if (t && r.activeTaskId === t) {
+          let e = r.taskConfigOptionsByTaskId[t],
+            n = r.taskConfigOptionsStatusByTaskId[t];
+          if (e) return { configOptions: e, configOptionsStatus: n ?? `ready` };
+          let i = getMergedTaskListItem(r, t),
+            a = buildTaskConfigOptionsFromMeta({ taskMeta: { provider: i?.provider ?? r.selectedProvider, model: i?.model } });
+          return { configOptions: a, configOptionsStatus: a.length > 0 ? `loading` : `idle` };
+        }
+        return { configOptions: r.configOptions, configOptionsStatus: r.configOptionsStatus };
+      }),
+    );
+  return { configOptions: a ?? [], status: o, loading: o === `loading`, error: o === `error` };
+}
+
 /* --- §U.10 配置工具条（原 iit 89503–89977 / ait 89978） --- */
 
 interface ComposerUsageSnapshot {
@@ -7158,5 +7201,6 @@ export { CodingPlanUsagePanel, StartPlanBalancePanel };
  * ============================================================================
  */
 
-/* 〔A1-R40〕尾部导入：useWorkspaceTabStore（原 pc）收敛改指——WorkspaceTabsDeep@686 canonical（bundle 4801-4805 逐字；PD-α 同簇）。尾部导入：ES 模块提升，等价文件头，行引用零漂（R35 @10315 先例）。环安全：WorkspaceTabsDeep 值闭包（zustand/stores/SkillStore/remoteServices）不达本文件反向。 */
-import { useWorkspaceTabStore } from '../../modules/WorkspaceTabsDeep';
+/* 〔A1-R40〕尾部导入：useWorkspaceTabStore（原 pc）收敛改指——WorkspaceTabsDeep@686 canonical（bundle 4801-4805 逐字；PD-α 同簇）。尾部导入：ES 模块提升，等价文件头，行引用零漂（R35 @10315 先例）。环安全：WorkspaceTabsDeep 值闭包（zustand/stores/SkillStore/remoteServices）不达本文件反向。〔A1-R53〕+isWorkspaceKindTab（原 oc，styles 4487-4489 ≡ WorkspaceTabsDeep@328；§U.11 f8e 体内消费）。 */
+import { useWorkspaceTabStore, isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep';
+import { useShallowSelector } from '../../lib/shallowSelector'; // 〔A1-R53〕co 改指（原 co，styles 1033-1039）：R36 逐字/R38 迁公共叶判例（PD@10702、WorkspaceShell@238 同式接引）；§U.11 Jq 选择器浅比消费——束真 `wie(t.current, r)` 缓存回取逐字闭合在叶内
