@@ -165,6 +165,7 @@ import { resolveFileDisplayInfo } from '../../modules/ModalsLeaves';
 import { logger, useWhiteboardStore } from '../../modules/SkillStore';
 import { TerminalPanel, type TerminalService } from '../../modules/TerminalPane';
 import { ScopedErrorBoundary } from '../../modules/WorkspaceShell';
+import { extractPlanMarkdown } from '../conversation/PlanToolBlocks'; // 〔A1-P1-B15〕原 qZ（styles 98092 逐字实体化；declare 收敛）
 import { useServices } from '../../modules/services';
 import { useTrajectoryViewerStore, useTuiEditPendingRequest } from '../../modules/stores-session';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
@@ -260,8 +261,8 @@ declare function usePanelScope(): { layer: { acquire(sessionId: string): Session
  *    CodePreviewSettings（[key] 占位）删除 → useSettingsStoreValue（stores-core，
  *    alias）+ CodePreviewSettings/DEFAULT_CODE_PREVIEW_SETTINGS（MarkdownIntegration canonical）。 ── */
 
-/** 计划 markdown 提取（原 qZ(u1(row).toolCall, workspacePath).markdown） */
-declare function extractPlanMarkdown(toolCall: unknown, workspacePath: string): { markdown: string };
+/* ── tombstone〔A1-P1-B15〕：declare extractPlanMarkdown（原 qZ）删除——束真身 qZ@98092 全链已逐字实体化于
+ * ../conversation/PlanToolBlocks（B14 留批第 3 项办结）。消费面（3439 计划页签标题）逐字不变，改真实 import。 ── */
 declare function unwrapToolCallRow(row: unknown): { toolCall: unknown };
 
 /** 相对时间（原 $S，js 36080）：taskList.justNow/minutesAgo/hoursAgo/daysAgo */

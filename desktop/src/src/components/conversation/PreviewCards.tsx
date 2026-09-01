@@ -5,13 +5,14 @@
 import * as React from "react";
 import { Globe as IconGlobe, File as IconFile } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { FileOpenWithMenu } from '../../modules/FileRewindDialogDeep'; // 原 v_t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
-import { joinWorkspacePath, type FileLinkModel } from '../../modules/MarkdownIntegration';
+import { decodeUriSafe, resolveWorkspaceFileLink, resolveWorkspaceRelativePath, type FileLinkModel } from '../../modules/MarkdownIntegration'; // 〔A1-P1-B15〕原 qo/gA/Jo 收敛改指（joinWorkspacePath 除名：i1 裸名分支束真身 = Jo，手写期误用）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import type { OpenCodeViewerFn } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）
+import { FileIcon, resolveFileIconMeta } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc（styles 5243/5198 逐字实体化；二 declare 复制件收敛）
+import { isEmbeddableBrowserUrl } from './PreviewCardLinkBlocks'; // 〔A1-P1-B15〕原 o1（styles 109827 逐字实体化；declare 收敛）
 
-/** 文件图标/路径助手（原 Vc/zc/Hc/Go） */
-declare const FileIcon: React.FC<{ src: string; size?: number; className?: string }>;
-declare function resolveFileIconMeta(path: string, options?: { basePath?: string }): { fileIconSrc: string };
+/* ── tombstone〔A1-P1-B15〕：FileIcon/resolveFileIconMeta 二 declare 复制件（原 Vc/zc；§3 迁出位随迁副本）
+ * 删除——束真身 5243/5198 已逐字实体化于 ./FileIconBlocks（CTV 三 declare 同批收敛）。消费面逐字不变，改真实 import。 ── */
 /** 工作区服务（原 fs/Oc） */
 declare function useWorkspaceScopedServices(
   workspacePath?: string,
@@ -55,34 +56,36 @@ function matchPreviewKind(value: string): { extensions: string[]; kind: string; 
   const lowered = stripTrailingPunctuation(value).toLowerCase();
   return PREVIEW_KIND_TABLE.find((entry) => entry.extensions.some((extension) => lowered.endsWith(extension))) ?? null;
 }
-/** 原 o1：可嵌入浏览器 URL 判定（接口级，横切） */
-declare function isEmbeddableBrowserUrl(url: string): boolean;
-/** 原 qo：URL pathname 解码 */
-declare function decodeUrlPathname(pathname: string): string;
-/** 原 gA/Jo：工作区相对路径解析 */
-declare function resolveWorkspaceRelativePath(workspacePath: string | undefined, candidate: string): { path: string } | null;
+/* ── tombstone〔A1-P1-B15〕：declare isEmbeddableBrowserUrl（原 o1）删除——束真身 109817–109847（Sgt/Cgt/wgt/Tgt/a1
+ * 同域携带）已逐字实体化于 ./PreviewCardLinkBlocks（B14 留批「余五件」重评：自闭合零依赖，解锁面可收）。消费面逐字不变。 ── */
+/* ── tombstone〔A1-P1-B15〕：declare decodeUrlPathname（原 qo）删除——canonical 收敛改指 modules/MarkdownIntegration
+ * decodeUriSafe（qo@1944，Go/sae/Ko/Jo 同连续段 1928–1957；oae=/%[0-9A-Fa-f]{2}/ 守卫 + decodeURI 兜底，同一实体）。 ── */
+/* ── tombstone〔A1-P1-B15〕：declare resolveWorkspaceRelativePath（原 gA/Jo 复合近似）删除——收敛拆分改指：
+ * gA@50491 → resolveWorkspaceFileLink + Jo@1952 → resolveWorkspaceRelativePath（〔A1-P1-B15〕转录），
+ * 均 modules/MarkdownIntegration。消费面 resolveReferencePath（原 i1@109754）同批对齐束真身：首选
+ * gA(e,t)?.path，裸名分支 Jo(e,r)（手写期误用 joinWorkspacePath），兜底 gA(e,`./${r}`)?.path ?? null。 ── */
 
 /** 原 r1：file:// URL → 本地路径（含 UNC 主机） */
 function fileUrlToPath(url: string): string | null {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== "file:") return null;
-    const pathname = decodeUrlPathname(parsed.pathname);
+    const pathname = decodeUriSafe(parsed.pathname);
     if (/^\/[a-zA-Z]:\//.test(pathname)) return pathname.slice(1);
     return parsed.hostname && parsed.hostname !== "localhost" ? `//${parsed.hostname}${pathname}` : pathname;
   } catch {
     return null;
   }
 }
-/** 原 i1：引用文本 → 工作区路径（file:// / 相对 / 裸文件名） */
+/** 原 i1（109754）：引用文本 → 工作区路径（file:// / 相对 / 裸文件名）；〔A1-P1-B15〕对齐束真身（gA 首选 + Jo 裸名分支） */
 function resolveReferencePath(workspacePath: string | undefined, reference: string): string | null {
   if (/^file:\/\//i.test(reference)) return fileUrlToPath(reference);
-  const relative = resolveWorkspaceRelativePath(workspacePath, reference);
+  const relative = resolveWorkspaceFileLink(workspacePath, reference);
   if (relative) return relative.path;
   const cleaned = stripTrailingPunctuation(reference);
   if (!cleaned || cleaned.startsWith("http://") || cleaned.startsWith("https://")) return null;
-  if (!cleaned.includes("/") && !cleaned.includes("\\")) return joinWorkspacePath(workspacePath as string, cleaned); /* A0-D 类型垫片：bundle 同参（undefined 时原样抛出） */
-  return resolveWorkspaceRelativePath(workspacePath, `./${cleaned}`)?.path ?? null;
+  if (!cleaned.includes("/") && !cleaned.includes("\\")) return resolveWorkspaceRelativePath(workspacePath, cleaned);
+  return resolveWorkspaceFileLink(workspacePath, `./${cleaned}`)?.path ?? null;
 }
 /** 原 c1（94007）：卡片 → 本地路径（website 用 filePath/file:// 解析） */
 function previewCardPath(card: PreviewCardModel): string | null {

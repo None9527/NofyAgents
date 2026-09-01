@@ -146,7 +146,7 @@ import { Copy as IconCopy, Download as IconDownload, X as IconClose, ArrowLeft a
 import { Button, ZoomOut as IconZoomOut, ZoomIn as IconZoomIn } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ZoomOut as IconZoomOut, ZoomIn as IconZoomIn（button chunk 图标，pass-1 同源）
 import { Textarea, toast, usePlatform } from '../../modules/ImeComposition';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Vb）
-import { TableEdgeShadow, IMAGE_THUMBNAIL_CLASS, backToBottomInset, baseName, chatDockHeight, decodeUriSafe, extractTableRows, findVerticalScroller, isAbsolutePath, measureRect, sameRect, shouldShowStickyScrollbar, stickyScrollMax, stickyScrollbarOffset, stickyThumbGeometry, stickyTrackGeometry, tableLayoutInsets, tableLayoutRoot, tableNeedsStickyScrollbar, tableRowsToCsv, tableRowsToMarkdown } from '../../modules/MarkdownIntegration'; // 新增项原 Gk/EBe/qo/Pk/Ko/Ak/jk/Nk/TBe/kk
+import { TableEdgeShadow, IMAGE_THUMBNAIL_CLASS, backToBottomInset, baseName, chatDockHeight, decodeUriSafe, extractTableRows, findVerticalScroller, isAbsolutePath, measureRect, resolveWorkspaceRelativePath as resolvePathAgainst, sameRect, shouldShowStickyScrollbar, stickyScrollMax, stickyScrollbarOffset, stickyThumbGeometry, stickyTrackGeometry, tableLayoutInsets, tableLayoutRoot, tableNeedsStickyScrollbar, tableRowsToCsv, tableRowsToMarkdown } from '../../modules/MarkdownIntegration'; // 新增项原 Gk/EBe/qo/Pk/Ko/Ak/jk/Nk/TBe/kk
 import { t as logger } from '../../modules/logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（first-party 信息浮层件，调用面仅 title/side）
@@ -222,8 +222,9 @@ declare function parseToolRawPayload(raw: unknown): { oldText?: string; newText?
 declare function extractBeforeAfterEdit(value: unknown): { before: string; after: string } | null; // Rh
 declare function buildUnifiedDiffText(before: string, after: string, fileName: string, mode?: unknown): string | null; // Kh
 
-/* 路径助手（横切 1925–1975） */
-declare function resolvePathAgainst(basePath: string, relativePath: string): string; // Jo
+/* ── tombstone〔A1-P1-B15〕：declare resolvePathAgainst（原 Jo）删除——束真身 Jo@1952 已逐字转录为
+ * modules/MarkdownIntegration resolveWorkspaceRelativePath（Go/sae/qo/Ko 同连续段 1928–1957，落点随段判例
+ * A1-R10 2b）。消费面（2005 图像 src 解析）逐字不变，经下方 import 别名改指。 ── */
 
 /* ============================================================================
  * 1. Qze 深部 —— Mermaid 全屏对话框的缩放/平移几何模型（原 48114–48268）

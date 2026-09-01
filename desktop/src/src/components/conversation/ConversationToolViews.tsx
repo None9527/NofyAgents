@@ -22,6 +22,7 @@ import {
  * 束真身改经 ./AutomationViewBlocks 叶内 import 消费（B11 叶不动）。 ── */
 import { hashToAgentPaletteColor } from './ShellCommandBlocks'; // 〔A1-P1-B11〕AgentToolView 调色板兜底链尾（原 Xft，styles 105186）
 import { CodeSurfaceCard } from './CodeSurfaceBlocks'; // 〔A1-P1-B14〕原 w$（styles 107180）：手写 CodeSurface declare 五 prop（cardSurface/copyLabel/wrapLabel/eagerLayout/label）之束真身卡面包装体
+import { FileIcon, resolveFileIconMeta, resolvePathTitle } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc/Hc（styles 5243/5198/5263 逐字实体化；三 declare 收敛）
 import type { ToolCall, ToolCallNode, ToolDisplayModel, OpenCodeViewerFn, ToolCallViewProps, FileSummary, PlatformService } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）；PlatformService 留守 shim（§5/§6 共用）
 
 /* ── tombstone〔A1-P1-B14〕：declare IconQuestion（vye）删除——唯一消费面手写 AskUserQuestionToolView 之
@@ -55,10 +56,8 @@ declare const ToolErrorSurface: React.FC<{ errorText?: string | null; [key: stri
  * 手写 CodeSurface declare 之 cardSurface/copyLabel/wrapLabel/eagerLayout/label 五 prop 为 A0 期近似：
  * 束真身该型面 = w$@107180 CodeSurfaceCard（卡面包装体，同叶实体化），手写 NodeReplToolView 三处调用面
  * 改指 CodeSurfaceCard（prop 面逐字吻合）。 ── */
-/** 文件图标/路径助手（原 Vc/zc/Hc/Go） */
-declare const FileIcon: React.FC<{ src: string; size?: number; className?: string }>;
-declare function resolveFileIconMeta(path: string, options?: { basePath?: string }): { fileIconSrc: string };
-declare function resolvePathTitle(path: string, basePath?: string): string;
+/* ── tombstone〔A1-P1-B15〕：文件图标/路径助手三 declare（FileIcon/resolveFileIconMeta/resolvePathTitle，原 Vc/zc/Hc）
+ * 删除——束真身 5243/5198/5263 已逐字实体化于 ./FileIconBlocks（文件图标域 5064–5267 收割）。消费面逐字不变，改真实 import。 ── */
 /** 流式子工具摘要（原 xpt） */
 declare function resolveStreamingChildSummary(
   intl: IntlShape,
@@ -68,8 +67,8 @@ declare function resolveStreamingChildSummary(
 ): { primaryText: React.ReactNode; secondaryText?: React.ReactNode; animationKey?: string; title?: string } | null;
 /** 工具错误文本（原 rQ，Conversation.tsx 已还原） */
 declare function extractToolErrorText(toolCall: ToolCall): string | null;
-/** plan markdown 抽取（原 qZ，横切） */
-declare function extractPlanMarkdown(toolCall: ToolCall, workspacePath?: string): { markdown: string | null; planFilePath?: string | null };
+/* ── tombstone〔A1-P1-B15〕：declare extractPlanMarkdown（原 qZ）删除——束真身 qZ@98092 全链（GZ/Kct/qct/KZ 98073–98114）
+ * 已逐字实体化于 ./PlanToolBlocks；手写 SwitchModeToolView 同批墓碑，消费面改文件尾转导出。SidePanel declare 同批收敛（shell 域改指 ./PlanToolBlocks）。 ── */
 /* ── tombstone〔A1-P1-B10〕：declare usePlatformService 删除——canonical 收敛改指 modules/ImeComposition（再导出
  * components/ime/ImeComposition 186 `export const usePlatformService = usePlatform`；bundle 消费面 Qpt@106659
  * `n = S()`，S = styles 头注 `j as S` ← imeComposition-DEYFkwWm.js 导出，同一实体）。原型 `| null` 为 A0 期近似：
@@ -1330,167 +1329,13 @@ export function GoalToolView(props: ToolCallViewProps) {
   );
 }
 
-/* ---- 原 Nmt（107168 / 91932）：NodeReplToolView ---- */
-
-interface NodeReplModel {
-  operation: string;
-  code?: string;
-  title?: string;
-  resultText?: string;
-  images: Array<{ [key: string]: unknown }>;
-  persistedResult?: { sizeLabel: string; artifactPath: string } | null;
-  error?: { summary?: string; stack?: string } | null;
-  displaySource?: string;
-}
-/** 原 Tmt：node-repl 视图模型归一（接口级解析） */
-declare function buildNodeReplModel(toolCall: ToolCall): NodeReplModel;
-/** 原 Mmt：状态标题模型 */
-declare function resolveNodeReplStatus(
-  model: NodeReplModel,
-  status: string,
-  isRunning: boolean,
-  formatMessage: (id: string) => string,
-): { title: string; status?: string | null; detail?: string | null };
-/** 原 jmt/Amt：纯文本判定/JSON 判定 */
-declare function isPlainTextOutput(text: string): boolean;
-declare function looksLikeJson(text: string): boolean;
-/** 原 Emt：结果图像列表 */
-declare const NodeReplImageList: React.FC<{ images: Array<{ [key: string]: unknown }>; resultImageLabel: string }>;
-const NODE_REPL_ICON = <IconTerminal className="size-4 shrink-0 text-foreground-subtle" />;
-
-export function NodeReplToolView(props: ToolCallViewProps) {
-  const { intl } = useIntlContext();
-  const { toolCall } = props.toolCallNode;
-  const model = React.useMemo(() => buildNodeReplModel(toolCall), [toolCall]);
-  const format = React.useCallback((id: string) => intl.formatMessage({ id }), [intl]);
-  const statusModel = React.useMemo(() => resolveNodeReplStatus(model, toolCall.status, props.isRunning, format), [props.isRunning, format, model, toolCall.status]);
-  const resultLabel = format("chat.toolCall.nodeRepl.result");
-  const noResultLabel = format("chat.toolCall.nodeRepl.noResult");
-  const detailsLabel = format("chat.toolCall.nodeRepl.details");
-  const detailContentLabel = format("chat.toolCall.nodeRepl.detailContent");
-  const technicalLabel = format("chat.toolCall.nodeRepl.technicalDetails");
-  const copyResultLabel = format("chat.toolCall.nodeRepl.copyResult");
-  const copyDetailsLabel = format("chat.toolCall.nodeRepl.copyDetails");
-  const wrapLabel = format("chat.toolCall.nodeRepl.wrapLines");
-  const imageLabel = format("chat.toolCall.nodeRepl.resultImage");
-  const persistedLabel = model.persistedResult
-    ? intl.formatMessage({ id: "chat.toolCall.nodeRepl.fullResult" }, { size: model.persistedResult.sizeLabel })
-    : undefined;
-  const errorText = toolCall.status === "failed" ? (model.error?.summary ?? props.errorText) : undefined;
-  const hasDetails = !!(model.code || model.error?.stack);
-  const hasResult = !!(errorText || model.resultText || model.images.length > 0 || model.persistedResult);
-  const toggleable = (model.operation === "run" || toolCall.status === "failed") && (hasResult || hasDetails);
-  const canToggle = props.canToggle ?? toggleable;
-  const primaryText = React.useMemo(
-    () => (
-      <span className="inline-flex min-w-0 items-center gap-2">
-        <span className="min-w-0 truncate font-medium text-foreground-subtle">{statusModel.title}</span>
-        {statusModel.status ? (
-          <span className="shrink-0 text-foreground-subtlest">{`· `}{statusModel.status}</span>
-        ) : null}
-        {statusModel.detail ? <code className="min-w-0 truncate font-mono text-foreground-subtlest">{statusModel.detail}</code> : null}
-      </span>
-    ),
-    [statusModel.detail, statusModel.status, statusModel.title],
-  );
-  const renderContent = React.useCallback(
-    () => (
-      <div className="mb-2 space-y-3 py-1" data-testid="node-repl-expanded-content">
-        {errorText ? (
-          <section className="space-y-1.5">
-            <h4 className="text-ui-base font-medium text-destructive">{resultLabel}</h4>
-            <p className="whitespace-pre-wrap break-words rounded-lg bg-destructive/10 px-3 py-2 text-ui-base text-destructive">{errorText}</p>
-          </section>
-        ) : model.resultText && isPlainTextOutput(model.resultText) ? (
-          <p className="break-words rounded-xl border border-border bg-card px-3 py-2 text-ui-base text-foreground-subtle" data-testid="node-repl-result-surface">
-            {model.resultText.trim()}
-          </p>
-        ) : model.resultText ? (
-          <div className="max-h-72 overflow-auto rounded-xl border border-border bg-card" data-testid="node-repl-result-surface">
-            <CodeSurfaceCard
-              cardSurface
-              code={model.resultText}
-              copyLabel={copyResultLabel}
-              eagerLayout
-              label={resultLabel}
-              language={looksLikeJson(model.resultText) ? "json" : "log"}
-              wrapLabel={wrapLabel}
-            />
-          </div>
-        ) : !props.isRunning && model.images.length === 0 ? (
-          <p className="text-ui-base text-foreground-subtle">{noResultLabel}</p>
-        ) : null}
-        {model.images.length > 0 ? <NodeReplImageList images={model.images} resultImageLabel={imageLabel} /> : null}
-        {model.persistedResult && persistedLabel ? (
-          <div className="flex flex-wrap items-center gap-2 text-ui-base text-foreground-subtle">
-            <span>{persistedLabel}</span>
-            {props.onOpenCodeViewer ? (
-              <Button
-                type="button"
-                variant="link"
-                size="xs"
-                className="px-0"
-                onClick={() =>
-                  props.onOpenCodeViewer?.({ type: "file", title: resultLabel, path: model.persistedResult?.artifactPath })
-                }
-              >
-                {format("chat.toolCall.nodeRepl.openFullResult")}
-                <IconExternal className="size-3" />
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-        {hasDetails ? (
-          <Collapsible className="group/details">
-            <CollapsibleTrigger asChild>
-              <Button type="button" variant="ghost" size="sm" className="-ml-2 text-foreground-subtlest hover:bg-transparent hover:text-foreground aria-expanded:bg-transparent aria-expanded:text-foreground">
-                <IconChevronRight className="size-3.5 transition-transform group-data-[state=open]/details:rotate-90" />
-                {detailsLabel}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="space-y-2 pt-2">
-                {model.code ? (
-                  <div className="max-h-72 overflow-auto rounded-xl border border-border bg-card" data-testid="node-repl-detail-surface">
-                    <CodeSurfaceCard cardSurface code={model.code} copyLabel={copyDetailsLabel} eagerLayout label={detailContentLabel} language="javascript" wrapLabel={wrapLabel} />
-                  </div>
-                ) : null}
-                {model.error?.stack ? (
-                  <div className="max-h-72 overflow-auto rounded-xl border border-border bg-card" data-testid="node-repl-detail-surface">
-                    <CodeSurfaceCard cardSurface code={model.error.stack} copyLabel={copyDetailsLabel} eagerLayout label={technicalLabel} language="log" wrapLabel={wrapLabel} />
-                  </div>
-                ) : null}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        ) : null}
-      </div>
-    ),
-    [props.isRunning, props.onOpenCodeViewer, copyDetailsLabel, copyResultLabel, detailContentLabel, detailsLabel, format, persistedLabel, hasDetails, model, noResultLabel, imageLabel, resultLabel, technicalLabel, errorText, wrapLabel],
-  );
-  if (model.displaySource === "browser_turn_end") return <NodeReplImageList images={model.images} resultImageLabel={imageLabel} />;
-  return (
-    <>
-      <ToolLayout
-        toolId={toolCall.toolId}
-        icon={NODE_REPL_ICON}
-        showIcon={props.showIcon !== false}
-        canToggle={canToggle}
-        forceOpen={props.forceOpen ?? false}
-        kindLabel={null}
-        sourceLabel={props.sourceLabel}
-        primaryText={primaryText}
-        statusLabel={props.statusLabel}
-        statusTooltip={toolCall.status === "failed" ? props.errorText : undefined}
-        showFailureStatus={toolCall.status === "failed"}
-        isRunning={props.isRunning}
-        title={toolCall.title}
-        renderContent={renderContent}
-      />
-      <SnapshotRefsLoader refs={toolCall.snapshotRefs ?? []} onLoadFullToolCallFields={props.onLoadFullToolCallFields ? () => props.onLoadFullToolCallFields?.(toolCall.toolId) : undefined} />
-    </>
-  );
-}
+/* ── tombstone〔A1-P1-B15〕：手写 NodeReplToolView（约 160 行）+ 五 declare（buildNodeReplModel 原 Tmt/
+ * resolveNodeReplStatus 原 Mmt/isPlainTextOutput 原 jmt/looksLikeJson 原 Amt/NodeReplImageList 原 Emt）+
+ * NODE_REPL_ICON 手写 const 删除——束真身 Nmt@107168 全闭包（106856–107111 + 107115–107179 + 107216–107431，
+ * 含 smt 标题归一/v$ 记录判定/Tmt 模型归一/Emt 图像画廊/Amt JSON 判定/jmt 短文本判定/Mmt 头部归一 +
+ * Dmt 图标/kmt 纯文本上限）已逐字转录实体化于 ./NodeReplBlocks。消费面改文件尾转导出，调用面逐字不变。
+ * 束真身更正披露：手写体为简化卡面；束真身含 smt NODE_REPL_GENERIC_TITLE_PATTERN 标题归一 + q_/wa 图标面 +
+ * ImageGalleryGroup/ImageLightbox 图像面（PreviewCards 域）+ ToolSnapshotRefs 加载面，见 NodeReplBlocks 叶头注。 ── */
 
 /* ── tombstone〔A1-P1-B13〕：手写 AutomationToolView（1512–1649，约 138 行）删除——束真身 Wmt@107520–107720
  * 已逐字实体化于 ./AutomationViewBlocks（四族收割之 MCP-Wmt 族；B11 助手域 107432–107519 邻叶在案）。
@@ -1508,131 +1353,12 @@ export function NodeReplToolView(props: ToolCallViewProps) {
  * 已逐字实体化于 ./SkillToolBlocks。消费面改文件头转导出，调用面逐字不变。
  * 图标真身更正：Yv=Sa('wand-sparkles')@28014（lucide WandSparkles）；A0 手写期 declare IconSparklesLike 占位销账。 ── */
 
-/* ---- 原 ght（108426 / 92725）：SwitchModeToolView（plan 面板） ---- */
-
-function isInteractiveChild(target: EventTarget | null, currentTarget: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false;
-  const closest = target.closest("button, a, input, textarea, select, [role='button']");
-  return closest !== null && closest !== currentTarget;
-}
-
-export function SwitchModeToolView(props: ToolCallViewProps) {
-  const { intl } = useIntlContext();
-  const { toolCall } = props.toolCallNode;
-  const errorText = extractToolErrorText(toolCall);
-  const { markdown, planFilePath } = extractPlanMarkdown(toolCall, props.workspacePath);
-  const refsLoader = (
-    <SnapshotRefsLoader
-      refs={toolCall.snapshotRefs ?? []}
-      onLoadFullToolCallFields={props.onLoadFullToolCallFields ? () => props.onLoadFullToolCallFields?.(toolCall.toolId) : undefined}
-    />
-  );
-  const hasMarkdown = typeof markdown == "string" && markdown.length > 0;
-  const [copiedText, setCopiedText] = React.useState<string | null>(null);
-  const isCopied = copiedText === markdown;
-  const openDetail = () => {
-    if (!markdown || !props.onOpenPlanDetail) return;
-    props.onOpenPlanDetail({
-      toolCallId: toolCall.toolId,
-      markdown,
-      ...(planFilePath ? { planFilePath } : {}),
-    });
-  };
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    if (!isInteractiveChild(event.target, event.currentTarget)) openDetail();
-  };
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    if (isInteractiveChild(event.target, event.currentTarget)) return;
-    event.preventDefault();
-    openDetail();
-  };
-  const copyMarkdown = () => {
-    if (!markdown || typeof navigator > "u" || !navigator.clipboard?.writeText) return;
-    navigator.clipboard.writeText(markdown).then(
-      () => setCopiedText(markdown),
-      () => setCopiedText(null),
-    );
-  };
-  if (hasMarkdown) {
-    return (
-      <>
-        <section
-          role={props.onOpenPlanDetail ? "button" : undefined}
-          tabIndex={props.onOpenPlanDetail ? 0 : undefined}
-          aria-label={intl.formatMessage({ id: "planTool.panel.open" })}
-          onClick={handleClick}
-          onKeyDown={handleKeyDown}
-          className="group w-full min-w-0 overflow-hidden rounded-xl border border-card-border bg-card text-foreground shadow-xs outline-none transition-colors hover:border-border-hover focus-visible:border-input-border-focused focus-visible:ring-2 focus-visible:ring-ring/40"
-        >
-          <header className="flex h-10 min-w-0 items-start gap-2 px-4 pt-4">
-            <div className="flex shrink-0 items-center gap-2">
-              <IconGauge className="size-4 shrink-0 text-foreground-subtle" />
-              <h3 className="text-ui-base font-medium text-foreground-subtle">{intl.formatMessage({ id: "planTool.panel.planTab" })}</h3>
-            </div>
-            {planFilePath ? (
-              <code className="min-w-0 truncate text-ui-sm text-foreground-subtlest" title={planFilePath}>
-                {baseName(planFilePath)}
-              </code>
-            ) : null}
-            <div className="ml-auto flex shrink-0 items-center gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={intl.formatMessage({ id: isCopied ? "planTool.panel.copied" : "planTool.panel.copy" })}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                  event.stopPropagation();
-                  copyMarkdown();
-                }}
-              >
-                {isCopied ? <IconCheck className="size-3.5" /> : <IconCopy className="size-3.5" />}
-              </Button>
-            </div>
-          </header>
-          <div className="relative overflow-hidden">
-            <div className="max-h-64 overflow-hidden px-4 pt-2 pb-12 [mask-image:linear-gradient(to_bottom,black_0%,black_30%,transparent_100%)]">
-              <MarkdownRenderer
-                className="min-w-0 break-words text-foreground [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_li]:text-foreground-subtle [&_p]:text-foreground-subtle"
-                workspacePath={props.workspacePath}
-                theme={props.theme}
-                codePreviewSettings={props.codePreviewSettings}
-                onOpenCodeViewer={props.onOpenCodeViewer}
-                onOpenFileLink={props.onOpenFileLink}
-                onOpenExternalUrl={props.onOpenBrowserUrl}
-              >
-                {markdown}
-              </MarkdownRenderer>
-            </div>
-            <Button
-              type="button"
-              variant="default"
-              size="lg"
-              className="absolute bottom-6 left-1/2 h-10 -translate-x-1/2 rounded-full !pr-4.5 pl-6 shadow-xs"
-              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                openDetail();
-              }}
-            >
-              {intl.formatMessage({ id: "planTool.panel.viewFull" })}
-              <IconArrowUpRight data-icon="inline-end" className="size-4" />
-            </Button>
-          </div>
-        </section>
-        {refsLoader}
-      </>
-    );
-  }
-  if (toolCall.output !== undefined || errorText) {
-    return (
-      <>
-        <ToolErrorSurface errorText={errorText} />
-        {refsLoader}
-      </>
-    );
-  }
-  return <>{refsLoader}</>;
-}
+/* ── tombstone〔A1-P1-B15〕：手写 SwitchModeToolView（约 126 行）+ isInteractiveChild 手写助手删除——
+ * 束真身 ght@108476 全闭包（108469–108605，含 hht 交互子判定 + qZ planMarkdown 抽取链）已逐字转录实体化于
+ * ./PlanToolBlocks（同批 qmt@107754 plan-guidance 族 + qZ 链 98073–98127/99769–99814/107721–107815）。
+ * 消费面改文件尾转导出，调用面（ToolCallBlock 派发）逐字不变。
+ * 束真身更正披露：手写体为简化 plan 面板；束真身 ght 消费 qZ(toolCall, workspacePath) → markdown/planFilePath，
+ * 经 MarkdownRenderer 渲染 + Klt ToolInputSurface/aQ ToolErrorSurface 兜底面，见 PlanToolBlocks 叶头注。 ── */
 
 /* ── tombstone〔A1-P1-B13〕：Task 十 declare（F$/yht/bht/xht/U$/H$/Tht/Eht/W$ + F$ 复用面）+ TaskOutputRaw/
  * TaskStopRaw 接口 + 手写 TaskOutputToolView/TaskControlToolView（1953–2116，约 164 行）删除——束真身
@@ -1663,3 +1389,7 @@ export { TaskOutputToolView, TaskControlToolView } from './TaskToolBlocks'; // �
 /* ── 〔A1-P1-B14〕message/Todo/Ask 三族束真身转导出（ConversationLeaves 导入面扩充同批）── */
 export { RespondToCoordinatorToolView, SendMessageToolView } from './MessageToolBlocks'; // 原 aht（108091）/ uht（108195）
 export { TodoToolView, AskUserQuestionToolView } from './TodoToolBlocks'; // 原 Mht（108905）/ Pht（109011）
+
+/* ── 〔A1-P1-B15〕NodeRepl/plan/switch-mode 三族束真身转导出（ConversationLeaves 导入面扩充同批）── */
+export { NodeReplToolView } from './NodeReplBlocks'; // 原 Nmt（107168）
+export { PlanGuidanceToolView, SwitchModeToolView } from './PlanToolBlocks'; // 原 qmt（107754）/ ght（108476）

@@ -185,6 +185,7 @@ export {
   resolveUpgradeTargetSource, // 〔A1-R26〕Mrt 89154 实体化（裁量件）：SidebarLeaves resolveUpgradeTargetSource declare 收敛改接点
   teamSourceOrganizationLabel, // 〔A1-R28〕Lq 77476 逐字 canonical 收敛面：PaymentDeep teamOrganizationLabelOf A0 副本删除改接点（消费面 77608/88723，负证据见 components 侧墓碑）
   openSettingsSection, // 〔A1-P2-B10〕iw 39375 canonical 再导出——WorkspaceShell setSettingsTabTarget declare 改指消费
+  ApiRetryStatusChip, // 〔A1-P1-B15〕I3e 76860 实体化：modules/Conversation ApiRetryView declare 收敛改接点（消费位 112823 留批）
 } from '../components/shell/Home';
 export type {
   SettingsSectionId, // 〔A1-P2-B10〕settingsNavigation 分区 id 全集（Home@4109）

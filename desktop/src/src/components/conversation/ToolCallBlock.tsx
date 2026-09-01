@@ -4,7 +4,7 @@
 import * as React from "react";
 import { Check as IconCheck, Copy as IconCopy, SquareTerminal as IconSquareTerminal, Lightbulb as IconLightbulb } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '../../modules/ImeComposition'; // 原 ImeComposition 导出族
-import { AgentToolView, AskUserQuestionToolView, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, RespondToCoordinatorToolView, SearchToolView, SendMessageToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, type FileSummary, type OpenCodeViewerFn, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from '../../modules/ConversationLeaves'; // 18 工具视图 + 会话流共享类型 canonical（A0-D 类型收敛；〔A1-P1-B14〕message 族 aht/uht 二视图入册）
+import { AgentToolView, AskUserQuestionToolView, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PlanGuidanceToolView, RespondToCoordinatorToolView, SearchToolView, SendMessageToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, type FileSummary, type OpenCodeViewerFn, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from '../../modules/ConversationLeaves'; // 18 工具视图 + 会话流共享类型 canonical（A0-D 类型收敛；〔A1-P1-B14〕message 族 aht/uht 二视图入册）
 import { type CodePreviewSettings, type FileLinkModel } from '../../modules/MarkdownIntegration'; // A0-D 类型收敛
 import { useControllableState } from '../../modules/UsageStatsUiParts'; // 原 fa（A0-CLEANUP2 item 47 接线）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
@@ -406,7 +406,7 @@ function resolveToolCallView(props: ToolCallViewProps): React.FC<ToolCallViewPro
   if (extractMcpToolInfo(props)) return AutomationToolView; // 〔A1-P1-B11〕原 isAutomationToolCall declare 改指（束 109117：if (Vmt(e)) return Wmt）
   switch (identity.family) {
     case `plan-guidance`:
-      return SearchToolView; // qmt：plan-guidance 复用搜索类摘要视图（93222 附近）
+      return PlanGuidanceToolView; // 〔A1-P1-B15〕束真身 Wht@109119–109120 `case 'plan-guidance': return qmt`（更正：手写期误注「复用搜索类摘要视图」；qmt@107754 真身已实体化于 ./PlanToolBlocks，B14 留批第 2 项办结）
     case `agent`:
       return AgentToolView;
     case `todo`:

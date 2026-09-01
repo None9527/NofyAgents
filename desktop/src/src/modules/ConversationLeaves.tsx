@@ -44,6 +44,7 @@
  *   mht  → SkillToolView             (108309 / 92669)
  *   eht  → SessionContextToolView    (107835 / 92325)
  *   ght  → SwitchModeToolView        (108426 / 92725)（plan 面板）
+ *   qmt  → PlanGuidanceToolView      (107754 / —)（plan-guidance；〔A1-P1-B15〕新叶 PlanToolBlocks，Wht@109119 分派办结）
  *   omt  → GoalToolView              (106753 / 91604)
  *   Nmt  → NodeReplToolView          (107168 / 91932)
  *   Wmt  → AutomationToolView        (107472 / 92099)
@@ -432,6 +433,7 @@ export {
   SessionContextToolView,
   SkillToolView,
   SwitchModeToolView,
+  PlanGuidanceToolView, // 〔A1-P1-B15〕plan-guidance 族 qmt（107754）——CTV 转导出 ./PlanToolBlocks
   TaskOutputToolView,
   TaskControlToolView,
   TodoToolView,

@@ -163,6 +163,7 @@ export {
   joinWorkspacePath,
   parseFileHref,
   isAbsolutePath,
+  resolveWorkspaceRelativePath, // 〔A1-P1-B15〕原 Jo（styles 1952 逐字；PlanToolBlocks qZ 链 + conversation/PreviewCards 收敛消费）
   resolveWorkspaceFileLink,
   buildFileHrefWithLine,
   isWorkspaceLikeHref,
@@ -227,6 +228,7 @@ export {
   MermaidInlinePreview,
   ZCodeCodeBlock,
   IMAGE_THUMBNAIL_CLASS,
+  IMAGE_INNER_CLASS, // 〔A1-P1-B15〕原 Kk（styles 50164；NodeReplBlocks Emt 消费收敛补 export）
   MarkdownImage,
   MarkdownParagraphWithImageGallery,
   MarkdownRenderer,

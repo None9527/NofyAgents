@@ -7,8 +7,8 @@
 // 函数体内局部变量保留混淆名（B5 约定）；型缝 `: any` 参数缝见 p14/CodeSurfaceBlocks.seam-log.txt，均带〔A1-P1-B14〕。
 // 区段切分墓碑：左界 $ze@48572（markdown 组件域右界邻接）；yk@48873（context-menu 域）为右界。
 //   卡面包装域：Dmt var 链@107112（NodeRepl 族域内，语句不可分，Dmt/kmt 随段携带，消费面留批）；w$@107180。
-// 深域只消费披露：Vc/zc（文件图标域 5243/5198）、NO/Oze/Mze/Pze（mermaid 门控域 47709–47894）、
-//   MO/BO/Qze（代码/mermaid 面板域 47549/47895/48269）未实体化 → 叶内 declare（跨域判例）。
+// 深域只消费披露：MO/BO/Qze（代码/mermaid 面板域 47549/47895/48269）未实体化 → 叶内 declare（跨域判例，留批）。
+// 〔A1-P1-B15〕收敛：Vc/zc → ./FileIconBlocks 真实 import；NO/Oze/Mze/Pze → modules/MarkdownIntegration 真实 import（别名）。
 //
 // 映射表（minified → 语义名 → bundle 定义行 → 属主）：
 //   【真实 import】
@@ -33,15 +33,15 @@ import { logger } from '../../modules/SkillStore'; // 原 J（logger-PFDwl5Yq.js
 import { Button } from '../../modules/button'; // 原 X（button-laUijeDG.js t 导出）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（usageStatsUiParts-CiR7YEhh.js u 导出）
 import { TextWrap as IconTextWrap, Maximize2 as IconMaximize2, Check as IconCheck, Copy as IconCopy, SquareMousePointer as IconSquareMousePointer } from 'lucide-react'; // 原 Tbe/mv/M_/W_/xbe（styles vendored Sa；A0-S3b 判例）
+import { FileIcon, resolveFileIconMeta } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc（styles 5243/5198 逐字实体化；declare 收敛）
+import { isMermaidLanguage, isMermaidBlock as shouldRenderMermaidPreview, documentVisibilityState as resolveDocumentVisibilityState, mermaidAutoRenderGate as evaluateMermaidPreviewRender } from '../../modules/MarkdownIntegration'; // 〔A1-P1-B15〕原 NO/Oze/Mze/Pze（mermaid 门控域 47709–47894 既录 canonical；declare 收敛）
 
-// 【declare 面（深域未实体化，只消费不转录；B13 CodeSurface 族跨域判例同源）】
-declare const FileIcon: React.FC<{ src: string; size?: number; className?: string }>; // 原 Vc（5243，文件图标域未实体化）
-declare function resolveFileIconMeta(path: string, options?: { basePath?: string }): { fileIconSrc: string }; // 原 zc（5198）
-declare function isMermaidLanguage(language: string): boolean; // 原 NO（47709，mermaid 门控域未实体化）
-declare function shouldRenderMermaidPreview(language: string | undefined, code: string): boolean; // 原 Oze（47725）
-declare function resolveDocumentVisibilityState(): string; // 原 Mze（47743）
-declare function evaluateMermaidPreviewRender(code: string, options?: { documentVisibilityState?: string }): { shouldRender?: boolean; reason?: string; metrics?: Record<string, unknown> } | null; // 原 Pze（47765）
-declare const CodeSurfaceCodePane: React.FC<{ code: string; enableSyntaxHighlighting?: boolean; language?: string; showLineNumbers?: boolean; theme?: string; wrapLongLines?: boolean; className?: string; fontSizePx?: number; style?: Record<string, unknown> }>; // 原 MO（47549，代码面板域未实体化）
+/* ── tombstone〔A1-P1-B15〕：文件图标二 declare（FileIcon/resolveFileIconMeta，原 Vc/zc）删除——束真身
+ * 5243/5198 已逐字实体化于 ./FileIconBlocks（文件图标域 5064–5267 收割，B14 留批第 3 项）。消费面逐字不变。 ── */
+/* ── tombstone〔A1-P1-B15〕：mermaid 门控四 declare（原 NO/Oze/Mze/Pze）删除——束真身域 47709–47894 既录
+ * modules/MarkdownIntegration（isMermaidLanguage/isMermaidBlock/documentVisibilityState/mermaidAutoRenderGate，
+ * A0 期语义重建在案；型面兼容：shouldRender/reason/metrics 返回面逐字段吻合）。别名导入保持本叶逐字体不变。 ── */
+declare const CodeSurfaceCodePane: React.FC<{ code: string; enableSyntaxHighlighting?: boolean; language?: string; showLineNumbers?: boolean; theme?: string; wrapLongLines?: boolean; className?: string; fontSizePx?: number; style?: Record<string, unknown> }>; // 原 MO（47549，代码面板域未实体化，留批）
 declare const CodeSurfaceMermaidPane: React.FC<{ code: string; theme?: string; onOpenPreview?: () => void; onPreviewSvgChange?: (svg: string | null) => void }>; // 原 BO（47895）
 declare const MermaidPreviewDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; svg: string | null; title: string }>; // 原 Qze（48269）
 

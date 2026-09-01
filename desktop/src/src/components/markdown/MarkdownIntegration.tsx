@@ -946,6 +946,15 @@ const ABS_WIN_REGEX = /^\\\\/; // 原 aae（styles 1926 逐字）
 export function isAbsolutePath(path: string): boolean {
   return path.startsWith(`/`) || ABS_UNIX_REGEX.test(path) || ABS_WIN_REGEX.test(path);
 }
+/** 原 Jo（styles 1952 逐字；〔A1-P1-B15〕转录——Go/sae/qo/Ko 同连续段 1928–1957，落点随段判例 A1-R10 2b；
+ *  消费面：PlanToolBlocks qZ 链 qct@98082 + components/conversation/PreviewCards resolveReferencePath 束真身 i1@109762。
+ *  型缝 `: any` 参数缝〔A1-P1-B15〕，见 /tmp/a1r0-p1/p15/seams-MarkdownJo.json） */
+export function resolveWorkspaceRelativePath(e: any, t: any) {
+  if (!t) return e;
+  if (isAbsolutePath(t)) return t;
+  let n = e.includes(`\\`) && !e.includes(`/`) ? `\\` : `/`;
+  return `${e.replace(/[\\/]+$/, ``)}${n}${t.replace(/^[\\/]+/, ``)}`;
+}
 /** 原 dA */
 function isDotRelative(path: string): boolean {
   return path.startsWith(`./`);
@@ -2371,7 +2380,7 @@ export function ZCodeCodeBlock({
 
 export const IMAGE_THUMBNAIL_CLASS =
   `my-4 block w-fit max-w-1/2 cursor-zoom-in overflow-hidden rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background`; // 原 Gk
-const IMAGE_INNER_CLASS = `h-auto max-h-90 max-w-full rounded-xl border border-border bg-background object-cover`; // 原 Kk
+export const IMAGE_INNER_CLASS = `h-auto max-h-90 max-w-full rounded-xl border border-border bg-background object-cover`; // 原 Kk（〔A1-P1-B15〕补 export：NodeReplBlocks Emt@107089 消费收敛）
 
 /** 原 fVe */
 function mediaPreviewToDataUrl(preview: { mediaType: string; dataBase64: string }): string {

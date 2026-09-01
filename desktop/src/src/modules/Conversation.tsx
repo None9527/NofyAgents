@@ -121,7 +121,7 @@ import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolV
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
 import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep'; // 原 v_t/__t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
 import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type CodeCommentAttachment, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）；〔A1-R22〕+type CodeCommentAttachment（ParsedUserInput 型别精化）
-import { OffPeakNewTaskBanner } from './Home';
+import { OffPeakNewTaskBanner, ApiRetryStatusChip as ApiRetryView } from './Home'; // 〔A1-P1-B15〕原 I3e（76860）收敛改指
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
 import { Badge } from './PaymentDeep';
@@ -1932,8 +1932,10 @@ function toApiRetryViewModel(snapshot: { attempt: number; maxAttempts: number; r
   };
 }
 
-/** API 重试视图（原 I3e，F12/横切；接口保留）与加载骨架（原 Llt） */
-declare const ApiRetryView: React.FC<{ apiRetry: ReturnType<typeof toApiRetryViewModel>; intl: IntlShape; locale: string }>;
+/* ── tombstone〔A1-P1-B15〕：declare ApiRetryView（原 I3e）删除——束真身 76860–76879 已逐字实体化为
+ * components/shell/Home §T.3 ApiRetryStatusChip（modules/Home 转导出；P3-B11 分发归 P1 办结）。
+ * 消费面 ApiRetryLoadingSlot（原 x1）逐字不变，经文件头 import 别名改指。 ── */
+/** 加载骨架（原 Llt） */
 declare const LoadingSkeleton: React.FC<{ loading?: boolean; "data-testid"?: string; size?: "sm" | "md" }>;
 
 /**

@@ -2541,7 +2541,9 @@ function ChatErrorBanner({
  *   YM→LAST_DRAFT_COLLABORATION_MODE_DEFAULT 53562 | XM→LAST_DRAFT_COLLABORATION_MODE_STORAGE_KEY 53563
  *   ZUe→LAST_DRAFT_COLLABORATION_MODE_IDS 53564 | ZM→safeGlobalLocalStorage 53565
  *   QM→parseCollaborationModeId 53572 | $M→readLastDraftCollaborationMode 53577
- *   QUe（配对写入器 53585）本簇未消费，留批
+ *   QUe→writeDraftMode（53585；〔A1-P1-B15〕重查更正：R17 负证据过期——真身已实体化于
+ *     ConversationDraftConfig 66（B8），消费位 = tWe@53606 handleDraftSwitchMode 束 53780（同叶 258）；
+ *     本簇（§T 模式工具条）确无消费；§T.1 与 ConversationDraftConfig 双实例收敛留批（R25 判例）
  *  ConfigSelect 封装族（46035–46175；vendored radix 原语按 A0-S3c 先例 → npm @radix-ui/react-select）：
  *   zRe→configSelectTriggerVariants 46035 | iO→ConfigSelectRoot 46057 | aO→ConfigSelectValue 46060
  *   oO→ConfigSelectTrigger 46063 | DDe(=HEe 31033)→ConfigSelectPortal | sO→ConfigSelectContent 46087
@@ -2549,7 +2551,7 @@ function ChatErrorBanner({
  *  ConfigSelect 原语族（76848–77061）：
  *   M3e→isSelectValueInRange 76848 | N3e→FULL_ACCESS_MODE_VALUES 76851
  *   P3e→resolveConfigSelectTestId 76852 | F3e→resolveConfigSelectOptionTestId 76856
- *   I3e（apiRetry 状态件 76860）本簇未消费，留批
+ *   I3e→ApiRetryStatusChip（76860；〔A1-P1-B15〕实体化本文件 §T.3 + export；消费位 112823（chat 加载槽域 kvt/Llt）留批）
  *   L3e→resolveModeOptionLabel 76880 | R3e→resolveModeLabelI18nId 76884 | z3e→resolveModeDescriptionI18nId 76887
  *   jq→resolveConfigOptionLabel 76890 | B3e→resolveConfigOptionDescription 76893
  *   V3e→isFullAccessModeValue 76898 | H3e→resolveModeIndicatorIcon 76901 | Mq→ConfigSelect 76912
@@ -2775,6 +2777,29 @@ function resolveConfigSelectTestId(e: ConfigSelectOption) { // P3e
 function resolveConfigSelectOptionTestId(e: ConfigSelectOption, t: ConfigSelectOptionItem) { // F3e
   if (e.category === `thought_level`) return testidOf(automationYearDayOptionTestid, t.value);
   if (e.category === `mode`) return testidOf(browserForwardButtonTestid, t.value);
+}
+/** 原 I3e（76860）：apiRetry 状态件——attempt/maxRetries i18n 数字格式化 + 渐变文本 chip；〔A1-P1-B15〕转录。
+ *  消费位 112823（chat 加载槽域，kvt/Llt 未实体化）留批；modules/Conversation ApiRetryView declare 同批收敛。
+ *  参数缝 `: any`〔A1-P1-B15〕（见 /tmp/a1r0-p1/p15/seams-HomeI3e.json）；局部变量保留混淆名。 */
+export function ApiRetryStatusChip({ apiRetry: e, intl: t, locale: n }: any) {
+  let r = (0, React.useMemo)(() => {
+    if (!e) return null;
+    let r = new Intl.NumberFormat(n);
+    return t.formatMessage(
+      { id: `chat.apiRetryStatus` },
+      { attempt: r.format(e.attempt), maxRetries: r.format(e.maxRetries) },
+    );
+  }, [e, t, n]);
+  return !e || !r
+    ? null
+    : (0, $.jsx)(`span`, {
+        className: `inline-flex h-7 items-center whitespace-nowrap px-1 text-ui-base`,
+        title: e.errorStatus == null ? r : `${r} · HTTP ${e.errorStatus}`,
+        children: (0, $.jsx)(`span`, {
+          className: `animated-gradient-text animated-gradient-text-subtle font-medium`,
+          children: r,
+        }),
+      });
 }
 function resolveModeOptionLabel(e: IntlShape, t: string | null | undefined, n: ConfigSelectOptionItem) { // L3e
   let r = resolveModeLabelI18nId(t, n);
