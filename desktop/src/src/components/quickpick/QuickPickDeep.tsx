@@ -124,7 +124,7 @@
 
 import * as React from "react";
 import { workspaceKeyOf } from '../../modules/CodeViewer';
-import { logger, useTaskStore } from '../../modules/SkillStore';
+import { logger, useTaskStore, resolveWorkspaceKey } from '../../modules/SkillStore'; // 〔A1-P3-B9〕+resolveWorkspaceKey（原 skillStore-b/jsx 155，styles U 二跳：`H as U` ← skillStore 出口 `b as H`；DnD 族 workspaceScopeKey 消费）
 import { dedupeWorkspaceScopes, sessionActivityOf, compareTasks as compareTaskRecency, taskEntityKey as entityKeyOf } from '../../modules/StoresDeep'; // +compareTaskRecency/entityKeyOf（A1-R10 2e：原 Fo（1365）/Lo（1371）declare 改指 canonical = helpers compareTasks/taskEntityKey 逐字；调用点 849/1326 与 471/607/720/760/762 逐字不变）
 import { SessionIndexStore, WorkspaceSubscriptionSet, sessionIndexPoolKey, useBaseServices, type SessionIndexScope } from '../../modules/services';
 /* ── A0-D-Misc 接线：Vo 搜索结果 store 属主 = QuickPick（useSearchResultsStore，QuickPick.tsx 1553–1878） ── */
@@ -294,12 +294,212 @@ interface DragCollisionArgs {
   droppableContainers: Array<{ data: { current: unknown }; [key: string]: unknown }>;
   [key: string]: unknown;
 }
-declare function moveTaskOverTask(state: GroupedViewState, args: { activeTaskKey: string; overTaskKey: string; position: string }): GroupedViewState; // 原 vIt
-declare function placeTaskOutsideGroup(state: GroupedViewState, args: { activeTaskKey: string; groupId: string; position: string }): GroupedViewState; // 原 u8
-declare function placeTaskAtGroupHead(state: GroupedViewState, args: { activeTaskKey: string; groupId: string }): GroupedViewState; // 原 d8
-declare function appendTaskToGroupTail(state: GroupedViewState, args: { activeTaskKey: string; groupId: string }): GroupedViewState; // 原 bIt
-declare function moveGroupOver(state: GroupedViewState, args: { activeGroupId: string; over: { type: "group"; groupId: string } | { type: "task"; taskKey: string }; position: string }): GroupedViewState; // 原 xIt
-declare function groupedTaskKeyOf(task: TaskMeta): string; // 原 n8
+/* ── 〔A1-P3-B9〕逐字转录：DnD 组操作簇（styles 1368–1370 Io + 144952–145140 n8…xIt，192 行 26 符）──
+ * 闭合证据：n8→Io(1368)→U；U = styles 裸导入 `H as U`(379) ← skillStore 出口 `b as H` ← b(e,t)=t?.trim()||e(166)
+ *   = taskStore::resolveWorkspaceKey(282，原 b/jsx 155，头部 import 接线)；余 25 符全 span 内互引纯函数，模块初始化安全。
+ * 映射：Io→workspaceScopeKey(1368) | n8→groupedTaskKeyOf(144952) | sIt→cloneGroupedViewDeep(144955) |
+ *   r8→cloneViewNodes(144960) | i8→cloneGroupNode(144963) | a8→removeTaskFromView(144966) | o8→insertTaskIntoGroup(144985) |
+ *   cIt→removeTaskFromGroups(144994) | s8→findTaskInView(145004) | lIt→replaceTaskInView(145014) | uIt→listGroupIds(145026) |
+ *   dIt→everyKeyAbsent(145029) | fIt→intersectKeySets(145032) | pIt→findParentGroupId(145036) | mIt→findRootTaskIndex(145041) |
+ *   c8→findGroupNodeIndex(145044) | hIt→findParentGroupIdOfTask(145047) | l8→locateTaskInView(145052) | gIt→describeDropTarget(145071) |
+ *   _It→insertTaskAtAnchor(145076) | yIt→insertTaskAtGroupEdge(144998) | vIt→moveTaskOverTask(145090) | u8→placeTaskOutsideGroup(145103) |
+ *   d8→placeTaskAtGroupHead(145109) | bIt→appendTaskToGroupTail(145117) | xIt→moveGroupOver(145128)。
+ * 转录机制：AST 精确改名（71 处），往返核对 ROUNDTRIP[dnd] EXACT（192 行）在案（/tmp/a1r0-p3/p3b9-roundtrip.js）；
+ *   体内局部保留混淆名（B5 约定）。型缝 ×74：P1 顶层函数参数 :any ×53 + S16 any 接收面回调参数 :any ×21。
+ * 孪生注记：Sidebar.tsx §617 段（P2 泳道）为本簇语义孪生面（js 144872–145136 A0 行号误标族），跨泳道孪生登记见 A1-P3-B9.report.md §二。
+ * 消费面登记：n8/vIt/u8/d8/bIt/xIt 区外消费 153007/154273+/155356–155398 = Sidebar 任务列 DnD 域（P2 逐字段），跨泳道登记。 ── */
+function workspaceScopeKey(e: any, t: any) {
+  return resolveWorkspaceKey(e, t);
+}
+function groupedTaskKeyOf(e: any) {
+  return `${workspaceScopeKey(e.workspacePath, e.workspaceIdentity)}\u0000${e.taskId}`;
+}
+function cloneGroupedViewDeep(e: any) {
+  return {
+    nodes: e.nodes.map((e: any) => (e.type === `task` ? { ...e } : { ...e, tasks: [...e.tasks] })),
+  };
+}
+function cloneViewNodes(e: any) {
+  return [...e.nodes];
+}
+function cloneGroupNode(e: any) {
+  return { ...e, tasks: [...e.tasks] };
+}
+function removeTaskFromView(e: any, t: any) {
+  let n = cloneViewNodes(e);
+  for (let e = 0; e < n.length; e += 1) {
+    let r = n[e];
+    if (r) {
+      if (r.type === `task` && groupedTaskKeyOf(r.task) === t)
+        return (n.splice(e, 1), { nextView: { nodes: n }, task: r.task });
+      if (r.type === `group`) {
+        let i = r.tasks.findIndex((e: any) => groupedTaskKeyOf(e) === t);
+        if (i >= 0) {
+          let t = cloneGroupNode(r),
+            [a] = t.tasks.splice(i, 1);
+          return ((n[e] = t), { nextView: { nodes: n }, task: a ?? null });
+        }
+      }
+    }
+  }
+  return { nextView: { nodes: n }, task: null };
+}
+function insertTaskIntoGroup(e: any, t: any, n: any, r: any) {
+  let i = cloneViewNodes(e),
+    a = i.findIndex((e: any) => e.type === `group` && e.group.id === n),
+    o = i[a];
+  if (!o || o.type !== `group`) return { nodes: i };
+  let s = cloneGroupNode(o),
+    c = r === null ? s.tasks.length : s.tasks.findIndex((e: any) => groupedTaskKeyOf(e) === r);
+  return (s.tasks.splice(c < 0 ? s.tasks.length : c, 0, t), (i[a] = s), { nodes: i });
+}
+function removeTaskFromGroups(e: any, t: any) {
+  let n = cloneGroupedViewDeep(e);
+  for (let e of n.nodes) {
+    if (e.type !== `group`) continue;
+    let r = e.tasks.findIndex((e: any) => groupedTaskKeyOf(e) === t);
+    if (r >= 0) return (e.tasks.splice(r, 1), n);
+  }
+  let r = n.nodes.findIndex((e: any) => e.type === `task` && groupedTaskKeyOf(e.task) === t);
+  return (r >= 0 && n.nodes.splice(r, 1), n);
+}
+function findTaskInView(e: any, t: any) {
+  for (let n of e.nodes) {
+    if (n.type === `task` && groupedTaskKeyOf(n.task) === t) return n.task;
+    if (n.type === `group`) {
+      let e = n.tasks.find((e: any) => groupedTaskKeyOf(e) === t);
+      if (e) return e;
+    }
+  }
+  return null;
+}
+function replaceTaskInView(e: any, t: any) {
+  let n = groupedTaskKeyOf(t);
+  return {
+    nodes: e.nodes.map((e: any) =>
+      e.type === `task`
+        ? groupedTaskKeyOf(e.task) === n
+          ? { ...e, task: t }
+          : e
+        : { ...e, tasks: e.tasks.map((e: any) => (groupedTaskKeyOf(e) === n ? t : e)) },
+    ),
+  };
+}
+function listGroupIds(e: any) {
+  return e.nodes.flatMap((e: any) => (e.type === `group` ? [e.group.id] : []));
+}
+function everyKeyAbsent(e: any, t: any) {
+  return e.length > 0 && e.every((e: any) => !t.has(e));
+}
+function intersectKeySets(e: any, t: any) {
+  let n = new Set(t);
+  return new Set([...e].filter((e: any) => n.has(e)));
+}
+function findParentGroupId(e: any, t: any) {
+  for (let n of e.nodes)
+    if (n.type === `group` && n.tasks.some((e: any) => groupedTaskKeyOf(e) === t)) return n.group.id;
+  return null;
+}
+function findRootTaskIndex(e: any, t: any) {
+  return e.nodes.findIndex((e: any) => e.type === `task` && groupedTaskKeyOf(e.task) === t);
+}
+function findGroupNodeIndex(e: any, t: any) {
+  return e.nodes.findIndex((e: any) => e.type === `group` && e.group.id === t);
+}
+function findParentGroupIdOfTask(e: any, t: any) {
+  for (let n of e.nodes)
+    if (n.type === `group` && n.tasks.some((e: any) => groupedTaskKeyOf(e) === t)) return n.group.id;
+  return null;
+}
+function locateTaskInView(e: any, t: any) {
+  for (let n = 0; n < e.nodes.length; n += 1) {
+    let r = e.nodes[n];
+    if (r) {
+      if (r.type === `task` && groupedTaskKeyOf(r.task) === t)
+        return { parent: `root`, nodeIndex: n, task: r.task };
+      if (r.type === `group`) {
+        let e = r.tasks.findIndex((e: any) => groupedTaskKeyOf(e) === t);
+        if (e >= 0) {
+          let t = r.tasks[e];
+          return t
+            ? { parent: `group`, groupId: r.group.id, nodeIndex: n, taskIndex: e, task: t }
+            : null;
+        }
+      }
+    }
+  }
+  return null;
+}
+function describeDropTarget(e: any, t: any) {
+  if (!t) return { type: `top` };
+  let n = locateTaskInView(e, t);
+  return n?.parent === `group` ? { type: `group`, groupId: n.groupId } : { type: `top` };
+}
+function insertTaskAtAnchor(e: any, t: any, n: any, r: any) {
+  let i = cloneViewNodes(e),
+    a = locateTaskInView({ nodes: i }, n);
+  if (!a) return { nodes: i };
+  if (a.parent === `root`) {
+    let e = a.nodeIndex + +(r === `after`);
+    return (i.splice(e, 0, { type: `task`, task: t }), { nodes: i });
+  }
+  let o = i[a.nodeIndex];
+  if (!o || o.type !== `group`) return { nodes: i };
+  let s = cloneGroupNode(o),
+    c = a.taskIndex + +(r === `after`);
+  return (s.tasks.splice(c, 0, t), (i[a.nodeIndex] = s), { nodes: i });
+}
+function moveTaskOverTask(e: any, t: any) {
+  if (t.activeTaskKey === t.overTaskKey) return e;
+  let n = locateTaskInView(e, t.activeTaskKey),
+    r = locateTaskInView(e, t.overTaskKey);
+  if (!n || !r) return e;
+  let { nextView: i, task: a } = removeTaskFromView(e, t.activeTaskKey);
+  return a ? insertTaskAtAnchor(i, a, t.overTaskKey, t.position) : e;
+}
+function insertTaskAtGroupEdge(e: any, t: any, n: any, r: any) {
+  let i = cloneViewNodes(e),
+    a = i.findIndex((e: any) => e.type === `group` && e.group.id === n);
+  return (a < 0 || i.splice(a + +(r === `after`), 0, { type: `task`, task: t }), { nodes: i });
+}
+function placeTaskOutsideGroup(e: any, t: any) {
+  let n = e.nodes.find((e: any) => e.type === `group` && e.group.id === t.groupId);
+  if (!n || n.type !== `group`) return e;
+  let { nextView: r, task: i } = removeTaskFromView(e, t.activeTaskKey);
+  return i ? insertTaskAtGroupEdge(r, i, t.groupId, t.position) : e;
+}
+function placeTaskAtGroupHead(e: any, t: any) {
+  let { nextView: n, task: r } = removeTaskFromView(e, t.activeTaskKey);
+  if (!r) return e;
+  let i = n.nodes.find((e: any) => e.type === `group` && e.group.id === t.groupId);
+  if (!i || i.type !== `group`) return e;
+  let a = i.tasks[0] ? groupedTaskKeyOf(i.tasks[0]) : null;
+  return insertTaskIntoGroup(n, r, t.groupId, a);
+}
+function appendTaskToGroupTail(e: any, t: any) {
+  let { nextView: n, task: r } = removeTaskFromView(e, t.activeTaskKey);
+  if (!r) return e;
+  let i = findGroupNodeIndex(n, t.groupId),
+    a = n.nodes[i];
+  if (!a || a.type !== `group`) return e;
+  let o = cloneGroupNode(a);
+  o.tasks.push(r);
+  let s = cloneViewNodes(n);
+  return ((s[i] = o), { nodes: s });
+}
+function moveGroupOver(e: any, t: any) {
+  if (t.over.type === `group` && t.activeGroupId === t.over.groupId) return e;
+  let n = t.over.type === `task` ? findParentGroupIdOfTask(e, t.over.taskKey) : null;
+  if (n === t.activeGroupId) return e;
+  let r = cloneViewNodes(e),
+    i = r.findIndex((e: any) => e.type === `group` && e.group.id === t.activeGroupId);
+  if (i < 0) return e;
+  let [a] = r.splice(i, 1);
+  if (!a || a.type !== `group`) return e;
+  let o = { nodes: r },
+    s = t.over.type === `group` ? findGroupNodeIndex(o, t.over.groupId) : n ? findGroupNodeIndex(o, n) : findRootTaskIndex(o, t.over.taskKey);
+  return s < 0 ? e : (r.splice(s + +(t.position === `after`), 0, a), { nodes: r });
+}
 /** 原 KX（92249，vendored dnd-kit 变体基线碰撞） */
 declare function dndBaselineCollision(args: DragCollisionArgs): unknown;
 
