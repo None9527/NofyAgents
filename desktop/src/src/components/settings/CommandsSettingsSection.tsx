@@ -181,7 +181,7 @@ interface ModelProvidersStoreState {
   displayOrder: { providerIds: string[]; updatedAt?: number } | null;
   loading: boolean;
 }
-declare function useModelProvidersStore(): ModelProvidersStoreState; // qq
+/* ── tombstone〔A1-R35〕：declare useModelProvidersStore（原 qq，78243）删除——本树零消费死 declare（负证据在案：本文件无消费点）；真身 = components/payments/PaymentDeep §11 useModelProvidersStore（bundle 78243-78403 逐字），同批实体化。 ── */
 /* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488）删除。负证据：本文件无活调用点（§0 声明群随族整段迁入之死声明）；
  *    canonical = components/usage/UsageDeep.tsx §2c useAppSettings（JM 53488 逐字），活消费面见 Subagents/AutomationsMain/MPSS 等（本批另行改指）。 ── */
 interface TaskStoreState {

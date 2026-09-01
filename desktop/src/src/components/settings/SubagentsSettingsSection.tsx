@@ -13,7 +13,7 @@ import { useConfirmDialog } from '../../modules/Modals'; // U2
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 273 解构 {settings}，297 读 modelProviderFamilyModes 具名面逐字不变。环安全：UsageDeep 值闭包不达本文件
-import { modelMenuGroupsOf, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R29〕Hq 77850 canonical + 型缝型别：buildModelSelectGroups declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 components/settings
+import { modelMenuGroupsOf, useModelProvidersStore, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R29〕Hq 77850 canonical + 型缝型别：buildModelSelectGroups declare 收敛改指，见下墓碑。〔A1-R35〕+useModelProvidersStore（qq 78243-78403 逐字真身 ≡ components/payments/PaymentDeep §11；declare 收敛改指，见下墓碑；消费 @271 ≡ bundle 197843 H1t 面）。环安全：PaymentDeep shim 值闭包不达 components/settings
 import type { SkillItem, SkillCapability, SkillDiagnostic } from './SkillsSettingsSection'; // §0 SkillsService 接口签名引用（属主：技能族文件）
 import type { ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依
 
@@ -191,7 +191,7 @@ interface ModelProvidersStoreState {
   displayOrder: { providerIds: string[]; updatedAt?: number } | null;
   loading: boolean;
 }
-declare function useModelProvidersStore(): ModelProvidersStoreState; // qq
+/* ── tombstone〔A1-R35〕：declare useModelProvidersStore（原 qq，78243）删除 → 改经文件头 modules/PaymentDeep import 消费（canonical = components/payments/PaymentDeep §11 useModelProvidersStore，bundle 78243-78403 逐字）。消费面 @271 ≡ bundle 197843（H1t 面）。 ── */
 /* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488）删除，改经文件头 modules/UsageDeep import 消费
  *    （canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字；返回面五字段，本文件消费 {settings}）。 ── */
 interface TaskStoreState {

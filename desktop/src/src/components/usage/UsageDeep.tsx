@@ -1409,7 +1409,7 @@ export function hasLoadedCodingPlanSources(): boolean {
   return codingPlanSourcesLoaded;
 }
 /** 原 mM（js 52646）：提交源列表（可选作废在途刷新）并广播 */
-function setCodingPlanSources(sources: ModelProvider[], opts?: { invalidateInFlightRefresh?: boolean }): void {
+export function setCodingPlanSources(sources: ModelProvider[], opts?: { invalidateInFlightRefresh?: boolean }): void { // 〔A1-R35〕补 export：PD 尾部 useModelProvidersStore 族（bundle 78119-78403 转录）消费接引（原 mM，52687-52694）
   if (opts?.invalidateInFlightRefresh) codingPlanSourcesInvalidation += 1;
   codingPlanSources = sources;
   codingPlanSourcesLoaded = true;
@@ -1439,7 +1439,7 @@ function commitSourcesIfCurrent(token: number, sources: ModelProvider[]): boolea
 }
 
 /** 原 gM（js 52665）：强制刷新源列表（force 缺省且已有结果 → 直接复用；单飞合并） */
-function refreshCodingPlanSourcesForced(fetcher: () => Promise<ModelProvider[]>, opts?: { force?: boolean }): Promise<ModelProvider[]> {
+export function refreshCodingPlanSourcesForced(fetcher: () => Promise<ModelProvider[]>, opts?: { force?: boolean }): Promise<ModelProvider[]> { // 〔A1-R35〕补 export：PD 尾部 useModelProvidersStore 族消费接引（原 gM，52709-52725）
   if (opts?.force !== true && forcedRefreshInFlight) return forcedRefreshInFlight as Promise<ModelProvider[]>;
   const token = nextSourcesInvalidationToken();
   let request!: Promise<ModelProvider[]>;
@@ -1457,7 +1457,7 @@ function refreshCodingPlanSourcesForced(fetcher: () => Promise<ModelProvider[]>,
 }
 
 /** 原 _M（js 52681）：惰性确保源列表已加载（单飞合并） */
-function ensureCodingPlanSources(fetcher: () => Promise<ModelProvider[]>): Promise<ModelProvider[]> {
+export function ensureCodingPlanSources(fetcher: () => Promise<ModelProvider[]>): Promise<ModelProvider[]> { // 〔A1-R35〕补 export：PD 尾部 useModelProvidersStore 族消费接引（原 _M，52726-52742）
   if (codingPlanSourcesLoaded) return Promise.resolve(codingPlanSources);
   if (ensureSourcesInFlight) return ensureSourcesInFlight as Promise<ModelProvider[]>;
   let request!: Promise<ModelProvider[]>;

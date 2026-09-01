@@ -99,15 +99,15 @@ import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button';
 // 改接 Home §U.8 逐字真身（bundle WUe 53313/RM 53328/zM 53349 唯一真身；RM/zM 分流依据见原 declare 位墓碑）。
 // 环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用）。
 import { Spinner, trackCodingPlanFunnelStart, trackCodingPlanProductSelect, trackCodingPlanBillingCycleSelect, teamSourceOrganizationLabel } from '../../modules/Home'; // 〔A1-R28〕+teamSourceOrganizationLabel（Lq 77476 逐字 canonical；teamOrganizationLabelOf A0 副本删除改指，见下墓碑）。环安全：二环 Home→PaymentDeep shim→components/payments→modules/Home 既有判例（函数声明提升，渲染期调用），本行不新增环边
-import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily, isObjectRecord, normalizeProviderId, listProviderModelIds, mapModelFormatToKind, resolveModelSupportedKinds, resolveProviderKindEndpointUrl, listEndpointKinds, isProviderEnabled, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, buildStableModelId, nativeProviderRef, resolveProviderRefFromCustomModelRef } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。〔A1-R31〕+base family 七件（nt/gt/an/Ai/Wr/Ir/Sr ≡ tu/eu/ou/ru/Tu/vu/yu ≡ SrcSharedB §1 逐字实体）：七 declare 收敛改指，见下墓碑。〔A1-R32〕+isProviderEnabled（gi ≡ ko ≡ 612）/buildCodingPlanScope（vi ≡ mt ≡ Wb）/parseCodingPlanScope（li ≡ gt ≡ Gb）/codingPlanScopesOverlap（fi ≡ ht ≡ Kb）：残件四 declare 收敛改指，见各墓碑。〔A1-R33〕+buildStableModelId（bne ≡ q ≡ Fx 8857 ≡ stableIds §28）/nativeProviderRef（On ≡ M ≡ cS 8981）/resolveProviderRefFromCustomModelRef（In ≡ N ≡ uS 8987）（§28/§31/§32 实体已迁 lib/，SrcSharedB@475 具名转导出）：三 declare 收敛改指，见各墓碑。环安全：SrcSharedB 值闭包不达 components/payments
+import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProviderAllowedForFamilyMode, activeOAuthProviderMatchesFamily, isObjectRecord, normalizeProviderId, listProviderModelIds, mapModelFormatToKind, resolveModelSupportedKinds, resolveProviderKindEndpointUrl, listEndpointKinds, isProviderEnabled, buildCodingPlanScope, parseCodingPlanScope, codingPlanScopesOverlap, buildStableModelId, nativeProviderRef, resolveProviderRefFromCustomModelRef, automationsWorkspaceKey, GHOST_PROVIDER_REF_PREFIX, CODING_PLAN_SECURITY_VERIFICATION_REQUIRED } from '../../modules/SrcSharedB'; // 〔A1-R28〕zi 真身（styles 820 `z as zi` ← src 10062 `Gx as z` ≡ SrcSharedB@5555）：familyConnectionModeOf declare 收敛改指，见下墓碑。〔A1-R29〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933）/isProviderAllowedForFamilyMode（Mr ≡ Kx 8919）/activeOAuthProviderMatchesFamily（qt ≡ eS 8951）：三 declare 收敛改指，见各墓碑。〔A1-R31〕+base family 七件（nt/gt/an/Ai/Wr/Ir/Sr ≡ tu/eu/ou/ru/Tu/vu/yu ≡ SrcSharedB §1 逐字实体）：七 declare 收敛改指，见下墓碑。〔A1-R32〕+isProviderEnabled（gi ≡ ko ≡ 612）/buildCodingPlanScope（vi ≡ mt ≡ Wb）/parseCodingPlanScope（li ≡ gt ≡ Gb）/codingPlanScopesOverlap（fi ≡ ht ≡ Kb）：残件四 declare 收敛改指，见各墓碑。〔A1-R33〕+buildStableModelId（bne ≡ q ≡ Fx 8857 ≡ stableIds §28）/nativeProviderRef（On ≡ M ≡ cS 8981）/resolveProviderRefFromCustomModelRef（In ≡ N ≡ uS 8987）（§28/§31/§32 实体已迁 lib/，SrcSharedB@475 具名转导出）：三 declare 收敛改指，见各墓碑。〔A1-R35〕+automationsWorkspaceKey（Ti ≡ to ≡ SrcSharedB@3079，尾部 e8e 消费）/GHOST_PROVIDER_REF_PREFIX（Pte 真身：styles 705 `k as Pte` ← src `GHOST_PROVIDER_REF_PREFIX as k` ≡ lib/providerRefs@49，SrcSharedB@471 转导出）/CODING_PLAN_SECURITY_VERIFICATION_REQUIRED（one 真身：styles 736 `o as one` ≡ SrcSharedB@6252）：尾部 hook 族转录 + 双死链 declare 收敛改指，见各墓碑。环安全：SrcSharedB 值闭包不达 components/payments
 import { isStartPlanProviderId, isZaiPlanProviderId, GLM_MODEL_IDS, providerIds, isBuiltinProviderId, isGlmAgentCliProvider } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。〔A1-R30〕+isZaiPlanProviderId（tr ≡ vl 4753 ≡ SrcSharedA@2022）：isOAuthFamilyProvider/isZaiCodingPlanProvider 双 tr 脸收敛改指，见各墓碑。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）/isBuiltinProviderId（jt ≡ Eo ≡ _l 4833）/isGlmAgentCliProvider（Ei ≡ us ≡ Ds 3844）：q 实体化 + 残件双 declare 收敛改指，见各墓碑。环安全：SrcSharedA 值闭包不达 components/payments
-import type { TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）
+import { reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）。〔A1-R35〕type-only → 值导入 + reportTelemetry：xw declare 收敛改指（xw 真身：styles 40457-40466 ≡ StoresDeep@323 reportTelemetry，StoresDeep@321 行注「原 xw（40409）」为漂移实测 40457；消费 @3651/@3655 改名改指）
 import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 52651 收敛型缝所依（A6e/j6e/M6e/N6e 快照流由 unknown 精化，行依据见各函数注）
 import { Input, PopoverContent, toast } from '../../modules/ImeComposition';
-import { logger, formatCustomModelId, parseCustomModelId, getCurrentModelValue } from '../../modules/SkillStore'; // 〔A1-R28〕+formatCustomModelId（we 真身：styles 404 `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412，SkillStore@169 转导出；StoresDeep@147 joinModelName 别名先例）：composeModelValue declare 收敛改指，见下墓碑。〔A1-R32〕+parseCustomModelId（se 真身：styles 386 `O as se` ← skillStore-BmeKHDBI.js 导出 2497 `D as O` ≡ D 903 ≡ taskStore@1418，SkillStore 转导出）：modelEntryOf declare 收敛改指，见下墓碑。〔A1-R33〕+getCurrentModelValue（Ie 真身：styles 416 `w as Ie` ← skillStore-BmeKHDBI 导出 2527 `I as w` ≡ I 982 ≡ taskStore@1543，SkillStore@262 转导出）：resolveModelCatalogEntry declare 收敛改指，见下墓碑
-import { useSettingsStore as useAppStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
-import { formatGrantUnits, useBillingDiscount, BillingDiscountCard, RegionLogo, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, hasActiveEntitlement } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical，declare hasActiveEntitlementCore 收敛改指，见下墓碑）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）。A1-R21：+RegionLogo（原 Tq 76183 收敛，见下墓碑）。〔A1-R23〕SidebarCodingPlanWidget/SidebarStartPlanWidget（s3e/v3e）/hasPlanWidgetModel（i3e）/hasStartPlanBalance（g3e）/entryPlanStateOf（IM）移出——消费面 §1/§9 死簇同批删除；Oq/i3e/g3e 真身裁定见 components/usage/UsageDeep.tsx 墓碑（Home §U.3/§V 逐字 canonical）
-import { useServices } from '../../modules/services';
+import { logger, formatCustomModelId, parseCustomModelId, getCurrentModelValue, useTaskStore } from '../../modules/SkillStore'; // 〔A1-R28〕+formatCustomModelId（we 真身：styles 404 `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412，SkillStore@169 转导出；StoresDeep@147 joinModelName 别名先例）：composeModelValue declare 收敛改指，见下墓碑。〔A1-R32〕+parseCustomModelId（se 真身：styles 386 `O as se` ← skillStore-BmeKHDBI.js 导出 2497 `D as O` ≡ D 903 ≡ taskStore@1418，SkillStore 转导出）：modelEntryOf declare 收敛改指，见下墓碑。〔A1-R33〕+getCurrentModelValue（Ie 真身：styles 416 `w as Ie` ← skillStore-BmeKHDBI 导出 2527 `I as w` ≡ I 982 ≡ taskStore@1543，SkillStore@262 转导出）：resolveModelCatalogEntry declare 收敛改指，见下墓碑。〔A1-R35〕+useTaskStore（xe 真身：styles 侧 xe ≡ taskStore@2950 useTaskStore，SkillStore@247 转导出）：尾部 qq 转录面 `xe.getState()` 消费接引
+import { useSettingsStore as useAppStore, useSessionRegistryStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。〔A1-R35〕+useSessionRegistryStore（Zs 真身：styles-local 4357 `var Zs = Ae()(...)` 会话注册表 store ≡ stores/sessionRegistryStore@175 useSessionRegistryStore，stores-core@90 转导出）：尾部 qq 转录面消费接引。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
+import { formatGrantUnits, useBillingDiscount, BillingDiscountCard, RegionLogo, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, hasActiveEntitlement, listCodingPlanSources, hasLoadedCodingPlanSources, setCodingPlanSources, subscribeCodingPlanSources, refreshCodingPlanSourcesForced, ensureCodingPlanSources } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical，declare hasActiveEntitlementCore 收敛改指，见下墓碑）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）。A1-R21：+RegionLogo（原 Tq 76183 收敛，见下墓碑）。〔A1-R23〕SidebarCodingPlanWidget/SidebarStartPlanWidget（s3e/v3e）/hasPlanWidgetModel（i3e）/hasStartPlanBalance（g3e）/entryPlanStateOf（IM）移出——消费面 §1/§9 死簇同批删除；Oq/i3e/g3e 真身裁定见 components/usage/UsageDeep.tsx 墓碑（Home §U.3/§V 逐字 canonical）。〔A1-R35〕+注册表六件（fM/pM/mM/hM/gM/_M ≡ listCodingPlanSources/hasLoadedCodingPlanSources/setCodingPlanSources/subscribeCodingPlanSources/refreshCodingPlanSourcesForced/ensureCodingPlanSources，UsageDeep@1404-1476；R34 墓碑改指面，本批尾部 qq 族转录首次实消费；后三件同批补 export）
+import { useServices, useBaseServices, syncProviderRegistryAndReturn } from '../../modules/services'; // 〔A1-R35〕+useBaseServices（Ec 真身：styles-local 4945 ≡ services/remoteServices@177，services@109 转导出）/syncProviderRegistryAndReturn（Ks 真身：styles 4164 ≡ services/providerRegistrySync@132，services@105 转导出；R33 墓碑改指面，本批尾部 qq 族转录首次实消费）
 
 /* ----------------------------------------------------------------------------
  * §0 外部依赖声明（跨 chunk / 横切 / 他族已抽取件，接口级）
@@ -189,7 +189,7 @@ declare const usePlatformService: () => TelemetryPlatform & { openExternal(url: 
 /* ── tombstone（A1-R23）：declare shortcutOf（ea）/ctrlShiftShortcutOf（zre）删除——唯一消费面 §3
  *    resolveToolbarShortcut/useToolbarShortcuts（Q3e/$3e A0 副本）同批删除；真身 = Home §T
  *    resolveComposerToolbarShortcutAction/useComposerToolbarShortcuts 逐字（快捷键判定内联同构）。 ── */
-declare const GHOST_MODEL_PREFIX: string; // Pte
+/* ── tombstone〔A1-R35〕：declare GHOST_MODEL_PREFIX（原 Pte）删除 → 改指 lib/providerRefs@49 GHOST_PROVIDER_REF_PREFIX（Pte 真身：styles 705 `k as Pte` ← src 9943 `sS as k` ≡ sS 8980 `ghost:` ≡ providerRefs@49 GHOST_PROVIDER_REF_PREFIX 逐字同值，SrcSharedB@471 具名转导出，链闭合）。消费面实测：@1190（ghostModelProviderIdOf 体内）≡ bundle 77979，改名改指。负证据：styles Pte 消费全集 1 处（77979）。 ── */
 declare function testidOf(prefix: string, value: string): string; // qr
 /* ── tombstone（A1-R23）：declare MODEL_OPTION_TESTID_PREFIX（Xt）/MODE_OPTION_TESTID_PREFIX（rn）/
  *    MODEL_MENU_TESTID（Fr）删除——消费面 §3 ThoughtLevelControl（751/774/792/806）同批删除（rn 自 A0-S2d
@@ -201,7 +201,7 @@ declare function testidOf(prefix: string, value: string): string; // qr
  *    （§5/§7 等正文章节仍有消费）。 ── */
 declare const ModeIconFullAccess: React.FC<React.SVGProps<SVGSVGElement>>; // zv
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：ThoughtLevelIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const TruncateLabel: React.FC<{ label: string }>; // _q
+declare const TruncateLabel: React.FC<{ label: string }>; // _q〔A1-R35〕留批：bundle 75520 JSX 组件面（真身未转录），树内零消费负证据在案，待真身批收敛
 /* ── tombstone〔A1-R30〕：declare const KNOWN_MODEL_FORMATS（原 Di）删除 → 改指 GLM_MODEL_IDS
  *    （Di 真身：styles 794 `vo as Di` ← src 10034 `xl as vo` ≡ xl 4762 [`GLM-5.2`, `GLM-5-Turbo`] ≡
  *    SrcSharedA@2034 GLM_MODEL_IDS（A0 既实化，jsx 4854 vo 同表），链闭合）。
@@ -280,9 +280,9 @@ declare const NETWORK_BLOCKED_ERROR_CODE: string; // Pne（跨 chunk 导入的�
  *    调用面（stripe={stripePromise} / elements.getElement / createPaymentMethod /
  *    confirmCardPayment / confirmCardSetup）逐字不变。 ── */
 /** 横切：遥测上报（40457）/ 远断错误守卫（4894）/ 验证码错误码（736 导入）/ 平台桥（S） */
-declare function trackTelemetry(service: any, event: Record<string, unknown>, scope: string): void; // xw
+/* ── tombstone〔A1-R35〕：declare trackTelemetry（原 xw）删除 → 改指 modules/StoresDeep@323 reportTelemetry（xw 真身：styles-local 40457-40466 逐字 ≡ StoresDeep@323；StoresDeep@321 行注「原 xw（40409）」为行漂移，实测 40457，登记在案）。消费面实测：@3651（trackFunnelClick）≡ bundle 82912、@3655（trackFunnelResult）≡ 82915，改名改指（service: any 面双变可赋）。负证据：本文件 xw 消费仅 2 处；余 bundle 消费 42190/53316/53331/53352/112332 属他域（Conversation P1 泳道 / Home §U.8 R26 已收敛 / iit 死簇已删）。 ── */
 declare function isBenignRemoteError(error: unknown): boolean; // Sc
-declare const SECURITY_VERIFICATION_REQUIRED_CODE: string; // one
+/* ── tombstone〔A1-R35〕：declare SECURITY_VERIFICATION_REQUIRED_CODE（原 one）删除 → 改指 modules/SrcSharedB@6252 CODING_PLAN_SECURITY_VERIFICATION_REQUIRED（one 真身：styles 736 `o as one` ← src 9975 `TC as o` ≡ TC 9546 `coding_plan_security_verification_required` ≡ SrcSharedB@6252 CODING_PLAN_SECURITY_VERIFICATION_REQUIRED 逐字同值，链闭合）。消费面实测：@4494（isSecurityVerificationRequiredError）≡ bundle 83690 `xJ(e) === one`，改名改指。负证据：styles one 消费全集 1 处（83690；6074/6107 为同名局部属性面，非本符）。 ── */
 declare function usePlatformBridge(): any; // S（openExternal/onPaymentCallback）
 /** §7–§10 外部依赖（对话框原语/图标/遥测/供应商机制横切件，接口级） */
 
@@ -307,7 +307,7 @@ declare const HelpIcon: React.FC<React.SVGProps<SVGSVGElement>>; // p
  *    §10 uit 副本同批删除；真身逐字 canonical = modules/Composer.tsx [B17]（lucide Quote as SelectionGlyphIcon）。 ── */
 declare const GenericProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Cv
 declare const ZapiProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // zbe
-declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe
+declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe〔A1-R35〕留批：bundle 27837 `bbe = Sa(\`sliders-horizontal\`, [...])` 图标面（真身未转录），树内零消费负证据在案，待真身批收敛
 /* ── tombstone（A1-R21）：declare providerLogoOf（原 Tq，76183）删除——canonical 属主
  *    components/usage/UsageDeep.tsx RegionLogo（A0 已重建；bundle Tq 二参函数形
  *    `Tq(providerId, className)` 与本 declare 同形，收敛改组件形消费）。
@@ -333,7 +333,7 @@ declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe
  *    行为更正注：原 A0 语义名示「仅判 codingPlan」，bundle tr 实测兼判 zaiStartPlan（vl 体双判）；
  *    收敛改指 canonical，运行时行为回归 bundle 逐字。负证据：本文件该 declare 无第二消费。 ── */
 /** 供应商/工具条横切机制（接口级） */
-declare function useModelProviders(): { modelProviders: ModelProvider[]; displayOrder?: string[]; loading: boolean; refresh: (opts?: any) => Promise<void> }; // qq
+/* ── tombstone〔A1-R35〕：declare useModelProviders（原 qq）删除 → 逐字转录本文件尾部 §11 useModelProvidersStore（bundle 78243-78403 唯一真身；主攻三件 a8e/e8e/qq 族，见尾部映射表）。消费面实测：@9893（CodingPlanUpgradeDialog 体内）≡ bundle 88902，改名改指。负证据：本文件 qq 消费仅 1 处；余 bundle 消费 89525/91643/138853/150304/192101/197843 属他域（Home §U.10/Automations/OLL 等，R23-R24 收敛面或留批面）。 ── */
 /* ── tombstone（A1-R23）：declare useSettingsState（JM）/useTabsStoreActions（pc）/useWorkspaceConfigOptions（Jq）/
  *    openSettingsSection（ow）/invalidateSettingsCache（aw）/buildUpgradeFunnel（PM）/ModelSelectMenu（vq）删除——
  *    唯一消费面 §9 iit 死簇（11030/11038/11068/11263/11081/11436 等）同批删除；真身 = Home §U.10
@@ -352,7 +352,7 @@ declare function useCoreServices(): { modelProviderService: any; credentialServi
  *    N6e 真身 = 本文件 filterUsableProviders@1097（A0 已逐字实化，bundle N6e 77910–77929 唯一真身；
  *    消费 89703 ≡ Home filterEntitledModelProviders 面 / 135402 ≡ Automations buildEntitledProviderList 面，
  *    同批收敛，见各墓碑）。误标依据：签名 (args: Record<string, unknown>): any 与 N6e 对象参形不合。 ── */
-declare function normalizedModelOptionsOf(options: any[], currentValue: unknown, context: any): any[]; // L
+/* ── tombstone〔A1-R35〕：declare normalizedModelOptionsOf（原 L）删除 → 改指 stores/taskStore@1422 filterNativeModelOptions（L 真身唯一锁定：styles 372 `A as L` ← skillStore-BmeKHDBI 导出 2483 `it as A` ≡ it 906-908 `return e.filter((e) => !nt(e))`（nt 894-899 ≡ isCustomModelOption）≡ taskStore@1422-1424 逐字同形（二三参未使用，A1-R18 型缝宽化在案），SkillStore 转导出）。三参消费面实测：bundle 89709（iit 89503 体内，非 89600——行漂移登记在案）`L(V.options ?? [], V.currentValue, e)` ≡ Home@4815 `filterNativeModelOptions(V.options ?? [], V.currentValue, e)`。负证据：本文件 L 零消费（仅 declare）；styles 2986/3094/26307/29014 等单参 L( 调用皆为函数域局部遮蔽符（事件域面），非模块级 L。 ── */
 /* ── tombstone〔A1-R29〕：declare modelGroupsOf（原 Hq，A0 文件内第二脸）删除——树内零消费（负证据在案）；
  *    Hq 真身 = 本文件 modelMenuGroupsOf@993（A0 已逐字实化，bundle Hq 77850 唯一真身）；bundle Hq 消费 4 处
  *    （89710/135408/133909/197861）全属文件外四面（Home@375/Automations@151/ExtendedViews@427/
@@ -1187,7 +1187,7 @@ export function ghostModelProviderIdOf(value: string): string | null {
   const trimmed = value.trim();
   if (trimmed.startsWith(`custom:`)) return trimmed.slice(7).trim() || null;
   if (!trimmed.startsWith(`ghost:`)) return null;
-  const first = trimmed.indexOf(`:`, GHOST_MODEL_PREFIX.length),
+  const first = trimmed.indexOf(`:`, GHOST_PROVIDER_REF_PREFIX.length), // 〔A1-R35〕Pte declare 收敛改指（≡ bundle 77979 `Pte.length`）
     second = first >= 0 ? trimmed.indexOf(`:`, first + 1) : -1;
   if (second < 0) return null;
   const encoded = trimmed.slice(second + 1);
@@ -3648,11 +3648,11 @@ export function funnelResultEventOf(snapshot: any, outcome: any) {
 }
 /** 原 aY（82826 区） */
 export function trackFunnelClick(service: any, snapshot: any) {
-  service && trackTelemetry(service, funnelClickEventOf(snapshot), `codingPlanPurchaseTelemetry`);
+  service && reportTelemetry(service, funnelClickEventOf(snapshot), `codingPlanPurchaseTelemetry`); // 〔A1-R35〕xw declare 收敛改指（≡ bundle 82912）
 }
 /** 原 oY（82829 区） */
 export function trackFunnelResult(service: any, snapshot: any, outcome: any) {
-  !service || !snapshot || trackTelemetry(service, funnelResultEventOf(snapshot, outcome), `codingPlanPurchaseTelemetry`);
+  !service || !snapshot || reportTelemetry(service, funnelResultEventOf(snapshot, outcome), `codingPlanPurchaseTelemetry`); // 〔A1-R35〕xw declare 收敛改指（≡ bundle 82915）
 }
 /** 原 sY（82832 区）：轮询终态结果归一 */
 export function orderOutcomeOf(status: string) {
@@ -4491,7 +4491,7 @@ export async function pollPaymentStatus(service: any, providerId: string, bizId:
 }
 /** 原 Y9e（83640 区） */
 export function isSecurityVerificationRequiredError(error: unknown): boolean {
-  return normalizeProductError(error) === SECURITY_VERIFICATION_REQUIRED_CODE;
+  return normalizeProductError(error) === CODING_PLAN_SECURITY_VERIFICATION_REQUIRED; // 〔A1-R35〕one declare 收敛改指（≡ bundle 83690 `xJ(e) === one`）
 }
 /** 原 X9e（83643 区）：签约内容类型识别 */
 export function paymentSignKindOf(sign: string): string {
@@ -9890,7 +9890,7 @@ function CodingPlanUpgradeDialog({ target, onClose, onReopen }: any) {
   const user = useAppStore((state: any) => state.user);
   const oauthSuccessSeq = useAppStore((state: any) => state.oauthSuccessSeq);
   const lastOAuthSuccessProvider = useAppStore((state: any) => state.lastOAuthSuccessProvider);
-  const { modelProviders, loading, refresh } = useModelProviders();
+  const { modelProviders, loading, refresh } = useModelProvidersStore(); // 〔A1-R35〕qq declare 收敛改指（≡ bundle 88902；真身本文件 §11 尾部）
   const { entitlements, refresh: refreshEntitlements } = useCodingPlanEntitlements({ modelProviders: modelProviders, loading: loading });
   const [authStates, setAuthStates] = React.useState<Record<string, string>>({});
   const [productsRefreshToken, setProductsRefreshToken] = React.useState(0);
@@ -10283,3 +10283,334 @@ export function useCodingPlanUpgradeDialogOptional() {
  *   | 80955–81731 Stripe vendored | 90180–90227 dit/fit/pit/mit（Home.tsx）
  * ============================================================================
  */
+
+/* ----------------------------------------------------------------------------
+ * §11 useModelProvidersStore hook 族（A1-R35 主攻：PD §4 hook 域转录批）
+ * ----------------------------------------------------------------------------
+ * 来源：styles-CdEGpc2x.js 78119-78403（bundle 唯一真身）。尾部安置以保本文件
+ * 行引用零漂（文件内绝对行注记 >1366 处在案，中段插入不可行）。
+ * 混淆名 → 语义名 映射表（行号 = bundle 行）：
+ *   e8e → dedupeWorkspaceTargets (78119-78128)
+ *   t8e → syncProviderRegistryToAgentWorkspaces (78129-78171)
+ *   n8e → ENDPOINT_SUGGESTIONS_FALLBACK (78172) | Wq → displayOrderSnapshot (78173)
+ *   r8e → displayOrderHydrated (78174) | Gq → displayOrderListeners (78175)
+ *   Kq → publishDisplayOrder (78176-78179) | i8e → subscribeDisplayOrder (78180-78188)
+ *   a8e → needsProvidersHydration (78189-78191) | o8e → saveProviderToRegistry (78192-78219)
+ *   s8e → resolveWorkspaceSyncTargets (78220-78242)
+ *   qq → useModelProvidersStore (78243-78403 / jsx 69033；本族唯一导出面)
+ * 接口级（declare 层，真身链未闭合留批）：
+ *   pc ≡ useTabStoreSelector（Home@341/AppRootLeaves@163 declare 先例）
+ *   oc → isWorkspaceTab (4487-4489) | gc → resolveTabSessionId (4814-4821)
+ *   co → useShallowSelector (1033-1039；真身链 wie 1018-1032 + ao/oo/so/Cie 留批)
+ * 横切改指（树内实体）：
+ *   Ti ≡ automationsWorkspaceKey（SrcSharedB@3079）| Ks ≡ syncProviderRegistryAndReturn（services@105 转导出）
+ *   Ng ≡ settingsConfigOptionsOf（modules/SettingsConfigOptions，R34 新叶；78157 消费面接引，R34 留批 2 闭合）
+ *   $6e ≡ reconcileConfigOptionsModel@1333（本文件；R33 定形勘误在案）| B6e ≡ providersDiffer@1179（本文件）
+ *   J ≡ logger（SkillStore@186 转导出）| Ec ≡ useBaseServices（styles-local 4945）
+ *   Zs ≡ useSessionRegistryStore（styles-local 4357）| xe ≡ useTaskStore（SkillStore@247 转导出）
+ *   fM/pM/mM/hM/gM/_M ≡ UsageDeep@1404-1476 注册表六件（R34 墓碑改指面，本批首次实消费；
+ *   注册表簇 PD-local 面接引，R34 留批 3 闭合）
+ * 模块态四符（n8e/Wq/r8e/Gq）走语义归一（R34 注册表簇先例），不入逐字段段。
+ * -------------------------------------------------------------------------- */
+import { settingsConfigOptionsOf } from '../../modules/SettingsConfigOptions'; // 〔A1-R35〕Ng 真身（R34 实体化新叶，styles 24440-24494 逐字）：t8e 转录面 78157 消费接引（R34 留批 2 闭合）。尾部 import：ES 模块提升，等价文件头，行引用零漂
+
+declare function useTabStoreSelector(selector: (state: any) => any): any; // 原 pc（接口级；Home@341/AppRootLeaves@163 同名 declare 先例）
+declare function isWorkspaceTab(tab: any): boolean; // 原 oc（4487-4489：kind === `workspace`）
+declare function resolveTabSessionId(tab: any, ctx: any): string | undefined; // 原 gc（4814-4821：remoteSessionId/identity/path 三路查表）
+declare function useShallowSelector(selector: (state: any) => any): (state: any) => any; // 原 co（1033-1039：useRef 浅比较选择器工厂；真身链 wie 1018-1032 留批）
+
+/** 展示序模块态（78172-78175；语义归一，R34 注册表簇先例）：原 n8e/Wq/r8e/Gq */
+let ENDPOINT_SUGGESTIONS_FALLBACK: Record<string, string[]> = { anthropic: [], openai: [], gemini: [] };
+let displayOrderSnapshot: { providerIds: string[]; updatedAt: number } = { providerIds: [], updatedAt: 0 };
+let displayOrderHydrated = !1;
+let displayOrderListeners = new Set<any>();
+
+/** 原 e8e（78119-78128）：按 workspace 键去重同步目标 */
+function dedupeWorkspaceTargets(e: any) {
+  let t = new Set(),
+    n = [];
+  for (let r of e) {
+    if (!r.workspacePath.trim()) continue;
+    let e = automationsWorkspaceKey(r);
+    t.has(e) || (t.add(e), n.push(r));
+  }
+  return n;
+}
+/** 原 t8e（78129-78171）：provider registry 回填各 agent workspace 的 configOptions */
+async function syncProviderRegistryToAgentWorkspaces(e: any) {
+  let t = dedupeWorkspaceTargets(e.targets);
+  for (let n of t) {
+    let t = e.zcodeSessionStore.getWorkspaceState(
+      n.workspacePath,
+      n.workspaceIdentity,
+    ).selectedProvider;
+    try {
+      let r = await syncProviderRegistryAndReturn({
+        workspacePath: n.workspacePath,
+        workspaceIdentity: n.workspaceIdentity,
+        remoteSessionId: n.remoteSessionId,
+        localModelProviderService: e.modelProviderService,
+        remoteZCodeSessionService: n.zcodeSessionService ?? e.zcodeSessionService,
+        force: !0,
+        includeWorkspaceState: !0,
+        runtimePolicy: `existing-only`,
+      });
+      if (r.status === `runtime-unavailable`) continue;
+      let i = r.workspaceState as any;
+      if (!i) continue;
+      let a = e.zcodeSessionStore.getWorkspaceState(n.workspacePath, n.workspaceIdentity);
+      if (a.selectedProvider !== t) {
+        logger.info(
+          `[useModelProviders] 丢弃过期 provider registry 回填 workspace=${n.workspacePath} provider=${t} currentProvider=${a.selectedProvider}`,
+        );
+        continue;
+      }
+      let o = settingsConfigOptionsOf(i.settings),
+        s = reconcileConfigOptionsModel(a.configOptions ?? [], o, t);
+      (e.zcodeSessionStore.setConfigOptions(n.workspacePath, s, n.workspaceIdentity),
+        e.zcodeSessionStore.setConfigOptionsStatus(n.workspacePath, `ready`, n.workspaceIdentity),
+        logger.info(
+          `[useModelProviders] provider registry 已同步到 agent workspace=${n.workspacePath} revision=${r.appliedProviderRegistryRevision} providers=${r.providerCount}`,
+        ));
+    } catch (e) {
+      logger.warn(
+        `[useModelProviders] 同步 provider registry 到 agent 失败 workspace=${n.workspacePath}`,
+        e,
+      );
+    }
+  }
+}
+/** 原 Kq（78176-78179）：发布展示序 */
+function publishDisplayOrder(e: any) {
+  ((displayOrderSnapshot = e), (displayOrderHydrated = !0));
+  for (let t of displayOrderListeners) t(e);
+}
+/** 原 i8e（78180-78188）：订阅展示序（即回当前值 + 退订闭包） */
+function subscribeDisplayOrder(e: any) {
+  return (
+    displayOrderListeners.add(e),
+    e(displayOrderSnapshot),
+    () => {
+      displayOrderListeners.delete(e);
+    }
+  );
+}
+/** 原 a8e（78189-78191）：需水合判定 */
+function needsProvidersHydration(e: any) {
+  return !e.snapshotHydrated;
+}
+/** 原 o8e（78192-78219）：保存供应商（乐观注册表写入 + 后台同步守卫） */
+async function saveProviderToRegistry(e: any) {
+  let t = listCodingPlanSources(),
+    n = t.find((t: any) => t.id === e.provider.id) ?? null,
+    r = t.findIndex((t: any) => t.id === e.provider.id),
+    i = [...t];
+  if (
+    (r >= 0 ? (i[r] = e.provider) : i.push(e.provider),
+    setCodingPlanSources(i, { invalidateInFlightRefresh: !0 }),
+    await e.modelProviderService.save(e.provider),
+    providersDiffer(n, e.provider))
+  )
+    try {
+      let t = e.scheduleRuntimeSync();
+      t &&
+        typeof t.catch == `function` &&
+        t.catch((t: any) => {
+          logger.warn(`[useModelProviders] 后台同步模型供应商到当前 agent 失败`, {
+            providerId: e.provider.id,
+            error: t,
+          });
+        });
+    } catch (t) {
+      logger.warn(`[useModelProviders] 启动模型供应商后台同步失败`, {
+        providerId: e.provider.id,
+        error: t,
+      });
+    }
+}
+/** 原 s8e（78220-78242）：自 tabs 收集同步目标 */
+function resolveWorkspaceSyncTargets(e: any) {
+  let t = [];
+  for (let n of e.tabs) {
+    if (!isWorkspaceTab(n)) continue;
+    let r = resolveTabSessionId(n, e);
+    if (n.remoteSessionId || n.workspaceIdentity || n.remoteTarget) {
+      if (!r) continue;
+      t.push({
+        workspacePath: n.workspacePath,
+        workspaceIdentity: n.workspaceIdentity,
+        remoteSessionId: r,
+        zcodeSessionService: e.sessionsById[r].services.zcodeSessionService,
+      });
+      continue;
+    }
+    t.push({
+      workspacePath: n.workspacePath,
+      workspaceIdentity: n.workspaceIdentity,
+      zcodeSessionService: e.baseZCodeSessionService,
+    });
+  }
+  return t;
+}
+/** 原 qq（78243-78403 / jsx 69033）：模型供应商 store hook（注册表读写 + 展示序 + 保存/删除/同步） */
+export function useModelProvidersStore() {
+  let { modelProviderService: e, zcodeSessionService: t } = useBaseServices() as any,
+    n = useSessionRegistryStore(
+      useShallowSelector((e: any) => ({
+        sessionIdByWorkspaceIdentity: e.sessionIdByWorkspaceIdentity,
+        sessionIdByWorkspacePath: e.sessionIdByWorkspacePath,
+        sessionsById: e.sessionsById,
+      })),
+    ),
+    r = useTabStoreSelector((e: any) => e.tabs),
+    [i, a] = (0, React.useState)(() => listCodingPlanSources()),
+    [o, s] = (0, React.useState)(() => displayOrderSnapshot),
+    [c, l] = (0, React.useState)(() => !hasLoadedCodingPlanSources()),
+    [u, d] = (0, React.useState)(!1),
+    f = (0, React.useRef)(0),
+    p = (0, React.useCallback)(async () => {
+      let t = needsProvidersHydration({ snapshotHydrated: hasLoadedCodingPlanSources() });
+      t && l(!0);
+      let n = f.current + 1;
+      ((f.current = n), d(!0));
+      try {
+        if (t)
+          try {
+            await ensureCodingPlanSources(() => e.getAllCached());
+          } catch (e) {
+            logger.warn(`[useModelProviders] 本地模型供应商缓存读取失败，继续远端刷新`, e);
+          } finally {
+            l(!1);
+          }
+        await refreshCodingPlanSourcesForced(() => e.getAll());
+      } catch (e) {
+        logger.error(`[useModelProviders] 加载模型供应商失败`, e);
+      } finally {
+        (t && !hasLoadedCodingPlanSources() && l(!1), n === f.current && d(!1));
+      }
+    }, [e]);
+  return (
+    (0, React.useEffect)(() => {
+      let e = subscribeCodingPlanSources((e: any) => {
+        (a(e), l(!1));
+      });
+      return (hasLoadedCodingPlanSources() || p(), e);
+    }, [p]),
+    (0, React.useEffect)(() => {
+      let t = subscribeDisplayOrder(s);
+      return (
+        displayOrderHydrated ||
+          e
+            .getDisplayOrder()
+            .then(publishDisplayOrder)
+            .catch((e: any) => {
+              logger.warn(`[useModelProviders] 加载模型供应商展示顺序失败`, e);
+            }),
+        t
+      );
+    }, [e]),
+    {
+      modelProviders: i,
+      displayOrder: o,
+      loading: c,
+      refreshing: u,
+      refresh: p,
+      saveProvider: (0, React.useCallback)(
+        async (i: any) => {
+          await saveProviderToRegistry({
+            provider: i,
+            modelProviderService: e,
+            scheduleRuntimeSync: async () => {
+              let a = resolveWorkspaceSyncTargets({ tabs: r, baseZCodeSessionService: t, ...n });
+              (await syncProviderRegistryToAgentWorkspaces({
+                targets: a,
+                modelProviderService: e,
+                zcodeSessionService: t,
+                zcodeSessionStore: useTaskStore.getState(),
+              }),
+                await Promise.allSettled(
+                  a.map(
+                    async ({
+                      remoteSessionId: n,
+                      workspaceIdentity: r,
+                      workspacePath: a,
+                      zcodeSessionService: o,
+                    }) => {
+                      try {
+                        await syncProviderRegistryAndReturn({
+                          workspacePath: a,
+                          workspaceIdentity: r,
+                          remoteSessionId: n,
+                          localModelProviderService: e,
+                          remoteZCodeSessionService: o ?? t,
+                          runtimePolicy: `existing-only`,
+                        });
+                      } catch (e) {
+                        logger.warn(`[useModelProviders] 同步模型供应商到当前 agent 失败`, {
+                          workspacePath: a,
+                          workspaceIdentity: r ?? null,
+                          providerId: i.id,
+                          error: e,
+                        });
+                      }
+                    },
+                  ),
+                ));
+            },
+          });
+        },
+        [e, n, r, t],
+      ),
+      deleteProvider: (0, React.useCallback)(
+        async (i: any) => {
+          (setCodingPlanSources(
+            listCodingPlanSources().filter((e: any) => e.id !== i),
+            { invalidateInFlightRefresh: !0 },
+          ),
+            await e.delete(i),
+            await syncProviderRegistryToAgentWorkspaces({
+              targets: resolveWorkspaceSyncTargets({ tabs: r, baseZCodeSessionService: t, ...n }),
+              modelProviderService: e,
+              zcodeSessionService: t,
+              zcodeSessionStore: useTaskStore.getState(),
+            }));
+        },
+        [e, n, r, t],
+      ),
+      saveDisplayOrder: (0, React.useCallback)(
+        async (t: any) => {
+          let n = {
+              providerIds: [...new Set(t.providerIds.map((e: any) => e.trim()).filter(Boolean))],
+              updatedAt: t.updatedAt,
+            },
+            r = displayOrderSnapshot;
+          publishDisplayOrder(n);
+          try {
+            await e.saveDisplayOrder(n);
+          } catch (e) {
+            throw (publishDisplayOrder(r), logger.warn(`[useModelProviders] 保存模型供应商展示顺序失败`, e), e);
+          }
+        },
+        [e],
+      ),
+      getEndpointSuggestions: (0, React.useCallback)(async () => {
+        try {
+          return await e.getEndpointSuggestions();
+        } catch (e) {
+          return (logger.error(`[useModelProviders] 加载 endpoint 建议失败`, e), ENDPOINT_SUGGESTIONS_FALLBACK);
+        }
+      }, [e]),
+      getModelsByEndpoint: (0, React.useCallback)(
+        async (t: any) => {
+          try {
+            return await e.getModelsByEndpoint(t);
+          } catch (e) {
+            return (logger.error(`[useModelProviders] 按 endpoint 加载模型列表失败`, e), []);
+          }
+        },
+        [e],
+      ),
+      testModelConnectivity: (0, React.useCallback)(async (t: any) => e.testModelConnectivity(t), [e]),
+    }
+  );
+}

@@ -316,5 +316,6 @@ export {
   CodingPlanUpgradeDialogProvider,
   useCodingPlanUpgradeDialog, // 〔A1-R23〕补 export：Home declare useCodingPlanUpgradeDialog 收敛（原 fX，89100；消费面 Home §U.10 ComposerConfigToolbarBody ≡ bundle 89522）
   useCodingPlanUpgradeDialogOptional, // 〔A1-R24〕补 export：Home declare useUpgradeActions 收敛（原 Art，89106；消费面 91644 ≡ Home OffPeakNewTaskBanner）
+  useModelProvidersStore, // 〔A1-R35〕补 export：qq 78243-78403 逐字转录（components 侧 §11 尾部）；settings 六件 declare 收敛改指（R34 留批 2/3 闭合）
 } from '../components/payments/PaymentDeep';
 export type { ModelProvider } from '../components/payments/PaymentDeep'; // 〔A1-R29〕Hq/N6e/ot 簇收敛型缝所依：各脸本地供应商型面窄化依此（类型面，零运行时影响）

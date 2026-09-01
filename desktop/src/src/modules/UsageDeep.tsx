@@ -422,6 +422,9 @@ export {
   listCodingPlanSources,
   hasLoadedCodingPlanSources,
   subscribeCodingPlanSources,
+  setCodingPlanSources, // 〔A1-R35〕补转导出：PD §11 useModelProvidersStore 族消费接引（原 mM，52687-52694；components 侧同批补 export）
+  refreshCodingPlanSourcesForced, // 〔A1-R35〕补转导出：同上（原 gM，52709-52725）
+  ensureCodingPlanSources, // 〔A1-R35〕补转导出：同上（原 _M，52726-52742）
   upgradeFunnelContext,
   entryPlanStateOf,
   useAppSettings,

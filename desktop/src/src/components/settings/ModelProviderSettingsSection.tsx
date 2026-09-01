@@ -3,7 +3,7 @@
 import * as React from "react";
 import { RefreshCw as RefreshIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Button } from '../../modules/button';
-import { providerFamilyOf, sortProvidersByFamilyAndOrder, useCodingPlanEntitlements, useStartPlanPreview } from '../../modules/PaymentDeep'; // 〔A1-R28〕+sortProvidersByFamilyAndOrder（Iq 77456 canonical，原 declare sortProvidersByDisplayOrder 收敛改指，见下墓碑）
+import { providerFamilyOf, sortProvidersByFamilyAndOrder, useCodingPlanEntitlements, useStartPlanPreview, useModelProvidersStore } from '../../modules/PaymentDeep'; // 〔A1-R28〕+sortProvidersByFamilyAndOrder（Iq 77456 canonical，原 declare sortProvidersByDisplayOrder 收敛改指，见下墓碑）。〔A1-R35〕+useModelProvidersStore（qq 78243-78403 逐字真身 ≡ components/payments/PaymentDeep §11；declare 收敛改指，见下墓碑；消费 @1460 ≡ bundle 192101 FQt 面）
 import { subscribeSettingsSectionIntent } from '../../modules/Settings';
 import { consumeModelProviderIntent as readSettingsSectionIntent } from '../../modules/Settings'; // sw（js 39425；A1-R24 行漂校正，旧注 39377 为漂移）
 import { AddCustomProviderDraftForm, CodingPlanPurchaseBanner, CodingPlanStatusSection, ConnectionModeNav, ModelProviderNavRail, PresetEmptyState, ProviderCardHeader, ProviderCardShell, ProviderConfigCardForm, SectionLoadingPlaceholder, StatusTitleDescription, isProviderSectionRefreshing, nullSafe as toManagedProvider, upgradeFunnelContext, entryPlanStateOf, useAppSettings, useSubscriptionSnapshot, useZapiEnabled, type AddProviderDraft, type CodingPlanDisplayStatus, type CodingPlanViewState, type EntitlementQuotaLimit, type FunnelContext, type ModelMetadata, type ProviderEndpoints } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/PM（53253）/IM（53277）/JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2b/§2c）
@@ -151,7 +151,7 @@ interface ModelProvidersStoreState {
     provider: Partial<ModelProvider>;
   }) => Promise<{ results: unknown[] }>; // A0-CLEANUP3 3b：对齐 ProviderConfigCardForm.onTestModel 返回面
 }
-declare function useModelProvidersStore(): ModelProvidersStoreState; // qq（78195）
+/* ── tombstone〔A1-R35〕：declare useModelProvidersStore（原 qq，78243；本行旧注 78195 为行漂移）删除 → 改经文件头 modules/PaymentDeep import 消费（canonical = components/payments/PaymentDeep §11 useModelProvidersStore，bundle 78243-78403 逐字）。消费面 @1460 ≡ bundle 192101（FQt 面）。 ── */
 
 /* ── tombstone（A1-R11）：interface AppSettingsSnapshot + declare function useAppSettings（原 JM，53440——普查行漂移，bundle 真身 53488）删除，
  *    改经文件头 modules/UsageDeep import 消费（canonical = components/usage/UsageDeep.tsx §2c useAppSettings，JM 53488 逐字）。
