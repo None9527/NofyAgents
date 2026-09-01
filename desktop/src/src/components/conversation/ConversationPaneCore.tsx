@@ -47,8 +47,10 @@
 //   fWe→useRuntimeModelBinding | pWe→useModelProviderGate
 //   【A1-P1-B6 收敛】hw→import hasOlderRows（modules/FeedbackCenter shim）| OS→./ConversationCommandLedger 段 2 |
 //   OM/Wct/rWe/iWe/aWe/oWe→./ConversationPaneHelpers 实体化（+aN 内链 resolveModelValueForProvider）
-//   【declare 群（留批）】mc→useOptionalTabStore | NM→prepareWorkspaceModelInit | JUe→applyWorkspaceDefaultModel |
-//   tWe→useDraftModelConfigSession | fWe→useRuntimeModelBinding | pWe→useModelProviderGate（留批证各注）
+//   【A1-P1-B7 收敛】mc→import useWorkspaceTabStoreOptional（modules/WorkspaceTabsDeep 693）|
+//   fWe→./ConversationPaneBinding 实体化（53869–54142 逐字）| pWe→./ConversationPaneHelpers 实体化（52927–52930+54143–54259 逐字）
+//   【declare 群（留批）】NM→prepareWorkspaceModelInit | JUe→applyWorkspaceDefaultModel | tWe→useDraftModelConfigSession
+//   （留批证各注：NM/JUe 阻于 Ng settingsConfigOptionsOf 跨域，tWe 阻于 NM+Ag+XUe 链）
 /* eslint-disable */
 import * as React from "react";
 import * as $ from "react/jsx-runtime"; // 原 $（jsx-runtime-B5yMD3-t.js；A1-R15 判例：编译形 JSX 消费面）
@@ -65,6 +67,7 @@ import { useAppSettings, useProviderFamilyConnectionSettings, listCodingPlanSour
 import { useIsMobileTextInputViewport } from '../../modules/Composer'; // 原 VV（66154）
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from '../../modules/MarkdownIntegration'; // 原 lo（1040）
 import { isFirstTurnHeaderMissing, hasOlderRows as canLoadOlderRows } from '../../modules/FeedbackCenter'; // 原 oNe（39818）/ hw（39814；〔A1-P1-B6〕import 收敛——真身 components/feedback/FeedbackCenter hasOlderRows，modules shim 255 再导出）
+import { useWorkspaceTabStoreOptional as useOptionalTabStore } from '../../modules/WorkspaceTabsDeep'; // 原 mc（js 4806；〔A1-P1-B7〕import 收敛——真身 WorkspaceTabsDeep 693 逐字实体化既有产物，消费面 333 不变）
 import { useSessionErrorRecovery } from '../../modules/ConversationLeaves'; // 原 NCt（118778；A1-R14 实体化）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from '../../modules/ConversationOverlays'; // 原 vCt/wCt（118624/118663）
 import { buildSummaryPanelModel, resolveSummaryPanelVariant, ConversationSummaryAside } from '../../modules/TopBar'; // 原 tlt/Uct/Ilt（98180/98063/99533=Flt memo 面）
@@ -75,7 +78,7 @@ import { useSessionSnapshot, ConversationMessageList, parseGoalCommand, PaneFloa
 import { SessionQuotaBanner, PendingCommandBanner } from './SessionBanners'; // 原 gst/_st（94875/94945）
 import { MemoQueuePanel } from './QueuePanel'; // 原 dst（94849 memo 面）
 import { ConversationInteractionsOverlay } from './ConversationInteractionsOverlay'; // 原 pSt（117598）
-import { dataTransferContainsFiles, isProviderNotInRegistryFailure, buildQueueItemEditDraft, isAckAcceptedOrDuplicate, isImmediateInputRouting, buildSessionErrorKey, buildSessionErrorBannerModel, EMPTY_SUBAGENT_DIRECTORY, INFLIGHT_COMMAND_CACHE_LIMIT, hasBlockingInteractions, hasCompactOrGoalRows, buildTelemetryScopeKey, resolveInteractionBehaviorMode, packFollowupModeConfig, isLiveSessionMatch, hasPluginUserInputRows, isProviderNotReadyError, shouldShowSummaryPanel, resolveExplicitIntentTransition, isExplicitIntentTargetSession, matchExplicitIntentConfig, resolveConfigModelTarget } from './ConversationPaneHelpers'; // 原 nwt/rwt/iwt/awt/ZCt/QCt/twt/$Ct/ewt（A1-P1 批 1）+ Vgt/Hgt（〔A1-P1-B4〕实体化收敛）+ sUe/eN/nN/Bbt/Vbt（〔A1-P1-B5〕实体化收敛）+ OM/Wct/rWe/iWe/aWe/oWe（〔A1-P1-B6〕实体化收敛；aN 唯一消费为四联内链，不出本导入面）
+import { dataTransferContainsFiles, isProviderNotInRegistryFailure, buildQueueItemEditDraft, isAckAcceptedOrDuplicate, isImmediateInputRouting, buildSessionErrorKey, buildSessionErrorBannerModel, EMPTY_SUBAGENT_DIRECTORY, INFLIGHT_COMMAND_CACHE_LIMIT, hasBlockingInteractions, hasCompactOrGoalRows, buildTelemetryScopeKey, resolveInteractionBehaviorMode, packFollowupModeConfig, isLiveSessionMatch, hasPluginUserInputRows, isProviderNotReadyError, shouldShowSummaryPanel, resolveExplicitIntentTransition, isExplicitIntentTargetSession, matchExplicitIntentConfig, resolveConfigModelTarget, useModelProviderGate } from './ConversationPaneHelpers'; // 原 nwt/rwt/iwt/awt/ZCt/QCt/twt/$Ct/ewt（A1-P1 批 1）+ Vgt/Hgt（〔A1-P1-B4〕实体化收敛）+ sUe/eN/nN/Bbt/Vbt（〔A1-P1-B5〕实体化收敛）+ OM/Wct/rWe/iWe/aWe/oWe（〔A1-P1-B6〕实体化收敛；aN 唯一消费为四联内链，不出本导入面）+ pWe（〔A1-P1-B7〕实体化收敛，含 sN/RUe/LUe 内链）
 import { selectionScopeKey, dedupeSelectionLoad, unregisterSelectionSubscriber, setSelectionSubscribed, hasSelectionSubscriber, onSelectionsChanged, registerSelectionDialogState, clearSessionSelections, addSelectionReference } from './ConversationSelectionCore'; // 原 _oe/voe/yoe/boe/xoe/Soe/Coe/Ts/Es（styles 2683–2837；〔A1-P1-B4〕选择域真身叶，declare 群收敛）
 import { CONFIG_COMMAND_SUPERSEDED, isStaleProtocolAck, createSerialQueue, createSupersedingCommandScheduler, recordCommandAckE2E, pendingCommandLedger, useRecoverablePendingCommands, buildCommand } from './ConversationCommandLedger'; // 原 B1/z1/qbt/Jbt/V1/K1/OCt（styles 115634–115758 + 118709；〔A1-P1-B5〕命令协议真身叶，declare 群收敛）+ OS（〔A1-P1-B6〕命令工厂真身收敛，styles 34315–34338+34598–34645）
 import { buildCodingPlanPurchaseFunnelContext, resolveEntryPlanStateFromSnapshot } from '../../components/shell/Home'; // 原 PM/IM（styles 53253/53277；A1-R25 逐字实体化；〔A1-P1-B5〕export 收敛——编排方合并时补 export，详墓碑）
@@ -83,6 +86,7 @@ import { isSlashPanelAvailable } from '../../modules/Composer'; // 原 Bqe（641
 import { useBillingDiscountCore } from '../usage/UsageDeep'; // 原 fj（51912；components/usage/UsageDeep 1861；〔A1-P1-B4〕export 收敛）
 import { composeProviderModelLabel } from '../settings/SubagentLeaves'; // 原 rN（53789；components/settings/SubagentLeaves 310；〔A1-P1-B4〕export 收敛）
 import { useSessionQuotaViewModel } from './ConversationQuotaModel'; // 原 XCt（119101；A1-P1-B2）
+import { useRuntimeModelBinding } from './ConversationPaneBinding'; // 原 fWe（54101；〔A1-P1-B7〕实体化收敛——真身叶 styles 53869–54142 逐字，含 cWe/lWe/oN/uWe/dWe/sWe 内链）
 
 /* ── declare 群（〔A1-P1-B3〕§0）：真身未实体化或属主未导出；各注属主与留批去向。 ── */
 
@@ -96,26 +100,30 @@ import { useSessionQuotaViewModel } from './ConversationQuotaModel'; // 原 XCt�
 /* OS：〔A1-P1-B6〕实体化收敛——真身 ./ConversationCommandLedger 段 2（styles 34315–34338+34598–34645，72 行逐字，R6 ROUNDTRIP EXACT），见导入面，declare 删。
    注：同面 declare 余 ConversationInteractionsOverlay.tsx:21（本批申报范围外，原样留存）。 */
 /* Wct：〔A1-P1-B6〕实体化收敛——真身 ./ConversationPaneHelpers（js 98067 逐字），见导入面，declare 删 */
-/** 原 mc（jsx 3606）：可选 tab store 选择器；canonical 同面 declare components/shell/Sidebar.tsx:1082（未导出）。
- *  〔A1-P1-B6〕留批证：体 = ne((0, Q.useContext)(fc) ?? Bse, e)（jsx 4806–4808）→ dc tab store 工厂（jsx 4551–4781，230 行）+ ne 跨 chunk 面，长链留批。 */
-declare function useOptionalTabStore(selector: any): any;
+/* mc：〔A1-P1-B7〕import 收敛——真身 modules/WorkspaceTabsDeep useWorkspaceTabStoreOptional（693，既有逐字实体化产物），
+   见导入面，declare 删；canonical 同面 declare components/shell/Sidebar.tsx:1082 属他域，原样留存。 */
 /* Bqe/fj/rN：〔A1-P1-B4〕export 收敛——真身 import 见导入面（modules/Composer 1796 / components/usage/UsageDeep 1861 / components/settings/SubagentLeaves 310），declare 删 */
 /* sUe：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 52293 逐字），见导入面，declare 删 */
 /* OM：〔A1-P1-B6〕实体化收敛——真身 ./ConversationPaneHelpers（js 52931 逐字；it→lib/errorUtils extractErrorInfo、Hr→modules/SrcSharedB ZCODE_AGENT_PROVIDER_NOT_READY 树内导出改指），见导入面，declare 删 */
-/** 原 NM（js 52997）：[zcode-model-init] workspace prepare 编排器。〔A1-P1-B6〕留批证：@52998+ 大型 async 编排（多段 await + 服务门控），长链留批 */
+/** 原 NM（js 52997）：[zcode-model-init] workspace prepare 编排器。〔A1-P1-B7〕留批证（全量）：@52998–53249 252 行 async 编排；
+ *  依赖 Ng×4（settingsConfigOptionsOf @24440——主树 modules/SettingsConfigOptions.ts 实体，本工作区无此文件，跨域 export 申请见 B7 报告）+
+ *  卫星族 AM/BUe/VUe/jM/MM/HUe（52948–52997，再牵 kM/DM/zUe）+ ge（styles 396 ← skillStore b，待属主裁定）+ Mg（树内）+ 服务面。长链留批 */
 declare function prepareWorkspaceModelInit(args: any): any;
-/** 原 JUe（js 53414）：工作区默认模型应用（setWorkspaceDefaultModel + 草稿面）。〔A1-P1-B6〕留批证：@53415–53464 → Ng @24440 settings 面板构建器，长链留批 */
+/** 原 JUe（js 53414）：工作区默认模型应用（setWorkspaceDefaultModel + 草稿面）。〔A1-P1-B7〕留批证（全量）：@53415–53464 50 行；
+ *  依赖 Ng×2（同上跨域阻塞）+ Mg（树内）+ 服务面。与 NM 同批收口（阻点唯一 = Ng 跨域）。长链留批 */
 declare function applyWorkspaceDefaultModel(args: any): any;
 /* eN：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 53594 逐字），见导入面，declare 删 */
-/** 原 tWe（js 53605）：草稿模型配置会话钩子（draftConfig 族 / handleDraftSelect 族面）。〔A1-P1-B6〕留批证：@53606–53785 180 行钩子（Ag/JM/$M 依赖族），长链留批 */
+/** 原 tWe（js 53605）：草稿模型配置会话钩子（draftConfig 族 / handleDraftSelect 族面）。〔A1-P1-B7〕留批证（全量）：@53606–53785 180 行；
+ *  依赖 NM（留批）+ Ag @24368（settings 域，同 Ng 跨域）+ XUe @53549（→Ie/de/me 链）+ $M/QUe 草稿模式持久化族（53562–53593，自含可先收）+
+ *  JM=useAppSettings（树内）/ eN（树内）。长链留批 */
 declare function useDraftModelConfigSession(args: any): any;
 /* nN：〔A1-P1-B5〕实体化收敛——真身 ./ConversationPaneHelpers（js 53786 逐字），见导入面，declare 删 */
 /* Vgt/Hgt：〔A1-P1-B4〕实体化收敛——真身 import 见 ./ConversationPaneHelpers 导入面（js 110053/110060），declare 删 */
 /* rWe/iWe/aWe/oWe：〔A1-P1-B6〕实体化收敛——真身 ./ConversationPaneHelpers（js 53832–53868 逐字；内链 aN 53829 → resolveModelValueForProvider 同叶），见导入面，declare 删 */
-/** 原 fWe（js 54100）：运行时模型绑定钩子（acquire/onBinding）。〔A1-P1-B6〕留批证：@54101–54142 → dWe/cWe 链（cWe @53872+），长链留批 */
-declare function useRuntimeModelBinding(args: any): any;
-/** 原 pWe（js 54145）：模型供应商门控钩子（gateKey/status checking|ready）。〔A1-P1-B6〕留批证：@54146+ Ei + 服务门控面，长链留批 */
-declare function useModelProviderGate(args: any): any;
+/* fWe：〔A1-P1-B7〕实体化收敛——真身 ./ConversationPaneBinding（styles 53869–54142 274 行逐字，R7F ROUNDTRIP EXACT；
+   sWe/cWe/lWe/oN/uWe/dWe 内链同叶），见导入面，declare 删 */
+/* pWe：〔A1-P1-B7〕实体化收敛——真身 ./ConversationPaneHelpers（styles 54146–54259 逐字，R7G ROUNDTRIP EXACT；
+   sN/RUe/LUe 内链同叶，Ei→SrcSharedA、Bt→SrcSharedB 树内导出改指），见导入面，declare 删 */
 /* PM/IM：〔A1-P1-B5〕export 收敛——真身 components/shell/Home（A1-R25 逐字实体化，js 53253/53277），见导入面，declare 删。
    主树该二符未导出：编排方照批 4 模式于合并时补 export；本 worktree 该面为泄漏件旧态（禁动），面内 tsc 预期 TS2305×2，主树补 export 即解。 */
 /* 选区域（bundle 2683–2837）：〔A1-P1-B4〕真身已实体化于 ./ConversationSelectionCore（155 行逐字），九符 declare 群收敛为真实 import */

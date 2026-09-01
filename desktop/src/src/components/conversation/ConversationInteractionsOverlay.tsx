@@ -11,7 +11,7 @@ import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../
 import { Button } from '../../modules/button'; // 原 H（A0-D 接线：declare → button canonical）
 import { PermissionApprovalOverlay, type InteractionOrigin, type PermissionOption, type PermissionRequest } from './PermissionApprovalOverlay'; // §1 族属主（组件为渲染期值引用，型别 type-only）
 import { ElicitationDialogKeyed, type AnswerDraftMap, type ElicitationRequest } from './ElicitationDialog'; // §2 族属主（同上）
-import { pendingCommandLedger } from './ConversationCommandLedger'; // 原 K1（styles 115758–115963 class 单例；〔A1-P1-B6〕跨域改指——R25 基线 declare 删，真身同域叶）
+import { pendingCommandLedger, buildCommand } from './ConversationCommandLedger'; // 原 K1（styles 115758–115963 class 单例；〔A1-P1-B6〕跨域改指——R25 基线 declare 删，真身同域叶）+ OS（〔A1-P1-B7〕同面 declare 收敛——真身同叶段 2，styles 34315–34338+34598–34645 逐字）
 
 /* --- 命令协议 --- */
 
@@ -19,12 +19,8 @@ export interface CommandAck {
   status: "accepted" | "duplicate" | "noop" | "rejected" | "stale";
   reasonCode?: string;
 }
-declare function buildCommand(args: { type: string; sessionId: string | null; payload: unknown }): {
-  type: string;
-  commandId: string;
-  sessionId: string | null;
-  payload: unknown;
-}; // OS（js 34582）
+/* OS：〔A1-P1-B7〕同面 declare 收敛——R25 基线 declare function buildCommand（args/payload 型面）删，
+   真 import 见文件头（./ConversationCommandLedger 段 2 真身，styles 34629 逐字）；消费面 189/305 逐字不变。 */
 /* K1：〔A1-P1-B6〕跨域改指——R25 基线 declare const pendingCommandLedger（record/applyAck，ack: CommandAck 面）删，
    真 import 见文件头（./ConversationCommandLedger 真身叶）；消费面 195/198/307/310 逐字不变。 */
 

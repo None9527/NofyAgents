@@ -28,15 +28,20 @@
 //   iWe → isExplicitIntentTargetSession   53852–53856（R0 119379 消费；〔A1-P1-B6〕）
 //   aWe → matchExplicitIntentConfig       53857–53865（R0 119380 消费；〔A1-P1-B6〕）
 //   oWe → resolveConfigModelTarget        53866–53868（R0 119395 消费；〔A1-P1-B6〕）
+//   LUe → MODEL_CONFIG_MISSING_CODE       52927（pWe 错误码；〔A1-P1-B7〕）
+//   RUe → buildModelConfigMissingError    52928–52930（pWe 错误面；〔A1-P1-B7〕）
+//   sN → resolveProviderGateStatus        54143–54145（pWe 状态面；〔A1-P1-B7〕）
+//   pWe → useModelProviderGate            54146–54259（R0 119421 消费；〔A1-P1-B7〕）
 // 函数体内局部变量保留混淆名（B5 约定）；型缝带〔A1-P1〕注释。
-// 环安全：本叶 import modules/SrcSharedA（zod 单依赖叶子）/ lib/errorUtils（自含叶）/
+// 环安全：本叶 import react（库叶）/ modules/SrcSharedA（zod 单依赖叶子）/ lib/errorUtils（自含叶）/
 //   modules/SrcSharedB（re-export shim，仅 SrcSharedA+lib/* 依赖）/ modules/SkillStore（store 叶）；
 //   modules/Conversation 单向消费本叶。
 /* eslint-disable */
-import { providerIds } from '../../modules/SrcSharedA'; // 原 q（styles q=mo；A0-CLEANUP B-7 判例：providerIds canonical）
+import * as React from 'react'; // 原 Q（styles Q←react；〔A1-P1-B7〕useModelProviderGate 钩子面）
+import { providerIds, isGlmAgentCliProvider } from '../../modules/SrcSharedA'; // 原 q（styles q=mo；A0-CLEANUP B-7 判例：providerIds canonical）+ Ei（styles Ei←src us；〔A1-P1-B7〕pWe agentCli 判定）
 import { extractErrorInfo } from '../../lib/errorUtils'; // 原 it（styles it←src As←ee；〔A1-P1-B6〕OM 归一化面）
-import { ZCODE_AGENT_PROVIDER_NOT_READY } from '../../modules/SrcSharedB'; // 原 Hr（styles Hr←src W；〔A1-P1-B6〕OM 比较常量）
-import { formatCustomModelId } from '../../modules/SkillStore'; // 原 we（styles we←skillStore k；〔A1-P1-B6〕aN 拼接面）
+import { ZCODE_AGENT_PROVIDER_NOT_READY, resolveFirstReadyProvider } from '../../modules/SrcSharedB'; // 原 Hr（styles Hr←src W；〔A1-P1-B6〕OM 比较常量）+ Bt（styles Bt←src G；〔A1-P1-B7〕pWe 门控状态判定面）
+import { formatCustomModelId, logger } from '../../modules/SkillStore'; // 原 we（styles we←skillStore k；〔A1-P1-B6〕aN 拼接面）+ J（styles J←skillStore logger；〔A1-P1-B7〕pWe 日志面）
 
 /** 原 qCt（js 119085）：基础供应商 → 对应 coding-plan 供应商（非两族直通；XCt 升级流 119139 消费） */
 export function resolveCodingPlanCounterpartId(e: string | null): string | null { // 〔A1-P1〕型缝：XCt 119126 首参 t=providerId?.trim()||null
@@ -214,4 +219,129 @@ export function matchExplicitIntentConfig(e: any, t: any): any { // 〔A1-P1-B6�
 /** 原 oWe（js 53866）：配置 → {model, thoughtLevel}|null（R0 119395 消费）〔A1-P1-B6〕逐字实体化 */
 export function resolveConfigModelTarget(e: any): any { // 〔A1-P1-B6〕型缝：同上 any 面
   return e ? { model: resolveModelValueForProvider(e.provider, e.model), thoughtLevel: e.thought?.trim() || null } : null;
+}
+/* ── 〔A1-P1-B7〕模型供应商门控域（styles 52927–52930 + 54143–54145 + 54146–54259，121 行逐字；pWe useModelProviderGate 真身 + sN 状态面 + RUe/LUe 错误面）。
+ *    映射：LUe→MODEL_CONFIG_MISSING_CODE | RUe→buildModelConfigMissingError | sN→resolveProviderGateStatus | pWe→useModelProviderGate
+ *          Bt→resolveFirstReadyProvider（SrcSharedB）| Ei→isGlmAgentCliProvider（SrcSharedA）| J→logger | Q→React。
+ *    逐字证明：/tmp/a1r0-p1/r7g-roundtrip.js（R7G ROUNDTRIP EXACT 121 lines）。型缝：见 r7g-seam-log.txt。 ── */
+export const MODEL_CONFIG_MISSING_CODE = `model_config_missing`;
+export function buildModelConfigMissingError() {
+  return { code: MODEL_CONFIG_MISSING_CODE, message: `No usable model provider is configured.` };
+}
+export function resolveProviderGateStatus(e: any) {
+  return resolveFirstReadyProvider(e).ready ? `ready` : `missing`;
+}
+export function useModelProviderGate(e: any) {
+  let {
+      workspacePath: t,
+      workspaceIdentity: n,
+      provider: r,
+      sessionId: i,
+      modelProviderService: a,
+    } = e,
+    o = n?.trim() || t,
+    s = r ?? `glm`,
+    c = i === null && isGlmAgentCliProvider(s),
+    l = `${o}\u0000${s}`,
+    [u, d] = (0, React.useState)(() => ({
+      gateKey: l,
+      status: c ? `checking` : `ready`,
+      dismissed: !1,
+    })),
+    f = (0, React.useCallback)(
+      (e: any, t: any = {}) => {
+        d((n) => ({
+          gateKey: l,
+          status: e,
+          dismissed:
+            e === `missing`
+              ? t.revealMissing
+                ? !1
+                : n.gateKey === l && n.status === `missing`
+                  ? n.dismissed
+                  : !1
+              : !1,
+        }));
+      },
+      [l],
+    );
+  (0, React.useEffect)(() => {
+    if (!c) {
+      f(`ready`);
+      return;
+    }
+    f(`checking`);
+    let e = !1,
+      t = 0,
+      n = (t: any) => {
+        e || f(resolveProviderGateStatus(t));
+      },
+      r = a.onDidChangeProviderRegistry?.((e: any) => {
+        ((t += 1), n(e.snapshot));
+      }),
+      i = t;
+    return (
+      a
+        .getProviderRegistrySnapshot()
+        .then((e: any) => {
+          t === i && n(e);
+        })
+        .catch((t: any) => {
+          e ||
+            (f(`check-failed`),
+            logger.warn(`[v4-draft-readiness] provider registry 检查失败，回落 Host 门禁`, {
+              error: t instanceof Error ? t.message : String(t),
+              workspaceKey: o,
+            }));
+        }),
+      () => {
+        ((e = !0), r?.dispose());
+      }
+    );
+  }, [f, c, a, o]);
+  let p = u.gateKey === l ? u : { gateKey: l, status: c ? `checking` : `ready`, dismissed: !1 },
+    m = (0, React.useCallback)(() => {
+      f(`missing`, { revealMissing: !0 });
+    }, [f]),
+    h = (0, React.useCallback)(async () => {
+      if (!c) return !0;
+      try {
+        let e = await a.getProviderRegistrySnapshot(),
+          t = resolveProviderGateStatus(e);
+        return (
+          f(t, { revealMissing: t === `missing` }),
+          t === `missing`
+            ? (logger.info(`[v4-draft-readiness] 无可用 provider/model，草稿首发在 UI admission 拒绝`, {
+                providerCount: e.providers.length,
+                revision: e.revision,
+                workspaceKey: o,
+              }),
+              !1)
+            : !0
+        );
+      } catch (e) {
+        return (
+          f(`check-failed`),
+          logger.warn(`[v4-draft-readiness] 首发复查 provider registry 失败，回落 Host 门禁`, {
+            error: e instanceof Error ? e.message : String(e),
+            workspaceKey: o,
+          }),
+          !0
+        );
+      }
+    }, [f, c, a, o]),
+    g = (0, React.useMemo)(
+      () => (c && p.status === `missing` && !p.dismissed ? buildModelConfigMissingError() : null),
+      [p.dismissed, p.status, c],
+    ),
+    _ = (0, React.useCallback)(() => {
+      d((e) => (e.gateKey === l && e.status === `missing` ? { ...e, dismissed: !0 } : e));
+    }, [l]);
+  return {
+    agentStartupAllowed: !c || p.status === `ready` || p.status === `check-failed`,
+    error: g,
+    dismissError: _,
+    ensureReadyForSend: h,
+    markProviderNotReady: m,
+  };
 }
