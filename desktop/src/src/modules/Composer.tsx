@@ -516,7 +516,7 @@ import { ContentEditable as LexicalContentEditable } from '@lexical/react/Lexica
 import { HistoryPlugin as LexicalHistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'; // A0-S3d：导出名 HistoryPlugin，语义别名保留
 import { RichTextPlugin as LexicalRichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'; // A0-S3d：导出名 RichTextPlugin，语义别名保留
 import { Spinner } from './Home';
-import { toast } from './ImeComposition'; // 〔A0-S4-4b〕PopoverAnchor/PopoverContent/PopoverTrigger 随 pptx 族迁出后留守面仅余 toast
+import { toast, usePlatformService, type PlatformService } from './ImeComposition'; // 〔A0-S4-4b〕PopoverAnchor/PopoverContent/PopoverTrigger 随 pptx 族迁出后留守面仅余 toast；〔A1-R49〕+usePlatformService/type PlatformService（原 l declare 改指 canonical 富面，本地五员面碑化）
 import { create as createStore, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, useWhiteboardStore } from './SkillStore'; // +createStore（A0-S2d 接线：原 zustand create declare → SkillStore q 导出）；+workspaceKey（A0-D 接线：declare → SkillStore b 导出 resolveWorkspaceKey）
 import { normalizeProviderId, useShallowSelector } from './SrcSharedB'; // 〔A1-R39〕+useShallowSelector（co 真身：styles 1033-1039 ≡ lib/shallowSelector，SrcSharedB 转导出面 R38 补）：shallowSelector declare 收敛改指，见下墓碑
 import { useBaseServices, useServices } from './services'; // 原 fs（bundle 2675）= services.tsx useServices（context 面）；基线误名 useWorkspaceServices（= Oc，带参解析面），A0-D 裁决改接 useServices
@@ -539,23 +539,23 @@ import { buildFileTreeDragText as fileMentionMarkdown, pluginMentionMarkdown, sk
 
 /** 5. toast / 图标 / 平台服务（imeComposition-DEYFkwWm.js，ImeComposition.tsx 已重建） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：InfoIcon/CloseIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-interface TempTextAttachmentMeta {
+/** 〔A1-R49〕补 export：canonical PlatformService.createTempTextAttachment 返型
+ * 经 type import 回指本属主（型别面零变；R48 ChromeImportResult←BrowserSettingsSection 同式）。 */
+export interface TempTextAttachmentMeta {
   filename: string;
   localPath?: string;
   mimeType: string;
   sizeBytes: number;
 }
-interface PlatformService {
-  canSelectFilePath?: boolean;
-  getPathForFile?: (file: File) => string | null | undefined;
-  selectFile?: () => Promise<string | null | undefined>;
-  selectFiles?: () => Promise<string[]>;
-  createTempTextAttachment?: (args: {
-    text: string;
-    filename: string;
-  }) => Promise<TempTextAttachmentMeta | null | undefined>;
-}
-declare function usePlatformService(): PlatformService;
+/* ── tombstone（A1-R49）：本地 PlatformService 五员面 + declare usePlatformService
+ *    （原 l，imeComposition chunk 导出别名 M）删除——改经文件头 ImeComposition import
+ *    消费 canonical 富面（R48 增补 28 员 + 本批续补 selectFile/selectFiles/
+ *    createTempTextAttachment 三员，桥接真值 rendererEntry@458-460 在案）。
+ *    型相容逐员核验：canSelectFilePath 同形；getPathForFile 返型 string|null
+ *    （本地 string|null|undefined 宽面，消费 6107 `resolved?.trim()` 相容）；
+ *    selectFile/selectFiles/createTempTextAttachment 三员签名 = 本地既判形逐字。
+ *    消费位 5734（selectAttachmentPaths 参型同名解析）/5809（hook 调用）/
+ *    6107/6125/6173 逐字不变。 ── */
 
 /** 6. logger（logger-PFDwl5Yq.js，logger.tsx 已重建） */
 

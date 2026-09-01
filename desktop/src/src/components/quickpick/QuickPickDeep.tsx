@@ -127,8 +127,10 @@
  *    `isTaskUnread as readTaskUnreadIndicator`（canonical = stores/taskStore::isTaskUnread，jsx 246 逐字）。
  *  - zte → 改指：declare isLockFileExistsError 删除，文件头 SrcSharedA import
  *    `isFileLockTimeoutError as isLockFileExistsError`（canonical = lib/errorUtils，jsx 136/js 113 逐字）。
- *  - jo → 登记→A0：canonical 候选 withSessionActivity 型面不合（见 declare 旁注），declare 暂留。
- *  - sx → 登记→A0：状态面在 commandQueueProtocol §G.1，sx 单独导出缺（见 declare 旁注），declare 暂留。
+ *  - jo → 〔A1-R49〕改指闭合：declare attachSessionActivity 删除，文件头 StoresDeep import
+ *    `withSessionActivity as attachSessionActivity`（canonical 泛型重载同批受理；调用点 801/926 不变）。
+ *  - sx → 〔A1-R49〕改指闭合：declare bumpUnreadRevision 删除，文件头 services import
+ *    `bumpUnreadNotificationVersion as bumpUnreadRevision`（commandQueueProtocol §G.1 补导出；调用点 730 不变）。
  *  - KX → vendor 裁定：styles 91850–94592 = @dnd-kit/core+sortable vendored 区（取证见报告 §三），
  *    declare dndBaselineCollision 为 vendor 边界占位，不转录。
  * ============================================================================
@@ -137,9 +139,9 @@
 import * as React from "react";
 import { workspaceKeyOf } from '../../modules/CodeViewer';
 import { logger, useTaskStore, resolveWorkspaceKey, isTaskUnread as readTaskUnreadIndicator } from '../../modules/SkillStore'; // 〔A1-P3-B9〕+resolveWorkspaceKey（原 skillStore-b/jsx 155，styles U 二跳：`H as U` ← skillStore 出口 `b as H`；DnD 族 workspaceScopeKey 消费）；〔A1-P3-B10〕+isTaskUnread as readTaskUnreadIndicator（原 ie：styles 383 `L as ie` ← skillStore 2494 `ge as L`；canonical = stores/taskStore::isTaskUnread jsx 246 逐字、A0-S4-3 迁；declare 改指，调用点 682 不变）
-import { dedupeWorkspaceScopes, sessionActivityOf, compareTasks as compareTaskRecency, taskEntityKey as entityKeyOf } from '../../modules/StoresDeep'; // +compareTaskRecency/entityKeyOf（A1-R10 2e：原 Fo（1365）/Lo（1371）declare 改指 canonical = helpers compareTasks/taskEntityKey 逐字；调用点 849/1326 与 471/607/720/760/762 逐字不变）
+import { dedupeWorkspaceScopes, sessionActivityOf, compareTasks as compareTaskRecency, taskEntityKey as entityKeyOf, withSessionActivity as attachSessionActivity } from '../../modules/StoresDeep'; // +compareTaskRecency/entityKeyOf（A1-R10 2e：原 Fo（1365）/Lo（1371）declare 改指 canonical = helpers compareTasks/taskEntityKey 逐字；调用点 849/1326 与 471/607/720/760/762 逐字不变）；〔A1-R49〕+withSessionActivity as attachSessionActivity（原 jo，styles 1308 逐字；canonical = stores/searchResultsHelpers，泛型重载同批受理；调用点 801/926 逐字不变）
 import { isFileLockTimeoutError as isLockFileExistsError } from '../../modules/SrcSharedA'; // 〔A1-P3-B10〕原 zte（styles 711 `ks as zte` ← src 9949 `te as ks`）；canonical = lib/errorUtils::isFileLockTimeoutError（jsx 136/js 113 逐字，A0-S4-1 实体迁，SrcSharedA 311 再导出）；declare 改指，调用点 949 不变
-import { SessionIndexStore, WorkspaceSubscriptionSet, sessionIndexPoolKey, useBaseServices, type SessionIndexScope } from '../../modules/services';
+import { SessionIndexStore, WorkspaceSubscriptionSet, sessionIndexPoolKey, useBaseServices, bumpUnreadNotificationVersion as bumpUnreadRevision, type SessionIndexScope } from '../../modules/services'; // 〔A1-R49〕+bumpUnreadNotificationVersion as bumpUnreadRevision（原 sx，styles 32290–32293 逐字；canonical 状态面 = services/commandQueueProtocol §G.1 单一模块态，同批补导出受理；调用点 730 逐字不变）
 /* ── A0-D-Misc 接线：Vo 搜索结果 store 属主 = QuickPick（useSearchResultsStore，QuickPick.tsx 1553–1878） ── */
 import { useSearchResultsStore as SearchResultsStore } from '../../modules/QuickPick'; // 原 Vo（QuickPick.tsx 已实体化）：搜索结果/未读覆盖 store
 import { armMembershipRefreshHold, releaseMembershipRefreshHold, readMembershipRefreshHoldState, awaitMembershipRefreshHold } from '../shell/TaskIndexCore';
@@ -250,12 +252,27 @@ interface TaskStoreApi {
  * （QuickPick.useSearchResultsStore，getState() 面逐方法核验兼容）。 */
 
 /* StoresDeep.tsx §A 已实体化的 Vo 合并助手族 */
-declare function attachSessionActivity(meta: TaskMeta, activity: unknown): TaskMeta; // 原 jo〔A1-P3-B10 登记→A0：canonical 候选 = stores/searchResultsHelpers::withSessionActivity（jo 1308 逐字，StoresDeep 转导出），惟其型面 (Record<string,unknown>)→Record<string,unknown> 不纳本叶 TaskMeta 型调用面 766/891（同 mergeMetaPreservingActivity 需 as 收口之例）；待 A0 受理泛型/重载签名后改指，本泳道不碰 stores/〕
+/* ── tombstone（A1-R49）：declare attachSessionActivity（原 jo，styles 1308–1310）删除——
+ *    改经文件头 StoresDeep import `withSessionActivity as attachSessionActivity` 消费
+ *    （canonical = stores/searchResultsHelpers::withSessionActivity 逐字；泛型重载
+ *    `<T extends Record<string,unknown>>(meta: T, activity: SessionActivity): T` 同批受理，
+ *    A1-P3-B10 §2-3 申请闭合）。型相容核验：调用点 801（bundle 32592，DOe 尾句
+ *    `return n ? jo(a, n) : a`）实参 merged: TaskIndexRow——含 `[key: string]: unknown`
+ *    索引签名，纳 T 约束，回带 TaskIndexRow 与原契契同；调用点 926（bundle 32685，
+ *    jOe 尾句）实参对象字面量隐式索引签名纳约束，回带字面型纳 TaskMeta 返回契。
+ *    第二实参型缝收口：SessionIndexRow.pendingInteractionSummary 宽化 unknown →
+ *    bundle 真形精化（pke=pendingInteractionSummaryCounts，styles 33294/33306，
+ *    sessionsIndexSchemaCore 79/91 逐字在案），纳 SessionActivity.pendingInteractions。 ── */
 /* ── tombstone（A1-R10 2e）：declare compareTaskRecency（原 Fo，1365）/entityKeyOf（原 Lo，1371）删除，
  *    改经文件头 StoresDeep import 消费（canonical = helpers compareTasks/taskEntityKey 逐字）。 ── */
 
 /* services.tsx §G.1 已实体化：未读修订自增（原 sx） */
-declare function bumpUnreadRevision(): void; // 原 sx〔A1-P3-B10 登记→A0：状态面 ax/ox canonical 所在 = services/commandQueueProtocol §G.1（A0-S4-5 迁，unreadNotifyVersion/unreadNotifyListeners），惟 sx 单独导出缺（其体被内联于 notifyTaskUnreadChange 两分支）；本地转录将致状态双重化（与 cOe/lOe/ux/dx 共享面分裂）故禁；待 A0 补导出（如 bumpUnreadNotificationVersion）后改指，调用点 695 不变〕
+/* ── tombstone（A1-R49）：declare bumpUnreadRevision（原 sx，styles 32290–32293）删除——
+ *    改经文件头 services import `bumpUnreadNotificationVersion as bumpUnreadRevision` 消费
+ *    （canonical 状态面 ax/ox = services/commandQueueProtocol §G.1 unreadNotifyVersion/
+ *    unreadNotifyListeners 单一模块态；补导出同批受理，A1-P3-B10 §2-4 申请闭合）。
+ *    调用点 730（bundle 32402，taskStatusUnreadSync catch 分支 `sx(),`）逐字不变。
+ *    零本地转录：状态面与 cOe/lOe/ux/dx（subscribe/get/notify/use 四导出）共享不分裂。 ── */
 
 /* services.tsx §G.5/G.6 已实体化（SessionIndexScope 改自 services 类型导入，A0-D-Misc） */
 export interface SessionIndexRow {
@@ -274,7 +291,11 @@ export interface SessionIndexRow {
     toolName?: string;
     autoResolution?: unknown;
   } | null;
-  pendingInteractionSummary?: unknown;
+  /** 〔A1-R49〕型缝精化（宽化→真形）：原 `unknown` → bundle pke 真形
+   * （pendingInteractionSummaryCounts，styles 33294/33306 = sessionsIndexSchemaCore 79/91
+   * 逐字 `zObject({ permissionCount, userInputCount })`）；消费面仅 938（jOe 活动态构造），
+   * 精化后纳 SessionActivity.pendingInteractions 型契（jo 改指前置，A1-P3-B10 §2-3）。 */
+  pendingInteractionSummary?: { permissionCount: number; userInputCount: number };
   [key: string]: unknown;
 }
 /* ── tombstone（A1-P3-B4）：六件 declare 删除——

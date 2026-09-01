@@ -85,6 +85,7 @@ import type { InstalledEditor } from '../../modules/FileTreePanel'; // A1-R48：
 import type { DesktopMenuActionIds } from '../../modules/SrcSharedB'; // A1-R48：executeDesktopCommand 参型源（src ex@8631 / export ft；oi 收敛既判 = WorkspaceShell@263 A1-P2-B1 / Sidebar@220 A1-P3-B1）
 import type { UpdateState } from '../shell/TopBar'; // A1-R48：更新态型属主（TopBar@212 export；WorkspaceShell@219 消费链在案）
 import type { ChromeImportResult } from '../settings/BrowserSettingsSection'; // A1-R48：Chrome 导入结果型属主（Browser@49 export；modules/Settings@167 type import 先例）
+import type { TempTextAttachmentMeta } from '../../modules/Composer'; // 〔A1-R49〕createTempTextAttachment 返型属主（Composer@542 export；type-only 回边零运行期环，R48 四向先例同式）
 
 /* ─────────────────────────── 依赖的类型化绑定 ─────────────────────────── */
 
@@ -180,6 +181,16 @@ export interface PlatformService {
   /** 宿主桥接常量面（桥接为 !0 常量，非函数；PluginLeaves@501 消费） */
   canSelectFilePath?: boolean;
   getPathForFile?(file: File): string | null;
+  /* ── 〔A1-R49〕富面续补（子批 3 Composer 件受理；桥接真值 = rendererEntry
+   *    desktopPlatformBridge@458-460：selectFile/selectFiles/createTempTextAttachment
+   *    三员透传 window.zcode，与 R48 桥接字面量同源）。签名源 = Composer@548-557
+   *    本地面既判形（消费位 5736/6173 实测）；均可选（桥接带 ?. 守卫/兜底）。 ── */
+  /** 单文件选择（Composer@5736 兜底臂 `platform.selectFile!()`；RemoteWizard@731 同形消费） */
+  selectFile?(): Promise<string | null | undefined>;
+  /** 多文件选择（Composer@5736 首选臂；桥接 `?? Promise.resolve([])` 兜底） */
+  selectFiles?(): Promise<string[]>;
+  /** 粘贴文本临时附件（Composer@6173 `createTempTextAttachment?.({ text, filename })`） */
+  createTempTextAttachment?(args: { text: string; filename: string }): Promise<TempTextAttachmentMeta | null | undefined>;
   importChromeBrowserData?(): Promise<ChromeImportResult>;
   clearEmbeddedBrowserData?(mode: "cache" | "all"): Promise<{ success: boolean }>;
   getWindowControlsOverlayMetrics?(): { rightPaddingPx?: number } | null;

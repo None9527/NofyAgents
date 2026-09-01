@@ -149,7 +149,7 @@
 import * as React from "react";
 import { Settings2 as IconGeneral, Palette as IconAppearance, Server as IconModelProvider, Brain as IconMemory, Puzzle as IconPlugins, WandSparkles as IconSkills, Bot as IconSubagents, AlarmClock as IconAutomations, Cable as IconMcp, Terminal as IconCommands, Anchor as IconHooks, ShieldCheck as IconIndexing, Earth as IconBrowser, ChartColumn as IconUsage, Rocket as IconOnboarding, ArrowLeft as IconArrowLeft, Monitor as IconThemeSystem, Moon as IconThemeDark, Sun as IconThemeLight } from 'lucide-react'; // A0-S3b（留存面）：§4 注册表/主题选项图标 + §15 视图图标
 import { Button } from './button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
-import { toast, useSelectDirectory } from './ImeComposition';
+import { toast, useSelectDirectory, usePlatformService } from './ImeComposition'; // 〔A1-R49〕+usePlatformService（原 l declare 改指 canonical 富面，本地九员面 + 孤儿型碑化）
 import { ModelProviderSettingsSection } from './SettingsPanels';
 import { CommandsSettingsSection, HooksSettingsSection, PluginsSettingsSection, SkillsSettingsSection, SubagentsSettingsSection } from './SettingsPanelsCapability';
 import { MigrationSettingsSection, UsageSettingsSection } from './SettingsPanelsData';
@@ -216,22 +216,17 @@ interface AppUser {
   [key: string]: unknown; // A0-CLEANUP3 3b：流入 Sidebar.SidebarUser（带索引签名），接口级补齐
 }
 
-/** 桌面平台服务（原 l()，imeComposition chunk 的 M 导出）——IPC 桥 */
-interface WindowControlsOverlayMetrics {
-  rightPaddingPx?: number;
-}
-interface PlatformService {
-  openExternal(url: string): void | Promise<void>;
-  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-  selectDirectory(): Promise<string | null>;
-  syncAppSettings?(patch: { closeToTrayOnWindows?: boolean }): void;
-  getWindowControlsOverlayMetrics?(): WindowControlsOverlayMetrics | null;
-  onWindowControlsOverlayChanged?(cb: (m: WindowControlsOverlayMetrics) => void): () => void;
-  importChromeBrowserData?(): Promise<ChromeImportResult>;
-  clearEmbeddedBrowserData?(mode: "cache" | "all"): Promise<{ success: boolean }>;
-  onSettingsChanged?(cb: () => void): () => void;
-}
-declare function usePlatformService(): PlatformService;
+/* ── tombstone（A1-R49）：本地 PlatformService 九员面 + WindowControlsOverlayMetrics
+ *    孤儿型 + declare usePlatformService（原 l，imeComposition chunk 导出别名 M）
+ *    删除——改经文件头 ImeComposition import 消费 canonical 富面（R48 增补在案，
+ *    R48 BrowserSettingsSection 孤儿型碑同式）。型相容逐员核验：openExternal/
+ *    openInFileManager/selectDirectory（canonical 返型多一支 undefined，本叶零消费
+ *    成员）同形；syncAppSettings canonical 参型 unknown 包容调用 1291 字面实参；
+ *    getWindowControlsOverlayMetrics/onWindowControlsOverlayChanged 结构同形
+ *    （消费 907/1184/1188 逐字不变）；importChromeBrowserData/clearEmbeddedBrowserData/
+ *    onSettingsChanged 同签名（ChromeImportResult 属主 BrowserSettingsSection@49，
+ *    本文件 167 既有 type import 不动）。消费位 901（hook 调用）/1580（prop 透传
+ *    GeneralSettingsSection `platform?: unknown` 面具包容）逐字不变。 ── */
 
 /** 目录选择（原 u()=imeComposition chunk N 导出：useSelectDirectory，10883） */
 

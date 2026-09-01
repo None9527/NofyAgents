@@ -122,7 +122,14 @@ export interface WorkspaceScope {
 /** 原 Pie（1307）：元数据上的会话活动态字段名 */
 export const SESSION_ACTIVITY_FIELD = "__zcodeSessionActivity";
 
-/** 原 jo（1308）：为任务元数据附挂会话活动态 */
+/** 原 jo（1308）：为任务元数据附挂会话活动态
+ * 〔A1-R49〕A1-P3-B10 §2-3 申请受理：补泛型重载——符 jo 多态实义（bundle 1308–1310
+ * `{ ...e, [Pie]: t }` 入参原形回带）。原 (Record<string,unknown>)→Record<string,unknown>
+ * 重载保留：既有消费位（本叶 mergeMetaPreservingActivity 166 / TaskIndexCore 397/490
+ * any 面）行为零变；泛型臂纳 QuickPickDeep TaskMeta/TaskIndexRow 型调用面
+ * （mergeSessionIntoTask 801 / sessionRowToTaskMeta 926，bundle 32592/32685）。 */
+export function withSessionActivity<T extends Record<string, unknown>>(meta: T, activity: SessionActivity): T;
+export function withSessionActivity(meta: Record<string, unknown>, activity: SessionActivity): Record<string, unknown>;
 export function withSessionActivity(meta: Record<string, unknown>, activity: SessionActivity): Record<string, unknown> {
   return { ...meta, [SESSION_ACTIVITY_FIELD]: activity };
 }

@@ -34,6 +34,16 @@ export function getUnreadNotificationVersion(): number {
   return unreadNotifyVersion;
 }
 
+/** 原 sx（styles 32290–32293 逐字）：未读修订自增 + 通知（监听集快照遍历）。
+ * 〔A1-R49〕A1-P3-B10 §2-4 申请受理补导出——状态面 ax/ox 为模块单一状态
+ * （cOe/lOe/ux/dx 共享，消费面 35817/36087/144568/144733/153280 经本文件四导出），
+ * 禁它叶本地转录（状态双重化）。下方 notifyTaskUnreadChange（ux）两分支
+ * 按 bundle 32310/32326 原形调用本函数（原内联副本归一）。 */
+export function bumpUnreadNotificationVersion(): void {
+  unreadNotifyVersion += 1;
+  for (const listener of [...unreadNotifyListeners]) listener();
+}
+
 /** 原 ux：同一任务同状态 500ms 内只通知一次（去重表上限 256） */
 export function notifyTaskUnreadChange(args: {
   workspacePath: string;
@@ -43,8 +53,7 @@ export function notifyTaskUnreadChange(args: {
   taskMeta?: { updatedAt?: number; unreadAt?: number | null } | null;
 }): void {
   if (!args.taskMeta || !args.taskId) {
-    unreadNotifyVersion += 1;
-    for (const listener of unreadNotifyListeners) listener();
+    bumpUnreadNotificationVersion(); // 〔A1-R49〕bundle ux 32310 原形 = sx() 调用（原内联副本归一）
     return;
   }
   const key = [args.workspaceIdentity?.trim() || args.workspacePath, args.taskId, args.reason, args.taskMeta.updatedAt, args.taskMeta.unreadAt ?? ""].join("::");
@@ -53,8 +62,7 @@ export function notifyTaskUnreadChange(args: {
   if (last !== undefined && now - last < UNREAD_NOTIFY_DEDUPE_MS) return;
   for (const [dedupeKey, at] of unreadNotifyDedupe) if (now - at >= UNREAD_NOTIFY_DEDUPE_MS) unreadNotifyDedupe.delete(dedupeKey);
   if (unreadNotifyDedupe.size < UNREAD_NOTIFY_DEDUPE_MAX) unreadNotifyDedupe.set(key, now);
-  unreadNotifyVersion += 1;
-  for (const listener of unreadNotifyListeners) listener();
+  bumpUnreadNotificationVersion(); // 〔A1-R49〕bundle ux 32324 原形 = `…, sx()` 调用（原内联副本归一）
 }
 
 /** 原 dx：useSyncExternalStore 版订阅钩子 */

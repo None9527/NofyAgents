@@ -4,7 +4,7 @@
 - 生成日期: 2026-08-26
 - 范围: `/tmp/chunk-tiers.json` vendor 项中除去 shiki 语法/主题 chunk；另收 4 个被误分到 grammar_data 的 mermaid chunk（tier 纠正）；另收 tiers 标为 first_party 但实际打包/包装第三方库、或任务点名的 chunk（chart-*、pdf-viewer、presentationPdf*、dist/esm/bundle 系）。
 - 版本证据等级: `in-chunk`（chunk 内版本串）> `upstream-path`（与上游 dist 文件名-哈希精确匹配）> `upstream-decl`（上游 package.json 依赖声明）> `node_modules-ref`（zcode-restored/node_modules 参照安装，chunk 内无版本）。
-- 条目数: **145**（JS chunk 143 + wasm 伴随资产 2）
+- 条目数: **146**（JS chunk 143 + wasm 伴随资产 2 + chunk 内嵌 vendor 区 1）
 
 ## ⚠ 含 first-party 包装层的 chunk（Stage B 抽取队列）
 
@@ -234,10 +234,16 @@
 | `mermaid-GHXKKRXX-BUw9cQJG.js` | 2 | first-party wrapper shim (re-exports Mermaid React component) | n/a (first-party) (n/a) | 3 lines: `import { a as e } from './chunk-BO2N2NFS...'; export { e as Mermaid }` | **是** |
 | `highlighted-body-OFNGDK62-RS9ZmWFH.js` | 25 | first-party HighlightedCodeBlockBody (shiki consumer) | n/a (first-party) (n/a) | uses shikiTheme context from chunk-BO2N2NFS; renders code blocks | **是** |
 
+## styles chunk 内嵌 vendor 区（无独立 chunk）
+
+| chunk | 行数 | 上游库 | 版本 | 证据 | 包装层 |
+|---|---|---|---|---|---|
+| `styles-CdEGpc2x.js` 91850–94592（内嵌区） | 2743 | @dnd-kit/core + @dnd-kit/sortable | core v6 / sortable v7–8 族 (API-shape) | chunk 内无版本串、package.json 无 dnd-kit 声明（库体随 styles chunk 内联打包）；区界实测：起点 91850 `Mit`=useCombinedRefs（前界 91849 `jit` first-party memo）、终点 94592（后界 94593 `sst` first-party 队列域）；92082 库错误串 `useDndMonitor must be used within a children of <DndContext>`（in-chunk 铁证）；92050–92077 无障碍播报器（Uit/Wit/Git）；93521 `_Z`=DndContext(memo)、94289 `EZ`=SortableContext、94380+ useSortable 全签名（animateLayoutChanges/getNewIndex/strategy/resizeObserverConfig/transition）、94522 sortableKeyboardCoordinates 族、94242 `TZ`=rectSorting 策略；碰撞族 92249 `KX`=closestCenter 式基线 + 92263 `rat` 次算法（A1-P3-B10.report.md §三 全取证） | **是**（first-party 包装层 = 155343 `Kzt`=groupedCollisionDetection 分组过滤包装 + 94607 `cst` 纵限 modifier + 94621 `lst` 队列项组件（chat.queue.* i18n）；消费面 `collisionDetection: KX` @94819/160252/160350/183209/191521、`collisionDetection: Kzt` @156237；QuickPickDeep `dndBaselineCollision` declare = vendor 边界占位） |
+
 ## 附注
 
 - **tier 纠正（4 条）**: `c4Diagram-AHTNJAMY-D_C9c5pc.js`、`chunk-U2HBQHQK-Cs90NbhX.js`、`journeyDiagram-VCZTEJTY-DrUKz0D3.js`、`sequenceDiagram-FGHM5R23-vIwWNFLy.js` 在 chunk-tiers.json 中被误归 grammar_data（其内容含 `displayName`/`patterns` 字样触发误判），实为 mermaid.core 图形 chunk。
-- **styles-CdEGpc2x.js（first_party tier，213,695 行）** 不在本清单范围，但注意：它是 shiki 3.x/4.x core + Lexical 0.42.0 + @stripe/stripe-js 9.6.0/@stripe/react-stripe-js 6.4.0 的混合 mega-chunk，并静态导入两份 vscode-oniguruma wasm（wasm-B4ap0Fdc / wasm-CmMPG1ko）。Stage B 需要时另行拆分。
+- **styles-CdEGpc2x.js（first_party tier，213,695 行）** 不在本清单范围，但注意：它是 shiki 3.x/4.x core + Lexical 0.42.0 + @stripe/stripe-js 9.6.0/@stripe/react-stripe-js 6.4.0 的混合 mega-chunk，并静态导入两份 vscode-oniguruma wasm（wasm-B4ap0Fdc / wasm-CmMPG1ko）。Stage B 需要时另行拆分。〔A1-R49〕其内嵌 @dnd-kit/core+sortable vendored 区（91850–94592，现 chunk 行号口径 213,979 行）已按「chunk 内嵌 vendor 区」条目补登（A1-P3-B10 §3-2 提请，编排方 R49 分发）。
 - **katex 版本存疑**: chunk 内无版本串；原 monorepo pnpm 路径注释证明 mermaid 自带副本为 0.16.25，参照安装为 0.16.45。
 - **node_modules 参照**: /home/none/grok-build/ref-ui/zcode-restored/node_modules（recharts 3.8.0、mermaid 11.14.0、pdfjs-dist 5.4.296、react-pdf 10.4.1、docx-preview 0.4.0、shiki 3.23.0、@shikijs/* 4.0.2、tailwind-merge 3.5.0、tiny-invariant 1.3.3、js-yaml 4.1.1、fflate 0.8.3、@tanstack/react-virtual 3.13.23、lexical 0.42.0、@stripe/* 等）；安装不完整（无 cytoscape/dagre/graphlib/roughjs/react-intl，react 未装），故部分版本只能给上游声明区间。
 - **wasm 伴随资产**: docx_wasm_bg-HWnIvdMf.wasm (1,119,333 B) 与 duke_sheets_wasm_bg-BCCK9PkU.wasm (4,345,449 B) 不在 chunk-tiers.json 中，作为伴随资产登记。

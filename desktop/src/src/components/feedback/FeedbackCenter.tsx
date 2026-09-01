@@ -176,6 +176,8 @@ import { Button, createLucideIcon } from '../../modules/button'; // 原 X（butt
 import { parseCustomModelRef as parseCustomModelKey } from '../../modules/SrcSharedB'; // 原 Zn（src-HCld2afU.js 的 P 导出）
 import { isE2EStoreBridgeEnabled as isE2eStoreBridgeMode } from '../../modules/SkillStore'; // 原 re（skillStore chunk 的 K 导出）
 import { resolveWorkspaceKey as workspaceEntityKey } from '../../modules/SkillStore'; // 原 Io（工作区实体键）
+import { sessionFrameAssembly as createFrameRouter, SessionIndexTopicMultiplexer, conversationTopicKey as conversationLayerKey, parseConversationTopicKey as sessionIdFromTopic } from '../../services/conversationWireCore'; // 〔A1-R49〕原 NS/bS/Bke/dS 环境声明四件改指逐字实体（styles 34746/33890/33777/33780；conversationWireCore A1-P3-B4/B8 逐字，ROUNDTRIP+SEAMSTRIP[wire] EXACT 在案）；接线镜像 sessionIndex §B5-transport 652-660 先例（孪生位 34819-34830 已闭环）
+import { conversationFrameSchema, applyConversationFrameOps as applySnapshotDeltas } from '../../services/conversationFrameSchemaCore'; // 〔A1-R49〕原 aS/dke 环境声明改指逐字实体（styles 33493/33283；conversationFrameSchemaCore A1-P3-B6/B7 逐字）；消费位 39592/39966 逐字证据见 §16 墓碑
 
 /* ============================================================================
  * §0 外部依赖（跨 chunk 导入 / 本 chunk 它族；声明位）
@@ -265,12 +267,18 @@ declare function resolveWorkspaceServicesEntry(
 
 /* --- v4 会话协议底座（本 chunk 它族：33283–34760 区，F03/横切域） --- */
 
-/** 快照增量应用（原 dke，本 chunk 33283） */
-declare function applySnapshotDeltas(snapshot: SessionSnapshot, deltas: SessionDelta[]): SessionSnapshot;
-/** 会话 topic → 层键 `conversation/<id>`（原 Bke，本 chunk 33777） */
-declare function conversationLayerKey(sessionId: string): string;
-/** 层键 → sessionId（原 dS，本 chunk 33780） */
-declare function sessionIdFromTopic(topic: string): string | null;
+/* ── tombstone（A1-R49）：declare applySnapshotDeltas（原 dke，styles 33283）/
+ *    conversationLayerKey（原 Bke，styles 33777）/ sessionIdFromTopic（原 dS，
+ *    styles 33780）三件删除——逐字真身在案：conversationFrameSchemaCore::
+ *    applyConversationFrameOps（33283，A1-P3-B7）+ conversationWireCore::
+ *    conversationTopicKey/parseConversationTopicKey（33777/33780，A1-P3-B8），
+ *    改经文件头别名 import 接线（跨域改指申请 A1-P3-B8.report.md §二/§六-3 闭合）。
+ *    消费位 39966（`{ ...dke(n, e.payload.deltas), seq: e.toSeq }`，sNe.applyFrame）/
+ *    40135/40176/40267（`dS(this.topic)`，sNe.loadOlder/loadAllOlder/refreshPlans）/
+ *    40349（`Bke(e)`，_w.acquire）逐字不变。型相容：canonical 参数均 `: any`
+ *    包容实参（SessionSnapshot/SessionDelta[]/string），返回型同契
+ *    （dke 返回快照形 → spread 后补 seq；Bke 返回 string；dS 返回 string|null，
+ *    各位点均有 !guard 收窄）。 ── */
 /** RPC 就绪握手（hello+initialize，带缓存；原 AS，本 chunk 34647） */
 declare function ensureConversationRuntimeReady(agentService: AgentServiceV4): Promise<unknown>;
 /** 帧装配完成跟踪器（原 MS，本 chunk 34677） */
@@ -290,15 +298,14 @@ interface FrameTicket {
   stagedBytes: number;
   overflowReason: string | null;
 }
-/** 帧路由器（装配器 → 帧/故障/重启事件分派；原 NS，本 chunk 34746） */
-declare function createFrameRouter(
-  assembler: FrameAssemblerLike,
-  onFrame: (frame: ConversationFrame, meta: { deliveryKind: DeliveryKind }) => void,
-  onAssemblyFault: (fault: AssemblyFault) => void,
-): { accept(event: unknown): void; discard(topic: string, subscriptionId: string): void; recover(topic: string, subscriptionId: string): void; clear(): void };
-interface FrameAssemblerLike {
-  [method: string]: unknown;
-}
+/* ── tombstone（A1-R49）：declare createFrameRouter（原 NS，styles 34746）+
+ *    interface FrameAssemblerLike（NS 首参占位型，随 declare 删）删除——逐字真身
+ *    = conversationWireCore::sessionFrameAssembly（34746–34804，A1-P3-B4 逐字，
+ *    ROUNDTRIP+SEAMSTRIP[wire] EXACT 在案），改经文件头别名 import 接线。
+ *    返回面实测同形：accept/recover/discard/clear 四法（34783/34790/34794/34798），
+ *    本叶消费位 router.accept/discard/recover/clear（3327/3373/3380/3394/3496）
+ *    逐字不变。型缝〔A1-R49〕：canonical 形参 `: any`（S16 接收面），回调失上下文
+ *    型推，消费位回调参数显式注型（证据：39593-39598 双回调体）。 ── */
 
 /** 协议限额（原 bi，src-HCld2afU.js 的 oo 导出；services.tsx 已 declare protocolLimits） */
 declare const protocolLimits: {
@@ -3303,11 +3310,16 @@ export function createConversationTransport(
     assemblyFaultListeners = new Set<(fault: AssemblyFault) => void>(),
     runtimeRestartListeners = new Set<() => void>(),
     router = createFrameRouter(
-      createFrameAssemblerStub(),
-      (frame, meta) => {
+      // 〔A1-R49〕改指：原 39592 `new bS(aS)` 逐字接线——bS=SessionIndexTopicMultiplexer
+      // （conversationWireCore，styles 33890）+ aS=conversationFrameSchema
+      // （conversationFrameSchemaCore，styles 33493，装配器帧 schema 实参）；
+      // 镜像 sessionIndex §B5-transport 孪生位 34819-34820（`new bS(oS)` 已闭环）。
+      // 型缝：bS 构造形参 `: any` 包容 schema 实参（证据 33890 constructor(e)）。
+      new SessionIndexTopicMultiplexer(conversationFrameSchema),
+      (frame: ConversationFrame, meta: { deliveryKind: DeliveryKind }) => {
         for (const listener of frameListeners) listener(frame, { deliveryKind: meta.deliveryKind });
       },
-      (fault) => {
+      (fault: AssemblyFault) => {
         for (const listener of assemblyFaultListeners) listener(fault);
       },
     ),
@@ -3493,8 +3505,12 @@ export function createConversationTransport(
   };
 }
 
-/** 帧装配器占位（原 bS 实体在 services.tsx §G.4 逐字抽取；此处仅满足路由装配） */
-declare function createFrameAssemblerStub(): FrameAssemblerLike;
+/* ── tombstone（A1-R49）：declare createFrameAssemblerStub（原 bS 装配器占位）删除——
+ *    消费位 39592 `new bS(aS)` 已改指逐字实体（上方 router 接线：
+ *    new SessionIndexTopicMultiplexer(conversationFrameSchema)）。bS 语义孪生
+ *    FrameAssembler（services/commandQueueProtocol §G.4，A0 型别面）与逐字真身
+ *    SessionIndexTopicMultiplexer（conversationWireCore，A1-P3-B4）孪生裁定
+ *    沿用 A1-P3-B4 §六-1/ B8 §二-1a。 ── */
 
 /** 原 nNe（39781 / 35783）：快照 store 初始状态 */
 export const INITIAL_SNAPSHOT_STORE_STATE: SnapshotStoreState = {

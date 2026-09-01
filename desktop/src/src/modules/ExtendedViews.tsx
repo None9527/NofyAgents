@@ -159,7 +159,7 @@ import { ScrollArea } from '../components/ui/scroll-area'; // A0-S3c：vendored 
 import { LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { ModelSelector, type ModelGroup } from './Composer'; // A0-CLEANUP2 item 10：属主导出后接线（原 vq，js 75527）
-import { Input, Popover, PopoverContent, PopoverTrigger, toast, type ToastOptions } from './ImeComposition'; // ToastOptions 原属 imeComposition chunk（与 toast 同主）
+import { Input, Popover, PopoverContent, PopoverTrigger, toast, usePlatformService, type ToastOptions } from './ImeComposition'; // ToastOptions 原属 imeComposition chunk（与 toast 同主）；〔A1-R49〕+usePlatformService（原 l declare 改指 canonical 富面，本地五员面碑化；本叶无型名引用，不导入型别）
 import { MarkdownRenderer } from './MarkdownIntegration';
 import { FilePathInline, pathBasename, resolveFileDisplayInfo } from './ModalsLeaves';
 import { Badge, modelMenuGroupsOf, providerUsableForAgent, type ModelProvider as PaymentModelProvider } from './PaymentDeep'; // 〔A1-R29〕+modelMenuGroupsOf（Hq 77850 canonical）/providerUsableForAgent（Bq 77541 canonical）/type ModelProvider（型缝所依）：hjt 域 declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 modules/ExtendedViews
@@ -192,16 +192,13 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** toast（原 m，imeComposition chunk）；l6 在其上加自动化锚点。ToastOptions 已接线 ImeComposition 导出 */
 
-/** 桌面平台服务（原 l()，imeComposition chunk）——仅列本族用到的面 */
-interface PlatformService {
-  openInFileManager(path: string): Promise<{ success: boolean; error?: string }>;
-  openExternal?(url: string): void | Promise<void>;
-  onSettingsChanged?(cb: () => void): () => void;
-  /* A0-CLEANUP3 3b：同一平台服务兼遥测面（StoresDeep.TelemetryPlatform 消费面；bundle 真值） */
-  reportTelemetryEvent(report: Record<string, unknown>): Promise<void> | void;
-  reportArmsCustomEvent(event: { name: string; group?: string; value?: number | string; [key: string]: unknown }): Promise<void> | void;
-}
-declare function usePlatformService(): PlatformService;
+/* ── tombstone（A1-R49）：本地 PlatformService 五员面 + declare usePlatformService
+ *    （原 l，imeComposition chunk 导出别名 M）删除——改经文件头 ImeComposition import
+ *    消费 canonical 富面（R48 增补在案）。型相容逐员核验：openInFileManager 同形
+ *    （消费 4593 `platformService.openInFileManager(sourceDirectory)` 返
+ *    {success; error?} 守卫相容）；openExternal/onSettingsChanged canonical 同签名；
+ *    reportTelemetryEvent/reportArmsCustomEvent 遥测二员同形（A0-CLEANUP3 3b 既判）。
+ *    消费位 4584（hook 调用）/4593/4611（依赖数组）逐字不变。 ── */
 
 /* --- 服务袋（原 fs()，本 chunk 2638 useServices） --- */
 
