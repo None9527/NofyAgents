@@ -40,11 +40,13 @@
  *   modules/SplitLayoutUiDeep.tsx 表现层域）混属——本簇为 vendored 可缩放面板引擎
  *   （131xxx 独立 bundle 域），与 SplitLayoutDeep 零符号相交。
  *
- * 三、推迟件（留批）：vendored 引擎深区 130122–130968 内部件 ×18
- *   本叶以 declare const : any 留守（编译期擦除，emit 中立）；深区转录时替换真身。
- *   _4(130122) v4(130164) y4(130167) D4(130504) A4(130520) _kt(130363) S4(130366)
- *   w4(130373) T4(130378) j4(130646) M4(130651) jkt(130682) Nkt(130810) L4(130933)
- *   Fkt(130936) Rkt(130968) z4(130969) iAt(131289)
+ * 三、推迟件（留批）：vendored 引擎深区内部件——余 8 枚（余量区 130651–131388）
+ *   A1-P2-B3 已替换落于前缀 130051–130650 的 10 枚真身（_4 v4 y4 D4 A4 _kt
+ *   S4 w4 T4 j4 → ResizablePanelsEngine.ts 语义名别名导入，调用面保留混淆名，
+ *   R1 判例）；余 8 枚续以 declare const : any 留守（编译期擦除，emit 中立），
+ *   随余量区转录批替换真身。
+ *   M4(130651) jkt(130682) Nkt(130810) L4(130933) Fkt(130936) Rkt(130968)
+ *   z4(130969) iAt(131289)
  *
  * 四、型缝（〔A1-P2-B2〕标注，60 处，逐行登记 /tmp/a1r0-p2/split/split-seam-log.txt）
  *   S1 函数/箭头参数 : any ×46（bundle 无型面；纯型层）
@@ -63,17 +65,17 @@
 import * as React from "react";
 import * as $ from "react/jsx-runtime"; // 原 $（jsx-runtime-B5yMD3-t.js；A1-R15 判例：编译形 JSX 消费面）
 
-/* 推迟件：vendored 引擎深区内部（130122–131289），留批转录时替换真身 */
-declare const _4: any; // 原 _4（130122）
-declare const v4: any; // 原 v4（130164）
-declare const y4: any; // 原 y4（130167）
-declare const D4: any; // 原 D4（130504）
-declare const A4: any; // 原 A4（130520）
-declare const _kt: any; // 原 _kt（130363）
-declare const S4: any; // 原 S4（130366）
-declare const w4: any; // 原 w4（130373）
-declare const T4: any; // 原 T4（130378）
-declare const j4: any; // 原 j4（130646）
+/* 〔A1-P2-B3〕深区内部件 10 枚真身已转录（styles js 130051–130650 闭合前缀，
+   ResizablePanelsEngine.ts，ROUNDTRIP EXACT + LEAFCHECK EXACT）；别名导入
+   保留本地调用名（R1 判例），调用面与 bundle 逐字一致 */
+import {
+  derivePanelConstraints as _4, assertInvariant as v4, sortByOrientation as y4,
+  areSizesEqual as D4, resizeLayoutByDelta as A4, findGroupById as _kt,
+  getGroupData as S4, subscribeGroupChange as w4, setGroupData as T4,
+  compareLayouts as j4,
+} from "./ResizablePanelsEngine";
+
+/* 推迟件：vendored 引擎深区内部余量区（130651–131388），留批转录时替换真身 */
 declare const M4: any; // 原 M4（130651）
 declare const jkt: any; // 原 jkt（130682）
 declare const Nkt: any; // 原 Nkt（130810）
