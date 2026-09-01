@@ -4,7 +4,7 @@
 import * as React from "react";
 import { Check as IconCheck, Copy as IconCopy, SquareTerminal as IconSquareTerminal, Lightbulb as IconLightbulb } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '../../modules/ImeComposition'; // 原 ImeComposition 导出族
-import { AgentToolView, AskUserQuestionToolView, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, type FileSummary, type OpenCodeViewerFn, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from '../../modules/ConversationLeaves'; // 16 工具视图 + 会话流共享类型 canonical（A0-D 类型收敛）
+import { AgentToolView, AskUserQuestionToolView, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, RespondToCoordinatorToolView, SearchToolView, SendMessageToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, type FileSummary, type OpenCodeViewerFn, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from '../../modules/ConversationLeaves'; // 18 工具视图 + 会话流共享类型 canonical（A0-D 类型收敛；〔A1-P1-B14〕message 族 aht/uht 二视图入册）
 import { type CodePreviewSettings, type FileLinkModel } from '../../modules/MarkdownIntegration'; // A0-D 类型收敛
 import { useControllableState } from '../../modules/UsageStatsUiParts'; // 原 fa（A0-CLEANUP2 item 47 接线）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
@@ -414,7 +414,7 @@ function resolveToolCallView(props: ToolCallViewProps): React.FC<ToolCallViewPro
     case `ask-user-question`:
       return AskUserQuestionToolView;
     case `message`:
-      return props.toolCallNode.toolCall.toolName === `RespondToCoordinator` ? SessionContextToolView : FallbackToolView;
+      return props.toolCallNode.toolCall.toolName === `RespondToCoordinator` ? RespondToCoordinatorToolView : SendMessageToolView; // 〔A1-P1-B14〕束真身 Wht@109128 `t.toolName === 'RespondToCoordinator' ? aht : uht`（B13 留批 1 更正；手写期 SessionContextToolView/FallbackToolView 为 A0 近似）
     case `task-control`:
       return props.toolCallNode.toolCall.toolName === `TaskOutput` ? TaskOutputToolView : TaskControlToolView;
     case `skill`:
@@ -763,6 +763,8 @@ function ShellToolViewImpl(props: ToolCallViewProps) {
  * Hpt SwitchModeHint         （91360）       permission 切模式提示（覆盖层文件引用）
  * Dht TaskControlToolView    108728 / 92913  chat.toolCall.taskControl.*
  * Sht TaskOutputToolView     108581 / 92885  chat.toolCall.taskOutput.*
+ * aht RespondToCoordinatorToolView 108091     chat.toolCall.respondToCoordinator.*（B14 实体化 → MessageToolBlocks）
+ * uht SendMessageToolView    108195            chat.toolCall.sendMessage.*（B14 实体化 → MessageToolBlocks）
  * mht SkillToolView          108309 / 92648  chat.toolCall.skill.*
  * eht SessionContextToolView 107835 / 92387  chat.toolCall.sessionContext.*
  * ght SwitchModeToolView     108426 / 92791  chat.toolCall.switchMode.*

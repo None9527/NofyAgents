@@ -16,9 +16,9 @@
 //   Vmt→extractMcpToolInfo | Hmt→prettifyMcpServerName | Umt→prettifyMcpToolName | Rmt→extractMcpOutputText |
 //     Lmt→isShortPlainOutput | T$→detectOutputLanguage | Pmt→MCP_TOOL_ICON | Imt→MCP_CONTENT_VISIBILITY_STYLE（./McpToolBlocks，B11）
 //   lQ→ToolLayout（./ToolLayoutBlocks，B12 钥匙 2）| sQ→ToolSnapshotRefs（./ToolSnapshotRefs，B12 钥匙 1）
-//   【declare 面（代码面族 48640–48823 未实体化，跨域只消费不转录；CTV 同面 declare 同源）】
+//   【declare 面→真实 import〔A1-P1-B14〕：代码面族 48572–48872 已逐字实体化于 ./CodeSurfaceBlocks】
 //   gk→CodeSurface | pk→CodeSurfaceHeader | mk→CodeSurfaceTitle | hk→CodeSurfaceActions |
-//     _k→CodeSurfaceWrapButton | vk→CodeSurfaceCopyButton
+//     _k→CodeSurfaceWrapButton | vk→CodeSurfaceCopyButton（./CodeSurfaceBlocks，B14）
 //   【Automation 工具视图族 107520–107720】
 //   Wmt→AutomationToolView（107520）
 /* eslint-disable */
@@ -30,13 +30,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../modul
 import { extractMcpToolInfo, prettifyMcpServerName, prettifyMcpToolName, extractMcpOutputText, isShortPlainOutput, detectOutputLanguage, MCP_TOOL_ICON, MCP_CONTENT_VISIBILITY_STYLE } from './McpToolBlocks'; // 原 Vmt/Hmt/Umt/Rmt/Lmt/T$/Pmt/Imt（B11 助手域 107432–107519）
 import { ToolLayoutMemo as ToolLayout } from './ToolLayoutBlocks'; // 原 lQ（B12 钥匙 2）
 import { ToolSnapshotRefs } from './ToolSnapshotRefs'; // 原 sQ（B12 钥匙 1）
-
-declare const CodeSurface: React.FC<{ code: string; language?: string; appTheme?: string; className?: string; style?: Record<string, unknown>; enableSyntaxHighlighting?: boolean; wrapLongLines?: boolean; renderMermaid?: boolean; children?: React.ReactNode }>; // 原 gk（styles 48682，代码面族未实体化）
-declare const CodeSurfaceHeader: React.FC<{ className?: string; children?: React.ReactNode }>; // 原 pk（48640）
-declare const CodeSurfaceTitle: React.FC<{ children?: React.ReactNode }>; // 原 mk（48672）
-declare const CodeSurfaceActions: React.FC<{ children?: React.ReactNode }>; // 原 hk（48676）
-declare const CodeSurfaceWrapButton: React.FC<{ "aria-label": string; title?: string }>; // 原 _k（48774）
-declare const CodeSurfaceCopyButton: React.FC<{ "aria-label": string; title?: string }>; // 原 vk（48823）
+import { CodeSurface, CodeSurfaceHeader, CodeSurfaceTitle, CodeSurfaceActions, CodeSurfaceWrapButton, CodeSurfaceCopyButton } from './CodeSurfaceBlocks'; // 原 gk/pk/mk/hk/_k/vk（B14：代码面族 48572–48872 逐字实体化，declare→import 收敛）
 
 /* ── Automation 工具视图族（styles 107520–107720） ── */
 function AutomationToolView(e: any) {

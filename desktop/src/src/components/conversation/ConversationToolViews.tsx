@@ -21,10 +21,12 @@ import {
 /* ── tombstone〔A1-P1-B13〕：McpToolBlocks 导入块删除——唯一消费面手写 AutomationToolView 已墓碑，
  * 束真身改经 ./AutomationViewBlocks 叶内 import 消费（B11 叶不动）。 ── */
 import { hashToAgentPaletteColor } from './ShellCommandBlocks'; // 〔A1-P1-B11〕AgentToolView 调色板兜底链尾（原 Xft，styles 105186）
+import { CodeSurfaceCard } from './CodeSurfaceBlocks'; // 〔A1-P1-B14〕原 w$（styles 107180）：手写 CodeSurface declare 五 prop（cardSurface/copyLabel/wrapLabel/eagerLayout/label）之束真身卡面包装体
 import type { ToolCall, ToolCallNode, ToolDisplayModel, OpenCodeViewerFn, ToolCallViewProps, FileSummary, PlatformService } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）；PlatformService 留守 shim（§5/§6 共用）
 
-/** 图标 */
-declare const IconQuestion: React.FC<React.SVGProps<SVGSVGElement>>; // vye
+/* ── tombstone〔A1-P1-B14〕：declare IconQuestion（vye）删除——唯一消费面手写 AskUserQuestionToolView 之
+ * ASK_QUESTION_ICON 已墓碑；束真身 Nht@109010 = (0, $.jsx)(vye, …)，vye=Sa('circle-question-mark')@26907
+ * （lucide CircleQuestionMark）已逐字实体化于 ./TodoToolBlocks。 ── */
 
 /** ToolCallBlock（原 K$，Conversation.tsx §4 已还原） */
 /** 展开区通用内容（原 oQ：输入/输出/错误/子工具列表） */
@@ -48,28 +50,11 @@ declare const SnapshotRefsLoader: React.FC<{
 /** 错误面（原 aQ） */
 declare const ToolErrorSurface: React.FC<{ errorText?: string | null; [key: string]: unknown }>;
 
-/** 代码面（shiki 封装，原 w$/gk 族） */
-declare const CodeSurface: React.FC<{
-  cardSurface?: boolean;
-  code: string;
-  copyLabel?: string;
-  wrapLabel?: string;
-  eagerLayout?: boolean;
-  label?: React.ReactNode;
-  language?: string;
-  appTheme?: string;
-  className?: string;
-  enableSyntaxHighlighting?: boolean;
-  renderMermaid?: boolean;
-  style?: unknown;
-  wrapLongLines?: boolean;
-  children?: React.ReactNode;
-}>;
-declare const CodeSurfaceHeader: React.FC<{ className?: string; children?: React.ReactNode }>;
-declare const CodeSurfaceTitle: React.FC<{ children?: React.ReactNode }>;
-declare const CodeSurfaceActions: React.FC<{ children?: React.ReactNode }>;
-declare const CodeSurfaceWrapButton: React.FC<{ "aria-label": string; title?: string }>;
-declare const CodeSurfaceCopyButton: React.FC<{ "aria-label": string; title?: string }>;
+/* ── tombstone〔A1-P1-B14〕：代码面六 declare（CodeSurface/Header/Title/Actions/WrapButton/CopyButton，
+ * 原 gk/pk/mk/hk/_k/vk）删除——束真身已逐字实体化于 ./CodeSurfaceBlocks（styles 48572–48872）。
+ * 手写 CodeSurface declare 之 cardSurface/copyLabel/wrapLabel/eagerLayout/label 五 prop 为 A0 期近似：
+ * 束真身该型面 = w$@107180 CodeSurfaceCard（卡面包装体，同叶实体化），手写 NodeReplToolView 三处调用面
+ * 改指 CodeSurfaceCard（prop 面逐字吻合）。 ── */
 /** 文件图标/路径助手（原 Vc/zc/Hc/Go） */
 declare const FileIcon: React.FC<{ src: string; size?: number; className?: string }>;
 declare function resolveFileIconMeta(path: string, options?: { basePath?: string }): { fileIconSrc: string };
@@ -1422,7 +1407,7 @@ export function NodeReplToolView(props: ToolCallViewProps) {
           </p>
         ) : model.resultText ? (
           <div className="max-h-72 overflow-auto rounded-xl border border-border bg-card" data-testid="node-repl-result-surface">
-            <CodeSurface
+            <CodeSurfaceCard
               cardSurface
               code={model.resultText}
               copyLabel={copyResultLabel}
@@ -1467,12 +1452,12 @@ export function NodeReplToolView(props: ToolCallViewProps) {
               <div className="space-y-2 pt-2">
                 {model.code ? (
                   <div className="max-h-72 overflow-auto rounded-xl border border-border bg-card" data-testid="node-repl-detail-surface">
-                    <CodeSurface cardSurface code={model.code} copyLabel={copyDetailsLabel} eagerLayout label={detailContentLabel} language="javascript" wrapLabel={wrapLabel} />
+                    <CodeSurfaceCard cardSurface code={model.code} copyLabel={copyDetailsLabel} eagerLayout label={detailContentLabel} language="javascript" wrapLabel={wrapLabel} />
                   </div>
                 ) : null}
                 {model.error?.stack ? (
                   <div className="max-h-72 overflow-auto rounded-xl border border-border bg-card" data-testid="node-repl-detail-surface">
-                    <CodeSurface cardSurface code={model.error.stack} copyLabel={copyDetailsLabel} eagerLayout label={technicalLabel} language="log" wrapLabel={wrapLabel} />
+                    <CodeSurfaceCard cardSurface code={model.error.stack} copyLabel={copyDetailsLabel} eagerLayout label={technicalLabel} language="log" wrapLabel={wrapLabel} />
                   </div>
                 ) : null}
               </div>
@@ -1655,142 +1640,26 @@ export function SwitchModeToolView(props: ToolCallViewProps) {
  * ./TaskToolBlocks。消费面改文件头转导出，调用面（ToolCallBlock 419 派发）逐字不变。
  * F$ 跨族共享披露：normalizeTaskOutputRaw 同被 RespondToCoordinator/SendMessage 族消费，留批经本叶 import 收敛。 ── */
 
-/* ---- 原 Mht（108857 / 93007）：TodoToolView ---- */
+/* ── tombstone〔A1-P1-B14〕：Todo 四 declare（extractTodoItems/TodoStatusIcon/TODO_STATUS_CLASSES/
+ * IconListTodoLike）+ TodoItem 接口 + TODO_TOOL_ICON 手写 const + 手写 TodoToolView（约 76 行）删除——
+ * 束真身 Oht/kht/Aht/jht/Mht@108885–109009 全闭包（含 Gye=Sa('list-todo')@27341 图标 + I_/C_/z_ 状态图标）
+ * 已逐字实体化于 ./TodoToolBlocks。消费面改文件尾转导出，调用面（ToolCallBlock 413 派发）逐字不变。
+ * 束真身更正披露：手写期 declare 面 ti/Kne 近似签名 → 束真身 Aht = ti({title,kind,output}) ?? Kne({title,
+ * kind,input})（src-HCld2afU.js 导出 d/u = SrcSharedB extractTodosFromToolOutput/extractTodosFromToolInput）。 ── */
 
-interface TodoItem { id: string; title: string; status: string }
-/** 原 Aht：todo 列表抽取 */
-declare function extractTodoItems(props: ToolCallViewProps): TodoItem[] | null;
-/** 原 jht/kht：状态图标/状态类名 */
-declare const TodoStatusIcon: React.FC<{ status: string }>;
-declare const TODO_STATUS_CLASSES: Record<string, string>;
-const TODO_TOOL_ICON = <IconListTodoLike className="size-4 shrink-0 text-foreground-subtle" />;
-declare const IconListTodoLike: React.FC<React.SVGProps<SVGSVGElement>>; // Oht
-
-export function TodoToolView(props: ToolCallViewProps) {
-  const { intl } = useIntlContext();
-  const { toolCall } = props.toolCallNode;
-  const items = extractTodoItems(props);
-  const completedCount = items?.filter((item) => item.status === "completed").length ?? 0;
-  const current = items?.find((item) => item.status === "in_progress") ?? items?.find((item) => item.status !== "completed") ?? items?.at(-1);
-  const kindLabel = intl.formatMessage({ id: "todo.panel.title" });
-  const primaryLabel = current?.title ?? toolCall.title ?? intl.formatMessage({ id: "todo.panel.currentTask" });
-  const counter = items ? `${completedCount}/${items.length}` : props.statusLabel;
-  const primaryText = React.useMemo(() => <span className="min-w-0 truncate text-foreground-subtlest">{primaryLabel}</span>, [primaryLabel]);
-  const secondaryText = React.useMemo(() => <span className="shrink-0 font-mono text-ui-base text-foreground-subtlest">{counter}</span>, [counter]);
-  const loadFull = props.onLoadFullToolCallFields;
-  const renderContent = React.useCallback(
-    () =>
-      items ? (
-        <div className="space-y-1 rounded-xl bg-surface px-3 py-2">
-          {items.map((item) => (
-            <div key={item.id} className="flex min-w-0 items-center gap-2 py-1">
-              <TodoStatusIcon status={item.status} />
-              <span className={cn("min-w-0 break-words text-ui-base", TODO_STATUS_CLASSES[item.status])}>{item.title}</span>
-            </div>
-          ))}
-          <SnapshotRefsLoader refs={toolCall.snapshotRefs ?? []} onLoadFullToolCallFields={loadFull ? () => loadFull(toolCall.toolId) : undefined} />
-        </div>
-      ) : (
-        <>
-          <ToolCallExpandedContent
-            childToolList={props.childToolList}
-            displayModel={props.displayModel}
-            toolCall={toolCall}
-            workspacePath={props.workspacePath}
-            theme={props.theme}
-            codePreviewSettings={props.codePreviewSettings}
-            onOpenCodeViewer={props.onOpenCodeViewer}
-            onOpenFileLink={props.onOpenFileLink}
-            onOpenBrowserUrl={props.onOpenBrowserUrl}
-          />
-          <SnapshotRefsLoader refs={toolCall.snapshotRefs ?? []} onLoadFullToolCallFields={loadFull ? () => loadFull(toolCall.toolId) : undefined} />
-        </>
-      ),
-    [props.childToolList, props.codePreviewSettings, props.displayModel, props.onOpenBrowserUrl, props.onOpenCodeViewer, props.onOpenFileLink, props.theme, props.workspacePath, loadFull, items, toolCall],
-  );
-  return (
-    <ToolLayout
-      toolId={toolCall.toolId}
-      icon={TODO_TOOL_ICON}
-      showIcon={props.showIcon !== false}
-      canToggle={props.canToggle ?? true}
-      forceOpen={props.forceOpen ?? false}
-      kindLabel={kindLabel}
-      sourceLabel={props.sourceLabel}
-      primaryText={primaryText}
-      secondaryText={secondaryText}
-      statusLabel={toolCall.status === "failed" ? props.statusLabel : undefined}
-      statusTooltip={toolCall.status === "failed" ? props.errorText : undefined}
-      showFailureStatus={toolCall.status === "failed"}
-      isRunning={props.isRunning}
-      title={toolCall.title}
-      renderContent={renderContent}
-    />
-  );
-}
-
-/* ---- 原 Pht（108963 / 93067）：AskUserQuestionToolView ---- */
-
-interface AskQuestionModel { questions: Array<{ id: string; question: string; options?: unknown[] }> ; answers?: Record<string, unknown> }
-/** 原 eg/$h：toolCall → 问题模型归一 */
-declare function normalizeAskQuestions(toolCall: ToolCall): AskQuestionModel;
-/** 原 Ume：已答载荷抽取 */
-declare function extractAnswers(toolCall: ToolCall): Record<string, unknown> | undefined;
-/** 原 Wme：单题答案展示文本 */
-declare function formatAnswerText(question: { id: string; question: string }, answers: Record<string, unknown> | undefined, fallback: string): string;
-const ASK_QUESTION_ICON = <IconQuestion className="size-4 shrink-0 text-foreground-subtle" />;
-
-export function AskUserQuestionToolView(props: ToolCallViewProps) {
-  const { intl } = useIntlContext();
-  const { toolCallNode, isRunning, statusLabel, errorText } = props;
-  const { toolCall } = toolCallNode;
-  const model = normalizeAskQuestions(toolCall);
-  const answers = extractAnswers(toolCall) ?? model.answers;
-  const autoContinued = !isRunning && toolCall.status !== "failed" && answers !== undefined && Object.keys(answers).length === 0;
-  const emptyLabel = intl.formatMessage({ id: autoContinued ? "chat.askQuestion.autoContinued" : "chat.askQuestion.noAnswerProvided" });
-  const questionCount = model.questions.length;
-  const failed = toolCall.status === "failed";
-  const renderContent = React.useCallback(
-    () =>
-      !isRunning || failed ? (
-        <div className="ml-2 space-y-2 border-l border-border pl-3.5">
-          {model.questions.map((question) => (
-            <div key={question.id} className="space-y-1">
-              <p className="text-ui-base font-medium leading-5 text-foreground">{question.question}</p>
-              <p className="text-ui-base leading-5 text-foreground-subtle">{formatAnswerText(question, answers, emptyLabel)}</p>
-            </div>
-          ))}
-          {model.questions.length === 0 ? <p className="text-ui-base leading-5 text-foreground-subtle">{emptyLabel}</p> : null}
-        </div>
-      ) : null,
-    [answers, model.questions, failed, isRunning, emptyLabel],
-  );
-  return (
-    <>
-      <ToolLayout
-        toolId={toolCall.toolId}
-        icon={ASK_QUESTION_ICON}
-        showIcon={props.showIcon !== false}
-        canToggle={!isRunning}
-        forceOpen={false}
-        autoOpen={false}
-        kindLabel={intl.formatMessage({ id: isRunning ? "chat.askQuestion.asking" : "chat.askQuestion.asked" })}
-        sourceLabel={props.sourceLabel}
-        primaryText={null}
-        secondaryText={isRunning ? null : autoContinued ? emptyLabel : intl.formatMessage({ id: "chat.askQuestion.questionsCount" }, { count: String(questionCount) })}
-        statusLabel={failed ? statusLabel : undefined}
-        statusTooltip={failed ? errorText : undefined}
-        showFailureStatus={failed}
-        isRunning={isRunning}
-        title={toolCall.title ?? "AskUserQuestion"}
-        renderContent={renderContent}
-      />
-    </>
-  );
-}
+/* ── tombstone〔A1-P1-B14〕：AskUserQuestion 三 declare（normalizeAskQuestions/extractAnswers/
+ * formatAnswerText）+ AskQuestionModel 接口 + ASK_QUESTION_ICON 手写 const + IconQuestion declare +
+ * 手写 AskUserQuestionToolView（约 58 行）删除——束真身 Nht/Pht@109010–109083 全闭包（含
+ * vye=Sa('circle-question-mark')@26907 图标）已逐字实体化于 ./TodoToolBlocks。消费面改文件尾转导出，
+ * 调用面（ToolCallBlock 415 派发）逐字不变。$h/eg/Ume/Wme 归一域（22980–23040）未实体化 → 新叶叶内
+ * declare（跨域判例，同 B13 CodeSurface 族）。 ── */
 
 /* ── 〔A1-P1-B13〕四族束真身转导出（ConversationLeaves 导入面不变）── */
 export { AutomationToolView } from './AutomationViewBlocks'; // 原 Wmt（107520）
 export { SessionContextToolView } from './SessionToolBlocks'; // 原 eht（107883）
 export { SkillToolView } from './SkillToolBlocks'; // 原 mht（108357）
 export { TaskOutputToolView, TaskControlToolView } from './TaskToolBlocks'; // 原 Sht（108629）/ Dht（108776）
+
+/* ── 〔A1-P1-B14〕message/Todo/Ask 三族束真身转导出（ConversationLeaves 导入面扩充同批）── */
+export { RespondToCoordinatorToolView, SendMessageToolView } from './MessageToolBlocks'; // 原 aht（108091）/ uht（108195）
+export { TodoToolView, AskUserQuestionToolView } from './TodoToolBlocks'; // 原 Mht（108905）/ Pht（109011）

@@ -435,6 +435,8 @@ export {
   TaskControlToolView,
   TodoToolView,
   AskUserQuestionToolView,
+  RespondToCoordinatorToolView, // 〔A1-P1-B14〕message 族 aht（108091）——CTV 转导出 ./MessageToolBlocks
+  SendMessageToolView, // 〔A1-P1-B14〕message 族 uht（108195）——CTV 转导出 ./MessageToolBlocks
 } from '../components/conversation/ConversationToolViews';
 
 export {
