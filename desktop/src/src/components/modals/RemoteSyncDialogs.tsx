@@ -13,13 +13,18 @@ import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原
 import { IconChevronDown, IconCloudUpload, IconCircleAlert, IconCircleCheck, IconCircleStop, IconCircleX, IconCable, IconPuzzle } from '../../modules/Modals'; // §0 图标常量（createLucideIcon 产物）留存 shim
 
 /* ============================================================================
- * 2. 远程同步对话框子族（原 r4 分派 + ZEt/lDt/XDt 三对话框，js 124995-127332）
+ * 2. 远程同步对话框子族（原 r4 分派 + ZEt/lDt/XDt 三对话框，styles 125012-127349）
+ * 〔A1-R51〕全族行号纠偏：本节及诸区段 banner「js」行号注记系 A0 期旧口径，较真相源
+ *    styles-CdEGpc2x.js 系统性 −17 漂移，机械批纠为 styles 真值（+17）；77 混淆名逐名
+ *    对 bundle 定义行实证（抽样行依据见 A1-R51.report.md §三）。族界 125012–127349
+ *    = 旧注 124995–127332 +17（zEt@125012 起、族尾 127349 止，R50 既验）。
+ *    $2/q2 二件 R50 先纠（styles 127142/125207），其纠偏注记所引旧号为史料。
  * ----------------------------------------------------------------------------
  * 菜单项 n4 已在 TopBar.tsx（RemoteSyncMenuItems）。本节含：preflight 助手、
  * 「同步到远端」下拉按钮 $Dt、分派器 r4、技能/MCP/插件三个同步对话框全量。
  * ==========================================================================*/
 
-/** 原 ZDt/QDt（js 127114-127121 / jsx 107547） */
+/** 原 ZDt/QDt（styles 127131-127138 / jsx 107547） */
 const REMOTE_SYNC_PREFLIGHT_TIMEOUT_MS = 15000;
 class RemoteSyncPreflightTimeoutError extends Error {
   timeoutMs: number;
@@ -29,7 +34,7 @@ class RemoteSyncPreflightTimeoutError extends Error {
     this.name = `RemoteSyncPreflightTimeoutError`;
   }
 }
-/** 原 Q2（js 127122 / jsx 107553） */
+/** 原 Q2（styles 127139 / jsx 107553） */
 function isRemoteSyncPreflightTimeoutError(e: unknown): e is RemoteSyncPreflightTimeoutError {
   return e instanceof RemoteSyncPreflightTimeoutError;
 }
@@ -51,11 +56,11 @@ export function canOpenRemoteSessionSourceCheck(e: {
         (e.remoteTarget?.kind === `ssh` || e.remoteTarget?.kind === `wsl`)
       );
 }
-/** 原 e4（js 127133 / jsx 107559） */
+/** 原 e4（styles 127150 / jsx 107559） */
 function canSubmitRemoteSync(e: { inFlight: boolean; selectedCount: number }): boolean {
   return !e.inFlight && e.selectedCount > 0;
 }
-/** 原 t4（js 127136-127148 / jsx 107562）：preflight 15s 超时竞速 */
+/** 原 t4（styles 127153-127165 / jsx 107562）：preflight 15s 超时竞速 */
 async function withRemoteSyncPreflightTimeout<T>(
   run: () => Promise<T>,
   timeoutMs: number = REMOTE_SYNC_PREFLIGHT_TIMEOUT_MS,
@@ -95,7 +100,7 @@ export function remoteSyncTargetLabel(target: RemoteTarget, workspacePath?: stri
   return workspacePath ? `${label} · ${workspacePath}` : label;
 }
 
-/** 原 $Dt（js 127201-127247 / jsx 107599）：「同步到远端」下拉按钮（设置分区用） */
+/** 原 $Dt（styles 127218-127264 / jsx 107599）：「同步到远端」下拉按钮（设置分区用） */
 export function RemoteSyncDropdownButton({
   canSyncSkills,
   canSyncMcp,
@@ -155,13 +160,13 @@ declare const RemoteSyncMenuItemsInner: React.FC<{
 }>;
 
 /* ----------------------------------------------------------------------------
- * 2.1 技能同步对话框（原 ZEt，js 125271-125470 / jsx 106355）
+ * 2.1 技能同步对话框（原 ZEt，styles 125288-125487 / jsx 106355）
  * --------------------------------------------------------------------------*/
 
-/** 原 zEt（js 124995 / jsx 106207）：技能卡内自行处理点击的元素白名单 */
+/** 原 zEt（styles 125012 / jsx 106207）：技能卡内自行处理点击的元素白名单 */
 const SKILL_SYNC_ACTION_SELECTOR = `button,input,a,textarea,select,label,[data-remote-skill-sync-card-action]`;
 
-/** 原 BEt（js 124996-125000 / jsx 106208） */
+/** 原 BEt（styles 125013-125017 / jsx 106208） */
 function shouldHandleSkillCardClick({ exists, target }: { exists: boolean; target: EventTarget | null }): boolean {
   if (exists) return false;
   const closest = (target as { closest?: (sel: string) => unknown } | null)?.closest;
@@ -179,7 +184,7 @@ interface SkillSyncRow {
   exists: boolean;
 }
 
-/** 原 WEt（js 125180 / jsx 106280） */
+/** 原 WEt（styles 125197 / jsx 106280） */
 function mergeSkillRows(
   candidates: SkillCandidate[],
   statuses: Array<{ directoryName: string; exists?: boolean }>,
@@ -187,16 +192,16 @@ function mergeSkillRows(
   const byName = new Map(statuses.map((s): [string, (typeof statuses)[number]] => [s.directoryName, s]));
   return candidates.map((candidate) => ({ candidate, exists: byName.get(candidate.directoryName)?.exists ?? false }));
 }
-/** 原 GEt（js 125184 / jsx 106287） */
+/** 原 GEt（styles 125201 / jsx 106287） */
 function defaultSkillSelection(rows: SkillSyncRow[]): Set<string> {
   return new Set(rows.filter((r) => !r.exists).map((r) => r.candidate.id));
 }
-/** 原 KEt（js 125187 / jsx 106290） */
+/** 原 KEt（styles 125204 / jsx 106290） */
 function filterSkillRows(rows: SkillSyncRow[], showExisting: boolean): SkillSyncRow[] {
   return showExisting ? [...rows] : rows.filter((r) => !r.exists);
 }
 
-/** 原 VEt（js 125001-125106 / jsx 106216）：技能选择行列表 */
+/** 原 VEt（styles 125018-125123 / jsx 106216）：技能选择行列表 */
 function SkillSyncRowList({
   rows,
   selectedIds,
@@ -293,7 +298,7 @@ function SkillSyncRowList({
   );
 }
 
-/** 原 HEt（js 125107-125150 / jsx 106254）：技能同步结果视图 */
+/** 原 HEt（styles 125124-125167 / jsx 106254）：技能同步结果视图 */
 function SkillSyncResultView({ result }: { result: { results: Array<{ name: string; directoryName: string; status: string; error?: string }> } | null }) {
   const { intl } = useIntlContext();
   return result ? (
@@ -316,7 +321,7 @@ function SkillSyncResultView({ result }: { result: { results: Array<{ name: stri
   ) : null;
 }
 
-/** 原 UEt（js 125151-125179 / jsx 106266）：技能同步标题 + 警告 tooltip */
+/** 原 UEt（styles 125168-125196 / jsx 106266）：技能同步标题 + 警告 tooltip */
 function SkillSyncTitle() {
   const { intl } = useIntlContext();
   const [warningOpen, setWarningOpen] = React.useState(false);
@@ -345,7 +350,7 @@ function SkillSyncTitle() {
   );
 }
 
-/** 原 qEt（js 125199-125201 / jsx 106297） */
+/** 原 qEt（styles 125216-125218 / jsx 106297） */
 function resolveSelectAllState({ selectedCount, totalSelectable }: { selectedCount: number; totalSelectable: number }) {
   return {
     checked: totalSelectable > 0 && selectedCount >= totalSelectable,
@@ -353,7 +358,7 @@ function resolveSelectAllState({ selectedCount, totalSelectable }: { selectedCou
     indeterminate: totalSelectable > 0 && selectedCount > 0 && selectedCount < totalSelectable,
   };
 }
-/** 原 JEt（js 125202-125218 / jsx 106307） */
+/** 原 JEt（styles 125219-125235 / jsx 106307） */
 function SkillSyncShowExisting({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (v: boolean) => void }) {
   const { intl } = useIntlContext();
   return (
@@ -363,7 +368,7 @@ function SkillSyncShowExisting({ checked, onCheckedChange }: { checked: boolean;
     </label>
   );
 }
-/** 原 YEt（js 125219-125241 / jsx 106318） */
+/** 原 YEt（styles 125236-125258 / jsx 106318） */
 function SkillSyncHeader({
   targetLabel,
   showExistingRemoteSkills,
@@ -389,7 +394,7 @@ function SkillSyncHeader({
     </div>
   );
 }
-/** 原 XEt（js 125242-125270 / jsx 106333）：全选（indeterminate 三态） */
+/** 原 XEt（styles 125259-125287 / jsx 106333）：全选（indeterminate 三态） */
 function SkillSyncSelectAll({
   selectedCount,
   totalSelectable,
@@ -443,7 +448,7 @@ interface RemoteSkillSyncService {
   }>;
 }
 
-/** 原 ZEt（js 125271-125470 / jsx 106355）：技能同步对话框 */
+/** 原 ZEt（styles 125288-125487 / jsx 106355）：技能同步对话框 */
 function SkillSyncDialog(props: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -643,7 +648,7 @@ function SkillSyncDialog(props: {
 type SyncPhase = "loading" | "selection" | "preflighting" | "syncing" | "complete";
 
 /* ----------------------------------------------------------------------------
- * 2.2 MCP 同步对话框（原 lDt，js 125728-125933 / jsx 106590；助手 125471-125727）
+ * 2.2 MCP 同步对话框（原 lDt，styles 125745-125950 / jsx 106590；助手 125488-125744）
  * --------------------------------------------------------------------------*/
 
 interface McpCandidate {
@@ -658,7 +663,7 @@ interface McpSyncRow {
   exists: boolean;
 }
 
-/** 原 QEt（js 125471 / jsx 106467） */
+/** 原 QEt（styles 125488 / jsx 106467） */
 function mergeMcpRows(
   candidates: McpCandidate[],
   statuses: Array<{ name: string; exists?: boolean }>,
@@ -666,15 +671,15 @@ function mergeMcpRows(
   const byName = new Map(statuses.map((s): [string, (typeof statuses)[number]] => [s.name, s]));
   return candidates.map((candidate) => ({ candidate, exists: byName.get(candidate.name)?.exists ?? false }));
 }
-/** 原 $Et（js 125475 / jsx 106474） */
+/** 原 $Et（styles 125492 / jsx 106474） */
 function defaultMcpSelection(rows: McpSyncRow[]): Set<string> {
   return new Set(rows.filter((r) => !r.exists).map((r) => r.candidate.id));
 }
-/** 原 eDt（js 125478 / jsx 106477） */
+/** 原 eDt（styles 125495 / jsx 106477） */
 function filterMcpRows(rows: McpSyncRow[], showExisting: boolean): McpSyncRow[] {
   return showExisting ? [...rows] : rows.filter((r) => !r.exists);
 }
-/** 原 tDt（js 125481-125489 / jsx 106480）：导入载荷（overwrite 恒 false） */
+/** 原 tDt（styles 125498-125506 / jsx 106480）：导入载荷（overwrite 恒 false） */
 function buildMcpImportPayload(e: {
   exported: { servers: unknown; localHomeDir?: string };
   localHomeDir: string;
@@ -689,7 +694,7 @@ function buildMcpImportPayload(e: {
     overwrite: false,
   };
 }
-/** 原 nDt（js 125490-125498 / jsx 106489）：type→command/stdio→url/http 推断 */
+/** 原 nDt（styles 125507-125515 / jsx 106489）：type→command/stdio→url/http 推断 */
 function resolveMcpServerKind(config: Record<string, unknown>): string {
   return typeof config.type == `string` && config.type.trim()
     ? (config.type as string).trim()
@@ -700,7 +705,7 @@ function resolveMcpServerKind(config: Record<string, unknown>): string {
         : `unknown`;
 }
 
-/** 原 rDt（js 125499-125527 / jsx 106492）：MCP 同步标题 + 警告 tooltip */
+/** 原 rDt（styles 125516-125544 / jsx 106492）：MCP 同步标题 + 警告 tooltip */
 function McpSyncTitle() {
   const { intl } = useIntlContext();
   const [warningOpen, setWarningOpen] = React.useState(false);
@@ -728,7 +733,7 @@ function McpSyncTitle() {
     </DialogTitle>
   );
 }
-/** 原 iDt（js 125528-125544 / jsx 106506） */
+/** 原 iDt（styles 125545-125561 / jsx 106506） */
 function McpSyncShowExisting({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (v: boolean) => void }) {
   const { intl } = useIntlContext();
   return (
@@ -738,7 +743,7 @@ function McpSyncShowExisting({ checked, onCheckedChange }: { checked: boolean; o
     </label>
   );
 }
-/** 原 aDt（js 125545-125567 / jsx 106517） */
+/** 原 aDt（styles 125562-125584 / jsx 106517） */
 function McpSyncHeader({
   targetLabel,
   showExistingRemoteMcp,
@@ -764,7 +769,7 @@ function McpSyncHeader({
     </div>
   );
 }
-/** 原 oDt（js 125568-125598 / jsx 106535） */
+/** 原 oDt（styles 125585-125615 / jsx 106535） */
 function McpSyncSelectAll({
   selectedCount,
   totalSelectable,
@@ -805,7 +810,7 @@ function McpSyncSelectAll({
   );
 }
 
-/** 原 sDt（js 125599-125677 / jsx 106556）：MCP 选择行列表 */
+/** 原 sDt（styles 125616-125694 / jsx 106556）：MCP 选择行列表 */
 function McpSyncRowList({
   rows,
   selectedIds,
@@ -869,7 +874,7 @@ function McpSyncRowList({
   );
 }
 
-/** 原 cDt（js 125678-125727 / jsx 106577）：MCP 同步结果视图 */
+/** 原 cDt（styles 125695-125744 / jsx 106577）：MCP 同步结果视图 */
 function McpSyncResultView({
   result,
 }: {
@@ -916,7 +921,7 @@ interface RemoteMcpSyncService {
   }>;
 }
 
-/** 原 lDt（js 125728-125933 / jsx 106590）：MCP 同步对话框 */
+/** 原 lDt（styles 125745-125950 / jsx 106590）：MCP 同步对话框 */
 function McpSyncDialog(props: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -1124,10 +1129,10 @@ function McpSyncDialog(props: {
 }
 
 /* ----------------------------------------------------------------------------
- * 2.3 插件同步对话框（原 XDt，js 126826-127113 / jsx 107373；数据层 125934-126825）
+ * 2.3 插件同步对话框（原 XDt，styles 126843-127130 / jsx 107373；数据层 125951-126842）
  * --------------------------------------------------------------------------*/
 
-/** 原 J2（js 125934-125941 / jsx 106719） */
+/** 原 J2（styles 125951-125958 / jsx 106719） */
 class RemotePluginSyncStoppedError extends Error {
   row: PluginSyncRow;
   constructor(row: PluginSyncRow) {
@@ -1137,9 +1142,9 @@ class RemotePluginSyncStoppedError extends Error {
   }
 }
 
-/** 原 uDt（js 125941 / jsx 106724） */
+/** 原 uDt（styles 125958 / jsx 106724） */
 let pluginSyncLogIdCounter = 0;
-/** 原 dDt（js 125942-125946 / jsx 106725） */
+/** 原 dDt（styles 125959-125963 / jsx 106725） */
 function makePluginSyncLogId(row: PluginSyncRow): string {
   pluginSyncLogIdCounter += 1;
   const slug = row.candidate.pluginId.replace(/[^a-z0-9._-]+/giu, `-`);
@@ -1206,7 +1211,7 @@ interface PluginSyncResultItem {
   path?: string;
 }
 
-/** 原 fDt（js 125947-125961 / jsx 106730）：本地用户插件 → inline 候选 */
+/** 原 fDt（styles 125964-125978 / jsx 106730）：本地用户插件 → inline 候选 */
 function toInlinePluginCandidate(e: InlinePluginCandidate): PluginCandidate {
   return {
     id: `inline:${e.id}`,
@@ -1222,11 +1227,11 @@ function toInlinePluginCandidate(e: InlinePluginCandidate): PluginCandidate {
     inlineCandidate: e,
   };
 }
-/** 原 pDt（js 125962 / jsx 106748） */
+/** 原 pDt（styles 125979 / jsx 106748） */
 function pluginStatusKey(pluginId: string, directoryName: string): string {
   return `${pluginId.toLowerCase()}\u0000${directoryName}`;
 }
-/** 原 mDt（js 125965-125979 / jsx 106752） */
+/** 原 mDt（styles 125982-125996 / jsx 106752） */
 function mergeInlinePluginRows(
   candidates: InlinePluginCandidate[],
   statuses: Array<{ pluginId: string; directoryName: string; exists?: boolean; path?: string; reason?: string }>,
@@ -1247,7 +1252,7 @@ function mergeInlinePluginRows(
     }),
   );
 }
-/** 原 hDt（js 125980-125994 / jsx 106768） */
+/** 原 hDt（styles 125997-126011 / jsx 106768） */
 function mergePluginRows(
   candidates: PluginCandidate[],
   statuses: Array<{
@@ -1270,23 +1275,23 @@ function mergePluginRows(
     };
   });
 }
-/** 原 gDt（js 125995 / jsx 106787） */
+/** 原 gDt（styles 126012 / jsx 106787） */
 function defaultPluginSelection(rows: PluginSyncRow[]): Set<string> {
   return new Set(rows.filter((r) => !r.exists).map((r) => r.candidate.id));
 }
-/** 原 _Dt（js 125998 / jsx 106790） */
+/** 原 _Dt（styles 126015 / jsx 106790） */
 function filterPluginRows(rows: PluginSyncRow[], showExisting: boolean): PluginSyncRow[] {
   return showExisting ? [...rows] : rows.filter((r) => !r.exists);
 }
-/** 原 vDt（js 126001 / jsx 106793）：preflighting/syncing 期间禁止关闭 */
+/** 原 vDt（styles 126018 / jsx 106793）：preflighting/syncing 期间禁止关闭 */
 function canClosePluginSyncDialog(phase: SyncPhase, nextOpen: boolean): boolean {
   return nextOpen || (phase !== `preflighting` && phase !== `syncing`);
 }
-/** 原 xDt（js 126044 / jsx 106850） */
+/** 原 xDt（styles 126061 / jsx 106850） */
 function remoteComponentKinds(remote?: { components?: Array<{ kind: string }> }): string[] {
   return remote?.components?.map((c) => c.kind) ?? [];
 }
-/** 原 SDt（js 126047-126051 / jsx 106853） */
+/** 原 SDt（styles 126064-126068 / jsx 106853） */
 function extractPluginOptions(remote?: {
   configuredOptions?: Record<string, OptionSchema>;
   userConfig?: Record<string, unknown>;
@@ -1296,7 +1301,7 @@ function extractPluginOptions(remote?: {
     return { configuredOptions: { ...configured }, userConfig: { ...(remote?.userConfig ?? {}) } };
   return undefined;
 }
-/** 原 CDt（js 126052 / jsx 106864） */
+/** 原 CDt（styles 126069 / jsx 106864） */
 function attachPluginOptions(
   candidate: PluginCandidate,
   remote?: { pluginId?: string; configuredOptions?: Record<string, OptionSchema>; userConfig?: Record<string, unknown> },
@@ -1304,7 +1309,7 @@ function attachPluginOptions(
   const options = extractPluginOptions(remote);
   return options ? { ...candidate, pluginOptions: options } : candidate;
 }
-/** 原 wDt（js 126056 / jsx 106871） */
+/** 原 wDt（styles 126073 / jsx 106871） */
 function hydratePluginOptions(
   candidates: PluginCandidate[],
   remotes: Array<{
@@ -1318,7 +1323,7 @@ function hydratePluginOptions(
   const byId = new Map(remotes.map((r): [string, (typeof remotes)[number]] => [r.id, r]));
   return candidates.map((c) => attachPluginOptions(c, byId.get(c.pluginId)));
 }
-/** 原 yDt（js 126004-126029 / jsx 106796）：已装市场插件 → marketplace 候选 */
+/** 原 yDt（styles 126021-126046 / jsx 106796）：已装市场插件 → marketplace 候选 */
 function buildMarketplaceCandidates(
   overview: {
     marketplaces: Array<MarketplaceSource & { id: string }>;
@@ -1372,7 +1377,7 @@ function buildMarketplaceCandidates(
     };
   });
 }
-/** 原 bDt（js 126030-126043 / jsx 106832） */
+/** 原 bDt（styles 126047-126060 / jsx 106832） */
 function mapMarketplaceStatuses(
   candidates: PluginCandidate[],
   remote: {
@@ -1395,7 +1400,7 @@ function mapMarketplaceStatuses(
     };
   });
 }
-/** 原 TDt（js 126060-126069 / jsx 106875）：可移植/手动 选项计数 */
+/** 原 TDt（styles 126077-126086 / jsx 106875）：可移植/手动 选项计数 */
 function summarizePluginOptions(options: PluginOptionsPayload | undefined): {
   manualCount: number;
   syncableCount: number;
@@ -1412,7 +1417,7 @@ function summarizePluginOptions(options: PluginOptionsPayload | undefined): {
   }
   return { manualCount: manual, syncableCount: syncable };
 }
-/** 原 EDt（js 126070-126077 / jsx 106888） */
+/** 原 EDt（styles 126087-126094 / jsx 106888） */
 function marketplaceSourceInput(marketplace: MarketplaceSource): string | undefined {
   const source = marketplace.source;
   const sourceKind = typeof source.source == `string` ? source.source : ``;
@@ -1429,7 +1434,7 @@ interface MarketplaceSource {
   id?: string;
   source: { source?: string; ref?: string; repo?: string; url?: string; [key: string]: unknown };
 }
-/** 原 DDt（js 126078-126085 / jsx 106896） */
+/** 原 DDt（styles 126095-126102 / jsx 106896） */
 function marketplaceSourcePayload(
   marketplace: MarketplaceSource,
 ): { marketplaceSourceInput?: string; marketplaceSourceArchive?: { marketplaceId: string; source: unknown } } {
@@ -1488,7 +1493,7 @@ interface ZCodeAgentService {
   cancelPluginOperation?(args: { operationId: string }): Promise<void>;
 }
 
-/** 原 ODt（js 126086-126110 / jsx 106909）：inline + marketplace 候选与状态合并加载 */
+/** 原 ODt（styles 126103-126127 / jsx 106909）：inline + marketplace 候选与状态合并加载 */
 async function loadPluginSyncCandidates(e: PluginSyncServices): Promise<{
   candidates: PluginCandidate[];
   statuses: Array<{ candidateId: string; exists: boolean; path?: string; reason?: string; remoteMarketplaceExists?: boolean }>;
@@ -1520,11 +1525,11 @@ async function loadPluginSyncCandidates(e: PluginSyncServices): Promise<{
     statuses: [...inlineRows, ...mapMarketplaceStatuses(marketplaceCandidates, remoteOverview)],
   };
 }
-/** 原 kDt（js 126111 / jsx 106948） */
+/** 原 kDt（styles 126128 / jsx 106948） */
 function isPluginSyncStoppedError(e: unknown): e is RemotePluginSyncStoppedError {
   return e instanceof RemotePluginSyncStoppedError;
 }
-/** 原 ADt（js 126114-126125 / jsx 106951） */
+/** 原 ADt（styles 126131-126142 / jsx 106951） */
 function stoppedPluginResult(row: PluginSyncRow): PluginSyncResultItem {
   return {
     name: row.candidate.name,
@@ -1558,7 +1563,7 @@ interface PluginSyncProgressContext extends PluginSyncServices {
 interface PluginSyncContext extends PluginSyncProgressContext {
   rows: PluginSyncRow[];
 }
-/** 原 Y2（js 126126-126134 / jsx 106960） */
+/** 原 Y2（styles 126143-126151 / jsx 106960） */
 function emitPluginSyncProgress(
   ctx: PluginSyncProgressContext,
   row: PluginSyncRow,
@@ -1574,11 +1579,11 @@ function emitPluginSyncProgress(
     status,
   });
 }
-/** 原 X2（js 126135-126137 / jsx 106971） */
+/** 原 X2（styles 126152-126154 / jsx 106971） */
 function assertPluginSyncNotStopped(ctx: PluginSyncProgressContext, row: PluginSyncRow): void {
   if (ctx.stopControl?.isStopped(row.candidate.id)) throw new RemotePluginSyncStoppedError(row);
 }
-/** 原 Z2（js 126138-126166 / jsx 106974）：可停止的远端步骤竞速 */
+/** 原 Z2（styles 126155-126183 / jsx 106974）：可停止的远端步骤竞速 */
 async function runCancellableRemoteStep<T>(
   ctx: PluginSyncProgressContext,
   row: PluginSyncRow,
@@ -1614,12 +1619,12 @@ async function runCancellableRemoteStep<T>(
       ])
     : await operation;
 }
-/** 原 jDt（js 126167 / jsx 106992） */
+/** 原 jDt（styles 126184 / jsx 106992） */
 function isFileLikeOptionSchema(schema: OptionSchema | undefined): boolean {
   return schema?.type === `file` || schema?.type === `directory`;
 }
 /**
- * 原 MDt（js 126170-126180 / jsx 106995）。
+ * 原 MDt（styles 126187-126197 / jsx 106995）。
  * 原调用约定：MDt(value, localSchema, remoteSchema)——第 1 参为待校验值，
  * 第 2/3 参为本地/远端 option schema（含 type/sensitive）。
  */
@@ -1646,7 +1651,7 @@ function isPortableOptionValue(
         ? typeof value == `string`
         : typeof value == `string` || typeof value == `number` || typeof value == `boolean`;
 }
-/** 原 NDt（js 126181-126187 / jsx 107000） */
+/** 原 NDt（styles 126198-126204 / jsx 107000） */
 function pickPortableOptions(
   options: PluginOptionsPayload,
   remote: { userConfig?: Record<string, unknown> },
@@ -1666,12 +1671,12 @@ function pickPortableOptions(
     else skipped += 1;
   return { options: picked, skippedCount: skipped };
 }
-/** 原 PDt（js 126188-126191 / jsx 107009） */
+/** 原 PDt（styles 126205-126208 / jsx 107009） */
 function sameConfiguredOptions(previous: Record<string, unknown>, next: Record<string, unknown>): boolean {
   const entries = Object.entries(previous);
   return entries.length === Object.keys(next).length ? entries.every(([key, value]) => next[key] === value) : false;
 }
-/** 原 FDt（js 126192-126232 / jsx 107013）：可移植插件选项同步 */
+/** 原 FDt（styles 126209-126249 / jsx 107013）：可移植插件选项同步 */
 async function syncPluginOptions(ctx: PluginSyncProgressContext, row: PluginSyncRow): Promise<void> {
   const options = row.candidate.pluginOptions;
   if (!options || Object.keys(options.configuredOptions).length === 0) return;
@@ -1718,7 +1723,7 @@ async function syncPluginOptions(ctx: PluginSyncProgressContext, row: PluginSync
     () => remote.configurePlugin({ ...scope, options: merged, pluginId: row.candidate.pluginId }),
   );
 }
-/** 原 IDt（js 126233-126274 / jsx 107053）：先 inline 后 marketplace 的同步管线 */
+/** 原 IDt（styles 126250-126291 / jsx 107053）：先 inline 后 marketplace 的同步管线 */
 async function runPluginSyncPipeline(ctx: PluginSyncContext): Promise<{ results: PluginSyncResultItem[] }> {
   const results: PluginSyncResultItem[] = [];
   for (const row of ctx.rows) emitPluginSyncProgress(ctx, row, `queued`, `Queued plugin sync`);
@@ -1765,7 +1770,7 @@ async function runPluginSyncPipeline(ctx: PluginSyncContext): Promise<{ results:
       );
   return { results };
 }
-/** 原 RDt（js 126345-126354 / jsx 107150） */
+/** 原 RDt（styles 126362-126371 / jsx 107150） */
 function collectMarketplacePluginNames(rows: PluginSyncRow[]): Map<string, string[]> {
   const names = new Map<string, string[]>();
   for (const row of rows) {
@@ -1777,7 +1782,7 @@ function collectMarketplacePluginNames(rows: PluginSyncRow[]): Map<string, strin
   }
   return names;
 }
-/** 原 zDt（js 126355-126392 / jsx 107160）：远端市场源准备（input 直加 / 归档镜像） */
+/** 原 zDt（styles 126372-126409 / jsx 107160）：远端市场源准备（input 直加 / 归档镜像） */
 async function prepareMarketplaceSource(
   ctx: PluginSyncProgressContext,
   row: PluginSyncRow,
@@ -1822,7 +1827,7 @@ async function prepareMarketplaceSource(
     { cancellableRemoteOperation: true },
   );
 }
-/** 原 BDt（js 126393-126396 / jsx 107194） */
+/** 原 BDt（styles 126410-126413 / jsx 107194） */
 function formatInstallDiagnostics(
   diagnostics: Array<{ severity: string; pluginId?: string; message: string }>,
   pluginId: string,
@@ -1830,7 +1835,7 @@ function formatInstallDiagnostics(
   const blocking = diagnostics.filter((d) => d.severity !== `warning`);
   return blocking.length === 0 ? null : blocking.map((d) => `${d.pluginId ?? pluginId}: ${d.message}`).join(`; `);
 }
-/** 原 LDt（js 126275-126344 / jsx 107090）：marketplace 插件安装流 */
+/** 原 LDt（styles 126292-126361 / jsx 107090）：marketplace 插件安装流 */
 async function runMarketplacePluginSync(
   ctx: PluginSyncContext,
   row: PluginSyncRow,
@@ -1911,7 +1916,7 @@ async function runMarketplacePluginSync(
   }
 }
 
-/** 原 VDt（js 126397-126425 / jsx 107198）：插件同步标题 + 警告 tooltip */
+/** 原 VDt（styles 126414-126442 / jsx 107198）：插件同步标题 + 警告 tooltip */
 function PluginSyncTitle() {
   const { intl } = useIntlContext();
   const [warningOpen, setWarningOpen] = React.useState(false);
@@ -1939,7 +1944,7 @@ function PluginSyncTitle() {
     </DialogTitle>
   );
 }
-/** 原 HDt（js 126426-126442 / jsx 107212） */
+/** 原 HDt（styles 126443-126459 / jsx 107212） */
 function PluginSyncShowExisting({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (v: boolean) => void }) {
   const { intl } = useIntlContext();
   return (
@@ -1949,7 +1954,7 @@ function PluginSyncShowExisting({ checked, onCheckedChange }: { checked: boolean
     </label>
   );
 }
-/** 原 UDt（js 126443-126465 / jsx 107223） */
+/** 原 UDt（styles 126460-126482 / jsx 107223） */
 function PluginSyncHeader({
   targetLabel,
   showExistingRemotePlugins,
@@ -1975,7 +1980,7 @@ function PluginSyncHeader({
     </div>
   );
 }
-/** 原 WDt（js 126466-126496 / jsx 107238） */
+/** 原 WDt（styles 126483-126513 / jsx 107238） */
 function PluginSyncSelectAll({
   selectedCount,
   totalSelectable,
@@ -2016,7 +2021,7 @@ function PluginSyncSelectAll({
   );
 }
 
-/** 原 GDt（js 126497-126607 / jsx 107259）：插件选择行列表 */
+/** 原 GDt（styles 126514-126624 / jsx 107259）：插件选择行列表 */
 function PluginSyncRowList({
   rows,
   selectedIds,
@@ -2106,7 +2111,7 @@ function PluginSyncRowList({
 
 type PluginSyncStatus = "queued" | "syncing" | "synced" | "failed" | "stopped" | "skipped";
 
-/** 原 KDt（js 126608-126630 / jsx 107287）：状态徽章 */
+/** 原 KDt（styles 126625-126647 / jsx 107287）：状态徽章 */
 function PluginSyncStatusBadge({ status }: { status: PluginSyncStatus }) {
   const { intl } = useIntlContext();
   const label = intl.formatMessage({ id: `settings.plugins.remoteSync.${status}` });
@@ -2135,7 +2140,7 @@ function PluginSyncStatusBadge({ status }: { status: PluginSyncStatus }) {
   );
 }
 
-/** 原 qDt（js 126631-126666 / jsx 107302）：同步中日志 HoverCard tooltip */
+/** 原 qDt（styles 126648-126683 / jsx 107302）：同步中日志 HoverCard tooltip */
 function PluginSyncLogTooltip({ logs }: { logs: string[] }) {
   const { intl } = useIntlContext();
   const lines = logs.length > 0 ? logs : [`Queued plugin sync`];
@@ -2167,7 +2172,7 @@ function PluginSyncLogTooltip({ logs }: { logs: string[] }) {
   );
 }
 
-/** 原 JDt（js 126667-126778 / jsx 107329）：同步进行中的逐行进度列表（含停止按钮） */
+/** 原 JDt（styles 126684-126795 / jsx 107329）：同步进行中的逐行进度列表（含停止按钮） */
 function PluginSyncProgressList({
   progressById,
   rows,
@@ -2252,7 +2257,7 @@ function PluginSyncProgressList({
   );
 }
 
-/** 原 YDt（js 126779-126825 / jsx 107362）：插件同步结果视图 */
+/** 原 YDt（styles 126796-126842 / jsx 107362）：插件同步结果视图 */
 function PluginSyncResultView({ result }: { result: { results?: PluginSyncResultItem[] } | null }) {
   const { intl } = useIntlContext();
   const results = result?.results ?? [];
@@ -2281,7 +2286,7 @@ function PluginSyncResultView({ result }: { result: { results?: PluginSyncResult
   );
 }
 
-/** 原 XDt（js 126826-127113 / jsx 107373）：插件同步对话框 */
+/** 原 XDt（styles 126843-127130 / jsx 107373）：插件同步对话框 */
 function PluginSyncDialog(props: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -2571,7 +2576,7 @@ function PluginSyncDialog(props: {
 }
 
 /* ----------------------------------------------------------------------------
- * 2.4 分派器（原 r4，js 127248-127332 / jsx 107623）
+ * 2.4 分派器（原 r4，styles 127265-127349 / jsx 107623）
  * --------------------------------------------------------------------------*/
 
 /** 原 r4：按 canSync×open 三条件装配技能/MCP/插件三个同步对话框 */

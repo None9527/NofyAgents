@@ -226,7 +226,7 @@ import { countLineDiffChanges as countDiffLines } from '../../modules/SrcSharedB
 import { extractErrorMessage } from '../../modules/FeedbackCenter';
 import { isAbsolutePath, relativePathFromWorkspace as toRelativePath, useRemoteWorkspaceInfo as useWorkspaceRemoteInfo } from '../../modules/MarkdownIntegration'; // 原 Ko / zA / $A
 import { useSettingsStore as useSettingsSelector } from '../../modules/stores-core'; // 原 ko（zustand 设置 store）
-import { useServices, useTaskSessionFilePath, useTaskNativeSessionLogFile as useTaskNativeSessionLogFilePath } from '../../modules/services'; // 〔A1-R50〕+qge/Xge 两钩（原 useTaskNativeSessionLogFilePath/useTaskSessionFilePath 二 declare）：canonical = services/workspaceServiceHooks D.4（styles 24612/24686，A1-P2-B10 逐字），别名保留调用名，消费位逐字不变
+import { useServices, useTaskSessionFilePath, useTaskNativeSessionLogFile as useTaskNativeSessionLogFilePath, useWorkspaceProviderConfigFile as useProviderConfigFilePath } from '../../modules/services'; // 〔A1-R50〕+qge/Xge 两钩（原 useTaskNativeSessionLogFilePath/useTaskSessionFilePath 二 declare）：canonical = services/workspaceServiceHooks D.4（styles 24612/24686，A1-P2-B10 逐字），别名保留调用名，消费位逐字不变；〔A1-R51〕+wge（原 useProviderConfigFilePath declare）：canonical = workspaceServiceHooks D.3 useWorkspaceProviderConfigFile（styles 24288–24367，A1-P2-B10 逐字；WS@224 同符已接线），别名保留调用名，消费位 @3967 逐字不变
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -386,7 +386,7 @@ interface FileContextActions {
 /** 路径助手（原 Ko/Jo/Go/zA，js 1941/1952/1928/50919） */
 declare function joinPath(base: string, sub: string): string; // 原 Jo（待实体化）
 
-/** 任务路径钩子群（原 Xge/qge/wge，styles 24686/24612/24288；横切 services 层；〔A1-R50〕行号纠偏，原注 24638/24564/24240 为 −48 漂移旧口径） */
+/** 任务路径钩子群（原 Xge/qge/wge，styles 24686/24612/24288；横切 services 层；〔A1-R50〕行号纠偏，原注 24638/24564/24240 为 −48 漂移旧口径；〔A1-R51〕三件全改指 workspaceServiceHooks D.3/D.4，本簇 declare 清零） */
 interface TaskPathState { path: string | null; exists: boolean; loading: boolean; error: string | null }
 /* ── tombstone〔A1-R50〕：declare useTaskSessionFilePath（原 Xge，styles 24686–24733）/
  *    useTaskNativeSessionLogFilePath（原 qge，styles 24612–24676）二件删除——逐字真身在案：
@@ -398,15 +398,20 @@ interface TaskPathState { path: string | null; exists: boolean; loading: boolean
  *    逐字不变。型相容：返回 TaskSessionFileState ≡ TaskPathState 逐字同形；
  *    TaskNativeSessionLogFileState 多 provider 员（超集可赋）；workspaceIdentity 实参
  *    `string | null | undefined` 纳 canonical 宽化参型（〔A1-R50〕型缝，D.4 注记在案）。
- *    余面披露：useProviderConfigFilePath declare（原 wge 24288，WS 已接线
- *    useWorkspaceProviderConfigFile）为本簇第三活面，非本批对象，续留。 ── */
-declare function useProviderConfigFilePath(
-  workspacePath: string,
-  provider: string,
-  remoteSessionId: string | null,
-  workspaceIdentity: string | null | undefined,
-  opts?: { serviceScope?: "base" | "workspace"; enabled?: boolean },
-): TaskPathState;
+ *    〔A1-R51〕余面闭合：useProviderConfigFilePath declare（原 wge）同批改指，墓碑见下。 ── */
+/* ── tombstone〔A1-R51〕：declare useProviderConfigFilePath（原 wge，styles 24288–24367）删除——
+ *    逐字真身在案：services/workspaceServiceHooks D.3::useWorkspaceProviderConfigFile
+ *    （A1-P2-B10 转录；WS@224 同符已接线 useProviderConfigFile，bundle 186741 en≡wge 实证在案），
+ *    改经文件头 modules/services 别名 import 接线（既有边；qge/Xge 同式先例），别名保留调用名。
+ *    消费位 @3967（`useProviderConfigFilePath(workspacePath, resolvedProvider, remoteSessionId ?? null,
+ *    workspaceIdentity, { serviceScope: remoteSessionId ? 'base' : 'workspace', enabled: loadProviderConfig })`）
+ *    逐字不变 ≡ bundle 142100 `m = wge(e, d, t, n, { serviceScope: t ? 'base' : 'workspace', enabled: s })`
+ *    （C6 ≡ useTaskFileActions 域 js 142068）；wge 全消费位普查 = 142100 + 186741（WS 面已接线）二处。
+ *    型相容：返回 PathState & { refresh(): void } ⊇ TaskPathState（逐字同形，超集可赋；TaskFileActions
+ *    面 @3940 与下游 .path/.exists 消费不变）；参型逐位核验 = workspacePath: string ⊆ string | null、
+ *    resolvedProvider: string ⊆ string | null、remoteSessionId ?? null ⊆ ?: string | null、
+ *    workspaceIdentity 实参 `string | null | undefined` 纳 canonical `?: string | null`（P2-B10 既宽化，
+ *    canonical 侧本批零改动；参型宽化先例同 qge/Xge〔A1-R50〕型缝）。 ── */
 
 /** 编辑器助手（原 OA/GA，js 50852/51037） */
 

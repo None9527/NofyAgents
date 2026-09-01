@@ -135,7 +135,7 @@
  * 10. 本族复用的已抽取组件（TopBar.tsx / Sidebar 族）：
  *     l4 SecondaryWindowShell(129647)、tkt WindowsCaptionControls(129992)、
  *     S6 WindowsCaptionMenu(141854)、U6 HelpMenu(143345)、SRt SidebarFooter(150435)、
- *     c4/s4/ROt Windows caption 常量(129507-129515)、r4 RemoteSyncDialogs(127248)
+ *     c4/s4/ROt Windows caption 常量(129507-129515)、r4 RemoteSyncDialogs(127265)
  * 11. 接口级叶子（本文件仅声明，行号见上表）：
  *     FQt 模型供应商、y1t 技能、d6 自动化、I0t 插件、H1t 子代理、G0t 命令、
  *     p2t Hooks、V2t 迁移、p1t 用量、HQt/_$t/W$t/GQt MCP 子件、
@@ -446,7 +446,7 @@ declare const WindowsCaptionControls: React.FC<{ className?: string }>;
 /** 原 s4（js 129507）：--windows-caption-control-width 变量引用 */
 /** 原 ROt（js 129508 附近）：caption 菜单让位的额外 margin 常量 */
 declare const WINDOWS_CAPTION_MENU_MARGIN: string;
-/** 原 r4（js 127248，TopBar.tsx RemoteSyncDialogs）：远程同步对话框组 */
+/** 原 r4（js 127265，TopBar.tsx RemoteSyncDialogs）：远程同步对话框组 */
 /* ── tombstone（A0-CLEANUP2 item 14）：canOpenRemoteSessionSource（原 $2）declare 删除
  *    → import { canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource } from './Modals'。 ── */
 /* ── tombstone〔A1-R45〕：declare remoteTargetDisplayLabel 删除——本文件零消费（grep 实测仅本 declare 行）。真身 = modules/SplitLayoutDeep@1585（原 XTt，js 123241；A1-R4 既判；

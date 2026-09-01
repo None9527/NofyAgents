@@ -40,8 +40,8 @@
  *   j6   → TaskRenameDialog          任务重命名对话框（IME 保护）(142581 / 118551)
  *   oFt  → TaskActionMenuItems       任务操作菜单项（置顶/重命名/归档/未读/复制路径…）(142183 / 118106)
  *   zZ   → GitBranchChip             git 分支切换 chip（含分支搜索/新建/提交切换）(96589 / 84085)
- *   n4   → RemoteSyncMenuItems       远程同步菜单项（技能/MCP/插件）(127149 / 107575)
- *   r4   → RemoteSyncDialogs         远程同步对话框组（本文件仅保留接口）(127248 / 107623)
+ *   n4   → RemoteSyncMenuItems       远程同步菜单项（技能/MCP/插件）(127166 / 107575)
+ *   r4   → RemoteSyncDialogs         远程同步对话框组（本文件仅保留接口）(127265 / 107623)
  *   Flt  → ConversationSummaryAside  会话右摘要栏（mini/panel/auto 三态）(99217 / 85723)
  *   VO/HO/UO/WO/GO/KO/qO/JO/YO/XO
  *        → DropdownMenu* 原语族      (47926-48040 / 43144-43290)
@@ -55,7 +55,7 @@
  *   XPt  → exportLogsWithToast       (141789 / 117769)
  *   lw   → PRODUCT_DOCS_URL = https://zcode.z.ai/docs (39410 / 35469)
  *   C6   → useTaskFileActions        (142068 / 118006)
- *   CFt/$2 → canOpenRemoteSessionSource (143482,127125 / 119494,107556)
+ *   CFt/$2 → canOpenRemoteSessionSource (143499,127142 / 119494,107556)
  *   ZTt  → remoteTargetLabel         (123239 / 104935)  〔A1-R5：R4 误归 XTt，已更正为 ZTt 真实 import〕
  *   QTt  → sshDecoratedProjectName   (123251 / 104947)
  *   $b   → sanitizeRemoteTargetForRestore（src-HCld2afU.js 8611；本 chunk 导入名 yne）〔A1-R5：normalizeRemoteTarget 改指 SrcSharedB〕
@@ -2323,7 +2323,7 @@ export function SessionHeaderLeft({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* 远程同步对话框组（技能/MCP/插件；原 r4，完整实现见 js 127248） */}
+        {/* 远程同步对话框组（技能/MCP/插件；原 r4，完整实现见 js 127265） */}
         <RemoteSyncDialogs
           canSyncSkills={canOpenRemoteSessionSource}
           canSyncMcp={canOpenRemoteSessionSource}
@@ -2865,7 +2865,7 @@ export function GitBranchChip({
 
 
 /* ============================================================================
- * 5.7 RemoteSyncMenuItems / RemoteSyncDialogs（原 n4/r4，js 127149/127248）
+ * 5.7 RemoteSyncMenuItems / RemoteSyncDialogs（原 n4/r4，js 127166/127265）
  *     远程工作区的“同步到远端”入口：技能 / MCP / 插件三项。
  * ==========================================================================*/
 
@@ -2914,7 +2914,7 @@ export function RemoteSyncMenuItems({
   );
 }
 
-/** 原 r4（js 127248）：三个同步对话框（技能/MCP/插件）。接口保留，完整 JSX 从略。 */
+/** 原 r4（js 127265）：三个同步对话框（技能/MCP/插件）。接口保留，完整 JSX 从略。 */
 
 /* ============================================================================
  * 6. ConversationSummaryAside（原 Flt，js 99217-99484 / jsx 85723-85903）

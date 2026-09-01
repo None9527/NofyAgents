@@ -200,7 +200,7 @@ import { Button, buttonVariants, ZoomIn as IconZoomIn, ZoomOut as IconZoomOut, C
 import { FileTreePanel } from '../../modules/FileTreePanel';
 import { useTaskFileActions } from '../../modules/GitReview';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService, type PlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService/type PlatformService（原 l；P2 转交件收割）：本地 7 员面碑化改指，@1167 trackEvent 参型同名解析，见下墓碑
-import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from '../../modules/Modals';
+import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from '../../modules/Modals'; // 〔A1-R51〕$2 余消费位闭合实证：本叶 @2952 canSyncRemote ≡ bundle 158248 `oe = $2({ remoteSessionId, remoteTarget, clientMode: f ? 'web-remote-replayable' : 'desktop-continuous', hasLocalSourceService: !!N.skillSyncService })`（158xxx 远程技能卡域）逐字同形；接线 = A0 检查点 17（8382e04）既成，R50 §五-2「属外未录面」留批闭合（台账惯例 = 报告内更正，census 冻结不动）
 import { Badge } from '../../modules/PaymentDeep';
 import { TabsList, TabsTrigger } from '../../modules/Settings';
 import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups, type WebRemoteSwitcher } from '../../modules/SidebarLeaves';

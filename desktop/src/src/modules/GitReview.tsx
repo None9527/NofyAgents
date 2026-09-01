@@ -194,7 +194,7 @@
  *     - QA useFileContextActions（js 51093）、$A useWorkspaceRemoteInfo（js 51166）
  *     - ko useSettingsSelector（js 1296）、xo resolveTheme（js 1103）、fs useServices（js 2638）
  *     - Ko/Jo/Go/zA 路径助手（1941/1952/1928/50919）
- *     - Xge/qge/wge 任务路径钩子（24638/24564/24240）、OA/GA 编辑器助手（50852/51037）
+ *     - Xge/qge/wge 任务路径钩子（24686/24612/24288；〔A1-R51〕行号纠偏，原注 24638/24564/24240 为 −48 漂移旧口径）、OA/GA 编辑器助手（50852/51037）
  *     - MC extractErrorMessage（37603）、S_t TurnFileChangesSummary（Conversation.tsx 已抽取，110813）
  *     - Moe/zXe/pptx 附件序列化（composer 族，68787 处引用；本文件按接口声明）
  * ============================================================================

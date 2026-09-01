@@ -32,8 +32,8 @@
  * ----------------------------------------------------------------------------
  *  1. 已抽取（Modals.tsx，只注记不重复）：MEt 目录浏览（原 123942–124126）+
  *     OEt/kEt/AEt/jEt（原 123929–123945 区）；r4 分派 + ZEt/lDt/XDt 三同步对话框 +
- *     $Dt + preflight 助手（原 124995–127332，含 $2 canOpenRemoteSessionSourceCheck
- *     原 127125——TopBar.report 亦登记，裁决归 Modals）；ZTt/QTt（原 123239/123251，
+ *     $Dt + preflight 助手（原 125012–127349，含 $2 canOpenRemoteSessionSourceCheck
+ *     原 127142——TopBar.report 亦登记，裁决归 Modals）；ZTt/QTt（原 123239/123251，
  *     登记于 TopBar.report）。128795+ 更新窗属 F09/TopBar。
  *  2. **账实差异注记**：COVERAGE-LEDGER 将原 123942–124266 记为「MEt 已抽取」，实测
  *     Modals.tsx 仅含 123929–124126；子段 NEt/PEt/W2/G2/FEt/K2/IEt/LEt（当前

@@ -4,7 +4,7 @@
 - 生成日期: 2026-08-26
 - 范围: `/tmp/chunk-tiers.json` vendor 项中除去 shiki 语法/主题 chunk；另收 4 个被误分到 grammar_data 的 mermaid chunk（tier 纠正）；另收 tiers 标为 first_party 但实际打包/包装第三方库、或任务点名的 chunk（chart-*、pdf-viewer、presentationPdf*、dist/esm/bundle 系）。
 - 版本证据等级: `in-chunk`（chunk 内版本串）> `upstream-path`（与上游 dist 文件名-哈希精确匹配）> `upstream-decl`（上游 package.json 依赖声明）> `node_modules-ref`（zcode-restored/node_modules 参照安装，chunk 内无版本）。
-- 条目数: **146**（JS chunk 143 + wasm 伴随资产 2 + chunk 内嵌 vendor 区 1）
+- 条目数: **147**（JS chunk 143 + wasm 伴随资产 2 + chunk 内嵌 vendor 区 2）
 
 ## ⚠ 含 first-party 包装层的 chunk（Stage B 抽取队列）
 
@@ -16,7 +16,7 @@
 | `pdf-viewer-m6YcRb_5.js` | react-pdf + pdfjs-dist + first-party viewer | PdfViewer (export name, React component wrapping react-pdf) |
 | `previewPaneOfficeDocxContent-3JqWt7cf.js` | docx-preview + JSZip + first-party wrapper | PreviewPaneOfficeDocxContent (export name) |
 | `previewPaneOfficeLegacyDocContent-HWD4EOEM.js` | first-party legacy .doc preview + docx-core wasm bridge | PreviewPaneOfficeLegacyDocContent (export name) |
-| `previewPaneOfficeXlsxContent-XeHwYdMn.js` | first-party canvas spreadsheet preview + xlsx-worker bridge | PreviewPaneOfficeXlsxContent (export name) |
+| `previewPaneOfficeXlsxContent-XeHwYdMn.js` | first-party canvas spreadsheet preview + xlsx-worker bridge；内嵌 vendor 区 28–1835（d3-geo/d3-hierarchy/topojson-client/regl，见「chunk 内嵌 vendor 区」节） | PreviewPaneOfficeXlsxContent (export name) |
 | `pptx-preview-viewer-B1z6CWke.js` | first-party PPTX preview shell | PptxPreviewViewer (export name) |
 | `pptxRendererPreviewEngine-BIIRLBue.js` | first-party PPTX render engine + JSZip | pptxRendererPreviewEngine (export name; `{open(buffer)}` API) |
 | `presentationPdfPrintExport-CsVZM-dn.js` | first-party PPTX print/PDF export | renderPresentationToPrintHost (export name) |
@@ -234,16 +234,18 @@
 | `mermaid-GHXKKRXX-BUw9cQJG.js` | 2 | first-party wrapper shim (re-exports Mermaid React component) | n/a (first-party) (n/a) | 3 lines: `import { a as e } from './chunk-BO2N2NFS...'; export { e as Mermaid }` | **是** |
 | `highlighted-body-OFNGDK62-RS9ZmWFH.js` | 25 | first-party HighlightedCodeBlockBody (shiki consumer) | n/a (first-party) (n/a) | uses shikiTheme context from chunk-BO2N2NFS; renders code blocks | **是** |
 
-## styles chunk 内嵌 vendor 区（无独立 chunk）
+## chunk 内嵌 vendor 区（无独立 vendor chunk）
 
 | chunk | 行数 | 上游库 | 版本 | 证据 | 包装层 |
 |---|---|---|---|---|---|
 | `styles-CdEGpc2x.js` 91850–94592（内嵌区） | 2743 | @dnd-kit/core + @dnd-kit/sortable | core v6 / sortable v7–8 族 (API-shape) | chunk 内无版本串、package.json 无 dnd-kit 声明（库体随 styles chunk 内联打包）；区界实测：起点 91850 `Mit`=useCombinedRefs（前界 91849 `jit` first-party memo）、终点 94592（后界 94593 `sst` first-party 队列域）；92082 库错误串 `useDndMonitor must be used within a children of <DndContext>`（in-chunk 铁证）；92050–92077 无障碍播报器（Uit/Wit/Git）；93521 `_Z`=DndContext(memo)、94289 `EZ`=SortableContext、94380+ useSortable 全签名（animateLayoutChanges/getNewIndex/strategy/resizeObserverConfig/transition）、94522 sortableKeyboardCoordinates 族、94242 `TZ`=rectSorting 策略；碰撞族 92249 `KX`=closestCenter 式基线 + 92263 `rat` 次算法（A1-P3-B10.report.md §三 全取证） | **是**（first-party 包装层 = 155343 `Kzt`=groupedCollisionDetection 分组过滤包装 + 94607 `cst` 纵限 modifier + 94621 `lst` 队列项组件（chat.queue.* i18n）；消费面 `collisionDetection: KX` @94819/160252/160350/183209/191521、`collisionDetection: Kzt` @156237；QuickPickDeep `dndBaselineCollision` declare = vendor 边界占位） |
+| `previewPaneOfficeXlsxContent-XeHwYdMn.js` 28–1835（内嵌区） | 1808 | d3-geo + d3-hierarchy + topojson-client + regl | n/a (API-shape) | chunk 内无版本串、package.json 无 d3/regl/topojson 声明（库体随本 chunk 内联打包）；区界实测：起点 28 `P`=d3-array Adder（Float64Array(32) partials）、28–1834 = d3/topojson 区、1835 = regl UMD 包装 `Ln = t((e, t) => …` 起始行（1841 `n.createREGL = r()`、1866 `(regl)` 错误串、1924 constructor 参校验）；**regl 库体实际跨度 1835–9110**（树内 XlsxDeepP@37 注记在案；本条目区间 = 八名范围，P3-B11 受理口径）。身份指纹（A1-P3-B11.report.md §4 三勘误）：wn@1479 = d3-geo **geoMercator**（原投影 Cn@1473 `[λ, ln tan(π/4+φ/2)]` + scale(961/τ)；「miller」仅 189196 应用层枚举标）、En@1536 = **geoIdentity** 形（angle/reflectX/reflectY/clipExtent/fit* 面，体无 insets 非 geoAlbersUsa；us-state 分支在 189196 应用层）、On@1658 = **geoNaturalEarth**（原投影 Dn@1632 多项式系数逐字 + scale(175.295)，189196 缺省分支）；余名 = topojson feature Pn@1758 / geoPath rn@1075 / partition kn@1661 / treemapSlice An@1705；八名 declare 落档 = XlsxDeepA@404–411（Pn/rn/En/wn/On/kn/An）+ XlsxDeepP@532（Ln） | **是**（first-party 包装层 = XlsxDeepP::reglInterop（原 Rn@9112，regl WebGL 互操作，模块头 9111–9130）+ XlsxDeepC `yd`=SurfaceChartPanel@183672 唯一消费面（`reglInterop.default({...})` @1047）；vendor 体不转录（B10 KX@dnd-kit 先例），XlsxDeepA/C declares = 边界占位） |
 
 ## 附注
 
 - **tier 纠正（4 条）**: `c4Diagram-AHTNJAMY-D_C9c5pc.js`、`chunk-U2HBQHQK-Cs90NbhX.js`、`journeyDiagram-VCZTEJTY-DrUKz0D3.js`、`sequenceDiagram-FGHM5R23-vIwWNFLy.js` 在 chunk-tiers.json 中被误归 grammar_data（其内容含 `displayName`/`patterns` 字样触发误判），实为 mermaid.core 图形 chunk。
 - **styles-CdEGpc2x.js（first_party tier，213,695 行）** 不在本清单范围，但注意：它是 shiki 3.x/4.x core + Lexical 0.42.0 + @stripe/stripe-js 9.6.0/@stripe/react-stripe-js 6.4.0 的混合 mega-chunk，并静态导入两份 vscode-oniguruma wasm（wasm-B4ap0Fdc / wasm-CmMPG1ko）。Stage B 需要时另行拆分。〔A1-R49〕其内嵌 @dnd-kit/core+sortable vendored 区（91850–94592，现 chunk 行号口径 213,979 行）已按「chunk 内嵌 vendor 区」条目补登（A1-P3-B10 §3-2 提请，编排方 R49 分发）。
+- 〔A1-R51〕`previewPaneOfficeXlsxContent-XeHwYdMn.js` 内嵌 vendored 区 28–1835（d3-geo/d3-hierarchy/topojson-client/regl）已按「chunk 内嵌 vendor 区」条目补登（A1-P3-B11 §4 提请，编排方 R51 分发；八名范围口径，regl 库体实跨 1835–9110，详见条目证据列）。
 - **katex 版本存疑**: chunk 内无版本串；原 monorepo pnpm 路径注释证明 mermaid 自带副本为 0.16.25，参照安装为 0.16.45。
 - **node_modules 参照**: /home/none/grok-build/ref-ui/zcode-restored/node_modules（recharts 3.8.0、mermaid 11.14.0、pdfjs-dist 5.4.296、react-pdf 10.4.1、docx-preview 0.4.0、shiki 3.23.0、@shikijs/* 4.0.2、tailwind-merge 3.5.0、tiny-invariant 1.3.3、js-yaml 4.1.1、fflate 0.8.3、@tanstack/react-virtual 3.13.23、lexical 0.42.0、@stripe/* 等）；安装不完整（无 cytoscape/dagre/graphlib/roughjs/react-intl，react 未装），故部分版本只能给上游声明区间。
 - **wasm 伴随资产**: docx_wasm_bg-HWnIvdMf.wasm (1,119,333 B) 与 duke_sheets_wasm_bg-BCCK9PkU.wasm (4,345,449 B) 不在 chunk-tiers.json 中，作为伴随资产登记。
