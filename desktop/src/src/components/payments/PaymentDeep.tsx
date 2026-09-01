@@ -82,12 +82,12 @@ import { InfoTooltip as TooltipTriggerWrap, ShadcnTooltip as TooltipRoot, Shadcn
 import { Slot } from '@radix-ui/react-slot'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Dialog as DialogRoot, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { DropdownMenu as SelectShell, DropdownMenuContent as SelectPopup, DropdownMenuRadioGroup as SelectControl, DropdownMenuRadioItem as SelectOption, DropdownMenuTrigger as SelectTriggerAsChild } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { ChevronDownIcon, RefreshCw as RefreshIcon, X as CloseIcon, Trash2 as TrashIcon, CheckIcon, ArrowLeft as BackIcon, CircleCheck as SuccessIcon, MinusIcon, PlusIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A1-R22〕GlobeIcon 随 §10 chip 副本删除移出（唯一消费面已删）。〔A1-R23〕ThoughtLevelIcon（Lightbulb）随 §3 ThoughtLevelControl 删除移出（真身 = Home §U.2 ComposerThoughtToolbar 逐字消费面）
+import { ChevronDownIcon, RefreshCw as RefreshIcon, X as CloseIcon, Trash2 as TrashIcon, CheckIcon, ArrowLeft as BackIcon, CircleCheck as SuccessIcon, MinusIcon, PlusIcon, ShieldAlert as ModeIconFullAccess, Package as GenericProviderIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A1-R22〕GlobeIcon 随 §10 chip 副本删除移出（唯一消费面已删）。〔A1-R23〕ThoughtLevelIcon（Lightbulb）随 §3 ThoughtLevelControl 删除移出（真身 = Home §U.2 ComposerThoughtToolbar 逐字消费面）。〔A1-R37〕+ShieldAlert as ModeIconFullAccess（zv 真身：styles-local 27816 `zv = Sa(\`shield-alert\`, [...])`，iconNode 与 npm 1.35.0 逐路实测吻合）/+Package as GenericProviderIcon（Cv 27558 `Sa(\`package\`, [...])` 同测）：双图标 declare 收敛改指，A0-S3b 同式，见各墓碑
 import * as qrcode from 'qrcode'; // A0-S3a：vendored qrcode（78456–79690，Qq）→ npm qrcode@1.5.4
 // A0-S3a：vendored Stripe（80955–81731）→ npm @stripe/react-stripe-js@6.4.0 + @stripe/stripe-js@9.6.0（bundle 双版本锚定）
 import { Elements as StripeElementsProvider, useStripe, useElements, CardNumberElement, CardExpiryElement, CardCvcElement } from '@stripe/react-stripe-js';
 import * as stripeLoader from '@stripe/stripe-js';
-import { Button, ChevronRight as ChevronRightIcon } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as ChevronRightIcon（button chunk 图标，pass-1 同源）
+import { Button, ChevronRight as ChevronRightIcon, cva as classVariance, createLucideIcon } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as ChevronRightIcon（button chunk 图标，pass-1 同源）。〔A1-R37〕+cva as classVariance（Ta 真身：styles 897 `r as Ta` ← button 导出 `w as r` ≡ w ≡ button.tsx cva，class-variance-authority@0.7.1 逐语句；唯一消费 @1903 BADGE_VARIANTS 调用面逐字不变）/+createLucideIcon（Sa 真身 ≡ button.tsx@193；§13 尾部 zbe 逐字实体消费）：见各墓碑
 /* ── A0-S2d 接线（§2 裁决去重 76848–77167 / 76034–76156）：原本地重复转录与
  *    declare 挂接删除，canonical 在 Composer.tsx，真实 import 消费；混淆名注释随迁。
  *    〔A1-R23〕ConfigSelect（Mq）/ContextUsageProvider（J4e）/ContextRingTrigger（X4e）/
@@ -103,7 +103,7 @@ import { resolveProviderFamilyMode, getOAuthProviderFamilyByProviderId, isProvid
 import { isStartPlanProviderId, isZaiPlanProviderId, GLM_MODEL_IDS, providerIds, isBuiltinProviderId, isGlmAgentCliProvider, RESOLVED_BUILD_ENV, codingPlanPersonalOverviewUrl, codingPlanTeamPlansUrl, buildBigmodelApiUrl } from '../../modules/SrcSharedA'; // 〔A1-R28〕Bn 真身（styles 533 `No as Bn` ← src 9764 `yl as No` ≡ yl ≡ SrcSharedA@2026）：isProviderSystemEnabled declare 收敛改指，见下墓碑。〔A1-R30〕+isZaiPlanProviderId（tr ≡ vl 4753 ≡ SrcSharedA@2022）：isOAuthFamilyProvider/isZaiCodingPlanProvider 双 tr 脸收敛改指，见各墓碑。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）/isBuiltinProviderId（jt ≡ Eo ≡ _l 4833）/isGlmAgentCliProvider（Ei ≡ us ≡ Ds 3844）：q 实体化 + 残件双 declare 收敛改指，见各墓碑。〔A1-R36〕+env 族四件（hi≡RESOLVED_BUILD_ENV（lib/buildEnv@9，SrcSharedA@310 转导出）/Si≡codingPlanPersonalOverviewUrl（SrcSharedA@1618）/fn≡codingPlanTeamPlansUrl（SrcSharedA@1622）/vn≡buildBigmodelApiUrl（SrcSharedA@1613）；★js/★qo/★Jo/★Ko A0 期既判）：四 declare 收敛改指，见各墓碑。环安全：SrcSharedA 值闭包不达 components/payments
 import { reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // 〔A1-R26〕usePlatformService 型缝所依（xw≡reportTelemetry 消费面）。〔A1-R35〕type-only → 值导入 + reportTelemetry：xw declare 收敛改指（xw 真身：styles 40457-40466 ≡ StoresDeep@323 reportTelemetry，StoresDeep@321 行注「原 xw（40409）」为漂移实测 40457；消费 @3651/@3655 改名改指）
 import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 52651 收敛型缝所依（A6e/j6e/M6e/N6e 快照流由 unknown 精化，行依据见各函数注）
-import { Input, PopoverContent, toast } from '../../modules/ImeComposition';
+import { Input, PopoverContent, toast, InfoIcon as HelpIcon } from '../../modules/ImeComposition'; // 〔A1-R37〕+InfoIcon as HelpIcon（p 真身：styles 346 `T as p` ← imeComposition 导出 `Ht as T` ≡ Ht 11781 `x(\`info\`, [...])` ≡ ImeComposition@201 InfoIcon（≡ lucide Info，iconNode 逐路实测吻合）；消费面 @6911/@8274/@8845 调用面逐字不变）：declare 收敛改指，见下墓碑
 import { logger, formatCustomModelId, parseCustomModelId, getCurrentModelValue, useTaskStore } from '../../modules/SkillStore'; // 〔A1-R28〕+formatCustomModelId（we 真身：styles 404 `k as we` ← skillStore-BmeKHDBI.js 导出 k ≡ taskStore@1412，SkillStore@169 转导出；StoresDeep@147 joinModelName 别名先例）：composeModelValue declare 收敛改指，见下墓碑。〔A1-R32〕+parseCustomModelId（se 真身：styles 386 `O as se` ← skillStore-BmeKHDBI.js 导出 2497 `D as O` ≡ D 903 ≡ taskStore@1418，SkillStore 转导出）：modelEntryOf declare 收敛改指，见下墓碑。〔A1-R33〕+getCurrentModelValue（Ie 真身：styles 416 `w as Ie` ← skillStore-BmeKHDBI 导出 2527 `I as w` ≡ I 982 ≡ taskStore@1543，SkillStore@262 转导出）：resolveModelCatalogEntry declare 收敛改指，见下墓碑。〔A1-R35〕+useTaskStore（xe 真身：styles 侧 xe ≡ taskStore@2950 useTaskStore，SkillStore@247 转导出）：尾部 qq 转录面 `xe.getState()` 消费接引
 import { useSettingsStore as useAppStore, useSessionRegistryStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppStore=useSettingsStore（symbol-index x6）；调用点 3680/10307–10311 逐字不变（(state: any) 选择器对 (state: SettingsState) 双变可赋）。〔A1-R35〕+useSessionRegistryStore（Zs 真身：styles-local 4357 `var Zs = Ae()(...)` 会话注册表 store ≡ stores/sessionRegistryStore@175 useSessionRegistryStore，stores-core@90 转导出）：尾部 qq 转录面消费接引。环安全：stores-core 值闭包（stores/* + zustand）不达 components/payments
 import { formatGrantUnits, useBillingDiscount, BillingDiscountCard, RegionLogo, nullSafe as providerEntryOrNull, providerApiKeyFingerprint as providerFingerprintKeyOf, shouldProbeStartPlanEntitlement, hasActiveEntitlement, listCodingPlanSources, hasLoadedCodingPlanSources, setCodingPlanSources, subscribeCodingPlanSources, refreshCodingPlanSourcesForced, ensureCodingPlanSources } from '../../modules/UsageDeep'; // A1-R11：tM（52642）/nM（52645）/aM（52661）/IM（53277）改指 canonical（components/usage/UsageDeep.tsx；tM/nM 双归属收敛，bundle 唯一真身）。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical，declare hasActiveEntitlementCore 收敛改指，见下墓碑）。A1-R20：+BillingDiscountCard（原 HHe 51994–52033 收敛，见下墓碑）。A1-R21：+RegionLogo（原 Tq 76183 收敛，见下墓碑）。〔A1-R23〕SidebarCodingPlanWidget/SidebarStartPlanWidget（s3e/v3e）/hasPlanWidgetModel（i3e）/hasStartPlanBalance（g3e）/entryPlanStateOf（IM）移出——消费面 §1/§9 死簇同批删除；Oq/i3e/g3e 真身裁定见 components/usage/UsageDeep.tsx 墓碑（Home §U.3/§V 逐字 canonical）。〔A1-R35〕+注册表六件（fM/pM/mM/hM/gM/_M ≡ listCodingPlanSources/hasLoadedCodingPlanSources/setCodingPlanSources/subscribeCodingPlanSources/refreshCodingPlanSourcesForced/ensureCodingPlanSources，UsageDeep@1404-1476；R34 墓碑改指面，本批尾部 qq 族转录首次实消费；后三件同批补 export）
@@ -112,12 +112,12 @@ import { useServices, useBaseServices, syncProviderRegistryAndReturn } from '../
 /* ----------------------------------------------------------------------------
  * §0 外部依赖声明（跨 chunk / 横切 / 他族已抽取件，接口级）
  * -------------------------------------------------------------------------- */
-declare function cn(...inputs: Array<string | false | null | undefined>): string; // Z
+/* ── tombstone〔A1-R37〕：declare cn（原 Z）删除 → 改经尾部 import `cn`（modules/UtilsCn shim ← lib/cn.ts canonical）消费（Z 真身：styles 901 `t as Z` ← utils-CEEH0K_K 导出 `r as t` ≡ r（extendTailwindMerge `font-size` 五项扩展 + clsx）≡ lib/cn.ts cn（A0-S4-1 行为等价声明在案：扩展配置逐字一致/调用顺序一致/导出面一致））。消费面实测（本文件 24 处，调用面逐字不变；@1466/@1487/@1513/@1514/@1921/5925/5974/5975/6393… 例）≡ bundle Z 调用面（79776 等）。负证据：styles Z 经唯一导入面 901 绑定，无第二真身。 ── */
 /* ── tombstone（A0-CLEANUP 族清理）：Button declare 删除 → import { Button } from './button'。 ── */
-interface IntlShape {
-  formatMessage(desc: { id: string }, values?: Record<string, string | number>): string;
-}
-declare function useZCodeIntl(): { intl: IntlShape; locale: string }; // G
+/* ── tombstone〔A1-R37〕：本地 interface IntlShape（3 行形）删除 → 改经尾部 import `type ZCodeIntl as IntlShape`（modules/I18n@201）
+ *    消费（A0-D 先例：Composer@524 / Conversation@134 同形接线「type ZCodeIntl as IntlShape」）。ZCodeIntl.formatMessage
+ *    （descriptor: { id: string }, values?: Record<string, unknown>）与旧本地形 method 双变可赋；消费面 @1878/@2254 签名面逐字不变。 ── */
+/* ── tombstone〔A1-R37〕：declare useZCodeIntl（原 G）删除 → 改经尾部 import `useZCodeIntl`（modules/I18n@637 canonical）消费（G 真身：styles 424 `n as G` ← IntlProvider-C321H7m8 导出 `D as n` ≡ D 9248-9252 ≡ I18n@637；A0-D 裁决先例在案：Composer@524/Conversation@134/Settings@161 同形接线）。消费面实测（本文件 31 处，调用面逐字不变；`{ intl, locale }`/`{ intl }`/`{ locale }` 解构面 @1732/@2690/@3016/… 例）≡ bundle G() 调用面。负证据：bundle 内 G 经唯一导入面 424 绑定。 ── */
 // 〔A1-R26〕型缝：漏斗遥测族消费面 5504/5676/5713/5976/6009 将 platform 直通 reportTelemetry（xw≡StoresDeep@323），
 // 消费 reportTelemetryEvent——bundle l 返回完整 platform 服务（xw 40457 `e.reportTelemetryEvent(r)` 实测），旧注仅 A0 部分面（openExternal）
 declare const usePlatformService: () => TelemetryPlatform & { openExternal(url: string): void }; // l
@@ -199,7 +199,7 @@ declare const usePlatformService: () => TelemetryPlatform & { openExternal(url: 
  *    Sv ModeIconPlan / Bv ModeIconAgent declare 删除——唯一消费面在 §2 重复转录段
  *    （canonical 在 Composer.tsx），随段删除后无引用。zv ModeIconFullAccess 保留
  *    （§5/§7 等正文章节仍有消费）。 ── */
-declare const ModeIconFullAccess: React.FC<React.SVGProps<SVGSVGElement>>; // zv
+/* ── tombstone〔A1-R37〕：declare ModeIconFullAccess（原 zv）删除 → 改经文件头 lucide-react import `ShieldAlert as ModeIconFullAccess` 消费（zv 真身：styles-local 27816-27826 `zv = Sa(\`shield-alert\`, [...])`；Sa≡createLucideIcon（styles 892 `c as Sa` ← button 导出 `_ as c` ≡ modules/button.tsx@193）；iconNode 三路（M20 13c0 5-3.5 7.5-7.66 8.95…/M12 8v4/M12 16h.01）与 npm lucide-react@1.35.0 ShieldAlert 渲染实测逐字吻合；A0-S3b 先例同式）。消费面实测（4 处，调用面逐字不变）：@1843（e5e CodingPlanPaymentQrDialog 体内）≡ bundle 80246、@2854（Y7e StripeCardDialog 体内）≡ 82031、@7791（gtt AccountPolicyCollapsible 体内）≡ 87023、@7984（Stt AccountPolicyNote 体内）≡ 87230。负证据：第 5 消费 76903 属 modeIconOf（H3e），随 §2 重复转录簇 A0-S2d 删除（canonical Composer [D] modeOptionIcon）。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：ThoughtLevelIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const TruncateLabel: React.FC<{ label: string }>; // _q〔A1-R35〕留批：bundle 75520 JSX 组件面（真身未转录），树内零消费负证据在案，待真身批收敛
 /* ── tombstone〔A1-R30〕：declare const KNOWN_MODEL_FORMATS（原 Di）删除 → 改指 GLM_MODEL_IDS
@@ -254,10 +254,10 @@ declare const BIGMODEL_REGION_ID: string; // Ri
 /** §5 支付/产品域外部依赖 */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：ChevronRightIcon/RefreshIcon → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
-declare function classVariance(
-  base: string,
-  config: { variants?: Record<string, Record<string, string>>; defaultVariants?: Record<string, string> },
-): (props?: { variant?: string }) => string; // Ta（cva 风格）
+/* ── tombstone〔A1-R37〕：declare classVariance（原 Ta，4 行形）删除 → 改经文件头 modules/button import
+ *    `cva as classVariance` 消费（Ta 真身：styles 897 `r as Ta` ← button-laUijeDG 导出 `w as r` ≡ w 117-147
+ *    ≡ modules/button.tsx@243 cva（内联 vendored 副本，class-variance-authority@0.7.1 逐语句一致，含
+ *    `t?.variants == null` 早退/compoundVariants every-includes 匹配；button.tsx 头注在证））。 ── */
 /* ── tombstone〔A1-R36〕：declare ZCODE_ENV_VALUE（原 hi）删除 → 改指 lib/buildEnv@9 RESOLVED_BUILD_ENV（SrcSharedA@310 转导出；hi 真身：styles 703 `js as hi` ← src 9941 `s as js` ≡ s 73 `o(\`production\`)` ≡ RESOLVED_BUILD_ENV 逐字同值，链闭合）。消费面实测（本文件 9 处改名改指）：@1654/5259/5260/5261/9113/9129/9130/9131/9145 ≡ bundle 79986/84359-84361/88209/88219-88221/88233。负证据：余 bundle 消费 2 处属他域（141843 $Pt 默认参 / 187593 gYt 内网探针）。 ── */
 /* ── tombstone〔A1-R36〕：declare envConsoleUrlOf（原 Si）删除 → 改指 modules/SrcSharedA@1618 codingPlanPersonalOverviewUrl（Si 真身：styles 756 `qo as Si` ← src 9995 `Bc as qo` ≡ Bc 4391 `zc(e, \`/coding-plan/personal/overview\`)` ≡ codingPlanPersonalOverviewUrl 逐字同形，链闭合）。消费面实测（本文件 3 处改名改指）：@1654/5259/9130 ≡ bundle 79986/84359/88220。负证据：本文件外零消费。 ── */
 /* ── tombstone〔A1-R36〕：declare envSiteUrlOf（原 fn）删除 → 改指 modules/SrcSharedA@1622 codingPlanTeamPlansUrl（fn 真身：styles 505 `Jo as fn` ← src 9735 `Vc as Jo` ≡ Vc 4394 `zc(e, \`/coding-plan/team/plans\`)` ≡ codingPlanTeamPlansUrl 逐字同形，链闭合）。消费面实测（本文件 2 处改名改指）：@5260/9131 ≡ bundle 84360/88221。负证据：余 `fn(` 命中 7373 为属性面（this.fn）、119850 区为局部遮蔽符，皆非本符。 ── */
@@ -299,15 +299,15 @@ declare function usePlatformBridge(): any; // S（openExternal/onPaymentCallback
 
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：BackIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /* ── tombstone（A1-R23）：declare EquityCheckIcon（E_）删除——随 §9 死簇删除后全树零消费（负证据在案）。 ── */
-declare const HelpIcon: React.FC<React.SVGProps<SVGSVGElement>>; // p
+/* ── tombstone〔A1-R37〕：declare HelpIcon（原 p）删除 → 改经文件头 modules/ImeComposition import `InfoIcon as HelpIcon` 消费（p 真身：styles 346 `T as p` ← imeComposition-DEYFkwWm 导出 `Ht as T` ≡ Ht 11781-11785 `x(\`info\`, [...])` ≡ components/ime/ImeComposition@201 InfoIcon（A0 既判「bundle T=Ht `info`」，≡ lucide Info，iconNode 三路 circle-r10/M12 16v-4/M12 8h.01 渲染实测逐字吻合））。消费面实测（3 处，调用面逐字不变）：@6911 ≡ bundle 86095（Zet 体内）、@8274 ≡ 87534（ktt 体内）、@8845 ≡ 88003（eX 体内）。负证据：余 bundle 命中 48869/52046/54376/64816/91138/94907/116719 属他域（fk/_j/vWe/SV/hit/gst/_xt 面），本批范围外。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（4）：SuccessIcon/MinusIcon/PlusIcon/GlobeIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /* ── tombstone（A1-R22）：WebElementIcon declare 删除（原 wye，Sa('earth') vendored，js 26983）——唯一消费面
  *    §10 lit 副本同批删除；真身逐字 canonical = modules/Composer.tsx [B17]（lucide Earth as WebElementIcon）。 ── */
 /* ── tombstone（A1-R22）：SelectionIcon declare 删除（原 fbe，Sa('quote') vendored，js 27690）——唯一消费面
  *    §10 uit 副本同批删除；真身逐字 canonical = modules/Composer.tsx [B17]（lucide Quote as SelectionGlyphIcon）。 ── */
-declare const GenericProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // Cv
-declare const ZapiProviderIcon: React.FC<React.SVGProps<SVGSVGElement>>; // zbe
-declare const ModeLeadingIcon: React.FC<React.SVGProps<SVGSVGElement>>; // bbe〔A1-R35〕留批：bundle 27837 `bbe = Sa(\`sliders-horizontal\`, [...])` 图标面（真身未转录），树内零消费负证据在案，待真身批收敛
+/* ── tombstone〔A1-R37〕：declare GenericProviderIcon（原 Cv）删除 → 改经文件头 lucide-react import `Package as GenericProviderIcon` 消费（Cv 真身：styles-local 27558-27569 `Cv = Sa(\`package\`, [...])`；Sa≡createLucideIcon（同上链）；iconNode 四路（M11 21.73…z/M12 22V12/polyline 3.29 7 12 12 20.71 7/m7.5 4.27 9 5.15）与 npm lucide-react@1.35.0 Package 渲染实测逐字吻合；A0-S3b 先例同式）。消费面实测（2 处，调用面逐字不变）：@9468/@9472（providerEntryIconOf≡crt 体内）≡ bundle 88517/88521。负证据：第 3 消费 75830 属 ModelSelectMenu（vq），随 A1-R23 §9 iit 死簇删除（墓碑在案 @338）。 ── */
+/* ── tombstone〔A1-R37〕：declare ZapiProviderIcon（原 zbe）删除 → 改指本文件尾部 §13 逐字实体 ZapiProviderIcon（zbe 真身：styles-local 28059-28067 `zbe = Sa(\`zap\`, [[\`path\`, { d: \`M4 14a1 1 0 0 1-.78-1.63l9.9-10.2…\` }]])`；Sa≡createLucideIcon，经文件头 modules/button import 消费）。负证据（不改 npm 之由）：npm lucide-react@1.35.0 Zap 渲染实测为旧形 `M15.914 4a1.5 1.5 0 00-2.474-1.561…`，与 vendored iconNode 不合，A0-S3b 式 npm 改指不可行，故逐字转录。消费面实测（1 处，调用面逐字不变）：@9466（providerEntryIconOf≡crt 体内）≡ bundle 88515。 ── */
+/* ── tombstone〔A1-R37〕：declare ModeLeadingIcon（原 bbe）删除——树内零消费，直接收碑（R35 留批闭合）。真身裁定在案：styles-local 27837-27847 `bbe = Sa(\`sliders-horizontal\`, [...])`；Sa≡createLucideIcon（styles 892 ← button `_ as c` ≡ button.tsx@193）；iconNode 九路与 npm lucide-react@1.35.0 SlidersHorizontal 渲染实测逐字吻合（他域消费接入时走 A0-S3b 式 npm 改指即可）。负证据：本文件零消费（R35 既证）；bundle 消费 89335 属 ModePickerTrigger（qrt），随 A1-R23 §9 死簇删除（墓碑在案 @444）；134944（`customize: bbe`）属 Home 域他批范围。 ── */
 /* ── tombstone（A1-R21）：declare providerLogoOf（原 Tq，76183）删除——canonical 属主
  *    components/usage/UsageDeep.tsx RegionLogo（A0 已重建；bundle Tq 二参函数形
  *    `Tq(providerId, className)` 与本 declare 同形，收敛改组件形消费）。
@@ -10675,3 +10675,26 @@ function useShallowSelector(e: any) {
     return shallowObjectEqual(t.current, r) ? t.current : (t.current = r);
   };
 }
+/* ----------------------------------------------------------------------------
+ * §13 尾部转录块三〔A1-R37〕：zbe 图标实体（styles-local 28059-28067 逐字）
+ * ----------------------------------------------------------------------------
+ * 映射表（styles-local → 本文件）：
+ *   zbe → ZapiProviderIcon（28059-28067；Sa≡createLucideIcon 经文件头 modules/button
+ *        import 消费；npm lucide-react@1.35.0 Zap 形不合——负证据见原 declare 处墓碑）
+ * 消费面：@9466 providerEntryIconOf（≡ bundle 88515），调用面逐字不变。
+ * -------------------------------------------------------------------------- */
+/** 原 zbe（styles-local 28059-28067）：Zapi 供应商图标（vendored zap iconNode；〔A1-R37〕型缝：Sa→createLucideIcon 改指） */
+const ZapiProviderIcon = createLucideIcon(`zap`, [
+  [
+    `path`,
+    {
+      d: `M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z`,
+      key: `1xq2db`,
+    },
+  ],
+]);
+/* 〔A1-R37〕尾部导入 1/2：cn（原 Z）收敛改指——modules/UtilsCn shim ← lib/cn.ts canonical（A0-S4-1 行为等价）。
+   尾部 import：ES 模块提升，等价文件头，行引用零漂（R35 先例 @10315）。 */
+import { cn } from '../../modules/UtilsCn';
+/* 〔A1-R37〕尾部导入 2/2：useZCodeIntl（原 G）+ IntlShape 型面（type ZCodeIntl as IntlShape，I18n@201）收敛改指。 */
+import { useZCodeIntl, type ZCodeIntl as IntlShape } from '../../modules/I18n';
