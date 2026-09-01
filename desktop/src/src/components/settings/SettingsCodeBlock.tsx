@@ -21,7 +21,7 @@ import { type CodePreviewSettings } from '../../modules/stores-core';
 
 export type { CodePreviewSettings };
 
-/** 原 U8（js 160323 / jsx 132773）：记忆文件预览（Markdown 包装，F14 代码查看族入口） */
+/** 原 U8（js 160565 / jsx 132773）：记忆文件预览（Markdown 包装，F14 代码查看族入口） */
 export function MemoryFilePreview(props: {
   content: string;
   workspacePath?: string;

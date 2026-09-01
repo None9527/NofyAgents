@@ -21,7 +21,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
  * 6. 行式原语（右栏 label+control 骨架；类名逐字保留）
  * ==========================================================================*/
 
-/** 原 B3（js 135212）：卡片容器（data-slot=card） */
+/** 原 B3（js 135229）：卡片容器（data-slot=card） */
 export function SettingsCard({
   className,
   size = "default",
@@ -40,7 +40,7 @@ export function SettingsCard({
   );
 }
 
-/** 原 V3（js 135254）：卡片内容区（data-slot=card-content） */
+/** 原 V3（js 135271）：卡片内容区（data-slot=card-content） */
 export function SettingsCardContent({ className, ...rest }: React.HTMLAttributes<HTMLDivElement>) {
   return <div data-slot="card-content" className={cn("px-4 group-data-[size=sm]/card:px-3", className)} {...rest} />;
 }
@@ -72,7 +72,7 @@ export function SettingsRow({
   );
 }
 
-/** 原 W3（js 135363）：分区卡 = 零内边距的 Card+Content 组合（行直接堆叠） */
+/** 原 W3（js 135380）：分区卡 = 零内边距的 Card+Content 组合（行直接堆叠） */
 export function SettingsSectionCard({ children }: { children: React.ReactNode }) {
   return (
     <SettingsCard className="overflow-hidden rounded-xl border border-border bg-card py-0 shadow-none">
@@ -81,14 +81,14 @@ export function SettingsSectionCard({ children }: { children: React.ReactNode })
   );
 }
 
-/** 原 EMt（js 135369）：标题 chip（通用分区标题下的语言徽章等） */
+/** 原 EMt（js 135386）：标题 chip（通用分区标题下的语言徽章等） */
 export function SettingsTitleChip({ children }: { children: React.ReactNode }) {
   return (
     <span className="rounded-md bg-surface px-2.5 py-1 text-ui-base font-medium text-foreground-subtle">{children}</span>
   );
 }
 
-/** 原 Q2t（js 204535）：px 数字输入（失焦/回车提交，min–max 钳制，右侧 px 后缀） */
+/** 原 Q2t（js 204830）：px 数字输入（失焦/回车提交，min–max 钳制，右侧 px 后缀） */
 export function PixelNumberInput({
   value,
   min,
@@ -263,7 +263,7 @@ export const SelectItem = React.forwardRef<
   );
 });
 
-/** 原 DC（js 37297）：Switch（Radix），类名逐字保留 */
+/** 原 DC（js 37345）：Switch（Radix），类名逐字保留 */
 export function Switch({
   className,
   size = "default",
@@ -291,7 +291,7 @@ export function Switch({
   );
 }
 
-/** 原 hC（js 36949）：Tabs 根（data-slot=tabs） */
+/** 原 hC（js 36997）：Tabs 根（data-slot=tabs） */
 export function Tabs({
   className,
   orientation = "horizontal",
@@ -307,7 +307,7 @@ export function Tabs({
   );
 }
 
-/** 原 gC（js 36964）：TabsList（variant: default|line） */
+/** 原 gC（js 37012）：TabsList（variant: default|line） */
 export function TabsList({
   className,
   variant = "default",
@@ -327,7 +327,7 @@ export function TabsList({
   );
 }
 
-/** 原 _C（js 36972）：TabsTrigger，类名逐字保留（含 line 变体的下划线 after:） */
+/** 原 _C（js 37020）：TabsTrigger，类名逐字保留（含 line 变体的下划线 after:） */
 export function TabsTrigger({ className, ...rest }: React.ComponentPropsWithRef<"button"> & { value: string; asChild?: boolean }) { // A0-CLEANUP3 3b：ref 透传
   return (
     <RadixTabsTrigger
@@ -344,7 +344,7 @@ export function TabsTrigger({ className, ...rest }: React.ComponentPropsWithRef<
   );
 }
 
-/** 原 vC（js 36986）：TabsContent */
+/** 原 vC（js 37033）：TabsContent */
 export function TabsContent({ className, ...rest }: React.ComponentProps<typeof RadixTabsContent>) { // A0-S3c：透传面改指 radix TabsContent 真面（bundle vC 透传；forceMount?: true）
   return <RadixTabsContent data-slot="tabs-content" className={cn("flex-1 text-ui-base outline-none", className)} {...rest} />;
 }

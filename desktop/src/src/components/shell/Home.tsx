@@ -586,7 +586,7 @@ export interface GreetingHeroProps {
 }
 
 /**
- * 原 Sit（js 91219 / jsx 78861）：问候 hero。
+ * 原 Sit（js 91267 / jsx 78861）：问候 hero。
  * - 底图：HomeHeroLogo 线框 SVG，绝对定位居中、向下渐隐遮罩、透明度 70%
  * - 文本：隐藏的 30px 测量副本（aria-hidden）+ 可见文本；字号写入 CSS 变量
  *   --v4-draft-greeting-font-size；ResizeObserver/resize 节流重算
@@ -705,7 +705,7 @@ export function GreetingHero({ className, compactForRemoteControl = false }: Gre
 }
 
 /**
- * 原 Cit（js 91322 / jsx 78922）：Home hero 品牌线框 logo（400×320，stroke=currentColor）。
+ * 原 Cit（js 91370 / jsx 78922）：Home hero 品牌线框 logo（400×320，stroke=currentColor）。
  * 路径逐字转录自源码。
  */
 export function HomeHeroLogo({ className }: { className?: string }) {
@@ -1066,7 +1066,7 @@ export interface OffPeakNewTaskBannerProps {
 }
 
 /**
- * 原 kit（js 91591 / jsx 79222）：off-peak 新任务横幅。
+ * 原 kit（js 91639 / jsx 79222）：off-peak 新任务横幅。
  * 显示条件：grayConfig.enabled === true 且未被关闭（newTaskBannerDismissed）。
  * 结构：头部行（📢 megaphone 图标 + bannerText（悬停提示 bannerTipText）+ 关闭按钮）
  *       + 3 张模板建议卡（sm:grid-cols-3，moon 图标 + 标题 + 描述）。
@@ -1692,7 +1692,7 @@ export interface SuggestionPanelProps {
 }
 
 /**
- * 原 SV（js 64639 / jsx 57678）：提及/斜杠建议面板。
+ * 原 SV（js 64687 / jsx 57678）：提及/斜杠建议面板。
  * `rounded-2xl border bg-menu` 浮层，@tanstack/virtual 虚拟滚动（行高 34/28/40），
  * 选中项自动 scrollToIndex，滚动边缘渐隐遮罩。
  * testid：prompt-suggestion-panel（段头 -section / 选项 -option / 状态 -status 派生）。
@@ -7137,7 +7137,7 @@ function mergeConfigPickerState(e: ComposerConfigPicker, t: ComposerConfigPicker
 }
 
 /**
- * 原 ZYe（js 67422）：placeholder 文案 key 选择：
+ * 原 ZYe（js 67470）：placeholder 文案 key 选择：
  * 有历史消息+处理中 → chat.placeholder.followUpQueue；有历史消息 → followUpAsk；
  * 远控窄视口新任务 → newTaskMobile；否则 → chat.placeholder.newTask（spec §5：
  * 「向 ZCode 提问，使用 @ 添加上下文，使用 / 选择命令或能力」）

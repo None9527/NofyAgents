@@ -48,12 +48,12 @@
 import * as React from "react";
 import { logger, useTaskStore, getWorkspaceTaskStateAlias as getWorkspaceSlice } from '../../modules/SkillStore'; // 原 J/xe/fe（skillStore-BmeKHDBI.js :: t/h/U）
 import { useSessionRegistryStore } from '../../modules/stores-core'; // 原 Zs（styles 4357；stores/sessionRegistryStore 真身转导出）
-import { useSearchResultsStore, selectQueryResult } from '../../stores/searchResultsStore'; // 原 Vo/Zie（styles 1553/1878；canonical 面 components/quickpick/QuickPick 转导出）
+import { useSearchResultsStore, selectQueryResult } from '../../stores/searchResultsStore'; // 原 Vo/Zie（styles 1878/1878；canonical 面 components/quickpick/QuickPick 转导出）
 import { useBaseServices } from '../../modules/services'; // 原 Ec（styles 4945；services/remoteServices 真身转导出）
-import { taskWorkspaceKey as workspaceKey, compareTasks, dedupeWorkspaceScopes, taskEntityKey, normalizeSearchDescriptor, descriptorCacheKey } from '../../stores/searchResultsHelpers'; // 原 Io/Fo/Ro/Lo/zie/Bie（styles 1368/1365/1374/1371/1385/1396；R9/R10 逐字转录在案）
+import { taskWorkspaceKey as workspaceKey, compareTasks, dedupeWorkspaceScopes, taskEntityKey, normalizeSearchDescriptor, descriptorCacheKey } from '../../stores/searchResultsHelpers'; // 原 Io/Fo/Ro/Lo/zie/Bie（styles 1396/1365/1374/1371/1385/1396；R9/R10 逐字转录在案）
 import { sessionSubscriptionKey, sessionStoreKey, resolveSessionScope, sessionScopeWorkspaceKey, isSessionStoreHydrating } from './SessionStoreCore'; // 〔A1-P3-B2〕原 qS/GS/KS/WS/eje（styles 35543/35529/35535/35526/35546）收敛改指逐字真身叶（ROUNDTRIP EXACT 在案）
 import { WorkspaceSubscriptionSet as SessionStoreReconciler } from '../../modules/services'; // 〔A1-P3-B2〕原 QAe（styles 35455）收敛改指 services/sessionIndex（A0-S4-5 语义重建 554；类面同形 reconcile/getStore/size/dispose）
-import { mergeSessionTaskIndexItem, useOptimisticMembershipVersion, invalidateTaskIndexOnEvent, isOptimisticMembershipEvent, syncTaskStatusUnread, hasOptimisticTaskMeta, isOptimisticCoveredEvent, readTaskIndexCache, buildTaskListFromIndex } from './TaskIndexCore'; // 〔A1-P3-B2〕原 jOe/dx/px/rx/ux/sOe/oOe/Ex/Ox（styles 32678/32327/32363/32264/32307/32284/32271/32534/32647）收敛改指逐字真身叶
+import { mergeSessionTaskIndexItem, useOptimisticMembershipVersion, invalidateTaskIndexOnEvent, isOptimisticMembershipEvent, syncTaskStatusUnread, hasOptimisticTaskMeta, isOptimisticCoveredEvent, readTaskIndexCache, buildTaskListFromIndex } from './TaskIndexCore'; // 〔A1-P3-B2〕原 jOe/dx/px/rx/ux/sOe/oOe/Ex/Ox（styles 32648/32327/32363/32264/32307/32284/32271/32534/32647）收敛改指逐字真身叶
 
 /* ── declare 群（〔A1-P3-B1〕§0）：真身未实体化；各注属主与留批去向。型面宽化 any。 ── */
 

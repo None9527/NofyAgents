@@ -54,7 +54,7 @@ interface WorkspaceTabsStoreState {
   activeWorkspaceIdentity: string | null;
   tabs: WorkspaceTab[];
 }
-/** 原 pc（js 4753）：工作区标签页 store 选择器 */
+/** 原 pc（js 4801）：工作区标签页 store 选择器 */
 declare function useWorkspaceTabsStore<T>(selector: (s: WorkspaceTabsStoreState) => T): T;
 /* ── tombstone〔A1-R50〕：declare remoteTargetDisplayLabel（原 q2，styles 125207–125214）删除
  *    ——逐字真身 = components/modals/RemoteSyncDialogs::remoteSyncTargetLabel（A0 转录），
@@ -87,7 +87,7 @@ export interface McpServer {
 }
 export type McpStatusSnapshot = Record<string, unknown>;
 
-/** 原 Ug（js 25007，横切层 McpStore）：按工作区身份的 MCP 状态机 */
+/** 原 Ug（js 25055，横切层 McpStore）：按工作区身份的 MCP 状态机 */
 interface McpStoreState {
   servers: McpServer[];
   statusSnapshots: Record<string, McpStatusSnapshot>;
@@ -189,7 +189,7 @@ declare function serializeMcpServers(servers: McpServer[]): unknown;
 /** 原 RQt：服务器 → 编辑载荷 */
 declare function mcpServerToPayload(server: McpServer | McpFormDraft): Record<string, unknown>; // A0-CLEANUP3 3b：编辑器保存路径以草稿回传
 
-/** 原 KQt（js 192956）：MCP 服务器列表（空态带创建按钮；行 = GQt，接口级） */
+/** 原 KQt（js 193252）：MCP 服务器列表（空态带创建按钮；行 = GQt，接口级） */
 export function McpServerList({
   servers,
   onCreate,
@@ -244,7 +244,7 @@ export function McpServerList({
   );
 }
 
-/** 原 GQt（js 192850 附近）：MCP 服务器行（开关/编辑/删除/打开 OAuth 授权；
+/** 原 GQt（js 193151 附近）：MCP 服务器行（开关/编辑/删除/打开 OAuth 授权；
  *  testid：mcp-server-row / mcp-open-authorization-button，src chunk 8337/8339）。接口级。 */
 
 /** 原 U$t（js 194480）：编辑器模式切换（表单 | JSON） */
@@ -270,9 +270,9 @@ export function McpEditorModeTabs({
   );
 }
 
-/** 原 HQt（js 192533）：MCP 服务器编辑器（表单/JSON 双模式；stdio/SSE/命令/参数/环境变量）。接口级。 */
+/** 原 HQt（js 192829）：MCP 服务器编辑器（表单/JSON 双模式；stdio/SSE/命令/参数/环境变量）。接口级。 */
 
-/** 原 _$t（js 193344）：MCP 导入对话框 —— 外部 agent 配置一键导入
+/** 原 _$t（js 193640）：MCP 导入对话框 —— 外部 agent 配置一键导入
  *  （settingsSync：Claude Code/Codex/OpenCode…18 种，settingsSync.* 28 处 193248–207980）。接口级。 */
 
 /** 插件托管 MCP 条目形状（原 W$t item 面，js 194799–194947 消费面归纳；〔A1-P3-B13〕buildPluginMcpItems 返回型由 unknown[] 细化，型缝注记见该 declare） */
@@ -419,7 +419,7 @@ export interface McpSettingsSectionProps {
   isWebRemoteControl?: boolean;
 }
 
-/** 原 G$t（js 194645）：MCP 分区主组件 */
+/** 原 G$t（js 194941）：MCP 分区主组件 */
 export function McpSettingsSection({
   workspacePath,
   workspaceIdentity,

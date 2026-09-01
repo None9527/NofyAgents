@@ -42,10 +42,10 @@ export interface SessionSnapshotForOverlays {
  * 3. 交互调度（原 pSt 等，js 117283–117684 / jsx 99619–100033）
  * ==========================================================================*/
 
-/** 原 rSt（js 117400 / jsx 99762）：允许规则内容候选字段 */
+/** 原 rSt（js 117448 / jsx 99762）：允许规则内容候选字段 */
 const PERMISSION_RULE_FIELDS = [`command`, `url`, `file_path`, `path`, `pattern`];
 
-/** 原 iSt（js 117401 / jsx 99763）：选项 kind → resolveInteraction 应答 */
+/** 原 iSt（js 117449 / jsx 99763）：选项 kind → resolveInteraction 应答 */
 function buildOptionResponse(kind: string, option: PermissionOption): { decision: "allow" | "deny"; permissionUpdates?: unknown[] } {
   if (kind === `deny` || kind === `rejectOnce` || kind === `rejectAlways`) return { decision: `deny` };
   if (kind === `allowAlways`) {
@@ -70,7 +70,7 @@ function buildOptionResponse(kind: string, option: PermissionOption): { decision
   return { decision: `allow` };
 }
 
-/** 原 aSt（js 117419 / jsx 99788）：pendingInteraction(permission) → PermissionRequest */
+/** 原 aSt（js 117467 / jsx 99788）：pendingInteraction(permission) → PermissionRequest */
 function toPermissionRequest(sessionId: string, interaction: PendingInteraction & { payload: Extract<PendingInteraction["payload"], { kind: "permission" }> }): PermissionRequest {
   const { payload } = interaction;
   const options = payload.options.map((option) => ({
@@ -93,7 +93,7 @@ function toPermissionRequest(sessionId: string, interaction: PendingInteraction 
   };
 }
 
-/** 原 oSt（js 117440 / jsx 99816）：pendingInteraction(userInput 简单型) → 通用对话框模型 */
+/** 原 oSt（js 117488 / jsx 99816）：pendingInteraction(userInput 简单型) → 通用对话框模型 */
 function toGenericInteractionModel(interaction: PendingInteraction & { payload: Extract<PendingInteraction["payload"], { kind: "userInput" }> }) {
   return {
     interactionId: interaction.interactionId,
@@ -104,7 +104,7 @@ function toGenericInteractionModel(interaction: PendingInteraction & { payload: 
   };
 }
 
-/** 原 sSt（js 117449 / jsx 99825）：pendingInteraction(userInput 问卷型) → ElicitationRequest */
+/** 原 sSt（js 117497 / jsx 99825）：pendingInteraction(userInput 问卷型) → ElicitationRequest */
 function toElicitationRequest(sessionId: string, interaction: PendingInteraction & { payload: Extract<PendingInteraction["payload"], { kind: "userInput" }> }): ElicitationRequest | null {
   const { payload } = interaction;
   if (!payload.questions || payload.questions.length === 0) return null;
@@ -219,7 +219,7 @@ async function sendSnoozeInteractionCommand(e: any) {
  * pSt@117599 resolveInteraction 应答钩子为 pSt 束体嵌套 useCallback，非顶层声明，不独立转录；其 OS 消费面
  *   （本叶 resolveInteraction useCallback，buildCommand import）已收敛，受理取证见 A1-P1-B13.report.md §五。
  * R0@119236 = ./ConversationPaneCore（B3 逐字 2,065 行）OS 消费面 buildCommand import（B6）在案，同受理。 ── */
-/** 原 fSt（js 117536 / jsx 99884）：snooze 账本（交互过才可暂停，且每次交互只暂停一次） */
+/** 原 fSt（js 117584 / jsx 99884）：snooze 账本（交互过才可暂停，且每次交互只暂停一次） */
 function createSnoozeLedger() {
   const interacted = new Set<string>();
   const snoozed = new Set<string>();
@@ -262,7 +262,7 @@ declare function setTaskElicitationFormDraft(
 declare function removeTaskElicitationFormDraft(workspacePath: string | undefined, sessionId: string, requestId: string, workspaceIdentity?: string | null): void;
 declare function useNotificationEnabled(): boolean;
 declare function useTelemetryPlatform(): unknown | null;
-/** 原 tSt（js 117346 / jsx 99703）：新交互出现时的桌面通知（接口保留） */
+/** 原 tSt（js 117394 / jsx 99703）：新交互出现时的桌面通知（接口保留） */
 declare function useSnapshotInteractionToasts(args: {
   snapshot: SessionSnapshotForOverlays | null;
   enabled: boolean;

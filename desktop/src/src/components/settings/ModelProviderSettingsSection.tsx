@@ -787,7 +787,7 @@ function resolveNavItemStorageKey(item: ModelProviderNavItem): string {
     : presetNavKeyOf(item.presetId ?? "") ?? item.key;
 }
 
-/** 原 rQt（js 191351 / jsx 154111）：导航模型 hook */
+/** 原 rQt（js 191647 / jsx 154111）：导航模型 hook */
 export function useModelProviderNavigationModel(opts: {
   presetProviders: Array<PresetProviderEntry & { provider: ModelProvider | null }>;
   modelProviders: ModelProvider[];

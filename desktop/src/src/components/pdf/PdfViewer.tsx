@@ -198,7 +198,7 @@ const WHEEL_ZOOM_SENSITIVITY = 0.002;
 /** 原 Ro：pdfjs range 请求分块尺寸。 */
 const RANGE_CHUNK_SIZE = 256 * 1024;
 
-/** 原 Lo（js 20910）：cMap 选项——相对给定基址解析 `pdfjs/cmaps/` 目录。 */
+/** 原 Lo（js 1371）：cMap 选项——相对给定基址解析 `pdfjs/cmaps/` 目录。 */
 function buildCMapOptions(baseUrl: string, baseHref: string): { cMapPacked: boolean; cMapUrl: string } {
   const resolved = new URL(baseUrl, baseHref);
   return { cMapPacked: true, cMapUrl: new URL("pdfjs/cmaps/", resolved).href };
@@ -235,7 +235,7 @@ interface RangeSource {
 }
 
 /**
- * 原 Ho（js 20920 / jsx 18743）：把 ZCode 范围源适配成 pdfjs 的
+ * 原 Ho（js 1885 / jsx 18743）：把 ZCode 范围源适配成 pdfjs 的
  * PDFDataRangeTransport。requestRange 失败时经 onRequestError 上抛
  * （主组件置「加载失败」态并透传 onLoadError）。
  */
@@ -261,7 +261,7 @@ class RangeSourcePDFDataRangeTransport extends PDFDataRangeTransport {
   }
 }
 
-/** 原 Wo（js 20948）：把外部 source 归一成 getDocument 可接受形状。
+/** 原 Wo（js 1911）：把外部 source 归一成 getDocument 可接受形状。
  *  string/Blob 原样；ArrayBuffer 拷贝一份（避免转移后失效）；
  *  其余 TypedArray 直接包 {data}。 */
 function normalizePdfSource(source: string | Blob | ArrayBuffer | Uint8Array): NormalizedPdfSource {
@@ -321,7 +321,7 @@ interface ZoomAnchorPoint {
   pageYRatio: number;
 }
 
-/** 原 Po（js 20845）：求缩放锚点——事件指针位置（缺省视口中心）夹进
+/** 原 Po（js 1324）：求缩放锚点——事件指针位置（缺省视口中心）夹进
  *  滚动容器后，换算成相对页面视口的 0–1 比例。容器零尺寸返回 null。 */
 function resolveZoomAnchorPoint(
   scrollContainer: HTMLElement,
@@ -345,7 +345,7 @@ function resolveZoomAnchorPoint(
   };
 }
 
-/** 原 Fo（js 20863）：缩放后按锚点比例回补滚动，使指针下的内容不漂移。 */
+/** 原 Fo（js 1365）：缩放后按锚点比例回补滚动，使指针下的内容不漂移。 */
 function applyScrollPreservation(scrollContainer: HTMLElement, pageViewport: HTMLElement, anchor: ZoomAnchorPoint): void {
   const viewportRect = pageViewport.getBoundingClientRect();
   scrollContainer.scrollLeft += viewportRect.left + viewportRect.width * anchor.pageXRatio - anchor.clientX;

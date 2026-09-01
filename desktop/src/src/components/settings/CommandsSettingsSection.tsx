@@ -252,7 +252,7 @@ interface CommandsStoreState {
   ) => Promise<void>;
 }
 
-/** 原 L0t（js 200503）：命令 store 桥 hook（初始化 + 动作封装） */
+/** 原 L0t（js 200799）：命令 store 桥 hook（初始化 + 动作封装） */
 export function useCommandsStoreBridge(opts: {
   workspacePath?: string;
   workspaceIdentity?: string | null;
@@ -332,7 +332,7 @@ export function CommandScopeBadge({ location }: { location: { scope: "user" | "p
   );
 }
 
-/** 原 z0t（js 200556）：命令行件 */
+/** 原 z0t（js 200852）：命令行件 */
 export function CommandRow(props: {
   command: CommandItem;
   onEdit?: (command: CommandItem) => void;
@@ -444,7 +444,7 @@ export function CommandStorageLevelSelect(props: {
   );
 }
 
-/** 原 W0t（js 200703）：命令表单（名称校验 1–50 + 字符集 + prompt 必填） */
+/** 原 W0t（js 200999）：命令表单（名称校验 1–50 + 字符集 + prompt 必填） */
 export function CommandForm(props: {
   initial?: CommandItem;
   workspaceAvailable?: boolean;

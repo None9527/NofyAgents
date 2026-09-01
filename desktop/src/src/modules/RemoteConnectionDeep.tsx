@@ -15,7 +15,7 @@
  *  1. mEt SSH 向导本体 + 隙段 a 全族（dEt/fEt/pEt/mEt/hEt…DEt，js 123513–123945）：
  *     canonical = components/remote/RemoteGapSegments.tsx（A0-S4-4c/B5-14，
  *     useRemoteWizardState 等 17 符号），RemoteWizard.tsx 经真实 import 消费。
- *  2. H2/U2（js 123497–123512，确认 store + 选择器钩）：canonical =
+ *  2. H2/U2（js 123510–123512，确认 store + 选择器钩）：canonical =
  *     components/modals/ConfirmDialog.tsx（live 路径：本地 ConfirmDialogStore +
  *     useConfirmDialog，经 modules/Modals.tsx:244 再导出，TopBar/OnboardingDialog/
  *     RemoteWizard 消费）；stores/confirmDialogStore.ts（A0-S4-3，经 stores-core

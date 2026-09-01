@@ -141,7 +141,7 @@ interface CodeHighlighterContextValue {
   mermaid?: unknown;
 }
 
-/** 原 ry（js 19612）：取高亮器实例 */
+/** 原 ry（js 28252）：取高亮器实例 */
 function useCodeHighlighter(): CodeHighlighter | null {
   return React.useContext(CodeHighlighterContext)?.code ?? null;
 }

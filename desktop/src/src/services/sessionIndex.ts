@@ -653,7 +653,7 @@ export class WorkspaceSubscriptionSet {
  *   回调 / onDynamicSessionsIndexFrame 回套 / onAgentRuntimeRestarted / onAgentRuntimeLifecycle）。
  * ==========================================================================*/
 /* ── tombstone（A1-P3-B5）：declare sessionIndexFrameSchema（原 oS）删除——逐字真身已录
- *    services/sessionsIndexSchemaCore.ts（styles 33505，oS 整链闭合前缀 32959–33508，
+ *    services/sessionsIndexSchemaCore.ts（styles 2453，oS 整链闭合前缀 32959–33508，
  *    ROUNDTRIP[os]+SEAMSTRIP[os] EXACT 80 行在案），本段改头部 import 接线；
  *    §B5-transport 消费面逐字不变。协议簇五符（oS/bS/AS/MS/NS）至此全闭合。 ── */
 /* ── tombstone（A1-P3-B4）：declare SessionIndexTopicMultiplexer（原 bS）/

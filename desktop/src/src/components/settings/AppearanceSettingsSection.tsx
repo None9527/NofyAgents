@@ -21,7 +21,7 @@ interface CodePreviewSettings {
  *    界面（主题模式 + UI 字号）+ 代码（亮/暗主题 + 行号 + 换行 + 字号）+ 双预览卡
  * ==========================================================================*/
 
-/** 原 wMt（js 135262）：代码主题下拉（10 主题，w-64 触发器） */
+/** 原 wMt（js 135279）：代码主题下拉（10 主题，w-64 触发器） */
 export function CodeThemeSelect({ value, onValueChange }: { value: string; onValueChange: (v: string) => void }) {
   return (
     <Select value={value} onValueChange={(next) => onValueChange(next)}>
@@ -39,7 +39,7 @@ export function CodeThemeSelect({ value, onValueChange }: { value: string; onVal
   );
 }
 
-/** 原 TMt（js 135278）：代码主题预览卡（亮/暗；激活徽章 `bg-selected`；
+/** 原 TMt（js 135295）：代码主题预览卡（亮/暗；激活徽章 `bg-selected`；
  *  容器变量覆写背景/卡片/前景三色） */
 export function CodeThemePreviewCard({
   mode,

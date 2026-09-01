@@ -51,7 +51,7 @@ export interface PermissionRequest {
  * ==========================================================================*/
 
 /**
- * 原 vxt（js 116704 / jsx 99162）：选项 kind 同义词表
+ * 原 vxt（js 116752 / jsx 99162）：选项 kind 同义词表
  * （后端/各 provider 的英文表述 → 四类标准动作）。
  */
 const PERMISSION_OPTION_KIND_SYNONYMS = {
@@ -62,12 +62,12 @@ const PERMISSION_OPTION_KIND_SYNONYMS = {
   custom: new Set<string>(),
 };
 
-/** 原 yxt（js 116711 / jsx 99169） */
+/** 原 yxt（js 116759 / jsx 99169） */
 function normalizeOptionKindText(text: string): string {
   return text.trim().replace(/\s+/g, ` `);
 }
 
-/** 原 Z1（js 116714 / jsx 99172）：kind 文本 → 四类标准动作 */
+/** 原 Z1（js 116762 / jsx 99172）：kind 文本 → 四类标准动作 */
 function classifyPermissionOptionKind(kind: string): "allowOnce" | "allowAlways" | "rejectOnce" | "rejectAlways" | "custom" {
   const normalized = kind.trim().toLowerCase();
   const allow = normalized.includes(`allow`) || normalized.includes(`approve`);
@@ -80,7 +80,7 @@ function classifyPermissionOptionKind(kind: string): "allowOnce" | "allowAlways"
   return `custom`;
 }
 
-/** 原 bxt（js 116729 / jsx 99179）：自定义选项 = 名称不在同义词表内（显示原文） */
+/** 原 bxt（js 116777 / jsx 99179）：自定义选项 = 名称不在同义词表内（显示原文） */
 function isCustomPermissionOption(option: { name: string; kind: string }): boolean {
   const name = normalizeOptionKindText(option.name).toLowerCase();
   if (name.length === 0) return false;
@@ -88,7 +88,7 @@ function isCustomPermissionOption(option: { name: string; kind: string }): boole
   return kind === `custom` ? true : !PERMISSION_OPTION_KIND_SYNONYMS[kind].has(name);
 }
 
-/** 原 xxt（js 116735 / jsx 99185）：排序权重 允许一次<始终允许<拒绝一次<始终拒绝<自定义 */
+/** 原 xxt（js 116783 / jsx 99185）：排序权重 允许一次<始终允许<拒绝一次<始终拒绝<自定义 */
 function permissionOptionSortRank(kind: string): number {
   switch (classifyPermissionOptionKind(kind)) {
     case `allowOnce`:
@@ -104,7 +104,7 @@ function permissionOptionSortRank(kind: string): number {
   }
 }
 
-/** 原 Sxt（js 116749 / jsx 99199）：稳定排序（同类保持原序） */
+/** 原 Sxt（js 116797 / jsx 99199）：稳定排序（同类保持原序） */
 function sortPermissionOptions(options: PermissionOption[]): PermissionOption[] {
   return options
     .map((option, index) => ({ option, index }))
@@ -121,7 +121,7 @@ const SCOPE_DISPLAY_MAX_LEN = 160; // wxt（jsx 99211）
 /** 原 Txt（jsx 99212）：无信息量的通用理由（不展示） */
 const GENERIC_PERMISSION_REASONS = new Set([`High risk tools require explicit approval`, `Tool has side effects and requires approval`]);
 
-/** 原 Ext（js 116764 / jsx 99213）：bash 规则前缀截断（首行 + 160 字符） */
+/** 原 Ext（js 116812 / jsx 99213）：bash 规则前缀截断（首行 + 160 字符） */
 function truncateScopeDisplay(text: string): { display: string; truncated: boolean } {
   const newlineIndex = text.search(/\r?\n/);
   const firstLine = newlineIndex === -1 ? text : text.slice(0, newlineIndex);
@@ -130,7 +130,7 @@ function truncateScopeDisplay(text: string): { display: string; truncated: boole
 }
 
 /**
- * 原 Dxt（js 116770 / jsx 99222）：从「始终允许」选项的响应里提取
+ * 原 Dxt（js 116818 / jsx 99222）：从「始终允许」选项的响应里提取
  * bash 命令前缀规则（ruleContent 以 `:*` 结尾者），最多 5 条。
  */
 function extractBashAllowScopes(option: PermissionOption): { display: string; truncated: boolean }[] {
@@ -166,7 +166,7 @@ function PermissionRuleScopes({ scopes }: { scopes: { display: string; truncated
   );
 }
 
-/** 原 kxt（js 116802 / jsx 99236）：选项主文案 i18n key */
+/** 原 kxt（js 116850 / jsx 99236）：选项主文案 i18n key */
 function permissionOptionLabelId(kind: string): string | null {
   switch (classifyPermissionOptionKind(kind)) {
     case `allowOnce`:
@@ -201,7 +201,7 @@ function resolveProviderPermissionLabel(provider: string | undefined, name: stri
   return COMMON_PERMISSION_LABELS[normalized] ?? (provider ? PROVIDER_PERMISSION_LABELS[provider]?.[normalized] ?? null : null);
 }
 
-/** 原 Nxt（js 116828 / jsx 99266）：选项说明 i18n key（按动作×作用域） */
+/** 原 Nxt（js 116876 / jsx 99266）：选项说明 i18n key（按动作×作用域） */
 function permissionOptionDescriptionId(kind: string, scope: string): string | null {
   switch (classifyPermissionOptionKind(kind)) {
     case `allowOnce`:
@@ -228,7 +228,7 @@ function visibleReasonText(value: string | null): string | null {
 }
 
 /**
- * 原 Pxt（js 116849 / jsx 99287）：请求级理由提取
+ * 原 Pxt（js 116897 / jsx 99287）：请求级理由提取
  *（raw 解析后的 description/reason/summary 逐级兜底）。
  */
 function resolvePermissionRequestReason(request: PermissionRequest): string | null {
@@ -238,18 +238,18 @@ function resolvePermissionRequestReason(request: PermissionRequest): string | nu
   return fromParsed ?? visibleReasonText(trimToNull(request.description)) ?? fromRaw;
 }
 
-/** 原 Fxt（js 116855 / jsx 99293）：mcp__ 前缀工具名 */
+/** 原 Fxt（js 116903 / jsx 99293）：mcp__ 前缀工具名 */
 function resolveMcpToolName(request: PermissionRequest): string | null {
   const fromRaw = isPlainRecord(request.raw) ? trimToNull((request.raw as Record<string, unknown>).toolName) ?? trimToNull((request.raw as Record<string, unknown>).tool_name) : null;
   const name = trimToNull(request.toolName) ?? fromRaw ?? trimToNull(request.kind) ?? trimToNull(request.title);
   return name?.startsWith(`mcp__`) ? name : null;
 }
-/** 原 Ixt（js 116860 / jsx 99298） */
+/** 原 Ixt（js 116908 / jsx 99298） */
 function resolveRawReason(request: PermissionRequest): string | null {
   return isPlainRecord(request.raw) ? trimToNull((request.raw as Record<string, unknown>).reason) : null;
 }
 
-/** 原 Lxt（js 116863 / jsx 99301）：审批卡内工具预览的视图类型 */
+/** 原 Lxt（js 116911 / jsx 99301）：审批卡内工具预览的视图类型 */
 function classifyPermissionToolView(
   model: { command?: string; fileChanges: unknown[] },
   toolCall: ToolCall,
@@ -263,7 +263,7 @@ function classifyPermissionToolView(
   if (model.command) return `execute`;
   return `fallback`;
 }
-/** 原 Rxt（js 116876 / jsx 99306）：edit 可折叠默认收起；其余强制展开 */
+/** 原 Rxt（js 116924 / jsx 99306）：edit 可折叠默认收起；其余强制展开 */
 function permissionToolViewToggle(viewKind: "edit" | "mcp" | "skill" | "search" | "execute" | "fallback"): { canToggle: boolean; forceOpen: boolean } {
   switch (viewKind) {
     case `edit`:
@@ -277,7 +277,7 @@ function permissionToolViewToggle(viewKind: "edit" | "mcp" | "skill" | "search" 
   }
 }
 
-/** 原 zxt（js 116888 / jsx 99324）：审批请求 → 伪工具调用（供工具视图渲染） */
+/** 原 zxt（js 116936 / jsx 99324）：审批请求 → 伪工具调用（供工具视图渲染） */
 function toPermissionToolCall(request: PermissionRequest, model: { title?: string; command?: string }): ToolCall {
   const parsedRaw = parseToolCallRaw(request.raw);
   return {
@@ -290,7 +290,7 @@ function toPermissionToolCall(request: PermissionRequest, model: { title?: strin
   } as ToolCall; // bundle zxt 116939：伪工具调用无 toolName（canonical ToolCall 必填，断言收敛）
 }
 
-/** 原 Bxt（js 116899 / jsx 99335）：组装工具视图 props（关闭交互入口） */
+/** 原 Bxt（js 116947 / jsx 99335）：组装工具视图 props（关闭交互入口） */
 function buildPermissionToolViewProps(
   toolCall: ToolCall,
   fileSummaries: FileSummary[],
@@ -384,7 +384,7 @@ function InteractionOriginBadge({ className, origin }: { className?: string; ori
 /* ── tombstone〔A1-P1-B11〕：isSwitchModePermissionRequest declare（Xpt）删除——逐字实体化 →
  * ./PermissionRequestModel（styles 106564–106655；roundtrip EXACT，/tmp/a1r0-p1/p11/）。
  * 消费面改文件头真实 import，调用面逐字不变。 ── */
-/** 原 Hpt（js 106405 / jsx 91360）：切模式提示（按平台快捷键） */
+/** 原 Hpt（js 106453 / jsx 91360）：切模式提示（按平台快捷键） */
 declare const SwitchModeHint: React.FC<{ platform: unknown }>;
 
 /**

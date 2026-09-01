@@ -18,7 +18,7 @@
 /* eslint-disable */
 import * as $ from "react/jsx-runtime"; // 原 $（jsx-runtime-B5yMD3-t.js；A1-R15 判例：编译形 JSX 消费面）
 import * as React from "react"; // 原 Q（react-BQLj9xdT.js）
-import { baseName, isAbsolutePath } from '../../modules/MarkdownIntegration'; // 原 Go/Ko（styles 1928/1941 既录 canonical）
+import { baseName, isAbsolutePath } from '../../modules/MarkdownIntegration'; // 原 Go/Ko（styles 1941/1941 既录 canonical）
 
 /* ── 文件图标域（styles 5064–5267） ── */
 var DEFAULT_FILE_ICON_NAME = `document`,

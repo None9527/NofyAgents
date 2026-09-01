@@ -650,7 +650,7 @@ export function GeneralSettingsSection({
   );
 }
 
-/** 原 Z2t（js 204528）：通用分区标题下的语言 chip */
+/** 原 Z2t（js 204823）：通用分区标题下的语言 chip */
 export function GeneralSettingsTitleChips({ localePreference }: { localePreference: LocalePreference }) {
   const { intl } = useIntlContext();
   return (

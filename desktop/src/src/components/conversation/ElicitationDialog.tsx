@@ -83,7 +83,7 @@ function useAutoResolutionCountdown(autoResolution: PendingInteraction["autoReso
 }
 
 /**
- * 原 oxt（js 115972 / jsx 98730）：输入框键盘映射。
+ * 原 oxt（js 116020 / jsx 98730）：输入框键盘映射。
  * Enter：Ctrl/Meta 或 plan 审批或末题 → 提交；否则下一题。
  * Escape：非审批且有上一题 → 上一题；否则关闭。
  * （IME 组词期间全部忽略。）
@@ -108,7 +108,7 @@ function mapElicitationKeyDown(args: {
   return null;
 }
 
-/** 原 sxt（js 115985 / jsx 98733）：请求 → 规范问题列表（无 questions 时用顶层字段包一题） */
+/** 原 sxt（js 116033 / jsx 98733）：请求 → 规范问题列表（无 questions 时用顶层字段包一题） */
 function normalizeElicitationQuestions(request: ElicitationRequest): ElicitationQuestion[] {
   return (
     request.questions && request.questions.length > 0
@@ -142,7 +142,7 @@ function isPlanApprovalRequest(request: ElicitationRequest): boolean {
 export type AnswerDraft = { selectedValues: string[]; customAnswer: string };
 export type AnswerDraftMap = Record<string, AnswerDraft>;
 
-/** 原 uxt（js 116016 / jsx 98762）：服务端草稿 → 本地草稿（未知选项值落入自定义答案） */
+/** 原 uxt（js 116064 / jsx 98762）：服务端草稿 → 本地草稿（未知选项值落入自定义答案） */
 function buildInitialAnswerDrafts(questions: ElicitationQuestion[], request: ElicitationRequest): AnswerDraftMap {
   return Object.fromEntries(
     questions.map((question, index) => {
@@ -154,17 +154,17 @@ function buildInitialAnswerDrafts(questions: ElicitationQuestion[], request: Eli
     }),
   );
 }
-/** 原 dxt（js 116027 / jsx 98774）：初始题号（服务端 currentQuestionIndex 钳位） */
+/** 原 dxt（js 116075 / jsx 98774）：初始题号（服务端 currentQuestionIndex 钳位） */
 function resolveInitialQuestionIndex(request: ElicitationRequest, questions: ElicitationQuestion[]): number {
   if (questions.length === 0) return 0;
   const index = request.currentQuestionIndex;
   return typeof index != `number` || !Number.isInteger(index) ? 0 : Math.max(0, Math.min(index, questions.length - 1));
 }
-/** 原 fxt（js 116032 / jsx 98779）：焦点槽位 = 选项数 + 自定义输入 */
+/** 原 fxt（js 116080 / jsx 98779）：焦点槽位 = 选项数 + 自定义输入 */
 function optionFocusSlotCount(question: ElicitationQuestion | undefined): number {
   return question ? question.options.length + 1 : 0;
 }
-/** 原 pxt（js 116035 / jsx 98782）：按草稿恢复焦点槽位 */
+/** 原 pxt（js 116083 / jsx 98782）：按草稿恢复焦点槽位 */
 function focusIndexForQuestion(question: ElicitationQuestion | undefined, drafts: AnswerDraftMap): number {
   if (!question) return 0;
   const draft = drafts[question.key];
@@ -175,13 +175,13 @@ function focusIndexForQuestion(question: ElicitationQuestion | undefined, drafts
   }
   return draft?.customAnswer.trim() ? question.options.length : -1;
 }
-/** 原 Y1（js 116045 / jsx 98792）：题目草稿 → 答案数组（选中值 + 自定义文本） */
+/** 原 Y1（js 116093 / jsx 98792）：题目草稿 → 答案数组（选中值 + 自定义文本） */
 function collectQuestionAnswers(question: ElicitationQuestion, drafts: AnswerDraftMap): string[] {
   const draft = drafts[question.key] ?? { selectedValues: [], customAnswer: `` };
   const custom = draft.customAnswer.trim();
   return [...draft.selectedValues, ...(custom ? [custom] : [])];
 }
-/** 原 mxt（js 116050 / jsx 98800）：提交载荷（answers 映射 + answer_N + 单题时的 answer） */
+/** 原 mxt（js 116098 / jsx 98800）：提交载荷（answers 映射 + answer_N + 单题时的 answer） */
 function buildElicitationAnswerPayload(questions: ElicitationQuestion[], drafts: AnswerDraftMap): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     answers: Object.fromEntries(
@@ -202,7 +202,7 @@ function buildElicitationAnswerPayload(questions: ElicitationQuestion[], drafts:
   }
   return payload;
 }
-/** 原 hxt（js 116070 / jsx 98818）：单选覆盖 / 多选切换 */
+/** 原 hxt（js 116118 / jsx 98818）：单选覆盖 / 多选切换 */
 function applyAnswerSelection(drafts: AnswerDraftMap, question: ElicitationQuestion, value: string): AnswerDraftMap {
   const current = drafts[question.key] ?? { selectedValues: [], customAnswer: `` };
   const next = question.multiSelect
@@ -213,12 +213,12 @@ function applyAnswerSelection(drafts: AnswerDraftMap, question: ElicitationQuest
     : { selectedValues: [value], customAnswer: `` };
   return { ...drafts, [question.key]: next };
 }
-/** 原 X1（js 116082 / jsx 98835）：末题 → submit，否则 next */
+/** 原 X1（js 116130 / jsx 98835）：末题 → submit，否则 next */
 function advanceKindForQuestion(questions: ElicitationQuestion[], questionIndex: number): "next" | "submit" {
   return questionIndex >= questions.length - 1 ? `submit` : `next`;
 }
 
-/** 原 gxt（js 116085 / jsx 98838）：按 requestId 强制重挂载对话框 */
+/** 原 gxt（js 116133 / jsx 98838）：按 requestId 强制重挂载对话框 */
 function ElicitationDialogKeyed(props: React.ComponentProps<typeof ElicitationDialog>) {
   return <ElicitationDialog key={props.request.requestId} {...props} />;
 }

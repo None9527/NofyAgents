@@ -34,7 +34,7 @@ import { Button, ChevronRight as IconChevronRight } from '../../modules/button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../modules/Conversation'; // 原 kZ/AZ/jZ（§1 共享原语留守面，A0-S4-4b）
 import { ToolLayoutMemo as ToolLayout } from './ToolLayoutBlocks'; // 原 lQ（B12 钥匙 2）
 import { ToolSnapshotRefs } from './ToolSnapshotRefs'; // 原 sQ（B12 钥匙 1）
-import { ImageGalleryGroup, ImageLightbox } from '../../modules/PreviewCards'; // 原 qk/Wk（styles 50165/49882；图像画廊域 canonical）
+import { ImageGalleryGroup, ImageLightbox } from '../../modules/PreviewCards'; // 原 qk/Wk（styles 49882/49882；图像画廊域 canonical）
 import { IMAGE_THUMBNAIL_CLASS, IMAGE_INNER_CLASS } from '../../modules/MarkdownIntegration'; // 原 Gk/Kk（styles 50163/50164；Kk export 〔A1-P1-B15〕补）
 import { CodeSurfaceCard, NODE_REPL_TOOL_ICON, PLAIN_TEXT_OUTPUT_MAX_LENGTH } from './CodeSurfaceBlocks'; // 原 w$/Dmt/kmt（B14 既录 107180/107112/107114）
 import { ExternalLink as IconExternalLink } from 'lucide-react'; // 原 q_（styles 27013 Sa('external-link')；A0-S3b 判例 npm lucide-react@1.35.0）

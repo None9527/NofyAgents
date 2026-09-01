@@ -2649,7 +2649,7 @@ export interface SidePaneTabChipProps {
   canCloseOtherTabs: boolean;
 }
 
-/** 原 TKt（js 181303 / jsx 146452）：单个标签 chip
+/** 原 TKt（js 181556 / jsx 146452）：单个标签 chip
  *  - dnd-kit useSortable 拖拽重排（拖拽中半透明+高 z，点击抑制）；
  *  - TabsTrigger 语义（data-state active/inactive）；
  *  - 右侧渐变遮罩 + 常驻关闭按钮；
@@ -2762,7 +2762,7 @@ export function SidePaneTabChip({
   );
 }
 
-/** 原 EKt（js 181429 / jsx 146517）：拖拽悬浮态 chip（DragOverlay 内） */
+/** 原 EKt（js 181682 / jsx 146517）：拖拽悬浮态 chip（DragOverlay 内） */
 export const SidePaneTabChipDragOverlay: React.FC<{ tab: SidePaneTab; title: string; diffBadgeLabel: string }> = ({ tab, title, diffBadgeLabel }) => (
   <div
     className={cn(
@@ -3043,7 +3043,7 @@ function resolveRequestedEndedCount(args: { loadedItemCount: number; nextTotal: 
   return args.loadedItemCount === 0 ? args.requestedCount : args.requestedCount + Math.max(0, args.nextTotal - args.previousTotal);
 }
 
-/** 原 VKt（js 181904 / jsx 146801）：子智能体目录读取（首页拉满补偿 + loadMore 翻页） */
+/** 原 VKt（js 182157 / jsx 146801）：子智能体目录读取（首页拉满补偿 + loadMore 翻页） */
 export function useSubagentDirectory(args: {
   enabled?: boolean;
   workspacePath: string;
@@ -3192,7 +3192,7 @@ const SubagentStatusIcon: React.FC<{ status: SubagentDirectoryItem["status"] }> 
   }
 };
 
-/** 原 GKt（js 182056 / jsx 146983）：子智能体目录行 */
+/** 原 GKt（js 182309 / jsx 146983）：子智能体目录行 */
 export const SubagentDirectoryItemRow = React.memo(function SubagentDirectoryItemRow({ item, onOpen }: { item: SubagentDirectoryItem; onOpen: (item: SubagentDirectoryItem) => void }) {
   const { intl } = useIntlContext();
   const when = "endedAt" in item ? item.endedAt : item.startedAt;
@@ -3317,7 +3317,7 @@ export const SubagentDirectoryTabContent = React.memo(function SubagentDirectory
   );
 });
 
-/** 原 LKt（js 181855 / jsx 146763）：子智能体会话标签内容 = 只读会话面板 */
+/** 原 LKt（js 182108 / jsx 146763）：子智能体会话标签内容 = 只读会话面板 */
 export const SubagentSessionTabContent = React.memo(function SubagentSessionTabContent({
   tab,
   focused,
@@ -3494,7 +3494,7 @@ export const PlanDetailTabContent = React.memo(function PlanDetailTabContent({
   );
 });
 
-/** 原 pqt（js 182366 / jsx 147193）：挂起浏览器标签占位（挂载即向主进程回 suspend-ready ack） */
+/** 原 pqt（js 182619 / jsx 147193）：挂起浏览器标签占位（挂载即向主进程回 suspend-ready ack） */
 export function SuspendedBrowserTabPlaceholder({ tab }: { tab: BrowserTab | BrowserUseTab }) {
   const platform = usePlatformService();
   const targetTabId = tab.type === "browser-use" ? (tab as BrowserUseTab).tabId : tab.id;
@@ -3583,7 +3583,7 @@ export function canOpenSelectionSideConversation(args: { activeTaskId: string | 
 /** 空态四宫格候选项（按显示顺序） */
 export type EmptyStateTabOptionId = "selection-side-conversation" | "review" | "terminal" | "browser" | "developer-tools";
 
-/** 原 mqt（js 182389 / jsx 147217）：空态可打开项解析。
+/** 原 mqt（js 182642 / jsx 147217）：空态可打开项解析。
  *  规则：辅助对话（有激活任务时）→ 审查（尚无 git 标签时）→ 终端（恒有）
  *        → 浏览器（支持内嵌时）→ 开发者工具（旗标开启时）。
  *  典型桌面 + 激活任务 = 4 项，即「空态四宫格」。 */
@@ -3735,9 +3735,9 @@ export function shouldRenderHeavyContent(args: {
   return args.visibleInlineSizePx === null ? true : args.visibleInlineSizePx >= minVisibleInlineSizePx;
 }
 
-/** 原 VV（js 66107）：手机文本输入视口订阅（简化为常量 false 的接口占位） */
+/** 原 VV（js 66155）：手机文本输入视口订阅（简化为常量 false 的接口占位） */
 
-/** 原 SWt（js 178264，F13 段）：browser-use 截图 surface 请求监听（按当前标签过滤） */
+/** 原 SWt（js 178517，F13 段）：browser-use 截图 surface 请求监听（按当前标签过滤） */
 /** 原 xWt：在标签列表里找与截图请求匹配的 browser-use 标签 */
 declare function findBrowserUseTabForSurface(tabs: SidePaneTab[], request: ScreenshotSurfaceRequest): BrowserUseTab | undefined;
 
@@ -4484,7 +4484,7 @@ declare const DndContextShim: React.FC<{
  *       → Boe 的 handle*（本文件 useSidePaneState）。
  * ==========================================================================*/
 
-/** 原 D_e（js 25394）：quickPick 段序 */
+/** 原 D_e（js 25442）：quickPick 段序 */
 export const QUICK_PICK_SECTION_ORDER = ["suggested", "chat", "navigation", "panels", "configure", "app"] as const;
 export type QuickPickSectionId = (typeof QUICK_PICK_SECTION_ORDER)[number];
 
@@ -4577,7 +4577,7 @@ export function buildSidePanelQuickPickCommands(args: {
   ];
 }
 
-/** 原 rge（js 24021–24078 / jsx 20683）：全局键盘快捷键。
+/** 原 rge（js 24063–24078 / jsx 20683）：全局键盘快捷键。
  *  capture 阶段监听 window keydown；忽略 repeat 与 IME 组词。 */
 export function useGlobalShortcuts(handlers: {
   openQuickPick: () => void;

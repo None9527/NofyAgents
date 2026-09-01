@@ -297,7 +297,7 @@ export function HookFormField(props: { children: React.ReactNode; htmlFor: strin
   );
 }
 
-/** 原 t2t（js 201390）：hook 表单（事件/类型/匹配/命令/参数/shell/异步/高级） */
+/** 原 t2t（js 201686）：hook 表单（事件/类型/匹配/命令/参数/shell/异步/高级） */
 export function HookForm(props: {
   hook?: HookItem;
   workspaceAvailable?: boolean;
@@ -754,7 +754,7 @@ export function groupHookRowsByEvent(
   return [...ordered, ...extra];
 }
 
-/** 原 i2t（js 201771）：hook 列表（按事件分节） */
+/** 原 i2t（js 202067）：hook 列表（按事件分节） */
 export function HookListByEvent(props: {
   compatibilityHooks: HookItem[];
   editableHooks: HookItem[];

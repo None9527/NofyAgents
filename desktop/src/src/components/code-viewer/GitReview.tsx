@@ -554,7 +554,7 @@ export interface GitPaneState {
   datasets: Record<GitSourceId, GitDataset>;
 }
 
-/** 原 Whe（js 23767）：空分支比较 */
+/** 原 Whe（js 23815）：空分支比较 */
 export const EMPTY_BRANCH_COMPARISON: GitBranchComparison = { baseRef: null, headRef: null, comparisonLabel: null, changes: [] };
 
 /** 原 Ghe（js 23768）：各来源的分组顺序 */
@@ -567,7 +567,7 @@ export const GIT_SOURCE_SECTION_ORDER: Record<Exclude<GitSourceId, "last-turn">,
 /** 原 Khe（js 23773）：空提交身份 */
 export const EMPTY_GIT_IDENTITY: GitIdentity = { userName: null, userEmail: null, nameSource: null, emailSource: null, scopeLabel: null };
 
-/** 原 qhe（js 23774）：git 错误消息提取（与 DWt 同构） */
+/** 原 qhe（js 23822）：git 错误消息提取（与 DWt 同构） */
 export function extractGitErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message || error.name || String(error);
   if (typeof error === `object` && error && `message` in error) {
@@ -577,7 +577,7 @@ export function extractGitErrorMessage(error: unknown): string {
   return String(error);
 }
 
-/** 原 Uhe（js 23760）：是否远程工作区描述（身份/远程会话/远程目标任一） */
+/** 原 Uhe（js 23809）：是否远程工作区描述（身份/远程会话/远程目标任一） */
 export function isRemoteWorkspaceDescriptor(desc: {
   workspaceIdentity?: string | null;
   remoteSessionId?: string | null;
@@ -586,7 +586,7 @@ export function isRemoteWorkspaceDescriptor(desc: {
   return !!(desc.workspaceIdentity?.trim() || desc.remoteSessionId?.trim() || desc.remoteTarget);
 }
 
-/** 原 bg（js 23764）：git RPC 可用 = 本地工作区 ∥ 有远程会话（远程目标直连不走工作区 RPC） */
+/** 原 bg（js 23812）：git RPC 可用 = 本地工作区 ∥ 有远程会话（远程目标直连不走工作区 RPC） */
 export function isGitRpcEnabled(desc: {
   workspaceIdentity?: string | null;
   remoteSessionId?: string | null;
@@ -595,17 +595,17 @@ export function isGitRpcEnabled(desc: {
   return !isRemoteWorkspaceDescriptor(desc) || !!desc.remoteSessionId?.trim();
 }
 
-/** 原 xg（js 23782）：分组变更总数 */
+/** 原 xg（js 23830）：分组变更总数 */
 export function countSectionChanges(sections: GitSection[]): number {
   return sections.reduce((sum, section) => sum + section.changes.length, 0);
 }
 
-/** 原 Jhe（js 23785）：按增删行数推断变更类型 */
+/** 原 Jhe（js 23833）：按增删行数推断变更类型 */
 export function resolveChangeKind(added: number, removed: number): GitChangeKind {
   return added > 0 && removed === 0 ? `added` : removed > 0 && added === 0 ? `deleted` : `modified`;
 }
 
-/** 原 Yhe（js 23788）：空仓库摘要 */
+/** 原 Yhe（js 23836）：空仓库摘要 */
 export function createEmptyGitSummary(workspacePath: string): GitSummary {
   return {
     workspacePath,
@@ -623,12 +623,12 @@ export function createEmptyGitSummary(workspacePath: string): GitSummary {
   };
 }
 
-/** 原 Sg（js 23804）：空来源数据集 */
+/** 原 Sg（js 23852）：空来源数据集 */
 export function createEmptyGitDataset(id: GitSourceId, readonly: boolean): GitDataset {
   return { id, readonly, sections: [], comparisonLabel: null, turnIndex: null };
 }
 
-/** 原 Xhe（js 23807）：四来源空数据集 */
+/** 原 Xhe（js 23855）：四来源空数据集 */
 export function createEmptyGitDatasets(): Record<GitSourceId, GitDataset> {
   return {
     unstaged: createEmptyGitDataset(`unstaged`, false),
@@ -638,7 +638,7 @@ export function createEmptyGitDatasets(): Record<GitSourceId, GitDataset> {
   };
 }
 
-/** 原 Cg（js 23815）：数据集 → 来源下拉选项（顺序固定） */
+/** 原 Cg（js 23863）：数据集 → 来源下拉选项（顺序固定） */
 export function buildGitSourceOptions(datasets: Record<GitSourceId, GitDataset>): GitSourceOption[] {
   return [
     { id: `unstaged`, count: countSectionChanges(datasets.unstaged.sections), readonly: false, disabled: false },
@@ -654,7 +654,7 @@ export function buildGitSourceOptions(datasets: Record<GitSourceId, GitDataset>)
   ];
 }
 
-/** 原 wg（js 23829）：初始 pane 状态（loading 缺省真） */
+/** 原 wg（js 23877）：初始 pane 状态（loading 缺省真） */
 export function createInitialGitPaneState(
   workspacePath: string,
   overrides?: { workspaceKey?: string; loading?: boolean; error?: string | null; revision?: number },
@@ -673,12 +673,12 @@ export function createInitialGitPaneState(
   };
 }
 
-/** 原 Zhe（js 23844）：给变更挂 diff */
+/** 原 Zhe（js 23891）：给变更挂 diff */
 export function attachDiff(change: GitFileChange, diff: GitDiffState | null = null): GitFileChange {
   return { ...change, diff };
 }
 
-/** 原 Tg（js 23847）：扁平变更 → 按分组顺序组装 sections（组内按工作区相对路径排序） */
+/** 原 Tg（js 23894）：扁平变更 → 按分组顺序组装 sections（组内按工作区相对路径排序） */
 export function groupChangesIntoSections(sourceId: Exclude<GitSourceId, "last-turn">, changes: GitFileChange[]): GitSection[] {
   const bySection = new Map<string, GitFileChange[]>();
   for (const change of changes) {
@@ -697,7 +697,7 @@ export function groupChangesIntoSections(sourceId: Exclude<GitSourceId, "last-tu
     .filter((section): section is GitSection => !!section);
 }
 
-/** 原 Qhe（js 23862）：refresh 结果 → 三来源数据集（last-turn 另行注入） */
+/** 原 Qhe（js 23910）：refresh 结果 → 三来源数据集（last-turn 另行注入） */
 export function buildGitDatasets(result: {
   unstagedChanges: GitFileChange[];
   stagedChanges: GitFileChange[];
@@ -716,7 +716,7 @@ export function buildGitDatasets(result: {
   };
 }
 
-/** 原 yg（js 23717）：仓库根相对路径（大小写不敏感前缀；不匹配时原样返回 basename） */
+/** 原 yg（js 23765）：仓库根相对路径（大小写不敏感前缀；不匹配时原样返回 basename） */
 export function resolveRepoRelativePath(repoRoot: string, path: string): string {
   const root = repoRoot.replace(/[\\/]+$/, ``).replace(/\\/g, `/`);
   const target = path.replace(/\\/g, `/`);
@@ -727,7 +727,7 @@ export function resolveRepoRelativePath(repoRoot: string, path: string): string 
   return target.toLowerCase().startsWith(lowerPrefix) ? target.slice(prefix.length) || pathBasename(path) : path;
 }
 
-/** 原 $he（js 23876）：last-turn 摘要文件 → 变更行（内联 before/after 内容，供直接出 diff） */
+/** 原 $he（js 90289）：last-turn 摘要文件 → 变更行（内联 before/after 内容，供直接出 diff） */
 export function buildLastTurnChange(
   workspacePath: string,
   snapshotsByPath: Map<string, { beforeContent: string | null; afterContent: string | null }>,
@@ -757,7 +757,7 @@ export function buildLastTurnChange(
   };
 }
 
-/** 原 ege（js 23898）：last-turn 数据集（只读；无摘要时为空段） */
+/** 原 ege（js 23946）：last-turn 数据集（只读；无摘要时为空段） */
 export function buildLastTurnDataset(req: {
   workspacePath: string;
   turnIndex: number | null;
@@ -775,7 +775,7 @@ export function buildLastTurnDataset(req: {
   };
 }
 
-/** 原 tge（js 23910）：是否需要重新 refresh（工作区/键/刷新令牌变化，或首次要求扩展数据） */
+/** 原 tge（js 23957）：是否需要重新 refresh（工作区/键/刷新令牌变化，或首次要求扩展数据） */
 export function shouldRefreshGitState(
   prev: { workspacePath: string; workspaceKey: string; refreshToken: number | null; workspaceRpcEnabled: boolean; includeExtendedData: boolean } | null,
   next: { workspacePath: string; workspaceKey: string; refreshToken: number | null; workspaceRpcEnabled: boolean; includeExtendedData: boolean },
@@ -809,7 +809,7 @@ export interface LastTurnChangeSummary {
 /** diff 行数统计（原 Xr，src-HCld2afU.js 导出 b；LCS 行级统计） */
 
 /**
- * 原 Hhe（js 23726 / jsx 20340）：任务快照 → 上一轮变更摘要。
+ * 原 Hhe（js 23774 / jsx 20340）：任务快照 → 上一轮变更摘要。
  * 快照按路径合并（后写覆盖内容、累加写入次数），再对每个文件做行级增删统计。
  */
 export function buildLastTurnChangeSummary(
@@ -850,7 +850,7 @@ export function buildLastTurnChangeSummary(
 }
 
 /**
- * 原 nge（js 23920 / jsx 20564）：useGitRepository —— 审查 pane 的状态钩子。
+ * 原 nge（js 23968 / jsx 20564）：useGitRepository —— 审查 pane 的状态钩子。
  * 工作区键 = workspaceIdentity?.trim() || workspacePath；git RPC 不可用时直接落空态。
  * ⚠ MODULE-MAP F12 备注把 `nge` 标为「用量数据 hook」系误认（调用面是 gitService.refresh）。
  */
@@ -979,7 +979,7 @@ export const DIFF_RICH_LINE_LIMIT = 1200;
 export const GIT_CHANGE_ROW_ESTIMATE_PX = 32;
 export const GIT_CHANGE_LIST_OVERSCAN = 14;
 
-/** 原 TWt（js 178298）：来源 → i18n key（未暂存/已暂存/全部分支更改/上一轮更改） */
+/** 原 TWt（js 178552）：来源 → i18n key（未暂存/已暂存/全部分支更改/上一轮更改） */
 export function resolveGitSourceI18nId(sourceId: string): string {
   switch (sourceId) {
     case `unstaged`:
@@ -995,7 +995,7 @@ export function resolveGitSourceI18nId(sourceId: string): string {
   }
 }
 
-/** 原 EWt（js 178312）：diff 不可用文案（二进制/已裁剪/暂不可预览） */
+/** 原 EWt（js 178566）：diff 不可用文案（二进制/已裁剪/暂不可预览） */
 export function resolveDiffUnavailableI18nId(availability: string): string {
   switch (availability) {
     case `binary`:
@@ -1007,12 +1007,12 @@ export function resolveDiffUnavailableI18nId(availability: string): string {
   }
 }
 
-/** 原 y5（js 178322）：diff 缓存键 = 来源:路径 */
+/** 原 y5（js 178576）：diff 缓存键 = 来源:路径 */
 export function diffCacheKey(sourceId: string, path: string): string {
   return `${sourceId}:${path}`;
 }
 
-/** 原 DWt（js 178325）：错误消息提取（与 MC 同构） */
+/** 原 DWt（js 178579）：错误消息提取（与 MC 同构） */
 export function extractDiffErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message || error.name || String(error);
   if (typeof error === `object` && error && `message` in error) {
@@ -1022,7 +1022,7 @@ export function extractDiffErrorMessage(error: unknown): string {
   return String(error);
 }
 
-/** 原 OWt（js 178333）：行数统计（末行无换行也计一行） */
+/** 原 OWt（js 178587）：行数统计（末行无换行也计一行） */
 export function countTextLines(text: string | null | undefined): number {
   if (!text) return 0;
   let count = +!text.endsWith(`\n`);
@@ -1030,7 +1030,7 @@ export function countTextLines(text: string | null | undefined): number {
   return count;
 }
 
-/** 原 kWt（js 178340）：diff 是否过大而不适合富渲染（字符数或行数超阈） */
+/** 原 kWt（js 178594）：diff 是否过大而不适合富渲染（字符数或行数超阈） */
 export function isDiffTooLargeForRichRendering(diff: GitDiffState): boolean {
   return diff.availability !== `patch` || !diff.patch
     ? false
@@ -1042,7 +1042,7 @@ export function isDiffTooLargeForRichRendering(diff: GitDiffState): boolean {
 /** diff 渲染模式（原 AWt 的返回形） */
 export type DiffRenderMode = { kind: "rich" } | { kind: "plain-text"; lines: string[] } | { kind: "patch" };
 
-/** 原 MWt（js 178363）：从 ---/+++ 头里取第一个非 /dev/null 路径 */
+/** 原 MWt（js 178617）：从 ---/+++ 头里取第一个非 /dev/null 路径 */
 export function findDiffHeaderPath(lines: string[]): string | null {
   for (const line of lines) {
     if (!line.startsWith(`--- `) && !line.startsWith(`+++ `)) continue;
@@ -1058,7 +1058,7 @@ declare function parsePatchIntoLines(patch: string): string[] | null;
 declare function detectFileType(path: string): string;
 
 /**
- * 原 jWt（js 178355）：新增/删除文件（--- /dev/null 或 +++ /dev/null）时，
+ * 原 jWt（js 178609）：新增/删除文件（--- /dev/null 或 +++ /dev/null）时，
  * 若头路径是文本文件，则把整个 patch 当纯文本行渲染。
  */
 export function tryExtractPlainTextDiffLines(patch: string): string[] | null {
@@ -1070,7 +1070,7 @@ export function tryExtractPlainTextDiffLines(patch: string): string[] | null {
   return headerPath && detectFileType(headerPath) === `text` ? lines : null;
 }
 
-/** 原 AWt（js 178347）：diff 渲染模式分派（无 patch→rich；纯文本→plain-text；过大→patch 兜底） */
+/** 原 AWt（js 178601）：diff 渲染模式分派（无 patch→rich；纯文本→plain-text；过大→patch 兜底） */
 export function resolveDiffRenderMode(diff: GitDiffState | null | undefined): DiffRenderMode {
   if (diff?.availability !== `patch` || !diff.patch) return { kind: `rich` };
   const plainTextLines = tryExtractPlainTextDiffLines(diff.patch);
@@ -1080,7 +1080,7 @@ export function resolveDiffRenderMode(diff: GitDiffState | null | undefined): Di
   return fallbackLines ? { kind: `plain-text`, lines: fallbackLines } : { kind: `patch` };
 }
 
-/** 原 PWt（js 178541）：纯文本 diff 轻量预览（gut 封装 + data-git-plain-text-diff-preview） */
+/** 原 PWt（js 178795）：纯文本 diff 轻量预览（gut 封装 + data-git-plain-text-diff-preview） */
 export function PlainTextDiffPreview({ lines, codePreviewSettings }: { lines: string[]; codePreviewSettings: CodePreviewSettings }) {
   return (
     <LightweightDiffPreview
@@ -1096,12 +1096,12 @@ export function PlainTextDiffPreview({ lines, codePreviewSettings }: { lines: st
 /** Diff 视图（原 W8 = memo(mVt)，js 160479/160542；F14 基建，接口声明） */
 interface DiffViewerFile { name: string; contents: string; cacheKey: string }
 
-/** 原 FWt（js 178548）：查找词归一化 */
+/** 原 FWt（js 178802）：查找词归一化 */
 export function normalizeFindQuery(query: string): string {
   return query.trim().toLocaleLowerCase();
 }
 
-/** 原 IWt（js 178551）：不重叠出现次数 */
+/** 原 IWt（js 178805）：不重叠出现次数 */
 export function countOccurrences(text: string, needle: string): number {
   if (!needle) return 0;
   const haystack = text.toLocaleLowerCase();
@@ -1126,7 +1126,7 @@ export interface FileChangeFindResult {
 }
 
 /**
- * 原 LWt（js 178563）：变更内容查找。把每个文件的 before+after 拼成内容串，
+ * 原 LWt（js 178817）：变更内容查找。把每个文件的 before+after 拼成内容串，
  * 逐文件数匹配并展平成全局序列；活动下标越界时回绕到 0。
  */
 export function computeFileChangeFindMatches(
@@ -1182,7 +1182,7 @@ export interface GitChangeRowProps {
 }
 
 /**
- * 原 NWt（js 178371 / jsx 144648）：单文件变更行。
+ * 原 NWt（js 178625 / jsx 144648）：单文件变更行。
  * 粘性头（`sticky top-0 z-10 h-8`）= 文件路径（Bc）+ +N/-N + ⌄；
  * 右键菜单 = 在文件管理器中打开/复制绝对路径/复制相对路径/在文件树中显示；
  * 展开体按渲染模式三态：纯文本轻量预览 / patch 视图 / 前后文件视图；
@@ -1345,7 +1345,7 @@ export interface GitChangesPanelProps {
 }
 
 /**
- * 原 BWt（js 178584 / jsx 144748）：GitChangesPanel —— 侧面板「审查」标签主体。
+ * 原 BWt（js 178837 / jsx 144748）：GitChangesPanel —— 侧面板「审查」标签主体。
  * testid `git-pane`（原 ine，src-HCld2afU.js 8239）。
  */
 export function GitChangesPanel({
@@ -1726,7 +1726,7 @@ export interface FileRewindPreview {
   canApply: boolean;
 }
 
-/** 原 y_t（js 110586）：跳过原因 → i18n（缺省 unsupportedCheckpoint） */
+/** 原 y_t（js 110635）：跳过原因 → i18n（缺省 unsupportedCheckpoint） */
 export function formatRewindSkipReason(reason: string, intl: IntlShape): string {
   const fallback = `chat.changeSummary.rewindDialog.reason.unsupportedCheckpoint`;
   const reasonI18nMap: Record<string, string> = {
@@ -1740,7 +1740,7 @@ export function formatRewindSkipReason(reason: string, intl: IntlShape): string 
   return intl.formatMessage({ id: reasonI18nMap[reason] ?? fallback });
 }
 
-/** 原 f1（js 110599）：撤销对话框文件列表（路径 + 原因/修改次数） */
+/** 原 f1（js 110647）：撤销对话框文件列表（路径 + 原因/修改次数） */
 export function RewindDialogFileList({ files, type }: { files: RewindFileEntry[]; type: string }) {
   const { intl } = useIntlContext();
   return files.length === 0 ? null : (
@@ -1777,7 +1777,7 @@ export interface FileRewindDialogProps {
 }
 
 /**
- * 原 b_t（js 110632 / jsx 94590）：FileRewindDialog。
+ * 原 b_t（js 110680 / jsx 94590）：FileRewindDialog。
  * fileRewind 变体：三段列表（可安全撤销/不能安全撤销/已忽略）+ 红色错误行 +
  *   「存在不安全文件则提示未写入」+ destructive「撤销文件」按钮（!canApply 禁用）。
  * editConflict 变体：标题/描述换成 chat.edit.workspaceConflict.*，testid
@@ -1897,7 +1897,7 @@ export interface TurnFileChangeItem {
 }
 
 /**
- * 原 x_t（js 110785）：hunks → unified patch 文本（--- a/ +++ b/ + @@ 头）。
+ * 原 x_t（js 110833）：hunks → unified patch 文本（--- a/ +++ b/ + @@ 头）。
  */
 export function buildUnifiedPatch(path: string, patches: TurnFileChangeItem["patches"]): string {
   if (patches.length === 0) return ``;
@@ -1908,7 +1908,7 @@ export function buildUnifiedPatch(path: string, patches: TurnFileChangeItem["pat
 }
 
 /**
- * 原 p1（js 110793）：「审查」按钮落点 —— 把单文件变更拼成 patch 源，
+ * 原 p1（js 110841）：「审查」按钮落点 —— 把单文件变更拼成 patch 源，
  * 交给侧面板开 code-viewer 标签（type: 'patch'）。这是「逐文件审查」的入口函数。
  */
 export function openFileChangePatchInCodeViewer(item: TurnFileChangeItem, context: FileChangeContextWorkspace): void {
@@ -1983,17 +1983,17 @@ export const CODE_COMMENT_REMOVE_BROADCAST_CHANNEL = `code-comment:remove-from-c
 /** 原 OH（js 68365）：已回流（或已被聊天消费）的评论作用域集合 */
 const removedCommentScopes = new Set<string>();
 
-/** 原 kH（js 68367）：工作区键 = 身份 ∥ 路径 */
+/** 原 kH（js 68415）：工作区键 = 身份 ∥ 路径 */
 export function commentWorkspaceKey(workspacePath: string, workspaceIdentity?: string | null): string {
   return workspaceIdentity?.trim() || workspacePath;
 }
 
-/** 原 AH（js 68371）：评论作用域键（工作区键 \0 评论 id） */
+/** 原 AH（js 68418）：评论作用域键（工作区键 \0 评论 id） */
 export function commentScopeKey(scope: { workspacePath: string; workspaceIdentity?: string | null; id: string }): string {
   return `${commentWorkspaceKey(scope.workspacePath, scope.workspaceIdentity)}\0${scope.id}`;
 }
 
-/** 原 _Xe/jH/vXe（js 68373/68376/68379）：已回流集合 读/写/删 */
+/** 原 _Xe/jH/vXe（js 68427/68376/68379）：已回流集合 读/写/删 */
 export function isCommentRemovedFromChat(scope: { workspacePath: string; workspaceIdentity?: string | null; id: string }): boolean {
   return removedCommentScopes.has(commentScopeKey(scope));
 }
@@ -2004,7 +2004,7 @@ export function unmarkCommentRemovedFromChat(scope: { workspacePath: string; wor
   removedCommentScopes.delete(commentScopeKey(scope));
 }
 
-/** 原 yXe/bXe（js 68382/68390）：事件类型守卫 */
+/** 原 yXe/bXe（js 68438/68390）：事件类型守卫 */
 export function isAddToChatEvent(event: Event): event is CustomEvent<unknown> {
   return (
     event.type === `zcode:code-comment-add-to-chat` &&
@@ -2022,7 +2022,7 @@ export function isRemoveFromChatEvent(event: Event): event is CustomEvent<unknow
   );
 }
 
-/** 原 MH（js 68398）：移除载荷守卫（id + workspacePath [+ identity]） */
+/** 原 MH（js 68446）：移除载荷守卫（id + workspacePath [+ identity]） */
 export function isCommentScopePayload(payload: unknown): payload is { id: string; workspacePath: string; workspaceIdentity?: string } {
   const value = payload as Record<string, unknown>;
   return (
@@ -2036,7 +2036,7 @@ export function isCommentScopePayload(payload: unknown): payload is { id: string
   );
 }
 
-/** 原 NH（js 68409）：评论附件载荷守卫（全字段类型检查） */
+/** 原 NH（js 68457）：评论附件载荷守卫（全字段类型检查） */
 export function isCommentAttachmentPayload(payload: unknown): payload is Omit<CodeCommentAttachment, "id"> & { id?: string } {
   const value = payload as Record<string, unknown>;
   return (
@@ -2056,20 +2056,20 @@ export function isCommentAttachmentPayload(payload: unknown): payload is Omit<Co
   );
 }
 
-/** 原 xXe（js 68427）：单条评论 → 「## Comment」markdown 块 */
+/** 原 xXe（js 68475）：单条评论 → 「## Comment」markdown 块 */
 export function serializeCodeComment(comment: Omit<CodeCommentAttachment, "id" | "workspacePath" | "workspaceIdentity">): string {
   const lineRange = comment.startLine === comment.endLine ? String(comment.startLine) : `${comment.startLine}-${comment.endLine}`;
   return `## Comment\nFile: ${comment.sourcePath ?? comment.sourceTitle}\nSide: R\nLines: ${lineRange}\nSelected text:\n\`\`\`\n${comment.selectedText.trim()}\n\`\`\`\nComment:\n${comment.comment.trim()}\n`;
 }
 
-/** 原 SXe（js 68431）：评论列表 → 「# Code comments:」总块（逐条编号） */
+/** 原 SXe（js 68479）：评论列表 → 「# Code comments:」总块（逐条编号） */
 export function serializeCodeCommentsBlock(comments: Array<Omit<CodeCommentAttachment, "id" | "workspacePath" | "workspaceIdentity">>): string {
   return comments.length === 0
     ? ``
     : `# Code comments:\n\n${comments.map((comment, index) => serializeCodeComment(comment).replace(`## Comment`, `## Comment ${index + 1}`)).join(`\n`)}`;
 }
 
-/** 原 CXe（js 68438）：消息内容 + 评论块 拼接（空内容时只留评论块） */
+/** 原 CXe（js 68486）：消息内容 + 评论块 拼接（空内容时只留评论块） */
 export function appendCodeCommentsToContent(
   content: string,
   comments: Array<Omit<CodeCommentAttachment, "id" | "workspacePath" | "workspaceIdentity">>,
@@ -2081,12 +2081,12 @@ export function appendCodeCommentsToContent(
     : trimmed.trim();
 }
 
-/** 原 wXe（js 68451）：路径 → 文件名（兼容 \ /） */
+/** 原 wXe（js 68499）：路径 → 文件名（兼容 \ /） */
 export function fileBasename(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 }
 
-/** 原 TXe（js 68454）：「L3」「3-L7」「L3 - L7」→ 行范围 */
+/** 原 TXe（js 68502）：「L3」「3-L7」「L3 - L7」→ 行范围 */
 export function parseLineRange(raw: string): { startLine: number; endLine: number } | null {
   const normalized = raw.trim().replace(/^L/i, ``);
   const match = /^(\d+)(?:\s*-\s*L?(\d+))?$/.exec(normalized);
@@ -2096,7 +2096,7 @@ export function parseLineRange(raw: string): { startLine: number; endLine: numbe
   return !Number.isFinite(startLine) || !Number.isFinite(endLine) ? null : { startLine, endLine };
 }
 
-/** 原 EXe（js 68465）：「## Comment」块 → 附件（解析失败返回 null） */
+/** 原 EXe（js 68510）：「## Comment」块 → 附件（解析失败返回 null） */
 export function parseCodeCommentBlock(
   block: string,
   index: number,
@@ -2129,7 +2129,7 @@ export function parseCodeCommentBlock(
   };
 }
 
-/** 原 DXe（js 68488）：发送内容 → {可见文本, 评论附件[]}（尾部评论块被摘除） */
+/** 原 DXe（js 68536）：发送内容 → {可见文本, 评论附件[]}（尾部评论块被摘除） */
 export function splitCodeCommentAttachments(
   content: string,
   workspace: { workspacePath: string; workspaceIdentity?: string | null },
@@ -2149,7 +2149,7 @@ export function splitCodeCommentAttachments(
     : { visibleContent: content.slice(0, match.index).trimEnd(), codeCommentAttachments: attachments };
 }
 
-/** 原 OXe（js 68503）：派发「加入聊天」事件（cancelable —— 监听方可 preventDefault 拦截回流） */
+/** 原 OXe（js 68551）：派发「加入聊天」事件（cancelable —— 监听方可 preventDefault 拦截回流） */
 export function dispatchCodeCommentAddToChat(detail: CodeCommentAddDetail): boolean {
   const event = new CustomEvent(CODE_COMMENT_ADD_TO_CHAT_EVENT, { cancelable: true, detail });
   return !window.dispatchEvent(event);
@@ -2170,7 +2170,7 @@ export interface CodeCommentAddDetail {
   commentLabel?: string;
 }
 
-/** 原 kXe（js 68507）：派发「从聊天移除」事件（同时记入已回流集合） */
+/** 原 kXe（js 68555）：派发「从聊天移除」事件（同时记入已回流集合） */
 export function dispatchCodeCommentRemoveFromChat(detail: { id: string; workspacePath: string; workspaceIdentity?: string | null }): void {
   markCommentRemovedFromChat(detail);
   window.dispatchEvent(new CustomEvent(CODE_COMMENT_REMOVE_FROM_CHAT_EVENT, { detail }));
@@ -2192,11 +2192,11 @@ function codeCommentBucketKey(scope: CodeCommentScope): string {
   return `${commentWorkspaceKey(scope.workspacePath, scope.workspaceIdentity)}\0${scope.sourcePath}`;
 }
 
-/** 原 AXe（js 68513）：空评论常量（避免每次新数组） */
+/** 原 AXe（js 68558）：空评论常量（避免每次新数组） */
 const EMPTY_COMMENTS: CodeComment[] = [];
 
 /**
- * 原 FH（js 68514 / jsx 60720）：useCodeCommentsStore —— 行级代码评论 store。
+ * 原 FH（js 68562 / jsx 60720）：useCodeCommentsStore —— 行级代码评论 store。
  * commentsByBucketKey 按「工作区键 \0 文件路径」分桶；同 id 覆盖写；
  * removeCommentBySource 跨桶按 id 清除；restoreCommentFromAttachment 先解除
  * 「已回流」标记再写回（发送后重新打开查看器时恢复显示）。
@@ -2214,7 +2214,7 @@ interface BroadcastService {
 }
 
 /**
- * 原 jXe（js 68580 / jsx 60796）：移除评论并跨窗口广播。
+ * 原 jXe（js 68628 / jsx 60796）：移除评论并跨窗口广播。
  * 先记「已回流」、本地按源清除，再经广播频道通知其他窗口（失败仅 warn）。
  */
 export function removeCodeCommentAndBroadcast(
@@ -2239,7 +2239,7 @@ export function removeCodeCommentAndBroadcast(
 }
 
 /**
- * 原 qXe（js 68804）：评论 id 生成（crypto.randomUUID 缺省回退）。
+ * 原 qXe（js 68852）：评论 id 生成（crypto.randomUUID 缺省回退）。
  */
 export function newCodeCommentId(): string {
   return typeof crypto < `u` && `randomUUID` in crypto
@@ -2294,7 +2294,7 @@ export interface AttachmentContextBundle {
   pptxElements: PptxElementRef[];
 }
 
-/** 原 GH（js 68778）：上下文附件总数（供消息行上下文计数） */
+/** 原 GH（js 68825）：上下文附件总数（供消息行上下文计数） */
 export function countContextAttachments(bundle: AttachmentContextBundle): number {
   return bundle.codeComments.length + bundle.conversationSelections.length + bundle.webElements.length + bundle.pptxElements.length;
 }
@@ -2311,7 +2311,7 @@ export function buildOutboundContentWithAttachments(content: string, bundle: Att
   );
 }
 
-/** 原 KXe（js 68792）：草稿/历史内容 → 可见文本 + 四类附件（解析顺序：pptx → 网页 → 评论 → 引用） */
+/** 原 KXe（js 68839）：草稿/历史内容 → 可见文本 + 四类附件（解析顺序：pptx → 网页 → 评论 → 引用） */
 export function parseDraftContentIntoAttachments(
   rawContent: string,
   workspace: { workspacePath: string; workspaceIdentity?: string | null },
@@ -2433,7 +2433,7 @@ export function handleCodeCommentBroadcastMessage(message: {
  * 标签，携带 worktree 来源）+ zZ 分支 chip（TopBar.tsx）+ Rct 提交/推送入口。
  * ==========================================================================*/
 
-/** 原 wct（js 96966）：git 动作 id 集 */
+/** 原 wct（js 97014）：git 动作 id 集 */
 export const GIT_ACTION_IDS = [`commit`, `commitAndPush`, `push`] as const;
 export type GitActionId = (typeof GIT_ACTION_IDS)[number];
 
@@ -2447,12 +2447,12 @@ export const GIT_COMMIT_GENERATE_BUTTON_TESTID = `git-commit-generate-button`; /
 export const GIT_COMMIT_INCLUDE_UNSTAGED_TESTID = `git-commit-include-unstaged`; // Act
 export const GIT_COMMIT_MESSAGE_INPUT_TESTID = `git-commit-message-input`; // jct
 
-/** 原 mct（js 96895）：git 动作可用 = 有 git ∧ 在仓库内 */
+/** 原 mct（js 96943）：git 动作可用 = 有 git ∧ 在仓库内 */
 export function isGitActionAvailable(summary: GitSummary): boolean {
   return summary.isGitAvailable && summary.isRepository;
 }
 
-/** 原 hct（js 96898）：主动作解析 —— 有变更→commit，否则可推送→push，再无→null */
+/** 原 hct（js 96946）：主动作解析 —— 有变更→commit，否则可推送→push，再无→null */
 export function resolvePrimaryGitAction(flags: { actionAvailable: boolean; commitEnabled: boolean; pushEnabled: boolean }): GitActionId | null {
   return flags.actionAvailable && flags.commitEnabled
     ? `commit`
@@ -2461,13 +2461,13 @@ export function resolvePrimaryGitAction(flags: { actionAvailable: boolean; commi
       : null;
 }
 
-/** 原 gct（js 96905）：可推送 = 分支型 HEAD ∧ 有名 ∧（无上游 ∥ 领先） */
+/** 原 gct（js 96953）：可推送 = 分支型 HEAD ∧ 有名 ∧（无上游 ∥ 领先） */
 export function isPushEnabled(summary: GitSummary): boolean {
   const branchName = summary.branchName?.trim() ?? ``;
   return summary.headRefType !== `branch` || branchName.length === 0 ? false : !summary.trackingBranchName || summary.ahead > 0;
 }
 
-/** 原 BZ（js 96909）：stage 路径归一化（正斜杠、去 ./ 前缀与尾斜杠） */
+/** 原 BZ（js 96957）：stage 路径归一化（正斜杠、去 ./ 前缀与尾斜杠） */
 export function normalizeStagePath(path: string): string {
   return path
     .trim()
@@ -2476,18 +2476,18 @@ export function normalizeStagePath(path: string): string {
     .replace(/\/+$/, ``);
 }
 
-/** 原 _ct（js 96916）：目录路径归一化 */
+/** 原 _ct（js 96964）：目录路径归一化 */
 export function normalizeDirPath(path: string): string {
   return path.trim().replace(/\\/g, `/`).replace(/\/+$/, ``);
 }
 
-/** 原 vct（js 96919）：workspace 在仓库中的子路径（缺省 `.`） */
+/** 原 vct（js 96967）：workspace 在仓库中的子路径（缺省 `.`） */
 export function resolveWorkspaceInRepoPath(workspaceInRepoPath: string): string {
   const normalized = normalizeStagePath(workspaceInRepoPath);
   return normalized.length > 0 ? normalized : `.`;
 }
 
-/** 原 yct（js 96923）：求子路径（大小写不敏感前缀；不含返回 null） */
+/** 原 yct（js 96971）：求子路径（大小写不敏感前缀；不含返回 null） */
 export function resolveRelativeSubpath(fullPath: string, basePath: string): string | null {
   const normalizedFull = normalizeDirPath(fullPath);
   const normalizedBase = normalizeDirPath(basePath);
@@ -2500,7 +2500,7 @@ export function resolveRelativeSubpath(fullPath: string, basePath: string): stri
   return lowerFull.startsWith(lowerPrefix) ? normalizedFull.slice(prefix.length) : null;
 }
 
-/** 原 VZ（js 96934）：收集器写入（空路径忽略） */
+/** 原 VZ（js 96982）：收集器写入（空路径忽略） */
 export function addStagePath(target: Set<string>, path: string | null): void {
   if (path === null) return;
   const normalized = normalizeStagePath(path);
@@ -2515,7 +2515,7 @@ export interface ActiveTaskChangeSummary {
 }
 
 /**
- * 原 bct（js 96939）：从任务变更摘要收集本会话 stage 路径集合。
+ * 原 bct（js 96987）：从任务变更摘要收集本会话 stage 路径集合。
  * 每个路径尝试三种形态（原样 / 相对仓库根 / 相对 workspace），并在
  * workspace 是仓库子目录时补 `子目录/路径` 形态。
  */
@@ -2538,7 +2538,7 @@ export function collectSessionStagePaths(req: {
   return collected.size > 0 ? collected : null;
 }
 
-/** 原 xct（js 96951）：文件是否属于会话路径集（无集合时全通过） */
+/** 原 xct（js 96999）：文件是否属于会话路径集（无集合时全通过） */
 export function isFileInSessionPaths(
   file: { stagePath: string; repoRelativePath: string; workspaceRelativePath: string },
   sessionPaths: Set<string> | null,
@@ -2548,13 +2548,13 @@ export function isFileInSessionPaths(
     : true;
 }
 
-/** 原 Sct（js 96956）：变更摘要 → 去重路径列表（空则 undefined） */
+/** 原 Sct（js 97004）：变更摘要 → 去重路径列表（空则 undefined） */
 export function parseActiveTaskChangeSummaryPaths(summary: ActiveTaskChangeSummary | null): string[] | undefined {
   const paths = Array.from(new Set((summary?.files ?? []).map((file) => file.path.trim()).filter((path) => path.length > 0)));
   return paths.length > 0 ? paths : void 0;
 }
 
-/** 原 Cct（js 96962）：按会话路径过滤提交对话框文件列表 */
+/** 原 Cct（js 97010）：按会话路径过滤提交对话框文件列表 */
 export function filterFilesBySessionPaths(req: {
   files: CommitDialogFileRow[];
   summary: ActiveTaskChangeSummary | null;
@@ -2565,17 +2565,17 @@ export function filterFilesBySessionPaths(req: {
   return req.files.filter((file) => isFileInSessionPaths(file, sessionPaths));
 }
 
-/** 原 Mct（js 96975）：动作项 testid */
+/** 原 Mct（js 97023）：动作项 testid */
 export function gitActionItemId(actionId: string): string {
   return `${GIT_COMMIT_ACTION_ITEM_TESTID}-${actionId}`;
 }
 
-/** 原 Nct（js 96978）：动作 id 守卫 */
+/** 原 Nct（js 97026）：动作 id 守卫 */
 export function isGitActionId(value: string): value is GitActionId {
   return (GIT_ACTION_IDS as readonly string[]).includes(value);
 }
 
-/** 原 Pct（js 96981）：提交消息文本域判定（键盘导航时识别焦点目标） */
+/** 原 Pct（js 97029）：提交消息文本域判定（键盘导航时识别焦点目标） */
 export function isCommitMessageTextarea(target: EventTarget | null): target is HTMLTextAreaElement {
   return target instanceof HTMLTextAreaElement && target.id === COMMIT_MESSAGE_INPUT_ID;
 }
@@ -2599,18 +2599,18 @@ export interface CommitDialogFileRow {
   removed: number;
 }
 
-/** 原 UZ（js 96984）：按「含未暂存」开关选择文件集 */
+/** 原 UZ（js 97032）：按「含未暂存」开关选择文件集 */
 export function resolveCommitSelection(state: GitCommitDialogState, includeUnstaged: boolean): CommitDialogFileRow[] {
   return includeUnstaged ? [...state.unstagedFiles, ...state.stagedFiles] : state.stagedFiles;
 }
 
-/** 原 WZ（js 96987）：选择集 → 去重 stage 路径 */
+/** 原 WZ（js 97035）：选择集 → 去重 stage 路径 */
 export function resolveCommitStagePaths(state: GitCommitDialogState, includeUnstaged: boolean): string[] {
   return Array.from(new Set(resolveCommitSelection(state, includeUnstaged).map((file) => file.stagePath)));
 }
 
 /**
- * 原 NZ（js 95017 / jsx 83023）：refresh 的变更列表 → 对话框文件行。
+ * 原 NZ（js 95065 / jsx 83023）：refresh 的变更列表 → 对话框文件行。
  * 按仓库相对路径去重合并（增删累加；类型不一致退化为 modified），再按路径排序。
  */
 export function mapChangeFilesToRows(changes: GitFileChange[]): CommitDialogFileRow[] {
@@ -2638,7 +2638,7 @@ export function mapChangeFilesToRows(changes: GitFileChange[]): CommitDialogFile
   return Array.from(byPath.values()).sort((a, b) => a.repoRelativePath.localeCompare(b.repoRelativePath));
 }
 
-/** 原 Est（js 95047）：文件行统计 */
+/** 原 Est（js 95091）：文件行统计 */
 export function summarizeFileRows(rows: CommitDialogFileRow[]): { fileCount: number; totalAdded: number; totalRemoved: number } {
   return rows.reduce(
     (acc, row) => ((acc.fileCount += 1), (acc.totalAdded += row.added), (acc.totalRemoved += row.removed), acc),
@@ -2646,7 +2646,7 @@ export function summarizeFileRows(rows: CommitDialogFileRow[]): { fileCount: num
   );
 }
 
-/** 原 PZ（js 95076）：提交身份可用 = 未知（null）∥ 有名有邮箱 */
+/** 原 PZ（js 95124）：提交身份可用 = 未知（null）∥ 有名有邮箱 */
 export function hasGitIdentity(identity: GitIdentity | null): boolean {
   return identity === null || (!!identity.userName && !!identity.userEmail);
 }
@@ -2665,7 +2665,7 @@ export interface GitActionMenuItemProps {
   onSelect: () => void;
 }
 
-/** 原 Fct（js 96990）：cmdk 动作项（图标 ∥ spinner + 文案 + 快捷键角标） */
+/** 原 Fct（js 97038）：cmdk 动作项（图标 ∥ spinner + 文案 + 快捷键角标） */
 export function GitActionMenuItem({ id, icon, label, shortcutLabel: shortcut, disabled, loading, onSelect }: GitActionMenuItemProps) {
   return (
     <CommandItem
@@ -2709,7 +2709,7 @@ export interface GitCommitDialogProps {
 }
 
 /**
- * 原 Ict（js 97012 / jsx 84376）：GitCommitDialog —— AI 提交对话框。
+ * 原 Ict（js 97060 / jsx 84376）：GitCommitDialog —— AI 提交对话框。
  * 结构：头部 = zZ 分支 chip + ±统计；中部 = 提交消息文本域（右上角
  * 生成/重新生成 popover 按钮）；「包含未暂存的更改」勾选 + 文件数；
  * 底部 = cmdk 三动作列表（提交/提交并推送/推送），↑↓ 循环导航、⏎ 执行，
@@ -3043,7 +3043,7 @@ export interface GitPushDialogProps {
 }
 
 /**
- * 原 Lct（js 97355 / jsx 84555）：GitPushDialog —— 推送确认对话框。
+ * 原 Lct（js 97403 / jsx 84555）：GitPushDialog —— 推送确认对话框。
  * 信息卡 = 分支/远程分支（上游）/同步状态（领先 N / 落后 N）/后续步骤；
  * 无可推送 → 警告条；失败 → 错误摘要 + 只读详情文本域 + 复制按钮（1.5s 已复制态）。
  */
@@ -3216,7 +3216,7 @@ export interface GitActionMenuProps {
 }
 
 /**
- * 原 Rct（js 97609 / jsx 84647）：GitActionMenu —— 提交/推送统一入口。
+ * 原 Rct（js 97657 / jsx 84647）：GitActionMenu —— 提交/推送统一入口。
  * 触发器三形态：会话头胶囊（默认）/ 仅图标 / 状态行（整行点击 = 主动作）。
  * 主动作 = 有变更→提交对话框；无变更可推送→推送对话框。提交对话框打开时
  * refresh 拉全量（含身份），按会话路径过滤文件；生成消息走
@@ -3664,7 +3664,7 @@ export function GitActionMenu({
 
 /* --- 状态面板段壳（原 98270–98353） --- */
 
-/** 原 flt（js 98270）：各段滚动限高（environment 段不限高） */
+/** 原 flt（js 98318）：各段滚动限高（environment 段不限高） */
 export const SUMMARY_SECTION_SCROLL_CLASS: Record<string, string | null> = {
   environment: null,
   goal: `max-h-48`,
@@ -3674,7 +3674,7 @@ export const SUMMARY_SECTION_SCROLL_CLASS: Record<string, string | null> = {
   agent: `max-h-48`,
 };
 
-/** 原 plt（js 98278）：段头 —— 标题 + ⌄/›（悬停显形）+ trailing 插槽 */
+/** 原 plt（js 98326）：段头 —— 标题 + ⌄/›（悬停显形）+ trailing 插槽 */
 export function SummarySectionHeader({
   children,
   isOpen,
@@ -3724,7 +3724,7 @@ export interface SummarySectionProps {
   trailing?: (isOpen: boolean) => React.ReactNode;
 }
 
-/** 原 XZ（js 98313）：段壳 —— Collapsible + 段头 + 限高滚动体（受控/非受控两用） */
+/** 原 XZ（js 98361）：段壳 —— Collapsible + 段头 + 限高滚动体（受控/非受控两用） */
 export function SummarySection({
   children,
   defaultOpen = true,
@@ -3794,7 +3794,7 @@ export interface SummaryGitSectionProps {
 }
 
 /**
- * 原 mlt（js 98354 / jsx 85281）：SummaryGitSection —— mini 浮卡「Git 工具」段。
+ * 原 mlt（js 98402 / jsx 85281）：SummaryGitSection —— mini 浮卡「Git 工具」段。
  * 段头右侧常驻 ±统计；正文三行：
  *   1. 更改行（file-diff 图标 + ±计数）→ onOpenGitReview(worktreeReviewSourceId)
  *      —— 打开侧面板「审查」标签（审查入口之一）；
@@ -3895,7 +3895,7 @@ function normalizeActiveTaskChangeSummary(value: string | ActiveTaskChangeSummar
  * 配置（优先已选编辑器）。TopBar.tsx 曾保留接口，此处完整还原。
  * ==========================================================================*/
 
-/** 原 rFt/iFt（js 142169/142172）：UA 平台判定 */
+/** 原 rFt/iFt（js 142190/142172）：UA 平台判定 */
 export function isMacUserAgent(): boolean {
   return typeof navigator > `u` ? false : /mac/i.test(navigator.userAgent);
 }
@@ -3903,7 +3903,7 @@ export function isWindowsUserAgent(): boolean {
   return typeof navigator > `u` ? false : /windows/i.test(navigator.userAgent);
 }
 
-/** 原 aFt（js 142175）：文件管理器文案三态（访达/资源管理器/文件管理器） */
+/** 原 aFt（js 142193）：文件管理器文案三态（访达/资源管理器/文件管理器） */
 export function resolveFileManagerLabel(intl: IntlShape): string {
   return isMacUserAgent()
     ? intl.formatMessage({ id: `appHeader.openInFinder` })
@@ -3913,7 +3913,7 @@ export function resolveFileManagerLabel(intl: IntlShape): string {
 }
 
 /**
- * 原 nFt（js 142059）：供应商配置打开路径 —— 文件存在用原路径，
+ * 原 nFt（js 142076）：供应商配置打开路径 —— 文件存在用原路径，
  * 否则退到父目录（Windows 盘符根保留 `X:\`）。
  */
 export function resolveProviderConfigOpenPath(path: string, exists: boolean): string {
@@ -3950,7 +3950,7 @@ export interface TaskFileActions {
 }
 
 /**
- * 原 C6（js 142068 / jsx 117982）：useTaskFileActions。
+ * 原 C6（js 142085 / jsx 117982）：useTaskFileActions。
  * 打开工作区路径的分派顺序：远程（仅 WSL 可开，explorer 走 openInEditor）→
  * 本机按 UA 用 finder/explorer 优先（openInEditor），回退 openInFileManager。
  */

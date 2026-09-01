@@ -711,7 +711,7 @@ interface WorkspaceTabStoreHook {
 declare const useWorkspaceTabStore: WorkspaceTabStoreHook;
 /** 原 oc：标签可用性判定 */
 declare function isWorkspaceTabUsable(tab: WorkspaceTab): boolean;
-/** 原 zMt（js 135501）：是否远程/工作区作用域标签（有 remoteSessionId/remoteTarget/workspaceIdentity） */
+/** 原 zMt（js 135518）：是否远程/工作区作用域标签（有 remoteSessionId/remoteTarget/workspaceIdentity） */
 declare function isRemoteScopedTab(tab: WorkspaceTab | null | undefined): boolean;
 
 /* --- 会话快照运行时（treemapping 用；原 _w/mw/k0/u1） --- */
@@ -734,7 +734,7 @@ declare function createSessionTransport(
   agentService: ZCodeAgentService,
   target: { workspacePath: string; workspaceIdentity?: string | null },
 ): unknown;
-/** 原 k0（js 118675）：acquire 返回的会话引用 → 快照订阅 */
+/** 原 k0（js 118692）：acquire 返回的会话引用 → 快照订阅 */
 declare function useSessionSnapshotRef(sessionRef: unknown): {
   snapshot?: { rows: { window: SessionRow[] } } | null;
 } | null;
@@ -755,9 +755,9 @@ interface ToolCallViewModel {
   raw?: unknown;
   [key: string]: unknown;
 }
-/** 原 og（js 23084）：工具族分类 */
+/** 原 og（js 23132）：工具族分类 */
 declare function classifyToolFamily(toolCall: ToolCallViewModel): { family?: string; toolName?: string };
-/** 原 _g（js 23638）：结构化文件变更候选提取 */
+/** 原 _g（js 23686）：结构化文件变更候选提取 */
 declare function extractFileChangeCandidates(
   raw: unknown,
   hints: { toolName?: string | null; kind?: string | null; input?: unknown; output?: unknown; raw?: unknown },
@@ -3845,7 +3845,7 @@ export const TreemappingView: React.FC<{
  * 3. WhiteboardCanvas（原 FGt；js 179888–180192 / jsx 145638–145797）
  * ==========================================================================*/
 
-/** 原 PGt（js 179886 / jsx 145637） */
+/** 原 PGt（js 180140 / jsx 145637） */
 const WHITEBOARD_PALETTE = ["#111827", "#2563eb", "#16a34a", "#dc2626", "#ca8a04", "#7c3aed"];
 
 export const WhiteboardCanvas: React.FC<{ workspacePath: string; workspaceIdentity?: string | null; boardId: string }> = ({

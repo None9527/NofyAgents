@@ -335,7 +335,7 @@ const CommandPrimitive = {
   Loading: CmdkLoading,
 };
 
-/** 原 Yb（js 32092 / jsx 29478）：Command 根封装 */
+/** 原 Yb（js 32140 / jsx 29478）：Command 根封装 */
 export function Command({ className, loop = false, ...props }: React.ComponentProps<typeof CommandPrimitive.Root>) {
   return (
     <CommandPrimitive.Root
@@ -350,7 +350,7 @@ export function Command({ className, loop = false, ...props }: React.ComponentPr
   );
 }
 
-/** 原 tOe（js 32103 / jsx 29490）：CommandDialog —— 命令面板对话框壳 */
+/** 原 tOe（js 32151 / jsx 29490）：CommandDialog —— 命令面板对话框壳 */
 export function CommandDialog({
   title = "Command Palette",
   description = "Search for a command to run...",
@@ -377,7 +377,7 @@ export function CommandDialog({
   );
 }
 
-/** 原 Zb（js 32148 / jsx 29513）：CommandList */
+/** 原 Zb（js 32196 / jsx 29513）：CommandList */
 export function CommandList({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.List>) {
   return (
     <CommandPrimitive.List
@@ -388,7 +388,7 @@ export function CommandList({ className, ...props }: React.ComponentProps<typeof
   );
 }
 
-/** 原 Qb（js 32158 / jsx 29519）：CommandEmpty */
+/** 原 Qb（js 32206 / jsx 29519）：CommandEmpty */
 export function CommandEmpty({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
   return <CommandPrimitive.Empty data-slot="command-empty" className={cn("py-6 text-center text-ui-base/relaxed", className)} {...props} />;
 }
@@ -410,7 +410,7 @@ export function CommandGroup({ className, ...props }: React.ComponentProps<typeo
 /** 图标声明（命令条目右侧的选中 ✓，原 M_ = check） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconCheck → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
-/** 原 ex（js 32175 / jsx 29531）：CommandItem（尾部带条件 ✓） */
+/** 原 ex（js 32223 / jsx 29531）：CommandItem（尾部带条件 ✓） */
 export function CommandItem({ className, children, ...props }: React.ComponentProps<typeof CommandPrimitive.Item>) {
   return (
     <CommandPrimitive.Item
@@ -427,7 +427,7 @@ export function CommandItem({ className, children, ...props }: React.ComponentPr
   );
 }
 
-/** 原 tx（js 32191 / jsx 29538）：CommandShortcut 角标 */
+/** 原 tx（js 32239 / jsx 29538）：CommandShortcut 角标 */
 export function CommandShortcut({ className, ...props }: React.ComponentPropsWithoutRef<"span">) {
   return (
     <span
@@ -565,7 +565,7 @@ export interface BuildQuickPickCommandsArgs {
 }
 
 /**
- * 原 O_e（js 25394–25585 / jsx 22074）：构建命令清单。
+ * 原 O_e（js 25443–25585 / jsx 22074）：构建命令清单。
  * 段序落点：suggested×3、panels×6（2 条受 supportsEmbeddedBrowser 门控）、
  * configure×4、app×4（community/login/logout 条件）。
  * `chat`/`navigation` 段在 3.7.6 未注册任何命令（词典保留旧 key）。
@@ -838,7 +838,7 @@ export function formatRelativeTime(timestamp: number, intl: IntlShape): string {
   return intl.formatMessage({ id: "taskList.daysAgo" }, { days: String(days) });
 }
 
-/** 原 fC（js 36277）：空标题回退「未命名」 */
+/** 原 fC（js 36326）：空标题回退「未命名」 */
 export function resolveTaskTitle(task: { title: string }, untitledLabel: string): string {
   return task.title.trim() || untitledLabel;
 }
@@ -905,7 +905,7 @@ export function findHighlightRanges(text: string, query: string): HighlightRange
   return mergeHighlightRanges(ranges);
 }
 
-/** 原 eC（js 36125–36150 / jsx 33169）：查询词高亮文本（<mark>） */
+/** 原 eC（js 36175–36150 / jsx 33169）：查询词高亮文本（<mark>） */
 export function HighlightedText({ text, query }: { text: string; query: string }) {
   const ranges = findHighlightRanges(text, query);
   if (ranges.length === 0) return <>{text}</>;
@@ -942,7 +942,7 @@ export interface SearchHistoryEntry {
   updatedAt: number;
 }
 
-/** 原 iC（js 36176）：安全读取 localStorage（SSR/禁用时返回 null） */
+/** 原 iC（js 36226）：安全读取 localStorage（SSR/禁用时返回 null） */
 export function safeLocalStorage(): Storage | null {
   if (typeof window > "u") return null;
   try {
@@ -952,7 +952,7 @@ export function safeLocalStorage(): Storage | null {
   }
 }
 
-/** 原 aC（js 36186） */
+/** 原 aC（js 36234） */
 export function searchHistoryStorageKey(workspaceKey: string): string {
   return `${SEARCH_HISTORY_STORAGE_PREFIX}${workspaceKey}`;
 }
@@ -968,7 +968,7 @@ export function isSearchHistoryEntry(value: unknown): value is SearchHistoryEntr
   );
 }
 
-/** 原 oC（js 36198）：读取历史（≤20） */
+/** 原 oC（js 36249）：读取历史（≤20） */
 export function loadSearchHistory(workspaceKey: string): SearchHistoryEntry[] {
   const storage = safeLocalStorage();
   if (!storage) return [];
@@ -980,7 +980,7 @@ export function loadSearchHistory(workspaceKey: string): SearchHistoryEntry[] {
   }
 }
 
-/** 原 sC（js 36211）：写入历史（截断 20） */
+/** 原 sC（js 36259）：写入历史（截断 20） */
 export function saveSearchHistory(workspaceKey: string, entries: SearchHistoryEntry[]): void {
   const storage = safeLocalStorage();
   if (storage) {
@@ -1046,7 +1046,7 @@ export function parseScopedQuery(raw: string): ParsedScopedQuery {
         : { query: raw.trim(), scope: "all", explicitScope: false };
 }
 
-/** 原 mC（js 36349–36360）：段 → 前缀字符 */
+/** 原 mC（js 36396–36360）：段 → 前缀字符 */
 export function scopePrefix(scope: QuickPickScope): string {
   switch (scope) {
     case "commands":
@@ -1106,7 +1106,7 @@ export function normalizeSearchSnippet(snippet: string): string {
     .toLocaleLowerCase();
 }
 
-/** 原 dC（js 36269）：任务片段去重（按归一文本） */
+/** 原 dC（js 36316）：任务片段去重（按归一文本） */
 export function dedupeSearchSnippets(task: { searchSnippets?: string[]; searchSnippet?: string }): string[] {
   const raw = task.searchSnippets?.length ? task.searchSnippets : task.searchSnippet ? [task.searchSnippet] : [];
   const seen = new Set<string>();
@@ -2550,7 +2550,7 @@ export const QuickPick = React.memo(function QuickPick({
  * 12. 范围 Tab / 小字 / 历史页脚（原 pC/Ije/Lje，js 36335–36438 / jsx 33361–33403）
  * ==========================================================================*/
 
-/** 原 pC（js 36335–36348）：范围切换胶囊 */
+/** 原 pC（js 36381–36348）：范围切换胶囊 */
 export function ScopeTab({ active, label, onClick, children }: { active: boolean; label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -2654,7 +2654,7 @@ export function mapFindNavigationKey(key: string, shiftKey: boolean): "previous"
   return key === "ArrowUp" ? "previous" : key === "ArrowDown" ? "next" : key === "Enter" ? (shiftKey ? "previous" : "next") : null;
 }
 
-/** 原 $Nt（js 139936–139940）：匹配计数归一 */
+/** 原 $Nt（js 90606–139940）：匹配计数归一 */
 export function normalizeFindMatchState(total: number, index: number): { currentIndex: number; total: number } {
   return total <= 0 ? { currentIndex: -1, total: 0 } : { currentIndex: index >= 0 && index < total ? index : 0, total };
 }

@@ -71,7 +71,7 @@ interface MigrationSessionService { // A1-R47 收敛改指：原 kg declare useZ
 /** 原 B2t（jsx 162408）：扫描时间范围 */
 export const MIGRATION_RANGES = ["7d", "30d", "90d", "all"];
 
-/** 原 I2t（js 203145）：Claude 迁移状态机 hook */
+/** 原 I2t（js 203441）：Claude 迁移状态机 hook */
 export function useClaudeMigration(opts: {
   workspacePath: string | null;
   workspaceIdentity?: string | null;
@@ -257,7 +257,7 @@ export function MigrationResultItemList(props: { title: string; items: Migration
 
 
 
-/** 原 z2t（js 203332）：候选会话卡（计数徽章/全选/导入/结果明细） */
+/** 原 z2t（js 203628）：候选会话卡（计数徽章/全选/导入/结果明细） */
 export function MigrationCandidatesCard(props: {
   supportState: MigrationSupportState;
   candidates: MigrationCandidate[];
@@ -418,7 +418,7 @@ export interface MigrationSettingsSectionProps {
   isDesktop: boolean;
 }
 
-/** 原 V2t（js 203587）：迁移分区根（扫描过滤卡 + 候选卡） */
+/** 原 V2t（js 203883）：迁移分区根（扫描过滤卡 + 候选卡） */
 export function MigrationSettingsSection(props: MigrationSettingsSectionProps) {
   const { workspacePath, workspaceIdentity, isDesktop } = props;
   const { intl, locale } = useIntlContext();

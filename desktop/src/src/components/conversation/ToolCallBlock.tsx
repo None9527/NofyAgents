@@ -63,7 +63,7 @@ declare function classifyToolCall(toolCall: { toolName?: string; kind?: string }
  *    ConversationLeaves 导出（索引签名容宽型），经文件头 type import 消费。 ── */
 declare function resolveToolDisplayModel(toolCall: ToolCall, workspacePath?: string): ToolDisplayModel;
 
-/** 原 _g（js 20269）：从工具输入/输出抽取文件摘要列表（供展开区渲染） */
+/** 原 _g（js 23686）：从工具输入/输出抽取文件摘要列表（供展开区渲染） */
 declare function extractRawFileSummaries(raw: unknown, toolCall: ToolCall): FileSummary[];
 
 /** 原 qZ（js 98044 / jsx 85024）：ExitPlanMode 结果 → markdown（供复制文本合并） */
@@ -397,7 +397,7 @@ function isAgentToolCall(toolCall: ToolCall): boolean {
  *    A0 归属注「107448」为 Lmt 束内行号误植，本批以切探真身更正。 ── */
 
 /**
- * 原 Wht（js 109066 / jsx 93141）：按工具家族分派视图组件。
+ * 原 Wht（js 109114 / jsx 93141）：按工具家族分派视图组件。
  * node-repl 与 automation 优先于家族表判定。
  */
 function resolveToolCallView(props: ToolCallViewProps): React.FC<ToolCallViewProps> {

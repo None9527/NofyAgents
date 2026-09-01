@@ -158,7 +158,7 @@ interface ModelSelectGroup {
  *    （N6e 真身：bundle 77910–77929 唯一真身 ≡ PaymentDeep@1097 A0 逐字实化，modules/PaymentDeep@128 转导出）。消费面实测：@1036（AMt 体内）
  *    ≡ bundle 135402，改名改指（型缝见 AMt 体内注）。负证据：bundle 内 N6e 无第二真身。 ── */
 
-/** 原 Mg（js 24358）/ Zn（src chunk P 导出）：`provider/model[$variant]` 解析 */
+/** 原 Mg（js 24406）/ Zn（src chunk P 导出）：`provider/model[$variant]` 解析 */
 declare function parseModelString(value: string): { providerId?: string; modelName?: string } | null;
 
 /** A0-CLEANUP3 3b：cronExpr 收紧为必有（列表/编辑器运行期恒有值）；scheduleRule 统一为 SL.ScheduleRule，
@@ -300,7 +300,7 @@ declare const useWorkspaceTabStore: WorkspaceTabStoreHook;
 /** 原 oc：标签可用性判定 */
 declare function isWorkspaceTabUsable(tab: WorkspaceTab): boolean;
 
-/** 原 zMt（js 135501）：是否远程/工作区作用域标签（有 remoteSessionId/remoteTarget/workspaceIdentity） */
+/** 原 zMt（js 135518）：是否远程/工作区作用域标签（有 remoteSessionId/remoteTarget/workspaceIdentity） */
 declare function isRemoteScopedTab(tab: WorkspaceTab | null | undefined): boolean;
 
 interface TelemetryEvent {
@@ -406,7 +406,7 @@ export const OFFPEAK_BADGE_ICONS: Record<string, React.FC<IconProps>> = {
   stopped: AutomationPauseIcon,
 };
 
-/** 原 EN（js 54789）：加载 spinner（loader 图标 role=status） */
+/** 原 EN（js 54837）：加载 spinner（loader 图标 role=status） */
 const LoadingSpinner: React.FC<IconProps> = ({ className, ...rest }) => (
   <SpinnerIcon role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...rest} />
 );
@@ -707,10 +707,10 @@ const OffPeakTemplateIcon: React.FC<{ className?: string; name: string }> = ({ c
   return <Icon aria-hidden="true" className={className} data-off-peak-template-icon={name} size={16} strokeWidth={2} />;
 };
 
-/** 原 Pjt（js 133989 / jsx 112762）：闲时模板 id 表 */
+/** 原 Pjt（js 134016 / jsx 112762）：闲时模板 id 表 */
 const OFFPEAK_TEMPLATES = [{ id: "standupGitSummary" }, { id: "ciFlakyReport" }, { id: "documentationSyncCheck" }];
 
-/** 原 LNt（js 138654 / jsx 115784）：定时模板表 */
+/** 原 LNt（js 138671 / jsx 115784）：定时模板表 */
 export const SCHEDULED_TEMPLATES = [
   { id: "morningDevBrief", icon: "target", cronExpr: "0 9 * * 1-5" },
   { id: "dailyRiskScan", icon: "activity", cronExpr: "0 10 * * *" },
@@ -743,7 +743,7 @@ function resolveTemplateVisibility(params: { hasAnyTasks: boolean; offPeakCreati
   };
 }
 
-/** 原 UNt（js 138675） */
+/** 原 UNt（js 138692） */
 const AUTOMATION_LIFECYCLE_PRESENTATION: Record<string, { icon: React.FC<IconProps>; className: string }> = {
   active: { icon: AutomationClockIcon, className: "text-success" },
   paused: { icon: AutomationPauseIcon, className: "text-foreground-subtle" },
@@ -764,7 +764,7 @@ function isAutomationOperable(automation: AutomationRecord): boolean {
   return automation.lifecycleStatus !== "completed" && automation.lifecycleStatus !== "failed";
 }
 
-/** 原 qht（js 109250 / jsx 93279） */
+/** 原 qht（js 109298 / jsx 93279） */
 function resolveAutomationLifecycleTier(automation: AutomationRecord): "active" | "paused" | "completed" | "failed" {
   return automation.lifecycleStatus === "failed"
     ? "failed"

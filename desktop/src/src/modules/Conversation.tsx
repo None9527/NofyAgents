@@ -89,10 +89,10 @@
  * 13. Markdown 渲染器 cj（F19 族，jsx 46461）、HoverCard 原语 dN/fN/pN（jsx 49005）、
  *     文件路径组件 Bc、提及/代码评论芯片 TH/lit/JH/uit、用户输入解析 KXe、
  *     Badge (uJ，jsx 70704)、Collapsible Radix 底层 (Jbe/Gbe/Kbe) —— 本 chunk 内
- * 14. 会话流运行时：命令队列账本 K1（本文件 §9.3）、命令工厂 OS (js 34582)、
- *     交互通知登记 VS/HS (js 32468/32498)、canLoadOlderRows hw (js 39766)、
- *     选择引用 koe / boe (js 2720/2664)、工具分类 og (js 23084)、
- *     文件摘要抽取 _g (js 20269)、计划 markdown qZ (js 98044)
+ * 14. 会话流运行时：命令队列账本 K1（本文件 §9.3）、命令工厂 OS (js 34630)、
+ *     交互通知登记 VS/HS (js 35435/32498)、canLoadOlderRows hw (js 39814)、
+ *     选择引用 koe / boe (js 2720/2664)、工具分类 og (js 23132)、
+ *     文件摘要抽取 _g (js 23686)、计划 markdown qZ (js 98044)
  * ============================================================================
  */
 
@@ -4646,7 +4646,7 @@ interface SessionSubscriptionState {
 }
 
 /**
- * 原 k0（js 118675 / jsx 100929）：会话快照订阅（useSyncExternalStore）。
+ * 原 k0（js 118692 / jsx 100929）：会话快照订阅（useSyncExternalStore）。
  * store 为空时返回闭合快照（TCt）。
  */
 function useSessionSnapshot(handle: { store: SessionStoreHandle } | null): SessionSubscriptionState {
@@ -4662,7 +4662,7 @@ function useSessionSnapshot(handle: { store: SessionStoreHandle } | null): Sessi
  *    components/conversation/ConversationPaneHelpers EMPTY_SUBAGENT_DIRECTORY
  *    （js 119197 逐字真身）；消费点（subagents ?? 兜底）经文件头 import 改指，逐字不变。 ── */
 
-/* hw（js 39766 / jsx 35820）：〔A1-P1-B6〕死 declare 删碑——本面零消费（grep 实证）；真身 components/feedback/FeedbackCenter
+/* hw（js 39814 / jsx 35820）：〔A1-P1-B6〕死 declare 删碑——本面零消费（grep 实证）；真身 components/feedback/FeedbackCenter
    hasOlderRows（js 39814 逐字、语义局部名实体化），消费面 ConversationPaneCore 经 modules/FeedbackCenter shim 255 import 收敛。 */
 
 /* --- 9.2 面板浮动头（原 Ait/jit，js 91755/91801 / jsx 79344/79371） --- */

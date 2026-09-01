@@ -32,7 +32,7 @@ declare const ZCODE_LOGO_DATA_URL: string;
  * 7. 侧栏 / 壳层小件
  * ==========================================================================*/
 
-/** 原 o4t（js 204846）：左段分区按钮（Tooltip 右出；激活 `bg-surface-hover`；
+/** 原 o4t（js 205142）：左段分区按钮（Tooltip 右出；激活 `bg-surface-hover`；
  *  <lg 收窄为 40px 图标列）。 */
 export function SettingsSidebarItem({
   icon: Icon,
@@ -72,7 +72,7 @@ export function SettingsSidebarItem({
   );
 }
 
-/** 原 H2t（js 203818）：Windows 左上 logo 拖拽条 */
+/** 原 H2t（js 204114）：Windows 左上 logo 拖拽条 */
 export function SettingsCaptionLogo({ className, imageClassName }: { className?: string; imageClassName?: string }) {
   return (
     <div className={cn("absolute left-0 top-0 z-20 flex h-12 items-center px-3 [app-region:drag]", className)}>
@@ -149,7 +149,7 @@ export function PendingOperationButton({
   );
 }
 
-/** 原 U2t（js 203829）：数据目录控件 —— 只读输入 + 浏览 + 保存；
+/** 原 U2t（js 204125）：数据目录控件 —— 只读输入 + 浏览 + 保存；
  *  状态机 idle→saving→saved/error；saved 提示「重启后生效」（琥珀色）；
  *  安装目录禁写（`settings.dataBaseDirForbiddenInstallDir`）。 */
 export function DataBaseDirControl({

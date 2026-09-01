@@ -194,14 +194,14 @@ let rawWasmSource: DukeSheetsWasmSource | undefined;
 /** 原 bc：归一化后的源（供序列化/转移给 worker） */
 let resolvedWasmSource: ResolvedDukeSheetsWasmSource | undefined;
 
-/** 原 xc（js 14345）：把 ArrayBuffer/TypedArray 复制成独立的 ArrayBuffer */
+/** 原 xc（js 4893）：把 ArrayBuffer/TypedArray 复制成独立的 ArrayBuffer */
 function copyToStandaloneBuffer(input: ArrayBuffer | ArrayBufferView): ArrayBuffer {
   if (input instanceof ArrayBuffer) return input.slice(0);
   const view = new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
   return new Uint8Array(view).buffer;
 }
 
-/** 原 Sc（js 14350）：把各种形态的 wasm 源归一化成 字符串URL / ArrayBuffer / Module */
+/** 原 Sc（js 4894）：把各种形态的 wasm 源归一化成 字符串URL / ArrayBuffer / Module */
 function normalizeWasmSource(
   source: DukeSheetsWasmSource,
 ): ResolvedDukeSheetsWasmSource | undefined {
@@ -215,7 +215,7 @@ function normalizeWasmSource(
   return undefined;
 }
 
-/** 原 Cc（js 14357）：注册 duke-sheets wasm 源（幂等覆盖） */
+/** 原 Cc（js 4903）：注册 duke-sheets wasm 源（幂等覆盖） */
 export function setDukeSheetsWasmSource(source: DukeSheetsWasmSource): void {
   wasmSourceExplicitlySet = true;
   rawWasmSource = source;
@@ -223,7 +223,7 @@ export function setDukeSheetsWasmSource(source: DukeSheetsWasmSource): void {
 }
 
 /**
- * 原 wc（js 14360）：wasm 源可用性判定。
+ * 原 wc（js 4916）：wasm 源可用性判定。
  * 语义：从未显式注册（!vc）→ glue 默认路径可用，视为可用；
  * 注册过 → 只有归一化成功（bc !== undefined）才算可用。
  * react-xlsx 控制器 Ru 用它决定是否启用 worker 解析（Be = useWorker && Worker && wc()）。
@@ -232,13 +232,13 @@ export function isWasmSourceAvailable(): boolean {
   return !wasmSourceExplicitlySet || resolvedWasmSource !== undefined;
 }
 
-/** 原 Tc（js 14363）：取当前归一化源（随 worker 载荷下发） */
+/** 原 Tc（js 4930）：取当前归一化源（随 worker 载荷下发） */
 export function getDukeSheetsWasmSource(): ResolvedDukeSheetsWasmSource | undefined {
   return resolvedWasmSource;
 }
 
 /**
- * 原 Ec（js 14366）：懒加载 duke_sheets_wasm glue 模块（memo 化）。
+ * 原 Ec（js 4945）：懒加载 duke_sheets_wasm glue 模块（memo 化）。
  * 走 Vite preload helper（原 o）；注入过源则把 {module_or_path} 交给
  * wasm-bindgen init，否则走 glue 默认 fetch。解析结果为整个模块命名空间。
  */
@@ -259,7 +259,7 @@ export function loadDukeSheetsWasmModule(): Promise<DukeSheetsWasmModule> {
   return cachedWasmModulePromise;
 }
 
-/** 原 Dc（js 14382）：构造 AbortError（优先 DOMException，回退 Error） */
+/** 原 Dc（js 4955）：构造 AbortError（优先 DOMException，回退 Error） */
 function createAbortError(): Error {
   if (typeof DOMException !== "undefined") return new DOMException("Aborted", "AbortError");
   const error = Error("Aborted");
@@ -406,7 +406,7 @@ export class XlsxWorkerClient {
   };
 }
 
-/** 原 kc（js 14474）：入参缓冲克隆（保证调用方 buffer 不被 transfer 置空） */
+/** 原 kc（js 5064）：入参缓冲克隆（保证调用方 buffer 不被 transfer 置空） */
 function cloneArrayBuffer(buffer: ArrayBuffer): ArrayBuffer {
   return buffer.slice(0);
 }

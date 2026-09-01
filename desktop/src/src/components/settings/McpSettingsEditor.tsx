@@ -41,7 +41,7 @@ interface McpServer {
  *    js 192349–192532 / jsx 155116–155281）
  * ==========================================================================*/
 
-/** 原 D7（js 192349）：设置表单 Textarea（类名逐字） */
+/** 原 D7（js 192645）：设置表单 Textarea（类名逐字） */
 export function SettingsFormTextarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <Textarea
@@ -69,7 +69,7 @@ export interface McpFormDraft {
   oauth: string;
 }
 
-/** 原 IQt（js 192358）：表单草稿缺省值（scope 固定 `zcodeagentmcp`） */
+/** 原 IQt（js 192654）：表单草稿缺省值（scope 固定 `zcodeagentmcp`） */
 export const MCP_FORM_DRAFT_DEFAULTS: McpFormDraft = {
   name: "",
   scope: "zcodeagentmcp",
@@ -89,7 +89,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && !!value && !Array.isArray(value);
 }
 
-/** 原 LQt（js 192374）：McpServer → 表单草稿 */
+/** 原 LQt（js 192670）：McpServer → 表单草稿 */
 export function mcpServerToFormDraft(server: McpServer): McpFormDraft {
   const config = server.config;
   let type: McpFormDraft["type"];
@@ -120,7 +120,7 @@ function parseTimeoutMsInput(value: string): number | undefined {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : undefined;
 }
 
-/** 原 RQt（js 192401）：表单草稿 → server config（env/headers/oauth 宽容解析） */
+/** 原 RQt（js 192697）：表单草稿 → server config（env/headers/oauth 宽容解析） */
 export function mcpFormDraftToConfig(draft: McpFormDraft): Record<string, unknown> {
   const timeoutMs = parseTimeoutMsInput(draft.timeoutMs);
   if (draft.type === "stdio") {
@@ -165,13 +165,13 @@ export function mcpFormDraftToConfig(draft: McpFormDraft): Record<string, unknow
   };
 }
 
-/** 原 k7（js 192441）：表单草稿 → JSON 文本（`{"name": {...config}}`） */
+/** 原 k7（js 192737）：表单草稿 → JSON 文本（`{"name": {...config}}`） */
 export function mcpFormDraftToJson(draft: McpFormDraft): string {
   const name = draft.name.trim() || "my-mcp-server";
   return JSON.stringify({ [name]: mcpFormDraftToConfig(draft) }, null, 2);
 }
 
-/** 原 BQt（js 192445）：JSON 文本 → 表单草稿（支持 `{name:{...}}` 与 `{mcpServers:{name:{...}}}`） */
+/** 原 BQt（js 192741）：JSON 文本 → 表单草稿（支持 `{name:{...}}` 与 `{mcpServers:{name:{...}}}`） */
 export function parseMcpJsonToFormDraft(json: string, previous: McpFormDraft): McpFormDraft {
   const parsed: unknown = JSON.parse(json);
   let name = previous.name.trim();
@@ -213,12 +213,12 @@ export function parseMcpJsonToFormDraft(json: string, previous: McpFormDraft): M
   };
 }
 
-/** 原 A7（js 192489）：表单字段 label（类名逐字） */
+/** 原 A7（js 192785）：表单字段 label（类名逐字） */
 export function SettingsFormFieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="mb-1 block text-ui-base font-medium text-foreground-subtle">{children}</label>;
 }
 
-/** 原 VQt（js 192495）：MCP 存储级别选择（user|workspace） */
+/** 原 VQt（js 192791）：MCP 存储级别选择（user|workspace） */
 export function McpStorageLevelSelect(props: {
   disabled: boolean;
   storageLevel: "user" | "workspace";
@@ -249,7 +249,7 @@ export function McpStorageLevelSelect(props: {
  * 6. MCP 行件/列表（原 UQt/WQt/GQt/KQt，js 192834–193013 / jsx 155435–155499）
  * ==========================================================================*/
 
-/** 原 UQt（js 192834）：连接状态指示（spinner/圆点 + 颜色） */
+/** 原 UQt（js 193130）：连接状态指示（spinner/圆点 + 颜色） */
 export function McpStatusIndicator({ status }: { status?: string }) {
   const colorClass =
     status === "connected"
@@ -266,7 +266,7 @@ export function McpStatusIndicator({ status }: { status?: string }) {
   );
 }
 
-/** 原 WQt（js 192847）：作用域徽章 */
+/** 原 WQt（js 193143）：作用域徽章 */
 export function McpScopeBadge({ scope }: { scope: "user" | "workspace" }) {
   const { intl } = useIntlContext();
   const messageId = scope === "workspace" ? "settings.scope.workspace" : "settings.scope.user";
@@ -279,7 +279,7 @@ export function McpScopeBadge({ scope }: { scope: "user" | "workspace" }) {
 
 /** MCP 行件 testid 前缀（原 bte，src chunk）与模板（原 qr） */
 
-/** 原 GQt（js 192855）：MCP 服务器行件 */
+/** 原 GQt（js 193151）：MCP 服务器行件 */
 export function McpServerRow(props: {
   server: McpServer;
   onEdit: (server: McpServer) => void;
@@ -365,7 +365,7 @@ export function McpServerRow(props: {
   );
 }
 
-/** 原 KQt（js 192956）：MCP 服务器列表/空态 */
+/** 原 KQt（js 193252）：MCP 服务器列表/空态 */
 export function McpServerList(props: {
   servers: McpServer[];
   onCreate: () => void;

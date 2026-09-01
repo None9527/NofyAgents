@@ -393,7 +393,7 @@ const DEFAULT_FAULT_KEY = `fault.subscribe.unknown`; // bCt
 const FAULT_KEY_REGEX = /^fault\.[A-Za-z0-9._-]+$/; // xCt
 const FAULT_KEY_TAIL_REGEX = /\((fault\.[A-Za-z0-9._-]+)\)\s*$/; // SCt
 
-/** 原 CCt（js 118643 / jsx 100895）：从错误文案提取 fault.* 键（缺省 subscribe.unknown） */
+/** 原 CCt（js 118660 / jsx 100895）：从错误文案提取 fault.* 键（缺省 subscribe.unknown） */
 function parseFaultKey(message: string): string {
   const trimmed = message.trim();
   return FAULT_KEY_REGEX.exec(trimmed)?.[0] ?? FAULT_KEY_TAIL_REGEX.exec(trimmed)?.[1] ?? DEFAULT_FAULT_KEY;

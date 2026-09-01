@@ -445,7 +445,7 @@ export function resolveAutomationOpenTarget(
   return target ? { status: "found", target } : { status: "missing" };
 }
 
-/** 原 ZNt（js 138713）：自动化行操作菜单（立即运行/重启/暂停恢复/编辑/删除） */
+/** 原 ZNt（js 138730）：自动化行操作菜单（立即运行/重启/暂停恢复/编辑/删除） */
 export function AutomationRowActionMenu(props: {
   automation: AutomationTask;
   busy: boolean;

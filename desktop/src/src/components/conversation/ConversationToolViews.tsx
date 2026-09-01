@@ -22,7 +22,7 @@ import {
  * 束真身改经 ./AutomationViewBlocks 叶内 import 消费（B11 叶不动）。 ── */
 import { hashToAgentPaletteColor } from './ShellCommandBlocks'; // 〔A1-P1-B11〕AgentToolView 调色板兜底链尾（原 Xft，styles 105186）
 import { CodeSurfaceCard } from './CodeSurfaceBlocks'; // 〔A1-P1-B14〕原 w$（styles 107180）：手写 CodeSurface declare 五 prop（cardSurface/copyLabel/wrapLabel/eagerLayout/label）之束真身卡面包装体
-import { FileIcon, resolveFileIconMeta, resolvePathTitle } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc/Hc（styles 5243/5198/5263 逐字实体化；三 declare 收敛）
+import { FileIcon, resolveFileIconMeta, resolvePathTitle } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc/Hc（styles 5263/5198/5263 逐字实体化；三 declare 收敛）
 import type { ToolCall, ToolCallNode, ToolDisplayModel, OpenCodeViewerFn, ToolCallViewProps, FileSummary, PlatformService } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）；PlatformService 留守 shim（§5/§6 共用）
 
 /* ── tombstone〔A1-P1-B14〕：declare IconQuestion（vye）删除——唯一消费面手写 AskUserQuestionToolView 之

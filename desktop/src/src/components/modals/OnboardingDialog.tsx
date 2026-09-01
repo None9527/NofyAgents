@@ -137,7 +137,7 @@ interface OnboardingControllerState {
   error: string | null;
 }
 
-/** 原 F9（js 206928-206940 / jsx 164537） */
+/** 原 F9（js 207218-206940 / jsx 164537） */
 function initialOnboardingState(): OnboardingControllerState {
   return {
     open: false,
@@ -155,7 +155,7 @@ function initialOnboardingState(): OnboardingControllerState {
 function selectionKey(agent: string, category: string): string {
   return `${agent}:${category}`;
 }
-/** 原 e3t（js 206946 / jsx 164553） */
+/** 原 e3t（js 207234 / jsx 164553） */
 function defaultProviderCategories(): string[] {
   return [`providers`];
 }
@@ -179,7 +179,7 @@ function normalizeDiscovery(discovery: OnboardingDiscovery): OnboardingDiscovery
     }),
   };
 }
-/** 原 n3t（js 206964-206970 / jsx 164573） */
+/** 原 n3t（js 207254-206970 / jsx 164573） */
 function defaultSelectedKeys(discovery: OnboardingDiscovery): string[] {
   return discovery.agents.flatMap((agent) =>
     agent.categories
@@ -202,7 +202,7 @@ function discoveryToTasks(discovery: OnboardingDiscovery, selectedKeys: string[]
       })),
   );
 }
-/** 原 i3t（js 206985-206990 / jsx 164586） */
+/** 原 i3t（js 207275-206990 / jsx 164586） */
 function parseSelectionKeys(keys: string[]): Array<{ agent: string; category: string }> {
   return keys.map((key) => {
     const [agent, category] = key.split(`:`);
@@ -235,7 +235,7 @@ function additionalSelectionsToTasks(
     status: `pending`,
   }));
 }
-/** 原 L9（js 207005 / jsx 164604） */
+/** 原 L9（js 207295 / jsx 164604） */
 function errorMessageText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -278,7 +278,7 @@ interface AgentsFileMigrationStatus {
 }
 
 /**
- * 原 s3t（js 207019-207295 / jsx 164624）：onboarding 对话框控制器。
+ * 原 s3t（js 207309-207295 / jsx 164624）：onboarding 对话框控制器。
  * 首运行探测（getFirstRunPromptState → detect）→ 打开 selection 步；
  * startImport 走 importSelected 并按 $4t 逐任务推进动画。
  */
@@ -553,7 +553,7 @@ function useOnboardingDialogController(e: { workspacePath?: string; workspaceIde
   };
 }
 
-/** 原 c3t（js 207290-207295 / jsx 164907） */
+/** 原 c3t（js 207578-207295 / jsx 164907） */
 const ONBOARDING_WIZARD_STEPS = [
   { key: `session`, index: 1, titleId: `onboarding.step.session` },
   { key: `skills-import`, index: 2, titleId: `onboarding.step.skillsImport` },
@@ -581,7 +581,7 @@ function onboardingStepTitleKey(step: OnboardingWizardStepKey): string {
       return `migration`;
   }
 }
-/** 原 u3t（js 207312-207371 / jsx 164948）：左侧步骤栏 */
+/** 原 u3t（js 207602-207371 / jsx 164948）：左侧步骤栏 */
 function OnboardingStepRail({ currentStep }: { currentStep: OnboardingWizardStepKey }) {
   const { intl } = useIntlContext();
   const currentIndex = ONBOARDING_WIZARD_STEPS.findIndex((s) => s.key === currentStep);
@@ -643,7 +643,7 @@ function OnboardingStepHeader({ title, description }: { title: string; descripti
 function isSettingsImportStep(step: OnboardingWizardStepKey): boolean {
   return step === `skills-import` || step === `mcp-import` || step === `commands-import`;
 }
-/** 原 f3t（js 207386-207510 / jsx 164966）：向导底部导航 */
+/** 原 f3t（js 207676-207510 / jsx 164966）：向导底部导航 */
 function OnboardingWizardFooter(e: {
   currentStep: OnboardingWizardStepKey;
   selectedWorkspaceCount: number;
@@ -718,7 +718,7 @@ function OnboardingWizardFooter(e: {
   );
 }
 
-/** 原 m3t（js 207490-207516 / jsx 164996）：右半项目选择 hero（F18 共用） */
+/** 原 m3t（js 207780-207516 / jsx 164996）：右半项目选择 hero（F18 共用） */
 function ProjectSelectorHero() {
   const { intl } = useIntlContext();
   const sizes = useHeroTextSizes();
@@ -809,7 +809,7 @@ function OnboardingWelcomeView({ onStart, onOpenMigration }: { onStart: () => vo
   );
 }
 
-/** 原 g3t（js 207605-207609 / jsx 165025） */
+/** 原 g3t（js 207881-207609 / jsx 165025） */
 interface FinishExecutionState {
   started: boolean;
   running: boolean;
@@ -969,7 +969,7 @@ function OnboardingSessionStep(e: {
   );
 }
 
-/** 原 R9（js 207794-207796 / jsx 165129）：导入选择步 → 共享视图 v$t */
+/** 原 R9（js 208084-207796 / jsx 165129）：导入选择步 → 共享视图 v$t */
 function ImportSelectionStep(e: {
   category: "skills" | "mcpServers" | "commands";
   state: ImportSelectionState;
@@ -1010,7 +1010,7 @@ function MigrationProgressView(e: { overallProgress: number; finishExecution: Fi
   );
 }
 
-/** 原 y3t（js 207846-207959 / jsx 165153）：迁移完成三卡汇总 */
+/** 原 y3t（js 208136-207959 / jsx 165153）：迁移完成三卡汇总 */
 function MigrationCompleteView(e: {
   overallProgress: number;
   finishExecution: FinishExecutionState;
@@ -1160,7 +1160,7 @@ function AgentsFileMigrationStep(e: {
   );
 }
 
-/** 原 x3t（js 208073-208085 / jsx 165214）：session 步空态自动扫描判定 */
+/** 原 x3t（js 208363-208085 / jsx 165214）：session 步空态自动扫描判定 */
 function shouldAutoScanSessions(e: {
   view: string;
   wizardStep: string;
@@ -1194,7 +1194,7 @@ function buildSessionGroups(
 }
 
 /**
- * 原 C3t（js 208092-208196 / jsx 165227）：迁移执行器。
+ * 原 C3t（js 208382-208196 / jsx 165227）：迁移执行器。
  * 进入 migration 步自动开跑：逐工作区 importSessions → agentsFile.copy →
  * settings 导入（includeSettingsSelections 可控）→ finished。
  */
@@ -1321,7 +1321,7 @@ function errorMessageText2(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** 原 T3t（js 208197-208250 / jsx 165337）：AGENTS.md 迁移状态 hook */
+/** 原 T3t（js 208487-208250 / jsx 165337）：AGENTS.md 迁移状态 hook */
 function useAgentsFileMigration(e: { workspacePath?: string; workspaceIdentity?: string; enabled: boolean }) {
   const { settingsSyncService } = useServices() as unknown as BaseServices & { settingsSyncService: SettingsSyncService }; // A0-D：同上，二段断言
   const [status, setStatus] = React.useState<AgentsFileMigrationStatus | null>(null);
@@ -1374,7 +1374,7 @@ function useAgentsFileMigration(e: { workspacePath?: string; workspaceIdentity?:
   return { error, loading, selected, status, copy, refresh, setSelected: setSelectedSafe };
 }
 
-/** 原 z9（js 208251 / jsx 165387） */
+/** 原 z9（js 208541 / jsx 165387） */
 const ONBOARDING_STEP_ORDER = [`session`, `skills-import`, `mcp-import`, `commands-import`, `agents-file`, `migration`] as const;
 
 /**

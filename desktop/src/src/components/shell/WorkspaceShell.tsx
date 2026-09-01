@@ -775,7 +775,7 @@ function taskMetaFieldsEqual(
         jsonDeepEqual(e.target, t.target);
 }
 
-/* ── 原 $ge（styles 24767-24771）：任务元按值比较缓存（引用稳定化）
+/* ── 原 $ge（styles 178264-24771）：任务元按值比较缓存（引用稳定化）
  *    〔A1-P2-B9〕型缝（A0-CLEANUP3 3b 体例）：束真参形 = c ?? l 两支——
  *    TaskMeta（store 合并面，provider/model 含 null 支）⊕ SessionTaskMeta
  *    （SessionRecordCore Pge 映射面）——与 declare 时代富面非逐字段可比，
@@ -1012,9 +1012,9 @@ declare function canOpenPathInEmbeddedBrowser(input: {
 
 /* --- 常量（原 lw/uw/c6/Mi） --- */
 
-/** 原 lw（js 39409） */
+/** 原 lw（js 39458） */
 /** 原 uw（js 39411）：18×18 Z 字 logo data-url */
-/** 原 c6（js 138630） */
+/** 原 c6（js 138647） */
 /* ── tombstone〔A1-P2-B10〕：AUTOMATIONS_MAIN_TOAST_ANCHOR_ID declare（原 c6，138647）删除 → 文件头真实导入
  *    （AUTOMATIONS_TOAST_ANCHOR_ID as AUTOMATIONS_MAIN_TOAST_ANCHOR_ID，../automations/AutomationsMainView）。
  *    canonical 同值真身在案（AutomationsMainView@361，l6≡automationsToast 同锚消费 138648）；纯值常量，调用面 main id 逐字不变。 ── */
@@ -1097,12 +1097,12 @@ export const WindowShell = React.memo(function WindowShell({
  *  - qOt：错误上报 ARMS 自定义事件（perf_react_error / react_error）。
  * ==========================================================================*/
 
-/** 原 d4（js 129708）：任意 thrown 值 → Error */
+/** 原 d4（js 129725）：任意 thrown 值 → Error */
 export function toError(error: unknown): Error {
   return error instanceof Error ? error : Error(typeof error === "string" ? error : "Unknown error");
 }
 
-/** 原 YOt（js 129711）：日志用错误序列化 */
+/** 原 YOt（js 129728）：日志用错误序列化 */
 export function serializeErrorForLog(error: Error): { name: string; message: string; stack?: string } {
   return { name: error.name, message: error.message, ...(error.stack ? { stack: error.stack } : {}) };
 }
@@ -1164,14 +1164,14 @@ export function reportReactErrorToArms(input: { error: Error; componentStack: st
   }
 }
 
-/** 原 ZOt（js 129729）：resetKeys 逐项 Object.is 比较，长度不同视为变化 */
+/** 原 ZOt（js 129746）：resetKeys 逐项 Object.is 比较，长度不同视为变化 */
 export function didResetKeysChange(previous: unknown[] = [], next: unknown[] = []): boolean {
   return previous.length === next.length ? previous.some((value, index) => !Object.is(value, next[index])) : true;
 }
 
-const LOCALE_PREFERENCE_KEY = "zcode-locale-preference"; // 原 JOt（js 129706）
+const LOCALE_PREFERENCE_KEY = "zcode-locale-preference"; // 原 JOt（js 129724）
 
-/** 原 XOt（js 129714）：初始语言探测（localStorage → navigator.language → en-US） */
+/** 原 XOt（js 129731）：初始语言探测（localStorage → navigator.language → en-US） */
 function detectInitialLocale(): string {
   if (typeof localStorage < "u" && typeof localStorage.getItem === "function")
     try {
@@ -1185,7 +1185,7 @@ function detectInitialLocale(): string {
     : "en-US";
 }
 
-/** 原 f4（js 129724）：appError.* 静态文案（不走 intl context，边界内可用） */
+/** 原 f4（js 129743）：appError.* 静态文案（不走 intl context，边界内可用） */
 const APP_ERROR_FALLBACK_STRINGS: Record<string, string> = {
   "appError.title": "出错了",
   "appError.description": "页面渲染出现异常，可以尝试重置该区域或重新加载窗口。",
@@ -1299,7 +1299,7 @@ export function SplitLayoutGroup({ className, layoutId, panelIds, ...rest }: Spl
   );
 }
 
-/** 原 Z4 = pAt（js 131943 / jsx 111283） */
+/** 原 Z4 = pAt（js 131732 / jsx 111283） */
 export const SplitPanel = ResizablePanel;
 
 /** 原 Q4（js 131961-131981）：Separator 应用包装层——cn 样式链逐字（束真 13 段类名）。
@@ -1342,7 +1342,7 @@ const NAV_HEIGHT_COLLAPSE_THRESHOLD_PX = 24; // 原 Vqt：低于此值视为收�
 const NAV_HEIGHT_HEADER_OFFSET_PX = 48;  // 原 Hqt
 const NAV_HEIGHT_BOTTOM_RESERVE_PX = 168; // 原 Uqt
 
-/** 原 Wqt（js 183796）：侧栏是否参与壳布局。
+/** 原 Wqt（js 184092）：侧栏是否参与壳布局。
  *  非远控壳 → 恒真；远控壳手机视口且导航收起 → 假（此时侧栏高度塌为 0）。 */
 function isSidebarShownInShellLayout(input: {
   isCollapsed: boolean;
@@ -1352,19 +1352,19 @@ function isSidebarShownInShellLayout(input: {
   return !input.isWebRemoteControlShell || !input.isMobileViewport || !input.isCollapsed;
 }
 
-/** 原 Gqt（js 183799）：视口 → 期望导航高度 = clamp(viewport*0.5 - 48, 0, 352) */
+/** 原 Gqt（js 184095）：视口 → 期望导航高度 = clamp(viewport*0.5 - 48, 0, 352) */
 function preferredNavHeightForViewport(viewportHeight: number): number {
   return Math.round(
     Math.max(0, Math.min(viewportHeight * NAV_HEIGHT_VIEWPORT_RATIO - NAV_HEIGHT_HEADER_OFFSET_PX, NAV_HEIGHT_MAX_PX)),
   );
 }
 
-/** 原 Kqt（js 183802）：可拖拽上限 = viewport - 48 - 168 */
+/** 原 Kqt（js 184098）：可拖拽上限 = viewport - 48 - 168 */
 function maxNavHeightForViewport(viewportHeight: number): number {
   return Math.max(0, Math.round(viewportHeight - NAV_HEIGHT_HEADER_OFFSET_PX - NAV_HEIGHT_BOTTOM_RESERVE_PX));
 }
 
-/** 原 W5（js 183805）：钳制导航高度；≤24px 归零并标记收起 */
+/** 原 W5（js 184101）：钳制导航高度；≤24px 归零并标记收起 */
 function clampNavHeight(input: { heightPx: number; viewportHeight: number }): {
   heightPx: number;
   isCollapsed: boolean;
@@ -1376,7 +1376,7 @@ function clampNavHeight(input: { heightPx: number; viewportHeight: number }): {
     : { heightPx: clamped, isCollapsed: false };
 }
 
-/** 原 qqt（js 183810）：点击把手快速切换（展开态→收起；收起态→期望高度） */
+/** 原 qqt（js 184106）：点击把手快速切换（展开态→收起；收起态→期望高度） */
 function toggleNavHeight(input: {
   currentHeightPx: number;
   isCollapsed: boolean;
@@ -1396,7 +1396,7 @@ const SIDEBAR_RESIZING_ATTRIBUTE = "data-workspace-sidebar-resizing"; // 原 Jqt
 const SIDEBAR_RESIZE_END_EVENT = "zcode:workspace-sidebar-resize-end"; // 原 Yqt
 const SIDEBAR_RESIZING_ATTRIBUTE_ON = "true"; // 原 Xqt
 
-/** 原 G5（js 183819）：拖拽中给壳/面板挂 data 属性（关闭 transition），
+/** 原 G5（js 184114）：拖拽中给壳/面板挂 data 属性（关闭 transition），
  *  结束时派发 resize-end 事件，供 CSS/其它组件响应。 */
 function setSidebarResizingAttribute(input: {
   active: boolean;
@@ -1437,7 +1437,7 @@ const WORKSPACE_BODY_PANEL_IDS = ["conversation-column", "browser"];
 /** 原 pJt：会话列垂直分割的两个面板 id（conversation | terminal=dock） */
 const CONVERSATION_COLUMN_PANEL_IDS = ["conversation", "terminal"];
 
-/** 原 J5（js 183841）：侧栏宽度钳制 = [264, min(∞, 容器宽×0.5)] */
+/** 原 J5（js 184137）：侧栏宽度钳制 = [264, min(∞, 容器宽×0.5)] */
 function clampSidebarWidth(widthPx: number, containerWidthPx?: number): number {
   const max = containerWidthPx && containerWidthPx > 0
     ? Math.max(MIN_SIDEBAR_WIDTH_PX, containerWidthPx * MAX_SIDEBAR_WIDTH_RATIO)
@@ -1445,7 +1445,7 @@ function clampSidebarWidth(widthPx: number, containerWidthPx?: number): number {
   return Math.round(Math.max(MIN_SIDEBAR_WIDTH_PX, Math.min(widthPx, max)));
 }
 
-/** 原 mJt（js 183845）：读持久化侧栏宽度（localStorage） */
+/** 原 mJt（js 184141）：读持久化侧栏宽度（localStorage） */
 function readPersistedSidebarWidth(): number | null {
   if (typeof window > "u") return null;
   try {
@@ -1458,7 +1458,7 @@ function readPersistedSidebarWidth(): number | null {
   }
 }
 
-/** 原 hJt（js 183856）：读 react-resizable-panels 旧版百分比布局中的侧栏比例 */
+/** 原 hJt（js 184152）：读 react-resizable-panels 旧版百分比布局中的侧栏比例 */
 function readPersistedSidebarRatio(): number | null {
   if (typeof window > "u") return null;
   try {
@@ -1472,7 +1472,7 @@ function readPersistedSidebarRatio(): number | null {
   }
 }
 
-/** 原 Y5（js 183868）：写持久化侧栏宽度 */
+/** 原 Y5（js 184164）：写持久化侧栏宽度 */
 function persistSidebarWidth(widthPx: number): void {
   if (typeof window > "u") return;
   try {
@@ -1480,12 +1480,12 @@ function persistSidebarWidth(widthPx: number): void {
   } catch { /* ignore */ }
 }
 
-/** 原 X5（js 183874）：视口高度（SSR 兜底 800） */
+/** 原 X5（js 184170）：视口高度（SSR 兜底 800） */
 function viewportHeight(): number {
   return typeof window > "u" ? DEFAULT_VIEWPORT_HEIGHT : window.innerHeight || DEFAULT_VIEWPORT_HEIGHT;
 }
 
-/** 原 gJt（js 183877）：当前是否手机视口（matchMedia 初值） */
+/** 原 gJt（js 184173）：当前是否手机视口（matchMedia 初值） */
 function isMobileViewportNow(): boolean {
   return (
     typeof window < "u" &&
@@ -1494,7 +1494,7 @@ function isMobileViewportNow(): boolean {
   );
 }
 
-/** 原 _Jt（js 183882）：消费一次性"跨工作区后收起导航"标记（sessionStorage） */
+/** 原 _Jt（js 184178）：消费一次性"跨工作区后收起导航"标记（sessionStorage） */
 function consumeCollapseNavigationOnce(): boolean {
   if (typeof window > "u") return false;
   try {
@@ -1506,7 +1506,7 @@ function consumeCollapseNavigationOnce(): boolean {
   return false;
 }
 
-/** 原 vJt（js 183890）：埋设一次性收起标记 */
+/** 原 vJt（js 184186）：埋设一次性收起标记 */
 function armCollapseNavigationOnce(): void {
   if (typeof window > "u") return;
   try {
@@ -2917,7 +2917,7 @@ export const WorkspaceShell = React.memo(function WorkspaceShell(props: Workspac
   /** 原 Sr（184591）：markdown 文件链接打开裁决：
    *  文件 → 可内嵌浏览器? 浏览器 : 代码查看；目录 → 已开工作区? 文件树定位 : 临时外部目录 */
   const handleOpenFileLink = React.useCallback(
-    /* A0-CLEANUP4：参数收 MarkdownIntegration FileLinkModel——cj（js 51688）经 MHe（js 51430）
+    /* A0-CLEANUP4：参数收 MarkdownIntegration FileLinkModel——cj（js 51736）经 MHe（js 51478）
        构造完整模型（含 label/relativePath/pathKind）上抛，链路 Conversation/SidePanel 同形 */
     async (link: FileLinkModel) => {
       if (workspaceReadOnlyReason) return;
@@ -3745,7 +3745,7 @@ function roundPositivePx(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.round(value) : null;
 }
 
-/** 原 bJt（js 185435）：按平台取默认让位像素（Mac 左 96 / Win 右 136） */
+/** 原 bJt（js 185731）：按平台取默认让位像素（Mac 左 96 / Win 右 136） */
 function resolveWindowControlsPadding(input: {
   isDesktop: boolean;
   isMacDesktop: boolean;
@@ -3763,7 +3763,7 @@ function resolveWindowControlsPadding(input: {
   };
 }
 
-/** 原 xJt（js 185442）：仅 update-downloaded 携带版本号 */
+/** 原 xJt（js 185738）：仅 update-downloaded 携带版本号 */
 function updateReadyVersionOf(state: UpdateState | null): string | null {
   return state?.kind === "update-downloaded" ? (state as { version: string }).version : null;
 }
@@ -3935,7 +3935,7 @@ function useAppChromeState(input: {
 
 const RELOAD_SESSION_DEBOUNCE_MS = 1200; // 原 CJt
 
-/** 原 wJt（js 185567）：重建失败 → 带上下文的归一化对象（VUe 归一化）。
+/** 原 wJt（js 185861）：重建失败 → 带上下文的归一化对象（VUe 归一化）。
  *  〔A1-P2-B8→编排方合并执行〕型缝修正：原返回注 `: Error` 承自旧 declare 暂代面；
  *  VUe 改指逐字真身后实证返回普通对象（ConversationModelInit normalizeWorkspacePrepareError
  *  对象字面量返面，52957-52966 区；bundle wJt@185861 直传 VUe 返值），改注真形。 */
@@ -3950,12 +3950,12 @@ function toReloadSessionError(
   });
 }
 
-/** 原 TJt（js 185574）：1200ms 内的重复重建请求视为抖动 */
+/** 原 TJt（js 185870）：1200ms 内的重复重建请求视为抖动 */
 function withinReloadDebounce(lastAttemptAt: number | null, now: number, windowMs = RELOAD_SESSION_DEBOUNCE_MS): boolean {
   return lastAttemptAt === null ? false : now - lastAttemptAt < windowMs;
 }
 
-/** 原 EJt（js 185578）：从 configOptions 取 category=model&type=select 的当前值 */
+/** 原 EJt（js 185873）：从 configOptions 取 category=model&type=select 的当前值 */
 function pickSelectedModelFromConfigOptions(configOptions: ConfigOption[]): string | null {
   const modelSelect = configOptions.find((option) => option.category === "model" && option.type === "select");
   return typeof modelSelect?.currentValue === "string" && modelSelect.currentValue.trim().length > 0
@@ -3963,7 +3963,7 @@ function pickSelectedModelFromConfigOptions(configOptions: ConfigOption[]): stri
     : null;
 }
 
-/** 原 e7（js 185584）：'provider/model' → providerId（先按完整模型引用解析，再按 '/' 切分） */
+/** 原 e7（js 185879）：'provider/model' → providerId（先按完整模型引用解析，再按 '/' 切分） */
 function parseProviderIdFromModelRef(modelRef: string): string | null {
   const trimmed = modelRef.trim();
   if (!trimmed) return null;
@@ -3973,7 +3973,7 @@ function parseProviderIdFromModelRef(modelRef: string): string | null {
   return slashIndex <= 0 || slashIndex >= trimmed.length - 1 ? null : trimmed.slice(0, slashIndex).trim() || null;
 }
 
-/** 原 DJt（js 185591）：按 id 找自定义供应商（排除 builtin 与幽灵 id） */
+/** 原 DJt（js 185887）：按 id 找自定义供应商（排除 builtin 与幽灵 id） */
 function findCustomModelProvider(providers: ModelProviderInfo[], providerId: string): ModelProviderInfo | null {
   const trimmed = providerId.trim();
   if (!trimmed) return null;
@@ -3981,7 +3981,7 @@ function findCustomModelProvider(providers: ModelProviderInfo[], providerId: str
   return !match || match.source === "builtin" || isBuiltinProviderId(match.id) ? null : match;
 }
 
-/** 原 OJt（js 185598）：configOptions 的供应商 ≠ 本地偏好供应商 且目标可用 → 失配 */
+/** 原 OJt（js 185893）：configOptions 的供应商 ≠ 本地偏好供应商 且目标可用 → 失配 */
 function isProviderMismatch(input: {
   configOptions: ConfigOption[];
   localPreferenceProviderId: string;
@@ -3995,7 +3995,7 @@ function isProviderMismatch(input: {
       : input.modelProviders.some((provider) => provider.id.trim() === configProviderId);
 }
 
-/** 原 kJt（js 185605）：裁决选中供应商键：configOptions 优先，其次本地偏好，最后默认 */
+/** 原 kJt（js 185901）：裁决选中供应商键：configOptions 优先，其次本地偏好，最后默认 */
 function resolveSelectedSupplierKey(input: {
   zcodeProvider: string;
   configOptions: ConfigOption[];
@@ -4017,7 +4017,7 @@ function resolveSelectedSupplierKey(input: {
     : nativeProviderRef(input.zcodeProvider);
 }
 
-/** 原 AJt（js 185614）：本地偏好是否应参与裁决（存在且未失配） */
+/** 原 AJt（js 185910）：本地偏好是否应参与裁决（存在且未失配） */
 function shouldUseLocalPreference(input: {
   localPreference: string | null;
   configOptions: ConfigOption[];
@@ -4289,12 +4289,12 @@ function useWorkspaceLifecycle(input: {
  * 17. 工作区 zcode 状态选择器（原 PJt/FJt/IJt/LJt/t7，js 185825-185882 / jsx 149697-149745）
  * ==========================================================================*/
 
-/** 原 PJt（js 185825）：任务运行时活跃三态 */
+/** 原 PJt（js 186121）：任务运行时活跃三态 */
 function isTaskRuntimeActive(status: string): boolean {
   return status === "creating" || status === "restoring" || status === "streaming";
 }
 
-/** 原 FJt（js 185828）：乐观任务表 + 列表缓存 → taskId→provider 映射 */
+/** 原 FJt（js 186124）：乐观任务表 + 列表缓存 → taskId→provider 映射 */
 function mergeTaskProviders(
   optimisticTaskListByTaskId: Record<string, { provider?: string | null }>, // 〔A1-P2-B1〕收 canonical TaskMeta 面（provider?: string | null，null 支 truthy 闸兼容）
   taskListCache: Array<{ taskId: string; provider?: string | null }>,
@@ -4309,7 +4309,7 @@ function mergeTaskProviders(
   return providers;
 }
 
-/** 原 IJt（js 185835）：是否存在"同供应商的活跃运行时" → 重建禁用依据 */
+/** 原 IJt（js 186130）：是否存在"同供应商的活跃运行时" → 重建禁用依据 */
 function hasActiveTaskRuntimeForProvider(
   provider: string,
   taskRuntimeByTaskId: Record<string, { status: string; provider?: string }>,
@@ -4386,7 +4386,7 @@ function useWorkspaceShellZCodeState(workspaceAbsPath: string, workspaceIdentity
   };
 }
 
-/** 原 t7（js 185881）：模型运行时重建中（阻断任务切换导航） */
+/** 原 t7（js 186177）：模型运行时重建中（阻断任务切换导航） */
 function isRestartingRuntime(modelSwitchPending: boolean, modelSwitchStage: string | null): boolean {
   return modelSwitchPending && modelSwitchStage === "restartingRuntime";
 }
@@ -4401,7 +4401,7 @@ function isRestartingRuntime(modelSwitchPending: boolean, modelSwitchStage: stri
  *    自动化条目（oe）走 automations 导航；历史耗尽 → toast 'taskNav.noMore*'
  * ==========================================================================*/
 
-/** 原 RJt（js 185884）：导航历史条目是否仍可见（任务列表或搜索元数据中） */
+/** 原 RJt（js 186180）：导航历史条目是否仍可见（任务列表或搜索元数据中） */
 function isTaskStillVisible(input: {
   entry: TaskNavItem;
   visibleTasks: VisibleTask[];
@@ -4867,7 +4867,7 @@ const e2eTaskMembershipProbes = {
 /** 原 r7（js 186215）：全局"关闭活动上下文"事件名（Esc 等由宿主派发） */
 export const CLOSE_ACTIVE_CONTEXT_EVENT = "zcode:close-active-context-request";
 
-/** 原 KJt（js 186216）：工作区可见且侧面板未收起时，返回激活标签供关闭 */
+/** 原 KJt（js 186509）：工作区可见且侧面板未收起时，返回激活标签供关闭 */
 function resolveCloseableSidePaneTab(input: {
   isWorkspaceVisible: boolean;
   isSidePaneCollapsed: boolean;
@@ -4931,7 +4931,7 @@ function createInitialFindState(): FindState {
   return { activeIndex: -1, navigationRequestId: 0, query: "" };
 }
 
-/** 原 Wg（js 25388）：更新查找输入（不改导航代） */
+/** 原 Wg（js 25436）：更新查找输入（不改导航代） */
 function updateFindStateQuery(state: FindState, query: string, activeIndex: number): FindState {
   return { activeIndex, navigationRequestId: state.navigationRequestId, query };
 }
@@ -5940,5 +5940,5 @@ function registerTestActions(actions: { releaseTaskMembershipRefreshHold(): void
   }, [actions]);
 }
 
-/** 原 Y4t（js 206773 / jsx 164452）：memo 化工作区根，供远控壳/应用根挂载 */
+/** 原 Y4t（js 207063 / jsx 164452）：memo 化工作区根，供远控壳/应用根挂载 */
 export const MemoizedWorkspaceRoot = React.memo(WorkspaceRoot);

@@ -10,7 +10,7 @@ import { FileOpenWithMenu } from '../../modules/FileRewindDialogDeep'; // 原 v_
 import { type FileLinkModel } from '../../modules/MarkdownIntegration'; // 〔A1-P1-B16〕qo/gA/Jo 消费随 i1/r1 收敛入 ./PreviewCardLinkBlocks，本文件仅余 FileLinkModel 类型
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import type { OpenCodeViewerFn } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）
-import { FileIcon, resolveFileIconMeta } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc（styles 5243/5198 逐字实体化；二 declare 复制件收敛）
+import { FileIcon, resolveFileIconMeta } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc（styles 5198/5198 逐字实体化；二 declare 复制件收敛）
 import { isEmbeddableBrowserUrl, fileUrlToPath, isRemoteAwarePath, useWorkspaceScopedServices } from './PreviewCardLinkBlocks'; // 〔A1-P1-B15〕o1 + 〔A1-P1-B16〕r1/Ogt/Oc 逐字实体化；declare/手写双实例收敛（R25 判例）
 
 /* ── tombstone〔A1-P1-B15〕：FileIcon/resolveFileIconMeta 二 declare 复制件（原 Vc/zc；§3 迁出位随迁副本）

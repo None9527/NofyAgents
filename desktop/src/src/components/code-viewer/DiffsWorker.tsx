@@ -232,9 +232,9 @@ interface DiffChange {
   removed?: boolean;
   count?: number;
 }
-/** 原 Cc（js 8721）：逐字符 diff */
+/** 原 Cc（js 4903）：逐字符 diff */
 declare function diffChars(oldStr: string, newStr: string): DiffChange[];
-/** 原 Lc（js 8898）：逐词（含空白）diff */
+/** 原 Lc（js 5175）：逐词（含空白）diff */
 declare function diffWordsWithSpace(oldStr: string, newStr: string): DiffChange[];
 
 /** worker 全局（原实现为 IIFE 内裸用 self/postMessage） */

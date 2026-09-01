@@ -113,7 +113,7 @@ const IMPORT_SCOPES: ExternalAgentImportScope[] = ["global", "project"];
 /** 原 l$t（y$t 内引用）：导入模式枚举 */
 const IMPORT_MODES: ExternalAgentImportMode[] = ["symlink", "copy"];
 
-/** 原 R7（js 193347 / jsx 155843）：导入状态机 hook（扫描/选择/展开/作用域） */
+/** 原 R7（js 193643 / jsx 155843）：导入状态机 hook（扫描/选择/展开/作用域） */
 export function useExternalAgentImportState(opts: {
   category: ExternalAgentImportCategory;
   enabled: boolean;
@@ -724,7 +724,7 @@ export function ImportDiscoveryTree(props: {
   );
 }
 
-/** 原 z7（js 193434 / jsx 155926）：外部 agent 配置导入对话框主体 */
+/** 原 z7（js 193730 / jsx 155926）：外部 agent 配置导入对话框主体 */
 export function ExternalAgentImportDialog(props: {
   category: ExternalAgentImportCategory;
   open: boolean;
@@ -1007,7 +1007,7 @@ export function ExternalAgentImportSelectionPane(props: {
   );
 }
 
-/** 原 _$t（js 193344）：MCP 导入对话框（category=mcpServers 薄包装） */
+/** 原 _$t（js 193640）：MCP 导入对话框（category=mcpServers 薄包装） */
 export function McpImportDialog(props: Omit<ExternalAgentImportDialogProps, "category">) {
   return <ExternalAgentImportDialog {...props} category="mcpServers" />;
 }

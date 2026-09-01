@@ -74,14 +74,14 @@ function formatTimeH23(timestamp: number, locale: string): string {
   return new Intl.DateTimeFormat(locale, { hour: "2-digit", hourCycle: "h23", minute: "2-digit" }).format(timestamp);
 }
 
-/** 原 x2t（js 202379）：周几（zh-CN 用「周X」） */
+/** 原 x2t（js 202675）：周几（zh-CN 用「周X」） */
 export function formatWeekday(timestamp: number, locale: string): string {
   return locale === "zh-CN"
     ? `周${"日一二三四五六"[new Date(timestamp).getDay()]}`
     : new Intl.DateTimeFormat(locale, { weekday: "short" }).format(timestamp);
 }
 
-/** 原 S2t（js 202384）：短日期（zh-CN 用「M 月 D 日」，跨年带年） */
+/** 原 S2t（js 202680）：短日期（zh-CN 用「M 月 D 日」，跨年带年） */
 export function formatShortDate(timestamp: number, locale: string, withYear: boolean): string {
   const date = new Date(timestamp);
   if (locale === "zh-CN") {
@@ -95,7 +95,7 @@ export function formatShortDate(timestamp: number, locale: string, withYear: boo
   }).format(date);
 }
 
-/** 原 C2t（js 202396）：记忆更新时间标签（刚刚/N 分钟前/今天 HH:mm/昨天/周几/日期） */
+/** 原 C2t（js 202692）：记忆更新时间标签（刚刚/N 分钟前/今天 HH:mm/昨天/周几/日期） */
 export function formatMemoryUpdatedLabel(input: {
   formatMessage: IntlShape["formatMessage"];
   locale: string;
@@ -136,7 +136,7 @@ export function formatMemoryUpdatedLabel(input: {
   );
 }
 
-/** 原 T2t（js 202644）：错误 → 文案 */
+/** 原 T2t（js 202940）：错误 → 文案 */
 export function errorMessageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -146,7 +146,7 @@ export function hasErrorCode(error: unknown, code: string): boolean {
   return typeof error === "object" && !!error && "code" in error && (error as { code: unknown }).code === code;
 }
 
-/** 原 w2t（js 202420）：记忆查看器呈现层。
+/** 原 w2t（js 202716）：记忆查看器呈现层。
  *  三级导航：无选中项目 → 项目列表；选中项目 → 文件列表；选中文件 → 预览。
  *  返回按钮语义随层级切换（backToProjects / backToMemories），滚动位置由父级保持。 */
 export function ProjectMemoryViewer({
@@ -346,13 +346,13 @@ export function ProjectMemoryViewer({
   );
 }
 
-/** 原 ds（js 2635）+ us context：服务 Provider（记忆分区在 E2t 外包一层） */
+/** 原 ds（js 2672）+ us context：服务 Provider（记忆分区在 E2t 外包一层） */
 const ServicesContext = React.createContext<BaseServices | null>(null);
 export function SettingsServicesProvider({ services, children }: { services: BaseServices; children: React.ReactNode }) {
   return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
 }
 
-/** 原 E2t（js 202650）：记忆分区 = 工作区记忆开关 + 查看器（含请求序号防竞态）。
+/** 原 E2t（js 202946）：记忆分区 = 工作区记忆开关 + 查看器（含请求序号防竞态）。
  *  错误码映射：ENOENT→fileDeleted、PROJECT_MEMORY_PREVIEW_LIMIT_EXCEEDED→fileTooLarge（5MiB 上限，
  *  服务端判定）、PROJECT_MEMORY_FILE_CHANGED→fileChanged。 */
 export function MemorySettingsSection({

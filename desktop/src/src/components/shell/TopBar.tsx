@@ -828,7 +828,7 @@ export function UpdateIndicator({ platform, version, updateState, isMacDesktop =
   );
 }
 
-/** 原 FOt（js 129296 / jsx 108831）：发行说明 Popover（标题+日期+markdown 滚动区） */
+/** 原 FOt（js 129313 / jsx 108831）：发行说明 Popover（标题+日期+markdown 滚动区） */
 function ReleaseNotesPopover({
   children,
   locale,
@@ -1077,8 +1077,8 @@ function UpdateStatusDialogController({
  * 产品文档 / 导出日志 | [stdio tap 开关 + DevTools（开发可见）] | 关闭窗口。
  * ==========================================================================*/
 
-export const PRODUCT_DOCS_URL = "https://zcode.z.ai/docs"; // 原 lw（js 39410）
-const CAPTION_MENU_ALIGN_OFFSET = -12;              // 原 QPt（js 141825）
+export const PRODUCT_DOCS_URL = "https://zcode.z.ai/docs"; // 原 lw（js 39458）
+const CAPTION_MENU_ALIGN_OFFSET = -12;              // 原 QPt（js 141842）
 
 /** 原 $Pt：自动更新仅在生产构建可用 */
 function isAutoUpdateChannelSupported(env: string = "production"): boolean {
@@ -1114,7 +1114,7 @@ function updateMenuItemI18nValues(state: UpdateState): Record<string, unknown> |
   }
 }
 
-/** 原 ZPt（js 141806）：帮助动作（反馈/文档/导出日志），S6 与 U6 共用 */
+/** 原 ZPt（js 141823）：帮助动作（反馈/文档/导出日志），S6 与 U6 共用 */
 function useHelpActions({ platform, intl, openSubmit }: { platform: PlatformService; intl: IntlShape; openSubmit: (payload: FeedbackSubmitPayload) => void }) {
   return {
     openIssueReport: async () => {
@@ -2991,7 +2991,7 @@ interface ConversationSummaryAsideProps {
   className?: string;
 }
 
-const EMPTY_BACKGROUND_WORKS: BackgroundWork[] = [];   // 原 slt（js 98224）
+const EMPTY_BACKGROUND_WORKS: BackgroundWork[] = [];   // 原 slt（js 98272）
 const EMPTY_SUBAGENTS: RunningSubagent[] = [];         // 原 clt
 
 /** 原 Qct（js 98128 / jsx 85059-85080）：摘要面板 git 段投影，两道 null 门
@@ -3022,7 +3022,7 @@ function buildSummaryPanelGitModel({
   };
 }
 
-/** 原 tlt（js 98133）：把原始会话状态归一成摘要面板模型 */
+/** 原 tlt（js 98181）：把原始会话状态归一成摘要面板模型 */
 export function buildSummaryPanelModel(args: {
   gitSummary: GitSummary;
   gitDirtyFileCount: number;
@@ -3057,7 +3057,7 @@ export function buildSummaryPanelModel(args: {
   };
 }
 
-/** 原 Uct（js 98016）：变体解析（override 优先，缺省 auto） */
+/** 原 Uct（js 98064）：变体解析（override 优先，缺省 auto） */
 export function resolveSummaryPanelVariant(args: { variantOverride: SummaryPanelVariant | null }): SummaryPanelVariant {
   return args.variantOverride ?? "auto";
 }

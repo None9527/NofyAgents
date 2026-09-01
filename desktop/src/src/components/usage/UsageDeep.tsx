@@ -769,7 +769,7 @@ export interface ModelProviderNavigationGroup {
  * 1. 用量数据 hook（原 K$t/q$t/J$t，js 195171–195258 / jsx 156988–157118）
  * ==========================================================================*/
 
-/** 原 K$t（js 195171）：错误对象 → 消息字符串 */
+/** 原 K$t（js 195467）：错误对象 → 消息字符串 */
 export function usageErrorOf(error: unknown): string {
   if (error instanceof Error) return error.message || error.name || String(error);
   if (typeof error == `object` && error && `message` in error) {
@@ -779,7 +779,7 @@ export function usageErrorOf(error: unknown): string {
   return String(error);
 }
 
-/** 原 q$t（js 195179）：app 本地用量快照 hook（序号防竞态；保留旧快照刷新） */
+/** 原 q$t（js 195475）：app 本地用量快照 hook（序号防竞态；保留旧快照刷新） */
 export function useAppUsageStats(range: string): {
   snapshot: AppUsageSnapshot | null;
   loading: boolean;
@@ -815,7 +815,7 @@ export function useAppUsageStats(range: string): {
   return { ...state, refresh };
 }
 
-/** 原 J$t（js 195206）：Coding Plan 用量快照 hook（源键变更 → 清快照；同键保留） */
+/** 原 J$t（js 195502）：Coding Plan 用量快照 hook（源键变更 → 清快照；同键保留） */
 export function useCodingPlanUsageStats(
   range: string,
   opts: { enabled?: boolean; preferredProviderId?: string; organizationId?: string; projectId?: string }
@@ -1169,7 +1169,7 @@ export function useSubscriptionSnapshot(options: UseSubscriptionSnapshotOptions 
   return useUsageEntitlementCore(useBaseServices()?.usageStatsService as UsageStatsService | undefined, options); // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
 }
 
-/** 原 eM（js 52451）：权益主 hook —— 缓存命中/单飞去重/失败退避/可见性轮询/重置唤醒/跨实例广播 */
+/** 原 eM（js 52500）：权益主 hook —— 缓存命中/单飞去重/失败退避/可见性轮询/重置唤醒/跨实例广播 */
 export function useUsageEntitlementCore(
   service: UsageStatsService | undefined,
   options: UseSubscriptionSnapshotOptions = {}
@@ -1349,7 +1349,7 @@ export function providerApiKeyFingerprint(provider: ModelProvider | null | undef
   return `${provider.id}:${hashApiKey(provider.apiKey.trim())}`;
 }
 
-/** 原 rM（js 52602）：供应商 → 权益缓存键（对应 SettingsPanelsData 的 providerCacheKey 声明） */
+/** 原 rM（js 52648）：供应商 → 权益缓存键（对应 SettingsPanelsData 的 providerCacheKey 声明） */
 export function providerCacheKey(provider: ModelProvider | undefined): string {
   return entitlementFreshnessKey({ providerId: provider?.id ?? ``, providerFingerprint: providerApiKeyFingerprint(provider) });
 }
@@ -1474,7 +1474,7 @@ export function ensureCodingPlanSources(fetcher: () => Promise<ModelProvider[]>)
   return request;
 }
 
-/** 原 PUe（js 52694）：族域双权益（codingPlan/startPlan）→ 连接设置解析器 */
+/** 原 PUe（js 52743）：族域双权益（codingPlan/startPlan）→ 连接设置解析器 */
 export function useProviderFamilyConnectionSettings(
   workspacePath: string | null,
   modelProviderFamilySelectedKeys: string[],
@@ -1903,7 +1903,7 @@ export function useBillingDiscountCore(service: CodingPlanSubscriptionService | 
   return { active: state.active, config: state.config, loading: state.loading, refresh };
 }
 
-/** 原 dj（js 51862）：折扣配置 hook（服务取自 useOptionalServices） */
+/** 原 dj（js 51910）：折扣配置 hook（服务取自 useOptionalServices） */
 export function useBillingDiscount(): { active: boolean; config: BillingDiscountConfig | undefined; loading: boolean; refresh: () => Promise<void> } {
   return useBillingDiscountCore(useOptionalServices()?.codingPlanSubscriptionService as unknown as CodingPlanSubscriptionService | undefined); // A0-CLEANUP3 3b：宽 Record 面与本地 CodingPlanSubscriptionService 不重叠，双重收敛
 }
@@ -1936,7 +1936,7 @@ export function BillingDiscountBadge(props: {
   ) : null;
 }
 
-/** 原 _j（js 51986）：折扣信息对话框（markdown 正文；主题取自设置 store） */
+/** 原 _j（js 52034）：折扣信息对话框（markdown 正文；主题取自设置 store） */
 export function BillingDiscountInfoDialog(props: { config: BillingDiscountConfig | undefined; tone?: "default" | "onGradient" }): React.ReactElement | null {
   const { config, tone = `default` } = props;
   const { intl, locale } = useIntlContext();
@@ -1986,7 +1986,7 @@ export function BillingDiscountBadgeWithInfo(props: {
   ) : null;
 }
 
-/** 原 HHe（js 51946）：折扣渐变卡（标题+正文+surface 徽章；缺文案 → 隐藏） */
+/** 原 HHe（js 51994）：折扣渐变卡（标题+正文+surface 徽章；缺文案 → 隐藏） */
 export function BillingDiscountCard(props: { config: BillingDiscountConfig | undefined }): React.ReactElement | null {
   const { locale } = useIntlContext();
   const copy = localizedDiscountCopyOf(props.config, locale);
@@ -2016,7 +2016,7 @@ export function BillingDiscountCard(props: { config: BillingDiscountConfig | und
  * 4. 配额助手 + 侧栏计划件（原 Sq…v3e，js 76101–76563 / jsx 67394–67700 区）
  * ==========================================================================*/
 
-/** 原 Sq（js 76101）：type/unit/number 三键查找（宽松：number 可省） */
+/** 原 Sq（js 76149）：type/unit/number 三键查找（宽松：number 可省） */
 export function findQuotaLimit(
   limits: EntitlementQuotaLimit[] | undefined,
   type: string,
@@ -2026,7 +2026,7 @@ export function findQuotaLimit(
   return limits?.find((limit) => limit.type === type && limit.unit === unit && (number == null || limit.number === number)) ?? null;
 }
 
-/** 原 Cq（js 76104）：percentage（剩余）→ 已用百分比（0–100，非数 → null） */
+/** 原 Cq（js 76152）：percentage（剩余）→ 已用百分比（0–100，非数 → null） */
 export function quotaPercent(limit: EntitlementQuotaLimit | null | undefined): number | null {
   if (typeof limit?.percentage != `number` || !Number.isFinite(limit.percentage)) return null;
   return Math.max(0, Math.min(100, 100 - limit.percentage));
@@ -2039,7 +2039,7 @@ export function formatQuotaUsage(locale: string, limit: EntitlementQuotaLimit | 
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: percent >= 10 ? 0 : 1 }).format(percent)}%`;
 }
 
-/** 原 wq（js 76115）：配额重置时间格式化（date=`Mon d`；dateTime=今天可省日期） */
+/** 原 wq（js 76163）：配额重置时间格式化（date=`Mon d`；dateTime=今天可省日期） */
 export function formatQuotaResetTime(opts: {
   locale: string;
   value: unknown;
@@ -2065,7 +2065,7 @@ const BIGMODEL_LOGO_DATA_URI = `data:image/svg+xml,%3csvg%20width='16'%20height=
 const ZAI_LOGO_DATA_URI = `data:image/svg+xml,%3csvg%20width='18'%20height='18'%20viewBox='0%200%2018%2018'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M2.91528%2017.32C1.40918%2017.32%200.183716%2016.0946%200.183716%2014.5885V2.91906C0.183716%201.41296%201.40918%200.1875%202.91528%200.1875H14.5847C16.0908%200.1875%2017.3163%201.41296%2017.3163%202.91906V14.5885C17.3163%2016.0946%2016.0908%2017.32%2014.5847%2017.32H2.91528Z'%20fill='url(%23paint0_linear_11758_79291)'%20style=''%20/%3e%3cpath%20d='M14.5847%200.367454C15.9918%200.367454%2017.1325%201.50817%2017.1325%202.91529V14.5847C17.1325%2015.9918%2015.9918%2017.1325%2014.5847%2017.1325H2.91529C1.50817%2017.1325%200.367454%2015.9918%200.367454%2014.5847V2.91529C0.367454%201.50817%201.50817%200.367454%202.91529%200.367454H14.5847ZM14.5847%200H2.91529C2.13652%200%201.40459%200.303149%200.853871%200.853871C0.303149%201.40459%200%202.13652%200%202.91529V14.5847C0%2015.3635%200.303149%2016.0954%200.853871%2016.6461C1.40459%2017.1969%202.13652%2017.5%202.91529%2017.5H14.5847C15.3635%2017.5%2016.0954%2017.1969%2016.6461%2016.6461C17.1969%2016.0954%2017.5%2015.3635%2017.5%2014.5847V2.91529C17.5%202.13652%2017.1969%201.40459%2016.6461%200.853871C16.0954%200.303149%2015.3635%200%2014.5847%200Z'%20fill='%23B7BCBF'%20style='fill:%23B7BCBF;fill:color(display-p3%200.7176%200.7373%200.7490);fill-opacity:1;'%20/%3e%3cpath%20d='M5%2014.5%20L5%208.2%20A4%204%200%200%201%2013%208.2%20L13%2014.5'%20stroke='white'%20stroke-width='2.8'%20fill='none'%20/%3e%3cdefs%3e%3clinearGradient%20id='paint0_linear_11758_79291'%20x1='8.74999'%20y1='17.32'%20x2='8.74999'%20y2='0.187504'%20gradientUnits='userSpaceOnUse'%3e%3cstop%20style='stop-color:black;stop-opacity:1;'%20/%3e%3cstop%20offset='1'%20stop-color='%23151718'%20style='stop-color:%23151718;stop-color:color(display-p3%200.0824%200.0902%200.0941);stop-opacity:1;'%20/%3e%3c/linearGradient%3e%3c/defs%3e%3c/svg%3e`; // REBRAND-041+141
 const REGION_LOGO_BY_ID: Record<string, string> = { [BIGMODEL_REGION]: BIGMODEL_LOGO_DATA_URI, zai: ZAI_LOGO_DATA_URI };
 
-/** 原 Tq（js 76135）：区域 logo（缺省 log-in 图标占位） */
+/** 原 Tq（js 76183）：区域 logo（缺省 log-in 图标占位） */
 export function RegionLogo(props: { region: string; className?: string }): React.ReactElement {
   const logo = REGION_LOGO_BY_ID[props.region];
   return logo ? (
@@ -2151,7 +2151,7 @@ export function modelDisplayName(rawName: string): string {
  * 5. 供应商环境/内网探测助手（原 i7…gYt，js 187188–187304 / jsx 151029–151160）
  * ==========================================================================*/
 
-/** 原 i7（js 187289）：trim 非空 → 字符串，否则 undefined */
+/** 原 i7（js 187484）：trim 非空 → 字符串，否则 undefined */
 function trimmedOrUndefined(value: string | null | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : void 0;
@@ -2251,7 +2251,7 @@ function sameRequest(seqA: number, seqB: number): boolean {
   return seqA === seqB;
 }
 
-/** 原 hYt（js 187362）：内网探测 hook（自动/手动；序号防竞态） */
+/** 原 hYt（js 187557）：内网探测 hook（自动/手动；序号防竞态） */
 export function useIntranetProbe(
   probeConfig: { attempts?: number; requiredSuccessCount?: number; targets?: unknown[] } | null,
   opts: { enabled?: boolean; autoProbe?: boolean } = {}
@@ -2305,7 +2305,7 @@ export function useIntranetProbe(
   return { result, isIntranet: result?.isIntranet ?? false, probing, error, probeNow };
 }
 
-/** 原 gYt（js 187296）：zapi 可用判定（环境解析 + 内网探测；对应 SettingsPanels 的 useZapiEnabled 声明） */
+/** 原 gYt（js 187591）：zapi 可用判定（环境解析 + 内网探测；对应 SettingsPanels 的 useZapiEnabled 声明） */
 export function useZapiEnabled(): boolean {
   const env = effectiveEnvOverlay({});
   const preProbe = resolveZapiEnvironment({ rawEnv: RAW_RUNTIME_ENV, probedIsIntranet: false, env });
@@ -2334,26 +2334,26 @@ declare function zapiEnabledOf(opts: { env: Record<string, string>; isIntranet: 
 /** 原 _Yt（js 187305）：API 格式三枚举 */
 const API_FORMATS = [`anthropic-messages`, `openai-chat-completions`, `openai-responses`];
 
-/** 原 yYt（js 187309）：格式集合 → 首个已知格式（单元素表） */
+/** 原 yYt（js 187605）：格式集合 → 首个已知格式（单元素表） */
 function firstKnownFormatOf(formats: string[]): string[] {
   const known = new Set(formats);
   const first = API_FORMATS.find((format) => known.has(format));
   return first ? [first] : [];
 }
 
-/** 原 bYt（js 187314）：baseURL 草稿解析（原实现委托 Tn；此处按调用面保留签名） */
+/** 原 bYt（js 187610）：baseURL 草稿解析（原实现委托 Tn；此处按调用面保留签名） */
 function baseUrlOfDraft(baseUrl: string, _format?: string, _path?: string): string {
   return resolveDraftBaseUrl(baseUrl);
 }
 declare function resolveDraftBaseUrl(baseUrl: string): string; // Tn（src chunk）
 
-/** 原 xYt（js 187317）：端点路径归一化（缺省路径 + `/` 前缀） */
+/** 原 xYt（js 187613）：端点路径归一化（缺省路径 + `/` 前缀） */
 function normalizeEndpointPath(kind: string, path: string | undefined): string {
   const normalized = (path?.trim() ?? ``) || defaultPathOfKind(kind);
   return normalized.startsWith(`/`) ? normalized : `/${normalized}`;
 }
 
-/** 原 SYt（js 187321）：格式表 → {baseURL, paths}（缺省 anthropic-messages） */
+/** 原 SYt（js 187617）：格式表 → {baseURL, paths}（缺省 anthropic-messages） */
 function endpointsOfFormats(
   provider: ModelProvider,
   formats: string[],
@@ -2366,12 +2366,12 @@ function endpointsOfFormats(
   return { baseURL: baseUrlOfDraft(baseUrl, kind, path), paths: { [kind]: path } };
 }
 
-/** 原 vYt（js 187306）：单格式端点（baseUrl 未编辑时的回退） */
+/** 原 vYt（js 187602）：单格式端点（baseUrl 未编辑时的回退） */
 function endpointsOfFormatSingle(provider: ModelProvider, format: string, baseUrl: string): { baseURL: string; paths: Record<string, string> } {
   return endpointsOfFormats(provider, [format], baseUrl);
 }
 
-/** 原 CYt（js 187331）：apiKey 模式 + 系统禁用 → 自动启用草稿（族匹配且当前禁用） */
+/** 原 CYt（js 187622）：apiKey 模式 + 系统禁用 → 自动启用草稿（族匹配且当前禁用） */
 function autoEnableApiKeyProviderDraft(opts: {
   provider: ModelProvider | null;
   mode: string;
@@ -2389,13 +2389,13 @@ function autoEnableApiKeyProviderDraft(opts: {
   return { ...provider, enabled: true, systemDisabledReason: void 0, updatedAt: now() };
 }
 
-/** 原 wYt（js 187340）：baseURL 草稿 → 解析值 */
+/** 原 wYt（js 187631）：baseURL 草稿 → 解析值 */
 function resolvedBaseUrlOf(_provider: ModelProvider, format: string, baseUrl: string, _path?: string): string {
   const kind = kindOfApiFormat(format);
   return baseUrlOfDraft(baseUrl.trim(), kind, defaultPathOfKind(kind));
 }
 
-/** 原 TYt（js 187344）：端点补丁（baseURL 可省 + 单路径表） */
+/** 原 TYt（js 187635）：端点补丁（baseURL 可省 + 单路径表） */
 function endpointsPatchOf(
   provider: ModelProvider,
   format: string,
@@ -2419,7 +2419,7 @@ export interface ProviderFormDraft {
   apiKeyValue: string;
 }
 
-/** 原 o7（js 187345）：草稿差异 → 变更供应商（无变更 → null；headers 恒清除） */
+/** 原 o7（js 187641）：草稿差异 → 变更供应商（无变更 → null；headers 恒清除） */
 export function providerDraftDiff(opts: {
   provider: ModelProvider;
   draft: ProviderFormDraft;
@@ -2454,7 +2454,7 @@ export function providerDraftDiff(opts: {
   };
 }
 
-/** 原 EYt（js 187373）：差异 ?? 原供应商（测试用草稿） */
+/** 原 EYt（js 187669）：差异 ?? 原供应商（测试用草稿） */
 function providerDraftOrSelf(opts: { provider: ModelProvider; draft: ProviderFormDraft; readOnlyEndpoints?: boolean; now: () => number }): ModelProvider {
   return providerDraftDiff(opts) ?? opts.provider;
 }
@@ -2462,13 +2462,13 @@ function providerDraftOrSelf(opts: { provider: ModelProvider; draft: ProviderFor
 /** 原 DYt（js 187376）：模型 kind 三枚举 */
 const MODEL_KINDS = [`anthropic`, `openai-compatible`, `openai`];
 
-/** 原 s7（js 187378）：过滤已知 kind（保持枚举序） */
+/** 原 s7（js 187673）：过滤已知 kind（保持枚举序） */
 function filterKnownKinds(kinds: string[]): string[] {
   const known = new Set(kinds);
   return MODEL_KINDS.filter((kind) => known.has(kind));
 }
 
-/** 原 OYt（js 187381）：允许集过滤（未给 → 原样） */
+/** 原 OYt（js 187677）：允许集过滤（未给 → 原样） */
 function filterAllowedKinds(opts: { kinds: string[]; allowedKinds?: string[] }): string[] {
   const known = filterKnownKinds(opts.kinds);
   if (opts.allowedKinds === void 0) return known;
@@ -2484,7 +2484,7 @@ export interface ModelDraft {
   maxOutputTokensValue: string;
 }
 
-/** 原 c7（js 187390）：模型 → 草稿 */
+/** 原 c7（js 187683）：模型 → 草稿 */
 function modelToDraft(model: ModelMetadata): ModelDraft {
   return {
     idValue: model.id,
@@ -2495,7 +2495,7 @@ function modelToDraft(model: ModelMetadata): ModelDraft {
   };
 }
 
-/** 原 kYt（js 187399）：正整数字符串 → number（否则 null） */
+/** 原 kYt（js 187692）：正整数字符串 → number（否则 null） */
 function parsePositiveInteger(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -2534,7 +2534,7 @@ function validateModelDraft(opts: {
   };
 }
 
-/** 原 jYt（js 187447）：聚焦全选 */
+/** 原 jYt（js 187722）：聚焦全选 */
 function selectOnFocus(event: React.FocusEvent<HTMLInputElement>): void {
   event.currentTarget.select();
 }
@@ -2689,12 +2689,12 @@ export function ModelMetadataDialog(props: {
  * 7. 供应商表单字段件（原 NYt…qYt，js 187631–187935 / jsx 151417–151650）
  * ==========================================================================*/
 
-/** 原 NYt（js 187631）：上下文窗口紧凑格式（locale 参数存在但实现固定 en-US） */
+/** 原 NYt（js 187927）：上下文窗口紧凑格式（locale 参数存在但实现固定 en-US） */
 function formatContextWindowCompact(value: number, _locale: string = `en-US`): string {
   return formatCompactNumber(`en-US`, value);
 }
 
-/** 原 PYt（js 187634）：获取 API Key 链接（仅缺 key 时显示） */
+/** 原 PYt（js 187930）：获取 API Key 链接（仅缺 key 时显示） */
 function GetApiKeyLink(props: { apiKey: string; onOpenApiKey: () => void }): React.ReactElement | null {
   const { intl } = useIntlContext();
   return isApiKeyMissing(props.apiKey) ? (
@@ -2706,7 +2706,7 @@ function GetApiKeyLink(props: { apiKey: string; onOpenApiKey: () => void }): Rea
   ) : null;
 }
 
-/** 原 FYt（js 187649）：模型行（id 输入 + 上下文徽章 + 测试 + 编辑对话框 + 删除） */
+/** 原 FYt（js 187944）：模型行（id 输入 + 上下文徽章 + 测试 + 编辑对话框 + 删除） */
 export function ModelRow(props: {
   model: ModelMetadata;
   autoFocus?: boolean;
@@ -2903,7 +2903,7 @@ export function ModelRow(props: {
   );
 }
 
-/** 原 IYt（js 187827）：API Key 输入（密码/明文切换；只读禁用） */
+/** 原 IYt（js 188122）：API Key 输入（密码/明文切换；只读禁用） */
 function ApiKeyInput(props: {
   value: string;
   visible: boolean;
@@ -2944,7 +2944,7 @@ function ApiKeyInput(props: {
   );
 }
 
-/** 原 LYt（js 187860）：API 格式 × i18n 标签表 */
+/** 原 LYt（js 188155）：API 格式 × i18n 标签表 */
 const API_FORMAT_LABELS = [
   {
     format: `anthropic-messages`,
@@ -2969,13 +2969,13 @@ const API_FORMAT_LABELS = [
   },
 ];
 
-/** 原 RYt（js 187883）：格式标题（未登记 → 原样） */
+/** 原 RYt（js 188178）：格式标题（未登记 → 原样） */
 function apiFormatTitleOf(intl: IntlShape, format: string): string {
   const entry = API_FORMAT_LABELS.find((candidate) => candidate.format === format);
   return entry ? intl.formatMessage({ id: entry.titleLabelId }) : format;
 }
 
-/** 原 l7（js 187886）：格式选项表（与 _Yt 同值的本域副本） */
+/** 原 l7（js 188182）：格式选项表（与 _Yt 同值的本域副本） */
 const API_FORMAT_OPTIONS = [`anthropic-messages`, `openai-chat-completions`, `openai-responses`];
 
 /** 原 zYt（js 187887 区）：格式缺省路径表 */
@@ -2985,12 +2985,12 @@ const API_FORMAT_DEFAULT_PATHS: Record<string, string> = {
   "openai-responses": `/responses`,
 };
 
-/** 原 BYt（js 187892）：选项标签 `标题 (路径)` */
+/** 原 BYt（js 188188）：选项标签 `标题 (路径)` */
 function apiFormatOptionLabel(intl: IntlShape, format: string): string {
   return `${apiFormatTitleOf(intl, format)} (${API_FORMAT_DEFAULT_PATHS[format] ?? format})`;
 }
 
-/** 原 VYt（js 187895）：API 格式下拉 */
+/** 原 VYt（js 188191）：API 格式下拉 */
 function ApiFormatSelect(props: { apiFormatOptions?: string[]; triggerId?: string; value: string; onChange: (format: string) => void }): React.ReactElement {
   const { apiFormatOptions = API_FORMAT_OPTIONS, triggerId, value, onChange } = props;
   const { intl } = useIntlContext();
@@ -3010,7 +3010,7 @@ function ApiFormatSelect(props: { apiFormatOptions?: string[]; triggerId?: strin
   );
 }
 
-/** 原 HYt（js 187914）：供应商可选格式（端点 kind ∩ 模型 kind；空 → 全量） */
+/** 原 HYt（js 188210）：供应商可选格式（端点 kind ∩ 模型 kind；空 → 全量） */
 export function apiFormatOptionsOfProvider(provider: ModelProvider): string[] {
   const endpointKinds = endpointKindsOf(provider.endpoints);
   if (endpointKinds.length === 0) return [...API_FORMAT_OPTIONS];
@@ -3025,7 +3025,7 @@ const PRESET_PROVIDER_ID_SET = new Set([PROVIDER_IDS.zai, PROVIDER_IDS.bigmodel,
 const CATALOG_SOURCE_ID = `china-llm-zcode-dev`;
 const MODEL_LOOKUP_DEBOUNCE_MS = 300;
 
-/** 原 KYt（js 187925）：目录供应商模型 → maxOutputTokens（id 不区分大小写） */
+/** 原 KYt（js 188221）：目录供应商模型 → maxOutputTokens（id 不区分大小写） */
 function lookupMaxOutputTokens(catalog: CatalogProvider[], modelId: string): number | undefined {
   const needle = modelId.trim().toLowerCase();
   if (needle)
@@ -3035,7 +3035,7 @@ function lookupMaxOutputTokens(catalog: CatalogProvider[], modelId: string): num
     }
 }
 
-/** 原 qYt（js 187933）：非预设三厂才可自定义 baseURL/格式 */
+/** 原 qYt（js 188229）：非预设三厂才可自定义 baseURL/格式 */
 function isCustomizableProvider(provider: ModelProvider): boolean {
   return !PRESET_PROVIDER_ID_SET.has(provider.id);
 }
@@ -3044,7 +3044,7 @@ function isCustomizableProvider(provider: ModelProvider): boolean {
  * 8. u7 子段（原 JYt…$Yt，js 187936–188320 / jsx 151651–151854）
  * ==========================================================================*/
 
-/** 原 JYt（js 187936）：卡头（名称内联编辑 + 状态徽章 + 启用/禁用 + 用量链接 + 删除） */
+/** 原 JYt（js 188232）：卡头（名称内联编辑 + 状态徽章 + 启用/禁用 + 用量链接 + 删除） */
 export function ProviderCardFormHeader(props: {
   provider: ModelProvider;
   providerName: string;
@@ -3165,7 +3165,7 @@ export function ProviderCardFormHeader(props: {
   );
 }
 
-/** 原 YYt（js 188051）：连接段（baseURL + API 格式；只读/编辑双态；预设厂隐藏格式） */
+/** 原 YYt（js 188347）：连接段（baseURL + API 格式；只读/编辑双态；预设厂隐藏格式） */
 export function ProviderConnectionSection(props: {
   provider: ModelProvider;
   readOnly?: boolean;
@@ -3228,7 +3228,7 @@ export function ProviderConnectionSection(props: {
   );
 }
 
-/** 原 XYt（js 188127）：API Key 段（标签行 + 获取链接 + 输入） */
+/** 原 XYt（js 188423）：API Key 段（标签行 + 获取链接 + 输入） */
 function ProviderApiKeySection(props: {
   apiKeyValue: string;
   apiKeyVisible: boolean;
@@ -3261,7 +3261,7 @@ function ProviderApiKeySection(props: {
   );
 }
 
-/** 原 ZYt（js 188161）：API Key 禁用提示（info 图标 + 文案） */
+/** 原 ZYt（js 188457）：API Key 禁用提示（info 图标 + 文案） */
 function ApiKeyDisabledHint(): React.ReactElement {
   const { intl } = useIntlContext();
   return (
@@ -3272,7 +3272,7 @@ function ApiKeyDisabledHint(): React.ReactElement {
   );
 }
 
-/** 原 QYt（js 188173）：新模型草稿（格式回退链；缺省上下文 kee） */
+/** 原 QYt（js 188469）：新模型草稿（格式回退链；缺省上下文 kee） */
 function newModelDraft(currentFormat: string | null, apiFormatOptions?: string[]): ModelDraft {
   const options = apiFormatOptions && apiFormatOptions.length > 0 ? apiFormatOptions : API_FORMAT_OPTIONS;
   const kind = kindOfApiFormat(currentFormat && options.includes(currentFormat) ? currentFormat : (options[0] ?? `openai-chat-completions`));
@@ -3436,12 +3436,12 @@ function cleanupSaveMode(opts: { deleteRequested: boolean }): `skip-delete` | `c
   return opts.deleteRequested ? `skip-delete` : `commit`;
 }
 
-/** 原 tXt（js 188324）：thenable 判定 */
+/** 原 tXt（js 188620）：thenable 判定 */
 function isThenable(value: unknown): value is PromiseLike<unknown> {
   return typeof value == `object` && !!value && `then` in value && typeof (value as { then: unknown }).then == `function`;
 }
 
-/** 原 nXt（js 188327）：删除守卫（置位 → 执行 → 异步/同步复位；同步异常先复位再抛） */
+/** 原 nXt（js 188623）：删除守卫（置位 → 执行 → 异步/同步复位；同步异常先复位再抛） */
 function runDeleteWithGuard(opts: { deleteRequestedRef: React.MutableRefObject<boolean>; onDelete?: (() => unknown) | null }): void {
   const { deleteRequestedRef, onDelete } = opts;
   if (onDelete) {
@@ -3464,7 +3464,7 @@ function runDeleteWithGuard(opts: { deleteRequestedRef: React.MutableRefObject<b
   }
 }
 
-/** 原 rXt（js 188346）：名称输入键动作（IME 组词中 → 忽略；Enter=commit/Escape=cancel） */
+/** 原 rXt（js 188642）：名称输入键动作（IME 组词中 → 忽略；Enter=commit/Escape=cancel） */
 function resolveNameKeyAction(event: {
   key: string;
   compositionActive: boolean;
@@ -3477,19 +3477,19 @@ function resolveNameKeyAction(event: {
   return null;
 }
 
-/** 原 iXt（js 188355）：模型条目归一化（对象原样；字符串 → 缺省 kind 模型） */
+/** 原 iXt（js 188651）：模型条目归一化（对象原样；字符串 → 缺省 kind 模型） */
 function normalizeModelEntry(provider: ModelProvider, model: ModelMetadata | string): ModelMetadata {
   if (isFullModelEntry(model)) return model;
   const kind = defaultKindOfProvider(provider);
   return createModel({ id: model, kinds: [kind], defaultKind: kind });
 }
 
-/** 原 aXt（js 188360）：供应商模型归一化（过滤 deleted） */
+/** 原 aXt（js 188656）：供应商模型归一化（过滤 deleted） */
 function normalizeProviderModels(provider: ModelProvider): ModelMetadata[] {
   return provider.models.map((model) => normalizeModelEntry(provider, model)).filter((model) => model.deleted !== true);
 }
 
-/** 原 oXt（js 188363）：端点路径表归一化（缺省 → 单条缺省路径） */
+/** 原 oXt（js 188659）：端点路径表归一化（缺省 → 单条缺省路径） */
 function normalizeEndpointPaths(provider: ModelProvider): Record<string, string> {
   const paths = provider.endpoints.paths;
   if (!paths) {
@@ -3525,7 +3525,7 @@ export interface ProviderConfigCardFormProps {
   apiKeyDisabledHintVisible?: boolean;
 }
 
-/** 原 u7（js 188376）：供应商配置卡表单根 —— 草稿引用 + 失焦/切换提交 + 卸载清理保存 + 删除守卫 */
+/** 原 u7（js 188672）：供应商配置卡表单根 —— 草稿引用 + 失焦/切换提交 + 卸载清理保存 + 删除守卫 */
 export function ProviderConfigCardForm(props: ProviderConfigCardFormProps): React.ReactElement {
   const {
     provider,
@@ -3824,7 +3824,7 @@ export function ProviderConfigCardForm(props: ProviderConfigCardFormProps): Reac
   );
 }
 
-/** 原 sXt（js 188652）：目录供应商图标（radio-tower 圆角方块） */
+/** 原 sXt（js 188948）：目录供应商图标（radio-tower 圆角方块） */
 function CatalogProviderIcon(): React.ReactElement {
   return (
     <span className={`flex size-6 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground-subtle`}>
@@ -3833,7 +3833,7 @@ function CatalogProviderIcon(): React.ReactElement {
   );
 }
 
-/** 原 cXt（js 188658）：目录供应商选择（Popover + cmdk 搜索；`--radix-popover-trigger-width`） */
+/** 原 cXt（js 188954）：目录供应商选择（Popover + cmdk 搜索；`--radix-popover-trigger-width`） */
 function CatalogProviderSelect(props: {
   catalog: CatalogProvider[];
   loading: boolean;
@@ -3900,7 +3900,7 @@ function CatalogProviderSelect(props: {
   );
 }
 
-/** 原 lXt（js 188768）：空自定义供应商骨架 */
+/** 原 lXt（js 189064）：空自定义供应商骨架 */
 function newCustomProvider(name: string): ModelProvider {
   const now = Date.now();
   return {
@@ -3937,7 +3937,7 @@ export interface AddProviderDraft {
   customEndpointPaths: Record<string, string>;
 }
 
-/** 原 d7（js 188789）：添加供应商草稿缺省 */
+/** 原 d7（js 189085）：添加供应商草稿缺省 */
 function newAddProviderDraft(): AddProviderDraft {
   return {
     mode: `custom`,
@@ -3951,7 +3951,7 @@ function newAddProviderDraft(): AddProviderDraft {
   };
 }
 
-/** 原 f7（js 188801）：添加表单字段标签 */
+/** 原 f7（js 189097）：添加表单字段标签 */
 function AddFormFieldLabel(props: { children: React.ReactNode; htmlFor?: string }): React.ReactElement {
   return (
     <label className={`mb-1 block text-ui-base font-medium text-foreground-subtle`} htmlFor={props.htmlFor}>
@@ -3960,12 +3960,12 @@ function AddFormFieldLabel(props: { children: React.ReactNode; htmlFor?: string 
   );
 }
 
-/** 原 _Xt（js 188808）：目录供应商缺省 kind（defaultKind → 首模型 → openai-compatible） */
+/** 原 _Xt（js 189104）：目录供应商缺省 kind（defaultKind → 首模型 → openai-compatible） */
 function defaultKindOfCatalogProvider(provider: CatalogProvider): string {
   return provider.defaultKind ?? provider.models[0]?.defaultKind ?? provider.models[0]?.kinds[0] ?? `openai-compatible`;
 }
 
-/** 原 vXt（js 188811）：baseURL 与路径拼接（`/` 边界去重/补齐） */
+/** 原 vXt（js 189107）：baseURL 与路径拼接（`/` 边界去重/补齐） */
 function joinBaseUrlAndPath(baseUrl: string, path: string | undefined): string {
   const base = baseUrl.trim();
   const suffix = path?.trim() ?? ``;
@@ -3976,13 +3976,13 @@ function joinBaseUrlAndPath(baseUrl: string, path: string | undefined): string {
   return `${base}${suffix}`;
 }
 
-/** 原 p7（js 188824）：目录端点 URL（paths[kind] 缺失 → 空串） */
+/** 原 p7（js 189120）：目录端点 URL（paths[kind] 缺失 → 空串） */
 function catalogEndpointUrlOf(provider: CatalogProvider, kind: string): string {
   const path = provider.endpoints.paths?.[kind];
   return path === void 0 ? `` : joinBaseUrlAndPath(provider.endpoints.baseURL, path);
 }
 
-/** 原 yXt（js 188828）：目录条目 → 自定义供应商（id=`源:条目`；openai 双 kind 回退） */
+/** 原 yXt（js 189124）：目录条目 → 自定义供应商（id=`源:条目`；openai 双 kind 回退） */
 function catalogProviderToCustom(entry: CatalogProvider, apiKey: string): ModelProvider {
   const base = newCustomProvider(entry.name);
   const kind = defaultKindOfCatalogProvider(entry);
@@ -4007,13 +4007,13 @@ function catalogProviderToCustom(entry: CatalogProvider, apiKey: string): ModelP
   };
 }
 
-/** 原 bXt（js 188851）：格式集 → 主格式（首个已知，缺省 anthropic-messages） */
+/** 原 bXt（js 189147）：格式集 → 主格式（首个已知，缺省 anthropic-messages） */
 function primaryFormatOf(formats: string[]): string[] {
   const known = new Set(formats);
   return [API_FORMAT_OPTIONS.find((format) => known.has(format)) ?? `anthropic-messages`];
 }
 
-/** 原 m7（js 188855）：模型去重（按 id；trim；空名 → undefined） */
+/** 原 m7（js 189151）：模型去重（按 id；trim；空名 → undefined） */
 function dedupeModelsById(models: ModelMetadata[] | undefined): ModelMetadata[] {
   const seen = new Set<string>();
   return (models ?? []).flatMap((model) => {
@@ -4024,13 +4024,13 @@ function dedupeModelsById(models: ModelMetadata[] | undefined): ModelMetadata[] 
   });
 }
 
-/** 原 xXt（js 188862）：模型表重定向到单一格式 kind */
+/** 原 xXt（js 189158）：模型表重定向到单一格式 kind */
 function retargetModelsToFormat(models: ModelMetadata[], format: string): ModelMetadata[] {
   const kind = kindOfApiFormat(format);
   return models.map((model) => ({ ...model, kinds: [kind], defaultKind: kind }));
 }
 
-/** 原 SXt（js 188866）：自定义草稿 → 供应商 */
+/** 原 SXt（js 189162）：自定义草稿 → 供应商 */
 function customDraftToProvider(draft: { name: string; baseURL: string; apiKey: string; apiFormats: string[]; models: ModelMetadata[] }): ModelProvider {
   const base = newCustomProvider(draft.name);
   const formats = primaryFormatOf(draft.apiFormats);
@@ -4057,7 +4057,7 @@ function resolveAddProviderMode(): `custom` | `catalog` {
   return `custom`;
 }
 
-/** 原 CXt（js 188882）：新建供应商表单（3.7.6 恒 custom 路；catalog 分支保留） */
+/** 原 CXt（js 189178）：新建供应商表单（3.7.6 恒 custom 路；catalog 分支保留） */
 export function AddCustomProviderDraftForm(props: {
   draft?: AddProviderDraft | null;
   onDraftChange?: React.Dispatch<React.SetStateAction<AddProviderDraft>>;
@@ -4267,7 +4267,7 @@ export function AddCustomProviderDraftForm(props: {
   );
 }
 
-/** 原 wXt（js 189113）：计划状态行（状态/续期/到期 · 管理 · 解绑；`·` 分隔） */
+/** 原 wXt（js 189409）：计划状态行（状态/续期/到期 · 管理 · 解绑；`·` 分隔） */
 export function PlanStatusRow(props: {
   renewTime?: string;
   expireTime?: string;
@@ -4312,7 +4312,7 @@ export function PlanStatusRow(props: {
   );
 }
 
-/** 原 TXt（js 189156）：Start Plan 状态行（到期 · 附加动作 · 管理 · 解绑） */
+/** 原 TXt（js 189452）：Start Plan 状态行（到期 · 附加动作 · 管理 · 解绑） */
 export function StartPlanStatusRow(props: {
   expireTime?: string;
   extraAction?: React.ReactNode;
@@ -4349,12 +4349,12 @@ export function StartPlanStatusRow(props: {
  * 11. Coding Plan 状态/配额展示簇（原 h7…tZt/_7，js 189190–189649 / jsx 152529–152856）
  * ==========================================================================*/
 
-/** 原 h7（js 189190）：`·` 分隔点（隐藏时占位 null） */
+/** 原 h7（js 189483）：`·` 分隔点（隐藏时占位 null） */
 export function StatusDotSeparator(props: { visible: boolean }): React.ReactElement | null {
   return props.visible ? <span aria-hidden={`true`}>{`·`}</span> : null;
 }
 
-/** 原 g7（js 189193）：状态动作按钮（品牌色 + 悬停下划线；加载禁用） */
+/** 原 g7（js 189486）：状态动作按钮（品牌色 + 悬停下划线；加载禁用） */
 export function StatusActionButton(props: { label: string; loading?: boolean; onClick: () => void }): React.ReactElement {
   return (
     <button
@@ -4368,7 +4368,7 @@ export function StatusActionButton(props: { label: string; loading?: boolean; on
   );
 }
 
-/** 原 EXt（js 189199）：续期优先，其次到期 */
+/** 原 EXt（js 189495）：续期优先，其次到期 */
 function resolveRenewOrExpire(opts: { renewTime?: string; expireTime?: string }): { kind: `renew` | `expire`; value: string } | null {
   const renew = opts.renewTime?.trim();
   if (renew) return { kind: `renew`, value: renew };
@@ -4376,7 +4376,7 @@ function resolveRenewOrExpire(opts: { renewTime?: string; expireTime?: string })
   return expire ? { kind: `expire`, value: expire } : null;
 }
 
-/** 原 DXt（js 189205）：UTC 短日期（同年省年；非法 → 原样） */
+/** 原 DXt（js 189501）：UTC 短日期（同年省年；非法 → 原样） */
 function formatUtcShortDate(value: string, locale: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -4389,7 +4389,7 @@ function formatUtcShortDate(value: string, locale: string): string {
   }).format(date);
 }
 
-/** 原 OXt（js 189216）：本地短日期（同年省年；非法 → 原样） */
+/** 原 OXt（js 189512）：本地短日期（同年省年；非法 → 原样） */
 function formatLocalShortDate(value: string, locale: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -4401,7 +4401,7 @@ function formatLocalShortDate(value: string, locale: string): string {
   }).format(date);
 }
 
-/** 原 kXt（js 189226）：登录/断开按钮组（登录：断连或不可用态；断开：未购买态） */
+/** 原 kXt（js 189522）：登录/断开按钮组（登录：断连或不可用态；断开：未购买态） */
 export function PlanLoginDisconnectButtons(props: {
   providerName: string;
   isDisconnected: boolean;
@@ -4440,7 +4440,7 @@ export function PlanLoginDisconnectButtons(props: {
   );
 }
 
-/** 原 AXt（js 189271）：升级/收起按钮（折扣激活且收起态 → 渐变胶囊 + 徽章 + 信息钮） */
+/** 原 AXt（js 189567）：升级/收起按钮（折扣激活且收起态 → 渐变胶囊 + 徽章 + 信息钮） */
 export function UpgradePlansButton(props: {
   loginLoading?: boolean;
   upgradePlansVisible: boolean;
@@ -4486,7 +4486,7 @@ export function UpgradePlansButton(props: {
   );
 }
 
-/** 原 jXt（js 189309）：Start Plan 预览卡（新用户资格徽章 + 配额数 + 明细 + 动作） */
+/** 原 jXt（js 189605）：Start Plan 预览卡（新用户资格徽章 + 配额数 + 明细 + 动作） */
 export function StartPlanPreviewCard(props: { preview: StartPlanPreview; actions?: React.ReactNode }): React.ReactElement | null {
   const { preview, actions } = props;
   const { intl, locale } = useIntlContext();
@@ -4525,7 +4525,7 @@ export function StartPlanPreviewCard(props: { preview: StartPlanPreview; actions
   );
 }
 
-/** 原 MXt（js 189380）：预览摘要（可见权益求和 + 单位 + 明细描述；空 → null） */
+/** 原 MXt（js 189676）：预览摘要（可见权益求和 + 单位 + 明细描述；空 → null） */
 export function startPlanPreviewSummary(
   preview: StartPlanPreview | null,
   intl: IntlShape,
@@ -4546,17 +4546,17 @@ export function startPlanPreviewSummary(
   };
 }
 
-/** 原 NXt（js 189395）：可见模型用量权益（meter/grantUnits/showName 三条件） */
+/** 原 NXt（js 189691）：可见模型用量权益（meter/grantUnits/showName 三条件） */
 function isVisibleModelUsageEntitlement(entitlement: StartPlanPreview["entitlements"][number]): boolean {
   return entitlement.meter === `model_usage` && entitlement.grantUnits > 0 && entitlement.showName.trim().length > 0;
 }
 
-/** 原 PXt（js 189398）：配额数紧凑格式（A0-D-Misc 补 export：PaymentDeep 跨模块消费，恢复 bundle 拓扑） */
+/** 原 PXt（js 189694）：配额数紧凑格式（A0-D-Misc 补 export：PaymentDeep 跨模块消费，恢复 bundle 拓扑） */
 export function formatGrantUnits(value: number, locale: string): string {
   return formatCompactNumber(locale, value);
 }
 
-/** 原 FXt（js 189401）：en 紧凑长词形（thousand/million… 首大写）；其余语言走紧凑数字 */
+/** 原 FXt（js 189697）：en 紧凑长词形（thousand/million… 首大写）；其余语言走紧凑数字 */
 function formatGrantUnitsLocalized(value: number, locale: string): string {
   if (!locale.toLowerCase().startsWith(`en`)) return formatCompactNumber(locale, value);
   return new Intl.NumberFormat(locale || `en-US`, {
@@ -4569,7 +4569,7 @@ function formatGrantUnitsLocalized(value: number, locale: string): string {
     .replace(/\b(thousand|million|billion|trillion)\b/g, (word) => word.slice(0, 1).toUpperCase() + word.slice(1));
 }
 
-/** 原 IXt（js 189416）：权益明细描述（按 grantUnits 分组；多模型 each / 单模型 single；daily/generic 汇总） */
+/** 原 IXt（js 189712）：权益明细描述（按 grantUnits 分组；多模型 each / 单模型 single；daily/generic 汇总） */
 function entitlementDetailsDescription(
   entitlements: StartPlanPreview["entitlements"],
   first: StartPlanPreview["entitlements"][number],
@@ -4601,7 +4601,7 @@ function entitlementDetailsDescription(
   );
 }
 
-/** 原 LXt（js 189441）：按 grantUnits 分组（保持出现序） */
+/** 原 LXt（js 189737）：按 grantUnits 分组（保持出现序） */
 function groupEntitlementsByGrant(entitlements: StartPlanPreview["entitlements"]): Array<{ grantUnits: number; modelNames: string[] }> {
   const byGrant = new Map<number, string[]>();
   for (const entitlement of entitlements) {
@@ -4612,14 +4612,14 @@ function groupEntitlementsByGrant(entitlements: StartPlanPreview["entitlements"]
   return [...byGrant.entries()].map(([grantUnits, modelNames]) => ({ grantUnits, modelNames }));
 }
 
-/** 原 RXt（js 189449）：模型名连接（zh `、`；其余 ` / `） */
+/** 原 RXt（js 189745）：模型名连接（zh `、`；其余 ` / `） */
 function joinModelNames(names: string[], locale: string): string {
   if (locale.toLowerCase().startsWith(`zh`)) return names.join(`、`);
   void names.length;
   return names.join(` / `);
 }
 
-/** 原 zXt（js 189452）：单位标签（daily → `每天` 文案包裹） */
+/** 原 zXt（js 189748）：单位标签（daily → `每天` 文案包裹） */
 function entitlementUnitLabel(entitlement: StartPlanPreview["entitlements"][number], intl: IntlShape): string {
   const unitText = entitlementUnitText(entitlement, intl);
   if (entitlement.period === `daily`)
@@ -4627,12 +4627,12 @@ function entitlementUnitLabel(entitlement: StartPlanPreview["entitlements"][numb
   return unitText;
 }
 
-/** 原 BXt（js 189458）：token → tokens 文案；其余原样 */
+/** 原 BXt（js 189754）：token → tokens 文案；其余原样 */
 function entitlementUnitText(entitlement: StartPlanPreview["entitlements"][number], intl: IntlShape): string {
   return entitlement.unitType === `token` ? intl.formatMessage({ id: `settings.modelProvider.startPlan.preview.unit.tokens` }) : entitlement.unitType;
 }
 
-/** 原 VXt（js 189463）：Start Plan 余额卡（标题 + 检查态 + 到期 + 限额行；嵌入式去边框） */
+/** 原 VXt（js 189759）：Start Plan 余额卡（标题 + 检查态 + 到期 + 限额行；嵌入式去边框） */
 export function StartPlanBalanceCard(props: {
   isChecking?: boolean;
   limits: StartPlanLimit[];
@@ -4683,7 +4683,7 @@ export interface StartPlanLimit {
   [key: string]: unknown;
 }
 
-/** 原 HXt（js 189513）：限额行（名称 + 剩余百分比 + 进度条 + 用量/总量） */
+/** 原 HXt（js 189809）：限额行（名称 + 剩余百分比 + 进度条 + 用量/总量） */
 function StartPlanLimitRowInternal(props: { limit: StartPlanLimit; locale: string; renewTimeLabel?: string }): React.ReactElement {
   const { limit, locale, renewTimeLabel } = props;
   const total = startPlanLimitTotal(limit);
@@ -4709,22 +4709,22 @@ function StartPlanLimitRowInternal(props: { limit: StartPlanLimit; locale: strin
   );
 }
 
-/** 原 UXt（js 189554）：限额键 `${type}:${名称}` */
+/** 原 UXt（js 189850）：限额键 `${type}:${名称}` */
 function startPlanLimitKey(limit: StartPlanLimit): string {
   return `${limit.type}:${startPlanLimitName(limit)}`;
 }
 
-/** 原 WXt（js 189557）：总量（number ?? unit ?? 0） */
+/** 原 WXt（js 189853）：总量（number ?? unit ?? 0） */
 function startPlanLimitTotal(limit: StartPlanLimit): number {
   return limit.number ?? limit.unit ?? 0;
 }
 
-/** 原 GXt（js 189560）：剩余（remaining ?? 0） */
+/** 原 GXt（js 189856）：剩余（remaining ?? 0） */
 function startPlanLimitRemaining(limit: StartPlanLimit): number {
   return limit.remaining ?? 0;
 }
 
-/** 原 KXt（js 189563）：剩余百分比（≥10% 整数，否则 1 位小数） */
+/** 原 KXt（js 189859）：剩余百分比（≥10% 整数，否则 1 位小数） */
 function formatRemainingPercent(locale: string, ratio: number): string {
   return new Intl.NumberFormat(locale || void 0, {
     maximumFractionDigits: ratio >= 0.1 ? 0 : 1,
@@ -4732,12 +4732,12 @@ function formatRemainingPercent(locale: string, ratio: number): string {
   }).format(ratio);
 }
 
-/** 原 qXt（js 189569）：整数千分位 */
+/** 原 qXt（js 189865）：整数千分位 */
 function formatLimitAmount(locale: string, value: number): string {
   return new Intl.NumberFormat(locale || void 0, { maximumFractionDigits: 0 }).format(value);
 }
 
-/** 原 JXt（js 189572）：最早重置时间（renewTime 字符串优先，否则 limits.nextResetTime 最小） */
+/** 原 JXt（js 189868）：最早重置时间（renewTime 字符串优先，否则 limits.nextResetTime 最小） */
 function earliestRenewOrResetTime(opts: { limits: StartPlanLimit[]; renewTime?: string }): string | number | undefined {
   return (
     opts.renewTime?.trim() ||
@@ -4748,7 +4748,7 @@ function earliestRenewOrResetTime(opts: { limits: StartPlanLimit[]; renewTime?: 
   );
 }
 
-/** 原 YXt（js 189581）：重置时间标签（今天=HH:mm；否则 `Mon d HH:mm`；非法字符串原样） */
+/** 原 YXt（js 189877）：重置时间标签（今天=HH:mm；否则 `Mon d HH:mm`；非法字符串原样） */
 function formatResetTimeLabel(value: string | number | undefined, locale: string): string | undefined {
   if (!value) return;
   const date = new Date(value);
@@ -4763,7 +4763,7 @@ function formatResetTimeLabel(value: string | number | undefined, locale: string
   return `${new Intl.DateTimeFormat(locale || void 0, { month: `short`, day: `numeric` }).format(date)} ${timePart}`;
 }
 
-/** 原 XXt（js 189597）：到期文案（expiresAt） */
+/** 原 XXt（js 189893）：到期文案（expiresAt） */
 function expireLabelOf(opts: { expireTime?: string; intl: IntlShape; locale: string }): string | null {
   const trimmed = opts.expireTime?.trim();
   return trimmed
@@ -4771,7 +4771,7 @@ function expireLabelOf(opts: { expireTime?: string; intl: IntlShape; locale: str
     : null;
 }
 
-/** 原 ZXt（js 189603）：限额名称（usageDetails 展示名 `/` 连接；空 → type） */
+/** 原 ZXt（js 189899）：限额名称（usageDetails 展示名 `/` 连接；空 → type） */
 function startPlanLimitName(limit: StartPlanLimit): string {
   const names = (limit.usageDetails ?? [])
     .map((detail) => {
@@ -4782,7 +4782,7 @@ function startPlanLimitName(limit: StartPlanLimit): string {
   return names.length === 0 ? limit.type : names.join(` / `);
 }
 
-/** 原 QXt（js 189612）：`model:` 前缀剥离 + glm-5-turbo 特判 + 大写 */
+/** 原 QXt（js 189908）：`model:` 前缀剥离 + glm-5-turbo 特判 + 大写 */
 function normalizeStartPlanLimitModelCode(modelCode: string): string {
   const stripped = modelCode.replace(/^model:/i, ``);
   return stripped.toLowerCase() === `glm-5-turbo` ? `GLM-5Turbo` : stripped.toUpperCase();
@@ -4800,7 +4800,7 @@ export function StartPlanBalanceCardEmbedded(props: {
   return <StartPlanBalanceCard isChecking={isChecking} limits={limits} expireTime={expireTime} renewTime={renewTime} embedded={embedded} />;
 }
 
-/** 原 eZt（js 189619）：BigModel 未注册提示 + 注册入口 */
+/** 原 eZt（js 189915）：BigModel 未注册提示 + 注册入口 */
 function BigModelUnregisteredHint(props: { onOpenRegistration?: () => void }): React.ReactElement {
   const { onOpenRegistration } = props;
   const { intl } = useIntlContext();
@@ -4816,7 +4816,7 @@ function BigModelUnregisteredHint(props: { onOpenRegistration?: () => void }): R
   );
 }
 
-/** 原 tZt（js 189640）：BigModel 未注册错误模式（中英文） */
+/** 原 tZt（js 189936）：BigModel 未注册错误模式（中英文） */
 function isBigModelUnregisteredError(error: string | null | undefined): boolean {
   if (!error) return false;
   const lowered = error.toLowerCase();
@@ -4827,14 +4827,14 @@ function isBigModelUnregisteredError(error: string | null | undefined): boolean 
   );
 }
 
-/** 原 _7（js 189649）：配额卡三色（用量图表 CSS 变量） */
+/** 原 _7（js 189945）：配额卡三色（用量图表 CSS 变量） */
 const USAGE_QUOTA_CARD_COLORS = [`var(--color-usage-chart-1)`, `var(--color-usage-chart-2)`, `var(--color-usage-chart-3)`];
 
 /* ============================================================================
  * 12. 加载/空态（原 v7/nZt，js 189650–189674 / jsx 152857–152872）
  * ==========================================================================*/
 
-/** 原 v7（js 189650）：分区加载占位（spinner + 文案） */
+/** 原 v7（js 189946）：分区加载占位（spinner + 文案） */
 export function SectionLoadingPlaceholder(props: { loadingLabel: string }): React.ReactElement {
   return (
     <div className={`flex flex-col gap-2 rounded-xl border border-border bg-surface p-3`}>
@@ -4846,7 +4846,7 @@ export function SectionLoadingPlaceholder(props: { loadingLabel: string }): Reac
   );
 }
 
-/** 原 nZt（js 189662）：预设空态（名称 + 文案） */
+/** 原 nZt（js 189958）：预设空态（名称 + 文案） */
 export function PresetEmptyState(props: { displayName?: string; messageId?: string }): React.ReactElement {
   const { displayName, messageId = `settings.modelProvider.presetEmpty` } = props;
   const { intl } = useIntlContext();
@@ -4906,7 +4906,7 @@ export interface CodingPlanStatusSectionProps {
   statusLabelId?: string;
 }
 
-/** 原 rZt（js 189675）：Coding Plan 状态区根 —— 标题/状态行/登录解绑/升级订阅/配额/预览/购买对话框 */
+/** 原 rZt（js 189971）：Coding Plan 状态区根 —— 标题/状态行/登录解绑/升级订阅/配额/预览/购买对话框 */
 export function CodingPlanStatusSection(props: CodingPlanStatusSectionProps): React.ReactElement {
   const {
     providerId,
@@ -5193,7 +5193,7 @@ export function CodingPlanStatusSection(props: CodingPlanStatusSectionProps): Re
   );
 }
 
-/** 原 iZt（js 189991）：计划卡标题（已购买×Start Plan×start 级 → start 标题；未购买 → 非活跃标题回退） */
+/** 原 iZt（js 190287）：计划卡标题（已购买×Start Plan×start 级 → start 标题；未购买 → 非活跃标题回退） */
 function resolvePlanCardTitle(opts: {
   isPurchased: boolean;
   isStartPlanProvider: boolean;
@@ -5214,12 +5214,12 @@ function isStartPlanLevel(rawPlanLevel: string): boolean {
   return lowered === `start` || lowered === `start plan` || lowered.endsWith(` start plan`);
 }
 
-/** 原 oZt（js 190006）：MAX 级判定（词边界） */
+/** 原 oZt（js 190302）：MAX 级判定（词边界） */
 function isMaxPlanLevel(rawPlanLevel: string): boolean {
   return /(^|[\s_-])MAX($|[\s_-])/i.test(rawPlanLevel);
 }
 
-/** 原 sZt（js 190009）：配额卡行（5h/周/月 MCP 三卡；无命中 → 通用数值限额前 3） */
+/** 原 sZt（js 190305）：配额卡行（5h/周/月 MCP 三卡；无命中 → 通用数值限额前 3） */
 export function CodingPlanQuotaCardRow(props: { limits: EntitlementQuotaLimit[] }): React.ReactElement {
   const { limits } = props;
   const { intl } = useIntlContext();
@@ -5274,7 +5274,7 @@ export function CodingPlanQuotaCardRow(props: { limits: EntitlementQuotaLimit[] 
   );
 }
 
-/** 原 y7（js 190062）：限额存在才出卡 */
+/** 原 y7（js 190358）：限额存在才出卡 */
 function quotaCardOrNull(card: {
   key: string;
   label: string;
@@ -5286,7 +5286,7 @@ function quotaCardOrNull(card: {
   return { key: card.key, label: card.label, limit: card.limit, progressColor: card.progressColor, resetTimeFormat: card.resetTimeFormat };
 }
 
-/** 原 cZt（js 190073）：可见配额判定（三键任一 或 数值限额存在） */
+/** 原 cZt（js 190369）：可见配额判定（三键任一 或 数值限额存在） */
 export function hasVisibleQuotaLimits(limits: EntitlementQuotaLimit[]): boolean {
   return !!(
     findQuotaLimitStrict(limits, `TOKENS_LIMIT`, 3, 5) ||
@@ -5296,7 +5296,7 @@ export function hasVisibleQuotaLimits(limits: EntitlementQuotaLimit[]): boolean 
   );
 }
 
-/** 原 lZt（js 190081）：数值限额判定（percentage/remaining/currentValue/usage 任一为数值） */
+/** 原 lZt（js 190377）：数值限额判定（percentage/remaining/currentValue/usage 任一为数值） */
 function isNumericQuotaLimit(limit: EntitlementQuotaLimit): boolean {
   return (
     typeof limit.percentage == `number` ||
@@ -5306,14 +5306,14 @@ function isNumericQuotaLimit(limit: EntitlementQuotaLimit): boolean {
   );
 }
 
-/** 原 uZt（js 190089）：通用限额标签（TIME_LIMIT → 月 MCP；否则总 token） */
+/** 原 uZt（js 190385）：通用限额标签（TIME_LIMIT → 月 MCP；否则总 token） */
 function genericQuotaLimitLabel(limit: EntitlementQuotaLimit, intl: IntlShape): string {
   return limit.type === `TIME_LIMIT`
     ? intl.formatMessage({ id: `settings.usage.entitlementMonthlyMcpUsage` })
     : intl.formatMessage({ id: `settings.modelProvider.planCard.usage.totalTokens` });
 }
 
-/** 原 dZt（js 190094）：配额卡（标签 + 模型行 + 百分比 + 重置时间 + 彩色进度） */
+/** 原 dZt（js 190390）：配额卡（标签 + 模型行 + 百分比 + 重置时间 + 彩色进度） */
 export function QuotaLimitCard(props: {
   label?: string;
   limit: EntitlementQuotaLimit;
@@ -5343,7 +5343,7 @@ export function QuotaLimitCard(props: {
   );
 }
 
-/** 原 b7（js 190140）：严格三键查找（=Sq，返回 undefined 变体） */
+/** 原 b7（js 190436）：严格三键查找（=Sq，返回 undefined 变体） */
 export function findQuotaLimitStrict(
   limits: EntitlementQuotaLimit[],
   type: string,
@@ -5353,7 +5353,7 @@ export function findQuotaLimitStrict(
   return limits.find((limit) => limit.type === type && limit.unit === unit && (number == null || limit.number === number));
 }
 
-/** 原 fZt（js 190143）：已用百分比（percentage 剩余换算优先；否则 remaining/number） */
+/** 原 fZt（js 190439）：已用百分比（percentage 剩余换算优先；否则 remaining/number） */
 function quotaUsedPercent(limit: EntitlementQuotaLimit | undefined): number | null {
   const clampedPercentage = clampPercent0to100(limit?.percentage);
   if (clampedPercentage !== null) return Math.max(0, Math.min(100, 100 - clampedPercentage));
@@ -5364,19 +5364,19 @@ function quotaUsedPercent(limit: EntitlementQuotaLimit | undefined): number | nu
   return null;
 }
 
-/** 原 pZt（js 190156）：百分比钳制（非数 → null） */
+/** 原 pZt（js 190452）：百分比钳制（非数 → null） */
 function clampPercent0to100(value: number | undefined | null): number | null {
   if (value == null || !Number.isFinite(value)) return null;
   return Math.max(0, Math.min(100, value));
 }
 
-/** 原 mZt（js 190159）：百分比文案（`--` 或 `NN%`；≥10 整数） */
+/** 原 mZt（js 190455）：百分比文案（`--` 或 `NN%`；≥10 整数） */
 function formatQuotaPercent(locale: string, value: number | null): string {
   if (value == null || !Number.isFinite(value)) return `--`;
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: value >= 10 ? 0 : 1 }).format(Math.max(0, Math.min(100, value)))}%`;
 }
 
-/** 原 hZt（js 190164）：限额模型标签（去重 `/` 连接） */
+/** 原 hZt（js 190460）：限额模型标签（去重 `/` 连接） */
 function quotaLimitModelsLabel(limit: EntitlementQuotaLimit): string {
   const names = (limit.usageDetails ?? [])
     .map((detail) => {
@@ -5387,7 +5387,7 @@ function quotaLimitModelsLabel(limit: EntitlementQuotaLimit): string {
   return Array.from(new Set(names)).join(` / `);
 }
 
-/** 原 gZt（js 190173）：`model:` 前缀剥离；`_-` → 空格 */
+/** 原 gZt（js 190469）：`model:` 前缀剥离；`_-` → 空格 */
 function normalizeQuotaModelCode(modelCode: string): string {
   return (
     modelCode
@@ -5397,7 +5397,7 @@ function normalizeQuotaModelCode(modelCode: string): string {
   );
 }
 
-/** 原 _Zt（js 190181）：视图态解析（登录中：购买/未购买态 → 保持，其余 → checking 覆盖） */
+/** 原 _Zt（js 190477）：视图态解析（登录中：购买/未购买态 → 保持，其余 → checking 覆盖） */
 export function resolveCodingPlanViewState(opts: { status: CodingPlanDisplayStatus; loginPending?: boolean }): CodingPlanViewState {
   const { status, loginPending } = opts;
   if (!loginPending) return codingPlanViewStateOf(status, false);
@@ -5405,7 +5405,7 @@ export function resolveCodingPlanViewState(opts: { status: CodingPlanDisplayStat
   return { displayStatus: `checking`, actionStatus: status, balanceStatus: status, loginLoading: true };
 }
 
-/** 原 vZt（js 190188）：三态同步视图态 */
+/** 原 vZt（js 190484）：三态同步视图态 */
 function codingPlanViewStateOf(status: CodingPlanDisplayStatus, loginLoading: boolean): CodingPlanViewState {
   return { displayStatus: status, actionStatus: status, balanceStatus: status, loginLoading };
 }
@@ -5414,7 +5414,7 @@ function codingPlanViewStateOf(status: CodingPlanDisplayStatus, loginLoading: bo
  * 14. 卡壳/连接模式导航（原 x7…kZt，js 190191–190378 / jsx 153248–153399）
  * ==========================================================================*/
 
-/** 原 x7（js 190191）：卡壳（有 header → gap-4 列布局） */
+/** 原 x7（js 190487）：卡壳（有 header → gap-4 列布局） */
 export function ProviderCardShell(props: { header?: React.ReactNode; children: React.ReactNode }): React.ReactElement {
   const { header, children } = props;
   return header ? (
@@ -5427,7 +5427,7 @@ export function ProviderCardShell(props: { header?: React.ReactNode; children: R
   );
 }
 
-/** 原 yZt（js 190194）：卡头（区域 logo + 族标题 + 启用徽章 + 尾随动作；无族/非计划项 → null） */
+/** 原 yZt（js 190490）：卡头（区域 logo + 族标题 + 启用徽章 + 尾随动作；无族/非计划项 → null） */
 export function ProviderCardHeader(props: { selectedNavItem: ModelProviderNavItem | null; trailingAction?: React.ReactNode }): React.ReactElement | null {
   const { selectedNavItem, trailingAction } = props;
   const { intl } = useIntlContext();
@@ -5457,7 +5457,7 @@ export function ProviderCardHeader(props: { selectedNavItem: ModelProviderNavIte
   );
 }
 
-/** 原 bZt（js 190231）：连接模式导航（<2 选项隐藏；当前项回退链；加载失败警示态） */
+/** 原 bZt（js 190527）：连接模式导航（<2 选项隐藏；当前项回退链；加载失败警示态） */
 export function ConnectionModeNav(props: {
   selectedNavItem: ModelProviderNavItem | null;
   navigationItems: ModelProviderNavItem[];
@@ -5529,7 +5529,7 @@ interface ConnectionModeOption {
   order: number;
 }
 
-/** 原 xZt（js 190307）：族内连接模式选项（startPlan 0 < codingPlan 10 < teamPlan 100+n < apiKey 1000） */
+/** 原 xZt（js 190603）：族内连接模式选项（startPlan 0 < codingPlan 10 < teamPlan 100+n < apiKey 1000） */
 function connectionModeOptionsOf(opts: {
   familyId: string;
   navigationItems: ModelProviderNavItem[];
@@ -5570,7 +5570,7 @@ function connectionModeOptionsOf(opts: {
   return options.sort((a, b) => a.order - b.order);
 }
 
-/** 原 SZt（js 190346）：团队计划名回退 */
+/** 原 SZt（js 190642）：团队计划名回退 */
 function teamPlanLabelOrFallback(teamPlanName: string | undefined, fallback: string): string {
   return teamPlanName?.trim() || fallback;
 }
@@ -5586,7 +5586,7 @@ function isPlanNavItem(item: ModelProviderNavItem | undefined): boolean {
   return item?.type === `codingPlan` || item?.type === `teamPlan`;
 }
 
-/** 原 OZt（js 190356）：已解析团队计划项（organizationId+projectId 齐备） */
+/** 原 OZt（js 190652）：已解析团队计划项（organizationId+projectId 齐备） */
 function isResolvedTeamPlanItem(item: ModelProviderNavItem | undefined): boolean {
   return (
     item?.type === `teamPlan` &&
@@ -5595,7 +5595,7 @@ function isResolvedTeamPlanItem(item: ModelProviderNavItem | undefined): boolean
   );
 }
 
-/** 原 kZt（js 190363）：团队计划导航项 × 订阅快照合并（检查态/购买态/配额回填） */
+/** 原 kZt（js 190659）：团队计划导航项 × 订阅快照合并（检查态/购买态/配额回填） */
 export function mergeTeamPlanSnapshot(
   item: ModelProviderNavItem,
   snapshotState: { snapshot: EntitlementSnapshot | null; loading: boolean }
@@ -5620,7 +5620,7 @@ export function mergeTeamPlanSnapshot(
  * 15. 购买横幅（原 jZt…UZt，js 190700–191010 / jsx 153690–153926）
  * ==========================================================================*/
 
-/** 原 jZt（js 190700）：断开 → 登录；其余 → 购买 */
+/** 原 jZt（js 190996）：断开 → 登录；其余 → 购买 */
 export function resolvePurchaseIntent(status: string): `login` | `purchase` {
   return status === `disconnected` ? `login` : `purchase`;
 }
@@ -5641,7 +5641,7 @@ interface BannerCardModel {
   onClick: () => void;
 }
 
-/** 原 MZt（js 190703）：购买横幅（startPlan/personal/team 分组卡 × 渐变底 + 价格态 + 折扣徽章） */
+/** 原 MZt（js 190999）：购买横幅（startPlan/personal/team 分组卡 × 渐变底 + 价格态 + 折扣徽章） */
 export function CodingPlanPurchaseBanner(props: {
   providerId: string;
   startPlanPreview?: StartPlanPreview | null;
@@ -5816,7 +5816,7 @@ export function CodingPlanPurchaseBanner(props: {
   );
 }
 
-/** 原 NZt（js 190913）：通用团队卡可见（无分组、非订阅、非加载中） */
+/** 原 NZt（js 191209）：通用团队卡可见（无分组、非订阅、非加载中） */
 function shouldShowGenericTeamCard(opts: {
   teamVisible: boolean;
   enterpriseTeamGroupCount: number;
@@ -5830,24 +5830,24 @@ function shouldShowGenericTeamCard(opts: {
   return true;
 }
 
-/** 原 PZt（js 190922）：任一产品已订阅 */
+/** 原 PZt（js 191218）：任一产品已订阅 */
 function hasSubscribedProduct(products: CodingPlanProduct[]): boolean {
   return products.some((product) => product.subscribed === true);
 }
 
-/** 原 FZt（js 190925）：max/advanced → teal 卡，否则 sky 卡 */
+/** 原 FZt（js 191221）：max/advanced → teal 卡，否则 sky 卡 */
 function teamCardClassOf(groupKey: string): string {
   const lowered = groupKey.trim().toLowerCase();
   return lowered === `max` || lowered.includes(`advanced`) ? PURCHASE_CARD_CLASS_TEAM_ADVANCED : PURCHASE_CARD_CLASS_TEAM;
 }
 
-/** 原 IZt（js 190929）：max/advanced → teal 图标色，否则 sky */
+/** 原 IZt（js 191225）：max/advanced → teal 图标色，否则 sky */
 function teamIconClassOf(groupKey: string): string {
   const lowered = groupKey.trim().toLowerCase();
   return lowered === `max` || lowered.includes(`advanced`) ? `text-[#14b8a6]` : `text-[#0ea5e9]`;
 }
 
-/** 原 LZt（js 190933）：团队描述 i18n（advanced/standard） */
+/** 原 LZt（js 191229）：团队描述 i18n（advanced/standard） */
 function teamDescriptionIdOf(groupKey: string): string {
   const lowered = groupKey.trim().toLowerCase();
   return lowered === `max` || lowered.includes(`advanced`)
@@ -5855,7 +5855,7 @@ function teamDescriptionIdOf(groupKey: string): string {
     : `settings.modelProvider.codingPlan.purchaseBanner.teamStandardDescription`;
 }
 
-/** 原 RZt（js 190939）：横幅折扣配置（personal 恒给；team 仅断连时给） */
+/** 原 RZt（js 191235）：横幅折扣配置（personal 恒给；team 仅断连时给） */
 function bannerDiscountConfigOf(opts: {
   audience: "personal" | "team";
   accountDisconnected: boolean;
@@ -5867,12 +5867,12 @@ function bannerDiscountConfigOf(opts: {
   return undefined;
 }
 
-/** 原 zZt（js 190947）：产品源供应商（start → coding 映射；无映射原样） */
+/** 原 zZt（js 191243）：产品源供应商（start → coding 映射；无映射原样） */
 function productsProviderIdOfBanner(providerId: string): string {
   return productsProviderIdOf(providerId) ?? providerId;
 }
 
-/** 原 BZt（js 190950）：横幅价格态（personal：最低在售价；全售罄 → soldOut；bigmodel 缺省 49/598） */
+/** 原 BZt（js 191246）：横幅价格态（personal：最低在售价；全售罄 → soldOut；bigmodel 缺省 49/598） */
 function resolveBannerPriceState(opts: {
   providerId: string;
   audience: "personal" | "team";
@@ -5898,7 +5898,7 @@ function resolveBannerPriceState(opts: {
   return null;
 }
 
-/** 原 VZt（js 190968）：团队分组价格态（组内最低价；缺省 null） */
+/** 原 VZt（js 191264）：团队分组价格态（组内最低价；缺省 null） */
 function resolveTeamGroupPriceState(group: { products: CodingPlanProduct[] }): BannerPriceState {
   const cheapest = group.products
     .map((product) => ({ product, price: productPriceOf(product) }))
@@ -5907,13 +5907,13 @@ function resolveTeamGroupPriceState(group: { products: CodingPlanProduct[] }): B
   return cheapest ? { kind: `price`, price: cheapest.price as number, currency: cheapest.product.priceCurrency ?? `CNY` } : null;
 }
 
-/** 原 HZt（js 190975）：Start Plan 标题（zh 下远端 `start plan` 原文 → 回退本地文案） */
+/** 原 HZt（js 191271）：Start Plan 标题（zh 下远端 `start plan` 原文 → 回退本地文案） */
 function resolveStartPlanTitle(opts: { fallbackTitle: string; locale: string; remoteTitle?: string }): string {
   const title = opts.remoteTitle?.trim() || opts.fallbackTitle;
   return opts.locale.startsWith(`zh`) && /^start\s+plan$/i.test(title) ? opts.fallbackTitle : title;
 }
 
-/** 原 UZt（js 190979）：起价标签（非 zh：`from $X`；zh：`¥X 起` 拆段） */
+/** 原 UZt（js 191275）：起价标签（非 zh：`from $X`；zh：`¥X 起` 拆段） */
 function PriceFromLabel(props: { price: number; currency: string; locale: string }): React.ReactElement {
   const { price, currency, locale } = props;
   const { intl } = useIntlContext();
@@ -5940,7 +5940,7 @@ function PriceFromLabel(props: { price: number; currency: string; locale: string
  * 16. 状态标题/导航轨（原 WZt…tQt，js 191011–191288 / jsx 153927–154090）
  * ==========================================================================*/
 
-/** 原 WZt（js 191011）：状态标题+描述卡 */
+/** 原 WZt（js 191307）：状态标题+描述卡 */
 export function StatusTitleDescription(props: { title: string; description: string }): React.ReactElement {
   return (
     <div className={`rounded-xl border border-border bg-surface p-4`}>
@@ -5950,7 +5950,7 @@ export function StatusTitleDescription(props: { title: string; description: stri
   );
 }
 
-/** 原 GZt（js 191023）：三态 → 标题+描述（其余态 → null） */
+/** 原 GZt（js 191319）：三态 → 标题+描述（其余态 → null） */
 export function statusTitleDescriptionOf(status: string, intl: IntlShape): { title: string; description: string } | null {
   if (status !== `disconnected` && status !== `notPurchased` && status !== `unavailable`) return null;
   return {
@@ -5964,7 +5964,7 @@ function draggableProviderIdOf(item: ModelProviderNavItem): string | null {
   return (item.type === `custom` || item.type === `preset`) && item.provider ? item.provider.id : null;
 }
 
-/** 原 KZt（js 191034）：拖拽排序（active/over → arrayMove；无效 → 原序） */
+/** 原 KZt（js 191330）：拖拽排序（active/over → arrayMove；无效 → 原序） */
 function reorderProviderIds(opts: { activeProviderId: string; overProviderId: string; providerIds: string[] }): string[] {
   const from = opts.providerIds.indexOf(opts.activeProviderId);
   const to = opts.providerIds.indexOf(opts.overProviderId);
@@ -5972,23 +5972,23 @@ function reorderProviderIds(opts: { activeProviderId: string; overProviderId: st
   return arrayMove([...opts.providerIds], from, to);
 }
 
-/** 原 qZt（js 191039）：分组加载态（preset 组 → presetLoading；其余 → customLoading） */
+/** 原 qZt（js 191335）：分组加载态（preset 组 → presetLoading；其余 → customLoading） */
 function groupLoadingOf(opts: { groupId: string; presetLoading: boolean; customLoading: boolean }): boolean {
   return opts.groupId === `preset` ? opts.presetLoading : opts.customLoading;
 }
 
-/** 原 JZt（js 191042）：addCustom 项加载态 */
+/** 原 JZt（js 191338）：addCustom 项加载态 */
 function addCustomLoadingOf(opts: { item: ModelProviderNavItem; customLoading: boolean }): boolean {
   return opts.item.type === `addCustom` ? opts.customLoading : false;
 }
 
-/** 原 YZt（js 191045）：导航项显示标签（preset → 族 label 覆盖） */
+/** 原 YZt（js 191341）：导航项显示标签（preset → 族 label 覆盖） */
 function navItemDisplayLabel(item: ModelProviderNavItem): string {
   if (item.type === `preset`) return (getOAuthProviderFamilyByProviderId(item.presetId ?? ``) as ModelProviderFamily | null)?.label ?? item.label; // 〔A1-R30〕型缝：同上（原 declare 契据窄化）
   return item.label;
 }
 
-/** 原 XZt（js 191048）：导航轨普通项（选中/加载/禁用/状态点；md 以下图标态） */
+/** 原 XZt（js 191344）：导航轨普通项（选中/加载/禁用/状态点；md 以下图标态） */
 export function NavRailItem(props: {
   item: ModelProviderNavItem;
   label: string;
@@ -6041,7 +6041,7 @@ export function NavRailItem(props: {
   );
 }
 
-/** 原 ZZt（js 191102）：Enter/Space 键选中 */
+/** 原 ZZt（js 191398）：Enter/Space 键选中 */
 function handleNavRailItemKey(opts: {
   event: React.KeyboardEvent;
   item: ModelProviderNavItem;
@@ -6052,7 +6052,7 @@ function handleNavRailItemKey(opts: {
   opts.onSelectNavItem(opts.item);
 }
 
-/** 原 QZt（js 191105）：导航轨可拖拽项（dnd-kit；grip 手柄悬停显现；拖拽态半透明） */
+/** 原 QZt（js 191401）：导航轨可拖拽项（dnd-kit；grip 手柄悬停显现；拖拽态半透明） */
 export function NavRailDraggableItem(props: {
   item: ModelProviderNavItem;
   label: string;
@@ -6114,7 +6114,7 @@ export function NavRailDraggableItem(props: {
   );
 }
 
-/** 原 $Zt（js 191171）：非拖拽分组（preset 组） */
+/** 原 $Zt（js 90769）：非拖拽分组（preset 组） */
 function NavRailGroup(props: {
   group: ModelProviderNavigationGroup;
   selectedNodeKey: string | null;
@@ -6136,7 +6136,7 @@ function NavRailGroup(props: {
   );
 }
 
-/** 原 eQt（js 191183）：导航轨根（分组标题+加载；preset 组静态；其余组 dnd-kit 排序，距离 6px 触发） */
+/** 原 eQt（js 191479）：导航轨根（分组标题+加载；preset 组静态；其余组 dnd-kit 排序，距离 6px 触发） */
 export function ModelProviderNavRail(props: {
   navigationGroups: ModelProviderNavigationGroup[];
   selectedNodeKey: string | null;
@@ -6226,7 +6226,7 @@ export function ModelProviderNavRail(props: {
   );
 }
 
-/** 原 tQt（js 191286）：分区刷新态（preset || custom） */
+/** 原 tQt（js 191582）：分区刷新态（preset || custom） */
 export function isProviderSectionRefreshing(opts: { presetLoading: boolean; customLoading: boolean }): boolean {
   return opts.presetLoading || opts.customLoading;
 }

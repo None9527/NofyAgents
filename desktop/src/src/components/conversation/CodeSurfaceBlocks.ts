@@ -33,7 +33,7 @@ import { logger } from '../../modules/SkillStore'; // 原 J（logger-PFDwl5Yq.js
 import { Button } from '../../modules/button'; // 原 X（button-laUijeDG.js t 导出）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（usageStatsUiParts-CiR7YEhh.js u 导出）
 import { TextWrap as IconTextWrap, Maximize2 as IconMaximize2, Check as IconCheck, Copy as IconCopy, SquareMousePointer as IconSquareMousePointer } from 'lucide-react'; // 原 Tbe/mv/M_/W_/xbe（styles vendored Sa；A0-S3b 判例）
-import { FileIcon, resolveFileIconMeta } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc（styles 5243/5198 逐字实体化；declare 收敛）
+import { FileIcon, resolveFileIconMeta } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc（styles 5198/5198 逐字实体化；declare 收敛）
 import { isMermaidLanguage, isMermaidBlock as shouldRenderMermaidPreview, documentVisibilityState as resolveDocumentVisibilityState, mermaidAutoRenderGate as evaluateMermaidPreviewRender } from '../../modules/MarkdownIntegration'; // 〔A1-P1-B15〕原 NO/Oze/Mze/Pze（mermaid 门控域 47709–47894 既录 canonical；declare 收敛）
 
 /* ── tombstone〔A1-P1-B15〕：文件图标二 declare（FileIcon/resolveFileIconMeta，原 Vc/zc）删除——束真身

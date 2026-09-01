@@ -20,7 +20,7 @@
 /* eslint-disable */
 import { logger, hasThoughtLevelOption } from '../../modules/SkillStore'; // 原 J（styles J←skillStore logger）/ ge（styles 396←skillStore b；〔A1-P1-B8〕NM thoughtLevel 有效性判定）
 import { parseLooseModelValue } from '../../modules/Home'; // 原 Mg（styles 24405；〔A1-P1-B8〕NM/JUe 松散模型值解析）
-import { parseLooseModeValue, settingsConfigOptionsOf } from '../../modules/SettingsConfigOptions'; // 原 Mge/Ng（styles 24419/24440；〔A1-P1-B8〕编排方播种件，NM createSession mode 面 + 配置选项构建）
+import { parseLooseModeValue, settingsConfigOptionsOf } from '../../modules/SettingsConfigOptions'; // 原 Mge/Ng（styles 24440/24440；〔A1-P1-B8〕编排方播种件，NM createSession mode 面 + 配置选项构建）
 import { normalizeCaptchaCode } from '../../modules/StoresDeep'; // 原 Cw（styles 40570 stub；〔A1-P1-B8〕DM 错误码归一，A1-R12/R13 既有改指实体）
 
 /* ── 〔A1-P1-B8〕工作区模型初始化域（styles 52799–52926 + 52934–53249 + 53415–53464，494 行逐字；

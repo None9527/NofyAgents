@@ -36,7 +36,7 @@ interface DirectoryEntry {
  * WorkspaceShell.tsx 还原。
  * ==========================================================================*/
 
-/** 原 OEt（js 123929 / jsx 105703） */
+/** 原 OEt（js 123946 / jsx 105703） */
 function buildReaddirParams(path: string, includeHidden: boolean): { path: string; includeHidden?: boolean } {
   return includeHidden ? { path, includeHidden: true } : { path };
 }
@@ -44,7 +44,7 @@ function buildReaddirParams(path: string, includeHidden: boolean): { path: strin
 function filterDirectories(entries: DirectoryEntry[]): DirectoryEntry[] {
   return entries.filter((e) => e.type === `directory`);
 }
-/** 原 AEt（js 123935 / jsx 105714） */
+/** 原 AEt（js 123952 / jsx 105714） */
 function resolveFolderIconKind(entry: DirectoryEntry): "folder-symlink" | "folder" {
   return entry.type === `directory` && entry.isSymbolicLink === true ? `folder-symlink` : `folder`;
 }
@@ -58,7 +58,7 @@ function createRequestToken(): { begin(): number; isCurrent(token: number): bool
 }
 
 /**
- * 原 MEt（js 123942-124126 / jsx 105724）：目录浏览对话框。
+ * 原 MEt（js 123959-124126 / jsx 105724）：目录浏览对话框。
  * embedded=true 时只返回内容体（供远程向导 directory 步复用）；
  * 否则自带 fixed 遮罩层（点击遮罩取消、Escape 取消）。
  */

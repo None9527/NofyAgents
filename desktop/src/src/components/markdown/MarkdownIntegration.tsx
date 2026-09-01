@@ -551,10 +551,10 @@ export function escapeStrayMathDollars(markdown: string): string {
  *   streamdown useCodeHighlighter（MarkdownContext.tsx）→ CodeBlockBody
  *   （MarkdownCodeBlock.tsx，--shiki-dark* 双主题变量消费方）。
  * vendored 本体：
- *   - Id（js 13191）= Xue({langs: Td, themes: Ed, engine: () => Fd(import('./wasm-B4ap0Fdc.js'))})
+ *   - Id（js 13239）= Xue({langs: Td, themes: Ed, engine: () => Fd(import('./wasm-B4ap0Fdc.js'))})
  *     解构出 codeToTokens/getSingletonHighlighter 等（shiki 标准 API 面）；
- *   - Ep（js 15923）= JS 正则 oniguruma 引擎工厂；yIe = Ep({forgiving: true})；
- *   - wd（js 10880）语言元数据（别名表 bIe）；Td（js 12440）bundledLanguages 映射；
+ *   - Ep（js 15971）= JS 正则 oniguruma 引擎工厂；yIe = Ep({forgiving: true})；
+ *   - wd（js 10928）语言元数据（别名表 bIe）；Td（js 12440）bundledLanguages 映射；
  *   - **100520–104621 = shiki 懒加载登记段**：dQ bundledLanguages（~200 条
  *     `import: () => Y(() => import('./<lang>-<hash>.js'), [], import.meta.url)`）+
  *     bundledThemes（github-light 等，102254 起）+ oniguruma wasm 绑定
@@ -913,7 +913,7 @@ export interface ParsedFileHref {
   columnNumber: number | null;
 }
 
-/** 原 hA（js 50467 / jsx 45323）：path#L12 / path:12:3 / path:12 三形态解析 */
+/** 原 hA（js 50515 / jsx 45323）：path#L12 / path:12:3 / path:12 三形态解析 */
 export function parseFileHref(href: string): ParsedFileHref {
   const normalized = href.replace(/\\/g, `/`);
   const hashLine = normalized.match(HASH_LINE_SUFFIX_REGEX);
@@ -981,7 +981,7 @@ function isPathUnder(child: string, parent: string): boolean {
   return a === b || a.startsWith(`${b}/`);
 }
 
-/** 原 gA（js 50491 / jsx 45368）：href → 工作区文件链接模型；不可归一返回 null */
+/** 原 gA（js 50539 / jsx 45368）：href → 工作区文件链接模型；不可归一返回 null */
 export function resolveWorkspaceFileLink(
   workspacePath: string | undefined | null,
   href: string,
@@ -1043,7 +1043,7 @@ export function isWorkspaceLikeHref(href: string): boolean {
   );
 }
 
-/** 原 wHe（js 51373 / jsx 46226）：rehype 插件 —— a[href]/img[src] 工作区路径重写 */
+/** 原 wHe（js 51422 / jsx 46226）：rehype 插件 —— a[href]/img[src] 工作区路径重写 */
 export function rehypeFileLinksPlugin() {
   return (tree: UnistNode) => {
     const walk = (node: UnistNode) => {
@@ -1067,7 +1067,7 @@ export function rehypeFileLinksPlugin() {
   };
 }
 
-/** 原 THe（js 51388）：文件链接重写 + streamdown 默认 rehype 表（Mre = DEFAULT_REHYPE_PLUGINS） */
+/** 原 THe（js 51436）：文件链接重写 + streamdown 默认 rehype 表（Mre = DEFAULT_REHYPE_PLUGINS） */
 export const REHYPE_PLUGINS: unknown[] = [rehypeFileLinksPlugin, ...Object.values(DEFAULT_REHYPE_PLUGINS)];
 
 /* ============================================================================
@@ -1131,7 +1131,7 @@ export interface FileLinkModel {
   workspaceRemoteSessionId?: string | null;
 }
 
-/** 原 zA（js 50919） */
+/** 原 zA（js 50967） */
 export function relativePathFromWorkspace(workspacePath: string, target: string): string {
   const root = workspacePath.replace(/\\/g, `/`).replace(/\/+$/, ``);
   const full = target.replace(/\\/g, `/`).replace(/\/+$/, ``);
@@ -1146,7 +1146,7 @@ function hrefEndsWithSeparator(path: string, href: string): boolean {
   return /[\\/]$/.test(trimmed) || /[\\/]$/.test(path);
 }
 
-/** 原 MHe（js 51430） */
+/** 原 MHe（js 51478） */
 export function buildFileLinkModel(args: {
   href: string;
   path: string;
@@ -1197,7 +1197,7 @@ export function isHttpUrl(url: string): boolean {
   }
 }
 
-/** 原 kVe（js 50817）：http(s) 且主机在 in-app 白名单 */
+/** 原 kVe（js 50865）：http(s) 且主机在 in-app 白名单 */
 export function isInAppBrowserUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -1231,7 +1231,7 @@ export function rememberUsedEditorId(editorId: string, storage: Storage | null =
   storage?.setItem(LAST_EDITOR_ID_KEY, editorId);
 }
 
-/** 原 QVe（js 51150）：tabs store → 远程工作区信息 */
+/** 原 QVe（js 51198）：tabs store → 远程工作区信息 */
 export function resolveRemoteWorkspaceInfo(
   tabs: WorkspaceTabLike[],
   scope: { workspacePath?: string | null; workspaceIdentity?: string | null; workspaceRemoteSessionId?: string | null },
@@ -1278,7 +1278,7 @@ interface ExternalLinkProps {
   [prop: string]: unknown;
 }
 
-/** 原 IHe（js 51461）：外链按钮 + 右键菜单（打开 / 外部浏览器打开） */
+/** 原 IHe（js 51509）：外链按钮 + 右键菜单（打开 / 外部浏览器打开） */
 export function ExternalLinkWithContextMenu({ children, className, href, onClick, onOpenExternalUrl, ...rest }: ExternalLinkProps) {
   const { intl } = G();
   const platform = l() as unknown as PlatformServiceLike;
@@ -1339,7 +1339,7 @@ interface FileLinkButtonProps {
   onOpen?: () => void;
 }
 
-/** 原 LHe（js 51508）：文件链接按钮（forwardRef，图标 + 截断 label） */
+/** 原 LHe（js 51568）：文件链接按钮（forwardRef，图标 + 截断 label） */
 export const FileLinkButton = React.forwardRef<HTMLButtonElement, FileLinkButtonProps>(
   function FileLinkButton({ children, className, fileIconSrc, fileLink, onOpen, ...rest }: FileLinkButtonProps, ref) {
   return (
@@ -1452,7 +1452,7 @@ interface FileLinkWithMenuProps {
   onOpen: () => void;
 }
 
-/** 原 RHe（js 51537 / jsx 46389）：文件链接 + 右键「打开方式」编辑器菜单 */
+/** 原 RHe（js 51585 / jsx 46389）：文件链接 + 右键「打开方式」编辑器菜单 */
 export function FileLinkWithContextMenu({ className, fileIconSrc, fileLink, onOpen }: FileLinkWithMenuProps) {
   const { intl } = G();
   const platform = l() as unknown as PlatformServiceLike;
@@ -1853,7 +1853,7 @@ export function stickyScrollMax(args: { tableWidth: number; trackWidth: number }
 }
 
 /**
- * 原 MBe（js 49090 / jsx ~44160）：MarkdownTableStickyScrollbar。
+ * 原 MBe（js 49138 / jsx ~44160）：MarkdownTableStickyScrollbar。
  * 结构（逐段对照）：
  *  - 外层 frame（group/markdown-table-frame，data-markdown-table-layout-root）+
  *    Ik 左右边缘阴影（scrollLeft 边界态 left/right/both/none）；
@@ -1866,7 +1866,7 @@ export function stickyScrollMax(args: { tableWidth: number; trackWidth: number }
  *    交互handler群原 js 49180–49640（本文件保留几何模型，事件接线从简）。
  */
 
-/** 原 Ik（js 49699）：表格左右边缘阴影 */
+/** 原 Ik（js 49744）：表格左右边缘阴影 */
 export function TableEdgeShadow({ side, state }: { side: `left` | `right`; state: string }) {
   return state === side || state === `both` ? (
     <div
@@ -1886,7 +1886,7 @@ export function TableEdgeShadow({ side, state }: { side: `left` | `right`; state
  * 9. 代码块 UI 族（原 fk/nBe/pk/gk/_k/iBe/vk + mermaid 门控 + BO）
  * ==========================================================================*/
 
-/** 原 fk（js 48576 / jsx 43777） */
+/** 原 fk（js 48623 / jsx 43777） */
 export interface CodeBlockUiContextValue {
   code: string;
   mermaidPreviewAvailable: boolean;
@@ -1919,7 +1919,7 @@ export function CodeBlockFrame({
   );
 }
 
-/** 原 NO（js 47661） */
+/** 原 NO（js 47709） */
 export function isMermaidLanguage(language: string): boolean {
   const key = language.trim().toLowerCase();
   return key === `mermaid` || key === `mmd`;
@@ -2187,7 +2187,7 @@ function enqueueMermaidRender<T>(task: () => Promise<T> | T): Promise<T> {
   return chained as Promise<T>;
 }
 
-/** 原 BO（js 47847）：mermaid 内嵌预览（loading → svg / 失败降级 pre） */
+/** 原 BO（js 47895）：mermaid 内嵌预览（loading → svg / 失败降级 pre） */
 export function MermaidInlinePreview({
   code,
   className,
@@ -2408,7 +2408,7 @@ export interface MarkdownImageProps {
   [prop: string]: unknown;
 }
 
-/** 原 mVe（js 50561 / jsx 45449）：本地图片走 fileService.readMediaPreview，失败/远端降级；灯箱 Wk */
+/** 原 mVe（js 50609 / jsx 45449）：本地图片走 fileService.readMediaPreview，失败/远端降级；灯箱 Wk */
 export function MarkdownImage({ alt, className, node, onError, onLoad, src, workspacePath, ...rest }: MarkdownImageProps) {
   const { intl } = G();
   const services = ps() as WorkspaceServicesLike | null;
@@ -2555,7 +2555,7 @@ declare function isMediaPath(path: string): boolean;
 /** 原 Uk：日志用 source 摘要 */
 declare function summarizeSource(source: string): string;
 
-/** 原 dVe（js 50542）：全图片段落 → 画廊组容器 */
+/** 原 dVe（js 50590）：全图片段落 → 画廊组容器 */
 export function MarkdownParagraphWithImageGallery({ children, node, ...rest }: MarkdownElementBaseProps) {
   const elements = React.Children.toArray(children).filter((child) => typeof child !== `string` || child.trim().length > 0);
   return elements.length >= 2 &&
@@ -2603,7 +2603,7 @@ interface AnchorRendererProps {
   node?: unknown;
 }
 
-/** 原 cj（js 51688 / jsx 46461） */
+/** 原 cj（js 51736 / jsx 46461） */
 export const MarkdownRenderer = React.memo(
   ({
     className,

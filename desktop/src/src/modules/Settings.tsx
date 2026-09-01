@@ -396,7 +396,7 @@ declare function useBigModelProducts(opts: { enabled: boolean; authenticated: bo
 };
 /** 原 hX（js 89140）：供应商展示模型归一化 */
 declare function normalizeModelProviders(providers: ModelProvider[]): ModelProvider[];
-/** 原 rM（js 52600）：订阅快照缓存键 */
+/** 原 rM（js 52648）：订阅快照缓存键 */
 declare function subscriptionCacheKey(provider: ModelProvider | undefined): string;
 /** A0-CLEANUP3 3b：与 SettingsPanelsData.CodingPlanSource 双向对齐（providerId 必有 + 索引签名） */
 interface CodingPlanSource {
@@ -439,11 +439,11 @@ declare const SecondaryWindowShell: React.FC<{
 }>;
 /** 原 tkt（js 129992）：Windows 原生 −□× 占位控件 */
 declare const WindowsCaptionControls: React.FC<{ className?: string }>;
-/** 原 S6（js 141854，TopBar.tsx WindowsCaptionMenu）：⌄ 应用菜单 */
-/** 原 U6（js 143345，TopBar.tsx HelpMenu）：帮助菜单 */
-/** 原 SRt（js 150435，侧栏页脚）：主题/语言/用量/登录 底栏 */
-/** 原 c4（js 129509，TopBar.tsx）：env(titlebar-area-*) 计算右侧原生控件宽度 */
-/** 原 s4（js 129507）：--windows-caption-control-width 变量引用 */
+/** 原 S6（js 141871，TopBar.tsx WindowsCaptionMenu）：⌄ 应用菜单 */
+/** 原 U6（js 143362，TopBar.tsx HelpMenu）：帮助菜单 */
+/** 原 SRt（js 150481，侧栏页脚）：主题/语言/用量/登录 底栏 */
+/** 原 c4（js 129526，TopBar.tsx）：env(titlebar-area-*) 计算右侧原生控件宽度 */
+/** 原 s4（js 129524）：--windows-caption-control-width 变量引用 */
 /** 原 ROt（js 129508 附近）：caption 菜单让位的额外 margin 常量 */
 declare const WINDOWS_CAPTION_MENU_MARGIN: string;
 /** 原 r4（js 127265，TopBar.tsx RemoteSyncDialogs）：远程同步对话框组 */
@@ -479,8 +479,8 @@ type IconComponent = React.FC<{ className?: string; "aria-hidden"?: boolean | "t
 /* --- 大块叶子渲染器（跨族，接口级） --- */
 
 /** 原 gk（js 48634，F19 Markdown 族）：代码块渲染器（shiki 主题/行号/换行） */
-/** 原 U8（js 160323，F14 代码查看族）：记忆文件预览渲染器（memo） */
-/** 原 cj（js 51688，F19）：Markdown 渲染器（此处未直接使用，登记备查） */
+/** 原 U8（js 160565，F14 代码查看族）：记忆文件预览渲染器（memo） */
+/** 原 cj（js 51736，F19）：Markdown 渲染器（此处未直接使用，登记备查） */
 
 
 /* ============================================================================
@@ -550,12 +550,12 @@ export function isTeamPlanSource(source: CodingPlanSource): boolean {
   return source.id.startsWith("team-plan:");
 }
 
-/** 原 A9（js 204819）：codingPlan 标签页 id 编码 */
+/** 原 A9（js 205115）：codingPlan 标签页 id 编码 */
 export function codingPlanTabId(sourceId: string): string {
   return `codingPlan:${sourceId}`;
 }
 
-/** 原 n4t（js 204822）：从标签页 id 解出供应商 id */
+/** 原 n4t（js 205118）：从标签页 id 解出供应商 id */
 export function parseCodingPlanTabId(tabId: string): string | null {
   return tabId.startsWith("codingPlan:") ? tabId.slice(11) : null;
 }
@@ -670,14 +670,14 @@ export const AUTO_ARCHIVE_DAY_OPTIONS = [3, 7, 14, 30];
 /** 原 Y2t（js 203965）：交互行为选项（排队 | 引导） */
 export const INTERACTION_BEHAVIOR_OPTIONS = ["queue", "guide"] as const;
 
-/** 原 W2t（js 203925）：外观主题模式选项（跟随系统 / Z.ai 暗 / Z.ai 亮） */
+/** 原 W2t（js 204221）：外观主题模式选项（跟随系统 / Z.ai 暗 / Z.ai 亮） */
 export const THEME_MODE_OPTIONS: Array<{ mode: ThemeMode; icon: IconComponent }> = [
   { mode: "system", icon: IconThemeSystem },
   { mode: "zai-dark", icon: IconThemeDark },
   { mode: "zai-light", icon: IconThemeLight },
 ];
 
-/** 原 H3（js 135261）：右栏内容限宽类 */
+/** 原 H3（js 135278）：右栏内容限宽类 */
 export const SETTINGS_CONTENT_CLASS = "mx-auto w-full max-w-4xl px-4 pb-8 pt-0 lg:px-8 lg:pb-10";
 
 /** 原 O9（js 204776）：Windows caption 缺省右侧让位宽度（三键 136px） */
@@ -692,7 +692,7 @@ export function normalizeCaptionRightPaddingPx(value: unknown): number | null {
  * 5. 外观数据（原 js 47276–47303 / 1040 / 1103）
  * ==========================================================================*/
 
-/** 原 TO（js 47276）：10 个代码主题选项 */
+/** 原 TO（js 47324）：10 个代码主题选项 */
 export const CODE_THEME_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "github-light", label: "GitHub Light" },
   { value: "github-dark", label: "GitHub Dark" },
@@ -706,14 +706,14 @@ export const CODE_THEME_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "catppuccin-mocha", label: "Catppuccin Mocha" },
 ];
 
-/** 原 sze（js 47298）：主题预览示例代码 */
+/** 原 sze（js 47346）：主题预览示例代码 */
 export const CODE_THEME_PREVIEW_SAMPLE = `const themePreview: ThemeConfig = {
   surface: "sidebar",
   accent: "#339CFF",
   contrast: 45,
 };`;
 
-/** 原 EO（js 47303）：按明暗模式取代码主题 */
+/** 原 EO（js 47351）：按明暗模式取代码主题 */
 export function resolveCodeThemeForMode(mode: "light" | "dark", settings: CodePreviewSettings): string {
   return mode === "dark" ? settings.darkTheme : settings.lightTheme;
 }
@@ -824,34 +824,34 @@ export type { McpServer, McpStatusSnapshot, McpSettingsSectionProps } from '../c
  * 14. 其余分区（接口级叶子；体量大且与本族弱耦合，保留 props 接口 + 行号）
  * ==========================================================================*/
 
-/** 原 FQt（js 191784–194644 / jsx 154557）：模型供应商分区。
+/** 原 FQt（js 192080–194644 / jsx 154557）：模型供应商分区。
  *  供应商卡列表（`_j` 供应商配置卡 51986）、连接方式（OAuth/API key/自定义端点）、
  *  模型 CRUD/测速/排序、Coding Plan 订阅接线（F12 族 77080–90180）。
  *  深链接：pendingModelProviderTarget（sw() 消费 + cw 意图）。 */
 
-/** 原 y1t（js 195992–197541 / jsx 157604）：技能分区。
+/** 原 y1t（js 196288–197541 / jsx 157604）：技能分区。
  *  工作区/个人/插件三域技能列表（开关/诊断/删除/打开文件管理器）、搜索+过滤、
  *  技能详情面板（含发布元数据）、聊天创建技能（skill-creator）、远程同步。
  *  关键 key：settings.skills.title / scope.〈workspace|plugin|personal〉/
  *  diagnostics.code.〈code〉/ delete.title / create.taskCreateFailed。 */
 
-/** 原 d6（js 138823–139924 / jsx 115911，F15 族根）：自动化主视图。
+/** 原 d6（js 138840–139924 / jsx 115911，F15 族根）：自动化主视图。
  *  定时任务列表（≤20 提示）/编辑器入口/运行历史/立即运行/暂停；off-peak 闲时任务接线。
  *  注册表中被 VMe 门控隐藏（侧栏不显示），但 j9 保留渲染分支供意图直达。 */
 
-/** 原 I0t（js 199994）：插件分区（市场浏览 GitHub/Git/dir 源、商店分类/精选、更新/卸载；
+/** 原 I0t（js 200290）：插件分区（市场浏览 GitHub/Git/dir 源、商店分类/精选、更新/卸载；
  *  市场条目卡 C0t 199415；checkForUpdates 199737/200173）。 */
 
-/** 原 V2t（js 203587）：迁移分区（Claude 历史会话导入向导，z9 导入族）。 */
+/** 原 V2t（js 203883）：迁移分区（Claude 历史会话导入向导，z9 导入族）。 */
 
 /** 原 p1t（js 195890）：用量分区（用量统计仪表盘：日趋势/模型分布/高峰时段/工具调用，
  *  数据层 nge 23920；Coding Plan 标签由 e4t 提供）。 */
 
-/** 原 H1t（js 197542）：子代理分区（profile：模型/工具/权限/轮数/颜色、后台标志）。 */
+/** 原 H1t（js 197838）：子代理分区（profile：模型/工具/权限/轮数/颜色、后台标志）。 */
 
-/** 原 G0t（js 200852）：命令分区（用户 .md 斜杠命令 CRUD；commands store F6 142754）。 */
+/** 原 G0t（js 201148）：命令分区（用户 .md 斜杠命令 CRUD；commands store F6 142754）。 */
 
-/** 原 p2t（js 202032）：Hooks 分区（事件/匹配/超时/异步；hooks store Z0t 201244）。 */
+/** 原 p2t（js 202328）：Hooks 分区（事件/匹配/超时/异步；hooks store Z0t 201244）。 */
 
 /* ============================================================================
  * 15. 设置视图根（原 j9，js 204878–205679 / jsx 163283）
