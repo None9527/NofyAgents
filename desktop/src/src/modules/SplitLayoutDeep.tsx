@@ -25,7 +25,7 @@
  *   js 121909–122198  面板容器/渲染器（Xwt/Zwt/Qwt/$wt/eTt）
  *   js 122198–122201  tTt 分割条拖动组件（nTt/g2/_2/v2 已提出）
  *   js 122820–123136  PTt 工作台 Provider UI + FTt/ITt/LTt context
- *   js 123139–123196  RTt…HTt last-session 恢复钩子域
+ *   styles 123139–123193  RTt…HTt last-session 恢复钩子域
  *   js 123222–123306、123362–123405、123411 以外远端条目域余量（JTt…B2、iEt/z2/aEt/oEt）
  *   js 123487 起      uEt/H2/U2 = SSH 对话框 + ConfirmDialog（他域属主；A1-R5 裁决：
  *                     uEt → modules/RemoteConnectionDeep.tsx 转录；H2/U2 canonical =
@@ -142,23 +142,23 @@
  *   V2  → lastWorkspaceSessionEntries    (123475 / 105186)
  *   cEt → lastRemoteSessionEntries       (123478 / 105189)
  *   lEt → sessionEntryMapByKey           (123481 / 105192)
- * [F] 远端条目域余量（js 123200–123456；A1-R4）：
- *   GTt → remotePasswordCredentialKey    (123200)
+ * [F] 远端条目域余量（styles 123198–123456；A1-R4）：
+ *   GTt → remotePasswordCredentialKey    (123198)
  *   KTt → remotePrivateKeyPassphraseCredentialKey (123201)
  *   qTt → remoteServerTokenCredentialKey (123204)
  *   P2  → trimmedRemoteUser              (123219)
  *   JTt → wslConnectionKey               (123222)
- *   YTt → serverDisplayName              (123231)
- *   F2  → serverUrlHost                  (123234)
- *   XTt → remoteTargetDisplayLabel       (123241)  消费侧 declare 名同（TopBar/Home）
- *   ZTt → remoteTargetConnectionAddress  (123255)
- *   QTt → sshDecoratedProjectName        (123267)  消费侧 declare 名同（TopBar/Sidebar）
+ *   YTt → serverDisplayName              (123232)
+ *   F2  → serverUrlHost                  (123235)
+ *   XTt → remoteTargetDisplayLabel       (123242)  消费侧 declare 名同（TopBar/Home）
+ *   ZTt → remoteTargetConnectionAddress  (123256)
+ *   QTt → sshDecoratedProjectName        (123268)  消费侧 declare 名同（TopBar/Sidebar）
  *   $Tt → normalizeRemoteEntryPath       (123273)
  *   eEt → remoteTargetConnectionKey      (123277)  server 支真实消费 Je
- *   I2  → buildRemoteWorkspaceKey        (123297)  server 支真实消费 Je
- *   tEt → resolveServerIdentity          (123302)
- *   L2  → resolveEntryWorkspaceIdentity  (123305)
- *   nEt → trimmedOrUndefined             (123308)
+ *   I2  → buildRemoteWorkspaceKey        (123295)  server 支真实消费 Je
+ *   tEt → resolveServerIdentity          (123300)
+ *   L2  → resolveEntryWorkspaceIdentity  (123303)
+ *   nEt → trimmedOrUndefined             (123309)
  *   rEt → findRemoteSessionEntry         (123312)
  *   iEt → normalizeRemoteTargetForConnection (123316)
  *   z2  → remoteTargetWithSecrets        (123362)
@@ -1520,7 +1520,7 @@ export function sessionEntryMapByKey<T extends { workspacePath: string; workspac
 }
 
 /* ============================================================================
- * §F. 远端条目域余量（js 123200–123456；A1-R4 转录，与 §E 选段合域）
+ * §F. 远端条目域余量（styles 123198–123456；A1-R4 转录，与 §E 选段合域）
  * ----------------------------------------------------------------------------
  * 凭据键 builder（GTt/KTt/qTt）+ 目标显示/键面（P2…QTt）+ 工作区键
  * （$Tt/eEt/I2/tEt/L2/nEt）+ 条目运算（rEt/iEt/z2/aEt/oEt/B2）。
@@ -1999,12 +1999,12 @@ void React;
  * [E] WTt=REMOTE_SESSION_HISTORY_LIMIT(123197) M2=remoteTargetCredentialKeys(123207)
  *     N2=isRemoteSessionEntry(123216) R2=sessionEntryWorkspaceKey(123306) sEt=persistableTabEntries(123457)
  *     V2=lastWorkspaceSessionEntries(123475) cEt=lastRemoteSessionEntries(123478) lEt=sessionEntryMapByKey(123481)
- * [F] GTt=remotePasswordCredentialKey(123200) KTt=remotePrivateKeyPassphraseCredentialKey(123201)
+ * [F] GTt=remotePasswordCredentialKey(123198) KTt=remotePrivateKeyPassphraseCredentialKey(123201)
  *     qTt=remoteServerTokenCredentialKey(123204) P2=trimmedRemoteUser(123219) JTt=wslConnectionKey(123222)
- *     YTt=serverDisplayName(123231) F2=serverUrlHost(123234) XTt=remoteTargetDisplayLabel(123241)
- *     ZTt=remoteTargetConnectionAddress(123255) QTt=sshDecoratedProjectName(123267) $Tt=normalizeRemoteEntryPath(123273)
- *     eEt=remoteTargetConnectionKey(123277) I2=buildRemoteWorkspaceKey(123297) tEt=resolveServerIdentity(123302)
- *     L2=resolveEntryWorkspaceIdentity(123305) nEt=trimmedOrUndefined(123308) rEt=findRemoteSessionEntry(123312)
+ *     YTt=serverDisplayName(123232) F2=serverUrlHost(123235) XTt=remoteTargetDisplayLabel(123242)
+ *     ZTt=remoteTargetConnectionAddress(123256) QTt=sshDecoratedProjectName(123268) $Tt=normalizeRemoteEntryPath(123273)
+ *     eEt=remoteTargetConnectionKey(123277) I2=buildRemoteWorkspaceKey(123295) tEt=resolveServerIdentity(123300)
+ *     L2=resolveEntryWorkspaceIdentity(123303) nEt=trimmedOrUndefined(123309) rEt=findRemoteSessionEntry(123312)
  *     iEt=normalizeRemoteTargetForConnection(123316) z2=remoteTargetWithSecrets(123362)
  *     aEt=touchRemoteSessionEntry(123397) oEt=removeRemoteSessionEntries(123403) B2=applyRemoteConnectionResult(123416)
  *     RBt=sshHostLabel(158183) zBt=resolveSshConnectionInfo(158186)（A1-R5：Sidebar 会话行消费面）
@@ -2015,6 +2015,6 @@ void React;
  *    H2/U2(123497/123510) canonical 在他域：components/modals/ConfirmDialog.tsx（live 路径，
  *    Modals.tsx 再导出）+ stores/confirmDialogStore.ts（A0-S4-3 并行）——R4 §5「远程域专用确认」
  *    归属作废：bundle 206864–206865 对话框呈现层直接消费 H2，实为全局 ConfirmDialogStore。
- *    RTt…HTt(123139-123196) 已于 A1-R4 转录至 modules/SplitLayoutUiDeep.tsx（表现层域）。 ——
+ *    RTt…HTt(123139-123193) 已于 A1-R4 转录至 modules/SplitLayoutUiDeep.tsx（表现层域）。 ——
  */
 

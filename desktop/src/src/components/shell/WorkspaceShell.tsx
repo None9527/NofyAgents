@@ -117,12 +117,12 @@
  *   vJt  → armCollapseNavigationOnce (183890 / 148382)
  *
  *  会话持久化 / 侧栏投放上下文：
- *   RTt/j2/zTt/BTt/VTt/HTt → last-session 域（123139–123196）〔A1-R4 迁出 →
+ *   RTt/j2/zTt/BTt/VTt/HTt → last-session 域（123139–123193）〔A1-R4 迁出 →
  *     modules/SplitLayoutUiDeep.tsx §8b 逐字重建；本文件经 useLastSessionRestore
  *     as useLastSessionPersistence 真实 import 消费（调用面不变）〕
- *   FTt  → SidebarSessionDropContext (123103 / 104799)
- *   ITt  → SidebarSessionDropProvider (123104-123117 / 104800-104813)
- *   LTt  → useSidebarSessionDrop    (123118 / 104814)
+ *   FTt  → SidebarSessionDropContext (123120 / 104799)
+ *   ITt  → SidebarSessionDropProvider (123121-123135 / 104800-104813)
+ *   LTt  → useSidebarSessionDrop    (123136 / 104814)
  *
  *  叶子组件（接口保留；完整 JSX 见各自行号或已抽取模块）：
  *   TFt  → SessionHeader            （已抽取进 TopBar.tsx，js 144008）
@@ -133,11 +133,11 @@
  *   zZ   → GitBranchChip            （已抽取进 TopBar.tsx，js ~96589）
  *   c4/s4 → windowsCaptionInsetStyle / WINDOWS_CAPTION_RIGHT_INSET_VAR（TopBar.tsx）
  *   rVt  → Sidebar                  F01 根（js 159137 / jsx 132075）
- *   a4   → WorkspaceSelectionRow    F02 副根（js 128568 / jsx 108415）
+ *   a4   → WorkspaceSelectionRow    F02 副根（styles 128585 / jsx 108415）
  *   xqt  → SidePanel                F04 根（js 182519 / jsx 147333）
  *   Mqt  → DockTerminalBrowserPanel F13 根（js 183602 / jsx 148118）
- *   PTt  → ConversationOrchestrator F03 编排器（js 122803 / jsx 104572）
- *   owt  → StackedConversationPane  F03 变体（js 121284 / jsx 103212）
+ *   PTt  → ConversationOrchestrator F03 编排器（styles 122820 / jsx 104572）
+ *   owt  → StackedConversationPane  F03 变体（styles 121301 / jsx 103212）
  *   nPt  → TaskFindDialog           F05 副根（js 139949 / jsx 116646）
  *   l3   → RepoWikiMain             F16 根（js 132306 / jsx 111550）
  *   d6   → AutomationsMain          F15 根（js 138823 / jsx 115911）
@@ -200,7 +200,7 @@ import { workspaceKeyOf } from '../../modules/CodeViewer';
 /* ── tombstone（A1-R3）：ConversationOrchestrator 自 ../../modules/Conversation 的
  *    import 已删除——PTt 域 A1-R3 逐字重建于 modules/SplitLayoutUiDeep.tsx，
  *    改自该模块消费（同行 StackedConversationPane=owt + FTt/ITt/LTt 面）。 ── */
-import { ConversationOrchestrator, StackedConversationPane, SidebarSessionDropProvider, useSidebarSessionDrop, useLastSessionRestore as useLastSessionPersistence, type SidebarSessionDropTarget } from '../../modules/SplitLayoutUiDeep'; // 原 PTt/owt/FTt/ITt/LTt（A1-R3：styles js 121301–123136 表现层逐字重建改指）+ HTt（A1-R4：js 123139–123196 last-session 域改指）
+import { ConversationOrchestrator, StackedConversationPane, SidebarSessionDropProvider, useSidebarSessionDrop, useLastSessionRestore as useLastSessionPersistence, type SidebarSessionDropTarget } from '../../modules/SplitLayoutUiDeep'; // 原 PTt/owt/FTt/ITt/LTt（A1-R3：styles 121301–123136 表现层逐字重建改指）+ HTt（A1-R4：styles 123139–123193 last-session 域改指）
 import { type InstalledEditor, samePath as isSamePath, isPathWithinRoot as isPathWithin } from '../../modules/FileTreePanel'; // 〔A1-P2-B10〕isSamePath/isPathWithin declare 改指（原 BA 50974 / VA 50977；同一性实证见删 declare 处墓碑）
 import { APP_LOGO_DATA_URL, FeedbackCenter, collectWorkspaceTaskIds, resolveAdjacentTasks, runWithWorkspaceVisibility, type FeedbackService } from '../../modules/FeedbackCenter';
 import { WorkspaceSelectionRow, openSettingsSection as setSettingsTabTarget, type SettingsSectionId } from '../../modules/Home'; // 〔A1-P2-B10〕+openSettingsSection as setSettingsTabTarget（原 iw 39375；Home@4210 canonical，A1-R24 settingsNavigation 簇在案）——下方设置域 declare 删碑改指，R1 判例别名保留调用名
@@ -1677,12 +1677,12 @@ function windowRoundedCornerClasses(input: {
 
 /* ── tombstone（A1-R4）：§9 会话持久化本地实现（RTt/j2/zTt/BTt/VTt/HTt，94 行）删除——
  *    A1-R4 以 modules/SplitLayoutUiDeep.tsx §8b 逐字重建 last-session 域
- *    （js 123139–123196，B5 体例：局部混淆名保留），本文件经真实 import 消费：
+ *    （styles 123139–123193，B5 体例：局部混淆名保留），本文件经真实 import 消费：
  *    useLastSessionRestore as useLastSessionPersistence（文件头导入块）。
  *    附带：本地 detectRendererReload declare 同批删除（原 z0，R2 已真实化）。 ── */
 
 /* ============================================================================
- * 10. 侧栏会话投放上下文（原 FTt/ITt/LTt，js 123103-123120 / jsx 104799-104814）
+ * 10. 侧栏会话投放上下文（原 FTt/ITt/LTt，styles 123120-123138 / jsx 104799-104814）
  * ----------------------------------------------------------------------------
  * 侧栏内任务行拖拽到聊天区时的"能否投放/如何打开"能力注入。
  * A1-R3：本地实现（嵌套 SessionBinding 载荷面）删除——FTt/ITt/LTt 逐字重建于
@@ -1706,7 +1706,7 @@ export { SidebarSessionDropProvider, useSidebarSessionDrop, type SidebarSessionD
 /** 原 c4 windowsCaptionInsetStyle（TopBar.tsx 已还原，js 129509） */
 /** 原 s4 WINDOWS_CAPTION_RIGHT_INSET_VAR（TopBar.tsx 已还原，js 129507） */
 
-/** 原 a4 WorkspaceSelectionRow（F02 副根，js 128568-128795）：
+/** 原 a4 WorkspaceSelectionRow（F02 副根，styles 128585-128792）：
  *  草稿 composer 头部的工作区选择行（最近项目/分离/远程连接入口） */
 
 /** 原 rVt Sidebar（F01 根，js 159137-160322 / jsx 132075）：
@@ -1721,10 +1721,10 @@ export { SidebarSessionDropProvider, useSidebarSessionDrop, type SidebarSessionD
  *  §13.7：dock 在会话列内部（聊天下方）。 */
 declare const DockTerminalBrowserPanel: React.FC<Record<string, unknown>>;
 
-/** 原 PTt ConversationOrchestrator（F03 编排器，js 122803-123102 / jsx 104572）：
+/** 原 PTt ConversationOrchestrator（F03 编排器，styles 122820-123119 / jsx 104572）：
  *  会话面板编排（消息流/草稿/摘要栏装配；内嵌 R0 会话面板 + hit 草稿头） */
 
-/* ── tombstone（A1-R3）：StackedConversationPane（原 owt，js 121284/121301）declare 已删除——
+/* ── tombstone（A1-R3）：StackedConversationPane（原 owt，styles 121301）declare 已删除——
  *    薄壳（wFe 包裹单主面板 R0）逐字重建于 modules/SplitLayoutUiDeep.tsx，
  *    改经文件头真实 import 消费。 ── */
 
@@ -1815,7 +1815,7 @@ interface WorkspaceShellProps {
   handleOpenAutomations: (automationId?: string) => void;
   /* A0-CLEANUP3 #36：远端连接三回调收 Home.WorkspaceSelectionRowProps 规范形
    * （束 XJt 解构无默认值 = 必收）；原 (...args: unknown[]) => void 弱形删除。
-   * A0-CLEANUP4：对齐 RemoteWizardDialog 属主面具型（束 a4 纯透传 pOt，js 128776–128786）。 */
+   * A0-CLEANUP4：对齐 RemoteWizardDialog 属主面具型（束 a4 纯透传 pOt，styles 128778–128788）。 */
   onConnectRemote: (target: RemoteTarget, requestId: string) => Promise<string | null>;
   onSelectRemoteProject: (sessionId: string, path: string, localWorkspacePath?: string) => Promise<void>;
   onCancelRemoteProject: (sessionId: string) => Promise<void>;
@@ -4946,7 +4946,7 @@ interface WorkspaceRootProps {
   baseFeedbackService: FeedbackService | null;
   /* A0-CLEANUP3 #36：远端连接三回调收 Home.WorkspaceSelectionRowProps 规范形
    * （束 XJt 解构无默认值 = 必收）；原 (...args: unknown[]) => void 弱形删除。
-   * A0-CLEANUP4：对齐 RemoteWizardDialog 属主面具型（束 a4 纯透传 pOt，js 128776–128786）。 */
+   * A0-CLEANUP4：对齐 RemoteWizardDialog 属主面具型（束 a4 纯透传 pOt，styles 128778–128788）。 */
   onConnectRemote: (target: RemoteTarget, requestId: string) => Promise<string | null>;
   onSelectRemoteProject: (sessionId: string, path: string, localWorkspacePath?: string) => Promise<void>;
   onCancelRemoteProject: (sessionId: string) => Promise<void>;

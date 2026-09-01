@@ -51,17 +51,17 @@
  *   kit  → OffPeakNewTaskBanner（📢 横幅 + 3 张建议卡）  (91591 / 79222)
  *
  *  工作区选择行（contextHeader 左件）：
- *   mOt  → resolveHomePathPrefix                        (128526 / 108386)
- *   hOt  → homeAwareDisplayName                         (128533 / 108389)
- *   gOt  → workspaceMenuLabel                           (128538 / 108393)
- *   _Ot  → workspaceTriggerLabel                        (128542 / 108397)
- *   vOt  → isSameWorkspaceTab                           (128546 / 108401)
- *   yOt  → remoteTabSearchHaystack                      (128549 / 108404)
- *   bOt  → filterWorkspaceTabsForMenu（搜索、前 5 条）  (128554 / 108407)
- *   a4   → WorkspaceSelectionRow                        (128568–128776 / 108415)
- *   UTt  → useRemoteWorkspaceEnabled（恒 true）         (123177 / —)
- *   N2   → isRemoteWorkspaceTab                         (123199 / —)
- *   pOt  → = fOt RemoteWizardDialog（F10，接口保留）    (128525 / —)
+ *   mOt  → resolveHomePathPrefix                        (128543 / 108386)
+ *   hOt  → homeAwareDisplayName                         (128551 / 108389)
+ *   gOt  → workspaceMenuLabel                           (128555 / 108393)
+ *   _Ot  → workspaceTriggerLabel                        (128559 / 108397)
+ *   vOt  → isSameWorkspaceTab                           (128563 / 108401)
+ *   yOt  → remoteTabSearchHaystack                      (128566 / 108404)
+ *   bOt  → filterWorkspaceTabsForMenu（搜索、前 5 条）  (128571 / 108407)
+ *   a4   → WorkspaceSelectionRow                        (128585–128792 / 108415)
+ *   UTt  → useRemoteWorkspaceEnabled（恒 true）         (123194 / —)
+ *   N2   → isRemoteWorkspaceTab                         (123216 / —)
+ *   pOt  → = fOt RemoteWizardDialog（F10，接口保留）    (128542 / —)
  *
  *  提及菜单（@#> / $ / 斜杠 面板的可见层）：
  *   mC   → mentionTriggerChar（commands→`>`、conversations→`#`、files→`@`）(36348 / 33369)
@@ -165,7 +165,7 @@ import { Root as RadixSelectRoot, Value as RadixSelectValue, Trigger as RadixSel
 import { AnimatedLabel, MODE_LABEL_I18N, MODE_DESCRIPTION_I18N, ModelSelector, ContextUsageProvider, ContextRingTrigger, ContextRingTooltipContent, ContextRingTooltipBody, SegmentedProgress, type ModelGroup } from '../composer/ModelSelector'; // A1-R17：原 _q（75520）/V4e（75972）/H4e（76003）——A0-S4-4b 已属主导出（[D] ConfigSelect 消费预案），本批 §T 接线。A1-R18：+ModelSelector（原 vq，js 75575 memo；§U iit 消费，props 面逐字兼容）+type ModelGroup（Hq declare 返回面）。A1-R19：+5 件（原 J4e/X4e/Z4e/Q4e/yq = ContextUsageProvider 76079/ContextRingTrigger 76125/ContextRingTooltipContent 76139/ContextRingTooltipBody 76147/SegmentedProgress 76034，A0-S2d 已属主导出；§V j3e 76741–76794 消费）
 import { usePptxElementReferences, usePptxPreviewOpener, PptxReferencesChip } from '../composer/PptxReferencesChip'; // A1-R21：附件域双钩子收敛——原 QXe/YH/JH=usePptxElementReferences/usePptxPreviewOpener/PptxReferencesChip（styles 68996/69207/69036；canonical 属主 A0-S4-4b 迁出件，本批补 export）；六实体 bundle 原即模块私有（styles 导出块 213930 无面），树内补 export 为收敛面（Composer 补 export 先例）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // A1-R18：useIntlContext declare（原 G，IntlProvider-C321H7m8 D 9254）收敛 I18n canonical（Composer.tsx:517 先例；ZCodeIntl 与旧本地 IntlShape 同形）
-import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（js 123241）远端条目域改指（tombstone 见原声明位）
+import { remoteTargetDisplayLabel } from '../../modules/SplitLayoutDeep'; // A1-R4：XTt（styles 123242）远端条目域改指（tombstone 见原声明位）
 import { LoaderCircle } from '../../modules/ImeComposition'; // A1-R19：原 M = imeComposition-DEYFkwWm.js 导出 w（内名 Ut = lucide loader-circle 11786）；§V s3e 76365 / v3e 76563 loading 消费
 import { formatNumberCompact } from '../../modules/UsageStatsUiParts'; // A1-R19：原 ja = usageStatsUiParts-CiR7YEhh.js 导出 l（styles 910 导入）；§V S3e 76625 消费
 import { useBillingDiscount, BillingDiscountBadge, BillingDiscountBadgeWithInfo, BillingDiscountInfoDialog, type BillingDiscountConfig, type EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R29〕+type EntitlementSnapshot：N6e 收敛型缝所依（A as (id) => EntitlementSnapshot | null，行依据见 iit _e 注） // A1-R20：胶囊域收敛——原 dj/hj/gj/_j=useBillingDiscount/BillingDiscountBadge/BillingDiscountBadgeWithInfo/BillingDiscountInfoDialog（styles 51910/51959/51980/52034；canonical 属主 components/usage/UsageDeep.tsx A0 已重建）；§V s3e 76295/76359 + v3e 76541/76588/76597 消费
@@ -1225,7 +1225,7 @@ export function OffPeakNewTaskBanner({ onOpenAutomations }: OffPeakNewTaskBanner
 
 /* ============================================================================
  * 3. 工作区选择行（原 mOt/hOt/gOt/_Ot/vOt/yOt/bOt/a4 + UTt/N2，
- *    js 123177,123199,128526–128776 / jsx 108386–108415）。
+ *    styles 123194,123216,128543–128792 / jsx 108386–108415）〔A1-R54 行漂纠偏〕。
  *    Home contextHeader 的左件：🗀 名称 + ⌄ 菜单（最近项目搜索/打开文件夹/
  *    远程连接/不选项目）。由窗口壳 yJt 组装进 contextHeader（js 184540–184577），
  *    draft 态随 composer 卡顶部渲染。
@@ -1247,7 +1247,7 @@ export interface WorkspaceTab {
 /** 工作区作用域 key（原 Ti，src-HCld2afU.js 导出） */
 /** 路径末段名（原 Go，横切层 1928） */
 /* ── tombstone（A1-R4）：remoteTargetDisplayLabel（原 XTt）declare 删除 → 真实 import
- *    from '../../modules/SplitLayoutDeep'（§F 远端条目域，js 123241）。
+ *    from '../../modules/SplitLayoutDeep'（§F 远端条目域，styles 123242）。
  *    型别宽化：返回 string | undefined；remoteTabSearchHaystack 之 filter(Boolean) 兼容。 ── */
 
 /** 原 UTt：远程工作区入口开关（当前恒 true） */
@@ -1334,7 +1334,7 @@ export function filterWorkspaceTabsForMenu({
     .slice(0, 5);
 }
 
-/** 原 pOt = fOt：远程连接向导对话框（F10 RemoteFamily，js 128093；接口保留） */
+/** 原 pOt = fOt：远程连接向导对话框（F10 RemoteFamily，styles 128110；接口保留） */
 
 export interface WorkspaceSelectionRowProps {
   workspacePath: string;
@@ -1350,7 +1350,7 @@ export interface WorkspaceSelectionRowProps {
   allowOpenWorkspace?: boolean;
   allowRemoteWorkspace?: boolean;
   remoteWorkspaceSessions?: RemoteWorkspaceSessionLike[];
-  /* A0-CLEANUP4：三回调收 RemoteWizardDialog 属主面具型（bundle a4 js 128776–128786 纯透传 pOt） */
+  /* A0-CLEANUP4：三回调收 RemoteWizardDialog 属主面具型（bundle a4 styles 128778–128788 纯透传 pOt） */
   onConnectRemote: (target: RemoteTarget, requestId: string) => Promise<string | null>;
   onSelectRemoteProject: (sessionId: string, path: string, localWorkspacePath?: string) => Promise<void>;
   onCancelRemoteProject: (sessionId: string) => Promise<void>;
@@ -1360,7 +1360,7 @@ export interface WorkspaceSelectionRowProps {
 }
 
 /**
- * 原 a4（js 128568 / jsx 108415）：工作区选择行（spec §5 workspace 行的左半）。
+ * 原 a4（styles 128585 / jsx 108415）：工作区选择行（spec §5 workspace 行的左半）。
  * 胶囊触发器 = [悬停显形的分离按钮（会话工作区才可分离）] + [图标+名称+⌄]；
  * 弹出菜单 = 搜索框 + 最近项目（前 5，勾选态）+ [打开文件夹] + [远程连接] + [不选项目]。
  * 图标语义：远程=cloud、家目录=house、普通=folder。
@@ -7175,7 +7175,7 @@ export { CodingPlanUsagePanel, StartPlanBalancePanel };
  *    - TH/lit/uit chip 行           F08（js 68298/89989/90087）：A1-R22 三 declare 收敛 → Composer
  *      [B14]/[B17] 逐字 canonical（JH 69036 已 A1-R21 收敛 PptxReferencesChip）
  *    - vN/yN/bN/xN/SN/DN 附件件     F08（js 54555–54830）
- *    - fOt RemoteWizardDialog       F10（js 128093–128525）
+ *    - fOt RemoteWizardDialog       F10（styles 128110–128541）
  *    - zZ  GitBranchChip            TopBar 族（contextHeader 右件，已还原）
  *    - R0    ConversationPane       F03（js 119219）：draft 态装配现场
  *    - yJt   WorkspaceShell         F07（js 183896）：contextHeader 组装（184540–184577）

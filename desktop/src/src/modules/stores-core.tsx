@@ -15,7 +15,7 @@
  *  4 | Zs            | SessionRegistryStore      | 4309–4352    | 横切（F07 消费）
  *  6 | yC            | FeedbackStore             | 36992–37066  | F09
  *  8 | yH            | SelectionScopesStore      | 67554–67560  | F03
- * 13 | H2            | ConfirmDialogStore        | 123480–123492| F09
+ * 13 | H2            | ConfirmDialogStore        | 123497–123509| F09
  * 20 | N9            | AlertDialogStore          | 206514–206560| F09
  *
  * 〔A0-S4-3：6 个 store 实体 + §0 zustand 接口类型已逐字迁 ../stores/（storeTypes/

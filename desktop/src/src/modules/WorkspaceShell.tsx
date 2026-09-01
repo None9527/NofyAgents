@@ -115,15 +115,15 @@
  *   vJt  → armCollapseNavigationOnce (183890 / 148382)
  *
  *  会话持久化 / 侧栏投放上下文（本文件完整还原）：
- *   RTt  → LAST_SESSION_STORAGE_PREFIX = 'zcode-v4-last-session:v1:' (123122 / 104862)
- *   j2   → lastSessionStorageKey    (123124 / 104864)
- *   zTt  → readLastSessionId        (123127 / 104867)
- *   BTt  → writeLastSessionId       (123133 / 104873)
- *   VTt  → shouldRestoreLastSession (123139 / 104879)
- *   HTt  → useLastSessionPersistence (123141-123177 / 104845-104880)
- *   FTt  → SidebarSessionDropContext (123103 / 104799)
- *   ITt  → SidebarSessionDropProvider (123104-123117 / 104800-104813)
- *   LTt  → useSidebarSessionDrop    (123118 / 104814)
+ *   RTt  → LAST_SESSION_STORAGE_PREFIX = 'zcode-v4-last-session:v1:' (123139 / 104862)
+ *   j2   → lastSessionStorageKey    (123140 / 104864)
+ *   zTt  → readLastSessionId        (123143 / 104867)
+ *   BTt  → writeLastSessionId       (123150 / 104873)
+ *   VTt  → shouldRestoreLastSession (123155 / 104879)
+ *   HTt  → useLastSessionPersistence (123158-123193 / 104845-104880)
+ *   FTt  → SidebarSessionDropContext (123120 / 104799)
+ *   ITt  → SidebarSessionDropProvider (123121-123135 / 104800-104813)
+ *   LTt  → useSidebarSessionDrop    (123136 / 104814)
  *
  *  叶子组件（接口保留；完整 JSX 见各自行号或已抽取模块）：
  *   TFt  → SessionHeader            （已抽取进 TopBar.tsx，js 144008）
@@ -134,11 +134,11 @@
  *   zZ   → GitBranchChip            （已抽取进 TopBar.tsx，js ~96589）
  *   c4/s4 → windowsCaptionInsetStyle / WINDOWS_CAPTION_RIGHT_INSET_VAR（TopBar.tsx）
  *   rVt  → Sidebar                  F01 根（js 159137 / jsx 132075）
- *   a4   → WorkspaceSelectionRow    F02 副根（js 128568 / jsx 108415）
+ *   a4   → WorkspaceSelectionRow    F02 副根（styles 128585 / jsx 108415）
  *   xqt  → SidePanel                F04 根（js 182519 / jsx 147333）
  *   Mqt  → DockTerminalBrowserPanel F13 根（js 183602 / jsx 148118）
- *   PTt  → ConversationOrchestrator F03 编排器（js 122803 / jsx 104572）
- *   owt  → StackedConversationPane  F03 变体（js 121284 / jsx 103212）
+ *   PTt  → ConversationOrchestrator F03 编排器（styles 122820 / jsx 104572）
+ *   owt  → StackedConversationPane  F03 变体（styles 121301 / jsx 103212）
  *   nPt  → TaskFindDialog           F05 副根（js 139949 / jsx 116646）
  *   l3   → RepoWikiMain             F16 根（js 132306 / jsx 111550）
  *   d6   → AutomationsMain          F15 根（js 138823 / jsx 115911）

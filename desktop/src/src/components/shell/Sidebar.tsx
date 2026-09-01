@@ -223,7 +223,7 @@ import { isCronAutomationPayload as isCronTask, isOffPeakTaskPayload as isOffPea
 import { useSidebarSessionDrop as useSessionOpenability, SESSION_DRAG_MIME, serializeSessionDragPayload, setSessionDragFallbackPayload as setCurrentSessionDrag, clearSessionDragFallbackPayload as clearCurrentSessionDrag, createSessionDragPreview as createDragImageUpdater, type SessionDragPayload } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）+ u2/Iwt/Lwt/Rwt/PRt（A1-R4：拖放源侧改指，tombstone 见原声明位）
 import { usePinnedTaskListStore as useRemotePinnedTaskListStore } from '../../stores/pinnedTaskListStore'; // A1-R9 E6 收敛改指（原 E6 本地并行实例删除；canonical 属主 = stores/，tombstone 见原声明位）
 import { useWorkspaceTaskListStore as useRemoteWorkspaceTaskListStore } from '../../stores/workspaceTaskListStore'; // A1-R9 k6 收敛改指（同上）
-import { resolveSshConnectionInfo, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4：QTt（js 123267）；A1-R5：zBt（js 158186）改指（tombstone 见原位）
+import { resolveSshConnectionInfo, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4：QTt（styles 123268）；A1-R5：zBt（js 158186）改指（tombstone 见原位）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 
@@ -1164,7 +1164,7 @@ declare function buildTaskFeedbackDescription(args: { taskTitle: string; taskId?
 /** 原 n4/r4（TopBar.tsx 已还原）：远程同步菜单项 / 对话框组 */
 /** 原 $2（TopBar 已登记）：远程会话源可打开性检查 */
 /* ── tombstone（A1-R4）：sshDecoratedProjectName（原 QTt）declare 删除 → 真实 import
- *    from '../../modules/SplitLayoutDeep'（§F 远端条目域，js 123267）。
+ *    from '../../modules/SplitLayoutDeep'（§F 远端条目域，styles 123268）。
  *    型别宽化：返回 string | undefined；调用面（2978/3137）为插值渲染，兼容。 ── */
 /** 原 M6/N6/V6（142670–142719/119312）：同步完成后的缓存刷新 */
 declare function refreshAfterSkillSync(args: { zcodeSessionService: WorkspaceServices["zcodeSessionService"]; workspacePath: string; workspaceIdentity?: string | null; reason: string }): Promise<void>;

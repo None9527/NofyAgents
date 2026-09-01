@@ -952,7 +952,7 @@ declare const PanelResizeHandle: React.FC<React.ComponentPropsWithoutRef<"div">>
 /** 代码查看源：接线 SidePanel.CodeViewerSource（原本地 kind 形为重建误差；MarkdownIntegration 调用面为 type:"file" 请求形） */
 export type { CodeViewerSource };
 
-/** 确认对话框钩子（原 U2，js 123493） */
+/** 确认对话框钩子（原 U2，styles 123510） */
 declare function useConfirmDialog(): (request: {
   presentation?: string;
   title: string;

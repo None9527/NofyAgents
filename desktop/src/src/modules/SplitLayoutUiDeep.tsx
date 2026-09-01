@@ -2,7 +2,7 @@
  * SplitLayoutUiDeep.tsx —— A1-R3：v4 分屏表现层（PTt 域）逐字重建
  * ----------------------------------------------------------------------------
  * 属主：styles-CdEGpc2x.js（md5 48d71d48…）js 121301–121372 + 121722–122305 +
- *       122820–123136 + 123139–123196（RTt…HTt）+ 151164–151184（PRt）+
+ *       122820–123136 + 123139–123193（RTt…HTt）+ 151164–151184（PRt）+
  *       155248–155280（Lzt/Rzt）（jsx 孪生无此表现层跨度，行号以 js 为准）。
  *
  * 立模块自裁说明（任务项 1「并入 SplitLayoutDeep.tsx 或立新模块」）：
@@ -59,8 +59,8 @@
  *   eTt  → selectionSideChatSessionIdForPane (122198)
  *   tTt  → SplitDivider                    (122201)
  *   PTt  → ConversationOrchestrator        (122820)
- *   FTt  → SidebarSessionDropContext       (123121)
- *   ITt  → SidebarSessionDropProvider      (123122)
+ *   FTt  → SidebarSessionDropContext       (123120)
+ *   ITt  → SidebarSessionDropProvider      (123121)
  *   LTt  → useSidebarSessionDrop           (123136)
  *   owt  → StackedConversationPane         (121301)
  *   ── A1-R4 增补（拖放源侧 + last-session 域）──
@@ -1063,7 +1063,7 @@ export const SplitDivider = React.memo(function ({
 });
 
 /* ============================================================================
- * §6. 会话编排器（原 PTt，js 122820–123102）
+ * §6. 会话编排器（原 PTt，styles 122820–123119）
  * ----------------------------------------------------------------------------
  * v4 分屏的会话列装配环境：把分屏树（s2 store 或会话组 A2）展平成面板叶 +
  * 分隔条，为每叶渲染 SplitPaneHost。主面板（workspace-main）承载当前会话或
@@ -1571,7 +1571,7 @@ export function trackSessionDragPointer(e: Document, t: unknown): { dispose(): v
 }
 
 /* ============================================================================
- * §8b. 最后会话恢复域（原 RTt/j2/zTt/BTt/VTt/HTt，js 123139–123196）
+ * §8b. 最后会话恢复域（原 RTt/j2/zTt/BTt/VTt/HTt，styles 123139–123193）
  * ----------------------------------------------------------------------------
  * A1-R4 转录（R3 尾注登记项）；UTt（123194）已有属主（components/shell/Home.tsx
  * useRemoteWorkspaceEnabled，逐字），不重复。z0=isReloadNavigationEntry 经
@@ -1688,8 +1688,8 @@ export function useLastSessionRestore({
  *   selectionSideChatSessionIdForPane eTt     122198        ✓
  *   SplitDivider                    tTt       122201        ✓
  *   ConversationOrchestrator        PTt       122820        ✓
- *   SidebarSessionDropContext       FTt       123121        ✓
- *   SidebarSessionDropProvider      ITt       123122        ✓
+ *   SidebarSessionDropContext       FTt       123120        ✓
+ *   SidebarSessionDropProvider      ITt       123121        ✓
  *   useSidebarSessionDrop           LTt       123136        ✓
  *   StackedConversationPane         owt       121301        ✓
  *   createSessionDragPreview        PRt       151164        ✓（A1-R4）

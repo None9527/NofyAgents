@@ -320,7 +320,7 @@ declare const OFFPEAK_TELEMETRY_DEFAULT_PROVIDER: string;
 
 type IconProps = React.SVGProps<SVGSVGElement> & { size?: number; containerSize?: number };
 
-/** 确认对话框钩子（原 U2，js 123493） */
+/** 确认对话框钩子（原 U2，styles 123510） */
 declare function useConfirmDialog(): (request: {
   presentation?: string;
   title: string;

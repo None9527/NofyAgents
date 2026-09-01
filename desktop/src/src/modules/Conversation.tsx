@@ -21,7 +21,7 @@
  * 〇、子族总览（混淆名 → 语义名 → js 行 / jsx 行；完整清单见 Conversation.report.md §1）
  * ----------------------------------------------------------------------------
  *  [Pane]    R0  → ConversationPane            (119219 / 101388)
- *            PTt → ConversationOrchestrator    (122803 / 104572) 〔A1-R3 迁出 → modules/SplitLayoutUiDeep.tsx〕
+ *            PTt → ConversationOrchestrator    (122820 / 104572) 〔A1-R3 迁出 → modules/SplitLayoutUiDeep.tsx〕
  *            Ait/jit → PaneFloatingHeader      (91755,91801 / 79344,79371)
  *            Ubt/Wbt → PluginIconProvider/Gate (115538,115559 / 98326,98347)
  *            k0  → useSessionSnapshot          (118675 / 100929)

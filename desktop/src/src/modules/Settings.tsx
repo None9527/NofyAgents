@@ -449,7 +449,7 @@ declare const WINDOWS_CAPTION_MENU_MARGIN: string;
 /** 原 r4（js 127265，TopBar.tsx RemoteSyncDialogs）：远程同步对话框组 */
 /* ── tombstone（A0-CLEANUP2 item 14）：canOpenRemoteSessionSource（原 $2）declare 删除
  *    → import { canOpenRemoteSessionSourceCheck as canOpenRemoteSessionSource } from './Modals'。 ── */
-/* ── tombstone〔A1-R45〕：declare remoteTargetDisplayLabel 删除——本文件零消费（grep 实测仅本 declare 行）。真身 = modules/SplitLayoutDeep@1585（原 XTt，js 123241；A1-R4 既判；
+/* ── tombstone〔A1-R45〕：declare remoteTargetDisplayLabel 删除——本文件零消费（grep 实测仅本 declare 行）。真身 = modules/SplitLayoutDeep@1585（原 XTt，styles 123242；A1-R4 既判；
  * 旧注「原 q2」为早期误归——q2 实为 remoteTargetDisplayName（R44 簇在案）；Home@168 改指先例；McpSettingsSection@62 为其自有活面，与本文件死面无涉。纯删碑，证据见 A1-R45.report.md §二。 ── */
 
 /* --- UI 原语（跨 chunk） --- */

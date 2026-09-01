@@ -52,7 +52,7 @@ export interface ConfirmDialogStoreState {
   settleConfirmation(confirmed: boolean): void;
 }
 
-/** 原 H2（js 123480-123492 / jsx 105205）：确认对话框 store（单飞 + Promise 结算）
+/** 原 H2（styles 123497-123509 / jsx 105205）：确认对话框 store（单飞 + Promise 结算）
  *  A1-R6 双实例收敛：本 store 为 H2 唯一 live canonical（bundle 206864–206865 呈现层
  *  + 全树 requestConfirmation 消费面皆经此实例）；stores/confirmDialogStore.ts 之
  *  A0-S4-3 并行实例已降为 re-export shim（见该文件 tombstone）。 */
@@ -75,7 +75,7 @@ const ConfirmDialogStore = zustandCreate<ConfirmDialogStoreState>((set, get) => 
 /** A1-R6：H2 canonical 导出面（供 stores/confirmDialogStore.ts shim 再导出；stores-core 消费面名） */
 export { ConfirmDialogStore as useConfirmDialogStore };
 
-/** 原 U2（js 123493-123495 / jsx 105222）：useConfirmDialog */
+/** 原 U2（styles 123510-123512 / jsx 105222）：useConfirmDialog */
 export function useConfirmDialog(): (
   request: Omit<ConfirmDialogRequest, "resolve">,
 ) => Promise<boolean> {

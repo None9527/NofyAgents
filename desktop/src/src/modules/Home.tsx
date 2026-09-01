@@ -49,17 +49,17 @@
  *   kit  → OffPeakNewTaskBanner（📢 横幅 + 3 张建议卡）  (91591 / 79222)
  *
  *  工作区选择行（contextHeader 左件）：
- *   mOt  → resolveHomePathPrefix                        (128526 / 108386)
- *   hOt  → homeAwareDisplayName                         (128533 / 108389)
- *   gOt  → workspaceMenuLabel                           (128538 / 108393)
- *   _Ot  → workspaceTriggerLabel                        (128542 / 108397)
- *   vOt  → isSameWorkspaceTab                           (128546 / 108401)
- *   yOt  → remoteTabSearchHaystack                      (128549 / 108404)
- *   bOt  → filterWorkspaceTabsForMenu（搜索、前 5 条）  (128554 / 108407)
- *   a4   → WorkspaceSelectionRow                        (128568–128776 / 108415)
- *   UTt  → useRemoteWorkspaceEnabled（恒 true）         (123177 / —)
- *   N2   → isRemoteWorkspaceTab                         (123199 / —)
- *   pOt  → = fOt RemoteWizardDialog（F10，接口保留）    (128525 / —)
+ *   mOt  → resolveHomePathPrefix                        (128543 / 108386)
+ *   hOt  → homeAwareDisplayName                         (128551 / 108389)
+ *   gOt  → workspaceMenuLabel                           (128555 / 108393)
+ *   _Ot  → workspaceTriggerLabel                        (128559 / 108397)
+ *   vOt  → isSameWorkspaceTab                           (128563 / 108401)
+ *   yOt  → remoteTabSearchHaystack                      (128566 / 108404)
+ *   bOt  → filterWorkspaceTabsForMenu（搜索、前 5 条）  (128571 / 108407)
+ *   a4   → WorkspaceSelectionRow                        (128585–128792 / 108415)
+ *   UTt  → useRemoteWorkspaceEnabled（恒 true）         (123194 / —)
+ *   N2   → isRemoteWorkspaceTab                         (123216 / —)
+ *   pOt  → = fOt RemoteWizardDialog（F10，接口保留）    (128542 / —)
  *
  *  提及菜单（@#> / $ / 斜杠 面板的可见层）：
  *   mC   → mentionTriggerChar（commands→`>`、conversations→`#`、files→`@`）(36348 / 33369)

@@ -108,7 +108,7 @@
  *   z9  → ONBOARDING_STEP_ORDER (208251 / 165387) E3t → OnboardingDialog (208252 / 165388)
  *
  *  §5 确认 / 警告对话框 + 宿主：
- *   H2  → ConfirmDialogStore (123480 / 105205)  U2 → useConfirmDialog (123493 / 105222)
+ *   H2  → ConfirmDialogStore (123497 / 105205)  U2 → useConfirmDialog (123510 / 105222)
  *   N9  → AlertDialogStore (206514 / 164300)   G4t → AlertDialog (206527 / 164317)
  *   K4t → AUTOMATION_CONFIRM_DIALOG_CLASS (206571 / 164352)
  *   q4t → ConfirmDialog (206572 / 164353)      P9 → AppDialogHost (206704 / 164396)

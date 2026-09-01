@@ -56,11 +56,11 @@
  *   lw   → PRODUCT_DOCS_URL = https://zcode.z.ai/docs (39410 / 35469)
  *   C6   → useTaskFileActions        (142068 / 118006)
  *   CFt/$2 → canOpenRemoteSessionSource (143499,127142 / 119494,107556)
- *   ZTt  → remoteTargetLabel         (123239 / 104935)  〔A1-R5：R4 误归 XTt，已更正为 ZTt 真实 import〕
- *   QTt  → sshDecoratedProjectName   (123251 / 104947)
+ *   ZTt  → remoteTargetLabel         (123256 / 104935)  〔A1-R5：R4 误归 XTt，已更正为 ZTt 真实 import〕
+ *   QTt  → sshDecoratedProjectName   (123268 / 104947)
  *   $b   → sanitizeRemoteTargetForRestore（src-HCld2afU.js 8611；本 chunk 导入名 yne）〔A1-R5：normalizeRemoteTarget 改指 SrcSharedB〕
  *   Zge  → resolveEffectiveProvider  (jsx 21359)
- *   U2   → useConfirmDialog          (123493 / 105222)
+ *   U2   → useConfirmDialog          (123510 / 105222)
  *   Oc   → useWorkspaceServices      (4945 / 3754)
  *   Ec   → useBaseServices           (4897 / 3716)
  *   ZS   → useTaskListItems          (35727 / 32810)
@@ -146,7 +146,7 @@ import { useTrajectoryViewerStore, useTuiEditRequestStore } from '../../modules/
 import { usePinnedTaskListStore, useWorkspaceTaskListStore } from '../../modules/stores-tasks';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia=u（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
-import { remoteTargetConnectionAddress, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4 QTt（js 123267）；A1-R5 归属更正：XTt→ZTt（js 123256），tombstone 见原声明位
+import { remoteTargetConnectionAddress, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4 QTt（styles 123268）；A1-R5 归属更正：XTt→ZTt（styles 123256），tombstone 见原声明位
 import { sanitizeRemoteTargetForRestore, DesktopMenuActionIds as DesktopCommand } from '../../modules/SrcSharedB'; // 原 $b（src-HCld2afU.js 8611，pt→yne 导出）：A1-R5 normalizeRemoteTarget 改指；〔A1-R48〕+DesktopMenuActionIds as DesktopCommand（oi 收敛改指，WorkspaceShell@263 A1-P2-B1 / Sidebar@220 A1-P3-B1 同式先例），见下墓碑
 
 /* ============================================================================
@@ -2440,7 +2440,7 @@ declare function resolveEffectiveProvider(taskProvider: string | null | undefine
  *    sshDecoratedProjectName（原 QTt）declare 删除 → 真实 import from './SplitLayoutDeep'（§F 远端条目域）。
  *    A1-R5 归属更正：SessionHeaderLeft remoteTargetLabel 位（2034）对应 bundle wFt 143599
  *    `je = i ? ZTt(i) : null`——真形为 ZTt=remoteTargetConnectionAddress（js 123256），非 XTt
- *    （js 123241；XTt 唯一 bundle 调用点 128568 yOt → Home.remoteTabSearchHaystack）。import 已改 ZTt。
+ *    （styles 123242；XTt 唯一 bundle 调用点 128568 yOt → Home.remoteTabSearchHaystack）。import 已改 ZTt。
  *    型别宽化：canonical 参型为结构面、返回 string | undefined（bundle 未知 kind 无 default 分支）；
  *    本文件调用面皆真值判定/插值渲染，兼容（2034–2037/2192/2203）。 ── */
 /* ── tombstone（A1-R10 2b）：declare function applyOptimisticTaskMutation（原 Uo，1895 / 959）删除，

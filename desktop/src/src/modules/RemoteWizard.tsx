@@ -33,7 +33,7 @@
  *  1. 已抽取（Modals.tsx，只注记不重复）：MEt 目录浏览（原 123942–124126）+
  *     OEt/kEt/AEt/jEt（原 123929–123945 区）；r4 分派 + ZEt/lDt/XDt 三同步对话框 +
  *     $Dt + preflight 助手（原 125012–127349，含 $2 canOpenRemoteSessionSourceCheck
- *     原 127142——TopBar.report 亦登记，裁决归 Modals）；ZTt/QTt（原 123239/123251，
+ *     原 127142——TopBar.report 亦登记，裁决归 Modals）；ZTt/QTt（原 123256/123268，
  *     登记于 TopBar.report）。128812+ 更新窗属 F09/TopBar。
  *  2. **账实差异注记**：COVERAGE-LEDGER 将原 123942–124266 记为「MEt 已抽取」，实测
  *     Modals.tsx 仅含 123929–124126；子段 NEt/PEt/W2/G2/FEt/K2/IEt/LEt（当前
@@ -44,7 +44,7 @@
  *        SEt 校验/目标构建 + CEt/wEt/TEt/EEt/DEt 流助手；
  *     b) 原 127340–127925：rOt 连接日志步 / oOt 类型步 / sOt 设置步壳 / cOt 目录步（含三同步卡）。
  *     fOt 渲染的四个步骤组件即 b) 隙段，本文件以 declare 挂接。
- *  4. mOt…bOt（原 128526–128567，家目录感知显示名/工作区菜单过滤）已随 Home.tsx 抽取，
+ *  4. mOt…bOt（原 128543–128584，家目录感知显示名/工作区菜单过滤）已随 Home.tsx 抽取，
  *     本文件不重复；Home.tsx 1192 行 `pOt = fOt` 接口级登记，整合期指向本实现。
  *  5. i18n：`remote/ssh/server/wsl/docker.*` 键全部保留原键名；隙段 a) 的 xEt 亦消费
  *     `remote.*StepTitle/Description` 键（declare 注释留痕）。

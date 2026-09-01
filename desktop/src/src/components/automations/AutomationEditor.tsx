@@ -93,7 +93,7 @@ declare const WorkspaceSelectRow: React.FC<{
   containerClassName?: string;
   triggerClassName?: string;
   triggerIndicator?: React.ReactNode;
-}>; // a4（Home.tsx，js 128568）
+}>; // a4（Home.tsx，styles 128585）
 declare const ModeSelector: React.FC<{
   option: ConfigOption | null;
   provider?: string;
