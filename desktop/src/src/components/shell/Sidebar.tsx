@@ -3669,7 +3669,12 @@ interface WorkspaceSidebarProps {
      〔A1-P2-B7〕留批族：生产面 WebRemoteSwitcherService（components/remote/WebRemote @317：
      listWorkspaces→Promise<MobileHomeResult>，WebRemoteWorkspaceInfo.workspacePurpose 含 null）
      与本消费面（SidebarLeaves @3337：Promise<WebRemoteTaskIndex>，workspacePurpose 无 null）
-     型别分叉在属外两叶，非本泳道可闭——证见 A1-P2-B7.report.md §七。 */
+     型别分叉在属外两叶，非本泳道可闭——证见 A1-P2-B7.report.md §七。
+     〔A1-P2-B8〕证据固化：双路探针实测（逐点修 / 单面别名）均非单叶可闭——分叉四点
+     （workspacePurpose null 支 / WebRemoteWorkspace 索引签名无生产面对应 / TaskMeta.title
+     null 支（WebRemote.TaskMeta vs SkillStore canonical）/ updateMobileViewState 返回
+     Promise<unknown> vs Promise<void>）+ markTaskRead 消费面守卫调用（生产面未声明）+
+     消费面内部态 useState<WebRemoteTaskIndex> 联动——逐字证见 A1-P2-B8.report.md §六。 */
   webRemoteControlWorkspaceSwitcher?: WebRemoteSwitcher | null;
   theme: ThemeId;
   /* 〔A1-P2-B7〕远端三回调族收敛：rVt 内零消费（AST 全量取证：无调用、无下传）＝死面透传，

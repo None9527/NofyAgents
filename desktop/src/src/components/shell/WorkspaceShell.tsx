@@ -217,6 +217,7 @@ import { customProviderRef, nativeProviderRef, DesktopMenuActionIds, appHeaderTe
 import { taskEntityKey } from '../../modules/StoresDeep';
 import { type TerminalService } from '../../modules/TerminalPane'; // A0-CLEANUP4：WorkspaceServices.terminalService 型（注册表透传面）
 import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle, type UpdateState } from '../../modules/TopBar';
+import { toWorkspacePrepareError as normalizeReloadError } from '../conversation/ConversationModelInit'; // 〔A1-P2-B8→编排方合并执行〕原 VUe declare 改指逐字真身（52969-52974；调用面 toReloadSessionError 逐字不变）
 import { WebRemoteMobileShell, type MobileHomeResult, type TaskMeta as WebRemoteTaskMeta, type WebRemoteSwitcherService } from '../../modules/WebRemote';
 import type { CodeViewerSource, FileTreeRequest, RemoteLogsByWorkspaceKey, SidebarUser, ThemeId } from './Sidebar'; // 〔A1-P2-B7〕Sidebar 型收敛五族 canonical 改指（onOpenCodeViewer/fileTreeOpenRequest/logs/user/theme）；值面 rVt 改指待族 5（switcher）闭合——见下方 declare 注
 import { useBaseServices, useServices, useResolvedWorkspaceServices as useWorkspaceServicesResolver } from '../../modules/services'; // 〔A1-P2-B2〕+useWorkspaceServicesResolver（原 Dc ≡ services/remoteServices useResolvedWorkspaceServices 真身，删碑见下 tabs 域）
@@ -431,7 +432,22 @@ declare function mergeConfigOptions(
   fetched: ConfigOption[],
   provider: string,
 ): ConfigOption[];
-declare function normalizeReloadError(error: unknown, input: { workspacePath: string; provider: string }): Error;
+/* ── 〔A1-P2-B8〕项 1 取證留批：本 declare ≡ VUe（bundle 52969-52974 逐字：
+ *    `DM(BUe(e, t.displayMessage), { fallbackCode: 'WORKSPACE_PREPARE_FAILED',
+ *    taskId: t.taskId })`，无 detail 则补 `zUe(t)` 上下文行）；域 = zcode-model-init
+ *    （NM@52999 日志实证），内属 DM@52886 / zUe@52934 / BUe@52957 同区。
+ *    全束唯一消费面 = wJt@185861（本文件 toReloadSessionError 真身，调用面 185862）。
+ *    canonical = ConversationModelInit.toWorkspacePrepareError（P1 泳道导出，主树在位；
+ *    本泳道基线 ae187fb 无该叶——实测 find/grep 全树零命中）。裁定：不臆造过渡面，
+ *    留批；待合并基线收入该叶后改指（R1 判例，调用面逐字不变，删本 declare）。
+ *    〔编排方合并执行〕：触发条件满足——canonical 在位实证 = components/conversation/
+ *    ConversationModelInit.ts@192 export function toWorkspacePrepareError(e,t)（P1 泳道
+ *    叶，映射表头「VUe → toWorkspacePrepareError 52968」自记；泳道基线 ae187fb 早于该
+ *    叶合并故零命中）。本行删碑，别名导入保调用面逐字（下方 toReloadSessionError 内
+ *    normalizeReloadError(error, {workspacePath, provider}) 不变；真身参型 any 相容，
+ *    displayMessage/taskId 缺省支 ≡ bundle 185862 传面实况）。 ── */
+/* ── tombstone〔A1-P2-B8→编排方合并执行〕：declare normalizeReloadError（原 VUe，52969-52974）删除 →
+ *    改指 ../conversation/ConversationModelInit toWorkspacePrepareError@192（别名导入，文件头在案）。 ── */
 /* ── tombstone〔A1-P2-B1〕：declare supplierKeyFromProviderId（原 mi）删除 → 改名改指 SrcSharedB customProviderRef
  *    （mi 真身：styles 697 `j as mi` ← src `lS as j` ≡ lS 8984 ≡ lib/providerRefs customProviderRef 逐字同形 `${CUSTOM_PROVIDER_REF_PREFIX}${e.trim()}`）。删碑：mi 185903/185907（kJt 消费）。
  *    declare defaultSupplierKeyForProvider（原 On）删除 → 改名改指 SrcSharedB nativeProviderRef（R33 实证：On ≡ M ≡ cS 8981）。删碑：On 185908。
@@ -1492,7 +1508,7 @@ export { SidebarSessionDropProvider, useSidebarSessionDrop, type SidebarSessionD
 
 /** 原 rVt Sidebar（F01 根，js 159137-160322 / jsx 132075）：
  *  aside flex h-full flex-col = h-12 drag 条 + 导航 4 行 + 分段行 + 任务/项目列表 + 页脚 */
-declare const Sidebar: React.FC<Record<string, unknown>>; // 属主 Sidebar.tsx 已导出 WorkspaceSidebar（rVt，@3664）；〔A1-P2-B6〕实测改指触发 11 处型失配（证存 /tmp/a1r0-p2/tsc-inner-p2b6-sidebar-probe.log）。〔A1-P2-B7〕型收敛探针批：11 失配五族逐族取证，10 族已收敛（onSelectTask 四参 null 支 / onOpenCodeViewer canonical 迁 Sidebar / fileTreeOpenRequest 改指 FileTreeRequest / onCreateTask initialPrompt 形 / theme 改指 ThemeId / 远端三回调死面放宽 / logs 改指 RemoteLogsByWorkspaceKey / user 改指 SidebarUser，双面型缝见文件头导入块与 Sidebar 各注）；残 1 族＝switcher（WebRemoteSwitcherService 生产面 vs WebRemoteSwitcher 消费面，型别分叉在属外两叶 components/remote/WebRemote ↔ components/shell/SidebarLeaves，非本泳道可闭）——改指待该族闭合后一行即成，证存 /tmp/a1r0-p2/tsc-inner-p2b7-sidebar-probe2.log + A1-P2-B7.report.md §七
+declare const Sidebar: React.FC<Record<string, unknown>>; // 属主 Sidebar.tsx 已导出 WorkspaceSidebar（rVt，@3664）；〔A1-P2-B6〕实测改指触发 11 处型失配（证存 /tmp/a1r0-p2/tsc-inner-p2b6-sidebar-probe.log）。〔A1-P2-B7〕型收敛探针批：11 失配五族逐族取证，10 族已收敛（onSelectTask 四参 null 支 / onOpenCodeViewer canonical 迁 Sidebar / fileTreeOpenRequest 改指 FileTreeRequest / onCreateTask initialPrompt 形 / theme 改指 ThemeId / 远端三回调死面放宽 / logs 改指 RemoteLogsByWorkspaceKey / user 改指 SidebarUser，双面型缝见文件头导入块与 Sidebar 各注）；残 1 族＝switcher（WebRemoteSwitcherService 生产面 vs WebRemoteSwitcher 消费面，型别分叉在属外两叶 components/remote/WebRemote ↔ components/shell/SidebarLeaves，非本泳道可闭）——改指待该族闭合后一行即成，证存 /tmp/a1r0-p2/tsc-inner-p2b7-sidebar-probe2.log + A1-P2-B7.report.md §七。〔A1-P2-B8〕switcher 族 P2 侧处置：双路探针实测分叉四点 + 消费面两处内联依赖（逐点修/单面别名均非单叶可闭），P2 双面（WS 生产面型 / Sidebar 消费面型）裁定维持 B7 态不动，属外裁定申请与逐字证据见 A1-P2-B8.report.md §六，探针日志 /tmp/a1r0-p2/tsc-inner-p2b8-switcher-probe*.log
 
 /** 原 xqt SidePanel（F04 根，js 182519-183363 / jsx 147333）：
  *  右侧多标签面板（文件树/Git/白板/轨迹/子代理目录…）。
@@ -3709,11 +3725,14 @@ function useAppChromeState(input: {
 
 const RELOAD_SESSION_DEBOUNCE_MS = 1200; // 原 CJt
 
-/** 原 wJt（js 185567）：重建失败 → 带上下文的 Error（VUe 归一化） */
+/** 原 wJt（js 185567）：重建失败 → 带上下文的归一化对象（VUe 归一化）。
+ *  〔A1-P2-B8→编排方合并执行〕型缝修正：原返回注 `: Error` 承自旧 declare 暂代面；
+ *  VUe 改指逐字真身后实证返回普通对象（ConversationModelInit normalizeWorkspacePrepareError
+ *  对象字面量返面，52957-52966 区；bundle wJt@185861 直传 VUe 返值），改注真形。 */
 function toReloadSessionError(
   error: unknown,
   input: { workspacePath: string; provider: string },
-): Error {
+): { code: any; message: any; detail: any; traceId: any; taskId: any } {
   return normalizeReloadError(error, {
     workspacePath: input.workspacePath,
     provider: input.provider,
