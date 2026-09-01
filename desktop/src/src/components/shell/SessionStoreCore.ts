@@ -8,8 +8,10 @@
 //   ROUNDTRIP EXACT（38 行）在案（/tmp/a1r0-p3/p3b2-roundtrip.js）；体内 10 局部保留混淆名（B5 约定）。
 // 型缝 10 处全型层 P1（顶层函数参数宽化 :any，真身缺位调用面逐字优先）；缝清单见各参数位。
 //
+// 〔A1-P3-B3〕US/ZAe 归一：canonical 迁 services/sessionIndex §B5-transport（zS/oAe 同批转录段），
+//   本叶 US/ZAe 实体墓碑 + 再导出（导出面不变；同形证据见 A1-P3-B3.report.md §四）。
 // 映射表（minified → 语义名 → bundle 定义行）：
-//   【区内顶层（本叶实体）】
+//   【区内顶层（US/ZAe 改再导出；余为本叶实体）】
 //   US→scopeSubscriptionLabel(35443) | ZAe→sameScopeSubscriptionEntry(35446)
 //   WS→sessionScopeWorkspaceKey(35526) | GS→sessionStoreKey(35529) | $Ae→storeKeyOfRegistrySession(35532)
 //   KS→resolveSessionScope(35535) | qS→sessionSubscriptionKey(35543) | eje→isSessionStoreHydrating(35546)
@@ -21,18 +23,10 @@
 /* eslint-disable */
 import { sessionIndexPoolKey } from '../../modules/services'; // 原 BS（styles 35408；services/sessionIndex 499 逐字同形）
 
-function scopeSubscriptionLabel(e: any) {
-  return `${e.endpointKey ?? `__base__`}:${e.workspaceKey}`;
-}
-function sameScopeSubscriptionEntry(e: any, t: any) {
-  return (
-    e.agentService === t.agentService &&
-    e.scope.workspaceKey === t.scope.workspaceKey &&
-    e.scope.workspacePath === t.scope.workspacePath &&
-    e.scope.workspaceIdentity === t.scope.workspaceIdentity &&
-    e.scope.endpointKey === t.scope.endpointKey
-  );
-}
+/* ── tombstone（A1-P3-B3）：scopeSubscriptionLabel/sameScopeSubscriptionEntry（原 US/ZAe，
+ *    styles 35443–35454）本地逐字实体删除——canonical 位随 zS/oAe 转录段落 services/sessionIndex
+ *    §B5-transport（同区段同真身，避免逐字双实体）；本叶改再导出，导出面不变。 ── */
+export { scopeSubscriptionLabel, sameScopeSubscriptionEntry } from '../../services/sessionIndex';
 function sessionScopeWorkspaceKey(e: any) {
   return e.workspaceIdentity?.trim() || e.workspacePath;
 }
@@ -61,6 +55,6 @@ function isSessionStoreHydrating(e: any) {
 }
 
 export {
-  scopeSubscriptionLabel, sameScopeSubscriptionEntry, sessionScopeWorkspaceKey, sessionStoreKey,
+  sessionScopeWorkspaceKey, sessionStoreKey,
   storeKeyOfRegistrySession, resolveSessionScope, sessionSubscriptionKey, isSessionStoreHydrating,
-};
+}; // scopeSubscriptionLabel/sameScopeSubscriptionEntry 已于上方再导出（A1-P3-B3 归一）

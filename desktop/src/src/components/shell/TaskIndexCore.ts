@@ -1,7 +1,8 @@
 // A1-P3-B2：任务索引/乐观事件族逐字重建（styles js 32249–32720，472 行，72 内部局部，59 顶层符）。
 // 真身基准（只读）：desktop/src/out/renderer/assets/styles-CdEGpc2x.js（md5 48d71d4874b0868d61fd35a328bf6ad5）。
 // 区域原子性：nOe–jOe 59 顶层符连续区；区外消费面 = 批 1 叶 TaskListQueryCore（rx/oOe/sOe/ux/dx/px/Ex/Ox/jOe）
-//   + QuickPick/SidebarLeaves 域（_Oe/vOe/yOe 持有臂等，留批收敛）；边界校准：32249–32258 三 reason Set 为
+//   + QuickPick/SidebarLeaves 域（_Oe/vOe/yOe/bOe 持有臂与 Cx=readTaskIndexShard 已于 A1-P3-B3 收敛改指本叶）；
+//   边界校准：32249–32258 三 reason Set 为
 //   nx/oOe 直接依赖的独立 var 语句，纳入区首（原子补正）。
 // 转录机制：AST 精确改名（172 处：自由符引用 14 名 + 顶层引用 45 名 + 顶层声明锚 59），往返核对
 //   ROUNDTRIP EXACT（472 行）在案（/tmp/a1r0-p3/p3b2-roundtrip.js）；体内 72 局部保留混淆名（B5 约定）。

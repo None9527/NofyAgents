@@ -130,6 +130,7 @@ import { formatRelativeTime } from '../../modules/SidePanel'; // $S
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
+import { readTaskIndexShard as fetchTaskIndex } from './TaskIndexCore'; // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上述 chunk；此处为重建接口）
@@ -469,7 +470,9 @@ interface TaskIndexResult {
   titleOverrideByTaskId: Map<string, string>;
   cronAutomationIdByTaskId: Map<string, string>;
 }
-declare function fetchTaskIndex(args: { service: ZCodeTaskServiceLike; scopes: WorkspaceScope[] }): Promise<TaskIndexResult>; // Cx
+/* ── tombstone（A1-P3-B3）：declare function fetchTaskIndex（原 Cx，styles 32476）删除，
+ *    改经文件头 ./TaskIndexCore import 消费（canonical = readTaskIndexShard，A1-P3-B2 逐字转录；
+ *    1524 调用点逐字不变）。TaskIndexResult 接口留存（1510 GroupedViewLoadCache 泛型消费）。 ── */
 interface DynamicWorkspaceEvent {
   type: string;
   reason?: string;

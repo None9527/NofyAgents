@@ -493,8 +493,11 @@ interface SessionIndexPoolEntry {
 const sessionIndexPool = new Map<string, SessionIndexPoolEntry>(); // 原 LS
 const sessionIndexPoolReverse = new WeakMap<SessionIndexStore, SessionIndexPoolEntry>(); // 原 RS
 
-declare function createWorkspaceSessionIndexTransport(scope: { workspacePath?: string; workspaceIdentity?: string }, agentService: unknown): SessionIndexTransport; // 原 zS=oAe
-declare function workspaceIdentityOf(scope: { workspacePath: string; workspaceIdentity?: string | null }): string; // 原 WS
+/* ── tombstone（A1-P3-B3）：declare createWorkspaceSessionIndexTransport（原 zS=oAe）删除——
+ *    逐字真身（styles 33318–33320/34805–34942/35405–35408）已按 B5 体例转录至本文件尾部
+ *    §B5-transport 段（ROUNDTRIP[transport] EXACT 157 行在案），调用点 518/533 逐字不变。
+ *    declare workspaceIdentityOf（原 WS）删除——真身 = SessionStoreCore.sessionScopeWorkspaceKey
+ *    （styles 35526–35528，A1-P3-B2 转录）；本 declare 在 A0 面零消费，改指不立本地副本。 ── */
 
 export function sessionIndexPoolKey(scope: SessionIndexScope, agentService?: unknown): string {
   const base = `${scope.endpointKey ?? "__base__"}\u0000${scope.workspaceKey}`;
@@ -564,7 +567,8 @@ export class WorkspaceSubscriptionSet {
     const acquiredKeys: string[] = [];
     for (const [key, entry] of this.active) {
       const wanted = target.get(key);
-      if (wanted && entry.agentService === wanted.agentService && entry.scope.workspaceKey === wanted.scope.workspaceKey && entry.scope.workspacePath === wanted.scope.workspacePath && entry.scope.workspaceIdentity === wanted.scope.workspaceIdentity && entry.scope.endpointKey === wanted.scope.endpointKey) {
+      // 〔A1-P3-B3〕US/ZAe 归一：内联五字段比较改指逐字 canonical sameScopeSubscriptionEntry（原 ZAe，styles 35446–35454；同形证据见 A1-P3-B3.report.md §四）
+      if (wanted && sameScopeSubscriptionEntry(entry, wanted)) {
         continue;
       }
       if (wanted && entry.agentService !== wanted.agentService && (entry.scope.endpointKey ?? "__base__") !== "__base__") {
@@ -574,12 +578,12 @@ export class WorkspaceSubscriptionSet {
         if (sameStore) releaseSessionIndexStore(entry.scope, entry.store);
         else this.disposeEntry(entry);
         this.active.set(key, { ...wanted, store: nextStore, unsubscribeStore: unsubscribe });
-        releasedKeys.push(scopeLabel(entry.scope));
-        acquiredKeys.push(scopeLabel(wanted.scope));
+        releasedKeys.push(scopeSubscriptionLabel(entry.scope));
+        acquiredKeys.push(scopeSubscriptionLabel(wanted.scope));
         changed = true;
         continue;
       }
-      releasedKeys.push(scopeLabel(entry.scope));
+      releasedKeys.push(scopeSubscriptionLabel(entry.scope));
       this.disposeEntry(entry);
       this.active.delete(key);
       changed = true;
@@ -587,7 +591,7 @@ export class WorkspaceSubscriptionSet {
     for (const [key, wanted] of target) {
       if (this.active.has(key)) continue;
       const store = acquireSessionIndexStore(wanted.scope, wanted.agentService);
-      acquiredKeys.push(scopeLabel(wanted.scope));
+      acquiredKeys.push(scopeSubscriptionLabel(wanted.scope));
       this.active.set(key, { ...wanted, store, unsubscribeStore: store.subscribe(this.onStoreChange) });
       changed = true;
     }
@@ -610,7 +614,7 @@ export class WorkspaceSubscriptionSet {
 
   dispose(): void {
     if (this.active.size > 0) {
-      logger.info("[v4-sessions-index] workspace subscription set disposed", { releasedScopeKeys: [...this.active.values()].map((entry) => scopeLabel(entry.scope)) });
+      logger.info("[v4-sessions-index] workspace subscription set disposed", { releasedScopeKeys: [...this.active.values()].map((entry) => scopeSubscriptionLabel(entry.scope)) });
     }
     for (const entry of this.active.values()) this.disposeEntry(entry);
     this.active.clear();
@@ -622,6 +626,196 @@ export class WorkspaceSubscriptionSet {
   }
 }
 
-function scopeLabel(scope: SessionIndexScope): string {
-  return `${scope.endpointKey ?? "__base__"}:${scope.workspaceKey}`;
+/* ── tombstone（A1-P3-B3）：scopeLabel（A0 语义名）删除——与逐字 US（styles 35443–35445）消费面
+ *    实测同形（同模板 `${endpointKey ?? "__base__"}:${workspaceKey}`；5 处调用位全传 scope 对象），
+ *    归一保留逐字 canonical scopeSubscriptionLabel（见下方 §B5-transport 段），调用点改指。 ── */
+
+/* ============================================================================
+ * §B5-transport（A1-P3-B3 逐字段）：zS/oAe 传输族 + US/ZAe twins canonical
+ * ----------------------------------------------------------------------------
+ * 真身基准（只读）：desktop/src/out/renderer/assets/styles-CdEGpc2x.js
+ *   （md5 48d71d4874b0868d61fd35a328bf6ad5，行号一律以它为准）。
+ * 区段（四子区，非连续；中间 33321–34804 协议簇与 34943–35404/35409–35442 不属本段）：
+ *   33318–33320（_ke）+ 34805–34942（oAe）+ 35405–35408（zS）+ 35443–35454（US/ZAe）
+ * 转录机制：AST 精确改名（13 处：自由符引用 6 名 + 顶层声明锚 5 + 顶层引用 2），
+ *   往返核对 ROUNDTRIP[transport] EXACT（157 行）在案（/tmp/a1r0-p3/p3b2-roundtrip.js）；
+ *   体内 30 局部保留混淆名（B5 约定）。与既有 A0-S4-5 语义段并存（本段为逐字补面）。
+ * 映射表（minified → 语义名 → bundle 定义行）：
+ *   _ke→sessionIndexTopicKey(33318) | oAe→sessionIndexTransportFactory(34805)
+ *   zS→createWorkspaceSessionIndexTransport(35405)
+ *   US→scopeSubscriptionLabel(35443) | ZAe→sameScopeSubscriptionEntry(35446)
+ *   （US/ZAe 归一：SessionStoreCore 同形实体改为本段再导出，A1-P3-B3 §四）
+ * 区外自由符（协议簇 33505–34804，留批）→ 段内环境声明：
+ *   oS→sessionIndexFrameSchema(33505) | bS→SessionIndexTopicMultiplexer(33890)
+ *   AS→sessionTransportHandshake(34647) | MS→sessionIndexInflightTracker(34677)
+ *   NS→sessionFrameAssembly(34746)
+ * 型缝（全型层，禁抑制符）×30：P1 顶层函数参数 :any ×8（5 函）+ P1 返回对象字面量
+ *   方法参数 :any ×8（subscribe/activate/resync/unsubscribe/onFrame/onAssemblyFault/
+ *   onRuntimeRestart/onRuntimeLifecycle，方法位隐 any 收口）；S5 容器泛型 ×4
+ *   （a/o/s/c = new Set<any>()）；S6 声明位宽化 ×4（d/f/p/m : any = null）；
+ *   S16 any 接收面回调参数 :any ×6（sessionFrameAssembly 双回调 / sessionIndexInflightTracker
+ *   回调 / onDynamicSessionsIndexFrame 回套 / onAgentRuntimeRestarted / onAgentRuntimeLifecycle）。
+ * ==========================================================================*/
+declare const sessionIndexFrameSchema: any; // 原 oS（styles 33505，协议簇留批）
+declare class SessionIndexTopicMultiplexer { constructor(e: any); } // 原 bS（styles 33890，协议簇留批）
+declare function sessionTransportHandshake(e: any): any; // 原 AS（styles 34647，协议簇留批）
+declare function sessionIndexInflightTracker(e: any): any; // 原 MS（styles 34677，协议簇留批）
+declare function sessionFrameAssembly(e: any, t: any, n: any): any; // 原 NS（styles 34746，协议簇留批）
+
+export function sessionIndexTopicKey(e: any) {
+  return `sessions-index/${e}`;
+}
+export function sessionIndexTransportFactory(e: any, t: any) {
+  let n = {
+      workspacePath: t.workspacePath,
+      ...(t.workspaceIdentity ? { workspaceIdentity: t.workspaceIdentity } : {}),
+    },
+    r = () =>
+      !e.helloConversationV4 || !e.initializeConversationV4
+        ? Promise.reject(Error(`fault.connection.handshakeUnavailable`))
+        : sessionTransportHandshake(e),
+    i = sessionIndexTopicKey(t.workspaceIdentity?.trim() || t.workspacePath),
+    a = new Set<any>(),
+    o = new Set<any>(),
+    s = new Set<any>(),
+    c = new Set<any>(),
+    l = sessionFrameAssembly(
+      new SessionIndexTopicMultiplexer(sessionIndexFrameSchema),
+      (e: any, t: any) => {
+        for (let n of a) n(e, { deliveryKind: t });
+      },
+      (e: any) => {
+        for (let t of o) t(e);
+      },
+    ),
+    u = sessionIndexInflightTracker((e: any) => {
+      l.accept(e);
+    }),
+    d: any = null,
+    f: any = null,
+    p: any = null,
+    m: any = null,
+    h = 0,
+    g = t.workspaceIdentity?.trim() || t.workspacePath;
+  return {
+    async subscribe(t: any) {
+      await r();
+      let a = u.begin(i),
+        o = h;
+      try {
+        let r = await e.subscribeSessionsIndexV4({
+          ...n,
+          runtimePolicy: `existing-only`,
+          ...(t.base ? { base: t.base } : {}),
+          ...(t.visibility ? { visibility: t.visibility } : {}),
+        });
+        if (o !== h) throw (u.cancel(a), Error(`fault.subscription.runtimeRestarted`));
+        try {
+          u.bind(a, r.ack.subscriptionId);
+        } catch (t) {
+          try {
+            await e.unsubscribeSessionsIndexV4({
+              ...n,
+              subscriptionId: r.ack.subscriptionId,
+              runtimePolicy: `existing-only`,
+            });
+          } catch (e) {
+            logger.warn(`[v4-sessions-index] failed to undo rejected subscription`, e);
+          }
+          throw t;
+        }
+        return r;
+      } catch (e) {
+        throw (u.cancel(a), e);
+      }
+    },
+    activate(e: any) {
+      let t = u.activate(e);
+      (t && (m = e), t?.previousSubscriptionId && l.discard(t.topic, t.previousSubscriptionId));
+    },
+    async resync(t: any) {
+      if ((await r(), m !== t.subscriptionId)) throw Error(`fault.subscription.notOwned`);
+      return (
+        l.recover(i, t.subscriptionId),
+        e.resyncSessionsIndexV4({
+          ...n,
+          subscriptionId: t.subscriptionId,
+          base: t.base,
+          runtimePolicy: `existing-only`,
+          ...(t.forceSnapshot === void 0 ? {} : { forceSnapshot: t.forceSnapshot }),
+        })
+      );
+    },
+    async unsubscribe(t: any) {
+      return (
+        u.forget(t),
+        m === t && (m = null),
+        l.discard(i, t),
+        await r(),
+        e.unsubscribeSessionsIndexV4({ ...n, subscriptionId: t, runtimePolicy: `existing-only` })
+      );
+    },
+    onFrame(t: any) {
+      return (
+        a.add(t),
+        (d ??= e.onDynamicSessionsIndexFrame(n)((e: any) => u.accept(e))),
+        () => {
+          (a.delete(t), a.size === 0 && (d?.dispose(), (d = null)));
+        }
+      );
+    },
+    onAssemblyFault(e: any) {
+      return (o.add(e), () => o.delete(e));
+    },
+    onRuntimeRestart(t: any) {
+      return (
+        s.add(t),
+        (f ??= e.onAgentRuntimeRestarted((e: any) => {
+          if (e.workspaceKey === g) {
+            ((h += 1), u.clear(), l.clear(), (m = null));
+            for (let e of s) e();
+          }
+        })),
+        () => {
+          (s.delete(t), s.size === 0 && (f?.dispose(), (f = null)));
+        }
+      );
+    },
+    ...(e.onAgentRuntimeLifecycle
+      ? {
+          onRuntimeLifecycle(t: any) {
+            let n = c;
+            return (
+              n.add(t),
+              (p ??=
+                e.onAgentRuntimeLifecycle?.((e: any) => {
+                  if (e.workspaceKey === g) {
+                    ((h += 1), u.clear(), l.clear(), (m = null));
+                    for (let t of n) t(e.state);
+                  }
+                }) ?? null),
+              () => {
+                (n.delete(t), n.size === 0 && (p?.dispose(), (p = null)));
+              }
+            );
+          },
+        }
+      : {}),
+  };
+}
+export function createWorkspaceSessionIndexTransport(e: any, t: any) {
+  let n = e.workspaceIdentity?.trim();
+  return sessionIndexTransportFactory(t, { workspacePath: e.workspacePath, ...(n ? { workspaceIdentity: n } : {}) });
+}
+export function scopeSubscriptionLabel(e: any) {
+  return `${e.endpointKey ?? `__base__`}:${e.workspaceKey}`;
+}
+export function sameScopeSubscriptionEntry(e: any, t: any) {
+  return (
+    e.agentService === t.agentService &&
+    e.scope.workspaceKey === t.scope.workspaceKey &&
+    e.scope.workspacePath === t.scope.workspacePath &&
+    e.scope.workspaceIdentity === t.scope.workspaceIdentity &&
+    e.scope.endpointKey === t.scope.endpointKey
+  );
 }

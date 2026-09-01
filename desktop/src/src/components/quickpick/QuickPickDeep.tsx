@@ -129,6 +129,7 @@ import { dedupeWorkspaceScopes, sessionActivityOf, compareTasks as compareTaskRe
 import { SessionIndexStore, WorkspaceSubscriptionSet, sessionIndexPoolKey, useBaseServices, type SessionIndexScope } from '../../modules/services';
 /* ── A0-D-Misc 接线：Vo 搜索结果 store 属主 = QuickPick（useSearchResultsStore，QuickPick.tsx 1553–1878） ── */
 import { useSearchResultsStore as SearchResultsStore } from '../../modules/QuickPick'; // 原 Vo（QuickPick.tsx 已实体化）：搜索结果/未读覆盖 store
+import { armMembershipRefreshHold, releaseMembershipRefreshHold, readMembershipRefreshHoldState, awaitMembershipRefreshHold } from '../shell/TaskIndexCore'; // 〔A1-P3-B3〕§3 持有臂归一：原 mx/hx/_Oe/vOe/yOe/bOe 语义实体改指逐字 canonical（styles 32411–32438，A1-P3-B2 转录）；环安全见 §3 墓碑注
 
 /* ============================================================================
  * 0. 外部依赖类型声明
@@ -511,49 +512,21 @@ export function syncBackgroundTerminalUnread(args: {
 
 /* ============================================================================
  * §3 成员刷新保持（原 32414–32438）
+ * ----------------------------------------------------------------------------
+ * 〔A1-P3-B3〕收敛墓碑：本节语义实体（原 mx/hx/_Oe/vOe/yOe/bOe）与 TaskIndexCore 逐字转录
+ *   （styles 32411–32438，A1-P3-B2）消费面行为实测同形（证据见 A1-P3-B3.report.md §五）：
+ *   同状态机 {armed, enteredCallCount, released}、重复 arm 同抛错、await 同计数并等释放。
+ *   canonical = 逐字方（TaskIndexCore）；本节四实体删除，改文件头 import + 原处再导出，
+ *   导出面不变（getMembershipHoldStats = readMembershipRefreshHoldState 别名）。
+ *   arm 清空目标随归一改逐字方 clearTaskIndexCache（原 TOe）；本叶 §5 clearTaskIndexSnapshots
+ *   及其 taskIndexSnapshotCache 属 §4/§5 语义孪生余量，留批裁定（A1-P3-B3.report.md §七）。
+ *   环安全：TaskIndexCore→本叶（4 Now 包装）与本叶→TaskIndexCore（本节 4 臂）互为环边，
+ *   双方顶层全函数/var 声明、零顶层即刻跨模块调用，ESM 提升安全（本叶↔modules/services↔
+ *   services/sessionIndex↔modules/QuickPickDeep 既有环同构，fresh boot 实测在案）。
  * ==========================================================================*/
 
-interface MembershipHold {
-  released: Promise<void>;
-  release: () => void;
-}
-let membershipHold: MembershipHold | null = null; // 原 mx
-let membershipHoldStats = { armed: !1, enteredCallCount: 0, released: !0 }; // 原 hx
-
-/** 原 _Oe（32416）：启动保持；重复启动抛错 */
-export function armMembershipRefreshHold(): void {
-  if (membershipHold) throw Error(`task list membership refresh hold 已经启动`);
-  let release!: () => void;
-  membershipHold = {
-    released: new Promise((resolve) => {
-      release = resolve;
-    }),
-    release,
-  };
-  membershipHoldStats = { armed: !0, enteredCallCount: 0, released: !1 };
-  clearTaskIndexSnapshots();
-}
-/** 原 vOe（32428） */
-export function releaseMembershipRefreshHold(): void {
-  const hold = membershipHold;
-  if (hold) {
-    membershipHold = null;
-    membershipHoldStats = { ...membershipHoldStats, armed: !1, released: !0 };
-    hold.release();
-  }
-}
-/** 原 yOe（32432） */
-export function getMembershipHoldStats(): { armed: boolean; enteredCallCount: number; released: boolean } {
-  return { ...membershipHoldStats };
-}
-/** 原 bOe（32435）：保持期间进入的加载等待释放 */
-export async function awaitMembershipRefreshHold(): Promise<void> {
-  const hold = membershipHold;
-  if (hold) {
-    membershipHoldStats = { ...membershipHoldStats, enteredCallCount: membershipHoldStats.enteredCallCount + 1 };
-    await hold.released;
-  }
-}
+export { armMembershipRefreshHold, releaseMembershipRefreshHold, awaitMembershipRefreshHold };
+export { readMembershipRefreshHoldState as getMembershipHoldStats };
 
 /* ============================================================================
  * §4 跨分片任务索引加载（原 32439–32527）
