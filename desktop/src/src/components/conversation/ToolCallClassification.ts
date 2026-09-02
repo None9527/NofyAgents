@@ -1,4 +1,11 @@
 // A1-P1-B18：工具分类/文件摘要域逐字重建（styles js 22573–22860 + 22861–22995 + 23029–23186 + 23215–23273 + 23393–23749，66 实体）。
+// A1-P1-B19：B18 区段切分界外段闭合——Ih/Lh/Rh/zh/Bh@22656–22691（编辑载荷提取族）+ sg/cg@23187–23195（file-write 子族判定）
+//   并入本叶（7 实体，域吻合裁定：段落本在 B18 区段行范围内，头注墓碑预留本批）。消费面 = PreviewCards 余 5 declare 全闭
+//   （cg/sg/Bh/Rh 转录 + Kh@22830 改指 B18 既有实体）。新跨 chunk 依赖：gte→isFileWriteToolName（styles 681 导入 h as gte；
+//   SrcSharedB zS，canonical 改指，零重录）。型缝全部带〔A1-P1-B19〕（参 : any / 返回按 declare 面标注；束无类型面，接缝仅编译期）。
+//   Kh 返回面核对〔A1-P1-B19〕：bundle Kh@22830 恒返回 string（`a ? Dme(S,o) : S` 双支均 string，Dme@22573 恒返回 string），
+//   canonical 标注 `: string` 与束一致；PreviewCards 原 declare 面 `string | null` 为宽化，消费面仅真值判（2195/2203），
+//   string 为其子型直接接通，无投射缝。
 // 真身基准（只读）：desktop/src/out/renderer/assets/styles-CdEGpc2x.js（md5 48d71d4874b0868d61fd35a328bf6ad5）。
 // 落点裁定：新叶（components/conversation/ 域）。消费面 = PermissionApprovalOverlay :21/:22 + PreviewCards :218 +
 //   ToolCallBlock :47/:67 共五 declare → 真实 import 收敛。canonical 返回面 = og 全形 { toolName, family, source, isLegacy }；
@@ -12,8 +19,8 @@
 //   Jte→resolveToolViewKind（styles 721 m as Jte；§39 RS）/ ste→isTodoToolTitle（styles 666 f as ste；§40 aC）/
 //   Xr→countLineDiffChanges（styles 636 b as Xr；lib/lineDiff bS）← SrcSharedB | zc→resolveFileDisplayInfo（js 5150；ModalsLeaves）|
 //   Go→baseName（js 1928；MarkdownIntegration）| pg→isPlainRecord / hg→parseToolCallRaw（ToolStatusModel，A1-R61）。
-// 区段切分墓碑：Mh@22561（patch 解析 yh 链）与 Ih/Lh/Rh/zh/Bh@22656–22691（before/after 提取，PreviewCards Bh/Rh declare 批）界外；
-//   sg/cg@23187–23195（file-write 子族判定，PreviewCards cg/sg declare 批）界外；Ume/Wme@22996–23028（答案提取，AskUserQuestion 视图批）界外；
+// 区段切分墓碑：Mh@22561（patch 解析 yh 链）界外；Ih/Lh/Rh/zh/Bh@22656–22691 + sg/cg@23187–23195 原界外，
+//   A1-P1-B19 闭合并入本叶（见下方映射表两段及实体注记）；Ume/Wme@22996–23028（答案提取，AskUserQuestion 视图批）界外；
 //   dhe/lg/fhe/phe@23274–23300+（截断标记域）界外；23300–23389（diff 预览策略域）界外；zhe/vg/Bhe/Vhe/yg@23750+（相对路径/统计文案域）界外。
 //
 // 映射表（minified → 语义名 → bundle 定义行）：
@@ -23,6 +30,9 @@
 //   Hh→formatFullRange（22698）| Uh→formatOffsetRange（22701）| kme→commonPrefixLineCount（22704）| Ame→commonSuffixLineCount（22710）
 //   Wh→pushPrefixedLines（22716）| jme→indexUniqueLines（22719）| Mme→longestIncreasingSubsequence（22749）
 //   Nme→diffLinesUniqueAnchor（22768）| Pme→diffLinesLcs（22783）| Gh→appendLineDiff（22827）| Kh→buildUnifiedDiffText（22830）
+//   【编辑载荷提取族 22656–22691】（A1-P1-B19 并入；B18 区段切分段闭合）
+//   Ih→isEditPayloadObject（22656）| Lh→firstTrimmedPayloadField（22659）| Rh→extractBeforeAfterEdit（22666）
+//   zh→parseDiffTypedPayload（22672）| Bh→parseToolRawPayload（22682）
 //   【问句载荷族 22861–22995】
 //   Fme→CUSTOM_INPUT_OPTION_FIELDS（22861）| Ime→CUSTOM_INPUT_OPTION_PATTERN（22862）| qh→isQuestionPlainRecord（22864）
 //   Jh→firstTrimmedStringField（22867）| Lme→hasTrueField（22873）| Rme→normalizeQuestionOption（22876）
@@ -33,6 +43,8 @@
 //   ng→deepTrimmedString（23036）| rg→normalizeToolTerm（23044）| ig→classifyByName（23052）| ag→legacyClassification（23058）
 //   qme→parseRawToolMeta（23061）| Jme→isAgentLikePayload（23070）| Yme→isSkillLikePayload（23089）| Xme→hasQuestionPayload（23099）
 //   Zme→isGoalToolTerm（23102）| Qme→classifyKindTerm（23105）| $me→isSwitchModeTerm（23122）| og→classifyToolCall（23132）
+//   【file-write 子族判定 23187–23195】（A1-P1-B19 并入；B18 区段切分段闭合）
+//   sg→toolEditFamilyOf（23187）| cg→toolContentFamilyOf（23193）（sg 依赖 gte≡isFileWriteToolName：SrcSharedB canonical 改指）
 //   【_g 文件摘要族 23215–23273 + 23393–23749】
 //   uhe→countUnifiedDiffs（23215）| mg→firstStringField（23393）| xhe→extractRawDiffText（23399）| She→normalizeDiffText（23402）
 //   Che→parseDiffContent（23430）| whe→extractChangeMaps（23440）| The→lowerTrimmed（23451）| gg→isFileWriteToolCall（23454）
@@ -45,7 +57,7 @@
 import { type FileSummary, type ToolCall } from '../../modules/ConversationLeaves'; // A0-D 类型收敛：会话流共享类型 canonical
 import { baseName } from '../../modules/MarkdownIntegration'; // 原 Go（js 1928）：canonical 改指
 import { resolveFileDisplayInfo } from '../../modules/ModalsLeaves'; // 原 zc（js 5150）：canonical 改指
-import { canonicalizeToolName, resolveToolViewKind, isTodoToolTitle, countLineDiffChanges } from '../../modules/SrcSharedB'; // 原 dte/Jte/ste/Xr：canonical 改指（styles 673/721/666/636 导入别名）
+import { canonicalizeToolName, resolveToolViewKind, isTodoToolTitle, countLineDiffChanges, isFileWriteToolName } from '../../modules/SrcSharedB'; // 原 dte/Jte/ste/Xr：canonical 改指（styles 673/721/666/636 导入别名）；〔A1-P1-B19〕增 isFileWriteToolName（原 gte，styles 681 导入 h as gte；src chunk zS@9192）
 import { isPlainRecord, parseToolCallRaw } from './ToolStatusModel'; // 原 pg（styles 23390）/hg（styles 23421）：A1-R61 实体化
 
 /** 工具分类 canonical 返回面 = bundle og 全形〔A1-P1-B18〕。
@@ -163,6 +175,49 @@ function formatHunkRange(e: any, t: any) {
 
 /* ── 原 Ome（js 22655）→ DIFF_LCS_CELL_BUDGET：LCS 单元预算（6e4） ── */
 var DIFF_LCS_CELL_BUDGET = 6e4;
+
+/* ══ 编辑载荷提取族（styles 22656–22691；A1-P1-B19 并入：PreviewCards Bh/Rh declare 批，B18 区段切分段闭合） ══ */
+/* ── 原 Ih（js 22656–22658）→ isEditPayloadObject：对象载荷判定（无 Array 排除，与 pg@23390/qh@22864/tg@23030 体异，束独立定义按符号各保）〔A1-P1-B19〕 ── */
+function isEditPayloadObject(e: any) {
+  return typeof e == `object` && !!e;
+}
+/* ── 原 Lh（js 22659–22665）→ firstTrimmedPayloadField：首键非空字符串取值（Ih 守卫；局部名 t 遮蔽参数 t = 束形）〔A1-P1-B19〕 ── */
+function firstTrimmedPayloadField(e: any, t: any) {
+  if (isEditPayloadObject(e))
+    for (let n of t) {
+      let t = e[n];
+      if (typeof t == `string` && t.trim()) return t;
+    }
+}
+/* ── 原 Rh（js 22666–22671）→ extractBeforeAfterEdit：before/after 对提取（返回面 = PreviewCards 原 declare 面）〔A1-P1-B19〕 ── */
+function extractBeforeAfterEdit(e: any): { before: string; after: string } | null {
+  if (!isEditPayloadObject(e)) return null;
+  let t = firstTrimmedPayloadField(e, [`before`, `old_string`, `oldText`, `oldContent`]),
+    n = firstTrimmedPayloadField(e, [`after`, `new_string`, `newText`, `newContent`]);
+  return t !== void 0 && n !== void 0 ? { before: t, after: n } : null;
+}
+/* ── 原 zh（js 22672–22681）→ parseDiffTypedPayload：type=diff 载荷解析（oldText 缺省空串 / 非串 String 强转）〔A1-P1-B19〕 ── */
+function parseDiffTypedPayload(e: any): any {
+  return !isEditPayloadObject(e) || e.type !== `diff` || typeof e.newText != `string`
+    ? null
+    : {
+        path: typeof e.path == `string` && e.path.trim() ? e.path : void 0,
+        oldText:
+          typeof e.oldText == `string` ? e.oldText : e.oldText == null ? `` : String(e.oldText),
+        newText: e.newText,
+      };
+}
+/* ── 原 Bh（js 22682–22691）→ parseToolRawPayload：raw 载荷解析（diff 直取 / content 数组双路；返回面 = PreviewCards 原 declare 面）〔A1-P1-B19〕 ── */
+function parseToolRawPayload(e: any): { oldText?: string; newText?: string; path?: string } | null {
+  let t = parseDiffTypedPayload(e);
+  if (t) return t;
+  if (!isEditPayloadObject(e) || !Array.isArray(e.content)) return null;
+  for (let t of e.content) {
+    let e = parseDiffTypedPayload(t);
+    if (e) return e;
+  }
+  return null;
+}
 
 /* ── 原 Vh（js 22692–22697）→ splitDiffLines：空串→空数组 分行 ── */
 function splitDiffLines(e: any) {
@@ -660,6 +715,19 @@ function classifyToolCall(e: ToolClassificationInput): ToolClassification {
   return o ? { ...o, isLegacy: !0 } : DEFAULT_TOOL_CLASSIFICATION;
 }
 
+/* ══ file-write 子族判定（styles 23187–23195；A1-P1-B19 并入：PreviewCards cg/sg declare 批，B18 区段切分段闭合） ══ */
+/* ── 原 sg（js 23187–23192）→ toolEditFamilyOf：file-write 结构化写子族（Write 工具名或 write/create/save kind；gte≡isFileWriteToolName canonical 改指；默认参 t = og(e) 束形）〔A1-P1-B19〕 ── */
+function toolEditFamilyOf(e: any, t: any = classifyToolCall(e)): boolean {
+  if (t.family !== `file-write`) return !1;
+  if (isFileWriteToolName(t.toolName)) return !0;
+  let n = normalizeToolTerm(e.kind);
+  return /^(?:write|create|save)(?:_|$)/i.test(n);
+}
+/* ── 原 cg（js 23193–23195）→ toolContentFamilyOf：file-write 内容子族（file-write 且非结构化写；默认参 t = og(e) 束形）〔A1-P1-B19〕 ── */
+function toolContentFamilyOf(e: any, t: any = classifyToolCall(e)): boolean {
+  return t.family === `file-write` && !toolEditFamilyOf(e, t);
+}
+
 /* ══ _g 文件摘要族（styles 23215–23273 + 23393–23749） ══ */
 /* ── 原 uhe（js 23215–23273）→ countUnifiedDiffs：patch 文本内 unified-diff 段计数（She 多段护栏） ── */
 function countUnifiedDiffs(e: any): number {
@@ -1114,4 +1182,5 @@ function extractRawFileSummaries(e: unknown, t?: ToolCall): FileSummary[] {
 
 export {
   classifyToolCall, extractRawFileSummaries, buildUnifiedDiffText,
+  toolContentFamilyOf, toolEditFamilyOf, parseToolRawPayload, extractBeforeAfterEdit, // 〔A1-P1-B19〕PreviewCards 余件 4 declare 收敛导出（cg/sg/Bh/Rh）
 };
