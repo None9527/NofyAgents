@@ -18,7 +18,8 @@ import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modul
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
 import { isCodingPlanConnectionSelected as hasCodingPlanEntitlement, type ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依 // 〔A1-R104〕+hasCodingPlanEntitlement 改指（原 Tit declare 删碑；canonical = Home::isCodingPlanConnectionSelected@749，A0 语义重建在案，xn/zi 依赖 R27/R28 既收敛）。环安全：Home 值闭包不达 components/automations（grep 实证仅注释提及）
-import { offPeakCreateFailureMessageId } from '../../modules/StoresDeep'; // 〔A1-R104〕原 Dit declare 删碑改指 canonical = offPeakHelpers 逐字实体（StoresDeep 转导出）
+import { offPeakCreateFailureMessageId, reportTelemetry } from '../../modules/StoresDeep'; // 〔A1-R104〕原 Dit declare 删碑改指 canonical = offPeakHelpers 逐字实体（转导出） // 〔A1-R105〕+reportTelemetry：原 xw（40457）遥测总入口 canonical（StoresDeep@323，R36 实体化；PaymentDeep R26 同判例）
+import { parseCustomModelRef } from '../../modules/SrcSharedB'; // 〔A1-R105〕原 Zn（styles 544 `P as Zn` ← src iS@8966 ≡ SrcSharedB parseCustomModelRef）：MNt 深依赖 canonical
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 548 解构 {settings, update}，552/655–657 读取面（具名 + 既有 as 窄化）与 1179/1341 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
 import { formatCronSchedule as automationScheduleLabel } from '../conversation/AutomationCards'; // 〔A1-R103〕rgt 改指：原 automationScheduleLabel declare（rgt，注记行号 93602 旧口径）删除，canonical = R96 逐字实体 formatCronSchedule（同束符 rgt@109573）。环安全：AutomationCards 值闭包（React/lucide/I18n/button/UtilsCn/SettingsLeaves/ToolStatusModel）不达 components/automations
 import {
@@ -337,20 +338,82 @@ declare function resolveTakeNumberBlockReason(opts: {
   noPlan: boolean;
 }): "plan" | "unavailable" | "quota" | null; // Ijt（jsx 112770）
 declare function formatNextTakeAt(nextTakeAt: number, now: number, intl: IntlShape): string; // Ljt（jsx 112778）
-declare function trackAutomationCreated(platform: PlatformService, opts: {
-  automationId?: string;
-  cronExpr: string;
-  templateId?: string;
-  error?: string | null;
-  modelFields: unknown;
-}): void; // PNt（jsx 115735）
-declare function automationModelTelemetryFields(model: unknown, provider: unknown, providers: ModelProvider[]): unknown; // MNt（jsx 115713）
-declare function trackAutomationAction(platform: PlatformService, opts: {
-  action: string;
-  source: string;
-  automation: AutomationTask;
-  providers: ModelProvider[];
-}): void; // FNt（jsx 115752）
+/* ── tombstone〔A1-R105〕：declare 三连——trackAutomationCreated（原 PNt）/automationModelTelemetryFields（原 MNt）/
+ *    trackAutomationAction（原 FNt）删除——遥测三符 + NNt/jNt 逐字实体化于下方；深依赖全改指树内 canonical
+ *    （xw→StoresDeep::reportTelemetry R36、Zn→SrcSharedB::parseCustomModelRef）。 ── */
+/* ── 原 jNt（js 138579）→ AUTOMATION_TELEMETRY_REGION：遥测域标〔A1-R105 逐字实体化〕 ── */
+const AUTOMATION_TELEMETRY_REGION = `app.automations`;
+/* ── 原 MNt（js 138580–138596）→ automationModelTelemetryFields：模型遥测三元（model_name/provider/provider hostname）〔A1-R105 逐字实体化〕 ── */
+function automationModelTelemetryFields(e: any, t: any, n: any) {
+  let r = e?.trim() ?? ``,
+    i = parseCustomModelRef(r),
+    a = r.indexOf(`/`),
+    o = t?.trim() || i?.providerId?.trim() || (a > 0 ? r.slice(0, a).trim() : ``),
+    s = i?.modelName?.trim() || (a > 0 ? r.slice(a + 1).trim() : r),
+    c = n.find((e: any) => e.id === o),
+    l = ``;
+  if (c?.source === `custom` && c.endpoints.baseURL?.trim())
+    try {
+      l = new URL(c.endpoints.baseURL).hostname;
+    } catch {
+      l = ``;
+    }
+  return { model_name: s, model_provider: o, provider_name: l };
+}
+/* ── 原 NNt（js 138597–138607）→ sanitizeTelemetryErrorText：错误文案脱敏（url/path/凭据三遮 + 500 截）〔A1-R105 逐字实体化〕 ── */
+function sanitizeTelemetryErrorText(e: any) {
+  return e
+    ? e
+        .replace(/https?:\/\/[^\s"']+/g, `[url]`)
+        .replace(/(?:[A-Za-z]:\\|\/)[^\s"']+/g, `[path]`)
+        .replace(
+          /((?:api[_-]?key|token|authorization|password)\s*[:=]\s*)[^\s,;]+/gi,
+          `$1[redacted]`,
+        )
+        .slice(0, 500)
+    : ``;
+}
+/* ── 原 PNt（js 138608–138628）→ trackAutomationCreated：创建结果遥测（success/fail + cron/template/脱敏错误 + 模型三元展开）〔A1-R105 逐字实体化〕 ── */
+function trackAutomationCreated(e: any, t: any) {
+  return reportTelemetry(
+    e,
+    {
+      elementName: `automation_create_result`,
+      eventRegion: AUTOMATION_TELEMETRY_REGION,
+      eventType: `result`,
+      eventExtraDetail: {
+        status: t.automationId ? `success` : `fail`,
+        automation_id: t.automationId ?? ``,
+        create_source: `manual`,
+        cron_expr: t.cronExpr,
+        template_id: t.templateId ?? ``,
+        error_code: ``,
+        error_msg: t.automationId ? `` : sanitizeTelemetryErrorText(t.error),
+        ...t.modelFields,
+      },
+    },
+    `automation-telemetry`,
+  );
+}
+/* ── 原 FNt（js 138629–138647）→ trackAutomationAction：run_now/delete 点击遥测（run_now 附模型三元）〔A1-R105 逐字实体化〕 ── */
+function trackAutomationAction(e: any, t: any) {
+  return reportTelemetry(
+    e,
+    {
+      elementName: t.action === `run_now` ? `automation_run_now_ck` : `automation_delete_ck`,
+      eventRegion: AUTOMATION_TELEMETRY_REGION,
+      eventType: `ck`,
+      eventExtraDetail: {
+        automation_id: t.automation.automationId,
+        action_source: t.source,
+        ...(t.action === `run_now`
+          ? automationModelTelemetryFields(t.automation.model, t.automation.provider, t.providers)
+          : {}),
+      },
+    },
+    `automation-telemetry`,
+  );
+}
 declare function offPeakDraftTelemetry(opts: { source?: unknown; model?: unknown }): unknown; // Vjt（jsx 113296）
 declare function trackOffPeakCreateFailed(platform: PlatformService, telemetry: unknown, result: unknown): void; // Ujt（jsx 113330）
 declare function trackOffPeakCreate(platform: PlatformService, telemetry: unknown, create: () => Promise<{ ok: boolean }>): Promise<{ ok: boolean }>; // Wjt
