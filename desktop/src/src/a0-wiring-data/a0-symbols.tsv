@@ -1859,27 +1859,27 @@ section	sem	obf	line	owner
 18	ClientMessageType	Bs	3922	—
 18	面板作用域 provider	DT	42809	—
 18	useResolvedWorkspaceServices	Dc	4955	—
-18	useBaseServices	Ec/qse	—	—
+18	useBaseServices	Ec/qse	4945–4954	styles-CdEGpc2x.js
 18	解析助手	Gse	4927	—
 18	ChannelState	Hs	3941	—
 18	远端会话解析	Hse	4842	—
-18	toDisposable	Koe/qoe	—	—
+18	toDisposable	Koe/qoe	3622–3630	styles-CdEGpc2x.js
 18	解析助手	Kse	4933	—
-18	readVarint	Ms/Ns	—	—
+18	readVarint	Ms/Ns	3765–3784	styles-CdEGpc2x.js
 18	useWorkspaceServices	Oc	4993	—
 18	Event	Os	3631	—
 18	ValueType	Ps	3785	—
 18	WorkspaceSubscriptionSet	QAe	35455	—
-18	serializeValue	Rs/zs	—	—
-18	TelemetryScope	ST/CT/xFe/wT/SFe	—	—
+18	serializeValue	Rs/zs	3812–3851	styles-CdEGpc2x.js
+18	TelemetryScope	ST/CT/xFe/wT/SFe	42714–42772	styles-CdEGpc2x.js
 18	面板作用域 provider	TFe	42813	—
-18	V4Conversation	TT/CFe/wFe/ET	—	—
+18	V4Conversation	TT/CFe/wFe/ET	42773–42808	styles-CdEGpc2x.js
 18	解析助手	Tc	4930	—
 18	ServiceProxy	Us	3939	—
 18	断开占位服务	Use	4904	—
-18	store	VS/HS/BS	—	—
+18	store	VS/HS/BS	35409–35442	styles-CdEGpc2x.js
 18	ServerMessageType	Vs	3931	—
-18	isEventName	Ws/Gs	—	—
+18	isEventName	Ws/Gs	4129–4138	styles-CdEGpc2x.js
 18	解析助手	Wse	4919	—
 18	SessionIndexStore	XAe	35029	—
 18	会话命令 schema 表 \		`Yke`	—
@@ -1891,8 +1891,8 @@ section	sem	obf	line	owner
 18	遥测监督注册表 \		`bFe`	—
 18	FrameAssembler	bS	33890	—
 18	远端会话解析	bc	4868	—
-18	fact	dT/fT/pT/fFe/pFe/mFe/mT	—	—
-18	ServiceProvider	ds/fs/ps	—	—
+18	fact	dT/fT/pT/fFe/pFe/mFe/mT	41870–41940	styles-CdEGpc2x.js
+18	ServiceProvider	ds/fs/ps	2671–2682	styles-CdEGpc2x.js
 18	任务未读通知去重 \	v4 会话协议 zod schema	`dx`	—
 18	遥测监督注册表 \		`gT`	—
 18	远端会话解析	gc	4814	—
@@ -1901,10 +1901,10 @@ section	sem	obf	line	owner
 18	BufferWriter	js	3756	—
 18	Emitter	ks	3660	—
 18	bufferFirstListenerEvent	ose	4139	—
-18	provider	qs/lse/vse/Ys/hse/gse/_se	—	—
+18	provider	qs/lse/vse/Ys/hse/gse/_se	4170–4347	styles-CdEGpc2x.js
 18	useGlobalKeyboardShortcuts	rge	24063	—
 18	isFlowControlMessage	rse	3882	—
-18	toBase64	tse/nse	—	—
+18	toBase64	tse/nse	3863–3881	styles-CdEGpc2x.js
 18	BoundedStringSet	uT	41856	—
 18	任务未读通知去重 \	v4 会话协议 zod schema	`ux`	—
 18	遥测监督注册表 \		`vFe`	—
