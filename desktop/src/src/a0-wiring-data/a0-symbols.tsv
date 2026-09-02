@@ -1322,7 +1322,7 @@ section	sem	obf	line	owner
 13	图片/PDF/PPTX 投影/重预览判/纯代码判/更多菜单能力	ZVt	161064–161114	CodeViewer.tsx
 13	resolveBreadcrumb	eHt	161356	CodeViewer.tsx
 13	CodeViewerPanel	tHt	161383	CodeViewer.tsx
-13	scrollSnapshot	BVt/VVt	—	—
+13	scrollSnapshot	BVt/VVt	161257–161266	CodeViewer.tsx
 13	OfficePending	CVt	160898	—
 13	isSvgPath	EVt	160939	—
 13	useCodeCommentsStore	FH	68562	—
