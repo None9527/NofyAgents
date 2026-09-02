@@ -17,7 +17,8 @@ import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modules/Settings'; // H3 容器类
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
-import type { ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依
+import { isCodingPlanConnectionSelected as hasCodingPlanEntitlement, type ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依 // 〔A1-R104〕+hasCodingPlanEntitlement 改指（原 Tit declare 删碑；canonical = Home::isCodingPlanConnectionSelected@749，A0 语义重建在案，xn/zi 依赖 R27/R28 既收敛）。环安全：Home 值闭包不达 components/automations（grep 实证仅注释提及）
+import { offPeakCreateFailureMessageId } from '../../modules/StoresDeep'; // 〔A1-R104〕原 Dit declare 删碑改指 canonical = offPeakHelpers 逐字实体（StoresDeep 转导出）
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 548 解构 {settings, update}，552/655–657 读取面（具名 + 既有 as 窄化）与 1179/1341 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
 import { formatCronSchedule as automationScheduleLabel } from '../conversation/AutomationCards'; // 〔A1-R103〕rgt 改指：原 automationScheduleLabel declare（rgt，注记行号 93602 旧口径）删除，canonical = R96 逐字实体 formatCronSchedule（同束符 rgt@109573）。环安全：AutomationCards 值闭包（React/lucide/I18n/button/UtilsCn/SettingsLeaves/ToolStatusModel）不达 components/automations
 import {
@@ -279,7 +280,7 @@ interface OffPeakStoreState {
     allowedModels?: string[];
     allowedModelConfigs?: Array<{ id: string; modelIdByKind?: Record<string, string>; reasoning?: { levels: Record<string, unknown>; defaultLevel?: string } }>;
   } | null;
-  codingPlanSupport: unknown;
+  codingPlanSupport: { supported?: boolean; providerFamily?: string; selectedConnectionKey?: string } | null; // 〔A1-R104〕型精化：按 Tit canonical（Home::isCodingPlanConnectionSelected）参面（A0-CLEANUP3 3b 对齐模式续；本地 ambient 面自洽，不跨核）
   takeNumberAvailability: { canTakeNumber?: boolean; nextTakeAt?: number } | null;
   takeNumberAvailabilityStatus: string | null;
   operationId: string | null;
@@ -353,7 +354,7 @@ declare function trackAutomationAction(platform: PlatformService, opts: {
 declare function offPeakDraftTelemetry(opts: { source?: unknown; model?: unknown }): unknown; // Vjt（jsx 113296）
 declare function trackOffPeakCreateFailed(platform: PlatformService, telemetry: unknown, result: unknown): void; // Ujt（jsx 113330）
 declare function trackOffPeakCreate(platform: PlatformService, telemetry: unknown, create: () => Promise<{ ok: boolean }>): Promise<{ ok: boolean }>; // Wjt
-declare function offPeakCreateFailureMessageId(result: { ok: boolean; [key: string]: unknown }): string; // Dit（78941）
+/* ── tombstone〔A1-R104〕：declare offPeakCreateFailureMessageId（原 Dit 91405）删除——改指 offPeakHelpers 逐字 canonical（modules/StoresDeep 转导出，import 在案）。 ── */
 /* ── tombstone〔A1-R103〕：declare 四连——automationLifecycleOf（原 qht）/automationHasFailedRun（原 Kht）/
  *    automationScheduleLabel（原 rgt）/automationNextRunLabel（原 egt）删除。qht/Kht/egt + 4 依赖逐字实体化于下方；
  *    rgt 改指 AutomationCards::formatCronSchedule canonical（R96 实体化，同束符 rgt@109573）。
@@ -412,7 +413,8 @@ function formatRelativeRunTime(e: any, t: any, n: any) {
 function automationNextRunLabel(e: any, t: any, n: any) {
   return !e || e <= t ? null : e - t <= NEXT_RUN_RELATIVE_WINDOW_MS ? formatRelativeRunTime(e, t, n) : formatAbsoluteRunTime(e);
 }
-declare function hasCodingPlanEntitlement(codingPlanSupport: unknown, settings: unknown): boolean; // Tit（78933）
+/* ── tombstone〔A1-R104〕：declare hasCodingPlanEntitlement（原 Tit 91395）删除——改指 Home::isCodingPlanConnectionSelected canonical（import 别名在案）。
+ *    双轨登记 W5：Home@761–774 A0 本地孪生（isCodingPlanConnectionSelected 本体即 canonical）与 AutomationsMainView@1005–1008 孪生并存。 ── */
 declare function showToastWithAction(message: string, opts?: ToastOptions): string; // l6（toast 变体）
 
 /** 原 BNt（jsx 115803）：可见标签页（有任务且闲时可见 → 双标签） */

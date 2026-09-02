@@ -26,3 +26,15 @@ export function isTakeNumberFailure(result: OffPeakCreateResult | null | undefin
   return result?.ok === false && result.errorCategory === "quota_3103" && result.errorCode === "3103";
 }
 
+/* ── 原 Dit（js 91405–91414）→ offPeakCreateFailureMessageId：创建失败消息 id（配额 → quota；network/invalid_response/unknown → unavailable；余 → generic）〔A1-R104 逐字实体化〕 ── */
+export function offPeakCreateFailureMessageId(e: any) {
+  return isTakeNumberFailure(e)
+    ? `offPeak.error.quota`
+    : e?.ok === !1 &&
+        (e.errorCategory === `network` ||
+          e.errorCategory === `invalid_response` ||
+          e.errorCategory === `unknown`)
+      ? `offPeak.error.unavailable`
+      : `offPeak.error.generic`;
+}
+

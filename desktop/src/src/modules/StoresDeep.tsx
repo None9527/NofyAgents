@@ -196,7 +196,7 @@ import {
   isAutomationLimitError,
 } from '../stores/automationsHelpers';
 import type { Automation, AutomationsAgentService } from '../stores/automationsHelpers';
-import { isTakeNumberFailure } from '../stores/offPeakHelpers';
+import { isTakeNumberFailure, offPeakCreateFailureMessageId } from '../stores/offPeakHelpers'; // 〔A1-R104〕+offPeakCreateFailureMessageId（原 Dit 91405，offPeakHelpers 逐字实体化；AutomationsMain declare 改指）
 import type { OffPeakCreateResult } from '../stores/offPeakHelpers';
 import {
   hooksWorkspaceKey, hookLocationForScope, isHookEditable, buildNewHook, mergeHookPatch,
@@ -232,7 +232,7 @@ export {
 };
 export type { Automation, AutomationsAgentService };
 
-export { isTakeNumberFailure };
+export { isTakeNumberFailure, offPeakCreateFailureMessageId };
 export type { OffPeakCreateResult };
 
 export {

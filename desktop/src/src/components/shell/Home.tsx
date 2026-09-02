@@ -279,7 +279,7 @@ interface CodingPlanSubscriptionService {
 
 /** 设置快照（原 JM()，Settings 族提供） */
 interface SettingsSnapshot {
-  providerFamilyDomain?: string;
+  providerFamilyDomain?: string | null; // 〔A1-R104〕型宽化：AppRuntimeSettings 真形含 null（AutomationsMain Tit 改指实参面；1092 消费有真值守卫）
   modelProviderFamilyModes?: Record<string, string>;
   modelProviderFamilySelectedKeys?: Record<string, string>;
   [key: string]: unknown;
