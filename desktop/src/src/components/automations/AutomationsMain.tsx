@@ -19,6 +19,7 @@ import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/Extended
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
 import type { ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 548 解构 {settings, update}，552/655–657 读取面（具名 + 既有 as 窄化）与 1179/1341 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
+import { formatCronSchedule as automationScheduleLabel } from '../conversation/AutomationCards'; // 〔A1-R103〕rgt 改指：原 automationScheduleLabel declare（rgt，注记行号 93602 旧口径）删除，canonical = R96 逐字实体 formatCronSchedule（同束符 rgt@109573）。环安全：AutomationCards 值闭包（React/lucide/I18n/button/UtilsCn/SettingsLeaves/ToolStatusModel）不达 components/automations
 import {
   automationsWorkspaceKey as automationWorkspaceKey, // Ti
   automationCardMenuTestid as AUTOMATIONS_MORE_ACTIONS_TESTID, // at（src chunk）
@@ -353,10 +354,64 @@ declare function offPeakDraftTelemetry(opts: { source?: unknown; model?: unknown
 declare function trackOffPeakCreateFailed(platform: PlatformService, telemetry: unknown, result: unknown): void; // Ujt（jsx 113330）
 declare function trackOffPeakCreate(platform: PlatformService, telemetry: unknown, create: () => Promise<{ ok: boolean }>): Promise<{ ok: boolean }>; // Wjt
 declare function offPeakCreateFailureMessageId(result: { ok: boolean; [key: string]: unknown }): string; // Dit（78941）
-declare function automationLifecycleOf(automation: AutomationTask): "active" | "paused" | "completed" | "failed"; // qht（93279）
-declare function automationHasFailedRun(automation: AutomationTask): boolean; // Kht（93276）
-declare function automationScheduleLabel(automation: AutomationTask, intl: IntlShape): string; // rgt（93602）
-declare function automationNextRunLabel(nextRunAt: number | null | undefined, now: number, intl: IntlShape): string | null; // egt（93576）；A0-CLEANUP3 3b：nextRunAt 可空面
+/* ── tombstone〔A1-R103〕：declare 四连——automationLifecycleOf（原 qht）/automationHasFailedRun（原 Kht）/
+ *    automationScheduleLabel（原 rgt）/automationNextRunLabel（原 egt）删除。qht/Kht/egt + 4 依赖逐字实体化于下方；
+ *    rgt 改指 AutomationCards::formatCronSchedule canonical（R96 实体化，同束符 rgt@109573）。
+ *    declare 注记行号 93279/93276/93602/93576 为旧口径，实测现行口径 = 109298/109291/109573/109547。
+ *    双轨登记 W5：AutomationsMainView A0 孪生 describeAutomationFrequency/describeAutomationNextRun（语义重建）与本批逐字实体并存。 ── */
+/* ── 原 Kht（js 109291–109297）→ automationHasFailedRun：失败态判定（lifecycle/dispatch/lastError 三面）〔A1-R103 逐字实体化〕 ── */
+function automationHasFailedRun(e: any) {
+  return (
+    e.lifecycleStatus === `failed` ||
+    e.dispatchStatus === `failed_to_dispatch` ||
+    !!e.lastError?.trim()
+  );
+}
+/* ── 原 qht（js 109298–109306）→ automationLifecycleOf：生命周期态投射（failed > completed > paused/停用 > active）〔A1-R103 逐字实体化〕 ── */
+function automationLifecycleOf(e: any) {
+  return e.lifecycleStatus === `failed`
+    ? `failed`
+    : e.lifecycleStatus === `completed`
+      ? `completed`
+      : e.lifecycleStatus === `paused` || !e.enabled
+        ? `paused`
+        : `active`;
+}
+/* ── 原 J$/Jht（js 109308–109309，q$ 同声明者链 109307 留束 = cron 描述器域星期序，非本闭包）→
+ *    padTwoDigitDatePart/NEXT_RUN_RELATIVE_WINDOW_MS〔A1-R103 逐字实体化〕 ── */
+const padTwoDigitDatePart = (e: any) => String(e).padStart(2, `0`);
+const NEXT_RUN_RELATIVE_WINDOW_MS = 720 * 60 * 60 * 1e3;
+/* ── 原 $$（js 109522–109526）→ formatAbsoluteRunTime：时间戳 → YYYY-MM-DD HH:mm〔A1-R103 逐字实体化〕 ── */
+function formatAbsoluteRunTime(e: any) {
+  if (!e) return `-`;
+  let t = new Date(e);
+  return `${t.getFullYear()}-${padTwoDigitDatePart(t.getMonth() + 1)}-${padTwoDigitDatePart(t.getDate())} ${padTwoDigitDatePart(t.getHours())}:${padTwoDigitDatePart(t.getMinutes())}`;
+}
+/* ── 原 $ht（js 109527–109546）→ formatRelativeRunTime：相对时刻文案（<1min → soon/justNow；分/时/日分级 + in/ago）〔A1-R103 逐字实体化〕 ── */
+function formatRelativeRunTime(e: any, t: any, n: any) {
+  if (!e) return `-`;
+  let r = e - t,
+    i = Math.abs(r),
+    a = r >= 0,
+    o = 6e4,
+    s = 60 * o,
+    c = 24 * s,
+    l: any,
+    u: any;
+  if (i < o)
+    return n.formatMessage({ id: a ? `automations.time.soon` : `automations.time.justNow` });
+  i < s
+    ? ((l = Math.round(i / o)), (u = `automations.time.minutes`))
+    : i < c
+      ? ((l = Math.round(i / s)), (u = `automations.time.hours`))
+      : ((l = Math.round(i / c)), (u = `automations.time.days`));
+  let d = n.formatMessage({ id: u }, { value: String(l) });
+  return n.formatMessage({ id: a ? `automations.time.in` : `automations.time.ago` }, { amount: d });
+}
+/* ── 原 egt（js 109547–109549）→ automationNextRunLabel：下次运行文案（≤720h → 相对；余 → 绝对；过期/无 → null）〔A1-R103 逐字实体化〕 ── */
+function automationNextRunLabel(e: any, t: any, n: any) {
+  return !e || e <= t ? null : e - t <= NEXT_RUN_RELATIVE_WINDOW_MS ? formatRelativeRunTime(e, t, n) : formatAbsoluteRunTime(e);
+}
 declare function hasCodingPlanEntitlement(codingPlanSupport: unknown, settings: unknown): boolean; // Tit（78933）
 declare function showToastWithAction(message: string, opts?: ToastOptions): string; // l6（toast 变体）
 

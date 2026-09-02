@@ -32,8 +32,8 @@ function scheduleRuleToPreviewModel(e: any): any { // 〔A1-R96〕返回面 : an
     customMonthlyMode: e.monthlyMode ?? `date`,
   };
 }
-/* ── 原 rgt（js 109573–109579）→ formatCronSchedule：cron 表达式 → 人读调度文案（非重复 → custom / scheduleRule → 构建态预览 / 余 → cron 预览）〔A1-R96〕 ── */
-function formatCronSchedule(e: any, t: any) {
+/* ── 原 rgt（js 109573–109579）→ formatCronSchedule：cron 表达式 → 人读调度文案（非重复 → custom / scheduleRule → 构建态预览 / 余 → cron 预览）〔A1-R96〕〔A1-R103〕+export：AutomationsMain automationScheduleLabel declare（同 rgt）改指本 canonical ── */
+export function formatCronSchedule(e: any, t: any) {
   return e.recurring === !1 && (e.maxRuns ?? 1) <= 1
     ? t.formatMessage({ id: `automations.frequency.custom` })
     : e.scheduleRule
