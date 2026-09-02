@@ -1,6 +1,6 @@
 // A0-S4-4b: 自 modules/ConversationOverlays.tsx §1 Permission 子族 原样迁入（组件单元；原文件现为薄 re-export shim）。
 // 迁出体 = §1 全段（230–766）+ §0 声明群分配本族子集（classifyToolCall/extractRawFileSummaries/parseToolCallRaw/isPlainRecord
-// 四 declare〔A1-R61 后余二：parseToolCallRaw/isPlainRecord 实体化入 ToolStatusModel；classifyToolCall/extractRawFileSummaries 泳道候闭〕
+// 四 declare〔A1-R61：parseToolCallRaw/isPlainRecord 实体化入 ToolStatusModel；A1-P1-B18：classifyToolCall/extractRawFileSummaries 实体化入 ToolCallClassification，四件全闭〕
 // + InteractionOrigin/PermissionOption/PermissionRequest 模型；后两者补 export 供交互调度族 type import 取回）。
 // 导入路径按 components/conversation/ 深度改指 ../../modules/。
 /* eslint-disable */
@@ -14,12 +14,15 @@ import { buildPermissionRequestViewModel } from '../../modules/SrcSharedB';
 import { useSettingsStoreValue as useSettingsSelector } from '../../modules/stores-core'; // A0-CLEANUP3 #49：原 Ao，canonical = stores-core useSettingsStoreValue（styles js 1301）
 import { isSwitchModePermissionRequest } from './PermissionRequestModel'; // 〔A1-P1-B11〕Xpt declare 实体化收敛（styles 106564–106655 逐字）
 import { isPlainRecord, parseToolCallRaw } from './ToolStatusModel'; // 原 pg（styles 23390）/hg（styles 23421）：A1-R61 实体化收敛（工具 raw 载荷域）
+import { classifyToolCall, extractRawFileSummaries } from './ToolCallClassification'; // 原 og（styles 23132）/_g（styles 23686）：A1-P1-B18 实体化收敛（工具分类/文件摘要域）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import { Button } from '../../modules/button'; // 原 H（A0-D 接线：declare → button canonical）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
 
-declare function classifyToolCall(toolCall: ToolCall): { family: string };
-declare function extractRawFileSummaries(raw: unknown, toolCall: ToolCall): FileSummary[];
+/* ── tombstone〔A1-P1-B18〕：classifyToolCall/extractRawFileSummaries 双 declare（原 og/_g）删除——
+ * 逐字实体化 → ./ToolCallClassification（styles og@23132–23186 / _g@23686–23749；roundtrip EXACT，
+ * /tmp/a1r0-p1-b18/）。canonical 返回面 = og 全形 { toolName, family, source, isLegacy }，与本消费面
+ * 原 { family: string } 缝结构兼容〔A1-P1-B18〕。消费面改文件头真实 import，调用面（259/418/498）逐字不变。 ── */
 
 /* --- 交互/快照模型（本族所有子集） --- */
 

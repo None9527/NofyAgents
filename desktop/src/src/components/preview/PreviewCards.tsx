@@ -150,6 +150,7 @@ import { TableEdgeShadow, IMAGE_THUMBNAIL_CLASS, backToBottomInset, baseName, ch
 import { t as logger } from '../../modules/logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（first-party 信息浮层件，调用面仅 title/side）
+import { classifyToolCall } from '../conversation/ToolCallClassification'; // 原 og（styles 23132）：A1-P1-B18 实体化收敛（工具分类域）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
@@ -215,7 +216,11 @@ interface ToolIdentity {
   family: string;
   [key: string]: unknown;
 }
-declare function classifyToolCall(toolCall: ToolCallLike): ToolIdentity; // og
+/* ── tombstone〔A1-P1-B18〕：classifyToolCall declare（原 og）删除——逐字实体化 →
+ * ../conversation/ToolCallClassification（styles og@23132–23186；roundtrip EXACT，/tmp/a1r0-p1-b18/）。
+ * canonical 返回面 = og 全形 { toolName, family, source, isLegacy }，对本面 ToolIdentity
+ * { family: string; [key: string]: unknown } 结构兼容〔A1-P1-B18〕。消费面改文件头真实 import，
+ * 调用面（2185/2221）逐字不变。 ── */
 declare function toolContentFamilyOf(toolCall: ToolCallLike, identity?: ToolIdentity): boolean; // cg
 declare function toolEditFamilyOf(toolCall: ToolCallLike, identity?: ToolIdentity): boolean; // sg
 declare function parseToolRawPayload(raw: unknown): { oldText?: string; newText?: string; path?: string } | null; // Bh
