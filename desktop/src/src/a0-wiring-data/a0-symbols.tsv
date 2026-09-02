@@ -2040,175 +2040,175 @@ section	sem	obf	line	owner
 21	CJK_SERIF_FALLBACK_STACK	c	33	presentationPdfPrintExport-CsVZM-dn.js
 21	LATIN_SANS_FALLBACK_STACK	l	34	presentationPdfPrintExport-CsVZM-dn.js
 21	LATIN_NARROW_FALLBACK_STACK	u	35	presentationPdfPrintExport-CsVZM-dn.js
-21	LATIN_SERIF_FALLBACK_STACK	d	88	17
-21	LATIN_MONO_FALLBACK_STACK	f	89	18
-21	SYMBOL_FALLBACK_STACK	p	117	19
-21	unquoteFontName	m	214	20
+21	LATIN_SERIF_FALLBACK_STACK	d	36	presentationPdfPrintExport-CsVZM-dn.js
+21	LATIN_MONO_FALLBACK_STACK	f	37	presentationPdfPrintExport-CsVZM-dn.js
+21	SYMBOL_FALLBACK_STACK	p	38	presentationPdfPrintExport-CsVZM-dn.js
+21	unquoteFontName	m	39	presentationPdfPrintExport-CsVZM-dn.js
 21	SlideAiEditPopover	ie	45	pptx-preview-viewer-B1z6CWke.js
-21	splitFontFamilyList	h	271	27
-21	serializeFontName	g	275	54
+21	splitFontFamilyList	h	45	presentationPdfPrintExport-CsVZM-dn.js
+21	serializeFontName	g	79	presentationPdfPrintExport-CsVZM-dn.js
 21	classifyTextScript	_	87	presentationPdfPrintExport-CsVZM-dn.js
 21	isGenericFontName	v	94	presentationPdfPrintExport-CsVZM-dn.js
 21	isPingFangSc	y	97	presentationPdfPrintExport-CsVZM-dn.js
-21	classifyFontKind	b	2311	71
-21	pickFallbackStack	x	2501	78
-21	ensureGenericTail	S	2838	82
-21	clampPageIndex	ae	151882	118-120
-21	clampZoomPercent	E	3073	121-123
-21	mapElementRectToSurface	D	3085	124-135
-21	formatPx	E	3073	136
-21	rectCenterInsideRect	O	3097	136-140
-21	rangeTextOffsetsInNode	k	3130	141-152
-21	extractSelectedElementText	oe	170	153-189
-21	nextFramePromise	O	3097	188
-21	isSameElementRef	A	3152	190-192
-21	clientPointToPageSize	j	3161	193-199
-21	SlideThumbnail	se	176	271-323
-21	useElementSize	ce	114743	316-329
-21	PptxPreviewViewer	N	3183	330-612
-21	XmlNode	N	3183	3589-3638
-21	parseXml	P	3212	3639-3644
+21	classifyFontKind	b	100	presentationPdfPrintExport-CsVZM-dn.js
+21	pickFallbackStack	x	110	presentationPdfPrintExport-CsVZM-dn.js
+21	ensureGenericTail	S	125	presentationPdfPrintExport-CsVZM-dn.js
+21	clampPageIndex	ae	154	pptx-preview-viewer-B1z6CWke.js
+21	clampZoomPercent	E	158	pptx-preview-viewer-B1z6CWke.js
+21	mapElementRectToSurface	D	161	pptx-preview-viewer-B1z6CWke.js
+21	formatPx	E	192	presentationPdfPrintExport-CsVZM-dn.js
+21	rectCenterInsideRect	O	170	pptx-preview-viewer-B1z6CWke.js
+21	rangeTextOffsetsInNode	k	175	pptx-preview-viewer-B1z6CWke.js
+21	extractSelectedElementText	oe	185	pptx-preview-viewer-B1z6CWke.js
+21	nextFramePromise	O	248	presentationPdfPrintExport-CsVZM-dn.js
+21	isSameElementRef	A	210	pptx-preview-viewer-B1z6CWke.js
+21	clientPointToPageSize	j	218	pptx-preview-viewer-B1z6CWke.js
+21	SlideThumbnail	se	343	pptx-preview-viewer-B1z6CWke.js
+21	useElementSize	ce	406	pptx-preview-viewer-B1z6CWke.js
+21	PptxPreviewViewer	N	423	pptx-preview-viewer-B1z6CWke.js
+21	XmlNode	N	6085	pptxRendererPreviewEngine-BIIRLBue.js
+21	parseXml	P	6143	pptxRendererPreviewEngine-BIIRLBue.js
 21	parseRels	R	6164	pptxRendererPreviewEngine-BIIRLBue.js
 21	resolvePartPath	z	6179	pptxRendererPreviewEngine-BIIRLBue.js
 21	emuToPx	B	6188	pptxRendererPreviewEngine-BIIRLBue.js
 21	angleToDeg	ee	6191	pptxRendererPreviewEngine-BIIRLBue.js
-21	ptToPx	ne	155	3687-3695
-21	alphaToUnit	te	113	3687-3695
-21	parseXmlBoolDefaultTrue	ge	178264	3899-3907
-21	parseXmlBool	he	90289	3899-3907
-21	hex/rgb/hsl 互转	Dt	609	4984-5058
-21	hex/rgb/hsl 互转	Et	606	4984-5058
-21	hex/rgb/hsl 互转	Ot	616	4984-5058
-21	hex/rgb/hsl 互转	kt	90599	4984-5058
+21	ptToPx	ne	6197	pptxRendererPreviewEngine-BIIRLBue.js
+21	alphaToUnit	te	6194	pptxRendererPreviewEngine-BIIRLBue.js
+21	parseXmlBoolDefaultTrue	ge	6402	pptxRendererPreviewEngine-BIIRLBue.js
+21	parseXmlBool	he	6397	pptxRendererPreviewEngine-BIIRLBue.js
+21	hex/rgb/hsl 互转	Dt	7403	pptxRendererPreviewEngine-BIIRLBue.js
+21	hex/rgb/hsl 互转	Et	7396	pptxRendererPreviewEngine-BIIRLBue.js
+21	hex/rgb/hsl 互转	Ot	7407	pptxRendererPreviewEngine-BIIRLBue.js
+21	hex/rgb/hsl 互转	kt	7432	pptxRendererPreviewEngine-BIIRLBue.js
 21	sRGB 线性化 / gamma	At	7462	pptxRendererPreviewEngine-BIIRLBue.js
 21	sRGB 线性化 / gamma	jt	7466	pptxRendererPreviewEngine-BIIRLBue.js
 21	alpha 钳制 + 变换管线	$t	7576	pptxRendererPreviewEngine-BIIRLBue.js
 21	alpha 钳制 + 变换管线	en	7579	pptxRendererPreviewEngine-BIIRLBue.js
-21	预设色名表（148 色）	nn	159666	5361-5522
-21	预设色名表（148 色）	tn	119705	5361-5522
+21	预设色名表（148 色）	nn	7821	pptxRendererPreviewEngine-BIIRLBue.js
+21	预设色名表（148 色）	tn	7672	pptxRendererPreviewEngine-BIIRLBue.js
 21	颜色缓存键 / 变换列表解析	an	7840	pptxRendererPreviewEngine-BIIRLBue.js
 21	颜色缓存键 / 变换列表解析	rn	7826	pptxRendererPreviewEngine-BIIRLBue.js
-21	CSS 输出	dn	186783	5628-5645
+21	CSS 输出	dn	7952	pptxRendererPreviewEngine-BIIRLBue.js
 21	CSS 输出	ln	7943	pptxRendererPreviewEngine-BIIRLBue.js
-21	CSS 输出	un	119816	5628-5645
-21	渐变填充 CSS / 线型 / 虚线类别	gn	119880	5751-5862
-21	渐变填充 CSS / 线型 / 虚线类别	hn	159791	5751-5862
+21	CSS 输出	un	7947	pptxRendererPreviewEngine-BIIRLBue.js
+21	渐变填充 CSS / 线型 / 虚线类别	gn	8158	pptxRendererPreviewEngine-BIIRLBue.js
+21	渐变填充 CSS / 线型 / 虚线类别	hn	8109	pptxRendererPreviewEngine-BIIRLBue.js
 21	渐变填充 CSS / 线型 / 虚线类别	mn	8081	pptxRendererPreviewEngine-BIIRLBue.js
-21	fillToRect 几何与渐变压缩	Sn	1251	5863-5912
+21	fillToRect 几何与渐变压缩	Sn	8219	pptxRendererPreviewEngine-BIIRLBue.js
 21	fillToRect 几何与渐变压缩	_n	8179	pptxRendererPreviewEngine-BIIRLBue.js
-21	fillToRect 几何与渐变压缩	bn	1227	5863-5912
+21	fillToRect 几何与渐变压缩	bn	8195	pptxRendererPreviewEngine-BIIRLBue.js
 21	fillToRect 几何与渐变压缩	vn	8189	pptxRendererPreviewEngine-BIIRLBue.js
-21	fillToRect 几何与渐变压缩	xn	1236	5863-5912
+21	fillToRect 几何与渐变压缩	xn	8213	pptxRendererPreviewEngine-BIIRLBue.js
 21	fillToRect 几何与渐变压缩	yn	8192	pptxRendererPreviewEngine-BIIRLBue.js
-21	渐变数据模型（供 SVG 渲染）	Cn	1256	5913-5967
+21	渐变数据模型（供 SVG 渲染）	Cn	8222	pptxRendererPreviewEngine-BIIRLBue.js
 21	渐变数据模型（供 SVG 渲染）	wn	8260	pptxRendererPreviewEngine-BIIRLBue.js
 21	主题 fillStyles/bgFillStyles 解析	Dn	8280	pptxRendererPreviewEngine-BIIRLBue.js
-21	主题 fillStyles/bgFillStyles 解析	En	1286	5968-6005
-21	主题 fillStyles/bgFillStyles 解析	Tn	1274	5968-6005
-21	+mj/+mn 主题字体令牌与脚本映射	hr	2059	6462-6468
-21	+mj/+mn 主题字体令牌与脚本映射	mr	187074	6462-6468
-21	+mj/+mn 主题字体令牌与脚本映射	pr	120924	6462-6468
-21	主题字体解析 / 字体栈去重	br	2073	6489-6516
-21	主题字体解析 / 字体栈去重	yr	2070	6489-6516
+21	主题 fillStyles/bgFillStyles 解析	En	8274	pptxRendererPreviewEngine-BIIRLBue.js
+21	主题 fillStyles/bgFillStyles 解析	Tn	8270	pptxRendererPreviewEngine-BIIRLBue.js
+21	+mj/+mn 主题字体令牌与脚本映射	hr	8797	pptxRendererPreviewEngine-BIIRLBue.js
+21	+mj/+mn 主题字体令牌与脚本映射	mr	8796	pptxRendererPreviewEngine-BIIRLBue.js
+21	+mj/+mn 主题字体令牌与脚本映射	pr	8795	pptxRendererPreviewEngine-BIIRLBue.js
+21	主题字体解析 / 字体栈去重	br	8838	pptxRendererPreviewEngine-BIIRLBue.js
+21	主题字体解析 / 字体栈去重	yr	8824	pptxRendererPreviewEngine-BIIRLBue.js
 21	defaultOptions	xt	9155	previewPaneOfficeDocxContent-3JqWt7cf.js
-21	parseAsync	St	213243	6655
+21	parseAsync	St	7307	pptxRendererPreviewEngine-BIIRLBue.js
 21	render	Ct	9181	previewPaneOfficeDocxContent-3JqWt7cf.js
 21	renderAsync	wt	9185	previewPaneOfficeDocxContent-3JqWt7cf.js
 21	jsxRuntime	$	1287	6679
-21	DOCX_PREVIEW_OPTIONS	Tt	90574	6680-6697
-21	DOCX_PAGE_SHADOW	Et	606	6698
-21	docxPreviewClassCounter	Dt	609	6699
-21	createDocxPreviewClassName	Ot	616	6700-6702
-21	isSameDocxFitMetrics	kt	90599	6703-6707
+21	DOCX_PREVIEW_OPTIONS	Tt	9193	previewPaneOfficeDocxContent-3JqWt7cf.js
+21	DOCX_PAGE_SHADOW	Et	9211	previewPaneOfficeDocxContent-3JqWt7cf.js
+21	docxPreviewClassCounter	Dt	9212	previewPaneOfficeDocxContent-3JqWt7cf.js
+21	createDocxPreviewClassName	Ot	9213	previewPaneOfficeDocxContent-3JqWt7cf.js
+21	isSameDocxFitMetrics	kt	9216	previewPaneOfficeDocxContent-3JqWt7cf.js
 21	PreviewPaneOfficeDocxContent	At	9224	previewPaneOfficeDocxContent-3JqWt7cf.js
-21	glow / outerShdw 文字阴影	ei	2210	6893-6922
-21	glow / outerShdw 文字阴影	ni	2216	6893-6922
-21	glow / outerShdw 文字阴影	ti	2213	6893-6922
-21	文字渐变/图案（background-clip: text）	di	2243	6963-6995
-21	文字渐变/图案（background-clip: text）	fi	2246	6963-6995
-21	自动编号格式 / 罗马数字	mi	2252	6996-7030
-21	自动编号格式 / 罗马数字	pi	2249	6996-7030
-21	adj 值读取（千分比/原值）	bi	2287	7374-7378
-21	adj 值读取（千分比/原值）	yi	2267	7374-7378
-21	path 水平/垂直镜像变换	Ci	2416	7399-7458
-21	path 水平/垂直镜像变换	Si	2343	7399-7458
-21	多段路径拆分与弯箭头包装	Ei	2550	8089-8150
-21	多段路径拆分与弯箭头包装	Ti	2543	8089-8150
-21	多段路径拆分与弯箭头包装	wi	2537	8089-8150
-21	actionButton 度量 / 矩形 path	Mi	2620	9610-9628
-21	actionButton 度量 / 矩形 path	Ni	2623	9610-9628
-21	文本体谓词	$i	2799	10928-11085
-21	文本体谓词	Xi	2790	10928-11085
-21	文本体谓词	Yi	2784	10928-11085
-21	文本体谓词	Zi	2793	10928-11085
-21	文本体谓词	aa	2839	10928-11085
-21	文本体谓词	ea	2802	10928-11085
-21	文本体谓词	ia	2814	10928-11085
-21	文本体谓词	na	2808	10928-11085
-21	文本体谓词	ra	2811	10928-11085
-21	文本体谓词	ta	2805	10928-11085
-21	transform/filter 追加助手	oa	2840	11086-11095
-21	transform/filter 追加助手	sa	2841	11086-11095
-21	竖排/变换/滤镜追加	ca	2842	11114-11125
-21	竖排/变换/滤镜追加	fa	2846	11114-11125
-21	竖排/变换/滤镜追加	oa	2840	11114-11125
-21	竖排/变换/滤镜追加	sa	2841	11114-11125
-21	图片填充区域/裁剪	Da	3014	11211-11247
-21	图片填充区域/裁剪	Ea	3011	11211-11247
-21	图片填充区域/裁剪	Ta	3008	11211-11247
-21	SVG 外阴影/内阴影/软边缘滤镜	Aa	3023	11248-11288
-21	SVG 外阴影/内阴影/软边缘滤镜	Ma	3029	11248-11288
-21	SVG 外阴影/内阴影/软边缘滤镜	ja	3026	11248-11288
-21	颜色解析/混合/渐变角度	Fa	3038	11418-11447
-21	颜色解析/混合/渐变角度	Ia	3041	11418-11447
-21	颜色解析/混合/渐变角度	La	3044	11418-11447
-21	形状路径缓存	bo	1088	11839-11862
-21	形状路径缓存	yo	1085	11839-11862
+21	glow / outerShdw 文字阴影	ei	9282	pptxRendererPreviewEngine-BIIRLBue.js
+21	glow / outerShdw 文字阴影	ni	9297	pptxRendererPreviewEngine-BIIRLBue.js
+21	glow / outerShdw 文字阴影	ti	9288	pptxRendererPreviewEngine-BIIRLBue.js
+21	文字渐变/图案（background-clip: text）	di	9348	pptxRendererPreviewEngine-BIIRLBue.js
+21	文字渐变/图案（background-clip: text）	fi	9364	pptxRendererPreviewEngine-BIIRLBue.js
+21	自动编号格式 / 罗马数字	mi	9404	pptxRendererPreviewEngine-BIIRLBue.js
+21	自动编号格式 / 罗马数字	pi	9378	pptxRendererPreviewEngine-BIIRLBue.js
+21	adj 值读取（千分比/原值）	bi	9924	pptxRendererPreviewEngine-BIIRLBue.js
+21	adj 值读取（千分比/原值）	yi	9921	pptxRendererPreviewEngine-BIIRLBue.js
+21	path 水平/垂直镜像变换	Ci	9978	pptxRendererPreviewEngine-BIIRLBue.js
+21	path 水平/垂直镜像变换	Si	9947	pptxRendererPreviewEngine-BIIRLBue.js
+21	多段路径拆分与弯箭头包装	Ei	11070	pptxRendererPreviewEngine-BIIRLBue.js
+21	多段路径拆分与弯箭头包装	Ti	11055	pptxRendererPreviewEngine-BIIRLBue.js
+21	多段路径拆分与弯箭头包装	wi	11049	pptxRendererPreviewEngine-BIIRLBue.js
+21	actionButton 度量 / 矩形 path	Mi	13230	pptxRendererPreviewEngine-BIIRLBue.js
+21	actionButton 度量 / 矩形 path	Ni	13247	pptxRendererPreviewEngine-BIIRLBue.js
+21	文本体谓词	$i	14985	pptxRendererPreviewEngine-BIIRLBue.js
+21	文本体谓词	Xi	14963	pptxRendererPreviewEngine-BIIRLBue.js
+21	文本体谓词	Yi	14958	pptxRendererPreviewEngine-BIIRLBue.js
+21	文本体谓词	Zi	14980	pptxRendererPreviewEngine-BIIRLBue.js
+21	文本体谓词	aa	15020	pptxRendererPreviewEngine-BIIRLBue.js
+21	文本体谓词	ea	14992	pptxRendererPreviewEngine-BIIRLBue.js
+21	文本体谓词	ia	15015	pptxRendererPreviewEngine-BIIRLBue.js
+21	文本体谓词	na	14999	pptxRendererPreviewEngine-BIIRLBue.js
+21	文本体谓词	ra	15005	pptxRendererPreviewEngine-BIIRLBue.js
+21	文本体谓词	ta	14996	pptxRendererPreviewEngine-BIIRLBue.js
+21	transform/filter 追加助手	oa	15023	pptxRendererPreviewEngine-BIIRLBue.js
+21	transform/filter 追加助手	sa	15026	pptxRendererPreviewEngine-BIIRLBue.js
+21	竖排/变换/滤镜追加	ca	15030	pptxRendererPreviewEngine-BIIRLBue.js
+21	竖排/变换/滤镜追加	fa	15048	pptxRendererPreviewEngine-BIIRLBue.js
+21	竖排/变换/滤镜追加	oa	15023	pptxRendererPreviewEngine-BIIRLBue.js
+21	竖排/变换/滤镜追加	sa	15026	pptxRendererPreviewEngine-BIIRLBue.js
+21	图片填充区域/裁剪	Da	15202	pptxRendererPreviewEngine-BIIRLBue.js
+21	图片填充区域/裁剪	Ea	15186	pptxRendererPreviewEngine-BIIRLBue.js
+21	图片填充区域/裁剪	Ta	15183	pptxRendererPreviewEngine-BIIRLBue.js
+21	SVG 外阴影/内阴影/软边缘滤镜	Aa	15222	pptxRendererPreviewEngine-BIIRLBue.js
+21	SVG 外阴影/内阴影/软边缘滤镜	Ma	15297	pptxRendererPreviewEngine-BIIRLBue.js
+21	SVG 外阴影/内阴影/软边缘滤镜	ja	15245	pptxRendererPreviewEngine-BIIRLBue.js
+21	颜色解析/混合/渐变角度	Fa	15468	pptxRendererPreviewEngine-BIIRLBue.js
+21	颜色解析/混合/渐变角度	Ia	15483	pptxRendererPreviewEngine-BIIRLBue.js
+21	颜色解析/混合/渐变角度	La	15487	pptxRendererPreviewEngine-BIIRLBue.js
+21	形状路径缓存	bo	15898	pptxRendererPreviewEngine-BIIRLBue.js
+21	形状路径缓存	yo	15890	pptxRendererPreviewEngine-BIIRLBue.js
 21	wasm 源注册组（initAndRegisterDocxWasm 等）	br/xr/Sr/Cr/wr/Tr	18073–18097	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 21	importDocx DOCX 导入管线（工作者优先+主线程回退+中止/计时）	Er…Nr	18097–18209	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 21	页面缺省常量（900×1200/56px/15twips）	Pr…Rr	18211–18222	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 21	parsePageGeometry（pgSz/pgMar/docGrid/pgBorders→px）	zr…Yr	5935	previewPaneOfficeDocxContent-3JqWt7cf.js
 21	图片路由/转换（TIFF→PNG via UTIF+encodePng；EMF/WMF 占位；缓存）	Xr…vi	18329–18449	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
-21	duotone/lum/biLevel 像素滤镜	Hs	3941	13351-13435
-21	duotone/lum/biLevel 像素滤镜	Us	3939	13351-13435
-21	duotone/lum/biLevel 像素滤镜	Vs	3931	13351-13435
-21	renderTableNode	bc	4868	14170-14284
-21	renderTableNode	vc	4825	14170-14284
-21	renderTableNode	yc	4834	14170-14284
-21	renderGroupNode	Oc	4993	14359-14492
-21	renderGroupNode	kc	5064	14359-14492
-21	ptCount/索引有效性	Mc	5159	14494-14507
-21	ptCount/索引有效性	jc	5138	14494-14507
-21	strCache/numCache 提取 + formatCode	Nc	4348	14508-14527
-21	strCache/numCache 提取 + formatCode	Pc	5167	14508-14527
-21	数字格式代码解析与数值格式化	Fc	5173	14528-14597
-21	数字格式代码解析与数值格式化	Ic	4366	14528-14597
-21	数字格式代码解析与数值格式化	Lc	5175	14528-14597
-21	数字格式代码解析与数值格式化	Rc	5184	14528-14597
-21	数值序列（含空白索引）	Bc	5205	14598-14631
-21	数值序列（含空白索引）	zc	5198	14598-14631
-21	字符串序列 + 日期序列号换算	Hc	5263	14632-14643
-21	字符串序列 + 日期序列号换算	Vc	5243	14632-14643
-21	布尔属性（缺省 true）	Uc	5268	14644-14648
-21	布尔属性（缺省 true）	Wc	5270	14644-14648
-21	useDocxModel（AbortController 守护）	DS	34617	36417-36459
-21	docxModelKey（WeakMap 稳定键）	AS	34647	36463-36468
-21	fitMetricsAlmostEqual	jS	34672	36469
-21	DocxFitViewport（fit 三层+ResizeObserver）	MS	34677	36470-36504
-21	PreviewPaneOfficeLegacyDocContent（chunk 导出）	NS	34746	36505-36533
-21	渐变（zrender LinearGradient）/数据点样式	bW	69806	41158-41217
-21	渐变（zrender LinearGradient）/数据点样式	xW	69819	41158-41217
-21	显式字号标记（Symbol）	AW	69938	41232-41235
-21	显式字号标记（Symbol）	kW	69929	41232-41235
-21	气泡图（含轴扩展）	XK	73955	43689-43784
-21	气泡图（含轴扩展）	ZK	73970	43689-43784
-21	股票图（K 线/三序列自定义渲染）	$K	74135	43785-43997
-21	股票图（K 线/三序列自定义渲染）	QK	74125	43785-43997
-21	股票图（K 线/三序列自定义渲染）	eq	74249	43785-43997
-21	类型分派 + 可合并判定	oq	74659	43998-44030
-21	类型分派 + 可合并判定	sq	74663	43998-44030
-21	renderChartNode（echarts 初始化/自适应）	vq	75575	44189-44265
-21	renderChartNode（echarts 初始化/自适应）	yq	76034	44189-44265
+21	duotone/lum/biLevel 像素滤镜	Hs	17760	pptxRendererPreviewEngine-BIIRLBue.js
+21	duotone/lum/biLevel 像素滤镜	Us	17786	pptxRendererPreviewEngine-BIIRLBue.js
+21	duotone/lum/biLevel 像素滤镜	Vs	17729	pptxRendererPreviewEngine-BIIRLBue.js
+21	renderTableNode	bc	18565	pptxRendererPreviewEngine-BIIRLBue.js
+21	renderTableNode	vc	18443	pptxRendererPreviewEngine-BIIRLBue.js
+21	renderTableNode	yc	18530	pptxRendererPreviewEngine-BIIRLBue.js
+21	renderGroupNode	Oc	18638	pptxRendererPreviewEngine-BIIRLBue.js
+21	renderGroupNode	kc	18772	pptxRendererPreviewEngine-BIIRLBue.js
+21	ptCount/索引有效性	Mc	18794	pptxRendererPreviewEngine-BIIRLBue.js
+21	ptCount/索引有效性	jc	18782	pptxRendererPreviewEngine-BIIRLBue.js
+21	strCache/numCache 提取 + formatCode	Nc	18797	pptxRendererPreviewEngine-BIIRLBue.js
+21	strCache/numCache 提取 + formatCode	Pc	18811	pptxRendererPreviewEngine-BIIRLBue.js
+21	数字格式代码解析与数值格式化	Fc	18817	pptxRendererPreviewEngine-BIIRLBue.js
+21	数字格式代码解析与数值格式化	Ic	18835	pptxRendererPreviewEngine-BIIRLBue.js
+21	数字格式代码解析与数值格式化	Lc	18856	pptxRendererPreviewEngine-BIIRLBue.js
+21	数字格式代码解析与数值格式化	Rc	18871	pptxRendererPreviewEngine-BIIRLBue.js
+21	数值序列（含空白索引）	Bc	18895	pptxRendererPreviewEngine-BIIRLBue.js
+21	数值序列（含空白索引）	zc	18892	pptxRendererPreviewEngine-BIIRLBue.js
+21	字符串序列 + 日期序列号换算	Hc	18926	pptxRendererPreviewEngine-BIIRLBue.js
+21	字符串序列 + 日期序列号换算	Vc	18912	pptxRendererPreviewEngine-BIIRLBue.js
+21	布尔属性（缺省 true）	Uc	18932	pptxRendererPreviewEngine-BIIRLBue.js
+21	布尔属性（缺省 true）	Wc	18935	pptxRendererPreviewEngine-BIIRLBue.js
+21	useDocxModel（AbortController 守护）	DS	47393	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+21	docxModelKey（WeakMap 稳定键）	AS	47428	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+21	fitMetricsAlmostEqual	jS	47432	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+21	DocxFitViewport（fit 三层+ResizeObserver）	MS	47440	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+21	PreviewPaneOfficeLegacyDocContent（chunk 导出）	NS	47513	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+21	渐变（zrender LinearGradient）/数据点样式	bW	51983	pptxRendererPreviewEngine-BIIRLBue.js
+21	渐变（zrender LinearGradient）/数据点样式	xW	52009	pptxRendererPreviewEngine-BIIRLBue.js
+21	显式字号标记（Symbol）	AW	52045	pptxRendererPreviewEngine-BIIRLBue.js
+21	显式字号标记（Symbol）	kW	52042	pptxRendererPreviewEngine-BIIRLBue.js
+21	气泡图（含轴扩展）	XK	54393	pptxRendererPreviewEngine-BIIRLBue.js
+21	气泡图（含轴扩展）	ZK	54415	pptxRendererPreviewEngine-BIIRLBue.js
+21	股票图（K 线/三序列自定义渲染）	$K	54496	pptxRendererPreviewEngine-BIIRLBue.js
+21	股票图（K 线/三序列自定义渲染）	QK	54493	pptxRendererPreviewEngine-BIIRLBue.js
+21	股票图（K 线/三序列自定义渲染）	eq	54513	pptxRendererPreviewEngine-BIIRLBue.js
+21	类型分派 + 可合并判定	oq	54689	pptxRendererPreviewEngine-BIIRLBue.js
+21	类型分派 + 可合并判定	sq	54718	pptxRendererPreviewEngine-BIIRLBue.js
+21	renderChartNode（echarts 初始化/自适应）	vq	54891	pptxRendererPreviewEngine-BIIRLBue.js
+21	renderChartNode（echarts 初始化/自适应）	yq	54972	pptxRendererPreviewEngine-BIIRLBue.js
 21	renderPresentationToPrintHost	A	3152	—
 21	resolveAvailableFontStack	C	130	presentationPdfPrintExport-CsVZM-dn.js
 21	buildPrintHostStylesheet	D	3085	—
