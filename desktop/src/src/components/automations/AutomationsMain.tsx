@@ -19,7 +19,7 @@ import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/Extended
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
 import { isCodingPlanConnectionSelected as hasCodingPlanEntitlement, type ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依 // 〔A1-R104〕+hasCodingPlanEntitlement 改指（原 Tit declare 删碑；canonical = Home::isCodingPlanConnectionSelected@749，A0 语义重建在案，xn/zi 依赖 R27/R28 既收敛）。环安全：Home 值闭包不达 components/automations（grep 实证仅注释提及）
 import { offPeakCreateFailureMessageId, reportTelemetry } from '../../modules/StoresDeep'; // 〔A1-R104〕原 Dit declare 删碑改指 canonical = offPeakHelpers 逐字实体（转导出） // 〔A1-R105〕+reportTelemetry：原 xw（40457）遥测总入口 canonical（StoresDeep@323，R36 实体化；PaymentDeep R26 同判例）
-import { parseCustomModelRef } from '../../modules/SrcSharedB'; // 〔A1-R105〕原 Zn（styles 544 `P as Zn` ← src iS@8966 ≡ SrcSharedB parseCustomModelRef）：MNt 深依赖 canonical
+import { parseCustomModelRef, OFFPEAK_IDLE_PLAN_ID } from '../../modules/SrcSharedB'; // 〔A1-R105〕原 Zn（styles 544 `P as Zn` ← src iS@8966 ≡ SrcSharedB parseCustomModelRef）：MNt 深依赖 canonical // 〔A1-R106〕+OFFPEAK_IDLE_PLAN_ID：原 vee（styles 613 `Z as vee` ← src 5357；Vjt 遥测缺省 provider 面）
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 548 解构 {settings, update}，552/655–657 读取面（具名 + 既有 as 窄化）与 1179/1341 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
 import { formatCronSchedule as automationScheduleLabel } from '../conversation/AutomationCards'; // 〔A1-R103〕rgt 改指：原 automationScheduleLabel declare（rgt，注记行号 93602 旧口径）删除，canonical = R96 逐字实体 formatCronSchedule（同束符 rgt@109573）。环安全：AutomationCards 值闭包（React/lucide/I18n/button/UtilsCn/SettingsLeaves/ToolStatusModel）不达 components/automations
 import {
@@ -414,9 +414,56 @@ function trackAutomationAction(e: any, t: any) {
     `automation-telemetry`,
   );
 }
-declare function offPeakDraftTelemetry(opts: { source?: unknown; model?: unknown }): unknown; // Vjt（jsx 113296）
-declare function trackOffPeakCreateFailed(platform: PlatformService, telemetry: unknown, result: unknown): void; // Ujt（jsx 113330）
-declare function trackOffPeakCreate(platform: PlatformService, telemetry: unknown, create: () => Promise<{ ok: boolean }>): Promise<{ ok: boolean }>; // Wjt
+/* ── tombstone〔A1-R106〕：declare 三连——offPeakDraftTelemetry（原 Vjt）/trackOffPeakCreateFailed（原 Ujt）/
+ *    trackOffPeakCreate（原 Wjt）删除——闲时遥测四件（含 Hjt 载荷构建器）逐字实体化于下方；
+ *    深依赖改指树内 canonical（xw→StoresDeep::reportTelemetry、vee→SrcSharedB::OFFPEAK_IDLE_PLAN_ID）。 ── */
+/* ── 原 Vjt（js 134402–134409）→ offPeakDraftTelemetry：闲时草稿遥测模型（域标/模板/模型名/缺省 provider）〔A1-R106 逐字实体化〕 ── */
+function offPeakDraftTelemetry(e: any) {
+  return {
+    eventRegion: e.source?.eventRegion ?? `app.automations`,
+    templateId: e.source?.templateId ?? ``,
+    modelName: e.model?.trim() ?? ``,
+    modelProvider: OFFPEAK_IDLE_PLAN_ID,
+  };
+}
+/* ── 原 Hjt（js 134410–134437）→ buildOffPeakCreateTelemetryReport：创建结果遥测载荷（success/failure 双支展开）〔A1-R106 逐字实体化〕 ── */
+function buildOffPeakCreateTelemetryReport(e: any, t: any) {
+  let n = {
+    result: t.ok ? `success` : `failure`,
+    template_id: e.templateId,
+    model_name: e.modelName,
+    model_provider: e.modelProvider,
+    provider_name: t.providerName,
+  };
+  return {
+    elementName: `off_peak_task_create_result`,
+    eventRegion: e.eventRegion,
+    eventType: `result`,
+    eventText: ``,
+    eventExtraDetail: t.ok
+      ? {
+          ...n,
+          off_peak_task_id: t.task.offPeakTaskId,
+          ticket_initial_state: t.ticketInitialState,
+          queue_position: t.queuePosition === void 0 ? `` : String(t.queuePosition),
+        }
+      : {
+          ...n,
+          failure_stage: t.failureStage,
+          error_category: t.errorCategory,
+          error_code: t.errorCode,
+        },
+  };
+}
+/* ── 原 Ujt（js 134438–134440）→ trackOffPeakCreateFailed：创建失败遥测上报〔A1-R106 逐字实体化〕 ── */
+function trackOffPeakCreateFailed(e: any, t: any, n: any) {
+  return reportTelemetry(e, buildOffPeakCreateTelemetryReport(t, n), `off-peak-telemetry`);
+}
+/* ── 原 Wjt（js 134441–134444）→ trackOffPeakCreate：创建遥测包装（await 创建 → 上报 → 透传结果）〔A1-R106 逐字实体化〕 ── */
+async function trackOffPeakCreate(e: any, t: any, n: any) {
+  let r = await n();
+  return (trackOffPeakCreateFailed(e, t, r), r);
+}
 /* ── tombstone〔A1-R104〕：declare offPeakCreateFailureMessageId（原 Dit 91405）删除——改指 offPeakHelpers 逐字 canonical（modules/StoresDeep 转导出，import 在案）。 ── */
 /* ── tombstone〔A1-R103〕：declare 四连——automationLifecycleOf（原 qht）/automationHasFailedRun（原 Kht）/
  *    automationScheduleLabel（原 rgt）/automationNextRunLabel（原 egt）删除。qht/Kht/egt + 4 依赖逐字实体化于下方；
