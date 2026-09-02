@@ -439,7 +439,7 @@ section	sem	obf	line	owner
 4	轮体/后台结果轮/工作段/段头	Rvt	113046	—
 4	PluginIconProvider	Ubt	115586	—
 4	Reasoning	V_t	111519	—
-4	buildPermissionRequestModel	Vte	—	—
+4	buildPermissionRequestModel	Vte	9525	src-HCld2afU.js
 4	TurnSection	Vvt	113204	—
 4	PluginIconProvider	Wbt	115607	—
 4	工具状态/错误/显示模型	Wlt	99641	—
