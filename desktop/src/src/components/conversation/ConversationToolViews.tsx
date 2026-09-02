@@ -23,6 +23,7 @@ import {
 import { hashToAgentPaletteColor } from './ShellCommandBlocks'; // 〔A1-P1-B11〕AgentToolView 调色板兜底链尾（原 Xft，styles 105186）
 import { CodeSurfaceCard } from './CodeSurfaceBlocks'; // 〔A1-P1-B14〕原 w$（styles 107180）：手写 CodeSurface declare 五 prop（cardSurface/copyLabel/wrapLabel/eagerLayout/label）之束真身卡面包装体
 import { FileIcon, resolveFileIconMeta, resolvePathTitle } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc/Hc（styles 5263/5198/5263 逐字实体化；三 declare 收敛）
+import { ToolCallExpandedContent } from './PlanToolBlocks'; // 原 oQ（styles 99815；A1-R95 实体化收敛）
 import type { ToolCall, ToolCallNode, ToolDisplayModel, OpenCodeViewerFn, ToolCallViewProps, FileSummary, PlatformService } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）；PlatformService 留守 shim（§5/§6 共用）
 
 /* ── tombstone〔A1-P1-B14〕：declare IconQuestion（vye）删除——唯一消费面手写 AskUserQuestionToolView 之
@@ -30,19 +31,9 @@ import type { ToolCall, ToolCallNode, ToolDisplayModel, OpenCodeViewerFn, ToolCa
  * （lucide CircleQuestionMark）已逐字实体化于 ./TodoToolBlocks。 ── */
 
 /** ToolCallBlock（原 K$，Conversation.tsx §4 已还原） */
-/** 展开区通用内容（原 oQ：输入/输出/错误/子工具列表） */
-declare const ToolCallExpandedContent: React.FC<{
-  childToolList: React.ReactNode;
-  displayModel: ToolDisplayModel;
-  inlinePreviewOverride?: { type: string } | null;
-  toolCall: ToolCall;
-  workspacePath?: string;
-  theme?: string;
-  codePreviewSettings?: CodePreviewSettings;
-  onOpenCodeViewer?: OpenCodeViewerFn;
-  onOpenFileLink?: (link: FileLinkModel) => void;
-  onOpenBrowserUrl?: (url: string) => void;
-}>;
+/* ── tombstone〔A1-R95〕：declare ToolCallExpandedContent（原 oQ，styles 99815–99865）删除——
+ *    束真身逐字实体化于 ./PlanToolBlocks（展开区主体段 99815–99953，含 qlt/Jlt/Ylt 依赖），
+ *    本叶 4 消费位（380/480/525/1173）改文件头真实 import，调用面逐字不变。 ── */
 /** 快照引用加载条（原 sQ） */
 declare const SnapshotRefsLoader: React.FC<{
   refs: unknown[];

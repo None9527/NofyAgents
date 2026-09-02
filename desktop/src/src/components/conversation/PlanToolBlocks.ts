@@ -19,7 +19,8 @@
 // 区段切分墓碑：98073 左界 = Gct@98070 会话面板域右界邻接；〔A1-P1-B16〕98144 右界 = $ct@98145 邻接（Qct 吸收）；
 //   〔A1-P1-B17〕98180 右界 = tlt@98181 摘要面板模型邻接（留批：属主 TopBar buildSummaryPanelModel，A0 期手写，
 //   体差异 = elt/$ct 未施加 + subagent 控制联结缺如；本叶 $ct/elt 实体为未来 tlt 收敛预备）；
-//   99769 左界 = resolveToolDisplayModel 域右界（Wlt，F19 界障续留批）；99814 右界 = oQ@99815 展开区主体（留批）；
+//   99769 左界 = resolveToolDisplayModel 域右界（Wlt，F19 界障续留批）；〔A1-R95〕99814 右界办结：oQ@99815 展开区主体
+//   实体化入本叶（段续接 99815–99953）；99953 右界 = sQ@99954 快照引用域邻接（既有实体 ToolSnapshotRefs，B12 钥匙 1）；
 //   107721 左界 = Wmt 闭包右界邻接；107815 右界 = Jmt@107816 Session 族图标 var 邻接（B13 既录）；
 //   108469 左界 = mht Skill 族闭包右界邻接（B13）；108605 右界 = _ht@108606 Task 族图标 var 邻接（B13）。
 // 映射表（minified → 语义名 → bundle 定义行）：
@@ -34,6 +35,8 @@
 //   Xct→extractPlanTitle（98117）| Zct→planFilePathBaseName（98125）| Qct→resolveGitSummaryModel（98128，〔A1-P1-B16〕）
 //   $ct→summarizePlanChecklist（98145，〔A1-P1-B17〕）| elt→extractSessionPlans（98156，〔A1-P1-B17〕）
 //   【展开区面 99769–99814】Klt→ToolInputSurface | aQ→ToolErrorSurface
+//   【展开区主体 99815–99953】〔A1-R95〕oQ→ToolCallExpandedContent（99815）| qlt→ToolTextPreviewSurface（99866）
+//   Jlt→ToolImagePreviewSurface（99894）| Ylt→ToolPlanResultSurface（99915）| fs→useServices（modules/services）
 //   【plan-guidance 107721–107815】Gmt→PLAN_GUIDANCE_TOOL_ICON | D$→isPlainObject | O$→readFirstNonEmptyString
 //   Kmt→extractPlanGuidanceText | qmt→PlanGuidanceToolView（107754）
 //   【switch-mode 108469–108605】hht→isInteractiveChildTarget | ght→SwitchModeToolView（108474）
@@ -49,6 +52,7 @@ import { MarkdownRenderer, isAbsolutePath, resolveWorkspaceRelativePath, baseNam
 import { ToolLayoutMemo as ToolLayout } from './ToolLayoutBlocks'; // 原 lQ（B12 钥匙 2）
 import { ToolSnapshotRefs } from './ToolSnapshotRefs'; // 原 sQ（B12 钥匙 1）
 import { CodeSurface } from './CodeSurfaceBlocks'; // 原 gk（B14 既录 48682；Klt/aQ 错误/输入面 JSON 卡消费）
+import { useServices } from '../../modules/services'; // 原 fs（styles 2675；services/serviceContext useServices 重建，js 2635–2645）〔A1-R95〕
 
 /* ── plan 工具族（styles 98073–98144 + 99769–99814 + 107721–107815 + 108469–108605） ── */
 function isPlainObjectRecord(e: any) {
@@ -205,6 +209,154 @@ var ToolInputSurface = ({ className: e, input: t, ...n }: any) =>
       })
     );
   };
+/* ── 展开区主体（styles 99815–99953；A1-R95：B15 Klt/aQ 段 99769–99814 右界续接实体化） ── */
+/** 〔A1-R95〕型缝：fileService.readMediaPreview 面（MarkdownIntegration WorkspaceServicesLike@197 同口径） */
+interface ToolImagePreviewServices {
+  fileService: { readMediaPreview(args: { path: string }): Promise<{ dataBase64: string }> };
+}
+/** 原 oQ（js 99815–99865）→ ToolCallExpandedContent：展开区通用内容（子工具列表 ?? 内嵌预览/计划/输入/输出/类型面）〔A1-R95〕 */
+function ToolCallExpandedContent({
+  childToolList: e,
+  displayModel: t,
+  inlinePreviewOverride: n,
+  toolCall: r,
+  workspacePath: i,
+  theme: a,
+  codePreviewSettings: o,
+  onOpenCodeViewer: s,
+  onOpenFileLink: c,
+  onOpenBrowserUrl: l,
+}: any) {
+  let u = n ?? t.inlinePreview;
+  return (0, $.jsx)($.Fragment, {
+    children:
+      e ??
+      (0, $.jsxs)($.Fragment, {
+        children: [
+          u.type === `text`
+            ? (0, $.jsx)(ToolTextPreviewSurface, {
+                preview: u.source,
+                workspacePath: i,
+                theme: a,
+                codePreviewSettings: o,
+                onOpenCodeViewer: s,
+                onOpenFileLink: c,
+                onOpenBrowserUrl: l,
+              })
+            : null,
+          u.type === `image` ? (0, $.jsx)(ToolImagePreviewSurface, { preview: u.source }) : null,
+          t.planResult
+            ? (0, $.jsx)(ToolPlanResultSurface, {
+                plan: t.planResult.plan,
+                planFilePath: t.planResult.planFilePath,
+                workspacePath: i,
+                theme: a,
+                codePreviewSettings: o,
+                onOpenCodeViewer: s,
+                onOpenFileLink: c,
+                onOpenBrowserUrl: l,
+              })
+            : null,
+          t.showInput && r.input !== void 0 ? (0, $.jsx)(ToolInputSurface, { input: r.input }) : null,
+          t.showOutput ? (0, $.jsx)(ToolErrorSurface, { errorText: r.error, output: r.output }) : null,
+          t.showKind
+            ? (0, $.jsx)(`p`, { className: `text-ui-base text-muted-foreground`, children: r.kind })
+            : null,
+        ],
+      }),
+  });
+}
+/** 原 qlt（js 99866–99893）→ ToolTextPreviewSurface：文本预览面（markdown → MarkdownRenderer / 余 → CodeSurface）〔A1-R95〕 */
+function ToolTextPreviewSurface({
+  preview: e,
+  workspacePath: t,
+  theme: n,
+  codePreviewSettings: r,
+  onOpenCodeViewer: i,
+  onOpenFileLink: a,
+  onOpenBrowserUrl: o,
+}: any) {
+  return e.language === `markdown`
+    ? (0, $.jsx)(`div`, {
+        className: `max-h-60 overflow-auto rounded-xl border border-border bg-muted/15 px-3 py-3`,
+        children: (0, $.jsx)(MarkdownRenderer, {
+          className: `min-w-0 break-words`,
+          workspacePath: t,
+          theme: n,
+          codePreviewSettings: r,
+          onOpenCodeViewer: i,
+          onOpenFileLink: a,
+          onOpenExternalUrl: o,
+          children: e.content,
+        }),
+      })
+    : (0, $.jsx)(`div`, {
+        className: `max-h-60 overflow-auto rounded-xl bg-muted/15`,
+        children: (0, $.jsx)(CodeSurface, { code: e.content, language: e.language, appTheme: n }),
+      });
+}
+/** 原 Jlt（js 99894–99914）→ ToolImagePreviewSurface：图像预览面（fileService.readMediaPreview → img / loading 文案）〔A1-R95〕 */
+function ToolImagePreviewSurface({ preview: e }: any) {
+  let { fileService: t } = useServices() as unknown as ToolImagePreviewServices,
+    { intl: n } = useIntlContext(),
+    [r, i] = (0, React.useState)<any>(null);
+  return (
+    (0, React.useEffect)(() => {
+      let n = !1;
+      return (
+        t.readMediaPreview({ path: e.path }).then((e: any) => {
+          n || i(e);
+        }),
+        () => {
+          n = !0;
+        }
+      );
+    }, [t, e.path]),
+    r
+      ? (0, $.jsx)(`img`, { src: r.dataBase64, alt: e.title })
+      : (0, $.jsx)(`p`, { children: n.formatMessage({ id: `chat.toolCall.loading` }) })
+  );
+}
+/** 原 Ylt（js 99915–99953）→ ToolPlanResultSurface：计划结果面（计划文件路径行 + MarkdownRenderer 计划体）〔A1-R95〕 */
+function ToolPlanResultSurface({
+  plan: e,
+  planFilePath: t,
+  workspacePath: n,
+  theme: r,
+  codePreviewSettings: i,
+  onOpenCodeViewer: a,
+  onOpenFileLink: o,
+  onOpenBrowserUrl: s,
+}: any) {
+  let { intl: c } = useIntlContext();
+  return (0, $.jsxs)(`div`, {
+    className: `space-y-3 rounded-xl border border-outline/60 bg-muted/15 p-3`,
+    children: [
+      t
+        ? (0, $.jsxs)(`div`, {
+            className: `flex flex-wrap items-center gap-2 text-ui-base text-on-surface-muted`,
+            children: [
+              (0, $.jsx)(`span`, { children: c.formatMessage({ id: `chat.toolCall.planFile` }) }),
+              (0, $.jsx)(`span`, {
+                className: `cursor-default rounded-md bg-muted/70 px-2 py-1 font-mono text-on-surface`,
+                children: t,
+              }),
+            ],
+          })
+        : null,
+      (0, $.jsx)(MarkdownRenderer, {
+        className: `size-full min-w-0 break-words whitespace-normal [&>*:first-child]:mt-0 [&>*:last-child]:mb-0`,
+        workspacePath: n,
+        theme: r,
+        codePreviewSettings: i,
+        onOpenCodeViewer: a,
+        onOpenFileLink: o,
+        onOpenExternalUrl: s,
+        children: e,
+      }),
+    ],
+  });
+}
 var PLAN_GUIDANCE_TOOL_ICON = (0, $.jsx)(IconNotepadText, { className: `size-4 shrink-0 text-foreground-subtle` });
 function isPlainObject(e: any) {
   return typeof e == `object` && !!e && !Array.isArray(e);
@@ -437,4 +589,4 @@ function SwitchModeToolView(e: any) {
         })
       : o;
 }
-export { isPlainObjectRecord, readFirstTrimmedString, resolvePlanFilePathCandidate, extractPlanMarkdownFromValue, extractPlanMarkdown, PLAN_TITLE_HEADING_PATTERN, MARKDOWN_LINE_PREFIX_PATTERN, extractPlanTitle, planFilePathBaseName, resolveGitSummaryModel, summarizePlanChecklist, extractSessionPlans, ToolInputSurface, ToolErrorSurface, PLAN_GUIDANCE_TOOL_ICON, isPlainObject, readFirstNonEmptyString, extractPlanGuidanceText, PlanGuidanceToolView, isInteractiveChildTarget, SwitchModeToolView };
+export { isPlainObjectRecord, readFirstTrimmedString, resolvePlanFilePathCandidate, extractPlanMarkdownFromValue, extractPlanMarkdown, PLAN_TITLE_HEADING_PATTERN, MARKDOWN_LINE_PREFIX_PATTERN, extractPlanTitle, planFilePathBaseName, resolveGitSummaryModel, summarizePlanChecklist, extractSessionPlans, ToolInputSurface, ToolErrorSurface, ToolCallExpandedContent, PLAN_GUIDANCE_TOOL_ICON, isPlainObject, readFirstNonEmptyString, extractPlanGuidanceText, PlanGuidanceToolView, isInteractiveChildTarget, SwitchModeToolView }; // 〔A1-R95〕+ToolCallExpandedContent（原 oQ 99815，展开区主体；ConversationToolViews/TodoToolBlocks 消费）

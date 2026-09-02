@@ -6,8 +6,7 @@
 // 逐字证明：/tmp/a1r0-p1/p14/p14-roundtrip.js（AST 逆映射还原 ≡ bundle 逐字 EXACT）+ p14-leafcheck.js（正则独立路线）。
 // 函数体内局部变量保留混淆名（B5 约定）；型缝 `: any` 参数缝见 p14/TodoToolBlocks.seam-log.txt，均带〔A1-P1-B14〕。
 // 区段切分墓碑：左界 Oht@108885（Task 族右界 108884 邻接）；Nht@109010 为段间界；右界 Fht@109084（ToolCallBlock 派发域）。
-// 跨域只消费披露：ti/Kne = src-HCld2afU.js 导出 d/u = SrcSharedB extractTodosFromToolOutput/extractTodosFromToolInput
-//   （B9 在案）；oQ 未实体化 → 叶内 declare（跨域判例，同 B13 CodeSurface 族）。
+// 跨域只消费披露：ti/Kne = src-HCld2afU.js 导出 d/u = SrcSharedB extractTodosFromToolOutput/extractTodosFromToolInput（B9 在案）。
 // 〔A1-R94〕$h/eg/Ume/Wme（ask-question 归一域 22980/22988/22996/23021）实体化入 ToolCallClassification（问句载荷族），
 //   本叶 4 declare 删除改真实 import（别名改指，消费面 175/176/201 逐字不变）。
 //
@@ -34,9 +33,9 @@ import { extractTodosFromToolOutput, extractTodosFromToolInput } from '../../mod
 import { ToolLayoutMemo as ToolLayout } from './ToolLayoutBlocks'; // 原 lQ（B12 钥匙 2）
 import { ToolSnapshotRefs } from './ToolSnapshotRefs'; // 原 sQ（B12 钥匙 1）
 import { parseQuestionPayload as normalizeAskQuestionModel, resolveQuestionSource as resolveAskQuestionInput, extractAskQuestionAnswers, formatAskQuestionAnswerText } from './ToolCallClassification'; // 原 $h/eg/Ume/Wme（styles 22980/22988/22996/23021；A1-R94 实体化收敛）
+import { ToolCallExpandedContent } from './PlanToolBlocks'; // 原 oQ（styles 99815；A1-R95 实体化收敛）
 
-// 【declare 面（跨域未实体化，只消费不转录；B13 CodeSurface 族判例同源）】
-declare const ToolCallExpandedContent: React.FC<{ childToolList?: React.ReactNode; displayModel: any; inlinePreviewOverride?: { type: string } | null; toolCall: any; workspacePath?: string; theme?: string; codePreviewSettings?: any; onOpenCodeViewer?: unknown; onOpenFileLink?: unknown; onOpenBrowserUrl?: unknown }>; // 原 oQ（99815，展开区通用内容，F19 域未实体化）
+// 〔A1-R95〕原 oQ（99815）：展开区主体实体化入 PlanToolBlocks（ToolCallExpandedContent），declare 删除改真实 import（文件头）。
 // 〔A1-R94〕原 $h/eg/Ume/Wme（22980/22988/22996/23021）：ask-question 归一域实体化入 ToolCallClassification，declare 删除改真实 import（文件头）。
 
 /* ── Todo 工具视图族（styles 108885–109009） ── */
