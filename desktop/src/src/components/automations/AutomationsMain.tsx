@@ -19,6 +19,7 @@ import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modul
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
 import { isCodingPlanConnectionSelected as hasCodingPlanEntitlement, isRemoteWorkspaceTab, type ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依 // 〔A1-R104〕+hasCodingPlanEntitlement 改指（原 Tit declare 删碑；canonical = Home::isCodingPlanConnectionSelected@749，A0 语义重建在案，xn/zi 依赖 R27/R28 既收敛）。环安全：Home 值闭包不达 components/automations（grep 实证仅注释提及） // 〔A1-R107〕+isRemoteWorkspaceTab：原 zMt（135518）canonical（SettingsLeaves 映射行 78 判词在案 ≡ N2@123216；Home::isRemoteWorkspaceTab@1256 转导出）
+import { useModelProvidersStore } from '../../modules/PaymentDeep'; // 〔A1-R109〕原 qq declare 删碑改指：canonical = PaymentDeep §11 useModelProvidersStore（bundle 78243–78403 逐字，R35 实体化，转导出 @319；ModelProviderSettingsSection 同判例）。环安全：PaymentDeep 值闭包不达 components/automations（grep 实证零 import 边）
 import { offPeakCreateFailureMessageId, reportTelemetry } from '../../modules/StoresDeep'; // 〔A1-R104〕原 Dit declare 删碑改指 canonical = offPeakHelpers 逐字实体（转导出） // 〔A1-R105〕+reportTelemetry：原 xw（40457）遥测总入口 canonical（StoresDeep@323，R36 实体化；PaymentDeep R26 同判例）
 import { parseCustomModelRef, OFFPEAK_IDLE_PLAN_ID } from '../../modules/SrcSharedB'; // 〔A1-R105〕原 Zn（styles 544 `P as Zn` ← src iS@8966 ≡ SrcSharedB parseCustomModelRef）：MNt 深依赖 canonical // 〔A1-R106〕+OFFPEAK_IDLE_PLAN_ID：原 vee（styles 613 `Z as vee` ← src 5357；Vjt 遥测缺省 provider 面）
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 548 解构 {settings, update}，552/655–657 读取面（具名 + 既有 as 窄化）与 1179/1341 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
@@ -187,12 +188,12 @@ interface ZcodeAgentService {
 
 /* --- stores --- */
 
-interface ModelProvidersStoreState {
-  modelProviders: ModelProvider[];
-  displayOrder: { providerIds: string[]; updatedAt?: number } | null;
-  loading: boolean;
-}
-declare function useModelProvidersStore(): ModelProvidersStoreState; // qq
+/* ── tombstone〔A1-R109〕：declare useModelProvidersStore（原 qq）+ 本地 ModelProvidersStoreState 接口删除——
+ *    改指 canonical = PaymentDeep §11 useModelProvidersStore（bundle 78243–78403 逐字，R35 实体化；
+ *    modules/PaymentDeep 转导出 @319，文件头 import 在案）。返回面 modelProviders: ModelProvider[]
+ *    （UsageDeep 型，models: ModelMetadata[] 对本地板型 ModelCatalogEntryLike 面赋同，索引签兼容）、
+ *    displayOrder: {providerIds, updatedAt} 非空面（本域消费 881 直传 + 真值守卫零波动）。
+ *    消费点 @782 逐字不变。 ── */
 /* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488）删除，改经文件头 modules/UsageDeep import 消费
  *    （canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字；update 形参 AppRuntimeSettingsPatch 索引面对 1179/1341 补丁可赋）。 ── */
 interface TaskStoreState {
@@ -251,24 +252,11 @@ export interface AutomationRun {
 }
 
 /* automations store（原 T3）与 offPeak store（原 bX）：接口级 */
-interface AutomationsStoreState {
-  automations: AutomationTask[];
-  loading: boolean;
-  operationId: string | null;
-  runsCache: Record<string, { runs?: AutomationRun[] } | undefined>;
-  error?: string | null;
-  initialize: (opts: { workspacePath: string; workspaceIdentity?: string | null; agentService: unknown }) => Promise<void>;
-  createAutomation: (input: Record<string, unknown>, agentService: unknown) => Promise<AutomationTask | null>;
-  updateAutomation: (automationId: string, input: Record<string, unknown>, agentService: unknown) => Promise<boolean>;
-  deleteAutomation: (automationId: string, agentService: unknown) => Promise<void>;
-  setEnabled: (automationId: string, enabled: boolean, agentService: unknown) => Promise<void>;
-  restartAutomation: (automationId: string, agentService: unknown) => Promise<void>;
-  runAutomationNow: (automationId: string, agentService: unknown) => Promise<"queued" | "duplicate" | "failed">;
-  loadRuns: (automationId: string, agentService: unknown, force: boolean) => Promise<void>;
-  deleteRun: (automationId: string, runId: string, agentService: unknown) => Promise<void>;
-  refresh: (agentService: unknown) => Promise<void>;
-}
-declare const automationsStoreStatic: { getState: () => AutomationsStoreState }; // T3.getState()
+/* ── tombstone〔A1-R109〕：declare automationsStoreStatic（原 T3.getState()）+ 本地 AutomationsStoreState 接口删除——
+ *    改指 canonical = stores/automationsStore useAutomationsStore 之 zustand 静面 .getState()
+ *    （UseBoundStore = StoreApi & hook，storeTypes@17 在案；文件头 import 既有行 10）。
+ *    五消费点（1109/1113/1126/1143/1198）改 useAutomationsStore.getState() →
+ *    useAutomationsStore.getState()，.error 读取面逐字不变（canonical error: string | null）。 ── */
 interface OffPeakStoreState {
   tasks: OffPeakTask[];
   loading: boolean;
@@ -1106,11 +1094,11 @@ export function AutomationsMain(props: AutomationsMainProps) {
         automationId: created?.automationId,
         cronExpr: (input.cronExpr as string | undefined) ?? "",
         templateId: view.mode === "create" ? (view.draft?.templateId as string | undefined) : undefined,
-        error: automationsStoreStatic.getState().error,
+        error: useAutomationsStore.getState().error,
         modelFields: automationModelTelemetryFields(input.model, input.provider, modelProviders),
       });
       if (!created) {
-        const error = automationsStoreStatic.getState().error;
+        const error = useAutomationsStore.getState().error;
         showToastWithAction(intl.formatMessage({ id: automationCreateErrorMessageId(error) }, { limit: "20" }));
         return false;
       }
@@ -1123,7 +1111,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
   const handleToggleAutomation = React.useCallback(
     async (automation: AutomationTask, enabled: boolean) => {
       await setAutomationEnabled(automation.automationId, enabled, zcodeAgentService);
-      if (automationsStoreStatic.getState().error) {
+      if (useAutomationsStore.getState().error) {
         showToastWithAction(intl.formatMessage({ id: automationErrorMessageId("toggle") }));
         return;
       }
@@ -1140,7 +1128,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
   const handleRestartAutomation = React.useCallback(
     async (automation: AutomationTask) => {
       await restartAutomation(automation.automationId, zcodeAgentService);
-      if (automationsStoreStatic.getState().error) {
+      if (useAutomationsStore.getState().error) {
         showToastWithAction(intl.formatMessage({ id: automationErrorMessageId("restart") }));
       } else {
         setNow(Date.now());
@@ -1157,7 +1145,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
       logger.debug("[automations] 立即运行交互结束", { automationId: automation.automationId, source, result });
       if (result === "queued") {
         await loadRuns(automation.automationId, zcodeAgentService, true);
-        const sessionId = automationsStoreStatic
+        const sessionId = useAutomationsStore
           .getState()
           .runsCache[automation.automationId]?.runs?.find((run) => run.trigger === "manual" && !!run.sessionId)?.sessionId;
         showToastWithAction(intl.formatMessage({ id: "scheduledPreview.toast.running" }, { title: automation.title }), {
@@ -1195,7 +1183,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
       if (!confirmed) return;
       trackAutomationAction(platform, { action: "delete", source, automation, providers: modelProviders });
       await deleteAutomation(automation.automationId, zcodeAgentService);
-      if (automationsStoreStatic.getState().error) {
+      if (useAutomationsStore.getState().error) {
         showToastWithAction(intl.formatMessage({ id: automationErrorMessageId("delete") }));
       }
       setView((previous) =>
