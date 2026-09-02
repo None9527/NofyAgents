@@ -137,6 +137,7 @@ import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, dismissT
 import { MarkdownRenderer } from '../../modules/MarkdownIntegration';
 import { RemoteSyncDialogs, UpdateStatusDialog, canOpenRemoteSessionSourceCheck, useConfirmDialog } from '../../modules/Modals'; // A0-TOPBAR-MATER：useConfirmDialog（原 U2）declare 删除 → Modals 属主真实 import
 import { CommandEmpty, CommandGroup, CommandList } from '../../modules/QuickPick';
+import { extractSessionPlans, summarizePlanChecklist } from '../conversation/PlanToolBlocks'; // 原 elt（styles 98156）/$ct（styles 98145）：A1-P1-B17 吸收 canonical（A1-R60 tlt 转录消费）
 import { type SubagentOpenRequest } from '../../modules/SidePanel'; // A0-CLEANUP4：子代理会话打开请求（原 Dlt 构造面，js 98874）
 import { logger, useTaskStore } from '../../modules/SkillStore';
 import { useBaseServices, useWorkspaceServices } from '../../modules/services';
@@ -3032,7 +3033,7 @@ function buildSummaryPanelGitModel({
   };
 }
 
-/** 原 tlt（js 98181）：把原始会话状态归一成摘要面板模型 */
+/** 原 tlt（js 98181）：把原始会话状态归一成摘要面板模型〔A1-R60 逐字实体化：替换 A0 手写体——施加 elt/$ct（extractSessionPlans/summarizePlanChecklist canonical）+ subagent 控制项联结/孤儿合成；runningWorks 复归全量运行工作（手写期误同 runningBashWorks，全树无消费面，零级联）〕 */
 export function buildSummaryPanelModel(args: {
   gitSummary: GitSummary;
   gitDirtyFileCount: number;
@@ -3044,26 +3045,54 @@ export function buildSummaryPanelModel(args: {
   backgroundWorks?: BackgroundWork[];
   runningSubagents?: RunningSubagent[];
 }) {
-  // 真实实现：聚合 git 变更、目标、计划，把 backgroundWorks 拆成
-  // runningBashWorks / runningSubagentWorks（按 childSessionId 关联控制项）。
-  const runningBashWorks = (args.backgroundWorks ?? []).filter((w) => w.status === "running" && w.kind === "bash");
-  const runningSubagentWorks = args.runningSubagents ?? [];
   // 原 tlt 直接 Qct(e) 全参透传；gitWorktreeChangeSummary 公共面为 unknown（Conversation 域同），
-  // 投影入口按消费面（added/removed）具型桥接，与 WorkspaceShell 属主型一致。
-  const git = buildSummaryPanelGitModel({
-    gitSummary: args.gitSummary,
-    gitDirtyFileCount: args.gitDirtyFileCount,
-    gitWorktreeChangeSummary: args.gitWorktreeChangeSummary as { added?: number; removed?: number } | null | undefined,
-  });
+  // 投影入口按消费面（added/removed）具型桥接，与 WorkspaceShell 属主型一致（A0-TOPBAR-MATER §2 裁定维持）。
+  let t = buildSummaryPanelGitModel({
+      gitSummary: args.gitSummary,
+      gitDirtyFileCount: args.gitDirtyFileCount,
+      gitWorktreeChangeSummary: args.gitWorktreeChangeSummary as { added?: number; removed?: number } | null | undefined,
+    }),
+    n = args.goal ?? null,
+    r = extractSessionPlans(args.sessionPlans, args.workspacePath),
+    i = summarizePlanChecklist(args.plan),
+    a: BackgroundWork[] = [],
+    o: BackgroundWork[] = [],
+    s = new Map<string, BackgroundWork | null>();
+  for (let t of args.backgroundWorks ?? [])
+    if (t.status === `running`) {
+      if (t.kind === `bash`) (a.push(t), o.push(t));
+      else if (t.kind === `subagent` && t.childSessionId) {
+        let e = s.get(t.childSessionId);
+        s.set(t.childSessionId, e === void 0 ? t : null);
+      }
+    }
+  let c: RunningSubagent[] = (args.runningSubagents ?? []).map((e) => {
+      let t = s.get(e.childSessionId);
+      return t ? { ...e, controlWorkId: t.workId, cancellable: t.cancellable !== !1 } : e;
+    }),
+    l = new Set(c.map((e) => e.childSessionId));
+  for (let [e, t] of s)
+    !t ||
+      l.has(e) ||
+      c.push({
+        agentId: t.workId,
+        childSessionId: e,
+        controlWorkId: t.workId,
+        subagentType: `subagent`,
+        title: t.title,
+        status: t.blocked ? `blocked` : `running`,
+        startedAt: t.startedAt,
+        cancellable: t.cancellable !== !1,
+      });
   return {
-    git,
-    goal: args.goal ?? null,
-    sessionPlans: args.sessionPlans ?? null,
-    plan: args.plan ?? null,
-    runningWorks: runningBashWorks,
-    runningBashWorks,
-    runningSubagentWorks,
-    hasContent: !!(git || args.goal || args.sessionPlans || args.plan || runningBashWorks.length > 0 || runningSubagentWorks.length),
+    git: t,
+    goal: n,
+    sessionPlans: r,
+    plan: i,
+    runningWorks: a,
+    runningBashWorks: o,
+    runningSubagentWorks: c,
+    hasContent: !!(t || n || r || i || a.length > 0 || c.length),
   };
 }
 

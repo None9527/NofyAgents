@@ -65,13 +65,13 @@
  *   w6   → buildTaskFeedbackDescription (142334 / 118239)
  *   pct  → useGitBranchSwitcher      (96362 / 83842)
  *   MZ   → resolveBranchDisplayLabel (94967 / 82976)
- *   Uct  → resolveSummaryPanelVariant (98016 / 84991)
- *   tlt  → buildSummaryPanelModel    (98133 / 85113)
- *   slt/clt → EMPTY_BACKGROUND_WORKS / EMPTY_SUBAGENTS (98224 / 85193)
+ *   Uct  → resolveSummaryPanelVariant (98064 / 84991)
+ *   tlt  → buildSummaryPanelModel    (98181 / 85113)
+ *   slt/clt → EMPTY_BACKGROUND_WORKS / EMPTY_SUBAGENTS (98272 / 85193)
  *   mlt/hlt/Clt/Tlt/klt/Alt/Plt
  *        → SummaryGitSection / SummaryGoalSection / SummaryPlansSection /
  *          SummaryPlanSection / SummaryTerminalsSection / SummaryAgentsSection /
- *          SummaryMiniCard (98354,98453,98727,98778,98871,98933,99109 / 85281…85678)
+ *          SummaryMiniCard (98402,98501,98775,98826,98919,98981,99157 / 85281…85678)
  *   yC   → useFeedbackStore          (36992 / 33835)
  *   E6   → usePinnedTaskListStore    (142372 / 118266)
  *   k6   → useWorkspaceTaskListStore (142464 / 118392)
