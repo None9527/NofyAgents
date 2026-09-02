@@ -14,7 +14,7 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
 import { useConfirmDialog } from '../../modules/Modals'; // U2
 import { isWorkspaceKindTab as isWorkspaceTab, useWorkspaceTabStore } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R2：styles js 4487 改指 R1 既有导出；别名保留本地调用名）// 〔A1-R107〕+useWorkspaceTabStore：原 pc（js 4753）canonical（映射表行 66 在案）——activeWorkspaceTabOf declare 拆合壁后真实接线
-import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
+import { InfoTooltip as Tooltip, ShadcnTooltipProvider, ShadcnTooltip, ShadcnTooltipTrigger, ShadcnTooltipContent } from '../../modules/UsageStatsUiParts'; // Ia // 〔A1-R112〕+ShadcnTooltipProvider/ShadcnTooltip/ShadcnTooltipTrigger/ShadcnTooltipContent（原 Na/Oa/Ma/ka：ANt 真身 Tooltip 四原语；usageStatsUiParts 导出 p/d/m/f ≡ Ce/G/K/q，B5-11 §B 实体在案）
 import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modules/Settings'; // H3 容器类
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
@@ -293,7 +293,9 @@ declare const OffPeakTaskList: React.FC<{
   onDelete: (task: OffPeakTask) => void;
   onOpenSession: (run: { sessionId?: string | null; workspacePath?: string; workspaceIdentity?: string | null }) => void;
 }>; // cMt（jsx 113500）
-declare const AutomationStatusChip: React.FC<{ text: string; icon?: React.ReactNode; dimmed?: boolean }>; // ANt（jsx 115689）
+/* ── tombstone〔A1-R112〕：declare AutomationStatusChip（原 ANt，jsx 115689 / js 138530–138578）删除——逐字实体化于下方实体带（showToastWithAction 之后）。
+ *    依赖 Na/Oa/Ma/ka = usageStatsUiParts Tooltip 四原语（束导出 p/d/m/f ≡ Ce/G/K/q），
+ *    改指 modules/UsageStatsUiParts 转导出 ShadcnTooltipProvider/ShadcnTooltip/ShadcnTooltipTrigger/ShadcnTooltipContent（import 在案）。 ── */
 /* ── tombstone〔A1-R108〕：declare OFF_PEAK_TEMPLATES（原 Pjt）删除——逐字实体化于下方实体带。
  *    束真形为 var 链 Pjt+Fjt（134016–134017）；Fjt（闲时提示气泡类）消费 135803/138666 未实体化，
  *    按 R103 q$ 留束判例切出留束，语句形归一入 roundtrip 脚本。 ── */
@@ -518,6 +520,56 @@ const AUTOMATIONS_TOAST_ANCHOR_ID = `automations-main-toast-anchor`;
 /* ── 原 l6（js 138648–138650）→ showToastWithAction：带锚 toast 包装（透传 opts + 注入 anchorId）〔A1-R110 逐字实体化；型缝：次参可选注记——束 JS 形无注记而 15 消费点单参调用〕 ── */
 function showToastWithAction(e: any, t?: any) {
   return toast(e, { ...t, anchorId: AUTOMATIONS_TOAST_ANCHOR_ID });
+}
+/* ── 原 ANt（js 138530–138578）→ AutomationStatusChip：自动化状态小徽（截断探测 → 溢出时 Tooltip 显全文）〔A1-R112 逐字实体化；型缝二：解构参 `: any` + useRef 初值 `as any`——束形无注记，TS 下 useRef(null) 收窄 MutableRefObject<null> 致 scrollWidth 读面不可达〕 ── */
+function AutomationStatusChip({ dimmed: e = !1, icon: t, text: n }: any) {
+  let r = (0, React.useRef)(null as any),
+    [i, a] = (0, React.useState)(!1);
+  return (
+    (0, React.useEffect)(() => {
+      let e = r.current;
+      if (!e) return;
+      let t = () => {
+        let t = e.scrollWidth > e.clientWidth;
+        a((e) => (e === t ? e : t));
+      };
+      if ((t(), typeof ResizeObserver > `u`))
+        return (
+          window.addEventListener(`resize`, t),
+          () => window.removeEventListener(`resize`, t)
+        );
+      let n = new ResizeObserver(t);
+      return (n.observe(e), () => n.disconnect());
+    }, [n]),
+    (0, $.jsx)(ShadcnTooltipProvider, {
+      children: (0, $.jsxs)(ShadcnTooltip, {
+        children: [
+          (0, $.jsx)(ShadcnTooltipTrigger, {
+            asChild: !0,
+            children: (0, $.jsxs)(`span`, {
+              className: cn(
+                `inline-flex w-fit min-w-0 max-w-full items-center gap-0.5 overflow-hidden rounded-lg bg-success/10 py-0.5 pl-1 pr-2 font-normal text-success`,
+                e && `opacity-40`,
+              ),
+              children: [
+                (0, $.jsx)(`span`, {
+                  className: `flex size-5 shrink-0 items-center justify-center`,
+                  children: t,
+                }),
+                (0, $.jsx)(`span`, {
+                  ref: r,
+                  "data-testid": `automation-schedule-text`,
+                  className: `min-w-0 truncate whitespace-nowrap`,
+                  children: n,
+                }),
+              ],
+            }),
+          }),
+          i ? (0, $.jsx)(ShadcnTooltipContent, { side: `top`, sideOffset: 6, children: n }) : null,
+        ],
+      }),
+    })
+  );
 }
 /* ── tombstone〔A1-R104〕：declare offPeakCreateFailureMessageId（原 Dit 91405）删除——改指 offPeakHelpers 逐字 canonical（modules/StoresDeep 转导出，import 在案）。 ── */
 /* ── tombstone〔A1-R103〕：declare 四连——automationLifecycleOf（原 qht）/automationHasFailedRun（原 Kht）/
