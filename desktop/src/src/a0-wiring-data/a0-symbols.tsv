@@ -6530,7 +6530,7 @@ section	sem	obf	line	owner
 56	ProviderEndpointsSchema	Ul	7281	SrcSharedB.tsx
 56	ProviderEndpointsOverrideSchema	Wl	7289	SrcSharedB.tsx
 56	ProviderConfigEntryListSchema	Gl	7302	SrcSharedB.tsx
-56	isProviderEnabled	Kl	7310	SrcSharedB.tsx
+56	isProviderEnabled	Kl	4879	SrcSharedB.tsx
 56	isProviderReadyForUse	ql	7314	SrcSharedB.tsx
 56	hasAnyReadyProvider	Jl	5013	SrcSharedB.tsx
 56	MODEL_CONTEXT_WINDOW_DEFAULT	Yl	7337	SrcSharedB.tsx
@@ -7060,7 +7060,7 @@ section	sem	obf	line	owner
 56	v4SessionTitleTestid	Ey	8510	SrcSharedB.tsx
 56	v4BackgroundWorkItemTestid	Dy	29121	SrcSharedB.tsx
 56	v4BackgroundWorkCancelTestid	Oy	8512	SrcSharedB.tsx
-56	v4ModelConfigTestid	ky	29256	SrcSharedB.tsx
+56	v4ModelConfigTestid	ky	8406	SrcSharedB.tsx
 56	v4RetrySubscribeTestid	Ay	29285	SrcSharedB.tsx
 56	v4UserInputDialogTestid	jy	29317	SrcSharedB.tsx
 56	v4UserInputOptionTestid	My	29457	SrcSharedB.tsx
@@ -7129,9 +7129,9 @@ section	sem	obf	line	owner
 56	extractErrorMessage	Vb	32000	SrcSharedB.tsx
 56	ZCODE_AGENT_AUDIENCE	Hb	32013	SrcSharedB.tsx
 56	CODING_PLAN_SCOPE_PREFIX	Ub	32053	SrcSharedB.tsx
-56	buildCodingPlanScope	Wb	32060	SrcSharedB.tsx
-56	parseCodingPlanScope	Gb	32075	SrcSharedB.tsx
-56	codingPlanScopesOverlap	Kb	32082	SrcSharedB.tsx
+56	buildCodingPlanScope	Wb	8526	SrcSharedB.tsx
+56	parseCodingPlanScope	Gb	8533	SrcSharedB.tsx
+56	codingPlanScopesOverlap	Kb	8545	SrcSharedB.tsx
 56	encodeScopeSegment	qb	32092	SrcSharedB.tsx
 56	decodeScopeSegment	Jb	32117	SrcSharedB.tsx
 56	resolveCodingPlanAttribution	Yb	32140	SrcSharedB.tsx

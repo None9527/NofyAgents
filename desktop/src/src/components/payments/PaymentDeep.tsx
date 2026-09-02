@@ -420,10 +420,10 @@ interface ConfigOptionEntry {
  *    （消费 CodingPlanUsageToolbar=j3e 逐字，机械校验器在证）；本件 ContextUsagePopover 唯一消费点 11416
  *    位于本文件 iit 死副本簇内（同批删除，见 §9 墓碑）= 死代码，负证据记录。
  *    真身归属：Home §V.6/§V.7 逐字族（runActionAndClose=y3e 76612 / USAGE_CHART_SEGMENT_COLORS=Aq 76615 /
- *    USAGE_CONTEXT_PROGRESS_MAX=b3e 76621 / CACHE_HIT_RATE_DISPLAY_THRESHOLD=x3e 76622 /
+ *    USAGE_CONTEXT_PROGRESS_MAX=b3e 76622 / CACHE_HIT_RATE_DISPLAY_THRESHOLD=x3e 76623 /
  *    formatUsageTokenCountCompact=S3e 76623 / formatContextUsageSummary=C3e 76627 /
  *    formatCacheHitRatePercent=w3e 76631 / resolveUsageChartSegmentStyle=T3e 76638 /
- *    CONTEXT_USAGE_BREAKDOWN_LABEL_I18N_IDS=E3e 76640 / CONTEXT_USAGE_BREAKDOWN_SOURCE_ORDER=D3e 76648 /
+ *    CONTEXT_USAGE_BREAKDOWN_LABEL_I18N_IDS=E3e 76641 / CONTEXT_USAGE_BREAKDOWN_SOURCE_ORDER=D3e 76650 /
  *    aggregateContextUsageBreakdown=O3e 76656 / buildContextUsageProgressSegments=k3e 76667 /
  *    sanitizeContextTaskUsage=A3e 76670 / CodingPlanUsageToolbar=j3e 76678–76847）。
  *    modules/PaymentDeep shim 再导出面同步移除（全树零消费，负证据在案）。 ────────────────── */
