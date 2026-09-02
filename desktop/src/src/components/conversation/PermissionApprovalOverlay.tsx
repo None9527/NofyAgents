@@ -1,6 +1,7 @@
 // A0-S4-4b: 自 modules/ConversationOverlays.tsx §1 Permission 子族 原样迁入（组件单元；原文件现为薄 re-export shim）。
 // 迁出体 = §1 全段（230–766）+ §0 声明群分配本族子集（classifyToolCall/extractRawFileSummaries/parseToolCallRaw/isPlainRecord
-// 四 declare + InteractionOrigin/PermissionOption/PermissionRequest 模型；后两者补 export 供交互调度族 type import 取回）。
+// 四 declare〔A1-R61 后余二：parseToolCallRaw/isPlainRecord 实体化入 ToolStatusModel；classifyToolCall/extractRawFileSummaries 泳道候闭〕
+// + InteractionOrigin/PermissionOption/PermissionRequest 模型；后两者补 export 供交互调度族 type import 取回）。
 // 导入路径按 components/conversation/ 深度改指 ../../modules/。
 /* eslint-disable */
 import * as React from "react";
@@ -12,14 +13,13 @@ import { Badge } from '../../modules/PaymentDeep';
 import { buildPermissionRequestViewModel } from '../../modules/SrcSharedB';
 import { useSettingsStoreValue as useSettingsSelector } from '../../modules/stores-core'; // A0-CLEANUP3 #49：原 Ao，canonical = stores-core useSettingsStoreValue（styles js 1301）
 import { isSwitchModePermissionRequest } from './PermissionRequestModel'; // 〔A1-P1-B11〕Xpt declare 实体化收敛（styles 106564–106655 逐字）
+import { isPlainRecord, parseToolCallRaw } from './ToolStatusModel'; // 原 pg（styles 23390）/hg（styles 23421）：A1-R61 实体化收敛（工具 raw 载荷域）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import { Button } from '../../modules/button'; // 原 H（A0-D 接线：declare → button canonical）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
 
 declare function classifyToolCall(toolCall: ToolCall): { family: string };
 declare function extractRawFileSummaries(raw: unknown, toolCall: ToolCall): FileSummary[];
-declare function parseToolCallRaw(raw: unknown): Record<string, unknown> | null; // hg
-declare function isPlainRecord(value: unknown): value is Record<string, unknown>; // pg
 
 /* --- 交互/快照模型（本族所有子集） --- */
 

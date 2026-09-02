@@ -14,6 +14,8 @@
 //   nQ→unwrapToolUseError（99582）| Vlt→extractToolUseErrorText（99586）| rQ→extractToolErrorText（99590）
 //   【内联预览判定 99630–99640】
 //   iQ→resolveInlinePreview（99630）
+//   【工具调用 raw 载荷域 23390–23429】
+//   pg→isPlainRecord（23390）| hg→parseToolCallRaw（23421）
 /* eslint-disable */
 
 /* ── 工具状态/错误文案域（styles 99553–99618） ── */
@@ -97,7 +99,24 @@ function resolveInlinePreview(e: any, t: any) {
           : { type: `none` };
 }
 
+/* ── 工具调用 raw 载荷域（styles 23390–23429） ── */
+/** 原 pg（js 23390）：普通对象判定〔体同 $Z@99564 isPlainRecordValue / og 域 tg@23030，束为三处独立定义，按符号各保〕 */
+function isPlainRecord(e: unknown): e is Record<string, unknown> {
+  return typeof e == `object` && !!e && !Array.isArray(e);
+}
+/** 原 hg（js 23421）：工具调用 raw 载荷解析（rawInput 优先，input 次之）〔A1-R61 逐字；返回面 cast 缝 = declare 面 Record<string, unknown> | null 维持〕 */
+function parseToolCallRaw(e: unknown): Record<string, unknown> | null {
+  return isPlainRecord(e)
+    ? `rawInput` in e && e.rawInput !== void 0
+      ? (e.rawInput as Record<string, unknown>)
+      : `input` in e
+        ? (e.input as Record<string, unknown>)
+        : null
+    : null;
+}
+
 export {
   TOOL_STATUS_DISPLAY_MAP, normalizeToolCallStatus, isPlainRecordValue, trimmedStringOrUndefined, firstTrimmedFieldOf, stripCodeFenceBlock,
   unwrapToolUseError, extractToolUseErrorText, extractToolErrorText, resolveInlinePreview,
+  isPlainRecord, parseToolCallRaw,
 };
