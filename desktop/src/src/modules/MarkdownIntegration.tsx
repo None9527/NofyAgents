@@ -97,7 +97,7 @@
  *   kVe → isInAppBrowserUrl (50817)
  *   EA/DA/OA/kA → zcode-last-editor-id 记忆 (50846–50856 / 45668)
  *   zA  → relativePathFromWorkspace (50919) | JA → resolveAvailableEditors (51052) | QA → useWorkspaceFileServices (51093，接口)
- *   $A/QVe → useRemoteWorkspaceInfo     tabs store → isRemoteWorkspace/remoteTarget (51166–51174)
+ *   $A/QVe → useRemoteWorkspaceInfo     tabs store → isRemoteWorkspace/remoteTarget (51198–51220)
  *
  *  Conversation 耦合点：
  *   hvt → AssistantMessageRow (memo)  cj 的消费方：streaming=row.state==='streaming'，children=row.text (112357 / 95832)

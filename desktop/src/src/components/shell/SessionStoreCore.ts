@@ -21,7 +21,7 @@
 //   XAe→SessionIndexStore | VS→acquireSessionIndexStore | HS→releaseSessionIndexStore
 //   QAe→WorkspaceSubscriptionSet | zS/oAe→createWorkspaceSessionIndexTransport（sessionIndex 内仍 declare，留批）
 /* eslint-disable */
-import { sessionIndexPoolKey } from '../../modules/services'; // 原 BS（styles 35408；services/sessionIndex 499 逐字同形）
+import { sessionIndexPoolKey } from '../../modules/services'; // 原 BS（styles 35409；services/sessionIndex 499 逐字同形）
 
 /* ── tombstone（A1-P3-B3）：scopeSubscriptionLabel/sameScopeSubscriptionEntry（原 US/ZAe，
  *    styles 35443–35454）本地逐字实体删除——canonical 位随 zS/oAe 转录段落 services/sessionIndex

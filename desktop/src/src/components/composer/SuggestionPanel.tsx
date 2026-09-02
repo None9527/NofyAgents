@@ -63,7 +63,7 @@ type SuggestionRow =
   | { kind: `status`; sectionId: string; content: `error` | `loading` | `empty`; text?: string }
   | { kind: `option`; sectionId: string; option: MentionSuggestionItem; flatOptionIndex: number };
 
-/** 原 gJe（js 64663）：段集合 → 扁平行表（多段才插段头） */
+/** 原 gJe（js 64661）：段集合 → 扁平行表（多段才插段头） */
 function flattenSuggestionRows(sections: PanelSection[]): SuggestionRow[] {
   const rows: SuggestionRow[] = [];
   let flatOptionIndex = 0;
@@ -240,7 +240,7 @@ export function SuggestionPanel({
   );
 }
 
-/** 原 _Je（js 64822；〔A1-P3-B14〕bundle 64828 `qr(Lr, e.sectionId)` 逐字改指 joinTestidParts：
+/** 原 _Je（js 64825；〔A1-P3-B14〕bundle 64828 `qr(Lr, e.sectionId)` 逐字改指 joinTestidParts：
  *  Lr←styles 584 `Ur as Lr`←src 9819 `G_ as Ur`≡G_@8314） */
 function SuggestionSectionHeaderRow({ row }: { row: Extract<SuggestionRow, { kind: `section_header` }> }) {
   return (
@@ -288,7 +288,7 @@ function SuggestionStatusRow({ row }: { row: Extract<SuggestionRow, { kind: `sta
   );
 }
 
-/** 原 yJe（js 64863）：选项行 */
+/** 原 yJe（js 64861）：选项行 */
 function SuggestionOptionRow({
   row,
   isSelected,

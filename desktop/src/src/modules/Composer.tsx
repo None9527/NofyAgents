@@ -43,69 +43,69 @@
  *   UB   → useSkillContextStore               (63640 / jsx 56751，MODULE-MAP 副根)
  *   WB   → useSkillsContext                   (63680)
  *  [B1] 建议过滤/评分：
- *   gqe  → SUGGESTION_DEFAULT_LIMIT = 1000    (63751)
- *   GB   → hasNonEmptyQuery                   (63752)
- *   _qe  → suggestionLimitForQuery            (63755)
- *   vqe  → filterVisibleSuggestionSections    (63758)
- *   KB   → fuzzyScore                         (63761)
- *   yqe  → sortByFuzzyScore                   (63778)
+ *   gqe  → SUGGESTION_DEFAULT_LIMIT = 1000    (63752)
+ *   GB   → hasNonEmptyQuery                   (63753)
+ *   _qe  → suggestionLimitForQuery            (63756)
+ *   vqe  → filterVisibleSuggestionSections    (63759)
+ *   KB   → fuzzyScore                         (63762)
+ *   yqe  → sortByFuzzyScore                   (63779)
  *   qB   → limitItems                         (63795)
- *   bqe  → fileDirectoryPriority              (63801)
+ *   bqe  → fileDirectoryPriority              (63800)
  *   xqe  → sortFilesDirectoryFirst            (63803)
- *   JB   → filterSuggestionsByQuery           (63808)
+ *   JB   → filterSuggestionsByQuery           (63809)
  *  [B2] 技能/子代理建议构造：
  *   YB   → subagentScopePriority              (63843)
- *   Sqe  → subagentScopeLabel                 (63845)
- *   Cqe  → dedupeSubagentsByName              (63854)
+ *   Sqe  → subagentScopeLabel                 (63846)
+ *   Cqe  → dedupeSubagentsByName              (63855)
  *   wqe  → detectGlmSkillOrigin               (63878)
- *   Tqe  → GLM_SKILL_ID_PREFIX_REGEX          (63887)
- *   Eqe  → isGlmSkill                         (63888)
- *   XB   → filterGlmSkills                    (63891)
+ *   Tqe  → GLM_SKILL_ID_PREFIX_REGEX          (63884)
+ *   Eqe  → isGlmSkill                         (63885)
+ *   XB   → filterGlmSkills                    (63890)
  *   Dqe  → OFFICIAL_SKILL_PLUGINS             (63893；MODULE-MAP 建议卡数据注记)
  *   Oqe  → OFFICIAL_PLUGIN_PATH_MARKERS       (63903)
  *   kqe  → CURATED_SKILL_DESCRIPTIONS         (63911)
  *   Aqe  → localizeSkillScopeLabel            (64010)
- *   jqe  → curatedSkillDescription            (64022)
- *   Mqe  → isOfficialPluginSkill              (64025)
+ *   jqe  → curatedSkillDescription            (64023)
+ *   Mqe  → isOfficialPluginSkill              (64026)
  *   ZB   → buildSkillSuggestions              (64033)
- *   Nqe  → useSkillSuggestions                (64057；Home.report 段钩子)
+ *   Nqe  → useSkillSuggestions                (64056；Home.report 段钩子)
  *  [B3] 触发解析与斜杠建议：
- *   QB   → suggestionQueryKey                 (64069)
- *   Pqe  → MENTION_TRIGGER_REGEX              (64072)
+ *   QB   → suggestionQueryKey                 (64070)
+ *   Pqe  → MENTION_TRIGGER_REGEX              (64073)
  *   Fqe  → MENTION_TOKEN_PREFIX_REGEX         (64073)
- *   Iqe  → normalizeCnyTrigger                (64074)
+ *   Iqe  → normalizeCnyTrigger                (64075)
  *   $B   → mentionFuzzyScore                  (64077)
- *   eV   → scoreMentionSuggestion             (64096)
+ *   eV   → scoreMentionSuggestion             (64095)
  *   tV   → parseMentionTrigger                (64109)
  *   nV   → mentionCompletionOverlap           (64113)
  *   rV   → sortMentionSuggestions             (64131)
  *   Lqe  → findBestSuggestionIndex            (64151)
- *   iV   → APP_SLASH_PREFIX `app-slash:`      (64163；MODULE-MAP 副根)
- *   Rqe  → buildAppSlashSuggestions           (64164)
- *   zqe  → isAppSlashSuggestion               (64179)
- *   Bqe  → isSlashPanelAvailable              (64182)
- *   aV   → normalizeSlashCommandName          (64185)
- *   Vqe  → buildSessionSlashSuggestions       (64188)
- *   Hqe  → buildSubagentSlashSuggestions      (64207)
- *   Uqe  → buildSkillSlashSuggestions         (64209)
- *   Wqe  → toSubagentSlashSuggestion          (64219)
+ *   iV   → APP_SLASH_PREFIX `app-slash:`      (64164；MODULE-MAP 副根)
+ *   Rqe  → buildAppSlashSuggestions           (64165)
+ *   zqe  → isAppSlashSuggestion               (64182)
+ *   Bqe  → isSlashPanelAvailable              (64185)
+ *   aV   → normalizeSlashCommandName          (64188)
+ *   Vqe  → buildSessionSlashSuggestions       (64191)
+ *   Hqe  → buildSubagentSlashSuggestions      (64208)
+ *   Uqe  → buildSkillSlashSuggestions         (64211)
+ *   Wqe  → toSubagentSlashSuggestion          (64222)
  *   Gqe  → readTextAroundCursor               (64233)
  *   Kqe  → toSlashPanelMention                (64243)
- *   qqe  → useSessionSlashCommands            (64275)
+ *   qqe  → useSessionSlashCommands            (64274)
  *  [B4] 提及节点（Lexical TextNode 派生）：
  *   oV   → isHttpUrl                          (64277；A1-R13 行校正，旧注 64278)
  *   sV   → MENTION_NODE_BASE_CLASS            (64279)
  *   cV   → mentionCategoryClass               (64280)
  *   Jqe  → unescapeMarkdownLinkLabel          (64294)
- *   Yqe  → parseMarkdownLinkLabel             (64303)
- *   lV   → mentionDisplayLabel                (64307)
- *   uV   → SVG_NAMESPACE                      (64319)
+ *   Yqe  → parseMarkdownLinkLabel             (64305)
+ *   lV   → mentionDisplayLabel                (64309)
+ *   uV   → SVG_NAMESPACE                      (64320)
  *   Xqe/Zqe/Qqe/$qe/eJe/tJe/nJe/rJe → 技能/子代理/白板/目标命令/紧凑命令/命令/会话/插件
  *          提及图标 path 表                    (64320–64386)
- *   dV   → createMentionIconSvg               (64387)
+ *   dV   → createMentionIconSvg               (64388)
  *   iJe/aJe/oJe/sJe/cJe/lJe/uJe/dJe → create*Icon (64406–64431)
- *   fJe  → mentionFilePath                    (64433)
- *   fV   → stripLeadingSlashes                (64436)
+ *   fJe  → mentionFilePath                    (64432)
+ *   fV   → stripLeadingSlashes                (64435)
  *   pV   → renderMentionNodeContent           (64438)
  *   mV   → PromptMentionNode                  (64514)
  *   hV   → createMentionNode                  (64632)
@@ -128,42 +128,42 @@
  *   wV   → isCursorInsideToken                (65018)
  *   TV   → parseSlashTokenAtCursor            (65021)
  *   EV   → trackSlashToken                    (65028)
- *   DV   → resolveSlashTokenRange             (65038)
- *   OV   → PROGRAMMATIC_UPDATE_TAG            (65046)
+ *   DV   → resolveSlashTokenRange             (65039)
+ *   OV   → PROGRAMMATIC_UPDATE_TAG            (65047)
  *   kV   → HISTORY_NAVIGATION_TAG             (65047)
- *   xJe  → isUserInitiatedUpdate              (65048)
+ *   xJe  → isUserInitiatedUpdate              (65049)
  *   SJe  → SlashPanel                         (65052 / jsx 58050 区，MODULE-MAP 副根)
- *   AV   → PluginMentionIcon                  (65257)
+ *   AV   → PluginMentionIcon                  (65256)
  *  [B7] 提及选择器：
  *   CJe/wJe/TJe → @/#/$ 触发类别表            (65276–65278)
- *   EJe  → mentionCategoriesForTrigger        (65279)
+ *   EJe  → mentionCategoriesForTrigger        (65280)
  *   DJe  → mentionSessionScope                (65283)
  *   OJe  → buildFileSuggestions               (65286)
  *   jV   → normalizeQueryCase                 (65298)
  *   kJe  → shouldRefreshFileList              (65301)
- *   AJe  → useFileSuggestions                 (65310；Home.report 段钩子)
+ *   AJe  → useFileSuggestions                 (65312；Home.report 段钩子)
  *   MV   → EMPTY_PLUGIN_CATALOG               (65360)
  *   jJe  → INITIAL_PLUGIN_CATALOG_STATE       (65361)
  *   NV   → pluginCatalogRequestCache          (65362)
- *   PV   → releasePluginCatalogRequest        (65364)
- *   MJe  → trackPluginCatalogRequest          (65368)
- *   FV   → usePluginReferenceCatalog          (65372)
- *   NJe  → buildPluginSuggestions             (65436)
- *   PJe  → usePluginSuggestions               (65455；Home.report 段钩子)
- *   FJe  → SESSION_SUGGESTIONS_PER_WORKSPACE = 20 (65483)
- *   IJe  → compareSessionSuggestions          (65484)
+ *   PV   → releasePluginCatalogRequest        (65363)
+ *   MJe  → trackPluginCatalogRequest          (65366)
+ *   FV   → usePluginReferenceCatalog          (65370)
+ *   NJe  → buildPluginSuggestions             (65438)
+ *   PJe  → usePluginSuggestions               (65456；Home.report 段钩子)
+ *   FJe  → SESSION_SUGGESTIONS_PER_WORKSPACE = 20 (65484)
+ *   IJe  → compareSessionSuggestions          (65485)
  *   IV   → sessionDisplayTitle                (65496)
  *   LJe  → sessionWorkspaceLabel              (65499)
- *   RJe  → buildSessionSuggestion             (65504)
- *   zJe  → dedupeAndSortSessions              (65515)
+ *   RJe  → buildSessionSuggestion             (65503)
+ *   zJe  → dedupeAndSortSessions              (65517)
  *   BJe  → limitSessionsPerWorkspace          (65528)
- *   VJe  → collectSessionListEndpoints        (65534)
- *   HJe  → useSessionSuggestions              (65565；Home.report 段钩子)
+ *   VJe  → collectSessionListEndpoints        (65535)
+ *   HJe  → useSessionSuggestions              (65564；Home.report 段钩子)
  *   UJe  → buildWhiteboardSuggestions         (65610)
- *   WJe  → useWhiteboardSuggestions           (65623；Home.report 段钩子)
- *   LV   → wrapIndex                          (65636)
- *   RV   → findNextEnabledIndex               (65639)
- *   GJe  → clampToEnabledIndex                (65648)
+ *   WJe  → useWhiteboardSuggestions           (65622；Home.report 段钩子)
+ *   LV   → wrapIndex                          (65634)
+ *   RV   → findNextEnabledIndex               (65637)
+ *   GJe  → clampToEnabledIndex                (65646)
  *   KJe  → MentionSelector                    (65653 / jsx 58473，MODULE-MAP 副根)
  *  [B8] 编辑器辅助（提交/历史/移动端/编辑器指令）：
  *   zV   → resolveTaskProvider                (66097)
@@ -1255,25 +1255,25 @@ declare function useShallowSkillLoadedState(selector: (state: any) => unknown): 
  * [B1] 建议过滤/评分（js 63751–63843）
  * ==========================================================================*/
 
-/** 原 gqe（js 63751）：建议缺省上限 */
+/** 原 gqe（js 63752）：建议缺省上限 */
 const SUGGESTION_DEFAULT_LIMIT = 1000;
 
-/** 原 GB（js 63752）：查询非空判定 */
+/** 原 GB（js 63753）：查询非空判定 */
 function hasNonEmptyQuery(query: string): boolean {
   return query.trim().length > 0;
 }
 
-/** 原 _qe（js 63755）：空查询时限流（缺省 3） */
+/** 原 _qe（js 63756）：空查询时限流（缺省 3） */
 function suggestionLimitForQuery(query: string, emptyLimit = 3): number | undefined {
   return hasNonEmptyQuery(query) ? void 0 : emptyLimit;
 }
 
-/** 原 vqe（js 63758）：仅保留可见段（loading/错误/有条目） */
+/** 原 vqe（js 63759）：仅保留可见段（loading/错误/有条目） */
 function filterVisibleSuggestionSections(sections: SuggestionSectionModel[]): SuggestionSectionModel[] {
   return sections.filter((section) => section.loading || section.errorText !== null || section.items.length > 0);
 }
 
-/** 原 KB（js 63761）：模糊评分（前缀 < 包含 < 子序列；不可匹配 → null） */
+/** 原 KB（js 63762）：模糊评分（前缀 < 包含 < 子序列；不可匹配 → null） */
 function fuzzyScore(haystack: string | undefined, needle: string): number | null {
   const text = haystack!.trim().toLowerCase();
   const query = needle.trim().toLowerCase();
@@ -1292,7 +1292,7 @@ function fuzzyScore(haystack: string | undefined, needle: string): number | null
   return score + (text.length - query.length);
 }
 
-/** 原 yqe（js 63778）：按评分排序（同分按原序，再按标签 localeCompare） */
+/** 原 yqe（js 63779）：按评分排序（同分按原序，再按标签 localeCompare） */
 function sortByFuzzyScore<T>(
   items: T[],
   scoreOf: (item: T) => number | null,
@@ -1321,7 +1321,7 @@ function limitItems<T>(items: T[], limit: number): T[] {
   return items.slice(0, count);
 }
 
-/** 原 bqe（js 63801）：目录排后（文件优先） */
+/** 原 bqe（js 63800）：目录排后（文件优先） */
 function fileDirectoryPriority(item: MentionSuggestionItem): number {
   return item.category === `files` ? +(item.data?.kind === `directory`) : 0;
 }
@@ -1334,7 +1334,7 @@ function sortFilesDirectoryFirst(items: MentionSuggestionItem[]): MentionSuggest
     .map(({ item }) => item);
 }
 
-/** 原 JB（js 63808）：建议查询过滤（空查询 → 目录优先原序；requireQuery → 空） */
+/** 原 JB（js 63809）：建议查询过滤（空查询 → 目录优先原序；requireQuery → 空） */
 function filterSuggestionsByQuery(
   items: MentionSuggestionItem[],
   query: string,
@@ -1383,7 +1383,7 @@ function subagentScopePriority(agent: SubagentEntry): number {
   return agent.scope === `workspace` ? 0 : agent.source === `user` ? 1 : 2;
 }
 
-/** 原 Sqe（js 63845）：子代理作用域英文标签 */
+/** 原 Sqe（js 63846）：子代理作用域英文标签 */
 function subagentScopeLabel(agent: SubagentEntry): string {
   return agent.scope === `workspace`
     ? `Workspace`
@@ -1394,7 +1394,7 @@ function subagentScopeLabel(agent: SubagentEntry): string {
         : `User`;
 }
 
-/** 原 Cqe（js 63854）：按名去重（保留作用域优先级更高者）→ 子代理建议条目 */
+/** 原 Cqe（js 63855）：按名去重（保留作用域优先级更高者）→ 子代理建议条目 */
 function dedupeSubagentsByName(agents: SubagentEntry[]): MentionSuggestionItem[] {
   const byName = new Map<string, SubagentEntry>();
   for (const agent of agents) {
@@ -1427,17 +1427,17 @@ function detectGlmSkillOrigin(path: string): string {
     : `unknown`;
 }
 
-/** 原 Tqe（js 63887）：glm 技能 id 前缀 */
+/** 原 Tqe（js 63884）：glm 技能 id 前缀 */
 const GLM_SKILL_ID_PREFIX_REGEX = /^glm:/;
 
-/** 原 Eqe（js 63888）：glm 技能判定（插件作用域 / glm: 前缀 / 路径特征） */
+/** 原 Eqe（js 63885）：glm 技能判定（插件作用域 / glm: 前缀 / 路径特征） */
 function isGlmSkill(skill: SkillEntry): boolean {
   return (
     skill.scope === `plugin` || (typeof skill.id == `string` && GLM_SKILL_ID_PREFIX_REGEX.test(skill.id)) || detectGlmSkillOrigin(skill.path) === `glm`
   );
 }
 
-/** 原 XB（js 63891）：仅保留 glm 技能 */
+/** 原 XB（js 63890）：仅保留 glm 技能 */
 function filterGlmSkills(skills: SkillEntry[], _provider: string): SkillEntry[] {
   return skills.filter(isGlmSkill);
 }
@@ -1580,12 +1580,12 @@ function localizeSkillScopeLabel(scope: string, locale?: string): string {
         : `User`;
 }
 
-/** 原 jqe（js 64022）：精选文案回退到原描述 */
+/** 原 jqe（js 64023）：精选文案回退到原描述 */
 function curatedSkillDescription(skill: SkillEntry, locale?: string): string | undefined {
   return (isOfficialPluginSkill(skill) ? CURATED_SKILL_DESCRIPTIONS[skill.name]?.[locale ?? `en-US`] : void 0) ?? skill.description;
 }
 
-/** 原 Mqe（js 64025）：官方插件技能判定（插件名集合 / 路径特征） */
+/** 原 Mqe（js 64026）：官方插件技能判定（插件名集合 / 路径特征） */
 function isOfficialPluginSkill(skill: SkillEntry): boolean {
   if (skill.scope !== `plugin`) return false;
   const pluginName = skill.pluginName?.trim();
@@ -1619,7 +1619,7 @@ function buildSkillSuggestions(skills: SkillEntry[], locale?: string): MentionSu
   });
 }
 
-/** 原 Nqe（js 64057）：技能建议段钩子（启用 + 过滤 + 查询） */
+/** 原 Nqe（js 64056）：技能建议段钩子（启用 + 过滤 + 查询） */
 function useSkillSuggestions(
   workspacePath: string | null,
   workspaceIdentity: string | null | undefined,
@@ -1648,22 +1648,22 @@ function useSkillSuggestions(
  * [B3] 触发解析与斜杠建议（js 64069–64278）
  * ==========================================================================*/
 
-/** 原 QB（js 64069）：触发查询键（去抖比较用） */
+/** 原 QB（js 64070）：触发查询键（去抖比较用） */
 function suggestionQueryKey(trigger: { trigger: string; query: string } | null): string | null {
   return trigger ? `${trigger.trigger}:${trigger.query}` : null;
 }
 
-/** 原 Pqe（js 64072）：提及触发正则（行内空白后的 / @ $ # ¥ ￥） */
+/** 原 Pqe（js 64073）：提及触发正则（行内空白后的 / @ $ # ¥ ￥） */
 const MENTION_TRIGGER_REGEX = /(^|\s)([/@$#¥￥])([^\s/@$#¥￥]*)$/;
 /** 原 Fqe（js 64073）：提及词元前缀正则 */
 const MENTION_TOKEN_PREFIX_REGEX = /^[^\s/@$#¥￥]*/;
 
-/** 原 Iqe（js 64074）：人民币符号归一为 $ */
+/** 原 Iqe（js 64075）：人民币符号归一为 $ */
 function normalizeCnyTrigger(trigger: string): string {
   return trigger === `¥` || trigger === `￥` ? `$` : trigger;
 }
 
-/** 原 $B（js 64077）：提及模糊评分（与 KB 同构，独立实例） */
+/** 原 $B（js 64078）：提及模糊评分（与 KB 同构，独立实例） */
 function mentionFuzzyScore(haystack: string | undefined, needle: string): number | null {
   const text = haystack!.trim().toLowerCase();
   const query = needle.trim().toLowerCase();
@@ -1682,7 +1682,7 @@ function mentionFuzzyScore(haystack: string | undefined, needle: string): number
   return score + (text.length - query.length);
 }
 
-/** 原 eV（js 64096）：提及建议综合评分（value < label+50 < description+250 < keywords+450） */
+/** 原 eV（js 64095）：提及建议综合评分（value < label+50 < description+250 < keywords+450） */
 function scoreMentionSuggestion(item: MentionSuggestionItem, query: string): number | null {
   const valueScore = mentionFuzzyScore(item.value, query);
   const labelScore = mentionFuzzyScore(item.label, query);
@@ -1765,10 +1765,10 @@ function findBestSuggestionIndex(items: MentionSuggestionItem[], query?: string 
   );
 }
 
-/** 原 iV（js 64163）：应用级斜杠命令 id 前缀 */
+/** 原 iV（js 64164）：应用级斜杠命令 id 前缀 */
 const APP_SLASH_PREFIX = `app-slash:`;
 
-/** 原 Rqe（js 64164）：应用斜杠命令 → 建议条目 */
+/** 原 Rqe（js 64165）：应用斜杠命令 → 建议条目 */
 function buildAppSlashSuggestions(commands: AppSlashCommand[]): MentionSuggestionItem[] {
   return commands.flatMap((command) => {
     const name = normalizeSlashCommandName(command.value);
@@ -1787,12 +1787,12 @@ function buildAppSlashSuggestions(commands: AppSlashCommand[]): MentionSuggestio
   });
 }
 
-/** 原 zqe（js 64179）：应用斜杠建议判定（选中后执行 run） */
+/** 原 zqe（js 64182）：应用斜杠建议判定（选中后执行 run） */
 function isAppSlashSuggestion(item: MentionSuggestionItem): boolean {
   return item.id.startsWith(APP_SLASH_PREFIX);
 }
 
-/** 原 Bqe（js 64182）：斜杠面板可用条件（非草稿/非引用侧栏/非只读/非移动端） */
+/** 原 Bqe（js 64185）：斜杠面板可用条件（非草稿/非引用侧栏/非只读/非移动端） */
 export function isSlashPanelAvailable(state: { // 〔A1-P1-B4〕补 export：R0 簇 ConversationPaneCore 652 消费面回取（原 Bqe 64184）
   isDraft: boolean;
   selectionSideChat: boolean;
@@ -1802,12 +1802,12 @@ export function isSlashPanelAvailable(state: { // 〔A1-P1-B4〕补 export：R0 
   return !state.isDraft && !state.selectionSideChat && !state.readOnly && !state.isMobileViewport;
 }
 
-/** 原 aV（js 64185）：斜杠命令名归一（去前导 /） */
+/** 原 aV（js 64188）：斜杠命令名归一（去前导 /） */
 function normalizeSlashCommandName(name: string): string {
   return name.trim().replace(/^\/+/, ``);
 }
 
-/** 原 Vqe（js 64188）：会话斜杠命令 → 建议条目 */
+/** 原 Vqe（js 64191）：会话斜杠命令 → 建议条目 */
 function buildSessionSlashSuggestions(commands: SessionSlashCommand[]): MentionSuggestionItem[] {
   return commands.flatMap((command) => {
     const name = normalizeSlashCommandName(command.name);
@@ -1826,12 +1826,12 @@ function buildSessionSlashSuggestions(commands: SessionSlashCommand[]): MentionS
   });
 }
 
-/** 原 Hqe（js 64207）：子代理斜杠建议 */
+/** 原 Hqe（js 64208）：子代理斜杠建议 */
 function buildSubagentSlashSuggestions(agents: SubagentEntry[]): MentionSuggestionItem[] {
   return dedupeSubagentsByName(agents).map((item) => toSubagentSlashSuggestion(item));
 }
 
-/** 原 Uqe（js 64209）：技能斜杠建议（$ 前缀标签） */
+/** 原 Uqe（js 64211）：技能斜杠建议（$ 前缀标签） */
 function buildSkillSlashSuggestions(skills: SkillEntry[], locale?: string): MentionSuggestionItem[] {
   return buildSkillSuggestions(skills, locale).map((item) => ({
     id: item.id,
@@ -1844,7 +1844,7 @@ function buildSkillSlashSuggestions(skills: SkillEntry[], locale?: string): Ment
   }));
 }
 
-/** 原 Wqe（js 64219）：子代理建议 → 斜杠建议 */
+/** 原 Wqe（js 64222）：子代理建议 → 斜杠建议 */
 function toSubagentSlashSuggestion(item: MentionSuggestionItem): MentionSuggestionItem {
   return {
     id: item.id,
@@ -1902,7 +1902,7 @@ function toSlashPanelMention(item: MentionSuggestionItem): MentionPayload {
   };
 }
 
-/** 原 qqe（js 64275）：会话斜杠命令（任务 store 消费面） */
+/** 原 qqe（js 64274）：会话斜杠命令（任务 store 消费面） */
 function useSessionSlashCommands(workspacePath: string, workspaceIdentity?: string | null): SessionSlashCommand[] {
   return useTaskStore((state) => taskScopeSelector(state, workspacePath, workspaceIdentity).slashCommands);
 }
@@ -1993,13 +1993,13 @@ function unescapeMarkdownLinkLabel(label: string): string {
   return result;
 }
 
-/** 原 Yqe（js 64303）：解析 markdown 链接标签 `[label](target)` */
+/** 原 Yqe（js 64305）：解析 markdown 链接标签 `[label](target)` */
 function parseMarkdownLinkLabel(markdown: string): string | null {
   const label = /^\[((?:\\.|[^\\\]])*)\]\((?:<((?:\\.|[^>])*?)>|((?:\\.|[^)])*))\)$/.exec(markdown.trim())?.[1];
   return label ? unescapeMarkdownLinkLabel(label) : null;
 }
 
-/** 原 lV（js 64307）：提及显示标签（去触发符前缀，回退缺省） */
+/** 原 lV（js 64309）：提及显示标签（去触发符前缀，回退缺省） */
 function mentionDisplayLabel(category: string, label: string, value: string): string {
   let display = parseMarkdownLinkLabel(value) ?? value;
   return (
@@ -2012,7 +2012,7 @@ function mentionDisplayLabel(category: string, label: string, value: string): st
   );
 }
 
-/** 原 uV（js 64319）：SVG 命名空间 */
+/** 原 uV（js 64320）：SVG 命名空间 */
 const SVG_NAMESPACE = `http://www.w3.org/2000/svg`;
 
 /** 原 Xqe（js 64320）：技能提及图标 path 表 */
@@ -2053,7 +2053,7 @@ const WHITEBOARD_MENTION_ICON_PATHS: Array<[string, Record<string, string>]> = [
   [`path`, { d: `M14.5 9h.01` }],
   [`path`, { d: `M17 12h.01` }],
 ];
-/** 原 $qe（js 64353）：/goal 命令图标 */
+/** 原 $qe（js 64356）：/goal 命令图标 */
 const GOAL_COMMAND_ICON_PATHS: Array<[string, Record<string, string>]> = [
   [`path`, { d: `M12 13V2l8 4-8 4` }],
   [`path`, { d: `M20.561 10.222a9 9 0 1 1-12.55-5.29` }],
@@ -2091,7 +2091,7 @@ const PLUGIN_MENTION_ICON_PATHS: Array<[string, Record<string, string>]> = [
   ],
 ];
 
-/** 原 dV（js 64387）：由 path 表构造 16px 内联 SVG 元素 */
+/** 原 dV（js 64388）：由 path 表构造 16px 内联 SVG 元素 */
 function createMentionIconSvg(paths: Array<[string, Record<string, string>]>): SVGElement {
   const svg = document.createElementNS(SVG_NAMESPACE, `svg`);
   (svg.setAttribute(`viewBox`, `0 0 24 24`),
@@ -2139,12 +2139,12 @@ function createPluginMentionIcon(): SVGElement {
   return createMentionIconSvg(PLUGIN_MENTION_ICON_PATHS);
 }
 
-/** 原 fJe（js 64433）：提及文件路径（path → relativePath → 标签） */
+/** 原 fJe（js 64432）：提及文件路径（path → relativePath → 标签） */
 function mentionFilePath(data: Record<string, unknown> | undefined, fallback: string): string {
   return (data?.path as string) ?? (data?.relativePath as string) ?? fallback;
 }
 
-/** 原 fV（js 64436）：去前导斜杠（命令名比较用） */
+/** 原 fV（js 64435）：去前导斜杠（命令名比较用） */
 function stripLeadingSlashes(value: string): string {
   return value.trim().replace(/^\/+/, ``);
 }
@@ -2354,13 +2354,13 @@ export class PromptMentionNode extends LexicalTextNode {
   }
 }
 
-/** 原 hV（js 64633）：创建 token 模式提及节点（bundle：`(t.setMode('token'), LR(t))`，LR = $applyNodeReplacement@styles 61025；A0-S3d：返回值按 bundle 收口） */
+/** 原 hV（js 64632）：创建 token 模式提及节点（bundle：`(t.setMode('token'), LR(t))`，LR = $applyNodeReplacement@styles 61025；A0-S3d：返回值按 bundle 收口） */
 function createMentionNode(payload: MentionPayload): PromptMentionNode {
   const node = new PromptMentionNode(payload);
   return (node.setMode(`token`), $applyNodeReplacement(node));
 }
 
-/** 原 gV（js 64637）：提及节点判定 */
+/** 原 gV（js 64636）：提及节点判定 */
 function isMentionNode(node: unknown): node is PromptMentionNode {
   return node instanceof PromptMentionNode;
 }
@@ -2518,7 +2518,7 @@ function trackSlashToken(
       : null;
 }
 
-/** 原 DV（js 65038）：词元范围解析（失效 → null） */
+/** 原 DV（js 65039）：词元范围解析（失效 → null） */
 function resolveSlashTokenRange(
   token: SlashTokenState | null,
   context: SlashCursorContext,
@@ -2531,12 +2531,12 @@ function resolveSlashTokenRange(
     : { end: token.tokenEnd, start: token.tokenStart };
 }
 
-/** 原 OV（js 65046）：编程式更新标签 */
+/** 原 OV（js 65047）：编程式更新标签 */
 const PROGRAMMATIC_UPDATE_TAG = `zcode-programmatic`;
 /** 原 kV（js 65047）：历史导航更新标签 */
 const HISTORY_NAVIGATION_TAG = `zcode-history-navigation`;
 
-/** 原 xJe（js 65048）：用户发起更新判定（排除历史导航） */
+/** 原 xJe（js 65049）：用户发起更新判定（排除历史导航） */
 function isUserInitiatedUpdate(tags: Set<string>): boolean {
   return !tags.has(HISTORY_NAVIGATION_TAG);
 }
@@ -2757,7 +2757,7 @@ export function SlashPanel({
       );
 }
 
-/** 原 AV（js 65257）：插件提及图标（远程图标 + 错误回退） */
+/** 原 AV（js 65256）：插件提及图标（远程图标 + 错误回退） */
 function PluginMentionIcon({ src, className, iconClassName }: { src?: string; className?: string; iconClassName?: string }) {
   const [failed, setFailed] = React.useState(false);
   const showRemote = isHttpUrl(src) && !failed;
@@ -2788,7 +2788,7 @@ const AT_MENTION_CATEGORIES = [`plugins`, `files`, `sessions`, `whiteboards`];
 const HASH_MENTION_CATEGORIES = [`sessions`];
 const DOLLAR_MENTION_CATEGORIES = [`skills`];
 
-/** 原 EJe（js 65279）：触发符 → 类别表 */
+/** 原 EJe（js 65280）：触发符 → 类别表 */
 function mentionCategoriesForTrigger(trigger?: string): string[] {
   return trigger === `@` ? AT_MENTION_CATEGORIES : trigger === `#` ? HASH_MENTION_CATEGORIES : trigger === `$` ? DOLLAR_MENTION_CATEGORIES : [];
 }
@@ -2830,7 +2830,7 @@ function shouldRefreshFileList(args: {
   return !args.enabled || args.loading ? false : args.loaded ? (normalized.length === 0 || args.resultCount > 0 ? false : args.lastMissRefreshQuery !== normalized) : true;
 }
 
-/** 原 AJe（js 65310）：文件建议段钩子（列表缓存 + 失效刷新） */
+/** 原 AJe（js 65312）：文件建议段钩子（列表缓存 + 失效刷新） */
 function useFileSuggestions(
   workspacePath: string,
   query: string,
@@ -2913,7 +2913,7 @@ const INITIAL_PLUGIN_CATALOG_STATE: { scope: object | null; value: typeof EMPTY_
 /** 原 NV（js 65362）：按服务实例的会话目录请求去重缓存 */
 const pluginCatalogRequestCache = new WeakMap<object, Map<string, Promise<{ plugins: PluginCatalogEntry[]; authority: string | null }>>>();
 
-/** 原 PV（js 65364）：释放去重缓存条目 */
+/** 原 PV（js 65363）：释放去重缓存条目 */
 function releasePluginCatalogRequest(
   services: object,
   cache: Map<string, Promise<{ plugins: PluginCatalogEntry[]; authority: string | null }>>,
@@ -2923,7 +2923,7 @@ function releasePluginCatalogRequest(
   cache.get(requestKey) === request && (cache.delete(requestKey), cache.size === 0 && pluginCatalogRequestCache.delete(services));
 }
 
-/** 原 MJe（js 65368）：请求结算后清理缓存 */
+/** 原 MJe（js 65366）：请求结算后清理缓存 */
 function trackPluginCatalogRequest(
   services: object,
   cache: Map<string, Promise<{ plugins: PluginCatalogEntry[]; authority: string | null }>>,
@@ -2934,7 +2934,7 @@ function trackPluginCatalogRequest(
   request.then(cleanup, cleanup);
 }
 
-/** 原 FV（js 65372）：插件引用目录钩子（会话级去重 + 运行时重启递增） */
+/** 原 FV（js 65370）：插件引用目录钩子（会话级去重 + 运行时重启递增） */
 function usePluginReferenceCatalog(
   workspacePath: string,
   workspaceIdentity: string | null | undefined,
@@ -3010,7 +3010,7 @@ function usePluginReferenceCatalog(
   );
 }
 
-/** 原 NJe（js 65436）：插件目录 → 建议条目（冲突禁用） */
+/** 原 NJe（js 65438）：插件目录 → 建议条目（冲突禁用） */
 function buildPluginSuggestions(
   entries: PluginCatalogEntry[],
   labels: { conflictReason: string; formatDescription(entry: PluginCatalogEntry): string },
@@ -3033,7 +3033,7 @@ function buildPluginSuggestions(
     });
 }
 
-/** 原 PJe（js 65455）：插件建议段钩子 */
+/** 原 PJe（js 65456）：插件建议段钩子 */
 function usePluginSuggestions(
   workspacePath: string,
   workspaceIdentity: string | null | undefined,
@@ -3071,10 +3071,10 @@ function usePluginSuggestions(
   };
 }
 
-/** 原 FJe（js 65483）：每工作区会话建议上限 */
+/** 原 FJe（js 65484）：每工作区会话建议上限 */
 const SESSION_SUGGESTIONS_PER_WORKSPACE = 20;
 
-/** 原 IJe（js 65484）：会话建议比较（当前工作区优先 → 更新时间 → 创建时间 → 标题） */
+/** 原 IJe（js 65485）：会话建议比较（当前工作区优先 → 更新时间 → 创建时间 → 标题） */
 function compareSessionSuggestions(a: SessionSuggestionItem, b: SessionSuggestionItem, preferredWorkspaceKey?: string): number {
   if (preferredWorkspaceKey) {
     const aPreferred = workspaceKey(a.workspacePath, a.workspaceIdentity) === preferredWorkspaceKey;
@@ -3108,7 +3108,7 @@ interface SessionSuggestionItem extends MentionSuggestionItem {
   createdAt: number;
 }
 
-/** 原 RJe（js 65504）：会话 → 建议条目 */
+/** 原 RJe（js 65503）：会话 → 建议条目 */
 function buildSessionSuggestion(session: SessionListItem, fallbackProvider: string): SessionSuggestionItem {
   const taskId = session.taskId;
   const provider = session.provider ?? fallbackProvider;
@@ -3130,7 +3130,7 @@ function buildSessionSuggestion(session: SessionListItem, fallbackProvider: stri
   };
 }
 
-/** 原 zJe（js 65515）：会话去重（按 taskId 保留最新）+ 排序 */
+/** 原 zJe（js 65517）：会话去重（按 taskId 保留最新）+ 排序 */
 function dedupeAndSortSessions(
   sessions: SessionListItem[],
   fallbackProvider: string,
@@ -3156,7 +3156,7 @@ function limitSessionsPerWorkspace(items: SessionSuggestionItem[]): SessionSugge
   });
 }
 
-/** 原 VJe（js 65534）：收集会话列表端点（当前工作区 + 标签页，按服务实例去重） */
+/** 原 VJe（js 65535）：收集会话列表端点（当前工作区 + 标签页，按服务实例去重） */
 function collectSessionListEndpoints(args: {
   baseServices: unknown;
   currentRemoteSessionId?: string | null;
@@ -3196,7 +3196,7 @@ function collectSessionListEndpoints(args: {
   return endpoints;
 }
 
-/** 原 HJe（js 65565）：会话建议段钩子（@ 当前工作区 / # 同权限工作区） */
+/** 原 HJe（js 65564）：会话建议段钩子（@ 当前工作区 / # 同权限工作区） */
 function useSessionSuggestions(
   provider: string,
   workspacePath: string,
@@ -3270,7 +3270,7 @@ function buildWhiteboardSuggestions(boards: WhiteboardBoard[]): MentionSuggestio
   }));
 }
 
-/** 原 WJe（js 65623）：白板建议段钩子 */
+/** 原 WJe（js 65622）：白板建议段钩子 */
 function useWhiteboardSuggestions(
   workspacePath: string,
   workspaceIdentity: string | null | undefined,
@@ -3291,12 +3291,12 @@ function useWhiteboardSuggestions(
   };
 }
 
-/** 原 LV（js 65636）：环形索引 */
+/** 原 LV（js 65634）：环形索引 */
 function wrapIndex(index: number, delta: number, length: number): number {
   return length <= 0 ? 0 : (index + delta + length) % length;
 }
 
-/** 原 RV（js 65639）：跳过禁用项的环形移动 */
+/** 原 RV（js 65637）：跳过禁用项的环形移动 */
 function findNextEnabledIndex(current: number, delta: number, items: MentionSuggestionItem[]): number {
   if (items.length === 0) return 0;
   let index = wrapIndex(current, delta, items.length);
@@ -3307,7 +3307,7 @@ function findNextEnabledIndex(current: number, delta: number, items: MentionSugg
   return current;
 }
 
-/** 原 GJe（js 65648）：列表变化后钳制到可用项 */
+/** 原 GJe（js 65646）：列表变化后钳制到可用项 */
 function clampToEnabledIndex(current: number, items: MentionSuggestionItem[]): number {
   if (items.length === 0) return 0;
   const clamped = Math.min(Math.max(current, 0), items.length - 1);

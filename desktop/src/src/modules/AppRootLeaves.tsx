@@ -29,13 +29,13 @@
  *   o8t → telemetryParityCaseById         (212450 / 168803)
  *   s8t → quotaParityAssertions           (212455 / 168808)
  *   c8t → captchaParityAssertions         (212490 / 168843)
- *   X9  → assertParityState               (212520 / 168873)
- *   l8t → exposeTelemetryParityE2E        (212523 / 168876)
+ *   X9  → assertParityState               (212521 / 168873)
+ *   l8t → exposeTelemetryParityE2E        (212525 / 168876)
  *   u8t → runTelemetryParityCase          (212534 / 168887)
  *   d8t → applyTelemetryParityOperation   (212580 / 168933)
  *   f8t → runTelemetryParityWebNoop       (212775 / 169128)
- *   p8t → pushUniqueParityAssertion       (212803 / 169156)
- *   Z9  → buildParityEventFact            (212806 / 169159)
+ *   p8t → pushUniqueParityAssertion       (212802 / 169156)
+ *   Z9  → buildParityEventFact            (212805 / 169159)
  * [L] 远控任务同步桥 / 图标常量：
  *   m8t → APP_ROOT_ICON_STROKE_WIDTH      (212817 / —)       = 1.5
  *   h8t → WebRemoteControlTaskSyncBridge  (212818 / 169171)
@@ -1475,13 +1475,13 @@ export function captchaParityAssertions() {
   );
 }
 
-/** 原 X9（js 212520）— 逐字 */
+/** 原 X9（js 212521）— 逐字 */
 export function assertParityState(condition: boolean, label: string, assertions: string[]) {
   if (!condition) throw Error(`conversation telemetry parity state assertion failed: ${label}`);
   assertions.push(label);
 }
 
-/** 原 l8t（js 212523）— 逐字 */
+/** 原 l8t（js 212525）— 逐字 */
 export function exposeTelemetryParityE2E(options: { platform: PlatformService; isDesktop: boolean }) {
   if (!options.isDesktop || !isTelemetryEnabled()) return () => void 0;
   let handle = { variant: `current`, run: (caseId: string) => runTelemetryParityCase(options.platform, caseId) };
@@ -1786,12 +1786,12 @@ export async function runTelemetryParityWebNoop(context: ParityOperationContext,
   }
 }
 
-/** 原 p8t（js 212803）— 逐字 */
+/** 原 p8t（js 212802）— 逐字 */
 export function pushUniqueParityAssertion(assertions: string[], label: string) {
   assertions.includes(label) || assertions.push(label);
 }
 
-/** 原 Z9（js 212806）— 逐字 */
+/** 原 Z9（js 212805）— 逐字 */
 export function buildParityEventFact(scope: ParityScope, operation: any, patch: Partial<AgentFact> & { kind: string }): AgentFact {
   return {
     version: 1,
@@ -2712,9 +2712,9 @@ export function setRendererInstanceId(rawId: string) {
  * ============================================================================
  *  工作区动作：j6t 210776/167537
  *  TDP 对测：i8t 211669/168266 | a8t 212448 | （[...keys()] 212449）
- *   o8t 212450/168803 | s8t 212455/168808 | c8t 212490/168843 | X9 212520/168873
- *   l8t 212523/168876 | u8t 212534/168887 | d8t 212580/168933 | f8t 212775/169128
- *   p8t 212803/169156 | Z9 212806/169159
+ *   o8t 212450/168803 | s8t 212455/168808 | c8t 212490/168843 | X9 212521/168873
+ *   l8t 212525/168876 | u8t 212534/168887 | d8t 212580/168933 | f8t 212775/169128
+ *   p8t 212802/169156 | Z9 212805/169159
  *  同步桥/根：m8t 212817 | h8t 212818/169171 | g8t 212878/169433
  *   _8t 212905/169450（OFFLINE-PATCH-002 @ 213107–213109）
  *  尾件：x8t 213901/170369 | S8t 213909 | C8t 213910/170378 | w8t 213921

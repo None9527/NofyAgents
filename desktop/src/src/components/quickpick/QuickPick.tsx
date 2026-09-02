@@ -38,7 +38,7 @@
  *
  *  数据层：
  *   Vo   → useSearchResultsStore     搜索结果缓存 store（zustand）(1553–1878 / 569)
- *   Zie  → selectQueryResult         按 queryKey 选择缓存结果 (1879)
+ *   Zie  → selectQueryResult         按 queryKey 选择缓存结果 (1878)
  *   ZS   → useGlobalTaskList         跨工作区任务列表/搜索 hook (35727–36070 / 32810)
  *   uje  → mergeTaskListShards       分片结果合并 (35708–35726)
  *   $S   → formatRelativeTime        相对时间（刚刚/分/时/天）(36080–36089)
@@ -393,7 +393,7 @@ export function CommandEmpty({ className, ...props }: React.ComponentProps<typeo
   return <CommandPrimitive.Empty data-slot="command-empty" className={cn("py-6 text-center text-ui-base/relaxed", className)} {...props} />;
 }
 
-/** 原 $b（js 32166 / jsx 29525）：CommandGroup */
+/** 原 $b（js 32213 / jsx 29525）：CommandGroup */
 export function CommandGroup({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Group>) {
   return (
     <CommandPrimitive.Group
@@ -826,7 +826,7 @@ export function fuzzyScore(original: string, query: string, keywords?: string[])
  * 5. 相对时间 / 标题 / 排序（原 $S/fC/Mje，js 36080/36277/36281）
  * ==========================================================================*/
 
-/** 原 $S（js 36080–36089）：相对时间（刚刚/N 分钟前/N 小时前/N 天前） */
+/** 原 $S（js 36128–36137）：相对时间（刚刚/N 分钟前/N 小时前/N 天前） */
 export function formatRelativeTime(timestamp: number, intl: IntlShape): string {
   const elapsed = Date.now() - timestamp;
   const minutes = Math.floor(elapsed / 6e4);
@@ -1570,7 +1570,7 @@ export const useSearchResultsStore = createZustandStore<SearchResultsState>((set
   clearAll: () => set(() => ({ resultsByQueryKey: {}, taskMetaByEntityKey: {}, taskUnreadOverlayByEntityKey: {} })),
 }));
 
-/** 原 Zie（js 1879）：按 queryKey 选择缓存结果 */
+/** 原 Zie（js 1878）：按 queryKey 选择缓存结果 */
 export function selectQueryResult(queryKey: string): (state: SearchResultsState) => QueryResult | null {
   return (state) => state.resultsByQueryKey[queryKey] ?? null;
 }

@@ -247,7 +247,7 @@ export function McpServerList({
 /** 原 GQt（js 193151 附近）：MCP 服务器行（开关/编辑/删除/打开 OAuth 授权；
  *  testid：mcp-server-row / mcp-open-authorization-button，src chunk 8337/8339）。接口级。 */
 
-/** 原 U$t（js 194480）：编辑器模式切换（表单 | JSON） */
+/** 原 U$t（js 194776）：编辑器模式切换（表单 | JSON） */
 export function McpEditorModeTabs({
   mode,
   onModeChange,

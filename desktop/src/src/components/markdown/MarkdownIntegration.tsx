@@ -100,7 +100,7 @@
  *   EA/DA/OA/kA → zcode-last-editor-id 记忆 (50846–50856 / 45668)
  *   zA  → relativePathFromWorkspace (50919) | JA → resolveAvailableEditors (51052)
  *   ZVe → revealPathOfEntry (51138) | QA → useFileContextActions (51141)  ←A1-R11 转录（旧注「useWorkspaceFileServices 51093 接口」为误标，删碑见原 declare 位）
- *   $A/QVe → useRemoteWorkspaceInfo     tabs store → isRemoteWorkspace/remoteTarget (51166–51174)
+ *   $A/QVe → useRemoteWorkspaceInfo     tabs store → isRemoteWorkspace/remoteTarget (51198–51220)
  *                                        〔A1-R6：内嵌 yne（$b）declare 改指 SrcSharedB.sanitizeRemoteTargetForRestore〕
  *
  *  Conversation 耦合点：
@@ -1386,7 +1386,7 @@ export function resolveRemoteWorkspaceInfo(
   return { isRemoteWorkspace: isRemote, remoteTarget: target ? formatRemoteTarget(target) : undefined };
 }
 
-/** 原 $A（js 51166） */
+/** 原 $A（js 51214） */
 export function useRemoteWorkspaceInfo(scope: {
   workspacePath?: string | null;
   workspaceIdentity?: string | null;

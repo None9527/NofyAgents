@@ -1164,7 +1164,7 @@ export interface UseSubscriptionSnapshotResult {
   refresh: (opts?: { force?: boolean; silent?: boolean; reason?: string }) => Promise<void>;
 }
 
-/** 原 $j（js 52449）：权益/订阅快照 hook（薄包装；服务取自 useBaseServices） */
+/** 原 $j（js 52497）：权益/订阅快照 hook（薄包装；服务取自 useBaseServices） */
 export function useSubscriptionSnapshot(options: UseSubscriptionSnapshotOptions = {}): UseSubscriptionSnapshotResult {
   return useUsageEntitlementCore(useBaseServices()?.usageStatsService as UsageStatsService | undefined, options); // A0-D-Misc 类型收敛：BaseServices 索引签名为 unknown
 }
@@ -4052,7 +4052,7 @@ function customDraftToProvider(draft: { name: string; baseURL: string; apiKey: s
  * 10. CXt 与状态行件（原 CXt/wXt/TXt，js 188882–189189 / jsx 152305–152528）
  * ==========================================================================*/
 
-/** 原 CXt 的 g（js 188898 区）：添加模式（3.7.6 恒 `custom`；catalog 分支为保留的死代码） */
+/** 原 CXt 的 g 成员（js 189193，CXt@189178 体内）：添加模式（3.7.6 恒 `custom`；catalog 分支为保留的死代码）〔旧注 188898 漂移：实在 u7@188672 体内〕 */
 function resolveAddProviderMode(): `custom` | `catalog` {
   return `custom`;
 }

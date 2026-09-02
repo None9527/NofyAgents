@@ -21,7 +21,7 @@ import { getCurrentModelValue, getCurrentThoughtLevelValue, applyStoredConfigToO
 import { useSessionService } from '../../modules/services'; // 原 Ag（styles 24368；〔A1-P1-B8〕A0 检查点 18 既判真身，tWe 会话服务面）
 import { useAppSettings } from '../../modules/UsageDeep'; // 原 JM（styles 53487；〔A1-P1-B8〕tWe 应用设置面）
 import { resolveInteractionBehaviorMode } from './ConversationPaneHelpers'; // 原 eN（styles 53594；〔A1-P1-B5〕实体化既有产物）
-import { parseLooseModelValue } from '../../modules/Home'; // 原 Mg（styles 24405；〔A1-P1-B8〕tWe 草稿模型解析）
+import { parseLooseModelValue } from '../../modules/Home'; // 原 Mg（styles 24406；〔A1-P1-B8〕tWe 草稿模型解析）
 import { prepareWorkspaceModelInit } from './ConversationModelInit'; // 原 NM（styles 52998；〔A1-P1-B8〕同簇叶实体化）
 
 /* ── 〔A1-P1-B8〕草稿模型配置会话域（styles 53549–53593 + 53597–53785，234 行逐字；

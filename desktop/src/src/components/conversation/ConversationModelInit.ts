@@ -11,7 +11,7 @@
 //   JUe → applyWorkspaceDefaultModel 53415（R0 120726 消费；PaneCore 1622）
 // 跨段注：52927–52933（LUe/RUe/OM）居本域跨度中段，已在树（./ConversationPaneHelpers 门控域，〔A1-P1-B6/B7〕），不入本叶。
 // 外部引用改指：J→logger | ge→hasThoughtLevelOption（modules/SkillStore←stores/taskStore 1755）
-//   Mg→parseLooseModelValue（modules/Home，styles 24405）| Mge→parseLooseModeValue + Ng→settingsConfigOptionsOf
+//   Mg→parseLooseModelValue（modules/Home，styles 24406）| Mge→parseLooseModeValue + Ng→settingsConfigOptionsOf
 //   （modules/SettingsConfigOptions 播种件，styles 24419/24440）| Cw→normalizeCaptchaCode（modules/StoresDeep 445，styles 40570 stub）。
 // 域外消费存档：DM @211247/211266、VUe @185862（他域，导出待彼域收敛时改指）。
 // 函数体内局部变量保留混淆名（B5 约定）；型缝带〔A1-P1-B8〕注释。
@@ -19,7 +19,7 @@
 //   ConversationPaneCore、ConversationDraftConfig 单向消费本叶。
 /* eslint-disable */
 import { logger, hasThoughtLevelOption } from '../../modules/SkillStore'; // 原 J（styles J←skillStore logger）/ ge（styles 396←skillStore b；〔A1-P1-B8〕NM thoughtLevel 有效性判定）
-import { parseLooseModelValue } from '../../modules/Home'; // 原 Mg（styles 24405；〔A1-P1-B8〕NM/JUe 松散模型值解析）
+import { parseLooseModelValue } from '../../modules/Home'; // 原 Mg（styles 24406；〔A1-P1-B8〕NM/JUe 松散模型值解析）
 import { parseLooseModeValue, settingsConfigOptionsOf } from '../../modules/SettingsConfigOptions'; // 原 Mge/Ng（styles 24440/24440；〔A1-P1-B8〕编排方播种件，NM createSession mode 面 + 配置选项构建）
 import { normalizeCaptchaCode } from '../../modules/StoresDeep'; // 原 Cw（styles 40570 stub；〔A1-P1-B8〕DM 错误码归一，A1-R12/R13 既有改指实体）
 
