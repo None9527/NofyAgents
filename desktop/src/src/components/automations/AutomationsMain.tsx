@@ -49,15 +49,9 @@ import type { SkillItem, SkillCapability, SkillDiagnostic } from '../settings/Sk
  *    增补证据见 A1-R47.report §四.6。
  *    track* declares（PNt/FNt/Ujt/Wjt）参型 PlatformService 同名解析 canonical；消费 @547 逐字不变。 ── */
 
-interface ToastOptions {
-  durationMs?: number;
-  position?: "top-center" | "bottom-center";
-  variant?: "info" | "success" | "error";
-  actionLabel?: string;
-  onAction?: () => void;
-  dismissible?: boolean;
-  dismissLabel?: string;
-}
+/* ── tombstone〔A1-R110〕：本地 ToastOptions 接口删除——唯一引用面 showToastWithAction declare（原 l6）
+ *    已销账，实体参型走 : any 缝；canonical toast（ImeComposition）options 面本含
+ *    durationMs/position/variant/actionLabel/anchorId 全成员（@502/515 在案），运行期形状不变。 ── */
 
 /* --- UI 原语 --- */
 
@@ -519,6 +513,12 @@ function TemplateIcon({ className: e, name: t }: any) {
     strokeWidth: 2,
   });
 }
+/* ── 原 c6（js 138647）→ AUTOMATIONS_TOAST_ANCHOR_ID：自动化主面 toast 锚标〔A1-R110 逐字实体化〕 ── */
+const AUTOMATIONS_TOAST_ANCHOR_ID = `automations-main-toast-anchor`;
+/* ── 原 l6（js 138648–138650）→ showToastWithAction：带锚 toast 包装（透传 opts + 注入 anchorId）〔A1-R110 逐字实体化；型缝：次参可选注记——束 JS 形无注记而 15 消费点单参调用〕 ── */
+function showToastWithAction(e: any, t?: any) {
+  return toast(e, { ...t, anchorId: AUTOMATIONS_TOAST_ANCHOR_ID });
+}
 /* ── tombstone〔A1-R104〕：declare offPeakCreateFailureMessageId（原 Dit 91405）删除——改指 offPeakHelpers 逐字 canonical（modules/StoresDeep 转导出，import 在案）。 ── */
 /* ── tombstone〔A1-R103〕：declare 四连——automationLifecycleOf（原 qht）/automationHasFailedRun（原 Kht）/
  *    automationScheduleLabel（原 rgt）/automationNextRunLabel（原 egt）删除。qht/Kht/egt + 4 依赖逐字实体化于下方；
@@ -580,7 +580,7 @@ function automationNextRunLabel(e: any, t: any, n: any) {
 }
 /* ── tombstone〔A1-R104〕：declare hasCodingPlanEntitlement（原 Tit 91395）删除——改指 Home::isCodingPlanConnectionSelected canonical（import 别名在案）。
  *    双轨登记 W5：Home@761–774 A0 本地孪生（isCodingPlanConnectionSelected 本体即 canonical）与 AutomationsMainView@1005–1008 孪生并存。 ── */
-declare function showToastWithAction(message: string, opts?: ToastOptions): string; // l6（toast 变体）
+/* ── tombstone〔A1-R110〕：declare showToastWithAction（原 l6）删除——逐字实体化于下方实体带（c6 锚常量随收）。 ── */
 
 /** 原 BNt（jsx 115803）：可见标签页（有任务且闲时可见 → 双标签） */
 export function resolveVisibleAutomationsTabs(opts: { hasAnyTasks: boolean; offPeakVisible: boolean }): string[] {
