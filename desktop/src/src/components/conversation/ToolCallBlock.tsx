@@ -12,6 +12,7 @@ import { Button, ChevronRight as IconChevronRight } from '../../modules/button';
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../modules/Conversation'; // 〔A0-S4-4b〕§1 共享原语留守面，属主补 export 后取回（函数声明提升，渲染期访问，环安全）
 import { normalizeToolCallStatus, extractToolErrorText } from './ToolStatusModel'; // 〔A1-P1-B11〕状态/错误文案域实体化收敛（styles 99553–99618 + 99630–99640 逐字；TOOL_STATUS_DISPLAY_MAP/unwrapToolUseError/resolveInlinePreview 同叶在案）
+import { classifyToolCall, extractRawFileSummaries } from './ToolCallClassification'; // 原 og（styles 23132）/_g（styles 23686）：A1-P1-B18 实体化收敛（工具分类/文件摘要域）
 import { extractMcpToolInfo } from './McpToolBlocks'; // 〔A1-P1-B11〕分派点 automation 判定（束 109117：Vmt 真身）
 import { hasRawShellOutput, summarizeShellCommand, resolveShellExecution, extractShellOutput, SHELL_TOOL_ICON } from './ShellCommandBlocks'; // 〔A1-P1-B11〕shell 四 declare + SHELL_TOOL_ICON 实体化收敛（styles 105186–105313 逐字）
 import {
@@ -44,7 +45,11 @@ type ToolFamily =
   | "node-repl"
   | "automation"
   | "fallback";
-declare function classifyToolCall(toolCall: { toolName?: string; kind?: string }): { family: ToolFamily };
+/* ── tombstone〔A1-P1-B18〕：classifyToolCall declare（原 og，此面 { toolName?; kind? } → { family: ToolFamily }）删除——
+ * 逐字实体化 → ./ToolCallClassification（styles og@23132–23186；roundtrip EXACT，/tmp/a1r0-p1-b18/）。
+ * canonical 返回面 = og 全形 { toolName, family, source, isLegacy }：family: string 对本面
+ * { family: ToolFamily } 的消费点（388/405/407 switch/645 等值比较）结构兼容〔A1-P1-B18〕。
+ * 消费面改文件头真实 import，调用面逐字不变。 ── */
 
 /* ============================================================================
  * 4. ToolBlock 子族（工具折叠块；spec §6「工具行：▶ ✓ 名称: 摘要」）
@@ -63,8 +68,9 @@ declare function classifyToolCall(toolCall: { toolName?: string; kind?: string }
  *    ConversationLeaves 导出（索引签名容宽型），经文件头 type import 消费。 ── */
 declare function resolveToolDisplayModel(toolCall: ToolCall, workspacePath?: string): ToolDisplayModel;
 
-/** 原 _g（js 23686）：从工具输入/输出抽取文件摘要列表（供展开区渲染） */
-declare function extractRawFileSummaries(raw: unknown, toolCall: ToolCall): FileSummary[];
+/* ── tombstone〔A1-P1-B18〕：extractRawFileSummaries declare（原 _g：从工具输入/输出抽取文件摘要列表，
+ * 供展开区渲染）删除——逐字实体化 → ./ToolCallClassification（styles _g@23686–23749；roundtrip EXACT，
+ * /tmp/a1r0-p1-b18/）。消费面改文件头真实 import，调用面（534）逐字不变。 ── */
 
 /** 原 qZ（js 98044 / jsx 85024）：ExitPlanMode 结果 → markdown（供复制文本合并） */
 declare function buildPlanResultMarkdown(toolCall: ToolCall, fallback: string): { markdown: string };
