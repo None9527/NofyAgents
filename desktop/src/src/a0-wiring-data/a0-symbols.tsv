@@ -2467,11 +2467,11 @@ section	sem	obf	line	owner
 25	generateBeamCssLine	DBt	157303	130825
 25	useSystemThemePreference	OBt	157575	131093
 25	resolveBeamTheme	kBt	157593	131104
-25	filterRemoteCapableWorkspaces	_Pt/gPt	—	—
+25	filterRemoteCapableWorkspaces	_Pt/gPt	140409–140414	SidebarLeaves.tsx
 25	taskWorkspaceKey	ei	2210	—
-25	smBorder	fBt/pBt	—	—
-25	sortTaskRows	g6/SPt	—	—
-25	mdBorder	mBt/hBt	—	—
+25	smBorder	fBt/pBt	156504–156515	SidebarLeaves.tsx
+25	sortTaskRows	g6/SPt	140485–140489	SidebarLeaves.tsx
+25	mdBorder	mBt/hBt	156516–156532	SidebarLeaves.tsx
 26	FileWriteToolView	Gft	104892	ConversationLeaves.tsx
 26	FileReadToolView	opt	105513	ConversationLeaves.tsx
 26	SearchToolView	upt	105617	ConversationLeaves.tsx
