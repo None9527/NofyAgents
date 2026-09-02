@@ -7,7 +7,9 @@
 // 函数体内局部变量保留混淆名（B5 约定）；型缝 `: any` 参数缝见 p14/TodoToolBlocks.seam-log.txt，均带〔A1-P1-B14〕。
 // 区段切分墓碑：左界 Oht@108885（Task 族右界 108884 邻接）；Nht@109010 为段间界；右界 Fht@109084（ToolCallBlock 派发域）。
 // 跨域只消费披露：ti/Kne = src-HCld2afU.js 导出 d/u = SrcSharedB extractTodosFromToolOutput/extractTodosFromToolInput
-//   （B9 在案）；oQ/$h/eg/Ume/Wme 未实体化 → 叶内 declare（跨域判例，同 B13 CodeSurface 族）。
+//   （B9 在案）；oQ 未实体化 → 叶内 declare（跨域判例，同 B13 CodeSurface 族）。
+// 〔A1-R94〕$h/eg/Ume/Wme（ask-question 归一域 22980/22988/22996/23021）实体化入 ToolCallClassification（问句载荷族），
+//   本叶 4 declare 删除改真实 import（别名改指，消费面 175/176/201 逐字不变）。
 //
 // 映射表（minified → 语义名 → bundle 定义行 → 属主）：
 //   【真实 import】
@@ -31,13 +33,11 @@ import { ListTodo as IconListTodo, CircleCheck as IconCircleCheck, ArrowRight as
 import { extractTodosFromToolOutput, extractTodosFromToolInput } from '../../modules/SrcSharedB'; // 原 ti/Kne（src-HCld2afU.js 导出 d/u；SrcSharedB S41 在案）
 import { ToolLayoutMemo as ToolLayout } from './ToolLayoutBlocks'; // 原 lQ（B12 钥匙 2）
 import { ToolSnapshotRefs } from './ToolSnapshotRefs'; // 原 sQ（B12 钥匙 1）
+import { parseQuestionPayload as normalizeAskQuestionModel, resolveQuestionSource as resolveAskQuestionInput, extractAskQuestionAnswers, formatAskQuestionAnswerText } from './ToolCallClassification'; // 原 $h/eg/Ume/Wme（styles 22980/22988/22996/23021；A1-R94 实体化收敛）
 
 // 【declare 面（跨域未实体化，只消费不转录；B13 CodeSurface 族判例同源）】
 declare const ToolCallExpandedContent: React.FC<{ childToolList?: React.ReactNode; displayModel: any; inlinePreviewOverride?: { type: string } | null; toolCall: any; workspacePath?: string; theme?: string; codePreviewSettings?: any; onOpenCodeViewer?: unknown; onOpenFileLink?: unknown; onOpenBrowserUrl?: unknown }>; // 原 oQ（99815，展开区通用内容，F19 域未实体化）
-declare function normalizeAskQuestionModel(toolCall: any): { questions: Array<{ id: string; question: string; [key: string]: unknown }>; answers?: Record<string, unknown> }; // 原 $h（22980，ask-question 归一域未实体化）
-declare function resolveAskQuestionInput(toolCall: any): any; // 原 eg（22988）
-declare function extractAskQuestionAnswers(toolCall: any): Record<string, unknown> | undefined; // 原 Ume（22996）
-declare function formatAskQuestionAnswerText(question: { id: string; question: string }, answers: Record<string, unknown> | undefined, fallback: string): string; // 原 Wme（23021）
+// 〔A1-R94〕原 $h/eg/Ume/Wme（22980/22988/22996/23021）：ask-question 归一域实体化入 ToolCallClassification，declare 删除改真实 import（文件头）。
 
 /* ── Todo 工具视图族（styles 108885–109009） ── */
 var TODO_TOOL_ICON = (0, $.jsx)(IconListTodo, { className: `size-4 shrink-0 text-foreground-subtle` }),

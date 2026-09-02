@@ -33,11 +33,13 @@
 //   【编辑载荷提取族 22656–22691】（A1-P1-B19 并入；B18 区段切分段闭合）
 //   Ih→isEditPayloadObject（22656）| Lh→firstTrimmedPayloadField（22659）| Rh→extractBeforeAfterEdit（22666）
 //   zh→parseDiffTypedPayload（22672）| Bh→parseToolRawPayload（22682）
-//   【问句载荷族 22861–22995】
+//   【问句载荷族 22861–23027】
 //   Fme→CUSTOM_INPUT_OPTION_FIELDS（22861）| Ime→CUSTOM_INPUT_OPTION_PATTERN（22862）| qh→isQuestionPlainRecord（22864）
 //   Jh→firstTrimmedStringField（22867）| Lme→hasTrueField（22873）| Rme→normalizeQuestionOption（22876）
 //   zme→isCustomInputOption（22890）| Yh→extractQuestionList（22893）| Bme→extractAnswerRecord（22902）
-//   Hme→normalizeQuestion（22951）| $h→parseQuestionPayload（22980）| eg→resolveQuestionSource（22988）
+//   Xh→parseAnswerTextPairs（22907）| Vme→tryParseJsonRecord（22916）| Zh→extractAnswerRecordDeep（22926）
+//   Qh→extractAnsweredSelection（22942）| Hme→normalizeQuestion（22951）| $h→parseQuestionPayload（22980）
+//   eg→resolveQuestionSource（22988）| Ume→extractAskQuestionAnswers（22996）| Wme→formatAskQuestionAnswerText（23021）〔A1-R94 并入〕
 //   【og 分类族 23029–23186】
 //   Gme→DEFAULT_TOOL_CLASSIFICATION（23029）| tg→isToolPlainRecord（23030）| Kme→trimmedNonEmptyString（23033）
 //   ng→deepTrimmedString（23036）| rg→normalizeToolTerm（23044）| ig→classifyByName（23052）| ag→legacyClassification（23058）
@@ -475,6 +477,58 @@ function extractAnswerRecord(e: unknown) {
   return isQuestionPlainRecord(t) ? t : void 0;
 }
 
+/* ── 原 Xh（js 22907–22915）→ parseAnswerTextPairs：「"k"="v"」词样答案解析（非串/空串/零命中 → undefined）〔A1-R94〕 ── */
+function parseAnswerTextPairs(e: any) {
+  if (typeof e != `string` || e.trim().length === 0) return;
+  let t: Record<string, string> = {};
+  for (let n of e.matchAll(/"([^"]+)"="([^"]*)"/g)) {
+    let e = n[1]?.trim();
+    e && (t[e] = n[2] ?? ``);
+  }
+  return Object.keys(t).length > 0 ? t : void 0;
+}
+
+/* ── 原 Vme（js 22916–22925）→ tryParseJsonRecord：记录直返 / 非空串 JSON.parse 试探（失败 → undefined）〔A1-R94〕 ── */
+function tryParseJsonRecord(e: any) {
+  if (isQuestionPlainRecord(e)) return e;
+  if (!(typeof e != `string` || e.trim().length === 0))
+    try {
+      let t = JSON.parse(e);
+      return isQuestionPlainRecord(t) ? t : void 0;
+    } catch {
+      return;
+    }
+}
+
+/* ── 原 Zh（js 22926–22941）→ extractAnswerRecordDeep：答案深提取（词样直解 → JSON 递归 content 数组/text/rawOutput/output 链）〔A1-R94〕 ── */
+function extractAnswerRecordDeep(e: any): any {
+  let t = parseAnswerTextPairs(e);
+  if (t) return t;
+  let n = tryParseJsonRecord(e);
+  if (!n) return;
+  let r = extractAnswerRecord(n);
+  if (r) return r;
+  let i = extractAnswerRecordDeep(n.content);
+  if (i) return i;
+  if (Array.isArray(n.content))
+    for (let e of n.content) {
+      let t = extractAnswerRecordDeep(e);
+      if (t) return t;
+    }
+  return parseAnswerTextPairs(n.text) || extractAnswerRecordDeep(n.rawOutput) || extractAnswerRecordDeep(n.output);
+}
+
+/* ── 原 Qh（js 22942–22950）→ extractAnsweredSelection：answered/answered_custom 载荷选题（首题键投射）〔A1-R94〕 ── */
+function extractAnsweredSelection(e: any, t: any) {
+  let n = tryParseJsonRecord(e);
+  if (!n) return;
+  let r = parseQuestionPayload(t).questions[0];
+  if (!r) return;
+  let i = n.type,
+    a = i === `answered` ? n.selected : i === `answered_custom` ? n.text : void 0;
+  if (typeof a == `string`) return { [r.question]: a };
+}
+
 /* ── 原 Hme（js 22951–22979）→ normalizeQuestion：单题归一化（选项/自定义输入/多选） ── */
 function normalizeQuestion(e: unknown, t: any) {
   if (!isQuestionPlainRecord(e)) return null;
@@ -524,6 +578,43 @@ function resolveQuestionSource(e: any) {
     if (extractQuestionList(e.raw.input).length > 0) return e.raw.input;
   }
   return e.input;
+}
+
+/* ── 原 Ume（js 22996–23020）→ extractAskQuestionAnswers：答案全链提取（output 三路 → input.answers → raw 四链九路）〔A1-R94；TodoToolBlocks 原 declare 名收敛〕 ── */
+function extractAskQuestionAnswers(e: any): Record<string, unknown> | undefined {
+  let t = extractAnswerRecordDeep(e.output);
+  if (t) return t;
+  let n = parseAnswerTextPairs(e.output);
+  if (n) return n;
+  let r = extractAnsweredSelection(e.output, resolveQuestionSource(e));
+  if (r) return r;
+  if (isQuestionPlainRecord(e.input) && isQuestionPlainRecord(e.input.answers)) return e.input.answers;
+  if (isQuestionPlainRecord(e.raw)) {
+    let t = extractAnswerRecordDeep(e.raw.rawOutput);
+    if (t) return t;
+    let n = parseAnswerTextPairs(e.raw.rawOutput);
+    if (n) return n;
+    let r = extractAnsweredSelection(e.raw.rawOutput, resolveQuestionSource(e));
+    if (r) return r;
+    let i = extractAnswerRecordDeep(e.raw.output);
+    if (i) return i;
+    let a = parseAnswerTextPairs(e.raw.output);
+    if (a) return a;
+    let o = extractAnsweredSelection(e.raw.output, resolveQuestionSource(e));
+    if (o) return o;
+    let s = extractAnswerRecordDeep(e.raw.content);
+    if (s) return s;
+  }
+}
+
+/* ── 原 Wme（js 23021–23027）→ formatAskQuestionAnswerText：答案文案格式化（数组「，」连 / 串修剪 / 缺省回退）〔A1-R94；TodoToolBlocks 原 declare 名收敛〕 ── */
+function formatAskQuestionAnswerText(e: any, t: any, n: any) {
+  let r = t?.[e.question] ?? t?.[e.id];
+  if (Array.isArray(r)) {
+    let e = r.map((e: any) => String(e).trim()).filter((e: any) => e.length > 0);
+    return e.length > 0 ? e.join(`，`) : n;
+  }
+  return typeof r == `string` ? (r.trim().length > 0 ? r : n) : r == null ? n : String(r);
 }
 
 /* ══ og 分类族（styles 23029–23186） ══ */
@@ -1183,4 +1274,5 @@ function extractRawFileSummaries(e: unknown, t?: ToolCall): FileSummary[] {
 export {
   classifyToolCall, extractRawFileSummaries, buildUnifiedDiffText,
   toolContentFamilyOf, toolEditFamilyOf, parseToolRawPayload, extractBeforeAfterEdit, // 〔A1-P1-B19〕PreviewCards 余件 4 declare 收敛导出（cg/sg/Bh/Rh）
+  parseQuestionPayload, resolveQuestionSource, extractAskQuestionAnswers, formatAskQuestionAnswerText, // 〔A1-R94〕ask-question 归一域余件 4 declare 收敛导出（$h/eg/Ume/Wme；TodoToolBlocks 消费）
 };
