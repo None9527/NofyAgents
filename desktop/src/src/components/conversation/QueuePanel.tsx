@@ -58,7 +58,8 @@ function computeQueueReorderMove(
   return { beforeQueueItemId: overQueueItemId, queueItemId: activeQueueItemId };
 }
 
-/* dnd-kit（vendored 于本 chunk js 91811–94695；以下为重建接口） */
+/* dnd-kit（vendored 于本 chunk js 91850–94592，VENDOR-MANIFEST-LIBS 241 号条目；以下 8 枚 = 边界占位 declare，
+ * KX 模式不转录；类型面 = QueuePanel 消费面。〔A1-R101〕裁定引据补登） */
 declare function useSortable(opts: { id: string; disabled?: boolean }): {
   attributes: Record<string, unknown>;
   listeners: Record<string, unknown>;
@@ -80,14 +81,24 @@ declare const verticalListSortingStrategy: unknown;
 declare const closestCenterCollision: unknown;
 declare function usePointerSensor(opts?: { activationConstraint?: { distance?: number } }): unknown;
 declare function useSensors(...sensors: unknown[]): unknown[];
-/** 原 cst（jsx 82704）：把拖拽限制在垂直轴（容器内钳制 y） */
-declare const restrictToVerticalAxisModifier: (args: {
-  transform: { x: number; y: number };
-  draggingNodeRect?: { top: number; bottom: number };
-  activeNodeRect?: { top: number; bottom: number };
-  containerNodeRect?: { top: number; bottom: number };
-  windowRect?: { top: number; bottom: number };
-}) => { x: number; y: number };
+/* ── tombstone〔A1-R101〕：declare restrictToVerticalAxisModifier（原 cst 94607–94620）删除——逐字实体化于下方。
+ *    first-party 裁定依据：VENDOR-MANIFEST-LIBS 241 号条目（R49 补登）——94607 cst 属 first-party 包装层
+ *    （与 sst@94545 ≡ computeQueueReorderMove 上方既实体化、lst@94621 ≡ QueueItemRow 下方同层）。 ── */
+/* ── 原 cst（js 94607–94620）→ restrictToVerticalAxisModifier：纵轴钳制 modifier（y 钳入容器，x 恒 0）〔A1-R101 逐字实体化〕 ── */
+const restrictToVerticalAxisModifier = ({
+    transform: e,
+    draggingNodeRect: t,
+    activeNodeRect: n,
+    containerNodeRect: r,
+    windowRect: i,
+  }: any) => { // 〔A1-R101〕型缝：解构参束原形无型
+    let a = t ?? n,
+      o = r ?? i;
+    if (!a || !o) return { ...e, x: 0 };
+    let s = o.top - a.top,
+      c = o.bottom - a.bottom;
+    return { ...e, x: 0, y: Math.min(Math.max(e.y, s), c) };
+  };
 
 /**
  * 队列单项（原 lst，js 94573 / jsx 82753）。
