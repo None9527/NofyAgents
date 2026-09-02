@@ -16,18 +16,18 @@
  * ----------------------------------------------------------------------------
  *  块切分：
  *   nb → CODE_FENCE_REGEX /^[ \t]{0,3}(`{3,}|~{3,})/ (20822)
- *   rb → TABLE_DIVIDER_REGEX (20823)
- *   ib → isCodeFenceIncomplete  栅栏未闭合判定（上游导出 b 的等价内联版）(20824)
- *   ab → hasIncompleteTableDivider 分隔行未打完判定 (20846)
- *   ob → htmlToTextPlugin       html 节点 → 文本（无 rehype-raw 时防崩溃）(20857)
+ *   rb → TABLE_DIVIDER_REGEX (30756)
+ *   ib → isCodeFenceIncomplete  栅栏未闭合判定（上游导出 b 的等价内联版）(30763)
+ *   ab → hasIncompleteTableDivider 分隔行未打完判定 (30812)
+ *   ob → htmlToTextPlugin       html 节点 → 文本（无 rehype-raw 时防崩溃）(30822)
  *   jb → parseMarkdownIntoBlocks marked.lex 块切分 + 未闭合 HTML/数学合并
  *                                （上游导出 w）(21039)
  *   Mb → preserveHtmlBlocks     块内空行插 <!----> 防拆段 (21101)
  *   Nb/Pb → 转义正则/函数 (21119)
- *   Fb → escapeLiteralTagContent 字面标签内容转义 (21121)
+ *   Fb → escapeLiteralTagContent 字面标签内容转义 (31948)
  *   Ib → getTextContent (21132)
- *   Lb → literalTagContentPlugin (21133)
- *   Rb → codeMetaPlugin         code.meta → hProperties.metastring (21146)
+ *   Lb → literalTagContentPlugin (31981)
+ *   Rb → codeMetaPlugin         code.meta → hProperties.metastring (31984)
  *   zb/Bb/Vb → normalizeHtmlIndentation（上游导出 x）(21154)
  *  处理器：
  *   sb → EMPTY_PLUGINS [] (20862)
@@ -36,7 +36,7 @@
  *   ub → ProcessorCache（LRU 100，按插件名+选项序列化键）(20865)
  *   db → MarkdownProcessor      parse→runSync→toJsxRuntime 一步渲染 (20929)
  *   fb → getProcessor (20935)
- *   pb → hasRehypeRaw (20941)
+ *   pb → hasRehypeRaw (31035)
  *   mb → createProcessor        unified().use(parse).use(remark*).use(rehype,opts).use(rehype*) (20942)
  *   hb/gb/_b/vb/yb → identity / removeRawNode / transformElementUrls /
  *                    shouldSkipElement / renderHast (20949-21000)

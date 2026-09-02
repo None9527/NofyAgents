@@ -329,7 +329,7 @@ export { PreviewPaneOfficeXlsxContent as PreviewPaneOfficeXlsxContent };
  * ============================================================================
  *  [顶层视图/壳层]
  *   sy → SpreadsheetViewer (199292) | cy → SpreadsheetWithOwnedController (199402)
- *   ly → Spreadsheet (199406)
+ *   ly → Spreadsheet (28642)
  *  [页签条/错误态/入口]
  *   uy → resolveSheetTabTargetIndex (199415) | dy → SheetTabBar (199428)
  *   fy → XlsxParseErrorState (199470) | py → PreviewPaneOfficeXlsxContent (199478) ·export

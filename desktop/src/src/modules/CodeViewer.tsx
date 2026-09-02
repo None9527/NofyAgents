@@ -19,12 +19,12 @@
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *  预览视图群（160323–161140 / jsx 132770 起）：
- *   U8   → MarkdownPreviewView       cj 渲染 markdown 内容 (160323)
- *   iVt  → CodeViewDispatcher        纯文本语言→BO，否则 MO（高亮+评论+gutter）(160344)
- *   aVt  → CHECKERBOARD_BG_CLASS     透明图棋盘底 (160393)
- *   oVt  → imageScaleFromFilename    @2x 后缀解析 (160396)
- *   sVt  → ImageView                 自然尺寸×@Nx 缩放 / fitToContainer (160404)
- *   cVt  → SvgView                   svg 文本→data-url 复用 ImageView (160424)
+ *   U8   → MarkdownPreviewView       cj 渲染 markdown 内容 (160565)
+ *   iVt  → CodeViewDispatcher        纯文本语言→BO，否则 MO（高亮+评论+gutter）(160587)
+ *   aVt  → CHECKERBOARD_BG_CLASS     透明图棋盘底 (160635)
+ *   oVt  → imageScaleFromFilename    @2x 后缀解析 (160636)
+ *   sVt  → ImageView                 自然尺寸×@Nx 缩放 / fitToContainer (160642)
+ *   cVt  → SvgView                   svg 文本→data-url 复用 ImageView (160665)
  *   lVt/uVt → LazyPdfViewer/PdfPreviewSuspense (160432,160438)
  *   dVt/fVt → LazyPptxViewer/PptxPreviewSuspense (160445,160454)
  *   pVt/mVt/W8 → DIFF_UNSAFE_CSS=''/DiffViewerImpl/DiffViewer(memo)（vendored diff 封装）(160478,160479,160541)
@@ -34,26 +34,26 @@
  *   SVt  → OfficePreviewErrorBoundary（resetKey 复位）(160633)
  *   CVt/wVt/TVt → OfficePending/Error/Dispatcher（excel/docx/legacy 三分派）(160654,160663,160670)
  *   EVt/G8 → isSvgPath/resolveErrorColor（fileMissing→destructive）(160696,160700)
- *   DVt  → CodeViewerContentDispatcher  全型分派+加载/错误/二进制/空态 (160699)
+ *   DVt  → CodeViewerContentDispatcher  全型分派+加载/错误/二进制/空态 (160945)
  *
  *  PPTX 残缺读取守卫（160926–160963）：
  *   OVt=256*1024 分块；kVt/K8 → 错误码/错误类；AVt isIncomplete；jVt assertComplete；MVt readWholeFileInChunks
  *
  *  头/占位/助手（160966–161140）：
- *   NVt  → SCROLL_FADE_MASKS         none/left/right/both 渐隐遮罩 (160966)
+ *   NVt  → SCROLL_FADE_MASKS         none/left/right/both 渐隐遮罩 (161206)
  *   PVt  → SKELETON_ROW_WIDTHS       12 行骨架宽度% (160970)
  *   FVt/q8/J8/Y8/Z8 → splitPath/isMarkdownSource/isSvgSource/md 扩展/svg 扩展 (160973–160986)
- *   X8   → isEnoentError             code|message 双判 (160982)
+ *   X8   → isEnoentError             code|message 双判 (161227)
  *   IVt/LVt/RVt/zVt → pptx 引用缺失/too-large 判/错误文案绝对路径相对化/总解析 (160994–161014)
  *   BVt/VVt → scrollSnapshot/resolveFilePreviewState（isBinary|truncated）(161016,161018)
- *   HVt  → imageMediaTypeOf          mime≠svg 才作图片 (161027)
+ *   HVt  → imageMediaTypeOf          mime≠svg 才作图片 (161270)
  *   UVt/WVt/GVt/KVt → 256KB/2MB/64MB/pptx-too-large (161032,161033,161036)
- *   qVt  → HeavyContentDeferredPlaceholder  骨架 12 行 (161038)
+ *   qVt  → HeavyContentDeferredPlaceholder  骨架 12 行 (161280)
  *   JVt/YVt/XVt/ZVt/QVt/$Vt → 图片/PDF/PPTX 投影/重预览判/纯代码判/更多菜单能力 (161064–161114)
- *   eHt  → resolveBreadcrumb         工作区内相对分段/外绝对 (161111)
+ *   eHt  → resolveBreadcrumb         工作区内相对分段/外绝对 (161356)
  *
  *  根组件：
- *   tHt  → CodeViewerPanel           aside data-testid=preview-pane (161141)
+ *   tHt  → CodeViewerPanel           aside data-testid=preview-pane (161383)
  *
  *  行级代码评论 store（68511–68579 / jsx 60720）：
  *   kH/PH → workspaceKeyOf/bucketKeyOf（`${ws}\0${path}`）(68508,68511)

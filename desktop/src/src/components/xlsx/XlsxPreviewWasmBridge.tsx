@@ -36,20 +36,20 @@
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *  wasm 源管理（原 _c/vc/yc/bc 状态 + xc/Sc/Cc/wc/Tc/Ec/Dc 函数）：
- *   _c  → cachedWasmModulePromise      memo 化的 glue 模块加载 Promise (14341)
- *   vc  → wasmSourceExplicitlySet      是否显式注册过 wasm 源 (14342)
- *   yc  → rawWasmSource                注册时的原始源 (14343)
+ *   _c  → cachedWasmModulePromise      memo 化的 glue 模块加载 Promise (4822)
+ *   vc  → wasmSourceExplicitlySet      是否显式注册过 wasm 源 (4825)
+ *   yc  → rawWasmSource                注册时的原始源 (4834)
  *   bc  → resolvedWasmSource           归一化后的源 (14343)
  *   xc  → copyToStandaloneBuffer       复制出独立 ArrayBuffer (14345)
  *   Sc  → normalizeWasmSource          源归一化 (14350)
  *   Cc  → setDukeSheetsWasmSource      注册 wasm 源 (14357)
  *   wc  → isWasmSourceAvailable        源可用判定 (14360)
  *   Tc  → getDukeSheetsWasmSource      取当前源 (14363)
- *   Ec  → loadDukeSheetsWasmModule     懒加载 glue 模块 (14366)
- *   Dc  → createAbortError             AbortError 工厂 (14382)
+ *   Ec  → loadDukeSheetsWasmModule     懒加载 glue 模块 (4945)
+ *   Dc  → createAbortError             AbortError 工厂 (4955)
  *  worker 客户端：
- *   Oc  → XlsxWorkerClient             主线程侧 worker 请求客户端 (14387)
- *   kc  → cloneArrayBuffer             入参缓冲复制（可转移） (14474)
+ *   Oc  → XlsxWorkerClient             主线程侧 worker 请求客户端 (4993)
+ *   kc  → cloneArrayBuffer             入参缓冲复制（可转移） (5064)
  *  模块级语句：
  *   —   → setDukeSheetsWasmSource(new URL(duke_sheets_wasm_bg-BCCK9PkU.wasm))
  *                                      wasm 资产注册 (199414)

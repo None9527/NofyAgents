@@ -24,7 +24,7 @@
  *                               （返回 {shouldRender, containerRef}）(18295)
  *   oy → downloadSvgAsPng       SVG→base64→Image→canvas(5x)→PNG blob (19626)
  *   sy → MermaidDownloadDropdown 下载下拉（SVG/PNG/MMD 三档）(19653)
- *   cy → MermaidFullscreenButton 全屏按钮（portal 覆盖层 + 内嵌 Mermaid）(19759)
+ *   cy → MermaidFullscreenButton 全屏按钮（portal 覆盖层 + 内嵌 Mermaid）(28636)
  *   $b → ZoomableContent        缩放/平移容器（滚轮缩放、指针拖拽、控制钮）(21463)
  *   ex → Mermaid                Mermaid React 组件（导出别名 a；data-streamdown=mermaid）
  *                               (21620)

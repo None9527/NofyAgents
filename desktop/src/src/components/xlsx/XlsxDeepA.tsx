@@ -8116,32 +8116,32 @@ export function resolveGridTheme(e: any = !1, t: any, n: any) {
  * ============================================================================
  *  [地图特征与名称归一]
  *   kd → WORLD_COUNTRY_FEATURES (183972) | Ad → US_STATE_FIPS_INFO (183973) | jd → US_STATE_FEATURES (184026) |
- *   Md → COUNTRY_NAME_ALIASES (184038) | Nd → US_STATE_NAME_ALIASES (184057) | Pd → COUNTRY_FEATURE_BY_NAME (184064) |
- *   Fd → US_STATE_FEATURE_BY_NAME (184074) | Vd → normalizeGeoName (184117) | nf → findGeoFeature (184213) |
+ *   Md → COUNTRY_NAME_ALIASES (13106) | Nd → US_STATE_NAME_ALIASES (184057) | Pd → COUNTRY_FEATURE_BY_NAME (184064) |
+ *   Fd → US_STATE_FEATURE_BY_NAME (13226) | Vd → normalizeGeoName (184117) | nf → findGeoFeature (184213) |
  *   lf → resolveRegionSet (184254) | uf → featuresForRegionSet (184260)
  *  [颜色/字体/数值助手]
- *   Id → parseHexColor (184090) | Ld → mixHexColors (184100) | Rd → lightenHexColor (184108) |
+ *   Id → parseHexColor (13239) | Ld → mixHexColors (184100) | Rd → lightenHexColor (184108) |
  *   zd → darkenHexColor (184111) | Bd → clampNumber (184114) | Hd → SPREADSHEET_FONT_STACK (184129) |
  *   Ud → DEFAULT_CHART_TEXT_COLOR (184132) | Wd → DEFAULT_AXIS_LABEL_COLOR (184133) |
  *   Gd → quoteFontFamilyName (184134) | Kd → resolveFontFamilyStack (184146) | qd → resolveTitleTextColor (184154) |
- *   Jd → resolveAxisLabelColor (184157) | Yd → resolveSecondaryTextColor (184160) | Xd → toFiniteNumber (184163) |
- *   fp → normalizeHexColor (184993) | Cp → formatTickNumber (185197) | wp → formatPercentTick (185202) |
- *   kp → truncateLabel (185244) | wf → toCleanLabel (184404) | Tf → formulaRowCount (184411) | jp → TWO_PI (185276) |
- *   Fp → roundPathNumber (185300)
+ *   Jd → resolveAxisLabelColor (13515) | Yd → resolveSecondaryTextColor (184160) | Xd → toFiniteNumber (184163) |
+ *   fp → normalizeHexColor (15346) | Cp → formatTickNumber (185197) | wp → formatPercentTick (185202) |
+ *   kp → truncateLabel (16008) | wf → toCleanLabel (184404) | Tf → formulaRowCount (184411) | jp → TWO_PI (185276) |
+ *   Fp → roundPathNumber (16048)
  *  [系列/数据点颜色]
- *   Zd → resolveSeriesFillColor (184173) | Qd → resolveSeriesLineColor (184178) | $d → resolveDataPointColor (184183) |
+ *   Zd → resolveSeriesFillColor (13533) | Qd → resolveSeriesLineColor (184178) | $d → resolveDataPointColor (184183) |
  *   ef → hasHistogramBins (184206) | tf → hasHistogramSeries (184210) | rf → resolveReferenceLineColor (184223) |
  *   af → resolveRegionMapBaseColor (184226) | of → extractValueColorScale (184236) |
- *   sf → extractCategoryColorLabels (184241) | cf → extractLayoutProperties (184250) |
+ *   sf → extractCategoryColorLabels (14032) | cf → extractLayoutProperties (184250) |
  *   hf → normalizeChartStyleId (184301) | gf → surfaceStyle32Palette (184304) | _f → resolvePieSliceColor (184309) |
  *   vf → pickPrimarySeriesIndex (184315) | yf → resolveBarSeriesStyle (184332) | bf → barPaddingFromGapWidth (184351)
  *  [图例/分类/轴解析]
- *   xf → normalizeLegendPosition (184356) | Sf → normalizeMarkerSymbol (184378) |
- *   Cf → resolveChartRenderType (184381) | Ef → resolveCategoryLabels (184421) | Df → isComboChart (184453) |
- *   Of → comboLegendItems (184457) | kf → findAxisByIds (184467) | Af → resolveTypeGroups (184473) |
+ *   xf → normalizeLegendPosition (14172) | Sf → normalizeMarkerSymbol (184378) |
+ *   Cf → resolveChartRenderType (14188) | Ef → resolveCategoryLabels (184421) | Df → isComboChart (184453) |
+ *   Of → comboLegendItems (14300) | kf → findAxisByIds (184467) | Af → resolveTypeGroups (184473) |
  *   jf → toAxisNumber (184492) | Mf → extractNumericValue (184495) | Nf → collectPieDataPoints (184521) |
- *   Pf → isSubtotalSeries (184532) | Ff → collectStackedTotals (184537) | gp → resolveLegendItems (185063) |
- *   _p → computeChartLayout (185092)
+ *   Pf → isSubtotalSeries (6651) | Ff → collectStackedTotals (184537) | gp → resolveLegendItems (185063) |
+ *   _p → computeChartLayout (15393)
  *  [层级/统计]
  *   If → buildHierarchyTree (184575) | Lf → resolveQuartileMethod (184616) |
  *   Rf → resolveBoxWhiskerVisibility (184624) | zf → quantileValue (184635) | Bf → computeBoxWhiskerStats (184648) |
@@ -8149,39 +8149,39 @@ export function resolveGridTheme(e: any = !1, t: any, n: any) {
  *  [曲面图色带与几何]
  *   Wf → resolveSurfaceBaseColor (184699) | Gf → normalizeSurfaceStyleId (184709) |
  *   Kf → resolveSurfaceAccentColor (184712) | qf → surfaceStyleRamp (184718) |
- *   Jf → resolveSurfaceStylePalette (184723) | Yf → isStyledSurfaceChart (184736) |
+ *   Jf → resolveSurfaceStylePalette (6813) | Yf → isStyledSurfaceChart (184736) |
  *   Xf → resolveSurfaceBandCount (184747) | Zf → resolveSurfaceColorRamp (184765) |
- *   Qf → resolveSurfaceBandColor (184774) | $f → computeSurfaceValueScale (184780) |
+ *   Qf → resolveSurfaceBandColor (14682) | $f → computeSurfaceValueScale (184780) |
  *   ep → sampleSurfaceRampColor (184809) | tp → resolveSurfaceCellColor (184819) |
- *   np → surfaceBandIndexForValue (184822) | op → resolveSurfaceLineColors (184886) |
- *   sp → resolveSurfaceLineColor (184893) | cp → resolveSurfacePlotRect (184899) | lp → surfaceLegendItems (184918) |
- *   up → is2dSurfaceChart (184930) | dp → renderSurface2dFrame (184941)
+ *   np → surfaceBandIndexForValue (14732) | op → resolveSurfaceLineColors (184886) |
+ *   sp → resolveSurfaceLineColor (15293) | cp → resolveSurfacePlotRect (184899) | lp → surfaceLegendItems (184918) |
+ *   up → is2dSurfaceChart (15317) | dp → renderSurface2dFrame (184941)
  *  [路径/轮廓助手]
- *   rp → pointsToLinePath (184828) | ip → splitDefinedPointRuns (184836) | ap → joinContourSegments (184853) |
- *   vp → niceTickStep (185122) | yp → buildTicks (185128) | bp → buildValueScale (185138) |
- *   xp → resolveAxisScale (185151) | Sp → computeBar3dDepth (185165) | Tp → isDateFormatCode (185205) |
- *   Ep → excelSerialToDate (185214) | Dp → formatExcelDate (185219) | Op → formatCategoryValue (185236) |
+ *   rp → pointsToLinePath (14870) | ip → splitDefinedPointRuns (184836) | ap → joinContourSegments (184853) |
+ *   vp → niceTickStep (15396) | yp → buildTicks (185128) | bp → buildValueScale (185138) |
+ *   xp → resolveAxisScale (15660) | Sp → computeBar3dDepth (185165) | Tp → isDateFormatCode (185205) |
+ *   Ep → excelSerialToDate (15971) | Dp → formatExcelDate (185219) | Op → formatCategoryValue (185236) |
  *   Ap → markerSymbolPath (185250) | Mp → normalizeArcAngles (185277) | Np → arcTopFaceSegments (185283) |
- *   Pp → pieArcPoint (185297) | Ip → pie3dSidePaths (185303) | Lp → isArcBackAngle (185320) |
- *   Rp → pie3dSliceWallPath (185324) | qp → pointsToPath (185752) | Jp → project3dPoint (185757) |
+ *   Pp → pieArcPoint (16025) | Ip → pie3dSidePaths (185303) | Lp → isArcBackAngle (185320) |
+ *   Rp → pie3dSliceWallPath (16059) | qp → pointsToPath (185752) | Jp → project3dPoint (185757) |
  *   Hp → scalePoint2d (185522) | Up → ellipseArcPoints (185525) | Wp → closedOutlinePath (185538)
  *  [共享渲染件]
- *   zp → renderChartTitle (185338) | Bp → renderChartLegend (185353) | Vp → renderCartesianGrid (185399) |
- *   pp → resolveStockSeriesRoles (185000) | mp → resolveStockPalette (185022) | hp → stockLegendItems (185045) |
- *   om → findSeriesByNamePattern (188487)
+ *   zp → renderChartTitle (16092) | Bp → renderChartLegend (185353) | Vp → renderCartesianGrid (185399) |
+ *   pp → resolveStockSeriesRoles (15362) | mp → resolveStockPalette (185022) | hp → stockLegendItems (185045) |
+ *   om → findSeriesByNamePattern (16782)
  *  [3D 形状]
- *   Gp → renderCylinderCone3d (185541) | Kp → renderBar3dShape (185614)
+ *   Gp → renderCylinderCone3d (16145) | Kp → renderBar3dShape (185614)
  *  [图表渲染器]
  *   Yp → renderLine3dChart (185769) | Xp → renderBarChart (186122) | Zp → renderLineAreaChart (186505) |
- *   Qp → renderComboChart (186738) | $p → renderScatterChart (186906) | em → renderBubbleChart (187147) |
- *   tm → renderRadarChart (187378) | nm → renderPieChart (187540) | rm → renderBarOfPieChart (187776) |
- *   im → renderSurfaceChart (187927) | am → renderSurfaceHitAreas (188448) | sm → renderStockChart (188491) |
- *   cm → renderWaterfallChart (188659) | lm → renderFunnelChart (188793) | um → renderSunburstChart (188844) |
- *   dm → renderTreemapChart (188910) | fm → renderBoxWhiskerChart (188972) | pm → renderRegionMapChart (189183) |
- *   mm → renderUnsupportedChart (189294) | hm → renderChartBody (189317)
+ *   Qp → renderComboChart (16631) | $p → renderScatterChart (186906) | em → renderBubbleChart (187147) |
+ *   tm → renderRadarChart (16640) | nm → renderPieChart (187540) | rm → renderBarOfPieChart (187776) |
+ *   im → renderSurfaceChart (16665) | am → renderSurfaceHitAreas (188448) | sm → renderStockChart (188491) |
+ *   cm → renderWaterfallChart (16846) | lm → renderFunnelChart (188793) | um → renderSunburstChart (188844) |
+ *   dm → renderTreemapChart (16880) | fm → renderBoxWhiskerChart (188972) | pm → renderRegionMapChart (189183) |
+ *   mm → renderUnsupportedChart (16912) | hm → renderChartBody (189317)
  *  [顶层组件与主题]
- *   gm → ChartSvgRenderer (189364) | _m → LIGHT_GRID_THEME (189454) | vm → DARK_GRID_THEME (189476) |
- *   ym → isDarkGridTheme (189498) | bm → resolveGridTheme (189501)
+ *   gm → ChartSvgRenderer (16968) | _m → LIGHT_GRID_THEME (189454) | vm → DARK_GRID_THEME (189476) |
+ *   ym → isDarkGridTheme (17248) | bm → resolveGridTheme (189501)
  *  外部依赖 56 组（行号在案）见文件头 §二；地图数据段 17818–183063 仅登记。
  * ============================================================================
  */

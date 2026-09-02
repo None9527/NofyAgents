@@ -31,7 +31,7 @@
  *  （ax/ox/sx/cOe/lOe/cx/uOe/lx/ux/dx = 未读修订计数/去重 → services.tsx §G.1 已实体化，排除）
  *  §2 后台终端终态未读同步（32330–32413）：
  *   dOe → UNREAD_PERSIST_DEDUPE_MS=1e3 (32330) | fOe → UNREAD_PERSIST_DEDUPE_MAX=256 (32331)
- *   fx  → unreadPersistDedupe          (32332) | pOe → isTerminalStatus (32333)
+ *   fx  → unreadPersistDedupe          (8726) | pOe → isTerminalStatus (32333)
  *   mOe → unreadPersistDedupeKey       (32336) | hOe → isUnreadPersistDeduped (32344)
  *   gOe → isBackgroundTerminalUnreadEvent (32354) | px → syncBackgroundTerminalUnread (32364)
  *   tae → setTaskUnreadOverlayNow (1905) | nae → reconcileTaskUnreadNow (1908)

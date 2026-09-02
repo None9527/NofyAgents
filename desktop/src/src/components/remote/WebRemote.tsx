@@ -40,13 +40,13 @@
  *  [根] 手机端远控任务首页（js 140726–141572 / jsx 117329–117657）：
  *   BPt  → WebRemoteMobileTaskHome    props: activeTaskId/initialResult/onNavigateHome/onNavigateToChat 等
  *  [mobile 页状态 store + history]（js 141573–141600 / jsx 117658–117680）：
- *   VPt  → terminalTransportState     初值 `idle` (141573)
+ *   VPt  → terminalTransportState     初值 `idle` (141574)
  *   HPt  → transportStateListeners    (141574)
- *   UPt  → subscribeTransportState    (141577)
- *   WPt  → getTerminalTransportState  (141583)
- *   GPt  → useTerminalTransportState  useSyncExternalStore (141586)
+ *   UPt  → subscribeTransportState    (141576)
+ *   WPt  → getTerminalTransportState  (141584)
+ *   GPt  → useTerminalTransportState  useSyncExternalStore (141587)
  *   x6   → isMobileChatHistoryState   history.state.zcodeMobilePage===`chat` (141590)
- *   KPt  → pushMobileChatHistoryState (141594)
+ *   KPt  → pushMobileChatHistoryState (141593)
  *   qPt  → resolveInitialMobilePage (141598)
  *  [根] 手机端壳（js 141601–141801 / jsx 117681–117765）：
  *   JPt  → WebRemoteMobileShell       home/chat 双页 + 侧pane 覆盖 + 重连通知

@@ -24,9 +24,9 @@
  *            PTt → ConversationOrchestrator    (122820) 〔A1-R3 迁出 → modules/SplitLayoutUiDeep.tsx〕
  *            Ait/jit → PaneFloatingHeader      (91755,91801)
  *            Ubt/Wbt → PluginIconProvider/Gate (115538,115559)
- *            k0  → useSessionSnapshot          (118675)
+ *            k0  → useSessionSnapshot          (118692)
  *  [List]    Rbt/zbt → ConversationMessageList (114627,115525)
- *            Fbt → ScrollToBottomButton        (114596)
+ *            Fbt → ScrollToBottomButton        (114644)
  *            Lyt → UnitSizeCache               (113965)
  *            Fyt/ayt → buildRenderUnits/splitVirtualizedUnits (113940,113620)
  *  [Turn]    Vvt/Hvt → TurnSection             (113156,113295)
@@ -37,17 +37,17 @@
  *            mvt → AssistantMessageActions（复制/赞踩/fork/时间）(112234)
  *            gvt → ReasoningRow  _vt → TurnHeaderRow  Cvt → TimelineMarkerView
  *            wvt → ToolCallRow    Tvt → SubagentRow    jvt → AgentToolCallRow
- *            S_t → TurnFileChangesSummary（chat.changeSummary.*）(110813)
+ *            S_t → TurnFileChangesSummary（chat.changeSummary.*）(110861)
  *            k_t/A_t/O_t → 预览卡（网站/文件）  (111193,111233,111161)
- *            b_t → FileRewindDialog            (110632)
- *            G_t → UserInputCollapsibleText    (111579)
+ *            b_t → FileRewindDialog            (110680)
+ *            G_t → UserInputCollapsibleText    (111627)
  *            rvt/tvt/nvt → 用户输入富文本/提及部件 (111783,111712,111769)
  *            m1/Z_t/$_t → /goal /compact 命令解析 (111673)
  *  [Nav]     ryt/iyt → TurnNavigator（左侧轮刻度条）(113443,113619)
  *  [Tool]    lQ/put → ToolLayout               (100416,100214)
  *            lut/sut/cut/aut → ToolLayout 头部/摘要件 (100151,100095,100122,100000)
  *            K$/Ght → ToolCallBlock            (109241,109105)
- *            Wht → resolveToolCallView（16 种工具视图分派）(109066)
+ *            Wht → resolveToolCallView（16 种工具视图分派）(109114)
  *            ept ShellToolView（代表性全量还原）(105266)
  *            其余 15 个工具视图：接口级登记（见 §4.6）
  *            z_t/B_t/V_t → Reasoning 折叠（思考/摘要）(111329,111405,111471)

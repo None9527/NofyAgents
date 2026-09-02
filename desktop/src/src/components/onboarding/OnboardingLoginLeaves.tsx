@@ -213,11 +213,11 @@
  *   bM  → GENERIC_ERROR_MESSAGES          (52799)
  *   xM  → isPlainObjectValue              (52806)
  *   SM  → trimmedTextOrNull               (52809)
- *   CM  → parseJsonCandidate              (52813)
- *   wM  → readNestedField                 (52822)
- *   TM  → collectErrorTextsByPaths        (52829)
- *   IUe → collectErrorMessageCandidates   (52853)
- *   EM  → firstErrorTextByPaths           (52877)
+ *   CM  → parseJsonCandidate              (52814)
+ *   wM  → readNestedField                 (52823)
+ *   TM  → collectErrorTextsByPaths        (52831)
+ *   IUe → collectErrorMessageCandidates   (52854)
+ *   EM  → firstErrorTextByPaths           (52878)
  *   DM  → normalizeTaskBroadcastError     (52886)  消费点 4461/4480（task_error/task_warning）
  *
  * ----------------------------------------------------------------------------
@@ -948,8 +948,8 @@ declare function resolveThemeForTitleBar(theme: string): string; // 原 xo（js 
 /* ── tombstone（A1-R11）：declare normalizeTaskBroadcastError（原 DM，js 52886）删除——本批逐字转录（见下）。
  *    转录族（bundle 52799–52924 逐字；顶层语义名，函数体内局部变量保留混淆名）：
  *      bM → GENERIC_ERROR_MESSAGES (52799) | xM → isPlainObjectValue (52806) | SM → trimmedTextOrNull (52809)
- *      CM → parseJsonCandidate (52813) | wM → readNestedField (52822) | TM → collectErrorTextsByPaths (52829)
- *      IUe → collectErrorMessageCandidates (52853) | EM → firstErrorTextByPaths (52877) | DM → normalizeTaskBroadcastError (52886)
+ *      CM → parseJsonCandidate (52814) | wM → readNestedField (52822) | TM → collectErrorTextsByPaths (52829)
+ *      IUe → collectErrorMessageCandidates (52854) | EM → firstErrorTextByPaths (52877) | DM → normalizeTaskBroadcastError (52886)
  *    域外携入：Cw（40570）= bundle stub（`return void 0`），DM 52906 唯一本簇消费；其余三消费 40680/54293/118783
  *    属域外簇。A1-R12 收敛：Cw 双归属（本文件私有副本 + StoresDeep normalizeCaptchaCode 前代语义体）
  *    → StoresDeep 唯一真身（本批改回逐字 stub）；本文件经文件头别名 import 消费，私有副本删除。 ── */

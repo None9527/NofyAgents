@@ -15,7 +15,7 @@
  * 一、混淆名 → 语义名 映射表（jsx 行）
  * ----------------------------------------------------------------------------
  *  缩略图常量簇：
- *   Xs → THUMBNAIL_EXCLUDE_ATTR        缩略图排除数据属性名 (14902)
+ *   Xs → THUMBNAIL_EXCLUDE_ATTR        缩略图排除数据属性名 (4351)
  *   —  → （死代码）排除选择器拼接表达式，打包器保留的无赋值语句 (14903)
  *   Zs → THUMBNAIL_HIGHLIGHT_COLORS    缩略图高亮色板（8 色 → hex）(14904-14917)
  *   Qs → THUMBNAIL_HEADING_CSS_STYLES  缩略图标题 1-6 级 CSS 样式 (14918-14956)
@@ -31,8 +31,8 @@
  *  编辑器核心常量簇（[E6] 各子系统的阈值/键集/缓存，行区段属 [E5]）：
  *   kc..Dl → EDITOR_CORE_CONSTANTS     48 项：分页忽略属性/页边距/断页正则/
  *                                      缓存容量/布局度量/键集 (15030-15095)
- *   Ol → NAVIGATION_KEYS               光标导航键集 (15096)
- *   kl → MODIFIER_KEYS                 修饰键集 (15097)
+ *   Ol → NAVIGATION_KEYS               光标导航键集 (7007)
+ *   kl → MODIFIER_KEYS                 修饰键集 (7010)
  *   Al..Ul → 引擎缓存 14 座            段落断页标记/缩进/首字下沉/文本宽度/
  *                                      断词等 Map/WeakMap 缓存 (15098-15103)
  *

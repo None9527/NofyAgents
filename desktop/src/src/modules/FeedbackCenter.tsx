@@ -64,8 +64,8 @@
  *  [提交作业引擎]
  *   NC   → DEFAULT_SUBMISSION_COPY       (37656)
  *   nMe  → submissionJobSeq              (37679)
- *   PC   → submissionJobsById            (37680)
- *   FC   → submissionRegistryListeners   (37681)
+ *   PC   → submissionJobsById            (9578)
+ *   FC   → submissionRegistryListeners   (9582)
  *   IC   → snapshotSubmissionJobs        (37682)
  *   LC   → notifySubmissionRegistry      (37685)
  *   rMe  → getSubmissionJobs             (37689)

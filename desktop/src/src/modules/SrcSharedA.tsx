@@ -46,7 +46,7 @@
  *   re  → $ZodEncodeError                (185)  —
  *   ie  → $globalConfig                  (190)  —
  *   ae  → $getGlobalConfig               (191)  —
- *   oe  → $getEnumValues                 (194)  —
+ *   oe  → $getEnumValues                 (170)  —
  *   se  → jsonStringifyReplacer          (198)  —
  *   ce  → $lazy                          (201)  —
  *   le  → nullish                        (214)  —
@@ -73,7 +73,7 @@
  *   De  → $omit                          (340)  —
  *   Oe  → $extend                        (358)  —
  *   ke  → $safeExtend                    (375)  —
- *   Ae  → $merge                         (387)  —
+ *   Ae  → $merge                         (370)  —
  *   je  → $partial                       (402)  —
  *   Me  → $nonpartial                    (426)  —
  *   Ne  → $shouldAbort                   (447)  —
@@ -90,15 +90,15 @@
  * §3 zod core — 解析执行引擎（jsx 533–652）
  *   We  → makeParseFn                    (533)  —    同步 throw 型
  *   Ge  → makeParseAsyncFn               (550)  —
- *   Ke  → makeSafeParseFn                (566)  —
- *   qe  → safeParseReal                  (586)  —    = Ke($ZodRealError)；~standard 用
+ *   Ke  → makeSafeParseFn                (161926)  —
+ *   qe  → safeParseReal                  (161949)  —    = Ke($ZodRealError)；~standard 用
  *   Je  → makeSafeParseAsyncFn           (587)  —
- *   Ye  → safeParseAsyncReal             (605)  —    = Je($ZodRealError)
+ *   Ye  → safeParseAsyncReal             (128200)  —    = Je($ZodRealError)
  *   Xe/Ze/Qe/$e → makeEncodeFn/makeDecodeFn/makeEncodeAsyncFn/makeDecodeAsyncFn (606/614/615/623)
  *   et/tt/nt/rt → makeSafeEncodeFn/makeSafeDecodeFn/makeSafeEncodeAsyncFn/makeSafeDecodeAsyncFn (624/632/633/641)
  * §4 zod core — 正则表（jsx 642–690，同 §3 var 链）
  *   it/at/ot/st/ct/lt/ut → cuid/cuid2/ulid/xid/ksuid/nanoid/isoDuration 正则 (642–648)
- *   dt  → uuidGenericRegex               (649)  —    rfc4122
+ *   dt  → uuidGenericRegex               (156080)  —    rfc4122
  *   ft  → uuidVersionedRegex             (650)  —    (version?) → RegExp
  *   pt  → emailRegex                     (651)  —
  *   mt/ht → emojiRegexSource/emojiRegex  (652/653)
@@ -106,19 +106,19 @@
  *   bt/xt/St → base64/base64url/e164 正则 (660–662)
  *   Ct/wt → isoDateSource/isoDateRegex  (663/664)
  *   Tt/Et → isoTimeSource/isoTimeRegex  (665/669)
- *   Dt  → isoDateTimeRegex               (672)  —
+ *   Dt  → isoDateTimeRegex               (609)  —
  *   Ot  → makeStringLengthRegex          (681)  —
  *   kt/At/jt/Mt/Nt/Pt → integer/number/boolean/undefined/lowercase/uppercase 正则 (685–690)
  * §5 zod core — checks（jsx 691–1022）
  *   _   → $ZodCheck                      (691)  —
- *   Ft  → CHECK_ORIGIN_BY_VALUE_TYPE     (695)  —
+ *   Ft  → CHECK_ORIGIN_BY_VALUE_TYPE     (213394)  —
  *   It/Lt/Rt/zt → $ZodCheckLessThan/$ZodCheckGreaterThan/$ZodCheckMultipleOf/$ZodCheckNumberFormat (700/719/738/754)
  *   Bt/Vt/Ht → $ZodCheckMaxLength/$ZodCheckMinLength/$ZodCheckLengthEquals (818/841/864)
  *   Ut/Wt → $ZodCheckStringFormat/$ZodCheckRegex (895/914)
  *   Gt/Kt → $ZodCheckLowerCase/$ZodCheckUpperCase (927/930)
  *   qt/Jt/Yt → $ZodCheckIncludes/$ZodCheckStartsWith/$ZodCheckEndsWith (933/952/970)
  *   Xt  → $ZodCheckOverwrite             (988)  —
- *   Zt  → JitCodeBuilder                 (993)  —    缩进/编译 Function 的代码写入器
+ *   Zt  → JitCodeBuilder                 (90769)  —    缩进/编译 Function 的代码写入器
  *   Qt  → ZOD_VERSION                    (1023) —    {major:4, minor:3, patch:6}
  * §6 zod core — schemas（jsx 1028–2030）
  *   v   → $ZodType                       (1028) —    run/check 装配 + ~standard
@@ -161,7 +161,7 @@
  *   Qi/$i → ZodISODate/isoDateCheck      (2939/2942)
  *   ea/ta → ZodISOTime/isoTimeCheck      (2945/2948)
  *   na/ra → ZodISODuration/isoDurationCheck (2951/2954)
- *   ia  → ZodErrorInternals              (2957) —    format/flatten/addIssue(s)/isEmpty
+ *   ia  → ZodErrorInternals              (2814) —    format/flatten/addIssue(s)/isEmpty
  *   S   → ZodError                       (2983) —    Parent: Error
  *   aa/oa/sa/ca/la/ua/da/fa/pa/ma/ha/ga → parse/parseAsync/safeParse/safeParseAsync/encode/decode/encodeAsync/decodeAsync/safeEncode/safeDecode/safeEncodeAsync/safeDecodeAsync 实现 (2986–2997)
  *   C   → ZodType（classic 基类）         (2998) —    全方法面（check/parse/…/apply）
@@ -183,7 +183,7 @@
  *   Qa/M → ZodDiscriminatedUnion/zDiscriminatedUnion (3194/3197) ★bs
  *   $a/eo → ZodIntersection/zIntersection (3205/3208)
  *   to/N → ZodRecord/zRecord              (3215/3218) ★Ts
- *   no  → looseRecord                     (3226) —
+ *   no  → looseRecord                     (3186) —
  *   ro/P → ZodEnum/zEnum                  (3235/3260) ★_s
  *   io/F → ZodLiteral/zLiteral            (3267/3275) ★xs
  *   ao/oo → ZodTransform/zTransform       (3282/3295)
@@ -204,23 +204,23 @@
  *   No/Po → browserViewportSchema/browserViewportBoundsSchema (3424/3428)
  *   Fo  → clientModeEnum                 (3433) —    desktop-continuous | web-remote-replayable
  *   Io  → browserErrorCodeEnum           (3441) —    backend_unavailable…execution_error 9 值
- *   Lo  → browserPageStateSchema         (3442)
+ *   Lo  → browserPageStateSchema         (1371)
  *   Ro/zo/Bo → mouseButtonEnum/keyboardModifierEnum/pointSchema (3452/3453/3454)
  *   Vo/Ho/Uo/Wo → locatorOperationEnum/locatorModifierEnum/timeoutMsSchema/selectOptionSchema (3458/3459/3460/3461)
- *   Go  → playwrightActionSchema         (3466) —    domSnapshot…locator 10 分支
- *   Ko  → browserRequestSchema           (3524) —    navigate…list 45 分支
+ *   Go  → playwrightActionSchema         (1928) —    domSnapshot…locator 10 分支
+ *   Ko  → browserRequestSchema           (1941) —    navigate…list 45 分支
  *   qo/Jo/Yo → browserBackendTypeEnum/browserCapabilityRefSchema/browserDescriptorSchema (3724/3725/3729)
- *   Xo  → sessionContextEnum             (3741) —    live | cached
+ *   Xo  → sessionContextEnum             (2051) —    live | cached
  *   Zo/Qo/$o/es/ts/ns/rs/is/as → rectSchema/domElementSchema/domNodeSchema/domSnapshotSchema/browserTabSchema/userTabSchema/browserDialogSchema/browserMetaSchema/browserResultSchema (3758–3829)
  *   os/ss → ASSET_INSTALL_MODES/DEFAULT_ASSET_INSTALL_MODE (3851/3852) ★ms/—
  *   cs/ls/us → FILE_TRANSFER_CAPABILITIES/ALL_FILE_TRANSFER_CAPABILITIES/REMOTE_FILE_TRANSFER_CAPABILITIES (3853/3854/3855)
  *   ds/fs/ps → fileTransferCapabilitySet/listFileTransferCapabilities/isFileTransferCapability (3857/3859/3862) ★ps/—
  * §10 first-party — agent CLI 与用量 schema（jsx 3865–3949）
  *   I   → agentCliProviderEnum           (3865) —    claude/opencode/gemini/codex/glm
- *   ms  → USAGE_REPORT_RANGES            (3866) ★fs  ['7d','30d']
+ *   ms  → USAGE_REPORT_RANGES            (2683) ★fs  ['7d','30d']
  *   hs/gs/_s/vs/ys/bs/xs/Ss/Cs → 用量统计 schema ×9（收藏模型/汇总/日档/周档/热图/日模型/日模型用量/模型明细/工具统计）(3867–3921)
  *   ws  → DEFAULT_AGENT_NAME             (3942) ★ls  'zcodeAgent'
- *   Ts  → BUILTIN_AGENT_CLI_PROVIDERS    (3943) —    ['glm']
+ *   Ts  → BUILTIN_AGENT_CLI_PROVIDERS    (2751) —    ['glm']
  *   Es  → resolveDefaultAgentCliProvider (3944) ★ds  恒 'glm'
  *   Ds  → isGlmAgentCliProvider          (3947) ★us
  * §11 first-party — 会话/消息协议 schema（jsx 3950–4290）
@@ -249,7 +249,7 @@
  * §13 first-party — 设置 schema 与迁移（jsx 4510–4830）
  *   U/Uc/Wc/Gc/Kc/qc → settingsNonEmptyString/localeEnum/localePreferenceEnum/interactionBehaviorEnum/updateChannelEnum/zoomLevelSchema (4510–4515)
  *   Jc/Yc/Xc/Zc/Qc → integratedTerminalShellSchema/builtinAgentCliProvidersSchema/providerFamilyModesSchema/providerFamilyDomainEnum/providerFamilySelectedKeysSchema (4516–4531)
- *   $c  → isRepoSnapshotIndexingUserEnabled (4535) ★Go
+ *   $c  → isRepoSnapshotIndexingUserEnabled (4431) ★Go
  *   el/tl/nl/rl/il/al/ol → releaseNotesSchema/skippedUpdateVersionsSchema/remoteTargetSchema/workspaceSessionEntrySchema/webRemoteRelayDeviceSchema/webRemoteEnabledContextSchema/zcodeEndpointOriginSchema (4538–4599)
  *   sl/cl/ll/ul → migrateZcodeEndpointOrigin/migrateOptimizeAgentExperience/migrateCloseToTrayOnWindows/migrateLocalePreference (4608/4623/4632/4641)
  *   dl/fl/pl/ml → remoteWorkspaceHistoryEntrySchema/migrateEnabledBuiltinAgentCliProviders/stripResourcePackagesFromTarget/migrateLastWorkspaceSession (4651/4661/4667/4677)

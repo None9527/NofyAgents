@@ -28,9 +28,9 @@
  * ---------------------------------------------------------------------------
  * 边界互斥（pptxEngineGeometry.ts 已覆盖、本批实测确认、不重复转录）
  * ---------------------------------------------------------------------------
- *   wi → splitOuterPath (163)          Si → mirrorPathHorizontally (105)
- *   Ci → mirrorPathVertically (134)    H  → arcSegment (61)
- *   yi → adjRatio (30)                 V  → PRESET_GEOMETRY_PATHS (181)
+ *   wi → splitOuterPath (2537)          Si → mirrorPathHorizontally (105)
+ *   Ci → mirrorPathVertically (2416)    H  → arcSegment (61)
+ *   yi → adjRatio (2267)                 V  → PRESET_GEOMETRY_PATHS (181)
  *   ji 已转录 6 条：actionButtonForwardNext/actionButtonForward/
  *     actionButtonBackPrevious/flowChartOfflineStorage/cube/foldedCorner
  *     (1454-1505)

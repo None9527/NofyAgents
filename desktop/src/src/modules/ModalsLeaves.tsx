@@ -17,38 +17,38 @@
  * 一、混淆名 → 语义名 映射表（js 行号为融合 chunk 行）
  * ----------------------------------------------------------------------------
  * §A Onboarding hero（F18；Modals.tsx §2.4 接口级，js 206054–206119）：
- *   x4t → resolveHeroThemeStyles   (206054)  主题 → 面板/光晕/文案色四分支
- *   S4t → useHeroTextSizes         (206090)  设置 store 主题解析（system 走暗判定）
- *   C4t → HeroCard                 (206094)  双光晕卡片壳
+ *   x4t → resolveHeroThemeStyles   (206344)  主题 → 面板/光晕/文案色四分支
+ *   S4t → useHeroTextSizes         (206380)  设置 store 主题解析（system 走暗判定）
+ *   C4t → HeroCard                 (206384)  双光晕卡片壳
  *
  * §B 文件路径内联组件（横切 §2.2 文件图标块 4946–6061；Bc js 5157）：
  *   Mc → FOLDER_ICON_DATA_URI      (5113)  文件夹 svg data-uri
  *   Nc → materialIconsBaseOverride (5114，可变注水点，$se 设置)
- *   $se → setMaterialIconsBase     (5116)
- *   ece → resolveMaterialIconsBase (5119)  `./`→`material-icons`
+ *   $se → setMaterialIconsBase     (5161)
+ *   ece → resolveMaterialIconsBase (5164)  `./`→`material-icons`
  *   Pc  → materialIconPath        (5120)  `${base}/${name}.svg`
- *   tce → materialIconPathAlias   (5123)
+ *   tce → materialIconPathAlias   (5170)
  *   Fc/Ic → folder/document 图标路径常量 (5124)
  *   Lc  → fileIconFallbackSrc     (5126)  加载失败降级（自身→null；document→folder-uri；其余→document 路径）
  *   Rc  → relativeDisplayPath     (5138)  相对基路径的显示路径（同基 → 空）
- *   nce → displayDirectoryPrefix  (5144)  目录前缀（`…/` 尾）
+ *   nce → displayDirectoryPrefix  (5190)  目录前缀（`…/` 尾）
  *   zc  → resolveFileDisplayInfo  (5150)  图标/名/目录前缀归一
  *   Bc  → FilePathInline          (5157)  图标 + 文件名 + 目录尾（失败降级）
  *   Vc  → FileIconImg             (5196)  独立图标（失败降级）
  *
  * §C 纯文本 diff 预览（F14/F19 共用；CodeViewer.tsx 接口级）：
  *   ahe → DIFF_TRUNCATED_MARKER_PATTERN (23153)  `^\\ __ZCODE_DIFF_TRUNCATED__:(\d+)$`
- *   dhe → parseTruncatedMarker    (23226)
- *   mut → parseDiffLine           (100417)  +/-/空白 前缀 → 行类型
- *   hut → diffKindStyles          (100426)  added/removed/context 三态样式
- *   gut → PlainTextDiffPreview    (100459)  行号粘性列 + 截断提示 + 换行模式
+ *   dhe → parseTruncatedMarker    (23274)
+ *   mut → parseDiffLine           (100466)  +/-/空白 前缀 → 行类型
+ *   hut → diffKindStyles          (100475)  added/removed/context 三态样式
+ *   gut → PlainTextDiffPreview    (100507)  行号粘性列 + 截断提示 + 换行模式
  *
  * §D El gutter 交互控制器（F14；js 6062–6880，~820 行；GitReview/TermBrowser 报告登记）：
  *   El  → DiffInteractionManager  (6062)  file|diff 双模：悬停/点击/行选择/gutter 工具位
- *   nl  → isSameSelectionRange    (5249)
+ *   nl  → isSameSelectionRange    (5297)
  *   rl/il/al → hast text/element/icon 构造 (5254/5257/5260)
- *   mce → gutterUtilityButtonTree (5307)  `diffs-icon-plus` 按钮 hast
- *   hce → isSameSelectionPoint    (5314)
+ *   mce → gutterUtilityButtonTree (5355)  `diffs-icon-plus` 按钮 hast
+ *   hce → isSameSelectionPoint    (5362)
  *   Tl  → serializeHast           (6020，vendored hast-util-to-html；接口级)
  *   Ol/kl/Al/vle/yle/ble/jl/Ml/Nl/Pl/Fl → 指针目标类型守卫与助手 (6959–7012)
  *

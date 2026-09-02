@@ -18,7 +18,7 @@
  *   Rje  → QuickPick                 命令中心根组件（memo）(36439–36948)
  *   nPt  → QuickFindBar              任务内查找条（window/chat 双形态）(139949–140188)
  *   O_e  → buildQuickPickCommands    命令注册表（18 条，6 段）(25394–25585)
- *   D_e  → QUICK_PICK_SECTION_ORDER  段序 suggested/chat/navigation/panels/configure/app (25393)
+ *   D_e  → QUICK_PICK_SECTION_ORDER  段序 suggested/chat/navigation/panels/configure/app (25442)
  *   mje  → QUICK_PICK_COMMAND_ICONS  命令图标名 → lucide 组件映射 (36151–36169)
  *   Lje  → SearchHistoryFooter       搜索历史胶囊页脚 (36371–36438)
  *   pC   → ScopeTab                  范围切换胶囊（全部/操作/任务/文件）(36335–36348)
@@ -29,7 +29,7 @@
  *  cmdk 封装（Radix 风格 Command 原语，shadcn 类封装；底层 cmdk 库在本 chunk
  *  js 26004–26574 / jsx 22591–23140，`m_` 命名空间）：
  *   Yb   → Command                   根（data-slot=command）(32092)
- *   tOe  → CommandDialog             对话框壳（zb Dialog + sr-only 标题）(32103)
+ *   tOe  → CommandDialog             对话框壳（zb Dialog + sr-only 标题）(32151)
  *   Zb   → CommandList               列表（data-slot=command-list）(32148)
  *   Qb   → CommandEmpty              空态（data-slot=command-empty）(32158)
  *   $b   → CommandGroup              分组（data-slot=command-group）(32166)
@@ -42,7 +42,7 @@
  *   ZS   → useGlobalTaskList         跨工作区任务列表/搜索 hook (35727–36070)
  *   uje  → mergeTaskListShards       分片结果合并 (35708–35726)
  *   $S   → formatRelativeTime        相对时间（刚刚/分/时/天）(36080–36089)
- *   fC   → resolveTaskTitle          空标题 → 「未命名」(36277)
+ *   fC   → resolveTaskTitle          空标题 → 「未命名」(36326)
  *   Mje  → compareRecentChanges      最近变更排序（轮次↓/写次数↓/路径）(36281–36285)
  *
  *  查询解析 / 过滤 / 历史：
@@ -62,9 +62,9 @@
  *   bje  → isSearchHistoryEntry      (36189–36197)
  *   aC   → searchHistoryStorageKey   (36186–36188)
  *   iC   → safeLocalStorage          (36176–36184)
- *   rC   → SEARCH_HISTORY_LIMIT = 20 (36174)
+ *   rC   → SEARCH_HISTORY_LIMIT = 20 (9329)
  *   yje  → SEARCH_HISTORY_STORAGE_PREFIX = `zcode-command-center-search-history:` (36175)
- *   cC   → COLLAPSED_SECTION_LIMIT = 3（all 视图每段折叠上限）(36231)
+ *   cC   → COLLAPSED_SECTION_LIMIT = 3（all 视图每段折叠上限）(9362)
  *   lC   → RECENT_SECTION_LIMIT = 3（最近变更/最近任务条数）(36232)
  *   Tje  → FILE_SEARCH_LIMIT = 80    (36233)
  *   uC   → TASK_LIST_LIMIT = 80      (36234)

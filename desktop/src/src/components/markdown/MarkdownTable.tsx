@@ -15,7 +15,7 @@
  * ----------------------------------------------------------------------------
  * 混淆名 → 语义名（js 行 / jsx 行；上游 streamdown 导出名见括注）
  * ----------------------------------------------------------------------------
- *   ly → extractTableDataFromElement  DOM 表格 → {headers, rows}（上游 m）(19849)
+ *   ly → extractTableDataFromElement  DOM 表格 → {headers, rows}（上游 m）(28642)
  *   uy → tableDataToCSV           CSV 序列化（引号转义，上游 n）(19867)
  *   dy → tableDataToTSV           TSV 序列化（\t \n \r 字面量化，上游 o）(19896)
  *   fy → escapeMarkdownTableCell  单元格 `\`/`|` 转义（上游 p）(19931)

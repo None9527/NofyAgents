@@ -22,33 +22,33 @@
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *  问候 hero（draft emptyState）：
- *   vit  → GREETING_HOUR_BOUNDARIES [5,9,12,14,18,23]   (91182)
+ *   vit  → GREETING_HOUR_BOUNDARIES [5,9,12,14,18,23]   (91233)
  *   gX   → GREETING_MIN_FONT_SIZE_PX = 20               (91183)
  *   _X   → GREETING_MAX_FONT_SIZE_PX = 30               (91184)
- *   yit  → resolveGreetingI18nId     按时段 6 档选 key  (91185)
- *   bit  → msUntilNextGreetingBoundary                  (91202)
- *   xit  → fitGreetingFontSize       20–30px 自适应     (91212)
- *   Sit  → GreetingHero              问候语+品牌线框底图 (91219)
- *   Cit  → HomeHeroLogo              品牌线框 SVG        (91322)
+ *   yit  → resolveGreetingI18nId     按时段 6 档选 key  (91236)
+ *   bit  → msUntilNextGreetingBoundary                  (91250)
+ *   xit  → fitGreetingFontSize       20–30px 自适应     (91260)
+ *   Sit  → GreetingHero              问候语+品牌线框底图 (91267)
+ *   Cit  → HomeHeroLogo              品牌线框 SVG        (91370)
  *
  *  composer 卡（draft 态根组件，props: snapshot/draftMode/draftConfig/contextHeader/centered）：
  *   hit  → DraftComposerRegion       (90180–91174)
  *   git  → DraftComposerRegionMemo = memo(hit)          (91174)
- *   dit  → applyExternalTextInsertRequest               (90132)
- *   fit  → applyComposerRestoreRequest                  (90150)
- *   pit  → areStringArraysEqual                         (90176)
- *   mit  → formatLineCount                              (90178)
- *   _it  → isEventInsideDialog（R0 Escape 守卫用）      (91176)
+ *   dit  → applyExternalTextInsertRequest               (90180)
+ *   fit  → applyComposerRestoreRequest                  (90198)
+ *   pit  → areStringArraysEqual                         (90220)
+ *   mit  → formatLineCount                              (90223)
+ *   _it  → isEventInsideDialog（R0 Escape 守卫用）      (91224)
  *
  *  off-peak 横幅 + 建议卡（draft 态、本地工作区才显示）：
  *   vX   → toErrorMessage                               (91337 / 78937 附近)
- *   wit  → hasCodingPlanProviderEntry                   (91340)
- *   Tit  → isCodingPlanConnectionSelected               (91348)
- *   Eit  → isQuota3103Error                             (91355)
- *   Dit  → resolveOffPeakErrorI18nId                    (91358)
+ *   wit  → hasCodingPlanProviderEntry                   (91388)
+ *   Tit  → isCodingPlanConnectionSelected               (91395)
+ *   Eit  → isQuota3103Error                             (91402)
+ *   Dit  → resolveOffPeakErrorI18nId                    (91405)
  *   bX   → useOffPeakTaskStore（zustand）               (91368)
  *   Oit  → OFF_PEAK_HOME_TEMPLATES [standupGitSummary, ciFlakyReport, customize] (91590)
- *   kit  → OffPeakNewTaskBanner（📢 横幅 + 3 张建议卡）  (91591)
+ *   kit  → OffPeakNewTaskBanner（📢 横幅 + 3 张建议卡）  (91639)
  *
  *  工作区选择行（contextHeader 左件）：
  *   mOt  → resolveHomePathPrefix                        (128543)
@@ -67,18 +67,18 @@
  *   mC   → mentionTriggerChar（commands→`>`、conversations→`#`、files→`@`）(36348)
  *   Pqe  → MENTION_TRIGGER_REGEX /(^|\s)([/@$#¥￥])([^\s/@$#¥￥]*)$/ (64024)
  *   Fqe  → MENTION_TOKEN_PREFIX_REGEX                   (64025)
- *   Iqe  → normalizeCnyTrigger（¥/￥ → $）              (64026)
- *   tV   → parseMentionTrigger                          (64061)
- *   SV   → SuggestionPanel（虚拟滚动面板）              (64639)
- *   _Je  → SuggestionSectionHeaderRow                   (64776)
- *   vJe  → SuggestionStatusRow（loading/error/empty）   (64785)
- *   yJe  → SuggestionOptionRow                          (64813)
+ *   Iqe  → normalizeCnyTrigger（¥/￥ → $）              (64075)
+ *   tV   → parseMentionTrigger                          (64109)
+ *   SV   → SuggestionPanel（虚拟滚动面板）              (64687)
+ *   _Je  → SuggestionSectionHeaderRow                   (64825)
+ *   vJe  → SuggestionStatusRow（loading/error/empty）   (64833)
+ *   yJe  → SuggestionOptionRow                          (64861)
  *   （KJe MentionSelector js 65605 / SJe SlashPanel js 65002：Lexical 接线层，接口保留，属 F08）
  *
  *  建议卡文案数据（地图备注所指，实为提及面板技能段文案，非 3 张卡）：
- *   Dqe  → OFFICIAL_SKILL_PLUGINS Set                   (63845)
+ *   Dqe  → OFFICIAL_SKILL_PLUGINS Set                   (63893)
  *   kqe  → CURATED_SKILL_DESCRIPTIONS（zh-CN/en-US）    (63868)
- *   jqe  → curatedSkillDescription                      (63975)
+ *   jqe  → curatedSkillDescription                      (64023)
  *
  *  图标（Sa=createLucideIcon，js 行）：
  *   T_ arrow-up 26663（发送）| Wv square 27823（停止）| Yye megaphone 27358（横幅 📢）

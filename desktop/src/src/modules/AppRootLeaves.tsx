@@ -31,9 +31,9 @@
  *   c8t → captchaParityAssertions         (212490)
  *   X9  → assertParityState               (212521)
  *   l8t → exposeTelemetryParityE2E        (212525)
- *   u8t → runTelemetryParityCase          (212534)
- *   d8t → applyTelemetryParityOperation   (212580)
- *   f8t → runTelemetryParityWebNoop       (212775)
+ *   u8t → runTelemetryParityCase          (212536)
+ *   d8t → applyTelemetryParityOperation   (212581)
+ *   f8t → runTelemetryParityWebNoop       (212776)
  *   p8t → pushUniqueParityAssertion       (212802)
  *   Z9  → buildParityEventFact            (212805)
  * [L] 远控任务同步桥 / 图标常量：

@@ -30,12 +30,12 @@
  *  A. 上下文用量弹层（76612–76843 / jsx 67694 区）：〔A1-R23〕副本族删除 → 逐字 canonical
  *     Home §V.6/§V.7（y3e…A3e/j3e，见 §1 墓碑）
  *  B. 工具条配置选择（76844–77061 / jsx 67907 区）：
- *   M3e → isOptionValuePresent (76844) | N3e → FULL_ACCESS_MODES (76847)
- *   P3e → categoryTestidOf (76848) | F3e → optionTestidOf (76852)
- *   I3e → ApiRetryStatusChip (76856) | L3e → modeOptionLabelOf (76874)
- *   R3e → modeLabelKeyOf (76877) | z3e → modeDescriptionKeyOf (76880)
- *   jq  → optionLabelOf (76883) | B3e → optionDescriptionOf (76886)
- *   V3e → isFullAccessMode (76892) | H3e → modeIconOf (76895)
+ *   M3e → isOptionValuePresent (76848) | N3e → FULL_ACCESS_MODES (76847)
+ *   P3e → categoryTestidOf (76852) | F3e → optionTestidOf (76852)
+ *   I3e → ApiRetryStatusChip (76860) | L3e → modeOptionLabelOf (76874)
+ *   R3e → modeLabelKeyOf (76884) | z3e → modeDescriptionKeyOf (76880)
+ *   jq  → optionLabelOf (76890) | B3e → optionDescriptionOf (76886)
+ *   V3e → isFullAccessMode (76898) | H3e → modeIconOf (76895)
  *   Mq  → ConfigSelect                 工具条 select 触发器 (76912)
  *  C. 思考级别机制（77127–77325；U3e/W3e/G3e 见排除注记）：〔A1-R23〕Pq/Fq/Z3e/Q3e/$3e 副本删除
  *     → 逐字 canonical Home §U.2 ComposerThoughtToolbar + §T 快捷键族（见 §3 墓碑）；
@@ -10649,7 +10649,7 @@ export function useModelProvidersStore() {
  *   co 1033-1039 useRef 记忆化工厂（selector 结果浅等 → 返旧引用，
  *            否则换新缓存——zustand 订阅防重渲染面）
  * 迁出内容（逐字不变，唯 co 补 export；型缝 (e: any) 照旧，零抑制）：
- *   ao → isIterableValue (998) | oo → hasEntriesMember (999)
+ *   ao → isIterableValue (3235) | oo → hasEntriesMember (999)
  *   so → entriesMapsEqual (1000-1006) | Cie → iterableSequencesEqual (1007-1017)
  *   wie → shallowObjectEqual (1018-1032) | co → useShallowSelector (1033-1039)
  * 迁出核对（diff 审计）：

@@ -30,44 +30,44 @@
  * ----------------------------------------------------------------------------
  *  测量宿主：
  *   en/ln → 单例测量上下文 (11094/11106) · tn/un → 字体测量缓存 (11095/11109)
- *   dn → measureTextCached (11112) · fn → getLineLayoutQuirks (11119)
+ *   dn → measureTextCached (186783) · fn → getLineLayoutQuirks (11119)
  *   pn → parseFontSizeFromFont (11139) · mn/sn → 字素 Segmenter 单例 (11144)
  *   an/on → EMOJI_PRESENTATION_RE/EMOJI_SEQUENCE_RE (11098/11099)
- *   hn → isEmojiPresentation (11148) · gn → containsEmojiSequence (11151)
+ *   hn → isEmojiPresentation (159791) · gn → containsEmojiSequence (11151)
  *   cn/_n → 表情过绘修正缓存/测量 (11153/11154)
  *   vn → countEmojiSegments (11168) · yn → emojiCountOf (11174)
- *   bn → emojiCorrectedWidth (11177) · xn → computeBreakableFitAdvances (11180)
- *   Sn → openFontMeasureSession (11222)
+ *   bn → emojiCorrectedWidth (1227) · xn → computeBreakableFitAdvances (11180)
+ *   Sn → openFontMeasureSession (1251)
  *  宽度表记账助手：
- *   Cn → isFitOnlyKind (11233) · wn → isLineEndShrinkableKind (11236)
- *   Tn → skipShrinkableKinds (11239) · En → advanceToTabStop (11247)
+ *   Cn → isFitOnlyKind (1256) · wn → isLineEndShrinkableKind (11236)
+ *   Tn → skipShrinkableKinds (1274) · En → advanceToTabStop (11247)
  *   Dn → fitLetterSpacingAt (11253) · On → addIfNonZero (11256)
  *   kn → letterSpacingAtSegment (11258) · An → lineEndFitAdvanceOf (11261)
  *   jn → fitAdvanceOf (11263) · Mn → paintAdvanceOf (11265)
  *   Nn → withTrailingLetterSpacing (11268) · Pn → plusLetterSpacing (11270)
  *   Fn → lowerBoundIndex (11273) · In → trailingLetterSpacingBefore (11280)
- *   Ln → advanceWithTrailingSpacing (11297)
+ *   Ln → advanceWithTrailingSpacing (1421)
  *  块定位：
- *   Rn → findChunkBySegment (11298) · zn → enterChunkAtCursor (11308)
- *   Bn → locateChunkForCursor (11318) · Vn → advanceToNextChunk (11323)
+ *   Rn → findChunkBySegment (1429) · zn → enterChunkAtCursor (11308)
+ *   Bn → locateChunkForCursor (120526) · Vn → advanceToNextChunk (11323)
  *  断行行走：
- *   Hn → walkChunkLine (11324) · Un → walkSimpleLine (11438)
+ *   Hn → walkChunkLine (1584) · Un → walkSimpleLine (11438)
  *   Wn → walkLineFromCursor (11479) · Gn → walkNextLineFromCursor (11482)
- *   Kn → countLinesAndMaxWidth (11488)
+ *   Kn → countLinesAndMaxWidth (1709)
  *  行文本提取：
  *   qn/Jn/Yn/Xn → 行字素缓存族 (11525-11533) · Zn → isSoftHyphenLineEnd (11536)
- *   Qn → appendStringSlice (11539) · $n → getLineGraphemeCache (11542)
+ *   Qn → appendStringSlice (1850) · $n → getLineGraphemeCache (11542)
  *   er → extractLineText (11546)
  *  CJK 再切分：
  *   tr/nr → CJK 字素 Segmenter 单例 (11566) · rr → createEmptyMeasuredText (11573)
  *   ir → segmentCJKRun (11600) · ar → applyKeepAllToCJKRuns (11640)
- *   or → graphemeCountForSpacing (11666) · sr → isHyphenLikeChar (11676)
+ *   or → graphemeCountForSpacing (1930) · sr → isHyphenLikeChar (11676)
  *   cr → hyphenBreakOffsets (11680) · lr → widthWithLetterSpacing (11687)
  *  宽度表构建与入口：
- *   ur → buildWidthTable (11689) · dr → remapChunksToWidthIndexes (11791)
- *   fr → measureTextLayout (11807) · pr → measurePreWrapLayout (11813)
- *   mr → measuredTextIdentity (11815) · hr → createLineFragment (11817)
- *   gr → countLayoutLines (11831) · _r → breakNextLine (11834)
+ *   ur → buildWidthTable (1995) · dr → remapChunksToWidthIndexes (11791)
+ *   fr → measureTextLayout (2009) · pr → measurePreWrapLayout (11813)
+ *   mr → measuredTextIdentity (187074) · hr → createLineFragment (11817)
+ *   gr → countLayoutLines (2063) · _r → breakNextLine (11834)
  * ============================================================================
  */
 

@@ -15,9 +15,9 @@
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  * A. 技能分区（y1t，js 195992–197541 / jsx 157604–157969）
- *   y1t  → SkillsSettingsSection          分区根 (195992)
- *   m1t  → skillEnabledFilterMatch        (195926)
- *   h1t  → ResourceEnabledFilterSelect    (195930)
+ *   y1t  → SkillsSettingsSection          分区根 (196288)
+ *   m1t  → skillEnabledFilterMatch        (196204)
+ *   h1t  → ResourceEnabledFilterSelect    (196207)
  *   g1t  → workspaceFolderName            (jsx 157578)
  *   _1t  → formatPublishedAtIso           (jsx 157580)
  *   K7   → DetailField                    (jsx 157585)
@@ -28,7 +28,7 @@
  *    cLt 任务登记 (jsx 157785)、zV 运行时供应商 (jsx 157762)
  *
  * B. 子代理分区（H1t，js 197542–199414 / jsx 158526–158853）
- *   H1t  → SubagentsSettingsSection       分区根 (197542)
+ *   H1t  → SubagentsSettingsSection       分区根 (197838)
  *   （接口级）：n9 SubagentRow (jsx 158134)、B1t BuiltInModelOverrideControl (jsx 158196)、
  *    V1t SubagentConfigForm (jsx 158301)、w1t 排序 (157977)、X7 isUserManaged (157980)、
  *    E1t builtInNameOf (157986)、D1t/O1t/k1t/A1t/j1t/M1t/N1t/P1t/Z7/Q7/F1t/$7/e9/I1t/t9
@@ -36,7 +36,7 @@
  *    Hq buildModelSelectGroups、De subagents 能力刷新（跨 chunk）
  *
  * C. 插件分区（I0t，js 199994–200497 / jsx 159986–160319）
- *   I0t  → PluginsSettingsSection         分区根 (199994)
+ *   I0t  → PluginsSettingsSection         分区根 (200290)
  *   （接口级）：m0t PluginStoreGrid (jsx 159338)、S0t PluginDetail (jsx 159603)、
  *    C0t MarketEntryCard (jsx 159658)、D0t PluginManageList (jsx 159768)、
  *    E0t/n0t/e0t 高级信息件 (159755/159143/159069)、U1t PluginConfigForm (jsx 158854)、
@@ -48,28 +48,28 @@
  *    B6 plugins store (142985)、M6/N6/V6 能力刷新（跨 chunk）
  *
  * D. 命令分区（G0t，js 200852–201243 / jsx 160523–160725）
- *   G0t  → CommandsSettingsSection        分区根 (200852)
- *   L0t  → useCommandsStoreBridge         (200503)
+ *   G0t  → CommandsSettingsSection        分区根 (201148)
+ *   L0t  → useCommandsStoreBridge         (200799)
  *   m9   → isUserManagedCommand           (jsx 160369)
  *   R0t  → CommandScopeBadge              (jsx 160372)
- *   z0t  → CommandRow                     (200556)
+ *   z0t  → CommandRow                     (200852)
  *   B0t  → COMMAND_NAME_PATTERN          (jsx 160404)
  *   h9   → CommandFormLabel               (jsx 160407)
  *   U0t  → CommandStorageLevelSelect      (jsx 160412)
- *   W0t  → CommandForm                    (200703)
+ *   W0t  → CommandForm                    (200999)
  *   （接口级）：F6 commands store (142754)、ki/ft 命令类型守卫（跨 chunk）、
  *    Kte agentSource 常量、ZQt 命令分组 (jsx 155568)
  *
  * E. Hooks 分区（p2t，js 202032–202285 / jsx 161468–161624）
- *   p2t  → HooksSettingsSection           分区根 (202032)
- *   t2t  → HookForm                       (201390)
+ *   p2t  → HooksSettingsSection           分区根 (202328)
+ *   t2t  → HookForm                       (201686)
  *   Q0t  → FormLabelSlot                  (jsx 161013)
  *   $0t  → HOOK_EVENTS                    (jsx 161019)
  *   e2t  → customJsonOf                   (jsx 161020)
  *   y9   → HookFormField                  (jsx 161229)
  *   n2t  → HOOK_EVENT_ORDER               (jsx 161236)
  *   r2t  → HookScopeTabs                  (jsx 161237)
- *   i2t  → HookListByEvent                (201771)
+ *   i2t  → HookListByEvent                (202067)
  *   a2t  → groupHookRowsByEvent           (jsx 161289)
  *   b9   → HookRowShell                   (jsx 161322)
  *   x9   → HookRowBody                    (jsx 161331)
@@ -84,7 +84,7 @@
  *   （接口级）：Z0t hooks store (201244 / jsx 160815)、lFt 会话能力刷新 (跨 chunk)
  *
  * F. 自动化分区（d6，js 138823–139924 / jsx 115911–116622；F15 族根）
- *   d6   → AutomationsMain                分区根 (138823)
+ *   d6   → AutomationsMain                分区根 (138840)
  *   BNt  → resolveVisibleTabs             (jsx 115803)
  *   VNt  → resolveEffectiveTab           (jsx 115809)
  *   HNt  → resolveTemplateVisibility     (jsx 115812)
@@ -97,7 +97,7 @@
  *   JNt  → createErrorMessageId           (jsx 115857)
  *   YNt  → findAutomationById            (jsx 115860)
  *   XNt  → resolveOpenTarget              (jsx 115864)
- *   ZNt  → AutomationRowActionMenu        (138713)
+ *   ZNt  → AutomationRowActionMenu        (138730)
  *   （接口级，F15 族深层）：kNt AutomationEditor (jsx 114854)、YMt OffPeakTaskEditor (jsx 114019)、
  *    tMt KeepAwakeRow (jsx 113438)、cMt OffPeakTaskList (jsx 113500)、L3 CreateSplitButton (jsx 113451)、
  *    INt OffPeakCreateButton (jsx 115771)、ANt StatusChip (jsx 115689)、Pjt 闲时模板 (jsx 112762)、

@@ -51,34 +51,34 @@
  *   pe   → pickBestTaskMetadata           (跨 chunk：skillStore `de`+`y`，变参折叠择优)
  *
  * §B T3 AutomationsStore 深层助手（js 134084–134110；stores-tasks.tsx 登记）：
- *   y3 → automationErrorMessage (134084) | b3 → automationLoadSeq (134087)
- *   S3 → isSameAutomationWorkspace (134089) | C3 → findAutomation (134092)
- *   w3 → loadAutomationsIntoStore (134099)
+ *   y3 → automationErrorMessage (134101) | b3 → automationLoadSeq (134087)
+ *   S3 → isSameAutomationWorkspace (134106) | C3 → findAutomation (134092)
+ *   w3 → loadAutomationsIntoStore (134116)
  *   ri → isAutomationLimitError（跨 chunk：src `et`=hx，AUTOMATION_CREATE_LIMIT_REACHED 判定）
  *
  * §C bX OffPeakTaskStore 深层助手：
- *   Eit → isTakeNumberFailure (91354)  quota_3103/3103（stores-tasks.tsx 164 声明实体化；
+ *   Eit → isTakeNumberFailure (91402)  quota_3103/3103（stores-tasks.tsx 164 声明实体化；
  *         ExtendedViews.tsx 5739 已有同语义局部实现 isQuota3103Result，本文件为 canonical）
  *
  * §D Z0t HooksStore 深层助手（js 201185–201243；stores-workspace.tsx 登记）：
- *   K0t → hooksWorkspaceKey (201185) | q0t → hookLocationForScope (201188)
- *   _9  → isHookEditable (201193)   | J0t → buildNewHook (201196)
- *   Y0t → mergeHookPatch (201213)   | X0t → reloadHooks (201229)
- *   v9  → saveHooksList (201238)
+ *   K0t → hooksWorkspaceKey (201481) | q0t → hookLocationForScope (201188)
+ *   _9  → isHookEditable (201489)   | J0t → buildNewHook (201196)
+ *   Y0t → mergeHookPatch (201509)   | X0t → reloadHooks (201229)
+ *   v9  → saveHooksList (201534)
  *
  * §E F6 CommandsStore 深层助手（js 142700–142753）：
- *   N6  → refreshSkillsAfterCommandsChange (142700)
- *   uFt → trimLeadingSlashes (142719) | dFt → commandNameKey (142722)
- *   fFt → userCommandToSlashCommand (142725)
- *   pFt → mergeCommandsIntoSlashCommands (142737)
- *   P6  → commandsInFlight Map (142750) | mFt → commandsWorkspaceKey (142751)
+ *   N6  → refreshSkillsAfterCommandsChange (142717)
+ *   uFt → trimLeadingSlashes (142736) | dFt → commandNameKey (142722)
+ *   fFt → userCommandToSlashCommand (142742)
+ *   pFt → mergeCommandsIntoSlashCommands (142754)
+ *   P6  → commandsInFlight Map (142767) | mFt → commandsWorkspaceKey (142751)
  *
  * §F B6 PluginsStore 深层助手（js 142873–142984、143135–143180）：
- *   hFt → pluginErrorMessage (142873) | gFt → pluginsWorkspaceKey (142876)
- *   I6  → pluginsInFlight Map (142879)
- *   L6  → runPluginOperation (142880) | R6 → loadPluginsListDeduped (142900)
- *   _Ft → loadPluginsList (142915)    | z6 → pluginErrorMessage2 (142978)
- *   yFt → pluginErrorMessage3 (143135) | bFt → refreshCommandsAfterPluginSync (143138)
+ *   hFt → pluginErrorMessage (142890) | gFt → pluginsWorkspaceKey (142876)
+ *   I6  → pluginsInFlight Map (142896)
+ *   L6  → runPluginOperation (142897) | R6 → loadPluginsListDeduped (142900)
+ *   _Ft → loadPluginsList (142932)    | z6 → pluginErrorMessage2 (142978)
+ *   yFt → pluginErrorMessage3 (143152) | bFt → refreshCommandsAfterPluginSync (143138)
  *   V6  → refreshPluginsAfterRemoteSync (143172，尾部跨族接线接口级)
  *
  * §G 用量数据钩子（js 195171–195258；F12 域）——边界裁决让位：

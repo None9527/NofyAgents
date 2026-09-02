@@ -32,27 +32,27 @@
  * ----------------------------------------------------------------------------
  *  节区图片/拖放面：
  *   Fo → beginSectionImagePointerMove (31877) | zo → selectSectionImageOnTap (31949)
- *   Vo → handleImageDragStart (31952) | Ho → handleImageDragEnd (31959)
- *   Uo → beginCornerResize (31962) | Wo → beginCornerResizeDraft (32011)
- *   Go → beginEmbeddedTableMove (32060) | Ko → tableInteractionContext (32099)
- *   qo → commitImageDrop (32126) | Jo → renderImageDropZone (32146)
+ *   Vo → handleImageDragStart (1553) | Ho → handleImageDragEnd (31959)
+ *   Uo → beginCornerResize (1895) | Wo → beginCornerResizeDraft (32011)
+ *   Go → beginEmbeddedTableMove (1928) | Ko → tableInteractionContext (32099)
+ *   qo → commitImageDrop (1944) | Jo → renderImageDropZone (32146)
  *  渲染器面：
- *   Yo → renderWrappedParagraph (32174) | Xo → renderParagraphRuns (32506)
+ *   Yo → renderWrappedParagraph (1958) | Xo → renderParagraphRuns (32506)
  *   ds → renderTableCellSlice (33726) | fs → renderNode (33827)
  *   ps → renderPageFlow (35044)
  *  拖放导入面：
  *   Zo → dataTransferHasFiles (33516) | Qo → findDocxFileInTransfer (33517)
- *   $o → handleRootDragEnter (33518) | es → handleRootDragLeave (33533)
- *   ts → handleRootDrop (33536)
+ *   $o → handleRootDragEnter (2171) | es → handleRootDragLeave (33533)
+ *   ts → handleRootDrop (2453)
  *  单元格切片布局面：
- *   ns → minCellContentWidthPx (33572) | rs → documentFontFamily (33573)
- *   is → pageSurfaceStyle (33574) | ls → cellLayoutSignature (33594)
- *   us → cellSliceLayoutEntries (33600)
+ *   ns → minCellContentWidthPx (2464) | rs → documentFontFamily (33573)
+ *   is → pageSurfaceStyle (2504) | ls → cellLayoutSignature (33594)
+ *   us → cellSliceLayoutEntries (2671)
  *  脚注簇：
  *   gs → footnoteNumberById (35334) | _s → endnoteNumberById (35335)
- *   vs → footnoteById (35336) | ys → endnoteById (35337)
+ *   vs → footnoteById (2729) | ys → endnoteById (35337)
  *   bs → footnoteRefsByPage (35338) | xs → orderedEndnotes (35348)
- *   Ss → referencedFootnoteIds (35360) | Cs → unreferencedFootnotes (35368)
+ *   Ss → referencedFootnoteIds (2738) | Cs → unreferencedFootnotes (35368)
  *   ws → renderFootnoteParagraphs (35369) | Ts → sectionDraftHandlers (35391)
  *   Es → beginHeaderFooterEdit (35398)
  *

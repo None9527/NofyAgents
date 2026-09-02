@@ -34,13 +34,13 @@
  *   py  → PreviewPaneOfficeXlsxContent 预览面板主组件（chunk 唯一导出） (199478)
  *
  *  vendored react-xlsx 接触面（接口级登记，不逐行还原）：
- *   ly  → Spreadsheet                 react-xlsx 顶层组件（控制器注入三分支） (199406)
- *   cy  → SpreadsheetWithOwnedController 自建控制器变体 (199402)
+ *   ly  → Spreadsheet                 react-xlsx 顶层组件（控制器注入三分支） (28642)
+ *   cy  → SpreadsheetWithOwnedController 自建控制器变体 (28636)
  *   sy  → SpreadsheetViewer           react-xlsx-viewer 呈现壳 (199292)
  *   Ru  → useSpreadsheetController    控制器 hook（file→worker→模型/页签） (15672)
  *   rg  → SpreadsheetControllerContext 控制器上下文 (190102)
  *   ig  → SpreadsheetHeaderThemeContext 头部主题上下文 {isDark} (190103)
- *   Dl  → XlsxFileSizeLimitExceededError 文件超限错误 (14726)
+ *   Dl  → XlsxFileSizeLimitExceededError 文件超限错误 (6929)
  *
  * ----------------------------------------------------------------------------
  * 二、外部依赖清单（跨 chunk 导入；标注来源 chunk 与导出字母。

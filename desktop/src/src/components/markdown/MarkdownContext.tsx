@@ -26,7 +26,7 @@
  *  上下文（context）：
  *   Xb → StreamdownContext        全局选项上下文（shikiTheme/controls/isAnimating/
  *                                 lineNumbers/mode/mermaid/linkSafety）(21176)
- *   ty → StreamdownPluginsContext 插件上下文（code/mermaid/cjk/math/renderers）(19610)
+ *   ty → StreamdownPluginsContext 插件上下文（code/mermaid/cjk/math/renderers）(28218)
  *   bv → IsStreamingContext       「末块是否未完成」上下文（布尔）(18470)
  *   Ev → ClassNamesContext        类名合并函数上下文（cn，带 prefix 能力）(18495)
  *   Rv → StreamdownIconsContext   图标表上下文 (18934)
@@ -36,8 +36,8 @@
  *   ny → useStreamdownPlugins     useContext(ty) (19611)
  *   ry → useCodeHighlighter       plugins?.code ?? null（导出别名 n，被
  *                                 highlighted-body chunk 消费）(19612)
- *   iy → useMermaidPlugin         plugins?.mermaid ?? null (19613)
- *   ay → useCustomBlockRenderer   按语言查 plugins.renderers (19614)
+ *   iy → useMermaidPlugin         plugins?.mermaid ?? null (28349)
+ *   ay → useCustomBlockRenderer   按语言查 plugins.renderers (28434)
  *   xv → useIsStreaming           useContext(bv) (18471)
  *   Q  → useClassNames            useContext(Ev) (18496)
  *   Vv → useStreamdownIcons       useContext(Rv) (18949)

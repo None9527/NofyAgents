@@ -21,17 +21,17 @@
  * 一、混淆名 → 语义名 映射（ES 内部，jsx 行）
  * ----------------------------------------------------------------------------
  *  契约面：
- *   ES → DocxEditorView (27340) | props 22 项 (27340-27362)
+ *   ES → DocxEditorView (9091) | props 22 项 (27340-27362)
  *   C → pageRegistry (27363) | k → isReadOnly (27368) | A → darkInverted (27369)
  *   j → effectiveTheme (27370) | M → invertFilter (27370) | N → isEditable (27371)
  *  memo 链：
  *   F → tocLinkColors (27376) | I → paragraphRenderContext (27377)
- *   Bn → sections (27640) | Hn → pageGeometry (27646) | Un → sectionMetrics (27647)
+ *   Bn → sections (120526) | Hn → pageGeometry (27646) | Un → sectionMetrics (27647)
  *   Wn → geometryIdentityKey (27648) | Gn/Kn/qn → 逐节点度量映射 (27649-27678)
  *   Jn → sectionColumns (27679) | Yn → precomputedNumberingLabels (27680)
- *   Xn → bookmarkNodeIndexes (27681) | Zn → measuredRowHeights (27696)
+ *   Xn → bookmarkNodeIndexes (120852) | Zn → measuredRowHeights (27696)
  *   Qn → paginationResult (27709-27888) | $n/er/tr/nr → 页/测量派生 (27888)
- *   rr → pageIdentityKeys (27889) | ir → firstPageByNode (27890)
+ *   rr → pageIdentityKeys (1902) | ir → firstPageByNode (27890)
  *   hr → pageCount (28070±)
  *  JSX 面：
  *   根容器 data-testid="docx-editor-viewer" (35408)

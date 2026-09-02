@@ -31,7 +31,7 @@
  *   k2t → MIGRATION_DEFAULT_LIMIT=100 | A2t → MIGRATION_MAX_LIMIT=500
  *   j2t → MIGRATION_UNLIMITED=`unlimited` | M2t → MIGRATION_RANGE_DURATIONS
  *   N2t → modifiedSinceOfRange (203430) | P2t → parseScanLimit (203433)
- *   F2t → resolveWorkspaceFilterMode (203437)
+ *   F2t → resolveWorkspaceFilterMode (203438)
  *
  * 边界裁决（详见 QuickPickCmdkMcp.report.md §C）：
  *  - JQt/YQt（193352/193366）已随 SettingsLeaves.tsx 2706/2692 抽取 → 仅注记。

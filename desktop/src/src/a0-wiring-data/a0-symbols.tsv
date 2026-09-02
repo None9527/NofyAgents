@@ -51,7 +51,7 @@ section	sem	obf	line	owner
 1	SessionHeaderRight	SFt	143435	TopBar.tsx
 1	SessionHeaderLeft	wFt	143502	TopBar.tsx
 1	SessionHeader	TFt	144050	TopBar.tsx
-1	useTrajectoryViewerStore	ls	—	1697
+1	useTrajectoryViewerStore	ls	2610	1697
 1	resolveEffectiveProvider	Zge	24734	21359
 1	useMcpStore	Ug	25055	21655
 1	canOpenRemoteSessionSource	$2	127142	—
@@ -210,10 +210,10 @@ section	sem	obf	line	owner
 2	GroupedTaskRowSlot	N8	154138	Sidebar.tsx
 2	GroupedTaskRowSlot	gzt	154088	Sidebar.tsx
 2	canOpenRemoteSessionSourceCheck	$2	127142	—
-2	GROUP_COLOR_SURFACE_CLASSES	$Ft	—	—
+2	GROUP_COLOR_SURFACE_CLASSES	$Ft	144919	—
 2	formatRelativeTime	$S	36128	—
 2	useSessionRouterStore	A2	122636	—
-2	工作区 logo 色板/光束参数	B8	—	—
+2	工作区 logo 色板/光束参数	B8	156301	—
 2	useTaskFileActions	C6	142085	—
 2	compareTasksForList	Fo	1365	—
 2	DEFAULT_GROUP_ID_CRON	Gne	—	—
@@ -238,7 +238,7 @@ section	sem	obf	line	owner
 2	useSearchResultsStore	Vo	1553	—
 2	分段偏好 zcode-sidebar-purpose-section-preferences	X6	144860	—
 2	分段偏好 zcode-sidebar-purpose-section-preferences	XFt	144877	—
-2	分段偏好 zcode-sidebar-purpose-section-preferences	Y6	—	—
+2	分段偏好 zcode-sidebar-purpose-section-preferences	Y6	144851	—
 2	分段偏好 zcode-sidebar-purpose-section-preferences	YFt	144868	—
 2	分段偏好 zcode-sidebar-purpose-section-preferences	Z6	144863	—
 2	按用途拆分工作区标签	ZFt	144909	—
@@ -252,7 +252,7 @@ section	sem	obf	line	owner
 2	WebRemoteControlTrigger	cRt	150186	—
 2	GroupColorDot	e8	144943	—
 2	dropAnimation	eBt/tBt	—	—
-2	GROUP_COLOR_SURFACE_CLASSES	eIt	—	—
+2	GROUP_COLOR_SURFACE_CLASSES	eIt	144928	—
 2	getWorkspaceSlice	fe	213	—
 2	Tabs	hC/gC/_C	—	—
 2	视图不可变操作 144909–144980	i8	144963	—
@@ -260,7 +260,7 @@ section	sem	obf	line	owner
 2	useSettingsStore	ko	1296	—
 2	视图不可变操作 144909–144980	lIt	145014	—
 2	WebRemoteControlTrigger	lRt	150205	—
-2	useTrajectoryViewerStore	ls	—	—
+2	useTrajectoryViewerStore	ls	2610	—
 2	WebRemoteTaskListSection	mLt	147332	—
 2	GroupedTaskRow	mzt	154060	—
 2	RemoteSyncMenuItems	n4	127166	—
@@ -268,7 +268,7 @@ section	sem	obf	line	owner
 2	TaskActionMenuItems	oFt	142200	—
 2	isCronTask	pi/Yr	—	—
 2	GroupedTaskRow	pzt	153682	—
-2	分段偏好 zcode-sidebar-purpose-section-preferences	qFt	—	—
+2	分段偏好 zcode-sidebar-purpose-section-preferences	qFt	144850	—
 2	RemoteSyncDialogs	r4	127265	—
 2	视图不可变操作 144909–144980	r8	144960	—
 2	视图不可变操作 144909–144980	s8	145004	—
@@ -317,7 +317,7 @@ section	sem	obf	line	owner
 3	skills	$	1287	—
 3	resolveOffPeakErrorI18nId	Dit	91405	—
 3	isQuota3103Error	Eit	91402	—
-3	MENTION_TOKEN_PREFIX_REGEX	Fqe	—	—
+3	MENTION_TOKEN_PREFIX_REGEX	Fqe	64074	—
 3	normalizeCnyTrigger	Iqe	64075	—
 3	isRemoteWorkspaceTab	N2	123216	—
 3	MENTION_TRIGGER_REGEX	Pqe	64073	—
@@ -325,7 +325,7 @@ section	sem	obf	line	owner
 3	useRemoteWorkspaceEnabled	UTt	123194	—
 3	SuggestionSectionHeaderRow	_Je	64825	—
 3	curatedSkillDescription	jqe	64023	—
-3	CURATED_SKILL_DESCRIPTIONS	kqe	—	—
+3	CURATED_SKILL_DESCRIPTIONS	kqe	63916	—
 3	= fOt RemoteWizardDialog	pOt	128542	—
 3	parseMentionTrigger	tV	64109	—
 3	SuggestionStatusRow	vJe	64833	—
@@ -411,16 +411,16 @@ section	sem	obf	line	owner
 4	CAPTCHA_VERIFY_PARAM_HEADER	FSt	118231	100474
 4	CAPTCHA_SESSION_STORAGE_KEY	RSt	118237	100485
 4	CAPTCHA_VERIFY_FAILED	XSt	118312	100551
-4	订阅错误面/缺省 fault 键/正则	SCt	—	100891–100894
-4	订阅错误面/缺省 fault 键/正则	bCt	—	100891–100894
-4	订阅错误面/缺省 fault 键/正则	xCt	—	100891–100894
+4	订阅错误面/缺省 fault 键/正则	SCt	118659	100891–100894
+4	订阅错误面/缺省 fault 键/正则	bCt	118657	100891–100894
+4	订阅错误面/缺省 fault 键/正则	xCt	118658	100891–100894
 4	订阅错误面/缺省 fault 键/正则	yCt	118656	100891–100894
 4	trimToNull	$1	116893	—
 4	/goal /compact 命令解析	$_t	111748	—
 4	预览卡	A_t	111281	—
 4	PaneFloatingHeader	Ait	91803	—
 4	供应商选项文案映射/解析	Axt	116864	—
-4	Reasoning	B_t	—	—
+4	Reasoning	B_t	111453	—
 4	轮体/后台结果轮/工作段/段头	Bvt	113137	—
 4	RowRenderer	Dvt	112759	—
 4	RowRenderer	Evt	112714	—
@@ -429,7 +429,7 @@ section	sem	obf	line	owner
 4	工具状态/错误/显示模型	Glt	99744	—
 4	TurnSection	Hvt	113343	—
 4	轮体/后台结果轮/工作段/段头	Ivt	112938	—
-4	自动结束心跳 60s / plan 审批值 approve	J1	—	—
+4	自动结束心跳 60s / plan 审批值 approve	J1	115979	—
 4	ToolCallBlock	K$	109289	—
 4	轮体/后台结果轮/工作段/段头	Lvt	112972	—
 4	供应商选项文案映射/解析	Mxt	116872	—
@@ -438,7 +438,7 @@ section	sem	obf	line	owner
 4	ConversationMessageList	Rbt	114675	—
 4	轮体/后台结果轮/工作段/段头	Rvt	113046	—
 4	PluginIconProvider	Ubt	115586	—
-4	Reasoning	V_t	—	—
+4	Reasoning	V_t	111519	—
 4	buildPermissionRequestModel	Vte	—	—
 4	TurnSection	Vvt	113204	—
 4	PluginIconProvider	Wbt	115607	—
@@ -454,11 +454,11 @@ section	sem	obf	line	owner
 4	QueuePanel	dst	94849	—
 4	refreshCaptchaRuntimeHeaders	fCt	118446	—
 4	respondProviderRuntimeHeadersOnce	gCt	118536	—
-4	ReasoningRow	gvt	—	—
+4	ReasoningRow	gvt	112476	—
 4	倒计时解析/下次心跳延迟	ixt	115985	—
 4	TurnNavigator	iyt	113667	—
 4	PaneFloatingHeader	jit	91849	—
-4	供应商选项文案映射/解析	jxt	—	—
+4	供应商选项文案映射/解析	jxt	116871	—
 4	预览卡	k_t	111241	—
 4	ToolLayout	lQ	100464	—
 4	快照定位/请求覆盖/草稿键	lSt	117575	—
@@ -479,7 +479,7 @@ section	sem	obf	line	owner
 4	用户输入富文本/提及部件	tvt	111760	—
 4	快照定位/请求覆盖/草稿键	uSt	117578	—
 4	QueuePanel	ust	94744	—
-4	ToolCallRow	wvt	—	—
+4	ToolCallRow	wvt	112677	—
 4	Reasoning	z_t	111377	—
 4	ConversationMessageList	zbt	115573	—
 4	工具状态/错误/显示模型	zlt	99561	—
@@ -524,12 +524,12 @@ section	sem	obf	line	owner
 5	usePanelVisibleInlineSize	yqt	182697	SidePanel.tsx
 5	useResizeSettling	bqt	182742	SidePanel.tsx
 5	SidePanel	xqt	182772	SidePanel.tsx
-5	SubagentDirectoryTabContent	KKt	—	—
+5	SubagentDirectoryTabContent	KKt	182354	—
 5	SessionHeaderRight	SFt	143435	—
 5	工作区根控制器接线	XJt	186515	—
-5	PlanDetailBody	XKt	—	—
-5	PlanDetailBody	YKt	—	—
-5	SubagentDirectoryTabContent	qKt	—	—
+5	PlanDetailBody	XKt	182531	—
+5	PlanDetailBody	YKt	182487	—
+5	SubagentDirectoryTabContent	qKt	182367	—
 5	shouldKeepPanelMounted	uae	1978	—
 6	useSearchResultsStore	Vo	1553–1878	QuickPick.tsx
 6	selectQueryResult	Zie	1878	QuickPick.tsx
@@ -740,9 +740,9 @@ section	sem	obf	line	owner
 8	useClaudeMigration	I2t	203441	SettingsPanelsData.tsx
 8	MigrationCandidatesCard	z2t	203628	SettingsPanelsData.tsx
 8	MigrationSettingsSection	V2t	203883	SettingsPanelsData.tsx
-8	CodeBlockWrapLinesButton	_k	—	43898
-8	CodeBlockMermaidPreviewButton	iBe	—	43907
-8	CodeBlockCopyButton	vk	—	43934
+8	CodeBlockWrapLinesButton	_k	48774	43898
+8	CodeBlockMermaidPreviewButton	iBe	48801	43907
+8	CodeBlockCopyButton	vk	48823	43934
 8	resolveVisibleTabs	BNt	138679	115803
 8	resolveEffectiveTab	VNt	138682	115809
 8	resolveTemplateVisibility	HNt	138685	115812
@@ -810,7 +810,7 @@ section	sem	obf	line	owner
 8	usageErrorMessage	Z$t	195582	157141
 8	UsageErrorBanner	W7	195587	157148
 8	LazyAppUsageDailyModelBarChart	Q$t	195620	157159
-8	LazyAppUsageModelUsagePieChart	$$t	—	157161
+8	LazyAppUsageModelUsagePieChart	$$t	195633	157161
 8	shortModelName	t1t	195782	157222
 8	modelSeriesOf	n1t	195807	157244
 8	toolSeriesOf	r1t	195810	157250
@@ -969,84 +969,84 @@ section	sem	obf	line	owner
 9	WorkspaceRoot	XJt	186219-187019	WorkspaceShell.tsx
 9	MemoizedWorkspaceRoot	Y4t	207063	WorkspaceShell.tsx
 9	ScopedErrorFallback	$Ot	129822	—
-9	offPeakTaskChannel	AAe	—	—
-9	feedbackChannel	BAe	—	—
+9	offPeakTaskChannel	AAe	34973	—
+9	feedbackChannel	BAe	34983	—
 9	TopBarOverlay	BOt	129533	—
 9	recordArmsCustomEvent	C8t	213910	—
-9	memoryChannel	CAe	—	—
-9	modelProviderChannel	DAe	—	—
-9	oauthChannel	EAe	—	—
-9	pluginsChannel	FAe	—	—
+9	memoryChannel	CAe	34966	—
+9	modelProviderChannel	DAe	34970	—
+9	oauthChannel	EAe	34969	—
+9	pluginsChannel	FAe	34978	—
 9	useSubagentsStore	Gn	1681	—
 9	TerminalToggleButton	H6	143333	—
-9	promptAttachmentTransferChannel	HAe	—	—
-9	pluginManagementChannel	IAe	—	—
-9	RendererMessage	Ib	—	—
+9	promptAttachmentTransferChannel	HAe	34985	—
+9	pluginManagementChannel	IAe	34979	—
+9	RendererMessage	Ib	31949	—
 9	useWhiteboardStore	In	184478	—
 9	WebRemoteMobileShell	JPt	141601	—
-9	subagentsChannel	LAe	—	—
-9	skillSyncChannel	MAe	—	—
+9	subagentsChannel	LAe	34980	—
+9	skillSyncChannel	MAe	34975	—
 9	DockTerminalBrowserPanel	Mqt	183898	—
-9	mcpSyncChannel	NAe	—	—
-9	usageStatsChannel	OAe	—	—
-9	pluginSyncChannel	PAe	—	—
+9	mcpSyncChannel	NAe	34976	—
+9	usageStatsChannel	OAe	34971	—
+9	pluginSyncChannel	PAe	34977	—
 9	ConversationOrchestrator	PTt	122820	—
 9	AppErrorFallback	QOt	129749	—
-9	commandsChannel	RAe	—	—
+9	commandsChannel	RAe	34981	—
 9	FeedbackCenter	RMe	39155	—
 9	QuickPick	Rje	36487	—
 9	WindowsCaptionMenu	S6	141871	—
-9	hooksChannel	SAe	—	—
+9	hooksChannel	SAe	34965	—
 9	registerBaseServices	Sse	4401	—
 9	setRendererDeviceId	T8t	213922	—
-9	fileWatcherChannel	TAe	—	—
+9	fileWatcherChannel	TAe	34968	—
 9	SessionHeader	TFt	144050	—
 9	HelpMenu	U6	143362	—
-9	ServiceProxy	Us	—	—
-9	repoWikiChannel	VAe	—	—
+9	ServiceProxy	Us	3939	—
+9	repoWikiChannel	VAe	34984	—
 9	setPlatformBridge	WOt	129687	—
 9	transportFrameLimits	Wf	14611	—
 9	useSkillStore	Yn	—	—
-9	zcodeAgentChannel	_Ae	—	—
+9	zcodeAgentChannel	_Ae	34958	—
 9	registerE2EStoreBridges	a	—	—
 9	WorkspaceSelectionRow	a4	128585	—
-9	ProtocolClient	ase	—	—
+9	ProtocolClient	ase	3944	—
 9	parseLaunchMarks	ax	32288	—
 9	zcodeSessionChannel	bAe	34963	—
 9	windowsCaptionInsetStyle	c4	129526	—
 9	fileChannel	cAe	34949	—
 9	AutomationsMain	d6	138840	—
-9	systemChannel	dAe	—	—
+9	systemChannel	dAe	34952	—
 9	DEFAULT_LOCALE	e	—	—
 9	AppProviders	ekt	129937	—
 9	DesktopCommand	ex	32223	—
-9	terminalChannel	fAe	—	—
+9	terminalChannel	fAe	34953	—
 9	ZCodeApp	g8t	212878	—
-9	zcodeTaskChannel	gAe	—	—
-9	broadcastChannel	hAe	—	—
+9	zcodeTaskChannel	gAe	34957	—
+9	broadcastChannel	hAe	34956	—
 9	MessagePortChannelClient	ise	3891	—
 9	LAUNCH_MARKS_QUERY_PARAM	ix	32276	—
-9	skillsChannel	jAe	—	—
-9	codingPlanSubscriptionChannel	kAe	—	—
+9	skillsChannel	jAe	34974	—
+9	codingPlanSubscriptionChannel	kAe	34972	—
 9	RepoWikiMain	l3	132323	—
-9	gitChannel	lAe	—	—
-9	credentialChannel	mAe	—	—
+9	gitChannel	lAe	34950	—
+9	credentialChannel	mAe	34955	—
 9	TaskFindDialog	nPt	139966	—
 9	StackedConversationPane	owt	121301	—
-9	settingChannel	pAe	—	—
+9	settingChannel	pAe	34954	—
 9	Sidebar	rVt	159423	—
 9	windowsCaptionInsetStyle	s4	129524	—
 9	createRendererTelemetryContext	tx	32239	—
-9	gitCheckpointChannel	uAe	—	—
+9	gitCheckpointChannel	uAe	34951	—
 9	isE2EStoreBridgeEnabled	v	—	—
 9	UpdateStatusWindow	v8t	213554	—
-9	outputStyleChannel	wAe	—	—
+9	outputStyleChannel	wAe	34967	—
 9	playTaskNotificationSound	x8t	213901	—
-9	botsChannel	xAe	—	—
+9	botsChannel	xAe	34964	—
 9	SidePanel	xqt	182772	—
 9	registerRemoteSession	xse	4397	—
 9	useSessionStore	yn	—	—
-9	settingsSyncChannel	zAe	—	—
+9	settingsSyncChannel	zAe	34982	—
 9	GitBranchChip	zZ	96637	—
 10	buildLastTurnChangeSummary	Hhe	23774	GitReview.tsx
 10	isRemoteWorkspaceDescriptor	Uhe	23809	GitReview.tsx
@@ -1278,12 +1278,12 @@ section	sem	obf	line	owner
 12	tabMatch	bWt	178503	—
 12	1.1/-3/5；mWt → 1.1^clamp	dWt	177871	—
 12	roundSize	eWt	177709	—
-12	1.1/-3/5；mWt → 1.1^clamp	fWt	—	—
+12	1.1/-3/5；mWt → 1.1^clamp	fWt	177872	—
 12	layoutScaleFromDataset	iWt	177719	—
 12	BrowserEmptyState	jUt	176920	—
 12	wheelDelta	lWt	177846	—
 12	surfaceSnapshotEqual	oWt	177728	—
-12	1.1/-3/5；mWt → 1.1^clamp	pWt	—	—
+12	1.1/-3/5；mWt → 1.1^clamp	pWt	177873	—
 12	surfaceSnapshotEqual	sWt	177731	—
 12	wheelDelta	uWt	177849	—
 12	roundSize	v5	177713	—
@@ -1327,13 +1327,13 @@ section	sem	obf	line	owner
 13	isSvgPath	EVt	160939	—
 13	useCodeCommentsStore	FH	68562	—
 13	isSvgPath	G8	160942	—
-13	256KB/2MB/64MB/pptx-too-large	GVt	—	—
+13	256KB/2MB/64MB/pptx-too-large	GVt	161276	—
 13	256KB/2MB/64MB/pptx-too-large	KVt	161277	—
 13	workspaceKeyOf	PH	68559	—
 13	OfficePending	TVt	160912	—
 13	256KB/2MB/64MB/pptx-too-large	UVt	161274	—
 13	DIFF_UNSAFE_CSS	W8	160784	—
-13	256KB/2MB/64MB/pptx-too-large	WVt	—	—
+13	256KB/2MB/64MB/pptx-too-large	WVt	161275	—
 13	isEnoentError	X8	161227	—
 13	isPatchSource	_Vt	160804	—
 13	LazyPptxViewer	dVt	160688	—
@@ -1762,13 +1762,13 @@ section	sem	obf	line	owner
 16	MarkdownRenderer(MessageResponse)会话消息流	cj	51736	MarkdownIntegration.tsx
 16	bundledLanguages	dQ	100542	MarkdownIntegration.tsx
 16	AssistantMessageRow	hvt	112357	MarkdownIntegration.tsx
-16	LINE_NUMBER_CLASS	Dv	—	15445
-16	parseInlineStyle	Ov	—	15446
-16	marked	$_	—	—
+16	LINE_NUMBER_CLASS	Dv	27616	15445
+16	parseInlineStyle	Ov	27626	15446
+16	marked	$_	27181	—
 16	isWorkspaceLikeHref	CHe	51409	—
 16	resolveCodeBlockTheme	EHe	51437	—
-16	ClassNamesContext	Ev	—	—
-16	resolveMermaidControl	Ey	—	—
+16	ClassNamesContext	Ev	27588	—
+16	resolveMermaidControl	Ey	29110	—
 16	isHttpUrl	FHe	51501	—
 16	resolveAvailableEditors	JA	51100	—
 16	MarkdownTableStickyScrollbar	MBe	49138	—
@@ -1784,42 +1784,42 @@ section	sem	obf	line	owner
 16	MermaidFullscreenDialog	Qze	48269	—
 16	MERMAID_PLUGIN	RRe	46034	—
 16	buildFileHrefWithLine	SHe	51391	—
-16	bundledLanguages	Td	—	—
-16	resolveCodeControl	Ty	—	—
+16	bundledLanguages	Td	12488	—
+16	resolveCodeControl	Ty	28956	—
 16	DEFAULT_REHYPE_PLUGINS	Ub	32053	—
 16	ImageLightbox	Wk	49882	—
 16	StreamdownOptionsContext	Xb	32174	—
 16	StreamdownContext	Xb	32174	—
 16	R	Xb	32174	—
 16	Block	Zb	32196	—
-16	identity	_b	—	—
-16	WrapLongLinesButton	_k	—	—
-16	TableWrapper	_y	—	—
+16	identity	_b	8448	—
+16	WrapLongLinesButton	_k	48774	—
+16	TableWrapper	_y	8394	—
 16	blockquote	aBe	48940	—
-16	LAZY_RENDER_DEBOUNCE_MS	av	—	—
+16	LAZY_RENDER_DEBOUNCE_MS	av	27244	—
 16	resolveStreamdownMode	bHe	51363	—
-16	LazyMermaid	by	—	—
+16	LazyMermaid	by	8397	—
 16	tailwind	c	—	—
 16	HighlightedCodeBlockBody	c	—	—
 16	blockquote	cBe	48975	—
-16	useLazyRender	cv	—	—
+16	useLazyRender	cv	27293	—
 16	codeHeaderDisplayKey	eBe	48601	—
 16	Mermaid	ex	32223	—
 16	LinkSafetyModal	ey	28213	—
-16	escapeMarkdownTableCell	fy	—	—
-16	identity	gb	—	—
-16	identity	hb	—	—
-16	MermaidOpenPreviewButton	iBe	—	—
+16	escapeMarkdownTableCell	fy	8389	—
+16	identity	gb	31373	—
+16	identity	hb	8446	—
+16	MermaidOpenPreviewButton	iBe	48801	—
 16	parseMarkdownIntoBlocks	jb	31890	—
 16	trimChildrenText	kHe	51468	—
-16	CodeBlockBody	kv	—	—
-16	At	kv	—	—
-16	TableCopyDropdown	my	—	—
+16	CodeBlockBody	kv	27654	—
+16	At	kv	27654	—
+16	TableCopyDropdown	my	28830	—
 16	CODE_FENCE_REGEX	nb	30717	—
 16	ReactInterop	o	—	—
 16	ReactInterop	o	—	—
 16	blockquote	oBe	48951	—
-16	LAZY_RENDER_DEBOUNCE_MS	ov	—	—
+16	LAZY_RENDER_DEBOUNCE_MS	ov	27256	—
 16	ImageGalleryGroup	qk	50165	—
 16	useCodeHighlighter	ry	28252	—
 16	Li	ry	28252	—
@@ -1828,13 +1828,13 @@ section	sem	obf	line	owner
 16	jsxRuntime	s	—	—
 16	blockquote	sBe	48963	—
 16	MarkdownHeading	sj	51721	—
-16	LAZY_RENDER_DEBOUNCE_MS	sv	—	—
+16	LAZY_RENDER_DEBOUNCE_MS	sv	27262	—
 16	file	tVe/nVe/rVe	—	—
-16	identity	vb	—	—
-16	CopyCodeButton	vk	—	—
-16	resolveTableControl	wy	—	—
+16	identity	vb	31395	—
+16	CopyCodeButton	vk	48823	—
+16	resolveTableControl	wy	8401	—
 16	identity	yb	31465	—
-16	createAnimatePlugin	yv	—	—
+16	createAnimatePlugin	yv	27468	—
 16	relativePathFromWorkspace	zA	50967	—
 17	SettingsStore	Mie 工厂/ko 钩子	1140–1286	stores-core.tsx
 17	SearchResultsStore	Vo	1553–2609	stores-session.tsx
@@ -1856,12 +1856,12 @@ section	sem	obf	line	owner
 17	AlertDialogStore	N9	206514–206560	stores-core.tsx
 18	useSessionService	Ag	24368	—
 18	VSBuffer	As	3692	—
-18	ClientMessageType	Bs	—	—
+18	ClientMessageType	Bs	3922	—
 18	面板作用域 provider	DT	42809	—
 18	useResolvedWorkspaceServices	Dc	4955	—
 18	useBaseServices	Ec/qse	—	—
 18	解析助手	Gse	4927	—
-18	ChannelState	Hs	—	—
+18	ChannelState	Hs	3941	—
 18	远端会话解析	Hse	4842	—
 18	toDisposable	Koe/qoe	—	—
 18	解析助手	Kse	4933	—
@@ -1875,19 +1875,19 @@ section	sem	obf	line	owner
 18	面板作用域 provider	TFe	42813	—
 18	V4Conversation	TT/CFe/wFe/ET	—	—
 18	解析助手	Tc	4930	—
-18	ServiceProxy	Us	—	—
+18	ServiceProxy	Us	3939	—
 18	断开占位服务	Use	4904	—
 18	store	VS/HS/BS	—	—
-18	ServerMessageType	Vs	—	—
+18	ServerMessageType	Vs	3931	—
 18	isEventName	Ws/Gs	—	—
 18	解析助手	Wse	4919	—
 18	SessionIndexStore	XAe	35029	—
 18	会话命令 schema 表 \		`Yke`	—
-18	BufferReader	Yoe	—	—
+18	BufferReader	Yoe	3746	—
 18	遥测监督注册表 \		`_Fe`	—
 18	遥测监督注册表 \		`_T`	—
 18	远端会话解析	_c	4822	—
-18	ChannelClient	ase	—	—
+18	ChannelClient	ase	3944	—
 18	遥测监督注册表 \		`bFe`	—
 18	FrameAssembler	bS	33890	—
 18	远端会话解析	bc	4868	—
@@ -1898,7 +1898,7 @@ section	sem	obf	line	owner
 18	远端会话解析	gc	4814	—
 18	ConversationTelemetrySupervisor	hT	41941	—
 18	MessagePortStreamProtocol	ise	3891	—
-18	BufferWriter	js	—	—
+18	BufferWriter	js	3756	—
 18	Emitter	ks	3660	—
 18	bufferFirstListenerEvent	ose	4139	—
 18	provider	qs/lse/vse/Ys/hse/gse/_se	—	—
@@ -1996,7 +1996,7 @@ section	sem	obf	line	owner
 20	AppUsageDailyModelBarChart	Jt	—	—
 20	ChartLegendContent	KT	43343	—
 20	prepareDailyModelBarChartModel	Kt	—	—
-20	THEMES	LT	—	—
+20	THEMES	LT	43217	—
 20	MAX_PIE_SLICES	Q	996	—
 20	jsxRuntime	Q	996	—
 20	AppUsageModelUsagePieChart	Qt	—	—
@@ -2132,36 +2132,36 @@ section	sem	obf	line	owner
 21	adj 值读取（千分比/原值）	yi	2267	7374-7378
 21	path 水平/垂直镜像变换	Ci	2416	7399-7458
 21	path 水平/垂直镜像变换	Si	2343	7399-7458
-21	多段路径拆分与弯箭头包装	Ei	—	8089-8150
-21	多段路径拆分与弯箭头包装	Ti	—	8089-8150
+21	多段路径拆分与弯箭头包装	Ei	2550	8089-8150
+21	多段路径拆分与弯箭头包装	Ti	2543	8089-8150
 21	多段路径拆分与弯箭头包装	wi	2537	8089-8150
-21	actionButton 度量 / 矩形 path	Mi	—	9610-9628
-21	actionButton 度量 / 矩形 path	Ni	—	9610-9628
+21	actionButton 度量 / 矩形 path	Mi	2620	9610-9628
+21	actionButton 度量 / 矩形 path	Ni	2623	9610-9628
 21	文本体谓词	$i	2799	10928-11085
-21	文本体谓词	Xi	—	10928-11085
-21	文本体谓词	Yi	—	10928-11085
+21	文本体谓词	Xi	2790	10928-11085
+21	文本体谓词	Yi	2784	10928-11085
 21	文本体谓词	Zi	2793	10928-11085
-21	文本体谓词	aa	—	10928-11085
+21	文本体谓词	aa	2839	10928-11085
 21	文本体谓词	ea	2802	10928-11085
 21	文本体谓词	ia	2814	10928-11085
 21	文本体谓词	na	2808	10928-11085
 21	文本体谓词	ra	2811	10928-11085
 21	文本体谓词	ta	2805	10928-11085
-21	transform/filter 追加助手	oa	—	11086-11095
-21	transform/filter 追加助手	sa	—	11086-11095
-21	竖排/变换/滤镜追加	ca	—	11114-11125
-21	竖排/变换/滤镜追加	fa	—	11114-11125
-21	竖排/变换/滤镜追加	oa	—	11114-11125
-21	竖排/变换/滤镜追加	sa	—	11114-11125
-21	图片填充区域/裁剪	Da	—	11211-11247
-21	图片填充区域/裁剪	Ea	—	11211-11247
-21	图片填充区域/裁剪	Ta	—	11211-11247
-21	SVG 外阴影/内阴影/软边缘滤镜	Aa	—	11248-11288
-21	SVG 外阴影/内阴影/软边缘滤镜	Ma	—	11248-11288
-21	SVG 外阴影/内阴影/软边缘滤镜	ja	—	11248-11288
-21	颜色解析/混合/渐变角度	Fa	—	11418-11447
-21	颜色解析/混合/渐变角度	Ia	—	11418-11447
-21	颜色解析/混合/渐变角度	La	—	11418-11447
+21	transform/filter 追加助手	oa	2840	11086-11095
+21	transform/filter 追加助手	sa	2841	11086-11095
+21	竖排/变换/滤镜追加	ca	2842	11114-11125
+21	竖排/变换/滤镜追加	fa	2846	11114-11125
+21	竖排/变换/滤镜追加	oa	2840	11114-11125
+21	竖排/变换/滤镜追加	sa	2841	11114-11125
+21	图片填充区域/裁剪	Da	3014	11211-11247
+21	图片填充区域/裁剪	Ea	3011	11211-11247
+21	图片填充区域/裁剪	Ta	3008	11211-11247
+21	SVG 外阴影/内阴影/软边缘滤镜	Aa	3023	11248-11288
+21	SVG 外阴影/内阴影/软边缘滤镜	Ma	3029	11248-11288
+21	SVG 外阴影/内阴影/软边缘滤镜	ja	3026	11248-11288
+21	颜色解析/混合/渐变角度	Fa	3038	11418-11447
+21	颜色解析/混合/渐变角度	Ia	3041	11418-11447
+21	颜色解析/混合/渐变角度	La	3044	11418-11447
 21	形状路径缓存	bo	1088	11839-11862
 21	形状路径缓存	yo	1085	11839-11862
 21	wasm 源注册组（initAndRegisterDocxWasm 等）	br/xr/Sr/Cr/wr/Tr	—	11850-11879,36460
@@ -2169,9 +2169,9 @@ section	sem	obf	line	owner
 21	页面缺省常量（900×1200/56px/15twips）	Pr…Rr	—	11994-12010
 21	parsePageGeometry（pgSz/pgMar/docGrid/pgBorders→px）	zr…Yr	—	12011-12118
 21	图片路由/转换（TIFF→PNG via UTIF+encodePng；EMF/WMF 占位；缓存）	Xr…vi	—	12119-12252
-21	duotone/lum/biLevel 像素滤镜	Hs	—	13351-13435
-21	duotone/lum/biLevel 像素滤镜	Us	—	13351-13435
-21	duotone/lum/biLevel 像素滤镜	Vs	—	13351-13435
+21	duotone/lum/biLevel 像素滤镜	Hs	3941	13351-13435
+21	duotone/lum/biLevel 像素滤镜	Us	3939	13351-13435
+21	duotone/lum/biLevel 像素滤镜	Vs	3931	13351-13435
 21	renderTableNode	bc	4868	14170-14284
 21	renderTableNode	vc	4825	14170-14284
 21	renderTableNode	yc	4834	14170-14284
@@ -2190,18 +2190,18 @@ section	sem	obf	line	owner
 21	字符串序列 + 日期序列号换算	Hc	5263	14632-14643
 21	字符串序列 + 日期序列号换算	Vc	5243	14632-14643
 21	布尔属性（缺省 true）	Uc	5268	14644-14648
-21	布尔属性（缺省 true）	Wc	—	14644-14648
+21	布尔属性（缺省 true）	Wc	5270	14644-14648
 21	useDocxModel（AbortController 守护）	DS	34617	36417-36459
 21	docxModelKey（WeakMap 稳定键）	AS	34647	36463-36468
-21	fitMetricsAlmostEqual	jS	—	36469
+21	fitMetricsAlmostEqual	jS	34672	36469
 21	DocxFitViewport（fit 三层+ResizeObserver）	MS	34677	36470-36504
 21	PreviewPaneOfficeLegacyDocContent（chunk 导出）	NS	34746	36505-36533
 21	渐变（zrender LinearGradient）/数据点样式	bW	69806	41158-41217
-21	渐变（zrender LinearGradient）/数据点样式	xW	—	41158-41217
+21	渐变（zrender LinearGradient）/数据点样式	xW	69819	41158-41217
 21	显式字号标记（Symbol）	AW	69938	41232-41235
 21	显式字号标记（Symbol）	kW	69929	41232-41235
-21	气泡图（含轴扩展）	XK	—	43689-43784
-21	气泡图（含轴扩展）	ZK	—	43689-43784
+21	气泡图（含轴扩展）	XK	73955	43689-43784
+21	气泡图（含轴扩展）	ZK	73970	43689-43784
 21	股票图（K 线/三序列自定义渲染）	$K	74135	43785-43997
 21	股票图（K 线/三序列自定义渲染）	QK	74125	43785-43997
 21	股票图（K 线/三序列自定义渲染）	eq	74249	43785-43997
@@ -2327,7 +2327,7 @@ section	sem	obf	line	owner
 23	getCharPosition	Sl	5855	—
 23	getDocument	TypedArray	—	—
 23	normalizePdfSource	Wo	1911	—
-23	customExtensionMap	Z	—	—
+23	customExtensionMap	Z	7132	—
 23	resolveCollapsedRange	jl	7025	—
 23	customExtensionMap	ll	4511	—
 23	highlighterSingleton	ql	7314	—
@@ -2426,7 +2426,7 @@ section	sem	obf	line	owner
 25	cleanupDeletedTaskState	sLt	146825	122284
 25	WebRemoteTaskRow	uLt	147124	122425
 25	WEB_REMOTE_RETRY_DELAY_MS	dLt	147325	122539
-25	WEB_REMOTE_MAX_RETRIES	fLt	—	122540
+25	WEB_REMOTE_MAX_RETRIES	fLt	147326	122540
 25	waitRetryDelay	pLt	147327	122541
 25	sortTasksByGroupOrder	KRt	152929	126406
 25	applyDraftPromotions	JRt	152993	126470
@@ -2445,9 +2445,9 @@ section	sem	obf	line	owner
 25	toTopLevelNodeRef	czt	153223	126714
 25	serializeGroupedViewOrder	lzt	153235	126721
 25	BEAM_SIZE_PRESETS	uBt	156296	128919
-25	BEAM_THEME_PARAMS	B8	—	128935
+25	BEAM_THEME_PARAMS	B8	156301	128935
 25	MD_BEAM_PALETTES	V8	156352	128990
-25	SM_BEAM_PALETTES	dBt	—	129180
+25	SM_BEAM_PALETTES	dBt	156414	129180
 25	smBorderGradients	fBt	156504	129454/129458
 25	smBorderGradients	pBt	156510	129454/129458
 25	mdBorderGradients	hBt	156522	129462/129466
@@ -2508,8 +2508,8 @@ section	sem	obf	line	owner
 26	resolveEditKindLabel	Rft	104837	90150
 26	FileSummaryList	zft	104849	90157
 26	编辑图标/折叠预设	Bft	104874	90166
-26	编辑图标/折叠预设	Hft	—	90166
-26	编辑图标/折叠预设	Vft	—	90166
+26	编辑图标/折叠预设	Hft	104876	90166
+26	编辑图标/折叠预设	Vft	104875	90166
 26	isRawFailed	Uft	104877	90173
 26	toCodeViewerTarget	UQ	104882	90177
 26	toPatchPreview	Wft	104887	90183
@@ -2577,13 +2577,13 @@ section	sem	obf	line	owner
 26	waitCaptchaScriptSettle	NSt	118071	100335
 26	runAliyunCaptchaVerification	PSt	118080	100344
 26	验证头名/区域头名/头构建	FSt	118231	100470–100478
-26	验证头名/区域头名/头构建	ISt	—	100470–100478
+26	验证头名/区域头名/头构建	ISt	118232	100470–100478
 26	验证头名/区域头名/头构建	LSt	118233	100470–100478
 26	ARMS	BSt	118240	100480–100500
 26	ARMS	HSt	118261	100480–100500
 26	ARMS	RSt	118237	100480–100500
 26	ARMS	VSt	118243	100480–100500
-26	ARMS	zSt	—	100480–100500
+26	ARMS	zSt	118238	100480–100500
 26	验证参数缓存/运行时头账本	T0	118328	100560–100590
 26	验证参数缓存/运行时头账本	aCt	118344	100560–100590
 26	验证参数缓存/运行时头账本	iCt	118340	100560–100590
@@ -2775,7 +2775,7 @@ section	sem	obf	line	owner
 27	useCodingPlanUsageStats	J$t	195502	UsageDeep.tsx
 27	isNoPlanEntitlement	AUe	52656	—
 27	validateModelDraft	AYt	187698	—
-27	折扣信息对话框类名常量	BHe	—	—
+27	折扣信息对话框类名常量	BHe	51906	—
 27	entitlementFreshnessKey	Bj	52319	—
 27	resolveEntitlementStatus	CUe	52432	—
 27	entitlementErrorOf	DUe	52475	—
@@ -2785,22 +2785,22 @@ section	sem	obf	line	owner
 27	dedupedGetEntitlementSnapshot	EUe	52454	—
 27	entitlementSourceId	Eq	76197	—
 27	hasNoUserOrProviders	FUe	52796	—
-27	快照缓存/监听集/失败表	Gj	—	—
-27	FAILURE_BACKOFF_STEPS_MS	Hj	—	—
+27	快照缓存/监听集/失败表	Gj	52353	—
+27	FAILURE_BACKOFF_STEPS_MS	Hj	52350	—
 27	failureCacheOf	Jj	52372	—
 27	entitlementOptionsKey	Kj	52354	—
 27	nextInFlightToken	MUe	52703	—
 27	commitIfCurrent	NUe	52706	—
 27	entitlementTimeoutError	OUe	52483	—
-27	in	Qj	—	—
+27	in	Qj	52453	—
 27	draggableProviderIdOf	S7	191327	—
 27	earliestNextResetTimeOf	SUe	52425	—
-27	ENTITLEMENT_REQUEST_TIMEOUT_MS	TUe	—	—
+27	ENTITLEMENT_REQUEST_TIMEOUT_MS	TUe	52452	—
 27	getCachedBillingDiscount	UHe	52073	—
-27	快照缓存/监听集/失败表	Uj	—	—
-27	折扣信息对话框类名常量	VHe	—	—
-27	RESET_REFRESH_SLACK_MS	Vj	—	—
-27	快照缓存/监听集/失败表	Wj	—	—
+27	快照缓存/监听集/失败表	Uj	52351	—
+27	折扣信息对话框类名常量	VHe	51907	—
+27	RESET_REFRESH_SLACK_MS	Vj	52349	—
+27	快照缓存/监听集/失败表	Wj	52352	—
 27	isDocumentVisible	Xj	52422	—
 27	freshCachedSnapshot	Yj	52414	—
 27	ENTITLEMENT_INITIAL_STATE	Zj	52451	—
@@ -2815,11 +2815,11 @@ section	sem	obf	line	owner
 27	isStartPlanLevel	aZt	190298	—
 27	subscribeCachedSnapshots	bUe	52400	—
 27	limitTotalOf	c3e	76439	—
-27	供应商源注册表模块态	cM	—	—
-27	探测缺省常量	cYt	—	—
+27	供应商源注册表模块态	cM	52677	—
+27	探测缺省常量	cYt	187501	—
 27	startPlanNextResetTimeOf	d3e	76451	—
-27	供应商源注册表模块态	dM	—	—
-27	USAGE_ENTITLEMENT_CACHE_TTL_MS	dUe	—	—
+27	供应商源注册表模块态	dM	52680	—
+27	USAGE_ENTITLEMENT_CACHE_TTL_MS	dUe	52315	—
 27	clampAttempts	dYt	187508	—
 27	cleanupSaveMode	eXt	188617	—
 27	formatResetDateTimeCompact	f3e	76465	—
@@ -2833,16 +2833,16 @@ section	sem	obf	line	owner
 27	BillingDiscountBadgeWithInfo	gj	51980	—
 27	visibleStartPlanLimits	h3e	76495	—
 27	subscribeCodingPlanSources	hM	52695	—
-27	IDLE_AUTO_REFRESH_INTERVAL_MS	hUe	—	—
+27	IDLE_AUTO_REFRESH_INTERVAL_MS	hUe	52348	—
 27	BillingDiscountBadge	hj	51959	—
 27	hasPlanWidgetModel	i3e	76249	—
 27	hasActiveEntitlement	iM	52651	—
 27	hashApiKey	jUe	52670	—
 27	withTimeout	kUe	52486	—
 27	limitRemainingOf	l3e	76442	—
-27	供应商源注册表模块态	lM	—	—
-27	探测缺省常量	lYt	—	—
-27	折扣配置缓存/单飞槽	lj	—	—
+27	供应商源注册表模块态	lM	52678	—
+27	探测缺省常量	lYt	187502	—
+27	折扣配置缓存/单飞槽	lj	51908	—
 27	limitModelLabel	m3e	76486	—
 27	setCodingPlanSources	mM	52687	—
 27	ACTIVE_AUTO_REFRESH_INTERVAL_MS	mUe	52347	—
@@ -2859,12 +2859,12 @@ section	sem	obf	line	owner
 27	localizedDiscountCopyOf	pj	51943	—
 27	provider	preset	—	—
 27	snapshotCacheOf	qj	52368	—
-27	供应商源注册表模块态	sM	—	—
-27	探测缺省常量	sYt	—	—
+27	供应商源注册表模块态	sM	52676	—
+27	探测缺省常量	sYt	187500	—
 27	nullSafe	tM	52642	—
 27	isProviderSectionRefreshing	tQt	191582	—
 27	formatUsedPercent	u3e	76445	—
-27	供应商源注册表模块态	uM	—	—
+27	供应商源注册表模块态	uM	52679	—
 27	USAGE_ENTITLEMENT_CACHE_PREFIX	uUe	52314	—
 27	clampTimeoutMs	uYt	187503	—
 27	折扣配置缓存/单飞槽	uj	—	—
@@ -2876,7 +2876,7 @@ section	sem	obf	line	owner
 27	activeProvidersOf	yM	52793	—
 27	recordFailureBackoff	yUe	52390	—
 27	BILLING_DISCOUNT_CACHE_TTL_MS	zHe	51905	—
-27	API_FORMAT_DEFAULT_PATHS	zYt	—	—
+27	API_FORMAT_DEFAULT_PATHS	zYt	188183	—
 27	entitlementCacheStorage	zj	52316	—
 28	automationStatusOf	qht	109298	SettingsLeaves.tsx
 28	isChatCreatedAutomation	Yht	109310	SettingsLeaves.tsx
@@ -3256,41 +3256,41 @@ section	sem	obf	line	owner
 31	BIDI_LANG_RE	Ci	2416	12253
 31	EAST_ASIA_LANG_RE	Si	2343	12253
 31	trimToUndefined	wi	2537	12255
-31	hasExplicitFontFamily	Ei	—	12261
-31	resolveDefaultScript	Oi	—	12268
-31	resolveFontFamilyForScript	Ai	—	12284
-31	resolvePrimaryFontFamily	Mi	—	12337
-31	findTagEnd	Ni	—	12343
-31	scanXmlElements	Ii	—	12369
-31	childElements	Ri	—	12463
-31	readXmlAttr	Bi	—	12469
-31	decodeXmlEntities	Hi	—	12522
-31	UNSUPPORTED_PARAGRAPH_EDIT_TAGS	Wi	—	12552
-31	hasAncestor	Ki	—	12559
-31	paragraphMatchesTokens	Ji	—	12578
-31	canonicalizeForCompare	Xi	—	12586
+31	hasExplicitFontFamily	Ei	2550	12261
+31	resolveDefaultScript	Oi	2579	12268
+31	resolveFontFamilyForScript	Ai	2613	12284
+31	resolvePrimaryFontFamily	Mi	2620	12337
+31	findTagEnd	Ni	2623	12343
+31	scanXmlElements	Ii	2658	12369
+31	childElements	Ri	2671	12463
+31	readXmlAttr	Bi	2701	12469
+31	decodeXmlEntities	Hi	2731	12522
+31	UNSUPPORTED_PARAGRAPH_EDIT_TAGS	Wi	2745	12552
+31	hasAncestor	Ki	2758	12559
+31	paragraphMatchesTokens	Ji	2778	12578
+31	canonicalizeForCompare	Xi	2790	12586
 31	buildRunProvenance	Qi	2796	12598
 31	prepareParagraphEdit	ea	2802	12622
 31	isSimpleRevisionRun	na	2808	12676
 31	applyXmlEdits	ia	2814	12699
-31	parseXmlBoolAttr	oa	—	12715
-31	parseRunStyleFromXml	ca	—	12725
-31	applyRevisionToParagraph	ua	—	12816
-31	rejectTrackedChange	fa	—	12903
-31	nextCommentId	ma	—	12922
-31	isValidXmlText	ga	—	12932
-31	isValidXsdDateTime	va	—	12948
-31	withXmlSpacePreserve	ba	—	12973
-31	insertCommentIntoParagraph	Sa	—	12986
-31	getParagraphNode	wa	—	13119
-31	cloneTextRun	Ea	—	13126
-31	cloneFormField	Oa	—	13141
-31	cloneAnyRun	Aa	—	13202
-31	styleJsonEqual	Ma	—	13212
-31	formFieldDisplayText	Pa	—	13228
-31	COMPLEX_CONTENT_XML_RE	Ia	—	13244
-31	FLD_SIMPLE_RE	La	—	13244
-31	buildSourceTextPatch	Ra	—	13246
+31	parseXmlBoolAttr	oa	2840	12715
+31	parseRunStyleFromXml	ca	2842	12725
+31	applyRevisionToParagraph	ua	2844	12816
+31	rejectTrackedChange	fa	2846	12903
+31	nextCommentId	ma	2848	12922
+31	isValidXmlText	ga	2850	12932
+31	isValidXsdDateTime	va	2953	12948
+31	withXmlSpacePreserve	ba	2993	12973
+31	insertCommentIntoParagraph	Sa	2999	12986
+31	getParagraphNode	wa	3005	13119
+31	cloneTextRun	Ea	3011	13126
+31	cloneFormField	Oa	3017	13141
+31	cloneAnyRun	Aa	3023	13202
+31	styleJsonEqual	Ma	3029	13212
+31	formFieldDisplayText	Pa	3035	13228
+31	COMPLEX_CONTENT_XML_RE	Ia	3041	13244
+31	FLD_SIMPLE_RE	La	3044	13244
+31	buildSourceTextPatch	Ra	3047	13246
 31	setParagraphText	Ba	3079	13272
 31	registerTableTextPatch	Ha	3088	13284
 31	paragraphNodeIndexByOrdinal	Wa	3094	13304
@@ -3329,14 +3329,14 @@ section	sem	obf	line	owner
 31	WeakMap	Zo	2159	14275
 31	canMeasureText	ts	2453	14279
 31	getLayoutMeasureContext	is	2504	14293
-31	measurePrefixWidthPx	os	—	14306
+31	measurePrefixWidthPx	os	2584	14306
 31	graphemeBoundaryOffsets	cs	2604	14313
 31	graphemeOrdinalToOffset	us	2671	14329
 31	layoutCacheKey	fs	2675	14357
 31	hitTestFragmentX	ms	2683	14369
-31	measurePreWrapCached	gs	—	14391
+31	measurePreWrapCached	gs	2685	14391
 31	cloneItemCursor	vs	2729	14418
-31	normalizeItemCursor	bs	—	14427
+31	normalizeItemCursor	bs	2736	14427
 31	measureRestOfItemLine	Ss	2738	14442
 31	wouldTruncateItemStart	ws	2748	14493
 31	isSegmentCursorAtEnd	Es	2806	14525
@@ -3345,13 +3345,13 @@ section	sem	obf	line	owner
 31	layoutPlainTextBlock	Ms	3765	14573
 31	hitTestTextOffset	Ps	3785	14746
 31	selectionRangeRects	Is	3801	14789
-31	FNV	Bs	—	14836-14839
+31	FNV	Bs	3922	14836-14839
 31	FNV	Rs	3812	14836-14839
-31	FNV	Vs	—	14836-14839
+31	FNV	Vs	3931	14836-14839
 31	FNV	zs	3830	14836-14839
-31	hashStringSampled	Us	—	14845
+31	hashStringSampled	Us	3939	14845
 31	structuralHashBase36	Gs	4134	14883
-31	文档元数据指纹	Js	—	14892
+31	文档元数据指纹	Js	4172	14892
 31	文档元数据指纹	Ys	4203	14892
 32	THUMBNAIL_EXCLUDE_ATTR	Xs	4351	14902
 32	THUMBNAIL_HIGHLIGHT_COLORS	Zs	4357	14904-14917
@@ -3381,8 +3381,8 @@ section	sem	obf	line	owner
 32	resolveCumulativeZoom	lu	7819	15303
 32	positiveNumber	uu	7889	15316
 32	joinDefined	pu	7965	15337
-32	scheduleFrame	Ru	—	15392
-32	normalizeMeasuredHeight	zu	—	15401
+32	scheduleFrame	Ru	9320	15392
+32	normalizeMeasuredHeight	zu	9380	15401
 32	reconcileTableRowHeights	Bu	9381	15404
 32	resolveMeasuredRowHeights	Vu	9388	15421
 32	buildPaginationSnapshot	Hu	9394	15444
@@ -3413,13 +3413,13 @@ section	sem	obf	line	owner
 32	sectionPageNumberFormat	bd	10548	15879
 32	sectionBreakType	xd	10556	15884
 32	normalizeHeaderFooterRefType	Sd	10561	15889
-32	dedupeHeaderFooterRefs	Cd	—	15893
+32	dedupeHeaderFooterRefs	Cd	10725	15893
 32	dedupeSectionHeaderFooters	wd	10928	15905
-32	normalizeDocumentSections	Td	—	15908
-32	nodeHasHeavyContent	Ed	—	15927
+32	normalizeDocumentSections	Td	12488	15908
+32	nodeHasHeavyContent	Ed	12489	15927
 32	floatingImageTopPx	kd	—	15936
 32	isAboveDocumentImage	Ad	12981	15945
-32	paragraphFloatingImageTop	jd	—	15948
+32	paragraphFloatingImageTop	jd	13056	15948
 32	minFloatingImageTop	Md	13106	15960
 32	floatingImageReservedHeight	Nd	13181	15968
 32	measureHeaderHeight	Pd	13214	15996
@@ -3427,13 +3427,13 @@ section	sem	obf	line	owner
 32	resolvePageBodyHeight	Id	13239	16040
 32	maxRenderedBottomPx	Ld	13253	16079
 32	reconcilePageHeights	Rd	13260	16085
-32	segmentIdentityKey	zd	—	16095
+32	segmentIdentityKey	zd	13276	16095
 32	pageIdentityKey	Bd	13277	16101
 32	buildSectionPageMetrics	Vd	13281	16104
-32	sectionIndexForNode	Hd	—	16129
-32	scaleSectionMetrics	Ud	—	16135
-32	scaleHeightList	Wd	—	16141
-32	resolvePageContentHeight	Gd	—	16144
+32	sectionIndexForNode	Hd	13282	16129
+32	scaleSectionMetrics	Ud	13283	16135
+32	scaleHeightList	Wd	13284	16141
+32	resolvePageContentHeight	Gd	13310	16144
 32	resolveRenderBodyHeight	Kd	13476	16152
 32	pageIsOnlySplitSegments	qd	13512	16163
 32	estimateFootnoteHeight	Jd	13515	16166
@@ -3442,7 +3442,7 @@ section	sem	obf	line	owner
 32	parseIndexAttr	Zd	13533	16214
 32	parseParagraphDomLocation	Qd	13536	16218
 32	parseTableCellDomLocation	$d	13547	16242
-32	normalizeCellRange	ef	—	16255
+32	normalizeCellRange	ef	13560	16255
 32	isCollapsedCellSelection	tf	13645	16263
 32	sameCellSelection	nf	13677	16266
 32	cellSelectionContains	rf	13762	16269
@@ -3473,25 +3473,25 @@ section	sem	obf	line	owner
 32	nodesContainImage	Nf	14437	16587
 32	paragraphHasImage	Pf	6651	16597
 32	paragraphIsTextBoxCarrier	Ff	14492	16599
-32	paragraphIsImageOnly	If	—	16603
-32	paragraphIsFloatingImageOnly	Lf	—	16615
-32	paragraphIsImagesAndText	Rf	—	16626
-32	paragraphIsBehindDocImages	zf	—	16636
+32	paragraphIsImageOnly	If	14493	16603
+32	paragraphIsFloatingImageOnly	Lf	14494	16615
+32	paragraphIsImagesAndText	Rf	14495	16626
+32	paragraphIsBehindDocImages	zf	14496	16636
 32	isBehindDocImageOf	Bf	6747	16643
 32	paragraphIsCoverCandidate	Vf	14568	16646
 32	paragraphHasPageAnchoredImage	Hf	14572	16648
 32	paragraphHasFloatingImage	Uf	14586	16655
 32	collectHeadingColors	Wf	14611	16657
 32	nodesContainFullWidthImage	Gf	14635	16699
-32	nodesContainPageFloatingImage	Kf	—	16713
-32	paragraphHasFormField	qf	—	16717
+32	nodesContainPageFloatingImage	Kf	14636	16713
+32	paragraphHasFormField	qf	14637	16717
 32	paragraphHasCheckbox	Jf	6813	16719
 32	paragraphHasVisibleText	Yf	14666	16721
 32	normalizeComparableText	Xf	14672	16725
 32	textBoxInnerText	Zf	14675	16731
 32	textDuplicatedInTextBox	Qf	14682	16738
 32	paragraphIsWhitespaceOnly	$f	14684	16747
-32	paragraphHasSectionBreak	ep	—	16749
+32	paragraphHasSectionBreak	ep	14714	16749
 32	imageIsFullPageCover	tp	14715	16751
 32	paragraphHasFullPageCover	np	14732	16767
 32	imageIsPageBackground	rp	14870	16769
@@ -3507,17 +3507,17 @@ section	sem	obf	line	owner
 32	dragPreviewHeight	gp	15390	16826
 32	foreignExclusionsForLine	_p	15393	16836
 32	singleImageExclusion	vp	15396	16846
-32	paragraphImageExclusions	yp	—	16858
+32	paragraphImageExclusions	yp	15646	16858
 32	wrapBandLayout	bp	15657	16917
 32	layoutWrappedLines	xp	15660	16931
 32	floatingImageGeometry	Jp	16270	17543
-32	paragraphFloatingLayout	Yp	—	17598
+32	paragraphFloatingLayout	Yp	16272	17598
 32	alignedFloatingLayout	Xp	16617	17664
 32	checkboxGapPx	Zp	16628	17686
 32	checkboxLeadingSpace	Qp	16631	17693
 32	表单域高度	nm	16663	17703
 32	表单域高度	tm	16640	17703
-32	estimateTextWidthPx	rm	—	17718
+32	estimateTextWidthPx	rm	16664	17718
 32	advanceAfterText	im	16665	17758
 32	nextTabStopDistance	am	16718	17764
 32	formFieldWidthPx	om	16782	17778
@@ -3551,22 +3551,22 @@ section	sem	obf	line	owner
 32	节点高度/布局高 jsx 18571/18913/19002	Tg	23894	18571
 32	节点高度/布局高 jsx 18571/18913/19002	lg	23280	18571
 32	节点高度/布局高 jsx 18571/18913/19002	zh	22672	18571
-32	图片内联/浮动判定 jsx 19542/19817	Kg	—	19542
+32	图片内联/浮动判定 jsx 19542/19817	Kg	25639	19542
 32	图片内联/浮动判定 jsx 19542/19817	Ng	24440	19542
-32	imageCropMetrics	$g	—	19849
+32	imageCropMetrics	$g	25867	19849
 32	resolveHighlightColor	e_	25893	19873
-32	paragraphLineHeightCss	t_	—	19877
-32	keepNextExtraSpacing	n_	—	19895
+32	paragraphLineHeightCss	t_	25923	19877
+32	keepNextExtraSpacing	n_	25925	19895
 32	parseParagraphIndentXml	s_	26022	19918
-32	resolveNumberingIndent	c_	—	19952
-32	numberingLabelWidthPx	l_	—	19994
-32	numberingLabelContainerStyle	u_	—	20010
-32	paragraphCssStyle	d_	—	20027
+32	resolveNumberingIndent	c_	26052	19952
+32	numberingLabelWidthPx	l_	26053	19994
+32	numberingLabelContainerStyle	u_	26057	20010
+32	paragraphCssStyle	d_	26058	20027
 32	runStyleToCss	__	26578	20156
 32	runStyleToCssDefaults	v_	26618	20194
-32	mergeTextDecoration	y_	—	20201
-32	TOC	C_	—	20227-20231
-32	TOC	S_	—	20227-20231
+32	mergeTextDecoration	y_	26634	20201
+32	TOC	C_	26697	20227-20231
+32	TOC	S_	26682	20227-20231
 32	reducerState	n/r	—	24340
 32	stateRef	l	—	24361
 32	commitAction	u	—	24363
@@ -3632,8 +3632,8 @@ section	sem	obf	line	owner
 32	paginationSinkOf	rS	8962	26662
 32	pageRegistryOf	iS	33480	26664
 32	publishPageSnapshots	aS	33493	26675
-32	notifyPageRegistry	oS	—	26706
-32	registerPageElement	sS	—	26710
+32	notifyPageRegistry	oS	33505	26706
+32	registerPageElement	sS	33517	26710
 32	cssNumber	pS	33792	26725
 32	normalizeHexColor	mS	33822	26731
 32	sameThumbnailRun	hS	33850	26737
@@ -3670,7 +3670,7 @@ section	sem	obf	line	owner
 32	新页节起点集缓存	Hm	18267	—
 32	pageBreakBefore	Im	17468	—
 32	行高换算 jsx 18523-18556	Lh	22659	—
-32	pageBreakBefore	Lm	—	—
+32	pageBreakBefore	Lm	17495	—
 32	paginateDocument	Mg	24406	—
 32	断行引擎 jsx 18200±	Ms	3765	—
 32	行高换算 jsx 18523-18556	Nh	22631	—

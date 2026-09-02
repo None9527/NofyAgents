@@ -21,58 +21,58 @@
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *  网页元素选择器（175990–176538 / jsx 142680 起）：
- *   xUt  → ELEMENT_PICKER_LIMITS   {maxTextChars:4000,maxHtmlChars:6000,maxAttributeChars:500,labels} (175990)
- *   SUt  → injectableElementPickerScript  注入页内的 overlay+tooltip+选择 Promise（纯函数，toString 序列化）(175996)
+ *   xUt  → ELEMENT_PICKER_LIMITS   {maxTextChars:4000,maxHtmlChars:6000,maxAttributeChars:500,labels} (176244)
+ *   SUt  → injectableElementPickerScript  注入页内的 overlay+tooltip+选择 Promise（纯函数，toString 序列化）(176250)
  *   CUt  → serializeElementPicker        `(${SUt.toString()})(${JSON.stringify(opts)})` (176424)
- *   wUt  → cancelPickerScript            取消已挂载 picker 的 IIFE (176428)
- *   TUt  → isPickerResult                cancelled|selected+element (176436)
- *   EUt  → attachWorkspaceToPickedElement +BH 校验 (176443)
- *   DUt  → originPathOfUrl               origin+pathname，失败→?# 前 (176453)
- *   OUt  → useWebElementPicker           isPicking/start/cancel/toggle + Esc 全局监听 + 卸载取消 (176461)
+ *   wUt  → cancelPickerScript            取消已挂载 picker 的 IIFE (176680)
+ *   TUt  → isPickerResult                cancelled|selected+element (176689)
+ *   EUt  → attachWorkspaceToPickedElement +BH 校验 (176697)
+ *   DUt  → originPathOfUrl               origin+pathname，失败→?# 前 (176705)
+ *   OUt  → useWebElementPicker           isPicking/start/cancel/toggle + Esc 全局监听 + 卸载取消 (176713)
  *
  *  工具栏（176539–176687 / jsx 143153 起）：
- *   kUt  → BrowserToolbar          form h-12：back/forward/reload/地址/responsive/picker/⋯ (176539)
- *   g5   → ToolbarIconButton       Tooltip+Button icon-md，active→secondary+aria-pressed (176688)
- *   AUt  → BrowserMoreMenu         ⋯ → openExternal / devtools 两项 (176611)
- *   jUt  → BrowserEmptyState       globe|spinner + browser.title/empty 覆盖层 (176664)
+ *   kUt  → BrowserToolbar          form h-12：back/forward/reload/地址/responsive/picker/⋯ (176792)
+ *   g5   → ToolbarIconButton       Tooltip+Button icon-md，active→secondary+aria-pressed (176941)
+ *   AUt  → BrowserMoreMenu         ⋯ → openExternal / devtools 两项 (176869)
+ *   jUt  → BrowserEmptyState       globe|spinner + browser.title/empty 覆盖层 (176920)
  *
  *  响应式视口（176711–177344 / jsx 143300 起）：
- *   MUt  → ZOOM_OPTIONS            [fit,50,75,100,125,150,200] (176711)
+ *   MUt  → ZOOM_OPTIONS            [fit,50,75,100,125,150,200] (176965)
  *   NUt  → resolveVisualScale      fit→min(1,(w-32)*zf/vw,(h-32)*zf/vh) (176713)
- *   PUt  → resolveTransformScale   visual/desktopZoom (176721)
- *   FUt  → resolveDesktopLayoutScale  zf>1→{1,1}；zf<1→{1/zf,zf} (176724)
+ *   PUt  → resolveTransformScale   visual/desktopZoom (176974)
+ *   FUt  → resolveDesktopLayoutScale  zf>1→{1,1}；zf<1→{1/zf,zf} (176977)
  *   _5=di → RESPONSIVE_VIEWPORT_LIMITS {min320/max3840/min320/max2160}（src-HCld2afU.js 反查）(176732)
  *   IUt/LUt → EDGE_HANDLES(4)/CORNER_HANDLES(4) 把手几何+testid (176734,176770)
  *   RUt  → EDGE_ICON_CLASS         group-hover 显现的把手图标类 (176801)
  *   zUt  → ResponsiveResizeHandles 4 边 separator(role/aria-valuenow/键盘)+4 角 (176802)
- *   BUt  → DEFAULT_VIEWPORT        {width:393,height:852} (176864)
+ *   BUt  → DEFAULT_VIEWPORT        {width:393,height:852} (177118)
  *   VUt/HUt → clampInt/clampViewport (176867,176870)
- *   UUt  → ResponsiveViewportCanvas  画布+scale 变换+fit 重测 RO+blur 结束拖拽 (176876)
- *   WUt  → BrowserSurface          resize 弱提示条 + UUt + webview（compositor/layout/transform scale data-*）(177082)
+ *   UUt  → ResponsiveViewportCanvas  画布+scale 变换+fit 重测 RO+blur 结束拖拽 (177128)
+ *   WUt  → BrowserSurface          resize 弱提示条 + UUt + webview（compositor/layout/transform scale data-*）(177337)
  *   GUt/KUt → isValidDimension/dimensionLimits (177169,177178)
- *   qUt  → ResponsiveToolbar       W×H 输入（Popover 报错）+ zoom Select (177186)
- *   JUt  → useFutureTimestamp      未来时间戳到达前为 true (177344)
+ *   qUt  → ResponsiveToolbar       W×H 输入（Popover 报错）+ zoom Select (177439)
+ *   JUt  → useFutureTimestamp      未来时间戳到达前为 true (177598)
  *   YUt/XUt/ZUt/QUt → 3000/300/100/500 弱提示时序 (177358)
- *   $Ut  → useBrowserResizeWarning  agent 操作期 ResizeObserver 尺寸变化→3s 弱提示 (177364)
+ *   $Ut  → useBrowserResizeWarning  agent 操作期 ResizeObserver 尺寸变化→3s 弱提示 (177615)
  *
  *  截图 surface 稳定（177456–177618）：
  *   eWt/v5 → roundSize/sizesEqual(±1) (177456,177461)
  *   tWt/nWt/rWt → 0.001/100ms/2500ms (177464)
  *   iWt/aWt → layoutScaleFromDataset/responsiveScaleFromAncestor (177467,177471)
  *   oWt/sWt → surfaceSnapshotEqual/measureWebviewViewport (177474,177478)
- *   cWt  → useScreenshotSurfaceStabilizer  guest 对齐+scale 稳定双帧→surfaceReady 上报 (177484)
+ *   cWt  → useScreenshotSurfaceStabilizer  guest 对齐+scale 稳定双帧→surfaceReady 上报 (177738)
  *   lWt/uWt → wheelDelta/guestWheelScrollCanvas（ipc-message WheelBoundary 续接画布滚动）(177592,177596)
  *
  *  桌面 zoom（177617–177641）：
  *   dWt/fWt/pWt → 1.1/-3/5；mWt → 1.1^clamp(round(level),-3,5) (177617,177621)
- *   hWt  → useDesktopZoomFactor    getDesktopZoomLevel+onDesktopZoomLevelChanged (177625)
- *   gWt  → useResponsiveModeController  模式开关/viewport 双向同步（browserViewUpdateViewport/onBrowserViewViewportChanged）(177644)
+ *   hWt  → useDesktopZoomFactor    getDesktopZoomLevel+onDesktopZoomLevelChanged (177877)
+ *   gWt  → useResponsiveModeController  模式开关/viewport 双向同步（browserViewUpdateViewport/onBrowserViewViewportChanged）(177897)
  *
  *  组件：
- *   _Wt  → BrowserView             根：工具栏+响应式条+surface；webview 事件全集；崩溃重建；residency 上报 (177724)
- *   vWt  → BrowserUseView          TabsContent forceMount 包装（inert/hidden 三态 + screenshot data-state）(178191)
+ *   _Wt  → BrowserView             根：工具栏+响应式条+surface；webview 事件全集；崩溃重建；residency 上报 (177977)
+ *   vWt  → BrowserUseView          TabsContent forceMount 包装（inert/hidden 三态 + screenshot data-state）(178444)
  *   yWt/bWt/xWt → tabMatch/requestMatch/findBrowserUseTab (178241,178251,178260)
- *   SWt  → useScreenshotSurfaceRequest  onBrowserViewScreenshotSurfacePrepare/Release (178264)
+ *   SWt  → useScreenshotSurfaceRequest  onBrowserViewScreenshotSurfacePrepare/Release (178517)
  *
  *  URL/状态助手（50712–50860，浏览器域横切，随族登记）：
  *   vA=`about:blank`；gVe 可恢复崩溃原因集；_Ve isRecoverableCrash；vVe/yVe disposed 消息集；

@@ -17,20 +17,20 @@
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *  根组件与标签栏：
- *   xqt  → SidePanel                    根：标签栏+内容分派+空态 (182519)
- *   TKt  → SidePaneTabChip              标签 chip（sortable+右键关闭菜单）(181303)
- *   EKt  → SidePaneTabChipDragOverlay   拖拽中的悬浮 chip (181429)
- *   wKt  → TabChipHoverTooltip          chip 悬停 tooltip（1500ms 延迟）(181283)
- *   bKt  → BrowserFaviconImage          favicon img（加载失败回退 globe）(181256)
- *   xKt  → BrowserTabFavicon            favicon 或 globe (181269)
- *   SKt  → BrowserUseTabIndicator       browser-use 操作中呼吸指示 (181272)
- *   R5   → SidePaneTabIcon              14 种标签类型的图标分派 (181455)
- *   DKt  → tabShowsDiffBadge            code-viewer patch/multi-file-diff 徽章 (181450)
- *   V5   → resolveSidePaneTabTitle      标签标题解析 (181533)
- *   NKt  → sidePaneTabSearchHint         总览搜索用的关键词串 (181562)
- *   PKt  → resolveTabTitleFromLabels     用预取 labels 解析标题 (181591)
- *   FKt  → resolveTabTypeLabel           标签类型名 (181612)
- *   IKt  → SidePaneTabOverview           ⌄ 标签总览（cmdk 搜索+最近关闭）(181639)
+ *   xqt  → SidePanel                    根：标签栏+内容分派+空态 (182772)
+ *   TKt  → SidePaneTabChip              标签 chip（sortable+右键关闭菜单）(181556)
+ *   EKt  → SidePaneTabChipDragOverlay   拖拽中的悬浮 chip (181682)
+ *   wKt  → TabChipHoverTooltip          chip 悬停 tooltip（1500ms 延迟）(181536)
+ *   bKt  → BrowserFaviconImage          favicon img（加载失败回退 globe）(181509)
+ *   xKt  → BrowserTabFavicon            favicon 或 globe (181522)
+ *   SKt  → BrowserUseTabIndicator       browser-use 操作中呼吸指示 (181525)
+ *   R5   → SidePaneTabIcon              14 种标签类型的图标分派 (181708)
+ *   DKt  → tabShowsDiffBadge            code-viewer patch/multi-file-diff 徽章 (181703)
+ *   V5   → resolveSidePaneTabTitle      标签标题解析 (181786)
+ *   NKt  → sidePaneTabSearchHint         总览搜索用的关键词串 (181815)
+ *   PKt  → resolveTabTitleFromLabels     用预取 labels 解析标题 (181844)
+ *   FKt  → resolveTabTypeLabel           标签类型名 (181865)
+ *   IKt  → SidePaneTabOverview           ⌄ 标签总览（cmdk 搜索+最近关闭）(181892)
  *   hKt/gKt/_Kt/L5/vKt/yKt
  *        → buildSearchFields/normalizeQuery/filterRanked/
  *          lowerTrim/scoreSearchFields/tokenPrefixHit (181216–181253)
@@ -38,39 +38,39 @@
  *        → patch 头文件路径解析助手群（diff --git / +++ / ---）(181483–181530)
  *
  *  空态四宫格与面板几何：
- *   mqt  → resolveEmptyStateTabOptions  空态可打开项（最多 5 项，默认 4 项=四宫格）(182389)
- *   hqt  → canOpenSelectionSideConversation (182405)
- *   gqt  → resolveSidePanePanelSizing   桌面 240px–65% / mobile overlay 100% (182408)
- *   _qt  → shouldRenderHeavyContent     code-viewer 重渲染门 (182425)
- *   vqt  → measureVisibleInlineSize     (182435)
- *   yqt  → usePanelVisibleInlineSize    (182444)
- *   bqt  → useResizeSettling            (182489)
- *   tqt  → isTabBarOverflowing          60px 估宽+8px 间隙判定 (182305)
+ *   mqt  → resolveEmptyStateTabOptions  空态可打开项（最多 5 项，默认 4 项=四宫格）(182642)
+ *   hqt  → canOpenSelectionSideConversation (182658)
+ *   gqt  → resolveSidePanePanelSizing   桌面 240px–65% / mobile overlay 100% (182661)
+ *   _qt  → shouldRenderHeavyContent     code-viewer 重渲染门 (182678)
+ *   vqt  → measureVisibleInlineSize     (182688)
+ *   yqt  → usePanelVisibleInlineSize    (182697)
+ *   bqt  → useResizeSettling            (182742)
+ *   tqt  → isTabBarOverflowing          60px 估宽+8px 间隙判定 (182558)
  *   ZKt=0.45 QKt=60 $Kt=8 eqt=1         面板默认宽比/估宽/间隙/容差 (182302)
  *   lqt=200 uqt=220 dqt=[] fqt={left:false,right:false}  (182362)
  *
  *  开发者工具开关（localStorage 旗标轮询）：
- *   nqt  → DEVELOPER_TOOLS_FLAG_KEYS = [zcode:developer-tools:enabled, zcode:token-debug:enabled] (182311)
+ *   nqt  → DEVELOPER_TOOLS_FLAG_KEYS = [zcode:developer-tools:enabled, zcode:token-debug:enabled] (182564)
  *   iqt/aqt/oqt/sqt/cqt
  *        → isTruthyFlag/isDeveloperToolsEnabled/tryGetLocalStorage/1000ms/useDeveloperToolsEnabled (182313–182360)
  *
  *  标签内容（本族内实现部分）：
- *   LKt  → SubagentSessionTabContent    子智能体会话（只读 R0）(181855)
+ *   LKt  → SubagentSessionTabContent    子智能体会话（只读 R0）(182108)
  *   KKt/qKt → SubagentDirectoryTabContent/Body 子智能体目录 (182104,182113)
- *   GKt  → SubagentDirectoryItemRow     (182056)
- *   WKt  → SubagentStatusIcon           running/waiting/success/failed/cancelled/lost (182038)
- *   VKt  → useSubagentDirectory         分页读取+loadMore (181904)
+ *   GKt  → SubagentDirectoryItemRow     (182309)
+ *   WKt  → SubagentStatusIcon           running/waiting/success/failed/cancelled/lost (182291)
+ *   VKt  → useSubagentDirectory         分页读取+loadMore (182157)
  *   U5/zKt/BKt/HKt/UKt
  *        → emptyDirectoryState/mergeItems/resolveRequestedCount/[]/buildOpenRequest (181892–182036)
  *   JKt  → SelectionSideChatTabContent  辅助对话（R0 selectionSideChat）(182199)
  *   YKt/XKt → PlanDetailBody/PlanDetailTabContent 计划详情 markdown (182237,182277)
- *   pqt  → SuspendedBrowserTabPlaceholder 挂起 browser tab 占位+ack (182366)
+ *   pqt  → SuspendedBrowserTabPlaceholder 挂起 browser tab 占位+ack (182619)
  *
  *  侧面板状态机（同 chunk 2816–3550 / jsx 1919–2615）：
- *   Boe  → useSidePaneState             总钩子（30+ handle*）(2816)
+ *   Boe  → useSidePaneState             总钩子（30+ handle*）(2853)
  *   as/os/ss/cs/foe/poe/moe
  *        → DEFAULT_SNAPSHOT/LRU(50)缓存/读/写/touch/evict/cacheKey (2577–2611)
- *   fae  → normalizeSidePaneState       ordinal 补全+activeTabId 修复 (1982)
+ *   fae  → normalizeSidePaneState       ordinal 补全+activeTabId 修复 (1984)
  *   uae  → shouldKeepPanelMounted       visible || 有 browser tab (1978)
  *   dae  → isBrowserTabResident         非 suspended/suspend-pending (1981)
  *   pae/mae/hae/gae/_ae/vae/yae/bae/xae/Sae/Cae/Eae
@@ -85,14 +85,14 @@
  *        → 各型 open/toggle/residency/ordinal 转换 (2238–2458)
  *   ts/ns/toe/noe/roe/rs/is/ioe/aoe/ooe/soe/coe/loe/uoe/doe
  *        → 作用域归属/可见列表/关闭修复/重排/browser 元数据/开关 (2459–2575)
- *   zoe  → nextTerminalTabTitle         Terminal/Terminal 2… (2803)
+ *   zoe  → nextTerminalTabTitle         Terminal/Terminal 2… (2839)
  *   ls   → useTrajectoryViewerStore     model-trajectory-open 请求 (2610)
  *   goe  → useTrajectoryOpenRequests    (2619)
  *
  *  入口（装配现场，本体在 F05/F07/TopBar 族，此处登记证据）：
- *   O_e  → buildQuickPickCommands       panels 段 6 命令 (25395)
- *   D_e  → QUICK_PICK_SECTION_ORDER = [suggested,chat,navigation,panels,configure,app] (25394)
- *   rge  → useGlobalShortcuts           Ctrl+Alt+B = toggleSidePane (24021)
+ *   O_e  → buildQuickPickCommands       panels 段 6 命令 (25443)
+ *   D_e  → QUICK_PICK_SECTION_ORDER = [suggested,chat,navigation,panels,configure,app] (25442)
+ *   rge  → useGlobalShortcuts           Ctrl+Alt+B = toggleSidePane (24063)
  *   SFt  → SessionHeaderRight 侧面板开关按钮（已抽取于 TopBar.tsx；js 143462）
  *   XJt  → 工作区根控制器接线 (186756,186780–186806)
  *
