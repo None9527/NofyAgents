@@ -34,7 +34,7 @@
  *   R3e → modeLabelKeyOf (76877) | z3e → modeDescriptionKeyOf (76880)
  *   jq  → optionLabelOf (76883) | B3e → optionDescriptionOf (76886)
  *   V3e → isFullAccessMode (76892) | H3e → modeIconOf (76895)
- *   Mq  → ConfigSelect                 工具条 select 触发器 (76912 / 67907)
+ *   Mq  → ConfigSelect                 工具条 select 触发器 (76912)
  *  C. 思考级别机制（77127–77325；U3e/W3e/G3e 见排除注记）：〔A1-R23〕Pq/Fq/Z3e/Q3e/$3e 副本删除
  *     → 逐字 canonical Home §U.2 ComposerThoughtToolbar + §T 快捷键族（见 components 侧 §3 墓碑）；
  *     Nq…X3e 前半 A0-S2d 已去重（canonical Composer.tsx）

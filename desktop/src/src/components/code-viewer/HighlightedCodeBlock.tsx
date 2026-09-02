@@ -32,27 +32,27 @@
  * 二、混淆名 → 语义名 映射表（行号格式：宿主 chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *  宿主 chunk（chunk-BO2N2NFS-CSNAeaxF.js）内：
- *   Sv  → cn                        clsx+twMerge 类名合并（= utils cn 语义）(18472 / 15427)
+ *   Sv  → cn                        clsx+twMerge 类名合并（= utils cn 语义）(18472)
  *   Ev  → ClassNamesContext         createContext(Sv)（可注入自定义合并器）(18615 附近 / 15443)
  *   Q   → useClassNames             () => useContext(Ev) (18616 附近 / 15444)
  *   Dv  → LINE_NUMBER_CLASS         行号 CSS counter 类（before:content-[counter(line)]…）(jsx 15445)
  *   Ov  → parseInlineStyle          "k:v;k2:v2" → 对象 (jsx 15446)
- *   kv  → CodeBlockBody             memo 组件：shiki tokens → hast 风格 span 树 (18522–18614 / 15458–15482)
- *   Av  → CodeBlockShell            代码块外壳（圆角卡片 + content-visibility）(18615 / 15483)
- *   jv  → CodeBlockCodeContext      createContext({code:''})——供子组件取原始代码 (18627 / 15494)
- *   Mv  → useCodeBlockCode          () => useContext(jv) (18628 / 15497)
- *   Nv  → CodeBlockHeader           语言标签头（data-streamdown=code-block-header）(18629 / 15498)
- *   Pv  → trimTrailingNewlines      去尾部换行 (18638 / 15504)
- *   Fv  → LazyHighlightedCodeBlockBody  lazy(() => import('./highlighted-body-…')) (18650 / 15510)
- *   Iv  → HighlightedCodeBlock      代码块主组件（外壳+头+动作槽+Suspense 正文）(18660 / 15513)
- *   ty  → CodeHighlighterContext    createContext(null)（顶层注入高亮器）(19610 / 16111)
- *   ny  → useCodeHighlighterContext () => useContext(ty) (19611 / 16112)
- *   ry  → useCodeHighlighter        () => useContext(ty)?.code ?? null (19612 / 16113)
+ *   kv  → CodeBlockBody             memo 组件：shiki tokens → hast 风格 span 树 (18522–18614)
+ *   Av  → CodeBlockShell            代码块外壳（圆角卡片 + content-visibility）(18615)
+ *   jv  → CodeBlockCodeContext      createContext({code:''})——供子组件取原始代码 (18627)
+ *   Mv  → useCodeBlockCode          () => useContext(jv) (18628)
+ *   Nv  → CodeBlockHeader           语言标签头（data-streamdown=code-block-header）(18629)
+ *   Pv  → trimTrailingNewlines      去尾部换行 (18638)
+ *   Fv  → LazyHighlightedCodeBlockBody  lazy(() => import('./highlighted-body-…')) (18650)
+ *   Iv  → HighlightedCodeBlock      代码块主组件（外壳+头+动作槽+Suspense 正文）(18660)
+ *   ty  → CodeHighlighterContext    createContext(null)（顶层注入高亮器）(19610)
+ *   ny  → useCodeHighlighterContext () => useContext(ty) (19611)
+ *   ry  → useCodeHighlighter        () => useContext(ty)?.code ?? null (19612)
  *   Xb  → StreamdownOptionsContext  {shikiTheme, controls, isAnimating, lineNumbers,
- *                                    mode, mermaid, linkSafety} (21176 / 17235)
+ *                                    mode, mermaid, linkSafety} (21176)
  *
  *  目标 chunk（highlighted-body-OFNGDK62-RS9ZmWFH.js，25 行）内：
- *   c   → HighlightedCodeBlockBody  懒加载正文组件（导出名未混淆）(1–25 / 1–43)
+ *   c   → HighlightedCodeBlockBody  懒加载正文组件（导出名未混淆）(1–25)
  *   o   → ReactInterop              e(t(),1)（react 默认导出互操作）
  *   s   → jsxRuntime                n()（jsx-runtime 命名空间互操作）
  *   导入（./chunk-BO2N2NFS-CSNAeaxF.js）：

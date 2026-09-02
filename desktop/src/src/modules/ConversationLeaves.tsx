@@ -32,23 +32,23 @@
  *   Yyt  → estimatePrependTrigger    (— / 97184)
  *   Xyt  → shouldTriggerLoadOlder    (— / 97187)
  *  [Tool] 15 个工具视图（Wht 分派中接口级者，实体化）：
- *   opt  → FileReadToolView          (105465 / 90659)
- *   Gft  → FileWriteToolView         (104844 / 90186)  + Kft 单文件编辑行 (— / 90290)
- *   Spt  → ExploreToolView           (105825 / 91001)
- *   upt  → SearchToolView            (105569 / 90768)  + lpt 搜索标签 (— / 90700)
- *   Mht  → TodoToolView              (108857 / 93007)
- *   Pht  → AskUserQuestionToolView   (108963 / 93067)
- *   Vpt  → AgentToolView             (106243 / 91282)
- *   Dht  → TaskControlToolView       (108728 / 92920)
- *   Sht  → TaskOutputToolView        (108581 / 92812)
- *   mht  → SkillToolView             (108309 / 92669)
- *   eht  → SessionContextToolView    (107835 / 92325)
- *   ght  → SwitchModeToolView        (108426 / 92725)（plan 面板）
- *   qmt  → PlanGuidanceToolView      (107754 / —)（plan-guidance；〔A1-P1-B15〕新叶 PlanToolBlocks，Wht@109119 分派办结）
- *   omt  → GoalToolView              (106753 / 91604)
- *   Nmt  → NodeReplToolView          (107168 / 91932)
- *   Wmt  → AutomationToolView        (107472 / 92099)
- *   Qpt  → FallbackToolView          (106609 / 91478)  + Hpt CUA 权限引导 (106405 / 91360)
+ *   opt  → FileReadToolView          (105465)
+ *   Gft  → FileWriteToolView         (104844)  + Kft 单文件编辑行 (— / 90290)
+ *   Spt  → ExploreToolView           (105825)
+ *   upt  → SearchToolView            (105569)  + lpt 搜索标签 (— / 90700)
+ *   Mht  → TodoToolView              (108857)
+ *   Pht  → AskUserQuestionToolView   (108963)
+ *   Vpt  → AgentToolView             (106243)
+ *   Dht  → TaskControlToolView       (108728)
+ *   Sht  → TaskOutputToolView        (108581)
+ *   mht  → SkillToolView             (108309)
+ *   eht  → SessionContextToolView    (107835)
+ *   ght  → SwitchModeToolView        (108426)（plan 面板）
+ *   qmt  → PlanGuidanceToolView      (107754)（plan-guidance；〔A1-P1-B15〕新叶 PlanToolBlocks，Wht@109119 分派办结）
+ *   omt  → GoalToolView              (106753)
+ *   Nmt  → NodeReplToolView          (107168)
+ *   Wmt  → AutomationToolView        (107472)
+ *   Qpt  → FallbackToolView          (106609)  + Hpt CUA 权限引导 (106405)
  *  工具视图共享件（本次一并实体化）：
  *   VQ   → EditInlineDiffContent     (— / 90046)
  *   jft/Mft/Nft/Pft/Fft → 降动效侦听/数字翻牌动画 (— / 90063–90120)
@@ -62,9 +62,9 @@
  *   UQ   → toCodeViewerTarget        (— / 90177)
  *   Wft  → toPatchPreview            (— / 90183)
  *  [Turn] 预览卡单项：
- *   A_t  → PreviewCard               (111233 / 94950)
- *   O_t  → useVisiblePreviewCards    (111161 / 94877)
- *   k_t  → PreviewCardList           (111193 / 94925)
+ *   A_t  → PreviewCard               (111233)
+ *   O_t  → useVisiblePreviewCards    (111161)
+ *   k_t  → PreviewCardList           (111193)
  *   C_t/w_t/T_t/E_t/D_t/c1 → 卡签名/同步可见/异步存在性校验/预览源/可点击判定/路径解析 (— / 94833–94876)
  *  [Turn] 自动化卡：
  *   Mvt  → collectAutomationCards    (— / 96194)
@@ -75,10 +75,10 @@
  *   sgt/cgt/lgt/ugt/dgt → cron 工具判定/JSON 宽松解析/自动化模型归一/多源抽取 (— / 93617–93666)
  *  [Captcha] Aliyun captcha 部件（A1-R16 真身行全勘，旧 jsx 视图注保留对照）：
  *   ASt  → handleAliyunSdkFail       (117936 / 100205；旧注 117919 误读，R15 勘误)
- *   jSt  → initAliyunCaptchaInstance (117983 / 100280)
- *   MSt  → awaitCaptchaInstance      (118055 / 100322)
- *   NSt  → waitCaptchaScriptSettle   (118070 / 100335)
- *   PSt  → runAliyunCaptchaVerification (118080 / 100344)
+ *   jSt  → initAliyunCaptchaInstance (117983)
+ *   MSt  → awaitCaptchaInstance      (118055)
+ *   NSt  → waitCaptchaScriptSettle   (118070)
+ *   PSt  → runAliyunCaptchaVerification (118080)
  *   kSt  → rejectCaptchaRemoved      (117929；A1-R16 实体化；loadAliyunCaptchaScript 束内无对应，删碑)
  *   wSt  → CaptchaHostContainer      (117871 / 100110；消费 212894 = AppRootLeaves 1910)
  *   v0/TSt/ESt/DSt/OSt → 在途拒绝/重置/配置键/挂载校验/按钮查询 (117934/117899/117904/117915/117924)
@@ -87,14 +87,14 @@
  *   RSt/zSt/BSt/VSt/HSt → ARMS 事件名/组/注入/构建/上报 (118237–118270)
  *   USt/WSt/GSt/KSt → 基址常量/前缀/label 解析/任务供应商 (118271/118272/118279/118284；KSt canonical=captchaProviderOfTaskMeta，A1-R16 导出收敛)
  *   pCt  → resolveCodingPlanProviderHeaders (118459；A1-R16 实体化)
- *   b0   → isCaptchaProtectedProvider (118309 / 100548)
+ *   b0   → isCaptchaProtectedProvider (118309)
  *   nCt/w0/T0/rCt/iCt/aCt → 验证参数缓存/运行时头账本 (— / 100560–100590)
  *   E0/D0/oCt/sCt/cCt/lCt/uCt/dCt/fCt → 配置缓存/可用性/语言/串行队列/预检/发送前恢复 (— / 100590–100680)
  *   XSt/ZSt → CAPTCHA_VERIFY_FAILED_CODE/CAPTCHA_VERIFY_FAILED_MESSAGE (118312–118313)
  *   mCt/kCt/ACt/jCt/A0/j0/MCt/M0/NCt → 3007 自动恢复链（§5b：retryCaptchaForRecovery/createCaptchaGatekeeper/buildCaptchaAssertionKeys/findCaptchaRecoveryEditTarget/captchaAssertionStatus/recordCaptchaFailure/sharedCaptchaRecoveryGatekeeper/isCaptchaDecisionHandled/useSessionErrorRecovery，118462–118867；A1-R14）
  *  [Interaction] 交互通知 toast：
- *   eSt  → useWorkspaceInteractionNotifier (117283 / 99619)
- *   tSt  → useSnapshotInteractionNotifier  (117346 / 99703)
+ *   eSt  → useWorkspaceInteractionNotifier (117283)
+ *   tSt  → useSnapshotInteractionNotifier  (117346)
  *   Gxt/Kxt/qxt/Jxt/Yxt/Xxt/Zxt/Qxt/$xt → 相位变化通知构建族 (— / 99539–99616)
  * ============================================================================
  *

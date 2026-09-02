@@ -20,9 +20,9 @@
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  * A. 用量分区（p1t，js 195890–195991 / jsx 157519–157534；消费面 157119–157518）
- *   p1t  → UsageSettingsSection           分区根（app|codingPlan 分派）(195890 / 157519)
- *   e1t  → AppUsageDashboard              app 用量仪表盘 (195350 / 157165)
- *   a1t  → CodingPlanUsageDashboard       Coding Plan 仪表盘 (195530 / 157259)
+ *   p1t  → UsageSettingsSection           分区根（app|codingPlan 分派）(195890)
+ *   e1t  → AppUsageDashboard              app 用量仪表盘 (195350)
+ *   a1t  → CodingPlanUsageDashboard       Coding Plan 仪表盘 (195530)
  *   U7   → UsageChartBoundary             ErrorBoundary(p4)+Suspense 壳 (jsx 157119)
  *   W7   → UsageErrorBanner              凭证/通用错误横幅 (jsx 157148)
  *   Y$t  → USAGE_CREDENTIAL_ERROR_PATTERNS (jsx 157137)
@@ -49,9 +49,9 @@
  *    Mye/yv/vv/j_/cye/y_/Mv 图标
  *
  * B. 迁移分区（V2t，js 203587–203929 / jsx 162409–162541；z9 导入族）
- *   V2t  → MigrationSettingsSection       分区根 (203587 / 162409)
- *   I2t  → useClaudeMigration             扫描/导入状态机 (203145 / 162189)
- *   z2t  → MigrationCandidatesCard        候选会话卡 (203332 / 162321)
+ *   V2t  → MigrationSettingsSection       分区根 (203587)
+ *   I2t  → useClaudeMigration             扫描/导入状态机 (203145)
+ *   z2t  → MigrationCandidatesCard        候选会话卡 (203332)
  *   R2t  → MigrationResultItemList        跳过/失败明细 (jsx 162310)
  *   L2t  → migrationSkipReasonLabel       (jsx 162301)
  *   B2t  → MIGRATION_RANGES               [7d,30d,90d,all] (jsx 162408)
@@ -61,8 +61,8 @@
  *    (jsx 113720–113743)、S9/w9/C9 Alert 族（Settings.tsx 已抽取）
  *
  * C. 渲染器（跨族叶子）
- *   U8   → MemoryFilePreview              记忆文件预览（Markdown 包装）(160323 / 132773)
- *   gk   → CodeBlock                      代码块（shiki+mermaid+换行）(48634 / 43829)
+ *   U8   → MemoryFilePreview              记忆文件预览（Markdown 包装）(160323)
+ *   gk   → CodeBlock                      代码块（shiki+mermaid+换行）(48634)
  *   _k   → CodeBlockWrapLinesButton       (jsx 43898)
  *   iBe  → CodeBlockMermaidPreviewButton  (jsx 43907)
  *   vk   → CodeBlockCopyButton            (jsx 43934)

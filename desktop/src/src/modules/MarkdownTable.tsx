@@ -13,17 +13,17 @@
  * ----------------------------------------------------------------------------
  * 混淆名 → 语义名（js 行 / jsx 行；上游 streamdown 导出名见括注）
  * ----------------------------------------------------------------------------
- *   ly → extractTableDataFromElement  DOM 表格 → {headers, rows}（上游 m）(19849 / 16254)
- *   uy → tableDataToCSV           CSV 序列化（引号转义，上游 n）(19867 / 16272)
- *   dy → tableDataToTSV           TSV 序列化（\t \n \r 字面量化，上游 o）(19896 / 16300)
- *   fy → escapeMarkdownTableCell  单元格 `\`/`|` 转义（上游 p）(19931 / 16333)
- *   py → tableDataToMarkdown      Markdown 表格序列化（上游 q）(19946 / 16344)
+ *   ly → extractTableDataFromElement  DOM 表格 → {headers, rows}（上游 m）(19849)
+ *   uy → tableDataToCSV           CSV 序列化（引号转义，上游 n）(19867)
+ *   dy → tableDataToTSV           TSV 序列化（\t \n \r 字面量化，上游 o）(19896)
+ *   fy → escapeMarkdownTableCell  单元格 `\`/`|` 转义（上游 p）(19931)
+ *   py → tableDataToMarkdown      Markdown 表格序列化（上游 q）(19946)
  *   my → TableCopyDropdown        复制下拉（Markdown/CSV/TSV；clipboard.write
- *                                 双 MIME text/plain+text/html，上游 r）(19956 / 16354)
- *   hy → TableDownloadDropdown    下载下拉（CSV/Markdown，上游 s）(20062 / 16417)
- *   gy → TableFullscreenButton    表格全屏（portal + sticky 表头，上游 t）(20144 / 16455)
+ *                                 双 MIME text/plain+text/html，上游 r）(19956)
+ *   hy → TableDownloadDropdown    下载下拉（CSV/Markdown，上游 s）(20062)
+ *   gy → TableFullscreenButton    表格全屏（portal + sticky 表头，上游 t）(20144)
  *   _y → TableWrapper             表格外壳 + 控件条（data-streamdown=table-wrapper）
- *                                 (20238 / 16495)
+ *                                 (20238)
  *
  * 外部依赖：MarkdownContext.tsx（上下文/图标/文案/下载/滚动锁）
  * ============================================================================

@@ -17,44 +17,44 @@
  * 混淆名 → 语义名（js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *  块切分：
- *   nb → CODE_FENCE_REGEX /^[ \t]{0,3}(`{3,}|~{3,})/ (20822 / 16898)
- *   rb → TABLE_DIVIDER_REGEX (20823 / 16899)
- *   ib → isCodeFenceIncomplete  栅栏未闭合判定（上游导出 b 的等价内联版）(20824 / 16900)
- *   ab → hasIncompleteTableDivider 分隔行未打完判定 (20846 / 16922)
- *   ob → htmlToTextPlugin       html 节点 → 文本（无 rehype-raw 时防崩溃）(20857 / 16933)
+ *   nb → CODE_FENCE_REGEX /^[ \t]{0,3}(`{3,}|~{3,})/ (20822)
+ *   rb → TABLE_DIVIDER_REGEX (20823)
+ *   ib → isCodeFenceIncomplete  栅栏未闭合判定（上游导出 b 的等价内联版）(20824)
+ *   ab → hasIncompleteTableDivider 分隔行未打完判定 (20846)
+ *   ob → htmlToTextPlugin       html 节点 → 文本（无 rehype-raw 时防崩溃）(20857)
  *   jb → parseMarkdownIntoBlocks marked.lex 块切分 + 未闭合 HTML/数学合并
- *                                （上游导出 w）(21039 / 17100)
- *   Mb → preserveHtmlBlocks     块内空行插 <!----> 防拆段 (21101 / 17156)
- *   Nb/Pb → 转义正则/函数 (21119 / 17174)
- *   Fb → escapeLiteralTagContent 字面标签内容转义 (21121 / 17176)
- *   Ib → getTextContent (21132 / 17187)
- *   Lb → literalTagContentPlugin (21133 / 17188)
- *   Rb → codeMetaPlugin         code.meta → hProperties.metastring (21146 / 17200)
- *   zb/Bb/Vb → normalizeHtmlIndentation（上游导出 x）(21154 / 17208)
+ *                                （上游导出 w）(21039)
+ *   Mb → preserveHtmlBlocks     块内空行插 <!----> 防拆段 (21101)
+ *   Nb/Pb → 转义正则/函数 (21119)
+ *   Fb → escapeLiteralTagContent 字面标签内容转义 (21121)
+ *   Ib → getTextContent (21132)
+ *   Lb → literalTagContentPlugin (21133)
+ *   Rb → codeMetaPlugin         code.meta → hProperties.metastring (21146)
+ *   zb/Bb/Vb → normalizeHtmlIndentation（上游导出 x）(21154)
  *  处理器：
- *   sb → EMPTY_PLUGINS [] (20862 / 16938)
- *   cb → DEFAULT_REMARK_REHYPE_OPTIONS {allowDangerousHtml:true} (20863 / 16939)
- *   lb → pluginNamesCache WeakMap (20864 / 16940)
- *   ub → ProcessorCache（LRU 100，按插件名+选项序列化键）(20865 / 16941)
- *   db → MarkdownProcessor      parse→runSync→toJsxRuntime 一步渲染 (20929 / 17000)
- *   fb → getProcessor (20935 / 17006)
- *   pb → hasRehypeRaw (20941 / 17012)
- *   mb → createProcessor        unified().use(parse).use(remark*).use(rehype,opts).use(rehype*) (20942 / 17013)
+ *   sb → EMPTY_PLUGINS [] (20862)
+ *   cb → DEFAULT_REMARK_REHYPE_OPTIONS {allowDangerousHtml:true} (20863)
+ *   lb → pluginNamesCache WeakMap (20864)
+ *   ub → ProcessorCache（LRU 100，按插件名+选项序列化键）(20865)
+ *   db → MarkdownProcessor      parse→runSync→toJsxRuntime 一步渲染 (20929)
+ *   fb → getProcessor (20935)
+ *   pb → hasRehypeRaw (20941)
+ *   mb → createProcessor        unified().use(parse).use(remark*).use(rehype,opts).use(rehype*) (20942)
  *   hb/gb/_b/vb/yb → identity / removeRawNode / transformElementUrls /
- *                    shouldSkipElement / renderHast (20949-21000 / 17020-17063)
+ *                    shouldSkipElement / renderHast (20949-21000)
  *  默认插件表：
- *   Hb → STREAMDOWN_SANITIZE_SCHEMA（defaultSchema + tel 协议 + code[metastring]）(21146 / 17200)
+ *   Hb → STREAMDOWN_SANITIZE_SCHEMA（defaultSchema + tel 协议 + code[metastring]）(21146)
  *   Ub → DEFAULT_REHYPE_PLUGINS {raw, sanitize:[…], harden:[…]}（上游导出 y；
- *        构建导出别名 o，被 styles-CdEGpc2x.js 消费）(21156 / 17210)
- *   Wb → DEFAULT_REMARK_PLUGINS {gfm:[…], codeMeta}（上游导出 z）(21170 / 17224)
- *   Gb/Kb → Object.values 数组（默认 props 值）(21171 / 17225)
+ *        构建导出别名 o，被 styles-CdEGpc2x.js 消费）(21156)
+ *   Wb → DEFAULT_REMARK_PLUGINS {gfm:[…], codeMeta}（上游导出 z）(21170)
+ *   Gb/Kb → Object.values 数组（默认 props 值）(21171)
  *  组件：
  *   Zb → Block                  单块渲染（memo；dir 包裹；IsStreaming 注入）
- *                               （上游导出 Block=B）(21185 / 17244)
+ *                               （上游导出 Block=B）(21185)
  *   Qb → Streamdown             主组件（上游导出 Streamdown=C；构建导出别名 r，
  *                               被 styles-CdEGpc2x.js 的 cj MarkdownRenderer
  *                               消费 —— ZCode 会话消息流的 markdown 渲染入口）
- *                               (21228 / 17276)
+ *                               (21228)
  * ============================================================================
  */
 

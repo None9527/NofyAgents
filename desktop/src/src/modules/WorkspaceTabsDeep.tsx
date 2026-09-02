@@ -29,49 +29,49 @@
  * 一、混淆名 → 语义名 映射表（行号 = 现行 out js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  * [A] git 自动刷新纯助手：
- *   Voe → isGitSummaryWorkspaceCurrent   (3598 / 2447)
- *   Hoe → normalizeWatchPath             (3601 / 2450)
- *   Uoe → collectGitWatchPaths           (3605 / 2454)
- *   Woe → serializeWatchPaths            (3616 / 2465)
- *   Goe → parseWatchPaths                (3619 / 2468)
+ *   Voe → isGitSummaryWorkspaceCurrent   (3598)
+ *   Hoe → normalizeWatchPath             (3601)
+ *   Uoe → collectGitWatchPaths           (3605)
+ *   Woe → serializeWatchPaths            (3616)
+ *   Goe → parseWatchPaths                (3619)
  * [B] 工作区展开持久化 + 标签页模型：
- *   Ese → WORKSPACE_EXPANSION_STORAGE_KEY (4436 / 3274)  `zcode-workspace-expansion`
- *   nc  → safeLocalStorage               (4437 / 3275)
- *   Dse → sanitizeBooleanRecord          (4445 / 3283)
- *   rc  → readWorkspaceExpansionMap      (4452 / 3290)
- *   Ose → writeWorkspaceExpansionMap     (4461 / 3299)
- *   ic  → persistWorkspaceExpansion      (4464 / 3302)
- *   kse → expandedPathSet                (4468 / 3306)
- *   Ase → isRemoteBackedTab              (4471 / 3309)
- *   jse → isLocalOnlyTab                 (4474 / 3312)
- *   ac  → workspaceTabMatchesTarget      (4477 / 3315)
- *   Mse → SETTINGS_TAB_ID                (4486 / 3324)  `__settings__`
- *   oc  → isWorkspaceKindTab             (4487 / 3325)
- *   Nse → isUnavailableLocalDirectoryTab (4490 / 3328)
- *   sc  → hasUnavailableLocalDirectoryTab (4493 / 3331)
- *   Pse → isSettingsTab                  (4497 / 3335)
- *   Fse → workspacePathBaseName          (4500 / 3338)
- *   cc  → createWorkspaceTab             (4504 / 3342)
- *   lc  → patchWorkspaceTab              (4518 / 3356)
- *   Ise → normalizeRestorableTab         (4530 / 3368)
- *   Lse → createSettingsTab              (4533 / 3371)
- *   Rse → moveTabByIndex                 (4536 / 3374)
- *   uc  → setWithAdded                   (4541 / 3379)
- *   zse → setWithRemoved                 (4546 / 3384)
+ *   Ese → WORKSPACE_EXPANSION_STORAGE_KEY (4436)  `zcode-workspace-expansion`
+ *   nc  → safeLocalStorage               (4437)
+ *   Dse → sanitizeBooleanRecord          (4445)
+ *   rc  → readWorkspaceExpansionMap      (4452)
+ *   Ose → writeWorkspaceExpansionMap     (4461)
+ *   ic  → persistWorkspaceExpansion      (4464)
+ *   kse → expandedPathSet                (4468)
+ *   Ase → isRemoteBackedTab              (4471)
+ *   jse → isLocalOnlyTab                 (4474)
+ *   ac  → workspaceTabMatchesTarget      (4477)
+ *   Mse → SETTINGS_TAB_ID                (4486)  `__settings__`
+ *   oc  → isWorkspaceKindTab             (4487)
+ *   Nse → isUnavailableLocalDirectoryTab (4490)
+ *   sc  → hasUnavailableLocalDirectoryTab (4493)
+ *   Pse → isSettingsTab                  (4497)
+ *   Fse → workspacePathBaseName          (4500)
+ *   cc  → createWorkspaceTab             (4504)
+ *   lc  → patchWorkspaceTab              (4518)
+ *   Ise → normalizeRestorableTab         (4530)
+ *   Lse → createSettingsTab              (4533)
+ *   Rse → moveTabByIndex                 (4536)
+ *   uc  → setWithAdded                   (4541)
+ *   zse → setWithRemoved                 (4546)
  * [C] 标签页 store 工厂 + Provider/钩子：
- *   dc  → createWorkspaceTabStore        (4551 / 3388)
- *   fc  → WorkspaceTabStoreContext       (4782 / 3606)
- *   Bse → fallbackWorkspaceTabStore      (4783 / 3607)
- *   Vse → WorkspaceTabStoreProvider      (4784 / 3608)
- *   pc  → useWorkspaceTabStore           (4801 / 3625)  useTabStore（消费侧 declare 名）
- *   mc  → useWorkspaceTabStoreOptional   (4806 / 3630)
- *   hc  → useWorkspaceTabStoreApi        (4809 / 3633)  useTabStoreApi（消费侧 declare 名）
- *   gc  → resolveTabRemoteSessionId      (4814 / 3638)
- *   _c  → tabHasRemoteBacking            (4822 / 3646)
- *   vc  → resolveTabServicesBinding      (4825 / 3649)
- *   yc  → buildWorkspaceServicesBindings (4834 / 3658)
- *   Hse → resolveWorkspaceSessionId      (4842 / 3666)
- *   bc  → useResolvedWorkspaceSessionId  (4868 / 3692)
+ *   dc  → createWorkspaceTabStore        (4551)
+ *   fc  → WorkspaceTabStoreContext       (4782)
+ *   Bse → fallbackWorkspaceTabStore      (4783)
+ *   Vse → WorkspaceTabStoreProvider      (4784)
+ *   pc  → useWorkspaceTabStore           (4801)  useTabStore（消费侧 declare 名）
+ *   mc  → useWorkspaceTabStoreOptional   (4806)
+ *   hc  → useWorkspaceTabStoreApi        (4809)  useTabStoreApi（消费侧 declare 名）
+ *   gc  → resolveTabRemoteSessionId      (4814)
+ *   _c  → tabHasRemoteBacking            (4822)
+ *   vc  → resolveTabServicesBinding      (4825)
+ *   yc  → buildWorkspaceServicesBindings (4834)
+ *   Hse → resolveWorkspaceSessionId      (4842)
+ *   bc  → useResolvedWorkspaceSessionId  (4868)
  * [D] 远控断连 + 服务袋解析（原 4893–4996）—— 双归属裁决：canonical =
  *     services/remoteServices.ts（A0-S4-5 已重建并经 modules/services.tsx 接线）：
  *   xc/Sc/Cc/Use/wc/Wse/Gse/Tc/Kse → REMOTE_WORKSPACE_DISCONNECTED/
@@ -82,8 +82,8 @@
  *     useResolvedWorkspaceServices/useWorkspaceServices
  *     本文件不重复转录；其残留 pc/oc declare 改指本文件（见下 §C 导出）。
  * [E] git 自动刷新监听钩子：
- *   Jse → GIT_AUTO_REFRESH_DEBOUNCE_MS   (4996 / 3820)  = 60000
- *   Yse → useGitAutoRefreshWatcher       (4997 / 3821)
+ *   Jse → GIT_AUTO_REFRESH_DEBOUNCE_MS   (4996)  = 60000
+ *   Yse → useGitAutoRefreshWatcher       (4997)
  *
  * ----------------------------------------------------------------------------
  * 二、跨块依赖（原混淆名 → 重建属主）

@@ -23,41 +23,41 @@
  * ----------------------------------------------------------------------------
  *  上下文（context）：
  *   Xb → StreamdownContext        全局选项上下文（shikiTheme/controls/isAnimating/
- *                                 lineNumbers/mode/mermaid/linkSafety）(21176 / 17235)
- *   ty → StreamdownPluginsContext 插件上下文（code/mermaid/cjk/math/renderers）(19610 / 16111)
- *   bv → IsStreamingContext       「末块是否未完成」上下文（布尔）(18470 / 15425)
- *   Ev → ClassNamesContext        类名合并函数上下文（cn，带 prefix 能力）(18495 / 15443)
- *   Rv → StreamdownIconsContext   图标表上下文 (18934 / 15560)
- *   Uv → StreamdownTranslationsContext 文案上下文 (18950 / 15585)
+ *                                 lineNumbers/mode/mermaid/linkSafety）(21176)
+ *   ty → StreamdownPluginsContext 插件上下文（code/mermaid/cjk/math/renderers）(19610)
+ *   bv → IsStreamingContext       「末块是否未完成」上下文（布尔）(18470)
+ *   Ev → ClassNamesContext        类名合并函数上下文（cn，带 prefix 能力）(18495)
+ *   Rv → StreamdownIconsContext   图标表上下文 (18934)
+ *   Uv → StreamdownTranslationsContext 文案上下文 (18950)
  *
  *  钩子：
- *   ny → useStreamdownPlugins     useContext(ty) (19611 / 16112)
+ *   ny → useStreamdownPlugins     useContext(ty) (19611)
  *   ry → useCodeHighlighter       plugins?.code ?? null（导出别名 n，被
- *                                 highlighted-body chunk 消费）(19612 / 16113)
- *   iy → useMermaidPlugin         plugins?.mermaid ?? null (19613 / 16114)
- *   ay → useCustomBlockRenderer   按语言查 plugins.renderers (19614 / 16115)
- *   xv → useIsStreaming           useContext(bv) (18471 / 15426)
- *   Q  → useClassNames            useContext(Ev) (18496 / 15444)
- *   Vv → useStreamdownIcons       useContext(Rv) (18949 / 15563)
- *   Wv → useStreamdownTranslations useContext(Uv) (18982 / 15586)
+ *                                 highlighted-body chunk 消费）(19612)
+ *   iy → useMermaidPlugin         plugins?.mermaid ?? null (19613)
+ *   ay → useCustomBlockRenderer   按语言查 plugins.renderers (19614)
+ *   xv → useIsStreaming           useContext(bv) (18471)
+ *   Q  → useClassNames            useContext(Ev) (18496)
+ *   Vv → useStreamdownIcons       useContext(Rv) (18949)
+ *   Wv → useStreamdownTranslations useContext(Uv) (18982)
  *
  *  默认值 / 常量：
- *   Jb → DEFAULT_SHIKI_THEME      ['github-light','github-dark'] (21174 / 17231)
- *   Yb → DEFAULT_LINK_SAFETY      { enabled: true } (21175 / 17232)
- *   Lv → DEFAULT_STREAMDOWN_ICONS 10 个内联 SVG 图标 (18731 / 15548)
- *   Hv → DEFAULT_STREAMDOWN_TRANSLATIONS 30 条英文文案 (18950 / 15585)
- *   qb → STREAMDOWN_CARET_SYMBOLS { block:' ▋', circle:' ●' } (21173 / 17230)
- *   Dv → STREAMDOWN_LINE_NUMBER_CLASS 行号 CSS counter 类 (18497 / 15445)
+ *   Jb → DEFAULT_SHIKI_THEME      ['github-light','github-dark'] (21174)
+ *   Yb → DEFAULT_LINK_SAFETY      { enabled: true } (21175)
+ *   Lv → DEFAULT_STREAMDOWN_ICONS 10 个内联 SVG 图标 (18731)
+ *   Hv → DEFAULT_STREAMDOWN_TRANSLATIONS 30 条英文文案 (18950)
+ *   qb → STREAMDOWN_CARET_SYMBOLS { block:' ▋', circle:' ●' } (21173)
+ *   Dv → STREAMDOWN_LINE_NUMBER_CLASS 行号 CSS counter 类 (18497)
  *
  *  工具：
- *   Sv → streamdownCn             twMerge(clsx(...))（s/c 来自 bundle-mjs chunk）(18472 / 15427)
- *   Cv → prefixClasses            给类名批量加 `prefix:` (18473 / 15428)
- *   wv → createPrefixedCn         按 prefix 造 cn (18481 / 15436)
- *   Tv → downloadFile             Blob→a[download] 触发下载（CSV 加 BOM）(18484 / 15437)
- *   Ov → parseInlineStyle         'k:v;k2:v2' → 对象 (18510 / 15446)
- *   zv → iconsAreEqual            图标表浅比较 (18935 / 15561)
- *   Bv → StreamdownIconsProvider  合并默认图标 (18941 / 15562)
- *   Zv/Qv/$v → 滚动锁计数/加锁/解锁 (19481 / 16057)
+ *   Sv → streamdownCn             twMerge(clsx(...))（s/c 来自 bundle-mjs chunk）(18472)
+ *   Cv → prefixClasses            给类名批量加 `prefix:` (18473)
+ *   wv → createPrefixedCn         按 prefix 造 cn (18481)
+ *   Tv → downloadFile             Blob→a[download] 触发下载（CSV 加 BOM）(18484)
+ *   Ov → parseInlineStyle         'k:v;k2:v2' → 对象 (18510)
+ *   zv → iconsAreEqual            图标表浅比较 (18935)
+ *   Bv → StreamdownIconsProvider  合并默认图标 (18941)
+ *   Zv/Qv/$v → 滚动锁计数/加锁/解锁 (19481)
  *
  * ----------------------------------------------------------------------------
  * 二、外部依赖（跨 chunk）

@@ -28,19 +28,19 @@
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *  自研组件族（本文件全量重建）：
- *   uy  → resolveSheetTabTargetIndex  工作表页签键盘导航目标索引 (199415 / 49643)
- *   dy  → SheetTabBar                 工作表页签条（role=tablist） (199428 / 49650)
- *   fy  → XlsxParseErrorState         解析失败态（role=alert + error 日志） (199470 / 49679)
- *   py  → PreviewPaneOfficeXlsxContent 预览面板主组件（chunk 唯一导出） (199478 / 49691)
+ *   uy  → resolveSheetTabTargetIndex  工作表页签键盘导航目标索引 (199415)
+ *   dy  → SheetTabBar                 工作表页签条（role=tablist） (199428)
+ *   fy  → XlsxParseErrorState         解析失败态（role=alert + error 日志） (199470)
+ *   py  → PreviewPaneOfficeXlsxContent 预览面板主组件（chunk 唯一导出） (199478)
  *
  *  vendored react-xlsx 接触面（接口级登记，不逐行还原）：
- *   ly  → Spreadsheet                 react-xlsx 顶层组件（控制器注入三分支） (199406 / 49630)
- *   cy  → SpreadsheetWithOwnedController 自建控制器变体 (199402 / 49623)
- *   sy  → SpreadsheetViewer           react-xlsx-viewer 呈现壳 (199292 / 49527)
- *   Ru  → useSpreadsheetController    控制器 hook（file→worker→模型/页签） (15672 / 11907)
- *   rg  → SpreadsheetControllerContext 控制器上下文 (190102 / —)
- *   ig  → SpreadsheetHeaderThemeContext 头部主题上下文 {isDark} (190103 / —)
- *   Dl  → XlsxFileSizeLimitExceededError 文件超限错误 (14726 / —)
+ *   ly  → Spreadsheet                 react-xlsx 顶层组件（控制器注入三分支） (199406)
+ *   cy  → SpreadsheetWithOwnedController 自建控制器变体 (199402)
+ *   sy  → SpreadsheetViewer           react-xlsx-viewer 呈现壳 (199292)
+ *   Ru  → useSpreadsheetController    控制器 hook（file→worker→模型/页签） (15672)
+ *   rg  → SpreadsheetControllerContext 控制器上下文 (190102)
+ *   ig  → SpreadsheetHeaderThemeContext 头部主题上下文 {isDark} (190103)
+ *   Dl  → XlsxFileSizeLimitExceededError 文件超限错误 (14726)
  *
  * ----------------------------------------------------------------------------
  * 二、外部依赖清单（跨 chunk 导入；标注来源 chunk 与导出字母。

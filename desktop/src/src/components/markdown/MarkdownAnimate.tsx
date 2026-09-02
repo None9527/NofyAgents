@@ -16,19 +16,19 @@
  * ----------------------------------------------------------------------------
  * 混淆名 → 语义名（js 行 / jsx 行）
  * ----------------------------------------------------------------------------
- *   lv → WHITESPACE_REGEX /\s/ (18380 / 15300)
- *   uv → ONLY_WHITESPACE_REGEX /^\s+$/ (18381 / 15301)
- *   dv → ANIMATE_SKIP_TAGS {code,pre,svg,math,annotation} (18382 / 15302)
- *   fv → isHastElement (18383 / 15303)
- *   pv → containsSkipTag (18384 / 15304)
- *   mv → splitByWhitespace    按空白切词（保留空白段）(18385 / 15305)
- *   hv → splitByCharacter     逐字符切（保留空白段）(18398 / 15318)
- *   gv → buildAnimatedSpan    造 <span data-sd-animate style=--sd-*> (18408 / 15328)
- *   _v → animateTextChildren  把文本子节点替换成动画 span（旧内容不重播）(18422 / 15342)
- *   vv → animatePluginCounter 插件实例计数（唯一化插件名）(18436 / 15388)
+ *   lv → WHITESPACE_REGEX /\s/ (18380)
+ *   uv → ONLY_WHITESPACE_REGEX /^\s+$/ (18381)
+ *   dv → ANIMATE_SKIP_TAGS {code,pre,svg,math,annotation} (18382)
+ *   fv → isHastElement (18383)
+ *   pv → containsSkipTag (18384)
+ *   mv → splitByWhitespace    按空白切词（保留空白段）(18385)
+ *   hv → splitByCharacter     逐字符切（保留空白段）(18398)
+ *   gv → buildAnimatedSpan    造 <span data-sd-animate style=--sd-*> (18408)
+ *   _v → animateTextChildren  把文本子节点替换成动画 span（旧内容不重播）(18422)
+ *   vv → animatePluginCounter 插件实例计数（唯一化插件名）(18436)
  *   yv → createAnimatePlugin  工厂：返回 {name:'animate', type:'animate',
  *                             rehypePlugin, setPrevContentLength,
- *                             getLastRenderCharCount}（上游导出 a）(18437 / 15389)
+ *                             getLastRenderCharCount}（上游导出 a）(18437)
  *
  * 机制：rehype 插件遍历（visitParents）文本节点，按 word/char 切成
  * `<span data-sd-animate style="--sd-animation:sd-<anim>;--sd-duration:<ms>;

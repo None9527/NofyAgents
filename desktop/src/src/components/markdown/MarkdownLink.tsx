@@ -16,10 +16,10 @@
  * 混淆名 → 语义名（js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *   ey → LinkSafetyModal   外链确认弹层（复制链接/打开；Escape/点击背景关闭）
- *                          (19488 / 16064)
+ *                          (19488)
  *   My → MarkdownA         <a> 元素组件（memo；linkSafety 开启时改渲染为
  *                          <button> + 确认流；上游 displayName=MarkdownA）
- *                          (20374 / 16583)
+ *                          (20374)
  *
  * 行为要点：
  *  - `streamdown:incomplete-link` 是流式占位 href（链接目标还没打完），

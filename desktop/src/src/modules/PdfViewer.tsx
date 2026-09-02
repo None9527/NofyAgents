@@ -62,8 +62,8 @@
  * ----------------------------------------------------------------------------
  * 二、自研段 混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
- *   To  → PDF_WORKER_SRC            worker URL（pdf.worker.min-qwK7q_zL.mjs）(20821 / 18642)
- *   Eo  → ZOOM_STEP = 0.25          按钮缩放步长 (20822 / 18643)
+ *   To  → PDF_WORKER_SRC            worker URL（pdf.worker.min-qwK7q_zL.mjs）(20821)
+ *   Eo  → ZOOM_STEP = 0.25          按钮缩放步长 (20822)
  *   Do  → MIN_ZOOM = 0.25           缩放下限 (20823 / 18643 段)
  *   Oo  → WHEEL_ZOOM_SENSITIVITY = 0.002  滚轮缩放指数灵敏度 (20824)
  *   ko  → clampZoom                 min(MIN)~max(4) 夹取 (20825)
@@ -73,16 +73,16 @@
  *   No  → zoomOverlayStyle          缩放过渡期的 absolute+scale 变换样式 (20837)
  *   Po  → resolveZoomAnchorPoint    指针/视口中心 → 页面比例锚点 (20845)
  *   Fo  → applyScrollPreservation   按锚点比例修正滚动偏移 (20863)
- *   Io  → useStageZoomOverlay       缩放快照遮罩钩子（canvas 翻拍）(20868 / 18693)
- *   Lo  → buildCMapOptions          cMapUrl=…/pdfjs/cmaps/ + cMapPacked (20910 / 18724)
- *   Ro  → RANGE_CHUNK_SIZE = 256KB  (20914 / 18732)
+ *   Io  → useStageZoomOverlay       缩放快照遮罩钩子（canvas 翻拍）(20868)
+ *   Lo  → buildCMapOptions          cMapUrl=…/pdfjs/cmaps/ + cMapPacked (20910)
+ *   Ro  → RANGE_CHUNK_SIZE = 256KB  (20914)
  *   zo  → CMAP_DOCUMENT_OPTIONS     当前 location 的 cMap 选项 (20915)
  *   Bo  → RANGE_DOCUMENT_OPTIONS    cMap + disableAutoFetch/disableStream/rangeChunkSize (20916)
  *   Vo  → isRangeSource             判定 {requestRange} 范围源 (20917)
- *   Ho  → RangeSourcePDFDataRangeTransport  继承 pdfjs PDFDataRangeTransport (20920 / 18743)
- *   Uo  → DEFAULT_PDF_VIEWER_LABELS 英文兜底文案 8 条 (20937 / 18757)
- *   Wo  → normalizePdfSource        string|Blob|ArrayBuffer|TypedArray → getDocument 参数 (20948 / 18767)
- *   Go  → PdfViewer                 主组件（导出名 PdfViewer）(20956–21204 / 18774–18929)
+ *   Ho  → RangeSourcePDFDataRangeTransport  继承 pdfjs PDFDataRangeTransport (20920)
+ *   Uo  → DEFAULT_PDF_VIEWER_LABELS 英文兜底文案 8 条 (20937)
+ *   Wo  → normalizePdfSource        string|Blob|ArrayBuffer|TypedArray → getDocument 参数 (20948)
+ *   Go  → PdfViewer                 主组件（导出名 PdfViewer）(20956–21204)
  *
  * ----------------------------------------------------------------------------
  * 三、外部依赖清单（跨 chunk 导入；js 1–9 行 import 块）

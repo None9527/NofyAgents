@@ -15,9 +15,9 @@
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *  数据层钩子：
- *   VFt  → useWorkspaceTaskGroups   项目视图任务分组数据钩子 (144427 / 120229)
- *   uzt  → useGroupedTaskView       分组任务视图数据层钩子 (153205 / 126735)
- *   mRt  → useSidebarUsageState     侧栏用量状态钩子（F12 域接线）(150255 / 124505)
+ *   VFt  → useWorkspaceTaskGroups   项目视图任务分组数据钩子 (144427)
+ *   uzt  → useGroupedTaskView       分组任务视图数据层钩子 (153205)
+ *   mRt  → useSidebarUsageState     侧栏用量状态钩子（F12 域接线）(150255)
  *  分组视图合成助手（uzt 依赖族，本次一并实体化）：
  *   KRt  → sortTasksByGroupOrder        (— / 126406)
  *   qRt  → buildGroupedViewFromStructure (152903 区 / 126428)
@@ -37,9 +37,9 @@
  *   szt  → mergeGroupedViewPreservingIdentity (— / 126696)
  *   czt  → toTopLevelNodeRef             (— / 126714)
  *   lzt  → serializeGroupedViewOrder     (— / 126721)
- *   Cx   → fetchTaskIndex（接口级，跨块助手群 _x/vx/gx/yx/bx/xx/Sx/xOe/bOe）(29752 / 27072)
+ *   Cx   → fetchTaskIndex（接口级，跨块助手群 _x/vx/gx/yx/bx/xx/Sx/xOe/bOe）(29752)
  *  光束动画族：
- *   ABt  → BeamBorderAnimation       光束描边动画容器 (157550 / 131107)
+ *   ABt  → BeamBorderAnimation       光束描边动画容器 (157550)
  *   OBt  → useSystemThemePreference  prefers-color-scheme 侦听 (— / 131093)
  *   kBt  → resolveBeamTheme          auto → 系统主题 (— / 131104)
  *   wBt  → generateBeamCss           尺寸分派 (— / 130367)
@@ -62,8 +62,8 @@
  *   yBt  → LINE_INNER_PALETTES       line 内部色板 (— / 129940)
  *   xBt  → LINE_SPIKE_PALETTES       line 尖峰色板 (— / 130168)
  *  列表段：
- *   lLt  → ArchivedTasksSection      归档任务段 (146823 / 122315)
- *   mLt  → WebRemoteTaskListSection  Web 远控任务列表段 (147286 / 122543)
+ *   lLt  → ArchivedTasksSection      归档任务段 (146823)
+ *   mLt  → WebRemoteTaskListSection  Web 远控任务列表段 (147286)
  *   uLt  → WebRemoteTaskRow          远控任务行 (— / 122425)
  *   aPt  → useWebRemoteTaskSwitcher  远控打开/切换状态钩子 (— / 116882)
  *   iPt  → openWebRemoteTask         远控任务打开流程 (— / 116801)

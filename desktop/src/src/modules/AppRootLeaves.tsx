@@ -21,34 +21,34 @@
  * 一、混淆名 → 语义名 映射表（行号格式：现行 out js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  * [J] 工作区动作钩子（行段属 F18，指派归 F20）：
- *   j6t → useWorkspaceActions             (210776 / 167537)
+ *   j6t → useWorkspaceActions             (210776)
  * [K] 遥测对测（TDP）域：
- *   i8t → buildTelemetryParityCases       (211669 / 168266)  TDP01–19
- *   a8t → TELEMETRY_PARITY_CASES          (212448 / —)       Map(caseId → case)
- *   （裸语句）→ [...a8t.keys()];           (212449 / —)       逐字保留
- *   o8t → telemetryParityCaseById         (212450 / 168803)
- *   s8t → quotaParityAssertions           (212455 / 168808)
- *   c8t → captchaParityAssertions         (212490 / 168843)
- *   X9  → assertParityState               (212521 / 168873)
- *   l8t → exposeTelemetryParityE2E        (212525 / 168876)
- *   u8t → runTelemetryParityCase          (212534 / 168887)
- *   d8t → applyTelemetryParityOperation   (212580 / 168933)
- *   f8t → runTelemetryParityWebNoop       (212775 / 169128)
- *   p8t → pushUniqueParityAssertion       (212802 / 169156)
- *   Z9  → buildParityEventFact            (212805 / 169159)
+ *   i8t → buildTelemetryParityCases       (211669)  TDP01–19
+ *   a8t → TELEMETRY_PARITY_CASES          (212448)       Map(caseId → case)
+ *   （裸语句）→ [...a8t.keys()];           (212449)       逐字保留
+ *   o8t → telemetryParityCaseById         (212450)
+ *   s8t → quotaParityAssertions           (212455)
+ *   c8t → captchaParityAssertions         (212490)
+ *   X9  → assertParityState               (212521)
+ *   l8t → exposeTelemetryParityE2E        (212525)
+ *   u8t → runTelemetryParityCase          (212534)
+ *   d8t → applyTelemetryParityOperation   (212580)
+ *   f8t → runTelemetryParityWebNoop       (212775)
+ *   p8t → pushUniqueParityAssertion       (212802)
+ *   Z9  → buildParityEventFact            (212805)
  * [L] 远控任务同步桥 / 图标常量：
- *   m8t → APP_ROOT_ICON_STROKE_WIDTH      (212817 / —)       = 1.5
- *   h8t → WebRemoteControlTaskSyncBridge  (212818 / 169171)
+ *   m8t → APP_ROOT_ICON_STROKE_WIDTH      (212817)       = 1.5
+ *   h8t → WebRemoteControlTaskSyncBridge  (212818)
  * [M] App 根 provider 树：
- *   g8t → ZCodeApp                        (212878 / 169433)
+ *   g8t → ZCodeApp                        (212878)
  * [N] App 根内容：
- *   _8t → AppRootContent                  (212905 / 169450)  ★OFFLINE-PATCH-002
+ *   _8t → AppRootContent                  (212905)  ★OFFLINE-PATCH-002
  * [O] 启动音 / 遥测尾件：
- *   x8t → playStartupSound                (213901 / 170369)
- *   S8t → ARMS_E2E_EVENT_LIMIT            (213909 / —)       = 200
- *   C8t → recordArmsCustomEventE2E        (213910 / 170378)
- *   w8t → rendererInstanceId              (213921 / —)       模块级 null
- *   T8t → setRendererInstanceId           (213922 / 170390)
+ *   x8t → playStartupSound                (213901)
+ *   S8t → ARMS_E2E_EVENT_LIMIT            (213909)       = 200
+ *   C8t → recordArmsCustomEventE2E        (213910)
+ *   w8t → rendererInstanceId              (213921)       模块级 null
+ *   T8t → setRendererInstanceId           (213922)
  * [P] 文件尾 export 块（213930–213979）→ 逐字注释转录于文件尾
  *   （34+ 别名指向外部 chunk 符号；对照 rendererEntry.tsx 行 710–728）
  *

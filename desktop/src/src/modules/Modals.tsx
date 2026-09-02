@@ -26,10 +26,10 @@
  *  §1 更新对话框（〔A1-R52〕全族行号纠偏：本节 js 行号系 A0 期旧口径漂移，机械批
  *     纠为 styles 真值——xOt/SOt/COt/POt/DOt/TOt/EOt/kOt/NOt 九件 +17、wOt 起点 +21
  *     异常（COt 尾界同 +21），10 名逐名对 bundle 定义行实证 10/10，见 A1-R52.report.md）：
- *   xOt → UpdateDialogCheckbox   Radix Checkbox 封装（自动更新开关用）(128793 / 108512)
- *   SOt → UPDATE_DIALOG_LOGO_URL icon_512@2x 资源 URL (128808 / 108522)
- *   COt → UpdateStatusDialog     更新对话框呈现层（三相位 + edgeToEdge 全屏变体）(128812 / 108523)
- *   wOt → splitUpdateDialogTitle 标题按 __ZCODE_UPDATE_VERSION__ 占位符切前/后缀 (129050 / 108590)
+ *   xOt → UpdateDialogCheckbox   Radix Checkbox 封装（自动更新开关用）(128793)
+ *   SOt → UPDATE_DIALOG_LOGO_URL icon_512@2x 资源 URL (128808)
+ *   COt → UpdateStatusDialog     更新对话框呈现层（三相位 + edgeToEdge 全屏变体）(128812)
+ *   wOt → splitUpdateDialogTitle 标题按 __ZCODE_UPDATE_VERSION__ 占位符切前/后缀 (129050)
  *
  *  §2 远程同步（〔A1-R51〕全族行号纠偏：本节 js 行号系 A0 期旧口径 −17 漂移，机械批
  *     纠为 styles 真值 +17，77 名逐名实证，抽样见 A1-R51.report.md §三；$2/q2 二件
@@ -83,40 +83,40 @@
  *   XDt → PluginSyncDialog     插件同步对话框 (styles 126843 / 107373)
  *
  *  §3 目录浏览器：
- *   OEt → buildReaddirParams (123929 / 105703)  kEt → filterDirectories (123932 / 105711)
- *   AEt → resolveFolderIconKind (123935 / 105714) jEt → createRequestToken (123938 / 105717)
- *   MEt → DirectoryBrowserDialog 目录浏览对话框（路径输入/隐藏目录/逐级进入）(123942 / 105724)
+ *   OEt → buildReaddirParams (123929)  kEt → filterDirectories (123932)
+ *   AEt → resolveFolderIconKind (123935) jEt → createRequestToken (123938)
+ *   MEt → DirectoryBrowserDialog 目录浏览对话框（路径输入/隐藏目录/逐级进入）(123942)
  *
  *  §4 Onboarding：
- *   $4t → ONBOARDING_TASK_STAGGER_MS = 320 (206927 / 164536)
- *   F9  → initialOnboardingState (206928 / 164537) I9 → selectionKey (206941 / 164550)
- *   e3t → defaultProviderCategories (206946 / 164553) t3t → normalizeDiscovery (206947 / 164556)
- *   n3t → defaultSelectedKeys (206964 / 164573) r3t → discoveryToTasks (206971 / 164576)
- *   i3t → parseSelectionKeys (206985 / 164586) a3t → additionalSelectionsToTasks (206991 / 164595)
- *   L9  → errorMessageText (207005 / 164604) o3t → applyImportTaskResults (207008 / 164607)
- *   s3t → useOnboardingDialogController (207019 / 164624)
- *   c3t → ONBOARDING_WIZARD_STEPS (207290 / 164907) l3t → onboardingStepTitleKey (207296 / 164932)
- *   u3t → OnboardingStepRail (207312 / 164948) d3t → OnboardingStepHeader (207372 / 164963)
- *   f3t → OnboardingWizardFooter (207386 / 164966) p3t → isSettingsImportStep (207511 / 164993)
- *   m3t → ProjectSelectorHero (207490 / 164996) h3t → OnboardingWelcomeView (207517 / 165007)
- *   g3t → initialFinishExecution (207605 / 165025) _3t → OnboardingSessionStep (207610 / 165044)
- *   R9  → ImportSelectionStep (207794 / 165129) v3t → MigrationProgressView (207797 / 165136)
- *   y3t → MigrationCompleteView (207846 / 165153) b3t → AgentsFileMigrationStep (207960 / 165187)
- *   x3t → shouldAutoScanSessions (208073 / 165214) S3t → buildSessionGroups (208086 / 165217)
- *   C3t → useFinishExecution (208092 / 165227) w3t → errorMessageText2 (208194 / 165334)
- *   T3t → useAgentsFileMigration (208197 / 165337)
- *   z9  → ONBOARDING_STEP_ORDER (208251 / 165387) E3t → OnboardingDialog (208252 / 165388)
+ *   $4t → ONBOARDING_TASK_STAGGER_MS = 320 (206927)
+ *   F9  → initialOnboardingState (206928) I9 → selectionKey (206941)
+ *   e3t → defaultProviderCategories (206946) t3t → normalizeDiscovery (206947)
+ *   n3t → defaultSelectedKeys (206964) r3t → discoveryToTasks (206971)
+ *   i3t → parseSelectionKeys (206985) a3t → additionalSelectionsToTasks (206991)
+ *   L9  → errorMessageText (207005) o3t → applyImportTaskResults (207008)
+ *   s3t → useOnboardingDialogController (207019)
+ *   c3t → ONBOARDING_WIZARD_STEPS (207290) l3t → onboardingStepTitleKey (207296)
+ *   u3t → OnboardingStepRail (207312) d3t → OnboardingStepHeader (207372)
+ *   f3t → OnboardingWizardFooter (207386) p3t → isSettingsImportStep (207511)
+ *   m3t → ProjectSelectorHero (207490) h3t → OnboardingWelcomeView (207517)
+ *   g3t → initialFinishExecution (207605) _3t → OnboardingSessionStep (207610)
+ *   R9  → ImportSelectionStep (207794) v3t → MigrationProgressView (207797)
+ *   y3t → MigrationCompleteView (207846) b3t → AgentsFileMigrationStep (207960)
+ *   x3t → shouldAutoScanSessions (208073) S3t → buildSessionGroups (208086)
+ *   C3t → useFinishExecution (208092) w3t → errorMessageText2 (208194)
+ *   T3t → useAgentsFileMigration (208197)
+ *   z9  → ONBOARDING_STEP_ORDER (208251) E3t → OnboardingDialog (208252)
  *
  *  §5 确认 / 警告对话框 + 宿主：
- *   H2  → ConfirmDialogStore (123497 / 105205)  U2 → useConfirmDialog (123510 / 105222)
- *   N9  → AlertDialogStore (206514 / 164300)   G4t → AlertDialog (206527 / 164317)
- *   K4t → AUTOMATION_CONFIRM_DIALOG_CLASS (206571 / 164352)
- *   q4t → ConfirmDialog (206572 / 164353)      P9 → AppDialogHost (206704 / 164396)
- *   $3t → useAlertDialog (209650 / 166685)
+ *   H2  → ConfirmDialogStore (123497)  U2 → useConfirmDialog (123510)
+ *   N9  → AlertDialogStore (206514)   G4t → AlertDialog (206527)
+ *   K4t → AUTOMATION_CONFIRM_DIALOG_CLASS (206571)
+ *   q4t → ConfirmDialog (206572)      P9 → AppDialogHost (206704)
+ *   $3t → useAlertDialog (209650)
  *
  *  复用原语（本 chunk 内它族 / 跨 chunk，见 §0 声明）：
  *   zb/Hb/Ub/Gb/Kb/Wb/Vb → Dialog/Content/Header/Title/Description/Footer/Close (31943+ / 29335+)
- *   yq → Progress (75986 / 67310)；uJ → Badge (80303 / 70704)；s4t → ZCodeLogoSvg (205679 / 163712)
+ *   yq → Progress (75986)；uJ → Badge (80303)；s4t → ZCodeLogoSvg (205679)
  *   X=Button / P=Input / M=spinner(loader-circle) / g=IconX / wa=IconChevronRight（跨 chunk）
  *   Ia=Tooltip（usageStatsUiParts）；dN/fN/pN=HoverCard 三件（本 chunk jsx 49005）
  *   Zxe/$xe=Checkbox 原语；iO/oO/sO/cO=Select 四件（Radix 封装主块 28021-32245）

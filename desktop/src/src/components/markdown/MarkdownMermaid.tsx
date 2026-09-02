@@ -19,17 +19,17 @@
  * 混淆名 → 语义名（js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *   av/ov/sv → LAZY_RENDER_DEBOUNCE_MS=300 / ROOT_MARGIN='300px' /
- *              IDLE_TIMEOUT_MS=500 (18292 / —)
+ *              IDLE_TIMEOUT_MS=500 (18292)
  *   cv → useLazyRender          IntersectionObserver+requestIdleCallback 懒渲染钩子
- *                               （返回 {shouldRender, containerRef}）(18295 / 15256)
- *   oy → downloadSvgAsPng       SVG→base64→Image→canvas(5x)→PNG blob (19626 / 16120)
- *   sy → MermaidDownloadDropdown 下载下拉（SVG/PNG/MMD 三档）(19653 / 16142)
- *   cy → MermaidFullscreenButton 全屏按钮（portal 覆盖层 + 内嵌 Mermaid）(19759 / 16201)
- *   $b → ZoomableContent        缩放/平移容器（滚轮缩放、指针拖拽、控制钮）(21463 / 17421)
+ *                               （返回 {shouldRender, containerRef}）(18295)
+ *   oy → downloadSvgAsPng       SVG→base64→Image→canvas(5x)→PNG blob (19626)
+ *   sy → MermaidDownloadDropdown 下载下拉（SVG/PNG/MMD 三档）(19653)
+ *   cy → MermaidFullscreenButton 全屏按钮（portal 覆盖层 + 内嵌 Mermaid）(19759)
+ *   $b → ZoomableContent        缩放/平移容器（滚轮缩放、指针拖拽、控制钮）(21463)
  *   ex → Mermaid                Mermaid React 组件（导出别名 a；data-streamdown=mermaid）
- *                               (21620 / 17524)
+ *                               (21620)
  *   by → LazyMermaid            lazy(() => import('./mermaid-GHXKKRXX-…').Mermaid)
- *                               —— MarkdownCode 渲染 ```mermaid 块时的入口 (20282 / 16517)
+ *                               —— MarkdownCode 渲染 ```mermaid 块时的入口 (20282)
  *
  * 外部依赖：
  *   - MarkdownContext.tsx（StreamdownContext/useMermaidPlugin/图标/文案/滚动锁/下载）

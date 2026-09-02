@@ -35,113 +35,113 @@
  * 一、混淆名 → 语义名 映射表（行号格式：现行 out js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  * [A] 面板布局模型（js 121373–121528 / jsx 103128–103283）：
- *   swt → readNavigationEntries          (121373 / 103128)
- *   z0  → isReloadNavigationEntry        (121382 / 103137)  消费侧 declare 名同
- *   B0  → MAIN_PANE_ID                   (121385 / 103140)  `workspace-main`
- *   cwt → MIN_SPLIT_RATIO                (121386 / —)       0.25
- *   lwt → MAX_SPLIT_RATIO                (121387 / —)       0.75
- *   V0  → DEFAULT_SPLIT_RATIO            (121388 / —)       0.5
- *   H0  → clampSplitRatio                (121389 / 103144)
- *   U0  → workspaceScopeKey              (121392 / 103147)
- *   W0  → paneBindingMatchesSession      (121395 / 103150)
- *   G0  → PRIMARY_PANE_LEAF              (121398 / 103153)
- *   K0  → EMPTY_PANE_LAYOUT              (121399 / 103154)  消费侧 declare 名同
- *   q0  → collectLeafPaneIds             (121400 / 103155)
- *   J0  → countLayoutPanes               (121403 / 103158)
- *   Y0  → canAddLayoutPane               (121406 / 103161)  <4
- *   X0  → layoutHasPaneId                (121409 / 103164)
- *   Z0  → focusedPaneId                  (121412 / 103167)  消费侧 declare 名同
- *   uwt → nextLeafPaneId                 (121415 / 103170)
- *   Q0  → collectSplitNodeIds            (121423 / 103178)
- *   dwt → nextSplitNodeId                (121426 / 103181)
- *   $0  → replacePaneNode                (121434 / 103189)
- *   e2  → removePaneNode                 (121440 / 103195)
- *   t2  → setPaneNodeRatio               (121447 / 103202)
- *   fwt → splitPaneInLayout              (121454 / 103209)
- *   n2  → splitPaneBesideInLayout        (121467 / 103222)
- *   pwt → closePaneInLayout              (121483 / 103238)
- *   mwt → bindPaneSessionInLayout        (121492 / 103247)
- *   hwt → replacePaneBindingInLayout     (121498 / 103253)
- *   gwt → findPaneIdBySessionInLayout    (121503 / 103258)
- *   _wt → setLayoutSplitRatio            (121507 / 103262)
- *   r2  → focusLayoutPane                (121511 / 103266)
- *   vwt → confirmRestoredPaneInLayout    (121514 / 103269)
- *   ywt → openSessionInLayout            (121523 / 103278)
+ *   swt → readNavigationEntries          (121373)
+ *   z0  → isReloadNavigationEntry        (121382)  消费侧 declare 名同
+ *   B0  → MAIN_PANE_ID                   (121385)  `workspace-main`
+ *   cwt → MIN_SPLIT_RATIO                (121386)       0.25
+ *   lwt → MAX_SPLIT_RATIO                (121387)       0.75
+ *   V0  → DEFAULT_SPLIT_RATIO            (121388)       0.5
+ *   H0  → clampSplitRatio                (121389)
+ *   U0  → workspaceScopeKey              (121392)
+ *   W0  → paneBindingMatchesSession      (121395)
+ *   G0  → PRIMARY_PANE_LEAF              (121398)
+ *   K0  → EMPTY_PANE_LAYOUT              (121399)  消费侧 declare 名同
+ *   q0  → collectLeafPaneIds             (121400)
+ *   J0  → countLayoutPanes               (121403)
+ *   Y0  → canAddLayoutPane               (121406)  <4
+ *   X0  → layoutHasPaneId                (121409)
+ *   Z0  → focusedPaneId                  (121412)  消费侧 declare 名同
+ *   uwt → nextLeafPaneId                 (121415)
+ *   Q0  → collectSplitNodeIds            (121423)
+ *   dwt → nextSplitNodeId                (121426)
+ *   $0  → replacePaneNode                (121434)
+ *   e2  → removePaneNode                 (121440)
+ *   t2  → setPaneNodeRatio               (121447)
+ *   fwt → splitPaneInLayout              (121454)
+ *   n2  → splitPaneBesideInLayout        (121467)
+ *   pwt → closePaneInLayout              (121483)
+ *   mwt → bindPaneSessionInLayout        (121492)
+ *   hwt → replacePaneBindingInLayout     (121498)
+ *   gwt → findPaneIdBySessionInLayout    (121503)
+ *   _wt → setLayoutSplitRatio            (121507)
+ *   r2  → focusLayoutPane                (121511)
+ *   vwt → confirmRestoredPaneInLayout    (121514)
+ *   ywt → openSessionInLayout            (121523)
  * [B] 布局持久化 + store（js 121529–121720 / jsx 103284–103475）：
- *   bwt → PANE_LAYOUT_STORAGE_KEY_V2     (121529 / 103284)  `zcode-v4-pane-layout:v2`
- *   xwt → PANE_LAYOUT_STORAGE_KEY_V1     (121530 / —)       `zcode-v4-pane-layout:v1`
- *   i2  → LEGACY_SPLIT_PANE_ID           (121531 / —)       `split`
- *   a2  → parsePaneNode                  (121532 / 103287)
- *   Swt → parsePaneWorkspaceScope        (121561 / 103316)
- *   Cwt → parseStoredPaneLayout          (121576 / 103331)
- *   wwt → isAbsoluteWorkspacePath        (121607 / 103362)
- *   Twt → parseLegacyPaneLayout          (121610 / 103365)
- *   Ewt → loadStoredPaneLayout           (121636 / 103391)
- *   o2  → clonePaneNode                  (121646 / 103401)
- *   Dwt → lastSerializedPaneLayout       (121658 / 103413)  模块级缓存
- *   Owt → persistPaneLayout              (121659 / 103414)
- *   kwt → storedPaneLayout               (121681 / 103436)  模块级快照
- *   Awt → restoredPaneLayout             (121682 / —)       reload 时启用
- *   jwt → hasSplitLayoutBindings         (121683 / 103515)  消费侧 declare 名同
- *   s2  → splitLayoutStore               (121686 / 103518)  消费侧 declare 名同
+ *   bwt → PANE_LAYOUT_STORAGE_KEY_V2     (121529)  `zcode-v4-pane-layout:v2`
+ *   xwt → PANE_LAYOUT_STORAGE_KEY_V1     (121530)       `zcode-v4-pane-layout:v1`
+ *   i2  → LEGACY_SPLIT_PANE_ID           (121531)       `split`
+ *   a2  → parsePaneNode                  (121532)
+ *   Swt → parsePaneWorkspaceScope        (121561)
+ *   Cwt → parseStoredPaneLayout          (121576)
+ *   wwt → isAbsoluteWorkspacePath        (121607)
+ *   Twt → parseLegacyPaneLayout          (121610)
+ *   Ewt → loadStoredPaneLayout           (121636)
+ *   o2  → clonePaneNode                  (121646)
+ *   Dwt → lastSerializedPaneLayout       (121658)  模块级缓存
+ *   Owt → persistPaneLayout              (121659)
+ *   kwt → storedPaneLayout               (121681)  模块级快照
+ *   Awt → restoredPaneLayout             (121682)       reload 时启用
+ *   jwt → hasSplitLayoutBindings         (121683)  消费侧 declare 名同
+ *   s2  → splitLayoutStore               (121686)  消费侧 declare 名同
  * [C] 会话路由模型 + store（js 122201 尾 + 122309–122714 / jsx 103975–104445）：
- *   nTt → ROUTER_STORAGE_KEY             (122305 / 103972)  `zcode-v4-session-workbench-groups:v1`〔A1-R57 行漂纠偏 −1：tTt var 链成员行，122306 为 g2 行〕
- *   g2  → EMPTY_ROUTER_STATE             (122306 / 103973)
- *   _2  → workbenchClientMode            (122307 / 103974)  模块级（初值 desktop-continuous）
- *   v2  → routerStateHydrated            (122308 / 103974)  模块级
- *   y2  → isWorkbenchRouterEnabled       (122309 / 103975)
- *   b2  → sessionBindingIndexKey         (122312 / 103978)
- *   x2  → paneBindingIndexKey            (122315 / 103981)
- *   S2  → sameSessionBinding             (122318 / 103984)
- *   rTt → toRestorableSessionBinding     (122321 / 103987)
- *   C2  → toSessionBindingOrNull         (122329 / 103999)
- *   w2  → groupSessionBindings           (122339 / 104011)
- *   iTt → groupContainsBinding           (122342 / 104014)
- *   T2  → paneBindingById                (122346 / 104018)  消费侧 declare 名 paneById
- *   E2  → focusedGroupBinding            (122349 / 104021)
- *   aTt → findGroupPaneIdByBinding       (122352 / 104024)
- *   oTt → nextGroupId                    (122357 / 104029)
- *   sTt → createSessionGroup             (122365 / 104037)
- *   cTt → groupFromPaneLayout            (122381 / 104053)
- *   lTt → focusGroupPane                 (122401 / 104073)
- *   uTt → splitGroupPaneBeside           (122405 / 104077)
- *   dTt → closeGroupPane                 (122416 / 104088)
- *   fTt → confirmGroupRestoredSession    (122428 / 104100)
- *   pTt → buildGroupSessionIndex         (122439 / 104111)
- *   D2  → withUpsertedGroup              (122444 / 104147)
- *   mTt → withRemovedGroup               (122448 / 104151)
- *   hTt → withSessionSplitIntoGroup      (122459 / 104162)
- *   gTt → withPromotedPaneLayoutGroup    (122469 / 104172)
- *   _Tt → withFocusedSessionBinding      (122475 / 104178)
- *   vTt → withGroupPaneSessionBound      (122485 / 104188)
- *   yTt → routerSafeLocalStorage         (122505 / 104208)
- *   O2  → isPlainRecord                  (122512 / 104240)
- *   k2  → parseRouterPaneNode            (122515 / 104243)
- *   bTt → parseRouterWorkspaceScope      (122533 / 104261)
- *   xTt → parseRouterRestoredBinding     (122542 / 104270)
- *   STt → parseStoredSessionGroup        (122547 / 104275)
- *   CTt → parseStoredRouterState         (122574 / 104302)
- *   wTt → persistRouterState             (122597 / 104325)
- *   TTt → loadStoredRouterState          (122625 / 104353)
- *   A2  → sessionRouterStore             (122636 / 104365)  消费侧 declare 名同
+ *   nTt → ROUTER_STORAGE_KEY             (122305)  `zcode-v4-session-workbench-groups:v1`〔A1-R57 行漂纠偏 −1：tTt var 链成员行，122306 为 g2 行〕
+ *   g2  → EMPTY_ROUTER_STATE             (122306)
+ *   _2  → workbenchClientMode            (122307)  模块级（初值 desktop-continuous）
+ *   v2  → routerStateHydrated            (122308)  模块级
+ *   y2  → isWorkbenchRouterEnabled       (122309)
+ *   b2  → sessionBindingIndexKey         (122312)
+ *   x2  → paneBindingIndexKey            (122315)
+ *   S2  → sameSessionBinding             (122318)
+ *   rTt → toRestorableSessionBinding     (122321)
+ *   C2  → toSessionBindingOrNull         (122329)
+ *   w2  → groupSessionBindings           (122339)
+ *   iTt → groupContainsBinding           (122342)
+ *   T2  → paneBindingById                (122346)  消费侧 declare 名 paneById
+ *   E2  → focusedGroupBinding            (122349)
+ *   aTt → findGroupPaneIdByBinding       (122352)
+ *   oTt → nextGroupId                    (122357)
+ *   sTt → createSessionGroup             (122365)
+ *   cTt → groupFromPaneLayout            (122381)
+ *   lTt → focusGroupPane                 (122401)
+ *   uTt → splitGroupPaneBeside           (122405)
+ *   dTt → closeGroupPane                 (122416)
+ *   fTt → confirmGroupRestoredSession    (122428)
+ *   pTt → buildGroupSessionIndex         (122439)
+ *   D2  → withUpsertedGroup              (122444)
+ *   mTt → withRemovedGroup               (122448)
+ *   hTt → withSessionSplitIntoGroup      (122459)
+ *   gTt → withPromotedPaneLayoutGroup    (122469)
+ *   _Tt → withFocusedSessionBinding      (122475)
+ *   vTt → withGroupPaneSessionBound      (122485)
+ *   yTt → routerSafeLocalStorage         (122505)
+ *   O2  → isPlainRecord                  (122512)
+ *   k2  → parseRouterPaneNode            (122515)
+ *   bTt → parseRouterWorkspaceScope      (122533)
+ *   xTt → parseRouterRestoredBinding     (122542)
+ *   STt → parseStoredSessionGroup        (122547)
+ *   CTt → parseStoredRouterState         (122574)
+ *   wTt → persistRouterState             (122597)
+ *   TTt → loadStoredRouterState          (122625)
+ *   A2  → sessionRouterStore             (122636)  消费侧 declare 名同
  * [D] 路由选择器/钩子（js 122716–122819 / jsx 104446–104549）：
- *   ETt → toSessionBindingFromScope      (122716 / 104446)
- *   DTt → hasSplitPaneBindingFor         (122720 / 104450)
- *   OTt → resolveSplitSessionPlan        (122726 / 104456)
- *   kTt → isSplitPlanActionable          (122756 / 104486)
- *   ATt → canOpenSessionInSplit          (122759 / 104489)  消费侧 declare 名同
- *   jTt → openSessionInSplit             (122762 / 104492)  消费侧 declare 名同
- *   MTt → openSessionBesideDraft         (122791 / 104521)  消费侧 declare 名同
- *   NTt → toPersistableSessionBinding    (122812 / 104542)
+ *   ETt → toSessionBindingFromScope      (122716)
+ *   DTt → hasSplitPaneBindingFor         (122720)
+ *   OTt → resolveSplitSessionPlan        (122726)
+ *   kTt → isSplitPlanActionable          (122756)
+ *   ATt → canOpenSessionInSplit          (122759)  消费侧 declare 名同
+ *   jTt → openSessionInSplit             (122762)  消费侧 declare 名同
+ *   MTt → openSessionBesideDraft         (122791)  消费侧 declare 名同
+ *   NTt → toPersistableSessionBinding    (122812)
  * [E] 远端条目最小面 + persistableTabEntries（js 123197–123484 选段）：
- *   WTt → REMOTE_SESSION_HISTORY_LIMIT   (123197 / 104886)  20
- *   M2  → remoteTargetCredentialKeys     (123207 / 104897)
- *   N2  → isRemoteSessionEntry           (123216 / 104900)
- *   R2  → sessionEntryWorkspaceKey       (123306 / 104991)
- *   sEt → persistableTabEntries          (123457 / 105169)  消费侧 declare 名同
- *   V2  → lastWorkspaceSessionEntries    (123475 / 105186)
- *   cEt → lastRemoteSessionEntries       (123478 / 105189)
- *   lEt → sessionEntryMapByKey           (123481 / 105192)
+ *   WTt → REMOTE_SESSION_HISTORY_LIMIT   (123197)  20
+ *   M2  → remoteTargetCredentialKeys     (123207)
+ *   N2  → isRemoteSessionEntry           (123216)
+ *   R2  → sessionEntryWorkspaceKey       (123306)
+ *   sEt → persistableTabEntries          (123457)  消费侧 declare 名同
+ *   V2  → lastWorkspaceSessionEntries    (123475)
+ *   cEt → lastRemoteSessionEntries       (123478)
+ *   lEt → sessionEntryMapByKey           (123481)
  * [F] 远端条目域余量（styles 123198–123456；A1-R4）：
  *   GTt → remotePasswordCredentialKey    (123198)
  *   KTt → remotePrivateKeyPassphraseCredentialKey (123201)

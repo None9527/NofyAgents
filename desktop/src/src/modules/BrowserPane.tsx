@@ -31,8 +31,8 @@
  *   OUt  → useWebElementPicker           isPicking/start/cancel/toggle + Esc 全局监听 + 卸载取消 (176461)
  *
  *  工具栏（176539–176687 / jsx 143153 起）：
- *   kUt  → BrowserToolbar          form h-12：back/forward/reload/地址/responsive/picker/⋯ (176539 / 143153)
- *   g5   → ToolbarIconButton       Tooltip+Button icon-md，active→secondary+aria-pressed (176688 / 143256)
+ *   kUt  → BrowserToolbar          form h-12：back/forward/reload/地址/responsive/picker/⋯ (176539)
+ *   g5   → ToolbarIconButton       Tooltip+Button icon-md，active→secondary+aria-pressed (176688)
  *   AUt  → BrowserMoreMenu         ⋯ → openExternal / devtools 两项 (176611)
  *   jUt  → BrowserEmptyState       globe|spinner + browser.title/empty 覆盖层 (176664)
  *
@@ -44,16 +44,16 @@
  *   _5=di → RESPONSIVE_VIEWPORT_LIMITS {min320/max3840/min320/max2160}（src-HCld2afU.js 反查）(176732)
  *   IUt/LUt → EDGE_HANDLES(4)/CORNER_HANDLES(4) 把手几何+testid (176734,176770)
  *   RUt  → EDGE_ICON_CLASS         group-hover 显现的把手图标类 (176801)
- *   zUt  → ResponsiveResizeHandles 4 边 separator(role/aria-valuenow/键盘)+4 角 (176802 / 143360)
+ *   zUt  → ResponsiveResizeHandles 4 边 separator(role/aria-valuenow/键盘)+4 角 (176802)
  *   BUt  → DEFAULT_VIEWPORT        {width:393,height:852} (176864)
  *   VUt/HUt → clampInt/clampViewport (176867,176870)
- *   UUt  → ResponsiveViewportCanvas  画布+scale 变换+fit 重测 RO+blur 结束拖拽 (176876 / 143400)
- *   WUt  → BrowserSurface          resize 弱提示条 + UUt + webview（compositor/layout/transform scale data-*）(177082 / 143564)
+ *   UUt  → ResponsiveViewportCanvas  画布+scale 变换+fit 重测 RO+blur 结束拖拽 (176876)
+ *   WUt  → BrowserSurface          resize 弱提示条 + UUt + webview（compositor/layout/transform scale data-*）(177082)
  *   GUt/KUt → isValidDimension/dimensionLimits (177169,177178)
- *   qUt  → ResponsiveToolbar       W×H 输入（Popover 报错）+ zoom Select (177186 / 143620)
+ *   qUt  → ResponsiveToolbar       W×H 输入（Popover 报错）+ zoom Select (177186)
  *   JUt  → useFutureTimestamp      未来时间戳到达前为 true (177344)
  *   YUt/XUt/ZUt/QUt → 3000/300/100/500 弱提示时序 (177358)
- *   $Ut  → useBrowserResizeWarning  agent 操作期 ResizeObserver 尺寸变化→3s 弱提示 (177364 / 143741)
+ *   $Ut  → useBrowserResizeWarning  agent 操作期 ResizeObserver 尺寸变化→3s 弱提示 (177364)
  *
  *  截图 surface 稳定（177456–177618）：
  *   eWt/v5 → roundSize/sizesEqual(±1) (177456,177461)
@@ -66,11 +66,11 @@
  *  桌面 zoom（177617–177641）：
  *   dWt/fWt/pWt → 1.1/-3/5；mWt → 1.1^clamp(round(level),-3,5) (177617,177621)
  *   hWt  → useDesktopZoomFactor    getDesktopZoomLevel+onDesktopZoomLevelChanged (177625)
- *   gWt  → useResponsiveModeController  模式开关/viewport 双向同步（browserViewUpdateViewport/onBrowserViewViewportChanged）(177644 / 144000)
+ *   gWt  → useResponsiveModeController  模式开关/viewport 双向同步（browserViewUpdateViewport/onBrowserViewViewportChanged）(177644)
  *
  *  组件：
- *   _Wt  → BrowserView             根：工具栏+响应式条+surface；webview 事件全集；崩溃重建；residency 上报 (177724 / 144066)
- *   vWt  → BrowserUseView          TabsContent forceMount 包装（inert/hidden 三态 + screenshot data-state）(178191 / 144506)
+ *   _Wt  → BrowserView             根：工具栏+响应式条+surface；webview 事件全集；崩溃重建；residency 上报 (177724)
+ *   vWt  → BrowserUseView          TabsContent forceMount 包装（inert/hidden 三态 + screenshot data-state）(178191)
  *   yWt/bWt/xWt → tabMatch/requestMatch/findBrowserUseTab (178241,178251,178260)
  *   SWt  → useScreenshotSurfaceRequest  onBrowserViewScreenshotSurfacePrepare/Release (178264)
  *

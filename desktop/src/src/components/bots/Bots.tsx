@@ -27,13 +27,13 @@
  * 一、混淆名 → 语义名 映射表（行号格式：js 行 / jsx 行）
  * ----------------------------------------------------------------------------
  *  域数据表（旧账起点前扩段）：
- *   vLt → BOT_PROVIDERS                 8 供应商目录（implemented 标记）(147772 / 122849)
+ *   vLt → BOT_PROVIDERS                 8 供应商目录（implemented 标记）(147772)
  *   yLt → REPLY_GRANULARITY_OPTIONS     4 回复粒度选项 (147782 / 122866 区)
  *   bLt → DEFAULT_REPLY_GRANULARITY     yLt[0] (147804)
  *   xLt → replyGranularityOptionsOf     Wne(provider) ∩ yLt (147805)
  *   SLt → resolveReplyGranularity       选中 ?? 首项 ?? 缺省 (147809)
  *  区域/入口助手：
- *   CLt → regionTagKeyOfProvider        lark→zai / feishu→bigmodel 标签键 (147813 / 122908)
+ *   CLt → regionTagKeyOfProvider        lark→zai / feishu→bigmodel 标签键 (147813)
  *   wLt → workspaceLabelOf              trim 非空优先 (147823)
  *   TLt → resolveEntryIntent            已配→select / 未配→create (147826)
  *  图标/常量：
@@ -49,17 +49,17 @@
  *   LLt → formatSecondsCeil             `NNs` 向上取整 (147884)
  *   RLt → defaultAllowedCommands        7 命令开关全 true (147887)
  *  视图件：
- *   zLt → BotHeaderRow                  图标+名称(内联重命名)+运行态+启用开关 (147890 / 122972)
- *   BLt → BotReplyGranularityRow        回复粒度 Select (148005 / 123029)
+ *   zLt → BotHeaderRow                  图标+名称(内联重命名)+运行态+启用开关 (147890)
+ *   BLt → BotReplyGranularityRow        回复粒度 Select (148005)
  *   VLt → BotDeleteRow                  删除行 (148030 / 123055 区)
  *   v8  → BotDetailCard                 rounded-lg bg-background p-3 (148046)
- *   HLt → TelegramBotFatherCredentialCard BotFather QR + token 输入 + 保存 (148049 / 123082)
- *   ULt → BotCredentialSection          凭据/绑定码/飞书注册/微信注册 四路状态机 (148125 / 123116)
- *   WLt → BotAllowedWorkspacesRow       all/selected + 工作区勾选列表 (148500 / 123254)
+ *   HLt → TelegramBotFatherCredentialCard BotFather QR + token 输入 + 保存 (148049)
+ *   ULt → BotCredentialSection          凭据/绑定码/飞书注册/微信注册 四路状态机 (148125)
+ *   WLt → BotAllowedWorkspacesRow       all/selected + 工作区勾选列表 (148500)
  *  根与模型：
  *   GLt → emptyBotsConfig               {version:2,bots:[]} (148604)
  *   KLt → newBotOfProvider              新 Bot 骨架 (148607)
- *   qLt → BotsDialog                    根对话框 (148619 / 123319)
+ *   qLt → BotsDialog                    根对话框 (148619)
  *  尾段（F17 语义双归属，行号在 F11 段内）：
  *   JLt → REMOTE_PAIRING_PROVIDERS      weixin/feishu/lark/telegram (149473)
  *   YLt → isWorkspaceControlActiveFor   工作区键匹配+会话存在 (149479)

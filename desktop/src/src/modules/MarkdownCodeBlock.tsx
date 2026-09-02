@@ -14,18 +14,18 @@
  * 混淆名 → 语义名（js 行 / jsx 行；上游 streamdown 导出名见括注）
  * ----------------------------------------------------------------------------
  *   kv → CodeBlockBody          shiki token 渲染（导出别名 t，被
- *                               highlighted-body chunk 消费）(18522 / 15458)
- *   Av → CodeBlockContainer     代码块外壳（data-streamdown=code-block）(18615 / 15483)
- *   jv → CodeBlockContext       { code }（复制/下载按钮取码用）(18629 / 15496)
- *   Mv → useCodeBlockContext    (18630 / 15497)
- *   Nv → CodeBlockHeader        语言名条（data-streamdown=code-block-header）(18629 / 15498)
- *   Pv → trimTrailingNewlines   (18650 / 15508)
- *   Fv → LazyHighlightedBody    lazy(() => import('./highlighted-body-…')) (18650 / 15510)
- *   Iv → CodeBlock              组装：头+动作条+正文（上游导出 CodeBlock=g）(18660 / 15513)
- *   Gv → CodeBlockCopyButton    复制按钮（导出别名? 上游 i）(18983 / 15618)
- *   Kv → LANGUAGE_FILE_EXTENSIONS 语言→扩展名表（~300 项）(19032 / 15657)
- *   qv → CodeBlockDownloadButton 下载按钮（上游 j）(19340 / 15965)
- *   Jv → CodeBlockSkeleton      mermaid/自定义块加载骨架（上游 k）(19368 / 15993)
+ *                               highlighted-body chunk 消费）(18522)
+ *   Av → CodeBlockContainer     代码块外壳（data-streamdown=code-block）(18615)
+ *   jv → CodeBlockContext       { code }（复制/下载按钮取码用）(18629)
+ *   Mv → useCodeBlockContext    (18630)
+ *   Nv → CodeBlockHeader        语言名条（data-streamdown=code-block-header）(18629)
+ *   Pv → trimTrailingNewlines   (18650)
+ *   Fv → LazyHighlightedBody    lazy(() => import('./highlighted-body-…')) (18650)
+ *   Iv → CodeBlock              组装：头+动作条+正文（上游导出 CodeBlock=g）(18660)
+ *   Gv → CodeBlockCopyButton    复制按钮（导出别名? 上游 i）(18983)
+ *   Kv → LANGUAGE_FILE_EXTENSIONS 语言→扩展名表（~300 项）(19032)
+ *   qv → CodeBlockDownloadButton 下载按钮（上游 j）(19340)
+ *   Jv → CodeBlockSkeleton      mermaid/自定义块加载骨架（上游 k）(19368)
  *
  * 外部依赖：
  *   - MarkdownContext.tsx（上下文/钩子/cn/图标/文案/下载工具）

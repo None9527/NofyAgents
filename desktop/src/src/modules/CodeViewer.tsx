@@ -20,10 +20,10 @@
  * ----------------------------------------------------------------------------
  *  预览视图群（160323–161140 / jsx 132770 起）：
  *   U8   → MarkdownPreviewView       cj 渲染 markdown 内容 (160323)
- *   iVt  → CodeViewDispatcher        纯文本语言→BO，否则 MO（高亮+评论+gutter）(160344 / 132789)
+ *   iVt  → CodeViewDispatcher        纯文本语言→BO，否则 MO（高亮+评论+gutter）(160344)
  *   aVt  → CHECKERBOARD_BG_CLASS     透明图棋盘底 (160393)
  *   oVt  → imageScaleFromFilename    @2x 后缀解析 (160396)
- *   sVt  → ImageView                 自然尺寸×@Nx 缩放 / fitToContainer (160404 / 132816)
+ *   sVt  → ImageView                 自然尺寸×@Nx 缩放 / fitToContainer (160404)
  *   cVt  → SvgView                   svg 文本→data-url 复用 ImageView (160424)
  *   lVt/uVt → LazyPdfViewer/PdfPreviewSuspense (160432,160438)
  *   dVt/fVt → LazyPptxViewer/PptxPreviewSuspense (160445,160454)
@@ -34,7 +34,7 @@
  *   SVt  → OfficePreviewErrorBoundary（resetKey 复位）(160633)
  *   CVt/wVt/TVt → OfficePending/Error/Dispatcher（excel/docx/legacy 三分派）(160654,160663,160670)
  *   EVt/G8 → isSvgPath/resolveErrorColor（fileMissing→destructive）(160696,160700)
- *   DVt  → CodeViewerContentDispatcher  全型分派+加载/错误/二进制/空态 (160699 / 133073)
+ *   DVt  → CodeViewerContentDispatcher  全型分派+加载/错误/二进制/空态 (160699)
  *
  *  PPTX 残缺读取守卫（160926–160963）：
  *   OVt=256*1024 分块；kVt/K8 → 错误码/错误类；AVt isIncomplete；jVt assertComplete；MVt readWholeFileInChunks
@@ -53,7 +53,7 @@
  *   eHt  → resolveBreadcrumb         工作区内相对分段/外绝对 (161111)
  *
  *  根组件：
- *   tHt  → CodeViewerPanel           aside data-testid=preview-pane (161141 / 133444)
+ *   tHt  → CodeViewerPanel           aside data-testid=preview-pane (161141)
  *
  *  行级代码评论 store（68511–68579 / jsx 60720）：
  *   kH/PH → workspaceKeyOf/bucketKeyOf（`${ws}\0${path}`）(68508,68511)
