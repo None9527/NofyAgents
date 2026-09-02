@@ -3417,7 +3417,7 @@ section	sem	obf	line	owner
 32	dedupeSectionHeaderFooters	wd	10928	15905
 32	normalizeDocumentSections	Td	12488	15908
 32	nodeHasHeavyContent	Ed	12489	15927
-32	floatingImageTopPx	kd	—	15936
+32	floatingImageTopPx	kd	21975–21983	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 32	isAboveDocumentImage	Ad	12981	15945
 32	paragraphFloatingImageTop	jd	13056	15948
 32	minFloatingImageTop	Md	13106	15960
@@ -3647,7 +3647,7 @@ section	sem	obf	line	owner
 32	pageContainsImage	CS	9082	26907
 32	buildPageThumbnailSnapshots	wS	34599	26909
 32	DocxEditorView	ES	9091	27340
-32	pageRegistry	C	—	27363
+32	pageRegistry	C	33911–33977	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 32	isReadOnly	k	3130	27368
 32	darkInverted	A	3152	27369
 32	invertFilter	M	3167	27370
@@ -3657,15 +3657,15 @@ section	sem	obf	line	owner
 32	paragraphRenderContext	I	3780	27377
 32	sections	Bn	120526	27640
 32	pageGeometry	Hn	1584	27646
-32	sectionMetrics	Un	—	27647
-32	geometryIdentityKey	Wn	—	27648
-32	sectionColumns	Jn	—	27679
-32	precomputedNumberingLabels	Yn	—	27680
+32	sectionMetrics	Un	35300	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+32	geometryIdentityKey	Wn	35301–35314	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+32	sectionColumns	Jn	35349	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+32	precomputedNumberingLabels	Yn	35350	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 32	bookmarkNodeIndexes	Xn	120852	27681
 32	measuredRowHeights	Zn	1847	27696
 32	paginationResult	Qn	1850	27709-27888
 32	pageIdentityKeys	rr	1902	27889
-32	firstPageByNode	ir	—	27890
+32	firstPageByNode	ir	35694–35704	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 32	行高换算 jsx 18523-18556	Fh	22652	—
 32	新页节起点集缓存	Hm	18267	—
 32	pageBreakBefore	Im	17468	—
@@ -3687,7 +3687,7 @@ section	sem	obf	line	owner
 32	undo	Ze/Qe	31955	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 32	文本测量原语 jsx 18184-18193	ch	18978	—
 32	pageCount	hr	2059	—
-32	isParagraph	kf/Af	—	—
+32	isParagraph	kf/Af	22708–22713	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 32	文本测量原语 jsx 18184-18193	lh	19280	—
 32	字号/字体解析 jsx 18106-18160	nh	18726	—
 32	setFontFamily	st/ct	32160	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
