@@ -137,7 +137,7 @@ import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, dismissT
 import { MarkdownRenderer } from '../../modules/MarkdownIntegration';
 import { RemoteSyncDialogs, UpdateStatusDialog, canOpenRemoteSessionSourceCheck, useConfirmDialog } from '../../modules/Modals'; // A0-TOPBAR-MATER：useConfirmDialog（原 U2）declare 删除 → Modals 属主真实 import
 import { CommandEmpty, CommandGroup, CommandList } from '../../modules/QuickPick';
-import { extractSessionPlans, summarizePlanChecklist } from '../conversation/PlanToolBlocks'; // 原 elt（styles 98156）/$ct（styles 98145）：A1-P1-B17 吸收 canonical（A1-R60 tlt 转录消费）
+import { extractSessionPlans, resolveGitSummaryModel, summarizePlanChecklist } from '../conversation/PlanToolBlocks'; // 原 elt（styles 98156）/Qct（styles 98128）/$ct（styles 98145）：A1-P1-B17 吸收 canonical（A1-R60 tlt 转录消费；A1-R62 Qct 双实例收敛消费）
 import { type SubagentOpenRequest } from '../../modules/SidePanel'; // A0-CLEANUP4：子代理会话打开请求（原 Dlt 构造面，js 98874）
 import { logger, useTaskStore } from '../../modules/SkillStore';
 import { useBaseServices, useWorkspaceServices } from '../../modules/services';
@@ -3005,34 +3005,6 @@ interface ConversationSummaryAsideProps {
 const EMPTY_BACKGROUND_WORKS: BackgroundWork[] = [];   // 原 slt（js 98272）
 const EMPTY_SUBAGENTS: RunningSubagent[] = [];         // 原 clt
 
-/** 原 Qct（js 98128 / jsx 85059-85080）：摘要面板 git 段投影，两道 null 门
- * （!isGitAvailable || !isRepository → null；added + removed <= 0 → null）。 */
-function buildSummaryPanelGitModel({
-  gitSummary,
-  gitDirtyFileCount = 0,
-  gitWorktreeChangeSummary,
-}: {
-  gitSummary: GitSummary | null;
-  gitDirtyFileCount?: number;
-  gitWorktreeChangeSummary?: { added?: number; removed?: number } | null;
-}) {
-  if (!gitSummary?.isGitAvailable || !gitSummary.isRepository) return null;
-  const added = gitWorktreeChangeSummary?.added ?? 0;
-  const removed = gitWorktreeChangeSummary?.removed ?? 0;
-  if (added + removed <= 0) return null;
-  const isClean = !gitSummary.isDirty && gitDirtyFileCount === 0 && added === 0 && removed === 0 && gitSummary.ahead === 0;
-  return {
-    branchName: gitSummary.branchName,
-    headRefType: gitSummary.headRefType,
-    dirtyFileCount: gitDirtyFileCount,
-    added,
-    removed,
-    ahead: gitSummary.ahead,
-    behind: gitSummary.behind,
-    isClean,
-  };
-}
-
 /** 原 tlt（js 98181）：把原始会话状态归一成摘要面板模型〔A1-R60 逐字实体化：替换 A0 手写体——施加 elt/$ct（extractSessionPlans/summarizePlanChecklist canonical）+ subagent 控制项联结/孤儿合成；runningWorks 复归全量运行工作（手写期误同 runningBashWorks，全树无消费面，零级联）〕 */
 export function buildSummaryPanelModel(args: {
   gitSummary: GitSummary;
@@ -3045,13 +3017,9 @@ export function buildSummaryPanelModel(args: {
   backgroundWorks?: BackgroundWork[];
   runningSubagents?: RunningSubagent[];
 }) {
-  // 原 tlt 直接 Qct(e) 全参透传；gitWorktreeChangeSummary 公共面为 unknown（Conversation 域同），
-  // 投影入口按消费面（added/removed）具型桥接，与 WorkspaceShell 属主型一致（A0-TOPBAR-MATER §2 裁定维持）。
-  let t = buildSummaryPanelGitModel({
-      gitSummary: args.gitSummary,
-      gitDirtyFileCount: args.gitDirtyFileCount,
-      gitWorktreeChangeSummary: args.gitWorktreeChangeSummary as { added?: number; removed?: number } | null | undefined,
-    }),
+  // 原 tlt 直接 Qct(e) 全参透传〔A1-R62 Qct 双实例收敛：TopBar 私有投影（原 buildSummaryPanelGitModel，A0 手写体）删除，
+  // canonical = PlanToolBlocks.resolveGitSummaryModel（B16 逐字转录）；全参透传 ≡ bundle Qct(e) 形，S1 三字段/cast 接缝随删〕。
+  let t = resolveGitSummaryModel(args),
     n = args.goal ?? null,
     r = extractSessionPlans(args.sessionPlans, args.workspacePath),
     i = summarizePlanChecklist(args.plan),
