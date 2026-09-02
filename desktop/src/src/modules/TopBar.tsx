@@ -10,76 +10,85 @@
  *   /home/none/grok-build/ref-ui/zcode-restored/src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx
  *
  * ----------------------------------------------------------------------------
- * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）
+ * 一、混淆名 → 语义名 映射表（行号格式：styles chunk js 定义行；R63 审计：原次列「jsx 行」系统性误链全删，见表尾审计注）
  * ----------------------------------------------------------------------------
  *  组件族主体：
- *   BOt  → TopBarOverlay              顶栏浮层 (129516 / 108974)
- *   o4   → TopBarIconButton          顶栏通用图标按钮+tooltip (129479 / 108952)
- *   LOt  → UpdateIndicator           更新指示器（下载中/可更新/已下载胶囊）(129385 / 108869)
- *   IOt  → updatePillResponsiveClasses 更新胶囊按平台展开的容器查询类 (129354 / 108851)
- *   FOt  → ReleaseNotesPopover       发行说明弹层 (129296 / 108831)
- *   POt  → UpdateStatusDialogController 更新对话框控制器（下载/跳过/重启安装）(129142 / 108678)
- *   COt  → UpdateStatusDialog        更新对话框呈现层（属主 Modals.tsx，本文件真实 import 调用）(128812 / 108390)
- *   DOt  → resolveUpdateViewModel    更新状态 → 视图模型 (129083 / 108630)
- *   TOt  → pickLocalizedReleaseNotes (129064 / 108612)
- *   EOt  → formatReleaseDate         (129071 / 108620)
- *   kOt  → downloadProgressLabel     (129113 / 108657)
- *   NOt  → formatMegabytes           (129139 / 108680)
- *   c4   → windowsCaptionInsetStyle  env(titlebar-area-*) 计算右侧原生控件宽度 (129509 / 108967)
- *   s4   → WINDOWS_CAPTION_RIGHT_INSET_VAR (129507 / 108965)
- *   zOt  → WINDOWS_CAPTION_BUTTON_CLASS   (129515 / 108973)
- *   S6   → WindowsCaptionMenu        Win/Linux 标题栏 ⌄ 应用菜单 (141854 / 117848)
- *   U6   → HelpMenu                  帮助菜单（反馈/建议/社群/文档/导出日志）(143345 / 119420)
- *   H6   → TerminalToggleButton      终端开关（Ctrl+J，激活 !bg-selected）(143316 / 119406)
- *   TFt  → SessionHeader             会话头（h-12 border-b）(144008 / 119938)
- *   wFt  → SessionHeaderLeft         会话头左簇（标题/路径pill/分支/更多）(143485 / 119493)
- *   SFt  → SessionHeaderRight        会话头右簇（编辑器/帮助/终端/侧面板）(143418 / 119457)
- *   xFt  → OpenInEditorButtonGroup   在 IDE 中打开（主按钮+⌄选择编辑器）(143194 / 119336)
- *   j6   → TaskRenameDialog          任务重命名对话框（IME 保护）(142581 / 118551)
- *   oFt  → TaskActionMenuItems       任务操作菜单项（置顶/重命名/归档/未读/复制路径…）(142183 / 118106)
- *   zZ   → GitBranchChip             git 分支切换 chip（含分支搜索/新建/提交切换）(96589 / 84085)
- *   n4   → RemoteSyncMenuItems       远程同步菜单项（技能/MCP/插件）(127166 / 107575)
- *   r4   → RemoteSyncDialogs         远程同步对话框组（本文件仅保留接口）(127265 / 107623)
- *   Flt  → ConversationSummaryAside  会话右摘要栏（mini/panel/auto 三态）(99217 / 85723)
+ *   BOt  → TopBarOverlay              顶栏浮层 (129516)
+ *   o4   → TopBarIconButton          顶栏通用图标按钮+tooltip (129479)
+ *   LOt  → UpdateIndicator           更新指示器（下载中/可更新/已下载胶囊）(129385)
+ *   IOt  → updatePillResponsiveClasses 更新胶囊按平台展开的容器查询类 (129354)
+ *   FOt  → ReleaseNotesPopover       发行说明弹层 (129296)
+ *   POt  → UpdateStatusDialogController 更新对话框控制器（下载/跳过/重启安装）(129142)
+ *   COt  → UpdateStatusDialog        更新对话框呈现层（属主 Modals.tsx，本文件真实 import 调用）(128812)
+ *   DOt  → resolveUpdateViewModel    更新状态 → 视图模型 (129083)
+ *   TOt  → pickLocalizedReleaseNotes (129064)
+ *   EOt  → formatReleaseDate         (129071)
+ *   kOt  → downloadProgressLabel     (129113)
+ *   NOt  → formatMegabytes           (129139)
+ *   c4   → windowsCaptionInsetStyle  env(titlebar-area-*) 计算右侧原生控件宽度 (129509)
+ *   s4   → WINDOWS_CAPTION_RIGHT_INSET_VAR (129507)
+ *   zOt  → WINDOWS_CAPTION_BUTTON_CLASS   (129515)
+ *   S6   → WindowsCaptionMenu        Win/Linux 标题栏 ⌄ 应用菜单 (141854)
+ *   U6   → HelpMenu                  帮助菜单（反馈/建议/社群/文档/导出日志）(143345)
+ *   H6   → TerminalToggleButton      终端开关（Ctrl+J，激活 !bg-selected）(143316)
+ *   TFt  → SessionHeader             会话头（h-12 border-b）(144008)
+ *   wFt  → SessionHeaderLeft         会话头左簇（标题/路径pill/分支/更多）(143485)
+ *   SFt  → SessionHeaderRight        会话头右簇（编辑器/帮助/终端/侧面板）(143418)
+ *   xFt  → OpenInEditorButtonGroup   在 IDE 中打开（主按钮+⌄选择编辑器）(143194)
+ *   j6   → TaskRenameDialog          任务重命名对话框（IME 保护）(142581)
+ *   oFt  → TaskActionMenuItems       任务操作菜单项（置顶/重命名/归档/未读/复制路径…）(142183)
+ *   zZ   → GitBranchChip             git 分支切换 chip（含分支搜索/新建/提交切换）(96589)
+ *   n4   → RemoteSyncMenuItems       远程同步菜单项（技能/MCP/插件）(127166)
+ *   r4   → RemoteSyncDialogs         远程同步对话框组（本文件仅保留接口）(127265)
+ *   Flt  → ConversationSummaryAside  会话右摘要栏（mini/panel/auto 三态）(99217)
  *   VO/HO/UO/WO/GO/KO/qO/JO/YO/XO
- *        → DropdownMenu* 原语族      (47926-48040 / 43144-43290)
+ *        → DropdownMenu* 原语族      (47926-48040)
  *
  *  辅助钩子 / 服务 / store（同 chunk 内）：
- *   ZPt  → useHelpActions            (141806 / 117792)
- *   $Pt  → isAutoUpdateChannelSupported（env==='production'）(141826 / 117816)
- *   eFt/tFt → updateMenuItemI18nId / updateMenuItemI18nValues (141829,141843 / 117819,117833)
- *   QPt  → CAPTION_MENU_ALIGN_OFFSET = -12 (141825 / 117815)
- *   YPt  → captureFeedbackScreenshots (141785 / 117765)
- *   XPt  → exportLogsWithToast       (141789 / 117769)
- *   lw   → PRODUCT_DOCS_URL = https://zcode.z.ai/docs (39410 / 35469)
- *   C6   → useTaskFileActions        (142068 / 118006)
- *   CFt/$2 → canOpenRemoteSessionSource (143499,127142 / 119494,107556)
- *   ZTt  → remoteTargetLabel         (123256 / 104935)
- *   QTt  → sshDecoratedProjectName   (123268 / 104947)
- *   Zge  → resolveEffectiveProvider  (jsx 21359)
- *   U2   → useConfirmDialog          (123510 / 105222)
- *   Oc   → useWorkspaceServices      (4945 / 3754)
- *   Ec   → useBaseServices           (4897 / 3716)
- *   ZS   → useTaskListItems          (35727 / 32810)
- *   Uo   → applyOptimisticTaskMutation (1895 / 959)
- *   w6   → buildTaskFeedbackDescription (142334 / 118239)
- *   pct  → useGitBranchSwitcher      (96362 / 83842)
- *   MZ   → resolveBranchDisplayLabel (94967 / 82976)
- *   Uct  → resolveSummaryPanelVariant (98064 / 84991)
- *   tlt  → buildSummaryPanelModel    (98181 / 85113)
- *   slt/clt → EMPTY_BACKGROUND_WORKS / EMPTY_SUBAGENTS (98272 / 85193)
+ *   ZPt  → useHelpActions            (141806)
+ *   $Pt  → isAutoUpdateChannelSupported（env==='production'）(141826)
+ *   eFt/tFt → updateMenuItemI18nId / updateMenuItemI18nValues (141829,141843)
+ *   QPt  → CAPTION_MENU_ALIGN_OFFSET = -12 (141825)
+ *   YPt  → captureFeedbackScreenshots (141785)
+ *   XPt  → exportLogsWithToast       (141789)
+ *   lw   → PRODUCT_DOCS_URL = https://zcode.z.ai/docs (39410)
+ *   C6   → useTaskFileActions        (142068)
+ *   CFt/$2 → canOpenRemoteSessionSource (143499,127142)
+ *   ZTt  → remoteTargetLabel         (123256)
+ *   QTt  → sshDecoratedProjectName   (123268)
+ *   Zge  → resolveEffectiveProvider  (24734)
+ *   U2   → useConfirmDialog          (123510)
+ *   Oc   → useWorkspaceServices      (4945)
+ *   Ec   → useBaseServices           (4897)
+ *   ZS   → useTaskListItems          (35727)
+ *   Uo   → applyOptimisticTaskMutation (1895)
+ *   w6   → buildTaskFeedbackDescription (142334)
+ *   pct  → useGitBranchSwitcher      (96362)
+ *   MZ   → resolveBranchDisplayLabel (94967)
+ *   Uct  → resolveSummaryPanelVariant (98064)
+ *   tlt  → buildSummaryPanelModel    (98181)
+ *   slt/clt → EMPTY_BACKGROUND_WORKS / EMPTY_SUBAGENTS (98272)
  *   mlt/hlt/Clt/Tlt/klt/Alt/Plt
  *        → SummaryGitSection / SummaryGoalSection / SummaryPlansSection /
  *          SummaryPlanSection / SummaryTerminalsSection / SummaryAgentsSection /
- *          SummaryMiniCard (98402,98501,98775,98826,98919,98981,99157 / 85281…85678)
- *   yC   → useFeedbackStore          (36992 / 33835)
- *   E6   → usePinnedTaskListStore    (142372 / 118266)
- *   k6   → useWorkspaceTaskListStore (142464 / 118392)
- *   Ug   → useMcpStore               (jsx 21655)
- *   ls   → useTrajectoryViewerStore  (jsx 1697)
+ *          SummaryMiniCard (98402,98501,98775,98826,98919,98981,99157)
+ *   yC   → useFeedbackStore          (36992)
+ *   E6   → usePinnedTaskListStore    (142372)
+ *   k6   → useWorkspaceTaskListStore (142464)
+ *   Ug   → useMcpStore               (25055)
+ *   ls   → useTrajectoryViewerStore  (2610)
  *   xe   → useTaskStore（skillStore chunk 的 h 导出）
  *
- *  图标（lucide 风格，Sa=createLucideIcon 工厂，js 行 / jsx 行）：
+ *  〔A1-R63 映射表次列审计〕原次列「jsx 行」系统性误链，全删：
+ *   实证①：src chunk 仅 10,069 行，次列 118006/118239/118266/118392 等不可能存在；
+ *   实证②：styles 抽样 84991/85113/85193/85281 全落支付区（zet@84460 全屏视图域，purchaseAudience/onPayWithStripePaymentMethod 邻证）、
+ *          108678 落工具输出区（Sht@108629，TaskOutput 渲染）、83842/82976 落支付字段（balanceLoading/campaignDiscountAmount）、
+ *          32810/33835 落 zod/Set 区、21359/21655 落 innerHTML/mergeBuffers 区，皆与符号语义无关；
+ *   实证③：真 jsx 渲染体在融合 chunk 内联邻接（摘要面板 jsx 99319+，chat-summary-panel 变量实证），无独立远端 jsx 区；
+ *   三 jsx-only 行改真定义行：Zge 21359→24734（`e ?? t` 体证）、Ug 21655→25055（Ae store，servers/statusSnapshots 消费实证）、
+ *          ls 1697→2610（model-trajectory-open 体证）；误链同源 = a0-symbols.tsv 旧值（Zge/Ug 行同错）。
+ *
+ *  图标（lucide 风格，Sa=createLucideIcon 工厂，js 行）：
  *   S_ arrow-left 26634 | C_ arrow-right 26649 | hv message-circle-plus 27379
  *   Tv panel-left-close 27535 | Ev panel-left-open 27540
  *   ibe panel-right-close 27545 | abe panel-right-open 27550
@@ -101,7 +110,7 @@
  *  1. react / jsx-runtime            react-BQLj9xdT.js、jsx-runtime-B5yMD3-t.js
  *  2. cn() 类名合并 (Z)               utils-CEEH0K_K.js  (t 导出)
  *  3. Button (X) / createLucideIcon (Sa)
- *                                    button-laUijeDG.js  (t / c 导出)
+ *                                    button-laUijeDG.js  (t)
  *  4. useIntlContext (G) 返回 {intl, locale}
  *                                    IntlProvider-C321H7m8.js (n 导出)
  *  5. usePlatformService (l)、toast (m/b)、Input (P)、IME 回车守卫 (A)、
