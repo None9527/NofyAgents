@@ -134,7 +134,7 @@
  *      IMAGE_THUMBNAIL_CLASS (Gk)、IMAGE_INNER_CLASS (Kk)；
  *  14. 工具身份族（Conversation 域）：classifyToolCall (og)、toolContentFamilyOf (cg)、
  *      toolEditFamilyOf (sg)、parseToolRawPayload (Bh)、extractBeforeAfterEdit (Rh)、
- *      buildUnifiedDiffText (Kh)；
+ *      buildUnifiedDiffText (Kh)——六名全改指 ../conversation/ToolCallClassification 真实 import〔A1-P1-B18/B19〕；
  *  15. 路径助手（横切 1925–1975）：baseName (Go)、isAbsolutePath (Ko)、
  *      resolvePathAgainst (Jo)、decodeUriSafe (qo)。
  * ============================================================================
@@ -150,7 +150,7 @@ import { TableEdgeShadow, IMAGE_THUMBNAIL_CLASS, backToBottomInset, baseName, ch
 import { t as logger } from '../../modules/logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（first-party 信息浮层件，调用面仅 title/side）
-import { classifyToolCall } from '../conversation/ToolCallClassification'; // 原 og（styles 23132）：A1-P1-B18 实体化收敛（工具分类域）
+import { classifyToolCall, toolContentFamilyOf, toolEditFamilyOf, parseToolRawPayload, extractBeforeAfterEdit, buildUnifiedDiffText } from '../conversation/ToolCallClassification'; // 原 og（styles 23132）：A1-P1-B18 实体化收敛（工具分类域）；〔A1-P1-B19〕余件五 declare 全闭改指：cg@23193/sg@23187/Bh@22682/Rh@22666 转录并入 + Kh@22830 既有实体
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
@@ -221,11 +221,14 @@ interface ToolIdentity {
  * canonical 返回面 = og 全形 { toolName, family, source, isLegacy }，对本面 ToolIdentity
  * { family: string; [key: string]: unknown } 结构兼容〔A1-P1-B18〕。消费面改文件头真实 import，
  * 调用面（2185/2221）逐字不变。 ── */
-declare function toolContentFamilyOf(toolCall: ToolCallLike, identity?: ToolIdentity): boolean; // cg
-declare function toolEditFamilyOf(toolCall: ToolCallLike, identity?: ToolIdentity): boolean; // sg
-declare function parseToolRawPayload(raw: unknown): { oldText?: string; newText?: string; path?: string } | null; // Bh
-declare function extractBeforeAfterEdit(value: unknown): { before: string; after: string } | null; // Rh
-declare function buildUnifiedDiffText(before: string, after: string, fileName: string, mode?: unknown): string | null; // Kh
+/* ── tombstone〔A1-P1-B19〕：工具身份族余件 5 declare 删除——全闭改指 ../conversation/ToolCallClassification：
+ * cg toolContentFamilyOf@styles 23193 / sg toolEditFamilyOf@styles 23187 / Bh parseToolRawPayload@styles 22682 /
+ * Rh extractBeforeAfterEdit@styles 22666 逐字转录并入该 canonical（B18 区段切分段闭合，域吻合裁定）；
+ * Kh buildUnifiedDiffText@styles 22830 改指 B18 既有实体。返回面核对〔A1-P1-B19〕：bundle Kh 恒返回 string
+ * （`a ? Dme(S,o) : S` 双支均 string，Dme@22573 恒返回 string），原 declare 面 string|null 为宽化，本面消费
+ * 仅真值判（2195/2203），string 子型直接接通，无投射缝。ToolIdentity 型脚手架保留（B18 墓碑引用在案，
+ * canonical 参缝 : any 结构兼容）。消费面改文件头真实 import，调用点（2187/2191/2193/2195/2201/2203/2223/
+ * 2227/2229/2232）逐字不变。 ── */
 
 /* ── tombstone〔A1-P1-B15〕：declare resolvePathAgainst（原 Jo）删除——束真身 Jo@1952 已逐字转录为
  * modules/MarkdownIntegration resolveWorkspaceRelativePath（Go/sae/qo/Ko 同连续段 1928–1957，落点随段判例
