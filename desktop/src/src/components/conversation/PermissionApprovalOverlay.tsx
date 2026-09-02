@@ -3,9 +3,15 @@
 // 四 declare〔A1-R61：parseToolCallRaw/isPlainRecord 实体化入 ToolStatusModel；A1-P1-B18：classifyToolCall/extractRawFileSummaries 实体化入 ToolCallClassification，四件全闭〕
 // + InteractionOrigin/PermissionOption/PermissionRequest 模型；后两者补 export 供交互调度族 type import 取回）。
 // 导入路径按 components/conversation/ 深度改指 ../../modules/。
+// 〔A1-P1-B20〕SwitchModeHint declare 闭合：原 Hpt（styles-CdEGpc2x.js 106453–106563，111 行，jsx 91360）逐字转录 JSX 组件入本文件（§1 内，墓碑在位）。
+// 映射表（混淆名 → 语义名 → bundle 定义行）：Hpt→SwitchModeHint（106453）| G→useIntlContext（IntlProvider-C321H7m8.js D@9254；styles 424 `n as G` 导入）|
+//   Q→React（styles 996 `var Q = r(F(), 1)`）| $→jsx-runtime（styles 1287 `var $ = Ke()`；JSX 语法吸收）| m→toast（imeComposition-DEYFkwWm.js Un@12355；styles 347 `_ as m` 导入）|
+//   X→Button（button-laUijeDG.js D；styles 899 `t as X` 导入）| Bv→IconShieldCheck（styles 27827）| ebe→IconMonitor（styles 27511）| Rv→IconSettings（styles 27806）| iv→IconGripVertical（styles 27236）。
+// 转录形态声明：编译态 JSX（$.jsxs/$.jsx 链）转录为 JSX 语法，逐节点对束（钩序 useState→useEffect→早返、混淆局部名 e/t/n/r/i、
+//   catch(e)/onDragStart(t)/try 内 let r 三重遮蔽逐字保留）。型缝 1 处（props platform: any）带〔A1-P1-B20〕。
 /* eslint-disable */
 import * as React from "react";
-import { Info as IconInfo, Loader as IconLoader, Shield as IconShield } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
+import { Info as IconInfo, Loader as IconLoader, Shield as IconShield, ShieldCheck as IconShieldCheck, Monitor as IconMonitor, Settings as IconSettings, GripVertical as IconGripVertical } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0。〔A1-P1-B20〕+IconShieldCheck/IconMonitor/IconSettings/IconGripVertical（原 Bv/ebe/Rv/iv = Sa('shield-check'/'monitor'/'settings'/'grip-vertical') styles 27827/27511/27806/27236；iconNode 与 npm lucide-react@1.35.0 逐元素吻合，A0-S3b 式 npm 改指）
 import { ShellToolView, ToolLayout } from '../../modules/Conversation'; // +ToolLayout（A0-D 接线：declare → Conversation canonical）
 import { FallbackToolView, FileWriteToolView, SearchToolView, SkillToolView, type FileSummary, type ToolCall, type ToolCallViewProps } from '../../modules/ConversationLeaves'; // +3 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）
 import { type CodePreviewSettings } from '../../modules/MarkdownIntegration';
@@ -18,6 +24,7 @@ import { classifyToolCall, extractRawFileSummaries } from './ToolCallClassificat
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import { Button } from '../../modules/button'; // 原 H（A0-D 接线：declare → button canonical）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
+import { toast } from '../../modules/ImeComposition'; // 原 m（styles 347 `_ as m` ← imeComposition-DEYFkwWm.js Un@12355 导出 `_`）：〔A1-P1-B20〕SwitchModeHint 失败 toast 消费（canonical 改指）
 
 /* ── tombstone〔A1-P1-B18〕：classifyToolCall/extractRawFileSummaries 双 declare（原 og/_g）删除——
  * 逐字实体化 → ./ToolCallClassification（styles og@23132–23186 / _g@23686–23749；roundtrip EXACT，
@@ -387,8 +394,119 @@ function InteractionOriginBadge({ className, origin }: { className?: string; ori
 /* ── tombstone〔A1-P1-B11〕：isSwitchModePermissionRequest declare（Xpt）删除——逐字实体化 →
  * ./PermissionRequestModel（styles 106564–106655；roundtrip EXACT，/tmp/a1r0-p1/p11/）。
  * 消费面改文件头真实 import，调用面逐字不变。 ── */
-/** 原 Hpt（js 106453 / jsx 91360）：切模式提示（按平台快捷键） */
-declare const SwitchModeHint: React.FC<{ platform: unknown }>;
+/* ── tombstone〔A1-P1-B20〕：SwitchModeHint declare（原 Hpt）删除——逐字实体化 → 本文件下方 SwitchModeHint（原 Hpt：
+ * styles-CdEGpc2x.js 106453–106563，111 行编译态 JSX 组件，jsx 91360）。调用点 bundle 106698/117134：
+ * 117134 = 本覆盖层（Hxt）消费面 ≡ 本文件调用面，逐字不变；106698 = FallbackToolView 域消费面
+ * （ConversationToolViews CuaPermissionOnboardingPanel A0 手写近似体承之，非逐字，留批）。
+ * 依赖对束：G≡useZCodeIntl（IntlProvider-C321H7m8.js D@9254，`useZCodeIntl 必须在 ZCodeIntlProvider 内使用` 体证；
+ * 本文件 useIntlContext ≡ I18n canonical）/ Q≡React（styles 996 `var Q = r(F(), 1)`，react-BQLj9xdT interop）/
+ * $≡jsx-runtime（styles 1287 `var $ = Ke()`，jsx-runtime-B5yMD3-t；JSX 语法吸收）/ m≡toast（imeComposition-DEYFkwWm.js
+ * Un@12355，`Ln(); let n = An++;` 体证；modules/ImeComposition canonical 改指）/ X≡Button（button-laUijeDG.js D，
+ * `data-slot: button` 体证；本文件 button canonical）/ Bv≡shield-check@27827・ebe≡monitor@27511・Rv≡settings@27806・
+ * iv≡grip-vertical@27236（Sa≡createLucideIcon = button-laUijeDG `_ as c`；四 iconNode 与 npm lucide-react@1.35.0
+ * 逐元素吻合〔含 key〕，defaultAttributes/工厂同构实证 → A0-S3b 式 npm 改指）。
+ * prepareCuaHelperPermissionDrag 及 openCuaPermissionOnboarding/openCuaAccessibilitySettings/startCuaHelperPermissionDrag
+ * 三兄弟 = platform 对象方法面，既有属主在案：modules/ConversationLeaves PlatformService@245–248（型面）+
+ * modules/rendererEntry@486–493（zcodeBridge 接线）；本实体经 prop 透传，无独立 import。 ── */
+
+/** 原 Hpt（styles-CdEGpc2x.js 106453–106563 / jsx 91360）：切模式提示（CUA 权限引导面板：辅助功能/屏幕录制开启 + 拖拽助手）。
+ * 转录形态：编译态 JSX → JSX 语法逐节点对束；混淆局部名 e/t/n/r/i 保留（B5 约定）。
+ * 型缝：props `{ platform: any }`〔A1-P1-B20〕——declare 面 `{ platform: unknown }` 宽化（调用面 `platform?: unknown` 吸收 +
+ * 体面 CUA 四方法访问；bundle 无类型面，接缝仅编译期）。 */
+function SwitchModeHint({ platform: e }: { platform: any }) {
+  let { intl: t } = useIntlContext(),
+    [n, r] = React.useState(!1);
+  if (
+    (React.useEffect(() => {
+      typeof e?.prepareCuaHelperPermissionDrag == `function` &&
+        e.prepareCuaHelperPermissionDrag().catch(() => {});
+    }, [e]),
+    typeof e?.openCuaPermissionOnboarding != `function` &&
+      typeof e?.openCuaAccessibilitySettings != `function`)
+  )
+    return null;
+  let i = async (n: any) => {
+    r(!0);
+    try {
+      let r =
+        typeof e.openCuaPermissionOnboarding == `function`
+          ? await e.openCuaPermissionOnboarding({ initialPermission: n })
+          : n === `accessibility`
+            ? await e.openCuaAccessibilitySettings?.()
+            : { success: !1, error: `not_supported` };
+      r?.success === !1 &&
+        !r.canceled &&
+        toast(
+          t.formatMessage(
+            { id: `chat.cuaPermission.openFailed` },
+            { error: r.error ?? `unknown error` },
+          ),
+        );
+    } catch (e) {
+      toast(
+        t.formatMessage(
+          { id: `chat.cuaPermission.openFailed` },
+          { error: e instanceof Error ? e.message : String(e) },
+        ),
+      );
+    } finally {
+      r(!1);
+    }
+  };
+  return (
+    <div className={`grid gap-3 rounded-xl border border-border bg-muted/20 px-3 py-3`}>
+      <div className={`flex flex-wrap items-center gap-2`}>
+        <Button
+          type={`button`}
+          size={`sm`}
+          variant={`outline`}
+          disabled={n}
+          onClick={() => {
+            i(`accessibility`);
+          }}
+        >
+          <IconShieldCheck className={`size-4`} />
+          {t.formatMessage({
+            id: n ? `chat.cuaPermission.opening` : `chat.cuaPermission.openAccessibility`,
+          })}
+        </Button>
+        <Button
+          type={`button`}
+          size={`sm`}
+          variant={`outline`}
+          disabled={n || typeof e?.openCuaPermissionOnboarding != `function`}
+          onClick={() => {
+            i(`screen_recording`);
+          }}
+        >
+          <IconMonitor className={`size-4`} />
+          {t.formatMessage({
+            id: n ? `chat.cuaPermission.opening` : `chat.cuaPermission.openScreenRecording`,
+          })}
+        </Button>
+      </div>
+      <button
+        type={`button`}
+        draggable={typeof e?.startCuaHelperPermissionDrag == `function`}
+        disabled={typeof e?.startCuaHelperPermissionDrag != `function`}
+        aria-label={t.formatMessage({ id: `chat.cuaPermission.dragTitle` })}
+        className={`flex min-w-0 cursor-grab items-center gap-3 rounded-lg border border-dashed border-border bg-card px-3 py-2 text-left active:cursor-grabbing disabled:cursor-default disabled:opacity-70`}
+        onDragStart={(t) => {
+          (t.preventDefault(), e?.startCuaHelperPermissionDrag?.());
+        }}
+      >
+        <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-foreground`}>
+          <IconSettings className={`size-4`} />
+        </div>
+        <div className={`min-w-0 flex-1`}>
+          <p className={`truncate text-ui-base font-medium text-foreground`}>{t.formatMessage({ id: `chat.cuaPermission.dragTitle` })}</p>
+          <p className={`text-ui-base leading-5 text-foreground-subtle`}>{t.formatMessage({ id: `chat.cuaPermission.helperPathHint` })}</p>
+        </div>
+        <IconGripVertical className={`size-4 shrink-0 text-foreground-subtlest`} />
+      </button>
+    </div>
+  );
+}
 
 /**
  * 审批内联覆盖层（原 Hxt，js 116960 / jsx 99392）。
