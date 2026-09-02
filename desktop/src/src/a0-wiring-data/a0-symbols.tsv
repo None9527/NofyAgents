@@ -3056,8 +3056,8 @@ section	sem	obf	line	owner
 28	formatMarketplaceTime	j0t	200195	SettingsLeaves.tsx
 28	PluginUninstallDialog	M0t	200199	SettingsLeaves.tsx
 28	useUninstallFlow	N0t	200248	SettingsLeaves.tsx
-28	i18n	G1t/K1t	—	—
-28	ScrollArea	Y3/XMt	—	—
+28	i18n	G1t/K1t	198449–198473	PluginLeaves.tsx
+28	ScrollArea	Y3/XMt	136043–136074	scroll-area.tsx
 29	FOLDER_ICON_DATA_URI	Mc	5159	ModalsLeaves.tsx
 29	materialIconsBaseOverride	Nc	5114	ModalsLeaves.tsx
 29	setMaterialIconsBase	$se	5161	ModalsLeaves.tsx
