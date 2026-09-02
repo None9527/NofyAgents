@@ -1006,9 +1006,9 @@ section	sem	obf	line	owner
 9	repoWikiChannel	VAe	34984	—
 9	setPlatformBridge	WOt	129687	—
 9	transportFrameLimits	Wf	14611	—
-9	useSkillStore	Yn	—	—
+9	useSkillStore	Yn	2353	skillStore-BmeKHDBI.js
 9	zcodeAgentChannel	_Ae	34958	—
-9	registerE2EStoreBridges	a	—	—
+9	registerE2EStoreBridges	a	2–8	e2eStoreBridgeBootstrap-DOKuAE2h.js
 9	WorkspaceSelectionRow	a4	128585	—
 9	ProtocolClient	ase	3944	—
 9	parseLaunchMarks	ax	32288	—
@@ -1045,7 +1045,7 @@ section	sem	obf	line	owner
 9	botsChannel	xAe	34964	—
 9	SidePanel	xqt	182772	—
 9	registerRemoteSession	xse	4397	—
-9	useSessionStore	yn	—	—
+9	useSessionStore	yn	1798	skillStore-BmeKHDBI.js
 9	settingsSyncChannel	zAe	34982	—
 9	GitBranchChip	zZ	96637	—
 10	buildLastTurnChangeSummary	Hhe	23774	GitReview.tsx
