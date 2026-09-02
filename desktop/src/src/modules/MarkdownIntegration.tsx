@@ -153,6 +153,13 @@ export {
   createMathPlugin,
   createMermaidPlugin,
   MERMAID_PLUGIN,
+  MERMAID_INLINE_PLUGIN, // 〔A1-R99〕BO 逐字实体化七件补导出（原 Fze/Vze/Bze/zze/Hze/RO/Lze）
+  resolveMermaidThemeVars,
+  resolveMermaidConfigBase,
+  buildMermaidConfig,
+  describeMermaidError,
+  fnv1aBase36,
+  enqueueMermaidRender,
   STREAMDOWN_PLUGINS,
   LINK_SAFETY_DISABLED,
   STREAMDOWN_CONTROLS,

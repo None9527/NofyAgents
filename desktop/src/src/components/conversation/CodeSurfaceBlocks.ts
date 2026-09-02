@@ -36,8 +36,9 @@ import { Button } from '../../modules/button'; // 原 X（button-laUijeDG.js t �
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（usageStatsUiParts-CiR7YEhh.js u 导出）
 import { TextWrap as IconTextWrap, Maximize2 as IconMaximize2, Check as IconCheck, Copy as IconCopy, SquareMousePointer as IconSquareMousePointer } from 'lucide-react'; // 原 Tbe/mv/M_/W_/xbe（styles vendored Sa；A0-S3b 判例）
 import { FileIcon, resolveFileIconMeta } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc（styles 5198/5198 逐字实体化；declare 收敛）
-import { isMermaidLanguage, isMermaidBlock as shouldRenderMermaidPreview, documentVisibilityState as resolveDocumentVisibilityState, mermaidAutoRenderGate as evaluateMermaidPreviewRender } from '../../modules/MarkdownIntegration'; // 〔A1-P1-B15〕原 NO/Oze/Mze/Pze（mermaid 门控域 47709–47894 既录 canonical；declare 收敛）
+import { isMermaidLanguage, isMermaidBlock as shouldRenderMermaidPreview, documentVisibilityState as resolveDocumentVisibilityState, mermaidAutoRenderGate as evaluateMermaidPreviewRender, MERMAID_INLINE_PLUGIN, buildMermaidConfig, describeMermaidError, enqueueMermaidRender, fnv1aBase36, resolveMermaidConfigBase, resolveMermaidThemeVars } from '../../modules/MarkdownIntegration'; // 〔A1-P1-B15〕原 NO/Oze/Mze/Pze（mermaid 门控域 47709–47894 既录 canonical；declare 收敛）；〔A1-R99〕+mermaid 内嵌渲染七件（原 Fze/zze/Hze/Lze/RO/Bze/Vze，BO 深依赖补导出改指）
 import { MermaidFullscreenDialog as MermaidPreviewDialog } from '../../modules/PreviewCards'; // 〔A1-P1-B17〕原 Qze（48269）canonical（components/preview/PreviewCards@469 逐字；SettingsCodeBlock 同符改指先例）；R1 判例别名保留调用名——下方 declare 删碑改指
+import { SpinnerIcon } from '../../modules/ImeComposition'; // 〔A1-R99〕原 M（imeComposition-DEYFkwWm.js w 导出；LoaderCircle 域外消费别名，ImeComposition@285）
 
 /* ── tombstone〔A1-P1-B15〕：文件图标二 declare（FileIcon/resolveFileIconMeta，原 Vc/zc）删除——束真身
  * 5243/5198 已逐字实体化于 ./FileIconBlocks（文件图标域 5064–5267 收割，B14 留批第 3 项）。消费面逐字不变。 ── */
@@ -45,7 +46,92 @@ import { MermaidFullscreenDialog as MermaidPreviewDialog } from '../../modules/P
  * modules/MarkdownIntegration（isMermaidLanguage/isMermaidBlock/documentVisibilityState/mermaidAutoRenderGate，
  * A0 期语义重建在案；型面兼容：shouldRender/reason/metrics 返回面逐字段吻合）。别名导入保持本叶逐字体不变。 ── */
 declare const CodeSurfaceCodePane: React.FC<{ code: string; enableSyntaxHighlighting?: boolean; language?: string; showLineNumbers?: boolean; theme?: string; wrapLongLines?: boolean; className?: string; fontSizePx?: number; style?: Record<string, unknown> }>; // 原 MO（47549，代码面板域未实体化，留批）
-declare const CodeSurfaceMermaidPane: React.FC<{ code: string; theme?: string; onOpenPreview?: () => void; onPreviewSvgChange?: (svg: string | null) => void }>; // 原 BO（47895）
+/* ── tombstone〔A1-R99〕：declare CodeSurfaceMermaidPane（原 BO 47895–47973）删除——逐字实体化于下方。
+ *    深依赖全改指树内 canonical：G→useIntlContext（文件头既有）| Vze→resolveMermaidThemeVars | Bze→resolveMermaidConfigBase
+ *    | zze→buildMermaidConfig | RO→fnv1aBase36 | Lze→enqueueMermaidRender | Fze→MERMAID_INLINE_PLUGIN
+ *    | Hze→describeMermaidError（以上七件 components/markdown/MarkdownIntegration，本批补导出）
+ *    | M→SpinnerIcon（modules/imeComposition）| J→logger | Z→cn（文件头既有）。型缝二处见行内注。
+ *    A0 版 MermaidInlinePreview（同 BO，SettingsCodeBlock 消费）双轨并存登记 W5 对账。 ── */
+/* ── 原 BO（js 47895–47973）→ CodeSurfaceMermaidPane：mermaid 内嵌预览（loading → svg / 失败降级 pre）〔A1-R99 逐字实体化〕 ── */
+function CodeSurfaceMermaidPane({
+  code: e,
+  className: t,
+  theme: n = `system`,
+  onOpenPreview: r,
+  onPreviewSvgChange: i,
+  ...a
+}: any) {
+  let { intl: o } = useIntlContext(),
+    s = resolveMermaidThemeVars(n),
+    c = (0, React.useId)().replace(/[^a-zA-Z0-9_-]/g, ``),
+    l = e.trim(),
+    u = resolveMermaidConfigBase(n),
+    d = `${n}:${u}:${s}`,
+    f = (0, React.useMemo)(() => buildMermaidConfig(u), [u, d]),
+    p = (0, React.useMemo)(() => `${d}:${fnv1aBase36(l)}`, [d, l]),
+    [m, h] = (0, React.useState)({ status: `loading` } as any); // 〔A1-R99〕型缝：三态联合（loading/plaintext/ready+svg）束原形单态初始化
+  return (
+    (0, React.useEffect)(() => {
+      let e = !1;
+      if (!l) {
+        (h({ status: `plaintext` }), i?.(null));
+        return;
+      }
+      (h({ status: `loading` }), i?.(null));
+      let t = `zcode-mermaid-${c}-${fnv1aBase36(p)}`;
+      return (
+        enqueueMermaidRender(async () => MERMAID_INLINE_PLUGIN.getMermaid(f).render(t, l))
+          .then(({ svg: t }) => {
+            e || (h({ status: `ready`, svg: t }), i?.(t));
+          })
+          .catch((t) => {
+            let n = describeMermaidError(t);
+            (logger.debug(`[MermaidBlock] Mermaid 渲染失败`, { error: n, codeLength: l.length }),
+              e || (h({ status: `plaintext` }), i?.(null)));
+          }),
+        () => {
+          ((e = !0), i?.(null));
+        }
+      );
+    }, [o, f, i, c, p, l]),
+    (0, $.jsx)(`div`, {
+      className: cn(`group/mermaid relative min-h-32 w-full bg-card`, t),
+      "data-mermaid-block": ``,
+      ...a,
+      children: (0, $.jsxs)(`div`, {
+        className: `max-h-[420px] overflow-auto p-3 text-foreground`,
+        children: [
+          m.status === `loading`
+            ? (0, $.jsxs)(`div`, {
+                className: `flex min-h-28 items-center justify-center gap-2 text-foreground-subtle text-ui-base`,
+                children: [
+                  (0, $.jsx)(SpinnerIcon, { className: `size-4 animate-spin` }),
+                  (0, $.jsx)(`span`, {
+                    children: o.formatMessage({ id: `codeBlock.mermaid.loading` }),
+                  }),
+                ],
+              })
+            : null,
+          m.status === `plaintext`
+            ? (0, $.jsx)(`pre`, {
+                className: `m-0 min-h-28 min-w-max bg-transparent font-mono text-foreground text-ui-base leading-relaxed`,
+                children: e,
+              })
+            : null,
+          m.status === `ready`
+            ? (0, $.jsx)(`div`, {
+                "aria-label": o.formatMessage({ id: `codeBlock.mermaid.ariaLabel` }),
+                className: `flex min-h-28 min-w-max items-center justify-center [&_svg]:h-auto [&_svg]:max-w-none`,
+                dangerouslySetInnerHTML: { __html: m.svg },
+                onDoubleClick: r,
+                role: `img`,
+              })
+            : null,
+        ],
+      }),
+    })
+  );
+}
 /* ── tombstone〔A1-P1-B17〕：declare MermaidPreviewDialog（原 Qze，48269）删除 → 一符一家收敛改指
  * canonical components/preview/PreviewCards MermaidFullscreenDialog（48269 逐字，经 modules/PreviewCards
  * 转导出；SettingsCodeBlock 同符改指先例）。消费面实证（1 处，别名保调用名逐字不变）：本文件

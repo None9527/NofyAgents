@@ -799,7 +799,7 @@ export function createMermaidPlugin(options: { config?: Record<string, unknown> 
 /** 原 RRe = rO()（js 45986） */
 export const MERMAID_PLUGIN = createMermaidPlugin();
 /** 原 Fze = rO()（BO 内嵌渲染专用实例，js 47763） */
-const MERMAID_INLINE_PLUGIN = createMermaidPlugin();
+export const MERMAID_INLINE_PLUGIN = createMermaidPlugin(); // 〔A1-R99〕补导出：BO 逐字实体化消费（原 Fze）
 
 /* ============================================================================
  * 4b. mermaid 主题助手族（原 Vze/Bze/zze/Hze + 私助手 Ize/IO/LO/Rze/zO，
@@ -807,7 +807,7 @@ const MERMAID_INLINE_PLUGIN = createMermaidPlugin();
  * ==========================================================================*/
 
 /** 原 Vze（js 47878）：system 主题变化修订计数（驱动 BO configKey 重估） */
-function resolveMermaidThemeVars(theme: string): number {
+export function resolveMermaidThemeVars(theme: string): number { // 〔A1-R99〕补导出（原 Vze）
   const [revision, bump] = React.useState(0);
   React.useEffect(() => {
     if (theme !== `system` || typeof window > `u`) return;
@@ -822,7 +822,7 @@ function resolveMermaidThemeVars(theme: string): number {
 
 /** 原 Bze（js 47875）：theme → dark|light（SSR 守卫 + canonical resolveThemeMode ≡ xo@1103）
  *  〔A1-P3-B14〕型缝：BO theme 为宽 string，canonical 参型 ThemeMode，窄化铸接（值域实测同集）。 */
-function resolveMermaidConfigBase(theme: string): string {
+export function resolveMermaidConfigBase(theme: string): string { // 〔A1-R99〕补导出（原 Bze）
   return typeof window > `u`
     ? theme === `dark` || theme === `zai-dark`
       ? `dark`
@@ -885,7 +885,7 @@ function readCssVarColor(variable: string, fallback: string): string {
 }
 
 /** 原 zze（js 47837）：mermaid 主题配置（CSS 变量取色 + strict 安全级 + base 主题） */
-function buildMermaidConfig(base: string): Record<string, unknown> {
+export function buildMermaidConfig(base: string): Record<string, unknown> { // 〔A1-R99〕补导出（原 zze）
   const card = readCssVarColor(`--color-card`, base === `dark` ? `#18181b` : `#ffffff`);
   const surface = readCssVarColor(`--color-surface`, base === `dark` ? `#27272a` : `#f4f4f5`);
   const accent = readCssVarColor(`--color-accent`, base === `dark` ? `#1f2937` : `#f0f9ff`);
@@ -925,7 +925,7 @@ function buildMermaidConfig(base: string): Record<string, unknown> {
 }
 
 /** 原 Hze（js 47892）：error → message 串 */
-function describeMermaidError(error: unknown): string {
+export function describeMermaidError(error: unknown): string { // 〔A1-R99〕补导出（原 Hze）
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -2301,7 +2301,7 @@ export function CopyCodeButton({
 }
 
 /** 原 RO：FNV-1a → base36（mermaid 缓存键） */
-function fnv1aBase36(text: string): string {
+export function fnv1aBase36(text: string): string { // 〔A1-R99〕补导出（原 RO）
   let hash = 2166136261;
   for (let i = 0; i < text.length; i += 1) {
     hash ^= text.charCodeAt(i);
@@ -2312,7 +2312,7 @@ function fnv1aBase36(text: string): string {
 
 /** 原 Lze：mermaid 渲染串行队列（单链 Promise） */
 let mermaidRenderQueue: Promise<unknown> = Promise.resolve(); // 原 FO
-function enqueueMermaidRender<T>(task: () => Promise<T> | T): Promise<T> {
+export function enqueueMermaidRender<T>(task: () => Promise<T> | T): Promise<T> { // 〔A1-R99〕补导出（原 Lze）
   const chained = mermaidRenderQueue.then(task, task);
   mermaidRenderQueue = chained.then(
     () => undefined,
