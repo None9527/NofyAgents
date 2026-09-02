@@ -140,8 +140,10 @@ import { isCaptchaProtectedProvider, takeRuntimeProviderHeaders, restoreCaptchaV
  *    import { useSettingsStoreValue as useSettingsSelector } from './stores-core'。
  *    属主定位：styles-CdEGpc2x.js js 1301（非 src-HCld2afU.js；该 chunk 3367 的 Ao 为无关对象）。 ── */
 
-/** 原 A（imeComposition chunk 的 t 导出）：IME 组词回车守卫 */
-declare function isImeComposing(event: React.KeyboardEvent): boolean;
+/* ── tombstone〔A1-P1-B17〕：declare isImeComposing（原 A = imeComposition chunk _r@12567 导出别名 t）
+ * 删除——本面零消费（Elicitation 族迁出时遗留；唯一消费随族迁 components/conversation/
+ * ElicitationDialog.tsx，该面 declare 同批收敛改指 canonical components/ime/ImeComposition
+ * isComposingText，见其文件删碑）。一符一家：_r 真身既已实体化，本留守 declare 除名。 ── */
 
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（9）：IconInfo/IconLoader/IconSpinner/IconShield/IconChevronLeft/IconChevronRight/IconChevronDown/IconChevronUp/IconCheck → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 

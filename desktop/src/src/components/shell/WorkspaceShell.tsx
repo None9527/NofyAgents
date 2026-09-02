@@ -219,6 +219,8 @@ import { taskEntityKey, sessionActivityOf as describeTaskActivity } from '../../
 import { type TerminalService } from '../../modules/TerminalPane'; // A0-CLEANUP4：WorkspaceServices.terminalService 型（注册表透传面）
 import { GitBranchChip, HelpMenu, PRODUCT_DOCS_URL, SessionHeader, TerminalToggleButton, TopBarOverlay, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle, type UpdateState } from '../../modules/TopBar';
 import { toWorkspacePrepareError as normalizeReloadError } from '../conversation/ConversationModelInit'; // 〔A1-P2-B8→编排方合并执行〕原 VUe declare 改指逐字真身（52969-52974；调用面 toReloadSessionError 逐字不变）
+import { isRemoteAwarePath as canOpenPathInEmbeddedBrowser } from '../conversation/PreviewCardLinkBlocks'; // 〔A1-P1-B17〕原 Ogt（109862）逐字真身（B16 叶）；R1 判例别名保留调用名——下方 declare 删碑改指
+import { pathToFileUrl as browserUrlFromPath } from '../conversation/PathHelpers'; // 〔A1-P1-B17〕原 Yo（1959）逐字真身（B12 叶）；R1 判例别名保留调用名——下方 declare 删碑改指
 import { WebRemoteMobileShell, type MobileHomeResult, type TaskMeta as WebRemoteTaskMeta, type WebRemoteSwitcherService } from '../../modules/WebRemote';
 import type { CodeViewerSource, FileTreeRequest, RemoteLogsByWorkspaceKey, SidebarUser, ThemeId } from './Sidebar';
 import { WorkspaceSidebar as Sidebar } from './Sidebar'; // 〔A1-R52〕switcher 族属主闭合（A1-P2-B9-XD-1）：值面 rVt 改指一行办结——原 declare 占位（React.FC<Record<string, unknown>>）删除，B6 探针 11 失配五族经 B7 十族收敛 + R52 switcher 族闭合后全销账，tsc 双 0 实证（B7 §七「待族 5 闭合后一行即成」兑现） // 〔A1-P2-B7〕Sidebar 型收敛五族 canonical 改指（onOpenCodeViewer/fileTreeOpenRequest/logs/user/theme）；值面 rVt 改指待族 5（switcher）闭合——见下方 declare 注
@@ -603,7 +605,12 @@ type RemoteTarget = RemoteTargetBase | null;
 /* --- 路径 / 工作区键 工具（原 Io/Go/Yo/BA/VA/Lo） --- */
 
 /* ── tombstone（A0-CLEANUP 族清理）：workspaceKey declare 删除 → import { resolveWorkspaceKey as workspaceKey } from './SkillStore'。 ── */
-declare function browserUrlFromPath(path: string): string; // 原 Yo（1958–1966）；canonical 属所 = FileTreePanel pathToFileUrl（components/code-viewer/FileTreePanel.tsx @271 现仍 declare，该域转录后改指）。体依赖 iae@1925/aae@1926 两正则 + encodeURI；消费面实证：bundle 184899 bt(Yo(n.path)) ≡ 本文件 handleOpenBrowserUrl(browserUrlFromPath(link.path))
+/* ── tombstone〔A1-P1-B17〕：declare browserUrlFromPath（原 Yo，1958–1966）删除 → 一符一家收敛改指
+ * canonical components/conversation/PathHelpers pathToFileUrl（B12 叶 1925–1976 逐字；体依赖
+ * iae@1925/aae@1926 两正则 + encodeURI 同叶在案）。旧注「canonical 属所 = FileTreePanel pathToFileUrl」
+ * 更正：FileTreePanel @271 本身为 declare（本批同收敛改指 PathHelpers，见该文件删碑）——Yo 真身属所
+ * = B12 叶（1925–1976 整段逐字）。消费面实证（1 处，别名保调用名逐字不变）：本文件 handleOpenFileLink
+ * @2937（≡ bundle 184899 `bt(Yo(n.path))`，Sr 域）。 ── */
 
 /* ── tombstone〔A1-P2-B10〕：isPathWithin/isSamePath 两 declare 删除 → 文件头真实导入
  *    （isPathWithinRoot as isPathWithin、samePath as isSamePath，../../modules/FileTreePanel）。
@@ -995,18 +1002,14 @@ declare function setProviderRegistryRevision(revision: number): void;
  *    已为 SplitLayoutDeep 真实导出（R2），HTt 域（useLastSessionRestore）经
  *    modules/SplitLayoutUiDeep.tsx 直接消费，本文件无余调用点。 ── */
 
-/* --- 内嵌浏览器可打开判定（原 Ogt，js 109814） --- */
-/* 〔A1-P2-B10〕探针留批：Ogt@109862 体 = vgt(e.path) && compactForRemoteControl !== !0
- * && !workspaceIdentity?.trim() && !workspaceRemoteSessionId；依赖链 vgt@109737（n1(e)?.kind === 'html'）
- * → n1@109733 → t1@109727 + pgt@109714（文件类型登记表 ~13 行）——预览/浏览器域簇（109714–109862）
- * 未转录，canonical 属所 = 未来浏览器/预览叶；消费面实证：bundle 184892 Ogt({path, workspaceIdentity,
- * workspaceRemoteSessionId, compactForRemoteControl}) ≡ 本文件 handleOpenFileTreeEntry 内调用。 */
-declare function canOpenPathInEmbeddedBrowser(input: {
-  path: string;
-  workspaceIdentity?: string | null;
-  workspaceRemoteSessionId?: string | null;
-  compactForRemoteControl: boolean;
-}): boolean;
+/* --- 内嵌浏览器可打开判定（原 Ogt，js 109862） --- */
+/* ── tombstone〔A1-P1-B17〕：declare canOpenPathInEmbeddedBrowser（原 Ogt，109862–109869；A1-P2-B10 探针
+ * 留批）删除 → 一符一家收敛改指 canonical components/conversation/PreviewCardLinkBlocks isRemoteAwarePath
+ * （B16 叶逐字；依赖链 vgt→isHtmlPreviewKind / n1→matchPreviewKind 同叶在案）。束真身 ≡ 探针注记所录
+ * （vgt(e.path) && compactForRemoteControl !== !0 && !workspaceIdentity?.trim() && !workspaceRemoteSessionId）。
+ * 消费面实证（1 处，别名保调用名逐字不变）：本文件 handleOpenFileLink @2930（≡ bundle 184892
+ * `Ogt({path, workspaceIdentity, workspaceRemoteSessionId, compactForRemoteControl})`，Sr 域）。
+ * 型缝：canonical 形参 `: any` 缝，消费面具型对象传入逐字不变。 ── */
 
 /* --- 工作区状态预热（原 W6e，js 77966；NJt 用） --- */
 

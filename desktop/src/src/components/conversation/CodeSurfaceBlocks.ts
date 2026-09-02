@@ -7,7 +7,9 @@
 // 函数体内局部变量保留混淆名（B5 约定）；型缝 `: any` 参数缝见 p14/CodeSurfaceBlocks.seam-log.txt，均带〔A1-P1-B14〕。
 // 区段切分墓碑：左界 $ze@48572（markdown 组件域右界邻接）；yk@48873（context-menu 域）为右界。
 //   卡面包装域：Dmt var 链@107112（NodeRepl 族域内，语句不可分，Dmt/kmt 随段携带，消费面留批）；w$@107180。
-// 深域只消费披露：MO/BO/Qze（代码/mermaid 面板域 47549/47895/48269）未实体化 → 叶内 declare（跨域判例，留批）。
+// 深域只消费披露：MO/BO（代码/mermaid 面板域 47549/47895）未实体化 → 叶内 declare（跨域判例，留批；
+//   MO 体依赖 vendored 高亮引擎原语族，BO 依赖 mermaid 渲染面，均需专批）。
+//   〔A1-P1-B17〕Qze（48269）declare 收敛 → modules/PreviewCards MermaidFullscreenDialog（canonical 既录）。
 // 〔A1-P1-B15〕收敛：Vc/zc → ./FileIconBlocks 真实 import；NO/Oze/Mze/Pze → modules/MarkdownIntegration 真实 import（别名）。
 //
 // 映射表（minified → 语义名 → bundle 定义行 → 属主）：
@@ -35,6 +37,7 @@ import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原
 import { TextWrap as IconTextWrap, Maximize2 as IconMaximize2, Check as IconCheck, Copy as IconCopy, SquareMousePointer as IconSquareMousePointer } from 'lucide-react'; // 原 Tbe/mv/M_/W_/xbe（styles vendored Sa；A0-S3b 判例）
 import { FileIcon, resolveFileIconMeta } from './FileIconBlocks'; // 〔A1-P1-B15〕原 Vc/zc（styles 5198/5198 逐字实体化；declare 收敛）
 import { isMermaidLanguage, isMermaidBlock as shouldRenderMermaidPreview, documentVisibilityState as resolveDocumentVisibilityState, mermaidAutoRenderGate as evaluateMermaidPreviewRender } from '../../modules/MarkdownIntegration'; // 〔A1-P1-B15〕原 NO/Oze/Mze/Pze（mermaid 门控域 47709–47894 既录 canonical；declare 收敛）
+import { MermaidFullscreenDialog as MermaidPreviewDialog } from '../../modules/PreviewCards'; // 〔A1-P1-B17〕原 Qze（48269）canonical（components/preview/PreviewCards@469 逐字；SettingsCodeBlock 同符改指先例）；R1 判例别名保留调用名——下方 declare 删碑改指
 
 /* ── tombstone〔A1-P1-B15〕：文件图标二 declare（FileIcon/resolveFileIconMeta，原 Vc/zc）删除——束真身
  * 5243/5198 已逐字实体化于 ./FileIconBlocks（文件图标域 5064–5267 收割，B14 留批第 3 项）。消费面逐字不变。 ── */
@@ -43,7 +46,10 @@ import { isMermaidLanguage, isMermaidBlock as shouldRenderMermaidPreview, docume
  * A0 期语义重建在案；型面兼容：shouldRender/reason/metrics 返回面逐字段吻合）。别名导入保持本叶逐字体不变。 ── */
 declare const CodeSurfaceCodePane: React.FC<{ code: string; enableSyntaxHighlighting?: boolean; language?: string; showLineNumbers?: boolean; theme?: string; wrapLongLines?: boolean; className?: string; fontSizePx?: number; style?: Record<string, unknown> }>; // 原 MO（47549，代码面板域未实体化，留批）
 declare const CodeSurfaceMermaidPane: React.FC<{ code: string; theme?: string; onOpenPreview?: () => void; onPreviewSvgChange?: (svg: string | null) => void }>; // 原 BO（47895）
-declare const MermaidPreviewDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void; svg: string | null; title: string }>; // 原 Qze（48269）
+/* ── tombstone〔A1-P1-B17〕：declare MermaidPreviewDialog（原 Qze，48269）删除 → 一符一家收敛改指
+ * canonical components/preview/PreviewCards MermaidFullscreenDialog（48269 逐字，经 modules/PreviewCards
+ * 转导出；SettingsCodeBlock 同符改指先例）。消费面实证（1 处，别名保调用名逐字不变）：本文件
+ * CodeSurface 卡面 @246（x && h 守卫逐字保留；h 束型 never 投射 → canonical svg: string 相容）。 ── */
 
 /* ── 代码面族（styles 48572–48872） ── */
 var CODE_SURFACE_DISPLAY_FILE_TABLE: Record<string, string> = {

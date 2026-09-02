@@ -32,6 +32,8 @@
 //   RUe → buildModelConfigMissingError    52928–52930（pWe 错误面；〔A1-P1-B7〕）
 //   sN → resolveProviderGateStatus        54143–54145（pWe 状态面；〔A1-P1-B7〕）
 //   pWe → useModelProviderGate            54146–54259（R0 119421 消费；〔A1-P1-B7〕）
+//   Ugt → hasRunningTimelineMarkers       110063–110070（Wgt 110080 消费；〔A1-P1-B17〕；Vgt/Hgt B4 同域邻接）
+//   Wgt → isApiRetryEligible              110071–110081（modules/Conversation Rvt/Bvt 重建体 113056/113148 消费；〔A1-P1-B17〕）
 // 函数体内局部变量保留混淆名（B5 约定）；型缝带〔A1-P1〕注释。
 // 环安全：本叶 import react（库叶）/ modules/SrcSharedA（zod 单依赖叶子）/ lib/errorUtils（自含叶）/
 //   modules/SrcSharedB（re-export shim，仅 SrcSharedA+lib/* 依赖）/ modules/SkillStore（store 叶）；
@@ -127,6 +129,27 @@ export function hasBlockingInteractions(e: Array<{ payload: { kind: string; tool
 /** 原 Hgt（js 110060）：compact/goalVerifier 行判定（R0 119723 消费）〔A1-P1-B4〕逐字实体化 */
 export function hasCompactOrGoalRows(e: Array<{ kind: string }>): boolean { // 〔A1-P1-B4〕型缝：行列最小消费面
   return e.some((e) => e.kind === `compact` || e.kind === `goalVerifier`);
+}
+/** 原 Ugt（js 110063–110070）：timelineMarker 运行中判定（compact 运行 / goalVerify 运行）〔A1-P1-B17〕逐字实体化 */
+export function hasRunningTimelineMarkers(e: any) { // 〔A1-P1-B17〕型缝：行列最小消费面（marker.type/status/outcome 读取面）
+  return e.some(
+    (e: any) =>
+      e.kind === `timelineMarker` &&
+      ((e.marker.type === `compact` && e.marker.status === `running`) ||
+        (e.marker.type === `goalVerify` && e.marker.outcome === `running`)),
+  );
+}
+/** 原 Wgt（js 110071–110081）：API 重试/加载槽显示判定（modules/Conversation Rvt/Bvt 重建体 113056/113148 消费）〔A1-P1-B17〕逐字实体化 */
+export function isApiRetryEligible({
+  blockedByActiveWork: e,
+  blockedByInteraction: t,
+  isLastTurn: n,
+  isRunning: r,
+  rows: i,
+}: any) { // 〔A1-P1-B17〕型缝：解构形参 `: any`（bundle 110071–110076 多行解构逐字）
+  return !n || !r || e || t
+    ? !1
+    : !i.some((e: any) => e.kind === `toolCall` && e.status === `pendingApproval`) && !hasRunningTimelineMarkers(i);
 }
 /** 原 Y_t（js 111720） */
 export const GOAL_COMMAND_REGEX = /^\/(?:goal|target)(?:\s|$)/i;

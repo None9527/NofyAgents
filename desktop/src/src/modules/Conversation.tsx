@@ -114,7 +114,7 @@
  * ==========================================================================*/
 import * as React from "react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Copy as IconCopy, Pencil as IconPencil, GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, ArrowDownToLine as IconArrowDownToLine, SquareTerminal as IconSquareTerminal, File as IconFile, Bot as IconBot, Sparkles as IconSparkles, Target as IconTarget, GitBranch as IconGitBranch, Lightbulb as IconLightbulb, Eye as IconModelChange, Shield as IconShield, ThumbsUp as IconThumbsUp, ThumbsDown as IconThumbsDown, Rewind as IconRewind, Loader as IconLoader, LoaderCircle as IconSpinner, Info as IconInfo, Upload as IconUpload, Globe as IconGlobe, Gauge as IconGauge, Clock as IconClock, ListTodo as IconListTodo, MessageSquare as IconMessageSquare, Calendar as IconCalendar } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Copy as IconCopy, Pencil as IconPencil, GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, ArrowDownToLine as IconArrowDownToLine, SquareTerminal as IconSquareTerminal, File as IconFile, Bot as IconBot, Sparkles as IconSparkles, Target as IconTarget, GitBranch as IconGitBranch, Lightbulb as IconLightbulb, Eye as IconModelChange, Shield as IconShield, ThumbsUp as IconThumbsUp, ThumbsDown as IconThumbsDown, Rewind as IconRewind, Loader as IconLoader, LoaderCircle as IconSpinner, Info as IconInfo, Upload as IconUpload, Globe as IconGlobe, Gauge as IconGauge, Clock as IconClock, ListTodo as IconListTodo, MessageSquare as IconMessageSquare, Calendar as IconCalendar, X as IconX } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A1-P1-B17〕+X as IconX（原 g = imeComposition chunk qt=x('x')@11819，导出别名 b@12583，经 styles 349 `b as g` 入本 chunk；消费位 bundle 91840 v4-pane-close 按钮 ≡ 本文件 @4721 逐字吻合；declare 删碑见 §0）
 import * as ReactDOM from "react-dom";
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, useSessionErrorRecovery, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）；+useSessionErrorRecovery（A1-R14：原 NCt 118779 实体化改指，消费点 5328）
@@ -123,6 +123,7 @@ import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep
 import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type CodeCommentAttachment, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）；〔A1-R22〕+type CodeCommentAttachment（ParsedUserInput 型别精化）
 import { OffPeakNewTaskBanner } from './Home'; // 〔A1-P1-B15〕原 I3e（76860）收敛改指；〔A1-P1-B16〕ApiRetryView 别名随 x1 收敛入 ChatLoadingSlot 除名
 import { ApiRetryLoadingSlot } from '../components/conversation/ChatLoadingSlot'; // 〔A1-P1-B16〕原 x1（112814）逐字实体化（kvt/Llt 同叶携带；消费位 112823 束体办结）
+import { useAssistantPreviewCards as buildAssistantPreviewCards } from '../components/conversation/PreviewCardLinkBlocks'; // 〔A1-P1-B17〕原 Bgt（110008）逐字实体化（Pgt/Fgt/Igt/c1/Lgt/Rgt/zgt 同叶携带；R1 判例别名保留调用名，消费面逐字不变；declare 删碑见 §5.15 域）
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
 import { Badge } from './PaymentDeep';
@@ -145,7 +146,7 @@ import { PptxReferencesChip, usePptxPreviewOpener } from '../components/composer
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
 import { TurnNavigator, findActiveQueryRow, shouldHydrateFullHistory, hydrateRetryDelayMs } from '../components/conversation/TurnNavigator'; // 〔A0-S4-4b〕§8 渲染点（6549）+ activeQueryRowId（6238）+ §5 水合判定（3957/3991）消费回取
-import { EMPTY_SUBAGENT_DIRECTORY, buildSessionErrorKey, buildSessionErrorBannerModel } from '../components/conversation/ConversationPaneHelpers'; // 〔A1-P1〕R0 簇卫星域逐字真身（原 $Ct/QCt/twt，js 119197/119194/119199）；叶仅依赖 SrcSharedA，环安全（本文件单向消费）
+import { EMPTY_SUBAGENT_DIRECTORY, buildSessionErrorKey, buildSessionErrorBannerModel, isApiRetryEligible } from '../components/conversation/ConversationPaneHelpers'; // 〔A1-P1〕R0 簇卫星域逐字真身（原 $Ct/QCt/twt，js 119197/119194/119199）；叶仅依赖 SrcSharedA，环安全（本文件单向消费）；〔A1-P1-B17〕+isApiRetryEligible（原 Wgt，110071；declare 删碑见 §5.15 域）
 import { useSessionQuotaViewModel } from '../components/conversation/ConversationQuotaModel'; // 〔A1-P1-B2〕原 XCt（js 119101）逐字真身（配额块闭包全簇）；环安全：叶不反引本文件（UsageDeep 依赖面负证据在案）
 import { ConversationPane } from '../components/conversation/ConversationPaneCore'; // 〔A1-P1-B3〕原 R0（js 119236–121300）B5 逐字真身；§9.5 A0 体删碑改指，§9.7 导出面不变；环安全见该叶头注（延迟消费环）
 
@@ -204,7 +205,11 @@ declare function trackEvent(
 /** 图标（lucide 风格；原图标块 js 26575–28020 / jsx 23141–25478 + button chunk 导出） */
 declare const IconComponent: React.FC<React.SVGProps<SVGSVGElement>>;
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（7）：IconChevronRight/IconChevronLeft/IconChevronDown/IconChevronUp/IconCheck/IconCopy/IconPencil → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // Kv / g（关闭）
+/* ── tombstone〔A1-P1-B17〕：declare const IconX（登记「Kv / g（关闭）」）删除 → npm lucide-react X as IconX
+ * （文件头导入块）。束真身实证：本文件唯一消费位 = v4-pane-close 按钮（@4718）≡ bundle 91840
+ * `(0,$.jsx)(g, { className: 'size-4' })`（imeComposition qt=x('x') 关闭图标）。「三面共用」登记更正：
+ * bundle 中 QueuePanel 删除钮实为 Kv=trash-2（94737）、SessionBanners 关闭钮为 g（94938）——
+ * 各自删碑见 components/conversation/QueuePanel / SessionBanners。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（10）：IconGripVertical/IconSend/IconArrowDownToLine/IconSquareTerminal/IconFile/IconBot/IconSparkles/IconTarget/IconGitBranch/IconLightbulb → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 declare const IconCompact: React.FC<React.SVGProps<SVGSVGElement>>; // x_（compact 标记）
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconModelChange → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
@@ -2448,24 +2453,16 @@ declare function splitVirtualizedUnits(units: TurnRenderUnit[]): {
   liveUnitIndex: number | null;
 };
 
-/** 原 Wgt（jsx 94075）：是否显示 API 重试/加载槽 */
-declare function isApiRetryEligible(args: {
-  blockedByActiveWork: boolean;
-  blockedByInteraction: boolean;
-  isLastTurn: boolean;
-  isRunning: boolean;
-  rows: ConversationRow[];
-}): boolean;
-/** 原 Bgt（jsx 94019）：最新 assistant 消息的预览卡（含文件变更拉取） */
-declare function buildAssistantPreviewCards(args: {
-  row: AssistantTextRow | null | undefined;
-  assistantTextRows: AssistantTextRow[];
-  latestAssistantTextRow: AssistantTextRow | null | undefined;
-  workspacePath?: string;
-  fileChangesTarget: { rowId: number; entityId: string } | null;
-  fileChangesState?: string;
-  fetchFileChanges?: RowRenderContext["fetchFileChanges"];
-}): PreviewCardModel[] | undefined;
+/* ── tombstone〔A1-P1-B17〕：declare isApiRetryEligible（原 Wgt，styles 110071–110081；jsx 94075）删除 →
+ * 一符一家收敛 components/conversation/ConversationPaneHelpers isApiRetryEligible 逐字实体（同叶 Ugt→
+ * hasRunningTimelineMarkers 携带；Vgt/Hgt 同域 B4 既录先例）。消费面实证（2 处）：本文件 Rvt 重建体
+ * @2622（≡ bundle 113056）+ Bvt 重建体 @2723（≡ bundle 113148），逐字不变。 ── */
+/* ── tombstone〔A1-P1-B17〕：declare buildAssistantPreviewCards（原 Bgt，styles 110008–110052；jsx 94019）
+ * 删除 → 一符一家收敛 components/conversation/PreviewCardLinkBlocks useAssistantPreviewCards 逐字实体
+ * （Pgt/Fgt/Igt/c1/Lgt/Rgt/zgt 同叶携带，段 [109916,110052]；深依赖 xgt/Ngt/jgt/Mgt/Agt/s1/r1/n1 均该叶
+ * B15/B16 既录）。消费面实证（2 处，别名保调用名逐字不变）：本文件 @2629（≡ bundle 113063）+ @2731
+ * （≡ bundle 113156）。型缝：canonical 形参/返回为 B5 `any` 缝，消费面 previewCards 下游 PreviewCardModel[]
+ * 型面逐字不变。钩子序：Bgt 束体 useMemo/useState/useEffect 面逐字保留，调用位组件渲染期序不变。 ── */
 
 /**
  * 工作段头（原 Ivt，js 112890 / jsx 96238）：「工作中 N 秒 / 工作了 N 秒」

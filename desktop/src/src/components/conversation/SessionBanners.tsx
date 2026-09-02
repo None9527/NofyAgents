@@ -2,15 +2,24 @@
 // 迁出体 = §2 全段（438–604）。导入路径按 components/conversation/ 深度改指 ../../modules/。
 /* eslint-disable */
 import * as React from "react";
-import { Info as IconInfo } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
-import { BillingDiscountBadge, type BillingDiscountConfig } from '../../modules/UsageDeep'; // 原 BillingDiscount 族（A0-D 类型收敛：+BillingDiscountConfig）
+import { Info as IconInfo, X as IconX, Rocket as IconZap } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0；〔A1-P1-B17〕+X as IconX（原 g，imeComposition qt=x('x')@11819；bundle 94938 关闭钮）+Rocket as IconZap（原 Pv=Sa('rocket')@27735；bundle 94921 quota 升级钮；A1-R15 Pv≡Rocket 判例）——declare 删碑见下
+import { BillingDiscountBadge, BillingDiscountInfoDialog as BillingDiscountNote, type BillingDiscountConfig } from '../../modules/UsageDeep'; // 原 BillingDiscount 族（A0-D 类型收敛：+BillingDiscountConfig）；〔A1-P1-B17〕+BillingDiscountInfoDialog as BillingDiscountNote（原 _j@52034 canonical；R1 判例别名保留调用名）——declare 删碑见下
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import { Button } from '../../modules/button'; // 原 t（A0-D 接线：declare → button canonical）
 
 /** 14. 图标/折扣注记（§0 declare 分配：IconZap/BillingDiscountNote 唯一消费随迁；IconX 三面共用复制，编译期擦除） */
-declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // Kv / g（关闭）
-declare const IconZap: React.FC<React.SVGProps<SVGSVGElement>>; // Pv（quota 升级按钮）
-declare const BillingDiscountNote: React.FC<{ config: unknown }>;
+/* ── tombstone〔A1-P1-B17〕：三 declare 删除（图标/折扣注记域）：
+ * ① IconX（登记「Kv / g（关闭）」）→ npm lucide-react X as IconX。束真身实证：本面唯一消费位 =
+ *   quota 横幅关闭钮 @139 ≡ bundle 94938 `(0,$.jsx)(g, { className: 'size-3.5' })`（g = imeComposition
+ *   qt=x('x')@11819，导出别名 b，经 styles 349 `b as g` 入本 chunk）。「Kv」登记更正：Kv=trash-2@27930，
+ *   属 QueuePanel 删除钮域（94737），与本面无关——该面删碑见 QueuePanel。
+ * ② IconZap（登记 Pv）→ npm lucide-react Rocket as IconZap。束真身实证：消费位 @123 ≡ bundle 94921
+ *   `(0,$.jsx)(Pv, { className: 'size-3.5' })`；Pv = Sa('rocket')@27735（A1-R15 Home 域 Pv≡Rocket 判例）。
+ *   语义名沿用例保留 IconZap（quota 升级按钮），束形为 rocket。
+ * ③ BillingDiscountNote → modules/UsageDeep BillingDiscountInfoDialog as BillingDiscountNote（原 _j@52034
+ *   canonical，components/usage/UsageDeep@1940 逐字；Home@5558 同符消费先例）。型缝：消费位 @127
+ *   `config={billingDiscountConfig}`（BillingDiscountConfig | null）→ canonical 形参 `BillingDiscountConfig
+ *   | undefined`——`?? undefined` 归一（束体 pj@51943 `e?.[t]` null/undefined 同途，行为零差）。 ── */
 
 /* ============================================================================
  * 2. Quota / PendingCommand 横幅子族（js 94696–94966 / jsx 82817–82966）
@@ -115,7 +124,7 @@ function SessionQuotaBanner({
               {intl.formatMessage({ id: upgradeActionLabelId })}
               {showDiscount ? <BillingDiscountBadge config={billingDiscountConfig ?? undefined} iconVisible={false} variant={`surface`} /> : null}
             </Button>
-            {showDiscount ? <BillingDiscountNote config={billingDiscountConfig} /> : null}
+            {showDiscount ? <BillingDiscountNote config={billingDiscountConfig ?? undefined} /> : null}
           </div>
         ) : null}
         {state.dismissible ? (

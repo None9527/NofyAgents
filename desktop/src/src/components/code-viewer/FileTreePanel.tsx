@@ -132,10 +132,11 @@
  *  1. react / jsx-runtime；2. cn (Z)；3. useIntlContext (G)；4. logger (J)；
  *  5. toast (m，imeComposition)；6. usePlatform (l：getInstalledEditors/openInEditor/
  *     openInFileManager)；7. useWorkspaceScopedServices (Oc：fileService/
- *     fileWatcherService/gitService)；8. getFileMeta (zc：fileIconSrc)；
+ *     fileWatcherService/gitService)——〔A1-P1-B17〕canonical 改指 modules/services
+ *     useWorkspaceServices（services/remoteServices，A0-S4-5）；8. getFileMeta (zc：fileIconSrc)；
  *  9. useVirtualizer (to，@tanstack/react-virtual 封装)；
- *  10. 路径助手（横切 1925–1975，未归本批）：baseName (Go)、parentDirectoryPath (sae)、
- *      pathToFileUrl (Yo)；
+ *  10. 路径助手（横切 1925–1975）：baseName (Go)、parentDirectoryPath (sae) 经 MarkdownIntegration；
+ *      pathToFileUrl (Yo) 〔A1-P1-B17〕canonical 改指 components/conversation/PathHelpers（B12 叶）；
  *  11. MarkdownIntegration.tsx 已重建件：relativePathFromWorkspace (zA)、
  *      useRemoteWorkspaceInfo ($A)；
  *  12. 拖拽助手（Composer 域 52124–52274 实测 52172–52322）：FILE_TREE_DRAG_MIME (kj)、
@@ -164,6 +165,8 @@ import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored u
 import { Button, ChevronRight as IconChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { Input, toast, usePlatform } from '../../modules/ImeComposition';
 import { baseName, parentDirectoryPath, relativePathFromWorkspace, useRemoteWorkspaceInfo } from '../../modules/MarkdownIntegration'; // +parentDirectoryPath（A1-R10 2b：原 sae（1932）declare 改指 canonical = components/markdown 同段 1928–1948 逐字转录；695 调用点逐字不变）
+import { useWorkspaceServices as useWorkspaceScopedServices } from '../../modules/services'; // 〔A1-P1-B17〕原 Oc（4993）canonical（services/remoteServices，A0-S4-5）；R1 判例别名保留调用名，消费面逐字不变——下方 declare 删碑改指
+import { pathToFileUrl } from '../conversation/PathHelpers'; // 〔A1-P1-B17〕原 Yo（1959）canonical（B12 叶 1925–1976 逐字；B12 头注跨域消费登记办结）——下方 declare 删碑改指
 import { imageMimeTypeOfPath } from '../../modules/PreviewCards';
 import { t as logger } from '../../modules/logger'; // 原 J（logger-PFDwl5Yq.js 导出 t）
 import { taskEntityKey, type TaskMeta } from '../../modules/StoresDeep'; // +type TaskMeta（A1-R10 2b：本地 TaskRecord 面收敛改指）
@@ -209,7 +212,9 @@ interface PlatformService {
   openInFileManager(path: string): Promise<PlatformOpenResult>;
 }
 
-/* 原 Oc：useWorkspaceScopedServices */
+/* 原 Oc：useWorkspaceScopedServices —— 〔A1-P1-B17〕declare 删除，收敛改指 canonical
+ * modules/services useWorkspaceServices（原 Oc 真身 services/remoteServices，A0-S4-5；
+ * WorkspaceTabsDeep 头注 [D] 双归属裁决）。消费位 @980 型缝投射保 declare 期下游型面。 */
 interface FileEntry {
   path: string;
   name: string;
@@ -246,11 +251,14 @@ interface FileWatcherService {
   unwatch(args: { id: string }): Promise<void>;
   onDynamicChange(id: string): (callback: (event: { dirPath: string }) => void) => FileWatcherSubscription;
 }
-declare function useWorkspaceScopedServices(
-  workspacePath: string,
-  workspaceRemoteSessionId: string | null | undefined,
-  workspaceIdentity: string | null | undefined,
-): { fileService: FileService; fileWatcherService: FileWatcherService; gitService: GitService };
+/* ── tombstone〔A1-P1-B17〕：declare useWorkspaceScopedServices（原 Oc，styles 4993–4995）删除 →
+ * 一符一家收敛改指 canonical services/remoteServices useWorkspaceServices（A0-S4-5 既录，经
+ * modules/services@107/109 转导出；双归属裁决见 modules/WorkspaceTabsDeep 头注 [D]；AppRootLeaves
+ * @2397 / WorkspaceTabsDeep @848 同符消费先例）。消费面实证（1 处）：本文件 useWorkspaceFileTreeData
+ * @992（≡ bundle 145370 `Oc(e, n, t)`，BIt 域）——型缝：canonical 返回 ResolvedBaseServices
+ * （fileService?/fileWatcherService?: unknown/索引签名），消费位 `as unknown as { fileService:
+ * FileService; fileWatcherService: FileWatcherService; gitService: GitService }` 投射保 declare 期
+ * 下游型面（逐字不变；AppRootLeaves @2096 同缝先例）。 ── */
 
 /* 原 to：useVirtualizer（@tanstack/react-virtual 封装） */
 interface VirtualItem {
@@ -264,11 +272,15 @@ interface VirtualItem {
  *    原接口面的超集（getVirtualItems/getTotalSize/scrollToIndex/scrollToOffset/scrollOffset/
  *    scrollDirection 均吻合）。VirtualItem 接口保留（行 1319/1358/1844 组件 prop 仍消费）。 ── */
 
-/* 路径助手（横切 1925–1975，未归本批，接口挂接） */
+/* 路径助手（横切 1925–1975，接口挂接） */
 /* ── tombstone（A1-R10 2b）：declare function parentDirectoryPath(path: string): string | null（原 sae，1932）删除，
  *    改经文件头 modules/MarkdownIntegration import 消费（canonical = components/markdown 同段逐字转录；
  *    落点依据：Go/Ko/qo（1928/1941/1944）既在同文件 823/931/841，sae 居 1932 为同连续段）。 ── */
-declare function pathToFileUrl(path: string): string; // 原 Yo（1958）
+/* ── tombstone〔A1-P1-B17〕：declare function pathToFileUrl(path: string): string（原 Yo，1958–1966）删除 →
+ *    一符一家收敛改指 canonical components/conversation/PathHelpers pathToFileUrl（B12 叶 1925–1976 逐字；
+ *    B12 头注「跨域消费面登记（留批）：FileTreePanel 271（pathToFileUrl）」办结）。消费面实证（1 处）：
+ *    本文件 browserUrlForRow @702（≡ bundle XVe 域），逐字不变。型缝：canonical 形参 `: any` 缝，
+ *    消费面 row.path（string）传入、返回 string 型面逐字不变。 ── */
 
 /* PreviewCards.tsx 已重建件（接口挂接） */
 
@@ -977,7 +989,7 @@ function useWorkspaceFileTreeData({
   workspaceRemoteSessionId?: string | null;
   enableWorkspaceFeatures?: boolean;
 }) {
-  let { fileService, fileWatcherService, gitService } = useWorkspaceScopedServices(workspacePath, workspaceRemoteSessionId, workspaceIdentity),
+  let { fileService, fileWatcherService, gitService } = useWorkspaceScopedServices(workspacePath, workspaceRemoteSessionId, workspaceIdentity) as unknown as { fileService: FileService; fileWatcherService: FileWatcherService; gitService: GitService }, // 〔A1-P1-B17〕型缝：canonical ResolvedBaseServices（fileService?/fileWatcherService?: unknown/索引签名）→ declare 期三服务面投射，下游逐字不变（AppRootLeaves @2096 同缝先例）
     generationRef = React.useRef(0),
     treeGenerationRef = React.useRef(0),
     loadCountRef = React.useRef<Map<string, number>>(new Map()),

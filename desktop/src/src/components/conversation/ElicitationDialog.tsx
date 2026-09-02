@@ -5,7 +5,7 @@
 /* eslint-disable */
 import * as React from "react";
 import { Info as IconInfo, ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
-import { Input } from '../../modules/ImeComposition';
+import { Input, isComposingText as isImeComposing } from '../../modules/ImeComposition'; // 〔A1-P1-B17〕+isComposingText as isImeComposing（原 A = imeComposition chunk _r@12567 导出别名 t；canonical 属主 components/ime/ImeComposition@472）；R1 判例别名保留调用名——下方 declare 删碑改指
 import { Badge } from '../../modules/PaymentDeep';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import { Button, ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight } from '../../modules/button'; // 原 H + button chunk 图标（A0-S3b 增补）
@@ -14,8 +14,11 @@ import { InteractionOriginBadge, type InteractionOrigin } from './PermissionAppr
 import { PLAN_APPROVAL_OPTION_VALUE, resolveAutoResolutionCountdown, nextAutoResolutionTickDelay } from './InteractionCountdown'; // 〔A1-P1-B11〕倒计时域三件实体化收敛（styles 115978–115992 逐字）
 import type { PendingInteraction } from './ConversationInteractionsOverlay'; // §3 族属主（type-only，编译期擦除）
 
-/** 原 A（imeComposition chunk 的 t 导出）：IME 组词回车守卫 */
-declare function isImeComposing(event: React.KeyboardEvent): boolean;
+/* ── tombstone〔A1-P1-B17〕：declare isImeComposing（原 A = imeComposition chunk _r@12567，导出别名 t）
+ * 删除 → 一符一家收敛改指 canonical components/ime/ImeComposition isComposingText（@472，原码 _r
+ * 逐字；经 modules/ImeComposition@98 转导出）。消费面实证（1 处，别名保调用名逐字不变）：本文件
+ * @104（≡ bundle Elicitation 族回车守卫）。型缝：canonical 形参 CompositionStateProbe，消费位
+ * `args as unknown as React.KeyboardEvent` 投射面（isComposing/nativeEvent.isComposing 读取）逐字不变。 ── */
 
 /* --- 交互/快照模型（本族所有子集） --- */
 

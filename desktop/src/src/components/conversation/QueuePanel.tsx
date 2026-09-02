@@ -2,14 +2,19 @@
 // 迁出体 = §3 全段（605–909，含内联 dnd-kit declare 8 件）。导入路径按 components/conversation/ 深度改指 ../../modules/。
 /* eslint-disable */
 import * as React from "react";
-import { GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, Pencil as IconPencil } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
+import { GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, Pencil as IconPencil, Trash2 as IconTrash } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0；〔A1-P1-B17〕+Trash2 as IconTrash（原 Kv=Sa('trash-2')@27930；bundle 94737 queue 删除钮）——原 IconX declare 删碑改指，见下
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u 导出 = X InfoTooltip）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 原 G（A0-D 接线：declare → I18n canonical）
 import { Button } from '../../modules/button'; // 原 t（A0-D 接线：declare → button canonical）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
 
 /** 14. 图标（§0 declare 分配：IconX 三面共用复制，编译期擦除） */
-declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // Kv / g（关闭）
+/* ── tombstone〔A1-P1-B17〕：declare const IconX（登记「Kv / g（关闭）」）删除 → npm lucide-react
+ * Trash2 as IconTrash。束真身实证：本面唯一消费位 = queue 删除钮 @212 ≡ bundle 94737
+ * `(0,$.jsx)(Kv, { className: 'size-4' })`（aria-label chat.queue.remove + data-queue-item-id 双证）；
+ * Kv = Sa('trash-2')@27930，非 x 图标。「三面共用」登记更正：本面实为 trash-2（删除），
+ * SessionBanners/Conversation 关闭钮方为 g=x——各自删碑见其文件。消费位改名 IconX→IconTrash
+ * （语义勘误：原登记 IconX 与束形 trash-2 不符；渲染面由 declare 未定义引用 → 真身 trash-2，行为修正）。 ── */
 
 /* ============================================================================
  * 3. Queue 子族（消息队列面板；js 94545–94801 / jsx 82736–82869）
@@ -204,7 +209,7 @@ const QueueItemRow = React.memo(function QueueItemRow({
             disabled={locked}
             onClick={() => onDeleteItem(item.queueItemId)}
           >
-            <IconX className="size-4" />
+            <IconTrash className="size-4" />
           </Button>
         </Tooltip>
       ) : null}

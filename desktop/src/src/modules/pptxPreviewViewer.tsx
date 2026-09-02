@@ -61,7 +61,7 @@
  */
 
 import * as React from "react";
-import { Input, Popover as PopoverRoot, PopoverAnchor, PopoverContent, Textarea } from './ImeComposition'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Input, Popover as PopoverRoot, PopoverAnchor, PopoverContent, Textarea, isComposingText as isImeComposing } from './ImeComposition'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import；〔A1-P1-B17〕+isComposingText as isImeComposing（原 u = imeComposition _r@12567；canonical components/ime/ImeComposition@472）；R1 判例别名保留调用名——下方 declare 删碑改指
 import { Sparkles as IconSparkles, MousePointerClick as IconMousePointerClick, LoaderCircle as IconLoaderCircle } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, ChevronLeft as IconChevronLeft, ChevronRight as IconChevronRight, ZoomOut as IconZoomOut, ZoomIn as IconZoomIn, createLucideIcon } from './button'; // A0-CLEANUP 族清理：Button/四图标/createLucideIcon declare 改指 button chunk
 
@@ -90,8 +90,11 @@ declare function usePlatformService(): PlatformService | null;
 /** toast（原 r） */
 declare function toast(message: string): void;
 
-/** IME 组词回车守卫（原 u） */
-declare function isImeComposing(state: { compositionActive: boolean; isComposing: boolean }): boolean;
+/* ── tombstone〔A1-P1-B17〕：declare isImeComposing（原 u = imeComposition chunk _r@12567）删除 →
+ * 一符一家收敛改指 canonical components/ime/ImeComposition isComposingText（@472，原码 _r 逐字；
+ * 经 modules/ImeComposition@98 转导出）。消费面实证（1 处，别名保调用名逐字不变）：本文件 @257
+ * （≡ bundle pptx 预览 Enter 守卫）。型缝：canonical 形参 CompositionStateProbe，消费位
+ * `{ compositionActive, isComposing }` 对象字面传入逐字不变。 ── */
 
 /* --- 引擎接口（pptxRendererPreviewEngine.tsx 的 Hq/Uq 与 presentationElementModel） --- */
 
