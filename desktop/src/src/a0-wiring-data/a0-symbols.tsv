@@ -216,7 +216,7 @@ section	sem	obf	line	owner
 2	工作区 logo 色板/光束参数	B8	156301	—
 2	useTaskFileActions	C6	142085	—
 2	compareTasksForList	Fo	1365	—
-2	DEFAULT_GROUP_ID_CRON	Gne	—	—
+2	DEFAULT_GROUP_ID_CRON	Gne	8724	src-HCld2afU.js
 2	workspaceBaseName	Go	1928	—
 2	workspaceKey	Io	1368	—
 2	useScopedWorkspaceTabs	J3	135515	—
@@ -245,16 +245,16 @@ section	sem	obf	line	owner
 2	useTaskListItems	ZS	35775	—
 2	useSessionRegistryStore	Zs	4357	—
 2	视图不可变操作 144909–144980	a8	144966	—
-2	DEFAULT_GROUP_ID_CRON	ane	—	—
+2	DEFAULT_GROUP_ID_CRON	ane	8725	src-HCld2afU.js
 2	markUsageEntryIntent	aw	39378	—
 2	用户名/显示名/首字母	bRt	150475	—
 2	视图不可变操作 144909–144980	cIt	144994	—
 2	WebRemoteControlTrigger	cRt	150186	—
 2	GroupColorDot	e8	144943	—
-2	dropAnimation	eBt/tBt	—	—
+2	dropAnimation	eBt/tBt	155407–155408	Sidebar.tsx
 2	GROUP_COLOR_SURFACE_CLASSES	eIt	144928	—
 2	getWorkspaceSlice	fe	213	—
-2	Tabs	hC/gC/_C	—	—
+2	Tabs	hC/gC/_C	36997–37031	Sidebar.tsx
 2	视图不可变操作 144909–144980	i8	144963	—
 2	TaskRenameDialog	j6	142598	—
 2	useSettingsStore	ko	1296	—
@@ -266,7 +266,7 @@ section	sem	obf	line	owner
 2	RemoteSyncMenuItems	n4	127166	—
 2	视图不可变操作 144909–144980	o8	144985	—
 2	TaskActionMenuItems	oFt	142200	—
-2	isCronTask	pi/Yr	—	—
+2	isCronTask	pi/Yr	8726–8729	src-HCld2afU.js
 2	GroupedTaskRow	pzt	153682	—
 2	分段偏好 zcode-sidebar-purpose-section-preferences	qFt	144850	—
 2	RemoteSyncDialogs	r4	127265	—
