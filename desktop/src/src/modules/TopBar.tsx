@@ -89,15 +89,15 @@
  *          ls 1697→2610（model-trajectory-open 体证）；误链同源 = a0-symbols.tsv 旧值（Zge/Ug 行同错）。
  *
  *  图标（lucide 风格，Sa=createLucideIcon 工厂，js 行）：
- *   S_ arrow-left 26634 | C_ arrow-right 26649 | hv message-circle-plus 27379
- *   Tv panel-left-close 27535 | Ev panel-left-open 27540
- *   ibe panel-right-close 27545 | abe panel-right-open 27550
- *   Uv square-terminal 27818 | vye circle-question-mark 26859 | N_ chevron-down 26802
- *   K_ ellipsis 26950 | U_ cloud 26918 | $_ folder 27133 | ev git-branch 27142
- *   Zve arrow-down-to-line 26620 | fv loader 27315 | M_ check 26801
- *   vv message-square 27411 | Uye lightbulb 27270 | Jv users 27950
- *   oye book-open 26698 | Dye file-archive 26998 | H_ cloud-upload 26913
- *   Zye minimize-2 27436 | kv plus（新建分支）| tv git-graph（图谱）
+ *   S_ arrow-left 26682 | C_ arrow-right 26697 | hv message-circle-plus 27427
+ *   Tv panel-left-close 27583 | Ev panel-left-open 27588
+ *   ibe panel-right-close 27593 | abe panel-right-open 27598
+ *   Uv square-terminal 27866 | vye circle-question-mark 26907 | N_ chevron-down 26850
+ *   K_ ellipsis 26998 | U_ cloud 26966 | $_ folder 27181 | ev git-branch 27190
+ *   Zve arrow-down-to-line 26668 | fv loader 27363 | M_ check 26849
+ *   vv message-square 27459 | Uye lightbulb 27318 | Jv users 27998
+ *   oye book-open 26746 | Dye file-archive 27046 | H_ cloud-upload 26961
+ *   Zye minimize-2 27484 | kv plus（新建分支）| tv git-graph（图谱）
  *
  *  data-testid 常量（来自 src-HCld2afU.js，out/ 行号）：
  *   Jt=workspace-header(8361) | xne=workspace-title(8362) | hn=workspace-path(8362)

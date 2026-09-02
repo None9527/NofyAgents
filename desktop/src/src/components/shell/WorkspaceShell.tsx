@@ -1029,10 +1029,10 @@ declare function setProviderRegistryRevision(revision: number): void;
 
 type IconProps = React.SVGProps<SVGSVGElement>;
 /* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
-const IconGripHorizontal = createLucideIcon("grip-horizontal", []); // 原 Rye（js 27180）
-const IconLoader = createLucideIcon("loader", []);                   // 原 fv（js 27315）
-const IconMinus = createLucideIcon("minus", []);                     // 原 bv（js 27442）
-const IconSquare = createLucideIcon("square", []);                   // 原 Wv（js 27823）
+const IconGripHorizontal = createLucideIcon("grip-horizontal", []); // 原 Rye（js 27228）
+const IconLoader = createLucideIcon("loader", []);                   // 原 fv（js 27363）
+const IconMinus = createLucideIcon("minus", []);                     // 原 bv（js 27490）
+const IconSquare = createLucideIcon("square", []);                   // 原 Wv（js 27871）
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconClose → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* --- 按钮（原 X，button-laUijeDG.js） --- */

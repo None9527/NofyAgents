@@ -87,13 +87,13 @@
  *   B_e  → fuzzyScore                (25626–25631)
  *
  *  图标（Sa=createLucideIcon 工厂，js 行）：
- *   Fv search 27732 | dv list 27307 | Pv rocket 27687 | yv messages-square 27420
- *   Aye file 27073 | Kv trash-2 27882 | N_ chevron-down（TopBar 族已登记）
+ *   Fv search 27780 | dv list 27355 | Pv rocket 27735 | yv messages-square 27468
+ *   Aye file 27121 | Kv trash-2 27930 | N_ chevron-down（TopBar 族已登记）
  *   vv message-square | hv message-circle-plus | Tv panel-left-close | Ev panel-left-open
- *   Uv square-terminal | oye book-open | Jv users | X_ file-diff 27036 | Q_ folder-open 27103
- *   pv log-in 27325 | Kye log-out 27330 | Iv server 27746 | Rv settings 27758
- *   Yv wand-sparkles 27966 | xv moon 27468 | Sbe sun 27826 | nv globe 27170
- *   gv message-circle 27390 | T_ arrow-up 26663 | Qve arrow-down 26625 | M_ check
+ *   Uv square-terminal | oye book-open | Jv users | X_ file-diff 27084 | Q_ folder-open 27151
+ *   pv log-in 27373 | Kye log-out 27378 | Iv server 27794 | Rv settings 27806
+ *   Yv wand-sparkles 28014 | xv moon 27516 | Sbe sun 27874 | nv globe 27218
+ *   gv message-circle 27438 | T_ arrow-up 26711 | Qve arrow-down 26673 | M_ check
  *   g = x（关闭，imeComposition chunk 的 b 导出 = 内部 qt，lucide `x`）
  *
  * ----------------------------------------------------------------------------

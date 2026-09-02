@@ -99,17 +99,17 @@
  *   XJt  → 工作区根控制器接线 (186756,186780–186806)
  *
  *  图标（Sa=createLucideIcon 工厂，js / jsx）：
- *   kv plus 27606/24904（新增标签 ⊞）| dye chevrons-down 26804/23577（标签总览）
- *   _v message-square-text 27399/24557（辅助对话）| X_ file-diff 27036/23974（审查/git）
- *   Uv square-terminal 27818/24962（终端）| nv globe 27170/24145（浏览器）
- *   k_ bug 26737/23420（开发者工具）| Sv notepad-text 27501/24731（计划）
- *   D_ bot 26708/23362（子智能体会话）| uv list-tree 27300/24410（子智能体目录）
- *   qye map 27335/24490（treemapping）| wv palette 27522/24770（白板）
- *   Ibe waypoints 27982/25529（模型轨迹）| s3 自定义 32×32 SVG 132175/111452（repo wiki）
- *   Y_ file-code-corner 27024/23961（代码查看回退）| g x（imeComposition b 导出，关闭）
+ *   kv plus 27654/24904（新增标签 ⊞）| dye chevrons-down 26852/23577（标签总览）
+ *   _v message-square-text 27447/24557（辅助对话）| X_ file-diff 27084/23974（审查/git）
+ *   Uv square-terminal 27866/24962（终端）| nv globe 27218/24145（浏览器）
+ *   k_ bug 26785/23420（开发者工具）| Sv notepad-text 27549/24731（计划）
+ *   D_ bot 26756/23362（子智能体会话）| uv list-tree 27348/24410（子智能体目录）
+ *   qye map 27383/24490（treemapping）| wv palette 27570/24770（白板）
+ *   Ibe waypoints 28030/25529（模型轨迹）| s3 自定义 32×32 SVG 132175/111452（repo wiki）
+ *   Y_ file-code-corner 27072/23961（代码查看回退）| g x（imeComposition b 导出，关闭）
  *   M loader-circle（imeComposition w 导出，spinner）| o mouse-pointer-2（imeComposition C 导出）
- *   gye circle-pause 26839 | I_ circle-check 26821 | F_ circle-alert 26812
- *   iye ban 26680 | mye circle-dashed 26825（子智能体状态 5 图标）
+ *   gye circle-pause 26887 | I_ circle-check 26869 | F_ circle-alert 26860
+ *   iye ban 26728 | mye circle-dashed 26873（子智能体状态 5 图标）
  *
  * ----------------------------------------------------------------------------
  * 二、外部依赖清单（跨 chunk 导入 / 同 chunk 他族组件）
@@ -489,28 +489,28 @@ const FileIconImg: React.FC<{ src: string; size?: number; className?: string }> 
 type IconProps = React.SVGProps<SVGSVGElement>;
 /* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 
-const IconPlus = createLucideIcon("plus", []);                      // 原 kv（js 27606）新增标签 ⊞
-const IconChevronsDown = createLucideIcon("chevrons-down", []);     // 原 dye（js 26804）标签总览
-const IconMessageSquareText = createLucideIcon("message-square-text", []); // 原 _v（js 27399）辅助对话
-const IconFileDiff = createLucideIcon("file-diff", []);             // 原 X_（js 27036）审查/git
-const IconSquareTerminal = createLucideIcon("square-terminal", []); // 原 Uv（js 27818）终端
-const IconGlobe = createLucideIcon("globe", []);                    // 原 nv（js 27170）浏览器
-const IconBug = createLucideIcon("bug", []);                        // 原 k_（js 26737）开发者工具
-const IconNotepadText = createLucideIcon("notepad-text", []);       // 原 Sv（js 27501）计划详情
-const IconBot = createLucideIcon("bot", []);                        // 原 D_（js 26708）子智能体会话
-const IconListTree = createLucideIcon("list-tree", []);             // 原 uv（js 27300）子智能体目录
-const IconMap = createLucideIcon("map", []);                        // 原 qye（js 27335）treemapping
-const IconPalette = createLucideIcon("palette", []);                // 原 wv（js 27522）白板
-const IconWaypoints = createLucideIcon("waypoints", []);            // 原 Ibe（js 27982）模型轨迹
-const IconFileCodeCorner = createLucideIcon("file-code-corner", []); // 原 Y_（js 27024）代码查看回退
+const IconPlus = createLucideIcon("plus", []);                      // 原 kv（js 27654）新增标签 ⊞
+const IconChevronsDown = createLucideIcon("chevrons-down", []);     // 原 dye（js 26852）标签总览
+const IconMessageSquareText = createLucideIcon("message-square-text", []); // 原 _v（js 27447）辅助对话
+const IconFileDiff = createLucideIcon("file-diff", []);             // 原 X_（js 27084）审查/git
+const IconSquareTerminal = createLucideIcon("square-terminal", []); // 原 Uv（js 27866）终端
+const IconGlobe = createLucideIcon("globe", []);                    // 原 nv（js 27218）浏览器
+const IconBug = createLucideIcon("bug", []);                        // 原 k_（js 26785）开发者工具
+const IconNotepadText = createLucideIcon("notepad-text", []);       // 原 Sv（js 27549）计划详情
+const IconBot = createLucideIcon("bot", []);                        // 原 D_（js 26756）子智能体会话
+const IconListTree = createLucideIcon("list-tree", []);             // 原 uv（js 27348）子智能体目录
+const IconMap = createLucideIcon("map", []);                        // 原 qye（js 27383）treemapping
+const IconPalette = createLucideIcon("palette", []);                // 原 wv（js 27570）白板
+const IconWaypoints = createLucideIcon("waypoints", []);            // 原 Ibe（js 28030）模型轨迹
+const IconFileCodeCorner = createLucideIcon("file-code-corner", []); // 原 Y_（js 27072）代码查看回退
 const IconX = createLucideIcon("x", []);                            // 原 g（imeComposition chunk b 导出）关闭
 const IconLoaderCircle = createLucideIcon("loader-circle", []);     // 原 M（imeComposition chunk w 导出）spinner
 const IconMousePointer2 = createLucideIcon("mouse-pointer-2", []);  // 原 o（imeComposition chunk C 导出）browser-use 操作
-const IconCirclePause = createLucideIcon("circle-pause", []);       // 原 gye（js 26839）waiting/blocked
-const IconCircleCheck = createLucideIcon("circle-check", []);       // 原 I_（js 26821）success
-const IconCircleAlert = createLucideIcon("circle-alert", []);       // 原 F_（js 26812）failed
-const IconBan = createLucideIcon("ban", []);                        // 原 iye（js 26680）cancelled
-const IconCircleDashed = createLucideIcon("circle-dashed", []);     // 原 mye（js 26825）lost
+const IconCirclePause = createLucideIcon("circle-pause", []);       // 原 gye（js 26887）waiting/blocked
+const IconCircleCheck = createLucideIcon("circle-check", []);       // 原 I_（js 26869）success
+const IconCircleAlert = createLucideIcon("circle-alert", []);       // 原 F_（js 26860）failed
+const IconBan = createLucideIcon("ban", []);                        // 原 iye（js 26728）cancelled
+const IconCircleDashed = createLucideIcon("circle-dashed", []);     // 原 mye（js 26873）lost
 
 /** repo wiki 品牌图标（原 s3，js 132175；自定义 32×32 SVG，非 lucide） */
 const RepoWikiIcon: React.FC<IconProps & { size?: number }> = ({ size, ...rest }) => (

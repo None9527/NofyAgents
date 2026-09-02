@@ -864,17 +864,17 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 type IconProps = React.SVGProps<SVGSVGElement> & { size?: number; containerSize?: number };
 /* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 
-const IconArrowLeft = createLucideIcon("arrow-left", []);          // 原 S_（js 26634）
-export const IconChevronDown = createLucideIcon("chevron-down", []);      // 原 N_（js 26802）
+const IconArrowLeft = createLucideIcon("arrow-left", []);          // 原 S_（js 26682）
+export const IconChevronDown = createLucideIcon("chevron-down", []);      // 原 N_（js 26850）
 const IconChevronRight = createLucideIcon("chevron-right", []);    // 原 wa（button chunk o 导出）
-const IconGitBranch = createLucideIcon("git-branch", []);          // 原 ev（js 27142）
+const IconGitBranch = createLucideIcon("git-branch", []);          // 原 ev（js 27190）
 const IconFolder = createLucideIcon("folder", []);                 // 原 $_（js 27181）
 const IconFolderOpen = createLucideIcon("folder-open", []);        // 原 Q_（js 27689 附近）
-export const IconRefreshCw = createLucideIcon("refresh-cw", []);          // 原 Nv（js 27677）
+export const IconRefreshCw = createLucideIcon("refresh-cw", []);          // 原 Nv（js 27725）
 export const IconTrash2 = createLucideIcon("trash-2", []);                // 原 Kv（js 27355 附近）
 export const IconSquare = createLucideIcon("square", []);                 // 原 Wv（停止，填充用 fill-current）
-const IconPanelLeftClose = createLucideIcon("panel-left-close", []); // 原 Tv（js 27535）
-const IconPanelLeftOpen = createLucideIcon("panel-left-open", []); // 原 Ev（js 27540）
+const IconPanelLeftClose = createLucideIcon("panel-left-close", []); // 原 Tv（js 27583）
+const IconPanelLeftOpen = createLucideIcon("panel-left-open", []); // 原 Ev（js 27588）
 const IconImagePlus = createLucideIcon("image-plus", []);          // 原 Bye（js 27238，白板入聊天）
 export const IconPencil = createLucideIcon("pencil", []);                 // 原 Dv（画笔/编辑）
 const IconEraser = createLucideIcon("eraser", []);                 // 原 Tye（橡皮）

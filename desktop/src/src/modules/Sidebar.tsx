@@ -138,15 +138,15 @@
  *   yC useFeedbackStore | ls useTrajectoryViewerStore
  *
  *  图标（Sa=createLucideIcon，js 行）：
- *   ov hash 27208 | $_ folder 27133 | Q_ folder-open 27103 | U_ cloud 26918 | sv house 27214
- *   uv list-tree 27300 | hv message-circle-plus 27379 | Fv search 27732 | lye calendar-clock 26775
- *   Yv wand-sparkles 27966 | Zye minimize-2 27436 | mv maximize-2 27346 | Wye list-filter 27288
- *   B_ clock-3 26897 | Xye message-circle-check 27369 | x_ archive 26615 | g x（imeComposition chunk）
- *   H_ cloud-upload 26913 | Ov pin 27578 | Vv smartphone 27800 | V_ clock 26901 | xv moon 27468
- *   fv loader 27315 | p triangle-alert（imeComposition chunk）| Nv refresh-cw 27677 | M_ check 26801
- *   W_ copy 26926 | K_ ellipsis 26950 | Rv settings 27758 | nv globe 27170 | wv palette 27522
- *   Jye maximize 27352 | pv log-in 27325 | Kye log-out 27330 | Pbe user 27946 | Lv settings-2 27752
- *   iv grip-vertical 27188 | nye arrow-up-to-line 26658
+ *   ov hash 27256 | $_ folder 27181 | Q_ folder-open 27151 | U_ cloud 26966 | sv house 27262
+ *   uv list-tree 27348 | hv message-circle-plus 27427 | Fv search 27780 | lye calendar-clock 26823
+ *   Yv wand-sparkles 28014 | Zye minimize-2 27484 | mv maximize-2 27394 | Wye list-filter 27336
+ *   B_ clock-3 26945 | Xye message-circle-check 27417 | x_ archive 26663 | g x（imeComposition chunk）
+ *   H_ cloud-upload 26961 | Ov pin 27626 | Vv smartphone 27848 | V_ clock 26949 | xv moon 27516
+ *   fv loader 27363 | p triangle-alert（imeComposition chunk）| Nv refresh-cw 27725 | M_ check 26849
+ *   W_ copy 26974 | K_ ellipsis 26998 | Rv settings 27806 | nv globe 27218 | wv palette 27570
+ *   Jye maximize 27400 | pv log-in 27373 | Kye log-out 27378 | Pbe user 27994 | Lv settings-2 27800
+ *   iv grip-vertical 27236 | nye arrow-up-to-line 26706
  *   button chunk：xa zoom-in | Kre zoom-out | wa chevron-right | Ca cva | X Button | Sa createLucideIcon
  *   imeComposition chunk：M spinner | g x 图标 | A isImeEnter | l usePlatformService | m toast
  *

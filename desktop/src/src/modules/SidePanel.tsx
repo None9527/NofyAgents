@@ -97,17 +97,17 @@
  *   XJt  → 工作区根控制器接线 (186756,186780–186806)
  *
  *  图标（Sa=createLucideIcon 工厂，js / jsx）：
- *   kv plus 27606/24904（新增标签 ⊞）| dye chevrons-down 26804/23577（标签总览）
- *   _v message-square-text 27399/24557（辅助对话）| X_ file-diff 27036/23974（审查/git）
- *   Uv square-terminal 27818/24962（终端）| nv globe 27170/24145（浏览器）
- *   k_ bug 26737/23420（开发者工具）| Sv notepad-text 27501/24731（计划）
- *   D_ bot 26708/23362（子智能体会话）| uv list-tree 27300/24410（子智能体目录）
- *   qye map 27335/24490（treemapping）| wv palette 27522/24770（白板）
- *   Ibe waypoints 27982/25529（模型轨迹）| s3 自定义 32×32 SVG 132175/111452（repo wiki）
- *   Y_ file-code-corner 27024/23961（代码查看回退）| g x（imeComposition b 导出，关闭）
+ *   kv plus 27654/24904（新增标签 ⊞）| dye chevrons-down 26852/23577（标签总览）
+ *   _v message-square-text 27447/24557（辅助对话）| X_ file-diff 27084/23974（审查/git）
+ *   Uv square-terminal 27866/24962（终端）| nv globe 27218/24145（浏览器）
+ *   k_ bug 26785/23420（开发者工具）| Sv notepad-text 27549/24731（计划）
+ *   D_ bot 26756/23362（子智能体会话）| uv list-tree 27348/24410（子智能体目录）
+ *   qye map 27383/24490（treemapping）| wv palette 27570/24770（白板）
+ *   Ibe waypoints 28030/25529（模型轨迹）| s3 自定义 32×32 SVG 132175/111452（repo wiki）
+ *   Y_ file-code-corner 27072/23961（代码查看回退）| g x（imeComposition b 导出，关闭）
  *   M loader-circle（imeComposition w 导出，spinner）| o mouse-pointer-2（imeComposition C 导出）
- *   gye circle-pause 26839 | I_ circle-check 26821 | F_ circle-alert 26812
- *   iye ban 26680 | mye circle-dashed 26825（子智能体状态 5 图标）
+ *   gye circle-pause 26887 | I_ circle-check 26869 | F_ circle-alert 26860
+ *   iye ban 26728 | mye circle-dashed 26873（子智能体状态 5 图标）
  *
  * ----------------------------------------------------------------------------
  * 二、外部依赖清单（跨 chunk 导入 / 同 chunk 他族组件）

@@ -120,11 +120,11 @@
  *   X=Button / P=Input / M=spinner(loader-circle) / g=IconX / wa=IconChevronRight（跨 chunk）
  *   Ia=Tooltip（usageStatsUiParts）；dN/fN/pN=HoverCard 三件（本 chunk jsx 49005）
  *   Zxe/$xe=Checkbox 原语；iO/oO/sO/cO=Select 四件（Radix 封装主块 28021-32245）
- *   图标（Sa=createLucideIcon，js 行）：M_ check 26801 | N_ chevron-down 26802 | C_ arrow-right 26649
- *   H_ cloud-upload 26913 | $_ folder 27133 | j_ calendar-days 26783 | F_ circle-alert 26812
- *   I_ circle-check 26821 | R_ circle-stop 26864 | yye circle-x 26868 | A_ cable 26750
- *   jv puzzle 27619 | Nv refresh-cw 27677 | Kv trash-2 27882 | Pye folder-symlink 27123
- *   Xve archive-x 26609 | Z_ file-text 27060 | N triangle-alert（跨 chunk 原语块）
+ *   图标（Sa=createLucideIcon，js 行）：M_ check 26849 | N_ chevron-down 26850 | C_ arrow-right 26697
+ *   H_ cloud-upload 26961 | $_ folder 27181 | j_ calendar-days 26831 | F_ circle-alert 26860
+ *   I_ circle-check 26869 | R_ circle-stop 26912 | yye circle-x 26916 | A_ cable 26798
+ *   jv puzzle 27667 | Nv refresh-cw 27725 | Kv trash-2 27930 | Pye folder-symlink 27171
+ *   Xve archive-x 26657 | Z_ file-text 27108 | N triangle-alert（跨 chunk 原语块）
  * ============================================================================
  */
 

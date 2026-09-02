@@ -203,11 +203,11 @@ const IconCopy = createLucideIcon("copy", []);              // 原 W_（js 26974
 const IconImage = createLucideIcon("image", []);            // 原 cv（js 27293）
 const IconUpload = createLucideIcon("upload", []);          // 原 Mbe（js 27985）
 const IconChevronUp = createLucideIcon("chevron-up", []);   // 原 P_（js 26851）
-const IconChevronDown = createLucideIcon("chevron-down", []); // 原 N_（js 26802）
+const IconChevronDown = createLucideIcon("chevron-down", []); // 原 N_（js 26850）
 const IconArrowLeft = createLucideIcon("arrow-left", []);   // 原 S_（js 26682）
 const IconCirclePause = createLucideIcon("circle-pause", []); // 原 gye（js 26887）
-const IconCircleCheck = createLucideIcon("circle-check", []); // 原 I_（js 26821）
-const IconCircleAlert = createLucideIcon("circle-alert", []); // 原 F_（js 26812）
+const IconCircleCheck = createLucideIcon("circle-check", []); // 原 I_（js 26869）
+const IconCircleAlert = createLucideIcon("circle-alert", []); // 原 F_（js 26860）
 const IconFileText = createLucideIcon("file-text", []);     // 原 Z_（js 27108）
 const IconCheck = createLucideIcon("check", []);            // 原 M_（js 26xxx）
 

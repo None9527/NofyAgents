@@ -98,12 +98,12 @@
  *   lo   → DEFAULT_CODE_PREVIEW_SETTINGS (1040)；xo → resolveThemeMode (1103)
  *
  *  图标（Sa=createLucideIcon 工厂，js 行）：
- *   Lv settings-2 27752 | wv palette 27522 | Iv server 27746 | O_ brain 26727
- *   jv puzzle 27619 | Yv wand-sparkles 27966 | D_ bot 26708 | Yve alarm-clock 26595
- *   A_ cable 26750 | Gv terminal 27852 | b_ anchor 26603 | Bv shield-check 27779
- *   wye earth 26935 | uye chart-column 26795 | Pv rocket 27687 | Q_ folder-open 27103
- *   Mv refresh-ccw 27671 | Z_ file-text 27060 | $_ folder 27133 | sye box 26716
- *   kv plus 27606 | G_ download 26930 | H_ cloud-upload 26913 | S_ arrow-left 26634
+ *   Lv settings-2 27800 | wv palette 27570 | Iv server 27794 | O_ brain 26775
+ *   jv puzzle 27667 | Yv wand-sparkles 28014 | D_ bot 26756 | Yve alarm-clock 26643
+ *   A_ cable 26798 | Gv terminal 27900 | b_ anchor 26651 | Bv shield-check 27827
+ *   wye earth 26983 | uye chart-column 26843 | Pv rocket 27735 | Q_ folder-open 27151
+ *   Mv refresh-ccw 27719 | Z_ file-text 27108 | $_ folder 27181 | sye box 26764
+ *   kv plus 27654 | G_ download 26978 | H_ cloud-upload 26961 | S_ arrow-left 26682
  *   N_ chevron-down（select 指示）| M_ check（select 选中）| wa chevron-right（button chunk）
  *
  *  data-testid 常量（来自 src-HCld2afU.js，out/ 行号）：

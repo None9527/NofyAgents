@@ -81,11 +81,11 @@
  *   jqe  → curatedSkillDescription                      (64023)
  *
  *  图标（Sa=createLucideIcon，js 行）：
- *   T_ arrow-up 26663（发送）| Wv square 27823（停止）| Yye megaphone 27358（横幅 📢）
- *   xv moon 27468（建议卡）| gbe rotate-ccw 27705（重试）| xye clipboard-pen-line 26884
- *   sv house 27214 | $_ folder 27133 | U_ cloud 26918 | Nye folder-plus 27112
- *   gv message-circle 27390 | Fv search 27732 | N_ chevron-down 26802
- *   fv loader 27315（EN Spinner 用）| p info（imeComposition chunk `Ht` 导出）
+ *   T_ arrow-up 26711（发送）| Wv square 27871（停止）| Yye megaphone 27406（横幅 📢）
+ *   xv moon 27516（建议卡）| gbe rotate-ccw 27753（重试）| xye clipboard-pen-line 26932
+ *   sv house 27262 | $_ folder 27181 | U_ cloud 26966 | Nye folder-plus 27160
+ *   gv message-circle 27438 | Fv search 27780 | N_ chevron-down 26850
+ *   fv loader 27363（EN Spinner 用）| p info（imeComposition chunk `Ht` 导出）
  *   g close-x（imeComposition chunk `b` 导出）
  *
  *  data-testid 常量（来自 src-HCld2afU.js，括号内为字符串值）：

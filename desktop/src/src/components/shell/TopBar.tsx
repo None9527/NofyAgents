@@ -83,15 +83,15 @@
  *   xe   → useTaskStore（skillStore chunk 的 h 导出）
  *
  *  图标（lucide 风格，Sa=createLucideIcon 工厂，js 行 / jsx 行）：
- *   S_ arrow-left 26634 | C_ arrow-right 26649 | hv message-circle-plus 27379
- *   Tv panel-left-close 27535 | Ev panel-left-open 27540
- *   ibe panel-right-close 27545 | abe panel-right-open 27550
- *   Uv square-terminal 27818 | vye circle-question-mark 26859 | N_ chevron-down 26802
- *   K_ ellipsis 26950 | U_ cloud 26918 | $_ folder 27133 | ev git-branch 27142
- *   Zve arrow-down-to-line 26620 | fv loader 27315 | M_ check 26801
- *   vv message-square 27411 | Uye lightbulb 27270 | Jv users 27950
- *   oye book-open 26698 | Dye file-archive 26998 | H_ cloud-upload 26913
- *   Zye minimize-2 27436 | kv plus（新建分支）| tv git-graph（图谱）
+ *   S_ arrow-left 26682 | C_ arrow-right 26697 | hv message-circle-plus 27427
+ *   Tv panel-left-close 27583 | Ev panel-left-open 27588
+ *   ibe panel-right-close 27593 | abe panel-right-open 27598
+ *   Uv square-terminal 27866 | vye circle-question-mark 26907 | N_ chevron-down 26850
+ *   K_ ellipsis 26998 | U_ cloud 26966 | $_ folder 27181 | ev git-branch 27190
+ *   Zve arrow-down-to-line 26668 | fv loader 27363 | M_ check 26849
+ *   vv message-square 27459 | Uye lightbulb 27318 | Jv users 27998
+ *   oye book-open 26746 | Dye file-archive 27046 | H_ cloud-upload 26961
+ *   Zye minimize-2 27484 | kv plus（新建分支）| tv git-graph（图谱）
  *
  *  data-testid 常量（来自 src-HCld2afU.js，out/ 行号）：
  *   Jt=workspace-header(8361) | xne=workspace-title(8362) | hn=workspace-path(8362)
@@ -332,23 +332,23 @@ const DropdownMenuShortcut: React.FC<React.ComponentPropsWithoutRef<"span">> = (
 type IconProps = React.SVGProps<SVGSVGElement>;
 /* ── tombstone（A0-CLEANUP 族清理）：createLucideIcon declare 删除 → import from './button'。 ── */
 
-const IconArrowLeft = createLucideIcon("arrow-left", []);            // 原 S_（js 26634）
-const IconArrowRight = createLucideIcon("arrow-right", []);          // 原 C_（js 26649）
-const IconMessageCirclePlus = createLucideIcon("message-circle-plus", []); // 原 hv（js 27379）新建任务
-const IconPanelLeftClose = createLucideIcon("panel-left-close", []); // 原 Tv（js 27535）
-const IconPanelLeftOpen = createLucideIcon("panel-left-open", []);   // 原 Ev（js 27540）
-const IconPanelRightClose = createLucideIcon("panel-right-close", []); // 原 ibe（js 27545）
-const IconPanelRightOpen = createLucideIcon("panel-right-open", []); // 原 abe（js 27550）
-const IconSquareTerminal = createLucideIcon("square-terminal", []);  // 原 Uv（js 27818）
+const IconArrowLeft = createLucideIcon("arrow-left", []);            // 原 S_（js 26682）
+const IconArrowRight = createLucideIcon("arrow-right", []);          // 原 C_（js 26697）
+const IconMessageCirclePlus = createLucideIcon("message-circle-plus", []); // 原 hv（js 27427）新建任务
+const IconPanelLeftClose = createLucideIcon("panel-left-close", []); // 原 Tv（js 27583）
+const IconPanelLeftOpen = createLucideIcon("panel-left-open", []);   // 原 Ev（js 27588）
+const IconPanelRightClose = createLucideIcon("panel-right-close", []); // 原 ibe（js 27593）
+const IconPanelRightOpen = createLucideIcon("panel-right-open", []); // 原 abe（js 27598）
+const IconSquareTerminal = createLucideIcon("square-terminal", []);  // 原 Uv（js 27866）
 const IconSquare = createLucideIcon("square", []);                   // 原 Wv（js 27871）〔A1-P3-B13〕Elt 停止钮
 const IconBot = createLucideIcon("bot", []);                         // 原 D_（js 26756）〔A1-P3-B13〕Alt 子代理行
 const IconCircleCheck = createLucideIcon("circle-check", []);        // 原 I_（js 26869）〔A1-P3-B13〕jlt 已结束条目
-const IconCircleQuestionMark = createLucideIcon("circle-question-mark", []); // 原 vye（js 26859）
-const IconChevronDown = createLucideIcon("chevron-down", []);        // 原 N_（js 26802）
-const IconEllipsis = createLucideIcon("ellipsis", []);               // 原 K_（js 26950）
-const IconCloud = createLucideIcon("cloud", []);                     // 原 U_（js 26918）远程工作区
+const IconCircleQuestionMark = createLucideIcon("circle-question-mark", []); // 原 vye（js 26907）
+const IconChevronDown = createLucideIcon("chevron-down", []);        // 原 N_（js 26850）
+const IconEllipsis = createLucideIcon("ellipsis", []);               // 原 K_（js 26998）
+const IconCloud = createLucideIcon("cloud", []);                     // 原 U_（js 26966）远程工作区
 const IconFolder = createLucideIcon("folder", []);                   // 原 $_（js 27181）本地工作区
-const IconGitBranch = createLucideIcon("git-branch", []);            // 原 ev（js 27142）
+const IconGitBranch = createLucideIcon("git-branch", []);            // 原 ev（js 27190）
 const IconActivity = createLucideIcon("activity", []);               // 原 y_（js 26634）〔A1-R58〕Plt 双运行态行
 const IconCircleCheckBig = createLucideIcon("circle-check-big", []); // 原 pye（js 26865）〔A1-R58〕hlt 已验证徽记
 const IconCircle = createLucideIcon("circle", []);                   // 原 z_（js 26921）〔A1-R58〕glt 待办条目
@@ -358,17 +358,17 @@ const IconListChecks = createLucideIcon("list-checks", []);          // 原 lv�
 const IconMaximize2 = createLucideIcon("maximize-2", []);            // 原 mv（js 27394）〔A1-R58〕QZ hover 展开提示
 const IconPause = createLucideIcon("pause", []);                     // 原 sbe（js 27612）〔A1-R58〕hlt 暂停钮
 const IconPlay = createLucideIcon("play", []);                       // 原 cbe（js 27636）〔A1-R58〕hlt 恢复钮
-const IconArrowDownToLine = createLucideIcon("arrow-down-to-line", []); // 原 Zve（js 26620）更新就绪
-const IconLoader = createLucideIcon("loader", []);                   // 原 fv（js 27315）
+const IconArrowDownToLine = createLucideIcon("arrow-down-to-line", []); // 原 Zve（js 26668）更新就绪
+const IconLoader = createLucideIcon("loader", []);                   // 原 fv（js 27363）
 const IconLoaderCircle = createLucideIcon("loader-circle", []);      // 原 M（imeComposition chunk w 导出）
-const IconCheck = createLucideIcon("check", []);                     // 原 M_（js 26801）
-const IconMessageSquare = createLucideIcon("message-square", []);    // 原 vv（js 27411）
-const IconLightbulb = createLucideIcon("lightbulb", []);             // 原 Uye（js 27270）
-const IconUsers = createLucideIcon("users", []);                     // 原 Jv（js 27950）
-const IconBookOpen = createLucideIcon("book-open", []);              // 原 oye（js 26698）
-const IconFileArchive = createLucideIcon("file-archive", []);        // 原 Dye（js 26998）
-const IconCloudUpload = createLucideIcon("cloud-upload", []);        // 原 H_（js 26913）
-const IconMinimize2 = createLucideIcon("minimize-2", []);            // 原 Zye（js 27436）
+const IconCheck = createLucideIcon("check", []);                     // 原 M_（js 26849）
+const IconMessageSquare = createLucideIcon("message-square", []);    // 原 vv（js 27459）
+const IconLightbulb = createLucideIcon("lightbulb", []);             // 原 Uye（js 27318）
+const IconUsers = createLucideIcon("users", []);                     // 原 Jv（js 27998）
+const IconBookOpen = createLucideIcon("book-open", []);              // 原 oye（js 26746）
+const IconFileArchive = createLucideIcon("file-archive", []);        // 原 Dye（js 27046）
+const IconCloudUpload = createLucideIcon("cloud-upload", []);        // 原 H_（js 26961）
+const IconMinimize2 = createLucideIcon("minimize-2", []);            // 原 Zye（js 27484）
 const IconPlus = createLucideIcon("plus", []);                       // 原 kv（新建分支）
 const IconGitGraph = createLucideIcon("git-graph", []);              // 原 tv（提交图谱）
 

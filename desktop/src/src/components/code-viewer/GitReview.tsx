@@ -153,12 +153,12 @@
  *     用量钩子在别处；详见 GitReview.report.md §4）
  *
  *  图标（Sa = createLucideIcon 工厂，js 行）：
- *   Q_ folder-open 27103 | W_ copy 26926 | Nv refresh-cw 27677 | Z_ file-text 27060
- *   N_ chevron-down 26802 | uv list-tree 27300 | wa chevron-right（usageStatsUiParts o 导出）
- *   X_ file-diff 27036 | w_ arrow-up-from-line 26653 | Fye git-commit-horizontal 27147
- *   H_ cloud-upload 26913 | F_ circle-alert 26812 | M_ check 26801 | fv loader 27315
- *   ev git-branch 27142 | Kv trash-2 27882 | Cye code-xml 26921 | _v message-square-text 27399
- *   qv undo-2 27899 | Oye file-clock 27012（editConflict 触发器，登记）
+ *   Q_ folder-open 27151 | W_ copy 26974 | Nv refresh-cw 27725 | Z_ file-text 27108
+ *   N_ chevron-down 26850 | uv list-tree 27348 | wa chevron-right（usageStatsUiParts o 导出）
+ *   X_ file-diff 27084 | w_ arrow-up-from-line 26701 | Fye git-commit-horizontal 27195
+ *   H_ cloud-upload 26961 | F_ circle-alert 26860 | M_ check 26849 | fv loader 27363
+ *   ev git-branch 27190 | Kv trash-2 27930 | Cye code-xml 26969 | _v message-square-text 27447
+ *   qv undo-2 27947 | Oye file-clock 27060（editConflict 触发器，登记）
  *   跨 chunk：f=sparkles（imeComposition S）、g=x（imeComposition b）、M=loader-circle（imeComposition w）
  *
  *  data-testid 常量（来自 src-HCld2afU.js）：
