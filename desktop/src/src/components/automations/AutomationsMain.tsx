@@ -1,8 +1,9 @@
 // A0-S4-4a: 自 modules/SettingsPanelsCapability.tsx 自动化分区（§6，d6/F15 族根）原样迁入（组件单元；原文件现为薄 re-export shim）。
 // 迁出体 = 原文件 3685–4960（含尾部 fX/q 局部别名声明）；§0 声明群随族迁入（剔除 SkillsService/SubagentsService 接口，其型别属技能/子代理族）。导入路径按 components/automations/ 深度改指 ../../modules/。
 import * as React from "react";
+import * as $ from "react/jsx-runtime"; // 原 $（jsx-runtime-B5yMD3-t.js；A1-R15 判例：编译形 JSX 消费面）// 〔A1-R108〕图标族实体化接线（k3/M3/Njt/uMt 编译形消费）
 import { DropdownMenu as DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { LoaderCircle as SpinnerIcon, RefreshCw as RefreshIcon, Trash2 as TrashIcon, EllipsisIcon, PlayIcon, RotateCcw as RotateIcon, PauseIcon, PlayCircle as ResumeIcon, SquarePen as EditIcon, CircleCheck as AutomationStatusCompletedIcon, TriangleAlert as AutomationStatusFailedIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0
+import { LoaderCircle as SpinnerIcon, RefreshCw as RefreshIcon, Trash2 as TrashIcon, EllipsisIcon, PlayIcon, RotateCcw as RotateIcon, PauseIcon, PlayCircle as ResumeIcon, SquarePen as EditIcon, CircleCheck as AutomationStatusCompletedIcon, TriangleAlert as AutomationStatusFailedIcon, Clock, CircleStop, Target, Activity, FileText, List, ListChecks, SlidersHorizontal } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0 // 〔A1-R108〕+Clock/CircleStop（原 V_/R_：M3/k3 状态图标真身，束 26949/26912 Sa 工厂证）+Target/Activity/FileText/List/ListChecks/SlidersHorizontal（原 wbe/y_/Z_/dv/lv/bbe：Mjt/lMt 模板图标映射表六员）
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { toast, usePlatformService, type PlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService/type PlatformService（原 l ≡ imeComposition M 导出 ≡ usePlatform 域外别名）：本地 2 员面碑化改指，见下墓碑
 import { AutomationEditor, CreateSplitButton, KeepAwakeRow, OffPeakTaskEditor, type SelectGroupEntry } from '../../modules/SettingsLeaves'; // A0-CLEANUP3 3b：SelectGroupEntry 属主为 SettingsLeaves（导出）
@@ -75,11 +76,11 @@ interface ToastOptions {
 /* --- 图标 --- */
 
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（19）：RefreshIcon/PlusIcon/TrashIcon/PencilIcon/ExternalLinkIcon/ChevronDownIcon/ChevronRightIcon/CheckIcon/DownloadIcon/FolderOpenIcon/SearchIcon/AlertIcon/SettingsIcon/EllipsisIcon/PlayIcon/RotateIcon/PauseIcon/ResumeIcon/EditIcon → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const AutomationStatusActiveIcon: React.FC<React.SVGProps<SVGSVGElement>>; // M3
-declare const AutomationStatusPausedIcon: React.FC<React.SVGProps<SVGSVGElement>>; // k3
+/* ── tombstone〔A1-R108〕：declare 四连——AutomationStatusActiveIcon（原 M3）/AutomationStatusPausedIcon（原 k3）/
+ *    TemplateIcon（原 uMt）/ScheduledTemplateIcon（原 Njt）删除——逐字实体化于下方实体带（编译形 $.jsx）。
+ *    M3/k3 真身 = E3 缺省 props 包装之 Clock/CircleStop（原 V_/R_）；Njt/uMt 真身 = Mjt/lMt
+ *    映射表查图标（六员 lucide 改指 npm）。R43 判词「树内无 canonical」续成立——本批首次实体化。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：AutomationStatusCompletedIcon/AutomationStatusFailedIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const TemplateIcon: React.FC<{ className?: string; name: string }>; // uMt 闲时模板图标
-declare const ScheduledTemplateIcon: React.FC<{ className?: string; name?: string }>; // Njt 定时模板图标
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：SkillIcon/CommandIcon/SubagentIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /* ── tombstone〔A1-R43〕：declare HookIcon（原 p（camera-info 占位））删除——本文件零消费（死 declare；全文 grep 实测仅本声明行），树内无 canonical（全域 grep 实测：仅 6 文件 declare 面，零 export/零消费）；A1-R43 项 3 机械簇收敛，证据见 A1-R43.report.md §四。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：UserScopeIcon/InfoIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
@@ -311,7 +312,9 @@ declare const OffPeakTaskList: React.FC<{
   onOpenSession: (run: { sessionId?: string | null; workspacePath?: string; workspaceIdentity?: string | null }) => void;
 }>; // cMt（jsx 113500）
 declare const AutomationStatusChip: React.FC<{ text: string; icon?: React.ReactNode; dimmed?: boolean }>; // ANt（jsx 115689）
-declare const OFF_PEAK_TEMPLATES: Array<{ id: string; cronExpr?: string }>; // Pjt（jsx 112762）
+/* ── tombstone〔A1-R108〕：declare OFF_PEAK_TEMPLATES（原 Pjt）删除——逐字实体化于下方实体带。
+ *    束真形为 var 链 Pjt+Fjt（134016–134017）；Fjt（闲时提示气泡类）消费 135803/138666 未实体化，
+ *    按 R103 q$ 留束判例切出留束，语句形归一入 roundtrip 脚本。 ── */
 /** 原 INt（jsx 115771）：闲时创建按钮 —— A0-CLEANUP B-31 改指 ExtendedViews 导出（见文件头 import） */
 /** 原 LNt（jsx 115784）：定时模板表 —— A0-CLEANUP B-31 改指 ExtendedViews 导出（见文件头 import） */
 /** 原 AMt（jsx 113829）：自动化模型选择分组 —— 保留 declare：属主 EV 实体签名（displayOrder: string[]）与本域调用面（{providerIds…}|null）形状冲突，改指会新增错（A0-CLEANUP B-31 记录在案） */
@@ -482,6 +485,51 @@ function formatNextTakeAt(e: any, t: any, n: any) {
     : a > 0
       ? n.formatMessage({ id: `offPeak.create.remaining.hours` }, { hours: a })
       : n.formatMessage({ id: `offPeak.create.remaining.minutes` }, { minutes: o });
+}
+/* ── 原 Mjt（js 134005）→ SCHEDULED_TEMPLATE_ICONS：定时模板图标映射表〔A1-R108 逐字实体化〕 ── */
+const SCHEDULED_TEMPLATE_ICONS: Record<string, React.ElementType> = { target: Target, activity: Activity, file: FileText, list: List }; // 〔A1-R108〕型缝：映射表索引面注记（束原形无注记；TS7053 防）
+/* ── 原 Njt（js 134006–134015）→ ScheduledTemplateIcon：定时模板图标（映射表查表渲染）〔A1-R108 逐字实体化〕 ── */
+function ScheduledTemplateIcon({ className: e, name: t }: any) {
+  let n = SCHEDULED_TEMPLATE_ICONS[t];
+  return (0, $.jsx)(n, {
+    "aria-hidden": `true`,
+    className: e,
+    "data-automation-template-icon": t,
+    size: 16,
+    strokeWidth: 2,
+  });
+}
+/* ── 原 Pjt（js 134016）→ OFF_PEAK_TEMPLATES：闲时模板三连〔A1-R108 逐字实体化；var 链切出，Fjt 留束（R103 q$ 判例）〕 ── */
+const OFF_PEAK_TEMPLATES = [{ id: `standupGitSummary` }, { id: `ciFlakyReport` }, { id: `documentationSyncCheck` }];
+/* ── 原 E3（js 134469）→ AUTOMATION_STATUS_ICON_DEFAULTS：状态图标缺省 props〔A1-R108 逐字实体化〕 ── */
+const AUTOMATION_STATUS_ICON_DEFAULTS = { size: 16, strokeWidth: 2 };
+/* ── 原 k3（js 134490–134492）→ AutomationStatusPausedIcon〔A1-R108 逐字实体化〕 ── */
+function AutomationStatusPausedIcon(e: any) {
+  return (0, $.jsx)(CircleStop, { ...AUTOMATION_STATUS_ICON_DEFAULTS, ...e });
+}
+/* ── 原 M3（js 134508–134510）→ AutomationStatusActiveIcon〔A1-R108 逐字实体化〕 ── */
+function AutomationStatusActiveIcon(e: any) {
+  return (0, $.jsx)(Clock, { ...AUTOMATION_STATUS_ICON_DEFAULTS, ...e });
+}
+/* ── 原 lMt（js 134940–134947）→ OFF_PEAK_TEMPLATE_ICONS：闲时模板图标映射表〔A1-R108 逐字实体化〕 ── */
+const OFF_PEAK_TEMPLATE_ICONS: Record<string, React.ElementType> = { // 〔A1-R108〕型缝：映射表索引面注记（束原形无注记；TS7053 防）
+  standupGitSummary: List,
+  ciFlakyReport: Activity,
+  documentationSyncCheck: ListChecks,
+  customize: SlidersHorizontal,
+  standupGitSummarySecondary: List,
+  followUpMonitor: ListChecks,
+};
+/* ── 原 uMt（js 134948–134957）→ TemplateIcon：闲时模板图标（映射表查表渲染）〔A1-R108 逐字实体化〕 ── */
+function TemplateIcon({ className: e, name: t }: any) {
+  let n = OFF_PEAK_TEMPLATE_ICONS[t];
+  return (0, $.jsx)(n, {
+    "aria-hidden": `true`,
+    className: e,
+    "data-off-peak-template-icon": t,
+    size: 16,
+    strokeWidth: 2,
+  });
 }
 /* ── tombstone〔A1-R104〕：declare offPeakCreateFailureMessageId（原 Dit 91405）删除——改指 offPeakHelpers 逐字 canonical（modules/StoresDeep 转导出，import 在案）。 ── */
 /* ── tombstone〔A1-R103〕：declare 四连——automationLifecycleOf（原 qht）/automationHasFailedRun（原 Kht）/
