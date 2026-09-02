@@ -150,7 +150,7 @@ interface ModelSelectGroup {
 
 /* ── tombstone〔A1-R29〕：declare buildModelSelectGroups（原 Hq）删除 → 改指 modelMenuGroupsOf（Hq 真身：
  *    bundle 77850 唯一真身 ≡ PaymentDeep@993 A0 逐字实化，modules/PaymentDeep@118 转导出）。双实例收敛证据：
- *    消费面实测：@1043（AMt buildAutomationModelSelectGroups 体内）≡ bundle 135408（AMt 135384 体内
+ *    消费面实测：@1043（AMt buildAutomationModelSelectGroups 体内）≡ bundle 135408（AMt 135401 体内
  *    `Hq(e.selectedProvider, [], t, e.labels, e.displayOrder, ...)`），改名改指（configModels 位 = bundle
  *    第二参，Hq 体内从不读，负证据在案，删位）。负证据：bundle 内 Hq 无第二真身。 ── */
 

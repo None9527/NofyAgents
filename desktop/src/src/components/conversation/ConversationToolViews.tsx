@@ -1331,7 +1331,7 @@ export function GoalToolView(props: ToolCallViewProps) {
 
 /* ── tombstone〔A1-P1-B15〕：手写 NodeReplToolView（约 160 行）+ 五 declare（buildNodeReplModel 原 Tmt/
  * resolveNodeReplStatus 原 Mmt/isPlainTextOutput 原 jmt/looksLikeJson 原 Amt/NodeReplImageList 原 Emt）+
- * NODE_REPL_ICON 手写 const 删除——束真身 Nmt@107168 全闭包（106856–107111 + 107115–107179 + 107216–107431，
+ * NODE_REPL_ICON 手写 const 删除——束真身 Nmt@107216 全闭包（106856–107111 + 107115–107179 + 107216–107431，
  * 含 smt 标题归一/v$ 记录判定/Tmt 模型归一/Emt 图像画廊/Amt JSON 判定/jmt 短文本判定/Mmt 头部归一 +
  * Dmt 图标/kmt 纯文本上限）已逐字转录实体化于 ./NodeReplBlocks。消费面改文件尾转导出，调用面逐字不变。
  * 束真身更正披露：手写体为简化卡面；束真身含 smt NODE_REPL_GENERIC_TITLE_PATTERN 标题归一 + q_/wa 图标面 +

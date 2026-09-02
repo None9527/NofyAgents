@@ -190,7 +190,7 @@
  *     - zZ GitBranchChip（TopBar.tsx 已抽取；本文件引用其 props 接口，注意 popoverSide 还需支持 "left"）
  *     - Bc FilePathInline（js 5157，横切文件图标块 4946–6061）
  *     - W8 DiffViewer = memo(mVt)（js 160479/160542，F14；底层 rze/nze 47224/47174 + diff 引擎 17445–23919）
- *     - gut LightweightDiffPreview（js 100459；助手 dhe 23226 / mut 100418 / hut 100427）
+ *     - gut LightweightDiffPreview（js 100459；助手 dhe 23274 / mut 100466 / hut 100475）
  *     - QA useFileContextActions（js 51093）、$A useWorkspaceRemoteInfo（js 51166）
  *     - ko useSettingsSelector（js 1296）、xo resolveTheme（js 1103）、fs useServices（js 2638）
  *     - Ko/Jo/Go/zA 路径助手（1941/1952/1928/50919）

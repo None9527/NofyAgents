@@ -4332,11 +4332,11 @@ export function normalizeCursorState(model: DocxEditorModel, selection: DocxSele
   };
 }
 
-/** C3 契约别名（xx 23965） */
+/** C3 契约别名（xx 32465） */
 export const cloneLocationContract = cloneLocation;
-/** C3 契约别名（Sx 23976） */
+/** C3 契约别名（Sx 32469） */
 export const collapsedRangeToRestore = cloneTextRange;
-/** C3 契约别名（Ex 24009） */
+/** C3 契约别名（Ex 32536） */
 export const sameTextRangeApprox = sameTextRange;
 /** C3 契约别名（_x 23933） */
 export const enumerateRangeLocationsContract = enumerateRangeLocations;

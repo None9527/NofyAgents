@@ -185,7 +185,7 @@
  * 11. useVirtualizer (to)           esm-BY6T6pIH.js（@tanstack/virtual 核心）
  * 12. 本 chunk 内原语：Radix Tabs(hC/gC/_C 36949)、DropdownMenu(VO…JO 47926)、
  *     ContextMenu(yk…Ck 43966)、Collapsible(kZ/AZ/jZ 82939)、Dialog(zb… 31943)、
- *     Badge(uJ 70704)、dnd-kit vendored 块(91811–94695)
+ *     Badge(uJ 80351)、dnd-kit vendored 块(91811–94695)
  * ============================================================================
  */
 
@@ -913,7 +913,7 @@ interface ZCodeTaskServiceLike {
   archiveTask(args: { taskId: string; workspacePath: string; workspaceIdentity?: string }): Promise<TaskMeta>;
 }
 
-/* ── tombstone（A1-R9）：E6/k6 本地并行实例删除（原 E6@142372 / k6@142464 两录，
+/* ── tombstone（A1-R9）：E6/k6 本地并行实例删除（原 E6@142389 / k6@142481 两录，
  *    bundle 唯一真形 E6@142389 / k6@142481）→ 改指 canonical 实例。
  *    裁决与证据链（A1-R8 普查 + R9 收敛）：
  *    - 双实例：本文件 941/1004 区（live：151805–151806 / 152320–152323 侧栏簇）
@@ -3729,7 +3729,7 @@ export function WsEnumSection(props: {
 const EMPTY_TASK_ITEMS: TaskMeta[] = []; // 原 $Bt（159112）
 /* 〔A1-P2-B7〕logs 族 canonical：条目真形按生产面（OnboardingLoginLeaves.RemoteConnectionLogEntry，
  * js 域 F12：id 可选 / timestamp string | number / label、requestId 余面不入消费面）；
- * 消费仅 key={log.id} + {log.timestamp} + level 配色 + message 文本（FBt 158029）。
+ * 消费仅 key={log.id} + {log.timestamp} + level 配色 + message 文本（FBt 158075）。
  * WS 双面（EMPTY_LOGS_BY_WORKSPACE_KEY / 两级 props）改指本型。 */
 export interface RemoteLogEntry { id?: string; timestamp: string | number; level: string; message: string }
 export type RemoteLogsByWorkspaceKey = Record<string, RemoteLogEntry[]>;

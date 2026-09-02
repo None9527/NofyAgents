@@ -137,7 +137,7 @@
  *     遥测上报 (xw)、默认供应商常量 (vee=Z)   src-HCld2afU.js
  * 10. 本 chunk 内原语：Select (iO/oO/aO/sO/cO 46009–46100)、Checkbox (DC 37297)、
  *     AlertDialog ($4…a3 131966–132040)、Tabs (hC/gC/_C/vC 36949–36991)、
- *     DropdownMenu (VO… 47926)、Collapsible (kZ/AZ/jZ 94925)、Badge (uJ 80303)、
+ *     DropdownMenu (VO… 47926)、Collapsible (kZ/AZ/jZ 94925)、Badge (uJ 80351)、
  *     ScrollArea (Y3 136026)、Panel 布局 (X4/Z4/Q4 131934–131944)、
  *     Markdown 渲染器 (cj，F19)、文件显示 (zc/Vc/Bc)、basename (Go 1928)、
  *     isAbsolute (Ko 1941)、dirname (sae 1932)、模型解析 (Mg 24406)、

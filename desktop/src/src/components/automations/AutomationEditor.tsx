@@ -74,7 +74,7 @@ declare const IconSpinnerAlt: React.FC<{ className?: string }>; // EN（运行�
 /* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53440——普查行漂移，bundle 真身 53488）删除，
  *    改经文件头 modules/UsageDeep import 消费（canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字）。
  *    型缝：2113 解构 {settings, update} 逐字不变；update 形参 AppRuntimeSettingsPatch 对 2252 补丁可赋。 ── */
-/* ── tombstone（A1-R3）：useWorkspaceTabsStore（pc 4753）/ isUsableWorkspaceTab（oc）declare 删除
+/* ── tombstone（A1-R3）：useWorkspaceTabsStore（pc 4801）/ isUsableWorkspaceTab（oc）declare 删除
  *    → 真实 import { useWorkspaceTabStore as useWorkspaceTabsStore, isWorkspaceKindTab as isUsableWorkspaceTab }
  *    from '../../modules/WorkspaceTabsDeep'（R1 canonical 属主；文件头导入块）。 ── */
 declare const WorkspaceSelectRow: React.FC<{

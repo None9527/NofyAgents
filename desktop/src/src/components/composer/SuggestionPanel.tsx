@@ -1,7 +1,7 @@
 // A0-S4-4b: 自 modules/Composer.tsx [B5] 建议面板 原样迁入（组件单元；原文件现为薄 re-export shim）。
 // 迁出体 = [B5] 全段（2351–2676）+ §0 testid 常量 SUGGESTION_*（763–766，本族独占消费）。
 // testidOf（777）为 B5/[C]/[D] 三族共用运行时助手，留守 shim 补 export，经下方 import 取回（函数声明提升，环安全）；
-// MentionSuggestionItem 型别（B3 1905）留守 shim 补 export，经 type import 取回。
+// MentionSuggestionItem 型别（B3 135229）留守 shim 补 export，经 type import 取回。
 // 导入路径按 components/composer/ 深度改指 ../../modules/ / ../ui/。
 /* eslint-disable */
 import * as React from "react";

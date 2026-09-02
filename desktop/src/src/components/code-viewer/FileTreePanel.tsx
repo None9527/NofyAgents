@@ -2521,7 +2521,7 @@ declare function mergeTaskWithState(task: TaskRecord, state: unknown, meta: unkn
  *    removeTaskAndNotify（rae 1914）declare 五连删除，改指 canonical = stores/searchResultsStore R9 shim
  *    （bundle 1881–1927 逐字）。型缝：Uo 调用面 2579–2583 之 previousState/nextState 经 `args.membership &&`
  *    窄化为非空，与 canonical 必填面吻合（bundle oLt 146817–146824 同形）；rae 参型经 shim 精化收至
- *    WorkspaceScope & {taskId}（sLt 2603 薄对象真形，bundle 146841 同证）。 ── */
+ *    WorkspaceScope & {taskId}（sLt 146825 薄对象真形，bundle 146841 同证）。 ── */
 const taskMetaStore = useSearchResultsStore; // 原 Vo（1553）：调用面 2554 逐字不变
 const notifyTaskMetaUpsert = upsertSearchTaskMeta; // 原 $ie（1889）
 const notifyTaskMetaPreservingMembership = updateSearchTaskMetaPreservingMembership; // 原 eae（1892）

@@ -219,7 +219,7 @@ export interface CommandConfig {
   argumentHint?: string;
 }
 
-/* 命令 store 桥（原 F6 142754，接口级） */
+/* 命令 store 桥（原 F6 142771，接口级） */
 interface CommandsStoreState {
   commands: CommandItem[];
   userCommands: CommandItem[];

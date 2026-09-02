@@ -348,7 +348,7 @@ interface ZCodeStoreState {
   setNotificationSoundEnabled(v: boolean): void;
   requestOnboardingDialog(): void;
 }
-/* ── tombstone（A1-R3）：本地 WorkspaceTab/WorkspaceTabsStoreState 型 + useWorkspaceTabsStore（pc 4753）/
+/* ── tombstone（A1-R3）：本地 WorkspaceTab/WorkspaceTabsStoreState 型 + useWorkspaceTabsStore（pc 4801）/
  *    isConversationTab（oc）declare 删除 → 真实 import { useWorkspaceTabStore as useWorkspaceTabsStore,
  *    isWorkspaceKindTab as isConversationTab } from './WorkspaceTabsDeep'（R1 canonical 属主；文件头导入块）。
  *    型别宽化：canonical WorkspaceTab.workspacePath?: string（本地原必具）——选择器面（活动工作区上下文）
@@ -840,18 +840,18 @@ export type { McpServer, McpStatusSnapshot, McpSettingsSectionProps } from '../c
  *  注册表中被 VMe 门控隐藏（侧栏不显示），但 j9 保留渲染分支供意图直达。 */
 
 /** 原 I0t（js 200290）：插件分区（市场浏览 GitHub/Git/dir 源、商店分类/精选、更新/卸载；
- *  市场条目卡 C0t 199415；checkForUpdates 199737/200173）。 */
+ *  市场条目卡 C0t 199711；checkForUpdates 199737/200173）。 */
 
 /** 原 V2t（js 203883）：迁移分区（Claude 历史会话导入向导，z9 导入族）。 */
 
 /** 原 p1t（js 195890）：用量分区（用量统计仪表盘：日趋势/模型分布/高峰时段/工具调用，
- *  数据层 nge 23920；Coding Plan 标签由 e4t 提供）。 */
+ *  数据层 nge 23968；Coding Plan 标签由 e4t 提供）。 */
 
 /** 原 H1t（js 197838）：子代理分区（profile：模型/工具/权限/轮数/颜色、后台标志）。 */
 
-/** 原 G0t（js 201148）：命令分区（用户 .md 斜杠命令 CRUD；commands store F6 142754）。 */
+/** 原 G0t（js 201148）：命令分区（用户 .md 斜杠命令 CRUD；commands store F6 142771）。 */
 
-/** 原 p2t（js 202328）：Hooks 分区（事件/匹配/超时/异步；hooks store Z0t 201244）。 */
+/** 原 p2t（js 202328）：Hooks 分区（事件/匹配/超时/异步；hooks store Z0t 201540）。 */
 
 /* ============================================================================
  * 15. 设置视图根（原 j9，js 204878–205679 / jsx 163283）

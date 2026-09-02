@@ -192,7 +192,7 @@
  *     - zZ GitBranchChip（TopBar.tsx 已抽取；本文件引用其 props 接口，注意 popoverSide 还需支持 "left"）
  *     - Bc FilePathInline（js 5157，横切文件图标块 4946–6061）
  *     - W8 DiffViewer = memo(mVt)（js 160479/160542，F14；底层 rze/nze 47224/47174 + diff 引擎 17445–23919）
- *     - gut LightweightDiffPreview（js 100459；助手 dhe 23226 / mut 100418 / hut 100427）
+ *     - gut LightweightDiffPreview（js 100459；助手 dhe 23274 / mut 100466 / hut 100475）
  *     - QA useFileContextActions（js 51093）、$A useWorkspaceRemoteInfo（js 51166）
  *     - ko useSettingsSelector（js 1296）、xo resolveTheme（js 1103）、fs useServices（js 2638）
  *     - Ko/Jo/Go/zA 路径助手（1941/1952/1928/50919）
@@ -4103,7 +4103,7 @@ export function useTaskFileActions({
  *  nge useGitRepository 23920/20564 | tge 23910/20561 | ege/$he 23898/23876 (20549/20533)
  *  Qhe/Tg/Zhe 23862/23847/23844 (20505/20491/20485) | wg/Cg/Xhe/Sg 23829/23815/23807/23804
  *  Yhe/Jhe/xg/qhe 23788/23785/23782/23774 | Khe/Ghe/Whe 23773/23768/23767
- *  bg/Uhe/Hhe 23764/23760/23726 (20377/20374/20340) | yg 23717
+ *  bg/Uhe/Hhe 23764/23760/23726 (20377/20374/20340) | yg 23765
  *
  *  相邻未展开（登记）：
  *   - S_t TurnFileChangesSummary js 110813 / jsx 94679 —— 已在 Conversation.tsx 逐字抽取

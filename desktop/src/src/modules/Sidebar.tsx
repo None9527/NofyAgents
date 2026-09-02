@@ -183,7 +183,7 @@
  * 11. useVirtualizer (to)           esm-BY6T6pIH.js（@tanstack/virtual 核心）
  * 12. 本 chunk 内原语：Radix Tabs(hC/gC/_C 36949)、DropdownMenu(VO…JO 47926)、
  *     ContextMenu(yk…Ck 43966)、Collapsible(kZ/AZ/jZ 82939)、Dialog(zb… 31943)、
- *     Badge(uJ 70704)、dnd-kit vendored 块(91811–94695)
+ *     Badge(uJ 80351)、dnd-kit vendored 块(91811–94695)
  * ============================================================================
  */
 

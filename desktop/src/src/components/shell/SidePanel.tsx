@@ -143,7 +143,7 @@
  *     tKt ModelTrajectoryView（js 180606）、mKt DeveloperToolsView（js 180870）、
  *     l3 RepoWikiView（F16，js 132306）、bUt TerminalPanel（F13，js 175976）、
  *     _Wt BrowserView（F13，js 177724）、vWt BrowserUseView（F13，js 178191）
- * 16. 作用域 context：ServiceScopeProvider (DT 42761)、usePanelScope (ET 42756)；
+ * 16. 作用域 context：ServiceScopeProvider (DT 42809)、usePanelScope (ET 42756)；
  *     会话快照 k0、设置 store 选择器 Ao、白板 store Oe、任务结束订阅 Vie、
  *     计划 markdown 提取 qZ/u1 — 均为同 chunk 运行时助手，接口保留。
  * ============================================================================
