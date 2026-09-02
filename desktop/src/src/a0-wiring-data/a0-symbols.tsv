@@ -1974,7 +1974,7 @@ section	sem	obf	line	owner
 19	git	repoWiki	—	—
 19	isWritableStorage	s	1658	—
 19	chat	subagentDirectory	—	—
-19	ZCodeIntlProvider	t	—	—
+19	ZCodeIntlProvider	t	9259	IntlProvider-C321H7m8.js
 19	notification	taskNav	—	—
 19	readLocalStorageItem	u	1569	—
 19	updateAvailable	updateReady	—	—
@@ -1982,8 +1982,8 @@ section	sem	obf	line	owner
 19	createIntlShim	w	2984	—
 19	taskList	workspace	—	—
 19	parseLocaleBroadcastPayload	x	2501	—
-19	isSupportedLocale	y	—	—
-19	isSupportedLocale	y	—	—
+19	isSupportedLocale	y	9096	IntlProvider-C321H7m8.js
+19	isSupportedLocale	y	9096	IntlProvider-C321H7m8.js
 20	jsxRuntime	$	1287	—
 20	jsxRuntime	$	1287	—
 20	USAGE_CHART_COLORS	$	1287	—
