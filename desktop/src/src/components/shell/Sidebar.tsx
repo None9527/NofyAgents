@@ -324,13 +324,13 @@ interface TaskInteraction {
   toolName?: string;
   autoResolution?: { state: "snoozed" | string; visibleAt: number; deadlineAt: number; startedAt?: number } | null;
 }
-interface TaskGroup { id: string; title: string; color: GroupColor; createdAt: number; sortOrder?: number | null }
-type GroupColor = "gray" | "red" | "orange" | "yellow" | "green" | "blue" | "purple";
+export interface TaskGroup { id: string; title: string; color: GroupColor; createdAt: number; sortOrder?: number | null; updatedAt?: number } // 〔A1-R102〕+export/+updatedAt：型别归一（A1-P3-B4 §六-3① 处方）——updatedAt 为 SidebarLeaves 组更新写面（:1678）所需，索引签名经普查无动态消费不落 canonical
+export type GroupColor = "gray" | "red" | "orange" | "yellow" | "green" | "blue" | "purple";
 /** 分组视图节点（原 qRt 产物） */
-type GroupedViewNode =
+export type GroupedViewNode =
   | { type: "group"; group: TaskGroup; tasks: TaskMeta[]; sortOrder?: number }
   | { type: "task"; task: TaskMeta; sortOrder?: number };
-interface GroupedView { nodes: GroupedViewNode[] }
+export interface GroupedView { nodes: GroupedViewNode[] }
 /** 工作区标签（原 workspace tab；pc store 的条目） */
 /** type 别名：对 SidebarLeaves.WorkspaceTab（带索引签名）可赋值 */
 type WorkspaceTab = {

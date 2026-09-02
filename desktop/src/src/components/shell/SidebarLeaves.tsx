@@ -131,6 +131,7 @@ import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
 import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex } from './TaskIndexCore';
+import { moveTaskIntoGroupStart, type GroupColor, type GroupedView, type GroupedViewNode, type TaskGroup } from './Sidebar'; // 〔A1-R102〕d8 闭合 + 型别归一（A1-P3-B4 §六-3①/§七-6 处方）：canonical = Sidebar moveTaskIntoGroupStart@833，型族改指 Sidebar canonical 面。环安全：本→Sidebar 值边新增（Sidebar→modules/SidebarLeaves→本叶边既有成环），惟 moveTaskIntoGroupStart 仅 applyDraftPromotions 运行期调用，函数声明 hoisted——A1-P3-B4 直连先例实测无环异常（当时仅 TS2719 型面回退）
 import { type MobileHomeResult, type WebRemoteSwitcherService, type WebRemoteWorkspaceInfo } from '../remote/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：消费面三本地型（WebRemoteWorkspace/WebRemoteTaskIndex/WebRemoteSwitcher）删碑改指生产面（六点分叉表闭合，A1-P2-B9.report.md §四）。环安全：type-only 导入全擦除，WebRemote 值闭包（ui/modules 族）不达 SidebarLeaves // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
 import { joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-P3-B11〕原 scopedTestId（qr/Nb 局部转录）收敛改指 canonical（墓碑见 @361）；消费面 3724/3783。环安全：SrcSharedB 为共享导出叶，无反向 components/shell 边（Sidebar.tsx@220 同边先例）
 
@@ -442,21 +443,10 @@ interface ProviderEntitlement {
   loading: boolean;
 }
 
-/* ---- 分组视图共享类型（与 Sidebar.tsx 同口径） ---- */
-
-type GroupColor = "gray" | "red" | "orange" | "yellow" | "green" | "blue" | "purple" | string;
-interface TaskGroup {
-  id: string;
-  title: string;
-  color: GroupColor;
-  createdAt: number;
-  updatedAt?: number;
-  [key: string]: unknown;
-}
-interface GroupedViewNodeGroup { type: "group"; group: TaskGroup; tasks: TaskMeta[]; sortOrder?: number }
-interface GroupedViewNodeTask { type: "task"; task: TaskMeta; sortOrder?: number }
-type GroupedViewNode = GroupedViewNodeGroup | GroupedViewNodeTask;
-interface GroupedView { nodes: GroupedViewNode[] }
+/* ---- 分组视图共享类型：改指 Sidebar.tsx canonical 型族（〔A1-R102〕型别归一，闭合 A1-P3-B4 §六-3①/§七-6 d8 留批）。
+ *    原本地型族（开联合 GroupColor + 带索引签名 TaskGroup + 具名节点对）删除；具名节点变体以 Extract 别名保留。 ---- */
+type GroupedViewNodeGroup = Extract<GroupedViewNode, { type: "group" }>;
+type GroupedViewNodeTask = Extract<GroupedViewNode, { type: "task" }>;
 interface WorkspaceScope {
   workspacePath: string;
   workspaceIdentity?: string | null;
@@ -1139,8 +1129,8 @@ function memberKeyOf(member: { workspacePath: string; workspaceIdentity?: string
   return taskEntityKey({ taskId: member.taskId, workspacePath: member.workspacePath, workspaceIdentity: member.workspaceIdentity });
 }
 
-/** 原 JRt（— / 126470）：草稿提升位置应用（top → 前置；group → 移入组） */
-declare function moveTaskIntoGroupStart(view: GroupedView, args: { activeTaskKey: string; groupId: string }): GroupedView; // d8（Sidebar.tsx 已还原）〔A1-P3-B4 留批：canonical = Sidebar.tsx moveTaskIntoGroupStart，运行时同形；惟两叶各持本地 GroupedView/TaskGroup 型族（Sidebar 侧 TaskGroup 带索引签名，本叶无），型面不接，需型别归一后改指（证据见 A1-P3-B4.report.md §七）〕
+/* ── tombstone〔A1-R102〕：declare moveTaskIntoGroupStart（原 JRt / d8）删除——改指 Sidebar.tsx canonical@833（import 在案）。
+ *    留批闭合：A1-P3-B4 §七-6（型族不接 TS2719）经本批型别归一（canonical 面 +updatedAt、本叶本地型族删碑改指）后销账。 ── */
 function applyDraftPromotions(
   view: GroupedView,
   promotions: Map<string, { placement: { type: "top" } | { type: "group"; groupId: string } }>,
