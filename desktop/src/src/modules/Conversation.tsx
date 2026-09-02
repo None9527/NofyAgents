@@ -145,6 +145,7 @@ import { CodeCommentsChip, SelectionsChip, WebElementsChip, isHttpUrl as isPlugi
 import { PptxReferencesChip, usePptxPreviewOpener } from '../components/composer/PptxReferencesChip'; // 〔A1-R22〕原 PptxReferenceChips/useOpenCodeViewerForReference declare（JH 69036 / YH 69207）改指（A1-R21 补 export；消息行 112243 消费面）。环安全：该叶不反引本文件
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
+import { normalizeToolCallNode } from '../components/conversation/ToolStatusModel'; // 原 u1（styles 110206；A1-R96 实体化收敛）
 import { TurnNavigator, findActiveQueryRow, shouldHydrateFullHistory, hydrateRetryDelayMs } from '../components/conversation/TurnNavigator'; // 〔A0-S4-4b〕§8 渲染点（6549）+ activeQueryRowId（6238）+ §5 水合判定（3957/3991）消费回取
 import { EMPTY_SUBAGENT_DIRECTORY, buildSessionErrorKey, buildSessionErrorBannerModel, isApiRetryEligible } from '../components/conversation/ConversationPaneHelpers'; // 〔A1-P1〕R0 簇卫星域逐字真身（原 $Ct/QCt/twt，js 119197/119194/119199）；叶仅依赖 SrcSharedA，环安全（本文件单向消费）；〔A1-P1-B17〕+isApiRetryEligible（原 Wgt，110071；declare 删碑见 §5.15 域）
 import { useSessionQuotaViewModel } from '../components/conversation/ConversationQuotaModel'; // 〔A1-P1-B2〕原 XCt（js 119101）逐字真身（配额块闭包全簇）；环安全：叶不反引本文件（UsageDeep 依赖面负证据在案）
@@ -1766,11 +1767,10 @@ const TimelineMarkerView = React.memo(function TimelineMarkerView({
 
 /* --- 5.10 工具行 / 子代理行 / 行渲染器（原 wvt/u1/Tvt/Evt/Dvt/b1，jsx 96025–96114） --- */
 
-/**
- * 原 u1（js 110158 / jsx 94198）：把行模型规范化为 ToolCallNode
- *（toolCall + childToolCalls 树；子工具调用按 parentToolUseId 归组）。
- */
-declare function normalizeToolCallNode(row: ToolCallRowModel): ToolCallNode;
+/* ── tombstone〔A1-R96〕：declare normalizeToolCallNode（原 u1，旧注 js 110158 系漂移——束真身 110206–110239）删除。
+ *    束真身逐字实体化于 ../components/conversation/ToolStatusModel（工具行归一域 110168–110239，
+ *    含 r_t/i_t/a_t/l1/o_t 依赖链；childToolCalls = [] 束形——旧注「按 parentToolUseId 归组」为 A0 推测，束体无此行为）。
+ *    本叶消费位 1786/1920 改文件头真实 import，调用面逐字不变。 ── */
 
 /**
  * 工具行（原 wvt，jsx 96025，memo）：ToolCallBlock 的行包装。

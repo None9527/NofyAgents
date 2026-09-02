@@ -7,21 +7,60 @@ import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../
 import { Button } from '../../modules/button'; // 原 t（A0-D 接线：declare → button canonical）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（A0-D 接线：declare → UtilsCn canonical）
 import type { ToolCall, ToolCallNode } from '../../modules/ConversationLeaves'; // 会话流共享类型 canonical（A0-D 类型收敛）
+import { schedulePreviewText, cronPreviewText } from '../../modules/SettingsLeaves'; // 原 Q$/Xht（AutomationEditor schedulePreviewText@109424/cronPreviewText@109497；SettingsLeaves 转导出）〔A1-R96〕
+import { normalizeToolCallNode } from './ToolStatusModel'; // 原 u1（styles 110206；A1-R96 实体化收敛，工具行归一域）
 
 /* ============================================================================
  * 4. 自动化卡（原 sgt…dgt/Mvt/Nvt/Pvt/Fvt/fgt，jsx 93617–93766 + 96194–96238）
  * ==========================================================================*/
 
-/** 原 e1/agt：宽松对象判定/scheduleRule 归一（接口级） */
-declare function isPlainObjectLike(value: unknown): value is Record<string, unknown>;
-declare function normalizeScheduleRule(value: unknown): unknown;
-/** 原 u1：toolCall 节点归一（Conversation.tsx 接口级） */
-declare function normalizeToolCallNode(node: ToolCallNode): { toolCall: ToolCall; [key: string]: unknown };
-/** 原 rgt：cron 表达式 → 人读调度文案（F15 域，接口级） */
-declare function formatCronSchedule(
-  args: { cronExpr: string; scheduleRule?: unknown; recurring?: boolean; maxRuns?: number },
-  intl: IntlShape,
-): string;
+/* ── 调度文案域（styles 109557–109598；A1-R96：4 declare 实体化，束内定义序逐字保持） ── */
+/* ── 原 ngt（js 109557–109572）→ scheduleRuleToPreviewModel：scheduleRule → 构建态预览模型（frequency=custom 投射）〔A1-R96〕 ── */
+function scheduleRuleToPreviewModel(e: any): any { // 〔A1-R96〕返回面 : any 型缝（frequency 字面量宽化，消费面 schedulePreviewText ScheduleBuilderState 投射）
+  return {
+    frequency: `custom`,
+    hour: e.hour,
+    minute: e.minute,
+    weekdays: e.weekdays ?? [1],
+    dayOfMonth: e.monthDays?.[0] ?? 1,
+    rawExpr: ``,
+    customInterval: e.interval,
+    customUnit: e.unit,
+    customWeekdays: e.weekdays ?? [1],
+    customMonthDays: e.monthDays ?? [1],
+    customMonth: e.months?.[0] ?? new Date(e.anchorAt).getMonth() + 1,
+    customMonthlyMode: e.monthlyMode ?? `date`,
+  };
+}
+/* ── 原 rgt（js 109573–109579）→ formatCronSchedule：cron 表达式 → 人读调度文案（非重复 → custom / scheduleRule → 构建态预览 / 余 → cron 预览）〔A1-R96〕 ── */
+function formatCronSchedule(e: any, t: any) {
+  return e.recurring === !1 && (e.maxRuns ?? 1) <= 1
+    ? t.formatMessage({ id: `automations.frequency.custom` })
+    : e.scheduleRule
+      ? schedulePreviewText(scheduleRuleToPreviewModel(e.scheduleRule), t)
+      : cronPreviewText(e.cronExpr, t);
+}
+/* ── 原 igt（js 109580）→ SCHEDULE_RULE_UNITS：scheduleRule 单位白名单〔A1-R96〕 ── */
+var SCHEDULE_RULE_UNITS = new Set([`minute`, `hourly`, `daily`, `weekly`, `monthly`, `yearly`]);
+/* ── 原 agt（js 109581–109592）→ normalizeScheduleRule：scheduleRule 完整性判定（单位/间隔/时分/锚点全备）〔A1-R96〕 ── */
+function normalizeScheduleRule(e: unknown) {
+  return !(
+    !isPlainObjectLike(e) ||
+    typeof e.unit != `string` ||
+    !SCHEDULE_RULE_UNITS.has(e.unit) ||
+    typeof e.interval != `number` ||
+    !Number.isFinite(e.interval) ||
+    typeof e.hour != `number` ||
+    typeof e.minute != `number` ||
+    typeof e.anchorAt != `number`
+  );
+}
+/* ── 原 e1（js 109596–109598）→ isPlainObjectLike：宽松对象判定（体同 qh@22864/tg@23030 等，束多处独立定义按符号各保）〔A1-R96〕 ── */
+function isPlainObjectLike(e: unknown): e is Record<string, unknown> {
+  return typeof e == `object` && !!e && !Array.isArray(e);
+}
+/* ── 〔A1-R96〕tombstone：declare isPlainObjectLike/normalizeScheduleRule（原 e1/agt）/normalizeToolCallNode（原 u1，
+ *    改指 ./ToolStatusModel 实体）/formatCronSchedule（原 rgt）四件删除——束真身逐字实体化（本域 + ToolStatusModel 工具行归一域）。 ── */
 
 function tryParseJsonObject(value: unknown): Record<string, unknown> | null {
   let current = value;

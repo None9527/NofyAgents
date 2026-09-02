@@ -16,7 +16,12 @@
 //   iQ→resolveInlinePreview（99630）
 //   【工具调用 raw 载荷域 23390–23429】
 //   pg→isPlainRecord（23390）| hg→parseToolCallRaw（23421）
+//   【工具行归一域 110168–110239】〔A1-R96〕
+//   r_t→V4_TOOL_STATUS_MAP（110168）| i_t→isEmptyPlainRecord（110176）| a_t→resolveToolCallInputPreview（110179）
+//   l1→trimmedErrorFieldOrUndefined（110194）| o_t→resolveToolCallErrorText（110199）| u1→normalizeToolCallNode（110206）
+//   fne→parseToolCallInput（SrcSharedB，styles 744 导入 `p as fne`）| nQ→unwrapToolUseError（本叶既有）
 /* eslint-disable */
+import { parseToolCallInput } from '../../modules/SrcSharedB'; // 原 fne（styles 744 `p as fne` ← src-HCld2afU 导出 p = parseToolCallInput；SrcSharedB VS@5864）〔A1-R96〕
 
 /* ── 工具状态/错误文案域（styles 99553–99618） ── */
 var TOOL_STATUS_DISPLAY_MAP: Record<string, string> = {
@@ -115,8 +120,89 @@ function parseToolCallRaw(e: unknown): Record<string, unknown> | null {
     : null;
 }
 
+/* ── 工具行归一域（styles 110168–110239；A1-R96 段吸收：Conversation §5.10 + AutomationCards 消费） ── */
+/* ── 原 r_t（js 110168–110175）→ V4_TOOL_STATUS_MAP：v4 状态 → 工具状态映射〔A1-R96〕 ── */
+var V4_TOOL_STATUS_MAP: Record<string, string> = { // 〔A1-R96〕索引面型缝（r_t[e.status] any 索引）
+  inputStreaming: `pending`,
+  pendingApproval: `pending`,
+  running: `in_progress`,
+  success: `completed`,
+  error: `failed`,
+  cancelled: `stopped`,
+};
+/* ── 原 i_t（js 110176–110178）→ isEmptyPlainRecord：空对象判定〔A1-R96〕 ── */
+function isEmptyPlainRecord(e: any) {
+  return typeof e == `object` && !!e && !Array.isArray(e) && Object.keys(e).length === 0;
+}
+/* ── 原 a_t（js 110179–110193）→ resolveToolCallInputPreview：输入预览解析（input 直取 / inputText 流式解析）〔A1-R96〕 ── */
+function resolveToolCallInputPreview(e: any): any { // 〔A1-R96〕返回面型缝（{input: void 0} 分支与完全面联合，消费面 r.input/inputPreviewComplete/streamingRawInputLength 投射）
+  if (e.input !== void 0)
+    return {
+      input: e.input,
+      inputPreviewComplete: !0,
+      ...(e.inputText.length > 0 ? { streamingRawInputLength: e.inputText.length } : {}),
+    };
+  if (!e.inputText) return { input: void 0 };
+  let t = parseToolCallInput(e.inputText);
+  return {
+    input: isEmptyPlainRecord(t.input) ? void 0 : t.input,
+    inputPreviewComplete: t.complete,
+    streamingRawInputLength: e.inputText.length,
+  };
+}
+/* ── 原 l1（js 110194–110198）→ trimmedErrorFieldOrUndefined：非空修剪串取值（体同 eQ@99567，束独立定义按符号各保）〔A1-R96〕 ── */
+function trimmedErrorFieldOrUndefined(e: any) {
+  if (typeof e != `string`) return;
+  let t = e.trim();
+  return t.length > 0 ? t : void 0;
+}
+/* ── 原 o_t（js 110199–110205）→ resolveToolCallErrorText：error 态错误文案解析（message → output.text 解包 → code）〔A1-R96〕 ── */
+function resolveToolCallErrorText(e: any) {
+  if (e.status !== `error`) return;
+  let t = trimmedErrorFieldOrUndefined(e.error?.message);
+  if (t) return t;
+  let n = trimmedErrorFieldOrUndefined(e.output?.text);
+  return n ? unwrapToolUseError(n) : trimmedErrorFieldOrUndefined(e.error?.code);
+}
+/* ── 原 u1（js 110206–110239）→ normalizeToolCallNode：行模型 → ToolCallNode 归一（raw 投影 + Agent/Task content 透传）〔A1-R96〕 ── */
+function normalizeToolCallNode(e: any) {
+  let t = V4_TOOL_STATUS_MAP[e.status],
+    n = resolveToolCallErrorText(e),
+    r = resolveToolCallInputPreview(e),
+    i = e.display;
+  return {
+    toolCall: {
+      toolId: e.toolCallId,
+      toolName: e.toolName,
+      kind: e.toolName,
+      input: r.input,
+      status: t,
+      output: e.output?.text,
+      ...((e.toolName === `Agent` || e.toolName === `Task`) && e.output?.text
+        ? { content: e.output.text }
+        : {}),
+      error: n,
+      raw: {
+        error: e.error,
+        rawOutput: e.output?.text,
+        outputTruncated: e.output?.truncated,
+        status: t,
+        toolCallId: e.toolCallId,
+        toolName: e.toolName,
+        v4Status: e.status,
+        ...(i ? { display: i } : {}),
+        inputPreviewComplete: r.inputPreviewComplete,
+        streamingRawInputLength: r.streamingRawInputLength,
+      },
+      startedAt: typeof e.startedAt == `number` ? e.startedAt : void 0,
+    },
+    childToolCalls: [],
+  };
+}
+
 export {
   TOOL_STATUS_DISPLAY_MAP, normalizeToolCallStatus, isPlainRecordValue, trimmedStringOrUndefined, firstTrimmedFieldOf, stripCodeFenceBlock,
   unwrapToolUseError, extractToolUseErrorText, extractToolErrorText, resolveInlinePreview,
   isPlainRecord, parseToolCallRaw,
+  V4_TOOL_STATUS_MAP, isEmptyPlainRecord, resolveToolCallInputPreview, trimmedErrorFieldOrUndefined, resolveToolCallErrorText, normalizeToolCallNode, // 〔A1-R96〕工具行归一域（r_t/i_t/a_t/l1/o_t/u1）
 };

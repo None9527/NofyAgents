@@ -5861,7 +5861,7 @@ export function isFileWriteToolName(e: any) {
 export var TOOL_INPUT_KNOWN_FIELD_NAMES = [`file_path`, `filePath`, `path`, `target_path`, `targetPath`, `filename`, `file`, `content`, `new_string`, `newString`, `new_text`, `newText`, `old_string`, `oldString`, `old_text`, `oldText`, `command`, `description`, `title`, `pattern`, `replacement`, `plan`];
 
 /** 原 VS（jsx 9331 / js 9219）：解析工具调用输入 */
-export function parseToolCallInput(e: any, t: any) {
+export function parseToolCallInput(e: any, t?: any) { // 〔A1-R96〕t 参宽化为可选（束 JS 调用面含单参形 fne(e.inputText)@110187；运行期同一）
   if (t !== void 0) return {
     complete: !0,
     input: t,
