@@ -132,7 +132,7 @@
  * 11. Radix 封装（本 chunk）：Tabs hC/gC/_C/vC (36949–36991)、
  *     ContextMenu yk/bk/xk/Sk (48825–48852)、cmdk Yb/Xb/Zb/Qb/$b/ex/tx (32092–32200)、
  *     Popover(imeComposition)、Tooltip(usageStatsUiParts)
- * 12. react-resizable-panels 封装：Panel (Z4=pAt 131943)、PanelResizeHandle (Q4 131944)
+ * 12. react-resizable-panels 封装：Panel (Z4=pAt 131732)、PanelResizeHandle (Q4 131944)
  * 13. ScopedErrorBoundary (p4 129952)：scope/resetKeys/variant
  * 14. 文件图标：resolveFileDisplayInfo (zc 5150)、FileIconImg (Vc 5195)
  * 15. 他族叶子组件（接口保留，见各自族）：

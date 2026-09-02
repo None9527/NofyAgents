@@ -176,7 +176,7 @@ interface WorkspaceTab {
   remoteSessionId?: string | null;
   [key: string]: unknown;
 }
-type TaskSortBy = "created" | "updated"; // A1-R10 精化：原 "updated"|"created"|"manual"|string 宽面 → bundle 真形二值（Iie@1456 `n === "created"`、140393/140601 消费面实测；与 Sidebar 334 同形）
+type TaskSortBy = "created" | "updated"; // A1-R10 精化：原 "updated"|"created"|"manual"|string 宽面 → bundle 真形二值（Iie@1341 `n === "created"`、140393/140601 消费面实测；与 Sidebar 334 同形）
 interface TaskMeta {
   taskId: string;
   title: string;

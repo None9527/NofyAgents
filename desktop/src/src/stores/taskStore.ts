@@ -125,7 +125,7 @@ interface ConfigOptionItem {
 
 // 〔A1-R56〕型缝：interface→type 声明形（成员逐字不变）——型别名获隐式索引签名，
 // 使本真形可赋 SubagentLeaves.ConfigOption（A0 宽化索引签名面）；Jq 域外消费
-// （AutomationEditor kNt 137206 / SubagentsSettingsSection H1t 197845）改指 Home §U.11 后双面桥接所依。
+// （AutomationEditor kNt 137022 / SubagentsSettingsSection H1t 197845）改指 Home §U.11 后双面桥接所依。
 type ConfigOption = {
   id: string;
   name: string;

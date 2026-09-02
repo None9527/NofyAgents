@@ -71,7 +71,7 @@ export interface SessionActivity {
 
 /** A1-R10 精化：kind/sortBy 原为 string 宽面，按 bundle 真形收窄为枚举联合——
  *  kind 五值 = Wie@1433 switch 全集（pinned/archived/active/timeline/workspace）；
- *  sortBy 二值 = Iie@1456（`n === "created"`）+ 140393/140601 消费面实测。
+ *  sortBy 二值 = Iie@1341（`n === "created"`）+ 140393/140601 消费面实测。
  *  收窄后与 canonical 面 components/quickpick/QuickPick.tsx QueryDescriptor
  *  （TaskListKind/TaskSortBy 同形）结构一致，供 SidebarLeaves Vo 接线
  *  （setQueryResults 之 SetQueryResultArgs.descriptor 必填面）缝合。 */
