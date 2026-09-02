@@ -45,7 +45,203 @@ import { SpinnerIcon } from '../../modules/ImeComposition'; // 〔A1-R99〕原 M
 /* ── tombstone〔A1-P1-B15〕：mermaid 门控四 declare（原 NO/Oze/Mze/Pze）删除——束真身域 47709–47894 既录
  * modules/MarkdownIntegration（isMermaidLanguage/isMermaidBlock/documentVisibilityState/mermaidAutoRenderGate，
  * A0 期语义重建在案；型面兼容：shouldRender/reason/metrics 返回面逐字段吻合）。别名导入保持本叶逐字体不变。 ── */
-declare const CodeSurfaceCodePane: React.FC<{ code: string; enableSyntaxHighlighting?: boolean; language?: string; showLineNumbers?: boolean; theme?: string; wrapLongLines?: boolean; className?: string; fontSizePx?: number; style?: Record<string, unknown> }>; // 原 MO（47549，代码面板域未实体化，留批）
+/* ── tombstone〔A1-R100〕：declare CodeSurfaceCodePane（原 MO 47549–47708）删除——逐字实体化于下方。
+ *    vendor 裁定依据：VENDOR-MANIFEST-LIBS 148 号条目（R52 补登）——styles 46014–47548 + 47974–48571 =
+ *    X09 code-view 引擎 vendored 区（vendor 体不转录），47549–47973 = app 包装带 first-party（MO/BO/Qze 三面板，
+ *    BO 见 R99、Qze 见 P1-B17）。MO 消费的 15 枚 vendored 依赖按 KX@dnd-kit / R18 深依赖登记模式补边界 declare：
+ *    $Re DiffViewer（FileRewindDialogDeep@139 同名先例）+ Sze/Cze 注解 UI + ize…jO 助手带 12 件。 ── */
+/* ── X09 vendor 边界占位 declare（原 47063–47461 域，KX 模式；类型面 = MO 消费面） ── */
+/** 原 $Re（47063，X09 vendor 边界）：DiffViewer 代码视图渲染器 */
+declare const DiffViewer: React.FC<any>;
+/** 原 Sze（47462，X09 vendor 边界）：草稿评论输入滑杆 */
+declare const DraftCommentComposer: React.FC<any>;
+/** 原 Cze（47518，X09 vendor 边界）：评论行（删除入口） */
+declare const CodeCommentRow: React.FC<any>;
+/** 原 uze（47372，X09 vendor 边界）：代码评论缺省文案组 */
+declare const CODE_SURFACE_COMMENT_LABELS: Record<string, string>;
+/** 原 dze（47382，X09 vendor 边界）：gutter 槽位补丁 CSS（右置按钮 + tooltip 伪元素） */
+declare const CODE_SURFACE_GUTTER_CSS: string;
+/** 原 yze（47422，X09 vendor 边界）：预览文件模型（name/contents/lang/cacheKey） */
+declare function createPreviewFileModel(e: any): any;
+/** 原 kO（47433，X09 vendor 边界）：行区间归一（start ≤ end） */
+declare function normalizeLineRange(e: any): any;
+/** 原 AO（47436，X09 vendor 边界）：行选择 → 绝对行区间（首行号偏移） */
+declare function lineSelectionToRange(e: any, t: any): any;
+/** 原 bze（47439，X09 vendor 边界）：绝对区间 → 相对选择面 */
+declare function toSelectedLines(e: any, t: any): any;
+/** 原 xze（47443，X09 vendor 边界）：区间选中文本抽取 */
+declare function extractRangeText(e: any, t: any, n: any): string;
+/** 原 DO（47415，X09 vendor 边界）：gutter 按钮 tooltip 批量施加 */
+declare function applyGutterUtilityTooltips(e: any, t: any): void;
+/** 原 OO（47419，X09 vendor 边界）：shadow root 递归遍历 */
+declare function forEachShadowRoot(e: any, t: any): void;
+/** 原 cze（47354，X09 vendor 边界）：主题 → colorScheme（documentElement.dark 兜底） */
+declare function resolveCodeColorScheme(e: any): string;
+/** 原 fze（47390，X09 vendor 边界）：CSS 变量值 JSON 转义 */
+declare function jsonStringifyForCss(e: any): string;
+/** 原 lze（47363，X09 vendor 边界）：scroll 容器 ref 转发（函数/对象双形） */
+declare function forwardScrollContainer(e: any, t: any): void;
+/* ── 原 MO（js 47549–47708）→ CodeSurfaceCodePane：代码面板（高亮/行号/换行/注释域）〔A1-R100 逐字实体化〕 ── */
+function CodeSurfaceCodePane({
+  code: e,
+  enableSyntaxHighlighting: t = !0,
+  language: n,
+  showLineNumbers: r = !0,
+  theme: i,
+  wrapLongLines: a = !1,
+  fontSizePx: o = 12,
+  firstLineNumber: s = 1,
+  comments: c = [],
+  enableLineSelection: l = !1,
+  enableGutterUtility: u = !1,
+  labels: d,
+  onSubmitCodeComment: f,
+  onDeleteCodeComment: p,
+  scrollContainerRef: m,
+  className: h,
+  style: g,
+  ..._
+}: any) {
+  let v = (0, React.useRef)(null as any), // 〔A1-R100〕型缝：容器 ref 束原形 null 初始化
+    [y, b] = (0, React.useState)(null),
+    [x, S] = (0, React.useState)(``),
+    C = !!f,
+    w = C && l,
+    T = C && u,
+    E = (0, React.useMemo)(() => ({ ...CODE_SURFACE_COMMENT_LABELS, ...d }), [d]),
+    D = (0, React.useMemo)(
+      () => createPreviewFileModel({ code: e, enableSyntaxHighlighting: t, language: n, theme: i }),
+      [e, t, n, i],
+    ),
+    O = (0, React.useMemo)(() => {
+      let e = [];
+      for (let t of c) {
+        let n = normalizeLineRange(t).endLine - s + 1;
+        n < 1 || e.push({ lineNumber: n, metadata: { kind: `comment`, comment: t } });
+      }
+      return (
+        C &&
+          y &&
+          e.push({ lineNumber: normalizeLineRange(y).endLine - s + 1, metadata: { kind: `draft`, range: y } }),
+        e
+      );
+    }, [y, C, c, s]),
+    k = (0, React.useMemo)(() => (C && y ? toSelectedLines(y, s) : null), [y, C, s]),
+    A = (0, React.useCallback)(
+      (e: any) => {
+        !C || !e || (b(lineSelectionToRange(e, s)), S(``));
+      },
+      [C, s],
+    ),
+    j = (0, React.useCallback)(
+      (e: any) => {
+        C && (b(lineSelectionToRange(e, s)), S(``));
+      },
+      [C, s],
+    ),
+    M = (0, React.useCallback)(() => {
+      if (!y) return;
+      let t = extractRangeText(e, s, y);
+      t.trim() && (f?.({ range: normalizeLineRange(y), selectedText: t, comment: x.trim() }), b(null), S(``));
+    }, [y, e, x, s, f]);
+  (0, React.useEffect)(() => {
+    if (!T || !v.current) return;
+    let e = v.current,
+      t: any[] = [], // 〔A1-R100〕型缝：MutationObserver 数组束原形无型空数组
+      n = new WeakSet(),
+      r = 0,
+      i = (e: any) => {
+        if (n.has(e)) return;
+        n.add(e);
+        let r = new MutationObserver(o);
+        (r.observe(e, { childList: !0, subtree: !0 }), t.push(r));
+      },
+      a = () => {
+        (applyGutterUtilityTooltips(e, E.addCommentTooltip),
+          forEachShadowRoot(e, (e: any) => { // 〔A1-R100〕型缝：shadow root 回调参束原形隐式
+            (i(e), applyGutterUtilityTooltips(e, E.addCommentTooltip));
+          }));
+      };
+    function o() {
+      r ||= window.requestAnimationFrame(() => {
+        ((r = 0), a());
+      });
+    }
+    return (
+      i(e),
+      a(),
+      o(),
+      () => {
+        r && window.cancelAnimationFrame(r);
+        for (let e of t) e.disconnect();
+      }
+    );
+  }, [T, E.addCommentTooltip]);
+  let N = (0, React.useMemo)(
+      () => ({
+        disableFileHeader: !0,
+        disableLineNumbers: !r,
+        overflow: a ? `wrap` : `scroll`,
+        theme: i,
+        enableLineSelection: w,
+        enableGutterUtility: T,
+        lineHoverHighlight: w || T ? `both` : `disabled`,
+        onLineSelectionEnd: A,
+        onGutterUtilityClick: T ? j : void 0,
+        unsafeCSS: CODE_SURFACE_GUTTER_CSS,
+      }),
+      [T, w, j, A, r, i, a],
+    ),
+    P = (0, React.useMemo)(
+      () => ({
+        colorScheme: resolveCodeColorScheme(i),
+        "--diffs-bg": `var(--color-background)`,
+        "--diffs-light-bg": `var(--color-background)`,
+        "--diffs-dark-bg": `var(--color-background)`,
+        "--diffs-font-size": `${o}px`,
+        "--code-comment-add-tooltip": jsonStringifyForCss(T ? E.addCommentTooltip : ``),
+        ...g,
+      }),
+      [T, o, E.addCommentTooltip, g, i],
+    );
+  return (0, $.jsx)(`div`, {
+    ref: (0, React.useCallback)(
+      (e: any) => {
+        ((v.current = e), forwardScrollContainer(m, e));
+      },
+      [m],
+    ),
+    className: cn(`h-full w-full overflow-auto`, h),
+    "data-language": n,
+    style: P,
+    ..._,
+    children: (0, $.jsx)(
+      DiffViewer,
+      {
+        file: D,
+        options: N,
+        lineAnnotations: O,
+        selectedLines: k,
+        className: `min-h-full w-full`,
+        style: P,
+        renderAnnotation: (e: any) => // 〔A1-R100〕型缝：注解渲染回调参束原形隐式（DiffViewer 为 FC<any>，无上下文型推）
+          e.metadata.kind === `draft`
+            ? (0, $.jsx)(DraftCommentComposer, {
+                range: e.metadata.range,
+                labels: E,
+                value: x,
+                onValueChange: S,
+                onSubmit: M,
+                onCancel: () => {
+                  (b(null), S(``));
+                },
+              })
+            : (0, $.jsx)(CodeCommentRow, { comment: e.metadata.comment, labels: E, onDelete: p }),
+      },
+      D.cacheKey,
+    ),
+  });
+}
 /* ── tombstone〔A1-R99〕：declare CodeSurfaceMermaidPane（原 BO 47895–47973）删除——逐字实体化于下方。
  *    深依赖全改指树内 canonical：G→useIntlContext（文件头既有）| Vze→resolveMermaidThemeVars | Bze→resolveMermaidConfigBase
  *    | zze→buildMermaidConfig | RO→fnv1aBase36 | Lze→enqueueMermaidRender | Fze→MERMAID_INLINE_PLUGIN
