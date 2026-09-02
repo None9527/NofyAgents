@@ -19,7 +19,7 @@ import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modul
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
 import { isCodingPlanConnectionSelected as hasCodingPlanEntitlement, isRemoteWorkspaceTab, type ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依 // 〔A1-R104〕+hasCodingPlanEntitlement 改指（原 Tit declare 删碑；canonical = Home::isCodingPlanConnectionSelected@749，A0 语义重建在案，xn/zi 依赖 R27/R28 既收敛）。环安全：Home 值闭包不达 components/automations（grep 实证仅注释提及） // 〔A1-R107〕+isRemoteWorkspaceTab：原 zMt（135518）canonical（SettingsLeaves 映射行 78 判词在案 ≡ N2@123216；Home::isRemoteWorkspaceTab@1256 转导出）
-import { useModelProvidersStore } from '../../modules/PaymentDeep'; // 〔A1-R109〕原 qq declare 删碑改指：canonical = PaymentDeep §11 useModelProvidersStore（bundle 78243–78403 逐字，R35 实体化，转导出 @319；ModelProviderSettingsSection 同判例）。环安全：PaymentDeep 值闭包不达 components/automations（grep 实证零 import 边）
+import { useModelProvidersStore, useCodingPlanEntitlements } from '../../modules/PaymentDeep'; // 〔A1-R109〕原 qq declare 删碑改指：canonical = PaymentDeep §11 useModelProvidersStore（bundle 78243–78403 逐字，R35 实体化，转导出 @319；ModelProviderSettingsSection 同判例）。环安全：PaymentDeep 值闭包不达 components/automations（grep 实证零 import 边） // 〔A1-R111〕+useCodingPlanEntitlements：原 sX declare（useCodingPlanEntitlementsForAutomations）删碑改指——canonical = PaymentDeep@9236 逐字实体（映射行 9235/10265 在案；R38 订阅面链闭合判例）
 import { offPeakCreateFailureMessageId, reportTelemetry } from '../../modules/StoresDeep'; // 〔A1-R104〕原 Dit declare 删碑改指 canonical = offPeakHelpers 逐字实体（转导出） // 〔A1-R105〕+reportTelemetry：原 xw（40457）遥测总入口 canonical（StoresDeep@323，R36 实体化；PaymentDeep R26 同判例）
 import { parseCustomModelRef, OFFPEAK_IDLE_PLAN_ID } from '../../modules/SrcSharedB'; // 〔A1-R105〕原 Zn（styles 544 `P as Zn` ← src iS@8966 ≡ SrcSharedB parseCustomModelRef）：MNt 深依赖 canonical // 〔A1-R106〕+OFFPEAK_IDLE_PLAN_ID：原 vee（styles 613 `Z as vee` ← src 5357；Vjt 遥测缺省 provider 面）
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 548 解构 {settings, update}，552/655–657 读取面（具名 + 既有 as 窄化）与 1179/1341 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
@@ -769,7 +769,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
   const { openCodingPlanUpgrade } = useCodingPlanUpgradeDialog();
   const { modelProviders, displayOrder, loading: modelProvidersLoading } = useModelProvidersStore();
   const { settings, update: updateSettings } = useAppSettings();
-  const { entitlements } = useCodingPlanEntitlementsForAutomations({
+  const { entitlements } = useCodingPlanEntitlements({
     modelProviders,
     loading: modelProvidersLoading,
     modelProviderFamilySelectedKeys: settings?.modelProviderFamilySelectedKeys as Record<string, string> | undefined,
@@ -1703,11 +1703,10 @@ export function AutomationsMain(props: AutomationsMainProps) {
  *    环安全：modules/PaymentDeep→components/payments→modules/Home 既有二环（Home@152 注在案），不达 automations（grep 实证）。
  *    尾部导入（R35 先例）：import { useCodingPlanUpgradeDialog } from '../../modules/PaymentDeep'。 ── */
 
-declare function useCodingPlanEntitlementsForAutomations(opts: {
-  modelProviders: ModelProvider[];
-  loading: boolean;
-  modelProviderFamilySelectedKeys?: Record<string, string>;
-}): { entitlements: Record<string, { snapshot?: unknown }> }; // sX（88255）
+/* ── tombstone〔A1-R111〕：declare useCodingPlanEntitlementsForAutomations（原 sX，注记 88255 旧口径，实测 88303）删除——
+ *    改指 canonical = PaymentDeep::useCodingPlanEntitlements@9236（sX 逐字实体，映射行 9235/10265 在案；
+ *    R38 订阅面链 $j→useSubscriptionSnapshot 闭合判例）。消费点 @772 改名改指逐字（解构 {entitlements} 不变）；
+ *    canonical 参型 : any 解构面，本域三键入参（modelProviders/loading/modelProviderFamilySelectedKeys）全兼容。 ── */
 const PROVIDER_IDS_ZAI_CODING_PLAN = providerIds.zaiCodingPlan; // 原 q.zaiCodingPlan（A0-CLEANUP B-7 接线）
 const PROVIDER_IDS_BIGMODEL_CODING_PLAN = providerIds.bigmodelCodingPlan; // 原 q.bigmodelCodingPlan（A0-CLEANUP B-7 接线）
 /* ── tombstone〔A1-R42〕：declare buildUpgradeFunnelForAutomations（原 FM）/planStateOfProviders（原 LM）删除 → 改指 components/shell/Home §U.8 canonical：buildCodingPlanFunnelContext（FM 53267-53276，A1-R25 逐字实体化）/resolveEntryPlanState（LM 53299-53312，A1-R26），经尾部导入取回。
