@@ -351,7 +351,7 @@ interface CodePreviewSettings {
 /** 主题解析（原 xo，js 1103：system → 系统，dark/zai-dark → dark，其余 light） */
 
 /** 服务上下文（原 fs，js 2638） */
-interface GitService {
+export interface GitService {
   refresh(req: { workspacePath: string; includeIdentity?: boolean; includeBranchComparison?: boolean }): Promise<GitRefreshResult>;
   getDiff(req: { workspacePath: string; path: string; sourceId: string }): Promise<GitDiffState>;
   getIdentity(req: { workspacePath: string }): Promise<GitIdentity | null>;

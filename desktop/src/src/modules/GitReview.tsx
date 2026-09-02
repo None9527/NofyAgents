@@ -330,6 +330,7 @@ export {
   useTaskFileActions,
 } from '../components/code-viewer/GitReview';
 export type {
+  GitService,
   UseBoundStore,
   GitChangeKind,
   GitSourceId,

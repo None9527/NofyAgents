@@ -226,14 +226,14 @@ import type { CodeViewerSource, FileTreeRequest, RemoteLogsByWorkspaceKey, Sideb
 import { WorkspaceSidebar as Sidebar } from './Sidebar'; // 〔A1-R52〕switcher 族属主闭合（A1-P2-B9-XD-1）：值面 rVt 改指一行办结——原 declare 占位（React.FC<Record<string, unknown>>）删除，B6 探针 11 失配五族经 B7 十族收敛 + R52 switcher 族闭合后全销账，tsc 双 0 实证（B7 §七「待族 5 闭合后一行即成」兑现） // 〔A1-P2-B7〕Sidebar 型收敛五族 canonical 改指（onOpenCodeViewer/fileTreeOpenRequest/logs/user/theme）；值面 rVt 改指待族 5（switcher）闭合——见下方 declare 注
 import { useBaseServices, useServices, useResolvedWorkspaceServices as useWorkspaceServicesResolver, useWorkspaceProviderConfigFile as useProviderConfigFile, useTaskNativeSessionLogFile, useTaskSessionFilePath, useGlobalKeyboardShortcuts as useWorkspaceKeyboardShortcuts } from '../../modules/services'; // 〔A1-P2-B2〕+useWorkspaceServicesResolver（原 Dc ≡ services/remoteServices useResolvedWorkspaceServices 真身，删碑见下 tabs 域）；〔A1-P2-B10〕+useWorkspaceProviderConfigFile as useProviderConfigFile（原 wge 24288；bundle 186741 en≡wge 实证）——下方 declare 删碑改指，R1 判例别名保留调用名；〔A1-P2-B10〕+useTaskNativeSessionLogFile/useTaskSessionFilePath（原 qge 24612/Xge 24686 真身，services/workspaceServiceHooks D.4，删碑见原 declare 处）；+useGlobalKeyboardShortcuts as useWorkspaceKeyboardShortcuts（原 rge 24063 同符归一，删碑见快捷键绑定层）
 import { useFeedbackStore, useSettingsStore, getSessionById as getRemoteSessionRegistryEntry } from '../../modules/stores-core'; // 〔A1-P2-B2〕+getRemoteSessionRegistryEntry（原 tc ≡ stores/sessionRegistryStore getSessionById 真身，删碑见下）
-import { useWorkspaceTabStore as useWorkspaceTabs, useWorkspaceTabStoreApi as useWorkspaceTabsStore, isWorkspaceKindTab as isWorkspaceTab, hasUnavailableLocalDirectoryTab as isWorkspaceUnavailableLocalDirectory, useGitAutoRefreshWatcher as useGitSummarySync, type WorkspaceTab, type WorkspaceTabStoreState } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P2-B2〕原 pc/hc/oc/sc 四件 + WorkspaceTab/WorkspaceTabsState 二型改指 R1 canonical 属主（删碑见下 tabs 域；别名保留本地调用名，R1/R2/R3 判例）；〔A1-R97〕+useGitAutoRefreshWatcher as useGitSummarySync（原 Yse 4997 误名 declare 收敛）
+import { useWorkspaceTabStore as useWorkspaceTabs, useWorkspaceTabStoreApi as useWorkspaceTabsStore, isWorkspaceKindTab as isWorkspaceTab, hasUnavailableLocalDirectoryTab as isWorkspaceUnavailableLocalDirectory, useGitAutoRefreshWatcher as useGitSummarySync, useResolvedWorkspaceSessionId, type WorkspaceTab, type WorkspaceTabStoreState } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P2-B2〕原 pc/hc/oc/sc 四件 + WorkspaceTab/WorkspaceTabsState 二型改指 R1 canonical 属主（删碑见下 tabs 域；别名保留本地调用名，R1/R2/R3 判例）；〔A1-R97〕+useGitAutoRefreshWatcher as useGitSummarySync（原 Yse 4997 误名 declare 收敛）；〔A1-R98〕+useResolvedWorkspaceSessionId（原 bc 4868，nge 深依赖）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-P2-B10〕原 G（IntlProvider chunk 导入别名）≡ D@9248–9252 useZCodeIntl——下方 useIntlContext declare 删碑改指（R1 判例别名保留调用名）；同形先例 SkillsSettingsSection@18
 import { AutomationsMain, RepoWikiView as RepoWikiMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）；〔A1-P2-B9〕+RepoWikiView as RepoWikiMain（原 l3，F16 族根，js 132306-133070）：下方 declare 删碑改指——canonical = ExtendedViews §1 A0 代转录（SidePanel@4354 既接同面），R1 判例别名保留调用名；调用点 2969/3257 逐字不变
 import { AUTOMATIONS_TOAST_ANCHOR_ID as AUTOMATIONS_MAIN_TOAST_ANCHOR_ID } from '../automations/AutomationsMainView'; // 〔A1-P2-B10〕原 c6（138647）——下方锚点 declare 删碑改指 canonical（AutomationsMainView@361 同值真身，l6 toast 同锚消费）；R1 判例别名保留调用名，消费面 main id 逐字不变
 import { useTaskSessionRecord as Uge } from '../../modules/SessionRecordCore'; // 〔A1-P2-B9〕R40 §六.4 接线：原 Uge（styles 24574-24599）过渡 declare 删碑改指真实导入（五参签名恰合，本泳道 stand-in 叶；主树 R40 同名叶合并裁定见叶头注）；别名保留束名，e_e 真身调用面 24787 逐字不变
 import { armMembershipRefreshHold as holdTaskMembershipRefresh, releaseMembershipRefreshHold as releaseTaskMembershipRefreshHold, readMembershipRefreshHoldState as getTaskMembershipRefreshHoldState } from './TaskIndexCore'; // 〔A1-P2-B12〕WS 留批三件改指：原 _Oe 32416/vOe 32428/yOe 32432 ≡ TaskIndexCore 真身（主树 P3-B2 叶 32249–32720 逐字域内，泳道逐字节同拷接入）；R1 判例别名保留调用名，GJt 三消费位逐字不变；删碑见原 declare 处
-import { type GitDataset, type GitPaneState, type GitSourceOption, type GitSummary } from '../../modules/GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）
+import { EMPTY_BRANCH_COMPARISON, EMPTY_GIT_IDENTITY, buildGitDatasets, buildGitSourceOptions, buildLastTurnChangeSummary, buildLastTurnDataset, createEmptyGitDataset, createInitialGitPaneState, extractGitErrorMessage, isGitRpcEnabled, shouldRefreshGitState, type GitDataset, type GitPaneState, type GitService, type GitSourceOption, type GitSummary } from '../../modules/GitReview'; // 原 Yhe/Yse 缺省形（git 域规范导出）；〔A1-R98〕+git 状态域十一件（原 bg/wg/tge/Qhe/Whe/Sg/Cg/Khe/qhe/ege/Hhe，nge 深依赖改指）+ GitService 型
 import { canOpenSessionInSplit, openSessionBesideDraft, openSessionInSplit, sessionRouterStore, splitLayoutStore, type PaneWorkspaceScope, type SessionBinding } from '../../modules/SplitLayoutDeep'; // 原 ATt/MTt/jTt/A2/s2 + 型（A1-R2 引擎重建；A1-R3：ATt/jTt 缓改指解除——第二参按 bundle 扁平形改指）
 import { AppErrorFallback, ScopedErrorFallback, AppErrorBoundary, ScopedErrorBoundary } from './ErrorBoundaryCore'; // 〔A1-P2-B1〕原 QOt/$Ot/ekt/p4 逐字真身（styles js 129749–130008 单一连续原子区，ROUNDTRIP EXACT）；删碑见下 §2
 import { ResizablePanelGroup, ResizablePanel, ResizableSeparator, usePersistentGroupLayout } from './ResizablePanelsCore'; // 〔A1-P2-B2〕原 cAt/pAt/gAt/uAt vendored 引擎真身（styles js 131389–131950 单一连续原子区，ROUNDTRIP EXACT + LEAFCHECK EXACT）；删碑见下 §4
@@ -624,15 +624,108 @@ type RemoteTarget = RemoteTargetBase | null;
  * A0-CLEANUP4：GitState 别名直指 GitReview GitPaneState（原 nge 返回形，bundle js 23815 域）。
  * 原 4 字段子集是欠规范——useGitState 实际返回全量面（identity/placeholder/loading/error/revision 等）。 */
 type GitState = GitPaneState;
-declare function useGitState(input: {
-  workspacePath: string;
-  activeTaskId: string | null;
-  includeExtendedData: boolean;
-  refreshToken: number;
-  remoteSessionId: string | null;
-  remoteTarget: RemoteTarget | undefined;
-  workspaceIdentity?: string;
-}): GitState; // 原 nge（23968，git 仓库状态钩子深域，候 R98 泳道）
+/* ── tombstone〔A1-R98〕：declare useGitState（原 nge 23968–24062）删除——逐字实体化于下方。
+ *    深依赖全改指树内 canonical：fs→useServices（modules/services 文件头）| bc→useResolvedWorkspaceSessionId
+ *    （WorkspaceTabsDeep@792）| bg→isGitRpcEnabled | wg→createInitialGitPaneState | tge→shouldRefreshGitState
+ *    | Qhe→buildGitDatasets | Whe→EMPTY_BRANCH_COMPARISON | Sg→createEmptyGitDataset | Cg→buildGitSourceOptions
+ *    | Khe→EMPTY_GIT_IDENTITY | qhe→extractGitErrorMessage | J→logger（SkillStore 文件头）| ege→buildLastTurnDataset
+ *    | Hhe→buildLastTurnChangeSummary（以上十一件 modules/GitReview）。型缝二处见行内注。 ── */
+/* ── 原 nge（js 23968–24062）→ useGitState：git 仓库状态钩子（审查 pane 数据源）〔A1-R98 逐字实体化〕 ── */
+function useGitState(e: any) {
+  let {
+      workspacePath: t,
+      includeExtendedData: n = !1,
+      refreshToken: r = null,
+      remoteSessionId: i = null,
+      remoteTarget: a,
+      workspaceIdentity: o = null,
+    } = e,
+    { gitService: s } = useServices() as unknown as { gitService: GitService }, // 〔A1-R98〕型缝：ResolvedBaseServices 无 gitService 投射面（A0-CLEANUP3 3b 判例二段断言）
+    c = isGitRpcEnabled({ workspaceIdentity: o, remoteSessionId: useResolvedWorkspaceSessionId(t, i, o, a), remoteTarget: a }),
+    l = o?.trim() || t,
+    [u, d] = (0, React.useState)(() => createInitialGitPaneState(t, { workspaceKey: l })),
+    f = (0, React.useRef)(0),
+    p = (0, React.useRef)(null as any); // 〔A1-R98〕型缝：请求快照 ref 束原形 null 初始化
+  return (
+    (0, React.useEffect)(() => {
+      let e = {
+        workspacePath: t,
+        workspaceKey: l,
+        includeExtendedData: n,
+        refreshToken: r,
+        workspaceRpcEnabled: c,
+      };
+      if (!c) {
+        ((f.current += 1),
+          (p.current = e),
+          d((e) => createInitialGitPaneState(t, { workspaceKey: l, loading: !1, error: null, revision: e.revision })));
+        return;
+      }
+      let i = shouldRefreshGitState(p.current, e);
+      if (((p.current = e), !i)) return;
+      let a = !1,
+        o = f.current + 1;
+      return (
+        (f.current = o),
+        d((e) =>
+          e.workspaceKey === l ? { ...e, loading: !0, error: null } : createInitialGitPaneState(t, { workspaceKey: l }),
+        ),
+        s
+          .refresh({ workspacePath: t, includeIdentity: n, includeBranchComparison: n })
+          .then(
+            ({
+              summary: e,
+              identity: t,
+              unstagedChanges: n,
+              stagedChanges: r,
+              branchComparison: i,
+            }) => {
+              if (a || f.current !== o) return;
+              let s = {
+                ...buildGitDatasets({ unstagedChanges: n, stagedChanges: r, branchComparison: i ?? EMPTY_BRANCH_COMPARISON }),
+                "last-turn": createEmptyGitDataset(`last-turn`, !0),
+              };
+              d({
+                workspaceKey: l,
+                summary: e,
+                identity: t ?? EMPTY_GIT_IDENTITY,
+                placeholder: { enabled: !1 },
+                loading: !1,
+                error: null,
+                revision: o,
+                sourceOptions: buildGitSourceOptions(s),
+                datasets: s,
+              });
+            },
+          )
+          .catch((e) => {
+            if (a || f.current !== o) return;
+            let n = extractGitErrorMessage(e);
+            (logger.warn(`[useGitRepository] 读取 Git 仓库状态失败`, { workspacePath: t, error: n }),
+              d((e) => ({
+                ...createInitialGitPaneState(t, { workspaceKey: l, loading: !1, error: n, revision: e.revision }),
+              })));
+          }),
+        () => {
+          a = !0;
+        }
+      );
+    }, [s, n, r, o, l, t, c]),
+    (0, React.useMemo)(() => {
+      let e = u.workspaceKey === l ? u : createInitialGitPaneState(t, { workspaceKey: l }),
+        n = { ...e.datasets };
+      return (
+        (n[`last-turn`] = buildLastTurnDataset({
+          workspacePath: t,
+          turnIndex: null,
+          fileChange: null,
+          summary: (buildLastTurnChangeSummary(null) ?? void 0) ?? null, // 〔A1-R98〕型缝：束原形 `?? void 0 ?? null` 链，TS 对链中 void 0 误判恒不空（TS2881），显式括号消解（A0 GitReview@948 同例）；roundtrip 去括号复形
+        })),
+        { ...e, sourceOptions: buildGitSourceOptions(n), datasets: n }
+      );
+    }, [null, null, u, l, t])
+  );
+}
 /* ── tombstone〔A1-R97〕：declare useGitSummarySync（原 Yse 4997 误名）删除——束真身 = Yse useGitAutoRefreshWatcher，
  *    已逐字实体化于 modules/WorkspaceTabsDeep@831（参数面逐字吻合：workspacePath/workspaceIdentity/remoteSessionId/
  *    gitSummary/gitSummaryWorkspaceKey/enabled/onRefreshGit）；本叶改文件头别名 import（调用名逐字不变）。 ── */
