@@ -2164,11 +2164,11 @@ section	sem	obf	line	owner
 21	颜色解析/混合/渐变角度	La	3044	11418-11447
 21	形状路径缓存	bo	1088	11839-11862
 21	形状路径缓存	yo	1085	11839-11862
-21	wasm 源注册组（initAndRegisterDocxWasm 等）	br/xr/Sr/Cr/wr/Tr	—	11850-11879,36460
-21	importDocx DOCX 导入管线（工作者优先+主线程回退+中止/计时）	Er…Nr	—	11880-11993
-21	页面缺省常量（900×1200/56px/15twips）	Pr…Rr	—	11994-12010
+21	wasm 源注册组（initAndRegisterDocxWasm 等）	br/xr/Sr/Cr/wr/Tr	18073–18097	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+21	importDocx DOCX 导入管线（工作者优先+主线程回退+中止/计时）	Er…Nr	18097–18209	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+21	页面缺省常量（900×1200/56px/15twips）	Pr…Rr	18211–18222	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 21	parsePageGeometry（pgSz/pgMar/docGrid/pgBorders→px）	zr…Yr	5935	previewPaneOfficeDocxContent-3JqWt7cf.js
-21	图片路由/转换（TIFF→PNG via UTIF+encodePng；EMF/WMF 占位；缓存）	Xr…vi	—	12119-12252
+21	图片路由/转换（TIFF→PNG via UTIF+encodePng；EMF/WMF 占位；缓存）	Xr…vi	18329–18449	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 21	duotone/lum/biLevel 像素滤镜	Hs	3941	13351-13435
 21	duotone/lum/biLevel 像素滤镜	Us	3939	13351-13435
 21	duotone/lum/biLevel 像素滤镜	Vs	3931	13351-13435
