@@ -129,7 +129,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { PopoverContent as PopoverContentPrimitive, PopoverTrigger as PopoverTriggerPrimitive } from '../../modules/ImeComposition'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Command as CommandPalette, CommandItem } from '../../modules/QuickPick'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { CommandInput } from '../ui/command'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { Button, createLucideIcon, ChevronRight as IconChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk。〔A1-P3-B13〕+IconChevronRight（原 wa = button chunk y 导出 = chevron-right@102；plt/jlt 转录消费；button chunk 图标 pass-1 canonical 先例 SkillsSettingsSection）
+import { Button, createLucideIcon, ChevronRight as IconChevronRight, ChevronLeft } from '../../modules/button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk。〔A1-P3-B13〕+IconChevronRight（原 wa = button chunk y 导出 = chevron-right@102；plt/jlt 转录消费；button chunk 图标 pass-1 canonical 先例 SkillsSettingsSection）〔A1-R58〕+ChevronLeft（原 Ea = button chunk s 导出 = chevron-left@100；blt 折叠触发器消费）
 import { CommitGraphDialog as CommitGraphViewer, CreateBranchDialog, SwitchAssistDialog, resolveBranchDisplayLabel, useGitBranchSwitcher } from '../../modules/CmdkPaletteDeep'; // CommitGraphViewer 原 fct
 import { resolveAvailableEditors, type InstalledEditor } from '../../modules/FileTreePanel'; // +InstalledEditor（A0-CLEANUP B-21：本地别名删除改指属主型）
 import { SummaryGitSection, useTaskFileActions, type GitSummary } from '../../modules/GitReview'; // A0-CLEANUP4：GitSummary 属主为 GitReview（原 Yhe 缺省形），本地镜像删除后转手导出
@@ -149,6 +149,7 @@ import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原
 import { remoteTargetConnectionAddress, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4 QTt（styles 123268）；A1-R5 归属更正：XTt→ZTt（styles 123256），tombstone 见原声明位
 import { sanitizeRemoteTargetForRestore, DesktopMenuActionIds as DesktopCommand, joinTestidParts, v4BackgroundWorkCancelTestid, v4BackgroundWorkItemTestid } from '../../modules/SrcSharedB'; // 原 $b（src-HCld2afU.js 8611，pt→yne 导出）：A1-R5 normalizeRemoteTarget 改指；〔A1-R48〕+DesktopMenuActionIds as DesktopCommand（oi 收敛改指，WorkspaceShell@263 A1-P2-B1 / Sidebar@220 A1-P3-B1 同式先例），见下墓碑。〔A1-P3-B13〕+joinTestidParts（qr 真身：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb 8464 ≡ SrcSharedB@5015，R41 既判）+v4BackgroundWorkCancelTestid（≡ Oy@8405；Elt 98863 收敛）+v4BackgroundWorkItemTestid（≡ Dy@8404；Olt 98888 / Alt 99041 收敛）。环安全：SrcSharedB 值闭包不达 components/shell（B11/B12 同边先例）
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'; // 〔A1-P3-B13〕原 kZ/AZ/jZ（js 94973/94976/94979）A0-S3c 既重建：XZ/plt 段壳转录消费
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '../ui/hover-card'; // 〔A1-R58〕原 dN/fN/pN（js 54538/54541/54544）A0-S3c 既重建（hover-card.tsx 头注引证）：xlt 折叠悬浮预览消费
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
@@ -347,6 +348,15 @@ const IconEllipsis = createLucideIcon("ellipsis", []);               // 原 K_�
 const IconCloud = createLucideIcon("cloud", []);                     // 原 U_（js 26918）远程工作区
 const IconFolder = createLucideIcon("folder", []);                   // 原 $_（js 27133）本地工作区
 const IconGitBranch = createLucideIcon("git-branch", []);            // 原 ev（js 27142）
+const IconActivity = createLucideIcon("activity", []);               // 原 y_（js 26634）〔A1-R58〕Plt 双运行态行
+const IconCircleCheckBig = createLucideIcon("circle-check-big", []); // 原 pye（js 26865）〔A1-R58〕hlt 已验证徽记
+const IconCircle = createLucideIcon("circle", []);                   // 原 z_（js 26921）〔A1-R58〕glt 待办条目
+const IconFileDiff = createLucideIcon("file-diff", []);              // 原 X_（js 27084）〔A1-R58〕Plt 变更行
+const IconGoal = createLucideIcon("goal", []);                       // 原 rv（js 27223）〔A1-R58〕hlt 未完成迭代 / Plt 目标行
+const IconListChecks = createLucideIcon("list-checks", []);          // 原 lv（js 27329）〔A1-R58〕Clt 计划目录行 / Plt todo 行
+const IconMaximize2 = createLucideIcon("maximize-2", []);            // 原 mv（js 27394）〔A1-R58〕QZ hover 展开提示
+const IconPause = createLucideIcon("pause", []);                     // 原 sbe（js 27612）〔A1-R58〕hlt 暂停钮
+const IconPlay = createLucideIcon("play", []);                       // 原 cbe（js 27636）〔A1-R58〕hlt 恢复钮
 const IconArrowDownToLine = createLucideIcon("arrow-down-to-line", []); // 原 Zve（js 26620）更新就绪
 const IconLoader = createLucideIcon("loader", []);                   // 原 fv（js 27315）
 const IconLoaderCircle = createLucideIcon("loader-circle", []);      // 原 M（imeComposition chunk w 导出）
@@ -3258,12 +3268,11 @@ export function ConversationSummaryAside({
 export const MemoizedConversationSummaryAside = React.memo(ConversationSummaryAside);
 
 /* --- Flt 分段组件（原 mlt/hlt/Clt/Tlt/klt/Alt/Plt，js 98354-99216）：
-       均为纯呈现叶子，接口如下，完整 JSX 见对应行号 --- */
-declare const SummaryGoalSection: React.FC<{ model: unknown; separated: boolean; onPauseGoal?: () => void; onResumeGoal?: () => void }>;
-declare const SummaryPlansSection: React.FC<{ model: unknown; parentSessionId?: string | null; onOpenPlanDetail?: () => void; separated: boolean }>;
-declare const SummaryPlanSection: React.FC<{ model: unknown; separated: boolean }>;
+       均为纯呈现叶子。mlt=SummaryGitSection 属主 GitReview（A0-CLEANUP4 既改指）；
+       klt/Alt 〔A1-P3-B13〕、hlt/Clt/Tlt/Plt 〔A1-R58〕转录实体化，墓碑如下 --- */
+/* ── tombstone〔A1-R58〕：declare SummaryGoalSection（原 hlt，js 98501）/SummaryPlansSection（原 Clt，js 98775）/SummaryPlanSection（原 Tlt，js 98826）/SummaryMiniCard（原 Plt，js 99157）删除 → 转录实体化，见文件尾 Flt 分段组件转录区（R58 扩展段）。prop 面保持 declare 原形（model: unknown），体内投射消费面（型缝注记在案）；唯 SummaryPlansSection.onOpenPlanDetail 由 () => void 宽化为 (payload: unknown) => void = bundle 98809 `t?.(wlt(n, e))` 载荷调用实证，宽化面消费侧（少参规则）仍可赋。 ── */
 /* ── tombstone〔A1-P3-B13〕：declare SummaryTerminalsSection（原 klt，js 98919）/SummaryAgentsSection（原 Alt，js 98981）删除 → 转录实体化，见文件尾 Flt 分段组件转录区。qr 3 点收敛在案：Elt 98863 `qr(Pr, e)`（Pr = styles 581 `Ui as Pr` ← src 9816 `Oy as Ui` ≡ Oy@8405 v4-background-work-cancel）/ Olt 98888 `qr(Ur, n.workId)` / Alt 99041 `qr(Ur, e.controlWorkId)`（Ur = styles 595 `Wi as Ur` ← src 9830 `Dy as Wi` ≡ Dy@8404 v4-background-work-item）。P1 转交件（B12 点表 #8）。 ── */
-declare const SummaryMiniCard: React.FC<{ model: unknown; gitWorktreeChangeSummary?: unknown; onVariantChange?: (variant: SummaryPanelVariant | null) => void }>;
+
 
 /* ============================================================================
  * Flt 分段组件转录区〔A1-P3-B13〕（原 flt/plt/XZ + vst/JZ/llt/ult/dlt/YZ + Elt/Dlt/Olt/klt/Alt/jlt，
@@ -3274,6 +3283,13 @@ declare const SummaryMiniCard: React.FC<{ model: unknown; gitWorktreeChangeSumma
  *      依赖：kZ/AZ/jZ = Collapsible 族（ui/collapsible，A0-S3c 既重建）/ G = useIntlContext /
  *      Z = cn / X = Button / Wv = IconSquare / Uv = IconSquareTerminal / D_ = IconBot /
  *      N_ = IconChevronDown / wa = IconChevronRight（button chunk）/ I_ = IconCircleCheck。
+ * 〔A1-R58〕扩展：nlt/rlt/ilt/alt/olt（js 98226/98227/98231/98243/98265）+
+ *      hlt→SummaryGoalSection（98501）+ glt/_lt/ZZ/vlt/ylt/blt/xlt/Slt
+ *      （98616/98632/98634/98649/98674/98698/98742）+ Clt→SummaryPlansSection（98775）+
+ *      wlt（98818）+ Tlt→SummaryPlanSection（98826）+ QZ/Mlt/Nlt（99127/99147/99154）+
+ *      Plt→SummaryMiniCard（99157）；mlt（98402）属主 GitReview SummaryGitSection 不重复转录。
+ *      新增依赖：dN/fN/pN = HoverCard 族（ui/hover-card，A0-S3c 既重建）/
+ *      Ea = ChevronLeft（button chunk s 导出）/ 九图标见图标块〔A1-R58〕行。
  * ==========================================================================*/
 
 /** 原 flt（js 98318）：分段滚动封顶表（environment 无封顶） */
@@ -3429,6 +3445,456 @@ function SummarySectionShell({
         </CollapsibleContent>
       </section>
     </Collapsible>
+  );
+}
+
+/* ============================================================================
+ * Flt 分段组件转录区〔A1-R58〕扩展段之一：目标族（原 nlt/rlt/ilt/alt/olt + hlt，
+ *      js 98226 / 98227 / 98231 / 98243 / 98265 / 98501）+
+ *      计划族（原 glt/_lt/ZZ/vlt/ylt/blt/xlt/Slt + Clt/wlt + Tlt，
+ *      js 98616 / 98632 / 98634 / 98649 / 98674 / 98698 / 98742 / 98775 / 98818 / 98826）
+ * ==========================================================================*/
+
+/** 〔A1-R58〕型缝：目标模型消费面（hlt/alt/ilt/olt 读取面；SummaryGoal 宽化索引面于实体入口投射） */
+interface SummaryGoalModelView {
+  objective: string;
+  status: string;
+  iteration: number;
+  iterations?: Array<{ iteration: number; items: Array<{ status: string; [key: string]: unknown }> }>;
+  verifications: Array<{ iteration: number; outcome: string | null; nextAction?: string | null; [key: string]: unknown }>;
+  summaryTitle?: string | null;
+  timeUsedSeconds?: number | null;
+  activeRunStartedAtMs?: number | null;
+  [key: string]: unknown;
+}
+
+/** 〔A1-R58〕型缝：alt 返回面（目标迭代视图） */
+interface GoalIterationView {
+  iteration: number;
+  title: string | null;
+  items: Array<{ status: string; [key: string]: unknown }>;
+  completedCount: number;
+  totalCount: number;
+  completed: boolean;
+  verificationOutcome: string | null;
+}
+
+/** 原 nlt（js 98226）：目标迭代标题哨兵值（verification nextAction 为此句 → 视同无标题） */
+const GOAL_NEXT_ACTION_SENTINEL = "Continue verifying and completing the goal.";
+
+/** 原 rlt（js 98227）：nextAction 修剪；空值或哨兵值 → null */
+function normalizeGoalNextAction(nextAction?: string | null): string | null {
+  const trimmed = nextAction?.trim();
+  return !trimmed || trimmed === GOAL_NEXT_ACTION_SENTINEL ? null : trimmed;
+}
+
+/** ES2023 findLast 的等价实现（目标 lib 为 ES2022；TurnNavigator.findLastItem 同形先例）。
+ * 〔A1-R58〕bundle ilt 98234 径用 findLast，此处按 lib 面等价转录。 */
+function findLastGoalVerification<T>(items: T[], predicate: (item: T) => boolean): T | undefined {
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (predicate(items[index])) return items[index];
+  }
+  return undefined;
+}
+
+/** 原 ilt（js 98231）：目标总迭代数（既有迭代号最大值 + 状态驱动 +1 投射） */
+function countGoalIterations(goal: SummaryGoalModelView): number {
+  const maxIterationItem = (goal.iterations ?? []).reduce((max, entry) => Math.max(max, entry.iteration), 0);
+  const maxVerification = goal.verifications.reduce((max, entry) => Math.max(max, entry.iteration), 0);
+  const lastVerificationForCurrent = findLastGoalVerification(goal.verifications, (entry) => entry.iteration === goal.iteration);
+  const projected =
+    goal.status === "active" ||
+    goal.status === "notSatisfied" ||
+    (goal.status === "paused" && lastVerificationForCurrent?.outcome === "notSatisfied")
+      ? goal.iteration + 1
+      : Math.max(1, goal.iteration);
+  return Math.max(1, projected, maxIterationItem, maxVerification);
+}
+
+/** 原 alt（js 98243）：目标 → 迭代视图列表（verifications 配对前一轮 nextAction，完成者优先排序） */
+function buildGoalIterationViews(goal: SummaryGoalModelView): GoalIterationView[] {
+  const itemsByIteration = new Map((goal.iterations ?? []).map((entry) => [entry.iteration, entry.items] as const));
+  const verificationByIteration = new Map(goal.verifications.map((entry) => [entry.iteration, entry] as const));
+  const views: GoalIterationView[] = [];
+  for (let iteration = 1; iteration <= countGoalIterations(goal); iteration += 1) {
+    const items = itemsByIteration.get(iteration) ?? [];
+    const completedCount = items.filter((item) => item.status === "completed").length;
+    const priorVerification = verificationByIteration.get(iteration - 1);
+    views.push({
+      iteration,
+      title: iteration === 1 ? goal.summaryTitle?.trim() || goal.objective.trim() || null : normalizeGoalNextAction(priorVerification?.nextAction),
+      items,
+      completedCount,
+      totalCount: items.length,
+      completed: items.length > 0 && completedCount >= items.length,
+      verificationOutcome: verificationByIteration.get(iteration)?.outcome ?? null,
+    });
+  }
+  return views.sort((a, b) => (a.completed === b.completed ? a.iteration - b.iteration : a.completed ? -1 : 1));
+}
+
+/** 原 olt（js 98265）：目标已用秒数（active 系状态且有 activeRunStartedAtMs → 叠加实时走秒） */
+function goalElapsedSeconds(goal: SummaryGoalModelView, now: number): number {
+  const baseSeconds = Math.max(0, Math.floor(goal.timeUsedSeconds ?? 0));
+  return !(goal.status === "active" || goal.status === "verifying" || goal.status === "notSatisfied") ||
+    goal.activeRunStartedAtMs == null
+    ? baseSeconds
+    : baseSeconds + Math.max(0, Math.floor((now - goal.activeRunStartedAtMs) / 1e3));
+}
+
+/** 原 hlt（js 98501）：SummaryGoalSection —— 目标段（迭代列表 + 已用时 + 暂停/恢复钮）。
+ * 〔A1-R58〕declare 实体化；prop 面保持 declare 原形（model: unknown），体内投射 SummaryGoalModelView（型缝）。 */
+export function SummaryGoalSection({ model, onPauseGoal, onResumeGoal, separated }: { model: unknown; separated: boolean; onPauseGoal?: () => void; onResumeGoal?: () => void }) {
+  const { intl, locale } = useIntlContext();
+  const [now, setNow] = React.useState(() => Date.now());
+  const goal = (model as { goal?: SummaryGoalModelView | null }).goal;
+  const isLive = goal?.status === "active" || goal?.status === "verifying" || goal?.status === "notSatisfied";
+  const isPaused = goal?.status === "paused";
+  const isVerified = goal?.status === "verified";
+  const iterationViews = React.useMemo(() => (goal ? buildGoalIterationViews(goal) : []), [goal]);
+  if (
+    (React.useEffect(() => {
+      if (!isLive || !goal || goal.activeRunStartedAtMs == null) return;
+      setNow(Date.now());
+      const timer = setInterval(() => setNow(Date.now()), 1e3);
+      return () => clearInterval(timer);
+    }, [goal, isLive]),
+    !goal)
+  )
+    return null;
+  const elapsedLabel = formatDurationShort(goalElapsedSeconds(goal, now), locale);
+  const actionControl = isLive ? (
+    <Tooltip title={intl.formatMessage({ id: "chat.target.pause" })}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="size-6 shrink-0"
+        data-goal-action="pause"
+        disabled={!onPauseGoal}
+        aria-label={intl.formatMessage({ id: "chat.target.pause" })}
+        onClick={onPauseGoal}
+      >
+        <IconPause className="size-3.5" />
+      </Button>
+    </Tooltip>
+  ) : isPaused ? (
+    <Tooltip title={intl.formatMessage({ id: "chat.target.resume" })}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="size-6 shrink-0"
+        data-goal-action="resume"
+        disabled={!onResumeGoal}
+        aria-label={intl.formatMessage({ id: "chat.target.resume" })}
+        onClick={onResumeGoal}
+      >
+        <IconPlay className="size-3.5" />
+      </Button>
+    </Tooltip>
+  ) : isVerified ? (
+    <IconCircleCheckBig aria-label={intl.formatMessage({ id: "chat.goalVerification.complete" })} className="size-4 shrink-0 text-[var(--color-success)]" />
+  ) : null;
+  return (
+    <SummarySectionShell
+      section="goal"
+      separated={separated}
+      title={intl.formatMessage({ id: "chat.statusPanel.goal" })}
+      trailing={() => (
+        <>
+          <span className="shrink-0 tabular-nums" data-goal-elapsed-seconds={goalElapsedSeconds(goal, now)}>
+            {elapsedLabel}
+          </span>
+          {actionControl ? <span className="shrink-0">·</span> : null}
+          {actionControl}
+        </>
+      )}
+    >
+      <div className="space-y-0">
+        {iterationViews.map((view) => {
+          const title =
+            view.title ?? intl.formatMessage({ id: "chat.summaryPanel.goalIterationValue" }, { count: String(view.iteration) });
+          return (
+            <div
+              key={view.iteration}
+              data-goal-iteration={view.iteration}
+              data-goal-iteration-completed={view.completed}
+              data-goal-verification-outcome={view.verificationOutcome ?? undefined}
+              className="flex min-w-0 cursor-default items-start gap-2 rounded-lg px-2 py-2 hover:bg-[var(--color-hover)]"
+              title={title}
+            >
+              {view.completed ? (
+                <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-[var(--color-success)] text-ui-xs tabular-nums text-[var(--color-success)]">
+                  {view.iteration}
+                </span>
+              ) : (
+                <IconGoal className="size-4 shrink-0 text-[var(--color-foreground-subtle)]" />
+              )}
+              <p className="line-clamp-3 min-w-0 flex-1 text-ui-base leading-4 text-[var(--color-foreground)]">{title}</p>
+              {view.totalCount > 0 ? (
+                <span className="shrink-0 text-ui-sm tabular-nums text-[var(--color-foreground-subtle)]">
+                  {view.completedCount}/{view.totalCount}
+                </span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </SummarySectionShell>
+  );
+}
+
+/** 〔A1-R58〕型缝：计划展示项消费面（vlt/ylt/Slt 读取面：id/content/status） */
+interface PlanDisplayItem {
+  id: string;
+  content: string;
+  status: string;
+  [key: string]: unknown;
+}
+
+/** 原 glt（js 98616）：计划项状态图标（completed=勾 / inProgress=箭头 / 余=圆圈） */
+function PlanItemStatusIcon({ status }: { status: string }) {
+  return status === "completed" ? (
+    <IconCircleCheck aria-hidden={true} className="mt-0.5 size-3.5 shrink-0 text-[var(--color-success)]" />
+  ) : status === "inProgress" ? (
+    <IconArrowRight aria-hidden={true} className="mt-0.5 size-3.5 shrink-0 text-[var(--color-foreground)]" />
+  ) : (
+    <IconCircle aria-hidden={true} className="mt-0.5 size-3.5 shrink-0 text-[var(--color-foreground-subtlest)]" />
+  );
+}
+
+/** 原 _lt/ZZ（js 98632）：紧凑阈值（≤6 不折叠）/ 聚焦窗口（3 项） */
+const TODO_COMPACT_THRESHOLD = 6;
+const TODO_FOCUS_WINDOW = 3;
+
+/** 原 vlt（js 98634）：展示项列表紧凑切分（聚焦窗口锚定 inProgress > 首个未完成 > 尾部） */
+function compactPlanDisplayItems(items: PlanDisplayItem[]) {
+  if (items.length <= TODO_COMPACT_THRESHOLD)
+    return { compact: false, precedingItems: [] as PlanDisplayItem[], focusItems: items, followingItems: [] as PlanDisplayItem[] };
+  const inProgressIndex = items.findIndex((item) => item.status === "inProgress");
+  const firstNotCompletedIndex = items.findIndex((item) => item.status !== "completed");
+  const anchor =
+    inProgressIndex >= 0 ? inProgressIndex : firstNotCompletedIndex >= 0 ? firstNotCompletedIndex : Math.max(0, items.length - TODO_FOCUS_WINDOW);
+  const start = Math.max(0, Math.min(anchor, items.length - TODO_FOCUS_WINDOW));
+  const end = Math.min(items.length, start + TODO_FOCUS_WINDOW);
+  return {
+    compact: true,
+    precedingItems: items.slice(0, start),
+    focusItems: items.slice(start, end),
+    followingItems: items.slice(end),
+  };
+}
+
+/** 原 ylt（js 98649）：计划项行（状态图标 + 两行截断 + 完成态删除线） */
+function PlanDisplayItemList({ items }: { items: PlanDisplayItem[] }) {
+  return items.map((item) => (
+    <li
+      key={item.id}
+      data-plan-status={item.status}
+      className="flex min-h-8 items-start gap-2 rounded-lg px-2 py-1.5 text-ui-base hover:bg-[var(--color-hover)]"
+    >
+      <PlanItemStatusIcon status={item.status} />
+      <span
+        title={item.content}
+        className={cn(
+          "line-clamp-2 min-w-0 flex-1 break-words leading-5",
+          item.status === "completed" ? "text-[var(--color-foreground-subtlest)] line-through" : "text-[var(--color-foreground)]",
+        )}
+      >
+        {item.content}
+      </span>
+    </li>
+  ));
+}
+
+/** 原 blt（js 98674）折叠触发钮 props。〔A1-R58〕型缝：bundle `...a` rest 直透 button；
+ * 唯一消费位 xlt 仅传四字段，radix asChild 运行期并合不经型面，故型面收敛为四字段
+ * （索引签名会触发 React 19 PropsWithoutRef Omit 塌缩，必选成员不可保）。 */
+interface PlanFoldTriggerButtonProps {
+  group: string;
+  label: string;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  onTouchOpen: () => void;
+  open: boolean;
+}
+
+/** 原 blt（js 98674）：折叠组触发钮（触控设备点按即开 → onTouchOpen）。 */
+const PlanFoldTriggerButton = React.forwardRef<HTMLButtonElement, PlanFoldTriggerButtonProps>(function PlanFoldTriggerButton(
+  { group, label, onClick, onTouchOpen, open, ...rest },
+  ref,
+) {
+  return (
+    <button
+      {...rest}
+      ref={ref}
+      type="button"
+      aria-expanded={open}
+      data-status-todo-preview-trigger={group}
+      className="flex h-8 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-left text-ui-base text-[var(--color-foreground-subtle)] hover:bg-[var(--color-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-input-border-focused)]"
+      onClick={(event) => {
+        onClick?.(event);
+        if (!event.defaultPrevented && typeof window < "u" && window.matchMedia?.("(hover: none)").matches) onTouchOpen();
+      }}
+    >
+      <ChevronLeft className="size-3.5 shrink-0" />
+      <span className="min-w-0 truncate">{label}</span>
+    </button>
+  );
+});
+
+/** 原 xlt（js 98698）：折叠组悬浮预览（HoverCard 左出弹层，组别决定标题文案） */
+function PlanFoldPreview({ group, items, onOpenChange, open }: { group: "preceding" | "following"; items: PlanDisplayItem[]; onOpenChange: (open: boolean) => void; open: boolean }) {
+  const { intl } = useIntlContext();
+  const messageId =
+    group === "preceding"
+      ? items.every((item) => item.status === "completed")
+        ? "chat.statusPanel.todoCompletedFold"
+        : "chat.statusPanel.todoEarlierFold"
+      : items.every((item) => item.status === "pending")
+        ? "chat.statusPanel.todoWaitingFold"
+        : "chat.statusPanel.todoLaterFold";
+  const label = intl.formatMessage({ id: messageId }, { count: String(items.length) });
+  return (
+    <HoverCard closeDelay={80} open={open} openDelay={120} onOpenChange={onOpenChange}>
+      <HoverCardTrigger asChild={true}>
+        <PlanFoldTriggerButton group={group} label={label} open={open} onTouchOpen={() => onOpenChange(true)} />
+      </HoverCardTrigger>
+      <HoverCardContent
+        align="start"
+        side="left"
+        sideOffset={4}
+        data-status-todo-preview-content={group}
+        className="w-80 max-w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-[var(--color-popover-border)] bg-[var(--color-menu)] p-3 shadow-md ring-0"
+      >
+        <div className="flex max-h-[min(24rem,calc(100dvh-2rem))] min-w-0 flex-col">
+          <p className="flex h-8 shrink-0 items-center px-2 text-ui-base text-[var(--color-foreground-subtle)]">{label}</p>
+          <ul className="min-h-0 space-y-0 overflow-y-auto pr-1">
+            <PlanDisplayItemList items={items} />
+          </ul>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
+/** 原 Slt（js 98742）：计划 todo 列表（聚焦窗口 + 前后折叠组） */
+function PlanTodoList({ plan }: { plan: { displayItems: PlanDisplayItem[] } }) {
+  const [openGroup, setOpenGroup] = React.useState<string | null>(null);
+  const segmentation = compactPlanDisplayItems(plan.displayItems);
+  const handleOpenChange = (group: string, nextOpen: boolean) => {
+    setOpenGroup((current) => (nextOpen ? group : current === group ? null : current));
+  };
+  return (
+    <ul className="space-y-0 pb-1">
+      {segmentation.compact && segmentation.precedingItems.length > 0 ? (
+        <li>
+          <PlanFoldPreview group="preceding" items={segmentation.precedingItems} open={openGroup === "preceding"} onOpenChange={(nextOpen) => handleOpenChange("preceding", nextOpen)} />
+        </li>
+      ) : null}
+      <PlanDisplayItemList items={segmentation.focusItems} />
+      {segmentation.compact && segmentation.followingItems.length > 0 ? (
+        <li>
+          <PlanFoldPreview group="following" items={segmentation.followingItems} open={openGroup === "following"} onOpenChange={(nextOpen) => handleOpenChange("following", nextOpen)} />
+        </li>
+      ) : null}
+    </ul>
+  );
+}
+
+/** 〔A1-R58〕型缝：会话计划条目消费面（Clt 读取面：title/toolCallId/markdown/planFilePath） */
+interface SessionPlanItem {
+  title?: string | null;
+  toolCallId: string;
+  markdown: string;
+  planFilePath?: string | null;
+  [key: string]: unknown;
+}
+
+/** 〔A1-R58〕型缝：会话计划集消费面（Clt/Plt 读取面：items） */
+interface SessionPlansModelView {
+  items: SessionPlanItem[];
+  [key: string]: unknown;
+}
+
+/** 原 wlt（js 98818）：计划详情打开载荷（planFilePath 有原值才附） */
+function buildPlanDetailPayload(parentSessionId: string, item: SessionPlanItem) {
+  return {
+    parentSessionId,
+    toolCallId: item.toolCallId,
+    markdown: item.markdown,
+    ...(item.planFilePath ? { planFilePath: item.planFilePath } : {}),
+  };
+}
+
+/** 原 Clt（js 98775）：SummaryPlansSection —— 会话计划目录段（条目 → openPlanDetail 载荷）。
+ * 〔A1-R58〕declare 实体化；prop 面 model: unknown 保持原形（型缝）；
+ * onOpenPlanDetail 由 declare 面 () => void 宽化为 (payload: unknown) => void
+ * = bundle 98809 `t?.(wlt(n, e))` 载荷调用实证（宽化面消费侧少参规则仍可赋）。 */
+export function SummaryPlansSection({ model, onOpenPlanDetail, parentSessionId, separated }: { model: unknown; parentSessionId?: string | null; onOpenPlanDetail?: (payload: unknown) => void; separated: boolean }) {
+  const { intl } = useIntlContext();
+  const sessionPlans = (model as { sessionPlans?: SessionPlansModelView | null }).sessionPlans;
+  return sessionPlans ? (
+    <SummarySectionShell section="sessionPlans" separated={separated} title={intl.formatMessage({ id: "chat.statusPanel.sessionPlans" })}>
+      <ul className="space-y-0">
+        {sessionPlans.items.map((item) => {
+          const title = item.title ?? intl.formatMessage({ id: "chat.statusPanel.planFallback" });
+          const canOpen = !!(parentSessionId && onOpenPlanDetail);
+          return (
+            <li key={item.toolCallId}>
+              <button
+                type="button"
+                data-plan-directory-tool-call-id={item.toolCallId}
+                disabled={!canOpen}
+                aria-label={intl.formatMessage({ id: "chat.statusPanel.openPlan" }, { title })}
+                onClick={() => {
+                  if (parentSessionId) onOpenPlanDetail?.(buildPlanDetailPayload(parentSessionId, item));
+                }}
+                className={cn(
+                  "flex min-h-8 w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-ui-base text-[var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-input-border-focused)]",
+                  canOpen && "hover:bg-[var(--color-hover)]",
+                )}
+              >
+                <IconListChecks className="size-4 shrink-0 text-[var(--color-foreground-subtle)]" />
+                <span className="min-w-0 flex-1 truncate">{title}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </SummarySectionShell>
+  ) : null;
+}
+
+/** 〔A1-R58〕型缝：计划（todo）模型消费面（Tlt/Slt/Mlt/Nlt 读取面） */
+interface PlanModelView {
+  totalCount: number;
+  completedCount: number;
+  displayItems: PlanDisplayItem[];
+  items: PlanDisplayItem[];
+  [key: string]: unknown;
+}
+
+/** 原 Tlt（js 98826）：SummaryPlanSection —— todo 段（完成计数 + 展示项列表）。
+ * 〔A1-R58〕declare 实体化；prop 面保持 declare 原形（model: unknown），体内投射（型缝）。 */
+export function SummaryPlanSection({ model, separated }: { model: unknown; separated: boolean }) {
+  const { intl } = useIntlContext();
+  const plan = (model as { plan?: PlanModelView | null }).plan;
+  if (!plan) return null;
+  const allCompleted = plan.totalCount > 0 && plan.completedCount >= plan.totalCount;
+  return (
+    <SummarySectionShell
+      section="plan"
+      separated={separated}
+      title={intl.formatMessage({ id: "chat.statusPanel.todo" })}
+      trailing={() => (
+        <span className={cn("tabular-nums", allCompleted ? "text-[var(--color-success)]" : "text-[var(--color-foreground-subtle)]")}>
+          {plan.completedCount}/{plan.totalCount}
+        </span>
+      )}
+    >
+      <PlanTodoList key={plan.displayItems.map((item) => `${item.id}\u0000${item.content}\u0000${item.status}`).join("")} plan={plan} />
+    </SummarySectionShell>
   );
 }
 
@@ -3696,4 +4162,120 @@ export function SummaryAgentsSection({
       />
     </SummarySectionShell>
   );
+}
+
+/* ============================================================================
+ * Flt 分段组件转录区〔A1-R58〕扩展段之二：mini 卡族（原 QZ/Mlt/Nlt + Plt，
+ *      js 99127 / 99147 / 99154 / 99157）
+ * ==========================================================================*/
+
+/** 原 QZ（js 99127）：mini 卡单行（图标位 hover 切换 maximize-2 展开提示） */
+function MiniCardRow({ children, icon }: { children?: React.ReactNode; icon: React.ReactNode }) {
+  return (
+    <div className="flex h-8 w-max max-w-80 min-w-0 items-center gap-1.5 pl-2 pr-3 text-ui-base text-[var(--color-foreground)]">
+      <span className="relative size-4 shrink-0">
+        <span className="absolute inset-0 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0">{icon}</span>
+        <IconMaximize2 className="absolute inset-0 size-4 text-[var(--color-foreground)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+      </span>
+      {children}
+    </div>
+  );
+}
+
+/** 原 Mlt（js 99147）：首个进行中项（退首个 pending 项） */
+function firstActivePlanItem(plan?: PlanModelView | null): PlanDisplayItem | null {
+  return plan?.items.find((item) => item.status === "inProgress") ?? plan?.items.find((item) => item.status === "pending") ?? null;
+}
+
+/** 原 Nlt（js 99154）：末个已完成项（倒序查找） */
+function lastCompletedPlanItem(plan?: PlanModelView | null): PlanDisplayItem | null {
+  return [...(plan?.items ?? [])].reverse().find((item) => item.status === "completed") ?? null;
+}
+
+/** 〔A1-R58〕型缝：mini 卡模型消费面（Plt 读取面） */
+interface SummaryMiniCardModelView {
+  plan?: PlanModelView | null;
+  sessionPlans?: SessionPlansModelView | null;
+  goal?: SummaryGoalModelView | null;
+  git?: unknown;
+  runningBashWorks: unknown[];
+  runningSubagentWorks: unknown[];
+  [key: string]: unknown;
+}
+
+/** 原 Plt（js 99157）：SummaryMiniCard —— 收起态单行卡（内容优先级：
+ * 进行中计划项 > 活跃目标题 > git 变更 > 已验证目标题 > 末完成项 > todo 计数 > 首个会话计划 > 运行中计数）。
+ * 〔A1-R58〕declare 实体化；prop 面保持 declare 原形（model: unknown），体内投射（型缝）。 */
+export function SummaryMiniCard({ gitWorktreeChangeSummary, model, onVariantChange }: { model: unknown; gitWorktreeChangeSummary?: unknown; onVariantChange?: (variant: SummaryPanelVariant | null) => void }) {
+  const { intl } = useIntlContext();
+  const showPanelLabel = intl.formatMessage({ id: "chat.summaryPanel.showPanel" });
+  const summaryModel = model as SummaryMiniCardModelView;
+  const activePlanItem = firstActivePlanItem(summaryModel.plan);
+  const lastCompletedItem = lastCompletedPlanItem(summaryModel.plan);
+  const firstSessionPlan = summaryModel.sessionPlans?.items[0] ?? null;
+  const goal = summaryModel.goal;
+  const goalTitle = (goal && (goal.summaryTitle?.trim() || goal.objective.trim())) || null;
+  const goalStatus = goal?.status ?? null;
+  const isGoalLive = goalStatus === "active" || goalStatus === "notSatisfied" || goalStatus === "paused" || goalStatus === "verifying";
+  const isGoalVerified = goalStatus === "verified";
+  const worktreeChangeSummary = gitWorktreeChangeSummary as { added?: number; removed?: number } | null | undefined;
+  const added = worktreeChangeSummary?.added ?? 0;
+  const removed = worktreeChangeSummary?.removed ?? 0;
+  const hasGitChanges = !!(summaryModel.git && added + removed > 0);
+  const hasBashWorks = summaryModel.runningBashWorks.length > 0;
+  const hasSubagentWorks = summaryModel.runningSubagentWorks.length > 0;
+  const runningWorkCount = summaryModel.runningBashWorks.length + summaryModel.runningSubagentWorks.length;
+  const runningIcon = hasBashWorks ? (hasSubagentWorks ? IconActivity : IconSquareTerminal) : IconBot;
+  const row = activePlanItem ? (
+    <MiniCardRow icon={<IconArrowRight className="size-4 text-[var(--color-foreground)]" />}>
+      <span className="min-w-0 truncate">{activePlanItem.content}</span>
+    </MiniCardRow>
+  ) : goalTitle && isGoalLive ? (
+    <MiniCardRow icon={<IconGoal className="size-4 text-[var(--color-foreground)]" />}>
+      <span className="min-w-0 truncate">{goalTitle}</span>
+    </MiniCardRow>
+  ) : hasGitChanges ? (
+    <MiniCardRow icon={<IconFileDiff className="size-4 text-[var(--color-foreground)]" />}>
+      <span className="min-w-0 truncate">{intl.formatMessage({ id: "chat.statusPanel.changes" })}</span>
+      <span className="shrink-0 text-[var(--color-diff-added)]">+{added}</span>
+      <span className="shrink-0 text-[var(--color-diff-removed)]">-{removed}</span>
+    </MiniCardRow>
+  ) : goalTitle && isGoalVerified ? (
+    <MiniCardRow icon={<IconGoal className="size-4 text-[var(--color-foreground)]" />}>
+      <span className="min-w-0 truncate">{goalTitle}</span>
+    </MiniCardRow>
+  ) : lastCompletedItem ? (
+    <MiniCardRow icon={<IconCircleCheck className="size-4 text-[var(--color-success)]" />}>
+      <span className="min-w-0 truncate">{lastCompletedItem.content}</span>
+    </MiniCardRow>
+  ) : summaryModel.plan ? (
+    <MiniCardRow icon={<IconListChecks className="size-4 text-[var(--color-foreground-subtle)]" />}>
+      <span className="min-w-0 truncate">{intl.formatMessage({ id: "chat.statusPanel.todo" })}</span>
+      <span className="shrink-0 text-[var(--color-foreground-subtle)]">
+        {summaryModel.plan.completedCount}/{summaryModel.plan.totalCount}
+      </span>
+    </MiniCardRow>
+  ) : firstSessionPlan ? (
+    <MiniCardRow icon={<IconListChecks className="size-4 text-[var(--color-foreground)]" />}>
+      <span className="min-w-0 truncate">{firstSessionPlan.title ?? intl.formatMessage({ id: "chat.statusPanel.planFallback" })}</span>
+    </MiniCardRow>
+  ) : runningWorkCount > 0 ? (
+    <MiniCardRow icon={React.createElement(runningIcon, { className: "size-4 text-[var(--color-foreground)]" })}>
+      <span className="shrink-0">
+        {hasSubagentWorks ? formatRunningAgentsCount(intl.formatMessage, runningWorkCount) : formatRunningTasksCount(intl.formatMessage, runningWorkCount)}
+      </span>
+    </MiniCardRow>
+  ) : null;
+  return row ? (
+    <Tooltip title={showPanelLabel} sideOffset={4} side="left">
+      <button
+        type="button"
+        aria-label={showPanelLabel}
+        className="group inline-flex w-max max-w-80 cursor-pointer flex-col items-stretch text-left text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-menu-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-input-border-focused)]"
+        onClick={() => onVariantChange?.("panel")}
+      >
+        {row}
+      </button>
+    </Tooltip>
+  ) : null;
 }
