@@ -1252,8 +1252,10 @@ export function useRemoteWorkspaceEnabled(): boolean {
   return true;
 }
 
-/** 原 N2：是否远程/带身份的工作区标签 */
-export function isRemoteWorkspaceTab(tab: Partial<WorkspaceTab> | null | undefined): boolean {
+/** 原 N2：是否远程/带身份的工作区标签。〔A1-R107〕参型宽化为最小消费面（三字段）：
+ *    束 N2@123216 / zMt@135518 双符同体，zMt 消费面（AutomationsMain，WorkspaceTabsDeep
+ *    标签形 remoteTarget: unknown）直入所需；本叶三消费（1322/1400/1487）结构兼容不变。 */
+export function isRemoteWorkspaceTab(tab: { remoteSessionId?: unknown; remoteTarget?: unknown; workspaceIdentity?: unknown } | null | undefined): boolean {
   return !!(tab && (tab.remoteSessionId || tab.remoteTarget || tab.workspaceIdentity));
 }
 

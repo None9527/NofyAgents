@@ -12,12 +12,12 @@ import { cn } from '../../modules/UtilsCn';
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
 import { useConfirmDialog } from '../../modules/Modals'; // U2
-import { isWorkspaceKindTab as isWorkspaceTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R2：styles js 4487 改指 R1 既有导出；别名保留本地调用名）
+import { isWorkspaceKindTab as isWorkspaceTab, useWorkspaceTabStore } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R2：styles js 4487 改指 R1 既有导出；别名保留本地调用名）// 〔A1-R107〕+useWorkspaceTabStore：原 pc（js 4753）canonical（映射表行 66 在案）——activeWorkspaceTabOf declare 拆合壁后真实接线
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modules/Settings'; // H3 容器类
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
-import { isCodingPlanConnectionSelected as hasCodingPlanEntitlement, type ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依 // 〔A1-R104〕+hasCodingPlanEntitlement 改指（原 Tit declare 删碑；canonical = Home::isCodingPlanConnectionSelected@749，A0 语义重建在案，xn/zi 依赖 R27/R28 既收敛）。环安全：Home 值闭包不达 components/automations（grep 实证仅注释提及）
+import { isCodingPlanConnectionSelected as hasCodingPlanEntitlement, isRemoteWorkspaceTab, type ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依 // 〔A1-R104〕+hasCodingPlanEntitlement 改指（原 Tit declare 删碑；canonical = Home::isCodingPlanConnectionSelected@749，A0 语义重建在案，xn/zi 依赖 R27/R28 既收敛）。环安全：Home 值闭包不达 components/automations（grep 实证仅注释提及） // 〔A1-R107〕+isRemoteWorkspaceTab：原 zMt（135518）canonical（SettingsLeaves 映射行 78 判词在案 ≡ N2@123216；Home::isRemoteWorkspaceTab@1256 转导出）
 import { offPeakCreateFailureMessageId, reportTelemetry } from '../../modules/StoresDeep'; // 〔A1-R104〕原 Dit declare 删碑改指 canonical = offPeakHelpers 逐字实体（转导出） // 〔A1-R105〕+reportTelemetry：原 xw（40457）遥测总入口 canonical（StoresDeep@323，R36 实体化；PaymentDeep R26 同判例）
 import { parseCustomModelRef, OFFPEAK_IDLE_PLAN_ID } from '../../modules/SrcSharedB'; // 〔A1-R105〕原 Zn（styles 544 `P as Zn` ← src iS@8966 ≡ SrcSharedB parseCustomModelRef）：MNt 深依赖 canonical // 〔A1-R106〕+OFFPEAK_IDLE_PLAN_ID：原 vee（styles 613 `Z as vee` ← src 5357；Vjt 遥测缺省 provider 面）
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 548 解构 {settings, update}，552/655–657 读取面（具名 + 既有 as 窄化）与 1179/1341 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
@@ -37,9 +37,8 @@ import type { SkillItem, SkillCapability, SkillDiagnostic } from '../settings/Sk
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R107〕：本地 IntlShape 接口删除——唯一引用面 formatNextTakeAt declare（原 Ljt）
+ *    已销账，实体参型走 : any 缝；束 Ljt 对 intl 仅 formatMessage 调用面，运行期形状不变。 ── */
 
 
 /* ── tombstone〔A1-R48〕：本地 PlatformService 面（openExternal/openInFileManager 2 员）+ declare usePlatformService（原 l）
@@ -203,15 +202,13 @@ interface TaskStoreState {
   setActiveTaskId: (workspacePath: string, taskId: string, identity?: string | null) => void;
   getState?: unknown;
 }
-/* ── tombstone（A1-R2）：useWorkspaceTabsStore（原 pc js 4753）declare 已删除：本文件无调用点（死声明）。
+/* ── tombstone（A1-R2）：useWorkspaceTabsStore（原 pc js 4753）declare 已删除。
  *    isWorkspaceTab（原 oc js 4487）declare 已删除，改经文件头真实 import
  *    （../../modules/WorkspaceTabsDeep 之 isWorkspaceKindTab，别名保留本地调用名）消费。
- *    本地宽松 WorkspaceTabsStoreState 保留：activeWorkspaceTabOf（zMt）declare 仍引用。 ── */
-interface WorkspaceTabsStoreState {
-  tabs: Array<{ id: string; [key: string]: unknown }>;
-  activeTabId: string | null;
-  activateTabByPath: (workspacePath: string, opts?: { workspaceIdentity?: string | null }) => void;
-}
+ *    〔A1-R107〕翻案：R2 判 pc「本文件无调用点（死声明）」系融合形遮蔽——调用点实在
+ *    activeWorkspaceTabOf（zMt）declare 内层（束真形 ge = zMt(pc(selector))，138898）。
+ *    本批 zMt declare 拆壁：pc 经文件头 useWorkspaceTabStore 真实接线，zMt 改指
+ *    Home::isRemoteWorkspaceTab canonical；本地宽松 WorkspaceTabsStoreState 随删。 ── */
 
 
 /* ============================================================================
@@ -328,16 +325,11 @@ declare function buildAutomationModelSelectGroups(opts: {
   providerFamilyDomain?: string | null;
   getEntitlementSnapshot: (providerId: string) => unknown;
 }): SelectGroupEntry[]; // AMt（jsx 113829）
-declare function activeWorkspaceTabOf(
-  selector: (state: WorkspaceTabsStoreState) => { id: string } | undefined
-): { id: string } | undefined; // zMt（jsx 113941）
-declare function resolveTakeNumberBlockReason(opts: {
-  availabilityStatus: string | null;
-  canTakeNumber?: boolean;
-  grayEnabled: boolean;
-  noPlan: boolean;
-}): "plan" | "unavailable" | "quota" | null; // Ijt（jsx 112770）
-declare function formatNextTakeAt(nextTakeAt: number, now: number, intl: IntlShape): string; // Ljt（jsx 112778）
+/* ── tombstone〔A1-R107〕：declare 三连——activeWorkspaceTabOf（原 zMt）/resolveTakeNumberBlockReason（原 Ijt）/
+ *    formatNextTakeAt（原 Ljt）删除。Ijt/Ljt 逐字实体化于下方实体带；zMt 改指 canonical
+ *    Home::isRemoteWorkspaceTab（SettingsLeaves 映射行 78 判词 ≡ N2@123216），调用点拆合壁
+ *    还原束真形 ge = zMt(pc(selector))（138898）：isRemoteWorkspaceTab(useWorkspaceTabStore(selector))。
+ *    注记行号系 jsx 旧口径，实测束真身：Ijt@134018–134030、Ljt@134031–134042、zMt@135518–135520。 ── */
 /* ── tombstone〔A1-R105〕：declare 三连——trackAutomationCreated（原 PNt）/automationModelTelemetryFields（原 MNt）/
  *    trackAutomationAction（原 FNt）删除——遥测三符 + NNt/jNt 逐字实体化于下方；深依赖全改指树内 canonical
  *    （xw→StoresDeep::reportTelemetry R36、Zn→SrcSharedB::parseCustomModelRef）。 ── */
@@ -463,6 +455,33 @@ function trackOffPeakCreateFailed(e: any, t: any, n: any) {
 async function trackOffPeakCreate(e: any, t: any, n: any) {
   let r = await n();
   return (trackOffPeakCreateFailed(e, t, r), r);
+}
+/* ── 原 Ijt（js 134018–134030）→ resolveTakeNumberBlockReason：取号阻断原因（灰度门内三级——状态异常/无套餐/配额尽）〔A1-R107 逐字实体化〕 ── */
+function resolveTakeNumberBlockReason({ availabilityStatus: e, canTakeNumber: t, grayEnabled: n, noPlan: r }: any) {
+  return n
+    ? e === `loading` || e === `error`
+      ? `unavailable`
+      : r
+        ? `plan`
+        : e === `ready`
+          ? t === !0
+            ? null
+            : `quota`
+          : `unavailable`
+    : null;
+}
+/* ── 原 Ljt（js 134031–134042）→ formatNextTakeAt：下次取号剩余时间文案（不足一分/时分/整时/分四支）〔A1-R107 逐字实体化〕 ── */
+function formatNextTakeAt(e: any, t: any, n: any) {
+  let r = e - t;
+  if (r <= 0) return n.formatMessage({ id: `offPeak.create.remaining.lessThanMinute` });
+  let i = Math.ceil(r / 6e4),
+    a = Math.floor(i / 60),
+    o = i % 60;
+  return a > 0 && o > 0
+    ? n.formatMessage({ id: `offPeak.create.remaining.hoursMinutes` }, { hours: a, minutes: o })
+    : a > 0
+      ? n.formatMessage({ id: `offPeak.create.remaining.hours` }, { hours: a })
+      : n.formatMessage({ id: `offPeak.create.remaining.minutes` }, { minutes: o });
 }
 /* ── tombstone〔A1-R104〕：declare offPeakCreateFailureMessageId（原 Dit 91405）删除——改指 offPeakHelpers 逐字 canonical（modules/StoresDeep 转导出，import 在案）。 ── */
 /* ── tombstone〔A1-R103〕：declare 四连——automationLifecycleOf（原 qht）/automationHasFailedRun（原 Kht）/
@@ -763,10 +782,13 @@ export function AutomationsMain(props: AutomationsMainProps) {
     | { mode: "offpeak-edit"; task: OffPeakTask }
   >({ mode: "list" });
   const [tab, setTab] = React.useState("scheduled");
-  const activeWorkspaceTab = activeWorkspaceTabOf((state) => {
-    const activeTab = state.tabs.find((candidate) => candidate.id === state.activeTabId);
-    return activeTab && isWorkspaceTab(activeTab) ? activeTab : undefined;
-  });
+  // 〔A1-R107〕束真形 ge = zMt(pc(selector))（138898）拆壁还原：zMt→isRemoteWorkspaceTab canonical + pc→useWorkspaceTabStore canonical
+  const activeWorkspaceTab = isRemoteWorkspaceTab(
+    useWorkspaceTabStore((state) => {
+      const activeTab = state.tabs.find((candidate) => candidate.id === state.activeTabId);
+      return activeTab && isWorkspaceTab(activeTab) ? activeTab : undefined;
+    }),
+  );
   const offPeakGrayEnabled = offPeakGrayConfig?.enabled === true;
   const offPeakCreationEnabled = offPeakGrayEnabled && !activeWorkspaceTab;
   const noCodingPlan =
