@@ -2035,7 +2035,7 @@ section	sem	obf	line	owner
 21	GENERIC_FONT_KEYWORDS	i	5	presentationPdfPrintExport-CsVZM-dn.js
 21	FONT_PROBE_TEXTS	a	19	presentationPdfPrintExport-CsVZM-dn.js
 21	FONTS_ALWAYS_MISSING_ON_MAC	o	24	presentationPdfPrintExport-CsVZM-dn.js
-21	IconFileDown	re	—	12-21
+21	IconFileDown	re	31	pptx-preview-viewer-B1z6CWke.js
 21	CJK_SANS_FALLBACK_STACK	s	25	presentationPdfPrintExport-CsVZM-dn.js
 21	CJK_SERIF_FALLBACK_STACK	c	33	presentationPdfPrintExport-CsVZM-dn.js
 21	LATIN_SANS_FALLBACK_STACK	l	34	presentationPdfPrintExport-CsVZM-dn.js
@@ -2044,7 +2044,7 @@ section	sem	obf	line	owner
 21	LATIN_MONO_FALLBACK_STACK	f	89	18
 21	SYMBOL_FALLBACK_STACK	p	117	19
 21	unquoteFontName	m	214	20
-21	SlideAiEditPopover	ie	—	24-117
+21	SlideAiEditPopover	ie	45	pptx-preview-viewer-B1z6CWke.js
 21	splitFontFamilyList	h	271	27
 21	serializeFontName	g	275	54
 21	classifyTextScript	_	87	presentationPdfPrintExport-CsVZM-dn.js
@@ -2068,10 +2068,10 @@ section	sem	obf	line	owner
 21	PptxPreviewViewer	N	3183	330-612
 21	XmlNode	N	3183	3589-3638
 21	parseXml	P	3212	3639-3644
-21	parseRels	R	—	3658-3675
-21	resolvePartPath	z	—	3676-3686
-21	emuToPx	B	—	3687-3695
-21	angleToDeg	ee	—	3687-3695
+21	parseRels	R	6164	pptxRendererPreviewEngine-BIIRLBue.js
+21	resolvePartPath	z	6179	pptxRendererPreviewEngine-BIIRLBue.js
+21	emuToPx	B	6188	pptxRendererPreviewEngine-BIIRLBue.js
+21	angleToDeg	ee	6191	pptxRendererPreviewEngine-BIIRLBue.js
 21	ptToPx	ne	155	3687-3695
 21	alphaToUnit	te	113	3687-3695
 21	parseXmlBoolDefaultTrue	ge	178264	3899-3907
@@ -2080,29 +2080,29 @@ section	sem	obf	line	owner
 21	hex/rgb/hsl 互转	Et	606	4984-5058
 21	hex/rgb/hsl 互转	Ot	616	4984-5058
 21	hex/rgb/hsl 互转	kt	90599	4984-5058
-21	sRGB 线性化 / gamma	At	—	5059-5064
-21	sRGB 线性化 / gamma	jt	—	5059-5064
-21	alpha 钳制 + 变换管线	$t	—	5265-5360
-21	alpha 钳制 + 变换管线	en	—	5265-5360
+21	sRGB 线性化 / gamma	At	7462	pptxRendererPreviewEngine-BIIRLBue.js
+21	sRGB 线性化 / gamma	jt	7466	pptxRendererPreviewEngine-BIIRLBue.js
+21	alpha 钳制 + 变换管线	$t	7576	pptxRendererPreviewEngine-BIIRLBue.js
+21	alpha 钳制 + 变换管线	en	7579	pptxRendererPreviewEngine-BIIRLBue.js
 21	预设色名表（148 色）	nn	159666	5361-5522
 21	预设色名表（148 色）	tn	119705	5361-5522
-21	颜色缓存键 / 变换列表解析	an	—	5523-5547
-21	颜色缓存键 / 变换列表解析	rn	—	5523-5547
+21	颜色缓存键 / 变换列表解析	an	7840	pptxRendererPreviewEngine-BIIRLBue.js
+21	颜色缓存键 / 变换列表解析	rn	7826	pptxRendererPreviewEngine-BIIRLBue.js
 21	CSS 输出	dn	186783	5628-5645
-21	CSS 输出	ln	—	5628-5645
+21	CSS 输出	ln	7943	pptxRendererPreviewEngine-BIIRLBue.js
 21	CSS 输出	un	119816	5628-5645
 21	渐变填充 CSS / 线型 / 虚线类别	gn	119880	5751-5862
 21	渐变填充 CSS / 线型 / 虚线类别	hn	159791	5751-5862
-21	渐变填充 CSS / 线型 / 虚线类别	mn	—	5751-5862
+21	渐变填充 CSS / 线型 / 虚线类别	mn	8081	pptxRendererPreviewEngine-BIIRLBue.js
 21	fillToRect 几何与渐变压缩	Sn	1251	5863-5912
-21	fillToRect 几何与渐变压缩	_n	—	5863-5912
+21	fillToRect 几何与渐变压缩	_n	8179	pptxRendererPreviewEngine-BIIRLBue.js
 21	fillToRect 几何与渐变压缩	bn	1227	5863-5912
-21	fillToRect 几何与渐变压缩	vn	—	5863-5912
+21	fillToRect 几何与渐变压缩	vn	8189	pptxRendererPreviewEngine-BIIRLBue.js
 21	fillToRect 几何与渐变压缩	xn	1236	5863-5912
-21	fillToRect 几何与渐变压缩	yn	—	5863-5912
+21	fillToRect 几何与渐变压缩	yn	8192	pptxRendererPreviewEngine-BIIRLBue.js
 21	渐变数据模型（供 SVG 渲染）	Cn	1256	5913-5967
-21	渐变数据模型（供 SVG 渲染）	wn	—	5913-5967
-21	主题 fillStyles/bgFillStyles 解析	Dn	—	5968-6005
+21	渐变数据模型（供 SVG 渲染）	wn	8260	pptxRendererPreviewEngine-BIIRLBue.js
+21	主题 fillStyles/bgFillStyles 解析	Dn	8280	pptxRendererPreviewEngine-BIIRLBue.js
 21	主题 fillStyles/bgFillStyles 解析	En	1286	5968-6005
 21	主题 fillStyles/bgFillStyles 解析	Tn	1274	5968-6005
 21	+mj/+mn 主题字体令牌与脚本映射	hr	2059	6462-6468
@@ -2110,17 +2110,17 @@ section	sem	obf	line	owner
 21	+mj/+mn 主题字体令牌与脚本映射	pr	120924	6462-6468
 21	主题字体解析 / 字体栈去重	br	2073	6489-6516
 21	主题字体解析 / 字体栈去重	yr	2070	6489-6516
-21	defaultOptions	xt	—	6636
+21	defaultOptions	xt	9155	previewPaneOfficeDocxContent-3JqWt7cf.js
 21	parseAsync	St	213243	6655
-21	render	Ct	—	6666
-21	renderAsync	wt	—	6671
+21	render	Ct	9181	previewPaneOfficeDocxContent-3JqWt7cf.js
+21	renderAsync	wt	9185	previewPaneOfficeDocxContent-3JqWt7cf.js
 21	jsxRuntime	$	1287	6679
 21	DOCX_PREVIEW_OPTIONS	Tt	90574	6680-6697
 21	DOCX_PAGE_SHADOW	Et	606	6698
 21	docxPreviewClassCounter	Dt	609	6699
 21	createDocxPreviewClassName	Ot	616	6700-6702
 21	isSameDocxFitMetrics	kt	90599	6703-6707
-21	PreviewPaneOfficeDocxContent	At	—	6708-6776
+21	PreviewPaneOfficeDocxContent	At	9224	previewPaneOfficeDocxContent-3JqWt7cf.js
 21	glow / outerShdw 文字阴影	ei	2210	6893-6922
 21	glow / outerShdw 文字阴影	ni	2216	6893-6922
 21	glow / outerShdw 文字阴影	ti	2213	6893-6922
@@ -2167,7 +2167,7 @@ section	sem	obf	line	owner
 21	wasm 源注册组（initAndRegisterDocxWasm 等）	br/xr/Sr/Cr/wr/Tr	—	11850-11879,36460
 21	importDocx DOCX 导入管线（工作者优先+主线程回退+中止/计时）	Er…Nr	—	11880-11993
 21	页面缺省常量（900×1200/56px/15twips）	Pr…Rr	—	11994-12010
-21	parsePageGeometry（pgSz/pgMar/docGrid/pgBorders→px）	zr…Yr	—	12011-12118
+21	parsePageGeometry（pgSz/pgMar/docGrid/pgBorders→px）	zr…Yr	5935	previewPaneOfficeDocxContent-3JqWt7cf.js
 21	图片路由/转换（TIFF→PNG via UTIF+encodePng；EMF/WMF 占位；缓存）	Xr…vi	—	12119-12252
 21	duotone/lum/biLevel 像素滤镜	Hs	3941	13351-13435
 21	duotone/lum/biLevel 像素滤镜	Us	3939	13351-13435
@@ -3171,79 +3171,79 @@ section	sem	obf	line	owner
 31	词粒度 Intl.Segmenter 单例	Le	455	10429-10435
 31	词粒度 Intl.Segmenter 单例	Re	458	10429-10435
 31	ARABIC_SCRIPT_RE	ze	462	10437
-31	DECIMAL_DIGIT_RE	Ve	—	10439
+31	DECIMAL_DIGIT_RE	Ve	16576	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	isCJKCodePoint	Ue	161555	10443
-31	endsWithCJKClosingPunct	Ge	—	10464
+31	endsWithCJKClosingPunct	Ge	16620	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	NON_BREAK_SPACE_SET	Ke	161926	10468
 31	endsWithNoBreakSpace	qe	161949	10471
 31	allowsBreakAfter	Ye	128200	10478
-31	CJK_NO_LINE_START_SET	Xe	—	10481
-31	APOSTROPHE_SET	Qe	—	10483
-31	ARABIC_SENTENCE_END_SET	et	—	10485
-31	CLOSING_QUOTE_SET	nt	—	10487
+31	CJK_NO_LINE_START_SET	Xe	16637	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	APOSTROPHE_SET	Qe	16665	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	ARABIC_SENTENCE_END_SET	et	16667	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	CLOSING_QUOTE_SET	nt	16669	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	isClosingPunctCluster	rt	115012	10488
-31	isOpenPunctRun	at	—	10503
+31	isOpenPunctRun	at	16686	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	prevGraphemeBoundary	st	119372	10518
-31	firstNonMarkChar	lt	—	10533
+31	firstNonMarkChar	lt	16718	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	CURRENCY_SIGN_RANGES	dt	156080	10548
-31	isCurrencySign	pt	—	10553
+31	isCurrencySign	pt	16742	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	firstNonMarkIsDigit	ht	580	10560
 31	splitTrailingOpenPunct	gt	90440	10563
-31	expandRepeatUnit	vt	—	10583
+31	expandRepeatUnit	vt	16776	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	endsWithMyanmarFullStop	bt	84840	10597
 31	endsWithClosingQuoteRun	St	213243	10609
-31	TOKEN_BOUNDARY_WS_RE	wt	—	10632
+31	TOKEN_BOUNDARY_WS_RE	wt	16830	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	prependRepeatUnits	Et	606	10637
 31	isBreakableTokenKind	Ot	616	10673
 31	URL_SCHEME_RE	kt	90599	10678
-31	looksLikeUrlQuery	jt	—	10685
+31	looksLikeUrlQuery	jt	16873	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	mergeUrlQueryTokens	Nt	90606	10713
-31	NUMERIC_INFIX_SET	Pt	—	10739
-31	EMOJI_PRESENTATION_RE	It	—	10741
+31	NUMERIC_INFIX_SET	Pt	16924	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	EMOJI_PRESENTATION_RE	It	16926	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	isAsciiPunctuation	Rt	159611	10743
 31	isBreakablePunctRun	Bt	213450	10751
-31	shouldJoinAdjacentWords	Ht	—	10769
-31	isNumericTokenText	Wt	—	10780
-31	mergeAdjacentWordTokens	Kt	—	10812
-31	mergeGlueTokens	Jt	—	10877
-31	buildTokenStreamFromSegmenter	Xt	—	10934
+31	shouldJoinAdjacentWords	Ht	16961	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	isNumericTokenText	Wt	16972	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	mergeAdjacentWordTokens	Kt	16996	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	mergeGlueTokens	Jt	17057	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	buildTokenStreamFromSegmenter	Xt	17108	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	splitChunksAtHardBreaks	Zt	90769	11013
-31	applyKeepAllToTokens	Qt	—	11034
-31	segmentTextToLayoutTokens	$t	—	11075
-31	单例测量上下文	en	—	11094
-31	单例测量上下文	ln	—	11094
-31	EMOJI_PRESENTATION_RE	an	—	11098
-31	EMOJI_SEQUENCE_RE	on	—	11098
+31	applyKeepAllToTokens	Qt	17246	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	segmentTextToLayoutTokens	$t	17282	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	单例测量上下文	en	17291	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	单例测量上下文	ln	17299	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	EMOJI_PRESENTATION_RE	an	17295	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	EMOJI_SEQUENCE_RE	on	17296	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	measureTextCached	dn	186783	11112
-31	parseFontSizeFromFont	pn	—	11139
+31	parseFontSizeFromFont	pn	17354	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	isEmojiPresentation	hn	159791	11148
-31	表情过绘修正缓存/测量	_n	—	11153
-31	表情过绘修正缓存/测量	cn	—	11153
-31	countEmojiSegments	vn	—	11168
+31	表情过绘修正缓存/测量	_n	17367	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	表情过绘修正缓存/测量	cn	17298	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	countEmojiSegments	vn	17386	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	emojiCorrectedWidth	bn	1227	11177
 31	openFontMeasureSession	Sn	1251	11222
 31	isFitOnlyKind	Cn	1256	11233
 31	skipShrinkableKinds	Tn	1274	11239
-31	fitLetterSpacingAt	Dn	—	11253
-31	letterSpacingAtSegment	kn	—	11258
-31	fitAdvanceOf	jn	—	11263
-31	withTrailingLetterSpacing	Nn	—	11268
+31	fitLetterSpacingAt	Dn	17472	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	letterSpacingAtSegment	kn	17478	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	fitAdvanceOf	jn	17484	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	withTrailingLetterSpacing	Nn	17490	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	lowerBoundIndex	Fn	184460	11273
 31	advanceWithTrailingSpacing	Ln	1421	11297
 31	findChunkBySegment	Rn	1429	11298
 31	locateChunkForCursor	Bn	120526	11318
 31	walkChunkLine	Hn	1584	11324
-31	walkLineFromCursor	Wn	—	11479
+31	walkLineFromCursor	Wn	17721	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	countLinesAndMaxWidth	Kn	1709	11488
-31	行字素缓存族	Jn	—	11525-11533
+31	行字素缓存族	Jn	17749	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	行字素缓存族	Xn	120852	11525-11533
-31	行字素缓存族	Yn	—	11525-11533
+31	行字素缓存族	Yn	17750	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	行字素缓存族	qn	1728	11525-11533
 31	appendStringSlice	Qn	1850	11539
-31	extractLineText	er	—	11546
+31	extractLineText	er	17772	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	CJK	nr	120881	11566
-31	CJK	tr	—	11566
-31	segmentCJKRun	ir	—	11600
+31	CJK	tr	17788	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
+31	segmentCJKRun	ir	17826	previewPaneOfficeLegacyDocContent-HWD4EOEM.js
 31	graphemeCountForSpacing	or	1930	11666
 31	hyphenBreakOffsets	cr	120893	11680
 31	buildWidthTable	ur	1995	11689
