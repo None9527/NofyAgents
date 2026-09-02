@@ -504,7 +504,7 @@ export interface GitSummary {
   workspacePath: string;
   repoRoot: string;
   workspaceInRepoPath: string;
-  autoRefreshWatchPaths: string[];
+  autoRefreshWatchPaths: Array<{ path: string; recursive?: boolean }>; // 〔A1-R97〕型面纠回束真形（Uoe@3605 消费 t.path/t.recursive；旧 string[] 系 A0 推测）
   branchName: string | null;
   trackingBranchName: string | null;
   headRefType: "branch" | "detached" | string;

@@ -226,7 +226,7 @@ import type { CodeViewerSource, FileTreeRequest, RemoteLogsByWorkspaceKey, Sideb
 import { WorkspaceSidebar as Sidebar } from './Sidebar'; // 〔A1-R52〕switcher 族属主闭合（A1-P2-B9-XD-1）：值面 rVt 改指一行办结——原 declare 占位（React.FC<Record<string, unknown>>）删除，B6 探针 11 失配五族经 B7 十族收敛 + R52 switcher 族闭合后全销账，tsc 双 0 实证（B7 §七「待族 5 闭合后一行即成」兑现） // 〔A1-P2-B7〕Sidebar 型收敛五族 canonical 改指（onOpenCodeViewer/fileTreeOpenRequest/logs/user/theme）；值面 rVt 改指待族 5（switcher）闭合——见下方 declare 注
 import { useBaseServices, useServices, useResolvedWorkspaceServices as useWorkspaceServicesResolver, useWorkspaceProviderConfigFile as useProviderConfigFile, useTaskNativeSessionLogFile, useTaskSessionFilePath, useGlobalKeyboardShortcuts as useWorkspaceKeyboardShortcuts } from '../../modules/services'; // 〔A1-P2-B2〕+useWorkspaceServicesResolver（原 Dc ≡ services/remoteServices useResolvedWorkspaceServices 真身，删碑见下 tabs 域）；〔A1-P2-B10〕+useWorkspaceProviderConfigFile as useProviderConfigFile（原 wge 24288；bundle 186741 en≡wge 实证）——下方 declare 删碑改指，R1 判例别名保留调用名；〔A1-P2-B10〕+useTaskNativeSessionLogFile/useTaskSessionFilePath（原 qge 24612/Xge 24686 真身，services/workspaceServiceHooks D.4，删碑见原 declare 处）；+useGlobalKeyboardShortcuts as useWorkspaceKeyboardShortcuts（原 rge 24063 同符归一，删碑见快捷键绑定层）
 import { useFeedbackStore, useSettingsStore, getSessionById as getRemoteSessionRegistryEntry } from '../../modules/stores-core'; // 〔A1-P2-B2〕+getRemoteSessionRegistryEntry（原 tc ≡ stores/sessionRegistryStore getSessionById 真身，删碑见下）
-import { useWorkspaceTabStore as useWorkspaceTabs, useWorkspaceTabStoreApi as useWorkspaceTabsStore, isWorkspaceKindTab as isWorkspaceTab, hasUnavailableLocalDirectoryTab as isWorkspaceUnavailableLocalDirectory, type WorkspaceTab, type WorkspaceTabStoreState } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P2-B2〕原 pc/hc/oc/sc 四件 + WorkspaceTab/WorkspaceTabsState 二型改指 R1 canonical 属主（删碑见下 tabs 域；别名保留本地调用名，R1/R2/R3 判例）
+import { useWorkspaceTabStore as useWorkspaceTabs, useWorkspaceTabStoreApi as useWorkspaceTabsStore, isWorkspaceKindTab as isWorkspaceTab, hasUnavailableLocalDirectoryTab as isWorkspaceUnavailableLocalDirectory, useGitAutoRefreshWatcher as useGitSummarySync, type WorkspaceTab, type WorkspaceTabStoreState } from '../../modules/WorkspaceTabsDeep'; // 〔A1-P2-B2〕原 pc/hc/oc/sc 四件 + WorkspaceTab/WorkspaceTabsState 二型改指 R1 canonical 属主（删碑见下 tabs 域；别名保留本地调用名，R1/R2/R3 判例）；〔A1-R97〕+useGitAutoRefreshWatcher as useGitSummarySync（原 Yse 4997 误名 declare 收敛）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-P2-B10〕原 G（IntlProvider chunk 导入别名）≡ D@9248–9252 useZCodeIntl——下方 useIntlContext declare 删碑改指（R1 判例别名保留调用名）；同形先例 SkillsSettingsSection@18
 import { AutomationsMain, RepoWikiView as RepoWikiMain } from '../../modules/ExtendedViews'; // 原 d6（F15 根）；〔A1-P2-B9〕+RepoWikiView as RepoWikiMain（原 l3，F16 族根，js 132306-133070）：下方 declare 删碑改指——canonical = ExtendedViews §1 A0 代转录（SidePanel@4354 既接同面），R1 判例别名保留调用名；调用点 2969/3257 逐字不变
@@ -632,17 +632,17 @@ declare function useGitState(input: {
   remoteSessionId: string | null;
   remoteTarget: RemoteTarget | undefined;
   workspaceIdentity?: string;
-}): GitState;
-declare function useGitSummarySync(input: {
-  workspacePath: string;
-  workspaceIdentity?: string;
-  remoteSessionId: string | null;
-  gitSummary: GitSummary;
-  gitSummaryWorkspaceKey: string;
-  enabled: boolean;
-  onRefreshGit: () => void;
-}): void;
-declare function countDirtyFiles(datasets: GitState["datasets"]): number;
+}): GitState; // 原 nge（23968，git 仓库状态钩子深域，候 R98 泳道）
+/* ── tombstone〔A1-R97〕：declare useGitSummarySync（原 Yse 4997 误名）删除——束真身 = Yse useGitAutoRefreshWatcher，
+ *    已逐字实体化于 modules/WorkspaceTabsDeep@831（参数面逐字吻合：workspacePath/workspaceIdentity/remoteSessionId/
+ *    gitSummary/gitSummaryWorkspaceKey/enabled/onRefreshGit）；本叶改文件头别名 import（调用名逐字不变）。 ── */
+/* ── 原 yst（js 95009–95014）→ countDirtyFiles：git 脏文件数（unstaged∪staged 路径去重）〔A1-R97 逐字实体化〕 ── */
+function countDirtyFiles(e: any) {
+  let t = new Set();
+  for (let n of [e.unstaged, e.staged])
+    for (let e of n.sections) for (let n of e.changes) t.add(n.path);
+  return t.size;
+}
 
 /* --- 会话编排 / 分屏路由（原 PTt/owt 叶子 + A2/s2/MTt/ATt/jTt） --- */
 
