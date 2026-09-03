@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as $ from "react/jsx-runtime"; // 原 $（jsx-runtime-B5yMD3-t.js；A1-R15 判例：编译形 JSX 消费面）// 〔A1-R108〕图标族实体化接线（k3/M3/Njt/uMt 编译形消费）
 import { DropdownMenu as DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { LoaderCircle as SpinnerIcon, RefreshCw as RefreshIcon, Trash2 as TrashIcon, EllipsisIcon, PlayIcon, RotateCcw as RotateIcon, PauseIcon, PlayCircle as ResumeIcon, SquarePen as EditIcon, CircleCheck as AutomationStatusCompletedIcon, TriangleAlert as AutomationStatusFailedIcon, Clock, CircleStop, Target, Activity, FileText, List, ListChecks, SlidersHorizontal } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0 // 〔A1-R108〕+Clock/CircleStop（原 V_/R_：M3/k3 状态图标真身，束 26949/26912 Sa 工厂证）+Target/Activity/FileText/List/ListChecks/SlidersHorizontal（原 wbe/y_/Z_/dv/lv/bbe：Mjt/lMt 模板图标映射表六员）
+import { LoaderCircle as SpinnerIcon, RefreshCw as RefreshIcon, Trash2 as TrashIcon, EllipsisIcon, PlayIcon, RotateCcw as RotateIcon, PauseIcon, PlayCircle as ResumeIcon, SquarePen as EditIcon, CircleCheck as AutomationStatusCompletedIcon, TriangleAlert as AutomationStatusFailedIcon, Clock, CircleStop, Target, Activity, FileText, List, ListChecks, SlidersHorizontal, Info, Moon, Square, ExternalLink } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0 // 〔A1-R108〕+Clock/CircleStop（原 V_/R_：M3/k3 状态图标真身，束 26949/26912 Sa 工厂证）+Target/Activity/FileText/List/ListChecks/SlidersHorizontal（原 wbe/y_/Z_/dv/lv/bbe：Mjt/lMt 模板图标映射表六员）// 〔A1-R113〕+Info/Moon/Square/ExternalLink（原 p/xv/Wv/q_：O3/qjt/Xjt/P3 图标包装真身，imeComposition 11781/束 27516/27871/27013 工厂证）
 import { Button } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk
 import { toast, usePlatformService, type PlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService/type PlatformService（原 l ≡ imeComposition M 导出 ≡ usePlatform 域外别名）：本地 2 员面碑化改指，见下墓碑
 import { AutomationEditor, CreateSplitButton, KeepAwakeRow, OffPeakTaskEditor, type SelectGroupEntry } from '../../modules/SettingsLeaves'; // A0-CLEANUP3 3b：SelectGroupEntry 属主为 SettingsLeaves（导出）
@@ -32,7 +32,12 @@ import {
   automationsListTestid as AUTOMATIONS_GRID_TESTID, // jr
   automationCardTestid as AUTOMATIONS_CARD_TESTID, // Bte
   offpeakTabTestid as AUTOMATIONS_TABS_TESTID, // on
-} from '../../modules/SrcSharedB';
+  offpeakCardTestid, // Zy（Rte）
+  offpeakCardMenuTestid, // Qy（rt）
+  offpeakActionPauseTestid, // rb（Jn）
+  offpeakActionContinueTestid, // ib（Mt）
+  offpeakActionDeleteTestid, // ab（wt）
+} from '../../modules/SrcSharedB'; // 〔A1-R113〕+offpeak 五 testid（cMt 卡面/菜单/动作锚标；SrcSharedB 4966–4974 逐字 canonical 在案）
 import type { SkillItem, SkillCapability, SkillDiagnostic } from '../settings/SkillsSettingsSection'; // §0 SkillsService 接口签名引用（属主：技能族文件）
 
 /* ============================================================================
@@ -283,16 +288,10 @@ declare function useOffPeakStore<T>(selector: (state: OffPeakStoreState) => T): 
 declare const offPeakStoreStatic: { getState: () => OffPeakStoreState }; // bX.getState()
 
 /* F15 族深层叶子（接口级；行号见头部映射 §F） */
-declare const OffPeakTaskList: React.FC<{
-  tasks: OffPeakTask[];
-  busyOperationId: string | null;
-  onOpen: (task: OffPeakTask) => void;
-  onPause: (task: OffPeakTask) => void;
-  onContinue: (task: OffPeakTask) => void;
-  onCancel: (task: OffPeakTask) => void;
-  onDelete: (task: OffPeakTask) => void;
-  onOpenSession: (run: { sessionId?: string | null; workspacePath?: string; workspaceIdentity?: string | null }) => void;
-}>; // cMt（jsx 113500）
+/* ── tombstone〔A1-R113〕：declare OffPeakTaskList（原 cMt，jsx 113500 / js 134696–134939）删除——逐字实体化于下方实体带（AutomationStatusChip 之后）。
+ *    依赖全收：zjt/Bjt 描述器、nMt 排序、rMt/iMt+aMt+oMt 提示气泡链（Ia ≡ Tooltip 既有别名）、
+ *    sMt 图标映射表、图标包装带八员（O3/qjt/A3/j3/Xjt/N3/P3/F3）、VO/HO/UO/WO/YO ≡ ui/dropdown-menu 五原语、
+ *    Rte/rt/Jn/Mt/wt ≡ SrcSharedB offpeak 五 testid。 ── */
 /* ── tombstone〔A1-R112〕：declare AutomationStatusChip（原 ANt，jsx 115689 / js 138530–138578）删除——逐字实体化于下方实体带（showToastWithAction 之后）。
  *    依赖 Na/Oa/Ma/ka = usageStatsUiParts Tooltip 四原语（束导出 p/d/m/f ≡ Ce/G/K/q），
  *    改指 modules/UsageStatsUiParts 转导出 ShadcnTooltipProvider/ShadcnTooltip/ShadcnTooltipTrigger/ShadcnTooltipContent（import 在案）。 ── */
@@ -570,6 +569,382 @@ function AutomationStatusChip({ dimmed: e = !1, icon: t, text: n }: any) {
       }),
     })
   );
+}
+/* ── 原 zjt（js 134053–134090）→ offPeakStatusDescriptor：闲时任务状态描述器（六态：图标键/类名/文案键/值）〔A1-R113 逐字实体化〕 ── */
+function offPeakStatusDescriptor(e: any): any {
+  switch (e.status) {
+    case `queued`:
+      return e.queuePosition
+        ? {
+            icon: `moon`,
+            className: `text-idle-task`,
+            labelId: `offPeak.badge.queuePosition`,
+            labelValues: { position: String(e.queuePosition) },
+          }
+        : { icon: `moon`, className: `text-idle-task`, labelId: `offPeak.status.queued` };
+    case `paused`:
+      return e.queuePosition
+        ? {
+            icon: `pause`,
+            className: `text-idle-task`,
+            labelId: `offPeak.badge.pausedPosition`,
+            labelValues: { position: String(e.queuePosition) },
+          }
+        : { icon: `pause`, className: `text-idle-task`, labelId: `offPeak.status.paused` };
+    case `running`:
+      return { icon: `spinner`, className: `text-success`, labelId: `offPeak.status.running` };
+    case `completed`:
+      return {
+        icon: `success`,
+        className: `text-foreground-subtle`,
+        labelId: `offPeak.status.completed`,
+      };
+    case `failed`:
+      return { icon: `warning`, className: `text-destructive`, labelId: `offPeak.status.failed` };
+    case `cancelled`:
+      return {
+        icon: `stopped`,
+        className: `text-foreground-subtle`,
+        labelId: `offPeak.status.cancelled`,
+      };
+  }
+}
+/* ── 原 Bjt（js 134091–134100）→ offPeakQueueBadge：失败态附带排队位徽（余态 null）〔A1-R113 逐字实体化〕 ── */
+function offPeakQueueBadge(e: any) {
+  return e.status !== `failed` || e.queuePosition === void 0
+    ? null
+    : {
+        icon: `moon`,
+        className: `text-idle-task`,
+        labelId: `offPeak.badge.queuePosition`,
+        labelValues: { position: String(e.queuePosition) },
+      };
+}
+/* ── 原 O3（js 134484–134486）→ OffPeakHintIcon：info 图标包装〔A1-R113 逐字实体化〕 ── */
+function OffPeakHintIcon(e: any) {
+  return (0, $.jsx)(Info, { ...AUTOMATION_STATUS_ICON_DEFAULTS, ...e });
+}
+/* ── 原 qjt（js 134487–134489）→ OffPeakMoonIcon：moon 图标包装〔A1-R113 逐字实体化〕 ── */
+function OffPeakMoonIcon(e: any) {
+  return (0, $.jsx)(Moon, { ...AUTOMATION_STATUS_ICON_DEFAULTS, ...e });
+}
+/* ── 原 A3（js 134493–134495）→ OffPeakPauseActionIcon：circle-stop 动作图标包装〔A1-R113 逐字实体化〕 ── */
+function OffPeakPauseActionIcon(e: any) {
+  return (0, $.jsx)(CircleStop, { ...AUTOMATION_STATUS_ICON_DEFAULTS, ...e });
+}
+/* ── 原 j3（js 134502–134504）→ OffPeakContinueActionIcon：circle-play 动作图标包装〔A1-R113 逐字实体化〕 ── */
+function OffPeakContinueActionIcon(e: any) {
+  return (0, $.jsx)(ResumeIcon, { ...AUTOMATION_STATUS_ICON_DEFAULTS, ...e });
+}
+/* ── 原 Xjt（js 134505–134507）→ OffPeakCancelActionIcon：square 填充动作图标包装〔A1-R113 逐字实体化〕 ── */
+function OffPeakCancelActionIcon(e: any) {
+  return (0, $.jsx)(Square, { ...AUTOMATION_STATUS_ICON_DEFAULTS, fill: `currentColor`, ...e });
+}
+/* ── 原 N3（js 134511–134513）→ OffPeakMenuIcon：ellipsis 菜单图标包装〔A1-R113 逐字实体化〕 ── */
+function OffPeakMenuIcon(e: any) {
+  return (0, $.jsx)(EllipsisIcon, { ...AUTOMATION_STATUS_ICON_DEFAULTS, ...e });
+}
+/* ── 原 P3（js 134514–134516）→ OffPeakSessionIcon：external-link 会话跳转图标包装〔A1-R113 逐字实体化〕 ── */
+function OffPeakSessionIcon(e: any) {
+  return (0, $.jsx)(ExternalLink, { ...AUTOMATION_STATUS_ICON_DEFAULTS, ...e });
+}
+/* ── 原 F3（js 134520–134526）→ OffPeakDeleteIcon：trash-2 删除图标包装（span 容器）〔A1-R113 逐字实体化〕 ── */
+function OffPeakDeleteIcon() {
+  return (0, $.jsx)(`span`, {
+    className: `flex size-5 shrink-0 items-center justify-center`,
+    "aria-hidden": `true`,
+    children: (0, $.jsx)(TrashIcon, { className: `size-4`, ...AUTOMATION_STATUS_ICON_DEFAULTS }),
+  });
+}
+/* ── 原 nMt（js 134656–134658）→ sortOffPeakTasksNewestFirst：createdAt 倒序投影〔A1-R113 逐字实体化〕 ── */
+function sortOffPeakTasksNewestFirst(e: any) {
+  return [...e].sort((e, t) => t.createdAt - e.createdAt);
+}
+/* ── 原 rMt/iMt（js 134659–134660）→ OFF_PEAK_HINT_VIEWPORT_MIN_GAP/OFF_PEAK_HINT_SIDE_OFFSET：提示气泡几何常量〔A1-R113 逐字实体化〕 ── */
+const OFF_PEAK_HINT_VIEWPORT_MIN_GAP = 320,
+  OFF_PEAK_HINT_SIDE_OFFSET = 16;
+/* ── 原 aMt（js 134661–134663）→ offPeakHintSide：提示气泡侧位裁决（右缘余量 ≥ 336 → right，余 → top）〔A1-R113 逐字实体化〕 ── */
+function offPeakHintSide(e: any, t: any) {
+  return e && t - e.right >= OFF_PEAK_HINT_VIEWPORT_MIN_GAP + OFF_PEAK_HINT_SIDE_OFFSET ? `right` : `top`;
+}
+/* ── 原 oMt（js 134664–134694）→ OffPeakActionHint：动作提示气泡（受控开合 + resize 侧位重裁；Ia ≡ Tooltip 既有别名）〔A1-R113 逐字实体化；型缝二：解构参 `: any` + useRef 初值 `as any`〕 ── */
+function OffPeakActionHint({ children: e, title: t }: any) {
+  let n = (0, React.useRef)(null as any),
+    [r, i] = (0, React.useState)(!1),
+    [a, o] = (0, React.useState)(`right`),
+    s = (0, React.useCallback)(() => {
+      o(offPeakHintSide(n.current?.getBoundingClientRect() ?? null, window.innerWidth));
+    }, []);
+  return (
+    (0, React.useEffect)(() => {
+      if (r)
+        return (
+          s(),
+          window.addEventListener(`resize`, s),
+          () => window.removeEventListener(`resize`, s)
+        );
+    }, [r, s]),
+    (0, $.jsx)(Tooltip, {
+      title: t,
+      open: r,
+      onOpenChange: (e: any) => {
+        (e && s(), i(e));
+      },
+      triggerRef: n,
+      side: a,
+      align: a === `top` ? `end` : `center`,
+      sideOffset: OFF_PEAK_HINT_SIDE_OFFSET,
+      className: `max-w-[min(20rem,calc(100vw-1rem))]`,
+      children: e,
+    })
+  );
+}
+/* ── 原 sMt（js 134695）→ OFF_PEAK_STATUS_ICONS：闲时状态图标映射表（k3 ≡ AutomationStatusPausedIcon 双键；M/N/I_ ≡ 既有 lucide 别名）〔A1-R113 逐字实体化；型缝：映射表索引面注记（TS7053 防，R108 判例）〕 ── */
+const OFF_PEAK_STATUS_ICONS: Record<string, React.ElementType> = { moon: OffPeakMoonIcon, pause: AutomationStatusPausedIcon, spinner: SpinnerIcon, success: AutomationStatusCompletedIcon, warning: AutomationStatusFailedIcon, stopped: AutomationStatusPausedIcon };
+/* ── 原 cMt（js 134696–134939）→ OffPeakTaskList：闲时任务卡网格（空态/卡面/状态徽/会话跳转/动作菜单五分支）〔A1-R113 逐字实体化；型缝：解构参 `: any`〕 ── */
+function OffPeakTaskList({
+  tasks: e,
+  busyOperationId: t,
+  onOpen: n,
+  onPause: r,
+  onContinue: i,
+  onCancel: a,
+  onDelete: o,
+  onOpenSession: s,
+}: any) {
+  let { intl: c } = useIntlContext(),
+    l = sortOffPeakTasksNewestFirst(e);
+  return l.length === 0
+    ? (0, $.jsx)(`div`, {
+        className: `rounded-[10px] border border-card-border px-3 py-3 text-ui-base text-foreground-subtle`,
+        children: c.formatMessage({ id: `offPeak.list.empty` }),
+      })
+    : (0, $.jsx)(`div`, {
+        className: `grid auto-rows-[132px] grid-cols-1 gap-x-4 gap-y-4 lg:grid-cols-2`,
+        children: l.map((e) => {
+          let l = offPeakStatusDescriptor(e),
+            u = OFF_PEAK_STATUS_ICONS[l.icon],
+            d = offPeakQueueBadge(e),
+            f = d ? OFF_PEAK_STATUS_ICONS[d.icon] : null,
+            p = t?.endsWith(e.offPeakTaskId) ?? !1,
+            m = e.status === `queued` || e.status === `paused` || e.status === `running`;
+          return (0, $.jsxs)(
+            `div`,
+            {
+              "data-testid": offpeakCardTestid,
+              role: `button`,
+              tabIndex: 0,
+              onClick: () => n(e),
+              onKeyDown: (t: any) => {
+                (t.key === `Enter` || t.key === ` `) && (t.preventDefault(), n(e));
+              },
+              className: cn(
+                `group relative flex h-full min-h-0 cursor-pointer gap-3 overflow-hidden rounded-[10px] border border-card-border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused`,
+                e.status === `completed` ? `opacity-60 hover:bg-hover` : `hover:bg-hover`,
+              ),
+              children: [
+                (0, $.jsxs)(`div`, {
+                  className: `flex h-full min-w-0 flex-1 flex-col gap-3`,
+                  children: [
+                    (0, $.jsx)(`span`, {
+                      className: `block truncate pr-14 text-ui-base font-medium leading-5 text-foreground`,
+                      children: e.title || e.prompt,
+                    }),
+                    (0, $.jsx)(`p`, {
+                      className: `line-clamp-2 h-9 text-ui-base font-normal leading-snug text-foreground-subtle`,
+                      children: e.prompt,
+                    }),
+                    (0, $.jsxs)(`div`, {
+                      className: `mt-auto flex h-6 min-w-0 items-center gap-[10px] text-ui-base leading-snug`,
+                      children: [
+                        (0, $.jsxs)(`div`, {
+                          className: cn(
+                            `flex w-fit min-w-0 items-center gap-0.5 font-normal`,
+                            l.className,
+                            (e.status === `queued` || e.status === `paused`) &&
+                              `rounded-[8px] bg-idle-task-surface py-0.5 pl-1 pr-2 text-idle-task`,
+                          ),
+                          children: [
+                            (0, $.jsx)(`span`, {
+                              className: `flex size-5 shrink-0 items-center justify-center`,
+                              children: (0, $.jsx)(u, {
+                                className: cn(
+                                  `size-4 shrink-0`,
+                                  e.status === `running` && `animate-spin`,
+                                ),
+                                strokeWidth: 1.33,
+                                "aria-hidden": `true`,
+                              }),
+                            }),
+                            (0, $.jsx)(`span`, {
+                              className: `truncate`,
+                              children: c.formatMessage({ id: l.labelId }, l.labelValues),
+                            }),
+                          ],
+                        }),
+                        d && f
+                          ? (0, $.jsxs)(`div`, {
+                              className: `flex w-fit min-w-0 items-center gap-0.5 rounded-[6px] bg-idle-task-surface py-0.5 pl-1 pr-2 text-idle-task opacity-40`,
+                              children: [
+                                (0, $.jsx)(`span`, {
+                                  className: `flex size-5 shrink-0 items-center justify-center`,
+                                  children: (0, $.jsx)(f, {
+                                    className: `size-4 shrink-0`,
+                                    strokeWidth: 1.33,
+                                    "aria-hidden": `true`,
+                                  }),
+                                }),
+                                (0, $.jsx)(`span`, {
+                                  className: `truncate`,
+                                  children: c.formatMessage({ id: d.labelId }, d.labelValues),
+                                }),
+                              ],
+                            })
+                          : null,
+                      ],
+                    }),
+                  ],
+                }),
+                (0, $.jsxs)(`div`, {
+                  className: `absolute right-3 top-3 flex items-center gap-1`,
+                  children: [
+                    e.sessionId
+                      ? (0, $.jsx)(`button`, {
+                          type: `button`,
+                          className: `flex size-6 items-center justify-center rounded-md opacity-100 transition-colors hover:bg-white/10 md:opacity-0 md:group-hover:opacity-100`,
+                          "aria-label": c.formatMessage({ id: `offPeak.goToSession` }),
+                          onClick: (t: any) => {
+                            (t.stopPropagation(), s(e));
+                          },
+                          children: (0, $.jsx)(OffPeakSessionIcon, {
+                            className: `size-4 text-foreground-subtle`,
+                            "aria-hidden": `true`,
+                          }),
+                        })
+                      : null,
+                    (0, $.jsxs)(DropdownMenuRoot, {
+                      children: [
+                        (0, $.jsx)(DropdownMenuTrigger, {
+                          asChild: !0,
+                          children: (0, $.jsx)(`button`, {
+                            type: `button`,
+                            className: `flex size-6 items-center justify-center rounded-md opacity-100 transition-colors hover:bg-white/10 md:opacity-0 md:group-hover:opacity-100 data-[state=open]:bg-white/10 data-[state=open]:opacity-100`,
+                            "data-testid": offpeakCardMenuTestid,
+                            "aria-label": c.formatMessage({ id: `automations.moreActions` }),
+                            disabled: p,
+                            onClick: (e: any) => e.stopPropagation(),
+                            children: (0, $.jsx)(OffPeakMenuIcon, {
+                              className: `size-4 text-foreground-subtle`,
+                              "aria-hidden": `true`,
+                            }),
+                          }),
+                        }),
+                        (0, $.jsxs)(DropdownMenuContent, {
+                          align: `end`,
+                          sideOffset: 4,
+                          className: `w-[190px]`,
+                          onClick: (e: any) => e.stopPropagation(),
+                          children: [
+                            e.status === `queued`
+                              ? (0, $.jsxs)(DropdownMenuItem, {
+                                  className: `gap-1`,
+                                  "data-testid": offpeakActionPauseTestid,
+                                  onSelect: () => r(e),
+                                  children: [
+                                    (0, $.jsx)(`span`, {
+                                      className: `flex size-5 items-center justify-center`,
+                                      children: (0, $.jsx)(OffPeakPauseActionIcon, {
+                                        className: `size-4`,
+                                        "aria-hidden": `true`,
+                                      }),
+                                    }),
+                                    (0, $.jsx)(`span`, {
+                                      className: `flex-1`,
+                                      children: c.formatMessage({ id: `offPeak.action.pause` }),
+                                    }),
+                                    (0, $.jsx)(OffPeakActionHint, {
+                                      title: c.formatMessage({ id: `offPeak.action.pauseHint` }),
+                                      children: (0, $.jsx)(`span`, {
+                                        className: `inline-flex`,
+                                        onClick: (e: any) => e.stopPropagation(),
+                                        children: (0, $.jsx)(OffPeakHintIcon, {
+                                          className: `size-3.5 shrink-0 text-foreground-subtle`,
+                                          "aria-hidden": `true`,
+                                        }),
+                                      }),
+                                    }),
+                                  ],
+                                })
+                              : null,
+                            e.status === `paused`
+                              ? (0, $.jsxs)(DropdownMenuItem, {
+                                  className: `gap-1`,
+                                  "data-testid": offpeakActionContinueTestid,
+                                  onSelect: () => i(e),
+                                  children: [
+                                    (0, $.jsx)(`span`, {
+                                      className: `flex size-5 items-center justify-center`,
+                                      children: (0, $.jsx)(OffPeakContinueActionIcon, {
+                                        className: `size-4`,
+                                        "aria-hidden": `true`,
+                                      }),
+                                    }),
+                                    (0, $.jsx)(`span`, {
+                                      className: `flex-1`,
+                                      children: c.formatMessage({ id: `offPeak.action.continue` }),
+                                    }),
+                                    (0, $.jsx)(OffPeakActionHint, {
+                                      title: c.formatMessage({ id: `offPeak.action.continueHint` }),
+                                      children: (0, $.jsx)(`span`, {
+                                        className: `inline-flex`,
+                                        onClick: (e: any) => e.stopPropagation(),
+                                        children: (0, $.jsx)(OffPeakHintIcon, {
+                                          className: `size-3.5 shrink-0 text-foreground-subtle`,
+                                          "aria-hidden": `true`,
+                                        }),
+                                      }),
+                                    }),
+                                  ],
+                                })
+                              : null,
+                            e.status === `running`
+                              ? (0, $.jsxs)(DropdownMenuItem, {
+                                  className: `gap-1`,
+                                  onSelect: () => a(e),
+                                  children: [
+                                    (0, $.jsx)(`span`, {
+                                      className: `flex size-5 items-center justify-center`,
+                                      children: (0, $.jsx)(OffPeakCancelActionIcon, {
+                                        className: `size-4 fill-current`,
+                                        "aria-hidden": `true`,
+                                      }),
+                                    }),
+                                    c.formatMessage({ id: `offPeak.action.cancel` }),
+                                  ],
+                                })
+                              : null,
+                            m ? (0, $.jsx)(DropdownMenuSeparator, {}) : null,
+                            (0, $.jsxs)(DropdownMenuItem, {
+                              className: `gap-1 !text-destructive data-[highlighted]:!bg-menu-hover data-[highlighted]:!text-destructive focus:!text-destructive [&_svg]:!text-destructive`,
+                              "data-testid": offpeakActionDeleteTestid,
+                              onSelect: () => o(e),
+                              children: [
+                                (0, $.jsx)(OffPeakDeleteIcon, {}),
+                                c.formatMessage({ id: `automations.delete` }),
+                              ],
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            },
+            e.offPeakTaskId,
+          );
+        }),
+      });
 }
 /* ── tombstone〔A1-R104〕：declare offPeakCreateFailureMessageId（原 Dit 91405）删除——改指 offPeakHelpers 逐字 canonical（modules/StoresDeep 转导出，import 在案）。 ── */
 /* ── tombstone〔A1-R103〕：declare 四连——automationLifecycleOf（原 qht）/automationHasFailedRun（原 Kht）/
@@ -1464,10 +1839,10 @@ export function AutomationsMain(props: AutomationsMainProps) {
                       tasks={offPeakTasks}
                       busyOperationId={offPeakOperationId}
                       onOpen={handleEditOffPeakTask}
-                      onPause={(task) => void pauseOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
-                      onContinue={(task) => void continueOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
-                      onCancel={(task) => void handleCancelOffPeakTask(task)}
-                      onDelete={(task) => void handleDeleteOffPeakTask(task)}
+                      onPause={(task: OffPeakTask) => void pauseOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
+                      onContinue={(task: OffPeakTask) => void continueOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
+                      onCancel={(task: OffPeakTask) => void handleCancelOffPeakTask(task)}
+                      onDelete={(task: OffPeakTask) => void handleDeleteOffPeakTask(task)}
                       onOpenSession={handleOpenRunSession}
                     />
                   </section>
