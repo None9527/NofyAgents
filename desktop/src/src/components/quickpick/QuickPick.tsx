@@ -128,17 +128,18 @@
  */
 
 import * as React from "react";
-import { shortcutLabel } from '../../lib/keyboardShortcuts'; // 〔A1-R124〕原 $i declare 改指——keyboardShortcuts chunk 全量逐字转录 canonical（styles 868 `n as $i`）
+import { shortcutLabel, shortcutMatches as isModKey, shiftShortcutMatches as isModShiftKey, altShortcutMatches as isModAltKey } from '../../lib/keyboardShortcuts'; // 〔A1-R129h〕+shortcutMatches/shiftShortcutMatches/altShortcutMatches as isModKey/isModShiftKey/isModAltKey（原 ta/Qi/Rre ≡ chunk u/d/f 导出，lib@128/133/138 逐字；墓碑见 @166 区） // 〔A1-R124〕原 $i declare 改指——keyboardShortcuts chunk 全量逐字转录 canonical（styles 868 `n as $i`）
 import { useHydratingSessions, workspaceScopesOfTabs as normalizeWorkspaceScopes, resolveTaskListShards, reusePreviousQueryResult as reusePreviousResult, subscribeWorkspaceTaskList, applyRuntimeStateFromTaskMeta } from '../shell/TaskListQueryCore'; // 〔A1-R129f〕+oje/sje/cje/aje/lje 五符改指（别名导入保调用名；A1-P3-B1 逐字转录；墓碑见深部助手区） // 〔A1-R129e〕原 JS@35552 declare 改指逐字真身叶（A1-P3-B1 转录；与 SidebarLeaves useSessionItems 孪生一符一家同批收敛）。环安全：TaskListQueryCore 值闭包（SkillStore/stores-core/searchResultsStore/modules/services/searchResultsHelpers/SessionStoreCore/TaskIndexCore）经 QuickPickDeep@147-149 同构边判例，顶层全函数，ESM 提升安全
 import { useOptimisticMembershipVersion as useTaskMembershipVersion, readTaskIndexCache as readTaskSnapshotCache, buildTaskListFromIndex as buildTaskListFromSnapshot, invalidateTaskIndexOnEvent as syncTaskStatusUnread, isOptimisticMembershipEvent, syncTaskStatusUnread as applyOptimisticMembershipEvent, hasOptimisticTaskMeta, isOptimisticCoveredEvent } from '../shell/TaskIndexCore'; // 〔A1-R129f〕dx/Ex/Ox/px/rx/ux/sOe/oOe 八符改指（A1-P3-B2 逐字转录；束名↔树名交叉裁定：树 syncTaskStatusUnread≡束 px 事件面、树 applyOptimisticMembershipEvent≡束 ux 去重面，签名面吻合实证；墓碑见深部助手区）。环安全：QuickPickDeep@147-148 shell 边同构判例，顶层全函数，ESM 提升安全
 import { Check as IconCheck, Search as IconSearch, List as IconList, Rocket as IconRocket, MessagesSquare as IconMessagesSquare, File as IconFile, Trash2 as IconTrash, ChevronDown as IconChevronDown, MessageSquare as IconMessageSquare, MessageCirclePlus as IconMessageCirclePlus, PanelLeftClose as IconPanelLeftClose, PanelLeftOpen as IconPanelLeftOpen, SquareTerminal as IconSquareTerminal, BookOpen as IconBookOpen, Users as IconUsers, FileDiff as IconFileDiff, FolderOpen as IconFolderOpen, LogIn as IconLogIn, LogOut as IconLogOut, Server as IconServer, Settings as IconSettings, WandSparkles as IconWandSparkles, Moon as IconMoon, Sun as IconSun, Globe as IconGlobe, MessageCircle as IconMessageCircle, ArrowUp as IconArrowUp, ArrowDown as IconArrowDown, X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 /* ── tombstone（A0-D-Misc）：原 `import { normalizeWorkspaceScopes } from './126518'` 退回 declare——
  *    chunk 号模块不存在（TS2307）；oje（35647）无正规重建属主，按重建基准恢复 declare 挂接。 ── */
 import { toast } from '../../modules/ImeComposition';
-import { pathBasename } from '../../modules/ModalsLeaves';
-import { getWorkspaceTaskStateAlias as getWorkspaceState, logger, mergeTaskMeta as mergeTaskMetaBase, resolveWorkspaceKey as workspaceKey, useTaskStore } from '../../modules/SkillStore'; // getWorkspaceState（原 fe，skillStore 的 U 导出 = 内部 _e；B5-11 规范名 getWorkspaceTaskStateAlias）；workspaceKey（原 Io/Lo，js 1368/1371）
-import { sessionActivityOf, taskEntityKey, compareTasks as compareTasksForList } from '../../modules/StoresDeep'; // +compareTasksForList（A1-R10 2e：原 Fo（1365）declare 改指 canonical = helpers compareTasks（= Lie(…, Fie) 逐字）；1588 调用点逐字不变）
-import { normalizeSearchDescriptor as buildQueryDescriptor, descriptorCacheKey as buildQueryKey } from '../../stores/searchResultsHelpers'; // A1-R10 项 2 收尾：原 zie（1385）/Bie（1396）declare 改指 canonical（R9 逐字转录在案；入参 workspaceScopes → 出参 workspaceKeys 真形 1386–1395）。本地 QueryDescriptor 面与 SearchDescriptor 结构全同（kind/sortBy/search/expanded/visibleLimit/workspaceKeys），1746/1756 调用点逐字不变。环安全：helpers 值闭包 = react + stores/taskStore，不达 components/quickpick
+import { pathBasename, resolveFileDisplayInfo as resolveFileInfo, fileIconFallbackSrc as resolveIconFallback } from '../../modules/ModalsLeaves'; // 〔A1-R129h〕+resolveFileDisplayInfo as resolveFileInfo（原 zc@5150，FilePathInline@96 逐字；FileDisplayInfo 面 ≡ 旧本地 FileInfo 五字段全同）+ fileIconFallbackSrc as resolveIconFallback（原 Lc@5175，FilePathInline@59 逐字；FileIconBlocks::resolveIconErrorFallback 为同体并行副本——孪生观察留批不并）。墓碑见 @305/@471 区
+import { create as createZustandStore, getWorkspaceTaskStateAlias as getWorkspaceState, logger, mergeTaskMeta as mergeTaskMetaBase, resolveWorkspaceKey as workspaceKey, useTaskStore } from '../../modules/SkillStore'; // 〔A1-R129h〕+create as createZustandStore（原 Ae：vendored zustand v5 create，stores/zustand@88 逐字；CodeViewer@99 同判例；墓碑见 @278 区） // getWorkspaceState（原 fe，skillStore 的 U 导出 = 内部 _e；B5-11 规范名 getWorkspaceTaskStateAlias）；workspaceKey（原 Io/Lo，js 1368/1371）
+import { sessionActivityOf, taskEntityKey, compareTasks as compareTasksForList } from '../../modules/StoresDeep';
+import { resolveRepoRelativePath as relativePathFrom } from '../../modules/GitReview'; // 〔A1-R129h〕原 yg@23765 declare 改指 canonical = components/code-viewer/GitReview@718 resolveRepoRelativePath（「原 yg」逐字转录在案；shim@226 再导出；FileRewindDialogDeep@157 同判例）。环安全：本→modules/GitReview→GitReview@220 反入 modules/QuickPick 成环——双侧跨边消费全为运行期（GitReview Command 族在 render 体、本符在组件体 @2248/2291），ESM 提升安全（QuickPickDeep@147-149 先例） // +compareTasksForList（A1-R10 2e：原 Fo（1365）declare 改指 canonical = helpers compareTasks（= Lie(…, Fie) 逐字）；1588 调用点逐字不变）
+import { normalizeSearchDescriptor as buildQueryDescriptor, descriptorCacheKey as buildQueryKey, mergeIncomingTaskKeys as reconcileIncomingTaskKeys, mergeTaskMetaEntry as mergeIncomingTaskMeta, isQueryResultEquivalent as isQueryResultUnchanged, freezeQueryResult as finalizeQueryResult, sortTaskKeysByDescriptor as sortTaskKeys, descriptorContainsTask as descriptorMatchesTask, mergeMetaPreservingActivity as mergeWithSessionActivity } from '../../stores/searchResultsHelpers'; // 〔A1-R129h〕+store 助手 7 符改指（原 Xie/Jie/Yie/Uie/Bo/Kie/Po ≡ mergeIncomingTaskKeys@450/mergeTaskMetaEntry@387/isQueryResultEquivalent@428/freezeQueryResult@301/sortTaskKeysByDescriptor@355/descriptorContainsTask@345/mergeMetaPreservingActivity@164，R9/R10 逐字转录在案；墓碑见 @1222 区） // A1-R10 项 2 收尾：原 zie（1385）/Bie（1396）declare 改指 canonical（R9 逐字转录在案；入参 workspaceScopes → 出参 workspaceKeys 真形 1386–1395）。本地 QueryDescriptor 面与 SearchDescriptor 结构全同（kind/sortBy/search/expanded/visibleLimit/workspaceKeys），1746/1756 调用点逐字不变。环安全：helpers 值闭包 = react + stores/taskStore，不达 components/quickpick
 import { useBaseServices, useServices } from '../../modules/services';
 import { useSessionRegistryStore } from '../../modules/stores-core';
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z，utils-CEEH0K_K.js）
@@ -163,13 +164,12 @@ interface IntlShape {
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
-/** 键盘匹配器（keyboardShortcuts-BGHopxr9.js：u/d/f 导出） */
-/** 原 ta：Ctrl/Cmd + 键（无 Shift/Alt） */
-declare function isModKey(e: React.KeyboardEvent | KeyboardEvent, key: string): boolean;
-/** 原 Qi：Ctrl/Cmd + Shift + 键（无 Alt） */
-declare function isModShiftKey(e: React.KeyboardEvent | KeyboardEvent, key: string): boolean;
-/** 原 Rre：Ctrl/Cmd + Alt + 键（无 Shift） */
-declare function isModAltKey(e: React.KeyboardEvent | KeyboardEvent, key: string): boolean;
+/* ── tombstone（A1-R129h）：declare function isModKey/isModShiftKey/isModAltKey（原 ta/Qi/Rre，
+ *    keyboardShortcuts-BGHopxr9.js u/d/f 导出）删除 → 改指 lib/keyboardShortcuts::
+ *    shortcutMatches@128/shiftShortcutMatches@133/altShortcutMatches@138（chunk 全量逐字转录，
+ *    R124 shortcutLabel 同批判例；别名导入保调用名）。入参面：原契据 React.KeyboardEvent |
+ *    KeyboardEvent 结构涵 ShortcutMatchEvent 全必具面（key/shiftKey/altKey/ctrlKey/metaKey），
+ *    调用点 2914–2957 逐字不变。 ── */
 
 /* ---------------------------- 服务 / 任务模型 ---------------------------- */
 
@@ -273,15 +273,12 @@ interface WorkspaceTab {
 
 /* ------------------------------ zustand 泛型 ------------------------------ */
 
-/** zustand store hook（原 Ae()(...)；支持选择器调用与 getState）。
- *  set 的 updater 允许返回部分状态（zustand 语义：浅合并）。 */
-interface ZustandStore<S> {
-  (): S;
-  <T>(selector: (state: S) => T): T;
-  getState(): S;
-  setState(partial: Partial<S> | ((state: S) => Partial<S>)): void;
-}
-declare function createZustandStore<S>(init: (set: (updater: (state: S) => S | Partial<S>) => void) => S): ZustandStore<S>;
+/* ── tombstone（A1-R129h）：declare function createZustandStore（原 Ae）+ 本地 ZustandStore<S>
+ *    型删除 → 改指 modules/SkillStore::create（原 Ae = vendored zustand v5 react create，
+ *    stores/zustand@88 逐字：SetStateFn 面 ⊇ 原契据 set updater 面——Partial | (state)=>Partial|T；
+ *    BoundStoreHook 面 ⊇ 原 ZustandStore 契据：选择器钩子 + getState/setState/subscribe）。
+ *    ZustandStore 型死删（唯此 declare 用，零余引用实证）；消费点 1269 useSearchResultsStore
+ *    创建式逐字不变，型别升为真身 BoundStoreHook（CodeViewer@99 同判例）。 ── */
 
 /** useTaskStore（skillStore chunk 的 h 导出）——A0-D-Misc：TaskStoreState/getWorkspaceState 已接线 SkillStore（getWorkspaceTaskStateAlias），本地形状声明移除 */
 
@@ -301,19 +298,19 @@ interface SessionRegistryState {
 
 /* ── tombstone（A0-S3c）：Dialog 族 declare 删除 → import from '../components/ui/dialog'（bundle zb/Hb/Ub/Gb/Kb，styles 31943–32040）；调用面逐字不变。 ── */
 
-/** 文件图标解析（原 zc，js 5150；图标资产映射在 4946–6061 文件工具块） */
-interface FileInfo {
-  fileIcon: string;
-  fileIconSrc: string;
-  fileName: string;
-  filePath: string | null;
-  normalizedPath: string;
-}
-declare function resolveFileInfo(path: string, options?: { basePath?: string; kind?: "directory" | "file" }): FileInfo;
+/* ── tombstone（A1-R129h）：declare function resolveFileInfo（原 zc，js 5150）+ 本地 FileInfo 型
+ *    删除 → 改指 modules/ModalsLeaves::resolveFileDisplayInfo（canonical = components/modals/
+ *    FilePathInline@96 逐字；FileDisplayInfo 面 ≡ 旧 FileInfo 五字段全同：fileIcon/fileIconSrc/
+ *    fileName/filePath: string|null/normalizedPath；FileDisplayOptions 面 ≡ 原 options 契据）。
+ *    FileInfo 型死删（唯此 declare 用，零余引用实证）；调用点 2292/2409 逐字不变。 ── */
 
 /** 路径助手（原 Go js 1928 / zhe 23702 / yg 23765） */
 /* ── tombstone〔A1-R45〕：declare stripTrailingSlash（原 Go js 1928 族）删除——本文件零消费（grep 实测仅本 declare 行），全树独见。纯删碑（上方 JSDoc 为活面同胞 relativePathFrom 保留），证据见 A1-R45.report.md §二。 ── */
-declare function relativePathFrom(rootPath: string, absPath: string): string;
+/* ── tombstone（A1-R129h）：declare function relativePathFrom（原 yg，js 23765——上方 JSDoc
+ *    束名链「Go 1928 / zhe 23702 / yg 23765」为依赖注：Go≡baseName / zhe≡stripTrailingSlash
+ *    皆 yg 体内所使）删除 → 改指 modules/GitReview::resolveRepoRelativePath（canonical =
+ *    components/code-viewer/GitReview@718「原 yg」逐字：尾分隔符剥离/同基→basename/前缀截断/
+ *    大小写不敏感支/不匹配原样返回 五段全对应）。调用点 2248/2291 逐字不变；导入面见文件头。 ── */
 
 /** 实体键（原 Io/Lo，js 1368/1371）——A0-D-Misc：已接线 SkillStore.resolveWorkspaceKey */
 
@@ -468,7 +465,11 @@ export function FileIconImg({ src, size = 16, className }: { src: string; size?:
     />
   );
 }
-declare function resolveIconFallback(src: string): string | null; // 原 Lc
+/* ── tombstone（A1-R129h）：declare function resolveIconFallback（原 Lc，5175——原注 5126 偏移
+ *    校正）删除 → 改指 modules/ModalsLeaves::fileIconFallbackSrc（canonical = components/modals/
+ *    FilePathInline@59「原 Lc」逐字：文件夹 data-uri 自身→null / document 路径或尾→文件夹 uri /
+ *    其余→document 路径，三段全对应）。一符一家：FileIconBlocks::resolveIconErrorFallback
+ *    为同体并行副本（A1-P1-B15 收割期所立），留批观察不并。调用点 465 逐字不变。 ── */
 
 /* ============================================================================
  * 3. 命令注册表（原 D_e/O_e，js 25393–25585 / jsx 22073–22262）
@@ -1220,43 +1221,22 @@ export interface SearchResultsState {
 }
 
 /* —— store 内部助手（本 chunk；声明为 stub，行号见注释） —— */
-/** 原 Xie（js 1532）：并入新结果时保留 fetchedAt 之后更新的旧键 */
-declare function reconcileIncomingTaskKeys(args: {
-  incomingTaskKeys: string[];
-  previousResult: QueryResult | null | undefined;
-  taskMetaByEntityKey: Record<string, TaskMeta>;
-  descriptor: QueryDescriptor;
-}): { taskKeys: string[]; preservedCount: number };
-/** 原 Jie（js 1479）：新旧任务元数据合并（标题/摘要/模型/未读覆盖/片段保留） */
-declare function mergeIncomingTaskMeta(args: {
-  item: TaskMeta;
-  existingItem: TaskMeta | undefined;
-  descriptor: QueryDescriptor;
-  hasUnreadOverlay: boolean;
-  unreadAtOverlay: number | null | undefined;
-}): TaskMeta;
-/** 原 Yie（js 1510）：结果无变化判定（避免无谓 setState） */
-declare function isQueryResultUnchanged(args: {
-  previousResult: QueryResult | null | undefined;
-  taskKeys: string[];
-  unreadTaskKeys?: string[];
-  searchSnippetsByTaskKey?: Record<string, string>;
-  searchSnippetListsByTaskKey?: Record<string, string[]>;
-  total: number;
-  hasMore: boolean;
-  partial: boolean;
-  loadingShardKeys: string[];
-  failedShardKeys: string[];
-}): boolean;
-/** 原 Uie（js 1414）：结果落库整形（fetchedAt/stale=false 等） */
-declare function finalizeQueryResult(result: Omit<QueryResult, "fetchedAt" | "stale" | "partial" | "loadingShardKeys" | "failedShardKeys"> & Partial<QueryResult>): QueryResult;
-/** 原 Bo（js 1453）：按描述符排序任务键 */
-declare function sortTaskKeys(args: { taskKeys: string[]; taskMetaByEntityKey: Record<string, TaskMeta>; descriptor: QueryDescriptor }): string[];
-/** 原 Kie（js 1449）：任务是否属于描述符（工作区+成员+搜索词） */
-declare function descriptorMatchesTask(descriptor: QueryDescriptor, task: TaskMeta, membership: { pinned: boolean; archived: boolean }): boolean;
-/** 原 Mo（js 1311）：读取 __zcodeSessionActivity */
-/** 原 Po（js 1324）：以会话活动为准合并元数据 */
-declare function mergeWithSessionActivity(base: TaskMeta, patch: TaskMeta): TaskMeta;
+/* ── tombstone（A1-R129h）：store 内部助手 7 declare 删除 → 全改指 stores/searchResultsHelpers
+ *    canonical（R9/R10 逐字转录在案；别名导入保调用名；导入面见文件头〔A1-R129h〕行）：
+ *    reconcileIncomingTaskKeys（原 Xie 1532）→ mergeIncomingTaskKeys@450（入参面宽化
+ *      taskMetaByEntityKey: Record<string, TaskMeta|undefined> ⊇ 原面）
+ *    mergeIncomingTaskMeta（原 Jie 1479）→ mergeTaskMetaEntry@387（item 面 TaskMeta & Record
+ *      ⊇ 本地 TaskMeta——索引签名在案；返型升真身面）
+ *    isQueryResultUnchanged（原 Yie 1510）→ isQueryResultEquivalent@428（{previousResult} &
+ *      Omit<QueryResult, fetchedAt|invalidationVersion|stale|descriptor> ≡ 原契据九字段）
+ *    finalizeQueryResult（原 Uie 1414）→ freezeQueryResult@301（QueryResultInput 面 ≡ 原
+ *      Omit & Partial 展开）
+ *    sortTaskKeys（原 Bo 1453）→ sortTaskKeysByDescriptor@355
+ *    descriptorMatchesTask（原 Kie 1449）→ descriptorContainsTask@345（membership 面宽化
+ *      {pinned?, archived?} ⊇ 原 {pinned, archived}）
+ *    mergeWithSessionActivity（原 Po 1324）→ mergeMetaPreservingActivity@164（R129g patch 面
+ *      裁定在案；本地 QueryDescriptor ≡ SearchDescriptor 结构全同，A1-R10 既判）
+ *    调用点 1281/1289/1320/1336/1356/1364/1399/1413/1428/1436/1443/1454/1464/1465/1472 逐字不变。 ── */
 
 /** A1-R8 普查裁决 / A1-R9 收敛完成：bundle 唯一 Vo（@1553）。树内两并行实例：
  * 本文件 1254 区（live：1745 行 useSearchResultsStore(selectQueryResult(queryKey))
