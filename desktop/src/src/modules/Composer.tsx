@@ -484,7 +484,7 @@
 import * as React from "react";
 import { DropdownMenu as DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '../components/ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { HoverCardTooltip, HoverCardTooltipContent, HoverCardTooltipTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import；〔A1-R22〕HoverCardContent/HoverCardTrigger 消费面（A0 版 CodeCommentsChip）随 TH 逐字化删除，收敛为 CN/wN/TN=HoverCardTooltip 三面（54832–54836）：[B17] chip 行消费
-import { CodeXml as CodeCommentIcon, Earth as WebElementIcon, MessageSquareText as CommentGlyphIcon, MousePointer2 as WebElementPointerIcon, Quote as SelectionGlyphIcon, X as CloseIcon, PlusIcon, SlashIcon, AtSignIcon, PaperclipIcon, ArrowUpIcon, HandIcon, Trash2 as TrashIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A0-S4-4b〕InfoIcon/LoaderIcon/ShieldCheckIcon/SparkleIcon/ChevronDownIcon/CheckIcon/LockIcon/BrainIcon/ShieldAlertIcon/TerminalIcon 随迁出族移入 components/composer/；〔A1-R22〕+CodeXml/Earth/MessageSquareText/MousePointer2/Quote（原 Cye 26969 / wye 26983 / _v 27447 / o=imeComposition C 导出 Wt 11787 / fbe 27690）：[B17] chip 行消费
+import { CodeXml as CodeCommentIcon, Earth as WebElementIcon, MessageSquareText as CommentGlyphIcon, MousePointer2 as WebElementPointerIcon, Quote as SelectionGlyphIcon, X as CloseIcon, PlusIcon, SlashIcon, AtSignIcon, PaperclipIcon, ArrowUpIcon, HandIcon, Trash2 as TrashIcon, WandSparkles as SkillIcon, Palette as WhiteboardIcon, MessagesSquare as SessionIcon, Puzzle as PluginFallbackIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A0-S4-4b〕InfoIcon/LoaderIcon/ShieldCheckIcon/SparkleIcon/ChevronDownIcon/CheckIcon/LockIcon/BrainIcon/ShieldAlertIcon/TerminalIcon 随迁出族移入 components/composer/；〔A1-R22〕+CodeXml/Earth/MessageSquareText/MousePointer2/Quote（原 Cye 26969 / wye 26983 / _v 27447 / o=imeComposition C 导出 Wt 11787 / fbe 27690）：[B17] chip 行消费；〔A1-R143〕+WandSparkles/Palette/MessagesSquare/Puzzle as SkillIcon/WhiteboardIcon/SessionIcon/PluginFallbackIcon（原 Yv/wv/yv/jv = Sa('wand-sparkles'/'palette'/'messages-square'/'puzzle')，js 28014/27570/27468/27667，Sa ≡ button chunk createLucideIcon；四字形 path-data 与 lucide-react@1.35.0 dist/cjs 字节同一 4/4 零视觉漂移；A0-S3b §4.1 四名「保留（无锚点）」判定经 GT 锚定撤销；dossier-E §lucide 映射表）
 import * as ReactDOM from "react-dom";
 import * as $ from "react/jsx-runtime"; // A1-R22：[B14]/[B17] chip 行编译形 JSX 消费面（原 $，jsx-runtime-B5yMD3-t.js）
 import {
@@ -528,10 +528,12 @@ import { SuggestionPanel, type PanelSection } from '../components/composer/Sugge
 import { buildFileTreeDragText as fileMentionMarkdown, pluginMentionMarkdown, skillMentionMarkdown, subagentMentionMarkdown, sessionMentionMarkdown, hasWorkspaceFilePayload, readWorkspaceFilePayload, isWorkspaceFileDragEvent, buildWorkspaceFileMentionPayload, WORKSPACE_FILE_DRAG_STATE_EVENT as WORKSPACE_FILE_DRAG_EVENT_TYPE, type WorkspaceFileDragPayload } from '../components/composer/FileMentionDragHelpers'; // A1-R11：wj（52124）/Dj（52138）转录改指（纯函数叶子，环安全同 SuggestionPanel 先例）；调用点 2779/2998 逐字不变。wj 双归属：FileTreePanel 经名 buildFileTreeDragText、本文件经名 fileMentionMarkdown，bundle 唯一真身。A1-R12：§17/§18 declares 全量改指（Tj/Ej/KHe 52128/52131/52134、Mj/Nj/tUe/aUe 52248/52251/52254/52271、jj 52212），调用点 1391/1591/1856/1866/3096/4653/4657/4663/4671/4986/5003/4605 逐字不变
 import { extractSelectionsFromText as extractConversationSelections, appendSelectionBlockToText as appendConversationSelections, listSelectionReferences as readSessionScopedReferences, selectionLoadErrorOf as readSessionScopedLimitReason, setSelectionReferences as writeSessionScopedReferences, clearSelectionLoadError as clearSessionScopedLimitReason, isSelectionAddEvent as isSessionScopedReferencesChangedEvent, selectionAddEventName as sessionScopedReferencesChangedEventType } from '../components/conversation/ConversationSelectionCore'; // 〔A1-R138〕+7 别名（原 Moe/Cs/ws/Doe/Ooe/Foe/Ioe，F03 域 2761/2732/2738/2734/2743/2816/2819；消费面 7170/7621–7657 逐字不变） // 〔A1-R129z〕原 Noe（styles 74669 / F03 域 2775）declare 改指（canonical = ConversationSelectionCore A1-P1-B4 逐字真身；parseComposerContextContent 消费面）。环安全：纯 TS 叶，仅 SrcSharedB 边
 import { resolveFileIconMeta as resolveFileIcon, FileIconWithName as FileRow, FOLDER_ICON_SRC as DIRECTORY_ICON_SRC, DEFAULT_FILE_ICON_SRC as DOCUMENT_ICON_SRC, FALLBACK_DOCUMENT_ICON_DATA_URL as DOCUMENT_FALLBACK_ICON_SRC } from '../components/conversation/FileIconBlocks'; // 〔A1-R139〕文件图标族五别名（原 zc/Bc/Fc/Ic/Mc，5198/5205/5173/5174/5159；canonical = A1-P1-B15 逐字真身；消费面 2223/2225/2234/3488 逐字不变）。环安全：叶仅 React+MarkdownIntegration 边，无反向
-import { extractPptxElementReferences as extractPptxElementReferencesFromContent } from '../components/ime/ImeComposition'; // 〔A1-R129z〕原 pptx 抽取 declare 改指——束真：styles KXe（2122719）之 `w` = imeComposition 块 m 导出（块首导入 `m as w` ← ./imeComposition-DEYFkwWm.js）≡ 本名原码 ur；canonical = ImeComposition@1164 逐字。一符一家归 imeComposition 域。环安全：ImeComposition 对本文件仅 type-only 回边（A1-R49 判例，编译期擦除）
+import { extractPptxElementReferences as extractPptxElementReferencesFromContent, appendPptxElementReferences as buildPptxElementsMarkdown, type PptxElementReference } from '../components/ime/ImeComposition'; // 〔A1-R129z〕原 pptx 抽取 declare 改指——束真：styles KXe（2122719）之 `w` = imeComposition 块 m 导出（块首导入 `m as w` ← ./imeComposition-DEYFkwWm.js）≡ 本名原码 ur；canonical = ImeComposition@1164 逐字。一符一家归 imeComposition 域。环安全：ImeComposition 对本文件仅 type-only 回边（A1-R49 判例，编译期擦除）。〔A1-R143〕+appendPptxElementReferences as buildPptxElementsMarkdown + type PptxElementReference（束真 GXe@68833 首符 `_` = styles 头块 `c as _` ← imeComposition `lr as c` ≡ appendPptxElementReferences@1149，头注自证原码 lr；Kn/qn ≡ PPTX_ELEMENT_REFERENCES_HEADING@907/DISAMBIGUATION_NOTE@910；7162 消费型缝铸同批）
 import { useWorkspaceTabStore as useWorkspaceTabsSelector, isWorkspaceKindTab as isWorkspaceTab, resolveTabServicesBinding as resolveTabServices, type WorkspaceTab, type SessionRegistrySnapshotState } from './WorkspaceTabsDeep'; // 〔A1-R142〕C2 三别名（原 pc/oc/vc，R1 canonical 属主；remoteServices 头导入 useTabStoreSelector/isWorkspaceTab 同体先例）+ 二型（collectSessionListEndpoints 面校准）。消费面 919/1183/3222/3767 + 929/1193/3223/3770 + 3196 逐字不变。环安全：WTD 运行闭包（zustand/e2eStoreBridge/uuid/SkillStore/sessionRegistryStore/remoteServices）不达本文件
 import { hasRemoteScope as remoteScopeKey, useResolvedRemoteSessionId as resolvePreferredRemoteSessionId, useResolvedWorkspaceServices as useResolvedServices } from '../services/remoteServices'; // 〔A1-R142〕C2 三别名（原 Tc/bc/Dc ≡ 束 pqe/WB/HJe 消费 bg/bc/Dc 同体；hasRemoteScope 补 export 同批；Dc≡useResolvedWorkspaceServices 既判 R136）。消费面 939/1203 + 941/1205 + 2956/3231 逐字不变。环安全：本文件 → ./services → remoteServices 边既成（useBaseServices 转导出），直连无新环类
 import { useSessionRegistryStore as useSessionRegistry, type BaseServices } from '../stores/sessionRegistryStore'; // 〔A1-R142〕C2 一别名（原 Zs；WTD/remoteServices/stores-core 导入先例）+ BaseServices 型（面校准）。消费面 3224–3226 逐字不变。环安全：该 store 运行闭包仅 ./zustand（skillContextStore 边 type-only 编译期擦除，无 Composer 运行环）
+import { reportInputLag as reportLexicalInputTelemetry } from './StoresDeep'; // 〔A1-R143〕E5 别名（原 rFe，styles 1323525 / js 41771 ≡ StoresDeep reportInputLag@2146 语句级逐字同；同族 nFe/tFe/aT ≡ shouldReportInputLag@2141/INPUT_LAG_EVENT@2138/reportUiPerfEvent@1902 全对应；消费面 4180–4186 逐字不变，canonical taskId 面宽化 ? 同批）。环安全：Composer⇄StoresDeep 既成 SCC（→services@522→StoresDeep；StoresDeep→stores-workspace@146→Composer），直连边不增环类；顶层函数声明提升 TDZ 安全
+import { useHydratingSessions as useSessionListsHydrator } from '../components/shell/TaskListQueryCore'; // 〔A1-R143〕E7 别名（原 JS，styles 1121235 / js 35552 全束唯一 ≡ TaskListQueryCore useHydratingSessions@77，A1-P3-B1 逐字转录 ROUNDTRIP EXACT；同簇十二符行号全命中该叶头注——QAe≡sessionIndex WorkspaceSubscriptionSet@551、BS/VS/HS@496/502/539、qS/GS/KS/WS/eje≡SessionStoreCore@47/33/39/30/50、jOe≡TaskIndexCore@484、Fo≡compareTasks@219、YS/tje/nje/rje@150/153/156/174——依赖零缺失零转录；一符一家第三消费方，QuickPick/SidebarLeaves R129e 同判）。束真返回三员 {items, sourceRevisionByScopeKey, hydratingEndpointKeys}，declare 二员欠近似随删销账（消费 3219 只解构二员 = 子集，逐字不变，不得补本地型别）。环安全：二者既在同一运行期 SCC（ModelSelector→Settings→Sidebar→shell/Sidebar:235 与 services→StoresDeep→stores-workspace:45 双路既成），新直连边不增环类
 
 /* ============================================================================
  * 0. 外部依赖类型声明（未重建依赖以 declare 挂接；来源见上方清单）
@@ -673,10 +675,12 @@ interface PromptAttachmentTransferService {
 /* ── tombstone〔A1-R142〕：declare useResolvedServices（原 Dc）删除 → 改指 services/remoteServices useResolvedWorkspaceServices（canonical 真身 4907–4944；R136 既判 Dc≡useResolvedWorkspaceServices，首参面宽化 string|null|undefined 同批承续）。消费面实证（2 处）：2956/3231 逐字不变；返回面超集相容（connectionKind 增项不消费）；services 面 ResolvedBaseServices 消费铸 ×4（2966/2991/2994/3243 型缝，二段收敛判例）。 ── */
 /* ── tombstone（A0-D）：workspaceKey declare 删除 → SkillStore b 导出 resolveWorkspaceKey（alias workspaceKey）。 ── */
 /* ── tombstone〔A1-R142〕：declare useSessionRegistry（原 Zs）删除 → 改指 stores/sessionRegistryStore useSessionRegistryStore（canonical 真身）。消费面实证（3 处）：3224–3226 逐字不变；选择器 (state: any)→T 上下文型化（SessionRegistryState 三索引字段全合）。 ── */
-declare function useSessionListsHydrator(endpoints: SessionListEndpoint[]): {
-  items: SessionListItem[];
-  hydratingEndpointKeys: string[];
-};
+/* ── tombstone〔A1-R143〕：declare useSessionListsHydrator（原 JS，styles 1121235 / js 35552）删除 →
+ *    改指 components/shell/TaskListQueryCore useHydratingSessions（A1-P3-B1 逐字真身叶，export@649；
+ *    一符一家第三消费方，QuickPick/SidebarLeaves R129e 同判；依赖十二符全在树零转录，dossier-E §E7 清单）。
+ *    束真返回三员 {items, sourceRevisionByScopeKey, hydratingEndpointKeys}——declare 二员欠近似随删销账；
+ *    消费面 3219/3246/3253 逐字不变（只解构二员 = 真面子集；束真消费 HJe 同只取二员，js 65564 区实证）。
+ *    canonical 参面 (e: any)（P1 型缝宽化在案）⊃ declare 面 SessionListEndpoint[]，实参直入零铸。 ── */
 interface SessionListEndpoint {
   workspacePath: string | undefined; // 〔A1-R137〕面级联
   workspaceIdentity?: string;
@@ -752,10 +756,13 @@ interface SessionListItem {
 
 /** 14. 图标（本 chunk 图标块 = lucide vendored 登记；语义按消费点命名） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（14）：PlusIcon/SlashIcon/AtSignIcon/PaperclipIcon/LoaderIcon/ArrowUpIcon/HandIcon/ShieldCheckIcon/SparkleIcon/ChevronDownIcon/CheckIcon/LockIcon/BrainIcon/ShieldAlertIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const SkillIcon: React.ComponentType<{ className?: string }>;
-declare const WhiteboardIcon: React.ComponentType<{ className?: string }>;
-declare const SessionIcon: React.ComponentType<{ className?: string }>;
-declare const PluginFallbackIcon: React.ComponentType<{ className?: string }>;
+/* ── tombstone〔A1-R143〕：vendored lucide 图标 declare 删除（4）：SkillIcon/WhiteboardIcon/SessionIcon/
+ *    PluginFallbackIcon（原 Yv/wv/yv/jv = Sa('wand-sparkles'/'palette'/'messages-square'/'puzzle')，
+ *    js 28014/27570/27468/27667；Sa ≡ button-laUijeDG.js `_` 导出 c = createLucideIcon）→ npm
+ *    lucide-react@1.35.0 真实 import（文件头 487 导入块）；四字形 path-data 与 1.35.0 dist/cjs
+ *    字节同一（零视觉漂移）。消费面实证（4 处）：3494/3500/3511/2773 逐字不变。
+ *    A0-S3b §4.1 四名「保留（无 kebab 锚点）」判定经本批 GT 锚定撤销。
+ *    同符他域旁证：SidePanel@502 `palette ≡ wv 白板` 同行号命中（其空 iconNode 占位缺陷另批，dossier-E §风险3）。 ── */
 /* ── tombstone（A1-R22）：CodeCommentIcon declare 删除（原 Cye，Sa('code-xml') vendored，js 26969）→ npm lucide-react CodeXml as CodeCommentIcon 真实 import（文件头导入块）；消费面 [B14] CodeCommentsChip 本批逐字化，调用面逐字不变。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：TrashIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /* ── tombstone（A1-R22）：CommentGlyphIcon declare 删除（原 _v，Sa('message-square-text') vendored，js 27447）→ npm lucide-react MessageSquareText as CommentGlyphIcon 真实 import（文件头导入块）；消费面 [B14] CodeCommentsChip 本批逐字化，调用面逐字不变。 ── */
@@ -849,19 +856,23 @@ interface SessionScopedReference {
 }
 
 /** 20. 输入遥测 / 路径判定 / pptx 域 */
-declare function reportLexicalInputTelemetry(payload: {
-  lagMs: number;
-  textLength: number;
-  isProgrammatic: boolean;
-  isComposing: boolean;
-  taskId?: string;
-}): void;
+/* ── tombstone〔A1-R143〕：declare reportLexicalInputTelemetry（原 rFe，styles 1323525 / js 41771）删除 →
+ *    改指 modules/StoresDeep reportInputLag@2146 别名（语句级逐字同：shouldReportInputLag 守卫 +
+ *    Math.round + reportUiPerfEvent(INPUT_LAG_EVENT, UI_PERF_GROUP, {lag_ms, text_length, task_id})；
+ *    canonical 此前零消费方，本件为首个）。型缝一：canonical taskId: string 必填 vs 消费实参
+ *    `taskId ?? void 0`（束真直传无必填面）→ canonical 面宽化 taskId?: string 同批（同族@559 先例，
+ *    零回归面），消费面 4180–4186 逐字不变不加铸。束点：消费 2050198（gYe@66411 体内）。 ── */
 /* ── tombstone〔A1-R141〕：declare function isPathWithinWorkspace 删除——伪面销账：全树零消费（C7 遥测/路径/pptx 簇）；路径包含判定 declare 面，后续如需按束真转录取回。 ── */
 /** pptx 域（imeComposition 导出族 + 本 chunk）：事件判定/匹配/去重/键/markdown 装配 */
 /* ── tombstone〔A1-R141〕：declare function isPptxElementAddDetail 删除——伪面销账：全树零消费
  *    （§0「留守」名单注 7618–7621 列此名系历史快照，今实测仅本声明位）；pptx detail 判定面，
- *    后续如需按束真转录取回（buildPptxElementsMarkdown 同族，彼件仍留守待实体化）。 ── */
-declare function buildPptxElementsMarkdown(content: string, elements: PptxElementAddDetail[]): string;
+ *    后续如需按束真转录取回（buildPptxElementsMarkdown 同族，彼件 R143 已改指 ImeComposition appendPptxElementReferences）。 ── */
+/* ── tombstone〔A1-R143〕：declare buildPptxElementsMarkdown（原 `_` 跨 chunk 符）删除 → 改指
+ *    components/ime/ImeComposition appendPptxElementReferences@1149 别名（束真 GXe@2122571/js 68833
+ *    首符 `_` = styles 头块 10973–11320 `c as _` ← imeComposition chunk `lr as c`，真身 lr@382870/js 12512
+ *    落 ImeComposition §7 头注「PPTX 元素引用族 12406–12536」区间；Kn/qn ≡ @907/@910 常量逐字）。
+ *    型缝一：参面 PptxElementReference[]（全员必填）vs 实参 PptxElementAddDetail[]（开放索引签名）
+ *    双向不足 → 7162 消费行 `as unknown as` 二级铸（7182 R129z 型缝三同式判例）。消费面 7162 余逐字不变。 ── */
 /* ── tombstone〔A1-R129z〕：declare function extractPptxElementReferencesFromContent
  *    删除 → 文件头 `extractPptxElementReferences as extractPptxElementReferencesFromContent`
  *    真实 import。束真取证：styles KXe（2122719）首段 `w(e)` 之 `w` = 块首导入
@@ -7161,7 +7172,7 @@ function countComposerContexts(contexts: ComposerContexts): number {
 function buildComposerContextMarkdown(content: string, contexts: ComposerContexts): string {
   return buildPptxElementsMarkdown(
     appendWebElementsToContent(appendCodeCommentsToContent(appendConversationSelections(content, contexts.conversationSelections), contexts.codeComments), contexts.webElements),
-    contexts.pptxElements,
+    contexts.pptxElements as unknown as PptxElementReference[], // 〔型缝 A1-R143〕PptxElementAddDetail[]（开放索引签名面）→ PptxElementReference[]（全员必填面）二段收敛——7182 R129z 型缝三同式判例（运行期同物，编译期擦除）
   );
 }
 

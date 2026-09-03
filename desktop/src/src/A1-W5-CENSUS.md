@@ -44,7 +44,9 @@
 
 ## 三、modules/Composer.tsx（42）
 
-30 别名改指 + 2 实体化 + 6 伪面 + 4 vendor。
+36 别名改指（含 4 vendor）+ 6 伪面 + 0 实体化。〔A1-R143 实证修正：原记「2 实体化」（688/873）
+束取证推翻——688 真身 = TaskListQueryCore useHydratingSessions（A1-P3-B1 逐字叶）、873 真身 =
+ImeComposition appendPptxElementReferences，皆已在树，别名改指零转录；dossier-E §0。〕
 
 | 簇 | 行域 | 件数 | 类 | 目标 |
 |---|---|---|---|---|
@@ -68,6 +70,6 @@
 
 台账预期：146 件全数退役皆减台账（别名改指/伪面销账/实体化均删 declare 语句——实体化
 「不减台账」系本普查初稿口径误，R129n 判例实证 868→862 含实体化 2 件）。〔A1-R142 修正〕
-余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)=35 件，三域现存 111
-（Composer 7 + UsageDeep 56 + Onboarding 48）；全退后台账 742→约 631（vendor/ambient
-候裁留痕件除外）。W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。
+余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)=42 件，三域现存 104
+（**Composer 0（R143 域闭，顶群第二闭合域）** + UsageDeep 56 + Onboarding 48）；全退后台账
+735→约 631（vendor/ambient 候裁留痕件除外）。W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。

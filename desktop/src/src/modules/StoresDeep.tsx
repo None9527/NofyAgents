@@ -2143,7 +2143,7 @@ export function shouldReportInputLag(args: { lagMs: number; isProgrammatic: bool
 }
 
 /** 原 rFe（41723）：输入延迟上报 */
-export function reportInputLag(args: { lagMs: number; isProgrammatic: boolean; isComposing: boolean; textLength: number; taskId: string }): void {
+export function reportInputLag(args: { lagMs: number; isProgrammatic: boolean; isComposing: boolean; textLength: number; taskId?: string }): void { // 〔A1-R143〕面宽化：taskId string → ?（束真 rFe 直传 task_id: e.taskId 无必填面；Composer 4180 消费实参 taskId ?? void 0；同族遥测面 @559 先例；本函数此前零消费方，零回归面）
   if (!shouldReportInputLag({ lagMs: args.lagMs, isProgrammatic: args.isProgrammatic, isComposing: args.isComposing })) return;
   const lag = Math.round(args.lagMs);
   reportUiPerfEvent({
