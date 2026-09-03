@@ -129,6 +129,7 @@
 
 import * as React from "react";
 import { shortcutLabel } from '../../lib/keyboardShortcuts'; // 〔A1-R124〕原 $i declare 改指——keyboardShortcuts chunk 全量逐字转录 canonical（styles 868 `n as $i`）
+import { useHydratingSessions } from '../shell/TaskListQueryCore'; // 〔A1-R129e〕原 JS@35552 declare 改指逐字真身叶（A1-P3-B1 转录；与 SidebarLeaves useSessionItems 孪生一符一家同批收敛）。环安全：TaskListQueryCore 值闭包（SkillStore/stores-core/searchResultsStore/modules/services/searchResultsHelpers/SessionStoreCore/TaskIndexCore）经 QuickPickDeep@147-149 同构边判例，顶层全函数，ESM 提升安全
 import { Check as IconCheck, Search as IconSearch, List as IconList, Rocket as IconRocket, MessagesSquare as IconMessagesSquare, File as IconFile, Trash2 as IconTrash, ChevronDown as IconChevronDown, MessageSquare as IconMessageSquare, MessageCirclePlus as IconMessageCirclePlus, PanelLeftClose as IconPanelLeftClose, PanelLeftOpen as IconPanelLeftOpen, SquareTerminal as IconSquareTerminal, BookOpen as IconBookOpen, Users as IconUsers, FileDiff as IconFileDiff, FolderOpen as IconFolderOpen, LogIn as IconLogIn, LogOut as IconLogOut, Server as IconServer, Settings as IconSettings, WandSparkles as IconWandSparkles, Moon as IconMoon, Sun as IconSun, Globe as IconGlobe, MessageCircle as IconMessageCircle, ArrowUp as IconArrowUp, ArrowDown as IconArrowDown, X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 /* ── tombstone（A0-D-Misc）：原 `import { normalizeWorkspaceScopes } from './126518'` 退回 declare——
  *    chunk 号模块不存在（TS2307）；oje（35647）无正规重建属主，按重建基准恢复 declare 挂接。 ── */
@@ -1662,7 +1663,8 @@ interface WorkspaceTaskListEvent {
   [key: string]: unknown;
 }
 declare function useTaskMembershipVersion(): number; // 原 dx（32279）：成员变化计数（useSyncExternalStore）
-declare function useHydratingSessions(scopes: Array<WorkspaceScope & { endpointKey?: string; agentService?: unknown }>): { items: Array<Record<string, unknown>>; hydratingEndpointKeys: string[] }; // 原 JS（35504）
+/* ── tombstone〔A1-R129e〕useHydratingSessions（原 JS@35552）declare 删除 → 改指 ../shell/TaskListQueryCore::useHydratingSessions@77
+ *    （A1-P3-B1 逐字转录；消费 @1736 解构 items/hydratingEndpointKeys 逐字不变；SidebarLeaves 孪生 declare 同批销账）。 ── */
 declare function readTaskSnapshotCache(args: { cacheKey: string; endpoints: Array<{ service: ZCodeTaskService; scopes: WorkspaceScope[] }> }): Promise<{
   taskIndexItems: TaskMeta[];
   pinnedIds: string[];

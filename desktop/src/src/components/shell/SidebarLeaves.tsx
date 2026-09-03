@@ -129,10 +129,11 @@ import { useBaseServices } from '../../modules/services';
 import { buildWorkspaceServicesBindings as buildWorkspaceServicesMap, resolveTabRemoteSessionId as resolveRemoteSessionId, tabHasRemoteBacking as isRemoteWorkspace, resolveTabServicesBinding as buildScopedServices } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R129〕+gc/_c/vc 三符改指（resolveTabRemoteSessionId as resolveRemoteSessionId / tabHasRemoteBacking as isRemoteWorkspace / resolveTabServicesBinding as buildScopedServices；A1-P3-B4 留批闭合，墓碑见 @269 区） // 〔A1-R126〕yc≡buildWorkspaceServicesBindings（styles 4834 逐字；三字段快照入参面 SessionRegistrySnapshotState 同批精化，@262 留批型面不接消解；墓碑见 @347 区）
 import { useLocalWorkspaceTabs as useScopedWorkspaceTabs } from '../../modules/SettingsLeaves'; // 〔A1-R126〕J3≡useLocalWorkspaceTabs（styles 135515；canonical 属主 AutomationEditor@1088；墓碑见 @1756 区）
 import { useSessionRegistryStore } from '../../modules/stores-core'; // 〔A1-R129〕type BaseServices 移除：最后型用面 buildScopedServices declare 本批退役（R126 留注闭合）
+import { sessionStoreKey as workspaceScopeCacheKey } from './SessionStoreCore'; // 〔A1-R129e〕原 $Ae@35532 declare 改指（$Ae 体 = GS(e) ≡ sessionStoreKey@33 逐字；环安全：SessionStoreCore→modules/services→sessionIndex 闭包不达 SidebarLeaves，QuickPickDeep@149 同构边判例在案）
 import { formatRelativeTime } from '../../modules/SidePanel'; // $S
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R127〕原 G（IntlProvider D@9248–9252）declare 改指（Sidebar@206 R121 同判例；调用点 3120/3853 逐字不变）
 import { useConfirmDialog } from '../../modules/Modals'; // 〔A1-R127〕原 U2（styles 123510）declare 改指（ConfirmDialog@79 canonical 转导出；AutomationsMainView@25 R119 同判例；Omit<ConfirmDialogRequest,'resolve'> 面涵原契据三字段）
-import { useTaskListItems } from './TaskListQueryCore'; // 〔A1-R127〕原 ZS（styles 35775–36118）declare 改指逐字真身叶（Sidebar@226 A1-P3-B1 同判例；e: any 入参面超集原契据）
+import { useTaskListItems, useHydratingSessions as useSessionItems } from './TaskListQueryCore'; // 〔A1-R129e〕+useHydratingSessions as useSessionItems（原 JS@35552 逐字真身；A1-P3-B1 转录 ROUNDTRIP EXACT 在案；墓碑见 @285 区） // 〔A1-R127〕原 ZS（styles 35775–36118）declare 改指逐字真身叶（Sidebar@226 A1-P3-B1 同判例；e: any 入参面超集原契据）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { useAppSettings as useSettingsContext, useSubscriptionSnapshot as useCodingPlanEntitlement, providerCacheKey as entitlementCacheKey } from '../../modules/UsageDeep'; // 〔A1-R128〕JM 53488/$j 52497/rM 52648 三 declare 收敛改指（UsageDeep@1730/1168/1353 逐字真身；shim@430/356/358 导出在案）。环安全：UsageDeep 值闭包无 components/shell 边（实测仅碑文提及）
 import { useModelProvidersStore as useModelProviders, useEnterpriseCodingPlanProducts as useTeamProducts } from '../../modules/PaymentDeep'; // 〔A1-R128〕qq 78243/TY 83745 双 declare 收敛改指（PaymentDeep@10456/4568 逐字；shim@319/293 导出；AutomationsMainView@13 R119 同判例）。环安全：PaymentDeep 值闭包无 components/shell 边（实测在案）
@@ -281,12 +282,10 @@ interface WorkspaceServices {
  *    workspaceScopes、出参为 workspaceKeys 归一面（1386–1395）；本地旧面
  *    出入同形（皆 workspaceScopes）属 A0 近似误差。消费面 605/620 逐字不变。 ── */
 
-/** 会话水合（原 JS，jsx 32603）：任务行 + 水合中的端点键 + 作用域修订号 */
-declare function useSessionItems(scopes: Array<WorkspaceScope & { remoteSessionId?: string }>): {
-  items: SessionItem[];
-  hydratingEndpointKeys: string[];
-  sourceRevisionByScopeKey: Record<string, string | undefined>;
-};
+/* ── tombstone〔A1-R129e〕useSessionItems（原 JS@35552）declare 删除 → 改指 ./TaskListQueryCore::useHydratingSessions@77
+ *    （A1-P3-B1 逐字转录 ROUNDTRIP EXACT；返回三面 items/sourceRevisionByScopeKey/hydratingEndpointKeys
+ *    ≡ 束 35613 返回对象全对应；消费 @797 双面解构 + @1638 双面解构逐字不变）。
+ *    一符一家：QuickPick useHydratingSessions 孪生 declare 同批改指同一真身。 ── */
 interface SessionItem { [key: string]: unknown }
 
 /* ── tombstone〔A1-R129d〕useMembershipVersion（原 dx@32327）/ invalidateTaskScopes（原 Ho@1885）declare 删除 → 改指：
@@ -440,8 +439,9 @@ async function fetchWorkspaceTaskShards(args: {
   return l;
 }
 
-/** 作用域缓存键（原 $Ae，jsx 32582） */
-declare function workspaceScopeCacheKey(scope: WorkspaceScope): string;
+/* ── tombstone〔A1-R129e〕workspaceScopeCacheKey（原 $Ae@35532）declare 删除 → 改指 ./SessionStoreCore::sessionStoreKey@33
+ *    （$Ae 体 `return GS(e)` ≡ sessionStoreKey 逐字；GS≡sessionStoreKey / BS≡sessionIndexPoolKey /
+ *    WS≡sessionScopeWorkspaceKey 对应实证；消费 @816 逐字不变）。 ── */
 
 /** 作用域差异（原 zFt，120215）/ 分片指纹（原 BFt，120223）〔A1-R129c〕实体化：Io→workspaceKeyOf；
  *    消费 @811（≡VFt 144710）/@645（≡VFt 144554）逐字不变。 ── */
