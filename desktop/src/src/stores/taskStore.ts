@@ -42,7 +42,7 @@ interface TaskInteractionOption {
   name: string;
 }
 
-interface TaskInteractionRequest {
+export interface TaskInteractionRequest { // 〔A1-R148〕补 export（type-only，零运行时面）：OnboardingLoginLeaves 流事件/广播域三处消费铸所依（束真把原始 event/permissionRequest 载荷径传本 store，store 体读 request.requestId —— 见 @1003-1034），需具名型方可诚实施铸而非 as any
   requestId: string;
   taskId: string;
   traceId: string | null;
@@ -59,7 +59,13 @@ interface TaskUiState {
   elicitationRequest: TaskInteractionRequest | null;
   pendingElicitationRequests: TaskInteractionRequest[];
   elicitationFormDraftsByRequestId: Record<string, unknown>;
-  error: string | null;
+  // 〔面校准 A1-R148〕error 由 `string | null` 宽化为 unknown：束真本体（skillStore off 21098/line 762）
+  // `setTaskError: (t,n,r,i) => … { …T(e,n), error: r }` —— **原样存入，无归一**；束内调用实证 styles@211259
+  // `e.setTaskError(n.workspacePath, n.taskId, r, …)` 之 r = DM(…) 归一错误**对象**（{code,message,detail,traceId,taskId}）、
+  // @211263-211271 task_warning 同式传对象、@211244 task_complete 传 null → 运行期本字段实为「对象 | null」。
+  // 原面 `string | null` 系重建期收窄。级联核：`taskUiByTaskId`/`getTaskUi` 全树**零外部消费**（grep 实证，
+  // 唯 modules/SkillStore@131 映射表注提及），本文件内亦无 `.error` 读取点 → 宽化零级联、运行期零变。
+  error: unknown;
 }
 
 /** 原 re（jsx 59）：任务 UI 缺省态（权限/elicitation 队列）。 */
@@ -72,7 +78,7 @@ const initialTaskUiState: TaskUiState = {
   error: null,
 };
 
-interface TaskRuntimeState {
+export interface TaskRuntimeState { // 〔A1-R148〕补 export（type-only）：OnboardingLoginLeaves 本地 TaskRuntimeEntry 近似面退役改指所依
   status: string;
   error: string | null;
   provider?: string;
@@ -786,7 +792,7 @@ interface UsageBreakdownItem {
   chars: number;
 }
 
-interface TaskUsage {
+export interface TaskUsage { // 〔A1-R148〕补 export（type-only，零运行时面）：OnboardingLoginLeaves 本地 TaskUsage 近似面退役改指所依
   size: number;
   used: number;
   cost: UsageCost | null;
@@ -874,7 +880,12 @@ function createTaskRuntimeActions(set: SetStateFn<TaskStoreState>) {
       workspacePath: string,
       taskId: string,
       status: string,
-      error: string | null,
+      // 〔面校准 A1-R148〕error 由 `string | null` 宽化为可选：束真本体（skillStore-BmeKHDBI.js off 13103/line 487）
+      // `setTaskRuntimeState: (t,n,r,i,a,o) => … error: i ?? null …` —— **体内自带 `?? null` 归一**，即束真契据本容
+      // undefined 入参；束内调用实证 styles@211217-211223/211227-211233/211236-211242 三处皆传 `void 0`
+      // （OnboardingLoginLeaves 流事件处理域，树侧逐字）。原面 `string | null` 系重建期收窄，宽化后体内零改动
+      // （`error ?? null` 已存）、存储面 TaskRuntimeState.error 仍为 `string | null` 不变 → 零级联、运行期零变。
+      error?: string | null,
       workspaceIdentity?: string | null,
       provider?: string | null,
     ) => {
@@ -1236,7 +1247,9 @@ function createTaskRuntimeActions(set: SetStateFn<TaskStoreState>) {
         ),
       );
     },
-    setTaskError: (workspacePath: string, taskId: string, error: string | null, workspaceIdentity?: string | null) => {
+    // 〔面校准 A1-R148〕error 参宽化 unknown（束证与存储面同由，见 TaskUiState.error 注）：束内调用传归一错误对象
+    // （styles@211259/211263-211271）与 null（@211244），体内 `error: error` 原样存入 → 参面与存储面同宽，零级联。
+    setTaskError: (workspacePath: string, taskId: string, error: unknown, workspaceIdentity?: string | null) => {
       set((state) =>
         updateWorkspaceTaskState(
           state,

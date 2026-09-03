@@ -248,7 +248,7 @@ import { AppDialogHost, ConfirmDialog, DirectoryBrowserDialog, OnboardingDialog,
 // 的前波 import 曾编译失败恢复基线 declare（本文件无调用面）；两者属主 export 已由 A0-CLEANUP B-30/B-32 落地（A0-CLEANUP2 复核）。
 // ConfirmDialog 已由 A0-CLEANUP2 item 35 接入真实 import（上方）。
 import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, SettingsView, resolveThemeMode as resolveThemeForTitleBar, type ThemeMode } from '../../modules/Settings';
-import { logger, resolveWorkspaceKey as workspaceScopeKey, create as createExternalStore } from '../../modules/SkillStore'; // workspaceScopeKey（原 Io，js 1368：两参实体键；前波误接 stores-session.workspaceScopeKey 单参形，A0-D-Misc 按 bundle R6t 裁决改接 resolveWorkspaceKey）
+import { logger, resolveWorkspaceKey as workspaceScopeKey, create as createExternalStore, useTaskStore as taskStore, type ConfigOption, type TaskInteractionRequest, type TaskStore as TaskStoreState, type WorkspaceTaskState, type TaskUsage, type TaskRuntimeState as TaskRuntimeEntry } from '../../modules/SkillStore'; // workspaceScopeKey（原 Io，js 1368：两参实体键；前波误接 stores-session.workspaceScopeKey 单参形，A0-D-Misc 按 bundle R6t 裁决改接 resolveWorkspaceKey）
 import { MemoizedWorkspaceRoot, ScopedErrorBoundary as ScopeBoundary, type WorkspaceServices } from '../../modules/WorkspaceShell'; // A0-CLEANUP3 #36：Y4t=memo(XJt)=WorkspaceRoot 属主接线（原误包 yJt=WorkspaceShell）
 import { extractErrorMessage as normalizeConnectionError, type FeedbackService } from '../../modules/FeedbackCenter'; // A1-R7：MC=extractErrorMessage 改指（原 normalizeConnectionError declare）
 import { type MobileHomeResult, type WebRemoteSwitcherService } from '../../modules/WebRemote';
@@ -702,48 +702,48 @@ export interface TabStoreState {
 }
 /* ── tombstone〔A1-R41〕：declare useTabStore（原 pc）/useTabStoreApi（原 hc）删除——本文件零消费（死 declare；全文 grep 实测）。
  * 真身 = WorkspaceTabsDeep useWorkspaceTabStore@686 / useWorkspaceTabStoreApi@698（A1-R1 逐字；一符一家，R40/R41 PD-α 簇同链；Sidebar@1129 死碑先例）。 ── */
-export interface TaskStoreState {
-  workspaces: Record<string, WorkspaceTaskState>;
-  activeTaskId: string | null;
-  getWorkspaceState(workspacePath: string, workspaceIdentity?: string | null): WorkspaceTaskState;
-  setTaskRuntimeState(workspacePath: string, taskId: string, state: string | undefined, error?: string | undefined, workspaceIdentity?: string | null): void;
-  setTaskPermissionRequest(workspacePath: string, taskId: string, request: unknown, workspaceIdentity?: string | null): void;
-  removeTaskPermissionRequest(workspacePath: string, taskId: string, requestId: string, workspaceIdentity?: string | null): void;
-  setTaskElicitationRequest(workspacePath: string, taskId: string, request: unknown, workspaceIdentity?: string | null): void;
-  removeTaskElicitationRequest(workspacePath: string, taskId: string, requestId: string, workspaceIdentity?: string | null): void;
-  setTaskError(workspacePath: string, taskId: string, error: unknown, workspaceIdentity?: string | null): void;
-  setTaskContextWindow(workspacePath: string, taskId: string, size: number, workspaceIdentity?: string | null): void;
-  setTaskUsage(workspacePath: string, taskId: string, usage: unknown, workspaceIdentity?: string | null): void;
-  setTaskApiRetryStatus(workspacePath: string, taskId: string, status: unknown, workspaceIdentity?: string | null): void;
-  bindRuntimeProvider(workspacePath: string, provider: string, workspaceIdentity?: string | null): void;
-  bumpTaskListVersion(workspacePath: string, workspaceIdentity?: string | null): void;
-  setActiveTaskId(workspacePath: string, taskId: string, workspaceIdentity?: string | null): void;
-  startDraft(workspacePath: string, providerId?: string, workspaceIdentity?: string | null, options?: { groupedDraftPlacement?: string }): void;
-  requestComposerTextInsert(workspacePath: string, text: string, workspaceIdentity?: string, mention?: unknown): void;
-  deactivateActiveGroup?(): void;
-  [key: string]: any;
-}
-export interface WorkspaceTaskState {
-  activeTaskId: string | null;
-  taskRuntimeByTaskId: Record<string, TaskRuntimeEntry>;
-  taskListCache?: Array<{ taskId: string; workspacePath: string; status?: string; [key: string]: any }>;
-  optimisticTaskListByTaskId: Record<string, { status: string; [key: string]: any }>;
-  [key: string]: any;
-}
-export interface TaskRuntimeEntry {
-  status: string;
-  usage?: TaskUsage | null;
-  [key: string]: any;
-}
-export interface TaskUsage {
-  used: number;
-  size: number;
-  cost?: number;
-  cache?: unknown;
-  breakdown?: unknown;
-  [key: string]: any;
-}
-declare const taskStore: { getState(): TaskStoreState }; // 原 xe（styles@401 `h as xe` ← skillStore chunk；stores/taskStore@2956 useTaskStore，SkillStore@247 转导出）〔A1-R147 候批注：改指已试施加，tsc 实测 13 处面冲突（本地 TaskStoreState/WorkspaceTaskState/TaskUsage/TaskRuntimeEntry 与 canonical TaskStore 面族不合：activeTaskId 顶层虚构、TaskUsage.cost 面 UsageCost|null vs number|undefined、setTaskError 参 string vs 错误对象、setTaskPermissionRequest 参 TaskInteractionRequest vs Record<string,unknown>、undefined vs string|null 等）→ 移交 R148 专批逐点束取证后裁定各面归属，不在联退批内混做〕
+/* ── tombstone〔A1-R148〕：declare taskStore（原 xe）退役 **+ 本地四面族退役**（TaskStoreState /
+ *    WorkspaceTaskState / TaskRuntimeEntry / TaskUsage）→ 全数改指 canonical stores/taskStore（经
+ *    modules/SkillStore 转导出——本文件导入行 @251、SkillStore 再导出行 @193；**别名保名**，本文件全部标注点与消费点逐字不变）。
+ *    ① declare 真身链：styles@401 `h as xe,` ← `./skillStore-BmeKHDBI.js`；stores/taskStore.ts 头注
+ *      「原 yn，jsx 1794–1800；导出 h；styles 侧 xe」；SkillStore 映射表@138「h=yn useTaskStore(xe)」；
+ *      canonical useTaskStore@2969（zustand 钩子对象本体即 vanilla 四元 API，`.getState()` 逐字同用）。
+ *      先例：QuickPick@139 / Sidebar@217 / Home@154 / SidebarLeaves@121 皆自 modules/SkillStore 取 useTaskStore；
+ *      QuickPick@283 判例「TaskStoreState/getWorkspaceState 已接线 SkillStore，**本地形状声明移除**」= 本件同式。
+ *      消费束点全为 `xe.getState()` 式（styles 209695/210552/210579/210585/210748/211203/211313 七处属本文件域；
+ *      210819/210859 属 j6t 域归 AppRootLeaves；全束 `xe.getState()` 单行命中 44 处，另 210859 折行作 `xe`/`.getState()` 二行）。**无选择器回调消费** →
+ *      R140 判例（Composer@1245 碑 + @1904 对型化钩子双变可赋）仅作法理参照，本件不触发。
+ *    ② 本地四面族系 declare 期近似，改指后由 canonical 面取代（**束取证逐面裁定**，非机械宽化）：
+ *      · TaskStoreState → canonical **TaskStore**（= TaskStoreState & 三动作族 & getWorkspaceState，@2961-2966）：
+ *        原本地面混装状态员与动作员，且含**虚构顶层** `activeTaskId: string | null`（束真为 per-workspace 字段，
+ *        canonical WorkspaceTaskState@162；束证 styles@211206 `activeTaskId: e.getWorkspaceState(…).activeTaskId`；
+ *        本文件 5 处读取全经工作区面 @2626/@4279/@4711/@4821/@4695，无一处读顶层）与**误挂他店成员**
+ *        `deactivateActiveGroup?()`（真属 sessionRouterStore ≡ SplitLayoutDeep@287/1284；本文件 @4468 正是在
+ *        sessionRouterStore.getState() 上调它，taskStore 侧全树零调用 → 二者随面退役俱删）。
+ *      · WorkspaceTaskState → canonical@161-195（原地面 `taskListCache?: {taskId;workspacePath;status?;…}[]`
+ *        漏 null 分支且以近似元面代 TaskMeta；`optimisticTaskListByTaskId` 之 status 误作必填；束真
+ *        canonical 逐字转录自 skillStore chunk）。
+ *      · TaskRuntimeEntry → canonical **TaskRuntimeState**@81-92（原地面仅 status/usage 二员 + 索引签，
+ *        漏 error/contextWindow/apiRetry/backgroundTaskControls/activeTurn* 等束真员）。
+ *      · TaskUsage → canonical@795-801（原地面 `cost?: number` 系臆造收窄，束真 `cost: UsageCost | null`
+ *        为结构化对象面；`cache`/`breakdown` 束真为 `UsageCacheStats | null` / `UsageBreakdownItem[]` 必填）。
+ *    ③ 级联核（改指安全性）：四面族**全树零外部消费**——各 settings 域文件（Skills/Hooks/Plugins/Commands/
+ *      Subagents SettingsSection）与 SidebarLeaves@216 各**自持同名本地面**，非自本文件导入；
+ *      modules/OnboardingLoginLeaves shim **未**再导出四名（grep 实证）→ 退役零外部破坏面。
+ *      为保模块导出面不变，四名以 `export type { … }` 原位再导出（见下）。
+ *    ④ 随批 canonical 面校准 3 处（束取证，详见 stores/taskStore.ts 各注）：setTaskRuntimeState 之 error 参
+ *      宽化为可选（束真体内自带 `?? null` 归一，skillStore off 13103/line 487；束内调用三处皆传 `void 0`）；
+ *      setTaskError 之 error 参 + TaskUiState.error 存储面宽化为 unknown（束真 `error: r` 原样存入无归一，
+ *      skillStore off 21098/line 762；束内调用传 DM(…) 归一错误**对象** styles@211259/211263-211271 与
+ *      null @211244；`taskUiByTaskId`/`getTaskUi` 全树零消费 → 零级联）；补 export TaskInteractionRequest/
+ *      TaskUsage/TaskRuntimeState 三型（type-only）。
+ *    ⑤ 型缝 6 处（消费侧，皆束真无型位）：@4731 event → TaskInteractionRequest（束真 211226 径传原始流事件，
+ *      canonical 体读 .requestId）；@4832 runtimeStateOfBroadcastEvent(…) as string（**可证安全**：其 switch 11 支
+ *      与 isTaskBroadcastPayload knownEvents 11 员逐一穷尽 → undefined 分支不可达）；@4855/@4869
+ *      permissionRequest/elicitationRequest → TaskInteractionRequest（本地广播载荷面 `Record<string, unknown>` 为窄近似）；@4680 `options.configOptions as ConfigOption[]`（本地 U6t 参面 `unknown[]` 承 TaskBroadcastPayload@1214 窄近似，canonical setTaskConfigOptions@975 参 `ConfigOption[]`；束真 211180-211187 无型直传；不宽化 payload 面 = R146 裁定）；@4791 incomingUsage 字面量 `as TaskUsage`（束真 211280-211286 逐字同此条件展开 → cache/breakdown 运行期本可缺，canonical@795-801 二者必具；I6t 自体束真 211076 `!n.breakdown` 守卫即证来件可无 breakdown；不宽化 resolveIncomingUsage@4541 参面——宽化则返回面残缺、@4801 setTaskUsage 续报，级联无益）。
+ *    ⑥ 环安全：本文件→modules/SkillStore 边既有（@251）；SkillStore 值闭包 = stores/* + zustand，
+ *      不达 components/onboarding；四名皆 type-only（编译期擦除）→ 新增模块边 **0**。 ── */
+export type { TaskStoreState, WorkspaceTaskState, TaskRuntimeEntry, TaskUsage };
 /* ── tombstone（A1-R2）：sessionRouterStore（原 A2 js 122714）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
 export interface SessionRouterGroup {
   primaryBinding: { restoredUnvalidated?: boolean; [key: string]: any };
@@ -4677,7 +4677,7 @@ export function storeBroadcastConfigOptions(options: {
   options.zcodeSessionStore.setTaskConfigOptions(
     options.workspacePath,
     options.taskId,
-    options.configOptions,
+    options.configOptions as ConfigOption[] /* 〔型缝 A1-R148〕本地 U6t 参面 `configOptions: unknown[]` 承 TaskBroadcastPayload@1214 之 declare 期窄近似（守卫 isTaskBroadcastPayload 仅校 event/taskId/workspacePath 诸键，不校 configOptions 员形），canonical setTaskConfigOptions（属主 stores/taskStore@975）参 `options: ConfigOption[]` → TS2345。束真 styles@211180-211187 无型直传 `e.configOptions`，运行期载荷即内核广播之配置选项数组 → 纯 TS 面零运行期变。不宽化 payload 面（R146 裁定：shim 再导出之 TaskBroadcastPayload 不动） */,
     options.workspaceIdentity,
   );
 }
@@ -4728,7 +4728,7 @@ export function useBotsTaskBroadcastBridge(
             );
             break;
           case `permission_request`:
-            (store.setTaskPermissionRequest(streamPayload.workspacePath, streamPayload.taskId, event, streamPayload.workspaceIdentity),
+            (store.setTaskPermissionRequest(streamPayload.workspacePath, streamPayload.taskId, event as unknown as TaskInteractionRequest /* 〔型缝 A1-R148〕束真 styles@211226 `e.setTaskPermissionRequest(n.workspacePath, n.taskId, t, n.workspaceIdentity)` 径传原始流事件 t（本地面 `{type; taskId; [key:string]: any}` 为 declare 期窄近似）；canonical 体 @1003-1034 读 request.requestId 并调 isSameTaskInteractionRequest → 运行期该事件载荷即交互请求本体。取具名型铸而非 as any（TaskInteractionRequest 同批补 export 所依） */, streamPayload.workspaceIdentity),
               store.setTaskRuntimeState(
                 streamPayload.workspacePath,
                 streamPayload.taskId,
@@ -4788,7 +4788,7 @@ export function useBotsTaskBroadcastBridge(
                   cost: event.cost,
                   ...(event.cache ? { cache: event.cache } : {}),
                   ...(event.breakdown ? { breakdown: event.breakdown } : {}),
-                },
+                } as TaskUsage /* 〔型缝 A1-R148〕束真 styles@211280-211286 逐字同此条件展开 → cache/breakdown 运行期本可缺；canonical TaskUsage@795-801 二者必具（`cache: UsageCacheStats | null` / `breakdown: UsageBreakdownItem[]`）→ TS2322。I6t 自体束真 @211076 `!n.breakdown && t?.breakdown` 之守卫即证来件可无 breakdown，故铸在消费侧而不宽化 resolveIncomingUsage@4541 参面（宽化则返回面残缺、@4801 setTaskUsage 续报，级联无益）。纯 TS 面零运行期变 */,
               });
               (recordInvalidUsage({
                 workspacePath: streamPayload.workspacePath,
@@ -4829,7 +4829,7 @@ export function useBotsTaskBroadcastBridge(
             taskId: taskPayload.taskId,
             configOptions: taskPayload.configOptions,
           }),
-        store.setTaskRuntimeState(taskPayload.workspacePath, taskPayload.taskId, runtimeStateOfBroadcastEvent(taskPayload.event), void 0, taskPayload.workspaceIdentity),
+        store.setTaskRuntimeState(taskPayload.workspacePath, taskPayload.taskId, runtimeStateOfBroadcastEvent(taskPayload.event) as string /* 〔型缝 A1-R148〕runtimeStateOfBroadcastEvent（原 z6t，束 211138）之 switch 无 default → 返回面 `string | undefined`，canonical setTaskRuntimeState 参 status: string。★**铸为可证安全非近似**：其 switch 覆盖 created/completed/error/prompt_sent/resumed/streaming/permission_request/permission_resolved/elicitation_request/elicitation_resolved/updated **11 支**，与 isTaskBroadcastPayload@4563 之 knownEvents 集合（同 11 员）**逐一穷尽** → undefined 分支不可达。束真 styles@211327 无型 */, void 0, taskPayload.workspaceIdentity),
         taskPayload.task)
       ) {
         let membership = { pinned: false, archived: false };
@@ -4852,7 +4852,7 @@ export function useBotsTaskBroadcastBridge(
         ? store.setTaskPermissionRequest(
             taskPayload.workspacePath,
             taskPayload.taskId,
-            taskPayload.permissionRequest,
+            taskPayload.permissionRequest as unknown as TaskInteractionRequest, // 〔型缝 A1-R148〕本地 TaskBroadcastPayload.permissionRequest 面为 `Record<string, unknown> | null`（declare 期窄近似），canonical 参 TaskInteractionRequest | null；束真同域径传载荷（store 体读 .requestId），运行期即交互请求本体
             taskPayload.workspaceIdentity,
           )
         : taskPayload.event === `permission_resolved` && taskPayload.requestId
@@ -4866,7 +4866,7 @@ export function useBotsTaskBroadcastBridge(
             ? store.setTaskElicitationRequest(
                 taskPayload.workspacePath,
                 taskPayload.taskId,
-                taskPayload.elicitationRequest,
+                taskPayload.elicitationRequest as unknown as TaskInteractionRequest, // 〔型缝 A1-R148〕同上（elicitation 支；canonical setTaskElicitationRequest 参面同 TaskInteractionRequest | null）
                 taskPayload.workspaceIdentity,
               )
             : taskPayload.event === `elicitation_resolved` && taskPayload.requestId
