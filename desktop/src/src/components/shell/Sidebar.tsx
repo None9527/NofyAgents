@@ -426,33 +426,50 @@ function formatChangeStatParts(summary: TaskChangeSummary | null): string[] {
 }
 
 /* ============================================================================
- * 3. 时间线日期分组（原 uPt/dPt/fPt/pPt，js 116958–117060 / jsx 99930 附近）
+ * 3. 时间线日期分组（原 sPt/m6/cPt/lPt/uPt/dPt/fPt/pPt，styles 140351–140404）
  * ==========================================================================*/
 
 type TimelineDateBucket =
   | { kind: "today" } | { kind: "yesterday" } | { kind: "daysAgo"; daysAgo: number }
   | { kind: "thisWeek" } | { kind: "lastWeek" } | { kind: "thisMonth" } | { kind: "lastMonth" }
-  | { kind: "thisYear" } | { kind: "earlier" };
-declare function startOfLocalDay(ms: number): number;
-declare function startOfWeekLocal(now: number, locale: string): number;
-declare function startOfMonthLocal(now: number): number;
-const DAY_MS = 86400000; // 原 sPt
-/** 原 uPt（116958）：把时间戳归入日期桶（今天/昨天/N天前/本周/上周/本月…） */
+  | { kind: "older" };
+/* 〔A1-R122〕日期三符实体化：束 m6@140352/cPt@140356/lPt@140360 逐字转录（本地变量仍束名）。 */
+/** 原 m6（styles 140352）：本地日零点 */
+function startOfLocalDay(e: number): number {
+  let t = new Date(e);
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime();
+}
+/** 原 cPt（styles 140356）：本地月零点 */
+function startOfMonthLocal(e: number): number {
+  let t = new Date(e);
+  return new Date(t.getFullYear(), t.getMonth(), 1).getTime();
+}
+/** 原 lPt（styles 140360）：本地周零点（en-US 周日起，其余周一起） */
+function startOfWeekLocal(e: number, t: string): number {
+  let n = new Date(startOfLocalDay(e)),
+    r = (n.getDay() - (t === "en-US" ? 0 : 1) + 7) % 7;
+  return (n.setDate(n.getDate() - r), n.getTime());
+}
+const DAY_MS = 86400000; // 原 sPt（styles 140351：1440 * 60 * 1e3）
+/** 原 uPt（styles 140365）：把时间戳归入日期桶（今天/昨天/N天前/本周/上周/本月/上月/更早）。
+ * 〔A1-R122〕保真修复：A0 重建体多 thisYear 支且桶名 earlier——束真相无此支、i18n 目录
+ * 仅 taskTimeline.older（IntlProvider 1499/6017）；今按束逐字对齐（i≡dayStart 归一比较）。 */
 function bucketTaskDate(timestamp: number, now: number, locale: string): TimelineDateBucket {
-  const dayDiff = Math.floor((startOfLocalDay(now) - startOfLocalDay(timestamp)) / DAY_MS);
+  const dayStart = startOfLocalDay(timestamp);
+  const dayDiff = Math.floor((startOfLocalDay(now) - dayStart) / DAY_MS);
   if (dayDiff <= 0) return { kind: "today" };
   if (dayDiff === 1) return { kind: "yesterday" };
   if (dayDiff <= 3) return { kind: "daysAgo", daysAgo: dayDiff };
   const weekStart = startOfWeekLocal(now, locale);
-  if (timestamp >= weekStart) return { kind: "thisWeek" };
-  if (timestamp >= weekStart - 7 * DAY_MS) return { kind: "lastWeek" };
-  if (timestamp >= startOfMonthLocal(now)) return { kind: "thisMonth" };
+  if (dayStart >= weekStart) return { kind: "thisWeek" };
+  if (dayStart >= weekStart - 7 * DAY_MS) return { kind: "lastWeek" };
+  if (dayStart >= startOfMonthLocal(now)) return { kind: "thisMonth" };
   const d = new Date(now);
-  if (timestamp >= new Date(d.getFullYear(), d.getMonth() - 1, 1).getTime()) return { kind: "lastMonth" };
-  if (new Date(timestamp).getFullYear() === d.getFullYear()) return { kind: "thisYear" };
-  return { kind: "earlier" };
+  return dayStart >= new Date(d.getFullYear(), d.getMonth() - 1, 1).getTime()
+    ? { kind: "lastMonth" }
+    : { kind: "older" };
 }
-/** 原 dPt（116989）：桶 → i18n 描述 */
+/** 原 dPt（styles 140381）：桶 → i18n 描述 */
 function timelineBucketMessage(bucket: TimelineDateBucket): { id: string; values?: Record<string, string> } {
   return bucket.kind === "daysAgo"
     ? { id: "taskTimeline.daysAgo", values: { days: String(bucket.daysAgo ?? 0) } }
@@ -461,7 +478,7 @@ function timelineBucketMessage(bucket: TimelineDateBucket): { id: string; values
 function timelineBucketKey(bucket: TimelineDateBucket): string {
   return bucket.kind === "daysAgo" ? `${bucket.kind}:${bucket.daysAgo ?? 0}` : bucket.kind;
 }
-/** 原 pPt（117002）：按日期桶分组任务（保持原顺序） */
+/** 原 pPt（styles 140389）：按日期桶分组任务（保持原顺序） */
 function groupTasksByDateBucket(
   tasks: TaskMeta[],
   opts: { sortBy: TaskSortBy; now: number; locale: string },
@@ -488,7 +505,20 @@ function groupTasksByDateBucket(
 const SIDEBAR_TASK_PREFERENCES_KEY = "zcode-sidebar-task-preferences"; // 原 UFt
 // HOME-SEG：Home 为默认选中（原默认 project）
 const DEFAULT_TASK_PREFERENCES: { organizeBy: TaskOrganizeBy; sortBy: TaskSortBy } = { organizeBy: "home", sortBy: "updated" }; // 原 K6
-declare function getLocalStorage(): Storage | null; // 原 Be（IntlProvider chunk 的安全访问器）
+/* 〔A1-R122〕Be 实体化：IntlProvider-C321H7m8.js a()@6 逐字转录（失败返回 undefined，
+ * 与 QuickPick::safeLocalStorage 的 null 形各保——一符一家，R121 §3 裁定）。 */
+/** 原 Be（IntlProvider chunk a()@6；styles 422 `a as Be`）：localStorage 安全访问器 */
+function getLocalStorage(): Storage | undefined {
+  try {
+    return typeof window < "u"
+      ? window.localStorage
+      : typeof localStorage < "u"
+        ? localStorage
+        : void 0;
+  } catch {
+    return;
+  }
+}
 function isTaskOrganizeBy(value: unknown): value is TaskOrganizeBy {
   // HOME-SEG：grouped 退役
   return value === "home" || value === "project" || value === "chronological";
@@ -497,7 +527,7 @@ function isTaskSortBy(value: unknown): value is TaskSortBy {
   return value === "created" || value === "updated";
 }
 /** 原 q6（144780）：读取任务偏好（缺省 项目/按更新时间） */
-function loadSidebarTaskPreferences(storage: Storage | null = getLocalStorage()) {
+function loadSidebarTaskPreferences(storage: Storage | undefined = getLocalStorage()) {
   let raw: string | null = null;
   try { raw = storage?.getItem(SIDEBAR_TASK_PREFERENCES_KEY) ?? null; } catch { raw = null; }
   if (!raw) return DEFAULT_TASK_PREFERENCES;
@@ -516,7 +546,7 @@ function loadSidebarTaskPreferences(storage: Storage | null = getLocalStorage())
 /** 原 KFt（144798）：写回任务偏好 */
 function saveSidebarTaskPreferences(
   prefs: { organizeBy: TaskOrganizeBy; sortBy: TaskSortBy },
-  storage: Storage | null = getLocalStorage(),
+  storage: Storage | undefined = getLocalStorage(),
 ): void {
   try { storage?.setItem(SIDEBAR_TASK_PREFERENCES_KEY, JSON.stringify({ organizeBy: prefs.organizeBy, sortBy: prefs.sortBy })); } catch { /* 忽略 */ }
 }
@@ -609,14 +639,14 @@ function sanitizeCollapsedGroupRecord(value: unknown): Record<string, boolean> {
     : Object.fromEntries(Object.entries(value).filter(([k, v]) => typeof k === "string" && k.length > 0 && v === true));
 }
 /** 原 kIt（145148）：读取折叠组集合 */
-function loadCollapsedGroupIds(storage: Storage | null = getLocalStorage()): Set<string> {
+function loadCollapsedGroupIds(storage: Storage | undefined = getLocalStorage()): Set<string> {
   let raw: string | null = null;
   try { raw = storage?.getItem(COLLAPSED_GROUPS_STORAGE_KEY) ?? null; } catch { raw = null; }
   if (!raw) return new Set();
   try { return new Set(Object.keys(sanitizeCollapsedGroupRecord(JSON.parse(raw)))); } catch { return new Set(); }
 }
 /** 原 AIt（145162）：写回折叠组集合（{groupId: true} 映射） */
-function saveCollapsedGroupIds(ids: Set<string>, storage: Storage | null = getLocalStorage()): void {
+function saveCollapsedGroupIds(ids: Set<string>, storage: Storage | undefined = getLocalStorage()): void {
   try { storage?.setItem(COLLAPSED_GROUPS_STORAGE_KEY, JSON.stringify(Object.fromEntries([...ids].map((id) => [id, true])))); } catch { /* 忽略 */ }
 }
 
