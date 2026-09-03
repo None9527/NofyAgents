@@ -526,7 +526,7 @@ import { Button } from './button'; // 原 H，button-laUijeDG.js（A0-D 接线�
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 import { SuggestionPanel, type PanelSection } from '../components/composer/SuggestionPanel'; // 〔A0-S4-4b〕留守面消费回取：B6 SlashPanel 段型别 + 建议面板渲染点（函数声明提升/型别擦除，环安全）
 import { buildFileTreeDragText as fileMentionMarkdown, pluginMentionMarkdown, skillMentionMarkdown, subagentMentionMarkdown, sessionMentionMarkdown, hasWorkspaceFilePayload, readWorkspaceFilePayload, isWorkspaceFileDragEvent, buildWorkspaceFileMentionPayload, WORKSPACE_FILE_DRAG_STATE_EVENT as WORKSPACE_FILE_DRAG_EVENT_TYPE, type WorkspaceFileDragPayload } from '../components/composer/FileMentionDragHelpers'; // A1-R11：wj（52124）/Dj（52138）转录改指（纯函数叶子，环安全同 SuggestionPanel 先例）；调用点 2779/2998 逐字不变。wj 双归属：FileTreePanel 经名 buildFileTreeDragText、本文件经名 fileMentionMarkdown，bundle 唯一真身。A1-R12：§17/§18 declares 全量改指（Tj/Ej/KHe 52128/52131/52134、Mj/Nj/tUe/aUe 52248/52251/52254/52271、jj 52212），调用点 1391/1591/1856/1866/3096/4653/4657/4663/4671/4986/5003/4605 逐字不变
-import { extractSelectionsFromText as extractConversationSelections } from '../components/conversation/ConversationSelectionCore'; // 〔A1-R129z〕原 Noe（styles 74669 / F03 域 2775）declare 改指（canonical = ConversationSelectionCore A1-P1-B4 逐字真身；parseComposerContextContent 消费面）。环安全：纯 TS 叶，仅 SrcSharedB 边
+import { extractSelectionsFromText as extractConversationSelections, appendSelectionBlockToText as appendConversationSelections, listSelectionReferences as readSessionScopedReferences, selectionLoadErrorOf as readSessionScopedLimitReason, setSelectionReferences as writeSessionScopedReferences, clearSelectionLoadError as clearSessionScopedLimitReason, isSelectionAddEvent as isSessionScopedReferencesChangedEvent, selectionAddEventName as sessionScopedReferencesChangedEventType } from '../components/conversation/ConversationSelectionCore'; // 〔A1-R138〕+7 别名（原 Moe/Cs/ws/Doe/Ooe/Foe/Ioe，F03 域 2761/2732/2738/2734/2743/2816/2819；消费面 7170/7621–7657 逐字不变） // 〔A1-R129z〕原 Noe（styles 74669 / F03 域 2775）declare 改指（canonical = ConversationSelectionCore A1-P1-B4 逐字真身；parseComposerContextContent 消费面）。环安全：纯 TS 叶，仅 SrcSharedB 边
 import { extractPptxElementReferences as extractPptxElementReferencesFromContent } from '../components/ime/ImeComposition'; // 〔A1-R129z〕原 pptx 抽取 declare 改指——束真：styles KXe（2122719）之 `w` = imeComposition 块 m 导出（块首导入 `m as w` ← ./imeComposition-DEYFkwWm.js）≡ 本名原码 ur；canonical = ImeComposition@1164 逐字。一符一家归 imeComposition 域。环安全：ImeComposition 对本文件仅 type-only 回边（A1-R49 判例，编译期擦除）
 
 /* ============================================================================
@@ -823,7 +823,9 @@ declare const DOCUMENT_FALLBACK_ICON_SRC: string;
  *    workspaceIdentity，aUe 52269 实测消费 e.workspacePath；本地窄形仅 declare 时代产物）。 ── */
 
 /** 19. 会话引用装配/会话域引用存取（本 chunk 2741–2819，F03 域） */
-declare function appendConversationSelections(content: string, selections: ConversationSelection[]): string;
+/* ── tombstone〔A1-R138〕：declare function appendConversationSelections（原 Moe，F03 域 2761）删除 →
+ *    文件头 ConversationSelectionCore 导入别名接入（appendSelectionBlockToText as appendConversationSelections；
+ *    canonical = A1-P1-B4 逐字真身，any 面超集相容）。消费面实证（1 处）：@7170 逐字不变。 ── */
 /* ── tombstone〔A1-R129z〕：declare function extractConversationSelections（原 Noe，
  *    styles 74669 / F03 域 2775）删除 → 文件头 `extractSelectionsFromText as
  *    extractConversationSelections` 真实 import（canonical = components/conversation/
@@ -840,12 +842,11 @@ export interface ConversationSelection { // 〔A1-R22〕补 export：Conversatio
 }
 /* 〔A1-R21〕型缝：sessionId 放宽为 string | null——bundle 消费面（composer 90400 tZe({ sessionId: t, … })）
  * 透传 composer sessionId prop（Home 5590 面 string | null）；F03 域存取函数为 ambient declare，编译期擦除。 */
-declare function readSessionScopedReferences(sessionId: string | null, workspaceKey: string): SessionScopedReference[];
-declare function readSessionScopedLimitReason(sessionId: string | null, workspaceKey: string): string | null;
-declare function writeSessionScopedReferences(sessionId: string | null, workspaceKey: string, refs: SessionScopedReference[]): void;
-declare function clearSessionScopedLimitReason(sessionId: string | null, workspaceKey: string): void;
-declare function isSessionScopedReferencesChangedEvent(event: Event): boolean;
-declare function sessionScopedReferencesChangedEventType(): string;
+/* ── tombstone〔A1-R138〕：declare 六件（原 Cs/ws/Doe/Ooe/Foe/Ioe，F03 域 2732/2738/2734/2743/2816/2819）
+ *    删除 → 文件头 ConversationSelectionCore 导入别名接入（listSelectionReferences/selectionLoadErrorOf/
+ *    setSelectionReferences/clearSelectionLoadError/isSelectionAddEvent/selectionAddEventName 六 canonical，
+ *    A1-P1-B4 逐字真身，any 面超集相容；模块级 Map 存取与事件名同束真形）。
+ *    消费面实证（6 件共 10 处）：7621/7622/7624×2/7630/7637/7640×2/7642×2/7657 逐字不变。 ── */
 interface SessionScopedReference {
   id: string;
   status?: string;
@@ -7618,7 +7619,7 @@ export function SelectionsChip({ references: e, onRemove: t, onRemoveAll: n }: {
 
 /** tZe → useSessionScopedReferences（js 69225） */
 export function useSessionScopedReferences(args: { sessionId: string | null; workspaceKey: string }) { // 〔A0-S4-4b〕补 export：pptx 族迁出后消费（函数声明提升，环安全）。〔A1-R21〕sessionId 型缝放宽（见上方 F03 declare 注）：Home useConversationSelections declare 收敛消费
-  const [references, setReferences] = React.useState(() => readSessionScopedReferences(args.sessionId, args.workspaceKey));
+  const [references, setReferences] = React.useState<SessionScopedReference[]>(() => readSessionScopedReferences(args.sessionId, args.workspaceKey)); // 〔型缝 A1-R138〕declare 时代返回面 SessionScopedReference[] 之状态型显式登记（canonical any 面，编译期擦除）
   const [limitReason, setLimitReason] = React.useState(() => readSessionScopedLimitReason(args.sessionId, args.workspaceKey));
   React.useEffect(() => {
     (setReferences(readSessionScopedReferences(args.sessionId, args.workspaceKey)), setLimitReason(readSessionScopedLimitReason(args.sessionId, args.workspaceKey)));
