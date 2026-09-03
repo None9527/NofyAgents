@@ -737,7 +737,7 @@ interface SessionListItem {
  *    同形组件 UsageStatsUiParts.InfoTooltip 已导出，供后续波次按需接线。 ── */
 /* A0-CLEANUP2 item 47：TooltipRoot declare 删除 → import { InfoTooltip as TooltipRoot } from './UsageStatsUiParts'（原 Ia = u 导出，title/shortcut/triggerRef 面吻合）。 */
 /* ── tombstone（A0-D）：TooltipTrigger/TooltipContent declare 删除 → import from './UsageStatsUiParts'（radix 导出）。 ── */
-declare const PopoverRoot: React.ComponentType<Record<string, unknown> & { children?: React.ReactNode }>;
+/* ── tombstone〔A1-R141〕：declare const PopoverRoot（C3）删除——伪面销账：全树零消费（word-boundary 实测仅本声明位）；radix popover 原语 declare 面，后续转录如需按 @radix-ui/react-popover 真实 import 取回（A0-S3c radix 族同判）。 ── */
 
 /** 13. Radix 菜单/悬浮卡原语（本 chunk 封装区；VO 族 TopBar.tsx 已还原） */
 /* ── tombstone（A0-S3c）：DropdownMenuContent、DropdownMenuGroup、DropdownMenuItem、DropdownMenuLabel、DropdownMenuRadioGroup、DropdownMenuRadioItem、DropdownMenuRoot、DropdownMenuSeparator、DropdownMenuSub、DropdownMenuSubContent、DropdownMenuSubTrigger、DropdownMenuTrigger、HoverCardContent、HoverCardTrigger、SelectRoot declare 删除 → 真实 import（文件头导入块）；映射依据见 A0-S3c.report.md。 ── */
@@ -772,10 +772,10 @@ declare const PluginFallbackIcon: React.ComponentType<{ className?: string }>;
 /* ── tombstone（A1-R22）：CodeCommentIcon declare 删除（原 Cye，Sa('code-xml') vendored，js 26969）→ npm lucide-react CodeXml as CodeCommentIcon 真实 import（文件头导入块）；消费面 [B14] CodeCommentsChip 本批逐字化，调用面逐字不变。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：TrashIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /* ── tombstone（A1-R22）：CommentGlyphIcon declare 删除（原 _v，Sa('message-square-text') vendored，js 27447）→ npm lucide-react MessageSquareText as CommentGlyphIcon 真实 import（文件头导入块）；消费面 [B14] CodeCommentsChip 本批逐字化，调用面逐字不变。 ── */
-declare const LoginIcon: React.ComponentType<{ className?: string }>;
+/* ── tombstone〔A1-R141〕：declare const LoginIcon 删除——伪面销账：全树零消费（C4 图标块七件中三伪面之一）；vendored lucide 面，后续如需按 A0-S3b 判例 npm lucide-react 真实 import 取回。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：TerminalIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const SubagentGlyphIcon: React.ComponentType<{ className?: string }>;
-declare const AttachmentIcon: React.ComponentType<{ className?: string }>;
+/* ── tombstone〔A1-R141〕：declare const SubagentGlyphIcon 删除——伪面销账：全树零消费；vendored lucide 面，后续如需按 A0-S3b 判例 npm lucide-react 真实 import 取回。 ── */
+/* ── tombstone〔A1-R141〕：declare const AttachmentIcon 删除——伪面销账：全树零消费；vendored lucide 面，后续如需按 A0-S3b 判例 npm lucide-react 真实 import 取回。 ── */
 
 /** 15. testid 常量（src-HCld2afU.js，B5-11；值已回代核实，见文件头） */
 export const MODE_TRIGGER_TESTID = `chat-mode-select-trigger`; // 〔A0-S4-4b〕补 export：[D] configSelectTestId 消费（迁出后 import 取回）
@@ -869,9 +869,11 @@ declare function reportLexicalInputTelemetry(payload: {
   isComposing: boolean;
   taskId?: string;
 }): void;
-declare function isPathWithinWorkspace(workspacePath: string, sourcePath: string): boolean;
+/* ── tombstone〔A1-R141〕：declare function isPathWithinWorkspace 删除——伪面销账：全树零消费（C7 遥测/路径/pptx 簇）；路径包含判定 declare 面，后续如需按束真转录取回。 ── */
 /** pptx 域（imeComposition 导出族 + 本 chunk）：事件判定/匹配/去重/键/markdown 装配 */
-declare function isPptxElementAddDetail(detail: unknown): boolean;
+/* ── tombstone〔A1-R141〕：declare function isPptxElementAddDetail 删除——伪面销账：全树零消费
+ *    （§0「留守」名单注 7618–7621 列此名系历史快照，今实测仅本声明位）；pptx detail 判定面，
+ *    后续如需按束真转录取回（buildPptxElementsMarkdown 同族，彼件仍留守待实体化）。 ── */
 declare function buildPptxElementsMarkdown(content: string, elements: PptxElementAddDetail[]): string;
 /* ── tombstone〔A1-R129z〕：declare function extractPptxElementReferencesFromContent
  *    删除 → 文件头 `extractPptxElementReferences as extractPptxElementReferencesFromContent`
