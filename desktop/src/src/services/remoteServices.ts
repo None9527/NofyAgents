@@ -63,8 +63,8 @@ function resolveServicesForContext(input: ServiceResolutionInput): BaseServices 
   return input.isRemoteTarget && !services ? getDisconnectedServices() : (services ?? input.currentContextServices);
 }
 
-/** 原 Tc：工作区是否带远端作用域 */
-function hasRemoteScope(scope: { workspaceIdentity?: string | null; remoteSessionId?: string | null; remoteTarget?: unknown }): boolean {
+/** 原 Tc：工作区是否带远端作用域。〔A1-R142〕补 export：Composer C2 remoteScopeKey 别名消费（束 pqe/WB 消费 bg ≡ 本真身）。 */
+export function hasRemoteScope(scope: { workspaceIdentity?: string | null; remoteSessionId?: string | null; remoteTarget?: unknown }): boolean {
   return !!(scope?.workspaceIdentity?.trim() || scope?.remoteSessionId?.trim() || scope?.remoteTarget);
 }
 
@@ -144,7 +144,7 @@ function resolveRemoteSessionIdFromRegistry(args: {
 
 /** 原 bc：useResolvedRemoteSessionId（工作区路径+优先会话 → 注册表解析） */
 export function useResolvedRemoteSessionId(
-  workspacePath: string | null,
+  workspacePath: string | null | undefined, // 〔A1-R142〕面宽化：Composer C2 别名消费面（原 declare 面 string|undefined；体内 !e 守卫 + ?? 强转运行期 undefined 安全；R136/R137 面级联判例承续）
   preferredRemoteSessionId: string | null | undefined,
   workspaceIdentity?: string | null,
   remoteTarget?: unknown,
@@ -196,7 +196,7 @@ export interface ResolvedWorkspaceServices {
 
 /** 原 Dc（4907–4944）：工作区服务解析（远端会话未就绪时给出等待态） */
 export function useResolvedWorkspaceServices(
-  workspacePath: string | null,
+  workspacePath: string | null | undefined, // 〔A1-R142〕面宽化：同上判（束真 Dc 首参带 !e 守卫；下游 useResolvedRemoteSessionId/isRemoteWorkspaceTarget 面皆 undefined 安全）
   preferredRemoteSessionId: string | null | undefined,
   workspaceIdentity?: string | null,
   remoteTarget?: unknown,

@@ -529,6 +529,9 @@ import { buildFileTreeDragText as fileMentionMarkdown, pluginMentionMarkdown, sk
 import { extractSelectionsFromText as extractConversationSelections, appendSelectionBlockToText as appendConversationSelections, listSelectionReferences as readSessionScopedReferences, selectionLoadErrorOf as readSessionScopedLimitReason, setSelectionReferences as writeSessionScopedReferences, clearSelectionLoadError as clearSessionScopedLimitReason, isSelectionAddEvent as isSessionScopedReferencesChangedEvent, selectionAddEventName as sessionScopedReferencesChangedEventType } from '../components/conversation/ConversationSelectionCore'; // 〔A1-R138〕+7 别名（原 Moe/Cs/ws/Doe/Ooe/Foe/Ioe，F03 域 2761/2732/2738/2734/2743/2816/2819；消费面 7170/7621–7657 逐字不变） // 〔A1-R129z〕原 Noe（styles 74669 / F03 域 2775）declare 改指（canonical = ConversationSelectionCore A1-P1-B4 逐字真身；parseComposerContextContent 消费面）。环安全：纯 TS 叶，仅 SrcSharedB 边
 import { resolveFileIconMeta as resolveFileIcon, FileIconWithName as FileRow, FOLDER_ICON_SRC as DIRECTORY_ICON_SRC, DEFAULT_FILE_ICON_SRC as DOCUMENT_ICON_SRC, FALLBACK_DOCUMENT_ICON_DATA_URL as DOCUMENT_FALLBACK_ICON_SRC } from '../components/conversation/FileIconBlocks'; // 〔A1-R139〕文件图标族五别名（原 zc/Bc/Fc/Ic/Mc，5198/5205/5173/5174/5159；canonical = A1-P1-B15 逐字真身；消费面 2223/2225/2234/3488 逐字不变）。环安全：叶仅 React+MarkdownIntegration 边，无反向
 import { extractPptxElementReferences as extractPptxElementReferencesFromContent } from '../components/ime/ImeComposition'; // 〔A1-R129z〕原 pptx 抽取 declare 改指——束真：styles KXe（2122719）之 `w` = imeComposition 块 m 导出（块首导入 `m as w` ← ./imeComposition-DEYFkwWm.js）≡ 本名原码 ur；canonical = ImeComposition@1164 逐字。一符一家归 imeComposition 域。环安全：ImeComposition 对本文件仅 type-only 回边（A1-R49 判例，编译期擦除）
+import { useWorkspaceTabStore as useWorkspaceTabsSelector, isWorkspaceKindTab as isWorkspaceTab, resolveTabServicesBinding as resolveTabServices, type WorkspaceTab, type SessionRegistrySnapshotState } from './WorkspaceTabsDeep'; // 〔A1-R142〕C2 三别名（原 pc/oc/vc，R1 canonical 属主；remoteServices 头导入 useTabStoreSelector/isWorkspaceTab 同体先例）+ 二型（collectSessionListEndpoints 面校准）。消费面 919/1183/3222/3767 + 929/1193/3223/3770 + 3196 逐字不变。环安全：WTD 运行闭包（zustand/e2eStoreBridge/uuid/SkillStore/sessionRegistryStore/remoteServices）不达本文件
+import { hasRemoteScope as remoteScopeKey, useResolvedRemoteSessionId as resolvePreferredRemoteSessionId, useResolvedWorkspaceServices as useResolvedServices } from '../services/remoteServices'; // 〔A1-R142〕C2 三别名（原 Tc/bc/Dc ≡ 束 pqe/WB/HJe 消费 bg/bc/Dc 同体；hasRemoteScope 补 export 同批；Dc≡useResolvedWorkspaceServices 既判 R136）。消费面 939/1203 + 941/1205 + 2956/3231 逐字不变。环安全：本文件 → ./services → remoteServices 边既成（useBaseServices 转导出），直连无新环类
+import { useSessionRegistryStore as useSessionRegistry, type BaseServices } from '../stores/sessionRegistryStore'; // 〔A1-R142〕C2 一别名（原 Zs；WTD/remoteServices/stores-core 导入先例）+ BaseServices 型（面校准）。消费面 3224–3226 逐字不变。环安全：该 store 运行闭包仅 ./zustand（skillContextStore 边 type-only 编译期擦除，无 Composer 运行环）
 
 /* ============================================================================
  * 0. 外部依赖类型声明（未重建依赖以 declare 挂接；来源见上方清单）
@@ -661,31 +664,15 @@ interface PromptAttachmentTransferService {
     dispose(): void;
   };
 }
-declare function useWorkspaceTabsSelector(selector: (state: any) => unknown): any;
+/* ── tombstone〔A1-R142〕：declare useWorkspaceTabsSelector（原 pc）删除 → 改指 modules/WorkspaceTabsDeep useWorkspaceTabStore（R1 canonical 属主）。消费面实证（4 处）：919/1183/3222/3767 逐字不变；泛型面 (state: any)→T 双变可赋，3222 选择器经上下文型化得 WorkspaceTab[]。 ── */
 /* ── tombstone〔A1-R39〕：declare shallowSelector（原 co）删除 → 改指 modules/SrcSharedB useShallowSelector（co 真身：styles-local 1033-1039 ≡ lib/shallowSelector.ts 公共叶，A1-R38 迁叶裁定；SrcSharedB 转导出面在位）。消费面实测（4 处改名改指 ≡ bundle settings 63494 区）：@912/@947（useSubagentsContext≡pqe 63490，co 消费 63494/63523）/@1176/@1211（useSkillsContext≡WB 63680，co 消费 63684/63713）。负证据：本文件 co 面全集 4 处；型面 (state: any)→T 与公共叶 (e: any) 双变可赋。 ── */
-declare function isWorkspaceTab(tab: unknown): tab is { workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null };
-declare function remoteScopeKey(args: {
-  workspaceIdentity?: string | null;
-  remoteSessionId?: string | null;
-  remoteTarget?: string | null;
-}): boolean;
-declare function resolvePreferredRemoteSessionId(
-  workspacePath: string,
-  preferredRemoteSessionId: string | null | undefined,
-  workspaceIdentity?: string | null,
-  remoteTarget?: string | null,
-): string | null | undefined;
-declare function resolveTabServices(tab: unknown, baseServices: unknown, resolverState: unknown):
-  | { services: { zcodeAgentService: ZcodeAgentService }; remoteSessionId?: string | null }
-  | null;
-declare function useResolvedServices(
-  workspacePath: string | undefined, // 〔A1-R136〕面校准：束真 Dc 首参带 !e 守卫（remoteServices useResolvedWorkspaceServices 面 string|null 同判），超集面宽化
-  remoteSessionId: string | null | undefined,
-  workspaceIdentity?: string | null,
-  extra?: unknown,
-): { services: { zcodeAgentService: ZcodeAgentService; pluginManagementService: PluginManagementService }; remoteSessionId?: string | null; isRemoteTarget: boolean; rpcReady: boolean };
+/* ── tombstone〔A1-R142〕：declare isWorkspaceTab（原 oc）删除 → 改指 modules/WorkspaceTabsDeep isWorkspaceKindTab（R1 canonical；AutomationsMain A1-R2 / WorkspaceShell P2-B2 别名先例）。谓词面 → boolean 面：消费面 929/1193/3223/3770 皆守卫/过滤用，无收窄依赖（P2-B2 逐点判例）；filter(isWorkspaceTab) 前后型不变。 ── */
+/* ── tombstone〔A1-R142〕：declare remoteScopeKey（原 Tc 横切）删除 → 改指 services/remoteServices hasRemoteScope（canonical 真身，补 export 同批；束 pqe/WB 消费 bg ≡ 本函数）。消费面实证（2 处）：939/1203 逐字不变；面 remoteTarget string|null → canonical unknown 超集相容。 ── */
+/* ── tombstone〔A1-R142〕：declare resolvePreferredRemoteSessionId（原 bc）删除 → 改指 services/remoteServices useResolvedRemoteSessionId（canonical 真身；束 pqe/WB 消费 bc(e, preferredRemoteSessionId, identity, remoteTarget) 四参同形）。消费面实证（2 处）：941/1205 逐字不变；返回面 string|null|undefined → canonical string|null 子集相容（消费面皆 ?? 链）。 ── */
+/* ── tombstone〔A1-R142〕：declare resolveTabServices（原 vc）删除 → 改指 modules/WorkspaceTabsDeep resolveTabServicesBinding（canonical 真身；束 VJe 消费 vc(a, baseServices, serviceResolverState) 同形，R126/R129 buildScopedServices 改指同判在案）。消费面实证（1 处）：3196 逐字不变；面校准：collectSessionListEndpoints 三参面 unknown → 真面（BaseServices/SessionRegistrySnapshotState/WorkspaceTab[]），services 面 BaseServices 消费铸 ×2（VJe 体内型缝）。 ── */
+/* ── tombstone〔A1-R142〕：declare useResolvedServices（原 Dc）删除 → 改指 services/remoteServices useResolvedWorkspaceServices（canonical 真身 4907–4944；R136 既判 Dc≡useResolvedWorkspaceServices，首参面宽化 string|null|undefined 同批承续）。消费面实证（2 处）：2956/3231 逐字不变；返回面超集相容（connectionKind 增项不消费）；services 面 ResolvedBaseServices 消费铸 ×4（2966/2991/2994/3243 型缝，二段收敛判例）。 ── */
 /* ── tombstone（A0-D）：workspaceKey declare 删除 → SkillStore b 导出 resolveWorkspaceKey（alias workspaceKey）。 ── */
-declare function useSessionRegistry(selector: (state: any) => unknown): any;
+/* ── tombstone〔A1-R142〕：declare useSessionRegistry（原 Zs）删除 → 改指 stores/sessionRegistryStore useSessionRegistryStore（canonical 真身）。消费面实证（3 处）：3224–3226 逐字不变；选择器 (state: any)→T 上下文型化（SessionRegistryState 三索引字段全合）。 ── */
 declare function useSessionListsHydrator(endpoints: SessionListEndpoint[]): {
   items: SessionListItem[];
   hydratingEndpointKeys: string[];
@@ -2964,7 +2951,7 @@ export function usePluginReferenceCatalog(
   const rpcReady = resolved.rpcReady;
   React.useEffect(() => {
     if (!enabled || !workspacePath || !sessionId || !rpcReady) return;
-    const subscription = services.zcodeAgentService.onAgentRuntimeRestarted((event) => {
+    const subscription = (services.zcodeAgentService as unknown as ZcodeAgentService).onAgentRuntimeRestarted((event) => { // 〔型缝 A1-R142〕AutomationsAgentService 索引签名面 → 本地 onAgentRuntimeRestarted 面（运行期同物；telemetryScopes@261 二段收敛判例）
       event.workspaceKey === effectiveIdentity && setRuntimeEpoch((prev) => prev + 1);
     });
     return () => subscription.dispose();
@@ -2988,10 +2975,10 @@ export function usePluginReferenceCatalog(
         let cache = pluginCatalogRequestCache.get(services);
         cache || ((cache = new Map()), pluginCatalogRequestCache.set(services, cache));
         const pending = cache.get(requestKey);
-        ((request = pending ?? services.pluginManagementService.getPluginReferenceCatalog(requestArgs)),
+        ((request = pending ?? (services.pluginManagementService as unknown as PluginManagementService).getPluginReferenceCatalog(requestArgs)), // 〔型缝 A1-R142〕canonical PluginService 面无 getPluginReferenceCatalog → 本地面二段收敛（运行期同物）
           (dedupeCache = cache),
           pending || (cache.set(requestKey, request), trackPluginCatalogRequest(services, cache, requestKey, request)));
-      } else request = services.pluginManagementService.getPluginReferenceCatalog(requestArgs);
+      } else request = (services.pluginManagementService as unknown as PluginManagementService).getPluginReferenceCatalog(requestArgs); // 〔型缝 A1-R142〕同上判
       return (
         request
           .then((result) => {
@@ -3169,14 +3156,14 @@ function limitSessionsPerWorkspace(items: SessionSuggestionItem[]): SessionSugge
 
 /** 原 VJe（js 65535）：收集会话列表端点（当前工作区 + 标签页，按服务实例去重） */
 function collectSessionListEndpoints(args: {
-  baseServices: unknown;
+  baseServices: BaseServices; // 〔A1-R142〕面校准：unknown → 真面（束 VJe 实参 = Ec() 解析服务）
   currentRemoteSessionId?: string | null;
-  currentServices: { zcodeAgentService: ZcodeAgentService };
+  currentServices: { zcodeAgentService: unknown }; // 〔A1-R142〕面校准：ZcodeAgentService → unknown 宽面（实参真面 ResolvedBaseServices.zcodeAgentService = AutomationsAgentService 不重叠；3197 比较面运行期同物）
   currentWorkspaceIdentity?: string | null;
   currentWorkspacePath: string | undefined; // 〔A1-R137〕面级联
   enabled: boolean;
-  serviceResolverState: unknown;
-  workspaceTabs: unknown[];
+  serviceResolverState: SessionRegistrySnapshotState; // 〔A1-R142〕面校准：unknown → 真面（束 VJe 实参 = sessionRegistryModel memo 三索引）
+  workspaceTabs: WorkspaceTab[]; // 〔A1-R142〕面校准：unknown[] → 真面（束 VJe 实参 = tabs.filter(oc)）
 }): SessionListEndpoint[] {
   if (!args.enabled) return [];
   const currentAgentService = args.currentServices.zcodeAgentService;
@@ -3201,7 +3188,7 @@ function collectSessionListEndpoints(args: {
         workspacePath: (candidate as any).workspacePath,
         ...((candidate as any).workspaceIdentity ? { workspaceIdentity: (candidate as any).workspaceIdentity } : {}),
         ...(resolved.remoteSessionId ? { endpointKey: resolved.remoteSessionId } : {}),
-        agentService: resolved.services.zcodeAgentService,
+        agentService: resolved.services.zcodeAgentService as unknown as ZcodeAgentService, // 〔型缝 A1-R142〕BaseServices.zcodeAgentService（AutomationsAgentService|undefined）→ 端点面（运行期同物；二段收敛判例）
       }));
   }
   return endpoints;
@@ -3240,7 +3227,7 @@ function useSessionSuggestions(
                   workspacePath,
                   ...(workspaceIdentity ? { workspaceIdentity } : {}),
                   ...(remoteSessionId ? { endpointKey: remoteSessionId } : {}),
-                  agentService: services.zcodeAgentService,
+                  agentService: services.zcodeAgentService as unknown as ZcodeAgentService, // 〔型缝 A1-R142〕ResolvedBaseServices.zcodeAgentService（AutomationsAgentService）→ 端点面（运行期同物；二段收敛判例）
                 },
               ]
             : collectSessionListEndpoints({
