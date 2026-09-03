@@ -190,6 +190,7 @@
  */
 
 import * as React from "react";
+import { shortcutLabel } from '../../lib/keyboardShortcuts'; // 〔A1-R124〕原 $i declare 改指——keyboardShortcuts chunk 全量逐字转录 canonical
 import { Tabs as TabsRoot } from '../../modules/Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { ContextMenu, ContextMenuContent, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../ui/context-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
@@ -263,8 +264,7 @@ type WebRemoteControlStatus =
 
 /** toast（原 m，imeComposition chunk） */
 
-/** 快捷键文案（原 $i）：`shortcutLabel("N")` → “Ctrl+N” */
-declare function shortcutLabel(key: string): string;
+/* ── tombstone〔A1-R124〕shortcutLabel（原 $i）declare 删改指 lib/keyboardShortcuts（调用点 1229/3846/5096/5101/5106 逐字不变）。 ── */
 
 /** 日志器（原 J） */
 
@@ -273,8 +273,8 @@ declare function shortcutLabel(key: string): string;
  *    型面：canonical 为 plain object（非 enum），补同名型别名（成员值并，即 string 面），242/4867 型注逐字保留。 ── */
 type DesktopCommand = (typeof DesktopCommand)[keyof typeof DesktopCommand];
 
-/** IME 回车守卫（原 A，imeComposition chunk） */
-declare function isImeEnter(args: { compositionActive: boolean; nativeEvent: React.KeyboardEvent["nativeEvent"] }): boolean;
+/* ── tombstone〔A1-R124〕isImeEnter（原 A）死 declare 删——本文件零调用点（全文 grep 实证；R41 判例）；
+ *    活体消费面在 TopBar（同批改指 modules/ImeComposition::isComposingText）。 ── */
 
 /* ============================================================================
  * 1. 领域类型（任务 / 分组 / 工作区标签）

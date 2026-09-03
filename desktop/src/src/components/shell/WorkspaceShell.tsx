@@ -194,6 +194,7 @@
  */
 
 import * as React from "react";
+import { shortcutLabel, ctrlShiftShortcutLabel as shortcutLabelVariant } from '../../lib/keyboardShortcuts'; // 〔A1-R124〕原 $i/ee declare 改指（R1 判例别名保留调用名；ee ≡ chunk 导出 r = Ctrl+Shift 形）
 import { X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, createLucideIcon } from '../../modules/button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { workspaceKeyOf } from '../../modules/CodeViewer';
@@ -258,9 +259,8 @@ interface IntlShape {
 
 /** toast（原 m，imeComposition chunk） */
 
-/** 快捷键文案（原 $i / Vre，keyboardShortcuts chunk）：$i('N') → 'Ctrl+N' */
-declare function shortcutLabel(key: string): string;
-declare function shortcutLabelVariant(key: string): string;
+/* ── tombstone〔A1-R124〕shortcutLabel（原 $i）/shortcutLabelVariant（原 ee ≡ chunk 导出 r，styles `r as Bre`，Ctrl+Shift 形）
+ *    declare 删改指 lib/keyboardShortcuts（调用点 5126–5132 逐字不变）。 ── */
 
 /* ── tombstone〔A1-P2-B1〕：declare DesktopCommand（原 oi）删除 → 改名改指 SrcSharedB DesktopMenuActionIds
  *    （oi 真身：styles 672 `ft as oi` ← src chunk `DesktopMenuActionIds as ft` ≡ SrcSharedB@5231；rendererEntry@43 同改指先例）。

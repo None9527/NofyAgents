@@ -128,6 +128,7 @@
  */
 
 import * as React from "react";
+import { shortcutLabel } from '../../lib/keyboardShortcuts'; // 〔A1-R124〕原 $i declare 改指——keyboardShortcuts chunk 全量逐字转录 canonical（styles 868 `n as $i`）
 import { Check as IconCheck, Search as IconSearch, List as IconList, Rocket as IconRocket, MessagesSquare as IconMessagesSquare, File as IconFile, Trash2 as IconTrash, ChevronDown as IconChevronDown, MessageSquare as IconMessageSquare, MessageCirclePlus as IconMessageCirclePlus, PanelLeftClose as IconPanelLeftClose, PanelLeftOpen as IconPanelLeftOpen, SquareTerminal as IconSquareTerminal, BookOpen as IconBookOpen, Users as IconUsers, FileDiff as IconFileDiff, FolderOpen as IconFolderOpen, LogIn as IconLogIn, LogOut as IconLogOut, Server as IconServer, Settings as IconSettings, WandSparkles as IconWandSparkles, Moon as IconMoon, Sun as IconSun, Globe as IconGlobe, MessageCircle as IconMessageCircle, ArrowUp as IconArrowUp, ArrowDown as IconArrowDown, X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 /* ── tombstone（A0-D-Misc）：原 `import { normalizeWorkspaceScopes } from './126518'` 退回 declare——
  *    chunk 号模块不存在（TS2307）；oje（35647）无正规重建属主，按重建基准恢复 declare 挂接。 ── */
@@ -156,8 +157,7 @@ interface IntlShape {
 
 /** toast（原 m，imeComposition chunk 的 _ 导出） */
 
-/** 快捷键文案：`shortcutLabel("N")` → “Ctrl+N”（原 $i） */
-declare function shortcutLabel(key: string): string;
+/* ── tombstone〔A1-R124〕shortcutLabel（原 $i）declare 删改指 lib/keyboardShortcuts（keyboardShortcuts-BGHopxr9.js 导出 n 逐字；调用点逐字不变）。 ── */
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 

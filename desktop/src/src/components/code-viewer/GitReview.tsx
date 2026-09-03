@@ -203,6 +203,7 @@
  */
 
 import * as React from "react";
+import { shortcutLabel, shortcutMatches } from '../../lib/keyboardShortcuts'; // 〔A1-R124〕原 $i/ta declare 改指——keyboardShortcuts chunk 全量逐字转录 canonical（头注 7 项登记兑现）
 import { ContextMenu, ContextMenuContent, ContextMenuSeparator, ContextMenuTrigger } from '../ui/context-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { HoverCardTooltip as TooltipRoot, HoverCardTooltipContent as TooltipContent, HoverCardTooltipTrigger as TooltipTrigger } from '../ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
@@ -262,11 +263,8 @@ interface PlatformService {
   getInstalledEditors(): Promise<InstalledEditor[]>;
 }
 
-/** 快捷键文案：`shortcutLabel("⏎")` → “Ctrl+Enter / ⏎”（原 $i） */
-declare function shortcutLabel(key: string): string;
-
-/** 快捷键匹配（原 ta，keyboardShortcuts-BGHopxr9.js 的 u 导出；⏎ = 无修饰回车） */
-declare function shortcutMatches(event: { key: string; shiftKey: boolean; altKey: boolean; ctrlKey: boolean; metaKey: boolean }, label: string): boolean;
+/* ── tombstone〔A1-R124〕shortcutLabel（原 $i）/shortcutMatches（原 ta ≡ chunk 导出 u）declare 删改指
+ *    lib/keyboardShortcuts（调用点 2757 + 匹配面逐字不变）。 ── */
 
 /** zustand（原 Ae = skillStore chunk 导出的 create；约定同 stores-core.tsx） */
 type SetState<T> = (partial: Partial<T> | ((state: T) => Partial<T>), replace?: boolean) => void;

@@ -124,6 +124,8 @@
  */
 
 import * as React from "react";
+import { shortcutLabel } from '../../lib/keyboardShortcuts'; // 〔A1-R124〕原 $i declare 改指——keyboardShortcuts chunk 全量逐字转录 canonical
+import { isComposingText as isImeEnter } from '../../modules/ImeComposition'; // 〔A1-R124〕原 A declare 改指（R1 判例别名保留调用名；probe 面超集覆盖）
 import { ShadcnTooltipProvider as PopoverRoot } from '../../modules/UsageStatsUiParts'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { PopoverContent as PopoverContentPrimitive, PopoverTrigger as PopoverTriggerPrimitive } from '../../modules/ImeComposition'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
@@ -195,8 +197,7 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** toast（原 m / b：弹出 / 关闭，imeComposition chunk 的 _ 导出） */
 
-/** 快捷键文案：`shortcutLabel("N")` → “Ctrl+N”（原 $i） */
-declare function shortcutLabel(key: string): string;
+/* ── tombstone〔A1-R124〕shortcutLabel（原 $i）declare 删改指 lib/keyboardShortcuts（调用点 1297/1302/1380 逐字不变）。 ── */
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
@@ -2540,7 +2541,7 @@ export function TaskRenameDialog({
 
 
 
-declare function isImeEnter(args: { compositionActive: boolean; nativeEvent: React.KeyboardEvent["nativeEvent"] }): boolean;
+/* ── tombstone〔A1-R124〕isImeEnter（原 A，imeComposition chunk _r@12567）declare 删改指 modules/ImeComposition::isComposingText（canonical ImeComposition@472 逐字；Bots@83/ElicitationDialog@8 判例；调用点 2510 逐字不变）。 ── */
 
 /* ============================================================================
  * 5.5 TaskActionMenuItems（原 oFt，js 142183 / jsx 118106）

@@ -150,6 +150,7 @@
  */
 
 import * as React from "react";
+import { shortcutLabel, ctrlAltShortcutLabel } from '../../lib/keyboardShortcuts'; // 〔A1-R124〕原 $i/Vre declare 改指——keyboardShortcuts chunk 全量逐字转录 canonical（styles 868 `n as $i`/`t as Vre`）
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Button, createLucideIcon } from '../../modules/button'; // A0-CLEANUP 族清理：Button/createLucideIcon declare 改指 button chunk
 import { BrowserUseView, BrowserView, useScreenshotSurfaceRequest } from '../../modules/BrowserPane';
@@ -186,9 +187,7 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** 日志器（原 J） */
 
-/** 快捷键文案：`shortcutLabel("B")` → “Ctrl+B”；`ctrlAltShortcutLabel("B")` → “Ctrl+Alt+B”（原 $i / Vre） */
-declare function shortcutLabel(key: string): string;
-declare function ctrlAltShortcutLabel(key: string): string;
+/* ── tombstone〔A1-R124〕shortcutLabel（原 $i）/ctrlAltShortcutLabel（原 Vre）declare 删改指 lib/keyboardShortcuts（chunk 导出 n/t 逐字；调用点逐字不变）。 ── */
 /** 键盘事件匹配（原 ta=Ctrl/Cmd+key、Qi=Ctrl+Shift+key、Rre=Ctrl+Alt+key） */
 declare function isPrimaryShortcut(event: React.KeyboardEvent | KeyboardEvent, key: string): boolean;
 declare function isShiftShortcut(event: React.KeyboardEvent | KeyboardEvent, key: string): boolean;
