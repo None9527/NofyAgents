@@ -517,7 +517,7 @@ import { HistoryPlugin as LexicalHistoryPlugin } from '@lexical/react/LexicalHis
 import { RichTextPlugin as LexicalRichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'; // A0-S3d：导出名 RichTextPlugin，语义别名保留
 import { Spinner } from './Home';
 import { toast, usePlatformService, type PlatformService } from './ImeComposition'; // 〔A0-S4-4b〕PopoverAnchor/PopoverContent/PopoverTrigger 随 pptx 族迁出后留守面仅余 toast；〔A1-R49〕+usePlatformService/type PlatformService（原 l declare 改指 canonical 富面，本地五员面碑化）
-import { create as createStore, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, useWhiteboardStore } from './SkillStore'; // +createStore（A0-S2d 接线：原 zustand create declare → SkillStore q 导出）；+workspaceKey（A0-D 接线：declare → SkillStore b 导出 resolveWorkspaceKey）
+import { create as createStore, logger, resolveWorkspaceKey as workspaceKey, useTaskStore, useWhiteboardStore, useWhiteboardStore as whiteboardStore, getWorkspaceTaskState as taskScopeSelector, resolveWhiteboardWorkspaceKey as whiteboardScopeKey, whiteboardToPngFile as exportWhiteboardToPngFile, isWhiteboardAddToChatEvent as isWhiteboardMentionAddEvent, WHITEBOARD_ADD_TO_CHAT_EVENT as WHITEBOARD_MENTION_ADD_EVENT_TYPE, getSubagentContextScopeKey as subagentContextKey, useSubagentContextsStore as useSubagentStore, useSubagentsStore as useShallowSubagentLoadedState, useSkillsStore as useShallowSkillLoadedState } from './SkillStore'; // 〔A1-R140〕+10 别名（原 S/W/In/jn/Mn/Cn/Y/Bn/Gn/Ne，jsx 195/1807/1923/1868/1879/1805/2018/2094/2161/2387；四 store 转导出面现成；消费面逐字不变） // +createStore（A0-S2d 接线：原 zustand create declare → SkillStore q 导出）；+workspaceKey（A0-D 接线：declare → SkillStore b 导出 resolveWorkspaceKey）
 import { normalizeProviderId, useShallowSelector } from './SrcSharedB'; // 〔A1-R39〕+useShallowSelector（co 真身：styles 1033-1039 ≡ lib/shallowSelector，SrcSharedB 转导出面 R38 补）：shallowSelector declare 收敛改指，见下墓碑
 import { useBaseServices, useServices } from './services'; // 原 fs（bundle 2675）= services.tsx useServices（context 面）；基线误名 useWorkspaceServices（= Oc，带参解析面），A0-D 裁决改接 useServices
 import { InfoTooltip as TooltipRoot, TooltipContent, TooltipTrigger } from './UsageStatsUiParts'; // 原 fN/pN + Ia（A0-D 接线 + A0-CLEANUP2 item 47：TooltipRoot declare → InfoTooltip 属主导出）
@@ -573,32 +573,32 @@ export interface TempTextAttachmentMeta {
 interface TaskStoreState {
   [key: string]: unknown;
 }
-declare function taskScopeSelector(state: TaskStoreState, workspacePath: string | undefined, workspaceIdentity?: string | null): any; // 〔A1-R137〕面级联
+/* ── tombstone〔A1-R140〕：declare function taskScopeSelector（原 S，jsx 195 导出 V）删除 →
+ *    文件头 SkillStore 导入别名接入（getWorkspaceTaskState as taskScopeSelector；
+ *    canonical = stores/taskStore@348 逐字真身）。面校准：canonical 首参宽化
+ *    string | undefined + 体内双 cast（运行期恒在）。消费面实证（2 处）：1911/3767 逐字不变。 ── */
 interface WhiteboardStoreState {
   workspaces: Record<
     string,
     { boardIds: string[]; boardsById: Record<string, WhiteboardBoard | undefined> } | undefined
   >;
 }
-declare function whiteboardScopeKey(args: { workspacePath: string | undefined; workspaceIdentity?: string | null }): string; // 〔A1-R137〕面级联
-declare const whiteboardStore: {
-  getState(): {
-    getBoard(args: { boardId: string; workspaceIdentity?: string | null; workspacePath: string }): WhiteboardBoard | undefined;
-  };
-};
-declare function exportWhiteboardToPngFile(board: WhiteboardBoard): File;
-declare function isWhiteboardMentionAddEvent(
-  event: Event,
-): event is CustomEvent<{ workspacePath: string; workspaceIdentity?: string | null; boardId: string }>;
-declare const WHITEBOARD_MENTION_ADD_EVENT_TYPE: string;
+/* ── tombstone〔A1-R140〕：declare 五件（原 W/In/jn/Mn/Cn，jsx 1807/1923/1868/1879/1805）删除 →
+ *    文件头 SkillStore 导入别名接入（resolveWhiteboardWorkspaceKey/useWhiteboardStore/
+ *    whiteboardToPngFile/isWhiteboardAddToChatEvent/WHITEBOARD_ADD_TO_CHAT_EVENT，
+ *    canonical = stores/whiteboardStore 逐字真身）。面校准二件：resolveWhiteboardWorkspaceKey
+ *    首参宽化 + 体内 cast；isWhiteboardAddToChatEvent 返回面 boolean → 型谓词
+ *    （编译期擦除；消费面 6275–6279 event.detail 窄化所依）。
+ *    消费面实证（6 处）：3287/6254/6260/6275/6276×2/6279×2 逐字不变。 ── */
 interface WhiteboardBoard {
   id: string;
   name: string;
   strokes: unknown[];
 }
-declare function subagentContextKey(workspacePath: string, provider: string, workspaceIdentity?: string): string;
-declare function useSubagentStore(selector: (state: any) => unknown): any;
-declare function useShallowSubagentLoadedState(selector: (state: any) => unknown): any;
+/* ── tombstone〔A1-R140〕：declare 三件（原 Y/Bn/Gn，jsx 2018/2094/2161）删除 →
+ *    文件头 SkillStore 导入别名接入（getSubagentContextScopeKey/useSubagentContextsStore/
+ *    useSubagentsStore，canonical = stores/subagentsStore 逐字真身；contexts/initialize/
+ *    refresh/setEnabled 与 loaded* 字段面全合）。消费面实证（6 处）：945/946–949/950 逐字不变。 ── */
 
 /** 9. 本 chunk 横切 stores/services（已部分重建；按消费面 declare 挂接） */
 interface WorkspaceFileEntry {
@@ -972,8 +972,8 @@ export function useSubagentsContext(
     remoteReady && workspacePath && (await refresh(workspacePath, provider, subagentsService, effectiveIdentity));
   }, [provider, refresh, subagentsService, effectiveIdentity, workspacePath, remoteReady]);
   const handleSetEnabled = React.useCallback(
-    async (scope: string, skillId: string, enabled: boolean) => {
-      remoteReady && workspacePath && (await setEnabled(workspacePath, provider, scope, skillId, enabled, subagentsService, effectiveIdentity));
+    async (agentId: string, enabled: boolean) => { // 〔A1-R140〕面校准：束 pqe g 真形 = 2 参 6 箭（styles 1962272 async (n, i) => f(e, t, n, i, r, o) → Bn.setEnabled 6 参面）；旧转录误取 WB 3 参 7 箭之形（declare any 期潜缝；束内此面零调用，运行期无变）
+      remoteReady && workspacePath && (await setEnabled(workspacePath, provider, agentId, enabled, subagentsService, effectiveIdentity));
     },
     [provider, setEnabled, subagentsService, effectiveIdentity, workspacePath, remoteReady],
   );
@@ -1113,11 +1113,11 @@ interface SkillContextStoreState {
   contexts: Record<string, SkillContextEntry | undefined>;
   initialize(workspacePath: string, provider: string, skillsService: SkillsService, workspaceIdentity?: string): Promise<void>;
   refresh(workspacePath: string, provider: string, skillsService: SkillsService, workspaceIdentity?: string): Promise<void>;
-  setEnabled(
+  setEnabled( // 〔A1-R140〕面校准：束 UB setEnabled 槽序（styles 1965136：第3槽=skillId，第4槽=scope；体 scope: a, skillId: i）；旧转录误对两槽名（此面零调用，运行期无变）
     workspacePath: string,
     provider: string,
-    scope: string,
     skillId: string,
+    scope: string,
     enabled: boolean,
     skillsService: SkillsService,
     workspaceIdentity?: string,
@@ -1147,7 +1147,7 @@ export const useSkillContextStore = createStore<SkillContextStoreState>((set, ge
       get,
     );
   },
-  async setEnabled(workspacePath, provider, scope, skillId, enabled, skillsService, workspaceIdentity) {
+  async setEnabled(workspacePath, provider, skillId, scope, enabled, skillsService, workspaceIdentity) {
     const normalizedProvider = normalizeProviderId(provider);
     try {
       (await skillsService.setEnabled({
@@ -1236,8 +1236,8 @@ export function useSkillsContext(
     remoteReady && workspacePath && (await refresh(workspacePath, provider, skillsService, effectiveIdentity));
   }, [provider, refresh, skillsService, effectiveIdentity, workspacePath, remoteReady]);
   const handleSetEnabled = React.useCallback(
-    async (scope: string, skillId: string, enabled: boolean) => {
-      remoteReady && workspacePath && (await setEnabled(workspacePath, provider, scope, skillId, enabled, skillsService, effectiveIdentity));
+    async (skillId: string, scope: string, enabled: boolean) => { // 〔A1-R140〕面校准：束 WB g 参序 (n, i, a) → UB 槽3=skillId/槽4=scope（styles 1967458）；旧转录误对两名（此面零调用，运行期无变）
+      remoteReady && workspacePath && (await setEnabled(workspacePath, provider, skillId, scope, enabled, skillsService, effectiveIdentity));
     },
     [provider, setEnabled, skillsService, effectiveIdentity, workspacePath, remoteReady],
   );
@@ -1253,8 +1253,10 @@ export function useSkillsContext(
     [contextEntry, loadedContext, handleRefresh, handleSetEnabled, isLoadedContext, workspacePath, remoteReady],
   );
 }
-/** Ne（skillStore 导出）：技能 loaded 上下文的 shallow 消费钩 */
-declare function useShallowSkillLoadedState(selector: (state: any) => unknown): any;
+/* ── tombstone〔A1-R140〕：declare function useShallowSkillLoadedState（原 Ne ≡ Yn，jsx 2387 导出 t）
+ *    删除 → 文件头 SkillStore 导入别名接入（useSkillsStore as useShallowSkillLoadedState；
+ *    canonical = stores/skillsStore@100 逐字真身，与 600 号 Gn 孪生；loaded* 字段面全合）。
+ *    消费面实证（1 处）：1214 逐字不变。 ── */
 /** ni（本 chunk 横切）：供应商 id 归一 */
 
 /* ============================================================================
@@ -1910,7 +1912,7 @@ function toSlashPanelMention(item: MentionSuggestionItem): MentionPayload {
 
 /** 原 qqe（js 64274）：会话斜杠命令（任务 store 消费面） */
 function useSessionSlashCommands(workspacePath: string | undefined, workspaceIdentity?: string | null): SessionSlashCommand[] { // 〔A1-R137〕面级联
-  return useTaskStore((state) => taskScopeSelector(state, workspacePath, workspaceIdentity).slashCommands);
+  return useTaskStore((state) => taskScopeSelector(state, workspacePath, workspaceIdentity).slashCommands as SessionSlashCommand[]); // 〔型缝 A1-R140〕实存 unknown[] 宽面 → 会话斜杠命令面（运行期同物；R129n bFt 判例）
 }
 
 export interface AppSlashCommand {

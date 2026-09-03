@@ -347,11 +347,11 @@ interface TaskStoreState {
 /** 原 S（jsx 195）：取工作区任务状态（身份键回退路径键；导出 V）。 */
 function getWorkspaceTaskState(
   state: TaskStoreState,
-  workspacePath: string,
+  workspacePath: string | undefined, // 〔型缝 A1-R140〕面级联：R137 消费面带 undefined（运行期恒在，束真直调同判）
   workspaceIdentity?: string | null,
 ): WorkspaceTaskState {
-  const fallback = state.workspaces[workspacePath] ?? getDefaultWorkspaceTaskState();
-  const resolvedKey = resolveWorkspaceKey(workspacePath, workspaceIdentity);
+  const fallback = state.workspaces[workspacePath as string] ?? getDefaultWorkspaceTaskState();
+  const resolvedKey = resolveWorkspaceKey(workspacePath as string, workspaceIdentity);
   return resolvedKey === workspacePath ? fallback : state.workspaces[resolvedKey] || fallback;
 }
 

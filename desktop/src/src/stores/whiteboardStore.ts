@@ -56,8 +56,8 @@ interface WhiteboardStoreState {
 }
 
 /** 原 W（jsx 1807）：白板工作区键（身份优先；导出 l）。 */
-function resolveWhiteboardWorkspaceKey(args: { workspacePath: string; workspaceIdentity?: string | null }): string {
-  return args.workspaceIdentity?.trim() || args.workspacePath;
+function resolveWhiteboardWorkspaceKey(args: { workspacePath: string | undefined; workspaceIdentity?: string | null }): string { // 〔型缝 A1-R140〕面级联：R137 消费面带 undefined（运行期恒在，束真直调同判）
+  return args.workspaceIdentity?.trim() || (args.workspacePath as string);
 }
 
 /** 原 Tn（jsx 1813）：创建白板。 */
@@ -160,7 +160,7 @@ function whiteboardToPngFile(board: WhiteboardBoard): File {
 
 /** 原 Mn（jsx 1879）：是否「白板加入聊天」事件（导出 m）。
  *  原码 `typeof CustomEvent < 'u'` = minified `typeof CustomEvent !== 'undefined'`（逐字保留）。 */
-function isWhiteboardAddToChatEvent(event: Event): boolean {
+function isWhiteboardAddToChatEvent(event: Event): event is CustomEvent<WhiteboardAddToChatDetail> { // 〔型缝 A1-R140〕返回面宽化为型谓词（编译期擦除；Composer 6275–6279 event.detail 窄化所依，declare 时代面同形）
   return event.type === `zcode:add-whiteboard-to-chat` && typeof CustomEvent < `u` && event instanceof CustomEvent && isWhiteboardAddToChatDetail(event.detail);
 }
 
