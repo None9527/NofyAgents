@@ -58,25 +58,28 @@ ImeComposition appendPptxElementReferences，皆已在树，别名改指零转�
 | 簇 | 行域 | 件数 | 类 | 目标 |
 |---|---|---|---|---|
 | C1 skillStore 域 | 575–600 | 9 | 别名 | taskStore@348 + whiteboardStore 五员 + subagentsStore 三员（SkillStore 转导出面现成） |
-| C2 横切 stores/services | 663–690 | 8 | 7别名+1实体 | WorkspaceTabsDeep 四员 + remoteServices 二员（666 canonical hasRemoteScope 私有需补 export）+ sessionRegistryStore 一员；688 useSessionListsHydrator 实体化 |
+| C2 横切 stores/services | 663–690 | 8 | 别名 8〔翻案〕 | WorkspaceTabsDeep 四员 + remoteServices 二员（666 canonical hasRemoteScope 私有需补 export）+ sessionRegistryStore 一员；688 useSessionListsHydrator → **别名** TaskListQueryCore useHydratingSessions@77（原记实体化，dossier-E 束取证推翻：A1-P3-B1 ROUNDTRIP EXACT，依赖十二符全在树零转录）〔A1-R143 已施行〕 |
 | C3 PopoverRoot | 739 | 1 | 伪面 | 零消费，删+碑 |
 | C4 图标块 | 767–777 | 7 | 4vendor+3伪面 | 消费四员候 lucide 字形映射；774/776/777 零消费删+碑 |
 | C5 文件图标族 | 788–795 | 5 | 别名 | FileIconBlocks.ts（A1-P1-B15 逐字真身）一整批 |
 | C6 会话域引用存取 | 826–848 | 7 | 别名 | ConversationSelectionCore.ts（A1-P1-B4；@529 同叶 import 先例）一整批 |
-| C7 遥测/路径/pptx | 863–873 | 4 | 混 | 863→StoresDeep 别名；870/872 零消费碑化；873 buildPptxElementsMarkdown 实体化 |
+| C7 遥测/路径/pptx | 863–873 | 4 | 混 | 863→StoresDeep 别名；870/872 零消费碑化；873 buildPptxElementsMarkdown → **别名** ImeComposition appendPptxElementReferences@1149（原记实体化，dossier-E 推翻：GXe 首符 `_`=块首 `c as _`←imeComposition `lr as c`）〔A1-R143 已施行〕 |
 | C8 Ne 技能浅钩 | 1255 | 1 | 别名 | skillsStore@100 useSkillsStore（与 C1 的 600 孪生） |
 
 ## 四、收官路线（风险升序）
 
 1. 纯别名大批：Composer C6（7）→ C5（5）→ C1+C8（10）→ UsageDeep ②（14）→ ③（8）→ ①（11）→ Onboarding B7（3）+B4（1）+B9 别名件。
 2. 伪面销账：Composer C3+C4 伪面三件 + C7 两件（6 件一批）。
-3. 需补 export 的别名：UsageDeep ⑤（PaymentDeep 6 件）、Composer 666、Onboarding 1126。
-4. 实体化批（束真转录）：Composer 688/873、UsageDeep ④⑥⑧、Onboarding B1/B2/B5/B6/B8/B11/816/diffs 二件。
+3. 需补 export 的别名：UsageDeep ⑤（PaymentDeep 6 件）、~~Composer 666~~〔R142 已施行〕、Onboarding 1126。
+4. 实体化批（束真转录）：~~Composer 688/873~~〔翻案为别名，R143 已施行〕、~~UsageDeep ④⑥⑧~~
+   〔dossier-B 翻案：④⑥ 九件实为别名、⑧ 为 3 行微转录，**实体化 0 件**，候 R145〕、
+   Onboarding B1/B2/B5/B6/B8/B11/816/diffs 二件。
 5. vendor 候裁：Composer C4 消费四件（lucide 字形映射）、Onboarding 1132（留）。
 6. 联退件：Onboarding ServicesProvider/ScopeBoundary × AppRootLeaves 双声明。
 
 台账预期：146 件全数退役皆减台账（别名改指/伪面销账/实体化均删 declare 语句——实体化
 「不减台账」系本普查初稿口径误，R129n 判例实证 868→862 含实体化 2 件）。〔A1-R142 修正〕
-余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)=42 件，三域现存 104
-（**Composer 0（R143 域闭，顶群第二闭合域）** + UsageDeep 56 + Onboarding 48）；全退后台账
-735→约 631（vendor/ambient 候裁留痕件除外）。W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。
+余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)+R144(34)=76 件，三域现存 70
+（**Composer 0（R143 域闭，顶群第二闭合域）** + **UsageDeep 22（R144 别名大批 34 件后，56→22）**
++ Onboarding 48）；台账实测 **701**（R144 后），全退后约 631（vendor/ambient 候裁留痕件除外）。
+W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。
