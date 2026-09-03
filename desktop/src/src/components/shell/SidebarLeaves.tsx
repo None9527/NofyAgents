@@ -140,7 +140,7 @@ import { providerIds as PROVIDER_IDS } from '../../modules/SrcSharedA'; // 〔A1
 import { resolveSupplierProvider as resolveSelectedSupplierKey } from '../../modules/ConversationLeaves'; // 〔A1-R128〕Uq 77975 declare 收敛改指（R17 逐字转录：custom:/ghost: 供应商键解析）。环安全：ConversationLeaves 值闭包无 components/shell 边（实测在案）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, resolveProfilePlanAudience, listConfiguredCodingPlanProviders as normalizeCodingPlanProviders, listCodingPlanAudienceSources as resolveTeamSources, fallbackProviderId, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R128〕+hX/pX/PCt 三件改指（listConfiguredCodingPlanProviders as normalizeCodingPlanProviders / listCodingPlanAudienceSources as resolveTeamSources / fallbackProviderId 实体化转导出） // 〔A1-R126〕+resolveProfilePlanAudience（原 uRt 150276，Home §U.3 逐字实体；墓碑见 @422 区） // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
-import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex } from './TaskIndexCore';
+import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex, readTaskIndexCache, buildTaskListFromIndex } from './TaskIndexCore'; // 〔A1-R129c〕+readTaskIndexCache（Ex@32536）/buildTaskListFromIndex（Ox@32648）：RFt fetchWorkspaceTaskShards 实体化依赖（A1-P3-B2 转录在案）
 import { moveTaskIntoGroupStart, type GroupColor, type GroupedView, type GroupedViewNode, type TaskGroup } from './Sidebar'; // 〔A1-R102〕d8 闭合 + 型别归一（A1-P3-B4 §六-3①/§七-6 处方）：canonical = Sidebar moveTaskIntoGroupStart@833，型族改指 Sidebar canonical 面。环安全：本→Sidebar 值边新增（Sidebar→modules/SidebarLeaves→本叶边既有成环），惟 moveTaskIntoGroupStart 仅 applyDraftPromotions 运行期调用，函数声明 hoisted——A1-P3-B4 直连先例实测无环异常（当时仅 TS2719 型面回退）
 import { type MobileHomeResult, type WebRemoteSwitcherService, type WebRemoteWorkspaceInfo } from '../remote/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：消费面三本地型（WebRemoteWorkspace/WebRemoteTaskIndex/WebRemoteSwitcher）删碑改指生产面（六点分叉表闭合，A1-P2-B9.report.md §四）。环安全：type-only 导入全擦除，WebRemote 值闭包（ui/modules 族）不达 SidebarLeaves // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
 import { joinTestidParts, normalizeProviderFamilyDomain as resolveProviderFamilyDomain, getOAuthFamilyIdByProviderId as supplierProviderId } from '../../modules/SrcSharedB'; // 〔A1-R128〕+getOAuthFamilyIdByProviderId as supplierProviderId（原 dr：styles@558 `R as dr` ← src-HCld2afU@9791 `Jx as R` ← Jx@8930 ≡ SrcSharedB@5572 逐字同构） // 〔A1-R127〕+normalizeProviderFamilyDomain as resolveProviderFamilyDomain（原 xn 真身 ≡ Xx 8937；Home@162 R27 同判例，调用点 899 逐字不变） // 〔A1-P3-B11〕原 scopedTestId（qr/Nb 局部转录）收敛改指 canonical（墓碑见 @361）；消费面 3724/3783。环安全：SrcSharedB 为共享导出叶，无反向 components/shell 边（Sidebar.tsx@220 同边先例）
@@ -299,26 +299,164 @@ interface OptimisticTaskOverlay {
   activeTaskId?: string | null;
   promotedGroupedDraftTaskByTaskId?: Record<string, { workspacePath: string; workspaceIdentity?: string | null; placement: { type: "top" } | { type: "group"; groupId: string } }>;
 }
-declare function useOptimisticTaskOverlays(workspaceTabs: WorkspaceTab[]): Map<string, OptimisticTaskOverlay>;
+/** 〔A1-R129c〕useOptimisticTaskOverlays 实体化（原 OFt@144237 逐字；Io→workspaceKeyOf / xe→useTaskStore / fe→getWorkspaceSlice）。
+ *    消费 @578（≡VFt 144494）/@1506（≡uzt 153281）逐字不变。型缝：真身 promotedGroupedDraftTaskByTaskId
+ *    = taskStore GroupedDraftTask（placement: GroupedDraftPlacement {type: string}）⊄ 原契据字面联合面 →
+ *    new Map 式 `as any as Map<string, OptimisticTaskOverlay>` 还原（R126 memo 缝同判例）。 ── */
+function useOptimisticTaskOverlays(workspaceTabs: WorkspaceTab[]): Map<string, OptimisticTaskOverlay> {
+  let t = JSON.stringify(
+      workspaceTabs
+        .map((e) => ({
+          workspacePath: e.workspacePath,
+          workspaceIdentity: e.workspaceIdentity,
+          workspaceKey: workspaceKeyOf(e.workspacePath, e.workspaceIdentity),
+        }))
+        .sort((e, t) => e.workspaceKey.localeCompare(t.workspaceKey)),
+    ),
+    n = React.useMemo(() => JSON.parse(t), [t]);
+  return React.useMemo(() => {
+    let e = useTaskStore.getState();
+    return new Map(
+      n.map((t: any) => {
+        let n = getWorkspaceSlice(e, t.workspacePath, t.workspaceIdentity);
+        return [
+          t.workspaceKey,
+          {
+            activeTaskId: n.activeTaskId,
+            tasks: Object.values(n.optimisticTaskListByTaskId),
+            promotedGroupedDraftTaskByTaskId: n.promotedGroupedDraftTaskByTaskId,
+          },
+        ];
+      }),
+    ) as any as Map<string, OptimisticTaskOverlay>; // 〔型缝 A1-R129c〕叠加层原契据面还原（注见上）
+  }, [
+    useTaskStore((e) =>
+      JSON.stringify(
+        n.map((t: any) => {
+          let n = getWorkspaceSlice(e, t.workspacePath, t.workspaceIdentity);
+          return [
+            t.workspaceKey,
+            n.activeTaskId,
+            Object.values(n.optimisticTaskListByTaskId)
+              .map((e) => {
+                let t = n.promotedGroupedDraftTaskByTaskId[e.taskId];
+                return [
+                  e.taskId,
+                  e.title,
+                  e.createdAt,
+                  e.updatedAt,
+                  e.status,
+                  e.unreadAt,
+                  e.provider,
+                  e.model,
+                  t?.createdAt,
+                  t?.placement.type,
+                  t?.placement.type === `group` ? t.placement.groupId : null,
+                ];
+              })
+              .sort(([e], [t]) => String(e).localeCompare(String(t))),
+          ];
+        }),
+      ),
+    ),
+    n,
+  ]);
+}
 
-/** 远端就绪（原 jFt，120094） */
-declare function memoJson(value: unknown): string;
+/** 远端就绪（原 jFt，120094）+ 私有排序（原 kFt，144296）+ 版本对序列化（原 AFt，144299）
+ *  〔A1-R129c〕原 memoJson declare 为 A0 退化面，束真相三名混并：
+ *  ①jFt 远端就绪指纹（消费 @583 ≡ VFt 144498）→ 本处逐字实体化，保留 memoJson 名；
+ *  ②AFt 排序版本对 JSON（消费 @571 ≡ VFt 144487）→ 实体化 stablePairsJson，调用点改名；
+ *  ③uzt 153259 内联 JSON.stringify（消费 @1483）→ 束内联面，调用点还原内联（非符号）。 ── */
+interface RemoteReadinessEntry {
+  workspaceKey: string;
+  remoteSessionId?: string | null;
+  ready: boolean;
+}
+function sortRemoteReadinessEntries(e: RemoteReadinessEntry[]): RemoteReadinessEntry[] {
+  return [...e].sort((e, t) => e.workspaceKey.localeCompare(t.workspaceKey));
+}
+function memoJson(e: RemoteReadinessEntry[]): string {
+  return sortRemoteReadinessEntries(e)
+    .map((e) => `${e.workspaceKey}:${e.remoteSessionId ?? `base`}:${e.ready}`)
+    .join(`|`);
+}
+function stablePairsJson(e: Array<[string, number]>): string {
+  return JSON.stringify([...e].sort(([e], [t]) => e.localeCompare(t)));
+}
 
-/** 分片抓取（原 RFt，120168） */
-declare function fetchWorkspaceTaskShards(args: {
+/** 分片抓取（原 RFt，120168）〔A1-R129c〕实体化：Ex→readTaskIndexCache / Ox→buildTaskListFromIndex
+ *    （TaskIndexCore 32536/32648 转录）/ Io→workspaceKeyOf / Lo→taskEntityKey；消费 @738（≡VFt 144643）逐字不变。 ── */
+async function fetchWorkspaceTaskShards(args: {
   service: ZCodeTaskServiceLike;
   scopes: WorkspaceScope[];
   sessions: SessionItem[];
   sortBy: TaskSortBy;
   membershipCacheKey: string;
-}): Promise<Map<string, { workspacePath: string; workspaceIdentity?: string | null; items: TaskMeta[]; total: number; hasMore: boolean; unreadTaskKeys: string[] }>>;
+}): Promise<Map<string, { workspacePath: string; workspaceIdentity?: string | null; items: TaskMeta[]; total: number; hasMore: boolean; unreadTaskKeys: string[] }>> {
+  let {
+      taskIndexItems: t,
+      pinnedIds: n,
+      archivedIds: r,
+      deletedIds: i,
+      unreadAtByTaskId: a,
+      terminalStatusByTaskId: o,
+      titleOverrideByTaskId: s,
+      cronAutomationIdByTaskId: c,
+    } = await readTaskIndexCache({
+      cacheKey: args.membershipCacheKey,
+      endpoints: [{ service: args.service, scopes: args.scopes }],
+    }),
+    l = new Map();
+  for (let u of args.scopes) {
+    let d = workspaceKeyOf(u.workspacePath, u.workspaceIdentity),
+      f = args.sessions.filter((e: any) => workspaceKeyOf(e.workspacePath, e.workspaceIdentity) === d),
+      p = buildTaskListFromIndex({
+        taskIndexItems: t.filter((e: any) => workspaceKeyOf(e.workspacePath, e.workspaceIdentity) === d),
+        sessions: f,
+        kind: `timeline`,
+        pinnedIds: n,
+        archivedIds: r,
+        deletedIds: i,
+        unreadAtByTaskId: a,
+        terminalStatusByTaskId: o,
+        titleOverrideByTaskId: s,
+        cronAutomationIdByTaskId: c,
+        sortBy: args.sortBy,
+      });
+    l.set(d, {
+      workspacePath: u.workspacePath,
+      ...(u.workspaceIdentity ? { workspaceIdentity: u.workspaceIdentity } : {}),
+      items: p.items,
+      total: p.total,
+      hasMore: !1,
+      unreadTaskKeys: p.items.filter((e: any) => typeof e.unreadAt == `number`).map((e: any) => taskEntityKey(e)),
+    });
+  }
+  return l;
+}
 
 /** 作用域缓存键（原 $Ae，jsx 32582） */
 declare function workspaceScopeCacheKey(scope: WorkspaceScope): string;
 
-/** 作用域差异（原 zFt，120215）/ 分片指纹（原 BFt，120223） */
-declare function diffTaskScopes(previous: TaskMeta[], next: TaskMeta[]): Set<string>;
-declare function shardFingerprint(shards: WorkspaceTaskShard[]): string;
+/** 作用域差异（原 zFt，120215）/ 分片指纹（原 BFt，120223）〔A1-R129c〕实体化：Io→workspaceKeyOf；
+ *    消费 @811（≡VFt 144710）/@645（≡VFt 144554）逐字不变。 ── */
+function diffTaskScopes(previous: TaskMeta[], next: TaskMeta[]): Set<string> {
+  let n = new Set<string>(),
+    r = new Set(previous),
+    i = new Set(next);
+  for (let e of next) r.has(e) || n.add(workspaceKeyOf(e.workspacePath, e.workspaceIdentity));
+  for (let t of previous) i.has(t) || n.add(workspaceKeyOf(t.workspacePath, t.workspaceIdentity));
+  return n;
+}
+function shardFingerprint(shards: WorkspaceTaskShard[]): string {
+  return shards
+    .map((e) => {
+      let t = [...new Set(e.configs.map((e) => e.workspaceKey))].sort((e, t) => e.localeCompare(t));
+      return `${e.shardKey}:${t.join(`|`)}`;
+    })
+    .join(`||`);
+}
 
 /** 动态事件助手（原 px/rx/ux，jsx 29621/29553/29582） */
 declare function handleIncrementalWorkspaceEvent(args: { event: DynamicWorkspaceEvent; service: ZCodeTaskServiceLike }): void;
@@ -568,7 +706,7 @@ export function useWorkspaceTaskGroups(args: {
   const previousGroupsRef = React.useRef(new Map<string, { items: TaskMeta[]; total: number }>());
 
   const taskListVersionJson = useTaskStore((state) =>
-    memoJson(
+    stablePairsJson( // 〔A1-R129c〕原 memoJson 改名：≡AFt@144299（原 declare 混并面分拆，注见实体化区）
       args.workspaceTabs.map((tab) => [
         workspaceKeyOf(tab.workspacePath, tab.workspaceIdentity),
         getWorkspaceSlice(state, tab.workspacePath, tab.workspaceIdentity).taskListVersion,
@@ -1480,7 +1618,7 @@ export function useGroupedTaskView(options: { workspaceTabs: WorkspaceTab[] }): 
   const loadSequenceRef = React.useRef(0);
 
   const taskListVersionJson = useTaskStore((state) =>
-    memoJson(
+    JSON.stringify( // 〔A1-R129c〕原 memoJson 还原内联：≡uzt 153259 束内联面（非符号，原 declare 混并面分拆，注见实体化区）
       options.workspaceTabs.map((tab) => [
         workspaceKeyOf(tab.workspacePath, tab.workspaceIdentity),
         getWorkspaceSlice(state, tab.workspacePath, tab.workspaceIdentity).taskListVersion,
