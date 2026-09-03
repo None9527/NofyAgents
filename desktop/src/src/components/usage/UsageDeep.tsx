@@ -330,22 +330,21 @@
  *   composeProviderModelLabel/resolveModelFullLabel（A0 期既有转录，jsx 48436/48441）
  *
  * （接口级，行号登记，不在本批重建）：
- *   zet CodingPlanPurchaseDialog (84412)、Zet 结账面板 (85948)、e5e 支付 QR (79979)、
- *   Xrt/Zrt 计划源选择 (89295)、Mq 供应商选择 (76864)、j3e 配额弹层内容 (76630)、
- *   MY useStartPlanPreview (84254)、EY productsProviderIdOf (83767)、
- *   s5e useCodingPlanProducts (80321)、TY useEnterpriseTeamProducts (83697)、
- *   JY useMessageFormatter (87715)、HY enterpriseTeamGroupsOf (87595)、
- *   nJ productPriceOf (79685)、iJ formatProductPrice (79691)、
- *   Znt providerDisplayName (88222)、trt summarizeModelTestResults (88422)、
- *   srt isApiKeyMissing (88461)、crt navItemIcon (88464)、
- *   （PM 53253/IM 53277 已于 A1-R11 转录 §2b，旧登记行 53205/53229 为漂移标注）、
- *   xZ arrayMove (94125)、cj MarkdownRenderer（Markdown.tsx 已抽取）、
+ *   Zet 结账面板 (85948)、e5e 支付 QR (79979)、Xrt/Zrt 计划源选择 (89295)、
+ *   Mq 供应商选择 (76864)、j3e 配额弹层内容 (76630)、cj MarkdownRenderer（Markdown.tsx 已抽取）；
  *   Ao useSettingsStoreValue (1301)、fs useServices (2638)、ps useOptionalServices (2643)、
  *   qse useBaseServices（services.tsx 已抽取）；
- *   src-HCld2afU.js：ot/hr/Vi/nt/Vr/Qr/Lt/Pi/Mn/lt/si/kee/Bn/Ri/Sr/Zt/qr/q/testid 族；
- *   skillStore-BmeKHDBI.js：jee/jte/kr/xn/en；
+ *   （PM 53253/IM 53277 已于 A1-R11 转录 §2b，旧登记行 53205/53229 为漂移标注）。
+ *   〔A1-R145 头注同步〕以下旧登记已全数退役，归属与束真行以各删除位墓碑为准：
+ *   ⑤ 12 件（zet/EY/TY/JY/HY/nJ/iJ/Znt/trt/srt/crt/xZ；旧注行号系统性 +48 漂移）→
+ *     components/payments/PaymentDeep canonical ×11 + npm @dnd-kit/sortable arrayMove；
+ *   ④ 5 件（jee/jte/kr/xn/en）→ **src-HCld2afU.js**（原归 skillStore-BmeKHDBI.js 系误归，
+ *     束证四重见 §④ 墓碑）→ SrcSharedB@5152/620/631/5584/5568；
+ *   ⑥ 4 件（hi/xte/Ene/Mee）→ SrcSharedA@310（lib/buildEnv@9）+ SrcSharedB@6276/6333/6287；
+ *   ⑧ 1 件（Knt）→ 本文件 3 行实体（styles-local off 2763649，非 src chunk 符号）；
+ *   ①②③⑦ 34 件已于 A1-R144 退役（dnd-kit npm ×11 + SrcSharedB 助手/testid ×22 + SrcSharedA providerIds）；
  *   本 chunk vendored 原语：Dialog(31943)/Command(32092)/Select(46009)/Collapsible(94925)/
- *   dnd-kit(91811–94695)、图标块(26575–28020)。
+ *   图标块(26575–28020)（dnd-kit 91811–94695 已 A1-R144 退役 → npm 三包）。
  *
  * ----------------------------------------------------------------------------
  * 二、外部依赖清单（跨 chunk 导入；标注来源 chunk 与导出字母）
@@ -361,8 +360,10 @@
  *  7. logger (J)                     logger-PFDwl5Yq.js
  *  8. 供应商/模型助手与 testid（ot/hr/Vi/nt/Vr/Qr/Lt/Pi/Mn/lt/si/kee/Bn/Ri/Sr/Zt/qr/q/…）
  *                                    src-HCld2afU.js
- *  9. 族域/连接设置助手（jee/jte/kr/xn/en）
- *                                    skillStore-BmeKHDBI.js
+ *  9. 族域/连接设置助手（jee/jte/kr/xn/en）  src-HCld2afU.js
+ *                                    〔A1-R145 勘误：原记 skillStore-BmeKHDBI.js 系误归——
+ *                                    K 全文对五别名零命中，styles skillStore 导入块 48 名不含五名；
+ *                                    五者皆 styles src 导入块 off 12156–17038 内，束证见 §④ 墓碑〕
  * 10. 本 chunk vendored 原语：Dialog/Command/Select/Collapsible/dnd-kit/图标（行号见上）
  * ============================================================================
  */
@@ -376,15 +377,30 @@ import { Collapsible as CollapsibleRoot, CollapsibleContent, CollapsibleTrigger 
 import { ChevronDownIcon, PencilIcon, Trash2 as TrashIcon, UnplugIcon, RadioTowerIcon, EyeOffIcon, EyeIcon, AstroidIcon, ArrowRightIcon, UsersIcon, CircleIcon, GripVerticalIcon, ArrowLeftIcon, RocketIcon, Sparkles as SparklesIcon, TrendingUpIcon, LogInIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）。A1-R20：+SparklesIcon（原 HHe 52013 消费 f=S=Gt=x('sparkles')，imeComposition 11796/styles 345 导入链实证；A0-S3b 误映 RocketIcon）
 import { InfoIcon, Input, Popover as PopoverRoot, PopoverContent, PopoverTrigger, SpinnerIcon, usePlatformService } from '../../modules/ImeComposition'; // PopoverRoot（原 n=T 根）；A0-CLEANUP3 #38：SpinnerIcon/InfoIcon/usePlatformService 改由属主导出
 import { MarkdownRenderer, type CodePreviewSettings } from '../../modules/MarkdownIntegration';
-import { useCodingPlanProducts, useStartPlanPreview } from '../../modules/PaymentDeep';
+import {
+  useCodingPlanProducts,
+  useStartPlanPreview,
+  // 〔A1-R145〕⑤ 支付/设置跨 chunk 11 件 declare 收敛改指（束真行见各注；消费面 15 处经 `as` 别名逐字不变）
+  providerDisplayNameOfEntry as providerDisplayName, // Znt 束真 88270 ≡ PD@9195；消费 @3793/3794 ≡ 188704（束内提升 L）/188874/188876
+  mergeRefreshResults as summarizeModelTestResults, // trt 束真 88470 ≡ PD@9403；消费 @2823 ≡ 187999
+  isEmptyText as isApiKeyMissing, // srt 束真 88509 ≡ PD@9458；消费 @2736 ≡ 187932
+  providerEntryIconOf as navItemIcon, // crt 束真 88512 ≡ PD@9463；消费 @6077/6148 ≡ 191378/191442
+  codingPlanProviderOfStart as productsProviderIdOf, // EY 束真 83815 ≡ PD@4651；消费 @5040/5923 ≡ 190049/191244
+  useEnterpriseCodingPlanProducts as useEnterpriseTeamProducts, // TY 束真 83745 ≡ PD@4568；消费 @5721 ≡ 191014
+  tierMessageFormatterOf as useMessageFormatter, // JY 束真 87763 ≡ PD@8546；消费 @5722 ≡ 191015
+  teamPlanGroupsOf as enterpriseTeamGroupsOf, // HY 束真 87643 ≡ PD@8388；消费 @5736 ≡ 191029
+  primaryAmountOf as productPriceOf, // nJ 束真 79733 ≡ PD@1413；消费 @5936/5955 ≡ 191249/191266
+  formatMoney as formatProductPrice, // iJ 束真 79739 ≡ PD@1421；消费 @5971 ≡ 191277
+  CodingPlanPurchasePanel as CodingPlanPurchaseDialog, // zet 束真 84460 ≡ PD@5391（形参 Record<string, any> @5413，JSX 属性检查全通）；消费 @5219-5241 ≡ 190264-190282
+} from '../../modules/PaymentDeep';
 import { CommandEmpty, CommandList } from '../../modules/QuickPick';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../modules/Settings';
 import { logger } from '../../modules/SkillStore';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter as closestCenterCollision, useSensor, useSensors } from '@dnd-kit/core'; // 〔A1-R144〕原 vendored _Z/rZ/aZ/KX/UX/WX（styles 91811–94695 区）declare ×6 退役 → npm @dnd-kit/core@6.3.1（Sidebar.tsx:211 A1-R129o 同判例；束证 styles@93521/92588/92852/92249/92193/92196，旧注行号 +48 漂移已按特征串重定位）
-import { SortableContext, sortableKeyboardCoordinates, useSortable as useDraggable, verticalListSortingStrategy } from '@dnd-kit/sortable'; // 〔A1-R144〕原 vendored EZ/ist/DZ/TZ declare ×4 退役 → npm @dnd-kit/sortable@8.0.0。★DZ 真身 = useSortable 非 core useDraggable：束 styles@94379–94389 体首 9 键解构 ≡ useSortable.Arguments，且 declare 面含 transition（core useDraggable 返回面无此键）；别名保调用名，消费面 @6066 逐字不变（Sidebar.tsx:212 useSortable as useSortableBinding 同判例）
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable as useDraggable, verticalListSortingStrategy } from '@dnd-kit/sortable'; // 〔A1-R144〕原 vendored EZ/ist/DZ/TZ declare ×4 退役 → npm @dnd-kit/sortable@8.0.0。★DZ 真身 = useSortable 非 core useDraggable：束 styles@94379–94389 体首 9 键解构 ≡ useSortable.Arguments，且 declare 面含 transition（core useDraggable 返回面无此键）；别名保调用名，消费面 @6066 逐字不变（Sidebar.tsx:212 useSortable as useSortableBinding 同判例）。〔A1-R145〕+arrayMove（⑤ xZ 束真 94173 ≡ npm sortable.esm.js:8-12 逐语句同，束为逗号表达式压缩形；并入本既有行而非新增第二条 import，dossier-B §5 R7；消费面 @6023 ≡ 束 191333）
 import { CSS as dndTransform } from '@dnd-kit/utilities'; // 〔A1-R144〕原 BX declare 退役 → npm @dnd-kit/utilities@3.2.2。★与 Sidebar.tsx:213/1048 分叉：Sidebar 铸 dndTransform≡CSS.Transform（其消费面 dndTransform.toString），本文件消费面 @6070 为 dndTransform.Transform.toString(transform) ≡ 束 styles@191413 BX.Transform.toString(d)，故取整个 CSS 命名空间（照抄 Sidebar 会运行期 TypeError）
-import { isStartPlanProviderId, isZaiPlanProviderId, providerIds as PROVIDER_IDS } from '../../modules/SrcSharedA'; // +isZaiPlanProviderId（A1-R11：GUe 53391 消费，原 vl/tr）。〔A1-R144〕+providerIds as PROVIDER_IDS（原 q：styles 725 `mo as q` ← src 9963 `W as mo` ≡ W js 4733–4741 builtin: 前缀 7 键逐字 ≡ SrcSharedA@2008，导出位 @2145；A1-R32 先例 ModelProviderSettingsSection.tsx:17/SidebarLeaves.tsx:141 别名保调用名；负证据 styles 213969 `po as q` 为遮蔽。型缝：canonical 7 值字面量型 → @3024 new Set<string> 显式宽化 1 处）
-import { APP_RUNTIME_PREFERENCES_STORAGE_KEY, BIGMODEL_PROVIDER_DOMAIN as BIGMODEL_REGION, MODEL_CONTEXT_WINDOW_DEFAULT as DEFAULT_MODEL_CONTEXT_WINDOW, MODEL_CONTEXT_WINDOW_UNLIMITED as BUILTIN_MODEL_CONTEXT_WINDOW, canonicalizeEndpointUrl as resolveDraftBaseUrl, getOAuthProviderFamilyByProviderId, isObjectRecord, isUnlimitedContextModelId as isBuiltInModelId, joinTestidParts, listEndpointKinds as endpointKindsOf, mapApiFormatToKind, mapKindToApiFormat, mapKindToDefaultEndpointPath, modelProviderAddModelButtonTestid as ADD_MODEL_BUTTON_TESTID, modelProviderApiKeyInputTestid as API_KEY_INPUT_TESTID, modelProviderConnectionModeItemTestid as CONNECTION_MODE_ITEM_TESTID_PREFIX, modelProviderConnectionModeTriggerTestid as CONNECTION_MODE_TRIGGER_TESTID, modelProviderModelDeleteButtonTestid as MODEL_DELETE_TESTID_PREFIX, modelProviderModelInputTestid as MODEL_INPUT_TESTID_PREFIX, modelProviderNavItemTestid as NAV_ITEM_TESTID_PREFIX, normalizeCatalogModel as createModel, resolveModelContextWindow as contextWindowOf, resolveProviderApiFormat, resolveProviderDefaultKind, resolveProviderPrimaryEndpointUrl as baseUrlOfProvider } from '../../modules/SrcSharedB'; // A1-R11：JM 53535 消费 fS 广播道（styles `T as Tr` ← src 导出表 `APP_RUNTIME_PREFERENCES_STORAGE_KEY as T`）；原 rN 53791 之 dr 依赖随 §2d 删碑收敛至 SubagentLeaves（其自持 canonicalProviderIdOf declare = Jx）。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）。〔A1-R41〕+joinTestidParts（原 qr）。〔A1-R144〕+② 助手簇 14 件（原 hr/Vi/nt/Vr/Qr/Lt/Pi/Mn/lt/si/kee/Ri/Sr/Zt；链三段闭合 styles 431–827 进口块 ← src 9600–10070 导出表 ≡ SrcSharedB@636/640/643/648/661/713/756/773/785/797/871/903/908/5071，@6409 导出表 22/22 逐件校验）+③ testid 7 件（原 Aee/dre/Vee/hte/gre/rre/Cr ≡ src 8344–8350 ≡ SrcSharedB@4882–4888 值逐字核合）+⑦ canonicalizeEndpointUrl as resolveDraftBaseUrl（原 Tn：styles 518 `Lo as Tn` ← src 9749 `_u as Lo` ≡ _u js 5073 ≡ @859；★census ⑦ 注 @819 normalizeEndpointBaseUrl 系误判——那是 Tn 体内所调内层 mu，少一步去尾斜杠行为不等）。其中 6 件取裸名由下方「面缝」薄包裹块恢复原 declare 契据，10 消费点零改动。环安全：本行不新增环边（本文件→SrcSharedB 既有；SrcSharedA/B 值闭包 = zod+react+lib 10 叶，grep 零 components/ 命中）
+import { isStartPlanProviderId, isZaiPlanProviderId, providerIds as PROVIDER_IDS, RESOLVED_BUILD_ENV as RAW_RUNTIME_ENV } from '../../modules/SrcSharedA'; // +isZaiPlanProviderId（A1-R11：GUe 53391 消费，原 vl/tr）。〔A1-R144〕+providerIds as PROVIDER_IDS（原 q：styles 725 `mo as q` ← src 9963 `W as mo` ≡ W js 4733–4741 builtin: 前缀 7 键逐字 ≡ SrcSharedA@2008，导出位 @2145；A1-R32 先例 ModelProviderSettingsSection.tsx:17/SidebarLeaves.tsx:141 别名保调用名；负证据 styles 213969 `po as q` 为遮蔽。型缝：canonical 7 值字面量型 → @3024 new Set<string> 显式宽化 1 处）。〔A1-R145〕+RESOLVED_BUILD_ENV as RAW_RUNTIME_ENV（⑥ hi 真身：styles 15479 `js as hi` ← src R 9941 `s as js` ≡ R off 2084/line 73 `var s = o('production')` ≡ lib/buildEnv@9，SrcSharedA@310 转导出；PD@103 A1-R36 同符号先例——hi 在 PD 域已退役过一次，UD 是同一束符号的第二张脸）。★宿主面束真形登记：hi 非 import.meta.env、非 window、非 Record——是构建期冻结字符串字面量（恒 'production'；束内三重旁证 styles 88208-88212 `Wnt` 之 ZCODE_ENV 标量注入 / off 4577107 line 141843 `$Pt(e = hi){return e === 'production'}` / 8 处 URL 构造器标量入参 79986·84359-84361·88219-88233）。原 declare 之 Record<string,string> 系误型，随改指消失。真宿主面在下一层且已在树（R 9548 `DC(){return globalThis.process?.env ?? {}}` ≡ SrcSharedB@6260 readProcessEnv → @6265 → @6270 → @6276），不在本件内。消费面 @2326/2331 逐字不变（≡ 束 187593/187598）
+import { resolveCodingPlanAttribution as resolveFamilyConnectionSettings, isProviderReadyForUse as providerFamiliesOfList, hasAnyReadyProvider as activeProvidersOf, normalizeProviderFamilyDomain as providerFamilyDomainOf, getOAuthProviderFamilyById as familyConnectionSettingsOf, INTRANET_PROBE_CONFIG as INTRANET_PROBE_PRESET_CONFIG, resolveRuntimeEnvMode as resolveZapiEnvironment, shouldUseTestEndpoints as zapiEnabledOf, generateUuid, APP_RUNTIME_PREFERENCES_STORAGE_KEY, BIGMODEL_PROVIDER_DOMAIN as BIGMODEL_REGION, MODEL_CONTEXT_WINDOW_DEFAULT as DEFAULT_MODEL_CONTEXT_WINDOW, MODEL_CONTEXT_WINDOW_UNLIMITED as BUILTIN_MODEL_CONTEXT_WINDOW, canonicalizeEndpointUrl as resolveDraftBaseUrl, getOAuthProviderFamilyByProviderId, isObjectRecord, isUnlimitedContextModelId as isBuiltInModelId, joinTestidParts, listEndpointKinds as endpointKindsOf, mapApiFormatToKind, mapKindToApiFormat, mapKindToDefaultEndpointPath, modelProviderAddModelButtonTestid as ADD_MODEL_BUTTON_TESTID, modelProviderApiKeyInputTestid as API_KEY_INPUT_TESTID, modelProviderConnectionModeItemTestid as CONNECTION_MODE_ITEM_TESTID_PREFIX, modelProviderConnectionModeTriggerTestid as CONNECTION_MODE_TRIGGER_TESTID, modelProviderModelDeleteButtonTestid as MODEL_DELETE_TESTID_PREFIX, modelProviderModelInputTestid as MODEL_INPUT_TESTID_PREFIX, modelProviderNavItemTestid as NAV_ITEM_TESTID_PREFIX, normalizeCatalogModel as createModel, resolveModelContextWindow as contextWindowOf, resolveProviderApiFormat, resolveProviderDefaultKind, resolveProviderPrimaryEndpointUrl as baseUrlOfProvider } from '../../modules/SrcSharedB'; // A1-R11：JM 53535 消费 fS 广播道（styles `T as Tr` ← src 导出表 `APP_RUNTIME_PREFERENCES_STORAGE_KEY as T`）；原 rN 53791 之 dr 依赖随 §2d 删碑收敛至 SubagentLeaves（其自持 canonicalProviderIdOf declare = Jx）。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）。〔A1-R41〕+joinTestidParts（原 qr）。〔A1-R144〕+② 助手簇 14 件（原 hr/Vi/nt/Vr/Qr/Lt/Pi/Mn/lt/si/kee/Ri/Sr/Zt；链三段闭合 styles 431–827 进口块 ← src 9600–10070 导出表 ≡ SrcSharedB@636/640/643/648/661/713/756/773/785/797/871/903/908/5071，@6409 导出表 22/22 逐件校验）+③ testid 7 件（原 Aee/dre/Vee/hte/gre/rre/Cr ≡ src 8344–8350 ≡ SrcSharedB@4882–4888 值逐字核合）+⑦ canonicalizeEndpointUrl as resolveDraftBaseUrl（原 Tn：styles 518 `Lo as Tn` ← src 9749 `_u as Lo` ≡ _u js 5073 ≡ @859；★census ⑦ 注 @819 normalizeEndpointBaseUrl 系误判——那是 Tn 体内所调内层 mu，少一步去尾斜杠行为不等）。其中 6 件取裸名由下方「面缝」薄包裹块恢复原 declare 契据，10 消费点零改动。环安全：本行不新增环边（本文件→SrcSharedB 既有；SrcSharedA/B 值闭包 = zod+react+lib 10 叶，grep 零 components/ 命中）。〔A1-R145〕+④ 五件（jee/jte/kr/xn/en 真身：styles src 导入块 off 14520/15453/13883/13146/12908 `_t|jo|To|L|I as …` ← R 9863/9939/9810/9745/9724 `Yb|ql|Jl|Xx|qx as …` ≡ R off 260034/151770/152120/270455/270306 ≡ SrcSharedB@5152/620/631/5584/5568，@6409 导出表五对在位）——★旧注「skillStore-BmeKHDBI.js 未重建」为误归：K（68,899 B）全文对五别名零命中，styles skillStore 导入块（48 名 L…ze）不含五名，facade/srcChunkFacade.ts 头注「412 minified aliases … current remainder: 0」+ facade-coverage.generated.tsv:208 旁证。+⑥ 三件（xte/Ene/Mee 真身：styles 15300/16189/14532 `i|r|a as …` ← R 9927/9998/9864 `AC|LC|jC as …` ≡ R off 286626/287605/286827 ≡ SrcSharedB@6276 INTRANET_PROBE_CONFIG / @6333 resolveRuntimeEnvMode / @6287 shouldUseTestEndpoints）。+generateUuid（⑧ Knt 内层 xi 真身：styles 15986 `ot as xi` ← R 9982 `cx as ot` ≡ lib/uuid@15，SrcSharedB@466 导入/@477 转导出；PD@9124 A1-R38 同链判例）。环安全：本行不新增环边（UD→SrcSharedB 既有；SB 值闭包 = SrcSharedA + lib/*，不达 components）；INTRANET_PROBE_CONFIG 为 export var（模块求值期构造）但 UD 仅于 hook 体内（渲染期）解引用，无 TDZ 面
 import { useBaseServices, useServices, useServicesOptional as useOptionalServices } from '../../modules/services'; // A0-CLEANUP3 #44：ps useOptionalServices 属主为 services.useServicesOptional
 import { useSettingsStoreValue } from '../../modules/stores-core'; // A0-CLEANUP3 #44：Ao useSettingsStoreValue 属主为 stores-core（具名导出）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
@@ -496,64 +512,68 @@ const apiFormatOfKind = (kind: string): string => mapKindToApiFormat(kind) as st
  *    为相邻反向两 specifier 勿混；styles @213969 `po as q` 为 PROVIDER_IDS 遮蔽（A1-R32 负证据在案）。
  *    型缝 1 处：@3024 new Set<string>（字面量型收窄致 @3040 has(string) TS2345，束真 188218 语义零差）。 ── */
 
-/* --- skillStore-BmeKHDBI.js：族域/连接设置助手（未重建 chunk，接口级） --- */
-declare function resolveFamilyConnectionSettings(opts: {
-  providerFamilyDomain: unknown;
-  modelProviderFamilySelectedKeys: string[];
-  codingPlanEntitlement: EntitlementSnapshot | null;
-  startPlanEntitlement: EntitlementSnapshot | null;
-  now: number;
-  entitlementCacheTtlMs: number;
-}): unknown; // jee（_t）
-declare function providerFamiliesOfList(selectedKeys: string[]): unknown[]; // jte（jo）
-declare function activeProvidersOf(providers: unknown[] | undefined): unknown; // kr（To）
-declare function providerFamilyDomainOf(workspacePath: string | null): unknown; // xn
-declare function familyConnectionSettingsOf(domain: unknown): { codingPlanProviderId?: string; startPlanProviderId?: string } | null; // en
+/* ── tombstone〔A1-R145〕：④ 族域/连接设置助手 5 declare 退役 → 改指 modules/SrcSharedB（零转录）。
+ *    ★误归翻案：原区头注与文件头「二、外部依赖清单」第 9 条归 skillStore-BmeKHDBI.js「未重建 chunk」，束证否：
+ *    (1) K（68,899 B）全文对 jee/jte/kr/xn/en 的 `X as Y` 别名式零命中（五组正则全 0）；
+ *    (2) styles 的 skillStore 导入块（off 11956 前，48 名 `A as L … z as ze`）不含五名；
+ *    (3) 五名皆在 styles 的 src-HCld2afU 导入块（off 12156–17038，395 对）内：
+ *        _t as jee(14520) | jo as jte(15453) | To as kr(13883) | L as xn(13146) | I as en(12908)；
+ *    (4) facade/srcChunkFacade.ts 头注「412 minified aliases … current remainder: 0」+
+ *        facade-coverage.generated.tsv:208 明列 `_t Yb resolveCodingPlanAttribution SrcSharedB.tsx`。
+ *    真身链：R 9863/9939/9810/9745/9724 导出面 ← R off 260034(8567)/151770(4882)/152120(4894)/270455(8937)/
+ *    270306(8927) 定义 ← SrcSharedB@5152 resolveCodingPlanAttribution / @620 isProviderReadyForUse /
+ *    @631 hasAnyReadyProvider / @5584 normalizeProviderFamilyDomain / @5568 getOAuthProviderFamilyById
+ *    （皆逐字实体、已 export；@6409 导出表含 `resolveCodingPlanAttribution as _t`/`isProviderReadyForUse as jo`/
+ *    `hasAnyReadyProvider as To`/`normalizeProviderFamilyDomain as L`/`getOAuthProviderFamilyById as I` 五对）。
+ *    ★名实错配登记（dossier-B §4.2/§4.3/§4.4；本批只翻正型缝，改名另立「命名保真批」以免与退役计件混淆）：
+ *      jte 束真 ql = 单供应商 → boolean 可用性判定（非「selectedKeys → 族列表」），原 declare 签名系接口级臆造；
+ *      kr  束真 Jl = `e.some(ql)` → boolean（非「活跃供应商集合」）；
+ *      xn  束真 Xx 入参为族域字符串（旁证 styles off 2868283/line 91397 `xn(t.providerFamilyDomain)`、
+ *          off 4869960/line 150303 `xn(r?.providerFamilyDomain)`），故下方 @1488 形参名 workspacePath 系误命名
+ *          （束真 PUe 首参 = settings.providerFamilyDomain，styles off 3769523/line 119462 实证）。
+ *    消费面 5 处经 `as` 别名逐字不变：@1492（≡束 52744）/@1494（≡52746）/@1527（≡52779）/@1543（≡52791）/@1552（≡52794）。
+ *    随批型缝翻正 2 处（原 declare 臆造签名与束真不合，直接改指会 TS2322/TS2345）：
+ *      @1542 providerFamiliesOfListWrapper 返回 unknown[] → boolean（束真 ql 返回 boolean）；
+ *      @1551 activeProvidersOfList 形参 unknown[]|undefined → any（束真 yM(e) 无型；undefined 对 canonical
+ *            any[] 不可赋）、返回 unknown → boolean（束真 Jl 返回 boolean）。
+ *      两件全树零外部调用方（providerFamiliesOfListWrapper 仅 UDS@360 再导出、activeProvidersOfList 为 file-local
+ *      仅 @1557 一处消费；hasNoUserOrProviders 签名不变，实消费 ModelProviderSettingsSection 侧零影响）。
+ *    环安全：UD→SrcSharedB 边既有（@403）；SrcSharedB 值闭包 = SrcSharedA + lib/{uuid,stableIds,logFormat,
+ *    providerRefs,lineDiff,shallowSelector,locale,workspaceUtils,buildEnv,errorUtils}，不达 components/usage。 ── */
 
-/* --- 本 chunk 跨域符号（接口级；行号见头部映射） --- */
-declare function providerDisplayName(provider: ModelProvider): string; // Znt（88222）
-declare function summarizeModelTestResults(
-  results: unknown[]
-): { success: boolean; failureReason?: string; noEndpointResult?: boolean }; // trt（88422）
-declare function isApiKeyMissing(apiKey: string): boolean; // srt（88461）
-declare function navItemIcon(item: ModelProviderNavItem): React.ReactNode; // crt（88464）
+/* ── tombstone〔A1-R145〕：⑤ 支付/设置跨 chunk 12 declare 退役 → 11 改指 components/payments/PaymentDeep
+ *    canonical（经 modules/PaymentDeep shim；6 件同批补 export：teamPlanGroupsOf/tierMessageFormatterOf/
+ *    providerDisplayNameOfEntry/mergeRefreshResults/isEmptyText/providerEntryIconOf，PDS 再导出面同批 +6 名）
+ *    + arrayMove 改指 npm @dnd-kit/sortable@8.0.0（并入 @400 既有行，不新增第二条 import）。
+ *    束真行 = 旧注 + 48（旧账 213,695 行口径系统性漂移，PD:16-17 头注同源「zet 旧 84412 → 本机 84460」）：
+ *    Znt 88270 | trt 88470 | srt 88509 | crt 88512 | xZ 94173 | EY 83815 | TY 83745 | JY 87763 |
+ *    HY 87643 | nJ 79733 | iJ 79739 | zet 84460。
+ *    canonical 对位（逐字双面对照见 dossier-B §2.2）：PD@9195 providerDisplayNameOfEntry / @9403 mergeRefreshResults /
+ *    @9458 isEmptyText / @9463 providerEntryIconOf / @4651 codingPlanProviderOfStart /
+ *    @4568 useEnterpriseCodingPlanProducts / @8546 tierMessageFormatterOf / @8388 teamPlanGroupsOf /
+ *    @1413 primaryAmountOf / @1421 formatMoney / @5391 CodingPlanPurchasePanel + npm arrayMove。
+ *    消费面 15 处经 `as` 别名逐字不变：@2736/@2823/@3793/@3794/@5040/@5219-5241/@5721/@5722/@5736/@5923/
+ *    @5936/@5955/@5971/@6023/@6077/@6148（≡ 束 187932/187999/188874/188876/190049/190264-190282/191014/191015/
+ *    191029/191244/191249/191266/191277/191333/191378/191442）。
+ *    环安全：UD→modules/PaymentDeep 边既有（@380-395 原 useCodingPlanProducts/useStartPlanPreview）；反向
+ *    PD→modules/UsageDeep 边既有（PD@105 型导入 / PD@109 值导入 16 名）；本批 11 名全为 function 声明
+ *    （提升 + 仅渲染/回调期调用），无一是模块求值期立即解引用的 const/var，二环不触发 TDZ（PD@101 Home 二环判例同式）。
+ *    #4 providerEntryIconOf 内引 RegionLogo（PD@109 自 modules/UsageDeep 接引，A1-R21 判例）——该反向边既有，本批不新增。
+ *    登记（不改）：#1 束内把 Znt(e) 提升为局部 L（188704）后于 188874/188876 复用，UD@3793/3794 内联 3 次调用——
+ *    Znt 纯函数（只读 e.id/e.name，无副作用无计数）语义等价（dossier-B §5 R5）；#9 canonical 返回 any[] 较 declare
+ *    承诺 Array<{key;title;products}> 宽（下游唯一消费链 @5736 → @5742(.length) → @5794-5804(.map 体内 group.key/
+ *    group.title) 在 @5752 `const cards: BannerCardModel[]` 上下文定型内，group:any 各字段均可赋，零 TS 报错面，R3）；#7 canonical 多返回
+ *    一员 refresh（UD 仅消费 .snapshot/.loading，束证 191014 后 m 的使用全集 = 191029/191030/191032 无 .refresh，R4）。
+ *    型缝 1 处（tsc 首轮唯一报错，TS7006）：@5233 `onOpenChange={(open: boolean) => …}` 参显式标注——原 declare 之
+ *    `React.FC<{…onOpenChange: (open: boolean) => void…}>` 提供上下文定型，canonical CodingPlanPurchasePanel 形参为
+ *    `Record<string, any>`（PD@5413）故定型消失。束真 190278 `onOpenChange: (e) => {(e || B(null), H(e))}` 无型，
+ *    e 即 open 布尔（H ≡ setUpgradePlansVisible）；纯 TS 面，运行期零变。
+ *    保留：下方 A1-R11 墓碑与 `const trackPlanCardEvent = upgradeFunnelContext;`（既有别名，非 declare，消费面 190053 区）。 ── */
 /* ── tombstone（A1-R11）：trackPlanCardEvent（原 PM，js 53253——普查行 53205 为漂移标注）/
  *    entryPlanStateOf（原 IM，js 53277——普查行 53229 同漂移）declare 删除：
  *    PM/IM 真形已逐字转录本文件 §2b（upgradeFunnelContext/entryPlanStateOf，返回 FunnelContext/
  *    EntryPlanState 对象面，非旧注之 string 近似）。190053 区调用面经下方别名逐字不变。 ── */
 const trackPlanCardEvent = upgradeFunnelContext; // 原 PM（53253）：本文件 De 调用面（190053 区）别称
-declare function arrayMove<T>(items: T[], from: number, to: number): T[]; // xZ（94125）
-declare function productsProviderIdOf(providerId: string): string; // EY（83767）
-declare function useEnterpriseTeamProducts(opts: { enabled: boolean; authenticated: boolean }): {
-  snapshot: { productList: CodingPlanProduct[] } | null;
-  loading: boolean;
-  error: string | null;
-}; // TY（83697）
-declare function useMessageFormatter(intl: IntlShape): (id: string, fallback: string) => string; // JY（87715）
-declare function enterpriseTeamGroupsOf(
-  products: CodingPlanProduct[],
-  opts: { locale: string; formatMessage: (id: string, fallback: string) => string }
-): Array<{ key: string; title: string; products: CodingPlanProduct[] }>; // HY（87595）
-declare function productPriceOf(product: CodingPlanProduct): number | null; // nJ（79685）
-declare function formatProductPrice(price: number, currency: string | undefined, locale: string): string; // iJ（79691）
-declare const CodingPlanPurchaseDialog: React.FC<{
-  open: boolean;
-  providerId: string;
-  productsProviderId?: string;
-  currentPlanLevel?: string;
-  currentProductId?: string;
-  productsRefreshToken?: number;
-  loginLoading?: boolean;
-  codingPlanPurchaseTokenAuthenticated?: boolean;
-  accountRequirementVisible?: boolean;
-  autoRecoverAuthOnOAuthRequired?: boolean;
-  initialAudience?: "personal" | "team";
-  funnelContext?: FunnelContext | null; // A1-R11 精化：PM 53253 返回对象真形（原 string 近似删除）
-  onLogin?: () => void;
-  onOpenChange: (open: boolean) => void;
-  onPurchaseComplete?: () => void;
-  [key: string]: unknown;
-}>; // zet（84412）
 /* A0-CLEANUP3 #44：Ao useSettingsStoreValue 属主为 stores-core（具名导出），ps useOptionalServices 属主为 services.useServicesOptional，declare 移除 */
 
 /* --- 服务接口（宿主侧实现，经服务解析注入） --- */
@@ -1516,13 +1536,19 @@ export function useProviderFamilyConnectionSettings(
   );
 }
 
-/** 原 vM（js 52739）：jte 薄包装 */
-export function providerFamiliesOfListWrapper(selectedKeys: string[]): unknown[] {
+/** 原 vM（束真 styles off 1664049/line 52790-52792 `function vM(e){return jte(e)}`；旧注 52739 漂移 +51）：
+ *  jte≡SrcSharedB@620 isProviderReadyForUse 薄包装。
+ *  〔A1-R145〕型缝翻正：原 declare 承诺 `unknown[]` 系接口级臆造；束真 ql（R off 151770/line 4882）返回 boolean。 */
+export function providerFamiliesOfListWrapper(selectedKeys: string[]): boolean {
   return providerFamiliesOfList(selectedKeys);
 }
 
-/** 原 yM（js 52742）：kr 薄包装（入参 = providers 数组） */
-function activeProvidersOfList(providers: unknown[] | undefined): unknown {
+/** 原 yM（束真 styles off 1664085/line 52793 `function yM(e){return kr(e)}`；旧注 52742 漂移 +51）：
+ *  kr≡SrcSharedB@631 hasAnyReadyProvider 薄包装（入参 = providers 数组）。
+ *  〔A1-R145〕型缝翻正：束真 yM(e) 无型；原 declare 的 `unknown[] | undefined` 对 canonical `any[]` 不可赋
+ *  （undefined 分支，strict: true → TS2345），按束真宽化为 any；返回型由 unknown 收窄为 boolean（束真 Jl 返回 boolean）。
+ *  修后 @1531 `!state.user && !activeProvidersOfList(state.providers)` 对 hasNoUserOrProviders(): boolean 全通。 */
+function activeProvidersOfList(providers: any): boolean {
   return activeProvidersOf(providers);
 }
 
@@ -2306,15 +2332,33 @@ export function useZapiEnabled(): boolean {
   return zapiEnabledOf({ env: resolved.env, isIntranet: resolved.isIntranet });
 }
 
-/* 环境解析宿主面（Ene/Mee/xte/hi，src chunk 与宿主常量，接口级） */
-declare const RAW_RUNTIME_ENV: Record<string, string>; // hi（src-HCld2afU.js 运行环境常量）
-declare const INTRANET_PROBE_PRESET_CONFIG: { attempts?: number; requiredSuccessCount?: number; targets?: unknown[] } | null; // xte
-declare function resolveZapiEnvironment(opts: {
-  rawEnv: Record<string, string>;
-  probedIsIntranet: boolean;
-  env: Record<string, string>;
-}): { shouldProbe: boolean; isIntranet: boolean; env: Record<string, string> }; // Ene
-declare function zapiEnabledOf(opts: { env: Record<string, string>; isIntranet: boolean }): boolean; // Mee
+/* ── tombstone〔A1-R145〕：⑥ 环境解析宿主面 4 declare 退役 → 改指 SrcSharedA(1) + SrcSharedB(3)（零转录）。
+ *    真身链（styles src 导入块 off 12156–17038 → R 导出面 → R 定义 → 树实体）：
+ *      hi  = js(15479) ← R 9941 `s as js`  ← R off 2084/line 73 `var s = o('production')` ≡ lib/buildEnv@9
+ *            RESOLVED_BUILD_ENV（SrcSharedA@310 转出；PD@103 A1-R36 同符号先例——双脸 declare 第二张脸）
+ *      xte = i (15300) ← R 9927 `AC as i`  ← R off 286626/line 9556  ≡ SrcSharedB@6276 INTRANET_PROBE_CONFIG
+ *      Ene = r (16189) ← R 9998 `LC as r`  ← R off 287605/line 9596  ≡ SrcSharedB@6333 resolveRuntimeEnvMode
+ *      Mee = a (14532) ← R 9864 `jC as a`  ← R off 286827/line 9567  ≡ SrcSharedB@6287 shouldUseTestEndpoints
+ *    ★宿主面束真形登记：hi 非 import.meta.env、非 window、非 Record——是构建期冻结字符串字面量（恒 'production'，
+ *    `o('production')` 恒真分支；型别应为 `production`|`test`）。束内三重旁证：styles off 2763516/line 88208-88212
+ *    `function Wnt(e = Unt()){return {ZCODE_ENV: hi, …}}` 标量注入 + off 4577107/line 141843
+ *    `$Pt(e = hi){return e === 'production'}` 字符串比较 + 8 处 URL 构造器标量入参（off 2475703/line 79986、
+ *    2631276-2631338/line 84359-84361、2763728-2764100/line 88219-88233）。
+ *    真宿主面在下一层且已在树、不在本 4 件内：R off 286451/line 9548 `function DC(){return globalThis.process?.env ?? {}}`
+ *    ≡ SrcSharedB@6260 readProcessEnv → @6265 resolveIntranetMachineHost(OC, R 286509/9551) → @6270
+ *    INTRANET_MACHINE_HOST(kC, R 286602/9554) → @6276 INTRANET_PROBE_CONFIG 之 url 模板。
+ *    随改指消失的 declare 误型 3 处：RAW_RUNTIME_ENV `Record<string,string>`（束真 string）、resolveZapiEnvironment 之
+ *    rawEnv/返回 env `Record<string,string>`（束真 string：`n = t.effectiveEnv ?? e.rawEnv` 后 `n === 'production'` 比较；
+ *    第二字段 env 才是记录，`IC(e.env)` → `MC(e)= e||{}` 后读 ZCODE_EFFECTIVE_ENV/ZCODE_NETWORK_ENV/
+ *    ZCODE_SIMULATE_PUBLIC_PROD）、zapiEnabledOf 之 env `Record<string,string>`（束真 string，与 `test` 比较）。
+ *    消费面 5 处经 `as` 别名逐字不变：@2326（≡束 off 6333269/line 187593）/@2327-2330（≡187594-187597）/
+ *    @2331（≡187598）/@2332（≡off 6333545/line 187599）+ @2325 effectiveEnvOverlay（aYt，束真 styles off 6330593/
+ *    line 187488；@2176 定义处旧注「js 187293」漂移 +195，本批不动其体仅登记）。
+ *    外部消费核：useZapiEnabled 经 UDS@376 转出，实消费 1 处 = ModelProviderSettingsSection.tsx:1441
+ *    （≡ 束 off 6480130/line 192090 `u = gYt()`），签名不变零影响。
+ *    环安全：UD→SrcSharedA（@402）/UD→SrcSharedB（@403）双边既有；两属主值闭包（zod + lib/*）不达 components/usage
+ *    （PD@102/103 同判在案）。INTRANET_PROBE_CONFIG 为 export var（模块求值期构造，读 globalThis.process?.env），
+ *    但 UD 仅于 hook 体内（渲染期）解引用，不在模块顶层求值 → 无 TDZ 面。 ── */
 
 /* ============================================================================
  * 6. 供应商草稿/模型机制（原 _Yt…MYt，js 187305–187630 / jsx 151161–151416）
@@ -3907,7 +3951,22 @@ function newCustomProvider(name: string): ModelProvider {
     updatedAt: now,
   };
 }
-declare function newProviderId(): string; // Knt（src chunk id 工厂）
+/** 原 Knt（束真 styles off 2763649/line 88215-88217 `function Knt(){return xi()}`；★旧注「src chunk id 工厂」误——
+ *  Knt 不在 styles 的 src 导入块 off 12156–17038 内，系 styles-local；其内层 xi ← src `ot`（styles off 15986 `ot as xi`）
+ *  ← R off 293089/line 9982 `cx as ot` ≡ lib/uuid@15 generateUuid）。
+ *  〔A1-R145〕实体化：3 行薄包装逐字转录，内层改指 SrcSharedB generateUuid（PD@9123-9125 authSessionSnapshotOf 同式判例，
+ *  A1-R38；stores/commandsHelpers.ts@124/160 A1-R129n「实体化 + 依赖改指既有 canonical」批风格范本）。
+ *  取本地实体而非别名改指 PD 的理由（dossier-B §4.10 路 b）：PD 侧 canonical 名 authSessionSnapshotOf 系误命名
+ *  （Knt 是通用 uuid 工厂，束内 xi 另 15 处用于 tab/session/step id：styles off 52284/52925/56400/73918/125224/1295100 等），
+ *  引之会加深误命名；且本地名 newProviderId 与消费面 `id: newProviderId()` 语义自洽，走既有 UD→SB 边无环（不必走 UD↔PD 二环）。
+ *  消费面实测 1 处（调用面逐字不变）：@3943（newCustomProvider ≡ lXt 束 off 6380058/line 189064 体内 `id: Knt()` ≡ 189067）。
+ *  负证据：styles Knt 全集 2 处（88215 定义 / 189067 本消费），PD 域零消费（PD@9123 只是转录无调用）——UD 是唯一消费者。
+ *  依赖零缺失：generateUuid 已在树（lib/uuid@15 实体，SrcSharedB@466 导入/@477 转导出/@6409 `generateUuid as ot`），
+ *  其内部 formatUuidFromBytes@9 + globalThis.crypto 三路回退（randomUUID/getRandomValues/Math.random）皆在位。
+ *  返回型标注 string 为真非近似（generateUuid 束真返回 crypto.randomUUID() 或 formatUuidFromBytes(...)，均 string）。 */
+function newProviderId(): string {
+  return generateUuid();
+}
 
 /** 原 uXt/dXt…gXt（js 188782–188788）：目录源 id 与表单控件 id 常量 */
 const CUSTOM_CATALOG_SOURCE_ID = `china-llm-zcode-dev`;
@@ -5171,7 +5230,7 @@ export function CodingPlanStatusSection(props: CodingPlanStatusSectionProps): Re
           initialAudience={purchaseInitialAudience}
           funnelContext={funnelContext}
           onLogin={onLogin}
-          onOpenChange={(open) => {
+          onOpenChange={(open: boolean) => { // 〔型缝 A1-R145〕canonical CodingPlanPurchasePanel 形参为 `Record<string, any>`（PD@5413），不再提供 React.FC 上下文定型 → 本箭头参需显式标注（束真 190278 `onOpenChange: (e) => {(e || B(null), H(e))}` 无型，e 即 open 布尔；纯 TS 面，运行期零变）
             if (!open) setFunnelContextLocal(null);
             setUpgradePlansVisible(open);
           }}

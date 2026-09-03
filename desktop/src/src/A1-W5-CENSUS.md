@@ -4,13 +4,17 @@
 方法：三 explore 代理并行逐件清点（消费数 word-boundary grep 实证，canonical 读目标定义核形）。
 总盘：**146 declare = 88 别名改指 + 47 实体化 + 6 伪面销账 + 5 vendor/ambient**。
 
-## 一、components/usage/UsageDeep.tsx（56）
+## 一、components/usage/UsageDeep.tsx（56 → **0，域闭**）
+
+**〔A1-R145 域闭〕56 件全数退役：R144 退 34（①②③⑦）+ R145 退 22（⑤ 12 + ④⑥ 9 + ⑧ 1）。
+台账实测 UsageDeep.tsx declare = 0，顶群第三闭合域（Composer R143 → UsageDeep R145）。**
 
 46 别名改指 + 10 实体化 + 0 伪面 + 0 vendor。
 〔A1-R144/145 修正（dossier-A/B 束证）：实为 **55 别名改指 + 1 微转录**——④⑥ 九件「实体化」
 翻案为别名（符号在 styles 的 src-HCld2afU 导入块 off 12156–17038，**不在** skillStore 块，
 skillStore 全文 48 名零命中；真身链闭合 SrcSharedB/SrcSharedA/lib/buildEnv 全已 export）；
-⑧ Knt 为 styles-local（off 2763649）UD 本地 3 行微转录。①②③⑦ 34 件已 R144 退役。〕
+⑧ Knt 为 styles-local（off 2763649）UD 本地 3 行微转录。①②③⑦ 34 件已 R144 退役，
+⑤④⑥⑧ 22 件已 R145 退役（型缝 3：@1542 返 boolean / @1551 参 any 返 boolean / @5233 open: boolean）。〕
 
 | 簇 | 行域 | 件数 | 类 | 目标 |
 |---|---|---|---|---|
@@ -68,18 +72,18 @@ ImeComposition appendPptxElementReferences，皆已在树，别名改指零转�
 
 ## 四、收官路线（风险升序）
 
-1. 纯别名大批：Composer C6（7）→ C5（5）→ C1+C8（10）→ UsageDeep ②（14）→ ③（8）→ ①（11）→ Onboarding B7（3）+B4（1）+B9 别名件。
+1. 纯别名大批：~~Composer C6（7）→ C5（5）→ C1+C8（10）~~〔R140–R143 已施行〕→ ~~UsageDeep ②（14）→ ③（8）→ ①（11）~~〔R144 已施行〕→ Onboarding B7（3）+B4（1）+B9 别名件。
 2. 伪面销账：Composer C3+C4 伪面三件 + C7 两件（6 件一批）。
-3. 需补 export 的别名：UsageDeep ⑤（PaymentDeep 6 件）、~~Composer 666~~〔R142 已施行〕、Onboarding 1126。
+3. 需补 export 的别名：~~UsageDeep ⑤（PaymentDeep 6 件）~~〔R145 已施行：PD 6 行补 export + PDS 再导出 +6 名〕、~~Composer 666~~〔R142 已施行〕、Onboarding 1126。
 4. 实体化批（束真转录）：~~Composer 688/873~~〔翻案为别名，R143 已施行〕、~~UsageDeep ④⑥⑧~~
-   〔dossier-B 翻案：④⑥ 九件实为别名、⑧ 为 3 行微转录，**实体化 0 件**，候 R145〕、
+   〔dossier-B 翻案：④⑥ 九件实为别名、⑧ 为 3 行微转录，**实体化 0 件**，R145 已施行〕、
    Onboarding B1/B2/B5/B6/B8/B11/816/diffs 二件。
 5. vendor 候裁：Composer C4 消费四件（lucide 字形映射）、Onboarding 1132（留）。
 6. 联退件：Onboarding ServicesProvider/ScopeBoundary × AppRootLeaves 双声明。
 
 台账预期：146 件全数退役皆减台账（别名改指/伪面销账/实体化均删 declare 语句——实体化
 「不减台账」系本普查初稿口径误，R129n 判例实证 868→862 含实体化 2 件）。〔A1-R142 修正〕
-余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)+R144(34)=76 件，三域现存 70
-（**Composer 0（R143 域闭，顶群第二闭合域）** + **UsageDeep 22（R144 别名大批 34 件后，56→22）**
-+ Onboarding 48）；台账实测 **701**（R144 后），全退后约 631（vendor/ambient 候裁留痕件除外）。
-W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。
+余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)+R144(34)+R145(22)=98 件，
+三域现存 **48**（**Composer 0（R143 域闭）** + **UsageDeep 0（R145 域闭，顶群第三闭合域）**
++ Onboarding 48）；台账实测 **679**（R145 后），r118 基线累计 1,012→679 = 333 删 0 增。
+W5a 仅余 Onboarding 一域；W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。

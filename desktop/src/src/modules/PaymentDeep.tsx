@@ -318,5 +318,11 @@ export {
   useCodingPlanUpgradeDialogOptional, // 〔A1-R24〕补 export：Home declare useUpgradeActions 收敛（原 Art，89106；消费面 91644 ≡ Home OffPeakNewTaskBanner）
   useModelProvidersStore, // 〔A1-R35〕补 export：qq 78243-78403 逐字转录（components 侧 §11 尾部）；settings 六件 declare 收敛改指（R34 留批 2/3 闭合）
   PLAN_DOMAINS, // 〔A1-P3-B11〕原 Gnt（88214）转导出：USt≡Gnt.zcodePlanOpenAiBaseUrl 收敛接引面（ConversationLeaves@1022 接引）
+  teamPlanGroupsOf, // 〔A1-R145〕原 HY（束真 87643）转导出：UsageDeep ⑤ enterpriseTeamGroupsOf declare 收敛所依
+  tierMessageFormatterOf, // 〔A1-R145〕原 JY（束真 87763）转导出：UsageDeep ⑤ useMessageFormatter declare 收敛所依
+  providerDisplayNameOfEntry, // 〔A1-R145〕原 Znt（束真 88270）转导出：UsageDeep ⑤ providerDisplayName declare 收敛所依
+  mergeRefreshResults, // 〔A1-R145〕原 trt（束真 88470）转导出：UsageDeep ⑤ summarizeModelTestResults declare 收敛所依
+  isEmptyText, // 〔A1-R145〕原 srt（束真 88509）转导出：UsageDeep ⑤ isApiKeyMissing declare 收敛所依
+  providerEntryIconOf, // 〔A1-R145〕原 crt（束真 88512）转导出：UsageDeep ⑤ navItemIcon declare 收敛所依
 } from '../components/payments/PaymentDeep';
 export type { ModelProvider } from '../components/payments/PaymentDeep'; // 〔A1-R29〕Hq/N6e/ot 簇收敛型缝所依：各脸本地供应商型面窄化依此（类型面，零运行时影响）

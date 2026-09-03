@@ -8384,8 +8384,8 @@ function formatEnterpriseAmount(amount: number, locale: string) {
     : formatMoney(amount, `CNY`, locale);
 }
 
-// HY → teamPlanGroupsOf（本地 87644）
-function teamPlanGroupsOf(products: any[], options: any) {
+// HY → teamPlanGroupsOf（束真 87643；旧注 87644 漂移）
+export function teamPlanGroupsOf(products: any[], options: any) { // 〔A1-R145〕补 export：UsageDeep ⑤ enterpriseTeamGroupsOf（HY）declare 收敛改指所依；消费面 UD@5736 ≡ 束 191029
   const normalized = normalizeTierFormatArg(options);
   const groups = new Map<string, any>();
   for (const product of products) {
@@ -8542,8 +8542,8 @@ function normalizeTierFormatArg(options: any) {
   return typeof options == `string` ? { locale: options } : options;
 }
 
-// JY → tierMessageFormatterOf（本地 87773）
-function tierMessageFormatterOf(intl: any) {
+// JY → tierMessageFormatterOf（束真 87763；旧注 87773 漂移）
+export function tierMessageFormatterOf(intl: any) { // 〔A1-R145〕补 export：UsageDeep ⑤ useMessageFormatter（JY）declare 收敛改指所依；消费面 UD@5722 ≡ 束 191015
   return (id: string, fallback: string) => {
     const message = intl.formatMessage({ id: id });
     return message === id ? fallback : message;
@@ -9191,8 +9191,8 @@ const KNOWN_PROVIDER_ENTRY_IDS = new Set([
   ...CODING_PLAN_PROVIDER_ENTRIES.map((entry) => entry.id),
 ]);
 
-// Znt → providerDisplayNameOfEntry（本地 88291）
-function providerDisplayNameOfEntry(entry: any) {
+// Znt → providerDisplayNameOfEntry（束真 88270；旧注 88291 漂移）
+export function providerDisplayNameOfEntry(entry: any) { // 〔A1-R145〕补 export：UsageDeep ⑤ providerDisplayName（Znt）declare 收敛改指所依；消费面 UD@3793/3794 ≡ 束 188704（提升 L）/188874/188876
   return entry.id === providerIds.zai
     ? `Z.ai - API Key`
     : entry.id === providerIds.zaiCodingPlan || entry.id === providerIds.zaiStartPlan
@@ -9399,8 +9399,8 @@ export function useCodingPlanEntitlements({
   );
 }
 
-// trt → mergeRefreshResults（本地 88447）
-function mergeRefreshResults(results: any[]) {
+// trt → mergeRefreshResults（束真 88470；旧注 88447 漂移）
+export function mergeRefreshResults(results: any[]) { // 〔A1-R145〕补 export：UsageDeep ⑤ summarizeModelTestResults（trt）declare 收敛改指所依；消费面 UD@2823 ≡ 束 187999
   return results.some((entry: any) => entry.success)
     ? { success: true }
     : {
@@ -9454,13 +9454,13 @@ function apiKeyUrlOfEntry(id: string) {
   return API_KEY_PROVIDER_ENTRY_MAP.get(id)?.apiKeyUrl;
 }
 
-// srt → isEmptyText（本地 88486）
-function isEmptyText(text: string) {
+// srt → isEmptyText（束真 88509；旧注 88486 漂移）
+export function isEmptyText(text: string) { // 〔A1-R145〕补 export：UsageDeep ⑤ isApiKeyMissing（srt）declare 收敛改指所依；消费面 UD@2736 ≡ 束 187932
   return text.trim().length === 0;
 }
 
-// crt → providerEntryIconOf（本地 88489）
-function providerEntryIconOf(item: any) {
+// crt → providerEntryIconOf（束真 88512；旧注 88489 漂移）
+export function providerEntryIconOf(item: any) { // 〔A1-R145〕补 export：UsageDeep ⑤ navItemIcon（crt）declare 收敛改指所依；消费面 UD@6077/6148 ≡ 束 191378/191442
   if (item.type === `addCustom`) return <PlusIcon className={`size-4 shrink-0`} />;
   if (item.type === `preset` || item.type === `codingPlan`) {
     if (item.presetId === providerIds.zapi) return <ZapiProviderIcon className={`size-4 shrink-0`} />;
