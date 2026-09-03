@@ -139,7 +139,7 @@ import { type PrimaryDraftDropTargetController } from './WorkspaceShell'; // A0-
 import { BillingDiscountBadge, type BillingDiscountConfig } from './UsageDeep'; // +BillingDiscountConfig（A0-D 类型收敛）
 import { InfoTooltip as Tooltip, useControllableState } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u 导出 = X InfoTooltip）+ 原 fa（A0-CLEANUP2 item 47 接线）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
-import { getOAuthFamilyIdByProviderId } from './SrcSharedB'; // 〔A1-R129v〕原 Jx（src 9036/8930；src chunk 导出 R = styles dr）canonical 改指：formatModelDisplayName 实体化消费
+import { getOAuthFamilyIdByProviderId, generateUuid } from './SrcSharedB'; // 〔A1-R129v〕原 Jx（src 9036/8930；src chunk 导出 R = styles dr）canonical 改指：formatModelDisplayName 实体化消费；〔A1-R129x〕+generateUuid（原 xi，styles 743 ← src cx ≡ lib/uuid@15）：buildConversationSelectionReference 实体化消费
 import { Button, ChevronRight as IconChevronRight, ChevronLeft as IconChevronLeft } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）；A0-S3b 增补：ChevronRight as IconChevronRight, ChevronLeft as IconChevronLeft（button chunk 图标，pass-1 同源）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 /* ── tombstone（A1-R3）：stores-session import（PRIMARY_PANE_ID/useSessionRouterStore/
@@ -2131,8 +2131,42 @@ function toWorkspaceRelativePath(workspacePath: string | undefined, path: string
   const lowerPrefix = prefix.toLowerCase();
   return normalizedPath.toLowerCase().startsWith(lowerPrefix) ? normalizedPath.slice(prefix.length) || pathBasename(path) : normalizedPath;
 }
-/** 原 p1（jsx 94657）：在代码查看器中打开文件变更 */
-declare function openFileChangeInViewer(item: FileChangeDetail, context: RowRenderContext): void;
+/** 原 x_t（jsx 94426，styles 3498200）：统一补丁文本（--- a/ +++ b + hunk 头）〔A1-R129x 实体化〕 */
+function buildUnifiedPatchText(
+  path: string,
+  patches: Array<{ oldStart: number; oldLines: number; newStart: number; newLines: number; lines: string[] }>,
+): string {
+  if (patches.length === 0) return ``;
+  let out = [`--- a/${path}`, `+++ b/${path}`];
+  for (let patch of patches)
+    out.push(`@@ -${patch.oldStart},${patch.oldLines} +${patch.newStart},${patch.newLines} @@`, ...patch.lines);
+  return out.join(`
+`);
+}
+/** 原 p1（jsx 94657，styles 3498428）：在代码查看器中打开文件变更〔A1-R129x 实体化〕 */
+function openFileChangeInViewer(item: FileChangeDetail, context: RowRenderContext): void {
+  let patchText = buildUnifiedPatchText(
+      item.path,
+      item.patches as Array<{ oldStart: number; oldLines: number; newStart: number; newLines: number; lines: string[] }>,
+    ), // 〔型缝 A1-R129x〕FileChangeDetail.patches 面 unknown[]，束真 x_t 读 hunk 五字段
+    {
+      workspacePath,
+      workspaceIdentity,
+      workspaceRemoteSessionId,
+      onOpenCodeViewer,
+    } = context;
+  !patchText ||
+    !onOpenCodeViewer ||
+    onOpenCodeViewer({
+      type: `patch`,
+      title: toWorkspaceRelativePath(workspacePath, item.path),
+      path: item.path,
+      patch: patchText,
+      workspacePath,
+      ...(workspaceIdentity ? { workspaceIdentity } : {}),
+      ...(workspaceRemoteSessionId ? { workspaceRemoteSessionId } : {}),
+    });
+}
 /** 文件「打开方式」菜单（原 v_t，js 110379 / jsx 94447；接口保留） */
 
 /**
@@ -3368,12 +3402,15 @@ function closestRowElement(node: Node | null): HTMLElement | null {
   return (node instanceof Element ? node : node?.parentElement)?.closest(`[data-row-id]`) ?? null;
 }
 /** 原 koe（js 2720）：构建会话引用（加入任务/侧栏提问） */
-declare function buildConversationSelectionReference(args: {
+/** 原 koe（styles 74155）：会话引用构建 = 透传参 + id: xi()（xi ≡ generateUuid）〔A1-R129x 实体化〕 */
+function buildConversationSelectionReference(args: {
   sourceSessionId: string;
   sourceRowId: number;
   contentType: "user" | "assistant" | "reasoning" | "tool";
   text: string;
-}): unknown;
+}): unknown {
+  return { ...args, id: generateUuid() };
+}
 
 /**
  * 会话引用选择浮层（原 Tbt，jsx 97517）。
@@ -4696,8 +4733,13 @@ declare function usePluginManifests(
   enabled: boolean,
   opts?: { dedupeSessionRequest?: boolean; preferredRemoteSessionId?: string; suppressErrorLog?: boolean },
 ): { authority: "session" | "workspace" | "none"; entries: unknown[] };
-/** 原 Hbt（jsx 98320）：插件清单 → pluginId→图标 URL 映射 */
-declare function buildPluginIconMap(authority: string, entries: unknown[]): Map<string, string>;
+/** 原 Hbt（jsx 98320，styles 3656974）：插件清单 → pluginId→图标 URL 映射〔A1-R129x 实体化〕 */
+function buildPluginIconMap(authority: string, entries: unknown[]): Map<string, string> {
+  if (authority !== `session`) return new Map();
+  let map = new Map<string, string>();
+  for (let entry of entries as Array<{ pluginId: string; icon?: string | null }>) entry.icon && map.set(entry.pluginId, entry.icon); // 〔型缝 A1-R129x〕entries 面 unknown[]
+  return map;
+}
 
 /** 插件图标 Provider（原 Ubt）：仅当 authority=session 时提供上下文 */
 function PluginIconProvider({
