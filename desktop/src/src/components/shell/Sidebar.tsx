@@ -220,6 +220,8 @@ import { sessionActivityOf as taskSessionActivity, pendingInteractionOf as taskP
 import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 项 2d：原 Go（jsx 986）本地转录改指 canonical = components/markdown baseName（Go@1928 逐字）；调用点 1561 逐字不变。环安全：MarkdownIntegration 值闭包（markdown 渲染族 + FileTreePanel resolveAvailableEditors）不达 components/shell（实测在案）
 import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector, resolveTabRemoteSessionId as gc, useWorkspaceTabStore as useTabStore, useWorkspaceTabStoreOptional as useOptionalTabStore, buildWorkspaceServicesBindings as buildWorkspaceServicesMap, useResolvedWorkspaceSessionId as resolveWorkspaceRemoteSessionId, isWorkspaceKindTab as isTaskWorkspaceTab } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R126〕+buildWorkspaceServicesBindings as buildWorkspaceServicesMap（原 yc jsx 3637 canonical，styles 4834 逐字；墓碑见下声明群） // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）；〔A1-P2-B10〕gc≡resolveTabRemoteSessionId（原 gc 4814）——ERt 真身闭包依赖；〔A1-R129j〕+useResolvedWorkspaceSessionId as resolveWorkspaceRemoteSessionId（原 bc）/isWorkspaceKindTab as isTaskWorkspaceTab（原 oc）改指，碑文见下
 import { useSessionRegistryStore as Zs, getServicesByWorkspaceIdentity as resolveServicesByWorkspaceIdentity } from '../../stores/sessionRegistryStore'; // 〔A1-P2-B10〕Zs≡useSessionRegistryStore（原 Zs 4357）——ERt 真身闭包依赖（服务注册表选择器）；〔A1-R129j〕+getServicesByWorkspaceIdentity as resolveServicesByWorkspaceIdentity（原 Tse declare 改指；束真身 styles 4431 逐字 ≡ 正典@258；型缝见 2057 及下方碑文）
+import { refreshSkillsAfterCommandsChange as refreshSkillStoresAfterSync } from '../../stores/commandsHelpers'; // 〔A1-R129m〕原 N6 declare 改指（commandsHelpers 逐字转录，同批实接线；碑文见原声明位）
+import { useMcpStore } from '../../stores/mcpStore'; // 〔A1-R129m〕原 Ug（styles 25055）——refreshMcpStoreAfterSync 实体化依存（直调判例见下）
 import { useLocalWorkspaceTabs as useScopedWorkspaceTabs } from '../../modules/SettingsLeaves'; // 〔A1-R126〕J3≡useLocalWorkspaceTabs（styles 135515；canonical 属主 AutomationEditor@1088，经 modules/SettingsLeaves 转导出；墓碑见下声明群）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 // 〔A1-R25〕aw 39378 收敛：markUsageEntryIntent declare 改接 Home §U.7 逐字真身（别名保留，调用点 4769 逐字不变；环安全：Home 顶层 hoisted function，本文件仅渲染期事件回调消费）
@@ -1164,7 +1166,9 @@ interface WorkspaceServices {
  *    型别宽化：返回 string | undefined；调用面（2978/3137）为插值渲染，兼容。 ── */
 /** 原 M6/N6/V6（142670–142719/119312）：同步完成后的缓存刷新 */
 declare function refreshAfterSkillSync(args: { zcodeSessionService: WorkspaceServices["zcodeSessionService"]; workspacePath: string; workspaceIdentity?: string | null; reason: string }): Promise<void>;
-declare function refreshSkillStoresAfterSync(args: { workspacePath: string; workspaceIdentity?: string | null; skillsService: unknown; provider?: string }): Promise<void>;
+/* ── tombstone〔A1-R129m〕：declare refreshSkillStoresAfterSync（原 N6，styles 142717）删除 → 改指 stores/commandsHelpers::refreshSkillsAfterCommandsChange
+ *    （N6 逐字转录，A0-S4-3 既抽；本批同步实接线其 Ne 静态面，运行时始具真身）。别名导入保调用名。
+ *    型缝：正典 skillsService: SkillsService 必具，调用面传 unknown 宽袋——3342 复原铸 as never（运行期同物）。 ── */
 declare function refreshAfterPluginSync(args: Record<string, unknown>): Promise<void>;
 /* ── tombstone（A1-R10 2b）：declare function forgetRecentWorkspaces（原 Qie，jsx 945 / js 1881）删除，
  *    改经文件头 stores/searchResultsStore import 消费（canonical = invalidateWorkspaceResults；
@@ -3339,7 +3343,7 @@ export const WorkspaceSidebarItem = React.memo(function WorkspaceSidebarItem({
         workspaceIdentity={tab.workspaceIdentity}
         onSkillsSynced={async () => {
           await refreshAfterSkillSync({ zcodeSessionService: workspaceServices.zcodeSessionService, workspacePath: tab.workspacePath, workspaceIdentity: tab.workspaceIdentity, reason: "sidebar-remote-skill-sync" });
-          await refreshSkillStoresAfterSync({ workspacePath: tab.workspacePath, workspaceIdentity: tab.workspaceIdentity, skillsService: workspaceServices.skillsService });
+          await refreshSkillStoresAfterSync({ workspacePath: tab.workspacePath, workspaceIdentity: tab.workspaceIdentity, skillsService: workspaceServices.skillsService as never }); // 〔型缝 A1-R129m〕unknown 宽袋 → SkillsService 正典面（运行期同物）
         }}
         onMcpSynced={async () => {
           await refreshMcpStoreAfterSync(tab.workspacePath, workspaceServices.mcpSyncService, tab.workspaceIdentity);
@@ -3361,7 +3365,11 @@ export const WorkspaceSidebarItem = React.memo(function WorkspaceSidebarItem({
   );
 });
 /** 原 Ug 的侧栏调用面：同步后刷新 MCP store */
-declare function refreshMcpStoreAfterSync(workspacePath: string, mcpSyncService: unknown, workspaceIdentity?: string | null): Promise<void>;
+/** 原 Ug.getState().ensureLoadedForWorkspace（styles 25055 ≡ stores/mcpStore@281）：mcp 同步后确保工作区配置已载。
+ *  束真形为 store 动作直调（无独立束函数）；A0 时以 declare 近似，〔A1-R129m〕实体化（R129g selector 判例）。 */
+async function refreshMcpStoreAfterSync(workspacePath: string, mcpSyncService: unknown, workspaceIdentity?: string | null): Promise<void> {
+  await useMcpStore.getState().ensureLoadedForWorkspace(workspacePath, mcpSyncService, workspaceIdentity);
+}
 /** 原 mLt（147286 / 122386 附近）：Web 远控任务段（F17 族，接口级） */
 /** 原 nLt（146240 / 121340 附近）：文件树面板（F04 族，接口级） */
 /** 原 lLt（146823 / 122323）：归档任务段（结构同时间线段，查询 archived；接口级） */

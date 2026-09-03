@@ -2,19 +2,13 @@
 import { normalizeProviderId } from '../modules/SrcSharedB';
 import { skillContextKey, useSkillContextStore as useSkillContextStoreStatic } from './skillContextStore'; // 原 UB（A0-S4-3 收尾：改接 stores/ 属主）
 import type { SkillsService } from './skillContextStore';
+import { useSkillsStore as useSkillsStoreStatic } from './skillsStore'; // 〔A1-R129m〕原 Ne 静态面实接线（下方碑文）
 
-/** 原 Ne（skillStore）：useSkillsStore（静态面消费） */
-declare const useSkillsStoreStatic: {
-  getState(): {
-    workspacePath: string | null;
-    workspaceIdentity: string | null;
-    loadedWorkspacePath: string | null;
-    loadedWorkspaceIdentity: string | null;
-    provider?: string;
-    loadedProvider?: string;
-    refresh(skillsService: unknown, workspaceIdentity?: string): Promise<void>;
-  };
-};
+/* ── tombstone〔A1-R129m〕：declare useSkillsStoreStatic（原 Ne 静态面）删除 → 实接线 stores/skillsStore::useSkillsStore。
+ *    Ne≡Yn 导出 t（styles 侧 `Ne`，skillsStore 头块既注）；A0-S4-3 抽取 §E 时未接线，幻影 declare 无运行时实体；
+ *    本批接线后下方 N6 转录（refreshSkillsAfterCommandsChange）始具运行时真身。
+ *    面核：SkillsStoreState 六守卫字段逐一吻合；refresh(service: SkillsService, identity?: string | null)
+ *    与调用点（skillContextStore.SkillsService 可赋值于 skillsStore.SkillsService，任务同形）直接兼容。 ── */
 
 /* ============================================================================
  * §E. F6 CommandsStore 深层助手（原 js 142700–142753）
