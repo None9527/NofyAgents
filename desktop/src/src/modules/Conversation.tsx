@@ -138,7 +138,7 @@ import { logger } from './SkillStore';
 import { ConversationSummaryAside, buildSummaryPanelModel, resolveSummaryPanelVariant, type BackgroundWork, type GitSummary, type RunningSubagent, type SummaryGoal, type SummaryPanelVariant } from './TopBar'; // A0-CLEANUP2 items 17+46：本地镜像删除 → 属主导出（GitSummary.branchName 属主侧已 string | null）
 import { type SubagentOpenRequest } from './SidePanel'; // A0-CLEANUP3 #36：编排器回调型收口
 import { type PrimaryDraftDropTargetController } from './WorkspaceShell'; // A0-CLEANUP3 #36：草稿投放控制器型（type-only，无运行时环）
-import { BillingDiscountBadge, type BillingDiscountConfig } from './UsageDeep'; // +BillingDiscountConfig（A0-D 类型收敛）
+import { BillingDiscountBadge, listCodingPlanSources, subscribeCodingPlanSources, type BillingDiscountConfig } from './UsageDeep'; // 〔A1-R135〕+listCodingPlanSources/subscribeCodingPlanSources（原 fM/hM，canonical components/usage/UsageDeep oM 簇，A1-R11/R35 既录；shim 转导出在案） // +BillingDiscountConfig（A0-D 类型收敛）
 import { InfoTooltip as Tooltip, useControllableState } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u 导出 = X InfoTooltip）+ 原 fa（A0-CLEANUP2 item 47 接线）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
 import { getOAuthFamilyIdByProviderId, generateUuid, joinTestidParts } from './SrcSharedB'; // 〔A1-R131〕+joinTestidParts（原 qr ≡ src 导出 Xa ≡ Nb，SrcSharedB@5017）：段渲染簇 testid 拼接消费 // 〔A1-R129v〕原 Jx（src 9036/8930；src chunk 导出 R = styles dr）canonical 改指：formatModelDisplayName 实体化消费；〔A1-R129x〕+generateUuid（原 xi，styles 743 ← src cx ≡ lib/uuid@15）：buildConversationSelectionReference 实体化消费
@@ -1708,7 +1708,13 @@ function TimelineMarker({
 }
 
 /** 模型注册表查询（原 hM/fM：全局模型列表快照） */
-declare function useModelRegistrySnapshot(): { id: string; name: string }[];
+/** 原 Cvt 内联 `(0, Q.useSyncExternalStore)(hM, fM, fM)`（styles 3549593）：模型供应商注册表快照
+ * （timeline marker modelChange 显示名解析消费）——canonical = components/usage/UsageDeep
+ * oM 簇（A1-R11/R35 既录），经 ./UsageDeep shim 转导出接入〔A1-R135 实体化〕。
+ * 面校准：返回面保持 declare 时代 { id; name }[] 窄形（束真 ModelProvider[] 超集，消费面仅读 id/name）。 */
+function useModelRegistrySnapshot(): { id: string; name: string }[] {
+  return React.useSyncExternalStore(subscribeCodingPlanSources, listCodingPlanSources, listCodingPlanSources);
+}
 /** 原 rN：provider+model → 展示名 */
 /** 原 rN（styles 1697262）：模型显示名——已知 OAuth 族供应商仅显模型名，否则 providerName/model〔A1-R129v 实体化〕 */
 function formatModelDisplayName(provider: string | undefined, providerName: string | undefined, model: string): string {
