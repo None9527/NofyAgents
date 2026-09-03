@@ -193,7 +193,8 @@ import * as React from "react";
 import { shortcutLabel } from '../../lib/keyboardShortcuts'; // 〔A1-R124〕原 $i declare 改指——keyboardShortcuts chunk 全量逐字转录 canonical
 import { Tabs as TabsRoot } from '../../modules/Settings'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { ContextMenu, ContextMenuContent, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../ui/context-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../ui/context-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import；〔A1-R129p〕+ContextMenuItem（原 Sk declare 改指 components-ui 既立实体；碑文见原声明位）
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'; // 〔A1-R129p〕原 hLt/_Lt/gLt declare 改指（components/ui/avatar.tsx 同批逐字实体化，束 147744–147770；碑文见原声明位）
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Hash as IconHash, Folder as IconFolder, FolderOpen as IconFolderOpen, Cloud as IconCloud, House as IconHouse, ListTree as IconListTree, MessageCirclePlus as IconMessageCirclePlus, Search as IconSearch, CalendarClock as IconCalendarClock, WandSparkles as IconWandSparkles, Minimize2 as IconMinimize2, Maximize2 as IconMaximize2, ListFilter as IconListFilter, Clock3 as IconClock3, MessageCircleCheck as IconMessageCircleCheck, Archive as IconArchive, CloudUpload as IconCloudUpload, Pin as IconPin, Smartphone as IconSmartphone, Clock as IconClock, Moon as IconMoon, Loader as IconLoader, TriangleAlert as IconTriangleAlert, RefreshCw as IconRefreshCw, Check as IconCheck, Copy as IconCopy, Ellipsis as IconEllipsis, Settings as IconSettings, Globe as IconGlobe, Palette as IconPalette, Maximize as IconMaximize, LogIn as IconLogIn, LogOut as IconLogOut, User as IconUser, Settings2 as IconSettings2, GripVertical as IconGripVertical, ArrowUpToLine as IconArrowUpToLine, ChevronDown as IconChevronDown, LoaderCircle as SpinnerIcon, Plus as IconPlus, ChartColumn as IconChartColumn, Rocket as IconRocket, X as IconX } from 'lucide-react'; // 〔A1-R121〕+X as IconX（原 g x，imeComposition chunk lucide 族；A0-S3b 判例续，调用面 @3196 逐字不变） // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
@@ -1001,7 +1002,9 @@ export { useRemotePinnedTaskListStore, useRemoteWorkspaceTaskListStore };
 
 
 
-declare const ContextMenuItem: React.FC<React.ComponentPropsWithoutRef<"div"> & { disabled?: boolean; title?: string; onSelect?: () => void }>;
+/* ── tombstone〔A1-R129p〕：declare ContextMenuItem（原 Sk）删除 → 改指 components/ui/context-menu::ContextMenuItem（A0-S3c 逐字实体在案，
+ *    束 43966–44030 区；文件头既有导入行补名）。面核：TaskActionMenuItemsProps.Item 契据（disabled/title/onSelect/children/data-testid）
+ *    radix Item 面全覆，消费面 @1874 逐字不变。 ── */
 
 
 
@@ -1013,10 +1016,10 @@ declare const ContextMenuItem: React.FC<React.ComponentPropsWithoutRef<"div"> & 
 /* ── tombstone（A0-CLEANUP 族清理）：Tooltip（原 Ia）declare 删除 → import { InfoTooltip as Tooltip } from './UsageStatsUiParts'。 ── */
 /** Popover 原语（原 Na/Oa/Ma/ka，usageStatsUiParts chunk） */
 /** Badge（原 uJ，本 chunk 70704） */
-/** Avatar 原语（原 hLt/gLt/_Lt，本 chunk 147698–147725） */
-declare function Avatar(props: { size?: "default" | string; children?: React.ReactNode; key?: React.Key }): React.ReactElement;
-declare const AvatarImage: React.FC<{ src: string; alt: string }>;
-declare const AvatarFallback: React.FC<React.ComponentPropsWithoutRef<"div">>;
+/* ── tombstone〔A1-R129p〕：declare Avatar/AvatarImage/AvatarFallback（原 hLt/gLt/_Lt）删除 → 改指 components/ui/avatar.tsx
+ *    （同批逐字实体化；束真位 147744–147770——旧注 147698–147725 偏移误标，本批以 `aspect-square size-full rounded-full object-cover`
+ *    特征类复验定位；Hxe/Uxe/Wxe = vendored radix-avatar Root/Image/Fallback 28352–28433，npm 真依赖 @radix-ui/react-avatar@1.1.12
+ *    裁定同 A0-S3c）。消费面 @5007–5019 逐字不变。 ── */
 /** Radix Dialog 封装（原 zb…，本 chunk 31943+；TopBar.tsx 已还原） */
 
 
@@ -1981,12 +1984,9 @@ export function TaskRowContextMenuContent({
 function taskRowKey(workspacePath: string, taskId: string, workspaceIdentity?: string | null): string {
   return workspaceKey(workspacePath, workspaceIdentity) + ":" + taskId;
 }
-/** 原 z8（155354 / 128339）：分组视图指纹（结构相等性快速比较；接口） */
-declare function groupedNodeFingerprint(view: GroupedView): string;
-/** 原 eBt（155361 / 128260）：拖拽浮层落回动画配置 */
-declare const groupedDropAnimation: unknown;
-/** 原 tBt（155361 / 128264）：dnd autoScroll 阈值配置 */
-declare const groupedAutoScrollThreshold: unknown;
+/* ── tombstone〔A1-R129p〕：declare groupedNodeFingerprint（原 z8）/groupedDropAnimation（原 eBt）/groupedAutoScrollThreshold（原 tBt）
+ *    死声明删除——本文件零调用点（全文 grep 实测：z8 仅注记行 5480，eBt/tBt 仅声明行；分组视图渲染路径已删，
+ *    HOME-SEG 判例续）。R129j/R41 死删判例。 ── */
 /* ── tombstone〔A1-R129j〕：declare resolveServicesByWorkspaceIdentity（原 Tse，styles 4431）删除 → 改指 stores/sessionRegistryStore::getServicesByWorkspaceIdentity
  *    （Tse 逐字；别名导入保调用名 @222）。型缝：正典返回 BaseServices | null（全可空员），消费契据为本地 WorkspaceServices（必具二员）——
  *    调用点 2057 复原铸 `as unknown as WorkspaceServices | null`（R126 型缝二判例：真形 BaseServices、消费面按旧契据读）。 ── */
@@ -2594,8 +2594,8 @@ export function TimelineTasksSection({
 
 /** 原 ABt（157550 / 131107）：光束描边动画容器（工作区行聚焦时的流光描边；
  *  CSS 由 TBt/EBt/DBt/OBt/kBt/wBt 生成，接口级，156793–157547 / 130373–131106） */
-/** 原 V8/uBt/B8（156306/128919）：logo 光束色板与参数（数据块，接口级） */
-declare const WORKSPACE_LOGO_PALETTES: Record<string, unknown>;
+/* ── tombstone〔A1-R129p〕：declare WORKSPACE_LOGO_PALETTES（原 V8/uBt/B8 数据块）死声明删除——本文件零调用点
+ *    （全文 grep 实测仅声明行）。R129j/R41 死删判例。 ── */
 
 /** 原 FBt（158029 / 131404）：远程重连日志 popover（自动滚底） */
 /* 〔A1-P2-B7〕logs 族收敛：条目型收生产面真形（OnboardingLoginLeaves.RemoteConnectionLogEntry：
