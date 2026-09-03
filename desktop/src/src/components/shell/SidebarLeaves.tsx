@@ -133,12 +133,16 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R1
 import { useConfirmDialog } from '../../modules/Modals'; // 〔A1-R127〕原 U2（styles 123510）declare 改指（ConfirmDialog@79 canonical 转导出；AutomationsMainView@25 R119 同判例；Omit<ConfirmDialogRequest,'resolve'> 面涵原契据三字段）
 import { useTaskListItems } from './TaskListQueryCore'; // 〔A1-R127〕原 ZS（styles 35775–36118）declare 改指逐字真身叶（Sidebar@226 A1-P3-B1 同判例；e: any 入参面超集原契据）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { useAppSettings as useSettingsContext, useSubscriptionSnapshot as useCodingPlanEntitlement, providerCacheKey as entitlementCacheKey } from '../../modules/UsageDeep'; // 〔A1-R128〕JM 53488/$j 52497/rM 52648 三 declare 收敛改指（UsageDeep@1730/1168/1353 逐字真身；shim@430/356/358 导出在案）。环安全：UsageDeep 值闭包无 components/shell 边（实测仅碑文提及）
+import { useModelProvidersStore as useModelProviders, useEnterpriseCodingPlanProducts as useTeamProducts } from '../../modules/PaymentDeep'; // 〔A1-R128〕qq 78243/TY 83745 双 declare 收敛改指（PaymentDeep@10456/4568 逐字；shim@319/293 导出；AutomationsMainView@13 R119 同判例）。环安全：PaymentDeep 值闭包无 components/shell 边（实测在案）
+import { providerIds as PROVIDER_IDS } from '../../modules/SrcSharedA'; // 〔A1-R128〕q≡W 4733 declare 收敛改指（R32 canonical；ModelProviderSettingsSection@17 同判例，别名保留调用名）
+import { resolveSupplierProvider as resolveSelectedSupplierKey } from '../../modules/ConversationLeaves'; // 〔A1-R128〕Uq 77975 declare 收敛改指（R17 逐字转录：custom:/ghost: 供应商键解析）。环安全：ConversationLeaves 值闭包无 components/shell 边（实测在案）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
-import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, resolveProfilePlanAudience, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R126〕+resolveProfilePlanAudience（原 uRt 150276，Home §U.3 逐字实体；墓碑见 @422 区） // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
+import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, resolveProfilePlanAudience, listConfiguredCodingPlanProviders as normalizeCodingPlanProviders, listCodingPlanAudienceSources as resolveTeamSources, fallbackProviderId, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R128〕+hX/pX/PCt 三件改指（listConfiguredCodingPlanProviders as normalizeCodingPlanProviders / listCodingPlanAudienceSources as resolveTeamSources / fallbackProviderId 实体化转导出） // 〔A1-R126〕+resolveProfilePlanAudience（原 uRt 150276，Home §U.3 逐字实体；墓碑见 @422 区） // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
 import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex } from './TaskIndexCore';
 import { moveTaskIntoGroupStart, type GroupColor, type GroupedView, type GroupedViewNode, type TaskGroup } from './Sidebar'; // 〔A1-R102〕d8 闭合 + 型别归一（A1-P3-B4 §六-3①/§七-6 处方）：canonical = Sidebar moveTaskIntoGroupStart@833，型族改指 Sidebar canonical 面。环安全：本→Sidebar 值边新增（Sidebar→modules/SidebarLeaves→本叶边既有成环），惟 moveTaskIntoGroupStart 仅 applyDraftPromotions 运行期调用，函数声明 hoisted——A1-P3-B4 直连先例实测无环异常（当时仅 TS2719 型面回退）
 import { type MobileHomeResult, type WebRemoteSwitcherService, type WebRemoteWorkspaceInfo } from '../remote/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：消费面三本地型（WebRemoteWorkspace/WebRemoteTaskIndex/WebRemoteSwitcher）删碑改指生产面（六点分叉表闭合，A1-P2-B9.report.md §四）。环安全：type-only 导入全擦除，WebRemote 值闭包（ui/modules 族）不达 SidebarLeaves // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
-import { joinTestidParts, normalizeProviderFamilyDomain as resolveProviderFamilyDomain } from '../../modules/SrcSharedB'; // 〔A1-R127〕+normalizeProviderFamilyDomain as resolveProviderFamilyDomain（原 xn 真身 ≡ Xx 8937；Home@162 R27 同判例，调用点 899 逐字不变） // 〔A1-P3-B11〕原 scopedTestId（qr/Nb 局部转录）收敛改指 canonical（墓碑见 @361）；消费面 3724/3783。环安全：SrcSharedB 为共享导出叶，无反向 components/shell 边（Sidebar.tsx@220 同边先例）
+import { joinTestidParts, normalizeProviderFamilyDomain as resolveProviderFamilyDomain, getOAuthFamilyIdByProviderId as supplierProviderId } from '../../modules/SrcSharedB'; // 〔A1-R128〕+getOAuthFamilyIdByProviderId as supplierProviderId（原 dr：styles@558 `R as dr` ← src-HCld2afU@9791 `Jx as R` ← Jx@8930 ≡ SrcSharedB@5572 逐字同构） // 〔A1-R127〕+normalizeProviderFamilyDomain as resolveProviderFamilyDomain（原 xn 真身 ≡ Xx 8937；Home@162 R27 同判例，调用点 899 逐字不变） // 〔A1-P3-B11〕原 scopedTestId（qr/Nb 局部转录）收敛改指 canonical（墓碑见 @361）；消费面 3724/3783。环安全：SrcSharedB 为共享导出叶，无反向 components/shell 边（Sidebar.tsx@220 同边先例）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上述 chunk；此处为重建接口）
@@ -374,49 +378,53 @@ declare function cleanupDeletedTaskState(args: {
 
 /* ---- 用量域 F12（mRt 依赖；接口级声明） ---- */
 
-interface SettingsSnapshot {
-  providerFamilyDomain?: string | null;
-  modelProviderFamilySelectedKeys?: { bigmodel?: string | null };
-  [key: string]: unknown;
-}
-declare function useSettingsContext(): { settings: SettingsSnapshot | null };
+/* ── tombstone〔A1-R128〕SettingsSnapshot 型 + useSettingsContext（原 JM）declare 删除 → 改指 modules/UsageDeep::useAppSettings
+ *    （真身 ≡ JM 53488，UsageDeep@1730 逐字「原 JM」；shim@430 导出在案）。SettingsSnapshot 型随之死删（唯此 declare 用）。
+ *    消费面实测：@894 解构 settings；@895 providerFamilyDomain / @929 modelProviderFamilySelectedKeys.bigmodel 读面
+ *    ≡ AppRuntimeSettings@1666 字段面。调用点逐字不变。 ── */
 /* ── tombstone〔A1-R127〕resolveProviderFamilyDomain（原 xn）declare 删除 → 改指 SrcSharedB::normalizeProviderFamilyDomain
  *    （真身 ≡ Xx 8937 / src 9745 / styles 514；Home@162 R27 同判例；调用点 899 逐字不变）。 ── */
-declare function useModelProviders(): { modelProviders: unknown[]; loading: boolean }; // qq
-declare function normalizeCodingPlanProviders(providers: unknown[]): CodingPlanProvider[]; // hX
+/* ── tombstone〔A1-R128〕useModelProviders（原 qq 78243）declare 删除 → 改指 modules/PaymentDeep::useModelProvidersStore
+ *    （PaymentDeep §11@10456 逐字转录，R35；shim@319 导出；AutomationsMainView@13 R119 同判例）。
+ *    返回面超集（+displayOrder/refresh）结构兼容；调用点 896 逐字不变。 ── */
+/* ── tombstone〔A1-R128〕normalizeCodingPlanProviders（原 hX 89188）declare 删除 → 改指 modules/Home::listConfiguredCodingPlanProviders
+ *    （Home §U@3728 逐字真身，同批补 export + shim 转导出）；调用点 904 逐字不变。CodingPlanProvider 型保留
+ *    （SidebarUsageStateModel@882 仍用）。 ── */
 interface CodingPlanProvider { id: string; name?: string; [key: string]: unknown } // 〔A1-R23〕型缝：+name——Home Oq 入参面 Array<{ id; name? }>（bundle Oq body 仅读 e.id/e.name）
-declare const PROVIDER_IDS: { zaiCodingPlan: string; bigmodelCodingPlan: string }; // q
-declare function resolveSelectedSupplierKey(key: string | null | undefined): string | null; // Uq（与 WorkspaceShell kJt 同名异函数：此处为供应商键前缀解析）
-declare function supplierProviderId(key: string): string | null; // dr
-declare function useTeamProducts(args: { enabled: boolean; authenticated: boolean }): {
-  snapshot: { productList: Array<{ subscribed?: boolean; [key: string]: unknown }> } | null;
-  loading: boolean;
-}; // TY
-declare function resolveTeamSources(args: {
-  activeCodingPlanProviderIds: string[];
-  availableCodingPlanProviders: CodingPlanProvider[];
-  subscribedTeamProducts: Array<{ [key: string]: unknown }>;
-}): TeamSource[]; // pX
+/* ── tombstone〔A1-R128〕PROVIDER_IDS（原 q≡W 4733）declare 删除 → 改指 modules/SrcSharedA::providerIds
+ *    （R32 canonical，styles 4833 逐字；ModelProviderSettingsSection@17 同判例，别名 PROVIDER_IDS 保留调用名）。
+ *    消费面 14 处逐字不变。 ── */
+/* ── tombstone〔A1-R128〕resolveSelectedSupplierKey（原 Uq 77975）declare 删除 → 改指 modules/ConversationLeaves::resolveSupplierProvider
+ *    （R17 逐字转录：custom: 前缀直取 / ghost: 双段冒号后 provider= 段 + decodeURIComponent 容错）。
+ *    与 WorkspaceShell kJt 同名异函数裁定在案（此处为供应商键前缀解析）；调用点 908 逐字不变。 ── */
+/* ── tombstone〔A1-R128〕supplierProviderId（原 dr）declare 删除 → 改指 modules/SrcSharedB::getOAuthFamilyIdByProviderId
+ *    （束证链：styles@558 `R as dr` ← src-HCld2afU@9791 `Jx as R` ← Jx@8930 `Wx.get(e) ?? null`；
+ *    SrcSharedB@5572 逐字同构（Wx≡OAUTH_FAMILY_BY_PROVIDER_ID@5554 转录在案））。语义面 = 供应商 id → 族 id；
+ *    消费三面 styles 53791/192031/150309 全通过；调用点 909 逐字不变。 ── */
+/* ── tombstone〔A1-R128〕useTeamProducts（原 TY 83745）declare 删除 → 改指 modules/PaymentDeep::useEnterpriseCodingPlanProducts
+ *    （PaymentDeep@4568 逐字「原 TY」；shim@293 导出在案）。返回面 { snapshot: any; loading; error } 超集原契据；
+ *    调用点 912 逐字不变。 ── */
+/* ── tombstone〔A1-R128〕resolveTeamSources（原 pX 89109）declare 删除 → 改指 modules/Home::listCodingPlanAudienceSources
+ *    （Home@3892 逐字真身，jrt≡teamSourcesFromSubscribedProducts 依赖在案；同批补 export + shim 转导出）。
+ *    型缝：真身返回 TeamCodingPlanSourceLike[]（interface 无索引签名 + organizationId?: string|null）→
+ *    917 memo 处 `as any as TeamSource[]` 还原原契据面（下游 929 resolveUpgradeTargetSource 入参面需索引签名；
+ *    R126 memo 缝同判例）。TeamSource 型保留为缝面。 ── */
 interface TeamSource { id: string; providerId: string; label?: string; organizationId?: string; projectId?: string; [key: string]: unknown }
 /* ── tombstone（A1-R26）：declare resolveUpgradeTargetSource（原 Mrt，89154–89170）删除 →
  *    文件头 ../../modules/Home import 改接（canonical = Home §U.5 逐字真身，bundle Mrt 唯一真身；
  *    终端消费实测：本文件 932 ≡ bundle 150329；负证据：bundle 内 Mrt 无第二定义）。
  *    调用点逐字不变；型缝：真身参型/返回面按消费面推导（下游 960–996 兼容实测）。 ── */
-declare function useCodingPlanEntitlement(args: {
-  enabled: boolean;
-  includeSubscription: boolean;
-  preferredProviderId: string;
-  allowDisabledPreferredProvider: boolean;
-  requirePreferredProvider: boolean;
-  allowEnvApiKey: boolean;
-  organizationId?: string;
-  projectId?: string;
-  cacheKey?: string | null;
-}): { snapshot: PlanEntitlementSnapshot | null; loading: boolean }; // $j
+/* ── tombstone〔A1-R128〕useCodingPlanEntitlement（原 $j 52497）declare 删除 → 改指 modules/UsageDeep::useSubscriptionSnapshot
+ *    （UsageDeep@1168 逐字「原 $j」；shim@356 导出在案）。UseSubscriptionSnapshotOptions 涵原契据九字段；
+ *    返回面 { snapshot: EntitlementSnapshot|null; loading; error; refresh } 超集——snapshot 经
+ *    EntitlementSnapshotLike 索引签名面结构兼容（968-977/982-994 消费实测）。调用点 936/945/954 逐字不变。 ── */
 // 〔A1-R23〕型缝：原 `interface PlanEntitlementSnapshot { [key: string]: unknown }` 收敛为 Home EntitlementSnapshotLike 别名——
 // Oq 76207 入参面 snapshot?: EntitlementSnapshotLike | null（Home §U.3 逐字）；本型原形仅索引签名，别名后结构兼容（含索引签名）
 type PlanEntitlementSnapshot = EntitlementSnapshotLike;
-declare function entitlementCacheKey(provider: CodingPlanProvider | null | undefined): string | null; // rM
+/* ── tombstone〔A1-R128〕entitlementCacheKey（原 rM 52648）declare 删除 → 改指 modules/UsageDeep::providerCacheKey
+ *    （UsageDeep@1353 逐字；shim@358 导出在案；R38 判例）。型缝：真身入参 ModelProvider|undefined，
+ *    调用点实参 ModelProviderEntry|undefined → 943/952 缝 `as any`（UsageDeep@1486 边界缝同判例）。
+ *    返回面 string ⊆ 原 string|null；cacheKey 槽位兼容。调用点逐字不变。 ── */
 /* ── tombstone〔A1-R126〕resolveProfilePlanAudience（原 uRt 150276）declare 删除 → 逐字实体落 components/shell/Home §U.3
  *    （经 modules/Home 转导出，本文件 @132 导入面扩展；调用点 971 逐字不变，实参面与实体契据同形
  *    ——PlanEntitlementSnapshot≡EntitlementSnapshotLike 别名在案）。 ── */
@@ -429,7 +437,10 @@ declare function entitlementCacheKey(provider: CodingPlanProvider | null | undef
  * 树内逐字真身 = Home §U.3 resolveCodingPlanUsageRemaining（A1-R19 转录，机械校验器在证，覆盖 76250/76296 两面）。
  * 本批改经顶部 `import { resolveCodingPlanUsageRemaining as resolveUsageState } from '../../modules/Home'` 接线，调用点逐字不变。
  * 同批删除的并行副本：components/usage/UsageDeep resolvePlanWidgetModel（同异取证：body ≡ Oq，判同身）。 */
-declare function fallbackProviderId(domain: string): string | undefined; // PCt
+/* ── tombstone〔A1-R128〕fallbackProviderId（原 PCt 118870）declare 删除 → 逐字实体化落 components/shell/Home §U
+ *    （经 modules/Home 转导出；bundle 唯一消费 150407 ≡ 本文件 1010）。树内三处同形内联
+ *    （Home 1122 / AutomationsMainView 1227 / ConversationPaneCore 1886）各为 bundle 各自内联面逐字转录，不归并。
+ *    调用点 1010 逐字不变。 ── */
 
 interface ProviderEntitlement {
   sourceId: string;
@@ -911,7 +922,7 @@ export function useSidebarUsageState(args: {
 
   const teamProducts = useTeamProducts({ enabled: args.enabled && !modelProvidersLoading && isCrossDomain, authenticated: true });
   const subscribedTeamProducts = React.useMemo(
-    () => teamProducts.snapshot?.productList.filter((product) => product.subscribed === true) ?? [],
+    () => teamProducts.snapshot?.productList.filter((product: { subscribed?: boolean; [key: string]: unknown }) => product.subscribed === true) ?? [], // 〔型缝 A1-R128〕TY 真身 snapshot: any → 原契据 productList 元素面还原（TS7006）
     [teamProducts.snapshot?.productList],
   );
   const teamSources = React.useMemo(
@@ -920,7 +931,7 @@ export function useSidebarUsageState(args: {
         activeCodingPlanProviderIds: [],
         availableCodingPlanProviders: [],
         subscribedTeamProducts,
-      }),
+      }) as any as TeamSource[], // 〔型缝 A1-R128〕pX 真身返回 TeamCodingPlanSourceLike[] → 原契据 TeamSource[] 面还原（墓碑见上）
     [subscribedTeamProducts],
   );
   const upgradeTarget = React.useMemo(
@@ -941,8 +952,8 @@ export function useSidebarUsageState(args: {
     allowDisabledPreferredProvider: true,
     requirePreferredProvider: true,
     allowEnvApiKey: false,
-    cacheKey: entitlementCacheKey(zaiProvider),
-  });
+    cacheKey: entitlementCacheKey(zaiProvider as any), // 〔型缝 A1-R128〕ModelProviderEntry⊄ModelProvider（name?/endpoints/models 面）；rM 真身入参面边界缝
+  }) as any as { snapshot: PlanEntitlementSnapshot | null; loading: boolean }; // 〔型缝 A1-R128〕$j 真身返回面超集（+error/refresh；EntitlementSnapshot quota.limits.usageDetails 面⊄EntitlementSnapshotLike）→ 原契据面还原（R127 useTaskListItems 缝同判例）
   const bigmodelEntitlement = useCodingPlanEntitlement({
     enabled: args.enabled && !modelProvidersLoading && isCrossDomain && !!bigmodelProvider,
     includeSubscription: true,
@@ -950,8 +961,8 @@ export function useSidebarUsageState(args: {
     allowDisabledPreferredProvider: true,
     requirePreferredProvider: true,
     allowEnvApiKey: false,
-    cacheKey: entitlementCacheKey(bigmodelProvider),
-  });
+    cacheKey: entitlementCacheKey(bigmodelProvider as any), // 〔型缝 A1-R128〕同上
+  }) as any as { snapshot: PlanEntitlementSnapshot | null; loading: boolean }; // 〔型缝 A1-R128〕同 zaiEntitlement 缝
   const teamEntitlement = useCodingPlanEntitlement({
     enabled: args.enabled && !modelProvidersLoading && upgradeTarget?.providerId === PROVIDER_IDS.bigmodelCodingPlan && upgradeTarget.audience === "team",
     includeSubscription: true,
@@ -962,7 +973,7 @@ export function useSidebarUsageState(args: {
     organizationId: upgradeTarget?.teamSource?.organizationId,
     projectId: upgradeTarget?.teamSource?.projectId,
     cacheKey: upgradeTarget?.teamSource?.id,
-  });
+  }) as any as { snapshot: PlanEntitlementSnapshot | null; loading: boolean }; // 〔型缝 A1-R128〕同 zaiEntitlement 缝
 
   const profilePlanBadge = resolveProfilePlanAudience({
     individualEntitlements: [

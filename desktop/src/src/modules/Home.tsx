@@ -187,6 +187,9 @@ export {
   trackCodingPlanBillingCycleSelect, // 〔A1-R26〕zM 53349 实体化：PaymentDeep trackPlanSelectEvent 合并面分流改接点（5979/6012）
   resolveUpgradeTargetSource, // 〔A1-R26〕Mrt 89154 实体化（裁量件）：SidebarLeaves resolveUpgradeTargetSource declare 收敛改接点
   resolveProfilePlanAudience, // 〔A1-R126〕uRt 150276 逐字实体（Home §U.3；Dq≡hasUsableEntitlementSnapshot 依赖）；SidebarLeaves @971 消费；Sidebar 面 declare 死删
+  listConfiguredCodingPlanProviders, // 〔A1-R128〕hX 89188 补 export：SidebarLeaves normalizeCodingPlanProviders declare 收敛改接点
+  listCodingPlanAudienceSources, // 〔A1-R128〕pX 89109 补 export：SidebarLeaves resolveTeamSources declare 收敛改接点
+  fallbackProviderId, // 〔A1-R128〕PCt 118870 逐字实体化（Home §U）：SidebarLeaves fallbackProviderId declare 收敛改接点
   teamSourceOrganizationLabel, // 〔A1-R28〕Lq 77476 逐字 canonical 收敛面：PaymentDeep teamOrganizationLabelOf A0 副本删除改接点（消费面 77608/88723，负证据见 components 侧墓碑）
   openSettingsSection, // 〔A1-P2-B10〕iw 39375 canonical 再导出——WorkspaceShell setSettingsTabTarget declare 改指消费
   ApiRetryStatusChip, // 〔A1-P1-B15〕I3e 76860 实体化：modules/Conversation ApiRetryView declare 收敛改接点（消费位 112823 留批）

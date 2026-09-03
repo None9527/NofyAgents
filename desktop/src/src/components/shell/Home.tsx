@@ -3725,12 +3725,17 @@ function hasStartPlanBalanceDisplay(e: { loading?: boolean; snapshot?: Entitleme
 
 var SIDEBAR_USAGE_CODING_PLAN_PROVIDER_KEY = `zcode:sidebar-usage-coding-plan-provider`, // Prt
   CODING_PLAN_PREFERENCE_PROVIDER_IDS = [providerIds.zaiCodingPlan, providerIds.bigmodelCodingPlan]; // Frt
-function listConfiguredCodingPlanProviders(e: ModelProviderEntry[]) { // hX
+export function listConfiguredCodingPlanProviders(e: ModelProviderEntry[]) { // hX 〔A1-R128〕补 export：SidebarLeaves normalizeCodingPlanProviders declare 收敛改接点（bundle 89188 唯一真身；本文件 4772 消费不变）
   return CODING_PLAN_PREFERENCE_PROVIDER_IDS.flatMap((t) => {
     let n = e.find((e) => e.id === t),
       r = n?.systemDisabledReason === `coding_plan_not_entitled`;
     return n && (isProviderEnabled(n) || r) && n.apiKey.trim().length > 0 ? [n] : [];
   });
+}
+/** 原 PCt（styles 118870）：族域兜底供应商 id ——〔A1-R128〕逐字实体化：bundle 唯一消费 150407 ≡ SidebarLeaves 1010（mRt 面）。
+ *  树内三处同形内联（本文件 1122 / AutomationsMainView 1227 / ConversationPaneCore 1886）各为 bundle 各自内联面之逐字转录，非 PCt 消费，不归并。 */
+export function fallbackProviderId(e: string | null | undefined) { // PCt
+  return e === `bigmodel` ? providerIds.bigmodelCodingPlan : providerIds.zaiCodingPlan;
 }
 function getSidebarUsagePreferenceStorage() { // Irt
   if (typeof window > `u`) return null;
@@ -3889,7 +3894,7 @@ interface SubscribedTeamProductLike {
   }>;
   [key: string]: unknown;
 }
-function listCodingPlanAudienceSources({
+export function listCodingPlanAudienceSources({ // 〔A1-R128〕补 export：SidebarLeaves resolveTeamSources declare 收敛改接点（bundle 89109 唯一真身；本文件 4028 消费不变）
   activeCodingPlanProviderIds: e,
   availableCodingPlanProviders: t,
   subscribedTeamProducts: n,
