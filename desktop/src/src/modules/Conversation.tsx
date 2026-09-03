@@ -149,7 +149,7 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
  *    唯一消费面 9.6 A0 编排器随 PTt 域迁出（SplitLayoutUiDeep.tsx）而删除。 ── */
 import { SessionQuotaBanner, PendingCommandBanner, type QuotaBannerState } from '../components/conversation/SessionBanners'; // 〔A0-S4-4b〕§9 渲染点（7528/7538）+ QuotaBannerState 型别（6979）消费回取（函数声明提升/型别擦除，环安全）
 import { splitUserInputParts, formatSkillMentionLabel, type MentionToken } from '../components/composer/FileMentionDragHelpers'; // A1-R12：ZHe（52182）/YHe（52147）declare 改指纯函数叶子（本批逐字转录）；调用点 767/688 逐字不变。环安全：叶子零 import
-import { CodeCommentsChip, parseComposerContextContent as parseUserInputContext, SelectionsChip, WebElementsChip, isHttpUrl as isPluginIconUrl, usePluginReferenceCatalog as usePluginManifests } from './Composer'; // 〔A1-R136〕+usePluginManifests 别名（原 FV，canonical = Composer usePluginReferenceCatalog；消费面 5510 逐字不变） // A1-R13：oV（64277）declare 改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；调用点 740 逐字不变。环安全：Composer 不反引本文件。〔A1-R22〕+CodeCommentsChip/WebElementsChip/SelectionsChip（原 TH 68298 / lit 89989 / uit 90087 逐字 canonical；消息行 112241–112244 四 chip declare 收敛）+三型别（ParsedUserInput 精化）
+import { CodeCommentsChip, ComposerInput as Composer, type ComposerEditorApi, parseComposerContextContent as parseUserInputContext, SelectionsChip, WebElementsChip, isHttpUrl as isPluginIconUrl, usePluginReferenceCatalog as usePluginManifests } from './Composer'; // 〔A1-R137〕+Composer 别名（原 ZV，F08 根组件；canonical = Composer ComposerInput@4867 逐字真身，js 67007 / jsx 59468，A0 既录；消费面 1225 逐字不变）+ComposerEditorApi 型（1110 ref 面校准消费） // 〔A1-R136〕+usePluginManifests 别名（原 FV，canonical = Composer usePluginReferenceCatalog；消费面 5510 逐字不变） // A1-R13：oV（64277）declare 改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；调用点 740 逐字不变。环安全：Composer 不反引本文件。〔A1-R22〕+CodeCommentsChip/WebElementsChip/SelectionsChip（原 TH 68298 / lit 89989 / uit 90087 逐字 canonical；消息行 112241–112244 四 chip declare 收敛）+三型别（ParsedUserInput 精化）
 import { PptxReferencesChip, usePptxPreviewOpener } from '../components/composer/PptxReferencesChip'; // 〔A1-R22〕原 PptxReferenceChips/useOpenCodeViewerForReference declare（JH 69036 / YH 69207）改指（A1-R21 补 export；消息行 112243 消费面）。环安全：该叶不反引本文件
 import { AttachmentChipGroup, AttachmentChip, AttachmentChipIcon, AttachmentChipName, AttachmentChipRemoveButton, AttachmentPreviewDialog } from '../components/composer/AttachmentChips'; // 〔A1-R130〕原 vN/yN/bN/xN/SN/DN（styles 1717600–1727900）declare 改指（正典逐字实体化；消费面 1021–1056 逐字不变）。环安全：该叶仅 modules/{UtilsCn,button,I18n}+components/ui/dialog+lucide 单向边
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
@@ -1069,8 +1069,17 @@ const AttachmentChipList = React.memo(function AttachmentChipList({
 
 /* --- 5.7 用户查询行（原 pvt，js 112010 / jsx 95596，memo） --- */
 
-/** Composer 接口（原 ZV，F08 族 js 66959；行内编辑复用完整 Composer） */
-declare const Composer: React.FC<Record<string, unknown>>;
+/* ── tombstone〔A1-R137〕：declare const Composer（原 ZV，F08 根组件，js 66959/67007）删除 →
+ *    一符一家收敛 modules/Composer ComposerInput@4867（ZV 逐字真身，js 67007 / jsx 59468，
+ *    A0 既录；Home DraftComposerRegion@7048 同体消费在案），经文件头既有导入行别名接入
+ *    （ComposerInput as Composer，保调用名逐字不变）。束消费面实证（styles 3535334）：
+ *    `(0, $.jsx)(ZV, { workspacePath: t.workspacePath, taskId: t.sessionId ?? null, ... })`
+ *    与本文件 @1225 全 21 参逐字同构。面级联（型缝仅编译期擦除）：RowRenderContext.workspacePath?
+ *    带 undefined → ComposerInput/LexicalChatInput/SlashPanel/MentionSelector/useActiveTaskProvider/
+ *    五建议钩子/useSessionSlashCommands/useSubagentsContext/useSkillsContext/SessionListEndpoint/
+ *    collectSessionListEndpoints/applyWorkspaceFileMentionDrop + FileMentionDragHelpers 双函数
+ *    首参面 string → string | undefined（束直传无守卫同判；运行期内联编辑 workspacePath 恒在）。
+ *    1110 ref 面 {focus} → ComposerEditorApi 校准（运行期 ref 内容 = EditorApiPlugin 写入全 api）。 ── */
 /* ── tombstone〔A1-R134〕：declare const EditConflictDialog（原 b_t 的 editConflict 变体，js 110680）删除 →
  *    一符一家收敛 components/code-viewer/GitReview FileRewindDialog（b_t 双变体同体，A0 既录；
  *    variant?: "fileRewind" | "editConflict" + onConversationOnly? 面与消费面全九参逐字吻合），
@@ -1107,7 +1116,7 @@ const UserQueryRow = React.memo(function UserQueryRow({
   const [draftAttachments, setDraftAttachments] = React.useState<AttachmentRef[]>(() => [...(row.attachments ?? [])]);
   const [conflictPreview, setConflictPreview] = React.useState<FileRewindPreview | null>(null);
   const [conflictOpen, setConflictOpen] = React.useState(false);
-  const inputApiRef = React.useRef<{ focus: () => void } | null>(null);
+  const inputApiRef = React.useRef<ComposerEditorApi | null>(null); // 〔型缝 A1-R137〕面校准：运行期 ref 内容 = ZV EditorApiPlugin 写入完整编辑器 api（束 3535334 inputApiRef: _ 直传）；declare 时代 {focus} 窄面仅局部消费最小面
   const canSubmit = draftText.trim().length > 0 || draftAttachments.length > 0;
   const submitLabel = intl.formatMessage({ id: `chat.send` });
   const cancelLabel = intl.formatMessage({ id: `common.cancel` });

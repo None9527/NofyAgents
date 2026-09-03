@@ -572,14 +572,14 @@ export interface TempTextAttachmentMeta {
 interface TaskStoreState {
   [key: string]: unknown;
 }
-declare function taskScopeSelector(state: TaskStoreState, workspacePath: string, workspaceIdentity?: string | null): any;
+declare function taskScopeSelector(state: TaskStoreState, workspacePath: string | undefined, workspaceIdentity?: string | null): any; // 〔A1-R137〕面级联
 interface WhiteboardStoreState {
   workspaces: Record<
     string,
     { boardIds: string[]; boardsById: Record<string, WhiteboardBoard | undefined> } | undefined
   >;
 }
-declare function whiteboardScopeKey(args: { workspacePath: string; workspaceIdentity?: string | null }): string;
+declare function whiteboardScopeKey(args: { workspacePath: string | undefined; workspaceIdentity?: string | null }): string; // 〔A1-R137〕面级联
 declare const whiteboardStore: {
   getState(): {
     getBoard(args: { boardId: string; workspaceIdentity?: string | null; workspacePath: string }): WhiteboardBoard | undefined;
@@ -690,7 +690,7 @@ declare function useSessionListsHydrator(endpoints: SessionListEndpoint[]): {
   hydratingEndpointKeys: string[];
 };
 interface SessionListEndpoint {
-  workspacePath: string;
+  workspacePath: string | undefined; // 〔A1-R137〕面级联
   workspaceIdentity?: string;
   endpointKey?: string;
   agentService: ZcodeAgentService;
@@ -906,7 +906,7 @@ export interface PptxElementAddDetail {
  * 且被 SJe（65070）直接消费，故随族收录（裁决 §R1）。
  */
 export function useSubagentsContext(
-  workspacePath: string | null,
+  workspacePath: string | null | undefined, // 〔A1-R137〕面级联
   provider: string,
   workspaceIdentity?: string | null,
 ) {
@@ -1170,7 +1170,7 @@ export const useSkillContextStore = createStore<SkillContextStoreState>((set, ge
 
 /** 原 WB（js 63680）：按 工作区×供应商 解析技能上下文（与 pqe 对称） */
 export function useSkillsContext(
-  workspacePath: string | null,
+  workspacePath: string | null | undefined, // 〔A1-R137〕面级联
   provider: string,
   workspaceIdentity?: string | null,
 ) {
@@ -1625,7 +1625,7 @@ function buildSkillSuggestions(skills: SkillEntry[], locale?: string): MentionSu
 
 /** 原 Nqe（js 64056）：技能建议段钩子（启用 + 过滤 + 查询） */
 function useSkillSuggestions(
-  workspacePath: string | null,
+  workspacePath: string | null | undefined, // 〔A1-R137〕面级联
   workspaceIdentity: string | null | undefined,
   provider: string,
   query: string,
@@ -1907,7 +1907,7 @@ function toSlashPanelMention(item: MentionSuggestionItem): MentionPayload {
 }
 
 /** 原 qqe（js 64274）：会话斜杠命令（任务 store 消费面） */
-function useSessionSlashCommands(workspacePath: string, workspaceIdentity?: string | null): SessionSlashCommand[] {
+function useSessionSlashCommands(workspacePath: string | undefined, workspaceIdentity?: string | null): SessionSlashCommand[] { // 〔A1-R137〕面级联
   return useTaskStore((state) => taskScopeSelector(state, workspacePath, workspaceIdentity).slashCommands);
 }
 
@@ -2555,7 +2555,7 @@ export function SlashPanel({
   excludedCommandNames,
   appCommands,
 }: {
-  workspacePath: string;
+  workspacePath: string | undefined; // 〔A1-R137〕面级联
   workspaceIdentity?: string | null;
   provider: string;
   container: HTMLElement | null;
@@ -2836,14 +2836,14 @@ function shouldRefreshFileList(args: {
 
 /** 原 AJe（js 65312）：文件建议段钩子（列表缓存 + 失效刷新） */
 function useFileSuggestions(
-  workspacePath: string,
+  workspacePath: string | undefined, // 〔A1-R137〕面级联
   query: string,
   enabled: boolean,
   emptyText: string,
   title: string,
   emptyQueryLimit: number,
 ) {
-  const { fileService } = useServices() as unknown as { fileService: { listWorkspaceFiles(args: { rootPath: string }): Promise<WorkspaceFileEntry[]> } };
+  const { fileService } = useServices() as unknown as { fileService: { listWorkspaceFiles(args: { rootPath: string | undefined }): Promise<WorkspaceFileEntry[]> } }; // 〔A1-R137〕面级联
   const [files, setFiles] = React.useState<MentionSuggestionItem[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [loaded, setLoaded] = React.useState(false);
@@ -3040,7 +3040,7 @@ function buildPluginSuggestions(
 
 /** 原 PJe（js 65456）：插件建议段钩子 */
 function usePluginSuggestions(
-  workspacePath: string,
+  workspacePath: string | undefined, // 〔A1-R137〕面级联
   workspaceIdentity: string | null | undefined,
   sessionId: string | null,
   query: string,
@@ -3167,7 +3167,7 @@ function collectSessionListEndpoints(args: {
   currentRemoteSessionId?: string | null;
   currentServices: { zcodeAgentService: ZcodeAgentService };
   currentWorkspaceIdentity?: string | null;
-  currentWorkspacePath: string;
+  currentWorkspacePath: string | undefined; // 〔A1-R137〕面级联
   enabled: boolean;
   serviceResolverState: unknown;
   workspaceTabs: unknown[];
@@ -3204,7 +3204,7 @@ function collectSessionListEndpoints(args: {
 /** 原 HJe（js 65564）：会话建议段钩子（@ 当前工作区 / # 同权限工作区） */
 function useSessionSuggestions(
   provider: string,
-  workspacePath: string,
+  workspacePath: string | undefined, // 〔A1-R137〕面级联
   workspaceIdentity: string | null | undefined,
   query: string,
   enabled: boolean,
@@ -3277,7 +3277,7 @@ function buildWhiteboardSuggestions(boards: WhiteboardBoard[]): MentionSuggestio
 
 /** 原 WJe（js 65622）：白板建议段钩子 */
 function useWhiteboardSuggestions(
-  workspacePath: string,
+  workspacePath: string | undefined, // 〔A1-R137〕面级联
   workspaceIdentity: string | null | undefined,
   query: string,
   enabled: boolean,
@@ -3331,7 +3331,7 @@ export function MentionSelector({
   disabled = false,
   onWhiteboardMentionSelected,
 }: {
-  workspacePath: string;
+  workspacePath: string | undefined; // 〔A1-R137〕面级联
   workspaceIdentity?: string | null;
   sessionId?: string | null;
   provider: string;
@@ -3755,7 +3755,7 @@ function resolveTaskProvider(taskId: string | null | undefined, scope: any): any
 /** qJe → useActiveTaskProvider（js 66103） */
 function useActiveTaskProvider(
   taskId: string | null | undefined,
-  workspacePath: string,
+  workspacePath: string | undefined, // 〔A1-R137〕面级联
   workspaceIdentity?: string | null,
 ): any {
   const tabWorkspaceIdentity = useWorkspaceTabsSelector((state: any) => {
@@ -4480,7 +4480,7 @@ function LexicalChatInput({
   onChange?: (text: string) => void;
   onFocus?: React.FocusEventHandler;
   triggerPanelContainer: HTMLElement | null;
-  workspacePath: string;
+  workspacePath: string | undefined; // 〔A1-R137〕面级联
   workspaceIdentity?: string | null;
   taskId?: string | null;
   inputTestId?: string;
@@ -4628,7 +4628,7 @@ export function applyWorkspaceFileMentionDrop(args: {
   inputApiRef: { current: { appendFileMention(label: string, filePath: string, markdown: string, data: Record<string, unknown> | undefined): void; focus(): void } | null };
   currentMarkdown: string;
   payload: WorkspaceFileDragPayload;
-  workspacePath: string;
+  workspacePath: string | undefined; // 〔A1-R137〕面级联
   workspaceIdentity?: string | null;
   onTextChange: (text: string) => void;
 }): string {
@@ -4914,7 +4914,7 @@ export function ComposerInput({
   appSlashCommands,
   enableMentionPanel,
 }: {
-  workspacePath: string;
+  workspacePath: string | undefined; // 〔A1-R137〕面校准：束 3535334 内联编辑消费面 workspacePath: t.workspacePath 直传（RowRenderContext.workspacePath? 带 undefined）；级联本族 17 面，型缝仅编译期
   workspaceIdentity?: string | null;
   taskId?: string | null;
   initialValue?: string;

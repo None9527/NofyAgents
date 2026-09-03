@@ -322,14 +322,14 @@ export function isAddWorkspaceFileToChatEvent(e: Event): boolean {
 }
 
 /** 原 iUe（52268）：同工作区匹配（载荷 workspace 与落点一致 → 相对路径） */
-function isSameWorkspacePayload(e: WorkspaceFileDragPayload, t: string, n?: string | null): boolean {
+function isSameWorkspacePayload(e: WorkspaceFileDragPayload, t: string | undefined, n?: string | null): boolean { // 〔A1-R137〕面级联
   return e.workspacePath === t && (e.workspaceIdentity ?? ``) === (n ?? ``);
 }
 
 /** 原 aUe（52271）：工作区文件提及构造（同工作区 → 相对路径；否则绝对路径） */
 export function buildWorkspaceFileMentionPayload(
   e: WorkspaceFileDragPayload,
-  t: string,
+  t: string | undefined, // 〔A1-R137〕面级联
   n?: string | null,
 ): { value: string; markdown: string; data: Record<string, unknown> } {
   let r = isSameWorkspacePayload(e, t, n) ? e.relativePath : e.path;
