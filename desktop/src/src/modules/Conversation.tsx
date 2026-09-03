@@ -124,7 +124,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored u
 import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, alwaysTrue as initialFollowing, resolveFollowIntent as updateFollowing, resolveFollowAfterIntent as reconcileFollowing, resolveInitialIntent as resolveStickToBottomAction, scrollDeltaDirection as wheelScrollIntent, compareScrollDirection as touchScrollIntent, shouldSuppressTopAdjustment as shouldAdjustScrollPosition, shouldLoadOlderOnUnfollow as shouldShowBackToBottom, shouldTriggerLoadOlder as shouldPrefetchOlder, estimatePrependTrigger as prefetchTriggerPx, computePrependCompensation as computeLoadOlderScrollDelta, computePrependGrowth as computePrependScrollDelta, useSessionErrorRecovery, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）；+useSessionErrorRecovery（A1-R14：原 NCt 118779 实体化改指，消费点 5328）；+12 滚动跟随族别名改指（A1-R129t：孪生收敛，详见下方墓碑）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
 import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep'; // 原 v_t/__t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
-import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）；〔A1-R22〕+type CodeCommentAttachment（ParsedUserInput 型别精化）
+import { FileRewindDialog, FileRewindDialog as EditConflictDialog, countContextAttachments, type AttachmentContextBundle, type FileRewindPreview } from './GitReview'; // 〔A1-R134〕+EditConflictDialog 别名（原 b_t editConflict 变体，canonical 双变体同体，消费面 1255 逐字不变） // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）；〔A1-R22〕+type CodeCommentAttachment（ParsedUserInput 型别精化）
 import { OffPeakNewTaskBanner } from './Home'; // 〔A1-P1-B15〕原 I3e（76860）收敛改指；〔A1-P1-B16〕ApiRetryView 别名随 x1 收敛入 ChatLoadingSlot 除名
 import { ApiRetryLoadingSlot } from '../components/conversation/ChatLoadingSlot'; // 〔A1-P1-B16〕原 x1（112814）逐字实体化（kvt/Llt 同叶携带；消费位 112823 束体办结）
 import { classifyToolCall } from '../components/conversation/ToolCallClassification'; // 〔A1-R129u〕原 og（js 23132）canonical 改指：isTodoToolByName 实体化消费
@@ -1071,18 +1071,11 @@ const AttachmentChipList = React.memo(function AttachmentChipList({
 
 /** Composer 接口（原 ZV，F08 族 js 66959；行内编辑复用完整 Composer） */
 declare const Composer: React.FC<Record<string, unknown>>;
-/** 编辑冲突对话框（原 b_t 的 editConflict 变体，见 ConversationOverlays 报告） */
-declare const EditConflictDialog: React.FC<{
-  variant: "editConflict";
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  preview: FileRewindPreview | null;
-  previewLoading: boolean;
-  applying: boolean;
-  error: string | null;
-  onApply: () => void;
-  onConversationOnly: () => void;
-}>;
+/* ── tombstone〔A1-R134〕：declare const EditConflictDialog（原 b_t 的 editConflict 变体，js 110680）删除 →
+ *    一符一家收敛 components/code-viewer/GitReview FileRewindDialog（b_t 双变体同体，A0 既录；
+ *    variant?: "fileRewind" | "editConflict" + onConversationOnly? 面与消费面全九参逐字吻合），
+ *    经文件头既有导入行别名接入（FileRewindDialog as EditConflictDialog，保调用名逐字不变）。
+ *    消费面实证（1 处）：本文件 @1255 行内编辑冲突锚点对话框，逐字不变。 ── */
 
 /**
  * 用户查询行（原 pvt，js 112010 / jsx 95596，memo）。
