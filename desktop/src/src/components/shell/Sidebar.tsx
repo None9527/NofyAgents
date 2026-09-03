@@ -217,8 +217,9 @@ import { applySearchTaskMutation as applyOptimisticTaskMutation, invalidateWorks
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../../modules/stores-core';
 import { sessionActivityOf as taskSessionActivity, pendingInteractionOf as taskPendingAttention, compareTasks as compareTasksForList, reportTelemetry as trackEvent } from '../../modules/StoresDeep'; // 〔A1-R125〕+reportTelemetry as trackEvent（原 xw 改指，R36 canonical；R1 判例别名保留调用名） // A1-R10 项 2d：原 Mo/No/Fo（jsx 369/376/405）本地转录改指 canonical = helpers sessionActivityOf/pendingInteractionOf/compareTasks（Mo@1311/No@1318/Fo@1365 逐字）；调用点 1506/1507/1958/2248/2699 逐字不变。环安全：StoresDeep 值闭包（stores/* + SkillStore + SrcShared 族）不达 components/shell
 import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 项 2d：原 Go（jsx 986）本地转录改指 canonical = components/markdown baseName（Go@1928 逐字）；调用点 1561 逐字不变。环安全：MarkdownIntegration 值闭包（markdown 渲染族 + FileTreePanel resolveAvailableEditors）不达 components/shell（实测在案）
-import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector, resolveTabRemoteSessionId as gc, useWorkspaceTabStore as useTabStore, useWorkspaceTabStoreOptional as useOptionalTabStore } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）；〔A1-P2-B10〕gc≡resolveTabRemoteSessionId（原 gc 4814）——ERt 真身闭包依赖
+import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector, resolveTabRemoteSessionId as gc, useWorkspaceTabStore as useTabStore, useWorkspaceTabStoreOptional as useOptionalTabStore, buildWorkspaceServicesBindings as buildWorkspaceServicesMap } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R126〕+buildWorkspaceServicesBindings as buildWorkspaceServicesMap（原 yc jsx 3637 canonical，styles 4834 逐字；墓碑见下声明群） // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）；〔A1-P2-B10〕gc≡resolveTabRemoteSessionId（原 gc 4814）——ERt 真身闭包依赖
 import { useSessionRegistryStore as Zs } from '../../stores/sessionRegistryStore'; // 〔A1-P2-B10〕Zs≡useSessionRegistryStore（原 Zs 4357）——ERt 真身闭包依赖（服务注册表选择器）
+import { useLocalWorkspaceTabs as useScopedWorkspaceTabs } from '../../modules/SettingsLeaves'; // 〔A1-R126〕J3≡useLocalWorkspaceTabs（styles 135515；canonical 属主 AutomationEditor@1088，经 modules/SettingsLeaves 转导出；墓碑见下声明群）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 // 〔A1-R25〕aw 39378 收敛：markUsageEntryIntent declare 改接 Home §U.7 逐字真身（别名保留，调用点 4769 逐字不变；环安全：Home 顶层 hoisted function，本文件仅渲染期事件回调消费）
 import { openSettingsUsageSection as markUsageEntryIntent } from './Home';
@@ -1130,14 +1131,15 @@ interface WorkspaceServices {
 }
 /** 原 Ec（4897）：基础服务 */
 /** 原 Oc（4945）：工作区服务解析 */
-/** 原 yc（jsx 3637）：工作区键 → 服务/远端会话 映射 */
-declare function buildWorkspaceServicesMap(
-  tabs: WorkspaceTab[],
-  baseServices: WorkspaceServices | null,
-  sessionMaps: { sessionsById: unknown; sessionIdByWorkspaceIdentity: Record<string, string>; sessionIdByWorkspacePath: Record<string, string> },
-): Map<string, { services: WorkspaceServices; remoteSessionId?: string; isRemoteWorkspace: boolean }>;
-/** 原 J3（jsx 113936）：按当前能力裁剪工作区标签（远程未连接则排除等） */
-declare function useScopedWorkspaceTabs(args: { workspaceTabs: WorkspaceTab[] }): WorkspaceTab[];
+/* ── tombstone〔A1-R126〕buildWorkspaceServicesMap（原 yc jsx 3637）/useScopedWorkspaceTabs（原 J3 jsx 113936）declare 删除 → 一符一家改指：
+ *    yc canonical = modules/WorkspaceTabsDeep buildWorkspaceServicesBindings（styles 4834 逐字；vc/gc/_c/Io 依赖同家既收敛，
+ *    三字段快照入参面 SessionRegistrySnapshotState 同批精化）；J3 canonical = AutomationEditor useLocalWorkspaceTabs
+ *    （≡ styles 135515 filter(oc∧RMt)，经 modules/SettingsLeaves 转导出）。调用点 2010/2286/2312 在案：
+ *    型缝一（2010/2286）本地 WorkspaceTab 无 canonical 必填 kind/label → 入参 `workspaceTabs as any`；
+ *    型缝二（2312）memo 返回 `as any as Map<string, {services: WorkspaceServices; remoteSessionId?; isRemoteWorkspace}>`
+ *    复原原 declare 消费契据面（binding.services 真形 BaseServices 成员可空，消费面按本地 WorkspaceServices 必具契约读）；
+ *    伪铸销账（2312）`baseServices as unknown as WorkspaceServices | null` 为 A0 迁就旧 declare 伪契据之铸，
+ *    真形 BaseServices（useBaseServices 实参直传，≡ bundle yc 次参）——删铸还真。 ── */
 /* ── tombstone〔A1-P3-B1〕：declare useTaskListItems（原 ZS）删除 → 改指 ./TaskListQueryCore 逐字真身
  *    （styles 35775–36118 整区转录，ROUNDTRIP EXACT 在案 /tmp/a1r0-p3/p3-roundtrip.js）。
  *    调用点 1914/2201 逐字不变；型缝：真身面 (e: any) 宽于原契据，调用面入参对象同形兼容。 ── */
@@ -2007,7 +2009,7 @@ export function PinnedTasksSection({
 }) {
   const { intl } = useIntlContext();
   const baseServices = useBaseServices();
-  const scopedWorkspaceTabs = useScopedWorkspaceTabs({ workspaceTabs });
+  const scopedWorkspaceTabs = useScopedWorkspaceTabs({ workspaceTabs: workspaceTabs as any }); // 〔型缝 A1-R126〕本地 WorkspaceTab 缺 canonical 必填 kind/label → any 桥（运行时同形：束 J3 即 filter(oc∧RMt)）
   const sessionIdByWorkspaceIdentity = useSessionRegistryStore((state) => state.sessionIdByWorkspaceIdentity);
   const removeTaskState = useTaskStore((state) => state.removeTaskState);
   const upsertOptimisticTaskListItem = useTaskStore((state) => state.upsertOptimisticTaskListItem);
@@ -2283,7 +2285,7 @@ export function TimelineTasksSection({
 }) {
   const { intl, locale } = useIntlContext();
   const baseServices = useBaseServices();
-  const scopedWorkspaceTabs = useScopedWorkspaceTabs({ workspaceTabs });
+  const scopedWorkspaceTabs = useScopedWorkspaceTabs({ workspaceTabs: workspaceTabs as any }); // 〔型缝 A1-R126〕本地 WorkspaceTab 缺 canonical 必填 kind/label → any 桥（运行时同形：束 J3 即 filter(oc∧RMt)）
   const sessionsById = useSessionRegistryStore((state) => state.sessionsById);
   const sessionIdByWorkspaceIdentity = useSessionRegistryStore((state) => state.sessionIdByWorkspaceIdentity);
   const sessionIdByWorkspacePath = useSessionRegistryStore((state) => state.sessionIdByWorkspacePath);
@@ -2309,7 +2311,7 @@ export function TimelineTasksSection({
   intlRef.current = intl;
   onSelectTaskRef.current = onSelectTask;
 
-  const workspaceServicesByKey = React.useMemo(() => buildWorkspaceServicesMap(workspaceTabs, baseServices as unknown as WorkspaceServices | null, sessionMaps), [baseServices, sessionMaps, workspaceTabs]);
+  const workspaceServicesByKey = React.useMemo(() => buildWorkspaceServicesMap(workspaceTabs, baseServices, sessionMaps) as any as Map<string, { services: WorkspaceServices; remoteSessionId?: string; isRemoteWorkspace: boolean }>, [baseServices, sessionMaps, workspaceTabs]); // 〔A1-R126〕yc 改指 + 型缝：伪铸删（真形 BaseServices 直传），返回面复原原 declare 契据
   const activeWorkspaceKey = workspaceKey(activeWorkspacePath, activeWorkspaceIdentity);
   const tabsSignature = React.useMemo(
     () => workspaceTabs.map((tab) => (tab.workspaceIdentity?.trim() || tab.workspacePath) + ":" + tab.workspacePath).join("|"),
@@ -4889,7 +4891,8 @@ declare function isPlanExpiring(snapshot: PlanSnapshot | null): boolean;
 declare function planUpgradeFunnelArgs(args: { providerId: string | null; upgradeSource: string; eventRegion: string; eventText: string; entryPlanState: string }): unknown;
 declare function planEntryState(args: { snapshot: PlanSnapshot | null }): string;
 /** 原 uRt（150230）：团队/个人权益归并（接口级纯函数） */
-declare function resolveProfilePlanAudience(args: { hasTeamPlanEntitlement: boolean; individualEntitlements: Array<{ snapshot: PlanSnapshot | null; providerId: string; loading?: boolean }>; teamEntitlementLoading: boolean }): { audience: "individual" | "team"; snapshot?: PlanSnapshot } | null;
+/* ── tombstone〔A1-R126〕resolveProfilePlanAudience（原 uRt 150276）declare 删除——本文件零调用点（死 declare）；
+ *    逐字实体落 components/shell/Home §U.3（经 modules/Home 转导出；消费面 SidebarLeaves @971）。 ── */
 /** 原 dRt/fRt（150240/150247）：plan 徽章文案（去前缀 + 标题化） */
 function resolvePlanBadgeLabel(entitlement: { unavailableReason?: string; quota?: { level?: string }; subscription?: { details: Array<{ productName?: string }> } } | null | undefined): string | null {
   if (!entitlement || entitlement.unavailableReason === "no_plan") return null;

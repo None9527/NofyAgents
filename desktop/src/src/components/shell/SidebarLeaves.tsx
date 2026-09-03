@@ -125,11 +125,13 @@ import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration
 import { useSearchResultsStore, type SearchResultsState } from '../../modules/QuickPick'; // A1-R10 项 1a：原 Vo（bundle 1553）declare 改指 canonical = QuickPick 1254 区（A1-R9 收敛完成；modules/QuickPick 为再导出 shim，QuickPickDeep 同源先例）。环安全：QuickPick 值闭包（modules/ImeComposition/SkillStore/StoresDeep/services/stores-core 族 + components/ui）不达 components/shell
 import { normalizeSearchDescriptor as buildTaskListQueryDescriptor, descriptorCacheKey as queryDescriptorKey, type SearchDescriptor } from '../../stores/searchResultsHelpers'; // A1-R10 项 1a：原 zie/Bie（bundle 1385/1396）declare 改指 canonical（searchResultsHelpers 逐字转录在案）；入参 workspaceScopes → 出参 workspaceKeys 真形（1386–1395 实测）。环安全：helpers 值闭包 = react + stores/taskStore，不达 components/shell
 import { useBaseServices } from '../../modules/services';
-import { useSessionRegistryStore, type BaseServices } from '../../modules/stores-core'; // BaseServices：buildScopedServices 实参形
+import { buildWorkspaceServicesBindings as buildWorkspaceServicesMap } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R126〕yc≡buildWorkspaceServicesBindings（styles 4834 逐字；三字段快照入参面 SessionRegistrySnapshotState 同批精化，@262 留批型面不接消解；墓碑见 @347 区）
+import { useLocalWorkspaceTabs as useScopedWorkspaceTabs } from '../../modules/SettingsLeaves'; // 〔A1-R126〕J3≡useLocalWorkspaceTabs（styles 135515；canonical 属主 AutomationEditor@1088；墓碑见 @1756 区）
+import { useSessionRegistryStore, type BaseServices } from '../../modules/stores-core'; // BaseServices：resolveServicesByWorkspaceIdentity declare 契据面仍用（〔A1-R126〕yc declare 已墓碑化，型用余此一处）
 import { formatRelativeTime } from '../../modules/SidePanel'; // $S
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
-import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
+import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, resolveProfilePlanAudience, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R126〕+resolveProfilePlanAudience（原 uRt 150276，Home §U.3 逐字实体；墓碑见 @422 区） // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
 import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex } from './TaskIndexCore';
 import { moveTaskIntoGroupStart, type GroupColor, type GroupedView, type GroupedViewNode, type TaskGroup } from './Sidebar'; // 〔A1-R102〕d8 闭合 + 型别归一（A1-P3-B4 §六-3①/§七-6 处方）：canonical = Sidebar moveTaskIntoGroupStart@833，型族改指 Sidebar canonical 面。环安全：本→Sidebar 值边新增（Sidebar→modules/SidebarLeaves→本叶边既有成环），惟 moveTaskIntoGroupStart 仅 applyDraftPromotions 运行期调用，函数声明 hoisted——A1-P3-B4 直连先例实测无环异常（当时仅 TS2719 型面回退）
 import { type MobileHomeResult, type WebRemoteSwitcherService, type WebRemoteWorkspaceInfo } from '../remote/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：消费面三本地型（WebRemoteWorkspace/WebRemoteTaskIndex/WebRemoteSwitcher）删碑改指生产面（六点分叉表闭合，A1-P2-B9.report.md §四）。环安全：type-only 导入全擦除，WebRemote 值闭包（ui/modules 族）不达 SidebarLeaves // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
@@ -343,12 +345,10 @@ declare function useTaskListItems(args: {
   collapsedLimit: number;
 }): { items: TaskMeta[]; total: number; loading: boolean; syncingRemoteWorkspaces: boolean };
 
-/** 工作区服务映射（原 yc，jsx 3637） */
-declare function buildWorkspaceServicesMap(
-  tabs: WorkspaceTab[],
-  services: BaseServices, // 实参为 useBaseServices() 返回形；分片值按 WorkspaceServices 收敛
-  registry: SessionRegistrySnapshot,
-): Map<string, { services: WorkspaceServices }>;
+/* ── tombstone〔A1-R126〕buildWorkspaceServicesMap（原 yc jsx 3637）declare 删除 → 改指 modules/WorkspaceTabsDeep
+ *    buildWorkspaceServicesBindings（styles 4834 逐字 canonical；vc/gc/_c/Io 依赖同家既收敛）。
+ *    调用点 3136/3897 逐字不变；型缝：memo 返回 `as any as Map<string, {services: WorkspaceServices; remoteSessionId?; isRemoteWorkspace}>`
+ *    复原原 declare 消费契据面（binding.services 真形 BaseServices 成员可空，消费面按本地 WorkspaceServices 必具契约读）。 ── */
 
 /** 横切展示助手（Sidebar.tsx 同族已还原） */
 /* ── tombstone〔A1-P3-B11〕：declare taskChangeSummary（vg）删除 → 改指 Sidebar@397 逐字真身（原 vg jsx 20317 ≡ bundle 23753–23755），经 modules/Sidebar 转导出（@120 导入面扩展）；
@@ -419,11 +419,9 @@ declare function useCodingPlanEntitlement(args: {
 // Oq 76207 入参面 snapshot?: EntitlementSnapshotLike | null（Home §U.3 逐字）；本型原形仅索引签名，别名后结构兼容（含索引签名）
 type PlanEntitlementSnapshot = EntitlementSnapshotLike;
 declare function entitlementCacheKey(provider: CodingPlanProvider | null | undefined): string | null; // rM
-declare function resolveProfilePlanAudience(args: {
-  hasTeamPlanEntitlement: boolean;
-  individualEntitlements: Array<{ snapshot: PlanEntitlementSnapshot | null; providerId: string; loading?: boolean }>;
-  teamEntitlementLoading: boolean;
-}): { audience: "individual" | "team"; snapshot?: PlanEntitlementSnapshot } | null; // uRt
+/* ── tombstone〔A1-R126〕resolveProfilePlanAudience（原 uRt 150276）declare 删除 → 逐字实体落 components/shell/Home §U.3
+ *    （经 modules/Home 转导出，本文件 @132 导入面扩展；调用点 971 逐字不变，实参面与实体契据同形
+ *    ——PlanEntitlementSnapshot≡EntitlementSnapshotLike 别名在案）。 ── */
 /* 墓碑（A1-R23 · Oq 叠层专项裁定，R21 模式直接套用）：原 `declare function resolveUsageState(args: {
  *   availableProviders: CodingPlanProvider[]; entitlements: ProviderEntitlement[];
  *   modelProvidersLoading: boolean; selectedProviderId: string | null;
@@ -1478,7 +1476,7 @@ export function useGroupedTaskView(options: { workspaceTabs: WorkspaceTab[] }): 
     ),
   );
   const workspaceScopes = React.useMemo(() => normalizeWorkspaceScopes(options.workspaceTabs), [options.workspaceTabs]);
-  const scopedTabs = useScopedWorkspaceTabs({ workspaceTabs: options.workspaceTabs });
+  const scopedTabs = useScopedWorkspaceTabs({ workspaceTabs: options.workspaceTabs as any }) as any as WorkspaceTab[]; // 〔型缝 A1-R126〕入/出双缝见 @1756 墓碑注
   const sessionScopes = React.useMemo(
     () =>
       scopedTabs.map((tab) => ({
@@ -1752,8 +1750,10 @@ export function useGroupedTaskView(options: { workspaceTabs: WorkspaceTab[] }): 
   };
 }
 
-/** 原 J3（jsx 113936）：作用域内页签（接口级，Sidebar.tsx 已声明） */
-declare function useScopedWorkspaceTabs(args: { workspaceTabs: WorkspaceTab[] }): WorkspaceTab[];
+/* ── tombstone〔A1-R126〕useScopedWorkspaceTabs（原 J3 jsx 113936）declare 删除 → 改指 modules/SettingsLeaves
+ *    useLocalWorkspaceTabs（canonical 属主 AutomationEditor@1088 ≡ styles 135515 filter(oc∧RMt)）。
+ *    调用点 1481 型缝：入参 `options.workspaceTabs as any`（本地 WorkspaceTab 缺 canonical 必填 kind/label）+
+ *    返回 `as any as WorkspaceTab[]`（下游 sessionScopes 需 workspacePath: string 必具面）。 ── */
 
 /* ============================================================================
  * 4. 光束动画族（原 ABt + TBt…wBt + 色板，js 156793–157550 / jsx 128919–131170）
@@ -3133,7 +3133,7 @@ export function ArchivedTasksSection({
     () => new Map(workspaceTabs.map((tab) => [workspaceKeyOf(tab.workspacePath, tab.workspaceIdentity), tab.label || workspaceBaseName(tab.workspacePath)])),
     [workspaceTabs],
   );
-  const servicesByWorkspaceKey = React.useMemo(() => buildWorkspaceServicesMap(workspaceTabs, baseServices, registry), [baseServices, registry, workspaceTabs]);
+  const servicesByWorkspaceKey = React.useMemo(() => buildWorkspaceServicesMap(workspaceTabs, baseServices, registry) as any as Map<string, { services: WorkspaceServices; remoteSessionId?: string; isRemoteWorkspace: boolean }>, [baseServices, registry, workspaceTabs]); // 〔型缝 A1-R126〕返回面复原原 declare 契据
   const activeWorkspaceKey = workspaceKeyOf(activeWorkspacePath, activeWorkspaceIdentity);
   const { items, total, loading, syncingRemoteWorkspaces } = useTaskListItems({
     kind: "archived",
@@ -3894,7 +3894,7 @@ export function WebRemoteTaskListSection({
     () => filterRemoteCapableWorkspaces({ activeWorkspaceIdentity, workspaces: result.workspaces }),
     [activeWorkspaceIdentity, result.workspaces],
   );
-  const servicesByWorkspaceKey = React.useMemo(() => buildWorkspaceServicesMap(relevantWorkspaces as WorkspaceTab[], baseServices, registry), [baseServices, relevantWorkspaces, registry]);
+  const servicesByWorkspaceKey = React.useMemo(() => buildWorkspaceServicesMap(relevantWorkspaces as WorkspaceTab[], baseServices, registry) as any as Map<string, { services: WorkspaceServices; remoteSessionId?: string; isRemoteWorkspace: boolean }>, [baseServices, relevantWorkspaces, registry]); // 〔型缝 A1-R126〕返回面复原原 declare 契据
 
   const loadIndex = React.useCallback(
     async (isCancelled: () => boolean = () => false) => {

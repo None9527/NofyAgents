@@ -701,10 +701,19 @@ export function useWorkspaceTabStoreApi(): ReturnType<typeof createWorkspaceTabS
   return e;
 }
 
+/** 〔A1-R126〕会话注册表三字段快照面——gc/vc/yc（styles 4814/4822/4834）真入参契据：
+ * 束真形仅读三 map；全量 SessionRegistryState 结构兼容（字段全具），store 态实参与
+ * 三字段快照实参皆纳。SidebarLeaves 本地 SessionRegistrySnapshot 型面不接批（其 @262 注）随此消解。 */
+export interface SessionRegistrySnapshotState {
+  sessionsById: SessionRegistryState["sessionsById"];
+  sessionIdByWorkspaceIdentity: SessionRegistryState["sessionIdByWorkspaceIdentity"];
+  sessionIdByWorkspacePath: SessionRegistryState["sessionIdByWorkspacePath"];
+}
+
 /** 原 gc：标签的远端会话 id 解析（identity 优先，其次路径绑定）。 */
 export function resolveTabRemoteSessionId(
   e: { workspacePath?: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; remoteTarget?: RemoteTarget },
-  t: SessionRegistryState,
+  t: SessionRegistrySnapshotState,
 ): string | undefined {
   let n = e.workspaceIdentity?.trim();
   let candidates: Array<string | null | undefined> = [
@@ -728,7 +737,7 @@ export function tabHasRemoteBacking(
 export function resolveTabServicesBinding(
   e: { workspacePath?: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; remoteTarget?: RemoteTarget },
   t: BaseServices,
-  n: SessionRegistryState,
+  n: SessionRegistrySnapshotState,
 ): WorkspaceServicesBinding | null {
   let r = resolveTabRemoteSessionId(e, n),
     i = tabHasRemoteBacking(e, r);
@@ -743,7 +752,7 @@ export function resolveTabServicesBinding(
 export function buildWorkspaceServicesBindings(
   e: Array<{ workspacePath: string; workspaceIdentity?: string | null; remoteSessionId?: string | null; remoteTarget?: RemoteTarget }>,
   t: BaseServices,
-  n: SessionRegistryState,
+  n: SessionRegistrySnapshotState,
 ): Map<string, WorkspaceServicesBinding> {
   let r = new Map<string, WorkspaceServicesBinding>();
   for (let i of e) {

@@ -3621,6 +3621,23 @@ function hasUsableEntitlementSnapshot(e: EntitlementSnapshotLike | null | undefi
     (!!e.quota || !!e.subscription || !!e.remaining)
   );
 }
+// 〔A1-R126〕uRt（styles-CdEGpc2x.js 150276）逐字实体：档案计划受众解析——
+// 个体可用权益快照（Dq≡hasUsableEntitlementSnapshot）优先；任一个体权益加载中或团队权益加载中 → null；否则团队受众兜底。
+// 消费面：SidebarLeaves @971（≡ bundle 150383 簇）；Sidebar 面 declare 零调用死删。
+export function resolveProfilePlanAudience({ hasTeamPlanEntitlement: e, individualEntitlements: t, teamEntitlementLoading: n }: {
+  hasTeamPlanEntitlement: boolean;
+  individualEntitlements: Array<{ snapshot: EntitlementSnapshotLike | null; providerId: string; loading?: boolean }>;
+  teamEntitlementLoading: boolean;
+}): { audience: "individual" | "team"; snapshot?: EntitlementSnapshotLike } | null {
+  let r = t.find((e) => hasUsableEntitlementSnapshot(e.snapshot, e.providerId));
+  return r?.snapshot
+    ? { audience: `individual`, snapshot: r.snapshot }
+    : t.some((e) => e.loading) || n
+      ? null
+      : e
+        ? { audience: `team` }
+        : null;
+}
 // 〔A1-R23〕补 export：Oq 叠层专项——SidebarLeaves SidebarUsageStateModel.usageState 收敛为本型（经 modules/Home 转导出）
 export interface CodingPlanUsageViewLike {
   activeProviderId?: string;
