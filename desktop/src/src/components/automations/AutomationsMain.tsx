@@ -671,7 +671,7 @@ function OffPeakActionHint({ children: e, title: t }: any) {
 /* ── 原 sMt（js 134695）→ OFF_PEAK_STATUS_ICONS：闲时状态图标映射表（k3 ≡ AutomationStatusPausedIcon 双键；M/N/I_ ≡ 既有 lucide 别名）〔A1-R113 逐字实体化；型缝：映射表索引面注记（TS7053 防，R108 判例）〕 ── */
 const OFF_PEAK_STATUS_ICONS: Record<string, React.ElementType> = { moon: OffPeakMoonIcon, pause: AutomationStatusPausedIcon, spinner: SpinnerIcon, success: AutomationStatusCompletedIcon, warning: AutomationStatusFailedIcon, stopped: AutomationStatusPausedIcon };
 /* ── 原 cMt（js 134696–134939）→ OffPeakTaskList：闲时任务卡网格（空态/卡面/状态徽/会话跳转/动作菜单五分支）〔A1-R113 逐字实体化；型缝：解构参 `: any`〕 ── */
-function OffPeakTaskList({
+export function OffPeakTaskList({ // 〔A1-R119〕+export：AutomationsMainView OffPeakTaskList declare（原 cMt 134679）改指本 R113 逐字实体
   tasks: e,
   busyOperationId: t,
   onOpen: n,
@@ -964,14 +964,14 @@ function automationLifecycleOf(e: any) {
  *    padTwoDigitDatePart/NEXT_RUN_RELATIVE_WINDOW_MS〔A1-R103 逐字实体化〕 ── */
 const padTwoDigitDatePart = (e: any) => String(e).padStart(2, `0`);
 const NEXT_RUN_RELATIVE_WINDOW_MS = 720 * 60 * 60 * 1e3;
-/* ── 原 $$（js 109522–109526）→ formatAbsoluteRunTime：时间戳 → YYYY-MM-DD HH:mm〔A1-R103 逐字实体化〕 ── */
-function formatAbsoluteRunTime(e: any) {
+/* ── 原 $$（js 109522–109526）→ formatAbsoluteRunTime：时间戳 → YYYY-MM-DD HH:mm〔A1-R103 逐字实体化〕〔A1-R119〕+export：AutomationsMainView describeFarRunTime declare 改指 ── */
+export function formatAbsoluteRunTime(e: any) {
   if (!e) return `-`;
   let t = new Date(e);
   return `${t.getFullYear()}-${padTwoDigitDatePart(t.getMonth() + 1)}-${padTwoDigitDatePart(t.getDate())} ${padTwoDigitDatePart(t.getHours())}:${padTwoDigitDatePart(t.getMinutes())}`;
 }
-/* ── 原 $ht（js 109527–109546）→ formatRelativeRunTime：相对时刻文案（<1min → soon/justNow；分/时/日分级 + in/ago）〔A1-R103 逐字实体化〕 ── */
-function formatRelativeRunTime(e: any, t: any, n: any) {
+/* ── 原 $ht（js 109527–109546）→ formatRelativeRunTime：相对时刻文案（<1min → soon/justNow；分/时/日分级 + in/ago）〔A1-R103 逐字实体化〕〔A1-R119〕+export：AutomationsMainView describeNearRunTime declare 改指 ── */
+export function formatRelativeRunTime(e: any, t: any, n: any) {
   if (!e) return `-`;
   let r = e - t,
     i = Math.abs(r),

@@ -148,6 +148,8 @@ export {
   OffPeakNewTaskBanner,
   useRemoteWorkspaceEnabled,
   isRemoteWorkspaceTab,
+  buildCodingPlanFunnelContext, // 〔A1-R119〕补转导出：AutomationsMainView buildIdleUpgradeFunnelContext declare 改指所依（R26 实体，components/shell/Home@4363）
+  resolveEntryPlanState, // 〔A1-R119〕补转导出：AutomationsMainView resolveEntryPlanState declare 改指所依（R26 实体，components/shell/Home@4408）
   resolveHomePathPrefix,
   homeAwareDisplayName,
   workspaceMenuLabel,

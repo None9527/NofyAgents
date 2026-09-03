@@ -9,14 +9,22 @@ import { Popover, PopoverContent, PopoverTrigger, toast, type ToastOptions, useP
 import { AutomationEditor, OffPeakTaskEditor, type ScheduleRule } from '../../modules/SettingsLeaves'; // A0-CLEANUP3 3b：Automation 三型 scheduleRule 统一
 import { logger } from '../../modules/SkillStore';
 import { providerIds } from '../../modules/SrcSharedA';
-import { automationsWorkspaceKey } from '../../modules/SrcSharedB';
-import { modelMenuGroupsOf, filterUsableProviders, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R29〕Hq 77850 / N6e 77910 canonical + 型缝型别：两 declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 components/automations
+import { automationsWorkspaceKey, parseCustomModelRef as parseModelString, isAutomationCreateLimitError as isCreateLimitError, OFFPEAK_IDLE_PLAN_ID as OFFPEAK_TELEMETRY_DEFAULT_PROVIDER } from '../../modules/SrcSharedB'; // 〔A1-R119〕+parseCustomModelRef（束 MNt@138580 消费面实调 Zn 非 Mg——旧注勘误；R105 canonical）/isAutomationCreateLimitError（原 ri ≡ src et 导出 ≡ hx@8733 ≡ SrcSharedB@5344 逐字）/OFFPEAK_IDLE_PLAN_ID（原 vee ← src 5357，R106 判例）
+import { modelMenuGroupsOf, filterUsableProviders, useModelProvidersStore as useModelProviderRegistry, useCodingPlanEntitlements as useEntitlements, useCodingPlanUpgradeDialog as useCodingPlanUpgrade, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R119〕+useModelProvidersStore/useCodingPlanEntitlements/useCodingPlanUpgradeDialog（原 qq/sX/fX 族 declare 改指；R109/R111/R43 判例，别名保留调用名） // 〔A1-R29〕Hq 77850 / N6e 77910 canonical + 型缝型别：两 declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 components/automations
 import type { EntitlementSnapshot as UsageEntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R29〕N6e 收敛型缝所依（getEntitlementSnapshot 返回面窄化，行依据见 AMt 体内注；别名避本地 EntitlementSnapshot 接口名冲突）
-import type { ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：ModelProviderInfo.models 型缝所依
+import type { ModelCatalogEntryLike } from '../../modules/Home';
+import { buildCodingPlanFunnelContext as buildIdleUpgradeFunnelContext, resolveEntryPlanState, isRemoteWorkspaceTab as isRemoteScopedTab } from '../../modules/Home'; // 〔A1-R119〕原 FM/LM/zMt declare 改指（R26/R42/R107 canonical；别名保留调用名） // 〔A1-R24〕zrt 197021 面联动：ModelProviderInfo.models 型缝所依
 import { reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
 import { useServices } from '../../modules/services';
 import { useAutomationsStore, useOffPeakTaskStore } from '../../modules/stores-tasks'; // A1-R9 bX 接线改指：本地死 declare 删除 → 真实 import（canonical = components/shell/Home.tsx 641 区 bX@91416，经 stores/offPeakTaskStore shim 链）；tombstone 见原声明位
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
+import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R119〕原 G（IntlProvider D@9248–9252）declare 改指（R1/R116 判例，别名保留调用名）
+import { useAppSettings as useSettingsSnapshot } from '../../modules/UsageDeep'; // 〔A1-R119〕原 JM 族 declare 改指（canonical UsageDeep@1730，R11 判例；返回面 {settings, loading, update, ...} 超集兼容）
+import { useWorkspaceTabStore, isWorkspaceKindTab as isWorkspaceTabUsable } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R119〕原 pc/oc declare 改指（R107/R2 判例；别名保留调用名）
+import { useConfirmDialog } from '../../modules/Modals'; // 〔A1-R119〕原 U2（styles 123510）declare 改指（R5/R6 ConfirmDialog canonical 判例）
+import { OffPeakTaskList, formatRelativeRunTime as describeNearRunTime, formatAbsoluteRunTime as describeFarRunTime } from './AutomationsMain'; // 〔A1-R119〕原 cMt/$ht/$$ declare 改指 F15 轨 R113/R103 逐字实体（补 export 同批；环安全见报告）
+import { schedulePreviewText as describeScheduleRule, cronPreviewText as describeCronExpression } from './AutomationEditor'; // 〔A1-R119〕原 Q$/Xht declare 改指（束 rgt@109573 分解实证：Q$(ngt(rule),t)/Xht(cronExpr,t)）
+import { scheduleRuleToPreviewModel as toScheduleRuleDescription } from '../conversation/AutomationCards'; // 〔A1-R119〕原 ngt（109557）：本文件 A0 退化桩删改指 R96 逐字实体（束真形保真修复，见报告）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import {
   IconChevronDown,
@@ -60,7 +68,9 @@ interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
 
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+/* ── tombstone〔A1-R119〕：declare useIntlContext（原 G）删除 → 改指 modules/I18n::useZCodeIntl（import 别名在案；
+ *    R1/R116 判例续）。本地 IntlShape 接口保留——余 3 处活体签名引用（984/1070/1083），
+ *    与 I18n::ZCodeIntl@201–203 逐字同形（R116 既证）。 ── */
 
 /** 桌面平台服务（原 l()，imeComposition chunk）——仅列本族用到的面 */
 interface PlatformService {
@@ -98,49 +108,21 @@ interface ZCodeSettings {
   [key: string]: unknown;
 }
 
-declare function useSettingsSnapshot(): {
-  settings: ZCodeSettings | null;
-  loading: boolean;
-  update: (patch: Partial<ZCodeSettings>) => Promise<void>;
-};
-
-declare function useModelProviderRegistry(): {
-  modelProviders: ModelProviderInfo[];
-  displayOrder: string[];
-  loading: boolean;
-};
+/* ── tombstone〔A1-R119〕：declare useSettingsSnapshot/useModelProviderRegistry 删除 → 改指
+ *    useAppSettings（JM 族，UsageDeep@1730；R11 判例）/useModelProvidersStore（qq 族，PaymentDeep §11；
+ *    R109 判例）。消费面 @1111/@1110 解构逐字不变；F15 轨 @1187/@1188 同构消费在案。 ── */
 
 interface EntitlementSnapshot {
   snapshot: unknown;
   [key: string]: unknown;
 }
 
-declare function useEntitlements(params: {
-  modelProviders: ModelProviderInfo[];
-  loading: boolean;
-  modelProviderFamilySelectedKeys?: Record<string, string>;
-}): { entitlements: Record<string, EntitlementSnapshot | undefined> };
-
-declare function useCodingPlanUpgrade(): {
-  openCodingPlanUpgrade: (params: {
-    providerId: string;
-    initialAudience: "personal" | "team";
-    funnelContext: unknown;
-  }) => void;
-};
-
-/** 原 FM（js 53219）：闲时升级漏斗上下文 */
-declare function buildIdleUpgradeFunnelContext(params: {
-  providerId: string;
-  eventText: string;
-  entryPlanState: unknown;
-}): unknown;
-
-/** 原 LM（js 53251）：入口 plan 状态快照 */
-declare function resolveEntryPlanState(params: {
-  providers: ModelProviderInfo[];
-  loading: boolean;
-}): unknown;
+/* ── tombstone〔A1-R119〕：declare useEntitlements/useCodingPlanUpgrade/buildIdleUpgradeFunnelContext/
+ *    resolveEntryPlanState 删除 → 改指 useCodingPlanEntitlements（sX，PaymentDeep@9236；R111 判例）/
+ *    useCodingPlanUpgradeDialog（fX，PaymentDeep@10102；R43 判例）/buildCodingPlanFunnelContext（FM，
+ *    Home@4363；R26 实体化）/resolveEntryPlanState（LM，Home@4408；R26 实体化同名直收）。
+ *    消费面 @1112–1116/@1109/@1327–1331 逐字不变（1115 型缝 cast 同 F15@1192 判例）；
+ *    F15 轨 @1186–1193/@1407–1414 同构消费在案。 ── */
 
 interface ModelSelectGroup {
   label?: string;
@@ -158,8 +140,9 @@ interface ModelSelectGroup {
  *    （N6e 真身：bundle 77910–77929 唯一真身 ≡ PaymentDeep@1097 A0 逐字实化，modules/PaymentDeep@128 转导出）。消费面实测：@1036（AMt 体内）
  *    ≡ bundle 135402，改名改指（型缝见 AMt 体内注）。负证据：bundle 内 N6e 无第二真身。 ── */
 
-/** 原 Mg（js 24406）/ Zn（src chunk P 导出）：`provider/model[$variant]` 解析 */
-declare function parseModelString(value: string): { providerId?: string; modelName?: string } | null;
+/* ── tombstone〔A1-R119〕：declare parseModelString 删除 → 改指 SrcSharedB::parseCustomModelRef。
+ *    勘误：旧注「原 Mg（24406）」系误记——束内消费位 MNt@138580 实调 Zn（i = Zn(r)，读 .modelName），
+ *    Zn ≡ parseCustomModelRef（R105 判例；Mg ≡ parseLooseModelValue 返回 modelId 面不符）。 ── */
 
 /** A0-CLEANUP3 3b：cronExpr 收紧为必有（列表/编辑器运行期恒有值）；scheduleRule 统一为 SL.ScheduleRule，
  * 与 StoresDeep.Automation / SL.AutomationTaskLite 三型互指 */
@@ -271,37 +254,10 @@ type OffPeakCreateResult =
  *      stores/offPeakTaskStore shim → Home 链为 R8 既有，Home 闭包实测不反入
  *      components/automations → 无新边、无成环。 ── */
 
-interface WorkspaceTab {
-  id: string;
-  remoteSessionId?: string | null;
-  remoteTarget?: RemoteTarget | null;
-  workspaceIdentity?: string | null;
-  [key: string]: unknown;
-}
-
-interface RemoteTarget {
-  kind: "ssh" | "wsl" | "docker" | "server";
-  host?: string;
-  [key: string]: unknown;
-}
-
-interface WorkspaceTabStoreState {
-  tabs: WorkspaceTab[];
-  activeTabId: string | null;
-}
-
-interface WorkspaceTabStoreHook {
-  <T>(selector: (state: WorkspaceTabStoreState) => T): T;
-  getState(): WorkspaceTabStoreState;
-}
-
-declare const useWorkspaceTabStore: WorkspaceTabStoreHook;
-
-/** 原 oc：标签可用性判定 */
-declare function isWorkspaceTabUsable(tab: WorkspaceTab): boolean;
-
-/** 原 zMt（js 135518）：是否远程/工作区作用域标签（有 remoteSessionId/remoteTarget/workspaceIdentity） */
-declare function isRemoteScopedTab(tab: WorkspaceTab | null | undefined): boolean;
+/* ── tombstone〔A1-R119〕：declare useWorkspaceTabStore/isWorkspaceTabUsable/isRemoteScopedTab +
+ *    本地 WorkspaceTab/RemoteTarget/WorkspaceTabStoreState/WorkspaceTabStoreHook 四孤悬接口删除 →
+ *    改指 WorkspaceTabsDeep::useWorkspaceTabStore（原 pc，R107 判例）/isWorkspaceKindTab（原 oc，R2 判例）/
+ *    Home::isRemoteWorkspaceTab（原 zMt，R107 判例）。消费面 @1155–1160 选择器簇逐字不变。 ── */
 
 interface TelemetryEvent {
   elementName: string;
@@ -312,23 +268,16 @@ interface TelemetryEvent {
   [key: string]: unknown; // A0-CLEANUP3 3b：流入 StoresDeep.TelemetryReport（带索引签名），接口级补齐
 }
 
-/** 原 ri：创建限制错误判定 */
-declare function isCreateLimitError(error: string | null): boolean;
-
-/** 原 vee：闲时遥测默认供应商常量 */
-declare const OFFPEAK_TELEMETRY_DEFAULT_PROVIDER: string;
+/* ── tombstone〔A1-R119〕：declare isCreateLimitError/OFFPEAK_TELEMETRY_DEFAULT_PROVIDER 删除 → 改指
+ *    SrcSharedB::isAutomationCreateLimitError（原 ri：束 138719 消费面溯源 = styles import et ← src chunk
+ *    hx@8733 ≡ SrcSharedB@5344 逐字，含 Error 实例 .includes 面）/OFFPEAK_IDLE_PLAN_ID（原 vee ← src 5357，
+ *    R106 判例）。消费面 @796/@919 逐字不变。 ── */
 
 type IconProps = React.SVGProps<SVGSVGElement> & { size?: number; containerSize?: number };
 
-/** 确认对话框钩子（原 U2，styles 123510） */
-declare function useConfirmDialog(): (request: {
-  presentation?: string;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  confirmVariant?: "default" | "destructive";
-  showKeyboardHints?: boolean;
-}) => Promise<boolean>;
+/* ── tombstone〔A1-R119〕：declare useConfirmDialog（原 U2，styles 123510）删除 → 改指
+ *    modules/Modals::useConfirmDialog（ConfirmDialog@79 canonical 转导出；R5/R6 判例，F15 轨同消费在案）。
+ *    消费面 @1108 逐字不变。 ── */
 
 interface AutomationCreateDraft {
   templateId?: string;
@@ -338,17 +287,9 @@ interface AutomationCreateDraft {
   [key: string]: unknown;
 }
 
-/** 原 cMt（js 134679 / jsx 113500）：闲时任务列表 */
-declare const OffPeakTaskList: React.FC<{
-  tasks: OffPeakTask[];
-  busyOperationId: string | null;
-  onOpen: (task: OffPeakTask) => void;
-  onPause: (task: OffPeakTask) => void;
-  onContinue: (task: OffPeakTask) => void;
-  onCancel: (task: OffPeakTask) => void;
-  onDelete: (task: OffPeakTask) => void;
-  onOpenSession: (run: { sessionId?: string | null; workspacePath?: string; workspaceIdentity?: string | null }) => void;
-}>;
+/* ── tombstone〔A1-R119〕：declare OffPeakTaskList（原 cMt，js 134679 / jsx 113500）删除 → 改指
+ *    AutomationsMain::OffPeakTaskList（R113 逐字实体，束 134696–134939；补 export 同批）。
+ *    消费面 @1738–1747 八 props 逐字不变。 ── */
 
 /* ============================================================================
  * 6. AutomationsMain 视图态（原 d6 等，F15；视图态全量展开，编辑器叶子接口保留）
@@ -1025,7 +966,7 @@ function buildAutomationModelSelectGroups(params: {
   selectedProvider: string;
   providers: ModelProviderInfo[];
   labels: Record<string, string>;
-  displayOrder: string[];
+  displayOrder: { providerIds: string[]; updatedAt?: number } | string[]; // 〔A1-R119〕型面宽化：改指 useModelProvidersStore 后参面 = qq store 真形 {providerIds, updatedAt}（R29 注「真形 {providerIds}」实证；旧 string[] A0 近似面保留联合）
   familyModes?: Record<string, string>;
   familySelectedKeys?: Record<string, string>;
   providerFamilyDomain?: string | null;
@@ -1056,29 +997,28 @@ function buildAutomationModelSelectGroups(params: {
 
 /* 频率/下次运行文案（原 rgt/egt，js 109525/109499；cron 描述器 Q$/Xht 属编辑器域，接口保留） */
 
-declare function describeScheduleRule(rule: AutomationScheduleRule & { frequency?: string; rawExpr?: string }, intl: IntlShape): string;
-declare function describeCronExpression(cronExpr: string | undefined, intl: IntlShape): string;
+/* ── tombstone〔A1-R119〕：declare describeScheduleRule/describeCronExpression 删除 → 改指
+ *    AutomationEditor::schedulePreviewText（原 Q$ 109376）/cronPreviewText（原 Xht 109449）。
+ *    束证：rgt@109573 分解 = Q$(ngt(rule),t)/Xht(cronExpr,t)（F15 轨 formatCronSchedule 同构在案）。
+ *    型缝一：@1075 cronExpr 面 string|null|undefined → cronPreviewText(expr: string) 参，cast 补（束 JS 无此缝）。 ── */
 
-function toScheduleRuleDescription(rule: AutomationScheduleRule): AutomationScheduleRule & { frequency: string; rawExpr: string } {
-  return {
-    ...rule,
-    frequency: "custom",
-    rawExpr: "",
-  };
-}
+/* ── tombstone〔A1-R119〕：toScheduleRuleDescription A0 退化桩（{...rule, frequency: "custom", rawExpr: ""}）删除 →
+ *    改指 AutomationCards::scheduleRuleToPreviewModel（原 ngt，束 109557–109572 逐字，R96 实体化；补 export 同批）。
+ *    保真修复：桩丢弃 interval/unit/weekdays/monthDays 等字段，束真形全投射；消费位 @1074 逐字不变。 ── */
 
 function describeAutomationFrequency(automation: AutomationRecord, intl: IntlShape): string {
   return automation.recurring === false && (automation.maxRuns ?? 1) <= 1
     ? intl.formatMessage({ id: "automations.frequency.custom" })
     : automation.scheduleRule
       ? describeScheduleRule(toScheduleRuleDescription(automation.scheduleRule), intl)
-      : describeCronExpression(automation.cronExpr, intl);
+      : describeCronExpression(automation.cronExpr as string, intl); // 〔A1-R119〕型缝：束 JS 无此缝（Xht 参 e.cronExpr 直通）；cronPreviewText(expr: string) 参型所依
 }
 
 const AUTOMATION_NEAR_RUN_WINDOW_MS = 720 * 60 * 60 * 1_000; // 原 Jht
 
-declare function describeNearRunTime(nextRunAt: number, now: number, intl: IntlShape): string;
-declare function describeFarRunTime(nextRunAt: number): string;
+/* ── tombstone〔A1-R119〕：declare describeNearRunTime/describeFarRunTime 删除 → 改指 AutomationsMain::
+ *    formatRelativeRunTime（原 $ht，109527–109546）/formatAbsoluteRunTime（原 $$，109522–109526），
+ *    R103 逐字实体补 export 同批。消费面 @1085 逐字不变。 ── */
 
 function describeAutomationNextRun(nextRunAt: number | null | undefined, now: number, intl: IntlShape): string | null {
   if (!nextRunAt || nextRunAt <= now) return null;
@@ -1112,8 +1052,8 @@ export const AutomationsMain: React.FC<{
   const { entitlements } = useEntitlements({
     modelProviders,
     loading: providersLoading,
-    modelProviderFamilySelectedKeys: settings?.modelProviderFamilySelectedKeys,
-  });
+    modelProviderFamilySelectedKeys: settings?.modelProviderFamilySelectedKeys as Record<string, string> | undefined,
+  }); // 〔A1-R119〕型缝 cast 同 F15@1192 判例（AppRuntimeSettings 面 → canonical 参型）
   const automations = useAutomationsStore((state) => state.automations);
   const createLimitReached = automations.length >= 20;
   const automationsLoading = useAutomationsStore((state) => state.loading);
@@ -1658,10 +1598,10 @@ export const AutomationsMain: React.FC<{
         onBack={() => setViewState({ mode: "list" })}
         onSubmit={handleSubmitOffPeak}
         onOpenSession={onOpenSession}
-        onDelete={(task) => void handleDeleteOffPeakTask(task)}
+        onDelete={(task: OffPeakTask) => void handleDeleteOffPeakTask(task)}
         onDeleteHistory={(task) => void handleDeleteOffPeakHistoryEntry(task)}
-        onPause={(task) => void pauseOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
-        onContinue={(task) => void continueOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
+        onPause={(task: OffPeakTask) => void pauseOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
+        onContinue={(task: OffPeakTask) => void continueOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
         showToast={automationsToast}
       />
     );
@@ -1739,10 +1679,10 @@ export const AutomationsMain: React.FC<{
                       tasks={offPeakTasks}
                       busyOperationId={offPeakOperationId}
                       onOpen={handleOpenOffPeakEditor}
-                      onPause={(task) => void pauseOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
-                      onContinue={(task) => void continueOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
-                      onCancel={(task) => void handleCancelOffPeakTask(task)}
-                      onDelete={(task) => void handleDeleteOffPeakTask(task)}
+                      onPause={(task: OffPeakTask) => void pauseOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
+                      onContinue={(task: OffPeakTask) => void continueOffPeakTask(task.offPeakTaskId, offPeakTaskService)}
+                      onCancel={(task: OffPeakTask) => void handleCancelOffPeakTask(task)}
+                      onDelete={(task: OffPeakTask) => void handleDeleteOffPeakTask(task)}
                       onOpenSession={handleOpenRunSession}
                     />
                   </section>

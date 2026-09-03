@@ -15,8 +15,8 @@ import { normalizeToolCallNode } from './ToolStatusModel'; // 原 u1（styles 11
  * ==========================================================================*/
 
 /* ── 调度文案域（styles 109557–109598；A1-R96：4 declare 实体化，束内定义序逐字保持） ── */
-/* ── 原 ngt（js 109557–109572）→ scheduleRuleToPreviewModel：scheduleRule → 构建态预览模型（frequency=custom 投射）〔A1-R96〕 ── */
-function scheduleRuleToPreviewModel(e: any): any { // 〔A1-R96〕返回面 : any 型缝（frequency 字面量宽化，消费面 schedulePreviewText ScheduleBuilderState 投射）
+/* ── 原 ngt（js 109557–109572）→ scheduleRuleToPreviewModel：scheduleRule → 构建态预览模型（frequency=custom 投射）〔A1-R96〕〔A1-R119〕+export：AutomationsMainView toScheduleRuleDescription declare 位 A0 退化桩改指本 canonical ── */
+export function scheduleRuleToPreviewModel(e: any): any { // 〔A1-R96〕返回面 : any 型缝（frequency 字面量宽化，消费面 schedulePreviewText ScheduleBuilderState 投射）
   return {
     frequency: `custom`,
     hour: e.hour,
