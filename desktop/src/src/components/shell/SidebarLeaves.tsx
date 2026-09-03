@@ -122,7 +122,8 @@ import { logger, useTaskStore, getWorkspaceTaskStateAlias as getWorkspaceSlice }
 import { taskEntityKey, mergeMetaPreservingActivity as mergeTaskWithActivity, compareTasksActiveFirst as compareTasksForList } from '../../modules/StoresDeep'; // +mergeTaskWithActivity/compareTasksForList（A1-R10 2e：原 Po（1324）/Lie（1353）declare 改指 canonical——helpers mergeMetaPreservingActivity/compareTasksActiveFirst 逐字；调用点 1233/1248/3537 逐字不变）
 import { applySearchTaskMutation as applyOptimisticTaskMutation } from '../../stores/searchResultsStore'; // A1-R10 2e：原 Uo（1895）declare 改指 canonical = R9 shim；调用点 3227 逐字不变。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/shell（QuickPick 导入面实测无 shell 边）
 import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 2e：原 Go（1928）declare 改指 canonical = components/markdown baseName 逐字；调用点 3124/3154 逐字不变。环安全：MarkdownIntegration 闭包不达 components/shell（实测在案）
-import { useSearchResultsStore, type SearchResultsState } from '../../modules/QuickPick'; // A1-R10 项 1a：原 Vo（bundle 1553）declare 改指 canonical = QuickPick 1254 区（A1-R9 收敛完成；modules/QuickPick 为再导出 shim，QuickPickDeep 同源先例）。环安全：QuickPick 值闭包（modules/ImeComposition/SkillStore/StoresDeep/services/stores-core 族 + components/ui）不达 components/shell
+import { useSearchResultsStore, type SearchResultsState } from '../../modules/QuickPick';
+import { groupedTaskKeyOf as groupedTaskSortKey } from '../../modules/QuickPickDeep'; // 〔A1-R129〕原 k8（152915）declare 改指（≡n8 144952 束内同形；QuickPickDeep@349 逐字转录在案）。环安全：本→modules/QuickPickDeep→QuickPickDeep 值闭包（shell 叶子 TaskIndexCore/SessionStoreCore 拓扑既有同构，@149 碑文在案）不达 SidebarLeaves // A1-R10 项 1a：原 Vo（bundle 1553）declare 改指 canonical = QuickPick 1254 区（A1-R9 收敛完成；modules/QuickPick 为再导出 shim，QuickPickDeep 同源先例）。环安全：QuickPick 值闭包（modules/ImeComposition/SkillStore/StoresDeep/services/stores-core 族 + components/ui）不达 components/shell
 import { normalizeSearchDescriptor as buildTaskListQueryDescriptor, descriptorCacheKey as queryDescriptorKey, type SearchDescriptor } from '../../stores/searchResultsHelpers'; // A1-R10 项 1a：原 zie/Bie（bundle 1385/1396）declare 改指 canonical（searchResultsHelpers 逐字转录在案）；入参 workspaceScopes → 出参 workspaceKeys 真形（1386–1395 实测）。环安全：helpers 值闭包 = react + stores/taskStore，不达 components/shell
 import { useBaseServices } from '../../modules/services';
 import { buildWorkspaceServicesBindings as buildWorkspaceServicesMap } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R126〕yc≡buildWorkspaceServicesBindings（styles 4834 逐字；三字段快照入参面 SessionRegistrySnapshotState 同批精化，@262 留批型面不接消解；墓碑见 @347 区）
@@ -1036,11 +1037,24 @@ export function useSidebarUsageState(args: {
  * 3. 原 uzt（153205 / 126735）+ 合成助手族：useGroupedTaskView —— 分组视图数据层
  * ==========================================================================*/
 
-/** 原 k8（任务排序键）/ WRt（顶层任务排序键）/ A8（节点比较键）/ GRt（节点排序器）/ Dx（索引水合） */
-declare function groupedTaskSortKey(task: TaskMeta): string; // k8
-declare function topLevelTaskOrderKey(task: TaskMeta): string; // WRt
-declare function viewNodeCompareKey(node: GroupedViewNode): string; // A8
-declare function compareViewNodes(a: GroupedViewNode, b: GroupedViewNode): number; // GRt
+/* ── tombstone〔A1-R129〕groupedTaskSortKey（原 k8 152915）declare 删除 → 改指 modules/QuickPickDeep::groupedTaskKeyOf
+ *    （等价链：k8 = O8 152912∘Io 1368；n8 144952 束内同形双副本；树内真身 = QuickPickDeep@349「原 n8」逐字；
+ *    Io≡U≡resolveWorkspaceKey（taskStore@285）≡workspaceKeyOf（CodeViewer@296）体同 `identity?.trim() || path` 实证）。
+ *    调用点 1055/1071-1073/1091 逐字不变。 ── */
+/** 原 WRt（152918）：顶层任务排序键 ——〔A1-R129〕逐字实体化（束唯一真身；消费 152922/152979 ≡ 本文件 A8 体与 qRt 转录面 1119） */
+function topLevelTaskOrderKey(e: TaskMeta): string { // WRt
+  return `task:${JSON.stringify([workspaceKeyOf(e.workspacePath, e.workspaceIdentity), e.taskId])}`;
+}
+/** 原 A8（152921）：节点比较键 ——〔A1-R129〕逐字实体化（消费 152927/152987 ≡ 本文件 GRt 体与 qRt 转录面 1125） */
+function viewNodeCompareKey(e: GroupedViewNode): string { // A8
+  return e.type === `group` ? `group:${e.group.id}` : topLevelTaskOrderKey(e.task);
+}
+/** 原 GRt（152924）：节点排序器 ——〔A1-R129〕逐字实体化（消费 152991 ≡ 本文件 qRt 转录面 1132） */
+function compareViewNodes(e: GroupedViewNode, t: GroupedViewNode): number { // GRt
+  let n = e.sortOrder ?? 0,
+    r = t.sortOrder ?? 0;
+  return n === r ? viewNodeCompareKey(e).localeCompare(viewNodeCompareKey(t)) : n - r;
+}
 /* ── tombstone（A1-P3-B4）：declare hydrateTaskIndex（原 Dx）删除——逐字 canonical =
  *    TaskIndexCore.applySessionRuntimeToIndexItems（styles 32592，A1-P3-B2 转录），
  *    头部 import 别名接线（调用点 1081 逐字不变）。环安全同 B3 fetchTaskIndex（TaskIndexCore

@@ -225,6 +225,7 @@ export {
   measureGroupItemWidth,
   findStickyCollapsedGroupId,
   replayGroupedLayoutAnimations,
+  groupedTaskKeyOf, // 〔A1-R129〕n8 144952 转导出：SidebarLeaves k8 declare 收敛改接点
 } from '../components/quickpick/QuickPickDeep';
 export type {
   SessionIndexRow,

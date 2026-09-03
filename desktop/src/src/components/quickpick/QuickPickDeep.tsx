@@ -346,7 +346,7 @@ interface DragCollisionArgs {
 function workspaceScopeKey(e: any, t: any) {
   return resolveWorkspaceKey(e, t);
 }
-function groupedTaskKeyOf(e: any) {
+export function groupedTaskKeyOf(e: any) { // 〔A1-R129〕补 export：SidebarLeaves groupedTaskSortKey declare（原 k8 152915 ≡ O8 152912∘Io 1368）与本函数（原 n8 144952）束内同形双副本，一符一家收敛改接点
   return `${workspaceScopeKey(e.workspacePath, e.workspaceIdentity)}\u0000${e.taskId}`;
 }
 function cloneGroupedViewDeep(e: any) {
