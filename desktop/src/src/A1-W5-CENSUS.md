@@ -66,6 +66,8 @@
 5. vendor 候裁：Composer C4 消费四件（lucide 字形映射）、Onboarding 1132（留）。
 6. 联退件：Onboarding ServicesProvider/ScopeBoundary × AppRootLeaves 双声明。
 
-台账预期：146 件中 88+6 = 94 件纯删（别名改指与伪面销账均减台账），47 实体化不减台账
-（实体化 = declare 换真身，键名保留），5 vendor/ambient 候裁。W5 闭条件 = 三域业务 declare 清零
-（vendor/ambient 裁定留痕）。
+台账预期：146 件全数退役皆减台账（别名改指/伪面销账/实体化均删 declare 语句——实体化
+「不减台账」系本普查初稿口径误，R129n 判例实证 868→862 含实体化 2 件）。〔A1-R142 修正〕
+余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)=35 件，三域现存 111
+（Composer 7 + UsageDeep 56 + Onboarding 48）；全退后台账 742→约 631（vendor/ambient
+候裁留痕件除外）。W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。
