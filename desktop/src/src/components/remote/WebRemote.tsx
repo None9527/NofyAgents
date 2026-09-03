@@ -151,6 +151,8 @@ interface WebRemoteControlStatusLike {
   deviceToken?: string | null;
   expiresAt?: number | null;
   mobileConnected?: boolean;
+  /** 〔A1-R129l〕增补：HFt@144761 比较字段集（activeWorkspaceKey/activeTaskId/updatedAt）+ Sidebar 页脚消费面实证 */
+  mobileViewState?: { activeWorkspaceKey?: string | null; activeTaskId?: string | null; updatedAt?: number | null } | null;
   mobileDeviceInfo?: {
     name?: string | null;
     browserPlatform?: string | null;
@@ -168,6 +170,8 @@ interface WebRemoteControlStatusLike {
 }
 interface PlatformServiceLike {
   getWebRemoteControlStatus?(): Promise<WebRemoteControlStatusLike>;
+  /** 〔A1-R129l〕增补：G6@144779 订阅源（束真 `n.onWebRemoteControlStatusChanged?.(...)`，返回退订函数） */
+  onWebRemoteControlStatusChanged?(cb: (s: WebRemoteControlStatusLike) => void): () => void;
   startWebRemoteControl?(args: {
     workspacePath: string;
     workspaceIdentity?: string | null;
@@ -2034,6 +2038,63 @@ export function WebRemoteControlEnabledProvider({
 export function useWebRemoteControlEnabled(): boolean {
   return React.useContext(WebRemoteControlEnabledContext);
 }
+/** 原 HFt（styles 144761）：远控状态等值谓词（G6 轮询去重；十四字段比较集逐字） */
+function webRemoteControlStatusEqual(e: WebRemoteControlStatusLike, t: WebRemoteControlStatusLike): boolean {
+  return (
+    e.status === t.status &&
+    e.sessionId === t.sessionId &&
+    e.windowControlSessionId === t.windowControlSessionId &&
+    e.mobileConnected === t.mobileConnected &&
+    e.mobileViewState?.activeWorkspaceKey === t.mobileViewState?.activeWorkspaceKey &&
+    e.mobileViewState?.activeTaskId === t.mobileViewState?.activeTaskId &&
+    e.mobileViewState?.updatedAt === t.mobileViewState?.updatedAt &&
+    e.mobileDeviceInfo?.updatedAt === t.mobileDeviceInfo?.updatedAt &&
+    e.mobileDeviceInfo?.userAgent === t.mobileDeviceInfo?.userAgent &&
+    e.mobileDeviceInfo?.viewport?.width === t.mobileDeviceInfo?.viewport?.width &&
+    e.mobileDeviceInfo?.viewport?.height === t.mobileDeviceInfo?.viewport?.height &&
+    e.error === t.error &&
+    e.failure?.reason === t.failure?.reason &&
+    e.failure?.message === t.failure?.message
+  );
+}
+/** 原 G6（styles 144779，旧注 144737 行漂）：Web 远控状态轮询钩子（订阅 + 间隔双源；束内 debug 串自名 useWebRemoteControlStatus）。
+ *  〔A1-R129l〕实体化：束位在 Sidebar 模块域（邻 UFt/K6/q6 侧栏偏好族），按远控域属主落本文件；
+ *  消费面 = components/shell/Sidebar 两 declare（同钩子异面，碑文见其原声明位）。 */
+export function useWebRemoteControlStatus({ enabled: e = !0, intervalMs: t = 1e3 } = {}): WebRemoteControlStatusLike {
+  let n = usePlatformService(),
+    [r, i] = React.useState({ status: `idle` });
+  return (
+    React.useEffect(() => {
+      if (!e || !n) {
+        i({ status: `idle` });
+        return;
+      }
+      let r = !1,
+        a = (e: WebRemoteControlStatusLike) => {
+          r || i((t) => (webRemoteControlStatusEqual(t, e) ? t : e));
+        },
+        o = async () => {
+          try {
+            a(await n.getWebRemoteControlStatus!());
+          } catch (e) {
+            let t = e instanceof Error ? e.message : String(e);
+            logger.debug(`[useWebRemoteControlStatus] 同步 Web 远程控制状态失败`, { error: t });
+          }
+        };
+      o();
+      let s = n.onWebRemoteControlStatusChanged?.((e) => {
+          a(e);
+        }),
+        c = window.setInterval(() => {
+          o();
+        }, t);
+      return () => {
+        ((r = !0), s?.(), window.clearInterval(c));
+      };
+    }, [e, t, n]),
+    r
+  );
+}
 
 /* ============================================================================
  * 尾符号表（混淆名 → 语义名 → 当前 js 行 / jsx 行；本文件覆盖段）
@@ -2051,6 +2112,7 @@ export function useWebRemoteControlEnabled(): boolean {
  *  nRt 149571/124056
  *  rRt 149600–150145/124107–124375
  *  iRt 150147/124378（D5b !1）| aRt 150148/124379 | oRt 150149/124380 | y8 150152/124386
+ *  HFt 144761 → webRemoteControlStatusEqual | G6 144779 → useWebRemoteControlStatus（〔A1-R129l〕实体化；束位属 Sidebar 模块域，按远控域属主落户）
  *  —— 边界注记（不抽取）：141802–142388 TopBar 族 | sRt/cRt/lRt/uRt…xRt Sidebar 族
  *     | CLt/qLt/_8 F11 族（CLt 含 login.oauth 残留键）
  * ============================================================================

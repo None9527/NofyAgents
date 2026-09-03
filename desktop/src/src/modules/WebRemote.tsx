@@ -111,6 +111,7 @@ export {
   WebRemoteControlDialog,
   WebRemoteControlEnabledProvider,
   useWebRemoteControlEnabled,
+  useWebRemoteControlStatus, // 〔A1-R129l〕原 G6（styles 144779）实体化转导出；Sidebar 两 declare 改指面
 } from '../components/remote/WebRemote';
 export type {
   TaskMeta,

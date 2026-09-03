@@ -212,7 +212,7 @@ import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, re
 import { type WebRemoteSwitcherService } from '../../modules/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：原 modules/SidebarLeaves WebRemoteSwitcher 本地面删碑，改指生产面 canonical（六点分叉表闭合，A1-P2-B9.report.md §四）
 import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, getWorkspaceTaskStateAlias as getWorkspaceSlice } from '../../modules/SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；〔A1-R123〕原 fe declare 改指 getWorkspaceTaskStateAlias（stores/taskStore@433 _e 逐字，skillStore 导出 U；TaskListQueryCore@49 判例），TaskStore 型参随删（canonical TaskStoreState 面）
 import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, buildTaskFeedbackDescription, type TaskActionMenuItemsProps } from '../../modules/TopBar'; // 〔A1-R125〕+buildTaskFeedbackDescription（原 w6 改指，TopBar 逐字实体）
-import { WebRemoteControlDialog, useWebRemoteControlEnabled } from '../../modules/WebRemote';
+import { WebRemoteControlDialog, useWebRemoteControlEnabled, useWebRemoteControlStatus, useWebRemoteControlStatus as useWebRemoteControlStatusPolling } from '../../modules/WebRemote'; // 〔A1-R129l〕原 G6 双 declare 改指同一实体（同钩子异面；碑文见原声明位）
 import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useServicesOptional as ps, useWorkspaceServices } from '../../modules/services'; // 〔A1-P2-B10〕ps≡useServicesOptional（原 ps 2680，useContext(us) 裸读）——ERt 真身闭包依赖
 import { applySearchTaskMutation as applyOptimisticTaskMutation, invalidateWorkspaceResults as forgetRecentWorkspaces } from '../../stores/searchResultsStore'; // A1-R10 项 2b：原 Uo（1895）/Qie（1881）declare 改指 canonical = R9 shim（bundle 逐字）。型缝：本地旧面 previousTask/nextTask 可空，canonical 面必填——调用点 1980–2986 皆传非空实对象，吻合；forgetRecentWorkspaces 面 = Array<{workspacePath; workspaceIdentity?}> 同形（2892 逐字不变）。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/shell
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../../modules/stores-core';
@@ -4663,8 +4663,9 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
 /** 原 fX（js 89100；A1-R24 行漂校正，旧注 77235 为漂移）：Coding Plan 升级入口钩子 */
 /* ── tombstone〔A1-R121〕：declare useCodingPlanUpgrade（原 fX 族）删除 → 改指 PaymentDeep::useCodingPlanUpgradeDialog@10102
  *    （R43/R119 判例；canonical openCodingPlanUpgrade(next: any) 参面兼容 {providerId, funnelContext} 消费形 @4129）。 ── */
-/** 原 G6 的页脚用法：远控状态轮询（含 mobileViewState） */
-declare function useWebRemoteControlStatusPolling(args: { enabled: boolean }): WebRemoteControlStatus & { mobileConnected: boolean; mobileViewState?: { activeWorkspaceKey?: string; activeTaskId?: string } | null };
+/* ── tombstone〔A1-R129l〕：declare useWebRemoteControlStatusPolling（原 G6 页脚异面）删除 → 改指 modules/WebRemote::useWebRemoteControlStatus（原 G6 styles 144779 实体化）。
+ *    同钩子异面：正典面 { enabled?; intervalMs? } 超集覆盖本调用面 { enabled }；返回 WebRemoteControlStatusLike 含消费员
+ *    mobileConnected/mobileViewState（R129l 增补字段，HFt@144761 比较集实证）。别名导入保调用名（@215）；调用点 3997 逐字不变。 ── */
 /** 文件树打开请求（原 fileTreeOpenRequest.target 的结构）
  * 〔A1-P2-B7〕export：WS fileTreeOpenRequest 态 / requestFileTreeOpen 入参改指本型（族收敛） */
 export interface FileTreeRequest {
@@ -4804,7 +4805,7 @@ function WebRemoteControlTriggerInner({ workspacePath, workspaceIdentity, remote
   const platformService = usePlatformService();
   const resolvedRemoteSessionId = resolveWorkspaceRemoteSessionId(workspacePath, remoteSessionId, workspaceIdentity) ?? undefined;
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const statusDisplay = resolveRemoteControlStatusDisplay(useWebRemoteControlStatus(), intl.formatMessage);
+  const statusDisplay = resolveRemoteControlStatusDisplay(useWebRemoteControlStatus() as unknown as WebRemoteControlStatus, intl.formatMessage); // 〔型缝 A1-R129l〕正典返回 Like 面 → 复原退役 declare 契据面（R126 判例）
   return (
     <>
       <Tooltip title={intl.formatMessage({ id: "webRemoteControl.trigger" })} description={statusDisplay.tooltip}
@@ -4852,8 +4853,9 @@ function WebRemoteControlTriggerInner({ workspacePath, workspaceIdentity, remote
     </>
   );
 }
-/** 原 G6（144737 / 120497）：Web 远控状态轮询钩子 */
-declare function useWebRemoteControlStatus(intervalMs?: number): WebRemoteControlStatus;
+/* ── tombstone〔A1-R129l〕：declare useWebRemoteControlStatus（原 G6，旧注 144737 行漂，束真 styles 144779）删除 → 改指 modules/WebRemote::useWebRemoteControlStatus
+ *    （同名实体化正典；旧 declare 位置参 intervalMs 本文件零传参消费，正典对象参 { enabled?; intervalMs? } 零参调用同容）。
+ *    型缝：正典返回 WebRemoteControlStatusLike，消费契据为本地 WebRemoteControlStatus 袋面——调用点 4807 复原铸（R126 型缝二判例）。 ── */
 /** 原 cRt（150140 / 124420）：远控触发器（特性门内才渲染） */
 export function WebRemoteControlTrigger(props: Parameters<typeof WebRemoteControlTriggerInner>[0]) {
   const enabled = useWebRemoteControlEnabled();
