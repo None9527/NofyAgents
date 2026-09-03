@@ -116,6 +116,7 @@ import * as React from "react";
 import { useOptionalPlatform as useTelemetryPlatform } from './ImeComposition'; // 〔A1-R125〕原 le declare 改指（R1 判例别名保留调用名；imeComposition chunk 10880 useContext 可空面）
 import { reportTelemetry as trackEvent } from './StoresDeep'; // 〔A1-R125〕原 xw declare 改指（R36 canonical；环安全：StoresDeep 值闭包不反达 modules/Conversation）
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
+import { Root as RadixCollapsibleRoot, Trigger as RadixCollapsibleTrigger, Content as RadixCollapsibleContent } from '@radix-ui/react-collapsible'; // 〔A1-R129r〕原 vendored radix-collapsible 3 declare 改指（npm @radix-ui/react-collapsible@1.1.20 既装；components/ui/collapsible.tsx 同款判例；碑文见原声明区）
 import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Copy as IconCopy, Pencil as IconPencil, GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, ArrowDownToLine as IconArrowDownToLine, SquareTerminal as IconSquareTerminal, File as IconFile, Bot as IconBot, Sparkles as IconSparkles, Target as IconTarget, GitBranch as IconGitBranch, Lightbulb as IconLightbulb, Eye as IconModelChange, Shield as IconShield, ThumbsUp as IconThumbsUp, ThumbsDown as IconThumbsDown, Rewind as IconRewind, Loader as IconLoader, LoaderCircle as IconSpinner, Info as IconInfo, Upload as IconUpload, Globe as IconGlobe, Gauge as IconGauge, Clock as IconClock, ListTodo as IconListTodo, MessageSquare as IconMessageSquare, Calendar as IconCalendar, X as IconX } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A1-P1-B17〕+X as IconX（原 g = imeComposition chunk qt=x('x')@11819，导出别名 b@12583，经 styles 349 `b as g` 入本 chunk；消费位 bundle 91840 v4-pane-close 按钮 ≡ 本文件 @4721 逐字吻合；declare 删碑见 §0）
 import * as ReactDOM from "react-dom";
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
@@ -193,7 +194,8 @@ import { ConversationPane } from '../components/conversation/ConversationPaneCor
 /** Badge（原 uJ，本 chunk jsx 70704） */
 
 /** 图标（lucide 风格；原图标块 js 26575–28020 / jsx 23141–25478 + button chunk 导出） */
-declare const IconComponent: React.FC<React.SVGProps<SVGSVGElement>>;
+/* ── tombstone〔A1-R129r〕：declare IconComponent 死声明删除——本文件零调用点（全文 grep 实测仅声明行；
+ *    他文件同名皆为各自本地 prop 名，与本 declare 无涉）。R129j/R41 死删判例。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（7）：IconChevronRight/IconChevronLeft/IconChevronDown/IconChevronUp/IconCheck/IconCopy/IconPencil → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /* ── tombstone〔A1-P1-B17〕：declare const IconX（登记「Kv / g（关闭）」）删除 → npm lucide-react X as IconX
  * （文件头导入块）。束真身实证：本文件唯一消费位 = v4-pane-close 按钮（@4718）≡ bundle 91840
@@ -390,12 +392,9 @@ interface AttachmentRef {
  *    —— 会话族工具卡/思考折叠/文件变更卡/工作段折叠全部走这一组。
  * ==========================================================================*/
 
-/** Radix Collapsible 底层（打包进本 chunk 的 @radix-ui/react-collapsible） */
-declare const RadixCollapsibleRoot: React.FC<
-  React.ComponentPropsWithoutRef<"div"> & { open?: boolean; defaultOpen?: boolean; onOpenChange?: (open: boolean) => void; forceMount?: boolean }
->;
-declare const RadixCollapsibleTrigger: React.FC<React.ComponentPropsWithoutRef<"button"> & { asChild?: boolean }>;
-declare const RadixCollapsibleContent: React.FC<React.ComponentPropsWithoutRef<"div"> & { forceMount?: boolean }>;
+/* ── tombstone〔A1-R129r〕：declare RadixCollapsibleRoot/Trigger/Content（vendored @radix-ui/react-collapsible）删除 →
+ *    npm 真 import（文件头导入块；@radix-ui/react-collapsible@1.1.20 既装，components/ui/collapsible.tsx A0-S3c 同款判例）。
+ *    本文件包装层 kZ/AZ/jZ（Collapsible/CollapsibleTrigger/CollapsibleContent @401–411）消费面逐字不变。 ── */
 
 /** Collapsible 根（原 kZ；data-slot=collapsible） */
 export function Collapsible(props: React.ComponentPropsWithoutRef<typeof RadixCollapsibleRoot>) { // 〔A0-S4-4b〕补 export：§4 迁出侧消费（函数声明提升，环安全）
@@ -2041,7 +2040,8 @@ interface PreviewCard {
 declare function previewCardSignature(cards: PreviewCard[]): string; // C_t（jsx 94833）
 declare function pickWebsiteCards(cards: PreviewCard[]): PreviewCard[] | null; // w_t（jsx 94836）
 declare function settleVisibleCards(cards: PreviewCard[], fileService: unknown): Promise<PreviewCard[]>; // T_t（jsx 94839 附近）
-declare function isLocalWebsiteCard(card: PreviewCard, scope: object): boolean; // D_t（jsx 94870）
+/* ── tombstone〔A1-R129r〕：declare isLocalWebsiteCard（原 D_t，jsx 94870）死声明删除——全树零调用点
+ *    （本文件仅声明行，跨文件 grep 无消费；预览卡消费面已收敛于 settleVisibleCards/pickWebsiteCards 路径）。 ── */
 declare function useFileService(scope: {
   workspacePath?: string;
   workspaceIdentity?: string | null;
@@ -3556,8 +3556,8 @@ interface ScrollMetrics {
   viewportHeight: number;
   contentHeight: number;
 }
-/** 原 Ryt（jsx 97137）：距底部像素距离 */
-declare function distanceFromBottomOf(metrics: ScrollMetrics): number;
+/* ── tombstone〔A1-R129r〕：declare distanceFromBottomOf（原 Ryt，jsx 97137）死声明删除——全树零调用点
+ *    （滚动跟随族重构后由 isNearBottom/keyScrollIntent 正典面承接，ConversationLeaves 转导出在案）。 ── */
 /** 原 T1（jsx 97140）：是否贴底（缺省 48px 阈值） */
 /** 原 D1（jsx 97171）：初始跟随态（贴底 → true） */
 declare function initialFollowing(): boolean;
@@ -3718,8 +3718,8 @@ declare function writeScrollMemory(snapshot: unknown): void;
 /** 原 Gct/Hct（jsx 84997/84988）：摘要面板布局 → 内容列类名/宽度 */
 declare function resolveSummaryPanelContentClass(layout: "none" | "inline" | "auto"): string;
 declare function resolveSummaryPanelEmptyLayout(args: { centeredEmptyLayout: boolean }): string;
-/** 原 oNe（jsx 附近）：冷快照首 turn 不完整判定 */
-declare function shouldAutoLoadOlderOnColdSnapshot(snapshot: SessionSnapshot | null, loadingOlder: boolean): boolean;
+/* ── tombstone〔A1-R129r〕：declare shouldAutoLoadOlderOnColdSnapshot（原 oNe）死声明删除——全树零调用点
+ *    （全文 grep 实测仅声明行）。R129j/R41 死删判例。 ── */
 
 /* --- 8.4 消息列表（原 Rbt/zbt，js 114627/115525 / jsx 97662/98313） --- */
 
