@@ -2104,129 +2104,15 @@ function AutomationCardList({ cards, context }: { cards: AutomationCardModel[]; 
   );
 }
 
-/* --- 5.13 预览卡（原 O_t/k_t/A_t，js 111161–111233 / jsx 94833–95007） --- */
-
-interface PreviewCard {
-  id: string;
-  type: "website" | "file" | string;
-  kind?: string;
-  title: string;
-  subtitleId: string;
-  url?: string;
-  path?: string;
-  filePath?: string;
-}
-declare function previewCardSignature(cards: PreviewCard[]): string; // C_t（jsx 94833）
-declare function pickWebsiteCards(cards: PreviewCard[]): PreviewCard[] | null; // w_t（jsx 94836）
-declare function settleVisibleCards(cards: PreviewCard[], fileService: unknown): Promise<PreviewCard[]>; // T_t（jsx 94839 附近）
-/* ── tombstone〔A1-R129r〕：declare isLocalWebsiteCard（原 D_t，jsx 94870）死声明删除——全树零调用点
- *    （本文件仅声明行，跨文件 grep 无消费；预览卡消费面已收敛于 settleVisibleCards/pickWebsiteCards 路径）。 ── */
-declare function useFileService(scope: {
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  workspaceRemoteSessionId?: string | null;
-}): { checkFilesExist(request: { paths: string[] }): Promise<{ path: string; exists: boolean }[]> };
-
-/**
- * 可见预览卡钩子（原 O_t，js 111161 / jsx 94877）：
- * 网站卡直出（≤10 张）；混合卡需文件存在性校验（≤15 候选 → ≤10 可见），
- * 按签名缓存避免重复请求。
- */
-function useVisiblePreviewCards(
-  cards: PreviewCard[],
-  scope: { workspacePath?: string; workspaceIdentity?: string | null; workspaceRemoteSessionId?: string | null },
-): { visibleCards: PreviewCard[]; settled: boolean } {
-  const fileService = useFileService(scope);
-  const signature = React.useMemo(() => previewCardSignature(cards), [cards]);
-  const latest = React.useRef({ cards, signature });
-  if (latest.current.signature !== signature) latest.current = { cards, signature };
-  const stableCards = latest.current.cards;
-  const websiteCards = React.useMemo(() => pickWebsiteCards(stableCards), [stableCards]);
-  const [settledState, setSettledState] = React.useState<{ fileService: unknown; signature: string; visibleCards: PreviewCard[] }>(() => ({
-    fileService: null,
-    signature: ``,
-    visibleCards: [],
-  }));
-  React.useEffect(() => {
-    if (websiteCards) return;
-    let cancelled = false;
-    settleVisibleCards(stableCards, fileService).then(
-      (visible) => {
-        if (!cancelled) setSettledState({ fileService, signature, visibleCards: visible });
-      },
-      () => {
-        if (!cancelled) setSettledState({ fileService, signature, visibleCards: [] });
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [signature, fileService, websiteCards, stableCards]);
-  if (websiteCards) return { visibleCards: websiteCards, settled: true };
-  const matched = settledState.fileService === fileService && settledState.signature === signature;
-  return { visibleCards: matched ? settledState.visibleCards : [], settled: matched };
-}
-
-/** 单张预览卡（原 A_t，js 111233 / jsx 94950；接口保留：入场动画延迟 36ms×序，封顶 240ms） */
-declare const PreviewCardItem: React.FC<{
-  card: PreviewCard;
-  animationDelayMs: number;
-  subtitle: string;
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  workspaceRemoteSessionId?: string | null;
-  onOpenBrowserUrl?: (url: string) => void;
-  onOpenFileLink?: (link: FileLinkModel) => void;
-  onOpenCodeViewer?: OpenCodeViewerFn;
-  compactForRemoteControl?: boolean;
-}>;
-
-/**
- * 预览卡列表（原 k_t，js 111193 / jsx 94925）：assistant 消息后的
- * 图片/文档/网页预览卡组（聊天预览卡，spec 未列但为 §6 markdown 富文本的延伸）。
- */
-function PreviewCardListImpl({
-  cards,
-  workspacePath,
-  workspaceIdentity,
-  workspaceRemoteSessionId,
-  onOpenBrowserUrl,
-  onOpenFileLink,
-  onOpenCodeViewer,
-  compactForRemoteControl,
-}: {
-  cards: PreviewCard[];
-  workspacePath?: string;
-  workspaceIdentity?: string | null;
-  workspaceRemoteSessionId?: string | null;
-  onOpenBrowserUrl?: (url: string) => void;
-  onOpenFileLink?: (link: FileLinkModel) => void;
-  onOpenCodeViewer?: OpenCodeViewerFn;
-  compactForRemoteControl?: boolean;
-}) {
-  const { intl } = useIntlContext();
-  const { visibleCards, settled } = useVisiblePreviewCards(cards, { workspacePath, workspaceIdentity, workspaceRemoteSessionId });
-  if (!settled || visibleCards.length === 0) return null;
-  return (
-    <div className="flex w-full flex-col gap-3">
-      {visibleCards.map((card, index) => (
-        <PreviewCardItem
-          key={card.id}
-          card={card}
-          animationDelayMs={Math.min(index * 36, 240)}
-          subtitle={intl.formatMessage({ id: card.subtitleId })}
-          workspacePath={workspacePath}
-          workspaceIdentity={workspaceIdentity}
-          workspaceRemoteSessionId={workspaceRemoteSessionId}
-          onOpenBrowserUrl={onOpenBrowserUrl}
-          onOpenFileLink={onOpenFileLink}
-          onOpenCodeViewer={onOpenCodeViewer}
-          compactForRemoteControl={compactForRemoteControl}
-        />
-      ))}
-    </div>
-  );
-}
+/* ── 墓碑〔A1-R129w〕：§5.13 预览卡重复子域整段死删——本地副本（interface PreviewCard +
+ *    declare previewCardSignature/pickWebsiteCards/settleVisibleCards/useFileService/PreviewCardItem +
+ *    function useVisiblePreviewCards/PreviewCardListImpl，原 O_t/k_t/A_t/C_t/w_t/T_t）。
+ *    正典域 = components/conversation/PreviewCards.tsx（c1/Lgt/C_t/w_t/T_t/E_t/D_t/O_t/k_t/A_t，
+ *    jsx 94007–95033，A1-P1-B15/B16 逐字实体化在案；useVisiblePreviewCards/PreviewCard/PreviewCardList
+ *    导出既在），经 ConversationLeaves@450 转导出，本文件渲染点 <PreviewCardList 消费正典。
+ *    死域取证：PreviewCardListImpl 无渲染点/未导出；useVisiblePreviewCards 仅其消费；四 declare 仅
+ *    useVisiblePreviewCards 消费；PreviewCardItem 仅 Impl 消费；全树零跨文件引用。
+ *    内嵌〔A1-R129r〕isLocalWebsiteCard（原 D_t，jsx 94870）墓碑随段吸收。台账 −5 declare。 ── */
 
 /* --- 5.14 轮文件变更摘要 + 回退（原 S_t/b_t/v_t/__t/p1，jsx 94426–94833） --- */
 
