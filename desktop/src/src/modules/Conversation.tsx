@@ -139,6 +139,7 @@ import { type PrimaryDraftDropTargetController } from './WorkspaceShell'; // A0-
 import { BillingDiscountBadge, type BillingDiscountConfig } from './UsageDeep'; // +BillingDiscountConfig（A0-D 类型收敛）
 import { InfoTooltip as Tooltip, useControllableState } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u 导出 = X InfoTooltip）+ 原 fa（A0-CLEANUP2 item 47 接线）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
+import { getOAuthFamilyIdByProviderId } from './SrcSharedB'; // 〔A1-R129v〕原 Jx（src 9036/8930；src chunk 导出 R = styles dr）canonical 改指：formatModelDisplayName 实体化消费
 import { Button, ChevronRight as IconChevronRight, ChevronLeft as IconChevronLeft } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）；A0-S3b 增补：ChevronRight as IconChevronRight, ChevronLeft as IconChevronLeft（button chunk 图标，pass-1 同源）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 /* ── tombstone（A1-R3）：stores-session import（PRIMARY_PANE_ID/useSessionRouterStore/
@@ -1322,7 +1323,59 @@ function normalizeRowFeedback(row: AssistantTextRow): RowFeedback {
 }
 
 /** 原 cvt（jsx 95423）：行时间戳本地化（今天=时刻 / 昨天 / 今年 / 跨年），带缓存 */
-declare function formatRowTimestamp(createdAt: number | undefined, locale: string, intl: IntlShape): string | null;
+/* 原 cvt（styles 3535604）+ 辅助簇 ivt/g1/avt/ovt/svt/_1/v1（styles 3534806–3535604）：
+ * 行时间戳整簇逐字实体化〔A1-R129v〕。型缝：束真无类型，createdAt 可空面以 undefined 守卫先行窄化
+ * （运行期与 `!Number.isFinite(e)` 等价）。缓存上限 ivt=4e3 同束。 */
+const ROW_TIMESTAMP_CACHE_LIMIT = 4e3; // 原 ivt
+const ROW_TIMESTAMP_CACHE = new Map<string, string>(); // 原 g1
+const ROW_TIMESTAMP_FORMATTER_CACHE = new Map<string, Intl.DateTimeFormat>(); // 原 avt
+function isSameCalendarDay(left: Date, right: Date): boolean { // 原 ovt
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+function calendarDayKey(date: Date): string { // 原 svt
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+function rowTimestampFormatter(locale: string, style: "time" | "monthDayTime" | "yearMonthDayTime"): Intl.DateTimeFormat { // 原 _1
+  let key = `${locale}:${style}`,
+    cached = ROW_TIMESTAMP_FORMATTER_CACHE.get(key);
+  if (cached) return cached;
+  let formatter = new Intl.DateTimeFormat(
+    locale,
+    style === `time`
+      ? { hour: `2-digit`, minute: `2-digit` }
+      : style === `monthDayTime`
+        ? { month: `numeric`, day: `numeric`, hour: `2-digit`, minute: `2-digit` }
+        : { year: `numeric`, month: `numeric`, day: `numeric`, hour: `2-digit`, minute: `2-digit` },
+  );
+  return (ROW_TIMESTAMP_FORMATTER_CACHE.set(key, formatter), formatter);
+}
+function cacheRowTimestamp(key: string, value: string): string { // 原 v1
+  return (ROW_TIMESTAMP_CACHE.size >= ROW_TIMESTAMP_CACHE_LIMIT && ROW_TIMESTAMP_CACHE.clear(), ROW_TIMESTAMP_CACHE.set(key, value), value);
+}
+function formatRowTimestamp(createdAt: number | undefined, locale: string, intl: IntlShape, nowMs: number = Date.now()): string | null {
+  if (createdAt === undefined || !Number.isFinite(createdAt) || createdAt <= 0) return null;
+  let date = new Date(createdAt),
+    now = new Date(nowMs);
+  if (Number.isNaN(date.getTime()) || Number.isNaN(now.getTime())) return null;
+  let cacheKey = `${locale}:${createdAt}:${calendarDayKey(now)}`,
+    cached = ROW_TIMESTAMP_CACHE.get(cacheKey);
+  if (cached !== undefined) return cached;
+  let timeText = rowTimestampFormatter(locale, `time`).format(date);
+  if (isSameCalendarDay(date, now)) return cacheRowTimestamp(cacheKey, timeText);
+  let yesterday = new Date(now);
+  return (
+    yesterday.setDate(now.getDate() - 1),
+    isSameCalendarDay(date, yesterday)
+      ? cacheRowTimestamp(cacheKey, intl.formatMessage({ id: `chat.message.time.yesterday` }, { time: timeText }))
+      : date.getFullYear() === now.getFullYear()
+        ? cacheRowTimestamp(cacheKey, rowTimestampFormatter(locale, `monthDayTime`).format(date))
+        : cacheRowTimestamp(cacheKey, rowTimestampFormatter(locale, `yearMonthDayTime`).format(date))
+  );
+}
 
 /**
  * assistant 消息动作条（原 mvt，jsx 95726，memo）。
@@ -1668,7 +1721,12 @@ function TimelineMarker({
 /** 模型注册表查询（原 hM/fM：全局模型列表快照） */
 declare function useModelRegistrySnapshot(): { id: string; name: string }[];
 /** 原 rN：provider+model → 展示名 */
-declare function formatModelDisplayName(provider: string | undefined, providerName: string | undefined, model: string): string;
+/** 原 rN（styles 1697262）：模型显示名——已知 OAuth 族供应商仅显模型名，否则 providerName/model〔A1-R129v 实体化〕 */
+function formatModelDisplayName(provider: string | undefined, providerName: string | undefined, model: string): string {
+  if (provider && getOAuthFamilyIdByProviderId(provider)) return model;
+  let trimmed = providerName?.trim();
+  return trimmed ? `${trimmed}/${model}` : model;
+}
 
 /**
  * 时间线标记视图（原 Cvt，js 112528 / jsx 95939，memo）。
