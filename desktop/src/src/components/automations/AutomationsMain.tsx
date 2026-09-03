@@ -19,7 +19,7 @@ import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modul
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
 import { isCodingPlanConnectionSelected as hasCodingPlanEntitlement, isRemoteWorkspaceTab, useOffPeakTaskStore, type ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R114〕+useOffPeakTaskStore：原 bX canonical（Home@826 逐字 zustand 实体，束 91416；型面对齐批改指） // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依 // 〔A1-R104〕+hasCodingPlanEntitlement 改指（原 Tit declare 删碑；canonical = Home::isCodingPlanConnectionSelected@749，A0 语义重建在案，xn/zi 依赖 R27/R28 既收敛）。环安全：Home 值闭包不达 components/automations（grep 实证仅注释提及） // 〔A1-R107〕+isRemoteWorkspaceTab：原 zMt（135518）canonical（SettingsLeaves 映射行 78 判词在案 ≡ N2@123216；Home::isRemoteWorkspaceTab@1256 转导出）
-import { useModelProvidersStore, useCodingPlanEntitlements } from '../../modules/PaymentDeep'; // 〔A1-R109〕原 qq declare 删碑改指：canonical = PaymentDeep §11 useModelProvidersStore（bundle 78243–78403 逐字，R35 实体化，转导出 @319；ModelProviderSettingsSection 同判例）。环安全：PaymentDeep 值闭包不达 components/automations（grep 实证零 import 边） // 〔A1-R111〕+useCodingPlanEntitlements：原 sX declare（useCodingPlanEntitlementsForAutomations）删碑改指——canonical = PaymentDeep@9236 逐字实体（映射行 9235/10265 在案；R38 订阅面链闭合判例）
+import { useModelProvidersStore, useCodingPlanEntitlements, filterUsableProviders, modelMenuGroupsOf } from '../../modules/PaymentDeep'; // 〔A1-R115〕+filterUsableProviders/modelMenuGroupsOf（原 N6e/Hq canonical：PaymentDeep@1097/@993 逐字实体，转导出 @128/@118；AMt 适配批接线） // 〔A1-R109〕原 qq declare 删碑改指：canonical = PaymentDeep §11 useModelProvidersStore（bundle 78243–78403 逐字，R35 实体化，转导出 @319；ModelProviderSettingsSection 同判例）。环安全：PaymentDeep 值闭包不达 components/automations（grep 实证零 import 边） // 〔A1-R111〕+useCodingPlanEntitlements：原 sX declare（useCodingPlanEntitlementsForAutomations）删碑改指——canonical = PaymentDeep@9236 逐字实体（映射行 9235/10265 在案；R38 订阅面链闭合判例）
 import { offPeakCreateFailureMessageId, reportTelemetry } from '../../modules/StoresDeep'; // 〔A1-R104〕原 Dit declare 删碑改指 canonical = offPeakHelpers 逐字实体（转导出） // 〔A1-R105〕+reportTelemetry：原 xw（40457）遥测总入口 canonical（StoresDeep@323，R36 实体化；PaymentDeep R26 同判例）
 import { parseCustomModelRef, OFFPEAK_IDLE_PLAN_ID } from '../../modules/SrcSharedB'; // 〔A1-R105〕原 Zn（styles 544 `P as Zn` ← src iS@8966 ≡ SrcSharedB parseCustomModelRef）：MNt 深依赖 canonical // 〔A1-R106〕+OFFPEAK_IDLE_PLAN_ID：原 vee（styles 613 `Z as vee` ← src 5357；Vjt 遥测缺省 provider 面）
 import { useAppSettings } from '../../modules/UsageDeep'; // A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）；调用点 548 解构 {settings, update}，552/655–657 读取面（具名 + 既有 as 窄化）与 1179/1341 update({keepAwakeWhileRunning}) 补丁逐字不变。环安全：UsageDeep 值闭包不达本文件
@@ -274,17 +274,12 @@ export interface AutomationRun {
  *    按 R103 q$ 留束判例切出留束，语句形归一入 roundtrip 脚本。 ── */
 /** 原 INt（jsx 115771）：闲时创建按钮 —— A0-CLEANUP B-31 改指 ExtendedViews 导出（见文件头 import） */
 /** 原 LNt（jsx 115784）：定时模板表 —— A0-CLEANUP B-31 改指 ExtendedViews 导出（见文件头 import） */
-/** 原 AMt（jsx 113829）：自动化模型选择分组 —— 保留 declare：属主 EV 实体签名（displayOrder: string[]）与本域调用面（{providerIds…}|null）形状冲突，改指会新增错（A0-CLEANUP B-31 记录在案） */
-declare function buildAutomationModelSelectGroups(opts: {
-  selectedProvider: string;
-  providers: ModelProvider[];
-  labels: Record<string, string>;
-  displayOrder: { providerIds: string[]; updatedAt?: number } | null;
-  familyModes?: Record<string, string>;
-  familySelectedKeys?: Record<string, string>;
-  providerFamilyDomain?: string | null;
-  getEntitlementSnapshot: (providerId: string) => unknown;
-}): SelectGroupEntry[]; // AMt（jsx 113829）
+/* ── tombstone〔A1-R115〕：declare buildAutomationModelSelectGroups（原 AMt，jsx 113829 / js 135401–135422）删除——逐字实体化于下方实体带（OffPeakTaskList 之后）。
+ *    依赖 N6e ≡ filterUsableProviders（PaymentDeep@1097）、Hq ≡ modelMenuGroupsOf（PaymentDeep@993，转导出在案）。
+ *    形状冲突批裁决（A0-CLEANUP B-31 留批消解）：束 Hq 12 参形（位 2 = configModels 空数组位、位 10/11 = l/u void 位）
+ *    对树 canonical 10 参形——实体按树位适配（R29 hjt 改适判例：负证据在案，configModels 位 Hq 体内不读）；
+ *    displayOrder 参面 {providerIds…}|null 与 modelMenuGroupsOf 既有参型全合（旧 EV string[] 面非本批障碍）。
+ *    roundtrip 承逆适配缝（位 2 `[],` 与位 11 `void 0,` 补位）。 ── */
 /* ── tombstone〔A1-R107〕：declare 三连——activeWorkspaceTabOf（原 zMt）/resolveTakeNumberBlockReason（原 Ijt）/
  *    formatNextTakeAt（原 Ljt）删除。Ijt/Ljt 逐字实体化于下方实体带；zMt 改指 canonical
  *    Home::isRemoteWorkspaceTab（SettingsLeaves 映射行 78 判词 ≡ N2@123216），调用点拆合壁
@@ -920,6 +915,27 @@ function OffPeakTaskList({
         }),
       });
 }
+/* ── 原 AMt（js 135401–135422）→ buildAutomationModelSelectGroups：自动化模型选择分组（N6e 可用供应商过滤 + Hq 分组构造二段）〔A1-R115 逐字实体化；形状缝：Hq 12 参形适配树 modelMenuGroupsOf 10 参形（位 2 configModels 空数组位/位 11 void 位删；R29 hjt 判例，逆适配缝 roundtrip 承）〕 ── */
+function buildAutomationModelSelectGroups(e: any) {
+  let t = filterUsableProviders({
+    providers: e.providers,
+    selectedProvider: e.selectedProvider,
+    getEntitlementSnapshot: e.getEntitlementSnapshot,
+    modelProviderFamilySelectedKeys: e.familySelectedKeys,
+  });
+  return modelMenuGroupsOf(
+    e.selectedProvider,
+    t,
+    e.labels,
+    e.displayOrder,
+    e.familyModes,
+    e.familySelectedKeys,
+    [],
+    !1,
+    void 0,
+    { providerFamilyDomain: e.providerFamilyDomain },
+  );
+}
 /* ── tombstone〔A1-R104〕：declare offPeakCreateFailureMessageId（原 Dit 91405）删除——改指 offPeakHelpers 逐字 canonical（modules/StoresDeep 转导出，import 在案）。 ── */
 /* ── tombstone〔A1-R103〕：declare 四连——automationLifecycleOf（原 qht）/automationHasFailedRun（原 Kht）/
  *    automationScheduleLabel（原 rgt）/automationNextRunLabel（原 egt）删除。qht/Kht/egt + 4 依赖逐字实体化于下方；
@@ -1282,7 +1298,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
         familyModes: settings?.modelProviderFamilyModes as Record<string, string> | undefined,
         familySelectedKeys: settings?.modelProviderFamilySelectedKeys as Record<string, string> | undefined,
         providerFamilyDomain: (settings?.providerFamilyDomain as string | null | undefined) ?? null,
-        getEntitlementSnapshot: (providerId) => entitlements[providerId]?.snapshot ?? null,
+        getEntitlementSnapshot: (providerId: string) => entitlements[providerId]?.snapshot ?? null, // 〔A1-R115〕型面对齐：declare 删后上下文型面丢失，消费点箭头补注
       }),
     [entitlements, displayOrder, intl, modelProviders, settings?.modelProviderFamilyModes, settings?.modelProviderFamilySelectedKeys, settings?.providerFamilyDomain]
   );
