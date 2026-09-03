@@ -10,8 +10,9 @@ import { AutomationEditor, OffPeakTaskEditor, type ScheduleRule } from '../../mo
 import { logger } from '../../modules/SkillStore';
 import { providerIds } from '../../modules/SrcSharedA';
 import { automationsWorkspaceKey, parseCustomModelRef as parseModelString, isAutomationCreateLimitError as isCreateLimitError, OFFPEAK_IDLE_PLAN_ID as OFFPEAK_TELEMETRY_DEFAULT_PROVIDER } from '../../modules/SrcSharedB'; // 〔A1-R119〕+parseCustomModelRef（束 MNt@138580 消费面实调 Zn 非 Mg——旧注勘误；R105 canonical）/isAutomationCreateLimitError（原 ri ≡ src et 导出 ≡ hx@8733 ≡ SrcSharedB@5344 逐字）/OFFPEAK_IDLE_PLAN_ID（原 vee ← src 5357，R106 判例）
-import { modelMenuGroupsOf, filterUsableProviders, useModelProvidersStore as useModelProviderRegistry, useCodingPlanEntitlements as useEntitlements, useCodingPlanUpgradeDialog as useCodingPlanUpgrade, type ModelProvider as PaymentModelProvider } from '../../modules/PaymentDeep'; // 〔A1-R119〕+useModelProvidersStore/useCodingPlanEntitlements/useCodingPlanUpgradeDialog（原 qq/sX/fX 族 declare 改指；R109/R111/R43 判例，别名保留调用名） // 〔A1-R29〕Hq 77850 / N6e 77910 canonical + 型缝型别：两 declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 components/automations
-import type { EntitlementSnapshot as UsageEntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R29〕N6e 收敛型缝所依（getEntitlementSnapshot 返回面窄化，行依据见 AMt 体内注；别名避本地 EntitlementSnapshot 接口名冲突）
+import { useModelProvidersStore as useModelProviderRegistry, useCodingPlanEntitlements as useEntitlements, useCodingPlanUpgradeDialog as useCodingPlanUpgrade } from '../../modules/PaymentDeep'; // 〔A1-R120〕modelMenuGroupsOf/filterUsableProviders/PaymentModelProvider 随 AMt 孪生归一删（唯一消费面为下方删体；R29 碑文留史） // 〔A1-R119〕+useModelProvidersStore/useCodingPlanEntitlements/useCodingPlanUpgradeDialog（原 qq/sX/fX 族 declare 改指；R109/R111/R43 判例，别名保留调用名） // 〔A1-R29〕Hq 77850 / N6e 77910 canonical + 型缝型别：两 declare 收敛改指，见下墓碑。环安全：PaymentDeep shim 值闭包不达 components/automations
+/* ── tombstone〔A1-R120〕：import type EntitlementSnapshot as UsageEntitlementSnapshot（R29 型缝所依）删除——
+ *    唯一消费面 = 本批删除的 AMt A0 语义孪生体内 cast。 ── */
 import type { ModelCatalogEntryLike } from '../../modules/Home';
 import { buildCodingPlanFunnelContext as buildIdleUpgradeFunnelContext, resolveEntryPlanState, isRemoteWorkspaceTab as isRemoteScopedTab } from '../../modules/Home'; // 〔A1-R119〕原 FM/LM/zMt declare 改指（R26/R42/R107 canonical；别名保留调用名） // 〔A1-R24〕zrt 197021 面联动：ModelProviderInfo.models 型缝所依
 import { reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDeep'; // A0-CLEANUP3 3b：遥测助手形参具型
@@ -22,9 +23,10 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R1
 import { useAppSettings as useSettingsSnapshot } from '../../modules/UsageDeep'; // 〔A1-R119〕原 JM 族 declare 改指（canonical UsageDeep@1730，R11 判例；返回面 {settings, loading, update, ...} 超集兼容）
 import { useWorkspaceTabStore, isWorkspaceKindTab as isWorkspaceTabUsable } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R119〕原 pc/oc declare 改指（R107/R2 判例；别名保留调用名）
 import { useConfirmDialog } from '../../modules/Modals'; // 〔A1-R119〕原 U2（styles 123510）declare 改指（R5/R6 ConfirmDialog canonical 判例）
-import { OffPeakTaskList, formatRelativeRunTime as describeNearRunTime, formatAbsoluteRunTime as describeFarRunTime } from './AutomationsMain'; // 〔A1-R119〕原 cMt/$ht/$$ declare 改指 F15 轨 R113/R103 逐字实体（补 export 同批；环安全见报告）
-import { schedulePreviewText as describeScheduleRule, cronPreviewText as describeCronExpression } from './AutomationEditor'; // 〔A1-R119〕原 Q$/Xht declare 改指（束 rgt@109573 分解实证：Q$(ngt(rule),t)/Xht(cronExpr,t)）
-import { scheduleRuleToPreviewModel as toScheduleRuleDescription } from '../conversation/AutomationCards'; // 〔A1-R119〕原 ngt（109557）：本文件 A0 退化桩删改指 R96 逐字实体（束真形保真修复，见报告）
+import { OffPeakTaskList, buildAutomationModelSelectGroups, automationNextRunLabel as describeAutomationNextRun } from './AutomationsMain'; // 〔A1-R119〕原 cMt declare 改指 R113 逐字实体 // 〔A1-R120〕+buildAutomationModelSelectGroups/automationNextRunLabel（AMt/egt 孪生归一；$ht/$$ 直进 describeAutomationNextRun 体内随归一删）
+/* ── tombstone〔A1-R120〕：import schedulePreviewText/cronPreviewText（R119 改指所依）删除——唯一消费面
+ *    describeAutomationFrequency A0 语义重建体本批归一删除（束 d6 139541 直调 rgt 实证 → 改指 formatCronSchedule）。 ── */
+import { formatCronSchedule as describeAutomationFrequency } from '../conversation/AutomationCards'; // 〔A1-R120〕原 rgt 归一：describeAutomationFrequency A0 语义重建体删改指 R96 逐字实体（束 d6 139541 a = rgt(e, o) 实证；R119 ngt 保真修复经 formatCronSchedule 体内 scheduleRuleToPreviewModel 续在案）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import {
   IconChevronDown,
@@ -124,11 +126,8 @@ interface EntitlementSnapshot {
  *    消费面 @1112–1116/@1109/@1327–1331 逐字不变（1115 型缝 cast 同 F15@1192 判例）；
  *    F15 轨 @1186–1193/@1407–1414 同构消费在案。 ── */
 
-interface ModelSelectGroup {
-  label?: string;
-  items: Array<{ value: string; label?: string; [key: string]: unknown }>;
-  [key: string]: unknown; // A0-CLEANUP3 3b：流入 SL.SelectGroupEntry（接口无隐式索引签名）
-}
+/* ── tombstone〔A1-R120〕：本地 ModelSelectGroup 接口删除——唯一型面消费面 = 本批归一删除的 AMt 孪生返回型；
+ *    归一后 modelSelectGroups 经 F15 逐字实体（返回 any → AutomationEditor modelSelectGroups 参面直通）。 ── */
 
 /* ── tombstone〔A1-R29〕：declare buildModelSelectGroups（原 Hq）删除 → 改指 modelMenuGroupsOf（Hq 真身：
  *    bundle 77850 唯一真身 ≡ PaymentDeep@993 A0 逐字实化，modules/PaymentDeep@118 转导出）。双实例收敛证据：
@@ -960,40 +959,10 @@ function isCodingPlanConnectionActiveImpl(
   return settings.modelProviderFamilySelectedKeys?.[domain]?.trim() === support.selectedConnectionKey;
 }
 
-/* 模型分组（原 AMt，js 135384 / jsx 113829） */
-
-function buildAutomationModelSelectGroups(params: {
-  selectedProvider: string;
-  providers: ModelProviderInfo[];
-  labels: Record<string, string>;
-  displayOrder: { providerIds: string[]; updatedAt?: number } | string[]; // 〔A1-R119〕型面宽化：改指 useModelProvidersStore 后参面 = qq store 真形 {providerIds, updatedAt}（R29 注「真形 {providerIds}」实证；旧 string[] A0 近似面保留联合）
-  familyModes?: Record<string, string>;
-  familySelectedKeys?: Record<string, string>;
-  providerFamilyDomain?: string | null;
-  getEntitlementSnapshot: (providerId: string) => unknown;
-}): ModelSelectGroup[] {
-  // 〔A1-R29〕型缝：旧 declare 面依本地 ModelProviderInfo/unknown 快照面；canonical 依 PD ModelProvider/EntitlementSnapshot
-  // （行依据：本行 + 本地 ModelProviderInfo@75）；旧 declare displayOrder: string[] 为 A0 近似，真形 {providerIds}（qq store 真面），宽化直通。
-  const entitledProviders = filterUsableProviders({
-    providers: params.providers as PaymentModelProvider[],
-    selectedProvider: params.selectedProvider,
-    getEntitlementSnapshot: params.getEntitlementSnapshot as (providerId: string) => UsageEntitlementSnapshot | null,
-    modelProviderFamilySelectedKeys: params.familySelectedKeys,
-  });
-  // 〔A1-R29〕Hq 收敛：bundle Hq 第二参（[] 位）体内不读，删位（负证据在案）。
-  return modelMenuGroupsOf(
-    params.selectedProvider,
-    entitledProviders,
-    params.labels,
-    params.displayOrder as unknown as { providerIds: string[] } | null,
-    params.familyModes,
-    params.familySelectedKeys,
-    [],
-    false,
-    undefined,
-    { providerFamilyDomain: params.providerFamilyDomain },
-  );
-}
+/* ── tombstone〔A1-R120〕：buildAutomationModelSelectGroups A0 语义重建孪生（原 AMt，js 135384 / jsx 113829；
+ *    33 行含 R29/R119 型缝注）删除 → 归一 F15 轨 AutomationsMain::buildAutomationModelSelectGroups
+ *    （R115 逐字实体，束 135401–135422；补 export 同批）。束证：d6 体内 AMt 唯一真身 135401，双轨同源；
+ *    消费面 @1139 逐字不变（同名直收，参对象同形）。R29/R115 裁定史碑文续在案。 ── */
 
 /* 频率/下次运行文案（原 rgt/egt，js 109525/109499；cron 描述器 Q$/Xht 属编辑器域，接口保留） */
 
@@ -1006,24 +975,19 @@ function buildAutomationModelSelectGroups(params: {
  *    改指 AutomationCards::scheduleRuleToPreviewModel（原 ngt，束 109557–109572 逐字，R96 实体化；补 export 同批）。
  *    保真修复：桩丢弃 interval/unit/weekdays/monthDays 等字段，束真形全投射；消费位 @1074 逐字不变。 ── */
 
-function describeAutomationFrequency(automation: AutomationRecord, intl: IntlShape): string {
-  return automation.recurring === false && (automation.maxRuns ?? 1) <= 1
-    ? intl.formatMessage({ id: "automations.frequency.custom" })
-    : automation.scheduleRule
-      ? describeScheduleRule(toScheduleRuleDescription(automation.scheduleRule), intl)
-      : describeCronExpression(automation.cronExpr as string, intl); // 〔A1-R119〕型缝：束 JS 无此缝（Xht 参 e.cronExpr 直通）；cronPreviewText(expr: string) 参型所依
-}
-
-const AUTOMATION_NEAR_RUN_WINDOW_MS = 720 * 60 * 60 * 1_000; // 原 Jht
+/* ── tombstone〔A1-R120〕：describeAutomationFrequency A0 语义重建体（7 行）+ AUTOMATION_NEAR_RUN_WINDOW_MS
+ *    （原 Jht 孪生常量）删除 → 归一 formatCronSchedule（R96 逐字实体 ≡ 束 rgt@109573；import 别名保留调用名）。
+ *    束证：d6 139541 `a = rgt(e, o)` 直调；R119 改指后二本已行为同构（Q$∘ngt/Xht 分解 + ngt 保真），本批结构归一。
+ *    消费面 @1710 逐字不变。R119 describeScheduleRule/describeCronExpression/toScheduleRuleDescription 碑文续在案。 ── */
 
 /* ── tombstone〔A1-R119〕：declare describeNearRunTime/describeFarRunTime 删除 → 改指 AutomationsMain::
  *    formatRelativeRunTime（原 $ht，109527–109546）/formatAbsoluteRunTime（原 $$，109522–109526），
  *    R103 逐字实体补 export 同批。消费面 @1085 逐字不变。 ── */
 
-function describeAutomationNextRun(nextRunAt: number | null | undefined, now: number, intl: IntlShape): string | null {
-  if (!nextRunAt || nextRunAt <= now) return null;
-  return nextRunAt - now <= AUTOMATION_NEAR_RUN_WINDOW_MS ? describeNearRunTime(nextRunAt, now, intl) : describeFarRunTime(nextRunAt);
-}
+/* ── tombstone〔A1-R120〕：describeAutomationNextRun A0 语义重建体（4 行）删除 → 归一 AutomationsMain::
+ *    automationNextRunLabel（R103 逐字实体 ≡ 束 egt@109547–109549；import 别名保留调用名）。
+ *    束证：d6 139542 `s = egt(e.nextRunAt, ke, o)` 直调；R119 改指后行为同构（720h 窗 + $ht/$$ 分支），本批结构归一。
+ *    消费面 @1711 逐字不变。 ── */
 
 /* ---- 6.10 AutomationsMain（原 d6，js 138823–139924 / jsx 115911–116693） ---- */
 
@@ -1153,7 +1117,7 @@ export const AutomationsMain: React.FC<{
         familyModes: settings?.modelProviderFamilyModes,
         familySelectedKeys: settings?.modelProviderFamilySelectedKeys,
         providerFamilyDomain: settings?.providerFamilyDomain,
-        getEntitlementSnapshot: (providerId) => entitlements[providerId]?.snapshot ?? null,
+        getEntitlementSnapshot: (providerId: string) => entitlements[providerId]?.snapshot ?? null, // 〔A1-R120〕型缝：AMt 归一后 F15 实体参面 : any 无上下文型，箭头补注（束 JS 无此缝）
       }),
     [
       entitlements,

@@ -916,7 +916,7 @@ export function OffPeakTaskList({ // 〔A1-R119〕+export：AutomationsMainView 
       });
 }
 /* ── 原 AMt（js 135401–135422）→ buildAutomationModelSelectGroups：自动化模型选择分组（N6e 可用供应商过滤 + Hq 分组构造二段）〔A1-R115 逐字实体化；形状缝：Hq 12 参形适配树 modelMenuGroupsOf 10 参形（位 2 configModels 空数组位/位 11 void 位删；R29 hjt 判例，逆适配缝 roundtrip 承）〕 ── */
-function buildAutomationModelSelectGroups(e: any) {
+export function buildAutomationModelSelectGroups(e: any) { // 〔A1-R120〕+export：AutomationsMainView AMt A0 语义孪生归一改指（束 d6 139541 区 rgt/egt 直调实证；双轨归一批）
   let t = filterUsableProviders({
     providers: e.providers,
     selectedProvider: e.selectedProvider,
@@ -992,7 +992,7 @@ export function formatRelativeRunTime(e: any, t: any, n: any) {
   return n.formatMessage({ id: a ? `automations.time.in` : `automations.time.ago` }, { amount: d });
 }
 /* ── 原 egt（js 109547–109549）→ automationNextRunLabel：下次运行文案（≤720h → 相对；余 → 绝对；过期/无 → null）〔A1-R103 逐字实体化〕 ── */
-function automationNextRunLabel(e: any, t: any, n: any) {
+export function automationNextRunLabel(e: any, t: any, n: any) { // 〔A1-R120〕+export：AutomationsMainView describeAutomationNextRun A0 语义孪生归一改指（束 egt 直调实证）
   return !e || e <= t ? null : e - t <= NEXT_RUN_RELATIVE_WINDOW_MS ? formatRelativeRunTime(e, t, n) : formatAbsoluteRunTime(e);
 }
 /* ── tombstone〔A1-R104〕：declare hasCodingPlanEntitlement（原 Tit 91395）删除——改指 Home::isCodingPlanConnectionSelected canonical（import 别名在案）。
