@@ -3,6 +3,8 @@ import { normalizeProviderId } from '../modules/SrcSharedB';
 import { skillContextKey, useSkillContextStore as useSkillContextStoreStatic } from './skillContextStore'; // 原 UB（A0-S4-3 收尾：改接 stores/ 属主）
 import type { SkillsService } from './skillContextStore';
 import { useSkillsStore as useSkillsStoreStatic } from './skillsStore'; // 〔A1-R129m〕原 Ne 静态面实接线（下方碑文）
+import { useTaskStore } from './taskStore'; // 〔A1-R129n〕原 xe——lFt 实体化依存（getWorkspaceState/invalidateDraftRuntime）
+import { t as logger } from '../modules/logger'; // 〔A1-R129n〕原 J——lFt/M6 实体化日志依存
 
 /* ── tombstone〔A1-R129m〕：declare useSkillsStoreStatic（原 Ne 静态面）删除 → 实接线 stores/skillsStore::useSkillsStore。
  *    Ne≡Yn 导出 t（styles 侧 `Ne`，skillsStore 头块既注）；A0-S4-3 抽取 §E 时未接线，幻影 declare 无运行时实体；
@@ -115,3 +117,52 @@ export async function refreshSkillsAfterCommandsChange(args: {
   await Promise.all(pending);
 }
 
+/* ============================================================================
+ * §E2. 同区域遗珠（原 js 142686–142716，§E 抽取时未收）：lFt/M6 延迟草稿会话失效
+ * ============================================================================ */
+
+/** 原 lFt（styles 142686）：运行时变更后失效延迟草稿会话（无效则关闭会话 + 双日志路）。〔A1-R129n〕实体化。 */
+export async function invalidateDeferredDraftSession(args: {
+  workspacePath: string;
+  workspaceIdentity?: string | null;
+  zcodeSessionService: { closeSession(closeArgs: { workspacePath: string; workspaceIdentity?: string; sessionId: string }): Promise<unknown> };
+  reason?: string;
+  logScope: string;
+}): Promise<void> {
+  if (!args.workspacePath) return;
+  let t = args.workspaceIdentity?.trim() || void 0,
+    n = useTaskStore.getState(),
+    r = n.getWorkspaceState(args.workspacePath, t).draftSessionId;
+  if ((n.invalidateDraftRuntime(args.workspacePath, t), r))
+    try {
+      (await args.zcodeSessionService.closeSession({
+        workspacePath: args.workspacePath,
+        ...(t ? { workspaceIdentity: t } : {}),
+        sessionId: r,
+      }),
+        logger.info(`[${args.logScope}] invalidated deferred draft session after runtime change`, {
+          draftSessionId: r,
+          reason: args.reason,
+          workspaceIdentity: t ?? null,
+          workspacePath: args.workspacePath,
+        }));
+    } catch (n) {
+      logger.warn(`[${args.logScope}] close deferred draft session after runtime change failed`, {
+        draftSessionId: r,
+        reason: args.reason,
+        workspaceIdentity: t ?? null,
+        workspacePath: args.workspacePath,
+        error: n instanceof Error ? n.message : String(n),
+      });
+    }
+}
+
+/** 原 M6（styles 142714）：技能同步后失效延迟草稿会话（lFt logScope=skills 包裹）。〔A1-R129n〕实体化。 */
+export async function invalidateDraftSessionAfterSkillSync(args: {
+  workspacePath: string;
+  workspaceIdentity?: string | null;
+  zcodeSessionService: { closeSession(closeArgs: { workspacePath: string; workspaceIdentity?: string; sessionId: string }): Promise<unknown> };
+  reason?: string;
+}): Promise<void> {
+  await invalidateDeferredDraftSession({ ...args, logScope: `skills` });
+}
