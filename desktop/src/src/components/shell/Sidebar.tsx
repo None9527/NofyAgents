@@ -218,8 +218,8 @@ import { applySearchTaskMutation as applyOptimisticTaskMutation, invalidateWorks
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../../modules/stores-core';
 import { sessionActivityOf as taskSessionActivity, pendingInteractionOf as taskPendingAttention, compareTasks as compareTasksForList, reportTelemetry as trackEvent } from '../../modules/StoresDeep'; // 〔A1-R125〕+reportTelemetry as trackEvent（原 xw 改指，R36 canonical；R1 判例别名保留调用名） // A1-R10 项 2d：原 Mo/No/Fo（jsx 369/376/405）本地转录改指 canonical = helpers sessionActivityOf/pendingInteractionOf/compareTasks（Mo@1311/No@1318/Fo@1365 逐字）；调用点 1506/1507/1958/2248/2699 逐字不变。环安全：StoresDeep 值闭包（stores/* + SkillStore + SrcShared 族）不达 components/shell
 import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 项 2d：原 Go（jsx 986）本地转录改指 canonical = components/markdown baseName（Go@1928 逐字）；调用点 1561 逐字不变。环安全：MarkdownIntegration 值闭包（markdown 渲染族 + FileTreePanel resolveAvailableEditors）不达 components/shell（实测在案）
-import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector, resolveTabRemoteSessionId as gc, useWorkspaceTabStore as useTabStore, useWorkspaceTabStoreOptional as useOptionalTabStore, buildWorkspaceServicesBindings as buildWorkspaceServicesMap } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R126〕+buildWorkspaceServicesBindings as buildWorkspaceServicesMap（原 yc jsx 3637 canonical，styles 4834 逐字；墓碑见下声明群） // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）；〔A1-P2-B10〕gc≡resolveTabRemoteSessionId（原 gc 4814）——ERt 真身闭包依赖
-import { useSessionRegistryStore as Zs } from '../../stores/sessionRegistryStore'; // 〔A1-P2-B10〕Zs≡useSessionRegistryStore（原 Zs 4357）——ERt 真身闭包依赖（服务注册表选择器）
+import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector, resolveTabRemoteSessionId as gc, useWorkspaceTabStore as useTabStore, useWorkspaceTabStoreOptional as useOptionalTabStore, buildWorkspaceServicesBindings as buildWorkspaceServicesMap, useResolvedWorkspaceSessionId as resolveWorkspaceRemoteSessionId, isWorkspaceKindTab as isTaskWorkspaceTab } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R126〕+buildWorkspaceServicesBindings as buildWorkspaceServicesMap（原 yc jsx 3637 canonical，styles 4834 逐字；墓碑见下声明群） // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）；〔A1-P2-B10〕gc≡resolveTabRemoteSessionId（原 gc 4814）——ERt 真身闭包依赖；〔A1-R129j〕+useResolvedWorkspaceSessionId as resolveWorkspaceRemoteSessionId（原 bc）/isWorkspaceKindTab as isTaskWorkspaceTab（原 oc）改指，碑文见下
+import { useSessionRegistryStore as Zs, getServicesByWorkspaceIdentity as resolveServicesByWorkspaceIdentity } from '../../stores/sessionRegistryStore'; // 〔A1-P2-B10〕Zs≡useSessionRegistryStore（原 Zs 4357）——ERt 真身闭包依赖（服务注册表选择器）；〔A1-R129j〕+getServicesByWorkspaceIdentity as resolveServicesByWorkspaceIdentity（原 Tse declare 改指；束真身 styles 4431 逐字 ≡ 正典@258；型缝见 2057 及下方碑文）
 import { useLocalWorkspaceTabs as useScopedWorkspaceTabs } from '../../modules/SettingsLeaves'; // 〔A1-R126〕J3≡useLocalWorkspaceTabs（styles 135515；canonical 属主 AutomationEditor@1088，经 modules/SettingsLeaves 转导出；墓碑见下声明群）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 // 〔A1-R25〕aw 39378 收敛：markUsageEntryIntent declare 改接 Home §U.7 逐字真身（别名保留，调用点 4769 逐字不变；环安全：Home 顶层 hoisted function，本文件仅渲染期事件回调消费）
@@ -1048,17 +1048,8 @@ declare function pointerSensorFactory(opts?: { activationConstraint?: { distance
 declare function keyboardSensorFactory(opts?: { coordinateGetter?: unknown }): unknown;
 declare function makeSensors(...sensors: unknown[]): unknown;
 declare const sortableKeyboardCoordinates: unknown;
-/** useVirtualizer（原 to，esm-BY6T6pIH.js = @tanstack/virtual 核心） */
-declare function useVirtualizer(opts: {
-  count: number; getScrollElement: () => HTMLElement | null; estimateSize: (index: number) => number;
-  getItemKey: (index: number) => string; overscan: number; scrollMargin?: number;
-  scrollToFn?: (offset: number, opts: { adjustments?: number; behavior?: ScrollBehavior }, instance: unknown) => void;
-  initialOffset?: () => number; measureElement?: (el: HTMLElement | null) => void;
-}): {
-  getVirtualItems(): Array<{ key: string; index: number; start: number }>;
-  getTotalSize(): number;
-  measureElement: (el: HTMLElement | null) => void;
-};
+/* ── tombstone〔A1-R129j〕：declare useVirtualizer（原 to，esm-BY6T6pIH.js = @tanstack/react-virtual）死声明删除——本文件零调用点（全文 grep 实测仅注记行；R41 判例）。
+ *    npm 真 import 判例在案（A0-S3a：Home/SuggestionPanel/FileTreePanel）；本簇无消费，纯删碑。 ── */
 /* ---- 图标（原混淆名 → lucide 名，js 行号见头注 §一） ---- */
 type IconProps = React.SVGProps<SVGSVGElement> & { className?: string };
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（16）：IconHash/IconFolder/IconFolderOpen/IconCloud/IconHouse/IconListTree/IconMessageCirclePlus/IconSearch/IconCalendarClock/IconWandSparkles/IconMinimize2/IconMaximize2/IconListFilter/IconClock3/IconMessageCircleCheck/IconArchive → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
@@ -1144,8 +1135,9 @@ interface WorkspaceServices {
 /* ── tombstone〔A1-P3-B1〕：declare useTaskListItems（原 ZS）删除 → 改指 ./TaskListQueryCore 逐字真身
  *    （styles 35775–36118 整区转录，ROUNDTRIP EXACT 在案 /tmp/a1r0-p3/p3-roundtrip.js）。
  *    调用点 1914/2201 逐字不变；型缝：真身面 (e: any) 宽于原契据，调用面入参对象同形兼容。 ── */
-/** 原 Tse（jsx 3269）：按工作区身份取远端会话服务 */
-declare function resolveRemoteSessionServices(workspaceIdentity: string): WorkspaceServices | null;
+/* ── tombstone〔A1-R129j〕：declare resolveRemoteSessionServices（旧注原 Tse）死声明删除——本文件零调用点（全文 grep 实测；R41 判例）。
+ *    Tse 束真身 = styles 4431（注记“jsx 3269”为误铸，实在 styles）≡ stores/sessionRegistryStore::getServicesByWorkspaceIdentity@258（逐字）；
+ *    活面消费经 resolveServicesByWorkspaceIdentity 改指（见下），本声明为同真身之死复面。 ── */
 /* ── tombstone〔A1-P3-B1〕：declare remoteSessionIdOfTab（原 gc）删除——本文件零消费（死 declare）；
  *    真身 = styles 4814 gc（`[remoteSessionId, identity→sessionId, path→sessionId].find(…)`），
  *    属主 = 工作区标签 store 簇（styles 4397–4997，TabStore/WorkspaceShell 域），留批；
@@ -1185,7 +1177,9 @@ declare function refreshAfterPluginSync(args: Record<string, unknown>): Promise<
  *    ②buildWebRemoteControlEventProps（原 qte）→ SrcSharedB::buildWebRemoteEntryViewTelemetryEvent（rx≡src 导出 lt，styles 720 `lt as qte` 实证）；
  *    ③parseRemoteIdentityKind（原 ite）→ SrcSharedB::parseRemoteWorkspaceKey（eo，styles 662 `eo as ite` 实证，返回面含 .kind）。
  *    调用点 4817–4820 逐字不变。 ── */
-declare function resolveWorkspaceRemoteSessionId(workspacePath: string, remoteSessionId: string | null | undefined, workspaceIdentity?: string | null): string | null;
+/* ── tombstone〔A1-R129j〕：declare resolveWorkspaceRemoteSessionId（原 bc，styles 4868）删除 → 改指 modules/WorkspaceTabsDeep::useResolvedWorkspaceSessionId
+ *    （bc 逐字：激活标签×注册表双源钩子；第四参 remoteTarget 可选，调用点 4807 三参逐字不变）。别名导入保调用名（@221）。
+ *    注：旧注未标原名；经 lRt@150215 `bc(e, n, t) ?? void 0` 取证定名 bc。 ── */
 /* ---- 会话拖拽（HTML5 DnD，原 u2/Iwt/Lwt/Rwt/PRt/Wwt/Gwt/Kwt，jsx 103642–103717） ---- */
 /* ── tombstone（A1-R4）：本地 SESSION_DRAG_MIME 常量 + SessionDragPayload 型 +
  *    serializeSessionDragPayload(Iwt)/setCurrentSessionDrag(Lwt)/clearCurrentSessionDrag(Rwt)/
@@ -1992,8 +1986,9 @@ declare function groupedNodeFingerprint(view: GroupedView): string;
 declare const groupedDropAnimation: unknown;
 /** 原 tBt（155361 / 128264）：dnd autoScroll 阈值配置 */
 declare const groupedAutoScrollThreshold: unknown;
-/** 原 Tse（jsx 3269）：按工作区身份解析远端会话服务 */
-declare function resolveServicesByWorkspaceIdentity(workspaceIdentity: string | null | undefined): WorkspaceServices | null;
+/* ── tombstone〔A1-R129j〕：declare resolveServicesByWorkspaceIdentity（原 Tse，styles 4431）删除 → 改指 stores/sessionRegistryStore::getServicesByWorkspaceIdentity
+ *    （Tse 逐字；别名导入保调用名 @222）。型缝：正典返回 BaseServices | null（全可空员），消费契据为本地 WorkspaceServices（必具二员）——
+ *    调用点 2057 复原铸 `as unknown as WorkspaceServices | null`（R126 型缝二判例：真形 BaseServices、消费面按旧契据读）。 ── */
 
 export function PinnedTasksSection({
   workspaceTabs, activeWorkspacePath, activeWorkspaceIdentity, activeTaskId, taskSortBy, mobileActiveTaskKey, onSelectTask,
@@ -2054,7 +2049,7 @@ export function PinnedTasksSection({
   }, [visibleItems]);
 
   const servicesOf = React.useCallback((workspaceIdentity: string | null | undefined) => {
-    const remote = workspaceIdentity ? resolveServicesByWorkspaceIdentity(workspaceIdentity) : null;
+    const remote = workspaceIdentity ? (resolveServicesByWorkspaceIdentity(workspaceIdentity) as unknown as WorkspaceServices | null) : null; // 〔型缝 A1-R129j〕正典返回 BaseServices | null → 复原退役 declare 契据面（R126 型缝二判例）
     return remote ?? (baseServices as unknown as WorkspaceServices | null);
   }, [baseServices]);
 
@@ -4660,8 +4655,9 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
 });
 /** 原 kv：plus 图标（新建项目/会话） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconPlus → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-/** 原 oc：工作区标签是否承载任务（排除设置/预览类标签） */
-declare function isTaskWorkspaceTab(tab: WorkspaceTab): boolean;
+/* ── tombstone〔A1-R129j〕：declare isTaskWorkspaceTab（原 oc，styles 4487）删除 → 改指 modules/WorkspaceTabsDeep::isWorkspaceKindTab
+ *    （oc 逐字 `e.kind === "workspace"`；参面 { kind?; [key: string]: unknown } 结构面，本地 WorkspaceTab 为 type 别名（A1-R56 隐式索引签名判例）赋值兼容）。
+ *    别名导入保调用名（@221）；调用点 3841 逐字不变。 ── */
 /** 原 fX（js 89100；A1-R24 行漂校正，旧注 77235 为漂移）：Coding Plan 升级入口钩子 */
 /* ── tombstone〔A1-R121〕：declare useCodingPlanUpgrade（原 fX 族）删除 → 改指 PaymentDeep::useCodingPlanUpgradeDialog@10102
  *    （R43/R119 判例；canonical openCodingPlanUpgrade(next: any) 参面兼容 {providerId, funnelContext} 消费形 @4129）。 ── */
