@@ -280,6 +280,7 @@ interface UserInputRow {
   actions?: RowActions;
   createdAt?: number;
   sourceCommandId?: string;
+  guided?: boolean; // 〔A1-R132〕型缝：束真 gyt 按 guided===!0 切工作段，超集面补登
 }
 interface AssistantTextRow {
   kind: "assistantText";
@@ -310,6 +311,11 @@ interface TurnHeaderRowModel {
   state: "running" | "completedSuccess" | "completedInterrupted" | "error" | string;
   actions?: RowActions;
   fileChanges?: { files: number; additions: number; deletions: number; state?: "pending" | "reverted" | string } | null;
+  executionKind?: string; // 〔A1-R132〕型缝：束真 dyt/Ayt 读 executionKind（controlOnly/agent 判别），超集面补登
+  activeMs?: number; // 〔A1-R132〕型缝：束真 fyt/_yt 读 activeMs（优先档），超集面补登
+  startedAt?: number; // 〔A1-R132〕型缝：束真 fyt/jyt/_yt 读 startedAt，超集面补登
+  endedAt?: number; // 〔A1-R132〕型缝：束真 fyt/_yt 读 endedAt，超集面补登
+  workSegments?: { triggerEntityId?: string | null; activeMs?: number; startedAt?: number; endedAt?: number }[]; // 〔A1-R132〕型缝：束真 _yt 读 header.workSegments（段时长回取），超集面补登
 }
 interface TimelineMarkerRow {
   kind: "timelineMarker";
@@ -321,6 +327,7 @@ interface TimelineMarkerRow {
     | { type: "forkNotice"; parentSessionId: string; parentRowId: number }
     | { type: "modelChange"; fromProvider?: string; fromModel?: string; toProvider: string; toModel: string }
     | { type: "goalVerify"; iteration: number; outcome: "running" | "pass" | "fail" };
+  lane?: string; // 〔A1-R132〕型缝：束真 Tyt/Oyt 读 lane（turnTailBoundary/lightBoundary 判别），超集面补登
 }
 interface ToolCallRowModel {
   kind: "toolCall";
@@ -335,6 +342,8 @@ interface ToolCallRowModel {
   raw?: unknown;
   parentToolUseId?: string | null;
   startedAt?: number; // 〔A1-R131〕型缝：束真 f_t（explore 组装段）读 t?.startedAt，超集面补登
+  display?: { kind?: string; source?: string }; // 〔A1-R132〕型缝：束真 Dyt 读 display.kind/source（browser_turn_end 判别），超集面补登
+  backgrounded?: boolean; // 〔A1-R132〕型缝：束真 kyt 读 backgrounded（活跃态豁免），超集面补登
 }
 interface SubagentRowModel {
   kind: "subagent";
@@ -345,6 +354,7 @@ interface SubagentRowModel {
   summaryText?: string;
   parentToolCallId?: string | null; // 〔A1-R131〕型缝：束真 p_t（子代理段索引）按 turnId+parentToolCallId 配对，超集面补登
   childSessionId?: string | null; // 〔A1-R131〕型缝：束真 g_t（SubagentGroupRow）开侧栏消费，超集面补登
+  backgrounded?: boolean; // 〔A1-R132〕型缝：束真 kyt 读 backgrounded（活跃态豁免），超集面补登
 }
 type ConversationRow =
   | UserInputRow
@@ -2700,15 +2710,17 @@ function TurnFileChangesSummary({ header, context }: { header: TurnHeaderRowMode
 
 /* --- 5.15 渲染单元与工作段（原 Fyt/ayt/m_t 产物 + Ivt/Lvt/Rvt/Bvt/Vvt/Hvt） --- */
 
-/** 工作段流条目（原 Lvt 的 flowItems 元素） */
+/** 工作段流条目（原 Lvt 的 flowItems 元素）；〔A1-R132〕declare 时代 kind「rows」为过近似——
+ *  束真 uyt/lyt 产 assistantWork 组，伪面销账（消费面 else 分支兜底，逐字不变）。 */
 type WorkFlowItem =
   | { kind: "userInput"; row: UserInputRow }
   | { kind: "assistantText"; row: AssistantTextRow; latest?: boolean }
   | { kind: "assistantHistory"; rows: ConversationRow[] }
-  | { kind: "rows"; rows: ConversationRow[] };
+  | { kind: "assistantWork"; rows: ConversationRow[] };
 
 interface WorkSegment {
   key: string;
+  triggerRow?: UserInputRow; // 〔A1-R132〕型缝：束真 vyt 条件展开 guided 触发行，超集面补登
   flowItems: WorkFlowItem[];
   assistantWorkRows: ConversationRow[];
   assistantHistoryRows: ConversationRow[];
@@ -2738,13 +2750,459 @@ export interface TurnRenderUnit { // 〔A0-S4-4b〕补 export：§6 迁出侧型
   workSegments?: WorkSegment[];
   workStatus?: WorkSegment["workStatus"];
   assistantHistoryDefaultOpen: boolean;
+  renderRows: ConversationRow[]; // 〔A1-R132〕型缝：束真 jyt 恒产 renderRows（有序渲染行），超集面补登
+  startedAt?: number; // 〔A1-R132〕型缝：束真 jyt 条件展开 header.startedAt，超集面补登
 }
-declare function buildRenderUnits(rows: ConversationRow[], opts: { nowMs: number; sessionPhase?: string }): TurnRenderUnit[];
-declare function splitVirtualizedUnits(units: TurnRenderUnit[]): {
+/* ==========================================================================
+ * 〔A1-R132〕Conversation 十一批：轮渲染单元管线簇逐字实体化（styles 3587253–3599300）
+ *   ayt→splitVirtualizedUnits | oyt→isFlowUserInputRow | syt→isFlowAssistantTextRow
+ *   cyt→isFlowRenderableRow | lyt→appendFlowItemGroup | uyt→buildFlowItems
+ *   dyt→resolveWorkStatus | fyt→resolveHeaderActiveMs | pyt→isSegmentUserInputRow
+ *   myt→isSegmentAssistantTextRow | hyt→isSegmentWorkRow | gyt→splitGuidedSegments
+ *   _yt→resolveSegmentDurationMs | vyt→buildWorkSegments | yyt→isAssistantTextRow
+ *   byt→isTurnHeaderRow | xyt→isUserInputRow | Syt→isTimelineMarkerRow
+ *   Cyt→isNonPlanModeToolCallRow | wyt→isTurnRenderRow | Tyt→isTurnTailBoundaryRow
+ *   Eyt→splitFlowAndTailRows | Dyt→isBrowserTurnEndRow | Oyt→isLightBoundaryRow
+ *   kyt→isActiveStreamingRow | Ayt→isTurnRunning | jyt→buildTurnRenderUnit
+ *   Myt→createEmptyTurnAccumulator | Nyt→isNonEmptyTurnUnit | Pyt→finalizeTurnUnitLastState
+ *   Fyt→buildRenderUnits
+ * 型缝：谓词 `e is X` 收窄（编译期擦除）；可选 startedAt 算术铸 `(… as number)`；
+ *   数组标注与解构面标注（束无型，编译形逐字同）。消费面 4118/4119 逐字不变。
+ * ==========================================================================*/
+
+/** 原 ayt（styles 3587253）：单元列切出尾部运行单元（liveUnit）〔A1-R132 实体化〕 */
+function splitVirtualizedUnits(e: TurnRenderUnit[]): {
   virtualizedUnits: TurnRenderUnit[];
   liveUnit: TurnRenderUnit | null;
   liveUnitIndex: number | null;
-};
+} {
+  let t = e.length - 1,
+    n = e[t];
+  return n?.isRunning
+    ? { virtualizedUnits: e.slice(0, t), liveUnit: n, liveUnitIndex: t }
+    : { virtualizedUnits: e, liveUnit: null, liveUnitIndex: null };
+}
+
+/** 原 oyt：流组装——用户输入行谓词 */
+function isFlowUserInputRow(e: ConversationRow): e is UserInputRow {
+  return e.kind === `userInput`;
+}
+/** 原 syt：流组装——助手文本行谓词 */
+function isFlowAssistantTextRow(e: ConversationRow): e is AssistantTextRow {
+  return e.kind === `assistantText`;
+}
+/** 原 cyt：流组装——可渲染行谓词（排除 turnHeader/userInput） */
+function isFlowRenderableRow(e: ConversationRow): boolean {
+  return e.kind !== `turnHeader` && e.kind !== `userInput`;
+}
+/** 原 lyt：流条目同尾组合并（末组同 kind 追加，否则新组） */
+function appendFlowItemGroup(e: WorkFlowItem[], t: `assistantHistory` | `assistantWork`, n: ConversationRow): void {
+  let r = e.at(-1);
+  if (r?.kind === t) {
+    r.rows.push(n);
+    return;
+  }
+  e.push({ kind: t, rows: [n] });
+}
+/** 原 uyt：orderedRows → 流条目列（用户输入/助手文本单行带 latest，历史/工作组归并） */
+function buildFlowItems(e: {
+  orderedRows: ConversationRow[];
+  assistantHistoryRows: ConversationRow[];
+  assistantFollowingRows: ConversationRow[];
+  assistantTailRows: ConversationRow[];
+  visibleAssistantTextRow?: AssistantTextRow;
+  latestAssistantTextRow?: AssistantTextRow | null;
+  timelineOnly: boolean;
+}): WorkFlowItem[] {
+  let t = new Set(e.assistantHistoryRows.map((e) => e.rowId)),
+    n = new Set(e.assistantFollowingRows.map((e) => e.rowId)),
+    r = new Set(e.assistantTailRows.map((e) => e.rowId)),
+    i: WorkFlowItem[] = [];
+  for (let a of e.orderedRows) {
+    if (isFlowUserInputRow(a)) {
+      i.push({ kind: `userInput`, row: a });
+      continue;
+    }
+    if (isFlowRenderableRow(a) && !r.has(a.rowId)) {
+      if (
+        isFlowAssistantTextRow(a) &&
+        (a.rowId === e.visibleAssistantTextRow?.rowId || !t.has(a.rowId)) &&
+        !n.has(a.rowId) &&
+        !r.has(a.rowId) &&
+        !e.timelineOnly
+      ) {
+        i.push({
+          kind: `assistantText`,
+          row: a,
+          latest: a.rowId === e.latestAssistantTextRow?.rowId,
+        });
+        continue;
+      }
+      appendFlowItemGroup(i, t.has(a.rowId) && !e.timelineOnly ? `assistantHistory` : `assistantWork`, a);
+    }
+  }
+  return i;
+}
+/** 原 dyt：工作状态解析（controlOnly 豁免；running/completed + 可选时长） */
+function resolveWorkStatus(
+  e: TurnHeaderRowModel | null | undefined,
+  t: ConversationRow[],
+  n: boolean,
+  r?: number,
+): { state: `running` | `completed`; durationMs?: number } | undefined {
+  if (
+    e?.executionKind !== `controlOnly` &&
+    (n || t.length > 0 || (e?.executionKind === `agent` ? r !== void 0 : (r ?? 0) > 0))
+  )
+    return { state: n ? `running` : `completed`, ...(r === void 0 ? {} : { durationMs: r }) };
+}
+/** 原 fyt：头活跃时长（activeMs 优先 / endedAt-startedAt / 运行中 nowMs-startedAt） */
+function resolveHeaderActiveMs(
+  e: TurnHeaderRowModel | null | undefined,
+  t: { nowMs?: number },
+  n: boolean,
+): number | undefined {
+  if (e) {
+    if (e.activeMs !== void 0) return e.activeMs;
+    if (e.endedAt !== void 0) return Math.max(e.endedAt - (e.startedAt as number), 0);
+    if (n && t.nowMs !== void 0) return Math.max(t.nowMs - (e.startedAt as number), 0);
+  }
+}
+/** 原 pyt：段切分——用户输入行谓词 */
+function isSegmentUserInputRow(e: ConversationRow): e is UserInputRow {
+  return e.kind === `userInput`;
+}
+/** 原 myt：段切分——助手文本行谓词 */
+function isSegmentAssistantTextRow(e: ConversationRow): e is AssistantTextRow {
+  return e.kind === `assistantText`;
+}
+/** 原 hyt：段切分——工作行谓词（排除 turnHeader/userInput） */
+function isSegmentWorkRow(e: ConversationRow): boolean {
+  return e.kind !== `turnHeader` && e.kind !== `userInput`;
+}
+/** 原 gyt：按 guided 用户输入切工作段（guided 触发行起新段） */
+function splitGuidedSegments(e: ConversationRow[]): { orderedRows: ConversationRow[]; triggerRow?: UserInputRow }[] {
+  let t: { orderedRows: ConversationRow[]; triggerRow?: UserInputRow }[] = [],
+    n: { orderedRows: ConversationRow[]; triggerRow?: UserInputRow } = { orderedRows: [] };
+  for (let r of e)
+    (isSegmentUserInputRow(r) &&
+      r.guided === !0 &&
+      n.orderedRows.length > 0 &&
+      (t.push(n), (n = { orderedRows: [], triggerRow: r })),
+      n.orderedRows.push(r));
+  return (n.orderedRows.length > 0 && t.push(n), t);
+}
+/** 原 _yt：单工作段时长解析（段 activeMs/endedAt/运行中时差 → 头回退 → 触发区间回退） */
+function resolveSegmentDurationMs(e: {
+  header?: TurnHeaderRowModel | null;
+  segmentIndex: number;
+  triggerRow?: UserInputRow;
+  nextTriggerRow?: UserInputRow;
+  segmentRunning: boolean;
+  segmentCount: number;
+  nowMs?: number;
+}): number | undefined {
+  let t =
+    (e.triggerRow?.entityId
+      ? e.header?.workSegments?.find((t) => t.triggerEntityId === e.triggerRow?.entityId)
+      : void 0) ?? e.header?.workSegments?.[e.segmentIndex];
+  if (t?.activeMs !== void 0) return t.activeMs;
+  if (t?.endedAt !== void 0) return Math.max(0, t.endedAt - (t.startedAt as number));
+  if (t && e.segmentRunning && e.nowMs !== void 0) return Math.max(0, e.nowMs - (t.startedAt as number));
+  if (e.segmentCount === 1) return resolveHeaderActiveMs(e.header, { nowMs: e.nowMs }, e.segmentRunning);
+  let n = e.triggerRow?.createdAt ?? e.header?.startedAt,
+    r = e.nextTriggerRow?.createdAt ?? e.header?.endedAt;
+  if (n !== void 0 && r !== void 0) return Math.max(0, r - n);
+  if (n !== void 0 && e.segmentRunning && e.nowMs !== void 0) return Math.max(0, e.nowMs - n);
+}
+/** 原 vyt：轮 → 工作段列（guided 切段 + 每段流/历史/后续三分 + 时长与缺省展开态） */
+function buildWorkSegments(e: {
+  key: string;
+  header?: TurnHeaderRowModel | null;
+  orderedRows: ConversationRow[];
+  assistantTailRows: ConversationRow[];
+  latestAssistantTextRow?: AssistantTextRow | null;
+  isRunning: boolean;
+  isLastTurn: boolean;
+  timelineOnly: boolean;
+  nowMs?: number;
+}): WorkSegment[] {
+  let t = splitGuidedSegments(e.orderedRows),
+    n = new Set(e.assistantTailRows.map((e) => e.rowId));
+  return t.map((r, i) => {
+    let a = r.orderedRows.filter(isSegmentWorkRow),
+      o = a.filter((e) => n.has(e.rowId)),
+      s = a.filter((e) => !n.has(e.rowId)),
+      c = s.at(-1),
+      l = i < t.length - 1 || !e.isRunning,
+      u = e.latestAssistantTextRow
+        ? s.find((t) => t.rowId === e.latestAssistantTextRow?.rowId)
+        : void 0,
+      d = u && isSegmentAssistantTextRow(u) ? u : l && c && isSegmentAssistantTextRow(c) ? c : void 0,
+      f = d ? s.findIndex((e) => e.rowId === (d as AssistantTextRow).rowId) : -1,
+      p: ConversationRow[] = e.timelineOnly ? [] : f < 0 ? s : s.slice(0, f),
+      m: ConversationRow[] = f < 0 ? [] : s.slice(f + 1),
+      h = i === t.length - 1 && e.isRunning,
+      g = resolveSegmentDurationMs({
+        header: e.header,
+        segmentIndex: i,
+        triggerRow: r.triggerRow,
+        nextTriggerRow: t[i + 1]?.triggerRow,
+        segmentRunning: h,
+        segmentCount: t.length,
+        nowMs: e.nowMs,
+      }),
+      _ = resolveWorkStatus(e.header, s, h, g);
+    return {
+      key: i === 0 ? e.key : `${e.key}:guide:${r.triggerRow?.entityId ?? r.triggerRow?.rowId ?? i}`,
+      ...(r.triggerRow ? { triggerRow: r.triggerRow } : {}),
+      flowItems: buildFlowItems({
+        orderedRows: r.orderedRows,
+        assistantHistoryRows: p,
+        assistantFollowingRows: m,
+        assistantTailRows: o,
+        ...(d ? { visibleAssistantTextRow: d } : {}),
+        ...(e.latestAssistantTextRow ? { latestAssistantTextRow: e.latestAssistantTextRow } : {}),
+        timelineOnly: e.timelineOnly,
+      }),
+      assistantWorkRows: a,
+      assistantHistoryRows: p,
+      assistantFollowingRows: m,
+      assistantHistoryDefaultOpen:
+        !e.timelineOnly &&
+        ((e.isLastTurn && _?.state === `running`) ||
+          (t.length === 1 && d === void 0 && s.length > 0)),
+      ...(_ ? { workStatus: _ } : {}),
+    };
+  });
+}
+/** 原 yyt：轮级——助手文本行谓词 */
+function isAssistantTextRow(e: ConversationRow): e is AssistantTextRow {
+  return e.kind === `assistantText`;
+}
+/** 原 byt：轮级——轮头行谓词 */
+function isTurnHeaderRow(e: ConversationRow): e is TurnHeaderRowModel {
+  return e.kind === `turnHeader`;
+}
+/** 原 xyt：轮级——用户输入行谓词 */
+function isUserInputRow(e: ConversationRow): e is UserInputRow {
+  return e.kind === `userInput`;
+}
+/** 原 Syt：轮级——时间线标记行谓词 */
+function isTimelineMarkerRow(e: ConversationRow): e is TimelineMarkerRow {
+  return e.kind === `timelineMarker`;
+}
+/** 原 Cyt：非 EnterPlanMode 工具调用谓词 */
+function isNonPlanModeToolCallRow(e: ConversationRow): boolean {
+  return e.kind !== `toolCall` || e.toolName !== `EnterPlanMode`;
+}
+/** 原 wyt：轮渲染行谓词（用户输入进；轮头不进；余者非 plan-mode 工具调用） */
+function isTurnRenderRow(e: ConversationRow): boolean {
+  return isUserInputRow(e) ? !0 : isTurnHeaderRow(e) ? !1 : isNonPlanModeToolCallRow(e);
+}
+/** 原 Tyt：轮尾边界标记谓词 */
+function isTurnTailBoundaryRow(e: ConversationRow): boolean {
+  return e.kind === `timelineMarker` && e.lane === `turnTailBoundary`;
+}
+/** 原 Eyt：行列尾边界标记剥离（flowRows + tailRows） */
+function splitFlowAndTailRows(e: ConversationRow[]): { flowRows: ConversationRow[]; tailRows: ConversationRow[] } {
+  let t = e.length;
+  for (; t > 0 && isTurnTailBoundaryRow(e[t - 1]);) --t;
+  return { flowRows: e.slice(0, t), tailRows: e.slice(t) };
+}
+/** 原 Dyt：浏览器轮末截屏行谓词（node_repl_images + browser_turn_end） */
+function isBrowserTurnEndRow(e: ConversationRow): boolean {
+  return (
+    e.kind === `toolCall` &&
+    e.display?.kind === `node_repl_images` &&
+    e.display.source === `browser_turn_end`
+  );
+}
+/** 原 Oyt：轻分界标记谓词 */
+function isLightBoundaryRow(e: ConversationRow): boolean {
+  return e.kind === `timelineMarker` && e.lane === `lightBoundary`;
+}
+/** 原 kyt：行活跃/流式态谓词（文本/思考 streaming，工具/子代理运行中，标记 running） */
+function isActiveStreamingRow(e: ConversationRow): boolean {
+  switch (e.kind) {
+    case `assistantText`:
+    case `reasoning`:
+      return e.state === `streaming`;
+    case `toolCall`:
+      return (
+        e.backgrounded !== !0 &&
+        (e.status === `inputStreaming` || e.status === `pendingApproval` || e.status === `running`)
+      );
+    case `subagent`:
+      return e.backgrounded !== !0 && e.status === `running`;
+    case `timelineMarker`:
+      return `status` in e.marker && e.marker.status === `running`;
+    default:
+      return !1;
+  }
+}
+/** 原 Ayt：轮运行态解析（头在取头态；头缺按 sessionPhase 与工作行活跃态） */
+function isTurnRunning(
+  e: { header?: TurnHeaderRowModel | null; assistantWorkRows: ConversationRow[] },
+  t: { sessionPhase?: string },
+): boolean {
+  return e.header
+    ? e.header.executionKind === `controlOnly`
+      ? !1
+      : e.header.state === `running`
+    : t.sessionPhase === `completedSuccess` ||
+        t.sessionPhase === `completedInterrupted` ||
+        t.sessionPhase === `error`
+      ? !1
+      : e.assistantWorkRows.some(isActiveStreamingRow);
+}
+/** 轮累积器（原 Fyt 内部结构）：按 turnId 分组后供 buildTurnRenderUnit 消费 */
+interface TurnRenderUnitAccumulator {
+  key: string;
+  turnId: string;
+  header?: TurnHeaderRowModel;
+  userInputs: UserInputRow[];
+  assistantWorkRows: ConversationRow[];
+  orderedRows: ConversationRow[];
+}
+/** 原 Myt：空轮累积器 */
+function createEmptyTurnAccumulator(e: string): TurnRenderUnitAccumulator {
+  return { key: e, turnId: e, userInputs: [], assistantWorkRows: [], orderedRows: [] };
+}
+/** 原 jyt：轮累积器 → TurnRenderUnit（行分类/边界/截屏/工作段/运行态/缺省展开） */
+function buildTurnRenderUnit(
+  e: TurnRenderUnitAccumulator,
+  t: number,
+  n: number,
+  r: { nowMs?: number; sessionPhase?: string },
+): TurnRenderUnit {
+  let i = e.userInputs,
+    a = e.assistantWorkRows.filter(isNonPlanModeToolCallRow),
+    o = e.orderedRows.filter(isTurnRenderRow),
+    s = i.length === 0 && a.length > 0 && a.every(isTimelineMarkerRow),
+    c: ConversationRow[] = s ? [] : a.filter(isLightBoundaryRow),
+    l = new Set(c.map((e) => e.rowId)),
+    u = s ? a : a.filter((e) => !isLightBoundaryRow(e)),
+    d: ConversationRow[] = [],
+    f: ConversationRow[] = [];
+  if (!s) for (let e of u) isBrowserTurnEndRow(e) ? d.push(e) : f.push(e);
+  let { flowRows: p, tailRows: m }: { flowRows: ConversationRow[]; tailRows: ConversationRow[] } =
+      s ? { flowRows: [], tailRows: [] } : splitFlowAndTailRows(f),
+    h = t === n - 1,
+    g = isTurnRunning(e, r),
+    _ = p.filter(isAssistantTextRow),
+    v = _.find((e) => e.actions?.canFork === !0 || e.actions?.canRetry === !0),
+    y = p.at(-1),
+    b = v ?? (!g && y && isAssistantTextRow(y) ? y : void 0),
+    x = resolveHeaderActiveMs(e.header, r, g),
+    S = resolveWorkStatus(e.header, u, g, x),
+    C = new Set(d.map((e) => e.rowId)),
+    w = o.filter((e) => !l.has(e.rowId) && !C.has(e.rowId)),
+    T = buildWorkSegments({
+      key: e.key,
+      header: e.header,
+      orderedRows: w,
+      assistantTailRows: m,
+      latestAssistantTextRow: b,
+      isRunning: g,
+      isLastTurn: h,
+      timelineOnly: s,
+      nowMs: r.nowMs,
+    }),
+    E = T.flatMap((e) => e.assistantHistoryRows),
+    D = T.flatMap((e) => e.assistantFollowingRows),
+    O = T.flatMap((e) => e.flowItems),
+    k = T.at(-1)?.assistantHistoryDefaultOpen ?? !1;
+  return {
+    key: e.key,
+    turnId: e.turnId,
+    ...(e.header ? { header: e.header } : {}),
+    visibleUserInputs: i,
+    assistantWorkRows: u,
+    assistantHistoryRows: E,
+    assistantFollowingRows: D,
+    assistantTailRows: m,
+    browserTurnEndRows: d,
+    assistantTextRows: _,
+    leadingBoundaryRows: c,
+    ...(b ? { latestAssistantTextRow: b } : {}),
+    flowItems: O,
+    workSegments: T,
+    renderRows: o,
+    isLastTurn: h,
+    isRunning: g,
+    assistantHistoryDefaultOpen: k,
+    timelineOnly: s,
+    ...(S ? { workStatus: S } : {}),
+    ...(e.header ? { startedAt: e.header.startedAt } : {}),
+  };
+}
+/** 原 Nyt：非空轮谓词（用户输入/工作行/前边界/运行中） */
+function isNonEmptyTurnUnit(e: TurnRenderUnit): boolean {
+  return (
+    e.visibleUserInputs.length > 0 ||
+    e.assistantWorkRows.length > 0 ||
+    e.leadingBoundaryRows.length > 0 ||
+    e.isRunning
+  );
+}
+/** 原 Pyt：轮终态校准（isLastTurn 与 assistantHistoryDefaultOpen 重算，无变返回原对象） */
+function finalizeTurnUnitLastState(e: TurnRenderUnit, t: number, n: number): TurnRenderUnit {
+  let r = t === n - 1,
+    i =
+      e.workSegments && e.workSegments.length > 0
+        ? !e.timelineOnly &&
+          ((r && e.workSegments.at(-1)?.workStatus?.state === `running`) ||
+            (e.workSegments.length === 1 &&
+              e.latestAssistantTextRow === void 0 &&
+              e.assistantWorkRows.length > 0))
+        : !e.timelineOnly &&
+          ((r && e.workStatus?.state === `running`) ||
+            (e.latestAssistantTextRow === void 0 && e.assistantWorkRows.length > 0)),
+    a = e.workSegments?.map((t, n, i) =>
+      n === i.length - 1
+        ? {
+            ...t,
+            assistantHistoryDefaultOpen:
+              !e.timelineOnly &&
+              ((r && t.workStatus?.state === `running`) ||
+                (i.length === 1 &&
+                  e.latestAssistantTextRow === void 0 &&
+                  t.assistantWorkRows.length > 0)),
+          }
+        : t,
+    );
+  return e.isLastTurn === r &&
+    e.assistantHistoryDefaultOpen === i &&
+    a?.at(-1)?.assistantHistoryDefaultOpen === e.workSegments?.at(-1)?.assistantHistoryDefaultOpen
+    ? e
+    : { ...e, isLastTurn: r, assistantHistoryDefaultOpen: i, ...(a ? { workSegments: a } : {}) };
+}
+/** 原 Fyt（styles 3597319）：行序列 → TurnRenderUnit 列（turnId 分组 → jyt → 非空滤 → Pyt 终态）〔A1-R132 实体化〕 */
+function buildRenderUnits(rows: ConversationRow[], opts: { nowMs: number; sessionPhase?: string }): TurnRenderUnit[] {
+  let n: TurnRenderUnitAccumulator[] = [],
+    r = new Map<string, TurnRenderUnitAccumulator>(),
+    i = (e: string) => {
+      let t = r.get(e);
+      if (t) return t;
+      let i = createEmptyTurnAccumulator(e);
+      return (n.push(i), r.set(e, i), i);
+    };
+  for (let t of rows) {
+    let e = i(t.turnId);
+    if (isTurnHeaderRow(t)) {
+      e.header = t;
+      continue;
+    }
+    if ((e.orderedRows.push(t), isUserInputRow(t))) {
+      e.userInputs.push(t);
+      continue;
+    }
+    e.assistantWorkRows.push(t);
+  }
+  let a = n.map((e, r) => buildTurnRenderUnit(e, r, n.length, opts)).filter(isNonEmptyTurnUnit);
+  return a.map((e, t) => finalizeTurnUnitLastState(e, t, a.length));
+}
 
 /* ── tombstone〔A1-P1-B17〕：declare isApiRetryEligible（原 Wgt，styles 110071–110081；jsx 94075）删除 →
  * 一符一家收敛 components/conversation/ConversationPaneHelpers isApiRetryEligible 逐字实体（同叶 Ugt→
