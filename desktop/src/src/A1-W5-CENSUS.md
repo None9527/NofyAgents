@@ -32,10 +32,10 @@ skillStore 全文 48 名零命中；真身链闭合 SrcSharedB/SrcSharedA/lib/bu
 **不同源**，收取前须独立束证（skillStore-BmeKHDBI.js 内是否有第二 q），不可径抄 R144 结论；
 其面为 2 键子集，改指后为窄→宽方向，需独立核消费点字面量收窄缝。〕
 
-## 二、components/onboarding/OnboardingLoginLeaves.tsx（48 → **34**）
+## 二、components/onboarding/OnboardingLoginLeaves.tsx（48 → **22**）
 
 12 别名改指 + 35 实体化 + 0 伪面 + 1 ambient（1132 declare global Window，留）。
-〔A1-R146 施行：别名 10 件已退（B7 三件 + B9 三件 + B10 三件 + 单件 899），域余 38。A1-R147 施行：IntlProviderShell + 联退双符 3 件已退（611/617/627；另 AppRootLeaves 287/295 属 modules 域不计），域余 35。A1-R148 施行：B4 taskStore 1 件已退（+ 本地四面族整族退役，非台账件），域余 **34**。
+〔A1-R146 施行：别名 10 件已退（B7 三件 + B9 三件 + B10 三件 + 单件 899），域余 38。A1-R147 施行：IntlProviderShell + 联退双符 3 件已退（611/617/627；另 AppRootLeaves 287/295 属 modules 域不计），域余 35。A1-R148 施行：B4 taskStore 1 件已退（+ 本地四面族整族退役，非台账件），域余 34。A1-R149 施行：D-1a 12 件已退（登录 testid 七 + BIGMODEL_PROVIDER_ID + providerFamilyDefinitionOf + isMissingCredentialsError + familyDomainOfProvider/…Id，全数别名改指 modules/SrcSharedB，零缝零新边零补 export），域余 **22**。★D-1 余 2 件（B6-2 hasUsableProvider / B8-4 isProviderEnabledForFamily）经束证**翻案**移出为 D-1b：canonical 系 styles-local 薄包装 yM/vM ≡ UsageDeep@1551/@1542（内层 kr/jte 全束零直呼），非档案所判 SrcSharedB@631/@620（内层另一束符）——照档案改指即混并两符，属 B6-4 同错误类。
 **dossier-D 翻案（1,444 行束取证，代理已完工）**：原记「35 实体化」中 **32 件束真身已在树内有逐字
 canonical，应改判别名/vendor 改指；仅 3 件真实体化**（persistProviderFamilyDomain / useDiffsWorkerPool /
 DiffsWorkerPoolProviderElement）；**伪面 0 件**——936/937/1847/2517 四枚各有 1 活消费点且束真身确凿
@@ -46,14 +46,14 @@ TSX@3348 现用 gM 面而束真为 `_M`（Q3t@209922 实证）→ **既存运行
 
 | 簇 | 行域 | 件数 | 类 | 目标 |
 |---|---|---|---|---|
-| B1 登录 UI 原语+testid | 555–564 | 9 | 实体化 | OrbitSpinnerIcon/ProviderIcon/7 testid（b4t/D4t 登录视图消费） |
-| B2 provider 常量/注册 | 576–586 | 6 | 实体化 | BIGMODEL_PROVIDER_ID 等 |
+| B1 登录 UI 原语+testid | 555–564 | 9 | 实体化 | OrbitSpinnerIcon/ProviderIcon/7 testid（b4t/D4t 登录视图消费）〔**R149 已施行 7 件**：testid 七枚改判**别名**→ SrcSharedB@4763-4769（三跳链逐件实测），零缝；余 OrbitSpinnerIcon（vendor npm）+ ProviderIcon（UsageDeep RegionLogo，函数形→组件形改写）2 件属 **D-5**〕 |
+| B2 provider 常量/注册 | 576–586 | 6 | 实体化 | BIGMODEL_PROVIDER_ID 等〔**R149 已施行 3 件**：BIGMODEL_PROVIDER_ID→SrcSharedB@5071 BIGMODEL_PROVIDER_DOMAIN（同值异名，字面量型对 string 判别面可比无 TS2678）/ providerFamilyDefinitionOf→@1435 buildRuntimeProviderFromConfig（★语义勘误确认：束真 yd = 构建运行时 provider 描述子；本地 interface ProviderFamilyDefinition 保留）/ isMissingCredentialsError→@5077 isCredentialDecryptFailure；余 providerFamilyRegistry（**D-8**，需 PaymentDeep 补 export）+ providerModelKey/setDefaultModelChoice（**D-2**）〕 |
 | B3 根组件面 | 602–624 | 5 | 混 | IntlProviderShell→I18n@462 别名〔**R147 已施行**，census「无原注须核身」→ 核身通过：Ge≡t≡E 单真身三跳束证；型缝 1 = `as unknown as LocalePreference`，**不采** dossier-C 备选 `(locale ?? undefined)`（束真透传 null，改 undefined 属运行期值变）〕；ServicesProvider/ScopeBoundary 与 AppRootLeaves@287/295 双声明须联退〔**R147 已施行**：双侧平行改指第三方 canonical（serviceContext@13 / ErrorBoundaryCore@286），无需互指；★dossier-C「ARL 需新增两条值边」经主树复核为误——ARL@135/140 边既有，**新增边 0**；型缝 3 = `as unknown as BaseServices` ×3（ONB 2 + ARL 1），dossier-C U1「源索引签可供目标具名成员」推论**实测证伪**，唯一不兼容键为 zcodeAgentService 非档案所虑二键；★`BaseServices` **同名两家**：Modals@245 窄面 vs stores-core@94 canonical，取错家报 systemService 缺失误导〕；UpdateStatusWindow/WorkspaceTelemetryProvider 实体化〔dossier-D 改判候施〕 |
 | B4 taskStore | 696 | 1 | 别名 | stores/taskStore.ts@2969 useTaskStore（消费点全 `.getState()` 式，无选择器回调 → R140 判例不触发）〔**R148 已施行**：R147 试施暴 **13 处面冲突** → 本批逐点束取证结案（判据＝「本地面近似 还是 canonical 面近似」）：**11 处属本地 declare 期近似面**（虚构顶层 activeTaskId 删——束证 styles@211206 per-workspace，本文件 5 读取点全经工作区面；误挂他店 deactivateActiveGroup 删——真属 sessionRouterStore ≡ SplitLayoutDeep@287/1284，ONB@4468 正是在该店上调它；TaskUsage.cost 臆造收窄销账——束真 `UsageCost \| null`；WorkspaceTaskState/TaskRuntimeEntry 漏员改指），**2 处属 canonical 面近似 → 随批面校准**（setTaskRuntimeState error 参宽化为可选——束真本体 skillStore off 13103/line 487 体内自带 `error: i ?? null` 归一，束内三处调用皆传 `void 0` styles@211217-211242；setTaskError error 参 + TaskUiState.error 存储面宽化为 unknown——束真本体 off 21098/line 762 `error: r` 原样存入无归一，束内传 DM(…) 归一错误**对象** styles@211259/211263-211271 与 null @211244 → 运行期实为「对象 \| null」，原面 `string \| null` 系重建期收窄 = **R147 登记之既存保真疑点结案**；级联核 taskUiByTaskId/getTaskUi 全树零外部消费 → 零级联）；改指 `useTaskStore as taskStore`（导入行既有@251，别名保名 → 消费点逐字不变）+ **本地四面族整族退役**（TaskStoreState/WorkspaceTaskState/TaskRuntimeEntry/TaskUsage → canonical TaskStore@2961-2966 / @161-195 / TaskRuntimeState@81-92 / @795-801；原位 `export type` 再导出保模块导出面）；补 export 3 型（TaskInteractionRequest@45/TaskUsage@795/TaskRuntimeState@81，type-only）+ SkillStore@173/@193 各 +3 名；型缝 6 处（@4731/@4832/@4855/@4869/@4680/@4791，其中 @4832 为**可证安全非近似**：z6t 束 211138 之 switch 11 支与 isTaskBroadcastPayload@4563 knownEvents 11 员逐一穷尽）；**不宽化** TaskBroadcastPayload（R146 裁定）；新增模块边 **0**；详见 A1-R129.report.md〔A1-R148〕〕 |
 | B5 任务刷新对 | 807–808 | 2 | 实体化 | refreshPinnedTasks/refreshTimelineTasks |
-| B6 provider 快照四件 | 836–839 | 4 | 实体化 | 消费互锁（@1355/3348–3361） |
+| B6 provider 快照四件 | 836–839 | 4 | 实体化 | 消费互锁（@1355/3348–3361）〔★**R149 翻案 B6-2**：hasUsableProvider 之 canonical **非** SrcSharedB@631 hasAnyReadyProvider（≡ 内层 kr ← src Jl@4894），而系 styles-local 包装 **yM**（styles@52793；消费点 styles@211498 `c = yM(a)` 实证；`kr(` 全束仅 1 命中且在 yM 体内）→ 树内一家 UsageDeep@1551 activeProvidersOfList（未 export，需补）= **D-1b**；余三件属 **D-3**，含 ★B6-4 双束符分流更正〕 |
 | B7 team-plan-key 三件 | 851–853 | 3 | 别名 | SrcSharedB@5099/5108/5130（ModelProviderSettingsSection@23/25 别名先例在案）——全文件最低风险〔**R146 已施行**，零缝〕 |
-| B8 家族域助手五件 | 859–864 | 5 | 实体化 | §F 域 |
+| B8 家族域助手五件 | 859–864 | 5 | 实体化 | §F 域〔**R149 已施行 2 件**：familyDomainOfProvider→SrcSharedB@5589 normalizeOAuthProviderDomain（≡ Zx，消费 4 处）/ familyDomainOfProviderId→@5573 getOAuthFamilyIdByProviderId（≡ Jx；★档案注 @5578 误引，5578 为邻符 Yx）；★**B8-4 isProviderEnabledForFamily 同翻案**→ 包装 **vM**（styles@52790；消费点 @211536 `!vM(n)`；`jte(` 全束仅 1 命中在 vM 体内）≡ UsageDeep@1542 providerFamiliesOfListWrapper（已 export，参面需校准）= **D-1b**；余 familyModesPatch/persistProviderFamilyDomain 属 **D-7**〕 |
 | B9 广播/diffs/titlebar | 934–942 | 5 | 混 | cLt/oLt→FileTreePanel 别名〔**R146 已施行**，型缝 2：消费铸 `task as TaskMeta`——本地 TaskBroadcastPayload.task 面非 any，档案「可赋」判定证伪〕；xo→Settings 别名〔**R146 已施行**，型缝 1：`theme as ThemeMode`，MarkdownIntegration@830 同式先例〕；diffs 二件实体化（F14）〔dossier-D：依赖闭包 ~600 行（GRe WorkerPoolManager 类 styles 46400–46960 + hO/mO/KRe/gO）**全树未重建**，建议移交 F14、本域留碑〕 |
 | B10 store/modals | 1090+1125–1126 | 3 | 别名 | createExternalStore→zustand create（@5262 死裸创建待裁→dossier-C U3 裁**留**，逐字口径）；HeroCardShell/BrandWordmarkSvg→Modals（ZCodeLogoSvg 需补 export）〔**R146 已施行**：ZCodeLogoSvg 补 export + modules/Modals@248 补转导出（头注@119 登记缺口）；HeroCard 走 ModalsLeaves 新值边 + **canonical 束真回补 2 处**（children 可选化 + `relative z-10` 守卫，束真 C4t 206384-206409 全段核合）〕 |
 | B11 任务态访问对 | 1847+2517 | 2 | 实体化 | 非邻接 |
@@ -91,8 +91,8 @@ ImeComposition appendPptxElementReferences，皆已在树，别名改指零转�
 
 台账预期：146 件全数退役皆减台账（别名改指/伪面销账/实体化均删 declare 语句——实体化
 「不减台账」系本普查初稿口径误，R129n 判例实证 868→862 含实体化 2 件）。〔A1-R142 修正〕
-余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)+R144(34)+R145(22)+R146(10)+R147(5)+R148(1)=114 件，
-三域现存 **34**（**Composer 0（R143 域闭）** + **UsageDeep 0（R145 域闭）** + **Onboarding 34（R146 −10、R147 −3、R148 −1）**）；
-台账实测 **663**（R148 后；R147 另收 AppRootLeaves 2 件属 modules 域，不计三域），r118 基线累计 1,012→663 = 349 删 0 增。
-W5a 仅余 Onboarding 一域（dossier-D 33 + ambient 留存 1 = **34**，与域计数吻合）；
+余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)+R144(34)+R145(22)+R146(10)+R147(5)+R148(1)+R149(12)=126 件，
+三域现存 **22**（**Composer 0（R143 域闭）** + **UsageDeep 0（R145 域闭）** + **Onboarding 22（R146 −10、R147 −3、R148 −1、R149 −12）**）；
+台账实测 **651**（R149 后；R147 另收 AppRootLeaves 2 件属 modules 域，不计三域），r118 基线累计 1,012→651 = 361 删 0 增。
+W5a 仅余 Onboarding 一域（dossier-D 余 21〔D-1b 2 + D-2 4 + D-3 3 + D-4 2 + D-5 3 + D-6 余 2 + D-8 1 + D-7 2 + D-9 留批 2〕+ ambient 留存 1 = **22**，与域计数吻合）；
 W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。

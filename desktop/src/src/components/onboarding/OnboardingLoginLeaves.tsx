@@ -266,7 +266,7 @@ import { Button } from '../../modules/button'; // Button（原 X，button-laUije
 import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
 import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup, sessionEntryWorkspaceKey as remoteWorkspaceKey, buildRemoteWorkspaceKey as workspaceIdentityOf, resolveEntryWorkspaceIdentity as entryIdentity, remoteTargetWithSecrets as withRemoteCredentials, applyRemoteConnectionResult as commitRemoteSessionsMutation, removeRemoteSessionEntries as removeSessionsByWorkspaceKeys, persistedWorkspaceSessions as persistableWorkspaceTabs, persistedRemoteSessions as normalizePersistedRemoteSessions, resolveLastActiveTabIndex, type PersistedWorkspaceTabRecord, type RemoteSessionTarget } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles 121301–123510 面板布局引擎逐字重建改指）+ A1-R6：R2/I2/L2/z2/B2/oEt 远程条目域改指 + A1-R7：V2/cEt/Bne 恢复条目域改指（Hn 改指更正迁 SrcSharedA；tombstone 见原 declare 位）
 import { sanitizeWorkspaceDescriptor as serializeRemoteTarget, sshTargetIdentityKey as sshHostKeyOfTarget, providerIds } from '../../modules/SrcSharedA'; // A1-R7：Hn（R6 误录更正，canonical 见 lib/workspaceUtils）+ Pn=sshTargetIdentityKey 改指。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）：PROVIDER_IDS declare 收敛改指，见 @552 墓碑
-import { generateUuid as createRequestId, getOAuthProviderFamilyByProviderId, resolveProviderFamilyMode, joinTestidParts, buildCodingPlanScope as bigmodelTeamPlanKey, parseCodingPlanScope as parseTeamPlanKey, codingPlanScopesOverlap as isSameTeamPlanKey } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555）：resolveFamilyMode declare 收敛改指，见下墓碑。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：providerById declare 收敛改指，见下墓碑。〔A1-R41〕+joinTestidParts（原 qr 收敛改指，见下墓碑）。环安全：本行不新增环边（本文件→SrcSharedB 既有）。〔A1-R146〕+B7 team-plan-key 三件（buildCodingPlanScope/parseCodingPlanScope/codingPlanScopesOverlap as 本地名；束证三段链：src@8526 Wb→src@9966 `Wb as mt`→styles@728 `mt as vi`→styles@209951 消费；src@8533 Gb→src@9918 `Gb as gt`→styles@680 `gt as li`→styles@210045/210165；src@8545 Kb→src@9926 `Kb as ht`→styles@688 `ht as fi`→styles@210005）；canonical SrcSharedB@5099/5108/5130 已 export，先例 ModelProviderSettingsSection@23-25 同名三件别名在案
+import { generateUuid as createRequestId, getOAuthProviderFamilyByProviderId, resolveProviderFamilyMode, joinTestidParts, buildCodingPlanScope as bigmodelTeamPlanKey, parseCodingPlanScope as parseTeamPlanKey, codingPlanScopesOverlap as isSameTeamPlanKey, loginApiKeyProviderTriggerTestid as TESTID_LOGIN_API_KEY_PROVIDER, loginApiKeyProviderItemTestid as TESTID_LOGIN_API_KEY_OPTION_BASE, loginApiKeyInputTestid as TESTID_LOGIN_API_KEY_INPUT, loginApiKeyContinueButtonTestid as TESTID_LOGIN_API_KEY_CONTINUE, loginApiKeyCancelButtonTestid as TESTID_LOGIN_API_KEY_CANCEL, loginApiKeySkipButtonTestid as TESTID_LOGIN_API_KEY_SKIP, loginApiKeyErrorTestid as TESTID_LOGIN_API_KEY_ERROR, BIGMODEL_PROVIDER_DOMAIN as BIGMODEL_PROVIDER_ID, buildRuntimeProviderFromConfig as providerFamilyDefinitionOf, isCredentialDecryptFailure as isMissingCredentialsError, normalizeOAuthProviderDomain as familyDomainOfProvider, getOAuthFamilyIdByProviderId as familyDomainOfProviderId } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555）：resolveFamilyMode declare 收敛改指，见下墓碑。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5578〔A1-R149 随批勘误：旧引 @5576 实测为邻符 getOAuthFamilyIdByProviderId 域，Yx 真位 5578〕）：providerById declare 收敛改指，见下墓碑。〔A1-R41〕+joinTestidParts（原 qr 收敛改指，见下墓碑）。环安全：本行不新增环边（本文件→SrcSharedB 既有）。〔A1-R146〕+B7 team-plan-key 三件（buildCodingPlanScope/parseCodingPlanScope/codingPlanScopesOverlap as 本地名；束证三段链：src@8526 Wb→src@9966 `Wb as mt`→styles@728 `mt as vi`→styles@209951 消费；src@8533 Gb→src@9918 `Gb as gt`→styles@680 `gt as li`→styles@210045/210165；src@8545 Kb→src@9926 `Kb as ht`→styles@688 `ht as fi`→styles@210005）；canonical SrcSharedB@5099/5108/5130 已 export，先例 ModelProviderSettingsSection@23-25 同名三件别名在案。〔A1-R149〕+D-1a 十二件（登录 testid 七 + BIGMODEL_PROVIDER_ID + providerFamilyDefinitionOf + isMissingCredentialsError + familyDomainOfProvider/…Id；全数 `canonical as 本地名` 别名保名 → 消费点逐字不变；束证三跳逐件见下各碑）
 import { registerWorkspaceTask as insertCreatedTaskFromBroadcast, upsertTaskInWorkspaceCache as upsertTaskFromBroadcast } from '../../modules/FileTreePanel'; // 〔A1-R146〕原 cLt（束真 styles 146840）/ oLt（束真 146788）declare ×2 退役 → 改指 components/code-viewer/FileTreePanel@2615 registerWorkspaceTask / @2546 upsertTaskInWorkspaceCache（经 shim@170/172 转导出）。先例 SidebarLeaves@128 cleanupDeletedTaskState 同路径同判例。环安全：**新值边**，FileTreePanel 值闭包反向不达本文件（dossier-C 环检查表，NO-VALUE-CYCLE）
 import { HeroCard as HeroCardShell } from '../../modules/ModalsLeaves'; // 〔A1-R146〕原 C4t declare 退役 → 改指 components/modals/HeroCard@76 HeroCard（经 ModalsLeaves@85 转导出）。★canonical 与束真两处分歧同批回补（children 可选化 + `relative z-10` 守卫，束真 C4t 206384-206409 全段核合）——回补前本件消费 @1561 不传 children 会对必填 children 报 missing。环安全：**新值边**，ModalsLeaves 值闭包反不达本文件（Modals.tsx 未转导出 HeroCard，故不走既有 Modals 边）
 import { useRemoteWorkspaceEnabled as useWebRemoteControlFeatureEnabled } from '../../modules/Home'; // 〔A1-R146〕原 declare 退役 → 改指 components/shell/Home@1251 useRemoteWorkspaceEnabled（经 modules/Home@149 转导出）。★**census 目标证伪**：普查注「WebRemote@2038」系误接——WebRemote@2038 = useWebRemoteControlEnabled（原 **y8**，束 150152，语义为远控开关上下文，Provider 缺省 !1），而本 declare 束真为 styles@209397（Y3t@209393 体内）`let f = UTt()` ← UTt = styles 本地 stub @123194 `function UTt(){return !0}`（`as UTt` 导入 0 命中 → 非跨 chunk 符号），属主在案 Home@62/1251（恒 true；SplitLayoutUiDeep@76/1576 明注「UTt 123194 属主在 components/shell/Home.tsx useRemoteWorkspaceEnabled，不重复」）。误接 y8 将使 Y3t 远控编排行为回退。环安全：**新值边**，Home 值闭包反不达本文件
@@ -558,13 +558,22 @@ export interface CodePreviewSettings {
 declare const OrbitSpinnerIcon: React.FC<{ className?: string }>;
 declare function ProviderIcon(providerId: string, className: string): React.ReactNode;
 /* ── tombstone〔A1-R41〕：declare joinTestId（原 qr）删除 → 改指 SrcSharedB@5017 joinTestidParts（qr 真身：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb js 8464 ≡ joinTestidParts 逐字 `${e}-${t}`）。消费面实测 3 处改名改指：@1387/@1391（≡ bundle 206238/206247）/@1629（≡ 206590）；@268 导入面 +joinTestidParts。 ── */
-declare const TESTID_LOGIN_API_KEY_PROVIDER: string;
-declare const TESTID_LOGIN_API_KEY_INPUT: string;
-declare const TESTID_LOGIN_API_KEY_ERROR: string;
-declare const TESTID_LOGIN_API_KEY_CONTINUE: string;
-declare const TESTID_LOGIN_API_KEY_CANCEL: string;
-declare const TESTID_LOGIN_API_KEY_SKIP: string;
-declare const TESTID_LOGIN_API_KEY_OPTION_BASE: string;
+/* ── tombstone〔A1-R149〕：D-1a 登录 testid 七件 declare 退役 → 改指 modules/SrcSharedB（**零缝、零转录、零补 export**）。
+ *    束证三跳逐件闭合（src 定义 → src 导出名 → styles 侧名 → styles 消费点 ≡ 树侧消费点）：
+ *    ① PROVIDER（原 qee）≡ src@8225 `ug = 'login-api-key-provider-trigger'` → src@9885 `ug as cr` → styles@649 `cr as qee`
+ *      → 消费 styles@206227 `"data-testid": qee` ≡ 树 @1556；canonical SrcSharedB@4763 loginApiKeyProviderTriggerTestid。
+ *    ② OPTION_BASE（原 Rne）≡ src@8226 `dg = 'login-api-key-provider-item'` → src@10011 `dg as sr` → styles@772 `sr as Rne`
+ *      → 消费 styles@206238/206247 `qr(Rne, 'zai'|'bigmodel')` ≡ 树 @1562/@1566 `joinTestidParts(BASE, …)`
+ *      （qr ≡ joinTestidParts，@269 既有导入，R41 碑在案）；canonical @4764 loginApiKeyProviderItemTestid。
+ *      ★名实核：declare 名「OPTION_BASE」系**基串**语义，束真即以 `login-api-key-provider-item` 为基经 qr 拼接 → 调用面逐字不变。
+ *    ③ INPUT（原 une）≡ src@8227 fg → src@9980 `fg as or` → styles@741 `or as une` → 消费 styles@206266 ≡ 树 @1579；canonical @4765。
+ *    ④ CONTINUE（原 Ete）≡ src@8228 pg → src@9932 `pg as ir` → styles@694 `ir as Ete` → 消费 styles@206309 ≡ 树 @1617；canonical @4766。
+ *    ⑤ CANCEL（原 jne）≡ src@8229 mg → src@10003 `mg as rr` → styles@764 `rr as jne` → 消费 styles@206322 ≡ 树 @1624；canonical @4767。
+ *    ⑥ SKIP（原 Gte）≡ src@8230 hg → src@9956 `hg as lr` → styles@718 `lr as Gte` → 消费 styles@206331 ≡ 树 @1631；canonical @4768。
+ *    ⑦ ERROR（原 Lee）≡ src@8231 gg → src@9869 `gg as ar` → styles@633 `ar as Lee` → 消费 styles@206298 ≡ 树 @1607；canonical @4769。
+ *    七件 canonical 皆 SrcSharedB `export var` 已导出（A0-S3b 期逐字转录，头注原符号 ug/dg/fg/pg/mg/hg/gg 明载）→ **补 export 0**。
+ *    型面：declare `: string` vs canonical 字面量型 → 消费面 JSX `data-testid`（string）与 `joinTestidParts(e: any, t: any)` 全受 → **型缝 0**。
+ *    环安全：本文件→SrcSharedB 边既有（@269）；七名皆字符串常量（模块求值期赋值，消费在渲染期 JSX）→ 无 TDZ 面。 ── */
 
 /* --- provider 常量与注册表 --- */
 /* ── tombstone〔A1-R32〕：declare PROVIDER_IDS（原 q）删除 → 改指 SrcSharedA@2008 providerIds
@@ -576,17 +585,39 @@ declare const TESTID_LOGIN_API_KEY_OPTION_BASE: string;
  *    17 处改名改指），零动态索引，收敛安全。
  *    负证据：styles 213969 `po as q` 为遮蔽（po=McpServerConfigSchema，别 import 块，
  *    异体）。 ── */
-declare const BIGMODEL_PROVIDER_ID: string;
+/* ── tombstone〔A1-R149〕：declare BIGMODEL_PROVIDER_ID（原 Ri）删除 → 改指 SrcSharedB@5071 BIGMODEL_PROVIDER_DOMAIN（**别名保名**）。
+ *    束证：src@8508 `Lb = 'bigmodel'` → src@10061 `Lb as yt` → styles@819 `yt as Ri`；树侧消费 7 处
+ *    @1567（ProviderIcon 实参）/@1915/@1927/@1950（三处 switch case）/@3720/@3726/@3740
+ *    ≡ 束 styles@206249/206716/206726/206746/210098/210104/210116 域（Ri 全束 19 消费点，其余属它域文件）。
+ *    ★名实核：canonical 名 BIGMODEL_PROVIDER_DOMAIN 与 declare 名 BIGMODEL_PROVIDER_ID **同值异名**——束内 Lb 唯一真身，
+ *    值 `bigmodel` 既作 provider id 亦作 family domain；一符一家归 SrcSharedB（A0-S3b 期已逐字转录，头注「原 Lb」明载），
+ *    本文件不重复实体化。
+ *    型面：declare `: string` vs canonical 字面量型 `"bigmodel"` → 三处 switch 判别面为 `providerId: string` / `provider.id`（string），
+ *    字面量 case 可比（非窄联合 → 无 TS2678）；`{ [X]: teamKey }` 计算键与 `[...migrated, X]` 展开全受 → **型缝 0**。 ── */
 export interface ProviderFamilyDefinition {
   apiKeyUrl?: string;
   models?: Array<{ modelId: string }>;
   [key: string]: any;
 }
 declare const providerFamilyRegistry: Map<string, ProviderFamilyDefinition>;
-declare function providerFamilyDefinitionOf(provider: ModelProviderRecord): ProviderFamilyDefinition | undefined;
+/* ── tombstone〔A1-R149〕：declare providerFamilyDefinitionOf（原 Xne）删除 → 改指 SrcSharedB@1435 buildRuntimeProviderFromConfig（别名保名）。
+ *    束证：src@5516 `function yd(e)` → src@10026 `yd as uo` → styles@786 `uo as Xne` → 消费 styles@206106
+ *    `let t = Xne(e)?.models[0]?.modelId` ≡ 树 @1441。
+ *    ★语义勘误确认（dossier-D §0-3）：declare 名「族定义注册表查表」系 A0 期误标；束真身 yd = **从 provider 配置构建运行时
+ *    provider 描述子**（返 `{apiFormat, baseURL, kind, models[], providerId, providerOptions, source} | null`），
+ *    canonical 名 buildRuntimeProviderFromConfig 正确。canonical 体与 src@5516 起逐段对位（A0 期转录在案：ed≡trimProviderEndpoints / td≡resolveProviderEndpointBundle / ru≡listProviderModelIds）。
+ *    型面：declare 返 `ProviderFamilyDefinition | undefined` vs canonical 返 `any`（体内 `let s: any = {…}`）→ 消费面
+ *    `?.models?.[0]?.modelId` 全受，**型缝 0**；本地 interface ProviderFamilyDefinition **保留不删**
+ *    （providerFamilyRegistry 仍消费，属 D-8 件，不在本批）。
+ *    附带归真候（登记不改）：树 @1441 作 `?.models?.[0]?.modelId`，束真作 `?.models[0]?.modelId`（少一层 `?.`）——
+ *    A0 期增补；归真将引入 models 缺失时抛错面，属运行期值变，候裁。 ── */
 declare function providerModelKey(providerId: string, modelId: string): string;
 declare function setDefaultModelChoice(providerId: string, group: string, modelKey: string): void;
-declare function isMissingCredentialsError(error: unknown): boolean;
+/* ── tombstone〔A1-R149〕：declare isMissingCredentialsError（原 Hee）删除 → 改指 SrcSharedB@5077 isCredentialDecryptFailure（别名保名）。
+ *    束证：src@8510-8512 `function zb(e){ let t = Bb(e); return t ? t === Rb : !!Vb(e).startsWith('凭据解密失败：') }`
+ *    → src@9879 `zb as bt` → styles@643 `bt as Hee` → 消费 styles@206011 `if (!Hee(e)) throw e;` ≡ 树 @1324 逐字。
+ *    canonical 体逐字对位（Bb ≡ extractErrorCode@5083 / Rb ≡ CREDENTIAL_DECRYPT_FAILED_CODE@5074 / Vb ≡ extractErrorMessage）→ 零转录。
+ *    型面：declare `(error: unknown): boolean` vs canonical `(e: any)` 返 boolean → 消费面 `!f(error)` 全受，**型缝 0**。 ── */
 
 /* --- 确认对话框 / 模态（Modals.tsx 已重建）--- */
 export interface ConfirmDialogOptions {
@@ -717,8 +748,8 @@ export interface TabStoreState {
  *      · TaskStoreState → canonical **TaskStore**（= TaskStoreState & 三动作族 & getWorkspaceState，@2961-2966）：
  *        原本地面混装状态员与动作员，且含**虚构顶层** `activeTaskId: string | null`（束真为 per-workspace 字段，
  *        canonical WorkspaceTaskState@162；束证 styles@211206 `activeTaskId: e.getWorkspaceState(…).activeTaskId`；
- *        本文件 5 处读取全经工作区面 @2626/@4279/@4711/@4821/@4695，无一处读顶层）与**误挂他店成员**
- *        `deactivateActiveGroup?()`（真属 sessionRouterStore ≡ SplitLayoutDeep@287/1284；本文件 @4468 正是在
+ *        本文件 5 处读取全经工作区面 @2669/@4322/@4754/@4864/@4738，无一处读顶层）与**误挂他店成员**
+ *        `deactivateActiveGroup?()`（真属 sessionRouterStore ≡ SplitLayoutDeep@287/1284；本文件 @4511 正是在
  *        sessionRouterStore.getState() 上调它，taskStore 侧全树零调用 → 二者随面退役俱删）。
  *      · WorkspaceTaskState → canonical@161-195（原地面 `taskListCache?: {taskId;workspacePath;status?;…}[]`
  *        漏 null 分支且以近似元面代 TaskMeta；`optimisticTaskListByTaskId` 之 status 误作必填；束真
@@ -737,10 +768,10 @@ export interface TabStoreState {
  *      skillStore off 21098/line 762；束内调用传 DM(…) 归一错误**对象** styles@211259/211263-211271 与
  *      null @211244；`taskUiByTaskId`/`getTaskUi` 全树零消费 → 零级联）；补 export TaskInteractionRequest/
  *      TaskUsage/TaskRuntimeState 三型（type-only）。
- *    ⑤ 型缝 6 处（消费侧，皆束真无型位）：@4731 event → TaskInteractionRequest（束真 211226 径传原始流事件，
- *      canonical 体读 .requestId）；@4832 runtimeStateOfBroadcastEvent(…) as string（**可证安全**：其 switch 11 支
- *      与 isTaskBroadcastPayload knownEvents 11 员逐一穷尽 → undefined 分支不可达）；@4855/@4869
- *      permissionRequest/elicitationRequest → TaskInteractionRequest（本地广播载荷面 `Record<string, unknown>` 为窄近似）；@4680 `options.configOptions as ConfigOption[]`（本地 U6t 参面 `unknown[]` 承 TaskBroadcastPayload@1214 窄近似，canonical setTaskConfigOptions@975 参 `ConfigOption[]`；束真 211180-211187 无型直传；不宽化 payload 面 = R146 裁定）；@4791 incomingUsage 字面量 `as TaskUsage`（束真 211280-211286 逐字同此条件展开 → cache/breakdown 运行期本可缺，canonical@795-801 二者必具；I6t 自体束真 211076 `!n.breakdown` 守卫即证来件可无 breakdown；不宽化 resolveIncomingUsage@4541 参面——宽化则返回面残缺、@4801 setTaskUsage 续报，级联无益）。
+ *    ⑤ 型缝 6 处（消费侧，皆束真无型位）：@4774 event → TaskInteractionRequest（束真 211226 径传原始流事件，
+ *      canonical 体读 .requestId）；@4875 runtimeStateOfBroadcastEvent(…) as string（**可证安全**：其 switch 11 支
+ *      与 isTaskBroadcastPayload knownEvents 11 员逐一穷尽 → undefined 分支不可达）；@4898/@4912
+ *      permissionRequest/elicitationRequest → TaskInteractionRequest（本地广播载荷面 `Record<string, unknown>` 为窄近似）；@4723 `options.configOptions as ConfigOption[]`（本地 U6t 参面 `unknown[]` 承 TaskBroadcastPayload@1257 窄近似，canonical setTaskConfigOptions@975 参 `ConfigOption[]`；束真 211180-211187 无型直传；不宽化 payload 面 = R146 裁定）；@4834 incomingUsage 字面量 `as TaskUsage`（束真 211280-211286 逐字同此条件展开 → cache/breakdown 运行期本可缺，canonical@795-801 二者必具；I6t 自体束真 211076 `!n.breakdown` 守卫即证来件可无 breakdown；不宽化 resolveIncomingUsage@4584 参面——宽化则返回面残缺、@4844 setTaskUsage 续报，级联无益）。
  *    ⑥ 环安全：本文件→modules/SkillStore 边既有（@251）；SkillStore 值闭包 = stores/* + zustand，
  *      不达 components/onboarding；四名皆 type-only（编译期擦除）→ 新增模块边 **0**。 ── */
 export type { TaskStoreState, WorkspaceTaskState, TaskRuntimeEntry, TaskUsage };
@@ -919,8 +950,20 @@ declare function refreshModelProviderSnapshot(loader: () => Promise<ModelProvide
  *    maybeUpgradeBigModelTeamPlan）≡ bundle 210094，改名改指。负证据：bundle 内 zi 无第二真身
  *    （其余消费面分流见 Home 侧 zi 墓碑）。 ── */
 declare function familyModesPatch(domain: string, modes: Record<string, string> | undefined): Record<string, string>;
-declare function familyDomainOfProvider(provider: string | null): "zai" | "bigmodel" | null;
-declare function familyDomainOfProviderId(providerId: string): "zai" | "bigmodel" | null;
+/* ── tombstone〔A1-R149〕：declare familyDomainOfProvider（原 zr）+ familyDomainOfProviderId（原 dr）二件删除 → 改指 SrcSharedB（别名保名）。
+ *    ① familyDomainOfProvider ≡ src@8940-8941 `function Zx(e){ return e === 'zai' ? 'zai' : e === 'bigmodel' ? 'bigmodel' : null }`
+ *      → src@9821 `Zx as V` → styles@586 `V as zr`；canonical SrcSharedB@5589 normalizeOAuthProviderDomain（体逐字同）。
+ *      树侧消费 4 处 @3810/@3842/@4105/@5141；束证 styles@211543 `zr(await e.oauthService.getActiveProvider())` ≡ 树 @5141（r8t 域）。
+ *    ② familyDomainOfProviderId ≡ src@8930-8931 `function Jx(e){ return Wx.get(e) ?? null }` → src@9791 `Jx as R`
+ *      → styles@558 `R as dr`；canonical SrcSharedB@5573 getOAuthFamilyIdByProviderId（体逐字同）。
+ *      ★dossier-D 注「@5578」系误引：实测 5573，5578 为邻符 getOAuthProviderFamilyByProviderId（原 Yx）。
+ *      树侧消费 1 处 @5131；束证 styles@211535 `let e = dr(n.id)` ≡ 树逐字（n8t 域）。
+ *    型面：① declare `(provider: string | null): "zai"|"bigmodel"|null` ≡ canonical 推断返面逐字同 → 零缝；
+ *    ② declare 返 `"zai"|"bigmodel"|null` vs canonical 返 `any`（OAUTH_FAMILY_BY_PROVIDER_ID 为 Map<any,any>，SrcSharedB@5554）
+ *    → 消费面 `domains.add(domain)`（`Set<"zai"|"bigmodel">`）受 any → **型缝 0**。
+ *    环安全：走本文件→SrcSharedB 既有边（@269）；二名皆 function 声明（提升）→ 无 TDZ 面。
+ *    邻件留存：isProviderEnabledForFamily（下接一行）与 hasUsableProvider 属 D-1b——★dossier-D 判其 canonical 为
+ *    SrcSharedB@620/631 经束证**证伪**（详见 A1-R129.report.md〔A1-R149〕§翻案），另批处置。 ── */
 declare function isProviderEnabledForFamily(provider: ModelProviderRecord): boolean;
 /* ── tombstone〔A1-R44〕：declare resolveFamilyDomainAfterLogout（原 yQt 族）删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
 declare function persistProviderFamilyDomain(settingService: SettingServiceLike, domain: string): Promise<void>;
@@ -4677,7 +4720,7 @@ export function storeBroadcastConfigOptions(options: {
   options.zcodeSessionStore.setTaskConfigOptions(
     options.workspacePath,
     options.taskId,
-    options.configOptions as ConfigOption[] /* 〔型缝 A1-R148〕本地 U6t 参面 `configOptions: unknown[]` 承 TaskBroadcastPayload@1214 之 declare 期窄近似（守卫 isTaskBroadcastPayload 仅校 event/taskId/workspacePath 诸键，不校 configOptions 员形），canonical setTaskConfigOptions（属主 stores/taskStore@975）参 `options: ConfigOption[]` → TS2345。束真 styles@211180-211187 无型直传 `e.configOptions`，运行期载荷即内核广播之配置选项数组 → 纯 TS 面零运行期变。不宽化 payload 面（R146 裁定：shim 再导出之 TaskBroadcastPayload 不动） */,
+    options.configOptions as ConfigOption[] /* 〔型缝 A1-R148〕本地 U6t 参面 `configOptions: unknown[]` 承 TaskBroadcastPayload@1257 之 declare 期窄近似（守卫 isTaskBroadcastPayload 仅校 event/taskId/workspacePath 诸键，不校 configOptions 员形），canonical setTaskConfigOptions（属主 stores/taskStore@975）参 `options: ConfigOption[]` → TS2345。束真 styles@211180-211187 无型直传 `e.configOptions`，运行期载荷即内核广播之配置选项数组 → 纯 TS 面零运行期变。不宽化 payload 面（R146 裁定：shim 再导出之 TaskBroadcastPayload 不动） */,
     options.workspaceIdentity,
   );
 }
@@ -4788,7 +4831,7 @@ export function useBotsTaskBroadcastBridge(
                   cost: event.cost,
                   ...(event.cache ? { cache: event.cache } : {}),
                   ...(event.breakdown ? { breakdown: event.breakdown } : {}),
-                } as TaskUsage /* 〔型缝 A1-R148〕束真 styles@211280-211286 逐字同此条件展开 → cache/breakdown 运行期本可缺；canonical TaskUsage@795-801 二者必具（`cache: UsageCacheStats | null` / `breakdown: UsageBreakdownItem[]`）→ TS2322。I6t 自体束真 @211076 `!n.breakdown && t?.breakdown` 之守卫即证来件可无 breakdown，故铸在消费侧而不宽化 resolveIncomingUsage@4541 参面（宽化则返回面残缺、@4801 setTaskUsage 续报，级联无益）。纯 TS 面零运行期变 */,
+                } as TaskUsage /* 〔型缝 A1-R148〕束真 styles@211280-211286 逐字同此条件展开 → cache/breakdown 运行期本可缺；canonical TaskUsage@795-801 二者必具（`cache: UsageCacheStats | null` / `breakdown: UsageBreakdownItem[]`）→ TS2322。I6t 自体束真 @211076 `!n.breakdown && t?.breakdown` 之守卫即证来件可无 breakdown，故铸在消费侧而不宽化 resolveIncomingUsage@4584 参面（宽化则返回面残缺、@4844 setTaskUsage 续报，级联无益）。纯 TS 面零运行期变 */,
               });
               (recordInvalidUsage({
                 workspacePath: streamPayload.workspacePath,
@@ -4829,7 +4872,7 @@ export function useBotsTaskBroadcastBridge(
             taskId: taskPayload.taskId,
             configOptions: taskPayload.configOptions,
           }),
-        store.setTaskRuntimeState(taskPayload.workspacePath, taskPayload.taskId, runtimeStateOfBroadcastEvent(taskPayload.event) as string /* 〔型缝 A1-R148〕runtimeStateOfBroadcastEvent（原 z6t，束 211138）之 switch 无 default → 返回面 `string | undefined`，canonical setTaskRuntimeState 参 status: string。★**铸为可证安全非近似**：其 switch 覆盖 created/completed/error/prompt_sent/resumed/streaming/permission_request/permission_resolved/elicitation_request/elicitation_resolved/updated **11 支**，与 isTaskBroadcastPayload@4563 之 knownEvents 集合（同 11 员）**逐一穷尽** → undefined 分支不可达。束真 styles@211327 无型 */, void 0, taskPayload.workspaceIdentity),
+        store.setTaskRuntimeState(taskPayload.workspacePath, taskPayload.taskId, runtimeStateOfBroadcastEvent(taskPayload.event) as string /* 〔型缝 A1-R148〕runtimeStateOfBroadcastEvent（原 z6t，束 211138）之 switch 无 default → 返回面 `string | undefined`，canonical setTaskRuntimeState 参 status: string。★**铸为可证安全非近似**：其 switch 覆盖 created/completed/error/prompt_sent/resumed/streaming/permission_request/permission_resolved/elicitation_request/elicitation_resolved/updated **11 支**，与 isTaskBroadcastPayload@4606 之 knownEvents 集合（同 11 员）**逐一穷尽** → undefined 分支不可达。束真 styles@211327 无型 */, void 0, taskPayload.workspaceIdentity),
         taskPayload.task)
       ) {
         let membership = { pinned: false, archived: false };
