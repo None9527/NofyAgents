@@ -207,6 +207,9 @@ import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R1
 import { sessionTransportHandshake } from '../../services/conversationWireCore'; // 〔A1-R121〕
 import { sendSnoozeInteractionCommand as snoozeInteractionAutoResolution } from '../../modules/ConversationOverlays'; // 〔A1-R129i〕原 nSt（117414）declare 改指 canonical = ConversationInteractionsOverlay@178（A1-P1-B13 逐字；shim@185 转导出在案；别名导入保调用名）。环安全：本→modules/ConversationOverlays→conversation 族叶（ImeComposition/SkillStore/I18n/button/PermissionApprovalOverlay/ElicitationDialog/ConversationCommandLedger）值闭包不达 components/shell原 AS（34647）declare 改指——P3 泳道 canonical 既立（[wire] 669/@579，转导出 @746；旧碑「合并后动作：删碑改指」本批执行）
 import { createPortal } from 'react-dom'; // 〔A1-R121〕原 io.createPortal declare 改指 npm react-dom（MarkdownMermaid/MarkdownTable 判例；消费面 @4539 逐字不变）
+import { DndContext, DragOverlay, closestCenter as closestCenterCollision, useSensor, useSensors as makeSensors, PointerSensor, KeyboardSensor, type DraggableAttributes, type DraggableSyntheticListeners } from '@dnd-kit/core'; // 〔A1-R129o〕原 vendored _Z/bZ/KX/UX/WX/aZ/rZ 改指 npm @dnd-kit/core@6.3.1（B10 vendor 裁定 + lucide/tanstack-virtual/react-dom 判例；碑文见原声明区）；型别导入 DraggableAttributes/DraggableSyntheticListeners 供 sortableBindings 面（@2914）
+import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates, useSortable as useSortableBinding, verticalListSortingStrategy } from '@dnd-kit/sortable'; // 〔A1-R129o〕原 vendored EZ/TZ/ist/DZ/纵列策略 改指 npm @dnd-kit/sortable@8.0.0
+import { CSS } from '@dnd-kit/utilities'; // 〔A1-R129o〕原 BX——dndTransform≡CSS.Transform（实体化见原声明区）
 import { TabsList, TabsTrigger } from '../../modules/Settings';
 import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, expandedWorkspaceKeySet, incrementVisibleLimit, pruneVisibleLimits, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from '../../modules/SidebarLeaves'; // 〔A1-R129i〕+expandedWorkspaceKeySet/incrementVisibleLimit/pruneVisibleLimits（原 PFt/IFt/LFt，SidebarLeaves 实体化；墓碑见 §23 区）
 import { type WebRemoteSwitcherService } from '../../modules/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：原 modules/SidebarLeaves WebRemoteSwitcher 本地面删碑，改指生产面 canonical（六点分叉表闭合，A1-P2-B9.report.md §四）
@@ -1024,35 +1027,23 @@ declare const AvatarFallback: React.FC<React.ComponentPropsWithoutRef<"div">>;
  *  DZ=useSortable、vZ=useDraggable、yZ=useDroppable、UX=PointerSensor、WX=sensors、
  *  aZ=PointerSensor、rZ=KeyboardSensor、KX=closestCenter、TZ=rectSortingStrategy、
  *  YBt 见下文、BX.Transform、ist=sortableKeyboardCoordinates） */
-declare function useDraggableSensor(args: { id: string; disabled?: boolean; data?: unknown }): {
-  attributes: Record<string, unknown>; listeners: Record<string, unknown>; setNodeRef: (el: HTMLElement | null) => void;
-  transform: { x: number; y: number } | null; transition: string | undefined; isDragging: boolean;
-};
-declare function useSortableBinding(args: { id: string; disabled?: boolean; data?: unknown }): {
-  attributes: Record<string, unknown>; listeners: Record<string, unknown>; setNodeRef: (el: HTMLElement | null) => void;
-  setActivatorNodeRef: (el: HTMLElement | null) => void; transform: { x: number; y: number } | null; transition: string | undefined; isDragging: boolean;
-};
-declare function useDroppableBinding(args: { id: string; disabled?: boolean; data?: unknown }): { setNodeRef: (el: HTMLElement | null) => void };
-declare const DndContext: React.FC<{
-  sensors?: unknown; collisionDetection?: unknown; modifiers?: unknown[]; autoScroll?: unknown;
-  onDragStart?: (e: DndEvent) => void; onDragMove?: (e: DndEvent) => void; onDragOver?: (e: DndEvent) => void;
-  onDragEnd?: (e: DndEvent) => void; onDragCancel?: () => void; children?: React.ReactNode;
-}>;
-declare const SortableContext: React.FC<{ items: string[]; strategy?: unknown; children?: React.ReactNode }>;
-declare const DragOverlay: React.FC<{ dropAnimation?: unknown; children?: React.ReactNode }>;
+/* ── tombstone〔A1-R129o〕：declare useDraggableSensor / useDroppableBinding 死声明删除——本文件零调用点
+ *    （全文 grep 实测仅本声明行；束 Sidebar 面亦无 vZ/yZ 消费），R129j/R41 死删判例。 ── */
+/* ── tombstone〔A1-R129o〕：dnd-kit 族 12 declare 退役 → npm 真 import（@dnd-kit/core@6.3.1 + @dnd-kit/sortable@8.0.0
+ *    + @dnd-kit/utilities@3.2.2；版本裁定 = B10 取证「core v6 / sortable v7–8 族」；同类判例：lucide-react A0-S3b /
+ *    @tanstack/react-virtual R41 / react-dom R121）。改指表：useSortableBinding≡useSortable、DndContext、DragOverlay、
+ *    closestCenterCollision≡closestCenter、makeSensors≡useSensors ← @dnd-kit/core；SortableContext、rectSortingStrategy、
+ *    verticalListSortingStrategy、sortableKeyboardCoordinates ← @dnd-kit/sortable；dndTransform≡CSS.Transform ←
+ *    @dnd-kit/utilities；pointerSensorFactory/keyboardSensorFactory 实体化为薄包裹（束真 = UX(aZ/rZ, opts) 内联，
+ *    159615/159616）。vendored 块映射注（91811–94695）原样保留备查。 ── */
 interface DndEvent {
   active: { id: string | number; rect: { current: { initial?: { width: number | null } | null } }; data: { current: unknown } };
   over: { id: string | number; data: { current: unknown } } | null;
   delta: { x: number; y: number };
 }
-declare const dndTransform: { toString(t: { x?: number; y?: number; scaleX?: number; scaleY?: number }): string };
-declare const closestCenterCollision: unknown;
-declare const rectSortingStrategy: unknown;
-declare const verticalListSortingStrategy: unknown;
-declare function pointerSensorFactory(opts?: { activationConstraint?: { distance: number } }): unknown;
-declare function keyboardSensorFactory(opts?: { coordinateGetter?: unknown }): unknown;
-declare function makeSensors(...sensors: unknown[]): unknown;
-declare const sortableKeyboardCoordinates: unknown;
+const dndTransform = CSS.Transform; // 〔A1-R129o〕原 BX.Transform——消费面 @4715/@4770 逐字不变
+function pointerSensorFactory(opts?: Parameters<typeof useSensor>[1]) { return useSensor(PointerSensor, opts); } // 〔A1-R129o〕束真 = UX(aZ, opts) 内联；薄包裹保调用面逐字
+function keyboardSensorFactory(opts?: Parameters<typeof useSensor>[1]) { return useSensor(KeyboardSensor, opts); } // 〔A1-R129o〕束真 = UX(rZ, opts) 内联（159616）
 /* ── tombstone〔A1-R129j〕：declare useVirtualizer（原 to，esm-BY6T6pIH.js = @tanstack/react-virtual）死声明删除——本文件零调用点（全文 grep 实测仅注记行；R41 判例）。
  *    npm 真 import 判例在案（A0-S3a：Home/SuggestionPanel/FileTreePanel）；本簇无消费，纯删碑。 ── */
 /* ---- 图标（原混淆名 → lucide 名，js 行号见头注 §一） ---- */
@@ -2920,7 +2911,7 @@ interface WorkspaceSidebarItemProps {
   onOpenFileTree?: (request: { workspacePath: string; workspaceName?: string; workspaceIdentity?: string | null; workspaceRemoteSessionId?: string | null }) => void;
   itemRef?: (el: HTMLElement | null) => void;
   itemStyle?: React.CSSProperties;
-  sortableBindings?: { attributes: Record<string, unknown>; listeners: Record<string, unknown> } | null;
+  sortableBindings?: { attributes: DraggableAttributes; listeners: DraggableSyntheticListeners | undefined } | null; // 〔A1-R129o〕面修正：原 Record 宽面 → npm dnd-kit 真面（运行期同物）
   isDragging?: boolean;
 }
 export const WorkspaceSidebarItem = React.memo(function WorkspaceSidebarItem({
@@ -3146,7 +3137,8 @@ export const WorkspaceSidebarItem = React.memo(function WorkspaceSidebarItem({
                   needsReconnect && "hover:bg-transparent aria-expanded:bg-transparent",
                   sortableBindings && "cursor-grab active:cursor-grabbing",
                 )}
-                {...(sortableBindings?.attributes ?? {})}
+                /* 〔型缝 A1-R129o〕束真序 = 展布覆显式 role/tabIndex（运行期语义不变）；宽面铸免 TS2783 */
+                {...((sortableBindings?.attributes ?? {}) as Record<string, unknown>)}
                 {...(sortableBindings?.listeners ?? {})}
               >
                 {sshInfo ? (
@@ -4459,7 +4451,7 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
                   />
                 ) : (
                   /* 项目视图：分段可拖拽重排（项目段/会话段） */
-                  <DndContext sensors={sectionDragSensors} collisionDetection={closestCenterCollision} modifiers={[restrictDragToVerticalAxis]} onDragEnd={handleSectionDragEnd}>
+                  <DndContext sensors={sectionDragSensors} collisionDetection={closestCenterCollision} modifiers={[restrictDragToVerticalAxis as never]} onDragEnd={handleSectionDragEnd}>
                     <SortableContext items={purposeSectionPreferences.sectionOrder} strategy={rectSortingStrategy}>
                       <div data-purpose-section-list="true">
                         {purposeSectionPreferences.sectionOrder.map((sectionId) =>
@@ -4509,8 +4501,8 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
                                 <>
                                 {projectWorkspaceTabs.length === 0 ? null : (
                                 /* 工作区行列表（垂直拖拽重排 + 浮层 portal） */
-                                <DndContext sensors={workspaceDragSensors} collisionDetection={closestCenterCollision} modifiers={[restrictDragToVerticalAxis]}
-                                  onDragStart={handleTabDragStart} onDragEnd={handleTabDragEnd} onDragCancel={cancelTabDrag}
+                                <DndContext sensors={workspaceDragSensors} collisionDetection={closestCenterCollision} modifiers={[restrictDragToVerticalAxis as never]}
+                                  onDragStart={handleTabDragStart as never} onDragEnd={handleTabDragEnd} onDragCancel={cancelTabDrag}
                                 >
                                   <SortableContext items={projectWorkspaceTabs.map((tab) => tab.id)} strategy={verticalListSortingStrategy}>
                                     <ul data-testid={TESTID_WORKSPACE_LIST} className="space-y-2 pb-4">
