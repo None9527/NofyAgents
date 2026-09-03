@@ -208,7 +208,7 @@ import { createPortal } from 'react-dom'; // 〔A1-R121〕原 io.createPortal de
 import { TabsList, TabsTrigger } from '../../modules/Settings';
 import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from '../../modules/SidebarLeaves';
 import { type WebRemoteSwitcherService } from '../../modules/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：原 modules/SidebarLeaves WebRemoteSwitcher 本地面删碑，改指生产面 canonical（六点分叉表闭合，A1-P2-B9.report.md §四）
-import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, type TaskStore } from '../../modules/SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；A0-CLEANUP3 3b：getWorkspaceSlice 形参对齐真 store 面
+import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, getWorkspaceTaskStateAlias as getWorkspaceSlice } from '../../modules/SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；〔A1-R123〕原 fe declare 改指 getWorkspaceTaskStateAlias（stores/taskStore@433 _e 逐字，skillStore 导出 U；TaskListQueryCore@49 判例），TaskStore 型参随删（canonical TaskStoreState 面）
 import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, type TaskActionMenuItemsProps } from '../../modules/TopBar';
 import { WebRemoteControlDialog, useWebRemoteControlEnabled } from '../../modules/WebRemote';
 import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useServicesOptional as ps, useWorkspaceServices } from '../../modules/services'; // 〔A1-P2-B10〕ps≡useServicesOptional（原 ps 2680，useContext(us) 裸读）——ERt 真身闭包依赖
@@ -216,7 +216,7 @@ import { applySearchTaskMutation as applyOptimisticTaskMutation, invalidateWorks
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../../modules/stores-core';
 import { sessionActivityOf as taskSessionActivity, pendingInteractionOf as taskPendingAttention, compareTasks as compareTasksForList } from '../../modules/StoresDeep'; // A1-R10 项 2d：原 Mo/No/Fo（jsx 369/376/405）本地转录改指 canonical = helpers sessionActivityOf/pendingInteractionOf/compareTasks（Mo@1311/No@1318/Fo@1365 逐字）；调用点 1506/1507/1958/2248/2699 逐字不变。环安全：StoresDeep 值闭包（stores/* + SkillStore + SrcShared 族）不达 components/shell
 import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 项 2d：原 Go（jsx 986）本地转录改指 canonical = components/markdown baseName（Go@1928 逐字）；调用点 1561 逐字不变。环安全：MarkdownIntegration 值闭包（markdown 渲染族 + FileTreePanel resolveAvailableEditors）不达 components/shell（实测在案）
-import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector, resolveTabRemoteSessionId as gc } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）；〔A1-P2-B10〕gc≡resolveTabRemoteSessionId（原 gc 4814）——ERt 真身闭包依赖
+import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector, resolveTabRemoteSessionId as gc, useWorkspaceTabStore as useTabStore, useWorkspaceTabStoreOptional as useOptionalTabStore } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）；〔A1-P2-B10〕gc≡resolveTabRemoteSessionId（原 gc 4814）——ERt 真身闭包依赖
 import { useSessionRegistryStore as Zs } from '../../stores/sessionRegistryStore'; // 〔A1-P2-B10〕Zs≡useSessionRegistryStore（原 Zs 4357）——ERt 真身闭包依赖（服务注册表选择器）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 // 〔A1-R25〕aw 39378 收敛：markUsageEntryIntent declare 改接 Home §U.7 逐字真身（别名保留，调用点 4769 逐字不变；环安全：Home 顶层 hoisted function，本文件仅渲染期事件回调消费）
@@ -1091,48 +1091,14 @@ const TESTID_SIDEBAR_USAGE_BUTTON = "sidebar-coding-plan-usage-button"; // vte
 const TESTID_SIDEBAR_UPGRADE_BUTTON = "sidebar-coding-plan-upgrade-button"; // pRt（本 chunk 150254）
 /* ---- 横切 store / 钩子声明（实现位置见头注） ---- */
 
-/** 原 xe（skillStore chunk h 导出）：任务全局 store（选择器用法） */
-declare const taskStoreApi: { getState(): TaskGlobalState };
-interface WorkspaceSliceState {
-  activeTaskId: string | null;
-  taskListVersion: number;
-  groupedDraftTask: { placement: GroupedDraftPlacement } | null;
-  draftFocusVersion: number;
-  optimisticTaskListByTaskId: Record<string, TaskMeta>;
-  promotedGroupedDraftTaskByTaskId: Record<string, { workspacePath: string; workspaceIdentity?: string | null; createdAt: number; placement: GroupedDraftPlacement }>;
-  selectedSupplierKey: string;
-  draftSessionId?: string | null;
-}
-type GroupedDraftPlacement = { type: "top" } | { type: "group"; groupId: string };
-interface TaskGlobalState {
-  bumpTaskListVersion(workspacePath: string, workspaceIdentity?: string | null): void;
-  removeTaskState(workspacePath: string, taskId: string, identity?: string | null): void;
-  upsertOptimisticTaskListItem(workspacePath: string, task: TaskMeta, identity?: string | null): void;
-  removeOptimisticTaskListItem(workspacePath: string, taskId: string, identity?: string | null): void;
-  setTaskUnreadIndicator(workspacePath: string, taskId: string, unread: boolean, identity?: string | null): void;
-  startDraft(workspacePath: string, opts?: unknown, identity?: string | null): void;
-  clearGroupedDraftTask(workspacePath: string, identity?: string | null): void;
-  getWorkspaceState(workspacePath: string, identity?: string | null): WorkspaceSliceState;
-}
-/** 原 fe（skillStore 导出 U）：取工作区 slice */
-declare function getWorkspaceSlice(state: TaskStore, workspacePath: string, workspaceIdentity?: string | null): WorkspaceSliceState; // A0-CLEANUP3 3b：useTaskStore 选择器以真 store 面传入
-/** 原 ko（jsx 351）：设置 store（主题/语言/恢复 OAuth 会话） */
-/** 原 pc（jsx 3601）：工作区标签 store（context 注入） */
-interface WorkspaceTabStore {
-  tabs: WorkspaceTab[];
-  activeTabId: string | null;
-  expandedWorkspacePaths: Set<string>;
-  activateTab(id: string): void;
-  closeTab(id: string): void;
-  openSettingsTab(): void;
-  toggleWorkspaceExpanded(path: string): void;
-  reorderWorkspaceTabs(fromIndex: number, toIndex: number): void;
-  expandAllWorkspaceTabs(paths: string[]): void;
-  collapseAllWorkspaceTabs(paths: string[]): void;
-}
-declare function useTabStore<T>(selector: (state: WorkspaceTabStore) => T): T;
-/** 原 mc（jsx 3606）：可空版 useTabStore */
-declare function useOptionalTabStore<T>(selector: (state: WorkspaceTabStore) => T): T;
+/* ── tombstone〔A1-R123〕store 桥四符闭合：①taskStoreApi（原 xe）死 declare 删——本文件零消费点
+ *    （全文 grep 实证仅余声明位；R41 判例）；②getWorkspaceSlice（原 fe ≡ skillStore 导出 U）declare 删改指
+ *    modules/SkillStore::getWorkspaceTaskStateAlias（stores/taskStore@433 _e 逐字；TaskListQueryCore@49 判例），
+ *    本地 WorkspaceSliceState/GroupedDraftPlacement 脚手架型随删（消费面仅 declare 二面与 .activeTaskId 面）；
+ *    ③useTabStore（原 pc jsx 3601）declare 删改指 WorkspaceTabsDeep::useWorkspaceTabStore@686（R40 判例 ≡ bundle 78252）；
+ *    ④useOptionalTabStore（原 mc jsx 3606）declare 删改指 WorkspaceTabsDeep::useWorkspaceTabStoreOptional@693（P1-B7 判例）。
+ *    TaskGlobalState/WorkspaceTabStore 接口零引用随删；ko 孤注（jsx 351，declare 早前已删）并入本碑。
+ *    调用点逐字不变：useTabStore ×12 + useOptionalTabStore ×2（1582/1937）+ getWorkspaceSlice ×2（2962/4054）。 ── */
 /* ── tombstone（A1-R1）：isLocalDirectoryUnavailableSelector（原 sc js 4493 / jsx 3324）declare 已删除，改经文件头真实 import（hasUnavailableLocalDirectoryTab as …，../../modules/WorkspaceTabsDeep）消费。 ── */
 /** 原 Zs：会话注册表 store */
 /** 原 Vo：搜索结果 store（任务列表查询缓存） */
@@ -3870,7 +3836,7 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
   // 活动工作区身份（仅当活动标签属于当前工作区）
   const activeWorkspaceIdentity = useTabStore((state) => {
     if (!state.activeTabId) return undefined;
-    const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
+    const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId) as any as WorkspaceTab | undefined; // 〔A1-R123〕型缝同缝 1（isTaskWorkspaceTab declare 面为本地 WorkspaceTab）
     if (!activeTab || !isTaskWorkspaceTab(activeTab) || activeTab.workspacePath !== workspacePath) return undefined;
     return activeTab.workspaceIdentity;
   });
@@ -3878,7 +3844,7 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
   const sidebarDisabledReason = localDirectoryUnavailable ? intl.formatMessage({ id: "workspaceSidebar.unavailableLocalDirectory" }) : undefined;
   const setTheme = useSettingsStore((state) => state.setTheme);
   const commandCenterShortcut = shortcutLabel("K");
-  const tabs = useTabStore((state) => state.tabs);
+  const tabs = useTabStore((state) => state.tabs as any) as WorkspaceTab[]; // 〔A1-R123〕型缝：canonical WorkspaceTab（workspacePath? 可选，A1-R1 逐字）→ 本地 WorkspaceTab（path 必填，渲染面）投射，运行时无差（AppRootLeaves@2076 R40 判例；消费面 3856/3857/3994/4147/4387/4423/4442 逐字不变）
   const activateTab = useTabStore((state) => state.activateTab);
   const closeTab = useTabStore((state) => state.closeTab);
   const openSettingsTab = useTabStore((state) => state.openSettingsTab);
