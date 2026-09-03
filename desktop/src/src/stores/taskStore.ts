@@ -99,7 +99,10 @@ const initialTaskRuntimeState: TaskRuntimeState = {
   activeInputOwnerClientId: void 0,
 };
 
-interface TaskMeta {
+// 〔A1-R129g〕型缝：interface→type 声明形（成员逐字不变）——型别名获隐式索引签名，
+// 使 mergeTaskMeta 返型可纳 mergeMetaPreservingActivity 次参交面之 Record<string, unknown>
+// （ee 改指裁定所依；A1-R56 ConfigOption 同式先例）。
+type TaskMeta = {
   taskId: string;
   traceId?: string | null;
   title: string;
@@ -115,7 +118,7 @@ interface TaskMeta {
   status?: string;
   unreadAt?: number | null;
   changeSummary?: unknown;
-}
+};
 
 interface ConfigOptionItem {
   name: string;

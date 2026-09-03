@@ -156,10 +156,14 @@ export function pendingInteractionOf(
   return count === 0 ? null : { kind: pending.userInputCount > 0 ? "userInput" : "permission", count };
 }
 
-/** 原 Po（1324）：活动态下的元数据合并（保持 createdAt/status，updatedAt=活动时刻；unreadAt 显式优先） */
+/** 原 Po（1324）：活动态下的元数据合并（保持 createdAt/status，updatedAt=活动时刻；unreadAt 显式优先）。
+ * 〔型缝 A1-R129g〕patch 面裁定：次参束真形 = taskStore 族合并结果（QRt 153079/153087 `Po(e, ee(e, a))` /
+ *  DFt 144232 `Po(i, {...ee(i, n), unreadAt})`），其 changeSummary 依 A1-R9 裁定为 unknown 宽面，
+ *  不纳本叶 TaskChangeSummary 精化面——故 patch 命名面 Omit changeSummary，经 Record<string, unknown> 吸收；
+ *  既有消费 394（uje：helpers.TaskMeta & Record 传入）相容不变。 */
 export function mergeMetaPreservingActivity(
   base: TaskMeta & Record<string, unknown>,
-  patch: Partial<TaskMeta> & Record<string, unknown>,
+  patch: Partial<Omit<TaskMeta, "changeSummary">> & Record<string, unknown>,
 ): TaskMeta & Record<string, unknown> {
   const activity = sessionActivityOf(base);
   if (!activity) return patch as TaskMeta & Record<string, unknown>;
