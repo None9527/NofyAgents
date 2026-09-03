@@ -526,6 +526,8 @@ import { Button } from './button'; // 原 H，button-laUijeDG.js（A0-D 接线�
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 import { SuggestionPanel, type PanelSection } from '../components/composer/SuggestionPanel'; // 〔A0-S4-4b〕留守面消费回取：B6 SlashPanel 段型别 + 建议面板渲染点（函数声明提升/型别擦除，环安全）
 import { buildFileTreeDragText as fileMentionMarkdown, pluginMentionMarkdown, skillMentionMarkdown, subagentMentionMarkdown, sessionMentionMarkdown, hasWorkspaceFilePayload, readWorkspaceFilePayload, isWorkspaceFileDragEvent, buildWorkspaceFileMentionPayload, WORKSPACE_FILE_DRAG_STATE_EVENT as WORKSPACE_FILE_DRAG_EVENT_TYPE, type WorkspaceFileDragPayload } from '../components/composer/FileMentionDragHelpers'; // A1-R11：wj（52124）/Dj（52138）转录改指（纯函数叶子，环安全同 SuggestionPanel 先例）；调用点 2779/2998 逐字不变。wj 双归属：FileTreePanel 经名 buildFileTreeDragText、本文件经名 fileMentionMarkdown，bundle 唯一真身。A1-R12：§17/§18 declares 全量改指（Tj/Ej/KHe 52128/52131/52134、Mj/Nj/tUe/aUe 52248/52251/52254/52271、jj 52212），调用点 1391/1591/1856/1866/3096/4653/4657/4663/4671/4986/5003/4605 逐字不变
+import { extractSelectionsFromText as extractConversationSelections } from '../components/conversation/ConversationSelectionCore'; // 〔A1-R129z〕原 Noe（styles 74669 / F03 域 2775）declare 改指（canonical = ConversationSelectionCore A1-P1-B4 逐字真身；parseComposerContextContent 消费面）。环安全：纯 TS 叶，仅 SrcSharedB 边
+import { extractPptxElementReferences as extractPptxElementReferencesFromContent } from '../components/ime/ImeComposition'; // 〔A1-R129z〕原 pptx 抽取 declare 改指——束真：styles KXe（2122719）之 `w` = imeComposition 块 m 导出（块首导入 `m as w` ← ./imeComposition-DEYFkwWm.js）≡ 本名原码 ur；canonical = ImeComposition@1164 逐字。一符一家归 imeComposition 域。环安全：ImeComposition 对本文件仅 type-only 回边（A1-R49 判例，编译期擦除）
 
 /* ============================================================================
  * 0. 外部依赖类型声明（未重建依赖以 declare 挂接；来源见上方清单）
@@ -822,10 +824,10 @@ declare const DOCUMENT_FALLBACK_ICON_SRC: string;
 
 /** 19. 会话引用装配/会话域引用存取（本 chunk 2741–2819，F03 域） */
 declare function appendConversationSelections(content: string, selections: ConversationSelection[]): string;
-declare function extractConversationSelections(content: string): {
-  visibleContent: string;
-  references: ConversationSelection[];
-};
+/* ── tombstone〔A1-R129z〕：declare function extractConversationSelections（原 Noe，
+ *    styles 74669 / F03 域 2775）删除 → 文件头 `extractSelectionsFromText as
+ *    extractConversationSelections` 真实 import（canonical = components/conversation/
+ *    ConversationSelectionCore A1-P1-B4 逐字真身，roundtrip 证明在案；消费面 7172 逐字不变）。 ── */
 export interface ConversationSelection { // 〔A1-R22〕补 export：Conversation ParsedUserInput 型别收敛消费（型别擦除，环安全）
   /* 〔A1-R22〕型缝：koe（2720）构建面携 id/text/sourceSessionId/sourceRowId/contentType（Ds 2827 守护窄化所依）；
    * 原开放索引签名保留（uit 90087 消费面按束真渲染 e.text/e.id）。 */
@@ -869,10 +871,12 @@ declare function isPathWithinWorkspace(workspacePath: string, sourcePath: string
 /** pptx 域（imeComposition 导出族 + 本 chunk）：事件判定/匹配/去重/键/markdown 装配 */
 declare function isPptxElementAddDetail(detail: unknown): boolean;
 declare function buildPptxElementsMarkdown(content: string, elements: PptxElementAddDetail[]): string;
-declare function extractPptxElementReferencesFromContent(content: string): {
-  visibleContent: string;
-  pptxElementReferences: PptxElementAddDetail[];
-};
+/* ── tombstone〔A1-R129z〕：declare function extractPptxElementReferencesFromContent
+ *    删除 → 文件头 `extractPptxElementReferences as extractPptxElementReferencesFromContent`
+ *    真实 import。束真取证：styles KXe（2122719）首段 `w(e)` 之 `w` = 块首导入
+ *    `m as w` ← ./imeComposition-DEYFkwWm.js（原码 ur），canonical = ImeComposition@1164
+ *    逐字。一符一家归 imeComposition 域；消费面 7169 逐字不变。型面：canonical 返
+ *    PptxElementReference[]，对 PptxElementAddDetail[]（开放索引签名面）可指派，无缝。 ── */
 export interface PptxElementAddDetail {
   id: string;
   workspacePath: string;
@@ -7108,10 +7112,13 @@ function parseWebElementMarkdown(markdown: string, index: number, workspacePath:
       };
 }
 
-/** UXe → extractWebElementsFromContent（js 68805） */
+/** UXe → extractWebElementsFromContent（js 68805）；〔A1-R129z〕返面窄化：
+ * webElementContexts → Array<WebElementContext & { id: string }>——HXe 解析面必携
+ * `parsed-web-element-${index+1}-${tagName}` id（束真 68781；WebElementsChip 契约同注），
+ * 面差销账；cast 同步窄化，编译期擦除。 */
 function extractWebElementsFromContent(content: string, scope: { workspacePath: string; workspaceIdentity?: string | null }): {
   visibleContent: string;
-  webElementContexts: WebElementContext[];
+  webElementContexts: Array<WebElementContext & { id: string }>;
 } {
   const sectionMatch = /(?:^|\n\n)# Web page elements:\s*\n\n([\s\S]*?)\s*$/.exec(content);
   if (!sectionMatch || sectionMatch.index < 0) return { visibleContent: content, webElementContexts: [] };
@@ -7125,7 +7132,7 @@ function extractWebElementsFromContent(content: string, scope: { workspacePath: 
     .filter((entry) => entry !== null);
   return parsed.length === 0
     ? { visibleContent: content, webElementContexts: [] }
-    : { visibleContent: content.slice(0, sectionMatch.index).trimEnd(), webElementContexts: parsed as WebElementContext[] };
+    : { visibleContent: content.slice(0, sectionMatch.index).trimEnd(), webElementContexts: parsed as Array<WebElementContext & { id: string }> }; // 〔A1-R129z〕窄化 cast（HXe 必携 id，见函数头注）
 }
 
 /** WXe → dispatchWebElementAddEvent（js 68824；BrowserPane 消费名 addWebElementContextToChat） */
@@ -7142,7 +7149,7 @@ export function dispatchWebElementAddEvent(detail: WebElementContext): void {
 interface ComposerContexts {
   codeComments: CodeCommentAttachment[];
   conversationSelections: ConversationSelection[];
-  webElements: WebElementContext[];
+  webElements: Array<WebElementContext & { id: string }>; // 〔A1-R129z〕窄化同 extractWebElementsFromContent 返面（WebElementsChip 契约）
   pptxElements: PptxElementAddDetail[];
 }
 
@@ -7164,18 +7171,21 @@ function buildComposerContextMarkdown(content: string, contexts: ComposerContext
   );
 }
 
-/** KXe → parseComposerContextContent（js 68839） */
-function parseComposerContextContent(content: string, scope: { workspacePath: string; workspaceIdentity?: string | null }): ComposerContexts & { visibleContent: string } {
+/** KXe → parseComposerContextContent（js 68839）；〔A1-R129z〕补 export + 面校准：
+ * scope.workspacePath string→string?（超集面——束真 KXe 无类型直传；Conversation 行上下文
+ * RowRenderContext.workspacePath?: string 消费面直入；既有内部调用方全携真串不受影响）
+ * + 内部二缝铸（抽取面窄形，铸编译期擦除，运行期与束逐字同）。 */
+export function parseComposerContextContent(content: string, scope: { workspacePath?: string; workspaceIdentity?: string | null }): ComposerContexts & { visibleContent: string } {
   const pptxResult = extractPptxElementReferencesFromContent(content);
-  const webResult = extractWebElementsFromContent(pptxResult.visibleContent, scope);
-  const commentResult = extractCodeCommentsFromContent(webResult.visibleContent, scope);
+  const webResult = extractWebElementsFromContent(pptxResult.visibleContent, scope as { workspacePath: string; workspaceIdentity?: string | null }); // 〔A1-R129z〕型缝一：束真 UXe 受 t 直传（无类型）；抽取面窄形，铸编译期擦除
+  const commentResult = extractCodeCommentsFromContent(webResult.visibleContent, scope as { workspacePath: string; workspaceIdentity?: string | null }); // 〔A1-R129z〕型缝二：同上（DXe 面）
   const selectionResult = extractConversationSelections(commentResult.visibleContent);
   return {
     visibleContent: selectionResult.visibleContent,
     codeComments: commentResult.codeCommentAttachments,
     conversationSelections: selectionResult.references,
     webElements: webResult.webElementContexts,
-    pptxElements: pptxResult.pptxElementReferences,
+    pptxElements: pptxResult.pptxElementReferences as unknown as PptxElementAddDetail[], // 〔A1-R129z〕型缝三：canonical 返 PptxElementReference[]（imeComposition 域窄形，无索引签名）；ComposerContexts 面 PptxElementAddDetail[] 带开放索引签名，单向不足铸（TS2352）经 unknown 二级——束真 KXe 直传 w(e).pptxElementReferences 无型，铸编译期擦除，运行期逐字同
   };
 }
 

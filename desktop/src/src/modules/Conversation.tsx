@@ -124,7 +124,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored u
 import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, alwaysTrue as initialFollowing, resolveFollowIntent as updateFollowing, resolveFollowAfterIntent as reconcileFollowing, resolveInitialIntent as resolveStickToBottomAction, scrollDeltaDirection as wheelScrollIntent, compareScrollDirection as touchScrollIntent, shouldSuppressTopAdjustment as shouldAdjustScrollPosition, shouldLoadOlderOnUnfollow as shouldShowBackToBottom, shouldTriggerLoadOlder as shouldPrefetchOlder, estimatePrependTrigger as prefetchTriggerPx, computePrependCompensation as computeLoadOlderScrollDelta, computePrependGrowth as computePrependScrollDelta, useSessionErrorRecovery, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）；+useSessionErrorRecovery（A1-R14：原 NCt 118779 实体化改指，消费点 5328）；+12 滚动跟随族别名改指（A1-R129t：孪生收敛，详见下方墓碑）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
 import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep'; // 原 v_t/__t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
-import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type CodeCommentAttachment, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）；〔A1-R22〕+type CodeCommentAttachment（ParsedUserInput 型别精化）
+import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）；〔A1-R22〕+type CodeCommentAttachment（ParsedUserInput 型别精化）
 import { OffPeakNewTaskBanner } from './Home'; // 〔A1-P1-B15〕原 I3e（76860）收敛改指；〔A1-P1-B16〕ApiRetryView 别名随 x1 收敛入 ChatLoadingSlot 除名
 import { ApiRetryLoadingSlot } from '../components/conversation/ChatLoadingSlot'; // 〔A1-P1-B16〕原 x1（112814）逐字实体化（kvt/Llt 同叶携带；消费位 112823 束体办结）
 import { classifyToolCall } from '../components/conversation/ToolCallClassification'; // 〔A1-R129u〕原 og（js 23132）canonical 改指：isTodoToolByName 实体化消费
@@ -148,7 +148,7 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
  *    唯一消费面 9.6 A0 编排器随 PTt 域迁出（SplitLayoutUiDeep.tsx）而删除。 ── */
 import { SessionQuotaBanner, PendingCommandBanner, type QuotaBannerState } from '../components/conversation/SessionBanners'; // 〔A0-S4-4b〕§9 渲染点（7528/7538）+ QuotaBannerState 型别（6979）消费回取（函数声明提升/型别擦除，环安全）
 import { splitUserInputParts, formatSkillMentionLabel, type MentionToken } from '../components/composer/FileMentionDragHelpers'; // A1-R12：ZHe（52182）/YHe（52147）declare 改指纯函数叶子（本批逐字转录）；调用点 767/688 逐字不变。环安全：叶子零 import
-import { CodeCommentsChip, SelectionsChip, WebElementsChip, isHttpUrl as isPluginIconUrl, type ConversationSelection, type PptxElementAddDetail, type WebElementContext } from './Composer'; // A1-R13：oV（64277）declare 改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；调用点 740 逐字不变。环安全：Composer 不反引本文件。〔A1-R22〕+CodeCommentsChip/WebElementsChip/SelectionsChip（原 TH 68298 / lit 89989 / uit 90087 逐字 canonical；消息行 112241–112244 四 chip declare 收敛）+三型别（ParsedUserInput 精化）
+import { CodeCommentsChip, parseComposerContextContent as parseUserInputContext, SelectionsChip, WebElementsChip, isHttpUrl as isPluginIconUrl } from './Composer'; // A1-R13：oV（64277）declare 改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；调用点 740 逐字不变。环安全：Composer 不反引本文件。〔A1-R22〕+CodeCommentsChip/WebElementsChip/SelectionsChip（原 TH 68298 / lit 89989 / uit 90087 逐字 canonical；消息行 112241–112244 四 chip declare 收敛）+三型别（ParsedUserInput 精化）
 import { PptxReferencesChip, usePptxPreviewOpener } from '../components/composer/PptxReferencesChip'; // 〔A1-R22〕原 PptxReferenceChips/useOpenCodeViewerForReference declare（JH 69036 / YH 69207）改指（A1-R21 补 export；消息行 112243 消费面）。环安全：该叶不反引本文件
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
@@ -224,20 +224,16 @@ import { ConversationPane } from '../components/conversation/ConversationPaneCor
  *    （686 提及芯片 / 2347 文件变更行）仅传 {path, options}，与 canonical 面
  *    {path: string; options?: FilePathInlineOptions} 逐字同构，调用面逐字不变。 ── */
 
-/** 用户输入上下文解析（原 KXe：拆分可见文本/代码评论/网页元素/pptx/会话引用） */
-interface ParsedUserInput {
-  visibleContent: string;
-  /* 〔A1-R22〕型缝：四类附件字段自 unknown[] 精化为真形——消费面 bundle 112241–112244 逐 chip 渲染；
-   * webElements 解析面 HXe（68781）必携 parsed-web-element-* id；conversationSelections 经 Ds（2827）守护窄化。 */
-  codeComments: CodeCommentAttachment[];
-  webElements: Array<WebElementContext & { id: string }>;
-  pptxElements: PptxElementAddDetail[];
-  conversationSelections: ConversationSelection[];
-}
-declare function parseUserInputContext(
-  text: string,
-  scope: { workspacePath?: string; workspaceIdentity?: string | null },
-): ParsedUserInput;
+/* ── tombstone〔A1-R129z〕：declare function parseUserInputContext + interface ParsedUserInput
+ *    （原 KXe，styles 2122719）删除 → 文件头 `parseComposerContextContent as
+ *    parseUserInputContext` 真实 import（canonical = modules/Composer parseComposerContextContent，
+ *    [B16] js 68839 逐字转录，R129z 补 export + 面校准）。束调用真 3532861
+ *    `KXe(e.text, { workspacePath: t.workspacePath, workspaceIdentity: t.workspaceIdentity })`
+ *    与消费面 1132 逐字同构。ParsedUserInput 界面随迁退役：四附件型别由 canonical 返面
+ *    （ComposerContexts & {visibleContent}）直供——webElements 窄形 & {id: string} 契约
+ *    R129z 已同步窄化入 canonical（HXe 必携 id 束真）；〔A1-R22〕四型别精化注随碑吸收。
+ *    随迁退役型别导入四件：type CodeCommentAttachment（GitReview 行）/type ConversationSelection/
+ *    type PptxElementAddDetail/type WebElementContext（Composer 行）——唯消费面即本界面。 ── */
 
 /* ── tombstone（A1-R22）：declare CodeCommentChips/WebElementChips/PptxReferenceChips/
  *    ConversationSelectionChips（原 TH/lit/JH/uit，js 68298/89989/69036/90087）删除 → 文件头真实
