@@ -126,9 +126,9 @@ import { useSearchResultsStore, type SearchResultsState } from '../../modules/Qu
 import { groupedTaskKeyOf as groupedTaskSortKey } from '../../modules/QuickPickDeep'; // 〔A1-R129〕原 k8（152915）declare 改指（≡n8 144952 束内同形；QuickPickDeep@349 逐字转录在案）。环安全：本→modules/QuickPickDeep→QuickPickDeep 值闭包（shell 叶子 TaskIndexCore/SessionStoreCore 拓扑既有同构，@149 碑文在案）不达 SidebarLeaves // A1-R10 项 1a：原 Vo（bundle 1553）declare 改指 canonical = QuickPick 1254 区（A1-R9 收敛完成；modules/QuickPick 为再导出 shim，QuickPickDeep 同源先例）。环安全：QuickPick 值闭包（modules/ImeComposition/SkillStore/StoresDeep/services/stores-core 族 + components/ui）不达 components/shell
 import { normalizeSearchDescriptor as buildTaskListQueryDescriptor, descriptorCacheKey as queryDescriptorKey, type SearchDescriptor } from '../../stores/searchResultsHelpers'; // A1-R10 项 1a：原 zie/Bie（bundle 1385/1396）declare 改指 canonical（searchResultsHelpers 逐字转录在案）；入参 workspaceScopes → 出参 workspaceKeys 真形（1386–1395 实测）。环安全：helpers 值闭包 = react + stores/taskStore，不达 components/shell
 import { useBaseServices } from '../../modules/services';
-import { buildWorkspaceServicesBindings as buildWorkspaceServicesMap } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R126〕yc≡buildWorkspaceServicesBindings（styles 4834 逐字；三字段快照入参面 SessionRegistrySnapshotState 同批精化，@262 留批型面不接消解；墓碑见 @347 区）
+import { buildWorkspaceServicesBindings as buildWorkspaceServicesMap, resolveTabRemoteSessionId as resolveRemoteSessionId, tabHasRemoteBacking as isRemoteWorkspace, resolveTabServicesBinding as buildScopedServices } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R129〕+gc/_c/vc 三符改指（resolveTabRemoteSessionId as resolveRemoteSessionId / tabHasRemoteBacking as isRemoteWorkspace / resolveTabServicesBinding as buildScopedServices；A1-P3-B4 留批闭合，墓碑见 @269 区） // 〔A1-R126〕yc≡buildWorkspaceServicesBindings（styles 4834 逐字；三字段快照入参面 SessionRegistrySnapshotState 同批精化，@262 留批型面不接消解；墓碑见 @347 区）
 import { useLocalWorkspaceTabs as useScopedWorkspaceTabs } from '../../modules/SettingsLeaves'; // 〔A1-R126〕J3≡useLocalWorkspaceTabs（styles 135515；canonical 属主 AutomationEditor@1088；墓碑见 @1756 区）
-import { useSessionRegistryStore, type BaseServices } from '../../modules/stores-core'; // BaseServices：resolveServicesByWorkspaceIdentity declare 契据面仍用（〔A1-R126〕yc declare 已墓碑化，型用余此一处）
+import { useSessionRegistryStore } from '../../modules/stores-core'; // 〔A1-R129〕type BaseServices 移除：最后型用面 buildScopedServices declare 本批退役（R126 留注闭合）
 import { formatRelativeTime } from '../../modules/SidePanel'; // $S
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R127〕原 G（IntlProvider D@9248–9252）declare 改指（Sidebar@206 R121 同判例；调用点 3120/3853 逐字不变）
 import { useConfirmDialog } from '../../modules/Modals'; // 〔A1-R127〕原 U2（styles 123510）declare 改指（ConfirmDialog@79 canonical 转导出；AutomationsMainView@25 R119 同判例；Omit<ConfirmDialogRequest,'resolve'> 面涵原契据三字段）
@@ -224,13 +224,9 @@ declare function clearPromotedGroupedDraftTaskSelector(state: TaskStoreState): (
   workspaceIdentity?: string | null,
 ) => void;
 
-/** 会话注册 store 选择器（原 Zs） */
-interface SessionRegistryState {
-  sessionsById: Record<string, SessionRecord | undefined>;
-  sessionIdByWorkspaceIdentity: Record<string, string | undefined>;
-  sessionIdByWorkspacePath: Record<string, string | undefined>;
-}
-interface SessionRecord { [key: string]: unknown }
+/* ── tombstone〔A1-R129〕SessionRegistryState（原 Zs）+ SessionRecord 型死删：唯一消费面
+ *    SessionRegistrySnapshot 随 gc/_c/vc 三 declare 退役（下方墓碑）；canonical 侧
+ *    SessionRegistrySnapshotState（WTD@707）为在案真形。 ── */
 
 /** 搜索结果 store（原 Vo）：任务元数据缓存与失效 */
 /* ── tombstone（A1-R10）：本地 SearchResultsState 近似面 + useSearchResultsStore
@@ -266,23 +262,16 @@ interface WorkspaceServices {
   [key: string]: unknown;
 }
 
-/** 会话打开/水合助手（原 gc/_c/vc，jsx 3614–3621）——〔A1-P3-B4〕留批：canonical 已定位 =
- *  WorkspaceTabsDeep resolveTabRemoteSessionId/tabHasRemoteBacking/resolveTabServicesBinding
- *  （styles 4814/4822/4825，语义重建），运行时同形；惟 canonical 参数形为全量
- *  SessionRegistryState，本叶调用面传三字段快照（下方 SessionRegistrySnapshot），型面不接，
- *  需 canonical 侧参数放宽或快照型归一后改指（证据见 A1-P3-B4.report.md §七）。 */
-declare function resolveRemoteSessionId(tab: WorkspaceTab, registry: SessionRegistrySnapshot): string | null;
-declare function isRemoteWorkspace(tab: WorkspaceTab, remoteSessionId: string | null): boolean;
-declare function buildScopedServices(
-  scope: WorkspaceScope & { remoteSessionId?: string | null },
-  services: BaseServices, // 实参为 useBaseServices() 返回形；返回分片按 WorkspaceServices 收敛
-  registry: SessionRegistrySnapshot,
-): { services: WorkspaceServices; remoteSessionId?: string | null } | null;
-interface SessionRegistrySnapshot {
-  sessionsById: SessionRegistryState["sessionsById"];
-  sessionIdByWorkspaceIdentity: SessionRegistryState["sessionIdByWorkspaceIdentity"];
-  sessionIdByWorkspacePath: SessionRegistryState["sessionIdByWorkspacePath"];
-}
+/* ── tombstone〔A1-R129〕gc/_c/vc 三 declare 收敛改指 modules/WorkspaceTabsDeep canonical（A1-P3-B4 留批闭合）：
+ *    resolveRemoteSessionId ≡ resolveTabRemoteSessionId（gc，styles 4814 ≡ WTD@714）/
+ *    isRemoteWorkspace ≡ tabHasRemoteBacking（_c，styles 4822 ≡ WTD@729）/
+ *    buildScopedServices ≡ resolveTabServicesBinding（vc，styles 4825 ≡ WTD@737）。
+ *    型面不接障碍已于 R126 消解（canonical registry 参型精化为 SessionRegistrySnapshotState
+ *    三字段 pick = 束真形，本叶 registry memo 结构同形直传）。型缝二：
+ *    ①gc 真身返回 string|undefined → 627 缝 as any 还原原契据 string|null 面（WorkspaceTaskQueryConfig 槽位）；
+ *    ②vc 真身返回 WorkspaceServicesBinding（services: BaseServices）→ 642 缝 as any as 原契据面
+ *      （R126 Sidebar@2312 memo 缝 / R127 调用边界缝同判例）。调用点 597/613/614/642 逐字不变。
+ *    SessionRegistrySnapshot 本地型随之死删（唯此三 declare 用）。 ── */
 
 /** 任务列表查询描述符与键（原 zie/Bie，jsx 425/436） */
 /* ── tombstone（A1-R10）：本地 TaskListQueryDescriptor 近似面 +
@@ -625,7 +614,7 @@ export function useWorkspaceTaskGroups(args: {
         return {
           scope,
           workspaceKey,
-          remoteSessionId,
+          remoteSessionId: remoteSessionId as any, // 〔型缝 A1-R129〕gc 真身返回 string|undefined → 原契据 string|null 面还原（墓碑见 @269 区）
           isRemoteWorkspace: remote,
           visibleLimit,
           descriptor,
@@ -639,7 +628,7 @@ export function useWorkspaceTaskGroups(args: {
   const shards = React.useMemo<WorkspaceTaskShard[]>(() => {
     const byEndpoint = new Map<string, { services: WorkspaceServices; configs: WorkspaceTaskQueryConfig[] }>();
     for (const config of queryConfigs) {
-      const built = buildScopedServices({ ...config.scope, remoteSessionId: config.remoteSessionId }, baseServices, registry);
+      const built = buildScopedServices({ ...config.scope, remoteSessionId: config.remoteSessionId }, baseServices, registry) as any as { services: WorkspaceServices; remoteSessionId?: string | null } | null; // 〔型缝 A1-R129〕vc 真身返回面还原原契据（墓碑见 @269 区）
       if (!built) continue;
       const shardKey = built.remoteSessionId ?? "__base__";
       const shard = byEndpoint.get(shardKey) ?? { services: built.services, configs: [] };
