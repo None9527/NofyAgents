@@ -156,7 +156,7 @@ import { MemoQueuePanel, type QueueState } from '../components/conversation/Queu
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
 import { normalizeToolCallNode } from '../components/conversation/ToolStatusModel'; // 原 u1（styles 110206；A1-R96 实体化收敛）
 import { TurnNavigator, findActiveQueryRow, shouldHydrateFullHistory, hydrateRetryDelayMs } from '../components/conversation/TurnNavigator'; // 〔A0-S4-4b〕§8 渲染点（6549）+ activeQueryRowId（6238）+ §5 水合判定（3957/3991）消费回取
-import { EMPTY_SUBAGENT_DIRECTORY, buildSessionErrorKey, buildSessionErrorBannerModel, isApiRetryEligible } from '../components/conversation/ConversationPaneHelpers'; // 〔A1-P1〕R0 簇卫星域逐字真身（原 $Ct/QCt/twt，js 119197/119194/119199）；叶仅依赖 SrcSharedA，环安全（本文件单向消费）；〔A1-P1-B17〕+isApiRetryEligible（原 Wgt，110071；declare 删碑见 §5.15 域）
+import { EMPTY_SUBAGENT_DIRECTORY, buildSessionErrorKey, buildSessionErrorBannerModel, isApiRetryEligible, readScrollMemory, writeScrollMemory } from '../components/conversation/ConversationPaneHelpers'; // 〔A1-P1〕R0 簇卫星域逐字真身（原 $Ct/QCt/twt，js 119197/119194/119199）；叶仅依赖 SrcSharedA，环安全（本文件单向消费）；〔A1-P1-B17〕+isApiRetryEligible（原 Wgt，110071；declare 删碑见 §5.15 域）
 import { useSessionQuotaViewModel } from '../components/conversation/ConversationQuotaModel'; // 〔A1-P1-B2〕原 XCt（js 119101）逐字真身（配额块闭包全簇）；环安全：叶不反引本文件（UsageDeep 依赖面负证据在案）
 import { ConversationPane } from '../components/conversation/ConversationPaneCore'; // 〔A1-P1-B3〕原 R0（js 119236–121300）B5 逐字真身；§9.5 A0 体删碑改指，§9.7 导出面不变；环安全见该叶头注（延迟消费环）
 
@@ -4464,9 +4464,11 @@ function unitKey(unit: { key: string } | undefined): string | undefined {
   return unit?.key;
 }
 
-/** 滚动记忆读写（原 cUe/ut，横切层）：按 scrollMemoryKey 持久化 pinnedToBottom/offset */
-declare function readScrollMemory(scopeKey: string | null): { wasPinnedToBottom?: boolean; scrollTop?: number } | null;
-declare function writeScrollMemory(snapshot: unknown): void;
+/* ── tombstone〔A1-R133〕：declare readScrollMemory/writeScrollMemory（原 cUe/Rj，styles 1649596/1649690；
+ *    旧注 cUe/ut 1653540 偏移误）删除 → 一符一家收敛 components/conversation/ConversationPaneHelpers
+ *    readScrollMemory（≡cUe）/writeScrollMemory（≡Rj 异模缝：键经模块级追踪，簇头注在案），
+ *    经文件头既有导入行消费（别名保调用名逐字不变）。消费面实证（3 处）：5064 writeScrollMemory(snapshot)
+ *    + 5081 readScrollMemory(scrollMemoryKey) + 5191 桥 commit=restoreScrollMemory，逐字不变。 ── */
 /* 原 Gct/Hct（jsx 84997/84988，styles 3097374/3097185）+ zct/Bct/Vct 类串（styles 3096923–3097183）：
  * 摘要面板布局解析器逐字实体化〔A1-R129u〕。面校准：resolveSummaryPanelContentClass 旧面 `: string`，
  * 束真 `e === `none` ? void 0 : Vct` 真面 string | undefined；消费面 4492/4501/4530/4544 均 cn(...) 受 undefined，行为等价。 */

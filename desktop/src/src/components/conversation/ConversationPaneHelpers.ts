@@ -173,6 +173,57 @@ export function buildTelemetryScopeKey({ workspacePath: e, workspaceIdentity: t,
   let l = o ? `${a}::pane:${o}` : a;
   return s ? `${l}::session:${s}` : c ? `${l}::task:${c}` : null;
 }
+
+/* ==========================================================================
+ * 〔A1-R133〕滚动记忆存储簇逐字实体化（styles 1649178–1649690；旧注 1653540 偏移误重取证）
+ *   Fj→scrollMemoryStore | Lj→refreshScrollMemoryEntry | oUe→evictScrollMemoryEntries
+ *   cUe→readScrollMemoryEntry（≡readScrollMemory 消费面）| Rj→writeScrollMemoryEntry（≡writeScrollMemory 消费面）
+ *   Ij/sUe 同域既录（trimOrNull/buildTelemetryScopeKey，A1-P1-B5）；lUe（束真 ut 消费，
+ *   重建面无对应消费点）不入批，取证在案。
+ * 型缝：declare 时代 writeScrollMemory 面（snapshot 单参）与束真 Rj(key,state) 异模——消费面
+ *   （Conversation 5064/5081/桥 commit）逐字锁定，键经模块级 currentScrollMemoryScopeKey 追踪
+ *   （读时更新）：会话切换效果先读后写（同键同值回环，存储无可观察差异）；桥 commit 发生于
+ *   componentDidUpdate（新键 layout effect 之前），当前键仍为旧作用域键——与束真 st 按快照
+ *   携带旧键写入同行为。
+ * ==========================================================================*/
+
+/** 原 Fj：滚动记忆存储（作用域键 → 快照；delete+set 维护 LRU 序） */
+const scrollMemoryStore = new Map<string, { wasPinnedToBottom?: boolean; scrollTop?: number }>();
+/** 原 Lj：条目刷新（delete+set 移尾，LRU 序） */
+function refreshScrollMemoryEntry(e: string, t: { wasPinnedToBottom?: boolean; scrollTop?: number }) {
+  return (scrollMemoryStore.delete(e), scrollMemoryStore.set(e, t), t);
+}
+/** 原 oUe：超 200 条头部驱逐 */
+function evictScrollMemoryEntries() {
+  for (; scrollMemoryStore.size > 200;) {
+    let e = scrollMemoryStore.keys().next().value;
+    if (!e) return;
+    scrollMemoryStore.delete(e);
+  }
+}
+/** 原 cUe：作用域读（带 LRU 刷新） */
+function readScrollMemoryEntry(e: string | null) {
+  if (!e) return null;
+  let t = scrollMemoryStore.get(e);
+  return t ? refreshScrollMemoryEntry(e, t) : null;
+}
+/** 原 Rj：作用域写（带驱逐） */
+function writeScrollMemoryEntry(e: string | null, t: { wasPinnedToBottom?: boolean; scrollTop?: number }) {
+  e && (refreshScrollMemoryEntry(e, t), evictScrollMemoryEntries());
+}
+/** 〔A1-R133〕当前作用域键追踪（异模缝，见簇头注） */
+let currentScrollMemoryScopeKey: string | null = null;
+/** 原 cUe 消费面：作用域读 + 当前键更新〔A1-R133 实体化〕 */
+export function readScrollMemory(scopeKey: string | null): { wasPinnedToBottom?: boolean; scrollTop?: number } | null {
+  currentScrollMemoryScopeKey = scopeKey;
+  return readScrollMemoryEntry(scopeKey);
+}
+/** 原 Rj 消费面：按当前键写快照（空快照/空键豁免）〔A1-R133 实体化〕 */
+export function writeScrollMemory(snapshot: unknown): void {
+  if (!snapshot) return;
+  writeScrollMemoryEntry(currentScrollMemoryScopeKey, snapshot as { wasPinnedToBottom?: boolean; scrollTop?: number });
+}
+
 /** 原 eN（js 53594）：交互行为模式（guide|queue|null；R0 119463 消费）〔A1-P1-B5〕逐字实体化 */
 export function resolveInteractionBehaviorMode(e: { zcodeInteractionBehavior?: string } | null | undefined): string | null { // 〔A1-P1-B5〕型缝：settings 最小消费面
   return e ? (e.zcodeInteractionBehavior === `guide` ? `guide` : `queue`) : null;
