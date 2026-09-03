@@ -149,7 +149,7 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
  *    唯一消费面 9.6 A0 编排器随 PTt 域迁出（SplitLayoutUiDeep.tsx）而删除。 ── */
 import { SessionQuotaBanner, PendingCommandBanner, type QuotaBannerState } from '../components/conversation/SessionBanners'; // 〔A0-S4-4b〕§9 渲染点（7528/7538）+ QuotaBannerState 型别（6979）消费回取（函数声明提升/型别擦除，环安全）
 import { splitUserInputParts, formatSkillMentionLabel, type MentionToken } from '../components/composer/FileMentionDragHelpers'; // A1-R12：ZHe（52182）/YHe（52147）declare 改指纯函数叶子（本批逐字转录）；调用点 767/688 逐字不变。环安全：叶子零 import
-import { CodeCommentsChip, parseComposerContextContent as parseUserInputContext, SelectionsChip, WebElementsChip, isHttpUrl as isPluginIconUrl } from './Composer'; // A1-R13：oV（64277）declare 改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；调用点 740 逐字不变。环安全：Composer 不反引本文件。〔A1-R22〕+CodeCommentsChip/WebElementsChip/SelectionsChip（原 TH 68298 / lit 89989 / uit 90087 逐字 canonical；消息行 112241–112244 四 chip declare 收敛）+三型别（ParsedUserInput 精化）
+import { CodeCommentsChip, parseComposerContextContent as parseUserInputContext, SelectionsChip, WebElementsChip, isHttpUrl as isPluginIconUrl, usePluginReferenceCatalog as usePluginManifests } from './Composer'; // 〔A1-R136〕+usePluginManifests 别名（原 FV，canonical = Composer usePluginReferenceCatalog；消费面 5510 逐字不变） // A1-R13：oV（64277）declare 改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；调用点 740 逐字不变。环安全：Composer 不反引本文件。〔A1-R22〕+CodeCommentsChip/WebElementsChip/SelectionsChip（原 TH 68298 / lit 89989 / uit 90087 逐字 canonical；消息行 112241–112244 四 chip declare 收敛）+三型别（ParsedUserInput 精化）
 import { PptxReferencesChip, usePptxPreviewOpener } from '../components/composer/PptxReferencesChip'; // 〔A1-R22〕原 PptxReferenceChips/useOpenCodeViewerForReference declare（JH 69036 / YH 69207）改指（A1-R21 补 export；消息行 112243 消费面）。环安全：该叶不反引本文件
 import { AttachmentChipGroup, AttachmentChip, AttachmentChipIcon, AttachmentChipName, AttachmentChipRemoveButton, AttachmentPreviewDialog } from '../components/composer/AttachmentChips'; // 〔A1-R130〕原 vN/yN/bN/xN/SN/DN（styles 1717600–1727900）declare 改指（正典逐字实体化；消费面 1021–1056 逐字不变）。环安全：该叶仅 modules/{UtilsCn,button,I18n}+components/ui/dialog+lucide 单向边
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
@@ -5478,15 +5478,15 @@ const PaneFloatingHeader = React.memo(function PaneFloatingHeader({
 /* --- 9.3 插件图标门（原 Ubt/Wbt，js 115538/115559 / jsx 98326/98347） --- */
 
 /** 原 FV（横切层）：按工作区/会话解析插件清单（authority: session|workspace） */
-declare function usePluginManifests(
-  workspacePath: string | undefined,
-  workspaceIdentity: string | null | undefined,
-  sessionId: string | null,
-  enabled: boolean,
-  opts?: { dedupeSessionRequest?: boolean; preferredRemoteSessionId?: string; suppressErrorLog?: boolean },
-): { authority: "session" | "workspace" | "none"; entries: unknown[] };
+/* ── tombstone〔A1-R136〕：declare usePluginManifests（原 FV，js 65370；旧注 2024024 偏移误，
+ *    重取证 2017738–2018035）删除 → 一符一家收敛 modules/Composer usePluginReferenceCatalog
+ *    （FV 整簇逐字既录：MV/jJe 空态 + NV-WeakMap 去重 + PV/MJe 缓存结算 + Dc≡useResolvedServices），
+ *    经文件头既有 ./Composer 导入行别名接入（保调用名逐字不变）。面校准二件在案：首参宽化
+ *    string|undefined（束真 !e 守卫）+ 返回面 authority 束真含 null（declare 时代三档联合过近似，
+ *    消费面 === `session` 判别与 buildPluginIconMap 宽面逐字兼容）。消费面实证（1 处）：
+ *    PluginIconProvider @5510，逐字不变。 ── */
 /** 原 Hbt（jsx 98320，styles 3656974）：插件清单 → pluginId→图标 URL 映射〔A1-R129x 实体化〕 */
-function buildPluginIconMap(authority: string, entries: unknown[]): Map<string, string> {
+function buildPluginIconMap(authority: string | null, entries: unknown[]): Map<string, string> { // 〔A1-R136〕面校准：束真 authority 含空态（EMPTY 状态 null），超集面补登；消费面逐字不变
   if (authority !== `session`) return new Map();
   let map = new Map<string, string>();
   for (let entry of entries as Array<{ pluginId: string; icon?: string | null }>) entry.icon && map.set(entry.pluginId, entry.icon); // 〔型缝 A1-R129x〕entries 面 unknown[]

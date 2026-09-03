@@ -678,7 +678,7 @@ declare function resolveTabServices(tab: unknown, baseServices: unknown, resolve
   | { services: { zcodeAgentService: ZcodeAgentService }; remoteSessionId?: string | null }
   | null;
 declare function useResolvedServices(
-  workspacePath: string,
+  workspacePath: string | undefined, // 〔A1-R136〕面校准：束真 Dc 首参带 !e 守卫（remoteServices useResolvedWorkspaceServices 面 string|null 同判），超集面宽化
   remoteSessionId: string | null | undefined,
   workspaceIdentity?: string | null,
   extra?: unknown,
@@ -2938,9 +2938,10 @@ function trackPluginCatalogRequest(
   request.then(cleanup, cleanup);
 }
 
-/** 原 FV（js 65370）：插件引用目录钩子（会话级去重 + 运行时重启递增） */
-function usePluginReferenceCatalog(
-  workspacePath: string,
+/** 原 FV（js 65370）：插件引用目录钩子（会话级去重 + 运行时重启递增）；〔A1-R136〕补 export +
+ * 首参面宽化 string|undefined（Conversation PluginIconProvider 消费面逐字锁定；束真 FV 首参带 !e 守卫）。 */
+export function usePluginReferenceCatalog(
+  workspacePath: string | undefined,
   workspaceIdentity: string | null | undefined,
   sessionId: string | null,
   enabled: boolean,
