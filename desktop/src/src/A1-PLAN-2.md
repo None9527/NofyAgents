@@ -58,3 +58,40 @@
 - W4 完工后：复核 W6 估计与 B 阶段切分。
 - W1 首批（32 区）后：若机械化收割率 <50%，W1/W3 降级为「留批 + 披露」，不再追全量。
 - 任何一批七门红：停批复盘，不带红进门。
+
+## 8. 总体方案复评（A1-R142 时点，台账 742）
+
+实测盘点：台账 742 件 / 103 文件。三域（UsageDeep 56 + Onboarding 48 + Composer 7）= 111 件，
+仅占 15%；**域外 631 件无显式阶段承接**（ExtendedViews 37 / Home 33 / XlsxDeepA 30 /
+AppRootLeaves 29 / ModelProviderSettings 24 / SidePanel 21 / MarkdownIntegration 21 / Mcp 18+14 /
+UsageStatsUiParts 17 / CodeViewer 族 ~50 / remote 族 18 / automations / feedback / xlsx-pptx
+preview 族 ~45 等）。原 §5「W1–W5 合计 15–20 批」已失效（R119–R142 即 24 批，仅收 270 件）。
+
+**修正一（W5 拆两段，承接「先全部解出来」锁定指令）**：
+- W5a = 三域收官（现战役）：Composer 余 7 → UsageDeep 56 → Onboarding 48，≈ 12–15 批。
+- W5b = 二波全台账清零：三域闭后做第二次全量普查（同 A1-W5-CENSUS 方法，按域聚簇 +
+  并行 explore 代理取证），逐域批退役 631 件（内 vendor/ambient 候裁留痕，估 50–100 件
+  裁定留存），≈ 55–75 批。W5 闭条件由「三域清零」修正为「全台账业务 declare 清零 +
+  vendor/ambient 裁定在案」。
+- 若需提前进入 W6，可依 §4「留批带负证据在案」条款降级 W5b 为 W6 并行泳道——但
+  幻影面 = 束行为未全解处，切流验证盲区随之扩大，不建议。
+
+**修正二（W6 B 阶段计划前置件 = 域处置图）**：W6 开工前先产出「UI 域 × 内核能力」
+处置图：逐域判定 ACP 对应面（会话/提示/工具/权限）vs host-only 服务面（usage 计费、
+插件市场、automations、xlsx/pptx 预览 worker、remote workspace、登录态等）。无内核对应
+的域须裁定（退役/禁用/保留 host 残路），否则「内核零改动 + 无适配层」下无处接线。
+处置图同时反哺 W5b 排序（先做切流域，后做候退役域——解出照做，验证深度分级）。
+
+**修正三（门盲区与闭营审计）**：esbuild 门 = 349 文件逐一可捆绑性检查，非束字节比对；
+any 面掩护的函数体形漂（R140 pqe 案：3 参 7 箭 vs 束真形 2 参 6 箭，潜伏 ~100 批）
+现有七门皆捕不到——tsc 在 declare-any 期失明、boot 门捕不到零调用面。系统性暴露机制
+= 退役批本身（别名改指后类型流动，tsc 报即取证信号，R140 判例）。**新增闭营审计**：
+W5a/W5b 各收官时，对已退役至 any-typed canonical 的簇（ConversationSelectionCore 等）
+做束形抽检（R140 法：定位束内函数体，比对元数/槽位语义），抽检面 = any 正典 × 消费簇。
+
+**修正四（程序细项）**：keys-rNNN-post.txt 之 cp 链为陈旧快照（实传 R137 时点数据）；
+门数值出自 keys-diff 对活提取，不受影响。改：每批以活提取重生成 post 文件，cp 仪式废止。
+
+**确认不修正**：批机制（取证→apply→七门→报告→提交）自纠有效；风险升序批序有效；
+W5 字节同判据正确（W6 判据另行定义：ACP 边界功能等价 + 逐域切流双跑比对）；内核零改动/
+单配置/无适配层指令自洽（能力缺口处置归 B 阶段设计）；每批独立提交 = 断点交接面。
