@@ -119,7 +119,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/
 import { Root as RadixCollapsibleRoot, Trigger as RadixCollapsibleTrigger, Content as RadixCollapsibleContent } from '@radix-ui/react-collapsible'; // 〔A1-R129r〕原 vendored radix-collapsible 3 declare 改指（npm @radix-ui/react-collapsible@1.1.20 既装；components/ui/collapsible.tsx 同款判例；碑文见原声明区）
 import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Copy as IconCopy, Pencil as IconPencil, GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, ArrowDownToLine as IconArrowDownToLine, SquareTerminal as IconSquareTerminal, File as IconFile, Bot as IconBot, Sparkles as IconSparkles, Target as IconTarget, GitBranch as IconGitBranch, Lightbulb as IconLightbulb, Eye as IconModelChange, Shield as IconShield, ThumbsUp as IconThumbsUp, ThumbsDown as IconThumbsDown, Rewind as IconRewind, Loader as IconLoader, LoaderCircle as IconSpinner, Info as IconInfo, Upload as IconUpload, Globe as IconGlobe, Gauge as IconGauge, Clock as IconClock, ListTodo as IconListTodo, MessageSquare as IconMessageSquare, Calendar as IconCalendar, X as IconX, Archive as IconCompact, TrendingUpDown as IconFork } from 'lucide-react'; // 〔A1-R129s〕+Archive as IconCompact（原 x_ = Sa('archive') 26663）+TrendingUpDown as IconFork（原 Obe = Sa('trending-up-down') 27937）——图标族改指，消费面 @719/@1440/@1576 逐字不变 // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A1-P1-B17〕+X as IconX（原 g = imeComposition chunk qt=x('x')@11819，导出别名 b@12583，经 styles 349 `b as g` 入本 chunk；消费位 bundle 91840 v4-pane-close 按钮 ≡ 本文件 @4721 逐字吻合；declare 删碑见 §0）
 import * as ReactDOM from "react-dom";
-import { pathBasename } from './ModalsLeaves'; // 〔A1-R129s〕原 Go（1928）——toWorkspaceRelativePath 实体化依存（FilePathInline@18 逐字，R45 名链注在案：Go≡baseName / zhe≡stripTrailingSlash / yg≡toWorkspaceRelativePath）
+import { pathBasename, FilePathInline as FilePath } from './ModalsLeaves'; // 〔A1-R129s〕原 Go（1928）——toWorkspaceRelativePath 实体化依存（FilePathInline@18 逐字，R45 名链注在案：Go≡baseName / zhe≡stripTrailingSlash / yg≡toWorkspaceRelativePath）；+FilePathInline as FilePath（A1-R129y：Bc declare 改指，ModalsLeaves@98 转导出，canonical = components/modals/FilePathInline@119 原 Bc 5157 逐字；调用面 686/2347 逐字不变）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, alwaysTrue as initialFollowing, resolveFollowIntent as updateFollowing, resolveFollowAfterIntent as reconcileFollowing, resolveInitialIntent as resolveStickToBottomAction, scrollDeltaDirection as wheelScrollIntent, compareScrollDirection as touchScrollIntent, shouldSuppressTopAdjustment as shouldAdjustScrollPosition, shouldLoadOlderOnUnfollow as shouldShowBackToBottom, shouldTriggerLoadOlder as shouldPrefetchOlder, estimatePrependTrigger as prefetchTriggerPx, computePrependCompensation as computeLoadOlderScrollDelta, computePrependGrowth as computePrependScrollDelta, useSessionErrorRecovery, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）；+useSessionErrorRecovery（A1-R14：原 NCt 118779 实体化改指，消费点 5328）；+12 滚动跟随族别名改指（A1-R129t：孪生收敛，详见下方墓碑）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
@@ -128,6 +128,7 @@ import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle
 import { OffPeakNewTaskBanner } from './Home'; // 〔A1-P1-B15〕原 I3e（76860）收敛改指；〔A1-P1-B16〕ApiRetryView 别名随 x1 收敛入 ChatLoadingSlot 除名
 import { ApiRetryLoadingSlot } from '../components/conversation/ChatLoadingSlot'; // 〔A1-P1-B16〕原 x1（112814）逐字实体化（kvt/Llt 同叶携带；消费位 112823 束体办结）
 import { classifyToolCall } from '../components/conversation/ToolCallClassification'; // 〔A1-R129u〕原 og（js 23132）canonical 改指：isTodoToolByName 实体化消费
+import { extractPlanMarkdown as buildPlanResultMarkdown } from '../components/conversation/PlanToolBlocks'; // 〔A1-R129y〕原 qZ（styles 3089160）declare 改指（canonical = PlanToolBlocks@77 extractPlanMarkdown 逐字；调用面 1987 逐字不变）。环安全：PlanToolBlocks 导入面（I18n/UtilsCn/button/MarkdownIntegration/Tool*Blocks）无反指本文件边
 import { useAssistantPreviewCards as buildAssistantPreviewCards } from '../components/conversation/PreviewCardLinkBlocks'; // 〔A1-P1-B17〕原 Bgt（110008）逐字实体化（Pgt/Fgt/Igt/c1/Lgt/Rgt/zgt 同叶携带；R1 判例别名保留调用名，消费面逐字不变；declare 删碑见 §5.15 域）
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
@@ -216,21 +217,12 @@ import { ConversationPane } from '../components/conversation/ConversationPaneCor
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（4）：IconRewind/IconLoader/IconSpinner/IconInfo → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（7）：IconUpload/IconGlobe/IconGauge/IconClock/IconListTodo/IconMessageSquare/IconCalendar → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
-/** 文件路径显示组件（原 Bc，文件树/提及/代码查看共用；调用面归纳） */
-declare const FilePath: React.FC<{
-  path: string;
-  basePath?: string;
-  showFilePath?: boolean;
-  options?: {
-    basePath?: string;
-    showFilePath?: boolean;
-    className?: string;
-    iconSize?: number;
-    kind?: "file" | "directory";
-    fileNameClassName?: string;
-    filePathClassName?: string;
-  };
-}>;
+/* ── tombstone〔A1-R129y〕：declare const FilePath（原 Bc 5157）删除 → 文件头
+ *    `FilePathInline as FilePath` 真实 import（ModalsLeaves@98 转导出；canonical =
+ *    components/modals/FilePathInline@119，A0-S4-4a 逐字转录在案）。面校准：declare 面
+ *    顶层 basePath?/showFilePath? 全树零消费（declare 时代过近似），随迁退役；两调用面
+ *    （686 提及芯片 / 2347 文件变更行）仅传 {path, options}，与 canonical 面
+ *    {path: string; options?: FilePathInlineOptions} 逐字同构，调用面逐字不变。 ── */
 
 /** 用户输入上下文解析（原 KXe：拆分可见文本/代码评论/网页元素/pptx/会话引用） */
 interface ParsedUserInput {
@@ -454,7 +446,14 @@ export { QueuePanel, QueueItemRow } from '../components/conversation/QueuePanel'
  * ToolCallBlock + ShellToolView，含内联 declare 15 件，原 910–2128）整体迁出 →
  * components/conversation/ToolCallBlock.tsx。ShellToolView 别名面（ShellToolViewImpl）保留。 */
 export { ToolLayout, ToolCallBlock, ShellToolViewImpl as ShellToolView, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock';
-declare function buildPlanResultMarkdown(toolCall: ToolCall, fallback: string): { markdown: string }; // 原 §4 内联 declare 随迁；§5 留守面（2373）消费，按消费方复制（编译期擦除，emit 中立）
+/* ── tombstone〔A1-R129y〕：declare function buildPlanResultMarkdown（原 qZ）删除 →
+ *    文件头 `extractPlanMarkdown as buildPlanResultMarkdown` 真实 import（canonical =
+ *    components/conversation/PlanToolBlocks@77，A1-R95 qZ 链 98073–98127 逐字转录在案：
+ *    KZ≡extractPlanMarkdownFromValue / GZ≡isPlainObjectRecord；束 3089160 真身 roundtrip
+ *    核验一致）。束调用真 3556620 `qZ(u1(r).toolCall, ``).markdown` 与本文件消费面 1987
+ *    逐字同构。面校准：declare 面 {markdown: string} vs canonical 面 {markdown?, planFilePath?}
+ *    （any 面）——调用面既有 `!markdown` falsy 守护，行为不变。
+ *    ToolCallBlock@76 死孪生（零消费）同批删除，一符一家归 PlanToolBlocks 域。 ── */
 /* ============================================================================
  * 5. Turn 子族（轮分段渲染；spec §6：turn 以 turnHeader 分段，轮级动作
  *    canFork/canEdit/canRetry/canRewindFiles 挂在轮上而非气泡按钮）

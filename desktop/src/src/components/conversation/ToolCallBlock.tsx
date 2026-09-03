@@ -72,8 +72,10 @@ declare function resolveToolDisplayModel(toolCall: ToolCall, workspacePath?: str
  * 供展开区渲染）删除——逐字实体化 → ./ToolCallClassification（styles _g@23686–23749；roundtrip EXACT，
  * /tmp/a1r0-p1-b18/）。消费面改文件头真实 import，调用面（534）逐字不变。 ── */
 
-/** 原 qZ（js 98044 / jsx 85024）：ExitPlanMode 结果 → markdown（供复制文本合并） */
-declare function buildPlanResultMarkdown(toolCall: ToolCall, fallback: string): { markdown: string };
+/* ── tombstone〔A1-R129y〕：declare function buildPlanResultMarkdown（原 qZ）删除——
+ *    本文件零消费（全树唯一调用面在 modules/Conversation@1987，R129y 已改指 canonical =
+ *    components/conversation/PlanToolBlocks@77 extractPlanMarkdown，束 3089160 逐字真身）。
+ *    映射表 675 行 qZ 索引注保留。一符一家归 PlanToolBlocks 域。 ── */
 
 /* ── tombstone〔A1-P1-B12〕：§4.1 ToolLayout 头部/摘要件手写全族删除（ToolLayoutProps 接口 + ToolLayoutAnimatedText（原 aut）
  * + ToolLayoutSummaryPrefix（sut）+ ToolLayoutSummaryContent（cut）+ activateOnEnterOrSpace（out）+ ToolLayoutHeader（lut）
