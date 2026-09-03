@@ -142,7 +142,7 @@
 
 import * as React from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { Copy as IconCopy, Download as IconDownload, X as IconClose, ArrowLeft as IconPrevious, ArrowRight as IconNext, ChevronDown as IconChevronDown } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Copy as IconCopy, Download as IconDownload, X as IconClose, ArrowLeft as IconPrevious, ArrowRight as IconNext, ChevronDown as IconChevronDown, Maximize2 as IconTablePreview, ArrowLeftFromLine as IconCollapseScrollMode, ArrowRightToLine as IconExpandScrollMode, CircleMinus as IconMermaidZoomOut, CirclePlus as IconMermaidZoomIn } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A1-R116〕余件五图标 mv/$ve/tye/hye/L_ 增补（Sa 工厂自报名 maximize-2/arrow-left-from-line/arrow-right-to-line/circle-minus/circle-plus，styles 27394/26677/26692/26883/26902）
 import { Button, ZoomOut as IconZoomOut, ZoomIn as IconZoomIn } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ZoomOut as IconZoomOut, ZoomIn as IconZoomIn（button chunk 图标，pass-1 同源）
 import { Textarea, toast, usePlatform } from '../../modules/ImeComposition';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：Dialog 族 declare → components/ui/dialog（bundle zb/Hb/Ub/Gb/Kb/Vb）
@@ -151,16 +151,14 @@ import { t as logger } from '../../modules/logger'; // 原 J（logger-PFDwl5Yq.j
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js 导出 cn；SrcSharedB 单字母别名为跨块碰撞）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（first-party 信息浮层件，调用面仅 title/side）
 import { classifyToolCall, toolContentFamilyOf, toolEditFamilyOf, parseToolRawPayload, extractBeforeAfterEdit, buildUnifiedDiffText } from '../conversation/ToolCallClassification'; // 原 og（styles 23132）：A1-P1-B18 实体化收敛（工具分类域）；〔A1-P1-B19〕余件五 declare 全闭改指：cg@23193/sg@23187/Bh@22682/Rh@22666 转录并入 + Kh@22830 既有实体
+import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 原 G（IntlProvider-C321H7m8.js D@9248–9252）〔A1-R116〕：useIntlContext declare 删碑改指（R1 判例别名保留调用名；ZCodeIntl 与旧本地 IntlShape 同形）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-declare function useIntlContext(): { intl: IntlShape };
+/* ── tombstone〔A1-R116〕：useIntlContext declare（原 G，IntlProvider-C321H7m8.js D@9248–9252）删除 → 改指文件头 `import { useZCodeIntl as useIntlContext } from '../../modules/I18n'`（R1 判例，50+ 先例）；本地 IntlShape 界面随删——与 I18n::ZCodeIntl@201–203 逐字同形，消费面（3× `const { intl } = useIntlContext()` + 30× intl.formatMessage）逐字不变。 ── */
 
 
 
@@ -191,12 +189,9 @@ interface PlatformService {
 
 /* 图标族（lucide 封装，登记见 VENDOR-MANIFEST） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（2）：IconCopy/IconDownload → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const IconTablePreview: React.FC<{ className?: string }>; // mv
-declare const IconCollapseScrollMode: React.FC<{ className?: string }>; // $ve
-declare const IconExpandScrollMode: React.FC<{ className?: string }>; // tye
+/* ── tombstone〔A1-R116〕：vendored lucide 图标 declare 删除（3）：IconTablePreview/IconCollapseScrollMode/IconExpandScrollMode（原 mv/$ve/tye；Sa 工厂自报名 maximize-2/arrow-left-from-line/arrow-right-to-line，styles 27394/26677/26692）→ npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（5）：IconClose/IconPrevious/IconNext/IconZoomOut/IconZoomIn → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const IconMermaidZoomOut: React.FC<{ className?: string }>; // hye
-declare const IconMermaidZoomIn: React.FC<{ className?: string }>; // L_
+/* ── tombstone〔A1-R116〕：vendored lucide 图标 declare 删除（2）：IconMermaidZoomOut/IconMermaidZoomIn（原 hye/L_；Sa 工厂自报名 circle-minus/circle-plus，styles 26883/26902——语义名沿用文件头映射表 zoom-out/zoom-in 旧登记，图标真身以工厂名为准）→ npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconChevronDown → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* MarkdownIntegration.tsx 已重建件（接口挂接） */
