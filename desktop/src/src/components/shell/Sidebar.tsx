@@ -195,13 +195,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { ContextMenu, ContextMenuContent, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '../ui/context-menu'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
-import { Hash as IconHash, Folder as IconFolder, FolderOpen as IconFolderOpen, Cloud as IconCloud, House as IconHouse, ListTree as IconListTree, MessageCirclePlus as IconMessageCirclePlus, Search as IconSearch, CalendarClock as IconCalendarClock, WandSparkles as IconWandSparkles, Minimize2 as IconMinimize2, Maximize2 as IconMaximize2, ListFilter as IconListFilter, Clock3 as IconClock3, MessageCircleCheck as IconMessageCircleCheck, Archive as IconArchive, CloudUpload as IconCloudUpload, Pin as IconPin, Smartphone as IconSmartphone, Clock as IconClock, Moon as IconMoon, Loader as IconLoader, TriangleAlert as IconTriangleAlert, RefreshCw as IconRefreshCw, Check as IconCheck, Copy as IconCopy, Ellipsis as IconEllipsis, Settings as IconSettings, Globe as IconGlobe, Palette as IconPalette, Maximize as IconMaximize, LogIn as IconLogIn, LogOut as IconLogOut, User as IconUser, Settings2 as IconSettings2, GripVertical as IconGripVertical, ArrowUpToLine as IconArrowUpToLine, ChevronDown as IconChevronDown, LoaderCircle as SpinnerIcon, Plus as IconPlus, ChartColumn as IconChartColumn, Rocket as IconRocket } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Hash as IconHash, Folder as IconFolder, FolderOpen as IconFolderOpen, Cloud as IconCloud, House as IconHouse, ListTree as IconListTree, MessageCirclePlus as IconMessageCirclePlus, Search as IconSearch, CalendarClock as IconCalendarClock, WandSparkles as IconWandSparkles, Minimize2 as IconMinimize2, Maximize2 as IconMaximize2, ListFilter as IconListFilter, Clock3 as IconClock3, MessageCircleCheck as IconMessageCircleCheck, Archive as IconArchive, CloudUpload as IconCloudUpload, Pin as IconPin, Smartphone as IconSmartphone, Clock as IconClock, Moon as IconMoon, Loader as IconLoader, TriangleAlert as IconTriangleAlert, RefreshCw as IconRefreshCw, Check as IconCheck, Copy as IconCopy, Ellipsis as IconEllipsis, Settings as IconSettings, Globe as IconGlobe, Palette as IconPalette, Maximize as IconMaximize, LogIn as IconLogIn, LogOut as IconLogOut, User as IconUser, Settings2 as IconSettings2, GripVertical as IconGripVertical, ArrowUpToLine as IconArrowUpToLine, ChevronDown as IconChevronDown, LoaderCircle as SpinnerIcon, Plus as IconPlus, ChartColumn as IconChartColumn, Rocket as IconRocket, X as IconX } from 'lucide-react'; // 〔A1-R121〕+X as IconX（原 g x，imeComposition chunk lucide 族；A0-S3b 判例续，调用面 @3196 逐字不变） // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, buttonVariants, ZoomIn as IconZoomIn, ZoomOut as IconZoomOut, ChevronRight as IconChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button/buttonVariants declare 改指 button chunk；A0-S3b 增补：ZoomIn as IconZoomIn, ZoomOut as IconZoomOut, ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { FileTreePanel } from '../../modules/FileTreePanel';
 import { useTaskFileActions } from '../../modules/GitReview';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatformService, type PlatformService } from '../../modules/ImeComposition'; // 〔A1-R48〕+usePlatformService/type PlatformService（原 l；P2 转交件收割）：本地 7 员面碑化改指，@1167 trackEvent 参型同名解析，见下墓碑
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from '../../modules/Modals'; // 〔A1-R51〕$2 余消费位闭合实证：本叶 @2952 canSyncRemote ≡ bundle 158248 `oe = $2({ remoteSessionId, remoteTarget, clientMode: f ? 'web-remote-replayable' : 'desktop-continuous', hasLocalSourceService: !!N.skillSyncService })`（158xxx 远程技能卡域）逐字同形；接线 = A0 检查点 17（8382e04）既成，R50 §五-2「属外未录面」留批闭合（台账惯例 = 报告内更正，census 冻结不动）
-import { Badge } from '../../modules/PaymentDeep';
+import { Badge, useCodingPlanUpgradeDialog as useCodingPlanUpgrade } from '../../modules/PaymentDeep'; // 〔A1-R121〕+useCodingPlanUpgradeDialog（原 fX 族 declare 改指；R43/R119 判例，别名保留调用名；消费面 @3832/@4129 逐字不变）
+import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R121〕原 G（IntlProvider D@9248–9252）declare 改指（R1/R116/R119 判例续；ZCodeIntlContextValue 超集覆盖 localePreference/setLocalePreference 面，消费面 @3831 逐字不变）
+import { sessionTransportHandshake } from '../../services/conversationWireCore'; // 〔A1-R121〕原 AS（34647）declare 改指——P3 泳道 canonical 既立（[wire] 669/@579，转导出 @746；旧碑「合并后动作：删碑改指」本批执行）
+import { createPortal } from 'react-dom'; // 〔A1-R121〕原 io.createPortal declare 改指 npm react-dom（MarkdownMermaid/MarkdownTable 判例；消费面 @4539 逐字不变）
 import { TabsList, TabsTrigger } from '../../modules/Settings';
 import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from '../../modules/SidebarLeaves';
 import { type WebRemoteSwitcherService } from '../../modules/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：原 modules/SidebarLeaves WebRemoteSwitcher 本地面删碑，改指生产面 canonical（六点分叉表闭合，A1-P2-B9.report.md §四）
@@ -236,7 +239,8 @@ import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string; localePreference: LocalePreference; setLocalePreference: (v: LocalePreference) => void };
+/* ── tombstone〔A1-R121〕：declare useIntlContext（原 G）删除 → 改指 modules/I18n::useZCodeIntl（import 别名在案）。
+ *    本地 IntlShape/LocalePreference 型别保留（活体签名引用在案；ZCodeIntl@201–203 同形，R116 既证）。 ── */
 type LocalePreference = "system" | "zh-CN" | "en-US";
 /* 〔A1-P2-B7〕export：WS 消费面 theme 参数改指本型（束真 = settings store ThemeMode，
  * modules/Settings @335 逐字同族）；与 WorkspaceShell 双面收敛（theme 族）。 */
@@ -1026,7 +1030,7 @@ declare function useVirtualizer(opts: {
 /* ---- 图标（原混淆名 → lucide 名，js 行号见头注 §一） ---- */
 type IconProps = React.SVGProps<SVGSVGElement> & { className?: string };
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（16）：IconHash/IconFolder/IconFolderOpen/IconCloud/IconHouse/IconListTree/IconMessageCirclePlus/IconSearch/IconCalendarClock/IconWandSparkles/IconMinimize2/IconMaximize2/IconListFilter/IconClock3/IconMessageCircleCheck/IconArchive → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const IconX: React.FC<IconProps>;               // g x（imeComposition chunk）
+/* ── tombstone〔A1-R121〕：declare IconX（原 g x，imeComposition chunk）删除 → npm lucide-react@1.35.0 X（A0-S3b 判例续，文件头导入块）。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（26）：IconCloudUpload/IconPin/IconSmartphone/IconClock/IconMoon/IconLoader/IconTriangleAlert/IconRefreshCw/IconCheck/IconCopy/IconEllipsis/IconSettings/IconGlobe/IconPalette/IconZoomIn/IconZoomOut/IconMaximize/IconLogIn/IconLogOut/IconUser/IconSettings2/IconGripVertical/IconArrowUpToLine/IconChevronDown/IconChevronRight/SpinnerIcon → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /** 原 EN（54789）：role=status 的旋转加载图标 */
 function SpinnerStatus({ className, ...rest }: IconProps) {
@@ -1491,7 +1495,8 @@ declare function snoozeInteractionAutoResolution(args: {
  *    编排方 B10 分发同批）。裁定证据（不录第二份真身）：AS 持模块级 WeakMap 状态——第二份真身合并后
  *    握手缓存双实例；且 canonical 叶在本工作区不可见 → 改指不可行。合并后动作：删碑改指 import
  *    （调用点 sessionTransportHandshake(i) 不变）。 ── */
-declare function sessionTransportHandshake(service: SnoozeAgentServiceLike): Promise<unknown>;
+/* ── tombstone〔A1-R121〕：declare sessionTransportHandshake 删除 → 改指 services/conversationWireCore::sessionTransportHandshake
+ *    （上方旧碑「合并后动作：删碑改指」本批执行——canonical 叶已随 P3 泳道入树，[wire] 669/@579 在案）。消费面 @1450 逐字不变。 ── */
 
 /* ============================================================================
  * 11. 任务行（原 E8 + LRt，js 151186–151617 / jsx 125140–125351）
@@ -4661,7 +4666,8 @@ export const WorkspaceSidebar = React.memo(function WorkspaceSidebar(props: Work
 /** 原 oc：工作区标签是否承载任务（排除设置/预览类标签） */
 declare function isTaskWorkspaceTab(tab: WorkspaceTab): boolean;
 /** 原 fX（js 89100；A1-R24 行漂校正，旧注 77235 为漂移）：Coding Plan 升级入口钩子 */
-declare function useCodingPlanUpgrade(): { openCodingPlanUpgrade(args: { providerId: string | null | undefined; funnelContext: unknown }): void };
+/* ── tombstone〔A1-R121〕：declare useCodingPlanUpgrade（原 fX 族）删除 → 改指 PaymentDeep::useCodingPlanUpgradeDialog@10102
+ *    （R43/R119 判例；canonical openCodingPlanUpgrade(next: any) 参面兼容 {providerId, funnelContext} 消费形 @4129）。 ── */
 /** 原 G6 的页脚用法：远控状态轮询（含 mobileViewState） */
 declare function useWebRemoteControlStatusPolling(args: { enabled: boolean }): WebRemoteControlStatus & { mobileConnected: boolean; mobileViewState?: { activeWorkspaceKey?: string; activeTaskId?: string } | null };
 /** 文件树打开请求（原 fileTreeOpenRequest.target 的结构）
@@ -5307,8 +5313,8 @@ function isGroupedViewInitialLoading(state: { initialized: boolean; loading: boo
   return !state.initialized || (state.loading && !state.hasNodes);
 }
 
-/** 原 io.createPortal（react-dom）：弹层传送门（拖拽覆盖层挂到 document.body） */
-declare function createPortal(children: React.ReactNode, container: Element | DocumentFragment): React.ReactElement;
+/* ── tombstone〔A1-R121〕：declare createPortal（原 io.createPortal）删除 → npm react-dom 真实 import（文件头）。
+ *    消费面 @4539 拖拽覆盖层传送门逐字不变。 ── */
 
 /** 原 o8（144939）：把任务插入指定组——beforeTaskKey 为 null 时追加到组尾，
  *  找不到锚点时也追加到组尾；组不存在则原样返回 */
