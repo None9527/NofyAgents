@@ -1448,7 +1448,7 @@ function commitSourcesIfCurrent(token: number, sources: ModelProvider[]): boolea
 }
 
 /** 原 gM（js 52665）：强制刷新源列表（force 缺省且已有结果 → 直接复用；单飞合并） */
-export function refreshCodingPlanSourcesForced(fetcher: () => Promise<ModelProvider[]>, opts?: { force?: boolean }): Promise<ModelProvider[]> { // 〔A1-R35〕补 export：PD 尾部 useModelProvidersStore 族消费接引（原 gM，52709-52725）
+export function refreshCodingPlanSourcesForced(fetcher: () => Promise<ModelProvider[]> | ModelProvider[], opts?: { force?: boolean }): Promise<ModelProvider[]> { // 〔A1-R35〕补 export：PD 尾部 useModelProvidersStore 族消费接引（原 gM，52709-52725）〔面校准 A1-R152〕fetcher 参宽化 `() => Promise<ModelProvider[]>` → `… | ModelProvider[]`：束真 gM@52709-52725 体内 styles@52716 `let t = await e()` 以 await 受**同步值**；OnboardingLoginLeaves@3513（原 Q3t 次支 ≡ 束 209926-209932）传 cachedOnly 三元 → `ModelProviderRecord[] | Promise<ModelProviderRecord[]>` 联合；且该文件原 declare（R152 退役，见其 @920 碑）**本已载联合面** `() => Promise<ModelProviderRecord[]> | ModelProviderRecord[]` → 本次系**复原 R35 转录时之收窄**，非新造。级联核：全树调用方仅 PaymentDeep@10485（`() => e.getAll()`，e 系 `useBaseServices() as any`）+ OnboardingLoginLeaves@1515/@3513；参面宽化对既有实参**反变安全**（旧可赋者新必可赋），且无值位传递（无 `(fetcher:…) => …` 型槽接引本符）→ 零影响。体内 `await fetcher()` 对联合仍得 ModelProvider[]，commitSourcesIfCurrent/返回型不变。
   if (opts?.force !== true && forcedRefreshInFlight) return forcedRefreshInFlight as Promise<ModelProvider[]>;
   const token = nextSourcesInvalidationToken();
   let request!: Promise<ModelProvider[]>;
@@ -1466,7 +1466,7 @@ export function refreshCodingPlanSourcesForced(fetcher: () => Promise<ModelProvi
 }
 
 /** 原 _M（js 52681）：惰性确保源列表已加载（单飞合并） */
-export function ensureCodingPlanSources(fetcher: () => Promise<ModelProvider[]>): Promise<ModelProvider[]> { // 〔A1-R35〕补 export：PD 尾部 useModelProvidersStore 族消费接引（原 _M，52726-52742）
+export function ensureCodingPlanSources(fetcher: () => Promise<ModelProvider[]> | ModelProvider[]): Promise<ModelProvider[]> { // 〔A1-R35〕补 export：PD 尾部 useModelProvidersStore 族消费接引（原 _M，52726-52742）〔面校准 A1-R152〕fetcher 参宽化 `() => Promise<ModelProvider[]>` → `… | ModelProvider[]`：束真 _M@52726-52742 体内 styles@52733 `let t = await e()` 以 await 受**同步值**；OnboardingLoginLeaves@3508（原 Q3t 首支 ≡ 束 styles@209921 `await _M(() => e.modelProviderService.getAllCached())`）传**同步** `getAllCached(): ModelProviderRecord[]`（ONB@329 面）→ 原窄面 TS2345 不可赋。级联核：全树调用方仅 PaymentDeep@10479（`() => e.getAllCached()`，e 系 `useBaseServices() as any`）+ OnboardingLoginLeaves@3508；参面宽化反变安全、无值位传递 → 零影响。体内 `await fetcher()` 对联合仍得 ModelProvider[]，`if (!codingPlanSourcesLoaded) setCodingPlanSources(sources)` 与返回型不变。
   if (codingPlanSourcesLoaded) return Promise.resolve(codingPlanSources);
   if (ensureSourcesInFlight) return ensureSourcesInFlight as Promise<ModelProvider[]>;
   let request!: Promise<ModelProvider[]>;
