@@ -150,6 +150,7 @@ import { SessionQuotaBanner, PendingCommandBanner, type QuotaBannerState } from 
 import { splitUserInputParts, formatSkillMentionLabel, type MentionToken } from '../components/composer/FileMentionDragHelpers'; // A1-R12：ZHe（52182）/YHe（52147）declare 改指纯函数叶子（本批逐字转录）；调用点 767/688 逐字不变。环安全：叶子零 import
 import { CodeCommentsChip, parseComposerContextContent as parseUserInputContext, SelectionsChip, WebElementsChip, isHttpUrl as isPluginIconUrl } from './Composer'; // A1-R13：oV（64277）declare 改指（canonical = Composer B4 区 isHttpUrl，bundle 唯一真身）；调用点 740 逐字不变。环安全：Composer 不反引本文件。〔A1-R22〕+CodeCommentsChip/WebElementsChip/SelectionsChip（原 TH 68298 / lit 89989 / uit 90087 逐字 canonical；消息行 112241–112244 四 chip declare 收敛）+三型别（ParsedUserInput 精化）
 import { PptxReferencesChip, usePptxPreviewOpener } from '../components/composer/PptxReferencesChip'; // 〔A1-R22〕原 PptxReferenceChips/useOpenCodeViewerForReference declare（JH 69036 / YH 69207）改指（A1-R21 补 export；消息行 112243 消费面）。环安全：该叶不反引本文件
+import { AttachmentChipGroup, AttachmentChip, AttachmentChipIcon, AttachmentChipName, AttachmentChipRemoveButton, AttachmentPreviewDialog } from '../components/composer/AttachmentChips'; // 〔A1-R130〕原 vN/yN/bN/xN/SN/DN（styles 1717600–1727900）declare 改指（正典逐字实体化；消费面 1021–1056 逐字不变）。环安全：该叶仅 modules/{UtilsCn,button,I18n}+components/ui/dialog+lucide 单向边
 import { MemoQueuePanel, type QueueState } from '../components/conversation/QueuePanel'; // 〔A0-S4-4b〕§9 渲染点（7545）+ SessionQueueSnapshot extends（6686）消费回取
 import { ToolCallBlock, Reasoning, ReasoningTrigger, ReasoningContent } from '../components/conversation/ToolCallBlock'; // 〔A0-S4-4b〕§5 渲染点（3225–3235/3462/3661）消费回取
 import { normalizeToolCallNode } from '../components/conversation/ToolStatusModel'; // 原 u1（styles 110206；A1-R96 实体化收敛）
@@ -913,28 +914,12 @@ function formatByteSize(bytes: number): string | undefined {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** 附件芯片组原语（原 vN/yN/bN/xN/SN/DN，Composer 族 63845 附近；接口保留） */
-declare const AttachmentChipGroup: React.FC<
-  React.ComponentPropsWithoutRef<"div"> & { variant?: "inline" | "dock"; "data-testid"?: string }
->;
-declare const AttachmentChip: React.FC<{
-  onRemove?: () => void;
-  onOpen?: () => void;
-  openLabel?: string;
-  title?: string;
-  data: { id: string; type: "file"; filename: string; mediaType: string; url: string; description?: string };
-  children?: React.ReactNode;
-}>;
-declare const AttachmentChipIcon: React.FC<{ className?: string }>;
-declare const AttachmentChipName: React.FC<{ className?: string }>;
-declare const AttachmentChipRemoveButton: React.FC<{ alwaysVisible?: boolean; label: string; "data-testid"?: string }>;
-declare const AttachmentPreviewDialog: React.FC<{
-  attachment: { filename: string; mediaType?: string; url?: string | null } | null;
-  open: boolean;
-  loading: boolean;
-  error: boolean;
-  onOpenChange: (open: boolean) => void;
-}>;
+/* ── tombstone〔A1-R130〕：declare const AttachmentChipGroup/AttachmentChip/AttachmentChipIcon/
+ *    AttachmentChipName/AttachmentChipRemoveButton/AttachmentPreviewDialog（原 vN/yN/bN/xN/SN/DN，
+ *    Composer 族）删除 → 文件头真实 import（正典 = components/composer/AttachmentChips.tsx，
+ *    styles 1717600–1727900 逐字实体化）。面校准：declare 时代 variant「inline|dock」过近似，
+ *    束真三档 grid/list/inline（缺省 grid），随迁退役；AttachmentChip.title 经束 ...rest 透传
+ *    （消费面 1032 title={failed ? unavailableLabel : undefined} 逐字不变）。消费面 1021–1056 逐字。 ── */
 
 /**
  * 附件芯片列表（原 fvt，js 111898 / jsx 95476，memo）。
