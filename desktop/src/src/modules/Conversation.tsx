@@ -121,7 +121,7 @@ import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as Ic
 import * as ReactDOM from "react-dom";
 import { pathBasename } from './ModalsLeaves'; // 〔A1-R129s〕原 Go（1928）——toWorkspaceRelativePath 实体化依存（FilePathInline@18 逐字，R45 名链注在案：Go≡baseName / zhe≡stripTrailingSlash / yg≡toWorkspaceRelativePath）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
-import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, useSessionErrorRecovery, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）；+useSessionErrorRecovery（A1-R14：原 NCt 118779 实体化改指，消费点 5328）
+import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, alwaysTrue as initialFollowing, resolveFollowIntent as updateFollowing, resolveFollowAfterIntent as reconcileFollowing, resolveInitialIntent as resolveStickToBottomAction, scrollDeltaDirection as wheelScrollIntent, compareScrollDirection as touchScrollIntent, shouldSuppressTopAdjustment as shouldAdjustScrollPosition, shouldLoadOlderOnUnfollow as shouldShowBackToBottom, shouldTriggerLoadOlder as shouldPrefetchOlder, estimatePrependTrigger as prefetchTriggerPx, computePrependCompensation as computeLoadOlderScrollDelta, computePrependGrowth as computePrependScrollDelta, useSessionErrorRecovery, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）；+useSessionErrorRecovery（A1-R14：原 NCt 118779 实体化改指，消费点 5328）；+12 滚动跟随族别名改指（A1-R129t：孪生收敛，详见下方墓碑）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
 import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep'; // 原 v_t/__t（A0-CLEANUP2 item 45 接线：declare → 属主导出）
 import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type CodeCommentAttachment, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）；〔A1-R22〕+type CodeCommentAttachment（ParsedUserInput 型别精化）
@@ -3587,48 +3587,35 @@ interface ScrollMetrics {
 /* ── tombstone〔A1-R129r〕：declare distanceFromBottomOf（原 Ryt，jsx 97137）死声明删除——全树零调用点
  *    （滚动跟随族重构后由 isNearBottom/keyScrollIntent 正典面承接，ConversationLeaves 转导出在案）。 ── */
 /** 原 T1（jsx 97140）：是否贴底（缺省 48px 阈值） */
-/** 原 D1（jsx 97171）：初始跟随态（贴底 → true） */
-declare function initialFollowing(): boolean;
-/** 原 Byt（jsx 97149）：按滚动来源/位置更新跟随态 */
-declare function updateFollowing(args: { following: boolean; source: "user" | "programmatic" | "layout"; metrics: ScrollMetrics }): boolean;
-/** 原 E1（jsx 97164）：布局变化后的跟随态校正 */
-declare function reconcileFollowing(args: {
-  following: boolean;
-  metrics: ScrollMetrics;
-  lastObservedScrollTop: number;
-  userScrollIntent: "none" | "unknown" | "towardBottom" | "awayFromBottom";
-}): boolean;
-/** 原 Vyt（jsx 97152）：内容宽度变化时的贴底策略 */
-declare function resolveStickToBottomAction(following: boolean, contentWidthChanging: boolean): "stickToBottom" | "none";
-/** 原 Uyt/Wyt/Gyt（jsx 97155/97158/97161）：滚轮/触摸/键盘 → 滚动意图 */
-declare function wheelScrollIntent(deltaY: number): "towardBottom" | "awayFromBottom" | "unknown";
-declare function touchScrollIntent(previousY: number, currentY: number): "towardBottom" | "awayFromBottom" | "unknown";
-/** 原 Hyt（jsx 97149 附近）：虚拟化尺寸变化时是否允许调整滚动位置 */
-declare function shouldAdjustScrollPosition(args: {
-  suppressAdjustment: boolean;
-  following: boolean;
-  contentWidthChanging: boolean;
-  itemEnd: number;
-  scrollTop: number;
-}): boolean;
-/** 原 Kyt（jsx 97168）：跟随态变化 → 是否显示回到底部按钮 */
-declare function shouldShowBackToBottom(following: boolean, unitCount: number): boolean;
-/** 原 Xyt（jsx 97185）：接近顶部 → 预取更早行 */
-declare function shouldPrefetchOlder(args: { scrollTop: number; canLoadOlder: boolean; loadingOlder: boolean; triggerPx: number }): boolean;
-/** 原 Yyt（jsx 97182）：预取触发距离（按视口高度比例） */
-declare function prefetchTriggerPx(viewportHeight: number): number;
-/** 原 qyt/Jyt（jsx 97174/97177）：加载更早行后的滚动位置补偿 */
-declare function computeLoadOlderScrollDelta(
-  anchor: { key: string; offsetTop: number; start: number },
-  measured: { key: string; offsetTop: number; start: number },
-  scrollTop: number,
-): number | null;
-declare function computePrependScrollDelta(args: {
-  prevFirstRowId: number | null;
-  nextFirstRowId: number | null;
-  prevTotalSize: number;
-  nextTotalSize: number;
-}): number | null;
+/* ── 墓碑〔A1-R129t〕：滚动跟随族 12 declare 孪生收敛——全部为 modules/ConversationLeaves.tsx
+ *    正典的孪生面，已改指（导入别名在案，调用点逐字不变）：
+ *      initialFollowing           ≡ alwaysTrue                  （原 D1，jsx 97171）
+ *      updateFollowing            ≡ resolveFollowIntent         （原 Byt，jsx 97149）
+ *      reconcileFollowing         ≡ resolveFollowAfterIntent    （原 E1，jsx 97164）
+ *      resolveStickToBottomAction ≡ resolveInitialIntent        （原 Vyt，jsx 97152）
+ *      wheelScrollIntent          ≡ scrollDeltaDirection        （原 Uyt，jsx 97155）
+ *      touchScrollIntent          ≡ compareScrollDirection      （原 Wyt，jsx 97158）
+ *      shouldAdjustScrollPosition ≡ shouldSuppressTopAdjustment （原 Hyt，jsx 97149 附近）
+ *      shouldShowBackToBottom     ≡ shouldLoadOlderOnUnfollow   （原 Kyt，jsx 97168）
+ *      shouldPrefetchOlder        ≡ shouldTriggerLoadOlder      （原 Xyt，jsx 97185）
+ *      prefetchTriggerPx          ≡ estimatePrependTrigger      （原 Yyt，jsx 97182）
+ *      computeLoadOlderScrollDelta≡ computePrependCompensation  （原 qyt，jsx 97177）
+ *      computePrependScrollDelta  ≡ computePrependGrowth        （原 Jyt，jsx 97180）
+ *    伪面销账×3：
+ *      ① resolveStickToBottomAction 旧面含 "none"，bundle 真值 Vyt 返回 "stickToBottom"|"hold"；
+ *        唯一调用点仅比较 === `stickToBottom`，"hold" 与 "none" 行为等价。
+ *      ② wheelScrollIntent 旧面含 "unknown"，真值 Uyt 中性返回 "none"；
+ *      ③ touchScrollIntent 旧面含 "unknown"，真值 Wyt 中性返回 "none"；
+ *        ②③ 唯一消费方 observeScrollIntent 受 "none"，行为等价。
+ *    极性核验：shouldAdjustScrollPosition 调用点赋值 tanstack
+ *    shouldAdjustScrollPositionOnItemSizeChange（true=允许调整），与 bundle 真值
+ *    `Le.shouldAdjustScrollPositionOnItemSizeChange = (e) => Hyt({...})`（styles 3632563）
+ *    逐字吻合，正典名虽为 suppress 语义面，体为 Hyt 逐字转录，极性无反转。
+ *    面校准：computePrependCompensation 正典面 key: number → number | string
+ *    （bundle 真值 qyt 无类型纯恒等比较；唯一调用族传 unit.key 字符串，
+ *    loadOlderAnchorRef 面 { key: string; offsetTop: number; start: number }）；
+ *    第二参面补 offsetTop?（bundle 调用点真值 3647122 `qyt(e, { key: e.key, offsetTop: e.offsetTop,
+ *    start: t.start }, ...)` 实传此字段，体内未用，调用点逐字保留所需）。 ── */
 
 /* --- 8.2 单元尺寸缓存（原 Lyt，js 113965 / jsx 97112） --- */
 

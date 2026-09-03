@@ -378,8 +378,8 @@ export function alwaysTrue(): boolean {
 }
 /** 原 qyt：预载补偿偏移（旧首行新起点 - 旧偏移 - 已滚） */
 export function computePrependCompensation(
-  previousFirstRow: { key: number; offsetTop: number },
-  nextFirstRow: { key: number; start: number },
+  previousFirstRow: { key: number | string; offsetTop: number },
+  nextFirstRow: { key: number | string; start: number; offsetTop?: number },
   scrollTop: number,
 ): number | null {
   return previousFirstRow.key !== nextFirstRow.key || !Number.isFinite(previousFirstRow.offsetTop) || !Number.isFinite(nextFirstRow.start) || !Number.isFinite(scrollTop)
