@@ -132,12 +132,12 @@ import { CodingPlanUpgradeDialogProvider } from './PaymentDeep'; // 原 krt（89
 import { SettingsView } from './Settings';
 import { useTaskStore, type GroupedDraftPlacement } from './SkillStore';
 import { t as logger } from './logger'; // 原 J（logger-PFDwl5Yq.js t 导出）
-import { ConversationTelemetrySupervisor, useWorkspaceServices } from './services';
+import { ConversationTelemetrySupervisor, ServiceProvider as ServicesProvider, useWorkspaceServices } from './services';
 import { resolveQuotaAssertion, quotaDismissKey } from '../components/conversation/ConversationQuotaModel'; // 〔A1-P1-B2〕原 I0/L0（js 118978/119069）逐字真身改指（parity s8t 域消费面逐字不变）；环安全：叶不反引本文件
-import { useSettingsStore, SettingsStoreProvider as StoreProvider, isStartupSoundEnabled } from './stores-core'; // +StoreProvider/isStartupSoundEnabled（A1-R10 项 2a：原 Nie（1289）/Eie（1091）declare 改指 canonical——SettingsStoreProvider = settingsStore 373 逐字（Oo context/Nie/ko/Ao 1287–1298），isStartupSoundEnabled = yo&&bo 1085–1091；调用点 1893/2604 逐字不变）。环安全：stores-core 值闭包（stores/* + zustand）不达本文件反向，既有边
+import { useSettingsStore, SettingsStoreProvider as StoreProvider, isStartupSoundEnabled, type BaseServices as CanonicalBaseServices } from './stores-core'; // +StoreProvider/isStartupSoundEnabled（A1-R10 项 2a：原 Nie（1289）/Eie（1091）declare 改指 canonical——SettingsStoreProvider = settingsStore 373 逐字（Oo context/Nie/ko/Ao 1287–1298），isStartupSoundEnabled = yo&&bo 1085–1091；调用点 1893/2604 逐字不变）。环安全：stores-core 值闭包（stores/* + zustand）不达本文件反向，既有边
 import { useCodeCommentsStore as codeCommentsStore } from './Composer'; // A1-R8：FH 双实例收敛接线（原 declare 改指 canonical = Composer 6716 区；本文件 2009/2014 消费面 = bundle 212998/213003 广播监听簇）
 import { TooltipProvider } from './UsageStatsUiParts'; // 原 Na（A0-CLEANUP 族清理接线）
-import { CLOSE_ACTIVE_CONTEXT_EVENT } from './WorkspaceShell'; // 原 r7（A0-CLEANUP B-32 接线）
+import { CLOSE_ACTIVE_CONTEXT_EVENT, ScopedErrorBoundary as ScopeBoundary } from './WorkspaceShell'; // 原 r7（A0-CLEANUP B-32 接线）
 import { hasUnavailableLocalDirectoryTab, isSettingsTab, isWorkspaceKindTab, useWorkspaceTabStore, useWorkspaceTabStoreApi } from './WorkspaceTabsDeep'; // 原 sc/Pse/oc（A1-R1：styles js 4493/4497/4487 逐字重建改指）〔A1-R40〕+useWorkspaceTabStore（原 pc 收敛改指，见下墓碑）〔A1-R41〕+useWorkspaceTabStoreApi（原 hc 收敛改指；环安全既有边）
 import { EMPTY_PANE_LAYOUT, hasSplitLayoutBindings, isReloadNavigationEntry, sessionRouterStore, splitLayoutStore } from './SplitLayoutDeep'; // 原 K0/jwt/z0/A2/s2（A1-R2：styles js 121301–123510 面板布局引擎逐字重建改指）
 import type { AgentFact, TelemetryPlatform } from './services';
@@ -284,7 +284,15 @@ declare const planProviderIds: { zaiStartPlan: string; bigmodelStartPlan: string
 
 /* --- provider 树组件（各家族批次，接口级消费面）--- */
 declare const LucideProvider: React.FC<{ strokeWidth?: number; children?: React.ReactNode }>; // 原 qre（button-laUijeDG.js l）
-declare const ServicesProvider: React.FC<{ services: ServicesBundle; children?: React.ReactNode }>; // 原 ds（2672）
+/* ── tombstone〔A1-R147〕：declare ServicesProvider（原 ds，styles@2671-2672 本地单真身）退役 → 改指
+ *    services/serviceContext13 ServiceProvider（经 ./services100 转导出；边既有 @135，
+ *    **零新边**——dossier-C 原判「AppRootLeaves 需新增两条值边」经主树复核为**既有**）。联退件 1 之 AppRootLeaves 侧：
+ *    OnboardingLoginLeaves652 同符双声明同批收，双侧平行改指第三方 canonical，无需互指。
+ *    ★一符一家裁定（dossier-D §9）：必指 serviceContext，不可指 MemorySettingsSection@351 并行副本（否则与既有
+ *    useServices 分属两 context，运行期必掷错）。
+ *    本侧消费束点：styles@212884（g8t 体内 `children: (0,$.jsx)(ds, {services: e.services, …})`）≡ @1914。
+ *    declare 面与 ONB 侧逐字全同（共用 ServicesBundle 型，本文件自 shim 型导入）；改指后本地 ServicesBundle 型导入
+ *    成为死导入（noUnusedLocals 关，不报错，留存不改以最小化 diff）。 ── */
 /* ── tombstone（A1-R10 2a）：declare const StoreProvider: React.FC<{ broadcastService: BroadcastServiceLike; … }>（原 Nie，1289）删除，
  *    改经文件头 stores-core import 消费（canonical = SettingsStoreProvider，settingsStore 373 逐字）。
  *    型缝精化：broadcastService 真形 = BroadcastService（send + onMessage→{dispose}）——bundle 212887 根注入、
@@ -292,7 +300,13 @@ declare const ServicesProvider: React.FC<{ services: ServicesBundle; children?: 
 declare const TabStoreProvider: React.FC<{ children?: React.ReactNode }>; // 原 Vse（4784）
 declare const WebRemoteControlFeatureGate: React.FC<{ enabled?: boolean; children?: React.ReactNode }>; // 原 oRt（150149）
 declare const RemoteConnectionDialog: React.FC<Record<string, any>>; // 原 pOt
-declare const ScopeBoundary: React.FC<Record<string, any>>; // 原 p4
+/* ── tombstone〔A1-R147〕：declare ScopeBoundary（原 p4，styles@129969 本地单真身 class 组件）退役 → 改指
+ *    components/shell/ErrorBoundaryCore286 ScopedErrorBoundary（经 ./WorkspaceShell216 转导出；
+ *    边既有 @140，**零新边**）。联退件 2 之 AppRootLeaves 侧：OnboardingLoginLeaves631 同符双声明同批收。
+ *    ErrorBoundaryCore 整区 js 129749–130008 四件 A1-P2-B1 ROUNDTRIP EXACT 在案（p4@129969）。
+ *    本侧消费束点：styles@213482 `scope: 'settings-page'` / @213539 `scope: 'onboarding-dialog'` / 2484 域
+ *    `scope: 'directory-browser'` ≡ @2498/2510/2549/2551/2604/2610。
+ *    可赋性零缝：canonical props `React.Component<any, any>`，本侧 declare 面本即 `Record<string, any>`，消费零改动。 ── */
 
 /* --- window 全局 --- */
 declare global {
@@ -1897,7 +1911,7 @@ export function ZCodeApp(props: {
   return (
     <LucideProvider strokeWidth={APP_ROOT_ICON_STROKE_WIDTH}>
       <TooltipProvider>
-        <ServicesProvider services={props.services}>
+        <ServicesProvider services={props.services as unknown as CanonicalBaseServices /* 〔型缝 A1-R147〕canonical serviceContext@13 ServiceProvider 参 services: BaseServices（sessionRegistryStore@34），本地 ServicesBundle（自 shim 型导入）之 ZcodeAgentServiceLike 为 declare 期窄化近似 → 二段铸；★canonical 面以别名 CanonicalBaseServices 自 ./stores-core@94 既有行接入（本文件 @130 之 BaseServices 名已被 modules/Modals@245 转出之 DirectoryBrowserDialog 窄面占用，@2504 消费所依，不可复用）；零新边。束真 styles@212884 `(0,$.jsx)(ds,{services: e.services, …})` 无型，运行期注入者即完整服务束 → 纯 TS 面零运行期变。 */}>
           <PlatformProvider platform={props.platform}>
             <StoreProvider broadcastService={props.services.broadcastService} initialIsRestoringOAuthSession={true}>
               <TabStoreProvider>

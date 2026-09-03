@@ -48,8 +48,8 @@ TSX@3348 现用 gM 面而束真为 `_M`（Q3t@209922 实证）→ **既存运行
 |---|---|---|---|---|
 | B1 登录 UI 原语+testid | 555–564 | 9 | 实体化 | OrbitSpinnerIcon/ProviderIcon/7 testid（b4t/D4t 登录视图消费） |
 | B2 provider 常量/注册 | 576–586 | 6 | 实体化 | BIGMODEL_PROVIDER_ID 等 |
-| B3 根组件面 | 602–624 | 5 | 混 | IntlProviderShell→I18n@462 别名；ServicesProvider/ScopeBoundary 与 AppRootLeaves@287/295 双声明须联退；UpdateStatusWindow/WorkspaceTelemetryProvider 实体化 |
-| B4 taskStore | 696 | 1 | 别名 | stores/taskStore.ts@2956 useTaskStore（7 消费点 .getState() 式） |
+| B3 根组件面 | 602–624 | 5 | 混 | IntlProviderShell→I18n@462 别名〔**R147 已施行**，census「无原注须核身」→ 核身通过：Ge≡t≡E 单真身三跳束证；型缝 1 = `as unknown as LocalePreference`，**不采** dossier-C 备选 `(locale ?? undefined)`（束真透传 null，改 undefined 属运行期值变）〕；ServicesProvider/ScopeBoundary 与 AppRootLeaves@287/295 双声明须联退〔**R147 已施行**：双侧平行改指第三方 canonical（serviceContext@13 / ErrorBoundaryCore@286），无需互指；★dossier-C「ARL 需新增两条值边」经主树复核为误——ARL@135/140 边既有，**新增边 0**；型缝 3 = `as unknown as BaseServices` ×3（ONB 2 + ARL 1），dossier-C U1「源索引签可供目标具名成员」推论**实测证伪**，唯一不兼容键为 zcodeAgentService 非档案所虑二键；★`BaseServices` **同名两家**：Modals@245 窄面 vs stores-core@94 canonical，取错家报 systemService 缺失误导〕；UpdateStatusWindow/WorkspaceTelemetryProvider 实体化〔dossier-D 改判候施〕 |
+| B4 taskStore | 696 | 1 | 别名 | stores/taskStore.ts@2956 useTaskStore（7 消费点 .getState() 式）〔**R147 试施撤回，移交 R148 专批**：tsc 实测 **13 处面冲突**（顶层虚构 activeTaskId / TaskUsage.cost 面 `UsageCost\|null` vs `number\|undefined` / setTaskError 参 string vs 错误对象 ×2 / TaskInteractionRequest 8 必填员 ×3 / undefined vs `string\|null` ×3 / `string\|undefined` vs string ×1），非 dossier-C「面精化最小集」所能覆盖；**每处需束取证裁定本地面与 canonical 面孰为近似**（setTaskError 传对象 vs canonical 收 string 属既存保真疑点）；declare 已原位复原 + 候批注登记冲突清单〕 |
 | B5 任务刷新对 | 807–808 | 2 | 实体化 | refreshPinnedTasks/refreshTimelineTasks |
 | B6 provider 快照四件 | 836–839 | 4 | 实体化 | 消费互锁（@1355/3348–3361） |
 | B7 team-plan-key 三件 | 851–853 | 3 | 别名 | SrcSharedB@5099/5108/5130（ModelProviderSettingsSection@23/25 别名先例在案）——全文件最低风险〔**R146 已施行**，零缝〕 |
@@ -91,8 +91,8 @@ ImeComposition appendPptxElementReferences，皆已在树，别名改指零转�
 
 台账预期：146 件全数退役皆减台账（别名改指/伪面销账/实体化均删 declare 语句——实体化
 「不减台账」系本普查初稿口径误，R129n 判例实证 868→862 含实体化 2 件）。〔A1-R142 修正〕
-余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)+R144(34)+R145(22)+R146(10)=108 件，
-三域现存 **38**（**Composer 0（R143 域闭）** + **UsageDeep 0（R145 域闭）** + **Onboarding 38（R146 别名 10 件后，48→38）**）；
-台账实测 **669**（R146 后），r118 基线累计 1,012→669 = 343 删 0 增。
-W5a 仅余 Onboarding 一域（C-5 面工作 2 + C-6 联退 2 + ambient 留存 1 + dossier-D 33）；
+余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)+R144(34)+R145(22)+R146(10)+R147(5)=113 件，
+三域现存 **35**（**Composer 0（R143 域闭）** + **UsageDeep 0（R145 域闭）** + **Onboarding 35（R146 −10、R147 −3）**）；
+台账实测 **664**（R147 后；该批另收 AppRootLeaves 2 件属 modules 域，不计三域），r118 基线累计 1,012→664 = 348 删 0 增。
+W5a 仅余 Onboarding 一域（dossier-D 33 + ambient 留存 1 + B4 taskStore 移 R148）；
 W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。

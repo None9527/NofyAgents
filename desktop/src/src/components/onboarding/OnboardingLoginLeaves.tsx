@@ -249,19 +249,19 @@ import { AppDialogHost, ConfirmDialog, DirectoryBrowserDialog, OnboardingDialog,
 // ConfirmDialog 已由 A0-CLEANUP2 item 35 接入真实 import（上方）。
 import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, SettingsView, resolveThemeMode as resolveThemeForTitleBar, type ThemeMode } from '../../modules/Settings';
 import { logger, resolveWorkspaceKey as workspaceScopeKey, create as createExternalStore } from '../../modules/SkillStore'; // workspaceScopeKey（原 Io，js 1368：两参实体键；前波误接 stores-session.workspaceScopeKey 单参形，A0-D-Misc 按 bundle R6t 裁决改接 resolveWorkspaceKey）
-import { MemoizedWorkspaceRoot, type WorkspaceServices } from '../../modules/WorkspaceShell'; // A0-CLEANUP3 #36：Y4t=memo(XJt)=WorkspaceRoot 属主接线（原误包 yJt=WorkspaceShell）
+import { MemoizedWorkspaceRoot, ScopedErrorBoundary as ScopeBoundary, type WorkspaceServices } from '../../modules/WorkspaceShell'; // A0-CLEANUP3 #36：Y4t=memo(XJt)=WorkspaceRoot 属主接线（原误包 yJt=WorkspaceShell）
 import { extractErrorMessage as normalizeConnectionError, type FeedbackService } from '../../modules/FeedbackCenter'; // A1-R7：MC=extractErrorMessage 改指（原 normalizeConnectionError declare）
 import { type MobileHomeResult, type WebRemoteSwitcherService } from '../../modules/WebRemote';
-import { ConversationTelemetrySupervisor, registerBaseServices, syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指 + A1-R8：Ks@4164（async (e) => await vse(e)，vse@4237）= syncProviderRegistryAndReturn 改指
+import { ConversationTelemetrySupervisor, registerBaseServices, ServiceProvider as ServicesProvider, syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指 + A1-R8：Ks@4164（async (e) => await vse(e)，vse@4237）= syncProviderRegistryAndReturn 改指
 import { reportTelemetry as trackTelemetryEvent, normalizeCaptchaCode as messageErrorCodeOverride, resolveTelemetryProviderHost, type TaskMeta } from '../../modules/StoresDeep'; // 〔A1-R146〕+type TaskMeta：B9 二件消费铸所依（canonical TaskRecord ≡ TaskMeta，StoresDeep@226 型再导出）；type-only，边既有零新环
 import type { UpdateState } from '../shell/TopBar'; // A1-R48：根面 getUpdateState?/onUpdateStateChanged? 改型同形 canonical（属主 TopBar@212；type-only 边，环安全） // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）。A1-R12：原 Cw（40570）私有转录删除 → 别名改指 StoresDeep normalizeCaptchaCode（本批改回逐字 stub；DM 调用点逐字不变）。〔A1-R31〕+resolveTelemetryProviderHost（bw 40445/hNe 40454 canonical，StoresDeep@308）：telemetryLoginProviderName declare 收敛改指，见下墓碑
 import { mergeRemoteLogProgressEntry as appendRemoteLog, stripRemoteLogPrefixes as normalizeRemoteLogMessage } from '../remote/RemoteGapSegments'; // A1-R8：hEt@123747=stripRemoteLogPrefixes、vEt@123762=mergeRemoteLogProgressEntry 改指（环安全：RemoteGapSegments 仅 import React/button/RemoteWizard/Modals/SrcSharedA/B/stores-core，不反入 onboarding）
-import { useSettingsStore } from '../../modules/stores-core';
+import { useSettingsStore, type BaseServices } from '../../modules/stores-core'; // 〔A1-R147〕+type BaseServices：联退件 1（ServicesProvider→serviceContext@13）型缝所依。★**同名两家**：modules/Modals@245 转出之 BaseServices 为 DirectoryBrowserDialog 窄面（systemService 仅 info()），canonical serviceContext 之面自 stores-core@94 ← stores/sessionRegistryStore@34——取错家会报 systemService.listIntegratedTerminalShells 缺失（本批实测）
 import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSources as isModelProviderSnapshotHydrated, hasActiveEntitlement } from '../../modules/UsageDeep'; // A1-R11：fM（52681）/pM（52684）改指 canonical（components/usage/UsageDeep.tsx 注册表，返回 ModelProvider[]——fetcher 证据 78266/78272/206174/209921 = modelProviderService.getAllCached/getAll）；4757 消费点经 ModelProviderRecord any 索引面双变可赋。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical；declare hasPlanEntitlement 收敛改指，见下墓碑）
 import type { EntitlementSnapshot } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 收敛型缝所依（W9/i6t 快照流精化，行依据见各函数注）
 import { DEFAULT_CODE_PREVIEW_SETTINGS as defaultCodePreviewSettings } from '../../modules/MarkdownIntegration'; // 默认代码预览设置（原 lo，1040）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // intl 上下文（原 G()）
+import { useZCodeIntl as useIntlContext, ZCodeIntlProvider as IntlProviderShell, type LocalePreference } from '../../modules/I18n'; // intl 上下文（原 G()）
 import { Button } from '../../modules/button'; // Button（原 X，button-laUijeDG.js）
 import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
 import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup, sessionEntryWorkspaceKey as remoteWorkspaceKey, buildRemoteWorkspaceKey as workspaceIdentityOf, resolveEntryWorkspaceIdentity as entryIdentity, remoteTargetWithSecrets as withRemoteCredentials, applyRemoteConnectionResult as commitRemoteSessionsMutation, removeRemoteSessionEntries as removeSessionsByWorkspaceKeys, persistedWorkspaceSessions as persistableWorkspaceTabs, persistedRemoteSessions as normalizePersistedRemoteSessions, resolveLastActiveTabIndex, type PersistedWorkspaceTabRecord, type RemoteSessionTarget } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles 121301–123510 面板布局引擎逐字重建改指）+ A1-R6：R2/I2/L2/z2/B2/oEt 远程条目域改指 + A1-R7：V2/cEt/Bne 恢复条目域改指（Hn 改指更正迁 SrcSharedA；tombstone 见原 declare 位）
@@ -611,10 +611,35 @@ declare const UpdateStatusWindow: React.FC<{
   edgeToEdge?: boolean;
   showOverlay?: boolean;
 }>;
-declare const IntlProviderShell: React.FC<{ initialLocale: string | null; children?: React.ReactNode }>;
+/* ── tombstone〔A1-R147〕：declare IntlProviderShell 退役 → 改指 modules/I18n462 ZCodeIntlProvider
+ *    （边既有 @264；census「611 无原注——改指前须束内核身复核」→ **核身通过，同一性已证**）。
+ *    束证三跳：styles@428 `t as Ge,` ← `./IntlProvider-C321H7m8.js` 尾导出块逐字
+ *    `export { l as a, p as i, D as n, u as o, m as r, d as s, E as t };`（python 尾切片实测）← I18n 头映射
+ *    @36/@646「9253 export { …, E as t }」，`E` = ZCodeIntlProvider（462）。**束内 Ge ≡ t ≡ E 单真身，无第二定义**。
+ *    消费束点（★dossier-C 注 213583 漂移 +15，本批按特征串 `initialLocale:` 重定位）：styles@213597-213615
+ *    （v8t@213554 体内）`(0,$.jsxs)(Ge, { initialLocale: a, children: [ … ] }, a)` ——**第三实参 a 即 key**，
+ *    与本文件 @5304-5316 `<IntlProviderShell initialLocale={locale} key={locale}>…</IntlProviderShell>` 逐字对应。
+ *    束内 `a` 溯源：v8t@213556 `[a, o] = (0,Q.useState)(t)`，t = 形参 initialLocale（本文件 @5259 面
+ *    `initialLocale: string | null`）→ **束真会把 null 透传给 Ge**，故本件型缝取值不变的纯铸（见下），
+ *    不采 dossier-C 备选 `(locale ?? undefined)`（那会把 null 变 undefined，属运行期值变）。
+ *    型缝 1 处：`string | null` ⊄ canonical `initialLocale?: LocalePreference`（= `"system" | SupportedLocale`，I18n179）
+ *    → @5304 加 `as unknown as LocalePreference` 二段铸（telemetryScopes@261/P2-B10 判例同式）。
+ *    运行期安全：I18n380 初值经 resolveInitialLocalePreference + isValidLocalePreference 守卫裁决，
+ *    非法串/null 走缺省路径（束真同形）。 ── */
 
 /* --- 工作区 shell / 边界件 --- */
-declare const ScopeBoundary: React.FC<{ scope: string; resetKeys: unknown[]; variant: string; className?: string; children?: React.ReactNode }>;
+/* ── tombstone〔A1-R147〕：declare ScopeBoundary（原 p4）退役 → 改指 modules/WorkspaceShell216 转导出之
+ *    components/shell/ErrorBoundaryCore286 ScopedErrorBoundary（边既有 @252）。**联退件 2 之 ONB 侧**：
+ *    AppRootLeaves303 同符双声明同批收（双侧平行改指第三方 canonical，**无需互指**——dossier-C 联退专项裁定）。
+ *    束证：styles@129969 `p4 = class extends Q.Component { state = {error: null, componentStack: ``}; static
+ *    getDerivedStateFromError(e) …`（`as p4` 导入 0 命中 → styles 本地单真身）；ErrorBoundaryCore 整区
+ *    js 129749–130008 四件 A1-P2-B1 ROUNDTRIP EXACT 转录在案（p4@129969）。
+ *    双侧消费同一束符号：ONB 侧 styles@207131 `scope: 'workspace-app'` / @207180 `scope: 'workspace-settings-layer'`；
+ *    AppRootLeaves 侧 styles@213482 `scope: 'settings-page'` / @213539 `scope: 'onboarding-dialog'` / 2484 域
+ *    `scope: 'directory-browser'`。
+ *    可赋性零缝：canonical props 为 `React.Component<any, any>` → 任意 props 面双变可赋；**两侧 declare 面异形**
+ *    （ONB 具名五键 / AppRootLeaves `Record<string, any>`）改指后统一为 canonical 面，差异消解、消费零改动。
+ *    消费面 4 处逐字不变：@2181/2221（≡束 207131 域）、@2226/2242（≡207180 域）。 ── */
 declare const WorkspaceTelemetryProvider: React.FC<{
   enabled: boolean;
   foregroundEnabled: boolean;
@@ -624,7 +649,29 @@ declare const WorkspaceTelemetryProvider: React.FC<{
   remoteSessionId?: string;
   children?: React.ReactNode;
 }>;
-declare const ServicesProvider: React.FC<{ services: ServicesBundle; children?: React.ReactNode }>;
+/* ── tombstone〔A1-R147〕：declare ServicesProvider（原 ds）退役 → 改指 modules/services100 转导出之
+ *    services/serviceContext13 ServiceProvider（边既有 @255）。**联退件 1 之 ONB 侧**：
+ *    AppRootLeaves287 同符双声明同批收（双侧平行改指，无需互指）。
+ *    ★**一符一家裁定（dossier-D §9）**：必须指 `services/serviceContext`，**不可**指 MemorySettingsSection@351
+ *    之并行副本——否则与既有 `useServices`（同行导入）分属两 context，运行期必掷错。该双 canonical 已登记待裁。
+ *    束证：styles@2671-2672 `var us = (0,Q.createContext)(null); function ds({services: e, children: t}) {
+ *    return (0,$.jsx)(us.Provider, {value: e, children: t}); }`（`as ds` 导入 0 命中 → styles 本地单真身，
+ *    与 canonical serviceContext13 体逐字同）；双侧消费同一束符号 ds：ONB 侧 styles@207027（J4t
+ *    SettingsLayer）/ @207128（X4t），AppRootLeaves 侧 styles@212884（g8t）。
+ *    型缝（U1 已裁，tsc 实测）：canonical 参 `services: BaseServices`（stores/sessionRegistryStore34，
+ *    经 modules/stores-core@94 型再导出）vs 实参 `ServicesBundle`（本文件本地 interface，10 必填 + 索引签）。
+ *    ★**dossier-C U1 推论证伪**：档案判「源索引签可供目标具名成员（getPropertyOfType 回退 indexInfo 于源侧成立）→
+ *    主风险仅 codingPlanSubscriptionService/broadcastService 逐名面」；实测**唯一不兼容键为 zcodeAgentService**——
+ *    本地 `ZcodeAgentServiceLike`（仅 syncAppRuntimePreferences 一员）对 canonical `AutomationsAgentService`（18+ 具名员）
+ *    缺员，且**于 ZcodeAgentServiceLike 补 `[key: string]: any` 亦不足**（TS 不以源索引签供目标具名必填成员，实测仍报）
+ *    → codingPlanSubscriptionService/broadcastService 二键实测**可赋**（档案担心方向反了）。
+ *    处置 = 消费侧二段铸 `as unknown as BaseServices` ×2（本文件 @2069/@2180）+ AppRootLeaves 侧 ×1，
+ *    判例 stores/pluginsHelpers@275（zcodeAgentService as unknown as PluginService，A1-R129n）/ QuickPickDeep@1272 同式。
+ *    ★**同名两家警戒**：`BaseServices` 在树内有两张脸——modules/Modals@245 转出者为 DirectoryBrowserDialog 之窄面
+ *    （systemService 仅 info()），canonical serviceContext 之面自 modules/stores-core@94 ← sessionRegistryStore34；
+ *    取错家报 `systemService.listIntegratedTerminalShells` 缺失（本批实测）。故本文件挂 stores-core 既有行取型，
+ *    AppRootLeaves 侧因 @130 之名已被窄面占用（@2504 消费所依）而以别名 CanonicalBaseServices 接入。
+ *    消费面 4 处（开/闭标签 @2069/2085、@2180/2222）：JSX 结构逐字不变，唯实参加二段铸（见上型缝）；后者保留既有 `as ServicesBundle` 铸链式追加。 ── */
 
 /* --- tab / 任务 store 层 --- */
 export interface WorkspaceTab {
@@ -696,7 +743,7 @@ export interface TaskUsage {
   breakdown?: unknown;
   [key: string]: any;
 }
-declare const taskStore: { getState(): TaskStoreState };
+declare const taskStore: { getState(): TaskStoreState }; // 原 xe（styles@401 `h as xe` ← skillStore chunk；stores/taskStore@2956 useTaskStore，SkillStore@247 转导出）〔A1-R147 候批注：改指已试施加，tsc 实测 13 处面冲突（本地 TaskStoreState/WorkspaceTaskState/TaskUsage/TaskRuntimeEntry 与 canonical TaskStore 面族不合：activeTaskId 顶层虚构、TaskUsage.cost 面 UsageCost|null vs number|undefined、setTaskError 参 string vs 错误对象、setTaskPermissionRequest 参 TaskInteractionRequest vs Record<string,unknown>、undefined vs string|null 等）→ 移交 R148 专批逐点束取证后裁定各面归属，不在联退批内混做〕
 /* ── tombstone（A1-R2）：sessionRouterStore（原 A2 js 122714）declare 已删除，改经文件头真实 import（../../modules/SplitLayoutDeep）消费。 ── */
 export interface SessionRouterGroup {
   primaryBinding: { restoredUnvalidated?: boolean; [key: string]: any };
@@ -2019,7 +2066,7 @@ export function SettingsLayer({
     (
       <div className={`absolute inset-0 z-10`}>
         {workspaceScopedServices ? (
-          <ServicesProvider services={workspaceScopedServices}>
+          <ServicesProvider services={workspaceScopedServices as unknown as BaseServices /* 〔型缝 A1-R147〕canonical serviceContext@13 ServiceProvider 参 services: BaseServices（sessionRegistryStore@34，成员皆可选但 zcodeAgentService 具型 AutomationsAgentService 18+ 员），本地 ServicesBundle 之 ZcodeAgentServiceLike 为 declare 期窄化近似（仅登本文件所消费之 syncAppRuntimePreferences 一员）→ 二段铸（telemetryScopes@261/P2-B10 判例）。★实测：于 ZcodeAgentServiceLike 补索引签不足以令源供目标具名成员（dossier-C U1「源索引签可供目标具名成员」推论于此件证伪），故取消费铸。束真 styles@207027/207128 `(0,$.jsx)(ds,{services: e, …})` 无型，运行期注入者即完整服务束 → 纯 TS 面零运行期变。 */}>
             <SettingsView
               isDesktop={isDesktop}
               isMacDesktop={isMacDesktop}
@@ -2130,7 +2177,7 @@ export function RootWorkspaceContent(args: {
             workspaceIdentity={args.workspaceIdentity}
             remoteSessionId={args.workspaceRemoteSessionId}
           >
-            <ServicesProvider services={args.workspaceScopedServices as ServicesBundle}>
+            <ServicesProvider services={args.workspaceScopedServices as ServicesBundle as unknown as BaseServices /* 〔型缝 A1-R147〕同上（保留既有 `as ServicesBundle` 铸，链式追加二段铸；束真 styles@207128 无型） */}>
               <ScopeBoundary scope={`workspace-app`} resetKeys={[resetKey]} variant={`panel`} className={`h-full`}>
                 <MemoizedWorkspaceRoot
                   services={args.workspaceScopedServices as unknown as WorkspaceServices} /* A0-CLEANUP3 #36：WorkspaceServices 已由属主导出；ServicesBundle 与 WorkspaceServices 无结构重叠，边界处双断言 */
@@ -5254,7 +5301,7 @@ export function WelcomeGate({
     }, [platform]),
     (
       <div className={`min-h-screen bg-transparent text-foreground`}>
-        <IntlProviderShell initialLocale={locale} key={locale}>
+        <IntlProviderShell initialLocale={locale as unknown as LocalePreference} key={locale}> // 〔型缝 A1-R147〕canonical ZCodeIntlProvider 之 initialLocale?: LocalePreference（I18n179），实参 locale 为 `string | null`（WelcomeGate useState 初值 = props.initialLocale）→ 二段铸（telemetryScopes@261/P2-B10 判例）。★取 `as unknown as` 而非 dossier-C 备选 `(locale ?? undefined)`：束真 styles@213600 `initialLocale: a` 之 a 溯自 @213556 `useState(t)`，**null 会透传**，改 undefined 属运行期值变
           <UpdateStatusWindow
             platform={platform}
             version={readyVersion}
