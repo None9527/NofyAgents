@@ -116,6 +116,9 @@
 
 export {
   readVisibleLimit,
+  expandedWorkspaceKeySet, // 〔A1-R129i〕原 PFt 144384 实体化转导出（Sidebar §23 declare 退役批）
+  incrementVisibleLimit, // 〔A1-R129i〕原 IFt 144397 实体化转导出
+  pruneVisibleLimits, // 〔A1-R129i〕原 LFt 144400 实体化转导出
   useWorkspaceTaskGroups,
   useSidebarUsageState,
   useGroupedTaskView,

@@ -204,10 +204,11 @@ import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast, usePlatf
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck } from '../../modules/Modals'; // 〔A1-R51〕$2 余消费位闭合实证：本叶 @2952 canSyncRemote ≡ bundle 158248 `oe = $2({ remoteSessionId, remoteTarget, clientMode: f ? 'web-remote-replayable' : 'desktop-continuous', hasLocalSourceService: !!N.skillSyncService })`（158xxx 远程技能卡域）逐字同形；接线 = A0 检查点 17（8382e04）既成，R50 §五-2「属外未录面」留批闭合（台账惯例 = 报告内更正，census 冻结不动）
 import { Badge, useCodingPlanUpgradeDialog as useCodingPlanUpgrade } from '../../modules/PaymentDeep'; // 〔A1-R121〕+useCodingPlanUpgradeDialog（原 fX 族 declare 改指；R43/R119 判例，别名保留调用名；消费面 @3832/@4129 逐字不变）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R121〕原 G（IntlProvider D@9248–9252）declare 改指（R1/R116/R119 判例续；ZCodeIntlContextValue 超集覆盖 localePreference/setLocalePreference 面，消费面 @3831 逐字不变）
-import { sessionTransportHandshake } from '../../services/conversationWireCore'; // 〔A1-R121〕原 AS（34647）declare 改指——P3 泳道 canonical 既立（[wire] 669/@579，转导出 @746；旧碑「合并后动作：删碑改指」本批执行）
+import { sessionTransportHandshake } from '../../services/conversationWireCore'; // 〔A1-R121〕
+import { sendSnoozeInteractionCommand as snoozeInteractionAutoResolution } from '../../modules/ConversationOverlays'; // 〔A1-R129i〕原 nSt（117414）declare 改指 canonical = ConversationInteractionsOverlay@178（A1-P1-B13 逐字；shim@185 转导出在案；别名导入保调用名）。环安全：本→modules/ConversationOverlays→conversation 族叶（ImeComposition/SkillStore/I18n/button/PermissionApprovalOverlay/ElicitationDialog/ConversationCommandLedger）值闭包不达 components/shell原 AS（34647）declare 改指——P3 泳道 canonical 既立（[wire] 669/@579，转导出 @746；旧碑「合并后动作：删碑改指」本批执行）
 import { createPortal } from 'react-dom'; // 〔A1-R121〕原 io.createPortal declare 改指 npm react-dom（MarkdownMermaid/MarkdownTable 判例；消费面 @4539 逐字不变）
 import { TabsList, TabsTrigger } from '../../modules/Settings';
-import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from '../../modules/SidebarLeaves';
+import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, expandedWorkspaceKeySet, incrementVisibleLimit, pruneVisibleLimits, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from '../../modules/SidebarLeaves'; // 〔A1-R129i〕+expandedWorkspaceKeySet/incrementVisibleLimit/pruneVisibleLimits（原 PFt/IFt/LFt，SidebarLeaves 实体化；墓碑见 §23 区）
 import { type WebRemoteSwitcherService } from '../../modules/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：原 modules/SidebarLeaves WebRemoteSwitcher 本地面删碑，改指生产面 canonical（六点分叉表闭合，A1-P2-B9.report.md §四）
 import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, getWorkspaceTaskStateAlias as getWorkspaceSlice } from '../../modules/SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；〔A1-R123〕原 fe declare 改指 getWorkspaceTaskStateAlias（stores/taskStore@433 _e 逐字，skillStore 导出 U；TaskListQueryCore@49 判例），TaskStore 型参随删（canonical TaskStoreState 面）
 import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, buildTaskFeedbackDescription, type TaskActionMenuItemsProps } from '../../modules/TopBar'; // 〔A1-R125〕+buildTaskFeedbackDescription（原 w6 改指，TopBar 逐字实体）
@@ -1448,7 +1449,7 @@ function useSnoozeInteractionCountdown(e: {
             sessionId: e.sessionId,
             interactionId: n,
             source: `taskBadge`,
-            sendCommand: async (t) => (
+            sendCommand: async (t: unknown) => ( // 〔型缝 A1-R129i〕回调参面复原原契据（canonical (e: any) 无上下文推参；R129f 同判例）
               await sessionTransportHandshake(i),
               i.sendConversationCommandV4({
                 workspacePath: e.workspacePath,
@@ -1479,13 +1480,11 @@ type SnoozeAgentServiceLike = {
  *    + sendCommand + status accepted|duplicate|noop 判定 + onCommandSettled 回调。
  *    本工作区不在案：闭包 OS/K1（命令台账）属 wire/会话命令域（属主 = P3 泳道 wire 批）；
  *    域转录后删碑改指 import（调用点 snoozeInteractionAutoResolution(…) 不变）。 ── */
-declare function snoozeInteractionAutoResolution(args: {
-  sessionId: string;
-  interactionId: string;
-  source: string;
-  sendCommand(command: unknown): Promise<unknown>;
-  onCommandSettled?(commandId: string): void;
-}): Promise<boolean>;
+/* ── tombstone（A1-R129i）：declare snoozeInteractionAutoResolution（原 nSt 117414）删除 → 改指
+ *    modules/ConversationOverlays::sendSnoozeInteractionCommand（canonical = ConversationInteractionsOverlay@178，
+ *    A1-P1-B13 逐字：buildCommand ≡ OS 命令封套 / pendingCommandLedger ≡ K1 record·applyAck /
+ *    accepted|duplicate|noop 判定 / onCommandSettled finally 回调全对应；入参 any 面 ⊇ 原契据面，
+ *    返 Promise<boolean> 同契据）。A1-P2-B10 旧碑「域转录后删碑改指」本批执行。调用点 1447 逐字不变。 ── */
 /* ── tombstone + 孪生注记（A1-P2-B10）：原 AS（34647–34670）会话传输握手 declare——
  *    体 = WeakMap（kS）缓存 helloConversationV4 parse + initializeConversationV4 clientHello（protocolVersion 3），
  *    失败时清除缓存条目（同一服务的并发握手共享同一 promise）。
@@ -5260,18 +5259,18 @@ export function TaskInteractionBadge({ interaction, legacyPending = false, class
  * 23. 数据层助手声明（实现位置见头注；接口级）
  * ==========================================================================*/
 
-/** 原 PFt（144342）：项目视图展开键集合 */
-declare function expandedWorkspaceKeySet(args: { enabled: boolean; expandedWorkspacePaths: Set<string>; workspaces: WorkspaceTab[] }): Set<string>;
-/** 原 FFt（144351）：读取工作区可见条数限制（下限 5） */
-/** 原 IFt（144355）：可见条数 +5 */
-declare function incrementVisibleLimit(map: Record<string, number>, key: string, defaultLimit?: number): Record<string, number>;
-/** 原 LFt（144358）：清理已不在展开集合中的可见数限制 */
-declare function pruneVisibleLimits(map: Record<string, number>, keepKeys: Set<string>): Record<string, number>;
-/** 原 dIt（144983）：折叠组集合裁剪到仍存在的组 */
-declare function pruneCollapsedGroupIds(collapsed: Set<string>, existingGroupIds: string[]): Set<string>;
-/** 原 VFt（144427 / 120229）：项目视图任务分组数据钩子（本地查询 + 远端 k6 + 乐观叠加） */
-/** 原 W6（144363）：工作区展开标记映射（路径 → true） */
-declare function workspaceExpansionFlags(current: Record<string, boolean>, paths: string[]): Record<string, boolean>;
+/** 原 FFt（144351）：读取工作区可见条数限制（下限 5）——改指在案（readVisibleLimit，SidebarLeaves@665 既有） */
+/** 原 VFt（144427 / 120229）：项目视图任务分组数据钩子（本地查询 + 远端 k6 + 乐观叠加）——改指在案（useWorkspaceTaskGroups，SidebarLeaves@689 既有） */
+/* ── tombstone（A1-R129i）：declare expandedWorkspaceKeySet（原 PFt 144384——原注 144342 偏移）/
+ *    incrementVisibleLimit（原 IFt 144397）/ pruneVisibleLimits（原 LFt 144400）删除 → 改指
+ *    modules/SidebarLeaves（canonical = SidebarLeaves 同域逐字实体化，readVisibleLimit 原 FFt 同式；
+ *    束消费 159593/159645/159601 ≡ 本叶 3957/4013/3961）。导入面见文件头；调用点逐字不变。 ── */
+/* ── tombstone（A1-R129i）：declare pruneCollapsedGroupIds（原注 dIt 144983）死删——取证：束 dIt@145029
+ *    真身为布尔谓词（e.length>0 && every !t.has），与 Set 裁剪面不符；面义 ≡ fIt@145032（Set 过滤），
+ *    而 fIt/dIt 束内消费双零（负证据）、全树消费亦零，纯死 declare。 ── */
+/* ── tombstone（A1-R129i）：declare workspaceExpansionFlags（原 W6 144405，原注 144363 偏移）死删——
+ *    真身 ≡ SidebarLeaves::workspaceLoadingFlags@658（逐字；VFt 内部消费 872/892/943 ≡ 束
+ *    144615/144635/144684）；本叶消费零（grep 实测）、全树消费零。 ── */
 
 /* ============================================================================
  * 22b. 补遗：小助手与跨块依赖（原定义散见于本 chunk 与 src-HCld2afU.js）

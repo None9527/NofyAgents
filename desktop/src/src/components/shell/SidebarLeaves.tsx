@@ -666,6 +666,27 @@ export function readVisibleLimit(map: Record<string, number>, key: string, defau
   const value = map[key];
   return typeof value === "number" && Number.isFinite(value) ? Math.max(defaultLimit, Math.floor(value)) : defaultLimit;
 }
+/** 〔A1-R129i〕原 PFt（144384）实体化：项目视图展开键集合（enabled 门控；路径集合过滤 → 工作区键集）。
+ *    消费 = Sidebar @3957（≡ bundle 159593）。局部变量保束名。 */
+export function expandedWorkspaceKeySet(args: { enabled: boolean; expandedWorkspacePaths: Set<string>; workspaces: WorkspaceTab[] }): Set<string> {
+  return args.enabled
+    ? new Set(
+        args.workspaces
+          .filter((t) => args.expandedWorkspacePaths.has(t.workspacePath))
+          .map((e) => workspaceKeyOf(e.workspacePath, e.workspaceIdentity)),
+      )
+    : new Set();
+}
+/** 〔A1-R129i〕原 IFt（144397）实体化：可见条数 + 步长（步长 = defaultLimit，束默认 5）。消费 = Sidebar @4013（≡ 159645）。 */
+export function incrementVisibleLimit(map: Record<string, number>, key: string, defaultLimit = 5): Record<string, number> {
+  return { ...map, [key]: readVisibleLimit(map, key, defaultLimit) + defaultLimit };
+}
+/** 〔A1-R129i〕原 LFt（144400）实体化：清理已不在保留集合中的可见数限制（全保留时引用保持）。消费 = Sidebar @3961（≡ 159601）。 */
+export function pruneVisibleLimits(map: Record<string, number>, keepKeys: Set<string>): Record<string, number> {
+  let n = Object.entries(map),
+    r = n.filter(([e]) => keepKeys.has(e));
+  return r.length === n.length ? map : Object.fromEntries(r);
+}
 
 interface WorkspaceTaskQueryConfig {
   scope: WorkspaceScope;
