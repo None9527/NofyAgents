@@ -739,7 +739,7 @@ function ProjectSelectorHero() {
 }
 
 /** 原 s4t（js 205679+ / jsx 163712）：ZCode 字标 SVG */
-function ZCodeLogoSvg({ className }: { className?: string }) {
+export function ZCodeLogoSvg({ className }: { className?: string }) { // 〔A1-R146〕补 export：OnboardingLoginLeaves declare BrandWordmarkSvg（原 s4t，束真 styles 205975 为 chunk 导出面）收敛改指所依；本文件内消费逐字不变
   return (
     <svg
       xmlns={`http://www.w3.org/2000/svg`}

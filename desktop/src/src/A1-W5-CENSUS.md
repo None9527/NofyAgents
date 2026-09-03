@@ -32,9 +32,17 @@ skillStore 全文 48 名零命中；真身链闭合 SrcSharedB/SrcSharedA/lib/bu
 **不同源**，收取前须独立束证（skillStore-BmeKHDBI.js 内是否有第二 q），不可径抄 R144 结论；
 其面为 2 键子集，改指后为窄→宽方向，需独立核消费点字面量收窄缝。〕
 
-## 二、components/onboarding/OnboardingLoginLeaves.tsx（48）
+## 二、components/onboarding/OnboardingLoginLeaves.tsx（48 → **38**）
 
 12 别名改指 + 35 实体化 + 0 伪面 + 1 ambient（1132 declare global Window，留）。
+〔A1-R146 施行：别名 10 件已退（B7 三件 + B9 三件 + B10 三件 + 单件 899），域余 38。
+**dossier-D 翻案（1,444 行束取证，代理已完工）**：原记「35 实体化」中 **32 件束真身已在树内有逐字
+canonical，应改判别名/vendor 改指；仅 3 件真实体化**（persistProviderFamilyDomain / useDiffsWorkerPool /
+DiffsWorkerPoolProviderElement）；**伪面 0 件**——936/937/1847/2517 四枚各有 1 活消费点且束真身确凿
+（Y6t@211393 / X6t@211428 / R4t@206775 / R3t@209141），**不得销账**。批划分 D-1…D-9，台账预期 −33。
+★dossier-D 阻断级发现：B6-4 `refreshModelProviderSnapshot` 系**双束符混并**（gM@52709 + _M@52726），
+TSX@3348 现用 gM 面而束真为 `_M`（Q3t@209922 实证）→ **既存运行时行为偏差**（恒发请求 + 作废在途刷新），
+须专批更正，优先级高于普通退役批。〕
 
 | 簇 | 行域 | 件数 | 类 | 目标 |
 |---|---|---|---|---|
@@ -44,12 +52,12 @@ skillStore 全文 48 名零命中；真身链闭合 SrcSharedB/SrcSharedA/lib/bu
 | B4 taskStore | 696 | 1 | 别名 | stores/taskStore.ts@2956 useTaskStore（7 消费点 .getState() 式） |
 | B5 任务刷新对 | 807–808 | 2 | 实体化 | refreshPinnedTasks/refreshTimelineTasks |
 | B6 provider 快照四件 | 836–839 | 4 | 实体化 | 消费互锁（@1355/3348–3361） |
-| B7 team-plan-key 三件 | 851–853 | 3 | 别名 | SrcSharedB@5099/5108/5130（ModelProviderSettingsSection@23/25 别名先例在案）——全文件最低风险 |
+| B7 team-plan-key 三件 | 851–853 | 3 | 别名 | SrcSharedB@5099/5108/5130（ModelProviderSettingsSection@23/25 别名先例在案）——全文件最低风险〔**R146 已施行**，零缝〕 |
 | B8 家族域助手五件 | 859–864 | 5 | 实体化 | §F 域 |
-| B9 广播/diffs/titlebar | 934–942 | 5 | 混 | cLt/oLt→FileTreePanel 别名；xo→Settings 别名；diffs 二件实体化（F14） |
-| B10 store/modals | 1090+1125–1126 | 3 | 别名 | createExternalStore→zustand create（@5262 死裸创建待裁）；HeroCardShell/BrandWordmarkSvg→Modals（ZCodeLogoSvg 需补 export） |
+| B9 广播/diffs/titlebar | 934–942 | 5 | 混 | cLt/oLt→FileTreePanel 别名〔**R146 已施行**，型缝 2：消费铸 `task as TaskMeta`——本地 TaskBroadcastPayload.task 面非 any，档案「可赋」判定证伪〕；xo→Settings 别名〔**R146 已施行**，型缝 1：`theme as ThemeMode`，MarkdownIntegration@830 同式先例〕；diffs 二件实体化（F14）〔dossier-D：依赖闭包 ~600 行（GRe WorkerPoolManager 类 styles 46400–46960 + hO/mO/KRe/gO）**全树未重建**，建议移交 F14、本域留碑〕 |
+| B10 store/modals | 1090+1125–1126 | 3 | 别名 | createExternalStore→zustand create（@5262 死裸创建待裁→dossier-C U3 裁**留**，逐字口径）；HeroCardShell/BrandWordmarkSvg→Modals（ZCodeLogoSvg 需补 export）〔**R146 已施行**：ZCodeLogoSvg 补 export + modules/Modals@248 补转导出（头注@119 登记缺口）；HeroCard 走 ModalsLeaves 新值边 + **canonical 束真回补 2 处**（children 可选化 + `relative z-10` 守卫，束真 C4t 206384-206409 全段核合）〕 |
 | B11 任务态访问对 | 1847+2517 | 2 | 实体化 | 非邻接 |
-| 单件 | 816/899 | 2 | 混 | isKeyCombo 实体化；useWebRemoteControlFeatureEnabled→WebRemote@2038 别名 |
+| 单件 | 816/899 | 2 | 混 | isKeyCombo 实体化；useWebRemoteControlFeatureEnabled→~~WebRemote@2038~~ 别名〔**A1-R146 勘误+已施行**：WebRemote@2038 = useWebRemoteControlEnabled（原 **y8**，束 150152；束内 y8() 全集 4 处，Y3t 体内无 y8）**证伪**；真身 = styles@209397 `UTt()` ← 本地恒真 stub@123194 → 属主 **components/shell/Home@1251 useRemoteWorkspaceEnabled**（modules/Home@149 转导出，SplitLayoutUiDeep@76/1576 明注不重复）。误接 y8 将使 Y3t 远控编排受 Provider 缺省 !1 影响而行为回退〕 |
 
 注意：611（IntlProviderShell）与 851（bigmodelTeamPlanKey）无原注——改指前须束内核身复核。
 
@@ -83,7 +91,8 @@ ImeComposition appendPptxElementReferences，皆已在树，别名改指零转�
 
 台账预期：146 件全数退役皆减台账（别名改指/伪面销账/实体化均删 declare 语句——实体化
 「不减台账」系本普查初稿口径误，R129n 判例实证 868→862 含实体化 2 件）。〔A1-R142 修正〕
-余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)+R144(34)+R145(22)=98 件，
-三域现存 **48**（**Composer 0（R143 域闭）** + **UsageDeep 0（R145 域闭，顶群第三闭合域）**
-+ Onboarding 48）；台账实测 **679**（R145 后），r118 基线累计 1,012→679 = 333 删 0 增。
-W5a 仅余 Onboarding 一域；W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。
+余量核算：普查后已退 R138(7)+R139(5)+R140(10)+R141(6)+R142(7)+R143(7)+R144(34)+R145(22)+R146(10)=108 件，
+三域现存 **38**（**Composer 0（R143 域闭）** + **UsageDeep 0（R145 域闭）** + **Onboarding 38（R146 别名 10 件后，48→38）**）；
+台账实测 **669**（R146 后），r118 基线累计 1,012→669 = 343 删 0 增。
+W5a 仅余 Onboarding 一域（C-5 面工作 2 + C-6 联退 2 + ambient 留存 1 + dossier-D 33）；
+W5 闭条件 = 三域业务 declare 清零（vendor/ambient 裁定留痕）。

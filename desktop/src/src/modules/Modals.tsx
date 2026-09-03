@@ -245,6 +245,7 @@ export { DirectoryBrowserDialog } from '../components/modals/DirectoryBrowserDia
 export type { BaseServices } from '../components/modals/DirectoryBrowserDialog';
 
 export { OnboardingDialog } from '../components/modals/OnboardingDialog';
+export { ZCodeLogoSvg } from '../components/modals/OnboardingDialog'; // 〔A1-R146〕补转导出：s4t → ZCodeLogoSvg 本文件头注已登记而无转出口（登记缺口），OnboardingLoginLeaves BrandWordmarkSvg declare 收敛改指所依（复用既有 ONB→modules/Modals 边，零新环）
 
 export { useConfirmDialog, useAlertDialog, ConfirmDialog, AppDialogHost } from '../components/modals/ConfirmDialog';
 export type { ConfirmDialogRequest, AlertDialogRequest } from '../components/modals/ConfirmDialog';

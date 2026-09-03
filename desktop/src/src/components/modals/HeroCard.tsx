@@ -68,8 +68,12 @@ export function useHeroThemeStyles(): HeroThemeStyles {
   return resolveHeroThemeStyles(theme === "system" ? (resolveSystemThemeIsDark(theme) ? "dark" : "light") : theme);
 }
 
-/** 原 C4t（206094）：Hero 卡片壳（双光晕 blur-3xl 绝对定位 + 面板渐变） */
-export function HeroCard(props: { className?: string; contentClassName?: string; children: React.ReactNode }) {
+/** 原 C4t（束真 styles 206384-206409；旧注 206094 漂移）：Hero 卡片壳（双光晕 blur-3xl 绝对定位 + 面板渐变）。
+ *  〔A1-R146〕束真回补 2 处（重建期遗漏，非别名缝）：children 可选化 + `e.children ? … : null` 守卫 + `relative z-10`
+ *  （束真逐字 `e.children ? (0,$.jsx)('div',{className: Z('relative z-10', e.contentClassName), children: e.children}) : null`）。
+ *  负证据：束内 w4t@206413 消费 `(0,$.jsx)(C4t,{className:'absolute inset-0'})` **不传 children** ≡ ONB 侧消费逐字；
+ *  既有消费 OnboardingDialog 传 children 者回补后逐字不变。本段其余（面板/双光晕）与束真全段核合零分歧。 */
+export function HeroCard(props: { className?: string; contentClassName?: string; children?: React.ReactNode }) {
   const styles = useHeroThemeStyles();
   return (
     <div className={cn("relative overflow-hidden", styles.panel, props.className)}>
@@ -85,7 +89,7 @@ export function HeroCard(props: { className?: string; contentClassName?: string;
           styles.glowSecondary,
         )}
       />
-      <div className={cn("relative", props.contentClassName)}>{props.children}</div>
+      {props.children ? <div className={cn("relative z-10", props.contentClassName)}>{props.children}</div> : null}
     </div>
   );
 }

@@ -243,17 +243,17 @@ import { Select as SelectRoot } from '../../modules/Settings'; // A0-S3c：vendo
 import { AlertTriangleIcon, LoaderCircle as SpinnerIcon } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { CaptchaHostContainer } from '../../modules/ConversationLeaves';
 import { Input, toast, usePlatform } from '../../modules/ImeComposition';
-import { AppDialogHost, ConfirmDialog, DirectoryBrowserDialog, OnboardingDialog, useAlertDialog, useConfirmDialog } from '../../modules/Modals'; // +ConfirmDialog（原 q4t，A0-CLEANUP2 item 35 接线）；useConfirmDialog（原 U2，js 123493）
+import { AppDialogHost, ConfirmDialog, DirectoryBrowserDialog, OnboardingDialog, useAlertDialog, useConfirmDialog, ZCodeLogoSvg as BrandWordmarkSvg } from '../../modules/Modals'; // +ConfirmDialog（原 q4t，A0-CLEANUP2 item 35 接线）；useConfirmDialog（原 U2，js 123493）
 // A0-D-Misc 回滚注记：CodingPlanUpgradeDialogProvider（PaymentDeep）、CLOSE_ACTIVE_CONTEXT_EVENT（WorkspaceShell）
 // 的前波 import 曾编译失败恢复基线 declare（本文件无调用面）；两者属主 export 已由 A0-CLEANUP B-30/B-32 落地（A0-CLEANUP2 复核）。
 // ConfirmDialog 已由 A0-CLEANUP2 item 35 接入真实 import（上方）。
-import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, SettingsView } from '../../modules/Settings';
-import { logger, resolveWorkspaceKey as workspaceScopeKey } from '../../modules/SkillStore'; // workspaceScopeKey（原 Io，js 1368：两参实体键；前波误接 stores-session.workspaceScopeKey 单参形，A0-D-Misc 按 bundle R6t 裁决改接 resolveWorkspaceKey）
+import { Alert, AlertDescription, SelectContent, SelectItem, SelectTrigger, SelectValue, SettingsView, resolveThemeMode as resolveThemeForTitleBar, type ThemeMode } from '../../modules/Settings';
+import { logger, resolveWorkspaceKey as workspaceScopeKey, create as createExternalStore } from '../../modules/SkillStore'; // workspaceScopeKey（原 Io，js 1368：两参实体键；前波误接 stores-session.workspaceScopeKey 单参形，A0-D-Misc 按 bundle R6t 裁决改接 resolveWorkspaceKey）
 import { MemoizedWorkspaceRoot, type WorkspaceServices } from '../../modules/WorkspaceShell'; // A0-CLEANUP3 #36：Y4t=memo(XJt)=WorkspaceRoot 属主接线（原误包 yJt=WorkspaceShell）
 import { extractErrorMessage as normalizeConnectionError, type FeedbackService } from '../../modules/FeedbackCenter'; // A1-R7：MC=extractErrorMessage 改指（原 normalizeConnectionError declare）
 import { type MobileHomeResult, type WebRemoteSwitcherService } from '../../modules/WebRemote';
 import { ConversationTelemetrySupervisor, registerBaseServices, syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指 + A1-R8：Ks@4164（async (e) => await vse(e)，vse@4237）= syncProviderRegistryAndReturn 改指
-import { reportTelemetry as trackTelemetryEvent, normalizeCaptchaCode as messageErrorCodeOverride, resolveTelemetryProviderHost } from '../../modules/StoresDeep';
+import { reportTelemetry as trackTelemetryEvent, normalizeCaptchaCode as messageErrorCodeOverride, resolveTelemetryProviderHost, type TaskMeta } from '../../modules/StoresDeep'; // 〔A1-R146〕+type TaskMeta：B9 二件消费铸所依（canonical TaskRecord ≡ TaskMeta，StoresDeep@226 型再导出）；type-only，边既有零新环
 import type { UpdateState } from '../shell/TopBar'; // A1-R48：根面 getUpdateState?/onUpdateStateChanged? 改型同形 canonical（属主 TopBar@212；type-only 边，环安全） // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）。A1-R12：原 Cw（40570）私有转录删除 → 别名改指 StoresDeep normalizeCaptchaCode（本批改回逐字 stub；DM 调用点逐字不变）。〔A1-R31〕+resolveTelemetryProviderHost（bw 40445/hNe 40454 canonical，StoresDeep@308）：telemetryLoginProviderName declare 收敛改指，见下墓碑
 import { mergeRemoteLogProgressEntry as appendRemoteLog, stripRemoteLogPrefixes as normalizeRemoteLogMessage } from '../remote/RemoteGapSegments'; // A1-R8：hEt@123747=stripRemoteLogPrefixes、vEt@123762=mergeRemoteLogProgressEntry 改指（环安全：RemoteGapSegments 仅 import React/button/RemoteWizard/Modals/SrcSharedA/B/stores-core，不反入 onboarding）
 import { useSettingsStore } from '../../modules/stores-core';
@@ -266,7 +266,10 @@ import { Button } from '../../modules/button'; // Button（原 X，button-laUije
 import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
 import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup, sessionEntryWorkspaceKey as remoteWorkspaceKey, buildRemoteWorkspaceKey as workspaceIdentityOf, resolveEntryWorkspaceIdentity as entryIdentity, remoteTargetWithSecrets as withRemoteCredentials, applyRemoteConnectionResult as commitRemoteSessionsMutation, removeRemoteSessionEntries as removeSessionsByWorkspaceKeys, persistedWorkspaceSessions as persistableWorkspaceTabs, persistedRemoteSessions as normalizePersistedRemoteSessions, resolveLastActiveTabIndex, type PersistedWorkspaceTabRecord, type RemoteSessionTarget } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles 121301–123510 面板布局引擎逐字重建改指）+ A1-R6：R2/I2/L2/z2/B2/oEt 远程条目域改指 + A1-R7：V2/cEt/Bne 恢复条目域改指（Hn 改指更正迁 SrcSharedA；tombstone 见原 declare 位）
 import { sanitizeWorkspaceDescriptor as serializeRemoteTarget, sshTargetIdentityKey as sshHostKeyOfTarget, providerIds } from '../../modules/SrcSharedA'; // A1-R7：Hn（R6 误录更正，canonical 见 lib/workspaceUtils）+ Pn=sshTargetIdentityKey 改指。〔A1-R32〕+providerIds（q ≡ mo ≡ W 4733，builtin: 前缀 7 键实体）：PROVIDER_IDS declare 收敛改指，见 @552 墓碑
-import { generateUuid as createRequestId, getOAuthProviderFamilyByProviderId, resolveProviderFamilyMode, joinTestidParts } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555）：resolveFamilyMode declare 收敛改指，见下墓碑。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：providerById declare 收敛改指，见下墓碑。〔A1-R41〕+joinTestidParts（原 qr 收敛改指，见下墓碑）。环安全：本行不新增环边（本文件→SrcSharedB 既有）
+import { generateUuid as createRequestId, getOAuthProviderFamilyByProviderId, resolveProviderFamilyMode, joinTestidParts, buildCodingPlanScope as bigmodelTeamPlanKey, parseCodingPlanScope as parseTeamPlanKey, codingPlanScopesOverlap as isSameTeamPlanKey } from '../../modules/SrcSharedB'; // A1-R7：xi=cx=generateUuid 改指（lib/uuid re-export）。〔A1-R28〕+resolveProviderFamilyMode（zi 真身 ≡ Gx / src 10062 `Gx as z` / styles 820 `z as zi` ≡ SrcSharedB@5555）：resolveFamilyMode declare 收敛改指，见下墓碑。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：providerById declare 收敛改指，见下墓碑。〔A1-R41〕+joinTestidParts（原 qr 收敛改指，见下墓碑）。环安全：本行不新增环边（本文件→SrcSharedB 既有）。〔A1-R146〕+B7 team-plan-key 三件（buildCodingPlanScope/parseCodingPlanScope/codingPlanScopesOverlap as 本地名；束证三段链：src@8526 Wb→src@9966 `Wb as mt`→styles@728 `mt as vi`→styles@209951 消费；src@8533 Gb→src@9918 `Gb as gt`→styles@680 `gt as li`→styles@210045/210165；src@8545 Kb→src@9926 `Kb as ht`→styles@688 `ht as fi`→styles@210005）；canonical SrcSharedB@5099/5108/5130 已 export，先例 ModelProviderSettingsSection@23-25 同名三件别名在案
+import { registerWorkspaceTask as insertCreatedTaskFromBroadcast, upsertTaskInWorkspaceCache as upsertTaskFromBroadcast } from '../../modules/FileTreePanel'; // 〔A1-R146〕原 cLt（束真 styles 146840）/ oLt（束真 146788）declare ×2 退役 → 改指 components/code-viewer/FileTreePanel@2615 registerWorkspaceTask / @2546 upsertTaskInWorkspaceCache（经 shim@170/172 转导出）。先例 SidebarLeaves@128 cleanupDeletedTaskState 同路径同判例。环安全：**新值边**，FileTreePanel 值闭包反向不达本文件（dossier-C 环检查表，NO-VALUE-CYCLE）
+import { HeroCard as HeroCardShell } from '../../modules/ModalsLeaves'; // 〔A1-R146〕原 C4t declare 退役 → 改指 components/modals/HeroCard@76 HeroCard（经 ModalsLeaves@85 转导出）。★canonical 与束真两处分歧同批回补（children 可选化 + `relative z-10` 守卫，束真 C4t 206384-206409 全段核合）——回补前本件消费 @1561 不传 children 会对必填 children 报 missing。环安全：**新值边**，ModalsLeaves 值闭包反不达本文件（Modals.tsx 未转导出 HeroCard，故不走既有 Modals 边）
+import { useRemoteWorkspaceEnabled as useWebRemoteControlFeatureEnabled } from '../../modules/Home'; // 〔A1-R146〕原 declare 退役 → 改指 components/shell/Home@1251 useRemoteWorkspaceEnabled（经 modules/Home@149 转导出）。★**census 目标证伪**：普查注「WebRemote@2038」系误接——WebRemote@2038 = useWebRemoteControlEnabled（原 **y8**，束 150152，语义为远控开关上下文，Provider 缺省 !1），而本 declare 束真为 styles@209397（Y3t@209393 体内）`let f = UTt()` ← UTt = styles 本地 stub @123194 `function UTt(){return !0}`（`as UTt` 导入 0 命中 → 非跨 chunk 符号），属主在案 Home@62/1251（恒 true；SplitLayoutUiDeep@76/1576 明注「UTt 123194 属主在 components/shell/Home.tsx useRemoteWorkspaceEnabled，不重复」）。误接 y8 将使 Y3t 远控编排行为回退。环安全：**新值边**，Home 值闭包反不达本文件
 import { bindWorkspacePath as bindRemoteWorkspacePath, bindWorkspaceIdentity as bindRemoteWorkspaceIdentity, unbindWorkspacePath as unbindRemoteWorkspacePath, unbindWorkspaceIdentity as unbindRemoteWorkspaceIdentity, getSessionById as getRemoteWorkspaceSession, type RegisteredSession } from '../../stores/sessionRegistryStore'; // A1-R7：$s/ec/Cse/wse/tc registry 包装族改指（环安全：该文件值导入仅 ./zustand，type-only 边无运行时环）
 
 /* ============================================================================
@@ -848,9 +851,21 @@ declare function refreshModelProviderSnapshot(loader: () => Promise<ModelProvide
  *    双实例收敛证据：bundle iM 唯一真身 52651；本面消费实测 = i6t 210023/210032 ≡ 本文件
  *    resolveOAuthFamilySelection@3448 两处（3457/3466，双参形）；同批 PaymentDeep@214 墓碑（A6e 单参面）同收敛。
  *    负证据：bundle 内 iM 无第二定义。 ── */
-declare function bigmodelTeamPlanKey(parts: { productId: string; organizationId: string; projectId: string }): string;
-declare function parseTeamPlanKey(key: string): { productId: string; organizationId?: string; projectId?: string } | null;
-declare function isSameTeamPlanKey(a: string, b: string): boolean;
+/* ── tombstone〔A1-R146〕：B7 team-plan-key 三件 declare 退役 → 改指 modules/SrcSharedB（零缝、零转录）。
+ *    bigmodelTeamPlanKey（原 vi）≡ SrcSharedB@5099 buildCodingPlanScope；parseTeamPlanKey（原 li）≡ @5108
+ *    parseCodingPlanScope；isSameTeamPlanKey（原 fi）≡ @5130 codingPlanScopesOverlap。
+ *    束证三段链（styles 进口块 ← src 导出表 ← src 定义）：
+ *      src@8526 `function Wb(e)` → src@9966 `Wb as mt` → styles@728 `mt as vi` → 消费 styles@209951（t6t@209949 体内）
+ *        `? vi({productId: e.productId, organizationId: e.organizationId, projectId: e.projectKey})`；
+ *      src@8533 `function Gb(e)` → src@9918 `Gb as gt` → styles@680 `gt as li` → 消费 styles@210045（a6t@210040）
+ *        `let n = li(e.selectedKey)` + styles@210165（m6t@210164）`let t = li(e)`；
+ *      src@8545 `function Kb(e,t)` → src@9926 `Kb as ht` → styles@688 `ht as fi` → 消费 styles@210005（r6t@209984）`fi(`。
+ *    可赋性零缝：三 canonical 参皆 `any`（⊇ declare 之对象面/string/string,string）；返回面 = 模板串 string /
+ *    联合（消费仅读 productId 必有 + organizationId?/projectId? 经 `?.trim()` 对 `string|null` 双变可赋，
+ *    多余 legacyProjectOnly 无害）/ boolean ≡ declare。
+ *    消费面 4 处经 `as` 别名逐字不变：@3455（≡束 209951）/@3513-3521（≡210005）/@3568（≡210045）/@3714（≡210165）。
+ *    先例：ModelProviderSettingsSection@23-25 同三件别名（buildCodingPlanScope as buildTeamPlanKey 等）；PaymentDeep@214 碑。
+ *    环安全：本文件→SrcSharedB 边既有；SrcSharedB 值闭包（SrcSharedA + lib/*）不达 components/onboarding。 ── */
 /* ── tombstone〔A1-R28〕：declare resolveFamilyMode（原 zi）删除 → 改指 resolveProviderFamilyMode（zi 真身：
  *    styles 820 `z as zi` ← src 10062 `Gx as z` ≡ Gx ≡ SrcSharedB@5555 `return t?.[e] ?? \`oauth\``，链闭合）。
  *    消费面实测：@3509（s6t migrateDefaultFamilySelectedKeys）≡ bundle 210066、@3541（l6t
@@ -896,7 +911,19 @@ declare function persistProviderFamilyDomain(settingService: SettingServiceLike,
 /* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53488）删除。负证据：本文件无活调用点（仅存 declare；
  *    refreshAppSettings 一律经 props 传入，见 3553/3626/3701）。canonical = components/usage/UsageDeep.tsx §2c useAppSettings（JM 53488 逐字），
  *    活消费面在 AppRootLeaves/settings 六区/AutomationEditor/AutomationsMain/IndexingSettingsSection/modules/Settings（本批另行改指）。 ── */
-declare function useWebRemoteControlFeatureEnabled(): boolean;
+/* ── tombstone〔A1-R146〕：declare useWebRemoteControlFeatureEnabled 退役 → 改指 components/shell/Home
+ *    useRemoteWorkspaceEnabled（经 modules/Home 转导出；**新值边**，环检查 NO-VALUE-CYCLE）。
+ *    ★census §二「899→WebRemote@2038」**证伪**（dossier-C 单件 899）：WebRemote@2038 = useWebRemoteControlEnabled
+ *    （原 **y8**，束 150152 `function y8(){return React.useContext(WebRemoteControlEnabledContext)}`；束内 y8() 全集
+ *    4 处 = 150152 定义 / 150194 cRt / 159472 sidebar / 213054 _8t 域，**Y3t 体内无 y8**）。
+ *    束真重定位：styles@209397（Y3t@209393 体内）`let f = UTt(),`；UTt = styles 本地 stub @123194
+ *    `function UTt() { return !0; }`（`as UTt` 导入 0 命中 → 非跨 chunk 符号）。
+ *    属主裁定在案：Home@62 头注「UTt → useRemoteWorkspaceEnabled（恒 true）(123194)」+ Home@1251 实体
+ *    + modules/Home@149 转导出 + SplitLayoutUiDeep@76/1576 明注「不重复」。
+ *    可赋性零缝：`() => boolean` ≡ `() => boolean`（恒 true stub 逐字同）。
+ *    消费面 1 处经 `as` 别名逐字不变：@2890（Y3t useRemoteWorkspaceOrchestrator 内，≡束 209397）。
+ *    ★误接警戒（dossier-C U4）：后续批不得把本符接 WebRemote useWebRemoteControlEnabled——语义为远控开关上下文
+ *    （Provider 缺省 !1），误接将使 Y3t 远控编排行为回退。census 侧勘误同批落账。 ── */
 /* ── tombstone〔A1-R44〕：死 declare 簇（6 件）删除：useWebRemoteControlFeatureFlag（原 y8 族）/ useWebRemoteControlSession（原 G6 族）/ useSessionRestoreBridge /
  * useOAuthCredentialsRefresher（原 iYt 族）/ syncRemoteTabsE2E（原 yFe 族）/ setActiveWorkspacePathE2E（原 $se 族）。活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
 
@@ -931,15 +958,39 @@ declare function useWebRemoteControlFeatureEnabled(): boolean;
 
 
 
-declare function insertCreatedTaskFromBroadcast(options: { workspacePath: string; workspaceIdentity?: string | null; task: any; membership: { pinned: boolean; archived: boolean } }): void; // 原 cLt（js 146839）
-declare function upsertTaskFromBroadcast(options: { workspacePath: string; workspaceIdentity?: string | null; task: any; membership: { pinned: boolean; archived: boolean }; ensureInWorkspaceTaskCache: boolean }): void; // 原 oLt（js 146788）
+/* ── tombstone〔A1-R146〕：B9 广播二件 declare 退役 → 改指 components/code-viewer/FileTreePanel（经 modules/FileTreePanel
+ *    转导出；**新值边**，先例 SidebarLeaves@128 同路径同判例，环检查 NO-VALUE-CYCLE）。
+ *    insertCreatedTaskFromBroadcast（原 cLt）≡ FileTreePanel@2615 registerWorkspaceTask；
+ *    upsertTaskFromBroadcast（原 oLt）≡ FileTreePanel@2546 upsertTaskInWorkspaceCache。
+ *    束证：styles@146840 `function cLt(e){ oLt({… forceInsertMembership: !0, ensureInWorkspaceTaskCache:
+ *    e.membership.pinned === !1 && e.membership.archived === !1}); }`（cLt 体 = 转调 oLt，与 canonical
+ *    registerWorkspaceTask 体逐字同）；消费 styles@211332（K6t@211198 体内）`? cLt({workspacePath: r.workspacePath, …
+ *    membership: e,})` 与 @211338 `: oLt({…, ensureInWorkspaceTaskCache: !0,})`。
+ *    可赋性：membership 结构同形（canonical 可选 ⊇ declare 必填）；declare 全键皆 canonical 键子集；返回 void ≡
+ *    （canonical 体末为调用语句）。★**型缝 2 处（dossier-C「task: any → TaskRecord 可赋」判定证伪）**：本地
+ *    TaskBroadcastPayload@1159 之 `task?` 面为 declare 期窄近似（`{taskId; workspacePath; provider?; [key:string]: any}`，
+ *    且 @4516 束真守卫仅校 taskId/workspacePath 二键），**非 any** → 对 canonical `task: TaskRecord`
+ *    （FileTreePanel@2501 `type TaskRecord = TaskMeta`，TaskMeta 自 modules/StoresDeep@226 再导出）缺必填
+ *    title/createdAt/updatedAt，tsc 首轮报 TS2739 ×2。处置 = 消费侧铸 `taskPayload.task as TaskMeta` ×2
+ *    （@4793 / @4799，R142「消费铸」判例同式）+ @256 StoresDeep 既有行 +`type TaskMeta`（type-only，零新边）；
+ *    不动 TaskBroadcastPayload 共享面（shim@384 再导出，避免对外过度声称）。束真 211332/211338 无型，
+ *    运行期载荷即内核广播之完整 task 记录 → 纯 TS 面，运行期零变。
+ *    消费面 2 处经 `as` 别名逐字不变：@4790-4795（≡束 211332）/@4796-4802（≡211338）。 ── */
 declare function useDiffsWorkerPool(): { setRenderOptions(options: Record<string, unknown>): Promise<void> } | null;
 declare const DiffsWorkerPoolProviderElement: React.FC<{
   poolOptions: { workerFactory: () => Worker; poolSize: number };
   highlighterOptions: Record<string, unknown>;
   children?: React.ReactNode;
 }>;
-declare function resolveThemeForTitleBar(theme: string): string; // 原 xo（js 1103）
+/* ── tombstone〔A1-R146〕：declare resolveThemeForTitleBar（原 xo）退役 → 改指 modules/Settings@736 resolveThemeMode
+ *    （边既有；Settings 值边 NO-VALUE-CYCLE）。束证：xo 为 styles 本地函数@1103 `function xo(e){ return e === 'system' ?
+ *    kie() : e === 'dark' || e === 'zai-dark' ? 'dark' : 'light'; }`，与 canonical 体逐字同构（canonical 之 kie() 展开为
+ *    `window.matchMedia("(prefers-color-scheme: dark)").matches`）；消费束点 styles@1110（Co 体内）与 @210456（x6t@210452 体内）
+ *    `a = r === 'system' ? 'system' : xo(r);` ≡ 本文件 @4054 逐字。
+ *    型缝 1 处（同批修）：消费实参 `theme: string`（x6t props）⊄ canonical `ThemeMode` → @4054 加 `as ThemeMode` 铸。
+ *    **先例逐字同式**：components/markdown/MarkdownIntegration.tsx@830 `: resolveThemeMode(theme as ThemeMode);`
+ *    （其 @163 同源导入 `{ resolveThemeMode, type ThemeMode }`）；CodeViewer@97、GitReview@221 同源。
+ *    返回面 `"light"|"dark"` ⊆ declare 承诺 string ✓。 ── */
 /* ── tombstone〔A1-R44〕：declare useWebRemoteControlTaskSyncFeature 删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
 
 /* --- B5-02 §G–§I 追加声明 --- */
@@ -1087,9 +1138,16 @@ export function normalizeTaskBroadcastError(
     taskId: t.taskId ?? l,
   };
 }
-declare function createExternalStore<T>(
-  initializer: (set: (partial: Partial<T>) => void, get: () => T) => T,
-): { getState(): T }; // 原 Ae（外部 skillStore chunk 之 zustand create）
+/* ── tombstone〔A1-R146〕：declare createExternalStore（原 Ae）退役 → 改指 stores/zustand.ts@83 create
+ *    （经 modules/SkillStore@256 转导出；边既有）。束证：Ae = skillStore chunk 导出 `q`（zustand create；
+ *    stores/zustand.ts 头注「导出 q = create，styles 侧 Ae」）；消费束点 styles@213621–213895 域裸 `Ae(…)`。
+ *    可赋性零缝：canonical 重载 1 `<T>(createState: ZustandStateCreator<T>) => ReturnType<typeof createBoundStore<T>>`
+ *    即**非柯里单调用形**，与 declare 调用形同构；initializer 之 `set` canonical 面 SetStateFn<T>
+ *    （`Partial<T> | ((s:T)=>…)`）⊇ declare 面，体内 `set({…})` 对象形双变可赋；`get: () => T` 同形；
+ *    返回 BoundStoreHook<T> 含 `getState(): T` ⊇ declare 返回面。
+ *    消费面 1 处（**死裸创建**，结果未赋值）经 `as` 别名逐字不变：@5332（≡束 213621 域）。
+ *    死创建留存裁定（dossier-C U3）：**留**（逐字口径，束真同形）；若 W5 收官裁删须同删 PluginMarketplaceStoreState
+ *    死接口族并立碑，另立 F 批，不阻本件。先例：Home@154 `create`、Composer@520 `create as createStore`。 ── */
 export interface DiffsHighlighterOptions {
   theme: { light: string; dark: string };
   lineDiffType: string;
@@ -1122,8 +1180,20 @@ export interface TaskStreamPayload {
   event: { type: string; taskId: string; [key: string]: any };
   [key: string]: any;
 }
-declare const HeroCardShell: React.FC<{ className?: string; contentClassName?: string; children?: React.ReactNode }>; // 原 C4t → 已在 ModalsLeaves.tsx
-declare const BrandWordmarkSvg: React.FC<{ className?: string }>; // 原 s4t → 已在 Modals.tsx
+/* ── tombstone〔A1-R146〕：B10 modals 二件 declare 退役 → 别名改指（零缝，canonical 侧同批最小改动）。
+ *    HeroCardShell（原 C4t）≡ components/modals/HeroCard@76 HeroCard（经 modules/ModalsLeaves@85 转导出，**新值边**；
+ *      Modals.tsx 未转导出 HeroCard 故不走既有 Modals 边）；BrandWordmarkSvg（原 s4t）≡ components/modals/
+ *      OnboardingDialog@742 ZCodeLogoSvg（**同批补 export** + modules/Modals@248 补转导出，复用既有 Modals 边）。
+ *    束证：C4t 定义 styles@206384-206409（全段与树 canonical 核合，唯 children 段两处分歧已回补：束真
+ *      `e.children ? (0,$.jsx)('div',{className: Z('relative z-10', e.contentClassName), children: e.children}) : null`
+ *      —— 树侧原为 children 必填 + `cn("relative", …)` 缺 z-10 且无守卫）；消费 styles@206413（w4t 体内）
+ *      `(0,$.jsx)(C4t,{className:'absolute inset-0'})` **不传 children** ≡ 本文件 @1561 逐字。
+ *      s4t 定义 styles@205975（chunk 导出面）；消费 styles@206716（k4t@206704 体内）
+ *      `children: (0,$.jsx)(s4t,{className:'h-auto w-10'})` ≡ 本文件 @1815 逐字。
+ *    可赋性：BrandWordmarkSvg 面全同（`className?: string` → JSX 单参）零缝；HeroCardShell 之缝由 canonical 束真回补
+ *      消解（回补前必填 children 对 @1561 无 children 消费报 missing）——**回补属 canonical 修正而非别名缝**，
+ *      既有消费 OnboardingDialog 传 children 者逐字不变。
+ *    环安全：ModalsLeaves 新值边 + Modals 既有边，两者值闭包反向皆不达本文件（dossier-C 环检查表）。 ── */
 
 /* --- 它族组件（F17/F12/F03 消费面）--- */
 /* ── tombstone〔A1-R44〕：declare WebRemoteControlFeatureGate（原 oRt 族）删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
@@ -3981,7 +4051,7 @@ export function useTitleBarThemeSync({
   (0, React.useEffect)(() => {
     if (!enabled || !isDesktop) return;
     let cancelled = false,
-      resolvedTheme = theme === `system` ? `system` : resolveThemeForTitleBar(theme);
+      resolvedTheme = theme === `system` ? `system` : resolveThemeForTitleBar(theme as ThemeMode); // 〔型缝 A1-R146〕canonical resolveThemeMode 参型 ThemeMode（Settings@736），实参 theme 为 x6t props 之 string → 显式铸；先例逐字同式 MarkdownIntegration@830。束真 210456 `xo(r)` 无型，纯 TS 面运行期零变
     return (
       platform.setTitleBarTheme(resolvedTheme).catch((error) => {
         cancelled || logger.error(`[Root] 同步标题栏主题失败`, { titleBarTheme: resolvedTheme, error });
@@ -4720,13 +4790,13 @@ export function useBotsTaskBroadcastBridge(
           ? insertCreatedTaskFromBroadcast({
               workspacePath: taskPayload.workspacePath,
               workspaceIdentity: taskPayload.workspaceIdentity,
-              task: taskPayload.task,
+              task: taskPayload.task as TaskMeta, // 〔型缝 A1-R146〕canonical registerWorkspaceTask 参 task: TaskRecord（FileTreePanel@2501 = TaskMeta），本地 TaskBroadcastPayload.task 面为 declare 期窄近似（守卫仅校 taskId/workspacePath 二键）→ 缺 TaskMeta 必填 title/createdAt/updatedAt 报 TS2739。束真 211332 无型，运行期载荷即内核广播之完整 task 记录，纯 TS 面零运行期变
               membership,
             })
           : upsertTaskFromBroadcast({
               workspacePath: taskPayload.workspacePath,
               workspaceIdentity: taskPayload.workspaceIdentity,
-              task: taskPayload.task,
+              task: taskPayload.task as TaskMeta, // 〔型缝 A1-R146〕同上（canonical upsertTaskInWorkspaceCache 参 task: TaskRecord ≡ TaskMeta）；束真 211338 无型
               membership,
               ensureInWorkspaceTaskCache: true,
             });
