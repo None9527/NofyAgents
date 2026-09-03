@@ -123,7 +123,7 @@ import { taskEntityKey, mergeMetaPreservingActivity as mergeTaskWithActivity, co
 import { applySearchTaskMutation as applyOptimisticTaskMutation } from '../../stores/searchResultsStore'; // A1-R10 2e：原 Uo（1895）declare 改指 canonical = R9 shim；调用点 3227 逐字不变。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/shell（QuickPick 导入面实测无 shell 边）
 import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 2e：原 Go（1928）declare 改指 canonical = components/markdown baseName 逐字；调用点 3124/3154 逐字不变。环安全：MarkdownIntegration 闭包不达 components/shell（实测在案）
 import { useSearchResultsStore, type SearchResultsState } from '../../modules/QuickPick';
-import { groupedTaskKeyOf as groupedTaskSortKey } from '../../modules/QuickPickDeep'; // 〔A1-R129〕原 k8（152915）declare 改指（≡n8 144952 束内同形；QuickPickDeep@349 逐字转录在案）。环安全：本→modules/QuickPickDeep→QuickPickDeep 值闭包（shell 叶子 TaskIndexCore/SessionStoreCore 拓扑既有同构，@149 碑文在案）不达 SidebarLeaves // A1-R10 项 1a：原 Vo（bundle 1553）declare 改指 canonical = QuickPick 1254 区（A1-R9 收敛完成；modules/QuickPick 为再导出 shim，QuickPickDeep 同源先例）。环安全：QuickPick 值闭包（modules/ImeComposition/SkillStore/StoresDeep/services/stores-core 族 + components/ui）不达 components/shell
+import { groupedTaskKeyOf as groupedTaskSortKey, markWorkspaceKeysStaleNow as invalidateTaskScopes } from '../../modules/QuickPickDeep'; // 〔A1-R129d〕+markWorkspaceKeysStaleNow as invalidateTaskScopes（原 Ho@1885 逐字；墓碑见 @293 区） // 〔A1-R129〕原 k8（152915）declare 改指（≡n8 144952 束内同形；QuickPickDeep@349 逐字转录在案）。环安全：本→modules/QuickPickDeep→QuickPickDeep 值闭包（shell 叶子 TaskIndexCore/SessionStoreCore 拓扑既有同构，@149 碑文在案）不达 SidebarLeaves // A1-R10 项 1a：原 Vo（bundle 1553）declare 改指 canonical = QuickPick 1254 区（A1-R9 收敛完成；modules/QuickPick 为再导出 shim，QuickPickDeep 同源先例）。环安全：QuickPick 值闭包（modules/ImeComposition/SkillStore/StoresDeep/services/stores-core 族 + components/ui）不达 components/shell
 import { normalizeSearchDescriptor as buildTaskListQueryDescriptor, descriptorCacheKey as queryDescriptorKey, type SearchDescriptor } from '../../stores/searchResultsHelpers'; // A1-R10 项 1a：原 zie/Bie（bundle 1385/1396）declare 改指 canonical（searchResultsHelpers 逐字转录在案）；入参 workspaceScopes → 出参 workspaceKeys 真形（1386–1395 实测）。环安全：helpers 值闭包 = react + stores/taskStore，不达 components/shell
 import { useBaseServices } from '../../modules/services';
 import { buildWorkspaceServicesBindings as buildWorkspaceServicesMap, resolveTabRemoteSessionId as resolveRemoteSessionId, tabHasRemoteBacking as isRemoteWorkspace, resolveTabServicesBinding as buildScopedServices } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R129〕+gc/_c/vc 三符改指（resolveTabRemoteSessionId as resolveRemoteSessionId / tabHasRemoteBacking as isRemoteWorkspace / resolveTabServicesBinding as buildScopedServices；A1-P3-B4 留批闭合，墓碑见 @269 区） // 〔A1-R126〕yc≡buildWorkspaceServicesBindings（styles 4834 逐字；三字段快照入参面 SessionRegistrySnapshotState 同批精化，@262 留批型面不接消解；墓碑见 @347 区）
@@ -140,7 +140,7 @@ import { providerIds as PROVIDER_IDS } from '../../modules/SrcSharedA'; // 〔A1
 import { resolveSupplierProvider as resolveSelectedSupplierKey } from '../../modules/ConversationLeaves'; // 〔A1-R128〕Uq 77975 declare 收敛改指（R17 逐字转录：custom:/ghost: 供应商键解析）。环安全：ConversationLeaves 值闭包无 components/shell 边（实测在案）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, resolveProfilePlanAudience, listConfiguredCodingPlanProviders as normalizeCodingPlanProviders, listCodingPlanAudienceSources as resolveTeamSources, fallbackProviderId, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R128〕+hX/pX/PCt 三件改指（listConfiguredCodingPlanProviders as normalizeCodingPlanProviders / listCodingPlanAudienceSources as resolveTeamSources / fallbackProviderId 实体化转导出） // 〔A1-R126〕+resolveProfilePlanAudience（原 uRt 150276，Home §U.3 逐字实体；墓碑见 @422 区） // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
-import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex, readTaskIndexCache, buildTaskListFromIndex } from './TaskIndexCore'; // 〔A1-R129c〕+readTaskIndexCache（Ex@32536）/buildTaskListFromIndex（Ox@32648）：RFt fetchWorkspaceTaskShards 实体化依赖（A1-P3-B2 转录在案）
+import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex, readTaskIndexCache, buildTaskListFromIndex, useOptimisticMembershipVersion as useMembershipVersion, syncTaskStatusUnread as invalidateWorkspaceEvent, invalidateTaskIndexOnEvent as handleIncrementalWorkspaceEvent, isOptimisticMembershipEvent as requiresFullRefresh } from './TaskIndexCore'; // 〔A1-R129d〕+dx/ux/px/rx 四符改指（useOptimisticMembershipVersion as useMembershipVersion / syncTaskStatusUnread as invalidateWorkspaceEvent / invalidateTaskIndexOnEvent as handleIncrementalWorkspaceEvent / isOptimisticMembershipEvent as requiresFullRefresh；墓碑见 @293/@324 区） // 〔A1-R129c〕+readTaskIndexCache（Ex@32536）/buildTaskListFromIndex（Ox@32648）：RFt fetchWorkspaceTaskShards 实体化依赖（A1-P3-B2 转录在案）
 import { moveTaskIntoGroupStart, type GroupColor, type GroupedView, type GroupedViewNode, type TaskGroup } from './Sidebar'; // 〔A1-R102〕d8 闭合 + 型别归一（A1-P3-B4 §六-3①/§七-6 处方）：canonical = Sidebar moveTaskIntoGroupStart@833，型族改指 Sidebar canonical 面。环安全：本→Sidebar 值边新增（Sidebar→modules/SidebarLeaves→本叶边既有成环），惟 moveTaskIntoGroupStart 仅 applyDraftPromotions 运行期调用，函数声明 hoisted——A1-P3-B4 直连先例实测无环异常（当时仅 TS2719 型面回退）
 import { type MobileHomeResult, type WebRemoteSwitcherService, type WebRemoteWorkspaceInfo } from '../remote/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：消费面三本地型（WebRemoteWorkspace/WebRemoteTaskIndex/WebRemoteSwitcher）删碑改指生产面（六点分叉表闭合，A1-P2-B9.report.md §四）。环安全：type-only 导入全擦除，WebRemote 值闭包（ui/modules 族）不达 SidebarLeaves // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
 import { joinTestidParts, normalizeProviderFamilyDomain as resolveProviderFamilyDomain, getOAuthFamilyIdByProviderId as supplierProviderId } from '../../modules/SrcSharedB'; // 〔A1-R128〕+getOAuthFamilyIdByProviderId as supplierProviderId（原 dr：styles@558 `R as dr` ← src-HCld2afU@9791 `Jx as R` ← Jx@8930 ≡ SrcSharedB@5572 逐字同构） // 〔A1-R127〕+normalizeProviderFamilyDomain as resolveProviderFamilyDomain（原 xn 真身 ≡ Xx 8937；Home@162 R27 同判例，调用点 899 逐字不变） // 〔A1-P3-B11〕原 scopedTestId（qr/Nb 局部转录）收敛改指 canonical（墓碑见 @361）；消费面 3724/3783。环安全：SrcSharedB 为共享导出叶，无反向 components/shell 边（Sidebar.tsx@220 同边先例）
@@ -289,9 +289,13 @@ declare function useSessionItems(scopes: Array<WorkspaceScope & { remoteSessionI
 };
 interface SessionItem { [key: string]: unknown }
 
-/** 成员版本（原 dx，jsx 29595）/ 作用域刷新（原 Ho，jsx 949） */
-declare function useMembershipVersion(): number;
-declare function invalidateTaskScopes(scopes: WorkspaceScope[]): void;
+/* ── tombstone〔A1-R129d〕useMembershipVersion（原 dx@32327）/ invalidateTaskScopes（原 Ho@1885）declare 删除 → 改指：
+ *    dx ≡ TaskIndexCore.useOptimisticMembershipVersion@132（useSyncExternalStore(subscribeMembershipVersion,
+ *    readMembershipVersion) 逐字；cOe≡subscribeMembershipVersion@99 / lOe≡readMembershipVersion@107 /
+ *    ax≡optimisticMembershipVersion / ox≡membershipVersionListeners 对应实证）；
+ *    Ho ≡ modules/QuickPickDeep.markWorkspaceKeysStaleNow@622（scope→workspaceKeyOf 映射 →
+ *    Vo.getState().markWorkspaceKeysStale 逐字；束证 1885-1888 体同）。
+ *    调用点 798/1643（dx）/ 946/952/974（Ho）逐字不变。 ── */
 
 /** 乐观叠加（原 OFt，120063）：workspaceKey → 叠加层 Map */
 interface OptimisticTaskOverlay {
@@ -458,10 +462,15 @@ function shardFingerprint(shards: WorkspaceTaskShard[]): string {
     .join(`||`);
 }
 
-/** 动态事件助手（原 px/rx/ux，jsx 29621/29553/29582） */
-declare function handleIncrementalWorkspaceEvent(args: { event: DynamicWorkspaceEvent; service: ZCodeTaskServiceLike }): void;
-declare function requiresFullRefresh(event: DynamicWorkspaceEvent): boolean;
-declare function invalidateWorkspaceEvent(event: DynamicWorkspaceEvent): void;
+/* ── tombstone〔A1-R129d〕handleIncrementalWorkspaceEvent（原 px@32364）/ requiresFullRefresh（原 rx@32265）/
+ *    invalidateWorkspaceEvent（原 ux@32308）declare 删除 → 改指 TaskIndexCore（A1-P3-B2 转录在案）：
+ *    px ≡ invalidateTaskIndexOnEvent@169（gOe≡isBackgroundTerminalUnreadEvent@159 / Lo≡taskEntityKey /
+ *    ie≡readTaskUnreadIndicator / tae/nae/Wo≡setTaskUnreadOverlayNow/reconcileTaskUnreadNow/rollbackTaskUnreadNow /
+ *    hOe∘mOe≡isDuplicateTaskIndexEvent@149∘taskIndexEventDedupKey@141 / sx≡bumpMembershipVersion 逐字链全对应）；
+ *    rx ≡ isOptimisticMembershipEvent@70（nx≡hasMembershipFlipReason@64；三 reason 析取逐字）；
+ *    ux ≡ syncTaskStatusUnread@113（cx=500≡taskUnreadSyncDebounceMs / uOe=256≡taskUnreadSyncCacheCap /
+ *    lx≡recentTaskUnreadSyncs / sx≡bumpMembershipVersion；五字段 dedup 键逐字）。
+ *    调用点 968/969/973 逐字不变。 ── */
 
 /* ── tombstone〔A1-R127〕useConfirmDialog（原 U2，styles 123510）declare 删除 → 改指 modules/Modals::useConfirmDialog
  *    （ConfirmDialog@79 canonical 转导出；返型 (Omit<ConfirmDialogRequest,'resolve'>) => Promise<boolean>，
