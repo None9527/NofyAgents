@@ -117,8 +117,9 @@ import { useOptionalPlatform as useTelemetryPlatform } from './ImeComposition'; 
 import { reportTelemetry as trackEvent } from './StoresDeep'; // 〔A1-R125〕原 xw declare 改指（R36 canonical；环安全：StoresDeep 值闭包不反达 modules/Conversation）
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { Root as RadixCollapsibleRoot, Trigger as RadixCollapsibleTrigger, Content as RadixCollapsibleContent } from '@radix-ui/react-collapsible'; // 〔A1-R129r〕原 vendored radix-collapsible 3 declare 改指（npm @radix-ui/react-collapsible@1.1.20 既装；components/ui/collapsible.tsx 同款判例；碑文见原声明区）
-import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Copy as IconCopy, Pencil as IconPencil, GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, ArrowDownToLine as IconArrowDownToLine, SquareTerminal as IconSquareTerminal, File as IconFile, Bot as IconBot, Sparkles as IconSparkles, Target as IconTarget, GitBranch as IconGitBranch, Lightbulb as IconLightbulb, Eye as IconModelChange, Shield as IconShield, ThumbsUp as IconThumbsUp, ThumbsDown as IconThumbsDown, Rewind as IconRewind, Loader as IconLoader, LoaderCircle as IconSpinner, Info as IconInfo, Upload as IconUpload, Globe as IconGlobe, Gauge as IconGauge, Clock as IconClock, ListTodo as IconListTodo, MessageSquare as IconMessageSquare, Calendar as IconCalendar, X as IconX } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A1-P1-B17〕+X as IconX（原 g = imeComposition chunk qt=x('x')@11819，导出别名 b@12583，经 styles 349 `b as g` 入本 chunk；消费位 bundle 91840 v4-pane-close 按钮 ≡ 本文件 @4721 逐字吻合；declare 删碑见 §0）
+import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Copy as IconCopy, Pencil as IconPencil, GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, ArrowDownToLine as IconArrowDownToLine, SquareTerminal as IconSquareTerminal, File as IconFile, Bot as IconBot, Sparkles as IconSparkles, Target as IconTarget, GitBranch as IconGitBranch, Lightbulb as IconLightbulb, Eye as IconModelChange, Shield as IconShield, ThumbsUp as IconThumbsUp, ThumbsDown as IconThumbsDown, Rewind as IconRewind, Loader as IconLoader, LoaderCircle as IconSpinner, Info as IconInfo, Upload as IconUpload, Globe as IconGlobe, Gauge as IconGauge, Clock as IconClock, ListTodo as IconListTodo, MessageSquare as IconMessageSquare, Calendar as IconCalendar, X as IconX, Archive as IconCompact, TrendingUpDown as IconFork } from 'lucide-react'; // 〔A1-R129s〕+Archive as IconCompact（原 x_ = Sa('archive') 26663）+TrendingUpDown as IconFork（原 Obe = Sa('trending-up-down') 27937）——图标族改指，消费面 @719/@1440/@1576 逐字不变 // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A1-P1-B17〕+X as IconX（原 g = imeComposition chunk qt=x('x')@11819，导出别名 b@12583，经 styles 349 `b as g` 入本 chunk；消费位 bundle 91840 v4-pane-close 按钮 ≡ 本文件 @4721 逐字吻合；declare 删碑见 §0）
 import * as ReactDOM from "react-dom";
+import { pathBasename } from './ModalsLeaves'; // 〔A1-R129s〕原 Go（1928）——toWorkspaceRelativePath 实体化依存（FilePathInline@18 逐字，R45 名链注在案：Go≡baseName / zhe≡stripTrailingSlash / yg≡toWorkspaceRelativePath）
 import { useVirtualizer } from '@tanstack/react-virtual'; // A0-S3a：vendored useVirtualizer（原 to，esm-BY6T6pIH.js）→ npm @tanstack/react-virtual@3.14.10
 import { AgentToolView, AskUserQuestionToolView, AutomationCard, AutomationToolView, ExploreToolView, FallbackToolView, FileReadToolView, FileWriteToolView, GoalToolView, NodeReplToolView, PreviewCardList, SearchToolView, SessionContextToolView, SkillToolView, SwitchModeToolView, TaskControlToolView, TaskOutputToolView, TodoToolView, collectAutomationCards, isNearBottom, keyScrollIntent, useSessionErrorRecovery, type AutomationCardModel, type FileSummary, type OpenCodeViewerFn, type PreviewCardModel, type ToolCall, type ToolCallNode, type ToolCallViewProps, type ToolDisplayModel } from './ConversationLeaves'; // +8 type（A0-D 类型收敛：会话流共享类型 canonical = ConversationLeaves）；+useSessionErrorRecovery（A1-R14：原 NCt 118779 实体化改指，消费点 5328）
 import { RuntimeAuthHeadersController, useSessionSubscriptionErrorReporter } from './ConversationOverlays';
@@ -203,11 +204,13 @@ import { ConversationPane } from '../components/conversation/ConversationPaneCor
  * bundle 中 QueuePanel 删除钮实为 Kv=trash-2（94737）、SessionBanners 关闭钮为 g（94938）——
  * 各自删碑见 components/conversation/QueuePanel / SessionBanners。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（10）：IconGripVertical/IconSend/IconArrowDownToLine/IconSquareTerminal/IconFile/IconBot/IconSparkles/IconTarget/IconGitBranch/IconLightbulb → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const IconCompact: React.FC<React.SVGProps<SVGSVGElement>>; // x_（compact 标记）
+/* ── tombstone〔A1-R129s〕：declare IconCompact（原 x_ = lucide archive，Sa 26663）删除 → npm lucide-react 真 import
+ *    （Archive as IconCompact，文件头导入块；消费面 @719/@1576 逐字不变）。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（1）：IconModelChange → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const IconQuestion: React.FC<React.SVGProps<SVGSVGElement>>; // vye（ask-user-question 工具）
+/* ── tombstone〔A1-R129s〕：declare IconQuestion（原 vye）死声明删除——本文件零调用点（全文 grep 实测仅声明行）。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（3）：IconShield/IconThumbsUp/IconThumbsDown → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const IconFork: React.FC<React.SVGProps<SVGSVGElement>>; // Obe
+/* ── tombstone〔A1-R129s〕：declare IconFork（原 Obe = lucide trending-up-down，Sa 27937）删除 → npm lucide-react 真 import
+ *    （TrendingUpDown as IconFork，文件头导入块；消费面 @1440 逐字不变）。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（4）：IconRewind/IconLoader/IconSpinner/IconInfo → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（7）：IconUpload/IconGlobe/IconGauge/IconClock/IconListTodo/IconMessageSquare/IconCalendar → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
@@ -616,9 +619,22 @@ function normalizeCommandLabel(label: string): string {
   return label.trim().replace(/^\/+/, ``).toLowerCase();
 }
 
-/** 原 h1（jsx 95332）：提及芯片类名（按提及类型着色，sV 基类 + cV 类型色） */
-declare const MENTION_CHIP_BASE_CLASS: string;
-declare function mentionChipColorClass(kind: string): string;
+/** 原 sV（64280）：提及芯片基类。〔A1-R129s〕实体化（declare MENTION_CHIP_BASE_CLASS 退役）。 */
+const MENTION_CHIP_BASE_CLASS = `inline-flex cursor-default items-center gap-1 align-top text-ui-base leading-5 font-medium`;
+/** 原 cV（64281）：提及芯片类型色。〔A1-R129s〕实体化（declare mentionChipColorClass 退役；消费面 @623 逐字不变）。 */
+function mentionChipColorClass(kind: string): string {
+  return kind === `skills`
+    ? `text-skill-node-foreground`
+    : kind === `subagents`
+      ? `text-subagent-node-foreground`
+      : kind === `commands`
+        ? `text-command-node-foreground capitalize`
+        : kind === `sessions`
+          ? `text-session-node-foreground`
+          : kind === `plugins`
+            ? `text-plugin-node-foreground`
+            : `text-file-node-foreground`;
+}
 function mentionChipClass(kind: string): string {
   return cn(`mx-0.5 max-w-full`, MENTION_CHIP_BASE_CLASS, `text-ui-base leading-6`, mentionChipColorClass(kind));
 }
@@ -2152,8 +2168,20 @@ function PreviewCardListImpl({
 /* --- 5.14 轮文件变更摘要 + 回退（原 S_t/b_t/v_t/__t/p1，jsx 94426–94833） --- */
 
 /** 原 __t（jsx 94426）：构建文件预览源（代码查看器入参） */
-/** 原 yg：工作区相对路径 */
-declare function toWorkspaceRelativePath(workspacePath: string | undefined, path: string): string;
+/** 原 zhe（23750）：去尾分隔符。〔A1-R129s〕实体化。 */
+function stripTrailingSeparators(path: string): string {
+  return path.replace(/[\\/]+$/, ``);
+}
+/** 原 yg（23765）：工作区相对路径。〔A1-R129s〕实体化（declare toWorkspaceRelativePath 退役；消费面 @2310 逐字不变）。 */
+function toWorkspaceRelativePath(workspacePath: string | undefined, path: string): string {
+  const normalizedWorkspace = stripTrailingSeparators((workspacePath as string).replace(/\\/g, `/`)); // 〔型缝 A1-R129s〕束真 e.replace 直调（运行期 context.workspacePath 恒在）
+  const normalizedPath = path.replace(/\\/g, `/`);
+  if (normalizedPath === normalizedWorkspace) return pathBasename(path);
+  const prefix = `${normalizedWorkspace}/`;
+  if (normalizedPath.startsWith(prefix)) return normalizedPath.slice(prefix.length) || pathBasename(path);
+  const lowerPrefix = prefix.toLowerCase();
+  return normalizedPath.toLowerCase().startsWith(lowerPrefix) ? normalizedPath.slice(prefix.length) || pathBasename(path) : normalizedPath;
+}
 /** 原 p1（jsx 94657）：在代码查看器中打开文件变更 */
 declare function openFileChangeInViewer(item: FileChangeDetail, context: RowRenderContext): void;
 /** 文件「打开方式」菜单（原 v_t，js 110379 / jsx 94447；接口保留） */
