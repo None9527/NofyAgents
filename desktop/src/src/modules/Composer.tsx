@@ -527,6 +527,7 @@ import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：dec
 import { SuggestionPanel, type PanelSection } from '../components/composer/SuggestionPanel'; // 〔A0-S4-4b〕留守面消费回取：B6 SlashPanel 段型别 + 建议面板渲染点（函数声明提升/型别擦除，环安全）
 import { buildFileTreeDragText as fileMentionMarkdown, pluginMentionMarkdown, skillMentionMarkdown, subagentMentionMarkdown, sessionMentionMarkdown, hasWorkspaceFilePayload, readWorkspaceFilePayload, isWorkspaceFileDragEvent, buildWorkspaceFileMentionPayload, WORKSPACE_FILE_DRAG_STATE_EVENT as WORKSPACE_FILE_DRAG_EVENT_TYPE, type WorkspaceFileDragPayload } from '../components/composer/FileMentionDragHelpers'; // A1-R11：wj（52124）/Dj（52138）转录改指（纯函数叶子，环安全同 SuggestionPanel 先例）；调用点 2779/2998 逐字不变。wj 双归属：FileTreePanel 经名 buildFileTreeDragText、本文件经名 fileMentionMarkdown，bundle 唯一真身。A1-R12：§17/§18 declares 全量改指（Tj/Ej/KHe 52128/52131/52134、Mj/Nj/tUe/aUe 52248/52251/52254/52271、jj 52212），调用点 1391/1591/1856/1866/3096/4653/4657/4663/4671/4986/5003/4605 逐字不变
 import { extractSelectionsFromText as extractConversationSelections, appendSelectionBlockToText as appendConversationSelections, listSelectionReferences as readSessionScopedReferences, selectionLoadErrorOf as readSessionScopedLimitReason, setSelectionReferences as writeSessionScopedReferences, clearSelectionLoadError as clearSessionScopedLimitReason, isSelectionAddEvent as isSessionScopedReferencesChangedEvent, selectionAddEventName as sessionScopedReferencesChangedEventType } from '../components/conversation/ConversationSelectionCore'; // 〔A1-R138〕+7 别名（原 Moe/Cs/ws/Doe/Ooe/Foe/Ioe，F03 域 2761/2732/2738/2734/2743/2816/2819；消费面 7170/7621–7657 逐字不变） // 〔A1-R129z〕原 Noe（styles 74669 / F03 域 2775）declare 改指（canonical = ConversationSelectionCore A1-P1-B4 逐字真身；parseComposerContextContent 消费面）。环安全：纯 TS 叶，仅 SrcSharedB 边
+import { resolveFileIconMeta as resolveFileIcon, FileIconWithName as FileRow, FOLDER_ICON_SRC as DIRECTORY_ICON_SRC, DEFAULT_FILE_ICON_SRC as DOCUMENT_ICON_SRC, FALLBACK_DOCUMENT_ICON_DATA_URL as DOCUMENT_FALLBACK_ICON_SRC } from '../components/conversation/FileIconBlocks'; // 〔A1-R139〕文件图标族五别名（原 zc/Bc/Fc/Ic/Mc，5198/5205/5173/5174/5159；canonical = A1-P1-B15 逐字真身；消费面 2223/2225/2234/3488 逐字不变）。环安全：叶仅 React+MarkdownIntegration 边，无反向
 import { extractPptxElementReferences as extractPptxElementReferencesFromContent } from '../components/ime/ImeComposition'; // 〔A1-R129z〕原 pptx 抽取 declare 改指——束真：styles KXe（2122719）之 `w` = imeComposition 块 m 导出（块首导入 `m as w` ← ./imeComposition-DEYFkwWm.js）≡ 本名原码 ur；canonical = ImeComposition@1164 逐字。一符一家归 imeComposition 域。环安全：ImeComposition 对本文件仅 type-only 回边（A1-R49 判例，编译期擦除）
 
 /* ============================================================================
@@ -785,14 +786,14 @@ export function testidOf(prefix: string, id: string): string {
 }
 
 /** 16. 文件图标族（本 chunk；Home/Conversation 已登记） */
-declare function resolveFileIcon(path: string): { fileIconSrc: string; fileName: string };
-declare const FileRow: React.ComponentType<{
-  path: string;
-  options?: { basePath?: string; kind?: "file" | "directory"; showFilePath?: boolean };
-}>;
-declare const DIRECTORY_ICON_SRC: string;
-declare const DOCUMENT_ICON_SRC: string;
-declare const DOCUMENT_FALLBACK_ICON_SRC: string;
+/* ── tombstone〔A1-R139〕：declare 五件（原 zc/Bc/Fc/Ic/Mc，5198/5205/5173/5174/5159）删除 →
+ *    新导入行别名接入 components/conversation/FileIconBlocks（A1-P1-B15 逐字真身：
+ *    resolveFileIconMeta/FileIconWithName/FOLDER_ICON_SRC/DEFAULT_FILE_ICON_SRC/
+ *    FALLBACK_DOCUMENT_ICON_DATA_URL；zc≡resolveFileIconMeta 之判 ConversationToolViews@25/
+ *    PreviewCards@13 既案）。面校准：declare 返回面 {fileIconSrc;fileName} vs canonical
+ *    超集面 {fileIcon,fileIconSrc,fileName,filePath,normalizedPath}（消费面仅读 fileIconSrc）；
+ *    FileRow declare 面 {path,options{basePath,kind,showFilePath}} vs canonical any 面
+ *    （消费面三参逐字吻合）。消费面实证（4 处）：2223/2225/2234×2/3488 逐字不变。 ── */
 
 /** 17. 提及 markdown 构造（本 chunk 52124–52142，F02 域） */
 /* ── tombstone（A1-R11）：declare fileMentionMarkdown（原 wj，52124）删除，改经文件头
