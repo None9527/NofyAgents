@@ -227,6 +227,7 @@ import { useSessionRegistryStore as Zs, getServicesByWorkspaceIdentity as resolv
 import { refreshSkillsAfterCommandsChange as refreshSkillStoresAfterSync, invalidateDraftSessionAfterSkillSync as refreshAfterSkillSync } from '../../stores/commandsHelpers'; // 〔A1-R129m〕原 N6 declare 改指（commandsHelpers 逐字转录，同批实接线；碑文见原声明位）
 import { useMcpStore } from '../../stores/mcpStore'; // 〔A1-R129m〕原 Ug（styles 25055）——refreshMcpStoreAfterSync 实体化依存（直调判例见下）
 import { refreshPluginsAfterRemoteSync as refreshAfterPluginSync } from '../../stores/pluginsHelpers'; // 〔A1-R129n〕原 V6 declare 改指（同批真形修正；碑文见原声明位）
+import { openSettingsSection } from '../../modules/Home'; // 〔A1-R129q〕原 iw（39375）canonical 再导出（components/shell/Home@4243 逐字；A1-P2-B10 转导出）——openSkillsSettingsIntent 薄包裹所依；环安全：Home 值闭包不达 components/shell/Sidebar（实测零边）
 import { useLocalWorkspaceTabs as useScopedWorkspaceTabs } from '../../modules/SettingsLeaves'; // 〔A1-R126〕J3≡useLocalWorkspaceTabs（styles 135515；canonical 属主 AutomationEditor@1088，经 modules/SettingsLeaves 转导出；墓碑见下声明群）
 import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/stores-session';
 // 〔A1-R25〕aw 39378 收敛：markUsageEntryIntent declare 改接 Home §U.7 逐字真身（别名保留，调用点 4769 逐字不变；环安全：Home 顶层 hoisted function，本文件仅渲染期事件回调消费）
@@ -2656,8 +2657,20 @@ export function RemoteConnectionLogsPopover({ logs, children }: {
     </Popover>
   );
 }
-/** 原 NBt/PBt（158017/158020）：日志列表滚底（立即 + 下一帧再校一次） */
-declare function autoScrollToBottom(el: HTMLDivElement): () => void;
+/** 原 NBt（158064——旧注 158017 偏移误标，本批以 FBt 消费区位复验）：日志列表滚底（立即）。〔A1-R129q〕实体化。 */
+function scrollListToEnd(el: HTMLDivElement): void {
+  el.scrollTop = el.scrollHeight;
+}
+/** 原 PBt（158066）：滚底 + rAF 下一帧再校一次，返回取消函数。〔A1-R129q〕实体化（declare autoScrollToBottom 退役；消费面 @2614 逐字不变）。 */
+function autoScrollToBottom(
+  el: HTMLDivElement,
+  requestFrame: (callback: () => void) => number = (callback) => window.requestAnimationFrame(callback),
+  cancelFrame: (handle: number) => void = (handle) => window.cancelAnimationFrame(handle),
+): () => void {
+  scrollListToEnd(el);
+  const frameHandle = requestFrame(() => scrollListToEnd(el));
+  return () => cancelFrame(frameHandle);
+}
 const EMPTY_PINNED_TASKS: TaskMeta[] = []; // 原 IBt（158132）
 /** 原 LBt（158133 / 131439）：是否用户主目录（主目录显示 house 图标） */
 function isUserHomeDirectory(path: string): boolean {
@@ -4681,8 +4694,13 @@ export interface FileTreeRequest {
   temporaryExternalDirectory?: boolean;
   [key: string]: unknown;
 }
-/** 原 iw：进入技能设置意图标记（sessionStorage） */
-declare function openSkillsSettingsIntent(): void;
+/** 原 iw 消费面（束 159732 `(iw(`skills`), ge())` 内联）：技能设置意图 = openSettingsSection("skills")。
+ * 〔A1-R129q〕declare openSkillsSettingsIntent 退役 → 改指 modules/Home::openSettingsSection（iw 39375 canonical，
+ *    sessionStorage `zcode-settings-section-intent` + `zcode:settings-section-intent` 事件双写逐字在案）；
+ *    薄包裹钉死 "skills" 参数保消费面 @4162 逐字（R129g/R129o 薄包裹判例续）。 ── */
+function openSkillsSettingsIntent(): void {
+  openSettingsSection("skills");
+}
 
 /* ============================================================================
  * 22. 分段壳（原 GBt，js 158981 / jsx 131948）
