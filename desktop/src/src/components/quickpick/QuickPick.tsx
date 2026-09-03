@@ -129,7 +129,8 @@
 
 import * as React from "react";
 import { shortcutLabel } from '../../lib/keyboardShortcuts'; // 〔A1-R124〕原 $i declare 改指——keyboardShortcuts chunk 全量逐字转录 canonical（styles 868 `n as $i`）
-import { useHydratingSessions } from '../shell/TaskListQueryCore'; // 〔A1-R129e〕原 JS@35552 declare 改指逐字真身叶（A1-P3-B1 转录；与 SidebarLeaves useSessionItems 孪生一符一家同批收敛）。环安全：TaskListQueryCore 值闭包（SkillStore/stores-core/searchResultsStore/modules/services/searchResultsHelpers/SessionStoreCore/TaskIndexCore）经 QuickPickDeep@147-149 同构边判例，顶层全函数，ESM 提升安全
+import { useHydratingSessions, workspaceScopesOfTabs as normalizeWorkspaceScopes, resolveTaskListShards, reusePreviousQueryResult as reusePreviousResult, subscribeWorkspaceTaskList, applyRuntimeStateFromTaskMeta } from '../shell/TaskListQueryCore'; // 〔A1-R129f〕+oje/sje/cje/aje/lje 五符改指（别名导入保调用名；A1-P3-B1 逐字转录；墓碑见深部助手区） // 〔A1-R129e〕原 JS@35552 declare 改指逐字真身叶（A1-P3-B1 转录；与 SidebarLeaves useSessionItems 孪生一符一家同批收敛）。环安全：TaskListQueryCore 值闭包（SkillStore/stores-core/searchResultsStore/modules/services/searchResultsHelpers/SessionStoreCore/TaskIndexCore）经 QuickPickDeep@147-149 同构边判例，顶层全函数，ESM 提升安全
+import { useOptimisticMembershipVersion as useTaskMembershipVersion, readTaskIndexCache as readTaskSnapshotCache, buildTaskListFromIndex as buildTaskListFromSnapshot, invalidateTaskIndexOnEvent as syncTaskStatusUnread, isOptimisticMembershipEvent, syncTaskStatusUnread as applyOptimisticMembershipEvent, hasOptimisticTaskMeta, isOptimisticCoveredEvent } from '../shell/TaskIndexCore'; // 〔A1-R129f〕dx/Ex/Ox/px/rx/ux/sOe/oOe 八符改指（A1-P3-B2 逐字转录；束名↔树名交叉裁定：树 syncTaskStatusUnread≡束 px 事件面、树 applyOptimisticMembershipEvent≡束 ux 去重面，签名面吻合实证；墓碑见深部助手区）。环安全：QuickPickDeep@147-148 shell 边同构判例，顶层全函数，ESM 提升安全
 import { Check as IconCheck, Search as IconSearch, List as IconList, Rocket as IconRocket, MessagesSquare as IconMessagesSquare, File as IconFile, Trash2 as IconTrash, ChevronDown as IconChevronDown, MessageSquare as IconMessageSquare, MessageCirclePlus as IconMessageCirclePlus, PanelLeftClose as IconPanelLeftClose, PanelLeftOpen as IconPanelLeftOpen, SquareTerminal as IconSquareTerminal, BookOpen as IconBookOpen, Users as IconUsers, FileDiff as IconFileDiff, FolderOpen as IconFolderOpen, LogIn as IconLogIn, LogOut as IconLogOut, Server as IconServer, Settings as IconSettings, WandSparkles as IconWandSparkles, Moon as IconMoon, Sun as IconSun, Globe as IconGlobe, MessageCircle as IconMessageCircle, ArrowUp as IconArrowUp, ArrowDown as IconArrowDown, X as IconClose } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 /* ── tombstone（A0-D-Misc）：原 `import { normalizeWorkspaceScopes } from './126518'` 退回 declare——
  *    chunk 号模块不存在（TS2307）；oje（35647）无正规重建属主，按重建基准恢复 declare 挂接。 ── */
@@ -1637,21 +1638,15 @@ export interface UseGlobalTaskListResult {
 }
 
 /* —— 深部助手（本 chunk，行号见注释；接口级 stub） —— */
-declare function normalizeWorkspaceScopes(tabs: WorkspaceTab[]): WorkspaceScope[]; // 原 oje（35647）
-declare function resolveTaskListShards(
-  tabs: WorkspaceTab[],
-  baseServices: TaskListShardServices,
-  registry: { sessionsById: Record<string, unknown>; sessionIdByWorkspaceIdentity: Record<string, string>; sessionIdByWorkspacePath: Record<string, string> },
-): { shards: TaskListShard[]; missingSessionIds: string[] }; // 原 sje（35652）
+/* ── tombstone〔A1-R129f〕normalizeWorkspaceScopes（原 oje@35695）declare 删除 → 改指 TaskListQueryCore::workspaceScopesOfTabs@220（Ro≡dedupeWorkspaceScopes 逐字；消费 @1717 逐字不变）。 ── */
+/* ── tombstone〔A1-R129f〕resolveTaskListShards（原 sje@35700）declare 删除 → 改指 TaskListQueryCore::resolveTaskListShards@225
+ *    （三参面吻合；消费 @1719 逐字不变，@1719 双断言为 A0-CLEANUP3 既有缝不动）。 ── */
 /* ── tombstone（A1-R10）：buildQueryDescriptor（原 zie，js 1385）/buildQueryKey（原 Bie，js 1396）
  *    declare 删除，改经文件头 stores/searchResultsHelpers import 消费
  *    （canonical = normalizeSearchDescriptor/descriptorCacheKey，R9 逐字转录在案）。 ── */
-declare function reusePreviousResult(snapshot: { descriptor: QueryDescriptor; items: TaskMeta[]; total: number; hasMore: boolean }, descriptor: QueryDescriptor): { items: TaskMeta[]; total: number; hasMore: boolean } | null; // 原 cje（35682）
-declare function subscribeWorkspaceTaskList(args: {
-  service: ZCodeTaskService;
-  scope: WorkspaceScope;
-  listener: (event: WorkspaceTaskListEvent) => void;
-}): { dispose(): void }; // 原 aje（35615）
+/* ── tombstone〔A1-R129f〕reusePreviousResult（原 cje@35730）declare 删除 → 改指 TaskListQueryCore::reusePreviousQueryResult@255（束体逐字；真身返回含 descriptor 超集原契据面，消费 @1789 逐字不变）。 ── */
+/* ── tombstone〔A1-R129f〕subscribeWorkspaceTaskList（原 aje@35663）declare 删除 → 改指 TaskListQueryCore::subscribeWorkspaceTaskList@188
+ *    （XS≡hydratedItemWeakMap/ije≡dynamicEventScopeKey 逐字链；消费 @2008 逐字不变）。 ── */
 interface WorkspaceTaskListEvent {
   type: string;
   reason?: string;
@@ -1662,39 +1657,19 @@ interface WorkspaceTaskListEvent {
   unreadSignal?: string;
   [key: string]: unknown;
 }
-declare function useTaskMembershipVersion(): number; // 原 dx（32279）：成员变化计数（useSyncExternalStore）
+/* ── tombstone〔A1-R129f〕useTaskMembershipVersion（原 dx@32327）declare 删除 → 改指 TaskIndexCore::useOptimisticMembershipVersion@132（useSyncExternalStore 逐字；SidebarLeaves 孪生 R129d 同判例；消费 @1740 逐字不变）。 ── */
 /* ── tombstone〔A1-R129e〕useHydratingSessions（原 JS@35552）declare 删除 → 改指 ../shell/TaskListQueryCore::useHydratingSessions@77
  *    （A1-P3-B1 逐字转录；消费 @1736 解构 items/hydratingEndpointKeys 逐字不变；SidebarLeaves 孪生 declare 同批销账）。 ── */
-declare function readTaskSnapshotCache(args: { cacheKey: string; endpoints: Array<{ service: ZCodeTaskService; scopes: WorkspaceScope[] }> }): Promise<{
-  taskIndexItems: TaskMeta[];
-  pinnedIds: string[];
-  archivedIds: string[];
-  deletedIds: string[];
-  unreadAtByTaskId: Record<string, number>;
-  terminalStatusByTaskId: Record<string, string>;
-  titleOverrideByTaskId: Record<string, string>;
-  cronAutomationIdByTaskId: Record<string, string>;
-}>; // 原 Ex（32488）
-declare function buildTaskListFromSnapshot(args: {
-  taskIndexItems: TaskMeta[];
-  sessions: Array<Record<string, unknown>>;
-  kind: TaskListKind;
-  pinnedIds: string[];
-  archivedIds: string[];
-  deletedIds: string[];
-  unreadAtByTaskId: Record<string, number>;
-  terminalStatusByTaskId: Record<string, string>;
-  titleOverrideByTaskId: Record<string, string>;
-  cronAutomationIdByTaskId: Record<string, string>;
-  sortBy: TaskSortBy;
-  limit?: number;
-}): { items: TaskMeta[]; total: number }; // 原 Ox（32600）
-declare function syncTaskStatusUnread(args: { event: WorkspaceTaskListEvent; service: ZCodeTaskService }): void; // 原 px（32316）
-declare function isOptimisticMembershipEvent(event: WorkspaceTaskListEvent): boolean; // 原 rx（32217）
-declare function applyOptimisticMembershipEvent(event: WorkspaceTaskListEvent): void; // 原 ux（32260）
-declare function hasOptimisticTaskMeta(event: WorkspaceTaskListEvent): boolean; // 原 sOe（32237）
-declare function isOptimisticCoveredEvent(event: WorkspaceTaskListEvent): boolean; // 原 oOe（32225）
-declare function applyRuntimeStateFromTaskMeta(taskMeta: TaskMeta): void; // 原 lje（35697）
+/* ── tombstone〔A1-R129f〕readTaskSnapshotCache（原 Ex@32536）declare 删除 → 改指 TaskIndexCore::readTaskIndexCache
+ *    （缓存键 `cacheKey::svc=…` 逐字；原契据 pinnedIds string[] 等面为 A0 近似，真身 Set/Map 面由消费面 any 直消；消费 @1926 逐字不变）。 ── */
+/* ── tombstone〔A1-R129f〕buildTaskListFromSnapshot（原 Ox@32648）declare 删除 → 改指 TaskIndexCore::buildTaskListFromIndex
+ *    （kOe∘Dx∘OOe/Fo 逐字链；消费 @1943 逐字不变）。 ── */
+/* ── tombstone〔A1-R129f〕syncTaskStatusUnread（原 px@32364 事件面）declare 删除 → 改指 TaskIndexCore::invalidateTaskIndexOnEvent@169（束名↔树名交叉裁定：{event, service} 签名面 ≡ px，非 ux 去重面；消费 @2013 逐字不变）。 ── */
+/* ── tombstone〔A1-R129f〕isOptimisticMembershipEvent（原 rx@32265）declare 删除 → 改指 TaskIndexCore::isOptimisticMembershipEvent@70（nx≡hasMembershipFlipReason 逐字；消费 @2014 逐字不变）。 ── */
+/* ── tombstone〔A1-R129f〕applyOptimisticMembershipEvent（原 ux@32308 去重面）declare 删除 → 改指 TaskIndexCore::syncTaskStatusUnread@113（束名↔树名交叉裁定：单参事件面 ≡ ux，非 px；消费 @2014 逐字不变）。 ── */
+/* ── tombstone〔A1-R129f〕hasOptimisticTaskMeta（原 sOe@32285）declare 删除 → 改指 TaskIndexCore::hasOptimisticTaskMeta（!!ix 逐字；消费 @2015 逐字不变）。 ── */
+/* ── tombstone〔A1-R129f〕isOptimisticCoveredEvent（原 oOe@32273）declare 删除 → 改指 TaskIndexCore::isOptimisticCoveredEvent（ix/nx/aOe/rOe 逐字链；消费 @2016 逐字不变）。 ── */
+/* ── tombstone〔A1-R129f〕applyRuntimeStateFromTaskMeta（原 lje@35745）declare 删除 → 改指 TaskListQueryCore::applyRuntimeStateFromTaskMeta@270（xe.getState 工作区态写入逐字；消费 @2015 逐字不变）。 ── */
 
 export function useGlobalTaskList(args: UseGlobalTaskListArgs): UseGlobalTaskListResult {
   const baseServices = useBaseServices();
@@ -2008,7 +1983,7 @@ export function useGlobalTaskList(args: UseGlobalTaskListArgs): UseGlobalTaskLis
         const subscription = subscribeWorkspaceTaskList({
           service: shard.services.zcodeTaskService,
           scope,
-          listener: (event) => {
+          listener: (event: WorkspaceTaskListEvent) => { // 〔型缝 A1-R129f〕canonical 入参 any 面 → 回调参数复原原 declare 契据面
             if (event.type === "workspace_task_list_changed") {
               syncTaskStatusUnread({ event, service: shard.services.zcodeTaskService });
               if (isOptimisticMembershipEvent(event)) applyOptimisticMembershipEvent(event);

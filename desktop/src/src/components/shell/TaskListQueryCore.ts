@@ -642,5 +642,8 @@ function useTaskListItems(e: any) {
   );
 }
 
-/* ── 导出面：bundle 区外消费仅 JS（6 处）/ZS（9 处），其余 12 符模块私有（忠实 bundle）。 ── */
-export { useHydratingSessions, useTaskListItems };
+/* ── 导出面：bundle 区外消费仅 JS（6 处）/ZS（9 处），其余 12 符束内模块私有（忠实 bundle）；
+ *    〔A1-R129f〕oje/sje/cje/aje/lje 五符经导出供 QuickPick 孪生 declare 收敛改指
+ *    （QuickPick 树内钩子为 A0 展开面，束真相为 ZS 区内私有消费 35792/35794/35874/36080/36088；
+ *    树级导出为收敛机制，bundle 真形不变）。 ── */
+export { useHydratingSessions, useTaskListItems, workspaceScopesOfTabs, resolveTaskListShards, reusePreviousQueryResult, subscribeWorkspaceTaskList, applyRuntimeStateFromTaskMeta };
