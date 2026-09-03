@@ -18,7 +18,7 @@ import { InfoTooltip as Tooltip, ShadcnTooltipProvider, ShadcnTooltip, ShadcnToo
 import { SETTINGS_CONTENT_CLASS as AUTOMATIONS_CONTENT_CLASS } from '../../modules/Settings'; // H3 容器类
 import { OffPeakCreateButton, SCHEDULED_TEMPLATES } from '../../modules/ExtendedViews'; // INt / LNt（A0-CLEANUP B-31 接线）
 import { providerIds } from '../../modules/SrcSharedA'; // q=mo（A0-CLEANUP B-7）
-import { isCodingPlanConnectionSelected as hasCodingPlanEntitlement, isRemoteWorkspaceTab, type ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依 // 〔A1-R104〕+hasCodingPlanEntitlement 改指（原 Tit declare 删碑；canonical = Home::isCodingPlanConnectionSelected@749，A0 语义重建在案，xn/zi 依赖 R27/R28 既收敛）。环安全：Home 值闭包不达 components/automations（grep 实证仅注释提及） // 〔A1-R107〕+isRemoteWorkspaceTab：原 zMt（135518）canonical（SettingsLeaves 映射行 78 判词在案 ≡ N2@123216；Home::isRemoteWorkspaceTab@1256 转导出）
+import { isCodingPlanConnectionSelected as hasCodingPlanEntitlement, isRemoteWorkspaceTab, useOffPeakTaskStore, type ModelCatalogEntryLike } from '../../modules/Home'; // 〔A1-R114〕+useOffPeakTaskStore：原 bX canonical（Home@826 逐字 zustand 实体，束 91416；型面对齐批改指） // 〔A1-R24〕zrt 197021 面联动：本文件 ModelProvider.models 型缝所依 // 〔A1-R104〕+hasCodingPlanEntitlement 改指（原 Tit declare 删碑；canonical = Home::isCodingPlanConnectionSelected@749，A0 语义重建在案，xn/zi 依赖 R27/R28 既收敛）。环安全：Home 值闭包不达 components/automations（grep 实证仅注释提及） // 〔A1-R107〕+isRemoteWorkspaceTab：原 zMt（135518）canonical（SettingsLeaves 映射行 78 判词在案 ≡ N2@123216；Home::isRemoteWorkspaceTab@1256 转导出）
 import { useModelProvidersStore, useCodingPlanEntitlements } from '../../modules/PaymentDeep'; // 〔A1-R109〕原 qq declare 删碑改指：canonical = PaymentDeep §11 useModelProvidersStore（bundle 78243–78403 逐字，R35 实体化，转导出 @319；ModelProviderSettingsSection 同判例）。环安全：PaymentDeep 值闭包不达 components/automations（grep 实证零 import 边） // 〔A1-R111〕+useCodingPlanEntitlements：原 sX declare（useCodingPlanEntitlementsForAutomations）删碑改指——canonical = PaymentDeep@9236 逐字实体（映射行 9235/10265 在案；R38 订阅面链闭合判例）
 import { offPeakCreateFailureMessageId, reportTelemetry } from '../../modules/StoresDeep'; // 〔A1-R104〕原 Dit declare 删碑改指 canonical = offPeakHelpers 逐字实体（转导出） // 〔A1-R105〕+reportTelemetry：原 xw（40457）遥测总入口 canonical（StoresDeep@323，R36 实体化；PaymentDeep R26 同判例）
 import { parseCustomModelRef, OFFPEAK_IDLE_PLAN_ID } from '../../modules/SrcSharedB'; // 〔A1-R105〕原 Zn（styles 544 `P as Zn` ← src iS@8966 ≡ SrcSharedB parseCustomModelRef）：MNt 深依赖 canonical // 〔A1-R106〕+OFFPEAK_IDLE_PLAN_ID：原 vee（styles 613 `Z as vee` ← src 5357；Vjt 遥测缺省 provider 面）
@@ -256,36 +256,10 @@ export interface AutomationRun {
  *    （UseBoundStore = StoreApi & hook，storeTypes@17 在案；文件头 import 既有行 10）。
  *    五消费点（1109/1113/1126/1143/1198）改 useAutomationsStore.getState() →
  *    useAutomationsStore.getState()，.error 读取面逐字不变（canonical error: string | null）。 ── */
-interface OffPeakStoreState {
-  tasks: OffPeakTask[];
-  loading: boolean;
-  /** A0-CLEANUP3 3b：allowedModels/allowedModelConfigs 按 OffPeakTaskEditor 消费面具型 */
-  grayConfig: {
-    enabled?: boolean;
-    codingPlanActive?: boolean;
-    allowedModels?: string[];
-    allowedModelConfigs?: Array<{ id: string; modelIdByKind?: Record<string, string>; reasoning?: { levels: Record<string, unknown>; defaultLevel?: string } }>;
-  } | null;
-  codingPlanSupport: { supported?: boolean; providerFamily?: string; selectedConnectionKey?: string } | null; // 〔A1-R104〕型精化：按 Tit canonical（Home::isCodingPlanConnectionSelected）参面（A0-CLEANUP3 3b 对齐模式续；本地 ambient 面自洽，不跨核）
-  takeNumberAvailability: { canTakeNumber?: boolean; nextTakeAt?: number } | null;
-  takeNumberAvailabilityStatus: string | null;
-  operationId: string | null;
-  error?: string | null;
-  initialize: (opts: { offPeakTaskService: unknown; codingPlanSubscriptionService: unknown }) => Promise<void>;
-  refresh: (offPeakTaskService: unknown) => Promise<void>;
-  refreshCodingPlanSupport: (offPeakTaskService: unknown) => Promise<void>;
-  refreshTakeNumberAvailability: (offPeakTaskService: unknown) => Promise<void>;
-  createTask: (input: Record<string, unknown>, offPeakTaskService: unknown) => Promise<{ ok: boolean; [key: string]: unknown }>;
-  updateTask: (taskId: string, patch: Record<string, unknown>, offPeakTaskService: unknown) => Promise<boolean>;
-  pauseTask: (taskId: string, offPeakTaskService: unknown) => Promise<void>;
-  continueTask: (taskId: string, offPeakTaskService: unknown) => Promise<void>;
-  cancelTask: (taskId: string, offPeakTaskService: unknown) => Promise<void>;
-  deleteTask: (taskId: string, offPeakTaskService: unknown) => Promise<void>;
-  deleteHistory: (taskId: string, offPeakTaskService: unknown) => Promise<void>;
-  consumePendingCreateDraft: () => OffPeakTask | null;
-}
-declare function useOffPeakStore<T>(selector: (state: OffPeakStoreState) => T): T; // bX
-declare const offPeakStoreStatic: { getState: () => OffPeakStoreState }; // bX.getState()
+/* ── tombstone〔A1-R114〕：declare useOffPeakStore/offPeakStoreStatic（原 bX 双符）+ 本地 OffPeakStoreState 弱接口删除——
+ *    改指 canonical = Home::useOffPeakTaskStore（@826 逐字 zustand 实体，束 91416；modules/Home 转导出 @146）。
+ *    型面对齐：19 订阅点换名（selector 参面由弱接口转强型 OffPeakTaskStoreState）、3 静面 .getState() 换名；
+ *    弱→强摩擦按 tsc 实测逐处对齐（R107 首参宽化 / R26 判例族）。双轨登记 W5：AutomationsMainView bX 消费面（束 138876 簇）归一留批续。 ── */
 
 /* F15 族深层叶子（接口级；行号见头部映射 §F） */
 /* ── tombstone〔A1-R113〕：declare OffPeakTaskList（原 cMt，jsx 113500 / js 134696–134939）删除——逐字实体化于下方实体带（AutomationStatusChip 之后）。
@@ -1217,25 +1191,25 @@ export function AutomationsMain(props: AutomationsMainProps) {
   const deleteRun = useAutomationsStore((state) => state.deleteRun);
   const refreshAutomations = useAutomationsStore((state) => state.refresh);
   const { offPeakTaskService, codingPlanSubscriptionService } = useServices();
-  const offPeakTasks = useOffPeakStore((state) => state.tasks);
-  const offPeakLoading = useOffPeakStore((state) => state.loading);
-  const offPeakGrayConfig = useOffPeakStore((state) => state.grayConfig);
-  const offPeakCodingPlanSupport = useOffPeakStore((state) => state.codingPlanSupport);
-  const takeNumberAvailability = useOffPeakStore((state) => state.takeNumberAvailability);
-  const takeNumberAvailabilityStatus = useOffPeakStore((state) => state.takeNumberAvailabilityStatus);
-  const offPeakOperationId = useOffPeakStore((state) => state.operationId);
-  const initializeOffPeak = useOffPeakStore((state) => state.initialize);
-  const refreshOffPeak = useOffPeakStore((state) => state.refresh);
-  const refreshCodingPlanSupport = useOffPeakStore((state) => state.refreshCodingPlanSupport);
-  const refreshTakeNumberAvailability = useOffPeakStore((state) => state.refreshTakeNumberAvailability);
-  const createOffPeakTask = useOffPeakStore((state) => state.createTask);
-  const updateOffPeakTask = useOffPeakStore((state) => state.updateTask);
-  const pauseOffPeakTask = useOffPeakStore((state) => state.pauseTask);
-  const continueOffPeakTask = useOffPeakStore((state) => state.continueTask);
-  const cancelOffPeakTask = useOffPeakStore((state) => state.cancelTask);
-  const deleteOffPeakTask = useOffPeakStore((state) => state.deleteTask);
-  const deleteOffPeakHistory = useOffPeakStore((state) => state.deleteHistory);
-  const consumePendingCreateDraft = useOffPeakStore((state) => state.consumePendingCreateDraft);
+  const offPeakTasks = useOffPeakTaskStore((state) => state.tasks);
+  const offPeakLoading = useOffPeakTaskStore((state) => state.loading);
+  const offPeakGrayConfig = useOffPeakTaskStore((state) => state.grayConfig);
+  const offPeakCodingPlanSupport = useOffPeakTaskStore((state) => state.codingPlanSupport);
+  const takeNumberAvailability = useOffPeakTaskStore((state) => state.takeNumberAvailability);
+  const takeNumberAvailabilityStatus = useOffPeakTaskStore((state) => state.takeNumberAvailabilityStatus);
+  const offPeakOperationId = useOffPeakTaskStore((state) => state.operationId);
+  const initializeOffPeak = useOffPeakTaskStore((state) => state.initialize);
+  const refreshOffPeak = useOffPeakTaskStore((state) => state.refresh);
+  const refreshCodingPlanSupport = useOffPeakTaskStore((state) => state.refreshCodingPlanSupport);
+  const refreshTakeNumberAvailability = useOffPeakTaskStore((state) => state.refreshTakeNumberAvailability);
+  const createOffPeakTask = useOffPeakTaskStore((state) => state.createTask);
+  const updateOffPeakTask = useOffPeakTaskStore((state) => state.updateTask);
+  const pauseOffPeakTask = useOffPeakTaskStore((state) => state.pauseTask);
+  const continueOffPeakTask = useOffPeakTaskStore((state) => state.continueTask);
+  const cancelOffPeakTask = useOffPeakTaskStore((state) => state.cancelTask);
+  const deleteOffPeakTask = useOffPeakTaskStore((state) => state.deleteTask);
+  const deleteOffPeakHistory = useOffPeakTaskStore((state) => state.deleteHistory);
+  const consumePendingCreateDraft = useOffPeakTaskStore((state) => state.consumePendingCreateDraft);
   const [refreshingAll, setRefreshingAll] = React.useState(false);
   const [view, setView] = React.useState<
     | { mode: "list" }
@@ -1645,7 +1619,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
       });
       if (!confirmed) return;
       await cancelOffPeakTask(task.offPeakTaskId, offPeakTaskService);
-      const error = offPeakStoreStatic.getState().error;
+      const error = useOffPeakTaskStore.getState().error;
       if (error) showToastWithAction(error);
     },
     [confirmDialog, intl, cancelOffPeakTask, offPeakTaskService]
@@ -1660,7 +1634,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
       });
       if (!confirmed) return;
       await deleteOffPeakTask(task.offPeakTaskId, offPeakTaskService);
-      const error = offPeakStoreStatic.getState().error;
+      const error = useOffPeakTaskStore.getState().error;
       if (error) showToastWithAction(error);
       setView((previous) =>
         previous.mode === "offpeak-edit" && previous.task.offPeakTaskId === task.offPeakTaskId ? { mode: "list" } : previous
@@ -1672,7 +1646,7 @@ export function AutomationsMain(props: AutomationsMainProps) {
   const handleDeleteOffPeakHistory = React.useCallback(
     async (task: OffPeakTask) => {
       await deleteOffPeakHistory(task.offPeakTaskId, offPeakTaskService);
-      const error = offPeakStoreStatic.getState().error;
+      const error = useOffPeakTaskStore.getState().error;
       if (error) showToastWithAction(error);
     },
     [deleteOffPeakHistory, offPeakTaskService]
@@ -1708,8 +1682,8 @@ export function AutomationsMain(props: AutomationsMainProps) {
         const updated = await updateOffPeakTask(
           currentView.task.offPeakTaskId,
           {
-            title: input.title,
-            prompt: input.prompt,
+            title: input.title as string | undefined, // 〔A1-R114〕型面对齐：input 为 Record<string, unknown>，强型 Partial<OffPeakCreateInput> 命名键收窄
+            prompt: input.prompt as string | undefined, // 〔A1-R114〕同上
             permissionMode: input.permissionMode,
             model: input.model ?? null,
             thoughtLevel: input.thoughtLevel ?? null,
