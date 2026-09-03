@@ -15,7 +15,7 @@ import { useConfirmDialog } from '../../modules/Modals';
 import { useSettingsStore as useAppPreferenceStore } from '../../modules/stores-core'; // A1-R10 项 2a：原 ko（1296）declare 改指 canonical——普查 useAppPreferenceStore=useSettingsStore（symbol-index x6）；选择器面 1512–1516 五字段（requestLoginEntry/setUser/oauthError/setOAuthError/markModelProviderFamilyConnectionTransition）= SettingsState 实有字段（bundle 192134–192138 同面）。环安全：stores-core 值闭包不达 components/settings
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { isStartPlanProviderId as isStartPlanPreset, providerIds as PROVIDER_IDS } from '../../modules/SrcSharedA'; // Bn / q=mo
-import { resolveTelemetryProviderHost } from '../../modules/StoresDeep'; // 〔A1-R31〕hNe 40454（= bw 40445 直通）：telemetryPresetId declare 收敛改指，见下墓碑。环安全：StoresDeep 已在本文件 import 闭包内（ConversationLeaves@133），其值闭包不反达 components/settings（grep 实证）
+import { resolveTelemetryProviderHost, reportTelemetry as trackEvent } from '../../modules/StoresDeep'; // 〔A1-R125〕+reportTelemetry as trackEvent（原 xw 改指；R1 判例别名保留调用名） // 〔A1-R31〕hNe 40454（= bw 40445 直通）：telemetryPresetId declare 收敛改指，见下墓碑。环安全：StoresDeep 已在本文件 import 闭包内（ConversationLeaves@133），其值闭包不反达 components/settings（grep 实证）
 import {
   resolveProviderFamilyMode as familyModeOf, // zi
   getOAuthProviderFamilyByProviderId as familyDescriptorOf, // ot
@@ -122,16 +122,7 @@ declare function isProviderUsable(provider: ModelProvider): boolean; // vM
 declare function isBuiltInProviderId(providerId: string): boolean; // irt
 declare function presetApiKeyUrl(presetId: string): string | null; // ort
 /* ── tombstone〔A1-R45〕：declare presetRegistrationUrl（ort 族）删除——本文件零消费（grep 实测仅本 declare 行），全树独见（无他文件面）。纯删碑，证据见 A1-R45.report.md §二。 ── */
-declare function trackEvent(
-  platform: PlatformService,
-  event: {
-    elementName: string;
-    eventRegion: string;
-    eventType: string;
-    eventExtraDetail?: Record<string, string>;
-  },
-  scope: string
-): Promise<void>; // xw
+/* ── tombstone〔A1-R125〕trackEvent（原 xw）declare 删改指 StoresDeep::reportTelemetry（xw@40457 逐字，A1-R36 既立 canonical；调用点 536 逐字不变）。 ── */
 /* ── tombstone〔A1-R31〕：declare telemetryPresetId（原 hNe）删除 → 改指 StoresDeep resolveTelemetryProviderHost（hNe 真身：styles 40454 `return bw(e)` 直通形 ≡ bw 40445 canonical；消费 @543 改指。负证据：bundle 内 hNe 唯一真身）。 ── */
 
 /* --- stores / hooks（本 chunk 或跨 chunk） --- */

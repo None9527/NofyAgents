@@ -2461,7 +2461,40 @@ declare function resolveEffectiveProvider(taskProvider: string | null | undefine
  *    本文件调用面皆真值判定/插值渲染，兼容（2034–2037/2192/2203）。 ── */
 /* ── tombstone（A1-R10 2b）：declare function applyOptimisticTaskMutation（原 Uo，1895 / 959）删除，
  *    改经文件头 stores/searchResultsStore import 消费（canonical = applySearchTaskMutation）。 ── */
-declare function buildTaskFeedbackDescription(args: { taskTitle: string; taskId?: string; workspacePath: string; taskSessionPath?: string | null; taskLogPath?: string | null; formatMessage: (id: string, values?: Record<string, unknown>) => string }): string;
+/* 〔A1-R125〕原 w6（styles 142351）逐字实体化：反馈模板描述构造（本地变量仍束名）。
+ * 双消费面：本文件 @2105 + Sidebar @1934（经 modules/TopBar 转导出）。 */
+export function buildTaskFeedbackDescription({
+  taskTitle: e,
+  taskId: t,
+  workspacePath: n,
+  taskSessionPath: r,
+  taskLogPath: i,
+  formatMessage: a,
+}: {
+  taskTitle: string;
+  taskId?: string;
+  workspacePath: string;
+  taskSessionPath?: string | null;
+  taskLogPath?: string | null;
+  formatMessage: (id: string, values?: Record<string, unknown>) => string;
+}): string {
+  return [
+    a("feedback.submit.template.section.taskHeading"),
+    "",
+    a("feedback.submit.template.section.taskInfo"),
+    a("feedback.submit.template.section.taskTitle", { title: e }),
+    t ? a("feedback.submit.template.section.taskId", { id: t }) : null,
+    a("feedback.submit.template.section.taskWorkspace", { path: n }),
+    r ? a("feedback.submit.template.section.taskSessionPath", { path: r }) : null,
+    i ? a("feedback.submit.template.section.taskLogPath", { path: i }) : null,
+    "",
+    a("feedback.submit.template.section.problem"),
+    a("feedback.submit.template.section.supplement"),
+    "",
+    a("feedback.submit.template.section.expectedResult"),
+    a("feedback.submit.template.section.supplement"),
+  ].filter((e) => e != null).join("\n");
+}
 
 /* ============================================================================
  * 5.4 TaskRenameDialog（原 j6，js 142581 / jsx 118551）

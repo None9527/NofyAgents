@@ -149,6 +149,7 @@ export {
   SessionHeaderRight,
   SessionHeaderLeft,
   TaskRenameDialog,
+  buildTaskFeedbackDescription, // 〔A1-R125〕原 w6 实体化于 components/shell/TopBar，转导出供 Sidebar 改指
   TaskActionMenuItems,
   GitBranchChip,
   RemoteSyncMenuItems,

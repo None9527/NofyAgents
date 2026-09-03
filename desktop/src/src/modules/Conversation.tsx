@@ -113,6 +113,8 @@
  * §9 Pane 子族——编排器 PTt/R0 闭包与轮分段渲染引擎深耦合，按阶段纪律留守（见报告 §6）。
  * ==========================================================================*/
 import * as React from "react";
+import { useOptionalPlatform as useTelemetryPlatform } from './ImeComposition'; // 〔A1-R125〕原 le declare 改指（R1 判例别名保留调用名；imeComposition chunk 10880 useContext 可空面）
+import { reportTelemetry as trackEvent } from './StoresDeep'; // 〔A1-R125〕原 xw declare 改指（R36 canonical；环安全：StoresDeep 值闭包不反达 modules/Conversation）
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card'; // A0-S3c：vendored 原语 declare → npm/components-ui 真实 import
 import { ChevronDown as IconChevronDown, ChevronUp as IconChevronUp, Check as IconCheck, Copy as IconCopy, Pencil as IconPencil, GripVertical as IconGripVertical, ArrowUpFromLine as IconSend, ArrowDownToLine as IconArrowDownToLine, SquareTerminal as IconSquareTerminal, File as IconFile, Bot as IconBot, Sparkles as IconSparkles, Target as IconTarget, GitBranch as IconGitBranch, Lightbulb as IconLightbulb, Eye as IconModelChange, Shield as IconShield, ThumbsUp as IconThumbsUp, ThumbsDown as IconThumbsDown, Rewind as IconRewind, Loader as IconLoader, LoaderCircle as IconSpinner, Info as IconInfo, Upload as IconUpload, Globe as IconGlobe, Gauge as IconGauge, Clock as IconClock, ListTodo as IconListTodo, MessageSquare as IconMessageSquare, Calendar as IconCalendar, X as IconX } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）；〔A1-P1-B17〕+X as IconX（原 g = imeComposition chunk qt=x('x')@11819，导出别名 b@12583，经 styles 349 `b as g` 入本 chunk；消费位 bundle 91840 v4-pane-close 按钮 ≡ 本文件 @4721 逐字吻合；declare 删碑见 §0）
 import * as ReactDOM from "react-dom";
@@ -172,23 +174,10 @@ import { ConversationPane } from '../components/conversation/ConversationPaneCor
 /** toast（原 m，imeComposition chunk 的 _ 导出） */
 
 /** 遥测平台服务（原 S()，imeComposition chunk 的 j 导出） */
-interface TelemetryPlatform {
-  /* 调用面：xw(platform, event, source) 事件上报 */
-}
-declare function useTelemetryPlatform(): TelemetryPlatform | null;
-/** 遥测事件上报（本 chunk 内助手，调用面归纳） */
-declare function trackEvent(
-  platform: TelemetryPlatform,
-  event: {
-    elementName: string;
-    eventRegion: string;
-    eventType: string;
-    eventExtraDetail?: Record<string, unknown>;
-    talkId?: string;
-    messageId?: string | null;
-  },
-  source: string,
-): void;
+/* ── tombstone〔A1-R125〕①useTelemetryPlatform（原 le，imeComposition chunk 10880 = useContext(PlatformContext) 可空面，
+ *    styles 355 `j as S` ≡ 导出 le as j 实证）declare 删改指 ImeComposition::useOptionalPlatform（@236 逐字）；
+ *    ②trackEvent（原 xw）declare 删改指 StoresDeep::reportTelemetry（xw@40457 逐字，A1-R36 canonical）；
+ *    本地 TelemetryPlatform 空接口零余引用随删。调用点 1354/1385 逐字不变。 ── */
 
 /* --- UI 原语（button / usageStatsUiParts / imeComposition chunk） ---
  * ── tombstone（A0-D）：Button（原 t，button-laUijeDG）与 Tooltip（原 Ia = usageStatsUiParts

@@ -210,12 +210,12 @@ import { TabsList, TabsTrigger } from '../../modules/Settings';
 import { ArchivedTasksSection, BeamBorderAnimation, WebRemoteTaskListSection, readVisibleLimit, useGroupedTaskView, useSidebarUsageState, useWorkspaceTaskGroups } from '../../modules/SidebarLeaves';
 import { type WebRemoteSwitcherService } from '../../modules/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：原 modules/SidebarLeaves WebRemoteSwitcher 本地面删碑，改指生产面 canonical（六点分叉表闭合，A1-P2-B9.report.md §四）
 import { logger, mergeTaskMeta, resolveWorkspaceKey as workspaceKey, useTaskStore, getWorkspaceTaskStateAlias as getWorkspaceSlice } from '../../modules/SkillStore'; // +workspaceKey（原 Io，A0-CLEANUP 族清理）；〔A1-R123〕原 fe declare 改指 getWorkspaceTaskStateAlias（stores/taskStore@433 _e 逐字，skillStore 导出 U；TaskListQueryCore@49 判例），TaskStore 型参随删（canonical TaskStoreState 面）
-import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, type TaskActionMenuItemsProps } from '../../modules/TopBar';
+import { RemoteSyncMenuItems, TaskActionMenuItems, TaskRenameDialog, buildTaskFeedbackDescription, type TaskActionMenuItemsProps } from '../../modules/TopBar'; // 〔A1-R125〕+buildTaskFeedbackDescription（原 w6 改指，TopBar 逐字实体）
 import { WebRemoteControlDialog, useWebRemoteControlEnabled } from '../../modules/WebRemote';
 import { acquireSessionIndexStore, releaseSessionIndexStore, useBaseServices, useServicesOptional as ps, useWorkspaceServices } from '../../modules/services'; // 〔A1-P2-B10〕ps≡useServicesOptional（原 ps 2680，useContext(us) 裸读）——ERt 真身闭包依赖
 import { applySearchTaskMutation as applyOptimisticTaskMutation, invalidateWorkspaceResults as forgetRecentWorkspaces } from '../../stores/searchResultsStore'; // A1-R10 项 2b：原 Uo（1895）/Qie（1881）declare 改指 canonical = R9 shim（bundle 逐字）。型缝：本地旧面 previousTask/nextTask 可空，canonical 面必填——调用点 1980–2986 皆传非空实对象，吻合；forgetRecentWorkspaces 面 = Array<{workspacePath; workspaceIdentity?}> 同形（2892 逐字不变）。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/shell
 import { useFeedbackStore, useSessionRegistryStore, useSettingsStore } from '../../modules/stores-core';
-import { sessionActivityOf as taskSessionActivity, pendingInteractionOf as taskPendingAttention, compareTasks as compareTasksForList } from '../../modules/StoresDeep'; // A1-R10 项 2d：原 Mo/No/Fo（jsx 369/376/405）本地转录改指 canonical = helpers sessionActivityOf/pendingInteractionOf/compareTasks（Mo@1311/No@1318/Fo@1365 逐字）；调用点 1506/1507/1958/2248/2699 逐字不变。环安全：StoresDeep 值闭包（stores/* + SkillStore + SrcShared 族）不达 components/shell
+import { sessionActivityOf as taskSessionActivity, pendingInteractionOf as taskPendingAttention, compareTasks as compareTasksForList, reportTelemetry as trackEvent } from '../../modules/StoresDeep'; // 〔A1-R125〕+reportTelemetry as trackEvent（原 xw 改指，R36 canonical；R1 判例别名保留调用名） // A1-R10 项 2d：原 Mo/No/Fo（jsx 369/376/405）本地转录改指 canonical = helpers sessionActivityOf/pendingInteractionOf/compareTasks（Mo@1311/No@1318/Fo@1365 逐字）；调用点 1506/1507/1958/2248/2699 逐字不变。环安全：StoresDeep 值闭包（stores/* + SkillStore + SrcShared 族）不达 components/shell
 import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 项 2d：原 Go（jsx 986）本地转录改指 canonical = components/markdown baseName（Go@1928 逐字）；调用点 1561 逐字不变。环安全：MarkdownIntegration 值闭包（markdown 渲染族 + FileTreePanel resolveAvailableEditors）不达 components/shell（实测在案）
 import { hasUnavailableLocalDirectoryTab as isLocalDirectoryUnavailableSelector, resolveTabRemoteSessionId as gc, useWorkspaceTabStore as useTabStore, useWorkspaceTabStoreOptional as useOptionalTabStore } from '../../modules/WorkspaceTabsDeep'; // 原 sc（A1-R1：styles js 4493 / jsx 3324 逐字重建改指）；〔A1-P2-B10〕gc≡resolveTabRemoteSessionId（原 gc 4814）——ERt 真身闭包依赖
 import { useSessionRegistryStore as Zs } from '../../stores/sessionRegistryStore'; // 〔A1-P2-B10〕Zs≡useSessionRegistryStore（原 Zs 4357）——ERt 真身闭包依赖（服务注册表选择器）
@@ -223,7 +223,7 @@ import { useSessionRouterStore, useTrajectoryViewerStore } from '../../modules/s
 // 〔A1-R25〕aw 39378 收敛：markUsageEntryIntent declare 改接 Home §U.7 逐字真身（别名保留，调用点 4769 逐字不变；环安全：Home 顶层 hoisted function，本文件仅渲染期事件回调消费）
 import { openSettingsUsageSection as markUsageEntryIntent } from './Home';
 import { useTaskListItems } from './TaskListQueryCore'; // 〔A1-P3-B1〕原 ZS（styles 35775–36118）declare 收敛改指逐字真身叶；调用点 1914/2201 逐字不变。环安全：本叶值闭包 = react + modules/SkillStore + stores-core + stores/searchResultsStore + modules/services + stores/searchResultsHelpers，不达 components/shell
-import { isCronAutomationPayload as isCronTask, isOffPeakTaskPayload as isOffPeakTask, DesktopMenuActionIds as DesktopCommand, joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-P3-B1〕原 pi/Yr（src fx 8726/px 8729）+ oi（src ex 8631 / export ft，styles 本地 oi）收敛改指；改名先例 rendererEntry.tsx:43；调用点 1522/1523/4937/4942/4947 逐字不变。〔A1-P3-B11〕+joinTestidParts（原 scopedTestId 收敛改指，墓碑见 @5122；消费面 1554/1592/3022/3080/3093）
+import { isCronAutomationPayload as isCronTask, isOffPeakTaskPayload as isOffPeakTask, DesktopMenuActionIds as DesktopCommand, joinTestidParts, buildWebRemoteEntryViewTelemetryEvent as buildWebRemoteControlEventProps, parseRemoteWorkspaceKey as parseRemoteIdentityKind } from '../../modules/SrcSharedB'; // 〔A1-R125〕+qte/ite 改指（rx≡lt / eo≡ite，styles 720/662 实证；别名保留调用名） // 〔A1-P3-B1〕原 pi/Yr（src fx 8726/px 8729）+ oi（src ex 8631 / export ft，styles 本地 oi）收敛改指；改名先例 rendererEntry.tsx:43；调用点 1522/1523/4937/4942/4947 逐字不变。〔A1-P3-B11〕+joinTestidParts（原 scopedTestId 收敛改指，墓碑见 @5122；消费面 1554/1592/3022/3080/3093）
 import { useSidebarSessionDrop as useSessionOpenability, SESSION_DRAG_MIME, serializeSessionDragPayload, setSessionDragFallbackPayload as setCurrentSessionDrag, clearSessionDragFallbackPayload as clearCurrentSessionDrag, createSessionDragPreview as createDragImageUpdater, type SessionDragPayload } from '../../modules/SplitLayoutUiDeep'; // 原 LTt（A1-R3：FTt/ITt/LTt 域重建改指；本地 SessionScope 与 SidebarSessionDropTarget 同形）+ u2/Iwt/Lwt/Rwt/PRt（A1-R4：拖放源侧改指，tombstone 见原声明位）
 import { usePinnedTaskListStore as useRemotePinnedTaskListStore } from '../../stores/pinnedTaskListStore'; // A1-R9 E6 收敛改指（原 E6 本地并行实例删除；canonical 属主 = stores/，tombstone 见原声明位）
 import { useWorkspaceTaskListStore as useRemoteWorkspaceTaskListStore } from '../../stores/workspaceTaskListStore'; // A1-R9 k6 收敛改指（同上）
@@ -1159,8 +1159,7 @@ declare function resolveRemoteSessionServices(workspaceIdentity: string): Worksp
 /* ── tombstone（A1-R10 2b）：declare function applyOptimisticTaskMutation（原 Uo，1895）删除，
  *    改经文件头 stores/searchResultsStore import 消费（canonical = applySearchTaskMutation；
  *    调用点 1980/2003/2015/2021… 逐字不变）。 ── */
-/** 原 w6（TopBar 已登记）：任务反馈描述构造 */
-declare function buildTaskFeedbackDescription(args: { taskTitle: string; taskId?: string; workspacePath: string; taskSessionPath?: string | null; taskLogPath?: string | null; formatMessage: (id: string, values?: Record<string, unknown>) => string }): string;
+/* ── tombstone〔A1-R125〕buildTaskFeedbackDescription（原 w6）declare 删改指 components/shell/TopBar 逐字实体（经 modules/TopBar 转导出；调用点 1934 逐字不变）。 ── */
 /** 原 n4/r4（TopBar.tsx 已还原）：远程同步菜单项 / 对话框组 */
 /** 原 $2（TopBar 已登记）：远程会话源可打开性检查 */
 /* ── tombstone（A1-R4）：sshDecoratedProjectName（原 QTt）declare 删除 → 真实 import
@@ -1178,10 +1177,11 @@ declare function refreshAfterPluginSync(args: Record<string, unknown>): Promise<
  *    openSettingsUsageSection，bundle aw 39378–39380 唯一真身 `ow('usage')`；终端消费实测：
  *    4769 ≡ bundle 150430 `(aw(), t?.())`、Home 4507 ≡ bundle 89577；负证据：bundle 内 aw 无第二定义）。
  *    调用点逐字不变。 ── */
-/** 原 xw：遥测事件上报 */
-declare function trackEvent(platformService: PlatformService | null, eventName: string, source: string): void;
-declare function buildWebRemoteControlEventProps(args: { workspaceKind: "local" | "remote"; remoteKind?: string }): string;
-declare function parseRemoteIdentityKind(identity: string): { kind: string } | null;
+/* ── tombstone〔A1-R125〕遥测三连 declare 删改指：①trackEvent（原 xw）→ StoresDeep::reportTelemetry（xw@40457 逐字，A1-R36 既立 canonical；
+ *    A0 declare 之 eventName: string 形为退化面——束真相第二参 = 事件对象，本批随 qte 改指还原）；
+ *    ②buildWebRemoteControlEventProps（原 qte）→ SrcSharedB::buildWebRemoteEntryViewTelemetryEvent（rx≡src 导出 lt，styles 720 `lt as qte` 实证）；
+ *    ③parseRemoteIdentityKind（原 ite）→ SrcSharedB::parseRemoteWorkspaceKey（eo，styles 662 `eo as ite` 实证，返回面含 .kind）。
+ *    调用点 4817–4820 逐字不变。 ── */
 declare function resolveWorkspaceRemoteSessionId(workspacePath: string, remoteSessionId: string | null | undefined, workspaceIdentity?: string | null): string | null;
 /* ---- 会话拖拽（HTML5 DnD，原 u2/Iwt/Lwt/Rwt/PRt/Wwt/Gwt/Kwt，jsx 103642–103717） ---- */
 /* ── tombstone（A1-R4）：本地 SESSION_DRAG_MIME 常量 + SessionDragPayload 型 +
