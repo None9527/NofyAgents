@@ -537,7 +537,7 @@ const apiFormatOfKind = (kind: string): string => mapKindToApiFormat(kind) as st
  *      @1551 activeProvidersOfList 形参 unknown[]|undefined → any（束真 yM(e) 无型；undefined 对 canonical
  *            any[] 不可赋）、返回 unknown → boolean（束真 Jl 返回 boolean）。
  *      两件全树零外部调用方（providerFamiliesOfListWrapper 仅 UDS@360 再导出、activeProvidersOfList 为 file-local
- *      仅 @1557 一处消费；hasNoUserOrProviders 签名不变，实消费 ModelProviderSettingsSection 侧零影响）。
+ *      仅 @1557 一处消费；hasNoUserOrProviders 签名不变，实消费 ModelProviderSettingsSection 侧零影响）。〔**A1-R150 更新**：上行「两件全树零外部调用方」已失效——OnboardingLoginLeaves 二 declare（hasUsableProvider / isProviderEnabledForFamily）经束证翻案改指本二符（≡ 束 styles-local 薄包装 yM / vM，非内层 kr / jte），activeProvidersOfList 同批**补 export** + UDS@361 补转导出，providerFamiliesOfListWrapper 参面同批宽化 `string[]`→`any`（级联核：全树仍零调用方，宽化零影响）。全证见 A1-R129.report.md〔A1-R149〕§三 +〔A1-R150〕。〕
  *    环安全：UD→SrcSharedB 边既有（@403）；SrcSharedB 值闭包 = SrcSharedA + lib/{uuid,stableIds,logFormat,
  *    providerRefs,lineDiff,shallowSelector,locale,workspaceUtils,buildEnv,errorUtils}，不达 components/usage。 ── */
 
@@ -1539,7 +1539,7 @@ export function useProviderFamilyConnectionSettings(
 /** 原 vM（束真 styles off 1664049/line 52790-52792 `function vM(e){return jte(e)}`；旧注 52739 漂移 +51）：
  *  jte≡SrcSharedB@620 isProviderReadyForUse 薄包装。
  *  〔A1-R145〕型缝翻正：原 declare 承诺 `unknown[]` 系接口级臆造；束真 ql（R off 151770/line 4882）返回 boolean。 */
-export function providerFamiliesOfListWrapper(selectedKeys: string[]): boolean {
+export function providerFamiliesOfListWrapper(selectedKeys: any): boolean { // 〔面校准 A1-R150〕参 `string[]` → `any`：束真 vM(e) 无型（styles@52790-52792 `function vM(e){return jte(e)}`）、内层 jte ≡ SrcSharedB@620 isProviderReadyForUse(e: any)；OnboardingLoginLeaves@5132 传 **provider 记录**（原 declare 面 ModelProviderRecord），不宽化必报 TS2345。级联核：本符全树**零调用方**（仅 UDS@360 再导出）→ 宽化零级联。参名 selectedKeys 系 R145 登记之名实错配（束真为单 provider 可用性判定），本批**只宽型不改名**。
   return providerFamiliesOfList(selectedKeys);
 }
 
@@ -1548,7 +1548,7 @@ export function providerFamiliesOfListWrapper(selectedKeys: string[]): boolean {
  *  〔A1-R145〕型缝翻正：束真 yM(e) 无型；原 declare 的 `unknown[] | undefined` 对 canonical `any[]` 不可赋
  *  （undefined 分支，strict: true → TS2345），按束真宽化为 any；返回型由 unknown 收窄为 boolean（束真 Jl 返回 boolean）。
  *  修后 @1531 `!state.user && !activeProvidersOfList(state.providers)` 对 hasNoUserOrProviders(): boolean 全通。 */
-function activeProvidersOfList(providers: any): boolean {
+export function activeProvidersOfList(providers: any): boolean { // 〔A1-R150〕补 export（值导出；运行期仅增模块导出面，函数体与调用面零变）：OnboardingLoginLeaves declare hasUsableProvider（原 yM）翻案改指所依——束证消费点 styles@211498 `c = yM(a)`（t8t 体内）实调 styles-local 薄包装 yM（@52793 `function yM(e){return kr(e)}`）≡ 本符，**非** dossier-D 所判内层 kr（SrcSharedB@631 hasAnyReadyProvider；`kr(` 全束仅 1 命中且在 yM 体内 52794 → 零直呼）；经 modules/UsageDeep@361 转导出。级联核：本符原仅 @1557 一处消费，补 export 属纯加法。
   return activeProvidersOf(providers);
 }
 
@@ -2354,7 +2354,7 @@ export function useZapiEnabled(): boolean {
  *    消费面 5 处经 `as` 别名逐字不变：@2326（≡束 off 6333269/line 187593）/@2327-2330（≡187594-187597）/
  *    @2331（≡187598）/@2332（≡off 6333545/line 187599）+ @2325 effectiveEnvOverlay（aYt，束真 styles off 6330593/
  *    line 187488；@2176 定义处旧注「js 187293」漂移 +195，本批不动其体仅登记）。
- *    外部消费核：useZapiEnabled 经 UDS@376 转出，实消费 1 处 = ModelProviderSettingsSection.tsx:1441
+ *    外部消费核：useZapiEnabled 经 UDS@377 转出〔A1-R150 随批勘误：+1 位移，activeProvidersOfList 转导出插入所致〕，实消费 1 处 = ModelProviderSettingsSection.tsx:1441
  *    （≡ 束 off 6480130/line 192090 `u = gYt()`），签名不变零影响。
  *    环安全：UD→SrcSharedA（@402）/UD→SrcSharedB（@403）双边既有；两属主值闭包（zod + lib/*）不达 components/usage
  *    （PD@102/103 同判在案）。INTRANET_PROBE_CONFIG 为 export var（模块求值期构造，读 globalThis.process?.env），

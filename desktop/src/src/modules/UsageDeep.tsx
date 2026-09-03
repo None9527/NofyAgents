@@ -358,6 +358,7 @@ export {
   providerCacheKey,
   useProviderFamilyConnectionSettings,
   providerFamiliesOfListWrapper,
+  activeProvidersOfList, // 〔A1-R150〕+转导出（UD@1551 同批补 export）：OnboardingLoginLeaves hasUsableProvider（原 yM）翻案改指所依
   hasNoUserOrProviders,
   useBillingDiscount,
   BillingDiscountBadge,
