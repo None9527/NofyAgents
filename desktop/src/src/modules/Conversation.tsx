@@ -128,7 +128,8 @@ import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle
 import { OffPeakNewTaskBanner } from './Home'; // 〔A1-P1-B15〕原 I3e（76860）收敛改指；〔A1-P1-B16〕ApiRetryView 别名随 x1 收敛入 ChatLoadingSlot 除名
 import { ApiRetryLoadingSlot } from '../components/conversation/ChatLoadingSlot'; // 〔A1-P1-B16〕原 x1（112814）逐字实体化（kvt/Llt 同叶携带；消费位 112823 束体办结）
 import { classifyToolCall } from '../components/conversation/ToolCallClassification'; // 〔A1-R129u〕原 og（js 23132）canonical 改指：isTodoToolByName 实体化消费
-import { extractPlanMarkdown as buildPlanResultMarkdown } from '../components/conversation/PlanToolBlocks'; // 〔A1-R129y〕原 qZ（styles 3089160）declare 改指（canonical = PlanToolBlocks@77 extractPlanMarkdown 逐字；调用面 1987 逐字不变）。环安全：PlanToolBlocks 导入面（I18n/UtilsCn/button/MarkdownIntegration/Tool*Blocks）无反指本文件边
+import { resolveAgentFallbackName } from '../components/conversation/AgentToolBlocks'; // 〔A1-R131〕原 Npt（styles 3334769）canonical 改指：SubagentGroupRow 标题消费（AgentToolBlocks@180 逐字转录在案）。环安全：该文件反引本文件 ToolCallBlock 边为既有，函数声明提升、渲染期访问，同 A0-S4-4b 判例
+import { isPlainObjectRecord, extractPlanMarkdown as buildPlanResultMarkdown } from '../components/conversation/PlanToolBlocks'; // 〔A1-R129y〕原 qZ（styles 3089160）declare 改指（canonical = PlanToolBlocks@77 extractPlanMarkdown 逐字；调用面 1987 逐字不变）。环安全：PlanToolBlocks 导入面（I18n/UtilsCn/button/MarkdownIntegration/Tool*Blocks）无反指本文件边
 import { useAssistantPreviewCards as buildAssistantPreviewCards } from '../components/conversation/PreviewCardLinkBlocks'; // 〔A1-P1-B17〕原 Bgt（110008）逐字实体化（Pgt/Fgt/Igt/c1/Lgt/Rgt/zgt 同叶携带；R1 判例别名保留调用名，消费面逐字不变；declare 删碑见 §5.15 域）
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
@@ -140,7 +141,7 @@ import { type PrimaryDraftDropTargetController } from './WorkspaceShell'; // A0-
 import { BillingDiscountBadge, type BillingDiscountConfig } from './UsageDeep'; // +BillingDiscountConfig（A0-D 类型收敛）
 import { InfoTooltip as Tooltip, useControllableState } from './UsageStatsUiParts'; // 原 Ia（usageStatsUiParts u 导出 = X InfoTooltip）+ 原 fa（A0-CLEANUP2 item 47 接线）
 import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 原 G，IntlProvider-C321H7m8.js（A0-D 接线：declare → I18n canonical；IntlShape=ZCodeIntl）
-import { getOAuthFamilyIdByProviderId, generateUuid } from './SrcSharedB'; // 〔A1-R129v〕原 Jx（src 9036/8930；src chunk 导出 R = styles dr）canonical 改指：formatModelDisplayName 实体化消费；〔A1-R129x〕+generateUuid（原 xi，styles 743 ← src cx ≡ lib/uuid@15）：buildConversationSelectionReference 实体化消费
+import { getOAuthFamilyIdByProviderId, generateUuid, joinTestidParts } from './SrcSharedB'; // 〔A1-R131〕+joinTestidParts（原 qr ≡ src 导出 Xa ≡ Nb，SrcSharedB@5017）：段渲染簇 testid 拼接消费 // 〔A1-R129v〕原 Jx（src 9036/8930；src chunk 导出 R = styles dr）canonical 改指：formatModelDisplayName 实体化消费；〔A1-R129x〕+generateUuid（原 xi，styles 743 ← src cx ≡ lib/uuid@15）：buildConversationSelectionReference 实体化消费
 import { Button, ChevronRight as IconChevronRight, ChevronLeft as IconChevronLeft } from './button'; // 原 t 导出，button-laUijeDG.js（A0-D 接线：declare → button.tsx canonical）；A0-S3b 增补：ChevronRight as IconChevronRight, ChevronLeft as IconChevronLeft（button chunk 图标，pass-1 同源）
 import { cn } from './UtilsCn'; // 原 Z，utils-CEEH0K_K.js（A0-D 接线：declare → UtilsCn canonical）
 /* ── tombstone（A1-R3）：stores-session import（PRIMARY_PANE_ID/useSessionRouterStore/
@@ -333,6 +334,7 @@ interface ToolCallRowModel {
   output?: { text?: string } & Record<string, unknown>;
   raw?: unknown;
   parentToolUseId?: string | null;
+  startedAt?: number; // 〔A1-R131〕型缝：束真 f_t（explore 组装段）读 t?.startedAt，超集面补登
 }
 interface SubagentRowModel {
   kind: "subagent";
@@ -341,6 +343,8 @@ interface SubagentRowModel {
   subagentType: string;
   status: string;
   summaryText?: string;
+  parentToolCallId?: string | null; // 〔A1-R131〕型缝：束真 p_t（子代理段索引）按 turnId+parentToolCallId 配对，超集面补登
+  childSessionId?: string | null; // 〔A1-R131〕型缝：束真 g_t（SubagentGroupRow）开侧栏消费，超集面补登
 }
 type ConversationRow =
   | UserInputRow
@@ -463,6 +467,8 @@ interface RowRenderContext {
   workspaceIdentity?: string | null;
   workspaceRemoteSessionId?: string | null;
   sessionId?: string | null;
+  rootSessionId?: string; // 〔A1-R131〕型缝：束真 h_t（子代理开会）rootSessionId ?? sessionId 回退，超集面补登
+  onOpenSubagentSession?: (args: { rootSessionId: string; parentSessionId: string; childSessionId: string; subagentType?: string; title?: string }) => void; // 〔A1-R131〕型缝：束真 h_t 消费面（超集面补登；缺省 → 侧栏动作不挂，与束同）
   theme?: string;
   codePreviewSettings?: CodePreviewSettings;
   messageStreamShowTodos?: boolean;
@@ -2024,17 +2030,324 @@ function AgentToolCallRow({ item, context }: { item: { rowId: number; node: Tool
   );
 }
 
-/** 段条目（原 m_t 的产物，js 110278 / jsx 94334） */
+/* ============================================================================
+ * 〔A1-R131〕段渲染簇实体化（原 styles 3463952–3473600 连续区逐字）：
+ *   Xgt/Zgt/Qgt/$gt→四 shell 命令模式 | Kgt→splitShellCommandParts | qgt→unwrapShellLoaderPrefix
+ *   Jgt→splitShellCommandList | Ygt→extractShellCommands | Ggt≡isPlainObjectRecord（PlanToolBlocks 改指）
+ *   e_t→isEmptyShellStreamingFace | t_t→isExploreGroupableToolFace | s_t→AGENT_SEGMENT_TOOL_NAMES
+ *   d1→isToolCallRow | c_t→isAgentSegmentToolCallRow | l_t→isExploreGroupableRow
+ *   u_t→isEmptyShellStreamingSkipRow | d_t→resolveExploreGroupPhase | f_t→buildExploreGroupSegment
+ *   p_t→buildSubagentSegmentIndex | m_t→buildRenderSegments | h_t→openSubagentSessionLink | g_t→SubagentGroupRow
+ *   Zr/bt→段行 testid 前缀常量 | qr≡joinTestidParts（SrcSharedB 改指）| Npt≡resolveAgentFallbackName（AgentToolBlocks 改指）
+ * 面校准：旧 RenderSegmentItem 面「agentToolCall{rowId,node}/toolCallGroup」为 declare 时代过近似——
+ *   束真三档 row{row} / agentToolCall{row,subagentRow} / exploreGroup{rowId,rows,node}，随迁退役（伪面销账）。
+ * 型缝：簇内助手 `: any` 参面（S16 类，束无型）；消费面 2050/2059 逐字不变。
+ * ==========================================================================*/
+
+/** 原 Zr / bt：段行 testid 前缀（src 导出 ba≡Xv / Da≡Uy） */
+const ROW_SEGMENT_TESTID_PREFIX = `v4-row`;
+const SUBAGENT_SIDE_PANE_TESTID_PREFIX = `v4-subagent-open-side-pane`;
+
+/** 原 Xgt：shell 只读命令模式（可 explore 编组） */
+const SHELL_READONLY_COMMAND_PATTERN =
+  /\b(rg|grep|find|ls|cat|head|tail|wc|stat|pwd|which|readlink|tree|sed\s+-n|get-childitem|gci|dir|get-content|gc|type|select-string|sls|get-location|test-path|resolve-path)\b|^git\s+(status|log|show|diff)\b/i;
+/** 原 Zgt：shell 变更命令模式（不可编组） */
+const SHELL_MUTATING_COMMAND_PATTERN =
+  /\b(sed\s+-i|perl\s+-pi|tee|mv|cp|rm|mkdir|rmdir|touch|truncate|chmod|chown|remove-item|del|erase|set-content|add-content|clear-content|out-file|new-item|move-item|copy-item|rename-item|set-item)\b|^git\s+(add|commit|rm|mv|checkout|switch|restore|reset|clean|revert|cherry-pick|merge|rebase)\b/i;
+/** 原 Qgt：shell 输出重定向模式（不可编组） */
+const SHELL_OUTPUT_REDIRECT_PATTERN = /(^|[^\d<])>>?\s*\S|&>\s*\S/i;
+/** 原 $gt：shell 循环词模式（条件编组） */
+const SHELL_LOOP_KEYWORD_PATTERN = /\b(for|while)\b/i;
+
+/** 原 Kgt：命令串按 &&/||/; 拆分 */
+function splitShellCommandParts(e: any) {
+  return e
+    .split(/&&|\|\||;/g)
+    .map((e: any) => e.trim())
+    .filter((e: any) => e.length > 0);
+}
+
+/** 原 qgt：外层引号剥离 + zsh/bash/sh -lc 与 powershell -command 解包 */
+function unwrapShellLoaderPrefix(e: any) {
+  const t = e.trim();
+  const n = (e: any) => {
+    const t = e.trim();
+    return (t.startsWith(`"`) && t.endsWith(`"`)) || (t.startsWith(`'`) && t.endsWith(`'`))
+      ? t.slice(1, -1).trim()
+      : t;
+  };
+  const r = t.match(/^(?:\/bin\/)?(?:zsh|bash|sh)\s+-lc\s+([\s\S]+)$/i);
+  if (r?.[1]) return n(r[1]);
+  const i = t.match(
+    /^(?:powershell(?:\.exe)?|pwsh(?:\.exe)?)\b[\s\S]*?\s-(?:command|c)\s+([\s\S]+)$/i,
+  );
+  return i?.[1] ? n(i[1]) : t;
+}
+
+/** 原 Jgt：解包后拆分（空 → 空数组） */
+function splitShellCommandList(e: any) {
+  const t = unwrapShellLoaderPrefix(e);
+  return t.length === 0 ? [] : splitShellCommandParts(t);
+}
+
+/** 原 Ygt：工具输入 → shell 命令列表（字符串/数组/{command,cmd,script,parsed_cmd} 面；-lc 解包；去重） */
+function extractShellCommands(e: any) {
+  const t: any[] = [];
+  const n = (e: any) => {
+    if (typeof e == `string`) {
+      const n = e.trim();
+      n.length > 0 && t.push(n);
+      return;
+    }
+    if (Array.isArray(e)) {
+      if (e.every((e) => typeof e == `string`)) {
+        const n = e;
+        const r = n.findIndex((e) => e === `-lc`);
+        if (r >= 0 && typeof n[r + 1] == `string`) {
+          const e = (n[r + 1] as string).trim();
+          if (e.length > 0) {
+            t.push(e);
+            return;
+          }
+        }
+        const i = n.join(` `).trim();
+        i.length > 0 && t.push(i);
+        return;
+      }
+      for (const n of e) {
+        if (!isPlainObjectRecord(n)) continue;
+        const e = n.cmd;
+        typeof e == `string` && e.trim().length > 0 && t.push(e.trim());
+      }
+    }
+  };
+  if ((n(e), !isPlainObjectRecord(e))) return Array.from(new Set(t.flatMap((e) => splitShellCommandList(e))));
+  for (const t of [`command`, `cmd`, `script`, `parsed_cmd`]) n(e[t]);
+  return Array.from(new Set(t.flatMap((e) => splitShellCommandList(e))));
+}
+
+/** 原 e_t：shell 族无命令面（流式空壳判定） */
+function isEmptyShellStreamingFace({ kind: e, input: t }: any) {
+  return classifyToolCall({ kind: e, input: t }).family === `shell` && extractShellCommands(t).length === 0;
+}
+
+/** 原 t_t：explore 可编组面（file-read/search/explore ✓；file-write ✗；shell 按命令模式细分） */
+function isExploreGroupableToolFace({ kind: e, input: t }: any) {
+  const n = classifyToolCall({ kind: e, input: t });
+  if (n.family === `file-write`) return false;
+  if (n.family === `file-read` || n.family === `search` || n.family === `explore`) return true;
+  if (n.family !== `shell`) return false;
+  const r = extractShellCommands(t);
+  return r.length === 0 || r.some((e: any) => SHELL_MUTATING_COMMAND_PATTERN.test(e)) || r.some((e: any) => SHELL_OUTPUT_REDIRECT_PATTERN.test(e))
+    ? false
+    : r.some((e: any) => SHELL_READONLY_COMMAND_PATTERN.test(e))
+      ? true
+      : r.some((e: any) => SHELL_LOOP_KEYWORD_PATTERN.test(e) && SHELL_READONLY_COMMAND_PATTERN.test(e));
+}
+
+/** 原 s_t：agent 段工具名集 */
+const AGENT_SEGMENT_TOOL_NAMES = new Set([`Agent`, `Task`, `subagent`]);
+
+/** 原 d1：toolCall 行判定 */
+function isToolCallRow(e: any) {
+  return e.kind === `toolCall`;
+}
+
+/** 原 c_t：agent 段 toolCall 行（Agent/Task/subagent） */
+function isAgentSegmentToolCallRow(e: any) {
+  return isToolCallRow(e) && AGENT_SEGMENT_TOOL_NAMES.has(e.toolName);
+}
+
+/** 原 l_t：explore 可编组行 */
+function isExploreGroupableRow(e: any) {
+  if (!isToolCallRow(e)) return false;
+  const t = normalizeToolCallNode(e);
+  return isExploreGroupableToolFace({ kind: t.toolCall.kind, input: t.toolCall.input });
+}
+
+/** 原 u_t：输入流/运行中空壳行（段跳过） */
+function isEmptyShellStreamingSkipRow(e: any) {
+  if (!isToolCallRow(e) || (e.status !== `inputStreaming` && e.status !== `running`)) return false;
+  const t = normalizeToolCallNode(e);
+  return isEmptyShellStreamingFace({ kind: t.toolCall.kind, input: t.toolCall.input });
+}
+
+/** 原 d_t：explore 组状态（in_progress/stopped/completed） */
+function resolveExploreGroupPhase(e: any) {
+  const t = e.map((e: any) => e.status);
+  return t.some((e: any) => e === `inputStreaming` || e === `pendingApproval` || e === `running`)
+    ? `in_progress`
+    : t.some((e: any) => e === `cancelled`)
+      ? `stopped`
+      : `completed`;
+}
+
+/** 原 f_t：explore 组装段（合成 Explore 父节点 + childToolCalls） */
+function buildExploreGroupSegment(e: any) {
+  const t = e[0];
+  const n = e.map(normalizeToolCallNode);
+  return {
+    kind: `exploreGroup` as const, // 〔A1-R131〕字面型锚定（束真 kind 档，供 RenderSegmentItem 联合归位）
+    key: `explore:${t?.rowId ?? `unknown`}`,
+    rowId: t?.rowId ?? 0,
+    rows: e,
+    node: {
+      toolCall: {
+        toolId: `explore:${t?.toolCallId ?? `unknown`}`,
+        toolName: `Explore`,
+        kind: `Explore`,
+        title: `Explore`,
+        input: {},
+        status: resolveExploreGroupPhase(e),
+        startedAt: typeof t?.startedAt == `number` ? t.startedAt : void 0,
+      },
+      childToolCalls: n,
+    },
+  };
+}
+
+/** 原 p_t：子代理段索引（agentToolCall rowId → 子代理行；已认领子代理 rowId 集） */
+function buildSubagentSegmentIndex(e: any) {
+  const t = new Map<any, any>();
+  const n = new Set<any>();
+  const r = new Map<any, any>();
+  const i: any[] = [];
+  const a: any[] = [];
+  const o: any[] = [];
+  for (const t of e)
+    isAgentSegmentToolCallRow(t)
+      ? (i.push(t), r.set(`${t.turnId}\0${t.toolCallId}`, t))
+      : t.kind === `subagent` && a.push(t);
+  for (const e of a) {
+    if (!e.parentToolCallId) {
+      o.push(e);
+      continue;
+    }
+    const i = r.get(`${e.turnId}\0${e.parentToolCallId}`);
+    i && i.turnId === e.turnId && !t.has(i.rowId) && (t.set(i.rowId, e), n.add(e.rowId));
+  }
+  const s = new Map<any, any>();
+  for (const e of i) {
+    if (t.has(e.rowId)) continue;
+    const n = s.get(e.turnId);
+    n ? n.push(e) : s.set(e.turnId, [e]);
+  }
+  const c = new Map<any, any>();
+  for (const e of o) {
+    const t = c.get(e.turnId);
+    t ? t.push(e) : c.set(e.turnId, [e]);
+  }
+  for (const [e, r] of c) {
+    const i = s.get(e);
+    if (i?.length !== 1 || r.length !== 1) continue;
+    const a = i[0];
+    const o = r[0];
+    !a || !o || (t.set(a.rowId, o), n.add(o.rowId));
+  }
+  return { subagentByAgentToolRowId: t, claimedSubagentRowIds: n };
+}
+
+/** 段条目（原 m_t 的产物；〔A1-R131〕面校准为束真三档） */
 type RenderSegmentItem =
   | { kind: "row"; key: string; row: ConversationRow }
-  | { kind: "agentToolCall"; key: string; rowId: number; node: ToolCallNode }
-  | { kind: "toolCallGroup"; key: string; rowId: number; node: ToolCallNode };
-declare function buildRenderSegments(
+  | { kind: "agentToolCall"; key: string; row: ConversationRow; subagentRow: SubagentRowModel }
+  | { kind: "exploreGroup"; key: string; rowId: number; rows: ConversationRow[]; node: ToolCallNode };
+
+/** 原 m_t（js 110278）：行列表 → 渲染段列表（row/agentToolCall/exploreGroup 三档） */
+function buildRenderSegments(
   rows: ConversationRow[],
   opts: { messageStreamShowReasoning: boolean; messageStreamFirstReasoningRowId?: number },
-): RenderSegmentItem[];
-/** 子代理分组行（原 g_t，js 110333 / jsx 94403；接口保留） */
-declare const SubagentGroupRow: React.FC<{ item: RenderSegmentItem & { kind: "agentToolCall" }; context: RowRenderContext }>;
+): RenderSegmentItem[] {
+  const n: RenderSegmentItem[] = [];
+  const r = rows.filter((e) => e.kind !== `reasoning` || isReasoningRowVisible(e.rowId, opts));
+  const { subagentByAgentToolRowId: i, claimedSubagentRowIds: a } = buildSubagentSegmentIndex(r);
+  let o = 0;
+  for (; o < r.length;) {
+    const e = r[o];
+    if (!e) {
+      o += 1;
+      continue;
+    }
+    if (e.kind === `subagent` && a.has(e.rowId)) {
+      o += 1;
+      continue;
+    }
+    if (isToolCallRow(e)) {
+      const t = i.get(e.rowId);
+      if (t) {
+        (n.push({ kind: `agentToolCall`, key: `agent:${e.rowId}`, row: e, subagentRow: t }),
+          (o += 1));
+        continue;
+      }
+    }
+    if (isEmptyShellStreamingSkipRow(e)) {
+      o += 1;
+      continue;
+    }
+    if (!isExploreGroupableRow(e)) {
+      (n.push({ kind: `row`, key: `row:${e.rowId}`, row: e }), (o += 1));
+      continue;
+    }
+    const t = [e];
+    for (o += 1; o < r.length;) {
+      const e = r[o];
+      if (!e || !isExploreGroupableRow(e)) break;
+      (t.push(e), (o += 1));
+    }
+    n.push(buildExploreGroupSegment(t));
+  }
+  return n;
+}
+
+/** 原 h_t：开子代理会话（侧栏）；返是否开成 */
+function openSubagentSessionLink({ backgrounded: e = false, childSessionId: t, context: n, subagentType: r, title: i }: any) {
+  const a = n.sessionId;
+  const o = n.onOpenSubagentSession;
+  return !t || !a || !o
+    ? false
+    : (o({
+        rootSessionId: n.rootSessionId ?? a,
+        parentSessionId: a,
+        childSessionId: t,
+        subagentType: r,
+        title: i,
+      }),
+      true);
+}
+
+/** 原 g_t（jsx 94403）：子代理分组行——ToolCallBlock + 侧栏开启动作 */
+function SubagentGroupRow({ item: e, context: t }: { item: RenderSegmentItem & { kind: "agentToolCall" }; context: RowRenderContext }) {
+  const n = React.useMemo(() => normalizeToolCallNode(e.row), [e.row]);
+  const r = e.subagentRow.childSessionId;
+  const i = e.subagentRow.subagentType;
+  const a = resolveAgentFallbackName(n.toolCall, ``);
+  const o = !!(r && t.sessionId && t.onOpenSubagentSession);
+  const s = React.useCallback(() => {
+    openSubagentSessionLink({ childSessionId: r, context: t, subagentType: i, title: a });
+  }, [r, t, i, a]);
+  const c = React.useMemo(() => (o && r ? { onActivate: s, testId: joinTestidParts(SUBAGENT_SIDE_PANE_TESTID_PREFIX, r) } : void 0), [o, r, s]);
+  return (
+    <div
+      data-row-id={e.row.rowId}
+      data-conversation-selectable={`true`}
+      data-testid={joinTestidParts(ROW_SEGMENT_TESTID_PREFIX, String(e.row.rowId))}
+    >
+      <ToolCallBlock
+        toolCallNode={n}
+        workspacePath={t.workspacePath}
+        theme={t.theme}
+        codePreviewSettings={t.codePreviewSettings}
+        showTodoToolCalls={t.messageStreamShowTodos === true}
+        onOpenCodeViewer={t.onOpenCodeViewer}
+        onOpenFileLink={t.onOpenFileLink}
+        onOpenBrowserUrl={t.onOpenBrowserUrl}
+        onOpenAutomationsMain={t.onOpenAutomationsMain}
+        agentSummaryAction={c}
+        authoritativeAgentType={i}
+      />
+    </div>
+  );
+}
 
 /**
  * 行段列表（原 C1，jsx 96171）：把一组行按 行/子代理组/工具组 分段渲染，
