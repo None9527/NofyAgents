@@ -127,6 +127,7 @@ import { FileOpenWithMenu, buildFilePreviewSource } from './FileRewindDialogDeep
 import { FileRewindDialog, countContextAttachments, type AttachmentContextBundle, type CodeCommentAttachment, type FileRewindPreview } from './GitReview'; // +AttachmentContextBundle/FileRewindPreview（A0-D 类型收敛）；〔A1-R22〕+type CodeCommentAttachment（ParsedUserInput 型别精化）
 import { OffPeakNewTaskBanner } from './Home'; // 〔A1-P1-B15〕原 I3e（76860）收敛改指；〔A1-P1-B16〕ApiRetryView 别名随 x1 收敛入 ChatLoadingSlot 除名
 import { ApiRetryLoadingSlot } from '../components/conversation/ChatLoadingSlot'; // 〔A1-P1-B16〕原 x1（112814）逐字实体化（kvt/Llt 同叶携带；消费位 112823 束体办结）
+import { classifyToolCall } from '../components/conversation/ToolCallClassification'; // 〔A1-R129u〕原 og（js 23132）canonical 改指：isTodoToolByName 实体化消费
 import { useAssistantPreviewCards as buildAssistantPreviewCards } from '../components/conversation/PreviewCardLinkBlocks'; // 〔A1-P1-B17〕原 Bgt（110008）逐字实体化（Pgt/Fgt/Igt/c1/Lgt/Rgt/zgt 同叶携带；R1 判例别名保留调用名，消费面逐字不变；declare 删碑见 §5.15 域）
 import { Input, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, toast } from './ImeComposition';
 import { MarkdownRenderer, type CodePreviewSettings, type FileLinkModel } from './MarkdownIntegration'; // +CodePreviewSettings/FileLinkModel（A0-D 类型收敛）
@@ -1829,10 +1830,14 @@ const SubagentRowView = React.memo(function SubagentRowView({ row }: { row: Suba
   );
 });
 
-/** 原 n_t（jsx 94166）：思考行是否可见（showReasoning 或首条思考行豁免） */
-declare function isReasoningRowVisible(rowId: number, context: RowRenderContext): boolean;
-/** 原 og 的调用面：判断 todo 家族 */
-declare function isTodoToolByName(toolName: string | undefined): boolean;
+/** 原 n_t（jsx 94166，styles 3476150）：思考行是否可见（showReasoning 或首条思考行豁免）〔A1-R129u 实体化〕 */
+function isReasoningRowVisible(rowId: number, context: RowRenderContext): boolean {
+  return context.messageStreamShowReasoning === true || context.messageStreamFirstReasoningRowId === rowId;
+}
+/** 原 og 调用面（styles 3564860 内联 `og({ toolName, kind: toolName }).family === `todo``）：判断 todo 家族〔A1-R129u 实体化〕 */
+function isTodoToolByName(toolName: string | undefined): boolean {
+  return classifyToolCall({ toolName, kind: toolName }).family === `todo`;
+}
 
 interface RowRendererProps {
   row: ConversationRow;
@@ -3730,9 +3735,18 @@ function unitKey(unit: { key: string } | undefined): string | undefined {
 /** 滚动记忆读写（原 cUe/ut，横切层）：按 scrollMemoryKey 持久化 pinnedToBottom/offset */
 declare function readScrollMemory(scopeKey: string | null): { wasPinnedToBottom?: boolean; scrollTop?: number } | null;
 declare function writeScrollMemory(snapshot: unknown): void;
-/** 原 Gct/Hct（jsx 84997/84988）：摘要面板布局 → 内容列类名/宽度 */
-declare function resolveSummaryPanelContentClass(layout: "none" | "inline" | "auto"): string;
-declare function resolveSummaryPanelEmptyLayout(args: { centeredEmptyLayout: boolean }): string;
+/* 原 Gct/Hct（jsx 84997/84988，styles 3097374/3097185）+ zct/Bct/Vct 类串（styles 3096923–3097183）：
+ * 摘要面板布局解析器逐字实体化〔A1-R129u〕。面校准：resolveSummaryPanelContentClass 旧面 `: string`，
+ * 束真 `e === `none` ? void 0 : Vct` 真面 string | undefined；消费面 4492/4501/4530/4544 均 cn(...) 受 undefined，行为等价。 */
+const SUMMARY_PANEL_CENTERED_EMPTY_CLASS = `max-w-2xl`; // 原 zct
+const SUMMARY_PANEL_WIDE_EMPTY_CLASS = `w-full @min-[864px]/conversation:w-[calc(100%_-_6rem)] @min-[864px]/conversation:max-w-4xl @min-[1136px]/conversation:w-[calc(100%_-_24rem)] @min-[1136px]/conversation:max-w-6xl`; // 原 Bct
+const SUMMARY_PANEL_CONTENT_SHIFT_CLASS = `@min-[1136px]/conversation:-translate-x-42`; // 原 Vct
+function resolveSummaryPanelEmptyLayout(args: { centeredEmptyLayout: boolean }): string {
+  return args.centeredEmptyLayout ? SUMMARY_PANEL_CENTERED_EMPTY_CLASS : SUMMARY_PANEL_WIDE_EMPTY_CLASS;
+}
+function resolveSummaryPanelContentClass(layout: "none" | "inline" | "auto"): string | undefined {
+  return layout === `none` ? undefined : SUMMARY_PANEL_CONTENT_SHIFT_CLASS;
+}
 /* ── tombstone〔A1-R129r〕：declare shouldAutoLoadOlderOnColdSnapshot（原 oNe）死声明删除——全树零调用点
  *    （全文 grep 实测仅声明行）。R129j/R41 死删判例。 ── */
 
