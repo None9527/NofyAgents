@@ -232,6 +232,8 @@ import { useWorkspaceTaskListStore as useRemoteWorkspaceTaskListStore } from '..
 import { resolveSshConnectionInfo, sshDecoratedProjectName } from '../../modules/SplitLayoutDeep'; // A1-R4：QTt（styles 123268）；A1-R5：zBt（js 158186）改指（tombstone 见原位）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
+import { upgradeFunnelContext as planUpgradeFunnelArgs, entryPlanStateOf as planEntryState } from '../../modules/UsageDeep'; // 〔A1-R129k〕原 PM/IM declare 改指（A1-R11 既立 canonical；PM≡53253、IM≡53277；别名保调用名；碑文见原声明位）
+import { hasMaxLevelEntitlement as isPlanExpiring } from '../conversation/ConversationQuotaModel'; // 〔A1-R129k〕原 LCt declare 改指（LCt≡118897 逐字转录 @132；别名保调用名；环安全见下）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现见上清单；此处为重建接口）
@@ -4882,9 +4884,16 @@ interface SidebarUsageState {
   profilePlanBadge?: { audience?: "individual" | "team"; snapshot?: PlanSnapshot | null } | null;
 }
 interface PlanSnapshot { [key: string]: unknown }
-declare function isPlanExpiring(snapshot: PlanSnapshot | null): boolean;
-declare function planUpgradeFunnelArgs(args: { providerId: string | null; upgradeSource: string; eventRegion: string; eventText: string; entryPlanState: string }): unknown;
-declare function planEntryState(args: { snapshot: PlanSnapshot | null }): string;
+/* ── tombstone〔A1-R129k〕：plan 漏斗三 declare 删除 → 改指（hRt@150419 束取证：LCt/PM/IM）：
+ *    ① isPlanExpiring（原 LCt 118897）→ components/conversation/ConversationQuotaModel::hasMaxLevelEntitlement@132（逐字）；
+ *    ② planUpgradeFunnelArgs（原 PM 53253）→ modules/UsageDeep::upgradeFunnelContext（A1-R11 既立 canonical）；
+ *    ③ planEntryState（原 IM 53277）→ modules/UsageDeep::entryPlanStateOf（A1-R11 既立 canonical）。
+ *    伪面销账：旧 declare planEntryState 返回 `string` 为 A0 伪铸——束真 IM 返 EntryPlanState 对象、PM 消费对象；
+ *    改指后返回面回束真形（upgradeFunnelContext.entryPlanState?: EntryPlanState | null 直接吻合）。
+ *    型缝三处（调用点 4925/4935/4940）：本地 PlanSnapshot 袋面 → 正典 EntitlementSnapshot 面铸 as never（同文件 @4909 同袋判例）；
+ *    providerId: upgradeTargetProviderId ?? null 铸 as string（束真 PM 受空、正典面必 string，运行期逐字不变）。
+ *    环安全：Sidebar→modules/UsageDeep 新边（闭包不达 components/shell）；Sidebar→conversation/ConversationQuotaModel 新边
+ *    （值闭包 = react/SrcSharedA/modules/UsageDeep/ConversationPaneHelpers/SessionBanners，不达 components/shell）。 ── */
 /** 原 uRt（150230）：团队/个人权益归并（接口级纯函数） */
 /* ── tombstone〔A1-R126〕resolveProfilePlanAudience（原 uRt 150276）declare 删除——本文件零调用点（死 declare）；
  *    逐字实体落 components/shell/Home §U.3（经 modules/Home 转导出；消费面 SidebarLeaves @971）。 ── */
@@ -4922,7 +4931,7 @@ export function UsageMenuItems({ state, onUsageClick, onUpgradeClick }: {
   const { intl } = useIntlContext();
   const { providerEntitlements, upgradeTargetProviderId } = state;
   const targetSnapshot = providerEntitlements.find((entry) => entry.providerId === upgradeTargetProviderId)?.snapshot ?? null;
-  const upgradeMessageId = isPlanExpiring(targetSnapshot) ? "sidebar.usage.plan.renew" : "sidebar.usage.plan.upgrade";
+  const upgradeMessageId = isPlanExpiring(targetSnapshot as never) ? "sidebar.usage.plan.renew" : "sidebar.usage.plan.upgrade"; // 〔型缝 A1-R129k〕PlanSnapshot 袋 → EntitlementSnapshot 面（@4909 同袋判例）
   return (
     <>
       <DropdownMenuSeparator />
@@ -4933,11 +4942,11 @@ export function UsageMenuItems({ state, onUsageClick, onUpgradeClick }: {
       <DropdownMenuItem data-testid={TESTID_SIDEBAR_UPGRADE_BUTTON}
         onSelect={() => {
           onUpgradeClick?.(upgradeTargetProviderId ?? null, planUpgradeFunnelArgs({
-            providerId: upgradeTargetProviderId ?? null,
+            providerId: (upgradeTargetProviderId ?? null) as string, // 〔型缝 A1-R129k〕束真 PM 受空、正典面必 string（运行期逐字不变）
             upgradeSource: "profile_menu",
             eventRegion: "app.profile",
             eventText: intl.formatMessage({ id: upgradeMessageId }),
-            entryPlanState: planEntryState({ snapshot: targetSnapshot }),
+            entryPlanState: planEntryState({ snapshot: targetSnapshot as never }), // 〔型缝 A1-R129k〕同上袋面铸
           }));
         }}
       >
