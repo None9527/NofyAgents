@@ -380,8 +380,11 @@ import { useCodingPlanProducts, useStartPlanPreview } from '../../modules/Paymen
 import { CommandEmpty, CommandList } from '../../modules/QuickPick';
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../modules/Settings';
 import { logger } from '../../modules/SkillStore';
-import { isStartPlanProviderId, isZaiPlanProviderId } from '../../modules/SrcSharedA'; // +isZaiPlanProviderId（A1-R11：GUe 53391 消费，原 vl/tr）
-import { APP_RUNTIME_PREFERENCES_STORAGE_KEY, getOAuthProviderFamilyByProviderId, joinTestidParts } from '../../modules/SrcSharedB'; // A1-R11：JM 53535 消费 fS 广播道（styles `T as Tr` ← src 导出表 `APP_RUNTIME_PREFERENCES_STORAGE_KEY as T`）；原 rN 53791 之 dr 依赖随 §2d 删碑收敛至 SubagentLeaves（其自持 canonicalProviderIdOf declare = Jx）。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）：familyOfPresetId declare 收敛改指，见下墓碑。〔A1-R41〕+joinTestidParts（原 qr 收敛改指，见下墓碑）。环安全：本行不新增环边（本文件→SrcSharedB 既有）
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter as closestCenterCollision, useSensor, useSensors } from '@dnd-kit/core'; // 〔A1-R144〕原 vendored _Z/rZ/aZ/KX/UX/WX（styles 91811–94695 区）declare ×6 退役 → npm @dnd-kit/core@6.3.1（Sidebar.tsx:211 A1-R129o 同判例；束证 styles@93521/92588/92852/92249/92193/92196，旧注行号 +48 漂移已按特征串重定位）
+import { SortableContext, sortableKeyboardCoordinates, useSortable as useDraggable, verticalListSortingStrategy } from '@dnd-kit/sortable'; // 〔A1-R144〕原 vendored EZ/ist/DZ/TZ declare ×4 退役 → npm @dnd-kit/sortable@8.0.0。★DZ 真身 = useSortable 非 core useDraggable：束 styles@94379–94389 体首 9 键解构 ≡ useSortable.Arguments，且 declare 面含 transition（core useDraggable 返回面无此键）；别名保调用名，消费面 @6066 逐字不变（Sidebar.tsx:212 useSortable as useSortableBinding 同判例）
+import { CSS as dndTransform } from '@dnd-kit/utilities'; // 〔A1-R144〕原 BX declare 退役 → npm @dnd-kit/utilities@3.2.2。★与 Sidebar.tsx:213/1048 分叉：Sidebar 铸 dndTransform≡CSS.Transform（其消费面 dndTransform.toString），本文件消费面 @6070 为 dndTransform.Transform.toString(transform) ≡ 束 styles@191413 BX.Transform.toString(d)，故取整个 CSS 命名空间（照抄 Sidebar 会运行期 TypeError）
+import { isStartPlanProviderId, isZaiPlanProviderId, providerIds as PROVIDER_IDS } from '../../modules/SrcSharedA'; // +isZaiPlanProviderId（A1-R11：GUe 53391 消费，原 vl/tr）。〔A1-R144〕+providerIds as PROVIDER_IDS（原 q：styles 725 `mo as q` ← src 9963 `W as mo` ≡ W js 4733–4741 builtin: 前缀 7 键逐字 ≡ SrcSharedA@2008，导出位 @2145；A1-R32 先例 ModelProviderSettingsSection.tsx:17/SidebarLeaves.tsx:141 别名保调用名；负证据 styles 213969 `po as q` 为遮蔽。型缝：canonical 7 值字面量型 → @3024 new Set<string> 显式宽化 1 处）
+import { APP_RUNTIME_PREFERENCES_STORAGE_KEY, BIGMODEL_PROVIDER_DOMAIN as BIGMODEL_REGION, MODEL_CONTEXT_WINDOW_DEFAULT as DEFAULT_MODEL_CONTEXT_WINDOW, MODEL_CONTEXT_WINDOW_UNLIMITED as BUILTIN_MODEL_CONTEXT_WINDOW, canonicalizeEndpointUrl as resolveDraftBaseUrl, getOAuthProviderFamilyByProviderId, isObjectRecord, isUnlimitedContextModelId as isBuiltInModelId, joinTestidParts, listEndpointKinds as endpointKindsOf, mapApiFormatToKind, mapKindToApiFormat, mapKindToDefaultEndpointPath, modelProviderAddModelButtonTestid as ADD_MODEL_BUTTON_TESTID, modelProviderApiKeyInputTestid as API_KEY_INPUT_TESTID, modelProviderConnectionModeItemTestid as CONNECTION_MODE_ITEM_TESTID_PREFIX, modelProviderConnectionModeTriggerTestid as CONNECTION_MODE_TRIGGER_TESTID, modelProviderModelDeleteButtonTestid as MODEL_DELETE_TESTID_PREFIX, modelProviderModelInputTestid as MODEL_INPUT_TESTID_PREFIX, modelProviderNavItemTestid as NAV_ITEM_TESTID_PREFIX, normalizeCatalogModel as createModel, resolveModelContextWindow as contextWindowOf, resolveProviderApiFormat, resolveProviderDefaultKind, resolveProviderPrimaryEndpointUrl as baseUrlOfProvider } from '../../modules/SrcSharedB'; // A1-R11：JM 53535 消费 fS 广播道（styles `T as Tr` ← src 导出表 `APP_RUNTIME_PREFERENCES_STORAGE_KEY as T`）；原 rN 53791 之 dr 依赖随 §2d 删碑收敛至 SubagentLeaves（其自持 canonicalProviderIdOf declare = Jx）。〔A1-R30〕+getOAuthProviderFamilyByProviderId（ot ≡ Yx 8933 ≡ SrcSharedB@5576）。〔A1-R41〕+joinTestidParts（原 qr）。〔A1-R144〕+② 助手簇 14 件（原 hr/Vi/nt/Vr/Qr/Lt/Pi/Mn/lt/si/kee/Ri/Sr/Zt；链三段闭合 styles 431–827 进口块 ← src 9600–10070 导出表 ≡ SrcSharedB@636/640/643/648/661/713/756/773/785/797/871/903/908/5071，@6409 导出表 22/22 逐件校验）+③ testid 7 件（原 Aee/dre/Vee/hte/gre/rre/Cr ≡ src 8344–8350 ≡ SrcSharedB@4882–4888 值逐字核合）+⑦ canonicalizeEndpointUrl as resolveDraftBaseUrl（原 Tn：styles 518 `Lo as Tn` ← src 9749 `_u as Lo` ≡ _u js 5073 ≡ @859；★census ⑦ 注 @819 normalizeEndpointBaseUrl 系误判——那是 Tn 体内所调内层 mu，少一步去尾斜杠行为不等）。其中 6 件取裸名由下方「面缝」薄包裹块恢复原 declare 契据，10 消费点零改动。环安全：本行不新增环边（本文件→SrcSharedB 既有；SrcSharedA/B 值闭包 = zod+react+lib 10 叶，grep 零 components/ 命中）
 import { useBaseServices, useServices, useServicesOptional as useOptionalServices } from '../../modules/services'; // A0-CLEANUP3 #44：ps useOptionalServices 属主为 services.useServicesOptional
 import { useSettingsStoreValue } from '../../modules/stores-core'; // A0-CLEANUP3 #44：Ao useSettingsStoreValue 属主为 stores-core（具名导出）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
@@ -425,30 +428,17 @@ interface IntlShape {
 
 
 /* --- dnd-kit（本 chunk vendored 91811–94695：_Z/EZ/DZ/UX/WX/aZ/rZ/ist/KX/TZ/BX） --- */
-declare const PointerSensor: unknown; // aZ
-declare const KeyboardSensor: unknown; // rZ
-declare const sortableKeyboardCoordinates: unknown; // ist（94475）
-declare const closestCenterCollision: unknown; // KX（92201）
-declare const verticalListSortingStrategy: unknown; // TZ（94194）
-declare function useSensor(type: unknown, options?: unknown): unknown; // UX（92145）
-declare function useSensors(...sensors: unknown[]): unknown; // WX（92148）
-declare const dndTransform: { Transform: { toString(transform: unknown): string } }; // BX（91956）
-declare const DndContext: React.FC<{
-  sensors: unknown;
-  collisionDetection: unknown;
-  onDragEnd: (event: { active: { id: string | number }; over: { id: string | number } | null }) => void;
-  children: React.ReactNode;
-}>; // _Z（93473）
-declare const SortableContext: React.FC<{ items: string[]; strategy: unknown; children: React.ReactNode }>; // EZ（94241）
-declare function useDraggable(opts: { id: string; disabled?: boolean }): {
-  attributes: React.ButtonHTMLAttributes<HTMLButtonElement>;
-  listeners: React.ButtonHTMLAttributes<HTMLButtonElement>;
-  setActivatorNodeRef: (node: HTMLElement | null) => void;
-  setNodeRef: (node: HTMLElement | null) => void;
-  transform: unknown;
-  transition: string | undefined;
-  isDragging: boolean;
-}; // DZ（94331）
+/* ── tombstone〔A1-R144〕：dnd-kit 族 11 declare 退役 → npm 真 import（@dnd-kit/core@6.3.1 +
+ *    @dnd-kit/sortable@8.0.0 + @dnd-kit/utilities@3.2.2；实装核对 node_modules/@dnd-kit/*，版本与
+ *    package.json:8–10 逐字一致；判例 = Sidebar.tsx:211–213 A1-R129o B10 vendor 裁定）。改指表：
+ *    PointerSensor≡aZ(92852)、KeyboardSensor≡rZ(92588)、useSensor≡UX(92193)、useSensors≡WX(92196)、
+ *    DndContext≡_Z(93521)、closestCenterCollision≡closestCenter/KX(92249) ← core；SortableContext≡EZ(94289)、
+ *    sortableKeyboardCoordinates≡ist(94523)、verticalListSortingStrategy≡TZ(94242)、
+ *    useDraggable≡useSortable/DZ(94379，★重建期误名纠偏：束体首 9 键解构 ≡ useSortable.Arguments，
+ *    core useDraggable 返回面无 transition) ← sortable；dndTransform≡CSS/BX(92004，★取整命名空间，
+ *    消费面 @6070 dndTransform.Transform.toString ≡ 束 191413) ← utilities。旧注行号
+ *    （92145/92148/92201/91956/93473/94241/94331/94475/94194）经特征串重定位全数漂移 +48，本碑以真身行号为准。
+ *    消费面 @6066/@6070/@6150–6152/@6171–6196 逐字不变。vendored 块映射注（上行 91811–94695）原样保留备查。 ── */
 
 /* --- 图标（本 chunk 26575–28020 vendored lucide 块，Sa 工厂） --- */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（16）：ChevronDownIcon/PencilIcon/TrashIcon/UnplugIcon/RadioTowerIcon/EyeOffIcon/EyeIcon/AstroidIcon/ArrowRightIcon/UsersIcon/CircleIcon/GripVerticalIcon/ArrowLeftIcon/RocketIcon/TrendingUpIcon/LogInIcon → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
@@ -470,42 +460,41 @@ interface ModelProviderFamily {
  *    @5545（xZt connectionModeOptionsOf 体内）≡ 190614、@5987（YZt navItemDisplayLabel 体内）≡ 191342。
  *    型缝：canonical 返回 any，各消费点依原 declare 契据（ModelProviderFamily@457 | null）窄化（见各点注）。
  *    负证据：本文件无第二 ot 面；styles 进口 ot 消费全集 23 处经 R29/R30 全部分流在案。 ── */
-declare function apiFormatOfProvider(provider: ModelProvider): string; // hr（Ro）
-declare function baseUrlOfProvider(provider: ModelProvider): string; // Vi（zo）
-declare function isFullModelEntry(model: unknown): model is ModelMetadata; // nt（Ao）
-declare function defaultKindOfProvider(provider: ModelProvider): string; // Vr（Vo）
-declare function createModel(opts: {
-  id: string;
-  kinds: string[];
-  defaultKind: string;
-  contextWindow?: number;
-}): ModelMetadata; // Qr（bo）
-declare function kindOfApiFormat(apiFormat: string): string; // Lt（Fo）
-declare function defaultPathOfKind(kind: string): string; // Pi（xo）
-declare function isBuiltInModelId(modelId: string): boolean; // Mn（Mo）
-declare function contextWindowOf(modelId: string, fallback?: number): number; // lt（Bo）
-declare const BUILTIN_MODEL_CONTEXT_WINDOW: number; // si（go）
-declare const DEFAULT_MODEL_CONTEXT_WINDOW: number; // kee（_o）
-declare const BIGMODEL_REGION: string; // Ri（yt，`bigmodel`）
-declare function endpointKindsOf(endpoints: ProviderEndpoints): string[]; // Sr（So）
-declare function apiFormatOfKind(kind: string): string; // Zt（Ho）
+/* ── tombstone〔A1-R144〕：② provider/model 助手簇 14 declare 退役 → SrcSharedB 真 import（链三段闭合：
+ *    styles 431–827 进口块 ← src-HCld2afU 9600–10070 导出表 ≡ src 4897–5137/8508 定义体 ≡ SrcSharedB
+ *    「原 X」注 + @6409 导出表逐件复核 22/22）。改指表：apiFormatOfProvider≡hr/Ro/Cu(5116)→resolveProviderApiFormat@903 |
+ *    baseUrlOfProvider≡Vi/zo/wu(5131)→resolveProviderPrimaryEndpointUrl@908 | isFullModelEntry≡nt/Ao/tu(4912)→isObjectRecord@661 |
+ *    defaultKindOfProvider≡Vr/Vo/lu(4977)→resolveProviderDefaultKind@756 | createModel≡Qr/bo/cu(4955)→normalizeCatalogModel@713 |
+ *    kindOfApiFormat≡Lt/Fo/du(5002)→mapApiFormatToKind@785 | defaultPathOfKind≡Pi/xo/fu(5012)→mapKindToDefaultEndpointPath@797 |
+ *    isBuiltInModelId≡Mn/Mo/Ql(4900)→isUnlimitedContextModelId@643 | contextWindowOf≡lt/Bo/$l(4903)→resolveModelContextWindow@648 |
+ *    BUILTIN_MODEL_CONTEXT_WINDOW≡si/go/Zl(4899,1e6)→MODEL_CONTEXT_WINDOW_UNLIMITED@640 |
+ *    DEFAULT_MODEL_CONTEXT_WINDOW≡kee/_o/Yl(4897,2e5)→MODEL_CONTEXT_WINDOW_DEFAULT@636 |
+ *    BIGMODEL_REGION≡Ri/yt/Lb(8508,`bigmodel`)→BIGMODEL_PROVIDER_DOMAIN@5071 | endpointKindsOf≡Sr/So/yu(5083)→listEndpointKinds@871 |
+ *    apiFormatOfKind≡Zt/Ho/uu(4992)→mapKindToApiFormat@773。
+ *    ★名义漂移登记（勿据本地名改语义）：isBuiltInModelId 真身 = `[1m]` 后缀无限上下文判定（非「内置供应商」）；
+ *    BUILTIN_MODEL_CONTEXT_WINDOW 真身 = 无限上下文标记值 1e6。别名保调用名，5 处消费面逐字不变。
+ *    ★面差登记：createModel 旧面 4 键 → canonical normalizeCatalogModel(e:any):any 读 14 键且 contextWindow 经
+ *    resolveModelContextWindow 重算——束真同一函数（styles 188472/188546/188654 ≡ 本文件 3279/3363/3484 逐字），运行期零差。 ── */
+/* ── 面缝〔A1-R144〕：以下 6 件 canonical 返回面为 string|undefined / boolean（SrcSharedB A0-CLEANUP4 收面裁定：
+ *    defaultKind 分支透传产 undefined），本文件 10 消费点依原 declare 契据（string / model is ModelMetadata）窄化。
+ *    薄包裹保调用名 + 调用面逐字不变；束真身同一函数，运行期零差。缝点全集：2352/2409/3019→3020/3199/3299→3366/
+ *    3482/3497/3792/3814/4029→4030。 ── */
+const apiFormatOfProvider = (provider: ModelProvider): string => resolveProviderApiFormat(provider) as string; // W-1 原 hr（Ro≡Cu src 5116 ≡ SrcSharedB@903）
+const isFullModelEntry = (model: unknown): model is ModelMetadata => isObjectRecord(model); // W-2 原 nt（Ao≡tu src 4912 ≡ SrcSharedB@661）——铸类型谓词，3482 窄化所依
+const defaultKindOfProvider = (provider: ModelProvider): string => resolveProviderDefaultKind(provider) as string; // W-3 原 Vr（Vo≡lu src 4977 ≡ SrcSharedB@756）
+const kindOfApiFormat = (apiFormat: string): string => mapApiFormatToKind(apiFormat) as string; // W-5 原 Lt（Fo≡du src 5002 ≡ SrcSharedB@785）
+const defaultPathOfKind = (kind: string): string => mapKindToDefaultEndpointPath(kind) as string; // W-6 原 Pi（xo≡fu src 5012 ≡ SrcSharedB@797）
+const apiFormatOfKind = (kind: string): string => mapKindToApiFormat(kind) as string; // W-7 原 Zt（Ho≡uu src 4992 ≡ SrcSharedB@773）
 /* ── tombstone〔A1-R41〕：declare joinTestId（原 qr）删除 → 改指 SrcSharedB@5017 joinTestidParts（qr 真身：styles 601 `Xa as qr` ← src 9836 `Nb as Xa` ≡ Nb js 8464 ≡ joinTestidParts 逐字 `${e}-${t}`；SrcSharedB 公共导出在位）。消费面实测 5 处改名改指：@3392/@3393（≡ bundle 188569/188570）/@5514（≡ 190593）/@6017/@6082（≡ 191369/191426）。 ── */
-declare const PROVIDER_IDS: {
-  zai: string;
-  bigmodel: string;
-  zapi: string;
-  zaiCodingPlan: string;
-  bigmodelCodingPlan: string;
-  zaiStartPlan: string;
-  bigmodelStartPlan: string;
-}; // q（mo）
-declare const API_KEY_INPUT_TESTID: string; // Aee
-declare const MODEL_INPUT_TESTID_PREFIX: string; // dre
-declare const MODEL_DELETE_TESTID_PREFIX: string; // Vee
-declare const ADD_MODEL_BUTTON_TESTID: string; // hte
-declare const CONNECTION_MODE_TRIGGER_TESTID: string; // gre
-declare const CONNECTION_MODE_ITEM_TESTID_PREFIX: string; // rre
-declare const NAV_ITEM_TESTID_PREFIX: string; // Cr
+/* ── tombstone〔A1-R144〕：③ PROVIDER_IDS + testid 8 件 declare 退役 → SrcSharedA@2008 providerIds（导出位 @2145）
+ *    + SrcSharedB@4882–4888 testid 七常量。链：PROVIDER_IDS ≡ q ← styles 725 `mo as q` ← src 9963 `W as mo` ≡
+ *    W js 4733–4741（gl=`builtin:` @4732，7 键逐字）；7 testid ≡ Aee/dre/Vee/hte/gre/rre/Cr ← styles 625/810/641/
+ *    678/817/795/570 ← src 9861/10051/9877/9916/10059/10035/9803（wv/Tv/Ev/Dv/Sv/Cv/xv）≡ src 8347/8348/8349/
+ *    8350/8345/8346/8344 值逐字核合。消费面 @2922/@3392/@3393/@3420/@5509/@5514/@6017/@6082 逐字不变
+ *    （≡ 束 188130/188569/188570/188604/190584/190593/191369/191426）。★遮蔽登记：styles 本地 Cr 另见
+ *    @120949/@184949（异块 useCallback 遮蔽）；styles @569 `So as Sr`（endpointKindsOf）与 @570 `Sr as Cr`（本件）
+ *    为相邻反向两 specifier 勿混；styles @213969 `po as q` 为 PROVIDER_IDS 遮蔽（A1-R32 负证据在案）。
+ *    型缝 1 处：@3024 new Set<string>（字面量型收窄致 @3040 has(string) TS2345，束真 188218 语义零差）。 ── */
 
 /* --- skillStore-BmeKHDBI.js：族域/连接设置助手（未重建 chunk，接口级） --- */
 declare function resolveFamilyConnectionSettings(opts: {
@@ -2345,7 +2334,10 @@ function firstKnownFormatOf(formats: string[]): string[] {
 function baseUrlOfDraft(baseUrl: string, _format?: string, _path?: string): string {
   return resolveDraftBaseUrl(baseUrl);
 }
-declare function resolveDraftBaseUrl(baseUrl: string): string; // Tn（src chunk）
+/* ── tombstone〔A1-R144〕：declare resolveDraftBaseUrl（原 Tn）删除 → 改指 SrcSharedB canonicalizeEndpointUrl@859
+ *    别名（链：styles@518 `Lo as Tn` ← src@9749 `_u as Lo` ≡ src@5073 `function _u(e) { return mu(e).replace(/\/+$/, ``); }`）。
+ *    ★census ⑦ 勘误：目标非 @819 normalizeEndpointBaseUrl（= 内层 mu，少一步去尾斜杠，误接则 `https://x/` 不去尾——
+ *    静默行为差且 tsc 不报）。面 (string):string 逐字全等零缝；消费面 @2346 逐字不变（束 187610–187612 bYt 同构）。 ── */
 
 /** 原 xYt（js 187613）：端点路径归一化（缺省路径 + `/` 前缀） */
 function normalizeEndpointPath(kind: string, path: string | undefined): string {
@@ -3021,7 +3013,7 @@ export function apiFormatOptionsOfProvider(provider: ModelProvider): string[] {
 }
 
 /** 原 UYt/WYt/GYt（js 187922–187924）：预设三厂集 / 目录源 id / 查询防抖 */
-const PRESET_PROVIDER_ID_SET = new Set([PROVIDER_IDS.zai, PROVIDER_IDS.bigmodel, PROVIDER_IDS.zapi]);
+const PRESET_PROVIDER_ID_SET = new Set<string>([PROVIDER_IDS.zai, PROVIDER_IDS.bigmodel, PROVIDER_IDS.zapi]); // 〔型缝 A1-R144〕canonical providerIds 7 值为字面量型，Set 元素型收窄致 @3040 has(provider.id: string) 触 TS2345——显式宽化 string；束真 styles@188218 `var UYt = new Set([q.zai, q.bigmodel, q.zapi]),` 语义零差
 const CATALOG_SOURCE_ID = `china-llm-zcode-dev`;
 const MODEL_LOOKUP_DEBOUNCE_MS = 300;
 

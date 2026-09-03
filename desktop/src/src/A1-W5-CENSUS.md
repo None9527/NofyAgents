@@ -7,19 +7,26 @@
 ## 一、components/usage/UsageDeep.tsx（56）
 
 46 别名改指 + 10 实体化 + 0 伪面 + 0 vendor。
+〔A1-R144/145 修正（dossier-A/B 束证）：实为 **55 别名改指 + 1 微转录**——④⑥ 九件「实体化」
+翻案为别名（符号在 styles 的 src-HCld2afU 导入块 off 12156–17038，**不在** skillStore 块，
+skillStore 全文 48 名零命中；真身链闭合 SrcSharedB/SrcSharedA/lib/buildEnv 全已 export）；
+⑧ Knt 为 styles-local（off 2763649）UD 本地 3 行微转录。①②③⑦ 34 件已 R144 退役。〕
 
 | 簇 | 行域 | 件数 | 类 | 目标 |
 |---|---|---|---|---|
 | ① dnd-kit vendored | 428–451 | 11 | 别名 | npm @dnd-kit/core@6.3.1 + sortable@8.0.0 + utilities@3.2.2（B10/A1-R129o Sidebar 先例） |
 | ② provider/model 助手 | 473–491 | 14 | 别名 | SrcSharedB（Ro/zo/Ao/Vo/bo/Fo/xo/Mo/Bo/go/_o/yt/So/Ho 全 facade reconstructed） |
 | ③ PROVIDER_IDS+testid | 493–508 | 8 | 别名 | PROVIDER_IDS→SrcSharedA providerIds（A1-R32 先例×5 文件）；7 testid→SrcSharedB@4882–4888 |
-| ④ skillStore 家族/连接 | 511–522 | 5 | 实体化 | 无 canonical（skillStore-BmeKHDBI.js 未重建） |
+| ④ skillStore 家族/连接 | 511–522 | 5 | 别名〔翻案〕 | dossier-B：jee/jte/kr/xn/en ≡ SrcSharedB@5152/620/631/5584/5568（全已 export；原「无 canonical」判定系 chunk 归属误判） |
 | ⑤ 支付/设置跨 chunk | 525–565 | 12 | 别名 | 11→PaymentDeep canonical（6 件 file-local 需补 export）+ arrayMove→npm |
-| ⑥ 环境宿主面 | 2321–2328 | 4 | 实体化 | hi/xte/Ene/Mee 全树无 canonical |
-| ⑦ resolveDraftBaseUrl | 2348 | 1 | 别名 | SrcSharedB@819 normalizeEndpointBaseUrl（注 Tn 为 styles-local，语义核合） |
-| ⑧ newProviderId | 3918 | 1 | 实体化 | Knt 无 canonical |
+| ⑥ 环境宿主面 | 2321–2328 | 4 | 别名〔翻案〕 | dossier-B：hi/xte/Ene/Mee ≡ SrcSharedB@6276/6333/6287 + SrcSharedA@310→lib/buildEnv@9；hi 真形 = 构建期冻结串 'production'（styles R off 2084）非 import.meta.env；原 declare Record<string,string> 型 3 处均误随改指消失 |
+| ⑦ resolveDraftBaseUrl | 2348 | 1 | 别名 | SrcSharedB@859 canonicalizeEndpointUrl〔A1-R144 勘误：原注 @819 normalizeEndpointBaseUrl 系误判——那是 Tn 体内所调内层 mu，少一步去尾斜杠，误接引入静默行为差且 tsc 不报；束链 styles@518 `Lo as Tn` ← src@9749 `_u as Lo` ≡ src@5073〕（R144 已退） |
+| ⑧ newProviderId | 3918 | 1 | 微转录〔翻案〕 | dossier-B：Knt 非 src 符号系 styles-local（off 2763649 `function Knt(){return xi()}`）；PD@9123 authSessionSnapshotOf 已实体化但 canonical 名语义错配不走别名；UD 本地 3 行转录（generateUuid 已在树 lib/uuid@15） |
 
 侧记：UsageSettingsSection.tsx:67 另有同源 PROVIDER_IDS declare（原 q），可随 ③ 同批收。
+〔A1-R144 警注（dossier-A §风险11）：其 provenance 注为 skillStore chunk 与 UsageDeep 件（src-HCld2afU）
+**不同源**，收取前须独立束证（skillStore-BmeKHDBI.js 内是否有第二 q），不可径抄 R144 结论；
+其面为 2 键子集，改指后为窄→宽方向，需独立核消费点字面量收窄缝。〕
 
 ## 二、components/onboarding/OnboardingLoginLeaves.tsx（48）
 
