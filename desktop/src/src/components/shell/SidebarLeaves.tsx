@@ -113,12 +113,12 @@
  */
 
 import * as React from "react";
-import { Smartphone as IconSmartphone, Cloud as IconCloud, Folder as IconFolder, FolderOpen as IconFolderOpen, CloudUpload as IconCloudUpload, ArchiveRestore as IconArchiveRestore, Archive as IconArchive, Pin as IconPin, Loader as IconLoader, ChevronDown as IconChevronDown, MessageCirclePlus as IconMessageCirclePlus } from 'lucide-react'; // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
+import { Smartphone as IconSmartphone, Cloud as IconCloud, Folder as IconFolder, FolderOpen as IconFolderOpen, CloudUpload as IconCloudUpload, ArchiveRestore as IconArchiveRestore, Archive as IconArchive, Pin as IconPin, Loader as IconLoader, ChevronDown as IconChevronDown, MessageCirclePlus as IconMessageCirclePlus, X as IconX } from 'lucide-react'; // 〔A1-R127〕+X as IconX（原 Kv declare 收敛；Sidebar@199 R121 同判例） // A0-S3b：vendored lucide 图标 → npm lucide-react@1.35.0（映射依据见 A0-S3b.report.md）
 import { Button, ChevronRight as IconChevronRight } from '../../modules/button'; // A0-CLEANUP 族清理：Button declare 改指 button chunk；A0-S3b 增补：ChevronRight as IconChevronRight（button chunk 图标，pass-1 同源）
 import { workspaceKeyOf } from '../../modules/CodeViewer';
 import { toast } from '../../modules/ImeComposition';
 import { RemoteSyncingRow, TaskListLoadingRow, taskChangeSummary } from '../../modules/Sidebar'; // 〔A1-P3-B11〕+taskChangeSummary（原 vg declare 收敛改指，墓碑见 @352；消费面 3170 逐字不变）。环安全：本→modules/Sidebar 边既有，拓扑零变
-import { logger, useTaskStore } from '../../modules/SkillStore';
+import { logger, useTaskStore, getWorkspaceTaskStateAlias as getWorkspaceSlice } from '../../modules/SkillStore'; // 〔A1-R127〕+getWorkspaceTaskStateAlias as getWorkspaceSlice（原 fe ≡ stores/taskStore@433 _e 逐字；Sidebar@212 R123 同判例，调用点 575/902/1474 逐字不变）
 import { taskEntityKey, mergeMetaPreservingActivity as mergeTaskWithActivity, compareTasksActiveFirst as compareTasksForList } from '../../modules/StoresDeep'; // +mergeTaskWithActivity/compareTasksForList（A1-R10 2e：原 Po（1324）/Lie（1353）declare 改指 canonical——helpers mergeMetaPreservingActivity/compareTasksActiveFirst 逐字；调用点 1233/1248/3537 逐字不变）
 import { applySearchTaskMutation as applyOptimisticTaskMutation } from '../../stores/searchResultsStore'; // A1-R10 2e：原 Uo（1895）declare 改指 canonical = R9 shim；调用点 3227 逐字不变。环安全：shim 值闭包（QuickPick/helpers/taskStore/zustand）不达 components/shell（QuickPick 导入面实测无 shell 边）
 import { baseName as workspaceBaseName } from '../../modules/MarkdownIntegration'; // A1-R10 2e：原 Go（1928）declare 改指 canonical = components/markdown baseName 逐字；调用点 3124/3154 逐字不变。环安全：MarkdownIntegration 闭包不达 components/shell（实测在案）
@@ -129,13 +129,16 @@ import { buildWorkspaceServicesBindings as buildWorkspaceServicesMap } from '../
 import { useLocalWorkspaceTabs as useScopedWorkspaceTabs } from '../../modules/SettingsLeaves'; // 〔A1-R126〕J3≡useLocalWorkspaceTabs（styles 135515；canonical 属主 AutomationEditor@1088；墓碑见 @1756 区）
 import { useSessionRegistryStore, type BaseServices } from '../../modules/stores-core'; // BaseServices：resolveServicesByWorkspaceIdentity declare 契据面仍用（〔A1-R126〕yc declare 已墓碑化，型用余此一处）
 import { formatRelativeTime } from '../../modules/SidePanel'; // $S
+import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R127〕原 G（IntlProvider D@9248–9252）declare 改指（Sidebar@206 R121 同判例；调用点 3120/3853 逐字不变）
+import { useConfirmDialog } from '../../modules/Modals'; // 〔A1-R127〕原 U2（styles 123510）declare 改指（ConfirmDialog@79 canonical 转导出；AutomationsMainView@25 R119 同判例；Omit<ConfirmDialogRequest,'resolve'> 面涵原契据三字段）
+import { useTaskListItems } from './TaskListQueryCore'; // 〔A1-R127〕原 ZS（styles 35775–36118）declare 改指逐字真身叶（Sidebar@226 A1-P3-B1 同判例；e: any 入参面超集原契据）
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // 原 Ia（A0-CLEANUP 族清理：本地 Tooltip declare 改指 InfoTooltip）
 import { resolveCodingPlanUsageRemaining as resolveUsageState, resolveUpgradeTargetSource, resolveProfilePlanAudience, type CodingPlanUsageViewLike, type EntitlementSnapshotLike } from '../../modules/Home'; // 〔A1-R126〕+resolveProfilePlanAudience（原 uRt 150276，Home §U.3 逐字实体；墓碑见 @422 区） // 〔A1-R23〕Oq 叠层专项：原 resolveUsageState declare（Oq）删除，改接 Home §U.3 逐字真身（经 modules/Home 转导出，本目录无 './Home' 直连先例）。环安全：resolveCodingPlanUsageRemaining 为 Home 顶层 hoisted function，仅 useSidebarUsageState 渲染期调用；型别导入全擦除。〔A1-R26〕+resolveUpgradeTargetSource（Mrt 89154 实体化，本文件 932 消费面 ≡ bundle 150329）
 import { readTaskIndexShard as fetchTaskIndex, applySessionRuntimeToIndexItems as hydrateTaskIndex } from './TaskIndexCore';
 import { moveTaskIntoGroupStart, type GroupColor, type GroupedView, type GroupedViewNode, type TaskGroup } from './Sidebar'; // 〔A1-R102〕d8 闭合 + 型别归一（A1-P3-B4 §六-3①/§七-6 处方）：canonical = Sidebar moveTaskIntoGroupStart@833，型族改指 Sidebar canonical 面。环安全：本→Sidebar 值边新增（Sidebar→modules/SidebarLeaves→本叶边既有成环），惟 moveTaskIntoGroupStart 仅 applyDraftPromotions 运行期调用，函数声明 hoisted——A1-P3-B4 直连先例实测无环异常（当时仅 TS2719 型面回退）
 import { type MobileHomeResult, type WebRemoteSwitcherService, type WebRemoteWorkspaceInfo } from '../remote/WebRemote'; // 〔A1-R52〕switcher 族属主闭合：消费面三本地型（WebRemoteWorkspace/WebRemoteTaskIndex/WebRemoteSwitcher）删碑改指生产面（六点分叉表闭合，A1-P2-B9.report.md §四）。环安全：type-only 导入全擦除，WebRemote 值闭包（ui/modules 族）不达 SidebarLeaves // 〔A1-P3-B3〕原 fetchTaskIndex declare（Cx）改指逐字 canonical = TaskIndexCore.readTaskIndexShard（styles 32476，A1-P3-B2 转录）；调用点 1524 逐字不变。环安全：TaskIndexCore 顶层全函数/var 声明，值闭包不达 SidebarLeaves
-import { joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-P3-B11〕原 scopedTestId（qr/Nb 局部转录）收敛改指 canonical（墓碑见 @361）；消费面 3724/3783。环安全：SrcSharedB 为共享导出叶，无反向 components/shell 边（Sidebar.tsx@220 同边先例）
+import { joinTestidParts, normalizeProviderFamilyDomain as resolveProviderFamilyDomain } from '../../modules/SrcSharedB'; // 〔A1-R127〕+normalizeProviderFamilyDomain as resolveProviderFamilyDomain（原 xn 真身 ≡ Xx 8937；Home@162 R27 同判例，调用点 899 逐字不变） // 〔A1-P3-B11〕原 scopedTestId（qr/Nb 局部转录）收敛改指 canonical（墓碑见 @361）；消费面 3724/3783。环安全：SrcSharedB 为共享导出叶，无反向 components/shell 边（Sidebar.tsx@220 同边先例）
 
 /* ============================================================================
  * 0. 外部依赖的类型声明（真实实现位于上述 chunk；此处为重建接口）
@@ -146,7 +149,8 @@ import { joinTestidParts } from '../../modules/SrcSharedB'; // 〔A1-P3-B11〕�
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+/* ── tombstone〔A1-R127〕useIntlContext（原 G）declare 删除 → 改指 modules/I18n::useZCodeIntl（别名保留调用名；
+ *    ZCodeIntlContextValue 超集覆盖 {intl, locale} 契据；调用点 3120/3853 逐字不变）。 ── */
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
@@ -157,7 +161,8 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
 
 /** 图标（lucide 风格；原图标块 + button chunk 导出） */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（7）：IconSmartphone/IconCloud/IconFolder/IconFolderOpen/IconCloudUpload/IconArchiveRestore/IconArchive → npm lucide-react@1.35.0 真实 import（文件头导入块）；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
-declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // Kv
+/* ── tombstone〔A1-R127〕IconX（原 Kv）declare 删除 → npm lucide-react X as IconX（文件头导入块；A0-S3b/R121 判例续；
+ *    调用点 3296/3809 逐字不变）。 ── */
 /* ── tombstone（A0-S3b）：vendored lucide 图标 declare 删除（5）：IconPin/IconLoader/IconChevronRight/IconChevronDown/IconMessageCirclePlus → 真实 import（文件头导入块）：npm lucide-react@1.35.0，其中 button chunk 图标（ChevronLeft/ChevronRight/ZoomIn/ZoomOut）经 './button' pass-1 canonical；调用面逐字不变，映射依据见 A0-S3b.report.md。 ── */
 
 /* ---- store / 横切助手（src-HCld2afU.js / skillStore-BmeKHDBI.js） ---- */
@@ -205,11 +210,9 @@ interface TaskStoreState {
   [key: string]: unknown;
 }
 /** 工作区切片（原 fe）：taskListVersion 等 */
-declare function getWorkspaceSlice(state: TaskStoreState, workspacePath: string, workspaceIdentity?: string | null): {
-  taskListVersion: number;
-  selectedSupplierKey?: string | null;
-  [key: string]: unknown;
-};
+/* ── tombstone〔A1-R127〕getWorkspaceSlice（原 fe）declare 删除 → 改指 modules/SkillStore::getWorkspaceTaskStateAlias
+ *    （stores/taskStore@433 _e 逐字；返回 WorkspaceTaskState 面涵原契据：taskListVersion: number@182 /
+ *    selectedSupplierKey: string@176 必具面 ⊇ 原可空契据，消费点 ?? 兜底不变；调用点 575/902/1474 逐字不变）。 ── */
 declare function clearPromotedGroupedDraftTaskSelector(state: TaskStoreState): (
   workspacePath: string,
   taskId: string,
@@ -328,22 +331,16 @@ declare function handleIncrementalWorkspaceEvent(args: { event: DynamicWorkspace
 declare function requiresFullRefresh(event: DynamicWorkspaceEvent): boolean;
 declare function invalidateWorkspaceEvent(event: DynamicWorkspaceEvent): void;
 
-/** 确认对话框（原 U2，TopBar.tsx 已还原） */
-declare function useConfirmDialog(): (args: { title: string; description?: string; confirmLabel?: string }) => Promise<boolean>;
+/* ── tombstone〔A1-R127〕useConfirmDialog（原 U2，styles 123510）declare 删除 → 改指 modules/Modals::useConfirmDialog
+ *    （ConfirmDialog@79 canonical 转导出；返型 (Omit<ConfirmDialogRequest,'resolve'>) => Promise<boolean>，
+ *    面涵原契据三字段 title/description?/confirmLabel?；调用点 3121/3854 + 实参面 3266/4079 逐字不变）。 ── */
 
 /* ── tombstone（A1-R10 2e）：declare function applyOptimisticTaskMutation（原 Uo，1895）删除，
  *    改经文件头 stores/searchResultsStore import 消费（canonical = applySearchTaskMutation；
  *    3227 调用点逐字不变）。 ── */
 
-/** 任务列表数据钩子（原 ZS，jsx 32810；接口级，Sidebar.tsx 已声明） */
-declare function useTaskListItems(args: {
-  kind: "archived" | "pinned" | "timeline" | "workspace";
-  workspaceTabs: WorkspaceTab[];
-  sortBy: TaskSortBy;
-  searchQuery: string;
-  expanded: boolean;
-  collapsedLimit: number;
-}): { items: TaskMeta[]; total: number; loading: boolean; syncingRemoteWorkspaces: boolean };
+/* ── tombstone〔A1-R127〕useTaskListItems（原 ZS，styles 35775–36118）declare 删除 → 改指 ./TaskListQueryCore 逐字真身叶
+ *    （A1-P3-B1 Sidebar 同判例；真身入参 (e: any) 超集原契据，返回面同形；调用点 3138 逐字不变）。 ── */
 
 /* ── tombstone〔A1-R126〕buildWorkspaceServicesMap（原 yc jsx 3637）declare 删除 → 改指 modules/WorkspaceTabsDeep
  *    buildWorkspaceServicesBindings（styles 4834 逐字 canonical；vc/gc/_c/Io 依赖同家既收敛）。
@@ -383,7 +380,8 @@ interface SettingsSnapshot {
   [key: string]: unknown;
 }
 declare function useSettingsContext(): { settings: SettingsSnapshot | null };
-declare function resolveProviderFamilyDomain(domain: string | null | undefined): string; // xn
+/* ── tombstone〔A1-R127〕resolveProviderFamilyDomain（原 xn）declare 删除 → 改指 SrcSharedB::normalizeProviderFamilyDomain
+ *    （真身 ≡ Xx 8937 / src 9745 / styles 514；Home@162 R27 同判例；调用点 899 逐字不变）。 ── */
 declare function useModelProviders(): { modelProviders: unknown[]; loading: boolean }; // qq
 declare function normalizeCodingPlanProviders(providers: unknown[]): CodingPlanProvider[]; // hX
 interface CodingPlanProvider { id: string; name?: string; [key: string]: unknown } // 〔A1-R23〕型缝：+name——Home Oq 入参面 Array<{ id; name? }>（bundle Oq body 仅读 e.id/e.name）
@@ -3142,7 +3140,7 @@ export function ArchivedTasksSection({
     searchQuery: "",
     expanded,
     collapsedLimit: 20,
-  });
+  }) as { items: TaskMeta[]; total: number; loading: boolean; syncingRemoteWorkspaces: boolean }; // 〔型缝 A1-R127〕复原原 declare 返回契据面（真身 items any[]，消费面 3153 按 TaskMeta 读）
   const hasMore = total > 20;
 
   if (items.length === 0 && loading) return <TaskListLoadingRow />;
