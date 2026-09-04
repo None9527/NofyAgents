@@ -196,9 +196,9 @@ import {
  * ==========================================================================*/
 
 /** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R179〕死面销账（G5·收官）：本地 interface IntlShape（3 行形、与 canonical modules/I18n@201-203 ZCodeIntl **逐字节同形**）→ **纯删、不改指**。
+ *    理据：本文件 1736 行内该面之代码位读者 **0**（token 级掩码实测、排除自身定义跨度 @199-201；RAW 命中亦 **0**）且未 `export` ⇒ 他文件结构上无从导入（判据＝R165 两源载荷性 ⒶⒷ）→ 别名机制在此**空转**，改指反造成本文件之**永久未用 specifier**（树内惯例＝0 读者⇒纯删、≥1 读者⇒别名改指；先例 R172 QuickPickDeep@157、R176 四件）。★本文件 @161 既有导入行 `useZCodeIntl as useIntlContext` **本批不触**（纯删不新增 specifier ⇒ 模块图零变化）。
+ *    ★**拆分感知**：下方 @202 `type LocalePreference` 係**另一独立本地型别、与本面无关** → 逐字保留、本批不触（先例 R177 Sidebar@257 同款）。★上方 @198 单行文档注係束源注 → 逐字保留（md5 00ef9a643ba63bb70d9a7d0922648111；与 R177 已保留之 SidePanel@182／Sidebar@251 同款标签而多「对象」二字）。★量测口径：全树活体 `interface IntlShape` **3→0**、携别名 specifier 之导入行 **38→40**（本文件不贡献，係纯删）。 ── */
 type LocalePreference = "system" | "zh-CN" | "en-US";
 
 /* ── tombstone〔A1-R50〕：本地 RemoteTarget 副本（6 员 family-A 形，A0-CLEANUP3 3b 期

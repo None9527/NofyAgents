@@ -183,10 +183,10 @@ import type { CodeViewerSource } from './SidePanel'; // 代码查看源以侧面
 
 
 /** react-intl 风格 intl（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-import { useZCodeIntl as useIntlContext } from './I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 11 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝
+/* ── tombstone〔A1-R179〕面收敛（G5·收官）：本地 interface IntlShape（3 行形，原 @186-188）删除 → 改采下方 @189 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 10 处读者（@1464／@1488／@4211／@4223／@4240／@4369／@4394／@4420／@4459／@4557）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84868c4cce7de79a598b9a，口径＝单行含 2 空格缩进不含尾换行；@202-203 两行连接〔保留行间换行〕md5 2cb4861491cdcefdae220014abf73547；整个 3 行界面 md5 5197ceb429746737a3ce2455bdf9f4f9，与 modules/Settings@199-201 逐字节同）→ **型缝 0**。
+ *    读者形制：@1464／@1488 参面、@4223 属性面、@4211／@4240／@4369／@4394／@4420／@4459／@4557 之 React.FC 泛型参面 → 名与位置逐字不变。★上方 @185 单行文档注係束源注 → 逐字保留（md5 d1647e9fc139e174c7e192cb49f0f5c3，与 R177 已保留之 SidePanel@182／Sidebar@251 **逐字节同**＝同款标签第三例；先例 AutomationsMainView@68）。★下方 @191「日志器（原 J）」单行注属**另一声明群**→逐字保留、不得折入本碑（R172 FileTreePanel@186／R176 BrowserSettingsSection@116 同型陷阱）。★量测口径（本批程序化实测、不沿用台账算术）：全树活体 `interface IntlShape` **3→0**（面收敛程序收官）、携 `type ZCodeIntl as IntlShape` 别名 specifier 之导入行 **38→40**。 ── */
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from './I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 11 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝。〔A1-R179〕★上句「本地 IntlShape」之 referent 已随本批面收敛移至**本导入行**（本地 3 行界面原 @186-188 已销账、改采本行新增之 `type ZCodeIntl as IntlShape` 别名 specifier）；「逐字节同形」之实测依据仍在案（成员行与 I18n@202 逐字节同、md5 d2ffea415e84868c4cce7de79a598b9a）→ **零型缝结论不变**，唯其理据由「同形」升为「同一」。旧文逐字保留为前缀。
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 

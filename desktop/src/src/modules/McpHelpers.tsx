@@ -45,10 +45,10 @@
  * ==========================================================================*/
 /* eslint-disable */
 
-type FormatMessageFn = (descriptor: { id: string }, values?: Record<string, string>) => string;
-interface IntlShape {
-  formatMessage: FormatMessageFn;
-}
+import type { ZCodeIntl as IntlShape } from './I18n'; // 〔A1-R179〕面收敛（G5·收官）：本地 interface IntlShape（原 @49-51）与其专属型别名 FormatMessageFn（原 @48）删除 → 改采本行 `type ZCodeIntl as IntlShape` 别名 specifier〔别名保名〕，canonical modules/I18n@201-203 ZCodeIntl。★本行係本文件**首条亦唯一一条导入语句**（施前程序化实测：import/export-from 语句 **0** 条、值出边 **0**、型出边 **0**）⇒ 新增 **1** 条模块边 McpHelpers→modules/I18n。★采 `import type` 而非值导入：型构造经 esbuild 全数擦除 ⇒ 运行期与三 bundle **结构性零影响**。★环安全经 ring-check-v2.py 之图与 BFS 实测：I18n 係近叶（出边仅 lib/i18n/en-US＋zh-CN 值、lib/i18n/types 型）、value-path-back 与 type-path-back 皆 **none**、值图 **1662** 边与环上节点 **147** 皆不变、型边 257→258 ⇒ **不阻**（R167 沉淀②：唯 NEW-EDGE∧VALUE-CYCLE 方阻）；★正对照在案＝同法可复现 R165 既知 modules/Settings↔modules/PaymentDeep 值环 ⇒ 上述 none 係**实测零而非空判**（R178 沉淀①）。
+/* ── tombstone〔A1-R179〕面收敛（G5·收官）：本地 interface IntlShape（3 行形，原 @49-51）→ 删除、改采上方 @48 新增导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    ★**本件係全树唯一异形**：成员行原为 `formatMessage: FormatMessageFn;`（属性语法）而 FormatMessageFn（原 @48，md5 13456037b7e8b01cac81ed6663199dff）用 `Record<string,string>`，与 canonical 之方法语法 `Record<string,unknown>` **不可互换** ⇒ 不得与同形组一并处置。**级联裁定**：FormatMessageFn 之唯一读者 @50 落在本界面自身之内 ⇒ 级联后读者 **0** ⇒ 同批销账（判据＝R176 沉淀②「级联须迭代至不动点」）；全树另两份同名 FormatMessageFn（components/feedback/FeedbackCenter@186 同 `Record<string,string>` 形、modules/ConversationLeaves@1560 单参形）係**各自独立之本地副本、非本面之读者**，本批不触。
+ *    〔别名保名〕故本文件 2 处读者（@361 agentDisplayLabel／@439 importScopeI18nKey）之名**逐字不变**、零重锚。★异形之**惰性实证**：该 2 处读者体内之 `intl.formatMessage` 调用**只传 descriptor、从不传第二参 values**（@364-… 之 switch 各分支与 @440 逐处实测）⇒ `Record<string,string>` 与 `Record<string,unknown>` 之差在本文件内**从未被行使**。★唯一消费者 components/settings/ExternalAgentImportDialog（@20-21 以 agentDisplayName／scopeOptionLabel 别名导入）其 @252／@683 传入之 intl **本就来自 canonical**（@13 `useZCodeIntl as useIntlContext`、@238 等 11 处 `const { intl } = useIntlContext()`）⇒ 收敛后参面与实参**同为 ZCodeIntl＝同一而非仅同形**，型缝风险结构性下降。★异形无权威性之**文件自证**：本文件头注 @44 逐字载「把握度分级：§1–§6 = 高（逐字回代核验）；类型签名为推断（中），以服务层为准」⇒ 该 `Record<string,string>` 係 A0 期推断而非束证，收敛到 canonical 正是该头注之所命。★上方 @46-47（`eslint-disable` 与空行）与下方 @52-53（空行与 §1 节头）皆逐字保留。 ── */
 
 /* ============================================================================
  * §1 插件组件种类序列（原 qQt，193351）
