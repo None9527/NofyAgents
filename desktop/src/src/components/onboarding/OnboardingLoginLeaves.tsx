@@ -252,9 +252,9 @@ import { logger, resolveWorkspaceKey as workspaceScopeKey, create as createExter
 import { MemoizedWorkspaceRoot, ScopedErrorBoundary as ScopeBoundary, type WorkspaceServices } from '../../modules/WorkspaceShell'; // A0-CLEANUP3 #36：Y4t=memo(XJt)=WorkspaceRoot 属主接线（原误包 yJt=WorkspaceShell）
 import { extractErrorMessage as normalizeConnectionError, type FeedbackService } from '../../modules/FeedbackCenter'; // A1-R7：MC=extractErrorMessage 改指（原 normalizeConnectionError declare）
 import { type MobileHomeResult, type WebRemoteSwitcherService } from '../../modules/WebRemote';
-import { ConversationTelemetrySupervisor, registerBaseServices, ServiceProvider as ServicesProvider, syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指 + A1-R8：Ks@4164（async (e) => await vse(e)，vse@4237）= syncProviderRegistryAndReturn 改指
+import { ConversationTelemetrySupervisor, registerBaseServices, ServiceProvider as ServicesProvider, syncProviderRegistryAndReturn as syncRemoteWorkspaceModelProviders, unregisterSessionAndPurgeSyncState as unregisterRemoteSession, useServices, useWorkspaceServices, TelemetryScopeProvider as WorkspaceTelemetryProvider } from '../../modules/services'; // registerBaseServices（原 Sse；services/stores-core 双导出同实现，按本文件既有 services 导入面接 services）+ A1-R7：Qs=unregisterSessionAndPurgeSyncState 改指 + A1-R8：Ks@4164（async (e) => await vse(e)，vse@4237）= syncProviderRegistryAndReturn 改指 〔A1-R155〕+TelemetryScopeProvider as WorkspaceTelemetryProvider：declare @674-682（原 CT）退役 → 改指 services/telemetryScopes@162 canonical TelemetryScopeProvider（★其@161 头注已明载「原 CT」= 链早已在案，dossier-D 判「实体化/改判候施」系误分类，同 R154 件③ isKeyCombo 之证伪类，第三次）；经 modules/services@115 导入 + @117 转导出（皆既有）→ 本既有边 +1 别名 specifier，新增模块边 0、补 export 0、补转导出 0；别名保名 → 消费点 @2215/@2266 逐字不变。面差异三点皆经 tsc 实测可赋（非推论）：①foregroundEnabled declare 必填 vs canonical 可选（缺省 true@164）→ 显式传全受；②services declare ServicesBundle（本地 10 必填 + 索引签）vs canonical {zcodeAgentService: unknown} → 只需该一键；③children declare 可选 vs canonical 必填 → JSX 嵌套隐式传全受。型缝 0。
 import { reportTelemetry as trackTelemetryEvent, normalizeCaptchaCode as messageErrorCodeOverride, resolveTelemetryProviderHost, type TaskMeta } from '../../modules/StoresDeep'; // 〔A1-R146〕+type TaskMeta：B9 二件消费铸所依（canonical TaskRecord ≡ TaskMeta，StoresDeep@226 型再导出）；type-only，边既有零新环
-import type { UpdateState } from '../shell/TopBar'; // A1-R48：根面 getUpdateState?/onUpdateStateChanged? 改型同形 canonical（属主 TopBar@212；type-only 边，环安全） // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）。A1-R12：原 Cw（40570）私有转录删除 → 别名改指 StoresDeep normalizeCaptchaCode（本批改回逐字 stub；DM 调用点逐字不变）。〔A1-R31〕+resolveTelemetryProviderHost（bw 40445/hNe 40454 canonical，StoresDeep@308）：telemetryLoginProviderName declare 收敛改指，见下墓碑
+import { UpdateStatusDialogController as UpdateStatusWindow, type UpdateState } from '../shell/TopBar'; // A1-R48：根面 getUpdateState?/onUpdateStateChanged? 改型同形 canonical（属主 TopBar@212；type-only 边，环安全） // A1-R9 条件项：原 xw（bundle 40457 = StoresDeep H.1 reportTelemetry 逐字）别名改指；调用点 1009（useOAuth startLogin）/3671（OAuth 成功上报）实测逐字通过（platform: PlatformService→TelemetryPlatform 方法双变可赋；TelemetryEventPayload→TelemetryReport 索引可赋）。环安全：StoresDeep 值导入闭包不达本文件（本文件唯一 import 源 = modules/OnboardingLoginLeaves shim，其值 import 源仅 AppRootLeaves 根 + settingsStore type-only）。A1-R12：原 Cw（40570）私有转录删除 → 别名改指 StoresDeep normalizeCaptchaCode（本批改回逐字 stub；DM 调用点逐字不变）。〔A1-R31〕+resolveTelemetryProviderHost（bw 40445/hNe 40454 canonical，StoresDeep@308）：telemetryLoginProviderName declare 收敛改指，见下墓碑 〔A1-R155〕type-only 边就地升级为值边：+UpdateStatusDialogController as UpdateStatusWindow（declare @636-644 原 POt 退役 → 改指 TopBar@906，同批补 export）→ ★零新行方案：@240/@274 两处空行已于 R154/R153 用毕，另起新行必付 +1 重锚（@274 以上同文件裸引证 166 处，而 3–4 位裸号与 chunk 行号同形不可机械判别）；别名保名 → 消费点 @5348-5356 七 prop 逐字不变。环安全（二级闭包实测）：TopBar 25 个 import 源无一回指本文件；全树值导入 AppRootLeaves/OnboardingLoginLeaves 者仅 modules/AppRootLeaves@107/126（导入 ./OnboardingLoginLeaves shim）与 modules/OnboardingLoginLeaves@333/389（导入组件本体），零文件值导入 modules/AppRootLeaves → 本文件系值图汇点，唯一入边 stores/settingsStore@6 系 type-only（运行期擦除）→ 升级为值边不成环。
 import { mergeRemoteLogProgressEntry as appendRemoteLog, stripRemoteLogPrefixes as normalizeRemoteLogMessage } from '../remote/RemoteGapSegments'; // A1-R8：hEt@123747=stripRemoteLogPrefixes、vEt@123762=mergeRemoteLogProgressEntry 改指（环安全：RemoteGapSegments 仅 import React/button/RemoteWizard/Modals/SrcSharedA/B/stores-core，不反入 onboarding）
 import { useSettingsStore, type BaseServices } from '../../modules/stores-core'; // 〔A1-R147〕+type BaseServices：联退件 1（ServicesProvider→serviceContext@13）型缝所依。★**同名两家**：modules/Modals@245 转出之 BaseServices 为 DirectoryBrowserDialog 窄面（systemService 仅 info()），canonical serviceContext 之面自 stores-core@94 ← stores/sessionRegistryStore@34——取错家会报 systemService.listIntegratedTerminalShells 缺失（本批实测）
 import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSources as isModelProviderSnapshotHydrated, hasActiveEntitlement, providerFamiliesOfListWrapper as isProviderEnabledForFamily, activeProvidersOfList as hasUsableProvider, setCodingPlanSources as setModelProvidersFallback, hasNoUserOrProviders as shouldForceLoginEntry, refreshCodingPlanSourcesForced as refreshModelProviderSnapshot, ensureCodingPlanSources as ensureModelProviderSnapshot, RegionLogo } from '../../modules/UsageDeep'; // A1-R11：fM（52681）/pM（52684）改指 canonical（components/usage/UsageDeep.tsx 注册表，返回 ModelProvider[]——fetcher 证据 78266/78272/206174/209921 = modelProviderService.getAllCached/getAll）；4757 消费点经 ModelProviderRecord any 索引面双变可赋。〔A1-R27〕+hasActiveEntitlement（iM 52651 canonical；declare hasPlanEntitlement 收敛改指，见下墓碑）。〔A1-R150〕+D-1b 二件（providerFamiliesOfListWrapper as isProviderEnabledForFamily ≡ 束 vM / activeProvidersOfList as hasUsableProvider ≡ 束 yM；★dossier-D 翻案件——canonical 系 styles-local 薄包装而非内层 SrcSharedB@620/631，全证见 A1-R129.report.md〔A1-R149〕§三；别名保名 → 消费点 @5092/@5132 逐字不变；本行既有边 → **新增模块边 0**）〔A1-R152〕+D-3 四别名（setCodingPlanSources as setModelProvidersFallback ≡ 束 mM@52687 / hasNoUserOrProviders as shouldForceLoginEntry ≡ 束 FUe@52796 / refreshCodingPlanSourcesForced as refreshModelProviderSnapshot ≡ 束 **gM**@52709 / ensureCodingPlanSources as **ensureModelProviderSnapshot** ≡ 束 **_M**@52726）；★后二件系**双束符分流**——原 declare refreshModelProviderSnapshot 一名兼代 gM/_M 两符（运行期不等价：gM 恒发请求 + MUe 作废在途 + 占 lM 槽；_M 已加载即短路 + 独立 uM 槽 + 不递增令牌），三消费点分流与同名遮蔽核全证见 @920 碑；四者皆经**本行既有边** → 新增模块边 **0**、补 export **0**、补转导出 **0**（shim @362/426/427/428 既有）；面校准 2 处落 UD@1451/@1469（fetcher 参宽化受同步值，级联核零影响）；〔随批勘误 A1-R152〕本行 R11 旧注「4757 消费点经 ModelProviderRecord any 索引面**双变**可赋」实测系**单向**——ModelProvider → ModelProviderRecord **可赋**（目标必填 id/apiKey 源皆具名、目标索引签 any 受源 unknown）→ R11 该消费点判定**仍成立**；反向 ModelProviderRecord → ModelProvider **不可赋**（TS 不以**源**之索引签解析**目标**之必填具名成员 name/endpoints/models）→ tsc 实测 **TS2322 三点**（@1515/@3508/@3515），本批以消费铸三处收（所依 type ModelProvider 见 @261 注）。★与 dossier-C U1「源索引签可供目标具名成员」同推论类——R147 已实测证伪一次，本次为**第二度证伪** → 该推论**永久禁用**，可赋性必经 tsc 实测（归 w5-method-u5）〔A1-R154〕+`RegionLogo`（**无别名**——D-5 件②系函数形→组件形改写，本地名 ProviderIcon 随三处消费点改写而退役，故不采别名保名）：原 declare ProviderIcon（原束 **Tq**@76183-76193）→ components/usage/UsageDeep@2084 RegionLogo（体**逐字同**：t3e≡REGION_LOGO_BY_ID / Z≡cn / pv≡LogInIcon），经 modules/UsageDeep@372 **既有转导出** + 本行既有边 → **新增模块边 0**、补转导出 0；消费点 @1563/@1567/@1807 由 `{ProviderIcon(a, b)}` 改 `<RegionLogo region={a} className={b} />`（判例 R21 PD@9468/@9471 + R145 UD@5495 **同符同式**）；束内 `Tq(` 全 **7** 命中至此**全数归账**（76183 定义 / 88517+88520 PD〔R21〕/ 190505 UD〔R145〕/ 206240+206249+206593 = 本批）；★保真附记：束系直呼无组件边界、改写后多一层 boundary 而 **DOM 输出逐字节同**（RegionLogo 无 hooks/state/memo）——与 R21/R145 已落地裁定同，树内 Tq 三处直呼至此全数归一为组件形；全证见 @559 碑
@@ -633,15 +633,15 @@ export interface ConfirmDialogOptions {
  *    CLOSE_ACTIVE_CONTEXT_EVENT ≡ components/shell/WorkspaceShell.tsx 4736（原 r7，186215/150092，已 export）。
  *    原注：「基线 declare：PaymentDeep/WorkspaceShell 未导出，需要的 export 已登记」（247 回滚注记同证）。 ── */
 /* ── tombstone〔A1-R44〕：declare RemoteConnectionDialog（原 pOt 族）删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
-declare const UpdateStatusWindow: React.FC<{
-  platform: PlatformService;
-  version: string | null;
-  updateState: UpdateStateSnapshot | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  edgeToEdge?: boolean;
-  showOverlay?: boolean;
-}>;
+/* ── tombstone〔A1-R155〕：declare UpdateStatusWindow（原 **POt**；本 9 行块 636-644 原位**等行置换**）删除 → 改指
+ *    components/shell/TopBar@906 `UpdateStatusDialogController`（同批**补 export**，行内改 → TopBar 行数不变 4313；
+ *    TopBar@23 头注已明载「POt → UpdateStatusDialogController 更新对话框控制器（下载/跳过/重启安装）(129142)」）。
+ *    接引经 ONB@257 **既有 type-only 边就地升级为值边**（+1 别名 specifier，**别名保名** → 消费点 @5348-5356 七 prop
+ *    逐字不变）→ **新增模块边 0**；★零新行方案之由：@240/@274 两处空行已于 R154/R153 用毕，另起新行必付 +1 重锚（166 处裸引证）。
+ *    束证：styles@213602-213610 `(0,$.jsx)(POt,{platform:e, version:l, updateState:s, open:r, onOpenChange:f, edgeToEdge:!0, showOverlay:!1})`
+ *    ≡ 树 @5348-5356 **七 prop 逐一对位**；外层 Ge@213598 ≡ IntlProviderShell（R147 立）、同层 q4t@213611 ≡ AppDialogHost（A0-CLEANUP2 item 35 立）。
+ *    型缝 **1** 处（@5351 updateState：`UpdateStateSnapshot | null` 系纯索引签弱形、无 kind 判别员 → `as unknown as UpdateState`；R48 注@493-494 已记不相赋）。
+ *    环安全（AppRootLeaves 系**值图汇点**、零导入方）+ platform 面核 + 七门全证见 A1-R129.report.md〔A1-R155〕。 ── */
 /* ── tombstone〔A1-R147〕：declare IntlProviderShell 退役 → 改指 modules/I18n462 ZCodeIntlProvider
  *    （边既有 @264；census「611 无原注——改指前须束内核身复核」→ **核身通过，同一性已证**）。
  *    束证三跳：styles@428 `t as Ge,` ← `./IntlProvider-C321H7m8.js` 尾导出块逐字
@@ -671,15 +671,15 @@ declare const UpdateStatusWindow: React.FC<{
  *    可赋性零缝：canonical props 为 `React.Component<any, any>` → 任意 props 面双变可赋；**两侧 declare 面异形**
  *    （ONB 具名五键 / AppRootLeaves `Record<string, any>`）改指后统一为 canonical 面，差异消解、消费零改动。
  *    消费面 4 处逐字不变：@2181/2221（≡束 207131 域）、@2226/2242（≡207180 域）。 ── */
-declare const WorkspaceTelemetryProvider: React.FC<{
-  enabled: boolean;
-  foregroundEnabled: boolean;
-  services: ServicesBundle;
-  workspacePath: string;
-  workspaceIdentity?: string | null;
-  remoteSessionId?: string;
-  children?: React.ReactNode;
-}>;
+/* ── tombstone〔A1-R155〕：declare WorkspaceTelemetryProvider（原 **CT**；本 9 行块 674-682 原位**等行置换**）删除 → 改指
+ *    services/telemetryScopes.tsx@162 `TelemetryScopeProvider`（★其@161 头注**已明载「原 CT」**= 链早已在案，档案「改判候施」
+ *    实为**别名改指**，同 R154 件③ isKeyCombo 之证伪类）；经 modules/services@115 导入 + @117 转导出（**既有**）→
+ *    ONB@255 **既有边** +1 别名 specifier，**别名保名** → 消费点 @2215-2222 / @2266 逐字不变 → **新增模块边 0、补 export 0、补转导出 0**。
+ *    束证：styles@207121-207127 `(0,$.jsx)(CT,{enabled:P===!0, foregroundEnabled:!o, services:e, workspacePath:n, workspaceIdentity:r, remoteSessionId:i, children:…})`
+ *    ≡ 树 @2215-2222 **六 prop + children 逐一对位**；children 内层 ds@207128 ≡ ServicesProvider、p4@207130 `scope:workspace-app` ≡ ScopeBoundary（R147 立）。
+ *    面差异三点（皆经 tsc 实测可赋，非推论）：①foregroundEnabled declare **必填** vs canonical **可选**（缺省 true@164）→ 显式传全受；
+ *    ②services declare `ServicesBundle`（本地 10 必填 + 索引签）vs canonical `{zcodeAgentService: unknown}` → 只需该一键；③children declare 可选 vs canonical 必填 → JSX 嵌套隐式传全受。
+ *    型缝 **0**。环安全 + 七门全证见 A1-R129.report.md〔A1-R155〕。 ── */
 /* ── tombstone〔A1-R147〕：declare ServicesProvider（原 ds）退役 → 改指 modules/services100 转导出之
  *    services/serviceContext13 ServiceProvider（边既有 @255）。**联退件 1 之 ONB 侧**：
  *    AppRootLeaves287 同符双声明同批收（双侧平行改指，无需互指）。
@@ -5348,7 +5348,7 @@ export function WelcomeGate({
           <UpdateStatusWindow
             platform={platform}
             version={readyVersion}
-            updateState={updateState}
+            updateState={updateState as unknown as UpdateState /* 〔型缝 A1-R155〕实参 updateState 系 UpdateStateSnapshot | null（@5307 useState 初值 null；UpdateStateSnapshot@449-451 = 纯索引签弱形、无 kind 判别员），canonical UpdateState（TopBar@216-221）系含 null 支之判别联合 → null 支可赋而弱形不可赋（R48 注@493-494 已记「弱形与 canonical UpdateState 判别并不相赋」）→ 二段铸；UpdateState 型已由 @257 既有边导入，零新型边。束真 styles@213606 updateState:s 之 s 溯自同一 useState → 运行期值不变，铸纯属型面。 */}
             open={open}
             onOpenChange={handleOpenChange}
             edgeToEdge={true}

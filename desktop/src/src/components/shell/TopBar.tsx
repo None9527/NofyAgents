@@ -901,9 +901,9 @@ function ReleaseNotesPopover({
  * 重启前若有运行中会话先走 useConfirmDialog 确认、发行说明 LRU 缓存。
  * 最终渲染原 COt（Modals.UpdateStatusDialog）呈现层。
  * 注：bundle 调用面另传 localizedUpdateReleaseNotes / onOpenReleaseNotesExternalUrl 两 prop，
- * COt 解构面（styles 128812）不消费，Modals 属主型面亦未声明，故不透传。
+ * COt 解构面（styles 128812）不消费，Modals 属主型面亦未声明，故不透传。〔A1-R155〕补 export：本函数原系文件私有；declare ONB@636-644 UpdateStatusWindow（原 POt）退役后改指本符号 → 行内加 export（TopBar 行数不变 4312 → dossier-F 之 F4 批 TopBar 引证零位移，census 已记之 D-6→F4 排序约束就此满足，图标批 F4 解锁）。ONB 侧经其 @257 既有 type-only 边就地升级为值边接引（别名保名 UpdateStatusDialogController as UpdateStatusWindow）→ 新增模块边 0。环安全：TopBar 25 个 import 源（lib/keyboardShortcuts、modules/{button,CmdkPaletteDeep,FileTreePanel,GitReview,ImeComposition,MarkdownIntegration,Modals,QuickPick,services,SidePanel,SkillStore,SplitLayoutDeep,SrcSharedB,stores-core,stores-session,stores-tasks,UsageStatsUiParts,UtilsCn}、stores/searchResultsStore、components/conversation/PlanToolBlocks、components/ui/{collapsible,command,dialog,hover-card}）无一为 ONB/AppRootLeaves；且全树零文件值导入 modules/AppRootLeaves（值图汇点），唯一入边 settingsStore@6 系 type-only（运行期擦除）→ 该边升级为值边不成环。
  */
-function UpdateStatusDialogController({
+export function UpdateStatusDialogController({
   platform,
   version,
   updateState,
