@@ -192,7 +192,7 @@
  *     - W8 DiffViewer = memo(mVt)（js 160479/160542，F14；底层 rze/nze 47224/47174 + diff 引擎 17445–23919）
  *     - gut LightweightDiffPreview（js 100459；助手 dhe 23274 / mut 100466 / hut 100475）
  *     - QA useFileContextActions（js 51093）、$A useWorkspaceRemoteInfo（js 51166）
- *     - ko useSettingsSelector（js 1296）、xo resolveTheme（js 1103）、fs useServices（js 2638）
+ *     - ko useSettingsSelector（js 1296）、xo resolveTheme（js 1103）、fs useServices（js 2675）
  *     - Ko/Jo/Go/zA 路径助手（1941/1952/1928/50919）
  *     - Xge/qge/wge 任务路径钩子（24686/24612/24288；〔A1-R51〕行号纠偏，原注 24638/24564/24240 为 −48 漂移旧口径）、OA/GA 编辑器助手（50852/51037）
  *     - MC extractErrorMessage（37603）、S_t TurnFileChangesSummary（Conversation.tsx 已抽取，110813）

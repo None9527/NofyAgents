@@ -1121,7 +1121,7 @@ interface WorkspaceServices {
   fileWatcherService?: unknown;
   gitService?: unknown;
 }
-/** 原 Ec（4897）：基础服务 */
+/** 原 Ec（4945）：基础服务 */
 /** 原 Oc（4945）：工作区服务解析 */
 /* ── tombstone〔A1-R126〕buildWorkspaceServicesMap（原 yc jsx 3637）/useScopedWorkspaceTabs（原 J3 jsx 113936）declare 删除 → 一符一家改指：
  *    yc canonical = modules/WorkspaceTabsDeep buildWorkspaceServicesBindings（styles 4834 逐字；vc/gc/_c/Io 依赖同家既收敛，

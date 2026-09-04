@@ -232,7 +232,7 @@ interface AppUser {
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 
-/* --- 服务层（原 fs()=useServices 2638 / Ec()=useBaseServices 4897，本 chunk） --- */
+/* --- 服务层（原 fs()=useServices 2675 / Ec()=useBaseServices 4945，本 chunk） --- */
 
 interface IntegratedTerminalShell {
   id: string;

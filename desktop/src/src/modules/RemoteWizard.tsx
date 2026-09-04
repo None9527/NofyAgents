@@ -54,7 +54,7 @@
  * ----------------------------------------------------------------------------
  *  1. react (Q) / jsx-runtime ($)；2. cn (Z)；3. Button (X)；4. Input (P，imeComposition y)；
  *  5. useIntlContext (G)；6. logger (J)；7. useConfirmDialog (U2，Modals.tsx)；
- *  8. usePlatformService (l，selectFile 面)；9. useBaseServices (Ec，本 chunk 4897)；
+ *  8. usePlatformService (l，selectFile 面)；9. useBaseServices (Ec，本 chunk 4945)；
  *  10. 会话 store (Zs，stores-session)；11. Dialog 原语族 (zb/Hb/Ub/Gb/Kb)；
  *  12. Popover 原语族 (T/h/x/O)；13. Command/cmdk 原语族 (Yb/Zb/Xb/Qb/$b/ex)；
  *  14. Select 原语族 (iO/oO/aO/sO/cO)；15. 图标（lucide vendored 块）。

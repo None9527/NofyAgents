@@ -212,7 +212,7 @@ export interface PlatformService {
 }
 declare function usePlatformService(): PlatformService;
 
-/** 基础服务容器（原 fs()，js 2638）：useServices → { zcodeAgentService, zcodeSessionService, … } */
+/** 基础服务容器（原 fs()，js 2675）：useServices → { zcodeAgentService, zcodeSessionService, … } */
 interface ZCodeAgentService {
   listSessionSubagents(req: {
     workspacePath: string;

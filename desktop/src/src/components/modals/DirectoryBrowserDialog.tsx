@@ -10,7 +10,7 @@ import { IconFolder, IconFolderSymlink } from '../../modules/Modals'; // §0 图
 import type { SettingsSyncService } from './OnboardingDialog'; // §0 BaseServices 接口签名引用（型别属主：Onboarding 族文件）
 
 /* §0 声明群随族迁入（原 226–241） */
-/** 基础服务 context（原 fs()，本 chunk 2638） */
+/** 基础服务 context（原 fs()，本 chunk 2675） */
 export interface BaseServices {
   settingsSyncService: SettingsSyncService;
   modelProviderService: { getAll(): Promise<unknown> };

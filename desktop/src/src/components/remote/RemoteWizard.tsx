@@ -57,7 +57,7 @@
  *  1. react (Q) / jsx-runtime ($)；2. cn (Z)；3. Button (X)；4. Input (P，imeComposition y)；
  *  5. useIntlContext (G)；6. logger (J)；7. useConfirmDialog (U2, Modals.tsx) +
  *     useCancelRemoteConnection（原 uEt，A1-R5 → modules/RemoteConnectionDeep.tsx）；
- *  8. usePlatformService (l，selectFile 面)；9. useBaseServices (Ec，本 chunk 4897)；
+ *  8. usePlatformService (l，selectFile 面)；9. useBaseServices (Ec，本 chunk 4945)；
  *  10. 会话 store (Zs，stores-session)；11. Dialog 原语族 (zb/Hb/Ub/Gb/Kb)；
  *  12. Popover 原语族 (T/h/x/O)；13. Command/cmdk 原语族 (Yb/Zb/Xb/Qb/$b/ex)；
  *  14. Select 原语族 (iO/oO/aO/sO/cO)；15. 图标（lucide vendored 块）。
@@ -91,7 +91,7 @@ import { isValidWslUser as isValidWslUsername } from '../../modules/SrcSharedA';
 import { generateUuid as generateRequestId } from '../../modules/SrcSharedB'; // 原 xi（src chunk cx）：请求 id（crypto.randomUUID 回退链）
 import { extractErrorMessage as toErrorMessage } from '../../modules/FeedbackCenter'; // 原 MC（本 chunk 37651，横切错误文本）
 import { useSessionRegistryStore as useSessionStore } from '../../modules/stores-core'; // 原 Zs：会话 store（sessionsById 选择器 + getState）
-import { useBaseServices } from '../../modules/services'; // 原 Ec（本 chunk 4897）：基础服务（skillSync/mcpSync/pluginSync/zcodeAgent）
+import { useBaseServices } from '../../modules/services'; // 原 Ec（本 chunk 4945）：基础服务（skillSync/mcpSync/pluginSync/zcodeAgent）
 import { t as logger } from '../../modules/logger';
 import { useConfirmDialog } from '../../modules/Modals'; // 原 U2（Modals.tsx useConfirmDialog，js 123510）
 import { useCancelPendingRemoteConnection as useCancelRemoteConnection } from '../../modules/RemoteConnectionDeep'; // 原 uEt（js 123484）：A1-R5 转录改指（tombstone 见原 declare 位）

@@ -1261,7 +1261,7 @@ interface SessionIndexShardHookTab {
   endpointKey?: string;
   agentService?: WorkspaceAgentService | null;
 }
-/** 原 Ec（4897）：基础服务钩子（跨 chunk 横切）→ { zcodeAgentService } */
+/** 原 Ec（4945）：基础服务钩子（跨 chunk 横切）→ { zcodeAgentService } */
 
 /** 原 JS（35552）：ZS 深部主钩子——多标签会话索引分片聚合（QAe 对账 + 行复用 + 水合中端点集） */
 export function useSessionIndexShards(tabs: SessionIndexShardHookTab[]): {

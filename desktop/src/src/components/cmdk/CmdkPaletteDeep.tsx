@@ -91,7 +91,7 @@ declare const IconX: React.FC<React.SVGProps<SVGSVGElement>>; // g（imeComposit
 
 /** 文件路径内联组件（原 Bc，js 5157；图标 + 文件名 + 目录尾） */
 
-/* --- Git 服务（原 fs，js 2638；接口按本族调用点推断） --- */
+/* --- Git 服务（原 fs，js 2675；接口按本族调用点推断） --- */
 
 /* A0-D-Misc：原本地 GitIdentity/GitFileChange 接口删除，改自 GitReview 类型导入
  * （消费面 hasGitIdentity/mapChangeFilesToRows 均按 GitReview 形状契约）。 */

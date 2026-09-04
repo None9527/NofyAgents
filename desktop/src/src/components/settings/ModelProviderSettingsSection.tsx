@@ -205,7 +205,7 @@ interface CodingPlanEntitlement {
 /* ── tombstone〔A1-R45〕：declare navigateToSettingsSection（原 iw）删除——本文件零消费（grep 实测仅本 declare 行；旧注「保留 declare」被本批集群裁定覆盖）。
  * 真身 = modules/Settings requestSettingsSectionNavigation（ow js 39381；A1-R24 归属 + 行漂校正既判；UsageSettingsSection@7 别名导入改指先例）。纯删碑，证据见 A1-R45.report.md §二。 ── */
 
-/** 服务 context（原 fs()，2638） */
+/** 服务 context（原 fs()，2675） */
 interface ModelProviderService {
   refreshCodingPlanApiKey(providerId: string): Promise<void>;
 }

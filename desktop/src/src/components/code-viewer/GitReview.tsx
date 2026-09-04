@@ -194,7 +194,7 @@
  *     - W8 DiffViewer = memo(mVt)（js 160479/160542，F14；底层 rze/nze 47224/47174 + diff 引擎 17445–23919）
  *     - gut LightweightDiffPreview（js 100459；助手 dhe 23274 / mut 100466 / hut 100475）
  *     - QA useFileContextActions（js 51093）、$A useWorkspaceRemoteInfo（js 51166）
- *     - ko useSettingsSelector（js 1296）、xo resolveTheme（js 1103）、fs useServices（js 2638）
+ *     - ko useSettingsSelector（js 1296）、xo resolveTheme（js 1103）、fs useServices（js 2675）
  *     - Ko/Jo/Go/zA 路径助手（1941/1952/1928/50919）
  *     - Xge/qge/wge 任务路径钩子（24638/24564/24240）、OA/GA 编辑器助手（50852/51037）
  *     - MC extractErrorMessage（37603）、S_t TurnFileChangesSummary（Conversation.tsx 已抽取，110813）
@@ -348,7 +348,7 @@ interface CodePreviewSettings {
 
 /** 主题解析（原 xo，js 1103：system → 系统，dark/zai-dark → dark，其余 light） */
 
-/** 服务上下文（原 fs，js 2638） */
+/** 服务上下文（原 fs，js 2675） */
 export interface GitService {
   refresh(req: { workspacePath: string; includeIdentity?: boolean; includeBranchComparison?: boolean }): Promise<GitRefreshResult>;
   getDiff(req: { workspacePath: string; path: string; sourceId: string }): Promise<GitDiffState>;

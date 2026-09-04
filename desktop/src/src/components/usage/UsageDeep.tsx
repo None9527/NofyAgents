@@ -332,7 +332,7 @@
  * （接口级，行号登记，不在本批重建）：
  *   Zet 结账面板 (85948)、e5e 支付 QR (79979)、Xrt/Zrt 计划源选择 (89295)、
  *   Mq 供应商选择 (76864)、j3e 配额弹层内容 (76630)、cj MarkdownRenderer（Markdown.tsx 已抽取）；
- *   Ao useSettingsStoreValue (1301)、fs useServices (2638)、ps useOptionalServices (2643)、
+ *   Ao useSettingsStoreValue (1301)、fs useServices (2675)、ps useOptionalServices (2680)、
  *   qse useBaseServices（services.tsx 已抽取）；
  *   （PM 53253/IM 53277 已于 A1-R11 转录 §2b，旧登记行 53205/53229 为漂移标注）。
  *   〔A1-R145 头注同步〕以下旧登记已全数退役，归属与束真行以各删除位墓碑为准：

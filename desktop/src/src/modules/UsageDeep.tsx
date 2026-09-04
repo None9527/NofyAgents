@@ -316,7 +316,7 @@
  *   srt isApiKeyMissing (88461)、crt navItemIcon (88464)、
  *   （PM 53253/IM 53277 已于 A1-R11 转录 components/usage/UsageDeep.tsx §2b 并经本 shim 导出；旧登记 53205/53229 为漂移标注）、
  *   xZ arrayMove (94125)、cj MarkdownRenderer（Markdown.tsx 已抽取）、
- *   Ao useSettingsStoreValue (1301)、fs useServices (2638)、ps useOptionalServices (2643)、
+ *   Ao useSettingsStoreValue (1301)、fs useServices (2675)、ps useOptionalServices (2680)、
  *   qse useBaseServices（services.tsx 已抽取）；
  *   src-HCld2afU.js：ot/hr/Vi/nt/Vr/Qr/Lt/Pi/Mn/lt/si/kee/Bn/Ri/Sr/Zt/qr/q/testid 族；
  *   skillStore-BmeKHDBI.js：jee/jte/kr/xn/en；

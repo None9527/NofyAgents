@@ -200,7 +200,7 @@ declare function useIntlContext(): { intl: IntlShape; locale: string };
  *    reportTelemetryEvent/reportArmsCustomEvent 遥测二员同形（A0-CLEANUP3 3b 既判）。
  *    消费位 4584（hook 调用）/4593/4611（依赖数组）逐字不变。 ── */
 
-/* --- 服务袋（原 fs()，本 chunk 2638 useServices） --- */
+/* --- 服务袋（原 fs()，本 chunk 2675 useServices） --- */
 
 interface Disposable {
   dispose(): void;

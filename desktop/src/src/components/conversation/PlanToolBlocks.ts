@@ -52,7 +52,7 @@ import { MarkdownRenderer, isAbsolutePath, resolveWorkspaceRelativePath, baseNam
 import { ToolLayoutMemo as ToolLayout } from './ToolLayoutBlocks'; // 原 lQ（B12 钥匙 2）
 import { ToolSnapshotRefs } from './ToolSnapshotRefs'; // 原 sQ（B12 钥匙 1）
 import { CodeSurface } from './CodeSurfaceBlocks'; // 原 gk（B14 既录 48682；Klt/aQ 错误/输入面 JSON 卡消费）
-import { useServices } from '../../modules/services'; // 原 fs（styles 2675；services/serviceContext useServices 重建，js 2635–2645）〔A1-R95〕
+import { useServices } from '../../modules/services'; // 原 fs（styles 2675；services/serviceContext useServices 重建，js 2671–2681）〔A1-R95〕
 
 /* ── plan 工具族（styles 98073–98144 + 99769–99814 + 107721–107815 + 108469–108605） ── */
 function isPlainObjectRecord(e: any) {

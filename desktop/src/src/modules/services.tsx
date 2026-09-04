@@ -18,7 +18,7 @@
  *     ise→MessagePortStreamProtocol | Bs→ClientMessageType | Vs→ServerMessageType |
  *     Hs→ChannelState | ase→ChannelClient | Us→ServiceProxy（fromService/toService）|
  *     Ws/Gs→isEventName/isDynamicEventName | ose→bufferFirstListenerEvent
- *  C. 服务注册与钩子（2638–2660 + 4122–4308 + 4834–4960）
+ *  C. 服务注册与钩子（2671–2681〔★A1-R161 勘误：旧记 2638–2660 误，真值 us@2671 / ds@2672 / fs@2675 / ps@2680〕 + 4122–4308 + 4834–4960〔后二区间本批未核，Ec@4945 落在 4834–4960 内故该区间自洽〕）
  *     ds/fs/ps→ServiceProvider/useServices/useServicesOptional |
  *     Zs 会话注册表（见 stores-core.tsx）+ xse/Sse/Qs/$s/Cse/ec/wse/tc/Tse 助手 |
  *     qs/lse/vse/Ys/hse/gse/_se→provider registry 同步 |

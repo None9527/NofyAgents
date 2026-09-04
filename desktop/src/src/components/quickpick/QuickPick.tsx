@@ -118,7 +118,7 @@
  *     mergeTaskMeta (pe=W→内部 de)
  *                                    skillStore-BmeKHDBI.js
  * 11. 本 chunk 内：cmdk 库 (26004–26574)、Dialog 封装 zb/Hb/Ub/Gb/Kb (31943–32040)、
- *     SessionRegistryStore Zs (4309)、useServices fs (2638)、useBaseServices Ec (4897)、
+ *     SessionRegistryStore Zs (4309)、useServices fs (2675)、useBaseServices Ec (4945)、
  *     任务快照缓存 Ex (32488) / Ox (32600)、成员版本 dx (32279)、
  *     事件助手 px/rx/ux/sOe/oOe/lje (32217–32316, 35697)、
  *     描述符/键 zie/Bie (1385/1396)、实体键 Io/Lo (1368/1371)、
@@ -180,12 +180,12 @@ interface WorkspaceFileEntry {
   type: "file" | "directory";
 }
 
-/** useServices()（原 fs，js 2638）返回的服务集合；本族仅用 fileService */
+/** useServices()（原 fs，js 2675）返回的服务集合；本族仅用 fileService */
 interface FileService {
   listWorkspaceFiles(args: { rootPath: string }): Promise<WorkspaceFileEntry[]>;
 }
 
-/** useBaseServices()（原 Ec，js 4897）：基础服务面（含 zcodeTaskService） */
+/** useBaseServices()（原 Ec，js 4945）：基础服务面（含 zcodeTaskService） */
 interface TaskListShardServices {
   zcodeTaskService: ZCodeTaskService;
   [key: string]: unknown;
