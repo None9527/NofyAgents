@@ -154,7 +154,7 @@ import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSo
  * ==========================================================================*/
 
 
-import { useZCodeIntl as useIntlContext } from './I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 1 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；所导入 IntlShape〔自 ./OnboardingLoginLeaves 转再导 components/onboarding/OnboardingLoginLeaves@280〕与 canonical ZCodeIntl 逐字节同形→零型缝
+import { useZCodeIntl as useIntlContext } from './I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 1 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；所导入 IntlShape〔自 ./OnboardingLoginLeaves 转再导 components/onboarding/OnboardingLoginLeaves@280〕与 canonical ZCodeIntl 逐字节同形→零型缝。〔A1-R173〕★上句「逐字节同形」之**比较基准**已随本批面收敛消失——ONB@280-282 之本地 3 行界面已销账、改为 @280 原位 `export type { IntlShape };` 再导出 canonical `ZCodeIntl`（同式先例＝ONB@777 R148 四面族）→ 本处经三跳所导入者今**即 canonical 本体**（非仅同形）；三跳链与 @280 行号皆不变（该批净零行）→ **零型缝结论不变，且由「同形」升为「同一」**。
 
 /* --- 平台桥 --- */
 declare const DESKTOP_COMMANDS: { RelaunchApp: string; CloseWindow: string; [key: string]: string };

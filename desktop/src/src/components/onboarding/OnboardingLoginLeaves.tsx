@@ -261,7 +261,7 @@ import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSo
 import type { EntitlementSnapshot, ModelProvider } from '../../modules/UsageDeep'; // 〔A1-R27〕iM 收敛型缝所依（W9/i6t 快照流精化，行依据见各函数注）〔A1-R152〕+type ModelProvider：D-3 三处消费铸所依（@1515 / @3508 / @3517）。理据：ONB 本地 ModelProviderRecord@319 系束真 provider 记录之**窄近似**（仅 id/apiKey/enabled/systemDisabledReason/updatedAt 五具名 + `[key:string]: any` 索引面），对 canonical components/usage/UsageDeep@630 ModelProvider 之 **name / endpoints / models 三必填具名成员**不可赋——TS 不以**源**之索引签解析**目标**之必填具名成员（tsc 实测 TS2322 三点，非推论）；束内 provider 记录本只**一形**（mM 之 oM 同时供 fM/PD listCodingPlanSources 与 ONB 消费面），树内二近似系 A0 期产物 → 依 R148 裁定法「canonical 近似则面校准、本地近似则消费铸」，本件属**本地近似** → 消费铸三点，不动 canonical 元素型、不动 ONB 之 ModelProviderRecord/ModelProviderServiceLike 面（后者级联 @1500/@1505/@3817/@3850/@5145 五点，另件候裁）。type-only，边既有 → **新增模块边 0**。
 import { DEFAULT_CODE_PREVIEW_SETTINGS as defaultCodePreviewSettings } from '../../modules/MarkdownIntegration'; // 默认代码预览设置（原 lo，1040）
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z）
-import { useZCodeIntl as useIntlContext, ZCodeIntlProvider as IntlProviderShell, type LocalePreference } from '../../modules/I18n'; // intl 上下文（原 G()）
+import { useZCodeIntl as useIntlContext, ZCodeIntlProvider as IntlProviderShell, type LocalePreference, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // intl 上下文（原 G()）；〔A1-R173〕+ `type ZCodeIntl as IntlShape` 别名 specifier（本地 export interface IntlShape 退役 → @280 原位 export type 再导出保 export 面，见该处碑）
 import { Button } from '../../modules/button'; // Button（原 X，button-laUijeDG.js）
 import { isWorkspaceKindTab } from '../../modules/WorkspaceTabsDeep'; // 原 oc（A1-R1：styles js 4487 逐字重建改指）
 import { EMPTY_PANE_LAYOUT, focusedPaneId, hasSplitLayoutBindings, isReloadNavigationEntry, paneBindingById as paneById, persistableTabEntries, sessionEntryMapByKey, sessionRouterStore, splitLayoutStore, type PaneLayoutState as SplitPaneLayoutState, type SessionRouterGroup as SplitSessionRouterGroup, sessionEntryWorkspaceKey as remoteWorkspaceKey, buildRemoteWorkspaceKey as workspaceIdentityOf, resolveEntryWorkspaceIdentity as entryIdentity, remoteTargetWithSecrets as withRemoteCredentials, applyRemoteConnectionResult as commitRemoteSessionsMutation, removeRemoteSessionEntries as removeSessionsByWorkspaceKeys, persistedWorkspaceSessions as persistableWorkspaceTabs, persistedRemoteSessions as normalizePersistedRemoteSessions, resolveLastActiveTabIndex, type PersistedWorkspaceTabRecord, type RemoteSessionTarget } from '../../modules/SplitLayoutDeep'; // 原 K0/Z0/jwt/z0/T2/sEt/lEt/A2/s2（A1-R2：styles 121301–123510 面板布局引擎逐字重建改指）+ A1-R6：R2/I2/L2/z2/B2/oEt 远程条目域改指 + A1-R7：V2/cEt/Bne 恢复条目域改指（Hn 改指更正迁 SrcSharedA；tombstone 见原 declare 位）
@@ -276,10 +276,10 @@ import { refreshPinnedTasksForSession as refreshPinnedTasks, refreshTimelineTask
  * 0. 外部依赖的类型声明（跨 chunk / 它族已重建者，此处声明接口）
  * ==========================================================================*/
 
-/** react-intl 风格 intl 对象——A0-D-Misc：useIntlContext 已接线 I18n.useZCodeIntl，此接口仅供本族签名引用 */
-export interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/** react-intl 风格 intl 对象——A0-D-Misc：useIntlContext 已接线 I18n.useZCodeIntl */
+export type { IntlShape };
+/* ── tombstone〔A1-R173〕面收敛：本地 export interface IntlShape（3 行形，原 @280-282）退役 → 改采上方 @264 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）+ **上行 @280 原位 `export type` 再导出**保 export 面。★本件係全树 24 处 IntlShape 中唯一 export 者，故不得径用 R172 之 import-specifier 单式——该式只生**局部非导出**绑定、会使 shim modules/OnboardingLoginLeaves@335 之 `export type { IntlShape }` 触 **TS2305**、断 AppRootLeaves@109→@345 三跳链。
+ *    〔别名保名〕故 2 处内部读者（@2966 useRemoteWorkspaceOrchestrator / @4264 useRootPlatformBridge 之 `intl: IntlShape;`）与 3 跳外链（shim @335 `export type` → AppRootLeaves@109 `import type` → 消费 @345）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**；同式先例＝**本文件** R148 四面族 @777 `export type { TaskStoreState, … }`（其别名 specifier 在 @251、内部读者 @4714 仍活）→ 再导出式非新式。★上行令 AppRootLeaves@157 之「OnboardingLoginLeaves@280」引证**行号与所指皆不变**。 ── */
 
 
 /* --- 服务束（fs = useServices）--- */

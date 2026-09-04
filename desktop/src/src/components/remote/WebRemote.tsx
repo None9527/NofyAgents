@@ -134,10 +134,10 @@ declare module "react" {
  * ==========================================================================*/
 
 declare function cn(...inputs: Array<string | false | null | undefined>): string;
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 4 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝
+/* ── tombstone〔A1-R173〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采下方 @140 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 4 处读者之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    ★四读者皆**索引取用** `IntlShape["formatMessage"]`（@1467 resolveStatusTitle / @1484 resolveStatusDetail / @1511 resolveStatusTag / @1550 resolveFailureMessage）＝本档唯一索引面消费形；canonical 亦以**方法语法**声明 formatMessage（非 property-arrow，对照 modules/intlProvider@66-68 之异形）→ 索引解析结果前后同一型别，别名保面。 ── */
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 4 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝。〔A1-R173〕★上句「本地 IntlShape」之 referent 已随本批面收敛移至**本导入行**（本地 3 行界面已销账、改采 `type ZCodeIntl as IntlShape` 别名）；「逐字节同形」之实测依据仍在案（成员行与 I18n@202 逐字节同、md5 d2ffea415e84）→ **零型缝结论不变**。
 /* ── tombstone（A0-S2d）：logger/toast/dismissToast declare 删除，canonical 在
  *    logger.tsx（t 导出）与 ImeComposition.tsx，经文件头真实 import 消费。 ── */
 

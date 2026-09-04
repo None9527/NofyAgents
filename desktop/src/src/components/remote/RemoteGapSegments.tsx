@@ -104,11 +104,11 @@ import { useFeedbackStore } from "../../modules/stores-core";
 /** 原 Z（dist chunk cn 导出） */
 declare function cn(...inputs: Array<string | false | null | undefined>): string;
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R173〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采下方 @111 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 2 处读者（@592 resolveWizardStepCopy / @628 validateAndBuildRemoteTarget 之参面）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    ★@592 係 export 函数而其签名引本文件非导出型别——合法 TS 且不受本收敛影响（noEmit 故无 .d.ts 产出；isolatedModules 由 specifier 之显式 type 修饰满足）。★下方 @110 之单行文档注（原文「原 G（IntlProvider chunk）」）係 @111 导入行之注、**非**本界面之注 → 逐字保留（R172 FileTreePanel@186 同型陷阱）。 ── */
 /** 原 G（IntlProvider chunk） */
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 4 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 4 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝。〔A1-R173〕★上句「本地 IntlShape」之 referent 已随本批面收敛移至**本导入行**（本地 3 行界面已销账、改采 `type ZCodeIntl as IntlShape` 别名）；「逐字节同形」之实测依据仍在案（成员行与 I18n@202 逐字节同、md5 d2ffea415e84）→ **零型缝结论不变**。
 
 /* ── tombstone（A0-CLEANUP 族清理）：Button（原 X=t）declare 删除 → import { Button } from './button'。 ── */
 

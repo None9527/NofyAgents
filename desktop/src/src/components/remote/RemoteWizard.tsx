@@ -102,10 +102,10 @@ import { Input } from '../../modules/ImeComposition'; // 原 P（imeComposition 
  * ==========================================================================*/
 
 declare function cn(...inputs: Array<string | false | null | undefined>): string;
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 4 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝
+/* ── tombstone〔A1-R173〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采下方 @108 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 **零代码读者**之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    ★别名落为**未用**：本文件 4 处 useIntlContext() 消费（@271/@366/@489/@1092）皆不经此型名 → 纯死面退役；未用别名合法（两 tsconfig 皆无 noUnusedLocals），先例 components/conversation/AutomationCards@6（全文件 IntlShape 命中恰 1＝导入行自身）。全树已落 17 家（R164 前 11 + R172 六家）。 ── */
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 4 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝。〔A1-R173〕★上句「本地 IntlShape」之 referent 已随本批面收敛移至**本导入行**（本地 3 行界面已销账、改采 `type ZCodeIntl as IntlShape` 别名）；「逐字节同形」之实测依据仍在案（成员行与 I18n@202 逐字节同、md5 d2ffea415e84）→ **零型缝结论不变**。
 /* ── tombstone（A0-S2d）：logger declare 删除 → canonical 在 logger.tsx（t 导出）；
  *    P Input declare 删除 → canonical 在 ImeComposition.tsx（y 导出）；
  *    U2 useConfirmDialog declare 删除 → canonical 在 Modals.tsx（已导出），
