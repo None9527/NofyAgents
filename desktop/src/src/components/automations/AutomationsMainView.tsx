@@ -19,7 +19,7 @@ import { reportTelemetry, type TelemetryPlatform } from '../../modules/StoresDee
 import { useServices } from '../../modules/services';
 import { useAutomationsStore, useOffPeakTaskStore } from '../../modules/stores-tasks'; // A1-R9 bX 接线改指：本地死 declare 删除 → 真实 import（canonical = components/shell/Home.tsx 641 区 bX@91416，经 stores/offPeakTaskStore shim 链）；tombstone 见原声明位
 import { cn } from '../../modules/UtilsCn'; // 原 Z（utils-CEEH0K_K.js）
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R119〕原 G（IntlProvider D@9248–9252）declare 改指（R1/R116 判例，别名保留调用名）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 〔A1-R119〕原 G（IntlProvider D@9248–9252）declare 改指（R1/R116 判例，别名保留调用名）
 import { useAppSettings as useSettingsSnapshot } from '../../modules/UsageDeep'; // 〔A1-R119〕原 JM 族 declare 改指（canonical UsageDeep@1745，R11 判例〔A1-R168 勘误：旧引 1730 行漂 +15〕；返回面 {settings, loading, update, ...} 超集兼容）
 import { useWorkspaceTabStore, isWorkspaceKindTab as isWorkspaceTabUsable } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R119〕原 pc/oc declare 改指（R107/R2 判例；别名保留调用名）
 import { useConfirmDialog } from '../../modules/Modals'; // 〔A1-R119〕原 U2（styles 123510）declare 改指（R5/R6 ConfirmDialog canonical 判例）
@@ -66,13 +66,13 @@ import {
  * ==========================================================================*/
 
 /** react-intl 风格 intl（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R172〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采上方 @22 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 1 处读者（@924 `formatOffPeakRemainingTime` 之 `intl` 参）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    ★下方 @73-75 之 R119 碑本批同批勘误（其「接口保留」与「3 处读者 984/1070/1083」两声称皆不成立，见该处）。全树 11 家已落先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700、components/shell/Home@167、components/composer/ConfigSelect@12、components/modals/UpdateStatusDialog@9、components/conversation/{ConversationToolViews@12,ConversationInteractionsOverlay@10,QueuePanel@7,AutomationCards@6,SessionBanners@7}〕 ── */
 
 /* ── tombstone〔A1-R119〕：declare useIntlContext（原 G）删除 → 改指 modules/I18n::useZCodeIntl（import 别名在案；
- *    R1/R116 判例续）。本地 IntlShape 接口保留——余 3 处活体签名引用（984/1070/1083），
- *    与 I18n::ZCodeIntl@201–203 逐字同形（R116 既证）。 ── */
+ *    R1/R116 判例续）。〔A1-R172 勘误二处〕①旧注「本地 IntlShape 接口**保留**」已不复成立——该界面本批销账、改采上方 @22 之 `type ZCodeIntl as IntlShape` 别名（别名保名故读者之名不变）；
+ *    ②旧注「余 3 处活体签名引用（984/1070/1083）」**三行号皆误**——实测 @984 係注释行且无该 token、@1070/@1083 係代码行而无该 token；**唯一真读者係 @924**（旧碑从未提及）。与 I18n::ZCodeIntl@201–203 逐字同形（R116 既证、本批复核 md5 d2ffea415e84）。 ── */
 
 /** 桌面平台服务（原 l()，imeComposition chunk）——仅列本族用到的面 */
 interface PlatformService {

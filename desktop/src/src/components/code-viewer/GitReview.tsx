@@ -236,10 +236,10 @@ import { useServices, useTaskSessionFilePath, useTaskNativeSessionLogFile as use
 /** 类名合并（原 Z，utils-CEEH0K_K.js） */
 
 /** 自研 i18n 上下文（原 G()，IntlProvider-C321H7m8.js） */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 9 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝
+/* ── tombstone〔A1-R172〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采下方 @242 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 3 处读者（@1728／@3905／@3934）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    ★净零行为**强制**：本文件 @321 之 R45 `IconX` 碑全树被引 **4 次**、且本文件引证密度为七文件之最（51 条、24 条在编辑点之后）。全树 11 家已落先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700、components/shell/Home@167、components/composer/ConfigSelect@12、components/modals/UpdateStatusDialog@9、components/conversation/{ConversationToolViews@12,ConversationInteractionsOverlay@10,QueuePanel@7,AutomationCards@6,SessionBanners@7}〕 ── */
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 9 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝。〔A1-R172〕★上句「本地 IntlShape」之 referent 已随本批面收敛移至**本导入行**（本地 3 行界面已销账、改采 `type ZCodeIntl as IntlShape` 别名）；「逐字节同形」之实测依据仍在案（成员行与 I18n@202 逐字节同、md5 d2ffea415e84）→ **零型缝结论不变**。
 
 /** 日志器（原 J，logger-PFDwl5Yq.js） */
 

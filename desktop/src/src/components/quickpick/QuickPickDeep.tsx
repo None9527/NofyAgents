@@ -154,9 +154,9 @@ import type { BaseServices, SessionRegistryState } from '../../stores/sessionReg
  * 0. 外部依赖类型声明
  * ==========================================================================*/
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R172〕死面销账：本地 interface IntlShape（3 行形、与 canonical modules/I18n@201-203 ZCodeIntl **逐字节同形**）→ **纯删、不改指**。
+ *    理据：本文件 1675 行内 i18n token **仅 2 处且皆在本界面自身之内**（零 `useIntlContext` 调用、零 `intl` 形参、零 `modules/I18n` 导入）→ 别名机制在此**空转**，
+ *    改指反造成本批**唯一新模块边** + 一个**永久未用导入**。判据＝R165 两源载荷性（Ⓐ本文件代码读者 **0**、Ⓑ未 `export` 故他文件结构上无从导入）。 ── */
 
 /** 任务元数据（stores 层口径，节录） */
 interface TaskMeta {

@@ -143,7 +143,7 @@ import { normalizeSearchDescriptor as buildQueryDescriptor, descriptorCacheKey a
 import { useBaseServices, useServices } from '../../modules/services';
 import { useSessionRegistryStore } from '../../modules/stores-core';
 import { cn } from '../../modules/UtilsCn'; // 类名合并（原 Z，utils-CEEH0K_K.js）
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // intl 上下文（原 G()，IntlProvider-C321H7m8.js）
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n'; // intl 上下文（原 G()，IntlProvider-C321H7m8.js）
 import { Button } from '../../modules/button'; // Button（原 X，button-laUijeDG.js）
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Tooltip（原 Ia，usageStatsUiParts-CiR7YEhh.js）
 import { Command as CmdkCommand, CommandEmpty as CmdkEmpty, CommandGroup as CmdkGroup, CommandInput as CmdkInput, CommandItem as CmdkItem, CommandList as CmdkList, CommandLoading as CmdkLoading, CommandSeparator as CmdkSeparator } from 'cmdk'; // A0-S3c：vendored cmdk（本 chunk 26004–26574）→ npm cmdk@1.1.1
@@ -153,10 +153,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
  * 0. 外部依赖的类型声明（真实实现位于上面清单所列 chunk；此处为重建接口）
  * ==========================================================================*/
 
-/** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js）——A0-D-Misc：useIntlContext 已接线 I18n.useZCodeIntl，此接口仅供 formatRelativeTime 签名 */
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/** react-intl 风格 intl 对象（原 G()，IntlProvider-C321H7m8.js）——A0-D-Misc：useIntlContext 已接线 I18n.useZCodeIntl */
+/* ── tombstone〔A1-R172〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采上方 @146 既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 1 处读者（@833 `formatRelativeTime` 签名）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。
+ *    ★上方 @156 原注尾句「此接口仅供 formatRelativeTime 签名」之「此接口」已失 referent，故同批删该尾句（读者归属不变、仅措辞随销账更新）。全树 11 家已落先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700、components/shell/Home@167、components/composer/ConfigSelect@12、components/modals/UpdateStatusDialog@9、components/conversation/{ConversationToolViews@12,ConversationInteractionsOverlay@10,QueuePanel@7,AutomationCards@6,SessionBanners@7}〕 ── */
 
 /** toast（原 m，imeComposition chunk 的 _ 导出） */
 

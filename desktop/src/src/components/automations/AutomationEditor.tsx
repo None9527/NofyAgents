@@ -11,7 +11,7 @@ import { Input, Popover, PopoverContent, PopoverTrigger, toast } from '../../mod
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsList, TabsTrigger } from '../../modules/Settings';
 import { useServices } from '../../modules/services';
 import { cn } from '../../modules/UtilsCn';
-import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
+import { useZCodeIntl as useIntlContext, type ZCodeIntl as IntlShape } from '../../modules/I18n';
 import { t as logger } from '../../modules/logger';
 import { useConfirmDialog } from '../../modules/Modals'; // U2
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
@@ -55,9 +55,9 @@ import {
  * 0. 外部依赖的类型声明
  * ==========================================================================*/
 
-interface IntlShape {
-  formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
-}
+/* ── tombstone〔A1-R172〕面收敛：本地 interface IntlShape（3 行形）删除 → 改采上方 @14既有导入行之 `type ZCodeIntl as IntlShape` 别名 specifier（canonical modules/I18n@201-203 ZCodeIntl）。
+ *    〔别名保名〕故本文件 10 处读者（@110／@305／@310／@364／@402／@427／@1462／@1493／@1563／@1668）之名**逐字不变**、零重锚；成员行与 canonical I18n@202 **逐字节同**（md5 d2ffea415e84）→ **型缝 0**。★头注 @2 列 `IntlShape` 为 §0 随族迁入存量——係**历史陈述非假**，本批不动。
+ *    全树 11 家已落先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700、components/shell/Home@167、components/composer/ConfigSelect@12、components/modals/UpdateStatusDialog@9、components/conversation/{ConversationToolViews@12,ConversationInteractionsOverlay@10,QueuePanel@7,AutomationCards@6,SessionBanners@7}〕 ── */
 
 /* --- 图标（lucide 风格；Sa=createLucideIcon 工厂，button chunk / 本 chunk 图标块） --- */
 type IconComponent = React.FC<React.SVGProps<SVGSVGElement> & { size?: number }>;
