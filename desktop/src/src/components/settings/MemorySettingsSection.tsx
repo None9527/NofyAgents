@@ -21,15 +21,15 @@ interface ProjectMemoryWorkspace {
   updatedAt: number;
   files: Array<{ name: string }>;
 }
-interface McpSyncService {
-  [key: string]: unknown;
-}
-interface BaseServices {
-  systemService: SystemService;
-  memoryService: MemoryService;
-  mcpSyncService: McpSyncService;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R160〕：本地 `interface McpSyncService`（原 @24-26）与 `interface BaseServices`（原 @27-32，
+ *    3 必填 systemService/memoryService/mcpSyncService + `[key: string]: unknown` 索引签兜底）二面**整族退役**。
+ *    理据：①`BaseServices` 之唯一引用点系原 @350/@351 之**重复转录 provider**（同批退役，见下碑）→ 本面随之成死；
+ *    ②`McpSyncService` 之唯一引用点系本面 @30 → 亦随之成死（★与 modules/Settings.tsx 之同名本地面不同：彼处
+ *    `McpSyncService`@293 另有活引用 `WorkspaceServices`@307，故彼处不 cascade）；③canonical 宽面在
+ *    `stores/sessionRegistryStore.ts@34`（八员全可选 + 索引签兜底，经 modules/stores-core 再导出），本面系其
+ *    **窄化重复**（3 必填 vs 全可选）——按 R157「最小结构面」沉淀窄面本可合法，惟本窄面之唯一消费者既已退役，
+ *    留存即成无主死面，故销账。④`SystemService`（@12 type import）随本面退役后成为未用导入；tsconfig 无
+ *    `noUnusedLocals` 故不报错，本批**不动该导入行**（该行兼载 §1 testid 族，避免无谓交涉），登记候后续清理。 ── */
 interface CodePreviewSettings {
   lightTheme: string;
   darkTheme: string;
@@ -346,11 +346,11 @@ export function ProjectMemoryViewer({
   );
 }
 
-/** 原 ds（js 2672）+ us context：服务 Provider（记忆分区在 E2t 外包一层） */
-const ServicesContext = React.createContext<BaseServices | null>(null);
-export function SettingsServicesProvider({ services, children }: { services: BaseServices; children: React.ReactNode }) {
-  return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
-}
+/* ── tombstone〔A1-R160〕：`ServicesContext`（原 @350）+ `export function SettingsServicesProvider`（原 @351-353）
+ *    **重复转录退役** → canonical = `services/serviceContext.tsx@13 ServiceProvider`（经 modules/services@100 转导出）。
+ *    束证：`ds` 全束 word-boundary 恰 **8** 命中全量归账 = **1 定义**（styles@2672 `function ds({services:e,children:t})`）
+ *    + 1 导出（@657 `ds as ni`）+ **6 调用点**（@42795/@42844/@205877/@207027/@207128/@212882）→ **单真身**；
+ *    R147 已裁「必指 serviceContext，不可指 MemorySettingsSection@351 并行副本」（ONB@686 / AppRootLeaves@291 在案），本批兑现。 ── */
 
 /** 原 E2t（js 202946）：记忆分区 = 工作区记忆开关 + 查看器（含请求序号防竞态）。
  *  错误码映射：ENOENT→fileDeleted、PROJECT_MEMORY_PREVIEW_LIMIT_EXCEEDED→fileTooLarge（5MiB 上限，

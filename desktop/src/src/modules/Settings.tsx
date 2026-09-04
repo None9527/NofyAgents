@@ -156,7 +156,7 @@ import { MigrationSettingsSection, UsageSettingsSection } from './SettingsPanels
 import { SidebarFooter } from './Sidebar';
 import { HelpMenu, WINDOWS_CAPTION_RIGHT_INSET_VAR, WindowsCaptionMenu, windowsCaptionInsetStyle } from './TopBar';
 import { useSubscriptionSnapshot, useAppSettings, type ModelMetadata, type ProviderEndpoints } from './UsageDeep'; // A0-CLEANUP3 3b：ModelProvider 面对齐；A1-R11：JM（53488）改指 canonical（components/usage/UsageDeep.tsx §2c）——既有边，无新增环（JM 为组件体内运行时消费）
-import { useBaseServices, useServices } from './services';
+import { useBaseServices, useServices, ServiceProvider as SettingsServicesProvider } from './services'; // 〔A1-R160〕+`ServiceProvider as SettingsServicesProvider`：一符一家收敛，改指 canonical services/serviceContext@13（束 ds@2672 单真身）；★**边既有**（本行原已导入 useBaseServices/useServices）→ **零新边**、零环风险；**别名保名** → 消费点 @1645/@1652 与再导出 @809 逐字不变
 import { cn } from './UtilsCn'; // Z（utils chunk）
 import { useZCodeIntl as useIntlContext } from './I18n'; // G（IntlProvider chunk）
 import { InfoTooltip as Tooltip } from './UsageStatsUiParts'; // Ia
@@ -169,7 +169,7 @@ import type { ChromeImportResult } from '../components/settings/BrowserSettingsS
 import { SettingsSidebarItem, SettingsCaptionLogo, UsageSectionTabBar } from '../components/settings/SettingsShellParts';
 import { GeneralSettingsSection, GeneralSettingsTitleChips } from '../components/settings/GeneralSettingsSection';
 import { AppearanceSettingsSection } from '../components/settings/AppearanceSettingsSection';
-import { formatWeekday, formatShortDate, formatMemoryUpdatedLabel, errorMessageOf, hasErrorCode, ProjectMemoryViewer, SettingsServicesProvider, MemorySettingsSection } from '../components/settings/MemorySettingsSection';
+import { formatWeekday, formatShortDate, formatMemoryUpdatedLabel, errorMessageOf, hasErrorCode, ProjectMemoryViewer, MemorySettingsSection } from '../components/settings/MemorySettingsSection'; // 〔A1-R160〕−`SettingsServicesProvider`：该符系束 ds@2672 之重复转录，已退役；改自 @159 既有 ./services 边导入 canonical 别名
 import { IndexingSettingsSection } from '../components/settings/IndexingSettingsSection';
 import { BrowserSettingsSection } from '../components/settings/BrowserSettingsSection';
 import { McpSettingsSection } from '../components/settings/McpSettingsSection';
@@ -310,12 +310,12 @@ interface WorkspaceServices {
   zcodeSessionService: ZcodeSessionService;
   [key: string]: unknown;
 }
-interface BaseServices {
-  systemService: SystemService;
-  memoryService: MemoryService;
-  mcpSyncService: McpSyncService;
-  [key: string]: unknown;
-}
+/* ── tombstone〔A1-R160〕：本地 `interface BaseServices`（原 @313-318）退役——**死宣告**：本文件内 `BaseServices`
+ *    仅原 @313 一处命中（即宣告自身；@159 导入者系异符 `useBaseServices`、@235 系注释、@1071 系调用），且**无 export**
+ *    → 文件内零引用。★与 `components/settings/MemorySettingsSection.tsx@27` 之同名本地面**逐字节全等**（diff 实测
+ *    IDENTICAL），同批同退（彼处见同批碑）。canonical 宽面在 `stores/sessionRegistryStore.ts@34`（经 stores-core 再导出）。
+ *    ★无 cascade：本文件 `SystemService`@279 / `MemoryService`@289 皆 **export 面须保**，`McpSyncService`@293 另有活引用
+ *    `WorkspaceServices`@307 → 三者皆不动。 ── */
 
 /* ── tombstone（A1-R11）：declare useAppSettings（原 JM，53440——普查行漂移，bundle 真身 53488）删除，
  *    改经文件头 ./UsageDeep import 消费（canonical = components/usage/UsageDeep.tsx §2c，JM 53488 逐字）。
