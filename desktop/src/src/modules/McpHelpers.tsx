@@ -112,7 +112,7 @@ interface PluginCommandLike {
   pluginName?: string;
   [key: string]: unknown;
 }
-/** ki（跨 chunk）：文件型命令判定 */
+/** ki（跨 chunk）：文件型命令判定 ── 〔A1-R167 立碑留存〕束符身份已四跳链实证：ki ≡ styles@798 `w as ki` ← 导入区 431..827 `from "./src-HCld2afU.js"` ← src 导出名 w ≡ modules/SrcSharedB@6409 `isUserPreferenceSource as w` ← @5633 `export function isUserPreferenceSource(e: any)`（原 mS，jsx 9118 / js 9000）；消费点 styles@193401 `if (ki(i) && i.agentSource === `zcodeAgent` && N7(t, [i.name, i.description, i.prompt]))` 与本文件 @124 逐字同；同族 ft ≡ styles@451 `C as ft` ≡ SrcSharedB `isPluginPreferenceSource as C`（印证 @118/@120 isPluginCommand 之注同真）。环安全：McpHelpers→SrcSharedB 係新边、BFS 零路回指（本文件原為零导入之純葉模块）。★然退营被型缝阻斷：本樁之类型术语 `command is FileBasedCommandLike` 在束內無對應物（ki 返回裸 boolean），改采別名导入後丢失窄化，tsc 实测 5 错（@124 TS18046 ×4 + @125 TS2345 ×1），須於消费点加 5 处鑄文方可通過 —— 与「消费点逐字不變」相衝且使 @124 偏離束真整潔形。裁定：留存本樁，候面裁定批統一处置（候選：FileBasedCommandLike 整族改受 canonical 參面 / 或命名保真批同批改名）；不得徑以 5 鑄強收。 ── */
 declare function isFileBasedCommand(command: unknown): command is FileBasedCommandLike;
 /** ft（跨 chunk）：插件命令判定 */
 declare function isPluginCommand(command: unknown): command is PluginCommandLike;

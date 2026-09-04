@@ -1,7 +1,7 @@
 // A0-S4-5: 自 modules/services.tsx §G 总题 + §G.1–G.4 原样迁入（任务未读去重 + v4 会话协议 schema + 命令词汇表 + FrameAssembler，原 js 32246–34180；原文件现为薄 re-export shim）。
 // zod schema 本体在 src-HCld2afU.js，此处保持 declare 占位（与原文件一致）。
 import * as React from "react";
-import { crc32Hex } from '../modules/SrcSharedB';
+import { crc32Hex, decodeBase64ToBytes as decodeFrameBase64 } from '../modules/SrcSharedB'; // 〔A1-R167〕+decodeBase64ToBytes as decodeFrameBase64（束符 Tte；下方 @387 墓碑）
 /* ============================================================================
  * G. 命令队列运行时（原 32246–36438）
  * ----------------------------------------------------------------------------
@@ -384,7 +384,7 @@ declare function frameEnvelopeMaxBytes(frame: LogicalFrame): { maxBytes: number 
 declare function hasCompleteFrameShape(frame: LogicalFrame, requiredFields: Set<string>): boolean; // 原 hS + Uke
 declare function hasFragmentFrameShape(frame: LogicalFrame): boolean; // 原 Kke
 declare function frameMetadataMatches(payload: unknown, meta: { logicalFrameId: string; logicalFrameOrdinal: number }): boolean; // 原 vS
-declare function decodeFrameBase64(base64: string | undefined): Uint8Array | null; // 原 Tte
+/* ── tombstone〔A1-R167〕：declare decodeFrameBase64（束符 Tte）删除 → 改采 @4 既有 modules/SrcSharedB 边之别名 specifier `decodeBase64ToBytes as decodeFrameBase64`〔别名保名〕，消费点 @541 逐字不变。束符印证：本行原注 `原 Tte` ≡ adopter conversationWireCore@62 `原 bi/Tte 环境声明二件改指逐字实体（styles 740/693 二跳）`。canonical modules/SrcSharedB@2922 `export function decodeBase64ToBytes(e: any)`（原 Uf，jsx 6916 / js 6775）。零新边。参面由 `string | undefined` 寬化為 `any`＝与束真一致；返回面 `Uint8Array | null` 逐字不变（消费点 @542 `if (!decoded)` 空值分支仍立）。 ── */
 declare function bytesEqual(a: Uint8Array, b: Uint8Array): boolean; // 原 qke
 
 /**

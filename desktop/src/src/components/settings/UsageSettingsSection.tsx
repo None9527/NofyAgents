@@ -5,7 +5,7 @@ import { LoaderCircle as SpinnerIcon, BoltIcon, FlameIcon, StarIcon, RefreshCcw 
 import { Button } from '../../modules/button';
 import { Tabs, TabsList, TabsTrigger } from '../../modules/Settings';
 import { requestSettingsSectionNavigation as navigateToSettingsSection } from '../../modules/Settings'; // ow（js 39381；A1-R24 归属+行漂校正：旧注 iw 35393 失实——本别名 ≡ Home requestSettingsSectionOpen ≡ ow）
-import { USAGE_REPORT_RANGES as APP_USAGE_RANGES } from '../../modules/SrcSharedA'; // ai=ms（A0-CLEANUP B-9）
+import { USAGE_REPORT_RANGES as APP_USAGE_RANGES, providerIds as PROVIDER_IDS } from '../../modules/SrcSharedA'; // ai=ms（A0-CLEANUP B-9） // 〔A1-R167〕+providerIds as PROVIDER_IDS（束符 q；下方 @67 墓碑）
 import { findQuotaLimit, formatQuotaResetTime, formatQuotaUsage, providerCacheKey, quotaPercent, useAppUsageStats, useCodingPlanUsageStats, useSubscriptionSnapshot, type EntitlementQuotaLimit, type ModelProvider } from '../../modules/UsageDeep';
 import { UsageHeatmap, formatPercent } from '../../modules/UsageStatsUiParts';
 import { UsageEmptyState as LoadingPlaceholder, UsageStatCard as StatCard, formatTokens as formatTokenCount, formatCountCompact as formatInteger, resolveModelLabel as modelDisplayName } from '../../modules/UsageStatsUiParts'; // Ia / Fa / Pa / Da / Aa / Jre
@@ -64,7 +64,7 @@ export interface CodingPlanUsageSnapshot {
 }
 
 /* A0-CLEANUP3 3b：tombstone —— 本地 ModelProvider 删除，改用 UsageDeep.ModelProvider（props 面直消费） */
-declare const PROVIDER_IDS: { zaiCodingPlan: string; bigmodelCodingPlan: string }; // q（skillStore chunk）
+/* ── tombstone〔A1-R167〕：declare PROVIDER_IDS（束符 q，本行原注「skillStore chunk」；src 侧 W@4733 定义 / mo@9963 导出）删除 → 改采 @8 既有 SrcSharedA 边之別名 specifier `providerIds as PROVIDER_IDS`〔别名保名〕，9 处消费点（@521/522/527/529/535/537/543/545/552）逐字不变。束符印证：本行原注 `q（skillStore chunk）` ≡ adopter ModelProviderSettingsSection@17 `q=mo` ≡ SidebarLeaves@141 `q≡W 4733`（三处一致）。canonical modules/SrcSharedA@2008 providerIds（7 键字面量型）。零新边（@8 既有）。 ── */
 
 /* --- 展示原语（接口级） --- */
 

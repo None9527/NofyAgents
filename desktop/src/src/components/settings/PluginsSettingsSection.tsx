@@ -8,7 +8,7 @@ import { toast, type RemoteTarget } from '../../modules/ImeComposition'; // 〔A
 import { RemoteSyncDialogs, canOpenRemoteSessionSourceCheck as resolveRemoteSyncTarget, remoteSyncTargetLabel as remoteTargetDisplayName } from '../../modules/Modals'; // 〔A1-R50〕+$2/q2（原二 declare）：canonical = RemoteSyncDialogs::canOpenRemoteSessionSourceCheck（styles 127142）/remoteSyncTargetLabel（styles 125207），别名保留调用名，消费位逐字不变
 import { AddMarketplaceDialog, PluginAdvancedSection, PluginDetail, PluginHookDetailsList, PluginInfoRow, PluginManageList, PluginSourcesDialog, PluginStoreGrid, PluginUninstallDialog, buildPluginChatPrompt, buildStoreItems, useUninstallFlow, type PluginHookDetail } from '../../modules/SettingsLeaves'; // A0-CLEANUP3 3b：PluginHookDetail 属主为 SettingsLeaves（导出）
 import { useBaseServices, useServices, useSessionService } from '../../modules/services'; // A1-R47：+useSessionService（原 Ag 收敛改指）
-import { usePluginsStore } from '../../modules/stores-workspace';
+import { usePluginsStore, usePluginsStore as pluginsStoreStatic } from '../../modules/stores-workspace'; // 〔A1-R167〕+usePluginsStore as pluginsStoreStatic（束符 B6 静态面；下方 @252 墓碑）
 import { useZCodeIntl as useIntlContext } from '../../modules/I18n';
 import { InfoTooltip as Tooltip } from '../../modules/UsageStatsUiParts'; // Ia
 import { OFFICIAL_PLUGIN_MARKETPLACE_IDS as OFFICIAL_MARKETPLACE_IDS } from '../../modules/SrcSharedB'; // cre（jsx 159308）
@@ -249,7 +249,7 @@ interface PluginsStoreState {
   updatePlugin: (pluginId: string, pluginService: unknown) => Promise<void>;
   restoreBuiltin: (pluginId: string, pluginService: unknown) => Promise<void>;
 }
-declare const pluginsStoreStatic: { getState: () => PluginsStoreState }; // B6.getState()
+/* ── tombstone〔A1-R167〕：declare pluginsStoreStatic（束符 B6，本行原注 `B6.getState()`）删除 → 改采 @11 既有 modules/stores-workspace 边之别名 specifier `usePluginsStore as pluginsStoreStatic`〔别名保名〕，3 处消费点（@491/499/503）逐字不变。束符印证：本行原注 `B6.getState()` ≡ adopter stores/pluginsHelpers@7 `〔A1-R129n〕原 B6 静态面实接线`。canonical stores/pluginsStore@101 `export const usePluginsStore: UseBoundStore<PluginsState>`（经 stores-workspace@69 导入 / @86 再导出，与 @11 既有 usePluginsStore 同一实体）。零新边；@11 之环係既有、本批未新增边故环态不变。★隨批登記：本地 `PluginsStoreState`@228-251（24 行）自此成為死面（全文件僅 @228 定义 + @252 本樁兩处引用），候面收敛批清理；其所描 error/installedPlugins 二員与 canonical PluginsState@66/@62 逐字節同形，故三消费点型別不变。 ── */
 
 /* 插件子视图（接口级；行号见头部映射 §C） */
 declare const PluginConfigForm: React.FC<{
