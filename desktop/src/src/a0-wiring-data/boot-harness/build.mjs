@@ -18,6 +18,28 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 const SRC = '/Users/mac/nofy-build/desktop/src/src';
+
+// ★cwd 守卫（A1-R175）：esbuild 把「模块相对路径」写进产物两处——`// <path>` 横幅注释
+//   与 `__esm({ "<path>"() {…} })` 之惰性注册表字符串键——而该相对路径係按 **process.cwd()**
+//   计算，故本脚本之产物字节**随调用 cwd 而变**，源码一字未动亦然。
+//   实测（HEAD 639bfa8，五种 cwd，三尺寸 src-facade / IntlProvider / boot-entry）：
+//     desktop/src/src                426613 / 736955 / 580622  ← 规范值，历批记录所本
+//     desktop/src                    426729 / 736975 / 581442
+//     …/boot-harness                 426753 / 736917 / 581682
+//     仓库根                          427077 / 737035 / 583902
+//     /tmp                            427860 / 737170 / 589437
+//   boot-entry 跨度达 8,815 字节。⇒ 若从错误 cwd 构建，门 g 之「三 bundle md5 与前批
+//   逐字节全等」硬判据（R158 立）会**假报漂移**（误判本批动了值位文本），或反向假报全等。
+//   与 R170 环工具 cwd 陷阱同族：os.walk/相对路径型工具在错误 cwd 下**静默**产出貌似合理之结果。
+//   规约：一律 `cd desktop/src/src && node a0-wiring-data/boot-harness/build.mjs`。
+//   注：A1_BOOT_DIR 之**目录名**不入产物（同深度即同相对路径），故历批换端口无碍。
+const _CWD = process.cwd();
+if (!(_CWD === SRC || _CWD === '/private' + SRC)) {
+  console.error(`cwd 须为 ${SRC}，实为 ${_CWD}`);
+  console.error('产物字节随 cwd 而变（见上方注释），从错误 cwd 构建会污染门 g 之 md5 判据。');
+  process.exit(3);
+}
+
 const ASSETS = '/Users/mac/nofy-build/desktop/src/out/renderer/assets';
 const OUTDIR = process.env.A1_BOOT_DIR || '/tmp/a1-f1-boot';
 const RENDERER = path.join(OUTDIR, 'renderer');
