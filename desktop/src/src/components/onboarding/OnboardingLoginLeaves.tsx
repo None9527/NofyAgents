@@ -1046,8 +1046,8 @@ export interface PaneLayoutState {
 
 
 
-
-
+/* ── 立碑〔A1-R158／W5a 收官〕：以下 @1069 `useDiffsWorkerPool`（原束符 **XRe**）与 @1070-1074 `DiffsWorkerPoolProviderElement`（原 **YRe**）二件裁定 **留存**（非退役），移交 **F14 diffs 高亮域**批处置；本批仅立碑，台账 632 **不减**。 ── */
+/* ── 立碑〔A1-R158〕理据（四条，皆本批实测）：①**束符全量归账**——`XRe` 全束 word-boundary **2** 命中：def `styles@46998 function XRe(){…}` + 消费 `styles@211393 let t = XRe();`（≡ 树 @4947）；`YRe` 亦 **2** 命中：def `styles@46975 function YRe(…)`（解构形参三名 children/poolOptions/highlighterOptions 与 @1071-1073 之面逐字对应）+ 消费 `styles@211428 ? (0, $.jsxs)(YRe, {…})`（≡ 树 @4984-4990）→ 无第三树别名、全树无他处 canonical 可改指。②**活消费非死件、且在启动图内**——@4947（`DiffsPoolOptionsSync`，原 Y6t js 211392）与 @4984-4990（`DiffsWorkerPoolProvider`，原 X6t js 211414）；后者经 `modules/OnboardingLoginLeaves@317` 转导出 → `modules/AppRootLeaves@89` 导入、@1918-1925 作 provider 树节点消费 → 删碑即 tsc 红且 boot 崩，故**不得**照「零消费死件」例纯删。③**依赖闭包全树未重建**——束真身之池管理 `GRe` 类在 `styles@46400`（实例化 @46968 `return ((_O ??= new GRe(e, t)), _O);`）、同域 `KRe`@46949 / `JRe`@46970 等，域区 styles 46400–46999；树侧仅 **worker 端**已重建（`components/code-viewer/DiffsWorker.tsx`，其头注 @124-126 自明「主线程 DiffsWorkerPool / DiffsWorkerPoolProvider / useDiffsWorkerPool 均在 styles-CdEGpc2x.js（F14 域，另族重建）」）→ 不宜在 Onboarding 域内越域转录约 600 行池实现。④**裁定**——待 F14 域重建 `GRe` 闭包后真实体化再退；dossier-D §D-9「建议移出本域、留批 F14」同判，本批以束证 + 树侧消费链独立复核后采纳（档案判定仍逐件核，非径信）。 ── */
 /* ── tombstone〔A1-R146〕：B9 广播二件 declare 退役 → 改指 components/code-viewer/FileTreePanel（经 modules/FileTreePanel
  *    转导出；**新值边**，先例 SidebarLeaves@128 同路径同判例，环检查 NO-VALUE-CYCLE）。
  *    insertCreatedTaskFromBroadcast（原 cLt）≡ FileTreePanel@2615 registerWorkspaceTask；
@@ -1287,7 +1287,7 @@ export interface TaskStreamPayload {
 
 /* --- 它族组件（F17/F12/F03 消费面）--- */
 /* ── tombstone〔A1-R44〕：declare WebRemoteControlFeatureGate（原 oRt 族）删除——活消费面在 modules/AppRootLeaves.tsx（其本地 declare + 消费暂代式）；本文件为零消费重复 declare（全文 grep 实测仅本 declare 行），纯删碑。证据见 A1-R44.report.md §二。 ── */
-
+/* ── 立碑〔A1-R158／W5a 收官〕：@1292-1299 `declare global` 之 Window 扩展裁定 **永久留存**（ambient 件，非业务 declare，不属 W5 台账清零对象；census 三已裁留存、dossier-C「ambient 1 件留存」同判）。**跨文件硬依赖清单（四项，皆本批实测）**：①`__ZCODE_LAUNCH_MARKS__`（@1296）**全树唯一声明处即本块，而写端在他文件**——`modules/rendererEntry.tsx@363` 赋值 `window.__ZCODE_LAUNCH_MARKS__ = launchMarks`（值来自 @360 `parseLaunchMarks`），且 rendererEntry@109-111 头注明载「window.zcode / __ZCODE_LAUNCH_MARKS__ / __zcodeArmsCustomEventsE2E 的 Window 声明已由 Sidebar / OnboardingLoginLeaves / AppRootLeaves 提供（避免重复声明冲突）」= 该文件**故意不自行声明**本键（其 @112-121 块只声明 RENDERER_START / REACT_COMMIT_AT / DEVICE_ID / LOCAL_DEVELOPMENT_RUNTIME 四键）→ 删本块则 rendererEntry@363 报 TS2339，此即 census「写端依赖本块合并」之逐字实证。②**读端在本文件内**——@1986/1987/1990 = `readRendererLaunchMarks`（原 YPe，束 @41625）逐段消费三键，该函数经 `modules/OnboardingLoginLeaves` 转导出 → `modules/AppRootLeaves@91` 导入消费（启动标记上报链）。③**接口合并之同型约束（面不得单侧改）**——`__ZCODE_RENDERER_START__` / `__ZCODE_REACT_COMMIT_AT__`（@1294/1295）与 rendererEntry@114/115 系同型重复声明（皆可选 number）；`__zcodeArmsCustomEventsE2E`（@1297）与 `modules/AppRootLeaves@315` 系同型重复（皆可选 Array of Record，写端 AppRootLeaves@2642 `??=` 追加）→ TS 声明合并要求后续同名属性同型，任一侧单独改型即 TS2717 双侧同红，故本块四面**既不可删、亦不可单侧收窄或放宽**。④**面精化理据在案**——@1296 行尾 A1-R9 注：四键必选（写端 `SrcSharedB parseLaunchMarks` 逐键校验 number/finite，缺一即 null）。**据此 W5a 闭营条件改述**为「Onboarding 域余件**裁定全部在案**」而非「台账归零」：本批后域余 3 件（@1069/@1070 移交 F14、@1292 永久留存）皆有束证 + 依赖清单在案 → **W5a 三域全闭**（Composer R143 / UsageDeep R145 / Onboarding R158）。 ── */
 /* --- window 全局 --- */
 declare global {
   interface Window {
