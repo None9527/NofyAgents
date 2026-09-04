@@ -39,8 +39,8 @@ declare const SnapshotRefsLoader: React.FC<{
   refs: unknown[];
   onLoadFullToolCallFields?: () => void;
 }>;
-/** 错误面（原 aQ） */
-declare const ToolErrorSurface: React.FC<{ errorText?: string | null; [key: string]: unknown }>;
+/** 错误面（原 aQ，styles@99784〔A1-R169 补束行号，word-boundary 重定〕） */
+/* ── tombstone〔A1-R169〕死桩销账：ToolErrorSurface（原 aQ，styles@99784；本文件零消费点〔@1352 仅碑文提及〕、未导出、全树零自本文件导入者）→ 纯删；canonical = components/conversation/PlanToolBlocks.ts@181（@592 导出）。 ── */
 
 /* ── tombstone〔A1-P1-B14〕：代码面六 declare（CodeSurface/Header/Title/Actions/WrapButton/CopyButton，
  * 原 gk/pk/mk/hk/_k/vk）删除——束真身已逐字实体化于 ./CodeSurfaceBlocks（styles 48572–48872）。
@@ -56,8 +56,8 @@ declare function resolveStreamingChildSummary(
   viewProps: ToolCallViewProps,
   options?: { includeChildActionKindLabel?: boolean },
 ): { primaryText: React.ReactNode; secondaryText?: React.ReactNode; animationKey?: string; title?: string } | null;
-/** 工具错误文本（原 rQ，Conversation.tsx 已还原） */
-declare function extractToolErrorText(toolCall: ToolCall): string | null;
+/** 工具错误文本（原 rQ，styles@99590；〔A1-R169 勘误〕旧注「Conversation.tsx 已还原」不确——canonical 实为 components/conversation/ToolStatusModel.ts@64、@205 导出） */
+/* ── tombstone〔A1-R169〕死桩销账：extractToolErrorText（原 rQ，styles@99590；本文件零消费点、未导出、全树零自本文件导入者）→ 纯删；canonical = components/conversation/ToolStatusModel.ts@64（@205 导出），ToolCallBlock@14 与 PlanToolBlocks@50 已采。 ── */
 /* ── tombstone〔A1-P1-B15〕：declare extractPlanMarkdown（原 qZ）删除——束真身 qZ@98092 全链（GZ/Kct/qct/KZ 98073–98114）
  * 已逐字实体化于 ./PlanToolBlocks；手写 SwitchModeToolView 同批墓碑，消费面改文件尾转导出。SidePanel declare 同批收敛（shell 域改指 ./PlanToolBlocks）。 ── */
 /* ── tombstone〔A1-P1-B10〕：declare usePlatformService 删除——canonical 收敛改指 modules/ImeComposition（再导出

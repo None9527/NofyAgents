@@ -247,9 +247,9 @@ export type SessionRowOp =
   | { op: "row.delta"; rowId: number; path: unknown; append: string }
   | { op: "state.updated"; patch: SessionStatePatch };
 
-/** zod schema 常量（原 ji/K/Jr/Oi/Fi/Li/_t/_i/Yn/Ar/$r 组合；本体在 src chunk） */
-declare const QueueItemSchema: { parse(input: unknown): QueueItem; safeParse(input: unknown): { success: boolean; data?: QueueItem } }; // 原 qOe
-declare const SessionRowOpSchema: { parse(input: unknown): SessionRowOp }; // 原 cke
+/** zod schema 常量（原 ji/K/Jr/Oi/Fi/Li/_t/_i/Yn/Ar/$r 组合；〔A1-R169 勘误〕旧注「本体在 src chunk」不确——三符实测皆在 styles：qOe@32939 / cke@33219 / Yke@34236） */
+/* ── tombstone〔A1-R169〕死桩销账：QueueItemSchema（原 qOe，styles@32939）+ SessionRowOpSchema（原 cke，styles@33219）
+ *    二件皆本文件零消费点、未导出、全树零自本文件导入者 → 纯删；QueueItem@118 与 SessionRowOp@243 皆 export 公共面故留。 ── */
 
 /** 原 lke：行增量应用（row.delta 按行类型分派 text/inputText/output.text/summaryText） */
 export declare function applyRowDelta(row: Record<string, unknown>, path: string, append: string): Record<string, unknown>;
@@ -299,7 +299,7 @@ export interface SessionCommandMap {
   [command: string]: unknown;
 }
 
-declare const SessionCommandSchemas: { [K in keyof SessionCommandMap]?: { parse(input: unknown): SessionCommandMap[K] } }; // 原 Yke
+/* ── tombstone〔A1-R169〕死桩销账：SessionCommandSchemas（原 Yke，styles@34236；本文件零消费点、未导出、全树零自本文件导入者）→ 纯删；SessionCommandMap@270 系 export 公共面故留。 ── */
 
 /* --- G.4 FrameAssembler（原 bS，js 33842–34180） ---
  * 〔A1-P3-B4 孪生裁定〕本段为 A0 语义重建孪生（带类型、非逐字）。bS 的 bundle

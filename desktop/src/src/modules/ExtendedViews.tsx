@@ -389,11 +389,11 @@ interface EntitlementSnapshot {
  *  原 declare 共 5 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。
  ── */
 
-/** 原 LM（js 53251）：入口 plan 状态快照 */
-declare function resolveEntryPlanState(params: {
-  providers: ModelProviderInfo[];
-  loading: boolean;
-}): unknown;
+/** 原 LM（js 53299；〔A1-R169 勘误〕旧引 53251 行漂 −48）：入口 plan 状态快照 */
+/* ── tombstone〔A1-R169〕死桩销账：resolveEntryPlanState（原 LM，styles@53299；本文件零消费点、未导出、
+ *    全树零自本文件导入者）→ 纯删。canonical = components/shell/Home.tsx@4430（R26 逐字实体化、R42 补 export；
+ *    经 modules/Home@152 转导出），AutomationsMain@2131 与 AutomationsMainView@17 已采。
+ *    原 declare 共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。 ── */
 
 /** provider id 常量（原 q，src-HCld2afU.js 的 mo 导出） */
 
@@ -678,15 +678,15 @@ interface OffPeakStoreState {
 /* ── tombstone（A1-R8）：useOffPeakTaskStore（原 bX js 91416）死 declare 删除——本文件零调用点
  *    （实测 grep 仅余声明位）；OffPeakStoreHook 脚手架随删。bX 真实消费面：
  *    Home kit 簇（bundle 91645–91650，canonical 属主）+ AutomationsMainView
- *    （138876 簇，普查留批注在案）。OffPeakStoreState 型面留用（687 行 isCodingPlanConnectionActive 助手仍引）。 ── */
+ *    （138876 簇，普查留批注在案）。〔A1-R169 更正〕旧注「OffPeakStoreState 型面留用（687 行 isCodingPlanConnectionActive 助手仍引）」之理据已随该助手死桩销账而全失——实测删后 OffPeakStoreState@656-677 成零读者死面，登记入面收敛批。 ── */
 
-/** 原 Tit（js 91347）：coding plan 支持判定 */
-declare function isCodingPlanConnectionActive(
-  support: OffPeakStoreState["codingPlanSupport"],
-  settings: ZCodeSettings | null,
-): boolean;
+/** 原 Tit（js 91395；〔A1-R169 勘误〕旧引 91347 行漂 −48）：coding plan 支持判定 */
+/* ── tombstone〔A1-R169〕死桩销账：isCodingPlanConnectionActive（原 Tit，styles@91395；本文件零消费点、未导出、全树零自本文件导入者）→ 纯删。
+ *    canonical = components/shell/Home.tsx@749 isCodingPlanConnectionSelected（R104 既判 Tit ≡ 该函数；经 modules/Home@143 转导出，AutomationsMain@21 以别名 hasCodingPlanEntitlement 已采）。
+ *    ★级联：OffPeakStoreState@656-677 随本件销账成**零读者死面**（22 行；删前唯一读者即本桩 @685）→ 登记入面收敛批、本批不删（interface 非台账对象）。
+ *    原 declare 共 4 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。 ── */
 
-/* --- 工作区标签页 store（原 pc/oc/zMt，F04/F07 接线） --- */
+/* --- 工作区标签页 store（原 pc/oc/zMt；〔A1-R169〕三 declare 已全数销账：oc/zMt 系 R165、pc 系本批 → 本节余 @691-710 四界面成零读者死面闭簇，登记入面收敛批） --- */
 
 interface WorkspaceTab {
   id: string;
@@ -708,7 +708,7 @@ interface WorkspaceTabStoreHook {
   <T>(selector: (state: WorkspaceTabStoreState) => T): T;
   getState(): WorkspaceTabStoreState;
 }
-declare const useWorkspaceTabStore: WorkspaceTabStoreHook;
+/* ── tombstone〔A1-R169〕死桩销账：useWorkspaceTabStore（原 pc；本文件零消费点、未导出、全树零自本文件导入者）→ 纯删；canonical = modules/WorkspaceTabsDeep.tsx@686（R166 已就 McpSettingsSection@58 同符施行改指）；★级联：@691-710 四界面（WorkspaceTab/RemoteTarget/WorkspaceTabStoreState/WorkspaceTabStoreHook）成零读者死面闭簇（20 行，逐级唯一读者链）→ 登记入面收敛批。 ── */
 /** 原 oc：标签可用性判定 */
 /* ── tombstone〔A1-R165〕死桩销账：isWorkspaceTabUsable（本文件零消费点、未导出、全树零导入者）；canonical = modules/WorkspaceTabsDeep.tsx::isWorkspaceKindTab，他文件以别名导入而本桩从未接线 ── */
 /** 原 zMt（js 135518）：是否远程/工作区作用域标签（有 remoteSessionId/remoteTarget/workspaceIdentity） */
@@ -953,14 +953,14 @@ declare const PanelResizeHandle: React.FC<React.ComponentPropsWithoutRef<"div">>
 export type { CodeViewerSource };
 
 /** 确认对话框钩子（原 U2，styles 123510） */
-declare function useConfirmDialog(): (request: {
-  presentation?: string;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  confirmVariant?: "default" | "destructive";
-  showKeyboardHints?: boolean;
-}) => Promise<boolean>;
+/* ── tombstone〔A1-R169〕死桩销账：useConfirmDialog（原 U2，styles@123510；本文件零消费点、未导出、
+ *    全树零自本文件导入者）→ 纯删。canonical = components/modals/ConfirmDialog.tsx@79
+ *    （经 modules/Modals@250 与 stores/confirmDialogStore@20 转导出），全树约 15 家已采：
+ *    Bots／SkillsSettingsSection／McpSettingsSection／ModelProviderSettingsSection／HooksSettingsSection／
+ *    CommandsSettingsSection／SubagentsSettingsSection／TopBar／SidebarLeaves／AutomationEditor／
+ *    AutomationsMain／AutomationsMainView／RemoteWizard／WebRemote／OnboardingDialog。
+ *    型面登记：本桩 request 面六员（presentation?/title/description/confirmLabel/confirmVariant?/showKeyboardHints?）
+ *    与 canonical 面之异同因零消费点故不涉可赋性；★同符另一 declare 在 modules/AppRootLeaves@243 有消费点 @366 故载荷、不在本批。 ── */
 
 /* --- 自动化叶子（接口保留；编辑器体量大，属下一批抽取） --- */
 
@@ -976,17 +976,17 @@ interface AutomationCreateDraft {
 
 /** 原 YMt（js 91811+ 闲时编辑器，F15 闲时段）：闲时任务编辑器 */
 
-/** 原 cMt（js 134679 / jsx 113500）：闲时任务列表 */
-declare const OffPeakTaskList: React.FC<{
-  tasks: OffPeakTask[];
-  busyOperationId: string | null;
-  onOpen: (task: OffPeakTask) => void;
-  onPause: (task: OffPeakTask) => void;
-  onContinue: (task: OffPeakTask) => void;
-  onCancel: (task: OffPeakTask) => void;
-  onDelete: (task: OffPeakTask) => void;
-  onOpenSession: (run: { sessionId?: string | null; workspacePath?: string; workspaceIdentity?: string | null }) => void;
-}>;
+/** 原 cMt（js 134696 / jsx 113500；〔A1-R169 勘误〕旧引 js 134679 行漂 −17，AutomationsMain@265 独立载 134696–134939 印证）：闲时任务列表 */
+/* ── tombstone〔A1-R169〕死桩销账：OffPeakTaskList（原 cMt，styles@134696 / jsx 113500；本文件零消费点、
+ *    未导出、全树零自本文件导入者）→ 纯删。canonical = components/automations/AutomationsMain.tsx@674
+ *    （R113 逐字实体化、R119 补 export），AutomationsMain@1828 与 AutomationsMainView@26/@1642 已采；
+ *    本件系该符之**第三树别名**（AutomationsMainView@289 之 declare 已于 R119 销账）。
+ *    型面差异登记：本桩系 React.FC 之 props 面（tasks/busyOperationId/onOpen/onPause/
+ *    onContinue/onCancel/onDelete/onOpenSession 八员），canonical 系解构参函数形
+ *    （R113 型缝注在案）→ 因零消费点故不涉可赋性裁定。
+ *    OffPeakTask 另有读者 @614/@616/@647 故留；
+ *    ★@977「原 YMt（js 91811+ 闲时编辑器）」系前批已销 declare 之孤注、与本件无涉，仍留。
+ *    原 declare 共 10 行，等行置换以保行数不变、免重锚；逐字原文见 git 历史。 ── */
 
 /* --- testid 常量（原值来自 src-HCld2afU.js，已反查导出表） --- */
 

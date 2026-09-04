@@ -435,8 +435,8 @@ declare class PointerSensor {
 }
 declare function useSensor(sensor: unknown, options?: { activationConstraint?: { distance?: number } }): unknown;
 declare function useSensors(...sensors: unknown[]): unknown;
-/** 原 KX（js 92201）：按碰撞矩形与可放置矩形中心距离排序（closestCenter 变体） */
-declare const closestCenterCollision: (args: unknown) => Array<{ id: string; data: unknown }>;
+/** 原 KX（js 92249；〔A1-R169 勘误〕旧引 92201 行漂 −48、该处实为 function Xit；UsageDeep@451 独立载 KX(92249) 印证）：按碰撞矩形与可放置矩形中心距离排序（closestCenter 变体） */
+/* ── tombstone〔A1-R169〕死桩销账：closestCenterCollision（原 KX，styles@92249；本文件零消费点、未导出、全树零自本文件导入者）→ 纯删；树内惯例 = npm @dnd-kit/core 之 closestCenter 别名导入（Sidebar@211、UsageDeep@399 已采）；★同符另一 declare 在 QueuePanel@81 且有消费点 @311 故载荷、不在本批。 ── */
 declare const SortableContext: React.FC<{ items: string[]; strategy?: unknown; children: React.ReactNode }>;
 declare const rectSortingStrategy: unknown;
 declare function useSortable(args: { id: string }): {
