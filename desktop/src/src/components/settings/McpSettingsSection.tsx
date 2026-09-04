@@ -55,7 +55,7 @@ interface WorkspaceTabsStoreState {
   tabs: WorkspaceTab[];
 }
 /** 原 pc（js 4801）：工作区标签页 store 选择器 */
-declare function useWorkspaceTabsStore<T>(selector: (s: WorkspaceTabsStoreState) => T): T;
+import { useWorkspaceTabStore as useWorkspaceTabsStore } from '../../modules/WorkspaceTabsDeep'; // 〔A1-R166〕原 pc（js 4801）桩退营改指 canonical modules/WorkspaceTabsDeep@686——别名保名，消费点 @442/@443 逐字不变；全树 5 家先例〔SkillsSettingsSection@16、AutomationEditor@23 同式〕；★参面加宽：本地 WorkspaceTabsStoreState@52-56 三员係 canonical WorkspaceTabStoreState@152-171 之子集，二消费点仅读 activeWorkspacePath 与 activeWorkspaceIdentity 且两侧型别逐字同（string | null）→可赋；本地 @52-56 界面随本批成死面、登记候清理
 /* ── tombstone〔A1-R50〕：declare remoteTargetDisplayLabel（原 q2，styles 125207–125214）删除
  *    ——逐字真身 = components/modals/RemoteSyncDialogs::remoteSyncTargetLabel（A0 转录），
  *    改经文件头 modules/Modals 别名 import 接线（既有边；$2 同式先例 @8）。消费位 @628

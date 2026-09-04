@@ -47,9 +47,9 @@ import { useSearchResultsStore } from '../../stores/searchResultsStore'; // 原 
 import { taskWorkspaceKey as workspaceKey, compareTasks, taskEntityKey, sessionActivityOf, withSessionActivity } from '../../stores/searchResultsHelpers'; // 原 Io/Fo/Lo/Mo/jo
 import { markWorkspaceKeysStaleNow, setTaskUnreadOverlayNow, reconcileTaskUnreadNow, rollbackTaskUnreadNow } from '../quickpick/QuickPickDeep'; // 原 Ho/tae/nae/Wo
 
-/* ── declare（〔A1-P3-B2〕留批）：真身未实体化；注属主。型面宽化 any。 ── */
-/** 原 ie（消费 32388）：工作区态未读指示读面（taskUnreadByTaskId 布尔）；属主 = stores/taskStore 工作区态读面族，留批 */
-declare function readTaskUnreadIndicator(workspaceState: any, taskId: string): boolean;
+import { isTaskUnread as readTaskUnreadIndicator } from '../../stores/taskStore'; // 〔A1-R166〕原 ie（消费 32388）桩退营改指 canonical stores/taskStore@437（多行 export 块 @2995 导出）——别名保名，消费点 @193 逐字不变；全树 3 家先例〔QuickPickDeep@141 走 shim modules/SkillStore，本批径指真属主〕；环安全实测 stores/taskStore 零路回指本文件
+/* ── tombstone〔A1-R166〕：原 ie declare 桩退营，真身＝stores/taskStore@437 isTaskUnread ──
+ *  〔A1-P3-B2〕原「留批」裁定已兑现；桩之型面宽化 any 随之消失，canonical 首参 WorkspaceTaskState 全型化。 ── */
 
 var membershipPreserveReasons = new Set([
     `user_message_saved`,

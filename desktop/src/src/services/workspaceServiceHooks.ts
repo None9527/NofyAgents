@@ -10,9 +10,9 @@ import { useResolvedRemoteSessionId, useWorkspaceServices } from './remoteServic
 
 /* --- D.1 全局键盘快捷键（原 rge，js 24015–24079） --- */
 
-declare function isModKey(event: KeyboardEvent, key: string): boolean; // 原 ta（Ctrl/Cmd）
-declare function isModShiftKey(event: KeyboardEvent, key: string): boolean; // 原 Qi
-declare function isModAltKey(event: KeyboardEvent, key: string): boolean; // 原 Rre
+import { shortcutMatches as isModKey, shiftShortcutMatches as isModShiftKey, altShortcutMatches as isModAltKey } from '../lib/keyboardShortcuts'; // 〔A1-R166〕原 ta/Qi/Rre 三桩退营改指 canonical lib/keyboardShortcuts@128/133/138——别名保名，本文件 10 处消费点逐字不变；★束符三重印证〔declare 侧尾注 + canonical 侧头注「原 u（导出 u/ta）」「原 d（导出 l/Qi）」「原 f（导出 c/Rre）」 + adopter 侧 QuickPick@131〕；参面 ShortcutMatchEvent@118 係最小结构面而消费点 @32 onKeyDown 之 DOM KeyboardEvent 具全部六员→可赋，第三参 n 可选→二参调用合法；R154 已就同一 canonical 施行同式改指得型缝 0（判例在案）
+/* ── tombstone〔A1-R166〕：原 isModShiftKey（束符 Qi）与 isModAltKey（束符 Rre）二桩随 @13 同批退营 ──
+ *  三名同属一束符族 ta/Qi/Rre ≡ chunk u/d/f 导出，已並入 @13 之单一别名导入行；消费点 @34/@44/@50/@66 逐字不变。 ── */
 
 export interface GlobalShortcutHandlers {
   openQuickPick(): void;
