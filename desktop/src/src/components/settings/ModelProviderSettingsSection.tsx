@@ -617,8 +617,25 @@ function resolveDomainAfterLogout(opts: {
     : null;
 }
 
+/** 原 bQt（styles 191979-191986 / off 6476899）：持久化 provider 家族域迁移——读现值后写「域 + 时间戳 + 迁移旗标 + oauth 模式」四键。
+ *  〔A1-R157〕D-7 件② **真实体化**（dossier-D 判定正确，连续第二件）：★落点裁定 = 本文件，据**束邻接**——bQt@191979 紧夹于
+ *  「≡ 上 @612-618 之函数」与「w7 ≡ 下 @638 withFamilyModeOAuth」之间 → 本文件系束真属主区；且 bQt 体内调 w7 而其树家即本文件 → **同文件调用、零内部新边**。
+ *  ★参型采**最小结构面**（本文件全文零 settingService 型；且不得反向导入 OnboardingLoginLeaves@343 之本地近似 SettingServiceLike = canonical←consumer 倒置）。 */
+export async function persistProviderFamilyDomain(
+  settingService: { get(): Promise<{ modelProviderFamilyModes?: Record<string, string> }>; update(patch: Record<string, unknown>): Promise<void> },
+  domain: string
+): Promise<void> {
+  const settings = await settingService.get();
+  await settingService.update({
+    providerFamilyDomain: domain,
+    providerFamilyDomainUpdatedAt: Date.now(),
+    providerFamilyDomainMigrated: true,
+    modelProviderFamilyModes: withFamilyModeOAuth(domain, settings.modelProviderFamilyModes),
+  });
+}
+
 /** 原 w7（jsx 154449） */
-function withFamilyModeOAuth(modes: Record<string, string> | undefined, domain: string): Record<string, string> {
+export function withFamilyModeOAuth(domain: string, modes: Record<string, string> | undefined): Record<string, string> { // 〔A1-R157〕D-7 件①：**补 export + 参序归真**（行内改 → 本文件行数不因本行而变）。★归真之据：束真 styles@191988 `function w7(e, t) { return { ...t, [e]: `oauth` } }` 系 **e = domain、t = modes**（证：束 191985 在 bQt 体内作 `w7(t, n.modelProviderFamilyModes)`，而 bQt(e=settingService, t=domain) → 首参确为 domain），A0 期本文件转录作 `(modes, domain)` **反序**；ONB declare@952 与二消费点 @3833/@3873 皆 `(domain, modes)` → 不归真则别名保名下实参错位。★**本文件内零调用方**（grep `withFamilyModeOAuth` 仅命中本定义行）→ 交换二参**零风险**；体 `{ ...modes, [domain]: "oauth" }` 逐字不动。
   return { ...modes, [domain]: "oauth" };
 }
 

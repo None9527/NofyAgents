@@ -150,6 +150,8 @@ export {
   ModelProviderSectionShell,
   ModelProviderPanel,
   ModelProviderSettingsSection,
+  withFamilyModeOAuth, // 〔A1-R157〕原 w7（束真 styles@191988）转导出：OnboardingLoginLeaves@952 declare familyModesPatch 收敛改指所依（属主补 export + 参序归真见 MPSS@638；消费面 ONB@3833/@3873 ≡ 束 210192/210230，别名保名逐字不变）
+  persistProviderFamilyDomain, // 〔A1-R157〕原 bQt（束真 styles@191979-191986）转导出：OnboardingLoginLeaves@969 declare 收敛所依（★真实体化新实体见 MPSS@624-635，头注 @620-623；消费面 ONB@4106 ≡ 束 210434，同名直导逐字不变）
 } from '../components/settings/ModelProviderSettingsSection';
 export type {
   ModelProviderNavItem,
