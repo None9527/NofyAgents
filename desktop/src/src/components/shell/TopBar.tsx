@@ -163,7 +163,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '../ui/hover-card'
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 22 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝
 
 /* ── tombstone〔A1-R48〕：本地 PlatformService 面（21 员，A0 转录 = 本批 canonical 增补签名源）+ declare usePlatformService（原 l）
  *    删除 → 改指 canonical = components/ime/ImeComposition PlatformService 富面 + 真导出（modules/ImeComposition shim 再导出）。

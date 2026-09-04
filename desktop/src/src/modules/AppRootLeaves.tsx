@@ -154,7 +154,7 @@ import { listCodingPlanSources as getModelProvidersCached, hasLoadedCodingPlanSo
  * ==========================================================================*/
 
 
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+import { useZCodeIntl as useIntlContext } from './I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 1 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；所导入 IntlShape〔自 ./OnboardingLoginLeaves 转再导 components/onboarding/OnboardingLoginLeaves@280〕与 canonical ZCodeIntl 逐字节同形→零型缝
 
 /* --- 平台桥 --- */
 declare const DESKTOP_COMMANDS: { RelaunchApp: string; CloseWindow: string; [key: string]: string };

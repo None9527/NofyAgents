@@ -137,7 +137,7 @@ declare function cn(...inputs: Array<string | false | null | undefined>): string
 interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 4 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝
 /* ── tombstone（A0-S2d）：logger/toast/dismissToast declare 删除，canonical 在
  *    logger.tsx（t 导出）与 ImeComposition.tsx，经文件头真实 import 消费。 ── */
 

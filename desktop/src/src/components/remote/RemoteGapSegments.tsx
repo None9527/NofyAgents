@@ -108,7 +108,7 @@ interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
 /** 原 G（IntlProvider chunk） */
-declare function useIntlContext(): { intl: IntlShape; locale: string };
+import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 4 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形→零型缝
 
 /* ── tombstone（A0-CLEANUP 族清理）：Button（原 X=t）declare 删除 → import { Button } from './button'。 ── */
 

@@ -184,7 +184,7 @@ interface IntlShape {
   formatMessage(descriptor: { id: string }, values?: Record<string, unknown>): string;
 }
 /** 原 G：react-intl 风格 intl 上下文 */
-declare function useIntlContext(): { intl: IntlShape };
+import { useZCodeIntl as useIntlContext } from '../../modules/I18n'; // 〔A1-R164〕原 declare 退桩改指 canonical modules/I18n@637 useZCodeIntl——别名保名，本文件 3 处消费点逐字不变；全树 75 家先例〔modules/Conversation@143、modules/Composer@524、components/payments/PaymentDeep@10700 同式〕；★本桩原返回面仅 intl 一员，canonical ZCodeIntlContextValue 为其超集→面加宽，解构形消费点不受影响；本地 IntlShape 与 canonical ZCodeIntl 逐字节同形
 
 /** 原 J：logger */
 
