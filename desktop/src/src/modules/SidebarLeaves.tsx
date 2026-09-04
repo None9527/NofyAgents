@@ -4,10 +4,10 @@
  * SidebarLeaves.tsx — Sidebar 族接口级叶子展开（B4 批次 · 解混淆重建）
  * ============================================================================
  *
- * 来源文件（融合 chunk，213,695 行，未改动）：
- *   /home/none/grok-build/ref-ui/zcode-restored/out/renderer/assets/styles-CdEGpc2x.js
+ * 来源文件（融合 chunk，本机 213,979 行，未改动；旧账 213,695 行拷贝已不在本机，两版行号不同，本文件引证 vintage 逐条混杂、用前须以本机束重定〔A1-R163〕）：
+ *   /Users/mac/nofy-build/desktop/src/out/renderer/assets/styles-CdEGpc2x.js
  * 对照文件（同一 chunk 的 pretty-print 版，规格文档行号以它为准）：
- *   /home/none/grok-build/ref-ui/zcode-restored/src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx
+ *   /Users/mac/nofy-build/desktop/src/src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx
  * 登记：同目录 Sidebar.report.md §2「接口级（★）保留清单」——本文件将其中六项叶子
  *       从「接口声明」展开为「逐行还原」，格式与口径同 TopBar.tsx / Sidebar.tsx。
  *

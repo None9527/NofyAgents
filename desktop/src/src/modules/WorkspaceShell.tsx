@@ -4,10 +4,10 @@
  * WorkspaceShell.tsx — ZCode 3.7.6 工作区壳 + 工作区根控制器（解混淆重建 · D8 Stage B / F07）
  * ============================================================================
  *
- * 来源文件（融合 chunk，213,695 行，未改动）：
- *   /home/none/grok-build/ref-ui/zcode-restored/out/renderer/assets/styles-CdEGpc2x.js
+ * 来源文件（融合 chunk，本机 213,979 行，未改动；旧账 213,695 行拷贝已不在本机，两版行号不同，本文件引证 vintage 逐条混杂、用前须以本机束重定〔A1-R163〕）：
+ *   /Users/mac/nofy-build/desktop/src/out/renderer/assets/styles-CdEGpc2x.js
  * 对照文件（同一 chunk 的 pretty-print 版，规格文档行号以它为准）：
- *   /home/none/grok-build/ref-ui/zcode-restored/src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx
+ *   /Users/mac/nofy-build/desktop/src/src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx
  *
  * ----------------------------------------------------------------------------
  * 一、混淆名 → 语义名 映射表（行号格式：融合chunk js 行 / jsx 行）

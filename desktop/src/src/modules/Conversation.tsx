@@ -4,11 +4,11 @@
  * Conversation.tsx — ZCode 3.7.6 会话族主模块（F03 ConversationFamily · D8 Stage B）
  * ============================================================================
  *
- * 来源文件（融合 chunk，213,695 行，未改动）：
- *   /home/none/grok-build/ref-ui/zcode-restored/out/renderer/assets/styles-CdEGpc2x.js
+ * 来源文件（融合 chunk，本机 213,979 行，未改动；旧账 213,695 行拷贝已不在本机，两版行号不同，本文件引证 vintage 逐条混杂、用前须以本机束重定〔A1-R163〕）：
+ *   /Users/mac/nofy-build/desktop/src/out/renderer/assets/styles-CdEGpc2x.js
  * 对照文件（同一 chunk 的 pretty-print 版，行号口径见 MODULE-MAP.md）：
- *   /home/none/grok-build/ref-ui/zcode-restored/src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx
- * 规格：/home/none/grok-build/web/docs/zcode-uiux-spec.md §6（会话视图）
+ *   /Users/mac/nofy-build/desktop/src/src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx
+ * 规格：/Users/mac/nofy-build/desktop/docs/research/zcode-uiux-spec.md §6（会话视图）
  *
  * 本族 ~22,720 行（全图最大族），按任务要求拆为两个文件：
  *   - Conversation.tsx（本文件）：会话面板 R0、消息列表、Turn/ToolBlock/Markdown 渲染、

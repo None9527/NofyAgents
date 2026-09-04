@@ -4,10 +4,10 @@
  * CodeViewer.tsx — ZCode 3.7.6 代码查看/文件预览族（解混淆重建 · D8 Stage B3 / F14）
  * ============================================================================
  *
- * 来源文件（融合 chunk，213,695 行，未改动）：
- *   /home/none/grok-build/ref-ui/zcode-restored/out/renderer/assets/styles-CdEGpc2x.js
+ * 来源文件（融合 chunk，本机 213,979 行，未改动；旧账 213,695 行拷贝已不在本机，两版行号不同，本文件引证 vintage 逐条混杂、用前须以本机束重定〔A1-R163〕）：
+ *   /Users/mac/nofy-build/desktop/src/out/renderer/assets/styles-CdEGpc2x.js
  * 对照文件（同一 chunk 的 pretty-print 版）：
- *   /home/none/grok-build/ref-ui/zcode-restored/src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx
+ *   /Users/mac/nofy-build/desktop/src/src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx
  *
  * 本族 = 代码查看面板：breadcrumb 头（滚动渐隐遮罩）+ 更多菜单（markdown/svg 视图切换、
  * 换行、复制路径）+ 外部编辑器打开；内容分派（text/image/svg/pdf/office/pptx/patch/

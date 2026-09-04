@@ -4,8 +4,8 @@
  * ModalsLeaves.tsx — ZCode 3.7.6 模态族接口级叶子 + 杂项共享件（D8 Stage B4）
  * ============================================================================
  *
- * 来源文件（融合 chunk，213,695 行，未改动；只读访问）：
- *   /home/none/grok-build/ref-ui/zcode-restored/out/renderer/assets/styles-CdEGpc2x.js
+ * 来源文件（融合 chunk，本机 213,979 行，未改动；只读访问；旧账 213,695 行拷贝已不在本机，两版行号不同，本文件引证 vintage 逐条混杂、用前须以本机束重定〔A1-R163〕）：
+ *   /Users/mac/nofy-build/desktop/src/out/renderer/assets/styles-CdEGpc2x.js
  *   （md5 c9d0d675d0b858e6e7711df3e9122e81）
  * 前序产物（本批实体化其接口级声明）：
  *   Modals.tsx（E3t 向导消费的 S4t/C4t hero、R7/I2t/v$t 共用面声明）

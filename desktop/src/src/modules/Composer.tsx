@@ -4,7 +4,7 @@
  * Composer.tsx — Composer 族（F08）first-party 逐字重建（B5-01 批次 · 解混淆重建）
  * ============================================================================
  *
- * 来源文件（融合 chunk，213,695 行，未改动；主口径）：
+ * 来源文件（融合 chunk，本机 213,979 行，未改动；主口径；旧账 213,695 行拷贝已不在本机，两版行号不同，本文件引证 vintage 逐条混杂、用前须以本机束重定〔A1-R163〕）：
  *   /Users/mac/nofy-build/desktop/src/out/renderer/assets/styles-CdEGpc2x.js
  * 对照文件（同一 chunk 的 pretty-print 版）：
  *   /Users/mac/nofy-build/desktop/src/src-reconstructed/renderer/assets/styles-CdEGpc2x.jsx
